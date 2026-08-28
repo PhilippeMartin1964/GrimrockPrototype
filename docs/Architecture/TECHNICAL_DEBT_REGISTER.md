@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.7 VALIDÉ/CLOS — TD07.8 À OUVRIR**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.8 FINAL VALIDATION PREPARED**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -37,11 +37,11 @@ P2 — maintenabilité / architecture / tooling à réduire de manière ciblée
 P3 — nettoyage opportuniste ou intégration non bloquante
 ```
 
-État au 27 août 2026, après ouverture du Prototype Data Model Reset :
+État au 28 août 2026, après re-audit TD07.8 :
 
 ```text
 P0 : aucun blocage connu
-P1 : 1 dette active — TD-DATA-001
+P1 : aucune dette active
 P2 : 9 dettes actives, surveillées ou différées
 P3 : 2 dettes actives
 ```
@@ -490,7 +490,7 @@ Stop condition : pas de TD03.5 cosmétique. Les actions avancées/debug restante
 
 **Priorité : P2 — surveillée / opportuniste**
 
-TD01.4 a stabilisé plusieurs domaines. Continuer uniquement dans les domaines réellement touchés ; aucun remplacement global de `LogTemp`.
+TD01.4 a stabilisé plusieurs domaines. TD07.7 a ensuite normalisé le domaine Activation : `GridActivationComponent.cpp` ne contient plus de `UE_LOG(LogTemp)` et utilise `LogGridActivation`. Le re-audit TD07.7 recense encore 414 appels `UE_LOG(LogTemp)` dans 44 autres fichiers ; ils restent hors périmètre tant que leur domaine n'est pas réellement touché. Aucun remplacement global de `LogTemp`.
 
 ---
 
@@ -567,14 +567,14 @@ Le TODO de scaling du lancer reste à relier au design Skills lorsque vitesse/pr
 - faux succès state-only supprimés ;
 - aucune seconde autorité Event -> Command.
 
-## TD-STYLE-001 — Formatting tooling — RÉSOLU POUR LE CONTRAT D’OUTIL
+## TD-STYLE-001 — Formatting tooling / baseline — RÉSOLU
 
 - `.clang-format`, `.editorconfig`, `.gitattributes` ;
 - `Scripts/FormatCpp.ps1` ;
 - `Scripts/CheckCppFormat.ps1` ;
 - clang-format 19.1.5 figé.
 
-**Note de suivi :** le contrôle global a révélé le 26 août 2026 une dérive historique de formatage dans du code first-party, notamment `GridPartyInventoryComponentDiagnostics.cpp`. Cette anomalie est distincte de TD06 et doit être auditée séparément avant de considérer la baseline de format globale comme entièrement verte.
+**TD07.7 :** la dérive historique a été caractérisée puis normalisée mécaniquement. Le contrôle autoritaire clang-format 19.1.5 valide désormais **568/568 fichiers C++ first-party**.
 
 ---
 
@@ -629,7 +629,7 @@ TD07.4          ActivationComponent characterization                   VALIDÉ �
 TD07.5          Suspended test infrastructure / branch recovery        VALIDÉ — CLOS
 TD07.6          Legacy asset/API cleanup audit                          ABSORBÉ PAR TD07.3
 TD07.7          Targeted log / formatting hygiene                      VALIDÉ — CLOS
-TD07.8          Future-proofing re-audit / stop condition              À FAIRE
+TD07.8          Future-proofing re-audit / stop condition              FINAL VALIDATION PREPARED
 ```
 
 **TD05 reste clos pour `AGridLevelRuntimeActor`.** Aucun split Geometry/Doors/Generic Objects n’est recommandé sans nouveau signal concret.
@@ -665,7 +665,7 @@ UI/assets  : Automation disponible + PIE ciblé
 Save       : capture/restore du schéma courant + rejet strict des anciennes versions ; aucune migration prototype
 Shipping   : Scripts/ValidatePackage.ps1
 CI distante: non autoritaire tant qu’aucun runner UE5.5.4 réel n’est provisionné
-Format     : clang-format 19.1.5 ; baseline first-party globale à réauditer séparément
+Format     : clang-format 19.1.5 ; baseline first-party globale 568/568 conforme
 ```
 
 TD06.1 ne modifie aucun contrat C++ ni asset : sa validation est documentaire/statique. À partir de TD06.2, la caractérisation puis toute extraction C++ doivent passer le harness UE et les Automations ciblées.
@@ -698,15 +698,9 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD07.3.3.9 — Normalize Level-Up Notification State.**
+**Valider TD07.8 — Future-proofing re-audit / stop condition.**
 
-Gate local validé le 27 août 2026 :
-
-```text
-Grimrock.TechnicalDebt.TD07_3_3_9.Normalization
-4 Success / 0 warning / 0 Failed / 0 Not run
-Report : TD04-20260827-224647
-```
+Gate final préparé : `Scripts/ValidateTD078StopCondition.ps1`. Il couvre dépendances, format, schéma strict, compatibilité UE, Activation/Event->Command/Receptacle, caractérisation MON21.4 et Shipping Win64.
 
 Nouveau contrat :
 

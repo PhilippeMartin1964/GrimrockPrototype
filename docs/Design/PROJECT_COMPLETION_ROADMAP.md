@@ -1,7 +1,7 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07 ACTIF — TD07.7 VALIDÉ/CLOS — TD07.8 À OUVRIR — MON21.4 SUSPENDU**  
-Date de référence : **27 août 2026**
+Statut : **TD07 ACTIF — TD07.8 FINAL VALIDATION PREPARED — MON21.4 SUSPENDU**  
+Date de référence : **28 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
 
@@ -277,7 +277,7 @@ MON30 — Full Campaign
 TD07.3.3.7 — Normalize Spellbook
 ```
 
-La prochaine tranche autoritaire est TD07.4 — ActivationComponent characterization. MON21.4 reste suspendu jusqu'à TD07.8.
+La tranche autoritaire courante est TD07.8 — Future-proofing re-audit / stop condition. MON21.4 reste suspendu jusqu'à validation complète de ce gate final.
 
 
 TD07.3.3.9 ouvre **v19 exact-match** : `LastAcknowledgedLevel` devient l'état durable minimal de notification Level-Up et les queues persistantes MON15.6 sont supprimées.
@@ -293,7 +293,7 @@ TD07.4  ActivationComponent characterization                   VALIDÉ — CLOS 
 TD07.5  Suspended test infrastructure / branch recovery        VALIDÉ — CLOS
 TD07.6  Legacy asset/API cleanup audit                          ABSORBÉ PAR TD07.3
 TD07.7  Targeted log / formatting hygiene                      VALIDÉ — CLOS
-TD07.8  Future-proofing re-audit / stop condition              À FAIRE
+TD07.8  Future-proofing re-audit / stop condition              FINAL VALIDATION PREPARED
 ```
 
 MON21.4 ne reprend qu'après TD07.8.
