@@ -77,16 +77,14 @@ bool FGridTD074ActivationSurfaceCharacterizationTest::RunTest(const FString& Par
 	const int32 LogTempCalls = CountOccurrences(Source, TEXT("UE_LOG(LogTemp"));
 	const int32 LogGridActivationCalls = CountOccurrences(Source, TEXT("UE_LOG(LogGridActivation"));
 
-	AddInfo(FString::Printf(
-		TEXT("TD07.4 current surface: header=%d lines/%d chars source=%d lines/%d chars scoped-method-occurrences=%d UE_LOG=%d LogTemp=%d LogGridActivation=%d"),
-		HeaderLines, Header.Len(), SourceLines, Source.Len(), ScopedMethodOccurrences, LogCalls, LogTempCalls, LogGridActivationCalls));
+	AddInfo(FString::Printf(TEXT("TD07.4 surface: header=%d/%d source=%d/%d methods=%d UE_LOG=%d LogTemp=%d LogGridActivation=%d"), HeaderLines,
+		Header.Len(), SourceLines, Source.Len(), ScopedMethodOccurrences, LogCalls, LogTempCalls, LogGridActivationCalls));
 
 	TestTrue(TEXT("Activation component is currently a concentrated source file"), SourceLines >= 1500);
 	TestTrue(TEXT("Activation component has at least forty scoped implementations"), ScopedMethodOccurrences >= 40);
-	TestEqual(TEXT("TD07.7 removed LogTemp from ActivationComponent"), LogTempCalls, 0);
-	TestEqual(TEXT("ActivationComponent generic logs use the dedicated LogGridActivation category"), LogGridActivationCalls, 38);
-	TestTrue(TEXT("ActivationComponent declares the dedicated LogGridActivation category"),
-		Source.Contains(TEXT("DEFINE_LOG_CATEGORY_STATIC(LogGridActivation, Log, All);")));
+	TestEqual(TEXT("Activation uses no LogTemp"), LogTempCalls, 0);
+	TestEqual(TEXT("Activation uses 38 LogGridActivation calls"), LogGridActivationCalls, 38);
+	TestTrue(TEXT("LogGridActivation category is declared"), Source.Contains(TEXT("DEFINE_LOG_CATEGORY_STATIC(LogGridActivation, Log, All);")));
 	return true;
 }
 

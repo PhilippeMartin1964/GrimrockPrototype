@@ -126,6 +126,7 @@ bool FGridTD0132StateOnlyRuntimeRejectionTest::RunTest(const FString& Parameters
 	Activation->Initialize(Runtime);
 	Activation->RebuildIndexes();
 
+	AddExpectedError(TEXT("Grid link failed:"), EAutomationExpectedErrorFlags::Contains, 6);
 	TestFalse(TEXT("StateOnly Activate links are rejected at runtime"), Activation->ExecuteLinksFromObjectForEvent(SourceId, EGridObjectEvent::Activated));
 	TestFalse(TEXT("Teleporter was not activated by a rejected link"), Activation->GetActiveObjectIds().Contains(TeleporterId));
 	TestFalse(TEXT("ItemSpawn was not activated by a rejected link"), Activation->GetActiveObjectIds().Contains(ItemSpawnId));
