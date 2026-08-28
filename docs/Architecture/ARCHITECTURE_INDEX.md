@@ -38,6 +38,7 @@ Phase active : **aucune**. TD07 est validé et clos ; MON21.4 reste en attente d
 | [UI_GAME_FLOW_FOUNDATION.md](UI_GAME_FLOW_FOUNDATION.md) | Menus, inventaire, Skills, Spellbook et surfaces campagne. |
 | [TEST_AUTOMATION_FOUNDATION.md](TEST_AUTOMATION_FOUNDATION.md) | Automation, harness Editor/Shipping, PIE et règles de validation. |
 | [TECHNICAL_DEBT_REGISTER.md](TECHNICAL_DEBT_REGISTER.md) | Dette technique active, surveillée et différée. |
+| [TD07_FINAL_QUANTITATIVE_AUDIT_BASELINE.md](TD07_FINAL_QUANTITATIVE_AUDIT_BASELINE.md) | Baseline chiffrée de clôture TD07 pour comparaison lors des futurs audits. |
 
 ## Modules
 
@@ -91,7 +92,7 @@ TD07.1    Build / dependency reproducibility             VALIDÉ
 TD07.2    UE compatibility cleanup                       VALIDÉ
 TD07.3.1  Prototype Data Model Policy + Asset Audit      VALIDÉ
 TD07.3.2  SaveGame Reset / no backward migration         VALIDÉ
-TD07.3.3  Character State Normalization                    ACTIF
+TD07.3.3  Character State Normalization                    VALIDÉ — CLOS
 TD07.3.3.1 Character State Authority Audit                 VALIDÉ
 TD07.3.3.2 Remove Legacy Attribute Bridge                  VALIDÉ
 TD07.3.3.3 Normalize Derived Stats / Mutable Resources      VALIDÉ

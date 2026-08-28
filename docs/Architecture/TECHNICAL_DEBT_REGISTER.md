@@ -676,6 +676,7 @@ TD06.1 ne modifie aucun contrat C++ ni asset : sa validation est documentaire/st
 
 ```text
 docs/Architecture/TECHNICAL_DEBT_REGISTER.md
+docs/Architecture/TD07_FINAL_QUANTITATIVE_AUDIT_BASELINE.md
 docs/Architecture/TECHNICAL_DEBT_DOCUMENTATION_AUDIT.md
 docs/Architecture/ARCHITECTURE_INDEX.md
 docs/Architecture/SAVE_PERSISTENCE_FOUNDATION.md

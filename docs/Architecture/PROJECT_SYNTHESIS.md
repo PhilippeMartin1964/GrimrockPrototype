@@ -15,10 +15,10 @@
 | Dernier jalon fonctionnel | `MON21.3 — Quest Event -> Command Integration` |
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
-| Dernière tranche validée | `TD07.7 — Targeted log / formatting hygiene` |
+| Dernière tranche validée | `TD07.8 — Future-proofing re-audit / stop condition` |
 | Tranche active | `Aucune — MON21.4 en attente du feu vert utilisateur` |
 
-La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`.
+La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`. La baseline quantitative de clôture TD07 pour les audits futurs est `docs/Architecture/TD07_FINAL_QUANTITATIVE_AUDIT_BASELINE.md`.
 
 ## 2. Lecture en cinq minutes
 
@@ -197,7 +197,7 @@ MON21.3      Quest Event -> Command Integration           VALIDÉ
 TD01–TD06    stabilisation / dette ciblée                 STOP CONDITIONS ATTEINTES
 TD07.3.1     Prototype Data Model Asset Audit             VALIDÉ
 TD07.3.2     SaveGame Reset                              VALIDÉ
-TD07.3.3     Character State Normalization                  ACTIF
+TD07.3.3     Character State Normalization                  VALIDÉ — CLOS
 TD07.3.3.1   Character State Authority Audit                VALIDÉ
 TD07.3.3.2   Remove Legacy Attribute Bridge                 VALIDÉ
 TD07.3.3.3   Normalize Derived Stats / Mutable Resources     VALIDÉ
