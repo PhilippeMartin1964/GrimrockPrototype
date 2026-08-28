@@ -13,15 +13,15 @@
 
 namespace GridTD075ReceptacleRecovery
 {
-	const FGuid SourceObjectId(7, 5, 1, 1);
-	const FGuid ReceptacleObjectId(7, 5, 2, 2);
-	const FName ReceptacleArchetypeId(TEXT("TD07_5_Receptacle"));
+	const FGuid TD075SourceObjectId(7, 5, 1, 1);
+	const FGuid TD075ReceptacleObjectId(7, 5, 2, 2);
+	const FName TD075ReceptacleArchetypeId(TEXT("TD07_5_Receptacle"));
 
-	struct FTestWorld
+	struct FTD075TestWorld
 	{
 		UWorld* World = nullptr;
 
-		FTestWorld()
+		FTD075TestWorld()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
 				.AllowAudioPlayback(false)
@@ -48,7 +48,7 @@ namespace GridTD075ReceptacleRecovery
 			}
 		}
 
-		~FTestWorld()
+		~FTD075TestWorld()
 		{
 			if (!World)
 			{
@@ -63,7 +63,7 @@ namespace GridTD075ReceptacleRecovery
 		}
 	};
 
-	UGridItemDefinitionAsset* MakeItemDefinition(UObject* Outer, FName ItemId)
+	UGridItemDefinitionAsset* MakeTD075ItemDefinition(UObject* Outer, FName ItemId)
 	{
 		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Outer);
 		Definition->ItemDefinitionId = ItemId;
@@ -76,17 +76,17 @@ namespace GridTD075ReceptacleRecovery
 		return Definition;
 	}
 
-	FGridObjectLink MakeLink(EGridObjectEvent Event, EGridObjectCommand Command)
+	FGridObjectLink MakeTD075Link(EGridObjectEvent Event, EGridObjectCommand Command)
 	{
 		FGridObjectLink Link;
-		Link.SourceObjectId = SourceObjectId;
-		Link.TargetObjectId = ReceptacleObjectId;
+		Link.TD075SourceObjectId = TD075SourceObjectId;
+		Link.TargetObjectId = TD075ReceptacleObjectId;
 		Link.SourceEvent = Event;
 		Link.Command = Command;
 		return Link;
 	}
 
-	AGridLevelRuntimeActor* BuildRuntime(FAutomationTestBase& Test, UWorld* World)
+	AGridLevelRuntimeActor* BuildTD075Runtime(FAutomationTestBase& Test, UWorld* World)
 	{
 		if (!World)
 		{
@@ -100,8 +100,8 @@ namespace GridTD075ReceptacleRecovery
 			return nullptr;
 		}
 
-		UGridItemDefinitionAsset* ItemA = MakeItemDefinition(Runtime, TEXT("Item_TD075_A"));
-		UGridItemDefinitionAsset* ItemB = MakeItemDefinition(Runtime, TEXT("Item_TD075_B"));
+		UGridItemDefinitionAsset* ItemA = MakeTD075ItemDefinition(Runtime, TEXT("Item_TD075_A"));
+		UGridItemDefinitionAsset* ItemB = MakeTD075ItemDefinition(Runtime, TEXT("Item_TD075_B"));
 
 		UGridLevelAsset* Level = NewObject<UGridLevelAsset>(Runtime);
 		Level->Width = 1;
@@ -110,7 +110,7 @@ namespace GridTD075ReceptacleRecovery
 		Level->Cells[0].CellType = EGridCellType::Floor;
 
 		FGridLevelObjectData& Source = Level->Objects.AddDefaulted_GetRef();
-		Source.ObjectId = SourceObjectId;
+		Source.ObjectId = TD075SourceObjectId;
 		Source.Type = EGridLevelObjectType::Logic;
 		Source.LogicId = TEXT("TD07_5_Source");
 		Source.CellX = 0;
@@ -118,8 +118,8 @@ namespace GridTD075ReceptacleRecovery
 		Source.bInitiallyEnabled = true;
 
 		FGridLevelObjectData& Receptacle = Level->Objects.AddDefaulted_GetRef();
-		Receptacle.ObjectId = ReceptacleObjectId;
-		Receptacle.ArchetypeId = ReceptacleArchetypeId;
+		Receptacle.ObjectId = TD075ReceptacleObjectId;
+		Receptacle.ArchetypeId = TD075ReceptacleArchetypeId;
 		Receptacle.Type = EGridLevelObjectType::Receptacle;
 		Receptacle.CellX = 0;
 		Receptacle.CellY = 0;
@@ -137,13 +137,13 @@ namespace GridTD075ReceptacleRecovery
 		InitialB.ItemDefinition = ItemB;
 		InitialB.Quantity = 1;
 
-		Level->Links.Add(MakeLink(EGridObjectEvent::Activated, EGridObjectCommand::ReceptacleConsumeItem));
-		Level->Links.Add(MakeLink(EGridObjectEvent::Used, EGridObjectCommand::ReceptacleDisableRemoval));
-		Level->Links.Add(MakeLink(EGridObjectEvent::Opened, EGridObjectCommand::ReceptacleEnableRemoval));
-		Level->Links.Add(MakeLink(EGridObjectEvent::Closed, EGridObjectCommand::ReceptacleConsumeAllItems));
+		Level->Links.Add(MakeTD075Link(EGridObjectEvent::Activated, EGridObjectCommand::ReceptacleConsumeItem));
+		Level->Links.Add(MakeTD075Link(EGridObjectEvent::Used, EGridObjectCommand::ReceptacleDisableRemoval));
+		Level->Links.Add(MakeTD075Link(EGridObjectEvent::Opened, EGridObjectCommand::ReceptacleEnableRemoval));
+		Level->Links.Add(MakeTD075Link(EGridObjectEvent::Closed, EGridObjectCommand::ReceptacleConsumeAllItems));
 
 		UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
-		Archetype->ArchetypeId = ReceptacleArchetypeId;
+		Archetype->ArchetypeId = TD075ReceptacleArchetypeId;
 		Archetype->SupportedType = EGridLevelObjectType::Receptacle;
 		Archetype->PlacementKind = EGridObjectPlacementKind::Wall;
 		Archetype->bIsInteractable = true;
@@ -165,16 +165,14 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FGridTD075ReceptacleCommandRecoveryTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	using namespace GridTD075ReceptacleRecovery;
-
-	FTestWorld TestWorld;
+	GridTD075ReceptacleRecovery::FTD075TestWorld TestWorld;
 	TestNotNull(TEXT("TD07.5 transient world exists"), TestWorld.World);
 	if (!TestWorld.World)
 	{
 		return false;
 	}
 
-	AGridLevelRuntimeActor* Runtime = BuildRuntime(*this, TestWorld.World);
+	AGridLevelRuntimeActor* Runtime = GridTD075ReceptacleRecovery::BuildTD075Runtime(*this, TestWorld.World);
 	TestNotNull(TEXT("TD07.5 runtime exists"), Runtime);
 	if (!Runtime)
 	{
@@ -182,7 +180,7 @@ bool FGridTD075ReceptacleCommandRecoveryTest::RunTest(const FString& Parameters)
 	}
 
 	AGridReceptacleActor* Receptacle =
-		Runtime->FindRuntimeObjectActor<AGridReceptacleActor>(ReceptacleObjectId);
+		Runtime->FindRuntimeObjectActor<AGridReceptacleActor>(GridTD075ReceptacleRecovery::TD075ReceptacleObjectId);
 	TestNotNull(TEXT("TD07.5 receptacle spawned from transient fixture"), Receptacle);
 	if (!Receptacle)
 	{
@@ -194,22 +192,22 @@ bool FGridTD075ReceptacleCommandRecoveryTest::RunTest(const FString& Parameters)
 
 	TestTrue(
 		TEXT("Event -> ReceptacleConsumeItem succeeds"),
-		Runtime->ExecuteLinksFromRuntimeObject(SourceObjectId, EGridObjectEvent::Activated));
+		Runtime->ExecuteLinksFromRuntimeObject(GridTD075ReceptacleRecovery::TD075SourceObjectId, EGridObjectEvent::Activated));
 	TestEqual(TEXT("ConsumeItem removes exactly one contained entry"), Receptacle->GetContainedItemCount(), 1);
 
 	TestTrue(
 		TEXT("Event -> ReceptacleDisableRemoval succeeds"),
-		Runtime->ExecuteLinksFromRuntimeObject(SourceObjectId, EGridObjectEvent::Used));
+		Runtime->ExecuteLinksFromRuntimeObject(GridTD075ReceptacleRecovery::TD075SourceObjectId, EGridObjectEvent::Used));
 	TestFalse(TEXT("DisableRemoval updates receptacle runtime state"), Receptacle->bCanRemoveItem);
 
 	TestTrue(
 		TEXT("Event -> ReceptacleEnableRemoval succeeds"),
-		Runtime->ExecuteLinksFromRuntimeObject(SourceObjectId, EGridObjectEvent::Opened));
+		Runtime->ExecuteLinksFromRuntimeObject(GridTD075ReceptacleRecovery::TD075SourceObjectId, EGridObjectEvent::Opened));
 	TestTrue(TEXT("EnableRemoval updates receptacle runtime state"), Receptacle->bCanRemoveItem);
 
 	TestTrue(
 		TEXT("Event -> ReceptacleConsumeAllItems succeeds"),
-		Runtime->ExecuteLinksFromRuntimeObject(SourceObjectId, EGridObjectEvent::Closed));
+		Runtime->ExecuteLinksFromRuntimeObject(GridTD075ReceptacleRecovery::TD075SourceObjectId, EGridObjectEvent::Closed));
 	TestEqual(TEXT("ConsumeAllItems empties the receptacle"), Receptacle->GetContainedItemCount(), 0);
 
 	return true;
