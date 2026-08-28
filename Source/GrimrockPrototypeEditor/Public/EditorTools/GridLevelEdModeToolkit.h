@@ -43,11 +43,8 @@ private:
 	TSharedRef<SWidget> BuildToolkitWidget();
 
 	TSharedRef<SWidget> BuildHeaderSection();
-	TSharedRef<SWidget> BuildDungeonLevelsPanel();
 	TSharedRef<SWidget> BuildPlaytestPanel();
 	TSharedRef<SWidget> BuildCollapsiblePanelSection(const FText& Title, const TFunctionRef<TSharedRef<SWidget>()>& BuildContent, bool& bExpanded);
-	FReply HandleSelectDungeonLevel(FName LevelId);
-	FReply HandleCreateDungeonLevelClicked();
 	FReply TogglePanelExpansion(bool* bExpanded);
 	void ExpandValidationIfMessagesNeedAttention();
 

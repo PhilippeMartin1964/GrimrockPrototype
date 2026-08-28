@@ -5,6 +5,7 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "EditorTools/Widgets/SGridEditorDungeonLevelsPanel.h"
 #include "EditorTools/Widgets/SGridEditorLinksPanel.h"
 #include "EditorTools/Widgets/SGridEditorObjectInspectorPanel.h"
 #include "EditorTools/Widgets/SGridEditorOverviewMapPanel.h"
@@ -17,6 +18,7 @@
 #include "Styling/SlateColor.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SScrollBox.h"
+#include "Widgets/Layout/SSplitter.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
 
@@ -147,48 +149,47 @@ TSharedRef<SWidget> SGridEditorWorkspaceTab::BuildContent()
 TSharedRef<SWidget> SGridEditorWorkspaceTab::BuildDungeonLevelsContent()
 {
 	AGridLevelEditorActor* EditorActor = FindEditorActor();
-	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
-
-	Root->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, 8.f)
-	[
-		BuildMigrationNotice(FText::FromString(
-			TEXT("GEUI01 foundation: the Overview Map is already hosted here. Dungeon level list/actions remain in the main Grid Editor toolkit until GEUI02.")))
-	];
-
-	if (EditorActor)
-	{
-		const FText DungeonName = EditorActor->DungeonAsset && !EditorActor->DungeonAsset->DungeonName.IsEmpty()
-			? EditorActor->DungeonAsset->DungeonName
-			: (EditorActor->DungeonAsset ? FText::FromString(EditorActor->DungeonAsset->GetName()) : FText::FromString(TEXT("None")));
-
-		Root->AddSlot().AutoHeight()
-		[
-			GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Dungeon")), DungeonName)
-		];
-		Root->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, 8.f)
-		[
-			GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-				FText::FromString(TEXT("Current Level")), EditorActor->CurrentDungeonLevelId.IsNone()
-					? FText::FromString(TEXT("None"))
-					: FText::FromName(EditorActor->CurrentDungeonLevelId))
-		];
-	}
-
-	Root->AddSlot().AutoHeight()
-	[
-		SNew(SGridEditorOverviewMapPanel)
-			.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
-			.OnGetEditorActor(FOnGetGridEditorActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
-			.OnRequestRefresh(FOnGridEditorOverviewRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild))
-	];
 
 	return SNew(SBorder)
 		.Padding(8.f)
 		[
-			SNew(SScrollBox)
-			+ SScrollBox::Slot()
+			SNew(SSplitter)
+			.Orientation(Orient_Horizontal)
+
+			+ SSplitter::Slot()
+			.Value(0.36f)
 			[
-				Root
+				SNew(SBorder)
+				.Padding(6.f)
+				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					SNew(SScrollBox)
+					+ SScrollBox::Slot()
+					[
+						SNew(SGridEditorDungeonLevelsPanel)
+							.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
+							.OnGetEditorActor(FOnGetGridEditorDungeonLevelsActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
+							.OnRequestRefresh(FOnGridEditorDungeonLevelsRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild))
+					]
+				]
+			]
+
+			+ SSplitter::Slot()
+			.Value(0.64f)
+			[
+				SNew(SBorder)
+				.Padding(6.f)
+				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					SNew(SScrollBox)
+					+ SScrollBox::Slot()
+					[
+						SNew(SGridEditorOverviewMapPanel)
+							.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
+							.OnGetEditorActor(FOnGetGridEditorActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
+							.OnRequestRefresh(FOnGridEditorOverviewRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild))
+					]
+				]
 			]
 		];
 }
