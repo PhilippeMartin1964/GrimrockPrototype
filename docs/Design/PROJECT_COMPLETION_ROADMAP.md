@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07 VALIDÉ/CLOS — MON21.4 QUEST PERSISTENCE ACTIF**  
+Statut : **TD07 VALIDÉ/CLOS — MON21.4 EN ATTENTE DU FEU VERT UTILISATEUR**  
 Date de référence : **28 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -83,7 +83,7 @@ Transformer les surfaces campagne déjà présentes en systèmes data-driven :
 MON21.1 — Audit & Architecture Contract                         CLOS
 MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
-MON21.4 — Quest Persistence                                   ACTIF — CHARACTERIZATION VALIDÉE
+MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
 MON21.6 — Map Geometry + Exploration State + Existing WBP       À FAIRE
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
@@ -149,9 +149,9 @@ Grimrock.Quests.MON21_3.EventCommandIntegration
 1 Success / 0 Failed
 ```
 
-## MON21.4 — Quest Persistence — ACTIF
+## MON21.4 — Quest Persistence — EN ATTENTE
 
-MON21.4 a été caractérisé après TD07.3. TD07.8 a validé le 28 août 2026 que ses hypothèses restent correctes ; l'implémentation reprend maintenant sans nouvelle phase d'audit.
+MON21.4 a été caractérisé après TD07.3. TD07.8 a validé le 28 août 2026 que ses hypothèses restent correctes. L'implémentation ne reprend toutefois qu'après feu vert explicite de l'utilisateur.
 
 Sa persistance suivra alors le contrat prototype courant :
 
@@ -274,10 +274,11 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON21.4 — Quest Persistence
+Aucun développement fonctionnel actif.
+MON21.4 — Quest Persistence : en attente du feu vert utilisateur.
 ```
 
-La tranche autoritaire courante est MON21.4 — Quest Persistence. TD07 est validé et clos.
+TD07 est validé et clos. MON21.4 est la prochaine tranche fonctionnelle prévue, mais reste volontairement en attente du feu vert explicite de l'utilisateur.
 
 
 TD07.3.3.9 ouvre **v19 exact-match** : `LastAcknowledgedLevel` devient l'état durable minimal de notification Level-Up et les queues persistantes MON15.6 sont supprimées.

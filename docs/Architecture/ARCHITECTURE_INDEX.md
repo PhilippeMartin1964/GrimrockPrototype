@@ -4,8 +4,8 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 28 août 2026, TD07 validé/clos ; stop condition future-proofing atteinte ; MON21.4 Quest Persistence actif.**  
-Phase active : **MON21.4 — Quest Persistence**. TD07 est validé et clos.
+**Référence courante : 28 août 2026, TD07 validé/clos ; stop condition future-proofing atteinte ; MON21.4 en attente du feu vert utilisateur.**  
+Phase active : **aucune**. TD07 est validé et clos ; MON21.4 reste en attente du feu vert explicite de l'utilisateur.
 
 ## Ordre de lecture recommandé
 
@@ -115,7 +115,7 @@ TD07.3.8 Strict Current-Schema Validation / stop condition      VALIDÉ — STOP
 MON21.1  Audit & Architecture Contract                  CLOS
 MON21.2  Quest Definition + Campaign Runtime State      VALIDÉ
 MON21.3  Quest Event -> Command Integration             VALIDÉ
-MON21.4  Quest Persistence                            ACTIF — CHARACTERIZATION VALIDÉE
+MON21.4  Quest Persistence                            EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5  Journal Read Model + Existing WBP Integration  À FAIRE
 MON21.6  Map Geometry + Exploration State + Existing WBP À FAIRE
 MON21.7  Codex Discovery + Definition Projection        À FAIRE

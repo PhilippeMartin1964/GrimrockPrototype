@@ -237,4 +237,4 @@ Aucune dette P0/P1 active ne subsiste. Les dettes restantes sont surveillées, d
 
 Conséquence autoritaire :
 
-**MON21.4 — Quest Persistence reprend immédiatement à partir de sa characterization déjà validée.**
+**MON21.4 — Quest Persistence est techniquement débloqué, mais reste en attente du feu vert explicite de l'utilisateur avant toute reprise.**

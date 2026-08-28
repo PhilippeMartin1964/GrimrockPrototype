@@ -698,7 +698,7 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Reprendre MON21.4 — Quest Persistence.**
+**Aucun nouveau travail technique requis. MON21.4 reste en attente du feu vert utilisateur.**
 
 TD07.8 est validé : dépendances, format, Editor, schéma strict, compatibilité UE, Activation/Event->Command/Receptacle, caractérisation MON21.4 et Shipping Win64 sont verts. La campagne TD07 est close.
 
