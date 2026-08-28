@@ -145,6 +145,7 @@ namespace GridTD075ReceptacleRecovery
 		UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
 		Archetype->ArchetypeId = TD075ReceptacleArchetypeId;
 		Archetype->SupportedType = EGridLevelObjectType::Receptacle;
+		Archetype->ObjectCategory = EGridObjectCategory::Receptacle;
 		Archetype->PlacementKind = EGridObjectPlacementKind::Wall;
 		Archetype->bIsInteractable = true;
 		Archetype->RuntimeActorClass = AGridReceptacleActor::StaticClass();
