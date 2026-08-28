@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07 ACTIF — TD07.5 VALIDÉ/CLOS — TD07.7 À OUVRIR — MON21.4 SUSPENDU**  
+Statut : **TD07 ACTIF — TD07.7 CHARACTERIZATION PREPARED — À VALIDER — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
