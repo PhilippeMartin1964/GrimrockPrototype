@@ -265,7 +265,6 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON9DirectPlacedInitialCellInferenc
 bool FGridMonsterMON9DirectPlacedInitialCellInferenceTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	AddExpectedError(TEXT("[GridMonsterCombat] Initialization failed."), EAutomationExpectedErrorFlags::Contains, 1);
 	FGridMON9TestWorld TestWorld;
 	if (!TestNotNull(TEXT("The direct-placement test world exists"), TestWorld.World))
 	{
@@ -274,6 +273,7 @@ bool FGridMonsterMON9DirectPlacedInitialCellInferenceTest::RunTest(const FString
 
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	UGridLevelAsset* LevelAsset = MakeMON9Floor(Runtime);
+	SpawnMON9Party(TestWorld.World, Runtime);
 	LevelAsset->GetCellMutable(0, 0).CellType = EGridCellType::Empty;
 	LevelAsset->GetCellMutable(0, 0).bBlocksOccupancy = true;
 	Runtime->LevelAsset = LevelAsset;
@@ -372,7 +372,6 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON9DirectPlacedNewGameStartsAliveT
 bool FGridMonsterMON9DirectPlacedNewGameStartsAliveTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	AddExpectedError(TEXT("[GridMonsterCombat] Initialization failed."), EAutomationExpectedErrorFlags::Contains, 1);
 	FGridMON9TestWorld TestWorld;
 	if (!TestWorld.World)
 	{
@@ -381,6 +380,7 @@ bool FGridMonsterMON9DirectPlacedNewGameStartsAliveTest::RunTest(const FString& 
 
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	Runtime->LevelAsset = MakeMON9Floor(Runtime);
+	SpawnMON9Party(TestWorld.World, Runtime);
 	UGridMonsterDefinitionAsset* Definition = MakeMON9Definition(Runtime, TEXT("MON9_NewGameRat"));
 	const FGuid PersistenceId(98, 2, 1, 1);
 	const FIntPoint ExpectedCell(3, 2);
@@ -423,7 +423,6 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON9BeginPlayOrderIndependenceTest,
 bool FGridMonsterMON9BeginPlayOrderIndependenceTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	AddExpectedError(TEXT("[GridMonsterCombat] Initialization failed."), EAutomationExpectedErrorFlags::Contains, 4);
 
 	const auto RunOrder = [this](bool bMonsterBeginsFirst, uint32 IdSuffix)
 	{
@@ -435,6 +434,7 @@ bool FGridMonsterMON9BeginPlayOrderIndependenceTest::RunTest(const FString& Para
 
 		AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 		Runtime->LevelAsset = MakeMON9Floor(Runtime);
+		SpawnMON9Party(TestWorld.World, Runtime);
 		UGridMonsterDefinitionAsset* Definition =
 			MakeMON9Definition(Runtime, bMonsterBeginsFirst ? TEXT("MON9_OrderMonsterFirst") : TEXT("MON9_OrderRuntimeFirst"));
 		const FGuid PersistenceId(98, 2, 2, IdSuffix);

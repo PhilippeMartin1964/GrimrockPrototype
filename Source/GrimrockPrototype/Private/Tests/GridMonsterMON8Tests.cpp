@@ -541,7 +541,6 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FGridMonsterMON8MonsterDiedEventTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	AddExpectedError(TEXT("[GridMonsterSpawn] PresentationWarning"), EAutomationExpectedErrorFlags::Contains, 2);
 	AddExpectedError(TEXT("Reason=MissingMonsterMovement; continuing death."), EAutomationExpectedErrorFlags::Contains, 2);
 	AddExpectedError(TEXT("Grid link failed:"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestEqual(TEXT("Activated keeps its historic numeric value"), static_cast<uint8>(EGridObjectEvent::Activated), static_cast<uint8>(0));
