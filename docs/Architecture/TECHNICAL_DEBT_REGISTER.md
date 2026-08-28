@@ -653,6 +653,7 @@ TD06 est clos : la stop condition PartyInventory est validée. Aucune nouvelle t
 11. Helpers locaux de nouveaux `.cpp` nommés de façon Unity-safe.
 12. Stop condition : si le changement ajoute de la complexité sans supprimer un risque observé, arrêter.
 13. `Scripts/FormatCpp.ps1` formate tout le périmètre first-party : pour une micro-extraction, vérifier le diff et restaurer toute modification historique hors périmètre avant commit.
+14. En mode prototype, tout code, asset, test ou branche historique confirmé inutilisé doit être supprimé plutôt que conservé « au cas où » ; récupérer d'abord uniquement la couverture ou le contrat encore utile.
 
 ---
 
