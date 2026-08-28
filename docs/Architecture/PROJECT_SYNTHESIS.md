@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07.7 characterization exécutée ; GridActivation logs normalisés ; baseline format globale à réauditer ; MON21.4 suspendu.**
+> État : **28 août 2026, TD07.7 characterization complète ; 126 violations format connues ; normalisation mécanique préparée ; MON21.4 suspendu.**
 
 ## 1. Référence
 

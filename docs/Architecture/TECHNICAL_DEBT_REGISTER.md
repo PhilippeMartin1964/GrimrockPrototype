@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.7 LOG NORMALIZED — FORMAT BASELINE RE-AUDIT À VALIDER**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.7 LOG NORMALIZED — FORMAT NORMALIZATION PREPARED**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -628,7 +628,7 @@ TD07.3.8        Strict Current-Schema Validation / stop condition     VALIDÉ �
 TD07.4          ActivationComponent characterization                   VALIDÉ — CLOS SANS EXTRACTION
 TD07.5          Suspended test infrastructure / branch recovery        VALIDÉ — CLOS
 TD07.6          Legacy asset/API cleanup audit                          ABSORBÉ PAR TD07.3
-TD07.7          Targeted log / formatting hygiene                      LOG NORMALIZED — FORMAT RE-AUDIT À VALIDER
+TD07.7          Targeted log / formatting hygiene                      FORMAT NORMALIZATION PREPARED
 TD07.8          Future-proofing re-audit / stop condition              À FAIRE
 ```
 

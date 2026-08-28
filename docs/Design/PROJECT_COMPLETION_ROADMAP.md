@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07 ACTIF — TD07.7 LOG NORMALIZED — FORMAT BASELINE RE-AUDIT À VALIDER — MON21.4 SUSPENDU**  
+Statut : **TD07 ACTIF — TD07.7 LOG NORMALIZED — FORMAT NORMALIZATION PREPARED — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.

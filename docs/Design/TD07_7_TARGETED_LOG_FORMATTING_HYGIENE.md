@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Dettes : TD-LOG-001 / TD-STYLE-001
-Statut : CHARACTERIZATION VALIDÉE — LOG NORMALIZATION IMPLEMENTED — FORMAT BASELINE RE-AUDIT À VALIDER
+Statut : CHARACTERIZATION VALIDÉE — LOG NORMALIZATION IMPLEMENTED — FORMAT NORMALIZATION PREPARED
 
 ## 1. Objectif
 
@@ -83,7 +83,7 @@ Il :
 ## 5. Stop condition TD07.7
 
 - [x] audit de caractérisation exécuté ;
-- [ ] liste exacte des violations clang-format connue ;
+- [x] liste exacte des violations clang-format connue ;
 - [x] `GridActivationComponent.cpp` ne dépend plus de `LogTemp` ;
 - [x] aucune substitution globale hors périmètre justifié ;
 - [ ] baseline `Scripts/CheckCppFormat.ps1` verte ;
@@ -131,3 +131,42 @@ Les 38 appels génériques utilisent désormais `LogGridActivation`.
 `LogGridRecruitmentOffer` reste inchangé pour son sous-domaine dédié.
 
 Aucun autre fichier contenant `LogTemp` n'est modifié par cette étape.
+
+
+## 8. Baseline formatting complète
+
+Le second audit local a parcouru les **568 fichiers C++ first-party** et produit la liste complète :
+
+```text
+126 fichiers non conformes à Grimrock C++ Style v1
+CheckCppFormat exit code : 1
+clang-format              : 19.1.5
+```
+
+Cette dérive est historique et transverse : Core, Magic, Quest, RPG, Runtime, tests et quelques headers publics sont concernés.
+
+À ce stade, corriger fichier par fichier n'apporte aucune valeur et accroît le risque d'oubli. La bonne opération est une normalisation mécanique unique via l'outil autoritaire existant.
+
+## 9. Normalisation mécanique préparée
+
+Script one-shot :
+
+```text
+Scripts/ApplyTD077FormatBaseline.ps1
+```
+
+Garanties :
+
+1. exige la branche locale `master` ;
+2. exige un working tree tracked propre ;
+3. exige `HEAD == origin/master` ;
+4. relance `CheckCppFormat.ps1` avant toute mutation ;
+5. exige exactement **126** fichiers non conformes ;
+6. exécute `FormatCpp.ps1` avec clang-format 19.1.5 ;
+7. exige que les fichiers modifiés soient exactement les fichiers signalés avant formatage ;
+8. exige ensuite une baseline globale `CheckCppFormat.ps1 = 0` ;
+9. exécute `git diff --check` ;
+10. committe et pousse un unique commit mécanique ;
+11. restaure les changements si le périmètre formaté diffère de la baseline caractérisée.
+
+Aucun changement comportemental n'est attendu.
