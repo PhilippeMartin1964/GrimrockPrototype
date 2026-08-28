@@ -4,7 +4,7 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 28 août 2026, TD07.3 validé/clos ; MON21.4 characterization validée puis suspendue ; TD07.4 actif.**  
+**Référence courante : 28 août 2026, TD07.4 ActivationComponent characterization prepared — à valider ; MON21.4 suspendu.**  
 Phase active : **TD07.4 — ActivationComponent characterization**. MON21.4 reste suspendu jusqu'à la clôture complète de TD07.
 
 ## Ordre de lecture recommandé

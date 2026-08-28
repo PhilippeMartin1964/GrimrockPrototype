@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07.3 validé/clos ; MON21.4 characterization validée puis suspendue ; TD07.4 actif.**
+> État : **28 août 2026, TD07.4 ActivationComponent characterization prepared — à valider ; MON21.4 suspendu.**
 
 ## 1. Référence
 
