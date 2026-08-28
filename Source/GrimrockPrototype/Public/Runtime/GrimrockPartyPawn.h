@@ -125,11 +125,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> StrafeRightAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> UseAction;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Legacy")
-	bool bEnableLegacyKeyboardUseAction = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	TSubclassOf<UGrimrockMenuWidget> MenuWidgetClass;
@@ -441,7 +436,6 @@ protected:
 	void HandleTurnRight(const FInputActionValue& Value);
 	void HandleStrafeLeft(const FInputActionValue& Value);
 	void HandleStrafeRight(const FInputActionValue& Value);
-	void HandleUse(const FInputActionValue& Value);
 	void HandleCombatHotbarSlotOne();
 	void HandleCombatHotbarSlotTwo();
 	void HandleCombatHotbarSlotThree();
@@ -452,7 +446,6 @@ protected:
 	void HandleCombatHotbarSlotEight();
 	void HandleCombatHotbarSlotNine();
 	void HandleCombatHotbarSlotZero();
-	bool TryUseFrontInteraction();
 	bool TryStartMove(EGridEdge MoveDirection);
 	bool TryStartTurn(bool bTurnRight);
 
@@ -491,13 +484,11 @@ private:
 	{
 		None,
 		Move,
-		Turn,
-		Use
+		Turn
 	};
 
 	void BufferMoveCommand(EGridEdge MoveDirection);
 	void BufferTurnCommand(bool bTurnRight);
-	void BufferUseCommand();
 	void ClearBufferedCommand();
 	void ApplyCharacterCreationInputMode(bool bIsActive);
 	bool LoadCurrentGameData(FText& OutError, bool bApplyDungeonState);

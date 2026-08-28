@@ -94,12 +94,6 @@ bool UGridTurnManagerComponent::CanCharacterSpendActionPoints(int32 CharacterInd
 	return GetPlayerCharacterTurnState(CharacterIndex, TurnState) && TurnState.CanSpend(ActionPointCost);
 }
 
-bool UGridTurnManagerComponent::HasCharacterCommittedAttackThisPhase(int32 CharacterIndex) const
-{
-	FGridPlayerCharacterTurnState TurnState;
-	return GetPlayerCharacterTurnState(CharacterIndex, TurnState) && TurnState.MaximumActionPoints > 0 &&
-		TurnState.RemainingActionPoints < TurnState.MaximumActionPoints;
-}
 
 void UGridTurnManagerComponent::BeginPlayerCharacterPhase()
 {

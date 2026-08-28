@@ -26,18 +26,6 @@ void AGrimrockPartyPawn::BufferTurnCommand(bool bTurnRight)
 	BufferedCommandAge = 0.f;
 }
 
-void AGrimrockPartyPawn::BufferUseCommand()
-{
-	if (!bEnableInputBuffer)
-	{
-		return;
-	}
-
-	BufferedCommandType = EBufferedCommandType::Use;
-	BufferedMoveDirection = EGridEdge::None;
-	bBufferedTurnRight = false;
-	BufferedCommandAge = 0.f;
-}
 
 void AGrimrockPartyPawn::ClearBufferedCommand()
 {
@@ -68,8 +56,6 @@ bool AGrimrockPartyPawn::TryConsumeBufferedCommand()
 		case EBufferedCommandType::Turn:
 			return TryStartTurn(bTurnRight);
 
-		case EBufferedCommandType::Use:
-			return TryUseFrontInteraction();
 
 		default:
 			return false;

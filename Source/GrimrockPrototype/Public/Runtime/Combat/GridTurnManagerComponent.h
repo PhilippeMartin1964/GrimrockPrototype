@@ -471,9 +471,6 @@ public:
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Combat|Action Catalog|Debug")
 	void LogSelectedCharacterAvailableCombatActions() const;
 
-	/** Compatibility query: true after this character has spent any PA. */
-	UFUNCTION(BlueprintPure, Category = "Combat|Player Turn", meta = (DeprecatedFunction, DeprecationMessage = "Use GetPlayerCharacterTurnState instead."))
-	bool HasCharacterCommittedAttackThisPhase(int32 CharacterIndex) const;
 
 	/**
      * Authoritative query for whether this party member may commit any

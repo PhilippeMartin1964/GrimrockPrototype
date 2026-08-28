@@ -377,10 +377,6 @@ void AGrimrockPartyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			EIC->BindAction(StrafeRightAction, ETriggerEvent::Started, this, &AGrimrockPartyPawn::HandleStrafeRight);
 		}
 
-		if (bEnableLegacyKeyboardUseAction && UseAction)
-		{
-			EIC->BindAction(UseAction, ETriggerEvent::Started, this, &AGrimrockPartyPawn::HandleUse);
-		}
 	}
 	PlayerInputComponent->BindKey(EKeys::RightMouseButton, IE_Pressed, this, &AGrimrockPartyPawn::BeginFreeLook);
 	PlayerInputComponent->BindKey(EKeys::RightMouseButton, IE_Released, this, &AGrimrockPartyPawn::EndFreeLook);
@@ -461,46 +457,6 @@ void AGrimrockPartyPawn::ApplyCameraLocalViewOffset()
 	}
 	Camera->SetRelativeLocation(CameraLocalOffset);
 	Camera->SetRelativeRotation(CameraLocalRotationOffset);
-}
-
-void AGrimrockPartyPawn::HandleUse(const FInputActionValue& Value)
-{
-	(void)Value;
-
-	if (bCharacterCreationModalActive)
-	{
-		return;
-	}
-
-	if (IsBusy())
-	{
-		BufferUseCommand();
-		return;
-	}
-
-	TryUseFrontInteraction();
-}
-
-bool AGrimrockPartyPawn::TryUseFrontInteraction()
-{
-	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || !HasLevelRuntimeActor())
-	{
-		return false;
-	}
-
-	if (LevelRuntimeActor->TryPickupItemAtCell(CurrentCellX, CurrentCellY, this))
-	{
-		return true;
-	}
-
-	const EGridEdge FrontEdge = GridDirectionUtils::GetForward(Facing);
-
-	if (TryInteractOnLevel(CurrentCellX, CurrentCellY, FrontEdge))
-	{
-		return true;
-	}
-
-	return TryToggleDoorOnLevel(CurrentCellX, CurrentCellY, FrontEdge);
 }
 
 bool AGrimrockPartyPawn::HasLevelRuntimeActor() const
