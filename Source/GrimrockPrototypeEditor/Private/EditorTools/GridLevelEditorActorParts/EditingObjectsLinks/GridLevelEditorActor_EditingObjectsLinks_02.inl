@@ -97,10 +97,6 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		if (const FGridObjectPaletteEntry* PaletteEntry = ObjectPalette->FindEntryById(SelectedPaletteEntryId))
 		{
 			NewObject.MonsterDefinitionAsset = PaletteEntry->DefaultMonsterDefinition;
-			if (NewObject.MonsterDefinitionAsset)
-			{
-				NewObject.MonsterDefinitionId = NewObject.MonsterDefinitionAsset->MonsterId;
-			}
 		}
 	}
 	if (NewObject.Type == EGridLevelObjectType::StoryCompanion && ObjectPalette)

@@ -407,21 +407,14 @@ bool AGridLevelRuntimeActor::ResolveMonsterSpawn(
 	UGridMonsterDefinitionAsset* Definition = ObjectData.MonsterDefinitionAsset.Get();
 	if (!Definition)
 	{
-		Errors.Add(ObjectData.MonsterDefinitionId.IsNone()
-				? TEXT("MonsterDefinitionAsset and MonsterDefinitionId are missing.")
-				: FString::Printf(TEXT("MonsterDefinitionId '%s' cannot be resolved without MonsterDefinitionAsset in MON13.2."),
-					  *ObjectData.MonsterDefinitionId.ToString()));
+		Errors.Add(TEXT("MonsterDefinitionAsset is missing."));
 	}
 	else
 	{
-		if (ObjectData.MonsterDefinitionId.IsNone())
+		if (!ObjectData.MonsterDefinitionId.IsNone() && Definition->MonsterId != ObjectData.MonsterDefinitionId)
 		{
-			Errors.Add(TEXT("MonsterDefinitionId is missing."));
-		}
-		else if (Definition->MonsterId != ObjectData.MonsterDefinitionId)
-		{
-			Errors.Add(FString::Printf(TEXT("MonsterDefinitionId '%s' differs from asset MonsterId '%s'."), *ObjectData.MonsterDefinitionId.ToString(),
-				*Definition->MonsterId.ToString()));
+			Errors.Add(FString::Printf(TEXT("Legacy MonsterDefinitionId '%s' differs from asset MonsterId '%s'."),
+				*ObjectData.MonsterDefinitionId.ToString(), *Definition->MonsterId.ToString()));
 		}
 
 		FString DefinitionError;

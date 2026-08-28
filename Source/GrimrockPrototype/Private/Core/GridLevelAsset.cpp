@@ -47,10 +47,6 @@ namespace
 		// existing generic editor preview keeps the same orientation.
 		ObjectData.LocalYaw = GetYawForFacing(ObjectData.InitialFacing);
 
-		if (ObjectData.MonsterDefinitionAsset && ObjectData.MonsterDefinitionId.IsNone())
-		{
-			ObjectData.MonsterDefinitionId = ObjectData.MonsterDefinitionAsset->MonsterId;
-		}
 	}
 
 	FString GetMonsterSpawnLabel(const FGridLevelObjectData& Spawn)

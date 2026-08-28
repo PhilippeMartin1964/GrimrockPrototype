@@ -198,7 +198,7 @@ bool FGridMonsterMON131PersistentModelTest::RunTest(const FString& Parameters)
 
 	TestEqual(TEXT("Explicit InitialFacing remains authoritative"), StoredSpawn->InitialFacing, EGridEdge::East);
 	TestEqual(TEXT("Preview LocalYaw is synchronized from InitialFacing"), StoredSpawn->LocalYaw, 90.0f);
-	TestEqual(TEXT("Definition id is synchronized from the DataAsset"), StoredSpawn->MonsterDefinitionId, Definition->MonsterId);
+	TestTrue(TEXT("Authoring MonsterDefinitionId mirror remains empty"), StoredSpawn->MonsterDefinitionId.IsNone());
 	TestEqual(TEXT("Encounter id remains persistent"), StoredSpawn->EncounterGroupId, FName(TEXT("Encounter_MON13")));
 	TestTrue(TEXT("Initial enabled state remains persistent"), StoredSpawn->bInitiallyEnabled);
 
