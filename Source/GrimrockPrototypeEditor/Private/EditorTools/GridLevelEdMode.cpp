@@ -21,6 +21,8 @@
 
 namespace
 {
+	TArray<FName> WorkspaceTabsToRestore;
+
 	struct FConnectorDrawData
 	{
 		FVector SourceCenter = FVector::ZeroVector;
@@ -818,14 +820,22 @@ void FGridLevelEdMode::Enter()
 		Toolkit = MakeShareable(new FGridLevelEdModeToolkit);
 		Toolkit->Init(Owner->GetToolkitHost());
 	}
+
+	for (const FName& TabName : WorkspaceTabsToRestore)
+	{
+		FGlobalTabmanager::Get()->TryInvokeTab(FTabId(TabName));
+	}
 }
 
 void FGridLevelEdMode::Exit()
 {
+	WorkspaceTabsToRestore.Reset();
+
 	for (const FName& TabName : GridEditorWorkspaceTabs::All())
 	{
 		if (TSharedPtr<SDockTab> LiveTab = FGlobalTabmanager::Get()->FindExistingLiveTab(FTabId(TabName)))
 		{
+			WorkspaceTabsToRestore.Add(TabName);
 			LiveTab->RequestCloseTab();
 		}
 	}

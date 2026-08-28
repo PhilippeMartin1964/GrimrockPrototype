@@ -248,3 +248,44 @@ Grimrock Lua Scripts
 `GridEditorWorkspaceTabs::All()` centralizes this list so close behavior and canonical identifiers cannot drift apart.
 
 This is editor-only lifecycle behavior and does not affect level/runtime data.
+
+
+## GEUI06.2 — Restore open workspace tabs when re-entering Grid Editor
+
+GEUI06.1 correctly hid Grid Editor windows outside the editor mode, but it did not remember which workspace windows were open when the user left the mode.
+
+GEUI06.2 adds session restore behavior.
+
+### Exit behavior
+
+Before closing workspace tabs, `FGridLevelEdMode::Exit()` now records the exact set of live Grimrock workspace `TabId` values.
+
+Only tabs that were actually open are recorded.
+
+If a user manually closed a workspace before leaving Grid Editor, that workspace is not restored later.
+
+### Enter behavior
+
+After `FGridLevelEdMode::Enter()` has activated the mode and initialized its Toolkit, every recorded workspace tab is invoked again through:
+
+~~~text
+FGlobalTabmanager::TryInvokeTab
+~~~
+
+Because the same stable TabIds are reused, Unreal's docking layout can restore each tab into its previous dock stack / floating window location rather than creating an unrelated authoring surface.
+
+The expected workflow is therefore:
+
+~~~text
+Grid Editor active
+  -> Dungeon Levels + Tools & Palette open and positioned
+
+Leave Grid Editor
+  -> those windows disappear
+
+Return to Grid Editor
+  -> Dungeon Levels + Tools & Palette reopen automatically
+     in their remembered Unreal docking locations
+~~~
+
+This restore list is session-only editor presentation state. It does not touch gameplay assets or level data.
