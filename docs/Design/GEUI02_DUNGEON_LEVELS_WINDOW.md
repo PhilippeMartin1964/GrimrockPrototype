@@ -115,6 +115,9 @@ After the first GEUI02 visual validation, two layout constraints were tightened:
 
 The 1:1 rule is implemented inside `SGridEditorOverviewMapPanel`, so both the dockable workspace and the legacy inline Overview benefit from the same geometry.
 
+A second post-validation correction explicitly centers the grid child inside its square `SBox`. This prevents Slate from stretching the `SUniformGridPanel` independently on X when the parent pane receives extra horizontal space. The requested map surface remains square and the actual grid content now keeps the same X/Y scale while the window is resized.
+
+
 Each side has its own scroll area, so a long dungeon level list does not force the Overview Map down the window.
 
 ## 5. Synchronization

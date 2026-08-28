@@ -246,6 +246,8 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMapSection()
 			SNew(SBox)
 				.WidthOverride(OverviewWidth)
 				.HeightOverride(OverviewHeight)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
 				[
 					GridPanel
 				]
