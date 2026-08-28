@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07.3.7 Current Asset Repair / Recreation validé et clos ; TD07.3.8 à ouvrir.**
+> État : **28 août 2026, TD07.3.8 Strict Current-Schema Validation gate prepared — à valider.**
 
 ## 1. Référence
 
