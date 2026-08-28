@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Dette : TD-ARCH-005 — UGridActivationComponent concentré
-Statut : CHARACTERIZATION PREPARED — À VALIDER
+Statut : VALIDÉ — CLOS SANS EXTRACTION
 
 ## 1. Objectif
 
@@ -147,3 +147,42 @@ Après caractérisation verte :
 3. si non, **ne pas refactorer** et clôturer TD07.4 comme dette surveillée caractérisée.
 
 La taille du fichier n'est pas, seule, une justification d'extraction.
+
+
+## 9. Validation locale
+
+Validation du 28 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD07_4.Characterization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-111043
+```
+
+## 10. Décision
+
+L'audit complémentaire ne trouve :
+
+- aucun second `ApplyLinkCommand` ;
+- aucun second propriétaire de `RuntimeActionBudgetRemaining` ;
+- aucune seconde autorité de `ActiveObjectIds` ;
+- aucun dispatcher Quest/Lua/Receptacle parallèle ;
+- aucune duplication Event -> Command.
+
+Les dépendances sont nombreuses, mais le composant reste cohérent comme **orchestrateur unique d'activation et de dispatch**.
+
+Décision TD07.4 :
+
+```text
+PAS D'EXTRACTION
+```
+
+Raison : aucune extraction ciblée ne supprime aujourd'hui un risque observé sans ajouter une nouvelle frontière/complexité.
+
+La dette `TD-ARCH-005` reste documentée et surveillée, mais TD07.4 est **VALIDÉ — CLOS SANS REFACTOR**.
+
+La taxonomie `LogTemp` est explicitement laissée à TD07.7.

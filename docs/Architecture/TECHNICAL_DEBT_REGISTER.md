@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.4 CHARACTERIZATION PREPARED — À VALIDER**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.4 VALIDÉ/CLOS SANS EXTRACTION — TD07.5 À OUVRIR**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -461,11 +461,11 @@ Décision : **ne pas découper le PlayerController isolément**.
 
 ## TD-ARCH-005 — `UGridActivationComponent` concentré
 
-**Priorité : P2 — surveillée**
+**Priorité : P2 — surveillée / TD07.4 caractérisé**
 
 Le bus Event -> Command reste l’architecture correcte. `TD-EVENT-001` est résolu : Gameplay / StateOnly / Unsupported sont explicites et protégés par tests.
 
-La dette porte uniquement sur l’organisation interne de `UGridActivationComponent`. Toute extraction future doit conserver un bus et une autorité uniques.
+TD07.4 a caractérisé 1 542 lignes / 52 224 octets et les responsabilités internes. Aucun second dispatcher, aucune duplication d'autorité et aucun couplage bloquant ne justifient une extraction immédiate. Décision : **ne pas extraire pour la taille seule**. Toute extraction future doit conserver un bus et une autorité uniques et répondre à un nouveau signal concret.
 
 ---
 
@@ -625,7 +625,7 @@ TD07.3.5        Combat Data Schema Reset                              VALIDÉ �
 TD07.3.6        Remaining Legacy API/Data Purge                       VALIDÉ — CLOS
 TD07.3.7        Current Asset Repair / Recreation                     VALIDÉ — CLOS
 TD07.3.8        Strict Current-Schema Validation / stop condition     VALIDÉ — STOP CONDITION ATTEINTE
-TD07.4          ActivationComponent characterization                   CHARACTERIZATION PREPARED — À VALIDER
+TD07.4          ActivationComponent characterization                   VALIDÉ — CLOS SANS EXTRACTION
 TD07.5          Suspended test infrastructure / branch recovery        À FAIRE
 TD07.6          Legacy asset/API cleanup audit                          ABSORBÉ PAR TD07.3
 TD07.7          Targeted log / formatting hygiene                      À FAIRE
