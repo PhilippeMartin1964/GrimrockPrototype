@@ -93,8 +93,19 @@ if (-not [string]::IsNullOrWhiteSpace($ClangFormatPath))
     $FormatArgs += @("-ClangFormatPath", $ClangFormatPath)
 }
 
-$FormatOutput = (& $CurrentExe @FormatArgs 2>&1 | Out-String).TrimEnd()
-$FormatExitCode = $LASTEXITCODE
+$PreviousErrorActionPreference = $ErrorActionPreference
+try
+{
+    # CheckCppFormat.ps1 intentionally writes formatting violations to stderr and exits 1.
+    # TD07.7 must capture that baseline instead of treating it as a fatal PowerShell error.
+    $ErrorActionPreference = "Continue"
+    $FormatOutput = (& $CurrentExe @FormatArgs 2>&1 | Out-String).TrimEnd()
+    $FormatExitCode = $LASTEXITCODE
+}
+finally
+{
+    $ErrorActionPreference = $PreviousErrorActionPreference
+}
 
 $Lines = [System.Collections.Generic.List[string]]::new()
 $Lines.Add("GrimrockPrototype TD07.7 - Targeted Log / Formatting Hygiene Audit")
