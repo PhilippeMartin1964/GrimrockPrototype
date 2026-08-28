@@ -262,3 +262,50 @@ Each palette tile is a strict **96 x 96** square with:
 When a specific category tab is selected, its category title is not repeated above the grid. Category headers are retained only in the `All` tab where they separate groups.
 
 This milestone changes presentation only; palette selection and archetype application remain unchanged.
+
+
+## GEUI04.3 — Restore Select semantics and hide Link tool
+
+Post-GEUI04 visual testing exposed two behavioral/presentation regressions.
+
+### Select is no longer a paint-drag tool
+
+Historically, the editor input path routed every left-click tool, including `Select`, through the continuous paint cache:
+
+~~~text
+CommitHoveredSelection
+ShouldApplyPaintForCurrentSelection
+ApplyPaint
+~~~
+
+That model is appropriate for Paint Cell / Paint Wall / Paint Object / Erase, but not for object selection.
+
+GEUI04.3 gives `Select` an explicit click path in `FGridLevelEdMode::InputKey`:
+
+1. update grid/object hover from the mouse;
+2. commit the hovered cell/edge;
+3. execute the existing `AGridLevelEditorActor::ApplyPrimaryToolAction`;
+4. refresh observed selection state;
+5. do not enter continuous painting/captured-mouse mode.
+
+The authoritative selection implementation remains:
+
+~~~text
+AGridLevelEditorActor::SelectHoveredObject
+AGridLevelEditorActor::SelectObjectAtSelection
+AGridLevelEditorActor::SelectObjectById
+~~~
+
+No selection data model is changed.
+
+### Link is hidden again
+
+`EGridEditorTool::Link` and its internal behavior remain in the editor code because connectors still use that infrastructure.
+
+However, GEUI04.3 removes `Link` from the visible Tools bar. GEUI04 had exposed it unintentionally while enumerating the available editor tools.
+
+The visible authoring bar is again:
+
+~~~text
+Select | Paint Cell | Paint Wall | Paint Object | Erase
+~~~

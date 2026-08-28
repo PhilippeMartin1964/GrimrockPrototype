@@ -160,7 +160,6 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolSection()
 	AddTool(FText::FromString(TEXT("Paint Wall")), EGridEditorTool::PaintWall);
 	AddTool(FText::FromString(TEXT("Paint Object")), EGridEditorTool::PaintObject);
 	AddTool(FText::FromString(TEXT("Erase")), EGridEditorTool::Erase);
-	AddTool(FText::FromString(TEXT("Link")), EGridEditorTool::Link);
 
 	return ToolRow;
 }

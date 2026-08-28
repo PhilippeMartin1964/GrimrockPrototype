@@ -473,11 +473,28 @@ bool FGridLevelEdMode::InputKey(FEditorViewportClient* ViewportClient, FViewport
 	{
 		if (Event == IE_Pressed)
 		{
-			bIsPainting = true;
-			ResetPaintCache();
-
 			FIntPoint MousePos;
 			Viewport->GetMousePos(MousePos);
+
+			if (EditorActor || (EditorActor = FindEditorActor()))
+			{
+				if (EditorActor->ActiveTool == EGridEditorTool::Select)
+				{
+					bIsPainting = false;
+					ResetPaintCache();
+
+					if (UpdateHoverFromMouse(ViewportClient, Viewport, MousePos.X, MousePos.Y) &&
+						CommitHoveredSelection(EditorActor))
+					{
+						EditorActor->ApplyPrimaryToolAction();
+						RefreshToolkitIfObservedSelectionChanged(EditorActor);
+					}
+					return true;
+				}
+			}
+
+			bIsPainting = true;
+			ResetPaintCache();
 
 			if (UpdateHoverFromMouse(ViewportClient, Viewport, MousePos.X, MousePos.Y))
 			{
