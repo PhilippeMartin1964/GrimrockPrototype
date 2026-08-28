@@ -2,6 +2,8 @@
 
 #include "Misc/AutomationTest.h"
 
+#include <initializer_list>
+
 #include "Engine/GameInstance.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
