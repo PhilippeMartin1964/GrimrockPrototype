@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.8 STRICT GATE VALIDÉ — FINAL STOP-CONDITION PENDING**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3 PROTOTYPE DATA MODEL RESET VALIDÉ/CLOS**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -188,7 +188,7 @@ GridItemTransferResult search in AutomationTool logs -> no match
 
 ## TD-DATA-001 — Compatibilité historique et modèles legacy conservés pendant le prototype
 
-**Priorité : P1 — ACTIVE / TD07.3**
+**Priorité : P1 — RÉSOLUE / TD07.3**
 
 ### Constat
 
@@ -606,10 +606,10 @@ TD06.8          Item Definition Registry / Rehydration audit          VALIDÉ
 TD06.9          PartyInventory final re-audit / stop condition        VALIDÉ — ATTEINTE
 TD07.1          Build / dependency reproducibility                     VALIDÉ — TD-BUILD-001 RÉSOLU
 TD07.2          UE deprecation cleanup / compiler warning audit        VALIDÉ
-TD07.3          Prototype Data Model Reset                             ACTIF
+TD07.3          Prototype Data Model Reset                             VALIDÉ — CLOS
 TD07.3.1        Policy + Current Schema Asset Audit                    VALIDÉ
 TD07.3.2        SaveGame Reset / no backward migration                VALIDÉ
-TD07.3.3        Character State Normalization                         ACTIF
+TD07.3.3        Character State Normalization                         VALIDÉ — CLOS
 TD07.3.3.1      Character State Authority Audit                       VALIDÉ
 TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
 TD07.3.3.3      Normalize Derived Stats / Mutable Resources            VALIDÉ
@@ -624,7 +624,7 @@ TD07.3.4        Authoring Identity Normalization                      VALIDÉ �
 TD07.3.5        Combat Data Schema Reset                              VALIDÉ — CLOS
 TD07.3.6        Remaining Legacy API/Data Purge                       VALIDÉ — CLOS
 TD07.3.7        Current Asset Repair / Recreation                     VALIDÉ — CLOS
-TD07.3.8        Strict Current-Schema Validation / stop condition     STRICT GATE VALIDÉ — FINAL STOP-CONDITION PENDING
+TD07.3.8        Strict Current-Schema Validation / stop condition     VALIDÉ — STOP CONDITION ATTEINTE
 TD07.4          ActivationComponent characterization                   À FAIRE
 TD07.5          Suspended test infrastructure / branch recovery        À FAIRE
 TD07.6          Legacy asset/API cleanup audit                          ABSORBÉ PAR TD07.3
@@ -862,3 +862,20 @@ Canonical authoring identity
 ```
 
 Prochaine tranche : `TD07.3.5 — Combat Data Schema Reset`.
+
+
+## TD07.3 — Clôture
+
+Le 28 août 2026, TD07.3 atteint sa stop condition :
+
+- SaveGame courant v22 exact-match, sans migration arrière ;
+- Character State normalisé ;
+- identités d'authoring normalisées ;
+- schéma combat nettoyé ;
+- APIs/data legacy supprimées ;
+- 88 DataAssets courants à zéro candidat de réparation ;
+- gate strict `TD07_3_8.StrictCurrentSchema` 5/5 ;
+- campagne finale 34 tests de normalisation + audit courant, zéro échec ;
+- Shipping Win64 validé.
+
+`TD-DATA-001` est donc résolue. Les futures évolutions Save/DataAsset du prototype suivent le même contrat strict courant.

@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07.3.8 Strict Current-Schema gate validé ; campagne finale de stop condition TD07.3 en attente.**
+> État : **28 août 2026, TD07.3 Prototype Data Model Reset validé et clos ; MON21.4 Quest Persistence reprend.**
 
 ## 1. Référence
 
@@ -136,7 +136,7 @@ UGridQuestSubsystem : UGameInstanceSubsystem
 
 MON21.2 a établi l’autorité runtime et les transitions séquentielles. MON21.3 a relié les commandes Quest au bus Event -> Command via `FGridObjectLink`.
 
-L’état Quest reste transient. **MON21.4 est suspendu jusqu’à la stop condition TD07.3** ; sa future persistance suivra le schéma prototype courant sans migration historique.
+L’état Quest reste transient. **MON21.4 — Quest Persistence est désormais actif** après clôture TD07.3 ; sa persistance suit le schéma prototype courant exact-match sans migration historique.
 
 ## 11. Persistance
 

@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.8 STRICT GATE VALIDÉ — FINAL STOP-CONDITION PENDING — MON21.4 SUSPENDU**  
+Statut : **TD07.3 VALIDÉ/CLOS — MON21.4 QUEST PERSISTENCE REPRIS**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -22,16 +22,16 @@ MON19 — Advanced Dungeon Logic / Scripting
 MON20 — Recruitment / Skills / Talents
 ```
 
-Jalon fonctionnel suspendu :
+Jalon fonctionnel actif :
 
 ```text
 MON21 — Quests / Journal / Map / Codex
 ```
 
-Campagne active :
+Campagne technique clôturée :
 
 ```text
-TD07.3 — Prototype Data Model Reset
+TD07.3 — Prototype Data Model Reset — VALIDÉ / CLOS
 ```
 
 Puis :
@@ -83,7 +83,7 @@ Transformer les surfaces campagne déjà présentes en systèmes data-driven :
 MON21.1 — Audit & Architecture Contract                         CLOS
 MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
-MON21.4 — Quest Persistence                                   SUSPENDU JUSQU'À TD07.3
+MON21.4 — Quest Persistence                                   ACTIF
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
 MON21.6 — Map Geometry + Exploration State + Existing WBP       À FAIRE
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
@@ -149,9 +149,9 @@ Grimrock.Quests.MON21_3.EventCommandIntegration
 1 Success / 0 Failed
 ```
 
-## MON21.4 — Quest Persistence — SUSPENDU
+## MON21.4 — Quest Persistence — ACTIF
 
-MON21.4 reprendra après la stop condition TD07.3.
+MON21.4 reprend après la stop condition TD07.3 atteinte le 28 août 2026.
 
 Sa persistance suivra alors le contrat prototype courant :
 
@@ -277,7 +277,7 @@ MON30 — Full Campaign
 TD07.3.3.7 — Normalize Spellbook
 ```
 
-MON21.4 reste suspendu jusqu'à la stop condition complète de TD07.3.
+MON21.4 est désormais la prochaine tranche fonctionnelle autoritaire.
 
 
 TD07.3.3.9 ouvre **v19 exact-match** : `LastAcknowledgedLevel` devient l'état durable minimal de notification Level-Up et les queues persistantes MON15.6 sont supprimées.

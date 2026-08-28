@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3 — Prototype Data Model Reset
-Statut : STRICT GATE VALIDÉ — FINAL STOP-CONDITION PENDING
+Statut : VALIDÉ — TD07.3 STOP CONDITION ATTEINTE
 
 ## 1. Objectif
 
@@ -114,15 +114,15 @@ ITEM.INVALID_COMBAT_ACTIONS
 
 TD07.3 pourra être clos lorsque :
 
-- [ ] StrictCurrentSchema 5/5 ;
-- [ ] TD07.3.2 SaveContract vert ;
-- [ ] TD07.3.4.4 Normalization vert ;
-- [ ] TD07.3.5 normalizations vertes ;
-- [ ] TD07.3.6 Normalization vert ;
-- [ ] TD07.3.7 Normalization vert ;
-- [ ] CurrentSchemaAssetAudit vert ;
-- [ ] régressions structurantes vertes ;
-- [ ] Shipping Win64 vert.
+- [x] StrictCurrentSchema 5/5 ;
+- [x] TD07.3.2 SaveContract vert ;
+- [x] TD07.3.4.4 Normalization vert ;
+- [x] TD07.3.5 normalizations vertes ;
+- [x] TD07.3.6 Normalization vert ;
+- [x] TD07.3.7 Normalization vert ;
+- [x] CurrentSchemaAssetAudit vert ;
+- [x] régressions structurantes vertes ;
+- [x] Shipping Win64 vert.
 
 Après cette stop condition, MON21.4 pourra reprendre sous le schéma prototype courant exact-match.
 
@@ -160,3 +160,58 @@ Grimrock.TechnicalDebt.TD07_3_1.CurrentSchemaAssetAudit
 Soit 34 tests de normalisation ciblés + l'audit courant, en plus des 5 tests StrictCurrentSchema déjà validés.
 
 La stop condition exige ensuite un Win64 Shipping réussi.
+
+
+## 6. Campagne finale et clôture TD07.3
+
+Validation locale du 28 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_10.Normalization
+    Succeeded : 4 / Failed : 0
+
+Grimrock.TechnicalDebt.TD07_3_2.SaveContract
+    Succeeded : 6 / Failed : 0
+
+Grimrock.TechnicalDebt.TD07_3_4_4.Normalization
+    Succeeded : 4 / Failed : 0
+
+Grimrock.TechnicalDebt.TD07_3_5_2.Normalization
+    Succeeded : 4 / Failed : 0
+
+Grimrock.TechnicalDebt.TD07_3_5_3.Normalization
+    Succeeded : 4 / Failed : 0
+
+Grimrock.TechnicalDebt.TD07_3_5_4.Normalization
+    Succeeded : 4 / Failed : 0
+
+Grimrock.TechnicalDebt.TD07_3_6.Normalization
+    Succeeded : 4 / Failed : 0
+
+Grimrock.TechnicalDebt.TD07_3_7.Normalization
+    Succeeded : 4 / Failed : 0
+
+Grimrock.TechnicalDebt.TD07_3_1.CurrentSchemaAssetAudit
+    Succeeded : 1 / Failed : 0
+```
+
+Soit **34 tests de normalisation + 1 audit**, tous verts, en complément du gate :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema
+    Succeeded : 5 / Failed : 0
+```
+
+Le Shipping Win64 validé immédiatement avant le gate strict reste applicable au runtime/content courant :
+
+```text
+BUILD SUCCESSFUL
+Cook: Success - 0 error(s), 0 warning(s)
+Pak files     : 1
+Archive files : 41
+Archive bytes : 905984939
+```
+
+**TD07.3 — Prototype Data Model Reset a atteint sa stop condition et est clos.**
+
+Conséquence fonctionnelle : **MON21.4 — Quest Persistence** peut reprendre sur le schéma prototype courant exact-match, sans migration arrière.
