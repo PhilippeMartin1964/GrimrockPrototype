@@ -193,7 +193,12 @@ namespace GridTD0737Normalization
 		return Monster->LootTable.FindByPredicate(
 			[ItemId](const FGridMonsterLootEntry& Entry)
 			{
-				return Entry.GetResolvedItemDefinitionId() == ItemId;
+				const UGridItemDefinitionAsset* ItemDefinition = Entry.ItemDefinitionAsset.Get();
+				const FName ResolvedItemId =
+					(ItemDefinition && !ItemDefinition->ItemDefinitionId.IsNone())
+						? ItemDefinition->ItemDefinitionId
+						: Entry.ItemDefinitionId;
+				return ResolvedItemId == ItemId;
 			});
 	}
 }
