@@ -105,6 +105,16 @@ Level management : 36%
 Overview Map      : 64%
 ~~~
 
+### Post-validation ergonomic adjustment
+
+After the first GEUI02 visual validation, two layout constraints were tightened:
+
+- the Overview Map now derives both its requested width and height from the same per-cell pitch;
+- a 32x32 level therefore requests a square map surface (1:1 ratio);
+- the level-management actions are displayed as a vertically spaced button stack instead of one compressed horizontal row.
+
+The 1:1 rule is implemented inside `SGridEditorOverviewMapPanel`, so both the dockable workspace and the legacy inline Overview benefit from the same geometry.
+
 Each side has its own scroll area, so a long dungeon level list does not force the Overview Map down the window.
 
 ## 5. Synchronization

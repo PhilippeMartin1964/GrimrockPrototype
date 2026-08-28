@@ -235,9 +235,21 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMapSection()
 		}
 	}
 
+	const float OverviewCellPitch = 20.f; // 18 px cell + 1 px slot padding on each side.
+	const float OverviewWidth = static_cast<float>(LevelAsset->Width) * OverviewCellPitch;
+	const float OverviewHeight = static_cast<float>(LevelAsset->Height) * OverviewCellPitch;
+
 	return SNew(SVerticalBox)
 
-		+ SVerticalBox::Slot().AutoHeight()[SNew(SBox).WidthOverride(512.f)[GridPanel]]
+		+ SVerticalBox::Slot().AutoHeight()
+		[
+			SNew(SBox)
+				.WidthOverride(OverviewWidth)
+				.HeightOverride(OverviewHeight)
+				[
+					GridPanel
+				]
+		]
 
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[BuildOverviewColorLegend()]
 

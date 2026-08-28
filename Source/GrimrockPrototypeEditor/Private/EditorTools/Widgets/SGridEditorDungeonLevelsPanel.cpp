@@ -114,10 +114,19 @@ TSharedRef<SWidget> SGridEditorDungeonLevelsPanel::BuildPanel()
 				CurrentEditorActor->bAutoPreparePIE ? FText::FromString(TEXT("On")) : FText::FromString(TEXT("Off")))
 		];
 
-	TSharedRef<SHorizontalBox> ActionButtons = SNew(SHorizontalBox);
+	TSharedRef<SVerticalBox> ActionButtons = SNew(SVerticalBox);
 
-	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)
-	[
+	const auto AddActionButton = [&ActionButtons](TSharedRef<SWidget> Button)
+	{
+		ActionButtons->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 0.f, 0.f, 4.f)
+			[
+				Button
+			];
+	};
+
+	AddActionButton(
 		GridEditorWidgetHelpers::BuildGridActionButton(
 			FText::FromString(TEXT("Load Default")),
 			FOnClicked::CreateLambda(
@@ -133,11 +142,9 @@ TSharedRef<SWidget> SGridEditorDungeonLevelsPanel::BuildPanel()
 						}
 					}
 					return FReply::Handled();
-				}))
-	];
+				})));
 
-	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)
-	[
+	AddActionButton(
 		GridEditorWidgetHelpers::BuildGridActionButton(
 			FText::FromString(TEXT("Reload Current")),
 			FOnClicked::CreateLambda(
@@ -153,11 +160,9 @@ TSharedRef<SWidget> SGridEditorDungeonLevelsPanel::BuildPanel()
 						}
 					}
 					return FReply::Handled();
-				}))
-	];
+				})));
 
-	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)
-	[
+	AddActionButton(
 		GridEditorWidgetHelpers::BuildGridActionButton(
 			FText::FromString(TEXT("Log Dungeon")),
 			FOnClicked::CreateLambda(
@@ -168,11 +173,9 @@ TSharedRef<SWidget> SGridEditorDungeonLevelsPanel::BuildPanel()
 						Editor->LogDungeonDiagnostics();
 					}
 					return FReply::Handled();
-				}))
-	];
+				})));
 
-	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)
-	[
+	AddActionButton(
 		GridEditorWidgetHelpers::BuildGridActionButton(
 			FText::FromString(TEXT("Log Transitions")),
 			FOnClicked::CreateLambda(
@@ -183,20 +186,19 @@ TSharedRef<SWidget> SGridEditorDungeonLevelsPanel::BuildPanel()
 						Editor->LogDungeonTransitionDiagnostics();
 					}
 					return FReply::Handled();
-				}))
-	];
+				})));
 
-	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)
-	[
+	AddActionButton(
 		GridEditorWidgetHelpers::BuildGridActionButton(
 			FText::FromString(TEXT("New Level")),
-			FOnClicked::CreateSP(this, &SGridEditorDungeonLevelsPanel::HandleCreateDungeonLevelClicked))
-	];
+			FOnClicked::CreateSP(this, &SGridEditorDungeonLevelsPanel::HandleCreateDungeonLevelClicked)));
 
-	Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 5.f)
-	[
-		ActionButtons
-	];
+	Root->AddSlot()
+		.AutoHeight()
+		.Padding(0.f, 6.f, 0.f, 5.f)
+		[
+			ActionButtons
+		];
 
 	TSharedRef<SVerticalBox> LevelList = SNew(SVerticalBox);
 	for (const FGridDungeonLevelEntry& Entry : DungeonAsset->Levels)
