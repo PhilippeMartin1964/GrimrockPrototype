@@ -239,3 +239,26 @@ GEUI08 — Validation UX
 ~~~
 
 GEUI08 can focus on validation readability, filtering and navigation inside the dedicated PlayTest & Validation workspace.
+
+
+## GEUI07.1 — Larger palette icon inside fixed tile
+
+Post-validation visual tuning keeps the palette tile strictly:
+
+~~~text
+96 x 96
+~~~
+
+while increasing the object icon from:
+
+~~~text
+44 x 44
+~~~
+
+to:
+
+~~~text
+60 x 60
+~~~
+
+The tile size, favorite star overlay, label and grid spacing remain unchanged. This improves object recognition without reducing palette density.

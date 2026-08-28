@@ -851,7 +851,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteTile(const FGridObj
 	UTexture2D* IconTexture = Entry.Icon.Get();
 
 	constexpr float TileSize = 96.f;
-	constexpr float IconSize = 44.f;
+	constexpr float IconSize = 60.f;
 
 	return SNew(SBox)
 		.WidthOverride(TileSize)
