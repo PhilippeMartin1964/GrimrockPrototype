@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07.3 Prototype Data Model Reset validé et clos ; MON21.4 Quest Persistence reprend.**
+> État : **28 août 2026, TD07.3 validé/clos ; MON21.4 Quest Persistence characterization prepared — à valider.**
 
 ## 1. Référence
 

@@ -4,7 +4,7 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 28 août 2026, TD07.3 Prototype Data Model Reset validé et clos ; MON21.4 Quest Persistence actif.**  
+**Référence courante : 28 août 2026, TD07.3 validé/clos ; MON21.4 Quest Persistence characterization prepared — à valider.**  
 Phase active : **MON21.4 — Quest Persistence**. TD07.3 — Prototype Data Model Reset est validé et clos.
 
 ## Ordre de lecture recommandé
