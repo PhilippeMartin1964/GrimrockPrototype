@@ -17,13 +17,13 @@ namespace
 		FGridTD031EditorTestWorld()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
+															.AllowAudioPlayback(false)
+															.RequiresHitProxies(false)
+															.CreatePhysicsScene(false)
+															.CreateNavigation(false)
+															.CreateAISystem(false)
+															.ShouldSimulatePhysics(false)
+															.SetTransactional(false);
 
 			World = UWorld::CreateWorld(EWorldType::EditorPreview, false,
 				FName(*FString::Printf(TEXT("TD031EditorDetailsWorld_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
@@ -51,8 +51,7 @@ namespace
 	};
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD031CanonicalEditorActionsContractTest,
-	"Grimrock.TechnicalDebt.TD03_1.EditorDetailsRedundancy.CanonicalActionsContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD031CanonicalEditorActionsContractTest, "Grimrock.TechnicalDebt.TD03_1.EditorDetailsRedundancy.CanonicalActionsContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD031CanonicalEditorActionsContractTest::RunTest(const FString& Parameters)
@@ -88,14 +87,10 @@ bool FGridTD031CanonicalEditorActionsContractTest::RunTest(const FString& Parame
 	const UFunction* ValidateFunction = EditorActor->FindFunction(TEXT("ValidateCurrentLevel"));
 	TestNotNull(TEXT("SetStartFromSelection remains reflected"), SetStartFunction);
 	TestNotNull(TEXT("ValidateCurrentLevel remains reflected"), ValidateFunction);
-	TestTrue(TEXT("SetStartFromSelection remains BlueprintCallable"),
-		SetStartFunction && SetStartFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
-	TestTrue(TEXT("ValidateCurrentLevel remains BlueprintCallable"),
-		ValidateFunction && ValidateFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
-	TestFalse(TEXT("SetStartFromSelection is no longer exposed as CallInEditor"),
-		SetStartFunction && SetStartFunction->HasMetaData(TEXT("CallInEditor")));
-	TestFalse(TEXT("ValidateCurrentLevel is no longer exposed as CallInEditor"),
-		ValidateFunction && ValidateFunction->HasMetaData(TEXT("CallInEditor")));
+	TestTrue(TEXT("SetStartFromSelection remains BlueprintCallable"), SetStartFunction && SetStartFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
+	TestTrue(TEXT("ValidateCurrentLevel remains BlueprintCallable"), ValidateFunction && ValidateFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
+	TestFalse(TEXT("SetStartFromSelection is no longer exposed as CallInEditor"), SetStartFunction && SetStartFunction->HasMetaData(TEXT("CallInEditor")));
+	TestFalse(TEXT("ValidateCurrentLevel is no longer exposed as CallInEditor"), ValidateFunction && ValidateFunction->HasMetaData(TEXT("CallInEditor")));
 
 	EditorActor->SelectedCellX = 2;
 	EditorActor->SelectedCellY = 1;
@@ -108,10 +103,11 @@ bool FGridTD031CanonicalEditorActionsContractTest::RunTest(const FString& Parame
 	const TArray<FGridLevelValidationMessage> Messages = EditorActor->ValidateCurrentLevel();
 	TestEqual(TEXT("Validation publishes the same message snapshot it returns"), Messages.Num(), EditorActor->LastValidationMessages.Num());
 	TestTrue(TEXT("Validation still reports missing DungeonAsset as a warning"),
-		Messages.ContainsByPredicate([](const FGridLevelValidationMessage& Message)
-		{
-			return Message.Severity == EGridLevelValidationSeverity::Warning && Message.Message.Contains(TEXT("DungeonAsset is missing"));
-		}));
+		Messages.ContainsByPredicate(
+			[](const FGridLevelValidationMessage& Message)
+			{
+				return Message.Severity == EGridLevelValidationSeverity::Warning && Message.Message.Contains(TEXT("DungeonAsset is missing"));
+			}));
 	TestEqual(TEXT("Validation does not alter the configured start X"), LevelAsset->StartCellX, 2);
 	TestEqual(TEXT("Validation does not alter the configured start Y"), LevelAsset->StartCellY, 1);
 	TestEqual(TEXT("Validation does not alter the configured start facing"), LevelAsset->StartFacing, EGridEdge::West);

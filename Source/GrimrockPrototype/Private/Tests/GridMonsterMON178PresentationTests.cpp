@@ -63,8 +63,8 @@ bool FGridMonsterMON178BestiaryPresentationBridgeTest::RunTest(const FString& Pa
 			continue;
 		}
 
-		const bool bCompatibleSkeletons =
-			MeshSkeleton == AnimationSkeleton || MeshSkeleton->IsCompatibleForEditor(AnimationSkeleton) || AnimationSkeleton->IsCompatibleForEditor(MeshSkeleton);
+		const bool bCompatibleSkeletons = MeshSkeleton == AnimationSkeleton || MeshSkeleton->IsCompatibleForEditor(AnimationSkeleton) ||
+			AnimationSkeleton->IsCompatibleForEditor(MeshSkeleton);
 		TestTrue(FString::Printf(TEXT("%s mesh and AnimBP Skeletons are compatible"), Pair.Label), bCompatibleSkeletons);
 
 		if (bCompatibleSkeletons && AnimationClass->IsChildOf(UGridMonsterAnimInstance::StaticClass()))

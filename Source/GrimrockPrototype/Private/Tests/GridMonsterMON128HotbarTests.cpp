@@ -130,8 +130,7 @@ bool FGridMON128HotbarSaveRoundTripTest::RunTest(const FString& Parameters)
 	WarriorDefinition->ClassId = SourceCharacter.ClassId;
 	WarriorDefinition->DisplayName = FText::FromName(SourceCharacter.ClassId);
 	TestTrue(TEXT("The synthetic current class definition is valid"), WarriorDefinition->IsValidDefinition());
-	TestTrue(TEXT("The synthetic current ClassId can be rehydrated"),
-		FRPGAuthoringIdentityResolver::RememberClassDefinition(WarriorDefinition));
+	TestTrue(TEXT("The synthetic current ClassId can be rehydrated"), FRPGAuthoringIdentityResolver::RememberClassDefinition(WarriorDefinition));
 	SourceCharacter.ClassDefinition = WarriorDefinition;
 	SourceCharacter.ClassDisplayName = WarriorDefinition->DisplayName;
 

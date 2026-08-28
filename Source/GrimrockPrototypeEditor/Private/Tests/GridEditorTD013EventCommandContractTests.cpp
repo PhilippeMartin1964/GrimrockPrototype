@@ -62,7 +62,8 @@ bool FGridTD013EventCommandPolicyTest::RunTest(const FString& Parameters)
 	const FGridLevelObjectData StoryCompanion = MakeTD013Object(EGridLevelObjectType::StoryCompanion);
 	const FGridLevelObjectData CustomRecruiter = MakeTD013Object(EGridLevelObjectType::CustomRecruiter);
 
-	TestFalse(TEXT("Teleporter is not an authorable command target until specialized gameplay exists"), GridEditorLinkPolicy::CanObjectReceiveCommands(Teleporter));
+	TestFalse(
+		TEXT("Teleporter is not an authorable command target until specialized gameplay exists"), GridEditorLinkPolicy::CanObjectReceiveCommands(Teleporter));
 	TestFalse(TEXT("Light is not an authorable command target while it only stores generic state"), GridEditorLinkPolicy::CanObjectReceiveCommands(Light));
 	TestFalse(TEXT("ItemSpawn is not an authorable command target until commanded spawning exists"), GridEditorLinkPolicy::CanObjectReceiveCommands(ItemSpawn));
 
@@ -98,8 +99,8 @@ bool FGridTD013EventCommandValidationTest::RunTest(const FString& Parameters)
 																  .CreateAISystem(false)
 																  .ShouldSimulatePhysics(false)
 																  .SetTransactional(false);
-	UWorld* World = UWorld::CreateWorld(EWorldType::Editor, false, TEXT("TD013EventCommandValidationWorld"), nullptr, true, ERHIFeatureLevel::Num,
-		&InitializationValues);
+	UWorld* World =
+		UWorld::CreateWorld(EWorldType::Editor, false, TEXT("TD013EventCommandValidationWorld"), nullptr, true, ERHIFeatureLevel::Num, &InitializationValues);
 	TestNotNull(TEXT("TD01.3 editor validation world is created"), World);
 	if (!World || !GEngine)
 	{

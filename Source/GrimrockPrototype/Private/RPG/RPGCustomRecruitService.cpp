@@ -79,8 +79,7 @@ namespace RPGCustomRecruitServicePrivate
 		Candidate.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Candidate.DerivedStats, Request.ClassDefinition);
 		Candidate.PortraitGender = Request.PortraitGender;
 		Candidate.PortraitVariantId = Request.PortraitVariantId;
-		Candidate.Portrait = FRPGAuthoringIdentityResolver::ResolvePortraitVisual(
-			Candidate.RaceId, Candidate.PortraitGender, Candidate.PortraitVariantId);
+		Candidate.Portrait = FRPGAuthoringIdentityResolver::ResolvePortraitVisual(Candidate.RaceId, Candidate.PortraitGender, Candidate.PortraitVariantId);
 		Candidate.ClassIcon = FRPGAuthoringIdentityResolver::ResolveClassIcon(Candidate.ClassId);
 		Candidate.InventorySlots.SetNum(FMath::Max(0, InventorySlotCount));
 		InitializeEmptyHotbar(Candidate);
@@ -155,8 +154,7 @@ bool FRPGCustomRecruitService::TryCreateAndRecruit(
 		FRPGAuthoringIdentityResolver::RememberClassDefinition(CombatActionSourceClass);
 	}
 	FRPGAuthoringIdentityResolver::RememberRaceDefinition(Request.RaceDefinition);
-	FRPGAuthoringIdentityResolver::RememberPortraitVisual(
-		Request.RaceDefinition->RaceId, Request.PortraitGender, Request.PortraitVariantId, Request.Portrait);
+	FRPGAuthoringIdentityResolver::RememberPortraitVisual(Request.RaceDefinition->RaceId, Request.PortraitGender, Request.PortraitVariantId, Request.Portrait);
 	FRPGAuthoringIdentityResolver::RememberClassIcon(Request.ClassDefinition->ClassId, Request.ClassIcon);
 	if (!CombatActionSourceClass || !CombatActionSourceClass->IsValidDefinition() || CombatActionSourceClass->ClassId != Request.ClassDefinition->ClassId)
 	{

@@ -18,8 +18,7 @@ namespace GridStatusEffectPersistencePrivate
 		return Left.EffectId.ToString().Compare(Right.EffectId.ToString(), ESearchCase::CaseSensitive) < 0;
 	}
 
-	bool ValidateDefinitionForState(
-		const FGridStatusEffectRuntimeState& State, const UGridStatusEffectDefinitionAsset* Definition, FString& OutError)
+	bool ValidateDefinitionForState(const FGridStatusEffectRuntimeState& State, const UGridStatusEffectDefinitionAsset* Definition, FString& OutError)
 	{
 		if (!IsValid(Definition) || !Definition->IsValidDefinition() || Definition->EffectId != State.EffectId)
 		{
@@ -33,15 +32,15 @@ namespace GridStatusEffectPersistencePrivate
 		}
 		if (State.StackCount > Definition->MaxStacks)
 		{
-			OutError = FString::Printf(TEXT("Status effect '%s' stack count %d exceeds definition MaxStacks %d."), *State.EffectId.ToString(),
-				State.StackCount, Definition->MaxStacks);
+			OutError = FString::Printf(TEXT("Status effect '%s' stack count %d exceeds definition MaxStacks %d."), *State.EffectId.ToString(), State.StackCount,
+				Definition->MaxStacks);
 			return false;
 		}
 		return true;
 	}
 
-	bool RehydrateCollection(FGridStatusEffectCollection& Collection,
-		TFunctionRef<UGridStatusEffectDefinitionAsset*(FName)> DefinitionResolver, FString& OutError)
+	bool RehydrateCollection(
+		FGridStatusEffectCollection& Collection, TFunctionRef<UGridStatusEffectDefinitionAsset*(FName)> DefinitionResolver, FString& OutError)
 	{
 		if (!FGridStatusEffectPersistence::ValidateDurableCollection(Collection, OutError))
 		{
@@ -60,11 +59,10 @@ namespace GridStatusEffectPersistencePrivate
 
 			FGridStatusEffectRuntimeState RehydratedState;
 			FString RehydrateError;
-			if (!Definition->BuildRuntimeState(StableState.SourceId, StableState.StackCount, StableState.RemainingDuration, StableState.Potency,
-					RehydratedState, RehydrateError))
+			if (!Definition->BuildRuntimeState(
+					StableState.SourceId, StableState.StackCount, StableState.RemainingDuration, StableState.Potency, RehydratedState, RehydrateError))
 			{
-				OutError = FString::Printf(
-					TEXT("Status effect '%s' failed runtime rehydration: %s"), *StableState.EffectId.ToString(), *RehydrateError);
+				OutError = FString::Printf(TEXT("Status effect '%s' failed runtime rehydration: %s"), *StableState.EffectId.ToString(), *RehydrateError);
 				return false;
 			}
 			Candidate.ActiveEffects.Add(MoveTemp(RehydratedState));
@@ -76,8 +74,8 @@ namespace GridStatusEffectPersistencePrivate
 		return true;
 	}
 
-	bool ValidatePartyCharacters(const TArray<FGridCharacterInventoryState>& Characters, const TCHAR* Location,
-		TSet<FGuid>& InOutCharacterIds, bool bRequireRuntimeDefinitions, FString& OutError)
+	bool ValidatePartyCharacters(const TArray<FGridCharacterInventoryState>& Characters, const TCHAR* Location, TSet<FGuid>& InOutCharacterIds,
+		bool bRequireRuntimeDefinitions, FString& OutError)
 	{
 		for (int32 CharacterIndex = 0; CharacterIndex < Characters.Num(); ++CharacterIndex)
 		{
@@ -89,9 +87,8 @@ namespace GridStatusEffectPersistencePrivate
 			}
 			InOutCharacterIds.Add(Character.CharacterId);
 
-			const bool bValid = bRequireRuntimeDefinitions
-				? FGridStatusEffectPersistence::ValidateRuntimeCollection(Character.StatusEffects, OutError)
-				: FGridStatusEffectPersistence::ValidateDurableCollection(Character.StatusEffects, OutError);
+			const bool bValid = bRequireRuntimeDefinitions ? FGridStatusEffectPersistence::ValidateRuntimeCollection(Character.StatusEffects, OutError)
+														   : FGridStatusEffectPersistence::ValidateDurableCollection(Character.StatusEffects, OutError);
 			if (!bValid)
 			{
 				OutError = FString::Printf(TEXT("%s[%d] StatusEffects invalid: %s"), Location, CharacterIndex, *OutError);
@@ -193,8 +190,8 @@ bool FGridStatusEffectPersistence::ValidateRuntimePartyStatusEffects(const FGrid
 	return true;
 }
 
-bool FGridStatusEffectPersistence::RehydratePartyStatusEffects(FGridPartyInventoryState& PartyState,
-	TFunctionRef<UGridStatusEffectDefinitionAsset*(FName)> DefinitionResolver, FString& OutError)
+bool FGridStatusEffectPersistence::RehydratePartyStatusEffects(
+	FGridPartyInventoryState& PartyState, TFunctionRef<UGridStatusEffectDefinitionAsset*(FName)> DefinitionResolver, FString& OutError)
 {
 	if (!ValidatePartyStatusEffects(PartyState, OutError))
 	{

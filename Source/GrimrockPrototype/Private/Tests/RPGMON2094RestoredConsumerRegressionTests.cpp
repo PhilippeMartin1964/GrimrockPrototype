@@ -122,11 +122,17 @@ namespace RPGMON2094Tests
 		for (const FMON2094DurableSkillState& Saved : SavedStates)
 		{
 			FGridCharacterInventoryState* Target = Candidate.ActiveCharacters.FindByPredicate(
-				[&Saved](const FGridCharacterInventoryState& Character) { return Character.CharacterId == Saved.CharacterId; });
+				[&Saved](const FGridCharacterInventoryState& Character)
+				{
+					return Character.CharacterId == Saved.CharacterId;
+				});
 			if (!Target)
 			{
 				Target = Candidate.CharacterPool.FindByPredicate(
-					[&Saved](const FGridCharacterInventoryState& Character) { return Character.CharacterId == Saved.CharacterId; });
+					[&Saved](const FGridCharacterInventoryState& Character)
+					{
+						return Character.CharacterId == Saved.CharacterId;
+					});
 			}
 			if (!Target || Saved.SkillId != Skill->SkillId)
 			{

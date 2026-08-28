@@ -814,8 +814,7 @@ bool FGridMonsterMON12GenericActionAttackLifecycleTest::RunTest(const FString& P
 	TestTrue(TEXT("The turn state remains available after the generic attack"), Fixture.TurnManager->GetPlayerCharacterTurnState(0, TurnState));
 	TestEqual(TEXT("The generic attack leaves two of four AP"), TurnState.RemainingActionPoints, 2);
 
-	UGridItemDefinitionAsset* ShurikenDefinition =
-		Fixture.Party->PartyInventoryComponent->FindItemDefinition(FName(TEXT("Shuriken")));
+	UGridItemDefinitionAsset* ShurikenDefinition = Fixture.Party->PartyInventoryComponent->FindItemDefinition(FName(TEXT("Shuriken")));
 	TestNotNull(TEXT("The current shuriken definition remains registered"), ShurikenDefinition);
 	if (ShurikenDefinition)
 	{

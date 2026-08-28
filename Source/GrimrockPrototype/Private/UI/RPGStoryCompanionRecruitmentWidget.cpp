@@ -225,16 +225,12 @@ void URPGStoryCompanionRecruitmentWidget::RefreshView()
 		View.DisplayName = CompanionDefinition->DisplayName;
 		View.ShortDescription = CompanionDefinition->ShortDescription;
 		View.Level = CompanionDefinition->Level;
-		View.Portrait = CompanionDefinition->RaceDefinition
-			? FRPGAuthoringIdentityResolver::ResolvePortraitVisual(
-				CompanionDefinition->RaceDefinition->RaceId,
-				CompanionDefinition->PortraitGender,
-				CompanionDefinition->PortraitVariantId)
-			: TSoftObjectPtr<UTexture2D>();
+		View.Portrait = CompanionDefinition->RaceDefinition ? FRPGAuthoringIdentityResolver::ResolvePortraitVisual(CompanionDefinition->RaceDefinition->RaceId,
+																  CompanionDefinition->PortraitGender, CompanionDefinition->PortraitVariantId)
+															: TSoftObjectPtr<UTexture2D>();
 		View.FullBody = CompanionDefinition->FullBody;
-		View.ClassIcon = CompanionDefinition->ClassDefinition
-			? FRPGAuthoringIdentityResolver::ResolveClassIcon(CompanionDefinition->ClassDefinition->ClassId)
-			: TSoftObjectPtr<UTexture2D>();
+		View.ClassIcon = CompanionDefinition->ClassDefinition ? FRPGAuthoringIdentityResolver::ResolveClassIcon(CompanionDefinition->ClassDefinition->ClassId)
+															  : TSoftObjectPtr<UTexture2D>();
 		View.RecruitmentConditionText = CompanionDefinition->RecruitmentConditionText;
 		if (CompanionDefinition->RaceDefinition)
 		{

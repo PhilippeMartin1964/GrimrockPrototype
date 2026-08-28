@@ -203,8 +203,7 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 			{
 				Definition.ResourceCosts.SourceItemQuantityCost = 1;
 			}
-			AddMON126Contribution(
-				Definition, EquippedItem.ItemDefinitionId, EquippedItem.RuntimeObjectId, HandSlot, EquippedItem.Quantity, OutContributions);
+			AddMON126Contribution(Definition, EquippedItem.ItemDefinitionId, EquippedItem.RuntimeObjectId, HandSlot, EquippedItem.Quantity, OutContributions);
 		}
 	}
 
@@ -975,8 +974,7 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 		? &SpellInventory->PartyInventoryState.ActiveCharacters[CharacterIndex]
 		: nullptr;
 	const bool bSpellbookBackedAction = Action->Definition.SourcePolicy == EGridCombatActionSourcePolicy::Spell &&
-		Action->SourceDefinitionId == Action->Definition.ActionId && SpellCharacter &&
-		SpellCharacter->KnownSpellIds.Contains(Action->Definition.ActionId);
+		Action->SourceDefinitionId == Action->Definition.ActionId && SpellCharacter && SpellCharacter->KnownSpellIds.Contains(Action->Definition.ActionId);
 
 	if (bSpellbookBackedAction)
 	{

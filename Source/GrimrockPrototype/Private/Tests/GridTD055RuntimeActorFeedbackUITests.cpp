@@ -18,13 +18,13 @@ namespace
 		FGridTD055RuntimeFeedbackWorld()
 		{
 			const UWorld::InitializationValues InitializationValues = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
+																		  .AllowAudioPlayback(false)
+																		  .RequiresHitProxies(false)
+																		  .CreatePhysicsScene(false)
+																		  .CreateNavigation(false)
+																		  .CreateAISystem(false)
+																		  .ShouldSimulatePhysics(false)
+																		  .SetTransactional(false);
 
 			World = UWorld::CreateWorld(EWorldType::Game, false,
 				FName(*FString::Printf(TEXT("TD055RuntimeFeedback_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
@@ -63,8 +63,7 @@ namespace
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD055RuntimeActorFeedbackUIContractTest,
-	"Grimrock.TechnicalDebt.TD05_5.RuntimeActorFeedbackUI.Contract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD055RuntimeActorFeedbackUIContractTest, "Grimrock.TechnicalDebt.TD05_5.RuntimeActorFeedbackUI.Contract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD055RuntimeActorFeedbackUIContractTest::RunTest(const FString& Parameters)
@@ -103,16 +102,13 @@ bool FGridTD055RuntimeActorFeedbackUIContractTest::RunTest(const FString& Parame
 	TestNotNull(TEXT("ShowCombatFeedback remains reflected"), ShowCombatFunction);
 	TestNotNull(TEXT("HideCombatFeedback remains reflected"), HideCombatFunction);
 
-	TestTrue(TEXT("ShowReadableMessage remains BlueprintCallable"),
-		ShowReadableFunction && ShowReadableFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
-	TestTrue(TEXT("HasActiveReadableMessage remains BlueprintPure"),
-		HasReadableFunction && HasReadableFunction->HasAnyFunctionFlags(FUNC_BlueprintPure));
+	TestTrue(TEXT("ShowReadableMessage remains BlueprintCallable"), ShowReadableFunction && ShowReadableFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
+	TestTrue(TEXT("HasActiveReadableMessage remains BlueprintPure"), HasReadableFunction && HasReadableFunction->HasAnyFunctionFlags(FUNC_BlueprintPure));
 	TestTrue(TEXT("DismissReadableMessage remains BlueprintCallable"),
 		DismissReadableFunction && DismissReadableFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
 	TestTrue(TEXT("ShowInteractionFeedback remains BlueprintCallable"),
 		ShowInteractionFunction && ShowInteractionFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
-	TestTrue(TEXT("ShowCombatFeedback remains BlueprintCallable"),
-		ShowCombatFunction && ShowCombatFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
+	TestTrue(TEXT("ShowCombatFeedback remains BlueprintCallable"), ShowCombatFunction && ShowCombatFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
 
 	TestFalse(TEXT("Readable message auto-hide remains disabled by default"), RuntimeActor->bReadableMessageAutoHide);
 	TestEqual(TEXT("Readable message duration remains four seconds by default"), RuntimeActor->ReadableMessageDuration, 4.0f);
@@ -144,18 +140,13 @@ bool FGridTD055RuntimeActorFeedbackUIContractTest::RunTest(const FString& Parame
 	TestNull(TEXT("Combat feedback keeps no active widget without a configured class"),
 		GridTD055GetObjectPropertyValue(RuntimeActor, TEXT("ActiveCombatFeedbackWidget")));
 
-	const FObjectProperty* ActiveReadableProperty =
-		FindFProperty<FObjectProperty>(RuntimeActor->GetClass(), TEXT("ActiveReadableMessageWidget"));
-	const FObjectProperty* ActiveInteractionProperty =
-		FindFProperty<FObjectProperty>(RuntimeActor->GetClass(), TEXT("ActiveInteractionFeedbackWidget"));
-	const FObjectProperty* ActiveCombatProperty =
-		FindFProperty<FObjectProperty>(RuntimeActor->GetClass(), TEXT("ActiveCombatFeedbackWidget"));
-	TestTrue(TEXT("Readable active widget state remains transient"),
-		ActiveReadableProperty && ActiveReadableProperty->HasAnyPropertyFlags(CPF_Transient));
-	TestTrue(TEXT("Interaction active widget state remains transient"),
-		ActiveInteractionProperty && ActiveInteractionProperty->HasAnyPropertyFlags(CPF_Transient));
-	TestTrue(TEXT("Combat active widget state remains transient"),
-		ActiveCombatProperty && ActiveCombatProperty->HasAnyPropertyFlags(CPF_Transient));
+	const FObjectProperty* ActiveReadableProperty = FindFProperty<FObjectProperty>(RuntimeActor->GetClass(), TEXT("ActiveReadableMessageWidget"));
+	const FObjectProperty* ActiveInteractionProperty = FindFProperty<FObjectProperty>(RuntimeActor->GetClass(), TEXT("ActiveInteractionFeedbackWidget"));
+	const FObjectProperty* ActiveCombatProperty = FindFProperty<FObjectProperty>(RuntimeActor->GetClass(), TEXT("ActiveCombatFeedbackWidget"));
+	TestTrue(TEXT("Readable active widget state remains transient"), ActiveReadableProperty && ActiveReadableProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(
+		TEXT("Interaction active widget state remains transient"), ActiveInteractionProperty && ActiveInteractionProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("Combat active widget state remains transient"), ActiveCombatProperty && ActiveCombatProperty->HasAnyPropertyFlags(CPF_Transient));
 
 	return true;
 }

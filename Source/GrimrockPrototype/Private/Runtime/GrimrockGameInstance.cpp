@@ -230,8 +230,7 @@ void UGrimrockGameInstance::SetPendingLoadSlot(const FString& SlotName, int32 Us
 	PendingLoadSlotUserIndex = UserIndex;
 	bHasPendingLoadSlot = !PendingLoadSlotName.IsEmpty();
 
-	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance PendingLoadSlot Set Slot=%s UserIndex=%d"), *PendingLoadSlotName,
-		PendingLoadSlotUserIndex);
+	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance PendingLoadSlot Set Slot=%s UserIndex=%d"), *PendingLoadSlotName, PendingLoadSlotUserIndex);
 }
 
 bool UGrimrockGameInstance::HasPendingLoadSlot() const

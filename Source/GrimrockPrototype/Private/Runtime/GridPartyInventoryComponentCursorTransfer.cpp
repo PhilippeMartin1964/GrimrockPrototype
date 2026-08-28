@@ -495,12 +495,14 @@ bool UGridPartyInventoryComponent::TryEquipCursorItemToCharacterSlot(int32 Chara
 	if (bWasOccupied)
 	{
 		UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Equip Swap Character=%d Slot=%s NewItem=%s OldItem=%s Result=true"), CharacterIndex,
-			GridPartyInventoryCursorTransferGetEquipmentSlotName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(), *PreviouslyEquippedItem.ItemDefinitionId.ToString());
+			GridPartyInventoryCursorTransferGetEquipmentSlotName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(),
+			*PreviouslyEquippedItem.ItemDefinitionId.ToString());
 	}
 	else
 	{
 		UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Equip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
-			GridPartyInventoryCursorTransferGetEquipmentSlotName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(), *ItemToEquip.RuntimeObjectId.ToString());
+			GridPartyInventoryCursorTransferGetEquipmentSlotName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(),
+			*ItemToEquip.RuntimeObjectId.ToString());
 	}
 
 	return true;

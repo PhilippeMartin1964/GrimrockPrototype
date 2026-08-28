@@ -22,8 +22,14 @@ namespace GridTD07344Normalization
 {
 	struct FCacheGuard
 	{
-		FCacheGuard() { FRPGAuthoringIdentityResolver::ResetRuntimeCache(); }
-		~FCacheGuard() { FRPGAuthoringIdentityResolver::ResetRuntimeCache(); }
+		FCacheGuard()
+		{
+			FRPGAuthoringIdentityResolver::ResetRuntimeCache();
+		}
+		~FCacheGuard()
+		{
+			FRPGAuthoringIdentityResolver::ResetRuntimeCache();
+		}
 	};
 
 	TSoftObjectPtr<UTexture2D> Texture(const TCHAR* Path)
@@ -71,8 +77,8 @@ namespace GridTD07344Normalization
 		return Visual;
 	}
 
-	void RememberAll(URPGClassAsset* ClassDefinition, URPGRaceAsset* RaceDefinition,
-		URPGCharacterPortraitSetAsset* PortraitSet, URPGClassVisualAsset* ClassVisual)
+	void RememberAll(
+		URPGClassAsset* ClassDefinition, URPGRaceAsset* RaceDefinition, URPGCharacterPortraitSetAsset* PortraitSet, URPGClassVisualAsset* ClassVisual)
 	{
 		FRPGAuthoringIdentityResolver::RememberClassDefinition(ClassDefinition);
 		FRPGAuthoringIdentityResolver::RememberRaceDefinition(RaceDefinition);
@@ -81,8 +87,7 @@ namespace GridTD07344Normalization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07344SchemaAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_4_4.Normalization.SchemaAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07344SchemaAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_4_4.Normalization.SchemaAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07344SchemaAuthorityTest::RunTest(const FString& Parameters)
@@ -113,8 +118,7 @@ bool FGridTD07344SchemaAuthorityTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07344CanonicalVisualResolverTest,
-	"Grimrock.TechnicalDebt.TD07_3_4_4.Normalization.CanonicalVisualResolver",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07344CanonicalVisualResolverTest, "Grimrock.TechnicalDebt.TD07_3_4_4.Normalization.CanonicalVisualResolver",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07344CanonicalVisualResolverTest::RunTest(const FString& Parameters)
@@ -133,14 +137,12 @@ bool FGridTD07344CanonicalVisualResolverTest::RunTest(const FString& Parameters)
 		FRPGAuthoringIdentityResolver::ResolvePortraitVisual(TEXT("TD07344_Elf"), ERPGCharacterPortraitGender::Female, TEXT("Female_01"));
 	const TSoftObjectPtr<UTexture2D> ClassIcon = FRPGAuthoringIdentityResolver::ResolveClassIcon(TEXT("TD07344_Mage"));
 
-	TestTrue(TEXT("Portrait resolves from Race/Gender/VariantId"), Portrait.ToSoftObjectPath() ==
-		PortraitSet->FemalePortraits[0].Portrait.ToSoftObjectPath());
+	TestTrue(TEXT("Portrait resolves from Race/Gender/VariantId"), Portrait.ToSoftObjectPath() == PortraitSet->FemalePortraits[0].Portrait.ToSoftObjectPath());
 	TestTrue(TEXT("Class icon resolves from ClassId"), ClassIcon.ToSoftObjectPath() == ClassVisual->ClassIcon.ToSoftObjectPath());
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07344VisualRoundTripTest,
-	"Grimrock.TechnicalDebt.TD07_3_4_4.Normalization.SaveRoundTripRehydratesVisuals",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07344VisualRoundTripTest, "Grimrock.TechnicalDebt.TD07_3_4_4.Normalization.SaveRoundTripRehydratesVisuals",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07344VisualRoundTripTest::RunTest(const FString& Parameters)
@@ -196,8 +198,7 @@ bool FGridTD07344VisualRoundTripTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07344AuthoringCleanupTest,
-	"Grimrock.TechnicalDebt.TD07_3_4_4.Normalization.AuthoringCleanup",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07344AuthoringCleanupTest, "Grimrock.TechnicalDebt.TD07_3_4_4.Normalization.AuthoringCleanup",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07344AuthoringCleanupTest::RunTest(const FString& Parameters)
@@ -211,19 +212,14 @@ bool FGridTD07344AuthoringCleanupTest::RunTest(const FString& Parameters)
 
 	FString RecruitmentWidgetSource;
 	TestTrue(TEXT("Story Companion recruitment widget source loads"),
-		FFileHelper::LoadFileToString(
-			RecruitmentWidgetSource,
-			*FPaths::Combine(
-				FPaths::ProjectDir(),
-				TEXT("Source/GrimrockPrototype/Private/UI/RPGStoryCompanionRecruitmentWidget.cpp"))));
+		FFileHelper::LoadFileToString(RecruitmentWidgetSource,
+			*FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/GrimrockPrototype/Private/UI/RPGStoryCompanionRecruitmentWidget.cpp"))));
 	TestFalse(TEXT("Recruitment widget no longer reads removed Portrait authoring field"),
 		RecruitmentWidgetSource.Contains(TEXT("View.Portrait = CompanionDefinition->Portrait;")));
 	TestFalse(TEXT("Recruitment widget no longer reads removed ClassIcon authoring field"),
 		RecruitmentWidgetSource.Contains(TEXT("View.ClassIcon = CompanionDefinition->ClassIcon;")));
-	TestTrue(TEXT("Recruitment widget resolves canonical Portrait identity"),
-		RecruitmentWidgetSource.Contains(TEXT("ResolvePortraitVisual")));
-	TestTrue(TEXT("Recruitment widget resolves canonical ClassIcon identity"),
-		RecruitmentWidgetSource.Contains(TEXT("ResolveClassIcon")));
+	TestTrue(TEXT("Recruitment widget resolves canonical Portrait identity"), RecruitmentWidgetSource.Contains(TEXT("ResolvePortraitVisual")));
+	TestTrue(TEXT("Recruitment widget resolves canonical ClassIcon identity"), RecruitmentWidgetSource.Contains(TEXT("ResolveClassIcon")));
 
 	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>();
 	Previous->SaveVersion = 21;

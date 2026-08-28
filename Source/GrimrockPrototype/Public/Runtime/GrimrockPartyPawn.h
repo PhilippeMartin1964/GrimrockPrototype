@@ -125,7 +125,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> StrafeRightAction;
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	TSubclassOf<UGrimrockMenuWidget> MenuWidgetClass;
 

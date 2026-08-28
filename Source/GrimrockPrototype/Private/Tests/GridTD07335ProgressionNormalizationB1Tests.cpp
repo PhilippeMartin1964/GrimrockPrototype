@@ -8,8 +8,7 @@
 #include "Save/GrimrockPartySaveGame.h"
 #include "UObject/UnrealType.h"
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335SchemaAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB1.SchemaAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335SchemaAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB1.SchemaAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07335SchemaAuthorityTest::RunTest(const FString& Parameters)
@@ -30,8 +29,7 @@ bool FGridTD07335SchemaAuthorityTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335CharacterChoiceAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB1.CharacterChoiceAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335CharacterChoiceAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB1.CharacterChoiceAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07335CharacterChoiceAuthorityTest::RunTest(const FString& Parameters)
@@ -43,8 +41,8 @@ bool FGridTD07335CharacterChoiceAuthorityTest::RunTest(const FString& Parameters
 
 	FRPGClassProgressionCommitResult Result;
 	TestTrue(TEXT("Choice A commits"), FRPGClassProgressionTransactionService::TryCommitChoices(Component, 0, { TEXT("Choice_A") }, Result));
-	TestTrue(TEXT("Character state owns Choice A"),
-		Component->PartyInventoryState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.Contains(TEXT("Choice_A")));
+	TestTrue(
+		TEXT("Character state owns Choice A"), Component->PartyInventoryState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.Contains(TEXT("Choice_A")));
 
 	FRPGClassProgressionTransactionService::ResetRuntimeState(Component);
 	TArray<FName> Selected;
@@ -52,15 +50,13 @@ bool FGridTD07335CharacterChoiceAuthorityTest::RunTest(const FString& Parameters
 	TestTrue(TEXT("Choice A survives cache reset"), Selected.Contains(TEXT("Choice_A")));
 
 	TSet<FName> Requirements;
-	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(
-		Component->PartyInventoryState.ActiveCharacters[0].CharacterId, Requirements);
+	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Component->PartyInventoryState.ActiveCharacters[0].CharacterId, Requirements);
 	TestTrue(TEXT("Choice A requirement is reconstructed"), Requirements.Contains(TEXT("Choice_A")));
 	TestTrue(TEXT("Choice A granted feature is reconstructed"), Requirements.Contains(TEXT("Feature_A")));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335TransientLevelRoundTripTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB1.TransientLevelRoundTrip",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335TransientLevelRoundTripTest, "Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB1.TransientLevelRoundTrip",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07335TransientLevelRoundTripTest::RunTest(const FString& Parameters)
@@ -92,8 +88,7 @@ bool FGridTD07335TransientLevelRoundTripTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335SaveSchemaVersionTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB1.SaveSchemaVersion",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335SaveSchemaVersionTest, "Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB1.SaveSchemaVersion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07335SaveSchemaVersionTest::RunTest(const FString& Parameters)

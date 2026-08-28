@@ -48,8 +48,7 @@ namespace GridTD07343Normalization
 		return Definition;
 	}
 
-	FGridCharacterInventoryState MakeCharacter(
-		URPGClassAsset* ClassDefinition, URPGRaceAsset* RaceDefinition, const TCHAR* DisplayName, int32 Level = 2)
+	FGridCharacterInventoryState MakeCharacter(URPGClassAsset* ClassDefinition, URPGRaceAsset* RaceDefinition, const TCHAR* DisplayName, int32 Level = 2)
 	{
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = FGuid::NewGuid();
@@ -75,8 +74,7 @@ namespace GridTD07343Normalization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07343SchemaAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_4_3.Normalization.SchemaAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07343SchemaAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_4_3.Normalization.SchemaAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07343SchemaAuthorityTest::RunTest(const FString& Parameters)
@@ -104,8 +102,7 @@ bool FGridTD07343SchemaAuthorityTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07343ActivePoolRehydrationTest,
-	"Grimrock.TechnicalDebt.TD07_3_4_3.Normalization.ActivePoolRehydration",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07343ActivePoolRehydrationTest, "Grimrock.TechnicalDebt.TD07_3_4_3.Normalization.ActivePoolRehydration",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07343ActivePoolRehydrationTest::RunTest(const FString& Parameters)
@@ -128,8 +125,7 @@ bool FGridTD07343ActivePoolRehydrationTest::RunTest(const FString& Parameters)
 
 	for (const FGridCharacterInventoryState* Character : { &Party.ActiveCharacters[0], &Party.CharacterPool[0] })
 	{
-		TestTrue(TEXT("ClassDefinition cache is canonical"),
-			Character->ClassDefinition.Get() == ClassDefinition);
+		TestTrue(TEXT("ClassDefinition cache is canonical"), Character->ClassDefinition.Get() == ClassDefinition);
 		TestEqual(TEXT("ClassDisplayName cache is canonical"), Character->ClassDisplayName.ToString(), FString(TEXT("Fighter Canonical")));
 		TestEqual(TEXT("RaceDisplayName cache is canonical"), Character->RaceDisplayName.ToString(), FString(TEXT("Human Canonical")));
 	}
@@ -138,8 +134,7 @@ bool FGridTD07343ActivePoolRehydrationTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07343SaveRoundTripTest,
-	"Grimrock.TechnicalDebt.TD07_3_4_3.Normalization.SaveRoundTripRehydratesCaches",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07343SaveRoundTripTest, "Grimrock.TechnicalDebt.TD07_3_4_3.Normalization.SaveRoundTripRehydratesCaches",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07343SaveRoundTripTest::RunTest(const FString& Parameters)
@@ -181,8 +176,7 @@ bool FGridTD07343SaveRoundTripTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07343SaveSchemaVersionTest,
-	"Grimrock.TechnicalDebt.TD07_3_4_3.Normalization.SaveSchemaVersion",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07343SaveSchemaVersionTest, "Grimrock.TechnicalDebt.TD07_3_4_3.Normalization.SaveSchemaVersion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07343SaveSchemaVersionTest::RunTest(const FString& Parameters)

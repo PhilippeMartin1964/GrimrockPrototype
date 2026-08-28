@@ -85,8 +85,7 @@ namespace GridTD07333Characterization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333EquipmentProjectionContractTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_3.Characterization.EquipmentProjectionContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333EquipmentProjectionContractTest, "Grimrock.TechnicalDebt.TD07_3_3_3.Characterization.EquipmentProjectionContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07333EquipmentProjectionContractTest::RunTest(const FString& Parameters)
@@ -123,8 +122,7 @@ bool FGridTD07333EquipmentProjectionContractTest::RunTest(const FString& Paramet
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333ResourceRemovalProjectionTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_3.Characterization.ResourceRemovalProjection",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333ResourceRemovalProjectionTest, "Grimrock.TechnicalDebt.TD07_3_3_3.Characterization.ResourceRemovalProjection",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07333ResourceRemovalProjectionTest::RunTest(const FString& Parameters)
@@ -160,8 +158,7 @@ bool FGridTD07333ResourceRemovalProjectionTest::RunTest(const FString& Parameter
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333CombatConsumerBoundaryTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_3.Characterization.CombatConsumerBoundary",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333CombatConsumerBoundaryTest, "Grimrock.TechnicalDebt.TD07_3_3_3.Characterization.CombatConsumerBoundary",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07333CombatConsumerBoundaryTest::RunTest(const FString& Parameters)
@@ -172,27 +169,26 @@ bool FGridTD07333CombatConsumerBoundaryTest::RunTest(const FString& Parameters)
 	FString MonsterCombat;
 	TestTrue(TEXT("Monster combat source loads"),
 		LoadProjectSource(TEXT("Source/GrimrockPrototype/Private/Runtime/Monsters/GridMonsterCombatComponent.cpp"), MonsterCombat));
-	TestTrue(TEXT("Incoming attacks currently read stored Evasion directly"),
-		MonsterCombat.Contains(TEXT("Target.Evasion = Character.DerivedStats.Evasion;")));
+	TestTrue(TEXT("Incoming attacks currently read stored Evasion directly"), MonsterCombat.Contains(TEXT("Target.Evasion = Character.DerivedStats.Evasion;")));
 	TestTrue(TEXT("Incoming attacks currently read stored physical armor directly"),
 		MonsterCombat.Contains(TEXT("Target.PhysicalArmor = Character.Resources.CurrentPhysicalArmor;")));
 	TestTrue(TEXT("Incoming attacks currently read stored magical armor directly"),
 		MonsterCombat.Contains(TEXT("Target.MagicalArmor = Character.Resources.CurrentMagicalArmor;")));
 	TestTrue(TEXT("Incoming attacks currently mutate stored physical armor directly"),
-		MonsterCombat.Contains(TEXT("Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor - OutResult.PhysicalArmorDamage);")));
+		MonsterCombat.Contains(
+			TEXT("Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor - OutResult.PhysicalArmorDamage);")));
 	TestTrue(TEXT("Incoming attacks currently mutate stored current health directly"),
 		MonsterCombat.Contains(TEXT("Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - OutResult.HealthDamage);")));
 
 	FString Initiative;
-	TestTrue(TEXT("Initiative source loads"),
-		LoadProjectSource(TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridTurnManagerInitiative.cpp"), Initiative));
+	TestTrue(
+		TEXT("Initiative source loads"), LoadProjectSource(TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridTurnManagerInitiative.cpp"), Initiative));
 	TestTrue(TEXT("Party initiative remains a calculated DerivedStats consumer"),
 		Initiative.Contains(TEXT("Entry.InitiativeBase = 10 + Character.DerivedStats.Initiative;")));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333MixedFactoryContractTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_3.Characterization.MixedFactoryContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333MixedFactoryContractTest, "Grimrock.TechnicalDebt.TD07_3_3_3.Characterization.MixedFactoryContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07333MixedFactoryContractTest::RunTest(const FString& Parameters)

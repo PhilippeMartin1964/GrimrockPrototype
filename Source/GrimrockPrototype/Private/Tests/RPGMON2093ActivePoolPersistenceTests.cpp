@@ -65,12 +65,18 @@ namespace RPGMON2093Tests
 	const FGridCharacterInventoryState* FindMON2093Character(const FGridPartyInventoryState& State, const FGuid& CharacterId)
 	{
 		if (const FGridCharacterInventoryState* Active = State.ActiveCharacters.FindByPredicate(
-				[&CharacterId](const FGridCharacterInventoryState& Character) { return Character.CharacterId == CharacterId; }))
+				[&CharacterId](const FGridCharacterInventoryState& Character)
+				{
+					return Character.CharacterId == CharacterId;
+				}))
 		{
 			return Active;
 		}
 		return State.CharacterPool.FindByPredicate(
-			[&CharacterId](const FGridCharacterInventoryState& Character) { return Character.CharacterId == CharacterId; });
+			[&CharacterId](const FGridCharacterInventoryState& Character)
+			{
+				return Character.CharacterId == CharacterId;
+			});
 	}
 }
 
@@ -242,7 +248,10 @@ bool FRPGMON2093SnapshotValidAfterRecruitmentMoveTest::RunTest(const FString& Pa
 	AddMON2093Rank(Recruit, TEXT("Skill_Lockpicking"), 2);
 	Inventory->PartyInventoryState.CharacterPool.Add(Recruit);
 	URPGSkillAsset* Skill = MakeMON2093Skill(TEXT("Skill_Lockpicking"), 5);
-	const auto Resolver = [Skill](FName SkillId) -> const URPGSkillAsset* { return SkillId == Skill->SkillId ? Skill : nullptr; };
+	const auto Resolver = [Skill](FName SkillId) -> const URPGSkillAsset*
+	{
+		return SkillId == Skill->SkillId ? Skill : nullptr;
+	};
 	FString Error;
 	TestTrue(TEXT("Pooled durable state validates"), FRPGSkillPersistence::ValidatePartySkills(Inventory->PartyInventoryState, Resolver, Error));
 	FRPGPartyRecruitmentResult Recruitment;

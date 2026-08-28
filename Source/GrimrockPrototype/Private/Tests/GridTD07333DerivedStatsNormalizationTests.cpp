@@ -45,8 +45,7 @@ namespace GridTD07333Normalization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333SchemaSeparationTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_3.Normalization.SchemaSeparation",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333SchemaSeparationTest, "Grimrock.TechnicalDebt.TD07_3_3_3.Normalization.SchemaSeparation",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07333SchemaSeparationTest::RunTest(const FString& Parameters)
@@ -74,8 +73,7 @@ bool FGridTD07333SchemaSeparationTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333ResourceInitializationTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_3.Normalization.ResourceInitialization",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333ResourceInitializationTest, "Grimrock.TechnicalDebt.TD07_3_3_3.Normalization.ResourceInitialization",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07333ResourceInitializationTest::RunTest(const FString& Parameters)
@@ -100,8 +98,7 @@ bool FGridTD07333ResourceInitializationTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333MagicResourceBoundaryTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_3.Normalization.MagicResourceBoundary",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333MagicResourceBoundaryTest, "Grimrock.TechnicalDebt.TD07_3_3_3.Normalization.MagicResourceBoundary",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07333MagicResourceBoundaryTest::RunTest(const FString& Parameters)
@@ -140,16 +137,14 @@ bool FGridTD07333MagicResourceBoundaryTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333SaveSchemaVersionTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_3.Normalization.SaveSchemaVersion",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07333SaveSchemaVersionTest, "Grimrock.TechnicalDebt.TD07_3_3_3.Normalization.SaveSchemaVersion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07333SaveSchemaVersionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestTrue(TEXT("The current exact-match schema remains newer than the TD07.3.3.3 v12 generation"),
-		UGrimrockPartySaveGame::CurrentSaveVersion >= 12);
+	TestTrue(TEXT("The current exact-match schema remains newer than the TD07.3.3.3 v12 generation"), UGrimrockPartySaveGame::CurrentSaveVersion >= 12);
 
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>();
 	TestEqual(TEXT("New SaveGame starts on the current schema"), Current->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);

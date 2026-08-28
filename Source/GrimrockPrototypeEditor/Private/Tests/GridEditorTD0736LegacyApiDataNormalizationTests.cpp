@@ -22,13 +22,11 @@ namespace GridTD0736Normalization
 
 	bool IsCardinalFacing(EGridEdge Facing)
 	{
-		return Facing == EGridEdge::North || Facing == EGridEdge::East ||
-			Facing == EGridEdge::South || Facing == EGridEdge::West;
+		return Facing == EGridEdge::North || Facing == EGridEdge::East || Facing == EGridEdge::South || Facing == EGridEdge::West;
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0736LegacySymbolsAbsentTest,
-	"Grimrock.TechnicalDebt.TD07_3_6.Normalization.LegacySymbolsAbsent",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0736LegacySymbolsAbsentTest, "Grimrock.TechnicalDebt.TD07_3_6.Normalization.LegacySymbolsAbsent",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0736LegacySymbolsAbsentTest::RunTest(const FString& Parameters)
@@ -43,22 +41,19 @@ bool FGridTD0736LegacySymbolsAbsentTest::RunTest(const FString& Parameters)
 		UGridTurnManagerComponent::StaticClass()->FindFunctionByName(TEXT("HasCharacterCommittedAttackThisPhase")));
 
 	UClass* PawnClass = AGrimrockPartyPawn::StaticClass();
-	TestNull(TEXT("bEnableLegacyKeyboardUseAction is removed"),
-		PawnClass->FindPropertyByName(TEXT("bEnableLegacyKeyboardUseAction")));
+	TestNull(TEXT("bEnableLegacyKeyboardUseAction is removed"), PawnClass->FindPropertyByName(TEXT("bEnableLegacyKeyboardUseAction")));
 	TestNull(TEXT("UseAction is removed"), PawnClass->FindPropertyByName(TEXT("UseAction")));
 
 	const UEnum* RebuildEnum = StaticEnum<EGridRuntimeRebuildMode>();
 	TestNotNull(TEXT("Runtime rebuild enum exists"), RebuildEnum);
 	if (RebuildEnum)
 	{
-		TestTrue(TEXT("ObjectsOnly is removed"),
-			RebuildEnum->GetValueByNameString(TEXT("ObjectsOnly")) == INDEX_NONE);
+		TestTrue(TEXT("ObjectsOnly is removed"), RebuildEnum->GetValueByNameString(TEXT("ObjectsOnly")) == INDEX_NONE);
 	}
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0736MonsterSpawnFacingAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_6.Normalization.MonsterSpawnFacingAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0736MonsterSpawnFacingAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_6.Normalization.MonsterSpawnFacingAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0736MonsterSpawnFacingAuthorityTest::RunTest(const FString& Parameters)
@@ -67,20 +62,16 @@ bool FGridTD0736MonsterSpawnFacingAuthorityTest::RunTest(const FString& Paramete
 	using namespace GridTD0736Normalization;
 
 	FString LevelAssetSource;
-	TestTrue(TEXT("GridLevelAsset source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Core/GridLevelAsset.cpp"), LevelAssetSource));
+	TestTrue(TEXT("GridLevelAsset source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Core/GridLevelAsset.cpp"), LevelAssetSource));
 
-	TestFalse(TEXT("Legacy yaw-to-facing converter is gone"),
-		LevelAssetSource.Contains(TEXT("GetFacingForLegacyYaw")));
-	TestFalse(TEXT("InitialFacing is never recovered from LocalYaw"),
-		LevelAssetSource.Contains(TEXT("InitialFacing = GetFacingForLegacyYaw")));
+	TestFalse(TEXT("Legacy yaw-to-facing converter is gone"), LevelAssetSource.Contains(TEXT("GetFacingForLegacyYaw")));
+	TestFalse(TEXT("InitialFacing is never recovered from LocalYaw"), LevelAssetSource.Contains(TEXT("InitialFacing = GetFacingForLegacyYaw")));
 	TestTrue(TEXT("InitialFacing remains authoritative for the generic preview yaw mirror"),
 		LevelAssetSource.Contains(TEXT("ObjectData.LocalYaw = GetYawForFacing(ObjectData.InitialFacing)")));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0736CurrentMonsterSpawnAssetsTest,
-	"Grimrock.TechnicalDebt.TD07_3_6.Normalization.CurrentMonsterSpawnAssets",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0736CurrentMonsterSpawnAssetsTest, "Grimrock.TechnicalDebt.TD07_3_6.Normalization.CurrentMonsterSpawnAssets",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0736CurrentMonsterSpawnAssetsTest::RunTest(const FString& Parameters)
@@ -88,8 +79,7 @@ bool FGridTD0736CurrentMonsterSpawnAssetsTest::RunTest(const FString& Parameters
 	(void)Parameters;
 	using namespace GridTD0736Normalization;
 
-	FAssetRegistryModule& AssetRegistryModule =
-		FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 	AssetRegistry.SearchAllAssets(true);
 
@@ -120,14 +110,13 @@ bool FGridTD0736CurrentMonsterSpawnAssetsTest::RunTest(const FString& Parameters
 			}
 
 			++MonsterSpawnCount;
-			TestTrue(
-				*FString::Printf(TEXT("%s MonsterSpawn has durable cardinal InitialFacing"), *AssetData.PackageName.ToString()),
+			TestTrue(*FString::Printf(TEXT("%s MonsterSpawn has durable cardinal InitialFacing"), *AssetData.PackageName.ToString()),
 				IsCardinalFacing(Object.InitialFacing));
 		}
 
 		TArray<FString> SpawnErrors;
-		TestTrue(*FString::Printf(TEXT("%s current MonsterSpawn schema validates"), *AssetData.PackageName.ToString()),
-			Level->ValidateMonsterSpawns(SpawnErrors));
+		TestTrue(
+			*FString::Printf(TEXT("%s current MonsterSpawn schema validates"), *AssetData.PackageName.ToString()), Level->ValidateMonsterSpawns(SpawnErrors));
 		for (const FString& Error : SpawnErrors)
 		{
 			AddError(FString::Printf(TEXT("%s: %s"), *AssetData.PackageName.ToString(), *Error));
@@ -139,8 +128,7 @@ bool FGridTD0736CurrentMonsterSpawnAssetsTest::RunTest(const FString& Parameters
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0736LegacyInfrastructureRemovedTest,
-	"Grimrock.TechnicalDebt.TD07_3_6.Normalization.LegacyInfrastructureRemoved",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0736LegacyInfrastructureRemovedTest, "Grimrock.TechnicalDebt.TD07_3_6.Normalization.LegacyInfrastructureRemoved",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0736LegacyInfrastructureRemovedTest::RunTest(const FString& Parameters)
@@ -151,17 +139,14 @@ bool FGridTD0736LegacyInfrastructureRemovedTest::RunTest(const FString& Paramete
 	FString AuditSource;
 	TestTrue(TEXT("TD07.3.1 audit source loads"),
 		LoadProjectFile(TEXT("Source/GrimrockPrototypeEditor/Private/Tests/GridEditorTD0731CurrentSchemaAssetAuditTests.cpp"), AuditSource));
-	TestFalse(TEXT("Legacy MonsterSpawn yaw finding is removed"),
-		AuditSource.Contains(TEXT("MONSTERSPAWN.LEGACY_YAW_FACING")));
-	TestFalse(TEXT("MonsterSpawn yaw duplicate-authority finding is removed"),
-		AuditSource.Contains(TEXT("MONSTERSPAWN.FACING_YAW_MISMATCH")));
+	TestFalse(TEXT("Legacy MonsterSpawn yaw finding is removed"), AuditSource.Contains(TEXT("MONSTERSPAWN.LEGACY_YAW_FACING")));
+	TestFalse(TEXT("MonsterSpawn yaw duplicate-authority finding is removed"), AuditSource.Contains(TEXT("MONSTERSPAWN.FACING_YAW_MISMATCH")));
 
 	TestFalse(TEXT("One-shot PowerShell repair is removed"),
 		FPaths::FileExists(FPaths::Combine(FPaths::ProjectDir(), TEXT("Scripts/RepairTD0736MonsterSpawnFacing.ps1"))));
 	TestFalse(TEXT("One-shot Editor repair test is removed"),
 		FPaths::FileExists(FPaths::Combine(
-			FPaths::ProjectDir(),
-			TEXT("Source/GrimrockPrototypeEditor/Private/Tests/GridEditorTD0736MonsterSpawnFacingAssetRepairTests.cpp"))));
+			FPaths::ProjectDir(), TEXT("Source/GrimrockPrototypeEditor/Private/Tests/GridEditorTD0736MonsterSpawnFacingAssetRepairTests.cpp"))));
 	return true;
 }
 

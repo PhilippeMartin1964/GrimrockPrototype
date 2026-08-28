@@ -50,7 +50,11 @@ struct FGridCharacterSpellbookState
 		}
 
 		KnownSpellIds.Add(SpellId);
-		KnownSpellIds.Sort([](const FName Left, const FName Right) { return Left.ToString() < Right.ToString(); });
+		KnownSpellIds.Sort(
+			[](const FName Left, const FName Right)
+			{
+				return Left.ToString() < Right.ToString();
+			});
 		return EGridSpellbookMutationResult::Success;
 	}
 
@@ -81,7 +85,11 @@ struct FGridCharacterSpellbookState
 			}
 			SeenSpellIds.Add(SpellId);
 		}
-		KnownSpellIds.Sort([](const FName Left, const FName Right) { return Left.ToString() < Right.ToString(); });
+		KnownSpellIds.Sort(
+			[](const FName Left, const FName Right)
+			{
+				return Left.ToString() < Right.ToString();
+			});
 	}
 
 	bool IsValid() const

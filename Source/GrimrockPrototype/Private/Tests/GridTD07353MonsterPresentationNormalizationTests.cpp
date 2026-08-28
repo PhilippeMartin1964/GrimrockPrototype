@@ -11,10 +11,8 @@
 
 namespace GridTD07353Normalization
 {
-	const TCHAR* RatAssetPath =
-		TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant");
-	const TCHAR* GoblinAssetPath =
-		TEXT("/Game/GrimrockPrototype/Monsters/GoblinThrower/Data/DA_MON_GoblinThrower.DA_MON_GoblinThrower");
+	const TCHAR* RatAssetPath = TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant");
+	const TCHAR* GoblinAssetPath = TEXT("/Game/GrimrockPrototype/Monsters/GoblinThrower/Data/DA_MON_GoblinThrower.DA_MON_GoblinThrower");
 
 	bool LoadProjectFile(const TCHAR* RelativePath, FString& OutText)
 	{
@@ -31,8 +29,7 @@ namespace GridTD07353Normalization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07353SchemaAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_5_3.Normalization.SchemaAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07353SchemaAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_5_3.Normalization.SchemaAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07353SchemaAuthorityTest::RunTest(const FString& Parameters)
@@ -46,29 +43,20 @@ bool FGridTD07353SchemaAuthorityTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	TestNull(TEXT("AttackSound is physically removed"),
-		AttackStruct->FindPropertyByName(TEXT("AttackSound")));
-	TestNull(TEXT("ImpactVFX is physically removed"),
-		AttackStruct->FindPropertyByName(TEXT("ImpactVFX")));
+	TestNull(TEXT("AttackSound is physically removed"), AttackStruct->FindPropertyByName(TEXT("AttackSound")));
+	TestNull(TEXT("ImpactVFX is physically removed"), AttackStruct->FindPropertyByName(TEXT("ImpactVFX")));
 
-	TestNotNull(TEXT("AttackAudio remains authoritative"),
-		AttackStruct->FindPropertyByName(TEXT("AttackAudio")));
-	TestNotNull(TEXT("ImpactHitAudio remains authoritative"),
-		AttackStruct->FindPropertyByName(TEXT("ImpactHitAudio")));
-	TestNotNull(TEXT("ImpactMissAudio remains authoritative"),
-		AttackStruct->FindPropertyByName(TEXT("ImpactMissAudio")));
-	TestNotNull(TEXT("AttackVFXDefinition remains authoritative"),
-		AttackStruct->FindPropertyByName(TEXT("AttackVFXDefinition")));
-	TestNotNull(TEXT("ImpactHitVFXDefinition remains authoritative"),
-		AttackStruct->FindPropertyByName(TEXT("ImpactHitVFXDefinition")));
-	TestNotNull(TEXT("ImpactMissVFXDefinition remains authoritative"),
-		AttackStruct->FindPropertyByName(TEXT("ImpactMissVFXDefinition")));
+	TestNotNull(TEXT("AttackAudio remains authoritative"), AttackStruct->FindPropertyByName(TEXT("AttackAudio")));
+	TestNotNull(TEXT("ImpactHitAudio remains authoritative"), AttackStruct->FindPropertyByName(TEXT("ImpactHitAudio")));
+	TestNotNull(TEXT("ImpactMissAudio remains authoritative"), AttackStruct->FindPropertyByName(TEXT("ImpactMissAudio")));
+	TestNotNull(TEXT("AttackVFXDefinition remains authoritative"), AttackStruct->FindPropertyByName(TEXT("AttackVFXDefinition")));
+	TestNotNull(TEXT("ImpactHitVFXDefinition remains authoritative"), AttackStruct->FindPropertyByName(TEXT("ImpactHitVFXDefinition")));
+	TestNotNull(TEXT("ImpactMissVFXDefinition remains authoritative"), AttackStruct->FindPropertyByName(TEXT("ImpactMissVFXDefinition")));
 
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07353RepairedAssetsTest,
-	"Grimrock.TechnicalDebt.TD07_3_5_3.Normalization.RepairedAssets",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07353RepairedAssetsTest, "Grimrock.TechnicalDebt.TD07_3_5_3.Normalization.RepairedAssets",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07353RepairedAssetsTest::RunTest(const FString& Parameters)
@@ -76,10 +64,8 @@ bool FGridTD07353RepairedAssetsTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	using namespace GridTD07353Normalization;
 
-	UGridMonsterDefinitionAsset* Rat =
-		LoadObject<UGridMonsterDefinitionAsset>(nullptr, RatAssetPath);
-	UGridMonsterDefinitionAsset* Goblin =
-		LoadObject<UGridMonsterDefinitionAsset>(nullptr, GoblinAssetPath);
+	UGridMonsterDefinitionAsset* Rat = LoadObject<UGridMonsterDefinitionAsset>(nullptr, RatAssetPath);
+	UGridMonsterDefinitionAsset* Goblin = LoadObject<UGridMonsterDefinitionAsset>(nullptr, GoblinAssetPath);
 
 	TestNotNull(TEXT("Repaired RatGiant definition loads"), Rat);
 	TestNotNull(TEXT("Repaired GoblinThrower definition loads"), Goblin);
@@ -87,7 +73,6 @@ bool FGridTD07353RepairedAssetsTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-
 
 	TestTrue(TEXT("RatGiant keeps configured AttackAudio"), HasConfiguredAttackAudio(*Rat));
 	TestTrue(TEXT("GoblinThrower keeps configured AttackAudio"), HasConfiguredAttackAudio(*Goblin));
@@ -97,8 +82,7 @@ bool FGridTD07353RepairedAssetsTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07353CurrentPresentationDefinitionsTest,
-	"Grimrock.TechnicalDebt.TD07_3_5_3.Normalization.CurrentPresentationDefinitions",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+	"Grimrock.TechnicalDebt.TD07_3_5_3.Normalization.CurrentPresentationDefinitions", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07353CurrentPresentationDefinitionsTest::RunTest(const FString& Parameters)
 {
@@ -131,8 +115,7 @@ bool FGridTD07353CurrentPresentationDefinitionsTest::RunTest(const FString& Para
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07353RuntimeFallbackRemovalTest,
-	"Grimrock.TechnicalDebt.TD07_3_5_3.Normalization.RuntimeFallbackRemoval",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07353RuntimeFallbackRemovalTest, "Grimrock.TechnicalDebt.TD07_3_5_3.Normalization.RuntimeFallbackRemoval",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07353RuntimeFallbackRemovalTest::RunTest(const FString& Parameters)
@@ -143,25 +126,18 @@ bool FGridTD07353RuntimeFallbackRemovalTest::RunTest(const FString& Parameters)
 	FString TypesSource;
 	FString AudioSource;
 	FString VFXSource;
-	TestTrue(TEXT("Monster types source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/Monsters/GridMonsterTypes.h"), TypesSource));
+	TestTrue(TEXT("Monster types source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/Monsters/GridMonsterTypes.h"), TypesSource));
 	TestTrue(TEXT("Monster audio source loads"),
 		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Monsters/GridMonsterAudioComponent.cpp"), AudioSource));
-	TestTrue(TEXT("Monster VFX source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Monsters/GridMonsterVFXComponent.cpp"), VFXSource));
+	TestTrue(
+		TEXT("Monster VFX source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Monsters/GridMonsterVFXComponent.cpp"), VFXSource));
 
-	TestFalse(TEXT("AttackSound declaration is gone"),
-		TypesSource.Contains(TEXT("TSoftObjectPtr<USoundBase> AttackSound")));
-	TestFalse(TEXT("ImpactVFX declaration is gone"),
-		TypesSource.Contains(TEXT("TSoftObjectPtr<UNiagaraSystem> ImpactVFX")));
-	TestFalse(TEXT("Audio runtime no longer reads AttackSound"),
-		AudioSource.Contains(TEXT("Attack.AttackSound")));
-	TestFalse(TEXT("Audio runtime contains no legacy adapter definition"),
-		AudioSource.Contains(TEXT("LegacyDefinition")));
-	TestFalse(TEXT("VFX runtime no longer reads ImpactVFX"),
-		VFXSource.Contains(TEXT("Attack.ImpactVFX")));
-	TestFalse(TEXT("VFX runtime contains no legacy adapter definition"),
-		VFXSource.Contains(TEXT("LegacyDefinition")));
+	TestFalse(TEXT("AttackSound declaration is gone"), TypesSource.Contains(TEXT("TSoftObjectPtr<USoundBase> AttackSound")));
+	TestFalse(TEXT("ImpactVFX declaration is gone"), TypesSource.Contains(TEXT("TSoftObjectPtr<UNiagaraSystem> ImpactVFX")));
+	TestFalse(TEXT("Audio runtime no longer reads AttackSound"), AudioSource.Contains(TEXT("Attack.AttackSound")));
+	TestFalse(TEXT("Audio runtime contains no legacy adapter definition"), AudioSource.Contains(TEXT("LegacyDefinition")));
+	TestFalse(TEXT("VFX runtime no longer reads ImpactVFX"), VFXSource.Contains(TEXT("Attack.ImpactVFX")));
+	TestFalse(TEXT("VFX runtime contains no legacy adapter definition"), VFXSource.Contains(TEXT("LegacyDefinition")));
 
 	return true;
 }

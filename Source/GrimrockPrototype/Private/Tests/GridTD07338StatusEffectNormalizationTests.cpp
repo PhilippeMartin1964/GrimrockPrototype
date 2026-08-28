@@ -49,8 +49,7 @@ namespace GridTD07338Normalization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338SchemaAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_8.Normalization.SchemaAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338SchemaAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_3_8.Normalization.SchemaAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07338SchemaAuthorityTest::RunTest(const FString& Parameters)
@@ -72,13 +71,12 @@ bool FGridTD07338SchemaAuthorityTest::RunTest(const FString& Parameters)
 		FindFProperty<FArrayProperty>(FGridRuntimeMonsterState::StaticStruct(), GET_MEMBER_NAME_CHECKED(FGridRuntimeMonsterState, StatusEffects));
 	const FStructProperty* MonsterInner = MonsterStatusProperty ? CastField<FStructProperty>(MonsterStatusProperty->Inner) : nullptr;
 	TestTrue(TEXT("Monster status snapshot contract is preserved"),
-		MonsterStatusProperty && MonsterStatusProperty->HasAnyPropertyFlags(CPF_SaveGame) &&
-			MonsterInner && MonsterInner->Struct == FGridStatusEffectSaveState::StaticStruct());
+		MonsterStatusProperty && MonsterStatusProperty->HasAnyPropertyFlags(CPF_SaveGame) && MonsterInner &&
+			MonsterInner->Struct == FGridStatusEffectSaveState::StaticStruct());
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338DirectDurableValidationTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_8.Normalization.DirectDurableValidation",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338DirectDurableValidationTest, "Grimrock.TechnicalDebt.TD07_3_3_8.Normalization.DirectDurableValidation",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07338DirectDurableValidationTest::RunTest(const FString& Parameters)
@@ -86,8 +84,7 @@ bool FGridTD07338DirectDurableValidationTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	using namespace GridTD07338Normalization;
 	UGridStatusEffectDefinitionAsset* ActiveDefinition = MakeTD07338NDefinition(TEXT("TD07338N_Active"));
-	UGridStatusEffectDefinitionAsset* PoolDefinition =
-		MakeTD07338NDefinition(TEXT("TD07338N_Pool"), EGridStatusEffectDurationUnit::Turns, 2, 2);
+	UGridStatusEffectDefinitionAsset* PoolDefinition = MakeTD07338NDefinition(TEXT("TD07338N_Pool"), EGridStatusEffectDurationUnit::Turns, 2, 2);
 
 	FGridPartyInventoryState Party;
 	FGridCharacterInventoryState Active = MakeTD07338NCharacter(2);
@@ -98,20 +95,16 @@ bool FGridTD07338DirectDurableValidationTest::RunTest(const FString& Parameters)
 	Party.CharacterPool.Add(Pool);
 
 	FString Error;
-	TestTrue(TEXT("Live runtime party validates with DefinitionAsset caches"),
-		FGridStatusEffectPersistence::ValidateRuntimePartyStatusEffects(Party, Error));
+	TestTrue(TEXT("Live runtime party validates with DefinitionAsset caches"), FGridStatusEffectPersistence::ValidateRuntimePartyStatusEffects(Party, Error));
 
 	Party.ActiveCharacters[0].StatusEffects.ActiveEffects[0].DefinitionAsset = nullptr;
 	Party.CharacterPool[0].StatusEffects.ActiveEffects[0].DefinitionAsset = nullptr;
-	TestTrue(TEXT("Deserialized durable party validates without transient caches"),
-		FGridStatusEffectPersistence::ValidatePartyStatusEffects(Party, Error));
-	TestFalse(TEXT("Runtime validation distinguishes missing caches"),
-		FGridStatusEffectPersistence::ValidateRuntimePartyStatusEffects(Party, Error));
+	TestTrue(TEXT("Deserialized durable party validates without transient caches"), FGridStatusEffectPersistence::ValidatePartyStatusEffects(Party, Error));
+	TestFalse(TEXT("Runtime validation distinguishes missing caches"), FGridStatusEffectPersistence::ValidateRuntimePartyStatusEffects(Party, Error));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338AtomicRehydrationTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_8.Normalization.AtomicRehydration",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338AtomicRehydrationTest, "Grimrock.TechnicalDebt.TD07_3_3_8.Normalization.AtomicRehydration",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07338AtomicRehydrationTest::RunTest(const FString& Parameters)
@@ -158,15 +151,12 @@ bool FGridTD07338AtomicRehydrationTest::RunTest(const FString& Parameters)
 				return EffectId == A->EffectId ? A : nullptr;
 			},
 			Error));
-	TestNull(TEXT("Atomic failure leaves Active cache unbound"),
-		Invalid.ActiveCharacters[0].StatusEffects.ActiveEffects[0].DefinitionAsset.Get());
-	TestNull(TEXT("Atomic failure leaves Pool cache unbound"),
-		Invalid.CharacterPool[0].StatusEffects.ActiveEffects[0].DefinitionAsset.Get());
+	TestNull(TEXT("Atomic failure leaves Active cache unbound"), Invalid.ActiveCharacters[0].StatusEffects.ActiveEffects[0].DefinitionAsset.Get());
+	TestNull(TEXT("Atomic failure leaves Pool cache unbound"), Invalid.CharacterPool[0].StatusEffects.ActiveEffects[0].DefinitionAsset.Get());
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338SaveSchemaVersionTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_8.Normalization.SaveSchemaVersion",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338SaveSchemaVersionTest, "Grimrock.TechnicalDebt.TD07_3_3_8.Normalization.SaveSchemaVersion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07338SaveSchemaVersionTest::RunTest(const FString& Parameters)

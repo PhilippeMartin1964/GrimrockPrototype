@@ -52,8 +52,7 @@ namespace GridTD07338Characterization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338RuntimeAuthorityBoundaryTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_8.Characterization.RuntimeAuthorityBoundary",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338RuntimeAuthorityBoundaryTest, "Grimrock.TechnicalDebt.TD07_3_3_8.Characterization.RuntimeAuthorityBoundary",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07338RuntimeAuthorityBoundaryTest::RunTest(const FString& Parameters)
@@ -64,14 +63,13 @@ bool FGridTD07338RuntimeAuthorityBoundaryTest::RunTest(const FString& Parameters
 	const FProperty* CharacterStatusProperty =
 		FindFProperty<FProperty>(FGridCharacterInventoryState::StaticStruct(), GET_MEMBER_NAME_CHECKED(FGridCharacterInventoryState, StatusEffects));
 	TestNotNull(TEXT("Character.StatusEffects is reflected"), CharacterStatusProperty);
-	TestTrue(TEXT("Character.StatusEffects is durable and non-transient"),
-		CharacterStatusProperty && !CharacterStatusProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(
+		TEXT("Character.StatusEffects is durable and non-transient"), CharacterStatusProperty && !CharacterStatusProperty->HasAnyPropertyFlags(CPF_Transient));
 
 	const FProperty* DefinitionProperty =
 		FindFProperty<FProperty>(FGridStatusEffectRuntimeState::StaticStruct(), GET_MEMBER_NAME_CHECKED(FGridStatusEffectRuntimeState, DefinitionAsset));
 	TestNotNull(TEXT("Runtime DefinitionAsset cache is reflected"), DefinitionProperty);
-	TestTrue(TEXT("DefinitionAsset remains transient and reconstructible"),
-		DefinitionProperty && DefinitionProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("DefinitionAsset remains transient and reconstructible"), DefinitionProperty && DefinitionProperty->HasAnyPropertyFlags(CPF_Transient));
 
 	const FProperty* EffectIdProperty =
 		FindFProperty<FProperty>(FGridStatusEffectRuntimeState::StaticStruct(), GET_MEMBER_NAME_CHECKED(FGridStatusEffectRuntimeState, EffectId));
@@ -88,8 +86,7 @@ bool FGridTD07338RuntimeAuthorityBoundaryTest::RunTest(const FString& Parameters
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338PartySparseSaveMirrorTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_8.Characterization.PartySparseSaveMirror",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338PartySparseSaveMirrorTest, "Grimrock.TechnicalDebt.TD07_3_3_8.Characterization.PartySparseSaveMirror",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07338PartySparseSaveMirrorTest::RunTest(const FString& Parameters)
@@ -101,8 +98,7 @@ bool FGridTD07338PartySparseSaveMirrorTest::RunTest(const FString& Parameters)
 		FindFProperty<FProperty>(UGrimrockPartySaveGame::StaticClass(), TEXT("CharacterStatusEffectStates")));
 
 	UGridStatusEffectDefinitionAsset* ActiveDefinition = MakeTD07338Definition(TEXT("TD07338_Active"));
-	UGridStatusEffectDefinitionAsset* PoolDefinition =
-		MakeTD07338Definition(TEXT("TD07338_Pool"), EGridStatusEffectDurationUnit::Turns, 2, 2);
+	UGridStatusEffectDefinitionAsset* PoolDefinition = MakeTD07338Definition(TEXT("TD07338_Pool"), EGridStatusEffectDurationUnit::Turns, 2, 2);
 
 	FGridPartyInventoryState Party;
 	FGridCharacterInventoryState Active = MakeTD07338Character(MakeTD07338Id(2));
@@ -178,8 +174,7 @@ bool FGridTD07338PartyRestoreReplacementBoundaryTest::RunTest(const FString& Par
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338MonsterSnapshotIsolationTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_8.Characterization.MonsterSnapshotIsolation",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07338MonsterSnapshotIsolationTest, "Grimrock.TechnicalDebt.TD07_3_3_8.Characterization.MonsterSnapshotIsolation",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07338MonsterSnapshotIsolationTest::RunTest(const FString& Parameters)
@@ -189,11 +184,10 @@ bool FGridTD07338MonsterSnapshotIsolationTest::RunTest(const FString& Parameters
 	const FArrayProperty* MonsterStatusProperty =
 		FindFProperty<FArrayProperty>(FGridRuntimeMonsterState::StaticStruct(), GET_MEMBER_NAME_CHECKED(FGridRuntimeMonsterState, StatusEffects));
 	TestNotNull(TEXT("Monster persistent runtime state keeps a status snapshot array"), MonsterStatusProperty);
-	TestTrue(TEXT("Monster status snapshot remains explicit SaveGame state"),
-		MonsterStatusProperty && MonsterStatusProperty->HasAnyPropertyFlags(CPF_SaveGame));
+	TestTrue(
+		TEXT("Monster status snapshot remains explicit SaveGame state"), MonsterStatusProperty && MonsterStatusProperty->HasAnyPropertyFlags(CPF_SaveGame));
 
-	const FStructProperty* InnerStructProperty =
-		MonsterStatusProperty ? CastField<FStructProperty>(MonsterStatusProperty->Inner) : nullptr;
+	const FStructProperty* InnerStructProperty = MonsterStatusProperty ? CastField<FStructProperty>(MonsterStatusProperty->Inner) : nullptr;
 	TestNotNull(TEXT("Monster status array has a struct element type"), InnerStructProperty);
 	TestTrue(TEXT("Monster persistence still depends on FGridStatusEffectSaveState"),
 		InnerStructProperty && InnerStructProperty->Struct == FGridStatusEffectSaveState::StaticStruct());

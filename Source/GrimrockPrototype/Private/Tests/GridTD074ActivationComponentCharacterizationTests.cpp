@@ -56,8 +56,7 @@ namespace GridTD074ActivationCharacterization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD074ActivationSurfaceCharacterizationTest,
-	"Grimrock.TechnicalDebt.TD07_4.Characterization.SurfaceMetrics",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD074ActivationSurfaceCharacterizationTest, "Grimrock.TechnicalDebt.TD07_4.Characterization.SurfaceMetrics",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD074ActivationSurfaceCharacterizationTest::RunTest(const FString& Parameters)
@@ -67,10 +66,9 @@ bool FGridTD074ActivationSurfaceCharacterizationTest::RunTest(const FString& Par
 
 	FString Header;
 	FString Source;
-	TestTrue(TEXT("GridActivationComponent header loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/GridActivationComponent.h"), Header));
-	TestTrue(TEXT("GridActivationComponent source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponent.cpp"), Source));
+	TestTrue(TEXT("GridActivationComponent header loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/GridActivationComponent.h"), Header));
+	TestTrue(
+		TEXT("GridActivationComponent source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponent.cpp"), Source));
 
 	const int32 HeaderLines = CountLines(Header);
 	const int32 SourceLines = CountLines(Source);
@@ -78,8 +76,7 @@ bool FGridTD074ActivationSurfaceCharacterizationTest::RunTest(const FString& Par
 	const int32 LogCalls = CountOccurrences(Source, TEXT("UE_LOG("));
 	const int32 LogTempOccurrences = CountOccurrences(Source, TEXT("LogTemp"));
 
-	AddInfo(FString::Printf(
-		TEXT("TD07.4 baseline: header=%d lines/%d chars source=%d lines/%d chars scoped-method-occurrences=%d UE_LOG=%d LogTemp=%d"),
+	AddInfo(FString::Printf(TEXT("TD07.4 baseline: header=%d lines/%d chars source=%d lines/%d chars scoped-method-occurrences=%d UE_LOG=%d LogTemp=%d"),
 		HeaderLines, Header.Len(), SourceLines, Source.Len(), ScopedMethodOccurrences, LogCalls, LogTempOccurrences));
 
 	TestTrue(TEXT("Activation component is currently a concentrated source file"), SourceLines >= 1500);
@@ -88,8 +85,7 @@ bool FGridTD074ActivationSurfaceCharacterizationTest::RunTest(const FString& Par
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD074ActivationResponsibilitiesCharacterizationTest,
-	"Grimrock.TechnicalDebt.TD07_4.Characterization.ResponsibilityMap",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD074ActivationResponsibilitiesCharacterizationTest, "Grimrock.TechnicalDebt.TD07_4.Characterization.ResponsibilityMap",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD074ActivationResponsibilitiesCharacterizationTest::RunTest(const FString& Parameters)
@@ -98,36 +94,23 @@ bool FGridTD074ActivationResponsibilitiesCharacterizationTest::RunTest(const FSt
 	using namespace GridTD074ActivationCharacterization;
 
 	FString Source;
-	TestTrue(TEXT("GridActivationComponent source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponent.cpp"), Source));
+	TestTrue(
+		TEXT("GridActivationComponent source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponent.cpp"), Source));
 
-	for (const TCHAR* RequiredSymbol : {
-			 TEXT("TryInteractAtEdge"),
-			 TEXT("RefreshPressurePlatesAtCell"),
-			 TEXT("ProcessTriggersAtCell"),
-			 TEXT("ExecuteLinksFromObjectForEventInternal"),
-			 TEXT("ApplyLinkCommand"),
-			 TEXT("EvaluateGridObjectLinkCondition"),
-			 TEXT("ApplyQuestLinkCommand"),
-			 TEXT("ReloadLuaRuntime"),
-			 TEXT("ExecuteLuaCallbackLink"),
-			 TEXT("ExecuteLuaIssuedCommand"),
-			 TEXT("IsStoryCompanionAlreadyActive"),
-			 TEXT("ActivateReadableObject"),
-			 TEXT("ActivateReceptacle"),
-			 TEXT("RebuildIndexes"),
-			 TEXT("GetDebugSummary") })
+	for (const TCHAR* RequiredSymbol : { TEXT("TryInteractAtEdge"), TEXT("RefreshPressurePlatesAtCell"), TEXT("ProcessTriggersAtCell"),
+			 TEXT("ExecuteLinksFromObjectForEventInternal"), TEXT("ApplyLinkCommand"), TEXT("EvaluateGridObjectLinkCondition"), TEXT("ApplyQuestLinkCommand"),
+			 TEXT("ReloadLuaRuntime"), TEXT("ExecuteLuaCallbackLink"), TEXT("ExecuteLuaIssuedCommand"), TEXT("IsStoryCompanionAlreadyActive"),
+			 TEXT("ActivateReadableObject"), TEXT("ActivateReceptacle"), TEXT("RebuildIndexes"), TEXT("GetDebugSummary") })
 	{
-		TestTrue(*FString::Printf(TEXT("Responsibility symbol %s remains in ActivationComponent"), RequiredSymbol),
-			Source.Contains(RequiredSymbol));
+		TestTrue(*FString::Printf(TEXT("Responsibility symbol %s remains in ActivationComponent"), RequiredSymbol), Source.Contains(RequiredSymbol));
 	}
 
-	AddInfo(TEXT("TD07.4 responsibility families: interaction; plates/triggers; Event->Command; conditions; command adapters; Quest; Lua; recruitment; readable/receptacle; indexing/debug."));
+	AddInfo(TEXT(
+		"TD07.4 responsibility families: interaction; plates/triggers; Event->Command; conditions; command adapters; Quest; Lua; recruitment; readable/receptacle; indexing/debug."));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD074ActivationAuthorityCharacterizationTest,
-	"Grimrock.TechnicalDebt.TD07_4.Characterization.AuthorityBoundary",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD074ActivationAuthorityCharacterizationTest, "Grimrock.TechnicalDebt.TD07_4.Characterization.AuthorityBoundary",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD074ActivationAuthorityCharacterizationTest::RunTest(const FString& Parameters)
@@ -135,15 +118,12 @@ bool FGridTD074ActivationAuthorityCharacterizationTest::RunTest(const FString& P
 	(void)Parameters;
 	using namespace GridTD074ActivationCharacterization;
 
-	TestTrue(TEXT("Activation remains an ActorComponent"),
-		UGridActivationComponent::StaticClass()->IsChildOf(UActorComponent::StaticClass()));
+	TestTrue(TEXT("Activation remains an ActorComponent"), UGridActivationComponent::StaticClass()->IsChildOf(UActorComponent::StaticClass()));
 
 	FString RuntimeHeader;
 	FString RuntimeSource;
-	TestTrue(TEXT("RuntimeActor header loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/GridLevelRuntimeActor.h"), RuntimeHeader));
-	TestTrue(TEXT("RuntimeActor source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridLevelRuntimeActor.cpp"), RuntimeSource));
+	TestTrue(TEXT("RuntimeActor header loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/GridLevelRuntimeActor.h"), RuntimeHeader));
+	TestTrue(TEXT("RuntimeActor source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridLevelRuntimeActor.cpp"), RuntimeSource));
 
 	TestEqual(TEXT("RuntimeActor declares one ActivationComponent member"),
 		CountOccurrences(RuntimeHeader, TEXT("TObjectPtr<UGridActivationComponent> ActivationComponent")), 1);
@@ -151,28 +131,23 @@ bool FGridTD074ActivationAuthorityCharacterizationTest::RunTest(const FString& P
 		CountOccurrences(RuntimeSource, TEXT("CreateDefaultSubobject<UGridActivationComponent>")), 1);
 
 	FString ActivationHeader;
-	TestTrue(TEXT("Activation header loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/GridActivationComponent.h"), ActivationHeader));
+	TestTrue(TEXT("Activation header loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/GridActivationComponent.h"), ActivationHeader));
 	TestTrue(TEXT("Event->Command dispatch remains owned by ActivationComponent"),
 		ActivationHeader.Contains(TEXT("bool ApplyLinkCommand(const FGridObjectLink& LinkData);")));
-	TestTrue(TEXT("Active object runtime state remains owned by ActivationComponent"),
-		ActivationHeader.Contains(TEXT("TSet<FGuid> ActiveObjectIds;")));
-	TestTrue(TEXT("Dispatch recursion/budget guard remains owned by ActivationComponent"),
-		ActivationHeader.Contains(TEXT("RuntimeActionBudgetRemaining")));
+	TestTrue(TEXT("Active object runtime state remains owned by ActivationComponent"), ActivationHeader.Contains(TEXT("TSet<FGuid> ActiveObjectIds;")));
+	TestTrue(TEXT("Dispatch recursion/budget guard remains owned by ActivationComponent"), ActivationHeader.Contains(TEXT("RuntimeActionBudgetRemaining")));
 
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD074ActivationCoverageCharacterizationTest,
-	"Grimrock.TechnicalDebt.TD07_4.Characterization.RegressionCoverage",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD074ActivationCoverageCharacterizationTest, "Grimrock.TechnicalDebt.TD07_4.Characterization.RegressionCoverage",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD074ActivationCoverageCharacterizationTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	for (const TCHAR* RelativePath : {
-			 TEXT("Source/GrimrockPrototype/Private/Tests/GridTD0132EventCommandRuntimeHardeningTests.cpp"),
+	for (const TCHAR* RelativePath : { TEXT("Source/GrimrockPrototype/Private/Tests/GridTD0132EventCommandRuntimeHardeningTests.cpp"),
 			 TEXT("Source/GrimrockPrototype/Private/Tests/GridMON192LogicPrimitiveTests.cpp"),
 			 TEXT("Source/GrimrockPrototype/Private/Tests/GridMON1924VariableLinkConditionTests.cpp"),
 			 TEXT("Source/GrimrockPrototype/Private/Tests/GridMON194LuaBridgeTests.cpp"),

@@ -300,7 +300,6 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			TEXT("Palette Category is not set. This does not affect runtime, but the object may be harder to organize in the editor palette."));
 	}
 
-
 	if (bReplacesStandardWall && !IsWallOrEdgePlacement(PlacementKind))
 	{
 		AddValidationMessage(

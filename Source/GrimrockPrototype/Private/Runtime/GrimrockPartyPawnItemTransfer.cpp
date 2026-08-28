@@ -97,8 +97,8 @@ bool AGrimrockPartyPawn::UnequipSelectedCharacterItemToInventory(EGridEquipmentS
 
 	const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex();
 	FGridItemInstance PreviouslyEquippedItem;
-	const bool bHadHandItem =
-		GridPartyPawnItemTransferIsHandEquipmentSlot(SourceSlot) && PartyInventoryComponent->GetEquippedItem(CharacterIndex, SourceSlot, PreviouslyEquippedItem);
+	const bool bHadHandItem = GridPartyPawnItemTransferIsHandEquipmentSlot(SourceSlot) &&
+		PartyInventoryComponent->GetEquippedItem(CharacterIndex, SourceSlot, PreviouslyEquippedItem);
 
 	const bool bUnequipped = PartyInventoryComponent->UnequipItemToInventory(CharacterIndex, SourceSlot);
 	if (bUnequipped && GridPartyPawnItemTransferIsHandEquipmentSlot(SourceSlot))
@@ -131,8 +131,8 @@ bool AGrimrockPartyPawn::TryTakeSelectedCharacterEquipmentSlotToCursor(EGridEqui
 		SyncHeldVisualFromSelectedCharacterEquipment();
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Take Equipment Relay Pawn=%s Slot=%s Result=%s"), *GetName(), GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot),
-		bTaken ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Take Equipment Relay Pawn=%s Slot=%s Result=%s"), *GetName(),
+		GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot), bTaken ? TEXT("true") : TEXT("false"));
 	return bTaken;
 }
 
@@ -161,8 +161,8 @@ bool AGrimrockPartyPawn::TryEquipCursorItemToSelectedCharacterSlot(EGridEquipmen
 		SyncHeldVisualFromSelectedCharacterEquipment();
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Equip Relay Pawn=%s Slot=%s Result=%s"), *GetName(), GridPartyPawnItemTransferGetEquipmentSlotName(TargetSlot),
-		bEquipped ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Equip Relay Pawn=%s Slot=%s Result=%s"), *GetName(),
+		GridPartyPawnItemTransferGetEquipmentSlotName(TargetSlot), bEquipped ? TEXT("true") : TEXT("false"));
 	return bEquipped;
 }
 
@@ -399,8 +399,8 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 
 	SyncHeldVisualFromSelectedCharacterEquipment();
 	UE_LOG(LogTemp, Log, TEXT("GridPlayerAttack Throw Launched Item=%s RuntimeId=%s Character=%d Slot=%s Target=(%.2f,%.2f,%.2f) Result=true"),
-		*WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString(), CharacterIndex, GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot),
-		TargetWorldLocation.X, TargetWorldLocation.Y, TargetWorldLocation.Z);
+		*WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString(), CharacterIndex,
+		GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot), TargetWorldLocation.X, TargetWorldLocation.Y, TargetWorldLocation.Z);
 	return ThrownActor;
 }
 

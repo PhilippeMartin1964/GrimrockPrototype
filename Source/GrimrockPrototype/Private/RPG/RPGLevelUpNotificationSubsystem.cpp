@@ -235,9 +235,8 @@ void URPGLevelUpNotificationSubsystem::HandleCharacterLevelUpApplied(
 	BindPartyInventory(PartyInventoryComponent);
 	RebuildPendingNotificationsFromPartyState(PartyInventoryComponent);
 
-	UE_LOG(LogGridLevelUpUI, Log,
-		TEXT("[GridLevelUpUI] Derived Character=%d Previous=%d New=%d Gained=%d Acknowledged=%d Pending=%d"),
-		CharacterIndex, PreviousLevel, NewLevel, LevelsGained, Character.LastAcknowledgedLevel, PendingNotifications.Num());
+	UE_LOG(LogGridLevelUpUI, Log, TEXT("[GridLevelUpUI] Derived Character=%d Previous=%d New=%d Gained=%d Acknowledged=%d Pending=%d"), CharacterIndex,
+		PreviousLevel, NewLevel, LevelsGained, Character.LastAcknowledgedLevel, PendingNotifications.Num());
 
 	TryPresentNextNotification();
 }
@@ -262,8 +261,7 @@ void URPGLevelUpNotificationSubsystem::HandlePartyInventoryChanged(int32 Charact
 	}
 
 	bInventoryRefreshScheduled = true;
-	World->GetTimerManager().SetTimerForNextTick(
-		FTimerDelegate::CreateUObject(this, &URPGLevelUpNotificationSubsystem::HandleScheduledInventoryRefresh));
+	World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &URPGLevelUpNotificationSubsystem::HandleScheduledInventoryRefresh));
 }
 
 void URPGLevelUpNotificationSubsystem::HandleScheduledInventoryRefresh()
@@ -300,8 +298,8 @@ void URPGLevelUpNotificationSubsystem::AcknowledgeNotification(const FPendingNot
 	const int32 AcknowledgedLevel = FMath::Clamp(Notification.NewLevel, MinimumLevel, Character.Level);
 	Character.LastAcknowledgedLevel = FMath::Max(Character.LastAcknowledgedLevel, AcknowledgedLevel);
 
-	UE_LOG(LogGridLevelUpUI, Log, TEXT("[GridLevelUpUI] Acknowledged Character=%d Level=%d Current=%d"), CharacterIndex,
-		Character.LastAcknowledgedLevel, Character.Level);
+	UE_LOG(LogGridLevelUpUI, Log, TEXT("[GridLevelUpUI] Acknowledged Character=%d Level=%d Current=%d"), CharacterIndex, Character.LastAcknowledgedLevel,
+		Character.Level);
 }
 
 void URPGLevelUpNotificationSubsystem::HandleWidgetClosed(URPGLevelUpWidget* ClosedWidget)
@@ -427,8 +425,8 @@ void URPGLevelUpNotificationSubsystem::TryPresentNextNotification()
 		WidgetClosedDelegateHandle = ActiveWidget->OnClosed().AddUObject(this, &URPGLevelUpNotificationSubsystem::HandleWidgetClosed);
 		ActiveWidget->AddToViewport(200);
 
-		UE_LOG(LogGridLevelUpUI, Log, TEXT("[GridLevelUpUI] Opened Character=%d Previous=%d New=%d"), Notification.CharacterIndex,
-			Notification.PreviousLevel, Notification.NewLevel);
+		UE_LOG(LogGridLevelUpUI, Log, TEXT("[GridLevelUpUI] Opened Character=%d Previous=%d New=%d"), Notification.CharacterIndex, Notification.PreviousLevel,
+			Notification.NewLevel);
 		return;
 	}
 

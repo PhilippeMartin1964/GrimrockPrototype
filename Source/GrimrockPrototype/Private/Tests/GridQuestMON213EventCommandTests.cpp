@@ -20,17 +20,16 @@ namespace
 		FGridQuestMON213World()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
+															.AllowAudioPlayback(false)
+															.RequiresHitProxies(false)
+															.CreatePhysicsScene(false)
+															.CreateNavigation(false)
+															.CreateAISystem(false)
+															.ShouldSimulatePhysics(false)
+															.SetTransactional(false);
 
-			World = UWorld::CreateWorld(EWorldType::Game, false,
-				FName(*FString::Printf(TEXT("MON213_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
-				ERHIFeatureLevel::Num, &Values);
+			World = UWorld::CreateWorld(EWorldType::Game, false, FName(*FString::Printf(TEXT("MON213_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))),
+				nullptr, true, ERHIFeatureLevel::Num, &Values);
 			if (World && GEngine)
 			{
 				FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
@@ -75,7 +74,7 @@ namespace
 		Quest->QuestId = QuestId;
 		Quest->DisplayName = FText::FromName(QuestId);
 
-		for (const FName ObjectiveId : {ObjectiveA, ObjectiveB})
+		for (const FName ObjectiveId : { ObjectiveA, ObjectiveB })
 		{
 			if (ObjectiveId.IsNone())
 			{
@@ -149,16 +148,15 @@ bool FGridQuestMON213EventCommandIntegrationTest::RunTest(const FString& Paramet
 	UGridQuestDefinitionAsset* MainQuest = MakeQuest(Level, TEXT("Quest_MON213_Main"), TEXT("FindKey"), TEXT("OpenGate"));
 	UGridQuestDefinitionAsset* FailedQuest = MakeQuest(Level, TEXT("Quest_MON213_Failed"), TEXT("Survive"));
 	UGridQuestDefinitionAsset* DirectQuest = MakeQuest(Level, TEXT("Quest_MON213_Direct"));
-	Level->QuestDefinitions = {MainQuest, FailedQuest, DirectQuest};
+	Level->QuestDefinitions = { MainQuest, FailedQuest, DirectQuest };
 
 	Level->Links.Add(MakeQuestLink(SourceId, EGridObjectEvent::Activated, EGridObjectCommand::QuestStart, TEXT("Quest_MON213_Main")));
-	Level->Links.Add(
-		MakeQuestLink(SourceId, EGridObjectEvent::Used, EGridObjectCommand::QuestCompleteObjective, TEXT("Quest_MON213_Main"), TEXT("FindKey")));
+	Level->Links.Add(MakeQuestLink(SourceId, EGridObjectEvent::Used, EGridObjectCommand::QuestCompleteObjective, TEXT("Quest_MON213_Main"), TEXT("FindKey")));
 	Level->Links.Add(
 		MakeQuestLink(SourceId, EGridObjectEvent::Opened, EGridObjectCommand::QuestCompleteObjective, TEXT("Quest_MON213_Main"), TEXT("OpenGate")));
 	Level->Links.Add(MakeQuestLink(SourceId, EGridObjectEvent::Entered, EGridObjectCommand::QuestStart, TEXT("Quest_MON213_Failed")));
-	Level->Links.Add(MakeQuestLink(SourceId, EGridObjectEvent::Disabled, EGridObjectCommand::QuestCompleteObjective, TEXT("Quest_MON213_Failed"),
-		TEXT("MissingObjective")));
+	Level->Links.Add(
+		MakeQuestLink(SourceId, EGridObjectEvent::Disabled, EGridObjectCommand::QuestCompleteObjective, TEXT("Quest_MON213_Failed"), TEXT("MissingObjective")));
 	Level->Links.Add(MakeQuestLink(SourceId, EGridObjectEvent::Exited, EGridObjectCommand::QuestFail, TEXT("Quest_MON213_Failed")));
 	Level->Links.Add(MakeQuestLink(SourceId, EGridObjectEvent::MonsterSpawned, EGridObjectCommand::QuestStart, TEXT("Quest_MON213_Direct")));
 	Level->Links.Add(MakeQuestLink(SourceId, EGridObjectEvent::MonsterDespawned, EGridObjectCommand::QuestComplete, TEXT("Quest_MON213_Direct")));

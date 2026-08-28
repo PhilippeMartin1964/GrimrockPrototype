@@ -24,22 +24,16 @@ namespace GridTD075ReceptacleRecovery
 		FTD075TestWorld()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
+															.AllowAudioPlayback(false)
+															.RequiresHitProxies(false)
+															.CreatePhysicsScene(false)
+															.CreateNavigation(false)
+															.CreateAISystem(false)
+															.ShouldSimulatePhysics(false)
+															.SetTransactional(false);
 
-			World = UWorld::CreateWorld(
-				EWorldType::Game,
-				false,
-				FName(*FString::Printf(TEXT("TD075_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))),
-				nullptr,
-				true,
-				ERHIFeatureLevel::Num,
-				&Values);
+			World = UWorld::CreateWorld(EWorldType::Game, false, FName(*FString::Printf(TEXT("TD075_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))),
+				nullptr, true, ERHIFeatureLevel::Num, &Values);
 
 			if (World && GEngine)
 			{
@@ -127,13 +121,11 @@ namespace GridTD075ReceptacleRecovery
 		Receptacle.bInitiallyEnabled = true;
 		Receptacle.Behavior.Receptacle.MaxContainedItems = 2;
 
-		FGridReceptacleInitialItemConfig& InitialA =
-			Receptacle.Behavior.Receptacle.InitialContent.AddDefaulted_GetRef();
+		FGridReceptacleInitialItemConfig& InitialA = Receptacle.Behavior.Receptacle.InitialContent.AddDefaulted_GetRef();
 		InitialA.ItemDefinition = ItemA;
 		InitialA.Quantity = 1;
 
-		FGridReceptacleInitialItemConfig& InitialB =
-			Receptacle.Behavior.Receptacle.InitialContent.AddDefaulted_GetRef();
+		FGridReceptacleInitialItemConfig& InitialB = Receptacle.Behavior.Receptacle.InitialContent.AddDefaulted_GetRef();
 		InitialB.ItemDefinition = ItemB;
 		InitialB.Quantity = 1;
 
@@ -158,9 +150,7 @@ namespace GridTD075ReceptacleRecovery
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridTD075ReceptacleCommandRecoveryTest,
-	"Grimrock.TechnicalDebt.TD07_5.Recovery.ReceptacleCommands",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD075ReceptacleCommandRecoveryTest, "Grimrock.TechnicalDebt.TD07_5.Recovery.ReceptacleCommands",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD075ReceptacleCommandRecoveryTest::RunTest(const FString& Parameters)
@@ -180,8 +170,7 @@ bool FGridTD075ReceptacleCommandRecoveryTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	AGridReceptacleActor* Receptacle =
-		Runtime->FindRuntimeObjectActor<AGridReceptacleActor>(GridTD075ReceptacleRecovery::TD075ReceptacleObjectId);
+	AGridReceptacleActor* Receptacle = Runtime->FindRuntimeObjectActor<AGridReceptacleActor>(GridTD075ReceptacleRecovery::TD075ReceptacleObjectId);
 	TestNotNull(TEXT("TD07.5 receptacle spawned from transient fixture"), Receptacle);
 	if (!Receptacle)
 	{
@@ -191,23 +180,19 @@ bool FGridTD075ReceptacleCommandRecoveryTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Fixture starts with two contained items"), Receptacle->GetContainedItemCount(), 2);
 	TestTrue(TEXT("Fixture starts with removal enabled"), Receptacle->bCanRemoveItem);
 
-	TestTrue(
-		TEXT("Event -> ReceptacleConsumeItem succeeds"),
+	TestTrue(TEXT("Event -> ReceptacleConsumeItem succeeds"),
 		Runtime->ExecuteLinksFromRuntimeObject(GridTD075ReceptacleRecovery::TD075SourceObjectId, EGridObjectEvent::Activated));
 	TestEqual(TEXT("ConsumeItem removes exactly one contained entry"), Receptacle->GetContainedItemCount(), 1);
 
-	TestTrue(
-		TEXT("Event -> ReceptacleDisableRemoval succeeds"),
+	TestTrue(TEXT("Event -> ReceptacleDisableRemoval succeeds"),
 		Runtime->ExecuteLinksFromRuntimeObject(GridTD075ReceptacleRecovery::TD075SourceObjectId, EGridObjectEvent::Used));
 	TestFalse(TEXT("DisableRemoval updates receptacle runtime state"), Receptacle->bCanRemoveItem);
 
-	TestTrue(
-		TEXT("Event -> ReceptacleEnableRemoval succeeds"),
+	TestTrue(TEXT("Event -> ReceptacleEnableRemoval succeeds"),
 		Runtime->ExecuteLinksFromRuntimeObject(GridTD075ReceptacleRecovery::TD075SourceObjectId, EGridObjectEvent::Opened));
 	TestTrue(TEXT("EnableRemoval updates receptacle runtime state"), Receptacle->bCanRemoveItem);
 
-	TestTrue(
-		TEXT("Event -> ReceptacleConsumeAllItems succeeds"),
+	TestTrue(TEXT("Event -> ReceptacleConsumeAllItems succeeds"),
 		Runtime->ExecuteLinksFromRuntimeObject(GridTD075ReceptacleRecovery::TD075SourceObjectId, EGridObjectEvent::Closed));
 	TestEqual(TEXT("ConsumeAllItems empties the receptacle"), Receptacle->GetContainedItemCount(), 0);
 

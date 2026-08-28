@@ -9,10 +9,8 @@
 
 namespace GridTD07354Normalization
 {
-	const TCHAR* RatAssetPath =
-		TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant");
-	const TCHAR* GoblinAssetPath =
-		TEXT("/Game/GrimrockPrototype/Monsters/GoblinThrower/Data/DA_MON_GoblinThrower.DA_MON_GoblinThrower");
+	const TCHAR* RatAssetPath = TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant");
+	const TCHAR* GoblinAssetPath = TEXT("/Game/GrimrockPrototype/Monsters/GoblinThrower/Data/DA_MON_GoblinThrower.DA_MON_GoblinThrower");
 
 	bool LoadProjectFile(const TCHAR* RelativePath, FString& OutText)
 	{
@@ -24,19 +22,16 @@ namespace GridTD07354Normalization
 		bool bValid = true;
 		for (const FGridMonsterAttackDefinition& Attack : Definition.Attacks)
 		{
-			bValid &= Test.TestTrue(
-				*FString::Printf(TEXT("%s attack %s minimum range is positive"), Label, *Attack.AttackId.ToString()),
-				Attack.MinRangeCells > 0);
-			bValid &= Test.TestTrue(
-				*FString::Printf(TEXT("%s attack %s maximum range covers minimum"), Label, *Attack.AttackId.ToString()),
+			bValid &=
+				Test.TestTrue(*FString::Printf(TEXT("%s attack %s minimum range is positive"), Label, *Attack.AttackId.ToString()), Attack.MinRangeCells > 0);
+			bValid &= Test.TestTrue(*FString::Printf(TEXT("%s attack %s maximum range covers minimum"), Label, *Attack.AttackId.ToString()),
 				Attack.MaxRangeCells >= Attack.MinRangeCells);
 		}
 		return bValid;
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07354SchemaAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_5_4.Normalization.SchemaAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07354SchemaAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_5_4.Normalization.SchemaAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07354SchemaAuthorityTest::RunTest(const FString& Parameters)
@@ -55,8 +50,7 @@ bool FGridTD07354SchemaAuthorityTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07354RatGiantRangeAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_5_4.Normalization.RatGiantRangeAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07354RatGiantRangeAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_5_4.Normalization.RatGiantRangeAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07354RatGiantRangeAuthorityTest::RunTest(const FString& Parameters)
@@ -81,8 +75,7 @@ bool FGridTD07354RatGiantRangeAuthorityTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07354GoblinThrowerRangeAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_5_4.Normalization.GoblinThrowerRangeAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07354GoblinThrowerRangeAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_5_4.Normalization.GoblinThrowerRangeAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07354GoblinThrowerRangeAuthorityTest::RunTest(const FString& Parameters)
@@ -101,15 +94,13 @@ bool FGridTD07354GoblinThrowerRangeAuthorityTest::RunTest(const FString& Paramet
 	TestTrue(TEXT("GoblinThrower definition remains valid"), Goblin->IsValidDefinition());
 
 	FGridMonsterAttackDefinition ThrowKnife;
-	TestTrue(TEXT("GoblinThrower Attack_ThrowKnife resolves"),
-		Goblin->GetAttackDefinition(FName(TEXT("Attack_ThrowKnife")), ThrowKnife));
+	TestTrue(TEXT("GoblinThrower Attack_ThrowKnife resolves"), Goblin->GetAttackDefinition(FName(TEXT("Attack_ThrowKnife")), ThrowKnife));
 	TestEqual(TEXT("ThrowKnife minimum range remains two"), ThrowKnife.MinRangeCells, 2);
 	TestEqual(TEXT("ThrowKnife maximum range remains six"), ThrowKnife.MaxRangeCells, 6);
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07354RuntimeConsumersNormalizedTest,
-	"Grimrock.TechnicalDebt.TD07_3_5_4.Normalization.RuntimeConsumersNormalized",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07354RuntimeConsumersNormalizedTest, "Grimrock.TechnicalDebt.TD07_3_5_4.Normalization.RuntimeConsumersNormalized",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07354RuntimeConsumersNormalizedTest::RunTest(const FString& Parameters)
@@ -121,25 +112,21 @@ bool FGridTD07354RuntimeConsumersNormalizedTest::RunTest(const FString& Paramete
 	FString PhasesSource;
 	FString ActionsSource;
 	FString AuditSource;
-	TestTrue(TEXT("Monster types source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/Monsters/GridMonsterTypes.h"), TypesSource));
-	TestTrue(TEXT("Turn phases source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridTurnManagerPhases.cpp"), PhasesSource));
-	TestTrue(TEXT("Turn actions source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridTurnManagerActions.cpp"), ActionsSource));
+	TestTrue(TEXT("Monster types source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/Monsters/GridMonsterTypes.h"), TypesSource));
+	TestTrue(
+		TEXT("Turn phases source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridTurnManagerPhases.cpp"), PhasesSource));
+	TestTrue(
+		TEXT("Turn actions source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridTurnManagerActions.cpp"), ActionsSource));
 	TestTrue(TEXT("TD07.3.1 audit source loads"),
 		LoadProjectFile(TEXT("Source/GrimrockPrototypeEditor/Private/Tests/GridEditorTD0731CurrentSchemaAssetAuditTests.cpp"), AuditSource));
 
-	TestFalse(TEXT("Legacy RangeCells declaration is gone"),
-		TypesSource.Contains(TEXT("int32 RangeCells =")));
+	TestFalse(TEXT("Legacy RangeCells declaration is gone"), TypesSource.Contains(TEXT("int32 RangeCells =")));
 	TestTrue(TEXT("Range helpers read MaxRangeCells"),
 		TypesSource.Contains(TEXT("DistanceCells <= MaxRangeCells")) && TypesSource.Contains(TEXT("MaxRangeCells > 1")));
 	TestFalse(TEXT("Ranged planner no longer reads RangeCells"),
 		PhasesSource.Contains(TEXT("Attack.RangeCells")) || PhasesSource.Contains(TEXT("RangedAttack.RangeCells")));
-	TestFalse(TEXT("Monster action execution no longer reads RangeCells"),
-		ActionsSource.Contains(TEXT("Attack->RangeCells")));
-	TestFalse(TEXT("TD07.3.1 no longer reports the resolved range rename"),
-		AuditSource.Contains(TEXT("MONSTER.RANGE_FIELD_RENAME")));
+	TestFalse(TEXT("Monster action execution no longer reads RangeCells"), ActionsSource.Contains(TEXT("Attack->RangeCells")));
+	TestFalse(TEXT("TD07.3.1 no longer reports the resolved range rename"), AuditSource.Contains(TEXT("MONSTER.RANGE_FIELD_RENAME")));
 	return true;
 }
 

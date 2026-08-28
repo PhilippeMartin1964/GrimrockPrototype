@@ -47,8 +47,7 @@ namespace GridTD07336Characterization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336RuntimeAuthorityBoundaryTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_6.Characterization.RuntimeAuthorityBoundary",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336RuntimeAuthorityBoundaryTest, "Grimrock.TechnicalDebt.TD07_3_3_6.Characterization.RuntimeAuthorityBoundary",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07336RuntimeAuthorityBoundaryTest::RunTest(const FString& Parameters)
@@ -59,16 +58,14 @@ bool FGridTD07336RuntimeAuthorityBoundaryTest::RunTest(const FString& Parameters
 	FGridCharacterInventoryState Character = MakeCharacter(MakeId(1));
 	URPGSkillAsset* Skill = MakeSkill(TEXT("Skill_Lockpicking"));
 	FRPGSkillMutationResult Mutation;
-	TestTrue(TEXT("Skill service writes rank directly into character state"),
-		FRPGSkillService::TrySetSkillRank(Character, Skill, 3, Mutation));
+	TestTrue(TEXT("Skill service writes rank directly into character state"), FRPGSkillService::TrySetSkillRank(Character, Skill, 3, Mutation));
 	TestEqual(TEXT("Skill service reads character-owned rank"), FRPGSkillService::GetSkillRank(Character, Skill->SkillId), 3);
 	Character.SkillRanks[0].Rank = 4;
 	TestEqual(TEXT("Consumers immediately observe direct character-state mutation"), FRPGSkillService::GetSkillRank(Character, Skill->SkillId), 4);
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336SparseSnapshotContractTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_6.Characterization.SparseSnapshotContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336SparseSnapshotContractTest, "Grimrock.TechnicalDebt.TD07_3_3_6.Characterization.SparseSnapshotContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07336SparseSnapshotContractTest::RunTest(const FString& Parameters)
@@ -93,8 +90,7 @@ bool FGridTD07336SparseSnapshotContractTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336RestoreReplacementBoundaryTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_6.Characterization.RestoreReplacementBoundary",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336RestoreReplacementBoundaryTest, "Grimrock.TechnicalDebt.TD07_3_3_6.Characterization.RestoreReplacementBoundary",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07336RestoreReplacementBoundaryTest::RunTest(const FString& Parameters)
@@ -118,8 +114,7 @@ bool FGridTD07336RestoreReplacementBoundaryTest::RunTest(const FString& Paramete
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336SeparatePersistenceMirrorTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_6.Characterization.SeparatePersistenceMirror",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336SeparatePersistenceMirrorTest, "Grimrock.TechnicalDebt.TD07_3_3_6.Characterization.SeparatePersistenceMirror",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07336SeparatePersistenceMirrorTest::RunTest(const FString& Parameters)
@@ -137,7 +132,12 @@ bool FGridTD07336SeparatePersistenceMirrorTest::RunTest(const FString& Parameter
 	FString Error;
 	TestTrue(TEXT("Character-owned Skill state validates directly"),
 		FRPGSkillPersistence::ValidatePartySkills(
-			State, [&Definitions](FName SkillId) { return Resolve(Definitions, SkillId); }, Error));
+			State,
+			[&Definitions](FName SkillId)
+			{
+				return Resolve(Definitions, SkillId);
+			},
+			Error));
 	const FGridPartyInventoryState OrdinaryCopy = State;
 	TestEqual(TEXT("Ordinary party-state copy retains the Skill without a separate mirror"),
 		FRPGSkillService::GetSkillRank(OrdinaryCopy.ActiveCharacters[0], TEXT("Skill_A")), 3);

@@ -47,8 +47,7 @@ namespace GridPartySaveValidationPrivate
 
 	void RebuildTransientCharacterDerivedStats(FGridCharacterInventoryState& Character)
 	{
-		Character.DerivedStats =
-			URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ResolveClassDefinition(Character), Character.Level);
+		Character.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ResolveClassDefinition(Character), Character.Level);
 	}
 
 	void RebuildTransientPartyDerivedStats(FGridPartyInventoryState& PartyState)
@@ -82,16 +81,15 @@ namespace GridPartySaveValidationPrivate
 	{
 		if (Character.Experience != URPGCharacterRulesLibrary::NormalizeExperience(Character.Experience))
 		{
-			OutError = FText::FromString(
-				FString::Printf(TEXT("%s possède une valeur Experience invalide : %d."), Location, Character.Experience));
+			OutError = FText::FromString(FString::Printf(TEXT("%s possède une valeur Experience invalide : %d."), Location, Character.Experience));
 			return false;
 		}
 
 		const int32 ExpectedLevel = URPGCharacterRulesLibrary::GetLevelForExperience(Character.Experience);
 		if (Character.Level != ExpectedLevel)
 		{
-			OutError = FText::FromString(FString::Printf(
-				TEXT("%s possède un cache Level incohérent : Level=%d Expected=%d Experience=%d."), Location, Character.Level, ExpectedLevel, Character.Experience));
+			OutError = FText::FromString(FString::Printf(TEXT("%s possède un cache Level incohérent : Level=%d Expected=%d Experience=%d."), Location,
+				Character.Level, ExpectedLevel, Character.Experience));
 			return false;
 		}
 
@@ -263,11 +261,12 @@ bool UGrimrockPartySaveGame::ValidateCurrentState(FText& OutError) const
 	OutError = FText::GetEmpty();
 	if (SaveVersion != CurrentSaveVersion)
 	{
-		OutError = FText::FromString(FString::Printf(TEXT("Version de sauvegarde %d incompatible avec le schéma prototype courant %d."), SaveVersion, CurrentSaveVersion));
+		OutError = FText::FromString(
+			FString::Printf(TEXT("Version de sauvegarde %d incompatible avec le schéma prototype courant %d."), SaveVersion, CurrentSaveVersion));
 		return false;
 	}
-	if (!ValidateProgressionState(PartyInventoryState, OutError) || !ValidateSpellbooks(*this, OutError) ||
-		!ValidateSkills(*this, OutError) || !ValidateStatusEffects(*this, OutError) || !ValidateLevelVariables(*this, OutError))
+	if (!ValidateProgressionState(PartyInventoryState, OutError) || !ValidateSpellbooks(*this, OutError) || !ValidateSkills(*this, OutError) ||
+		!ValidateStatusEffects(*this, OutError) || !ValidateLevelVariables(*this, OutError))
 	{
 		return false;
 	}
@@ -354,14 +353,13 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 		UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSave] ProgressionProjection Result=Rejected Reason=%s"), *LoadError);
 		return;
 	}
-	const int32 PendingLevelUpAcknowledgements = Algo::CountIf(
-		PartyInventoryState.ActiveCharacters,
+	const int32 PendingLevelUpAcknowledgements = Algo::CountIf(PartyInventoryState.ActiveCharacters,
 		[](const FGridCharacterInventoryState& Character)
 		{
 			return Character.LastAcknowledgedLevel < Character.Level;
 		});
 	UE_LOG(LogGrimrockPartySave, Log,
-		TEXT("[GridSave] Load Version=%d ClassChoices=%d PendingLevelUps=%d StatusCharacters=%d KnownSpellCharacters=%d Result=Accepted"),
-		SaveVersion, CountSelectedClassChoices(PartyInventoryState), PendingLevelUpAcknowledgements,
-		CountCharactersWithStatusEffects(PartyInventoryState), CountCharactersWithKnownSpells(PartyInventoryState));
+		TEXT("[GridSave] Load Version=%d ClassChoices=%d PendingLevelUps=%d StatusCharacters=%d KnownSpellCharacters=%d Result=Accepted"), SaveVersion,
+		CountSelectedClassChoices(PartyInventoryState), PendingLevelUpAcknowledgements, CountCharactersWithStatusEffects(PartyInventoryState),
+		CountCharactersWithKnownSpells(PartyInventoryState));
 }

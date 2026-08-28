@@ -18,8 +18,7 @@ namespace GridTD07339Normalization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339SchemaAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_9.Normalization.SchemaAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339SchemaAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_3_9.Normalization.SchemaAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07339SchemaAuthorityTest::RunTest(const FString& Parameters)
@@ -27,11 +26,10 @@ bool FGridTD07339SchemaAuthorityTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	using namespace GridTD07339Normalization;
 
-	const FProperty* AcknowledgementProperty =
-		FindFProperty<FProperty>(FGridCharacterInventoryState::StaticStruct(), TEXT("LastAcknowledgedLevel"));
+	const FProperty* AcknowledgementProperty = FindFProperty<FProperty>(FGridCharacterInventoryState::StaticStruct(), TEXT("LastAcknowledgedLevel"));
 	TestNotNull(TEXT("LastAcknowledgedLevel exists on character state"), AcknowledgementProperty);
-	TestTrue(TEXT("LastAcknowledgedLevel is durable and non-transient"),
-		AcknowledgementProperty && !AcknowledgementProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(
+		TEXT("LastAcknowledgedLevel is durable and non-transient"), AcknowledgementProperty && !AcknowledgementProperty->HasAnyPropertyFlags(CPF_Transient));
 
 	TestNull(TEXT("Separate PendingLevelUpNotifications SaveGame mirror is removed"),
 		FindFProperty<FProperty>(UGrimrockPartySaveGame::StaticClass(), TEXT("PendingLevelUpNotifications")));
@@ -51,8 +49,7 @@ bool FGridTD07339SchemaAuthorityTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339LevelUpGapTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_9.Normalization.LevelUpCreatesDurableGap",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339LevelUpGapTest, "Grimrock.TechnicalDebt.TD07_3_3_9.Normalization.LevelUpCreatesDurableGap",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07339LevelUpGapTest::RunTest(const FString& Parameters)
@@ -71,8 +68,7 @@ bool FGridTD07339LevelUpGapTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339ActivePoolDurabilityTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_9.Normalization.ActivePoolDurability",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339ActivePoolDurabilityTest, "Grimrock.TechnicalDebt.TD07_3_3_9.Normalization.ActivePoolDurability",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07339ActivePoolDurabilityTest::RunTest(const FString& Parameters)
@@ -102,15 +98,13 @@ bool FGridTD07339ActivePoolDurabilityTest::RunTest(const FString& Parameters)
 	FGridCharacterInventoryState Moved = Save->PartyInventoryState.CharacterPool[0];
 	Save->PartyInventoryState.CharacterPool.Reset();
 	Save->PartyInventoryState.ActiveCharacters.Add(Moved);
-	TestEqual(TEXT("Pool -> Active move carries acknowledgement naturally"),
-		Save->PartyInventoryState.ActiveCharacters[1].LastAcknowledgedLevel, 3);
+	TestEqual(TEXT("Pool -> Active move carries acknowledgement naturally"), Save->PartyInventoryState.ActiveCharacters[1].LastAcknowledgedLevel, 3);
 	TestEqual(TEXT("Moved character has no synthetic Level-Up pending"),
 		Save->PartyInventoryState.ActiveCharacters[1].Level - Save->PartyInventoryState.ActiveCharacters[1].LastAcknowledgedLevel, 0);
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339SaveSchemaVersionTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_9.Normalization.SaveSchemaVersion",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339SaveSchemaVersionTest, "Grimrock.TechnicalDebt.TD07_3_3_9.Normalization.SaveSchemaVersion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07339SaveSchemaVersionTest::RunTest(const FString& Parameters)

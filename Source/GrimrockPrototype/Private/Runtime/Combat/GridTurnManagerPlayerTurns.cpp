@@ -94,7 +94,6 @@ bool UGridTurnManagerComponent::CanCharacterSpendActionPoints(int32 CharacterInd
 	return GetPlayerCharacterTurnState(CharacterIndex, TurnState) && TurnState.CanSpend(ActionPointCost);
 }
 
-
 void UGridTurnManagerComponent::BeginPlayerCharacterPhase()
 {
 	PlayerCharacterTurnStates.Reset();

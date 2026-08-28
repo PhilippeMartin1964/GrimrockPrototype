@@ -56,8 +56,8 @@ namespace GridTD0731SchemaAuditPrivate
 		}
 	}
 
-	void AddFinding(TArray<FGridTD0731Finding>& Findings, EGridTD0731FindingKind Kind, const TCHAR* Code, const FString& AssetPath,
-		const FString& Context, const FString& Detail)
+	void AddFinding(TArray<FGridTD0731Finding>& Findings, EGridTD0731FindingKind Kind, const TCHAR* Code, const FString& AssetPath, const FString& Context,
+		const FString& Detail)
 	{
 		FGridTD0731Finding& Finding = Findings.AddDefaulted_GetRef();
 		Finding.Kind = Kind;
@@ -84,8 +84,8 @@ namespace GridTD0731SchemaAuditPrivate
 		if (!DefinitionObject)
 		{
 			AddFinding(Findings, EGridTD0731FindingKind::LegacyOnly, TEXT("AUTHORING.ID_ONLY"), AssetPath, Context,
-				FString::Printf(TEXT("%s is authored only through id '%s'; target schema requires the definition asset reference."), Domain,
-					*StoredId.ToString()));
+				FString::Printf(
+					TEXT("%s is authored only through id '%s'; target schema requires the definition asset reference."), Domain, *StoredId.ToString()));
 			return;
 		}
 
@@ -113,8 +113,8 @@ namespace GridTD0731SchemaAuditPrivate
 		if (!Behavior.Lock.AcceptedKeyIds.IsEmpty())
 		{
 			AddFinding(Findings, EGridTD0731FindingKind::LegacyField, TEXT("AUTHORING.LOCK_KEY_IDS"), AssetPath, Context + TEXT(".Lock"),
-				FString::Printf(TEXT("AcceptedKeyIds contains %d id(s); target authoring schema keeps AcceptedKeyItems only."),
-					Behavior.Lock.AcceptedKeyIds.Num()));
+				FString::Printf(
+					TEXT("AcceptedKeyIds contains %d id(s); target authoring schema keeps AcceptedKeyItems only."), Behavior.Lock.AcceptedKeyIds.Num()));
 		}
 	}
 
@@ -147,8 +147,8 @@ namespace GridTD0731SchemaAuditPrivate
 			const FString Context = FString::Printf(TEXT("Objects[%d] ObjectId=%s"), ObjectIndex, *Object.ObjectId.ToString(EGuidFormats::Digits));
 
 			const UGridItemDefinitionAsset* ItemDefinition = Object.ItemDefinitionAsset.Get();
-			AuditDefinitionPair(AssetPath, Context + TEXT(".ItemDefinition"), ItemDefinition,
-				ItemDefinition ? ItemDefinition->ItemDefinitionId : NAME_None, Object.ItemDefinitionId, TEXT("Item"), Findings);
+			AuditDefinitionPair(AssetPath, Context + TEXT(".ItemDefinition"), ItemDefinition, ItemDefinition ? ItemDefinition->ItemDefinitionId : NAME_None,
+				Object.ItemDefinitionId, TEXT("Item"), Findings);
 
 			const UGridReadableContentAsset* ReadableDefinition = Object.ReadableContentAsset.Get();
 			AuditDefinitionPair(AssetPath, Context + TEXT(".ReadableContent"), ReadableDefinition,
@@ -159,7 +159,6 @@ namespace GridTD0731SchemaAuditPrivate
 				MonsterDefinition ? MonsterDefinition->MonsterId : NAME_None, Object.MonsterDefinitionId, TEXT("Monster"), Findings);
 
 			AuditBehavior(AssetPath, Context + TEXT(".Behavior"), Object.Behavior, Findings);
-
 		}
 	}
 
@@ -259,12 +258,13 @@ namespace GridTD0731SchemaAuditPrivate
 		Lines.Add(TEXT("Details:"));
 		for (const FGridTD0731Finding& Finding : Findings)
 		{
-			Lines.Add(FString::Printf(TEXT("[%s] %s | %s | %s | %s"), ToFindingKindText(Finding.Kind), *Finding.Code, *Finding.AssetPath,
-				*Finding.Context, *Finding.Detail));
+			Lines.Add(FString::Printf(
+				TEXT("[%s] %s | %s | %s | %s"), ToFindingKindText(Finding.Kind), *Finding.Code, *Finding.AssetPath, *Finding.Context, *Finding.Detail));
 		}
 
 		Lines.Add(TEXT(""));
-		Lines.Add(TEXT("NOTE: Findings are characterization output, not backward-compatibility requirements. TD07.3 will repair or recreate current assets, then remove the legacy schema."));
+		Lines.Add(TEXT(
+			"NOTE: Findings are characterization output, not backward-compatibility requirements. TD07.3 will repair or recreate current assets, then remove the legacy schema."));
 		return FString::Join(Lines, TEXT("\n"));
 	}
 }

@@ -98,10 +98,7 @@ bool FGridMON2044RecruitmentMissingDefinitionTest::RunTest(const FString& Parame
 {
 	(void)Parameters;
 
-	AddExpectedError(
-		TEXT("missing or invalid story companion definition"),
-		EAutomationExpectedErrorFlags::Contains,
-		1);
+	AddExpectedError(TEXT("missing or invalid story companion definition"), EAutomationExpectedErrorFlags::Contains, 1);
 
 	FTestWorld TestWorld;
 	if (!TestWorld.World)

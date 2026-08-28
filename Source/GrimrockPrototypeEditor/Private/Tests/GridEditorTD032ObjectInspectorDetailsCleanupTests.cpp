@@ -17,13 +17,13 @@ namespace
 		FGridTD032EditorTestWorld()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
+															.AllowAudioPlayback(false)
+															.RequiresHitProxies(false)
+															.CreatePhysicsScene(false)
+															.CreateNavigation(false)
+															.CreateAISystem(false)
+															.ShouldSimulatePhysics(false)
+															.SetTransactional(false);
 
 			World = UWorld::CreateWorld(EWorldType::EditorPreview, false,
 				FName(*FString::Printf(TEXT("TD032ObjectInspectorWorld_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
@@ -51,8 +51,7 @@ namespace
 	};
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD032ObjectInspectorMoveContractTest,
-	"Grimrock.TechnicalDebt.TD03_2.ObjectInspectorDetails.MoveToCurrentCellContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD032ObjectInspectorMoveContractTest, "Grimrock.TechnicalDebt.TD03_2.ObjectInspectorDetails.MoveToCurrentCellContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD032ObjectInspectorMoveContractTest::RunTest(const FString& Parameters)
@@ -96,10 +95,9 @@ bool FGridTD032ObjectInspectorMoveContractTest::RunTest(const FString& Parameter
 
 	const UFunction* MoveFunction = EditorActor->FindFunction(TEXT("MoveSelectedObjectToCurrentSelection"));
 	TestNotNull(TEXT("MoveSelectedObjectToCurrentSelection remains reflected"), MoveFunction);
-	TestTrue(TEXT("MoveSelectedObjectToCurrentSelection is BlueprintCallable"),
-		MoveFunction && MoveFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
-	TestFalse(TEXT("MoveSelectedObjectToCurrentSelection is no longer exposed as CallInEditor"),
-		MoveFunction && MoveFunction->HasMetaData(TEXT("CallInEditor")));
+	TestTrue(TEXT("MoveSelectedObjectToCurrentSelection is BlueprintCallable"), MoveFunction && MoveFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
+	TestFalse(
+		TEXT("MoveSelectedObjectToCurrentSelection is no longer exposed as CallInEditor"), MoveFunction && MoveFunction->HasMetaData(TEXT("CallInEditor")));
 
 	EditorActor->SelectedCellX = 2;
 	EditorActor->SelectedCellY = 1;

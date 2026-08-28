@@ -617,8 +617,8 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails()
 	SetInventoryOptionalText(Text_CharacterCharisma, FormatIntWithBonus(Summary.Attributes.Charisma, Summary.EquipmentStatBonus.CharismaBonus));
 	SetInventoryOptionalText(Text_CharacterHealth,
 		FormatCurrentMaxWithMaxBonus(Summary.Resources.CurrentHealth, Summary.DerivedStats.MaxHealth, Summary.EquipmentStatBonus.MaxHealthBonus));
-	SetInventoryOptionalText(Text_CharacterMana,
-		FormatCurrentMaxWithMaxBonus(Summary.Resources.CurrentMana, Summary.DerivedStats.MaxMana, Summary.EquipmentStatBonus.MaxManaBonus));
+	SetInventoryOptionalText(
+		Text_CharacterMana, FormatCurrentMaxWithMaxBonus(Summary.Resources.CurrentMana, Summary.DerivedStats.MaxMana, Summary.EquipmentStatBonus.MaxManaBonus));
 	SetInventoryOptionalText(
 		Text_CharacterCarryWeight, FormatWeightWithBonus(Summary.CurrentWeight, Summary.MaxWeight, Summary.EquipmentStatBonus.CarryWeightBonus));
 	SetInventoryOptionalText(Text_CharacterArmor, FormatIntWithBonus(Summary.Resources.CurrentPhysicalArmor, Summary.EquipmentStatBonus.ArmorBonus));

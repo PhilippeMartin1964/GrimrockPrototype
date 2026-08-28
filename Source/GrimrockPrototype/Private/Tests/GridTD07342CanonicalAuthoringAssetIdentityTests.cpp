@@ -37,8 +37,7 @@ namespace GridTD07342Normalization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07342ClassIdentityContractTest,
-	"Grimrock.TechnicalDebt.TD07_3_4_2.Normalization.ClassIdentityContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07342ClassIdentityContractTest, "Grimrock.TechnicalDebt.TD07_3_4_2.Normalization.ClassIdentityContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07342ClassIdentityContractTest::RunTest(const FString& Parameters)
@@ -57,8 +56,7 @@ bool FGridTD07342ClassIdentityContractTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07342RaceIdentityContractTest,
-	"Grimrock.TechnicalDebt.TD07_3_4_2.Normalization.RaceIdentityContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07342RaceIdentityContractTest, "Grimrock.TechnicalDebt.TD07_3_4_2.Normalization.RaceIdentityContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07342RaceIdentityContractTest::RunTest(const FString& Parameters)
@@ -77,8 +75,7 @@ bool FGridTD07342RaceIdentityContractTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07342VisualIdentityContractTest,
-	"Grimrock.TechnicalDebt.TD07_3_4_2.Normalization.VisualIdentityContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07342VisualIdentityContractTest, "Grimrock.TechnicalDebt.TD07_3_4_2.Normalization.VisualIdentityContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07342VisualIdentityContractTest::RunTest(const FString& Parameters)
@@ -89,10 +86,10 @@ bool FGridTD07342VisualIdentityContractTest::RunTest(const FString& Parameters)
 	URPGClassVisualAsset* Visual = MakeClassVisual(TEXT("Mage"));
 	URPGCharacterPortraitSetAsset* PortraitSet = MakePortraitSet(TEXT("Elf"));
 
-	TestTrue(TEXT("Class visual is keyed by ClassId"), Visual->GetPrimaryAssetId() ==
-		FPrimaryAssetId(FPrimaryAssetType(TEXT("RPGClassVisual")), FName(TEXT("Mage"))));
-	TestTrue(TEXT("Portrait set is keyed by RaceId"), PortraitSet->GetPrimaryAssetId() ==
-		FPrimaryAssetId(FPrimaryAssetType(TEXT("RPGPortraitSet")), FName(TEXT("Elf"))));
+	TestTrue(TEXT("Class visual is keyed by ClassId"),
+		Visual->GetPrimaryAssetId() == FPrimaryAssetId(FPrimaryAssetType(TEXT("RPGClassVisual")), FName(TEXT("Mage"))));
+	TestTrue(TEXT("Portrait set is keyed by RaceId"),
+		PortraitSet->GetPrimaryAssetId() == FPrimaryAssetId(FPrimaryAssetType(TEXT("RPGPortraitSet")), FName(TEXT("Elf"))));
 
 	TestTrue(TEXT("Matching ClassVisual is accepted"), FRPGAuthoringIdentityResolver::IsMatchingClassVisual(TEXT("Mage"), Visual));
 	TestFalse(TEXT("Mismatched ClassVisual is rejected"), FRPGAuthoringIdentityResolver::IsMatchingClassVisual(TEXT("Fighter"), Visual));
@@ -101,8 +98,7 @@ bool FGridTD07342VisualIdentityContractTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07342StrictResolverContractTest,
-	"Grimrock.TechnicalDebt.TD07_3_4_2.Normalization.StrictResolverContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07342StrictResolverContractTest, "Grimrock.TechnicalDebt.TD07_3_4_2.Normalization.StrictResolverContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07342StrictResolverContractTest::RunTest(const FString& Parameters)
@@ -114,19 +110,13 @@ bool FGridTD07342StrictResolverContractTest::RunTest(const FString& Parameters)
 	URPGRaceAsset* RaceDefinition = NewObject<URPGRaceAsset>(GetTransientPackage());
 	RaceDefinition->RaceId = TEXT("Dwarf");
 
-	TestTrue(TEXT("Matching class definition is accepted"),
-		FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(TEXT("Rogue"), ClassDefinition));
-	TestFalse(TEXT("Mismatched class definition is rejected"),
-		FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(TEXT("Mage"), ClassDefinition));
-	TestTrue(TEXT("Matching race definition is accepted"),
-		FRPGAuthoringIdentityResolver::IsMatchingRaceDefinition(TEXT("Dwarf"), RaceDefinition));
-	TestFalse(TEXT("Mismatched race definition is rejected"),
-		FRPGAuthoringIdentityResolver::IsMatchingRaceDefinition(TEXT("Human"), RaceDefinition));
+	TestTrue(TEXT("Matching class definition is accepted"), FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(TEXT("Rogue"), ClassDefinition));
+	TestFalse(TEXT("Mismatched class definition is rejected"), FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(TEXT("Mage"), ClassDefinition));
+	TestTrue(TEXT("Matching race definition is accepted"), FRPGAuthoringIdentityResolver::IsMatchingRaceDefinition(TEXT("Dwarf"), RaceDefinition));
+	TestFalse(TEXT("Mismatched race definition is rejected"), FRPGAuthoringIdentityResolver::IsMatchingRaceDefinition(TEXT("Human"), RaceDefinition));
 
-	TestFalse(TEXT("NAME_None does not create a Class primary id"),
-		FRPGAuthoringIdentityResolver::MakeClassPrimaryAssetId(NAME_None).IsValid());
-	TestFalse(TEXT("NAME_None does not create a Race primary id"),
-		FRPGAuthoringIdentityResolver::MakeRacePrimaryAssetId(NAME_None).IsValid());
+	TestFalse(TEXT("NAME_None does not create a Class primary id"), FRPGAuthoringIdentityResolver::MakeClassPrimaryAssetId(NAME_None).IsValid());
+	TestFalse(TEXT("NAME_None does not create a Race primary id"), FRPGAuthoringIdentityResolver::MakeRacePrimaryAssetId(NAME_None).IsValid());
 	TestNull(TEXT("NAME_None Class cannot resolve"), FRPGAuthoringIdentityResolver::ResolveClassById(NAME_None));
 	TestNull(TEXT("NAME_None Race cannot resolve"), FRPGAuthoringIdentityResolver::ResolveRaceById(NAME_None));
 	TestNull(TEXT("NAME_None ClassVisual cannot resolve"), FRPGAuthoringIdentityResolver::ResolveClassVisualByClassId(NAME_None));

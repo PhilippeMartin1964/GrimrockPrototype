@@ -12,8 +12,8 @@ bool FGridSpellHotbarExecutionService::TryExecute(const FGridSpellDefinition& De
 	FGridPlayerCharacterTurnState WorkingTurnState = CasterTurnState;
 	FGridSpellResolvedTarget ResolvedTarget;
 	FGridSpellCastCostReceipt CostReceipt;
-	if (!FGridSpellCastPipelineService::TryValidateTargetAndCommitCosts(Definition, Request, TargetingContext, Spellbook, WorkingCasterResources, WorkingTurnState,
-			ResolvedTarget, CostReceipt, OutResult.PipelineRejectStage, OutResult.TargetingRejectReason, OutResult.TransactionRejectReason))
+	if (!FGridSpellCastPipelineService::TryValidateTargetAndCommitCosts(Definition, Request, TargetingContext, Spellbook, WorkingCasterResources,
+			WorkingTurnState, ResolvedTarget, CostReceipt, OutResult.PipelineRejectStage, OutResult.TargetingRejectReason, OutResult.TransactionRejectReason))
 	{
 		return false;
 	}

@@ -63,8 +63,7 @@ bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 	return true;
 }
 
-bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(
-	int32 CharacterIndex, EGridEquipmentSlot TargetSlot, const FGridItemInstance& WorldItem)
+bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(int32 CharacterIndex, EGridEquipmentSlot TargetSlot, const FGridItemInstance& WorldItem)
 {
 	EnsureEquipmentCountMatchesActiveCharacters();
 	if (!WorldItem.IsValid() || WorldItem.Quantity != 1 || !IsValidCharacterIndex(CharacterIndex) ||

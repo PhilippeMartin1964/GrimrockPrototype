@@ -40,8 +40,7 @@ namespace GridTD07334Characterization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334CachedCapacityContractTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_4.Characterization.CachedCapacityContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334CachedCapacityContractTest, "Grimrock.TechnicalDebt.TD07_3_3_4.Characterization.CachedCapacityContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07334CachedCapacityContractTest::RunTest(const FString& Parameters)
@@ -78,8 +77,7 @@ bool FGridTD07334EquipmentCapacityProjectionContractTest::RunTest(const FString&
 
 	UGridItemDefinitionAsset* BeltDefinition = MakeCarryBeltDefinition(Inventory);
 	TestTrue(TEXT("Carry belt definition registers"), Inventory->RegisterItemDefinition(BeltDefinition));
-	TestTrue(TEXT("Heavy item can be stored even above base capacity"),
-		Inventory->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_HeavyPack"), 54.0f)));
+	TestTrue(TEXT("Heavy item can be stored even above base capacity"), Inventory->AddItemToCharacterInventory(0, MakeItem(TEXT("TD07334_HeavyPack"), 54.0f)));
 
 	FGridItemInstance Belt;
 	Belt.RuntimeObjectId = FGuid::NewGuid();
@@ -104,8 +102,7 @@ bool FGridTD07334EquipmentCapacityProjectionContractTest::RunTest(const FString&
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334CursorWeightBoundaryTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_4.Characterization.CursorWeightBoundary",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334CursorWeightBoundaryTest, "Grimrock.TechnicalDebt.TD07_3_3_4.Characterization.CursorWeightBoundary",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07334CursorWeightBoundaryTest::RunTest(const FString& Parameters)
@@ -127,8 +124,7 @@ bool FGridTD07334CursorWeightBoundaryTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334RestoreRecalculatesCachesTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_4.Characterization.RestoreRecalculatesCaches",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334RestoreRecalculatesCachesTest, "Grimrock.TechnicalDebt.TD07_3_3_4.Characterization.RestoreRecalculatesCaches",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07334RestoreRecalculatesCachesTest::RunTest(const FString& Parameters)

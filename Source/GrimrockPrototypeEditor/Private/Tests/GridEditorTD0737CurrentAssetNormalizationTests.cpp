@@ -31,8 +31,8 @@ namespace GridTD0737Normalization
 		Candidate.Context = Context;
 	}
 
-	void AuditPair(const FString& AssetPath, const FString& Context, const UObject* DefinitionObject, FName CanonicalId, FName StoredId,
-		TArray<FCandidate>& Candidates)
+	void AuditPair(
+		const FString& AssetPath, const FString& Context, const UObject* DefinitionObject, FName CanonicalId, FName StoredId, TArray<FCandidate>& Candidates)
 	{
 		if (DefinitionObject && CanonicalId.IsNone())
 		{
@@ -50,11 +50,7 @@ namespace GridTD0737Normalization
 			return;
 		}
 
-		AddCandidate(
-			Candidates,
-			CanonicalId == StoredId ? TEXT("AUTHORING.ASSET_ID_DUPLICATE") : TEXT("AUTHORING.ASSET_ID_CONFLICT"),
-			AssetPath,
-			Context);
+		AddCandidate(Candidates, CanonicalId == StoredId ? TEXT("AUTHORING.ASSET_ID_DUPLICATE") : TEXT("AUTHORING.ASSET_ID_CONFLICT"), AssetPath, Context);
 	}
 
 	void AuditBehavior(const FString& AssetPath, const FString& Context, const FGridObjectBehaviorParams& Behavior, TArray<FCandidate>& Candidates)
@@ -63,13 +59,8 @@ namespace GridTD0737Normalization
 		AuditPair(AssetPath, Context + TEXT(".Item"), Item, Item ? Item->ItemDefinitionId : NAME_None, Behavior.Item.ItemDefinitionId, Candidates);
 
 		const UGridReadableContentAsset* Readable = Behavior.Item.DefaultReadableContentAsset.Get();
-		AuditPair(
-			AssetPath,
-			Context + TEXT(".DefaultReadableContent"),
-			Readable,
-			Readable ? Readable->ReadableContentId : NAME_None,
-			Behavior.Item.DefaultReadableContentId,
-			Candidates);
+		AuditPair(AssetPath, Context + TEXT(".DefaultReadableContent"), Readable, Readable ? Readable->ReadableContentId : NAME_None,
+			Behavior.Item.DefaultReadableContentId, Candidates);
 
 		if (!Behavior.Lock.AcceptedKeyIds.IsEmpty())
 		{
@@ -92,22 +83,12 @@ namespace GridTD0737Normalization
 				AuditPair(AssetPath, Context + TEXT(".ItemDefinition"), Item, Item ? Item->ItemDefinitionId : NAME_None, Object.ItemDefinitionId, Candidates);
 
 				const UGridReadableContentAsset* Readable = Object.ReadableContentAsset.Get();
-				AuditPair(
-					AssetPath,
-					Context + TEXT(".ReadableContent"),
-					Readable,
-					Readable ? Readable->ReadableContentId : NAME_None,
-					Object.ReadableContentId,
+				AuditPair(AssetPath, Context + TEXT(".ReadableContent"), Readable, Readable ? Readable->ReadableContentId : NAME_None, Object.ReadableContentId,
 					Candidates);
 
 				const UGridMonsterDefinitionAsset* Monster = Object.MonsterDefinitionAsset.Get();
 				AuditPair(
-					AssetPath,
-					Context + TEXT(".MonsterDefinition"),
-					Monster,
-					Monster ? Monster->MonsterId : NAME_None,
-					Object.MonsterDefinitionId,
-					Candidates);
+					AssetPath, Context + TEXT(".MonsterDefinition"), Monster, Monster ? Monster->MonsterId : NAME_None, Object.MonsterDefinitionId, Candidates);
 
 				AuditBehavior(AssetPath, Context + TEXT(".Behavior"), Object.Behavior, Candidates);
 			}
@@ -135,12 +116,7 @@ namespace GridTD0737Normalization
 			{
 				const FGridMonsterLootEntry& Loot = Monster->LootTable[LootIndex];
 				const UGridItemDefinitionAsset* Item = Loot.ItemDefinitionAsset.Get();
-				AuditPair(
-					AssetPath,
-					FString::Printf(TEXT("LootTable[%d]"), LootIndex),
-					Item,
-					Item ? Item->ItemDefinitionId : NAME_None,
-					Loot.ItemDefinitionId,
+				AuditPair(AssetPath, FString::Printf(TEXT("LootTable[%d]"), LootIndex), Item, Item ? Item->ItemDefinitionId : NAME_None, Loot.ItemDefinitionId,
 					Candidates);
 			}
 		}
@@ -151,8 +127,7 @@ namespace GridTD0737Normalization
 		OutCandidates.Reset();
 		OutLoadedAssets = 0;
 
-		FAssetRegistryModule& AssetRegistryModule =
-			FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 		IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 		AssetRegistry.SearchAllAssets(true);
 
@@ -164,10 +139,11 @@ namespace GridTD0737Normalization
 
 		TArray<FAssetData> Assets;
 		AssetRegistry.GetAssets(Filter, Assets);
-		Assets.Sort([](const FAssetData& Left, const FAssetData& Right)
-		{
-			return Left.PackageName.LexicalLess(Right.PackageName);
-		});
+		Assets.Sort(
+			[](const FAssetData& Left, const FAssetData& Right)
+			{
+				return Left.PackageName.LexicalLess(Right.PackageName);
+			});
 
 		for (const FAssetData& Entry : Assets)
 		{
@@ -195,16 +171,13 @@ namespace GridTD0737Normalization
 			{
 				const UGridItemDefinitionAsset* ItemDefinition = Entry.ItemDefinitionAsset.Get();
 				const FName ResolvedItemId =
-					(ItemDefinition && !ItemDefinition->ItemDefinitionId.IsNone())
-						? ItemDefinition->ItemDefinitionId
-						: Entry.ItemDefinitionId;
+					(ItemDefinition && !ItemDefinition->ItemDefinitionId.IsNone()) ? ItemDefinition->ItemDefinitionId : Entry.ItemDefinitionId;
 				return ResolvedItemId == ItemId;
 			});
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0737CurrentAssetsNormalizedTest,
-	"Grimrock.TechnicalDebt.TD07_3_7.Normalization.CurrentAssets",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0737CurrentAssetsNormalizedTest, "Grimrock.TechnicalDebt.TD07_3_7.Normalization.CurrentAssets",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0737CurrentAssetsNormalizedTest::RunTest(const FString& Parameters)
@@ -226,8 +199,7 @@ bool FGridTD0737CurrentAssetsNormalizedTest::RunTest(const FString& Parameters)
 	return Candidates.IsEmpty();
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0737RatLootDefinitionsNormalizedTest,
-	"Grimrock.TechnicalDebt.TD07_3_7.Normalization.RatLootDefinitions",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0737RatLootDefinitionsNormalizedTest, "Grimrock.TechnicalDebt.TD07_3_7.Normalization.RatLootDefinitions",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0737RatLootDefinitionsNormalizedTest::RunTest(const FString& Parameters)
@@ -235,15 +207,14 @@ bool FGridTD0737RatLootDefinitionsNormalizedTest::RunTest(const FString& Paramet
 	(void)Parameters;
 	using namespace GridTD0737Normalization;
 
-	UGridItemDefinitionAsset* RatMeat = LoadObject<UGridItemDefinitionAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_RatMeat.DA_Item_RatMeat"));
-	UGridItemDefinitionAsset* RatTooth = LoadObject<UGridItemDefinitionAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_RatTooth.DA_Item_RatTooth"));
-	UGridMonsterDefinitionAsset* Rat = LoadObject<UGridMonsterDefinitionAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant"));
+	UGridItemDefinitionAsset* RatMeat =
+		LoadObject<UGridItemDefinitionAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_RatMeat.DA_Item_RatMeat"));
+	UGridItemDefinitionAsset* RatTooth =
+		LoadObject<UGridItemDefinitionAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_RatTooth.DA_Item_RatTooth"));
+	UGridMonsterDefinitionAsset* Rat =
+		LoadObject<UGridMonsterDefinitionAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant"));
 
-	if (!TestNotNull(TEXT("DA_Item_RatMeat exists"), RatMeat) ||
-		!TestNotNull(TEXT("DA_Item_RatTooth exists"), RatTooth) ||
+	if (!TestNotNull(TEXT("DA_Item_RatMeat exists"), RatMeat) || !TestNotNull(TEXT("DA_Item_RatTooth exists"), RatTooth) ||
 		!TestNotNull(TEXT("DA_MON_RatGiant exists"), Rat))
 	{
 		return false;
@@ -259,8 +230,7 @@ bool FGridTD0737RatLootDefinitionsNormalizedTest::RunTest(const FString& Paramet
 
 	const FGridMonsterLootEntry* MeatLoot = FindLootEntry(Rat, TEXT("Item_RatMeat"));
 	const FGridMonsterLootEntry* ToothLoot = FindLootEntry(Rat, TEXT("Item_RatTooth"));
-	if (!TestNotNull(TEXT("Rat Giant references rat meat loot"), MeatLoot) ||
-		!TestNotNull(TEXT("Rat Giant references rat tooth loot"), ToothLoot))
+	if (!TestNotNull(TEXT("Rat Giant references rat meat loot"), MeatLoot) || !TestNotNull(TEXT("Rat Giant references rat tooth loot"), ToothLoot))
 	{
 		return false;
 	}
@@ -272,21 +242,19 @@ bool FGridTD0737RatLootDefinitionsNormalizedTest::RunTest(const FString& Paramet
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0737LockAuthoringNormalizedTest,
-	"Grimrock.TechnicalDebt.TD07_3_7.Normalization.LockAuthoring",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0737LockAuthoringNormalizedTest, "Grimrock.TechnicalDebt.TD07_3_7.Normalization.LockAuthoring",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0737LockAuthoringNormalizedTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridObjectArchetypeAsset* CopperLock = LoadObject<UGridObjectArchetypeAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_CopperWall.DA_Lock_CopperWall"));
-	UGridObjectArchetypeAsset* IronLock = LoadObject<UGridObjectArchetypeAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_IronWall.DA_Lock_IronWall"));
+	UGridObjectArchetypeAsset* CopperLock =
+		LoadObject<UGridObjectArchetypeAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_CopperWall.DA_Lock_CopperWall"));
+	UGridObjectArchetypeAsset* IronLock =
+		LoadObject<UGridObjectArchetypeAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_IronWall.DA_Lock_IronWall"));
 
-	if (!TestNotNull(TEXT("Copper wall lock exists"), CopperLock) ||
-		!TestNotNull(TEXT("Iron wall lock exists"), IronLock))
+	if (!TestNotNull(TEXT("Copper wall lock exists"), CopperLock) || !TestNotNull(TEXT("Iron wall lock exists"), IronLock))
 	{
 		return false;
 	}
@@ -295,34 +263,27 @@ bool FGridTD0737LockAuthoringNormalizedTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Copper lock has one accepted key asset"), CopperLock->DefaultBehavior.Lock.AcceptedKeyItems.Num(), 1);
 	if (CopperLock->DefaultBehavior.Lock.AcceptedKeyItems.Num() == 1 && CopperLock->DefaultBehavior.Lock.AcceptedKeyItems[0])
 	{
-		TestEqual(
-			TEXT("Copper lock references Key_Copper"),
-			CopperLock->DefaultBehavior.Lock.AcceptedKeyItems[0]->ItemDefinitionId,
-			FName(TEXT("Key_Copper")));
+		TestEqual(TEXT("Copper lock references Key_Copper"), CopperLock->DefaultBehavior.Lock.AcceptedKeyItems[0]->ItemDefinitionId, FName(TEXT("Key_Copper")));
 	}
 
 	TestTrue(TEXT("Iron lock legacy key ids are empty"), IronLock->DefaultBehavior.Lock.AcceptedKeyIds.IsEmpty());
 	TestEqual(TEXT("Iron lock has one accepted key asset"), IronLock->DefaultBehavior.Lock.AcceptedKeyItems.Num(), 1);
 	if (IronLock->DefaultBehavior.Lock.AcceptedKeyItems.Num() == 1 && IronLock->DefaultBehavior.Lock.AcceptedKeyItems[0])
 	{
-		TestEqual(
-			TEXT("Iron lock references Key_Iron"),
-			IronLock->DefaultBehavior.Lock.AcceptedKeyItems[0]->ItemDefinitionId,
-			FName(TEXT("Key_Iron")));
+		TestEqual(TEXT("Iron lock references Key_Iron"), IronLock->DefaultBehavior.Lock.AcceptedKeyItems[0]->ItemDefinitionId, FName(TEXT("Key_Iron")));
 	}
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0737MonsterSpawnAuthoringAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_7.Normalization.MonsterSpawnAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0737MonsterSpawnAuthoringAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_7.Normalization.MonsterSpawnAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0737MonsterSpawnAuthoringAuthorityTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridLevelAsset* Level = LoadObject<UGridLevelAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_00.DA_GridLevel_00"));
+	UGridLevelAsset* Level =
+		LoadObject<UGridLevelAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_00.DA_GridLevel_00"));
 	if (!TestNotNull(TEXT("DA_GridLevel_00 exists"), Level))
 	{
 		return false;
@@ -343,20 +304,17 @@ bool FGridTD0737MonsterSpawnAuthoringAuthorityTest::RunTest(const FString& Param
 	TestTrue(TEXT("Production level contains MonsterSpawn authoring coverage"), MonsterSpawnCount > 0);
 
 	FString LevelSource;
-	const FString LevelSourcePath =
-		FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/GrimrockPrototype/Private/Core/GridLevelAsset.cpp"));
+	const FString LevelSourcePath = FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/GrimrockPrototype/Private/Core/GridLevelAsset.cpp"));
 	TestTrue(TEXT("GridLevelAsset source can be read"), FFileHelper::LoadFileToString(LevelSource, *LevelSourcePath));
-	TestFalse(
-		TEXT("GridLevelAsset no longer repopulates MonsterDefinitionId from MonsterDefinitionAsset"),
+	TestFalse(TEXT("GridLevelAsset no longer repopulates MonsterDefinitionId from MonsterDefinitionAsset"),
 		LevelSource.Contains(TEXT("ObjectData.MonsterDefinitionId = ObjectData.MonsterDefinitionAsset->MonsterId")));
 
 	FString EditorSource;
-	const FString EditorSourcePath = FPaths::Combine(
-		FPaths::ProjectDir(),
-		TEXT("Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEditorActorParts/EditingObjectsLinks/GridLevelEditorActor_EditingObjectsLinks_02.inl"));
+	const FString EditorSourcePath = FPaths::Combine(FPaths::ProjectDir(),
+		TEXT(
+			"Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEditorActorParts/EditingObjectsLinks/GridLevelEditorActor_EditingObjectsLinks_02.inl"));
 	TestTrue(TEXT("Grid editor placement source can be read"), FFileHelper::LoadFileToString(EditorSource, *EditorSourcePath));
-	TestFalse(
-		TEXT("Grid editor no longer writes MonsterDefinitionId mirror during placement"),
+	TestFalse(TEXT("Grid editor no longer writes MonsterDefinitionId mirror during placement"),
 		EditorSource.Contains(TEXT("NewObject.MonsterDefinitionId = NewObject.MonsterDefinitionAsset->MonsterId")));
 	return true;
 }

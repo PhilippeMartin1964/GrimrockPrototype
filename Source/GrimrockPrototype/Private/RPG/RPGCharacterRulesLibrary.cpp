@@ -72,8 +72,7 @@ FRPGDerivedStats URPGCharacterRulesLibrary::CalculateDerivedStats(const FRPGAttr
 	return Result;
 }
 
-FRPGCharacterResources URPGCharacterRulesLibrary::InitializeCharacterResources(
-	const FRPGDerivedStats& DerivedStats, const URPGClassAsset* ClassDefinition)
+FRPGCharacterResources URPGCharacterRulesLibrary::InitializeCharacterResources(const FRPGDerivedStats& DerivedStats, const URPGClassAsset* ClassDefinition)
 {
 	FRPGCharacterResources Result;
 	Result.CurrentHealth = FMath::Max(1, DerivedStats.MaxHealth);

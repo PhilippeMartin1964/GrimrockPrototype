@@ -19,13 +19,13 @@ namespace
 		FGridTD033EditorTestWorld()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
+															.AllowAudioPlayback(false)
+															.RequiresHitProxies(false)
+															.CreatePhysicsScene(false)
+															.CreateNavigation(false)
+															.CreateAISystem(false)
+															.ShouldSimulatePhysics(false)
+															.SetTransactional(false);
 
 			World = UWorld::CreateWorld(EWorldType::EditorPreview, false,
 				FName(*FString::Printf(TEXT("TD033DefinitionSyncWorld_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
@@ -53,8 +53,7 @@ namespace
 	};
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD033DefinitionSyncContractTest,
-	"Grimrock.TechnicalDebt.TD03_3.ObjectInspectorDetails.DefinitionSyncContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD033DefinitionSyncContractTest, "Grimrock.TechnicalDebt.TD03_3.ObjectInspectorDetails.DefinitionSyncContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD033DefinitionSyncContractTest::RunTest(const FString& Parameters)
@@ -116,14 +115,11 @@ bool FGridTD033DefinitionSyncContractTest::RunTest(const FString& Parameters)
 	const UFunction* MonsterSyncFunction = EditorActor->FindFunction(TEXT("SyncSelectedMonsterDefinitionIdFromAsset"));
 	TestNotNull(TEXT("SyncSelectedItemDefinitionIdFromAsset remains reflected"), ItemSyncFunction);
 	TestNotNull(TEXT("SyncSelectedMonsterDefinitionIdFromAsset remains reflected"), MonsterSyncFunction);
-	TestTrue(TEXT("Item definition sync is BlueprintCallable"),
-		ItemSyncFunction && ItemSyncFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
-	TestTrue(TEXT("Monster definition sync is BlueprintCallable"),
-		MonsterSyncFunction && MonsterSyncFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
-	TestFalse(TEXT("Item definition sync is no longer exposed as CallInEditor"),
-		ItemSyncFunction && ItemSyncFunction->HasMetaData(TEXT("CallInEditor")));
-	TestFalse(TEXT("Monster definition sync is no longer exposed as CallInEditor"),
-		MonsterSyncFunction && MonsterSyncFunction->HasMetaData(TEXT("CallInEditor")));
+	TestTrue(TEXT("Item definition sync is BlueprintCallable"), ItemSyncFunction && ItemSyncFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
+	TestTrue(TEXT("Monster definition sync is BlueprintCallable"), MonsterSyncFunction && MonsterSyncFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
+	TestFalse(TEXT("Item definition sync is no longer exposed as CallInEditor"), ItemSyncFunction && ItemSyncFunction->HasMetaData(TEXT("CallInEditor")));
+	TestFalse(
+		TEXT("Monster definition sync is no longer exposed as CallInEditor"), MonsterSyncFunction && MonsterSyncFunction->HasMetaData(TEXT("CallInEditor")));
 
 	TestTrue(TEXT("The item object can be selected"), EditorActor->SelectObjectById(ItemObject.ObjectId));
 	TestFalse(TEXT("Monster sync rejects an item selection"), EditorActor->SyncSelectedMonsterDefinitionIdFromAsset());

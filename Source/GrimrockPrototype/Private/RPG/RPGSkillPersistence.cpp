@@ -7,8 +7,7 @@
 
 namespace RPGSkillPersistencePrivate
 {
-	bool ValidateDefinitionAndRank(
-		FName SkillId, int32 Rank, TFunctionRef<const URPGSkillAsset*(FName)> DefinitionResolver, FString& OutError)
+	bool ValidateDefinitionAndRank(FName SkillId, int32 Rank, TFunctionRef<const URPGSkillAsset*(FName)> DefinitionResolver, FString& OutError)
 	{
 		if (SkillId.IsNone() || Rank <= 0)
 		{
@@ -43,8 +42,8 @@ namespace RPGSkillPersistencePrivate
 			}
 			if (InOutCharacterIds.Contains(Character.CharacterId))
 			{
-				OutError = FString::Printf(TEXT("CharacterId %s is duplicated or ambiguous in the party state."),
-					*Character.CharacterId.ToString(EGuidFormats::Digits));
+				OutError = FString::Printf(
+					TEXT("CharacterId %s is duplicated or ambiguous in the party state."), *Character.CharacterId.ToString(EGuidFormats::Digits));
 				return false;
 			}
 			InOutCharacterIds.Add(Character.CharacterId);
@@ -78,14 +77,12 @@ bool FRPGSkillPersistence::ValidatePartySkills(const FGridPartyInventoryState& P
 		OutError);
 }
 
-bool FRPGSkillPersistence::ValidatePartySkills(const FGridPartyInventoryState& PartyState,
-	TFunctionRef<const URPGSkillAsset*(FName)> DefinitionResolver, FString& OutError)
+bool FRPGSkillPersistence::ValidatePartySkills(
+	const FGridPartyInventoryState& PartyState, TFunctionRef<const URPGSkillAsset*(FName)> DefinitionResolver, FString& OutError)
 {
 	TSet<FGuid> CharacterIds;
-	if (!RPGSkillPersistencePrivate::ValidateCharacters(
-			PartyState.ActiveCharacters, TEXT("ActiveCharacter"), DefinitionResolver, CharacterIds, OutError) ||
-		!RPGSkillPersistencePrivate::ValidateCharacters(
-			PartyState.CharacterPool, TEXT("CharacterPool"), DefinitionResolver, CharacterIds, OutError))
+	if (!RPGSkillPersistencePrivate::ValidateCharacters(PartyState.ActiveCharacters, TEXT("ActiveCharacter"), DefinitionResolver, CharacterIds, OutError) ||
+		!RPGSkillPersistencePrivate::ValidateCharacters(PartyState.CharacterPool, TEXT("CharacterPool"), DefinitionResolver, CharacterIds, OutError))
 	{
 		return false;
 	}

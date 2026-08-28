@@ -7,8 +7,7 @@
 #include "RPG/RPGLevelUpService.h"
 #include "RPGMON155TestHelpers.h"
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335ExperienceLevelContractTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_5.Characterization.ExperienceLevelContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335ExperienceLevelContractTest, "Grimrock.TechnicalDebt.TD07_3_3_5.Characterization.ExperienceLevelContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07335ExperienceLevelContractTest::RunTest(const FString& Parameters)
@@ -31,8 +30,7 @@ bool FGridTD07335ExperienceLevelContractTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335StoredLevelSynchronizationTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_5.Characterization.StoredLevelSynchronization",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335StoredLevelSynchronizationTest, "Grimrock.TechnicalDebt.TD07_3_3_5.Characterization.StoredLevelSynchronization",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07335StoredLevelSynchronizationTest::RunTest(const FString& Parameters)
@@ -64,8 +62,7 @@ bool FGridTD07335StoredLevelSynchronizationTest::RunTest(const FString& Paramete
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335ProgressionMirrorBoundaryTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_5.Characterization.ProgressionMirrorBoundary",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335ProgressionMirrorBoundaryTest, "Grimrock.TechnicalDebt.TD07_3_3_5.Characterization.ProgressionMirrorBoundary",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07335ProgressionMirrorBoundaryTest::RunTest(const FString& Parameters)
@@ -104,8 +101,7 @@ bool FGridTD07335ProgressionMirrorBoundaryTest::RunTest(const FString& Parameter
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335LevelUpProjectionRefreshTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_5.Characterization.LevelUpProjectionRefresh",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335LevelUpProjectionRefreshTest, "Grimrock.TechnicalDebt.TD07_3_3_5.Characterization.LevelUpProjectionRefresh",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07335LevelUpProjectionRefreshTest::RunTest(const FString& Parameters)
@@ -118,8 +114,8 @@ bool FGridTD07335LevelUpProjectionRefreshTest::RunTest(const FString& Parameters
 	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
 
 	FRPGClassProgressionCommitResult ChoiceAResult;
-	TestTrue(TEXT("Choice A commits at level two"),
-		FRPGClassProgressionTransactionService::TryCommitChoices(Component, 0, { TEXT("Choice_A") }, ChoiceAResult));
+	TestTrue(
+		TEXT("Choice A commits at level two"), FRPGClassProgressionTransactionService::TryCommitChoices(Component, 0, { TEXT("Choice_A") }, ChoiceAResult));
 
 	Character.Experience = 3000;
 	TestTrue(TEXT("XP threshold synchronizes runtime level to three"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0, false));

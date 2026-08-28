@@ -53,8 +53,8 @@ namespace
 		}
 	}
 
-	bool BuildRuntimeStateFromCharacter(const FGridCharacterInventoryState& Character,
-		UGridPartyInventoryComponent* InventoryComponent, FRuntimeClassProgressionState& OutState, FText& OutError)
+	bool BuildRuntimeStateFromCharacter(const FGridCharacterInventoryState& Character, UGridPartyInventoryComponent* InventoryComponent,
+		FRuntimeClassProgressionState& OutState, FText& OutError)
 	{
 		OutState = FRuntimeClassProgressionState();
 		OutError = FText::GetEmpty();
@@ -78,9 +78,9 @@ namespace
 		{
 			if (!SelectedChoiceIds.IsEmpty())
 			{
-				OutError = FText::FromString(FString::Printf(
-					TEXT("La classe du personnage %s est introuvable alors que des choix de progression sont enregistrés."),
-					*Character.CharacterId.ToString(EGuidFormats::Digits)));
+				OutError =
+					FText::FromString(FString::Printf(TEXT("La classe du personnage %s est introuvable alors que des choix de progression sont enregistrés."),
+						*Character.CharacterId.ToString(EGuidFormats::Digits)));
 				return false;
 			}
 

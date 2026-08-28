@@ -51,41 +51,37 @@ namespace GridTD0737Characterization
 		if (!DefinitionObject)
 		{
 			AddCandidate(Candidates, TEXT("AUTHORING.ID_ONLY"), AssetPath, Context,
-				FString::Printf(TEXT("%s is authored only through id '%s'; current schema requires the definition asset reference."),
-					Domain, *StoredId.ToString()));
+				FString::Printf(
+					TEXT("%s is authored only through id '%s'; current schema requires the definition asset reference."), Domain, *StoredId.ToString()));
 			return;
 		}
 
 		if (DefinitionId != StoredId)
 		{
 			AddCandidate(Candidates, TEXT("AUTHORING.ASSET_ID_CONFLICT"), AssetPath, Context,
-				FString::Printf(TEXT("%s asset id '%s' conflicts with stored id '%s'."),
-					Domain, *DefinitionId.ToString(), *StoredId.ToString()));
+				FString::Printf(TEXT("%s asset id '%s' conflicts with stored id '%s'."), Domain, *DefinitionId.ToString(), *StoredId.ToString()));
 			return;
 		}
 
 		AddCandidate(Candidates, TEXT("AUTHORING.ASSET_ID_DUPLICATE"), AssetPath, Context,
-			FString::Printf(TEXT("%s stores both asset reference and mirrored id '%s'."),
-				Domain, *StoredId.ToString()));
+			FString::Printf(TEXT("%s stores both asset reference and mirrored id '%s'."), Domain, *StoredId.ToString()));
 	}
 
 	void AuditBehavior(const FString& AssetPath, const FString& Context, const FGridObjectBehaviorParams& Behavior, TArray<FCandidate>& Candidates)
 	{
 		const UGridItemDefinitionAsset* ItemDefinition = Behavior.Item.ItemDefinitionAsset.Get();
-		AuditDefinitionPair(AssetPath, Context + TEXT(".Item"), ItemDefinition,
-			ItemDefinition ? ItemDefinition->ItemDefinitionId : NAME_None,
+		AuditDefinitionPair(AssetPath, Context + TEXT(".Item"), ItemDefinition, ItemDefinition ? ItemDefinition->ItemDefinitionId : NAME_None,
 			Behavior.Item.ItemDefinitionId, TEXT("Item"), Candidates);
 
 		const UGridReadableContentAsset* ReadableDefinition = Behavior.Item.DefaultReadableContentAsset.Get();
 		AuditDefinitionPair(AssetPath, Context + TEXT(".DefaultReadableContent"), ReadableDefinition,
-			ReadableDefinition ? ReadableDefinition->ReadableContentId : NAME_None,
-			Behavior.Item.DefaultReadableContentId, TEXT("ReadableContent"), Candidates);
+			ReadableDefinition ? ReadableDefinition->ReadableContentId : NAME_None, Behavior.Item.DefaultReadableContentId, TEXT("ReadableContent"),
+			Candidates);
 
 		if (!Behavior.Lock.AcceptedKeyIds.IsEmpty())
 		{
 			AddCandidate(Candidates, TEXT("AUTHORING.LOCK_KEY_IDS"), AssetPath, Context + TEXT(".Lock"),
-				FString::Printf(TEXT("AcceptedKeyIds contains %d id(s); current schema keeps AcceptedKeyItems only."),
-					Behavior.Lock.AcceptedKeyIds.Num()));
+				FString::Printf(TEXT("AcceptedKeyIds contains %d id(s); current schema keeps AcceptedKeyItems only."), Behavior.Lock.AcceptedKeyIds.Num()));
 		}
 	}
 
@@ -98,23 +94,19 @@ namespace GridTD0737Characterization
 			for (int32 ObjectIndex = 0; ObjectIndex < Level->Objects.Num(); ++ObjectIndex)
 			{
 				const FGridLevelObjectData& Object = Level->Objects[ObjectIndex];
-				const FString Context = FString::Printf(TEXT("Objects[%d] ObjectId=%s"),
-					ObjectIndex, *Object.ObjectId.ToString(EGuidFormats::Digits));
+				const FString Context = FString::Printf(TEXT("Objects[%d] ObjectId=%s"), ObjectIndex, *Object.ObjectId.ToString(EGuidFormats::Digits));
 
 				const UGridItemDefinitionAsset* ItemDefinition = Object.ItemDefinitionAsset.Get();
-				AuditDefinitionPair(AssetPath, Context + TEXT(".ItemDefinition"), ItemDefinition,
-					ItemDefinition ? ItemDefinition->ItemDefinitionId : NAME_None,
+				AuditDefinitionPair(AssetPath, Context + TEXT(".ItemDefinition"), ItemDefinition, ItemDefinition ? ItemDefinition->ItemDefinitionId : NAME_None,
 					Object.ItemDefinitionId, TEXT("Item"), Candidates);
 
 				const UGridReadableContentAsset* ReadableDefinition = Object.ReadableContentAsset.Get();
 				AuditDefinitionPair(AssetPath, Context + TEXT(".ReadableContent"), ReadableDefinition,
-					ReadableDefinition ? ReadableDefinition->ReadableContentId : NAME_None,
-					Object.ReadableContentId, TEXT("ReadableContent"), Candidates);
+					ReadableDefinition ? ReadableDefinition->ReadableContentId : NAME_None, Object.ReadableContentId, TEXT("ReadableContent"), Candidates);
 
 				const UGridMonsterDefinitionAsset* MonsterDefinition = Object.MonsterDefinitionAsset.Get();
 				AuditDefinitionPair(AssetPath, Context + TEXT(".MonsterDefinition"), MonsterDefinition,
-					MonsterDefinition ? MonsterDefinition->MonsterId : NAME_None,
-					Object.MonsterDefinitionId, TEXT("Monster"), Candidates);
+					MonsterDefinition ? MonsterDefinition->MonsterId : NAME_None, Object.MonsterDefinitionId, TEXT("Monster"), Candidates);
 
 				AuditBehavior(AssetPath, Context + TEXT(".Behavior"), Object.Behavior, Candidates);
 			}
@@ -144,8 +136,7 @@ namespace GridTD0737Characterization
 				const FGridMonsterLootEntry& Loot = Monster->LootTable[LootIndex];
 				const UGridItemDefinitionAsset* ItemDefinition = Loot.ItemDefinitionAsset.Get();
 				AuditDefinitionPair(AssetPath, FString::Printf(TEXT("LootTable[%d]"), LootIndex), ItemDefinition,
-					ItemDefinition ? ItemDefinition->ItemDefinitionId : NAME_None,
-					Loot.ItemDefinitionId, TEXT("LootItem"), Candidates);
+					ItemDefinition ? ItemDefinition->ItemDefinitionId : NAME_None, Loot.ItemDefinitionId, TEXT("LootItem"), Candidates);
 			}
 		}
 	}
@@ -178,16 +169,14 @@ namespace GridTD0737Characterization
 		Lines.Add(TEXT("Details:"));
 		for (const FCandidate& Candidate : Candidates)
 		{
-			Lines.Add(FString::Printf(TEXT("%s | %s | %s | %s"),
-				*Candidate.Code, *Candidate.AssetPath, *Candidate.Context, *Candidate.Detail));
+			Lines.Add(FString::Printf(TEXT("%s | %s | %s | %s"), *Candidate.Code, *Candidate.AssetPath, *Candidate.Context, *Candidate.Detail));
 		}
 
 		return FString::Join(Lines, TEXT("\n"));
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0737CurrentAssetRepairCharacterizationTest,
-	"Grimrock.TechnicalDebt.TD07_3_7.Characterization",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0737CurrentAssetRepairCharacterizationTest, "Grimrock.TechnicalDebt.TD07_3_7.Characterization",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0737CurrentAssetRepairCharacterizationTest::RunTest(const FString& Parameters)
@@ -195,8 +184,7 @@ bool FGridTD0737CurrentAssetRepairCharacterizationTest::RunTest(const FString& P
 	(void)Parameters;
 	using namespace GridTD0737Characterization;
 
-	FAssetRegistryModule& AssetRegistryModule =
-		FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 	AssetRegistry.SearchAllAssets(true);
 
@@ -208,10 +196,11 @@ bool FGridTD0737CurrentAssetRepairCharacterizationTest::RunTest(const FString& P
 
 	TArray<FAssetData> Assets;
 	AssetRegistry.GetAssets(Filter, Assets);
-	Assets.Sort([](const FAssetData& Left, const FAssetData& Right)
-	{
-		return Left.PackageName.LexicalLess(Right.PackageName);
-	});
+	Assets.Sort(
+		[](const FAssetData& Left, const FAssetData& Right)
+		{
+			return Left.PackageName.LexicalLess(Right.PackageName);
+		});
 
 	int32 LoadedAssets = 0;
 	TArray<FCandidate> Candidates;
@@ -237,8 +226,7 @@ bool FGridTD0737CurrentAssetRepairCharacterizationTest::RunTest(const FString& P
 	TestTrue(TEXT("TD07.3.7 characterization report is written"),
 		FFileHelper::SaveStringToFile(Report, *ReportPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM));
 
-	AddInfo(FString::Printf(TEXT("TD07.3.7 scanned %d DataAssets and found %d current-asset repair candidate(s)."),
-		LoadedAssets, Candidates.Num()));
+	AddInfo(FString::Printf(TEXT("TD07.3.7 scanned %d DataAssets and found %d current-asset repair candidate(s)."), LoadedAssets, Candidates.Num()));
 	AddInfo(FString::Printf(TEXT("TD07.3.7 report: %s"), *ReportPath));
 	return true;
 }

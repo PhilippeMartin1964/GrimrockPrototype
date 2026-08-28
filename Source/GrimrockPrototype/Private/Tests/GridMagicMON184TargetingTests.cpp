@@ -67,9 +67,9 @@ namespace
 	}
 
 	bool TryPipeline(const FGridSpellDefinition& Definition, const FGridSpellCastRequest& Request, const FGridSpellTargetingContext& Context,
-		const FGridCharacterSpellbookState& Spellbook, FRPGCharacterResources& Resources, FGridPlayerCharacterTurnState& Turn, FGridSpellResolvedTarget& ResolvedTarget,
-		FGridSpellCastCostReceipt& Receipt, EGridSpellCastPipelineRejectStage& RejectStage, EGridSpellTargetingRejectReason& TargetReject,
-		EGridSpellCastTransactionRejectReason& TransactionReject)
+		const FGridCharacterSpellbookState& Spellbook, FRPGCharacterResources& Resources, FGridPlayerCharacterTurnState& Turn,
+		FGridSpellResolvedTarget& ResolvedTarget, FGridSpellCastCostReceipt& Receipt, EGridSpellCastPipelineRejectStage& RejectStage,
+		EGridSpellTargetingRejectReason& TargetReject, EGridSpellCastTransactionRejectReason& TransactionReject)
 	{
 		return FGridSpellCastPipelineService::TryValidateTargetAndCommitCosts(
 			Definition, Request, Context, Spellbook, Resources, Turn, ResolvedTarget, Receipt, RejectStage, TargetReject, TransactionReject);

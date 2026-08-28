@@ -26,7 +26,6 @@ void AGrimrockPartyPawn::BufferTurnCommand(bool bTurnRight)
 	BufferedCommandAge = 0.f;
 }
 
-
 void AGrimrockPartyPawn::ClearBufferedCommand()
 {
 	BufferedCommandType = EBufferedCommandType::None;
@@ -56,7 +55,6 @@ bool AGrimrockPartyPawn::TryConsumeBufferedCommand()
 		case EBufferedCommandType::Turn:
 			return TryStartTurn(bTurnRight);
 
-
 		default:
 			return false;
 	}
@@ -66,4 +64,3 @@ bool AGrimrockPartyPawn::IsBusy() const
 {
 	return bIsMoving || bIsTurning;
 }
-

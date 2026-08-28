@@ -43,8 +43,7 @@ namespace
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD062PartyInventoryHotbarContractTest,
-	"Grimrock.TechnicalDebt.TD06_2.PartyInventoryHotbar.Contract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD062PartyInventoryHotbarContractTest, "Grimrock.TechnicalDebt.TD06_2.PartyInventoryHotbar.Contract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Parameters)
@@ -57,25 +56,19 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 		return false;
 	}
 
-	const FName ReflectedFunctions[] = {
-		TEXT("GetCombatHotbarSlotCount"),
-		TEXT("GetCharacterCombatHotbarBinding"),
-		TEXT("SetCharacterCombatHotbarBinding"),
-		TEXT("ClearCharacterCombatHotbarBinding"),
-		TEXT("SetCharacterCombatHotbarBindingFromItem"),
-		TEXT("MoveOrSwapCharacterCombatHotbarBinding")
-	};
+	const FName ReflectedFunctions[] = { TEXT("GetCombatHotbarSlotCount"), TEXT("GetCharacterCombatHotbarBinding"), TEXT("SetCharacterCombatHotbarBinding"),
+		TEXT("ClearCharacterCombatHotbarBinding"), TEXT("SetCharacterCombatHotbarBindingFromItem"), TEXT("MoveOrSwapCharacterCombatHotbarBinding") };
 	for (const FName FunctionName : ReflectedFunctions)
 	{
 		const UFunction* Function = Component->FindFunction(FunctionName);
 		TestNotNull(FString::Printf(TEXT("%s remains reflected"), *FunctionName.ToString()), Function);
-		TestTrue(FString::Printf(TEXT("%s remains BlueprintCallable"), *FunctionName.ToString()),
-			Function && Function->HasAnyFunctionFlags(FUNC_BlueprintCallable));
+		TestTrue(
+			FString::Printf(TEXT("%s remains BlueprintCallable"), *FunctionName.ToString()), Function && Function->HasAnyFunctionFlags(FUNC_BlueprintCallable));
 	}
 
 	TestEqual(TEXT("The public hotbar contract exposes exactly ten slots"), Component->GetCombatHotbarSlotCount(), FGridCombatHotbarBinding::SlotCount);
-	TestEqual(TEXT("The default character owns exactly ten hotbar slots"),
-		Component->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots.Num(), FGridCombatHotbarBinding::SlotCount);
+	TestEqual(TEXT("The default character owns exactly ten hotbar slots"), Component->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots.Num(),
+		FGridCombatHotbarBinding::SlotCount);
 	for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
 	{
 		const FGridCombatHotbarBinding& Binding = Component->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[SlotIndex];
@@ -105,8 +98,7 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 	Component->InitializeDefaultPartyIfNeeded();
 
 	FGridCombatHotbarBinding SecondCharacterBinding;
-	TestTrue(TEXT("The corresponding slot of the second character can be read"),
-		Component->GetCharacterCombatHotbarBinding(1, 3, SecondCharacterBinding));
+	TestTrue(TEXT("The corresponding slot of the second character can be read"), Component->GetCharacterCombatHotbarBinding(1, 3, SecondCharacterBinding));
 	TestTrue(TEXT("Hotbar bindings remain isolated per character"), SecondCharacterBinding.IsEmpty());
 
 	const FGuid EquipmentRuntimeId = FGuid::NewGuid();
@@ -143,8 +135,8 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 		Component->CountItemDefinitionInCharacterInventory(0, QuickItem.ItemDefinitionId), 2);
 
 	TestTrue(TEXT("Clearing a quick-item shortcut succeeds"), Component->ClearCharacterCombatHotbarBinding(0, 8));
-	TestEqual(TEXT("Clearing a shortcut never consumes its quick-item source"),
-		Component->CountItemDefinitionInCharacterInventory(0, QuickItem.ItemDefinitionId), 2);
+	TestEqual(
+		TEXT("Clearing a shortcut never consumes its quick-item source"), Component->CountItemDefinitionInCharacterInventory(0, QuickItem.ItemDefinitionId), 2);
 
 	TestTrue(TEXT("Swapping two occupied hotbar slots succeeds atomically"), Component->MoveOrSwapCharacterCombatHotbarBinding(0, 3, 7));
 	FGridCombatHotbarBinding SwappedSlotThree;
@@ -186,8 +178,7 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 
 	UGridPartyInventoryComponent* RestoredComponent = NewObject<UGridPartyInventoryComponent>();
 	FText RestoreError;
-	TestTrue(TEXT("A structurally recoverable legacy hotbar restores successfully"),
-		RestoredComponent->RestorePartyInventoryState(LegacyState, RestoreError));
+	TestTrue(TEXT("A structurally recoverable legacy hotbar restores successfully"), RestoredComponent->RestorePartyInventoryState(LegacyState, RestoreError));
 
 	FGridCombatHotbarBinding PreservedLegacyEquipment;
 	FGridCombatHotbarBinding ClearedLegacyDuplicate;

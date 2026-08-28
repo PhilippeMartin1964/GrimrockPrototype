@@ -49,8 +49,8 @@ void UGrimrockStartupModeComponent::BeginPlay()
 		bHasPendingLoadRequest = true;
 		PartyPawn->PartySaveSlotName = PendingLoadSlotName;
 		PartyPawn->PartySaveUserIndex = PendingLoadSlotUserIndex;
-		UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode AppliedSaveSlot Pawn=%s Slot=%s UserIndex=%d"), *GetNameSafe(PartyPawn), *PartyPawn->PartySaveSlotName,
-			PartyPawn->PartySaveUserIndex);
+		UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode AppliedSaveSlot Pawn=%s Slot=%s UserIndex=%d"), *GetNameSafe(PartyPawn),
+			*PartyPawn->PartySaveSlotName, PartyPawn->PartySaveUserIndex);
 	}
 
 	if (PartyPawn->PartyStartupMode == EGrimrockPartyStartupMode::NewGame)
@@ -134,7 +134,8 @@ void UGrimrockStartupModeComponent::TryActivateDeferredNewGameRuntime()
 	}
 	if (!RuntimeActor)
 	{
-		UE_LOG(LogGrimrockStartupMode, Error, TEXT("GrimrockStartupMode ActivateDeferredRuntime Failed Pawn=%s Reason=NoRuntimeActor"), *GetNameSafe(PartyPawn));
+		UE_LOG(
+			LogGrimrockStartupMode, Error, TEXT("GrimrockStartupMode ActivateDeferredRuntime Failed Pawn=%s Reason=NoRuntimeActor"), *GetNameSafe(PartyPawn));
 		return;
 	}
 
@@ -150,7 +151,8 @@ void UGrimrockStartupModeComponent::TryActivateDeferredNewGameRuntime()
 	bWaitingForInitialCharacterCreation = false;
 	DeferredRuntimeActor = nullptr;
 	CompleteBuildProgress(LOCTEXT("NewGameProgressReady", "Donjon prêt."));
-	UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode ActivatedDeferredRuntime Pawn=%s Runtime=%s"), *GetNameSafe(PartyPawn), *GetNameSafe(RuntimeActor));
+	UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode ActivatedDeferredRuntime Pawn=%s Runtime=%s"), *GetNameSafe(PartyPawn),
+		*GetNameSafe(RuntimeActor));
 }
 
 void UGrimrockStartupModeComponent::TryCompleteLoadedGameProgress()

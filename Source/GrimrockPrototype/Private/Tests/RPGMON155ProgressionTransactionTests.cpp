@@ -26,7 +26,8 @@ bool FRPGMON155AtomicBatchCommitTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Both choices are committed"), Selected.Num(), 2);
 	TestTrue(TEXT("Choice A is committed"), Selected.Contains(TEXT("Choice_A")));
 	TestTrue(TEXT("Choice B is committed"), Selected.Contains(TEXT("Choice_B")));
-	TestEqual(TEXT("Character authority owns both committed choices"), Component->PartyInventoryState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.Num(), 2);
+	TestEqual(
+		TEXT("Character authority owns both committed choices"), Component->PartyInventoryState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.Num(), 2);
 	return true;
 }
 

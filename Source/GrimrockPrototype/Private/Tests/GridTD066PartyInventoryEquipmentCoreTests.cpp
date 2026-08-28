@@ -54,8 +54,7 @@ namespace
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD066PartyInventoryEquipmentCoreContractTest,
-	"Grimrock.TechnicalDebt.TD06_6.PartyInventoryEquipmentCore.Contract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD066PartyInventoryEquipmentCoreContractTest, "Grimrock.TechnicalDebt.TD06_6.PartyInventoryEquipmentCore.Contract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& Parameters)
@@ -68,21 +67,14 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 		return false;
 	}
 
-	const FName ReflectedFunctions[] = {
-		TEXT("CanEquipItemToSlot"),
-		TEXT("EquipItemFromInventorySlot"),
-		TEXT("UnequipItemToInventory"),
-		TEXT("GetEquippedItem"),
-		TEXT("IsEquipmentSlotOccupied"),
-		TEXT("ComputeCharacterEquipmentStatBonus"),
-		TEXT("ComputeCharacterEquipmentResistances")
-	};
+	const FName ReflectedFunctions[] = { TEXT("CanEquipItemToSlot"), TEXT("EquipItemFromInventorySlot"), TEXT("UnequipItemToInventory"),
+		TEXT("GetEquippedItem"), TEXT("IsEquipmentSlotOccupied"), TEXT("ComputeCharacterEquipmentStatBonus"), TEXT("ComputeCharacterEquipmentResistances") };
 	for (const FName FunctionName : ReflectedFunctions)
 	{
 		const UFunction* Function = Component->FindFunction(FunctionName);
 		TestNotNull(FString::Printf(TEXT("%s remains reflected"), *FunctionName.ToString()), Function);
-		TestTrue(FString::Printf(TEXT("%s remains BlueprintCallable"), *FunctionName.ToString()),
-			Function && Function->HasAnyFunctionFlags(FUNC_BlueprintCallable));
+		TestTrue(
+			FString::Printf(TEXT("%s remains BlueprintCallable"), *FunctionName.ToString()), Function && Function->HasAnyFunctionFlags(FUNC_BlueprintCallable));
 	}
 
 	TestFalse(TEXT("An invalid character cannot equip"),
@@ -144,8 +136,7 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	TestFalse(TEXT("Registered compatibility rejects the sword in OffHand"),
 		Component->CanEquipItemToSlot(0, Character.InventorySlots[0].Item, EGridEquipmentSlot::OffHand));
 
-	TestTrue(TEXT("Equipping from inventory into an empty MainHand succeeds"),
-		Component->EquipItemFromInventorySlot(0, 0, EGridEquipmentSlot::MainHand));
+	TestTrue(TEXT("Equipping from inventory into an empty MainHand succeeds"), Component->EquipItemFromInventorySlot(0, 0, EGridEquipmentSlot::MainHand));
 	TestTrue(TEXT("The source inventory slot is cleared after an empty-slot equip"), Character.InventorySlots[0].IsEmpty());
 	TestTrue(TEXT("MainHand reports occupied after equip"), Component->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::MainHand));
 
@@ -157,10 +148,8 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	TestTrue(TEXT("Equip records the actual equipment slot"), EquippedItem.EquipmentSlot == EGridEquipmentSlot::MainHand);
 
 	AddExpectedError(TEXT("GridInventory Equip Failed Character=0 Slot=MainHand Reason=UnsupportedSlot"), EAutomationExpectedErrorFlags::Contains, 1);
-	TestFalse(TEXT("An incompatible Shield -> MainHand equip is rejected"),
-		Component->EquipItemFromInventorySlot(0, 2, EGridEquipmentSlot::MainHand));
-	TestTrue(TEXT("A rejected incompatible equip leaves the shield in its source slot"),
-		Character.InventorySlots[2].Item.RuntimeObjectId == ShieldRuntimeId);
+	TestFalse(TEXT("An incompatible Shield -> MainHand equip is rejected"), Component->EquipItemFromInventorySlot(0, 2, EGridEquipmentSlot::MainHand));
+	TestTrue(TEXT("A rejected incompatible equip leaves the shield in its source slot"), Character.InventorySlots[2].Item.RuntimeObjectId == ShieldRuntimeId);
 	TestTrue(TEXT("A rejected incompatible equip leaves the existing MainHand unchanged"),
 		Component->GetEquippedItem(0, EGridEquipmentSlot::MainHand, EquippedItem) && EquippedItem.RuntimeObjectId == SwordRuntimeId);
 
@@ -178,13 +167,12 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	TestEqual(TEXT("Equipment resistances aggregate Fire"), InitialResistances.FireResistance, 4);
 	TestEqual(TEXT("Equipment resistances leave Lightning at zero before the swap"), InitialResistances.LightningResistance, 0);
 
-	TestTrue(TEXT("Equipping Axe onto occupied MainHand swaps atomically"),
-		Component->EquipItemFromInventorySlot(0, 1, EGridEquipmentSlot::MainHand));
+	TestTrue(TEXT("Equipping Axe onto occupied MainHand swaps atomically"), Component->EquipItemFromInventorySlot(0, 1, EGridEquipmentSlot::MainHand));
 	TestTrue(TEXT("Axe becomes the equipped MainHand item"),
 		Component->GetEquippedItem(0, EGridEquipmentSlot::MainHand, EquippedItem) && EquippedItem.RuntimeObjectId == AxeRuntimeId);
 	TestTrue(TEXT("The displaced sword moves into the Axe source inventory slot"), Character.InventorySlots[1].Item.RuntimeObjectId == SwordRuntimeId);
-	TestTrue(TEXT("The displaced sword is normalized to inventory ownership"),
-		Character.InventorySlots[1].Item.OwnerType == EGridItemOwnerType::CharacterInventory);
+	TestTrue(
+		TEXT("The displaced sword is normalized to inventory ownership"), Character.InventorySlots[1].Item.OwnerType == EGridItemOwnerType::CharacterInventory);
 	TestTrue(TEXT("The displaced sword no longer records an equipment slot"), Character.InventorySlots[1].Item.EquipmentSlot == EGridEquipmentSlot::None);
 
 	const FGridEquipmentStatBonus SwappedBonus = Component->ComputeCharacterEquipmentStatBonus(0);
@@ -197,8 +185,7 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	TestEqual(TEXT("Sword Fire resistance disappears after the MainHand swap"), SwappedResistances.FireResistance, 1);
 	TestEqual(TEXT("Axe Lightning resistance appears after the MainHand swap"), SwappedResistances.LightningResistance, 2);
 
-	TestTrue(TEXT("Unequipping MainHand returns the Axe to the first free inventory slot"),
-		Component->UnequipItemToInventory(0, EGridEquipmentSlot::MainHand));
+	TestTrue(TEXT("Unequipping MainHand returns the Axe to the first free inventory slot"), Component->UnequipItemToInventory(0, EGridEquipmentSlot::MainHand));
 	TestFalse(TEXT("MainHand is empty after unequip"), Component->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::MainHand));
 	TestTrue(TEXT("Unequip preserves the Axe runtime identity"), Character.InventorySlots[0].Item.RuntimeObjectId == AxeRuntimeId);
 	TestTrue(TEXT("Unequip normalizes inventory ownership"), Character.InventorySlots[0].Item.OwnerType == EGridItemOwnerType::CharacterInventory);
@@ -218,8 +205,8 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	{
 		return false;
 	}
-	UGridItemDefinitionAsset* StackWeaponDefinition = GridTD066CreateItemDefinition(
-		ConsumeComponent, TEXT("StackWeapon_TD066"), EGridItemType::Weapon, EGridEquipmentSlot::MainHand, 1.0f, true);
+	UGridItemDefinitionAsset* StackWeaponDefinition =
+		GridTD066CreateItemDefinition(ConsumeComponent, TEXT("StackWeapon_TD066"), EGridItemType::Weapon, EGridEquipmentSlot::MainHand, 1.0f, true);
 	if (!TestNotNull(TEXT("Stack weapon definition is created"), StackWeaponDefinition))
 	{
 		return false;
@@ -230,28 +217,33 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	TestTrue(TEXT("Three-unit weapon stack enters inventory"), ConsumeComponent->AddItemToCharacterInventory(0, StackWeapon));
 	TestTrue(TEXT("Three-unit weapon stack equips to MainHand"), ConsumeComponent->EquipItemFromInventorySlot(0, 0, EGridEquipmentSlot::MainHand));
 
-	TestFalse(TEXT("Combat consumption rejects the wrong hand"), ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
-		0, EGridEquipmentSlot::OffHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 1));
-	TestFalse(TEXT("Combat consumption rejects the wrong definition"), ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
-		0, EGridEquipmentSlot::MainHand, TEXT("WrongDefinition_TD066"), StackRuntimeId, 1));
-	TestFalse(TEXT("Combat consumption rejects the wrong runtime identity"), ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
-		0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, FGuid::NewGuid(), 1));
-	TestFalse(TEXT("Combat consumption rejects zero quantity"), ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
-		0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 0));
-	TestFalse(TEXT("Combat consumption rejects a quantity larger than the equipped stack"), ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
-		0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 4));
+	TestFalse(TEXT("Combat consumption rejects the wrong hand"),
+		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
+			0, EGridEquipmentSlot::OffHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 1));
+	TestFalse(TEXT("Combat consumption rejects the wrong definition"),
+		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(0, EGridEquipmentSlot::MainHand, TEXT("WrongDefinition_TD066"), StackRuntimeId, 1));
+	TestFalse(TEXT("Combat consumption rejects the wrong runtime identity"),
+		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
+			0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, FGuid::NewGuid(), 1));
+	TestFalse(TEXT("Combat consumption rejects zero quantity"),
+		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
+			0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 0));
+	TestFalse(TEXT("Combat consumption rejects a quantity larger than the equipped stack"),
+		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
+			0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 4));
 
-	TestTrue(TEXT("Combat consumption decrements a valid equipped stack"), ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
-		0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 1));
-	TestTrue(TEXT("The partially consumed equipped stack remains readable"),
-		ConsumeComponent->GetEquippedItem(0, EGridEquipmentSlot::MainHand, EquippedItem));
+	TestTrue(TEXT("Combat consumption decrements a valid equipped stack"),
+		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
+			0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 1));
+	TestTrue(TEXT("The partially consumed equipped stack remains readable"), ConsumeComponent->GetEquippedItem(0, EGridEquipmentSlot::MainHand, EquippedItem));
 	TestEqual(TEXT("Partial combat consumption decrements quantity exactly"), EquippedItem.Quantity, 2);
 	TestTrue(TEXT("Partial combat consumption preserves runtime identity"), EquippedItem.RuntimeObjectId == StackRuntimeId);
 
-	TestTrue(TEXT("Consuming the remaining stack clears the equipment slot"), ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
-		0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 2));
-	TestFalse(TEXT("The fully consumed equipment stack is no longer readable"),
-		ConsumeComponent->GetEquippedItem(0, EGridEquipmentSlot::MainHand, EquippedItem));
+	TestTrue(TEXT("Consuming the remaining stack clears the equipment slot"),
+		ConsumeComponent->TryConsumeEquippedItemQuantityForCombatAction(
+			0, EGridEquipmentSlot::MainHand, StackWeaponDefinition->ItemDefinitionId, StackRuntimeId, 2));
+	TestFalse(
+		TEXT("The fully consumed equipment stack is no longer readable"), ConsumeComponent->GetEquippedItem(0, EGridEquipmentSlot::MainHand, EquippedItem));
 	TestFalse(TEXT("The fully consumed equipment slot reports empty"), ConsumeComponent->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::MainHand));
 	if (!GridTD066ValidateOwnership(*this, ConsumeComponent, TEXT("Combat equipment consumption")))
 	{
@@ -263,10 +255,10 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	{
 		return false;
 	}
-	UGridItemDefinitionAsset* FullInventoryWeaponDefinition = GridTD066CreateItemDefinition(
-		FullInventoryComponent, TEXT("FullInventoryWeapon_TD066"), EGridItemType::Weapon, EGridEquipmentSlot::MainHand, 1.0f);
-	UGridItemDefinitionAsset* FillerDefinition = GridTD066CreateItemDefinition(
-		FullInventoryComponent, TEXT("Filler_TD066"), EGridItemType::Misc, EGridEquipmentSlot::None, 0.1f);
+	UGridItemDefinitionAsset* FullInventoryWeaponDefinition =
+		GridTD066CreateItemDefinition(FullInventoryComponent, TEXT("FullInventoryWeapon_TD066"), EGridItemType::Weapon, EGridEquipmentSlot::MainHand, 1.0f);
+	UGridItemDefinitionAsset* FillerDefinition =
+		GridTD066CreateItemDefinition(FullInventoryComponent, TEXT("Filler_TD066"), EGridItemType::Misc, EGridEquipmentSlot::None, 0.1f);
 	if (!TestNotNull(TEXT("Full-inventory weapon definition is created"), FullInventoryWeaponDefinition) ||
 		!TestNotNull(TEXT("Filler definition is created"), FillerDefinition))
 	{
@@ -285,16 +277,13 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
 	{
 		const FGridItemInstance Filler = GridTD066CreateItem(FillerDefinition->ItemDefinitionId, 1, FillerDefinition->Weight);
-		TestTrue(FString::Printf(TEXT("Filler item %d fills one inventory slot"), SlotIndex),
-			FullInventoryComponent->AddItemToCharacterInventory(0, Filler));
+		TestTrue(FString::Printf(TEXT("Filler item %d fills one inventory slot"), SlotIndex), FullInventoryComponent->AddItemToCharacterInventory(0, Filler));
 	}
 
 	AddExpectedError(TEXT("GridInventory Unequip Failed Character=0 Slot=MainHand Reason=InventoryFull"), EAutomationExpectedErrorFlags::Contains, 1);
-	TestFalse(TEXT("Unequip fails atomically when no inventory slot is free"),
-		FullInventoryComponent->UnequipItemToInventory(0, EGridEquipmentSlot::MainHand));
+	TestFalse(TEXT("Unequip fails atomically when no inventory slot is free"), FullInventoryComponent->UnequipItemToInventory(0, EGridEquipmentSlot::MainHand));
 	TestTrue(TEXT("Failed full-inventory unequip keeps the source equipment occupied"),
-		FullInventoryComponent->GetEquippedItem(0, EGridEquipmentSlot::MainHand, EquippedItem) &&
-			EquippedItem.RuntimeObjectId == FullInventoryWeaponRuntimeId);
+		FullInventoryComponent->GetEquippedItem(0, EGridEquipmentSlot::MainHand, EquippedItem) && EquippedItem.RuntimeObjectId == FullInventoryWeaponRuntimeId);
 	if (!GridTD066ValidateOwnership(*this, FullInventoryComponent, TEXT("Failed full-inventory unequip")))
 	{
 		return false;

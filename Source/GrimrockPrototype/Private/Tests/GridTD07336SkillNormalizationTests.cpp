@@ -30,8 +30,7 @@ namespace GridTD07336Normalization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336SchemaAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_6.Normalization.SchemaAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336SchemaAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_3_6.Normalization.SchemaAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07336SchemaAuthorityTest::RunTest(const FString& Parameters)
@@ -46,8 +45,7 @@ bool FGridTD07336SchemaAuthorityTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336DirectValidationTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_6.Normalization.DirectValidation",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336DirectValidationTest, "Grimrock.TechnicalDebt.TD07_3_3_6.Normalization.DirectValidation",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07336DirectValidationTest::RunTest(const FString& Parameters)
@@ -56,7 +54,10 @@ bool FGridTD07336DirectValidationTest::RunTest(const FString& Parameters)
 	using namespace GridTD07336Normalization;
 
 	URPGSkillAsset* Skill = MakeSkill(TEXT("Skill_A"), 3);
-	const auto Resolver = [Skill](FName SkillId) -> const URPGSkillAsset* { return SkillId == Skill->SkillId ? Skill : nullptr; };
+	const auto Resolver = [Skill](FName SkillId) -> const URPGSkillAsset*
+	{
+		return SkillId == Skill->SkillId ? Skill : nullptr;
+	};
 
 	FGridPartyInventoryState Party;
 	FGridCharacterInventoryState Active = MakeCharacter(1);
@@ -76,8 +77,7 @@ bool FGridTD07336DirectValidationTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336DeterministicMutationTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_6.Normalization.DeterministicMutation",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336DeterministicMutationTest, "Grimrock.TechnicalDebt.TD07_3_3_6.Normalization.DeterministicMutation",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07336DeterministicMutationTest::RunTest(const FString& Parameters)
@@ -102,8 +102,7 @@ bool FGridTD07336DeterministicMutationTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336SaveSchemaVersionTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_6.Normalization.SaveSchemaVersion",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336SaveSchemaVersionTest, "Grimrock.TechnicalDebt.TD07_3_3_6.Normalization.SaveSchemaVersion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07336SaveSchemaVersionTest::RunTest(const FString& Parameters)

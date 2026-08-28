@@ -21,7 +21,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	FGridPartyInventoryState PartyInventoryState;
 
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	FGridDungeonRuntimeState DungeonRuntimeState;
 

@@ -37,8 +37,8 @@ namespace GridTD0738StrictSchema
 		Candidate.Context = Context;
 	}
 
-	void AuditPair(const FString& AssetPath, const FString& Context, const UObject* DefinitionObject, FName CanonicalId, FName StoredId,
-		TArray<FCandidate>& Candidates)
+	void AuditPair(
+		const FString& AssetPath, const FString& Context, const UObject* DefinitionObject, FName CanonicalId, FName StoredId, TArray<FCandidate>& Candidates)
 	{
 		if (DefinitionObject && CanonicalId.IsNone())
 		{
@@ -56,11 +56,7 @@ namespace GridTD0738StrictSchema
 			return;
 		}
 
-		AddCandidate(
-			Candidates,
-			CanonicalId == StoredId ? TEXT("AUTHORING.ASSET_ID_DUPLICATE") : TEXT("AUTHORING.ASSET_ID_CONFLICT"),
-			AssetPath,
-			Context);
+		AddCandidate(Candidates, CanonicalId == StoredId ? TEXT("AUTHORING.ASSET_ID_DUPLICATE") : TEXT("AUTHORING.ASSET_ID_CONFLICT"), AssetPath, Context);
 	}
 
 	void AuditBehavior(const FString& AssetPath, const FString& Context, const FGridObjectBehaviorParams& Behavior, TArray<FCandidate>& Candidates)
@@ -69,13 +65,8 @@ namespace GridTD0738StrictSchema
 		AuditPair(AssetPath, Context + TEXT(".Item"), Item, Item ? Item->ItemDefinitionId : NAME_None, Behavior.Item.ItemDefinitionId, Candidates);
 
 		const UGridReadableContentAsset* Readable = Behavior.Item.DefaultReadableContentAsset.Get();
-		AuditPair(
-			AssetPath,
-			Context + TEXT(".DefaultReadableContent"),
-			Readable,
-			Readable ? Readable->ReadableContentId : NAME_None,
-			Behavior.Item.DefaultReadableContentId,
-			Candidates);
+		AuditPair(AssetPath, Context + TEXT(".DefaultReadableContent"), Readable, Readable ? Readable->ReadableContentId : NAME_None,
+			Behavior.Item.DefaultReadableContentId, Candidates);
 
 		if (!Behavior.Lock.AcceptedKeyIds.IsEmpty())
 		{
@@ -98,22 +89,12 @@ namespace GridTD0738StrictSchema
 				AuditPair(AssetPath, Context + TEXT(".ItemDefinition"), Item, Item ? Item->ItemDefinitionId : NAME_None, Object.ItemDefinitionId, Candidates);
 
 				const UGridReadableContentAsset* Readable = Object.ReadableContentAsset.Get();
-				AuditPair(
-					AssetPath,
-					Context + TEXT(".ReadableContent"),
-					Readable,
-					Readable ? Readable->ReadableContentId : NAME_None,
-					Object.ReadableContentId,
+				AuditPair(AssetPath, Context + TEXT(".ReadableContent"), Readable, Readable ? Readable->ReadableContentId : NAME_None, Object.ReadableContentId,
 					Candidates);
 
 				const UGridMonsterDefinitionAsset* Monster = Object.MonsterDefinitionAsset.Get();
 				AuditPair(
-					AssetPath,
-					Context + TEXT(".MonsterDefinition"),
-					Monster,
-					Monster ? Monster->MonsterId : NAME_None,
-					Object.MonsterDefinitionId,
-					Candidates);
+					AssetPath, Context + TEXT(".MonsterDefinition"), Monster, Monster ? Monster->MonsterId : NAME_None, Object.MonsterDefinitionId, Candidates);
 
 				AuditBehavior(AssetPath, Context + TEXT(".Behavior"), Object.Behavior, Candidates);
 			}
@@ -141,12 +122,7 @@ namespace GridTD0738StrictSchema
 			{
 				const FGridMonsterLootEntry& Loot = Monster->LootTable[LootIndex];
 				const UGridItemDefinitionAsset* Item = Loot.ItemDefinitionAsset.Get();
-				AuditPair(
-					AssetPath,
-					FString::Printf(TEXT("LootTable[%d]"), LootIndex),
-					Item,
-					Item ? Item->ItemDefinitionId : NAME_None,
-					Loot.ItemDefinitionId,
+				AuditPair(AssetPath, FString::Printf(TEXT("LootTable[%d]"), LootIndex), Item, Item ? Item->ItemDefinitionId : NAME_None, Loot.ItemDefinitionId,
 					Candidates);
 			}
 		}
@@ -166,21 +142,18 @@ namespace GridTD0738StrictSchema
 
 	bool IsCardinalFacing(EGridEdge Facing)
 	{
-		return Facing == EGridEdge::North || Facing == EGridEdge::East ||
-			Facing == EGridEdge::South || Facing == EGridEdge::West;
+		return Facing == EGridEdge::North || Facing == EGridEdge::East || Facing == EGridEdge::South || Facing == EGridEdge::West;
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0738SaveExactMatchTest,
-	"Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema.SaveExactMatch",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0738SaveExactMatchTest, "Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema.SaveExactMatch",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0738SaveExactMatchTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestTrue(TEXT("Current prototype save generation is at or beyond TD07.3 v22"),
-		UGrimrockPartySaveGame::CurrentSaveVersion >= 22);
+	TestTrue(TEXT("Current prototype save generation is at or beyond TD07.3 v22"), UGrimrockPartySaveGame::CurrentSaveVersion >= 22);
 
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>();
 	TestEqual(TEXT("Fresh SaveGame uses CurrentSaveVersion"), Current->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
@@ -199,16 +172,14 @@ bool FGridTD0738SaveExactMatchTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Future version is never rewritten"), Future->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion + 1);
 
 	FString SaveSource;
-	const FString SaveSourcePath =
-		FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/GrimrockPrototype/Private/Save/GrimrockPartySaveGame.cpp"));
+	const FString SaveSourcePath = FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/GrimrockPrototype/Private/Save/GrimrockPartySaveGame.cpp"));
 	TestTrue(TEXT("Save source loads"), FFileHelper::LoadFileToString(SaveSource, *SaveSourcePath));
 	TestTrue(TEXT("Save validation remains exact-match"), SaveSource.Contains(TEXT("SaveVersion != CurrentSaveVersion")));
 	TestFalse(TEXT("Save source contains no historical migration helper"), SaveSource.Contains(TEXT("MigrateSave")));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0738CharacterAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema.CharacterAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0738CharacterAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema.CharacterAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0738CharacterAuthorityTest::RunTest(const FString& Parameters)
@@ -223,18 +194,15 @@ bool FGridTD0738CharacterAuthorityTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	for (const TCHAR* Name : {
-			 TEXT("ClassId"), TEXT("RaceId"), TEXT("Experience"), TEXT("LastAcknowledgedLevel"),
-			 TEXT("SelectedClassProgressionChoiceIds"), TEXT("Attributes"), TEXT("Resources"),
-			 TEXT("SkillRanks"), TEXT("KnownSpellIds"), TEXT("StatusEffects"),
-			 TEXT("PortraitGender"), TEXT("PortraitVariantId") })
+	for (const TCHAR* Name :
+		{ TEXT("ClassId"), TEXT("RaceId"), TEXT("Experience"), TEXT("LastAcknowledgedLevel"), TEXT("SelectedClassProgressionChoiceIds"), TEXT("Attributes"),
+			TEXT("Resources"), TEXT("SkillRanks"), TEXT("KnownSpellIds"), TEXT("StatusEffects"), TEXT("PortraitGender"), TEXT("PortraitVariantId") })
 	{
 		TestTrue(*FString::Printf(TEXT("%s remains durable authority"), Name), IsDurableProperty(Character, Name));
 	}
 
-	for (const TCHAR* Name : {
-			 TEXT("ClassDisplayName"), TEXT("ClassDefinition"), TEXT("RaceDisplayName"),
-			 TEXT("Level"), TEXT("DerivedStats"), TEXT("Portrait"), TEXT("ClassIcon") })
+	for (const TCHAR* Name : { TEXT("ClassDisplayName"), TEXT("ClassDefinition"), TEXT("RaceDisplayName"), TEXT("Level"), TEXT("DerivedStats"),
+			 TEXT("Portrait"), TEXT("ClassIcon") })
 	{
 		TestTrue(*FString::Printf(TEXT("%s remains transient projection"), Name), IsTransientProperty(Character, Name));
 	}
@@ -245,8 +213,7 @@ bool FGridTD0738CharacterAuthorityTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0738LegacySymbolsAbsentTest,
-	"Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema.LegacySymbolsAbsent",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0738LegacySymbolsAbsentTest, "Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema.LegacySymbolsAbsent",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0738LegacySymbolsAbsentTest::RunTest(const FString& Parameters)
@@ -288,13 +255,12 @@ bool FGridTD0738LegacySymbolsAbsentTest::RunTest(const FString& Parameters)
 
 	TestFalse(TEXT("TD07.3.6 one-shot script is absent"),
 		FPaths::FileExists(FPaths::Combine(FPaths::ProjectDir(), TEXT("Scripts/RepairTD0736MonsterSpawnFacing.ps1"))));
-	TestFalse(TEXT("TD07.3.7 one-shot script is absent"),
-		FPaths::FileExists(FPaths::Combine(FPaths::ProjectDir(), TEXT("Scripts/RepairTD0737CurrentAssets.ps1"))));
+	TestFalse(
+		TEXT("TD07.3.7 one-shot script is absent"), FPaths::FileExists(FPaths::Combine(FPaths::ProjectDir(), TEXT("Scripts/RepairTD0737CurrentAssets.ps1"))));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0738CurrentAssetsStrictTest,
-	"Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema.CurrentAssets",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0738CurrentAssetsStrictTest, "Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema.CurrentAssets",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0738CurrentAssetsStrictTest::RunTest(const FString& Parameters)
@@ -302,8 +268,7 @@ bool FGridTD0738CurrentAssetsStrictTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	using namespace GridTD0738StrictSchema;
 
-	FAssetRegistryModule& AssetRegistryModule =
-		FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 	AssetRegistry.SearchAllAssets(true);
 
@@ -342,8 +307,7 @@ bool FGridTD0738CurrentAssetsStrictTest::RunTest(const FString& Parameters)
 	return Candidates.IsEmpty() && LoadedAssets == Assets.Num();
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0738MonsterAssetsStrictTest,
-	"Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema.MonsterAssets",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0738MonsterAssetsStrictTest, "Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema.MonsterAssets",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0738MonsterAssetsStrictTest::RunTest(const FString& Parameters)
@@ -351,15 +315,14 @@ bool FGridTD0738MonsterAssetsStrictTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	using namespace GridTD0738StrictSchema;
 
-	UGridLevelAsset* Level = LoadObject<UGridLevelAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_00.DA_GridLevel_00"));
-	UGridMonsterDefinitionAsset* Rat = LoadObject<UGridMonsterDefinitionAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant"));
-	UGridMonsterDefinitionAsset* Goblin = LoadObject<UGridMonsterDefinitionAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Monsters/GoblinThrower/Data/DA_MON_GoblinThrower.DA_MON_GoblinThrower"));
+	UGridLevelAsset* Level =
+		LoadObject<UGridLevelAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_00.DA_GridLevel_00"));
+	UGridMonsterDefinitionAsset* Rat =
+		LoadObject<UGridMonsterDefinitionAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant"));
+	UGridMonsterDefinitionAsset* Goblin =
+		LoadObject<UGridMonsterDefinitionAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Monsters/GoblinThrower/Data/DA_MON_GoblinThrower.DA_MON_GoblinThrower"));
 
-	if (!TestNotNull(TEXT("Production GridLevel loads"), Level) ||
-		!TestNotNull(TEXT("RatGiant definition loads"), Rat) ||
+	if (!TestNotNull(TEXT("Production GridLevel loads"), Level) || !TestNotNull(TEXT("RatGiant definition loads"), Rat) ||
 		!TestNotNull(TEXT("GoblinThrower definition loads"), Goblin))
 	{
 		return false;

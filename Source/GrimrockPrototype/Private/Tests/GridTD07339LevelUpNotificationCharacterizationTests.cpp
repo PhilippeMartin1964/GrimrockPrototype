@@ -32,8 +32,7 @@ namespace GridTD07339Characterization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339RepresentationMultiplicityTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_9.Characterization.RepresentationMultiplicity",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339RepresentationMultiplicityTest, "Grimrock.TechnicalDebt.TD07_3_3_9.Characterization.RepresentationMultiplicity",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07339RepresentationMultiplicityTest::RunTest(const FString& Parameters)
@@ -41,11 +40,9 @@ bool FGridTD07339RepresentationMultiplicityTest::RunTest(const FString& Paramete
 	(void)Parameters;
 	using namespace GridTD07339Characterization;
 
-	const FProperty* AcknowledgementProperty =
-		FindFProperty<FProperty>(FGridCharacterInventoryState::StaticStruct(), TEXT("LastAcknowledgedLevel"));
+	const FProperty* AcknowledgementProperty = FindFProperty<FProperty>(FGridCharacterInventoryState::StaticStruct(), TEXT("LastAcknowledgedLevel"));
 	TestNotNull(TEXT("Character owns minimal durable acknowledgement state"), AcknowledgementProperty);
-	TestTrue(TEXT("Acknowledgement state is non-transient"),
-		AcknowledgementProperty && !AcknowledgementProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("Acknowledgement state is non-transient"), AcknowledgementProperty && !AcknowledgementProperty->HasAnyPropertyFlags(CPF_Transient));
 	TestNull(TEXT("SaveGame owns no PendingLevelUpNotifications mirror"),
 		FindFProperty<FProperty>(UGrimrockPartySaveGame::StaticClass(), TEXT("PendingLevelUpNotifications")));
 
@@ -63,8 +60,7 @@ bool FGridTD07339RepresentationMultiplicityTest::RunTest(const FString& Paramete
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339PersistentMirrorRoundTripTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_9.Characterization.PersistentMirrorRoundTrip",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339PersistentMirrorRoundTripTest, "Grimrock.TechnicalDebt.TD07_3_3_9.Characterization.PersistentMirrorRoundTrip",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07339PersistentMirrorRoundTripTest::RunTest(const FString& Parameters)
@@ -111,8 +107,7 @@ bool FGridTD07339ActiveOnlyPersistenceBoundaryTest::RunTest(const FString& Param
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339SaveValidationContractTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_9.Characterization.SaveValidationContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339SaveValidationContractTest, "Grimrock.TechnicalDebt.TD07_3_3_9.Characterization.SaveValidationContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07339SaveValidationContractTest::RunTest(const FString& Parameters)

@@ -34,8 +34,8 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectPersistence
 	 * Atomically rehydrate every character DefinitionAsset cache from EffectId.
 	 * Stable fields remain unchanged; deterministic collection ordering is rebuilt.
 	 */
-	static bool RehydratePartyStatusEffects(FGridPartyInventoryState& PartyState,
-		TFunctionRef<UGridStatusEffectDefinitionAsset*(FName)> DefinitionResolver, FString& OutError);
+	static bool RehydratePartyStatusEffects(
+		FGridPartyInventoryState& PartyState, TFunctionRef<UGridStatusEffectDefinitionAsset*(FName)> DefinitionResolver, FString& OutError);
 	static bool RehydratePartyStatusEffects(FGridPartyInventoryState& PartyState, FString& OutError);
 
 	/** MON16.7 snapshot conversion retained for monster runtime persistence. */

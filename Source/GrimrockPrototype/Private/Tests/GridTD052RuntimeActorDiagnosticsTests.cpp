@@ -17,13 +17,13 @@ namespace
 		FGridTD052RuntimeDiagnosticsWorld()
 		{
 			const UWorld::InitializationValues InitializationValues = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
+																		  .AllowAudioPlayback(false)
+																		  .RequiresHitProxies(false)
+																		  .CreatePhysicsScene(false)
+																		  .CreateNavigation(false)
+																		  .CreateAISystem(false)
+																		  .ShouldSimulatePhysics(false)
+																		  .SetTransactional(false);
 
 			World = UWorld::CreateWorld(EWorldType::Game, false,
 				FName(*FString::Printf(TEXT("TD052RuntimeDiagnostics_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
@@ -72,8 +72,7 @@ namespace
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD052RuntimeActorDiagnosticsContractTest,
-	"Grimrock.TechnicalDebt.TD05_2.RuntimeActorDiagnostics.Contract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD052RuntimeActorDiagnosticsContractTest, "Grimrock.TechnicalDebt.TD05_2.RuntimeActorDiagnostics.Contract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD052RuntimeActorDiagnosticsContractTest::RunTest(const FString& Parameters)
@@ -127,8 +126,7 @@ bool FGridTD052RuntimeActorDiagnosticsContractTest::RunTest(const FString& Param
 	TestTrue(TEXT("Level diagnostics expose the cell size"), LevelDiagnostics.Contains(TEXT("CellSize=200.00")));
 	TestTrue(TEXT("Level diagnostics expose the start pose"), LevelDiagnostics.Contains(TEXT("StartCell=(1,0) StartFacing=East StartCellValid=true")));
 	TestTrue(TEXT("Level diagnostics expose cell count consistency"), LevelDiagnostics.Contains(TEXT("Cells=4 ExpectedCells=4")));
-	TestTrue(TEXT("Level diagnostics expose cell classifications"),
-		LevelDiagnostics.Contains(TEXT("NonEmptyCells=4 BlockingCells=0 CeilingCells=0")));
+	TestTrue(TEXT("Level diagnostics expose cell classifications"), LevelDiagnostics.Contains(TEXT("NonEmptyCells=4 BlockingCells=0 CeilingCells=0")));
 	TestTrue(TEXT("Level diagnostics expose object and transition counts"),
 		LevelDiagnostics.Contains(TEXT("Objects=0 Links=0 TransitionObjects=0 HiddenFloorCells=0")));
 	TestTrue(TEXT("A structurally consistent level reports OK"), LevelDiagnostics.Contains(TEXT("Status=OK")));
@@ -147,8 +145,8 @@ bool FGridTD052RuntimeActorDiagnosticsContractTest::RunTest(const FString& Param
 		MissingLevelDiagnostics.Contains(TEXT("Status=ERROR: missing LevelAsset reference.")));
 
 	const FString MissingLevelPIEReadiness = RuntimeActor->GetPIEReadinessDiagnostics();
-	TestTrue(TEXT("Missing LevelAsset preserves the PIE readiness error contract"),
-		MissingLevelPIEReadiness.Contains(TEXT("Status: ERROR - LevelAsset is null.")));
+	TestTrue(
+		TEXT("Missing LevelAsset preserves the PIE readiness error contract"), MissingLevelPIEReadiness.Contains(TEXT("Status: ERROR - LevelAsset is null.")));
 
 	return true;
 }

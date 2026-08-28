@@ -241,7 +241,6 @@ FString UGridPartyInventoryComponent::GetEquipmentDiagnosticsForCharacter(int32 
 	return OccupiedSlots.Num() > 0 ? FString::Printf(TEXT("    Equipment: %s"), *FString::Join(OccupiedSlots, TEXT(" "))) : TEXT("    Equipment: None");
 }
 
-
 FString UGridPartyInventoryComponent::GetPartyInventoryDiagnostics() const
 {
 	FString Result;
@@ -392,7 +391,8 @@ void UGridPartyInventoryComponent::LogEquipmentCompatibilityDiagnostics() const
 	}
 
 	UE_LOG(LogTemp, Log,
-		TEXT("GridEquipmentCompatibility Summary PotentiallyEquippableWithoutSlots=%d LightWithoutHandSlot=%d ExcludedPaperDollSlots=%d NewPaperDollSlotUses=%d"),
+		TEXT(
+			"GridEquipmentCompatibility Summary PotentiallyEquippableWithoutSlots=%d LightWithoutHandSlot=%d ExcludedPaperDollSlots=%d NewPaperDollSlotUses=%d"),
 		PotentiallyEquippableWithoutSlotsCount, LightWithoutHandSlotCount, ExcludedPaperDollSlotCount, NewPaperDollSlotUsageCount);
 }
 

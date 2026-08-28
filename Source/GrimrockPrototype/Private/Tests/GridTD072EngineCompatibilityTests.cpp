@@ -4,8 +4,7 @@
 
 #include "Runtime/GridItemTransferService.h"
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD072EngineCompatibilityReflectionContractTest,
-	"Grimrock.TechnicalDebt.TD07_2.EngineCompatibility.ReflectionContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD072EngineCompatibilityReflectionContractTest, "Grimrock.TechnicalDebt.TD07_2.EngineCompatibility.ReflectionContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD072EngineCompatibilityReflectionContractTest::RunTest(const FString& Parameters)

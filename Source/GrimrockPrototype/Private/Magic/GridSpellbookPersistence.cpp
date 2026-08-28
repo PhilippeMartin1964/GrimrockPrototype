@@ -17,8 +17,7 @@ namespace GridSpellbookPersistencePrivate
 		return Definition && FGridSpellContract::ValidateDefinition(*Definition) == EGridSpellValidationError::None;
 	}
 
-	bool ValidateCharacters(
-		const TArray<FGridCharacterInventoryState>& Characters, const TCHAR* Location, TSet<FGuid>& InOutCharacterIds, FString& OutError)
+	bool ValidateCharacters(const TArray<FGridCharacterInventoryState>& Characters, const TCHAR* Location, TSet<FGuid>& InOutCharacterIds, FString& OutError)
 	{
 		for (int32 CharacterIndex = 0; CharacterIndex < Characters.Num(); ++CharacterIndex)
 		{
@@ -48,14 +47,12 @@ namespace GridSpellbookPersistencePrivate
 				}
 				if (SeenSpellIds.Contains(SpellId))
 				{
-					OutError = FString::Printf(
-						TEXT("%s[%d] Spellbook contains duplicate SpellId '%s'."), Location, CharacterIndex, *SpellId.ToString());
+					OutError = FString::Printf(TEXT("%s[%d] Spellbook contains duplicate SpellId '%s'."), Location, CharacterIndex, *SpellId.ToString());
 					return false;
 				}
 				if (!IsCanonicalSpellId(SpellId))
 				{
-					OutError = FString::Printf(
-						TEXT("%s[%d] Spellbook references non-canonical SpellId '%s'."), Location, CharacterIndex, *SpellId.ToString());
+					OutError = FString::Printf(TEXT("%s[%d] Spellbook references non-canonical SpellId '%s'."), Location, CharacterIndex, *SpellId.ToString());
 					return false;
 				}
 
@@ -76,10 +73,8 @@ namespace GridSpellbookPersistencePrivate
 bool FGridSpellbookPersistence::ValidatePartySpellbooks(const FGridPartyInventoryState& PartyState, FString& OutError)
 {
 	TSet<FGuid> CharacterIds;
-	if (!GridSpellbookPersistencePrivate::ValidateCharacters(
-			PartyState.ActiveCharacters, TEXT("ActiveCharacter"), CharacterIds, OutError) ||
-		!GridSpellbookPersistencePrivate::ValidateCharacters(
-			PartyState.CharacterPool, TEXT("CharacterPool"), CharacterIds, OutError))
+	if (!GridSpellbookPersistencePrivate::ValidateCharacters(PartyState.ActiveCharacters, TEXT("ActiveCharacter"), CharacterIds, OutError) ||
+		!GridSpellbookPersistencePrivate::ValidateCharacters(PartyState.CharacterPool, TEXT("CharacterPool"), CharacterIds, OutError))
 	{
 		return false;
 	}

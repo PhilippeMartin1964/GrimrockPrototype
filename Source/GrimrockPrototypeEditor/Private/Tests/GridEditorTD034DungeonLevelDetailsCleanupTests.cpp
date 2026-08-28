@@ -19,13 +19,13 @@ namespace
 		FGridTD034EditorTestWorld()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
+															.AllowAudioPlayback(false)
+															.RequiresHitProxies(false)
+															.CreatePhysicsScene(false)
+															.CreateNavigation(false)
+															.CreateAISystem(false)
+															.ShouldSimulatePhysics(false)
+															.SetTransactional(false);
 
 			World = UWorld::CreateWorld(EWorldType::EditorPreview, false,
 				FName(*FString::Printf(TEXT("TD034DungeonLevelWorld_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
@@ -67,8 +67,7 @@ namespace
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD034DungeonLevelContractTest,
-	"Grimrock.TechnicalDebt.TD03_4.DungeonLevelsDetails.ApplyCurrentLevelContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD034DungeonLevelContractTest, "Grimrock.TechnicalDebt.TD03_4.DungeonLevelsDetails.ApplyCurrentLevelContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD034DungeonLevelContractTest::RunTest(const FString& Parameters)
@@ -115,10 +114,8 @@ bool FGridTD034DungeonLevelContractTest::RunTest(const FString& Parameters)
 
 	const UFunction* ApplyFunction = EditorActor->FindFunction(TEXT("ApplyCurrentDungeonLevel"));
 	TestNotNull(TEXT("ApplyCurrentDungeonLevel remains reflected"), ApplyFunction);
-	TestTrue(TEXT("ApplyCurrentDungeonLevel remains BlueprintCallable"),
-		ApplyFunction && ApplyFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
-	TestFalse(TEXT("ApplyCurrentDungeonLevel is no longer exposed as CallInEditor"),
-		ApplyFunction && ApplyFunction->HasMetaData(TEXT("CallInEditor")));
+	TestTrue(TEXT("ApplyCurrentDungeonLevel remains BlueprintCallable"), ApplyFunction && ApplyFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
+	TestFalse(TEXT("ApplyCurrentDungeonLevel is no longer exposed as CallInEditor"), ApplyFunction && ApplyFunction->HasMetaData(TEXT("CallInEditor")));
 
 	TestTrue(TEXT("No explicit level selects the dungeon default"), EditorActor->ApplyCurrentDungeonLevel());
 	TestEqual(TEXT("The editor stores the default level id"), EditorActor->CurrentDungeonLevelId, EntryA.LevelId);

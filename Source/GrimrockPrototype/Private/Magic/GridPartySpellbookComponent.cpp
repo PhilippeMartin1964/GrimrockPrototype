@@ -26,7 +26,11 @@ namespace GridPartySpellbookPrivate
 
 	void SortSpellIds(TArray<FName>& SpellIds)
 	{
-		SpellIds.Sort([](const FName Left, const FName Right) { return Left.ToString() < Right.ToString(); });
+		SpellIds.Sort(
+			[](const FName Left, const FName Right)
+			{
+				return Left.ToString() < Right.ToString();
+			});
 	}
 }
 
@@ -67,12 +71,18 @@ FGridCharacterInventoryState* UGridPartySpellbookComponent::FindMutableCharacter
 		return nullptr;
 	}
 	if (FGridCharacterInventoryState* Active = Inventory->PartyInventoryState.ActiveCharacters.FindByPredicate(
-			[&CharacterId](const FGridCharacterInventoryState& Character) { return Character.CharacterId == CharacterId; }))
+			[&CharacterId](const FGridCharacterInventoryState& Character)
+			{
+				return Character.CharacterId == CharacterId;
+			}))
 	{
 		return Active;
 	}
 	return Inventory->PartyInventoryState.CharacterPool.FindByPredicate(
-		[&CharacterId](const FGridCharacterInventoryState& Character) { return Character.CharacterId == CharacterId; });
+		[&CharacterId](const FGridCharacterInventoryState& Character)
+		{
+			return Character.CharacterId == CharacterId;
+		});
 }
 
 const FGridCharacterInventoryState* UGridPartySpellbookComponent::FindCharacter(FGuid CharacterId) const

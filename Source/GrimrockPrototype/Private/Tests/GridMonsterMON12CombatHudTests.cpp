@@ -576,8 +576,7 @@ bool FGridMonsterMON12CombatHudLifecycleTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("The translation cost remains one AP"), Fixture.TurnManager->PartyTranslationActionPointCost, 1);
 	TestEqual(TEXT("The shared translation cost remains one PAM"), Fixture.TurnManager->PartyTranslationMobilityActionPointCost, 1);
 
-	UGridItemDefinitionAsset* SwordDefinition =
-		Fixture.Party->PartyInventoryComponent->FindItemDefinition(FName(TEXT("MON12_7_Sword")));
+	UGridItemDefinitionAsset* SwordDefinition = Fixture.Party->PartyInventoryComponent->FindItemDefinition(FName(TEXT("MON12_7_Sword")));
 	TestNotNull(TEXT("The sword definition remains registered"), SwordDefinition);
 	if (SwordDefinition && !SwordDefinition->CombatActions.IsEmpty())
 	{
@@ -1553,8 +1552,7 @@ bool FGridMonsterMON1211HotbarValidationTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("The first slot now contains unarmed"), SwappedFirst.ActionId, FName(TEXT("Attack_Unarmed")));
 	TestTrue(TEXT("The second slot keeps the exact sword instance"), SwappedSecond.PreferredSourceRuntimeId == EquippedSword.RuntimeObjectId);
 
-	UGridItemDefinitionAsset* SwordDefinition =
-		Inventory->FindItemDefinition(EquippedSword.ItemDefinitionId);
+	UGridItemDefinitionAsset* SwordDefinition = Inventory->FindItemDefinition(EquippedSword.ItemDefinitionId);
 	TestNotNull(TEXT("The hotbar sword definition remains registered"), SwordDefinition);
 	if (SwordDefinition && !SwordDefinition->CombatActions.IsEmpty())
 	{

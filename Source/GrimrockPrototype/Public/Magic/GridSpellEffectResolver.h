@@ -86,7 +86,8 @@ struct GRIMROCKPROTOTYPE_API FGridSpellEffectResolver
 		FGridStatusEffectCollection& InOutStatusEffects, TFunctionRef<const UGridStatusEffectDefinitionAsset*(FName)> StatusDefinitionResolver,
 		FGridSpellEffectResolutionResult& OutResult, EGridSpellEffectResolutionRejectReason& OutRejectReason, FString& OutError);
 
-	static bool ResolveCharacterEffects(const FGridSpellDefinition& Definition, const FGuid& SourceId, const FRPGDerivedStats& DerivedStats, FRPGCharacterResources& InOutResources,
-		FGridStatusEffectCollection& InOutStatusEffects, TFunctionRef<const UGridStatusEffectDefinitionAsset*(FName)> StatusDefinitionResolver,
-		FGridSpellEffectResolutionResult& OutResult, EGridSpellEffectResolutionRejectReason& OutRejectReason, FString& OutError);
+	static bool ResolveCharacterEffects(const FGridSpellDefinition& Definition, const FGuid& SourceId, const FRPGDerivedStats& DerivedStats,
+		FRPGCharacterResources& InOutResources, FGridStatusEffectCollection& InOutStatusEffects,
+		TFunctionRef<const UGridStatusEffectDefinitionAsset*(FName)> StatusDefinitionResolver, FGridSpellEffectResolutionResult& OutResult,
+		EGridSpellEffectResolutionRejectReason& OutRejectReason, FString& OutError);
 };

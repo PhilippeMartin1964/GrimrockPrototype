@@ -41,7 +41,8 @@ bool FGridQuestMON212DefinitionValidationTest::RunTest(const FString& Parameters
 	TestTrue(TEXT("Quest definitions are PrimaryDataAssets"), UGridQuestDefinitionAsset::StaticClass()->IsChildOf(UPrimaryDataAsset::StaticClass()));
 	TestTrue(TEXT("Quest runtime authority is a GameInstanceSubsystem"), UGridQuestSubsystem::StaticClass()->IsChildOf(UGameInstanceSubsystem::StaticClass()));
 
-	UGridQuestDefinitionAsset* Definition = GridQuestMON212MakeDefinition(GetTransientPackage(), TEXT("Quest_MON212_Main"), {TEXT("FindKey"), TEXT("OpenGate")});
+	UGridQuestDefinitionAsset* Definition =
+		GridQuestMON212MakeDefinition(GetTransientPackage(), TEXT("Quest_MON212_Main"), { TEXT("FindKey"), TEXT("OpenGate") });
 	FString Error;
 	TestTrue(TEXT("A stable QuestId with ordered unique objectives is valid"), Definition->ValidateDefinition(Error));
 	TestTrue(TEXT("Valid definition returns no validation error"), Error.IsEmpty());
@@ -81,10 +82,9 @@ bool FGridQuestMON212CampaignRuntimeStateTest::RunTest(const FString& Parameters
 		return false;
 	}
 
-	UGridQuestDefinitionAsset* MainQuest =
-		GridQuestMON212MakeDefinition(QuestSubsystem, TEXT("Quest_MON212_Main"), {TEXT("FindKey"), TEXT("OpenGate")});
+	UGridQuestDefinitionAsset* MainQuest = GridQuestMON212MakeDefinition(QuestSubsystem, TEXT("Quest_MON212_Main"), { TEXT("FindKey"), TEXT("OpenGate") });
 	UGridQuestDefinitionAsset* DirectQuest = GridQuestMON212MakeDefinition(QuestSubsystem, TEXT("Quest_MON212_Direct"), {});
-	UGridQuestDefinitionAsset* FailedQuest = GridQuestMON212MakeDefinition(QuestSubsystem, TEXT("Quest_MON212_Failed"), {TEXT("Survive")});
+	UGridQuestDefinitionAsset* FailedQuest = GridQuestMON212MakeDefinition(QuestSubsystem, TEXT("Quest_MON212_Failed"), { TEXT("Survive") });
 
 	FString Error;
 	TestTrue(TEXT("Main quest registers by stable QuestId"), QuestSubsystem->RegisterQuestDefinition(MainQuest, Error));
@@ -92,7 +92,7 @@ bool FGridQuestMON212CampaignRuntimeStateTest::RunTest(const FString& Parameters
 	TestTrue(TEXT("Zero-objective direct quest remains a valid definition"), QuestSubsystem->RegisterQuestDefinition(DirectQuest, Error));
 	TestTrue(TEXT("Failure-path quest registers"), QuestSubsystem->RegisterQuestDefinition(FailedQuest, Error));
 
-	UGridQuestDefinitionAsset* ConflictingQuest = GridQuestMON212MakeDefinition(QuestSubsystem, TEXT("Quest_MON212_Main"), {TEXT("Other")});
+	UGridQuestDefinitionAsset* ConflictingQuest = GridQuestMON212MakeDefinition(QuestSubsystem, TEXT("Quest_MON212_Main"), { TEXT("Other") });
 	TestFalse(TEXT("A second definition cannot claim an existing QuestId"), QuestSubsystem->RegisterQuestDefinition(ConflictingQuest, Error));
 	TestTrue(TEXT("QuestId collision is diagnosed"), Error.Contains(TEXT("already registered")));
 
@@ -100,7 +100,8 @@ bool FGridQuestMON212CampaignRuntimeStateTest::RunTest(const FString& Parameters
 	TestEqual(TEXT("Unstarted known quest projects as Inactive"), QuestSubsystem->GetQuestStatus(TEXT("Quest_MON212_Main")), EGridQuestStatus::Inactive);
 	TestEqual(TEXT("Unknown quest cannot start"), QuestSubsystem->StartQuest(TEXT("Quest_MON212_Unknown")), EGridQuestMutationResult::DefinitionNotFound);
 
-	TestEqual(TEXT("StartQuest creates the unique campaign runtime state"), QuestSubsystem->StartQuest(TEXT("Quest_MON212_Main")), EGridQuestMutationResult::Success);
+	TestEqual(
+		TEXT("StartQuest creates the unique campaign runtime state"), QuestSubsystem->StartQuest(TEXT("Quest_MON212_Main")), EGridQuestMutationResult::Success);
 	TestEqual(TEXT("Starting an already active quest is idempotently rejected"), QuestSubsystem->StartQuest(TEXT("Quest_MON212_Main")),
 		EGridQuestMutationResult::AlreadyInState);
 	TestEqual(TEXT("Started quest is Active"), QuestSubsystem->GetQuestStatus(TEXT("Quest_MON212_Main")), EGridQuestStatus::Active);
@@ -122,7 +123,8 @@ bool FGridQuestMON212CampaignRuntimeStateTest::RunTest(const FString& Parameters
 
 	TestEqual(TEXT("Completing the last active objective succeeds"), QuestSubsystem->CompleteObjective(TEXT("Quest_MON212_Main"), TEXT("OpenGate")),
 		EGridQuestMutationResult::Success);
-	TestEqual(TEXT("Completing the last objective completes the quest"), QuestSubsystem->GetQuestStatus(TEXT("Quest_MON212_Main")), EGridQuestStatus::Completed);
+	TestEqual(
+		TEXT("Completing the last objective completes the quest"), QuestSubsystem->GetQuestStatus(TEXT("Quest_MON212_Main")), EGridQuestStatus::Completed);
 	TestEqual(TEXT("A completed quest cannot fail"), QuestSubsystem->FailQuest(TEXT("Quest_MON212_Main")), EGridQuestMutationResult::InvalidTransition);
 
 	TestEqual(TEXT("Zero-objective quest can start"), QuestSubsystem->StartQuest(TEXT("Quest_MON212_Direct")), EGridQuestMutationResult::Success);

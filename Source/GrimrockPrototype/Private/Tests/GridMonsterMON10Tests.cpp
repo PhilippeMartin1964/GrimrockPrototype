@@ -231,8 +231,8 @@ bool FGridMonsterMON10CombatLogAttackExactlyOnceTest::RunTest(const FString& Par
 	TurnManager->CommitActiveAttackImpact();
 
 	TestTrue(TEXT("The guaranteed-accuracy attack hits"), TurnManager->LastAttackResult.bHit);
-	TestEqual(TEXT("Damage is applied only once"), Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth,
-		HealthAfterFirst);
+	TestEqual(
+		TEXT("Damage is applied only once"), Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth, HealthAfterFirst);
 	TestEqual(TEXT("Exactly one attack entry is appended"), CountEntries(TurnManager, EGridCombatLogEntryType::AttackHit), 1);
 	TestEqual(TEXT("Attack resolution broadcasts exactly once"), TurnManager->AttackResolvedBroadcastCount, 1);
 	return true;

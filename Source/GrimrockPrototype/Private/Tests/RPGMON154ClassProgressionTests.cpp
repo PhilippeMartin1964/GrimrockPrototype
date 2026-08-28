@@ -316,8 +316,8 @@ bool FRPGMON154LevelUpIntegrationTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FRPGMON154NoProgressionChoicesCompatibilityTest, "Grimrock.RPG.MON15.4.NoProgressionChoicesCompatibility", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON154NoProgressionChoicesCompatibilityTest, "Grimrock.RPG.MON15.4.NoProgressionChoicesCompatibility",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FRPGMON154NoProgressionChoicesCompatibilityTest::RunTest(const FString& Parameters)
 {
@@ -328,7 +328,8 @@ bool FRPGMON154NoProgressionChoicesCompatibilityTest::RunTest(const FString& Par
 	ClassDefinition->CombatActions.Add(MakeMON154EffectAction(TEXT("NoProgression_Ability"), NAME_None));
 
 	TestTrue(TEXT("Class with no progression choices remains valid"), ClassDefinition->IsValidDefinition());
-	TestEqual(TEXT("Class without progression choices grants no progression points"), FRPGClassProgressionService::GetTotalChoicePointsGranted(ClassDefinition, 10), 0);
+	TestEqual(TEXT("Class without progression choices grants no progression points"),
+		FRPGClassProgressionService::GetTotalChoicePointsGranted(ClassDefinition, 10), 0);
 
 	TSet<FName> Requirements;
 	TestTrue(TEXT("Class without progression choices still projects requirements"),

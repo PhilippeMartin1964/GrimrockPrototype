@@ -42,11 +42,9 @@ namespace
 			return;
 		}
 
-
 		// InitialFacing is authoritative; LocalYaw is retained only so the
 		// existing generic editor preview keeps the same orientation.
 		ObjectData.LocalYaw = GetYawForFacing(ObjectData.InitialFacing);
-
 	}
 
 	FString GetMonsterSpawnLabel(const FGridLevelObjectData& Spawn)

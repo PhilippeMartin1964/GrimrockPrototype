@@ -71,8 +71,8 @@ bool FGridMON183SuccessfulCommitTest::RunTest(const FString& Parameters)
 	FGridSpellCastCostReceipt Receipt;
 	EGridSpellCastTransactionRejectReason RejectReason = EGridSpellCastTransactionRejectReason::InvalidRequest;
 
-	TestTrue(
-		TEXT("Valid cast costs commit"), FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Resources, Turn, Receipt, RejectReason));
+	TestTrue(TEXT("Valid cast costs commit"),
+		FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Resources, Turn, Receipt, RejectReason));
 	TestEqual(TEXT("Mana paid"), Resources.CurrentMana, 6);
 	TestEqual(TEXT("PA paid"), Turn.RemainingActionPoints, 1);
 	TestEqual(TEXT("No reject reason"), RejectReason, EGridSpellCastTransactionRejectReason::None);
@@ -97,8 +97,8 @@ bool FGridMON183UnknownSpellNoMutationTest::RunTest(const FString& Parameters)
 	FGridSpellCastCostReceipt Receipt;
 	EGridSpellCastTransactionRejectReason RejectReason = EGridSpellCastTransactionRejectReason::None;
 
-	TestFalse(
-		TEXT("Unknown spell rejected"), FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Resources, Turn, Receipt, RejectReason));
+	TestFalse(TEXT("Unknown spell rejected"),
+		FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Resources, Turn, Receipt, RejectReason));
 	TestEqual(TEXT("Mana unchanged"), Resources.CurrentMana, 10);
 	TestEqual(TEXT("PA unchanged"), Turn.RemainingActionPoints, 3);
 	TestEqual(TEXT("Reject reason"), RejectReason, EGridSpellCastTransactionRejectReason::SpellNotKnown);
@@ -143,8 +143,8 @@ bool FGridMON183InsufficientActionPointsNoMutationTest::RunTest(const FString& P
 	FGridSpellCastCostReceipt Receipt;
 	EGridSpellCastTransactionRejectReason RejectReason = EGridSpellCastTransactionRejectReason::None;
 
-	TestFalse(
-		TEXT("Insufficient PA rejected"), FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Resources, Turn, Receipt, RejectReason));
+	TestFalse(TEXT("Insufficient PA rejected"),
+		FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Resources, Turn, Receipt, RejectReason));
 	TestEqual(TEXT("Mana unchanged"), Resources.CurrentMana, 10);
 	TestEqual(TEXT("PA unchanged"), Turn.RemainingActionPoints, 1);
 	TestEqual(TEXT("Reject reason"), RejectReason, EGridSpellCastTransactionRejectReason::InsufficientActionPoints);

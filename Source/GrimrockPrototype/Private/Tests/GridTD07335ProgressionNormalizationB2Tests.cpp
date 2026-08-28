@@ -10,8 +10,7 @@
 #include "Save/GrimrockPartySaveGame.h"
 #include "UObject/UnrealType.h"
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335B2SchemaPurgeTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB2.SchemaPurge",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335B2SchemaPurgeTest, "Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB2.SchemaPurge",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07335B2SchemaPurgeTest::RunTest(const FString& Parameters)
@@ -22,13 +21,10 @@ bool FGridTD07335B2SchemaPurgeTest::RunTest(const FString& Parameters)
 		FindFProperty<FProperty>(UGrimrockPartySaveGame::StaticClass(), TEXT("ClassProgressionStates")));
 
 	FString SaveHeader;
-	const FString SaveHeaderPath = FPaths::Combine(
-		FPaths::ProjectDir(), TEXT("Source/GrimrockPrototype/Public/Save/GrimrockPartySaveGame.h"));
+	const FString SaveHeaderPath = FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/GrimrockPrototype/Public/Save/GrimrockPartySaveGame.h"));
 	TestTrue(TEXT("Current SaveGame header loads"), FFileHelper::LoadFileToString(SaveHeader, *SaveHeaderPath));
-	TestFalse(TEXT("Legacy FRPGCharacterProgressionSaveState type is physically removed"),
-		SaveHeader.Contains(TEXT("FRPGCharacterProgressionSaveState")));
-	TestFalse(TEXT("Legacy ClassProgressionStates field is physically removed"),
-		SaveHeader.Contains(TEXT("ClassProgressionStates")));
+	TestFalse(TEXT("Legacy FRPGCharacterProgressionSaveState type is physically removed"), SaveHeader.Contains(TEXT("FRPGCharacterProgressionSaveState")));
+	TestFalse(TEXT("Legacy ClassProgressionStates field is physically removed"), SaveHeader.Contains(TEXT("ClassProgressionStates")));
 
 	UScriptStruct* CharacterStruct = FGridCharacterInventoryState::StaticStruct();
 	FProperty* LevelProperty = FindFProperty<FProperty>(CharacterStruct, TEXT("Level"));
@@ -40,8 +36,7 @@ bool FGridTD07335B2SchemaPurgeTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335B2CharacterChoiceRoundTripTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB2.CharacterChoiceRoundTrip",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335B2CharacterChoiceRoundTripTest, "Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB2.CharacterChoiceRoundTrip",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07335B2CharacterChoiceRoundTripTest::RunTest(const FString& Parameters)
@@ -60,8 +55,7 @@ bool FGridTD07335B2CharacterChoiceRoundTripTest::RunTest(const FString& Paramete
 	Save->PartyInventoryState = Component->PartyInventoryState;
 
 	TArray<uint8> Bytes;
-	TestTrue(TEXT("v15 save serializes to memory without a separate progression snapshot"),
-		UGameplayStatics::SaveGameToMemory(Save, Bytes));
+	TestTrue(TEXT("v15 save serializes to memory without a separate progression snapshot"), UGameplayStatics::SaveGameToMemory(Save, Bytes));
 
 	FRPGClassProgressionTransactionService::ResetRuntimeState();
 	UGrimrockPartySaveGame* Loaded = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromMemory(Bytes));
@@ -74,13 +68,11 @@ bool FGridTD07335B2CharacterChoiceRoundTripTest::RunTest(const FString& Paramete
 	const FGridCharacterInventoryState& Character = Loaded->PartyInventoryState.ActiveCharacters[0];
 	TestEqual(TEXT("Experience survives as durable level authority"), Character.Experience, 1000);
 	TestEqual(TEXT("Transient Level reconstructs from Experience"), Character.Level, 2);
-	TestTrue(TEXT("Choice A survives directly on character state"),
-		Character.SelectedClassProgressionChoiceIds.Contains(TEXT("Choice_A")));
+	TestTrue(TEXT("Choice A survives directly on character state"), Character.SelectedClassProgressionChoiceIds.Contains(TEXT("Choice_A")));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335B2ProjectionRebuildTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB2.ProjectionRebuild",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335B2ProjectionRebuildTest, "Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB2.ProjectionRebuild",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07335B2ProjectionRebuildTest::RunTest(const FString& Parameters)
@@ -115,16 +107,14 @@ bool FGridTD07335B2ProjectionRebuildTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335B2SaveSchemaVersionTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB2.SaveSchemaVersion",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335B2SaveSchemaVersionTest, "Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB2.SaveSchemaVersion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07335B2SaveSchemaVersionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestTrue(TEXT("Current exact-match schema remains at least the TD07.3.3.5 B2 v15 generation"),
-		UGrimrockPartySaveGame::CurrentSaveVersion >= 15);
+	TestTrue(TEXT("Current exact-match schema remains at least the TD07.3.3.5 B2 v15 generation"), UGrimrockPartySaveGame::CurrentSaveVersion >= 15);
 
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>();
 	TestEqual(TEXT("New SaveGame starts on the current schema"), Current->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);

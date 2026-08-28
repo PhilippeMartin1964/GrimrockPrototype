@@ -18,16 +18,16 @@ namespace GridTD012Tests
 		FTestWorld()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
+															.AllowAudioPlayback(false)
+															.RequiresHitProxies(false)
+															.CreatePhysicsScene(false)
+															.CreateNavigation(false)
+															.CreateAISystem(false)
+															.ShouldSimulatePhysics(false)
+															.SetTransactional(false);
 
-			World = UWorld::CreateWorld(EWorldType::Game, false,
-				FName(*FString::Printf(TEXT("TD012_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true, ERHIFeatureLevel::Num, &Values);
+			World = UWorld::CreateWorld(EWorldType::Game, false, FName(*FString::Printf(TEXT("TD012_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))),
+				nullptr, true, ERHIFeatureLevel::Num, &Values);
 			if (!World || !GEngine)
 			{
 				return;
@@ -84,8 +84,7 @@ namespace GridTD012Tests
 		Inventory->PartyInventoryState.ActiveCharacters[1].CharacterId = FGuid::NewGuid();
 		Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
 		Inventory->PartyInventoryState.MaxActiveCharacters = 2;
-		Inventory->PartyInventoryState.ActiveEquipment[0].MainHand =
-			MakeCharacterZeroLightItem(Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId);
+		Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = MakeCharacterZeroLightItem(Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId);
 
 		PartyPawn->DefaultHeldItemDefinitionId = CharacterZeroLightItemId;
 		PartyPawn->HeldTorchActorClass = AGridItemActor::StaticClass();
@@ -129,8 +128,7 @@ bool FGridTD012SelectionChangeTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD012SelectedCharacterFilterTest,
-	"Grimrock.TechnicalDebt.TD01_2.PartySelectionHeldVisual.SelectedCharacterFilter",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD012SelectedCharacterFilterTest, "Grimrock.TechnicalDebt.TD01_2.PartySelectionHeldVisual.SelectedCharacterFilter",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD012SelectedCharacterFilterTest::RunTest(const FString& Parameters)

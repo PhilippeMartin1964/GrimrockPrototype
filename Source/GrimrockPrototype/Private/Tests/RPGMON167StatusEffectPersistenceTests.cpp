@@ -212,14 +212,13 @@ bool FRPGMON167PartyActivePoolRoundTripTest::RunTest(const FString& Parameters)
 	Party.CharacterPool.Add(Pool);
 
 	FString Error;
-	TestTrue(TEXT("Direct durable party status state validates at runtime"),
-		FGridStatusEffectPersistence::ValidateRuntimePartyStatusEffects(Party, Error));
+	TestTrue(TEXT("Direct durable party status state validates at runtime"), FGridStatusEffectPersistence::ValidateRuntimePartyStatusEffects(Party, Error));
 
 	FGridPartyInventoryState Loaded = Party;
 	Loaded.ActiveCharacters[0].StatusEffects.ActiveEffects[0].DefinitionAsset = nullptr;
 	Loaded.CharacterPool[0].StatusEffects.ActiveEffects[0].DefinitionAsset = nullptr;
-	TestTrue(TEXT("Deserialized durable fields validate without DefinitionAsset caches"),
-		FGridStatusEffectPersistence::ValidatePartyStatusEffects(Loaded, Error));
+	TestTrue(
+		TEXT("Deserialized durable fields validate without DefinitionAsset caches"), FGridStatusEffectPersistence::ValidatePartyStatusEffects(Loaded, Error));
 	TestTrue(TEXT("Direct party status state rehydrates"),
 		FGridStatusEffectPersistence::RehydratePartyStatusEffects(
 			Loaded,
@@ -235,10 +234,8 @@ bool FRPGMON167PartyActivePoolRoundTripTest::RunTest(const FString& Parameters)
 
 	TestEqual(TEXT("Active character status survives"), Loaded.ActiveCharacters[0].StatusEffects.Num(), 1);
 	TestEqual(TEXT("Pool character status survives"), Loaded.CharacterPool[0].StatusEffects.Num(), 1);
-	TestTrue(TEXT("Active DefinitionAsset is rebound"),
-		Loaded.ActiveCharacters[0].StatusEffects.ActiveEffects[0].DefinitionAsset.Get() == ActiveDefinition);
-	TestTrue(TEXT("Pool DefinitionAsset is rebound"),
-		Loaded.CharacterPool[0].StatusEffects.ActiveEffects[0].DefinitionAsset.Get() == PoolDefinition);
+	TestTrue(TEXT("Active DefinitionAsset is rebound"), Loaded.ActiveCharacters[0].StatusEffects.ActiveEffects[0].DefinitionAsset.Get() == ActiveDefinition);
+	TestTrue(TEXT("Pool DefinitionAsset is rebound"), Loaded.CharacterPool[0].StatusEffects.ActiveEffects[0].DefinitionAsset.Get() == PoolDefinition);
 	return true;
 }
 
@@ -276,8 +273,8 @@ bool FRPGMON167PartyAtomicFailureTest::RunTest(const FString& Parameters)
 			Error));
 	TestEqual(TEXT("Atomic failure keeps first EffectId"), Party.ActiveCharacters[0].StatusEffects.ActiveEffects[0].EffectId,
 		Before.ActiveCharacters[0].StatusEffects.ActiveEffects[0].EffectId);
-	TestNull(TEXT("Atomic failure does not partially bind first DefinitionAsset"),
-		Party.ActiveCharacters[0].StatusEffects.ActiveEffects[0].DefinitionAsset.Get());
+	TestNull(
+		TEXT("Atomic failure does not partially bind first DefinitionAsset"), Party.ActiveCharacters[0].StatusEffects.ActiveEffects[0].DefinitionAsset.Get());
 	TestEqual(TEXT("Atomic failure keeps second EffectId"), Party.CharacterPool[0].StatusEffects.ActiveEffects[0].EffectId,
 		Before.CharacterPool[0].StatusEffects.ActiveEffects[0].EffectId);
 	return true;
@@ -335,8 +332,7 @@ bool FRPGMON167TransientRuntimeBoundaryTest::RunTest(const FString& Parameters)
 	const FProperty* PartyRuntimeProperty =
 		FGridCharacterInventoryState::StaticStruct()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FGridCharacterInventoryState, StatusEffects));
 	TestTrue(TEXT("Party character status collection is now durable"), PartyRuntimeProperty && !PartyRuntimeProperty->HasAnyPropertyFlags(CPF_Transient));
-	TestNull(TEXT("Party SaveGame mirror is removed"),
-		FindFProperty<FProperty>(UGrimrockPartySaveGame::StaticClass(), TEXT("CharacterStatusEffectStates")));
+	TestNull(TEXT("Party SaveGame mirror is removed"), FindFProperty<FProperty>(UGrimrockPartySaveGame::StaticClass(), TEXT("CharacterStatusEffectStates")));
 
 	const FProperty* MonsterRuntimeProperty = AGridMonsterActor::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(AGridMonsterActor, StatusEffects));
 	TestTrue(TEXT("Monster runtime status collection remains transient"), MonsterRuntimeProperty && MonsterRuntimeProperty->HasAnyPropertyFlags(CPF_Transient));

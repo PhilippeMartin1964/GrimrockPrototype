@@ -19,11 +19,9 @@ bool UGridPartyInventoryComponent::SetCharacterVisualSelection(int32 CharacterIn
 
 	CharacterState.PortraitGender = PortraitGender;
 	CharacterState.PortraitVariantId = PortraitVariantId;
-	FRPGAuthoringIdentityResolver::RememberPortraitVisual(
-		CharacterState.RaceId, PortraitGender, PortraitVariantId, Portrait);
+	FRPGAuthoringIdentityResolver::RememberPortraitVisual(CharacterState.RaceId, PortraitGender, PortraitVariantId, Portrait);
 	FRPGAuthoringIdentityResolver::RememberClassIcon(CharacterState.ClassId, ClassIcon);
-	CharacterState.Portrait = FRPGAuthoringIdentityResolver::ResolvePortraitVisual(
-		CharacterState.RaceId, PortraitGender, PortraitVariantId);
+	CharacterState.Portrait = FRPGAuthoringIdentityResolver::ResolvePortraitVisual(CharacterState.RaceId, PortraitGender, PortraitVariantId);
 	CharacterState.ClassIcon = FRPGAuthoringIdentityResolver::ResolveClassIcon(CharacterState.ClassId);
 	NotifyPartyInventoryChanged(CharacterIndex);
 	return true;
@@ -41,8 +39,8 @@ bool UGridPartyInventoryComponent::GetCharacterVisualSelection(int32 CharacterIn
 	OutSelection.RaceId = CharacterState.RaceId;
 	OutSelection.Gender = CharacterState.PortraitGender;
 	OutSelection.PortraitVariantId = CharacterState.PortraitVariantId;
-	OutSelection.Portrait = FRPGAuthoringIdentityResolver::ResolvePortraitVisual(
-		CharacterState.RaceId, CharacterState.PortraitGender, CharacterState.PortraitVariantId);
+	OutSelection.Portrait =
+		FRPGAuthoringIdentityResolver::ResolvePortraitVisual(CharacterState.RaceId, CharacterState.PortraitGender, CharacterState.PortraitVariantId);
 	OutSelection.ClassId = CharacterState.ClassId;
 	OutSelection.ClassIcon = FRPGAuthoringIdentityResolver::ResolveClassIcon(CharacterState.ClassId);
 	return true;

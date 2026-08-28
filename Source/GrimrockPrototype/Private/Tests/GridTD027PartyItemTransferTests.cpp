@@ -16,13 +16,13 @@ namespace
 		FGridTD027TestWorld()
 		{
 			const UWorld::InitializationValues InitializationValues = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
+																		  .AllowAudioPlayback(false)
+																		  .RequiresHitProxies(false)
+																		  .CreatePhysicsScene(false)
+																		  .CreateNavigation(false)
+																		  .CreateAISystem(false)
+																		  .ShouldSimulatePhysics(false)
+																		  .SetTransactional(false);
 
 			World = UWorld::CreateWorld(EWorldType::Game, false,
 				FName(*FString::Printf(TEXT("TD027PartyItemTransferWorld_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
@@ -62,8 +62,7 @@ namespace
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD027PartyItemTransferCursorFacadeContractTest,
-	"Grimrock.TechnicalDebt.TD02_7.PartyItemTransfer.CursorFacadeContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD027PartyItemTransferCursorFacadeContractTest, "Grimrock.TechnicalDebt.TD02_7.PartyItemTransfer.CursorFacadeContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD027PartyItemTransferCursorFacadeContractTest::RunTest(const FString& Parameters)
@@ -98,8 +97,7 @@ bool FGridTD027PartyItemTransferCursorFacadeContractTest::RunTest(const FString&
 	TestEqual(TEXT("The cursor preserves the stack quantity"), CursorItem.Quantity, 2);
 	TestEqual(TEXT("The inventory component owns the cursor item as Cursor"), CursorItem.OwnerType, EGridItemOwnerType::Cursor);
 
-	TestFalse(TEXT("Dropping without a runtime level is rejected"),
-		Party->TryDropCursorItemAtCell(0, 0, EGridEdge::None, FVector::ZeroVector));
+	TestFalse(TEXT("Dropping without a runtime level is rejected"), Party->TryDropCursorItemAtCell(0, 0, EGridEdge::None, FVector::ZeroVector));
 	TestFalse(TEXT("Throwing without a runtime level is rejected"), Party->TryThrowOneCursorItem(FVector::ForwardVector, EGridItemThrowMode::Throw));
 	TestTrue(TEXT("Rejected world transfers leave the cursor populated"), Party->GetCursorItem(CursorItem));
 	TestEqual(TEXT("Rejected world transfers do not consume the stack"), CursorItem.Quantity, 2);

@@ -41,8 +41,8 @@ namespace
 		for (int32 ObjectiveIndex = 0; ObjectiveIndex < QuestState.Objectives.Num(); ++ObjectiveIndex)
 		{
 			const EGridQuestObjectiveStatus ExpectedStatus = ObjectiveIndex < TerminalIndex ? EGridQuestObjectiveStatus::Completed
-				: ObjectiveIndex == TerminalIndex                               ? ExpectedTerminalStatus
-				                                                               : EGridQuestObjectiveStatus::Inactive;
+				: ObjectiveIndex == TerminalIndex                                           ? ExpectedTerminalStatus
+																							: EGridQuestObjectiveStatus::Inactive;
 			if (QuestState.Objectives[ObjectiveIndex].Status != ExpectedStatus)
 			{
 				OutError = FString::Printf(TEXT("Quest '%s' objective ordering is inconsistent at index %d."), *QuestState.QuestId.ToString(), ObjectiveIndex);
@@ -365,8 +365,8 @@ bool UGridQuestSubsystem::ValidateRuntimeState(FString& OutError) const
 		{
 			if (QuestState.Objectives[ObjectiveIndex].ObjectiveId != Definition->Objectives[ObjectiveIndex].ObjectiveId)
 			{
-				OutError = FString::Printf(TEXT("Quest '%s' runtime objective order differs from its definition at index %d."),
-					*QuestState.QuestId.ToString(), ObjectiveIndex);
+				OutError = FString::Printf(
+					TEXT("Quest '%s' runtime objective order differs from its definition at index %d."), *QuestState.QuestId.ToString(), ObjectiveIndex);
 				return false;
 			}
 		}

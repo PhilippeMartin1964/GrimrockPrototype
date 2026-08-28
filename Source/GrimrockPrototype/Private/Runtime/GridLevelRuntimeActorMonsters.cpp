@@ -413,8 +413,8 @@ bool AGridLevelRuntimeActor::ResolveMonsterSpawn(
 	{
 		if (!ObjectData.MonsterDefinitionId.IsNone() && Definition->MonsterId != ObjectData.MonsterDefinitionId)
 		{
-			Errors.Add(FString::Printf(TEXT("Legacy MonsterDefinitionId '%s' differs from asset MonsterId '%s'."),
-				*ObjectData.MonsterDefinitionId.ToString(), *Definition->MonsterId.ToString()));
+			Errors.Add(FString::Printf(TEXT("Legacy MonsterDefinitionId '%s' differs from asset MonsterId '%s'."), *ObjectData.MonsterDefinitionId.ToString(),
+				*Definition->MonsterId.ToString()));
 		}
 
 		FString DefinitionError;

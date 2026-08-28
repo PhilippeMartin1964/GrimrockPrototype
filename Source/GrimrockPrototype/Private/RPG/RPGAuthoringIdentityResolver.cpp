@@ -26,8 +26,7 @@ namespace RPGAuthoringIdentityResolverPrivate
 		return FString::Printf(TEXT("%s|%d|%s"), *RaceId.ToString(), static_cast<int32>(Gender), *PortraitVariantId.ToString());
 	}
 
-	template <typename T>
-	T* ResolveCanonicalAsset(const FPrimaryAssetId& PrimaryAssetId, UClass* AssetClass)
+	template <typename T> T* ResolveCanonicalAsset(const FPrimaryAssetId& PrimaryAssetId, UClass* AssetClass)
 	{
 		if (!PrimaryAssetId.IsValid() || !AssetClass)
 		{
@@ -43,8 +42,7 @@ namespace RPGAuthoringIdentityResolverPrivate
 			{
 				TArray<FString> SearchPaths;
 				SearchPaths.Add(TEXT("/Game"));
-				AssetManager.ScanPathsForPrimaryAssets(
-					PrimaryAssetId.PrimaryAssetType, SearchPaths, AssetClass, false, false, true);
+				AssetManager.ScanPathsForPrimaryAssets(PrimaryAssetId.PrimaryAssetType, SearchPaths, AssetClass, false, false, true);
 				AssetPath = AssetManager.GetPrimaryAssetPath(PrimaryAssetId);
 			}
 			if (AssetPath.IsValid())
@@ -80,29 +78,29 @@ FPrimaryAssetId FRPGAuthoringIdentityResolver::MakePortraitSetPrimaryAssetId(FNa
 bool FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(FName ClassId, const URPGClassAsset* Definition)
 {
 	const FPrimaryAssetId ExpectedId = MakeClassPrimaryAssetId(ClassId);
-	return ExpectedId.IsValid() && IsValid(Definition) && Definition->IsValidDefinition() &&
-		Definition->ClassId == ClassId && Definition->GetPrimaryAssetId() == ExpectedId;
+	return ExpectedId.IsValid() && IsValid(Definition) && Definition->IsValidDefinition() && Definition->ClassId == ClassId &&
+		Definition->GetPrimaryAssetId() == ExpectedId;
 }
 
 bool FRPGAuthoringIdentityResolver::IsMatchingRaceDefinition(FName RaceId, const URPGRaceAsset* Definition)
 {
 	const FPrimaryAssetId ExpectedId = MakeRacePrimaryAssetId(RaceId);
-	return ExpectedId.IsValid() && IsValid(Definition) && Definition->IsValidDefinition() &&
-		Definition->RaceId == RaceId && Definition->GetPrimaryAssetId() == ExpectedId;
+	return ExpectedId.IsValid() && IsValid(Definition) && Definition->IsValidDefinition() && Definition->RaceId == RaceId &&
+		Definition->GetPrimaryAssetId() == ExpectedId;
 }
 
 bool FRPGAuthoringIdentityResolver::IsMatchingClassVisual(FName ClassId, const URPGClassVisualAsset* Definition)
 {
 	const FPrimaryAssetId ExpectedId = MakeClassVisualPrimaryAssetId(ClassId);
-	return ExpectedId.IsValid() && IsValid(Definition) && Definition->IsValidDefinition() &&
-		Definition->ClassId == ClassId && Definition->GetPrimaryAssetId() == ExpectedId;
+	return ExpectedId.IsValid() && IsValid(Definition) && Definition->IsValidDefinition() && Definition->ClassId == ClassId &&
+		Definition->GetPrimaryAssetId() == ExpectedId;
 }
 
 bool FRPGAuthoringIdentityResolver::IsMatchingPortraitSet(FName RaceId, const URPGCharacterPortraitSetAsset* Definition)
 {
 	const FPrimaryAssetId ExpectedId = MakePortraitSetPrimaryAssetId(RaceId);
-	return ExpectedId.IsValid() && IsValid(Definition) && Definition->IsValidDefinition() &&
-		Definition->RaceId == RaceId && Definition->GetPrimaryAssetId() == ExpectedId;
+	return ExpectedId.IsValid() && IsValid(Definition) && Definition->IsValidDefinition() && Definition->RaceId == RaceId &&
+		Definition->GetPrimaryAssetId() == ExpectedId;
 }
 
 bool FRPGAuthoringIdentityResolver::RememberClassDefinition(URPGClassAsset* Definition)
@@ -230,9 +228,8 @@ URPGClassVisualAsset* FRPGAuthoringIdentityResolver::ResolveClassVisualByClassId
 		RPGAuthoringIdentityResolverPrivate::ClassVisualCache.Remove(ClassId);
 	}
 
-	URPGClassVisualAsset* Definition =
-		RPGAuthoringIdentityResolverPrivate::ResolveCanonicalAsset<URPGClassVisualAsset>(
-			MakeClassVisualPrimaryAssetId(ClassId), URPGClassVisualAsset::StaticClass());
+	URPGClassVisualAsset* Definition = RPGAuthoringIdentityResolverPrivate::ResolveCanonicalAsset<URPGClassVisualAsset>(
+		MakeClassVisualPrimaryAssetId(ClassId), URPGClassVisualAsset::StaticClass());
 	if (!IsMatchingClassVisual(ClassId, Definition))
 	{
 		return nullptr;
@@ -252,9 +249,8 @@ URPGCharacterPortraitSetAsset* FRPGAuthoringIdentityResolver::ResolvePortraitSet
 		RPGAuthoringIdentityResolverPrivate::PortraitSetCache.Remove(RaceId);
 	}
 
-	URPGCharacterPortraitSetAsset* Definition =
-		RPGAuthoringIdentityResolverPrivate::ResolveCanonicalAsset<URPGCharacterPortraitSetAsset>(
-			MakePortraitSetPrimaryAssetId(RaceId), URPGCharacterPortraitSetAsset::StaticClass());
+	URPGCharacterPortraitSetAsset* Definition = RPGAuthoringIdentityResolverPrivate::ResolveCanonicalAsset<URPGCharacterPortraitSetAsset>(
+		MakePortraitSetPrimaryAssetId(RaceId), URPGCharacterPortraitSetAsset::StaticClass());
 	if (!IsMatchingPortraitSet(RaceId, Definition))
 	{
 		return nullptr;
@@ -263,9 +259,7 @@ URPGCharacterPortraitSetAsset* FRPGAuthoringIdentityResolver::ResolvePortraitSet
 	return Definition;
 }
 
-
-TSoftObjectPtr<UTexture2D> FRPGAuthoringIdentityResolver::ResolvePortraitVisual(
-	FName RaceId, ERPGCharacterPortraitGender Gender, FName PortraitVariantId)
+TSoftObjectPtr<UTexture2D> FRPGAuthoringIdentityResolver::ResolvePortraitVisual(FName RaceId, ERPGCharacterPortraitGender Gender, FName PortraitVariantId)
 {
 	if (RaceId.IsNone() || PortraitVariantId.IsNone())
 	{

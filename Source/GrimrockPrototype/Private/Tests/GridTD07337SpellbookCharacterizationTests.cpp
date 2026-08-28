@@ -48,8 +48,7 @@ namespace GridTD07337Characterization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337RuntimeAuthorityBoundaryTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_7.Characterization.RuntimeAuthorityBoundary",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337RuntimeAuthorityBoundaryTest, "Grimrock.TechnicalDebt.TD07_3_3_7.Characterization.RuntimeAuthorityBoundary",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07337RuntimeAuthorityBoundaryTest::RunTest(const FString& Parameters)
@@ -62,18 +61,17 @@ bool FGridTD07337RuntimeAuthorityBoundaryTest::RunTest(const FString& Parameters
 	UGridPartyInventoryComponent* Inventory = nullptr;
 	UGridPartySpellbookComponent* Spellbook = MakeTD07337Facade(Party, Inventory);
 
-	TestEqual(TEXT("Facade learns into durable character state"),
-		Spellbook->LearnSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()), EGridSpellbookMutationResult::Success);
+	TestEqual(TEXT("Facade learns into durable character state"), Spellbook->LearnSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()),
+		EGridSpellbookMutationResult::Success);
 	TestTrue(TEXT("Durable character owns learned SpellId"),
 		Inventory->PartyInventoryState.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::ArcaneBoltId()));
 	TestTrue(TEXT("Facade immediately reads durable authority"), Spellbook->KnowsSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()));
-	TestNull(TEXT("Parallel component SpellbookState is removed"),
-		FindFProperty<FProperty>(UGridPartySpellbookComponent::StaticClass(), TEXT("SpellbookState")));
+	TestNull(
+		TEXT("Parallel component SpellbookState is removed"), FindFProperty<FProperty>(UGridPartySpellbookComponent::StaticClass(), TEXT("SpellbookState")));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337SparsePersistenceMirrorTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_7.Characterization.SparsePersistenceMirror",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337SparsePersistenceMirrorTest, "Grimrock.TechnicalDebt.TD07_3_3_7.Characterization.SparsePersistenceMirror",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07337SparsePersistenceMirrorTest::RunTest(const FString& Parameters)
@@ -93,13 +91,12 @@ bool FGridTD07337SparsePersistenceMirrorTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Durable state stores two canonical identities"), Inventory->PartyInventoryState.ActiveCharacters[0].KnownSpellIds.Num(), 2);
 	TestTrue(TEXT("Empty reserve needs no sparse mirror"), Inventory->PartyInventoryState.CharacterPool[0].KnownSpellIds.IsEmpty());
 	const FGridPartyInventoryState Copy = Inventory->PartyInventoryState;
-	TestTrue(TEXT("Ordinary party-state copy carries Spellbook knowledge"),
-		Copy.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::HasteId()));
+	TestTrue(
+		TEXT("Ordinary party-state copy carries Spellbook knowledge"), Copy.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::HasteId()));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337RestoreReplacementBoundaryTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_7.Characterization.RestoreReplacementBoundary",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337RestoreReplacementBoundaryTest, "Grimrock.TechnicalDebt.TD07_3_3_7.Characterization.RestoreReplacementBoundary",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07337RestoreReplacementBoundaryTest::RunTest(const FString& Parameters)
@@ -123,8 +120,7 @@ bool FGridTD07337RestoreReplacementBoundaryTest::RunTest(const FString& Paramete
 	FGridPartyInventoryState InvalidCandidate = Source;
 	InvalidCandidate.ActiveCharacters[0].KnownSpellIds = { TEXT("Spell_RemovedContent") };
 	FString Error;
-	TestFalse(TEXT("Invalid exact-match candidate is rejected before commit"),
-		FGridSpellbookPersistence::ValidatePartySpellbooks(InvalidCandidate, Error));
+	TestFalse(TEXT("Invalid exact-match candidate is rejected before commit"), FGridSpellbookPersistence::ValidatePartySpellbooks(InvalidCandidate, Error));
 	TestTrue(TEXT("Original state remains unchanged after candidate rejection"),
 		Source.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::ArcaneBoltId()));
 	return true;
@@ -145,11 +141,10 @@ bool FGridTD07337CanonicalDefinitionAndHotbarIndependenceTest::RunTest(const FSt
 	UGridPartyInventoryComponent* Inventory = nullptr;
 	UGridPartySpellbookComponent* Spellbook = MakeTD07337Facade(Party, Inventory);
 
-	TestFalse(TEXT("Hotbar reference does not teach its SpellId"),
-		Spellbook->KnowsSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()));
+	TestFalse(TEXT("Hotbar reference does not teach its SpellId"), Spellbook->KnowsSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()));
 	TestTrue(TEXT("Spell hotbar binding remains structurally valid"), Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[0].IsValid());
-	TestEqual(TEXT("Unknown legacy SpellId is rejected by exact-match mutation"),
-		Spellbook->LearnSpell(CharacterId, TEXT("Spell_RemovedContent")), EGridSpellbookMutationResult::InvalidSpell);
+	TestEqual(TEXT("Unknown legacy SpellId is rejected by exact-match mutation"), Spellbook->LearnSpell(CharacterId, TEXT("Spell_RemovedContent")),
+		EGridSpellbookMutationResult::InvalidSpell);
 	return true;
 }
 

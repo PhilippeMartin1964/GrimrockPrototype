@@ -248,7 +248,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Cursor")
 	bool TryEquipCursorItemToSelectedCharacterSlot(EGridEquipmentSlot TargetSlot);
 
-
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Diagnostics")
 	FString GetPartyInventoryDiagnostics() const;
 

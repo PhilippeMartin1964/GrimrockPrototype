@@ -287,10 +287,8 @@ bool FGridMonsterMON11RequestAcceptedAndResolvedTest::RunTest(const FString& Par
 	TestEqual(TEXT("The last result retains the natural roll"), Fixture.TurnManager->LastPlayerAttackResult.NaturalAttackRoll, Result.NaturalAttackRoll);
 	TestEqual(TEXT("The last result retains raw damage"), Fixture.TurnManager->LastPlayerAttackResult.RawDamage, Result.RawDamage);
 	FGridPlayerCharacterTurnState FirstAttackTurnState;
-	TestTrue(TEXT("The accepted attack exposes the authoritative turn state"),
-		Fixture.TurnManager->GetPlayerCharacterTurnState(0, FirstAttackTurnState));
-	TestTrue(TEXT("The accepted attack spends action points"),
-		FirstAttackTurnState.RemainingActionPoints < FirstAttackTurnState.MaximumActionPoints);
+	TestTrue(TEXT("The accepted attack exposes the authoritative turn state"), Fixture.TurnManager->GetPlayerCharacterTurnState(0, FirstAttackTurnState));
+	TestTrue(TEXT("The accepted attack spends action points"), FirstAttackTurnState.RemainingActionPoints < FirstAttackTurnState.MaximumActionPoints);
 	TestEqual(TEXT("Exactly one player resolution is broadcast"), Fixture.TurnManager->PlayerAttackResolvedBroadcastCount, 1);
 	TestEqual(TEXT("Physical armor matches the applied result"), Fixture.FrontMonster->CurrentPhysicalArmor, PhysicalArmor - Result.PhysicalArmorDamage);
 	TestEqual(TEXT("Magical armor matches the applied result"), Fixture.FrontMonster->CurrentMagicalArmor, MagicalArmor - Result.MagicalArmorDamage);
@@ -324,10 +322,8 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest(const FString& Paramet
 	EGridPlayerAttackRejectReason RejectReason = EGridPlayerAttackRejectReason::None;
 	TestTrue(TEXT("The first character commits its first request"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
 	FGridPlayerCharacterTurnState FirstCharacterTurnState;
-	TestTrue(TEXT("The first character turn state is available"),
-		Fixture.TurnManager->GetPlayerCharacterTurnState(0, FirstCharacterTurnState));
-	TestTrue(TEXT("The first character has spent action points"),
-		FirstCharacterTurnState.RemainingActionPoints < FirstCharacterTurnState.MaximumActionPoints);
+	TestTrue(TEXT("The first character turn state is available"), Fixture.TurnManager->GetPlayerCharacterTurnState(0, FirstCharacterTurnState));
+	TestTrue(TEXT("The first character has spent action points"), FirstCharacterTurnState.RemainingActionPoints < FirstCharacterTurnState.MaximumActionPoints);
 
 	Request = FGridPlayerAttackRequest();
 	TestTrue(TEXT("The same character can spend its remaining two AP"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
@@ -339,8 +335,7 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest(const FString& Paramet
 
 	TestTrue(TEXT("A second living character can request an attack"), Fixture.TurnManager->RequestCharacterAttack(1, Request, Result, RejectReason));
 	FGridPlayerCharacterTurnState SecondCharacterTurnState;
-	TestTrue(TEXT("The second character turn state is available"),
-		Fixture.TurnManager->GetPlayerCharacterTurnState(1, SecondCharacterTurnState));
+	TestTrue(TEXT("The second character turn state is available"), Fixture.TurnManager->GetPlayerCharacterTurnState(1, SecondCharacterTurnState));
 	TestTrue(TEXT("The second character has its independent AP budget"),
 		SecondCharacterTurnState.RemainingActionPoints < SecondCharacterTurnState.MaximumActionPoints);
 
@@ -349,10 +344,9 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest(const FString& Paramet
 	Fixture.TurnManager->FinishEnemyPhase();
 	TestEqual(TEXT("Finishing EnemyPhase opens the next PlayerPhase"), Fixture.TurnManager->CurrentPhase, EGridCombatPhase::PlayerPhase);
 	FGridPlayerCharacterTurnState ResetFirstCharacterTurnState;
-	TestTrue(TEXT("The first character reset turn state is available"),
-		Fixture.TurnManager->GetPlayerCharacterTurnState(0, ResetFirstCharacterTurnState));
-	TestEqual(TEXT("The first character PA budget resets for the next phase"),
-		ResetFirstCharacterTurnState.RemainingActionPoints, ResetFirstCharacterTurnState.MaximumActionPoints);
+	TestTrue(TEXT("The first character reset turn state is available"), Fixture.TurnManager->GetPlayerCharacterTurnState(0, ResetFirstCharacterTurnState));
+	TestEqual(TEXT("The first character PA budget resets for the next phase"), ResetFirstCharacterTurnState.RemainingActionPoints,
+		ResetFirstCharacterTurnState.MaximumActionPoints);
 	TestTrue(TEXT("The first character can request in the next PlayerPhase"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
 
 	Fixture.TurnManager->BeginPlayerCharacterPhase();
@@ -360,8 +354,8 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest(const FString& Paramet
 	FGridPlayerCharacterTurnState RefusedSecondCharacterTurnState;
 	TestTrue(TEXT("The second character turn state remains available after refusal"),
 		Fixture.TurnManager->GetPlayerCharacterTurnState(1, RefusedSecondCharacterTurnState));
-	TestEqual(TEXT("A refused request consumes no second-character AP"),
-		RefusedSecondCharacterTurnState.RemainingActionPoints, RefusedSecondCharacterTurnState.MaximumActionPoints);
+	TestEqual(TEXT("A refused request consumes no second-character AP"), RefusedSecondCharacterTurnState.RemainingActionPoints,
+		RefusedSecondCharacterTurnState.MaximumActionPoints);
 	TestTrue(TEXT("A valid request remains possible after a refusal"), Fixture.TurnManager->RequestCharacterAttack(1, Request, Result, RejectReason));
 	return true;
 }

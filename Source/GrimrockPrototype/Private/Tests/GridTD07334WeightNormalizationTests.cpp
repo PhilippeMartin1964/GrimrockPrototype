@@ -42,8 +42,7 @@ namespace GridTD07334Normalization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334SchemaSeparationTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_4.Normalization.SchemaSeparation",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334SchemaSeparationTest, "Grimrock.TechnicalDebt.TD07_3_3_4.Normalization.SchemaSeparation",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07334SchemaSeparationTest::RunTest(const FString& Parameters)
@@ -59,8 +58,7 @@ bool FGridTD07334SchemaSeparationTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334LiveProjectionTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_4.Normalization.LiveProjection",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334LiveProjectionTest, "Grimrock.TechnicalDebt.TD07_3_3_4.Normalization.LiveProjection",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07334LiveProjectionTest::RunTest(const FString& Parameters)
@@ -83,8 +81,7 @@ bool FGridTD07334LiveProjectionTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334EquipmentPolicyTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_4.Normalization.EquipmentPolicy",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334EquipmentPolicyTest, "Grimrock.TechnicalDebt.TD07_3_3_4.Normalization.EquipmentPolicy",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07334EquipmentPolicyTest::RunTest(const FString& Parameters)
@@ -118,8 +115,7 @@ bool FGridTD07334EquipmentPolicyTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334SaveSchemaVersionTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_4.Normalization.SaveSchemaVersion",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07334SaveSchemaVersionTest, "Grimrock.TechnicalDebt.TD07_3_3_4.Normalization.SaveSchemaVersion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07334SaveSchemaVersionTest::RunTest(const FString& Parameters)

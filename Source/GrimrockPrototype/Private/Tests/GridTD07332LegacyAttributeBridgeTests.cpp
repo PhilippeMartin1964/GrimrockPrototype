@@ -44,8 +44,7 @@ namespace GridTD07332Tests
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07332CurrentAttributeAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_2.CurrentAttributeAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07332CurrentAttributeAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_3_2.CurrentAttributeAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07332CurrentAttributeAuthorityTest::RunTest(const FString& Parameters)
@@ -67,8 +66,7 @@ bool FGridTD07332CurrentAttributeAuthorityTest::RunTest(const FString& Parameter
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07332RecruitmentUsesCurrentAttributesTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_2.RecruitmentUsesCurrentAttributes",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07332RecruitmentUsesCurrentAttributesTest, "Grimrock.TechnicalDebt.TD07_3_3_2.RecruitmentUsesCurrentAttributes",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07332RecruitmentUsesCurrentAttributesTest::RunTest(const FString& Parameters)
@@ -88,16 +86,14 @@ bool FGridTD07332RecruitmentUsesCurrentAttributesTest::RunTest(const FString& Pa
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07332SaveSchemaVersionTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_2.SaveSchemaVersion",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07332SaveSchemaVersionTest, "Grimrock.TechnicalDebt.TD07_3_3_2.SaveSchemaVersion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07332SaveSchemaVersionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestTrue(TEXT("The current exact-match schema remains newer than the TD07.3.3.2 v11 generation"),
-		UGrimrockPartySaveGame::CurrentSaveVersion >= 11);
+	TestTrue(TEXT("The current exact-match schema remains newer than the TD07.3.3.2 v11 generation"), UGrimrockPartySaveGame::CurrentSaveVersion >= 11);
 
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>();
 	TestEqual(TEXT("New saves start on the current schema"), Current->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);

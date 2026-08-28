@@ -18,13 +18,13 @@ namespace
 		FGridTD029TestWorld()
 		{
 			const UWorld::InitializationValues InitializationValues = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
+																		  .AllowAudioPlayback(false)
+																		  .RequiresHitProxies(false)
+																		  .CreatePhysicsScene(false)
+																		  .CreateNavigation(false)
+																		  .CreateAISystem(false)
+																		  .ShouldSimulatePhysics(false)
+																		  .SetTransactional(false);
 
 			World = UWorld::CreateWorld(EWorldType::Game, false,
 				FName(*FString::Printf(TEXT("TD029PartyMovementWorld_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
@@ -57,8 +57,7 @@ namespace
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD029PartyMovementFacadeGridStartContractTest,
-	"Grimrock.TechnicalDebt.TD02_9.PartyMovementFacade.GridStartContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD029PartyMovementFacadeGridStartContractTest, "Grimrock.TechnicalDebt.TD02_9.PartyMovementFacade.GridStartContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD029PartyMovementFacadeGridStartContractTest::RunTest(const FString& Parameters)
@@ -99,8 +98,8 @@ bool FGridTD029PartyMovementFacadeGridStartContractTest::RunTest(const FString& 
 	TestEqual(TEXT("SetGridStart stores the facing"), Party->Facing, EGridEdge::North);
 	TestTrue(TEXT("SetGridStart snaps the actor to the cell center"),
 		Party->GetActorLocation().Equals(Runtime->GetCellCenterWorld(1, 1, Party->EyeHeight), KINDA_SMALL_NUMBER));
-	TestTrue(TEXT("SetGridStart snaps actor yaw to the grid facing"),
-		TD029YawMatches(Party->GetActorRotation().Yaw, GridDirectionUtils::ToYaw(EGridEdge::North)));
+	TestTrue(
+		TEXT("SetGridStart snaps actor yaw to the grid facing"), TD029YawMatches(Party->GetActorRotation().Yaw, GridDirectionUtils::ToYaw(EGridEdge::North)));
 
 	Party->CurrentCellX = 2;
 	Party->CurrentCellY = 0;
@@ -120,8 +119,7 @@ bool FGridTD029PartyMovementFacadeGridStartContractTest::RunTest(const FString& 
 	Party->SnapToCurrentCell();
 	TestTrue(TEXT("SnapToCurrentCell is non-destructive without a level runtime"),
 		Party->GetActorLocation().Equals(LocationBeforeMissingRuntime, KINDA_SMALL_NUMBER));
-	TestTrue(TEXT("Missing runtime leaves actor rotation unchanged"),
-		Party->GetActorRotation().Equals(RotationBeforeMissingRuntime, KINDA_SMALL_NUMBER));
+	TestTrue(TEXT("Missing runtime leaves actor rotation unchanged"), Party->GetActorRotation().Equals(RotationBeforeMissingRuntime, KINDA_SMALL_NUMBER));
 
 	return true;
 }

@@ -381,8 +381,8 @@ bool FGridMonsterMON10AudioAttackAndImpactExactlyOnceTest::RunTest(const FString
 		Monster->AudioComponent->GetPlaybackRequestCountForEvent(EGridMonsterAudioEvent::ImpactMiss);
 	TestEqual(TEXT("Impact audio is requested exactly once"), ImpactRequests, 1);
 	TestTrue(TEXT("The attack resolution ran"), HealthAfterFirst <= HealthBefore);
-	TestEqual(TEXT("Damage is not applied by a second impact"),
-		Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth, HealthAfterFirst);
+	TestEqual(TEXT("Damage is not applied by a second impact"), Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth,
+		HealthAfterFirst);
 	TestEqual(TEXT("OnAttackResolved remains unique"), TurnManager->AttackResolvedBroadcastCount, 1);
 	TestEqual(TEXT("GridCombat attack feedback remains unique"), CountMON10AttackEntries(TurnManager), 1);
 	return true;

@@ -375,8 +375,8 @@ bool FGridMonsterMON10VFXAttackAndImpactExactlyOnceTest::RunTest(const FString& 
 	TestEqual(TEXT("Impact VFX remains unique"), ImpactVFXCount, 1);
 	TestEqual(TEXT("Impact audio remains unique"), ImpactAudioCount, 1);
 	TestTrue(TEXT("The attack resolution ran"), HealthAfterFirst <= HealthBefore);
-	TestEqual(TEXT("Damage is not applied twice"), Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth,
-		HealthAfterFirst);
+	TestEqual(
+		TEXT("Damage is not applied twice"), Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth, HealthAfterFirst);
 	TestEqual(TEXT("OnAttackResolved remains unique"), TurnManager->AttackResolvedBroadcastCount, 1);
 	TestEqual(TEXT("GridCombat attack entry remains unique"), CountMON10VFXAttackEntries(TurnManager), 1);
 	return true;

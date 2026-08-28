@@ -15,7 +15,10 @@ namespace GridMON188Tests
 	{
 		FString SlotName = FString::Printf(TEXT("MON188_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits));
 		int32 UserIndex = 0;
-		~FMON188DiskSlot() { UGameplayStatics::DeleteGameInSlot(SlotName, UserIndex); }
+		~FMON188DiskSlot()
+		{
+			UGameplayStatics::DeleteGameInSlot(SlotName, UserIndex);
+		}
 	};
 
 	FGridCharacterInventoryState MakeMON188Character(const FGuid& CharacterId)
@@ -169,8 +172,8 @@ bool FGridMagicMON188DeterministicMutationTest::RunTest(const FString& Parameter
 	UGridPartySpellbookComponent* Spellbook = NewObject<UGridPartySpellbookComponent>();
 	Spellbook->InitializeSpellbookComponent(Inventory);
 	TestEqual(TEXT("Haste learns"), Spellbook->LearnSpell(CharacterId, FGridProductionSpellLibrary::HasteId()), EGridSpellbookMutationResult::Success);
-	TestEqual(TEXT("Arcane Bolt learns"), Spellbook->LearnSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()),
-		EGridSpellbookMutationResult::Success);
+	TestEqual(
+		TEXT("Arcane Bolt learns"), Spellbook->LearnSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()), EGridSpellbookMutationResult::Success);
 	const TArray<FName>& Known = Inventory->PartyInventoryState.ActiveCharacters[0].KnownSpellIds;
 	TestEqual(TEXT("Two durable spells"), Known.Num(), 2);
 	if (Known.Num() == 2)
@@ -208,8 +211,8 @@ bool FGridMagicMON188HotbarWithoutKnowledgePreservedTest::RunTest(const FString&
 	using namespace GridMON188Tests;
 	FGridPartyInventoryState Party = MakeMON188Party({ FGuid(18, 8, 10, 1) });
 	Party.ActiveCharacters[0].CombatHotbarSlots[0] = MakeMON188SpellBinding(FGridProductionSpellLibrary::ArcaneBoltId(), 0);
-	TestFalse(TEXT("Hotbar does not teach the referenced spell"),
-		Party.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::ArcaneBoltId()));
+	TestFalse(
+		TEXT("Hotbar does not teach the referenced spell"), Party.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::ArcaneBoltId()));
 	TestTrue(TEXT("Spell hotbar binding remains structurally valid"), Party.ActiveCharacters[0].CombatHotbarSlots[0].IsValid());
 	return true;
 }
@@ -223,8 +226,7 @@ bool FGridMagicMON188SpellBindingIsNotItemDefinitionTest::RunTest(const FString&
 	using namespace GridMON188Tests;
 	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
 	Inventory->PartyInventoryState = MakeMON188Party({ FGuid(18, 8, 11, 1) });
-	Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[4] =
-		MakeMON188SpellBinding(FGridProductionSpellLibrary::ArcaneBoltId(), 4);
+	Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[4] = MakeMON188SpellBinding(FGridProductionSpellLibrary::ArcaneBoltId(), 4);
 
 	int32 ResolverCallCount = 0;
 	FName MissingDefinitionId = NAME_None;
@@ -251,13 +253,11 @@ bool FGridMagicMON188DiskRoundTripTest::RunTest(const FString& Parameters)
 	FMON188DiskSlot DiskSlot;
 	UGrimrockPartySaveGame* Source = NewObject<UGrimrockPartySaveGame>();
 	Source->PartyInventoryState = MakeMON188Party({ FGuid(18, 8, 12, 1) });
-	Source->PartyInventoryState.ActiveCharacters[0].KnownSpellIds =
-		{ FGridProductionSpellLibrary::ArcaneBoltId(), FGridProductionSpellLibrary::HasteId(), FGridProductionSpellLibrary::LesserHealId() };
-	Source->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1] =
-		MakeMON188SpellBinding(FGridProductionSpellLibrary::LesserHealId(), 1);
+	Source->PartyInventoryState.ActiveCharacters[0].KnownSpellIds = { FGridProductionSpellLibrary::ArcaneBoltId(), FGridProductionSpellLibrary::HasteId(),
+		FGridProductionSpellLibrary::LesserHealId() };
+	Source->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1] = MakeMON188SpellBinding(FGridProductionSpellLibrary::LesserHealId(), 1);
 
-	TestTrue(TEXT("Current-schema durable Spellbook writes to disk"),
-		UGameplayStatics::SaveGameToSlot(Source, DiskSlot.SlotName, DiskSlot.UserIndex));
+	TestTrue(TEXT("Current-schema durable Spellbook writes to disk"), UGameplayStatics::SaveGameToSlot(Source, DiskSlot.SlotName, DiskSlot.UserIndex));
 	UGrimrockPartySaveGame* Loaded = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromSlot(DiskSlot.SlotName, DiskSlot.UserIndex));
 	TestNotNull(TEXT("Temporary disk save reloads"), Loaded);
 	if (!Loaded)

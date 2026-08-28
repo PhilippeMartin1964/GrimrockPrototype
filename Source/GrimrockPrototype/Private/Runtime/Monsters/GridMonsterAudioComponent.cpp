@@ -101,8 +101,7 @@ bool UGridMonsterAudioComponent::PlayAttack(const FGridMonsterAttackDefinition& 
 {
 	StopIdleAmbience();
 	return PlayDefinition(
-		EGridMonsterAudioEvent::Attack, Attack.AttackAudio, Attack.AttackId,
-		OwnerMonster ? OwnerMonster->GetActorLocation() : FVector::ZeroVector);
+		EGridMonsterAudioEvent::Attack, Attack.AttackAudio, Attack.AttackId, OwnerMonster ? OwnerMonster->GetActorLocation() : FVector::ZeroVector);
 }
 
 bool UGridMonsterAudioComponent::PlayAttackImpact(const FGridMonsterAttackDefinition& Attack, const FGridAttackResult& Result, FVector ImpactWorldLocation)

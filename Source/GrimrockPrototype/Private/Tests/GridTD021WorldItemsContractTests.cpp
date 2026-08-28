@@ -30,8 +30,8 @@ namespace
 																		  .ShouldSimulatePhysics(false)
 																		  .SetTransactional(false);
 			World = UWorld::CreateWorld(EWorldType::Game, false,
-				FName(*FString::Printf(TEXT("TD021WorldItems_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
-				ERHIFeatureLevel::Num, &InitializationValues);
+				FName(*FString::Printf(TEXT("TD021WorldItems_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true, ERHIFeatureLevel::Num,
+				&InitializationValues);
 			if (World && GEngine)
 			{
 				FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);

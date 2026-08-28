@@ -29,8 +29,7 @@ namespace
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0732ExactVersionContractTest,
-	"Grimrock.TechnicalDebt.TD07_3_2.SaveContract.ExactVersion",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0732ExactVersionContractTest, "Grimrock.TechnicalDebt.TD07_3_2.SaveContract.ExactVersion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0732ExactVersionContractTest::RunTest(const FString& Parameters)
@@ -61,8 +60,7 @@ bool FGridTD0732ExactVersionContractTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0732PersistentChoiceRoundTripTest,
-	"Grimrock.TechnicalDebt.TD07_3_2.SaveContract.PersistentChoiceRoundTrip",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0732PersistentChoiceRoundTripTest, "Grimrock.TechnicalDebt.TD07_3_2.SaveContract.PersistentChoiceRoundTrip",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0732PersistentChoiceRoundTripTest::RunTest(const FString& Parameters)
@@ -106,8 +104,7 @@ bool FGridTD0732PersistentChoiceRoundTripTest::RunTest(const FString& Parameters
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0732RejectCurrentMismatchTest,
-	"Grimrock.TechnicalDebt.TD07_3_2.SaveContract.RejectLevelExperienceMismatch",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0732RejectCurrentMismatchTest, "Grimrock.TechnicalDebt.TD07_3_2.SaveContract.RejectLevelExperienceMismatch",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0732RejectCurrentMismatchTest::RunTest(const FString& Parameters)
@@ -127,8 +124,7 @@ bool FGridTD0732RejectCurrentMismatchTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0732RejectInvalidChoiceSnapshotTest,
-	"Grimrock.TechnicalDebt.TD07_3_2.SaveContract.RejectInvalidChoiceSnapshot",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0732RejectInvalidChoiceSnapshotTest, "Grimrock.TechnicalDebt.TD07_3_2.SaveContract.RejectInvalidChoiceSnapshot",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0732RejectInvalidChoiceSnapshotTest::RunTest(const FString& Parameters)
@@ -147,8 +143,7 @@ bool FGridTD0732RejectInvalidChoiceSnapshotTest::RunTest(const FString& Paramete
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0732PendingLevelUpRoundTripTest,
-	"Grimrock.TechnicalDebt.TD07_3_2.SaveContract.PendingLevelUpRoundTrip",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0732PendingLevelUpRoundTripTest, "Grimrock.TechnicalDebt.TD07_3_2.SaveContract.PendingLevelUpRoundTrip",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0732PendingLevelUpRoundTripTest::RunTest(const FString& Parameters)
@@ -182,8 +177,7 @@ bool FGridTD0732PendingLevelUpRoundTripTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0732RejectInvalidPendingNotificationTest,
-	"Grimrock.TechnicalDebt.TD07_3_2.SaveContract.RejectInvalidPendingNotification",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+	"Grimrock.TechnicalDebt.TD07_3_2.SaveContract.RejectInvalidPendingNotification", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0732RejectInvalidPendingNotificationTest::RunTest(const FString& Parameters)
 {

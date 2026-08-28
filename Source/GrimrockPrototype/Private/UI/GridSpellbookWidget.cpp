@@ -337,6 +337,5 @@ void UGridSpellbookWidget::HandleSpellbookChanged()
 bool UGridSpellbookWidget::GetSelectedCharacterSpellbook(FGridCharacterSpellbookState& OutState) const
 {
 	OutState = FGridCharacterSpellbookState();
-	return SpellbookComponent && SelectedCharacterId.IsValid() &&
-		SpellbookComponent->GetCharacterSpellbookState(SelectedCharacterId, OutState);
+	return SpellbookComponent && SelectedCharacterId.IsValid() && SpellbookComponent->GetCharacterSpellbookState(SelectedCharacterId, OutState);
 }

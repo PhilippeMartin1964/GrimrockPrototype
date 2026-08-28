@@ -88,7 +88,6 @@ public:
 		meta = (DisplayName = "Placement Kind", ToolTip = "Current source of truth for editor/runtime placement."))
 	EGridObjectPlacementKind PlacementKind = EGridObjectPlacementKind::Center;
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement",
 		meta = (ToolTip = "Editor placement rule: allows this object to share a cell with other objects."))
 	bool bCanShareCell = true;

@@ -98,8 +98,8 @@ bool AGrimrockPartyPawn::SaveCurrentGame(FText& OutError)
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("PartySave Saved Slot=%s Version=%d Characters=%d KnownSpellCharacters=%d Cell=(%d,%d) Facing=%d"), *PartySaveSlotName,
-		SaveGame->SaveVersion, SaveGame->PartyInventoryState.ActiveCharacters.Num(),
-		GridPartyPawnSaveCountKnownSpellCharacters(SaveGame->PartyInventoryState), CurrentCellX, CurrentCellY, static_cast<int32>(Facing));
+		SaveGame->SaveVersion, SaveGame->PartyInventoryState.ActiveCharacters.Num(), GridPartyPawnSaveCountKnownSpellCharacters(SaveGame->PartyInventoryState),
+		CurrentCellX, CurrentCellY, static_cast<int32>(Facing));
 	return true;
 }
 

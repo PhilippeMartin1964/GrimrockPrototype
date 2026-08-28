@@ -29,8 +29,7 @@ namespace GridTD07337Normalization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337SchemaAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_7.Normalization.SchemaAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337SchemaAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_3_7.Normalization.SchemaAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07337SchemaAuthorityTest::RunTest(const FString& Parameters)
@@ -39,15 +38,13 @@ bool FGridTD07337SchemaAuthorityTest::RunTest(const FString& Parameters)
 	FProperty* KnownSpellsProperty = FindFProperty<FProperty>(FGridCharacterInventoryState::StaticStruct(), TEXT("KnownSpellIds"));
 	TestNotNull(TEXT("KnownSpellIds exists on durable character state"), KnownSpellsProperty);
 	TestTrue(TEXT("KnownSpellIds is durable and non-transient"), KnownSpellsProperty && !KnownSpellsProperty->HasAnyPropertyFlags(CPF_Transient));
-	TestNull(TEXT("Component-owned SpellbookState is removed"),
-		FindFProperty<FProperty>(UGridPartySpellbookComponent::StaticClass(), TEXT("SpellbookState")));
+	TestNull(TEXT("Component-owned SpellbookState is removed"), FindFProperty<FProperty>(UGridPartySpellbookComponent::StaticClass(), TEXT("SpellbookState")));
 	TestNull(TEXT("Separate CharacterSpellbookStates SaveGame mirror is removed"),
 		FindFProperty<FProperty>(UGrimrockPartySaveGame::StaticClass(), TEXT("CharacterSpellbookStates")));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337DirectMutationTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_7.Normalization.DirectMutation",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337DirectMutationTest, "Grimrock.TechnicalDebt.TD07_3_3_7.Normalization.DirectMutation",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07337DirectMutationTest::RunTest(const FString& Parameters)
@@ -62,10 +59,10 @@ bool FGridTD07337DirectMutationTest::RunTest(const FString& Parameters)
 	const FGuid CharacterId = Character.CharacterId;
 
 	TestEqual(TEXT("Haste learns"), Spellbook->LearnSpell(CharacterId, FGridProductionSpellLibrary::HasteId()), EGridSpellbookMutationResult::Success);
-	TestEqual(TEXT("Arcane Bolt learns"), Spellbook->LearnSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()),
-		EGridSpellbookMutationResult::Success);
-	TestEqual(TEXT("Unknown SpellId is rejected"), Spellbook->LearnSpell(CharacterId, TEXT("Spell_RemovedContent")),
-		EGridSpellbookMutationResult::InvalidSpell);
+	TestEqual(
+		TEXT("Arcane Bolt learns"), Spellbook->LearnSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()), EGridSpellbookMutationResult::Success);
+	TestEqual(
+		TEXT("Unknown SpellId is rejected"), Spellbook->LearnSpell(CharacterId, TEXT("Spell_RemovedContent")), EGridSpellbookMutationResult::InvalidSpell);
 	const TArray<FName>& Known = Inventory->PartyInventoryState.ActiveCharacters[0].KnownSpellIds;
 	TestEqual(TEXT("Two canonical durable entries"), Known.Num(), 2);
 	if (Known.Num() == 2)
@@ -76,8 +73,7 @@ bool FGridTD07337DirectMutationTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337ActivePoolDurabilityTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_7.Normalization.ActivePoolDurability",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337ActivePoolDurabilityTest, "Grimrock.TechnicalDebt.TD07_3_3_7.Normalization.ActivePoolDurability",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07337ActivePoolDurabilityTest::RunTest(const FString& Parameters)
@@ -99,8 +95,7 @@ bool FGridTD07337ActivePoolDurabilityTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337SaveSchemaVersionTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_7.Normalization.SaveSchemaVersion",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337SaveSchemaVersionTest, "Grimrock.TechnicalDebt.TD07_3_3_7.Normalization.SaveSchemaVersion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07337SaveSchemaVersionTest::RunTest(const FString& Parameters)

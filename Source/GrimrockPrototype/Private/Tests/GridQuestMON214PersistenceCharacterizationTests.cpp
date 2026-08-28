@@ -14,8 +14,7 @@
 
 namespace GridQuestMON214Characterization
 {
-	UGridQuestDefinitionAsset* MakeDefinition(
-		UObject* Outer, FName QuestId, std::initializer_list<const TCHAR*> ObjectiveIds)
+	UGridQuestDefinitionAsset* MakeDefinition(UObject* Outer, FName QuestId, std::initializer_list<const TCHAR*> ObjectiveIds)
 	{
 		UGridQuestDefinitionAsset* Definition = NewObject<UGridQuestDefinitionAsset>(Outer);
 		Definition->QuestId = QuestId;
@@ -37,27 +36,22 @@ namespace GridQuestMON214Characterization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridQuestMON214SaveEnvelopeCharacterizationTest,
-	"Grimrock.Quests.MON21_4.Characterization.SaveEnvelopeGap",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridQuestMON214SaveEnvelopeCharacterizationTest, "Grimrock.Quests.MON21_4.Characterization.SaveEnvelopeGap",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridQuestMON214SaveEnvelopeCharacterizationTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestEqual(TEXT("MON21.4 starts from exact-match SaveGame v22"),
-		UGrimrockPartySaveGame::CurrentSaveVersion, 22);
+	TestEqual(TEXT("MON21.4 starts from exact-match SaveGame v22"), UGrimrockPartySaveGame::CurrentSaveVersion, 22);
 
 	UClass* SaveClass = UGrimrockPartySaveGame::StaticClass();
-	TestNull(TEXT("Current v22 SaveGame has no CampaignQuestState snapshot yet"),
-		SaveClass->FindPropertyByName(TEXT("CampaignQuestState")));
-	TestNull(TEXT("Current v22 SaveGame has no QuestRuntimeState mirror"),
-		SaveClass->FindPropertyByName(TEXT("QuestRuntimeState")));
+	TestNull(TEXT("Current v22 SaveGame has no CampaignQuestState snapshot yet"), SaveClass->FindPropertyByName(TEXT("CampaignQuestState")));
+	TestNull(TEXT("Current v22 SaveGame has no QuestRuntimeState mirror"), SaveClass->FindPropertyByName(TEXT("QuestRuntimeState")));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridQuestMON214RuntimeAuthorityCharacterizationTest,
-	"Grimrock.Quests.MON21_4.Characterization.RuntimeAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridQuestMON214RuntimeAuthorityCharacterizationTest, "Grimrock.Quests.MON21_4.Characterization.RuntimeAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridQuestMON214RuntimeAuthorityCharacterizationTest::RunTest(const FString& Parameters)
@@ -65,17 +59,14 @@ bool FGridQuestMON214RuntimeAuthorityCharacterizationTest::RunTest(const FString
 	(void)Parameters;
 
 	UClass* SubsystemClass = UGridQuestSubsystem::StaticClass();
-	const FProperty* CampaignStateProperty =
-		SubsystemClass->FindPropertyByName(TEXT("CampaignState"));
-	const FProperty* DefinitionsProperty =
-		SubsystemClass->FindPropertyByName(TEXT("QuestDefinitionsById"));
+	const FProperty* CampaignStateProperty = SubsystemClass->FindPropertyByName(TEXT("CampaignState"));
+	const FProperty* DefinitionsProperty = SubsystemClass->FindPropertyByName(TEXT("QuestDefinitionsById"));
 
 	TestNotNull(TEXT("Quest subsystem exposes one CampaignState authority"), CampaignStateProperty);
-	TestTrue(TEXT("CampaignState remains transient before MON21.4 persistence"),
-		CampaignStateProperty && CampaignStateProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(
+		TEXT("CampaignState remains transient before MON21.4 persistence"), CampaignStateProperty && CampaignStateProperty->HasAnyPropertyFlags(CPF_Transient));
 	TestNotNull(TEXT("Quest definition registry exists"), DefinitionsProperty);
-	TestTrue(TEXT("Definition registry remains transient"),
-		DefinitionsProperty && DefinitionsProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("Definition registry remains transient"), DefinitionsProperty && DefinitionsProperty->HasAnyPropertyFlags(CPF_Transient));
 
 	UScriptStruct* QuestStateStruct = FGridQuestRuntimeState::StaticStruct();
 	TestNotNull(TEXT("Quest runtime state struct exists"), QuestStateStruct);
@@ -87,15 +78,12 @@ bool FGridQuestMON214RuntimeAuthorityCharacterizationTest::RunTest(const FString
 	TestNotNull(TEXT("Quest runtime state persists stable QuestId"), QuestStateStruct->FindPropertyByName(TEXT("QuestId")));
 	TestNotNull(TEXT("Quest runtime state persists status"), QuestStateStruct->FindPropertyByName(TEXT("Status")));
 	TestNotNull(TEXT("Quest runtime state persists ordered objectives"), QuestStateStruct->FindPropertyByName(TEXT("Objectives")));
-	TestNull(TEXT("Quest runtime state contains no definition pointer"),
-		QuestStateStruct->FindPropertyByName(TEXT("Definition")));
-	TestNull(TEXT("Quest runtime state contains no DefinitionAsset pointer"),
-		QuestStateStruct->FindPropertyByName(TEXT("DefinitionAsset")));
+	TestNull(TEXT("Quest runtime state contains no definition pointer"), QuestStateStruct->FindPropertyByName(TEXT("Definition")));
+	TestNull(TEXT("Quest runtime state contains no DefinitionAsset pointer"), QuestStateStruct->FindPropertyByName(TEXT("DefinitionAsset")));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridQuestMON214ValidationCharacterizationTest,
-	"Grimrock.Quests.MON21_4.Characterization.SnapshotValidationContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridQuestMON214ValidationCharacterizationTest, "Grimrock.Quests.MON21_4.Characterization.SnapshotValidationContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridQuestMON214ValidationCharacterizationTest::RunTest(const FString& Parameters)
@@ -111,8 +99,7 @@ bool FGridQuestMON214ValidationCharacterizationTest::RunTest(const FString& Para
 		return false;
 	}
 
-	UGridQuestDefinitionAsset* Definition =
-		MakeDefinition(Subsystem, TEXT("Quest_MON214_Main"), { TEXT("FindKey"), TEXT("OpenGate") });
+	UGridQuestDefinitionAsset* Definition = MakeDefinition(Subsystem, TEXT("Quest_MON214_Main"), { TEXT("FindKey"), TEXT("OpenGate") });
 
 	FString Error;
 	TestTrue(TEXT("Current definition registers"), Subsystem->RegisterQuestDefinition(Definition, Error));
@@ -138,8 +125,7 @@ bool FGridQuestMON214ValidationCharacterizationTest::RunTest(const FString& Para
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridQuestMON214PipelineGapCharacterizationTest,
-	"Grimrock.Quests.MON21_4.Characterization.SaveLoadPipelineGap",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridQuestMON214PipelineGapCharacterizationTest, "Grimrock.Quests.MON21_4.Characterization.SaveLoadPipelineGap",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridQuestMON214PipelineGapCharacterizationTest::RunTest(const FString& Parameters)
@@ -149,22 +135,16 @@ bool FGridQuestMON214PipelineGapCharacterizationTest::RunTest(const FString& Par
 
 	FString PawnSaveSource;
 	FString ActivationSource;
-	TestTrue(TEXT("Party save pipeline source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GrimrockPartyPawnSave.cpp"), PawnSaveSource));
-	TestTrue(TEXT("Activation source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponent.cpp"), ActivationSource));
+	TestTrue(
+		TEXT("Party save pipeline source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GrimrockPartyPawnSave.cpp"), PawnSaveSource));
+	TestTrue(TEXT("Activation source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponent.cpp"), ActivationSource));
 
-	TestFalse(TEXT("Current save pipeline does not capture CampaignQuestState yet"),
-		PawnSaveSource.Contains(TEXT("CampaignQuestState")));
-	TestFalse(TEXT("Current save pipeline does not access UGridQuestSubsystem yet"),
-		PawnSaveSource.Contains(TEXT("UGridQuestSubsystem")));
+	TestFalse(TEXT("Current save pipeline does not capture CampaignQuestState yet"), PawnSaveSource.Contains(TEXT("CampaignQuestState")));
+	TestFalse(TEXT("Current save pipeline does not access UGridQuestSubsystem yet"), PawnSaveSource.Contains(TEXT("UGridQuestSubsystem")));
 
-	TestTrue(TEXT("Current quest registration is level-scoped"),
-		ActivationSource.Contains(TEXT("RuntimeActor->LevelAsset->QuestDefinitions")));
-	TestTrue(TEXT("Current registration helper is explicitly current-level scoped"),
-		ActivationSource.Contains(TEXT("RegisterCurrentLevelQuestDefinitions")));
-	TestFalse(TEXT("Current activation registration does not scan DungeonAsset levels"),
-		ActivationSource.Contains(TEXT("DungeonAsset->Levels")));
+	TestTrue(TEXT("Current quest registration is level-scoped"), ActivationSource.Contains(TEXT("RuntimeActor->LevelAsset->QuestDefinitions")));
+	TestTrue(TEXT("Current registration helper is explicitly current-level scoped"), ActivationSource.Contains(TEXT("RegisterCurrentLevelQuestDefinitions")));
+	TestFalse(TEXT("Current activation registration does not scan DungeonAsset levels"), ActivationSource.Contains(TEXT("DungeonAsset->Levels")));
 
 	return true;
 }

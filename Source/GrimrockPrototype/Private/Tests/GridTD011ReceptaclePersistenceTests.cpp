@@ -23,17 +23,16 @@ namespace GridTD011Tests
 		FTestWorld()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
+															.AllowAudioPlayback(false)
+															.RequiresHitProxies(false)
+															.CreatePhysicsScene(false)
+															.CreateNavigation(false)
+															.CreateAISystem(false)
+															.ShouldSimulatePhysics(false)
+															.SetTransactional(false);
 
-			World = UWorld::CreateWorld(EWorldType::Game, false,
-				FName(*FString::Printf(TEXT("TD011_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
-				ERHIFeatureLevel::Num, &Values);
+			World = UWorld::CreateWorld(EWorldType::Game, false, FName(*FString::Printf(TEXT("TD011_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))),
+				nullptr, true, ERHIFeatureLevel::Num, &Values);
 			if (!World || !GEngine)
 			{
 				return;
@@ -94,8 +93,8 @@ namespace GridTD011Tests
 		return Fixture;
 	}
 
-	AGridLevelRuntimeActor* SpawnRuntime(FAutomationTestBase& Test, UWorld* World, const FRuntimeFixture& Fixture,
-		const FGridDungeonRuntimeState* RestoredState = nullptr)
+	AGridLevelRuntimeActor* SpawnRuntime(
+		FAutomationTestBase& Test, UWorld* World, const FRuntimeFixture& Fixture, const FGridDungeonRuntimeState* RestoredState = nullptr)
 	{
 		AGridLevelRuntimeActor* Runtime = World ? World->SpawnActor<AGridLevelRuntimeActor>() : nullptr;
 		if (!Runtime)
@@ -139,8 +138,7 @@ namespace GridTD011Tests
 
 using namespace GridTD011Tests;
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD011DisabledRoundTripTest,
-	"Grimrock.TechnicalDebt.TD01_1.ReceptaclePersistence.DisabledRoundTrip",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD011DisabledRoundTripTest, "Grimrock.TechnicalDebt.TD01_1.ReceptaclePersistence.DisabledRoundTrip",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD011DisabledRoundTripTest::RunTest(const FString& Parameters)
@@ -194,8 +192,7 @@ bool FGridTD011DisabledRoundTripTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD011EnabledRoundTripTest,
-	"Grimrock.TechnicalDebt.TD01_1.ReceptaclePersistence.EnabledRoundTrip",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD011EnabledRoundTripTest, "Grimrock.TechnicalDebt.TD01_1.ReceptaclePersistence.EnabledRoundTrip",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD011EnabledRoundTripTest::RunTest(const FString& Parameters)

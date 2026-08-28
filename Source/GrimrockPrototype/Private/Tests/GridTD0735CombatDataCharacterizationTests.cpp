@@ -17,8 +17,7 @@ namespace GridTD0735Characterization
 
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735ItemSchemaAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_5.Characterization.ItemSchemaAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735ItemSchemaAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_5.Characterization.ItemSchemaAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0735ItemSchemaAuthorityTest::RunTest(const FString& Parameters)
@@ -37,13 +36,11 @@ bool FGridTD0735ItemSchemaAuthorityTest::RunTest(const FString& Parameters)
 
 	const FProperty* CurrentActions = ItemClass->FindPropertyByName(TEXT("CombatActions"));
 	TestNotNull(TEXT("Current CombatActions exists"), CurrentActions);
-	TestTrue(TEXT("CombatActions is the durable authoring property"),
-		CurrentActions && !CurrentActions->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("CombatActions is the durable authoring property"), CurrentActions && !CurrentActions->HasAnyPropertyFlags(CPF_Transient));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735LegacyItemAdapterRemovedTest,
-	"Grimrock.TechnicalDebt.TD07_3_5.Characterization.LegacyItemAdapterRemoved",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735LegacyItemAdapterRemovedTest, "Grimrock.TechnicalDebt.TD07_3_5.Characterization.LegacyItemAdapterRemoved",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0735LegacyItemAdapterRemovedTest::RunTest(const FString& Parameters)
@@ -61,22 +58,17 @@ bool FGridTD0735LegacyItemAdapterRemovedTest::RunTest(const FString& Parameters)
 		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridCombatActionCatalog.cpp"), CatalogSource));
 	TestTrue(TEXT("Player action catalogue source loads"),
 		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridTurnManagerPlayerActionCatalog.cpp"), PlayerCatalogSource));
-	TestTrue(TEXT("Hotbar source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridPartyInventoryComponentHotbar.cpp"), HotbarSource));
+	TestTrue(
+		TEXT("Hotbar source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridPartyInventoryComponentHotbar.cpp"), HotbarSource));
 
-	TestFalse(TEXT("Legacy item adapter declaration is removed"),
-		CatalogHeader.Contains(TEXT("MakeLegacyEquipmentAttackDefinition")));
-	TestFalse(TEXT("Legacy item adapter implementation is removed"),
-		CatalogSource.Contains(TEXT("MakeLegacyEquipmentAttackDefinition")));
-	TestFalse(TEXT("Player catalogue no longer invokes the legacy adapter"),
-		PlayerCatalogSource.Contains(TEXT("MakeLegacyEquipmentAttackDefinition")));
-	TestFalse(TEXT("Hotbar no longer reads an item-level OffensiveProfile"),
-		HotbarSource.Contains(TEXT("Definition->OffensiveProfile")));
+	TestFalse(TEXT("Legacy item adapter declaration is removed"), CatalogHeader.Contains(TEXT("MakeLegacyEquipmentAttackDefinition")));
+	TestFalse(TEXT("Legacy item adapter implementation is removed"), CatalogSource.Contains(TEXT("MakeLegacyEquipmentAttackDefinition")));
+	TestFalse(TEXT("Player catalogue no longer invokes the legacy adapter"), PlayerCatalogSource.Contains(TEXT("MakeLegacyEquipmentAttackDefinition")));
+	TestFalse(TEXT("Hotbar no longer reads an item-level OffensiveProfile"), HotbarSource.Contains(TEXT("Definition->OffensiveProfile")));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735MonsterPresentationAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_5.Characterization.MonsterPresentationAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735MonsterPresentationAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_5.Characterization.MonsterPresentationAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0735MonsterPresentationAuthorityTest::RunTest(const FString& Parameters)
@@ -118,10 +110,9 @@ bool FGridTD0735MonsterPresentationRuntimeNormalizedTest::RunTest(const FString&
 	FString TypesSource;
 	TestTrue(TEXT("Monster audio source loads"),
 		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Monsters/GridMonsterAudioComponent.cpp"), AudioSource));
-	TestTrue(TEXT("Monster VFX source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Monsters/GridMonsterVFXComponent.cpp"), VFXSource));
-	TestTrue(TEXT("Monster types source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/Monsters/GridMonsterTypes.h"), TypesSource));
+	TestTrue(
+		TEXT("Monster VFX source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Monsters/GridMonsterVFXComponent.cpp"), VFXSource));
+	TestTrue(TEXT("Monster types source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/Monsters/GridMonsterTypes.h"), TypesSource));
 
 	TestFalse(TEXT("Attack audio no longer falls back to legacy AttackSound"),
 		AudioSource.Contains(TEXT("Attack.AttackSound")) || AudioSource.Contains(TEXT("LegacyDefinition.Sounds.Add")));
@@ -129,8 +120,7 @@ bool FGridTD0735MonsterPresentationRuntimeNormalizedTest::RunTest(const FString&
 		VFXSource.Contains(TEXT("Attack.ImpactVFX")) || VFXSource.Contains(TEXT("LegacyDefinition.Systems.Add")));
 	TestTrue(TEXT("Monster range helpers use the current MaxRangeCells authority"),
 		TypesSource.Contains(TEXT("DistanceCells <= MaxRangeCells")) && TypesSource.Contains(TEXT("MaxRangeCells > 1")));
-	TestFalse(TEXT("Legacy RangeCells declaration is absent"),
-		TypesSource.Contains(TEXT("int32 RangeCells = 1")));
+	TestFalse(TEXT("Legacy RangeCells declaration is absent"), TypesSource.Contains(TEXT("int32 RangeCells = 1")));
 	return true;
 }
 

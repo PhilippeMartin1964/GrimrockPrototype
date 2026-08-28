@@ -581,8 +581,9 @@ bool UGridActivationComponent::ExecuteLuaCallbackLink(const FGridObjectLink& Lin
 
 	if (!bSuccess)
 	{
-		UE_LOG(LogGridActivation, Warning, TEXT("Grid Lua callback failed: Source=%s Event=%s Script=%s Callback=%s Reason=%s"), *LinkData.SourceObjectId.ToString(),
-			*GridObjectEventToString(LinkData.SourceEvent), *LinkData.LuaScriptId.ToString(), *LinkData.LuaCallbackName.ToString(), *LuaError);
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid Lua callback failed: Source=%s Event=%s Script=%s Callback=%s Reason=%s"),
+			*LinkData.SourceObjectId.ToString(), *GridObjectEventToString(LinkData.SourceEvent), *LinkData.LuaScriptId.ToString(),
+			*LinkData.LuaCallbackName.ToString(), *LuaError);
 		return false;
 	}
 
@@ -1254,8 +1255,8 @@ bool UGridActivationComponent::ApplyReceptacleLinkCommand(const FGridLevelObject
 	}
 	else
 	{
-		UE_LOG(LogGridActivation, Warning, TEXT("Grid receptacle command result: Command=%s Target=%s Actor=%s Success=false"), *GridObjectCommandToString(Command),
-			*TargetObject.ObjectId.ToString(), *GetNameSafe(ReceptacleActor));
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid receptacle command result: Command=%s Target=%s Actor=%s Success=false"),
+			*GridObjectCommandToString(Command), *TargetObject.ObjectId.ToString(), *GetNameSafe(ReceptacleActor));
 	}
 	return bSuccess;
 }
@@ -1394,8 +1395,8 @@ bool UGridActivationComponent::ProcessTriggerEvent(const FGridLevelObjectData& T
 	const TCHAR* EventLabel = bEntering ? TEXT("Enter") : TEXT("Exit");
 	const EGridObjectEvent SourceEvent = bEntering ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated;
 
-	UE_LOG(LogGridActivation, Log, TEXT("Grid trigger detected: Id=%s Cell=(%d,%d) Event=%s SourceEvent=%s"), *TriggerData.ObjectId.ToString(), TriggerData.CellX,
-		TriggerData.CellY, EventLabel, *GridObjectEventToString(SourceEvent));
+	UE_LOG(LogGridActivation, Log, TEXT("Grid trigger detected: Id=%s Cell=(%d,%d) Event=%s SourceEvent=%s"), *TriggerData.ObjectId.ToString(),
+		TriggerData.CellX, TriggerData.CellY, EventLabel, *GridObjectEventToString(SourceEvent));
 
 	return ExecuteLinksFromObjectForEvent(TriggerData.ObjectId, SourceEvent);
 }

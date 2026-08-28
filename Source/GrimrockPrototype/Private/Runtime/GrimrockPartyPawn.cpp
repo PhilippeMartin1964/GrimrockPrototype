@@ -376,7 +376,6 @@ void AGrimrockPartyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		{
 			EIC->BindAction(StrafeRightAction, ETriggerEvent::Started, this, &AGrimrockPartyPawn::HandleStrafeRight);
 		}
-
 	}
 	PlayerInputComponent->BindKey(EKeys::RightMouseButton, IE_Pressed, this, &AGrimrockPartyPawn::BeginFreeLook);
 	PlayerInputComponent->BindKey(EKeys::RightMouseButton, IE_Released, this, &AGrimrockPartyPawn::EndFreeLook);

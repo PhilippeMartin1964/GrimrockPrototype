@@ -4,8 +4,8 @@
 
 #include "Runtime/GridPartyInventoryComponent.h"
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD023PartyInventoryDiagnosticsContractTest,
-	"Grimrock.TechnicalDebt.TD02_3.PartyInventoryDiagnosticsContract", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD023PartyInventoryDiagnosticsContractTest, "Grimrock.TechnicalDebt.TD02_3.PartyInventoryDiagnosticsContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD023PartyInventoryDiagnosticsContractTest::RunTest(const FString& Parameters)
 {

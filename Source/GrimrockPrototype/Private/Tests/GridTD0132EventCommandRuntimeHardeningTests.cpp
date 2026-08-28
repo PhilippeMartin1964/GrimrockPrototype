@@ -71,8 +71,7 @@ namespace
 	};
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0132StateOnlyRuntimeRejectionTest,
-	"Grimrock.TechnicalDebt.TD01_3.EventCommandContract.RuntimeHardening",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0132StateOnlyRuntimeRejectionTest, "Grimrock.TechnicalDebt.TD01_3.EventCommandContract.RuntimeHardening",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0132StateOnlyRuntimeRejectionTest::RunTest(const FString& Parameters)

@@ -57,8 +57,7 @@ namespace RPGCharacterIdentityPersistencePrivate
 			}
 		}
 
-		Character.Portrait = FRPGAuthoringIdentityResolver::ResolvePortraitVisual(
-			Character.RaceId, Character.PortraitGender, Character.PortraitVariantId);
+		Character.Portrait = FRPGAuthoringIdentityResolver::ResolvePortraitVisual(Character.RaceId, Character.PortraitGender, Character.PortraitVariantId);
 		return true;
 	}
 
@@ -106,8 +105,8 @@ namespace RPGCharacterIdentityPersistencePrivate
 			return false;
 		}
 
-		const TSoftObjectPtr<UTexture2D> ExpectedPortrait = FRPGAuthoringIdentityResolver::ResolvePortraitVisual(
-			Character.RaceId, Character.PortraitGender, Character.PortraitVariantId);
+		const TSoftObjectPtr<UTexture2D> ExpectedPortrait =
+			FRPGAuthoringIdentityResolver::ResolvePortraitVisual(Character.RaceId, Character.PortraitGender, Character.PortraitVariantId);
 		if (Character.Portrait.ToSoftObjectPath() != ExpectedPortrait.ToSoftObjectPath())
 		{
 			OutError = FString::Printf(TEXT("%s has a Portrait cache inconsistent with durable visual identity."), Location);
@@ -124,8 +123,7 @@ namespace RPGCharacterIdentityPersistencePrivate
 		return true;
 	}
 
-	template <typename CharacterArray>
-	bool RehydrateArray(CharacterArray& Characters, const TCHAR* Prefix, FString& OutError)
+	template <typename CharacterArray> bool RehydrateArray(CharacterArray& Characters, const TCHAR* Prefix, FString& OutError)
 	{
 		for (int32 Index = 0; Index < Characters.Num(); ++Index)
 		{
@@ -138,8 +136,7 @@ namespace RPGCharacterIdentityPersistencePrivate
 		return true;
 	}
 
-	template <typename CharacterArray>
-	bool ValidateArray(const CharacterArray& Characters, const TCHAR* Prefix, FString& OutError)
+	template <typename CharacterArray> bool ValidateArray(const CharacterArray& Characters, const TCHAR* Prefix, FString& OutError)
 	{
 		for (int32 Index = 0; Index < Characters.Num(); ++Index)
 		{
@@ -162,8 +159,7 @@ void FRPGCharacterIdentityPersistence::RememberRuntimeCaches(const FGridPartyInv
 			FRPGAuthoringIdentityResolver::RememberClassDefinition(Definition);
 		}
 		FRPGAuthoringIdentityResolver::RememberClassIcon(Character.ClassId, Character.ClassIcon);
-		FRPGAuthoringIdentityResolver::RememberPortraitVisual(
-			Character.RaceId, Character.PortraitGender, Character.PortraitVariantId, Character.Portrait);
+		FRPGAuthoringIdentityResolver::RememberPortraitVisual(Character.RaceId, Character.PortraitGender, Character.PortraitVariantId, Character.Portrait);
 	};
 
 	for (const FGridCharacterInventoryState& Character : PartyState.ActiveCharacters)

@@ -11,8 +11,7 @@
 
 namespace GridTD073310Normalization
 {
-	void TestTD073310DerivedStatsEqual(
-		FAutomationTestBase& Test, const TCHAR* Prefix, const FRPGDerivedStats& Actual, const FRPGDerivedStats& Expected)
+	void TestTD073310DerivedStatsEqual(FAutomationTestBase& Test, const TCHAR* Prefix, const FRPGDerivedStats& Actual, const FRPGDerivedStats& Expected)
 	{
 		Test.TestEqual(FString::Printf(TEXT("%s MaxHealth"), Prefix), Actual.MaxHealth, Expected.MaxHealth);
 		Test.TestEqual(FString::Printf(TEXT("%s MaxMana"), Prefix), Actual.MaxMana, Expected.MaxMana);
@@ -31,8 +30,7 @@ namespace GridTD073310Normalization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310SchemaAuthorityTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_10.Normalization.SchemaAuthority",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310SchemaAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_3_10.Normalization.SchemaAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD073310SchemaAuthorityTest::RunTest(const FString& Parameters)
@@ -45,19 +43,15 @@ bool FGridTD073310SchemaAuthorityTest::RunTest(const FString& Parameters)
 	const FProperty* LevelProperty = FindFProperty<FProperty>(CharacterStruct, TEXT("Level"));
 
 	TestNotNull(TEXT("DerivedStats exists"), DerivedStatsProperty);
-	TestTrue(TEXT("DerivedStats is a transient projection"),
-		DerivedStatsProperty && DerivedStatsProperty->HasAnyPropertyFlags(CPF_Transient));
-	TestTrue(TEXT("Resources remains durable mutable state"),
-		ResourcesProperty && !ResourcesProperty->HasAnyPropertyFlags(CPF_Transient));
-	TestTrue(TEXT("Level remains transient projection"),
-		LevelProperty && LevelProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("DerivedStats is a transient projection"), DerivedStatsProperty && DerivedStatsProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("Resources remains durable mutable state"), ResourcesProperty && !ResourcesProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("Level remains transient projection"), LevelProperty && LevelProperty->HasAnyPropertyFlags(CPF_Transient));
 
 	TestTrue(TEXT("TD07.3.3.10 established SaveGame v20 or later"), UGrimrockPartySaveGame::CurrentSaveVersion >= 20);
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310ActiveRoundTripTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_10.Normalization.ActiveDerivedStatsRoundTrip",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310ActiveRoundTripTest, "Grimrock.TechnicalDebt.TD07_3_3_10.Normalization.ActiveDerivedStatsRoundTrip",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD073310ActiveRoundTripTest::RunTest(const FString& Parameters)
@@ -68,15 +62,13 @@ bool FGridTD073310ActiveRoundTripTest::RunTest(const FString& Parameters)
 	FMON155RuntimeStateGuard RuntimeGuard;
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(3, 3000, ClassDefinition);
-	if (!TestNotNull(TEXT("Active round-trip component exists"), Component) ||
-		!TestNotNull(TEXT("Active round-trip class definition exists"), ClassDefinition))
+	if (!TestNotNull(TEXT("Active round-trip component exists"), Component) || !TestNotNull(TEXT("Active round-trip class definition exists"), ClassDefinition))
 	{
 		return false;
 	}
 
 	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
-	const FRPGDerivedStats Expected =
-		URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, Character.Level);
+	const FRPGDerivedStats Expected = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, Character.Level);
 	CorruptTD073310DerivedStats(Character.DerivedStats);
 
 	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
@@ -98,8 +90,7 @@ bool FGridTD073310ActiveRoundTripTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310PoolRoundTripTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_10.Normalization.PoolDerivedStatsRoundTrip",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310PoolRoundTripTest, "Grimrock.TechnicalDebt.TD07_3_3_10.Normalization.PoolDerivedStatsRoundTrip",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD073310PoolRoundTripTest::RunTest(const FString& Parameters)
@@ -110,16 +101,14 @@ bool FGridTD073310PoolRoundTripTest::RunTest(const FString& Parameters)
 	FMON155RuntimeStateGuard RuntimeGuard;
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(1, 0, ClassDefinition);
-	if (!TestNotNull(TEXT("Pool round-trip component exists"), Component) ||
-		!TestNotNull(TEXT("Pool round-trip class definition exists"), ClassDefinition))
+	if (!TestNotNull(TEXT("Pool round-trip component exists"), Component) || !TestNotNull(TEXT("Pool round-trip class definition exists"), ClassDefinition))
 	{
 		return false;
 	}
 
 	FGridCharacterInventoryState Reserve = MakeMON155Character(ClassDefinition, 2, 1000, TEXT("Reserve"));
 	Reserve.LastAcknowledgedLevel = 2;
-	const FRPGDerivedStats Expected =
-		URPGCharacterRulesLibrary::CalculateDerivedStats(Reserve.Attributes, ClassDefinition, Reserve.Level);
+	const FRPGDerivedStats Expected = URPGCharacterRulesLibrary::CalculateDerivedStats(Reserve.Attributes, ClassDefinition, Reserve.Level);
 	CorruptTD073310DerivedStats(Reserve.DerivedStats);
 	Component->PartyInventoryState.CharacterPool.Add(Reserve);
 
@@ -148,8 +137,7 @@ bool FGridTD073310PoolRoundTripTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310SaveSchemaVersionTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_10.Normalization.SaveSchemaVersion",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310SaveSchemaVersionTest, "Grimrock.TechnicalDebt.TD07_3_3_10.Normalization.SaveSchemaVersion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD073310SaveSchemaVersionTest::RunTest(const FString& Parameters)

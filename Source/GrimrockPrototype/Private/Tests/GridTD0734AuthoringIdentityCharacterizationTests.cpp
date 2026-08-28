@@ -63,8 +63,7 @@ bool FGridTD0734CharacterDurableIdentityDuplicationTest::RunTest(const FString& 
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0734PrimaryAssetIdentityGapTest,
-	"Grimrock.TechnicalDebt.TD07_3_4.Characterization.PrimaryAssetIdentityGap",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0734PrimaryAssetIdentityGapTest, "Grimrock.TechnicalDebt.TD07_3_4.Characterization.PrimaryAssetIdentityGap",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0734PrimaryAssetIdentityGapTest::RunTest(const FString& Parameters)
@@ -81,18 +80,17 @@ bool FGridTD0734PrimaryAssetIdentityGapTest::RunTest(const FString& Parameters)
 	URPGClassVisualAsset* ClassVisual = NewObject<URPGClassVisualAsset>(GetTransientPackage(), TEXT("TD0734_ClassVisual"));
 	ClassVisual->ClassId = ClassDefinition->ClassId;
 
-	URPGCharacterPortraitSetAsset* PortraitSet =
-		NewObject<URPGCharacterPortraitSetAsset>(GetTransientPackage(), TEXT("TD0734_PortraitSet"));
+	URPGCharacterPortraitSetAsset* PortraitSet = NewObject<URPGCharacterPortraitSetAsset>(GetTransientPackage(), TEXT("TD0734_PortraitSet"));
 	PortraitSet->RaceId = RaceDefinition->RaceId;
 
 	TestTrue(TEXT("Class PrimaryAssetId is canonically keyed by ClassId"),
 		PrimaryAssetIdUsesBusinessId(ClassDefinition->GetPrimaryAssetId(), ClassDefinition->ClassId));
-	TestTrue(TEXT("Race PrimaryAssetId is canonically keyed by RaceId"),
-		PrimaryAssetIdUsesBusinessId(RaceDefinition->GetPrimaryAssetId(), RaceDefinition->RaceId));
+	TestTrue(
+		TEXT("Race PrimaryAssetId is canonically keyed by RaceId"), PrimaryAssetIdUsesBusinessId(RaceDefinition->GetPrimaryAssetId(), RaceDefinition->RaceId));
 	TestTrue(TEXT("ClassVisual PrimaryAssetId is canonically keyed by ClassId"),
 		PrimaryAssetIdUsesBusinessId(ClassVisual->GetPrimaryAssetId(), ClassVisual->ClassId));
-	TestTrue(TEXT("PortraitSet PrimaryAssetId is canonically keyed by RaceId"),
-		PrimaryAssetIdUsesBusinessId(PortraitSet->GetPrimaryAssetId(), PortraitSet->RaceId));
+	TestTrue(
+		TEXT("PortraitSet PrimaryAssetId is canonically keyed by RaceId"), PrimaryAssetIdUsesBusinessId(PortraitSet->GetPrimaryAssetId(), PortraitSet->RaceId));
 	return true;
 }
 
@@ -107,29 +105,24 @@ bool FGridTD0734CreationCopiesPresentationStateTest::RunTest(const FString& Para
 
 	FString CustomRecruitSource;
 	FString StoryCompanionSource;
-	TestTrue(TEXT("Custom recruit source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/RPG/RPGCustomRecruitService.cpp"), CustomRecruitSource));
-	TestTrue(TEXT("Story companion source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/RPG/RPGStoryCompanionService.cpp"), StoryCompanionSource));
+	TestTrue(
+		TEXT("Custom recruit source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/RPG/RPGCustomRecruitService.cpp"), CustomRecruitSource));
+	TestTrue(
+		TEXT("Story companion source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/RPG/RPGStoryCompanionService.cpp"), StoryCompanionSource));
 
 	TestTrue(TEXT("Custom recruit still projects transient race label"), CustomRecruitSource.Contains(TEXT("Candidate.RaceDisplayName =")));
 	TestTrue(TEXT("Custom recruit still projects transient class label"), CustomRecruitSource.Contains(TEXT("Candidate.ClassDisplayName =")));
 	TestTrue(TEXT("Story companion still projects transient race label"), StoryCompanionSource.Contains(TEXT("Candidate.RaceDisplayName =")));
 	TestTrue(TEXT("Story companion still projects transient class label"), StoryCompanionSource.Contains(TEXT("Candidate.ClassDisplayName =")));
 
-	TestFalse(TEXT("Custom recruit no longer copies Portrait directly"),
-		CustomRecruitSource.Contains(TEXT("Candidate.Portrait = Request.Portrait")));
-	TestFalse(TEXT("Custom recruit no longer copies ClassIcon directly"),
-		CustomRecruitSource.Contains(TEXT("Candidate.ClassIcon = Request.ClassIcon")));
-	TestFalse(TEXT("Story companion no longer copies Portrait override"),
-		StoryCompanionSource.Contains(TEXT("Candidate.Portrait = Definition.Portrait")));
-	TestFalse(TEXT("Story companion no longer copies ClassIcon override"),
-		StoryCompanionSource.Contains(TEXT("Candidate.ClassIcon = Definition.ClassIcon")));
+	TestFalse(TEXT("Custom recruit no longer copies Portrait directly"), CustomRecruitSource.Contains(TEXT("Candidate.Portrait = Request.Portrait")));
+	TestFalse(TEXT("Custom recruit no longer copies ClassIcon directly"), CustomRecruitSource.Contains(TEXT("Candidate.ClassIcon = Request.ClassIcon")));
+	TestFalse(TEXT("Story companion no longer copies Portrait override"), StoryCompanionSource.Contains(TEXT("Candidate.Portrait = Definition.Portrait")));
+	TestFalse(TEXT("Story companion no longer copies ClassIcon override"), StoryCompanionSource.Contains(TEXT("Candidate.ClassIcon = Definition.ClassIcon")));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0734VisualFallbackDuplicationTest,
-	"Grimrock.TechnicalDebt.TD07_3_4.Characterization.VisualFallbackDuplication",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0734VisualFallbackDuplicationTest, "Grimrock.TechnicalDebt.TD07_3_4.Characterization.VisualFallbackDuplication",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD0734VisualFallbackDuplicationTest::RunTest(const FString& Parameters)
@@ -144,14 +137,10 @@ bool FGridTD0734VisualFallbackDuplicationTest::RunTest(const FString& Parameters
 	TestTrue(TEXT("Inventory class-icon source loads"),
 		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/UI/GridInventoryWidgetClassIcon.cpp"), ClassIconSource));
 
-	TestTrue(TEXT("Visual read model resolves Portrait from durable identity"),
-		InventoryVisualSource.Contains(TEXT("ResolvePortraitVisual")));
-	TestTrue(TEXT("Visual read model resolves ClassIcon from ClassId"),
-		InventoryVisualSource.Contains(TEXT("ResolveClassIcon")));
-	TestTrue(TEXT("Class visual lookup remains keyed by ClassId"),
-		ClassIconSource.Contains(TEXT("FindClassVisualForClass(VisualSelection.ClassId)")));
-	TestFalse(TEXT("UI no longer falls back to character-stored ClassIcon"),
-		ClassIconSource.Contains(TEXT(": VisualSelection.ClassIcon")));
+	TestTrue(TEXT("Visual read model resolves Portrait from durable identity"), InventoryVisualSource.Contains(TEXT("ResolvePortraitVisual")));
+	TestTrue(TEXT("Visual read model resolves ClassIcon from ClassId"), InventoryVisualSource.Contains(TEXT("ResolveClassIcon")));
+	TestTrue(TEXT("Class visual lookup remains keyed by ClassId"), ClassIconSource.Contains(TEXT("FindClassVisualForClass(VisualSelection.ClassId)")));
+	TestFalse(TEXT("UI no longer falls back to character-stored ClassIcon"), ClassIconSource.Contains(TEXT(": VisualSelection.ClassIcon")));
 	return true;
 }
 

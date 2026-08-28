@@ -23,8 +23,7 @@ namespace GridTD073310Characterization
 		return Property && !Property->HasAnyPropertyFlags(CPF_Transient);
 	}
 
-	void TestTD073310CharacterizationDerivedStatsEqual(
-		FAutomationTestBase& Test, const FRPGDerivedStats& Actual, const FRPGDerivedStats& Expected)
+	void TestTD073310CharacterizationDerivedStatsEqual(FAutomationTestBase& Test, const FRPGDerivedStats& Actual, const FRPGDerivedStats& Expected)
 	{
 		Test.TestEqual(TEXT("Rebuilt MaxHealth"), Actual.MaxHealth, Expected.MaxHealth);
 		Test.TestEqual(TEXT("Rebuilt MaxMana"), Actual.MaxMana, Expected.MaxMana);
@@ -34,8 +33,7 @@ namespace GridTD073310Characterization
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310SaveEnvelopeTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_10.Characterization.SaveEnvelope",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310SaveEnvelopeTest, "Grimrock.TechnicalDebt.TD07_3_3_10.Characterization.SaveEnvelope",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD073310SaveEnvelopeTest::RunTest(const FString& Parameters)
@@ -46,13 +44,8 @@ bool FGridTD073310SaveEnvelopeTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("PartyInventoryState remains the character-state Save envelope"),
 		FindFProperty<FProperty>(UGrimrockPartySaveGame::StaticClass(), TEXT("PartyInventoryState")));
 
-	const TCHAR* RemovedSnapshots[] = {
-		TEXT("ClassProgressionStates"),
-		TEXT("CharacterSkillStates"),
-		TEXT("CharacterSpellbookStates"),
-		TEXT("CharacterStatusEffectStates"),
-		TEXT("PendingLevelUpNotifications")
-	};
+	const TCHAR* RemovedSnapshots[] = { TEXT("ClassProgressionStates"), TEXT("CharacterSkillStates"), TEXT("CharacterSpellbookStates"),
+		TEXT("CharacterStatusEffectStates"), TEXT("PendingLevelUpNotifications") };
 	for (const TCHAR* SnapshotName : RemovedSnapshots)
 	{
 		TestNull(FString::Printf(TEXT("Auxiliary character snapshot %s remains absent"), SnapshotName),
@@ -61,8 +54,7 @@ bool FGridTD073310SaveEnvelopeTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310AuthorityFlagsTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_10.Characterization.AuthorityFlags",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310AuthorityFlagsTest, "Grimrock.TechnicalDebt.TD07_3_3_10.Characterization.AuthorityFlags",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD073310AuthorityFlagsTest::RunTest(const FString& Parameters)
@@ -73,8 +65,7 @@ bool FGridTD073310AuthorityFlagsTest::RunTest(const FString& Parameters)
 	const FProperty* LevelProperty = FindCharacterProperty(TEXT("Level"));
 	const FProperty* DerivedStatsProperty = FindCharacterProperty(TEXT("DerivedStats"));
 	TestTrue(TEXT("Level is transient projection"), LevelProperty && LevelProperty->HasAnyPropertyFlags(CPF_Transient));
-	TestTrue(TEXT("DerivedStats is transient projection"),
-		DerivedStatsProperty && DerivedStatsProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("DerivedStats is transient projection"), DerivedStatsProperty && DerivedStatsProperty->HasAnyPropertyFlags(CPF_Transient));
 
 	TestTrue(TEXT("Experience is durable authority"), IsDurableCharacterProperty(TEXT("Experience")));
 	TestTrue(TEXT("Resources are durable mutable authority"), IsDurableCharacterProperty(TEXT("Resources")));
@@ -91,8 +82,7 @@ bool FGridTD073310AuthorityFlagsTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310DerivedStatsPersistenceGapTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_10.Characterization.DerivedStatsPersistenceGap",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310DerivedStatsPersistenceGapTest, "Grimrock.TechnicalDebt.TD07_3_3_10.Characterization.DerivedStatsPersistenceGap",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD073310DerivedStatsPersistenceGapTest::RunTest(const FString& Parameters)
@@ -104,18 +94,14 @@ bool FGridTD073310DerivedStatsPersistenceGapTest::RunTest(const FString& Paramet
 	const FProperty* ResourcesProperty = FindCharacterProperty(TEXT("Resources"));
 	TestTrue(TEXT("Reconstructible DerivedStats no longer participates in durable serialization"),
 		DerivedStatsProperty && DerivedStatsProperty->HasAnyPropertyFlags(CPF_Transient));
-	TestTrue(TEXT("Mutable Resources remain durable"),
-		ResourcesProperty && !ResourcesProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("Mutable Resources remain durable"), ResourcesProperty && !ResourcesProperty->HasAnyPropertyFlags(CPF_Transient));
 
-	const FProperty* DefinitionAssetProperty =
-		FindFProperty<FProperty>(FGridStatusEffectRuntimeState::StaticStruct(), TEXT("DefinitionAsset"));
-	TestTrue(TEXT("Status-effect definition cache remains transient"),
-		DefinitionAssetProperty && DefinitionAssetProperty->HasAnyPropertyFlags(CPF_Transient));
+	const FProperty* DefinitionAssetProperty = FindFProperty<FProperty>(FGridStatusEffectRuntimeState::StaticStruct(), TEXT("DefinitionAsset"));
+	TestTrue(TEXT("Status-effect definition cache remains transient"), DefinitionAssetProperty && DefinitionAssetProperty->HasAnyPropertyFlags(CPF_Transient));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310DerivedStatsValidationGapTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_10.Characterization.DerivedStatsValidationGap",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD073310DerivedStatsValidationGapTest, "Grimrock.TechnicalDebt.TD07_3_3_10.Characterization.DerivedStatsValidationGap",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD073310DerivedStatsValidationGapTest::RunTest(const FString& Parameters)
@@ -126,15 +112,13 @@ bool FGridTD073310DerivedStatsValidationGapTest::RunTest(const FString& Paramete
 	FMON155RuntimeStateGuard RuntimeGuard;
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(2, 1000, ClassDefinition);
-	if (!TestNotNull(TEXT("Characterization component exists"), Component) ||
-		!TestNotNull(TEXT("Characterization class definition exists"), ClassDefinition))
+	if (!TestNotNull(TEXT("Characterization component exists"), Component) || !TestNotNull(TEXT("Characterization class definition exists"), ClassDefinition))
 	{
 		return false;
 	}
 
 	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
-	const FRPGDerivedStats Expected =
-		URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, Character.Level);
+	const FRPGDerivedStats Expected = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, Character.Level);
 	Character.DerivedStats.MaxHealth += 777;
 	Character.DerivedStats.MaxMana += 333;
 	Character.DerivedStats.Initiative += 111;

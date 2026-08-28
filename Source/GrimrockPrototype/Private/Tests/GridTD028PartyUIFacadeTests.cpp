@@ -16,13 +16,13 @@ namespace
 		FGridTD028TestWorld()
 		{
 			const UWorld::InitializationValues InitializationValues = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
+																		  .AllowAudioPlayback(false)
+																		  .RequiresHitProxies(false)
+																		  .CreatePhysicsScene(false)
+																		  .CreateNavigation(false)
+																		  .CreateAISystem(false)
+																		  .ShouldSimulatePhysics(false)
+																		  .SetTransactional(false);
 
 			World = UWorld::CreateWorld(EWorldType::Game, false,
 				FName(*FString::Printf(TEXT("TD028PartyUIFacadeWorld_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
@@ -50,8 +50,7 @@ namespace
 	};
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD028PartyUIFacadeModalBlockingContractTest,
-	"Grimrock.TechnicalDebt.TD02_8.PartyUIFacade.ModalBlockingContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD028PartyUIFacadeModalBlockingContractTest, "Grimrock.TechnicalDebt.TD02_8.PartyUIFacade.ModalBlockingContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD028PartyUIFacadeModalBlockingContractTest::RunTest(const FString& Parameters)

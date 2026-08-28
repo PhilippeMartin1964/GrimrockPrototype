@@ -49,12 +49,18 @@ namespace RPGMON2092Tests
 	const FGridCharacterInventoryState* FindMON2092Character(const FGridPartyInventoryState& State, const FGuid& CharacterId)
 	{
 		if (const FGridCharacterInventoryState* Active = State.ActiveCharacters.FindByPredicate(
-				[&CharacterId](const FGridCharacterInventoryState& Character) { return Character.CharacterId == CharacterId; }))
+				[&CharacterId](const FGridCharacterInventoryState& Character)
+				{
+					return Character.CharacterId == CharacterId;
+				}))
 		{
 			return Active;
 		}
 		return State.CharacterPool.FindByPredicate(
-			[&CharacterId](const FGridCharacterInventoryState& Character) { return Character.CharacterId == CharacterId; });
+			[&CharacterId](const FGridCharacterInventoryState& Character)
+			{
+				return Character.CharacterId == CharacterId;
+			});
 	}
 }
 
@@ -84,7 +90,12 @@ bool FRPGMON2092CaptureActivePoolSparseTest::RunTest(const FString& Parameters)
 	FString Error;
 	TestTrue(TEXT("Durable active and pooled Skill state validates"),
 		FRPGSkillPersistence::ValidatePartySkills(
-			Party, [&Definitions](FName SkillId) { return ResolveMON2092(Definitions, SkillId); }, Error));
+			Party,
+			[&Definitions](FName SkillId)
+			{
+				return ResolveMON2092(Definitions, SkillId);
+			},
+			Error));
 	TestEqual(TEXT("Active trained character owns two sparse ranks"), Party.ActiveCharacters[0].SkillRanks.Num(), 2);
 	TestEqual(TEXT("Untrained active character owns no sparse ranks"), Party.ActiveCharacters[1].SkillRanks.Num(), 0);
 	TestEqual(TEXT("Pooled character owns its durable rank"), Party.CharacterPool[0].SkillRanks.Num(), 1);
@@ -124,14 +135,26 @@ bool FRPGMON2092CaptureInvalidCharacterAtomicTest::RunTest(const FString& Parame
 	const FGridPartyInventoryState Before = Party;
 	FString Error;
 	TestFalse(TEXT("Duplicate CharacterId is rejected"),
-		FRPGSkillPersistence::ValidatePartySkills(Party, [](FName) -> const URPGSkillAsset* { return nullptr; }, Error));
+		FRPGSkillPersistence::ValidatePartySkills(
+			Party,
+			[](FName) -> const URPGSkillAsset*
+			{
+				return nullptr;
+			},
+			Error));
 	TestEqual(TEXT("Validation never mutates active character count"), Party.ActiveCharacters.Num(), Before.ActiveCharacters.Num());
 	TestEqual(TEXT("Validation never mutates pool character count"), Party.CharacterPool.Num(), Before.CharacterPool.Num());
 
 	Party = FGridPartyInventoryState();
 	Party.ActiveCharacters.Add(MakeMON2092Character(FGuid()));
 	TestFalse(TEXT("Invalid CharacterId is rejected"),
-		FRPGSkillPersistence::ValidatePartySkills(Party, [](FName) -> const URPGSkillAsset* { return nullptr; }, Error));
+		FRPGSkillPersistence::ValidatePartySkills(
+			Party,
+			[](FName) -> const URPGSkillAsset*
+			{
+				return nullptr;
+			},
+			Error));
 	return true;
 }
 
@@ -143,7 +166,10 @@ bool FRPGMON2092CaptureInvalidSkillAtomicTest::RunTest(const FString& Parameters
 	(void)Parameters;
 	TMap<FName, URPGSkillAsset*> Definitions;
 	Definitions.Add(TEXT("Skill_A"), MakeMON2092Skill(TEXT("Skill_A"), 2));
-	const auto Resolver = [&Definitions](FName SkillId) { return ResolveMON2092(Definitions, SkillId); };
+	const auto Resolver = [&Definitions](FName SkillId)
+	{
+		return ResolveMON2092(Definitions, SkillId);
+	};
 	FString Error;
 
 	FGridPartyInventoryState DuplicateParty;
@@ -219,7 +245,10 @@ bool FRPGMON2092RestoreInvalidSnapshotAtomicTest::RunTest(const FString& Paramet
 	(void)Parameters;
 	TMap<FName, URPGSkillAsset*> Definitions;
 	Definitions.Add(TEXT("Skill_A"), MakeMON2092Skill(TEXT("Skill_A"), 2));
-	const auto Resolver = [&Definitions](FName SkillId) { return ResolveMON2092(Definitions, SkillId); };
+	const auto Resolver = [&Definitions](FName SkillId)
+	{
+		return ResolveMON2092(Definitions, SkillId);
+	};
 
 	FGridPartyInventoryState Valid;
 	FGridCharacterInventoryState Character = MakeMON2092Character(MakeMON2092Id(1));
