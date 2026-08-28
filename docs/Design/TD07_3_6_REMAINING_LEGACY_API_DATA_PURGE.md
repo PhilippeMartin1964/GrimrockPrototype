@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3 — Prototype Data Model Reset
-Statut : NORMALISATION FINALE IMPLÉMENTÉE — À VALIDER
+Statut : VALIDÉ — CLOS
 
 ## 1. Objectif
 
@@ -274,3 +274,72 @@ LegacyInfrastructureRemoved
 ```
 
 Attendu : 4/4, zéro warning, zéro échec.
+
+
+## 14. Validation finale et clôture
+
+Validation locale du 28 août 2026 après alignement du test MON13 sur le schéma strict :
+
+```text
+Grimrock.Monsters.MON13
+    Succeeded              : 13
+    Succeeded with warnings: 4
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-101355
+
+Grimrock.TechnicalDebt.TD07_3_6.Normalization
+    Succeeded              : 4
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-101422
+
+Grimrock.TechnicalDebt.TD07_3_6.Characterization
+    Succeeded              : 4
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-101435
+
+Grimrock.TechnicalDebt.TD07_3_1.CurrentSchemaAssetAudit
+    Succeeded              : 1
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-101447
+```
+
+Le test historique MON13 `PersistentModel` a été réaligné au commit :
+
+```text
+7e7204f95a7384072d7e19d47c4107881e337b06
+Align MON13 persistent model with strict facing schema
+```
+
+Shipping final :
+
+```text
+Target        : GrimrockPrototype
+Platform      : Win64
+Configuration : Shipping
+Executable    : Saved/Packaging/TD04/TD04-Shipping-20260828-101509/Windows/GrimrockPrototype.exe
+Pak files     : 1
+Archive files : 41
+Archive bytes : 905992107
+BUILD SUCCESSFUL
+AutomationTool ExitCode=0
+Cook: Success - 0 error(s), 0 warning(s)
+```
+
+Stop condition TD07.3.6 :
+
+- [x] characterization verte ;
+- [x] placement mirrors supprimés ;
+- [x] combat query déprécié supprimé ;
+- [x] ancien clavier Use supprimé ;
+- [x] ObjectsOnly supprimé ;
+- [x] MonsterSpawn current asset resauvegardé ;
+- [x] yaw fallback supprimé ;
+- [x] MON11/MON13 verts ;
+- [x] audit courant vert ;
+- [x] Win64 Shipping vert ;
+- [x] TD07.3.6 clos.
+
+La tranche suivante est **TD07.3.7 — Current Asset Repair / Recreation**.
