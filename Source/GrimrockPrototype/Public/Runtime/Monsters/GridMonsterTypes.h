@@ -8,8 +8,6 @@
 
 class UAnimMontage;
 class UGridItemDefinitionAsset;
-class UNiagaraSystem;
-class USoundBase;
 class UStaticMesh;
 
 UENUM(BlueprintType)
@@ -144,9 +142,6 @@ struct FGridMonsterAttackDefinition
 	FName CompleteNotifyName = TEXT("Monster.ActionComplete");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Audio")
-	TSoftObjectPtr<USoundBase> AttackSound;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Audio")
 	FGridMonsterAudioEventDefinition AttackAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Audio")
@@ -154,9 +149,6 @@ struct FGridMonsterAttackDefinition
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Audio")
 	FGridMonsterAudioEventDefinition ImpactMissAudio;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|VFX")
-	TSoftObjectPtr<UNiagaraSystem> ImpactVFX;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|VFX")
 	FGridMonsterVFXEventDefinition AttackVFXDefinition;

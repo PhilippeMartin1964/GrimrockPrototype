@@ -89,19 +89,13 @@ bool UGridMonsterVFXComponent::PlayAttackImpactVFX(
 	const FGridMonsterAttackDefinition& Attack, const FGridAttackResult& Result, FVector ImpactWorldLocation, int32 TargetCharacterIndex)
 {
 	const EGridMonsterVFXEvent Event = Result.bHit ? EGridMonsterVFXEvent::ImpactHit : EGridMonsterVFXEvent::ImpactMiss;
-	const FGridMonsterVFXEventDefinition* Definition = Result.bHit ? &Attack.ImpactHitVFXDefinition : &Attack.ImpactMissVFXDefinition;
-	FGridMonsterVFXEventDefinition LegacyDefinition;
-	if (Result.bHit && !Definition->HasConfiguredSystem() && !Attack.ImpactVFX.IsNull())
-	{
-		LegacyDefinition.Systems.Add(Attack.ImpactVFX);
-		Definition = &LegacyDefinition;
-	}
+	const FGridMonsterVFXEventDefinition& Definition = Result.bHit ? Attack.ImpactHitVFXDefinition : Attack.ImpactMissVFXDefinition;
 
 	if (ImpactWorldLocation.ContainsNaN() && OwnerMonster)
 	{
 		ImpactWorldLocation = OwnerMonster->GetActorLocation();
 	}
-	return PlayDefinition(Event, *Definition, Attack.AttackId, &Result, ImpactWorldLocation, TargetCharacterIndex);
+	return PlayDefinition(Event, Definition, Attack.AttackId, &Result, ImpactWorldLocation, TargetCharacterIndex);
 }
 
 bool UGridMonsterVFXComponent::PlayHurtVFX(const FGridAttackResult& Result)

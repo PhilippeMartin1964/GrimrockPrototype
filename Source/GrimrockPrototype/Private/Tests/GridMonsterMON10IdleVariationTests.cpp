@@ -473,8 +473,8 @@ bool FGridMonsterMON10IdleVariationNoTickNoPersistenceAndIsolationTest::RunTest(
 		FindFProperty<FProperty>(FGridRuntimeMonsterState::StaticStruct(), TEXT("LastIdleVariationPlaybackRequest")));
 	TestNull(TEXT("MON9 level state has no Idle request"), FindFProperty<FProperty>(FGridLevelRuntimeState::StaticStruct(), TEXT("IdleVariation")));
 
-	TestNotNull(TEXT("Legacy AttackSound remains reflected"), FindFProperty<FProperty>(FGridMonsterAttackDefinition::StaticStruct(), TEXT("AttackSound")));
-	TestNotNull(TEXT("Legacy ImpactVFX remains reflected"), FindFProperty<FProperty>(FGridMonsterAttackDefinition::StaticStruct(), TEXT("ImpactVFX")));
+	TestNull(TEXT("Legacy AttackSound is removed"), FindFProperty<FProperty>(FGridMonsterAttackDefinition::StaticStruct(), TEXT("AttackSound")));
+	TestNull(TEXT("Legacy ImpactVFX is removed"), FindFProperty<FProperty>(FGridMonsterAttackDefinition::StaticStruct(), TEXT("ImpactVFX")));
 
 	const EGridMonsterState StateBefore = Monster->MonsterState;
 	const int32 HealthBefore = Monster->CurrentHealth;

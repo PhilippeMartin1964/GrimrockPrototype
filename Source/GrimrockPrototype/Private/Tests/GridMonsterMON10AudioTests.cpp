@@ -237,10 +237,10 @@ bool FGridMonsterMON10AudioDefinitionValidationTest::RunTest(const FString& Para
 	TestFalse(TEXT("An inverted idle delay range is invalid"), Definition->IsValidDefinition());
 
 	FGridMonsterAttackDefinition Attack;
-	Attack.AttackId = TEXT("Attack_Legacy");
-	Attack.AttackSound = MakeMON10AudioSound(GetTransientPackage(), TEXT("MON10LegacyAttackSound"));
-	TestTrue(TEXT("Legacy AttackSound remains compatible"), Attack.IsValidDefinition());
-	TestFalse(TEXT("AttackSound remains assigned"), Attack.AttackSound.IsNull());
+	Attack.AttackId = TEXT("Attack_CurrentAudio");
+	Attack.AttackAudio.Sounds.Add(MakeMON10AudioSound(GetTransientPackage(), TEXT("MON10CurrentAttackSound")));
+	TestTrue(TEXT("Current AttackAudio remains valid"), Attack.IsValidDefinition());
+	TestTrue(TEXT("AttackAudio remains configured"), Attack.AttackAudio.HasConfiguredSound());
 	return true;
 }
 

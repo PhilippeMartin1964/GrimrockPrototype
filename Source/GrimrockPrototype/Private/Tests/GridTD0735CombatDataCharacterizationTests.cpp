@@ -75,11 +75,11 @@ bool FGridTD0735LegacyItemAdapterRemovedTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735MonsterSchemaMultiplicityTest,
-	"Grimrock.TechnicalDebt.TD07_3_5.Characterization.MonsterSchemaMultiplicity",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735MonsterPresentationAuthorityTest,
+	"Grimrock.TechnicalDebt.TD07_3_5.Characterization.MonsterPresentationAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridTD0735MonsterSchemaMultiplicityTest::RunTest(const FString& Parameters)
+bool FGridTD0735MonsterPresentationAuthorityTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
@@ -90,20 +90,24 @@ bool FGridTD0735MonsterSchemaMultiplicityTest::RunTest(const FString& Parameters
 		return false;
 	}
 
-	TestNotNull(TEXT("Legacy AttackSound still exists"), AttackStruct->FindPropertyByName(TEXT("AttackSound")));
+	TestNull(TEXT("Legacy AttackSound is removed"), AttackStruct->FindPropertyByName(TEXT("AttackSound")));
 	TestNotNull(TEXT("Current AttackAudio exists"), AttackStruct->FindPropertyByName(TEXT("AttackAudio")));
-	TestNotNull(TEXT("Legacy ImpactVFX still exists"), AttackStruct->FindPropertyByName(TEXT("ImpactVFX")));
+	TestNotNull(TEXT("Current ImpactHitAudio exists"), AttackStruct->FindPropertyByName(TEXT("ImpactHitAudio")));
+	TestNotNull(TEXT("Current ImpactMissAudio exists"), AttackStruct->FindPropertyByName(TEXT("ImpactMissAudio")));
+	TestNull(TEXT("Legacy ImpactVFX is removed"), AttackStruct->FindPropertyByName(TEXT("ImpactVFX")));
+	TestNotNull(TEXT("Current AttackVFXDefinition exists"), AttackStruct->FindPropertyByName(TEXT("AttackVFXDefinition")));
 	TestNotNull(TEXT("Current ImpactHitVFXDefinition exists"), AttackStruct->FindPropertyByName(TEXT("ImpactHitVFXDefinition")));
-	TestNotNull(TEXT("Serialized legacy range name RangeCells still exists"), AttackStruct->FindPropertyByName(TEXT("RangeCells")));
+	TestNotNull(TEXT("Current ImpactMissVFXDefinition exists"), AttackStruct->FindPropertyByName(TEXT("ImpactMissVFXDefinition")));
+	TestNotNull(TEXT("Serialized legacy range name RangeCells still exists for TD07.3.5.4"), AttackStruct->FindPropertyByName(TEXT("RangeCells")));
 	TestNull(TEXT("Target current field MaxRangeCells does not exist yet"), AttackStruct->FindPropertyByName(TEXT("MaxRangeCells")));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735MonsterRuntimeFallbacksTest,
-	"Grimrock.TechnicalDebt.TD07_3_5.Characterization.MonsterRuntimeFallbacks",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735MonsterPresentationRuntimeNormalizedTest,
+	"Grimrock.TechnicalDebt.TD07_3_5.Characterization.MonsterPresentationRuntimeNormalized",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridTD0735MonsterRuntimeFallbacksTest::RunTest(const FString& Parameters)
+bool FGridTD0735MonsterPresentationRuntimeNormalizedTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	using namespace GridTD0735Characterization;
@@ -118,13 +122,13 @@ bool FGridTD0735MonsterRuntimeFallbacksTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Monster types source loads"),
 		LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/Monsters/GridMonsterTypes.h"), TypesSource));
 
-	TestTrue(TEXT("Attack audio still falls back to legacy AttackSound"),
-		AudioSource.Contains(TEXT("Attack.AttackSound")) && AudioSource.Contains(TEXT("LegacyDefinition.Sounds.Add")));
-	TestTrue(TEXT("Hit VFX still falls back to legacy ImpactVFX"),
-		VFXSource.Contains(TEXT("Attack.ImpactVFX")) && VFXSource.Contains(TEXT("LegacyDefinition.Systems.Add")));
-	TestTrue(TEXT("Monster range helpers still use serialized RangeCells"),
+	TestFalse(TEXT("Attack audio no longer falls back to legacy AttackSound"),
+		AudioSource.Contains(TEXT("Attack.AttackSound")) || AudioSource.Contains(TEXT("LegacyDefinition.Sounds.Add")));
+	TestFalse(TEXT("Hit VFX no longer falls back to legacy ImpactVFX"),
+		VFXSource.Contains(TEXT("Attack.ImpactVFX")) || VFXSource.Contains(TEXT("LegacyDefinition.Systems.Add")));
+	TestTrue(TEXT("Monster range helpers still use serialized RangeCells for TD07.3.5.4"),
 		TypesSource.Contains(TEXT("DistanceCells <= RangeCells")) && TypesSource.Contains(TEXT("RangeCells > 1")));
-	TestTrue(TEXT("RangeCells comment explicitly exists for serialized compatibility"),
+	TestTrue(TEXT("RangeCells comment still marks the remaining serialized compatibility debt"),
 		TypesSource.Contains(TEXT("Kept as RangeCells for serialized asset compatibility")));
 	return true;
 }

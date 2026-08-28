@@ -411,8 +411,8 @@ bool FGridMonsterMON10OptimizationInvariantsTest::RunTest(const FString& Paramet
 		TEXT("Historical base seed remains reflected"), FindFProperty<FProperty>(UGridTurnManagerComponent::StaticClass(), TEXT("EncounterRandomSeed")));
 	TestEqual(TEXT("Historical base seed default remains 1337"), GetDefault<UGridTurnManagerComponent>()->EncounterRandomSeed, 1337);
 	TestFalse(TEXT("Phase logs are silent by default"), GetDefault<UGridTurnManagerComponent>()->bLogPhaseChanges);
-	TestNotNull(TEXT("AttackSound remains reflected"), FindFProperty<FProperty>(FGridMonsterAttackDefinition::StaticStruct(), TEXT("AttackSound")));
-	TestNotNull(TEXT("ImpactVFX remains reflected"), FindFProperty<FProperty>(FGridMonsterAttackDefinition::StaticStruct(), TEXT("ImpactVFX")));
+	TestNull(TEXT("Legacy AttackSound is removed"), FindFProperty<FProperty>(FGridMonsterAttackDefinition::StaticStruct(), TEXT("AttackSound")));
+	TestNull(TEXT("Legacy ImpactVFX is removed"), FindFProperty<FProperty>(FGridMonsterAttackDefinition::StaticStruct(), TEXT("ImpactVFX")));
 	TestNull(TEXT("MON9 monster state has no metrics"), FindFProperty<FProperty>(FGridRuntimeMonsterState::StaticStruct(), TEXT("RuntimeMetrics")));
 	TestNull(TEXT("MON9 level state has no active seed"), FindFProperty<FProperty>(FGridLevelRuntimeState::StaticStruct(), TEXT("ActiveEncounterRandomSeed")));
 	return true;

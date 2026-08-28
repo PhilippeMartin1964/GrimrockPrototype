@@ -208,25 +208,6 @@ namespace GridTD0731SchemaAuditPrivate
 
 	void AuditMonsterDefinition(const UGridMonsterDefinitionAsset& Monster, const FString& AssetPath, TArray<FGridTD0731Finding>& Findings)
 	{
-		int32 LegacyAttackSoundCount = 0;
-		int32 LegacyImpactVFXCount = 0;
-		for (const FGridMonsterAttackDefinition& Attack : Monster.Attacks)
-		{
-			LegacyAttackSoundCount += Attack.AttackSound.IsNull() ? 0 : 1;
-			LegacyImpactVFXCount += Attack.ImpactVFX.IsNull() ? 0 : 1;
-		}
-
-		if (LegacyAttackSoundCount > 0)
-		{
-			AddFinding(Findings, EGridTD0731FindingKind::LegacyField, TEXT("MONSTER.LEGACY_ATTACK_SOUND"), AssetPath, TEXT("Attacks"),
-				FString::Printf(TEXT("%d attack(s) still populate AttackSound; target schema uses AttackAudio."), LegacyAttackSoundCount));
-		}
-		if (LegacyImpactVFXCount > 0)
-		{
-			AddFinding(Findings, EGridTD0731FindingKind::LegacyField, TEXT("MONSTER.LEGACY_IMPACT_VFX"), AssetPath, TEXT("Attacks"),
-				FString::Printf(TEXT("%d attack(s) still populate ImpactVFX; target schema uses ImpactHitVFXDefinition/ImpactMissVFXDefinition."),
-					LegacyImpactVFXCount));
-		}
 		if (!Monster.Attacks.IsEmpty())
 		{
 			AddFinding(Findings, EGridTD0731FindingKind::SchemaRename, TEXT("MONSTER.RANGE_FIELD_RENAME"), AssetPath, TEXT("Attacks"),

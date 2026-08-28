@@ -33,12 +33,20 @@ La validation ne charge aucun asset. Elle refuse une entrée explicitement
 vide, les nombres non finis, une composante d’échelle non strictement positive
 et un cooldown négatif.
 
-## 5. Compatibilité de `ImpactVFX`
+## 5. Autorité VFX d'impact
 
-Le champ historique `TSoftObjectPtr<UNiagaraSystem> ImpactVFX` est conservé.
-Pour un impact réussi, `ImpactHitVFXDefinition` est prioritaire, puis
-`ImpactVFX` sert de variante unique avec transform identité et sans cooldown.
-`ImpactVFX` n’est jamais utilisé pour un impact manqué.
+Depuis TD07.3.5.3, le champ historique `ImpactVFX` est supprimé.
+
+Les autorités sont uniquement :
+
+```text
+AttackVFXDefinition
+ImpactHitVFXDefinition
+ImpactMissVFXDefinition
+```
+
+Un événement sans système configuré ne produit aucun VFX. Aucun fallback vers
+une soft reference historique n'est exécuté.
 
 ## 6. Sélection déterministe
 

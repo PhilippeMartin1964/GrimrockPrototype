@@ -4,7 +4,7 @@ Date : **28 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3 — Prototype Data Model Reset**  
 Baseline : `edca373674ed2ca4fc476b9592efe93710575b84`  
-Statut : **CHARACTERIZATION VALIDÉE — TD07.3.5.2 NORMALISATION IMPLÉMENTÉE / À VALIDER**
+Statut : **CHARACTERIZATION VALIDÉE — TD07.3.5.3 NORMALISATION IMPLÉMENTÉE / À VALIDER**
 
 ## 1. Contexte
 
@@ -299,3 +299,30 @@ fallbacks runtime item              supprimés
 La Characterization post-refactor conserve quatre tests : les deux premiers
 constatent désormais la frontière item normalisée, tandis que les deux derniers
 continuent à caractériser les dettes monster encore actives pour TD07.3.5.3/.4.
+
+
+### Mise à jour TD07.3.5.3
+
+La dette de présentation monster caractérisée initialement est maintenant supprimée :
+
+```text
+AttackSound                              supprimé
+ImpactVFX                                supprimé
+fallback AttackAudio -> AttackSound      supprimé
+fallback hit VFX -> ImpactVFX            supprimé
+```
+
+Les deux DataAssets courants RatGiant/GoblinThrower ont été réparés avant la
+suppression du schéma.
+
+La Characterization conserve quatre tests :
+
+```text
+ItemSchemaAuthority
+LegacyItemAdapterRemoved
+MonsterPresentationAuthority
+MonsterPresentationRuntimeNormalized
+```
+
+La seule dette combat volontairement encore caractérisée est maintenant le
+renommage `RangeCells -> MaxRangeCells`, réservé à TD07.3.5.4.

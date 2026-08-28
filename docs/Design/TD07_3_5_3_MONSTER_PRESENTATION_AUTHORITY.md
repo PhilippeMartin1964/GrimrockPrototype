@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3.5 — Combat Data Schema Reset
-Statut : ASSET REPAIR PREPARED — RATGIANT / GOBLINTHROWER LFS REPAIR REQUIRED
+Statut : LFS RÉPARÉ — NORMALISATION C++ IMPLÉMENTÉE / À VALIDER
 
 ## 1. Cible
 
@@ -90,3 +90,88 @@ repair current monster LFS assets
 -> continue TD07.3.5.4 range schema
 
 Aucun shim PostLoad/runtime de compatibilité n'est introduit.
+
+
+## 7. Réparation LFS validée
+
+Le 28 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_5_3.AssetRepair
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-090239
+```
+
+Commit LFS :
+
+```text
+645775c5296531d422abf9cc020cd75109eae2d0
+Repair monster presentation authoring
+```
+
+Pointeurs après réparation :
+
+```text
+DA_MON_RatGiant
+oid sha256:4c36c75dcff8d6b6aeb95d7ad56f315e8391d51b55a0a94cd044fdf594ba9068
+size 11241
+
+DA_MON_GoblinThrower
+oid sha256:ba9109bb061ae35ccc58855243e5fe3fdce35e2c3e9c38a9ab73abd73f7b085e
+size 11490
+```
+
+## 8. Normalisation C++ appliquée
+
+Supprimés de `FGridMonsterAttackDefinition` :
+
+```text
+AttackSound
+ImpactVFX
+```
+
+Supprimés du runtime :
+
+```text
+AttackAudio -> AttackSound fallback
+ImpactHitVFXDefinition -> ImpactVFX fallback
+temporary LegacyDefinition adapters
+```
+
+Autorité restante :
+
+```text
+AttackAudio
+ImpactHitAudio
+ImpactMissAudio
+
+AttackVFXDefinition
+ImpactHitVFXDefinition
+ImpactMissVFXDefinition
+```
+
+`RangeCells` reste volontairement inchangé jusqu'à TD07.3.5.4.
+
+L'outil one-shot et son script sont supprimés après usage.
+
+## 9. Gate de normalisation
+
+Filtre :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_5_3.Normalization
+```
+
+Tests :
+
+```text
+SchemaAuthority
+RepairedAssets
+CurrentPresentationDefinitions
+RuntimeFallbackRemoval
+```
+
+Attendu : 4/4, zéro warning.

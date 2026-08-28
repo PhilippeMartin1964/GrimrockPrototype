@@ -234,10 +234,10 @@ bool FGridMonsterMON10VFXDefinitionValidationTest::RunTest(const FString& Parame
 	TestTrue(TEXT("A monster with no VFX remains valid"), Definition->IsValidDefinition());
 
 	FGridMonsterAttackDefinition Attack;
-	Attack.AttackId = TEXT("Attack_Legacy");
-	Attack.ImpactVFX = NewObject<UNiagaraSystem>(GetTransientPackage(), TEXT("MON10LegacyImpactVFX"));
-	TestTrue(TEXT("Legacy ImpactVFX remains compatible"), Attack.IsValidDefinition());
-	TestFalse(TEXT("ImpactVFX remains assigned"), Attack.ImpactVFX.IsNull());
+	Attack.AttackId = TEXT("Attack_CurrentVFX");
+	Attack.ImpactHitVFXDefinition.Systems.Add(NewObject<UNiagaraSystem>(GetTransientPackage(), TEXT("MON10CurrentImpactVFX")));
+	TestTrue(TEXT("Current ImpactHitVFXDefinition remains valid"), Attack.IsValidDefinition());
+	TestTrue(TEXT("ImpactHitVFXDefinition remains configured"), Attack.ImpactHitVFXDefinition.HasConfiguredSystem());
 	return true;
 }
 

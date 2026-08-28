@@ -100,22 +100,9 @@ bool UGridMonsterAudioComponent::PlayAlert()
 bool UGridMonsterAudioComponent::PlayAttack(const FGridMonsterAttackDefinition& Attack)
 {
 	StopIdleAmbience();
-
-	if (Attack.AttackAudio.HasConfiguredSound())
-	{
-		return PlayDefinition(
-			EGridMonsterAudioEvent::Attack, Attack.AttackAudio, Attack.AttackId, OwnerMonster ? OwnerMonster->GetActorLocation() : FVector::ZeroVector);
-	}
-
-	if (Attack.AttackSound.IsNull())
-	{
-		return false;
-	}
-
-	FGridMonsterAudioEventDefinition LegacyDefinition;
-	LegacyDefinition.Sounds.Add(Attack.AttackSound);
 	return PlayDefinition(
-		EGridMonsterAudioEvent::Attack, LegacyDefinition, Attack.AttackId, OwnerMonster ? OwnerMonster->GetActorLocation() : FVector::ZeroVector);
+		EGridMonsterAudioEvent::Attack, Attack.AttackAudio, Attack.AttackId,
+		OwnerMonster ? OwnerMonster->GetActorLocation() : FVector::ZeroVector);
 }
 
 bool UGridMonsterAudioComponent::PlayAttackImpact(const FGridMonsterAttackDefinition& Attack, const FGridAttackResult& Result, FVector ImpactWorldLocation)

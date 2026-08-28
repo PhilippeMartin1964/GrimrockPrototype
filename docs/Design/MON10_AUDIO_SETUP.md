@@ -19,8 +19,8 @@ Les principaux fichiers sont :
   requête Blueprint et sélection déterministe ;
 - `GridMonsterAudioComponent.h/.cpp` : planification, cooldowns, requêtes,
   delegate, logs et lecture native ;
-- `GridMonsterTypes.h` : données audio des attaques et compatibilité
-  `AttackSound` ;
+- `GridMonsterTypes.h` : données audio courantes des attaques via
+  `AttackAudio`, `ImpactHitAudio` et `ImpactMissAudio` ;
 - `GridMonsterDefinitionAsset` : données d’alerte, blessure, mort et ambiance ;
 - `GridMonsterMON10AudioTests.cpp` : sept scénarios automatisés.
 
@@ -80,22 +80,21 @@ les assets.
 Ces trois définitions sont facultatives. Leur validation ne rend aucun son
 obligatoire et conserve les règles de combat existantes.
 
-## 6. Compatibilité AttackSound
+## 6. Autorité audio d'attaque
 
-Le champ historique suivant est conservé sans changement de nom ni de type :
+Depuis TD07.3.5.3, `AttackSound` est supprimé.
+
+L'unique autorité pour le son de départ d'une attaque monster est :
 
 ```cpp
-TSoftObjectPtr<USoundBase> AttackSound;
+FGridMonsterAudioEventDefinition AttackAudio;
 ```
 
-La priorité est :
+Une définition vide signifie simplement qu'aucun son de départ n'est joué.
+Aucun fallback legacy n'est exécuté.
 
-1. utiliser `AttackAudio` lorsqu’il contient au moins une variante ;
-2. sinon utiliser `AttackSound` comme variante unique, volume 1, pitch 1,
-   cooldown 0 ;
-3. sinon ne rien jouer.
-
-Les DataAssets existants restent donc compatibles.
+RatGiant et GoblinThrower ont été convertis vers `AttackAudio.Sounds` avant
+suppression du champ historique.
 
 ## 7. Sélection déterministe
 

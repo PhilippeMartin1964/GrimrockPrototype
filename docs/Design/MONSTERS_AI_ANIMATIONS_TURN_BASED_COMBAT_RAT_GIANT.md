@@ -9,6 +9,12 @@
 **Version du guide :** 0.1  
 **Date :** 11 juillet 2026
 
+> **Supersession TD07.3.5.3 — 28 août 2026 :** les exemples historiques
+> `AttackSound` et `ImpactVFX` de ce guide ne décrivent plus le schéma
+> courant. Utiliser `AttackAudio` et les
+> `AttackVFXDefinition / ImpactHitVFXDefinition / ImpactMissVFXDefinition`.
+> Les fallbacks historiques ont été supprimés.
+
 ---
 
 ## 1. Objectif général
