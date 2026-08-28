@@ -23,7 +23,7 @@
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScrollBox.h"
-#include "Widgets/Layout/SOverlay.h"
+#include "Widgets/SOverlay.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 
 namespace
