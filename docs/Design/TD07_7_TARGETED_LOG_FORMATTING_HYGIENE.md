@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Dettes : TD-LOG-001 / TD-STYLE-001
-Statut : LOG NORMALIZED — FORMAT BASELINE GREEN — RUNTIME VALIDATION PENDING
+Statut : VALIDÉ — CLOS
 
 ## 1. Objectif
 
@@ -87,9 +87,9 @@ Il :
 - [x] `GridActivationComponent.cpp` ne dépend plus de `LogTemp` ;
 - [x] aucune substitution globale hors périmètre justifié ;
 - [x] baseline `Scripts/CheckCppFormat.ps1` verte ;
-- [ ] build Editor vert ;
-- [ ] régressions ciblées Activation/Event->Command/Receptacle vertes ;
-- [ ] script one-shot TD07.7 supprimé après usage.
+- [x] build Editor vert ;
+- [x] régressions ciblées Activation/Event->Command/Receptacle vertes ;
+- [x] scripts one-shot TD07.7 supprimés après usage.
 
 Après TD07.7, la campagne passe à **TD07.8 — Future-proofing re-audit / stop condition**.
 
@@ -216,3 +216,53 @@ TD07.5 ReceptacleCommands                  1 Success / 0 warning / 0 Failed
 ```
 
 Le script `Scripts/FinalizeTD077Format.ps1` délègue maintenant le dernier changement au clang-format 19.1.5 autoritaire et refuse toute modification hors de ce seul fichier.
+
+
+## 12. Validation finale et clôture
+
+Validation locale finale du 28 août 2026 :
+
+```text
+Development Editor build
+    [OK]
+
+Grimrock.TechnicalDebt.TD07_4.Characterization
+    Succeeded              : 4
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-123625
+
+Grimrock.TechnicalDebt.TD01_3.EventCommandContract.RuntimeHardening
+    Succeeded              : 1
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-123706
+
+Grimrock.TechnicalDebt.TD07_5.Recovery.ReceptacleCommands
+    Succeeded              : 1
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-123727
+
+clang-format 19.1.5
+    Verification de 568 fichiers C++ first-party...
+    Format C++ conforme.
+```
+
+Dernier correctif format exact :
+
+```text
+a83b1c1938dae925f4cc7e30e5edeb8046921e03
+Apply exact TD07.7 clang-format fix
+```
+
+Résultat :
+
+- `GridActivationComponent.cpp` utilise `LogGridActivation` et ne contient plus de `UE_LOG(LogTemp)` ;
+- le nettoyage n'a pas été étendu globalement aux 44 autres fichiers encore concernés par `LogTemp` ;
+- la baseline C++ first-party est 568/568 conforme ;
+- les warnings attendus du test négatif TD01.3 sont explicitement consommés ;
+- aucun comportement gameplay n'a été modifié ;
+- les scripts one-shot `AuditTD077Hygiene.ps1`, `ApplyTD077FormatBaseline.ps1` et `FinalizeTD077Format.ps1` sont supprimés à la clôture.
+
+**TD07.7 est VALIDÉ — CLOS.**

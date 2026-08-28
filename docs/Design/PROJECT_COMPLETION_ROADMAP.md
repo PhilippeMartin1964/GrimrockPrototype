@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07 ACTIF — TD07.7 FORMAT GREEN — RUNTIME VALIDATION PENDING — MON21.4 SUSPENDU**  
+Statut : **TD07 ACTIF — TD07.7 VALIDÉ/CLOS — TD07.8 À OUVRIR — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -292,7 +292,7 @@ TD07.3.3.10 ouvre **v20 exact-match** : `DerivedStats` devient transient et est 
 TD07.4  ActivationComponent characterization                   VALIDÉ — CLOS SANS EXTRACTION
 TD07.5  Suspended test infrastructure / branch recovery        VALIDÉ — CLOS
 TD07.6  Legacy asset/API cleanup audit                          ABSORBÉ PAR TD07.3
-TD07.7  Targeted log / formatting hygiene                      À FAIRE
+TD07.7  Targeted log / formatting hygiene                      VALIDÉ — CLOS
 TD07.8  Future-proofing re-audit / stop condition              À FAIRE
 ```
 

@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07.7 logs normalisés ; baseline C++ 568/568 conforme ; validation runtime ciblée en attente ; MON21.4 suspendu.**
+> État : **28 août 2026, TD07.7 validé/clos ; logs Activation normalisés ; baseline C++ 568/568 conforme ; TD07.8 à ouvrir ; MON21.4 suspendu.**
 
 ## 1. Référence
 
@@ -16,7 +16,7 @@
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
 | Dernière tranche validée | `TD07.3 — Prototype Data Model Reset` |
-| Tranche active | `TD07.7 — Targeted log / formatting hygiene` |
+| Tranche active | `TD07.8 — Future-proofing re-audit / stop condition` |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`.
 
