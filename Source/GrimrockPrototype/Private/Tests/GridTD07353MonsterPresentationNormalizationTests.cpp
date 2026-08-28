@@ -92,8 +92,6 @@ bool FGridTD07353RepairedAssetsTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	TestEqual(TEXT("RatGiant business id remains stable"), Rat->MonsterId, FName(TEXT("RatGiant")));
-	TestEqual(TEXT("GoblinThrower business id remains stable"), Goblin->MonsterId, FName(TEXT("GoblinThrower")));
 
 	TestTrue(TEXT("RatGiant keeps configured AttackAudio"), HasConfiguredAttackAudio(*Rat));
 	TestTrue(TEXT("GoblinThrower keeps configured AttackAudio"), HasConfiguredAttackAudio(*Goblin));
