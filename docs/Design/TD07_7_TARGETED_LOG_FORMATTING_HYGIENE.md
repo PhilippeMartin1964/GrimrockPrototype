@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Dettes : TD-LOG-001 / TD-STYLE-001
-Statut : CHARACTERIZATION VALIDÉE — LOG NORMALIZATION IMPLEMENTED — FORMAT NORMALIZATION PREPARED
+Statut : LOG NORMALIZED — FORMAT BASELINE GREEN — RUNTIME VALIDATION PENDING
 
 ## 1. Objectif
 
@@ -86,7 +86,7 @@ Il :
 - [x] liste exacte des violations clang-format connue ;
 - [x] `GridActivationComponent.cpp` ne dépend plus de `LogTemp` ;
 - [x] aucune substitution globale hors périmètre justifié ;
-- [ ] baseline `Scripts/CheckCppFormat.ps1` verte ;
+- [x] baseline `Scripts/CheckCppFormat.ps1` verte ;
 - [ ] build Editor vert ;
 - [ ] régressions ciblées Activation/Event->Command/Receptacle vertes ;
 - [ ] script one-shot TD07.7 supprimé après usage.
@@ -170,3 +170,30 @@ Garanties :
 11. restaure les changements si le périmètre formaté diffère de la baseline caractérisée.
 
 Aucun changement comportemental n'est attendu.
+
+
+## 10. Normalisation format exécutée
+
+Validation locale du 28 août 2026 :
+
+```text
+Pre-format:
+    568 fichiers scannés
+    126 non conformes
+
+FormatCpp.ps1:
+    clang-format 19.1.5
+    126 fichiers modifiés exactement
+
+Post-format:
+    568 fichiers scannés
+    Format C++ conforme
+
+Commit:
+    dc24867191252821ad013e9c868b85b3a3174344
+    Normalize TD07.7 first-party C++ formatting
+```
+
+Le script de garde-fou a confirmé que les fichiers modifiés correspondaient exactement aux 126 fichiers caractérisés avant formatage.
+
+TD07.7 n'est pas encore clos : il reste la validation Editor/Automation après cette normalisation mécanique.
