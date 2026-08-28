@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3 — Prototype Data Model Reset
-Statut : CHARACTERIZATION VALIDÉE — 32 CANDIDATS / ASSET REPAIR PREPARED
+Statut : ASSET REPAIR VALIDÉ — NORMALIZATION PREPARED — À VALIDER
 
 ## 1. Objectif
 
@@ -154,3 +154,65 @@ Le test :
 - exige zéro candidat résiduel en mémoire.
 
 Le script refuse de démarrer si `Content/` contient déjà des changements locaux, puis commit/push uniquement les `.uasset` modifiés ou créés.
+
+
+## 10. AssetRepair validé
+
+Exécution locale du 28 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_7.AssetRepair
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-103129
+```
+
+Le one-shot a modifié/créé exactement 12 DataAssets et les a poussés en Git LFS :
+
+```text
+5576153644e0dc95fa9d948c32830007d337ee96
+Repair TD07.3.7 current authoring assets
+```
+
+Assets :
+- `DA_Lock_CopperWall`
+- `DA_Lock_IronWall`
+- cinq archetypes pickup Item ;
+- `DA_GridLevel_00` ;
+- `DA_Item_RatMeat` ;
+- `DA_Item_RatTooth` ;
+- `DA_MON_GoblinThrower` ;
+- `DA_MON_RatGiant`.
+
+Le test de réparation exigeait zéro candidat résiduel en mémoire avant de réussir.
+
+## 11. Normalization durable
+
+Le one-shot `AssetRepair` et son script sont supprimés après succès.
+
+Le gate durable devient :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_7.Normalization
+```
+
+Sous-tests :
+
+```text
+CurrentAssets
+RatLootDefinitions
+LockAuthoring
+MonsterSpawnAuthority
+```
+
+Stop condition avant clôture :
+- [x] 32 candidats caractérisés ;
+- [x] 12 DataAssets réparés/créés et poussés ;
+- [x] infrastructure one-shot retirée ;
+- [ ] Normalization 4/4 ;
+- [ ] Characterization rapporte 0 candidat ;
+- [ ] CurrentSchemaAssetAudit vert ;
+- [ ] régressions MON1/MON8/MON13/MON14/MON17 vertes ;
+- [ ] Shipping Win64 vert ;
+- [ ] TD07.3.7 clos.
