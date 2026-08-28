@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3.5 — Combat Data Schema Reset
-Statut : LFS RÉPARÉ — NORMALISATION C++ IMPLÉMENTÉE / À VALIDER
+Statut : VALIDÉ — CLOS
 
 ## 1. Cible
 
@@ -175,3 +175,28 @@ RuntimeFallbackRemoval
 ```
 
 Attendu : 4/4, zéro warning.
+
+
+## 10. Validation finale
+
+Gate local validé le 28 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_5_3.Normalization   4/4
+Grimrock.TechnicalDebt.TD07_3_5.Characterization 4/4
+Grimrock.Monsters.MON10.Audio                     7/7
+Grimrock.Monsters.MON10.VFX                       8/8
+Warnings                                           0
+Failures                                           0
+```
+
+Reports :
+
+```text
+Saved/Automation/TD04/TD04-20260828-091855
+Saved/Automation/TD04/TD04-20260828-091908
+Saved/Automation/TD04/TD04-20260828-091921
+Saved/Automation/TD04/TD04-20260828-091934
+```
+
+TD07.3.5.3 est clos. La tranche active devient TD07.3.5.4 — Monster Range Schema.

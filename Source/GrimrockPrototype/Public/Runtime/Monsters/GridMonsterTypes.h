@@ -102,9 +102,13 @@ struct FGridMonsterAttackDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1"))
 	int32 MinRangeCells = 1;
 
-	/** Inclusive maximum legal grid distance. Kept as RangeCells for serialized asset compatibility. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1", DisplayName = "Maximum Range Cells"))
+	/** Temporary TD07.3.5.4 repair source. Removed after current monster assets are resaved. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1", DisplayName = "Legacy Maximum Range Cells"))
 	int32 RangeCells = 1;
+
+	/** Inclusive maximum legal grid distance. Current target field for TD07.3.5.4. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1"))
+	int32 MaxRangeCells = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack")
 	EGridMonsterAttackDelivery Delivery = EGridMonsterAttackDelivery::Contact;

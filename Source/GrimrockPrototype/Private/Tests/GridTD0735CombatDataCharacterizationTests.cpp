@@ -98,8 +98,8 @@ bool FGridTD0735MonsterPresentationAuthorityTest::RunTest(const FString& Paramet
 	TestNotNull(TEXT("Current AttackVFXDefinition exists"), AttackStruct->FindPropertyByName(TEXT("AttackVFXDefinition")));
 	TestNotNull(TEXT("Current ImpactHitVFXDefinition exists"), AttackStruct->FindPropertyByName(TEXT("ImpactHitVFXDefinition")));
 	TestNotNull(TEXT("Current ImpactMissVFXDefinition exists"), AttackStruct->FindPropertyByName(TEXT("ImpactMissVFXDefinition")));
-	TestNotNull(TEXT("Serialized legacy range name RangeCells still exists for TD07.3.5.4"), AttackStruct->FindPropertyByName(TEXT("RangeCells")));
-	TestNull(TEXT("Target current field MaxRangeCells does not exist yet"), AttackStruct->FindPropertyByName(TEXT("MaxRangeCells")));
+	TestNotNull(TEXT("RangeCells remains temporarily as the TD07.3.5.4 repair source"), AttackStruct->FindPropertyByName(TEXT("RangeCells")));
+	TestNotNull(TEXT("Target current field MaxRangeCells exists for the one-shot repair"), AttackStruct->FindPropertyByName(TEXT("MaxRangeCells")));
 	return true;
 }
 
@@ -128,8 +128,8 @@ bool FGridTD0735MonsterPresentationRuntimeNormalizedTest::RunTest(const FString&
 		VFXSource.Contains(TEXT("Attack.ImpactVFX")) || VFXSource.Contains(TEXT("LegacyDefinition.Systems.Add")));
 	TestTrue(TEXT("Monster range helpers still use serialized RangeCells for TD07.3.5.4"),
 		TypesSource.Contains(TEXT("DistanceCells <= RangeCells")) && TypesSource.Contains(TEXT("RangeCells > 1")));
-	TestTrue(TEXT("RangeCells comment still marks the remaining serialized compatibility debt"),
-		TypesSource.Contains(TEXT("Kept as RangeCells for serialized asset compatibility")));
+	TestTrue(TEXT("MaxRangeCells target is declared during the one-shot repair stage"),
+		TypesSource.Contains(TEXT("int32 MaxRangeCells = 1")));
 	return true;
 }
 

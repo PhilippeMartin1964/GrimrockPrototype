@@ -64,10 +64,6 @@ bool FGridTD07353SchemaAuthorityTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("ImpactMissVFXDefinition remains authoritative"),
 		AttackStruct->FindPropertyByName(TEXT("ImpactMissVFXDefinition")));
 
-	TestNotNull(TEXT("RangeCells intentionally remains until TD07.3.5.4"),
-		AttackStruct->FindPropertyByName(TEXT("RangeCells")));
-	TestNull(TEXT("MaxRangeCells is not introduced prematurely"),
-		AttackStruct->FindPropertyByName(TEXT("MaxRangeCells")));
 	return true;
 }
 
@@ -167,8 +163,6 @@ bool FGridTD07353RuntimeFallbackRemovalTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("VFX runtime contains no legacy adapter definition"),
 		VFXSource.Contains(TEXT("LegacyDefinition")));
 
-	TestTrue(TEXT("RangeCells compatibility debt remains isolated for TD07.3.5.4"),
-		TypesSource.Contains(TEXT("Kept as RangeCells for serialized asset compatibility")));
 	return true;
 }
 
