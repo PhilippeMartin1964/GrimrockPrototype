@@ -403,8 +403,34 @@ FReply SGridEditorDungeonLevelsPanel::HandleCreateDungeonLevelClicked()
 								}
 
 								UGridDungeonAsset* CurrentDungeonAsset = Editor->DungeonAsset.Get();
-								FString NormalizedLevelId = LevelIdTextBox.IsValid() ? LevelIdTextBox->GetText().ToString() : FString();
-								NormalizedLevelId.TrimStartAndEndInline();
+
+								FString LevelIdString = LevelIdTextBox.IsValid() ? LevelIdTextBox->GetText().ToString() : FString();
+								LevelIdString.TrimStartAndEndInline();
+								LevelIdString.ReplaceInline(TEXT(" "), TEXT("_"));
+								LevelIdString.ReplaceInline(TEXT("-"), TEXT("_"));
+
+								FString NormalizedLevelId;
+								NormalizedLevelId.Reserve(LevelIdString.Len());
+								for (const TCHAR Character : LevelIdString)
+								{
+									if (FChar::IsAlnum(Character) || Character == TEXT('_'))
+									{
+										NormalizedLevelId.AppendChar(Character);
+									}
+								}
+								while (NormalizedLevelId.Contains(TEXT("__")))
+								{
+									NormalizedLevelId.ReplaceInline(TEXT("__"), TEXT("_"));
+								}
+								while (NormalizedLevelId.StartsWith(TEXT("_")))
+								{
+									NormalizedLevelId.RightChopInline(1);
+								}
+								while (NormalizedLevelId.EndsWith(TEXT("_")))
+								{
+									NormalizedLevelId.LeftChopInline(1);
+								}
+
 								if (NormalizedLevelId.IsEmpty())
 								{
 									if (ErrorTextBlock.IsValid())
