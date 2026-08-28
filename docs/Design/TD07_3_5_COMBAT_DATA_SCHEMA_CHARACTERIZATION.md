@@ -4,7 +4,7 @@ Date : **28 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3 — Prototype Data Model Reset**  
 Baseline : `edca373674ed2ca4fc476b9592efe93710575b84`  
-Statut : **CHARACTERIZATION VALIDÉE — TD07.3.5.3 NORMALISATION IMPLÉMENTÉE / À VALIDER**
+Statut : **CHARACTERIZATION VALIDÉE — TD07.3.5.4 NORMALISATION IMPLÉMENTÉE / À VALIDER**
 
 ## 1. Contexte
 
@@ -326,3 +326,29 @@ MonsterPresentationRuntimeNormalized
 
 La seule dette combat volontairement encore caractérisée est maintenant le
 renommage `RangeCells -> MaxRangeCells`, réservé à TD07.3.5.4.
+
+
+### Mise à jour TD07.3.5.4
+
+La dernière dette monster du Combat Data Schema Reset est maintenant normalisée :
+
+```text
+MinRangeCells                     autorité minimum
+MaxRangeCells                     autorité maximum
+RangeCells                        supprimé
+MONSTER.RANGE_FIELD_RENAME        supprimé de l'audit TD07.3.1
+```
+
+La réparation one-shot des DataAssets a été validée avant suppression du champ :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_5_4.AssetRepair  1/1
+Warnings                                      0
+Failures                                      0
+Report: Saved/Automation/TD04/TD04-20260828-092540
+Commit: 88c5da1cb5ce12220f727f7166aa26a2604df931
+```
+
+La Characterization conserve quatre tests et doit désormais constater l'autorité item actuelle ainsi que l'absence de `AttackSound`, `ImpactVFX` et `RangeCells`.
+
+La tranche suivante après validation de `.4` est TD07.3.5.5 — Regressions / Shipping / Closure.
