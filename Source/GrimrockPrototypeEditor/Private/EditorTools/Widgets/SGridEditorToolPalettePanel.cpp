@@ -325,7 +325,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 		[
 			SNew(SSearchBox)
 				.HintText(FText::FromString(TEXT("Search palette by name, id, category or archetype...")))
-				.Text(FText::FromString(State.SearchText))
+				.InitialText(FText::FromString(State.SearchText))
 				.OnTextChanged(this, &SGridEditorToolPalettePanel::OnPaletteSearchTextChanged)
 		];
 
