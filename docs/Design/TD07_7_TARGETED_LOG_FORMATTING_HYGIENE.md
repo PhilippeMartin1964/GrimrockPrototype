@@ -197,3 +197,22 @@ Commit:
 Le script de garde-fou a confirmé que les fichiers modifiés correspondaient exactement aux 126 fichiers caractérisés avant formatage.
 
 TD07.7 n'est pas encore clos : il reste la validation Editor/Automation après cette normalisation mécanique.
+
+
+## 11. Final single-file format gate
+
+Après l'adaptation du test TD07.4 au nouveau contrat de logs, le contrôle global a signalé un unique écart :
+
+```text
+Source/GrimrockPrototype/Private/Tests/GridTD074ActivationComponentCharacterizationTests.cpp
+```
+
+Les validations UE sont déjà vertes :
+
+```text
+TD07.4 Characterization                    4 Success / 0 warning / 0 Failed
+TD01.3 EventCommand RuntimeHardening       1 Success / 0 warning / 0 Failed
+TD07.5 ReceptacleCommands                  1 Success / 0 warning / 0 Failed
+```
+
+Le script `Scripts/FinalizeTD077Format.ps1` délègue maintenant le dernier changement au clang-format 19.1.5 autoritaire et refuse toute modification hors de ce seul fichier.
