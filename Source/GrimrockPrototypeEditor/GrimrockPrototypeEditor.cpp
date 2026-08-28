@@ -3,6 +3,7 @@
 #include "EditorTools/GridLevelEdMode.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EditorTools/Widgets/SGridEditorLuaScriptsPanel.h"
+#include "EditorTools/Widgets/SGridEditorWorkspaceTab.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPIEPlaytestRequest.h"
 
@@ -14,6 +15,10 @@
 
 namespace
 {
+	const FName GridDungeonLevelsTabName(TEXT("GrimrockGridDungeonLevels"));
+	const FName GridPlaytestValidationTabName(TEXT("GrimrockGridPlaytestValidation"));
+	const FName GridToolsPaletteTabName(TEXT("GrimrockGridToolsPalette"));
+	const FName GridSelectedObjectTabName(TEXT("GrimrockGridSelectedObject"));
 	const FName GridLuaEditorTabName(TEXT("GrimrockLuaEditor"));
 }
 
@@ -25,9 +30,22 @@ public:
 		FEditorModeRegistry::Get().RegisterMode<FGridLevelEdMode>(
 			FGridLevelEdMode::EM_GridLevelEdModeId, FText::FromString(TEXT("Grimrock Grid Editor")), FSlateIcon(), true);
 
+		RegisterGridWorkspaceTab(GridDungeonLevelsTabName, FText::FromString(TEXT("Dungeon Levels")),
+			FText::FromString(TEXT("Navigate dungeon levels and inspect the level overview.")), EGridEditorWorkspaceTab::DungeonLevels);
+		RegisterGridWorkspaceTab(GridPlaytestValidationTabName, FText::FromString(TEXT("PlayTest & Validation")),
+			FText::FromString(TEXT("Validate the current level and prepare the playtest workflow.")), EGridEditorWorkspaceTab::PlaytestValidation);
+		RegisterGridWorkspaceTab(GridToolsPaletteTabName, FText::FromString(TEXT("Tools & Palette")),
+			FText::FromString(TEXT("Choose Grid Editor tools and object palette entries.")), EGridEditorWorkspaceTab::ToolsPalette);
+		RegisterGridWorkspaceTab(GridSelectedObjectTabName, FText::FromString(TEXT("Selected Object")),
+			FText::FromString(TEXT("Inspect the selected object and its connectors.")), EGridEditorWorkspaceTab::SelectedObject);
+
 		// StartupModule can be reached again during editor module reloads.
 		// Remove any stale registration first so the Window menu exposes one
 		// canonical "Grimrock Lua Scripts" entry.
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridDungeonLevelsTabName);
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridPlaytestValidationTabName);
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridToolsPaletteTabName);
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridSelectedObjectTabName);
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridLuaEditorTabName);
 		FGlobalTabmanager::Get()
 			->RegisterNomadTabSpawner(GridLuaEditorTabName, FOnSpawnTab::CreateRaw(this, &FGrimrockPrototypeEditorModule::SpawnLuaEditorTab))
@@ -64,6 +82,29 @@ public:
 	}
 
 private:
+	void RegisterGridWorkspaceTab(const FName& TabName, const FText& DisplayName, const FText& Tooltip, EGridEditorWorkspaceTab WorkspaceTab)
+	{
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TabName);
+		FGlobalTabmanager::Get()
+			->RegisterNomadTabSpawner(TabName, FOnSpawnTab::CreateRaw(this, &FGrimrockPrototypeEditorModule::SpawnGridWorkspaceTab, WorkspaceTab))
+			.SetDisplayName(DisplayName)
+			.SetTooltipText(Tooltip)
+			.SetMenuType(ETabSpawnerMenuType::Enabled)
+			.SetAutoGenerateMenuEntry(false);
+	}
+
+	void AddWindowMenuEntry(FToolMenuSection& Section, const FName& EntryName, const FName& TabName, const FText& DisplayName, const FText& Tooltip)
+	{
+		TSharedPtr<FTabSpawnerEntry> TabSpawner = FGlobalTabmanager::Get()->FindTabSpawnerFor(TabName);
+		if (!TabSpawner.IsValid())
+		{
+			return;
+		}
+
+		Section.AddMenuEntry(EntryName, DisplayName, Tooltip, FSlateIcon(),
+			FGlobalTabmanager::Get()->GetUIActionForTabSpawnerMenuEntry(TabSpawner), EUserInterfaceActionType::ToggleButton, NAME_None);
+	}
+
 	void RegisterMenus()
 	{
 		FToolMenuOwnerScoped OwnerScoped(this);
@@ -74,16 +115,24 @@ private:
 			return;
 		}
 
-		TSharedPtr<FTabSpawnerEntry> LuaTabSpawner = FGlobalTabmanager::Get()->FindTabSpawnerFor(GridLuaEditorTabName);
-		if (!LuaTabSpawner.IsValid())
-		{
-			return;
-		}
-
 		FToolMenuSection& Section = WindowMenu->FindOrAddSection(TEXT("WindowLayout"));
-		Section.AddMenuEntry(TEXT("GrimrockLuaScripts"), FText::FromString(TEXT("Grimrock Lua Scripts")),
-			FText::FromString(TEXT("Edit and validate level Lua scripts and Lua event bindings.")), FSlateIcon(),
-			FGlobalTabmanager::Get()->GetUIActionForTabSpawnerMenuEntry(LuaTabSpawner), EUserInterfaceActionType::ToggleButton, NAME_None);
+
+		AddWindowMenuEntry(Section, FName(TEXT("GrimrockGridDungeonLevels")), GridDungeonLevelsTabName, FText::FromString(TEXT("Dungeon Levels")),
+			FText::FromString(TEXT("Navigate dungeon levels and inspect the level overview.")));
+		AddWindowMenuEntry(Section, FName(TEXT("GrimrockGridPlaytestValidation")), GridPlaytestValidationTabName,
+			FText::FromString(TEXT("PlayTest & Validation")), FText::FromString(TEXT("Validate the current level and prepare the playtest workflow.")));
+		AddWindowMenuEntry(Section, FName(TEXT("GrimrockGridToolsPalette")), GridToolsPaletteTabName, FText::FromString(TEXT("Tools & Palette")),
+			FText::FromString(TEXT("Choose Grid Editor tools and object palette entries.")));
+		AddWindowMenuEntry(Section, FName(TEXT("GrimrockGridSelectedObject")), GridSelectedObjectTabName, FText::FromString(TEXT("Selected Object")),
+			FText::FromString(TEXT("Inspect the selected object and its connectors.")));
+		AddWindowMenuEntry(Section, FName(TEXT("GrimrockLuaScripts")), GridLuaEditorTabName, FText::FromString(TEXT("Grimrock Lua Scripts")),
+			FText::FromString(TEXT("Edit and validate level Lua scripts and Lua event bindings.")));
+	}
+
+	TSharedRef<SDockTab> SpawnGridWorkspaceTab(const FSpawnTabArgs& SpawnTabArgs, EGridEditorWorkspaceTab WorkspaceTab)
+	{
+		(void)SpawnTabArgs;
+		return SNew(SDockTab).TabRole(ETabRole::NomadTab)[SNew(SGridEditorWorkspaceTab).WorkspaceTab(WorkspaceTab)];
 	}
 
 	TSharedRef<SDockTab> SpawnLuaEditorTab(const FSpawnTabArgs& SpawnTabArgs)
