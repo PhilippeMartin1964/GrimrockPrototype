@@ -6,6 +6,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -590,11 +591,18 @@ bool FGridMonsterMON8MonsterDiedEventTest::RunTest(const FString& Parameters)
 	Link.SourceEvent = EGridObjectEvent::MonsterDied;
 	Link.Command = EGridObjectCommand::Activate;
 	LevelAsset->Links.Add(Link);
-	Runtime->RebuildLevel();
 
-	AGridMonsterActor* Monster = Runtime->FindSpawnedMonsterActor(SourceId);
-	TestNotNull(TEXT("The linked MonsterSpawn creates its runtime monster"), Monster);
-	if (!Monster)
+	UGridActivationComponent* Activation = Runtime->FindComponentByClass<UGridActivationComponent>();
+	if (!TestNotNull(TEXT("The runtime activation component exists"), Activation))
+	{
+		return false;
+	}
+	Activation->Initialize(Runtime);
+	Activation->RebuildIndexes();
+
+	AGridMonsterActor* Monster = SpawnMON8Monster(TestWorld.World, Definition, SourceId, FIntPoint(1, 1), false);
+	TestNotNull(TEXT("The linked MonsterSpawn fixture creates its runtime monster"), Monster);
+	if (!Monster || !Monster->DeathComponent || !Monster->DeathComponent->InitializeDeathComponent(Runtime))
 	{
 		return false;
 	}
@@ -603,9 +611,9 @@ bool FGridMonsterMON8MonsterDiedEventTest::RunTest(const FString& Parameters)
 	Monster->MarkDead();
 	TestEqual(TEXT("A second MarkDead does not re-execute the link"), Monster->DeathComponent->LinkExecutionAttemptCount, 1);
 
-	AGridMonsterActor* UnlinkedMonster = Runtime->FindSpawnedMonsterActor(UnlinkedSourceId);
-	TestNotNull(TEXT("The unlinked MonsterSpawn creates its runtime monster"), UnlinkedMonster);
-	if (!UnlinkedMonster)
+	AGridMonsterActor* UnlinkedMonster = SpawnMON8Monster(TestWorld.World, Definition, UnlinkedSourceId, FIntPoint(2, 2), false);
+	TestNotNull(TEXT("The unlinked MonsterSpawn fixture creates its runtime monster"), UnlinkedMonster);
+	if (!UnlinkedMonster || !UnlinkedMonster->DeathComponent || !UnlinkedMonster->DeathComponent->InitializeDeathComponent(Runtime))
 	{
 		return false;
 	}
