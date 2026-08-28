@@ -115,8 +115,21 @@ foreach ($File in $Files)
     }
     $Arguments += $File.FullName
 
-    & $ClangFormat @Arguments 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0)
+    $PreviousErrorActionPreference = $ErrorActionPreference
+    try
+    {
+        # clang-format writes dry-run violations to stderr. Suppress native stderr here
+        # and use only the process exit code so every first-party file is checked.
+        $ErrorActionPreference = 'SilentlyContinue'
+        & $ClangFormat @Arguments 1>$null 2>$null
+        $FormatExitCode = $LASTEXITCODE
+    }
+    finally
+    {
+        $ErrorActionPreference = $PreviousErrorActionPreference
+    }
+
+    if ($FormatExitCode -ne 0)
     {
         $RelativePath = $File.FullName
         if ($RelativePath.StartsWith($RepoPrefix, [System.StringComparison]::OrdinalIgnoreCase))
@@ -131,7 +144,7 @@ foreach ($File in $Files)
 
 if ($InvalidFiles.Count -gt 0)
 {
-    Write-Error "$($InvalidFiles.Count) fichier(s) ne respectent pas Grimrock C++ Style v1. Executez Scripts\FormatCpp.ps1."
+    Write-Host "[FAIL] $($InvalidFiles.Count) fichier(s) ne respectent pas Grimrock C++ Style v1. Executez Scripts\FormatCpp.ps1."
     exit 1
 }
 

@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Dettes : TD-LOG-001 / TD-STYLE-001
-Statut : CHARACTERIZATION PREPARED — À VALIDER
+Statut : CHARACTERIZATION VALIDÉE — LOG NORMALIZATION IMPLEMENTED — FORMAT BASELINE RE-AUDIT À VALIDER
 
 ## 1. Objectif
 
@@ -82,13 +82,52 @@ Il :
 
 ## 5. Stop condition TD07.7
 
-- [ ] audit de caractérisation exécuté ;
+- [x] audit de caractérisation exécuté ;
 - [ ] liste exacte des violations clang-format connue ;
-- [ ] `GridActivationComponent.cpp` ne dépend plus de `LogTemp` ;
-- [ ] aucune substitution globale hors périmètre justifié ;
+- [x] `GridActivationComponent.cpp` ne dépend plus de `LogTemp` ;
+- [x] aucune substitution globale hors périmètre justifié ;
 - [ ] baseline `Scripts/CheckCppFormat.ps1` verte ;
 - [ ] build Editor vert ;
 - [ ] régressions ciblées Activation/Event->Command/Receptacle vertes ;
 - [ ] script one-shot TD07.7 supprimé après usage.
 
 Après TD07.7, la campagne passe à **TD07.8 — Future-proofing re-audit / stop condition**.
+
+
+## 6. Characterization exécutée
+
+Audit local du 28 août 2026 :
+
+```text
+First-party files scanned: 568
+Files containing UE_LOG(LogTemp): 45
+Total UE_LOG(LogTemp) calls: 452
+GridActivationComponent UE_LOG(LogTemp): 38
+```
+
+Les autres `LogTemp` restent hors périmètre TD07.7 tant qu'aucun domaine n'est spécifiquement touché.
+
+Le premier check format a confirmé une baseline non verte mais a aussi révélé un défaut du harness : sous Windows PowerShell 5, le stderr natif de `clang-format --dry-run --Werror` interrompait la boucle au premier fichier, `GridLevelAsset.cpp`.
+
+`Scripts/CheckCppFormat.ps1` est donc corrigé pour :
+
+- supprimer le stderr natif attendu de chaque dry-run ;
+- utiliser uniquement l'exit code par fichier ;
+- continuer sur les 568 fichiers ;
+- produire une liste complète `[FORMAT] ...` ;
+- retourner ensuite 1 si la baseline globale reste non conforme.
+
+## 7. Log normalization ciblée
+
+`GridActivationComponent.cpp` possède maintenant :
+
+```cpp
+DEFINE_LOG_CATEGORY_STATIC(LogGridActivation, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogGridRecruitmentOffer, Log, All);
+```
+
+Les 38 appels génériques utilisent désormais `LogGridActivation`.
+
+`LogGridRecruitmentOffer` reste inchangé pour son sous-domaine dédié.
+
+Aucun autre fichier contenant `LogTemp` n'est modifié par cette étape.

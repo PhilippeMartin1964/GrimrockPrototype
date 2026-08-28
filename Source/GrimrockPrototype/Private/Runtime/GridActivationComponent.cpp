@@ -23,6 +23,7 @@
 #include "RPG/RPGStoryCompanionAsset.h"
 #include "UI/RPGStoryCompanionRecruitmentWidget.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridActivation, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogGridRecruitmentOffer, Log, All);
 
 namespace
@@ -138,7 +139,7 @@ void UGridActivationComponent::Initialize(AGridLevelRuntimeActor* InRuntime)
 	FString LuaError;
 	if (!ReloadLuaRuntime(&LuaError) && !LuaError.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid Lua runtime initialization failed: %s"), *LuaError);
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid Lua runtime initialization failed: %s"), *LuaError);
 	}
 }
 
@@ -382,7 +383,7 @@ bool UGridActivationComponent::RefreshPressurePlatesAtCell(int32 X, int32 Y)
 		}
 
 		const EGridObjectEvent StateEvent = bShouldBePressed ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated;
-		UE_LOG(LogTemp, Log, TEXT("GridPressurePlate StateChanged Id=%s Cell=(%d,%d) Party=%s ItemWeight=%.2f RequiredWeight=%.2f Pressed=%s"),
+		UE_LOG(LogGridActivation, Log, TEXT("GridPressurePlate StateChanged Id=%s Cell=(%d,%d) Party=%s ItemWeight=%.2f RequiredWeight=%.2f Pressed=%s"),
 			*PlateData->ObjectId.ToString(), X, Y, bPartyActivates ? TEXT("true") : TEXT("false"), CurrentItemWeight, WeightParams.RequiredItemWeight,
 			bShouldBePressed ? TEXT("true") : TEXT("false"));
 		ExecuteLinksFromObjectForEvent(PlateData->ObjectId, StateEvent);
@@ -416,7 +417,7 @@ bool UGridActivationComponent::ConsumeRuntimeActionBudget(const TCHAR* ActionLab
 	}
 	if (RuntimeActionBudgetRemaining <= 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid runtime action rejected: Action=%s Reason=shared Event/Command/Lua budget exhausted"),
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid runtime action rejected: Action=%s Reason=shared Event/Command/Lua budget exhausted"),
 			ActionLabel ? ActionLabel : TEXT("Unknown"));
 		return false;
 	}
@@ -513,13 +514,13 @@ bool UGridActivationComponent::ExecuteLuaCallbackLink(const FGridObjectLink& Lin
 	}
 	if (LinkData.LuaScriptId.IsNone() || LinkData.LuaCallbackName.IsNone())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid Lua callback rejected: Source=%s Script=%s Callback=%s Reason=missing ScriptId or CallbackName"),
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid Lua callback rejected: Source=%s Script=%s Callback=%s Reason=missing ScriptId or CallbackName"),
 			*LinkData.SourceObjectId.ToString(), *LinkData.LuaScriptId.ToString(), *LinkData.LuaCallbackName.ToString());
 		return false;
 	}
 	if (bExecutingLuaCallback)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid Lua callback rejected: Source=%s Script=%s Callback=%s Reason=nested Lua callback dispatch"),
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid Lua callback rejected: Source=%s Script=%s Callback=%s Reason=nested Lua callback dispatch"),
 			*LinkData.SourceObjectId.ToString(), *LinkData.LuaScriptId.ToString(), *LinkData.LuaCallbackName.ToString());
 		return false;
 	}
@@ -529,7 +530,7 @@ bool UGridActivationComponent::ExecuteLuaCallbackLink(const FGridObjectLink& Lin
 		FString ReloadError;
 		if (!ReloadLuaRuntime(&ReloadError))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Grid Lua callback rejected: Script=%s Callback=%s Reason=%s"), *LinkData.LuaScriptId.ToString(),
+			UE_LOG(LogGridActivation, Warning, TEXT("Grid Lua callback rejected: Script=%s Callback=%s Reason=%s"), *LinkData.LuaScriptId.ToString(),
 				*LinkData.LuaCallbackName.ToString(), *ReloadError);
 			return false;
 		}
@@ -538,7 +539,7 @@ bool UGridActivationComponent::ExecuteLuaCallbackLink(const FGridObjectLink& Lin
 	FGridLevelRuntimeState* RuntimeState = RuntimeActor->GetOrCreateRuntimeStateForCurrentLevel();
 	if (!RuntimeState)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid Lua callback rejected: Script=%s Callback=%s Reason=missing current-level runtime state"),
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid Lua callback rejected: Script=%s Callback=%s Reason=missing current-level runtime state"),
 			*LinkData.LuaScriptId.ToString(), *LinkData.LuaCallbackName.ToString());
 		return false;
 	}
@@ -566,7 +567,7 @@ bool UGridActivationComponent::ExecuteLuaCallbackLink(const FGridObjectLink& Lin
 	};
 	HostApi.Log = [ScriptId = LinkData.LuaScriptId](const FString& Message)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[GridLua:%s] %s"), *ScriptId.ToString(), *Message);
+		UE_LOG(LogGridActivation, Log, TEXT("[GridLua:%s] %s"), *ScriptId.ToString(), *Message);
 	};
 
 	FGridLuaEventContext EventContext;
@@ -580,12 +581,12 @@ bool UGridActivationComponent::ExecuteLuaCallbackLink(const FGridObjectLink& Lin
 
 	if (!bSuccess)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid Lua callback failed: Source=%s Event=%s Script=%s Callback=%s Reason=%s"), *LinkData.SourceObjectId.ToString(),
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid Lua callback failed: Source=%s Event=%s Script=%s Callback=%s Reason=%s"), *LinkData.SourceObjectId.ToString(),
 			*GridObjectEventToString(LinkData.SourceEvent), *LinkData.LuaScriptId.ToString(), *LinkData.LuaCallbackName.ToString(), *LuaError);
 		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Grid Lua callback executed: Source=%s Event=%s Script=%s Callback=%s"), *LinkData.SourceObjectId.ToString(),
+	UE_LOG(LogGridActivation, Log, TEXT("Grid Lua callback executed: Source=%s Event=%s Script=%s Callback=%s"), *LinkData.SourceObjectId.ToString(),
 		*GridObjectEventToString(LinkData.SourceEvent), *LinkData.LuaScriptId.ToString(), *LinkData.LuaCallbackName.ToString());
 	return true;
 }
@@ -607,7 +608,7 @@ void UGridActivationComponent::RegisterCurrentLevelQuestDefinitions()
 	UGridQuestSubsystem* QuestSubsystem = GameInstance ? GameInstance->GetSubsystem<UGridQuestSubsystem>() : nullptr;
 	if (!QuestSubsystem)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid quest definitions were not registered: missing UGridQuestSubsystem."));
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid quest definitions were not registered: missing UGridQuestSubsystem."));
 		return;
 	}
 
@@ -616,7 +617,7 @@ void UGridActivationComponent::RegisterCurrentLevelQuestDefinitions()
 		FString Error;
 		if (!QuestSubsystem->RegisterQuestDefinition(Definition, Error))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Grid quest definition registration failed: Definition=%s Reason=%s"), *GetNameSafe(Definition), *Error);
+			UE_LOG(LogGridActivation, Warning, TEXT("Grid quest definition registration failed: Definition=%s Reason=%s"), *GetNameSafe(Definition), *Error);
 		}
 	}
 }
@@ -663,12 +664,12 @@ bool UGridActivationComponent::ApplyQuestLinkCommand(const FGridObjectLink& Link
 	const FString ResultText = UEnum::GetValueAsString(Result);
 	if (bSuccess)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Grid quest command result: Quest=%s Objective=%s Command=%s Result=%s"), *LinkData.QuestId.ToString(),
+		UE_LOG(LogGridActivation, Log, TEXT("Grid quest command result: Quest=%s Objective=%s Command=%s Result=%s"), *LinkData.QuestId.ToString(),
 			*LinkData.QuestObjectiveId.ToString(), *GridObjectCommandToString(LinkData.Command), *ResultText);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid quest command result: Quest=%s Objective=%s Command=%s Result=%s"), *LinkData.QuestId.ToString(),
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid quest command result: Quest=%s Objective=%s Command=%s Result=%s"), *LinkData.QuestId.ToString(),
 			*LinkData.QuestObjectiveId.ToString(), *GridObjectCommandToString(LinkData.Command), *ResultText);
 	}
 	return bSuccess;
@@ -956,7 +957,7 @@ bool UGridActivationComponent::EvaluateGridObjectLinkCondition(const FGridObject
 	{
 		if (!RuntimeActor || !RuntimeActor->LevelAsset || LinkData.ConditionVariableId.IsNone())
 		{
-			UE_LOG(LogTemp, Warning,
+			UE_LOG(LogGridActivation, Warning,
 				TEXT("Grid link variable condition rejected: Source=%s Target=%s Condition=%s Variable=%s Reason=missing runtime, level asset or variable id"),
 				*LinkData.SourceObjectId.ToString(), *LinkData.TargetObjectId.ToString(), *GridObjectConditionToString(LinkData.Condition),
 				*LinkData.ConditionVariableId.ToString());
@@ -966,7 +967,7 @@ bool UGridActivationComponent::EvaluateGridObjectLinkCondition(const FGridObject
 		FGridLevelRuntimeState* RuntimeState = RuntimeActor->GetOrCreateRuntimeStateForCurrentLevel();
 		if (!RuntimeState)
 		{
-			UE_LOG(LogTemp, Warning,
+			UE_LOG(LogGridActivation, Warning,
 				TEXT("Grid link variable condition rejected: Source=%s Target=%s Condition=%s Variable=%s Reason=missing current-level runtime state"),
 				*LinkData.SourceObjectId.ToString(), *LinkData.TargetObjectId.ToString(), *GridObjectConditionToString(LinkData.Condition),
 				*LinkData.ConditionVariableId.ToString());
@@ -979,7 +980,7 @@ bool UGridActivationComponent::EvaluateGridObjectLinkCondition(const FGridObject
 			bool bCurrentValue = false;
 			if (!GridLevelVariableStore::TryGetBool(*RuntimeActor->LevelAsset, *RuntimeState, LinkData.ConditionVariableId, bCurrentValue, VariableError))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Grid link variable condition rejected: Source=%s Target=%s Condition=%s Variable=%s Reason=%s"),
+				UE_LOG(LogGridActivation, Warning, TEXT("Grid link variable condition rejected: Source=%s Target=%s Condition=%s Variable=%s Reason=%s"),
 					*LinkData.SourceObjectId.ToString(), *LinkData.TargetObjectId.ToString(), *GridObjectConditionToString(LinkData.Condition),
 					*LinkData.ConditionVariableId.ToString(), *VariableError);
 				return false;
@@ -991,7 +992,7 @@ bool UGridActivationComponent::EvaluateGridObjectLinkCondition(const FGridObject
 			int32 CurrentValue = 0;
 			if (!GridLevelVariableStore::TryGetInt32(*RuntimeActor->LevelAsset, *RuntimeState, LinkData.ConditionVariableId, CurrentValue, VariableError))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Grid link variable condition rejected: Source=%s Target=%s Condition=%s Variable=%s Reason=%s"),
+				UE_LOG(LogGridActivation, Warning, TEXT("Grid link variable condition rejected: Source=%s Target=%s Condition=%s Variable=%s Reason=%s"),
 					*LinkData.SourceObjectId.ToString(), *LinkData.TargetObjectId.ToString(), *GridObjectConditionToString(LinkData.Condition),
 					*LinkData.ConditionVariableId.ToString(), *VariableError);
 				return false;
@@ -999,7 +1000,7 @@ bool UGridActivationComponent::EvaluateGridObjectLinkCondition(const FGridObject
 
 			if (!TryEvaluateGridIntComparison(CurrentValue, LinkData.ConditionIntComparison, LinkData.ConditionIntValue, bConditionResult))
 			{
-				UE_LOG(LogTemp, Warning,
+				UE_LOG(LogGridActivation, Warning,
 					TEXT("Grid link variable condition rejected: Source=%s Target=%s Condition=%s Variable=%s Reason=invalid Int comparison"),
 					*LinkData.SourceObjectId.ToString(), *LinkData.TargetObjectId.ToString(), *GridObjectConditionToString(LinkData.Condition),
 					*LinkData.ConditionVariableId.ToString());
@@ -1010,7 +1011,7 @@ bool UGridActivationComponent::EvaluateGridObjectLinkCondition(const FGridObject
 		const bool bFinalResult = LinkData.bInvertCondition ? !bConditionResult : bConditionResult;
 		if (!bFinalResult)
 		{
-			UE_LOG(LogTemp, Verbose, TEXT("Grid link variable condition failed: Source=%s Target=%s Condition=%s Variable=%s Inverted=%s"),
+			UE_LOG(LogGridActivation, Verbose, TEXT("Grid link variable condition failed: Source=%s Target=%s Condition=%s Variable=%s Inverted=%s"),
 				*LinkData.SourceObjectId.ToString(), *LinkData.TargetObjectId.ToString(), *GridObjectConditionToString(LinkData.Condition),
 				*LinkData.ConditionVariableId.ToString(), LinkData.bInvertCondition ? TEXT("true") : TEXT("false"));
 		}
@@ -1020,7 +1021,7 @@ bool UGridActivationComponent::EvaluateGridObjectLinkCondition(const FGridObject
 	const AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor>(TargetActor);
 	if (!ReceptacleActor)
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGridActivation, Warning,
 			TEXT("Grid link condition rejected: Source=%s SourceActor=%s Target=%s TargetActor=%s Condition=%s Reason=target is not a spawned receptacle"),
 			*LinkData.SourceObjectId.ToString(), *GetNameSafe(SourceActor), *LinkData.TargetObjectId.ToString(), *GetNameSafe(TargetActor),
 			*GridObjectConditionToString(LinkData.Condition));
@@ -1029,7 +1030,7 @@ bool UGridActivationComponent::EvaluateGridObjectLinkCondition(const FGridObject
 
 	const auto RejectMissingConditionParameter = [&LinkData, SourceActor, TargetActor](const TCHAR* ParameterName)
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGridActivation, Warning,
 			TEXT("Grid link condition rejected: Source=%s SourceActor=%s Target=%s TargetActor=%s Condition=%s Reason=missing or invalid %s"),
 			*LinkData.SourceObjectId.ToString(), *GetNameSafe(SourceActor), *LinkData.TargetObjectId.ToString(), *GetNameSafe(TargetActor),
 			*GridObjectConditionToString(LinkData.Condition), ParameterName);
@@ -1096,7 +1097,7 @@ bool UGridActivationComponent::EvaluateGridObjectLinkCondition(const FGridObject
 	const bool bFinalResult = LinkData.bInvertCondition ? !bConditionResult : bConditionResult;
 	if (!bFinalResult)
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("Grid link condition failed: Source=%s SourceActor=%s Target=%s TargetActor=%s Condition=%s Inverted=%s"),
+		UE_LOG(LogGridActivation, Verbose, TEXT("Grid link condition failed: Source=%s SourceActor=%s Target=%s TargetActor=%s Condition=%s Inverted=%s"),
 			*LinkData.SourceObjectId.ToString(), *GetNameSafe(SourceActor), *LinkData.TargetObjectId.ToString(), *GetNameSafe(TargetActor),
 			*GridObjectConditionToString(LinkData.Condition), LinkData.bInvertCondition ? TEXT("true") : TEXT("false"));
 	}
@@ -1130,13 +1131,13 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEventInternal(FGuid Sour
 	}
 	if (!FindObjectById(SourceObjectId))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid object event rejected: Source=%s Event=%s Reason=source object not found"), *SourceObjectId.ToString(),
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid object event rejected: Source=%s Event=%s Reason=source object not found"), *SourceObjectId.ToString(),
 			*GridObjectEventToString(SourceEvent));
 		return false;
 	}
 	if (DispatchingSourceObjectIds.Contains(SourceObjectId))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid object event rejected: Source=%s Event=%s Reason=cyclic link dispatch"), *SourceObjectId.ToString(),
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid object event rejected: Source=%s Event=%s Reason=cyclic link dispatch"), *SourceObjectId.ToString(),
 			*GridObjectEventToString(SourceEvent));
 		return false;
 	}
@@ -1165,7 +1166,7 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEventInternal(FGuid Sour
 		bAnyApplied |= ApplyLinkCommand(LinkData);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Grid object event %s: Event=%s LinksExecuted=%d AnyApplied=%s"), *SourceObjectId.ToString(),
+	UE_LOG(LogGridActivation, Log, TEXT("Grid object event %s: Event=%s LinksExecuted=%d AnyApplied=%s"), *SourceObjectId.ToString(),
 		*GridObjectEventToString(SourceEvent), ExecutedLinkCount, bAnyApplied ? TEXT("true") : TEXT("false"));
 
 	DispatchingSourceObjectIds.Remove(SourceObjectId);
@@ -1199,13 +1200,13 @@ bool UGridActivationComponent::ApplyDoorLinkCommand(const FGridLevelObjectData& 
 
 bool UGridActivationComponent::ApplyReceptacleLinkCommand(const FGridLevelObjectData& TargetObject, EGridObjectCommand Command)
 {
-	UE_LOG(LogTemp, Log, TEXT("Grid receptacle command received: Command=%s Target=%s TargetType=%s"), *GridObjectCommandToString(Command),
+	UE_LOG(LogGridActivation, Log, TEXT("Grid receptacle command received: Command=%s Target=%s TargetType=%s"), *GridObjectCommandToString(Command),
 		*TargetObject.ObjectId.ToString(), *GridObjectTypeToString(TargetObject.Type));
 
 	AGridReceptacleActor* ReceptacleActor = RuntimeActor ? RuntimeActor->FindRuntimeObjectActor<AGridReceptacleActor>(TargetObject.ObjectId) : nullptr;
 	if (!ReceptacleActor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid receptacle command failed: Command=%s Target=%s Reason=target is not a receptacle"),
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid receptacle command failed: Command=%s Target=%s Reason=target is not a receptacle"),
 			*GridObjectCommandToString(Command), *TargetObject.ObjectId.ToString());
 		return false;
 	}
@@ -1216,7 +1217,7 @@ bool UGridActivationComponent::ApplyReceptacleLinkCommand(const FGridLevelObject
 		case EGridObjectCommand::ReceptacleConsumeItem:
 			if (!ReceptacleActor->HasItem())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Grid receptacle command failed: Command=%s Target=%s Actor=%s Reason=no item present"),
+				UE_LOG(LogGridActivation, Warning, TEXT("Grid receptacle command failed: Command=%s Target=%s Actor=%s Reason=no item present"),
 					*GridObjectCommandToString(Command), *TargetObject.ObjectId.ToString(), *GetNameSafe(ReceptacleActor));
 				return false;
 			}
@@ -1226,7 +1227,7 @@ bool UGridActivationComponent::ApplyReceptacleLinkCommand(const FGridLevelObject
 		case EGridObjectCommand::ReceptacleConsumeAllItems:
 			if (!ReceptacleActor->HasItem())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Grid receptacle command failed: Command=%s Target=%s Actor=%s Reason=no item present"),
+				UE_LOG(LogGridActivation, Warning, TEXT("Grid receptacle command failed: Command=%s Target=%s Actor=%s Reason=no item present"),
 					*GridObjectCommandToString(Command), *TargetObject.ObjectId.ToString(), *GetNameSafe(ReceptacleActor));
 				return false;
 			}
@@ -1248,12 +1249,12 @@ bool UGridActivationComponent::ApplyReceptacleLinkCommand(const FGridLevelObject
 
 	if (bSuccess)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Grid receptacle command result: Command=%s Target=%s Actor=%s Success=true"), *GridObjectCommandToString(Command),
+		UE_LOG(LogGridActivation, Log, TEXT("Grid receptacle command result: Command=%s Target=%s Actor=%s Success=true"), *GridObjectCommandToString(Command),
 			*TargetObject.ObjectId.ToString(), *GetNameSafe(ReceptacleActor));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid receptacle command result: Command=%s Target=%s Actor=%s Success=false"), *GridObjectCommandToString(Command),
+		UE_LOG(LogGridActivation, Warning, TEXT("Grid receptacle command result: Command=%s Target=%s Actor=%s Success=false"), *GridObjectCommandToString(Command),
 			*TargetObject.ObjectId.ToString(), *GetNameSafe(ReceptacleActor));
 	}
 	return bSuccess;
@@ -1335,7 +1336,7 @@ bool UGridActivationComponent::SetTargetActiveState(const FGridLevelObjectData& 
 	if (bStateChanged)
 	{
 		const EGridObjectEvent StateEvent = bActive ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated;
-		UE_LOG(LogTemp, Log, TEXT("Grid mechanism state changed by link command: Target=%s Type=%s PreviousActive=%s NewActive=%s Event=%s"),
+		UE_LOG(LogGridActivation, Log, TEXT("Grid mechanism state changed by link command: Target=%s Type=%s PreviousActive=%s NewActive=%s Event=%s"),
 			*TargetObject.ObjectId.ToString(), *GridObjectTypeToString(TargetObject.Type), bWasActive ? TEXT("true") : TEXT("false"),
 			bActive ? TEXT("true") : TEXT("false"), *GridObjectEventToString(StateEvent));
 		ExecuteLinksFromObjectForEvent(TargetObject.ObjectId, StateEvent);
@@ -1354,12 +1355,12 @@ void UGridActivationComponent::LogLinkResult(
 {
 	if (bSuccess)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Grid link executed: Source=%s Target=%s Command=%s Success=true"), *LinkData.SourceObjectId.ToString(),
+		UE_LOG(LogGridActivation, Log, TEXT("Grid link executed: Source=%s Target=%s Command=%s Success=true"), *LinkData.SourceObjectId.ToString(),
 			*LinkData.TargetObjectId.ToString(), *GridObjectCommandToString(ResolvedCommand));
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Grid link failed: Source=%s Target=%s Command=%s Reason=%s"), *LinkData.SourceObjectId.ToString(),
+	UE_LOG(LogGridActivation, Warning, TEXT("Grid link failed: Source=%s Target=%s Command=%s Reason=%s"), *LinkData.SourceObjectId.ToString(),
 		*LinkData.TargetObjectId.ToString(), *GridObjectCommandToString(ResolvedCommand), FailureReason ? FailureReason : TEXT("unknown"));
 }
 
@@ -1393,7 +1394,7 @@ bool UGridActivationComponent::ProcessTriggerEvent(const FGridLevelObjectData& T
 	const TCHAR* EventLabel = bEntering ? TEXT("Enter") : TEXT("Exit");
 	const EGridObjectEvent SourceEvent = bEntering ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated;
 
-	UE_LOG(LogTemp, Log, TEXT("Grid trigger detected: Id=%s Cell=(%d,%d) Event=%s SourceEvent=%s"), *TriggerData.ObjectId.ToString(), TriggerData.CellX,
+	UE_LOG(LogGridActivation, Log, TEXT("Grid trigger detected: Id=%s Cell=(%d,%d) Event=%s SourceEvent=%s"), *TriggerData.ObjectId.ToString(), TriggerData.CellX,
 		TriggerData.CellY, EventLabel, *GridObjectEventToString(SourceEvent));
 
 	return ExecuteLinksFromObjectForEvent(TriggerData.ObjectId, SourceEvent);
@@ -1489,7 +1490,7 @@ bool UGridActivationComponent::ActivateReadableObject(const FGridLevelObjectData
 	if (GEngine)
 	{
 		const FText ReadableText = GenericActor->GetReadableText();
-		UE_LOG(LogTemp, Log, TEXT("Readable object %s: %s"), *ObjectData.ObjectId.ToString(), *ReadableText.ToString());
+		UE_LOG(LogGridActivation, Log, TEXT("Readable object %s: %s"), *ObjectData.ObjectId.ToString(), *ReadableText.ToString());
 		RuntimeActor->ShowReadableMessage(ReadableText);
 		GenericActor->MarkAsRead();
 		return true;
@@ -1537,5 +1538,5 @@ FString UGridActivationComponent::GetDebugSummary() const
 
 void UGridActivationComponent::LogDebugSummary() const
 {
-	UE_LOG(LogTemp, Log, TEXT("%s"), *GetDebugSummary());
+	UE_LOG(LogGridActivation, Log, TEXT("%s"), *GetDebugSummary());
 }
