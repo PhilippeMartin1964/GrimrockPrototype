@@ -2,28 +2,14 @@
 
 #include "CoreMinimal.h"
 #include "Input/Reply.h"
-#include "Templates/Function.h"
 
 #if WITH_EDITOR
 
 #include "Toolkits/BaseToolkit.h"
 
-class SWidget;
-class SVerticalBox;
 class AGridLevelEditorActor;
-struct FGridEditorToolPalettePanelState;
-struct FGridEditorValidationPanelState;
-
-struct FGridEditorPanelExpansionState
-{
-	bool bDungeonLevelsExpanded = true;
-	bool bPlaytestExpanded = true;
-	bool bToolsExpanded = true;
-	bool bOverviewExpanded = true;
-	bool bSelectedObjectExpanded = true;
-	bool bLinksExpanded = false;
-	bool bValidationExpanded = false;
-};
+class SVerticalBox;
+class SWidget;
 
 class FGridLevelEdModeToolkit : public FModeToolkit
 {
@@ -35,31 +21,27 @@ public:
 	virtual class FEdMode* GetEditorMode() const override;
 	virtual TSharedPtr<SWidget> GetInlineContent() const override;
 
+	// Kept as the public refresh entry point used by FGridLevelEdMode.
 	void RefreshPalette();
 
 private:
 	AGridLevelEditorActor* GetEditorActor() const;
 
 	TSharedRef<SWidget> BuildToolkitWidget();
-
 	TSharedRef<SWidget> BuildHeaderSection();
-	TSharedRef<SWidget> BuildCollapsiblePanelSection(const FText& Title, const TFunctionRef<TSharedRef<SWidget>()>& BuildContent, bool& bExpanded);
-	FReply TogglePanelExpansion(bool* bExpanded);
-	void ExpandValidationIfMessagesNeedAttention();
+	TSharedRef<SWidget> BuildWorkspaceLauncherSection();
 
+	FReply OpenWorkspaceTab(FName TabName);
+
+	FText GetCurrentLevelStatusText() const;
 	FText GetActiveToolText() const;
 	FText GetSelectedCellStatusText() const;
 	FText GetSelectedEdgeStatusText() const;
 	FText GetSelectedObjectStatusText() const;
-	FText GetValidationStatusText() const;
 
 private:
 	TSharedPtr<SVerticalBox> ToolkitRoot;
 	TSharedPtr<SWidget> ToolkitWidget;
-
-	TSharedPtr<FGridEditorToolPalettePanelState> ToolPaletteState;
-	TSharedPtr<FGridEditorValidationPanelState> ValidationState;
-	FGridEditorPanelExpansionState PanelExpansionState;
 };
 
 #endif

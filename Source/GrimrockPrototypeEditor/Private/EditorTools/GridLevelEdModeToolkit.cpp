@@ -2,45 +2,30 @@
 
 #if WITH_EDITOR
 
+#include "EditorTools/GridEditorWorkspaceTabs.h"
 #include "EditorTools/GridLevelEdMode.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
-#include "EditorTools/Widgets/SGridEditorDungeonLevelsPanel.h"
-#include "EditorTools/Widgets/SGridEditorLinksPanel.h"
-#include "EditorTools/Widgets/SGridEditorObjectInspectorPanel.h"
-#include "EditorTools/Widgets/SGridEditorOverviewMapPanel.h"
-#include "EditorTools/Widgets/SGridEditorPlaytestPanel.h"
-#include "EditorTools/Widgets/SGridEditorToolPalettePanel.h"
-#include "EditorTools/Widgets/SGridEditorValidationPanel.h"
 #include "Core/GridTypes.h"
-#include "Runtime/GridLevelRuntimeActor.h"
 
 #include "Editor.h"
-#include "EngineUtils.h"
 #include "EditorModeManager.h"
-#include "Framework/Application/SlateApplication.h"
+#include "EngineUtils.h"
+#include "Framework/Docking/TabManager.h"
 
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
 #include "Styling/SlateColor.h"
 
-#include "Widgets/SWidget.h"
-#include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
-#include "Widgets/Input/SEditableTextBox.h"
-#include "Widgets/Input/SSpinBox.h"
-#include "Widgets/Text/STextBlock.h"
-
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SScrollBox.h"
-#include "Widgets/Layout/SWrapBox.h"
-#include "Widgets/SWindow.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Text/STextBlock.h"
 
 void FGridLevelEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost)
 {
-	ToolPaletteState = MakeShared<FGridEditorToolPalettePanelState>();
-	ValidationState = MakeShared<FGridEditorValidationPanelState>();
 	ToolkitWidget = BuildToolkitWidget();
 	FModeToolkit::Init(InitToolkitHost);
 }
@@ -52,7 +37,7 @@ FName FGridLevelEdModeToolkit::GetToolkitFName() const
 
 FText FGridLevelEdModeToolkit::GetBaseToolkitName() const
 {
-	return FText::FromString(TEXT("Grimrock Grid Palette"));
+	return FText::FromString(TEXT("Grimrock Grid Editor"));
 }
 
 FEdMode* FGridLevelEdModeToolkit::GetEditorMode() const
@@ -94,156 +79,18 @@ void FGridLevelEdModeToolkit::RefreshPalette()
 
 	ToolkitRoot->ClearChildren();
 
-	const FMargin PanelSpacing(0.f, 0.f, 0.f, 6.f);
-	const auto AddToolkitPanel = [this, PanelSpacing](TSharedRef<SWidget> Panel)
-	{
-		ToolkitRoot->AddSlot().AutoHeight().Padding(PanelSpacing)[Panel];
-	};
+	ToolkitRoot->AddSlot()
+		.AutoHeight()
+		.Padding(0.f, 0.f, 0.f, 6.f)
+		[
+			BuildHeaderSection()
+		];
 
-	AddToolkitPanel(BuildHeaderSection());
-
-	AddToolkitPanel(BuildCollapsiblePanelSection(
-		FText::FromString(TEXT("DUNGEON LEVELS")),
-		[this]() -> TSharedRef<SWidget>
-		{
-			return SNew(SGridEditorDungeonLevelsPanel)
-				.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
-				.OnGetEditorActor(FOnGetGridEditorDungeonLevelsActor::CreateLambda(
-					[this]()
-					{
-						return GetEditorActor();
-					}))
-				.OnRequestRefresh(FOnGridEditorDungeonLevelsRequestRefresh::CreateLambda(
-					[this]()
-					{
-						RefreshPalette();
-					}));
-		},
-		PanelExpansionState.bDungeonLevelsExpanded));
-
-	AddToolkitPanel(BuildCollapsiblePanelSection(
-		FText::FromString(TEXT("PLAYTEST")),
-		[this]() -> TSharedRef<SWidget>
-		{
-			return SNew(SGridEditorPlaytestPanel)
-				.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
-				.OnGetEditorActor(FOnGetGridEditorPlaytestActor::CreateLambda(
-					[this]()
-					{
-						return GetEditorActor();
-					}))
-				.OnRequestRefresh(FOnGridEditorPlaytestRequestRefresh::CreateLambda(
-					[this]()
-					{
-						RefreshPalette();
-					}));
-		},
-		PanelExpansionState.bPlaytestExpanded));
-
-	AddToolkitPanel(BuildCollapsiblePanelSection(
-		FText::FromString(TEXT("TOOLS / PALETTE")),
-		[this]() -> TSharedRef<SWidget>
-		{
-			return SNew(SGridEditorToolPalettePanel)
-				.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
-				.ToolPaletteState(ToolPaletteState)
-				.OnGetEditorActor(FOnGetGridEditorToolPaletteActor::CreateLambda(
-					[this]()
-					{
-						return GetEditorActor();
-					}))
-				.OnRequestRefresh(FOnGridEditorToolPaletteRequestRefresh::CreateLambda(
-					[this]()
-					{
-						RefreshPalette();
-					}));
-		},
-		PanelExpansionState.bToolsExpanded));
-
-	const AGridLevelEditorActor* EditorActor = GetEditorActor();
-
-	AddToolkitPanel(BuildCollapsiblePanelSection(
-		FText::FromString(TEXT("OVERVIEW MAP")),
-		[this]() -> TSharedRef<SWidget>
-		{
-			return SNew(SGridEditorOverviewMapPanel)
-				.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
-				.OnGetEditorActor(FOnGetGridEditorActor::CreateLambda(
-					[this]()
-					{
-						return GetEditorActor();
-					}))
-				.OnRequestRefresh(FOnGridEditorOverviewRequestRefresh::CreateLambda(
-					[this]()
-					{
-						RefreshPalette();
-					}));
-		},
-		PanelExpansionState.bOverviewExpanded));
-
-	const FGridLevelObjectData* Obj = EditorActor ? EditorActor->GetSelectedObjectData() : nullptr;
-
-	AddToolkitPanel(BuildCollapsiblePanelSection(
-		FText::FromString(TEXT("SELECTED OBJECT")),
-		[this]() -> TSharedRef<SWidget>
-		{
-			return SNew(SGridEditorObjectInspectorPanel)
-				.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
-				.OnGetEditorActor(FOnGetGridEditorObjectInspectorActor::CreateLambda(
-					[this]()
-					{
-						return GetEditorActor();
-					}))
-				.OnRequestRefresh(FOnGridEditorObjectInspectorRequestRefresh::CreateLambda(
-					[this]()
-					{
-						RefreshPalette();
-					}));
-		},
-		PanelExpansionState.bSelectedObjectExpanded));
-
-	if (Obj)
-	{
-		AddToolkitPanel(BuildCollapsiblePanelSection(
-			FText::FromString(TEXT("CONNECTORS")),
-			[this]() -> TSharedRef<SWidget>
-			{
-				return SNew(SGridEditorLinksPanel)
-					.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
-					.OnGetEditorActor(FOnGetGridEditorLinksActor::CreateLambda(
-						[this]()
-						{
-							return GetEditorActor();
-						}))
-					.OnRequestRefresh(FOnGridEditorLinksRequestRefresh::CreateLambda(
-						[this]()
-						{
-							RefreshPalette();
-						}));
-			},
-			PanelExpansionState.bLinksExpanded));
-	}
-
-	AddToolkitPanel(BuildCollapsiblePanelSection(
-		FText::FromString(TEXT("VALIDATION")),
-		[this]() -> TSharedRef<SWidget>
-		{
-			return SNew(SGridEditorValidationPanel)
-				.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
-				.ValidationState(ValidationState)
-				.OnGetEditorActor(FOnGetGridEditorValidationActor::CreateLambda(
-					[this]()
-					{
-						return GetEditorActor();
-					}))
-				.OnRequestRefresh(FOnGridEditorValidationRequestRefresh::CreateLambda(
-					[this]()
-					{
-						ExpandValidationIfMessagesNeedAttention();
-						RefreshPalette();
-					}));
-		},
-		PanelExpansionState.bValidationExpanded));
+	ToolkitRoot->AddSlot()
+		.AutoHeight()
+		[
+			BuildWorkspaceLauncherSection()
+		];
 }
 
 TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildToolkitWidget()
@@ -255,6 +102,89 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildToolkitWidget()
 	RefreshPalette();
 
 	return Widget;
+}
+
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildWorkspaceLauncherSection()
+{
+	TSharedRef<SVerticalBox> Buttons = SNew(SVerticalBox);
+
+	const auto AddWorkspaceButton = [this, &Buttons](const FText& Label, const FText& Tooltip, const FName& TabName)
+	{
+		Buttons->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 0.f, 0.f, 4.f)
+			[
+				SNew(SButton)
+					.Text(Label)
+					.ToolTipText(Tooltip)
+					.HAlign(HAlign_Left)
+					.ContentPadding(FMargin(10.f, 5.f))
+					.OnClicked(FOnClicked::CreateRaw(this, &FGridLevelEdModeToolkit::OpenWorkspaceTab, TabName))
+			];
+	};
+
+	AddWorkspaceButton(
+		FText::FromString(TEXT("Dungeon Levels")),
+		FText::FromString(TEXT("Open dungeon level navigation and the 32x32 overview map.")),
+		GridEditorWorkspaceTabs::DungeonLevels());
+
+	AddWorkspaceButton(
+		FText::FromString(TEXT("PlayTest & Validation")),
+		FText::FromString(TEXT("Open playtest preparation and level validation.")),
+		GridEditorWorkspaceTabs::PlaytestValidation());
+
+	AddWorkspaceButton(
+		FText::FromString(TEXT("Tools & Palette")),
+		FText::FromString(TEXT("Open Grid Editor tools and the searchable object palette.")),
+		GridEditorWorkspaceTabs::ToolsPalette());
+
+	AddWorkspaceButton(
+		FText::FromString(TEXT("Selected Object")),
+		FText::FromString(TEXT("Open selected-object properties and connectors.")),
+		GridEditorWorkspaceTabs::SelectedObject());
+
+	AddWorkspaceButton(
+		FText::FromString(TEXT("Grimrock Lua Scripts")),
+		FText::FromString(TEXT("Open level Lua scripts and event bindings.")),
+		GridEditorWorkspaceTabs::LuaScripts());
+
+	return SNew(SBorder)
+		.Padding(FMargin(6.f))
+		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+		[
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.f, 0.f, 0.f, 5.f)
+			[
+				SNew(STextBlock)
+					.Text(FText::FromString(TEXT("WORKSPACE")))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.f, 0.f, 0.f, 6.f)
+			[
+				SNew(STextBlock)
+					.Text(FText::FromString(TEXT("Open the authoring window you need.")))
+					.AutoWrapText(true)
+					.ColorAndOpacity(FSlateColor(FLinearColor(0.68f, 0.68f, 0.68f, 1.f)))
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				Buttons
+			]
+		];
+}
+
+FReply FGridLevelEdModeToolkit::OpenWorkspaceTab(FName TabName)
+{
+	FGlobalTabmanager::Get()->TryInvokeTab(FTabId(TabName));
+	return FReply::Handled();
 }
 
 TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection()
@@ -325,11 +255,9 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection()
                         .Padding (0.f, 0.f, 0.f, 0.f)
                         [
                             GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                                FText::FromString (TEXT ("Validation :")),
-                                GetValidationStatusText (),
-                                FSlateColor (ValidationState.IsValid () && ValidationState->bValidationHasRun
-                                    ? FLinearColor (1.f, 0.72f, 0.20f, 1.f)
-                                    : FLinearColor (0.50f, 0.50f, 0.50f, 1.f)))
+                                FText::FromString (TEXT ("Level :")),
+                                GetCurrentLevelStatusText (),
+                                FSlateColor (FLinearColor (0.50f, 0.75f, 1.f, 1.f)))
                         ]
                     ]
 
@@ -428,39 +356,22 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection()
         ];
 }
 
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildCollapsiblePanelSection(
-	const FText& Title, const TFunctionRef<TSharedRef<SWidget>()>& BuildContent, bool& bExpanded)
+FText FGridLevelEdModeToolkit::GetCurrentLevelStatusText() const
 {
-	return GridEditorWidgetHelpers::BuildGridCollapsiblePanelSection(
-		Title, BuildContent, bExpanded, FOnClicked::CreateRaw(this, &FGridLevelEdModeToolkit::TogglePanelExpansion, &bExpanded));
-}
-
-FReply FGridLevelEdModeToolkit::TogglePanelExpansion(bool* bExpanded)
-{
-	if (bExpanded)
+	if (const AGridLevelEditorActor* EditorActor = GetEditorActor())
 	{
-		*bExpanded = !*bExpanded;
-		RefreshPalette();
+		if (!EditorActor->CurrentDungeonLevelId.IsNone())
+		{
+			return FText::FromName(EditorActor->CurrentDungeonLevelId);
+		}
+
+		if (EditorActor->LevelAsset)
+		{
+			return FText::FromString(EditorActor->LevelAsset->GetName());
+		}
 	}
 
-	return FReply::Handled();
-}
-
-void FGridLevelEdModeToolkit::ExpandValidationIfMessagesNeedAttention()
-{
-	if (!ValidationState.IsValid())
-	{
-		return;
-	}
-
-	int32 ErrorCount = 0;
-	int32 WarningCount = 0;
-	ValidationState->CountValidationErrorsWarnings(ErrorCount, WarningCount);
-
-	if (ErrorCount > 0 || WarningCount > 0)
-	{
-		PanelExpansionState.bValidationExpanded = true;
-	}
+	return FText::FromString(TEXT("None"));
 }
 
 FText FGridLevelEdModeToolkit::GetActiveToolText() const
@@ -512,13 +423,4 @@ FText FGridLevelEdModeToolkit::GetSelectedObjectStatusText() const
 	return FText::Format(FText::FromString(TEXT("{0} ({1},{2})")), TypeText, FText::AsNumber(Obj->CellX), FText::AsNumber(Obj->CellY));
 }
 
-FText FGridLevelEdModeToolkit::GetValidationStatusText() const
-{
-	if (!ValidationState.IsValid())
-	{
-		return FText::FromString(TEXT("Not run"));
-	}
-
-	return ValidationState->GetValidationStatusText();
-}
 #endif
