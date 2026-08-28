@@ -67,7 +67,12 @@ $LogRows = foreach ($File in $Files)
     }
 }
 
-$LogRows = @($LogRows | Sort-Object Count -Descending, Path)
+$LogRows = @(
+    $LogRows | Sort-Object -Property @(
+        @{ Expression = "Count"; Descending = $true },
+        @{ Expression = "Path"; Ascending = $true }
+    )
+)
 $TotalLogTempCalls = ($LogRows | Measure-Object -Property Count -Sum).Sum
 if ($null -eq $TotalLogTempCalls)
 {
