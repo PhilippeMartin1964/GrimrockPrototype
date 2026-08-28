@@ -218,3 +218,33 @@ GEUI07 — Palette UX
 ~~~
 
 GEUI07 can then focus purely on higher-level palette productivity features such as Favorites, Recently Used and user-oriented organization without carrying the old monolithic Toolkit constraints.
+
+
+## GEUI06.1 — Scope workspace windows to Grid Editor mode
+
+Workspace Nomad tabs are now explicitly tied to the lifetime of:
+
+~~~text
+EM_GrimrockGridLevelEdMode
+~~~
+
+Behavior:
+
+- while Grimrock Grid Editor is active, the workspace tabs can be opened normally;
+- when the mode is exited, all live Grimrock workspace tabs are requested to close;
+- while the mode is inactive, their Nomad spawners reject creation through `FCanSpawnTab`;
+- Unreal's Window menu therefore cannot spawn these authoring windows outside Grid Editor mode.
+
+The scoped tabs are:
+
+~~~text
+Dungeon Levels
+PlayTest & Validation
+Tools & Palette
+Selected Object
+Grimrock Lua Scripts
+~~~
+
+`GridEditorWorkspaceTabs::All()` centralizes this list so close behavior and canonical identifiers cannot drift apart.
+
+This is editor-only lifecycle behavior and does not affect level/runtime data.

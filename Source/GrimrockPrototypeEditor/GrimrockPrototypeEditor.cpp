@@ -10,6 +10,7 @@
 
 #include "Editor.h"
 #include "EngineUtils.h"
+#include "EditorModeManager.h"
 #include "Framework/Docking/TabManager.h"
 #include "ToolMenus.h"
 #include "Widgets/Docking/SDockTab.h"
@@ -36,7 +37,10 @@ public:
 		// canonical "Grimrock Lua Scripts" entry.
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridEditorWorkspaceTabs::LuaScripts());
 		FGlobalTabmanager::Get()
-			->RegisterNomadTabSpawner(GridEditorWorkspaceTabs::LuaScripts(), FOnSpawnTab::CreateRaw(this, &FGrimrockPrototypeEditorModule::SpawnLuaEditorTab))
+			->RegisterNomadTabSpawner(
+				GridEditorWorkspaceTabs::LuaScripts(),
+				FOnSpawnTab::CreateRaw(this, &FGrimrockPrototypeEditorModule::SpawnLuaEditorTab),
+				FCanSpawnTab::CreateRaw(this, &FGrimrockPrototypeEditorModule::CanSpawnGridEditorTab))
 			.SetDisplayName(FText::FromString(TEXT("Grimrock Lua Scripts")))
 			.SetTooltipText(FText::FromString(TEXT("Edit and validate level Lua scripts and Lua event bindings.")))
 			.SetMenuType(ETabSpawnerMenuType::Enabled)
@@ -74,11 +78,20 @@ public:
 	}
 
 private:
+	bool CanSpawnGridEditorTab(const FSpawnTabArgs& SpawnTabArgs) const
+	{
+		(void)SpawnTabArgs;
+		return GLevelEditorModeTools().IsModeActive(FGridLevelEdMode::EM_GridLevelEdModeId);
+	}
+
 	void RegisterGridWorkspaceTab(const FName& TabName, const FText& DisplayName, const FText& Tooltip, EGridEditorWorkspaceTab WorkspaceTab)
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TabName);
 		FGlobalTabmanager::Get()
-			->RegisterNomadTabSpawner(TabName, FOnSpawnTab::CreateRaw(this, &FGrimrockPrototypeEditorModule::SpawnGridWorkspaceTab, WorkspaceTab))
+			->RegisterNomadTabSpawner(
+				TabName,
+				FOnSpawnTab::CreateRaw(this, &FGrimrockPrototypeEditorModule::SpawnGridWorkspaceTab, WorkspaceTab),
+				FCanSpawnTab::CreateRaw(this, &FGrimrockPrototypeEditorModule::CanSpawnGridEditorTab))
 			.SetDisplayName(DisplayName)
 			.SetTooltipText(Tooltip)
 			.SetMenuType(ETabSpawnerMenuType::Enabled)

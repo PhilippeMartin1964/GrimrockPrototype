@@ -13,7 +13,11 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Toolkits/ToolkitManager.h"
 #include "EditorModeManager.h"
+#include "EditorTools/GridEditorWorkspaceTabs.h"
 #include "EditorTools/GridLevelEdModeToolkit.h"
+
+#include "Framework/Docking/TabManager.h"
+#include "Widgets/Docking/SDockTab.h"
 
 namespace
 {
@@ -818,6 +822,14 @@ void FGridLevelEdMode::Enter()
 
 void FGridLevelEdMode::Exit()
 {
+	for (const FName& TabName : GridEditorWorkspaceTabs::All())
+	{
+		if (TSharedPtr<SDockTab> LiveTab = FGlobalTabmanager::Get()->FindExistingLiveTab(FTabId(TabName)))
+		{
+			LiveTab->RequestCloseTab();
+		}
+	}
+
 	if (AGridLevelEditorActor* EditorActor = FindEditorActor())
 	{
 		if (EditorActor->IsPatrolRouteEditModeActive())

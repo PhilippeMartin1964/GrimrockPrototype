@@ -35,6 +35,19 @@ namespace GridEditorWorkspaceTabs
 		static const FName Name(TEXT("GrimrockLuaEditor"));
 		return Name;
 	}
+
+	inline const TArray<FName>& All()
+	{
+		static const TArray<FName> Names =
+		{
+			DungeonLevels(),
+			PlaytestValidation(),
+			ToolsPalette(),
+			SelectedObject(),
+			LuaScripts()
+		};
+		return Names;
+	}
 }
 
 #endif
