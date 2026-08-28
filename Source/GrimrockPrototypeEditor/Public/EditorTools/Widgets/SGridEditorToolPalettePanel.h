@@ -13,11 +13,23 @@ enum class EGridEditorTool : uint8;
 enum class EGridLevelObjectType : uint8;
 struct FGridObjectPaletteEntry;
 
+enum class EGridEditorPaletteView : uint8
+{
+	All,
+	Favorites,
+	Recent,
+	Category
+};
+
 struct FGridEditorToolPalettePanelState
 {
 	TMap<FString, TSharedPtr<FSlateBrush>> CachedIconBrushes;
 	FString SearchText;
+	EGridEditorPaletteView SelectedView = EGridEditorPaletteView::All;
 	FName SelectedCategory = NAME_None;
+	TSet<FName> FavoriteEntryIds;
+	TArray<FName> RecentEntryIds;
+	bool bUserStateLoaded = false;
 };
 
 DECLARE_DELEGATE_RetVal(AGridLevelEditorActor*, FOnGetGridEditorToolPaletteActor);
@@ -48,11 +60,17 @@ private:
 	UTexture2D* GetToolIcon(EGridEditorTool Tool) const;
 	TSharedRef<SWidget> BuildPaletteSection();
 	TSharedRef<SWidget> BuildPaletteResults();
+	TSharedRef<SWidget> BuildPaletteEntryGrid(const TArray<const FGridObjectPaletteEntry*>& Entries);
 	TSharedRef<SWidget> BuildPaletteTile(const FGridObjectPaletteEntry& Entry);
 	void RebuildPaletteResults();
 	bool DoesPaletteEntryPassFilters(const FGridObjectPaletteEntry& Entry) const;
+	void LoadUserPaletteState();
+	void SaveUserPaletteState() const;
+	void AddRecentEntry(FName EntryId);
+	bool IsFavoriteEntry(FName EntryId) const;
 	void OnPaletteSearchTextChanged(const FText& NewText);
-	FReply OnPaletteCategoryClicked(FName Category);
+	FReply OnPaletteViewClicked(EGridEditorPaletteView View, FName Category);
+	FReply OnPaletteFavoriteClicked(FName EntryId);
 	TSharedRef<SWidget> BuildIconOrFallback(UTexture2D* Icon, EGridLevelObjectType FallbackType, float Size);
 
 	FReply OnToolClicked(int32 ToolValue);
