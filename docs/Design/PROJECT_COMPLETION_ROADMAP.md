@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.8 STRICT GATE PREPARED — À VALIDER — MON21.4 SUSPENDU**  
+Statut : **TD07.3.8 STRICT GATE VALIDÉ — FINAL STOP-CONDITION PENDING — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.

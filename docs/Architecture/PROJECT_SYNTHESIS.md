@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07.3.8 Strict Current-Schema Validation gate prepared — à valider.**
+> État : **28 août 2026, TD07.3.8 Strict Current-Schema gate validé ; campagne finale de stop condition TD07.3 en attente.**
 
 ## 1. Référence
 

@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3 — Prototype Data Model Reset
-Statut : STRICT GATE PREPARED — À VALIDER
+Statut : STRICT GATE VALIDÉ — FINAL STOP-CONDITION PENDING
 
 ## 1. Objectif
 
@@ -125,3 +125,38 @@ TD07.3 pourra être clos lorsque :
 - [ ] Shipping Win64 vert.
 
 Après cette stop condition, MON21.4 pourra reprendre sous le schéma prototype courant exact-match.
+
+
+## 5. Strict gate validé
+
+Validation locale du 28 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema
+Succeeded              : 5
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-104937
+Process exit code       : 0
+```
+
+Le gate strict est donc validé. Il reste la campagne finale de stop condition TD07.3 avant clôture de la phase.
+
+Campagne finale autoritaire :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_10.Normalization     4 tests
+Grimrock.TechnicalDebt.TD07_3_2.SaveContract        6 tests
+Grimrock.TechnicalDebt.TD07_3_4_4.Normalization     4 tests
+Grimrock.TechnicalDebt.TD07_3_5_2.Normalization     4 tests
+Grimrock.TechnicalDebt.TD07_3_5_3.Normalization     4 tests
+Grimrock.TechnicalDebt.TD07_3_5_4.Normalization     4 tests
+Grimrock.TechnicalDebt.TD07_3_6.Normalization       4 tests
+Grimrock.TechnicalDebt.TD07_3_7.Normalization       4 tests
+Grimrock.TechnicalDebt.TD07_3_1.CurrentSchemaAssetAudit
+```
+
+Soit 34 tests de normalisation ciblés + l'audit courant, en plus des 5 tests StrictCurrentSchema déjà validés.
+
+La stop condition exige ensuite un Win64 Shipping réussi.

@@ -4,7 +4,7 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 28 août 2026, TD07.3.8 Strict Current-Schema Validation gate prepared — à valider.**  
+**Référence courante : 28 août 2026, TD07.3.8 Strict Current-Schema gate validé ; campagne finale de stop condition TD07.3 en attente.**  
 Phase active : **TD07.3 — Prototype Data Model Reset**. MON21.4 reste suspendu jusqu'à la stop condition TD07.3.
 
 ## Ordre de lecture recommandé
@@ -106,7 +106,7 @@ TD07.3.4 Authoring Identity Normalization                         VALIDÉ — CL
 TD07.3.5 Combat Data Schema Reset                              VALIDÉ — CLOS
 TD07.3.6 Remaining Legacy API/Data Purge                      VALIDÉ — CLOS
 TD07.3.7 Current Asset Repair / Recreation                      VALIDÉ — CLOS
-TD07.3.8 Strict Current-Schema Validation / stop condition      STRICT GATE PREPARED — À VALIDER
+TD07.3.8 Strict Current-Schema Validation / stop condition      STRICT GATE VALIDÉ — FINAL STOP-CONDITION PENDING
 ```
 
 ## Phase fonctionnelle suspendue

@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.8 STRICT GATE PREPARED — À VALIDER**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.8 STRICT GATE VALIDÉ — FINAL STOP-CONDITION PENDING**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -624,7 +624,7 @@ TD07.3.4        Authoring Identity Normalization                      VALIDÉ �
 TD07.3.5        Combat Data Schema Reset                              VALIDÉ — CLOS
 TD07.3.6        Remaining Legacy API/Data Purge                       VALIDÉ — CLOS
 TD07.3.7        Current Asset Repair / Recreation                     VALIDÉ — CLOS
-TD07.3.8        Strict Current-Schema Validation / stop condition     STRICT GATE PREPARED — À VALIDER
+TD07.3.8        Strict Current-Schema Validation / stop condition     STRICT GATE VALIDÉ — FINAL STOP-CONDITION PENDING
 TD07.4          ActivationComponent characterization                   À FAIRE
 TD07.5          Suspended test infrastructure / branch recovery        À FAIRE
 TD07.6          Legacy asset/API cleanup audit                          ABSORBÉ PAR TD07.3
