@@ -3,11 +3,14 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
+#include "Core/GridObjectArchetypeAsset.h"
 #include "Engine/Engine.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "GridLuaScriptTypes.h"
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridLeverActor.h"
 
 namespace
 {
@@ -86,11 +89,27 @@ bool FGridMON1971LogicIdCommandTest::RunTest(const FString& Parameters)
 	Level->Objects.Add(Source);
 
 	const FGuid TargetId(19, 7, 1, 2);
+	const FName TargetArchetypeId(TEXT("MON1971_SecretLever"));
 	FGridLevelObjectData Target;
 	Target.ObjectId = TargetId;
 	Target.LogicId = TEXT("SecretLever");
 	Target.Type = EGridLevelObjectType::Lever;
+	Target.ArchetypeId = TargetArchetypeId;
+	Target.CellX = 0;
+	Target.CellY = 0;
+	Target.Edge = EGridEdge::North;
+	Target.bInitiallyEnabled = true;
 	Level->Objects.Add(Target);
+
+	UGridObjectArchetypeAsset* LeverArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
+	LeverArchetype->ArchetypeId = TargetArchetypeId;
+	LeverArchetype->SupportedType = EGridLevelObjectType::Lever;
+	LeverArchetype->Category = TEXT("Mechanisms");
+	LeverArchetype->ObjectCategory = EGridObjectCategory::Mechanism;
+	LeverArchetype->PlacementKind = EGridObjectPlacementKind::Wall;
+	LeverArchetype->RuntimeActorClass = AGridLeverActor::StaticClass();
+	LeverArchetype->MovingMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	LeverArchetype->bIsInteractable = true;
 
 	FGridLuaScriptSource Script;
 	Script.ScriptId = TEXT("Puzzle");
@@ -109,6 +128,13 @@ bool FGridMON1971LogicIdCommandTest::RunTest(const FString& Parameters)
 
 	Runtime->LevelAsset = Level;
 	Runtime->CurrentDungeonLevelId = TEXT("MON1971");
+	Runtime->ObjectArchetypes.Add(LeverArchetype);
+	Runtime->RebuildLevel();
+	if (!TestNotNull(TEXT("LogicId target has a runtime lever actor"), Runtime->FindRuntimeObjectActor<AGridLeverActor>(TargetId)))
+	{
+		return false;
+	}
+
 	UGridActivationComponent* Activation = Runtime->FindComponentByClass<UGridActivationComponent>();
 	if (!Activation)
 	{

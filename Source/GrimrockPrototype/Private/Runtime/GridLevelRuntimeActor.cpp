@@ -1882,8 +1882,8 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects()
 			if (ObjectData.bInitiallyEnabled)
 			{
 				const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(ObjectData.ArchetypeId);
-				const bool bDataOnlyLogicalTarget = ObjectData.Type == EGridLevelObjectType::Logic ||
-					ObjectData.Type == EGridLevelObjectType::StoryCompanion || ObjectData.Type == EGridLevelObjectType::CustomRecruiter;
+				const bool bDataOnlyLogicalTarget = ObjectData.Type == EGridLevelObjectType::Logic || ObjectData.Type == EGridLevelObjectType::StoryCompanion ||
+					ObjectData.Type == EGridLevelObjectType::CustomRecruiter;
 				if (Archetype && !Archetype->RuntimeActorClass && !bDataOnlyLogicalTarget)
 				{
 					UE_LOG(LogTemp, Warning, TEXT("Runtime object skipped: archetype %s has no RuntimeActorClass."), *ObjectData.ArchetypeId.ToString());

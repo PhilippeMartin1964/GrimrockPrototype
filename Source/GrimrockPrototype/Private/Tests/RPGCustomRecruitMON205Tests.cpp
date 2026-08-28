@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Engine/Texture2D.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGCustomRecruitService.h"
 #include "RPG/RPGRaceAsset.h"
@@ -276,7 +277,8 @@ bool FRPGMON205VisualSelectionPreservedTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Portrait gender is preserved"), Recruit.PortraitGender == ERPGCharacterPortraitGender::Female);
 	TestEqual(TEXT("Portrait variant is preserved"), Recruit.PortraitVariantId, FName(TEXT("Portrait_F_02")));
 	TestTrue(TEXT("Portrait soft path is preserved"), Recruit.Portrait.ToSoftObjectPath() == Request.Portrait.ToSoftObjectPath());
-	TestTrue(TEXT("Class icon soft path is preserved"), Recruit.ClassIcon.ToSoftObjectPath() == Request.ClassIcon.ToSoftObjectPath());
+	const TSoftObjectPtr<UTexture2D> ExpectedClassIcon = FRPGAuthoringIdentityResolver::ResolveClassIcon(Recruit.ClassId);
+	TestTrue(TEXT("Class icon is resolved canonically from ClassId"), Recruit.ClassIcon.ToSoftObjectPath() == ExpectedClassIcon.ToSoftObjectPath());
 	return true;
 }
 

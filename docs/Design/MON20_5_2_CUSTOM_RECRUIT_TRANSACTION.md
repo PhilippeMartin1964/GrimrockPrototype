@@ -213,7 +213,20 @@ MON20.5.2 est donc validé et clos.
 
 ---
 
-## 10. Suite
+## 10. Clarification post-TD07.3.4.4 — 28 août 2026
+
+TD07.3.4.4 a normalisé l'identité visuelle des personnages :
+
+- `ClassId` reste durable ;
+- `ClassIcon` est désormais un cache transitoire ;
+- le cache est résolu par `FRPGAuthoringIdentityResolver::ResolveClassIcon(ClassId)` ;
+- une valeur `Request.ClassIcon` ne constitue donc plus une autorité durable concurrente.
+
+Le test historique `VisualSelectionPreserved` conserve la vérification du portrait sélectionné et vérifie désormais que l'icône de classe de la recrue correspond au résolveur canonique courant.
+
+Cette adaptation de test ne change pas le gameplay MON20.5 ; elle aligne la couverture historique sur le schéma strict v22 de TD07.3.
+
+## 11. Suite
 
 ```text
 MON20.5.3 — Wizard Context Reuse
