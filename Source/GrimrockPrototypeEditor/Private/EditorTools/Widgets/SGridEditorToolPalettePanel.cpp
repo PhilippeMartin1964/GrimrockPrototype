@@ -18,9 +18,11 @@
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Layout/SWrapBox.h"
 
 namespace
 {
@@ -141,17 +143,25 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolPalettePanel()
 
 TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolSection()
 {
-	return SNew(SHorizontalBox) +
-		SHorizontalBox::Slot().AutoWidth().Padding(
-			2.f)[BuildToolTile(FText::FromString(TEXT("Select")), GetToolGlyph(EGridEditorTool::Select), EGridEditorTool::Select)] +
-		SHorizontalBox::Slot().AutoWidth().Padding(
-			2.f)[BuildToolTile(FText::FromString(TEXT("Paint Cell")), GetToolGlyph(EGridEditorTool::PaintCell), EGridEditorTool::PaintCell)] +
-		SHorizontalBox::Slot().AutoWidth().Padding(
-			2.f)[BuildToolTile(FText::FromString(TEXT("Paint Wall")), GetToolGlyph(EGridEditorTool::PaintWall), EGridEditorTool::PaintWall)] +
-		SHorizontalBox::Slot().AutoWidth().Padding(
-			2.f)[BuildToolTile(FText::FromString(TEXT("Paint Object")), GetToolGlyph(EGridEditorTool::PaintObject), EGridEditorTool::PaintObject)] +
-		SHorizontalBox::Slot().AutoWidth().Padding(
-			2.f)[BuildToolTile(FText::FromString(TEXT("Erase")), GetToolGlyph(EGridEditorTool::Erase), EGridEditorTool::Erase)];
+	TSharedRef<SWrapBox> ToolWrap = SNew(SWrapBox);
+
+	const auto AddTool = [&ToolWrap, this](const FText& Label, EGridEditorTool Tool)
+	{
+		ToolWrap->AddSlot()
+			.Padding(FMargin(2.f))
+			[
+				BuildToolTile(Label, GetToolGlyph(Tool), Tool)
+			];
+	};
+
+	AddTool(FText::FromString(TEXT("Select")), EGridEditorTool::Select);
+	AddTool(FText::FromString(TEXT("Paint Cell")), EGridEditorTool::PaintCell);
+	AddTool(FText::FromString(TEXT("Paint Wall")), EGridEditorTool::PaintWall);
+	AddTool(FText::FromString(TEXT("Paint Object")), EGridEditorTool::PaintObject);
+	AddTool(FText::FromString(TEXT("Erase")), EGridEditorTool::Erase);
+	AddTool(FText::FromString(TEXT("Link")), EGridEditorTool::Link);
+
+	return ToolWrap;
 }
 
 UTexture2D* SGridEditorToolPalettePanel::GetToolIcon(EGridEditorTool Tool) const
@@ -258,7 +268,6 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildIconOrFallback(UTexture2D*
 TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 {
 	AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
 
 	if (!CurrentEditorActor)
@@ -285,7 +294,159 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 		}
 	}
 
+	TArray<FName> Categories;
+	for (const FGridObjectPaletteEntry& Entry : CurrentEditorActor->ObjectPalette->Entries)
+	{
+		if (Entry.GetEffectiveObjectType() == EGridLevelObjectType::ItemSpawn)
+		{
+			continue;
+		}
+
+		Categories.AddUnique(GetPaletteCategoryForEntry(Entry));
+	}
+
+	Categories.Sort(
+		[](const FName& CategoryA, const FName& CategoryB)
+		{
+			const int32 SortOrderA = GetPaletteCategorySortOrder(CategoryA);
+			const int32 SortOrderB = GetPaletteCategorySortOrder(CategoryB);
+			return SortOrderA == SortOrderB ? CategoryA.ToString() < CategoryB.ToString() : SortOrderA < SortOrderB;
+		});
+
+	FGridEditorToolPalettePanelState& State = GetToolPaletteState();
+	if (!State.SelectedCategory.IsNone() && !Categories.Contains(State.SelectedCategory))
+	{
+		State.SelectedCategory = NAME_None;
+	}
+
+	Root->AddSlot()
+		.AutoHeight()
+		.Padding(0.f, 0.f, 0.f, 6.f)
+		[
+			SNew(SSearchBox)
+				.HintText(FText::FromString(TEXT("Search palette by name, id, category or archetype...")))
+				.Text(FText::FromString(State.SearchText))
+				.OnTextChanged(this, &SGridEditorToolPalettePanel::OnPaletteSearchTextChanged)
+		];
+
+	TSharedRef<SWrapBox> CategoryWrap = SNew(SWrapBox);
+
+	const auto AddCategoryButton = [this, &CategoryWrap, &State](FName Category, const FText& Label)
+	{
+		const bool bSelected = State.SelectedCategory == Category;
+		CategoryWrap->AddSlot()
+			.Padding(FMargin(0.f, 0.f, 5.f, 5.f))
+			[
+				SNew(SButton)
+					.Text(Label)
+					.ButtonColorAndOpacity(bSelected ? FLinearColor(0.10f, 0.45f, 0.55f, 1.f) : FLinearColor::White)
+					.OnClicked(FOnClicked::CreateSP(this, &SGridEditorToolPalettePanel::OnPaletteCategoryClicked, Category))
+			];
+	};
+
+	AddCategoryButton(NAME_None, FText::FromString(TEXT("All")));
+	for (const FName& Category : Categories)
+	{
+		AddCategoryButton(Category, GetPaletteCategoryDisplayText(Category));
+	}
+
+	Root->AddSlot()
+		.AutoHeight()
+		.Padding(0.f, 0.f, 0.f, 4.f)
+		[
+			CategoryWrap
+		];
+
+	Root->AddSlot()
+		.AutoHeight()
+		[
+			SAssignNew(PaletteResultsRoot, SVerticalBox)
+		];
+
+	RebuildPaletteResults();
+
+	Root->AddSlot()
+		.AutoHeight()
+		.Padding(0.f, 6.f, 0.f, 0.f)
+		[
+			SNew(STextBlock)
+				.Text_Lambda(
+					[this]()
+					{
+						return FText::Format(
+							FText::FromString(TEXT("Selected Palette Entry: {0}")),
+							GetSelectedPaletteEntryText());
+					})
+		];
+
+	return Root;
+}
+
+void SGridEditorToolPalettePanel::RebuildPaletteResults()
+{
+	if (!PaletteResultsRoot.IsValid())
+	{
+		return;
+	}
+
+	PaletteResultsRoot->ClearChildren();
+	PaletteResultsRoot->AddSlot()
+		.AutoHeight()
+		[
+			BuildPaletteResults()
+		];
+}
+
+bool SGridEditorToolPalettePanel::DoesPaletteEntryPassFilters(const FGridObjectPaletteEntry& Entry) const
+{
+	const FGridEditorToolPalettePanelState& State = GetToolPaletteState();
+	const FName Category = GetPaletteCategoryForEntry(Entry);
+
+	if (!State.SelectedCategory.IsNone() && State.SelectedCategory != Category)
+	{
+		return false;
+	}
+
+	FString Search = State.SearchText;
+	Search.TrimStartAndEndInline();
+	if (Search.IsEmpty())
+	{
+		return true;
+	}
+
+	const auto Matches = [&Search](const FString& Candidate)
+	{
+		return Candidate.Contains(Search, ESearchCase::IgnoreCase);
+	};
+
+	if (Matches(Entry.GetEffectiveDisplayName().ToString()) || Matches(Entry.EntryId.ToString()) || Matches(Category.ToString()))
+	{
+		return true;
+	}
+
+	if (Entry.DefaultArchetype)
+	{
+		return Matches(Entry.DefaultArchetype->ArchetypeId.ToString()) ||
+			Matches(Entry.DefaultArchetype->DisplayName.ToString()) ||
+			Matches(Entry.DefaultArchetype->Description.ToString());
+	}
+
+	return false;
+}
+
+TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteResults()
+{
+	AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
+	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
+
+	if (!CurrentEditorActor || !CurrentEditorActor->ObjectPalette)
+	{
+		return Root;
+	}
+
 	TMap<FName, TArray<const FGridObjectPaletteEntry*>> EntriesByCategory;
+	int32 EligibleCount = 0;
+	int32 MatchCount = 0;
 
 	for (const FGridObjectPaletteEntry& Entry : CurrentEditorActor->ObjectPalette->Entries)
 	{
@@ -294,7 +455,39 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 			continue;
 		}
 
+		++EligibleCount;
+		if (!DoesPaletteEntryPassFilters(Entry))
+		{
+			continue;
+		}
+
+		++MatchCount;
 		EntriesByCategory.FindOrAdd(GetPaletteCategoryForEntry(Entry)).Add(&Entry);
+	}
+
+	Root->AddSlot()
+		.AutoHeight()
+		.Padding(0.f, 2.f, 0.f, 4.f)
+		[
+			SNew(STextBlock)
+				.Text(FText::Format(
+					FText::FromString(TEXT("Showing {0} of {1} palette entries")),
+					FText::AsNumber(MatchCount),
+					FText::AsNumber(EligibleCount)))
+				.ColorAndOpacity(FSlateColor(FLinearColor(0.68f, 0.68f, 0.68f, 1.f)))
+		];
+
+	if (MatchCount == 0)
+	{
+		Root->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 6.f, 0.f, 0.f)
+			[
+				SNew(STextBlock)
+					.Text(FText::FromString(TEXT("No palette entries match the active filters.")))
+					.AutoWrapText(true)
+			];
+		return Root;
 	}
 
 	TArray<FName> SortedCategories;
@@ -304,13 +497,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 		{
 			const int32 SortOrderA = GetPaletteCategorySortOrder(CategoryA);
 			const int32 SortOrderB = GetPaletteCategorySortOrder(CategoryB);
-
-			if (SortOrderA != SortOrderB)
-			{
-				return SortOrderA < SortOrderB;
-			}
-
-			return CategoryA.ToString() < CategoryB.ToString();
+			return SortOrderA == SortOrderB ? CategoryA.ToString() < CategoryB.ToString() : SortOrderA < SortOrderB;
 		});
 
 	for (const FName& Category : SortedCategories)
@@ -321,32 +508,51 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 			continue;
 		}
 
-		Root->AddSlot().AutoHeight().Padding(
-			0.f, 6.f, 0.f, 2.f)[SNew(STextBlock).Text(GetPaletteCategoryDisplayText(Category)).Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))];
+		Root->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 6.f, 0.f, 2.f)
+			[
+				SNew(STextBlock)
+					.Text(GetPaletteCategoryDisplayText(Category))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))
+			];
 
-		TSharedRef<SUniformGridPanel> Grid = SNew(SUniformGridPanel).SlotPadding(FMargin(4.f));
-
-		for (int32 Index = 0; Index < CategoryEntries->Num(); ++Index)
+		TSharedRef<SWrapBox> EntryWrap = SNew(SWrapBox);
+		for (const FGridObjectPaletteEntry* Entry : *CategoryEntries)
 		{
-			const int32 Row = Index / 5;
-			const int32 Column = Index % 5;
-			const FGridObjectPaletteEntry* Entry = (*CategoryEntries)[Index];
-
-			if (Entry)
+			if (!Entry)
 			{
-				Grid->AddSlot(Column, Row)[BuildPaletteTile(*Entry)];
+				continue;
 			}
+
+			EntryWrap->AddSlot()
+				.Padding(FMargin(4.f))
+				[
+					BuildPaletteTile(*Entry)
+				];
 		}
 
-		Root->AddSlot().AutoHeight()[Grid];
+		Root->AddSlot()
+			.AutoHeight()
+			[
+				EntryWrap
+			];
 	}
-	Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[SNew(STextBlock)
-			.Text_Lambda(
-				[this]()
-				{
-					return FText::Format(FText::FromString(TEXT("Selected Palette Entry: {0}")), GetSelectedPaletteEntryText());
-				})];
+
 	return Root;
+}
+
+void SGridEditorToolPalettePanel::OnPaletteSearchTextChanged(const FText& NewText)
+{
+	GetToolPaletteState().SearchText = NewText.ToString();
+	RebuildPaletteResults();
+}
+
+FReply SGridEditorToolPalettePanel::OnPaletteCategoryClicked(FName Category)
+{
+	GetToolPaletteState().SelectedCategory = Category;
+	RequestRefresh();
+	return FReply::Handled();
 }
 
 TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteTile(const FGridObjectPaletteEntry& Entry)

@@ -8,6 +8,7 @@
 
 class AGridLevelEditorActor;
 class UTexture2D;
+class SVerticalBox;
 enum class EGridEditorTool : uint8;
 enum class EGridLevelObjectType : uint8;
 struct FGridObjectPaletteEntry;
@@ -15,6 +16,8 @@ struct FGridObjectPaletteEntry;
 struct FGridEditorToolPalettePanelState
 {
 	TMap<FString, TSharedPtr<FSlateBrush>> CachedIconBrushes;
+	FString SearchText;
+	FName SelectedCategory = NAME_None;
 };
 
 DECLARE_DELEGATE_RetVal(AGridLevelEditorActor*, FOnGetGridEditorToolPaletteActor);
@@ -44,7 +47,12 @@ private:
 	TSharedRef<SWidget> BuildToolTile(const FText& Label, const FText& Glyph, EGridEditorTool ToolValue);
 	UTexture2D* GetToolIcon(EGridEditorTool Tool) const;
 	TSharedRef<SWidget> BuildPaletteSection();
+	TSharedRef<SWidget> BuildPaletteResults();
 	TSharedRef<SWidget> BuildPaletteTile(const FGridObjectPaletteEntry& Entry);
+	void RebuildPaletteResults();
+	bool DoesPaletteEntryPassFilters(const FGridObjectPaletteEntry& Entry) const;
+	void OnPaletteSearchTextChanged(const FText& NewText);
+	FReply OnPaletteCategoryClicked(FName Category);
 	TSharedRef<SWidget> BuildIconOrFallback(UTexture2D* Icon, EGridLevelObjectType FallbackType, float Size);
 
 	FReply OnToolClicked(int32 ToolValue);
@@ -58,6 +66,7 @@ private:
 	TSharedPtr<FGridEditorToolPalettePanelState> ToolPaletteState;
 	FOnGetGridEditorToolPaletteActor OnGetEditorActor;
 	FOnGridEditorToolPaletteRequestRefresh OnRequestRefresh;
+	TSharedPtr<SVerticalBox> PaletteResultsRoot;
 };
 
 #endif
