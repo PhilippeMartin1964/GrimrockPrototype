@@ -69,16 +69,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Resistances")
 	FGridDamageResistanceSet EquipmentResistanceBonus;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Offense")
-	bool bProvidesAttack = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Offense", meta = (EditCondition = "bProvidesAttack"))
-	FGridOffensiveEquipmentProfile OffensiveProfile;
-
-	/**
-     * Generic actions granted while this item is equipped. An empty array
-     * keeps the legacy bProvidesAttack / OffensiveProfile adapter active.
-     */
+	/** Generic combat actions granted while this item is equipped. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Combat Actions")
 	TArray<FGridCombatActionDefinition> CombatActions;
 
@@ -154,10 +145,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	bool CanEquipToSlot(EGridEquipmentSlot Slot) const;
 
-	UFUNCTION(BlueprintPure, Category = "Equipment|Offense")
-	bool HasValidOffensiveProfile() const;
-
-	UFUNCTION(BlueprintPure, Category = "Equipment|Offense")
+	UFUNCTION(BlueprintPure, Category = "Equipment|Combat Actions")
 	bool CanProvideAttackFromSlot(EGridEquipmentSlot Slot) const;
 
 	UFUNCTION(BlueprintPure, Category = "Equipment|Combat Actions")
@@ -171,7 +159,7 @@ public:
      * configured potion/scroll action, throwable weapons receive a normalized
      * quick-throw action without needing a duplicate data-asset definition.
      */
-	bool BuildInventoryCombatActionDefinition(int32 DefaultAttackActionPointCost, FGridCombatActionDefinition& OutDefinition) const;
+	bool BuildInventoryCombatActionDefinition(FGridCombatActionDefinition& OutDefinition) const;
 
 	UFUNCTION(BlueprintPure, Category = "Equipment|Offense|Presentation")
 	bool HasValidPlayerAttackPresentation() const;

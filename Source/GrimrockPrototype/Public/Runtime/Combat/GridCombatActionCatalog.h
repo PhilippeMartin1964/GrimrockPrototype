@@ -3,8 +3,6 @@
 #include "CoreMinimal.h"
 #include "Runtime/Combat/GridCombatTypes.h"
 
-class UGridItemDefinitionAsset;
-
 /** Immutable inputs used to evaluate contributions without mutating gameplay. */
 struct GRIMROCKPROTOTYPE_API FGridCombatActionCatalogContext
 {
@@ -34,9 +32,6 @@ class GRIMROCKPROTOTYPE_API FGridCombatActionCatalog
 public:
 	static void Build(const FGridCombatActionCatalogContext& Context, const TArray<FGridCombatActionContribution>& Contributions,
 		TArray<FGridAvailableCombatAction>& OutActions);
-
-	/** Compatibility adapter for MON11 item assets not migrated to Actions. */
-	static FGridCombatActionDefinition MakeLegacyEquipmentAttackDefinition(const UGridItemDefinitionAsset& ItemDefinition, int32 ActionPointCost);
 
 	static FGridCombatActionDefinition MakeUnarmedAttackDefinition(int32 ActionPointCost);
 

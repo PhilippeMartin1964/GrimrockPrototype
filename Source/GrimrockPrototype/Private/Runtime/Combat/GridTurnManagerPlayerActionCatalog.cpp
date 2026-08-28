@@ -183,38 +183,28 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 			continue;
 		}
 
-		if (!ItemDefinition->CombatActions.IsEmpty())
+		for (const FGridCombatActionDefinition& SourceAction : ItemDefinition->CombatActions)
 		{
-			for (const FGridCombatActionDefinition& SourceAction : ItemDefinition->CombatActions)
+			FGridCombatActionDefinition Definition = SourceAction;
+			if (Definition.DisplayName.IsEmpty())
 			{
-				FGridCombatActionDefinition Definition = SourceAction;
-				if (Definition.DisplayName.IsEmpty())
-				{
-					Definition.DisplayName = ItemDefinition->DisplayName;
-				}
-				if (Definition.Description.IsEmpty())
-				{
-					Definition.Description = ItemDefinition->Description;
-				}
-				if (Definition.Icon.IsNull())
-				{
-					Definition.Icon = ItemDefinition->Icon;
-				}
-				if (ItemDefinition->bThrowable && Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-					Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
-				{
-					Definition.ResourceCosts.SourceItemQuantityCost = 1;
-				}
-				AddMON126Contribution(
-					Definition, EquippedItem.ItemDefinitionId, EquippedItem.RuntimeObjectId, HandSlot, EquippedItem.Quantity, OutContributions);
+				Definition.DisplayName = ItemDefinition->DisplayName;
 			}
-		}
-		else if (ItemDefinition->CanProvideAttackFromSlot(HandSlot))
-		{
-			const FGridCombatActionDefinition LegacyDefinition =
-				FGridCombatActionCatalog::MakeLegacyEquipmentAttackDefinition(*ItemDefinition, PlayerAttackActionPointCost);
+			if (Definition.Description.IsEmpty())
+			{
+				Definition.Description = ItemDefinition->Description;
+			}
+			if (Definition.Icon.IsNull())
+			{
+				Definition.Icon = ItemDefinition->Icon;
+			}
+			if (ItemDefinition->bThrowable && Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+				Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
+			{
+				Definition.ResourceCosts.SourceItemQuantityCost = 1;
+			}
 			AddMON126Contribution(
-				LegacyDefinition, EquippedItem.ItemDefinitionId, EquippedItem.RuntimeObjectId, HandSlot, EquippedItem.Quantity, OutContributions);
+				Definition, EquippedItem.ItemDefinitionId, EquippedItem.RuntimeObjectId, HandSlot, EquippedItem.Quantity, OutContributions);
 		}
 	}
 
@@ -245,7 +235,7 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 	{
 		const UGridItemDefinitionAsset* ItemDefinition = Inventory->FindItemDefinition(ItemDefinitionId);
 		FGridCombatActionDefinition QuickItemAction;
-		if (!IsValid(ItemDefinition) || !ItemDefinition->BuildInventoryCombatActionDefinition(PlayerAttackActionPointCost, QuickItemAction))
+		if (!IsValid(ItemDefinition) || !ItemDefinition->BuildInventoryCombatActionDefinition(QuickItemAction))
 		{
 			continue;
 		}

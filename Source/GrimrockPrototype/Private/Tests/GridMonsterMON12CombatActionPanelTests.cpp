@@ -109,15 +109,25 @@ namespace
 			return;
 		}
 
-		Definition->bProvidesAttack = true;
 		Definition->CompatibleEquipmentSlots.AddUnique(EquipmentSlot);
-		Definition->OffensiveProfile.AttackId = AttackId;
-		Definition->OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Physical;
-		Definition->OffensiveProfile.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::Piercing;
-		Definition->OffensiveProfile.AttackDefinition.MinDamage = 1;
-		Definition->OffensiveProfile.AttackDefinition.MaxDamage = 2;
-		Definition->OffensiveProfile.DamageScalingAttribute = EGridAttackScalingAttribute::Dexterity;
-		Definition->OffensiveProfile.RangeCells = RangeCells;
+		FGridCombatActionDefinition Action;
+		Action.ActionId = AttackId;
+		Action.DisplayName = Definition->DisplayName;
+		Action.ActionType = RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
+		Action.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
+		Action.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
+		Action.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
+		Action.ActionPointCost = 2;
+		Action.RangeCells = RangeCells;
+		Action.PresentationProfileId = AttackId;
+		Action.OffensiveProfile.AttackId = AttackId;
+		Action.OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Physical;
+		Action.OffensiveProfile.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::Piercing;
+		Action.OffensiveProfile.AttackDefinition.MinDamage = 1;
+		Action.OffensiveProfile.AttackDefinition.MaxDamage = 2;
+		Action.OffensiveProfile.DamageScalingAttribute = EGridAttackScalingAttribute::Dexterity;
+		Action.OffensiveProfile.RangeCells = RangeCells;
+		Definition->CombatActions = { Action };
 	}
 
 	struct FGridMON12Fixture
@@ -657,7 +667,12 @@ bool FGridMonsterMON12ActionCatalogContributionsTest::RunTest(const FString& Par
 		return false;
 	}
 
-	FGridCombatActionDefinition QuickThrow = FGridCombatActionCatalog::MakeLegacyEquipmentAttackDefinition(*Shuriken, 2);
+	TestTrue(TEXT("The Shuriken fixture exposes a current CombatAction"), !Shuriken->CombatActions.IsEmpty());
+	if (Shuriken->CombatActions.IsEmpty())
+	{
+		return false;
+	}
+	FGridCombatActionDefinition QuickThrow = Shuriken->CombatActions[0];
 	QuickThrow.ActionId = TEXT("Action_QuickThrow");
 	QuickThrow.DisplayName = FText::FromString(TEXT("Lancer rapide"));
 	QuickThrow.OffensiveProfile.AttackId = TEXT("Attack_QuickThrow");

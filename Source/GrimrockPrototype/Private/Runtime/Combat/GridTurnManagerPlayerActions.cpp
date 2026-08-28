@@ -38,36 +38,27 @@ namespace
 		{
 			return false;
 		}
-		if (!Definition->CombatActions.IsEmpty())
+
+		for (const FGridCombatActionDefinition& Action : Definition->CombatActions)
 		{
-			for (const FGridCombatActionDefinition& Action : Definition->CombatActions)
+			if (Action.IsValid() && Action.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+				Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
 			{
-				if (Action.IsValid() && Action.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-					Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
-				{
-					OutProfile = Action.OffensiveProfile;
-					return true;
-				}
+				OutProfile = Action.OffensiveProfile;
+				return true;
 			}
-			return false;
 		}
-		if (!Definition->HasValidOffensiveProfile())
-		{
-			return false;
-		}
-		OutProfile = Definition->OffensiveProfile;
-		return true;
+		return false;
 	}
 
 	bool DoesMON12ItemDeclareAttack(const UGridItemDefinitionAsset* Definition)
 	{
 		return IsValid(Definition) &&
-			(Definition->bProvidesAttack ||
-				Definition->CombatActions.ContainsByPredicate(
-					[](const FGridCombatActionDefinition& Action)
-					{
-						return Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
-					}));
+			Definition->CombatActions.ContainsByPredicate(
+				[](const FGridCombatActionDefinition& Action)
+				{
+					return Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
+				});
 	}
 
 	int32 GetScalingAttributeValue(const FRPGAttributes& Attributes, EGridAttackScalingAttribute ScalingAttribute)

@@ -4,7 +4,7 @@ Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3.5 — Combat Data Schema Reset
 Characterization : 4/4 validée
-Statut : ASSET REPAIR PREPARED — SHURIKEN LFS REPAIR REQUIRED BEFORE SCHEMA DELETION
+Statut : SHURIKEN LFS RÉPARÉ — NORMALISATION C++ IMPLÉMENTÉE / À VALIDER
 
 ## 1. Décision
 
@@ -89,8 +89,81 @@ Aucun fallback PostLoad/runtime de compatibilité n'est introduit.
 - [x] conversion exacte définie
 - [x] Automation one-shot ajoutée
 - [x] script LFS commit/push ajouté
-- [ ] Automation asset repair verte localement
-- [ ] repaired DA_Weapon_Shuriken pushed
-- [ ] legacy schema C++ supprimé
-- [ ] runtime fallback supprimé
+- [x] Automation asset repair verte localement
+- [x] repaired DA_Weapon_Shuriken pushed
+- [x] legacy schema C++ supprimé
+- [x] runtime fallback supprimé
 - [ ] normalization tests verts
+
+
+## 8. Réparation LFS validée
+
+Le 28 août 2026, l'outil one-shot a validé :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_5_2.AssetRepair
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-084311
+```
+
+Le vrai asset LFS a été sauvegardé et poussé :
+
+```text
+7a14ca0254de605965e0c41f7933ed70462c6946
+Repair Shuriken CombatActions authoring
+```
+
+Nouveau pointeur LFS :
+
+```text
+oid sha256:316d307faa458756db5d2f132c5fbe0759e0fe359cd7b13588c1f3ad8c56de87
+size 8600
+```
+
+## 9. Normalisation C++ appliquée
+
+Le schéma item cible est désormais :
+
+```text
+UGridItemDefinitionAsset
+    CombatActions[]
+```
+
+Supprimés :
+
+```text
+bProvidesAttack
+OffensiveProfile [item-level]
+HasValidOffensiveProfile
+FGridCombatActionCatalog::MakeLegacyEquipmentAttackDefinition
+fallback player catalogue
+fallback MON12 player attack profile
+fallback hotbar
+fallback throwable inventory action
+```
+
+Le paramètre désormais mort `DefaultAttackActionPointCost` de
+`BuildInventoryCombatActionDefinition()` est également supprimé.
+
+L'outil one-shot de réparation et son script sont supprimés après usage ; ils ne
+font pas partie du runtime ni du tooling permanent.
+
+## 10. Gate de normalisation
+
+```text
+Grimrock.TechnicalDebt.TD07_3_5_2.Normalization
+```
+
+Tests :
+
+```text
+SchemaAuthority
+CombatActionsOnlyBehavior
+ShurikenAssetAuthority
+RuntimeFallbackRemoval
+```
+
+Attendu : 4/4, zéro warning.

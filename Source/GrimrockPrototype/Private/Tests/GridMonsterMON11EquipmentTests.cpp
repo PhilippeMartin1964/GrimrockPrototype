@@ -73,17 +73,30 @@ namespace
 	}
 
 	UGridItemDefinitionAsset* MakeEquipmentDefinition(UObject* Outer, FName ItemDefinitionId, EGridItemType ItemType,
-		const FGridOffensiveEquipmentProfile& Profile, EGridEquipmentSlot CompatibleSlot, bool bProvidesAttack = true)
+		const FGridOffensiveEquipmentProfile& Profile, EGridEquipmentSlot CompatibleSlot, bool bProvideAttack = true)
 	{
 		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Outer);
 		Definition->ItemDefinitionId = ItemDefinitionId;
 		Definition->DisplayName = FText::FromName(ItemDefinitionId);
 		Definition->ItemType = ItemType;
-		Definition->bProvidesAttack = bProvidesAttack;
-		Definition->OffensiveProfile = Profile;
 		if (CompatibleSlot != EGridEquipmentSlot::None)
 		{
 			Definition->CompatibleEquipmentSlots.Add(CompatibleSlot);
+		}
+		if (bProvideAttack)
+		{
+			FGridCombatActionDefinition Action;
+			Action.ActionId = Profile.AttackId;
+			Action.DisplayName = Definition->DisplayName;
+			Action.ActionType = Profile.RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
+			Action.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
+			Action.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
+			Action.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
+			Action.ActionPointCost = 2;
+			Action.RangeCells = Profile.RangeCells;
+			Action.PresentationProfileId = Profile.AttackId;
+			Action.OffensiveProfile = Profile;
+			Definition->CombatActions.Add(Action);
 		}
 		return Definition;
 	}
@@ -315,7 +328,7 @@ bool FGridMonsterMON11OffensiveProfileValidationTest::RunTest(const FString& Par
 	Fixture.ClearEquipment();
 	UGridItemDefinitionAsset* InvalidDefinition =
 		MakeEquipmentDefinition(Fixture.Runtime, TEXT("Item_InvalidOffense"), EGridItemType::Weapon, PhysicalProfile, EGridEquipmentSlot::MainHand);
-	InvalidDefinition->OffensiveProfile.RangeCells = 0;
+	InvalidDefinition->CombatActions[0].OffensiveProfile.RangeCells = 0;
 	Fixture.Equip(InvalidDefinition, EGridEquipmentSlot::MainHand);
 	TestFalse(TEXT("An invalid offensive profile is rejected"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
 	TestEqual(TEXT("The invalid profile reason is explicit"), RejectReason, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment);

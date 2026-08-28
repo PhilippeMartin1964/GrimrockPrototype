@@ -4,7 +4,6 @@
 
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
-#include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
 #include "UObject/UnrealType.h"
@@ -16,25 +15,13 @@ namespace GridTD0735Characterization
 		return FFileHelper::LoadFileToString(OutText, *FPaths::Combine(FPaths::ProjectDir(), RelativePath));
 	}
 
-	FGridOffensiveEquipmentProfile MakeLegacyProfile()
-	{
-		FGridOffensiveEquipmentProfile Profile;
-		Profile.AttackId = TEXT("TD0735_LegacySword");
-		Profile.AttackDefinition.DamageType = EGridDamageType::Physical;
-		Profile.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::Slashing;
-		Profile.AttackDefinition.MinDamage = 2;
-		Profile.AttackDefinition.MaxDamage = 5;
-		Profile.DamageScalingAttribute = EGridAttackScalingAttribute::Strength;
-		Profile.RangeCells = 1;
-		return Profile;
-	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735ItemSchemaMultiplicityTest,
-	"Grimrock.TechnicalDebt.TD07_3_5.Characterization.ItemSchemaMultiplicity",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735ItemSchemaAuthorityTest,
+	"Grimrock.TechnicalDebt.TD07_3_5.Characterization.ItemSchemaAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridTD0735ItemSchemaMultiplicityTest::RunTest(const FString& Parameters)
+bool FGridTD0735ItemSchemaAuthorityTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
@@ -45,45 +32,46 @@ bool FGridTD0735ItemSchemaMultiplicityTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	const FProperty* LegacyFlag = ItemClass->FindPropertyByName(TEXT("bProvidesAttack"));
-	const FProperty* LegacyProfile = ItemClass->FindPropertyByName(TEXT("OffensiveProfile"));
-	const FProperty* CurrentActions = ItemClass->FindPropertyByName(TEXT("CombatActions"));
+	TestNull(TEXT("Legacy bProvidesAttack is removed"), ItemClass->FindPropertyByName(TEXT("bProvidesAttack")));
+	TestNull(TEXT("Legacy item-level OffensiveProfile is removed"), ItemClass->FindPropertyByName(TEXT("OffensiveProfile")));
 
-	TestNotNull(TEXT("Legacy bProvidesAttack still exists"), LegacyFlag);
-	TestNotNull(TEXT("Legacy OffensiveProfile still exists"), LegacyProfile);
+	const FProperty* CurrentActions = ItemClass->FindPropertyByName(TEXT("CombatActions"));
 	TestNotNull(TEXT("Current CombatActions exists"), CurrentActions);
-	TestTrue(TEXT("Legacy flag remains an authoring property"), LegacyFlag && !LegacyFlag->HasAnyPropertyFlags(CPF_Transient));
-	TestTrue(TEXT("Legacy profile remains an authoring property"), LegacyProfile && !LegacyProfile->HasAnyPropertyFlags(CPF_Transient));
-	TestTrue(TEXT("CombatActions remains an authoring property"), CurrentActions && !CurrentActions->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("CombatActions is the durable authoring property"),
+		CurrentActions && !CurrentActions->HasAnyPropertyFlags(CPF_Transient));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735LegacyItemAdapterActiveTest,
-	"Grimrock.TechnicalDebt.TD07_3_5.Characterization.LegacyItemAdapterActive",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0735LegacyItemAdapterRemovedTest,
+	"Grimrock.TechnicalDebt.TD07_3_5.Characterization.LegacyItemAdapterRemoved",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridTD0735LegacyItemAdapterActiveTest::RunTest(const FString& Parameters)
+bool FGridTD0735LegacyItemAdapterRemovedTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	using namespace GridTD0735Characterization;
 
-	UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-	Item->ItemDefinitionId = TEXT("TD0735_LegacyWeapon");
-	Item->ItemType = EGridItemType::Weapon;
-	Item->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-	Item->bProvidesAttack = true;
-	Item->OffensiveProfile = MakeLegacyProfile();
+	FString CatalogHeader;
+	FString CatalogSource;
+	FString PlayerCatalogSource;
+	FString HotbarSource;
+	TestTrue(TEXT("CombatActionCatalog header loads"),
+		LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/Combat/GridCombatActionCatalog.h"), CatalogHeader));
+	TestTrue(TEXT("CombatActionCatalog source loads"),
+		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridCombatActionCatalog.cpp"), CatalogSource));
+	TestTrue(TEXT("Player action catalogue source loads"),
+		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridTurnManagerPlayerActionCatalog.cpp"), PlayerCatalogSource));
+	TestTrue(TEXT("Hotbar source loads"),
+		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridPartyInventoryComponentHotbar.cpp"), HotbarSource));
 
-	TestTrue(TEXT("Legacy-only weapon definition is still valid"), Item->IsValidDefinition());
-	TestTrue(TEXT("Legacy-only weapon can still provide a main-hand attack"), Item->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
-	TestTrue(TEXT("Legacy-only weapon has no current CombatActions"), Item->CombatActions.IsEmpty());
-
-	const FGridCombatActionDefinition Adapted = FGridCombatActionCatalog::MakeLegacyEquipmentAttackDefinition(*Item, 2);
-	TestTrue(TEXT("Legacy adapter creates a valid CombatAction"), Adapted.IsValid());
-	TestEqual(TEXT("Adapted action keeps legacy AttackId"), Adapted.ActionId, Item->OffensiveProfile.AttackId);
-	TestEqual(TEXT("Adapted action keeps legacy range"), Adapted.RangeCells, Item->OffensiveProfile.RangeCells);
-	TestTrue(TEXT("Adapted action copies the legacy offensive profile"),
-		Adapted.OffensiveProfile.AttackId == Item->OffensiveProfile.AttackId);
+	TestFalse(TEXT("Legacy item adapter declaration is removed"),
+		CatalogHeader.Contains(TEXT("MakeLegacyEquipmentAttackDefinition")));
+	TestFalse(TEXT("Legacy item adapter implementation is removed"),
+		CatalogSource.Contains(TEXT("MakeLegacyEquipmentAttackDefinition")));
+	TestFalse(TEXT("Player catalogue no longer invokes the legacy adapter"),
+		PlayerCatalogSource.Contains(TEXT("MakeLegacyEquipmentAttackDefinition")));
+	TestFalse(TEXT("Hotbar no longer reads an item-level OffensiveProfile"),
+		HotbarSource.Contains(TEXT("Definition->OffensiveProfile")));
 	return true;
 }
 

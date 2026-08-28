@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07.3.4 clos ; TD07.3.5 Combat Data Schema characterization active.**
+> État : **28 août 2026, TD07.3.5.2 Item CombatActions normalisation implémentée — à valider.**
 
 ## 1. Référence
 
@@ -16,7 +16,7 @@
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
 | Dernière tranche validée | `TD07.3.3.5 — Normalize XP / Level / Class Progression` |
-| Tranche active | `TD07.3.5 — Combat Data Schema Reset` — characterization active |
+| Tranche active | `TD07.3.5.2 — Item CombatActions Authority` — implémentée, à valider |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`.
 

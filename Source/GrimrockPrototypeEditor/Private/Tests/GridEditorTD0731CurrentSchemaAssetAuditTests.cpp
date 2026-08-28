@@ -199,18 +199,11 @@ namespace GridTD0731SchemaAuditPrivate
 
 	void AuditItemDefinition(const UGridItemDefinitionAsset& Item, const FString& AssetPath, TArray<FGridTD0731Finding>& Findings)
 	{
-		const bool bHasLegacyOffense = Item.bProvidesAttack || !Item.OffensiveProfile.AttackId.IsNone();
-		if (!bHasLegacyOffense)
+		if (!Item.HasValidCombatActions())
 		{
-			return;
+			AddFinding(Findings, EGridTD0731FindingKind::Conflict, TEXT("ITEM.INVALID_COMBAT_ACTIONS"), AssetPath, TEXT("Equipment|CombatActions"),
+				TEXT("Item contains an invalid or duplicate CombatActions definition."));
 		}
-
-		const bool bLegacyOnly = Item.CombatActions.IsEmpty();
-		AddFinding(Findings, bLegacyOnly ? EGridTD0731FindingKind::LegacyOnly : EGridTD0731FindingKind::DuplicateAuthority,
-			bLegacyOnly ? TEXT("ITEM.LEGACY_OFFENSE_ONLY") : TEXT("ITEM.LEGACY_OFFENSE_DUPLICATE"), AssetPath, TEXT("Equipment|Offense"),
-			bLegacyOnly
-				? TEXT("Item still depends on bProvidesAttack/OffensiveProfile because CombatActions is empty.")
-				: TEXT("Item contains CombatActions and legacy bProvidesAttack/OffensiveProfile data; target schema keeps CombatActions only."));
 	}
 
 	void AuditMonsterDefinition(const UGridMonsterDefinitionAsset& Monster, const FString& AssetPath, TArray<FGridTD0731Finding>& Findings)

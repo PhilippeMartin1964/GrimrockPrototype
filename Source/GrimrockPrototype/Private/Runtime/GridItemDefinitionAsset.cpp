@@ -23,23 +23,12 @@ bool UGridItemDefinitionAsset::IsValidDefinition() const
 		}
 	}
 
-	if (!bProvidesAttack)
-	{
-		return true;
-	}
-
-	return HasValidOffensiveProfile() &&
-		(CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::MainHand) || CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::OffHand));
+	return true;
 }
 
 bool UGridItemDefinitionAsset::CanEquipToSlot(EGridEquipmentSlot Slot) const
 {
 	return Slot != EGridEquipmentSlot::None && CompatibleEquipmentSlots.Contains(Slot);
-}
-
-bool UGridItemDefinitionAsset::HasValidOffensiveProfile() const
-{
-	return bProvidesAttack && OffensiveProfile.IsValid();
 }
 
 bool UGridItemDefinitionAsset::CanProvideAttackFromSlot(EGridEquipmentSlot Slot) const
@@ -48,16 +37,12 @@ bool UGridItemDefinitionAsset::CanProvideAttackFromSlot(EGridEquipmentSlot Slot)
 	{
 		return false;
 	}
-	if (!CombatActions.IsEmpty())
-	{
-		return CombatActions.ContainsByPredicate(
-			[](const FGridCombatActionDefinition& Action)
-			{
-				return Action.IsValid() && Action.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-					Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
-			});
-	}
-	return HasValidOffensiveProfile();
+	return CombatActions.ContainsByPredicate(
+		[](const FGridCombatActionDefinition& Action)
+		{
+			return Action.IsValid() && Action.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+				Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
+		});
 }
 
 bool UGridItemDefinitionAsset::HasValidCombatActions() const
@@ -117,7 +102,7 @@ bool UGridItemDefinitionAsset::BuildQuickItemCombatActionDefinition(FGridCombatA
 	return true;
 }
 
-bool UGridItemDefinitionAsset::BuildInventoryCombatActionDefinition(int32 DefaultAttackActionPointCost, FGridCombatActionDefinition& OutDefinition) const
+bool UGridItemDefinitionAsset::BuildInventoryCombatActionDefinition(FGridCombatActionDefinition& OutDefinition) const
 {
 	if (BuildQuickItemCombatActionDefinition(OutDefinition))
 	{
@@ -137,25 +122,11 @@ bool UGridItemDefinitionAsset::BuildInventoryCombatActionDefinition(int32 Defaul
 				Candidate.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
 				Candidate.TargetingPolicy == EGridCombatTargetingPolicy::FirstAxialTarget;
 		});
-	if (ConfiguredThrow)
-	{
-		OutDefinition = *ConfiguredThrow;
-	}
-	else if (HasValidOffensiveProfile() &&
-		(CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::MainHand) || CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::OffHand)))
-	{
-		OutDefinition.ActionType = EGridCombatActionType::RangedAttack;
-		OutDefinition.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
-		OutDefinition.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
-		OutDefinition.ActionPointCost = FMath::Clamp(DefaultAttackActionPointCost, 1, 6);
-		OutDefinition.RangeCells = OffensiveProfile.RangeCells;
-		OutDefinition.PresentationProfileId = OffensiveProfile.AttackId;
-		OutDefinition.OffensiveProfile = OffensiveProfile;
-	}
-	else
+	if (!ConfiguredThrow)
 	{
 		return false;
 	}
+	OutDefinition = *ConfiguredThrow;
 
 	OutDefinition.ActionId = FGridCombatHotbarBinding::MakeQuickItemActionId(ItemDefinitionId);
 	OutDefinition.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;

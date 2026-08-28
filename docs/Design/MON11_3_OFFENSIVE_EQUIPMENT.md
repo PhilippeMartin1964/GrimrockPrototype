@@ -11,20 +11,26 @@ coût de ressource, cooldown, animation, son, VFX ou widget de dégâts.
 
 ## Modèle de données
 
-`UGridItemDefinitionAsset` expose :
+Depuis TD07.3.5.2, `UGridItemDefinitionAsset::CombatActions` est l’unique
+autorité de combat d’un item.
 
-- `bProvidesAttack`, qui annonce qu’une définition fournit une attaque ;
-- `OffensiveProfile`, éditable lorsque cette annonce est active ;
-- `HasValidOffensiveProfile()` ;
-- `CanProvideAttackFromSlot()`.
+Une attaque équipée est une `FGridCombatActionDefinition` valide avec :
 
-Une définition sans profil offensif reste valide. Si `bProvidesAttack` est
-vrai, le profil doit être valide et la définition doit déclarer au moins
-`MainHand` ou `OffHand` dans `CompatibleEquipmentSlots`.
+```text
+SourcePolicy      = Equipment
+ResolutionProfile = Attack
+```
+
+Son `OffensiveProfile` est porté par la CombatAction elle-même. Les anciens
+champs item-level `bProvidesAttack` et `OffensiveProfile`, ainsi que
+`HasValidOffensiveProfile()`, ont été supprimés.
+
+Une définition sans CombatAction offensive reste valide. Elle ne fournit
+simplement aucune attaque via `CanProvideAttackFromSlot()`.
 
 Le type d’item n’est pas une contrainte. Une arme, une torche, un bouclier, un
-focaliseur ou un objet magique peut donc fournir une attaque si sa définition
-et son emplacement sont compatibles.
+focaliseur ou un objet magique peut fournir une attaque si sa CombatAction et
+son emplacement sont compatibles.
 
 ## Profil offensif
 
@@ -62,13 +68,14 @@ emploie exclusivement
 
 Le TurnManager examine uniquement les deux mains, dans cet ordre :
 
-1. une attaque offensive valide en `MainHand` gagne ;
+1. une CombatAction offensive valide en `MainHand` gagne ;
 2. une main principale valide mais non offensive laisse examiner `OffHand` ;
-3. une attaque offensive valide en `OffHand` est alors utilisée ;
-4. sans profil offensif dans les mains, `Attack_Unarmed` sert de repli.
+3. une CombatAction offensive valide en `OffHand` est alors utilisée ;
+4. sans CombatAction offensive dans les mains, `Attack_Unarmed` sert de repli.
 
-Deux attaques équipées ne sont ni combinées ni résolues deux fois. Un profil
-placé dans `Head`, `Ring`, `Belt` ou tout autre emplacement est ignoré.
+Deux attaques équipées ne sont ni combinées ni résolues deux fois. Une action
+portée par un item placé dans `Head`, `Ring`, `Belt` ou tout autre emplacement
+est ignorée pour l’attaque de main.
 
 Le repli conserve `Physical/Bludgeoning`, 1–3 dégâts, aucun bonus plat,
 scaling `Strength` et portée 1.
@@ -95,9 +102,8 @@ la requête.
 `EquippedItemDefinitionUnavailable` indique qu’une main contient une instance
 valide dont la définition n’est pas disponible dans le registre runtime.
 
-`InvalidOffensiveEquipment` indique qu’une définition annonce une attaque mais
-que son profil, sa portée ou sa compatibilité avec la main concernée est
-invalide.
+`InvalidOffensiveEquipment` indique qu’une définition d’item présente une
+CombatAction offensive invalide ou incompatible avec la main concernée.
 
 Ces refus surviennent avant tout tirage, consommation d’action, journal
 `AttackHit`/`AttackMiss`, delegate `Requested`/`Resolved` ou mutation du
@@ -143,8 +149,8 @@ les jets, la défense, le résultat, les dégâts bruts et appliqués, les PV et
 | Donnée | Valeur |
 | --- | --- |
 | `ItemType` | `Weapon` |
-| `bProvidesAttack` | `true` |
-| `AttackId` | `Attack_Shuriken` |
+| `CombatActions[0].ActionId` | `Attack_Shuriken` |
+| `CombatActions[0].SourcePolicy` | `Equipment` |
 | dégâts | `Physical/Piercing`, 1–4 |
 | bonus de précision | 0 |
 | bonus plat | 0 |
@@ -159,10 +165,10 @@ décrémentée ; le dernier shuriken libère le slot.
 
 ## Persistance
 
-`FGridItemInstance` n’est pas étendu par le profil offensif. La sauvegarde
-conserve `ItemDefinitionId`, puis
-`RehydrateOwnedItemDefinitions()` reconstruit le registre runtime. Le profil
-est retrouvé sur le DataAsset par cet identifiant.
+`FGridItemInstance` n’est pas étendu par les données de combat. La sauvegarde
+conserve `ItemDefinitionId`, puis `RehydrateOwnedItemDefinitions()` reconstruit
+le registre runtime. Les CombatActions sont retrouvées sur le DataAsset par cet
+identifiant.
 
 ## Tests automatisés
 

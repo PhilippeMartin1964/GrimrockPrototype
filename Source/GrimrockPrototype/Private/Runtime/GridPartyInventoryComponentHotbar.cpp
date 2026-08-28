@@ -142,21 +142,14 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		}
 
 		FName PrimaryActionId = NAME_None;
-		if (!Definition->CombatActions.IsEmpty())
-		{
-			const FGridCombatActionDefinition* PrimaryAction = Definition->CombatActions.FindByPredicate(
-				[](const FGridCombatActionDefinition& Candidate)
-				{
-					return Candidate.IsValid() && Candidate.SourcePolicy == EGridCombatActionSourcePolicy::Equipment;
-				});
-			if (PrimaryAction)
+		const FGridCombatActionDefinition* PrimaryAction = Definition->CombatActions.FindByPredicate(
+			[](const FGridCombatActionDefinition& Candidate)
 			{
-				PrimaryActionId = PrimaryAction->ActionId;
-			}
-		}
-		else if (Definition->CanProvideAttackFromSlot(SourceEquipmentSlot))
+				return Candidate.IsValid() && Candidate.SourcePolicy == EGridCombatActionSourcePolicy::Equipment;
+			});
+		if (PrimaryAction)
 		{
-			PrimaryActionId = Definition->OffensiveProfile.AttackId;
+			PrimaryActionId = PrimaryAction->ActionId;
 		}
 
 		if (PrimaryActionId.IsNone())
@@ -180,7 +173,7 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 					Candidate.Item.ItemDefinitionId == SourceItem.ItemDefinitionId;
 			});
 		FGridCombatActionDefinition InventoryAction;
-		if (!bItemStillOwned || !Definition->BuildInventoryCombatActionDefinition(2, InventoryAction))
+		if (!bItemStillOwned || !Definition->BuildInventoryCombatActionDefinition(InventoryAction))
 		{
 			return false;
 		}

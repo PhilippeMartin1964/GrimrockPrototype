@@ -4,7 +4,7 @@ Date : **28 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3 — Prototype Data Model Reset**  
 Baseline : `edca373674ed2ca4fc476b9592efe93710575b84`  
-Statut : **CHARACTERIZATION VALIDÉE — TD07.3.5.2 ACTIVE**
+Statut : **CHARACTERIZATION VALIDÉE — TD07.3.5.2 NORMALISATION IMPLÉMENTÉE / À VALIDER**
 
 ## 1. Contexte
 
@@ -281,3 +281,21 @@ Report                 : Saved/Automation/TD04/TD04-20260828-083606
 ```
 
 TD07.3.5.1 est validé. TD07.3.5.2 peut commencer.
+
+
+### Mise à jour TD07.3.5.2
+
+La dette item caractérisée ici est maintenant supprimée :
+
+```text
+bProvidesAttack                      supprimé
+OffensiveProfile [item-level]        supprimé
+MakeLegacyEquipmentAttackDefinition supprimé
+fallbacks runtime item              supprimés
+```
+
+`CombatActions` est l'unique autorité item/combat.
+
+La Characterization post-refactor conserve quatre tests : les deux premiers
+constatent désormais la frontière item normalisée, tandis que les deux derniers
+continuent à caractériser les dettes monster encore actives pour TD07.3.5.3/.4.

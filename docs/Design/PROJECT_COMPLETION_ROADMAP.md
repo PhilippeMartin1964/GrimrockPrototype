@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.5.2 SHURIKEN LFS ASSET REPAIR PREPARED — MON21.4 SUSPENDU**  
+Statut : **TD07.3.5.2 ITEM COMBATACTIONS NORMALISATION IMPLÉMENTÉE — À VALIDER — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -211,7 +211,7 @@ TD07.3.3.8 Normalize Status Effects                                 VALIDÉ — 
 TD07.3.3.9 Normalize Level-Up Notification State                       VALIDÉ — CLOS
 TD07.3.3.10 Current Save Schema / Regressions / Closure                VALIDÉ — CLOS
 TD07.3.4 Authoring Identity Normalization                     VALIDÉ — CLOS
-TD07.3.5 Combat Data Schema Reset                           .2 ASSET REPAIR PREPARED
+TD07.3.5 Combat Data Schema Reset                           .2 NORMALISATION IMPLÉMENTÉE — À VALIDER
 TD07.3.6–8 Data model reset                                   À FAIRE
 ```
 

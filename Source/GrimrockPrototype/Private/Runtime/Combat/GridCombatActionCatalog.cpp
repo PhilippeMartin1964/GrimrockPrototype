@@ -1,7 +1,6 @@
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 
 #include "RPG/RPGClassProgressionTransactionService.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 
 #define LOCTEXT_NAMESPACE "GridCombatActionCatalog"
 
@@ -197,31 +196,6 @@ void FGridCombatActionCatalog::Build(
 		Available.DisabledReason = Available.bEnabled ? FText::GetEmpty() : GetAvailabilityReasonText(Available.AvailabilityReason);
 		OutActions.Add(MoveTemp(Available));
 	}
-}
-
-FGridCombatActionDefinition FGridCombatActionCatalog::MakeLegacyEquipmentAttackDefinition(const UGridItemDefinitionAsset& ItemDefinition, int32 ActionPointCost)
-{
-	FGridCombatActionDefinition Definition;
-	if (!ItemDefinition.HasValidOffensiveProfile())
-	{
-		return Definition;
-	}
-
-	Definition.ActionId = ItemDefinition.OffensiveProfile.AttackId;
-	Definition.DisplayName = ItemDefinition.DisplayName;
-	Definition.Description = ItemDefinition.Description;
-	Definition.Icon = ItemDefinition.Icon;
-	Definition.ActionType =
-		ItemDefinition.bThrowable || ItemDefinition.OffensiveProfile.RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
-	Definition.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
-	Definition.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
-	Definition.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
-	Definition.ActionPointCost = FMath::Clamp(ActionPointCost, 1, 6);
-	Definition.ResourceCosts.SourceItemQuantityCost = ItemDefinition.bThrowable ? 1 : 0;
-	Definition.RangeCells = ItemDefinition.OffensiveProfile.RangeCells;
-	Definition.PresentationProfileId = ItemDefinition.OffensiveProfile.AttackId;
-	Definition.OffensiveProfile = ItemDefinition.OffensiveProfile;
-	return Definition;
 }
 
 FGridCombatActionDefinition FGridCombatActionCatalog::MakeUnarmedAttackDefinition(int32 ActionPointCost)
