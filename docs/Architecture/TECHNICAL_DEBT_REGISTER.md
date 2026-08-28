@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.5 VALIDÉ/CLOS — TD07.3.6 À OUVRIR**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.6 CHARACTERIZATION PREPARED — À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -622,7 +622,7 @@ TD07.3.3.9      Normalize Level-Up Notification State                  VALIDÉ �
 TD07.3.3.10     Current Save Schema / Regressions / Closure            VALIDÉ — CLOS
 TD07.3.4        Authoring Identity Normalization                      VALIDÉ — CLOS
 TD07.3.5        Combat Data Schema Reset                              VALIDÉ — CLOS
-TD07.3.6        Remaining Legacy API/Data Purge                       À OUVRIR
+TD07.3.6        Remaining Legacy API/Data Purge                       CHARACTERIZATION PREPARED — À VALIDER
 TD07.3.7        Current Asset Repair / Recreation                     À FAIRE
 TD07.3.8        Strict Current-Schema Validation / stop condition     À FAIRE
 TD07.4          ActivationComponent characterization                   À FAIRE
