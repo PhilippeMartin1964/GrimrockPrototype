@@ -183,8 +183,8 @@ bool FGridMonsterMON131PersistentModelTest::RunTest(const FString& Parameters)
 
 	FGridLevelObjectData Spawn = MakeMON13Spawn(Definition, FGuid(), FIntPoint(2, 1));
 	Spawn.MonsterDefinitionId = NAME_None;
-	Spawn.InitialFacing = EGridEdge::None;
-	Spawn.LocalYaw = 90.0f;
+	Spawn.InitialFacing = EGridEdge::East;
+	Spawn.LocalYaw = 0.0f; // Stale preview mirror: InitialFacing is authoritative.
 
 	const FGuid SpawnId = Level->AddObject(Spawn);
 	const FGridLevelObjectData* StoredSpawn = Level->FindMonsterSpawnById(SpawnId);
@@ -196,7 +196,8 @@ bool FGridMonsterMON131PersistentModelTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	TestEqual(TEXT("Legacy yaw migrates to InitialFacing"), StoredSpawn->InitialFacing, EGridEdge::East);
+	TestEqual(TEXT("Explicit InitialFacing remains authoritative"), StoredSpawn->InitialFacing, EGridEdge::East);
+	TestEqual(TEXT("Preview LocalYaw is synchronized from InitialFacing"), StoredSpawn->LocalYaw, 90.0f);
 	TestEqual(TEXT("Definition id is synchronized from the DataAsset"), StoredSpawn->MonsterDefinitionId, Definition->MonsterId);
 	TestEqual(TEXT("Encounter id remains persistent"), StoredSpawn->EncounterGroupId, FName(TEXT("Encounter_MON13")));
 	TestTrue(TEXT("Initial enabled state remains persistent"), StoredSpawn->bInitiallyEnabled);
