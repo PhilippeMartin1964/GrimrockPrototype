@@ -160,24 +160,6 @@ namespace GridTD0731SchemaAuditPrivate
 
 			AuditBehavior(AssetPath, Context + TEXT(".Behavior"), Object.Behavior, Findings);
 
-			if (Object.Type == EGridLevelObjectType::MonsterSpawn)
-			{
-				if (!IsCardinalFacing(Object.InitialFacing))
-				{
-					AddFinding(Findings, EGridTD0731FindingKind::LegacyOnly, TEXT("MONSTERSPAWN.LEGACY_YAW_FACING"), AssetPath, Context,
-						TEXT("InitialFacing is not cardinal; current PostLoad can reconstruct it from LocalYaw. Target schema rejects this legacy fallback."));
-				}
-				else
-				{
-					const float ExpectedYaw = GetYawForFacing(Object.InitialFacing);
-					const float DeltaYaw = FMath::FindDeltaAngleDegrees(ExpectedYaw, Object.LocalYaw);
-					if (!FMath::IsNearlyZero(DeltaYaw, 0.1f))
-					{
-						AddFinding(Findings, EGridTD0731FindingKind::DuplicateAuthority, TEXT("MONSTERSPAWN.FACING_YAW_MISMATCH"), AssetPath, Context,
-							FString::Printf(TEXT("InitialFacing is authoritative but LocalYaw=%g differs from expected %g."), Object.LocalYaw, ExpectedYaw));
-					}
-				}
-			}
 		}
 	}
 

@@ -35,31 +35,6 @@ namespace
 		}
 	}
 
-	EGridEdge GetFacingForLegacyYaw(float LocalYaw)
-	{
-		if (!FMath::IsFinite(LocalYaw))
-		{
-			return EGridEdge::North;
-		}
-
-		const float NormalizedYaw = FMath::Fmod(LocalYaw, 360.0f);
-		const float PositiveYaw = NormalizedYaw < 0.0f ? NormalizedYaw + 360.0f : NormalizedYaw;
-		const int32 QuarterTurn = FMath::RoundToInt(PositiveYaw / 90.0f) % 4;
-
-		switch (QuarterTurn)
-		{
-			case 1:
-				return EGridEdge::East;
-			case 2:
-				return EGridEdge::South;
-			case 3:
-				return EGridEdge::West;
-			case 0:
-			default:
-				return EGridEdge::North;
-		}
-	}
-
 	void NormalizeMonsterSpawnData(FGridLevelObjectData& ObjectData)
 	{
 		if (ObjectData.Type != EGridLevelObjectType::MonsterSpawn)
@@ -67,10 +42,6 @@ namespace
 			return;
 		}
 
-		if (!IsValidMonsterSpawnFacing(ObjectData.InitialFacing))
-		{
-			ObjectData.InitialFacing = GetFacingForLegacyYaw(ObjectData.LocalYaw);
-		}
 
 		// InitialFacing is authoritative; LocalYaw is retained only so the
 		// existing generic editor preview keeps the same orientation.

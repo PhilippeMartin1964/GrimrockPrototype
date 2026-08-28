@@ -83,14 +83,14 @@ bool FGridTD0736MonsterSpawnYawFallbackTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Current schema audit source loads"),
 		LoadProjectFile(TEXT("Source/GrimrockPrototypeEditor/Private/Tests/GridEditorTD0731CurrentSchemaAssetAuditTests.cpp"), AuditSource));
 
-	TestTrue(TEXT("Legacy yaw converter still exists"),
+	TestFalse(TEXT("Legacy yaw converter is removed"),
 		LevelAssetSource.Contains(TEXT("GetFacingForLegacyYaw")));
-	TestTrue(TEXT("Invalid InitialFacing still falls back to LocalYaw"),
+	TestFalse(TEXT("InitialFacing is never reconstructed from LocalYaw"),
 		LevelAssetSource.Contains(TEXT("ObjectData.InitialFacing = GetFacingForLegacyYaw(ObjectData.LocalYaw)")));
 	TestTrue(TEXT("InitialFacing then rewrites the preview LocalYaw mirror"),
 		LevelAssetSource.Contains(TEXT("ObjectData.LocalYaw = GetYawForFacing(ObjectData.InitialFacing)")));
-	TestTrue(TEXT("TD07.3.1 still tracks the legacy facing fallback"),
-		AuditSource.Contains(TEXT("MONSTERSPAWN.LEGACY_YAW_FACING")) &&
+	TestFalse(TEXT("TD07.3.1 legacy MonsterSpawn facing findings are removed"),
+		AuditSource.Contains(TEXT("MONSTERSPAWN.LEGACY_YAW_FACING")) ||
 		AuditSource.Contains(TEXT("MONSTERSPAWN.FACING_YAW_MISMATCH")));
 	return true;
 }
