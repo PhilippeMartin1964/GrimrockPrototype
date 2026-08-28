@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3.5 — Combat Data Schema Reset
-Statut : RÉGRESSIONS CIBLÉES VALIDÉES — CAMPAGNE FINALE + SHIPPING À EXÉCUTER
+Statut : VALIDÉ — CLOS / TD07.3.5 CLOS
 
 ## 1. Objectif
 
@@ -131,3 +131,84 @@ Stop condition TD07.3.5 :
 - [ ] Win64 Shipping vert ;
 - [ ] documentation de clôture finale ;
 - [ ] TD07.3.5 clos.
+
+
+## 7. Campagne finale validée
+
+Validation locale finale du 28 août 2026 :
+
+```text
+Grimrock.Monsters.MON10
+    Succeeded              : 36
+    Succeeded with warnings: 1
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-094801
+
+Grimrock.Monsters.MON11
+    Succeeded              : 18
+    Succeeded with warnings: 3
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-094814
+
+Grimrock.Monsters.MON12
+    Succeeded              : 49
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-094827
+
+Grimrock.Monsters.MON17
+    Succeeded              : 43
+    Succeeded with warnings: 1
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-094840
+
+Grimrock.TechnicalDebt.TD07_3_5
+    Succeeded              : 16
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-094853
+
+Grimrock.TechnicalDebt.TD07_3_1.CurrentSchemaAssetAudit
+    Succeeded              : 1
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-094905
+```
+
+Les suites MON10, MON11 et MON17 conservent quelques tests "Succeeded with warnings" historiques, mais aucun test n'échoue et tous les filtres retournent un code processus 0.
+
+## 8. Win64 Shipping final
+
+```text
+Target        : GrimrockPrototype
+Platform      : Win64
+Configuration : Shipping
+Executable    : Saved/Packaging/TD04/TD04-Shipping-20260828-094929/Windows/GrimrockPrototype.exe
+Pak files     : 1
+Archive files : 41
+Archive bytes : 905992699
+Archive       : Saved/Packaging/TD04/TD04-Shipping-20260828-094929
+BUILD SUCCESSFUL
+[OK] Cook / package validated.
+```
+
+Le cook termine explicitement avec :
+
+```text
+Success - 0 error(s), 0 warning(s)
+AutomationTool exiting with ExitCode=0 (Success)
+```
+
+## 9. Stop condition atteinte
+
+- [x] Item CombatActions Authority normalisé ;
+- [x] Monster Presentation Authority normalisé ;
+- [x] Monster Range Schema normalisé ;
+- [x] fixtures MON11/MON12 historiques réalignées ;
+- [x] gates TD07.3.5 ciblés verts ;
+- [x] campagne finale combat verte ;
+- [x] Win64 Shipping vert ;
+- [x] documentation de clôture finale ;
+- [x] TD07.3.5 clos.
+
+La tranche suivante est **TD07.3.6 — Remaining Legacy API/Data Purge**.

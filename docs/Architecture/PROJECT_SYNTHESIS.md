@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07.3.5.5 régressions ciblées validées — campagne finale + Shipping à exécuter.**
+> État : **28 août 2026, TD07.3.5 Combat Data Schema Reset validé et clos ; TD07.3.6 à ouvrir.**
 
 ## 1. Référence
 
@@ -15,8 +15,8 @@
 | Dernier jalon fonctionnel | `MON21.3 — Quest Event -> Command Integration` |
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
-| Dernière tranche validée | `TD07.3.5.4 — Monster Range Schema` |
-| Tranche active | `TD07.3.5.5 — Regressions / Shipping / Closure` — régressions ciblées validées, campagne finale + Shipping à exécuter |
+| Dernière tranche validée | `TD07.3.5 — Combat Data Schema Reset` |
+| Tranche active | `TD07.3.6 — Remaining Legacy API/Data Purge` — à ouvrir |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`.
 

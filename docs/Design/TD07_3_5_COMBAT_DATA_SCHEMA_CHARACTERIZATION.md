@@ -4,7 +4,7 @@ Date : **28 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3 — Prototype Data Model Reset**  
 Baseline : `edca373674ed2ca4fc476b9592efe93710575b84`  
-Statut : **CHARACTERIZATION VALIDÉE — TD07.3.5.4 NORMALISATION IMPLÉMENTÉE / À VALIDER**
+Statut : **VALIDÉ — TD07.3.5 CLOS**
 
 ## 1. Contexte
 
@@ -352,3 +352,20 @@ Commit: 88c5da1cb5ce12220f727f7166aa26a2604df931
 La Characterization conserve quatre tests et doit désormais constater l'autorité item actuelle ainsi que l'absence de `AttackSound`, `ImpactVFX` et `RangeCells`.
 
 La tranche suivante après validation de `.4` est TD07.3.5.5 — Regressions / Shipping / Closure.
+
+
+### Clôture TD07.3.5
+
+Campagne finale validée le 28 août 2026 :
+
+```text
+MON10                       36 success + 1 warning / 0 failed
+MON11                       18 success + 3 warnings / 0 failed
+MON12                       49 success / 0 failed
+MON17                       43 success + 1 warning / 0 failed
+TD07.3.5 complet            16 success / 0 failed
+CurrentSchemaAssetAudit      1 success / 0 failed
+Win64 Shipping              BUILD SUCCESSFUL
+```
+
+Le Combat Data Schema Reset est clos. La prochaine tranche est TD07.3.6.
