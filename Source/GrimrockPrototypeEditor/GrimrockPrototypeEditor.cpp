@@ -42,10 +42,6 @@ public:
 		// StartupModule can be reached again during editor module reloads.
 		// Remove any stale registration first so the Window menu exposes one
 		// canonical "Grimrock Lua Scripts" entry.
-		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridDungeonLevelsTabName);
-		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridPlaytestValidationTabName);
-		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridToolsPaletteTabName);
-		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridSelectedObjectTabName);
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridLuaEditorTabName);
 		FGlobalTabmanager::Get()
 			->RegisterNomadTabSpawner(GridLuaEditorTabName, FOnSpawnTab::CreateRaw(this, &FGrimrockPrototypeEditorModule::SpawnLuaEditorTab))
@@ -73,6 +69,10 @@ public:
 		UToolMenus::UnRegisterStartupCallback(this);
 		UToolMenus::UnregisterOwner(this);
 
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridDungeonLevelsTabName);
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridPlaytestValidationTabName);
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridToolsPaletteTabName);
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridSelectedObjectTabName);
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GridLuaEditorTabName);
 
 		if (FModuleManager::Get().IsModuleLoaded("UnrealEd"))
