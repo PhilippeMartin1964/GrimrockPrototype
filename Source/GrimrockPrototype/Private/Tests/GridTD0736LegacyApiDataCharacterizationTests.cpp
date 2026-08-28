@@ -35,8 +35,8 @@ bool FGridTD0736LegacyPlacementMirrorsTest::RunTest(const FString& Parameters)
 	}
 
 	TestNotNull(TEXT("PlacementKind current authority exists"), ArchetypeClass->FindPropertyByName(TEXT("PlacementKind")));
-	TestNotNull(TEXT("Legacy bPlaceOnEdge mirror still exists"), ArchetypeClass->FindPropertyByName(TEXT("bPlaceOnEdge")));
-	TestNotNull(TEXT("Legacy bPlaceAtCellCenter mirror still exists"), ArchetypeClass->FindPropertyByName(TEXT("bPlaceAtCellCenter")));
+	TestNull(TEXT("Legacy bPlaceOnEdge mirror is removed"), ArchetypeClass->FindPropertyByName(TEXT("bPlaceOnEdge")));
+	TestNull(TEXT("Legacy bPlaceAtCellCenter mirror is removed"), ArchetypeClass->FindPropertyByName(TEXT("bPlaceAtCellCenter")));
 
 	FString HeaderSource;
 	FString ValidationSource;
@@ -50,9 +50,8 @@ bool FGridTD0736LegacyPlacementMirrorsTest::RunTest(const FString& Parameters)
 
 	TestTrue(TEXT("PlacementKind is documented as current source of truth"),
 		HeaderSource.Contains(TEXT("Current source of truth for editor/runtime placement")));
-	TestTrue(TEXT("Legacy mirrors are used only as compatibility validation in archetype validation"),
-		ValidationSource.Contains(TEXT("Legacy bPlaceOnEdge=true")) &&
-		ValidationSource.Contains(TEXT("Legacy bPlaceAtCellCenter=true")));
+	TestFalse(TEXT("Legacy mirror validation is removed"),
+		ValidationSource.Contains(TEXT("bPlaceOnEdge")) || ValidationSource.Contains(TEXT("bPlaceAtCellCenter")));
 	TestTrue(TEXT("Current editor authoring explicitly sets PlacementKind"),
 		EditorSource.Contains(TEXT("Archetype.PlacementKind = EGridObjectPlacementKind::Floor")));
 	return true;
@@ -107,12 +106,7 @@ bool FGridTD0736DeprecatedCombatAndKeyboardUseTest::RunTest(const FString& Param
 
 	UFunction* DeprecatedQuery =
 		UGridTurnManagerComponent::StaticClass()->FindFunctionByName(TEXT("HasCharacterCommittedAttackThisPhase"));
-	TestNotNull(TEXT("Deprecated combat query still exists"), DeprecatedQuery);
-	if (DeprecatedQuery)
-	{
-		TestTrue(TEXT("Combat query is explicitly deprecated"),
-			DeprecatedQuery->HasMetaData(TEXT("DeprecatedFunction")));
-	}
+	TestNull(TEXT("Deprecated combat query is removed"), DeprecatedQuery);
 
 	UClass* PawnClass = AGrimrockPartyPawn::StaticClass();
 	TestNotNull(TEXT("Party pawn class exists"), PawnClass);
@@ -120,15 +114,10 @@ bool FGridTD0736DeprecatedCombatAndKeyboardUseTest::RunTest(const FString& Param
 	{
 		return false;
 	}
-	TestNotNull(TEXT("Legacy keyboard use flag still exists"),
+	TestNull(TEXT("Legacy keyboard use flag is removed"),
 		PawnClass->FindPropertyByName(TEXT("bEnableLegacyKeyboardUseAction")));
-
-	const AGrimrockPartyPawn* DefaultPawn = GetDefault<AGrimrockPartyPawn>();
-	TestNotNull(TEXT("Party pawn default object exists"), DefaultPawn);
-	if (DefaultPawn)
-	{
-		TestFalse(TEXT("Legacy keyboard use is disabled by default"), DefaultPawn->bEnableLegacyKeyboardUseAction);
-	}
+	TestNull(TEXT("Legacy UseAction property is removed"),
+		PawnClass->FindPropertyByName(TEXT("UseAction")));
 
 	FString PawnSource;
 	FString BufferSource;
@@ -140,14 +129,12 @@ bool FGridTD0736DeprecatedCombatAndKeyboardUseTest::RunTest(const FString& Param
 	TestTrue(TEXT("MON11 source loads"),
 		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Tests/GridMonsterMON11Tests.cpp"), MON11Source));
 
-	TestTrue(TEXT("Legacy UseAction binding is opt-in"),
-		PawnSource.Contains(TEXT("if (bEnableLegacyKeyboardUseAction && UseAction)")));
-	TestTrue(TEXT("Legacy keyboard path still reaches front interaction"),
-		PawnSource.Contains(TEXT("HandleUse")) && PawnSource.Contains(TEXT("TryUseFrontInteraction")));
-	TestTrue(TEXT("Legacy Use command is still part of the input buffer"),
-		BufferSource.Contains(TEXT("EBufferedCommandType::Use")) &&
-		BufferSource.Contains(TEXT("BufferUseCommand")));
-	TestTrue(TEXT("Only historical MON11 tests still exercise the deprecated combat query"),
+	TestFalse(TEXT("Legacy keyboard Use path is removed"),
+		PawnSource.Contains(TEXT("bEnableLegacyKeyboardUseAction")) || PawnSource.Contains(TEXT("HandleUse")) ||
+		PawnSource.Contains(TEXT("TryUseFrontInteraction")));
+	TestFalse(TEXT("Legacy Use command is removed from the input buffer"),
+		BufferSource.Contains(TEXT("EBufferedCommandType::Use")) || BufferSource.Contains(TEXT("BufferUseCommand")));
+	TestFalse(TEXT("Historical MON11 tests use the current turn-state authority"),
 		MON11Source.Contains(TEXT("HasCharacterCommittedAttackThisPhase")));
 	return true;
 }
@@ -172,8 +159,8 @@ bool FGridTD0736LegacyRebuildModeTest::RunTest(const FString& Parameters)
 		RebuildEnum->GetValueByNameString(TEXT("Full")) != INDEX_NONE);
 	TestTrue(TEXT("GeometryOnly rebuild mode exists"),
 		RebuildEnum->GetValueByNameString(TEXT("GeometryOnly")) != INDEX_NONE);
-	TestTrue(TEXT("Legacy ObjectsOnly rebuild mode still exists"),
-		RebuildEnum->GetValueByNameString(TEXT("ObjectsOnly")) != INDEX_NONE);
+	TestTrue(TEXT("Legacy ObjectsOnly rebuild mode is removed"),
+		RebuildEnum->GetValueByNameString(TEXT("ObjectsOnly")) == INDEX_NONE);
 
 	FString HeaderSource;
 	FString RuntimeSource;
@@ -188,8 +175,8 @@ bool FGridTD0736LegacyRebuildModeTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Editor interaction source loads"),
 		LoadProjectFile(TEXT("Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEditorActorParts/GridLevelEditorActor_InteractionViewport.inl"), EditorSource));
 
-	TestTrue(TEXT("ObjectsOnly is documented as reserved legacy mode"),
-		HeaderSource.Contains(TEXT("Reserved legacy mode. No current call site uses it")));
+	TestFalse(TEXT("ObjectsOnly declaration is removed"),
+		HeaderSource.Contains(TEXT("ObjectsOnly")));
 	TestFalse(TEXT("Runtime implementation has no ObjectsOnly call site"),
 		RuntimeSource.Contains(TEXT("EGridRuntimeRebuildMode::ObjectsOnly")));
 	TestFalse(TEXT("Startup has no ObjectsOnly call site"),
