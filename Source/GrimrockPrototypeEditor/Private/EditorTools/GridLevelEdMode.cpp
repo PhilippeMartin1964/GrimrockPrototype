@@ -16,12 +16,21 @@
 #include "EditorTools/GridEditorWorkspaceTabs.h"
 #include "EditorTools/GridLevelEdModeToolkit.h"
 
+#include "Framework/Application/SlateApplication.h"
 #include "Framework/Docking/TabManager.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "Widgets/SWindow.h"
 
 namespace
 {
-	TArray<FName> WorkspaceTabsToRestore;
+	struct FWorkspaceTabRestoreState
+	{
+		FName TabName = NAME_None;
+		bool bHasFloatingWindowRect = false;
+		FSlateRect FloatingWindowRect;
+	};
+
+	TArray<FWorkspaceTabRestoreState> WorkspaceTabsToRestore;
 
 	struct FConnectorDrawData
 	{
@@ -821,9 +830,20 @@ void FGridLevelEdMode::Enter()
 		Toolkit->Init(Owner->GetToolkitHost());
 	}
 
-	for (const FName& TabName : WorkspaceTabsToRestore)
+	for (const FWorkspaceTabRestoreState& RestoreState : WorkspaceTabsToRestore)
 	{
-		FGlobalTabmanager::Get()->TryInvokeTab(FTabId(TabName));
+		TSharedPtr<SDockTab> RestoredTab = FGlobalTabmanager::Get()->TryInvokeTab(FTabId(RestoreState.TabName));
+		if (!RestoreState.bHasFloatingWindowRect || !RestoredTab.IsValid())
+		{
+			continue;
+		}
+
+		TSharedPtr<SWindow> RestoredWindow = FSlateApplication::Get().FindWidgetWindow(RestoredTab.ToSharedRef());
+		TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
+		if (RestoredWindow.IsValid() && (!RootWindow.IsValid() || RestoredWindow != RootWindow))
+		{
+			RestoredWindow->ReshapeWindow(RestoreState.FloatingWindowRect);
+		}
 	}
 }
 
@@ -831,11 +851,23 @@ void FGridLevelEdMode::Exit()
 {
 	WorkspaceTabsToRestore.Reset();
 
+	TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
+
 	for (const FName& TabName : GridEditorWorkspaceTabs::All())
 	{
 		if (TSharedPtr<SDockTab> LiveTab = FGlobalTabmanager::Get()->FindExistingLiveTab(FTabId(TabName)))
 		{
-			WorkspaceTabsToRestore.Add(TabName);
+			FWorkspaceTabRestoreState RestoreState;
+			RestoreState.TabName = TabName;
+
+			TSharedPtr<SWindow> TabWindow = FSlateApplication::Get().FindWidgetWindow(LiveTab.ToSharedRef());
+			if (TabWindow.IsValid() && (!RootWindow.IsValid() || TabWindow != RootWindow))
+			{
+				RestoreState.bHasFloatingWindowRect = true;
+				RestoreState.FloatingWindowRect = TabWindow->GetRectInScreen();
+			}
+
+			WorkspaceTabsToRestore.Add(RestoreState);
 			LiveTab->RequestCloseTab();
 		}
 	}

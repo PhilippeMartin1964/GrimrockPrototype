@@ -289,3 +289,28 @@ Return to Grid Editor
 ~~~
 
 This restore list is session-only editor presentation state. It does not touch gameplay assets or level data.
+
+
+## GEUI06.3 — Restore floating workspace window geometry
+
+GEUI06.2 remembered which workspace tabs were open, but a floating Nomad tab could still be recreated at Unreal's default centered position.
+
+GEUI06.3 records the floating window rectangle before the tab is closed.
+
+For each live workspace tab on Grid Editor exit:
+
+1. find the owning `SWindow` through `FSlateApplication::FindWidgetWindow`;
+2. compare it with `FGlobalTabmanager::GetRootWindow()`;
+3. if it is not the root editor window, treat it as a floating workspace window;
+4. store its `FSlateRect` from `GetRectInScreen()`;
+5. close the tab as before.
+
+On Grid Editor re-entry:
+
+1. restore the same TabId with `TryInvokeTab`;
+2. find its newly created floating `SWindow`;
+3. reapply the saved rectangle with `SWindow::ReshapeWindow`.
+
+Docked tabs inside the main Unreal editor window are not reshaped, so this code cannot accidentally move or resize the Level Editor root window.
+
+Expected result: a floating `PlayTest & Validation` window returns to the same screen position and size it had before leaving Grid Editor.
