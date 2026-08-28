@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.7 ASSET REPAIR VALIDÉ — NORMALIZATION PREPARED — À VALIDER — MON21.4 SUSPENDU**  
+Statut : **TD07.3.7 VALIDÉ/CLOS — TD07.3.8 À OUVRIR — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -213,7 +213,7 @@ TD07.3.3.10 Current Save Schema / Regressions / Closure                VALIDÉ �
 TD07.3.4 Authoring Identity Normalization                     VALIDÉ — CLOS
 TD07.3.5 Combat Data Schema Reset                           VALIDÉ — CLOS
 TD07.3.6 Remaining Legacy API/Data Purge                    VALIDÉ — CLOS
-TD07.3.7 Current Asset Repair / Recreation                    ASSET REPAIR VALIDÉ — NORMALIZATION PREPARED — À VALIDER
+TD07.3.7 Current Asset Repair / Recreation                    VALIDÉ — CLOS
 TD07.3.8 Strict Current-Schema Validation / stop condition    À FAIRE
 ```
 

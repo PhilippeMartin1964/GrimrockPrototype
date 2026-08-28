@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3 — Prototype Data Model Reset
-Statut : ASSET REPAIR VALIDÉ — NORMALIZATION PREPARED — À VALIDER
+Statut : VALIDÉ — CLOS
 
 ## 1. Objectif
 
@@ -216,3 +216,86 @@ Stop condition avant clôture :
 - [ ] régressions MON1/MON8/MON13/MON14/MON17 vertes ;
 - [ ] Shipping Win64 vert ;
 - [ ] TD07.3.7 clos.
+
+
+## 12. Validation finale et clôture
+
+Validation locale du 28 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_7.Normalization
+    Succeeded              : 4
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-103723
+
+Grimrock.TechnicalDebt.TD07_3_7.Characterization
+    Succeeded              : 1
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Report                 : Saved/Automation/TD04/TD04-20260828-103744
+
+TD07_3_7_CurrentAssetRepairCandidates.txt
+    Scanned DataAssets     : 88
+    Repair candidates      : 0
+
+Grimrock.TechnicalDebt.TD07_3_1.CurrentSchemaAssetAudit
+    Succeeded              : 1
+    Failed                 : 0
+
+Grimrock.Monsters.MON1.DefinitionValidation
+    Succeeded              : 1
+    Failed                 : 0
+
+Grimrock.Monsters.MON1.InvalidData
+    Succeeded              : 1
+    Failed                 : 0
+
+Grimrock.Monsters.MON8
+    Succeeded              : 4
+    Succeeded with warnings: 3
+    Failed                 : 0
+
+Grimrock.Monsters.MON13
+    Succeeded              : 13
+    Succeeded with warnings: 4
+    Failed                 : 0
+
+Grimrock.Monsters.MON14
+    Succeeded              : 19
+    Failed                 : 0
+
+Grimrock.Monsters.MON17
+    Succeeded              : 43
+    Succeeded with warnings: 1
+    Failed                 : 0
+```
+
+Shipping final :
+
+```text
+Target        : GrimrockPrototype
+Platform      : Win64
+Configuration : Shipping
+Archive       : Saved/Packaging/TD04/TD04-Shipping-20260828-103955
+Pak files     : 1
+Archive files : 41
+Archive bytes : 905984939
+BUILD SUCCESSFUL
+Cook Success  : 0 error(s), 0 warning(s)
+AutomationTool ExitCode=0
+```
+
+Stop condition TD07.3.7 :
+
+- [x] 32 candidats caractérisés ;
+- [x] 12 DataAssets réparés/créés et poussés ;
+- [x] infrastructure one-shot retirée ;
+- [x] Normalization 4/4 ;
+- [x] Characterization = 0 candidat sur 88 DataAssets ;
+- [x] CurrentSchemaAssetAudit vert ;
+- [x] régressions ciblées vertes ;
+- [x] Shipping Win64 vert ;
+- [x] TD07.3.7 clos.
+
+La tranche suivante est **TD07.3.8 — Strict Current-Schema Validation / stop condition**.

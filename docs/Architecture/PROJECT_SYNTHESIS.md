@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07.3.7 AssetRepair validé ; 12 DataAssets réparés/créés, Normalization durable préparée.**
+> État : **28 août 2026, TD07.3.7 Current Asset Repair / Recreation validé et clos ; TD07.3.8 à ouvrir.**
 
 ## 1. Référence
 
@@ -140,7 +140,7 @@ L’état Quest reste transient. **MON21.4 est suspendu jusqu’à la stop condi
 
 ## 11. Persistance
 
-`UGrimrockPartySaveGame` utilise désormais la génération prototype v15 en exact-match. La v14 et toutes les générations antérieures sont rejetées ; aucune migration n'est exécutée.
+`UGrimrockPartySaveGame` utilise désormais la génération prototype **v22 exact-match**. Toute autre génération est rejetée ; aucune migration arrière n'est exécutée.
 
 TD07.3 impose désormais :
 
@@ -152,7 +152,7 @@ données dérivées recalculées
 runtime/save fondés sur identités stables, pas sur pointeurs de contenu persistants
 ```
 
-TD07.3.2 supprime la chaîne de migration v1-v9. TD07.3.3.2 supprime le bridge legacy des attributs et ouvre v11 ; les sous-tranches suivantes normalisent les autres états du personnage. TD07.3.4–TD07.3.7 nettoieront les DataAssets et le contenu courant.
+TD07.3.2 supprime la chaîne de migration v1-v9. TD07.3.3.2 supprime le bridge legacy des attributs et ouvre v11 ; les sous-tranches suivantes normalisent les autres états du personnage. TD07.3.4–TD07.3.7 ont nettoyé les autorités d'authoring, le schéma combat, les APIs/data legacy et les DataAssets courants. TD07.3.8 fige la validation stricte transversale.
 
 ## 12. UI
 
