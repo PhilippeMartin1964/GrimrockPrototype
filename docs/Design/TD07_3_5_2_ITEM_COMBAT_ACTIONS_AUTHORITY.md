@@ -4,7 +4,7 @@ Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3.5 — Combat Data Schema Reset
 Characterization : 4/4 validée
-Statut : SHURIKEN LFS RÉPARÉ — NORMALISATION C++ IMPLÉMENTÉE / À VALIDER
+Statut : VALIDÉ ET CLOS — TD07.3.5.3 ACTIVE
 
 ## 1. Décision
 
@@ -93,7 +93,7 @@ Aucun fallback PostLoad/runtime de compatibilité n'est introduit.
 - [x] repaired DA_Weapon_Shuriken pushed
 - [x] legacy schema C++ supprimé
 - [x] runtime fallback supprimé
-- [ ] normalization tests verts
+- [x] normalization tests verts
 
 
 ## 8. Réparation LFS validée
@@ -167,3 +167,28 @@ RuntimeFallbackRemoval
 ```
 
 Attendu : 4/4, zéro warning.
+
+
+## 11. Validation locale finale
+
+```text
+Grimrock.TechnicalDebt.TD07_3_5_2.Normalization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-085612
+
+Grimrock.TechnicalDebt.TD07_3_5.Characterization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-085625
+```
+
+Gate total : 8/8, zéro warning.
+
+TD07.3.5.2 est clos. Prochaine tranche : TD07.3.5.3 — Monster Presentation Authority.
