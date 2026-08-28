@@ -7,6 +7,8 @@
 #if WITH_EDITOR
 
 class AGridLevelEditorActor;
+class SSearchBox;
+class SVerticalBox;
 
 struct FGridEditorValidationPanelState
 {
@@ -45,6 +47,8 @@ private:
 	void RequestRefresh() const;
 
 	TSharedRef<SWidget> BuildValidationSection();
+	TSharedRef<SWidget> BuildValidationResults();
+	void RebuildValidationResults();
 	FReply OnValidateLevelClicked();
 	FReply OnCopySummaryClicked() const;
 	FReply OnClearFiltersClicked();
@@ -59,6 +63,8 @@ private:
 	TSharedPtr<FGridEditorValidationPanelState> ValidationState;
 	FOnGetGridEditorValidationActor OnGetEditorActor;
 	FOnGridEditorValidationRequestRefresh OnRequestRefresh;
+	TSharedPtr<SSearchBox> ValidationSearchBox;
+	TSharedPtr<SVerticalBox> ValidationResultsRoot;
 };
 
 #endif

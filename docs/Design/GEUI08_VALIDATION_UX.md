@@ -221,3 +221,36 @@ GEUI09 — Refresh / State cleanup
 ~~~
 
 GEUI09 will consolidate the temporary context-observation/rebuild mechanism introduced during the workspace migration and reduce unnecessary full-widget rebuilds.
+
+
+## GEUI08.1 — Preserve search focus during live filtering
+
+The initial GEUI08 search handler called the workspace-level `RequestRefresh()` on every `OnTextChanged` event.
+
+That rebuilt the complete `PlayTest & Validation` workspace after each typed character, destroying and recreating the `SSearchBox`. The practical symptom was that keyboard focus was lost after the first character.
+
+GEUI08.1 separates the stable validation controls from the dynamic result area.
+
+New local widget references:
+
+~~~text
+ValidationSearchBox
+ValidationResultsRoot
+~~~
+
+Search behavior is now:
+
+~~~text
+key press
+  -> update SearchText
+  -> RebuildValidationResults()
+  -> replace result cards only
+  -> SSearchBox instance remains alive
+  -> keyboard focus remains intact
+~~~
+
+Severity toggles now use the same local result refresh rather than rebuilding the entire workspace.
+
+`Clear Filters` explicitly clears the persistent search state and the existing search widget text, then refreshes only results.
+
+Full workspace refresh remains reserved for operations that genuinely change editor context or regenerate the validation run.

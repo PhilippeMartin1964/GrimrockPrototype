@@ -220,7 +220,7 @@ bool SGridEditorValidationPanel::ShouldShowMessage(const FGridLevelValidationMes
 void SGridEditorValidationPanel::OnSearchTextChanged(const FText& NewText)
 {
 	GetValidationState().SearchText = NewText.ToString();
-	RequestRefresh();
+	RebuildValidationResults();
 }
 
 FReply SGridEditorValidationPanel::OnClearFiltersClicked()
@@ -230,7 +230,13 @@ FReply SGridEditorValidationPanel::OnClearFiltersClicked()
 	State.bShowWarnings = true;
 	State.bShowInfos = true;
 	State.SearchText.Reset();
-	RequestRefresh();
+
+	if (ValidationSearchBox.IsValid())
+	{
+		ValidationSearchBox->SetText(FText::GetEmpty());
+	}
+
+	RebuildValidationResults();
 	return FReply::Handled();
 }
 
@@ -449,7 +455,7 @@ TSharedRef<SWidget> SGridEditorValidationPanel::BuildValidationSection()
 		.AutoHeight()
 		.Padding(0.f, 6.f, 0.f, 0.f)
 		[
-			SNew(SSearchBox)
+			SAssignNew(ValidationSearchBox, SSearchBox)
 				.HintText(FText::FromString(TEXT("Search message, category, cell, edge or object id...")))
 				.InitialText(FText::FromString(CurrentValidationState.SearchText))
 				.OnTextChanged(this, &SGridEditorValidationPanel::OnSearchTextChanged)
@@ -465,7 +471,7 @@ TSharedRef<SWidget> SGridEditorValidationPanel::BuildValidationSection()
 		[this](ECheckBoxState State)
 		{
 			GetValidationState().bShowErrors = State == ECheckBoxState::Checked;
-			RequestRefresh();
+			RebuildValidationResults();
 		});
 	AddValidationFilter(
 		FilterRow, FText::FromString(TEXT("Warnings")), WarningCount,
@@ -476,7 +482,7 @@ TSharedRef<SWidget> SGridEditorValidationPanel::BuildValidationSection()
 		[this](ECheckBoxState State)
 		{
 			GetValidationState().bShowWarnings = State == ECheckBoxState::Checked;
-			RequestRefresh();
+			RebuildValidationResults();
 		});
 	AddValidationFilter(
 		FilterRow, FText::FromString(TEXT("Infos")), InfoCount,
@@ -487,7 +493,7 @@ TSharedRef<SWidget> SGridEditorValidationPanel::BuildValidationSection()
 		[this](ECheckBoxState State)
 		{
 			GetValidationState().bShowInfos = State == ECheckBoxState::Checked;
-			RequestRefresh();
+			RebuildValidationResults();
 		});
 
 	FilterRow->AddSlot()
@@ -505,6 +511,36 @@ TSharedRef<SWidget> SGridEditorValidationPanel::BuildValidationSection()
 		[
 			FilterRow
 		];
+
+	Root->AddSlot()
+		.AutoHeight()
+		[
+			SAssignNew(ValidationResultsRoot, SVerticalBox)
+		];
+
+	RebuildValidationResults();
+	return Root;
+}
+
+void SGridEditorValidationPanel::RebuildValidationResults()
+{
+	if (!ValidationResultsRoot.IsValid())
+	{
+		return;
+	}
+
+	ValidationResultsRoot->ClearChildren();
+	ValidationResultsRoot->AddSlot()
+		.AutoHeight()
+		[
+			BuildValidationResults()
+		];
+}
+
+TSharedRef<SWidget> SGridEditorValidationPanel::BuildValidationResults()
+{
+	const FGridEditorValidationPanelState& CurrentValidationState = GetValidationState();
+	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
 
 	if (CurrentValidationState.ValidationMessages.Num() == 0)
 	{
