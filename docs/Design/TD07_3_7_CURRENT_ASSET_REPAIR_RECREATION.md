@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3 — Prototype Data Model Reset
-Statut : CHARACTERIZATION PREPARED — À VALIDER
+Statut : CHARACTERIZATION VALIDÉE — 32 CANDIDATS / ASSET REPAIR PREPARED
 
 ## 1. Objectif
 
@@ -52,3 +52,105 @@ Le test doit être vert même si des candidats existent : son rôle est de produ
 - **>0 candidat** : réparer/recréer uniquement les assets listés, par familles logiques, avec one-shot Editor/LFS si nécessaire.
 - après réparation : ajouter `Grimrock.TechnicalDebt.TD07_3_7.Normalization` exigeant strictement zéro candidat.
 - ensuite : régressions + Shipping, puis passage à TD07.3.8.
+
+
+## 6. Characterization validée
+
+Validation locale du 28 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_7.Characterization
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-101925
+```
+
+Rapport :
+
+```text
+Scanned DataAssets: 86
+Repair candidates: 32
+
+AUTHORING.ASSET_ID_CONFLICT    2
+AUTHORING.ASSET_ID_DUPLICATE  23
+AUTHORING.ID_ONLY              2
+AUTHORING.LOCK_KEY_IDS         5
+```
+
+Aucun `ITEM.INVALID_COMBAT_ACTIONS` ni `AUTHORING.DEFINITION_WITHOUT_ID` n'est présent.
+
+## 7. Diagnostic
+
+Les 32 findings sont concentrés dans quelques assets et relèvent de quatre opérations déterministes :
+
+1. supprimer les IDs miroirs lorsqu'une référence d'asset valide existe ;
+2. remplacer les deux IDs seuls du Rat Giant par de vraies références ;
+3. migrer `AcceptedKeyIds` vers `AcceptedKeyItems` ;
+4. corriger les deux conflits Shuriken en gardant la référence `Shuriken` et en supprimant l'ancien ID `Stone`.
+
+Le runtime MonsterSpawn a également été normalisé afin qu'un `MonsterDefinitionAsset` suffise comme autorité d'authoring. Il ne réécrit plus automatiquement `MonsterDefinitionId`.
+
+Commit :
+
+```text
+625ceeca9d39564e8533fd8e8cafd8fe2e56f829
+Normalize TD07.3.7 MonsterSpawn authoring identity
+```
+
+## 8. Deux assets à recréer
+
+Le repository ne contient aucune définition pour :
+
+```text
+Item_RatMeat
+Item_RatTooth
+```
+
+Les docs MON8 indiquaient explicitement qu'elles étaient à ajouter lorsque leurs DataAssets existeraient.
+
+Le one-shot crée donc :
+
+```text
+/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_RatMeat
+    ItemDefinitionId = Item_RatMeat
+    ItemType = Food
+
+/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_RatTooth
+    ItemDefinitionId = Item_RatTooth
+    ItemType = Component
+```
+
+Ce sont des définitions techniques current-schema minimales, stackables, sans combat ni équipement. Présentation, mesh et équilibrage pourront être enrichis séparément sans réintroduire de dette de schéma.
+
+## 9. One-shot AssetRepair
+
+Automation :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_7.AssetRepair
+```
+
+Script :
+
+```text
+Scripts/RepairTD0737CurrentAssets.ps1
+```
+
+Commit de préparation :
+
+```text
+5df908bf3612ee97a984a3d5f53f6f3035edef2a
+Prepare TD07.3.7 current asset repair
+```
+
+Le test :
+- construit les registries Item / Readable / Monster par ID canonique ;
+- crée les deux définitions Rat manquantes ;
+- répare toutes les paires asset/id ;
+- migre les clés de serrure ;
+- sauvegarde uniquement les DataAssets modifiés ;
+- exige zéro candidat résiduel en mémoire.
+
+Le script refuse de démarrer si `Content/` contient déjà des changements locaux, puis commit/push uniquement les `.uasset` modifiés ou créés.
