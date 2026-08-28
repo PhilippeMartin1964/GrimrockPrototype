@@ -77,9 +77,8 @@ bool FGridTD074ActivationSurfaceCharacterizationTest::RunTest(const FString& Par
 	const int32 LogTempCalls = CountOccurrences(Source, TEXT("UE_LOG(LogTemp"));
 	const int32 LogGridActivationCalls = CountOccurrences(Source, TEXT("UE_LOG(LogGridActivation"));
 
-	AddInfo(FString::Printf(
-		TEXT("TD07.4 surface: header=%d/%d source=%d/%d methods=%d UE_LOG=%d LogTemp=%d LogGridActivation=%d"),
-		HeaderLines, Header.Len(), SourceLines, Source.Len(), ScopedMethodOccurrences, LogCalls, LogTempCalls, LogGridActivationCalls));
+	AddInfo(FString::Printf(TEXT("TD07.4 surface: header=%d/%d source=%d/%d methods=%d UE_LOG=%d LogTemp=%d LogGridActivation=%d"), HeaderLines, Header.Len(),
+		SourceLines, Source.Len(), ScopedMethodOccurrences, LogCalls, LogTempCalls, LogGridActivationCalls));
 
 	TestTrue(TEXT("Activation component is currently a concentrated source file"), SourceLines >= 1500);
 	TestTrue(TEXT("Activation component has at least forty scoped implementations"), ScopedMethodOccurrences >= 40);
