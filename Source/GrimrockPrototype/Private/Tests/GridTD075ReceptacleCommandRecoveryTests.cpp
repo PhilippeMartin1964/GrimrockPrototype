@@ -79,7 +79,7 @@ namespace GridTD075ReceptacleRecovery
 	FGridObjectLink MakeTD075Link(EGridObjectEvent Event, EGridObjectCommand Command)
 	{
 		FGridObjectLink Link;
-		Link.TD075SourceObjectId = TD075SourceObjectId;
+		Link.SourceObjectId = TD075SourceObjectId;
 		Link.TargetObjectId = TD075ReceptacleObjectId;
 		Link.SourceEvent = Event;
 		Link.Command = Command;
