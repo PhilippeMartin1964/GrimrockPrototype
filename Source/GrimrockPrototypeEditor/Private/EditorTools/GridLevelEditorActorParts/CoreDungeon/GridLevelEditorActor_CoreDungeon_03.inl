@@ -135,8 +135,6 @@
 				Archetype.Category = FName(TEXT("Transitions"));
 				Archetype.ObjectCategory = EGridObjectCategory::Decoration;
 				Archetype.PlacementKind = EGridObjectPlacementKind::Floor;
-				Archetype.bPlaceOnEdge = false;
-				Archetype.bPlaceAtCellCenter = true;
 				Archetype.bCanShareCell = true;
 				Archetype.bCanShareAnchor = true;
 				Archetype.bReplacesStandardWall = false;

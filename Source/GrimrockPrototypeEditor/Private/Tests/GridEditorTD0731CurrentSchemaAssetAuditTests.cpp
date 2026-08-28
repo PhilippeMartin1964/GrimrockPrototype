@@ -183,17 +183,6 @@ namespace GridTD0731SchemaAuditPrivate
 
 	void AuditArchetypeAsset(const UGridObjectArchetypeAsset& Archetype, const FString& AssetPath, TArray<FGridTD0731Finding>& Findings)
 	{
-		const bool bExpectedEdge = Archetype.PlacementKind == EGridObjectPlacementKind::Edge || Archetype.PlacementKind == EGridObjectPlacementKind::Wall;
-		const bool bExpectedCenter = Archetype.PlacementKind == EGridObjectPlacementKind::Center || Archetype.PlacementKind == EGridObjectPlacementKind::Floor ||
-			Archetype.PlacementKind == EGridObjectPlacementKind::Ceiling;
-		if (Archetype.bPlaceOnEdge != bExpectedEdge || Archetype.bPlaceAtCellCenter != bExpectedCenter)
-		{
-			AddFinding(Findings, EGridTD0731FindingKind::LegacyField, TEXT("ARCHETYPE.LEGACY_PLACEMENT_MIRROR"), AssetPath, TEXT("Placement"),
-				FString::Printf(TEXT("PlacementKind=%s but legacy mirrors are bPlaceOnEdge=%s bPlaceAtCellCenter=%s."),
-					*UEnum::GetValueAsString(Archetype.PlacementKind), Archetype.bPlaceOnEdge ? TEXT("true") : TEXT("false"),
-					Archetype.bPlaceAtCellCenter ? TEXT("true") : TEXT("false")));
-		}
-
 		AuditBehavior(AssetPath, TEXT("DefaultBehavior"), Archetype.DefaultBehavior, Findings);
 	}
 

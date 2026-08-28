@@ -88,15 +88,6 @@ public:
 		meta = (DisplayName = "Placement Kind", ToolTip = "Current source of truth for editor/runtime placement."))
 	EGridObjectPlacementKind PlacementKind = EGridObjectPlacementKind::Center;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement|Legacy",
-		meta = (AdvancedDisplay, DisplayName = "Legacy Place On Edge",
-			ToolTip = "Legacy compatibility only. PlacementKind is the current source of truth. Keep only for migrated assets until cleanup."))
-	bool bPlaceOnEdge = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement|Legacy",
-		meta = (AdvancedDisplay, DisplayName = "Legacy Place At Cell Center",
-			ToolTip = "Legacy compatibility only. PlacementKind is the current source of truth. Keep only for migrated assets until cleanup."))
-	bool bPlaceAtCellCenter = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement",
 		meta = (ToolTip = "Editor placement rule: allows this object to share a cell with other objects."))

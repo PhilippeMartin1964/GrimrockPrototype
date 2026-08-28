@@ -102,8 +102,6 @@ namespace
 		Archetype->Category = TEXT("Mechanisms");
 		Archetype->ObjectCategory = EGridObjectCategory::Mechanism;
 		Archetype->PlacementKind = EGridObjectPlacementKind::Wall;
-		Archetype->bPlaceOnEdge = true;
-		Archetype->bPlaceAtCellCenter = false;
 		Archetype->RuntimeActorClass = AGridLeverActor::StaticClass();
 		Archetype->MovingMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
 		Archetype->bIsInteractable = true;
