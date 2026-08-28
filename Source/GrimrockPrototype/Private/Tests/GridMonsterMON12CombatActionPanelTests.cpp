@@ -8,6 +8,7 @@
 #include "Engine/Texture2D.h"
 #include "Engine/World.h"
 #include "InputActionValue.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
@@ -72,7 +73,13 @@ namespace
 		Character.DerivedStats.MaxHealth = MaxHealth;
 		Character.Resources.CurrentMana = CurrentMana;
 		Character.DerivedStats.MaxMana = MaxMana;
+		Character.RaceId = TEXT("MON12_TestRace");
+		Character.RaceDisplayName = FText::FromString(TEXT("MON12 Test Race"));
+		Character.PortraitGender = ERPGCharacterPortraitGender::Male;
+		Character.PortraitVariantId = FName(*FString::Printf(TEXT("MON12_%s"), DisplayName));
 		Character.Portrait = Portrait;
+		FRPGAuthoringIdentityResolver::RememberPortraitVisual(
+			Character.RaceId, Character.PortraitGender, Character.PortraitVariantId, TSoftObjectPtr<UTexture2D>(Portrait));
 		Character.InventorySlots.SetNum(4);
 		return Character;
 	}
@@ -781,24 +788,24 @@ bool FGridMonsterMON12GenericActionAttackLifecycleTest::RunTest(const FString& P
 
 	TArray<FGridAvailableCombatAction> Actions;
 	Fixture.TurnManager->GetAvailableCombatActions(0, Actions);
-	TestEqual(TEXT("The legacy shuriken and manual unarmed action are catalogued"), Actions.Num(), 2);
-	const FGridAvailableCombatAction* LegacyActionPtr = Actions.FindByPredicate(
+	TestEqual(TEXT("The current shuriken and manual unarmed action are catalogued"), Actions.Num(), 2);
+	const FGridAvailableCombatAction* ShurikenActionPtr = Actions.FindByPredicate(
 		[](const FGridAvailableCombatAction& Candidate)
 		{
 			return Candidate.Definition.ActionId == FName(TEXT("Attack_Shuriken"));
 		});
-	if (!TestNotNull(TEXT("The legacy shuriken action is present"), LegacyActionPtr))
+	if (!TestNotNull(TEXT("The current shuriken CombatAction is present"), ShurikenActionPtr))
 	{
 		return false;
 	}
-	const FGridAvailableCombatAction LegacyAction = *LegacyActionPtr;
-	TestEqual(TEXT("The legacy adapter preserves the MON11 attack id"), LegacyAction.Definition.ActionId, FName(TEXT("Attack_Shuriken")));
-	TestTrue(TEXT("The adapted shuriken action is currently enabled"), LegacyAction.bEnabled);
+	const FGridAvailableCombatAction ShurikenAction = *ShurikenActionPtr;
+	TestEqual(TEXT("The current CombatAction preserves the MON11 attack id"), ShurikenAction.Definition.ActionId, FName(TEXT("Attack_Shuriken")));
+	TestTrue(TEXT("The shuriken CombatAction is currently enabled"), ShurikenAction.bEnabled);
 
 	FGridCombatActionRequestResult Execution;
-	TestTrue(TEXT("The generic action entry point executes the MON11 attack"),
-		Fixture.TurnManager->RequestCharacterCombatAction(0, LegacyAction.Definition.ActionId, LegacyAction.Definition.SourcePolicy,
-			LegacyAction.SourceDefinitionId, LegacyAction.SourceEquipmentSlot, Execution));
+	TestTrue(TEXT("The generic action entry point executes the current MON11 attack"),
+		Fixture.TurnManager->RequestCharacterCombatAction(0, ShurikenAction.Definition.ActionId, ShurikenAction.Definition.SourcePolicy,
+			ShurikenAction.SourceDefinitionId, ShurikenAction.SourceEquipmentSlot, Execution));
 	TestTrue(TEXT("The generic result reports acceptance"), Execution.bAccepted);
 	TestEqual(TEXT("The resolved request keeps the offensive item"), Execution.AttackRequest.OffensiveItemDefinitionId, FName(TEXT("Shuriken")));
 	TestEqual(TEXT("The generic action pays its definition AP cost"), Execution.AttackRequest.ActionPointCost, 2);
@@ -807,12 +814,25 @@ bool FGridMonsterMON12GenericActionAttackLifecycleTest::RunTest(const FString& P
 	TestTrue(TEXT("The turn state remains available after the generic attack"), Fixture.TurnManager->GetPlayerCharacterTurnState(0, TurnState));
 	TestEqual(TEXT("The generic attack leaves two of four AP"), TurnState.RemainingActionPoints, 2);
 
-	Fixture.TurnManager->PlayerAttackActionPointCost = 3;
+	UGridItemDefinitionAsset* ShurikenDefinition =
+		Fixture.Party->PartyInventoryComponent->FindItemDefinition(FName(TEXT("Shuriken")));
+	TestNotNull(TEXT("The current shuriken definition remains registered"), ShurikenDefinition);
+	if (ShurikenDefinition)
+	{
+		if (FGridCombatActionDefinition* CurrentShurikenAction = ShurikenDefinition->CombatActions.FindByPredicate(
+				[](const FGridCombatActionDefinition& Candidate)
+				{
+					return Candidate.ActionId == FName(TEXT("Attack_Shuriken"));
+				}))
+		{
+			CurrentShurikenAction->ActionPointCost = 3;
+		}
+	}
 
 	FGridCombatActionRequestResult RejectedExecution;
-	TestFalse(TEXT("The catalogue is revalidated before a second request"),
-		Fixture.TurnManager->RequestCharacterCombatAction(0, LegacyAction.Definition.ActionId, LegacyAction.Definition.SourcePolicy,
-			LegacyAction.SourceDefinitionId, LegacyAction.SourceEquipmentSlot, RejectedExecution));
+	TestFalse(TEXT("The catalogue is revalidated from the current CombatAction before a second request"),
+		Fixture.TurnManager->RequestCharacterCombatAction(0, ShurikenAction.Definition.ActionId, ShurikenAction.Definition.SourcePolicy,
+			ShurikenAction.SourceDefinitionId, ShurikenAction.SourceEquipmentSlot, RejectedExecution));
 	TestEqual(TEXT("The unavailable request has a generic rejection"), RejectedExecution.RejectReason, EGridCombatActionRequestRejectReason::ActionUnavailable);
 	TestEqual(TEXT("The precise disabled reason is insufficient AP"), RejectedExecution.Action.AvailabilityReason,
 		EGridCombatActionAvailabilityReason::InsufficientActionPoints);

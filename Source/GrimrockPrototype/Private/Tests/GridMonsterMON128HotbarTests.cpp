@@ -2,6 +2,8 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Misc/AutomationTest.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
+#include "RPG/RPGClassAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
@@ -10,6 +12,19 @@
 
 namespace
 {
+	struct FGridMON128IdentityCacheGuard
+	{
+		FGridMON128IdentityCacheGuard()
+		{
+			FRPGAuthoringIdentityResolver::ResetRuntimeCache();
+		}
+
+		~FGridMON128IdentityCacheGuard()
+		{
+			FRPGAuthoringIdentityResolver::ResetRuntimeCache();
+		}
+	};
+
 	UGridPartyInventoryComponent* CreateMON128Inventory()
 	{
 		UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
@@ -102,12 +117,23 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON128HotbarSaveRoundTripTest, "Grimrock.M
 bool FGridMON128HotbarSaveRoundTripTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	FGridMON128IdentityCacheGuard IdentityGuard;
 	UGridPartyInventoryComponent* SourceComponent = CreateMON128Inventory();
 	if (!SourceComponent)
 	{
 		return false;
 	}
 	SourceComponent->PartyInventoryState.bInitialCharacterCreationCompleted = true;
+
+	FGridCharacterInventoryState& SourceCharacter = SourceComponent->PartyInventoryState.ActiveCharacters[0];
+	URPGClassAsset* WarriorDefinition = NewObject<URPGClassAsset>(SourceComponent, TEXT("MON128_WarriorDefinition"));
+	WarriorDefinition->ClassId = SourceCharacter.ClassId;
+	WarriorDefinition->DisplayName = FText::FromName(SourceCharacter.ClassId);
+	TestTrue(TEXT("The synthetic current class definition is valid"), WarriorDefinition->IsValidDefinition());
+	TestTrue(TEXT("The synthetic current ClassId can be rehydrated"),
+		FRPGAuthoringIdentityResolver::RememberClassDefinition(WarriorDefinition));
+	SourceCharacter.ClassDefinition = WarriorDefinition;
+	SourceCharacter.ClassDisplayName = WarriorDefinition->DisplayName;
 
 	const FGuid WeaponRuntimeId = FGuid::NewGuid();
 	TestTrue(TEXT("An equipment shortcut is assigned before saving"),

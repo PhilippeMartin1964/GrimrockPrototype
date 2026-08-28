@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3.5 — Combat Data Schema Reset
-Statut : LFS RÉPARÉ — NORMALISATION C++ IMPLÉMENTÉE / À VALIDER
+Statut : VALIDÉ — CLOS
 
 ## 1. Cible stricte
 
@@ -109,3 +109,20 @@ TD07.3.5.5 — Regressions / Shipping / Closure
 ```
 
 SaveGame reste **v22 exact-match**.
+
+
+## 7. Validation locale
+
+Validé le 28 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_5_4.Normalization  4/4
+Grimrock.TechnicalDebt.TD07_3_5.Characterization 4/4
+Grimrock.TechnicalDebt.TD07_3_5_3.Normalization  4/4
+Grimrock.TechnicalDebt.TD07_3_1.CurrentSchemaAssetAudit 1/1
+Grimrock.Monsters.MON1.DefinitionValidation      1/1
+Grimrock.Monsters.MON1.InvalidData                1/1
+Grimrock.Monsters.MON17                           43 succeeded, 1 succeeded with warnings, 0 failed
+```
+
+TD07.3.5.4 est clos. La tranche active est TD07.3.5.5 — Regressions / Shipping / Closure.

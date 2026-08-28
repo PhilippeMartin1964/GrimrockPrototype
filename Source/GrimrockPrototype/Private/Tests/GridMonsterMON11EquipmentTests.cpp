@@ -301,9 +301,11 @@ bool FGridMonsterMON11OffensiveProfileValidationTest::RunTest(const FString& Par
 	Invalid.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::Piercing;
 	TestFalse(TEXT("An elemental physical subtype is rejected"), Invalid.IsValid());
 
-	UGridItemDefinitionAsset* IncompatibleDefinition =
-		MakeEquipmentDefinition(GetTransientPackage(), TEXT("Item_Incompatible"), EGridItemType::Weapon, PhysicalProfile, EGridEquipmentSlot::Head);
-	TestFalse(TEXT("An offensive definition incompatible with both hands is invalid"), IncompatibleDefinition->IsValidDefinition());
+	UGridItemDefinitionAsset* HeadDefinition =
+		MakeEquipmentDefinition(GetTransientPackage(), TEXT("Item_HeadCombatAction"), EGridItemType::Weapon, PhysicalProfile, EGridEquipmentSlot::Head);
+	TestTrue(TEXT("A well-formed CombatActions item remains structurally valid outside hand slots"), HeadDefinition->IsValidDefinition());
+	TestFalse(TEXT("A head slot never exposes an equipment attack"), HeadDefinition->CanProvideAttackFromSlot(EGridEquipmentSlot::Head));
+	TestFalse(TEXT("The head-only definition is not a main-hand attack source"), HeadDefinition->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
 
 	FGridMON11EquipmentFixture Fixture;
 	if (!TestTrue(TEXT("The rejection fixture is ready"), Fixture.IsReady() && Fixture.Monster))
