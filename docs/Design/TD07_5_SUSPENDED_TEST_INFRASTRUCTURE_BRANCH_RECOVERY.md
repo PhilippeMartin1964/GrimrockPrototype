@@ -2,7 +2,7 @@
 
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
-Statut : RECOVERY GATE VALIDÉ — REMOTE BRANCH CLEANUP PREPARED
+Statut : VALIDÉ — CLOS
 
 ## 1. Objectif
 
@@ -123,11 +123,11 @@ Il :
 ## 6. Stop condition TD07.5
 
 - [x] Recovery.ReceptacleCommands vert ;
-- [ ] audit local des branches concorde avec l'audit GitHub ;
-- [ ] aucune branche divergente ne contient de travail fonctionnel à récupérer ;
-- [ ] branches historiques supprimées de origin ;
-- [ ] master reste l'unique branche de travail active ;
-- [ ] documentation mise à jour.
+- [x] audit local des branches concorde avec l'audit GitHub ;
+- [x] aucune branche divergente ne contient de travail fonctionnel à récupérer ;
+- [x] branches historiques supprimées de origin ;
+- [x] master reste l'unique branche de travail active ;
+- [x] documentation mise à jour.
 
 Aucune fusion de branche n'est prévue.
 
@@ -165,3 +165,24 @@ Le script :
 - exécute ensuite un nouvel audit TD07.5.
 
 Le pseudo-ref remote HEAD raccourci en "origin" est explicitement exclu de l'audit et du cleanup.
+
+
+## 9. Clôture
+
+Nettoyage exécuté le 28 août 2026 :
+
+```text
+17 branches historiques supprimées de origin.
+
+Post-cleanup audit:
+Remote branches excluding base: 0
+Behind-only: 0
+Diverged: 0
+Ahead-only: 0
+```
+
+Vérification GitHub finale : `master` est la seule branche du dépôt.
+
+Les scripts `AuditTD075RemoteBranches.ps1` et `CleanupTD075RemoteBranches.ps1` étaient des outils one-shot ; ils ont été supprimés après usage.
+
+Le test `GridTD075ReceptacleCommandRecoveryTests.cpp` reste durable pour protéger les quatre commandes Event -> Command Receptacle récupérées.

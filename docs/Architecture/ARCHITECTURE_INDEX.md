@@ -4,8 +4,8 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 28 août 2026, TD07.5 Receptacle recovery validé ; nettoyage définitif des branches historiques préparé ; MON21.4 suspendu.**  
-Phase active : **TD07.5 — Suspended test infrastructure / branch recovery**. MON21.4 reste suspendu jusqu'à la clôture complète de TD07.
+**Référence courante : 28 août 2026, TD07.5 validé/clos ; master seule branche ; TD07.7 à ouvrir ; MON21.4 suspendu.**  
+Phase active : **TD07.7 — Targeted log / formatting hygiene**. MON21.4 reste suspendu jusqu'à la clôture complète de TD07.
 
 ## Ordre de lecture recommandé
 
