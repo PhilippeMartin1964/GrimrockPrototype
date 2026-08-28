@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3 — Prototype Data Model Reset
-Statut : CHARACTERIZATION PREPARED — À VALIDER
+Statut : CHARACTERIZATION VALIDÉE — STATIC PURGE IMPLÉMENTÉ / MONSTERSPAWN ASSET REPAIR PREPARED
 
 ## 1. Objectif
 
@@ -146,3 +146,69 @@ Attendu : 4/4, zéro warning, zéro échec.
 8. régressions + Shipping avant clôture.
 
 Politique : **aucune compatibilité arrière**.
+
+
+## 9. Characterization validée
+
+Validation locale du 28 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_6.Characterization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-095553
+```
+
+## 10. Static purge implémenté
+
+Supprimés :
+
+```text
+bPlaceOnEdge
+bPlaceAtCellCenter
+HasCharacterCommittedAttackThisPhase
+bEnableLegacyKeyboardUseAction
+UseAction
+HandleUse
+TryUseFrontInteraction
+BufferUseCommand
+EBufferedCommandType::Use
+EGridRuntimeRebuildMode::ObjectsOnly
+ARCHETYPE.LEGACY_PLACEMENT_MIRROR
+```
+
+Les tests MON11 lisent désormais directement `GetPlayerCharacterTurnState()`.
+
+Le système souris n'est pas modifié et l'ancien binding clavier F/Use n'existe plus côté pawn.
+
+Commits :
+
+```text
+a3abb959a45b12e4d304e1356d9ac88b16bb8452
+Purge TD07.3.6 placement and rebuild legacy
+
+210f093dfa72f48339a1d236bc98cd185251abc5
+Purge TD07.3.6 combat and keyboard use legacy
+```
+
+## 11. MonsterSpawn facing repair préparé
+
+`GetFacingForLegacyYaw` reste temporairement présent.
+
+L'Automation one-shot charge tous les `UGridLevelAsset`, valide les MonsterSpawn après le `PostLoad` courant, puis resauvegarde les seuls LevelAssets qui contiennent au moins un MonsterSpawn. Cela matérialise le `InitialFacing` cardinal dans le package avant suppression du fallback.
+
+```text
+Grimrock.TechnicalDebt.TD07_3_6.AssetRepair.MonsterSpawnFacing
+Scripts/RepairTD0736MonsterSpawnFacing.ps1
+```
+
+Commit de préparation :
+
+```text
+5f8fa484341338f1cdf100d8435b92d89525870c
+Prepare TD07.3.6 MonsterSpawn facing repair
+```
+
+Après réparation LFS, la normalisation finale supprimera `GetFacingForLegacyYaw` et le fallback `InitialFacing <- LocalYaw`.
