@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07.3 validé/clos ; MON21.4 Quest Persistence characterization prepared — à valider.**
+> État : **28 août 2026, TD07.3 validé/clos ; MON21.4 characterization validée puis suspendue ; TD07.4 actif.**
 
 ## 1. Référence
 
@@ -15,8 +15,8 @@
 | Dernier jalon fonctionnel | `MON21.3 — Quest Event -> Command Integration` |
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
-| Dernière tranche validée | `TD07.3.6 — Remaining Legacy API/Data Purge` |
-| Tranche active | `TD07.3.7 — Current Asset Repair / Recreation` — AssetRepair validé ; Normalization prepared, à valider |
+| Dernière tranche validée | `TD07.3 — Prototype Data Model Reset` |
+| Tranche active | `TD07.4 — ActivationComponent characterization` |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`.
 
@@ -136,7 +136,7 @@ UGridQuestSubsystem : UGameInstanceSubsystem
 
 MON21.2 a établi l’autorité runtime et les transitions séquentielles. MON21.3 a relié les commandes Quest au bus Event -> Command via `FGridObjectLink`.
 
-L’état Quest reste transient. **MON21.4 — Quest Persistence est désormais actif** après clôture TD07.3 ; sa persistance suit le schéma prototype courant exact-match sans migration historique.
+L’état Quest reste transient. La characterization MON21.4 est validée mais l'implémentation reste suspendue jusqu'à clôture complète de TD07. La tranche technique active est TD07.4.
 
 ## 11. Persistance
 

@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3 VALIDÉ/CLOS — MON21.4 CHARACTERIZATION PREPARED — À VALIDER**  
+Statut : **TD07 ACTIF — TD07.4 À CARACTÉRISER — MON21.4 SUSPENDU APRÈS CHARACTERIZATION**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -83,7 +83,7 @@ Transformer les surfaces campagne déjà présentes en systèmes data-driven :
 MON21.1 — Audit & Architecture Contract                         CLOS
 MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
-MON21.4 — Quest Persistence                                   ACTIF
+MON21.4 — Quest Persistence                                   SUSPENDU APRÈS CHARACTERIZATION
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
 MON21.6 — Map Geometry + Exploration State + Existing WBP       À FAIRE
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
@@ -149,9 +149,9 @@ Grimrock.Quests.MON21_3.EventCommandIntegration
 1 Success / 0 Failed
 ```
 
-## MON21.4 — Quest Persistence — ACTIF
+## MON21.4 — Quest Persistence — SUSPENDU APRÈS CHARACTERIZATION
 
-MON21.4 reprend après la stop condition TD07.3 atteinte le 28 août 2026.
+MON21.4 a été caractérisé après TD07.3, puis resuspendu jusqu'à la clôture complète de TD07.
 
 Sa persistance suivra alors le contrat prototype courant :
 
@@ -277,10 +277,23 @@ MON30 — Full Campaign
 TD07.3.3.7 — Normalize Spellbook
 ```
 
-MON21.4 est désormais la prochaine tranche fonctionnelle autoritaire.
+La prochaine tranche autoritaire est TD07.4 — ActivationComponent characterization. MON21.4 reste suspendu jusqu'à TD07.8.
 
 
 TD07.3.3.9 ouvre **v19 exact-match** : `LastAcknowledgedLevel` devient l'état durable minimal de notification Level-Up et les queues persistantes MON15.6 sont supprimées.
 
 
 TD07.3.3.10 ouvre **v20 exact-match** : `DerivedStats` devient transient et est reconstruit depuis l'autorité personnage durable après chargement.
+
+
+## Ordre de clôture TD07 avant reprise fonctionnelle
+
+```text
+TD07.4  ActivationComponent characterization                   ACTIF
+TD07.5  Suspended test infrastructure / branch recovery        À FAIRE
+TD07.6  Legacy asset/API cleanup audit                          ABSORBÉ PAR TD07.3
+TD07.7  Targeted log / formatting hygiene                      À FAIRE
+TD07.8  Future-proofing re-audit / stop condition              À FAIRE
+```
+
+MON21.4 ne reprend qu'après TD07.8.

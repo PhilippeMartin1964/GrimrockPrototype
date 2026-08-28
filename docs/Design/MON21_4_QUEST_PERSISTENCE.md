@@ -2,7 +2,7 @@
 
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
-Statut : CHARACTERIZATION PREPARED — À VALIDER
+Statut : CHARACTERIZATION VALIDÉE — SUSPENDU JUSQU'À CLÔTURE TD07
 
 ## 1. Reprise après TD07.3
 
@@ -111,3 +111,28 @@ MON21.4.5  Round-trip / invalid snapshot regressions / Shipping
 ```
 
 Aucun changement .uasset/.umap n'est requis pour MON21.4.1.
+
+
+## 7. Characterization validée puis suspension
+
+Validation locale du 28 août 2026 :
+
+```text
+Grimrock.Quests.MON21_4.Characterization
+Succeeded              : 4
+Failed                 : 0
+```
+
+La caractérisation est conservée comme baseline prête pour la reprise future.
+
+**Aucune implémentation MON21.4.2+ ne doit commencer avant la clôture complète de TD07.**
+
+La campagne technique reprend donc dans cet ordre :
+
+```text
+TD07.4  ActivationComponent characterization
+TD07.5  Suspended test infrastructure / branch recovery
+TD07.6  Legacy asset/API cleanup audit          ABSORBÉ PAR TD07.3
+TD07.7  Targeted log / formatting hygiene
+TD07.8  Future-proofing re-audit / stop condition
+```
