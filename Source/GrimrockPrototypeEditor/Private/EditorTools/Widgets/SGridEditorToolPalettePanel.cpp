@@ -21,6 +21,7 @@
 #include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "Widgets/Layout/SWrapBox.h"
 
@@ -143,25 +144,36 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolPalettePanel()
 
 TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolSection()
 {
-	TSharedRef<SWrapBox> ToolWrap = SNew(SWrapBox);
+	TSharedRef<SUniformGridPanel> ToolGrid = SNew(SUniformGridPanel)
+		.SlotPadding(FMargin(4.f));
 
-	const auto AddTool = [&ToolWrap, this](const FText& Label, EGridEditorTool Tool)
+	struct FToolEntry
 	{
-		ToolWrap->AddSlot()
-			.Padding(FMargin(2.f))
-			[
-				BuildToolTile(Label, GetToolGlyph(Tool), Tool)
-			];
+		FText Label;
+		EGridEditorTool Tool;
 	};
 
-	AddTool(FText::FromString(TEXT("Select")), EGridEditorTool::Select);
-	AddTool(FText::FromString(TEXT("Paint Cell")), EGridEditorTool::PaintCell);
-	AddTool(FText::FromString(TEXT("Paint Wall")), EGridEditorTool::PaintWall);
-	AddTool(FText::FromString(TEXT("Paint Object")), EGridEditorTool::PaintObject);
-	AddTool(FText::FromString(TEXT("Erase")), EGridEditorTool::Erase);
-	AddTool(FText::FromString(TEXT("Link")), EGridEditorTool::Link);
+	const TArray<FToolEntry> Tools =
+	{
+		{ FText::FromString(TEXT("Select")), EGridEditorTool::Select },
+		{ FText::FromString(TEXT("Paint Cell")), EGridEditorTool::PaintCell },
+		{ FText::FromString(TEXT("Paint Wall")), EGridEditorTool::PaintWall },
+		{ FText::FromString(TEXT("Paint Object")), EGridEditorTool::PaintObject },
+		{ FText::FromString(TEXT("Erase")), EGridEditorTool::Erase },
+		{ FText::FromString(TEXT("Link")), EGridEditorTool::Link }
+	};
 
-	return ToolWrap;
+	for (int32 Index = 0; Index < Tools.Num(); ++Index)
+	{
+		const int32 Column = Index % 3;
+		const int32 Row = Index / 3;
+		ToolGrid->AddSlot(Column, Row)
+		[
+			BuildToolTile(Tools[Index].Label, GetToolGlyph(Tools[Index].Tool), Tools[Index].Tool)
+		];
+	}
+
+	return ToolGrid;
 }
 
 UTexture2D* SGridEditorToolPalettePanel::GetToolIcon(EGridEditorTool Tool) const
@@ -329,32 +341,80 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 				.OnTextChanged(this, &SGridEditorToolPalettePanel::OnPaletteSearchTextChanged)
 		];
 
-	TSharedRef<SWrapBox> CategoryWrap = SNew(SWrapBox);
+	TSharedRef<SHorizontalBox> CategoryTabs = SNew(SHorizontalBox);
 
-	const auto AddCategoryButton = [this, &CategoryWrap, &State](FName Category, const FText& Label)
+	const auto AddCategoryTab = [this, &CategoryTabs, &State](FName Category, const FText& Label)
 	{
 		const bool bSelected = State.SelectedCategory == Category;
-		CategoryWrap->AddSlot()
-			.Padding(FMargin(0.f, 0.f, 5.f, 5.f))
+		const FSlateColor LabelColor = bSelected
+			? FSlateColor(FLinearColor(0.90f, 0.96f, 1.f, 1.f))
+			: FSlateColor(FLinearColor(0.72f, 0.72f, 0.72f, 1.f));
+
+		CategoryTabs->AddSlot()
+			.AutoWidth()
+			.VAlign(VAlign_Bottom)
 			[
-				SNew(SButton)
-					.Text(Label)
-					.ButtonColorAndOpacity(bSelected ? FLinearColor(0.10f, 0.45f, 0.55f, 1.f) : FLinearColor::White)
-					.OnClicked(FOnClicked::CreateSP(this, &SGridEditorToolPalettePanel::OnPaletteCategoryClicked, Category))
+				SNew(SBorder)
+					.Padding(0.f)
+					.BorderImage(FAppStyle::GetBrush(bSelected ? "ToolPanel.GroupBorder" : "ToolPanel.DarkGroupBorder"))
+					.BorderBackgroundColor(
+						bSelected
+							? FSlateColor(FLinearColor(0.10f, 0.30f, 0.38f, 1.f))
+							: FSlateColor(FLinearColor(0.035f, 0.035f, 0.035f, 1.f)))
+					[
+						SNew(SButton)
+							.ButtonStyle(FAppStyle::Get(), "NoBorder")
+							.ContentPadding(FMargin(12.f, 6.f, 12.f, 7.f))
+							.OnClicked(FOnClicked::CreateSP(this, &SGridEditorToolPalettePanel::OnPaletteCategoryClicked, Category))
+							[
+								SNew(SVerticalBox)
+
+								+ SVerticalBox::Slot()
+								.AutoHeight()
+								.HAlign(HAlign_Center)
+								[
+									SNew(STextBlock)
+										.Text(Label)
+										.Font(FCoreStyle::GetDefaultFontStyle(bSelected ? "Bold" : "Regular", 9))
+										.ColorAndOpacity(LabelColor)
+								]
+
+								+ SVerticalBox::Slot()
+								.AutoHeight()
+								.Padding(0.f, 4.f, 0.f, 0.f)
+								[
+									SNew(SBox)
+										.HeightOverride(2.f)
+										.Visibility(bSelected ? EVisibility::Visible : EVisibility::Hidden)
+										[
+											SNew(SBorder)
+												.Padding(0.f)
+												.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+												.BorderBackgroundColor(FSlateColor(FLinearColor(0.20f, 0.80f, 1.f, 1.f)))
+										]
+								]
+							]
+					]
 			];
 	};
 
-	AddCategoryButton(NAME_None, FText::FromString(TEXT("All")));
+	AddCategoryTab(NAME_None, FText::FromString(TEXT("All")));
 	for (const FName& Category : Categories)
 	{
-		AddCategoryButton(Category, GetPaletteCategoryDisplayText(Category));
+		AddCategoryTab(Category, GetPaletteCategoryDisplayText(Category));
 	}
 
 	Root->AddSlot()
 		.AutoHeight()
-		.Padding(0.f, 0.f, 0.f, 4.f)
+		.Padding(0.f, 0.f, 0.f, 6.f)
 		[
-			CategoryWrap
+			SNew(SScrollBox)
+				.Orientation(Orient_Horizontal)
+				.ScrollBarVisibility(EVisibility::Visible)
+				+ SScrollBox::Slot()
+				[
+					CategoryTabs
+				]
 		];
 
 	Root->AddSlot()

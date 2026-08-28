@@ -193,3 +193,35 @@ GEUI05 — Selected Object Workspace
 ~~~
 
 GEUI05 will consolidate the object inspector and connectors into the dedicated selected-object workspace, initially with a low-risk Properties / Links organization before deeper General / Placement / Behavior / Diagnostics subdivision.
+
+
+## GEUI04.1 — Post-validation UX correction
+
+Visual review showed that two GEUI04 presentation choices were not appropriate for the dedicated workspace.
+
+### Tools
+
+The tool selector no longer relies on a responsive `SWrapBox`.
+
+The six tools are now presented as a stable **3 columns x 2 rows** grid:
+
+~~~text
+Select        Paint Cell     Paint Wall
+Paint Object  Erase          Link
+~~~
+
+This prevents a narrow or ambiguously measured Slate parent from collapsing the authoring tools into one vertical column.
+
+### Palette categories
+
+Category filters are now presented as a horizontal **tab strip**, not as independent filter buttons.
+
+The tab row starts with:
+
+~~~text
+All
+~~~
+
+followed by the effective palette categories. The selected tab uses distinct background/text treatment and a visible underline. If the complete tab strip is wider than the docked window, it scrolls horizontally instead of wrapping into button rows.
+
+Search remains above the tabs. Object result tiles remain responsive below them.
