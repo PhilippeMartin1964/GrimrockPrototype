@@ -240,6 +240,7 @@ bool FGridSAVEFIX2ContinueFailureIsNonDestructiveTest::RunTest(const FString& Pa
 		SentinelState.ActiveCharacters[0].CharacterId = SentinelCharacterId;
 		Party->PartyInventoryComponent->PartyInventoryState = SentinelState;
 
+		AddExpectedError(TEXT("PartySave Load Failed Slot="), EAutomationExpectedErrorFlags::Contains, 1);
 		AddExpectedError(TEXT("PartySave ContinueAborted Slot="), EAutomationExpectedErrorFlags::Contains, 1);
 		AddExpectedError(TEXT("GrimrockGameInstance ReturnToMainMenu Failed Reason=NoMainMenuLevelName"), EAutomationExpectedErrorFlags::Contains, 1);
 

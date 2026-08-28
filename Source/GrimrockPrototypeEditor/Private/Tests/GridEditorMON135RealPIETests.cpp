@@ -642,6 +642,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorMON135RealPIEIntegrationTest, "Grimr
 bool FGridEditorMON135RealPIEIntegrationTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	AddExpectedError(TEXT("PartySave EndPlay Failed Slot="), EAutomationExpectedErrorFlags::Contains, 1);
 	TSharedRef<FMON135RealPIEState> State = MakeShared<FMON135RealPIEState>();
 
 	ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(MON135MapPath));

@@ -241,3 +241,34 @@ Grimrock.MON20
 0 Fail
 0 Error
 ```
+
+
+---
+
+## 9. Post-TD07 full-suite hygiene follow-up — 28 août 2026
+
+La campagne Automation complète post-TD07 a de nouveau observé le warning :
+
+```text
+Runtime object skipped: archetype CustomRecruiter_Service has no RuntimeActorClass.
+```
+
+Le contrat MON20.5.5 restant inchangé, le runtime distingue désormais explicitement les targets logiques data-only :
+
+```text
+Logic
+StoryCompanion
+CustomRecruiter
+```
+
+Pour ces types uniquement, l'absence de `RuntimeActorClass` ne produit plus le warning générique de runtime object incomplet.
+
+Le warning reste conservé pour les familles d'objets qui sont réellement attendues actor-backed.
+
+Le même audit a également :
+
+- reclassé le log de rollback Equipment -> World réussi de `Warning` vers `Log` ;
+- remis la fixture TD01 Receptacle dans `ObjectCategory=Receptacle` et la palette `Receptacles` ;
+- déclaré explicitement comme attendus les warnings produits par plusieurs scénarios Automation négatifs/synthétiques.
+
+Aucun contrat gameplay n'est modifié.

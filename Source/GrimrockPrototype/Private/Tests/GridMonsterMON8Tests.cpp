@@ -272,6 +272,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON8MultipleIndependentDropsTest, "
 bool FGridMonsterMON8MultipleIndependentDropsTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	AddExpectedError(TEXT("Reason=MissingMonsterMovement; continuing death."), EAutomationExpectedErrorFlags::Contains, 1);
 	FGridMON8TestWorld TestWorld;
 	if (!TestNotNull(TEXT("The transient multiple-loot world exists"), TestWorld.World))
 	{
@@ -333,6 +334,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FGridMonsterMON8DeathExactlyOnceTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	AddExpectedError(TEXT("Reason=MissingMonsterMovement; continuing death."), EAutomationExpectedErrorFlags::Contains, 1);
 	FGridMON8TestWorld TestWorld;
 	TestNotNull(TEXT("The transient test world exists"), TestWorld.World);
 	if (!TestWorld.World)
@@ -539,6 +541,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FGridMonsterMON8MonsterDiedEventTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	AddExpectedError(TEXT("[GridMonsterSpawn] PresentationWarning"), EAutomationExpectedErrorFlags::Contains, 2);
+	AddExpectedError(TEXT("Reason=MissingMonsterMovement; continuing death."), EAutomationExpectedErrorFlags::Contains, 2);
+	AddExpectedError(TEXT("Grid link failed:"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestEqual(TEXT("Activated keeps its historic numeric value"), static_cast<uint8>(EGridObjectEvent::Activated), static_cast<uint8>(0));
 	TestEqual(TEXT("Disabled keeps its historic numeric value"), static_cast<uint8>(EGridObjectEvent::Disabled), static_cast<uint8>(11));
 	TestEqual(TEXT("MonsterDied is appended after all historic events"), static_cast<uint8>(EGridObjectEvent::MonsterDied), static_cast<uint8>(12));

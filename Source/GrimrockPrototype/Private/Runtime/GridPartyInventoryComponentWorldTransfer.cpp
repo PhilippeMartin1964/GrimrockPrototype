@@ -97,7 +97,7 @@ bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(int32 Char
 	}
 	NotifyPartyInventoryChanged(CharacterIndex);
 
-	UE_LOG(LogTemp, Warning, TEXT("GridInventory EquipmentWorldTransfer Restored Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
+	UE_LOG(LogTemp, Log, TEXT("GridInventory EquipmentWorldTransfer Restored Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
 		GridPartyInventoryWorldTransferGetEquipmentSlotName(TargetSlot), *WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString());
 	return true;
 }

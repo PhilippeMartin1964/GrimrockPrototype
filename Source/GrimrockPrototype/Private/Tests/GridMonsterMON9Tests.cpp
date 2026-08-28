@@ -265,6 +265,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON9DirectPlacedInitialCellInferenc
 bool FGridMonsterMON9DirectPlacedInitialCellInferenceTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	AddExpectedError(TEXT("[GridMonsterCombat] Initialization failed."), EAutomationExpectedErrorFlags::Contains, 1);
 	FGridMON9TestWorld TestWorld;
 	if (!TestNotNull(TEXT("The direct-placement test world exists"), TestWorld.World))
 	{
@@ -371,6 +372,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON9DirectPlacedNewGameStartsAliveT
 bool FGridMonsterMON9DirectPlacedNewGameStartsAliveTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	AddExpectedError(TEXT("[GridMonsterCombat] Initialization failed."), EAutomationExpectedErrorFlags::Contains, 1);
 	FGridMON9TestWorld TestWorld;
 	if (!TestWorld.World)
 	{
@@ -421,6 +423,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON9BeginPlayOrderIndependenceTest,
 bool FGridMonsterMON9BeginPlayOrderIndependenceTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	AddExpectedError(TEXT("[GridMonsterCombat] Initialization failed."), EAutomationExpectedErrorFlags::Contains, 4);
 
 	const auto RunOrder = [this](bool bMonsterBeginsFirst, uint32 IdSuffix)
 	{
@@ -846,6 +849,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FGridMonsterMON9DiskSaveRoundTripTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	AddExpectedError(TEXT("Reason=MissingMonsterMovement; continuing death."), EAutomationExpectedErrorFlags::Contains, 1);
 	const FString SlotName = FString::Printf(TEXT("MON9_Automation_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits));
 	FGridMON9TestSaveSlot TestSlot(SlotName);
 

@@ -85,6 +85,8 @@ namespace GridTD011Tests
 		Fixture.Archetype = NewObject<UGridObjectArchetypeAsset>(Outer);
 		Fixture.Archetype->ArchetypeId = ReceptacleArchetypeId;
 		Fixture.Archetype->SupportedType = EGridLevelObjectType::Receptacle;
+		Fixture.Archetype->Category = TEXT("Receptacles");
+		Fixture.Archetype->ObjectCategory = EGridObjectCategory::Receptacle;
 		Fixture.Archetype->PlacementKind = EGridObjectPlacementKind::Wall;
 		Fixture.Archetype->bIsInteractable = true;
 		Fixture.Archetype->RuntimeActorClass = AGridReceptacleActor::StaticClass();

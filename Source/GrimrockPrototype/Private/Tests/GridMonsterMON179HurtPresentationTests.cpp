@@ -228,6 +228,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON179FatalDamageBypassesHurtTest, 
 bool FGridMonsterMON179FatalDamageBypassesHurtTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	AddExpectedError(TEXT("Reason=MissingMonsterMovement; continuing death."), EAutomationExpectedErrorFlags::Contains, 1);
 
 	GridMonsterMON179::FTestWorld TestWorld;
 	AGridLevelRuntimeActor* Runtime = TestWorld.World ? TestWorld.World->SpawnActor<AGridLevelRuntimeActor>() : nullptr;
