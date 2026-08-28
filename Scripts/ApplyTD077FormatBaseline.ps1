@@ -104,10 +104,13 @@ try
 
     $ExpectedFiles = @(
         $Before.Output -split "\r?\n" |
-            Where-Object { $_ -like "[FORMAT]*" } |
+            Where-Object { $_.StartsWith("[FORMAT] ") } |
             ForEach-Object { $_.Substring(9).Trim().Replace("\", "/") } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
             Sort-Object -Unique
     )
+
+    Write-Host "Parsed characterized format violations: $($ExpectedFiles.Count)"
 
     if ($ExpectedFiles.Count -ne $ExpectedBaselineViolationCount)
     {
