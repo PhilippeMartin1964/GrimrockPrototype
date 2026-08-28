@@ -30,6 +30,7 @@ try {
     $Branches = @(
         git for-each-ref --format="%(refname:short)" "refs/remotes/$Remote/" |
             Where-Object {
+                $_ -ne $Remote -and
                 $_ -ne "$Remote/HEAD" -and
                 $_ -ne $BaseRef
             } |

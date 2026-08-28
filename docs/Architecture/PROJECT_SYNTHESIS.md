@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07.5 branch/test recovery prepared — à valider ; MON21.4 suspendu.**
+> État : **28 août 2026, TD07.5 Receptacle recovery validé ; nettoyage définitif des branches historiques préparé ; MON21.4 suspendu.**
 
 ## 1. Référence
 

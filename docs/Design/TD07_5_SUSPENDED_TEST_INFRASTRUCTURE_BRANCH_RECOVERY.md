@@ -2,7 +2,7 @@
 
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
-Statut : CHARACTERIZATION + RECOVERY PREPARED — À VALIDER
+Statut : RECOVERY GATE VALIDÉ — REMOTE BRANCH CLEANUP PREPARED
 
 ## 1. Objectif
 
@@ -122,7 +122,7 @@ Il :
 
 ## 6. Stop condition TD07.5
 
-- [ ] Recovery.ReceptacleCommands vert ;
+- [x] Recovery.ReceptacleCommands vert ;
 - [ ] audit local des branches concorde avec l'audit GitHub ;
 - [ ] aucune branche divergente ne contient de travail fonctionnel à récupérer ;
 - [ ] branches historiques supprimées de origin ;
@@ -130,3 +130,38 @@ Il :
 - [ ] documentation mise à jour.
 
 Aucune fusion de branche n'est prévue.
+
+
+## 7. Recovery gate validé
+
+Validation locale du 28 août 2026 :
+
+~~~text
+Grimrock.TechnicalDebt.TD07_5.Recovery.ReceptacleCommands
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-113434
+~~~
+
+La valeur utile de l'ancienne branche Test-Receptacle est désormais récupérée sous forme d'Automation C++ actuelle.
+
+## 8. Nettoyage définitif préparé
+
+Script :
+
+~~~text
+Scripts/CleanupTD075RemoteBranches.ps1
+~~~
+
+Le script :
+
+- exige que la branche locale courante soit master ;
+- exécute git fetch --prune ;
+- compare les branches distantes à une liste blanche exacte de 17 branches auditées ;
+- refuse d'agir si une branche inattendue apparaît ou si la liste diffère ;
+- supprime les 17 branches historiques une par une via git push origin --delete ;
+- exécute ensuite un nouvel audit TD07.5.
+
+Le pseudo-ref remote HEAD raccourci en "origin" est explicitement exclu de l'audit et du cleanup.
