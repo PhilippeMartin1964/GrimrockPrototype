@@ -99,13 +99,13 @@ UGameplayStatics::PlaySoundAtLocation(...)
 
 La position est celle de la porte.
 
-Un son est demandé uniquement lorsque la porte commence effectivement un déplacement.
+Un son est demandé uniquement lorsque la porte commence effectivement un déplacement. Une commande inverse reçue dans la même frame, avant tout déplacement physique, ne joue donc pas de son dans le sens inverse.
 
 ~~~text
 porte fermée + Open       -> Open Sound
 porte ouverte + Close     -> Close Sound
 Open répété pendant Open  -> aucun nouveau son
-Close pendant Open        -> Close Sound
+Close pendant Open, après début du déplacement -> Close Sound
 SnapDoorOpenState         -> aucun son
 chargement / restauration -> aucun son
 ~~~

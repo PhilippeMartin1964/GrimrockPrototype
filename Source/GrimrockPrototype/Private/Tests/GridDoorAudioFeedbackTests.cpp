@@ -105,8 +105,14 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 	Door->OpenDoor();
 	TestEqual(TEXT("Repeated Open toward the active target does not replay audio"), Door->DoorOpenAudioPlaybackRequestCount, 1);
 
+	// Let the door physically leave its closed endpoint before asking for the
+	// reversal. An immediate Open -> Close in the same frame has no closing
+	// travel to perform, so correctly produces no closing sound.
+	Door->Tick(0.25f);
+	TestTrue(TEXT("The opening is still in progress after partial travel"), Door->IsAnimating());
+
 	Door->CloseDoor();
-	TestTrue(TEXT("Close reverses the active motion"), Door->IsAnimating());
+	TestTrue(TEXT("Close reverses the physically active motion"), Door->IsAnimating());
 	TestEqual(TEXT("A genuine reversal requests exactly one closing sound"), Door->DoorCloseAudioPlaybackRequestCount, 1);
 
 	Door->CloseDoor();

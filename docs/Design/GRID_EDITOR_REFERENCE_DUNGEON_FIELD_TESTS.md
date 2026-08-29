@@ -660,8 +660,9 @@ Open sur porte fermée                 -> son Open
 Close sur porte ouverte               -> son Close
 Open répété pendant une ouverture     -> aucun doublon
 Close répété pendant une fermeture    -> aucun doublon
-inversion Open -> Close               -> son Close
-inversion Close -> Open               -> son Open
+inversion Open -> Close après déplacement  -> son Close
+inversion Close -> Open après déplacement  -> son Open
+inversion immédiate avant tout déplacement  -> pas de son inverse
 SnapDoorOpenState / restauration      -> silence
 ~~~
 
