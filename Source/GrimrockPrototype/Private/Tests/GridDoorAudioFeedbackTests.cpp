@@ -160,4 +160,53 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridDoorMoveDurationContractTest,
+	"Grimrock.Runtime.Doors.MoveDurationContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridDoorMoveDurationContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	FGridDoorAudioTestWorld TestWorld;
+	if (!TestWorld.World)
+	{
+		return false;
+	}
+
+	AGridDoorActor* Door = TestWorld.World->SpawnActor<AGridDoorActor>();
+	TestNotNull(TEXT("The duration-contract door exists"), Door);
+	if (!Door)
+	{
+		return false;
+	}
+
+	FGridLevelObjectData Data;
+	Data.ObjectId = FGuid::NewGuid();
+	Data.Type = EGridLevelObjectType::Door;
+	Data.CellX = 2;
+	Data.CellY = 2;
+	Data.Edge = EGridEdge::East;
+	Data.Behavior.DoorAnimation.OpenHeight = 180.f;
+	Data.Behavior.DoorAnimation.MoveDuration = 5.0f;
+
+	Door->InitializeDoor(Data, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	Door->bNativeDoorAudioPlaybackEnabled = false;
+
+	TestTrue(TEXT("Runtime actor copies the placed instance MoveDuration=5.0"), FMath::IsNearlyEqual(Door->MoveDuration, 5.0f));
+
+	Door->OpenDoor();
+	TestTrue(TEXT("Full opening starts"), Door->IsAnimating());
+
+	Door->Tick(4.9f);
+	TestTrue(TEXT("A 5-second door is still moving at 4.9 seconds"), Door->IsAnimating());
+
+	Door->Tick(0.11f);
+	TestFalse(TEXT("A 5-second door is complete after crossing 5.0 seconds"), Door->IsAnimating());
+	TestTrue(TEXT("The door is fully open after the five-second travel"), Door->IsFullyOpen());
+
+	return true;
+}
+
 #endif

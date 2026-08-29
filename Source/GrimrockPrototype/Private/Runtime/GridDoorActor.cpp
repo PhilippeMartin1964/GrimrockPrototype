@@ -215,6 +215,12 @@ void AGridDoorActor::SetDoorOpenState(bool bOpen)
 
 	bIsAnimating = true;
 	PlayDoorMotionSound(bOpen);
+
+	UE_LOG(LogTemp, Log,
+		TEXT("Grid door motion start: ObjectId=%s Cell=(%d,%d) Edge=%d Direction=%s InstanceMoveDuration=%.3f TravelRatio=%.3f EffectiveMoveDuration=%.3f AudioExpectedDuration=%.3f PitchVariation=%.3f"),
+		*ObjectId.ToString(), CellX, CellY, static_cast<int32>(Edge), bOpen ? TEXT("Open") : TEXT("Close"), MoveDuration, TravelRatio,
+		CurrentMoveDuration, ActiveDoorAudioExpectedDuration, DoorAudioPitchVariation);
+
 	RefreshTickEnabled();
 }
 
@@ -329,6 +335,10 @@ void AGridDoorActor::CompleteDoorMotionSound(float CompletedMoveDuration)
 
 	if (bCanFinishNaturally)
 	{
+		UE_LOG(LogTemp, Log,
+			TEXT("Grid door audio completion: ObjectId=%s Mode=Natural CompletedMoveDuration=%.3f AudioExpectedDuration=%.3f Tolerance=%.3f"),
+			*ObjectId.ToString(), CompletedMoveDuration, ActiveDoorAudioExpectedDuration, NaturalCompletionToleranceSeconds);
+
 		bDoorMotionAudioActive = false;
 		bDoorMotionAudioOpening = false;
 		++DoorAudioNaturalCompletionCount;
@@ -337,6 +347,10 @@ void AGridDoorActor::CompleteDoorMotionSound(float CompletedMoveDuration)
 
 	// Partial/reversed travel can be much shorter than the authored sample.
 	// Trim that excess with a tiny fade instead of an abrupt Stop.
+	UE_LOG(LogTemp, Warning,
+		TEXT("Grid door audio completion: ObjectId=%s Mode=EndpointTrim CompletedMoveDuration=%.3f AudioExpectedDuration=%.3f Tolerance=%.3f"),
+		*ObjectId.ToString(), CompletedMoveDuration, ActiveDoorAudioExpectedDuration, NaturalCompletionToleranceSeconds);
+
 	if (IsValid(ActiveDoorAudioComponent))
 	{
 		ActiveDoorAudioComponent->FadeOut(0.08f, 0.f);

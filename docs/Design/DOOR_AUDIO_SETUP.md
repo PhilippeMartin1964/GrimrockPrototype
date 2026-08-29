@@ -169,3 +169,52 @@ Puis vérifier en PIE :
 3. commande répétée dans le même sens : pas de doublon ;
 4. inversion en cours de mouvement : nouveau son correspondant ;
 5. restauration d'état : silence.
+
+
+## Autorité de Move Duration
+
+Pour une porte déjà placée, la durée runtime ne vient pas directement du DataAsset d'archetype.
+
+Le contrat officiel est :
+
+~~~text
+Archetype.DefaultBehavior.DoorAnimation.MoveDuration
+    -> valeur copiée lors du placement
+
+FGridLevelObjectData.Behavior.DoorAnimation.MoveDuration
+    -> source de vérité de l'instance placée
+    -> valeur lue par AGridDoorActor
+~~~
+
+Ainsi, modifier `DA_Door_Wood > DefaultBehavior > DoorAnimation > MoveDuration` après avoir placé une porte ne modifie pas cette instance existante.
+
+Dans **Selected Object > Door**, le champ est désormais nommé :
+
+~~~text
+Instance Move Duration (runtime)
+~~~
+
+La valeur par défaut de l'archetype est affichée séparément. En cas d'écart, **Use Archetype Duration** copie uniquement cette durée dans l'instance sans écraser les autres paramètres de comportement.
+
+Pour une course complète :
+
+~~~text
+CurrentMoveDuration = Instance Move Duration * 1.0
+~~~
+
+Pour une inversion ou un trajet partiel :
+
+~~~text
+CurrentMoveDuration = Instance Move Duration * TravelRatio
+~~~
+
+Diagnostic runtime :
+
+~~~text
+Grid door motion start:
+InstanceMoveDuration=...
+TravelRatio=...
+EffectiveMoveDuration=...
+AudioExpectedDuration=...
+PitchVariation=...
+~~~

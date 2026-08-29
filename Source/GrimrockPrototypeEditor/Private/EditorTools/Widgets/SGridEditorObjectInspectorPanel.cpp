@@ -608,13 +608,47 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection(con
 			ApplyBehavior(NewBehavior);
 		})];
 
-	Root->AddSlot().AutoHeight()[BuildBehaviorFloatSpinBoxRow(FText::FromString(TEXT("Move Duration")), Obj.Behavior.DoorAnimation.MoveDuration,
+	Root->AddSlot().AutoHeight()[BuildBehaviorFloatSpinBoxRow(FText::FromString(TEXT("Instance Move Duration (runtime)")), Obj.Behavior.DoorAnimation.MoveDuration,
 		[Obj, ApplyBehavior](float NewValue)
 		{
 			FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
 			NewBehavior.DoorAnimation.MoveDuration = NewValue;
 			ApplyBehavior(NewBehavior);
 		})];
+
+	if (Archetype)
+	{
+		const float ArchetypeMoveDuration = Archetype->DefaultBehavior.DoorAnimation.MoveDuration;
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			FText::FromString(TEXT("Archetype Default Move Duration")), FText::AsNumber(ArchetypeMoveDuration))];
+
+		if (!FMath::IsNearlyEqual(Obj.Behavior.DoorAnimation.MoveDuration, ArchetypeMoveDuration))
+		{
+			Root->AddSlot().AutoHeight().Padding(0.f, 2.f, 0.f, 2.f)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+						.Text(FText::FromString(TEXT("Runtime uses the instance value above. Changing the archetype default does not update an already placed door.")))
+						.AutoWrapText(true)
+						.ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.55f, 0.18f, 1.f)))
+				]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(8.f, 0.f, 0.f, 0.f)
+				[
+					SNew(SButton)
+						.Text(FText::FromString(TEXT("Use Archetype Duration")))
+						.OnClicked_Lambda([Obj, ArchetypeMoveDuration, ApplyBehavior]()
+						{
+							FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+							NewBehavior.DoorAnimation.MoveDuration = ArchetypeMoveDuration;
+							ApplyBehavior(NewBehavior);
+							return FReply::Handled();
+						})
+				]
+			];
+		}
+	}
 
 	TSharedRef<SVerticalBox> ChainRoot = SNew (SVerticalBox)
 

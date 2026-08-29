@@ -824,3 +824,72 @@ Le sample peut contenir une courte queue mécanique naturelle : une tolérance d
 ### Test
 
 `Grimrock.Runtime.Doors.AudioFeedback` vérifie maintenant qu'une fin normale libère l'autorité audio sans ajouter un arrêt forcé.
+
+---
+
+## Incident 010 — Confusion entre Move Duration d'archetype et durée d'instance
+
+### Vérification
+
+Le runtime prend bien `MoveDuration` en compte.
+
+`AGridDoorActor` charge :
+
+~~~cpp
+MoveDuration = ObjectData.Behavior.DoorAnimation.MoveDuration;
+~~~
+
+Puis, à chaque mouvement :
+
+~~~cpp
+CurrentMoveDuration = MoveDuration * TravelRatio;
+~~~
+
+Une course complète possède `TravelRatio = 1.0`.
+
+Le test `Grimrock.Runtime.Doors.MoveDurationContract` impose une instance à 5.0 s et vérifie qu'elle est encore en mouvement à 4.9 s puis terminée après 5.0 s.
+
+### Cause UX possible
+
+Le projet suit volontairement le contrat :
+
+~~~text
+archetype = template au placement
+objet placé = copie locale autonome
+runtime = copie locale
+~~~
+
+Modifier `DefaultBehavior.DoorAnimation.MoveDuration` dans un archetype ne met donc pas à jour les portes déjà placées.
+
+### Amélioration Selected Object
+
+La section Door distingue maintenant :
+
+~~~text
+Instance Move Duration (runtime)
+Archetype Default Move Duration
+~~~
+
+Si les deux valeurs diffèrent, un avertissement apparaît avec **Use Archetype Duration**.
+
+### Diagnostic runtime
+
+Le début de chaque mouvement journalise :
+
+~~~text
+InstanceMoveDuration
+TravelRatio
+EffectiveMoveDuration
+AudioExpectedDuration
+PitchVariation
+~~~
+
+La fin audio indique également `Natural` ou `EndpointTrim` et les durées comparées.
+
+### Validation
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Runtime.Doors.MoveDurationContract"
+~~~
