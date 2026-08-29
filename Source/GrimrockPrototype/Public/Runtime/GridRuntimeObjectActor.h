@@ -3,9 +3,23 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Core/GridTypes.h"
+#include "Core/GridObjectAudio.h"
 #include "GridRuntimeObjectActor.generated.h"
 
+class UAudioComponent;
+class UGridObjectArchetypeAsset;
+class USoundAttenuation;
+class USoundBase;
 class UStaticMeshComponent;
+
+struct GRIMROCKPROTOTYPE_API FGridObjectAudioPlaybackResult
+{
+	bool bRequested = false;
+	USoundBase* Sound = nullptr;
+	UAudioComponent* AudioComponent = nullptr;
+	float Pitch = 1.0f;
+	float ExpectedDuration = 0.0f;
+};
 
 UCLASS()
 class GRIMROCKPROTOTYPE_API AGridRuntimeObjectActor : public AActor
@@ -37,6 +51,13 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Grid")
 	EGridEdge Edge = EGridEdge::None;
 
+	/** Runtime snapshot of the archetype's generic audio events. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Audio")
+	TMap<FName, FGridObjectAudioEvent> ObjectAudioEvents;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Audio")
+	TObjectPtr<USoundAttenuation> DefaultObjectAudioAttenuation = nullptr;
+
 public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	virtual void InitializeGridObjectBase(
@@ -54,4 +75,23 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	bool MatchesEdge(int32 InCellX, int32 InCellY, EGridEdge InEdge) const;
+
+	/** Copies generic audio configuration from any object archetype. */
+	void ConfigureObjectAudio(const UGridObjectArchetypeAsset* Archetype);
+
+	UFUNCTION(BlueprintPure, Category = "Audio")
+	bool HasObjectAudioEvent(FName EventName) const;
+
+	/** Blueprint-friendly fire-and-forget playback using the generic event contract. */
+	UFUNCTION(BlueprintCallable, Category = "Audio")
+	UAudioComponent* PlayObjectAudioEvent(FName EventName);
+
+	/**
+	 * C++ detailed playback API. Specialized actors such as doors may keep the
+	 * returned component and control interruption/tails without owning audio data.
+	 */
+	FGridObjectAudioPlaybackResult PlayObjectAudioEventDetailed(FName EventName, bool bEnableNativePlayback = true);
+
+private:
+	TMap<FName, int32> ObjectAudioEventOccurrences;
 };

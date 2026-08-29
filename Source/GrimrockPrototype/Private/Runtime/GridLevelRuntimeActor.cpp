@@ -1860,10 +1860,6 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor(const FGridLevelObjectData& O
 	{
 		ReceptacleActor->ContainedItemActorClass = Archetype ? Archetype->ItemActorClass : nullptr;
 	}
-	if (AGridDoorActor* DoorActor = Cast<AGridDoorActor>(Actor))
-	{
-		DoorActor->ConfigureDoorAudio(Archetype);
-	}
 	if (AGridMechanismActor* MechanismActor = Cast<AGridMechanismActor>(Actor))
 	{
 		MechanismActor->InitializeMechanismVisuals(RuntimeObjectData, Archetype, Transform);
@@ -1877,6 +1873,11 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor(const FGridLevelObjectData& O
 	{
 		Actor->InitializeGridObject(RuntimeObjectData, Mesh, Material, Transform);
 	}
+
+	// Generic object-audio contract: every runtime grid object receives the
+	// archetype event map, regardless of gameplay type.
+	Actor->ConfigureObjectAudio(Archetype);
+
 	if (ActivationComponent)
 	{
 		ActivationComponent->RegisterInitialObjectState(RuntimeObjectData);

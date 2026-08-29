@@ -251,6 +251,73 @@ namespace
 	}
 }
 
+void UGridObjectArchetypeAsset::PostLoad()
+{
+	Super::PostLoad();
+
+	if (SupportedType != EGridLevelObjectType::Door)
+	{
+		return;
+	}
+
+	auto MigrateLegacyEvent = [this](FName EventName, const TArray<TObjectPtr<USoundBase>>& LegacySounds)
+	{
+		if (AudioEvents.Contains(EventName) || LegacySounds.IsEmpty())
+		{
+			return;
+		}
+
+		FGridObjectAudioEvent Event;
+		Event.Sounds = LegacySounds;
+		Event.Volume = DoorAudioVolume;
+		Event.PitchVariation = DoorAudioPitchVariation;
+		Event.AttenuationOverride = DoorAudioAttenuation;
+		AudioEvents.Add(EventName, MoveTemp(Event));
+	};
+
+	MigrateLegacyEvent(TEXT("Open"), DoorOpenSounds);
+	MigrateLegacyEvent(TEXT("Close"), DoorCloseSounds);
+}
+
+bool UGridObjectArchetypeAsset::ResolveAudioEvent(FName EventName, FGridObjectAudioEvent& OutEvent) const
+{
+	if (const FGridObjectAudioEvent* Event = AudioEvents.Find(EventName))
+	{
+		OutEvent = *Event;
+		if (!OutEvent.AttenuationOverride)
+		{
+			OutEvent.AttenuationOverride = DefaultAudioAttenuation;
+		}
+		return true;
+	}
+
+	// Compatibility for already-saved door archetypes that still carry the
+	// pre-generic serialized fields and have not yet been resaved after migration.
+	if (SupportedType == EGridLevelObjectType::Door)
+	{
+		const TArray<TObjectPtr<USoundBase>>* LegacySounds = nullptr;
+		if (EventName == FName(TEXT("Open")))
+		{
+			LegacySounds = &DoorOpenSounds;
+		}
+		else if (EventName == FName(TEXT("Close")))
+		{
+			LegacySounds = &DoorCloseSounds;
+		}
+
+		if (LegacySounds && !LegacySounds->IsEmpty())
+		{
+			OutEvent.Sounds = *LegacySounds;
+			OutEvent.Volume = DoorAudioVolume;
+			OutEvent.PitchVariation = DoorAudioPitchVariation;
+			OutEvent.AttenuationOverride = DoorAudioAttenuation ? DoorAudioAttenuation : DefaultAudioAttenuation;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidationMessage>& OutMessages) const
 {
 	OutMessages.Reset();
@@ -294,16 +361,21 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("RuntimeActorClass is required for this SupportedType."));
 	}
 
-	if (SupportedType == EGridLevelObjectType::Door)
+	for (const TPair<FName, FGridObjectAudioEvent>& Pair : AudioEvents)
 	{
-		if (!FMath::IsFinite(DoorAudioVolume) || DoorAudioVolume < 0.f)
+		if (Pair.Key.IsNone())
 		{
-			AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Door audio Volume must be finite and >= 0."));
+			AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Audio event key must not be None."));
 		}
-		if (!FMath::IsFinite(DoorAudioPitchVariation) || DoorAudioPitchVariation < 0.f || DoorAudioPitchVariation > 0.25f)
+		if (!FMath::IsFinite(Pair.Value.Volume) || Pair.Value.Volume < 0.f)
 		{
-			AddValidationMessage(
-				OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Door audio Pitch Variation must be finite and between 0.0 and 0.25."));
+			AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+				FString::Printf(TEXT("Audio event %s Volume must be finite and >= 0."), *Pair.Key.ToString()));
+		}
+		if (!FMath::IsFinite(Pair.Value.PitchVariation) || Pair.Value.PitchVariation < 0.f || Pair.Value.PitchVariation > 0.25f)
+		{
+			AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+				FString::Printf(TEXT("Audio event %s PitchVariation must be finite and between 0.0 and 0.25."), *Pair.Key.ToString()));
 		}
 	}
 

@@ -68,11 +68,18 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
 	Archetype->ArchetypeId = TEXT("Door_Audio_Test");
 	Archetype->SupportedType = EGridLevelObjectType::Door;
-	Archetype->DoorAudioVolume = 0.8f;
-	Archetype->DoorAudioPitchVariation = 0.0f;
-	Archetype->DoorOpenSounds.Add(NewObject<USoundWave>(Archetype));
-	Archetype->DoorOpenSounds.Add(NewObject<USoundWave>(Archetype));
-	Archetype->DoorCloseSounds.Add(NewObject<USoundWave>(Archetype));
+	FGridObjectAudioEvent OpenEvent;
+	OpenEvent.Volume = 0.8f;
+	OpenEvent.PitchVariation = 0.0f;
+	OpenEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
+	OpenEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
+	Archetype->AudioEvents.Add(TEXT("Open"), OpenEvent);
+
+	FGridObjectAudioEvent CloseEvent;
+	CloseEvent.Volume = 0.8f;
+	CloseEvent.PitchVariation = 0.0f;
+	CloseEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
+	Archetype->AudioEvents.Add(TEXT("Close"), CloseEvent);
 
 	AGridDoorActor* Door = TestWorld.World->SpawnActor<AGridDoorActor>();
 	TestNotNull(TEXT("The door Actor exists"), Door);
@@ -91,7 +98,7 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 	Data.Behavior.DoorAnimation.MoveDuration = 1.f;
 
 	Door->InitializeDoor(Data, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
-	Door->ConfigureDoorAudio(Archetype);
+	Door->ConfigureObjectAudio(Archetype);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
 
 	TestEqual(TEXT("No opening request exists after initialization"), Door->DoorOpenAudioPlaybackRequestCount, 0);
@@ -226,9 +233,13 @@ bool FGridDoorNaturalTailContractTest::RunTest(const FString& Parameters)
 	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
 	Archetype->ArchetypeId = TEXT("Door_NaturalTail_Test");
 	Archetype->SupportedType = EGridLevelObjectType::Door;
-	Archetype->DoorOpenSounds.Add(NewObject<USoundWave>(Archetype));
-	Archetype->DoorCloseSounds.Add(NewObject<USoundWave>(Archetype));
-	Archetype->DoorAudioPitchVariation = 0.0f;
+	FGridObjectAudioEvent OpenEvent;
+	OpenEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
+	Archetype->AudioEvents.Add(TEXT("Open"), OpenEvent);
+
+	FGridObjectAudioEvent CloseEvent;
+	CloseEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
+	Archetype->AudioEvents.Add(TEXT("Close"), CloseEvent);
 
 	AGridDoorActor* Door = TestWorld.World->SpawnActor<AGridDoorActor>();
 	TestNotNull(TEXT("Natural-tail door exists"), Door);
@@ -247,7 +258,7 @@ bool FGridDoorNaturalTailContractTest::RunTest(const FString& Parameters)
 	Data.Behavior.DoorAnimation.MoveDuration = 1.0f;
 
 	Door->InitializeDoor(Data, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
-	Door->ConfigureDoorAudio(Archetype);
+	Door->ConfigureObjectAudio(Archetype);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
 
 	Door->OpenDoor();

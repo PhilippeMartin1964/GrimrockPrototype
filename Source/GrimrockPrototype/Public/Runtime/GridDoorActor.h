@@ -8,9 +8,6 @@
 
 class UAudioComponent;
 class UBoxComponent;
-class UGridObjectArchetypeAsset;
-class USoundBase;
-class USoundAttenuation;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnGridDoorAnimationFinished, int32, CellX, int32, CellY, EGridEdge, Edge);
 
@@ -34,22 +31,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Door")
 	bool bIsOpen = false;
-
-	/** Runtime copy of the selected door archetype's audio presentation. */
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
-	TArray<TObjectPtr<USoundBase>> DoorOpenSounds;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
-	TArray<TObjectPtr<USoundBase>> DoorCloseSounds;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
-	float DoorAudioVolume = 1.0f;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
-	float DoorAudioPitchVariation = 0.0f;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
-	TObjectPtr<USoundAttenuation> DoorAudioAttenuation = nullptr;
 
 	/** Test/debug switch; presentation only. Gameplay state is independent of native audio playback. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door|Audio", AdvancedDisplay)
@@ -75,6 +56,9 @@ public:
 	/** Effective selected-sample duration after pitch, used only to decide natural completion vs endpoint trim. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	float ActiveDoorAudioExpectedDuration = 0.0f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
+	float ActiveDoorAudioPitch = 1.0f;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	int32 DoorAudioNaturalCompletionCount = 0;
@@ -107,9 +91,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Door")
 	void InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, UMaterialInterface* InMovingMaterial, UStaticMesh* InFixedMesh,
 		UMaterialInterface* InFixedMaterial, const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen);
-
-	/** Copies data-driven door audio from the object archetype. Safe with nullptr: audio becomes silent. */
-	void ConfigureDoorAudio(const UGridObjectArchetypeAsset* Archetype);
 
 	UFUNCTION(BlueprintCallable, Category = "Door")
 	virtual void SetDoorOpenState(bool bOpen);
@@ -169,7 +150,6 @@ protected:
 	bool PlayDoorMotionSound(bool bOpening);
 	bool StopDoorMotionSound();
 	void CompleteDoorMotionSound(float CompletedMoveDuration);
-	float SelectDoorAudioPitch(int32 OccurrenceNumber) const;
 
 	FVector MovingClosedRelativeLocation = FVector::ZeroVector;
 	FVector MovingOpenRelativeLocation = FVector::ZeroVector;
@@ -179,9 +159,6 @@ protected:
 	bool bIsAnimating = false;
 	float MoveElapsed = 0.f;
 	float CurrentMoveDuration = 0.f;
-	int32 DoorOpenAudioOccurrence = 0;
-	int32 DoorCloseAudioOccurrence = 0;
-
 private:
 	FVector ChainRestRelativeLocation = FVector::ZeroVector;
 	FVector ChainPulledRelativeLocation = FVector::ZeroVector;

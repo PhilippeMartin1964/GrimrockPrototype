@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GridTypes.h"
+#include "GridObjectAudio.h"
 #include "GridObjectBehavior.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
@@ -74,32 +75,39 @@ public:
 		meta = (ToolTip = "Default behavior copied to placed object instances. Currently contains teleporter, receptacle and button parameters."))
 	FGridObjectBehaviorParams DefaultBehavior;
 
-	/** Spatial one-shots played when a door archetype begins a real opening movement. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Door",
-		meta = (DisplayName = "Open Sounds", EditCondition = "SupportedType == EGridLevelObjectType::Door", EditConditionHides))
-	TArray<TObjectPtr<USoundBase>> DoorOpenSounds;
-
-	/** Spatial one-shots played when a door archetype begins a real closing movement. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Door",
-		meta = (DisplayName = "Close Sounds", EditCondition = "SupportedType == EGridLevelObjectType::Door", EditConditionHides))
-	TArray<TObjectPtr<USoundBase>> DoorCloseSounds;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Door",
-		meta = (DisplayName = "Volume", ClampMin = "0.0", EditCondition = "SupportedType == EGridLevelObjectType::Door", EditConditionHides))
-	float DoorAudioVolume = 1.0f;
+	/**
+	 * Default 3D attenuation shared by this archetype's audio events.
+	 * Individual events may override it.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundAttenuation> DefaultAudioAttenuation = nullptr;
 
 	/**
-	 * Symmetric deterministic pitch variation around 1.0.
-	 * Defaults to zero because pitch also changes playback duration and can desynchronize mechanical motion audio.
+	 * Semantic audio events available to any grid object.
+	 * Typical keys: Open, Close, Press, Release, Activate, Deactivate, Insert,
+	 * Remove, Reject, Trigger, Reset, Teleport, Interact. Custom FName keys are allowed.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Door",
-		meta = (DisplayName = "Pitch Variation", ClampMin = "0.0", ClampMax = "0.25",
-			EditCondition = "SupportedType == EGridLevelObjectType::Door", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio",
+		meta = (DisplayName = "Audio Events",
+			ToolTip = "Data-driven audio events for this archetype. Keys are semantic names such as Open, Close, Press, Release or custom names."))
+	TMap<FName, FGridObjectAudioEvent> AudioEvents;
+
+	// Serialized compatibility fields for door DataAssets authored before the
+	// generic object-audio contract. Hidden from authoring; PostLoad/ResolveAudioEvent
+	// migrate them to generic Open/Close events without losing existing assignments.
+	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use AudioEvents[Open].Sounds."))
+	TArray<TObjectPtr<USoundBase>> DoorOpenSounds;
+
+	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use AudioEvents[Close].Sounds."))
+	TArray<TObjectPtr<USoundBase>> DoorCloseSounds;
+
+	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use AudioEvents event Volume."))
+	float DoorAudioVolume = 1.0f;
+
+	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use AudioEvents event PitchVariation."))
 	float DoorAudioPitchVariation = 0.0f;
 
-	/** Optional 3D attenuation override. Null keeps the attenuation configured on the sound asset itself. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Door",
-		meta = (DisplayName = "Attenuation", EditCondition = "SupportedType == EGridLevelObjectType::Door", EditConditionHides))
+	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use DefaultAudioAttenuation or event AttenuationOverride."))
 	TObjectPtr<USoundAttenuation> DoorAudioAttenuation = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",
@@ -265,6 +273,11 @@ public:
 	{
 		return bIsLightSource;
 	}
+
+	virtual void PostLoad() override;
+
+	/** Resolves a generic event, including transparent legacy Door Open/Close compatibility. */
+	bool ResolveAudioEvent(FName EventName, FGridObjectAudioEvent& OutEvent) const;
 
 	bool ValidateArchetype(TArray<FGridArchetypeValidationMessage>& OutMessages) const;
 	bool IsValidArchetype() const;

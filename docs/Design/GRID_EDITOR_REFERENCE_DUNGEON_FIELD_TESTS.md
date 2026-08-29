@@ -951,3 +951,87 @@ Il vérifie qu'une arrivée normale à la butée ne génère aucun `StopDoorMoti
     -EngineRoot D:\UE_5.5 `
     -AutomationFilter "Grimrock.Runtime.Doors.NaturalAudioTail"
 ~~~
+
+---
+
+## Incident 012 — Audio d'archetype trop spécialisé Door
+
+### Observation
+
+L'ajout initial du feedback de porte avait placé directement dans `UGridObjectArchetypeAsset` :
+
+~~~text
+DoorOpenSounds
+DoorCloseSounds
+DoorAudioVolume
+DoorAudioPitchVariation
+DoorAudioAttenuation
+~~~
+
+Cette forme fonctionnait pour les portes mais ne respectait pas l'architecture générale du projet : boutons, leviers, plaques, réceptacles, téléporteurs, pièges et objets personnalisés ont eux aussi besoin d'audio.
+
+### Correction architecturale
+
+L'audio devient une capacité générique :
+
+~~~text
+UGridObjectArchetypeAsset
+└── Audio
+    ├── DefaultAudioAttenuation
+    └── AudioEvents : TMap<FName, FGridObjectAudioEvent>
+~~~
+
+Chaque événement contient :
+
+~~~text
+Sounds[]
+Volume
+PitchVariation
+AttenuationOverride
+~~~
+
+Les noms sont ouverts (`FName`) et non un enum fermé.
+
+### Runtime commun
+
+`AGridRuntimeObjectActor` fournit maintenant :
+
+~~~cpp
+ConfigureObjectAudio(...)
+HasObjectAudioEvent(...)
+PlayObjectAudioEvent(...)
+PlayObjectAudioEventDetailed(...)
+~~~
+
+`AGridLevelRuntimeActor` configure ce contrat pour **tous** les Grid Runtime Objects, plus uniquement les Doors.
+
+### Porte
+
+`AGridDoorActor` ne possède plus de copies `DoorOpenSounds`, `DoorCloseSounds`, volume, pitch ou atténuation.
+
+Il consomme :
+
+~~~text
+AudioEvents["Open"]
+AudioEvents["Close"]
+~~~
+
+et garde uniquement sa politique temporelle spéciale : interruption lors d'une inversion et queue naturelle lors d'une fin normale.
+
+### Migration
+
+Les anciens champs Door restent cachés uniquement pour désérialiser les DataAssets déjà sauvegardés.
+
+`PostLoad()` les convertit en mémoire en événements génériques et `ResolveAudioEvent()` fournit un fallback transparent.
+
+Aucune affectation sonore existante ne doit donc être perdue.
+
+### Test
+
+~~~text
+Grimrock.Runtime.Objects.GenericAudioContract
+~~~
+
+Le test utilise un archetype Button avec `Press`, puis vérifie séparément la compatibilité d'un ancien Door archetype.
+
+Documentation : `docs/Design/GRID_OBJECT_AUDIO_SYSTEM.md`.
