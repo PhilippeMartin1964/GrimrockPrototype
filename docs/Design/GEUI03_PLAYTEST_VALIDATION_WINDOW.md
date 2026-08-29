@@ -1,60 +1,60 @@
-# GEUI03 — PlayTest & Validation Window
+# GEUI03 — Fenêtre PlayTest & Validation
 
-**Date:** 28 August 2026  
-**Status:** implemented on master — UE5.5.4 build and visual validation pending
+**Date :** 28 août 2026  
+**Statut :** implémenté sur master — compilation UE5.5.4 et validation visuelle en attente
 
-## 1. Objective
+## 1. Objectif
 
-GEUI03 completes the second dockable authoring workspace by merging the existing PlayTest controls with the existing Validation panel.
+GEUI03 complète le deuxième espace de travail dockable d’authoring en fusionnant les contrôles PlayTest existants avec le panneau Validation existant.
 
-The milestone remains presentation-only:
+Le jalon reste uniquement de présentation :
 
-- no PIE preparation rule is changed;
-- no validation rule is changed;
-- no Lua/Event -> Command validation path is duplicated;
-- no runtime class or asset is modified.
+- aucune règle de préparation PIE n’est modifiée ;
+- aucune règle de validation n’est modifiée ;
+- aucun chemin de validation Lua/Event -> Command n’est dupliqué ;
+- aucune classe runtime ni aucun asset n’est modifié.
 
-## 2. Shared PlayTest widget
+## 2. Widget PlayTest partagé
 
-The PlayTest controls previously lived directly in:
+Les contrôles PlayTest vivaient auparavant directement dans :
 
 ~~~text
 FGridLevelEdModeToolkit::BuildPlaytestPanel
 ~~~
 
-GEUI03 extracts them into:
+GEUI03 les extrait vers :
 
 ~~~text
 SGridEditorPlaytestPanel
 ~~~
 
-Files:
+Fichiers :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/Widgets/SGridEditorPlaytestPanel.h
 Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorPlaytestPanel.cpp
 ~~~
 
-The legacy inline Toolkit and the dockable workspace both instantiate this same widget.
+Le Toolkit inline historique et l’espace de travail dockable instancient tous deux ce même widget.
 
-There is therefore one Slate implementation for PlayTest behavior.
+Il existe donc une seule implémentation Slate du comportement PlayTest.
 
-## 3. Preserved PlayTest controls
+## 3. Contrôles PlayTest conservés
 
-The extracted panel preserves:
+Le panneau extrait conserve :
 
-- Auto Prepare PIE;
-- Abort PIE On Error;
-- Current LevelAsset;
-- Start Cell / Facing / Valid status;
-- invalid-start warning;
-- Set Start From Selection;
-- Log PIE Readiness;
+- Auto Prepare PIE ;
+- Abort PIE On Error ;
+- Current LevelAsset ;
+- statut Start Cell / Facing / Valid ;
+- avertissement de départ invalide ;
+- Set Start From Selection ;
+- Log PIE Readiness ;
 - Debug Prepare PIE.
 
-The action buttons are displayed as a vertically spaced stack to remain readable in a narrow docked pane.
+Les boutons d’action sont affichés sous forme de pile verticale espacée afin de rester lisibles dans un panneau docké étroit.
 
-Existing calls remain authoritative:
+Les appels existants restent ceux faisant autorité :
 
 ~~~text
 AGridLevelEditorActor::SetStartFromSelection
@@ -62,9 +62,9 @@ AGridLevelEditorActor::PreparePIETestFromStart
 AGridLevelRuntimeActor::LogPIEReadinessDiagnostics
 ~~~
 
-## 4. PlayTest & Validation workspace
+## 4. Espace de travail PlayTest & Validation
 
-The Nomad tab now uses a horizontal splitter:
+L’onglet Nomad utilise maintenant un splitter horizontal :
 
 ~~~text
 +--------------------------------+------------------------------------------+
@@ -82,45 +82,45 @@ The Nomad tab now uses a horizontal splitter:
 +--------------------------------+------------------------------------------+
 ~~~
 
-Initial splitter proportion:
+Proportion initiale du splitter :
 
 ~~~text
 PlayTest   : 34%
 Validation : 66%
 ~~~
 
-Each side owns its own scroll area.
+Chaque côté possède sa propre zone de défilement.
 
-## 5. Validation authority
+## 5. Autorité de validation
 
-The dockable Validation panel continues to use:
+Le panneau Validation dockable continue d’utiliser :
 
 ~~~text
 SGridEditorValidationPanel
 GridEditorLuaService::ValidateCurrentLevelWithLua
 ~~~
 
-GEUI03 does not introduce a second validator.
+GEUI03 n’introduit pas de second validateur.
 
-The dockable workspace keeps its presentation state (last displayed messages and severity filters) while it is open. The legacy inline Validation section retains its own fallback presentation state until the old monolithic Toolkit is slimmed in GEUI06.
+L’espace de travail dockable conserve son état de présentation (derniers messages affichés et filtres de sévérité) tant qu’il est ouvert. L’ancienne section Validation inline conserve son propre état de présentation de secours jusqu’à l’allègement du Toolkit monolithique dans GEUI06.
 
-This is UI-state duplication only; validation logic and level data remain single-source.
+Il ne s’agit que d’une duplication de l’état UI ; la logique de validation et les données de niveau restent à source unique.
 
-## 6. Legacy Toolkit
+## 6. Toolkit historique
 
-The existing inline `PLAYTEST` section remains visible as fallback, but now delegates to:
+La section inline `PLAYTEST` existante reste visible comme fallback, mais délègue désormais à :
 
 ~~~text
 SGridEditorPlaytestPanel
 ~~~
 
-The inline `VALIDATION` section is also retained until GEUI06.
+La section inline `VALIDATION` est également conservée jusqu’à GEUI06.
 
-This mirrors the GEUI02 migration strategy and keeps rollback risk low.
+Cela reproduit la stratégie de migration GEUI02 et maintient un faible risque de rollback.
 
-## 7. Files changed
+## 7. Fichiers modifiés
 
-New:
+Nouveaux :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/Widgets/SGridEditorPlaytestPanel.h
@@ -128,7 +128,7 @@ Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorPlaytestPa
 docs/Design/GEUI03_PLAYTEST_VALIDATION_WINDOW.md
 ~~~
 
-Modified:
+Modifiés :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEdModeToolkit.h
@@ -136,57 +136,57 @@ Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEdModeToolkit.cpp
 Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorWorkspaceTab.cpp
 ~~~
 
-No runtime source, `.uasset` or `.umap` is modified.
+Aucune source runtime, aucun `.uasset` ou `.umap` n’est modifié.
 
-## 8. Required UE5.5.4 validation
+## 8. Validation UE5.5.4 requise
 
-Build:
+Compilation :
 
 ~~~powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipAutomation
 ~~~
 
-Visual validation:
+Validation visuelle :
 
-1. Open `L_GrimrockEditor`.
-2. Activate `Grimrock Grid Editor`.
-3. Open `Window > PlayTest & Validation`.
-4. Confirm PlayTest appears on the left and Validation on the right.
-5. Drag the splitter.
-6. Toggle `Auto Prepare PIE`.
-7. Toggle `Abort PIE On Error`.
-8. Select a valid cell and use `Set Start From Selection`.
-9. Confirm Start Cell / Facing / Valid refresh immediately.
-10. Run `Log PIE Readiness`.
-11. Run `Refresh Validation`.
-12. Exercise Errors / Warnings / Infos filters.
-13. Use at least one Select/Focus action from a validation message when available.
-14. Confirm the legacy inline PLAYTEST and VALIDATION sections still work.
-15. Start PIE once and confirm automatic preparation behavior is unchanged.
+1. Ouvrir `L_GrimrockEditor`.
+2. Activer `Grimrock Grid Editor`.
+3. Ouvrir `Window > PlayTest & Validation`.
+4. Confirmer que PlayTest apparaît à gauche et Validation à droite.
+5. Déplacer le splitter.
+6. Basculer `Auto Prepare PIE`.
+7. Basculer `Abort PIE On Error`.
+8. Sélectionner une cellule valide et utiliser `Set Start From Selection`.
+9. Confirmer que Start Cell / Facing / Valid se rafraîchit immédiatement.
+10. Exécuter `Log PIE Readiness`.
+11. Exécuter `Refresh Validation`.
+12. Tester les filtres Errors / Warnings / Infos.
+13. Utiliser au moins une action Select/Focus depuis un message de validation lorsqu’elle est disponible.
+14. Confirmer que les sections inline historiques PLAYTEST et VALIDATION fonctionnent toujours.
+15. Lancer une fois le PIE et confirmer que le comportement de préparation automatique reste inchangé.
 
-## 9. Explicit non-goals
+## 9. Hors périmètre explicite
 
-GEUI03 does not:
+GEUI03 ne :
 
-- add a custom Start PIE command;
-- change PreBeginPIE hooks;
-- change bAutoPreparePIE semantics;
-- change bAbortPIEOnPreparationError semantics;
-- change validation rules;
-- change Lua validation;
-- remove legacy inline panels;
-- create a subsystem;
-- create a plugin;
-- modify runtime behavior;
-- modify .uasset or .umap files;
-- open MON21.4.
+- ajoute pas de commande personnalisée Start PIE ;
+- modifie pas les hooks PreBeginPIE ;
+- modifie pas la sémantique bAutoPreparePIE ;
+- modifie pas la sémantique bAbortPIEOnPreparationError ;
+- modifie pas les règles de validation ;
+- modifie pas la validation Lua ;
+- supprime pas les panneaux inline historiques ;
+- crée pas de subsystem ;
+- crée pas de plugin ;
+- modifie pas le comportement runtime ;
+- modifie pas de fichiers .uasset ou .umap ;
+- n’ouvre pas MON21.4.
 
-## 10. Next step
+## 10. Étape suivante
 
-After build and visual validation:
+Après compilation et validation visuelle :
 
 ~~~text
 GEUI04 — Tools & Palette Window
 ~~~
 
-GEUI04 will keep the existing tool/palette behavior but prepare the dedicated authoring surface for search, category filtering and later Favorites / Recently Used.
+GEUI04 conservera le comportement existant des outils/palette mais préparera la surface d’authoring dédiée pour la recherche, le filtrage par catégorie puis, plus tard, Favorites / Recently Used.

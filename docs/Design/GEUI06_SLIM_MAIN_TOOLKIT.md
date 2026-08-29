@@ -1,24 +1,24 @@
-# GEUI06 — Slim Main Toolkit
+# GEUI06 — Toolkit principal allégé
 
-**Date:** 28 August 2026  
-**Status:** implemented on master — UE5.5.4 build and visual validation pending
+**Date :** 28 août 2026  
+**Statut :** implémenté sur master — compilation UE5.5.4 et validation visuelle en attente
 
-## 1. Objective
+## 1. Objectif
 
-GEUI06 completes the first Grid Editor workspace migration by removing the large authoring panels that were still duplicated inside the editor-mode Toolkit.
+GEUI06 termine la première migration des espaces de travail du Grid Editor en supprimant les grands panneaux d’authoring encore dupliqués à l’intérieur du Toolkit du mode éditeur.
 
-The main Toolkit is no longer the place where level authoring panels are embedded.
+Le Toolkit principal n’est plus l’endroit où les panneaux d’authoring de niveau sont embarqués.
 
-It now acts as a compact dashboard containing:
+Il agit désormais comme un dashboard compact contenant :
 
-- Dungeon Editor title;
-- current editor context badges;
-- connector viewport display toggles;
-- workspace launch buttons.
+- le titre Dungeon Editor ;
+- les badges du contexte éditeur courant ;
+- les options d’affichage des connecteurs dans le viewport ;
+- les boutons d’ouverture des espaces de travail.
 
-## 2. Removed inline authoring sections
+## 2. Sections d’authoring inline supprimées
 
-The following legacy inline sections are removed from the main Toolkit:
+Les anciennes sections inline suivantes sont supprimées du Toolkit principal :
 
 ~~~text
 DUNGEON LEVELS
@@ -30,7 +30,7 @@ CONNECTORS
 VALIDATION
 ~~~
 
-Their authoritative dockable replacements are:
+Leurs remplaçants dockables faisant autorité sont :
 
 ~~~text
 Dungeon Levels
@@ -39,17 +39,17 @@ Tools & Palette
 Selected Object
 ~~~
 
-Lua authoring remains in:
+L’authoring Lua reste dans :
 
 ~~~text
 Grimrock Lua Scripts
 ~~~
 
-No feature is deleted; only the duplicate presentation is removed.
+Aucune fonctionnalité n’est supprimée ; seule la présentation dupliquée disparaît.
 
-## 3. Workspace launcher
+## 3. Lanceur d’espaces de travail
 
-The Toolkit now exposes five explicit launch buttons:
+Le Toolkit expose désormais cinq boutons d’ouverture explicites :
 
 ~~~text
 Dungeon Levels
@@ -59,26 +59,26 @@ Selected Object
 Grimrock Lua Scripts
 ~~~
 
-Each button invokes the already registered Nomad tab through `FGlobalTabmanager`.
+Chaque bouton invoque l’onglet Nomad déjà enregistré via `FGlobalTabmanager`.
 
-If a workspace is already open, Unreal brings that tab forward rather than constructing a second independent authoring implementation.
+Si un espace de travail est déjà ouvert, Unreal remet cet onglet au premier plan au lieu de construire une seconde implémentation indépendante de l’authoring.
 
-## 4. Shared workspace tab identifiers
+## 4. Identifiants partagés des onglets d’espace de travail
 
-GEUI06 adds:
+GEUI06 ajoute :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/GridEditorWorkspaceTabs.h
 ~~~
 
-This header centralizes the canonical tab identifiers used by both:
+Ce header centralise les identifiants canoniques d’onglets utilisés à la fois par :
 
-- `FGrimrockPrototypeEditorModule` for registration/menu entries;
-- `FGridLevelEdModeToolkit` for dashboard launch buttons.
+- `FGrimrockPrototypeEditorModule` pour l’enregistrement/les entrées de menu ;
+- `FGridLevelEdModeToolkit` pour les boutons d’ouverture du dashboard.
 
-This removes string/name duplication between module registration and the launcher.
+Cela supprime la duplication des noms/chaînes entre l’enregistrement du module et le lanceur.
 
-Canonical identifiers remain unchanged:
+Les identifiants canoniques restent inchangés :
 
 ~~~text
 GrimrockGridDungeonLevels
@@ -88,11 +88,11 @@ GrimrockGridSelectedObject
 GrimrockLuaEditor
 ~~~
 
-## 5. Main dashboard status
+## 5. État du dashboard principal
 
-The dashboard keeps lightweight context only.
+Le dashboard ne conserve qu’un contexte léger.
 
-Status badges:
+Badges d’état :
 
 ~~~text
 Tool
@@ -102,13 +102,13 @@ Object
 Level
 ~~~
 
-The old Validation badge is removed because its presentation state belonged to the legacy inline Validation widget and would become stale once that widget disappeared.
+L’ancien badge Validation est supprimé car son état de présentation appartenait à l’ancien widget Validation inline et deviendrait obsolète une fois ce widget disparu.
 
-Validation status now lives in the dedicated `PlayTest & Validation` workspace.
+L’état de validation vit désormais dans l’espace de travail dédié `PlayTest & Validation`.
 
-## 6. Display parameters retained
+## 6. Paramètres d’affichage conservés
 
-These viewport-only toggles remain in the main dashboard:
+Ces options limitées au viewport restent dans le dashboard principal :
 
 ~~~text
 Show Outgoing Connectors
@@ -116,13 +116,13 @@ Show Incoming Connectors
 Show Connector Labels
 ~~~
 
-They remain useful global display settings and do not belong exclusively to the Selected Object / Connectors authoring page.
+Elles restent des paramètres globaux d’affichage utiles et n’appartiennent pas exclusivement à la page d’authoring Selected Object / Connectors.
 
-Their behavior is unchanged.
+Leur comportement est inchangé.
 
-## 7. Toolkit cleanup
+## 7. Nettoyage du Toolkit
 
-GEUI06 removes Toolkit-only presentation state that is no longer needed:
+GEUI06 supprime l’état de présentation propre au Toolkit qui n’est plus nécessaire :
 
 ~~~text
 FGridEditorPanelExpansionState
@@ -134,30 +134,30 @@ ExpandValidationIfMessagesNeedAttention
 GetValidationStatusText
 ~~~
 
-The public method name `RefreshPalette()` is intentionally retained because `FGridLevelEdMode` already uses it as the Toolkit refresh entry point. Its implementation now refreshes the compact dashboard rather than rebuilding an inline palette.
+Le nom public de méthode `RefreshPalette()` est volontairement conservé car `FGridLevelEdMode` l’utilise déjà comme point d’entrée de rafraîchissement du Toolkit. Son implémentation rafraîchit maintenant le dashboard compact au lieu de reconstruire une palette inline.
 
-The Toolkit display name changes from:
+Le nom affiché du Toolkit passe de :
 
 ~~~text
 Grimrock Grid Palette
 ~~~
 
-to:
+à :
 
 ~~~text
 Grimrock Grid Editor
 ~~~
 
-## 8. Files changed
+## 8. Fichiers modifiés
 
-New:
+Nouveaux :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/GridEditorWorkspaceTabs.h
 docs/Design/GEUI06_SLIM_MAIN_TOOLKIT.md
 ~~~
 
-Modified:
+Modifiés :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEdModeToolkit.h
@@ -165,77 +165,76 @@ Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEdModeToolkit.cpp
 Source/GrimrockPrototypeEditor/GrimrockPrototypeEditor.cpp
 ~~~
 
-No runtime source, `.uasset` or `.umap` is modified.
+Aucune source runtime, aucun `.uasset` ni `.umap` n’est modifié.
 
-## 9. Required UE5.5.4 validation
+## 9. Validation UE5.5.4 requise
 
-Build:
+Compilation :
 
 ~~~powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipAutomation
 ~~~
 
-Visual validation:
+Validation visuelle :
 
-1. Open `L_GrimrockEditor`.
-2. Activate `Grimrock Grid Editor`.
-3. Confirm the inline Toolkit no longer contains the seven legacy authoring panels.
-4. Confirm the Toolkit contains:
-   - DUNGEON EDITOR title;
-   - Tool / Cell / Edge-Facing / Object / Level badges;
-   - three connector display toggles;
-   - WORKSPACE launcher.
-5. Open each launcher button and confirm the expected Nomad tab appears.
-6. Click a launcher for an already open window and confirm Unreal focuses/reuses it.
-7. Change selected cell/object/tool and confirm dashboard badges refresh.
-8. Toggle outgoing/incoming/labels and confirm viewport behavior is unchanged.
-9. Confirm `Window` menu entries still open all five workspaces.
-10. Run a short PIE smoke test.
+1. Ouvrir `L_GrimrockEditor`.
+2. Activer `Grimrock Grid Editor`.
+3. Confirmer que le Toolkit inline ne contient plus les sept anciens panneaux d’authoring.
+4. Confirmer que le Toolkit contient :
+   - le titre DUNGEON EDITOR ;
+   - les badges Tool / Cell / Edge-Facing / Object / Level ;
+   - les trois options d’affichage des connecteurs ;
+   - le lanceur WORKSPACE.
+5. Ouvrir chaque bouton du lanceur et confirmer que l’onglet Nomad attendu apparaît.
+6. Cliquer sur un lanceur correspondant à une fenêtre déjà ouverte et confirmer qu’Unreal la remet au premier plan/la réutilise.
+7. Changer la cellule/l’objet/l’outil sélectionné et confirmer que les badges du dashboard se rafraîchissent.
+8. Basculer outgoing/incoming/labels et confirmer que le comportement du viewport est inchangé.
+9. Confirmer que les entrées du menu `Window` ouvrent toujours les cinq espaces de travail.
+10. Exécuter un court smoke test PIE.
 
-## 10. Explicit non-goals
+## 10. Hors périmètre explicite
 
-GEUI06 does not:
+GEUI06 ne :
 
-- remove any authoring capability;
-- remove the underlying shared widgets;
-- change level/runtime data;
-- change connector logic;
-- change validation logic;
-- change PIE preparation;
-- persist workspace layout;
-- create a plugin;
-- modify `.uasset` or `.umap`;
-- open MON21.4.
+- supprime aucune capacité d’authoring ;
+- supprime aucun widget partagé sous-jacent ;
+- modifie pas les données niveau/runtime ;
+- modifie pas la logique des connecteurs ;
+- modifie pas la logique de validation ;
+- modifie pas la préparation PIE ;
+- ne persiste pas le layout de l’espace de travail ;
+- ne crée pas de plugin ;
+- ne modifie pas de `.uasset` ou `.umap` ;
+- n’ouvre pas MON21.4.
 
-## 11. Next step
+## 11. Étape suivante
 
-After build and visual validation, the first workspace migration phase is complete.
+Après compilation et validation visuelle, la première phase de migration des espaces de travail est terminée.
 
-The next roadmap item is:
+Le prochain élément de la roadmap est :
 
 ~~~text
 GEUI07 — Palette UX
 ~~~
 
-GEUI07 can then focus purely on higher-level palette productivity features such as Favorites, Recently Used and user-oriented organization without carrying the old monolithic Toolkit constraints.
+GEUI07 peut alors se concentrer uniquement sur les fonctions de productivité avancées de la palette telles que Favorites, Recently Used et l’organisation orientée utilisateur, sans subir les contraintes de l’ancien Toolkit monolithique.
 
+## GEUI06.1 — Limiter les fenêtres d’espace de travail au mode Grid Editor
 
-## GEUI06.1 — Scope workspace windows to Grid Editor mode
-
-Workspace Nomad tabs are now explicitly tied to the lifetime of:
+Les onglets Nomad d’espace de travail sont maintenant explicitement liés au cycle de vie de :
 
 ~~~text
 EM_GrimrockGridLevelEdMode
 ~~~
 
-Behavior:
+Comportement :
 
-- while Grimrock Grid Editor is active, the workspace tabs can be opened normally;
-- when the mode is exited, all live Grimrock workspace tabs are requested to close;
-- while the mode is inactive, their Nomad spawners reject creation through `FCanSpawnTab`;
-- Unreal's Window menu therefore cannot spawn these authoring windows outside Grid Editor mode.
+- tant que Grimrock Grid Editor est actif, les onglets d’espace de travail peuvent être ouverts normalement ;
+- lorsque l’on quitte le mode, tous les onglets Grimrock vivants reçoivent une demande de fermeture ;
+- tant que le mode est inactif, leurs spawners Nomad refusent leur création via `FCanSpawnTab` ;
+- le menu Window d’Unreal ne peut donc pas faire apparaître ces fenêtres d’authoring en dehors du mode Grid Editor.
 
-The scoped tabs are:
+Les onglets concernés sont :
 
 ~~~text
 Dungeon Levels
@@ -245,72 +244,70 @@ Selected Object
 Grimrock Lua Scripts
 ~~~
 
-`GridEditorWorkspaceTabs::All()` centralizes this list so close behavior and canonical identifiers cannot drift apart.
+`GridEditorWorkspaceTabs::All()` centralise cette liste afin que le comportement de fermeture et les identifiants canoniques ne puissent pas diverger.
 
-This is editor-only lifecycle behavior and does not affect level/runtime data.
+Il s’agit uniquement d’un comportement de cycle de vie éditeur et cela n’affecte pas les données de niveau/runtime.
 
+## GEUI06.2 — Restaurer les onglets ouverts lors du retour dans Grid Editor
 
-## GEUI06.2 — Restore open workspace tabs when re-entering Grid Editor
+GEUI06.1 masquait correctement les fenêtres du Grid Editor en dehors du mode éditeur, mais ne mémorisait pas quelles fenêtres d’espace de travail étaient ouvertes lorsque l’utilisateur quittait le mode.
 
-GEUI06.1 correctly hid Grid Editor windows outside the editor mode, but it did not remember which workspace windows were open when the user left the mode.
+GEUI06.2 ajoute un comportement de restauration de session.
 
-GEUI06.2 adds session restore behavior.
+### Comportement à la sortie
 
-### Exit behavior
+Avant de fermer les onglets d’espace de travail, `FGridLevelEdMode::Exit()` enregistre maintenant l’ensemble exact des valeurs `TabId` des espaces de travail Grimrock encore vivants.
 
-Before closing workspace tabs, `FGridLevelEdMode::Exit()` now records the exact set of live Grimrock workspace `TabId` values.
+Seuls les onglets réellement ouverts sont enregistrés.
 
-Only tabs that were actually open are recorded.
+Si un utilisateur ferme manuellement un espace de travail avant de quitter Grid Editor, cet espace de travail n’est pas restauré ensuite.
 
-If a user manually closed a workspace before leaving Grid Editor, that workspace is not restored later.
+### Comportement à l’entrée
 
-### Enter behavior
-
-After `FGridLevelEdMode::Enter()` has activated the mode and initialized its Toolkit, every recorded workspace tab is invoked again through:
+Après que `FGridLevelEdMode::Enter()` a activé le mode et initialisé son Toolkit, chaque onglet d’espace de travail mémorisé est de nouveau invoqué via :
 
 ~~~text
 FGlobalTabmanager::TryInvokeTab
 ~~~
 
-Because the same stable TabIds are reused, Unreal's docking layout can restore each tab into its previous dock stack / floating window location rather than creating an unrelated authoring surface.
+Comme les mêmes TabIds stables sont réutilisés, le layout de docking d’Unreal peut restaurer chaque onglet dans sa pile de docking / position de fenêtre flottante précédente au lieu de créer une surface d’authoring sans rapport.
 
-The expected workflow is therefore:
+Le workflow attendu est donc :
 
 ~~~text
-Grid Editor active
-  -> Dungeon Levels + Tools & Palette open and positioned
+Grid Editor actif
+  -> Dungeon Levels + Tools & Palette ouverts et positionnés
 
-Leave Grid Editor
-  -> those windows disappear
+Quitter Grid Editor
+  -> ces fenêtres disparaissent
 
-Return to Grid Editor
-  -> Dungeon Levels + Tools & Palette reopen automatically
-     in their remembered Unreal docking locations
+Revenir dans Grid Editor
+  -> Dungeon Levels + Tools & Palette se rouvrent automatiquement
+     à leurs emplacements de docking Unreal mémorisés
 ~~~
 
-This restore list is session-only editor presentation state. It does not touch gameplay assets or level data.
+Cette liste de restauration est un état de présentation éditeur limité à la session. Elle ne touche ni les assets gameplay ni les données de niveau.
 
+## GEUI06.3 — Restaurer la géométrie des fenêtres flottantes
 
-## GEUI06.3 — Restore floating workspace window geometry
+GEUI06.2 mémorisait quels onglets d’espace de travail étaient ouverts, mais un onglet Nomad flottant pouvait encore être recréé à la position centrée par défaut d’Unreal.
 
-GEUI06.2 remembered which workspace tabs were open, but a floating Nomad tab could still be recreated at Unreal's default centered position.
+GEUI06.3 mémorise le rectangle de la fenêtre flottante avant la fermeture de l’onglet.
 
-GEUI06.3 records the floating window rectangle before the tab is closed.
+Pour chaque onglet d’espace de travail vivant lors de la sortie du Grid Editor :
 
-For each live workspace tab on Grid Editor exit:
+1. trouver la `SWindow` propriétaire via `FSlateApplication::FindWidgetWindow` ;
+2. la comparer à `FGlobalTabmanager::GetRootWindow()` ;
+3. si ce n’est pas la fenêtre racine de l’éditeur, la traiter comme une fenêtre flottante d’espace de travail ;
+4. stocker son `FSlateRect` obtenu par `GetRectInScreen()` ;
+5. fermer l’onglet comme auparavant.
 
-1. find the owning `SWindow` through `FSlateApplication::FindWidgetWindow`;
-2. compare it with `FGlobalTabmanager::GetRootWindow()`;
-3. if it is not the root editor window, treat it as a floating workspace window;
-4. store its `FSlateRect` from `GetRectInScreen()`;
-5. close the tab as before.
+Lors du retour dans Grid Editor :
 
-On Grid Editor re-entry:
+1. restaurer le même TabId avec `TryInvokeTab` ;
+2. trouver sa nouvelle `SWindow` flottante ;
+3. réappliquer le rectangle sauvegardé via `SWindow::ReshapeWindow`.
 
-1. restore the same TabId with `TryInvokeTab`;
-2. find its newly created floating `SWindow`;
-3. reapply the saved rectangle with `SWindow::ReshapeWindow`.
+Les onglets dockés dans la fenêtre principale d’Unreal Editor ne sont pas redimensionnés ; ce code ne peut donc pas déplacer ou redimensionner accidentellement la fenêtre racine du Level Editor.
 
-Docked tabs inside the main Unreal editor window are not reshaped, so this code cannot accidentally move or resize the Level Editor root window.
-
-Expected result: a floating `PlayTest & Validation` window returns to the same screen position and size it had before leaving Grid Editor.
+Résultat attendu : une fenêtre `PlayTest & Validation` flottante revient exactement à la même position écran et avec la même taille qu’avant la sortie du Grid Editor.

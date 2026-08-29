@@ -1,25 +1,25 @@
-# GEUI04 — Tools & Palette Window
+# GEUI04 — Fenêtre Tools & Palette
 
-**Date:** 28 August 2026  
-**Status:** implemented on master — UE5.5.4 build and visual validation pending
+**Date :** 28 août 2026  
+**Statut :** implémenté sur master — compilation UE5.5.4 et validation visuelle en attente
 
-## 1. Objective
+## 1. Objectif
 
-GEUI04 turns the existing dockable `Tools & Palette` tab into the primary authoring surface for tool selection and object discovery.
+GEUI04 transforme l’onglet dockable `Tools & Palette` existant en surface d’authoring principale pour la sélection des outils et la découverte des objets.
 
-The milestone remains data-model neutral:
+Le jalon reste neutre vis-à-vis du modèle de données :
 
-- no `UGridObjectPaletteAsset` schema change;
-- no `UGridObjectArchetypeAsset` schema change;
-- no new gameplay category enum;
-- no Favorites/Recent persistence yet;
-- no runtime behavior change.
+- aucun changement de schéma de `UGridObjectPaletteAsset` ;
+- aucun changement de schéma de `UGridObjectArchetypeAsset` ;
+- aucun nouvel enum de catégorie gameplay ;
+- aucune persistance Favorites/Recent à ce stade ;
+- aucun changement de comportement runtime.
 
-## 2. Responsive tool strip
+## 2. Barre d’outils responsive
 
-The existing tools are now displayed through a wrapping Slate layout rather than one fixed horizontal row.
+Les outils existants sont maintenant affichés au moyen d’une disposition Slate avec retour à la ligne plutôt que sur une ligne horizontale fixe.
 
-Visible tools:
+Outils visibles :
 
 ~~~text
 Select
@@ -30,44 +30,44 @@ Erase
 Link
 ~~~
 
-`Link` already existed in `EGridEditorTool` and in the editor interaction code; GEUI04 simply exposes it alongside the other tools.
+`Link` existait déjà dans `EGridEditorTool` et dans le code d’interaction éditeur ; GEUI04 l’expose simplement aux côtés des autres outils.
 
-When the window narrows, tool tiles wrap instead of being clipped or forcing excessive horizontal width.
+Lorsque la fenêtre se rétrécit, les tuiles d’outils passent à la ligne au lieu d’être rognées ou d’imposer une largeur horizontale excessive.
 
-## 3. Palette search
+## 3. Recherche dans la palette
 
-When `Paint Object` is active, the Palette section now exposes a live search field.
+Lorsque `Paint Object` est actif, la section Palette expose maintenant un champ de recherche dynamique.
 
-Search matches against the existing data:
+La recherche correspond aux données existantes :
 
-- effective display name;
-- palette EntryId;
-- effective category;
-- archetype ArchetypeId;
-- archetype DisplayName;
-- archetype Description.
+- nom d’affichage effectif ;
+- EntryId de palette ;
+- catégorie effective ;
+- ArchetypeId de l’archétype ;
+- DisplayName de l’archétype ;
+- Description de l’archétype.
 
-Typing updates only the palette result area, so the search field keeps focus instead of rebuilding the complete workspace on every keystroke.
+La saisie met à jour uniquement la zone de résultats de la palette, de sorte que le champ de recherche conserve le focus au lieu de reconstruire l’espace de travail complet à chaque frappe.
 
-Search text is presentation-only state stored in:
+Le texte de recherche est un état de présentation uniquement, stocké dans :
 
 ~~~text
 FGridEditorToolPalettePanelState
 ~~~
 
-It does not dirty a DataAsset.
+Il ne rend pas un DataAsset dirty.
 
-## 4. Category filters
+## 4. Filtres de catégorie
 
-The Palette now exposes category buttons generated from the categories already present in `UGridObjectPaletteAsset`.
+La Palette expose maintenant des boutons de catégorie générés à partir des catégories déjà présentes dans `UGridObjectPaletteAsset`.
 
-The first button is:
+Le premier bouton est :
 
 ~~~text
 All
 ~~~
 
-followed by the effective categories sorted with the existing editor order:
+suivi des catégories effectives triées selon l’ordre éditeur existant :
 
 ~~~text
 Doors
@@ -85,31 +85,31 @@ Uncategorized
 ...
 ~~~
 
-Unknown/custom categories remain supported and sort after the known editor categories.
+Les catégories inconnues/personnalisées restent prises en charge et sont triées après les catégories éditeur connues.
 
-The selected category is also presentation-only state. GEUI04 does not create a second taxonomy.
+La catégorie sélectionnée est également un état de présentation uniquement. GEUI04 ne crée pas de seconde taxonomie.
 
-## 5. Responsive palette results
+## 5. Résultats de palette responsives
 
-The former fixed five-column `SUniformGridPanel` result layout is replaced by `SWrapBox` groups.
+L’ancienne disposition de résultats fixe sur cinq colonnes avec `SUniformGridPanel` est remplacée par des groupes `SWrapBox`.
 
-This means object tiles wrap according to the actual docked/floating window width.
+Les tuiles d’objet reviennent ainsi à la ligne en fonction de la largeur réelle de la fenêtre dockée/flottante.
 
-Results remain grouped by category and show:
+Les résultats restent regroupés par catégorie et affichent :
 
 ~~~text
 Showing N of M palette entries
 ~~~
 
-When no entry matches:
+Lorsqu’aucune entrée ne correspond :
 
 ~~~text
 No palette entries match the active filters.
 ~~~
 
-## 6. State ownership
+## 6. Propriété de l’état
 
-`FGridEditorToolPalettePanelState` now contains:
+`FGridEditorToolPalettePanelState` contient maintenant :
 
 ~~~text
 CachedIconBrushes
@@ -117,160 +117,157 @@ SearchText
 SelectedCategory
 ~~~
 
-This state belongs to the editor UI only.
+Cet état appartient uniquement à l’UI éditeur.
 
-The workspace and the legacy inline Toolkit each retain their own presentation state while both interfaces coexist. Gameplay data remains authoritative in the existing actor/assets.
+L’espace de travail et le Toolkit inline historique conservent chacun leur propre état de présentation tant que les deux interfaces coexistent. Les données gameplay restent sous l’autorité de l’acteur/des assets existants.
 
-Favorites and Recently Used are deliberately deferred until the later palette UX milestone, where their per-user persistence strategy can be chosen explicitly.
+Favorites et Recently Used sont volontairement repoussés au jalon ultérieur d’UX palette, où leur stratégie de persistance par utilisateur pourra être choisie explicitement.
 
-## 7. Files changed
+## 7. Fichiers modifiés
 
-Modified:
+Modifiés :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/Widgets/SGridEditorToolPalettePanel.h
 Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorToolPalettePanel.cpp
 ~~~
 
-New:
+Nouveau :
 
 ~~~text
 docs/Design/GEUI04_TOOLS_PALETTE_WINDOW.md
 ~~~
 
-No runtime source, `.uasset` or `.umap` is modified.
+Aucune source runtime, aucun `.uasset` ou `.umap` n’est modifié.
 
-## 8. Required UE5.5.4 validation
+## 8. Validation UE5.5.4 requise
 
-Build:
+Compilation :
 
 ~~~powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipAutomation
 ~~~
 
-Visual validation:
+Validation visuelle :
 
-1. Open `L_GrimrockEditor`.
-2. Activate `Grimrock Grid Editor`.
-3. Open `Window > Tools & Palette`.
-4. Resize the window narrow and wide; confirm tool tiles wrap cleanly.
-5. Confirm the `Link` tool is present and activates the existing Link mode.
-6. Select `Paint Object`.
-7. Confirm the search field and category buttons appear.
-8. Search by:
-   - visible object name;
-   - EntryId fragment;
-   - category name;
-   - archetype id/name.
-9. Confirm the result count updates live.
-10. Select several category filters and return to `All`.
-11. Resize the window and confirm object tiles wrap rather than distort.
-12. Select a filtered palette entry and confirm Paint Object still uses the same archetype.
-13. Confirm the legacy inline Tools / Palette section still works.
+1. Ouvrir `L_GrimrockEditor`.
+2. Activer `Grimrock Grid Editor`.
+3. Ouvrir `Window > Tools & Palette`.
+4. Redimensionner la fenêtre étroite puis large ; confirmer que les tuiles d’outils reviennent proprement à la ligne.
+5. Confirmer que l’outil `Link` est présent et active le mode Link existant.
+6. Sélectionner `Paint Object`.
+7. Confirmer que le champ de recherche et les boutons de catégorie apparaissent.
+8. Rechercher par :
+   - nom d’objet visible ;
+   - fragment d’EntryId ;
+   - nom de catégorie ;
+   - id/nom d’archétype.
+9. Confirmer que le nombre de résultats se met à jour en direct.
+10. Sélectionner plusieurs filtres de catégorie puis revenir à `All`.
+11. Redimensionner la fenêtre et confirmer que les tuiles d’objet reviennent à la ligne au lieu de se déformer.
+12. Sélectionner une entrée de palette filtrée et confirmer que Paint Object utilise toujours le même archétype.
+13. Confirmer que l’ancienne section inline Tools / Palette fonctionne toujours.
 
-## 9. Explicit non-goals
+## 9. Hors périmètre explicite
 
-GEUI04 does not:
+GEUI04 ne :
 
-- change palette/archetype assets;
-- add a new category enum;
-- add Favorites;
-- add Recently Used;
-- persist UI preferences to gameplay assets;
-- virtualize very large palettes;
-- move icon assets;
-- create a plugin;
-- change runtime behavior;
-- modify .uasset or .umap files;
-- open MON21.4.
+- modifie pas les assets palette/archétype ;
+- ajoute pas de nouvel enum de catégorie ;
+- ajoute pas Favorites ;
+- ajoute pas Recently Used ;
+- ne persiste pas les préférences UI dans les assets gameplay ;
+- ne virtualise pas les palettes très volumineuses ;
+- ne déplace pas les assets d’icônes ;
+- ne crée pas de plugin ;
+- ne modifie pas le comportement runtime ;
+- ne modifie pas de fichiers .uasset ou .umap ;
+- n’ouvre pas MON21.4.
 
-## 10. Next step
+## 10. Étape suivante
 
-After build and visual validation:
+Après compilation et validation visuelle :
 
 ~~~text
 GEUI05 — Selected Object Workspace
 ~~~
 
-GEUI05 will consolidate the object inspector and connectors into the dedicated selected-object workspace, initially with a low-risk Properties / Links organization before deeper General / Placement / Behavior / Diagnostics subdivision.
+GEUI05 consolidera l’inspecteur d’objet et les connecteurs dans l’espace de travail dédié à l’objet sélectionné, initialement avec une organisation Properties / Links à faible risque avant une subdivision plus poussée General / Placement / Behavior / Diagnostics.
 
+## GEUI04.1 — Correction UX après validation
 
-## GEUI04.1 — Post-validation UX correction
-
-Visual review showed that two GEUI04 presentation choices were not appropriate for the dedicated workspace.
+La revue visuelle a montré que deux choix de présentation GEUI04 n’étaient pas adaptés à l’espace de travail dédié.
 
 ### Tools
 
-The tool selector no longer relies on a responsive `SWrapBox`.
+Le sélecteur d’outils ne repose plus sur un `SWrapBox` responsive.
 
-The six tools are now presented as a stable **3 columns x 2 rows** grid:
+Les six outils sont maintenant présentés dans une grille stable de **3 colonnes x 2 lignes** :
 
 ~~~text
 Select        Paint Cell     Paint Wall
 Paint Object  Erase          Link
 ~~~
 
-This prevents a narrow or ambiguously measured Slate parent from collapsing the authoring tools into one vertical column.
+Cela empêche un parent Slate étroit ou mesuré de manière ambiguë de réduire les outils d’authoring à une seule colonne verticale.
 
-### Palette categories
+### Catégories de palette
 
-Category filters are now presented as a horizontal **tab strip**, not as independent filter buttons.
+Les filtres de catégorie sont maintenant présentés sous forme de **barre d’onglets** horizontale, et non comme boutons de filtre indépendants.
 
-The tab row starts with:
+La ligne d’onglets commence par :
 
 ~~~text
 All
 ~~~
 
-followed by the effective palette categories. The selected tab uses distinct background/text treatment and a visible underline. If the complete tab strip is wider than the docked window, it scrolls horizontally instead of wrapping into button rows.
+puis les catégories effectives de la palette. L’onglet sélectionné utilise un traitement distinct du fond/texte et un soulignement visible. Si la barre d’onglets complète est plus large que la fenêtre dockée, elle défile horizontalement au lieu de revenir à la ligne sous forme de rangées de boutons.
 
-Search remains above the tabs. Object result tiles remain responsive below them.
+La recherche reste au-dessus des onglets. Les tuiles de résultats d’objet restent responsives en dessous.
 
+## GEUI04.2 — Outils compacts sur une seule ligne et grille de palette carrée
 
-## GEUI04.2 — Compact single-row tools and square palette grid
+Une seconde revue visuelle sur la fenêtre dockable réelle UE5.5.4 a montré deux défauts de mise en page restants :
 
-A second visual review on the actual UE5.5.4 dockable window showed two remaining layout defects:
+- les six Tools étaient encore répartis sur deux lignes ;
+- les tuiles de résultats de palette étaient en pratique disposées sur une seule colonne verticale, avec beaucoup trop d’espace vide autour.
 
-- the six Tools were still split over two rows;
-- palette result tiles were effectively laid out as a single vertical column, with excessive surrounding empty space.
-
-GEUI04.2 removes both ambiguous responsive layouts.
+GEUI04.2 supprime les deux dispositions responsives ambiguës.
 
 ### Tools
 
-Tools are now hosted in a single `SHorizontalBox` with six `AutoWidth` slots:
+Les outils sont maintenant hébergés dans un seul `SHorizontalBox` avec six slots `AutoWidth` :
 
 ~~~text
 Select | Paint Cell | Paint Wall | Paint Object | Erase | Link
 ~~~
 
-There is no wrap and no second row.
+Il n’y a ni retour à la ligne ni seconde rangée.
 
-### Palette results
+### Résultats de palette
 
-Palette entries no longer use `SWrapBox`.
+Les entrées de palette n’utilisent plus `SWrapBox`.
 
-Each category uses a compact `SUniformGridPanel` with up to **8 columns per row**. Grid slots use explicit left/top alignment so the square buttons cannot stretch with the available panel width.
+Chaque catégorie utilise un `SUniformGridPanel` compact avec jusqu’à **8 colonnes par ligne**. Les slots de grille utilisent un alignement explicite gauche/haut afin que les boutons carrés ne puissent pas s’étirer avec la largeur disponible du panneau.
 
-Each palette tile is a strict **96 x 96** square with:
+Chaque tuile de palette est un carré strict de **96 x 96** avec :
 
-- reduced 3 px button content padding;
-- 44 px icon area;
-- compact centered 8 pt label;
-- 2 px spacing between grid cells.
+- padding de contenu du bouton réduit à 3 px ;
+- zone d’icône de 44 px ;
+- libellé compact centré en 8 pt ;
+- espacement de 2 px entre les cellules de grille.
 
-When a specific category tab is selected, its category title is not repeated above the grid. Category headers are retained only in the `All` tab where they separate groups.
+Lorsqu’un onglet de catégorie précis est sélectionné, son titre de catégorie n’est pas répété au-dessus de la grille. Les en-têtes de catégorie sont conservés uniquement dans l’onglet `All`, où ils séparent les groupes.
 
-This milestone changes presentation only; palette selection and archetype application remain unchanged.
+Ce jalon ne modifie que la présentation ; la sélection de palette et l’application de l’archétype restent inchangées.
 
+## GEUI04.3 — Restaurer la sémantique de Select et masquer l’outil Link
 
-## GEUI04.3 — Restore Select semantics and hide Link tool
+Les tests visuels après GEUI04 ont révélé deux régressions de comportement/présentation.
 
-Post-GEUI04 visual testing exposed two behavioral/presentation regressions.
+### Select n’est plus un outil de peinture continue
 
-### Select is no longer a paint-drag tool
-
-Historically, the editor input path routed every left-click tool, including `Select`, through the continuous paint cache:
+Historiquement, le chemin d’entrée éditeur routait tous les outils de clic gauche, y compris `Select`, via le cache de peinture continue :
 
 ~~~text
 CommitHoveredSelection
@@ -278,17 +275,17 @@ ShouldApplyPaintForCurrentSelection
 ApplyPaint
 ~~~
 
-That model is appropriate for Paint Cell / Paint Wall / Paint Object / Erase, but not for object selection.
+Ce modèle convient à Paint Cell / Paint Wall / Paint Object / Erase, mais pas à la sélection d’objet.
 
-GEUI04.3 gives `Select` an explicit click path in `FGridLevelEdMode::InputKey`:
+GEUI04.3 donne à `Select` un chemin de clic explicite dans `FGridLevelEdMode::InputKey` :
 
-1. update grid/object hover from the mouse;
-2. commit the hovered cell/edge;
-3. execute the existing `AGridLevelEditorActor::ApplyPrimaryToolAction`;
-4. refresh observed selection state;
-5. do not enter continuous painting/captured-mouse mode.
+1. mettre à jour le hover grille/objet depuis la souris ;
+2. valider la cellule/arête survolée ;
+3. exécuter le `AGridLevelEditorActor::ApplyPrimaryToolAction` existant ;
+4. rafraîchir l’état de sélection observé ;
+5. ne pas entrer dans le mode de peinture continue/capture souris.
 
-The authoritative selection implementation remains:
+L’implémentation de sélection faisant autorité reste :
 
 ~~~text
 AGridLevelEditorActor::SelectHoveredObject
@@ -296,15 +293,15 @@ AGridLevelEditorActor::SelectObjectAtSelection
 AGridLevelEditorActor::SelectObjectById
 ~~~
 
-No selection data model is changed.
+Aucun modèle de données de sélection n’est modifié.
 
-### Link is hidden again
+### Link est de nouveau masqué
 
-`EGridEditorTool::Link` and its internal behavior remain in the editor code because connectors still use that infrastructure.
+`EGridEditorTool::Link` et son comportement interne restent dans le code éditeur parce que les connecteurs utilisent toujours cette infrastructure.
 
-However, GEUI04.3 removes `Link` from the visible Tools bar. GEUI04 had exposed it unintentionally while enumerating the available editor tools.
+Cependant, GEUI04.3 retire `Link` de la barre Tools visible. GEUI04 l’avait exposé involontairement lors de l’énumération des outils éditeur disponibles.
 
-The visible authoring bar is again:
+La barre d’authoring visible redevient :
 
 ~~~text
 Select | Paint Cell | Paint Wall | Paint Object | Erase

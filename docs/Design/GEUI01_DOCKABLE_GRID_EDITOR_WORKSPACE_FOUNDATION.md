@@ -1,15 +1,15 @@
-# GEUI01 — Dockable Grid Editor Workspace Foundation
+# GEUI01 — Fondation de l’espace de travail dockable du Grid Editor
 
-**Date:** 28 August 2026  
-**Status:** implemented on master — UE5.5.4 build and visual validation pending
+**Date :** 28 août 2026  
+**Statut :** implémenté sur master — compilation UE5.5.4 et validation visuelle en attente
 
-## 1. Objective
+## 1. Objectif
 
-GEUI01 creates the low-risk docking foundation for the Grimrock Grid Editor ergonomic redesign.
+GEUI01 crée la fondation de docking à faible risque pour la refonte ergonomique du Grimrock Grid Editor.
 
-The milestone deliberately does not remove or rewrite the current inline toolkit. Its purpose is to prove that the existing Slate panels can live in independent Unreal Editor Nomad tabs before the larger UI is migrated.
+Ce jalon ne supprime ni ne réécrit volontairement le Toolkit inline actuel. Son objectif est de démontrer que les panneaux Slate existants peuvent vivre dans des onglets Nomad indépendants de l’Unreal Editor avant la migration de l’interface plus large.
 
-The authoritative editing model remains unchanged:
+Le modèle d’édition faisant autorité reste inchangé :
 
 ~~~text
 UGridDungeonAsset
@@ -17,11 +17,11 @@ UGridDungeonAsset
         -> Cells / Objects / Links / Lua / Quest references
 ~~~
 
-No alternate level representation is introduced.
+Aucune représentation alternative du niveau n’est introduite.
 
-## 2. New dockable windows
+## 2. Nouvelles fenêtres dockables
 
-Four Nomad tabs are registered by GrimrockPrototypeEditor:
+Quatre onglets Nomad sont enregistrés par GrimrockPrototypeEditor :
 
 ~~~text
 Dungeon Levels
@@ -30,120 +30,120 @@ Tools & Palette
 Selected Object
 ~~~
 
-The existing tab remains unchanged:
+L’onglet existant reste inchangé :
 
 ~~~text
 Grimrock Lua Scripts
 ~~~
 
-All five entries are exposed through the Unreal Editor Window menu and use FGlobalTabmanager / SDockTab with ETabRole::NomadTab.
+Les cinq entrées sont exposées dans le menu Window de l’Unreal Editor et utilisent FGlobalTabmanager / SDockTab avec ETabRole::NomadTab.
 
-They can therefore be docked, undocked, floated and closed using Unreal's native workspace behavior.
+Elles peuvent donc être dockées, détachées, placées en fenêtre flottante et fermées en utilisant le comportement natif des espaces de travail Unreal.
 
-## 3. Reuse-first composition
+## 3. Composition privilégiant la réutilisation
 
-GEUI01 intentionally reuses the existing Slate widgets.
+GEUI01 réutilise volontairement les widgets Slate existants.
 
 ### Dungeon Levels
 
-Hosts:
+Héberge :
 
 ~~~text
 SGridEditorOverviewMapPanel
 ~~~
 
-The level list and level-management actions still live in FGridLevelEdModeToolkit until GEUI02. A migration notice in the tab makes that temporary boundary explicit.
+La liste des niveaux et les actions de gestion des niveaux restent dans FGridLevelEdModeToolkit jusqu’à GEUI02. Une note de migration dans l’onglet rend cette frontière temporaire explicite.
 
 ### PlayTest & Validation
 
-Hosts:
+Héberge :
 
 ~~~text
 SGridEditorValidationPanel
 ~~~
 
-The existing PlayTest controls still live in FGridLevelEdModeToolkit until GEUI03.
+Les contrôles PlayTest existants restent dans FGridLevelEdModeToolkit jusqu’à GEUI03.
 
-The validation rules are not duplicated. The panel continues to call the existing authoritative GridEditorLuaService::ValidateCurrentLevelWithLua path.
+Les règles de validation ne sont pas dupliquées. Le panneau continue d’appeler le chemin faisant autorité existant GridEditorLuaService::ValidateCurrentLevelWithLua.
 
 ### Tools & Palette
 
-Hosts the existing:
+Héberge le widget existant :
 
 ~~~text
 SGridEditorToolPalettePanel
 ~~~
 
-Tool selection and palette mutations still target AGridLevelEditorActor and UGridObjectPaletteAsset exactly as before.
+La sélection des outils et les mutations de palette ciblent toujours AGridLevelEditorActor et UGridObjectPaletteAsset exactement comme auparavant.
 
 ### Selected Object
 
-Composes the existing:
+Compose les widgets existants :
 
 ~~~text
 SGridEditorObjectInspectorPanel
 SGridEditorLinksPanel
 ~~~
 
-No object property or connector mutation logic is copied into the workspace host.
+Aucune logique de mutation des propriétés d’objet ou des connecteurs n’est copiée dans l’hôte de l’espace de travail.
 
-## 4. Workspace host
+## 4. Hôte de l’espace de travail
 
-New widget:
+Nouveau widget :
 
 ~~~text
 SGridEditorWorkspaceTab
 ~~~
 
-Location:
+Emplacement :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/Widgets/SGridEditorWorkspaceTab.h
 Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorWorkspaceTab.cpp
 ~~~
 
-Responsibilities are intentionally narrow:
+Ses responsabilités sont volontairement limitées :
 
-- find the current AGridLevelEditorActor in the editor world;
-- compose the existing widget corresponding to the requested workspace tab;
-- own presentation-only Tool Palette and Validation panel state for that Nomad tab;
-- rebuild the detached tab when lightweight editor context changes.
+- trouver le AGridLevelEditorActor courant dans le monde éditeur ;
+- composer le widget existant correspondant à l’onglet d’espace de travail demandé ;
+- posséder l’état de présentation uniquement des panneaux Tool Palette et Validation pour cet onglet Nomad ;
+- reconstruire l’onglet détaché lorsque le contexte léger de l’éditeur change.
 
-It does not own dungeon, level, object, connector or runtime data.
+Il ne possède aucune donnée de donjon, niveau, objet, connecteur ou runtime.
 
-## 5. Context synchronization
+## 5. Synchronisation du contexte
 
-The old inline Toolkit receives explicit refresh calls from FGridLevelEdMode.
+L’ancien Toolkit inline reçoit des appels explicites de rafraîchissement depuis FGridLevelEdMode.
 
-A detached Nomad tab does not automatically receive those calls, so GEUI01 observes a small set of existing editor context values:
+Un onglet Nomad détaché ne reçoit pas automatiquement ces appels ; GEUI01 observe donc un petit ensemble de valeurs de contexte éditeur existantes :
 
-- current editor actor;
-- DungeonAsset / LevelAsset / ObjectPalette;
-- CurrentDungeonLevelId;
-- selected cell and edge;
-- selected object;
-- active tool;
-- selected palette entry;
-- object/link counts;
-- monster patrol-route edit selection.
+- acteur éditeur courant ;
+- DungeonAsset / LevelAsset / ObjectPalette ;
+- CurrentDungeonLevelId ;
+- cellule et arête sélectionnées ;
+- objet sélectionné ;
+- outil actif ;
+- entrée de palette sélectionnée ;
+- nombres d’objets/liens ;
+- sélection d’édition de route de patrouille de monstre.
 
-When this context changes, only the open workspace host rebuilds its Slate content.
+Lorsque ce contexte change, seul l’hôte de l’espace de travail ouvert reconstruit son contenu Slate.
 
-This is intentionally not a new subsystem, event bus or editor data model.
+Il ne s’agit volontairement ni d’un nouveau subsystem, ni d’un bus d’événements, ni d’un nouveau modèle de données éditeur.
 
-A future GEUI09 may replace this conservative observation with more targeted notifications after the new workspace is proven stable.
+Un futur GEUI09 pourra remplacer cette observation prudente par des notifications plus ciblées après validation de la stabilité du nouvel espace de travail.
 
-## 6. Validation state note
+## 6. Note sur l’état de validation
 
-The PlayTest & Validation Nomad tab owns its current presentation state (message filters and last displayed results), while the old inline Validation panel keeps its own current presentation state.
+L’onglet Nomad PlayTest & Validation possède son état de présentation courant (filtres de messages et derniers résultats affichés), tandis que l’ancien panneau Validation inline conserve son propre état de présentation courant.
 
-Both execute the same authoritative validation logic.
+Les deux exécutent la même logique de validation faisant autorité.
 
-This temporary UI-state duplication is accepted for GEUI01 because the inline toolkit remains the compatibility fallback. GEUI03 will decide the single canonical presentation state when PlayTest and Validation are actually migrated.
+Cette duplication temporaire de l’état UI est acceptée pour GEUI01 parce que le Toolkit inline reste le fallback de compatibilité. GEUI03 décidera de l’état de présentation canonique unique lorsque PlayTest et Validation seront effectivement migrés.
 
-## 7. Main toolkit remains intact
+## 7. Le Toolkit principal reste intact
 
-GEUI01 does not remove:
+GEUI01 ne supprime pas :
 
 ~~~text
 DUNGEON LEVELS
@@ -155,13 +155,13 @@ CONNECTORS
 VALIDATION
 ~~~
 
-from FGridLevelEdModeToolkit.
+de FGridLevelEdModeToolkit.
 
-This is deliberate. The new windows are introduced first, validated in UE5.5.4, then the old inline sections will be migrated one responsibility at a time.
+C’est volontaire. Les nouvelles fenêtres sont introduites d’abord, validées sous UE5.5.4, puis les anciennes sections inline seront migrées responsabilité par responsabilité.
 
-## 8. Files changed
+## 8. Fichiers modifiés
 
-New:
+Nouveaux :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/Widgets/SGridEditorWorkspaceTab.h
@@ -169,71 +169,71 @@ Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorWorkspaceT
 docs/Design/GEUI01_DOCKABLE_GRID_EDITOR_WORKSPACE_FOUNDATION.md
 ~~~
 
-Modified:
+Modifié :
 
 ~~~text
 Source/GrimrockPrototypeEditor/GrimrockPrototypeEditor.cpp
 ~~~
 
-No runtime source, .uasset or .umap is modified.
+Aucune source runtime, aucun fichier .uasset ou .umap n’est modifié.
 
-## 9. Required UE5.5.4 validation
+## 9. Validation UE5.5.4 requise
 
-Build:
+Compilation :
 
 ~~~powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5
 ~~~
 
-At minimum confirm that GrimrockPrototypeEditor builds successfully.
+Confirmer au minimum que GrimrockPrototypeEditor compile correctement.
 
-Visual validation in Unreal Editor:
+Validation visuelle dans l’Unreal Editor :
 
-1. Open L_GrimrockEditor.
-2. Activate Grimrock Grid Editor.
-3. Open Window and verify exactly one entry for each:
+1. Ouvrir L_GrimrockEditor.
+2. Activer Grimrock Grid Editor.
+3. Ouvrir Window et vérifier exactement une entrée pour chacun des éléments suivants :
    - Dungeon Levels
    - PlayTest & Validation
    - Tools & Palette
    - Selected Object
    - Grimrock Lua Scripts
-4. Open all four new Grid Editor tabs.
-5. Dock, undock and float each tab.
-6. Select cells and objects in the viewport and verify the detached panels follow the selection.
-7. Change tools and palette entries from Tools & Palette.
-8. Verify Selected Object edits still update the same LevelAsset.
-9. Create/remove a connector from the detached Selected Object window.
-10. Run validation from PlayTest & Validation.
-11. Confirm the original inline Toolkit still works unchanged.
-12. Start PIE once to confirm the editor module registration changes did not affect PIE preparation.
+4. Ouvrir les quatre nouveaux onglets du Grid Editor.
+5. Docker, détacher et placer en fenêtre flottante chaque onglet.
+6. Sélectionner des cellules et des objets dans le viewport et vérifier que les panneaux détachés suivent la sélection.
+7. Changer d’outil et d’entrée de palette depuis Tools & Palette.
+8. Vérifier que les modifications de Selected Object mettent toujours à jour le même LevelAsset.
+9. Créer/supprimer un connecteur depuis la fenêtre détachée Selected Object.
+10. Lancer la validation depuis PlayTest & Validation.
+11. Confirmer que le Toolkit inline d’origine fonctionne toujours sans changement.
+12. Lancer une fois le PIE pour confirmer que les changements d’enregistrement du module éditeur n’ont pas affecté la préparation PIE.
 
-## 10. Explicit non-goals
+## 10. Hors périmètre explicite
 
-GEUI01 does not:
+GEUI01 ne :
 
-- extract Dungeon Levels controls from FGridLevelEdModeToolkit;
-- extract PlayTest controls from FGridLevelEdModeToolkit;
-- redesign palette categories/search/favorites/recent items;
-- redesign Selected Object into final internal tabs;
-- merge validation presentation state with the old inline panel;
-- create a Grid Editor subsystem;
-- move AGridLevelEditorActor;
-- move UGridLevelAsset or UGridDungeonAsset;
-- create a plugin;
-- modify runtime behavior;
-- modify .uasset or .umap files;
-- open MON21.4.
+- retire pas les contrôles Dungeon Levels de FGridLevelEdModeToolkit ;
+- retire pas les contrôles PlayTest de FGridLevelEdModeToolkit ;
+- ne refond pas les catégories/recherche/favoris/éléments récents de la palette ;
+- ne refond pas Selected Object en onglets internes finaux ;
+- ne fusionne pas l’état de présentation Validation avec l’ancien panneau inline ;
+- ne crée pas de subsystem Grid Editor ;
+- ne déplace pas AGridLevelEditorActor ;
+- ne déplace pas UGridLevelAsset ou UGridDungeonAsset ;
+- ne crée pas de plugin ;
+- ne modifie pas le comportement runtime ;
+- ne modifie pas de fichiers .uasset ou .umap ;
+- n’ouvre pas MON21.4.
 
-## 11. Next migration steps
+## 11. Prochaines étapes de migration
 
-After UE5.5.4 validation:
+Après validation UE5.5.4 :
 
 ~~~text
 GEUI02 — Dungeon Levels Window
-    extract the level list/actions and compose them with Overview Map
+    extraire la liste/actions de niveaux et les composer avec Overview Map
 
 GEUI03 — PlayTest & Validation Window
-    migrate PlayTest controls and establish the canonical validation presentation
+    migrer les contrôles PlayTest et établir la présentation canonique de Validation
 ~~~
 
-The old inline sections should only be removed after their corresponding dockable window is functionally validated.
+Les anciennes sections inline ne devront être supprimées qu’après validation fonctionnelle de leur fenêtre dockable correspondante.

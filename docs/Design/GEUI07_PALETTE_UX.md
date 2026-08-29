@@ -1,113 +1,113 @@
-# GEUI07 — Palette UX
+# GEUI07 — UX de la palette
 
-**Date:** 28 August 2026  
-**Status:** implemented on master — UE5.5.4 build and visual validation pending
+**Date :** 28 août 2026  
+**Statut :** implémenté sur master — compilation UE5.5.4 et validation visuelle en attente
 
-## 1. Objective
+## 1. Objectif
 
-GEUI07 adds productivity features to the dedicated `Tools & Palette` workspace without changing gameplay assets or the palette data model.
+GEUI07 ajoute des fonctions de productivité à l’espace de travail dédié `Tools & Palette` sans modifier les assets gameplay ni le modèle de données de la palette.
 
-The existing palette already provides:
+La palette existante fournit déjà :
 
-- search;
-- category tabs;
-- compact 96x96 tiles;
-- stable object selection.
+- recherche ;
+- onglets de catégorie ;
+- tuiles compactes 96x96 ;
+- sélection d’objet stable.
 
-GEUI07 adds:
+GEUI07 ajoute :
 
 ~~~text
 Favorites
 Recent
 ~~~
 
-as first-class palette tabs.
+comme vues de premier niveau de la palette.
 
-## 2. Tab organization
+## 2. Organisation des onglets
 
-The palette tab strip is now ordered:
+La barre d’onglets de la palette est maintenant ordonnée ainsi :
 
 ~~~text
 All | Favorites | Recent | Doors | Mechanisms | Receptacles | ...
 ~~~
 
-`Favorites` and `Recent` are presentation views, not new object categories.
+`Favorites` et `Recent` sont des vues de présentation, pas de nouvelles catégories d’objets.
 
-The existing effective categories remain authoritative and continue to come from `UGridObjectPaletteAsset` / archetype data.
+Les catégories effectives existantes restent celles faisant autorité et continuent de provenir de `UGridObjectPaletteAsset` / des données d’archétype.
 
-Search applies to every view:
+La recherche s’applique à chaque vue :
 
-- All;
-- Favorites;
-- Recent;
-- a specific category.
+- All ;
+- Favorites ;
+- Recent ;
+- une catégorie précise.
 
 ## 3. Favorites
 
-Every compact palette tile now exposes a small star in its upper-right corner:
+Chaque tuile compacte de palette expose maintenant une petite étoile dans son coin supérieur droit :
 
 ~~~text
 ☆  not favorite
 ★  favorite
 ~~~
 
-Clicking the star:
+Cliquer sur l’étoile :
 
-1. toggles the EntryId in the user's favorite set;
-2. persists the updated set;
-3. refreshes only the palette result area;
-4. does not select or place the object.
+1. bascule l’EntryId dans l’ensemble des favoris de l’utilisateur ;
+2. persiste l’ensemble mis à jour ;
+3. rafraîchit uniquement la zone de résultats de la palette ;
+4. ne sélectionne ni ne place l’objet.
 
-The `Favorites` tab shows only starred entries.
+L’onglet `Favorites` n’affiche que les entrées marquées d’une étoile.
 
-If empty, it displays:
+S’il est vide, il affiche :
 
 ~~~text
 No favorites yet. Use the star on a palette tile to add one.
 ~~~
 
-Favorites are keyed by existing palette `EntryId`.
+Les favoris sont indexés par l’`EntryId` de palette existant.
 
-No favorite flag is written into a DataAsset.
+Aucun indicateur de favori n’est écrit dans un DataAsset.
 
 ## 4. Recently Used
 
-A palette entry becomes recent when the user actually chooses its object tile.
+Une entrée de palette devient récente lorsque l’utilisateur choisit réellement sa tuile d’objet.
 
-GEUI07 keeps at most:
+GEUI07 conserve au maximum :
 
 ~~~text
 16
 ~~~
 
-recent EntryIds.
+EntryIds récents.
 
-Rules:
+Règles :
 
-- most recently chosen entry appears first;
-- choosing an existing recent entry moves it back to first position;
-- duplicates are removed;
-- old entries fall off the end after 16.
+- l’entrée choisie le plus récemment apparaît en premier ;
+- choisir de nouveau une entrée déjà récente la replace en première position ;
+- les doublons sont supprimés ;
+- les anciennes entrées tombent de la fin de la liste au-delà de 16.
 
-The `Recent` tab preserves this recency order instead of regrouping entries by category.
+L’onglet `Recent` conserve cet ordre de récence au lieu de regrouper les entrées par catégorie.
 
-If empty:
+S’il est vide :
 
 ~~~text
 No recently used entries yet.
 ~~~
 
-## 5. Per-user persistence
+## 5. Persistance par utilisateur
 
-Favorites and Recent are editor-user state.
+Favorites et Recent constituent un état propre à l’utilisateur de l’éditeur.
 
-They are persisted through Unreal's:
+Ils sont persistés via :
 
 ~~~text
 GEditorPerProjectIni
 ~~~
 
-under:
+sous :
 
 ~~~text
 [Grimrock.GridEditor.Palette]
@@ -115,20 +115,20 @@ Favorites=...
 Recent=...
 ~~~
 
-This is deliberately:
+C’est volontairement :
 
-- per project;
-- per editor user;
-- outside `.uasset`;
-- outside `.umap`;
-- outside `UGridObjectPaletteAsset`;
-- outside `UGridLevelAsset`.
+- par projet ;
+- par utilisateur éditeur ;
+- hors `.uasset` ;
+- hors `.umap` ;
+- hors `UGridObjectPaletteAsset` ;
+- hors `UGridLevelAsset`.
 
-Changing favorites therefore never dirties gameplay content.
+Modifier les favoris ne rend donc jamais le contenu gameplay dirty.
 
-## 6. Palette state
+## 6. État de la palette
 
-`FGridEditorToolPalettePanelState` now owns:
+`FGridEditorToolPalettePanelState` possède maintenant :
 
 ~~~text
 CachedIconBrushes
@@ -140,7 +140,7 @@ RecentEntryIds
 bUserStateLoaded
 ~~~
 
-View modes:
+Modes de vue :
 
 ~~~text
 All
@@ -149,116 +149,115 @@ Recent
 Category
 ~~~
 
-The category field is meaningful only for `Category`.
+Le champ catégorie n’a de sens que pour `Category`.
 
-This avoids encoding pseudo-categories such as Favorites or Recent as fake `FName` categories.
+Cela évite d’encoder des pseudo-catégories telles que Favorites ou Recent sous forme de fausses catégories `FName`.
 
-## 7. Result layout
+## 7. Disposition des résultats
 
-GEUI07 preserves the GEUI04.2 compact grid:
+GEUI07 conserve la grille compacte de GEUI04.2 :
 
-- strict 96x96 tiles;
-- up to 8 columns per row;
-- 2 px grid spacing;
-- no `SWrapBox`;
-- left/top aligned cells.
+- tuiles strictement 96x96 ;
+- jusqu’à 8 colonnes par ligne ;
+- espacement de grille de 2 px ;
+- aucun `SWrapBox` ;
+- cellules alignées gauche/haut.
 
-Presentation differs by view:
+La présentation varie selon la vue :
 
-- `All`: entries are grouped under category headings;
-- `Category`: one flat compact grid, no redundant category title;
-- `Favorites`: one flat compact grid;
-- `Recent`: one flat compact grid ordered by recency.
+- `All` : entrées regroupées sous des en-têtes de catégorie ;
+- `Category` : une grille compacte plate, sans titre de catégorie redondant ;
+- `Favorites` : une grille compacte plate ;
+- `Recent` : une grille compacte plate ordonnée par récence.
 
-## 8. Files changed
+## 8. Fichiers modifiés
 
-Modified:
+Modifiés :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/Widgets/SGridEditorToolPalettePanel.h
 Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorToolPalettePanel.cpp
 ~~~
 
-New:
+Nouveau :
 
 ~~~text
 docs/Design/GEUI07_PALETTE_UX.md
 ~~~
 
-No runtime source, `.uasset` or `.umap` is modified.
+Aucune source runtime, aucun `.uasset` ni `.umap` n’est modifié.
 
-## 9. Required UE5.5.4 validation
+## 9. Validation UE5.5.4 requise
 
-Build:
+Compilation :
 
 ~~~powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipAutomation
 ~~~
 
-Visual validation:
+Validation visuelle :
 
-1. Open `Window > Tools & Palette`.
-2. Select `Paint Object`.
-3. Confirm the tab order begins:
+1. Ouvrir `Window > Tools & Palette`.
+2. Sélectionner `Paint Object`.
+3. Confirmer que l’ordre des onglets commence par :
    - All
    - Favorites
    - Recent
-4. Confirm every object tile remains 96x96 and shows a small star at top-right.
-5. Star several entries.
-6. Open Favorites and confirm only those entries appear.
-7. Unstar one entry while Favorites is active and confirm it disappears immediately.
-8. Choose several object tiles in a known order.
-9. Open Recent and confirm newest-first ordering.
-10. Choose an older recent object again and confirm it moves to first position.
-11. Search inside Favorites and Recent.
-12. Close and reopen the Tools & Palette window; confirm Favorites and Recent survive.
-13. Restart Unreal Editor and confirm they still survive.
-14. Confirm selecting an entry still activates Paint Object and uses the same archetype.
+4. Confirmer que chaque tuile d’objet reste en 96x96 et montre une petite étoile en haut à droite.
+5. Marquer plusieurs entrées comme favorites.
+6. Ouvrir Favorites et confirmer que seules ces entrées apparaissent.
+7. Retirer une étoile pendant que Favorites est actif et confirmer que l’entrée disparaît immédiatement.
+8. Choisir plusieurs tuiles d’objet dans un ordre connu.
+9. Ouvrir Recent et confirmer l’ordre du plus récent au plus ancien.
+10. Choisir de nouveau un ancien objet récent et confirmer qu’il remonte en première position.
+11. Rechercher dans Favorites et Recent.
+12. Fermer puis rouvrir la fenêtre Tools & Palette ; confirmer que Favorites et Recent sont conservés.
+13. Redémarrer l’Unreal Editor et confirmer qu’ils sont toujours conservés.
+14. Confirmer que sélectionner une entrée active toujours Paint Object et utilise le même archétype.
 
-## 10. Explicit non-goals
+## 10. Hors périmètre explicite
 
-GEUI07 does not:
+GEUI07 ne :
 
-- change palette/archetype DataAssets;
-- add favorite metadata to gameplay content;
-- synchronize favorites between machines/users;
-- add drag-and-drop reordering;
-- add user-defined categories;
-- add palette asset editing;
-- change placement semantics;
-- change runtime behavior;
-- modify `.uasset` or `.umap`;
-- open MON21.4.
+- modifie pas les DataAssets palette/archétype ;
+- ajoute pas de métadonnée favorite au contenu gameplay ;
+- ne synchronise pas les favoris entre machines/utilisateurs ;
+- ajoute pas de réordonnancement par glisser-déposer ;
+- ajoute pas de catégories définies par l’utilisateur ;
+- ajoute pas d’édition de l’asset palette ;
+- modifie pas la sémantique de placement ;
+- modifie pas le comportement runtime ;
+- modifie pas de `.uasset` ou `.umap` ;
+- n’ouvre pas MON21.4.
 
-## 11. Next step
+## 11. Étape suivante
 
-After build and visual validation:
+Après compilation et validation visuelle :
 
 ~~~text
 GEUI08 — Validation UX
 ~~~
 
-GEUI08 can focus on validation readability, filtering and navigation inside the dedicated PlayTest & Validation workspace.
+GEUI08 pourra se concentrer sur la lisibilité de la validation, le filtrage et la navigation à l’intérieur de l’espace de travail dédié PlayTest & Validation.
 
+## GEUI07.1 — Icône de palette agrandie dans une tuile fixe
 
-## GEUI07.1 — Larger palette icon inside fixed tile
-
-Post-validation visual tuning keeps the palette tile strictly:
+L’ajustement visuel après validation conserve la tuile de palette strictement à :
 
 ~~~text
 96 x 96
 ~~~
 
-while increasing the object icon from:
+tout en augmentant l’icône d’objet de :
 
 ~~~text
 44 x 44
 ~~~
 
-to:
+à :
 
 ~~~text
 60 x 60
 ~~~
 
-The tile size, favorite star overlay, label and grid spacing remain unchanged. This improves object recognition without reducing palette density.
+La taille de la tuile, l’étoile Favorites en overlay, le libellé et l’espacement de grille restent inchangés. Cela améliore la reconnaissance visuelle des objets sans réduire la densité de la palette.

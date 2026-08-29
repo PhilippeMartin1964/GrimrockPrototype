@@ -1,25 +1,25 @@
-# GEUI08 — Validation UX
+# GEUI08 — UX de validation
 
-**Date:** 28 August 2026  
-**Status:** implemented on master — UE5.5.4 build and visual validation pending
+**Date :** 28 août 2026  
+**Statut :** implémenté sur master — compilation UE5.5.4 et validation visuelle en attente
 
-## 1. Objective
+## 1. Objectif
 
-GEUI08 improves the dedicated `PlayTest & Validation` workspace without changing any validation rule.
+GEUI08 améliore l’espace de travail dédié `PlayTest & Validation` sans modifier aucune règle de validation.
 
-The validation source remains:
+La source de validation reste :
 
 ~~~text
 GridEditorLuaService::ValidateCurrentLevelWithLua
 ~~~
 
-and the existing `FGridLevelValidationMessage` model remains authoritative.
+et le modèle `FGridLevelValidationMessage` existant reste celui faisant autorité.
 
-GEUI08 is presentation, filtering and navigation only.
+GEUI08 concerne uniquement la présentation, le filtrage et la navigation.
 
-## 2. Validation status banner
+## 2. Bandeau d’état de validation
 
-After a validation run, the panel now exposes a prominent status banner:
+Après une exécution de validation, le panneau expose maintenant un bandeau d’état bien visible :
 
 ~~~text
 INVALID
@@ -27,33 +27,33 @@ VALID WITH WARNINGS
 VALID
 ~~~
 
-Rules:
+Règles :
 
-- one or more errors -> `INVALID`;
-- zero errors and one or more warnings -> `VALID WITH WARNINGS`;
-- zero errors and zero warnings -> `VALID`.
+- une ou plusieurs erreurs -> `INVALID` ;
+- zéro erreur et un ou plusieurs avertissements -> `VALID WITH WARNINGS` ;
+- zéro erreur et zéro avertissement -> `VALID`.
 
-The banner also keeps the complete numerical summary:
+Le bandeau conserve également le résumé numérique complet :
 
 ~~~text
 Errors: N | Warnings: N | Infos: N
 ~~~
 
-## 3. Search
+## 3. Recherche
 
-A validation search box is added directly below the status banner.
+Une zone de recherche de validation est ajoutée directement sous le bandeau d’état.
 
-Search is case-insensitive and matches:
+La recherche est insensible à la casse et correspond à :
 
-- message text;
-- validation category;
-- optional object GUID;
-- source object GUID;
-- target object GUID;
-- cell coordinates;
-- edge name/display name.
+- texte du message ;
+- catégorie de validation ;
+- GUID d’objet optionnel ;
+- GUID d’objet source ;
+- GUID d’objet cible ;
+- coordonnées de cellule ;
+- nom/nom affiché de l’arête.
 
-Examples:
+Exemples :
 
 ~~~text
 door
@@ -63,11 +63,11 @@ north
 A1B2C3D4
 ~~~
 
-Search is combined with the severity filters.
+La recherche est combinée avec les filtres de sévérité.
 
-## 4. Severity filters
+## 4. Filtres de sévérité
 
-The existing independent filters remain available, but now include their total counts:
+Les filtres indépendants existants restent disponibles, mais incluent maintenant leurs nombres totaux :
 
 ~~~text
 Errors (3)
@@ -75,7 +75,7 @@ Warnings (5)
 Infos (12)
 ~~~
 
-This preserves the useful ability to display combinations such as:
+Cela conserve la possibilité utile d’afficher des combinaisons telles que :
 
 ~~~text
 Errors + Warnings
@@ -83,174 +83,173 @@ Warnings only
 Infos only
 ~~~
 
-rather than replacing them with mutually exclusive tabs.
+au lieu de les remplacer par des onglets mutuellement exclusifs.
 
-A new:
+Une nouvelle action :
 
 ~~~text
 Clear Filters
 ~~~
 
-action restores:
+restaure :
 
-- Errors visible;
-- Warnings visible;
-- Infos visible;
-- empty search.
+- Errors visible ;
+- Warnings visible ;
+- Infos visible ;
+- recherche vide.
 
-## 5. Result count
+## 5. Nombre de résultats
 
-The panel now reports:
+Le panneau affiche maintenant :
 
 ~~~text
 Showing X of Y validation messages
 ~~~
 
-This makes the effect of search/severity filters explicit.
+Cela rend explicite l’effet des filtres de recherche/sévérité.
 
-If no result remains:
+S’il ne reste aucun résultat :
 
 ~~~text
 No messages match the active filters or search.
 ~~~
 
-## 6. Existing navigation retained
+## 6. Navigation existante conservée
 
-GEUI08 deliberately reuses all existing message actions:
+GEUI08 réutilise volontairement toutes les actions de message existantes :
 
-- Select Object;
-- Focus Object;
-- Select Source;
-- Focus Source;
-- Select Target;
-- Focus Target;
+- Select Object ;
+- Focus Object ;
+- Select Source ;
+- Focus Source ;
+- Select Target ;
+- Focus Target ;
 - Select Cell.
 
-No second object-selection or viewport-focus implementation is introduced.
+Aucune seconde implémentation de sélection d’objet ou de focus viewport n’est introduite.
 
-## 7. Message ordering
+## 7. Ordre des messages
 
-Messages keep the established stable ordering:
+Les messages conservent l’ordre stable déjà établi :
 
-1. Error;
-2. Warning;
-3. Info;
+1. Error ;
+2. Warning ;
+3. Info ;
 
-then category within the same severity.
+puis la catégorie à l’intérieur d’une même sévérité.
 
-Search/filtering does not alter this deterministic ordering.
+La recherche/le filtrage ne modifie pas cet ordre déterministe.
 
 ## 8. Copy Summary
 
-`Copy Summary` remains unchanged and copies the complete validation run, not only the currently filtered subset.
+`Copy Summary` reste inchangé et copie l’exécution complète de validation, pas uniquement le sous-ensemble actuellement filtré.
 
-This is intentional: clipboard diagnostics remain a complete technical report.
+C’est volontaire : le diagnostic copié dans le presse-papiers reste un rapport technique complet.
 
-## 9. State lifetime
+## 9. Durée de vie de l’état
 
-Search and severity filters live in:
+La recherche et les filtres de sévérité vivent dans :
 
 ~~~text
 FGridEditorValidationPanelState
 ~~~
 
-which is already owned by the dockable workspace host.
+qui est déjà possédé par l’hôte de l’espace de travail dockable.
 
-They therefore survive workspace rebuilds caused by editor selection/context changes during the current window lifetime.
+Ils survivent donc aux reconstructions de l’espace de travail provoquées par les changements de sélection/contexte éditeur pendant la durée de vie de la fenêtre courante.
 
-No gameplay asset is dirtied.
+Aucun asset gameplay n’est rendu dirty.
 
-## 10. Files changed
+## 10. Fichiers modifiés
 
-Modified:
+Modifiés :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/Widgets/SGridEditorValidationPanel.h
 Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorValidationPanel.cpp
 ~~~
 
-New:
+Nouveau :
 
 ~~~text
 docs/Design/GEUI08_VALIDATION_UX.md
 ~~~
 
-No runtime source, `.uasset` or `.umap` is modified.
+Aucune source runtime, aucun `.uasset` ni `.umap` n’est modifié.
 
-## 11. Required UE5.5.4 validation
+## 11. Validation UE5.5.4 requise
 
-Build:
+Compilation :
 
 ~~~powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipAutomation
 ~~~
 
-Visual validation:
+Validation visuelle :
 
-1. Open `PlayTest & Validation`.
-2. Run `Refresh Validation`.
-3. Confirm the status banner is visible and consistent with the counts.
-4. Confirm the severity controls show counts.
-5. Disable/enable Errors, Warnings and Infos independently.
-6. Search a known category/message term.
-7. Search a known cell as `X,Y`.
-8. Confirm `Showing X of Y` updates.
-9. Use `Clear Filters`.
-10. Exercise Select/Focus on object-related messages.
-11. Confirm `Copy Summary` still copies the full run.
-12. Resize the window and confirm the validation side remains readable.
+1. Ouvrir `PlayTest & Validation`.
+2. Exécuter `Refresh Validation`.
+3. Confirmer que le bandeau d’état est visible et cohérent avec les compteurs.
+4. Confirmer que les contrôles de sévérité affichent des nombres.
+5. Désactiver/activer indépendamment Errors, Warnings et Infos.
+6. Rechercher un terme connu de catégorie/message.
+7. Rechercher une cellule connue sous la forme `X,Y`.
+8. Confirmer que `Showing X of Y` se met à jour.
+9. Utiliser `Clear Filters`.
+10. Tester Select/Focus sur des messages liés à des objets.
+11. Confirmer que `Copy Summary` copie toujours l’exécution complète.
+12. Redimensionner la fenêtre et confirmer que la partie Validation reste lisible.
 
-## 12. Explicit non-goals
+## 12. Hors périmètre explicite
 
-GEUI08 does not:
+GEUI08 ne :
 
-- change validation rules;
-- automatically fix validation problems;
-- change Lua compilation/validation semantics;
-- add a second validation data model;
-- add runtime behavior;
-- modify `.uasset` or `.umap`;
-- open MON21.4.
+- modifie pas les règles de validation ;
+- ne corrige pas automatiquement les problèmes de validation ;
+- modifie pas la sémantique de compilation/validation Lua ;
+- ajoute pas de second modèle de données de validation ;
+- ajoute pas de comportement runtime ;
+- modifie pas de `.uasset` ou `.umap` ;
+- n’ouvre pas MON21.4.
 
-## 13. Next step
+## 13. Étape suivante
 
-After visual/build validation:
+Après validation visuelle/compilation :
 
 ~~~text
 GEUI09 — Refresh / State cleanup
 ~~~
 
-GEUI09 will consolidate the temporary context-observation/rebuild mechanism introduced during the workspace migration and reduce unnecessary full-widget rebuilds.
+GEUI09 consolidera le mécanisme temporaire d’observation/reconstruction du contexte introduit pendant la migration des espaces de travail et réduira les reconstructions complètes inutiles de widgets.
 
+## GEUI08.1 — Préserver le focus de recherche pendant le filtrage en direct
 
-## GEUI08.1 — Preserve search focus during live filtering
+Le gestionnaire de recherche initial de GEUI08 appelait le `RequestRefresh()` du niveau espace de travail à chaque événement `OnTextChanged`.
 
-The initial GEUI08 search handler called the workspace-level `RequestRefresh()` on every `OnTextChanged` event.
+Cela reconstruisait l’espace de travail complet `PlayTest & Validation` après chaque caractère saisi, détruisant puis recréant le `SSearchBox`. Le symptôme pratique était la perte du focus clavier après le premier caractère.
 
-That rebuilt the complete `PlayTest & Validation` workspace after each typed character, destroying and recreating the `SSearchBox`. The practical symptom was that keyboard focus was lost after the first character.
+GEUI08.1 sépare les contrôles stables de validation de la zone dynamique des résultats.
 
-GEUI08.1 separates the stable validation controls from the dynamic result area.
-
-New local widget references:
+Nouvelles références locales de widgets :
 
 ~~~text
 ValidationSearchBox
 ValidationResultsRoot
 ~~~
 
-Search behavior is now:
+Le comportement de recherche devient :
 
 ~~~text
-key press
-  -> update SearchText
+frappe clavier
+  -> mise à jour de SearchText
   -> RebuildValidationResults()
-  -> replace result cards only
-  -> SSearchBox instance remains alive
-  -> keyboard focus remains intact
+  -> remplacement des cartes de résultats uniquement
+  -> l’instance SSearchBox reste vivante
+  -> le focus clavier reste intact
 ~~~
 
-Severity toggles now use the same local result refresh rather than rebuilding the entire workspace.
+Les options de sévérité utilisent maintenant le même rafraîchissement local des résultats au lieu de reconstruire tout l’espace de travail.
 
-`Clear Filters` explicitly clears the persistent search state and the existing search widget text, then refreshes only results.
+`Clear Filters` efface explicitement l’état de recherche persistant et le texte du widget de recherche existant, puis ne rafraîchit que les résultats.
 
-Full workspace refresh remains reserved for operations that genuinely change editor context or regenerate the validation run.
+Le rafraîchissement complet de l’espace de travail reste réservé aux opérations qui changent réellement le contexte éditeur ou régénèrent l’exécution de validation.

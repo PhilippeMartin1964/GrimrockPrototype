@@ -1,199 +1,199 @@
-# GEUI05 — Selected Object Workspace
+# GEUI05 — Espace de travail Selected Object
 
-**Date:** 28 August 2026  
-**Status:** implemented on master — UE5.5.4 build and visual validation pending
+**Date :** 28 août 2026  
+**Statut :** implémenté sur master — compilation UE5.5.4 et validation visuelle en attente
 
-## 1. Objective
+## 1. Objectif
 
-GEUI05 turns the dockable `Selected Object` window into a focused object-authoring workspace.
+GEUI05 transforme la fenêtre dockable `Selected Object` en espace de travail focalisé sur l’authoring des objets.
 
-Before GEUI05, the detached window vertically stacked two large panels:
+Avant GEUI05, la fenêtre détachée empilait verticalement deux grands panneaux :
 
 ~~~text
 PROPERTIES
 CONNECTORS
 ~~~
 
-This recreated part of the original monolithic Toolkit problem inside the new window.
+Cela recréait une partie du problème du Toolkit monolithique d’origine à l’intérieur de la nouvelle fenêtre.
 
-GEUI05 replaces that stack with two mutually exclusive workspace tabs:
+GEUI05 remplace cette pile par deux onglets d’espace de travail mutuellement exclusifs :
 
 ~~~text
 Properties | Connectors
 ~~~
 
-Only the active page is displayed.
+Seule la page active est affichée.
 
-## 2. Properties page
+## 2. Page Properties
 
-The `Properties` page embeds the existing:
+La page `Properties` embarque le widget existant :
 
 ~~~text
 SGridEditorObjectInspectorPanel
 ~~~
 
-No object editing logic is copied or changed.
+Aucune logique d’édition d’objet n’est copiée ni modifiée.
 
-The existing inspector remains authoritative for:
+L’inspecteur existant reste l’autorité pour :
 
-- selected-object summary;
-- placement and orientation;
-- initially enabled / active state;
-- archetype-derived classification;
-- contextual component fields;
-- door, button, lever and pressure-plate behavior;
-- triggers and receptacles;
-- teleporters and transitions;
-- readable content;
-- item definitions;
-- monster spawn properties;
-- light properties;
-- advanced/debug fields;
-- focus / move / reset / apply actions already exposed by the inspector.
+- résumé de l’objet sélectionné ;
+- placement et orientation ;
+- état initially enabled / active ;
+- classification dérivée de l’archétype ;
+- champs de composants contextuels ;
+- comportement des portes, boutons, leviers et plaques de pression ;
+- triggers et receptacles ;
+- teleporters et transitions ;
+- contenu readable ;
+- définitions d’items ;
+- propriétés de MonsterSpawn ;
+- propriétés de lumière ;
+- champs avancés/debug ;
+- actions focus / move / reset / apply déjà exposées par l’inspecteur.
 
-## 3. Connectors page
+## 3. Page Connectors
 
-The `Connectors` page embeds the existing:
+La page `Connectors` embarque le widget existant :
 
 ~~~text
 SGridEditorLinksPanel
 ~~~
 
-No Event -> Command or condition logic is duplicated.
+Aucune logique Event -> Command ou de condition n’est dupliquée.
 
-The existing connector policy/service remains authoritative for:
+La policy/le service de connecteurs existants restent l’autorité pour :
 
-- outgoing connectors;
-- incoming connectors;
-- connector creation;
-- source event;
-- target command;
-- conditions;
-- removal and clearing;
-- linked-object selection;
-- broken-link presentation.
+- connecteurs sortants ;
+- connecteurs entrants ;
+- création de connecteur ;
+- événement source ;
+- commande cible ;
+- conditions ;
+- suppression et effacement ;
+- sélection d’objet lié ;
+- présentation des liens cassés.
 
-Objects that do not support connectors continue to show the existing explanatory message.
+Les objets qui ne prennent pas en charge les connecteurs continuent d’afficher le message explicatif existant.
 
-## 4. Workspace tab behavior
+## 4. Comportement des onglets de l’espace de travail
 
-The selected page is presentation-only state stored by:
+La page sélectionnée est un état de présentation uniquement, stocké par :
 
 ~~~text
 SGridEditorWorkspaceTab
 ~~~
 
-with:
+avec :
 
 ~~~text
 EGridEditorSelectedObjectPage::Properties
 EGridEditorSelectedObjectPage::Connectors
 ~~~
 
-The page remains selected when:
+La page reste sélectionnée lorsque :
 
-- another object is selected;
-- the selected cell changes;
-- the level context refreshes;
-- the workspace rebuilds because of existing GEUI01 context observation.
+- un autre objet est sélectionné ;
+- la cellule sélectionnée change ;
+- le contexte de niveau se rafraîchit ;
+- l’espace de travail est reconstruit à cause de l’observation de contexte GEUI01 existante.
 
-Closing and recreating the Nomad tab still resets to `Properties`, which is appropriate for the current non-persistent editor workspace state.
+La fermeture puis recréation de l’onglet Nomad réinitialise encore sur `Properties`, ce qui convient à l’état courant non persistant de l’espace de travail éditeur.
 
-## 5. Visual organization
+## 5. Organisation visuelle
 
-The top of the window now provides a compact tab strip using the same selected-tab language introduced for the GEUI04 palette:
+Le haut de la fenêtre fournit maintenant une barre d’onglets compacte utilisant le même langage visuel d’onglet sélectionné introduit pour la palette GEUI04 :
 
-- selected tab background;
-- emphasized label;
-- cyan underline;
-- inactive dark tabs.
+- fond d’onglet sélectionné ;
+- libellé mis en évidence ;
+- soulignement cyan ;
+- onglets inactifs sombres.
 
-The content below occupies the remaining vertical area and owns its own scroll.
+Le contenu en dessous occupe la zone verticale restante et possède son propre défilement.
 
-This removes the duplicate outer section headers and avoids forcing Properties and Connectors to compete for vertical space.
+Cela supprime les en-têtes de section externes dupliqués et évite de forcer Properties et Connectors à se partager l’espace vertical.
 
-## 6. Legacy Toolkit
+## 6. Toolkit historique
 
-The legacy inline Toolkit remains unchanged for GEUI05:
+Le Toolkit inline historique reste inchangé pour GEUI05 :
 
 ~~~text
 SELECTED OBJECT
 CONNECTORS
 ~~~
 
-These sections are retained as compatibility fallback until:
+Ces sections sont conservées comme fallback de compatibilité jusqu’à :
 
 ~~~text
 GEUI06 — Slim Main Toolkit
 ~~~
 
-The fallback and the dockable workspace use the same existing inspector/link widgets, so there is no second object-editing implementation.
+Le fallback et l’espace de travail dockable utilisent les mêmes widgets inspecteur/liens existants ; il n’existe donc pas de seconde implémentation d’édition d’objet.
 
-## 7. Files changed
+## 7. Fichiers modifiés
 
-Modified:
+Modifiés :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/Widgets/SGridEditorWorkspaceTab.h
 Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorWorkspaceTab.cpp
 ~~~
 
-New:
+Nouveau :
 
 ~~~text
 docs/Design/GEUI05_SELECTED_OBJECT_WORKSPACE.md
 ~~~
 
-No runtime source, `.uasset` or `.umap` is modified.
+Aucune source runtime, aucun `.uasset` ou `.umap` n’est modifié.
 
-## 8. Required UE5.5.4 validation
+## 8. Validation UE5.5.4 requise
 
-Build:
+Compilation :
 
 ~~~powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipAutomation
 ~~~
 
-Visual validation:
+Validation visuelle :
 
-1. Open `L_GrimrockEditor`.
-2. Activate `Grimrock Grid Editor`.
-3. Open `Window > Selected Object`.
-4. Confirm the top row contains exactly:
+1. Ouvrir `L_GrimrockEditor`.
+2. Activer `Grimrock Grid Editor`.
+3. Ouvrir `Window > Selected Object`.
+4. Confirmer que la rangée supérieure contient exactement :
    - Properties
    - Connectors
-5. Confirm only one page is visible at a time.
-6. Select several object types and verify the Properties page follows selection.
-7. Switch to Connectors and select several objects:
-   - connector-capable objects show the existing connector UI;
-   - unsupported objects show the existing no-connector message.
-8. Create/cancel a connector using the existing form.
-9. Switch back to Properties and verify object editing still works.
-10. Resize the window narrow/tall/wide and verify the active page scrolls without duplicating the second page.
-11. Confirm the legacy inline SELECTED OBJECT and CONNECTORS panels still work.
+5. Confirmer qu’une seule page est visible à la fois.
+6. Sélectionner plusieurs types d’objet et vérifier que la page Properties suit la sélection.
+7. Passer à Connectors et sélectionner plusieurs objets :
+   - les objets compatibles connecteurs affichent l’UI de connecteur existante ;
+   - les objets non compatibles affichent le message existant indiquant l’absence de connecteur.
+8. Créer/annuler un connecteur via le formulaire existant.
+9. Revenir à Properties et vérifier que l’édition d’objet fonctionne toujours.
+10. Redimensionner la fenêtre étroite/haute/large et vérifier que la page active défile sans dupliquer la seconde page.
+11. Confirmer que les panneaux inline historiques SELECTED OBJECT et CONNECTORS fonctionnent toujours.
 
-## 9. Explicit non-goals
+## 9. Hors périmètre explicite
 
-GEUI05 does not:
+GEUI05 ne :
 
-- split the inspector internals into new data models;
-- change object behavior fields;
-- change connector semantics;
-- change Event -> Command;
-- add connector graph visualization;
-- add persistent per-user tab preferences;
-- remove legacy inline panels;
-- create a plugin;
-- modify runtime behavior;
-- modify .uasset or .umap files;
-- open MON21.4.
+- découpe pas les internes de l’inspecteur en nouveaux modèles de données ;
+- modifie pas les champs de comportement des objets ;
+- modifie pas la sémantique des connecteurs ;
+- modifie pas Event -> Command ;
+- ajoute pas de visualisation de graphe de connecteurs ;
+- ajoute pas de préférences d’onglets persistantes par utilisateur ;
+- supprime pas les panneaux inline historiques ;
+- crée pas de plugin ;
+- modifie pas le comportement runtime ;
+- modifie pas de fichiers .uasset ou .umap ;
+- n’ouvre pas MON21.4.
 
-## 10. Next step
+## 10. Étape suivante
 
-After build and visual validation:
+Après compilation et validation visuelle :
 
 ~~~text
 GEUI06 — Slim Main Toolkit
 ~~~
 
-GEUI06 will finally remove the duplicated migrated sections from the main Grid Editor Toolkit and reduce it to the compact editor dashboard/header that opens or summarizes the dedicated workspace windows.
+GEUI06 supprimera enfin du Toolkit principal les sections migrées dupliquées et le réduira au dashboard/en-tête compact de l’éditeur qui ouvre ou résume les fenêtres d’espace de travail dédiées.

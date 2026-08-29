@@ -1,26 +1,26 @@
-# GEUI09 — Refresh and State Cleanup
+# GEUI09 — Nettoyage du rafraîchissement et de l’état
 
-**Date:** 28 August 2026  
-**Status:** implemented on master — UE5.5.4 build and visual validation pending
+**Date :** 28 août 2026  
+**Statut :** implémenté sur master — compilation UE5.5.4 et validation visuelle en attente
 
-## 1. Objective
+## 1. Objectif
 
-GEUI01 introduced lightweight `Tick()` observation so detached Nomad tabs could follow Grid Editor context without adding a parallel event system.
+GEUI01 a introduit une observation légère via `Tick()` afin que les onglets Nomad détachés puissent suivre le contexte du Grid Editor sans ajouter de système d’événements parallèle.
 
-That was intentionally temporary.
+C’était volontairement temporaire.
 
-By GEUI08 the workspace set had become stable enough to refine the observation policy.
+À GEUI08, l’ensemble des espaces de travail était devenu suffisamment stable pour affiner la politique d’observation.
 
-GEUI09 does two things:
+GEUI09 fait deux choses :
 
-1. scope observed context to the workspace that actually needs it;
-2. preserve editor-session UI state across workspace destruction/recreation.
+1. limiter le contexte observé à l’espace de travail qui en a réellement besoin ;
+2. préserver l’état UI de la session éditeur lors de la destruction/recréation des espaces de travail.
 
-GEUI09 deliberately does **not** introduce a global editor event bus or subsystem.
+GEUI09 n’introduit volontairement **pas** de bus d’événements global éditeur ni de subsystem.
 
-## 2. Problem before GEUI09
+## 2. Problème avant GEUI09
 
-Every `SGridEditorWorkspaceTab` observed the same broad context:
+Chaque `SGridEditorWorkspaceTab` observait le même contexte large :
 
 ~~~text
 DungeonAsset
@@ -38,24 +38,24 @@ Patrol edit state
 Patrol waypoint
 ~~~
 
-Any difference rebuilt the complete content of **every open workspace**.
+Toute différence reconstruisait le contenu complet de **chaque espace de travail ouvert**.
 
-Examples of unnecessary work:
+Exemples de travail inutile :
 
-- selecting another object rebuilt Tools & Palette;
-- selecting another cell rebuilt PlayTest & Validation;
-- changing the active paint tool could rebuild unrelated windows;
-- connector count changes could rebuild windows that never display connectors.
+- sélectionner un autre objet reconstruisait Tools & Palette ;
+- sélectionner une autre cellule reconstruisait PlayTest & Validation ;
+- changer l’outil de peinture actif pouvait reconstruire des fenêtres sans rapport ;
+- les changements du nombre de connecteurs pouvaient reconstruire des fenêtres n’affichant jamais de connecteurs.
 
-This also increased the risk of destroying transient Slate interaction state.
+Cela augmentait également le risque de détruire un état d’interaction Slate transitoire.
 
-## 3. Workspace-specific observation
+## 3. Observation spécifique à chaque espace de travail
 
-GEUI09 keeps one lightweight context poll, but evaluates only relevant fields for each workspace.
+GEUI09 conserve un polling léger du contexte, mais n’évalue que les champs pertinents pour chaque espace de travail.
 
 ### Dungeon Levels
 
-Observed:
+Observés :
 
 ~~~text
 DungeonAsset
@@ -66,11 +66,11 @@ SelectedEdge
 ObjectCount
 ~~~
 
-This keeps the level list and overview selection/current geometry synchronized.
+Cela garde synchronisés la liste des niveaux, la sélection de l’overview et la géométrie courante.
 
 ### PlayTest & Validation
 
-Observed:
+Observés :
 
 ~~~text
 DungeonAsset
@@ -78,13 +78,13 @@ LevelAsset
 CurrentDungeonLevelId
 ~~~
 
-Object/cell selection no longer rebuilds the validation search/filter interface.
+La sélection d’objet/cellule ne reconstruit plus l’interface de recherche/filtrage de Validation.
 
-Actions inside PlayTest and Validation already request their own refresh when needed.
+Les actions à l’intérieur de PlayTest et Validation demandent déjà leur propre rafraîchissement lorsqu’il est nécessaire.
 
 ### Tools & Palette
 
-Observed:
+Observés :
 
 ~~~text
 ObjectPalette
@@ -92,11 +92,11 @@ SelectedPaletteEntryId
 ActiveTool
 ~~~
 
-Viewport cell/object selection no longer destroys and recreates the palette workspace.
+La sélection cellule/objet dans le viewport ne détruit plus et ne recrée plus l’espace de travail de palette.
 
 ### Selected Object
 
-Observed:
+Observés :
 
 ~~~text
 DungeonAsset
@@ -112,27 +112,27 @@ Patrol edit state
 Selected patrol waypoint
 ~~~
 
-This workspace remains the most selection-sensitive by design.
+Cet espace de travail reste volontairement le plus sensible à la sélection.
 
-## 4. Actor polling cleanup
+## 4. Nettoyage du polling de l’acteur
 
-The observed editor actor weak pointer is reused while valid.
+Le weak pointer vers l’acteur éditeur observé est réutilisé tant qu’il reste valide.
 
-`FindEditorActor()` is therefore no longer required simply to rediscover the same actor on every context check.
+`FindEditorActor()` n’est donc plus nécessaire simplement pour redécouvrir le même acteur lors de chaque contrôle de contexte.
 
-A dedicated:
+Un indicateur dédié :
 
 ~~~text
 bObservedHasEditorActor
 ~~~
 
-flag also lets the workspace detect actor disappearance/reappearance cleanly instead of leaving stale detached content when the editor actor is destroyed.
+permet aussi à l’espace de travail de détecter proprement la disparition/réapparition de l’acteur au lieu de laisser un contenu détaché obsolète lorsque l’acteur éditeur est détruit.
 
-## 5. Session UI state
+## 5. État UI de session
 
-GEUI09 adds one editor-session presentation state owned inside the editor module implementation.
+GEUI09 ajoute un état de présentation de session éditeur unique, possédé dans l’implémentation du module éditeur.
 
-It preserves:
+Il préserve :
 
 ~~~text
 ToolPaletteState
@@ -141,35 +141,35 @@ SelectedObjectPage
 ValidationLevelAsset
 ~~~
 
-Consequences:
+Conséquences :
 
-- Palette search/view/favorites/recent state survives closing and reopening Tools & Palette in the same UE session;
-- Validation filters/search/results survive temporary workspace destruction;
-- Properties vs Connectors survives Selected Object tab recreation;
-- mode exit/re-entry no longer resets those presentation choices.
+- l’état recherche/vue/favoris/récents de la Palette survit à la fermeture puis réouverture de Tools & Palette dans la même session UE ;
+- les filtres/recherche/résultats de Validation survivent à une destruction temporaire de l’espace de travail ;
+- Properties vs Connectors survit à la recréation de l’onglet Selected Object ;
+- la sortie/rentrée du mode ne réinitialise plus ces choix de présentation.
 
-This is **not gameplay data** and is not stored in `.uasset` or `.umap`.
+Il ne s’agit **pas de données gameplay** et cet état n’est pas stocké dans des `.uasset` ou `.umap`.
 
-Favorites/Recent keep their existing per-user config persistence from GEUI07.
+Favorites/Recent conservent leur persistance de configuration par utilisateur déjà introduite avec GEUI07.
 
-## 6. Validation safety on level change
+## 6. Sécurité de Validation lors d’un changement de niveau
 
-Validation messages belong to one level.
+Les messages de validation appartiennent à un niveau donné.
 
-Therefore, when the PlayTest & Validation workspace detects a different `UGridLevelAsset` than the one associated with the session validation state, GEUI09 clears:
+Par conséquent, lorsque l’espace de travail PlayTest & Validation détecte un `UGridLevelAsset` différent de celui associé à l’état de validation de session, GEUI09 efface :
 
 ~~~text
 ValidationMessages
 bValidationHasRun
 ~~~
 
-The user's search and severity-filter preferences remain intact.
+Les préférences de recherche et de filtres de sévérité de l’utilisateur restent intactes.
 
-This prevents stale errors from a previous dungeon level appearing as if they belonged to the newly selected level.
+Cela empêche des erreurs obsolètes du niveau précédent d’apparaître comme si elles appartenaient au nouveau niveau sélectionné.
 
-## 7. No global event bus yet
+## 7. Pas encore de bus d’événements global
 
-GEUI09 intentionally does not add:
+GEUI09 n’ajoute volontairement pas :
 
 ~~~text
 UGridEditorSubsystem
@@ -178,75 +178,75 @@ global multicast delegates
 new UObject notification models
 ~~~
 
-The current editor has one authoring actor and a small number of dockable workspaces.
+L’éditeur courant possède un seul acteur d’authoring et un petit nombre d’espaces de travail dockables.
 
-A global event architecture would currently add more lifecycle complexity than value.
+Une architecture globale d’événements ajouterait actuellement davantage de complexité de cycle de vie que de valeur.
 
-If future player-facing/runtime level authoring requires broader decoupling, that concern belongs to the later plugin/runtime readiness work.
+Si un futur authoring de niveau côté joueur/runtime exige un découplage plus important, ce sujet relève des travaux ultérieurs de préparation plugin/runtime.
 
-## 8. Files changed
+## 8. Fichiers modifiés
 
-Modified:
+Modifiés :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/Widgets/SGridEditorWorkspaceTab.h
 Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorWorkspaceTab.cpp
 ~~~
 
-New:
+Nouveau :
 
 ~~~text
 docs/Design/GEUI09_REFRESH_STATE_CLEANUP.md
 ~~~
 
-No runtime source, `.uasset` or `.umap` is modified.
+Aucune source runtime, aucun `.uasset` ni `.umap` n’est modifié.
 
-## 9. Required UE5.5.4 validation
+## 9. Validation UE5.5.4 requise
 
-Build:
+Compilation :
 
 ~~~powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipAutomation
 ~~~
 
-Visual/behavior validation:
+Validation visuelle/comportementale :
 
-1. Open all four Grid Editor workspaces.
-2. In Validation, enter a multi-character search.
-3. Change selected object/cell in the viewport.
-4. Confirm the Validation search text remains intact and focused interaction is not unexpectedly reset.
-5. In Tools & Palette, choose a category/search.
-6. Change viewport cell/object selection.
-7. Confirm palette UI state remains unchanged.
-8. Switch Selected Object to Connectors.
-9. Leave Grid Editor and return.
-10. Confirm Selected Object returns to Connectors.
-11. Confirm Tools & Palette retains its session view/search.
-12. Confirm Validation retains its search/filter state.
-13. Change to a different dungeon level.
-14. Confirm old validation messages are cleared and Validation reports that no validation has run for the new level.
-15. Return to the previous level and run validation again.
-16. Confirm no runtime/PIE behavior changes.
+1. Ouvrir les quatre espaces de travail du Grid Editor.
+2. Dans Validation, saisir une recherche de plusieurs caractères.
+3. Changer l’objet/la cellule sélectionné(e) dans le viewport.
+4. Confirmer que le texte de recherche Validation reste intact et que l’interaction ciblée n’est pas réinitialisée de manière inattendue.
+5. Dans Tools & Palette, choisir une catégorie/recherche.
+6. Changer la sélection cellule/objet du viewport.
+7. Confirmer que l’état UI de la palette reste inchangé.
+8. Passer Selected Object sur Connectors.
+9. Quitter Grid Editor puis y revenir.
+10. Confirmer que Selected Object revient sur Connectors.
+11. Confirmer que Tools & Palette conserve sa vue/recherche de session.
+12. Confirmer que Validation conserve son état recherche/filtres.
+13. Passer à un autre niveau du donjon.
+14. Confirmer que les anciens messages de validation sont effacés et que Validation indique qu’aucune validation n’a encore été exécutée pour le nouveau niveau.
+15. Revenir au niveau précédent et relancer la validation.
+16. Confirmer qu’aucun comportement runtime/PIE n’a changé.
 
-## 10. Explicit non-goals
+## 10. Hors périmètre explicite
 
-GEUI09 does not:
+GEUI09 ne :
 
-- change authoring data;
-- change runtime behavior;
-- change connector semantics;
-- change validation rules;
-- add a global editor subsystem;
-- persist every UI detail between separate UE launches;
-- modify `.uasset` or `.umap`;
-- open MON21.4.
+- modifie pas les données d’authoring ;
+- modifie pas le comportement runtime ;
+- modifie pas la sémantique des connecteurs ;
+- modifie pas les règles de validation ;
+- ajoute pas de subsystem éditeur global ;
+- ne persiste pas chaque détail UI entre des lancements UE distincts ;
+- modifie pas de `.uasset` ou `.umap` ;
+- n’ouvre pas MON21.4.
 
-## 11. Next step
+## 11. Étape suivante
 
-After validation:
+Après validation :
 
 ~~~text
 GEUI10 — Plugin / Player Level Editor readiness audit
 ~~~
 
-GEUI10 should be an architectural audit/documentation milestone, not a refactor. It will classify the current Grid Editor code into editor-only, reusable, runtime-compatible and future extraction candidates before returning focus to real dungeon content authoring.
+GEUI10 doit être un jalon d’audit/documentation architectural, et non un refactor. Il classera le code courant du Grid Editor entre editor-only, réutilisable, compatible runtime et candidat à une future extraction, avant de revenir à l’authoring de contenu réel de donjon.

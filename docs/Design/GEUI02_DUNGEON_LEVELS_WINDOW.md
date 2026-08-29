@@ -1,84 +1,84 @@
-# GEUI02 — Dungeon Levels Window
+# GEUI02 — Fenêtre Dungeon Levels
 
-**Date:** 28 August 2026  
-**Status:** implemented on master — UE5.5.4 build and visual validation pending
+**Date :** 28 août 2026  
+**Statut :** implémenté sur master — compilation UE5.5.4 et validation visuelle en attente
 
-## 1. Objective
+## 1. Objectif
 
-GEUI02 turns the GEUI01 `Dungeon Levels` Nomad tab into the first complete authoring workspace.
+GEUI02 transforme l’onglet Nomad `Dungeon Levels` de GEUI01 en premier espace de travail d’authoring complet.
 
-The target is a single window that combines:
+La cible est une fenêtre unique combinant :
 
-- dungeon identity and current-level status;
-- dungeon-level list and level-management actions;
-- the existing 32x32 Overview Map;
-- selected-cell/object navigation already provided by the Overview widget.
+- l’identité du donjon et l’état du niveau courant ;
+- la liste des niveaux du donjon et les actions de gestion des niveaux ;
+- l’Overview Map 32x32 existante ;
+- la navigation cellule/objet sélectionné déjà fournie par le widget Overview.
 
-No new dungeon or level data model is introduced.
+Aucun nouveau modèle de données de donjon ou de niveau n’est introduit.
 
-## 2. Single level-management widget
+## 2. Widget unique de gestion des niveaux
 
-The level-management UI previously lived directly inside:
+L’UI de gestion des niveaux vivait auparavant directement dans :
 
 ~~~text
 FGridLevelEdModeToolkit::BuildDungeonLevelsPanel
 ~~~
 
-GEUI02 extracts that implementation into:
+GEUI02 extrait cette implémentation vers :
 
 ~~~text
 SGridEditorDungeonLevelsPanel
 ~~~
 
-Files:
+Fichiers :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/Widgets/SGridEditorDungeonLevelsPanel.h
 Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorDungeonLevelsPanel.cpp
 ~~~
 
-This widget is now the only Slate implementation of the current level-management workflow.
+Ce widget est désormais l’unique implémentation Slate du workflow courant de gestion des niveaux.
 
-It is reused by both:
+Il est réutilisé par :
 
 ~~~text
 legacy inline Grid Editor Toolkit
 GEUI02 Dungeon Levels Nomad tab
 ~~~
 
-This preserves the GEUI01 fallback while avoiding duplicated logic.
+Cela préserve le fallback GEUI01 tout en évitant une duplication de logique.
 
-## 3. Preserved level actions
+## 3. Actions de niveau conservées
 
-The extracted panel preserves the existing behavior:
+Le panneau extrait conserve le comportement existant :
 
-- Load Default;
-- Reload Current;
-- Log Dungeon;
-- Log Transitions;
-- New Level;
-- select an enabled dungeon level with a valid LevelAsset.
+- Load Default ;
+- Reload Current ;
+- Log Dungeon ;
+- Log Transitions ;
+- New Level ;
+- sélection d’un niveau de donjon activé possédant un LevelAsset valide.
 
-The `Create New Dungeon Level` transient `SWindow` is preserved.
+La `SWindow` transitoire `Create New Dungeon Level` est conservée.
 
-It still validates:
+Elle valide toujours :
 
-- non-empty Level Id;
-- unique Level Id;
-- unique logical position;
-- fallback display name.
+- Level Id non vide ;
+- Level Id unique ;
+- position logique unique ;
+- nom d’affichage de repli.
 
-Creation still delegates to:
+La création délègue toujours à :
 
 ~~~text
 AGridLevelEditorActor::CreateAndAddDungeonLevel
 ~~~
 
-No asset-creation contract is duplicated.
+Aucun contrat de création d’asset n’est dupliqué.
 
-## 4. New Dungeon Levels workspace layout
+## 4. Nouvelle disposition de l’espace de travail Dungeon Levels
 
-The Nomad tab now uses a horizontal Slate splitter:
+L’onglet Nomad utilise maintenant un splitter Slate horizontal :
 
 ~~~text
 +------------------------------+------------------------------------------+
@@ -98,61 +98,60 @@ The Nomad tab now uses a horizontal Slate splitter:
 +------------------------------+------------------------------------------+
 ~~~
 
-Initial splitter proportion:
+Proportion initiale du splitter :
 
 ~~~text
 Level management : 36%
 Overview Map      : 64%
 ~~~
 
-### Post-validation ergonomic adjustment
+### Ajustement ergonomique après validation
 
-After the first GEUI02 visual validation, two layout constraints were tightened:
+Après la première validation visuelle GEUI02, deux contraintes de mise en page ont été renforcées :
 
-- the Overview Map now derives both its requested width and height from the same per-cell pitch;
-- a 32x32 level therefore requests a square map surface (1:1 ratio);
-- the level-management actions are displayed as a vertically spaced button stack instead of one compressed horizontal row.
+- l’Overview Map dérive maintenant sa largeur et sa hauteur demandées du même pas par cellule ;
+- un niveau 32x32 demande donc une surface de carte carrée (ratio 1:1) ;
+- les actions de gestion des niveaux sont affichées comme une pile verticale de boutons espacés au lieu d’une ligne horizontale compressée.
 
-The 1:1 rule is implemented inside `SGridEditorOverviewMapPanel`, so both the dockable workspace and the legacy inline Overview benefit from the same geometry.
+La règle 1:1 est implémentée dans `SGridEditorOverviewMapPanel`, de sorte que l’espace de travail dockable et l’Overview inline historique bénéficient de la même géométrie.
 
-A second post-validation correction explicitly centers the grid child inside its square `SBox`. This prevents Slate from stretching the `SUniformGridPanel` independently on X when the parent pane receives extra horizontal space. The requested map surface remains square and the actual grid content now keeps the same X/Y scale while the window is resized.
+Une seconde correction après validation centre explicitement l’enfant grille dans son `SBox` carré. Cela empêche Slate d’étirer indépendamment le `SUniformGridPanel` sur l’axe X lorsque le panneau parent reçoit de l’espace horizontal supplémentaire. La surface de carte demandée reste carrée et le contenu réel de la grille conserve désormais la même échelle X/Y pendant le redimensionnement de la fenêtre.
 
+Chaque côté possède sa propre zone de défilement, de sorte qu’une longue liste de niveaux ne pousse pas l’Overview Map vers le bas de la fenêtre.
 
-Each side has its own scroll area, so a long dungeon level list does not force the Overview Map down the window.
+## 5. Synchronisation
 
-## 5. Synchronization
+Les deux moitiés continuent d’opérer sur le `AGridLevelEditorActor` courant.
 
-Both halves continue to operate on the current `AGridLevelEditorActor`.
+Lorsqu’un niveau est sélectionné ou créé :
 
-When a level is selected or created:
+1. l’acteur faisant autorité est mis à jour ;
+2. le chemin existant d’application du niveau de donjon s’exécute ;
+3. l’espace de travail GEUI se reconstruit ;
+4. l’Overview Map suit donc le nouveau `LevelAsset` actif ;
+5. les viewports éditeur sont redessinés.
 
-1. the authoritative actor is updated;
-2. the existing dungeon-level application path runs;
-3. the GEUI workspace rebuilds;
-4. the Overview Map therefore follows the newly active `LevelAsset`;
-5. editor viewports are redrawn.
+L’observation de contexte GEUI01 existante reste inchangée.
 
-The existing GEUI01 context observation remains unchanged.
+## 6. Toolkit historique
 
-## 6. Legacy Toolkit
+L’ancienne section `DUNGEON LEVELS` est volontairement conservée pour ce jalon, mais elle ne contient plus d’implémentation séparée.
 
-The old `DUNGEON LEVELS` section is deliberately retained for this milestone, but it no longer contains a separate implementation.
-
-It now instantiates:
+Elle instancie désormais :
 
 ~~~text
 SGridEditorDungeonLevelsPanel
 ~~~
 
-This is the compatibility fallback promised by GEUI01.
+C’est le fallback de compatibilité promis par GEUI01.
 
-The old Toolkit section should not be removed until the complete workspace migration reaches GEUI06.
+L’ancienne section du Toolkit ne devra pas être supprimée avant que la migration complète de l’espace de travail atteigne GEUI06.
 
-The existing inline `OVERVIEW MAP` also remains present for the same reason.
+L’`OVERVIEW MAP` inline existante reste également présente pour la même raison.
 
-## 7. Files changed
+## 7. Fichiers modifiés
 
-New:
+Nouveaux :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/Widgets/SGridEditorDungeonLevelsPanel.h
@@ -160,7 +159,7 @@ Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorDungeonLev
 docs/Design/GEUI02_DUNGEON_LEVELS_WINDOW.md
 ~~~
 
-Modified:
+Modifiés :
 
 ~~~text
 Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEdModeToolkit.h
@@ -168,59 +167,59 @@ Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEdModeToolkit.cpp
 Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorWorkspaceTab.cpp
 ~~~
 
-No runtime source, `.uasset` or `.umap` is modified.
+Aucune source runtime, aucun `.uasset` ou `.umap` n’est modifié.
 
-## 8. Required UE5.5.4 validation
+## 8. Validation UE5.5.4 requise
 
-Build:
+Compilation :
 
 ~~~powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipAutomation
 ~~~
 
-Visual validation:
+Validation visuelle :
 
-1. Open `L_GrimrockEditor`.
-2. Activate `Grimrock Grid Editor`.
-3. Open `Window > Dungeon Levels`.
-4. Confirm that the left side contains the dungeon metadata, actions and level list.
-5. Confirm that the right side contains the Overview Map.
-6. Drag the splitter between both panes.
-7. Select every existing enabled level and confirm:
-   - Current Level Id changes;
-   - Current LevelAsset changes;
-   - Overview Map changes to that level;
-   - viewport preview follows the level.
-8. Test `Load Default`.
-9. Test `Reload Current`.
-10. Test `New Level` up to opening the dialog; creating a disposable level is optional because it modifies assets.
-11. Confirm the legacy inline `DUNGEON LEVELS` section still exposes the same actions.
-12. Confirm the legacy inline `OVERVIEW MAP` still works.
-13. Close and reopen the Nomad tab and confirm the current level is preserved.
+1. Ouvrir `L_GrimrockEditor`.
+2. Activer `Grimrock Grid Editor`.
+3. Ouvrir `Window > Dungeon Levels`.
+4. Confirmer que la partie gauche contient les métadonnées du donjon, les actions et la liste de niveaux.
+5. Confirmer que la partie droite contient l’Overview Map.
+6. Déplacer le splitter entre les deux panneaux.
+7. Sélectionner chaque niveau activé existant et confirmer :
+   - changement de Current Level Id ;
+   - changement de Current LevelAsset ;
+   - mise à jour de l’Overview Map vers ce niveau ;
+   - suivi du niveau par la preview du viewport.
+8. Tester `Load Default`.
+9. Tester `Reload Current`.
+10. Tester `New Level` jusqu’à l’ouverture de la boîte de dialogue ; la création d’un niveau jetable est facultative car elle modifie les assets.
+11. Confirmer que l’ancienne section inline `DUNGEON LEVELS` expose toujours les mêmes actions.
+12. Confirmer que l’ancienne `OVERVIEW MAP` inline fonctionne toujours.
+13. Fermer et rouvrir l’onglet Nomad et confirmer que le niveau courant est conservé.
 
-## 9. Explicit non-goals
+## 9. Hors périmètre explicite
 
-GEUI02 does not:
+GEUI02 ne :
 
-- change UGridDungeonAsset;
-- change UGridLevelAsset;
-- change level switching semantics;
-- remove the legacy inline Dungeon Levels section;
-- remove the legacy inline Overview Map section;
-- add level deletion/reordering/duplication;
-- redesign logical dungeon topology;
-- create a subsystem;
-- create a plugin;
-- modify runtime behavior;
-- modify .uasset or .umap files;
-- open MON21.4.
+- modifie pas UGridDungeonAsset ;
+- modifie pas UGridLevelAsset ;
+- modifie pas la sémantique de changement de niveau ;
+- supprime pas l’ancienne section inline Dungeon Levels ;
+- supprime pas l’ancienne section inline Overview Map ;
+- ajoute pas suppression/réordonnancement/duplication de niveaux ;
+- refond pas la topologie logique du donjon ;
+- crée pas de subsystem ;
+- crée pas de plugin ;
+- modifie pas le comportement runtime ;
+- modifie pas de fichiers .uasset ou .umap ;
+- n’ouvre pas MON21.4.
 
-## 10. Next step
+## 10. Étape suivante
 
-After build and visual validation:
+Après compilation et validation visuelle :
 
 ~~~text
 GEUI03 — PlayTest & Validation Window
 ~~~
 
-GEUI03 will perform the same reuse-first extraction for the PlayTest controls and compose them with the existing Validation panel.
+GEUI03 effectuera la même extraction privilégiant la réutilisation pour les contrôles PlayTest et les composera avec le panneau Validation existant.

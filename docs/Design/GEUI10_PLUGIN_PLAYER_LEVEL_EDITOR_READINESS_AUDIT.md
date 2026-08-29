@@ -1,61 +1,61 @@
-# GEUI10 — Plugin / Player Level Editor Readiness Audit
+# GEUI10 — Audit de préparation Plugin / Player Level Editor
 
-**Date:** 28 August 2026  
-**Status:** architecture audit complete  
-**Implementation impact:** documentation only — no C++ refactor, no plugin creation, no asset/map modification
+**Date :** 28 août 2026  
+**Statut :** audit d’architecture terminé  
+**Impact d’implémentation :** documentation uniquement — aucun refactor C++, aucune création de plugin, aucune modification d’asset/map
 
-## 1. Objective
+## 1. Objectif
 
-GEUI10 closes the Grid Editor workspace refactor by answering one long-term architectural question:
+GEUI10 clôt la refonte des espaces de travail du Grid Editor en répondant à une question d’architecture à long terme :
 
-> How much of the current Grimrock Grid Editor can eventually support player-authored dungeons in a packaged game, and what must be separated before that becomes safe and maintainable?
+> Dans quelle mesure le Grimrock Grid Editor actuel pourra-t-il, à terme, prendre en charge des donjons créés par les joueurs dans un jeu packagé, et quelles responsabilités devront être séparées avant que cela devienne sûr et maintenable ?
 
-This milestone is intentionally an **audit**, not an implementation milestone.
+Ce jalon est volontairement un **audit**, et non un jalon d’implémentation.
 
-The immediate project objective remains the Unreal Editor authoring workflow. A packaged player-facing editor is a future capability.
+L’objectif immédiat du projet reste le workflow d’authoring dans l’Unreal Editor. Un éditeur packagé destiné aux joueurs est une capacité future.
 
-GEUI10 therefore does **not**:
+GEUI10 ne :
 
-- move classes between modules;
-- create a plugin;
-- create a runtime editor UI;
-- introduce a new save/package format;
-- refactor `AGridLevelEditorActor`;
-- change the existing DataAssets;
-- change runtime gameplay;
-- modify `.uasset` or `.umap`;
-- open MON21.4.
+- déplace pas de classes entre modules ;
+- ne crée pas de plugin ;
+- ne crée pas d’UI d’éditeur runtime ;
+- n’introduit pas de nouveau format de sauvegarde/package ;
+- ne refactor pas `AGridLevelEditorActor` ;
+- ne modifie pas les DataAssets existants ;
+- ne modifie pas le gameplay runtime ;
+- ne modifie pas de `.uasset` ou `.umap` ;
+- n’ouvre pas MON21.4.
 
-## 2. Executive conclusion
+## 2. Conclusion exécutive
 
-The project is in a favorable position for future player-authored dungeons because the most important architectural decision was already made correctly:
+Le projet est bien positionné pour de futurs donjons créés par les joueurs, car la décision d’architecture la plus importante a déjà été prise correctement :
 
 ~~~text
-level topology and gameplay data
+topologie du niveau et données gameplay
             ↓
 UGridLevelAsset / UGridDungeonAsset
             ↓
 AGridLevelRuntimeActor
 ~~~
 
-The Unreal map is not the dungeon source of truth.
+La map Unreal n’est pas la source de vérité du donjon.
 
-The current architecture already separates:
+L’architecture actuelle sépare déjà :
 
 ~~~text
-Runtime data/gameplay
+Données/gameplay Runtime
     GrimrockPrototype
     GrimrockLua
 
-Unreal Editor authoring
+Authoring Unreal Editor
     GrimrockPrototypeEditor
 ~~~
 
-That means a future player editor does **not** require rewriting the dungeon runtime.
+Cela signifie qu’un futur éditeur joueur ne nécessite **pas** de réécrire le runtime du donjon.
 
-However, the current Unreal Grid Editor itself cannot simply be shipped.
+En revanche, le Grid Editor Unreal actuel ne peut pas simplement être livré tel quel.
 
-The future packaged editor needs a third conceptual layer:
+Le futur éditeur packagé nécessite une troisième couche conceptuelle :
 
 ~~~text
 Developer Unreal Editor
@@ -63,8 +63,8 @@ Developer Unreal Editor
 GrimrockPrototypeEditor
         ↓
         ┌───────────────────────────┐
-        │ future Authoring Core     │
-        │ data mutation/validation  │
+        │ futur Authoring Core      │
+        │ mutation/validation data  │
         └───────────────────────────┘
                    ↓
        GrimrockPrototype Runtime
@@ -75,15 +75,15 @@ GrimrockPrototypeEditor
         └───────────────────────────┘
 ~~~
 
-The recommendation is therefore:
+La recommandation est donc :
 
-> **Do not convert GrimrockPrototypeEditor into a runtime module.**
+> **Ne pas convertir GrimrockPrototypeEditor en module runtime.**
 
-Instead, when player authoring becomes an active milestone, extract only the data-oriented authoring rules into a small runtime-compatible authoring layer and build a dedicated packaged UI around it.
+Lorsque l’authoring joueur deviendra un jalon actif, il faudra plutôt extraire uniquement les règles d’authoring orientées données vers une petite couche compatible runtime et construire autour d’elle une UI packagée dédiée.
 
-## 3. Current module topology
+## 3. Topologie actuelle des modules
 
-The current `.uproject` declares:
+Le `.uproject` actuel déclare :
 
 ~~~text
 GrimrockLua              Runtime
@@ -91,20 +91,20 @@ GrimrockPrototype        Runtime
 GrimrockPrototypeEditor  Editor
 ~~~
 
-The game target includes:
+La cible Game inclut :
 
 ~~~text
 GrimrockPrototype
 ~~~
 
-The editor target includes:
+La cible Editor inclut :
 
 ~~~text
 GrimrockPrototype
 GrimrockPrototypeEditor
 ~~~
 
-This direction is correct:
+Cette direction est correcte :
 
 ~~~text
 GrimrockPrototypeEditor
@@ -114,11 +114,11 @@ GrimrockPrototype
 GrimrockLua
 ~~~
 
-The runtime does not depend on `GrimrockPrototypeEditor`.
+Le runtime ne dépend pas de `GrimrockPrototypeEditor`.
 
-### 3.1 Current runtime dependencies
+### 3.1 Dépendances runtime actuelles
 
-The current `GrimrockPrototype.Build.cs` contains:
+Le `GrimrockPrototype.Build.cs` courant contient :
 
 ~~~text
 Public:
@@ -136,22 +136,22 @@ Slate
 SlateCore
 ~~~
 
-This is newer than the historical snapshot in `docs/Architecture_Runtime_Editor_Split.md`, which predates the current runtime UI work.
+Cet état est plus récent que l’instantané historique de `docs/Architecture_Runtime_Editor_Split.md`, antérieur au travail actuel sur l’UI runtime.
 
-The presence of runtime `Slate/SlateCore` is not itself a player-editor blocker: those dependencies are used by packaged game UI code and are legal runtime dependencies.
+La présence de `Slate/SlateCore` dans le runtime n’est pas en soi un blocage pour un éditeur joueur : ces dépendances sont utilisées par du code UI de jeu packagé et sont des dépendances runtime valides.
 
-The important forbidden direction remains:
+La direction interdite importante reste :
 
 ~~~text
 GrimrockPrototype -> UnrealEd
 GrimrockPrototype -> GrimrockPrototypeEditor
 ~~~
 
-No such module dependency is currently declared.
+Aucune dépendance de module de ce type n’est actuellement déclarée.
 
-### 3.2 Current editor dependencies
+### 3.2 Dépendances éditeur actuelles
 
-`GrimrockPrototypeEditor` owns the expected editor-only dependencies:
+`GrimrockPrototypeEditor` possède les dépendances editor-only attendues :
 
 ~~~text
 UnrealEd
@@ -164,34 +164,34 @@ ApplicationCore
 AssetRegistry
 ~~~
 
-This module is therefore correctly excluded from a packaged game target.
+Ce module est donc correctement exclu d’une cible Game packagée.
 
-## 4. Readiness matrix
+## 4. Matrice de préparation
 
-| Area | Current readiness for future player editor | Assessment |
+| Domaine | Préparation actuelle pour un futur éditeur joueur | Évaluation |
 |---|---:|---|
-| Grid/cell data model | High | Runtime data already independent of Unreal Editor. |
-| Placed object model | High | `FGridLevelObjectData` is runtime and data-driven. |
-| Event -> Command links | High | Persistent link model is runtime. |
-| Multi-level dungeon model | High | `UGridDungeonAsset` already provides stable level identity and logical position. |
-| Runtime reconstruction | High | `AGridLevelRuntimeActor` consumes level data directly. |
-| Object archetypes | High | Runtime DataAssets already define placement/render/runtime behavior. |
-| Palette metadata | Medium/High | Runtime DataAsset; useful for authoring, but player exposure must be allowlisted. |
-| Lua runtime sandbox | High | Dedicated runtime module with hard limits and host-controlled API. |
-| Level mutation primitives | Medium | Some are already runtime; much higher-level authoring mutation remains in editor actor/services. |
-| Validation | Medium | Many pure rules exist, but complete editor validation is currently editor-module-owned. |
-| Runtime authoring persistence | Low | No player dungeon package/document serializer currently exists. |
-| Runtime undo/redo | Low | Current workflow relies on Unreal Editor transactions/authoring semantics. |
-| Runtime picking/editor camera | Low | Current interaction uses EdMode / editor viewport infrastructure. |
-| Runtime authoring UI | Low | Current Slate workspace is editor-only by design. |
-| Player content security | Medium | Lua sandbox is strong, but asset/archetype/package allowlisting is not yet a complete player-content boundary. |
-| Plugin packaging | Not required now | A plugin is optional organization, not a prerequisite. |
+| Modèle de données grille/cellule | Élevée | Les données runtime sont déjà indépendantes de l’Unreal Editor. |
+| Modèle d’objet placé | Élevée | `FGridLevelObjectData` est runtime et data-driven. |
+| Liens Event -> Command | Élevée | Le modèle persistant des liens est runtime. |
+| Modèle de donjon multi-niveaux | Élevée | `UGridDungeonAsset` fournit déjà une identité de niveau stable et une position logique. |
+| Reconstruction runtime | Élevée | `AGridLevelRuntimeActor` consomme directement les données de niveau. |
+| Archétypes d’objets | Élevée | Les DataAssets runtime définissent déjà le placement, le rendu et le comportement runtime. |
+| Métadonnées de palette | Moyenne/Élevée | DataAsset runtime ; utile pour l’authoring, mais l’exposition joueur devra être limitée à une liste autorisée. |
+| Sandbox Lua runtime | Élevée | Module runtime dédié avec limites strictes et API contrôlée par l’hôte. |
+| Primitives de mutation de niveau | Moyenne | Certaines sont déjà runtime ; une grande partie de l’authoring haut niveau reste dans l’acteur/services éditeur. |
+| Validation | Moyenne | De nombreuses règles pures existent, mais la validation éditeur complète appartient encore au module éditeur. |
+| Persistance de l’authoring runtime | Faible | Aucun sérialiseur de document/package de donjon joueur n’existe actuellement. |
+| Undo/redo runtime | Faible | Le workflow courant repose sur les transactions/sémantiques d’authoring de l’Unreal Editor. |
+| Picking runtime/caméra éditeur | Faible | L’interaction actuelle utilise EdMode / l’infrastructure du viewport éditeur. |
+| UI d’authoring runtime | Faible | L’espace de travail Slate courant est editor-only par conception. |
+| Sécurité du contenu joueur | Moyenne | Le sandbox Lua est solide, mais l’allowlist des assets/archétypes/packages n’est pas encore une frontière complète pour le contenu joueur. |
+| Packaging en plugin | Non requis actuellement | Un plugin est une option d’organisation, pas un prérequis. |
 
-## 5. Already reusable without architectural extraction
+## 5. Éléments déjà réutilisables sans extraction d’architecture
 
-### 5.1 Core grid types
+### 5.1 Types de grille Core
 
-The following are already runtime types and are strong future-authoring foundations:
+Les éléments suivants sont déjà des types runtime et constituent de solides fondations pour un futur authoring :
 
 ~~~text
 EGridCellType
@@ -206,26 +206,26 @@ EGridObjectCondition
 FGridObjectBehaviorParams
 ~~~
 
-They contain the actual dungeon language rather than Unreal Editor UI state.
+Ils contiennent le véritable langage du donjon plutôt qu’un état UI de l’Unreal Editor.
 
-This is the most important positive finding in GEUI10.
+C’est le constat positif le plus important de GEUI10.
 
 ### 5.2 UGridLevelAsset
 
-`UGridLevelAsset` already contains:
+`UGridLevelAsset` contient déjà :
 
-- width / height / cell size;
-- cell topology;
-- walls;
-- ceilings and occupancy;
-- player start;
-- placed objects;
-- Event -> Command links;
-- quest definitions;
-- persistent level variable definitions;
-- Lua source scripts.
+- largeur / hauteur / taille de cellule ;
+- topologie des cellules ;
+- murs ;
+- plafonds et occupation ;
+- départ du joueur ;
+- objets placés ;
+- liens Event -> Command ;
+- définitions de quêtes ;
+- définitions de variables persistantes de niveau ;
+- scripts source Lua.
 
-It also exposes runtime-compatible mutation/helpers such as:
+Il expose également des mutations/helpers compatibles runtime tels que :
 
 ~~~text
 EnsureCellCount
@@ -236,25 +236,25 @@ RemoveLinksForObject
 EnsureObjectIds
 ~~~
 
-The `Modify()` and `MarkPackageDirty()` calls in some of these methods are guarded by:
+Les appels `Modify()` et `MarkPackageDirty()` présents dans certaines de ces méthodes sont protégés par :
 
 ~~~cpp
 #if WITH_EDITOR
 ~~~
 
-Therefore those basic mutations are already callable in a runtime build without introducing `UnrealEd`.
+Ces mutations de base sont donc déjà appelables dans un build runtime sans introduire `UnrealEd`.
 
-Important qualification:
+Précision importante :
 
-> Runtime mutability is **not the same as packaged persistence**.
+> La mutabilité runtime n’est **pas équivalente à la persistance packagée**.
 
-A player can modify an in-memory UObject, but a cooked `UDataAsset` is not a suitable writable player-level file format.
+Un joueur peut modifier un UObject en mémoire, mais un `UDataAsset` cooké n’est pas un format de fichier joueur approprié et inscriptible.
 
-That persistence gap is the largest future blocker.
+Cette lacune de persistance est le principal blocage futur.
 
 ### 5.3 UGridDungeonAsset
 
-`UGridDungeonAsset` already supplies:
+`UGridDungeonAsset` fournit déjà :
 
 ~~~text
 DungeonName
@@ -269,35 +269,35 @@ Levels[]
     bEnabled
 ~~~
 
-The concepts themselves are directly suitable for player-created dungeon packages.
+Ces concepts sont directement adaptés à des packages de donjons créés par les joueurs.
 
-The UObject reference representation is developer-asset-oriented, but the identity model is sound.
+La représentation par références UObject est orientée assets développeur, mais le modèle d’identité est sain.
 
-### 5.4 Object archetypes
+### 5.4 Archétypes d’objets
 
-`UGridObjectArchetypeAsset` is already runtime and contains the central data required by both authoring and execution:
+`UGridObjectArchetypeAsset` est déjà runtime et contient les données centrales nécessaires à la fois à l’authoring et à l’exécution :
 
-- gameplay type;
-- category;
-- placement kind;
-- cell/anchor sharing policy;
-- wall replacement;
-- movement blocking;
-- interaction/readable/light settings;
-- meshes/materials;
-- runtime actor class;
-- placement transforms;
-- default behavior.
+- type gameplay ;
+- catégorie ;
+- type de placement ;
+- policy de partage cellule/ancre ;
+- remplacement de mur ;
+- blocage du déplacement ;
+- paramètres interaction/readable/lumière ;
+- meshes/matériaux ;
+- classe d’acteur runtime ;
+- transformations de placement ;
+- comportement par défaut.
 
-This gives a future player editor a very strong curated-content model:
+Cela donne à un futur éditeur joueur un modèle de contenu contrôlé très solide :
 
-> Players should choose an allowed `ArchetypeId`; they should not author arbitrary Unreal classes.
+> Les joueurs doivent choisir un `ArchetypeId` autorisé ; ils ne doivent pas créer des classes Unreal arbitraires.
 
-### 5.5 Object palette
+### 5.5 Palette d’objets
 
-`UGridObjectPaletteAsset` is also runtime.
+`UGridObjectPaletteAsset` est également runtime.
 
-Its entries already provide:
+Ses entrées fournissent déjà :
 
 ~~~text
 EntryId
@@ -309,43 +309,43 @@ DefaultMonsterDefinition
 DefaultStoryCompanionDefinition
 ~~~
 
-The current developer palette can therefore conceptually become the source for a future player-facing palette.
+La palette développeur actuelle peut donc, conceptuellement, devenir la source d’une future palette destinée aux joueurs.
 
-The player editor should expose a curated subset rather than allowing arbitrary asset browsing.
+L’éditeur joueur devra exposer un sous-ensemble contrôlé plutôt que permettre de parcourir librement tous les assets.
 
 ### 5.6 AGridLevelRuntimeActor
 
-The runtime actor already reconstructs and executes the level from `UGridLevelAsset`.
+L’acteur runtime reconstruit et exécute déjà le niveau à partir de `UGridLevelAsset`.
 
-Its responsibilities include:
+Ses responsabilités comprennent :
 
-- floor / wall / ceiling generation;
-- runtime object spawning;
-- object placement transforms;
-- doors and interaction;
-- item pickup/drop;
-- monster spawn/runtime state;
-- encounters;
-- triggers;
-- links;
-- transitions;
-- multi-level runtime state;
-- Lua bridge through activation/runtime systems.
+- génération du sol / des murs / du plafond ;
+- spawn des objets runtime ;
+- transformations de placement des objets ;
+- portes et interaction ;
+- pickup/drop d’items ;
+- spawn/état runtime des monstres ;
+- encounters ;
+- triggers ;
+- links ;
+- transitions ;
+- état runtime multi-niveaux ;
+- pont Lua via les systèmes d’activation/runtime.
 
-This means the future player editor can use the **same runtime renderer/gameplay consumer** for live preview.
+Cela signifie que le futur éditeur joueur pourra utiliser **le même renderer/consommateur gameplay runtime** pour une preview en direct.
 
-No second dungeon renderer should be created.
+Aucun second renderer de donjon ne doit être créé.
 
 ### 5.7 GrimrockLua
 
-`GrimrockLua` is a dedicated Runtime module depending only on:
+`GrimrockLua` est un module Runtime dédié ne dépendant que de :
 
 ~~~text
 Core
 CoreUObject
 ~~~
 
-Its `FGridLuaVm` already provides hard non-level-controlled caps:
+Son `FGridLuaVm` fournit déjà des limites strictes non contrôlables par les données du niveau :
 
 ~~~text
 HardMaxScriptCount = 64
@@ -355,7 +355,7 @@ MemoryLimitBytes
 InstructionBudgetPerCall
 ~~~
 
-The host API is callback-based and intentionally knows nothing about:
+L’API hôte est basée sur des callbacks et, volontairement, ne connaît rien de :
 
 ~~~text
 UWorld
@@ -366,15 +366,15 @@ network
 OS APIs
 ~~~
 
-This is a very strong foundation for future player-authored scripted mechanisms.
+C’est une fondation très solide pour de futurs mécanismes scriptés créés par les joueurs.
 
-## 6. Strictly Unreal-Editor-only implementation
+## 6. Implémentation strictement Unreal-Editor-only
 
-The following should remain editor-only.
+Les éléments suivants doivent rester editor-only.
 
 ### 6.1 FGridLevelEdMode
 
-Depends on Unreal editor viewport/tool infrastructure:
+Dépend de l’infrastructure du viewport/outils de l’Unreal Editor :
 
 ~~~text
 FEdMode
@@ -384,19 +384,19 @@ GEditor
 FEditorModeRegistry
 ~~~
 
-A packaged editor must implement its own camera/input/picking path.
+Un éditeur packagé devra implémenter son propre chemin caméra/input/picking.
 
 ### 6.2 FGridLevelEdModeToolkit
 
-Uses editor toolkit infrastructure and global Nomad tabs.
+Utilise l’infrastructure Toolkit éditeur et les onglets Nomad globaux.
 
-It should not be migrated to runtime.
+Il ne doit pas être migré vers le runtime.
 
-The GEUI01–09 workspace UX can inspire the player editor, but the Slate toolkit implementation itself is not the reusable layer.
+L’UX des espaces de travail GEUI01–09 peut inspirer l’éditeur joueur, mais l’implémentation du Toolkit Slate elle-même n’est pas la couche réutilisable.
 
-### 6.3 Workspace Nomad tabs
+### 6.3 Onglets Nomad des espaces de travail
 
-The following are developer-editor presentation:
+Les éléments suivants relèvent de la présentation de l’éditeur développeur :
 
 ~~~text
 Dungeon Levels
@@ -406,7 +406,7 @@ Selected Object
 Grimrock Lua Scripts
 ~~~
 
-They depend on:
+Ils dépendent de :
 
 ~~~text
 FGlobalTabmanager
@@ -416,31 +416,31 @@ editor mode lifetime
 Window menu integration
 ~~~
 
-A player editor needs an in-game workspace/layout model instead.
+Un éditeur joueur a besoin à la place d’un modèle d’espace de travail/layout intégré au jeu.
 
 ### 6.4 AGridLevelEditorActor
 
-`AGridLevelEditorActor` is now correctly located in `GrimrockPrototypeEditor`.
+`AGridLevelEditorActor` est maintenant correctement situé dans `GrimrockPrototypeEditor`.
 
-It combines several developer-editor concerns:
+Il combine plusieurs responsabilités propres à l’éditeur développeur :
 
-- current selection;
-- hovered selection;
-- viewport painting;
-- object placement UI state;
-- link authoring state;
-- preview coordination;
-- editor diagnostics;
-- PIE preparation;
-- transaction-aware mutations;
-- selection focus;
-- patrol-route editor interaction.
+- sélection courante ;
+- sélection survolée ;
+- peinture dans le viewport ;
+- état UI de placement des objets ;
+- état d’authoring des liens ;
+- coordination de la preview ;
+- diagnostics éditeur ;
+- préparation PIE ;
+- mutations conscientes des transactions ;
+- focus de sélection ;
+- interaction d’édition des routes de patrouille.
 
-It must **not** be moved wholesale back into the runtime module.
+Il ne doit **pas** être déplacé en bloc vers le module runtime.
 
-Future extraction should take data-oriented functions out of it one capability at a time.
+Les futures extractions devront en sortir les fonctions orientées données une capacité à la fois.
 
-### 6.5 PIE workflow
+### 6.5 Workflow PIE
 
 ~~~text
 GridPIEPlaytestRequest
@@ -450,9 +450,9 @@ Debug Prepare PIE
 Auto Prepare PIE
 ~~~
 
-are developer-editor workflows.
+sont des workflows propres à l’éditeur développeur.
 
-A packaged player editor should instead have a direct:
+Un éditeur joueur packagé devra plutôt proposer directement :
 
 ~~~text
 Edit Mode
@@ -462,51 +462,51 @@ Playtest Mode
 return to Edit Mode
 ~~~
 
-using the runtime world, not PIE duplication.
+en utilisant le monde runtime, et non une duplication PIE.
 
-## 7. High-value future extraction candidates
+## 7. Candidats futurs à forte valeur pour extraction
 
-These are currently editor-owned but contain logic that a packaged authoring workflow will eventually need.
+Ces éléments appartiennent aujourd’hui à l’éditeur mais contiennent de la logique dont un workflow d’authoring packagé aura un jour besoin.
 
-They should **not** be extracted during GEUI10.
+Ils ne doivent **pas** être extraits pendant GEUI10.
 
-### 7.1 Link policy
+### 7.1 Policy des liens
 
-Current:
+État actuel :
 
 ~~~text
 GridEditorLinkPolicy
 ~~~
 
-It determines:
+Elle détermine :
 
-- which objects emit events;
-- which targets receive commands;
-- supported source events;
-- supported target commands;
-- supported conditions;
-- runtime command support classification;
-- exact link identity.
+- quels objets émettent des événements ;
+- quelles cibles reçoivent des commandes ;
+- les événements source pris en charge ;
+- les commandes cible prises en charge ;
+- les conditions prises en charge ;
+- la classification du support runtime des commandes ;
+- l’identité exacte des liens.
 
-Most of this is pure data policy and does not fundamentally require Unreal Editor.
+L’essentiel de cette logique est une policy de données pure et ne dépend pas fondamentalement de l’Unreal Editor.
 
-Future target:
+Cible future :
 
 ~~~text
 GridAuthoringLinkPolicy
 ~~~
 
-inside a runtime-compatible authoring module/core.
+dans un module/core d’authoring compatible runtime.
 
-### 7.2 Link mutation service
+### 7.2 Service de mutation des liens
 
-Current:
+État actuel :
 
 ~~~text
 GridEditorLinkService
 ~~~
 
-Its low-level functions are already nearly pure:
+Ses fonctions de bas niveau sont déjà presque pures :
 
 ~~~text
 NormalizeLink
@@ -517,38 +517,38 @@ AddExactLink
 RemoveExactLink
 ~~~
 
-The overloads that accept `AGridLevelEditorActor` are editor bridges.
+Les overloads qui acceptent `AGridLevelEditorActor` sont des ponts éditeur.
 
-Future extraction should separate:
+Une future extraction devra séparer :
 
 ~~~text
-pure link model operations
-from
-editor transaction/selection bridge
+opérations pures sur le modèle de liens
+de
+pont transaction/sélection éditeur
 ~~~
 
-### 7.3 Lua authoring service
+### 7.3 Service d’authoring Lua
 
-Current:
+État actuel :
 
 ~~~text
 GridEditorLuaService
 ~~~
 
-Mixed responsibilities include:
+Ses responsabilités mélangées comprennent :
 
-- script analysis;
-- callback discovery;
-- script validation;
-- script identity;
-- script source mutation;
-- persistent declaration synchronization;
-- selected-object LogicId mutation;
-- full editor level validation.
+- analyse de script ;
+- découverte des callbacks ;
+- validation de script ;
+- identité de script ;
+- mutation du source de script ;
+- synchronisation des déclarations persistantes ;
+- mutation LogicId de l’objet sélectionné ;
+- validation complète du niveau côté éditeur.
 
-The VM itself is already runtime.
+La VM elle-même est déjà runtime.
 
-A future player editor will need a runtime-safe authoring facade for:
+Un futur éditeur joueur aura besoin d’une façade d’authoring sûre pour le runtime couvrant :
 
 ~~~text
 AnalyzeLevel
@@ -559,20 +559,20 @@ SetScriptEnabled
 SetScriptSource
 ~~~
 
-Operations tied to `AGridLevelEditorActor` should remain adapter code.
+Les opérations liées à `AGridLevelEditorActor` devront rester du code adaptateur.
 
-### 7.4 Level validation
+### 7.4 Validation du niveau
 
-The complete validation presentation currently uses:
+La présentation complète de validation utilise actuellement :
 
 ~~~text
 FGridLevelValidationMessage
 EGridLevelValidationSeverity
 ~~~
 
-declared in the editor actor header.
+déclarés dans le header de l’acteur éditeur.
 
-For player authoring, a neutral validation contract should eventually move out of the editor module, for example:
+Pour l’authoring joueur, un contrat de validation neutre devra à terme sortir du module éditeur, par exemple :
 
 ~~~text
 EGridLevelValidationSeverity
@@ -581,13 +581,13 @@ FGridLevelValidationResult
 GridLevelValidationService
 ~~~
 
-The Unreal editor panel and future player editor would both consume the same result.
+Le panneau de l’Unreal Editor et le futur éditeur joueur consommeront alors le même résultat.
 
-This is a high-value extraction because invalid player packages must be rejected before play/export.
+Cette extraction a une forte valeur car les packages joueur invalides doivent être rejetés avant play/export.
 
-### 7.5 Level editing mutations
+### 7.5 Mutations d’édition du niveau
 
-The future reusable authoring core will need explicit operations such as:
+Le futur core d’authoring réutilisable aura besoin d’opérations explicites telles que :
 
 ~~~text
 PaintCell
@@ -605,31 +605,31 @@ RemoveDungeonLevel
 RenameDungeonLevel
 ~~~
 
-Today many of these workflows are embodied in `AGridLevelEditorActor`.
+Aujourd’hui, une grande partie de ces workflows est incarnée dans `AGridLevelEditorActor`.
 
-Do not expose the actor itself as the future API.
+Il ne faut pas exposer l’acteur lui-même comme future API.
 
-Instead, extract a command/service layer only when player editing becomes an active milestone.
+Il faudra plutôt extraire une couche commandes/services uniquement lorsque l’édition joueur deviendra un jalon actif.
 
-## 8. Main blocker: player dungeon persistence format
+## 8. Blocage principal : format de persistance des donjons joueur
 
-The current source of truth is a `UDataAsset`.
+La source de vérité actuelle est un `UDataAsset`.
 
-That is ideal for developer-authored cooked content.
+C’est idéal pour du contenu cooké créé par les développeurs.
 
-It is not sufficient as the file format for player-created levels in a packaged build.
+Ce n’est pas suffisant comme format de fichier pour des niveaux créés par les joueurs dans un build packagé.
 
-### 8.1 What must not be done
+### 8.1 Ce qu’il ne faut pas faire
 
-Do not design the player editor around writing modified cooked `.uasset` files.
+Ne pas concevoir l’éditeur joueur autour de l’écriture de fichiers `.uasset` cookés modifiés.
 
-Do not make player content depend on Unreal Editor asset creation APIs.
+Ne pas faire dépendre le contenu joueur des APIs de création d’assets de l’Unreal Editor.
 
-Do not serialize arbitrary UObject graphs from untrusted player content.
+Ne pas sérialiser des graphes UObject arbitraires provenant de contenu joueur non fiable.
 
-### 8.2 Recommended future model
+### 8.2 Modèle futur recommandé
 
-Introduce a versioned, engine-controlled player dungeon document, conceptually:
+Introduire un document de donjon joueur versionné et contrôlé par le moteur, conceptuellement :
 
 ~~~text
 FGridPlayerDungeonDocument
@@ -655,9 +655,9 @@ FGridPlayerLevelDocument
     LuaScripts[]
 ~~~
 
-This document should contain stable identifiers rather than arbitrary UObject references wherever possible.
+Ce document devra utiliser autant que possible des identifiants stables plutôt que des références UObject arbitraires.
 
-Examples:
+Exemples :
 
 ~~~text
 ArchetypeId
@@ -668,82 +668,82 @@ QuestId
 StoryCompanionId
 ~~~
 
-### 8.3 Runtime materialization
+### 8.3 Matérialisation runtime
 
-Recommended flow:
+Flux recommandé :
 
 ~~~text
-player package
-     ↓ deserialize + schema validation
+package joueur
+     ↓ désérialisation + validation du schéma
 FGridPlayerDungeonDocument
-     ↓ resolve allowed developer content IDs
-transient UGridDungeonAsset / UGridLevelAsset
+     ↓ résolution des IDs de contenu développeur autorisés
+UGridDungeonAsset / UGridLevelAsset transients
      ↓
 AGridLevelRuntimeActor
 ~~~
 
-A transient UObject representation allows the existing runtime to continue consuming its current model.
+Une représentation UObject transient permet au runtime existant de continuer à consommer son modèle courant.
 
-### 8.4 Serialization choice
+### 8.4 Choix de sérialisation
 
-The audit does not mandate JSON, binary or SaveGame.
+L’audit n’impose ni JSON, ni binaire, ni SaveGame.
 
-Required properties are more important than the container:
+Les propriétés requises sont plus importantes que le conteneur :
 
-- explicit schema version;
-- deterministic field ownership;
-- bounds/size limits;
-- safe failure on unknown versions;
-- stable IDs;
-- no arbitrary class loading;
-- round-trip tests;
-- optional human-readable format if sharing/modding benefits from it.
+- version de schéma explicite ;
+- propriété déterministe des champs ;
+- limites de taille/bornes ;
+- échec sûr pour les versions inconnues ;
+- IDs stables ;
+- aucun chargement arbitraire de classes ;
+- tests aller-retour ;
+- format lisible par l’humain facultatif si le partage/modding en bénéficie.
 
-## 9. Asset resolution and cooking
+## 9. Résolution des assets et cooking
 
-Player-authored content can only reference content that exists in the packaged build unless a separate trusted content distribution system is later created.
+Le contenu créé par les joueurs ne peut référencer que du contenu présent dans le build packagé, sauf si un système distinct et fiable de distribution de contenu est créé ultérieurement.
 
-Therefore a player editor needs a curated authoring catalog.
+Un éditeur joueur a donc besoin d’un catalogue d’authoring contrôlé.
 
-Recommended rule:
+Règle recommandée :
 
 ~~~text
-player document
-    stores ArchetypeId
+document joueur
+    stocke ArchetypeId
         ↓
-runtime authoring catalog
+catalogue d’authoring runtime
         ↓
-known cooked UGridObjectArchetypeAsset
+UGridObjectArchetypeAsset cooké connu
 ~~~
 
-The same principle applies to:
+Le même principe s’applique à :
 
-- items;
-- monsters;
-- readables;
-- quests;
-- story companions;
-- icons;
-- meshes/materials indirectly referenced by archetypes.
+- items ;
+- monstres ;
+- readables ;
+- quêtes ;
+- story companions ;
+- icônes ;
+- meshes/matériaux référencés indirectement par les archétypes.
 
-### 9.1 RuntimeActorClass safety
+### 9.1 Sécurité de RuntimeActorClass
 
-`UGridObjectArchetypeAsset` contains:
+`UGridObjectArchetypeAsset` contient :
 
 ~~~text
 RuntimeActorClass
 ItemActorClass
 ~~~
 
-This is acceptable because archetypes are developer-controlled cooked content.
+C’est acceptable car les archétypes sont du contenu cooké contrôlé par les développeurs.
 
-Player packages should **not** specify arbitrary class paths.
+Les packages joueur ne doivent **pas** spécifier des chemins de classes arbitraires.
 
-They should specify only an allowed archetype/definition ID.
+Ils doivent uniquement spécifier un ID d’archétype/définition autorisé.
 
-## 10. Player-content validation boundary
+## 10. Frontière de validation du contenu joueur
 
-A future player dungeon must pass validation before:
+Un futur donjon joueur doit réussir la validation avant :
 
 ~~~text
 Save
@@ -753,79 +753,79 @@ Playtest
 Play
 ~~~
 
-At minimum validation must cover:
+Au minimum, la validation doit couvrir :
 
-### Structural limits
+### Limites structurelles
 
-- permitted grid dimensions;
-- exact cell count;
-- valid coordinates;
-- object count limits;
-- link count limits;
-- unique ObjectIds;
-- unique LogicIds where required;
-- valid dungeon LevelIds;
-- valid transitions.
+- dimensions de grille autorisées ;
+- nombre exact de cellules ;
+- coordonnées valides ;
+- limites du nombre d’objets ;
+- limites du nombre de liens ;
+- ObjectIds uniques ;
+- LogicIds uniques lorsque requis ;
+- LevelIds de donjon valides ;
+- transitions valides.
 
 ### Placement
 
-- placement kind;
-- walls required for wall objects;
-- occupancy conflicts;
-- anchor sharing;
-- start cell validity;
-- monster spawn validity;
-- patrol waypoint validity.
+- type de placement ;
+- murs requis pour les objets muraux ;
+- conflits d’occupation ;
+- partage d’ancre ;
+- validité de la cellule de départ ;
+- validité des MonsterSpawns ;
+- validité des waypoints de patrouille.
 
-### References
+### Références
 
-- known ArchetypeIds;
-- known definition IDs;
-- no forbidden content;
-- no arbitrary UObject/class paths.
+- ArchetypeIds connus ;
+- IDs de définitions connus ;
+- aucun contenu interdit ;
+- aucun chemin UObject/classe arbitraire.
 
-### Connectors
+### Connecteurs
 
-- valid source;
-- valid target or valid targetless command;
-- supported event;
-- supported command;
-- valid condition payload;
-- valid Lua callback/script;
-- valid quest identifiers.
+- source valide ;
+- cible valide ou commande targetless valide ;
+- événement pris en charge ;
+- commande prise en charge ;
+- payload de condition valide ;
+- callback/script Lua valide ;
+- identifiants de quête valides.
 
 ### Lua
 
-- script count;
-- source sizes;
-- syntax/load validation;
-- callback existence;
-- persistent declaration consistency;
-- VM memory limit;
-- instruction budget.
+- nombre de scripts ;
+- tailles des sources ;
+- validation syntaxe/chargement ;
+- existence des callbacks ;
+- cohérence des déclarations persistantes ;
+- limite mémoire VM ;
+- budget d’instructions.
 
-## 11. Lua security assessment
+## 11. Évaluation de la sécurité Lua
 
-The current Lua architecture is unusually well positioned for player authoring.
+L’architecture Lua actuelle est particulièrement bien positionnée pour l’authoring joueur.
 
-Positive properties already present:
+Propriétés positives déjà présentes :
 
-- dedicated Lua module;
-- no Lua headers crossing the module boundary;
-- no direct world/actor authority in the VM;
-- host-controlled `grid` API;
-- memory quota;
-- instruction budget;
-- source count/size limits;
-- isolated script environments;
-- atomic VM reload;
-- callback execution through controlled host functions.
+- module Lua dédié ;
+- aucun header Lua ne traverse la frontière du module ;
+- aucune autorité directe monde/acteur dans la VM ;
+- API `grid` contrôlée par l’hôte ;
+- quota mémoire ;
+- budget d’instructions ;
+- limites sur le nombre/la taille des sources ;
+- environnements de scripts isolés ;
+- rechargement atomique de la VM ;
+- exécution des callbacks via des fonctions hôte contrôlées.
 
-Future player-editor rule:
+Règle future pour l’éditeur joueur :
 
-> Never weaken these caps based on dungeon-authored data.
+> Ne jamais assouplir ces limites en fonction de données créées dans le donjon.
 
-The package must not be allowed to increase its own:
+Le package ne doit pas pouvoir augmenter lui-même :
 
 ~~~text
 memory quota
@@ -835,40 +835,40 @@ source size
 host API privileges
 ~~~
 
-## 12. Runtime editor UI strategy
+## 12. Stratégie d’UI de l’éditeur runtime
 
-The current editor UI should be treated as a **UX prototype/reference**, not as code to ship.
+L’UI de l’éditeur actuelle doit être considérée comme un **prototype/référence UX**, et non comme du code à livrer.
 
-Reusable UX concepts from GEUI01–09:
+Concepts UX réutilisables de GEUI01–09 :
 
-- Dungeon Levels workspace;
-- overview map;
-- Tools & Palette;
-- search/categories/favorites/recent;
-- Selected Object Properties/Connectors;
-- validation search/filter/focus;
-- Lua script workspace;
-- clear PlayTest state.
+- espace de travail Dungeon Levels ;
+- overview map ;
+- Tools & Palette ;
+- recherche/catégories/favorites/recent ;
+- Selected Object Properties/Connectors ;
+- recherche/filtrage/focus de validation ;
+- espace de travail des scripts Lua ;
+- état PlayTest clair.
 
-Possible packaged implementation technologies:
+Technologies d’implémentation possibles dans le build packagé :
 
 ~~~text
 UMG
 runtime Slate
-or a combination
+ou une combinaison des deux
 ~~~
 
-The project already uses both UMG and runtime Slate elsewhere.
+Le projet utilise déjà UMG et Slate runtime ailleurs.
 
-Recommendation:
+Recommandation :
 
-> Prefer the existing game UI architecture unless a later prototype proves that a runtime Slate desktop-style editor is materially better.
+> Préférer l’architecture UI existante du jeu, sauf si un prototype ultérieur démontre qu’un éditeur de style desktop en Slate runtime apporte un avantage matériel.
 
-Do not add `UnrealEd`, `EditorFramework`, `ToolMenus` or editor docking code to the game target.
+Ne pas ajouter `UnrealEd`, `EditorFramework`, `ToolMenus` ou le code de docking éditeur à la cible Game.
 
-## 13. Runtime picking and editor camera
+## 13. Picking runtime et caméra d’édition
 
-The current Grid Editor relies on:
+Le Grid Editor actuel repose sur :
 
 ~~~text
 FEditorViewportClient
@@ -877,9 +877,9 @@ FEdMode mouse handling
 Unreal Editor camera/navigation
 ~~~
 
-A player editor will require an explicit runtime authoring controller.
+Un éditeur joueur nécessitera un contrôleur d’authoring runtime explicite.
 
-Conceptual responsibilities:
+Responsabilités conceptuelles :
 
 ~~~text
 AGridAuthoringPawn / Controller
@@ -893,45 +893,45 @@ AGridAuthoringPawn / Controller
     erase gesture
 ~~~
 
-The existing coordinate/placement math should be reused where possible.
+Les mathématiques existantes de coordonnées/placement devront être réutilisées autant que possible.
 
-The EdMode itself should not be reused.
+Le EdMode lui-même ne doit pas être réutilisé.
 
-## 14. Preview strategy
+## 14. Stratégie de preview
 
-Two current classes remain in the runtime module:
+Deux classes actuelles restent dans le module runtime :
 
 ~~~text
 UGridEditorPreviewComponent
 AGridEditorPreviewObjectActor
 ~~~
 
-They are historically named for developer-editor preview, but their implementation is runtime-compilable.
+Leur nom vient historiquement de la preview de l’éditeur développeur, mais leur implémentation compile en runtime.
 
-They remain architecturally ambiguous.
+Elles restent ambiguës architecturalement.
 
-GEUI10 recommendation:
+Recommandation GEUI10 :
 
-- do not move them now;
-- do not make the future player editor depend on them as its fundamental model;
-- first build the real reference dungeon and continue stabilizing runtime rendering;
-- later decide whether their selection/highlight behavior becomes a generic authoring-preview facility or stays developer-only compatibility code.
+- ne pas les déplacer maintenant ;
+- ne pas faire dépendre d’elles le modèle fondamental du futur éditeur joueur ;
+- construire d’abord le véritable donjon de référence et continuer à stabiliser le rendu runtime ;
+- décider plus tard si leur comportement de sélection/highlight devient une capacité générique de preview d’authoring ou reste du code de compatibilité réservé au développeur.
 
-For a packaged editor, the preferred live preview should still be centered on:
+Pour un éditeur packagé, la preview live devra toujours être centrée sur :
 
 ~~~text
 AGridLevelRuntimeActor
 ~~~
 
-plus runtime selection/highlight presentation.
+plus une présentation runtime de la sélection/highlight.
 
 ## 15. Undo / redo
 
-The Unreal editor benefits from UObject/editor transaction semantics through authoring calls using `Modify()`.
+L’Unreal Editor bénéficie des sémantiques de transactions UObject/éditeur via les appels d’authoring utilisant `Modify()`.
 
-A packaged editor cannot rely on Unreal Editor transaction infrastructure.
+Un éditeur packagé ne peut pas reposer sur l’infrastructure de transactions de l’Unreal Editor.
 
-Future authoring core should use explicit commands, conceptually:
+Le futur core d’authoring devra utiliser des commandes explicites, conceptuellement :
 
 ~~~text
 FGridAuthoringCommand
@@ -939,7 +939,7 @@ FGridAuthoringCommand
     Undo()
 ~~~
 
-Examples:
+Exemples :
 
 ~~~text
 PaintCellCommand
@@ -951,11 +951,11 @@ AddLinkCommand
 RemoveLinkCommand
 ~~~
 
-This command layer is another reason not to expose `AGridLevelEditorActor` directly to a packaged editor.
+Cette couche de commandes est une raison supplémentaire de ne pas exposer directement `AGridLevelEditorActor` à un éditeur packagé.
 
-## 16. Dirty state and autosave
+## 16. État dirty et autosave
 
-A player editor needs explicit document state:
+Un éditeur joueur a besoin d’un état documentaire explicite :
 
 ~~~text
 Clean
@@ -965,27 +965,27 @@ Save failed
 Validation failed
 ~~~
 
-This must be separate from:
+Cela doit être distinct de :
 
 ~~~text
 UPackage::MarkPackageDirty()
 ~~~
 
-Recommended future responsibilities:
+Responsabilités futures recommandées :
 
-- dirty revision counter;
-- autosave;
-- recovery file;
-- Save As;
-- package metadata;
-- validation-before-export;
-- confirmation on destructive close.
+- compteur de révision dirty ;
+- autosave ;
+- fichier de récupération ;
+- Save As ;
+- métadonnées de package ;
+- validation avant export ;
+- confirmation lors d’une fermeture destructive.
 
-## 17. Multi-level implications
+## 17. Implications multi-niveaux
 
-The current dungeon model is already advantageous.
+Le modèle de donjon actuel est déjà avantageux.
 
-A player package should preserve:
+Un package joueur doit préserver :
 
 ~~~text
 LevelId
@@ -994,34 +994,34 @@ LogicalPosition
 DefaultLevelId
 ~~~
 
-Transition objects can continue to reference stable level IDs.
+Les objets de transition peuvent continuer à référencer des IDs de niveau stables.
 
-The future player editor should therefore edit one dungeon document containing multiple levels rather than writing unrelated standalone map files.
+Le futur éditeur joueur devra donc éditer un document de donjon contenant plusieurs niveaux plutôt que d’écrire des fichiers de maps indépendantes sans rapport.
 
-This directly matches the project's current data-driven design.
+Cela correspond directement au design data-driven actuel du projet.
 
-## 18. Plugin decision
+## 18. Décision concernant un plugin
 
-### 18.1 Do we need a plugin now?
+### 18.1 Avons-nous besoin d’un plugin maintenant ?
 
-No.
+Non.
 
-Creating a plugin today would mostly relocate files without solving a player-editor requirement.
+Créer un plugin aujourd’hui déplacerait surtout des fichiers sans résoudre un besoin de l’éditeur joueur.
 
-The current module split is sufficient for ongoing game development.
+La séparation actuelle des modules suffit pour poursuivre le développement du jeu.
 
-### 18.2 When could a plugin become useful?
+### 18.2 Quand un plugin pourrait-il devenir utile ?
 
-A plugin becomes justified if one of these becomes true:
+Un plugin devient justifié si l’une de ces conditions devient vraie :
 
-- the authoring system is reused by another project;
-- player-authoring modules need an independently versioned package;
-- developer Grid Editor and runtime player editor share a mature authoring core;
-- distribution/mod SDK boundaries benefit from plugin packaging.
+- le système d’authoring est réutilisé dans un autre projet ;
+- les modules d’authoring joueur nécessitent un package versionné indépendamment ;
+- le Grid Editor développeur et l’éditeur joueur runtime partagent un core d’authoring mature ;
+- les frontières de distribution/mod SDK bénéficient d’un packaging plugin.
 
-### 18.3 Possible future plugin/module shape
+### 18.3 Forme future possible du plugin/des modules
 
-Only when justified:
+Uniquement lorsque cela sera justifié :
 
 ~~~text
 GrimrockAuthoring
@@ -1040,29 +1040,29 @@ GrimrockAuthoring
       asset integration
 ~~~
 
-This is a future direction, not a requested refactor.
+Il s’agit d’une direction future, pas d’un refactor demandé.
 
-## 19. Recommended extraction order when player authoring becomes active
+## 19. Ordre d’extraction recommandé lorsque l’authoring joueur deviendra actif
 
-Do not start with UI.
+Ne pas commencer par l’UI.
 
-Recommended sequence:
+Séquence recommandée :
 
 ### PLE01 — Player Dungeon Document
 
-Create the versioned runtime-serializable dungeon/level document.
+Créer le document de donjon/niveau versionné et sérialisable au runtime.
 
-Acceptance criterion:
+Critère d’acceptation :
 
 ~~~text
 document -> serialize -> deserialize -> identical document
 ~~~
 
-### PLE02 — Catalog and safe resolution
+### PLE02 — Catalogue et résolution sûre
 
-Map player-visible IDs to allowed cooked assets.
+Mapper les IDs visibles par le joueur vers des assets cookés autorisés.
 
-Acceptance criterion:
+Critère d’acceptation :
 
 ~~~text
 unknown/forbidden IDs are rejected without arbitrary asset loading
@@ -1070,20 +1070,20 @@ unknown/forbidden IDs are rejected without arbitrary asset loading
 
 ### PLE03 — Runtime Validation Core
 
-Extract neutral validation issues and pure validation rules.
+Extraire les problèmes de validation neutres et les règles de validation pures.
 
-Acceptance criterion:
+Critère d’acceptation :
 
 ~~~text
 same invalid level produces equivalent diagnostics
 in Unreal developer editor and packaged authoring tests
 ~~~
 
-### PLE04 — Authoring Mutation Commands
+### PLE04 — Commandes de mutation d’authoring
 
-Create pure editing commands with undo/redo.
+Créer des commandes d’édition pures avec undo/redo.
 
-Acceptance criterion:
+Critère d’acceptation :
 
 ~~~text
 execute -> undo -> original document
@@ -1092,9 +1092,9 @@ execute -> undo -> redo -> edited document
 
 ### PLE05 — Runtime Live Preview
 
-Materialize a transient level and rebuild `AGridLevelRuntimeActor`.
+Matérialiser un niveau transient et reconstruire `AGridLevelRuntimeActor`.
 
-Acceptance criterion:
+Critère d’acceptation :
 
 ~~~text
 player document edits appear in runtime preview
@@ -1103,35 +1103,35 @@ without map or asset editing APIs
 
 ### PLE06 — Player Editor UI
 
-Implement geometry/object/link/property workflows.
+Implémenter les workflows géométrie/objet/lien/propriété.
 
-### PLE07 — Lua Authoring
+### PLE07 — Authoring Lua
 
-Expose safe script editing/validation using the existing sandbox.
+Exposer l’édition/validation sûre des scripts en utilisant le sandbox existant.
 
 ### PLE08 — Import / Export / Sharing
 
-Add package metadata, compatibility checks and safe file management.
+Ajouter métadonnées de package, contrôles de compatibilité et gestion sûre des fichiers.
 
-## 20. Risk register
+## 20. Registre des risques
 
-| Risk | Severity | Current mitigation / future action |
+| Risque | Sévérité | Mitigation actuelle / action future |
 |---|---:|---|
-| Trying to ship `GrimrockPrototypeEditor` | High | Explicitly forbidden by this audit. |
-| Writing cooked DataAssets as player files | High | Introduce versioned player document instead. |
-| Arbitrary UObject/class references from player package | High | Stable ID + allowlisted catalog only. |
-| Stale validation tied to editor actor | Medium | Future neutral validation service extraction. |
-| Duplicated developer/player authoring rules | High | Extract pure authoring core before player UI. |
-| Runtime editor built before serialization contract | High | PLE01 must precede UI. |
-| Lua resource abuse | Medium | Existing hard VM caps retained and non-author-configurable. |
-| Invalid/hostile oversized level data | High | Structural hard limits during deserialize/validate. |
-| Broken cooked asset availability | Medium | Explicit catalog/cook policy required. |
-| Preview class ambiguity | Low/Medium | Leave unchanged until real need appears. |
-| Premature plugin refactor | Medium | No plugin work before reuse/distribution requirement exists. |
+| Essayer de livrer `GrimrockPrototypeEditor` | Élevée | Explicitement interdit par cet audit. |
+| Écrire des DataAssets cookés comme fichiers joueur | Élevée | Introduire à la place un document joueur versionné. |
+| Références UObject/classe arbitraires provenant d’un package joueur | Élevée | ID stable + catalogue allowlisté uniquement. |
+| Validation obsolète liée à l’acteur éditeur | Moyenne | Future extraction d’un service de validation neutre. |
+| Duplication des règles d’authoring développeur/joueur | Élevée | Extraire un core d’authoring pur avant l’UI joueur. |
+| Éditeur runtime construit avant le contrat de sérialisation | Élevée | PLE01 doit précéder l’UI. |
+| Abus de ressources Lua | Moyenne | Conserver les limites strictes existantes de la VM, non configurables par l’auteur. |
+| Données de niveau invalides/hostiles trop volumineuses | Élevée | Limites structurelles strictes pendant désérialisation/validation. |
+| Indisponibilité d’assets cookés | Moyenne | Policy explicite de catalogue/cooking requise. |
+| Ambiguïté des classes Preview | Faible/Moyenne | Laisser inchangé jusqu’à l’apparition d’un besoin réel. |
+| Refactor plugin prématuré | Moyenne | Aucun travail plugin avant un besoin réel de réutilisation/distribution. |
 
-## 21. Architectural classification summary
+## 21. Résumé de la classification architecturale
 
-### Keep in GrimrockPrototype Runtime
+### À conserver dans GrimrockPrototype Runtime
 
 ~~~text
 GridTypes
@@ -1147,7 +1147,7 @@ runtime state/persistence
 gameplay interaction
 ~~~
 
-### Keep in GrimrockLua Runtime
+### À conserver dans GrimrockLua Runtime
 
 ~~~text
 FGridLuaVm
@@ -1156,7 +1156,7 @@ sandbox/resource limits
 host API bridge
 ~~~
 
-### Keep in GrimrockPrototypeEditor
+### À conserver dans GrimrockPrototypeEditor
 
 ~~~text
 FGridLevelEdMode
@@ -1169,7 +1169,7 @@ Window/NomadTab integration
 GEditor/editor viewport integration
 ~~~
 
-### Future extraction candidates
+### Candidats à une extraction future
 
 ~~~text
 Link policy
@@ -1181,30 +1181,30 @@ safe authoring catalog
 player dungeon document serialization
 ~~~
 
-## 22. Immediate recommendation after GEUI10
+## 22. Recommandation immédiate après GEUI10
 
-**Stop the Grid Editor architecture refactor here.**
+**Arrêter ici le refactor d’architecture du Grid Editor.**
 
-GEUI01–10 have now produced:
+GEUI01–10 ont maintenant produit :
 
-- dockable, focused workspaces;
-- compact main dashboard;
-- usable palette;
-- selected-object workspace;
-- PlayTest & Validation workspace;
-- Lua workspace;
-- editor-mode lifecycle management;
-- window restoration;
-- focused refresh/state behavior;
-- a documented path toward future player authoring.
+- des espaces de travail dockables et focalisés ;
+- un dashboard principal compact ;
+- une palette utilisable ;
+- un espace de travail Selected Object ;
+- un espace de travail PlayTest & Validation ;
+- un espace de travail Lua ;
+- la gestion du cycle de vie du mode éditeur ;
+- la restauration des fenêtres ;
+- un comportement de rafraîchissement/état ciblé ;
+- un chemin documenté vers un futur authoring joueur.
 
-The next highest-value work is no longer another abstract editor refactor.
+Le travail de plus forte valeur n’est désormais plus un nouveau refactor abstrait de l’éditeur.
 
-It is:
+Il s’agit de :
 
-> **Build a real reference dungeon with the editor.**
+> **Construire un vrai donjon de référence avec l’éditeur.**
 
-Recommended reference dungeon scope:
+Périmètre recommandé du donjon de référence :
 
 ~~~text
 3 levels
@@ -1227,38 +1227,38 @@ validation
 playtest
 ~~~
 
-Using the editor intensively against real content will reveal future UX and data-model gaps far more reliably than continuing speculative interface work.
+Utiliser intensivement l’éditeur sur du contenu réel révélera les lacunes futures d’UX et de modèle de données beaucoup plus sûrement que poursuivre un travail spéculatif sur l’interface.
 
-## 23. Decision record
+## 23. Registre des décisions
 
-GEUI10 records the following decisions:
+GEUI10 enregistre les décisions suivantes :
 
-1. `UGridLevelAsset` / `UGridDungeonAsset` remain the developer content authority.
-2. The runtime remains independent of `GrimrockPrototypeEditor`.
-3. `AGridLevelEditorActor` remains editor-only.
-4. Current Slate/EdMode UI is not a future packaged editor implementation.
-5. A player editor will use a runtime-compatible authoring core, not the Unreal editor module.
-6. Player levels require a separate versioned serializable document/package contract.
-7. Player packages reference curated content through stable IDs.
-8. The existing Lua sandbox is the foundation for player-authored scripting and its hard limits must remain non-author-controlled.
-9. No plugin is created during GEUI10.
-10. No further Grid Editor architecture refactor is recommended before building a real reference dungeon.
+1. `UGridLevelAsset` / `UGridDungeonAsset` restent l’autorité du contenu développeur.
+2. Le runtime reste indépendant de `GrimrockPrototypeEditor`.
+3. `AGridLevelEditorActor` reste editor-only.
+4. L’UI Slate/EdMode actuelle n’est pas l’implémentation d’un futur éditeur packagé.
+5. Un éditeur joueur utilisera un core d’authoring compatible runtime, et non le module Unreal Editor.
+6. Les niveaux joueur nécessitent un contrat séparé de document/package versionné et sérialisable.
+7. Les packages joueur référencent le contenu contrôlé via des IDs stables.
+8. Le sandbox Lua existant est la fondation du scripting créé par les joueurs et ses limites strictes doivent rester non contrôlables par l’auteur.
+9. Aucun plugin n’est créé pendant GEUI10.
+10. Aucun nouveau refactor d’architecture du Grid Editor n’est recommandé avant la construction d’un véritable donjon de référence.
 
-## 24. GEUI01–GEUI10 closure
+## 24. Clôture GEUI01–GEUI10
 
-The GEUI roadmap can now be considered architecturally complete:
+La roadmap GEUI peut maintenant être considérée comme architecturalement terminée :
 
 ~~~text
-GEUI01  Dockable workspace foundation
+GEUI01  Fondation de l’espace de travail dockable
 GEUI02  Dungeon Levels
-GEUI03  PlayTest & Validation workspace
-GEUI04  Tools & Palette workspace
-GEUI05  Selected Object workspace
-GEUI06  Slim main Toolkit + window lifecycle
-GEUI07  Palette UX
-GEUI08  Validation UX
-GEUI09  Refresh / state cleanup
-GEUI10  Player-editor / plugin readiness audit
+GEUI03  Espace de travail PlayTest & Validation
+GEUI04  Espace de travail Tools & Palette
+GEUI05  Espace de travail Selected Object
+GEUI06  Toolkit principal allégé + cycle de vie des fenêtres
+GEUI07  UX de la palette
+GEUI08  UX de validation
+GEUI09  Nettoyage du rafraîchissement / état
+GEUI10  Audit de préparation éditeur joueur / plugin
 ~~~
 
-No additional GEUI milestone is required before returning to dungeon content authoring.
+Aucun jalon GEUI supplémentaire n’est requis avant le retour à l’authoring du contenu réel du donjon.
