@@ -13,10 +13,12 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "Tests/AutomationEditorCommon.h"
 #include "Tests/AutomationCommon.h"
+#include "UObject/StrongObjectPtr.h"
 #include "EditorTools/GridLevelEditorActor.h"
 
 namespace
@@ -25,16 +27,24 @@ namespace
 	const FGuid MON135RatSpawnId(0xF7319908, 0x4F46EDCC, 0x7D64ED9C, 0x42588D57);
 	const FGuid MON135Wave0SecondSpawnId(0xE4DC825C, 0x490F3B73, 0xEA579EB7, 0xAC3D2AEA);
 	const FGuid MON135Wave1SpawnId(0xAAF0E031, 0x45A2838D, 0x0B4CCB98, 0xFC04126C);
+	const FGuid MON135TriggerId(0x21D53B14, 0x5ED94B37, 0xB54A321E, 0x019B2F67);
 	const FName MON135EncounterId(TEXT("Encounter_Rats_01"));
 	const FIntPoint MON135RatCell(29, 25);
 	const FIntPoint MON135Wave0SecondCell(28, 26);
 	const FIntPoint MON135Wave1Cell(27, 25);
+	const FIntPoint MON135StartCell(28, 23);
 	const FIntPoint MON135TriggerCell(27, 24);
 
 	struct FMON135RealPIEState
 	{
 		FString TemporarySaveSlot = FString::Printf(TEXT("MON135_PIE_Integration_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits));
 		TWeakObjectPtr<AGridLevelEditorActor> EditorActor;
+		TStrongObjectPtr<UGridLevelAsset> OriginalLevelAsset;
+		TStrongObjectPtr<UGridDungeonAsset> OriginalDungeonAsset;
+		TStrongObjectPtr<UGridLevelAsset> OriginalPreviewLevelAsset;
+		TStrongObjectPtr<UGridDungeonAsset> OriginalPreviewDungeonAsset;
+		TStrongObjectPtr<UGridLevelAsset> FixtureLevelAsset;
+		TStrongObjectPtr<UGridDungeonAsset> FixtureDungeonAsset;
 		FString PreparedRuntimeActorName;
 		FIntPoint StartCell = FIntPoint(0, 0);
 		bool bOriginalAutoPreparePIE = true;
@@ -43,6 +53,143 @@ namespace
 		FDelegateHandle PIEWorldInitializationHandle;
 		TArray<uint8> TemporarySaveBytesBeforeFreshPIE;
 	};
+
+	bool InstallMON135TransientPIEFixture(FAutomationTestBase& Test, AGridLevelEditorActor* EditorActor, FMON135RealPIEState& State)
+	{
+		if (!EditorActor || !EditorActor->LevelAsset || !EditorActor->PreviewRuntimeActor)
+		{
+			return false;
+		}
+
+		UGridMonsterDefinitionAsset* RatDefinition = LoadObject<UGridMonsterDefinitionAsset>(
+			nullptr, TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant"));
+		Test.TestNotNull(TEXT("The MON13.5 transient fixture loads the production Rat definition"), RatDefinition);
+		if (!RatDefinition)
+		{
+			return false;
+		}
+
+		State.OriginalLevelAsset.Reset(EditorActor->LevelAsset.Get());
+		State.OriginalDungeonAsset.Reset(EditorActor->DungeonAsset.Get());
+		State.OriginalPreviewLevelAsset.Reset(EditorActor->PreviewRuntimeActor->LevelAsset.Get());
+		State.OriginalPreviewDungeonAsset.Reset(EditorActor->PreviewRuntimeActor->DungeonAsset.Get());
+
+		UGridLevelAsset* FixtureLevel = NewObject<UGridLevelAsset>(GetTransientPackage(), NAME_None, RF_Transient);
+		Test.TestNotNull(TEXT("The MON13.5 transient LevelAsset is created"), FixtureLevel);
+		if (!FixtureLevel)
+		{
+			return false;
+		}
+
+		FixtureLevel->Width = 32;
+		FixtureLevel->Height = 32;
+		FixtureLevel->CellSize = EditorActor->LevelAsset->CellSize;
+		FixtureLevel->EnsureCellCount();
+		for (FGridLevelCellData& Cell : FixtureLevel->Cells)
+		{
+			Cell = FGridLevelCellData();
+			Cell.CellType = EGridCellType::Floor;
+			Cell.bHasCeiling = true;
+			Cell.bBlocksOccupancy = false;
+		}
+		FixtureLevel->StartCellX = MON135StartCell.X;
+		FixtureLevel->StartCellY = MON135StartCell.Y;
+		FixtureLevel->StartFacing = EGridEdge::North;
+
+		FGridLevelObjectData Trigger;
+		Trigger.ObjectId = MON135TriggerId;
+		Trigger.Type = EGridLevelObjectType::Trigger;
+		Trigger.CellX = MON135TriggerCell.X;
+		Trigger.CellY = MON135TriggerCell.Y;
+		Trigger.Edge = EGridEdge::None;
+		Trigger.bInitiallyEnabled = true;
+		FixtureLevel->Objects.Add(Trigger);
+
+		auto AddEncounterRat = [FixtureLevel, RatDefinition](const FGuid& SpawnId, const FIntPoint& Cell, int32 WaveIndex)
+		{
+			FGridLevelObjectData Spawn;
+			Spawn.ObjectId = SpawnId;
+			Spawn.Type = EGridLevelObjectType::MonsterSpawn;
+			Spawn.CellX = Cell.X;
+			Spawn.CellY = Cell.Y;
+			Spawn.Edge = EGridEdge::None;
+			Spawn.InitialFacing = EGridEdge::North;
+			Spawn.MonsterDefinitionAsset = RatDefinition;
+			Spawn.MonsterDefinitionId = RatDefinition->MonsterId;
+			Spawn.EncounterGroupId = MON135EncounterId;
+			Spawn.EncounterWaveIndex = WaveIndex;
+			Spawn.bInitiallyEnabled = false;
+			FixtureLevel->Objects.Add(Spawn);
+		};
+
+		AddEncounterRat(MON135RatSpawnId, MON135RatCell, 0);
+		AddEncounterRat(MON135Wave0SecondSpawnId, MON135Wave0SecondCell, 0);
+		AddEncounterRat(MON135Wave1SpawnId, MON135Wave1Cell, 1);
+
+		FGridObjectLink StartEncounterLink;
+		StartEncounterLink.SourceObjectId = MON135TriggerId;
+		StartEncounterLink.TargetObjectId = MON135RatSpawnId;
+		StartEncounterLink.SourceEvent = EGridObjectEvent::Activated;
+		StartEncounterLink.Command = EGridObjectCommand::StartEncounter;
+		FixtureLevel->Links.Add(StartEncounterLink);
+
+		TArray<FString> MonsterValidationErrors;
+		const bool bMonsterFixtureValid = FixtureLevel->ValidateMonsterSpawns(MonsterValidationErrors);
+		Test.TestTrue(TEXT("The MON13.5 transient monster fixture validates"), bMonsterFixtureValid);
+		for (const FString& ValidationError : MonsterValidationErrors)
+		{
+			Test.AddError(FString::Printf(TEXT("MON13.5 transient fixture validation: %s"), *ValidationError));
+		}
+		if (!bMonsterFixtureValid)
+		{
+			return false;
+		}
+
+		UGridDungeonAsset* FixtureDungeon = nullptr;
+		if (UGridDungeonAsset* OriginalDungeon = EditorActor->DungeonAsset.Get())
+		{
+			const FName FixtureDungeonName(*FString::Printf(
+				TEXT("MON135_PIE_Dungeon_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits)));
+			FixtureDungeon = DuplicateObject<UGridDungeonAsset>(OriginalDungeon, GetTransientPackage(), FixtureDungeonName);
+			Test.TestNotNull(TEXT("The MON13.5 transient DungeonAsset is created"), FixtureDungeon);
+			if (!FixtureDungeon)
+			{
+				return false;
+			}
+			FixtureDungeon->ClearFlags(RF_Public | RF_Standalone);
+			FixtureDungeon->SetFlags(RF_Transient);
+
+			bool bCurrentLevelRebound = false;
+			for (FGridDungeonLevelEntry& Entry : FixtureDungeon->Levels)
+			{
+				if (Entry.LevelId == EditorActor->CurrentDungeonLevelId)
+				{
+					Entry.LevelAsset = FixtureLevel;
+					bCurrentLevelRebound = Entry.bEnabled;
+					break;
+				}
+			}
+			Test.TestTrue(TEXT("The transient DungeonAsset rebinds the current enabled level"), bCurrentLevelRebound);
+			if (!bCurrentLevelRebound)
+			{
+				return false;
+			}
+		}
+
+		State.FixtureLevelAsset.Reset(FixtureLevel);
+		State.FixtureDungeonAsset.Reset(FixtureDungeon);
+		EditorActor->LevelAsset = FixtureLevel;
+		EditorActor->DungeonAsset = FixtureDungeon;
+		EditorActor->PreviewRuntimeActor->LevelAsset = FixtureLevel;
+		EditorActor->PreviewRuntimeActor->DungeonAsset = FixtureDungeon;
+		EditorActor->PreviewRuntimeActor->CurrentDungeonLevelId = EditorActor->CurrentDungeonLevelId;
+
+		UE_LOG(LogTemp, Log,
+			TEXT("[MON135PIE] Phase=TransientFixtureInstalled Level=%s Dungeon=%s ProductionRat=%s StartCell=(%d,%d) TriggerCell=(%d,%d)"),
+			*GetNameSafe(FixtureLevel), *GetNameSafe(FixtureDungeon), *GetNameSafe(RatDefinition), MON135StartCell.X, MON135StartCell.Y, MON135TriggerCell.X,
+			MON135TriggerCell.Y);
+		return true;
+	}
 
 	UWorld* GetMON135PIEWorld()
 	{
@@ -139,12 +286,18 @@ namespace
 				return true;
 			}
 
+			State->EditorActor = EditorActor;
+			if (!InstallMON135TransientPIEFixture(*Test, EditorActor, *State))
+			{
+				return true;
+			}
+
 			const FGridLevelObjectData* RatSpawn = EditorActor->LevelAsset->FindMonsterSpawnById(MON135RatSpawnId);
 			const FGridLevelObjectData* Wave0SecondSpawn = EditorActor->LevelAsset->FindMonsterSpawnById(MON135Wave0SecondSpawnId);
 			const FGridLevelObjectData* Wave1Spawn = EditorActor->LevelAsset->FindMonsterSpawnById(MON135Wave1SpawnId);
-			Test->TestNotNull(TEXT("The real encounter anchor exists"), RatSpawn);
-			Test->TestNotNull(TEXT("The second wave-zero Rat exists"), Wave0SecondSpawn);
-			Test->TestNotNull(TEXT("The wave-one Rat exists"), Wave1Spawn);
+			Test->TestNotNull(TEXT("The transient PIE encounter anchor exists"), RatSpawn);
+			Test->TestNotNull(TEXT("The transient second wave-zero Rat exists"), Wave0SecondSpawn);
+			Test->TestNotNull(TEXT("The transient wave-one Rat exists"), Wave1Spawn);
 			if (!RatSpawn || !Wave0SecondSpawn || !Wave1Spawn)
 			{
 				return true;
@@ -155,17 +308,17 @@ namespace
 			Test->TestEqual(TEXT("The encounter anchor cell is unchanged"), FIntPoint(RatSpawn->CellX, RatSpawn->CellY), MON135RatCell);
 			Test->TestEqual(TEXT("The second wave-zero cell is unchanged"), FIntPoint(Wave0SecondSpawn->CellX, Wave0SecondSpawn->CellY), MON135Wave0SecondCell);
 			Test->TestEqual(TEXT("The wave-one cell is unchanged"), FIntPoint(Wave1Spawn->CellX, Wave1Spawn->CellY), MON135Wave1Cell);
-			Test->TestEqual(TEXT("The three Rats share the production encounter"), RatSpawn->EncounterGroupId, MON135EncounterId);
-			Test->TestEqual(TEXT("The second Rat shares the production encounter"), Wave0SecondSpawn->EncounterGroupId, MON135EncounterId);
-			Test->TestEqual(TEXT("The future Rat shares the production encounter"), Wave1Spawn->EncounterGroupId, MON135EncounterId);
+			Test->TestEqual(TEXT("The encounter anchor uses the transient encounter"), RatSpawn->EncounterGroupId, MON135EncounterId);
+			Test->TestEqual(TEXT("The second Rat uses the transient encounter"), Wave0SecondSpawn->EncounterGroupId, MON135EncounterId);
+			Test->TestEqual(TEXT("The future Rat uses the transient encounter"), Wave1Spawn->EncounterGroupId, MON135EncounterId);
 			Test->TestEqual(TEXT("The encounter anchor belongs to wave zero"), RatSpawn->EncounterWaveIndex, 0);
 			Test->TestEqual(TEXT("The second Rat belongs to wave zero"), Wave0SecondSpawn->EncounterWaveIndex, 0);
 			Test->TestEqual(TEXT("The future Rat belongs to wave one"), Wave1Spawn->EncounterWaveIndex, 1);
 
 			State->StartCell = EditorActor->LevelAsset->GetStartCell();
 			const bool bStartCellValid = EditorActor->LevelAsset->IsStartCellValid();
-			Test->TestTrue(TEXT("The real StartCell is valid"), bStartCellValid);
-			Test->TestTrue(TEXT("The real StartCell remains outside the encounter trigger"), State->StartCell != MON135TriggerCell);
+			Test->TestTrue(TEXT("The transient fixture StartCell is valid"), bStartCellValid);
+			Test->TestTrue(TEXT("The transient fixture StartCell remains outside the encounter trigger"), State->StartCell != MON135TriggerCell);
 			if (RatSpawn->bInitiallyEnabled || Wave0SecondSpawn->bInitiallyEnabled || Wave1Spawn->bInitiallyEnabled ||
 				FIntPoint(RatSpawn->CellX, RatSpawn->CellY) != MON135RatCell || !bStartCellValid || State->StartCell == MON135TriggerCell)
 			{
@@ -181,7 +334,7 @@ namespace
 					break;
 				}
 			}
-			Test->TestNotNull(TEXT("The real trigger exists on the expected cell"), Trigger);
+			Test->TestNotNull(TEXT("The transient fixture trigger exists on the expected cell"), Trigger);
 			if (!Trigger)
 			{
 				return true;
@@ -617,7 +770,24 @@ namespace
 			if (EditorActor)
 			{
 				EditorActor->bAutoPreparePIE = State->bOriginalAutoPreparePIE;
+
+				if (UGridLevelAsset* OriginalLevelAsset = State->OriginalLevelAsset.Get())
+				{
+					EditorActor->LevelAsset = OriginalLevelAsset;
+					EditorActor->DungeonAsset = State->OriginalDungeonAsset.Get();
+				}
+
+				if (EditorActor->PreviewRuntimeActor)
+				{
+					EditorActor->PreviewRuntimeActor->LevelAsset = State->OriginalPreviewLevelAsset.Get();
+					EditorActor->PreviewRuntimeActor->DungeonAsset = State->OriginalPreviewDungeonAsset.Get();
+					EditorActor->PreviewRuntimeActor->CurrentDungeonLevelId = EditorActor->CurrentDungeonLevelId;
+					EditorActor->PreviewRuntimeActor->RebuildLevel();
+				}
 			}
+
+			State->FixtureDungeonAsset.Reset();
+			State->FixtureLevelAsset.Reset();
 			if (State->PIEWorldInitializationHandle.IsValid())
 			{
 				FWorldDelegates::OnPostWorldInitialization.Remove(State->PIEWorldInitializationHandle);
