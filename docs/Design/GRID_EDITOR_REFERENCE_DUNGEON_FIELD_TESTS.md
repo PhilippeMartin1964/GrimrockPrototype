@@ -346,3 +346,201 @@ Il vérifie pour une porte normale puis une porte secrète :
 ~~~
 
 Puis vérifier en PIE qu'une tentative d'avancer pendant l'ouverture produit le feedback de déplacement bloqué et que le franchissement devient possible uniquement à la fin complète de l'ouverture.
+
+---
+
+## Incident 005 — Selected Object / MonsterSpawn trop technique et incomplet
+
+### Observation terrain
+
+Lors de l'authoring d'un Rat géant en embuscade, la fenêtre **Selected Object** affichait principalement des métadonnées génériques et debug :
+
+- catégories de palette ;
+- indicateurs Interactable / Readable / Light Source ;
+- classes runtime génériques ;
+- meshes d'archétype vides ;
+- ObjectId dupliqué.
+
+En revanche, les informations indispensables au gameplay du `MonsterSpawn` n'étaient pas exposées correctement.
+
+Le défaut le plus trompeur était :
+
+~~~text
+Initial State = Enabled
+~~~
+
+Cette ligne lisait en réalité `bInitiallyEnabled` et ne montrait jamais `InitialMonsterState`.
+
+### Audit du contrat existant
+
+Le modèle possède déjà deux niveaux distincts.
+
+**Placement MonsterSpawn :**
+
+~~~text
+bInitiallyEnabled
+InitialMonsterState = Idle | Dormant
+InitialFacing
+EncounterGroupId
+EncounterWaveIndex
+PatrolMode
+PatrolWaypoints
+~~~
+
+**MonsterDefinition partagée :**
+
+~~~text
+SightRangeCells
+HearingRangeCells
+PrimaryAIProfile
+bSharesAggroWithGroup
+AggroPropagationRange
+...
+~~~
+
+La perception reste volontairement propriété de la Definition. Le Selected Object affiche donc ses valeurs effectives en lecture seule au lieu de créer implicitement un override par occurrence.
+
+### Consolidation de l'inspecteur
+
+Pour un `MonsterSpawn`, la fenêtre est désormais organisée autour des besoins d'authoring :
+
+~~~text
+Spawn Presence
+  Present at Start
+
+Monster Spawn
+  Definition
+    Monster Definition
+    Definition Id
+
+  Spawn
+    Initial State       Idle / Dormant
+    Initial Facing
+
+  Perception — from Monster Definition
+    Sight Range
+    Hearing Range
+    Primary AI Profile
+    Shares Aggro With Group
+    Aggro Propagation Range
+
+  Patrol
+    Patrol Mode
+    Waypoints
+    Edit Patrol Route
+    Clear Route
+
+  Encounter — optional
+    Encounter Group
+    Wave Index
+~~~
+
+`Active at Start` est masqué pour les MonsterSpawns : il s'agit de l'état générique d'activation des objets et non de l'état d'exploration d'un monstre.
+
+Les lignes génériques d'archétype sans valeur (`Runtime Actor Class=None`, meshes `None`, etc.) sont également retirées du premier plan pour ce type d'objet.
+
+### État initial
+
+Une nouvelle action d'éditeur :
+
+~~~cpp
+SetSelectedObjectInitialMonsterState(...)
+~~~
+
+autorise uniquement :
+
+- `Idle` ;
+- `Dormant`.
+
+Les états runtime `Alert`, `Pursuing`, `Attacking`, `Hurt`, `Dead`, etc. restent interdits comme état de fresh spawn.
+
+La sémantique est maintenant visible sans ambiguïté :
+
+~~~text
+Present at Start = false
+    => Actor absent
+
+Present at Start = true + Initial State = Idle
+    => Actor présent et actif en exploration
+
+Present at Start = true + Initial State = Dormant
+    => Actor présent mais dormant
+~~~
+
+### Perception et embuscade
+
+Le panneau affiche directement les valeurs effectives de la Definition.
+
+Exemple pour une embuscade à moins de trois cases :
+
+~~~text
+Present at Start     = true
+Initial State        = Dormant
+Initial Facing       = direction du couloir
+Sight Range          = 2
+Hearing Range        = 0
+Patrol Mode          = None
+Encounter Group      = None
+~~~
+
+Le panneau rappelle que la vue est directionnelle et l'ouïe omnidirectionnelle.
+
+Un avertissement apparaît également lorsqu'un monstre est `Dormant` alors que `SightRangeCells == 0` et `HearingRangeCells == 0`, car il ne peut alors pas se réveiller par perception.
+
+### Patrouille
+
+Les API d'authoring de route existaient déjà mais étaient pratiquement invisibles dans Selected Object.
+
+Le panneau expose désormais le mode, le nombre de waypoints et le bouton **Edit Patrol Route**. Pendant l'édition, il rappelle les contrôles viewport existants :
+
+~~~text
+clic gauche      ajouter / sélectionner un waypoint
+F                changer son Facing
++ / -            modifier l'attente
+Delete           supprimer
+PageUp/PageDown  réordonner
+P                terminer l'édition
+~~~
+
+### Consolidation runtime MON14.2
+
+L'audit a également détecté que `AGridMonsterActor::InitializeMonster()` appelait toujours `ApplySpawnPlacementConfiguration()`, tandis que la définition de cette méthode MON14.2 n'était plus présente dans le `.cpp` courant.
+
+Le contrat est restauré :
+
+- un fresh spawn lit son `InitialMonsterState` ;
+- `Dormant` atteint réellement l'Actor runtime ;
+- `EncounterGroupId`, `PatrolMode` et `PatrolWaypoints` sont recopiés depuis le placement ;
+- un état sauvegardé reste ensuite autoritaire lors d'un Continue.
+
+### Validation
+
+Nouveau test éditeur :
+
+~~~text
+Grimrock.Editor.MonsterSpawn.InspectorAuthoringContract
+~~~
+
+Régression runtime existante à rejouer :
+
+~~~text
+Grimrock.Monsters.MON14.2.FreshSpawnConfiguration
+~~~
+
+Validation recommandée :
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Editor.MonsterSpawn.InspectorAuthoringContract"
+~~~
+
+puis :
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Monsters.MON14.2.FreshSpawnConfiguration"
+~~~
+
+Enfin, vérifier en PIE un MonsterSpawn `Present at Start=true`, `Initial State=Dormant`, orienté vers le groupe et utilisant une Definition avec `SightRangeCells=2`, `HearingRangeCells=0`.

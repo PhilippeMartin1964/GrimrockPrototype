@@ -101,6 +101,28 @@ namespace
 	}
 }
 
+void AGridMonsterActor::ApplySpawnPlacementConfiguration()
+{
+	MonsterState = EGridMonsterState::Idle;
+	PatrolMode = EGridMonsterPatrolMode::None;
+	PatrolWaypoints.Reset();
+
+	AGridLevelRuntimeActor* RuntimeActor = FindMonsterRuntimeActor(this);
+	const FGridLevelObjectData* SpawnData =
+		IsValid(RuntimeActor) && RuntimeActor->LevelAsset && SpawnObjectId.IsValid() ? RuntimeActor->LevelAsset->FindMonsterSpawnById(SpawnObjectId) : nullptr;
+	if (!SpawnData)
+	{
+		return;
+	}
+
+	// Fresh authoring is intentionally restricted to exploration states.
+	// Save/Continue restoration remains authoritative and can replace this later.
+	MonsterState = SpawnData->InitialMonsterState == EGridMonsterState::Dormant ? EGridMonsterState::Dormant : EGridMonsterState::Idle;
+	EncounterGroupId = SpawnData->EncounterGroupId;
+	PatrolMode = SpawnData->PatrolMode;
+	PatrolWaypoints = SpawnData->PatrolWaypoints;
+}
+
 void AGridMonsterActor::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);

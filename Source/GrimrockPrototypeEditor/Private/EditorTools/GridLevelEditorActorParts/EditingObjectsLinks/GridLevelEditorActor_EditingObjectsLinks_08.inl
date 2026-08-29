@@ -86,6 +86,33 @@ bool AGridLevelEditorActor::SetSelectedObjectEncounterWaveIndex(int32 NewEncount
 	return true;
 }
 
+bool AGridLevelEditorActor::SetSelectedObjectInitialMonsterState(EGridMonsterState NewInitialMonsterState)
+{
+	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	if (!LevelAsset || !Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn ||
+		(NewInitialMonsterState != EGridMonsterState::Idle && NewInitialMonsterState != EGridMonsterState::Dormant))
+	{
+		return false;
+	}
+	if (Obj->InitialMonsterState == NewInitialMonsterState)
+	{
+		return true;
+	}
+
+#if WITH_EDITOR
+	LevelAsset->Modify();
+#endif
+
+	Obj->InitialMonsterState = NewInitialMonsterState;
+
+#if WITH_EDITOR
+	LevelAsset->MarkPackageDirty();
+#endif
+
+	RebuildPreview();
+	return true;
+}
+
 bool AGridLevelEditorActor::SetSelectedObjectReadableContentAsset(UGridReadableContentAsset* NewReadableContentAsset)
 {
 	FGridLevelObjectData* Obj = FindSelectedObjectMutable();

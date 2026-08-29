@@ -435,6 +435,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Monster Definition")
 	bool SetSelectedObjectEncounterWaveIndex(int32 NewEncounterWaveIndex);
 
+	/** Authoring state for a fresh, present MonsterSpawn. Only Idle and Dormant are valid. */
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Monster Definition")
+	bool SetSelectedObjectInitialMonsterState(EGridMonsterState NewInitialMonsterState);
+
 	UFUNCTION(BlueprintPure, Category = "Editor|Patrol Route")
 	bool CanEditSelectedMonsterPatrolRoute() const;
 

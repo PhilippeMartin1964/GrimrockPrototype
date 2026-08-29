@@ -372,6 +372,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard(con
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(const FGridLevelObjectData& Obj)
 {
+	const bool bIsMonsterSpawn = Obj.Type == EGridLevelObjectType::MonsterSpawn;
 	const UEnum* PlacementKindEnum = StaticEnum<EGridObjectPlacementKind>();
 	const UEnum* ObjectCategoryEnum = StaticEnum<EGridObjectCategory>();
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
@@ -379,7 +380,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(cons
 
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
 
-	if (Archetype)
+	// MonsterSpawn has a dedicated authoring contract below. Generic archetype
+	// metadata (interactable/readable/light, preview meshes...) obscures the
+	// parameters a level designer actually needs for monster placement.
+	if (Archetype && !bIsMonsterSpawn)
 	{
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Placement Kind")),
 			GridEditorWidgetHelpers::GetGridEnumDisplayText(PlacementKindEnum, static_cast<int64>(Archetype->PlacementKind)))];
@@ -400,44 +404,59 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(cons
 			FText::FromString(TEXT("Runtime Light Source")), GetBoolText(Archetype->bIsLightSource))];
 	}
 
-	Root->AddSlot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
-    [
-        SNew (SHorizontalBox)
-            + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
-            [
-                SNew (SCheckBox)
-                    .IsChecked (Obj.bInitiallyEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                    .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
-                {
-                    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                    {
-                        CurrentEditorActor->SetSelectedObjectInitiallyEnabled (NewState == ECheckBoxState::Checked);
-                        RequestRefresh ();
-                    }
-                })
-                    [
-                        SNew (STextBlock).Text (FText::FromString (TEXT ("Enabled at Start")))
-                    ]
-            ]
-            + SHorizontalBox::Slot ().AutoWidth ()
-            [
-                SNew (SCheckBox)
-                    .IsChecked (Obj.bInitiallyActive ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                    .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
-                {
-                    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                    {
-                        CurrentEditorActor->SetSelectedObjectInitiallyActive (NewState == ECheckBoxState::Checked);
-                        RequestRefresh ();
-                    }
-                })
-                    [
-                        SNew (STextBlock).Text (FText::FromString (TEXT ("Active at Start")))
-                    ]
-            ]
-    ];
+	Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 12.f, 0.f)
+		[
+			SNew(SCheckBox)
+				.IsChecked(Obj.bInitiallyEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+				.OnCheckStateChanged_Lambda([this](ECheckBoxState NewState)
+				{
+					if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
+					{
+						CurrentEditorActor->SetSelectedObjectInitiallyEnabled(NewState == ECheckBoxState::Checked);
+						RequestRefresh();
+					}
+				})
+				[
+					SNew(STextBlock).Text(FText::FromString(bIsMonsterSpawn ? TEXT("Present at Start") : TEXT("Enabled at Start")))
+				]
+		]
+		+ SHorizontalBox::Slot().AutoWidth()
+		[
+			!bIsMonsterSpawn
+				? StaticCastSharedRef<SWidget>(
+					SNew(SCheckBox)
+						.IsChecked(Obj.bInitiallyActive ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+						.OnCheckStateChanged_Lambda([this](ECheckBoxState NewState)
+						{
+							if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
+							{
+								CurrentEditorActor->SetSelectedObjectInitiallyActive(NewState == ECheckBoxState::Checked);
+								RequestRefresh();
+							}
+						})
+						[
+							SNew(STextBlock).Text(FText::FromString(TEXT("Active at Start")))
+						])
+				: SNullWidget::NullWidget
+		]
+	];
 
-	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Game Object")), Root);
+	if (bIsMonsterSpawn)
+	{
+		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString(TEXT("Present = the monster Actor exists when the level starts. Unchecked = absent until a Spawn command or encounter creates it.")))
+				.AutoWrapText(true)
+				.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))
+		];
+	}
+
+	return GridEditorWidgetHelpers::BuildGridPanelSection(
+		FText::FromString(bIsMonsterSpawn ? TEXT("Spawn Presence") : TEXT("Game Object")), Root);
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSection(const FGridLevelObjectData& Obj)
@@ -537,7 +556,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection(c
 						  }
 					  })];
 
-	if (Archetype)
+	if (Archetype && Obj.Type != EGridLevelObjectType::MonsterSpawn)
 	{
 		Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Runtime Actor Class")), GetClassNameText(Archetype->RuntimeActorClass.Get()))];
@@ -1500,184 +1519,366 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildMonsterSpawnSection(const FGridLevelObjectData& Obj)
 {
-	const bool bHasDefinitionAsset = Obj.MonsterDefinitionAsset != nullptr;
+	const UGridMonsterDefinitionAsset* Definition = Obj.MonsterDefinitionAsset;
+	const bool bHasDefinitionAsset = Definition != nullptr;
 	const bool bHasDefinitionId = !Obj.MonsterDefinitionId.IsNone();
-	const bool bConflictingDefinitionId = bHasDefinitionAsset && bHasDefinitionId && Obj.MonsterDefinitionAsset->MonsterId != Obj.MonsterDefinitionId;
+	const bool bConflictingDefinitionId = bHasDefinitionAsset && bHasDefinitionId && Definition->MonsterId != Obj.MonsterDefinitionId;
+	const bool bNeedsDefinitionIdRepair = bHasDefinitionAsset && (!bHasDefinitionId || bConflictingDefinitionId);
 	const UEnum* EdgeEnum = StaticEnum<EGridEdge>();
+	const UEnum* StateEnum = StaticEnum<EGridMonsterState>();
+	const UEnum* PatrolModeEnum = StaticEnum<EGridMonsterPatrolMode>();
+	const UEnum* AIProfileEnum = StaticEnum<EGridMonsterAIProfile>();
+	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
+	const bool bPatrolEditing = CurrentEditorActor && CurrentEditorActor->IsPatrolRouteEditModeActive();
+	const int32 WaypointCount = Obj.PatrolWaypoints.Num();
 
-	TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
+	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
 
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("SpawnId / ObjectId")),
-                FText::FromString (Obj.ObjectId.ToString ()))
-        ]
-
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridPropertyRow (
-                FText::FromString (TEXT ("MonsterDefinitionAsset")),
-                BuildMonsterDefinitionAssetPicker (
-                    Obj.MonsterDefinitionAsset,
-                    [this] (UGridMonsterDefinitionAsset* NewAsset)
-                    {
-                        if (AGridLevelEditorActor* CurrentEditorActor =
-                            GetEditorActor ())
-                        {
-                            if (CurrentEditorActor->
-                                SetSelectedObjectMonsterDefinitionAsset (
-                                    NewAsset))
-                            {
-                                RequestRefresh ();
-                            }
-                        }
-                    }))
-        ]
-
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridPropertyRow (
-                FText::FromString (TEXT ("MonsterDefinitionId")),
-                SNew (SEditableTextBox)
-                    .Text (GetNameText (Obj.MonsterDefinitionId))
-                    .MinDesiredWidth (160.f)
-                    .OnTextCommitted_Lambda (
-                        [this] (const FText& NewText,
-                            ETextCommit::Type CommitType)
-                    {
-                        if (AGridLevelEditorActor* CurrentEditorActor =
-                            GetEditorActor ())
-                        {
-                            if (CurrentEditorActor->
-                                SetSelectedObjectMonsterDefinitionId (
-                                    GetNameFromEditorText (NewText)))
-                            {
-                                RequestRefresh ();
-                            }
-                        }
-                    }))
-        ]
-
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridPropertyRow (
-                FText::FromString (TEXT ("EncounterGroupId")),
-                SNew (SEditableTextBox)
-                    .Text (GetNameText (Obj.EncounterGroupId))
-                    .MinDesiredWidth (160.f)
-                    .OnTextCommitted_Lambda (
-                        [this] (const FText& NewText,
-                            ETextCommit::Type CommitType)
-                    {
-                        if (AGridLevelEditorActor* CurrentEditorActor =
-                            GetEditorActor ())
-                        {
-                            if (CurrentEditorActor->
-                                SetSelectedObjectEncounterGroupId (
-                                    GetNameFromEditorText (NewText)))
-                            {
-                                RequestRefresh ();
-                            }
-                        }
-                    }))
-        ]
-
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridPropertyRow (
-                FText::FromString (TEXT ("EncounterWaveIndex")),
-                SNew (SSpinBox<int32>)
-                    .Value (Obj.EncounterWaveIndex)
-                    .MinValue (0)
-                    .OnValueCommitted_Lambda (
-                        [this] (int32 NewValue,
-                            ETextCommit::Type CommitType)
-                    {
-                        if (AGridLevelEditorActor* CurrentEditorActor =
-                            GetEditorActor ())
-                        {
-                            if (CurrentEditorActor->
-                                SetSelectedObjectEncounterWaveIndex (
-                                    NewValue))
-                            {
-                                RequestRefresh ();
-                            }
-                        }
-                    }))
-        ]
-
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("InitialFacing")),
-                GridEditorWidgetHelpers::GetGridEnumDisplayText (
-                    EdgeEnum,
-                    static_cast<int64> (Obj.InitialFacing)))
-        ]
-
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Initial State")),
-                FText::FromString (Obj.bInitiallyEnabled
-                    ? TEXT ("Enabled")
-                    : TEXT ("Disabled")))
-        ]
-
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Monster Actor Class")),
-                GetClassNameText (Obj.MonsterDefinitionAsset
-                    ? Obj.MonsterDefinitionAsset->MonsterActorClass.Get ()
-                    : nullptr))
-        ]
-
-        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
-        [
-            SNew (SButton)
-                .Text (FText::FromString (TEXT ("Sync Id From Asset")))
-                .IsEnabled (bHasDefinitionAsset)
-                .OnClicked_Lambda ([this] ()
-                {
-                    if (AGridLevelEditorActor* CurrentEditorActor =
-                        GetEditorActor ())
-                    {
-                        if (CurrentEditorActor->
-                            SyncSelectedMonsterDefinitionIdFromAsset ())
-                        {
-                            RequestRefresh ();
-                        }
-                    }
-                    return FReply::Handled ();
-                })
-        ];
-
-	if (!bHasDefinitionAsset && !bHasDefinitionId)
+	auto AddHeading = [&Root](const TCHAR* Heading)
 	{
-		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock)
-				.Text(FText::FromString(TEXT("Error: MonsterSpawn requires a monster definition.")))
+		Root->AddSlot().AutoHeight().Padding(0.f, 8.f, 0.f, 4.f)
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString(Heading))
+				.Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
+		];
+	};
+
+	auto BuildInitialStateMenu = [this, StateEnum]() -> TSharedRef<SWidget>
+	{
+		TSharedRef<SVerticalBox> Menu = SNew(SVerticalBox);
+		const EGridMonsterState States[] = { EGridMonsterState::Idle, EGridMonsterState::Dormant };
+		for (const EGridMonsterState State : States)
+		{
+			Menu->AddSlot().AutoHeight()
+			[
+				SNew(SButton)
+					.Text(GridEditorWidgetHelpers::GetGridEnumDisplayText(StateEnum, static_cast<int64>(State)))
+					.OnClicked_Lambda([this, State]()
+					{
+						if (AGridLevelEditorActor* EditorActor = GetEditorActor())
+						{
+							EditorActor->SetSelectedObjectInitialMonsterState(State);
+							RequestRefresh();
+						}
+						return FReply::Handled();
+					})
+			];
+		}
+		return Menu;
+	};
+
+	auto BuildPatrolModeMenu = [this, PatrolModeEnum, WaypointCount]() -> TSharedRef<SWidget>
+	{
+		TSharedRef<SVerticalBox> Menu = SNew(SVerticalBox);
+		const EGridMonsterPatrolMode Modes[] = {
+			EGridMonsterPatrolMode::None, EGridMonsterPatrolMode::Loop, EGridMonsterPatrolMode::PingPong
+		};
+		for (const EGridMonsterPatrolMode Mode : Modes)
+		{
+			Menu->AddSlot().AutoHeight()
+			[
+				SNew(SButton)
+					.IsEnabled(Mode == EGridMonsterPatrolMode::None || WaypointCount >= 2)
+					.Text(GridEditorWidgetHelpers::GetGridEnumDisplayText(PatrolModeEnum, static_cast<int64>(Mode)))
+					.OnClicked_Lambda([this, Mode]()
+					{
+						if (AGridLevelEditorActor* EditorActor = GetEditorActor())
+						{
+							EditorActor->SetSelectedMonsterPatrolMode(Mode);
+							RequestRefresh();
+						}
+						return FReply::Handled();
+					})
+			];
+		}
+		return Menu;
+	};
+
+	AddHeading(TEXT("Definition"));
+
+	Root->AddSlot().AutoHeight()
+	[
+		GridEditorWidgetHelpers::BuildGridPropertyRow(
+			FText::FromString(TEXT("Monster Definition")),
+			BuildMonsterDefinitionAssetPicker(
+				Obj.MonsterDefinitionAsset,
+				[this](UGridMonsterDefinitionAsset* NewAsset)
+				{
+					if (AGridLevelEditorActor* EditorActor = GetEditorActor())
+					{
+						if (EditorActor->SetSelectedObjectMonsterDefinitionAsset(NewAsset))
+						{
+							RequestRefresh();
+						}
+					}
+				}))
+	];
+
+	Root->AddSlot().AutoHeight()
+	[
+		GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			FText::FromString(TEXT("Definition Id")),
+			GetNameText(Obj.MonsterDefinitionId))
+	];
+
+	if (!bHasDefinitionAsset)
+	{
+		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString(TEXT("Error: runtime MonsterSpawn requires a Monster Definition asset.")))
 				.AutoWrapText(true)
-				.ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.25f, 0.18f, 1.f)))];
+				.ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.25f, 0.18f, 1.f)))
+		];
+	}
+	else if (bNeedsDefinitionIdRepair)
+	{
+		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+					.Text(FText::FromString(TEXT("Definition Id is missing or differs from the selected asset.")))
+					.AutoWrapText(true)
+					.ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.55f, 0.18f, 1.f)))
+			]
+			+ SHorizontalBox::Slot().AutoWidth().Padding(8.f, 0.f, 0.f, 0.f)
+			[
+				SNew(SButton)
+					.Text(FText::FromString(TEXT("Repair Id")))
+					.OnClicked_Lambda([this]()
+					{
+						if (AGridLevelEditorActor* EditorActor = GetEditorActor())
+						{
+							EditorActor->SyncSelectedMonsterDefinitionIdFromAsset();
+							RequestRefresh();
+						}
+						return FReply::Handled();
+					})
+			]
+		];
 	}
 
-	if (bConflictingDefinitionId)
-	{
-		Root->AddSlot().AutoHeight().Padding(0.f, 2.f, 0.f, 0.f)[SNew(STextBlock)
-				.Text(FText::FromString(TEXT("Error: MonsterDefinitionId differs from the selected asset id.")))
-				.AutoWrapText(true)
-				.ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.25f, 0.18f, 1.f)))];
-	}
+	AddHeading(TEXT("Spawn"));
 
-	Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-		FText::FromString(TEXT("Supported Commands")), FText::FromString(TEXT("Spawn, Despawn, Teleport, Activate, Deactivate, Enable, Disable, Toggle")))];
+	Root->AddSlot().AutoHeight()
+	[
+		GridEditorWidgetHelpers::BuildGridPropertyRow(
+			FText::FromString(TEXT("Initial State")),
+			SNew(SComboButton)
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+						.Text(GridEditorWidgetHelpers::GetGridEnumDisplayText(StateEnum, static_cast<int64>(Obj.InitialMonsterState)))
+				]
+				.MenuContent()
+				[
+					BuildInitialStateMenu()
+				])
+	];
 
-	Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock)
-			.Text(FText::FromString(
-				TEXT("MON13.3 exposes MonsterSpawn as a connector target and supports persistent Spawn, Despawn and intra-level Teleport commands.")))
+	Root->AddSlot().AutoHeight()
+	[
+		GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			FText::FromString(TEXT("Initial Facing")),
+			GridEditorWidgetHelpers::GetGridEnumDisplayText(EdgeEnum, static_cast<int64>(Obj.InitialFacing)))
+	];
+
+	Root->AddSlot().AutoHeight().Padding(0.f, 2.f, 0.f, 0.f)
+	[
+		SNew(STextBlock)
+			.Text(FText::FromString(TEXT("Use the North / East / South / West buttons below to change the initial facing.")))
 			.AutoWrapText(true)
-			.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))];
+			.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))
+	];
+
+	AddHeading(TEXT("Perception — from Monster Definition"));
+
+	if (Definition)
+	{
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			FText::FromString(TEXT("Sight Range (cells)")), FText::AsNumber(Definition->SightRangeCells))];
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			FText::FromString(TEXT("Hearing Range (cells)")), FText::AsNumber(Definition->HearingRangeCells))];
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			FText::FromString(TEXT("Primary AI Profile")),
+			GridEditorWidgetHelpers::GetGridEnumDisplayText(AIProfileEnum, static_cast<int64>(Definition->PrimaryAIProfile)))];
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			FText::FromString(TEXT("Shares Aggro With Group")), GetBoolText(Definition->bSharesAggroWithGroup))];
+		if (Definition->bSharesAggroWithGroup)
+		{
+			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+				FText::FromString(TEXT("Aggro Propagation Range")), FText::AsNumber(Definition->AggroPropagationRange))];
+		}
+
+		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString(TEXT("Sight is directional; hearing is omnidirectional. These values belong to the shared Monster Definition asset.")))
+				.AutoWrapText(true)
+				.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))
+		];
+
+		if (Obj.InitialMonsterState == EGridMonsterState::Dormant && Definition->SightRangeCells <= 0 && Definition->HearingRangeCells <= 0)
+		{
+			Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
+			[
+				SNew(STextBlock)
+					.Text(FText::FromString(TEXT("Warning: this Dormant monster has no sight or hearing range and cannot wake from perception.")))
+					.AutoWrapText(true)
+					.ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.55f, 0.18f, 1.f)))
+			];
+		}
+	}
+	else
+	{
+		Root->AddSlot().AutoHeight()
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString(TEXT("Assign a Monster Definition to inspect effective perception values.")))
+				.AutoWrapText(true)
+				.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))
+		];
+	}
+
+	AddHeading(TEXT("Patrol"));
+
+	Root->AddSlot().AutoHeight()
+	[
+		GridEditorWidgetHelpers::BuildGridPropertyRow(
+			FText::FromString(TEXT("Patrol Mode")),
+			SNew(SComboButton)
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+						.Text(GridEditorWidgetHelpers::GetGridEnumDisplayText(PatrolModeEnum, static_cast<int64>(Obj.PatrolMode)))
+				]
+				.MenuContent()
+				[
+					BuildPatrolModeMenu()
+				])
+	];
+
+	Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+		FText::FromString(TEXT("Waypoints")), FText::AsNumber(WaypointCount))];
+
+	Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 6.f, 0.f)
+		[
+			SNew(SButton)
+				.Text(FText::FromString(bPatrolEditing ? TEXT("Finish Patrol Editing") : TEXT("Edit Patrol Route")))
+				.OnClicked_Lambda([this]()
+				{
+					if (AGridLevelEditorActor* EditorActor = GetEditorActor())
+					{
+						EditorActor->ToggleSelectedMonsterPatrolRouteEditing();
+						RequestRefresh();
+					}
+					return FReply::Handled();
+				})
+		]
+		+ SHorizontalBox::Slot().AutoWidth()
+		[
+			SNew(SButton)
+				.IsEnabled(WaypointCount > 0)
+				.Text(FText::FromString(TEXT("Clear Route")))
+				.OnClicked_Lambda([this]()
+				{
+					if (AGridLevelEditorActor* EditorActor = GetEditorActor())
+					{
+						EditorActor->ClearSelectedMonsterPatrolRoute();
+						RequestRefresh();
+					}
+					return FReply::Handled();
+				})
+		]
+	];
+
+	if (bPatrolEditing)
+	{
+		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString(TEXT("Patrol editing active: click grid cells to add/select waypoints. F changes facing, +/- changes wait, Delete removes, PageUp/PageDown reorders, P finishes.")))
+				.AutoWrapText(true)
+				.ColorAndOpacity(FSlateColor(FLinearColor(0.72f, 0.78f, 0.88f, 1.f)))
+		];
+
+		const int32 SelectedWaypointIndex = CurrentEditorActor ? CurrentEditorActor->SelectedPatrolWaypointIndex : INDEX_NONE;
+		if (Obj.PatrolWaypoints.IsValidIndex(SelectedWaypointIndex))
+		{
+			const FGridMonsterPatrolWaypoint& Waypoint = Obj.PatrolWaypoints[SelectedWaypointIndex];
+			Root->AddSlot().AutoHeight().Padding(0.f, 2.f, 0.f, 0.f)
+			[
+				GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+					FText::FromString(TEXT("Selected Waypoint")),
+					FText::Format(
+						FText::FromString(TEXT("#{0}  Cell ({1},{2})  Facing {3}  Wait {4}s")),
+						FText::AsNumber(SelectedWaypointIndex),
+						FText::AsNumber(Waypoint.Cell.X),
+						FText::AsNumber(Waypoint.Cell.Y),
+						GridEditorWidgetHelpers::GetGridEnumDisplayText(EdgeEnum, static_cast<int64>(Waypoint.Facing)),
+						FText::AsNumber(Waypoint.WaitSeconds)))
+			];
+		}
+	}
+
+	AddHeading(TEXT("Encounter — optional"));
+
+	Root->AddSlot().AutoHeight()
+	[
+		GridEditorWidgetHelpers::BuildGridPropertyRow(
+			FText::FromString(TEXT("Encounter Group")),
+			SNew(SEditableTextBox)
+				.Text(GetNameText(Obj.EncounterGroupId))
+				.MinDesiredWidth(160.f)
+				.OnTextCommitted_Lambda([this](const FText& NewText, ETextCommit::Type)
+				{
+					if (AGridLevelEditorActor* EditorActor = GetEditorActor())
+					{
+						if (EditorActor->SetSelectedObjectEncounterGroupId(GetNameFromEditorText(NewText)))
+						{
+							RequestRefresh();
+						}
+					}
+				}))
+	];
+
+	if (!Obj.EncounterGroupId.IsNone())
+	{
+		Root->AddSlot().AutoHeight()
+		[
+			GridEditorWidgetHelpers::BuildGridPropertyRow(
+				FText::FromString(TEXT("Wave Index")),
+				SNew(SSpinBox<int32>)
+					.Value(Obj.EncounterWaveIndex)
+					.MinValue(0)
+					.OnValueCommitted_Lambda([this](int32 NewValue, ETextCommit::Type)
+					{
+						if (AGridLevelEditorActor* EditorActor = GetEditorActor())
+						{
+							if (EditorActor->SetSelectedObjectEncounterWaveIndex(NewValue))
+							{
+								RequestRefresh();
+							}
+						}
+					}))
+		];
+	}
+	else
+	{
+		Root->AddSlot().AutoHeight().Padding(0.f, 2.f, 0.f, 0.f)
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString(TEXT("Leave None for an independent monster. Use the Connectors tab for Spawn/Despawn or StartEncounter logic.")))
+				.AutoWrapText(true)
+				.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))
+		];
+	}
 
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Monster Spawn")), Root);
 }
