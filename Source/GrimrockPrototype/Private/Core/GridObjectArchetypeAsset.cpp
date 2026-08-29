@@ -294,6 +294,19 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("RuntimeActorClass is required for this SupportedType."));
 	}
 
+	if (SupportedType == EGridLevelObjectType::Door)
+	{
+		if (!FMath::IsFinite(DoorAudioVolume) || DoorAudioVolume < 0.f)
+		{
+			AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Door audio Volume must be finite and >= 0."));
+		}
+		if (!FMath::IsFinite(DoorAudioPitchVariation) || DoorAudioPitchVariation < 0.f || DoorAudioPitchVariation > 0.25f)
+		{
+			AddValidationMessage(
+				OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Door audio Pitch Variation must be finite and between 0.0 and 0.25."));
+		}
+	}
+
 	if (Category.IsNone())
 	{
 		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info,

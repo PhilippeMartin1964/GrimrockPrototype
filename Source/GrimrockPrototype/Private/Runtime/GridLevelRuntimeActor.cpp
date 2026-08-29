@@ -6,6 +6,7 @@
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GridActivationComponent.h"
+#include "Runtime/GridDoorActor.h"
 #include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/GridEditorPreviewComponent.h"
 #include "Runtime/GrimrockGameMode.h"
@@ -1858,6 +1859,10 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor(const FGridLevelObjectData& O
 	if (AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor>(Actor))
 	{
 		ReceptacleActor->ContainedItemActorClass = Archetype ? Archetype->ItemActorClass : nullptr;
+	}
+	if (AGridDoorActor* DoorActor = Cast<AGridDoorActor>(Actor))
+	{
+		DoorActor->ConfigureDoorAudio(Archetype);
 	}
 	if (AGridMechanismActor* MechanismActor = Cast<AGridMechanismActor>(Actor))
 	{

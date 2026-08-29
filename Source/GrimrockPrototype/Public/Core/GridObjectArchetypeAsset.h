@@ -10,6 +10,8 @@
 
 class AGridRuntimeObjectActor;
 class AGridItemActor;
+class USoundBase;
+class USoundAttenuation;
 
 UENUM(BlueprintType)
 enum class EGridArchetypeValidationSeverity : uint8
@@ -71,6 +73,31 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Defaults",
 		meta = (ToolTip = "Default behavior copied to placed object instances. Currently contains teleporter, receptacle and button parameters."))
 	FGridObjectBehaviorParams DefaultBehavior;
+
+	/** Spatial one-shots played when a door archetype begins a real opening movement. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Door",
+		meta = (DisplayName = "Open Sounds", EditCondition = "SupportedType == EGridLevelObjectType::Door", EditConditionHides))
+	TArray<TObjectPtr<USoundBase>> DoorOpenSounds;
+
+	/** Spatial one-shots played when a door archetype begins a real closing movement. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Door",
+		meta = (DisplayName = "Close Sounds", EditCondition = "SupportedType == EGridLevelObjectType::Door", EditConditionHides))
+	TArray<TObjectPtr<USoundBase>> DoorCloseSounds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Door",
+		meta = (DisplayName = "Volume", ClampMin = "0.0", EditCondition = "SupportedType == EGridLevelObjectType::Door", EditConditionHides))
+	float DoorAudioVolume = 1.0f;
+
+	/** Symmetric deterministic pitch variation around 1.0. 0.04 means approximately 0.96..1.04. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Door",
+		meta = (DisplayName = "Pitch Variation", ClampMin = "0.0", ClampMax = "0.25",
+			EditCondition = "SupportedType == EGridLevelObjectType::Door", EditConditionHides))
+	float DoorAudioPitchVariation = 0.04f;
+
+	/** Optional 3D attenuation override. Null keeps the attenuation configured on the sound asset itself. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Door",
+		meta = (DisplayName = "Attenuation", EditCondition = "SupportedType == EGridLevelObjectType::Door", EditConditionHides))
+	TObjectPtr<USoundAttenuation> DoorAudioAttenuation = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",
 		meta = (DisplayName = "Palette Category",

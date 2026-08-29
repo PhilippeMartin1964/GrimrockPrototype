@@ -4,7 +4,11 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Core/GridObjectArchetypeAsset.h"
+#include "Kismet/GameplayStatics.h"
 #include "Runtime/GridInteractionUtils.h"
+#include "Sound/SoundAttenuation.h"
+#include "Sound/SoundBase.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UObject/ConstructorHelpers.h"
@@ -103,6 +107,30 @@ void AGridDoorActor::InitializeDoor(const FGridLevelObjectData& ObjectData, USta
 	RefreshTickEnabled();
 }
 
+void AGridDoorActor::ConfigureDoorAudio(const UGridObjectArchetypeAsset* Archetype)
+{
+	DoorOpenSounds.Reset();
+	DoorCloseSounds.Reset();
+	DoorAudioVolume = 1.0f;
+	DoorAudioPitchVariation = 0.04f;
+	DoorAudioAttenuation = nullptr;
+	DoorOpenAudioOccurrence = 0;
+	DoorCloseAudioOccurrence = 0;
+	DoorOpenAudioPlaybackRequestCount = 0;
+	DoorCloseAudioPlaybackRequestCount = 0;
+
+	if (!Archetype || Archetype->SupportedType != EGridLevelObjectType::Door)
+	{
+		return;
+	}
+
+	DoorOpenSounds = Archetype->DoorOpenSounds;
+	DoorCloseSounds = Archetype->DoorCloseSounds;
+	DoorAudioVolume = FMath::Max(0.f, Archetype->DoorAudioVolume);
+	DoorAudioPitchVariation = FMath::Clamp(Archetype->DoorAudioPitchVariation, 0.f, 0.25f);
+	DoorAudioAttenuation = Archetype->DoorAudioAttenuation;
+}
+
 void AGridDoorActor::SetDoorOpenState(bool bOpen)
 {
 	if (!MovingMeshComponent)
@@ -113,6 +141,13 @@ void AGridDoorActor::SetDoorOpenState(bool bOpen)
 	const FVector DesiredTarget = bOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation;
 
 	if (!bIsAnimating && bIsOpen == bOpen)
+	{
+		return;
+	}
+
+	// Repeated commands toward the already active target are presentation no-ops.
+	// A genuine reversal has a different target and is allowed to start a new sound.
+	if (bIsAnimating && MoveTargetRelativeLocation.Equals(DesiredTarget, 0.1f))
 	{
 		return;
 	}
@@ -153,6 +188,7 @@ void AGridDoorActor::SetDoorOpenState(bool bOpen)
 	CurrentMoveDuration = FMath::Max(0.01f, MoveDuration * TravelRatio);
 
 	bIsAnimating = true;
+	PlayDoorMotionSound(bOpen);
 	RefreshTickEnabled();
 }
 
@@ -174,6 +210,59 @@ void AGridDoorActor::OpenDoor()
 void AGridDoorActor::CloseDoor()
 {
 	SetDoorOpenState(false);
+}
+
+bool AGridDoorActor::PlayDoorMotionSound(bool bOpening)
+{
+	const TArray<TObjectPtr<USoundBase>>& Sounds = bOpening ? DoorOpenSounds : DoorCloseSounds;
+	if (Sounds.IsEmpty())
+	{
+		return false;
+	}
+
+	int32& Occurrence = bOpening ? DoorOpenAudioOccurrence : DoorCloseAudioOccurrence;
+	int32& RequestCount = bOpening ? DoorOpenAudioPlaybackRequestCount : DoorCloseAudioPlaybackRequestCount;
+	const int32 StartIndex = Occurrence % Sounds.Num();
+
+	USoundBase* SelectedSound = nullptr;
+	for (int32 Offset = 0; Offset < Sounds.Num(); ++Offset)
+	{
+		const int32 Index = (StartIndex + Offset) % Sounds.Num();
+		if (Sounds[Index])
+		{
+			SelectedSound = Sounds[Index].Get();
+			break;
+		}
+	}
+
+	if (!SelectedSound)
+	{
+		return false;
+	}
+
+	const int32 ThisOccurrence = Occurrence++;
+	++RequestCount;
+
+	if (bNativeDoorAudioPlaybackEnabled)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this, SelectedSound, GetActorLocation(), DoorAudioVolume, SelectDoorAudioPitch(ThisOccurrence), 0.f, DoorAudioAttenuation);
+	}
+
+	return true;
+}
+
+float AGridDoorActor::SelectDoorAudioPitch(int32 OccurrenceNumber) const
+{
+	if (DoorAudioPitchVariation <= KINDA_SMALL_NUMBER)
+	{
+		return 1.0f;
+	}
+
+	// Presentation-only deterministic pattern. It never consumes gameplay RNG.
+	static constexpr float PitchOffsets[] = { -1.0f, 0.35f, 1.0f, -0.45f, 0.0f };
+	const int32 PatternIndex = FMath::Abs(OccurrenceNumber) % UE_ARRAY_COUNT(PitchOffsets);
+	return FMath::Max(0.01f, 1.0f + PitchOffsets[PatternIndex] * DoorAudioPitchVariation);
 }
 
 void AGridDoorActor::PullChain()

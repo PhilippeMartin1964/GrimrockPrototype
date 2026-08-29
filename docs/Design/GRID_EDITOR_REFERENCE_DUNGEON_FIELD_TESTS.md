@@ -626,3 +626,84 @@ Puis régression :
     -EngineRoot D:\UE_5.5 `
     -AutomationFilter "Grimrock.Monsters.MON14"
 ~~~
+
+---
+
+## Incident 007 — Feedback audio d'ouverture et de fermeture des portes
+
+### Besoin terrain
+
+Les animations des portes manquaient de feedback sonore. Le bruit doit provenir physiquement de la porte et varier selon son archetype : bois, grille, porte secrète, etc.
+
+### Architecture
+
+Les données audio sont ajoutées à `UGridObjectArchetypeAsset` pour les objets `Door` :
+
+~~~text
+DoorOpenSounds[]
+DoorCloseSounds[]
+DoorAudioVolume
+DoorAudioPitchVariation
+DoorAudioAttenuation
+~~~
+
+Le runtime `AGridLevelRuntimeActor` transmet ces valeurs à `AGridDoorActor` lors de la création de l'objet.
+
+La lecture utilise `UGameplayStatics::PlaySoundAtLocation()`.
+
+### Autorité temporelle
+
+Le son est demandé au démarrage d'un déplacement physique réel.
+
+~~~text
+Open sur porte fermée                 -> son Open
+Close sur porte ouverte               -> son Close
+Open répété pendant une ouverture     -> aucun doublon
+Close répété pendant une fermeture    -> aucun doublon
+inversion Open -> Close               -> son Close
+inversion Close -> Open               -> son Open
+SnapDoorOpenState / restauration      -> silence
+~~~
+
+Le son ne possède aucune autorité gameplay et ne change ni le blocage du passage, ni la durée de l'animation, ni la sauvegarde.
+
+### Variantes
+
+La sélection des variantes est cyclique et déterministe. Le pitch varie selon un motif déterministe indépendant du RNG de gameplay.
+
+### Assets
+
+Convention :
+
+~~~text
+S_Door_Wood_Open_01
+S_Door_Wood_Close_01
+S_Door_Grating_Open_01
+S_Door_Grating_Close_01
+S_Door_Secret_Open_01
+S_Door_Secret_Close_01
+~~~
+
+Dossier recommandé :
+
+~~~text
+Content/GrimrockPrototype/Audio/Environment/Doors/
+~~~
+
+Configuration détaillée : `docs/Design/DOOR_AUDIO_SETUP.md`.
+
+### Test
+
+~~~text
+Grimrock.Runtime.Doors.AudioFeedback
+~~~
+
+Il vérifie le déclenchement Open/Close, l'absence de répétition dans le même sens, l'inversion de mouvement et le silence de `SnapDoorOpenState()`.
+
+### Validation
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Runtime.Doors.AudioFeedback"
+~~~
