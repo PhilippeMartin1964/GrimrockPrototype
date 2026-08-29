@@ -172,3 +172,110 @@ Puis, pour vérifier les contrats de déplacement déjà existants :
 ~~~
 
 Enfin, valider en PIE le ressenti des valeurs par défaut et ajuster uniquement les quatre paramètres `Movement|Blocked Feedback` si nécessaire.
+
+---
+
+## Incident 003 — Audio de déplacement du groupe
+
+### Observation
+
+Le feedback visuel d'un déplacement bloqué est désormais lisible, mais l'absence de son réduit encore la sensation de contact. Les déplacements réussis restent également silencieux.
+
+### Classification
+
+- **Type :** UX / Runtime / Audio ;
+- **Sous-système :** déplacement du groupe ;
+- **Autorité gameplay :** inchangée ;
+- **Lecture :** 2D, attachée à l'expérience du joueur et non spatialisée dans le monde.
+
+### Décision
+
+Ajouter deux familles de sons configurables sur `AGrimrockPartyPawn` :
+
+- `FootstepSounds` : une variante jouée uniquement lorsqu'une translation de grille est acceptée ;
+- `BlockedMoveSounds` : une variante jouée une seule fois lorsque le feedback bloqué atteint sa distance maximale.
+
+Le Pawn expose également :
+
+- `bMovementAudioEnabled` ;
+- `bNativeMovementAudioPlaybackEnabled` ;
+- `FootstepVolume` ;
+- `BlockedMoveVolume` ;
+- `MovementAudioPitchVariation`.
+
+La variation de pitch est présentationnelle et déterministe. Elle utilise son propre `FRandomStream` local et ne touche jamais au hasard du combat.
+
+Valeurs par défaut :
+
+- `FootstepVolume = 0.75` ;
+- `BlockedMoveVolume = 0.85` ;
+- `MovementAudioPitchVariation = 0.04`, soit environ `0.96..1.04`.
+
+Les sons sont joués avec `UGameplayStatics::PlaySound2D`. Le free-look ne modifie donc pas la perception des propres pas du groupe.
+
+### Convention de contenu
+
+Le projet ne possédait pas encore de dossier audio racine sous `Content/GrimrockPrototype`. Créer :
+
+~~~text
+Content/GrimrockPrototype/Audio/Party/Movement/
+~~~
+
+Convention recommandée pour des sons de pierre :
+
+~~~text
+S_Party_Footstep_Stone_01
+S_Party_Footstep_Stone_02
+S_Party_Footstep_Stone_03
+S_Party_Footstep_Stone_04
+
+S_Party_BlockedImpact_Stone_01
+S_Party_BlockedImpact_Stone_02
+~~~
+
+Le préfixe `S_` reste cohérent avec MON10. La structure est :
+
+~~~text
+S_<Source>_<Event>_<SurfaceOptionnelle>_<Variante>
+~~~
+
+Le système courant ne choisit pas encore automatiquement la surface. Le suffixe `Stone` est donc informatif et prépare une future extension matériau-sol/mur.
+
+### Configuration dans Unreal Editor
+
+1. Créer `Content/GrimrockPrototype/Audio/Party/Movement/`.
+2. Importer les fichiers WAV.
+3. Renommer les SoundWave selon la convention ci-dessus.
+4. Ouvrir `Content/GrimrockPrototype/Blueprints/Runtime/BP_GrimrockPartyPawn`.
+5. Dans **Class Defaults**, ouvrir **Movement > Audio**.
+6. Laisser `Movement Audio Enabled = true`.
+7. Laisser `Native Movement Audio Playback Enabled = true`.
+8. Ajouter les variantes de pas dans `Footstep Sounds`.
+9. Ajouter les variantes d'impact dans `Blocked Move Sounds`.
+10. Commencer avec les volumes et la variation de pitch par défaut, puis ajuster en PIE.
+
+Aucun SoundCue ni MetaSound n'est requis : les `SoundWave` importées peuvent être assignées directement.
+
+### Tests automatisés
+
+Nouveau test :
+
+`Grimrock.Runtime.PartyMovement.AudioFeedback`
+
+Il vérifie sans périphérique audio que :
+
+- un mur ne joue pas l'impact au moment de la touche ;
+- l'impact est demandé exactement au maximum du nudge ;
+- le retour ne rejoue pas l'impact ;
+- une translation acceptée demande exactement un pas ;
+- un mouvement réussi n'ajoute aucun impact bloqué.
+
+### Validation UE5.5.4 demandée
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Runtime.PartyMovement"
+~~~
+
+Puis validation manuelle en PIE avec les SoundWave réellement assignées dans `BP_GrimrockPartyPawn`.

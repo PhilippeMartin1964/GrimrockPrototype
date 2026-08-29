@@ -2,8 +2,10 @@
 
 #include "Core/GridDirectionUtils.h"
 #include "InputActionValue.h"
+#include "Kismet/GameplayStatics.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Sound/SoundBase.h"
 
 namespace
 {
@@ -30,6 +32,8 @@ namespace
 			   RejectReason == EGridPartyMovementRejectReason::PassageBlocked ||
 			   RejectReason == EGridPartyMovementRejectReason::TargetCellOccupied;
 	}
+
+	constexpr uint32 PartyMovementAudioPitchSalt = 0x504D4155u;
 }
 
 void AGrimrockPartyPawn::SetGridStart(AGridLevelRuntimeActor* InLevelRuntimeActor, int32 StartX, int32 StartY, EGridEdge StartFacing)
@@ -231,6 +235,7 @@ bool AGrimrockPartyPawn::TryStartMove(EGridEdge MoveDirection)
 	CurrentCellY = NextY;
 	ActiveMoveDirection = MoveDirection;
 
+	PlayFootstepSound();
 	return true;
 }
 
@@ -252,6 +257,7 @@ bool AGrimrockPartyPawn::TryStartBlockedMoveFeedback(EGridEdge MoveDirection)
 	BlockedMoveOriginLocation = GetCellCenterOnLevel(CurrentCellX, CurrentCellY, EyeHeight);
 	BlockedMoveDirectionWorld = DirectionWorld;
 	BlockedMoveElapsed = 0.f;
+	bBlockedMoveImpactSoundPlayed = false;
 	bIsBlockedMoveFeedbackActive = true;
 
 	// The feedback is visual only. Re-anchor before the nudge so repeated
@@ -273,11 +279,18 @@ void AGrimrockPartyPawn::UpdateBlockedMoveFeedback(float DeltaSeconds)
 
 	BlockedMoveElapsed += FMath::Max(0.f, DeltaSeconds);
 
+	if (!bBlockedMoveImpactSoundPlayed && BlockedMoveElapsed >= SafeForwardDuration)
+	{
+		bBlockedMoveImpactSoundPlayed = true;
+		PlayBlockedMoveSound();
+	}
+
 	if (BlockedMoveElapsed >= TotalDuration)
 	{
 		SetActorLocation(BlockedMoveOriginLocation);
 		BlockedMoveElapsed = 0.f;
 		BlockedMoveDirectionWorld = FVector::ZeroVector;
+		bBlockedMoveImpactSoundPlayed = false;
 		bIsBlockedMoveFeedbackActive = false;
 		return;
 	}
@@ -295,6 +308,65 @@ void AGrimrockPartyPawn::UpdateBlockedMoveFeedback(float DeltaSeconds)
 	}
 
 	SetActorLocation(BlockedMoveOriginLocation + (BlockedMoveDirectionWorld * BlockedMoveDistance * OffsetAlpha));
+}
+
+bool AGrimrockPartyPawn::PlayFootstepSound()
+{
+	return PlayMovementSound(FootstepSounds, FootstepVolume, FootstepAudioOccurrence, FootstepAudioPlaybackRequestCount);
+}
+
+bool AGrimrockPartyPawn::PlayBlockedMoveSound()
+{
+	return PlayMovementSound(BlockedMoveSounds, BlockedMoveVolume, BlockedMoveAudioOccurrence, BlockedMoveAudioPlaybackRequestCount);
+}
+
+bool AGrimrockPartyPawn::PlayMovementSound(
+	const TArray<TObjectPtr<USoundBase>>& Sounds, float VolumeMultiplier, int32& OccurrenceCounter, int32& PlaybackRequestCounter)
+{
+	if (!bMovementAudioEnabled || Sounds.IsEmpty())
+	{
+		return false;
+	}
+
+	USoundBase* SelectedSound = nullptr;
+	const int32 StartIndex = OccurrenceCounter % Sounds.Num();
+	for (int32 Offset = 0; Offset < Sounds.Num(); ++Offset)
+	{
+		const int32 CandidateIndex = (StartIndex + Offset) % Sounds.Num();
+		if (USoundBase* Candidate = Sounds[CandidateIndex].Get())
+		{
+			SelectedSound = Candidate;
+			break;
+		}
+	}
+	if (!IsValid(SelectedSound))
+	{
+		return false;
+	}
+
+	const int32 OccurrenceNumber = ++OccurrenceCounter;
+	++PlaybackRequestCounter;
+	const float PitchMultiplier = SelectMovementAudioPitch(OccurrenceNumber);
+
+	if (bNativeMovementAudioPlaybackEnabled && GetWorld())
+	{
+		UGameplayStatics::PlaySound2D(this, SelectedSound, FMath::Max(0.f, VolumeMultiplier), PitchMultiplier);
+	}
+	return true;
+}
+
+float AGrimrockPartyPawn::SelectMovementAudioPitch(int32 OccurrenceNumber) const
+{
+	const float Variation = FMath::Clamp(MovementAudioPitchVariation, 0.f, 0.25f);
+	if (Variation <= KINDA_SMALL_NUMBER)
+	{
+		return 1.f;
+	}
+
+	uint32 Seed = PartyMovementAudioPitchSalt;
+	Seed = HashCombine(Seed, GetTypeHash(FMath::Max(1, OccurrenceNumber)));
+	FRandomStream PitchStream(static_cast<int32>(Seed));
+	return PitchStream.FRandRange(1.f - Variation, 1.f + Variation);
 }
 
 bool AGrimrockPartyPawn::TryStartTurn(bool bTurnRight)

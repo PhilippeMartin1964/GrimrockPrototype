@@ -7,6 +7,7 @@
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Sound/SoundWave.h"
 
 namespace
 {
@@ -135,6 +136,80 @@ bool FGridPartyBlockedMovementFeedbackTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("A real move never starts blocked feedback"), Party->bIsBlockedMoveFeedbackActive);
 	TestEqual(TEXT("The accepted move updates logical X normally"), Party->CurrentCellX, 1);
 	TestEqual(TEXT("The accepted move updates logical Y normally"), Party->CurrentCellY, 2);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPartyMovementAudioFeedbackTest, "Grimrock.Runtime.PartyMovement.AudioFeedback",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridPartyMovementAudioFeedbackTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	FGridBlockedMovementTestWorld TestWorld;
+	TestNotNull(TEXT("The movement-audio transient world is created"), TestWorld.World);
+	if (!TestWorld.World)
+	{
+		return false;
+	}
+
+	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
+	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
+	TestNotNull(TEXT("The movement-audio runtime is spawned"), Runtime);
+	TestNotNull(TEXT("The movement-audio party is spawned"), Party);
+	if (!Runtime || !Party)
+	{
+		return false;
+	}
+
+	UGridLevelAsset* LevelAsset = NewObject<UGridLevelAsset>(Runtime);
+	LevelAsset->Width = 3;
+	LevelAsset->Height = 3;
+	LevelAsset->CellSize = 200.f;
+	LevelAsset->EnsureCellCount();
+	for (FGridLevelCellData& Cell : LevelAsset->Cells)
+	{
+		Cell.CellType = EGridCellType::Floor;
+		Cell.NorthWall = EGridWallType::None;
+		Cell.EastWall = EGridWallType::None;
+		Cell.SouthWall = EGridWallType::None;
+		Cell.WestWall = EGridWallType::None;
+		Cell.bBlocksOccupancy = false;
+	}
+	LevelAsset->GetCellMutable(1, 1).NorthWall = EGridWallType::Solid;
+	Runtime->LevelAsset = LevelAsset;
+
+	USoundWave* FootstepA = NewObject<USoundWave>(Party, TEXT("S_Test_Party_Footstep_01"));
+	USoundWave* FootstepB = NewObject<USoundWave>(Party, TEXT("S_Test_Party_Footstep_02"));
+	USoundWave* BlockedA = NewObject<USoundWave>(Party, TEXT("S_Test_Party_BlockedImpact_01"));
+	Party->FootstepSounds = { FootstepA, FootstepB };
+	Party->BlockedMoveSounds = { BlockedA };
+	Party->bMovementAudioEnabled = true;
+	Party->bNativeMovementAudioPlaybackEnabled = false;
+	Party->MovementAudioPitchVariation = 0.04f;
+	Party->BlockedMoveForwardDuration = 0.08f;
+	Party->BlockedMoveReturnDuration = 0.10f;
+	Party->SetGridStart(Runtime, 1, 1, EGridEdge::North);
+
+	TestEqual(TEXT("No footstep request exists before movement"), Party->FootstepAudioPlaybackRequestCount, 0);
+	TestEqual(TEXT("No blocked-impact request exists before movement"), Party->BlockedMoveAudioPlaybackRequestCount, 0);
+
+	TestFalse(TEXT("The wall rejects the movement before blocked audio"), Party->TryStartMove(EGridEdge::North));
+	TestEqual(TEXT("Blocked audio is not played at key press time"), Party->BlockedMoveAudioPlaybackRequestCount, 0);
+	Party->UpdateBlockedMoveFeedback(Party->BlockedMoveForwardDuration * 0.5f);
+	TestEqual(TEXT("Blocked audio waits for maximum impact"), Party->BlockedMoveAudioPlaybackRequestCount, 0);
+	Party->UpdateBlockedMoveFeedback(Party->BlockedMoveForwardDuration * 0.5f);
+	TestEqual(TEXT("Blocked audio is requested exactly at maximum impact"), Party->BlockedMoveAudioPlaybackRequestCount, 1);
+	TestEqual(TEXT("One blocked-impact occurrence is recorded"), Party->BlockedMoveAudioOccurrence, 1);
+	Party->UpdateBlockedMoveFeedback(Party->BlockedMoveReturnDuration);
+	TestEqual(TEXT("The return phase does not replay blocked audio"), Party->BlockedMoveAudioPlaybackRequestCount, 1);
+
+	LevelAsset->GetCellMutable(1, 1).NorthWall = EGridWallType::None;
+	TestTrue(TEXT("An open passage accepts the movement"), Party->TryStartMove(EGridEdge::North));
+	TestEqual(TEXT("An accepted translation requests one footstep"), Party->FootstepAudioPlaybackRequestCount, 1);
+	TestEqual(TEXT("One footstep occurrence is recorded"), Party->FootstepAudioOccurrence, 1);
+	TestEqual(TEXT("Accepted movement does not add blocked audio"), Party->BlockedMoveAudioPlaybackRequestCount, 1);
 
 	return true;
 }

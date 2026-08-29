@@ -9,6 +9,7 @@
 
 class UCameraComponent;
 class USpringArmComponent;
+class USoundBase;
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
@@ -100,6 +101,32 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Blocked Feedback", meta = (ClampMin = "0.01"))
 	float BlockedMoveReturnDuration = 0.10f;
+
+	/** Party-owned movement sounds. They are 2D presentation only and never affect movement authority. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Audio")
+	bool bMovementAudioEnabled = true;
+
+	/** Disable in automation tests to keep audio requests testable without an audio device. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Audio")
+	bool bNativeMovementAudioPlaybackEnabled = true;
+
+	/** One variant is selected for each accepted grid translation. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Audio")
+	TArray<TObjectPtr<USoundBase>> FootstepSounds;
+
+	/** One variant is selected when blocked movement reaches its maximum visual impact. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Audio")
+	TArray<TObjectPtr<USoundBase>> BlockedMoveSounds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Audio", meta = (ClampMin = "0.0"))
+	float FootstepVolume = 0.75f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Audio", meta = (ClampMin = "0.0"))
+	float BlockedMoveVolume = 0.85f;
+
+	/** Symmetric deterministic pitch variation around 1.0. 0.04 means 0.96..1.04. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Audio", meta = (ClampMin = "0.0", ClampMax = "0.25"))
+	float MovementAudioPitchVariation = 0.04f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
 	float EyeHeight = 110.f;
@@ -514,6 +541,11 @@ private:
 	void HandleStoryCompanionRecruitmentClosed(URPGStoryCompanionRecruitmentWidget* ClosedWidget);
 	bool TryConsumeBufferedCommand();
 	bool IsBusy() const;
+	bool PlayFootstepSound();
+	bool PlayBlockedMoveSound();
+	bool PlayMovementSound(
+		const TArray<TObjectPtr<USoundBase>>& Sounds, float VolumeMultiplier, int32& OccurrenceCounter, int32& PlaybackRequestCounter);
+	float SelectMovementAudioPitch(int32 OccurrenceNumber) const;
 	bool DismissReadableMessageIfVisible();
 	UGridTurnManagerComponent* FindTurnManager() const;
 
@@ -527,6 +559,12 @@ private:
 	FVector BlockedMoveDirectionWorld = FVector::ZeroVector;
 	float BlockedMoveElapsed = 0.f;
 	bool bIsBlockedMoveFeedbackActive = false;
+	bool bBlockedMoveImpactSoundPlayed = false;
+
+	int32 FootstepAudioOccurrence = 0;
+	int32 BlockedMoveAudioOccurrence = 0;
+	int32 FootstepAudioPlaybackRequestCount = 0;
+	int32 BlockedMoveAudioPlaybackRequestCount = 0;
 
 	float TurnStartYaw = 0.f;
 	float TurnTargetYaw = 0.f;
@@ -555,4 +593,5 @@ private:
 
 	friend class FGridMonsterMON12PartyMobilityLifecycleTest;
 	friend class FGridPartyBlockedMovementFeedbackTest;
+	friend class FGridPartyMovementAudioFeedbackTest;
 };
