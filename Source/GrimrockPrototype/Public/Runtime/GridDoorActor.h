@@ -60,6 +60,10 @@ public:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	float ActiveDoorAudioPitch = 1.0f;
 
+	/** Timestamp used for the most recently started Open/Close sample. Diagnostic/test only. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
+	float LastDoorAudioStartTime = 0.0f;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	int32 DoorAudioNaturalCompletionCount = 0;
 
@@ -147,7 +151,7 @@ protected:
 	void UpdateChainAnimation(float DeltaSeconds);
 	void UpdateChainSwingAnimation(float DeltaSeconds);
 	void RefreshTickEnabled();
-	bool PlayDoorMotionSound(bool bOpening);
+	bool PlayDoorMotionSound(bool bOpening, float StartTimeSeconds);
 	bool StopDoorMotionSound();
 	void CompleteDoorMotionSound(float CompletedMoveDuration);
 

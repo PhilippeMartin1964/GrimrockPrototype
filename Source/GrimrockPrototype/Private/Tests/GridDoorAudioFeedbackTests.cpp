@@ -274,4 +274,83 @@ bool FGridDoorNaturalTailContractTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridDoorPartialAudioResumeTest,
+	"Grimrock.Runtime.Doors.PartialAudioResume",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridDoorPartialAudioResumeTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	FGridDoorAudioTestWorld TestWorld;
+	if (!TestWorld.World)
+	{
+		return false;
+	}
+
+	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
+	Archetype->ArchetypeId = TEXT("Door_PartialAudioResume_Test");
+	Archetype->SupportedType = EGridLevelObjectType::Door;
+
+	FGridObjectAudioEvent OpenEvent;
+	OpenEvent.PitchVariation = 0.0f;
+	OpenEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
+	Archetype->AudioEvents.Add(TEXT("Open"), OpenEvent);
+
+	FGridObjectAudioEvent CloseEvent;
+	CloseEvent.PitchVariation = 0.0f;
+	CloseEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
+	Archetype->AudioEvents.Add(TEXT("Close"), CloseEvent);
+
+	AGridDoorActor* Door = TestWorld.World->SpawnActor<AGridDoorActor>();
+	TestNotNull(TEXT("Partial-resume door exists"), Door);
+	if (!Door)
+	{
+		return false;
+	}
+
+	FGridLevelObjectData Data;
+	Data.ObjectId = FGuid::NewGuid();
+	Data.Type = EGridLevelObjectType::Door;
+	Data.CellX = 4;
+	Data.CellY = 4;
+	Data.Edge = EGridEdge::North;
+	Data.Behavior.DoorAnimation.OpenHeight = 200.0f;
+	Data.Behavior.DoorAnimation.MoveDuration = 5.0f;
+
+	Door->InitializeDoor(Data, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	Door->ConfigureObjectAudio(Archetype);
+	Door->bNativeDoorAudioPlaybackEnabled = false;
+
+	// Closed -> Open starts the authored Open track from zero.
+	Door->OpenDoor();
+	TestTrue(TEXT("Full opening audio starts at zero"), FMath::IsNearlyEqual(Door->LastDoorAudioStartTime, 0.0f, 0.01f));
+
+	// After 2 seconds of a 5-second opening, the door is 40% open.
+	Door->Tick(2.0f);
+	TestTrue(TEXT("Door remains in partial opening at 40 percent"), Door->IsAnimating());
+
+	// Closing from 40% open corresponds to t=3.0 on a normal 5-second Close timeline.
+	Door->CloseDoor();
+	TestTrue(TEXT("Partial close reversal stays animated"), Door->IsAnimating());
+	TestTrue(TEXT("Close resumes at 3.0 seconds for a door that is 40 percent open"),
+		FMath::IsNearlyEqual(Door->LastDoorAudioStartTime, 3.0f, 0.02f));
+
+	// Reset fully open, then close for 1.5 s: openness becomes 70%.
+	Door->SnapDoorOpenState(true);
+	Door->CloseDoor();
+	TestTrue(TEXT("Full closing audio starts at zero"), FMath::IsNearlyEqual(Door->LastDoorAudioStartTime, 0.0f, 0.01f));
+	Door->Tick(1.5f);
+	TestTrue(TEXT("Door remains in partial closing at 70 percent open"), Door->IsAnimating());
+
+	// Reopening from 70% open corresponds to t=3.5 on the Open timeline.
+	Door->OpenDoor();
+	TestTrue(TEXT("Partial open reversal stays animated"), Door->IsAnimating());
+	TestTrue(TEXT("Open resumes at 3.5 seconds for a door that is 70 percent open"),
+		FMath::IsNearlyEqual(Door->LastDoorAudioStartTime, 3.5f, 0.02f));
+
+	return true;
+}
+
 #endif

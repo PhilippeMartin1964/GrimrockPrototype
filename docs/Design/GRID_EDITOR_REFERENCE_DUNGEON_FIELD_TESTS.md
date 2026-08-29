@@ -1079,3 +1079,73 @@ L'ancien `DoorAudioAttenuation` caché est migré vers l'atténuation unique de 
 ### Test
 
 `Grimrock.Runtime.Objects.GenericAudioContract` vérifie désormais aussi qu'un archetype non-Door transmet son unique atténuation au runtime.
+
+---
+
+## Incident 014 — Reprise temporelle de l'audio lors d'une inversion de porte
+
+### Observation
+
+Lorsqu'une porte inversait sa direction avant la fin du mouvement, la nouvelle piste Open/Close repartait depuis son début. Même sans superposition, le son ne correspondait donc pas à la position mécanique déjà atteinte.
+
+### Décision
+
+Une piste de porte représente une timeline mécanique de longueur `MoveDuration`, éventuellement suivie d'une queue sonore libre.
+
+Le runtime calcule :
+
+~~~text
+Openness = distance(Closed, Current) / distance(Closed, Open)
+~~~
+
+Puis :
+
+~~~text
+vers Open:
+    StartTime = Openness * MoveDuration
+
+vers Close:
+    StartTime = (1 - Openness) * MoveDuration
+~~~
+
+Exemple :
+
+~~~text
+MoveDuration = 5 s
+porte à 40 % d'ouverture
+inversion vers Close
+-> Close démarre à 3.0 s
+~~~
+
+### Architecture
+
+Aucun nouveau champ n'est ajouté aux DataAssets.
+
+`AGridRuntimeObjectActor::PlayObjectAudioEventDetailed()` reçoit seulement un paramètre runtime optionnel `StartTimeSeconds` et le transmet à `UGameplayStatics::SpawnSoundAtLocation()`.
+
+`AGridDoorActor` reste seul responsable de la conversion position mécanique -> timestamp.
+
+### Queue sonore
+
+La correspondance utilise `MoveDuration`, jamais la durée totale du sample. Une piste de 5.4 s pour un mouvement de 5.0 s garde donc ses 0.4 s de claquement/résonance après la butée.
+
+### Test
+
+~~~text
+Grimrock.Runtime.Doors.PartialAudioResume
+~~~
+
+Le test vérifie explicitement :
+
+~~~text
+40 % ouvert -> Close StartTime = 3.0 s
+70 % ouvert -> Open  StartTime = 3.5 s
+~~~
+
+### Validation
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Runtime.Doors.PartialAudioResume"
+~~~

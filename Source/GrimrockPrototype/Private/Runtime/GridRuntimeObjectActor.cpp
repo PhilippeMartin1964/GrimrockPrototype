@@ -110,9 +110,12 @@ UAudioComponent* AGridRuntimeObjectActor::PlayObjectAudioEvent(FName EventName)
 	return PlayObjectAudioEventDetailed(EventName, true).AudioComponent;
 }
 
-FGridObjectAudioPlaybackResult AGridRuntimeObjectActor::PlayObjectAudioEventDetailed(FName EventName, bool bEnableNativePlayback)
+FGridObjectAudioPlaybackResult AGridRuntimeObjectActor::PlayObjectAudioEventDetailed(
+	FName EventName, bool bEnableNativePlayback, float StartTimeSeconds)
 {
 	FGridObjectAudioPlaybackResult Result;
+	const float SafeStartTimeSeconds = FMath::IsFinite(StartTimeSeconds) ? FMath::Max(0.0f, StartTimeSeconds) : 0.0f;
+	Result.StartTimeSeconds = SafeStartTimeSeconds;
 	const FGridObjectAudioEvent* Event = ObjectAudioEvents.Find(EventName);
 	if (!Event || Event->Sounds.IsEmpty())
 	{
@@ -154,7 +157,7 @@ FGridObjectAudioPlaybackResult AGridRuntimeObjectActor::PlayObjectAudioEventDeta
 	if (bEnableNativePlayback)
 	{
 		Result.AudioComponent = UGameplayStatics::SpawnSoundAtLocation(this, SelectedSound, GetActorLocation(), FRotator::ZeroRotator,
-			FMath::Max(0.f, Event->Volume), Pitch, 0.f, DefaultObjectAudioAttenuation, nullptr, true);
+			FMath::Max(0.f, Event->Volume), Pitch, SafeStartTimeSeconds, DefaultObjectAudioAttenuation, nullptr, true);
 	}
 
 	return Result;

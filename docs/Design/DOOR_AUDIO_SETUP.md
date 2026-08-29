@@ -1,160 +1,164 @@
-# Audio des objets — configuration des portes
+# Audio des objets — configuration et synchronisation des portes
 
 ## Principe
 
-Les portes utilisent le système audio **générique des Grid Objects**.
-
-L'audio n'est pas une capacité réservée aux portes. Tout `UGridObjectArchetypeAsset` peut définir des événements sonores sémantiques dans :
+Les portes utilisent le système audio générique des Grid Objects.
 
 ~~~text
-Audio
-├── Attenuation
-└── Audio Events
+UGridObjectArchetypeAsset
+└── Audio
+    ├── Attenuation
+    └── Audio Events
+        ├── Open
+        │   ├── Sounds[]
+        │   ├── Volume
+        │   └── Pitch Variation
+        └── Close
+            ├── Sounds[]
+            ├── Volume
+            └── Pitch Variation
 ~~~
 
-`Audio Events` est un `TMap<FName, FGridObjectAudioEvent>`. Les clés sont libres afin que le système puisse évoluer sans ajouter une propriété C++ à chaque nouveau mécanisme. L'atténuation n'est pas dans les événements : elle est unique au niveau de l'archetype.
+L'atténuation est unique pour l'archetype. Aucun paramètre audio spécifique supplémentaire n'est nécessaire pour la reprise partielle.
 
-Exemples :
+## Configuration recommandée
 
-~~~text
-Door            -> Open, Close
-Button          -> Press, Release
-Lever           -> Activate, Deactivate
-PressurePlate   -> Press, Release
-Receptacle      -> Insert, Remove, Reject
-Teleporter      -> Activate, Teleport
-Trap            -> Trigger, Reset
-Decoration      -> Interact
-Custom object   -> n'importe quel FName documenté
-~~~
-
-## Structure d'un événement
-
-Chaque entrée contient uniquement :
+Exemple `DA_Door_Wood` :
 
 ~~~text
-Sounds[]
-Volume
-Pitch Variation
-~~~
+Audio > Attenuation = SA_Door_3D
 
-L'atténuation est définie une seule fois dans `Audio > Attenuation` pour l'ensemble de l'archetype.
-
-La sélection de variantes est cyclique et déterministe. La variation de pitch n'utilise pas le RNG de gameplay.
-
-Pour les mécanismes dont le sample doit suivre une animation, conserver généralement :
-
-~~~text
-Pitch Variation = 0.00
-~~~
-
-## Configuration d'une porte
-
-Dans `DA_Door_Wood`, `DA_Door_Grating` ou `DA_Door_Secret`, créer deux entrées :
-
-~~~text
 Audio Events
 ├── Open
-│   ├── Sounds
-│   │   ├── S_Door_Wood_Open_01
-│   │   └── S_Door_Wood_Open_02
+│   ├── Sounds = S_Door_Wood_Open_01
 │   ├── Volume = 1.0
-│   ├── Pitch Variation = 0.0
-│   └── └── Close
-    ├── Sounds
-    │   └── S_Door_Wood_Close_01
+│   └── Pitch Variation = 0.0
+└── Close
+    ├── Sounds = S_Door_Wood_Close_01
     ├── Volume = 1.0
-    ├── Pitch Variation = 0.0
-    └── ~~~
-
-Puis :
-
-~~~text
-Attenuation = SA_Door_3D
+    └── Pitch Variation = 0.0
 ~~~
 
-Le service générique est porté par `AGridRuntimeObjectActor` :
+Pour des pistes montées pour suivre précisément le mécanisme, conserver `Pitch Variation = 0.0`.
 
-~~~cpp
-ConfigureObjectAudio(...)
-HasObjectAudioEvent(...)
-PlayObjectAudioEvent(...)
-PlayObjectAudioEventDetailed(...)
-~~~
+## Timeline mécanique et timeline audio
 
-Les classes spécialisées décident seulement **quand** jouer un événement. La porte demande `Open` ou `Close` et conserve sa politique temporelle spécifique.
+`MoveDuration` définit uniquement la partie mécanique synchronisée du son.
 
-## Politique temporelle des portes
+Une piste peut être plus longue :
 
 ~~~text
-Open commence
-    -> event Open
+0 s ---------------------- 5.0 s -------- 5.4 s
+|       mécanisme             |  queue       |
+|<----- MoveDuration -------->|
+~~~
 
-Close pendant Open
-    -> ancienne voix interrompue
-    -> event Close si un trajet de fermeture existe
+La queue après `MoveDuration` (claquement, vibration, résonance) finit naturellement.
+
+## Reprise lors d'une inversion
+
+La porte calcule son taux d'ouverture courant :
+
+~~~text
+Openness = 0.0  -> complètement fermée
+Openness = 1.0  -> complètement ouverte
+~~~
+
+Lorsqu'elle repart vers Open :
+
+~~~text
+OpenStartTime = Openness * MoveDuration
+~~~
+
+Lorsqu'elle repart vers Close :
+
+~~~text
+CloseStartTime = (1 - Openness) * MoveDuration
+~~~
+
+Exemple avec `MoveDuration = 5 s` :
+
+~~~text
+porte ouverte à 40 %
+Close
+-> StartTime = (1 - 0.40) * 5
+-> StartTime = 3.0 s
+~~~
+
+La piste Close démarre donc directement à 3.0 s, au point correspondant à la position mécanique actuelle.
+
+Dans l'autre sens :
+
+~~~text
+porte ouverte à 70 %
+Open
+-> StartTime = 0.70 * 5
+-> StartTime = 3.5 s
+~~~
+
+## Contrat runtime
+
+~~~text
+mouvement complet Open
+    -> Open à 0.0 s
+
+mouvement complet Close
+    -> Close à 0.0 s
+
+Open partiel -> inversion Close
+    -> Open interrompu
+    -> Close démarre au timestamp correspondant
+
+Close partiel -> inversion Open
+    -> Close interrompu
+    -> Open démarre au timestamp correspondant
 
 fin mécanique normale
-    -> aucune coupure audio
-    -> la queue du sample finit naturellement
+    -> aucun Stop
+    -> queue sonore naturelle
 
 Snap / restauration
-    -> pas de nouveau son
+    -> silence
 ~~~
 
-La porte peut donc claquer, vibrer ou résonner après l'arrêt du mesh.
+Le timestamp est calculé depuis la position du mesh et `MoveDuration`, pas depuis la durée totale du SoundWave. Une queue audio plus longue ne décale donc pas la synchronisation mécanique.
 
-## Compatibilité des DataAssets existants
+## API générique
 
-Les anciens champs sérialisés :
+Le lecteur commun accepte maintenant un timestamp de départ optionnel :
 
-~~~text
-DoorOpenSounds
-DoorCloseSounds
-DoorAudioVolume
-DoorAudioPitchVariation
-DoorAudioAttenuation
+~~~cpp
+PlayObjectAudioEventDetailed(
+    EventName,
+    bEnableNativePlayback,
+    StartTimeSeconds);
 ~~~
 
-sont conservés uniquement comme données de migration cachées.
+Par défaut `StartTimeSeconds = 0.0`. Cette capacité reste générique ; seule la porte décide comment calculer son timestamp mécanique.
 
-Au chargement, un ancien archetype Door est converti en mémoire vers :
+## Diagnostics
 
-~~~text
-DoorOpenSounds  -> AudioEvents["Open"]
-DoorCloseSounds -> AudioEvents["Close"]
-~~~
-
-Le runtime possède aussi un fallback transparent tant que l'asset n'a pas été resauvegardé. Les sons déjà assignés ne sont donc pas perdus.
-
-Après ouverture puis sauvegarde de l'archetype dans l'éditeur, les nouvelles entrées génériques deviennent la source d'authoring.
-
-## Convention de contenu
+Au démarrage d'une porte, le log contient notamment :
 
 ~~~text
-Content/GrimrockPrototype/Audio/Environment/Doors/
-├── Wood/
-├── Grating/
-└── Secret/
-~~~
-
-Convention recommandée :
-
-~~~text
-S_Door_<Type>_<Event>_<Variant>
+InstanceMoveDuration
+TravelRatio
+Openness
+EffectiveMoveDuration
+AudioStartTime
+AudioExpectedDuration
+Pitch
 ~~~
 
 ## Validation
 
-Contrat générique :
-
 ~~~powershell
 .\Scripts\ValidateUE.ps1 `
     -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Grimrock.Runtime.Objects.GenericAudioContract"
+    -AutomationFilter "Grimrock.Runtime.Doors.PartialAudioResume"
 ~~~
 
-Régression portes :
+Régressions :
 
 ~~~powershell
 .\Scripts\ValidateUE.ps1 `

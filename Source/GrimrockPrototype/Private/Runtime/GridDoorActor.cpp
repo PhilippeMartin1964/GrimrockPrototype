@@ -176,13 +176,21 @@ void AGridDoorActor::SetDoorOpenState(bool bOpen)
 	const float TravelRatio = FMath::Clamp(RemainingDistance / FullTravelDistance, 0.f, 1.f);
 	CurrentMoveDuration = FMath::Max(0.01f, MoveDuration * TravelRatio);
 
+	// Map the current mechanical position to the corresponding point on the
+	// destination-direction audio timeline. Audio beyond MoveDuration is a natural
+	// tail and deliberately does not participate in this synchronization.
+	const float DistanceFromClosed = FVector::Dist(CurrentLocation, MovingClosedRelativeLocation);
+	const float Openness = FMath::Clamp(DistanceFromClosed / FullTravelDistance, 0.0f, 1.0f);
+	const float AudioTimelineDuration = FMath::Max(0.0f, MoveDuration);
+	const float AudioStartTime = bOpen ? Openness * AudioTimelineDuration : (1.0f - Openness) * AudioTimelineDuration;
+
 	bIsAnimating = true;
-	PlayDoorMotionSound(bOpen);
+	PlayDoorMotionSound(bOpen, AudioStartTime);
 
 	UE_LOG(LogTemp, Log,
-		TEXT("Grid door motion start: ObjectId=%s Cell=(%d,%d) Edge=%d Direction=%s InstanceMoveDuration=%.3f TravelRatio=%.3f EffectiveMoveDuration=%.3f AudioExpectedDuration=%.3f PitchVariation=%.3f"),
-		*ObjectId.ToString(), CellX, CellY, static_cast<int32>(Edge), bOpen ? TEXT("Open") : TEXT("Close"), MoveDuration, TravelRatio,
-		CurrentMoveDuration, ActiveDoorAudioExpectedDuration, ActiveDoorAudioPitch);
+		TEXT("Grid door motion start: ObjectId=%s Cell=(%d,%d) Edge=%d Direction=%s InstanceMoveDuration=%.3f TravelRatio=%.3f Openness=%.3f EffectiveMoveDuration=%.3f AudioStartTime=%.3f AudioExpectedDuration=%.3f Pitch=%.3f"),
+		*ObjectId.ToString(), CellX, CellY, static_cast<int32>(Edge), bOpen ? TEXT("Open") : TEXT("Close"), MoveDuration, TravelRatio, Openness,
+		CurrentMoveDuration, LastDoorAudioStartTime, ActiveDoorAudioExpectedDuration, ActiveDoorAudioPitch);
 
 	RefreshTickEnabled();
 }
@@ -209,14 +217,16 @@ void AGridDoorActor::CloseDoor()
 	SetDoorOpenState(false);
 }
 
-bool AGridDoorActor::PlayDoorMotionSound(bool bOpening)
+bool AGridDoorActor::PlayDoorMotionSound(bool bOpening, float StartTimeSeconds)
 {
 	// Audio data/variant selection is generic. The door only owns temporal policy:
-	// one movement voice, interruption on direction changes, natural tail at endpoints.
+	// one movement voice, interruption on direction changes, timeline resume on
+	// reversals, and natural tails at normal endpoints.
 	StopDoorMotionSound();
 
 	const FName EventName = bOpening ? FName(TEXT("Open")) : FName(TEXT("Close"));
-	const FGridObjectAudioPlaybackResult Playback = PlayObjectAudioEventDetailed(EventName, bNativeDoorAudioPlaybackEnabled);
+	const FGridObjectAudioPlaybackResult Playback =
+		PlayObjectAudioEventDetailed(EventName, bNativeDoorAudioPlaybackEnabled, StartTimeSeconds);
 	if (!Playback.bRequested)
 	{
 		return false;
@@ -228,6 +238,7 @@ bool AGridDoorActor::PlayDoorMotionSound(bool bOpening)
 	bDoorMotionAudioOpening = bOpening;
 	ActiveDoorAudioExpectedDuration = Playback.ExpectedDuration;
 	ActiveDoorAudioPitch = Playback.Pitch;
+	LastDoorAudioStartTime = Playback.StartTimeSeconds;
 	ActiveDoorAudioComponent = Playback.AudioComponent;
 	return true;
 }

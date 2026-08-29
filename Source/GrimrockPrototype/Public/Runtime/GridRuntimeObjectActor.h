@@ -18,6 +18,7 @@ struct GRIMROCKPROTOTYPE_API FGridObjectAudioPlaybackResult
 	USoundBase* Sound = nullptr;
 	UAudioComponent* AudioComponent = nullptr;
 	float Pitch = 1.0f;
+	float StartTimeSeconds = 0.0f;
 	float ExpectedDuration = 0.0f;
 };
 
@@ -90,7 +91,8 @@ public:
 	 * C++ detailed playback API. Specialized actors such as doors may keep the
 	 * returned component and control interruption/tails without owning audio data.
 	 */
-	FGridObjectAudioPlaybackResult PlayObjectAudioEventDetailed(FName EventName, bool bEnableNativePlayback = true);
+	FGridObjectAudioPlaybackResult PlayObjectAudioEventDetailed(
+		FName EventName, bool bEnableNativePlayback = true, float StartTimeSeconds = 0.0f);
 
 private:
 	TMap<FName, int32> ObjectAudioEventOccurrences;

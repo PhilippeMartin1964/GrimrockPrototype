@@ -95,11 +95,13 @@ bool FGridObjectGenericAudioContractTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("A non-door runtime object exposes its configured Press event"), RuntimeObject->HasObjectAudioEvent(TEXT("Press")));
 	TestFalse(TEXT("An undeclared event is not invented"), RuntimeObject->HasObjectAudioEvent(TEXT("Open")));
 
-	const FGridObjectAudioPlaybackResult First = RuntimeObject->PlayObjectAudioEventDetailed(TEXT("Press"), false);
+	const FGridObjectAudioPlaybackResult First = RuntimeObject->PlayObjectAudioEventDetailed(TEXT("Press"), false, 1.25f);
 	const FGridObjectAudioPlaybackResult Second = RuntimeObject->PlayObjectAudioEventDetailed(TEXT("Press"), false);
 	TestTrue(TEXT("First generic playback request resolves"), First.bRequested);
 	TestTrue(TEXT("Second generic playback request resolves"), Second.bRequested);
 	TestTrue(TEXT("Generic event variants advance deterministically"), First.Sound == PressSoundA && Second.Sound == PressSoundB);
+	TestTrue(TEXT("Detailed playback preserves an explicit StartTime"), FMath::IsNearlyEqual(First.StartTimeSeconds, 1.25f));
+	TestTrue(TEXT("Default detailed playback starts at zero"), FMath::IsNearlyEqual(Second.StartTimeSeconds, 0.0f));
 	TestTrue(TEXT("Mechanical-safe zero pitch variation preserves pitch 1.0"), FMath::IsNearlyEqual(First.Pitch, 1.0f));
 
 	// Backward compatibility: already-saved door archetypes using the historical
