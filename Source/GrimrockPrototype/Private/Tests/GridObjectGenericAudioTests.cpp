@@ -3,8 +3,52 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridObjectArchetypeAsset.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Sound/SoundWave.h"
+
+namespace
+{
+	struct FGridObjectAudioTestWorld
+	{
+		UWorld* World = nullptr;
+
+		FGridObjectAudioTestWorld()
+		{
+			const UWorld::InitializationValues Values = UWorld::InitializationValues()
+				.AllowAudioPlayback(false)
+				.RequiresHitProxies(false)
+				.CreatePhysicsScene(false)
+				.CreateNavigation(false)
+				.CreateAISystem(false)
+				.ShouldSimulatePhysics(false)
+				.SetTransactional(false);
+
+			World = UWorld::CreateWorld(EWorldType::Game, false,
+				FName(*FString::Printf(TEXT("GenericObjectAudioWorld_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
+				ERHIFeatureLevel::Num, &Values);
+			if (World && GEngine)
+			{
+				FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
+				Context.SetCurrentWorld(World);
+			}
+		}
+
+		~FGridObjectAudioTestWorld()
+		{
+			if (!World)
+			{
+				return;
+			}
+			World->DestroyWorld(false);
+			if (GEngine)
+			{
+				GEngine->DestroyWorldContext(World);
+			}
+		}
+	};
+}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridObjectGenericAudioContractTest,
 	"Grimrock.Runtime.Objects.GenericAudioContract",
@@ -14,9 +58,16 @@ bool FGridObjectGenericAudioContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
+	FGridObjectAudioTestWorld TestWorld;
+	TestNotNull(TEXT("The transient generic-audio world exists"), TestWorld.World);
+	if (!TestWorld.World)
+	{
+		return false;
+	}
+
 	// Prove the contract is not door-specific: a Button archetype can define and
 	// resolve an arbitrary Press event through the shared runtime base class.
-	UGridObjectArchetypeAsset* ButtonArchetype = NewObject<UGridObjectArchetypeAsset>();
+	UGridObjectArchetypeAsset* ButtonArchetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
 	ButtonArchetype->ArchetypeId = TEXT("Button_GenericAudio_Test");
 	ButtonArchetype->SupportedType = EGridLevelObjectType::Button;
 
@@ -25,10 +76,16 @@ bool FGridObjectGenericAudioContractTest::RunTest(const FString& Parameters)
 	FGridObjectAudioEvent PressEvent;
 	PressEvent.Volume = 0.65f;
 	PressEvent.PitchVariation = 0.0f;
-	PressEvent.Sounds = { PressSoundA, PressSoundB };
+	PressEvent.Sounds.Add(PressSoundA);
+	PressEvent.Sounds.Add(PressSoundB);
 	ButtonArchetype->AudioEvents.Add(TEXT("Press"), PressEvent);
 
-	AGridRuntimeObjectActor* RuntimeObject = NewObject<AGridRuntimeObjectActor>();
+	AGridRuntimeObjectActor* RuntimeObject = TestWorld.World->SpawnActor<AGridRuntimeObjectActor>();
+	TestNotNull(TEXT("The generic runtime object exists"), RuntimeObject);
+	if (!RuntimeObject)
+	{
+		return false;
+	}
 	RuntimeObject->ConfigureObjectAudio(ButtonArchetype);
 
 	TestTrue(TEXT("A non-door runtime object exposes its configured Press event"), RuntimeObject->HasObjectAudioEvent(TEXT("Press")));
@@ -43,13 +100,18 @@ bool FGridObjectGenericAudioContractTest::RunTest(const FString& Parameters)
 
 	// Backward compatibility: already-saved door archetypes using the historical
 	// fields still resolve as generic Open/Close until they are resaved/migrated.
-	UGridObjectArchetypeAsset* LegacyDoor = NewObject<UGridObjectArchetypeAsset>();
+	UGridObjectArchetypeAsset* LegacyDoor = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
 	LegacyDoor->SupportedType = EGridLevelObjectType::Door;
 	USoundWave* LegacyOpen = NewObject<USoundWave>(LegacyDoor);
 	LegacyDoor->DoorOpenSounds.Add(LegacyOpen);
 	LegacyDoor->DoorAudioVolume = 0.75f;
 
-	AGridRuntimeObjectActor* LegacyRuntimeObject = NewObject<AGridRuntimeObjectActor>();
+	AGridRuntimeObjectActor* LegacyRuntimeObject = TestWorld.World->SpawnActor<AGridRuntimeObjectActor>();
+	TestNotNull(TEXT("The legacy compatibility runtime object exists"), LegacyRuntimeObject);
+	if (!LegacyRuntimeObject)
+	{
+		return false;
+	}
 	LegacyRuntimeObject->ConfigureObjectAudio(LegacyDoor);
 	TestTrue(TEXT("Legacy door Open data transparently resolves through generic audio"), LegacyRuntimeObject->HasObjectAudioEvent(TEXT("Open")));
 
