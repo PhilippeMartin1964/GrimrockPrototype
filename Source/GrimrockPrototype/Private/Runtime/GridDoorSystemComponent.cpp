@@ -84,11 +84,16 @@ bool UGridDoorSystemComponent::OpenDoorOnEdge(int32 X, int32 Y, EGridEdge Edge)
 		return false;
 	}
 
-	SetDoorPassageBlocked(X, Y, Edge, false);
 	DoorActor->OpenDoor();
 
-	UE_LOG(LogGridDoorSystem, Log, TEXT("Grid door command: Cell=(%d,%d) Edge=%d Command=Open Blocked=false Animating=%s"), X, Y, static_cast<int32>(Edge),
-		DoorActor->IsAnimating() ? TEXT("true") : TEXT("false"));
+	// Passage authority follows the physical animation, not the open command.
+	// A door remains blocking for the complete opening travel and is released
+	// only once the actor reports the fully-open terminal state.
+	SetDoorPassageBlocked(X, Y, Edge, !DoorActor->IsFullyOpen());
+
+	UE_LOG(LogGridDoorSystem, Log, TEXT("Grid door command: Cell=(%d,%d) Edge=%d Command=Open FullyOpen=%s Blocked=%s Animating=%s"), X, Y,
+		static_cast<int32>(Edge), DoorActor->IsFullyOpen() ? TEXT("true") : TEXT("false"),
+		IsDoorPassageBlocked(X, Y, Edge) ? TEXT("true") : TEXT("false"), DoorActor->IsAnimating() ? TEXT("true") : TEXT("false"));
 
 	GridAutomaticPerceptionEngagement::Request(RuntimeActor, TEXT("DoorOpened"));
 	return true;

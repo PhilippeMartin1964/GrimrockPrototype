@@ -279,3 +279,70 @@ Il vérifie sans périphérique audio que :
 ~~~
 
 Puis validation manuelle en PIE avec les SoundWave réellement assignées dans `BP_GrimrockPartyPawn`.
+
+---
+
+## Incident 004 — Une porte en ouverture libérait le passage trop tôt
+
+### Observation
+
+En PIE, le groupe pouvait engager le déplacement vers la cellule suivante dès la commande d'ouverture d'une porte, alors que le panneau de porte était encore en mouvement.
+
+Le problème concernait le contrat commun des portes et s'appliquait donc aussi aux portes secrètes dérivées de `AGridDoorActor`.
+
+### Cause
+
+`UGridDoorSystemComponent::OpenDoorOnEdge()` exécutait dans cet ordre :
+
+~~~text
+SetDoorPassageBlocked(..., false)
+DoorActor->OpenDoor()
+~~~
+
+Le passage logique devenait donc libre au début de l'animation.
+
+### Correction
+
+L'ouverture suit désormais cette règle :
+
+~~~text
+commande Open
+    -> lancer l'animation
+    -> passage bloqué tant que IsFullyOpen() == false
+    -> HandleDoorAnimationFinished()
+    -> déblocage seulement si IsFullyOpen() == true
+~~~
+
+`AGridLevelRuntimeActor::CanMove()` continue d'utiliser `IsDoorPassageBlocked()` comme autorité. Aucune règle spéciale n'est ajoutée au Pawn.
+
+La fermeture conserve son comportement sûr existant : le passage est bloqué immédiatement dès la commande de fermeture.
+
+La correction s'applique aux :
+
+- portes normales ;
+- portes secrètes ;
+- autres variantes runtime dérivées de `AGridDoorActor` et enregistrées comme `Door`.
+
+### Non-régression
+
+Nouveau test :
+
+`Grimrock.Runtime.Doors.PassageBlockedUntilFullyOpen`
+
+Il vérifie pour une porte normale puis une porte secrète :
+
+- fermée : passage bloqué ;
+- juste après la commande Open : animation active et passage encore bloqué ;
+- à mi-animation : passage encore bloqué ;
+- animation terminée : `IsFullyOpen() == true` ;
+- seulement alors : `CanMove()` devient vrai.
+
+### Validation UE5.5.4
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Runtime.Doors.PassageBlockedUntilFullyOpen"
+~~~
+
+Puis vérifier en PIE qu'une tentative d'avancer pendant l'ouverture produit le feedback de déplacement bloqué et que le franchissement devient possible uniquement à la fin complète de l'ouverture.
