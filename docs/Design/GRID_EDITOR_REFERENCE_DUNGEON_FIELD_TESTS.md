@@ -502,16 +502,20 @@ PageUp/PageDown  réordonner
 P                terminer l'édition
 ~~~
 
-### Consolidation runtime MON14.2
+### Contrat runtime MON14.2 vérifié
 
-L'audit a également détecté que `AGridMonsterActor::InitializeMonster()` appelait toujours `ApplySpawnPlacementConfiguration()`, tandis que la définition de cette méthode MON14.2 n'était plus présente dans le `.cpp` courant.
+Le contrat runtime existant était déjà implémenté dans le fichier dédié
+`GridMonsterSpawnConfiguration.cpp`. L'audit initial avait manqué cette unité de traduction séparée.
 
-Le contrat est restauré :
+Le correctif Selected Object ne modifie donc pas la logique MON14.2. Il s'appuie sur le contrat existant :
 
 - un fresh spawn lit son `InitialMonsterState` ;
 - `Dormant` atteint réellement l'Actor runtime ;
 - `EncounterGroupId`, `PatrolMode` et `PatrolWaypoints` sont recopiés depuis le placement ;
 - un état sauvegardé reste ensuite autoritaire lors d'un Continue.
+
+Le doublon accidentellement ajouté dans `GridMonsterActor.cpp` a été retiré afin que
+`ApplySpawnPlacementConfiguration()` ne possède qu'une seule définition native.
 
 ### Validation
 
