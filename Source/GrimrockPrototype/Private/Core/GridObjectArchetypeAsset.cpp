@@ -370,12 +370,12 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 		if (!FMath::IsFinite(Pair.Value.Volume) || Pair.Value.Volume < 0.f)
 		{
 			AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
-				FString::Printf(TEXT("Audio event %s Volume must be finite and >= 0."), *Pair.Key.ToString()));
+				*FString::Printf(TEXT("Audio event %s Volume must be finite and >= 0."), *Pair.Key.ToString()));
 		}
 		if (!FMath::IsFinite(Pair.Value.PitchVariation) || Pair.Value.PitchVariation < 0.f || Pair.Value.PitchVariation > 0.25f)
 		{
 			AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
-				FString::Printf(TEXT("Audio event %s PitchVariation must be finite and between 0.0 and 0.25."), *Pair.Key.ToString()));
+				*FString::Printf(TEXT("Audio event %s PitchVariation must be finite and between 0.0 and 0.25."), *Pair.Key.ToString()));
 		}
 	}
 
