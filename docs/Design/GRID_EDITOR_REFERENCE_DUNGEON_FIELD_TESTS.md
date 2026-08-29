@@ -893,3 +893,61 @@ La fin audio indique également `Natural` ou `EndpointTrim` et les durées compa
     -EngineRoot D:\UE_5.5 `
     -AutomationFilter "Grimrock.Runtime.Doors.MoveDurationContract"
 ~~~
+
+---
+
+## Incident 011 — La butée mécanique coupait encore la queue sonore
+
+### Observation terrain
+
+Même avec `Move Duration` correctement pris en compte, une fin normale pouvait sembler artificielle : la porte atteignait sa butée et la dernière résonance du fichier audio était coupée ou fadée.
+
+### Décision audio
+
+Une fin mécanique normale n'est pas une interruption audio.
+
+~~~text
+fin mouvement
+    -> son continue naturellement
+
+inversion / nouvelle commande
+    -> son précédent interrompu
+    -> nouveau son
+
+Snap / restauration
+    -> silence
+~~~
+
+Le runtime ne compare donc plus la durée du sample à `CompletedMoveDuration` pour décider d'un trim.
+
+`CompleteDoorMotionSound()` libère seulement l'autorité logique du mouvement. Le `UAudioComponent` auto-détruisant peut continuer jusqu'à la fin réelle du fichier.
+
+### Pourquoi
+
+Une porte peut avoir fini son déplacement alors que le monde sonore continue :
+
+- claquement ;
+- vibration du battant ;
+- résonance métallique ;
+- bruit de chaîne ;
+- réverbération de la pièce.
+
+Couper ces phénomènes au moment exact où le transform s'arrête est perceptuellement artificiel.
+
+### Test
+
+Nouveau filtre :
+
+~~~text
+Grimrock.Runtime.Doors.NaturalAudioTail
+~~~
+
+Il vérifie qu'une arrivée normale à la butée ne génère aucun `StopDoorMotionSound()`.
+
+### Validation
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Runtime.Doors.NaturalAudioTail"
+~~~

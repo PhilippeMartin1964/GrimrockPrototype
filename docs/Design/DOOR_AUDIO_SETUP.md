@@ -218,3 +218,33 @@ EffectiveMoveDuration=...
 AudioExpectedDuration=...
 PitchVariation=...
 ~~~
+
+
+## Queue sonore après la fin mécanique
+
+La fin d'un mouvement de porte n'est **jamais** une instruction d'arrêt audio.
+
+Contrat :
+
+~~~text
+porte atteint sa butée
+    -> animation terminée
+    -> blocage / état gameplay mis à jour
+    -> le son continue naturellement jusqu'à la fin du sample
+~~~
+
+C'est volontaire : un claquement, une vibration métallique, un frottement ou une réverbération peuvent continuer après que le mesh ne bouge plus.
+
+Le runtime conserve le `UAudioComponent` auto-détruisant tant que sa queue naturelle existe. Il libère uniquement l'autorité logique `bDoorMotionAudioActive`.
+
+Si une nouvelle commande de mouvement arrive pendant cette queue :
+
+~~~text
+ancienne queue encore audible
+    -> Stop de l'ancienne voix
+    -> démarrage du nouveau son Open/Close
+~~~
+
+Cela évite la superposition incohérente lors d'une nouvelle séquence, tout en laissant respirer une fin normale.
+
+Il n'y a plus de `EndpointTrim` ni de fade automatique à la butée.

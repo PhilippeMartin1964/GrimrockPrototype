@@ -155,7 +155,6 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Completed door motion releases logical audio ownership"), Door->bDoorMotionAudioActive);
 	TestEqual(TEXT("Normal endpoint does not add an interruption stop"), Door->DoorAudioStopRequestCount, 3);
 	TestEqual(TEXT("Normal endpoint records natural completion"), Door->DoorAudioNaturalCompletionCount, 1);
-	TestEqual(TEXT("Normal endpoint does not trim an aligned/unknown-duration sample"), Door->DoorAudioEndpointTrimCount, 0);
 
 	return true;
 }
@@ -205,6 +204,61 @@ bool FGridDoorMoveDurationContractTest::RunTest(const FString& Parameters)
 	Door->Tick(0.11f);
 	TestFalse(TEXT("A 5-second door is complete after crossing 5.0 seconds"), Door->IsAnimating());
 	TestTrue(TEXT("The door is fully open after the five-second travel"), Door->IsFullyOpen());
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridDoorNaturalTailContractTest,
+	"Grimrock.Runtime.Doors.NaturalAudioTail",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridDoorNaturalTailContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	FGridDoorAudioTestWorld TestWorld;
+	if (!TestWorld.World)
+	{
+		return false;
+	}
+
+	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
+	Archetype->ArchetypeId = TEXT("Door_NaturalTail_Test");
+	Archetype->SupportedType = EGridLevelObjectType::Door;
+	Archetype->DoorOpenSounds.Add(NewObject<USoundWave>(Archetype));
+	Archetype->DoorCloseSounds.Add(NewObject<USoundWave>(Archetype));
+	Archetype->DoorAudioPitchVariation = 0.0f;
+
+	AGridDoorActor* Door = TestWorld.World->SpawnActor<AGridDoorActor>();
+	TestNotNull(TEXT("Natural-tail door exists"), Door);
+	if (!Door)
+	{
+		return false;
+	}
+
+	FGridLevelObjectData Data;
+	Data.ObjectId = FGuid::NewGuid();
+	Data.Type = EGridLevelObjectType::Door;
+	Data.CellX = 3;
+	Data.CellY = 3;
+	Data.Edge = EGridEdge::North;
+	Data.Behavior.DoorAnimation.OpenHeight = 180.f;
+	Data.Behavior.DoorAnimation.MoveDuration = 1.0f;
+
+	Door->InitializeDoor(Data, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	Door->ConfigureDoorAudio(Archetype);
+	Door->bNativeDoorAudioPlaybackEnabled = false;
+
+	Door->OpenDoor();
+	TestTrue(TEXT("Opening owns movement audio before endpoint"), Door->bDoorMotionAudioActive);
+	const int32 StopCountBeforeEndpoint = Door->DoorAudioStopRequestCount;
+
+	Door->Tick(1.01f);
+	TestTrue(TEXT("Door reaches its physical endpoint"), Door->IsFullyOpen());
+	TestFalse(TEXT("Endpoint releases logical movement-audio ownership"), Door->bDoorMotionAudioActive);
+	TestEqual(TEXT("Normal endpoint never issues an audio stop"), Door->DoorAudioStopRequestCount, StopCountBeforeEndpoint);
+	TestEqual(TEXT("Normal endpoint records a natural audio tail"), Door->DoorAudioNaturalCompletionCount, 1);
 
 	return true;
 }

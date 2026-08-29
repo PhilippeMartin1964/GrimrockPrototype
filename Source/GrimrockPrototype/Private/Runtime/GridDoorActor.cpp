@@ -131,7 +131,6 @@ void AGridDoorActor::ConfigureDoorAudio(const UGridObjectArchetypeAsset* Archety
 	DoorCloseAudioPlaybackRequestCount = 0;
 	DoorAudioStopRequestCount = 0;
 	DoorAudioNaturalCompletionCount = 0;
-	DoorAudioEndpointTrimCount = 0;
 	bDoorMotionAudioActive = false;
 	bDoorMotionAudioOpening = false;
 	ActiveDoorAudioExpectedDuration = 0.0f;
@@ -324,42 +323,21 @@ void AGridDoorActor::CompleteDoorMotionSound(float CompletedMoveDuration)
 		return;
 	}
 
-	// A full-length movement sound often contains a very short mechanical tail.
-	// Cutting exactly at the movement boundary produces an audible click/truncation.
-	// If the effective sample duration is close to the actual movement duration,
-	// release ownership and let the auto-destroying AudioComponent finish naturally.
-	constexpr float NaturalCompletionToleranceSeconds = 0.35f;
-	const bool bDurationKnown = FMath::IsFinite(ActiveDoorAudioExpectedDuration) && ActiveDoorAudioExpectedDuration > 0.f;
-	const bool bCanFinishNaturally =
-		!bDurationKnown || ActiveDoorAudioExpectedDuration <= FMath::Max(0.f, CompletedMoveDuration) + NaturalCompletionToleranceSeconds;
+	// Reaching the mechanical endpoint is not an audio interruption. The moving
+	// mass may still ring, slam, scrape or reverberate after its transform has
+	// stopped. Release logical movement ownership but leave the auto-destroying
+	// AudioComponent alive so the authored sample can finish naturally.
+	UE_LOG(LogTemp, Log,
+		TEXT("Grid door audio completion: ObjectId=%s Mode=NaturalTail CompletedMoveDuration=%.3f AudioExpectedDuration=%.3f"),
+		*ObjectId.ToString(), CompletedMoveDuration, ActiveDoorAudioExpectedDuration);
 
-	if (bCanFinishNaturally)
-	{
-		UE_LOG(LogTemp, Log,
-			TEXT("Grid door audio completion: ObjectId=%s Mode=Natural CompletedMoveDuration=%.3f AudioExpectedDuration=%.3f Tolerance=%.3f"),
-			*ObjectId.ToString(), CompletedMoveDuration, ActiveDoorAudioExpectedDuration, NaturalCompletionToleranceSeconds);
-
-		bDoorMotionAudioActive = false;
-		bDoorMotionAudioOpening = false;
-		++DoorAudioNaturalCompletionCount;
-		return;
-	}
-
-	// Partial/reversed travel can be much shorter than the authored sample.
-	// Trim that excess with a tiny fade instead of an abrupt Stop.
-	UE_LOG(LogTemp, Warning,
-		TEXT("Grid door audio completion: ObjectId=%s Mode=EndpointTrim CompletedMoveDuration=%.3f AudioExpectedDuration=%.3f Tolerance=%.3f"),
-		*ObjectId.ToString(), CompletedMoveDuration, ActiveDoorAudioExpectedDuration, NaturalCompletionToleranceSeconds);
-
-	if (IsValid(ActiveDoorAudioComponent))
-	{
-		ActiveDoorAudioComponent->FadeOut(0.08f, 0.f);
-	}
 	bDoorMotionAudioActive = false;
 	bDoorMotionAudioOpening = false;
-	ActiveDoorAudioExpectedDuration = 0.0f;
-	++DoorAudioEndpointTrimCount;
-	++DoorAudioStopRequestCount;
+	++DoorAudioNaturalCompletionCount;
+
+	// Keep ActiveDoorAudioComponent referenced while its natural tail is alive.
+	// A later Open/Close will call StopDoorMotionSound() first and can interrupt
+	// that tail before starting the new movement voice, preventing overlap.
 }
 
 float AGridDoorActor::SelectDoorAudioPitch(int32 OccurrenceNumber) const

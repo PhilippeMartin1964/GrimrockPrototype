@@ -79,9 +79,6 @@ public:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	int32 DoorAudioNaturalCompletionCount = 0;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
-	int32 DoorAudioEndpointTrimCount = 0;
-
 	/** Runtime voice returned by SpawnSoundAtLocation; only one voice is owned by a door at a time. */
 	UPROPERTY(Transient)
 	TObjectPtr<UAudioComponent> ActiveDoorAudioComponent = nullptr;
