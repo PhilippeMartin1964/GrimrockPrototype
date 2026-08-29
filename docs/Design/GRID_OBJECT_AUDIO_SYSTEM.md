@@ -2,87 +2,90 @@
 
 ## Statut
 
-Contrat actif. L'audio est une capacité générique des `UGridObjectArchetypeAsset`, pas une fonctionnalité spécifique aux portes.
+Contrat actif. L'audio est une capacité générique des `UGridObjectArchetypeAsset`.
 
-## Données
+## Règle simple
 
-~~~cpp
+Un objet physique possède **une seule atténuation spatiale**, partagée par tous ses événements audio.
+
+~~~text
 UGridObjectArchetypeAsset
-    DefaultAudioAttenuation
-    TMap<FName, FGridObjectAudioEvent> AudioEvents
+└── Audio
+    ├── Attenuation
+    └── Audio Events
+        ├── EventName
+        │   ├── Sounds[]
+        │   ├── Volume
+        │   └── PitchVariation
+        └── ...
 ~~~
+
+Il n'existe pas d'atténuation par événement.
+
+## Événements
+
+`AudioEvents` est un `TMap<FName, FGridObjectAudioEvent>`.
 
 ~~~cpp
 FGridObjectAudioEvent
     Sounds[]
     Volume
     PitchVariation
-    AttenuationOverride
 ~~~
 
-Le nom d'événement est un `FName` volontairement ouvert. Aucun enum fermé n'est imposé : les futurs objets et contenus créés par les joueurs peuvent introduire de nouveaux événements sans modifier le C++ du cœur.
+Les noms sont ouverts : `Open`, `Close`, `Press`, `Release`, `Insert`, `Teleport`, `Trigger`, `Interact`, ou un nom personnalisé.
 
 ## Runtime
 
-Chaque `AGridRuntimeObjectActor` reçoit la configuration de son archetype lors du spawn :
+Chaque `AGridRuntimeObjectActor` reçoit :
 
-~~~cpp
-Actor->ConfigureObjectAudio(Archetype);
+~~~text
+ObjectAudioEvents
+DefaultObjectAudioAttenuation
 ~~~
 
 Le service commun fournit :
 
 ~~~cpp
-HasObjectAudioEvent(EventName)
-PlayObjectAudioEvent(EventName)
-PlayObjectAudioEventDetailed(EventName, bEnableNativePlayback)
+ConfigureObjectAudio(...)
+HasObjectAudioEvent(...)
+PlayObjectAudioEvent(...)
+PlayObjectAudioEventDetailed(...)
 ~~~
 
-Le service commun assure :
-
-- sélection déterministe des variantes ;
-- volume par événement ;
-- pitch déterministe indépendant du RNG gameplay ;
-- atténuation 3D par événement ou fallback archetype ;
-- calcul de la durée effective du sample.
-
-Le service ne décide pas de la sémantique gameplay ni du cycle de vie complexe d'une voix. Une classe spécialisée peut conserver le `UAudioComponent` retourné et l'interrompre selon son propre état.
+Toutes les lectures 3D de l'objet utilisent la même atténuation de l'archetype.
 
 ## Responsabilités
 
 ~~~text
 Archetype
-    = quels sons existent
+    = une atténuation
+    = quels événements/sons existent
 
 GridRuntimeObjectActor
-    = comment sélectionner et jouer un événement 3D
+    = sélection et lecture 3D
 
 Actor spécialisé
-    = quand l'événement se produit
-    = s'il doit interrompre une voix précédente
+    = quand jouer l'événement
+    = politique d'interruption éventuelle
 ~~~
 
-Exemple Door :
+## Compatibilité historique Door
+
+Les anciens champs Door audio restent uniquement pour désérialiser les DataAssets existants.
 
 ~~~text
-AGridDoorActor
-    Open  -> PlayObjectAudioEventDetailed("Open")
-    Close -> PlayObjectAudioEventDetailed("Close")
+DoorAudioAttenuation
+    -> Audio > Attenuation
+
+DoorOpenSounds
+    -> AudioEvents["Open"]
+
+DoorCloseSounds
+    -> AudioEvents["Close"]
 ~~~
 
-Exemple futur Button :
-
-~~~text
-AGridButtonActor
-    Press   -> PlayObjectAudioEvent("Press")
-    Release -> PlayObjectAudioEvent("Release")
-~~~
-
-## Compatibilité historique
-
-Les champs Door audio introduits avant ce contrat restent sérialisés mais sont cachés et dépréciés. `PostLoad()` et `ResolveAudioEvent()` garantissent la migration/fallback vers `Open` et `Close`.
-
-Ils ne doivent plus être utilisés pour de nouveaux assets.
+Ils sont cachés et dépréciés pour le nouvel authoring.
 
 ## Validation
 
@@ -90,4 +93,4 @@ Ils ne doivent plus être utilisés pour de nouveaux assets.
 Grimrock.Runtime.Objects.GenericAudioContract
 ~~~
 
-Ce test utilise volontairement un archetype **Button** avec l'événement `Press` pour empêcher toute régression vers une architecture Door-only. Il vérifie également la compatibilité d'un ancien Door archetype.
+Le test utilise volontairement un archetype Button avec un événement `Press` et vérifie que l'atténuation de l'archetype est bien l'unique profil spatial utilisé par l'objet.

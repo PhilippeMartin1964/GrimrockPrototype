@@ -77,7 +77,11 @@ void AGridRuntimeObjectActor::ConfigureObjectAudio(const UGridObjectArchetypeAss
 	}
 
 	ObjectAudioEvents = Archetype->AudioEvents;
-	DefaultObjectAudioAttenuation = Archetype->DefaultAudioAttenuation;
+	// One object = one attenuation profile. Legacy Door attenuation is only a
+	// compatibility fallback for assets that have not yet been resaved.
+	DefaultObjectAudioAttenuation = Archetype->DefaultAudioAttenuation
+		? Archetype->DefaultAudioAttenuation
+		: (Archetype->SupportedType == EGridLevelObjectType::Door ? Archetype->DoorAudioAttenuation : nullptr);
 
 	// Preserve already-authored door assets that still contain the legacy fields.
 	for (const FName EventName : { FName(TEXT("Open")), FName(TEXT("Close")) })
@@ -149,9 +153,8 @@ FGridObjectAudioPlaybackResult AGridRuntimeObjectActor::PlayObjectAudioEventDeta
 
 	if (bEnableNativePlayback)
 	{
-		USoundAttenuation* Attenuation = Event->AttenuationOverride ? Event->AttenuationOverride.Get() : DefaultObjectAudioAttenuation.Get();
-		Result.AudioComponent = UGameplayStatics::SpawnSoundAtLocation(
-			this, SelectedSound, GetActorLocation(), FRotator::ZeroRotator, FMath::Max(0.f, Event->Volume), Pitch, 0.f, Attenuation, nullptr, true);
+		Result.AudioComponent = UGameplayStatics::SpawnSoundAtLocation(this, SelectedSound, GetActorLocation(), FRotator::ZeroRotator,
+			FMath::Max(0.f, Event->Volume), Pitch, 0.f, DefaultObjectAudioAttenuation, nullptr, true);
 	}
 
 	return Result;

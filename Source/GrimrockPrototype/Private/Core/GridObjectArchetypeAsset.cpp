@@ -260,6 +260,12 @@ void UGridObjectArchetypeAsset::PostLoad()
 		return;
 	}
 
+	// Historical Door attenuation becomes the single archetype-wide attenuation.
+	if (!DefaultAudioAttenuation && DoorAudioAttenuation)
+	{
+		DefaultAudioAttenuation = DoorAudioAttenuation;
+	}
+
 	auto MigrateLegacyEvent = [this](FName EventName, const TArray<TObjectPtr<USoundBase>>& LegacySounds)
 	{
 		if (AudioEvents.Contains(EventName) || LegacySounds.IsEmpty())
@@ -271,7 +277,6 @@ void UGridObjectArchetypeAsset::PostLoad()
 		Event.Sounds = LegacySounds;
 		Event.Volume = DoorAudioVolume;
 		Event.PitchVariation = DoorAudioPitchVariation;
-		Event.AttenuationOverride = DoorAudioAttenuation;
 		AudioEvents.Add(EventName, MoveTemp(Event));
 	};
 
@@ -284,10 +289,6 @@ bool UGridObjectArchetypeAsset::ResolveAudioEvent(FName EventName, FGridObjectAu
 	if (const FGridObjectAudioEvent* Event = AudioEvents.Find(EventName))
 	{
 		OutEvent = *Event;
-		if (!OutEvent.AttenuationOverride)
-		{
-			OutEvent.AttenuationOverride = DefaultAudioAttenuation;
-		}
 		return true;
 	}
 
@@ -310,7 +311,6 @@ bool UGridObjectArchetypeAsset::ResolveAudioEvent(FName EventName, FGridObjectAu
 			OutEvent.Sounds = *LegacySounds;
 			OutEvent.Volume = DoorAudioVolume;
 			OutEvent.PitchVariation = DoorAudioPitchVariation;
-			OutEvent.AttenuationOverride = DoorAudioAttenuation ? DoorAudioAttenuation : DefaultAudioAttenuation;
 			return true;
 		}
 	}

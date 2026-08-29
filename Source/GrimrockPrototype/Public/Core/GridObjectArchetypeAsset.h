@@ -75,11 +75,10 @@ public:
 		meta = (ToolTip = "Default behavior copied to placed object instances. Currently contains teleporter, receptacle and button parameters."))
 	FGridObjectBehaviorParams DefaultBehavior;
 
-	/**
-	 * Default 3D attenuation shared by this archetype's audio events.
-	 * Individual events may override it.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	/** Single 3D attenuation used by every audio event emitted by this object archetype. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio",
+		meta = (DisplayName = "Attenuation",
+			ToolTip = "Single spatial attenuation used by all audio events of this archetype."))
 	TObjectPtr<USoundAttenuation> DefaultAudioAttenuation = nullptr;
 
 	/**
@@ -107,7 +106,7 @@ public:
 	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use AudioEvents event PitchVariation."))
 	float DoorAudioPitchVariation = 0.0f;
 
-	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use DefaultAudioAttenuation or event AttenuationOverride."))
+	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use the archetype Audio > Attenuation field."))
 	TObjectPtr<USoundAttenuation> DoorAudioAttenuation = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",

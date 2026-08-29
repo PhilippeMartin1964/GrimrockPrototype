@@ -8,11 +8,11 @@ L'audio n'est pas une capacité réservée aux portes. Tout `UGridObjectArchetyp
 
 ~~~text
 Audio
-├── Default Audio Attenuation
+├── Attenuation
 └── Audio Events
 ~~~
 
-`Audio Events` est un `TMap<FName, FGridObjectAudioEvent>`. Les clés sont libres afin que le système puisse évoluer sans ajouter une propriété C++ à chaque nouveau mécanisme.
+`Audio Events` est un `TMap<FName, FGridObjectAudioEvent>`. Les clés sont libres afin que le système puisse évoluer sans ajouter une propriété C++ à chaque nouveau mécanisme. L'atténuation n'est pas dans les événements : elle est unique au niveau de l'archetype.
 
 Exemples :
 
@@ -30,16 +30,15 @@ Custom object   -> n'importe quel FName documenté
 
 ## Structure d'un événement
 
-Chaque entrée contient :
+Chaque entrée contient uniquement :
 
 ~~~text
 Sounds[]
 Volume
 Pitch Variation
-Attenuation Override
 ~~~
 
-Si `Attenuation Override = None`, l'événement utilise `Default Audio Attenuation` de l'archetype.
+L'atténuation est définie une seule fois dans `Audio > Attenuation` pour l'ensemble de l'archetype.
 
 La sélection de variantes est cyclique et déterministe. La variation de pitch n'utilise pas le RNG de gameplay.
 
@@ -61,19 +60,17 @@ Audio Events
 │   │   └── S_Door_Wood_Open_02
 │   ├── Volume = 1.0
 │   ├── Pitch Variation = 0.0
-│   └── Attenuation Override = None
-└── Close
+│   └── └── Close
     ├── Sounds
     │   └── S_Door_Wood_Close_01
     ├── Volume = 1.0
     ├── Pitch Variation = 0.0
-    └── Attenuation Override = None
-~~~
+    └── ~~~
 
 Puis :
 
 ~~~text
-Default Audio Attenuation = SA_Door_3D
+Attenuation = SA_Door_3D
 ~~~
 
 Le service générique est porté par `AGridRuntimeObjectActor` :

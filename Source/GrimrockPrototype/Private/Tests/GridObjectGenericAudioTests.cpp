@@ -6,6 +6,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridRuntimeObjectActor.h"
+#include "Sound/SoundAttenuation.h"
 #include "Sound/SoundWave.h"
 
 namespace
@@ -70,6 +71,8 @@ bool FGridObjectGenericAudioContractTest::RunTest(const FString& Parameters)
 	UGridObjectArchetypeAsset* ButtonArchetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
 	ButtonArchetype->ArchetypeId = TEXT("Button_GenericAudio_Test");
 	ButtonArchetype->SupportedType = EGridLevelObjectType::Button;
+	USoundAttenuation* SharedAttenuation = NewObject<USoundAttenuation>(ButtonArchetype);
+	ButtonArchetype->DefaultAudioAttenuation = SharedAttenuation;
 
 	USoundWave* PressSoundA = NewObject<USoundWave>(ButtonArchetype);
 	USoundWave* PressSoundB = NewObject<USoundWave>(ButtonArchetype);
@@ -88,6 +91,7 @@ bool FGridObjectGenericAudioContractTest::RunTest(const FString& Parameters)
 	}
 	RuntimeObject->ConfigureObjectAudio(ButtonArchetype);
 
+	TestTrue(TEXT("A non-door runtime object uses the archetype's single attenuation"), RuntimeObject->DefaultObjectAudioAttenuation == SharedAttenuation);
 	TestTrue(TEXT("A non-door runtime object exposes its configured Press event"), RuntimeObject->HasObjectAudioEvent(TEXT("Press")));
 	TestFalse(TEXT("An undeclared event is not invented"), RuntimeObject->HasObjectAudioEvent(TEXT("Open")));
 

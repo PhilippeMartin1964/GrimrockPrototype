@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "GridObjectAudio.generated.h"
 
-class USoundAttenuation;
 class USoundBase;
 
 /**
@@ -31,9 +30,6 @@ struct GRIMROCKPROTOTYPE_API FGridObjectAudioEvent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio", meta = (ClampMin = "0.0", ClampMax = "0.25"))
 	float PitchVariation = 0.0f;
 
-	/** Optional per-event override; null falls back to the archetype default attenuation. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
-	TObjectPtr<USoundAttenuation> AttenuationOverride = nullptr;
 
 	bool HasPlayableSound() const
 	{

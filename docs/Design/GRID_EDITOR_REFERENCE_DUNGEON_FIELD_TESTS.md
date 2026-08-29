@@ -1035,3 +1035,47 @@ Grimrock.Runtime.Objects.GenericAudioContract
 Le test utilise un archetype Button avec `Press`, puis vérifie séparément la compatibilité d'un ancien Door archetype.
 
 Documentation : `docs/Design/GRID_OBJECT_AUDIO_SYSTEM.md`.
+
+---
+
+## Incident 013 — Trop de niveaux d'atténuation audio
+
+### Observation terrain
+
+Après généralisation du système audio, l'archetype affichait une atténuation globale ainsi qu'un `Attenuation Override` dans chaque événement. Cette flexibilité n'était pas justifiée pour le modèle d'objet du projet et alourdissait inutilement l'authoring.
+
+### Décision
+
+Règle simplifiée :
+
+~~~text
+un Grid Object Archetype
+    -> une seule Attenuation
+
+tous ses Audio Events
+    -> utilisent cette même Attenuation
+~~~
+
+`FGridObjectAudioEvent` ne contient plus d'atténuation.
+
+Il contient uniquement :
+
+~~~text
+Sounds[]
+Volume
+PitchVariation
+~~~
+
+Dans l'éditeur, le champ global est affiché simplement sous le nom :
+
+~~~text
+Audio > Attenuation
+~~~
+
+### Compatibilité
+
+L'ancien `DoorAudioAttenuation` caché est migré vers l'atténuation unique de l'archetype afin de préserver les DataAssets de porte déjà configurés.
+
+### Test
+
+`Grimrock.Runtime.Objects.GenericAudioContract` vérifie désormais aussi qu'un archetype non-Door transmet son unique atténuation au runtime.
