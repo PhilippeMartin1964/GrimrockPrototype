@@ -2,7 +2,7 @@
 
 void AGrimrockPartyPawn::BufferMoveCommand(EGridEdge MoveDirection)
 {
-	if (!bEnableInputBuffer)
+	if (!bEnableInputBuffer || bIsBlockedMoveFeedbackActive)
 	{
 		return;
 	}
@@ -15,7 +15,7 @@ void AGrimrockPartyPawn::BufferMoveCommand(EGridEdge MoveDirection)
 
 void AGrimrockPartyPawn::BufferTurnCommand(bool bTurnRight)
 {
-	if (!bEnableInputBuffer)
+	if (!bEnableInputBuffer || bIsBlockedMoveFeedbackActive)
 	{
 		return;
 	}
@@ -62,5 +62,5 @@ bool AGrimrockPartyPawn::TryConsumeBufferedCommand()
 
 bool AGrimrockPartyPawn::IsBusy() const
 {
-	return bIsMoving || bIsTurning;
+	return bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive;
 }

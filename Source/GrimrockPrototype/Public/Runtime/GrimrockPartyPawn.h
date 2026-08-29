@@ -88,6 +88,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
 	float TurnDuration = 0.12f;
 
+	/** Visual-only nudge played when a requested grid translation is spatially blocked. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Blocked Feedback")
+	bool bEnableBlockedMoveFeedback = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Blocked Feedback", meta = (ClampMin = "0.0"))
+	float BlockedMoveDistance = 15.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Blocked Feedback", meta = (ClampMin = "0.01"))
+	float BlockedMoveForwardDuration = 0.08f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Blocked Feedback", meta = (ClampMin = "0.01"))
+	float BlockedMoveReturnDuration = 0.10f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
 	float EyeHeight = 110.f;
 
@@ -450,6 +463,8 @@ protected:
 
 	void UpdateMove(float DeltaSeconds);
 	void UpdateTurn(float DeltaSeconds);
+	bool TryStartBlockedMoveFeedback(EGridEdge MoveDirection);
+	void UpdateBlockedMoveFeedback(float DeltaSeconds);
 
 	bool HasLevelRuntimeActor() const;
 	bool CanMoveOnLevel(int32 FromX, int32 FromY, EGridEdge Direction) const;
@@ -508,6 +523,11 @@ private:
 	float MoveElapsed = 0.f;
 	bool bIsMoving = false;
 
+	FVector BlockedMoveOriginLocation = FVector::ZeroVector;
+	FVector BlockedMoveDirectionWorld = FVector::ZeroVector;
+	float BlockedMoveElapsed = 0.f;
+	bool bIsBlockedMoveFeedbackActive = false;
+
 	float TurnStartYaw = 0.f;
 	float TurnTargetYaw = 0.f;
 	float TurnElapsed = 0.f;
@@ -534,4 +554,5 @@ private:
 	int32 MoveStartCellY = 0;
 
 	friend class FGridMonsterMON12PartyMobilityLifecycleTest;
+	friend class FGridPartyBlockedMovementFeedbackTest;
 };

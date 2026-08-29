@@ -5,6 +5,33 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 
+namespace
+{
+	FVector GetBlockedMoveWorldDirection(EGridEdge Direction)
+	{
+		switch (Direction)
+		{
+			case EGridEdge::North:
+				return FVector(0.f, 1.f, 0.f);
+			case EGridEdge::East:
+				return FVector(1.f, 0.f, 0.f);
+			case EGridEdge::South:
+				return FVector(0.f, -1.f, 0.f);
+			case EGridEdge::West:
+				return FVector(-1.f, 0.f, 0.f);
+			default:
+				return FVector::ZeroVector;
+		}
+	}
+
+	bool IsSpatialPartyMovementReject(EGridPartyMovementRejectReason RejectReason)
+	{
+		return RejectReason == EGridPartyMovementRejectReason::TargetCellUnavailable ||
+			   RejectReason == EGridPartyMovementRejectReason::PassageBlocked ||
+			   RejectReason == EGridPartyMovementRejectReason::TargetCellOccupied;
+	}
+}
+
 void AGrimrockPartyPawn::SetGridStart(AGridLevelRuntimeActor* InLevelRuntimeActor, int32 StartX, int32 StartY, EGridEdge StartFacing)
 {
 	LevelRuntimeActor = InLevelRuntimeActor;
@@ -154,7 +181,7 @@ void AGrimrockPartyPawn::HandleStrafeRight(const FInputActionValue& Value)
 
 bool AGrimrockPartyPawn::TryStartMove(EGridEdge MoveDirection)
 {
-	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || !HasLevelRuntimeActor())
+	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || !HasLevelRuntimeActor())
 	{
 		return false;
 	}
@@ -169,14 +196,27 @@ bool AGrimrockPartyPawn::TryStartMove(EGridEdge MoveDirection)
 		EGridPartyMovementRejectReason RejectReason = EGridPartyMovementRejectReason::None;
 		if (!TurnManager->RequestPartyTranslation(MoveDirection, TargetCell, RejectReason))
 		{
+			if (IsSpatialPartyMovementReject(RejectReason))
+			{
+				TryStartBlockedMoveFeedback(MoveDirection);
+			}
 			return false;
 		}
 		NextX = TargetCell.X;
 		NextY = TargetCell.Y;
 	}
-	else if (!CanMoveOnLevel(CurrentCellX, CurrentCellY, MoveDirection) || !TryGetNeighborOnLevel(CurrentCellX, CurrentCellY, MoveDirection, NextX, NextY))
+	else
 	{
-		return false;
+		if (!CanMoveOnLevel(CurrentCellX, CurrentCellY, MoveDirection))
+		{
+			TryStartBlockedMoveFeedback(MoveDirection);
+			return false;
+		}
+		if (!TryGetNeighborOnLevel(CurrentCellX, CurrentCellY, MoveDirection, NextX, NextY))
+		{
+			TryStartBlockedMoveFeedback(MoveDirection);
+			return false;
+		}
 	}
 
 	MoveStartLocation = GetActorLocation();
@@ -194,9 +234,72 @@ bool AGrimrockPartyPawn::TryStartMove(EGridEdge MoveDirection)
 	return true;
 }
 
+bool AGrimrockPartyPawn::TryStartBlockedMoveFeedback(EGridEdge MoveDirection)
+{
+	if (!bEnableBlockedMoveFeedback || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || !HasLevelRuntimeActor() ||
+		BlockedMoveDistance <= KINDA_SMALL_NUMBER)
+	{
+		return false;
+	}
+
+	const FVector DirectionWorld = GetBlockedMoveWorldDirection(MoveDirection);
+	if (DirectionWorld.IsNearlyZero())
+	{
+		return false;
+	}
+
+	ClearBufferedCommand();
+	BlockedMoveOriginLocation = GetCellCenterOnLevel(CurrentCellX, CurrentCellY, EyeHeight);
+	BlockedMoveDirectionWorld = DirectionWorld;
+	BlockedMoveElapsed = 0.f;
+	bIsBlockedMoveFeedbackActive = true;
+
+	// The feedback is visual only. Re-anchor before the nudge so repeated
+	// impacts can never accumulate positional drift away from the logical cell.
+	SetActorLocation(BlockedMoveOriginLocation);
+	return true;
+}
+
+void AGrimrockPartyPawn::UpdateBlockedMoveFeedback(float DeltaSeconds)
+{
+	if (!bIsBlockedMoveFeedbackActive)
+	{
+		return;
+	}
+
+	const float SafeForwardDuration = FMath::Max(0.01f, BlockedMoveForwardDuration);
+	const float SafeReturnDuration = FMath::Max(0.01f, BlockedMoveReturnDuration);
+	const float TotalDuration = SafeForwardDuration + SafeReturnDuration;
+
+	BlockedMoveElapsed += FMath::Max(0.f, DeltaSeconds);
+
+	if (BlockedMoveElapsed >= TotalDuration)
+	{
+		SetActorLocation(BlockedMoveOriginLocation);
+		BlockedMoveElapsed = 0.f;
+		BlockedMoveDirectionWorld = FVector::ZeroVector;
+		bIsBlockedMoveFeedbackActive = false;
+		return;
+	}
+
+	float OffsetAlpha = 0.f;
+	if (BlockedMoveElapsed <= SafeForwardDuration)
+	{
+		const float PhaseAlpha = FMath::Clamp(BlockedMoveElapsed / SafeForwardDuration, 0.f, 1.f);
+		OffsetAlpha = 1.f - FMath::Square(1.f - PhaseAlpha);
+	}
+	else
+	{
+		const float PhaseAlpha = FMath::Clamp((BlockedMoveElapsed - SafeForwardDuration) / SafeReturnDuration, 0.f, 1.f);
+		OffsetAlpha = FMath::Square(1.f - PhaseAlpha);
+	}
+
+	SetActorLocation(BlockedMoveOriginLocation + (BlockedMoveDirectionWorld * BlockedMoveDistance * OffsetAlpha));
+}
+
 bool AGrimrockPartyPawn::TryStartTurn(bool bTurnRight)
 {
-	if (bCharacterCreationModalActive || bIsMoving || bIsTurning)
+	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive)
 	{
 		return false;
 	}

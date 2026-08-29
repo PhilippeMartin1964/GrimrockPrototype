@@ -318,6 +318,11 @@ void AGrimrockPartyPawn::Tick(float DeltaSeconds)
 		UpdateTurn(DeltaSeconds);
 	}
 
+	if (bIsBlockedMoveFeedbackActive)
+	{
+		UpdateBlockedMoveFeedback(DeltaSeconds);
+	}
+
 	UpdateHeadBob(DeltaSeconds);
 	UpdateFreeLook(DeltaSeconds);
 

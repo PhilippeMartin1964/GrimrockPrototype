@@ -96,3 +96,79 @@ Puis validation du jalon MON13.5 :
 ~~~
 
 Après succès, poursuivre l'authoring du niveau presque vierge sans réintroduire les Rats historiques.
+
+---
+
+## Incident 002 — Feedback visuel lors d'un déplacement bloqué
+
+### Observation
+
+En PIE, une tentative de déplacement contre un mur, une porte fermée ou un obstacle était simplement refusée. La position restait correcte, mais le joueur ne recevait aucun retour spatial permettant de distinguer clairement « commande ignorée » de « passage bloqué ».
+
+### Classification
+
+- **Type :** UX / Runtime ;
+- **Sous-système :** déplacement du groupe ;
+- **Impact gameplay :** aucun changement de règle de déplacement ;
+- **Impact sauvegarde / triggers / occupancy :** aucun.
+
+### Décision
+
+Ajouter dans `AGrimrockPartyPawn` un feedback de déplacement bloqué purement visuel :
+
+1. la translation logique reste refusée ;
+2. `CurrentCellX` / `CurrentCellY` ne changent pas ;
+3. le Pawn avance brièvement de `BlockedMoveDistance` dans la direction demandée ;
+4. il revient exactement au centre de sa cellule logique ;
+5. aucun `HandlePartyCellChanged`, trigger de cellule, transition ou coût de déplacement supplémentaire n'est produit.
+
+Valeurs par défaut :
+
+- `bEnableBlockedMoveFeedback = true` ;
+- `BlockedMoveDistance = 15 cm` ;
+- `BlockedMoveForwardDuration = 0.08 s` ;
+- `BlockedMoveReturnDuration = 0.10 s`.
+
+Le feedback participe à `IsBusy()`. Les nouvelles commandes reçues pendant ces ~0,18 s ne sont pas bufferisées afin d'éviter l'empilement de chocs visuels.
+
+En combat, le feedback n'est lancé que pour les refus spatiaux :
+
+- `TargetCellUnavailable` ;
+- `PassageBlocked` ;
+- `TargetCellOccupied`.
+
+Les refus liés au tour actif, aux PA/PAM ou à l'état du groupe restent sans déplacement visuel.
+
+### Test automatisé
+
+Nouveau test :
+
+`Grimrock.Runtime.PartyMovement.BlockedFeedback`
+
+Il vérifie notamment :
+
+- qu'un mur refuse toujours la translation logique ;
+- que la cellule logique ne change ni à l'aller ni au retour ;
+- que le Pawn atteint la distance visuelle configurée ;
+- qu'il revient exactement au centre de sa cellule ;
+- qu'aucune entrée supplémentaire n'est bufferisée pendant le choc ;
+- que désactiver le feedback ne change pas la règle de collision ;
+- qu'un passage ouvert utilise toujours le mouvement de grille normal.
+
+### Validation UE5.5.4 demandée
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Runtime.PartyMovement.BlockedFeedback"
+~~~
+
+Puis, pour vérifier les contrats de déplacement déjà existants :
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.TechnicalDebt.TD02_9.PartyMovementFacade"
+~~~
+
+Enfin, valider en PIE le ressenti des valeurs par défaut et ajuster uniquement les quatre paramètres `Movement|Blocked Feedback` si nécessaire.
