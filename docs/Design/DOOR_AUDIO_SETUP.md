@@ -91,13 +91,13 @@ et l'assigner au champ **Attenuation** des archetypes de porte.
 
 Le runtime copie les données audio de l'archetype vers `AGridDoorActor`.
 
-Le son est joué via :
+Le son est créé via :
 
 ~~~cpp
-UGameplayStatics::PlaySoundAtLocation(...)
+UGameplayStatics::SpawnSoundAtLocation(...)
 ~~~
 
-La position est celle de la porte.
+La position est celle de la porte. Le `UAudioComponent` retourné est conservé par la porte afin que la voix puisse être arrêtée dès que le mouvement change ou se termine.
 
 Un son est demandé uniquement lorsque la porte commence effectivement un déplacement. Une commande inverse reçue dans la même frame, avant tout déplacement physique, ne joue donc pas de son dans le sens inverse.
 
@@ -111,6 +111,30 @@ chargement / restauration -> aucun son
 ~~~
 
 Une liste vide est valide et signifie simplement que cette variante reste silencieuse.
+
+## Synchronisation avec le mouvement
+
+Une porte ne possède qu'une seule voix audio de mouvement à la fois.
+
+~~~text
+Open commence
+    -> Open Sound actif
+
+Close pendant Open
+    -> Open Sound arrêté immédiatement
+    -> Close Sound démarre si la porte a réellement du trajet de fermeture
+
+fin réelle du mouvement
+    -> son courant arrêté, même si le fichier audio est plus long
+
+SnapDoorOpenState / restauration
+    -> son courant arrêté
+    -> aucun nouveau son
+~~~
+
+Le fichier audio n'est donc jamais l'autorité temporelle. C'est la position et la durée réelles de la porte qui décident quand la voix doit s'arrêter.
+
+Pour une commande `Open -> Close` reçue avant le premier Tick, la porte est encore physiquement fermée : le son Open est coupé, mais aucun son Close n'est lancé puisqu'il n'existe aucun trajet de fermeture.
 
 La sélection des variantes est déterministe et cyclique. Une variation de pitch de présentation est appliquée sans consommer le RNG de gameplay.
 

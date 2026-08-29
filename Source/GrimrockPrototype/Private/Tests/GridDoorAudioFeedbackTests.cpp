@@ -96,11 +96,15 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 
 	TestEqual(TEXT("No opening request exists after initialization"), Door->DoorOpenAudioPlaybackRequestCount, 0);
 	TestEqual(TEXT("No closing request exists after initialization"), Door->DoorCloseAudioPlaybackRequestCount, 0);
+	TestEqual(TEXT("No audio stop exists after initialization"), Door->DoorAudioStopRequestCount, 0);
+	TestFalse(TEXT("No movement audio is active after initialization"), Door->bDoorMotionAudioActive);
 
 	Door->OpenDoor();
 	TestTrue(TEXT("Open starts real animation"), Door->IsAnimating());
 	TestEqual(TEXT("Open movement requests exactly one opening sound"), Door->DoorOpenAudioPlaybackRequestCount, 1);
 	TestEqual(TEXT("Open movement does not request a closing sound"), Door->DoorCloseAudioPlaybackRequestCount, 0);
+	TestTrue(TEXT("Opening movement owns an active audio voice"), Door->bDoorMotionAudioActive);
+	TestTrue(TEXT("The active voice is marked as opening"), Door->bDoorMotionAudioOpening);
 
 	Door->OpenDoor();
 	TestEqual(TEXT("Repeated Open toward the active target does not replay audio"), Door->DoorOpenAudioPlaybackRequestCount, 1);
@@ -114,14 +118,40 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 	Door->CloseDoor();
 	TestTrue(TEXT("Close reverses the physically active motion"), Door->IsAnimating());
 	TestEqual(TEXT("A genuine reversal requests exactly one closing sound"), Door->DoorCloseAudioPlaybackRequestCount, 1);
+	TestEqual(TEXT("Reversal explicitly stops the previous opening voice"), Door->DoorAudioStopRequestCount, 1);
+	TestTrue(TEXT("Closing movement owns the replacement audio voice"), Door->bDoorMotionAudioActive);
+	TestFalse(TEXT("The replacement voice is marked as closing"), Door->bDoorMotionAudioOpening);
 
 	Door->CloseDoor();
 	TestEqual(TEXT("Repeated Close toward the active target does not replay audio"), Door->DoorCloseAudioPlaybackRequestCount, 1);
 
 	Door->SnapDoorOpenState(true);
+	TestEqual(TEXT("Snap stops the active closing voice"), Door->DoorAudioStopRequestCount, 2);
+	TestFalse(TEXT("Snap leaves no movement voice active"), Door->bDoorMotionAudioActive);
 	Door->SnapDoorOpenState(false);
+	TestEqual(TEXT("A second silent Snap does not invent another stop"), Door->DoorAudioStopRequestCount, 2);
 	TestEqual(TEXT("State restoration never replays opening audio"), Door->DoorOpenAudioPlaybackRequestCount, 1);
 	TestEqual(TEXT("State restoration never replays closing audio"), Door->DoorCloseAudioPlaybackRequestCount, 1);
+
+	// Pressure-plate style immediate reversal: Open starts a voice, but Close is
+	// requested before the first movement Tick. The Open voice must be cut and
+	// no Close voice should start because the door never physically left Closed.
+	Door->OpenDoor();
+	TestEqual(TEXT("Immediate-reversal setup requests a second opening voice"), Door->DoorOpenAudioPlaybackRequestCount, 2);
+	TestTrue(TEXT("Immediate-reversal setup has active opening audio"), Door->bDoorMotionAudioActive);
+	Door->CloseDoor();
+	TestFalse(TEXT("Immediate reverse at the closed endpoint stops animation"), Door->IsAnimating());
+	TestEqual(TEXT("Immediate reverse cuts the opening voice"), Door->DoorAudioStopRequestCount, 3);
+	TestEqual(TEXT("No closing voice is started without closing travel"), Door->DoorCloseAudioPlaybackRequestCount, 1);
+	TestFalse(TEXT("Immediate reverse leaves no orphaned audio"), Door->bDoorMotionAudioActive);
+
+	// A sample that outlives the motion is explicitly stopped at the physical endpoint.
+	Door->OpenDoor();
+	TestTrue(TEXT("Endpoint-stop setup has active audio"), Door->bDoorMotionAudioActive);
+	Door->Tick(2.0f);
+	TestFalse(TEXT("Completed door motion is no longer animating"), Door->IsAnimating());
+	TestFalse(TEXT("Completed door motion owns no residual audio"), Door->bDoorMotionAudioActive);
+	TestEqual(TEXT("Physical completion stops the movement voice"), Door->DoorAudioStopRequestCount, 4);
 
 	return true;
 }

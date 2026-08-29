@@ -6,6 +6,7 @@
 #include "Runtime/GridMechanismActor.h"
 #include "GridDoorActor.generated.h"
 
+class UAudioComponent;
 class UBoxComponent;
 class UGridObjectArchetypeAsset;
 class USoundBase;
@@ -22,6 +23,7 @@ public:
 	AGridDoorActor();
 
 	virtual void Tick(float DeltaSeconds) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door")
@@ -58,6 +60,21 @@ public:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	int32 DoorCloseAudioPlaybackRequestCount = 0;
+
+	/** Number of times an active movement voice was explicitly interrupted/stopped by door state. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
+	int32 DoorAudioStopRequestCount = 0;
+
+	/** Logical movement-audio state, also available when native playback is disabled in tests. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
+	bool bDoorMotionAudioActive = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
+	bool bDoorMotionAudioOpening = false;
+
+	/** Runtime voice returned by SpawnSoundAtLocation; only one voice is owned by a door at a time. */
+	UPROPERTY(Transient)
+	TObjectPtr<UAudioComponent> ActiveDoorAudioComponent = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Door|Chain")
 	TObjectPtr<USceneComponent> ChainRootComponent;
@@ -143,6 +160,7 @@ protected:
 	void UpdateChainSwingAnimation(float DeltaSeconds);
 	void RefreshTickEnabled();
 	bool PlayDoorMotionSound(bool bOpening);
+	bool StopDoorMotionSound();
 	float SelectDoorAudioPitch(int32 OccurrenceNumber) const;
 
 	FVector MovingClosedRelativeLocation = FVector::ZeroVector;

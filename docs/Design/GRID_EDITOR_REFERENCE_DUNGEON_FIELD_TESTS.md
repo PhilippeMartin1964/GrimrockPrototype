@@ -708,3 +708,66 @@ Il vérifie le déclenchement Open/Close, l'absence de répétition dans le mêm
     -EngineRoot D:\UE_5.5 `
     -AutomationFilter "Grimrock.Runtime.Doors.AudioFeedback"
 ~~~
+
+---
+
+## Incident 008 — Les sons de porte survivaient au mouvement
+
+### Observation terrain
+
+Une plaque de pression pouvait ouvrir une porte puis la refermer presque immédiatement. Les sons Open et Close étaient lancés comme des one-shots indépendants et continuaient jusqu'à la fin de leurs fichiers, ce qui provoquait une superposition et un décalage évident avec la position réelle de la porte.
+
+### Cause
+
+`UGameplayStatics::PlaySoundAtLocation()` ne retourne pas de voix contrôlable. Une fois lancé, le one-shot n'était plus lié à `bIsAnimating`, `MoveTargetRelativeLocation` ou à une inversion de direction.
+
+### Correction
+
+Le runtime utilise désormais :
+
+~~~cpp
+UGameplayStatics::SpawnSoundAtLocation(...)
+~~~
+
+`AGridDoorActor` conserve le `UAudioComponent` de mouvement courant.
+
+Contrat :
+
+~~~text
+un seul son de mouvement par porte
+nouvelle direction       -> arrêt du son précédent
+fin physique             -> arrêt du son courant
+Snap / restore           -> arrêt + silence
+commande répétée même sens -> aucun changement
+~~~
+
+Une inversion immédiate avant le premier Tick coupe le son Open sans jouer Close si la porte n'a encore parcouru aucune distance.
+
+Une inversion après déplacement coupe le son Open et démarre le son Close.
+
+Le son peut être plus long que l'animation : il sera coupé au moment exact où la porte atteint sa cible.
+
+### Test
+
+Le filtre existant est étendu :
+
+~~~text
+Grimrock.Runtime.Doors.AudioFeedback
+~~~
+
+Il couvre maintenant :
+
+- voix unique ;
+- arrêt lors d'une inversion réelle ;
+- inversion immédiate de type plaque de pression ;
+- absence de son inverse sans trajet physique ;
+- arrêt au `SnapDoorOpenState()` ;
+- arrêt automatique à la fin réelle de l'animation.
+
+### Validation
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Runtime.Doors.AudioFeedback"
+~~~

@@ -1,5 +1,6 @@
 #include "Runtime/GridDoorActor.h"
 
+#include "Components/AudioComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -73,9 +74,17 @@ void AGridDoorActor::Tick(float DeltaSeconds)
 	}
 }
 
+void AGridDoorActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	StopDoorMotionSound();
+	Super::EndPlay(EndPlayReason);
+}
+
 void AGridDoorActor::InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, UMaterialInterface* InMovingMaterial,
 	UStaticMesh* InFixedMesh, UMaterialInterface* InFixedMaterial, const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen)
 {
+	StopDoorMotionSound();
+
 	ObjectId = ObjectData.ObjectId;
 	CellX = ObjectData.CellX;
 	CellY = ObjectData.CellY;
@@ -109,6 +118,8 @@ void AGridDoorActor::InitializeDoor(const FGridLevelObjectData& ObjectData, USta
 
 void AGridDoorActor::ConfigureDoorAudio(const UGridObjectArchetypeAsset* Archetype)
 {
+	StopDoorMotionSound();
+
 	DoorOpenSounds.Reset();
 	DoorCloseSounds.Reset();
 	DoorAudioVolume = 1.0f;
@@ -118,6 +129,10 @@ void AGridDoorActor::ConfigureDoorAudio(const UGridObjectArchetypeAsset* Archety
 	DoorCloseAudioOccurrence = 0;
 	DoorOpenAudioPlaybackRequestCount = 0;
 	DoorCloseAudioPlaybackRequestCount = 0;
+	DoorAudioStopRequestCount = 0;
+	bDoorMotionAudioActive = false;
+	bDoorMotionAudioOpening = false;
+	ActiveDoorAudioComponent = nullptr;
 
 	if (!Archetype || Archetype->SupportedType != EGridLevelObjectType::Door)
 	{
@@ -150,6 +165,14 @@ void AGridDoorActor::SetDoorOpenState(bool bOpen)
 	if (bIsAnimating && MoveTargetRelativeLocation.Equals(DesiredTarget, 0.1f))
 	{
 		return;
+	}
+
+	// Any genuine target change owns the movement audio too. Stop the previous
+	// voice before evaluating whether the reverse command actually has travel.
+	// This also fixes an immediate Open -> Close before the first animation Tick.
+	if (bIsAnimating)
+	{
+		StopDoorMotionSound();
 	}
 
 	const FVector CurrentLocation = MovingMeshComponent->GetRelativeLocation();
@@ -194,6 +217,8 @@ void AGridDoorActor::SetDoorOpenState(bool bOpen)
 
 void AGridDoorActor::SnapDoorOpenState(bool bOpen)
 {
+	StopDoorMotionSound();
+
 	bIsOpen = bOpen;
 	bIsAnimating = false;
 	MoveElapsed = 0.f;
@@ -214,6 +239,10 @@ void AGridDoorActor::CloseDoor()
 
 bool AGridDoorActor::PlayDoorMotionSound(bool bOpening)
 {
+	// A door owns at most one movement voice. This makes audio follow the same
+	// authority as the physical movement instead of allowing autonomous one-shots.
+	StopDoorMotionSound();
+
 	const TArray<TObjectPtr<USoundBase>>& Sounds = bOpening ? DoorOpenSounds : DoorCloseSounds;
 	if (Sounds.IsEmpty())
 	{
@@ -242,14 +271,36 @@ bool AGridDoorActor::PlayDoorMotionSound(bool bOpening)
 
 	const int32 ThisOccurrence = Occurrence++;
 	++RequestCount;
+	bDoorMotionAudioActive = true;
+	bDoorMotionAudioOpening = bOpening;
 
 	if (bNativeDoorAudioPlaybackEnabled)
 	{
-		UGameplayStatics::PlaySoundAtLocation(
-			this, SelectedSound, GetActorLocation(), DoorAudioVolume, SelectDoorAudioPitch(ThisOccurrence), 0.f, DoorAudioAttenuation);
+		ActiveDoorAudioComponent = UGameplayStatics::SpawnSoundAtLocation(this, SelectedSound, GetActorLocation(), FRotator::ZeroRotator, DoorAudioVolume,
+			SelectDoorAudioPitch(ThisOccurrence), 0.f, DoorAudioAttenuation, nullptr, true);
 	}
 
 	return true;
+}
+
+bool AGridDoorActor::StopDoorMotionSound()
+{
+	const bool bHadLogicalVoice = bDoorMotionAudioActive;
+
+	if (IsValid(ActiveDoorAudioComponent))
+	{
+		ActiveDoorAudioComponent->Stop();
+	}
+	ActiveDoorAudioComponent = nullptr;
+
+	if (bHadLogicalVoice)
+	{
+		++DoorAudioStopRequestCount;
+	}
+
+	bDoorMotionAudioActive = false;
+	bDoorMotionAudioOpening = false;
+	return bHadLogicalVoice;
 }
 
 float AGridDoorActor::SelectDoorAudioPitch(int32 OccurrenceNumber) const
@@ -479,6 +530,10 @@ void AGridDoorActor::UpdateAnimation(float DeltaSeconds)
 		MoveElapsed = 0.f;
 		CurrentMoveDuration = 0.f;
 
+		// A sample is presentation, never the timing authority. If it is longer
+		// than the actual (possibly partial) travel, cut it at the real endpoint.
+		StopDoorMotionSound();
+
 		RefreshTickEnabled();
 		OnDoorAnimationFinished.Broadcast(CellX, CellY, Edge);
 	}
@@ -487,6 +542,7 @@ void AGridDoorActor::UpdateAnimation(float DeltaSeconds)
 void AGridDoorActor::InitializeGridObject(
 	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
 {
+	StopDoorMotionSound();
 	Super::InitializeGridObject(ObjectData, Mesh, Material, WorldTransform);
 
 	OpenHeight = ObjectData.Behavior.DoorAnimation.OpenHeight;
