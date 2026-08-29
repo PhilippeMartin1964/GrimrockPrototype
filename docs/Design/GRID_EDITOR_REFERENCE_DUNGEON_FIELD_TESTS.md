@@ -548,3 +548,81 @@ puis :
 ~~~
 
 Enfin, vérifier en PIE un MonsterSpawn `Present at Start=true`, `Initial State=Dormant`, orienté vers le groupe et utilisant une Definition avec `SightRangeCells=2`, `HearingRangeCells=0`.
+
+---
+
+## Incident 006 — L'ouïe des monstres traversait les murs
+
+### Observation
+
+Un MonsterSpawn `Dormant` placé dans une pièce séparée pouvait passer en `Alert` lorsque le groupe circulait dans un corridor voisin sans ligne de vue.
+
+### Cause
+
+L'ouïe runtime utilisait uniquement la distance de Manhattan entre le monstre et le groupe. Les parois du donjon n'intervenaient pas.
+
+### Nouveau contrat acoustique
+
+L'ouïe utilise désormais une propagation BFS limitée par `HearingRangeCells`. La portée correspond au plus court chemin acoustique réel sur la grille.
+
+~~~text
+passage ouvert                        -> transmet
+mur solide                            -> bloque
+porte normale fermée                  -> transmet
+porte normale ouverte                 -> transmet
+porte secrète fermée                  -> bloque
+porte secrète en mouvement            -> bloque
+porte secrète complètement ouverte    -> transmet
+~~~
+
+Le son peut contourner un angle si la longueur du chemin reste dans la portée.
+
+Les murs sont vérifiés sur les deux côtés d'un shared edge afin que la propagation soit symétrique, même si le LevelAsset stocke un mur directionnellement.
+
+### Runtime
+
+Nouveaux contrats :
+
+~~~cpp
+AGridLevelRuntimeActor::CanSoundTraverse(...)
+FGridMonsterPerception::CanHearThroughGrid(...)
+~~~
+
+`UGridMonsterBehaviorComponent::RefreshPerception()` utilise désormais `CanHearThroughGrid()`.
+
+Le helper historique `CanHear()` reste disponible comme calcul géométrique brut, mais il n'est plus l'autorité de l'ouïe runtime.
+
+La fin réelle d'une animation de porte redemande également une évaluation de perception. Une porte secrète ne devient donc acoustiquement ouverte qu'une fois complètement ouverte.
+
+### Selected Object
+
+L'aide de **Perception — from Monster Definition** précise maintenant que l'ouïe :
+
+- est omnidirectionnelle ;
+- suit les chemins acoustiques de la grille ;
+- est bloquée par les murs et portes secrètes fermées ;
+- traverse les portes normales.
+
+### Test
+
+~~~text
+Grimrock.Monsters.Perception.AcousticHearing
+~~~
+
+Ce test couvre le contournement d'angle, le mur, le maintien de `Dormant`, la porte normale fermée, le réveil `Dormant -> Alert`, la porte secrète fermée et la porte secrète complètement ouverte.
+
+### Validation UE5.5.4
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Monsters.Perception.AcousticHearing"
+~~~
+
+Puis régression :
+
+~~~powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Monsters.MON14"
+~~~

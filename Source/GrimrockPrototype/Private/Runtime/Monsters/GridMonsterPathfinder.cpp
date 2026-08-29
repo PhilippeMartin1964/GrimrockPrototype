@@ -248,3 +248,66 @@ bool FGridMonsterPerception::CanHear(const FIntPoint& ObserverCell, const FIntPo
 {
 	return HearingRangeCells >= 0 && FGridMonsterPathfinder::ManhattanDistance(ObserverCell, TargetCell) <= HearingRangeCells;
 }
+
+bool FGridMonsterPerception::CanHearThroughGrid(const FIntPoint& ObserverCell, const FIntPoint& TargetCell, int32 HearingRangeCells,
+	const TFunction<bool(const FIntPoint&, const FIntPoint&)>& CanSoundTraverse)
+{
+	if (!CanSoundTraverse || HearingRangeCells < 0)
+	{
+		return false;
+	}
+	if (ObserverCell == TargetCell)
+	{
+		return true;
+	}
+	if (HearingRangeCells == 0)
+	{
+		return false;
+	}
+	if (FGridMonsterPathfinder::ManhattanDistance(ObserverCell, TargetCell) > HearingRangeCells)
+	{
+		return false;
+	}
+
+	struct FAcousticNode
+	{
+		FIntPoint Cell = FIntPoint::ZeroValue;
+		int32 Distance = 0;
+	};
+
+	TArray<FAcousticNode> Queue;
+	Queue.Add({ ObserverCell, 0 });
+
+	TSet<FIntPoint> Visited;
+	Visited.Add(ObserverCell);
+
+	int32 QueueIndex = 0;
+	while (Queue.IsValidIndex(QueueIndex))
+	{
+		const FAcousticNode Current = Queue[QueueIndex++];
+		if (Current.Distance >= HearingRangeCells)
+		{
+			continue;
+		}
+
+		for (const EGridEdge Direction : FGridMonsterPathfinder::GetOrderedDirections())
+		{
+			const FIntPoint Neighbor = FGridMonsterPathfinder::GetNeighborCell(Current.Cell, Direction);
+			if (Visited.Contains(Neighbor) || !CanSoundTraverse(Current.Cell, Neighbor))
+			{
+				continue;
+			}
+
+			const int32 NeighborDistance = Current.Distance + 1;
+			if (Neighbor == TargetCell)
+			{
+				return true;
+			}
+
+			Visited.Add(Neighbor);
+			Queue.Add({ Neighbor, NeighborDistance });
+		}
+	}
+
+	return false;
+}

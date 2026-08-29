@@ -1716,7 +1716,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildMonsterSpawnSection(co
 		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
 		[
 			SNew(STextBlock)
-				.Text(FText::FromString(TEXT("Sight is directional; hearing is omnidirectional. These values belong to the shared Monster Definition asset.")))
+				.Text(FText::FromString(TEXT("Sight is directional. Hearing is omnidirectional but follows acoustic grid paths: walls and closed secret doors block it; normal doors transmit it. These values belong to the shared Monster Definition asset.")))
 				.AutoWrapText(true)
 				.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))
 		];

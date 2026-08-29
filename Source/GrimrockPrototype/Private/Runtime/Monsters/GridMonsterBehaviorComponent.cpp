@@ -84,7 +84,17 @@ bool UGridMonsterBehaviorComponent::RefreshPerception()
 				return CanTraverseCells(From, To);
 			});
 
-	bCanHearParty = FGridMonsterPerception::CanHear(Monster->CurrentCell, PartyCell, Monster->MonsterDefinition->HearingRangeCells);
+	bCanHearParty = FGridMonsterPerception::CanHearThroughGrid(
+		Monster->CurrentCell, PartyCell, Monster->MonsterDefinition->HearingRangeCells,
+		[this](const FIntPoint& From, const FIntPoint& To)
+		{
+			if (!RuntimeActor)
+			{
+				return false;
+			}
+			const EGridEdge Direction = FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells(From, To);
+			return Direction != EGridEdge::None && RuntimeActor->CanSoundTraverse(From.X, From.Y, Direction);
+		});
 
 	const bool bHasPartyPerception = HasPartyPerception();
 	if (bHasPartyPerception)

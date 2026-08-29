@@ -98,6 +98,13 @@ public:
 	static bool HasDirectionalLineOfSight(const FIntPoint& ObserverCell, EGridEdge Facing, const FIntPoint& TargetCell, int32 SightRangeCells,
 		const TFunction<bool(const FIntPoint&, const FIntPoint&)>& CanTraverse);
 
-	/** Hearing remains omnidirectional and Manhattan-distance based. */
+	/** Legacy geometric helper: omnidirectional Manhattan distance without obstruction. */
 	static bool CanHear(const FIntPoint& ObserverCell, const FIntPoint& TargetCell, int32 HearingRangeCells);
+
+	/**
+	 * Acoustic hearing used by runtime perception. The sound may turn corners,
+	 * but every adjacent grid transition must be acoustically traversable.
+	 */
+	static bool CanHearThroughGrid(const FIntPoint& ObserverCell, const FIntPoint& TargetCell, int32 HearingRangeCells,
+		const TFunction<bool(const FIntPoint&, const FIntPoint&)>& CanSoundTraverse);
 };

@@ -26,6 +26,8 @@ public:
 
 	bool HasDoorOnEdge(int32 X, int32 Y, EGridEdge Edge) const;
 	bool IsDoorOpenOnEdge(int32 X, int32 Y, EGridEdge Edge) const;
+	bool IsSecretDoorOnEdge(int32 X, int32 Y, EGridEdge Edge) const;
+	bool IsDoorFullyOpenOnEdge(int32 X, int32 Y, EGridEdge Edge) const;
 
 	bool ToggleDoorOnEdge(int32 X, int32 Y, EGridEdge Edge);
 	bool OpenDoorOnEdge(int32 X, int32 Y, EGridEdge Edge);

@@ -2,6 +2,7 @@
 
 #include "Core/GridLevelAsset.h"
 #include "Runtime/GridDoorActor.h"
+#include "Runtime/GridSecretDoorActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
@@ -68,6 +69,23 @@ bool UGridDoorSystemComponent::IsDoorOpenOnEdge(int32 X, int32 Y, EGridEdge Edge
 	}
 
 	return !RuntimeBlockedDoorEdges.Contains(FGridEdgeKey(X, Y, Edge));
+}
+
+bool UGridDoorSystemComponent::IsSecretDoorOnEdge(int32 X, int32 Y, EGridEdge Edge) const
+{
+	if (const AGridDoorActor* DoorActor = FindDoorActorAtEdge(X, Y, Edge))
+	{
+		return DoorActor->IsA<AGridSecretDoorActor>();
+	}
+
+	const FGridLevelObjectData* ObjectData = FindDoorObjectDataAtEdge(X, Y, Edge);
+	return ObjectData && ObjectData->ArchetypeId == FName(TEXT("Door_Secret"));
+}
+
+bool UGridDoorSystemComponent::IsDoorFullyOpenOnEdge(int32 X, int32 Y, EGridEdge Edge) const
+{
+	const AGridDoorActor* DoorActor = FindDoorActorAtEdge(X, Y, Edge);
+	return DoorActor && DoorActor->IsFullyOpen();
 }
 
 bool UGridDoorSystemComponent::ToggleDoorOnEdge(int32 X, int32 Y, EGridEdge Edge)
@@ -216,6 +234,8 @@ void UGridDoorSystemComponent::HandleDoorAnimationFinished(int32 X, int32 Y, EGr
 	SetDoorPassageBlocked(X, Y, Edge, !DoorActor->IsFullyOpen());
 	UE_LOG(LogGridDoorSystem, Log, TEXT("Grid door animation finished: Cell=(%d,%d) Edge=%d FullyOpen=%s Blocked=%s"), X, Y, static_cast<int32>(Edge),
 		DoorActor->IsFullyOpen() ? TEXT("true") : TEXT("false"), IsDoorPassageBlocked(X, Y, Edge) ? TEXT("true") : TEXT("false"));
+
+	GridAutomaticPerceptionEngagement::Request(RuntimeActor, DoorActor->IsFullyOpen() ? TEXT("DoorFullyOpened") : TEXT("DoorFullyClosed"));
 }
 
 AGridDoorActor* UGridDoorSystemComponent::FindDoorActorAtEdge(int32 X, int32 Y, EGridEdge Edge) const

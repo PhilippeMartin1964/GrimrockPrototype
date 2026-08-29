@@ -256,6 +256,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Runtime")
 	bool CanMove(int32 FromX, int32 FromY, EGridEdge Direction) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Runtime|Perception")
+	bool CanSoundTraverse(int32 FromX, int32 FromY, EGridEdge Direction) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Rendering")
 	bool ShouldHideCellFloor(int32 CellX, int32 CellY) const;
 

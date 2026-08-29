@@ -780,6 +780,42 @@ bool AGridLevelRuntimeActor::CanMove(int32 FromX, int32 FromY, EGridEdge Directi
 	}
 }
 
+bool AGridLevelRuntimeActor::CanSoundTraverse(int32 FromX, int32 FromY, EGridEdge Direction) const
+{
+	if (!IsWalkableCell(FromX, FromY))
+	{
+		return false;
+	}
+
+	int32 ToX = INDEX_NONE;
+	int32 ToY = INDEX_NONE;
+	if (!TryGetNeighborCell(FromX, FromY, Direction, ToX, ToY) || !IsWalkableCell(ToX, ToY))
+	{
+		return false;
+	}
+
+	int32 DoorX = INDEX_NONE;
+	int32 DoorY = INDEX_NONE;
+	EGridEdge DoorEdge = EGridEdge::None;
+	bool bResolvedOpposite = false;
+	if (DoorSystemComponent && TryResolveDoorEdge(FromX, FromY, Direction, DoorX, DoorY, DoorEdge, bResolvedOpposite))
+	{
+		if (!DoorSystemComponent->IsSecretDoorOnEdge(DoorX, DoorY, DoorEdge))
+		{
+			return true;
+		}
+		return DoorSystemComponent->IsDoorFullyOpenOnEdge(DoorX, DoorY, DoorEdge);
+	}
+
+	if (GetWallOnEdge(FromX, FromY, Direction) == EGridWallType::Solid)
+	{
+		return false;
+	}
+
+	const EGridEdge OppositeEdge = GridDirectionUtils::GetBackward(Direction);
+	return OppositeEdge != EGridEdge::None && GetWallOnEdge(ToX, ToY, OppositeEdge) != EGridWallType::Solid;
+}
+
 void AGridLevelRuntimeActor::GetEdgeTransform(int32 X, int32 Y, EGridEdge Edge, float CellSize, FVector& OutWorldLocation, FRotator& OutWorldRotation) const
 {
 	const FVector Base = GetActorLocation() + CellToWorld(X, Y, 0.f);
