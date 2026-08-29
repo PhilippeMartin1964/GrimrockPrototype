@@ -46,7 +46,7 @@ public:
 	float DoorAudioVolume = 1.0f;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
-	float DoorAudioPitchVariation = 0.04f;
+	float DoorAudioPitchVariation = 0.0f;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	TObjectPtr<USoundAttenuation> DoorAudioAttenuation = nullptr;
@@ -71,6 +71,16 @@ public:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	bool bDoorMotionAudioOpening = false;
+
+	/** Effective selected-sample duration after pitch, used only to decide natural completion vs endpoint trim. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
+	float ActiveDoorAudioExpectedDuration = 0.0f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
+	int32 DoorAudioNaturalCompletionCount = 0;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
+	int32 DoorAudioEndpointTrimCount = 0;
 
 	/** Runtime voice returned by SpawnSoundAtLocation; only one voice is owned by a door at a time. */
 	UPROPERTY(Transient)
@@ -161,6 +171,7 @@ protected:
 	void RefreshTickEnabled();
 	bool PlayDoorMotionSound(bool bOpening);
 	bool StopDoorMotionSound();
+	void CompleteDoorMotionSound(float CompletedMoveDuration);
 	float SelectDoorAudioPitch(int32 OccurrenceNumber) const;
 
 	FVector MovingClosedRelativeLocation = FVector::ZeroVector;

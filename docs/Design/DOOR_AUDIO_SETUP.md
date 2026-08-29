@@ -73,7 +73,7 @@ Valeurs de départ recommandées :
 
 ~~~text
 Volume          = 1.0
-Pitch Variation = 0.04
+Pitch Variation = 0.00
 Attenuation     = optionnelle
 ~~~
 
@@ -125,7 +125,8 @@ Close pendant Open
     -> Close Sound démarre si la porte a réellement du trajet de fermeture
 
 fin réelle du mouvement
-    -> son courant arrêté, même si le fichier audio est plus long
+    -> si le sample est aligné à la durée : il termine naturellement
+    -> s'il dépasse nettement une animation partielle : fade très court
 
 SnapDoorOpenState / restauration
     -> son courant arrêté
@@ -136,7 +137,9 @@ Le fichier audio n'est donc jamais l'autorité temporelle. C'est la position et 
 
 Pour une commande `Open -> Close` reçue avant le premier Tick, la porte est encore physiquement fermée : le son Open est coupé, mais aucun son Close n'est lancé puisqu'il n'existe aucun trajet de fermeture.
 
-La sélection des variantes est déterministe et cyclique. Une variation de pitch de présentation est appliquée sans consommer le RNG de gameplay.
+La sélection des variantes est déterministe et cyclique. **Pour les sons mécaniques de porte, Pitch Variation doit normalement rester à 0.00**, car modifier le pitch modifie aussi la durée du fichier et peut désynchroniser un sample prévu pour correspondre à `MoveDuration`.
+
+Une variation non nulle reste possible, mais le runtime calcule alors la durée effective du sample avant de décider s'il peut terminer naturellement.
 
 ## Portes secrètes
 

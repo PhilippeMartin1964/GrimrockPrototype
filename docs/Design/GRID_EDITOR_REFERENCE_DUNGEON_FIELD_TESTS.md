@@ -771,3 +771,56 @@ Il couvre maintenant :
     -EngineRoot D:\UE_5.5 `
     -AutomationFilter "Grimrock.Runtime.Doors.AudioFeedback"
 ~~~
+
+---
+
+## Incident 009 — Fin normale de porte : dernière fraction du son tronquée
+
+### Observation terrain
+
+Avec `MoveDuration = 5 s` et un fichier audio d'environ 5 s, la dernière partie du son pouvait être coupée exactement lorsque la porte atteignait sa position finale.
+
+### Causes
+
+Deux phénomènes se cumulaient :
+
+1. `StopDoorMotionSound()` était appelé brutalement à l'endpoint physique ;
+2. `DoorAudioPitchVariation = 0.04` pouvait allonger le sample. Exemple : 5 s à pitch 0.96 représente environ 5.21 s de lecture.
+
+### Correction
+
+Le pitch par défaut des portes devient :
+
+~~~text
+Pitch Variation = 0.00
+~~~
+
+La synchronisation temporelle d'un mécanisme est prioritaire sur la variation de pitch.
+
+À la fin normale d'un mouvement, le runtime compare désormais la durée effective du sample à la durée réelle de déplacement.
+
+~~~text
+sample aligné à MoveDuration (+ tolérance 0.35 s)
+    -> pas de Stop
+    -> fin naturelle
+
+sample nettement plus long qu'un mouvement partiel
+    -> FadeOut 0.08 s
+~~~
+
+Les interruptions et inversions restent autoritaires et coupent toujours la voix précédente avant de démarrer la nouvelle.
+
+### Réglage recommandé
+
+Pour un fichier Open/Close monté spécifiquement sur une animation de 5 s :
+
+~~~text
+Move Duration   = 5.0
+Pitch Variation = 0.0
+~~~
+
+Le sample peut contenir une courte queue mécanique naturelle : une tolérance de 0.35 s évite de la tronquer.
+
+### Test
+
+`Grimrock.Runtime.Doors.AudioFeedback` vérifie maintenant qu'une fin normale libère l'autorité audio sans ajouter un arrêt forcé.

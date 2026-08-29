@@ -69,7 +69,7 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 	Archetype->ArchetypeId = TEXT("Door_Audio_Test");
 	Archetype->SupportedType = EGridLevelObjectType::Door;
 	Archetype->DoorAudioVolume = 0.8f;
-	Archetype->DoorAudioPitchVariation = 0.04f;
+	Archetype->DoorAudioPitchVariation = 0.0f;
 	Archetype->DoorOpenSounds.Add(NewObject<USoundWave>(Archetype));
 	Archetype->DoorOpenSounds.Add(NewObject<USoundWave>(Archetype));
 	Archetype->DoorCloseSounds.Add(NewObject<USoundWave>(Archetype));
@@ -145,13 +145,17 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("No closing voice is started without closing travel"), Door->DoorCloseAudioPlaybackRequestCount, 1);
 	TestFalse(TEXT("Immediate reverse leaves no orphaned audio"), Door->bDoorMotionAudioActive);
 
-	// A sample that outlives the motion is explicitly stopped at the physical endpoint.
+	// Normal completion releases movement authority without an artificial hard stop.
+	// The test SoundWave has no authored duration, which intentionally exercises
+	// the safe natural-completion path used when duration metadata is unavailable.
 	Door->OpenDoor();
-	TestTrue(TEXT("Endpoint-stop setup has active audio"), Door->bDoorMotionAudioActive);
+	TestTrue(TEXT("Natural-completion setup has active audio"), Door->bDoorMotionAudioActive);
 	Door->Tick(2.0f);
 	TestFalse(TEXT("Completed door motion is no longer animating"), Door->IsAnimating());
-	TestFalse(TEXT("Completed door motion owns no residual audio"), Door->bDoorMotionAudioActive);
-	TestEqual(TEXT("Physical completion stops the movement voice"), Door->DoorAudioStopRequestCount, 4);
+	TestFalse(TEXT("Completed door motion releases logical audio ownership"), Door->bDoorMotionAudioActive);
+	TestEqual(TEXT("Normal endpoint does not add an interruption stop"), Door->DoorAudioStopRequestCount, 3);
+	TestEqual(TEXT("Normal endpoint records natural completion"), Door->DoorAudioNaturalCompletionCount, 1);
+	TestEqual(TEXT("Normal endpoint does not trim an aligned/unknown-duration sample"), Door->DoorAudioEndpointTrimCount, 0);
 
 	return true;
 }

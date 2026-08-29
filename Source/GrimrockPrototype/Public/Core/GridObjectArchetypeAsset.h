@@ -88,11 +88,14 @@ public:
 		meta = (DisplayName = "Volume", ClampMin = "0.0", EditCondition = "SupportedType == EGridLevelObjectType::Door", EditConditionHides))
 	float DoorAudioVolume = 1.0f;
 
-	/** Symmetric deterministic pitch variation around 1.0. 0.04 means approximately 0.96..1.04. */
+	/**
+	 * Symmetric deterministic pitch variation around 1.0.
+	 * Defaults to zero because pitch also changes playback duration and can desynchronize mechanical motion audio.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Door",
 		meta = (DisplayName = "Pitch Variation", ClampMin = "0.0", ClampMax = "0.25",
 			EditCondition = "SupportedType == EGridLevelObjectType::Door", EditConditionHides))
-	float DoorAudioPitchVariation = 0.04f;
+	float DoorAudioPitchVariation = 0.0f;
 
 	/** Optional 3D attenuation override. Null keeps the attenuation configured on the sound asset itself. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio|Door",

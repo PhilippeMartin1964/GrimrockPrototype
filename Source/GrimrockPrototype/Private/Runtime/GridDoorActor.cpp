@@ -123,15 +123,18 @@ void AGridDoorActor::ConfigureDoorAudio(const UGridObjectArchetypeAsset* Archety
 	DoorOpenSounds.Reset();
 	DoorCloseSounds.Reset();
 	DoorAudioVolume = 1.0f;
-	DoorAudioPitchVariation = 0.04f;
+	DoorAudioPitchVariation = 0.0f;
 	DoorAudioAttenuation = nullptr;
 	DoorOpenAudioOccurrence = 0;
 	DoorCloseAudioOccurrence = 0;
 	DoorOpenAudioPlaybackRequestCount = 0;
 	DoorCloseAudioPlaybackRequestCount = 0;
 	DoorAudioStopRequestCount = 0;
+	DoorAudioNaturalCompletionCount = 0;
+	DoorAudioEndpointTrimCount = 0;
 	bDoorMotionAudioActive = false;
 	bDoorMotionAudioOpening = false;
+	ActiveDoorAudioExpectedDuration = 0.0f;
 	ActiveDoorAudioComponent = nullptr;
 
 	if (!Archetype || Archetype->SupportedType != EGridLevelObjectType::Door)
@@ -274,10 +277,14 @@ bool AGridDoorActor::PlayDoorMotionSound(bool bOpening)
 	bDoorMotionAudioActive = true;
 	bDoorMotionAudioOpening = bOpening;
 
+	const float Pitch = SelectDoorAudioPitch(ThisOccurrence);
+	const float RawDuration = SelectedSound->GetDuration();
+	ActiveDoorAudioExpectedDuration = FMath::IsFinite(RawDuration) && RawDuration > 0.f && Pitch > KINDA_SMALL_NUMBER ? RawDuration / Pitch : 0.f;
+
 	if (bNativeDoorAudioPlaybackEnabled)
 	{
-		ActiveDoorAudioComponent = UGameplayStatics::SpawnSoundAtLocation(this, SelectedSound, GetActorLocation(), FRotator::ZeroRotator, DoorAudioVolume,
-			SelectDoorAudioPitch(ThisOccurrence), 0.f, DoorAudioAttenuation, nullptr, true);
+		ActiveDoorAudioComponent = UGameplayStatics::SpawnSoundAtLocation(
+			this, SelectedSound, GetActorLocation(), FRotator::ZeroRotator, DoorAudioVolume, Pitch, 0.f, DoorAudioAttenuation, nullptr, true);
 	}
 
 	return true;
@@ -300,7 +307,45 @@ bool AGridDoorActor::StopDoorMotionSound()
 
 	bDoorMotionAudioActive = false;
 	bDoorMotionAudioOpening = false;
+	ActiveDoorAudioExpectedDuration = 0.0f;
 	return bHadLogicalVoice;
+}
+
+void AGridDoorActor::CompleteDoorMotionSound(float CompletedMoveDuration)
+{
+	if (!bDoorMotionAudioActive)
+	{
+		return;
+	}
+
+	// A full-length movement sound often contains a very short mechanical tail.
+	// Cutting exactly at the movement boundary produces an audible click/truncation.
+	// If the effective sample duration is close to the actual movement duration,
+	// release ownership and let the auto-destroying AudioComponent finish naturally.
+	constexpr float NaturalCompletionToleranceSeconds = 0.35f;
+	const bool bDurationKnown = FMath::IsFinite(ActiveDoorAudioExpectedDuration) && ActiveDoorAudioExpectedDuration > 0.f;
+	const bool bCanFinishNaturally =
+		!bDurationKnown || ActiveDoorAudioExpectedDuration <= FMath::Max(0.f, CompletedMoveDuration) + NaturalCompletionToleranceSeconds;
+
+	if (bCanFinishNaturally)
+	{
+		bDoorMotionAudioActive = false;
+		bDoorMotionAudioOpening = false;
+		++DoorAudioNaturalCompletionCount;
+		return;
+	}
+
+	// Partial/reversed travel can be much shorter than the authored sample.
+	// Trim that excess with a tiny fade instead of an abrupt Stop.
+	if (IsValid(ActiveDoorAudioComponent))
+	{
+		ActiveDoorAudioComponent->FadeOut(0.08f, 0.f);
+	}
+	bDoorMotionAudioActive = false;
+	bDoorMotionAudioOpening = false;
+	ActiveDoorAudioExpectedDuration = 0.0f;
+	++DoorAudioEndpointTrimCount;
+	++DoorAudioStopRequestCount;
 }
 
 float AGridDoorActor::SelectDoorAudioPitch(int32 OccurrenceNumber) const
@@ -527,12 +572,11 @@ void AGridDoorActor::UpdateAnimation(float DeltaSeconds)
 
 		bIsOpen = MoveTargetRelativeLocation.Equals(MovingOpenRelativeLocation, 0.1f);
 		bIsAnimating = false;
+		const float CompletedMoveDuration = CurrentMoveDuration;
 		MoveElapsed = 0.f;
 		CurrentMoveDuration = 0.f;
 
-		// A sample is presentation, never the timing authority. If it is longer
-		// than the actual (possibly partial) travel, cut it at the real endpoint.
-		StopDoorMotionSound();
+		CompleteDoorMotionSound(CompletedMoveDuration);
 
 		RefreshTickEnabled();
 		OnDoorAnimationFinished.Broadcast(CellX, CellY, Edge);
