@@ -65,13 +65,12 @@ public:
 	bool CommitDeath();
 
 	/**
-     * Restores an already committed logical death without replaying presentation.
-     * The default MON17.8.6 policy considers restored deaths visually complete,
-     * therefore the skeletal mesh remains hidden unless an explicit legacy
-     * presentation pose is requested.
-     */
+	 * Restores an already committed logical death without replaying presentation.
+	 * A restored dead monster is always considered visually recycled and its
+	 * skeletal mesh stays hidden. No persistent-corpse option exists.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Monster|Death|Persistence")
-	void RestoreCommittedDeathState(FIntPoint InDeathCell, bool bRestorePresentationPose = false);
+	void RestoreCommittedDeathState(FIntPoint InDeathCell);
 
 	UFUNCTION(BlueprintCallable, Category = "Monster|Death|Persistence")
 	void RestoreLivingState();

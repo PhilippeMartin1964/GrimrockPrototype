@@ -204,7 +204,7 @@ bool UGridMonsterDeathComponent::CommitDeath()
 	return true;
 }
 
-void UGridMonsterDeathComponent::RestoreCommittedDeathState(FIntPoint InDeathCell, bool bRestorePresentationPose)
+void UGridMonsterDeathComponent::RestoreCommittedDeathState(FIntPoint InDeathCell)
 {
 	if (!InitializeDeathComponent(RuntimeActor))
 	{
@@ -269,7 +269,7 @@ void UGridMonsterDeathComponent::RestoreCommittedDeathState(FIntPoint InDeathCel
 	}
 	if (OwnerMonster->SkeletalMeshComponent)
 	{
-		OwnerMonster->SkeletalMeshComponent->SetVisibility(bRestorePresentationPose, true);
+		OwnerMonster->SkeletalMeshComponent->SetVisibility(false, true);
 	}
 }
 

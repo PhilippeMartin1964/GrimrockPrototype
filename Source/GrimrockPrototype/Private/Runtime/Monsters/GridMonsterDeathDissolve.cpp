@@ -12,6 +12,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridMonsterDeathDissolve, Log, All);
 namespace
 {
 	constexpr float DeathDissolveUpdateInterval = 1.0f / 30.0f;
+	constexpr float CorpseHoldDelaySeconds = 2.0f;
+	constexpr float CorpseDissolveDurationSeconds = 1.5f;
+	const FName CorpseDissolveParameterName(TEXT("DissolveAmount"));
 }
 
 void UGridMonsterDeathComponent::BeginPlay()
@@ -64,11 +67,10 @@ void UGridMonsterDeathComponent::ScheduleDeathDissolve()
 
 	const UGridMonsterDefinitionAsset* Definition = OwnerMonster->MonsterDefinition;
 	const float PresentationDuration = Definition->DeathMontage.IsNull() ? 0.0f : FMath::Max(0.01f, Definition->DeathExpectedDuration);
-	const float HoldDelay = FMath::Max(0.0f, Definition->DeathDissolveDelay);
-	const float StartDelay = PresentationDuration + HoldDelay;
+	const float StartDelay = PresentationDuration + CorpseHoldDelaySeconds;
 
 	UE_LOG(LogGridMonsterDeathDissolve, Log, TEXT("[GridMonsterDeathDissolve] Scheduled Monster=%s Presentation=%.3f Hold=%.3f StartAfter=%.3f"),
-		*GetNameSafe(OwnerMonster), PresentationDuration, HoldDelay, StartDelay);
+		*GetNameSafe(OwnerMonster), PresentationDuration, CorpseHoldDelaySeconds, StartDelay);
 
 	if (StartDelay <= KINDA_SMALL_NUMBER)
 	{
@@ -98,7 +100,7 @@ void UGridMonsterDeathComponent::StartDeathDissolve()
 	DeathOriginalMaterials.Reset();
 	DeathDissolveMaterials.Reset();
 
-	const FName ParameterName = OwnerMonster->MonsterDefinition->DeathDissolveParameterName;
+	const FName ParameterName = CorpseDissolveParameterName;
 	const int32 MaterialCount = Mesh->GetNumMaterials();
 	DeathOriginalMaterials.Reserve(MaterialCount);
 	DeathDissolveMaterials.Reserve(MaterialCount);
@@ -122,7 +124,7 @@ void UGridMonsterDeathComponent::StartDeathDissolve()
 	DeathDissolveStartWorldTime = World->GetTimeSeconds();
 
 	UE_LOG(LogGridMonsterDeathDissolve, Log, TEXT("[GridMonsterDeathDissolve] Started Monster=%s Materials=%d Parameter=%s Duration=%.3f"),
-		*GetNameSafe(OwnerMonster), MaterialCount, *ParameterName.ToString(), OwnerMonster->MonsterDefinition->DeathDissolveDuration);
+		*GetNameSafe(OwnerMonster), MaterialCount, *ParameterName.ToString(), CorpseDissolveDurationSeconds);
 
 	World->GetTimerManager().SetTimer(DeathDissolveStepTimerHandle, this, &UGridMonsterDeathComponent::UpdateDeathDissolve, DeathDissolveUpdateInterval, true);
 
@@ -142,10 +144,10 @@ void UGridMonsterDeathComponent::UpdateDeathDissolve()
 		return;
 	}
 
-	const float Duration = FMath::Max(0.01f, OwnerMonster->MonsterDefinition->DeathDissolveDuration);
+	const float Duration = CorpseDissolveDurationSeconds;
 	DeathDissolveAlpha = FMath::Clamp((World->GetTimeSeconds() - DeathDissolveStartWorldTime) / Duration, 0.0f, 1.0f);
 
-	const FName ParameterName = OwnerMonster->MonsterDefinition->DeathDissolveParameterName;
+	const FName ParameterName = CorpseDissolveParameterName;
 	for (UMaterialInstanceDynamic* DynamicMaterial : DeathDissolveMaterials)
 	{
 		if (DynamicMaterial)
@@ -169,7 +171,7 @@ void UGridMonsterDeathComponent::FinishDeathDissolve()
 
 	if (OwnerMonster && OwnerMonster->MonsterDefinition)
 	{
-		const FName ParameterName = OwnerMonster->MonsterDefinition->DeathDissolveParameterName;
+		const FName ParameterName = CorpseDissolveParameterName;
 		for (UMaterialInstanceDynamic* DynamicMaterial : DeathDissolveMaterials)
 		{
 			if (DynamicMaterial)

@@ -203,7 +203,7 @@ void AGridLevelRuntimeActor::SetMonsterRuntimeLevelActive(AGridMonsterActor* Mon
 		if (Monster->DeathComponent)
 		{
 			Monster->DeathComponent->InitializeDeathComponent(this);
-			Monster->DeathComponent->RestoreCommittedDeathState(Monster->CurrentCell, true);
+			Monster->DeathComponent->RestoreCommittedDeathState(Monster->CurrentCell);
 		}
 		else
 		{

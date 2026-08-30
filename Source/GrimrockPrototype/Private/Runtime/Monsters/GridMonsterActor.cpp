@@ -472,7 +472,7 @@ bool AGridMonsterActor::RestoreRuntimeMonsterState(const FGridRuntimeMonsterStat
 		MonsterState = EGridMonsterState::Dead;
 		if (DeathComponent)
 		{
-			DeathComponent->RestoreCommittedDeathState(RestoredCell, false);
+			DeathComponent->RestoreCommittedDeathState(RestoredCell);
 		}
 		else
 		{

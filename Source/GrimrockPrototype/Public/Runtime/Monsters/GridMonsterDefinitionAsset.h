@@ -209,23 +209,10 @@ public:
 	float DeathExpectedDuration = 1.0f;
 
 	/**
-	 * Legacy serialized switch kept only for asset compatibility.
-	 * Corpse dissolve is a mandatory monster-death presentation rule and cannot be disabled per monster.
+	 * Corpse cleanup is a mandatory global runtime invariant.
+	 * Hold time, dissolve duration and the material parameter contract are owned
+	 * by UGridMonsterDeathComponent and are intentionally not monster authoring data.
 	 */
-	UPROPERTY()
-	bool bEnableDeathDissolve = true;
-
-	/** Time the final corpse pose remains fully visible after the death presentation. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Dissolve", meta = (ClampMin = "0.0"))
-	float DeathDissolveDelay = 2.0f;
-
-	/** Duration of the visual dissolve from fully visible to fully dissolved. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Dissolve", meta = (ClampMin = "0.01"))
-	float DeathDissolveDuration = 1.5f;
-
-	/** Scalar material parameter driven from 0 (visible) to 1 (dissolved). */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Dissolve")
-	FName DeathDissolveParameterName = TEXT("DissolveAmount");
 
 	UFUNCTION(BlueprintPure, Category = "Monster|Validation")
 	bool IsValidDefinition() const;
