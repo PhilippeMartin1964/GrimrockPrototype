@@ -103,22 +103,26 @@ bool FGridMonsterMON178DeathDissolveDefinitionContractTest::RunTest(const FStrin
 		return false;
 	}
 
-	TestFalse(TEXT("Death dissolve is disabled by default"), Definition->bEnableDeathDissolve);
+	TestTrue(TEXT("Death dissolve is enabled by default for every monster"), Definition->bEnableDeathDissolve);
 	TestEqual(TEXT("Default corpse hold before dissolve is two seconds"), Definition->DeathDissolveDelay, 2.0f);
 	TestEqual(TEXT("Default dissolve duration is one and a half seconds"), Definition->DeathDissolveDuration, 1.5f);
 	TestEqual(TEXT("Default dissolve parameter is DissolveAmount"), Definition->DeathDissolveParameterName, FName(TEXT("DissolveAmount")));
 
 	FString ValidationError;
-	TestTrue(TEXT("Backward-compatible definition stays valid with dissolve disabled"), Definition->ValidateDefinition(ValidationError));
+	TestTrue(TEXT("Default mandatory dissolve settings are valid"), Definition->ValidateDefinition(ValidationError));
 
-	Definition->bEnableDeathDissolve = true;
-	ValidationError.Reset();
-	TestTrue(TEXT("Default dissolve settings are valid when enabled"), Definition->ValidateDefinition(ValidationError));
-
+	// The former serialized flag is ignored by the runtime and retained only
+	// for backward asset compatibility. A valid material dissolve contract is
+	// required regardless of that legacy value.
+	Definition->bEnableDeathDissolve = false;
 	Definition->DeathDissolveParameterName = NAME_None;
 	ValidationError.Reset();
-	TestFalse(TEXT("Enabled dissolve requires a material parameter name"), Definition->ValidateDefinition(ValidationError));
+	TestFalse(TEXT("Mandatory dissolve requires a material parameter name even if a legacy asset stored false"), Definition->ValidateDefinition(ValidationError));
 	TestTrue(TEXT("Missing parameter reports DeathDissolveParameterName"), ValidationError.Contains(TEXT("DeathDissolveParameterName")));
+
+	Definition->DeathDissolveParameterName = TEXT("DissolveAmount");
+	ValidationError.Reset();
+	TestTrue(TEXT("Legacy false cannot invalidate an otherwise valid mandatory dissolve contract"), Definition->ValidateDefinition(ValidationError));
 
 	Definition->DeathDissolveParameterName = TEXT("DissolveAmount");
 	Definition->DeathDissolveDelay = -0.1f;

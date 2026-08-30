@@ -18,7 +18,7 @@ mort gameplay immédiate
     -> Actor mort conservé
 ```
 
-Le GoblinThrower est le premier cas d'authoring, mais l'implémentation est commune à tous les monstres utilisant :
+Le GoblinThrower a été le premier cas d'authoring. La règle est désormais **globale et obligatoire** pour tous les monstres utilisant :
 
 ```text
 AGridMonsterActor
@@ -44,12 +44,21 @@ Elle ne doit jamais :
 
 Le cadavre peut disparaître visuellement, mais l'Actor mort reste disponible pour l'état runtime / SaveGame.
 
-## 3. Nouveau contrat data-driven
+## 3. Contrat global de mort des monstres
 
-`UGridMonsterDefinitionAsset` expose désormais :
+La disparition du cadavre n'est pas une option de bestiaire. Toute mort de monstre suit obligatoirement :
 
 ```text
-bEnableDeathDissolve
+DeathMontage éventuel
+-> pose finale
+-> DeathDissolveDelay
+-> dissolve
+-> SkeletalMesh caché
+```
+
+`UGridMonsterDefinitionAsset` conserve les réglages de rythme et le contrat matériau :
+
+```text
 DeathDissolveDelay
 DeathDissolveDuration
 DeathDissolveParameterName
@@ -58,13 +67,12 @@ DeathDissolveParameterName
 Valeurs par défaut :
 
 ```text
-bEnableDeathDissolve       = false
 DeathDissolveDelay         = 2.0 s
 DeathDissolveDuration      = 1.5 s
 DeathDissolveParameterName = DissolveAmount
 ```
 
-Le système est volontairement **désactivé par défaut** afin qu'aucun monstre existant ne change de comportement lors de l'introduction du contrat.
+L'ancien champ sérialisé `bEnableDeathDissolve` est conservé uniquement pour compatibilité avec les assets existants. Il n'est plus éditable, il est forcé à `true` au `PostLoad()`, et le runtime ne le consulte plus. Un monstre ne peut donc plus désactiver sa dissolution.
 
 ### Validation
 
@@ -74,7 +82,7 @@ Le DataAsset rejette :
 DeathDissolveDelay < 0
 DeathDissolveDuration <= 0
 valeurs non finies
-bEnableDeathDissolve=true + DeathDissolveParameterName=None
+DeathDissolveParameterName=None
 ```
 
 ## 4. Intégration dans UGridMonsterDeathComponent
@@ -89,7 +97,7 @@ Le composant s'abonne au delegate générique existant :
 AGridMonsterActor::OnMonsterDied
 ```
 
-Lorsque la mort logique est diffusée et que la dissolution est activée, il programme :
+Lorsque la mort logique est diffusée, il programme systématiquement :
 
 ```text
 StartDelay = PresentationDuration + DeathDissolveDelay
@@ -217,22 +225,18 @@ La solution Material sera choisie ensuite à partir de cet état réel.
 
 Important : le C++ fonctionne même si le paramètre n'existe pas ; dans ce cas aucune transition visuelle ne sera perceptible, mais le mesh sera tout de même caché à la fin. La validation PIE doit donc confirmer que les trois matériaux réagissent bien au paramètre.
 
-## 9. Configuration initiale GoblinThrower proposée
+## 9. Configuration des monstres
 
-Après authoring matériau :
+Aucun monstre n'a de case à cocher pour activer ou désactiver la dissolution.
+
+Chaque matériau de monstre doit respecter le contrat commun `DissolveAmount`. Les réglages par définition ne servent qu'au rythme :
 
 ```text
-DA_MON_GoblinThrower
-
-bEnableDeathDissolve       = true
-DeathDissolveDelay         = 2.0
-DeathDissolveDuration      = 1.5
-DeathDissolveParameterName = DissolveAmount
+DeathDissolveDelay    = 2.0
+DeathDissolveDuration = 1.5
 ```
 
-Ces valeurs sont un point de départ, pas encore une validation esthétique.
-
-Le rythme final doit rester compatible avec un dungeon crawler posé, pas un jeu d'action.
+Le rythme peut être ajusté par monstre, mais la disparition du cadavre reste obligatoire.
 
 ## 10. Tests automatisés
 
@@ -254,12 +258,11 @@ Grimrock.Monsters.MON17.8.DeathDissolveApiContract
 
 Vérifie :
 
-- dissolve désactivé par défaut ;
-- valeurs par défaut ;
+- dissolve actif par défaut ;
+- valeurs de rythme par défaut ;
 - nom `DissolveAmount` ;
-- compatibilité des anciennes définitions ;
-- validité quand le dissolve est activé avec les defaults ;
-- rejet d'un nom de paramètre vide ;
+- ancien flag sérialisé sans effet sur la règle globale ;
+- rejet d'un nom de paramètre vide même si l'ancien flag vaut `false` ;
 - rejet d'un délai négatif ;
 - rejet d'une durée nulle.
 
@@ -326,7 +329,7 @@ Après authoring des matériaux et activation dans `DA_MON_GoblinThrower` :
 7. loot toujours visible et récupérable ;
 8. victoire / encounter inchangés ;
 9. aucune nouvelle occupation de cellule ;
-10. RatGiant inchangé tant que bEnableDeathDissolve=false.
+10. RatGiant et tout nouveau monstre utilisent le même dissolve obligatoire.
 ```
 
 ## 13. Frontière avec MON17.8.6

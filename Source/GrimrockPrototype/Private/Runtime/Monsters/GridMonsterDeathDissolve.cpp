@@ -49,7 +49,7 @@ void UGridMonsterDeathComponent::HandleOwnerMonsterDied(AGridMonsterActor* Monst
 
 void UGridMonsterDeathComponent::ScheduleDeathDissolve()
 {
-	if (!OwnerMonster || !OwnerMonster->MonsterDefinition || !OwnerMonster->MonsterDefinition->bEnableDeathDissolve)
+	if (!OwnerMonster || !OwnerMonster->MonsterDefinition)
 	{
 		return;
 	}
@@ -81,7 +81,7 @@ void UGridMonsterDeathComponent::ScheduleDeathDissolve()
 
 void UGridMonsterDeathComponent::StartDeathDissolve()
 {
-	if (!OwnerMonster || !OwnerMonster->MonsterDefinition || !OwnerMonster->MonsterDefinition->bEnableDeathDissolve || !bDeathCommitted)
+	if (!OwnerMonster || !OwnerMonster->MonsterDefinition || !bDeathCommitted)
 	{
 		return;
 	}

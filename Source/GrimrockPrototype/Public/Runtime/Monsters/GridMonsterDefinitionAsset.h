@@ -208,9 +208,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation", meta = (ClampMin = "0.01"))
 	float DeathExpectedDuration = 1.0f;
 
-	/** Optional visual-only corpse dissolve. Disabled by default for backward compatibility. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Dissolve")
-	bool bEnableDeathDissolve = false;
+	/**
+	 * Legacy serialized switch kept only for asset compatibility.
+	 * Corpse dissolve is a mandatory monster-death presentation rule and cannot be disabled per monster.
+	 */
+	UPROPERTY()
+	bool bEnableDeathDissolve = true;
 
 	/** Time the final corpse pose remains fully visible after the death presentation. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Dissolve", meta = (ClampMin = "0.0"))

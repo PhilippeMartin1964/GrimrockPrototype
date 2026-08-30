@@ -25,6 +25,11 @@ void UGridMonsterDefinitionAsset::PostLoad()
 {
 	Super::PostLoad();
 
+	// Corpse dissolve is a project-wide monster death invariant. Older assets
+	// may have serialized the former optional flag as false; canonicalize them
+	// on load so no monster can opt out of corpse cleanup.
+	bEnableDeathDissolve = true;
+
 	// An optional presentation list containing only an editor-cleared None
 	// entry is equivalent to an empty list. Keep the strict validators for
 	// runtime-authored data while canonicalizing serialized assets on load.
@@ -162,9 +167,9 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition(FString& OutError) const
 		Errors.Add(TEXT("Death dissolve delay/duration must be finite; delay must be non-negative and duration greater than zero."));
 	}
 
-	if (bEnableDeathDissolve && DeathDissolveParameterName.IsNone())
+	if (DeathDissolveParameterName.IsNone())
 	{
-		Errors.Add(TEXT("DeathDissolveParameterName must not be None when death dissolve is enabled."));
+		Errors.Add(TEXT("DeathDissolveParameterName must not be None; corpse dissolve is mandatory for every monster."));
 	}
 
 	if (!AlertAudio.IsValidDefinition() || !HurtAudio.IsValidDefinition() || !DeathAudio.IsValidDefinition() || !IdleAudio.IsValidDefinition())
