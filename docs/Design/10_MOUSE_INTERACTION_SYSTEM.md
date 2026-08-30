@@ -404,6 +404,8 @@ Le pickup :
 - détruit l’acteur ;
 - retire l’entrée runtime correspondante.
 
+Pour un item libre au sol (`Edge=None`), `CanPartyPickupItemEntry()` utilise une portée horizontale dédiée de **210 cm** (`WorldItemPickupReach`). L'item peut se trouver dans la cellule du groupe ou dans une cellule cardinale immédiatement voisine, quelle que soit l'orientation du groupe, à condition que `CanMove()` autorise le passage entre les deux cellules. Les items posés sur une arête conservent leurs règles directionnelles existantes.
+
 ### 5.5 AGridReceptacleActor
 
 Les réceptacles sont génériques : support de torche, alcôve, autel, bol d’offrande, niche, socle, etc.

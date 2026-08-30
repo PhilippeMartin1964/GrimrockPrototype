@@ -63,7 +63,10 @@ La portée physique du clic ne suffit pas. `CanPartyPickupItemEntry()` impose au
 
 ![Accessibilité d'un item placé](../Images/item_10_1_pickup_accessibility.svg)
 
-- item central, `Edge=None` : le groupe doit être dans la même cellule ;
+- item libre au sol, `Edge=None` : portée horizontale `WorldItemPickupReach`, par défaut **210 cm** ;
+- un item libre est accessible depuis la cellule du groupe ou depuis une cellule cardinale immédiatement voisine, sans dépendre de l'orientation du groupe ;
+- pour une cellule voisine, le bord séparant les deux cellules doit être traversable selon `CanMove()` : mur ou porte bloquante interdit donc le ramassage ;
+- une cellule diagonale ou plus éloignée est refusée même si un mesh atypique entrait dans le rayon ;
 - item sur une arête de la cellule du groupe : l'arête doit être celle que le groupe regarde ;
 - item dans la cellule située devant : il doit être sur l'arête opposée à la direction regardée, donc face au groupe ;
 - toute autre cellule ou arête est refusée.
@@ -336,7 +339,7 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 ## 12. Tests manuels PIE
 
 1. Ramasser un item central depuis sa cellule : il rejoint l'inventaire sélectionné.
-2. Cliquer un item central depuis une cellule adjacente ou non adjacente : le curseur ne propose pas le ramassage.
+2. Depuis une cellule cardinale adjacente, ramasser un item libre situé à environ 200 cm : il est accessible jusqu'à `WorldItemPickupReach`; vérifier qu'une diagonale, une cellule plus éloignée, un mur ou une porte fermée le rendent inaccessible.
 3. Dans la cellule du groupe, vérifier qu'un item d'arête est accessible uniquement en regardant cette arête.
 4. Dans la cellule devant le groupe, vérifier que seule l'arête faisant face au groupe est accessible.
 5. Placer l'item derrière un mur, une porte fermée puis un autre bloqueur `Visibility` : le premier impact empêche le ramassage.

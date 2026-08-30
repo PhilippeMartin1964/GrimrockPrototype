@@ -83,9 +83,14 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	for (FGridLevelCellData& Cell : LevelAsset->Cells)
 	{
 		Cell.CellType = EGridCellType::Floor;
+		Cell.NorthWall = EGridWallType::None;
+		Cell.EastWall = EGridWallType::None;
+		Cell.SouthWall = EGridWallType::None;
+		Cell.WestWall = EGridWallType::None;
 		Cell.bBlocksOccupancy = false;
 	}
 	Runtime->LevelAsset = LevelAsset;
+	Runtime->WorldItemPickupReach = 210.0f;
 
 	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Runtime);
 	Definition->ItemDefinitionId = TEXT("TD02_Stone");
@@ -109,6 +114,7 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	Party->CurrentCellX = 1;
 	Party->CurrentCellY = 1;
 	Party->Facing = EGridEdge::North;
+	Party->SetActorLocation(Runtime->GetCellCenterWorld(1, 1, Party->EyeHeight));
 
 	FGridCharacterInventoryState Character;
 	Character.CharacterId = FGuid::NewGuid();
@@ -126,6 +132,59 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	WorldItem.Quantity = 2;
 	WorldItem.Weight = Definition->Weight;
 	WorldItem.OwnerType = EGridItemOwnerType::World;
+
+	auto FindWorldItemActor = [&TestWorld](const FGuid& RuntimeObjectId) -> AGridItemActor*
+	{
+		for (TActorIterator<AGridItemActor> It(TestWorld.World); It; ++It)
+		{
+			AGridItemActor* Candidate = *It;
+			if (Candidate && !Candidate->IsActorBeingDestroyed() && Candidate->GetRuntimeObjectId() == RuntimeObjectId)
+			{
+				return Candidate;
+			}
+		}
+		return nullptr;
+	};
+
+	FGridItemInstance NearbyFreeItem = WorldItem;
+	NearbyFreeItem.RuntimeObjectId = FGuid::NewGuid();
+	TestTrue(TEXT("A free item can be dropped in the neighbouring cell"),
+		Runtime->TryDropItemInstanceAtCell(NearbyFreeItem, Definition, 1, 2, EGridEdge::None, FVector::ZeroVector));
+	AGridItemActor* NearbyFreeActor = FindWorldItemActor(NearbyFreeItem.RuntimeObjectId);
+	TestNotNull(TEXT("The neighbouring free pickup actor exists"), NearbyFreeActor);
+	if (!NearbyFreeActor)
+	{
+		return false;
+	}
+
+	Party->Facing = EGridEdge::East;
+	TestTrue(TEXT("A free item one cell away is pickable within the physical reach regardless of facing"),
+		Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
+
+	Runtime->WorldItemPickupReach = 190.0f;
+	TestFalse(TEXT("The same free item is rejected when the physical reach is shorter than one cell"),
+		Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
+	Runtime->WorldItemPickupReach = 210.0f;
+
+	LevelAsset->GetCellMutable(1, 1).NorthWall = EGridWallType::Solid;
+	TestFalse(TEXT("A wall blocks pickup of a free item in the neighbouring cell"), Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
+	LevelAsset->GetCellMutable(1, 1).NorthWall = EGridWallType::None;
+	TestTrue(TEXT("Opening the grid edge restores neighbouring free-item pickup"), Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
+
+	FGridItemInstance DiagonalFreeItem = WorldItem;
+	DiagonalFreeItem.RuntimeObjectId = FGuid::NewGuid();
+	TestTrue(TEXT("A free item can be dropped on a diagonal cell"),
+		Runtime->TryDropItemInstanceAtCell(DiagonalFreeItem, Definition, 2, 2, EGridEdge::None, FVector::ZeroVector));
+	AGridItemActor* DiagonalFreeActor = FindWorldItemActor(DiagonalFreeItem.RuntimeObjectId);
+	TestNotNull(TEXT("The diagonal free pickup actor exists"), DiagonalFreeActor);
+	if (!DiagonalFreeActor)
+	{
+		return false;
+	}
+	TestFalse(TEXT("A diagonal free item is outside the immediate pickup neighbourhood"), Runtime->CanPartyPickupItemActor(DiagonalFreeActor, Party));
+
+	TestTrue(TEXT("Picking up the neighbouring free actor transfers the actor actually clicked"),
+		Runtime->TryPickupItemActor(NearbyFreeActor, Party));
 
 	TestTrue(TEXT("A valid item can be dropped on the edge facing the party"),
 		Runtime->TryDropItemInstanceAtCell(WorldItem, Definition, 1, 2, EGridEdge::South, FVector::ZeroVector));

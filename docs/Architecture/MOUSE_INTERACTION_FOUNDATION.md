@@ -72,6 +72,8 @@ Ces deux positions couvrent notamment les boutons, leviers, chaînes de porte et
 
 Les boutons, leviers et objets lisibles placés sur un bord font ensuite transiter l'action par `TryInteractAtEdge()`, afin de conserver l'activation et les liens runtime. Les items utilisent les règles propres à `CanPartyPickupItemEntry()` et au service de transfert.
 
+Pour un item libre au sol (`Edge=None`), le ramassage n'exige plus d'occuper exactement sa cellule. La portée horizontale dédiée est `AGridLevelRuntimeActor::WorldItemPickupReach`, **210 cm** par défaut. La cellule de l'item doit être celle du groupe ou une cellule cardinale immédiatement voisine accessible par `CanMove()`. Cette règle permet de prendre un objet centré dans la case voisine sans regarder au pied du groupe, tout en conservant les murs et portes fermées comme séparations.
+
 ## 6. Acteurs et composants cliquables
 
 | Acteur | Composant accepté | Curseur | Action |

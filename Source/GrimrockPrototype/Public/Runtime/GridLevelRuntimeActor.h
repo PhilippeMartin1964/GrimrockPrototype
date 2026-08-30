@@ -294,6 +294,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction")
 	AGridWallLockActor* FindWallLockAtEdge(int32 FromCellX, int32 FromCellY, EGridEdge Edge) const;
 
+	/**
+	 * Maximum horizontal reach for free world pickups (Edge=None).
+	 * Free pickups may be taken from the party cell or one traversable cardinal neighbour.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime|Interaction", meta = (ClampMin = "0.0"))
+	float WorldItemPickupReach = 210.0f;
+
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction")
 	bool TryPickupItemAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn);
 

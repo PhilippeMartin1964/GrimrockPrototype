@@ -20,6 +20,28 @@ namespace
 		return FString::Printf(TEXT("%d"), static_cast<int32>(Edge));
 	}
 
+	EGridEdge GetAdjacentPickupDirection(const FIntPoint& FromCell, const FIntPoint& ToCell)
+	{
+		const FIntPoint Delta = ToCell - FromCell;
+		if (Delta == FIntPoint(0, 1))
+		{
+			return EGridEdge::North;
+		}
+		if (Delta == FIntPoint(1, 0))
+		{
+			return EGridEdge::East;
+		}
+		if (Delta == FIntPoint(0, -1))
+		{
+			return EGridEdge::South;
+		}
+		if (Delta == FIntPoint(-1, 0))
+		{
+			return EGridEdge::West;
+		}
+		return EGridEdge::None;
+	}
+
 	FName ResolveWorldPickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackArchetypeId)
 	{
 		if (!ItemActor)
@@ -67,13 +89,68 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 	}
 
 	const FIntPoint PartyCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
-	if (Entry.Cell == PartyCell)
+
+	// Free floor pickups use a physical horizontal reach instead of requiring
+	// the party to stand on the exact same grid cell. The grid still limits
+	// this to the current cell or one traversable cardinal neighbour.
+	if (Entry.Edge == EGridEdge::None)
 	{
-		if (Entry.Edge == EGridEdge::None)
+		const AGridItemActor* ItemActor = Entry.ItemActor.Get();
+		if (!IsValid(ItemActor))
+		{
+			if (bLogRejection)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Grid item pickup rejected: free pickup actor is missing. ItemCell=(%d,%d)."), Entry.Cell.X, Entry.Cell.Y);
+			}
+			return false;
+		}
+
+		const float PickupReach = FMath::Max(0.0f, WorldItemPickupReach);
+		const float DistanceSquared = FVector::DistSquared2D(PartyPawn->GetActorLocation(), ItemActor->GetActorLocation());
+		if (DistanceSquared > FMath::Square(PickupReach))
+		{
+			if (bLogRejection)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("Grid item pickup rejected: free pickup is out of reach. PartyCell=(%d,%d) ItemCell=(%d,%d) Distance=%.1f Reach=%.1f."),
+					PartyCell.X, PartyCell.Y, Entry.Cell.X, Entry.Cell.Y, FMath::Sqrt(DistanceSquared), PickupReach);
+			}
+			return false;
+		}
+
+		if (Entry.Cell == PartyCell)
 		{
 			return true;
 		}
 
+		const EGridEdge PickupDirection = GetAdjacentPickupDirection(PartyCell, Entry.Cell);
+		if (PickupDirection == EGridEdge::None)
+		{
+			if (bLogRejection)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("Grid item pickup rejected: free pickup is not in the party cell or a cardinal neighbour. PartyCell=(%d,%d) ItemCell=(%d,%d)."),
+					PartyCell.X, PartyCell.Y, Entry.Cell.X, Entry.Cell.Y);
+			}
+			return false;
+		}
+
+		if (!CanMove(PartyCell.X, PartyCell.Y, PickupDirection))
+		{
+			if (bLogRejection)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("Grid item pickup rejected: free pickup is separated by a blocked grid edge. PartyCell=(%d,%d) ItemCell=(%d,%d) Direction=%s."),
+					PartyCell.X, PartyCell.Y, Entry.Cell.X, Entry.Cell.Y, *GetWorldItemEdgeText(PickupDirection));
+			}
+			return false;
+		}
+
+		return true;
+	}
+
+	if (Entry.Cell == PartyCell)
+	{
 		const bool bFacesItemEdge = PartyPawn->Facing != EGridEdge::None && Entry.Edge == PartyPawn->Facing;
 		if (!bFacesItemEdge && bLogRejection)
 		{
