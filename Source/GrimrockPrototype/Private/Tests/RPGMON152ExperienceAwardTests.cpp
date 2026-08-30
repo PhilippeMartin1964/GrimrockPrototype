@@ -249,7 +249,7 @@ bool FRPGMON152MonsterDeathExactlyOnceTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	RestoredDeadMonster->DeathComponent->RestoreCommittedDeathState(FIntPoint(2, 1), false);
+	RestoredDeadMonster->DeathComponent->RestoreCommittedDeathState(FIntPoint(2, 1));
 	RestoredDeadMonster->MarkDead();
 	TestEqual(TEXT("A restored committed death does not replay XP for character zero"),
 		Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Experience, 5);
