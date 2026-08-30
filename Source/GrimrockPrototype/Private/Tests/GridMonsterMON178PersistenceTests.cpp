@@ -86,7 +86,6 @@ namespace GridMonsterMON178Persistence
 		Definition->MaxHealth = 10;
 		Definition->ActionPointsPerTurn = 2;
 		Definition->DeathExpectedDuration = 1.0f;
-		Definition->bEnableDeathDissolve = true;
 		return Definition;
 	}
 
