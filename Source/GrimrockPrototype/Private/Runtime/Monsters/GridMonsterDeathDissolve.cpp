@@ -13,7 +13,7 @@ namespace
 {
 	constexpr float DeathDissolveUpdateInterval = 1.0f / 30.0f;
 	constexpr float CorpseHoldDelaySeconds = 2.0f;
-	constexpr float CorpseDissolveDurationSeconds = 1.5f;
+	constexpr float CorpseDissolveDurationSeconds = 5.5f;
 	const FName CorpseDissolveParameterName(TEXT("DissolveAmount"));
 }
 
