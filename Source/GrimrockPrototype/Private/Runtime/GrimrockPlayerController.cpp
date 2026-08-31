@@ -274,7 +274,6 @@ bool AGrimrockPlayerController::BeginPhysicalThrowAiming()
 	PhysicalThrowSourceRuntimeId = MainHandItem.RuntimeObjectId;
 	bPhysicalThrowAimingActive = true;
 	SetGridInteractionCursor(EGridInteractionCursor::AimThrow, TEXT("PhysicalThrowAimingBegin"));
-	ShowInteractionFeedback(FText::FromString(TEXT("Visez un point du décor puis cliquez pour lancer. Échap ou clic droit pour annuler.")));
 	return true;
 }
 
