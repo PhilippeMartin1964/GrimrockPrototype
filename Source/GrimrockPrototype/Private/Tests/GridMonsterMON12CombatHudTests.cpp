@@ -175,14 +175,26 @@ namespace
 		return Spell;
 	}
 
-	const FGridAvailableCombatAction* FindPaletteAction(const UGridCombatHudWidget* Hud, FName ActionId)
+	bool FindCatalogAction(const UGridTurnManagerComponent* TurnManager, int32 CharacterIndex, FName ActionId, FGridAvailableCombatAction& OutAction)
 	{
-		return IsValid(Hud) ? Hud->View.ActionPalette.FindByPredicate(
-								  [ActionId](const FGridAvailableCombatAction& Candidate)
-								  {
-									  return Candidate.Definition.ActionId == ActionId;
-								  })
-							: nullptr;
+		OutAction = FGridAvailableCombatAction();
+		if (!IsValid(TurnManager))
+		{
+			return false;
+		}
+		TArray<FGridAvailableCombatAction> AvailableActions;
+		TurnManager->GetAvailableCombatActions(CharacterIndex, AvailableActions);
+		const FGridAvailableCombatAction* Match = AvailableActions.FindByPredicate(
+			[ActionId](const FGridAvailableCombatAction& Candidate)
+			{
+				return Candidate.Definition.ActionId == ActionId;
+			});
+		if (!Match)
+		{
+			return false;
+		}
+		OutAction = *Match;
+		return true;
 	}
 
 	struct FGridCombatHudFixture
@@ -529,7 +541,9 @@ bool FGridMonsterMON12CombatHudLifecycleTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("The first runtime combatant is active"), Fixture.Hud->View.ActiveCharacterIndex, 0);
 	TestEqual(TEXT("The HUD reads the shared PAM authority"), Fixture.Hud->View.Mobility.RemainingMobilityActionPoints, 2);
 	TestEqual(TEXT("The HUD exposes ten fixed hotbar slots"), Fixture.Hud->View.Actions.Num(), 10);
-	TestFalse(TEXT("A new hotbar starts empty"), Fixture.Hud->View.Actions[0].bHasBinding);
+	TestTrue(TEXT("Slot 1 is the protected PrimaryAttack binding"), Fixture.Hud->View.Actions[0].Binding.IsPrimaryAttackBinding());
+	TestTrue(TEXT("PrimaryAttack resolves automatically"), Fixture.Hud->View.Actions[0].bResolved);
+	TestEqual(TEXT("PrimaryAttack follows the equipped sword"), Fixture.Hud->View.Actions[0].Action.SourceDefinitionId, FName(TEXT("MON12_7_Sword")));
 
 	UWrapBox* LegacyWrapPanel = NewObject<UWrapBox>(Fixture.Hud, TEXT("Panel_Actions_Test"));
 	Fixture.Hud->Panel_Actions = LegacyWrapPanel;
@@ -543,7 +557,7 @@ bool FGridMonsterMON12CombatHudLifecycleTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("All ten shortcuts share the same row"), Fixture.Hud->HotbarRow->GetChildrenCount(), 10);
 		if (Fixture.Hud->HotbarActionWidgets.IsValidIndex(0))
 		{
-			TestEqual(TEXT("An empty shortcut frame remains visible"), Fixture.Hud->HotbarActionWidgets[0]->GetRenderOpacity(), 0.8f);
+			TestEqual(TEXT("PrimaryAttack is rendered as an active shortcut"), Fixture.Hud->HotbarActionWidgets[0]->GetRenderOpacity(), 1.0f);
 		}
 		for (const UGridCombatHudActionWidget* ActionWidget : Fixture.Hud->HotbarActionWidgets)
 		{
@@ -556,7 +570,7 @@ bool FGridMonsterMON12CombatHudLifecycleTest::RunTest(const FString& Parameters)
 		Fixture.Party->PartyInventoryComponent->GetEquippedItem(0, EGridEquipmentSlot::MainHand, EquippedSword));
 	UGridInventoryDragDropOperation* SwordDrag = NewObject<UGridInventoryDragDropOperation>(Fixture.Hud);
 	SwordDrag->InitializeFromSlot(EGridInventoryUiSlotType::MainHand, 0, EquippedSword);
-	TestTrue(TEXT("Dragging the sword can configure slot zero"), Fixture.Hud->HandleHotbarDrop(0, SwordDrag));
+	TestFalse(TEXT("PrimaryAttack rejects manual item drops"), Fixture.Hud->HandleHotbarDrop(0, SwordDrag));
 
 	const FGridCombatHudActionView* SwordAction = Fixture.Hud->View.Actions.FindByPredicate(
 		[](const FGridCombatHudActionView& Candidate)
@@ -635,8 +649,9 @@ bool FGridMonsterMON1283HotbarClickExecutionTest::RunTest(const FString& Paramet
 	{
 		return false;
 	}
-	TestTrue(TEXT("The sword is assigned to keyboard slot 1"),
-		Fixture.Party->PartyInventoryComponent->SetCharacterCombatHotbarBindingFromItem(0, 0, EquippedSword, EGridEquipmentSlot::MainHand));
+	FGridCombatHotbarBinding PrimaryBinding;
+	TestTrue(TEXT("Slot 1 keeps the protected PrimaryAttack alias"),
+		Fixture.Party->PartyInventoryComponent->GetCharacterCombatHotbarBinding(0, 0, PrimaryBinding) && PrimaryBinding.IsPrimaryAttackBinding());
 
 	UWrapBox* LegacyWrapPanel = NewObject<UWrapBox>(Fixture.Hud, TEXT("Panel_Actions_1283_Click"));
 	Fixture.Hud->Panel_Actions = LegacyWrapPanel;
@@ -776,55 +791,55 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest(const FString& Parameters)
 	Potion.DisplayName = PotionDefinition->DisplayName;
 	Potion.Quantity = 2;
 	TestTrue(TEXT("Two potion units enter the inventory"), Inventory->AddItemToCharacterInventory(0, Potion));
-	TestTrue(TEXT("The potion configures shortcut one"), Inventory->SetCharacterCombatHotbarBindingFromItem(0, 0, Potion, EGridEquipmentSlot::None));
+	TestTrue(TEXT("The potion configures shortcut two"), Inventory->SetCharacterCombatHotbarBindingFromItem(0, 1, Potion, EGridEquipmentSlot::None));
 
 	Fixture.Hud->RefreshFromSources();
-	TestTrue(TEXT("The configured potion resolves from the catalogue"), Fixture.Hud->View.Actions[0].bResolved);
-	TestTrue(TEXT("The potion is initially usable"), Fixture.Hud->View.Actions[0].Action.bEnabled);
-	TestEqual(TEXT("The catalogue aggregates both potion units"), Fixture.Hud->View.Actions[0].Action.CurrentSourceItemQuantity, 2);
+	TestTrue(TEXT("The configured potion resolves from the catalogue"), Fixture.Hud->View.Actions[1].bResolved);
+	TestTrue(TEXT("The potion is initially usable"), Fixture.Hud->View.Actions[1].Action.bEnabled);
+	TestEqual(TEXT("The catalogue aggregates both potion units"), Fixture.Hud->View.Actions[1].Action.CurrentSourceItemQuantity, 2);
 
 	FGridCombatActionRequestResult FirstUse;
-	TestTrue(TEXT("The first potion use is accepted"), Fixture.Hud->RequestHotbarSlot(0, FirstUse));
+	TestTrue(TEXT("The first potion use is accepted"), Fixture.Hud->RequestHotbarSlot(1, FirstUse));
 	TestEqual(TEXT("The potion restores seven health"), Character.Resources.CurrentHealth, 12);
 	TestEqual(TEXT("The same potion restores three mana"), Character.Resources.CurrentMana, 7);
 	TestEqual(TEXT("The potion spends one action point"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 3);
 	TestEqual(TEXT("Exactly one potion remains"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionDefinition->ItemDefinitionId), 1);
 	TestEqual(TEXT("The result records the consumed unit"), FirstUse.QuickItemResult.SourceQuantityAfter, 1);
 	FGridCombatHotbarBinding RemainingPotionBinding;
-	TestTrue(TEXT("The consumed shortcut remains readable"), Inventory->GetCharacterCombatHotbarBinding(0, 0, RemainingPotionBinding));
+	TestTrue(TEXT("The consumed shortcut remains readable"), Inventory->GetCharacterCombatHotbarBinding(0, 1, RemainingPotionBinding));
 	TestTrue(TEXT("Every accepted potion clears its shortcut"), RemainingPotionBinding.IsEmpty());
-	TestFalse(TEXT("The consumed potion disappears from the HUD slot"), Fixture.Hud->View.Actions[0].bHasBinding);
+	TestFalse(TEXT("The consumed potion disappears from the HUD slot"), Fixture.Hud->View.Actions[1].bHasBinding);
 
-	TestTrue(TEXT("The remaining potion can be assigned again"), Inventory->SetCharacterCombatHotbarBindingFromItem(0, 0, Potion, EGridEquipmentSlot::None));
+	TestTrue(TEXT("The remaining potion can be assigned again"), Inventory->SetCharacterCombatHotbarBindingFromItem(0, 1, Potion, EGridEquipmentSlot::None));
 
 	Character.Resources.CurrentHealth = 20;
 	Character.Resources.CurrentMana = 8;
 	Fixture.Hud->RefreshFromSources();
-	TestFalse(TEXT("A full-health character cannot waste the potion"), Fixture.Hud->View.Actions[0].Action.bEnabled);
-	TestEqual(TEXT("The disabled reason identifies a useless effect"), Fixture.Hud->View.Actions[0].Action.AvailabilityReason,
+	TestFalse(TEXT("A full-health character cannot waste the potion"), Fixture.Hud->View.Actions[1].Action.bEnabled);
+	TestEqual(TEXT("The disabled reason identifies a useless effect"), Fixture.Hud->View.Actions[1].Action.AvailabilityReason,
 		EGridCombatActionAvailabilityReason::NoApplicableEffect);
 	FGridCombatActionRequestResult RefusedUse;
-	TestFalse(TEXT("The useless potion request is rejected"), Fixture.Hud->RequestHotbarSlot(0, RefusedUse));
+	TestFalse(TEXT("The useless potion request is rejected"), Fixture.Hud->RequestHotbarSlot(1, RefusedUse));
 	TestEqual(TEXT("A refused potion consumes no unit"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionDefinition->ItemDefinitionId), 1);
 	TestEqual(TEXT("A refused potion consumes no action point"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 3);
-	TestTrue(TEXT("A refused potion keeps its shortcut"), Fixture.Hud->View.Actions[0].bHasBinding);
+	TestTrue(TEXT("A refused potion keeps its shortcut"), Fixture.Hud->View.Actions[1].bHasBinding);
 
 	Character.Resources.CurrentHealth = 10;
 	FGridCombatActionRequestResult LastUse;
-	TestTrue(TEXT("The last potion unit can be consumed"), Fixture.Hud->RequestHotbarSlot(0, LastUse));
+	TestTrue(TEXT("The last potion unit can be consumed"), Fixture.Hud->RequestHotbarSlot(1, LastUse));
 	TestEqual(TEXT("The inventory quantity reaches zero"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionDefinition->ItemDefinitionId), 0);
 	FGridCombatHotbarBinding PersistentBinding;
-	TestTrue(TEXT("The exhausted shortcut remains readable"), Inventory->GetCharacterCombatHotbarBinding(0, 0, PersistentBinding));
+	TestTrue(TEXT("The exhausted shortcut remains readable"), Inventory->GetCharacterCombatHotbarBinding(0, 1, PersistentBinding));
 	TestTrue(TEXT("The last potion clears its shortcut"), PersistentBinding.IsEmpty());
-	TestFalse(TEXT("The exhausted HUD slot has no binding"), Fixture.Hud->View.Actions[0].bHasBinding);
-	TestFalse(TEXT("The exhausted HUD slot no longer resolves"), Fixture.Hud->View.Actions[0].bResolved);
+	TestFalse(TEXT("The exhausted HUD slot has no binding"), Fixture.Hud->View.Actions[1].bHasBinding);
+	TestFalse(TEXT("The exhausted HUD slot no longer resolves"), Fixture.Hud->View.Actions[1].bResolved);
 
 	FGridItemInstance ReplacementPotion = Potion;
 	ReplacementPotion.RuntimeObjectId = FGuid(12, 8, 4, 2);
 	ReplacementPotion.Quantity = 3;
 	TestTrue(TEXT("A replacement stack can be added"), Inventory->AddItemToCharacterInventory(0, ReplacementPotion));
 	Fixture.Hud->RefreshFromSources();
-	TestFalse(TEXT("A replacement stack does not restore the old shortcut"), Fixture.Hud->View.Actions[0].bHasBinding);
+	TestFalse(TEXT("A replacement stack does not restore the old shortcut"), Fixture.Hud->View.Actions[1].bHasBinding);
 	return true;
 }
 
@@ -925,18 +940,17 @@ bool FGridMonsterMON1285ActionPaletteBindingTest::RunTest(const FString& Paramet
 	Fixture.Hud->Panel_ActionPalette = PalettePanel;
 	Fixture.Hud->RefreshFromSources();
 
-	TestEqual(TEXT("Class actions and unarmed appear in the palette"), Fixture.Hud->View.ActionPalette.Num(), 3);
-	TestEqual(TEXT("The palette creates one widget per assignable action"), Fixture.Hud->ActionPaletteWidgets.Num(), 3);
-	TestEqual(TEXT("The optional palette panel owns all widgets"), PalettePanel->GetChildrenCount(), 3);
-	const FGridAvailableCombatAction* SpellAction = FindPaletteAction(Fixture.Hud, TEXT("Spell_MON1285_ArcaneBolt"));
-	if (!TestNotNull(TEXT("The direct spell is present"), SpellAction))
+	TestEqual(TEXT("The obsolete action palette is empty"), Fixture.Hud->View.ActionPalette.Num(), 0);
+	TestEqual(TEXT("No palette widgets are created"), Fixture.Hud->ActionPaletteWidgets.Num(), 0);
+	TestEqual(TEXT("The legacy palette panel owns no widgets"), PalettePanel->GetChildrenCount(), 0);
+	TestEqual(TEXT("The legacy palette panel stays collapsed"), PalettePanel->GetVisibility(), ESlateVisibility::Collapsed);
+	FGridAvailableCombatAction SpellAction;
+	if (!TestTrue(TEXT("The direct spell remains in the TurnManager catalogue"),
+			FindCatalogAction(Fixture.TurnManager, 0, TEXT("Spell_MON1285_ArcaneBolt"), SpellAction)))
 	{
 		return false;
 	}
-
-	UGridCombatHotbarDragDropOperation* PaletteDrag = NewObject<UGridCombatHotbarDragDropOperation>(Fixture.Hud);
-	PaletteDrag->InitializeFromActionPalette(0, *SpellAction);
-	TestTrue(TEXT("A palette action can configure shortcut five"), Fixture.Hud->HandleHotbarDrop(4, PaletteDrag));
+	TestTrue(TEXT("A source UI can configure shortcut five directly from the catalogue"), Fixture.Hud->AssignCombatActionToHotbarSlot(4, SpellAction));
 
 	FGridCombatHotbarBinding Binding;
 	TestTrue(TEXT("The configured binding is persisted"), Fixture.Party->PartyInventoryComponent->GetCharacterCombatHotbarBinding(0, 4, Binding));
@@ -967,12 +981,13 @@ bool FGridMonsterMON1285DirectSpellManaTransactionTest::RunTest(const FString& P
 	Character.ClassId = MageClass->ClassId;
 	Character.ClassDefinition = MageClass;
 	Fixture.Hud->RefreshFromSources();
-	const FGridAvailableCombatAction* SpellAction = FindPaletteAction(Fixture.Hud, TEXT("Spell_MON1285_ArcaneBolt"));
-	if (!TestNotNull(TEXT("The spell is catalogued for the active mage"), SpellAction))
+	FGridAvailableCombatAction SpellAction;
+	if (!TestTrue(TEXT("The spell is catalogued for the active mage"),
+			FindCatalogAction(Fixture.TurnManager, 0, TEXT("Spell_MON1285_ArcaneBolt"), SpellAction)))
 	{
 		return false;
 	}
-	TestTrue(TEXT("The spell can be assigned without an item source"), Fixture.Hud->AssignCombatActionToHotbarSlot(2, *SpellAction));
+	TestTrue(TEXT("The spell can be assigned without an item source"), Fixture.Hud->AssignCombatActionToHotbarSlot(2, SpellAction));
 
 	Fixture.Party->Facing = EGridEdge::South;
 	FGridCombatActionRequestResult Rejected;
@@ -1014,12 +1029,13 @@ bool FGridMonsterMON1285SelfAbilityEffectTest::RunTest(const FString& Parameters
 	Character.Resources.CurrentHealth = 10;
 	Character.Resources.CurrentMana = 8;
 	Fixture.Hud->RefreshFromSources();
-	const FGridAvailableCombatAction* AbilityAction = FindPaletteAction(Fixture.Hud, TEXT("Ability_MON1285_Recovery"));
-	if (!TestNotNull(TEXT("The ability is catalogued for the active priest"), AbilityAction))
+	FGridAvailableCombatAction AbilityAction;
+	if (!TestTrue(TEXT("The ability is catalogued for the active priest"),
+			FindCatalogAction(Fixture.TurnManager, 0, TEXT("Ability_MON1285_Recovery"), AbilityAction)))
 	{
 		return false;
 	}
-	TestTrue(TEXT("The recovery ability can configure shortcut four"), Fixture.Hud->AssignCombatActionToHotbarSlot(3, *AbilityAction));
+	TestTrue(TEXT("The recovery ability can configure shortcut four"), Fixture.Hud->AssignCombatActionToHotbarSlot(3, AbilityAction));
 
 	FGridCombatActionRequestResult Accepted;
 	TestTrue(TEXT("The self-targeted ability is accepted"), Fixture.Hud->RequestHotbarSlot(3, Accepted));
@@ -1059,12 +1075,13 @@ bool FGridMonsterMON1286CellTargetingLifecycleTest::RunTest(const FString& Param
 	Character.ClassId = MageClass->ClassId;
 	Character.ClassDefinition = MageClass;
 	Fixture.Hud->RefreshFromSources();
-	const FGridAvailableCombatAction* CellSpell = FindPaletteAction(Fixture.Hud, TEXT("Spell_MON1286_CellStrike"));
-	if (!TestNotNull(TEXT("The cell spell is catalogued"), CellSpell))
+	FGridAvailableCombatAction CellSpell;
+	if (!TestTrue(TEXT("The cell spell is catalogued"),
+			FindCatalogAction(Fixture.TurnManager, 0, TEXT("Spell_MON1286_CellStrike"), CellSpell)))
 	{
 		return false;
 	}
-	TestTrue(TEXT("The cell spell can configure shortcut six"), Fixture.Hud->AssignCombatActionToHotbarSlot(5, *CellSpell));
+	TestTrue(TEXT("The cell spell can configure shortcut six"), Fixture.Hud->AssignCombatActionToHotbarSlot(5, CellSpell));
 
 	FGridCombatActionRequestResult Pending;
 	TestTrue(TEXT("The shortcut opens explicit targeting"), Fixture.Hud->RequestHotbarSlot(5, Pending));
@@ -1124,12 +1141,13 @@ bool FGridMonsterMON1286AreaTargetingTransactionTest::RunTest(const FString& Par
 	Character.ClassId = MageClass->ClassId;
 	Character.ClassDefinition = MageClass;
 	Fixture.Hud->RefreshFromSources();
-	const FGridAvailableCombatAction* AreaSpell = FindPaletteAction(Fixture.Hud, TEXT("Spell_MON1286_AreaBurst"));
-	if (!TestNotNull(TEXT("The area spell is catalogued"), AreaSpell))
+	FGridAvailableCombatAction AreaSpell;
+	if (!TestTrue(TEXT("The area spell is catalogued"),
+			FindCatalogAction(Fixture.TurnManager, 0, TEXT("Spell_MON1286_AreaBurst"), AreaSpell)))
 	{
 		return false;
 	}
-	TestTrue(TEXT("The area spell can configure shortcut seven"), Fixture.Hud->AssignCombatActionToHotbarSlot(6, *AreaSpell));
+	TestTrue(TEXT("The area spell can configure shortcut seven"), Fixture.Hud->AssignCombatActionToHotbarSlot(6, AreaSpell));
 
 	FGridCombatActionRequestResult Pending;
 	TestTrue(TEXT("The area shortcut opens targeting"), Fixture.Hud->RequestHotbarSlot(6, Pending));
@@ -1166,12 +1184,13 @@ bool FGridMonsterMON1286TargetRequiredNoSpendTest::RunTest(const FString& Parame
 	Character.ClassId = MageClass->ClassId;
 	Character.ClassDefinition = MageClass;
 	Fixture.Hud->RefreshFromSources();
-	const FGridAvailableCombatAction* AreaSpell = FindPaletteAction(Fixture.Hud, TEXT("Spell_MON1286_AreaBurst"));
-	if (!TestNotNull(TEXT("The rejected area spell is catalogued"), AreaSpell))
+	FGridAvailableCombatAction AreaSpell;
+	if (!TestTrue(TEXT("The rejected area spell is catalogued"),
+			FindCatalogAction(Fixture.TurnManager, 0, TEXT("Spell_MON1286_AreaBurst"), AreaSpell)))
 	{
 		return false;
 	}
-	const FGridAvailableCombatAction& Action = *AreaSpell;
+	const FGridAvailableCombatAction& Action = AreaSpell;
 
 	FGridCombatActionRequestResult MissingTarget;
 	TestFalse(TEXT("A targeted action cannot execute without a cell"),
@@ -1229,22 +1248,14 @@ bool FGridMonsterMON1287PersistentHotbarTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("The fixed hotbar remains visible out of combat"), HotbarPanel->GetVisibility(), ESlateVisibility::SelfHitTestInvisible);
 	TestEqual(TEXT("Combat-only initiative is hidden out of combat"), Fixture.Hud->Panel_Initiative->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Combat-only end turn is hidden out of combat"), Fixture.Hud->Button_EndTurn->GetVisibility(), ESlateVisibility::Collapsed);
-	TestNotNull(TEXT("A missing WBP palette receives a runtime fallback"), Fixture.Hud->Panel_ActionPalette.Get());
-	TestEqual(TEXT("The fallback palette owns its runtime entries"), Fixture.Hud->ActionPaletteWidgets.Num(), Fixture.Hud->View.ActionPalette.Num());
+	TestNull(TEXT("The simplified HUD creates no palette fallback"), Fixture.Hud->Panel_ActionPalette.Get());
+	TestEqual(TEXT("The obsolete palette has no runtime widgets"), Fixture.Hud->ActionPaletteWidgets.Num(), 0);
+	TestEqual(TEXT("The obsolete palette view stays empty"), Fixture.Hud->View.ActionPalette.Num(), 0);
 
-	const FGridAvailableCombatAction* UnarmedAction = Fixture.Hud->View.ActionPalette.FindByPredicate(
-		[](const FGridAvailableCombatAction& Candidate)
-		{
-			return Candidate.Definition.ActionId == FName(TEXT("Attack_Unarmed")) &&
-				Candidate.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Universal;
-		});
-	if (!TestNotNull(TEXT("Unarmed remains available in the palette"), UnarmedAction))
-	{
-		return false;
-	}
-	TestTrue(TEXT("Unarmed can be assigned while combat is inactive"), Fixture.Hud->AssignCombatActionToHotbarSlot(4, *UnarmedAction));
-	TestTrue(TEXT("The unarmed binding remains resolved out of combat"), Fixture.Hud->View.Actions[4].bResolved);
-	TestFalse(TEXT("The resolved binding cannot execute outside combat"), Fixture.Hud->View.Actions[4].Action.bEnabled);
+	TestTrue(TEXT("Out-of-combat slot 1 remains PrimaryAttack"), Fixture.Hud->View.Actions[0].Binding.IsPrimaryAttackBinding());
+	TestTrue(TEXT("PrimaryAttack resolves out of combat"), Fixture.Hud->View.Actions[0].bResolved);
+	TestEqual(TEXT("A character without a weapon falls back to unarmed"), Fixture.Hud->View.Actions[0].Action.Definition.ActionId, FName(TEXT("Attack_Unarmed")));
+	TestFalse(TEXT("The resolved unarmed fallback cannot execute outside combat"), Fixture.Hud->View.Actions[0].Action.bEnabled);
 	return true;
 }
 
@@ -1473,18 +1484,19 @@ bool FGridMonsterMON1210ActionPaletteTargetingTest::RunTest(const FString& Param
 	Character.ClassDefinition = MageClass;
 	Fixture.Hud->RefreshFromSources();
 
-	const FGridAvailableCombatAction* AreaSpell = FindPaletteAction(Fixture.Hud, TEXT("Spell_MON1286_AreaBurst"));
-	if (!TestNotNull(TEXT("The synthetic area spell is catalogued"), AreaSpell))
+	FGridAvailableCombatAction AreaSpell;
+	if (!TestTrue(TEXT("The synthetic area spell is catalogued"),
+			FindCatalogAction(Fixture.TurnManager, 0, TEXT("Spell_MON1286_AreaBurst"), AreaSpell)))
 	{
 		return false;
 	}
-	TestTrue(TEXT("The area spell configures shortcut seven"), Fixture.Hud->AssignCombatActionToHotbarSlot(6, *AreaSpell));
-	TestEqual(TEXT("The palette is visible before targeting"), Fixture.Hud->Panel_ActionPalette->GetVisibility(), ESlateVisibility::Visible);
+	TestTrue(TEXT("The area spell configures shortcut seven"), Fixture.Hud->AssignCombatActionToHotbarSlot(6, AreaSpell));
+	TestEqual(TEXT("The obsolete palette stays hidden before targeting"), Fixture.Hud->Panel_ActionPalette->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("The targeting panel is initially hidden"), Fixture.Hud->Panel_Targeting->GetVisibility(), ESlateVisibility::Collapsed);
 
 	FGridCombatActionRequestResult Pending;
 	TestTrue(TEXT("The shortcut opens area targeting"), Fixture.Hud->RequestHotbarSlot(6, Pending));
-	TestEqual(TEXT("Targeting replaces the palette"), Fixture.Hud->Panel_ActionPalette->GetVisibility(), ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Targeting keeps the obsolete palette hidden"), Fixture.Hud->Panel_ActionPalette->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("The targeting panel is visible"), Fixture.Hud->Panel_Targeting->GetVisibility(), ESlateVisibility::SelfHitTestInvisible);
 	const FString Instructions = Fixture.Hud->Text_TargetingInstructions->GetText().ToString();
 	TestTrue(TEXT("The instructions name the action"), Instructions.Contains(TEXT("Explosion arcanique")));
@@ -1500,7 +1512,7 @@ bool FGridMonsterMON1210ActionPaletteTargetingTest::RunTest(const FString& Param
 	TestFalse(TEXT("Valid feedback exposes no cell coordinates"), ValidStatus.Contains(TEXT("(1,2)")));
 
 	Fixture.Hud->CancelCombatActionTargeting();
-	TestEqual(TEXT("Cancellation restores the palette"), Fixture.Hud->Panel_ActionPalette->GetVisibility(), ESlateVisibility::Visible);
+	TestEqual(TEXT("Cancellation keeps the obsolete palette hidden"), Fixture.Hud->Panel_ActionPalette->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Cancellation hides the targeting panel"), Fixture.Hud->Panel_Targeting->GetVisibility(), ESlateVisibility::Collapsed);
 	return true;
 }
@@ -1527,26 +1539,31 @@ bool FGridMonsterMON1211HotbarValidationTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
+	FGridCombatHotbarBinding PrimaryBinding;
+	TestTrue(TEXT("Slot 1 remains PrimaryAttack"), Inventory->GetCharacterCombatHotbarBinding(0, 0, PrimaryBinding) && PrimaryBinding.IsPrimaryAttackBinding());
 
-	TestTrue(TEXT("The sword configures slot one"), Inventory->SetCharacterCombatHotbarBindingFromItem(0, 0, EquippedSword, EGridEquipmentSlot::MainHand));
+	TestTrue(TEXT("The sword configures slot two"), Inventory->SetCharacterCombatHotbarBindingFromItem(0, 1, EquippedSword, EGridEquipmentSlot::MainHand));
 	FGridCombatHotbarBinding UnarmedBinding;
-	UnarmedBinding.Reset(1);
+	UnarmedBinding.Reset(2);
 	UnarmedBinding.ActionId = TEXT("Attack_Unarmed");
 	UnarmedBinding.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
-	TestTrue(TEXT("Unarmed configures slot two"), Inventory->SetCharacterCombatHotbarBinding(0, 1, UnarmedBinding));
+	TestTrue(TEXT("Unarmed configures slot three"), Inventory->SetCharacterCombatHotbarBinding(0, 2, UnarmedBinding));
 
 	FGridCombatHotbarBinding SwordBinding;
-	TestTrue(TEXT("The sword binding is readable before the swap"), Inventory->GetCharacterCombatHotbarBinding(0, 0, SwordBinding));
+	TestTrue(TEXT("The sword binding is readable before the swap"), Inventory->GetCharacterCombatHotbarBinding(0, 1, SwordBinding));
 	UGridCombatHotbarDragDropOperation* SwapOperation = NewObject<UGridCombatHotbarDragDropOperation>(Fixture.Hud);
-	SwapOperation->InitializeFromHotbarSlot(0, 0, SwordBinding);
-	TestTrue(TEXT("Dropping onto an occupied slot swaps bindings"), Fixture.Hud->HandleHotbarDrop(1, SwapOperation));
+	SwapOperation->InitializeFromHotbarSlot(0, 1, SwordBinding);
+	TestTrue(TEXT("Dropping onto an occupied configurable slot swaps bindings"), Fixture.Hud->HandleHotbarDrop(2, SwapOperation));
 
-	FGridCombatHotbarBinding SwappedFirst;
+	FGridCombatHotbarBinding FixedPrimary;
 	FGridCombatHotbarBinding SwappedSecond;
-	Inventory->GetCharacterCombatHotbarBinding(0, 0, SwappedFirst);
+	FGridCombatHotbarBinding SwappedThird;
+	Inventory->GetCharacterCombatHotbarBinding(0, 0, FixedPrimary);
 	Inventory->GetCharacterCombatHotbarBinding(0, 1, SwappedSecond);
-	TestEqual(TEXT("The first slot now contains unarmed"), SwappedFirst.ActionId, FName(TEXT("Attack_Unarmed")));
-	TestTrue(TEXT("The second slot keeps the exact sword instance"), SwappedSecond.PreferredSourceRuntimeId == EquippedSword.RuntimeObjectId);
+	Inventory->GetCharacterCombatHotbarBinding(0, 2, SwappedThird);
+	TestTrue(TEXT("PrimaryAttack is unaffected by configurable-slot swaps"), FixedPrimary.IsPrimaryAttackBinding());
+	TestEqual(TEXT("Slot two now contains unarmed"), SwappedSecond.ActionId, FName(TEXT("Attack_Unarmed")));
+	TestTrue(TEXT("Slot three keeps the exact sword instance"), SwappedThird.PreferredSourceRuntimeId == EquippedSword.RuntimeObjectId);
 
 	UGridItemDefinitionAsset* SwordDefinition = Inventory->FindItemDefinition(EquippedSword.ItemDefinitionId);
 	TestNotNull(TEXT("The hotbar sword definition remains registered"), SwordDefinition);
@@ -1558,9 +1575,9 @@ bool FGridMonsterMON1211HotbarValidationTest::RunTest(const FString& Parameters)
 	FGridPlayerCharacterTurnState TurnStateBeforeRefusal;
 	Fixture.TurnManager->GetPlayerCharacterTurnState(0, TurnStateBeforeRefusal);
 	FGridCombatActionRequestResult Rejected;
-	TestFalse(TEXT("An unavailable sword shortcut is refused"), Fixture.Hud->RequestHotbarSlot(1, Rejected));
+	TestFalse(TEXT("An unavailable sword shortcut is refused"), Fixture.Hud->RequestHotbarSlot(2, Rejected));
 	FGridCombatHotbarBinding BindingAfterRefusal;
-	Inventory->GetCharacterCombatHotbarBinding(0, 1, BindingAfterRefusal);
+	Inventory->GetCharacterCombatHotbarBinding(0, 2, BindingAfterRefusal);
 	TestTrue(TEXT("Refusal preserves the configured shortcut"), BindingAfterRefusal.PreferredSourceRuntimeId == EquippedSword.RuntimeObjectId);
 	FGridPlayerCharacterTurnState TurnStateAfterRefusal;
 	Fixture.TurnManager->GetPlayerCharacterTurnState(0, TurnStateAfterRefusal);
@@ -1572,27 +1589,29 @@ bool FGridMonsterMON1211HotbarValidationTest::RunTest(const FString& Parameters)
 	FText RestoreError;
 	TestTrue(TEXT("The saved hotbar state restores successfully"), RestoredInventory->RestorePartyInventoryState(SavedState, RestoreError));
 	FGridCombatHotbarBinding RestoredSword;
-	RestoredInventory->GetCharacterCombatHotbarBinding(0, 1, RestoredSword);
+	RestoredInventory->GetCharacterCombatHotbarBinding(0, 2, RestoredSword);
 	TestTrue(TEXT("Restore keeps the exact sword identity"), RestoredSword.PreferredSourceRuntimeId == EquippedSword.RuntimeObjectId);
 
-	TestTrue(TEXT("Right-click contract clears the shortcut"), Fixture.Hud->ClearHotbarSlot(1));
+	TestTrue(TEXT("Right-click contract clears the configurable sword shortcut"), Fixture.Hud->ClearHotbarSlot(2));
 	FGridCombatHotbarBinding ClearedBinding;
-	Inventory->GetCharacterCombatHotbarBinding(0, 1, ClearedBinding);
-	TestTrue(TEXT("The cleared shortcut is empty"), ClearedBinding.IsEmpty());
+	Inventory->GetCharacterCombatHotbarBinding(0, 2, ClearedBinding);
+	TestTrue(TEXT("The cleared configurable shortcut is empty"), ClearedBinding.IsEmpty());
+	TestFalse(TEXT("PrimaryAttack cannot be cleared"), Fixture.Hud->ClearHotbarSlot(0));
 	FGridItemInstance SwordAfterClear;
 	TestTrue(TEXT("Clearing never removes the equipped source"), Inventory->GetEquippedItem(0, EGridEquipmentSlot::MainHand, SwordAfterClear));
 	TestTrue(TEXT("The equipped source identity is unchanged"), SwordAfterClear.RuntimeObjectId == EquippedSword.RuntimeObjectId);
 
 	TestTrue(TEXT("The real initiative flow ends character one's turn"), Fixture.TurnManager->EndActivePlayerTurn());
 	TestEqual(TEXT("The HUD projects character two"), Fixture.Hud->View.ActiveCharacterIndex, 1);
-	TestFalse(TEXT("Character two does not inherit character one's slots"), Fixture.Hud->View.Actions[1].bHasBinding);
+	TestFalse(TEXT("Character two does not inherit character one's configurable slots"), Fixture.Hud->View.Actions[2].bHasBinding);
+	TestTrue(TEXT("Character two still owns its own PrimaryAttack"), Fixture.Hud->View.Actions[0].Binding.IsPrimaryAttackBinding());
 
 	Fixture.TurnManager->FinishCombat(EGridCombatPhase::Victory);
 	Fixture.Hud->RefreshFromSources();
-	FGridCombatHotbarBinding PersistentUnarmed;
-	Inventory->GetCharacterCombatHotbarBinding(0, 0, PersistentUnarmed);
-	TestEqual(TEXT("Combat finish preserves configured assignments"), PersistentUnarmed.ActionId, FName(TEXT("Attack_Unarmed")));
-	TestFalse(TEXT("The hotbar cannot execute after combat"), Fixture.Hud->View.Actions[0].Action.bEnabled);
+	FGridCombatHotbarBinding PersistentPrimary;
+	Inventory->GetCharacterCombatHotbarBinding(0, 0, PersistentPrimary);
+	TestTrue(TEXT("Combat finish preserves PrimaryAttack"), PersistentPrimary.IsPrimaryAttackBinding());
+	TestFalse(TEXT("The primary action cannot execute after combat"), Fixture.Hud->View.Actions[0].Action.bEnabled);
 	FGridCombatActionRequestResult AfterCombat;
 	TestFalse(TEXT("The real action entry point refuses after combat"),
 		Fixture.TurnManager->RequestCharacterCombatAction(
