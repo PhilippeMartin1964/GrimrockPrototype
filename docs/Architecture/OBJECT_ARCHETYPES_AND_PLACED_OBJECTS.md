@@ -66,8 +66,8 @@ Tous les champs ci-dessous sont persistants dans `UGridLevelAsset::Objects` et e
 | `Edge` | Bord cardinal pour un placement mural/edge. L'éditeur écrit `None` pour un placement central. | Transform runtime. Les items disposent aussi d'un placement de bord au sol. |
 | `LocalYaw` | Rotation locale, initialisée à `0`, modifiable par l'orientation dans l'inspecteur. | Ajoutée à la rotation calculée du placement. |
 | `ArchetypeId` | Clé de résolution vers `ObjectArchetypes`. Copiée depuis la palette. | Visuels, placement, classe runtime et paramètres d'archétype. |
-| `ItemDefinitionAsset` | Référence locale d'un item placé. Modifiable dans l'inspecteur pour `Type=Item`. | Résolution de la définition runtime. |
-| `ItemDefinitionId` | Identifiant local d'item, synchronisable depuis l'asset. | Fallback de résolution et identité runtime de l'item. |
+| `ItemDefinitionAsset` | Référence canonique d'un item placé. Pour `Type=Item`, elle est copiée depuis `DefaultBehavior.Item.ItemDefinitionAsset` lors du placement et peut être surchargée dans l'inspecteur. | Résolution de la définition runtime. |
+| `ItemDefinitionId` | Champ de compatibilité/runtime qui reste `None` dans l'authoring courant lorsqu'un asset est disponible. | Fallback historique ; l'inspecteur affiche désormais l'ID effectif dérivé de l'asset. |
 | `bInitiallyEnabled` | Copie de `bDefaultInitiallyEnabled`, ensuite éditable localement. | Filtre la preview et la génération runtime. |
 | `bInitiallyActive` | Copie de `bDefaultInitiallyActive`, ensuite éditable localement. | État initial des mécanismes et de composants runtime. |
 | `Tag` | Copie de `DefaultTag`, ensuite éditable localement. | Identification fonctionnelle ponctuelle et compatibilité de certains chemins. |
@@ -138,7 +138,7 @@ Le panneau `SGridEditorToolPalettePanel` groupe les entrées par catégorie et i
 1. valide le niveau, la cellule, le type et le bord requis ;
 2. résout l'archétype dans `ObjectPalette` ;
 3. applique la politique de conflits de cellule ou d'ancre ;
-4. construit `FGridLevelObjectData` à partir de l'état de peinture ;
+4. construit `FGridLevelObjectData` à partir de l'état de peinture ; pour un `Item`, la définition d'item de l'archétype est promue en référence directe sur l'objet placé ;
 5. appelle `UGridLevelAsset::AddObject()` ;
 6. sélectionne le nouvel `ObjectId` et reconstruit l'aperçu.
 

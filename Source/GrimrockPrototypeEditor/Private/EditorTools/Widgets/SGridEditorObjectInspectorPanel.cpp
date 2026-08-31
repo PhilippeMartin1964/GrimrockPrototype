@@ -1362,10 +1362,23 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(const FGridLevelObjectData& Obj)
 {
-	const bool bHasDefinitionAsset = Obj.ItemDefinitionAsset != nullptr;
-	const bool bHasDefinitionId = !Obj.ItemDefinitionId.IsNone();
-	const bool bUsingLegacyFallback = !bHasDefinitionAsset && !bHasDefinitionId && !Obj.ArchetypeId.IsNone();
-	const bool bConflictingDefinitionId = bHasDefinitionAsset && bHasDefinitionId && Obj.ItemDefinitionAsset->ItemDefinitionId != Obj.ItemDefinitionId;
+	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
+	const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor ? CurrentEditorActor->FindObjectArchetypeById(Obj.ArchetypeId) : nullptr;
+	UGridItemDefinitionAsset* ArchetypeDefinitionAsset = Archetype ? Archetype->DefaultBehavior.Item.ItemDefinitionAsset.Get() : nullptr;
+	UGridItemDefinitionAsset* EffectiveDefinitionAsset = Obj.ItemDefinitionAsset ? Obj.ItemDefinitionAsset.Get() : ArchetypeDefinitionAsset;
+	const FName EffectiveDefinitionId = EffectiveDefinitionAsset ? EffectiveDefinitionAsset->ItemDefinitionId : Obj.ItemDefinitionId;
+	const bool bUsingArchetypeDefinition = !Obj.ItemDefinitionAsset && ArchetypeDefinitionAsset;
+	const bool bUsingLegacyFallback = !EffectiveDefinitionAsset && (!Obj.ItemDefinitionId.IsNone() || !Obj.ArchetypeId.IsNone());
+	const bool bConflictingDefinitionId =
+		Obj.ItemDefinitionAsset && !Obj.ItemDefinitionId.IsNone() && Obj.ItemDefinitionAsset->ItemDefinitionId != Obj.ItemDefinitionId;
+
+	const FText DefinitionSourceText = Obj.ItemDefinitionAsset
+		? FText::FromString(TEXT("Placed Object"))
+		: bUsingArchetypeDefinition
+			? FText::FromString(TEXT("Archetype Default"))
+			: !Obj.ItemDefinitionId.IsNone()
+				? FText::FromString(TEXT("Legacy ItemDefinitionId"))
+				: FText::FromString(TEXT("Legacy ArchetypeId"));
 
 	return SNew (SBorder)
         .Padding (6.f)
@@ -1392,7 +1405,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
                     GridEditorWidgetHelpers::BuildGridPropertyRow (
                         FText::FromString (TEXT ("ItemDefinitionAsset")),
                         BuildItemDefinitionAssetPicker (
-                            Obj.ItemDefinitionAsset,
+                            EffectiveDefinitionAsset,
                             [this] (UGridItemDefinitionAsset* NewAsset)
                             {
                                 if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
@@ -1407,21 +1420,16 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
 
                 + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    GridEditorWidgetHelpers::BuildGridPropertyRow (
-                        FText::FromString (TEXT ("ItemDefinitionId")),
-                        SNew (SEditableTextBox)
-                            .Text (GetNameText (Obj.ItemDefinitionId))
-                            .MinDesiredWidth (160.f)
-                            .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
-                        {
-                            if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                            {
-                            if (CurrentEditorActor->SetSelectedObjectItemDefinitionId (GetNameFromEditorText (NewText)))
-                                {
-                                    RequestRefresh ();
-                                }
-                            }
-                        }))
+                    GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                        FText::FromString (TEXT ("Effective Item Id")),
+                        GetNameText (EffectiveDefinitionId))
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                        FText::FromString (TEXT ("Definition Source")),
+                        DefinitionSourceText)
                 ]
 
                 + SVerticalBox::Slot ().AutoHeight ()
@@ -1433,26 +1441,30 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
 
                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
                 [
-                    SNew (SButton)
-                        .Text (FText::FromString (TEXT ("Sync Id From Asset")))
-                        .OnClicked_Lambda ([this] ()
-                    {
-                        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                        {
-                            if (CurrentEditorActor->SyncSelectedItemDefinitionIdFromAsset ())
+                    bUsingArchetypeDefinition
+                        ? StaticCastSharedRef<SWidget> (
+                            SNew (SButton)
+                                .Text (FText::FromString (TEXT ("Promote Archetype Definition")))
+                                .ToolTipText (FText::FromString (TEXT ("Copies the archetype item definition into this placed item using the current authoring schema.")))
+                                .OnClicked_Lambda ([this] ()
                             {
-                                RequestRefresh ();
-                            }
-                        }
-                        return FReply::Handled ();
-                    })
+                                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                                {
+                                    if (CurrentEditorActor->SyncSelectedItemDefinitionIdFromAsset ())
+                                    {
+                                        RequestRefresh ();
+                                    }
+                                }
+                                return FReply::Handled ();
+                            }))
+                        : SNullWidget::NullWidget
                 ]
 
                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
                 [
                     bUsingLegacyFallback
                         ? StaticCastSharedRef<SWidget> (SNew (STextBlock)
-                            .Text (FText::FromString (TEXT ("Warning: Item without ItemDefinition. Falling back to ArchetypeId.")))
+                            .Text (FText::FromString (TEXT ("Warning: Item has no ItemDefinitionAsset in the placement or archetype. Runtime will use legacy fallback data.")))
                             .AutoWrapText (true)
                             .ColorAndOpacity (FSlateColor (FLinearColor (1.f, 0.55f, 0.18f, 1.f))))
                         : SNullWidget::NullWidget

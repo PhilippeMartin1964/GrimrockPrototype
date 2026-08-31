@@ -3,6 +3,8 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
+#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridObjectPaletteAsset.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -88,6 +90,18 @@ bool FGridTD033DefinitionSyncContractTest::RunTest(const FString& Parameters)
 	UGridItemDefinitionAsset* ItemDefinition = NewObject<UGridItemDefinitionAsset>(EditorActor);
 	ItemDefinition->ItemDefinitionId = TEXT("TD033_Item");
 
+	UGridObjectArchetypeAsset* ItemArchetype = NewObject<UGridObjectArchetypeAsset>(EditorActor);
+	ItemArchetype->ArchetypeId = TEXT("TD033_ItemPickup");
+	ItemArchetype->SupportedType = EGridLevelObjectType::Item;
+	ItemArchetype->DefaultBehavior.Item.ItemDefinitionAsset = ItemDefinition;
+	ItemArchetype->DefaultBehavior.Item.ItemDefinitionId = NAME_None;
+
+	UGridObjectPaletteAsset* ObjectPalette = NewObject<UGridObjectPaletteAsset>(EditorActor);
+	FGridObjectPaletteEntry& ItemPaletteEntry = ObjectPalette->Entries.AddDefaulted_GetRef();
+	ItemPaletteEntry.EntryId = TEXT("TD033_Item");
+	ItemPaletteEntry.DefaultArchetype = ItemArchetype;
+	EditorActor->ObjectPalette = ObjectPalette;
+
 	UGridMonsterDefinitionAsset* MonsterDefinition = NewObject<UGridMonsterDefinitionAsset>(EditorActor);
 	MonsterDefinition->MonsterId = TEXT("TD033_Monster");
 
@@ -115,7 +129,7 @@ bool FGridTD033DefinitionSyncContractTest::RunTest(const FString& Parameters)
 	const UFunction* MonsterSyncFunction = EditorActor->FindFunction(TEXT("SyncSelectedMonsterDefinitionIdFromAsset"));
 	TestNotNull(TEXT("SyncSelectedItemDefinitionIdFromAsset remains reflected"), ItemSyncFunction);
 	TestNotNull(TEXT("SyncSelectedMonsterDefinitionIdFromAsset remains reflected"), MonsterSyncFunction);
-	TestTrue(TEXT("Item definition sync is BlueprintCallable"), ItemSyncFunction && ItemSyncFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
+	TestTrue(TEXT("Item definition repair is BlueprintCallable"), ItemSyncFunction && ItemSyncFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
 	TestTrue(TEXT("Monster definition sync is BlueprintCallable"), MonsterSyncFunction && MonsterSyncFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
 	TestFalse(TEXT("Item definition sync is no longer exposed as CallInEditor"), ItemSyncFunction && ItemSyncFunction->HasMetaData(TEXT("CallInEditor")));
 	TestFalse(
@@ -123,15 +137,42 @@ bool FGridTD033DefinitionSyncContractTest::RunTest(const FString& Parameters)
 
 	TestTrue(TEXT("The item object can be selected"), EditorActor->SelectObjectById(ItemObject.ObjectId));
 	TestFalse(TEXT("Monster sync rejects an item selection"), EditorActor->SyncSelectedMonsterDefinitionIdFromAsset());
-	TestTrue(TEXT("Item sync copies ItemDefinitionId from the selected asset"), EditorActor->SyncSelectedItemDefinitionIdFromAsset());
-	TestEqual(TEXT("The item object stores the asset ItemDefinitionId"), LevelAsset->Objects[0].ItemDefinitionId, ItemDefinition->ItemDefinitionId);
+	TestTrue(TEXT("Item repair canonicalizes the selected asset reference"), EditorActor->SyncSelectedItemDefinitionIdFromAsset());
+	TestTrue(TEXT("The item object keeps the definition asset"), LevelAsset->Objects[0].ItemDefinitionAsset == ItemDefinition);
+	TestTrue(TEXT("The item object clears the redundant authoring ItemDefinitionId"), LevelAsset->Objects[0].ItemDefinitionId.IsNone());
 	TestEqual(TEXT("The monster object remains untouched by item sync"), LevelAsset->Objects[1].MonsterDefinitionId, FName(TEXT("Stale_Monster")));
 
 	TestTrue(TEXT("The monster object can be selected"), EditorActor->SelectObjectById(MonsterObject.ObjectId));
 	TestFalse(TEXT("Item sync rejects a monster selection"), EditorActor->SyncSelectedItemDefinitionIdFromAsset());
 	TestTrue(TEXT("Monster sync copies MonsterId from the selected asset"), EditorActor->SyncSelectedMonsterDefinitionIdFromAsset());
 	TestEqual(TEXT("The monster object stores the asset MonsterId"), LevelAsset->Objects[1].MonsterDefinitionId, MonsterDefinition->MonsterId);
-	TestEqual(TEXT("The item object remains synchronized"), LevelAsset->Objects[0].ItemDefinitionId, ItemDefinition->ItemDefinitionId);
+	TestTrue(TEXT("The item object remains canonical after monster sync"), LevelAsset->Objects[0].ItemDefinitionId.IsNone());
+
+	FGridLevelObjectData InheritedItemObject;
+	InheritedItemObject.ObjectId = FGuid::NewGuid();
+	InheritedItemObject.Type = EGridLevelObjectType::Item;
+	InheritedItemObject.CellX = 2;
+	InheritedItemObject.CellY = 0;
+	InheritedItemObject.Edge = EGridEdge::None;
+	InheritedItemObject.ArchetypeId = ItemArchetype->ArchetypeId;
+	LevelAsset->Objects.Add(InheritedItemObject);
+
+	TestTrue(TEXT("An item without a local definition can be selected"), EditorActor->SelectObjectById(InheritedItemObject.ObjectId));
+	TestTrue(TEXT("Item repair promotes the archetype definition asset"), EditorActor->SyncSelectedItemDefinitionIdFromAsset());
+	TestTrue(TEXT("The repaired item stores the archetype definition asset"), LevelAsset->Objects.Last().ItemDefinitionAsset == ItemDefinition);
+	TestTrue(TEXT("The repaired item keeps authoring ItemDefinitionId empty"), LevelAsset->Objects.Last().ItemDefinitionId.IsNone());
+
+	EditorActor->SelectedCellX = 2;
+	EditorActor->SelectedCellY = 2;
+	EditorActor->SelectedEdge = EGridEdge::None;
+	TestTrue(TEXT("The item palette entry can be applied"), EditorActor->ApplyPaletteEntry(ItemPaletteEntry.EntryId));
+	const int32 ObjectCountBeforePlacement = LevelAsset->Objects.Num();
+	EditorActor->PlaceSelectedObject();
+	TestEqual(TEXT("Placing the palette item adds exactly one object"), LevelAsset->Objects.Num(), ObjectCountBeforePlacement + 1);
+	const FGridLevelObjectData& PlacedItem = LevelAsset->Objects.Last();
+	TestEqual(TEXT("The placed object type is Item"), PlacedItem.Type, EGridLevelObjectType::Item);
+	TestTrue(TEXT("The placed item stores the canonical definition asset"), PlacedItem.ItemDefinitionAsset == ItemDefinition);
+	TestTrue(TEXT("The placed item does not duplicate the definition id"), PlacedItem.ItemDefinitionId.IsNone());
 
 	return true;
 }

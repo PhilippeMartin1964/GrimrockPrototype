@@ -108,6 +108,11 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 	}
 	if (NewObject.Type == EGridLevelObjectType::Item)
 	{
+		// Current authoring schema: a placed item owns a direct definition asset
+		// reference. ItemDefinitionId is runtime/save identity and must not become
+		// a second authoring authority.
+		NewObject.ItemDefinitionAsset = ObjectBehavior.Item.ItemDefinitionAsset;
+		NewObject.ItemDefinitionId = NAME_None;
 		NewObject.ReadableContentAsset = ObjectBehavior.Item.DefaultReadableContentAsset;
 		NewObject.ReadableContentId = ObjectBehavior.Item.DefaultReadableContentId;
 		NewObject.ReadTitleOverride = ObjectBehavior.Item.DefaultReadTitleOverride;
