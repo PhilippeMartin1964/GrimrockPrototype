@@ -30,6 +30,23 @@ enum class EGridItemType : uint8
 	Misc
 };
 
+UENUM(BlueprintType)
+enum class EGridItemHandUsage : uint8
+{
+	Auto UMETA(DisplayName = "Auto"),
+	NotHandHeld UMETA(DisplayName = "Not Hand Held"),
+	OneHanded UMETA(DisplayName = "One Handed"),
+	TwoHanded UMETA(DisplayName = "Two Handed")
+};
+
+UENUM(BlueprintType)
+enum class EGridThrowVisualMode : uint8
+{
+	Stable UMETA(DisplayName = "Stable"),
+	Tumble UMETA(DisplayName = "Tumble"),
+	Spin UMETA(DisplayName = "Spin")
+};
+
 UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridItemDefinitionAsset : public UPrimaryDataAsset
 {
@@ -59,6 +76,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item", meta = (EditCondition = "bStackable", ClampMin = "1"))
 	int32 MaxStackSize = 1;
+
+	/**
+	 * Physical hand requirement. Auto infers OneHanded from legacy throwable
+	 * data or MainHand/OffHand compatibility; otherwise it resolves to NotHandHeld.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
+	EGridItemHandUsage HandUsage = EGridItemHandUsage::Auto;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
 	TArray<EGridEquipmentSlot> CompatibleEquipmentSlots;
@@ -99,32 +123,52 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
 	TSoftObjectPtr<UStaticMesh> EquippedMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw")
+	/**
+	 * Legacy serialized flag kept only to preserve existing throwable-weapon
+	 * assets. New authoring uses HandUsage/Weight for physical throwing and
+	 * bCombatThrowWeapon for combat projectile semantics.
+	 */
+	UPROPERTY()
 	bool bThrowable = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw", meta = (EditCondition = "bThrowable", ClampMin = "0.0"))
+	/**
+	 * True only when combat actions from this item consume/launch the item as
+	 * a recoverable projectile. Independent from generic puzzle/exploration throws.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Throw")
+	bool bCombatThrowWeapon = false;
+
+	/** Nominal launch speed before the selected character's Strength/weight scaling. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw", meta = (ClampMin = "0.0"))
 	float ThrowSpeed = 1800.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw", meta = (EditCondition = "bThrowable", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw", meta = (ClampMin = "0.0"))
 	float ThrowArc = 0.08f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw", meta = (EditCondition = "bThrowable", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw", meta = (ClampMin = "0.0"))
 	float ThrowLifeSeconds = 5.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw", meta = (EditCondition = "bThrowable", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw", meta = (ClampMin = "0.0"))
 	float ThrowImpactDropOffset = 12.0f;
 
-	/**
-     * Local projectile-mesh transform. The default turns a flat XY mesh
-     * toward the source while the actor X axis follows its velocity.
-     */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual", meta = (EditCondition = "bThrowable"))
+	/** Aligns the item mesh with the projectile frame, which follows velocity. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual")
 	FRotator ThrowVisualRelativeRotation = FRotator(-90.0f, 0.0f, 0.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual", meta = (EditCondition = "bThrowable"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual")
 	FVector ThrowVisualRelativeScale = FVector(1.5f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual", meta = (EditCondition = "bThrowable", ClampMin = "0.0"))
+	/** Stable = no extra rotation, Tumble = slow multi-axis rotation, Spin = fast roll. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual")
+	EGridThrowVisualMode ThrowVisualMode = EGridThrowVisualMode::Tumble;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual")
+	FVector ThrowVisualTumbleAxis = FVector(0.65f, 0.35f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual", meta = (ClampMin = "0.0"))
+	float ThrowVisualTumbleDegreesPerSecond = 180.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual", meta = (ClampMin = "0.0"))
 	float ThrowVisualSpinDegreesPerSecond = 1080.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Torch")
@@ -144,6 +188,25 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	bool CanEquipToSlot(EGridEquipmentSlot Slot) const;
+
+	UFUNCTION(BlueprintPure, Category = "Throw")
+	EGridItemHandUsage GetEffectiveHandUsage() const;
+
+	UFUNCTION(BlueprintPure, Category = "Throw")
+	bool IsPhysicallyThrowable() const;
+
+	UFUNCTION(BlueprintPure, Category = "Combat|Throw")
+	bool IsCombatThrowable() const;
+
+	/** Global physical rule: 0.25 kg of throwable mass per point of effective Strength. */
+	UFUNCTION(BlueprintPure, Category = "Throw")
+	float GetMaxThrowableWeightForStrength(int32 Strength) const;
+
+	UFUNCTION(BlueprintPure, Category = "Throw")
+	bool CanBeThrownByStrength(int32 Strength) const;
+
+	UFUNCTION(BlueprintPure, Category = "Throw")
+	float GetThrowSpeedScaleForStrength(int32 Strength) const;
 
 	UFUNCTION(BlueprintPure, Category = "Equipment|Combat Actions")
 	bool CanProvideAttackFromSlot(EGridEquipmentSlot Slot) const;

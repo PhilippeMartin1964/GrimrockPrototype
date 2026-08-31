@@ -55,9 +55,10 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 		return;
 	}
 
-	if (MeshComponent && !FMath::IsNearlyZero(AppliedThrowVisualSpinDegreesPerSecond))
+	if (MeshComponent && !AppliedThrowVisualAngularVelocityDegreesPerSecond.IsNearlyZero())
 	{
-		MeshComponent->AddLocalRotation(FRotator(0.0f, 0.0f, AppliedThrowVisualSpinDegreesPerSecond * DeltaSeconds));
+		const FVector Angular = AppliedThrowVisualAngularVelocityDegreesPerSecond * DeltaSeconds;
+		MeshComponent->AddLocalRotation(FRotator(Angular.X, Angular.Y, Angular.Z));
 	}
 
 	if (!bStopsAtCombatPresentationTarget)
@@ -127,7 +128,32 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	VisualScale.X = FMath::Clamp(FMath::Abs(VisualScale.X), 0.01f, 100.0f);
 	VisualScale.Y = FMath::Clamp(FMath::Abs(VisualScale.Y), 0.01f, 100.0f);
 	VisualScale.Z = FMath::Clamp(FMath::Abs(VisualScale.Z), 0.01f, 100.0f);
-	AppliedThrowVisualSpinDegreesPerSecond = InDefinition ? FMath::Max(0.0f, InDefinition->ThrowVisualSpinDegreesPerSecond) : 1080.0f;
+	AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
+	const EGridThrowVisualMode VisualMode = InDefinition ? InDefinition->ThrowVisualMode : EGridThrowVisualMode::Tumble;
+	switch (VisualMode)
+	{
+		case EGridThrowVisualMode::Stable:
+			break;
+
+		case EGridThrowVisualMode::Spin:
+			AppliedThrowVisualAngularVelocityDegreesPerSecond =
+				FVector(0.0f, 0.0f, InDefinition ? FMath::Max(0.0f, InDefinition->ThrowVisualSpinDegreesPerSecond) : 1080.0f);
+			break;
+
+		case EGridThrowVisualMode::Tumble:
+		default:
+		{
+			FVector TumbleAxis = InDefinition ? InDefinition->ThrowVisualTumbleAxis : FVector(0.65f, 0.35f, 1.0f);
+			if (TumbleAxis.ContainsNaN() || TumbleAxis.IsNearlyZero())
+			{
+				TumbleAxis = FVector(0.65f, 0.35f, 1.0f);
+			}
+			TumbleAxis.Normalize();
+			const float TumbleSpeed = InDefinition ? FMath::Max(0.0f, InDefinition->ThrowVisualTumbleDegreesPerSecond) : 180.0f;
+			AppliedThrowVisualAngularVelocityDegreesPerSecond = TumbleAxis * TumbleSpeed;
+			break;
+		}
+	}
 
 	if (MeshComponent)
 	{
@@ -139,10 +165,10 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	SetActorHiddenInGame(false);
 	SetActorTickEnabled(true);
 
-	UE_LOG(LogGridThrownItem, Log, TEXT("GridThrownItem Visual Item=%s RuntimeId=%s Mesh=%s Rotation=%s Scale=%s Spin=%.1f"),
+	UE_LOG(LogGridThrownItem, Log, TEXT("GridThrownItem Visual Item=%s RuntimeId=%s Mesh=%s Rotation=%s Scale=%s Mode=%s AngularVelocity=%s"),
 		*InItemInstance.ItemDefinitionId.ToString(), *InItemInstance.RuntimeObjectId.ToString(),
 		MeshComponent ? *GetNameSafe(MeshComponent->GetStaticMesh()) : TEXT("None"), *VisualRotation.ToCompactString(), *VisualScale.ToCompactString(),
-		AppliedThrowVisualSpinDegreesPerSecond);
+		*UEnum::GetValueAsString(VisualMode), *AppliedThrowVisualAngularVelocityDegreesPerSecond.ToCompactString());
 
 	if (ProjectileMovementComponent)
 	{

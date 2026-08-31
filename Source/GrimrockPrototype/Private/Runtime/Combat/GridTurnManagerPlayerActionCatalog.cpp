@@ -178,7 +178,7 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 		{
 			continue;
 		}
-		if (!ItemDefinition->IsValidDefinition() || !ItemDefinition->CompatibleEquipmentSlots.Contains(HandSlot))
+		if (!ItemDefinition->IsValidDefinition() || !ItemDefinition->CanEquipToSlot(HandSlot))
 		{
 			continue;
 		}
@@ -198,7 +198,7 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 			{
 				Definition.Icon = ItemDefinition->Icon;
 			}
-			if (ItemDefinition->bThrowable && Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+			if (ItemDefinition->IsCombatThrowable() && Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
 				Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
 			{
 				Definition.ResourceCosts.SourceItemQuantityCost = 1;

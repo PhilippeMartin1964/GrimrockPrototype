@@ -256,17 +256,41 @@ Seul le slot cursor permet cette insertion par clic. Un item équipé en `MainHa
 
 ### Jet court et lancer
 
-Le jet court et le lancer utilisent la même fondation de projectile.
+Le lancer physique et l'attaque de jet sont deux notions séparées qui partagent le même projectile `AGridThrownItemActor`.
 
-Le jet court applique une vitesse réduite et un arc plus marqué. Le lancer applique la vitesse normale définie par l'item. Dans les deux cas, une seule unité est séparée de la pile. Le curseur n'est décrémenté qu'après la création effective du projectile.
+#### Lancer physique / exploration
 
-À terme, la portée, la précision et les dégâts devront dépendre :
+Un objet peut être lancé sans compétence de combat lorsqu'il est manipulable à une main et que son poids ne dépasse pas la capacité du personnage :
 
-- du poids de l'objet ;
-- de la force ou caractéristique du personnage ;
-- de la compétence du personnage pour les armes à distance ou le lancer.
+```text
+MaxThrowableWeightKg = Strength * 0.25
+```
 
-`AGridThrownItemActor` est temporaire et utilise une collision sphérique avec `UProjectileMovementComponent`. À l'impact ou à l'expiration, il appelle le dépôt monde standard afin que l'unité lancée redevienne ramassable, empilable, persistante et compatible avec les PressurePlates par poids.
+Exemples : Force 10 = 2,5 kg ; Force 12 = 3,0 kg ; Force 20 = 5,0 kg.
+
+La Force et le rapport poids réel / poids maximal modulent aussi `ThrowSpeed`. À poids égal, un personnage plus fort lance plus vite ; un objet proche de sa limite part moins vite.
+
+Le lancer utilitaire canonique part de la `MainHand` du personnage sélectionné. L'action contextuelle **Lancer** devient désactivée avec une raison explicite lorsque l'objet est trop lourd ou non manipulable à une main. Le lancer depuis le curseur reste un raccourci secondaire de l'interaction souris et applique la même règle physique.
+
+Aucune compétence n'est requise pour le lancer utilitaire : une pierre peut donc franchir une fosse et atteindre une PressurePlate. À l'impact le projectile redevient un item monde, donc son `Weight` participe immédiatement au calcul de la plaque.
+
+#### Attaque de jet
+
+Une attaque de jet reste une action de combat distincte. `bCombatThrowWeapon` indique qu'une action de combat consomme et lance physiquement l'objet. Les anciens assets basés sur `bThrowable` restent compatibles mais ce champ n'est plus authoré.
+
+Les compétences restent data-driven via `FGridCombatActionDefinition::Requirements`. Une pierre peut ainsi être lançable physiquement par tout personnage assez fort tout en exigeant une compétence de lancer pour être utilisée comme véritable attaque.
+
+#### Présentation
+
+`EGridThrowVisualMode` fournit :
+
+- `Stable` : aucune rotation supplémentaire ;
+- `Tumble` : rotation lente multi-axes, valeur par défaut pour pierre/bouteille/objet irrégulier ;
+- `Spin` : rotation rapide, adaptée aux shurikens et disques.
+
+Le défaut `Tumble` utilise 180°/s au lieu de l'ancien spin générique à 1080°/s. Le shuriken doit être authoré en `Spin` pour conserver sa rotation rapide.
+
+Le jet court garde une vitesse réduite et un arc plus marqué. Dans tous les cas une seule unité est transférée, puis l'impact/expiration utilise le dépôt monde standard afin que l'objet redevienne ramassable, empilable, persistant et compatible avec les PressurePlates par poids.
 
 ### PressurePlates et poids des items
 

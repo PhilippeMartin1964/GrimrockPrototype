@@ -490,8 +490,8 @@ bool AGridLevelRuntimeActor::TrySpawnThrownItemProjectile(
 AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinition,
 	const FVector& StartWorldLocation, const FVector& LaunchVelocity, int32 SourceCellX, int32 SourceCellY)
 {
-	if (!ItemInstance.IsValid() || !ItemDefinition || ItemDefinition->ItemDefinitionId != ItemInstance.ItemDefinitionId || !ItemDefinition->bThrowable ||
-		LaunchVelocity.IsNearlyZero() || !IsWalkableCell(SourceCellX, SourceCellY))
+	if (!ItemInstance.IsValid() || !ItemDefinition || ItemDefinition->ItemDefinitionId != ItemInstance.ItemDefinitionId ||
+		!ItemDefinition->IsPhysicallyThrowable() || LaunchVelocity.IsNearlyZero() || !IsWalkableCell(SourceCellX, SourceCellY))
 	{
 		return nullptr;
 	}

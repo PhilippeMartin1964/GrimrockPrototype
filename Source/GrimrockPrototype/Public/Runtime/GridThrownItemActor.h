@@ -63,8 +63,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Projectile|Combat Presentation")
 	float CombatPresentationTargetAcceptanceRadius = 24.0f;
 
+	/** Local Pitch/Yaw/Roll angular velocity applied to the presentation mesh. */
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Projectile|Visual")
-	float AppliedThrowVisualSpinDegreesPerSecond = 0.0f;
+	FVector AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
 
 protected:
 	virtual void BeginPlay() override;

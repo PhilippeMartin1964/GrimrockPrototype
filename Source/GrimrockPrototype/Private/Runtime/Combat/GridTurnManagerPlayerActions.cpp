@@ -344,7 +344,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	int32 SourceItemQuantityCost = CombatActionOverride ? FMath::Max(0, CombatActionOverride->CurrentSourceItemQuantityCost) : 0;
 	const UGridItemDefinitionAsset* SourceItemDefinition =
 		OffensiveItemDefinitionId.IsNone() ? nullptr : Inventory->FindItemDefinition(OffensiveItemDefinitionId);
-	if (IsValid(SourceItemDefinition) && SourceItemDefinition->bThrowable &&
+	if (IsValid(SourceItemDefinition) && SourceItemDefinition->IsCombatThrowable() &&
 		((SourcePolicy == EGridCombatActionSourcePolicy::Equipment && OffensiveEquipmentSlot != EGridEquipmentSlot::None) ||
 			SourcePolicy == EGridCombatActionSourcePolicy::QuickItem))
 	{
@@ -362,7 +362,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 				(CombatActionOverride && CombatActionOverride->SourceRuntimeId.IsValid() &&
 					EquippedSourceItem.RuntimeObjectId != CombatActionOverride->SourceRuntimeId) ||
 				FMath::Max(1, EquippedSourceItem.Quantity) < SourceItemQuantityCost ||
-				(SourceItemQuantityCost > 0 && IsValid(SourceItemDefinition) && SourceItemDefinition->bThrowable && SourceItemQuantityCost != 1))))
+				(SourceItemQuantityCost > 0 && IsValid(SourceItemDefinition) && SourceItemDefinition->IsCombatThrowable() && SourceItemQuantityCost != 1))))
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
 	}
@@ -387,7 +387,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	bool bSourceCommitted = true;
 	if (SourcePolicy == EGridCombatActionSourcePolicy::Equipment && SourceItemQuantityCost > 0)
 	{
-		if (IsValid(SourceItemDefinition) && SourceItemDefinition->bThrowable)
+		if (IsValid(SourceItemDefinition) && SourceItemDefinition->IsCombatThrowable())
 		{
 			PreparedThrownItem = PartyPawn->TryLaunchEquippedItemForAttack(
 				AttackerCharacterIndex, OffensiveEquipmentSlot, OffensiveItemDefinitionId, TargetMonster->GetActorLocation(), PartyCell);
@@ -401,7 +401,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	}
 	else if (SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
 	{
-		if (IsValid(SourceItemDefinition) && SourceItemDefinition->bThrowable)
+		if (IsValid(SourceItemDefinition) && SourceItemDefinition->IsCombatThrowable())
 		{
 			PreparedThrownItem =
 				PartyPawn->TryLaunchInventoryItemForAttack(AttackerCharacterIndex, OffensiveItemDefinitionId, TargetMonster->GetActorLocation(), PartyCell);

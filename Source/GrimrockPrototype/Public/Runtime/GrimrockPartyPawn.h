@@ -429,6 +429,13 @@ public:
 	bool TryThrowOneCursorItem(const FVector& LaunchDirection, EGridItemThrowMode ThrowMode);
 
 	/**
+	 * Canonical exploration/puzzle throw: launches one unit held in the selected
+	 * character's MainHand. HandUsage, Weight and effective Strength decide eligibility.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
+	bool TryThrowSelectedCharacterMainHandItem(const FVector& LaunchDirection);
+
+	/**
      * Transfers one unit from an equipped hand to a recoverable world
      * projectile. Combat damage remains entirely outside this function.
      */

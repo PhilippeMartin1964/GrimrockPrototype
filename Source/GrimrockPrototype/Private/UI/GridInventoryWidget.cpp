@@ -1626,6 +1626,16 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			break;
 		}
 
+		case EGridItemActionType::Throw:
+		{
+			const EGridEquipmentSlot SourceEquipmentSlot = ResolveSourceEquipmentSlot(Action, SourceSlotType);
+			if (OwningPartyPawn && SourceEquipmentSlot == EGridEquipmentSlot::MainHand)
+			{
+				bExecuted = OwningPartyPawn->TryThrowSelectedCharacterMainHandItem(FVector::ZeroVector);
+			}
+			break;
+		}
+
 		case EGridItemActionType::DropToGround:
 			bExecuted = DropContextItemToGround(Action, SourceSlotType, SourceSlotIndex);
 			break;

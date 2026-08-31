@@ -15,6 +15,27 @@ namespace
 		return Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand;
 	}
 
+	bool GridPartyPawnResolveThrowProfile(
+		const UGridPartyInventoryComponent* Inventory, int32 CharacterIndex, const UGridItemDefinitionAsset* Definition, int32& OutStrength, float& OutSpeedScale)
+	{
+		OutStrength = 0;
+		OutSpeedScale = 0.0f;
+		if (!Inventory || !Definition)
+		{
+			return false;
+		}
+
+		FGridInventoryCharacterSummary Summary;
+		if (!Inventory->GetCharacterSummary(CharacterIndex, Summary))
+		{
+			return false;
+		}
+
+		OutStrength = Summary.Attributes.Strength;
+		OutSpeedScale = Definition->GetThrowSpeedScaleForStrength(OutStrength);
+		return OutSpeedScale > 0.0f;
+	}
+
 	const TCHAR* GridPartyPawnItemTransferGetEquipmentSlotName(EGridEquipmentSlot Slot)
 	{
 		switch (Slot)
@@ -302,7 +323,10 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection, E
 
 	const FGridItemInstance CursorItem = PartyInventoryComponent->GetCursorItem();
 	UGridItemDefinitionAsset* ItemDefinition = LevelRuntimeActor->ResolveRuntimeItemDefinition(CursorItem.ItemDefinitionId);
-	if (!ItemDefinition || !ItemDefinition->bThrowable)
+	const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex();
+	int32 Strength = 0;
+	float StrengthSpeedScale = 0.0f;
+	if (!GridPartyPawnResolveThrowProfile(PartyInventoryComponent, CharacterIndex, ItemDefinition, Strength, StrengthSpeedScale))
 	{
 		return false;
 	}
@@ -330,8 +354,7 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection, E
 	ThrownItem.EquipmentSlot = EGridEquipmentSlot::None;
 
 	const FVector StartLocation = (Camera ? Camera->GetComponentLocation() : GetActorLocation()) + ThrowDirection * 60.0f;
-	// TODO: Scale throw speed, accuracy and damage with the selected character's ranged/throwing skill.
-	const FVector LaunchVelocity = ThrowDirection * FMath::Max(0.0f, ItemDefinition->ThrowSpeed) * SpeedScale;
+	const FVector LaunchVelocity = ThrowDirection * FMath::Max(0.0f, ItemDefinition->ThrowSpeed) * StrengthSpeedScale * SpeedScale;
 	if (!LevelRuntimeActor->TrySpawnThrownItemProjectile(ThrownItem, StartLocation, LaunchVelocity, CurrentCellX, CurrentCellY))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Throw Failed Item=%s Quantity=%d Reason=ProjectileSpawnFailed"), *CursorItem.ItemDefinitionId.ToString(),
@@ -341,10 +364,66 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection, E
 
 	ConsumeOneCursorItemAfterSuccessfulAction();
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Throw Item=%s RuntimeId=%s Mode=%s CursorQuantityBefore=%d CursorQuantityAfter=%d Result=true"),
-		*ThrownItem.ItemDefinitionId.ToString(), *ThrownItem.RuntimeObjectId.ToString(), bShortToss ? TEXT("ShortToss") : TEXT("Throw"), CursorItem.Quantity,
-		FMath::Max(0, CursorItem.Quantity - 1));
+	UE_LOG(LogTemp, Log,
+		TEXT("GridInventory Throw Item=%s RuntimeId=%s Mode=%s Strength=%d Weight=%.2f SpeedScale=%.3f CursorQuantityBefore=%d CursorQuantityAfter=%d Result=true"),
+		*ThrownItem.ItemDefinitionId.ToString(), *ThrownItem.RuntimeObjectId.ToString(), bShortToss ? TEXT("ShortToss") : TEXT("Throw"), Strength,
+		ItemDefinition->Weight, StrengthSpeedScale, CursorItem.Quantity, FMath::Max(0, CursorItem.Quantity - 1));
 	PartyInventoryComponent->LogInventoryOwnershipDiagnostics();
+	return true;
+}
+
+bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& LaunchDirection)
+{
+	if (!PartyInventoryComponent || !LevelRuntimeActor)
+	{
+		return false;
+	}
+
+	const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex();
+	FGridItemInstance EquippedItem;
+	if (!PartyInventoryComponent->GetEquippedItem(CharacterIndex, EGridEquipmentSlot::MainHand, EquippedItem))
+	{
+		return false;
+	}
+
+	UGridItemDefinitionAsset* ItemDefinition = ResolveEquippedItemDefinition(EquippedItem);
+	int32 Strength = 0;
+	float StrengthSpeedScale = 0.0f;
+	if (!GridPartyPawnResolveThrowProfile(PartyInventoryComponent, CharacterIndex, ItemDefinition, Strength, StrengthSpeedScale))
+	{
+		return false;
+	}
+
+	FVector ThrowDirection = LaunchDirection.GetSafeNormal();
+	if (ThrowDirection.IsNearlyZero())
+	{
+		ThrowDirection = Camera ? Camera->GetForwardVector() : GetActorForwardVector();
+	}
+	ThrowDirection = (ThrowDirection + FVector::UpVector * FMath::Max(0.0f, ItemDefinition->ThrowArc)).GetSafeNormal();
+
+	FGridItemInstance WorldItem;
+	if (!PartyInventoryComponent->TryExtractOneEquippedItemForWorldTransfer(
+			CharacterIndex, EGridEquipmentSlot::MainHand, EquippedItem.ItemDefinitionId, WorldItem))
+	{
+		return false;
+	}
+
+	WorldItem.Weight = ItemDefinition->Weight;
+	const FVector ViewRight = Camera ? Camera->GetRightVector() : GetActorRightVector();
+	const FVector StartLocation =
+		(Camera ? Camera->GetComponentLocation() : GetActorLocation()) + ThrowDirection * 60.0f + ViewRight * 18.0f - FVector::UpVector * 15.0f;
+	const FVector LaunchVelocity = ThrowDirection * FMath::Max(0.0f, ItemDefinition->ThrowSpeed) * StrengthSpeedScale;
+	AGridThrownItemActor* ThrownActor =
+		LevelRuntimeActor->SpawnThrownItemProjectile(WorldItem, ItemDefinition, StartLocation, LaunchVelocity, CurrentCellX, CurrentCellY);
+	if (!ThrownActor)
+	{
+		PartyInventoryComponent->TryRestoreExtractedItemToEquipment(CharacterIndex, EGridEquipmentSlot::MainHand, WorldItem);
+		return false;
+	}
+
+	SyncHeldVisualFromSelectedCharacterEquipment();
+	UE_LOG(LogTemp, Log, TEXT("GridInventory MainHandThrow Item=%s Character=%d Strength=%d Weight=%.2f SpeedScale=%.3f Result=true"),
+		*WorldItem.ItemDefinitionId.ToString(), CharacterIndex, Strength, ItemDefinition->Weight, StrengthSpeedScale);
 	return true;
 }
 
@@ -364,7 +443,10 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	}
 
 	UGridItemDefinitionAsset* ItemDefinition = ResolveEquippedItemDefinition(EquippedItem);
-	if (!ItemDefinition || !ItemDefinition->bThrowable || ItemDefinition->ThrowSpeed <= KINDA_SMALL_NUMBER)
+	int32 Strength = 0;
+	float StrengthSpeedScale = 0.0f;
+	if (!ItemDefinition || !ItemDefinition->IsCombatThrowable() ||
+		!GridPartyPawnResolveThrowProfile(PartyInventoryComponent, CharacterIndex, ItemDefinition, Strength, StrengthSpeedScale))
 	{
 		return nullptr;
 	}
@@ -388,7 +470,7 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	WorldItem.Weight = ItemDefinition->Weight;
 
 	AGridThrownItemActor* ThrownActor = LevelRuntimeActor->SpawnThrownItemProjectile(
-		WorldItem, ItemDefinition, StartLocation, ThrowDirection * FMath::Max(0.0f, ItemDefinition->ThrowSpeed), SourceCell.X, SourceCell.Y);
+		WorldItem, ItemDefinition, StartLocation, ThrowDirection * FMath::Max(0.0f, ItemDefinition->ThrowSpeed) * StrengthSpeedScale, SourceCell.X, SourceCell.Y);
 	if (!ThrownActor)
 	{
 		const bool bRestored = PartyInventoryComponent->TryRestoreExtractedItemToEquipment(CharacterIndex, SourceSlot, WorldItem);
@@ -420,7 +502,10 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchInventoryItemForAttack(
 			return !Candidate.IsEmpty() && Candidate.Item.ItemDefinitionId == ExpectedItemDefinitionId;
 		});
 	UGridItemDefinitionAsset* ItemDefinition = PartyInventoryComponent->FindItemDefinition(ExpectedItemDefinitionId);
-	if (!SourceSlot || !IsValid(ItemDefinition) || !ItemDefinition->bThrowable || ItemDefinition->ThrowSpeed <= KINDA_SMALL_NUMBER)
+	int32 Strength = 0;
+	float StrengthSpeedScale = 0.0f;
+	if (!SourceSlot || !IsValid(ItemDefinition) || !ItemDefinition->IsCombatThrowable() ||
+		!GridPartyPawnResolveThrowProfile(PartyInventoryComponent, CharacterIndex, ItemDefinition, Strength, StrengthSpeedScale))
 	{
 		return nullptr;
 	}
@@ -445,7 +530,7 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchInventoryItemForAttack(
 	WorldItem.OwnerCharacterIndex = INDEX_NONE;
 	WorldItem.EquipmentSlot = EGridEquipmentSlot::None;
 	AGridThrownItemActor* ThrownActor = LevelRuntimeActor->SpawnThrownItemProjectile(
-		WorldItem, ItemDefinition, StartLocation, ThrowDirection * FMath::Max(0.0f, ItemDefinition->ThrowSpeed), SourceCell.X, SourceCell.Y);
+		WorldItem, ItemDefinition, StartLocation, ThrowDirection * FMath::Max(0.0f, ItemDefinition->ThrowSpeed) * StrengthSpeedScale, SourceCell.X, SourceCell.Y);
 	if (ThrownActor)
 	{
 		UE_LOG(LogTemp, Log, TEXT("GridPlayerAttack InventoryThrow VisualLaunched Item=%s RuntimeId=%s Character=%d"), *WorldItem.ItemDefinitionId.ToString(),

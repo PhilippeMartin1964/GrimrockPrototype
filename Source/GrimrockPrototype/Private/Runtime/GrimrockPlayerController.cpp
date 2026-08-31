@@ -15,6 +15,7 @@
 #include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -85,6 +86,18 @@ namespace
 	bool IsHoverCursorReason(const TCHAR* Reason)
 	{
 		return Reason && FCString::Strncmp(Reason, TEXT("Hover"), 5) == 0;
+	}
+
+	bool CanSelectedCharacterPhysicallyThrow(const AGrimrockPartyPawn* PartyPawn, const UGridItemDefinitionAsset* Definition)
+	{
+		if (!PartyPawn || !Definition || !PartyPawn->PartyInventoryComponent)
+		{
+			return false;
+		}
+
+		FGridInventoryCharacterSummary Summary;
+		return PartyPawn->PartyInventoryComponent->GetCharacterSummary(PartyPawn->PartyInventoryComponent->GetSelectedCharacterIndex(), Summary) &&
+			Definition->CanBeThrownByStrength(Summary.Attributes.Strength);
 	}
 
 }
@@ -755,8 +768,8 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 
 		UGridItemDefinitionAsset* ItemDefinition = RuntimeActor ? RuntimeActor->ResolveRuntimeItemDefinition(CursorItem.ItemDefinitionId) : nullptr;
 		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Throwable=%s"), *CursorItem.ItemDefinitionId.ToString(),
-			ItemDefinition && ItemDefinition->bThrowable ? TEXT("true") : TEXT("false"));
-		if (!ItemDefinition || !ItemDefinition->bThrowable)
+			CanSelectedCharacterPhysicallyThrow(PartyPawn, ItemDefinition) ? TEXT("true") : TEXT("false"));
+		if (!CanSelectedCharacterPhysicallyThrow(PartyPawn, ItemDefinition))
 		{
 			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Result=NotThrowable"),
 				*CursorItem.ItemDefinitionId.ToString());
@@ -980,7 +993,7 @@ bool AGrimrockPlayerController::ResolveCursorItemHoverCursor(
 				PartyPawn && PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : (PartyPawn ? PartyPawn->GetActorLocation() : FVector::ZeroVector);
 			const FVector TargetOffset = MouseResolution.HitResult.ImpactPoint - ThrowStartLocation;
 			const float TargetDistance = TargetOffset.Size();
-			const bool bCanAimThrow = MouseResolution.bHasWorldHit && ItemDefinition && ItemDefinition->bThrowable && !TargetOffset.IsNearlyZero() &&
+			const bool bCanAimThrow = MouseResolution.bHasWorldHit && CanSelectedCharacterPhysicallyThrow(PartyPawn, ItemDefinition) && !TargetOffset.IsNearlyZero() &&
 				(MaxThrowTargetDistance <= 0.f || TargetDistance <= MaxThrowTargetDistance);
 
 			OutCursor = bCanAimThrow ? EGridInteractionCursor::AimThrow : EGridInteractionCursor::CannotPlaceItem;

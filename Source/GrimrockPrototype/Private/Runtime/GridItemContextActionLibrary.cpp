@@ -280,6 +280,8 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 
 	const bool bIsInventorySlotSource = ItemContext.InventorySlotIndex != INDEX_NONE && ItemContext.EquipmentSlot == EGridEquipmentSlot::None;
 	const bool bIsEquipmentSlotSource = ItemContext.EquipmentSlot != EGridEquipmentSlot::None;
+	const EGridEquipmentSlot EffectiveEquipmentSlot =
+		ItemContext.EquipmentSlot != EGridEquipmentSlot::None ? ItemContext.EquipmentSlot : ItemContext.Item.EquipmentSlot;
 
 	if (bIsInventorySlotSource && OutFacingTarget.bIsValid && OutFacingTarget.bAcceptsCurrentItem &&
 		OutFacingTarget.TargetType == EGridFacingTargetType::WallLock)
@@ -301,6 +303,38 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 	if (Definition && Definition->bStackable && ItemContext.Item.Quantity > 1)
 	{
 		AddAction(OutActions, EGridItemActionType::SplitStack, NSLOCTEXT("GridItemActions", "SplitStack", "Scinder la pile"));
+	}
+
+	if (EffectiveEquipmentSlot == EGridEquipmentSlot::MainHand)
+	{
+		FGridInventoryCharacterSummary CharacterSummary;
+		const bool bHasSummary = ItemContext.PartyPawn->PartyInventoryComponent &&
+			ItemContext.PartyPawn->PartyInventoryComponent->GetCharacterSummary(ItemContext.CharacterIndex, CharacterSummary);
+		const int32 Strength = bHasSummary ? CharacterSummary.Attributes.Strength : 0;
+		const bool bCanThrow = Definition && Definition->CanBeThrownByStrength(Strength);
+
+		FText DisabledReason;
+		if (!Definition)
+		{
+			DisabledReason = NSLOCTEXT("GridItemActions", "ThrowMissingDefinition", "Définition d'objet indisponible.");
+		}
+		else if (Definition->GetEffectiveHandUsage() != EGridItemHandUsage::OneHanded)
+		{
+			DisabledReason = NSLOCTEXT("GridItemActions", "ThrowNeedsOneHand", "Cet objet ne peut pas être lancé d'une seule main.");
+		}
+		else if (!bHasSummary)
+		{
+			DisabledReason = NSLOCTEXT("GridItemActions", "ThrowMissingCharacter", "Personnage indisponible.");
+		}
+		else if (!bCanThrow)
+		{
+			DisabledReason = FText::Format(
+				NSLOCTEXT("GridItemActions", "ThrowTooHeavy", "Trop lourd : {0} kg (maximum {1} kg avec Force {2})."),
+				FText::AsNumber(Definition->Weight), FText::AsNumber(Definition->GetMaxThrowableWeightForStrength(Strength)), FText::AsNumber(Strength));
+		}
+
+		AddAction(OutActions, EGridItemActionType::Throw, NSLOCTEXT("GridItemActions", "Throw", "Lancer"), nullptr, EGridEquipmentSlot::MainHand,
+			bCanThrow, bCanThrow ? FText::GetEmpty() : DisabledReason);
 	}
 
 	const bool bCanDrop = ItemContext.PartyPawn->LevelRuntimeActor != nullptr && (bIsInventorySlotSource || bIsEquipmentSlotSource);

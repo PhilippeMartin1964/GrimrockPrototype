@@ -4,6 +4,8 @@
 
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Runtime/GridItemContextActionLibrary.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
@@ -117,6 +119,110 @@ bool FGridTD027PartyItemTransferCursorFacadeContractTest::RunTest(const FString&
 	FString OwnershipError;
 	TestTrue(FString::Printf(TEXT("The cursor round trip keeps exclusive ownership valid: %s"), *OwnershipError),
 		Inventory->ValidateInventoryOwnership(OwnershipError));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD027PhysicalThrowRulesTest, "Grimrock.TechnicalDebt.TD02_7.PartyItemTransfer.PhysicalThrowRules",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridTD027PhysicalThrowRulesTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridItemDefinitionAsset* StoneDefinition = NewObject<UGridItemDefinitionAsset>();
+	StoneDefinition->ItemDefinitionId = TEXT("Stone_TD027");
+	StoneDefinition->DisplayName = FText::FromString(TEXT("Pierre"));
+	StoneDefinition->Weight = 1.0f;
+	StoneDefinition->HandUsage = EGridItemHandUsage::OneHanded;
+	StoneDefinition->ThrowVisualMode = EGridThrowVisualMode::Tumble;
+
+	TestEqual(TEXT("A stone is explicitly one-handed"), StoneDefinition->GetEffectiveHandUsage(), EGridItemHandUsage::OneHanded);
+	TestEqual(TEXT("Strength 10 can throw up to 2.5 kg"), StoneDefinition->GetMaxThrowableWeightForStrength(10), 2.5f);
+	TestTrue(TEXT("Strength 10 can throw a 1 kg stone"), StoneDefinition->CanBeThrownByStrength(10));
+	const float Strength10Scale = StoneDefinition->GetThrowSpeedScaleForStrength(10);
+	TestTrue(TEXT("An allowed stone receives a positive throw speed scale"), Strength10Scale > 0.0f);
+
+	StoneDefinition->Weight = 3.0f;
+	TestFalse(TEXT("Strength 10 cannot throw a 3 kg one-handed object"), StoneDefinition->CanBeThrownByStrength(10));
+	TestTrue(TEXT("Strength 12 can throw a 3 kg one-handed object"), StoneDefinition->CanBeThrownByStrength(12));
+
+	StoneDefinition->Weight = 1.0f;
+	const float Strength20Scale = StoneDefinition->GetThrowSpeedScaleForStrength(20);
+	TestTrue(TEXT("Higher Strength increases launch speed for the same object"), Strength20Scale > Strength10Scale);
+
+	StoneDefinition->HandUsage = EGridItemHandUsage::TwoHanded;
+	TestFalse(TEXT("A two-handed object is not eligible for the generic one-hand throw"), StoneDefinition->CanBeThrownByStrength(20));
+
+	StoneDefinition->HandUsage = EGridItemHandUsage::OneHanded;
+	FGridTD027TestWorld TestWorld;
+	if (!TestNotNull(TEXT("The context-action world is created"), TestWorld.World))
+	{
+		return false;
+	}
+
+	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
+	if (!TestNotNull(TEXT("The party is spawned"), Party) || !Party->PartyInventoryComponent)
+	{
+		return false;
+	}
+
+	UGridPartyInventoryComponent* Inventory = Party->PartyInventoryComponent;
+	Inventory->InitializeDefaultPartyIfNeeded();
+	const int32 CharacterIndex = Inventory->GetSelectedCharacterIndex();
+	if (!Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
+	{
+		AddError(TEXT("Selected character fixture is invalid."));
+		return false;
+	}
+	Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex].Attributes.Strength = 10;
+	TestTrue(TEXT("Stone definition is registered"), Inventory->RegisterItemDefinition(StoneDefinition));
+
+	FGridItemInstance EquippedStone;
+	EquippedStone.RuntimeObjectId = FGuid::NewGuid();
+	EquippedStone.ItemDefinitionId = StoneDefinition->ItemDefinitionId;
+	EquippedStone.DisplayName = StoneDefinition->DisplayName;
+	EquippedStone.Quantity = 1;
+	EquippedStone.Weight = StoneDefinition->Weight;
+	EquippedStone.OwnerType = EGridItemOwnerType::EquipmentSlot;
+	EquippedStone.OwnerCharacterIndex = CharacterIndex;
+	EquippedStone.EquipmentSlot = EGridEquipmentSlot::MainHand;
+
+	FGridItemActionContext Context;
+	Context.PartyPawn = Party;
+	Context.Item = EquippedStone;
+	Context.ItemDefinition = StoneDefinition;
+	Context.CharacterIndex = CharacterIndex;
+	Context.EquipmentSlot = EGridEquipmentSlot::MainHand;
+
+	FGridFacingTargetContext FacingTarget;
+	TArray<FGridItemContextAction> Actions;
+	TestTrue(TEXT("MainHand context actions build"), UGridItemContextActionLibrary::BuildItemContextActions(Context, FacingTarget, Actions));
+	const FGridItemContextAction* ThrowAction = Actions.FindByPredicate(
+		[](const FGridItemContextAction& Action)
+		{
+			return Action.ActionType == EGridItemActionType::Throw;
+		});
+	if (!TestNotNull(TEXT("MainHand exposes the utility Throw action"), ThrowAction))
+	{
+		return false;
+	}
+	TestTrue(TEXT("The 1 kg stone throw is enabled for Strength 10"), ThrowAction->bEnabled);
+
+	StoneDefinition->Weight = 3.0f;
+	Actions.Reset();
+	TestTrue(TEXT("Heavy MainHand context actions still build"), UGridItemContextActionLibrary::BuildItemContextActions(Context, FacingTarget, Actions));
+	ThrowAction = Actions.FindByPredicate(
+		[](const FGridItemContextAction& Action)
+		{
+			return Action.ActionType == EGridItemActionType::Throw;
+		});
+	if (!TestNotNull(TEXT("Too-heavy MainHand still exposes a diagnosed Throw action"), ThrowAction))
+	{
+		return false;
+	}
+	TestFalse(TEXT("The 3 kg throw is disabled for Strength 10"), ThrowAction->bEnabled);
+	TestFalse(TEXT("The disabled heavy throw explains the reason"), ThrowAction->DisabledReason.IsEmpty());
 
 	return true;
 }
