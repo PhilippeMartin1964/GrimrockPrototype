@@ -133,6 +133,7 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionAsset(UGridItemDefini
 #endif
 
 	Obj->ItemDefinitionAsset = NewItemDefinitionAsset;
+	Obj->ItemDefinitionId = NAME_None;
 
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
@@ -167,7 +168,21 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefin
 bool AGridLevelEditorActor::SyncSelectedItemDefinitionIdFromAsset()
 {
 	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
-	if (!Obj || Obj->Type != EGridLevelObjectType::Item || !Obj->ItemDefinitionAsset)
+	if (!Obj || Obj->Type != EGridLevelObjectType::Item)
+	{
+		return false;
+	}
+
+	UGridItemDefinitionAsset* DefinitionAsset = Obj->ItemDefinitionAsset;
+	if (!DefinitionAsset)
+	{
+		if (const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(Obj->ArchetypeId))
+		{
+			DefinitionAsset = Archetype->DefaultBehavior.Item.ItemDefinitionAsset;
+		}
+	}
+
+	if (!DefinitionAsset)
 	{
 		return false;
 	}
@@ -176,7 +191,10 @@ bool AGridLevelEditorActor::SyncSelectedItemDefinitionIdFromAsset()
 	LevelAsset->Modify();
 #endif
 
-	Obj->ItemDefinitionId = Obj->ItemDefinitionAsset->ItemDefinitionId;
+	// TD07 current-schema repair: promote the direct asset reference and clear
+	// the redundant authoring id instead of recreating Asset+Id dual authority.
+	Obj->ItemDefinitionAsset = DefinitionAsset;
+	Obj->ItemDefinitionId = NAME_None;
 
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();

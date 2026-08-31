@@ -39,13 +39,11 @@ Ce document décrit le socle réellement implémenté pour les items placés dan
 
 `FGridItemInstance` est l'instance runtime. Son identité est `RuntimeObjectId`; sa nature est `ItemDefinitionId`. Les champs `OwnerType`, `OwnerGuid`, `OwnerCharacterIndex` et `EquipmentSlot` décrivent son propriétaire logique.
 
-`FGridLevelObjectData` de type `Item` est un placement persistant. Sa définition effective est résolue dans cet ordre :
+`FGridLevelObjectData` de type `Item` est un placement persistant. Dans le schéma d'authoring courant, sa définition canonique est une référence directe `ItemDefinitionAsset`. `ItemDefinitionId` est réservé aux identités runtime/save et aux anciens fallbacks ; il ne doit pas être saisi comme seconde autorité d'authoring.
 
-1. `ItemDefinitionAsset` de l'objet ;
-2. `ItemDefinitionId` de l'objet ;
-3. définition d'item des paramètres par défaut de l'archétype.
+Lors d'un placement depuis la palette, `PlaceSelectedObject()` promeut automatiquement `DefaultBehavior.Item.ItemDefinitionAsset` de l'archétype vers `FGridLevelObjectData::ItemDefinitionAsset` et laisse `ItemDefinitionId=None`.
 
-`ArchetypeId` sélectionne l'archétype de placement et de génération. Il ne doit pas remplacer une définition d'item explicite dans les nouvelles données.
+Le runtime conserve néanmoins l'ordre de compatibilité suivant : définition locale, définition par défaut de l'archétype, puis anciens identifiants. `ArchetypeId` sélectionne l'archétype de placement et de génération ; il n'est plus une définition d'item pour les nouvelles données.
 
 ## 4. Génération dans le monde
 
