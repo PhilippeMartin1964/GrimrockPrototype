@@ -123,7 +123,8 @@ namespace
 		for (int32 SlotIndex = 0; SlotIndex < CharacterState.CombatHotbarSlots.Num(); ++SlotIndex)
 		{
 			FGridCombatHotbarBinding& Binding = CharacterState.CombatHotbarSlots[SlotIndex];
-			if (Binding.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem || Binding.SourceDefinitionId != ItemDefinitionId)
+			if (Binding.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem || Binding.SourceDefinitionId != ItemDefinitionId ||
+				Binding.IsPhysicalThrowItemBinding())
 			{
 				continue;
 			}
@@ -132,8 +133,37 @@ namespace
 		}
 	}
 
+	void EnsurePrimaryAttackHotbarBinding(FGridCharacterInventoryState& CharacterState)
+	{
+		if (CharacterState.CombatHotbarSlots.Num() != FGridCombatHotbarBinding::SlotCount)
+		{
+			return;
+		}
+
+		FGridCombatHotbarBinding& PrimarySlot = CharacterState.CombatHotbarSlots[FGridCombatHotbarBinding::PrimaryAttackSlotIndex];
+		if (!PrimarySlot.IsPrimaryAttackBinding() && !PrimarySlot.IsEmpty() && PrimarySlot.IsValid())
+		{
+			for (int32 TargetSlotIndex = 1; TargetSlotIndex < CharacterState.CombatHotbarSlots.Num(); ++TargetSlotIndex)
+			{
+				if (!CharacterState.CombatHotbarSlots[TargetSlotIndex].IsEmpty())
+				{
+					continue;
+				}
+				FGridCombatHotbarBinding DisplacedBinding = PrimarySlot;
+				DisplacedBinding.SlotIndex = TargetSlotIndex;
+				CharacterState.CombatHotbarSlots[TargetSlotIndex] = MoveTemp(DisplacedBinding);
+				break;
+			}
+		}
+
+		PrimarySlot.Reset(FGridCombatHotbarBinding::PrimaryAttackSlotIndex);
+		PrimarySlot.ActionId = FGridCombatHotbarBinding::MakePrimaryAttackActionId();
+		PrimarySlot.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
+	}
+
 	void SanitizeCombatHotbarBindings(FGridCharacterInventoryState& CharacterState)
 	{
+		EnsurePrimaryAttackHotbarBinding(CharacterState);
 		TSet<FGuid> AssignedEquipmentRuntimeIds;
 		TSet<FName> AssignedQuickItemDefinitionIds;
 		for (int32 SlotIndex = 0; SlotIndex < CharacterState.CombatHotbarSlots.Num(); ++SlotIndex)
@@ -141,6 +171,11 @@ namespace
 			FGridCombatHotbarBinding& Binding = CharacterState.CombatHotbarSlots[SlotIndex];
 			if (!Binding.IsValid() || Binding.IsEmpty())
 			{
+				continue;
+			}
+			if (SlotIndex != FGridCombatHotbarBinding::PrimaryAttackSlotIndex && Binding.IsPrimaryAttackBinding())
+			{
+				Binding.Reset(SlotIndex);
 				continue;
 			}
 
@@ -157,7 +192,8 @@ namespace
 			}
 			else if (Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
 			{
-				if (!CharacterHasInventoryItemDefinition(CharacterState, Binding.SourceDefinitionId) ||
+				const bool bPersistentPhysicalThrow = Binding.IsPhysicalThrowItemBinding();
+				if ((!bPersistentPhysicalThrow && !CharacterHasInventoryItemDefinition(CharacterState, Binding.SourceDefinitionId)) ||
 					AssignedQuickItemDefinitionIds.Contains(Binding.SourceDefinitionId))
 				{
 					Binding.Reset(SlotIndex);
@@ -1191,6 +1227,16 @@ bool UGridPartyInventoryComponent::ValidateCombatHotbar(const FGridCharacterInve
 				*Binding.ActionId.ToString(), *UEnum::GetValueAsString(Binding.SourcePolicy));
 			return false;
 		}
+		if (SlotIndex == FGridCombatHotbarBinding::PrimaryAttackSlotIndex && !Binding.IsPrimaryAttackBinding())
+		{
+			OutError = TEXT("PrimaryAttackMissingFromSlot1");
+			return false;
+		}
+		if (SlotIndex != FGridCombatHotbarBinding::PrimaryAttackSlotIndex && Binding.IsPrimaryAttackBinding())
+		{
+			OutError = FString::Printf(TEXT("PrimaryAttackDuplicated Slot=%d"), SlotIndex);
+			return false;
+		}
 
 		if (Binding.SourcePolicy == EGridCombatActionSourcePolicy::Equipment)
 		{
@@ -1203,7 +1249,7 @@ bool UGridPartyInventoryComponent::ValidateCombatHotbar(const FGridCharacterInve
 		}
 		else if (Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
 		{
-			if (!CharacterHasInventoryItemDefinition(CharacterState, Binding.SourceDefinitionId))
+			if (!Binding.IsPhysicalThrowItemBinding() && !CharacterHasInventoryItemDefinition(CharacterState, Binding.SourceDefinitionId))
 			{
 				OutError = FString::Printf(TEXT("MissingQuickItemSource Slot=%d Definition=%s"), SlotIndex, *Binding.SourceDefinitionId.ToString());
 				return false;

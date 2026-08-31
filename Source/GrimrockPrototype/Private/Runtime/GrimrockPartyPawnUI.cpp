@@ -211,6 +211,21 @@ bool AGrimrockPartyPawn::BeginSelectedCharacterMainHandThrowAiming()
 	return PlayerController->BeginPhysicalThrowAiming();
 }
 
+
+bool AGrimrockPartyPawn::BeginSelectedCharacterInventoryItemThrowAiming(FName ItemDefinitionId)
+{
+	AGrimrockPlayerController* PlayerController = Cast<AGrimrockPlayerController>(GetController());
+	if (!PartyInventoryComponent || !LevelRuntimeActor || !PlayerController || ItemDefinitionId.IsNone())
+	{
+		return false;
+	}
+	if (bInventoryWidgetVisible || PlayerController->bInventoryUiOpen)
+	{
+		HideInventoryWidget();
+	}
+	return PlayerController->BeginPhysicalInventoryThrowAiming(ItemDefinitionId);
+}
+
 bool AGrimrockPartyPawn::TryExecuteCombatHotbarSlot(int32 SlotIndex)
 {
 	if (IsCombatHotbarExecutionBlocked() || SlotIndex < 0 || SlotIndex >= FGridCombatHotbarBinding::SlotCount)

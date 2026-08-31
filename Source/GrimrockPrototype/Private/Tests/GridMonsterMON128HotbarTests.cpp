@@ -71,7 +71,14 @@ bool FGridMON128DefaultHotbarTest::RunTest(const FString& Parameters)
 	{
 		const FGridCombatHotbarBinding& Binding = Character.CombatHotbarSlots[SlotIndex];
 		TestEqual(FString::Printf(TEXT("Hotbar slot %d keeps its index"), SlotIndex), Binding.SlotIndex, SlotIndex);
-		TestTrue(FString::Printf(TEXT("Hotbar slot %d starts empty"), SlotIndex), Binding.IsEmpty());
+		if (SlotIndex == FGridCombatHotbarBinding::PrimaryAttackSlotIndex)
+		{
+			TestTrue(TEXT("Slot 1 starts as PrimaryAttack"), Binding.IsPrimaryAttackBinding());
+		}
+		else
+		{
+			TestTrue(FString::Printf(TEXT("Hotbar slot %d starts empty"), SlotIndex), Binding.IsEmpty());
+		}
 		TestTrue(FString::Printf(TEXT("Hotbar slot %d is structurally valid"), SlotIndex), Binding.IsValid());
 	}
 	return true;
@@ -88,26 +95,20 @@ bool FGridMON128PerCharacterHotbarTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-
 	FGridCharacterInventoryState SecondCharacter;
 	SecondCharacter.CharacterId = FGuid::NewGuid();
 	SecondCharacter.DisplayName = FText::FromString(TEXT("Second"));
 	Component->PartyInventoryState.ActiveCharacters.Add(SecondCharacter);
 	Component->PartyInventoryState.ActiveEquipment.AddDefaulted();
 	Component->InitializeDefaultPartyIfNeeded();
-
-	TestTrue(TEXT("Character zero accepts an unarmed shortcut"), Component->SetCharacterCombatHotbarBinding(0, 0, MakeMON128UnarmedBinding()));
-
 	FGridCombatHotbarBinding FirstBinding;
 	FGridCombatHotbarBinding SecondBinding;
-	TestTrue(TEXT("Character zero shortcut can be read"), Component->GetCharacterCombatHotbarBinding(0, 0, FirstBinding));
-	TestTrue(TEXT("Character one shortcut can be read"), Component->GetCharacterCombatHotbarBinding(1, 0, SecondBinding));
-	TestEqual(TEXT("Character zero keeps the assigned action"), FirstBinding.ActionId, FName(TEXT("Attack_Unarmed")));
-	TestTrue(TEXT("Character one's corresponding slot remains empty"), SecondBinding.IsEmpty());
-
-	TestTrue(TEXT("The shortcut can be cleared explicitly"), Component->ClearCharacterCombatHotbarBinding(0, 0));
-	TestTrue(TEXT("The cleared shortcut reads successfully"), Component->GetCharacterCombatHotbarBinding(0, 0, FirstBinding));
-	TestTrue(TEXT("The cleared shortcut is empty"), FirstBinding.IsEmpty());
+	TestTrue(TEXT("Character zero primary shortcut can be read"), Component->GetCharacterCombatHotbarBinding(0, 0, FirstBinding));
+	TestTrue(TEXT("Character one primary shortcut can be read"), Component->GetCharacterCombatHotbarBinding(1, 0, SecondBinding));
+	TestTrue(TEXT("Character zero owns PrimaryAttack"), FirstBinding.IsPrimaryAttackBinding());
+	TestTrue(TEXT("Character one independently owns PrimaryAttack"), SecondBinding.IsPrimaryAttackBinding());
+	TestFalse(TEXT("PrimaryAttack cannot be cleared"), Component->ClearCharacterCombatHotbarBinding(0, 0));
+	TestFalse(TEXT("PrimaryAttack cannot be replaced manually"), Component->SetCharacterCombatHotbarBinding(0, 0, MakeMON128UnarmedBinding()));
 	return true;
 }
 
@@ -188,12 +189,13 @@ bool FGridMON128LegacySaveMigrationTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("A legacy snapshot without hotbar data is accepted"), RestoredComponent->RestorePartyInventoryState(LegacyState, RestoreError));
 	const TArray<FGridCombatHotbarBinding>& MigratedSlots = RestoredComponent->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots;
 	TestEqual(TEXT("The legacy character receives ten slots"), MigratedSlots.Num(), 10);
-	TestTrue(TEXT("All migrated shortcuts are empty"),
+	TestTrue(TEXT("Legacy migration installs PrimaryAttack in slot 1"), MigratedSlots[0].IsPrimaryAttackBinding());
+	TestFalse(TEXT("Legacy migration creates no other shortcuts"),
 		MigratedSlots.ContainsByPredicate(
 			[](const FGridCombatHotbarBinding& Binding)
 			{
-				return !Binding.IsEmpty();
-			}) == false);
+				return Binding.SlotIndex > 0 && !Binding.IsEmpty();
+			}));
 	return true;
 }
 
@@ -237,27 +239,20 @@ bool FGridMON128MoveOrSwapHotbarTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-
 	const FGuid WeaponRuntimeId = FGuid::NewGuid();
-	TestTrue(TEXT("Slot zero accepts the unarmed shortcut"), Component->SetCharacterCombatHotbarBinding(0, 0, MakeMON128UnarmedBinding()));
-	TestTrue(TEXT("Slot one accepts the weapon shortcut"), Component->SetCharacterCombatHotbarBinding(0, 1, MakeMON128EquipmentBinding(WeaponRuntimeId)));
-	TestTrue(TEXT("Dropping onto an occupied slot swaps atomically"), Component->MoveOrSwapCharacterCombatHotbarBinding(0, 0, 1));
-
+	TestTrue(TEXT("Slot two accepts the weapon shortcut"), Component->SetCharacterCombatHotbarBinding(0, 1, MakeMON128EquipmentBinding(WeaponRuntimeId)));
+	TestTrue(TEXT("Slot three accepts an unarmed utility shortcut"), Component->SetCharacterCombatHotbarBinding(0, 2, MakeMON128UnarmedBinding()));
+	TestFalse(TEXT("PrimaryAttack cannot participate in drag swaps"), Component->MoveOrSwapCharacterCombatHotbarBinding(0, 0, 1));
+	TestTrue(TEXT("Two configurable slots still swap atomically"), Component->MoveOrSwapCharacterCombatHotbarBinding(0, 1, 2));
 	FGridCombatHotbarBinding SlotZero;
 	FGridCombatHotbarBinding SlotOne;
+	FGridCombatHotbarBinding SlotTwo;
 	Component->GetCharacterCombatHotbarBinding(0, 0, SlotZero);
 	Component->GetCharacterCombatHotbarBinding(0, 1, SlotOne);
-	TestEqual(TEXT("The weapon moved to slot zero"), SlotZero.ActionId, FName(TEXT("Attack_Shuriken")));
-	TestEqual(TEXT("The unarmed action moved to slot one"), SlotOne.ActionId, FName(TEXT("Attack_Unarmed")));
-	TestEqual(TEXT("The swapped first index is normalized"), SlotZero.SlotIndex, 0);
-	TestEqual(TEXT("The swapped second index is normalized"), SlotOne.SlotIndex, 1);
-
-	TestTrue(TEXT("Dropping onto an empty slot moves the binding"), Component->MoveOrSwapCharacterCombatHotbarBinding(0, 1, 2));
-	FGridCombatHotbarBinding SlotTwo;
-	Component->GetCharacterCombatHotbarBinding(0, 1, SlotOne);
 	Component->GetCharacterCombatHotbarBinding(0, 2, SlotTwo);
-	TestTrue(TEXT("The move clears its source"), SlotOne.IsEmpty());
-	TestEqual(TEXT("The empty target receives the action"), SlotTwo.ActionId, FName(TEXT("Attack_Unarmed")));
+	TestTrue(TEXT("PrimaryAttack remains fixed"), SlotZero.IsPrimaryAttackBinding());
+	TestEqual(TEXT("The unarmed utility action moved to slot two"), SlotOne.ActionId, FName(TEXT("Attack_Unarmed")));
+	TestEqual(TEXT("The weapon moved to slot three"), SlotTwo.ActionId, FName(TEXT("Attack_Shuriken")));
 	return true;
 }
 
@@ -390,13 +385,13 @@ bool FGridMON1289UniqueEquipmentBindingTest::RunTest(const FString& Parameters)
 	Weapon.EquipmentSlot = EGridEquipmentSlot::MainHand;
 	Component->PartyInventoryState.ActiveEquipment[0].MainHand = Weapon;
 
-	TestTrue(TEXT("The first weapon drop configures slot one"), Component->SetCharacterCombatHotbarBindingFromItem(0, 0, Weapon, EGridEquipmentSlot::MainHand));
+	TestTrue(TEXT("The first weapon drop configures slot one"), Component->SetCharacterCombatHotbarBindingFromItem(0, 1, Weapon, EGridEquipmentSlot::MainHand));
 	TestTrue(
 		TEXT("The same weapon can be dropped onto slot four"), Component->SetCharacterCombatHotbarBindingFromItem(0, 3, Weapon, EGridEquipmentSlot::MainHand));
 
 	FGridCombatHotbarBinding OldSlot;
 	FGridCombatHotbarBinding NewSlot;
-	Component->GetCharacterCombatHotbarBinding(0, 0, OldSlot);
+	Component->GetCharacterCombatHotbarBinding(0, 1, OldSlot);
 	Component->GetCharacterCombatHotbarBinding(0, 3, NewSlot);
 	TestTrue(TEXT("The repeated drop clears the previous slot"), OldSlot.IsEmpty());
 	TestTrue(TEXT("The target slot keeps the weapon binding"), NewSlot.PreferredSourceRuntimeId == Weapon.RuntimeObjectId);
@@ -551,8 +546,8 @@ bool FGridMON1288ClearShortcutKeepsItemSourceTest::RunTest(const FString& Parame
 	PotionBinding.ActionId = FGridCombatHotbarBinding::MakeQuickItemActionId(Potion.ItemDefinitionId);
 	PotionBinding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 	PotionBinding.SourceDefinitionId = Potion.ItemDefinitionId;
-	TestTrue(TEXT("The inventory item shortcut is assigned"), Component->SetCharacterCombatHotbarBinding(0, 0, PotionBinding));
-	TestTrue(TEXT("The inventory item shortcut is cleared"), Component->ClearCharacterCombatHotbarBinding(0, 0));
+	TestTrue(TEXT("The inventory item shortcut is assigned"), Component->SetCharacterCombatHotbarBinding(0, 2, PotionBinding));
+	TestTrue(TEXT("The inventory item shortcut is cleared"), Component->ClearCharacterCombatHotbarBinding(0, 2));
 	TestFalse(TEXT("Clearing does not remove the inventory item"), InventorySlot.IsEmpty());
 	TestTrue(TEXT("Clearing preserves the inventory item instance"), InventorySlot.Item.RuntimeObjectId == Potion.RuntimeObjectId);
 	TestEqual(TEXT("Clearing preserves the inventory stack quantity"), InventorySlot.Item.Quantity, 3);

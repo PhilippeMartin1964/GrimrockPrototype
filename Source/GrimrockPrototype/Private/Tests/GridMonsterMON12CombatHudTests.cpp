@@ -667,20 +667,15 @@ bool FGridMonsterMON1283UnarmedHotbarExecutionTest::RunTest(const FString& Param
 	{
 		return false;
 	}
-
 	Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].MainHand = FGridItemInstance();
-	FGridCombatHotbarBinding UnarmedBinding;
-	UnarmedBinding.Reset(0);
-	UnarmedBinding.ActionId = TEXT("Attack_Unarmed");
-	UnarmedBinding.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
-	TestTrue(
-		TEXT("The unarmed action can be configured explicitly"), Fixture.Party->PartyInventoryComponent->SetCharacterCombatHotbarBinding(0, 0, UnarmedBinding));
-
+	FGridCombatHotbarBinding PrimaryBinding;
+	TestTrue(TEXT("PrimaryAttack is readable"), Fixture.Party->PartyInventoryComponent->GetCharacterCombatHotbarBinding(0, 0, PrimaryBinding));
+	TestTrue(TEXT("Slot 1 is the protected PrimaryAttack alias"), PrimaryBinding.IsPrimaryAttackBinding());
 	FGridCombatActionRequestResult Result;
-	TestTrue(TEXT("The configured unarmed shortcut executes"), Fixture.Hud->RequestHotbarSlot(0, Result));
+	TestTrue(TEXT("PrimaryAttack falls back to unarmed"), Fixture.Hud->RequestHotbarSlot(0, Result));
 	TestTrue(TEXT("The generic result accepts the unarmed attack"), Result.bAccepted);
-	TestEqual(TEXT("The unarmed shortcut pays two action points"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
-	TestEqual(TEXT("The unarmed shortcut uses no equipment slot"), Result.Action.SourceEquipmentSlot, EGridEquipmentSlot::None);
+	TestEqual(TEXT("The unarmed fallback pays two action points"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
+	TestEqual(TEXT("The unarmed fallback uses no equipment slot"), Result.Action.SourceEquipmentSlot, EGridEquipmentSlot::None);
 	return true;
 }
 
@@ -717,8 +712,9 @@ bool FGridMonsterMON1283HotbarKeyboardGuardTest::RunTest(const FString& Paramete
 	{
 		return false;
 	}
-	TestTrue(TEXT("The sword is assigned before keyboard execution"),
-		Fixture.Party->PartyInventoryComponent->SetCharacterCombatHotbarBindingFromItem(0, 0, EquippedSword, EGridEquipmentSlot::MainHand));
+	FGridCombatHotbarBinding PrimaryBinding;
+	TestTrue(TEXT("The keyboard fixture keeps PrimaryAttack in slot 1"),
+		Fixture.Party->PartyInventoryComponent->GetCharacterCombatHotbarBinding(0, 0, PrimaryBinding) && PrimaryBinding.IsPrimaryAttackBinding());
 	Fixture.Party->CombatHudWidgetInstance = Fixture.Hud;
 
 	Fixture.Party->bInventoryWidgetVisible = true;

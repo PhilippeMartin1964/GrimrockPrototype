@@ -73,7 +73,14 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 	{
 		const FGridCombatHotbarBinding& Binding = Component->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[SlotIndex];
 		TestEqual(FString::Printf(TEXT("Default slot %d keeps its normalized index"), SlotIndex), Binding.SlotIndex, SlotIndex);
-		TestTrue(FString::Printf(TEXT("Default slot %d is empty"), SlotIndex), Binding.IsEmpty());
+		if (SlotIndex == FGridCombatHotbarBinding::PrimaryAttackSlotIndex)
+		{
+			TestTrue(TEXT("Default slot 1 owns the protected PrimaryAttack alias"), Binding.IsPrimaryAttackBinding());
+		}
+		else
+		{
+			TestTrue(FString::Printf(TEXT("Default slot %d is empty"), SlotIndex), Binding.IsEmpty());
+		}
 		TestTrue(FString::Printf(TEXT("Default slot %d is structurally valid"), SlotIndex), Binding.IsValid());
 	}
 
@@ -155,6 +162,31 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 	TestTrue(TEXT("Moving into an empty slot clears the source slot"), SwappedSlotSeven.IsEmpty());
 	TestEqual(TEXT("The empty target receives the moved action"), MovedSlotNine.ActionId, FName(TEXT("Attack_Unarmed")));
 	TestEqual(TEXT("The moved shortcut is normalized to the target index"), MovedSlotNine.SlotIndex, 9);
+
+	UGridItemDefinitionAsset* StoneDefinition = NewObject<UGridItemDefinitionAsset>(Component);
+	StoneDefinition->ItemDefinitionId = TEXT("Stone_TD062");
+	StoneDefinition->DisplayName = FText::FromString(TEXT("Pierre TD06.2"));
+	StoneDefinition->ItemType = EGridItemType::Misc;
+	StoneDefinition->HandUsage = EGridItemHandUsage::OneHanded;
+	StoneDefinition->Weight = 1.0f;
+	StoneDefinition->ThrowSpeed = 800.0f;
+	TestTrue(TEXT("The physical throw definition is registered"), Component->RegisterItemDefinition(StoneDefinition));
+
+	FGridItemInstance Stone;
+	Stone.RuntimeObjectId = FGuid::NewGuid();
+	Stone.ItemDefinitionId = StoneDefinition->ItemDefinitionId;
+	Stone.DisplayName = StoneDefinition->DisplayName;
+	Stone.Quantity = 1;
+	TestTrue(TEXT("The stone enters inventory"), Component->AddItemToCharacterInventory(0, Stone));
+	TestTrue(TEXT("A physical throwable can be assigned directly from inventory"),
+		Component->SetCharacterCombatHotbarBindingFromItem(0, 6, Stone, EGridEquipmentSlot::None));
+	FGridCombatHotbarBinding StoneBinding;
+	Component->GetCharacterCombatHotbarBinding(0, 6, StoneBinding);
+	TestTrue(TEXT("The stone shortcut uses the persistent physical-throw identity"), StoneBinding.IsPhysicalThrowItemBinding());
+	TestTrue(TEXT("Consuming the last stone succeeds"), Component->RemoveItemDefinitionFromCharacterInventory(0, Stone.ItemDefinitionId, 1));
+	Component->GetCharacterCombatHotbarBinding(0, 6, StoneBinding);
+	TestTrue(TEXT("The exhausted physical-throw shortcut remains assigned"), StoneBinding.IsPhysicalThrowItemBinding());
+
 
 	UGridPartyInventoryComponent* LegacySource = GridTD062CreateInventory();
 	if (!TestNotNull(TEXT("The legacy hotbar source component is created"), LegacySource))

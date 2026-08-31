@@ -147,6 +147,95 @@ namespace
 		return Action;
 	}
 
+	FGridAvailableCombatAction BuildPhysicalThrowInventoryAction(const AGrimrockPartyPawn* PartyPawn,
+		const UGridPartyInventoryComponent* InventoryComponent, int32 CharacterIndex, const FGridCombatHotbarBinding& Binding)
+	{
+		FGridAvailableCombatAction Action;
+		Action.Definition.ActionId = Binding.ActionId;
+		Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
+		Action.Definition.TargetingPolicy = EGridCombatTargetingPolicy::Self;
+		Action.Definition.ResolutionProfile = EGridCombatActionResolutionProfile::Interaction;
+		Action.Definition.ActionPointCost = 0;
+		Action.SourceDefinitionId = Binding.SourceDefinitionId;
+		Action.CharacterIndex = CharacterIndex;
+		Action.CurrentActionPointCost = 0;
+		Action.CurrentSourceItemQuantityCost = 1;
+
+		if (!IsValid(InventoryComponent) || !InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
+		{
+			Action.DisabledReason = FText::FromString(TEXT("Personnage indisponible."));
+			return Action;
+		}
+		Action.CharacterId = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
+		UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(Binding.SourceDefinitionId);
+		if (!IsValid(Definition) && IsValid(PartyPawn) && IsValid(PartyPawn->LevelRuntimeActor))
+		{
+			Definition = PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition(Binding.SourceDefinitionId);
+		}
+		if (!IsValid(Definition))
+		{
+			Action.DisabledReason = FText::FromString(TEXT("Définition d'objet indisponible."));
+			return Action;
+		}
+		Action.Definition.DisplayName = FText::Format(FText::FromString(TEXT("Lancer {0}")), Definition->DisplayName);
+		Action.Definition.Description = Definition->Description;
+		Action.Definition.Icon = Definition->Icon;
+		Action.CurrentSourceItemQuantity = InventoryComponent->CountItemDefinitionInCharacterInventory(CharacterIndex, Binding.SourceDefinitionId);
+		if (Action.CurrentSourceItemQuantity <= 0)
+		{
+			Action.AvailabilityReason = EGridCombatActionAvailabilityReason::InsufficientSourceItems;
+			Action.DisabledReason = FText::FromString(TEXT("Aucun exemplaire dans l'inventaire."));
+			return Action;
+		}
+		FGridInventoryCharacterSummary Summary;
+		if (!InventoryComponent->GetCharacterSummary(CharacterIndex, Summary) || !Definition->CanBeThrownByStrength(Summary.Attributes.Strength))
+		{
+			Action.AvailabilityReason = EGridCombatActionAvailabilityReason::MissingRequirement;
+			Action.DisabledReason = FText::FromString(TEXT("Cet objet est trop lourd ou ne peut pas être lancé d'une seule main."));
+			return Action;
+		}
+		Action.bEnabled = true;
+		Action.AvailabilityReason = EGridCombatActionAvailabilityReason::None;
+		return Action;
+	}
+
+	void ApplyPrimaryAttackProjection(const TArray<FGridAvailableCombatAction>& AvailableActions, TArray<FGridCombatHudActionView>& ActionViews)
+	{
+		if (!ActionViews.IsValidIndex(FGridCombatHotbarBinding::PrimaryAttackSlotIndex))
+		{
+			return;
+		}
+		FGridCombatHudActionView& PrimaryView = ActionViews[FGridCombatHotbarBinding::PrimaryAttackSlotIndex];
+		if (!PrimaryView.Binding.IsPrimaryAttackBinding())
+		{
+			return;
+		}
+		const FGridAvailableCombatAction* ResolvedPrimary = AvailableActions.FindByPredicate(
+			[](const FGridAvailableCombatAction& Candidate)
+			{
+				return Candidate.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+					Candidate.SourceEquipmentSlot == EGridEquipmentSlot::MainHand &&
+					Candidate.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
+			});
+		if (!ResolvedPrimary)
+		{
+			ResolvedPrimary = AvailableActions.FindByPredicate(
+				[](const FGridAvailableCombatAction& Candidate)
+				{
+					return Candidate.Definition.ActionId == FName(TEXT("Attack_Unarmed")) &&
+						Candidate.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Universal;
+				});
+		}
+		if (!ResolvedPrimary)
+		{
+			return;
+		}
+		PrimaryView.Action = *ResolvedPrimary;
+		PrimaryView.bHasBinding = true;
+		PrimaryView.bResolved = true;
+		PrimaryView.DisabledReason = ResolvedPrimary->bEnabled ? FText::GetEmpty() : ResolvedPrimary->DisabledReason;
+	}
+
 	bool IsSpellbookManagedAction(const FGridAvailableCombatAction& Action)
 	{
 		// Spellbook actions use SpellId as both action and source definition
@@ -425,7 +514,7 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 		else if (!View.bHasBinding)
 		{
 			Button_Action->SetToolTipText(
-				FText::FromString(TEXT("Déposez ici une arme, un objet lançable, une potion, un parchemin ou une action de la palette.")));
+				FText::FromString(TEXT("Déposez ici un objet de l'inventaire, un sort ou une capacité.")));
 		}
 		else
 		{
@@ -696,13 +785,6 @@ void UGridCombatHudWidget::RefreshFromSources()
 		if (IsValid(TurnManagerComponent))
 		{
 			TurnManagerComponent->GetAvailableCombatActions(View.ActiveCharacterIndex, AvailableActions);
-			for (const FGridAvailableCombatAction& Action : AvailableActions)
-			{
-				if (IsActionPaletteSource(Action.Definition.SourcePolicy) && !IsSpellbookManagedAction(Action))
-				{
-					View.ActionPalette.Add(Action);
-				}
-			}
 		}
 		if (IsValid(InventoryComponent))
 		{
@@ -722,13 +804,16 @@ void UGridCombatHudWidget::RefreshFromSources()
 			return IsPhysicalThrowMainHandAction(Candidate.Definition.ActionId);
 		});
 		AvailableActions.Add(PhysicalThrowAction);
-		View.ActionPalette.RemoveAll([](const FGridAvailableCombatAction& Candidate)
+	}
+	for (const FGridCombatHotbarBinding& Binding : HotbarBindings)
+	{
+		if (Binding.IsPhysicalThrowItemBinding())
 		{
-			return IsPhysicalThrowMainHandAction(Candidate.Definition.ActionId);
-		});
-		View.ActionPalette.Add(PhysicalThrowAction);
+			AvailableActions.Add(BuildPhysicalThrowInventoryAction(PartyPawn, InventoryComponent, View.ActiveCharacterIndex, Binding));
+		}
 	}
 	FGridCombatHudViewModelBuilder::BuildHotbarActions(HotbarBindings, AvailableActions, View.Actions);
+	ApplyPrimaryAttackProjection(AvailableActions, View.Actions);
 	for (FGridCombatHudActionView& ActionView : View.Actions)
 	{
 		ActionView.Action.CharacterIndex = View.ActiveCharacterIndex;
@@ -775,10 +860,17 @@ void UGridCombatHudWidget::RefreshFromSources()
 			Panel->RefreshFromSources();
 		}
 	}
+	View.ActionPalette.Reset();
+	if (Panel_ActionPalette)
+	{
+		Panel_ActionPalette->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (RuntimeActionPalettePanel)
+	{
+		RuntimeActionPalettePanel->SetVisibility(ESlateVisibility::Collapsed);
+	}
 	EnsureActionWidgets();
 	RefreshActionWidgets();
-	EnsureActionPaletteWidgets();
-	RefreshActionPaletteWidgets();
 	EnsureInitiativeWidgets();
 	RefreshInitiativeWidgets();
 	RefreshBoundWidgets();
@@ -815,6 +907,16 @@ bool UGridCombatHudWidget::RequestHotbarSlot(int32 SlotIndex, FGridCombatActionR
 	}
 
 	const FGridCombatHudActionView ActionView = View.Actions[SlotIndex];
+	if (ActionView.Binding.IsPhysicalThrowItemBinding())
+	{
+		OutResult.Action = ActionView.Action;
+		if (!ActionView.bResolved || !ActionView.Action.bEnabled || !IsValid(PartyPawn))
+		{
+			return false;
+		}
+		CancelCombatActionTargeting();
+		return PartyPawn->BeginSelectedCharacterInventoryItemThrowAiming(ActionView.Binding.SourceDefinitionId);
+	}
 	if (ActionView.bHasBinding && ActionView.bResolved && IsPhysicalThrowMainHandAction(ActionView.Action.Definition.ActionId))
 	{
 		OutResult.Action = ActionView.Action;
@@ -1052,6 +1154,10 @@ bool UGridCombatHudWidget::AssignCombatActionToHotbarSlot(int32 TargetSlotIndex,
 
 bool UGridCombatHudWidget::ClearHotbarSlot(int32 SlotIndex)
 {
+	if (SlotIndex == FGridCombatHotbarBinding::PrimaryAttackSlotIndex)
+	{
+		return false;
+	}
 	return IsValid(InventoryComponent) && View.ActiveCharacterIndex != INDEX_NONE &&
 		InventoryComponent->ClearCharacterCombatHotbarBinding(View.ActiveCharacterIndex, SlotIndex);
 }
@@ -1529,6 +1635,10 @@ void UGridCombatHudWidget::RefreshBoundWidgets()
 	if (Panel_Actions)
 	{
 		Panel_Actions->SetVisibility(View.ActiveCharacterIndex != INDEX_NONE ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	}
+	if (Panel_ActionPalette)
+	{
+		Panel_ActionPalette->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	if (Panel_Initiative)
 	{

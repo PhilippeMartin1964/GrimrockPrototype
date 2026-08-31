@@ -35,6 +35,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
 	bool BeginPhysicalThrowAiming();
 
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
+	bool BeginPhysicalInventoryThrowAiming(FName ItemDefinitionId);
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
 	void CancelPhysicalThrowAiming();
 
@@ -62,6 +66,10 @@ protected:
 
 	UPROPERTY(Transient)
 	FGuid PhysicalThrowSourceRuntimeId;
+
+
+	UPROPERTY(Transient)
+	FName PhysicalThrowInventoryDefinitionId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Debug")
 	bool bDebugMouseInteraction = false;

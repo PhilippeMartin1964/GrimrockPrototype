@@ -432,6 +432,78 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 	return true;
 }
 
+bool AGrimrockPartyPawn::TryThrowSelectedCharacterInventoryItem(FName ItemDefinitionId, const FVector& LaunchDirection)
+{
+	if (!PartyInventoryComponent || !LevelRuntimeActor || ItemDefinitionId.IsNone())
+	{
+		return false;
+	}
+
+	const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex();
+	if (!PartyInventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
+	{
+		return false;
+	}
+	const FGridCharacterInventoryState& Character = PartyInventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex];
+	const FGridInventorySlot* SourceSlot = Character.InventorySlots.FindByPredicate(
+		[ItemDefinitionId](const FGridInventorySlot& Candidate)
+		{
+			return !Candidate.IsEmpty() && Candidate.Item.ItemDefinitionId == ItemDefinitionId && Candidate.Item.Quantity > 0;
+		});
+	if (!SourceSlot)
+	{
+		return false;
+	}
+
+	UGridItemDefinitionAsset* ItemDefinition = PartyInventoryComponent->FindItemDefinition(ItemDefinitionId);
+	if (!IsValid(ItemDefinition))
+	{
+		ItemDefinition = LevelRuntimeActor->ResolveRuntimeItemDefinition(ItemDefinitionId);
+	}
+	int32 Strength = 0;
+	float StrengthSpeedScale = 0.0f;
+	if (!GridPartyPawnResolveThrowProfile(PartyInventoryComponent, CharacterIndex, ItemDefinition, Strength, StrengthSpeedScale))
+	{
+		return false;
+	}
+
+	const FVector ViewOrigin = Camera ? Camera->GetComponentLocation() : GetActorLocation();
+	FVector AimDirection = LaunchDirection.GetSafeNormal();
+	const bool bHasExplicitAim = !AimDirection.IsNearlyZero();
+	if (!bHasExplicitAim)
+	{
+		AimDirection = Camera ? Camera->GetForwardVector() : GetActorForwardVector();
+	}
+	const FVector ThrowDirection = (AimDirection + FVector::UpVector * FMath::Max(0.0f, ItemDefinition->ThrowArc)).GetSafeNormal();
+	const float SpawnDistance = bHasExplicitAim ? FMath::Min(60.0f, FMath::Max(1.0f, LaunchDirection.Size() * 0.5f)) : 60.0f;
+	const FVector StartLocation = ViewOrigin + AimDirection * SpawnDistance;
+
+	FGridItemInstance WorldItem = SourceSlot->Item;
+	WorldItem.RuntimeObjectId = FGuid::NewGuid();
+	WorldItem.Quantity = 1;
+	WorldItem.Weight = ItemDefinition->Weight;
+	WorldItem.OwnerType = EGridItemOwnerType::World;
+	WorldItem.OwnerGuid = FGuid();
+	WorldItem.OwnerCharacterIndex = INDEX_NONE;
+	WorldItem.EquipmentSlot = EGridEquipmentSlot::None;
+
+	AGridThrownItemActor* ThrownActor = LevelRuntimeActor->SpawnThrownItemProjectile(WorldItem, ItemDefinition, StartLocation,
+		ThrowDirection * FMath::Max(0.0f, ItemDefinition->ThrowSpeed) * StrengthSpeedScale, CurrentCellX, CurrentCellY);
+	if (!ThrownActor)
+	{
+		return false;
+	}
+	if (!PartyInventoryComponent->RemoveItemDefinitionFromCharacterInventory(CharacterIndex, ItemDefinitionId, 1))
+	{
+		ThrownActor->Destroy();
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("GridInventory InventoryPhysicalThrow Item=%s Character=%d Strength=%d Weight=%.2f SpeedScale=%.3f Result=true"),
+		*ItemDefinitionId.ToString(), CharacterIndex, Strength, ItemDefinition->Weight, StrengthSpeedScale);
+	return true;
+}
+
 AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	int32 CharacterIndex, EGridEquipmentSlot SourceSlot, FName ExpectedItemDefinitionId, const FVector& TargetWorldLocation, const FIntPoint& SourceCell)
 {

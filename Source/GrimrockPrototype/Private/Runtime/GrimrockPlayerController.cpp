@@ -155,6 +155,48 @@ namespace
 		return true;
 	}
 
+	bool ResolvePhysicalThrowInventoryItem(const AGrimrockPartyPawn* PartyPawn, int32 ExpectedCharacterIndex, FName ItemDefinitionId,
+		UGridItemDefinitionAsset*& OutDefinition, FText& OutReason)
+	{
+		OutDefinition = nullptr;
+		OutReason = FText::GetEmpty();
+		if (!PartyPawn || !PartyPawn->PartyInventoryComponent || !PartyPawn->LevelRuntimeActor || ItemDefinitionId.IsNone())
+		{
+			OutReason = FText::FromString(TEXT("Aucun objet de lancer sélectionné."));
+			return false;
+		}
+		const int32 CharacterIndex = PartyPawn->PartyInventoryComponent->GetSelectedCharacterIndex();
+		if (ExpectedCharacterIndex != INDEX_NONE && CharacterIndex != ExpectedCharacterIndex)
+		{
+			OutReason = FText::FromString(TEXT("Le personnage sélectionné a changé."));
+			return false;
+		}
+		if (PartyPawn->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(CharacterIndex, ItemDefinitionId) <= 0)
+		{
+			OutReason = FText::FromString(TEXT("Cet objet n'est plus présent dans l'inventaire."));
+			return false;
+		}
+		OutDefinition = PartyPawn->PartyInventoryComponent->FindItemDefinition(ItemDefinitionId);
+		if (!IsValid(OutDefinition))
+		{
+			OutDefinition = PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition(ItemDefinitionId);
+		}
+		FGridInventoryCharacterSummary Summary;
+		if (!IsValid(OutDefinition) || !PartyPawn->PartyInventoryComponent->GetCharacterSummary(CharacterIndex, Summary))
+		{
+			OutReason = FText::FromString(TEXT("Définition d'objet ou personnage indisponible."));
+			return false;
+		}
+		if (!OutDefinition->CanBeThrownByStrength(Summary.Attributes.Strength))
+		{
+			OutReason = FText::Format(FText::FromString(TEXT("Trop lourd : {0} kg (maximum {1} kg avec Force {2}).")),
+				FText::AsNumber(OutDefinition->Weight), FText::AsNumber(OutDefinition->GetMaxThrowableWeightForStrength(Summary.Attributes.Strength)),
+				FText::AsNumber(Summary.Attributes.Strength));
+			return false;
+		}
+		return true;
+	}
+
 }
 
 AGrimrockPlayerController::AGrimrockPlayerController()
@@ -272,8 +314,41 @@ bool AGrimrockPlayerController::BeginPhysicalThrowAiming()
 	}
 	PhysicalThrowCharacterIndex = PartyPawn->PartyInventoryComponent->GetSelectedCharacterIndex();
 	PhysicalThrowSourceRuntimeId = MainHandItem.RuntimeObjectId;
+	PhysicalThrowInventoryDefinitionId = NAME_None;
 	bPhysicalThrowAimingActive = true;
 	SetGridInteractionCursor(EGridInteractionCursor::AimThrow, TEXT("PhysicalThrowAimingBegin"));
+	return true;
+}
+
+bool AGrimrockPlayerController::BeginPhysicalInventoryThrowAiming(FName ItemDefinitionId)
+{
+	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
+	if (!PartyPawn || bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() || PartyPawn->HasCursorItem() ||
+		(IsValid(PartyPawn->LevelRuntimeActor) && PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()))
+	{
+		return false;
+	}
+
+	UGridItemDefinitionAsset* Definition = nullptr;
+	FText Reason;
+	if (!ResolvePhysicalThrowInventoryItem(PartyPawn, INDEX_NONE, ItemDefinitionId, Definition, Reason))
+	{
+		if (!Reason.IsEmpty())
+		{
+			ShowInteractionFeedback(Reason);
+		}
+		return false;
+	}
+
+	if (IsValid(PartyPawn->CombatHudWidgetInstance))
+	{
+		PartyPawn->CombatHudWidgetInstance->CancelCombatActionTargeting();
+	}
+	PhysicalThrowCharacterIndex = PartyPawn->PartyInventoryComponent->GetSelectedCharacterIndex();
+	PhysicalThrowSourceRuntimeId = FGuid();
+	PhysicalThrowInventoryDefinitionId = ItemDefinitionId;
+	bPhysicalThrowAimingActive = true;
+	SetGridInteractionCursor(EGridInteractionCursor::AimThrow, TEXT("PhysicalInventoryThrowAimingBegin"));
 	return true;
 }
 
@@ -286,6 +361,7 @@ void AGrimrockPlayerController::CancelPhysicalThrowAiming()
 	bPhysicalThrowAimingActive = false;
 	PhysicalThrowCharacterIndex = INDEX_NONE;
 	PhysicalThrowSourceRuntimeId = FGuid();
+	PhysicalThrowInventoryDefinitionId = NAME_None;
 	SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("PhysicalThrowAimingCancel"));
 }
 
@@ -300,9 +376,12 @@ bool AGrimrockPlayerController::UpdatePhysicalThrowAiming()
 	FGridItemInstance MainHandItem;
 	UGridItemDefinitionAsset* Definition = nullptr;
 	FText Reason;
-	if (!PartyPawn || bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() ||
-		(IsValid(PartyPawn->LevelRuntimeActor) && PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()) ||
-		!ResolvePhysicalThrowMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Definition, Reason))
+	const bool bSourceValid = PartyPawn && !bInventoryUiOpen && !PartyPawn->IsCharacterCreationModalActive() &&
+		(!IsValid(PartyPawn->LevelRuntimeActor) || !PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()) &&
+		(PhysicalThrowInventoryDefinitionId.IsNone()
+			? ResolvePhysicalThrowMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Definition, Reason)
+			: ResolvePhysicalThrowInventoryItem(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowInventoryDefinitionId, Definition, Reason));
+	if (!bSourceValid)
 	{
 		CancelPhysicalThrowAiming();
 		return false;
@@ -330,7 +409,10 @@ bool AGrimrockPlayerController::HandlePhysicalThrowAimingClick()
 	FGridItemInstance MainHandItem;
 	UGridItemDefinitionAsset* Definition = nullptr;
 	FText Reason;
-	if (!ResolvePhysicalThrowMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Definition, Reason))
+	const bool bSourceValid = PhysicalThrowInventoryDefinitionId.IsNone()
+		? ResolvePhysicalThrowMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Definition, Reason)
+		: ResolvePhysicalThrowInventoryItem(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowInventoryDefinitionId, Definition, Reason);
+	if (!bSourceValid)
 	{
 		if (!Reason.IsEmpty())
 		{
@@ -356,7 +438,11 @@ bool AGrimrockPlayerController::HandlePhysicalThrowAimingClick()
 		return true;
 	}
 
-	if (!PartyPawn->TryThrowSelectedCharacterMainHandItem(TargetOffset))
+	const FName InventoryThrowDefinitionId = PhysicalThrowInventoryDefinitionId;
+	const bool bThrown = InventoryThrowDefinitionId.IsNone()
+		? PartyPawn->TryThrowSelectedCharacterMainHandItem(TargetOffset)
+		: PartyPawn->TryThrowSelectedCharacterInventoryItem(InventoryThrowDefinitionId, TargetOffset);
+	if (!bThrown)
 	{
 		ShowInteractionFeedback(FText::FromString(TEXT("Lancer impossible.")));
 		return true;

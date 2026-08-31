@@ -62,6 +62,7 @@ struct FGridCombatHotbarBinding
 	GENERATED_BODY()
 
 	static constexpr int32 SlotCount = 10;
+	static constexpr int32 PrimaryAttackSlotIndex = 0;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Hotbar")
 	int32 SlotIndex = INDEX_NONE;
@@ -96,6 +97,32 @@ struct FGridCombatHotbarBinding
 	static FName MakeThrowMainHandActionId()
 	{
 		return TEXT("ThrowMainHand");
+	}
+
+
+	/** Slot 1 is a system alias that resolves MainHand attack, then falls back to unarmed. */
+	static FName MakePrimaryAttackActionId()
+	{
+		return TEXT("PrimaryAttack");
+	}
+
+	/** Stable identity for a physical utility throw directly from inventory. */
+	static FName MakePhysicalThrowItemActionId(FName ItemDefinitionId)
+	{
+		return ItemDefinitionId.IsNone() ? NAME_None : FName(*FString::Printf(TEXT("ThrowItem_%s"), *ItemDefinitionId.ToString()));
+	}
+
+	bool IsPrimaryAttackBinding() const
+	{
+		return ActionId == MakePrimaryAttackActionId() && SourcePolicy == EGridCombatActionSourcePolicy::Universal && SourceDefinitionId.IsNone() &&
+			!PreferredSourceRuntimeId.IsValid() && PreferredEquipmentSlot == EGridEquipmentSlot::None;
+	}
+
+	bool IsPhysicalThrowItemBinding() const
+	{
+		return SourcePolicy == EGridCombatActionSourcePolicy::QuickItem && !SourceDefinitionId.IsNone() &&
+			ActionId == MakePhysicalThrowItemActionId(SourceDefinitionId) && !PreferredSourceRuntimeId.IsValid() &&
+			PreferredEquipmentSlot == EGridEquipmentSlot::None;
 	}
 
 	bool IsValid() const
