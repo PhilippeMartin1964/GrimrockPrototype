@@ -394,12 +394,14 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 		return false;
 	}
 
-	FVector ThrowDirection = LaunchDirection.GetSafeNormal();
-	if (ThrowDirection.IsNearlyZero())
+	const FVector ViewOrigin = Camera ? Camera->GetComponentLocation() : GetActorLocation();
+	FVector AimDirection = LaunchDirection.GetSafeNormal();
+	const bool bHasExplicitAim = !AimDirection.IsNearlyZero();
+	if (!bHasExplicitAim)
 	{
-		ThrowDirection = Camera ? Camera->GetForwardVector() : GetActorForwardVector();
+		AimDirection = Camera ? Camera->GetForwardVector() : GetActorForwardVector();
 	}
-	ThrowDirection = (ThrowDirection + FVector::UpVector * FMath::Max(0.0f, ItemDefinition->ThrowArc)).GetSafeNormal();
+	const FVector ThrowDirection = (AimDirection + FVector::UpVector * FMath::Max(0.0f, ItemDefinition->ThrowArc)).GetSafeNormal();
 
 	FGridItemInstance WorldItem;
 	if (!PartyInventoryComponent->TryExtractOneEquippedItemForWorldTransfer(
@@ -409,9 +411,12 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 	}
 
 	WorldItem.Weight = ItemDefinition->Weight;
-	const FVector ViewRight = Camera ? Camera->GetRightVector() : GetActorRightVector();
-	const FVector StartLocation =
-		(Camera ? Camera->GetComponentLocation() : GetActorLocation()) + ThrowDirection * 60.0f + ViewRight * 18.0f - FVector::UpVector * 15.0f;
+	// The utility projectile must visually originate at the centre of Cursor_Aim.
+	// LaunchDirection is the camera-to-cursor world ray supplied by the controller, so placing
+	// the spawn point on AimDirection keeps the projectile exactly under that screen-space cursor.
+	// For very close targets, stay before the first hit to avoid spawning through a wall or door.
+	const float SpawnDistance = bHasExplicitAim ? FMath::Min(60.0f, FMath::Max(1.0f, LaunchDirection.Size() * 0.5f)) : 60.0f;
+	const FVector StartLocation = ViewOrigin + AimDirection * SpawnDistance;
 	const FVector LaunchVelocity = ThrowDirection * FMath::Max(0.0f, ItemDefinition->ThrowSpeed) * StrengthSpeedScale;
 	AGridThrownItemActor* ThrownActor =
 		LevelRuntimeActor->SpawnThrownItemProjectile(WorldItem, ItemDefinition, StartLocation, LaunchVelocity, CurrentCellX, CurrentCellY);
