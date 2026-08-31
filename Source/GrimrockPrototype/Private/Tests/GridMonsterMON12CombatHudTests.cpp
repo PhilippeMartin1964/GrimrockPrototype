@@ -1781,7 +1781,7 @@ bool FGridHOTBAR011ShortcutQuantityBadgeTest::RunTest(const FString& Parameters)
 		return false;
 	}
 	Widget->Text_Quantity = NewObject<UTextBlock>(Widget);
-	if (!TestNotNull(TEXT("The quantity text exists"), Widget->Text_Quantity))
+	if (!TestNotNull(TEXT("The quantity text exists"), Widget->Text_Quantity.Get()))
 	{
 		return false;
 	}
