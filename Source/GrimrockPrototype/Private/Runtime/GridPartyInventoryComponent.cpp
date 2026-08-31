@@ -123,8 +123,7 @@ namespace
 		for (int32 SlotIndex = 0; SlotIndex < CharacterState.CombatHotbarSlots.Num(); ++SlotIndex)
 		{
 			FGridCombatHotbarBinding& Binding = CharacterState.CombatHotbarSlots[SlotIndex];
-			if (Binding.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem || Binding.SourceDefinitionId != ItemDefinitionId ||
-				Binding.IsPhysicalThrowItemBinding())
+			if (Binding.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem || Binding.SourceDefinitionId != ItemDefinitionId)
 			{
 				continue;
 			}
@@ -192,8 +191,7 @@ namespace
 			}
 			else if (Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
 			{
-				const bool bPersistentPhysicalThrow = Binding.IsPhysicalThrowItemBinding();
-				if ((!bPersistentPhysicalThrow && !CharacterHasInventoryItemDefinition(CharacterState, Binding.SourceDefinitionId)) ||
+				if (!CharacterHasInventoryItemDefinition(CharacterState, Binding.SourceDefinitionId) ||
 					AssignedQuickItemDefinitionIds.Contains(Binding.SourceDefinitionId))
 				{
 					Binding.Reset(SlotIndex);
@@ -1249,7 +1247,7 @@ bool UGridPartyInventoryComponent::ValidateCombatHotbar(const FGridCharacterInve
 		}
 		else if (Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
 		{
-			if (!Binding.IsPhysicalThrowItemBinding() && !CharacterHasInventoryItemDefinition(CharacterState, Binding.SourceDefinitionId))
+			if (!CharacterHasInventoryItemDefinition(CharacterState, Binding.SourceDefinitionId))
 			{
 				OutError = FString::Printf(TEXT("MissingQuickItemSource Slot=%d Definition=%s"), SlotIndex, *Binding.SourceDefinitionId.ToString());
 				return false;

@@ -27,7 +27,7 @@ Un objet physiquement lançable qui ne fournit pas d'action de combat peut être
 
 À l'exécution, le stock, le poids, la Force et `HandUsage` sont réévalués, puis le mode `Cursor_Aim` commun est ouvert. Une unité n'est retirée de l'inventaire qu'après création réussie de `AGridThrownItemActor`.
 
-Quand la quantité tombe à zéro, le raccourci reste mémorisé mais grisé. Il redevient actif automatiquement dès qu'un exemplaire de la même définition revient dans l'inventaire.
+Quand la quantité tombe à zéro, le raccourci est supprimé automatiquement de la barre. Si le personnage récupère ensuite un nouvel exemplaire, le joueur doit le réaffecter explicitement par glisser-déposer depuis l'inventaire.
 
 ## Compatibilité
 

@@ -182,10 +182,10 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 		Component->SetCharacterCombatHotbarBindingFromItem(0, 6, Stone, EGridEquipmentSlot::None));
 	FGridCombatHotbarBinding StoneBinding;
 	Component->GetCharacterCombatHotbarBinding(0, 6, StoneBinding);
-	TestTrue(TEXT("The stone shortcut uses the persistent physical-throw identity"), StoneBinding.IsPhysicalThrowItemBinding());
+	TestTrue(TEXT("The stone shortcut uses the physical-throw identity while stock exists"), StoneBinding.IsPhysicalThrowItemBinding());
 	TestTrue(TEXT("Consuming the last stone succeeds"), Component->RemoveItemDefinitionFromCharacterInventory(0, Stone.ItemDefinitionId, 1));
 	Component->GetCharacterCombatHotbarBinding(0, 6, StoneBinding);
-	TestTrue(TEXT("The exhausted physical-throw shortcut remains assigned"), StoneBinding.IsPhysicalThrowItemBinding());
+	TestTrue(TEXT("The exhausted physical-throw shortcut is removed"), StoneBinding.IsEmpty());
 
 
 	UGridPartyInventoryComponent* LegacySource = GridTD062CreateInventory();
