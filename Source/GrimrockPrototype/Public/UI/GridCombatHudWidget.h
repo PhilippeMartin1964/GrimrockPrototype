@@ -213,6 +213,11 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UTextBlock> Text_ShortcutNumber;
 
+
+	/** Optional inventory quantity badge. A native fallback is created when absent from the WBP. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
+	TObjectPtr<UTextBlock> Text_Quantity;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD")
 	bool bActionPaletteEntry = false;
 
@@ -241,9 +246,14 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UGridCombatHudWidget> OwnerHud;
 
+	/** Native fallback background only; null when Text_Quantity comes from the Designer. */
+	UPROPERTY(Transient)
+	TObjectPtr<UWidget> QuantityBadgeContainer;
+
 	bool bLeftMousePressed = false;
 	bool bDragDetected = false;
 
+	void EnsureQuantityBadge();
 	void RefreshWidgets();
 };
 

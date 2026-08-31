@@ -9,6 +9,8 @@
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
 #include "Components/PanelWidget.h"
 #include "Components/ProgressBar.h"
 #include "Components/SizeBox.h"
@@ -459,6 +461,7 @@ void UGridCombatHudActionWidget::InitializeAction(UGridCombatHudWidget* InOwnerH
 	OwnerHud = InOwnerHud;
 	bActionPaletteEntry = false;
 	View = InView;
+	EnsureQuantityBadge();
 	RefreshWidgets();
 }
 
@@ -474,12 +477,14 @@ void UGridCombatHudActionWidget::InitializePaletteAction(UGridCombatHudWidget* I
 	View.Binding.SourcePolicy = InAction.Definition.SourcePolicy;
 	View.Binding.SourceDefinitionId = InAction.SourceDefinitionId;
 	View.DisabledReason = InAction.bEnabled ? FText::GetEmpty() : InAction.DisabledReason;
+	EnsureQuantityBadge();
 	RefreshWidgets();
 }
 
 void UGridCombatHudActionWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+	EnsureQuantityBadge();
 	RefreshWidgets();
 }
 
@@ -500,6 +505,64 @@ bool UGridCombatHudActionWidget::TryExecuteAction()
 
 	FGridCombatActionRequestResult Result;
 	return OwnerHud->RequestHotbarSlot(View.HotbarSlotIndex, Result);
+}
+
+void UGridCombatHudActionWidget::EnsureQuantityBadge()
+{
+	if (Text_Quantity || !WidgetTree)
+	{
+		return;
+	}
+
+	UOverlay* ContentOverlay = Button_Action ? Cast<UOverlay>(Button_Action->GetContent()) : nullptr;
+	if (!ContentOverlay)
+	{
+		ContentOverlay = Cast<UOverlay>(WidgetTree->FindWidget(TEXT("Overlay_ActionContent")));
+	}
+	if (!ContentOverlay && Text_ShortcutNumber)
+	{
+		ContentOverlay = Cast<UOverlay>(Text_ShortcutNumber->GetParent());
+	}
+	if (!ContentOverlay)
+	{
+		return;
+	}
+
+	UBorder* QuantityBackground = WidgetTree->ConstructWidget<UBorder>(
+		UBorder::StaticClass(), MakeUniqueObjectName(WidgetTree, UBorder::StaticClass(), TEXT("Border_Quantity_Runtime")));
+	UTextBlock* QuantityText = WidgetTree->ConstructWidget<UTextBlock>(
+		UTextBlock::StaticClass(), MakeUniqueObjectName(WidgetTree, UTextBlock::StaticClass(), TEXT("Text_Quantity_Runtime")));
+	if (!QuantityBackground || !QuantityText)
+	{
+		return;
+	}
+
+	QuantityBackground->SetBrushColor(FLinearColor(0.02f, 0.02f, 0.02f, 0.82f));
+	QuantityBackground->SetPadding(FMargin(4.0f, 1.0f, 4.0f, 1.0f));
+	QuantityBackground->SetHorizontalAlignment(HAlign_Center);
+	QuantityBackground->SetVerticalAlignment(VAlign_Center);
+	QuantityBackground->SetVisibility(ESlateVisibility::Collapsed);
+
+	FSlateFontInfo QuantityFont = QuantityText->GetFont();
+	QuantityFont.Size = 15;
+	QuantityText->SetFont(QuantityFont);
+	QuantityText->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+	QuantityText->SetShadowOffset(FVector2D(1.0f, 1.0f));
+	QuantityText->SetShadowColorAndOpacity(FLinearColor::Black);
+	QuantityText->SetJustification(ETextJustify::Center);
+	QuantityText->SetVisibility(ESlateVisibility::HitTestInvisible);
+	QuantityBackground->AddChild(QuantityText);
+
+	UOverlaySlot* QuantitySlot = ContentOverlay->AddChildToOverlay(QuantityBackground);
+	if (QuantitySlot)
+	{
+		QuantitySlot->SetHorizontalAlignment(HAlign_Right);
+		QuantitySlot->SetVerticalAlignment(VAlign_Bottom);
+		QuantitySlot->SetPadding(FMargin(0.0f, 0.0f, 5.0f, 5.0f));
+	}
+
+	Text_Quantity = QuantityText;
+	QuantityBadgeContainer = QuantityBackground;
 }
 
 void UGridCombatHudActionWidget::RefreshWidgets()
@@ -538,6 +601,20 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 	{
 		Text_ShortcutNumber->SetText(View.ShortcutText);
 		Text_ShortcutNumber->SetVisibility(bActionPaletteEntry ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+	}
+	if (Text_Quantity)
+	{
+		const bool bShowQuantity = !bActionPaletteEntry && View.bHasBinding && View.bResolved &&
+			View.Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem && View.Action.CurrentSourceItemQuantityCost > 0 &&
+			View.Action.CurrentSourceItemQuantity > 0;
+		Text_Quantity->SetText(bShowQuantity
+				? FText::FromString(FString::Printf(TEXT("x%d"), View.Action.CurrentSourceItemQuantity))
+				: FText::GetEmpty());
+		Text_Quantity->SetVisibility(bShowQuantity ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		if (QuantityBadgeContainer)
+		{
+			QuantityBadgeContainer->SetVisibility(bShowQuantity ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		}
 	}
 	SetRenderOpacity(!View.bHasBinding               ? FMath::Clamp(EmptySlotOpacity, 0.0f, 1.0f)
 			: View.bResolved && View.Action.bEnabled ? 1.0f

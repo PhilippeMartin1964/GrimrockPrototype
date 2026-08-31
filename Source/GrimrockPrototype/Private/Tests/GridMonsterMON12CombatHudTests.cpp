@@ -1768,4 +1768,62 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridHOTBAR011ShortcutQuantityBadgeTest, "Grimrock.Hotbar.HOTBAR01_1.ShortcutQuantityBadge",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridHOTBAR011ShortcutQuantityBadgeTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridCombatHudActionWidget* Widget = NewObject<UGridCombatHudActionWidget>();
+	if (!TestNotNull(TEXT("The quantity-badge widget is created"), Widget))
+	{
+		return false;
+	}
+	Widget->Text_Quantity = NewObject<UTextBlock>(Widget);
+	if (!TestNotNull(TEXT("The quantity text exists"), Widget->Text_Quantity))
+	{
+		return false;
+	}
+
+	FGridCombatHudActionView View;
+	View.HotbarSlotIndex = 2;
+	View.bHasBinding = true;
+	View.bResolved = true;
+	View.Binding.SlotIndex = 2;
+	View.Binding.ActionId = TEXT("ThrowItem_Stone_HOTBAR011");
+	View.Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
+	View.Binding.SourceDefinitionId = TEXT("Stone_HOTBAR011");
+	View.Action.Definition.ActionId = View.Binding.ActionId;
+	View.Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
+	View.Action.SourceDefinitionId = View.Binding.SourceDefinitionId;
+	View.Action.CurrentSourceItemQuantityCost = 1;
+	View.Action.CurrentSourceItemQuantity = 7;
+	View.Action.bEnabled = true;
+
+	Widget->InitializeAction(nullptr, View);
+	TestEqual(TEXT("A seven-unit inventory shortcut displays x7"), Widget->Text_Quantity->GetText().ToString(), FString(TEXT("x7")));
+	TestEqual(TEXT("The quantity badge is visible"), Widget->Text_Quantity->GetVisibility(), ESlateVisibility::HitTestInvisible);
+
+	View.Action.CurrentSourceItemQuantity = 1;
+	Widget->InitializeAction(nullptr, View);
+	TestEqual(TEXT("The last inventory unit is explicitly displayed as x1"), Widget->Text_Quantity->GetText().ToString(), FString(TEXT("x1")));
+
+	View.Action.CurrentSourceItemQuantity = 0;
+	Widget->InitializeAction(nullptr, View);
+	TestEqual(TEXT("Zero inventory quantity hides the badge"), Widget->Text_Quantity->GetVisibility(), ESlateVisibility::Collapsed);
+
+	View.Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
+	View.Action.CurrentSourceItemQuantity = 9;
+	Widget->InitializeAction(nullptr, View);
+	TestEqual(TEXT("Equipment-backed actions do not display a quantity"), Widget->Text_Quantity->GetVisibility(), ESlateVisibility::Collapsed);
+
+	View.Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
+	View.Action.CurrentSourceItemQuantity = 4;
+	View.Action.CurrentSourceItemQuantityCost = 0;
+	Widget->InitializeAction(nullptr, View);
+	TestEqual(TEXT("Non-consumable sources do not display a stock badge"), Widget->Text_Quantity->GetVisibility(), ESlateVisibility::Collapsed);
+	return true;
+}
+
 #endif
