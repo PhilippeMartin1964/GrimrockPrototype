@@ -429,6 +429,13 @@ public:
 	bool TryThrowOneCursorItem(const FVector& LaunchDirection, EGridItemThrowMode ThrowMode);
 
 	/**
+	 * Enters the shared utility-throw aiming mode. The item stays equipped until
+	 * the player confirms a valid world target with the mouse.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
+	bool BeginSelectedCharacterMainHandThrowAiming();
+
+	/**
 	 * Canonical exploration/puzzle throw: launches one unit held in the selected
 	 * character's MainHand. HandUsage, Weight and effective Strength decide eligibility.
 	 */

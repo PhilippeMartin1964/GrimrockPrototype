@@ -196,9 +196,39 @@ void AGrimrockPartyPawn::RefreshCombatActionPanelWidget()
 	}
 }
 
+bool AGrimrockPartyPawn::BeginSelectedCharacterMainHandThrowAiming()
+{
+	AGrimrockPlayerController* PlayerController = Cast<AGrimrockPlayerController>(GetController());
+	if (!PartyInventoryComponent || !LevelRuntimeActor || !PlayerController)
+	{
+		return false;
+	}
+
+	if (bInventoryWidgetVisible || PlayerController->bInventoryUiOpen)
+	{
+		HideInventoryWidget();
+	}
+	return PlayerController->BeginPhysicalThrowAiming();
+}
+
 bool AGrimrockPartyPawn::TryExecuteCombatHotbarSlot(int32 SlotIndex)
 {
-	if (!IsValid(CombatHudWidgetInstance) || IsCombatHotbarExecutionBlocked())
+	if (IsCombatHotbarExecutionBlocked() || SlotIndex < 0 || SlotIndex >= FGridCombatHotbarBinding::SlotCount)
+	{
+		return false;
+	}
+
+	if (PartyInventoryComponent)
+	{
+		FGridCombatHotbarBinding Binding;
+		if (PartyInventoryComponent->GetCharacterCombatHotbarBinding(PartyInventoryComponent->GetSelectedCharacterIndex(), SlotIndex, Binding) &&
+			Binding.ActionId == FGridCombatHotbarBinding::MakeThrowMainHandActionId())
+		{
+			return BeginSelectedCharacterMainHandThrowAiming();
+		}
+	}
+
+	if (!IsValid(CombatHudWidgetInstance))
 	{
 		return false;
 	}

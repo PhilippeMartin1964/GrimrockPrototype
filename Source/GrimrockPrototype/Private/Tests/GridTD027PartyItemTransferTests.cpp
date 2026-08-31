@@ -2,11 +2,14 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Components/SphereComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "Runtime/GridItemContextActionLibrary.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
 namespace
@@ -224,6 +227,37 @@ bool FGridTD027PhysicalThrowRulesTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("The 3 kg throw is disabled for Strength 10"), ThrowAction->bEnabled);
 	TestFalse(TEXT("The disabled heavy throw explains the reason"), ThrowAction->DisabledReason.IsEmpty());
 
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD027PhysicalThrowAimingContractTest,
+	"Grimrock.TechnicalDebt.TD02_7.PartyItemTransfer.PhysicalThrowAimingContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridTD027PhysicalThrowAimingContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	FGridCombatHotbarBinding Binding;
+	Binding.SlotIndex = 2;
+	Binding.ActionId = FGridCombatHotbarBinding::MakeThrowMainHandActionId();
+	Binding.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
+	TestEqual(TEXT("The generic hotbar identity is stable"), Binding.ActionId, FName(TEXT("ThrowMainHand")));
+	TestTrue(TEXT("The generic MainHand throw is a valid persistent universal binding"), Binding.IsValid());
+
+	FGridTD027TestWorld TestWorld;
+	if (!TestNotNull(TEXT("The projectile contract world is created"), TestWorld.World))
+	{
+		return false;
+	}
+	AGridThrownItemActor* Projectile = TestWorld.World->SpawnActor<AGridThrownItemActor>();
+	if (!TestNotNull(TEXT("The thrown-item projectile is spawned"), Projectile) || !Projectile->CollisionComponent || !Projectile->ProjectileMovementComponent)
+	{
+		return false;
+	}
+	TestTrue(TEXT("Projectile movement uses swept collision"), Projectile->ProjectileMovementComponent->bSweepCollision);
+	TestEqual(TEXT("Thrown items block on WorldStatic walls"), Projectile->CollisionComponent->GetCollisionResponseToChannel(ECC_WorldStatic), ECR_Block);
+	TestEqual(TEXT("Thrown items block on WorldDynamic doors"), Projectile->CollisionComponent->GetCollisionResponseToChannel(ECC_WorldDynamic), ECR_Block);
 	return true;
 }
 

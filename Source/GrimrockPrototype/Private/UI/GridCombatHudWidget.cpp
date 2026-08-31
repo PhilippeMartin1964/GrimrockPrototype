@@ -71,6 +71,82 @@ namespace
 			SourcePolicy == EGridCombatActionSourcePolicy::Spell;
 	}
 
+	bool IsPhysicalThrowMainHandAction(FName ActionId)
+	{
+		return ActionId == FGridCombatHotbarBinding::MakeThrowMainHandActionId();
+	}
+
+	FGridAvailableCombatAction BuildPhysicalThrowMainHandAction(
+		const AGrimrockPartyPawn* PartyPawn, const UGridPartyInventoryComponent* InventoryComponent, int32 CharacterIndex)
+	{
+		FGridAvailableCombatAction Action;
+		Action.Definition.ActionId = FGridCombatHotbarBinding::MakeThrowMainHandActionId();
+		Action.Definition.DisplayName = FText::FromString(TEXT("Lancer MainHand"));
+		Action.Definition.Description = FText::FromString(
+			TEXT("Lance physiquement l'objet tenu en main droite. La Force et le poids déterminent la capacité et la vitesse ; aucune compétence de combat n'est requise."));
+		Action.Definition.ActionType = EGridCombatActionType::Ability;
+		Action.Definition.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
+		Action.Definition.TargetingPolicy = EGridCombatTargetingPolicy::Self;
+		Action.Definition.ResolutionProfile = EGridCombatActionResolutionProfile::Interaction;
+		Action.Definition.ActionPointCost = 0;
+		Action.CharacterIndex = CharacterIndex;
+		Action.CurrentActionPointCost = 0;
+		Action.AvailabilityReason = EGridCombatActionAvailabilityReason::NoApplicableEffect;
+
+		if (!IsValid(InventoryComponent) || !InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
+		{
+			Action.DisabledReason = FText::FromString(TEXT("Personnage indisponible."));
+			return Action;
+		}
+		Action.CharacterId = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
+		if (!IsValid(PartyPawn) || !IsValid(PartyPawn->LevelRuntimeActor))
+		{
+			Action.DisabledReason = FText::FromString(TEXT("Aucun niveau actif."));
+			return Action;
+		}
+
+		FGridItemInstance MainHandItem;
+		if (!InventoryComponent->GetEquippedItem(CharacterIndex, EGridEquipmentSlot::MainHand, MainHandItem))
+		{
+			Action.DisabledReason = FText::FromString(TEXT("MainHand vide."));
+			return Action;
+		}
+		UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(MainHandItem.ItemDefinitionId);
+		if (!IsValid(Definition))
+		{
+			Definition = PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition(MainHandItem.ItemDefinitionId);
+		}
+		if (!IsValid(Definition))
+		{
+			Action.DisabledReason = FText::FromString(TEXT("Définition d'objet indisponible."));
+			return Action;
+		}
+		Action.Definition.Icon = Definition->Icon;
+		if (Definition->GetEffectiveHandUsage() != EGridItemHandUsage::OneHanded)
+		{
+			Action.DisabledReason = FText::FromString(TEXT("Cet objet ne peut pas être lancé d'une seule main."));
+			return Action;
+		}
+
+		FGridInventoryCharacterSummary Summary;
+		if (!InventoryComponent->GetCharacterSummary(CharacterIndex, Summary))
+		{
+			Action.DisabledReason = FText::FromString(TEXT("Caractéristiques du personnage indisponibles."));
+			return Action;
+		}
+		if (!Definition->CanBeThrownByStrength(Summary.Attributes.Strength))
+		{
+			Action.DisabledReason = FText::Format(FText::FromString(TEXT("Trop lourd : {0} kg (maximum {1} kg avec Force {2}).")),
+				FText::AsNumber(Definition->Weight), FText::AsNumber(Definition->GetMaxThrowableWeightForStrength(Summary.Attributes.Strength)),
+				FText::AsNumber(Summary.Attributes.Strength));
+			return Action;
+		}
+
+		Action.bEnabled = true;
+		Action.AvailabilityReason = EGridCombatActionAvailabilityReason::None;
+		return Action;
+	}
+
 	bool IsSpellbookManagedAction(const FGridAvailableCombatAction& Action)
 	{
 		// Spellbook actions use SpellId as both action and source definition
@@ -638,6 +714,20 @@ void UGridCombatHudWidget::RefreshFromSources()
 			}
 		}
 	}
+	if (View.ActiveCharacterIndex != INDEX_NONE)
+	{
+		const FGridAvailableCombatAction PhysicalThrowAction = BuildPhysicalThrowMainHandAction(PartyPawn, InventoryComponent, View.ActiveCharacterIndex);
+		AvailableActions.RemoveAll([](const FGridAvailableCombatAction& Candidate)
+		{
+			return IsPhysicalThrowMainHandAction(Candidate.Definition.ActionId);
+		});
+		AvailableActions.Add(PhysicalThrowAction);
+		View.ActionPalette.RemoveAll([](const FGridAvailableCombatAction& Candidate)
+		{
+			return IsPhysicalThrowMainHandAction(Candidate.Definition.ActionId);
+		});
+		View.ActionPalette.Add(PhysicalThrowAction);
+	}
 	FGridCombatHudViewModelBuilder::BuildHotbarActions(HotbarBindings, AvailableActions, View.Actions);
 	for (FGridCombatHudActionView& ActionView : View.Actions)
 	{
@@ -725,6 +815,16 @@ bool UGridCombatHudWidget::RequestHotbarSlot(int32 SlotIndex, FGridCombatActionR
 	}
 
 	const FGridCombatHudActionView ActionView = View.Actions[SlotIndex];
+	if (ActionView.bHasBinding && ActionView.bResolved && IsPhysicalThrowMainHandAction(ActionView.Action.Definition.ActionId))
+	{
+		OutResult.Action = ActionView.Action;
+		if (!ActionView.Action.bEnabled || !IsValid(PartyPawn))
+		{
+			return false;
+		}
+		CancelCombatActionTargeting();
+		return PartyPawn->BeginSelectedCharacterMainHandThrowAiming();
+	}
 	if (ActionView.bHasBinding && ActionView.bResolved && ActionView.Action.bEnabled &&
 		(ActionView.Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Cell ||
 			ActionView.Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area))
@@ -865,6 +965,17 @@ bool UGridCombatHudWidget::HandleHotbarDrop(int32 TargetSlotIndex, UDragDropOper
 
 		if (HotbarOperation->bFromActionPalette)
 		{
+			if (IsPhysicalThrowMainHandAction(HotbarOperation->Binding.ActionId))
+			{
+				const FGridAvailableCombatAction* UtilityAction = View.ActionPalette.FindByPredicate(
+					[](const FGridAvailableCombatAction& Candidate)
+					{
+						return IsPhysicalThrowMainHandAction(Candidate.Definition.ActionId);
+					});
+				return HotbarOperation->CharacterIndex == View.ActiveCharacterIndex && UtilityAction &&
+					AssignCombatActionToHotbarSlot(TargetSlotIndex, *UtilityAction);
+			}
+
 			TArray<FGridAvailableCombatAction> CurrentActions;
 			if (IsValid(TurnManagerComponent))
 			{
@@ -899,9 +1010,22 @@ bool UGridCombatHudWidget::HandleHotbarDrop(int32 TargetSlotIndex, UDragDropOper
 
 bool UGridCombatHudWidget::AssignCombatActionToHotbarSlot(int32 TargetSlotIndex, const FGridAvailableCombatAction& Action)
 {
-	if (!IsValid(InventoryComponent) || !IsValid(TurnManagerComponent) || View.ActiveCharacterIndex == INDEX_NONE ||
-		Action.CharacterIndex != View.ActiveCharacterIndex || TargetSlotIndex < 0 || TargetSlotIndex >= FGridCombatHotbarBinding::SlotCount ||
-		!IsActionPaletteSource(Action.Definition.SourcePolicy))
+	if (!IsValid(InventoryComponent) || View.ActiveCharacterIndex == INDEX_NONE || Action.CharacterIndex != View.ActiveCharacterIndex || TargetSlotIndex < 0 ||
+		TargetSlotIndex >= FGridCombatHotbarBinding::SlotCount || !IsActionPaletteSource(Action.Definition.SourcePolicy))
+	{
+		return false;
+	}
+
+	if (IsPhysicalThrowMainHandAction(Action.Definition.ActionId))
+	{
+		FGridCombatHotbarBinding Binding;
+		Binding.SlotIndex = TargetSlotIndex;
+		Binding.ActionId = FGridCombatHotbarBinding::MakeThrowMainHandActionId();
+		Binding.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
+		return Binding.IsValid() && InventoryComponent->SetCharacterCombatHotbarBinding(View.ActiveCharacterIndex, TargetSlotIndex, Binding);
+	}
+
+	if (!IsValid(TurnManagerComponent))
 	{
 		return false;
 	}

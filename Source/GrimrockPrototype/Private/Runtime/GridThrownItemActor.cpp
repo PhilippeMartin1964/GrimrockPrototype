@@ -39,6 +39,8 @@ AGridThrownItemActor::AGridThrownItemActor()
 
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
 	ProjectileMovementComponent->UpdatedComponent = CollisionComponent;
+	// Explicit swept movement prevents fast thrown items from tunnelling through blocking geometry.
+	ProjectileMovementComponent->bSweepCollision = true;
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;
 	ProjectileMovementComponent->bShouldBounce = false;
 	ProjectileMovementComponent->ProjectileGravityScale = 1.0f;

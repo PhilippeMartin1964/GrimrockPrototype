@@ -31,6 +31,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void SetInventoryUiOpen(bool bOpen);
 
+	/** Starts the exploration/puzzle MainHand throw targeting mode. */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
+	bool BeginPhysicalThrowAiming();
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
+	void CancelPhysicalThrowAiming();
+
+	UFUNCTION(BlueprintPure, Category = "Inventory|Throw")
+	bool IsPhysicalThrowAimingActive() const
+	{
+		return bPhysicalThrowAimingActive;
+	}
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction", meta = (ClampMin = "0.0"))
 	float MaxInteractionDistance = 300.f;
@@ -40,6 +53,15 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
 	float MaxThrowTargetDistance = 2000.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Throw")
+	bool bPhysicalThrowAimingActive = false;
+
+	UPROPERTY(Transient)
+	int32 PhysicalThrowCharacterIndex = INDEX_NONE;
+
+	UPROPERTY(Transient)
+	FGuid PhysicalThrowSourceRuntimeId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Debug")
 	bool bDebugMouseInteraction = false;
@@ -96,6 +118,8 @@ protected:
 
 	void HandleLeftMousePressed();
 	void HandleCancelCombatTargeting();
+	bool UpdatePhysicalThrowAiming();
+	bool HandlePhysicalThrowAimingClick();
 	void UpdateHoveredInteractable();
 	bool UpdateCombatTargeting();
 	bool HandleCombatTargetingClick();

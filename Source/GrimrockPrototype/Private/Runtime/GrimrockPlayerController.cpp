@@ -100,6 +100,61 @@ namespace
 			Definition->CanBeThrownByStrength(Summary.Attributes.Strength);
 	}
 
+	bool ResolvePhysicalThrowMainHand(const AGrimrockPartyPawn* PartyPawn, int32 ExpectedCharacterIndex, const FGuid& ExpectedRuntimeId,
+		FGridItemInstance& OutItem, UGridItemDefinitionAsset*& OutDefinition, FText& OutReason)
+	{
+		OutItem = FGridItemInstance();
+		OutDefinition = nullptr;
+		OutReason = FText::GetEmpty();
+		if (!PartyPawn || !PartyPawn->PartyInventoryComponent || !PartyPawn->LevelRuntimeActor)
+		{
+			OutReason = FText::FromString(TEXT("Aucun niveau actif."));
+			return false;
+		}
+
+		const int32 CharacterIndex = PartyPawn->PartyInventoryComponent->GetSelectedCharacterIndex();
+		if (ExpectedCharacterIndex != INDEX_NONE && CharacterIndex != ExpectedCharacterIndex)
+		{
+			OutReason = FText::FromString(TEXT("Le personnage sélectionné a changé."));
+			return false;
+		}
+		if (!PartyPawn->PartyInventoryComponent->GetEquippedItem(CharacterIndex, EGridEquipmentSlot::MainHand, OutItem))
+		{
+			OutReason = FText::FromString(TEXT("La main droite est vide."));
+			return false;
+		}
+		if (ExpectedRuntimeId.IsValid() && OutItem.RuntimeObjectId != ExpectedRuntimeId)
+		{
+			OutReason = FText::FromString(TEXT("L'objet tenu en main a changé."));
+			return false;
+		}
+
+		OutDefinition = PartyPawn->PartyInventoryComponent->FindItemDefinition(OutItem.ItemDefinitionId);
+		if (!IsValid(OutDefinition))
+		{
+			OutDefinition = PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition(OutItem.ItemDefinitionId);
+		}
+		FGridInventoryCharacterSummary Summary;
+		if (!IsValid(OutDefinition) || !PartyPawn->PartyInventoryComponent->GetCharacterSummary(CharacterIndex, Summary))
+		{
+			OutReason = FText::FromString(TEXT("Définition d'objet ou personnage indisponible."));
+			return false;
+		}
+		if (OutDefinition->GetEffectiveHandUsage() != EGridItemHandUsage::OneHanded)
+		{
+			OutReason = FText::FromString(TEXT("Cet objet ne peut pas être lancé d'une seule main."));
+			return false;
+		}
+		if (!OutDefinition->CanBeThrownByStrength(Summary.Attributes.Strength))
+		{
+			OutReason = FText::Format(FText::FromString(TEXT("Trop lourd : {0} kg (maximum {1} kg avec Force {2}).")),
+				FText::AsNumber(OutDefinition->Weight), FText::AsNumber(OutDefinition->GetMaxThrowableWeightForStrength(Summary.Attributes.Strength)),
+				FText::AsNumber(Summary.Attributes.Strength));
+			return false;
+		}
+		return true;
+	}
+
 }
 
 AGrimrockPlayerController::AGrimrockPlayerController()
@@ -129,6 +184,10 @@ void AGrimrockPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
+	if (UpdatePhysicalThrowAiming())
+	{
+		return;
+	}
 	if (!UpdateCombatTargeting())
 	{
 		UpdateHoveredInteractable();
@@ -184,6 +243,129 @@ void AGrimrockPlayerController::SetupInputComponent()
 	UE_LOG(LogGridTurnManagerInput, Log, TEXT("[GridTurnManagerInput] Bound NumPad 1-7 PlayerController=%s InputComponent=%s"), *GetNameSafe(this),
 		*GetNameSafe(InputComponent));
 #endif
+}
+
+bool AGrimrockPlayerController::BeginPhysicalThrowAiming()
+{
+	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
+	if (!PartyPawn || bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() || PartyPawn->HasCursorItem() ||
+		(IsValid(PartyPawn->LevelRuntimeActor) && PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()))
+	{
+		return false;
+	}
+
+	FGridItemInstance MainHandItem;
+	UGridItemDefinitionAsset* Definition = nullptr;
+	FText Reason;
+	if (!ResolvePhysicalThrowMainHand(PartyPawn, INDEX_NONE, FGuid(), MainHandItem, Definition, Reason))
+	{
+		if (!Reason.IsEmpty())
+		{
+			ShowInteractionFeedback(Reason);
+		}
+		return false;
+	}
+
+	if (IsValid(PartyPawn->CombatHudWidgetInstance))
+	{
+		PartyPawn->CombatHudWidgetInstance->CancelCombatActionTargeting();
+	}
+	PhysicalThrowCharacterIndex = PartyPawn->PartyInventoryComponent->GetSelectedCharacterIndex();
+	PhysicalThrowSourceRuntimeId = MainHandItem.RuntimeObjectId;
+	bPhysicalThrowAimingActive = true;
+	SetGridInteractionCursor(EGridInteractionCursor::AimThrow, TEXT("PhysicalThrowAimingBegin"));
+	ShowInteractionFeedback(FText::FromString(TEXT("Visez un point du décor puis cliquez pour lancer. Échap ou clic droit pour annuler.")));
+	return true;
+}
+
+void AGrimrockPlayerController::CancelPhysicalThrowAiming()
+{
+	if (!bPhysicalThrowAimingActive)
+	{
+		return;
+	}
+	bPhysicalThrowAimingActive = false;
+	PhysicalThrowCharacterIndex = INDEX_NONE;
+	PhysicalThrowSourceRuntimeId = FGuid();
+	SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("PhysicalThrowAimingCancel"));
+}
+
+bool AGrimrockPlayerController::UpdatePhysicalThrowAiming()
+{
+	if (!bPhysicalThrowAimingActive)
+	{
+		return false;
+	}
+
+	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
+	FGridItemInstance MainHandItem;
+	UGridItemDefinitionAsset* Definition = nullptr;
+	FText Reason;
+	if (!PartyPawn || bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() ||
+		(IsValid(PartyPawn->LevelRuntimeActor) && PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()) ||
+		!ResolvePhysicalThrowMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Definition, Reason))
+	{
+		CancelPhysicalThrowAiming();
+		return false;
+	}
+
+	FHitResult HitResult;
+	const bool bHasTarget = TryGetWorldHitUnderCursor(HitResult);
+	const FVector StartLocation = PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : PartyPawn->GetActorLocation();
+	const FVector TargetOffset = bHasTarget ? HitResult.ImpactPoint - StartLocation : FVector::ZeroVector;
+	const float TargetDistance = TargetOffset.Size();
+	const bool bTargetValid = bHasTarget && !TargetOffset.IsNearlyZero() && (MaxThrowTargetDistance <= 0.f || TargetDistance <= MaxThrowTargetDistance);
+	SetGridInteractionCursor(bTargetValid ? EGridInteractionCursor::AimThrow : EGridInteractionCursor::CannotPlaceItem,
+		bTargetValid ? TEXT("PhysicalThrowAimingValidTarget") : TEXT("PhysicalThrowAimingInvalidTarget"));
+	return true;
+}
+
+bool AGrimrockPlayerController::HandlePhysicalThrowAimingClick()
+{
+	if (!bPhysicalThrowAimingActive)
+	{
+		return false;
+	}
+
+	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
+	FGridItemInstance MainHandItem;
+	UGridItemDefinitionAsset* Definition = nullptr;
+	FText Reason;
+	if (!ResolvePhysicalThrowMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Definition, Reason))
+	{
+		if (!Reason.IsEmpty())
+		{
+			ShowInteractionFeedback(Reason);
+		}
+		CancelPhysicalThrowAiming();
+		return true;
+	}
+
+	FHitResult HitResult;
+	if (!TryGetWorldHitUnderCursor(HitResult))
+	{
+		ShowInteractionFeedback(FText::FromString(TEXT("Aucune cible de lancer sous le curseur.")));
+		return true;
+	}
+
+	const FVector StartLocation = PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : PartyPawn->GetActorLocation();
+	const FVector TargetOffset = HitResult.ImpactPoint - StartLocation;
+	const float TargetDistance = TargetOffset.Size();
+	if (TargetOffset.IsNearlyZero() || (MaxThrowTargetDistance > 0.f && TargetDistance > MaxThrowTargetDistance))
+	{
+		ShowInteractionFeedback(FText::FromString(TEXT("Cible de lancer trop éloignée ou invalide.")));
+		return true;
+	}
+
+	if (!PartyPawn->TryThrowSelectedCharacterMainHandItem(TargetOffset))
+	{
+		ShowInteractionFeedback(FText::FromString(TEXT("Lancer impossible.")));
+		return true;
+	}
+
+	CancelPhysicalThrowAiming();
+	PartyPawn->RefreshCombatActionPanelWidget();
+	return true;
 }
 
 #if !UE_BUILD_SHIPPING
@@ -334,6 +516,7 @@ void AGrimrockPlayerController::SetInventoryUiOpen(bool bOpen)
 	bInventoryUiOpen = bOpen;
 	if (bOpen)
 	{
+		CancelPhysicalThrowAiming();
 		if (AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn()); PartyPawn && IsValid(PartyPawn->CombatHudWidgetInstance))
 		{
 			PartyPawn->CombatHudWidgetInstance->CancelCombatActionTargeting();
@@ -582,6 +765,12 @@ bool AGrimrockPlayerController::HandleCombatTargetingClick()
 
 void AGrimrockPlayerController::HandleCancelCombatTargeting()
 {
+	if (bPhysicalThrowAimingActive)
+	{
+		CancelPhysicalThrowAiming();
+		return;
+	}
+
 	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
 	UGridCombatHudWidget* Hud = PartyPawn ? PartyPawn->CombatHudWidgetInstance.Get() : nullptr;
 	if (!IsValid(Hud) || !Hud->IsCombatActionTargetingActive())
@@ -595,6 +784,10 @@ void AGrimrockPlayerController::HandleCancelCombatTargeting()
 
 void AGrimrockPlayerController::HandleLeftMousePressed()
 {
+	if (HandlePhysicalThrowAimingClick())
+	{
+		return;
+	}
 	if (HandleCombatTargetingClick())
 	{
 		return;

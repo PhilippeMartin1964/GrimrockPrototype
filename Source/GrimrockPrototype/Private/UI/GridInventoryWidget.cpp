@@ -1631,7 +1631,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			const EGridEquipmentSlot SourceEquipmentSlot = ResolveSourceEquipmentSlot(Action, SourceSlotType);
 			if (OwningPartyPawn && SourceEquipmentSlot == EGridEquipmentSlot::MainHand)
 			{
-				bExecuted = OwningPartyPawn->TryThrowSelectedCharacterMainHandItem(FVector::ZeroVector);
+				bExecuted = OwningPartyPawn->BeginSelectedCharacterMainHandThrowAiming();
 			}
 			break;
 		}

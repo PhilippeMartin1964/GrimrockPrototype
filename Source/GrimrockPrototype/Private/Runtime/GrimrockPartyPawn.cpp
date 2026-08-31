@@ -572,6 +572,12 @@ void AGrimrockPartyPawn::ApplyCameraOffsets()
 
 void AGrimrockPartyPawn::BeginFreeLook()
 {
+	if (AGrimrockPlayerController* PlayerController = Cast<AGrimrockPlayerController>(GetController());
+		PlayerController && PlayerController->IsPhysicalThrowAimingActive())
+	{
+		PlayerController->CancelPhysicalThrowAiming();
+		return;
+	}
 	bIsFreeLooking = true;
 }
 

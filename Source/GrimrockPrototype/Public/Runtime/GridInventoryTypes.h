@@ -92,6 +92,12 @@ struct FGridCombatHotbarBinding
 		return ItemDefinitionId.IsNone() ? NAME_None : FName(*FString::Printf(TEXT("Use_%s"), *ItemDefinitionId.ToString()));
 	}
 
+	/** Generic exploration action: throw the selected character's current MainHand item. */
+	static FName MakeThrowMainHandActionId()
+	{
+		return TEXT("ThrowMainHand");
+	}
+
 	bool IsValid() const
 	{
 		if (SlotIndex < 0 || SlotIndex >= SlotCount)
