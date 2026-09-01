@@ -982,3 +982,18 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Un `TargetLevelId` explicite invalide retombe automatiquement sur le niveau inférieur et produit un warning.
 - `TargetFacing=None` conserve l'orientation actuelle du groupe.
 - Si aucun niveau inférieur n'existe réellement, le runtime produit désormais une erreur explicite au lieu d'échouer silencieusement.
+
+
+---
+
+## 2026-09-01 — Pit : priorité physique et fosse statique toujours ouverte
+
+### Décisions validées
+
+- À la fin d'une translation, la détection d'une Pit ouverte est exécutée avant les triggers, plaques, TurnManager et transitions ordinaires.
+- Une Pit sans `Moving Mesh` est une fosse statique physiquement ouverte, même si d'anciennes données d'instance portent un état Closed incohérent.
+- Une commande `Close` est rejetée sur une Pit sans couvercle.
+- Le runtime reconnaît une Pit par `Type=Pit` ou par un archetype dont `SupportedType=Pit`.
+- Un GUID d'objet invalide n'empêche plus une fosse statique de fonctionner.
+- Le flag générique `bInitiallyEnabled` ne neutralise plus la physique d'une fosse Open.
+- PIT01 possède désormais un test de bout en bout qui effectue réellement un déplacement d'une case voisine vers la Pit et exige le démarrage automatique de `BeginPitFall`.

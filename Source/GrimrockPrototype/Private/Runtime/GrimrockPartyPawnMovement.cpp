@@ -498,6 +498,15 @@ void AGrimrockPartyPawn::UpdateMove(float DeltaSeconds)
 		ActiveMoveDirection = EGridEdge::None;
 		if (LevelRuntimeActor)
 		{
+			// A physical open Pit has absolute priority on cell entry. Do this before
+			// triggers, pressure plates, combat turn completion or generic transitions
+			// so no secondary cell event can suppress the fall.
+			if (LevelRuntimeActor->TryBeginPitFallAtCell(CurrentCellX, CurrentCellY, this))
+			{
+				ClearBufferedCommand();
+				return;
+			}
+
 			LevelRuntimeActor->HandlePartyCellChanged(MoveStartCellX, MoveStartCellY, CurrentCellX, CurrentCellY);
 			if (UGridTurnManagerComponent* TurnManager = FindTurnManager())
 			{
@@ -515,10 +524,7 @@ void AGrimrockPartyPawn::UpdateMove(float DeltaSeconds)
 					}
 				}
 			}
-			if (!LevelRuntimeActor->TryBeginPitFallAtCell(CurrentCellX, CurrentCellY, this))
-			{
-				LevelRuntimeActor->TryExecuteTransitionAtCell(CurrentCellX, CurrentCellY, this, false);
-			}
+			LevelRuntimeActor->TryExecuteTransitionAtCell(CurrentCellX, CurrentCellY, this, false);
 		}
 	}
 }

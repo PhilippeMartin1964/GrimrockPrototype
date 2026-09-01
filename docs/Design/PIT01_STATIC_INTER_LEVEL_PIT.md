@@ -1,5 +1,8 @@
 # PIT01 — Static Inter-Level Pit
 
+> **Correction runtime (01.09.2026).** Une fosse statique sans `Moving Mesh` est toujours physiquement ouverte. Le runtime reconnaît aussi une Pit par son archetype si le `Type` stocké dans un ancien objet placé est obsolète, et un GUID invalide n'empêche plus la chute statique. À la fin d'un déplacement, la détection Pit est prioritaire sur les triggers, plaques, TurnManager et transitions ordinaires.
+
+
 > **Correction de contrat (01.09.2026).** Une Pit ouverte est intrinsèquement une cellule de chute. Elle ne dépend plus de `Transition.bIsTransition`, de `bRequireUseAction`, ni d'un `Target Level Id` manuel pour fonctionner. Avec `Target Level Id = None`, le niveau inférieur est résolu automatiquement.
 
 

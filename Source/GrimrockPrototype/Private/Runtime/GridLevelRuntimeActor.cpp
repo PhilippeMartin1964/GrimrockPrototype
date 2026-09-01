@@ -1121,7 +1121,7 @@ bool AGridLevelRuntimeActor::FindTransitionAtCell(int32 CellX, int32 CellY, bool
 	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
 	{
 		const FGridObjectTransitionParams& Transition = Obj.Behavior.Transition;
-		if (Obj.Type == EGridLevelObjectType::Pit || Obj.CellX != CellX || Obj.CellY != CellY || !Transition.bIsTransition)
+		if (IsEffectivePitObject(Obj) || Obj.CellX != CellX || Obj.CellY != CellY || !Transition.bIsTransition)
 		{
 			continue;
 		}
@@ -1152,19 +1152,47 @@ bool AGridLevelRuntimeActor::FindTransitionAtCell(int32 CellX, int32 CellY, bool
 	return bFoundUsableTransition;
 }
 
+bool AGridLevelRuntimeActor::IsEffectivePitObject(const FGridLevelObjectData& ObjectData) const
+{
+	if (ObjectData.Type == EGridLevelObjectType::Pit)
+	{
+		return true;
+	}
+
+	// Prototype repair path: existing placed objects may retain a stale stored Type
+	// after an archetype evolves. The archetype is authoritative for gameplay kind.
+	const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(ObjectData.ArchetypeId);
+	return Archetype && Archetype->SupportedType == EGridLevelObjectType::Pit;
+}
+
 bool AGridLevelRuntimeActor::IsPitOpenForLevel(FName LevelId, const FGridLevelObjectData& PitObject) const
 {
-	if (PitObject.Type != EGridLevelObjectType::Pit || !PitObject.ObjectId.IsValid())
+	if (!IsEffectivePitObject(PitObject))
 	{
 		return false;
 	}
 
-	const FName RuntimeLevelId = DungeonAsset && !LevelId.IsNone() ? LevelId : SingleLevelRuntimeStateId;
-	if (const FGridLevelRuntimeState* State = DungeonRuntimeState.LevelStates.Find(RuntimeLevelId))
+	// A Pit with no trapdoor cover is physically an open hole. It cannot be
+	// gameplay-Closed because there is no MovingMesh covering the cell.
+	if (const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(PitObject.ArchetypeId))
 	{
-		if (const FGridRuntimePitState* PitState = State->Pits.Find(PitObject.ObjectId))
+		if (!Archetype->MovingMesh)
 		{
-			return PitState->bIsOpen;
+			return true;
+		}
+	}
+
+	// A missing legacy/stale ObjectId must not turn an authored open hole into a
+	// harmless floor. Runtime controlled state requires an id, but initial state does not.
+	if (PitObject.ObjectId.IsValid())
+	{
+		const FName RuntimeLevelId = DungeonAsset && !LevelId.IsNone() ? LevelId : SingleLevelRuntimeStateId;
+		if (const FGridLevelRuntimeState* State = DungeonRuntimeState.LevelStates.Find(RuntimeLevelId))
+		{
+			if (const FGridRuntimePitState* PitState = State->Pits.Find(PitObject.ObjectId))
+			{
+				return PitState->bIsOpen;
+			}
 		}
 	}
 
@@ -1186,9 +1214,9 @@ bool AGridLevelRuntimeActor::IsPitOpen(FGuid PitObjectId) const
 	}
 
 	const FGridLevelObjectData* PitObject = LevelAsset->Objects.FindByPredicate(
-		[&PitObjectId](const FGridLevelObjectData& Candidate)
+		[this, &PitObjectId](const FGridLevelObjectData& Candidate)
 		{
-			return Candidate.ObjectId == PitObjectId && Candidate.Type == EGridLevelObjectType::Pit;
+			return Candidate.ObjectId == PitObjectId && IsEffectivePitObject(Candidate);
 		});
 	return PitObject && IsPitOpenForLevel(CurrentDungeonLevelId, *PitObject);
 }
@@ -1201,12 +1229,21 @@ bool AGridLevelRuntimeActor::SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmi
 	}
 
 	const FGridLevelObjectData* PitObject = LevelAsset->Objects.FindByPredicate(
-		[&PitObjectId](const FGridLevelObjectData& Candidate)
+		[this, &PitObjectId](const FGridLevelObjectData& Candidate)
 		{
-			return Candidate.ObjectId == PitObjectId && Candidate.Type == EGridLevelObjectType::Pit;
+			return Candidate.ObjectId == PitObjectId && IsEffectivePitObject(Candidate);
 		});
 	if (!PitObject || !PitObject->bInitiallyEnabled)
 	{
+		return false;
+	}
+
+	const UGridObjectArchetypeAsset* PitArchetype = FindObjectArchetype(PitObject->ArchetypeId);
+	if (!bOpen && PitArchetype && !PitArchetype->MovingMesh)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("GridPit Close ignored ObjectId=%s Cell=(%d,%d): archetype %s has no MovingMesh cover; static Pit remains Open."),
+			*PitObjectId.ToString(), PitObject->CellX, PitObject->CellY, *PitObject->ArchetypeId.ToString());
 		return false;
 	}
 
@@ -1286,9 +1323,9 @@ void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, b
 	}
 
 	const FGridLevelObjectData* PitObject = LevelAsset->Objects.FindByPredicate(
-		[&PitObjectId](const FGridLevelObjectData& Candidate)
+		[this, &PitObjectId](const FGridLevelObjectData& Candidate)
 		{
-			return Candidate.ObjectId == PitObjectId && Candidate.Type == EGridLevelObjectType::Pit;
+			return Candidate.ObjectId == PitObjectId && IsEffectivePitObject(Candidate);
 		});
 	if (!PitObject)
 	{
@@ -1328,11 +1365,24 @@ bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridOb
 	{
 		// A Pit is intrinsically a fall-through cell when it is enabled and Open.
 		// It must not depend on the generic Transition enable/use flags.
-		if (Obj.Type != EGridLevelObjectType::Pit || Obj.CellX != CellX || Obj.CellY != CellY || !Obj.bInitiallyEnabled ||
-			!IsPitOpen(Obj.ObjectId))
+		if (!IsEffectivePitObject(Obj) || Obj.CellX != CellX || Obj.CellY != CellY)
 		{
 			continue;
 		}
+
+		const bool bPitOpen = Obj.ObjectId.IsValid() ? IsPitOpen(Obj.ObjectId) : IsPitOpenForLevel(CurrentDungeonLevelId, Obj);
+		if (!bPitOpen)
+		{
+			UE_LOG(LogTemp, Verbose,
+				TEXT("GridPit cell detected but closed Cell=(%d,%d) ObjectId=%s ArchetypeId=%s StoredType=%s."),
+				CellX, CellY, *Obj.ObjectId.ToString(), *Obj.ArchetypeId.ToString(), *GetGridObjectTypeName(Obj.Type));
+			continue;
+		}
+
+		UE_LOG(LogTemp, Log,
+			TEXT("GridPit OPEN cell entered Cell=(%d,%d) ObjectId=%s ArchetypeId=%s StoredType=%s CurrentLevel=%s."),
+			CellX, CellY, *Obj.ObjectId.ToString(), *Obj.ArchetypeId.ToString(), *GetGridObjectTypeName(Obj.Type),
+			*CurrentDungeonLevelId.ToString());
 
 		OutTransition = Obj.Behavior.Transition;
 
@@ -1375,6 +1425,15 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 	FGridObjectTransitionParams Transition;
 	if (!FindOpenPitAtCell(CellX, CellY, Transition))
 	{
+		const bool bAnyPitAtCell = LevelAsset && LevelAsset->Objects.ContainsByPredicate(
+			[this, CellX, CellY](const FGridLevelObjectData& Candidate)
+			{
+				return Candidate.CellX == CellX && Candidate.CellY == CellY && IsEffectivePitObject(Candidate);
+			});
+		if (bAnyPitAtCell)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridPit fall not started at Cell=(%d,%d): Pit exists but is disabled or Closed."), CellX, CellY);
+		}
 		return false;
 	}
 
@@ -1427,7 +1486,7 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 		[this, &Transition](const FGridLevelObjectData& Candidate)
 		{
 			return Candidate.Type == EGridLevelObjectType::Pit && Candidate.CellX == Transition.TargetCellX &&
-				Candidate.CellY == Transition.TargetCellY && Candidate.bInitiallyEnabled &&
+				Candidate.CellY == Transition.TargetCellY &&
 				IsPitOpenForLevel(Transition.TargetLevelId, Candidate);
 		});
 	if (bDestinationContainsOpenPit)

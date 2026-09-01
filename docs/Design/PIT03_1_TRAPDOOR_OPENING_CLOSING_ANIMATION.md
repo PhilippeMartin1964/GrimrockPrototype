@@ -113,7 +113,7 @@ La fraction intermédiaire n'est pas sérialisée. Le target endpoint est déjà
 
 ## Absence de Moving Mesh
 
-`Moving Mesh = None` conserve le comportement PIT03 instantané. La logique de puzzle fonctionne donc avant que le mesh final du couvercle ne soit disponible.
+`Moving Mesh = None` signifie désormais **fosse statique ouverte** : elle fait tomber le groupe et les World Items, et ne peut pas être fermée. Pour tester un état Closed/Open contrôlable, un vrai `Moving Mesh` de couvercle doit être assigné.
 
 ## Tests
 

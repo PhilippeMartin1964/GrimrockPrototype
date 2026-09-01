@@ -105,7 +105,7 @@ Contrat visuel après PIT03.1 :
 - Open = endpoint atteint, collision désactivée ;
 - Closing = interpolation inverse, gameplay encore Open jusqu'à l'endpoint.
 
-Sans `Moving Mesh`, le changement Open/Closed reste instantané.
+Sans `Moving Mesh`, l'objet est une fosse statique : il reste toujours Open et une commande Close est rejetée. Un état Closed n'est valide que lorsqu'un vrai couvercle `Moving Mesh` existe.
 
 ## DA_Pit_Stone_01 après PIT03
 

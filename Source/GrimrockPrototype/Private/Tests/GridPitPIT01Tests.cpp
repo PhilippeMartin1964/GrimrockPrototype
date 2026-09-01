@@ -177,46 +177,58 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	Dungeon->Levels = { UpperEntry, LowerEntry };
 
 	// Standard Pit authoring: no manual target, no generic transition flag and no arrival facing.
-	// Merely entering an enabled Open Pit must resolve the floor below and start the fall.
+	// Also emulate stale placed data from an earlier prototype revision: stored Type and ObjectId are not trusted
+	// when the archetype itself authoritatively identifies a Pit.
 	Upper->Objects.Add(MakeStaticPit(2, 2, NAME_None));
+	Upper->Objects[0].Type = EGridLevelObjectType::Decoration;
+	Upper->Objects[0].ObjectId = FGuid();
+	Upper->Objects[0].Behavior.Pit.bInitiallyOpen = false; // no MovingMesh cover => static hole must still be Open
 	Upper->Objects[0].Behavior.Transition.bIsTransition = false;
 	Upper->Objects[0].Behavior.Transition.TargetFacing = EGridEdge::None;
+
+	UGridObjectArchetypeAsset* PitArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
+	PitArchetype->ArchetypeId = TEXT("Pit_Stone_01");
+	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
+	PitArchetype->PlacementKind = EGridObjectPlacementKind::Floor;
+	PitArchetype->MovingMesh = nullptr;
+	Runtime->ObjectArchetypes.Add(PitArchetype);
 
 	Runtime->DungeonAsset = Dungeon;
 	Runtime->CurrentDungeonLevelId = UpperId;
 	Runtime->LevelAsset = Upper;
-	Party->SetGridStart(Runtime, 2, 2, EGridEdge::North);
+	Party->SetGridStart(Runtime, 1, 2, EGridEdge::East);
 	Party->bNativeMovementAudioPlaybackEnabled = false;
 	Party->PitFallDuration = 0.10f;
 
 	FGridObjectTransitionParams PitTransition;
-	TestTrue(TEXT("Open pit resolves at party cell"), Runtime->FindOpenPitAtCell(2, 2, PitTransition));
+	TestTrue(TEXT("Static hole resolves as Open even with stale stored Type/ObjectId and false authored state"), Runtime->FindOpenPitAtCell(2, 2, PitTransition));
 	TestEqual(TEXT("Same-cell X overrides authored transition X"), PitTransition.TargetCellX, 2);
 	TestEqual(TEXT("Same-cell Y overrides authored transition Y"), PitTransition.TargetCellY, 2);
 	TestEqual(TEXT("Pit automatically resolves the lower level"), PitTransition.TargetLevelId, LowerId);
 
 	FGridObjectTransitionParams GenericTransition;
-	TestFalse(TEXT("Generic stair transition path ignores Pit"), Runtime->FindTransitionAtCell(2, 2, false, GenericTransition));
-
-	Upper->Objects[0].Behavior.Pit.bInitiallyOpen = false;
-	TestFalse(TEXT("Closed pit does not resolve"), Runtime->FindOpenPitAtCell(2, 2, PitTransition));
-	Upper->Objects[0].Behavior.Pit.bInitiallyOpen = true;
+	TestFalse(TEXT("Generic stair transition path ignores the Pit archetype"), Runtime->FindTransitionAtCell(2, 2, false, GenericTransition));
 
 	Lower->Objects.Add(MakeStaticPit(2, 2, UpperId));
 	AddExpectedError(TEXT("Pit fall rejected: destination"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestFalse(TEXT("PIT01 rejects chained arrival onto another open pit"), Runtime->TryBeginPitFallAtCell(2, 2, Party));
 	Lower->Objects.Reset();
 
-	TestTrue(TEXT("Entering a valid open pit starts the fall"), Runtime->TryBeginPitFallAtCell(2, 2, Party));
-	TestTrue(TEXT("Party is busy falling"), Party->IsPitFalling());
+	// Real player path: start next to the Pit, move one grid cell onto it, and let movement completion
+	// invoke TryBeginPitFallAtCell automatically.
+	TestTrue(TEXT("Party can start a normal move onto the Pit"), Party->TryStartMove(EGridEdge::East));
+	Party->UpdateMove(10.0f);
+	TestEqual(TEXT("Party logical X reaches Pit cell"), Party->CurrentCellX, 2);
+	TestEqual(TEXT("Party logical Y reaches Pit cell"), Party->CurrentCellY, 2);
+	TestTrue(TEXT("Walking onto the Pit automatically starts the fall"), Party->IsPitFalling());
 
-	Party->UpdatePitFall(0.20f);
+	Party->UpdatePitFall(1.0f);
 	TestFalse(TEXT("Fall presentation completes"), Party->IsPitFalling());
 	TestEqual(TEXT("Runtime switched to lower dungeon level"), Runtime->CurrentDungeonLevelId, LowerId);
 	TestTrue(TEXT("Runtime now owns lower LevelAsset"), Runtime->LevelAsset == Lower);
 	TestEqual(TEXT("Party landed on same X"), Party->CurrentCellX, 2);
 	TestEqual(TEXT("Party landed on same Y"), Party->CurrentCellY, 2);
-	TestEqual(TEXT("Pit with no authored arrival facing preserves party facing"), Party->Facing, EGridEdge::North);
+	TestEqual(TEXT("Pit with no authored arrival facing preserves party facing"), Party->Facing, EGridEdge::East);
 	return true;
 }
 
