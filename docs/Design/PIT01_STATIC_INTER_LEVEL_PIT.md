@@ -1,5 +1,8 @@
 # PIT01 — Static Inter-Level Pit
 
+> **Correction d’atterrissage (01.09.2026).** Si la cellule exactement sous la Pit est hors limites, `Empty` ou bloque l’occupation, la chute n’est plus annulée. Le runtime cherche automatiquement la cellule praticable la plus proche sur le niveau inférieur, de façon déterministe, et utilise cette cellule comme point d’atterrissage. Une destination contenant directement une autre Pit ouverte reste refusée tant que les chutes en cascade ne sont pas implémentées.
+
+
 > **Correction runtime (01.09.2026).** Une fosse statique sans `Moving Mesh` est toujours physiquement ouverte. Le runtime reconnaît aussi une Pit par son archetype si le `Type` stocké dans un ancien objet placé est obsolète, et un GUID invalide n'empêche plus la chute statique. À la fin d'un déplacement, la détection Pit est prioritaire sur les triggers, plaques, TurnManager et transitions ordinaires.
 
 

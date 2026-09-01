@@ -408,37 +408,52 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 
 	const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry(Transition.TargetLevelId);
 	UGridLevelAsset* TargetLevelAsset = TargetEntry && TargetEntry->bEnabled ? TargetEntry->LevelAsset.Get() : nullptr;
-	if (!TargetLevelAsset || !TargetLevelAsset->IsValidCoord(Transition.TargetCellX, Transition.TargetCellY))
+	if (!TargetLevelAsset)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Source=(%d,%d) Reason=InvalidTargetCell TargetLevel=%s Target=(%d,%d)"),
-			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), CellX, CellY, *Transition.TargetLevelId.ToString(),
-			Transition.TargetCellX, Transition.TargetCellY);
+		UE_LOG(LogTemp, Warning, TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Source=(%d,%d) Reason=InvalidTargetLevelAsset TargetLevel=%s"),
+			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), CellX, CellY, *Transition.TargetLevelId.ToString());
 		return false;
 	}
 
-	const FGridLevelCellData& TargetCell = TargetLevelAsset->GetCell(Transition.TargetCellX, Transition.TargetCellY);
-	if (TargetCell.CellType == EGridCellType::Empty || TargetCell.bBlocksOccupancy)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Reason=TargetNotWalkable TargetLevel=%s Target=(%d,%d)"),
-			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), *Transition.TargetLevelId.ToString(),
-			Transition.TargetCellX, Transition.TargetCellY);
-		return false;
-	}
-
-	const bool bDestinationContainsOpenPit = TargetLevelAsset->Objects.ContainsByPredicate(
-		[this, &Transition](const FGridLevelObjectData& Candidate)
+	const int32 PreferredTargetX = Transition.TargetCellX;
+	const int32 PreferredTargetY = Transition.TargetCellY;
+	const bool bPreferredWalkable = TargetLevelAsset->IsValidCoord(PreferredTargetX, PreferredTargetY) &&
+		TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).CellType != EGridCellType::Empty &&
+		!TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).bBlocksOccupancy;
+	const bool bPreferredContainsOpenPit = bPreferredWalkable && TargetLevelAsset->Objects.ContainsByPredicate(
+		[this, &Transition, PreferredTargetX, PreferredTargetY](const FGridLevelObjectData& Candidate)
 		{
-			return Candidate.Type == EGridLevelObjectType::Pit && Candidate.CellX == Transition.TargetCellX &&
-				Candidate.CellY == Transition.TargetCellY && Candidate.bInitiallyEnabled &&
+			return Candidate.CellX == PreferredTargetX && Candidate.CellY == PreferredTargetY && IsEffectivePitObject(Candidate) &&
 				IsPitOpenForLevel(Transition.TargetLevelId, Candidate);
 		});
-	if (bDestinationContainsOpenPit)
+	if (bPreferredContainsOpenPit)
 	{
 		UE_LOG(LogTemp, Warning,
 			TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Reason=ChainedPitNotSupported TargetLevel=%s Target=(%d,%d)"),
 			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), *Transition.TargetLevelId.ToString(),
-			Transition.TargetCellX, Transition.TargetCellY);
+			PreferredTargetX, PreferredTargetY);
 		return false;
+	}
+
+	int32 LandingCellX = INDEX_NONE;
+	int32 LandingCellY = INDEX_NONE;
+	if (!ResolvePitLandingCell(Transition.TargetLevelId, PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY))
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Reason=NoUsableLandingCell TargetLevel=%s Requested=(%d,%d)"),
+			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), *Transition.TargetLevelId.ToString(),
+			PreferredTargetX, PreferredTargetY);
+		return false;
+	}
+
+	if (LandingCellX != PreferredTargetX || LandingCellY != PreferredTargetY)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("GridPit ItemTransfer landing fallback Item=%s RuntimeId=%s TargetLevel=%s Requested=(%d,%d) Resolved=(%d,%d)"),
+			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), *Transition.TargetLevelId.ToString(),
+			PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY);
+		Transition.TargetCellX = LandingCellX;
+		Transition.TargetCellY = LandingCellY;
 	}
 
 	const float TargetCellSize = FMath::Max(1.0f, TargetLevelAsset->CellSize);

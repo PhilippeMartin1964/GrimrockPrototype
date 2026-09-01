@@ -214,6 +214,11 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("PIT01 rejects chained arrival onto another open pit"), Runtime->TryBeginPitFallAtCell(2, 2, Party));
 	Lower->Objects.Reset();
 
+	// Real authored-level case: the vertical cell directly below the Pit may be Empty.
+	// The fall must still start and resolve to the nearest usable landing cell.
+	Lower->GetCellMutable(2, 2).CellType = EGridCellType::Empty;
+	Lower->GetCellMutable(2, 2).bBlocksOccupancy = false;
+
 	// Real player path: start next to the Pit, move one grid cell onto it, and let movement completion
 	// invoke TryBeginPitFallAtCell automatically.
 	TestTrue(TEXT("Party can start a normal move onto the Pit"), Party->TryStartMove(EGridEdge::East));
@@ -226,8 +231,8 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Fall presentation completes"), Party->IsPitFalling());
 	TestEqual(TEXT("Runtime switched to lower dungeon level"), Runtime->CurrentDungeonLevelId, LowerId);
 	TestTrue(TEXT("Runtime now owns lower LevelAsset"), Runtime->LevelAsset == Lower);
-	TestEqual(TEXT("Party landed on same X"), Party->CurrentCellX, 2);
-	TestEqual(TEXT("Party landed on same Y"), Party->CurrentCellY, 2);
+	TestEqual(TEXT("Party lands on nearest usable X when vertical cell is Empty"), Party->CurrentCellX, 2);
+	TestEqual(TEXT("Party lands on nearest usable Y when vertical cell is Empty"), Party->CurrentCellY, 1);
 	TestEqual(TEXT("Pit with no authored arrival facing preserves party facing"), Party->Facing, EGridEdge::East);
 	return true;
 }

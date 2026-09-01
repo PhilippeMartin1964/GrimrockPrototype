@@ -130,6 +130,8 @@ bool FGridPIT02WorldItemsTest::RunTest(const FString& Parameters)
 	Dungeon->DefaultLevelId = UpperId;
 	Dungeon->Levels = { UpperEntry, LowerEntry };
 	Upper->Objects.Add(MakePit(2, 2, LowerId));
+	Lower->GetCellMutable(2, 2).CellType = EGridCellType::Empty;
+	Lower->GetCellMutable(2, 2).bBlocksOccupancy = false;
 
 	Runtime->DungeonAsset = Dungeon;
 	Runtime->CurrentDungeonLevelId = UpperId;
@@ -170,14 +172,14 @@ bool FGridPIT02WorldItemsTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-	TestEqual(TEXT("Pending item keeps destination X"), Pending->ItemState.CellX, 2);
-	TestEqual(TEXT("Pending item keeps destination Y"), Pending->ItemState.CellY, 2);
+	TestEqual(TEXT("Pending item resolves nearest usable destination X"), Pending->ItemState.CellX, 2);
+	TestEqual(TEXT("Pending item resolves nearest usable destination Y"), Pending->ItemState.CellY, 1);
 	TestEqual(TEXT("Pending item keeps its definition"), Pending->ItemState.ItemDefinitionId, StoneDefinition->ItemDefinitionId);
 	TestTrue(TEXT("Pending item keeps a resolvable definition asset"), Pending->ItemDefinitionAsset.Get() == StoneDefinition);
 
 	TestTrue(TEXT("Party can travel to the lower level"), Runtime->TravelToDungeonLevel(LowerId, 1, 1, EGridEdge::North, Party));
-	TestEqual(TEXT("The queued item materializes as normal World Item weight on the lower level"),
-		Runtime->GetWorldItemWeightAtCell(2, 2, false), StoneDefinition->Weight);
+	TestEqual(TEXT("The queued item materializes at the resolved fallback cell on the lower level"),
+		Runtime->GetWorldItemWeightAtCell(2, 1, false), StoneDefinition->Weight);
 
 	const FGridLevelRuntimeState* LowerAfterArrival = Runtime->DungeonRuntimeState.LevelStates.Find(LowerId);
 	if (!TestNotNull(TEXT("Lower runtime state still exists"), LowerAfterArrival))

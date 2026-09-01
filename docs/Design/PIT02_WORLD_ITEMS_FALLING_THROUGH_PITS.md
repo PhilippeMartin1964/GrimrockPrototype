@@ -1,5 +1,8 @@
 # PIT02 — World Items Falling Through Pits
 
+> **Correction d’atterrissage (01.09.2026).** PIT02 utilise la même résolution que PIT01 : si la cellule verticale exacte du niveau inférieur n’est pas praticable, le World Item est routé vers la cellule praticable la plus proche au lieu d’être rejeté.
+
+
 > **Évolution PIT03 (01.09.2026).** Le routage PIT02 consulte désormais l'état runtime Open/Closed. Une trappe Closed conserve les World Items ; une ouverture ultérieure fait tomber les items déjà posés sur la cellule.
 
 

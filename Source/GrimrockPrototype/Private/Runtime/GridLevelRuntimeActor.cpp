@@ -1165,6 +1165,84 @@ bool AGridLevelRuntimeActor::IsEffectivePitObject(const FGridLevelObjectData& Ob
 	return Archetype && Archetype->SupportedType == EGridLevelObjectType::Pit;
 }
 
+bool AGridLevelRuntimeActor::ResolvePitLandingCell(
+	FName TargetLevelId, int32 PreferredCellX, int32 PreferredCellY, int32& OutCellX, int32& OutCellY) const
+{
+	OutCellX = INDEX_NONE;
+	OutCellY = INDEX_NONE;
+
+	if (!DungeonAsset || TargetLevelId.IsNone())
+	{
+		return false;
+	}
+
+	const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry(TargetLevelId);
+	const UGridLevelAsset* TargetLevelAsset = TargetEntry && TargetEntry->bEnabled ? TargetEntry->LevelAsset.Get() : nullptr;
+	if (!TargetLevelAsset)
+	{
+		return false;
+	}
+
+	const auto ContainsOpenPit =
+		[this, TargetLevelId, TargetLevelAsset](int32 X, int32 Y)
+		{
+			return TargetLevelAsset->Objects.ContainsByPredicate(
+				[this, TargetLevelId, X, Y](const FGridLevelObjectData& Candidate)
+				{
+					return Candidate.CellX == X && Candidate.CellY == Y && IsEffectivePitObject(Candidate) &&
+						IsPitOpenForLevel(TargetLevelId, Candidate);
+				});
+		};
+
+	const auto IsWalkable =
+		[TargetLevelAsset](int32 X, int32 Y)
+		{
+			if (!TargetLevelAsset->IsValidCoord(X, Y))
+			{
+				return false;
+			}
+			const FGridLevelCellData& Cell = TargetLevelAsset->GetCell(X, Y);
+			return Cell.CellType != EGridCellType::Empty && !Cell.bBlocksOccupancy;
+		};
+
+	// Preserve the explicit no-chained-pit rule when the exact vertical landing
+	// cell itself is a valid floor containing another open Pit.
+	if (IsWalkable(PreferredCellX, PreferredCellY))
+	{
+		if (ContainsOpenPit(PreferredCellX, PreferredCellY))
+		{
+			return false;
+		}
+		OutCellX = PreferredCellX;
+		OutCellY = PreferredCellY;
+		return true;
+	}
+
+	// The exact vertical cell may be Empty/unwalkable in real authored levels.
+	// A physical fall must still happen: choose the nearest usable floor cell.
+	int32 BestDistance = MAX_int32;
+	for (int32 Y = 0; Y < TargetLevelAsset->Height; ++Y)
+	{
+		for (int32 X = 0; X < TargetLevelAsset->Width; ++X)
+		{
+			if (!IsWalkable(X, Y) || ContainsOpenPit(X, Y))
+			{
+				continue;
+			}
+
+			const int32 Distance = FMath::Abs(X - PreferredCellX) + FMath::Abs(Y - PreferredCellY);
+			if (Distance < BestDistance)
+			{
+				BestDistance = Distance;
+				OutCellX = X;
+				OutCellY = Y;
+			}
+		}
+	}
+
+	return OutCellX != INDEX_NONE && OutCellY != INDEX_NONE;
+}
+
 bool AGridLevelRuntimeActor::IsPitOpenForLevel(FName LevelId, const FGridLevelObjectData& PitObject) const
 {
 	if (!IsEffectivePitObject(PitObject))
@@ -1467,33 +1545,42 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 	}
 
 	UGridLevelAsset* TargetLevelAsset = TargetEntry->LevelAsset.Get();
-	if (!TargetLevelAsset->IsValidCoord(Transition.TargetCellX, Transition.TargetCellY))
-	{
-		UE_LOG(LogTemp, Error, TEXT("Pit fall rejected at Cell=(%d,%d): target cell (%d,%d) is outside target level %s."), CellX, CellY,
-			Transition.TargetCellX, Transition.TargetCellY, *Transition.TargetLevelId.ToString());
-		return false;
-	}
+	const int32 PreferredTargetX = Transition.TargetCellX;
+	const int32 PreferredTargetY = Transition.TargetCellY;
 
-	const FGridLevelCellData& TargetCell = TargetLevelAsset->GetCell(Transition.TargetCellX, Transition.TargetCellY);
-	if (TargetCell.CellType == EGridCellType::Empty || TargetCell.bBlocksOccupancy)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Pit fall rejected at Cell=(%d,%d): destination cell (%d,%d) is not walkable."), CellX, CellY,
-			Transition.TargetCellX, Transition.TargetCellY);
-		return false;
-	}
-
-	const bool bDestinationContainsOpenPit = TargetLevelAsset->Objects.ContainsByPredicate(
-		[this, &Transition](const FGridLevelObjectData& Candidate)
+	const bool bPreferredWalkable = TargetLevelAsset->IsValidCoord(PreferredTargetX, PreferredTargetY) &&
+		TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).CellType != EGridCellType::Empty &&
+		!TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).bBlocksOccupancy;
+	const bool bPreferredContainsOpenPit = bPreferredWalkable && TargetLevelAsset->Objects.ContainsByPredicate(
+		[this, &Transition, PreferredTargetX, PreferredTargetY](const FGridLevelObjectData& Candidate)
 		{
-			return Candidate.Type == EGridLevelObjectType::Pit && Candidate.CellX == Transition.TargetCellX &&
-				Candidate.CellY == Transition.TargetCellY &&
+			return Candidate.CellX == PreferredTargetX && Candidate.CellY == PreferredTargetY && IsEffectivePitObject(Candidate) &&
 				IsPitOpenForLevel(Transition.TargetLevelId, Candidate);
 		});
-	if (bDestinationContainsOpenPit)
+	if (bPreferredContainsOpenPit)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Pit fall rejected: destination (%d,%d) on level %s contains another open pit."),
-			Transition.TargetCellX, Transition.TargetCellY, *Transition.TargetLevelId.ToString());
+			PreferredTargetX, PreferredTargetY, *Transition.TargetLevelId.ToString());
 		return false;
+	}
+
+	int32 LandingCellX = INDEX_NONE;
+	int32 LandingCellY = INDEX_NONE;
+	if (!ResolvePitLandingCell(Transition.TargetLevelId, PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY))
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("Pit fall failed at Cell=(%d,%d): target level %s contains no usable landing cell near requested (%d,%d)."),
+			CellX, CellY, *Transition.TargetLevelId.ToString(), PreferredTargetX, PreferredTargetY);
+		return false;
+	}
+
+	if (LandingCellX != PreferredTargetX || LandingCellY != PreferredTargetY)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("GridPit landing fallback Source=(%d,%d) TargetLevel=%s Requested=(%d,%d) Resolved=(%d,%d)."),
+			CellX, CellY, *Transition.TargetLevelId.ToString(), PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY);
+		Transition.TargetCellX = LandingCellX;
+		Transition.TargetCellY = LandingCellY;
 	}
 
 	if (!PartyPawn->BeginPitFall(Transition))

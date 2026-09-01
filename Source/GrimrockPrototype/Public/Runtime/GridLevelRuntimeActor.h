@@ -542,6 +542,7 @@ private:
 	void ApplyInitialMonsterStateForCurrentLevel();
 	bool IsPitOpenForLevel(FName LevelId, const FGridLevelObjectData& PitObject) const;
 	bool IsEffectivePitObject(const FGridLevelObjectData& ObjectData) const;
+	bool ResolvePitLandingCell(FName TargetLevelId, int32 PreferredCellX, int32 PreferredCellY, int32& OutCellX, int32& OutCellY) const;
 	void HandlePitTrapdoorAnimationFinished(FGuid PitObjectId, bool bWasOpen, bool bIsOpen);
 	void FinalizePitGameplayStateChange(FGuid PitObjectId, bool bWasOpen, bool bIsOpen, bool bEmitEvent);
 

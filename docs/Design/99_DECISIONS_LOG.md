@@ -997,3 +997,16 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Un GUID d'objet invalide n'empêche plus une fosse statique de fonctionner.
 - Le flag générique `bInitiallyEnabled` ne neutralise plus la physique d'une fosse Open.
 - PIT01 possède désormais un test de bout en bout qui effectue réellement un déplacement d'une case voisine vers la Pit et exige le démarrage automatique de `BeginPitFall`.
+
+
+---
+
+## 2026-09-01 — Pit : atterrissage automatique si la cellule verticale est vide
+
+### Décisions validées
+
+- Une Pit ouverte déclenche la chute même si la cellule aux mêmes coordonnées sur le niveau inférieur est `Empty`, hors limites ou bloque l’occupation.
+- Le runtime cherche alors la cellule praticable la plus proche sur le niveau inférieur.
+- Le choix est déterministe : distance de Manhattan minimale, puis ordre stable Y/X.
+- PIT01 et PIT02 utilisent exactement la même règle d’atterrissage.
+- Une cellule praticable contenant une autre Pit ouverte reste une erreur explicite tant que les chutes en cascade ne sont pas prises en charge.
