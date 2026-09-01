@@ -19,14 +19,15 @@ Ce dossier regroupe la documentation transversale du projet. `docs/Design` porte
 - `docs/Design/ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md`
 - `docs/Design/GRIMROCK_LOCK_SYSTEM.md`
 
-### B. Pipeline art / materials / textures
+### B. Pipeline art / meshes / materials / textures
 
 1. `docs/00_README_Art_Materials_Textures.md`
 2. `docs/01_Content_Structure.md`
-3. `docs/02_Texture_Pipeline_BC_N_ORM.md`
-4. `docs/M_GrimrockSurface_Master.md`
-5. `docs/03_M_GrimrockSurface_Masked_Master.md`
-6. `docs/04_Material_Instances_Migration.md`
+3. `docs/05_Static_Mesh_Blender_UE5_5_4_Pipeline.md`
+4. `docs/02_Texture_Pipeline_BC_N_ORM.md`
+5. `docs/M_GrimrockSurface_Master.md`
+6. `docs/03_M_GrimrockSurface_Masked_Master.md`
+7. `docs/04_Material_Instances_Migration.md`
 
 ### C. Architecture C++
 

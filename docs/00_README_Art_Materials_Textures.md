@@ -1,12 +1,12 @@
-# GrimrockPrototype — Documentation Art, Textures et Materials
+# GrimrockPrototype — Documentation Art, Meshes, Textures et Materials
 
 Statut : document actif.
 
-Ce document est le README spécialisé du pipeline Art / Materials / Textures. Il ne couvre pas le design gameplay/editor, documenté dans `docs/Design`.
+Ce document est le README spécialisé du pipeline Art / Meshes / Materials / Textures. Il ne couvre pas le design gameplay/editor, documenté dans `docs/Design`.
 
-Ce dossier regroupe la documentation issue du travail de restructuration du pipeline **Art / Textures / Materials** de GrimrockPrototype.
+Ce dossier regroupe la documentation issue du travail de restructuration du pipeline **Art / Meshes / Textures / Materials** de GrimrockPrototype.
 
-L’objectif est de garder un projet Unreal Engine 5.5 lisible, maintenable et raisonnable en taille Git, tout en conservant une base de matériaux robuste pour un dungeon crawler à déplacement case par case.
+L’objectif est de garder un projet Unreal Engine 5.5 lisible, maintenable et raisonnable en taille Git, tout en conservant une base de géométrie et de matériaux robuste pour un dungeon crawler à déplacement case par case.
 
 ---
 
@@ -15,21 +15,47 @@ L’objectif est de garder un projet Unreal Engine 5.5 lisible, maintenable et r
 1. [`01_Content_Structure.md`](./01_Content_Structure.md)  
    Décrit l’arborescence recommandée dans `Content/GrimrockPrototype`, les conventions de rangement et les règles de nommage.
 
-2. [`02_Texture_Pipeline_BC_N_ORM.md`](./02_Texture_Pipeline_BC_N_ORM.md)  
+2. [`05_Static_Mesh_Blender_UE5_5_4_Pipeline.md`](./05_Static_Mesh_Blender_UE5_5_4_Pipeline.md)  
+   Décrit le pipeline Static Mesh : préparation Blender, export FBX, axes, échelle, smoothing groups, normales/tangentes, import Interchange UE5.5.4, collisions UCX et vérifications après import.
+
+3. [`02_Texture_Pipeline_BC_N_ORM.md`](./02_Texture_Pipeline_BC_N_ORM.md)  
    Décrit le pipeline texture final : `BC`, `N`, `ORM`, `RGBA`, export GIMP / Photoshop, réduction 4K vers 2K/1K, génération d’ORM et réglages UE5.
 
-3. [`M_GrimrockSurface_Master.md`](./M_GrimrockSurface_Master.md)  
+4. [`M_GrimrockSurface_Master.md`](./M_GrimrockSurface_Master.md)  
    Documentation technique du master material opaque. Cette partie doit rester la référence détaillée pour les surfaces opaques.
 
-4. [`03_M_GrimrockSurface_Masked_Master.md`](./03_M_GrimrockSurface_Masked_Master.md)  
+5. [`03_M_GrimrockSurface_Masked_Master.md`](./03_M_GrimrockSurface_Masked_Master.md)  
    Documentation technique du master material masked, avec détail du branchement `UseAlphaFromBaseColor`, `OpacityMaskTexture` et `OpacityMaskClip`.
 
-5. [`04_Material_Instances_Migration.md`](./04_Material_Instances_Migration.md)  
+6. [`04_Material_Instances_Migration.md`](./04_Material_Instances_Migration.md)  
    Guide de migration des Material Instances vers les nouveaux masters, checklist de validation et points d’audit.
 
 ---
 
 ## Décisions principales
+
+### Static Meshes
+
+Référence Blender → FBX → Unreal Engine 5.5.4 :
+
+```text
+docs/05_Static_Mesh_Blender_UE5_5_4_Pipeline.md
+```
+
+Principes :
+
+```text
+échelle 1:1 en centimètres
+Z-Up
+FBX Blender : -Y Forward / Z Up
+transformations appliquées dans Blender
+Smoothing = Face
+triangulation fixée dans Blender
+normales Blender conservées
+tangentes MikkTSpace recalculées par UE
+materials/textures non importés depuis le FBX
+collision décidée explicitement selon le mesh
+```
 
 ### Masters conservés / créés
 

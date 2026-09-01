@@ -44,6 +44,24 @@ avec :
 
 La cellule reste logiquement walkable : le groupe entre réellement dessus avant que la chute ne se déclenche.
 
+## Mesh `SM_Pit_Stone_01`
+
+Le mesh suit le pipeline Static Mesh standard du projet :
+
+```text
+docs/05_Static_Mesh_Blender_UE5_5_4_Pipeline.md
+```
+
+Contrôles spécifiques :
+
+- empreinte X/Y d'environ 200 x 200 cm ;
+- pivot cohérent avec les meshes de sol ;
+- surface supérieure alignée avec les sols voisins ;
+- scale 1 / 1 / 1 dans UE ;
+- pas de collision convexe automatique qui boucherait l'ouverture.
+
+Sans UCX explicites conçus autour du trou, ne pas importer de collision de fallback pour cette fosse. La chute PIT01 est une mécanique logique de cellule et ne dépend pas d'une simulation physique du trou.
+
 ## Flux runtime
 
 ```text
