@@ -233,16 +233,6 @@ bool AGrimrockPartyPawn::TryExecuteCombatHotbarSlot(int32 SlotIndex)
 		return false;
 	}
 
-	if (PartyInventoryComponent)
-	{
-		FGridCombatHotbarBinding Binding;
-		if (PartyInventoryComponent->GetCharacterCombatHotbarBinding(PartyInventoryComponent->GetSelectedCharacterIndex(), SlotIndex, Binding) &&
-			Binding.ActionId == FGridCombatHotbarBinding::MakeThrowMainHandActionId())
-		{
-			return BeginSelectedCharacterMainHandThrowAiming();
-		}
-	}
-
 	if (!IsValid(CombatHudWidgetInstance))
 	{
 		return false;

@@ -100,7 +100,7 @@ namespace
 			Definition->CanBeThrownByStrength(Summary.Attributes.Strength);
 	}
 
-	bool ResolvePhysicalThrowMainHand(const AGrimrockPartyPawn* PartyPawn, int32 ExpectedCharacterIndex, const FGuid& ExpectedRuntimeId,
+	bool ResolvePhysicalThrowEquippedMainHand(const AGrimrockPartyPawn* PartyPawn, int32 ExpectedCharacterIndex, const FGuid& ExpectedRuntimeId,
 		FGridItemInstance& OutItem, UGridItemDefinitionAsset*& OutDefinition, FText& OutReason)
 	{
 		OutItem = FGridItemInstance();
@@ -299,7 +299,7 @@ bool AGrimrockPlayerController::BeginPhysicalThrowAiming()
 	FGridItemInstance MainHandItem;
 	UGridItemDefinitionAsset* Definition = nullptr;
 	FText Reason;
-	if (!ResolvePhysicalThrowMainHand(PartyPawn, INDEX_NONE, FGuid(), MainHandItem, Definition, Reason))
+	if (!ResolvePhysicalThrowEquippedMainHand(PartyPawn, INDEX_NONE, FGuid(), MainHandItem, Definition, Reason))
 	{
 		if (!Reason.IsEmpty())
 		{
@@ -379,7 +379,7 @@ bool AGrimrockPlayerController::UpdatePhysicalThrowAiming()
 	const bool bSourceValid = PartyPawn && !bInventoryUiOpen && !PartyPawn->IsCharacterCreationModalActive() &&
 		(!IsValid(PartyPawn->LevelRuntimeActor) || !PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()) &&
 		(PhysicalThrowInventoryDefinitionId.IsNone()
-			? ResolvePhysicalThrowMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Definition, Reason)
+			? ResolvePhysicalThrowEquippedMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Definition, Reason)
 			: ResolvePhysicalThrowInventoryItem(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowInventoryDefinitionId, Definition, Reason));
 	if (!bSourceValid)
 	{
@@ -410,7 +410,7 @@ bool AGrimrockPlayerController::HandlePhysicalThrowAimingClick()
 	UGridItemDefinitionAsset* Definition = nullptr;
 	FText Reason;
 	const bool bSourceValid = PhysicalThrowInventoryDefinitionId.IsNone()
-		? ResolvePhysicalThrowMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Definition, Reason)
+		? ResolvePhysicalThrowEquippedMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Definition, Reason)
 		: ResolvePhysicalThrowInventoryItem(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowInventoryDefinitionId, Definition, Reason);
 	if (!bSourceValid)
 	{

@@ -415,12 +415,17 @@ Les validations d'item sont présentées dans
 
 ## THROW01 — Lancer utilitaire MainHand avec visée (31.08.2026)
 
-Le lancer physique d'exploration est désormais une action générique distincte d'une attaque de jet. L'action persistante `ThrowMainHand` peut être affectée à un slot de la barre `1–9,0` et reste liée à la fonction « lancer ce qui se trouve actuellement en MainHand », pas à une définition d'objet particulière.
+Le lancer physique d'exploration reste distinct d'une attaque de jet de combat.
 
-Le menu contextuel **Lancer** et le raccourci `ThrowMainHand` ouvrent le même mode de visée. L'objet reste équipé tant que le joueur n'a pas confirmé une cible valide. Le curseur utilise l'état `AimThrow`; un clic gauche confirme, tandis que `Échap` ou le clic droit annule sans consommer ni déplacer l'objet.
+Depuis l'équipement, le menu contextuel **Lancer** ouvre directement le mode de visée physique pour l'objet actuellement en MainHand. L'objet reste équipé tant que le joueur n'a pas confirmé une cible valide. Le curseur utilise l'état `AimThrow`; un clic gauche confirme, tandis que `Échap` ou le clic droit annule sans consommer ni déplacer l'objet.
+
+Depuis la barre `1–9,0`, le lancer utilitaire ne repose plus sur une action dynamique liée à la MainHand. Un objet physiquement lançable est glissé directement depuis l'inventaire et crée un binding stable `ThrowItem_<ItemDefinitionId>`. Ce raccourci lance une unité de cette définition depuis l'inventaire et utilise le même système de visée physique.
 
 La cible de visée est obtenue par le premier impact du trace `Visibility`. Un mur opaque intercepte donc la visée au lieu de permettre de sélectionner directement un point situé derrière lui. Au déclenchement, le projectile est créé sur le rayon caméra → cible, donc visuellement au centre exact de `Cursor_Aim`. Le point de spawn reste volontairement en avant de la caméra et, pour une cible très proche, avant le premier impact afin de ne jamais naître derrière un mur ou une porte. La trajectoire reste ensuite une vraie trajectoire de `AGridThrownItemActor` : Force, poids, `ThrowSpeed`, `ThrowArc` et gravité déterminent le déplacement réel.
 
 La collision du projectile reste l'autorité physique. `UProjectileMovementComponent::bSweepCollision` est explicitement activé et la sphère du projectile bloque `WorldStatic`, `WorldDynamic` et `PhysicsBody`. Un mur ou une porte bloquante doit donc provoquer l'impact et la conversion standard en World Item ; aucun mécanisme spécial « projectile traverse/active » n'est introduit.
 
-La barre d'actions expose `Lancer MainHand` comme action universelle synthétique afin qu'elle soit assignable sans la faire passer par le `TurnManager`. Son icône suit l'objet actuellement équipé en MainHand et sa disponibilité est recalculée selon `HandUsage`, le poids et la Force. Cette action ne remplace pas une future attaque de combat de pierre, qui conservera ses propres `Requirements`, coûts PA, dégâts et précision.
+HOTBAR01.2.1 supprime l'ancien binding synthétique de lancer MainHand. En phase prototype, aucune compatibilité de sauvegarde n'est maintenue pour ce binding obsolète. Les chemins autoritaires sont désormais uniquement :
+
+- **MainHand → Lancer** pour lancer l'objet équipé ;
+- **Inventaire → `ThrowItem_<ItemDefinitionId>` → hotbar** pour un raccourci de projectile physique.

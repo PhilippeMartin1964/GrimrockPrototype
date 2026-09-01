@@ -29,6 +29,8 @@ Un objet physiquement lançable qui ne fournit pas d'action de combat peut être
 
 Quand la quantité tombe à zéro, le raccourci est supprimé automatiquement de la barre. Si le personnage récupère ensuite un nouvel exemplaire, le joueur doit le réaffecter explicitement par glisser-déposer depuis l'inventaire.
 
-## Compatibilité
+## Politique prototype
 
-Les anciens bindings `ThrowMainHand` restent compris afin de ne pas invalider les sauvegardes existantes. Une attaque de combat de jet et un lancer physique utilitaire restent deux concepts distincts.
+Aucune compatibilité arrière de sauvegarde n'est maintenue pour les anciens bindings de hotbar supprimés pendant la phase prototype. HOTBAR01.2.1 retire l'ancien binding synthétique de lancer MainHand.
+
+Une attaque de combat de jet et un lancer physique utilitaire restent deux concepts distincts. Les raccourcis physiques actuels utilisent exclusivement `ThrowItem_<ItemDefinitionId>`.

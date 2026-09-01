@@ -93,13 +93,6 @@ struct FGridCombatHotbarBinding
 		return ItemDefinitionId.IsNone() ? NAME_None : FName(*FString::Printf(TEXT("Use_%s"), *ItemDefinitionId.ToString()));
 	}
 
-	/** Generic exploration action: throw the selected character's current MainHand item. */
-	static FName MakeThrowMainHandActionId()
-	{
-		return TEXT("ThrowMainHand");
-	}
-
-
 	/** Slot 1 is a system alias that resolves MainHand attack, then falls back to unarmed. */
 	static FName MakePrimaryAttackActionId()
 	{

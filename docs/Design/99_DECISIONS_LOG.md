@@ -915,4 +915,18 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - `Panel_Targeting` reste conservé et indépendant de toute palette.
 - Le payload de drag `InitializeFromActionPalette()` / `bFromActionPalette` est supprimé.
 - Le Spellbook conserve son payload dédié et ne dépend pas de la palette.
-- Le binding historique `ThrowMainHand` reste seulement pour la compatibilité des sauvegardes existantes.
+- La conservation du binding historique de lancer MainHand a été annulée par HOTBAR01.2.1 ; aucune compatibilité de sauvegarde n’est maintenue pour ce binding en phase prototype.
+
+
+---
+
+## 2026-09-01 — HOTBAR01.2.1 : suppression de la compatibilité de sauvegarde du lancer MainHand
+
+### Décisions validées
+
+- Le projet est encore en phase prototype : les sauvegardes anciennes ne constituent pas un contrat de compatibilité lors des refactors structurels.
+- Aucun shim de compatibilité de sauvegarde ne doit être conservé sans décision explicite.
+- L'ancien binding synthétique de lancer MainHand est supprimé du modèle de hotbar, du HUD, de l'exécution clavier et des tests.
+- Le lancer depuis une MainHand reste une fonctionnalité actuelle via le menu contextuel **Lancer** et le contrôleur de visée physique ; seule sa représentation persistante historique en hotbar disparaît.
+- Les raccourcis physiques actuels sont exclusivement les bindings `ThrowItem_<ItemDefinitionId>` créés directement depuis l'inventaire.
+- Si une sauvegarde prototype existante contient encore un ancien binding supprimé, elle peut être supprimée/réinitialisée au lieu d'introduire du code de migration.

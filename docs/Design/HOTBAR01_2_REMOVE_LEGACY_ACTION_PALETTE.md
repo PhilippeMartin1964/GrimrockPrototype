@@ -38,9 +38,9 @@ HOTBAR01.2 retire du runtime :
 
 Le helper de validation des actions directement assignables est conservé sous un nom générique (`IsDirectHotbarActionSource`) car `AssignCombatActionToHotbarSlot()` reste l’API de destination pour les sources métier non-inventaire.
 
-## Compatibilité conservée
+## Nettoyage complémentaire HOTBAR01.2.1
 
-Le binding historique `ThrowMainHand` reste résolu lorsqu’il est déjà présent dans une sauvegarde. Ce support n’est pas une palette et n’est donc pas supprimé.
+Le binding synthétique historique de lancer MainHand n'est plus conservé. Le projet étant encore en phase prototype, une ancienne sauvegarde qui dépend d'un binding de hotbar supprimé n'est pas un contrat de compatibilité.
 
 Le Spellbook conserve son chemin autonome :
 

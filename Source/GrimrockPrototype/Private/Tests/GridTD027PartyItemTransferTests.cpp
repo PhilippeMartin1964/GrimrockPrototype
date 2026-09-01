@@ -238,13 +238,6 @@ bool FGridTD027PhysicalThrowAimingContractTest::RunTest(const FString& Parameter
 {
 	(void)Parameters;
 
-	FGridCombatHotbarBinding Binding;
-	Binding.SlotIndex = 2;
-	Binding.ActionId = FGridCombatHotbarBinding::MakeThrowMainHandActionId();
-	Binding.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
-	TestEqual(TEXT("The generic hotbar identity is stable"), Binding.ActionId, FName(TEXT("ThrowMainHand")));
-	TestTrue(TEXT("The generic MainHand throw is a valid persistent universal binding"), Binding.IsValid());
-
 	FGridTD027TestWorld TestWorld;
 	if (!TestNotNull(TEXT("The projectile contract world is created"), TestWorld.World))
 	{
