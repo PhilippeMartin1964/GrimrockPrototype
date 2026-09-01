@@ -17,6 +17,7 @@ class UGridItemDefinitionAsset;
 class AGridRuntimeObjectActor;
 class AGridItemActor;
 class AGridThrownItemActor;
+class AGridPitTrapdoorActor;
 class AGridReceptacleActor;
 class AGridWallLockActor;
 class AGridMonsterActor;
@@ -502,6 +503,9 @@ private:
 	UPROPERTY(Transient)
 	TMap<FGuid, TObjectPtr<AGridMonsterActor>> SpawnedMonsterActors;
 
+	/** PIT03.1 delayed connector emission until a trapdoor reaches its physical endpoint. */
+	TMap<FGuid, bool> PendingPitEmitEvents;
+
 	int32 RuntimeObjectRebuildGeneration = 0;
 	int32 RuntimeMonsterSpawnFailureCount = 0;
 
@@ -537,6 +541,8 @@ private:
 	void AbortActiveCombatAndMonsterActions();
 	void ApplyInitialMonsterStateForCurrentLevel();
 	bool IsPitOpenForLevel(FName LevelId, const FGridLevelObjectData& PitObject) const;
+	void HandlePitTrapdoorAnimationFinished(FGuid PitObjectId, bool bWasOpen, bool bIsOpen);
+	void FinalizePitGameplayStateChange(FGuid PitObjectId, bool bWasOpen, bool bIsOpen, bool bEmitEvent);
 
 	template <typename TActor>
 	TActor* SpawnRuntimeObjectActor(const FGridLevelObjectData& ObjectData, UStaticMesh*& OutMesh, UMaterialInterface*& OutMaterial, FTransform& OutTransform)

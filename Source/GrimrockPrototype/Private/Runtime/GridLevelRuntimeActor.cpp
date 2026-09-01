@@ -1178,6 +1178,13 @@ bool AGridLevelRuntimeActor::IsPitOpen(FGuid PitObjectId) const
 		return false;
 	}
 
+	if (const AGridPitTrapdoorActor* PitActor = FindRuntimeObjectActor<AGridPitTrapdoorActor>(PitObjectId))
+	{
+		// PIT03.1: active-level gameplay follows the last physically settled endpoint,
+		// not the persisted target while the cover is still moving.
+		return PitActor->IsPitOpenVisualState();
+	}
+
 	const FGridLevelObjectData* PitObject = LevelAsset->Objects.FindByPredicate(
 		[&PitObjectId](const FGridLevelObjectData& Candidate)
 		{
@@ -1203,31 +1210,95 @@ bool AGridLevelRuntimeActor::SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmi
 		return false;
 	}
 
-	const bool bWasOpen = IsPitOpenForLevel(CurrentDungeonLevelId, *PitObject);
+	const bool bWasGameplayOpen = IsPitOpen(PitObjectId);
+
 	FGridLevelRuntimeState* State = GetOrCreateRuntimeStateForCurrentLevel();
 	if (!State)
 	{
 		return false;
 	}
 
+	// Persist the requested endpoint immediately. If the level unloads mid-motion,
+	// returning to it snaps to this endpoint rather than trying to persist half an animation.
 	FGridRuntimePitState& PitState = State->Pits.FindOrAdd(PitObjectId);
 	PitState.ObjectId = PitObjectId;
 	PitState.bIsOpen = bOpen;
 
 	if (AGridPitTrapdoorActor* PitActor = FindRuntimeObjectActor<AGridPitTrapdoorActor>(PitObjectId))
 	{
-		PitActor->SetPitOpenVisualState(bOpen, bWasOpen != bOpen);
-	}
+		if (!PitActor->IsAnimating() && PitActor->IsPitOpenVisualState() == bOpen && PitActor->IsTargetOpen() == bOpen)
+		{
+			PendingPitEmitEvents.Remove(PitObjectId);
+			return true;
+		}
 
-	if (bWasOpen == bOpen)
-	{
+		const bool bSameTarget = PitActor->IsTargetOpen() == bOpen;
+		if (bSameTarget)
+		{
+			bool& bPendingEmit = PendingPitEmitEvents.FindOrAdd(PitObjectId);
+			bPendingEmit = bPendingEmit || bEmitEvent;
+		}
+		else
+		{
+			PendingPitEmitEvents.Add(PitObjectId, bEmitEvent);
+		}
+
+		PitActor->SetPitOpenVisualState(bOpen, true);
 		return true;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridPit state changed ObjectId=%s Cell=(%d,%d) Previous=%s New=%s"), *PitObjectId.ToString(),
-		PitObject->CellX, PitObject->CellY, bWasOpen ? TEXT("Open") : TEXT("Closed"), bOpen ? TEXT("Open") : TEXT("Closed"));
+	FinalizePitGameplayStateChange(PitObjectId, bWasGameplayOpen, bOpen, bEmitEvent);
+	return true;
+}
 
-	if (bOpen)
+bool AGridLevelRuntimeActor::TogglePit(FGuid PitObjectId, bool bEmitEvent)
+{
+	if (const AGridPitTrapdoorActor* PitActor = FindRuntimeObjectActor<AGridPitTrapdoorActor>(PitObjectId))
+	{
+		return SetPitOpen(PitObjectId, !PitActor->IsTargetOpen(), bEmitEvent);
+	}
+
+	return SetPitOpen(PitObjectId, !IsPitOpen(PitObjectId), bEmitEvent);
+}
+
+void AGridLevelRuntimeActor::HandlePitTrapdoorAnimationFinished(FGuid PitObjectId, bool bWasOpen, bool bIsOpen)
+{
+	const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel();
+	const FGridRuntimePitState* PitState = State ? State->Pits.Find(PitObjectId) : nullptr;
+	if (!PitState || PitState->bIsOpen != bIsOpen)
+	{
+		UE_LOG(LogTemp, Verbose,
+			TEXT("GridPit animation completion ignored ObjectId=%s Settled=%s Reason=target changed"),
+			*PitObjectId.ToString(), bIsOpen ? TEXT("Open") : TEXT("Closed"));
+		return;
+	}
+
+	const bool bEmitEvent = PendingPitEmitEvents.FindRef(PitObjectId);
+	PendingPitEmitEvents.Remove(PitObjectId);
+	FinalizePitGameplayStateChange(PitObjectId, bWasOpen, bIsOpen, bEmitEvent);
+}
+
+void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, bool bWasOpen, bool bIsOpen, bool bEmitEvent)
+{
+	if (bWasOpen == bIsOpen || !LevelAsset)
+	{
+		return;
+	}
+
+	const FGridLevelObjectData* PitObject = LevelAsset->Objects.FindByPredicate(
+		[&PitObjectId](const FGridLevelObjectData& Candidate)
+		{
+			return Candidate.ObjectId == PitObjectId && Candidate.Type == EGridLevelObjectType::Pit;
+		});
+	if (!PitObject)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("GridPit gameplay state settled ObjectId=%s Cell=(%d,%d) Previous=%s New=%s"), *PitObjectId.ToString(),
+		PitObject->CellX, PitObject->CellY, bWasOpen ? TEXT("Open") : TEXT("Closed"), bIsOpen ? TEXT("Open") : TEXT("Closed"));
+
+	if (bIsOpen)
 	{
 		DropWorldItemsThroughOpenPitAtCell(PitObject->CellX, PitObject->CellY);
 
@@ -1242,14 +1313,8 @@ bool AGridLevelRuntimeActor::SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmi
 
 	if (bEmitEvent && ActivationComponent)
 	{
-		ExecuteLinksFromRuntimeObject(PitObjectId, bOpen ? EGridObjectEvent::Opened : EGridObjectEvent::Closed);
+		ExecuteLinksFromRuntimeObject(PitObjectId, bIsOpen ? EGridObjectEvent::Opened : EGridObjectEvent::Closed);
 	}
-	return true;
-}
-
-bool AGridLevelRuntimeActor::TogglePit(FGuid PitObjectId, bool bEmitEvent)
-{
-	return SetPitOpen(PitObjectId, !IsPitOpen(PitObjectId), bEmitEvent);
 }
 
 bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridObjectTransitionParams& OutTransition) const
@@ -1262,7 +1327,7 @@ bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridOb
 	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
 	{
 		if (Obj.Type != EGridLevelObjectType::Pit || Obj.CellX != CellX || Obj.CellY != CellY || !Obj.bInitiallyEnabled ||
-			!IsPitOpenForLevel(CurrentDungeonLevelId, Obj) || !Obj.Behavior.Transition.bIsTransition || Obj.Behavior.Transition.bRequireUseAction)
+			!IsPitOpen(Obj.ObjectId) || !Obj.Behavior.Transition.bIsTransition || Obj.Behavior.Transition.bRequireUseAction)
 		{
 			continue;
 		}
@@ -1860,6 +1925,7 @@ void AGridLevelRuntimeActor::ClearRuntimeObjectActors()
 		}
 	}
 	SpawnedRuntimeObjectActors.Empty();
+	PendingPitEmitEvents.Reset();
 }
 
 bool AGridLevelRuntimeActor::IsPartyOnCell(int32 CellX, int32 CellY) const
@@ -2066,7 +2132,8 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor(const FGridLevelObjectData& O
 
 	if (AGridPitTrapdoorActor* PitActor = Cast<AGridPitTrapdoorActor>(Actor))
 	{
-		PitActor->SetPitOpenVisualState(IsPitOpen(ObjectData.ObjectId), false);
+		PitActor->OnPitAnimationFinished.AddUObject(this, &AGridLevelRuntimeActor::HandlePitTrapdoorAnimationFinished);
+		PitActor->SnapPitOpenState(IsPitOpenForLevel(CurrentDungeonLevelId, ObjectData));
 	}
 
 	if (ActivationComponent)

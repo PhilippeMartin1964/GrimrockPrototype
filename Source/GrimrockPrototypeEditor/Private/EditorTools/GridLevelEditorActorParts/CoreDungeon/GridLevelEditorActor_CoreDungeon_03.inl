@@ -171,6 +171,8 @@
 				Archetype.DefaultBehavior = FGridObjectBehaviorParams();
 				Archetype.DefaultBehavior.Pit.bInitiallyOpen = true;
 				Archetype.DefaultBehavior.Pit.bUseSameCellCoordinates = true;
+				Archetype.DefaultBehavior.PitAnimation.OpenRelativeRotation = FRotator(-90.f, 0.f, 0.f);
+				Archetype.DefaultBehavior.PitAnimation.MoveDuration = 0.75f;
 				Archetype.DefaultBehavior.Transition.bIsTransition = true;
 				Archetype.DefaultBehavior.Transition.TargetLevelId = NAME_None;
 				Archetype.DefaultBehavior.Transition.TargetCellX = 0;

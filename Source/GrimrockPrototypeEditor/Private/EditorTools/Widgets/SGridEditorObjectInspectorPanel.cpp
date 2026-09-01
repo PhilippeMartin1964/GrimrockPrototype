@@ -1112,6 +1112,29 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPitDetailsSection(cons
 		}
 	};
 
+	const auto BuildFloatBehaviorRow =
+		[Obj, ApplyBehavior](const FText& Label, float CurrentValue, float MinValue, float MaxValue,
+			TFunction<void(FGridObjectBehaviorParams&, float)> AssignValue) -> TSharedRef<SWidget>
+	{
+		return GridEditorWidgetHelpers::BuildGridPropertyRow(
+			Label,
+			SNew(SSpinBox<float>)
+				.Value(CurrentValue)
+				.MinValue(MinValue)
+				.MaxValue(MaxValue)
+				.MinSliderValue(MinValue)
+				.MaxSliderValue(MaxValue)
+				.Delta(0.05f)
+				.OnValueCommitted_Lambda(
+					[Obj, ApplyBehavior, AssignValue](float NewValue, ETextCommit::Type CommitType)
+					{
+						(void)CommitType;
+						FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+						AssignValue(NewBehavior, NewValue);
+						ApplyBehavior(NewBehavior);
+					}));
+	};
+
 	return GridEditorWidgetHelpers::BuildGridPanelSection(
 		FText::FromString(TEXT("Pit")),
 		SNew(SVerticalBox)
@@ -1144,10 +1167,63 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPitDetailsSection(cons
 					}))
 		]
 
+		+ SVerticalBox::Slot().AutoHeight()
+		[
+			BuildFloatBehaviorRow(
+				FText::FromString(TEXT("Open Pitch")),
+				Obj.Behavior.PitAnimation.OpenRelativeRotation.Pitch,
+				-180.0f,
+				180.0f,
+				[](FGridObjectBehaviorParams& Behavior, float NewValue)
+				{
+					Behavior.PitAnimation.OpenRelativeRotation.Pitch = NewValue;
+				})
+		]
+
+		+ SVerticalBox::Slot().AutoHeight()
+		[
+			BuildFloatBehaviorRow(
+				FText::FromString(TEXT("Open Yaw")),
+				Obj.Behavior.PitAnimation.OpenRelativeRotation.Yaw,
+				-180.0f,
+				180.0f,
+				[](FGridObjectBehaviorParams& Behavior, float NewValue)
+				{
+					Behavior.PitAnimation.OpenRelativeRotation.Yaw = NewValue;
+				})
+		]
+
+		+ SVerticalBox::Slot().AutoHeight()
+		[
+			BuildFloatBehaviorRow(
+				FText::FromString(TEXT("Open Roll")),
+				Obj.Behavior.PitAnimation.OpenRelativeRotation.Roll,
+				-180.0f,
+				180.0f,
+				[](FGridObjectBehaviorParams& Behavior, float NewValue)
+				{
+					Behavior.PitAnimation.OpenRelativeRotation.Roll = NewValue;
+				})
+		]
+
+		+ SVerticalBox::Slot().AutoHeight()
+		[
+			BuildFloatBehaviorRow(
+				FText::FromString(TEXT("Move Duration")),
+				Obj.Behavior.PitAnimation.MoveDuration,
+				0.0f,
+				10.0f,
+				[](FGridObjectBehaviorParams& Behavior, float NewValue)
+				{
+					Behavior.PitAnimation.MoveDuration = FMath::Max(0.0f, NewValue);
+				})
+		]
+
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
 		[
 			SNew(STextBlock)
-				.Text(FText::FromString(TEXT("PIT03 supports runtime Open/Close/Toggle commands. Closed behaves as a floor; Open triggers falls and World Item routing. When Same Cell Coordinates is enabled, Transition Target Cell X/Y are ignored.")))
+				.Text(FText::FromString(TEXT(
+					"PIT03.1 animates the optional Moving Mesh around its authored pivot. Gameplay becomes Open only when opening reaches its endpoint; reversals resume from the current angle.")))
 				.AutoWrapText(true)
 				.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))
 		]);

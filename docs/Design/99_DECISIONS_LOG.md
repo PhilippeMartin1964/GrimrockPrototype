@@ -948,3 +948,21 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - `AGridPitTrapdoorActor` porte uniquement la présentation de l'état ; `AGridLevelRuntimeActor` reste l'autorité gameplay.
 - `Fixed Mesh` représente la fosse ouverte permanente ; `Moving Mesh` représente le couvercle Closed optionnel.
 - PIT03 ne comprend pas encore l'animation articulée ; la commutation visuelle est instantanée.
+
+---
+
+## 2026-09-01 — PIT03.1 : Trapdoor Opening / Closing Animation
+
+### Décisions validées
+
+- Le Moving Mesh d'une Pit est animé par rotation relative autour de son pivot authored.
+- Paramètres d'instance : `OpenRelativeRotation` et `MoveDuration`.
+- Valeurs par défaut : Pitch -90°, Yaw 0°, Roll 0°, durée 0,75 s.
+- Le gameplay reste dans le dernier état stabilisé pendant le mouvement.
+- `Opened` et les chutes PIT01/PIT02 ne se produisent qu'à l'endpoint Open.
+- `Closed` n'est émis qu'à l'endpoint Closed.
+- Une inversion repart de la fraction courante et adapte sa durée à la distance restante.
+- Toggle pendant une animation inverse le target state, pas le dernier état gameplay.
+- Le target endpoint est persisté ; une animation partielle n'est pas sérialisée entre niveaux.
+- Sans Moving Mesh, Open/Close restent immédiats.
+- La collision du couvercle suit le dernier endpoint gameplay stabilisé.

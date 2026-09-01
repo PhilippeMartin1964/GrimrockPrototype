@@ -64,13 +64,30 @@ struct FGridPitBehaviorParams
 {
 	GENERATED_BODY()
 
-	/** PIT01 static pits start open. PIT03 will make this state controllable at runtime. */
+	/** Authored initial state. PIT03 runtime commands may change it after play starts. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit")
 	bool bInitiallyOpen = true;
 
 	/** When enabled, the destination uses the pit source X/Y on the target dungeon level. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit")
 	bool bUseSameCellCoordinates = true;
+};
+
+USTRUCT(BlueprintType)
+struct FGridPitAnimationParams
+{
+	GENERATED_BODY()
+
+	/**
+	 * Relative rotation applied to the optional MovingMesh when fully open.
+	 * The mesh pivot must be authored on the intended hinge axis.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit|Animation", meta = (DisplayName = "Open Relative Rotation"))
+	FRotator OpenRelativeRotation = FRotator(-90.0f, 0.0f, 0.0f);
+
+	/** Full Closed -> Open travel time. Reversals scale duration by the remaining fraction. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit|Animation", meta = (DisplayName = "Move Duration", ClampMin = "0.0"))
+	float MoveDuration = 0.75f;
 };
 
 USTRUCT(BlueprintType)
@@ -285,6 +302,9 @@ struct FGridObjectBehaviorParams
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit")
 	FGridPitBehaviorParams Pit;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit")
+	FGridPitAnimationParams PitAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
 	FGridReceptacleBehaviorParams Receptacle;

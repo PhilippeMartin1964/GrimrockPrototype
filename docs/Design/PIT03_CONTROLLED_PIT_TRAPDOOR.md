@@ -1,5 +1,8 @@
 # PIT03 — Controlled Pit Trapdoor
 
+> **Évolution PIT03.1 (01.09.2026).** Lorsqu'un Moving Mesh est configuré, Open/Close sont désormais animés. Le gameplay ne change d'état qu'à l'endpoint de l'animation et les commandes opposées reprennent depuis la fraction courante. Sans Moving Mesh, le comportement PIT03 reste instantané.
+
+
 Date : 01.09.2026
 
 ## Objectif
@@ -93,14 +96,16 @@ PIT03 ajoute :
 
 `AGridPitTrapdoorActor : AGridMechanismActor`
 
-Contrat visuel :
+Contrat visuel après PIT03.1 :
 
 - `Fixed Mesh` = géométrie permanente de la fosse ouverte ;
-- `Moving Mesh` = couvercle/trappe optionnel visible uniquement lorsque la Pit est Closed ;
-- Open : Moving Mesh caché + collision désactivée ;
-- Closed : Moving Mesh visible + collision activée.
+- `Moving Mesh` = couvercle/trappe optionnel animé autour de son pivot ;
+- Closed = rotation relative nulle, collision active ;
+- Opening = interpolation vers `Pit Animation > Open Relative Rotation`, gameplay encore Closed ;
+- Open = endpoint atteint, collision désactivée ;
+- Closing = interpolation inverse, gameplay encore Open jusqu'à l'endpoint.
 
-Le jalon PIT03 porte l'état Closed/Open et la commutation visuelle instantanée. L'animation articulée de la trappe sera un jalon distinct.
+Sans `Moving Mesh`, le changement Open/Closed reste instantané.
 
 ## DA_Pit_Stone_01 après PIT03
 
@@ -158,6 +163,10 @@ Selected Object > Pit :
 ```text
 Open at Start
 Use Same Cell Coordinates
+Open Pitch
+Open Yaw
+Open Roll
+Move Duration
 ```
 
 Connectors accepte maintenant une Pit comme cible avec :
@@ -230,15 +239,11 @@ Le test principal couvre :
 - Close et Toggle ;
 - persistance après aller-retour entre deux niveaux.
 
-## Hors périmètre PIT03
+## Hors périmètre après PIT03.1
 
-- animation articulée de la trappe ;
-- interpolation/reprise en sens inverse ;
-- blocage mécanique pendant animation ;
+- mesh artistique final du couvercle ;
 - dégâts de chute ;
 - monstres tombant ;
+- écrasement par fermeture ;
+- double battant ;
 - puits multi-étages en cascade.
-
-Une étape suivante naturelle est :
-
-**PIT03.1 — Trapdoor Opening/Closing Animation**

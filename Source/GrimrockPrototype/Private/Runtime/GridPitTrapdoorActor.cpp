@@ -1,10 +1,28 @@
 #include "Runtime/GridPitTrapdoorActor.h"
 
+#include "Components/AudioComponent.h"
 #include "Components/StaticMeshComponent.h"
 
 AGridPitTrapdoorActor::AGridPitTrapdoorActor()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	SetActorTickEnabled(false);
+}
+
+void AGridPitTrapdoorActor::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (bIsAnimating)
+	{
+		UpdateAnimation(DeltaSeconds);
+	}
+}
+
+void AGridPitTrapdoorActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	StopPitMotionSound();
+	Super::EndPlay(EndPlayReason);
 }
 
 void AGridPitTrapdoorActor::InitializeMechanismVisuals(
@@ -17,22 +35,35 @@ void AGridPitTrapdoorActor::InitializeMechanismVisuals(
 	Edge = ObjectData.Edge;
 	SetActorTransform(WorldTransform);
 
-	if (!Archetype)
+	OpenRelativeRotation = ObjectData.Behavior.PitAnimation.OpenRelativeRotation;
+	MoveDuration = FMath::Max(0.0f, ObjectData.Behavior.PitAnimation.MoveDuration);
+	ClosedRelativeRotation = FRotator::ZeroRotator;
+
+	if (Archetype)
 	{
-		return;
+		SetFixedMesh(Archetype->FixedMesh ? Archetype->FixedMesh.Get() : Archetype->PreviewMesh.Get(),
+			Archetype->FixedMaterial ? Archetype->FixedMaterial.Get() : Archetype->PreviewMaterial.Get());
+
+		SetMovingMesh(Archetype->MovingMesh.Get(), Archetype->MovingMaterial.Get());
 	}
-
-	// The open pit geometry is permanent. PreviewMesh remains the editor fallback.
-	SetFixedMesh(Archetype->FixedMesh ? Archetype->FixedMesh.Get() : Archetype->PreviewMesh.Get(),
-		Archetype->FixedMaterial ? Archetype->FixedMaterial.Get() : Archetype->PreviewMaterial.Get());
-
-	// PIT03 does not invent a lid mesh. Authoring may assign MovingMesh later.
-	SetMovingMesh(Archetype->MovingMesh.Get(), Archetype->MovingMaterial.Get());
 
 	if (FixedMeshComponent)
 	{
 		FixedMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
+
+	bIsOpen = ObjectData.Behavior.Pit.bInitiallyOpen;
+	bTargetOpen = bIsOpen;
+	bIsAnimating = false;
+	CurrentOpenAlpha = bIsOpen ? 1.0f : 0.0f;
+	MoveStartAlpha = CurrentOpenAlpha;
+	MoveTargetAlpha = CurrentOpenAlpha;
+	MoveElapsed = 0.0f;
+	CurrentMoveDuration = 0.0f;
+
+	ApplyOpenAlpha(CurrentOpenAlpha);
+	RefreshMovingMeshCollision();
+	RefreshTickEnabled();
 }
 
 void AGridPitTrapdoorActor::InitializeGridObject(
@@ -46,18 +77,165 @@ void AGridPitTrapdoorActor::InitializeGridObject(
 
 void AGridPitTrapdoorActor::SetPitOpenVisualState(bool bOpen, bool bPlayAudio)
 {
-	const bool bChanged = bIsOpen != bOpen;
+	const bool bHasCoverMesh = MovingMeshComponent && MovingMeshComponent->GetStaticMesh() != nullptr;
+
+	// Repeating the active target is a no-op.
+	if (bTargetOpen == bOpen && (bIsAnimating || bIsOpen == bOpen))
+	{
+		return;
+	}
+
+	bTargetOpen = bOpen;
+
+	if (!bHasCoverMesh || MoveDuration <= KINDA_SMALL_NUMBER)
+	{
+		const bool bWasOpen = bIsOpen;
+		SnapPitOpenState(bOpen);
+		if (bWasOpen != bIsOpen)
+		{
+			OnPitAnimationFinished.Broadcast(ObjectId, bWasOpen, bIsOpen);
+		}
+		return;
+	}
+
+	const float DesiredAlpha = bOpen ? 1.0f : 0.0f;
+	if (FMath::IsNearlyEqual(CurrentOpenAlpha, DesiredAlpha, KINDA_SMALL_NUMBER))
+	{
+		const bool bWasOpen = bIsOpen;
+		bIsAnimating = false;
+		bIsOpen = bOpen;
+		CurrentOpenAlpha = DesiredAlpha;
+		ApplyOpenAlpha(CurrentOpenAlpha);
+		RefreshMovingMeshCollision();
+		RefreshTickEnabled();
+		// Even when gameplay returns to the already-settled endpoint (for example
+		// Open -> Close -> Open before the first Tick), the runtime must clear the
+		// pending command associated with the cancelled direction.
+		OnPitAnimationFinished.Broadcast(ObjectId, bWasOpen, bIsOpen);
+		return;
+	}
+
+	StopPitMotionSound();
+
+	MoveStartAlpha = CurrentOpenAlpha;
+	MoveTargetAlpha = DesiredAlpha;
+	MoveElapsed = 0.0f;
+	CurrentMoveDuration = FMath::Max(0.01f, MoveDuration * FMath::Abs(MoveTargetAlpha - MoveStartAlpha));
+	bIsAnimating = true;
+
+	const float AudioStartTime = bOpen ? CurrentOpenAlpha * MoveDuration : (1.0f - CurrentOpenAlpha) * MoveDuration;
+	StartPitMotionSound(bOpen, AudioStartTime, bPlayAudio);
+
+	// Gameplay collision follows the last settled state until the new endpoint is reached.
+	RefreshMovingMeshCollision();
+	RefreshTickEnabled();
+
+	UE_LOG(LogTemp, Log,
+		TEXT("GridPit animation start ObjectId=%s Cell=(%d,%d) Direction=%s StartAlpha=%.3f TargetAlpha=%.3f FullDuration=%.3f EffectiveDuration=%.3f"),
+		*ObjectId.ToString(), CellX, CellY, bOpen ? TEXT("Open") : TEXT("Close"), MoveStartAlpha, MoveTargetAlpha, MoveDuration, CurrentMoveDuration);
+}
+
+void AGridPitTrapdoorActor::SnapPitOpenState(bool bOpen)
+{
+	StopPitMotionSound();
+
 	bIsOpen = bOpen;
+	bTargetOpen = bOpen;
+	bIsAnimating = false;
+	CurrentOpenAlpha = bOpen ? 1.0f : 0.0f;
+	MoveStartAlpha = CurrentOpenAlpha;
+	MoveTargetAlpha = CurrentOpenAlpha;
+	MoveElapsed = 0.0f;
+	CurrentMoveDuration = 0.0f;
 
-	if (MovingMeshComponent)
+	ApplyOpenAlpha(CurrentOpenAlpha);
+	RefreshMovingMeshCollision();
+	RefreshTickEnabled();
+}
+
+void AGridPitTrapdoorActor::UpdateAnimation(float DeltaSeconds)
+{
+	if (!MovingMeshComponent)
 	{
-		const bool bHasCoverMesh = MovingMeshComponent->GetStaticMesh() != nullptr;
-		MovingMeshComponent->SetVisibility(!bIsOpen && bHasCoverMesh, true);
-		MovingMeshComponent->SetCollisionEnabled(!bIsOpen && bHasCoverMesh ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
+		const bool bWasOpen = bIsOpen;
+		SnapPitOpenState(bTargetOpen);
+		OnPitAnimationFinished.Broadcast(ObjectId, bWasOpen, bIsOpen);
+		return;
 	}
 
-	if (bChanged && bPlayAudio)
+	const float SafeDuration = FMath::Max(0.01f, CurrentMoveDuration);
+	MoveElapsed += FMath::Max(0.0f, DeltaSeconds);
+	const float Alpha = FMath::Clamp(MoveElapsed / SafeDuration, 0.0f, 1.0f);
+	CurrentOpenAlpha = FMath::Lerp(MoveStartAlpha, MoveTargetAlpha, Alpha);
+	ApplyOpenAlpha(CurrentOpenAlpha);
+
+	if (Alpha < 1.0f)
 	{
-		PlayObjectAudioEvent(bIsOpen ? FName(TEXT("Open")) : FName(TEXT("Close")));
+		return;
 	}
+
+	const bool bWasOpen = bIsOpen;
+	CurrentOpenAlpha = MoveTargetAlpha;
+	bIsOpen = bTargetOpen;
+	bIsAnimating = false;
+	MoveElapsed = 0.0f;
+	CurrentMoveDuration = 0.0f;
+
+	ApplyOpenAlpha(CurrentOpenAlpha);
+	RefreshMovingMeshCollision();
+	RefreshTickEnabled();
+
+	UE_LOG(LogTemp, Log, TEXT("GridPit animation complete ObjectId=%s Cell=(%d,%d) State=%s"), *ObjectId.ToString(), CellX, CellY,
+		bIsOpen ? TEXT("Open") : TEXT("Closed"));
+
+	// Always notify endpoint completion. A reversal may return to the original
+	// settled gameplay state; the runtime still needs to clear its pending command.
+	OnPitAnimationFinished.Broadcast(ObjectId, bWasOpen, bIsOpen);
+}
+
+void AGridPitTrapdoorActor::ApplyOpenAlpha(float Alpha)
+{
+	if (!MovingMeshComponent)
+	{
+		return;
+	}
+
+	const float ClampedAlpha = FMath::Clamp(Alpha, 0.0f, 1.0f);
+	const FQuat ClosedQuat = ClosedRelativeRotation.Quaternion();
+	const FQuat OpenQuat = OpenRelativeRotation.Quaternion();
+	MovingMeshComponent->SetRelativeRotation(FQuat::Slerp(ClosedQuat, OpenQuat, ClampedAlpha).Rotator());
+	MovingMeshComponent->SetVisibility(MovingMeshComponent->GetStaticMesh() != nullptr, true);
+}
+
+void AGridPitTrapdoorActor::RefreshMovingMeshCollision()
+{
+	if (!MovingMeshComponent)
+	{
+		return;
+	}
+
+	const bool bHasCoverMesh = MovingMeshComponent->GetStaticMesh() != nullptr;
+	MovingMeshComponent->SetCollisionEnabled(!bIsOpen && bHasCoverMesh ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
+}
+
+void AGridPitTrapdoorActor::RefreshTickEnabled()
+{
+	SetActorTickEnabled(bIsAnimating);
+}
+
+void AGridPitTrapdoorActor::StartPitMotionSound(bool bOpening, float StartTimeSeconds, bool bEnableNativePlayback)
+{
+	const FName EventName = bOpening ? FName(TEXT("Open")) : FName(TEXT("Close"));
+	const FGridObjectAudioPlaybackResult Playback =
+		PlayObjectAudioEventDetailed(EventName, bEnableNativePlayback, FMath::Max(0.0f, StartTimeSeconds));
+	ActivePitAudioComponent = Playback.AudioComponent;
+}
+
+void AGridPitTrapdoorActor::StopPitMotionSound()
+{
+	if (IsValid(ActivePitAudioComponent))
+	{
+		ActivePitAudioComponent->Stop();
+	}
+	ActivePitAudioComponent = nullptr;
 }

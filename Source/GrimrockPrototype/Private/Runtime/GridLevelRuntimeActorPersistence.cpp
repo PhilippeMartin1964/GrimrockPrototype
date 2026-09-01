@@ -370,7 +370,9 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 	{
 		if (AGridPitTrapdoorActor* PitActor = FindRuntimeObjectActor<AGridPitTrapdoorActor>(Pair.Key))
 		{
-			PitActor->SetPitOpenVisualState(Pair.Value.bIsOpen, false);
+			// Level reloads settle immediately at the persisted target endpoint.
+			// Mid-animation fractions are presentation-only and are not serialized.
+			PitActor->SnapPitOpenState(Pair.Value.bIsOpen);
 		}
 	}
 
