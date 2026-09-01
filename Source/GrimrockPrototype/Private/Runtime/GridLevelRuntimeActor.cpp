@@ -26,6 +26,7 @@
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridThrownItemActor.h"
+#include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridWallLockActor.h"
 #include "UI/ReadableMessageWidget.h"
 #include "Blueprint/UserWidget.h"
@@ -1119,7 +1120,7 @@ bool AGridLevelRuntimeActor::FindTransitionAtCell(int32 CellX, int32 CellY, bool
 	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
 	{
 		const FGridObjectTransitionParams& Transition = Obj.Behavior.Transition;
-		if (Obj.CellX != CellX || Obj.CellY != CellY || !Transition.bIsTransition)
+		if (Obj.Type == EGridLevelObjectType::Pit || Obj.CellX != CellX || Obj.CellY != CellY || !Transition.bIsTransition)
 		{
 			continue;
 		}
@@ -1148,6 +1149,88 @@ bool AGridLevelRuntimeActor::FindTransitionAtCell(int32 CellX, int32 CellY, bool
 	}
 
 	return bFoundUsableTransition;
+}
+
+bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridObjectTransitionParams& OutTransition) const
+{
+	if (!LevelAsset)
+	{
+		return false;
+	}
+
+	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+	{
+		if (Obj.Type != EGridLevelObjectType::Pit || Obj.CellX != CellX || Obj.CellY != CellY || !Obj.bInitiallyEnabled ||
+			!Obj.Behavior.Pit.bInitiallyOpen || !Obj.Behavior.Transition.bIsTransition || Obj.Behavior.Transition.bRequireUseAction)
+		{
+			continue;
+		}
+
+		OutTransition = Obj.Behavior.Transition;
+		if (Obj.Behavior.Pit.bUseSameCellCoordinates)
+		{
+			OutTransition.TargetCellX = CellX;
+			OutTransition.TargetCellY = CellY;
+		}
+		return true;
+	}
+
+	return false;
+}
+
+bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn)
+{
+	FGridObjectTransitionParams Transition;
+	if (!PartyPawn || !FindOpenPitAtCell(CellX, CellY, Transition) || !DungeonAsset || Transition.TargetLevelId.IsNone() ||
+		Transition.TargetFacing == EGridEdge::None)
+	{
+		return false;
+	}
+
+	const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry(Transition.TargetLevelId);
+	if (!TargetEntry || !TargetEntry->bEnabled || !TargetEntry->LevelAsset)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Pit fall rejected at Cell=(%d,%d): target level %s is unavailable."), CellX, CellY,
+			*Transition.TargetLevelId.ToString());
+		return false;
+	}
+
+	UGridLevelAsset* TargetLevelAsset = TargetEntry->LevelAsset.Get();
+	if (!TargetLevelAsset->IsValidCoord(Transition.TargetCellX, Transition.TargetCellY))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Pit fall rejected at Cell=(%d,%d): target cell (%d,%d) is outside target level %s."), CellX, CellY,
+			Transition.TargetCellX, Transition.TargetCellY, *Transition.TargetLevelId.ToString());
+		return false;
+	}
+
+	const FGridLevelCellData& TargetCell = TargetLevelAsset->GetCell(Transition.TargetCellX, Transition.TargetCellY);
+	if (TargetCell.CellType == EGridCellType::Empty || TargetCell.bBlocksOccupancy)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Pit fall rejected at Cell=(%d,%d): destination cell (%d,%d) is not walkable."), CellX, CellY,
+			Transition.TargetCellX, Transition.TargetCellY);
+		return false;
+	}
+
+	const bool bDestinationContainsOpenPit = TargetLevelAsset->Objects.ContainsByPredicate(
+		[&Transition](const FGridLevelObjectData& Candidate)
+		{
+			return Candidate.Type == EGridLevelObjectType::Pit && Candidate.CellX == Transition.TargetCellX &&
+				Candidate.CellY == Transition.TargetCellY && Candidate.bInitiallyEnabled && Candidate.Behavior.Pit.bInitiallyOpen;
+		});
+	if (bDestinationContainsOpenPit)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Pit fall rejected: destination (%d,%d) on level %s contains another open pit."),
+			Transition.TargetCellX, Transition.TargetCellY, *Transition.TargetLevelId.ToString());
+		return false;
+	}
+
+	if (!PartyPawn->BeginPitFall(Transition))
+	{
+		return false;
+	}
+
+	AbortActiveCombatAndMonsterActions();
+	return true;
 }
 
 bool AGridLevelRuntimeActor::TryExecuteTransitionAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn, bool bTriggeredByUseAction)

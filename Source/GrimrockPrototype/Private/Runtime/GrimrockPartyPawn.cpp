@@ -323,6 +323,11 @@ void AGrimrockPartyPawn::Tick(float DeltaSeconds)
 		UpdateBlockedMoveFeedback(DeltaSeconds);
 	}
 
+	if (bIsPitFalling)
+	{
+		UpdatePitFall(DeltaSeconds);
+	}
+
 	UpdateHeadBob(DeltaSeconds);
 	UpdateFreeLook(DeltaSeconds);
 
@@ -572,6 +577,10 @@ void AGrimrockPartyPawn::ApplyCameraOffsets()
 
 void AGrimrockPartyPawn::BeginFreeLook()
 {
+	if (bIsPitFalling)
+	{
+		return;
+	}
 	if (AGrimrockPlayerController* PlayerController = Cast<AGrimrockPlayerController>(GetController());
 		PlayerController && PlayerController->IsPhysicalThrowAimingActive())
 	{

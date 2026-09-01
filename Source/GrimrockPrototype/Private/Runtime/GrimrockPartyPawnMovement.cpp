@@ -1,6 +1,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 
 #include "Core/GridDirectionUtils.h"
+#include "Core/GridObjectBehavior.h"
 #include "InputActionValue.h"
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
@@ -42,6 +43,12 @@ void AGrimrockPartyPawn::SetGridStart(AGridLevelRuntimeActor* InLevelRuntimeActo
 	CurrentCellX = StartX;
 	CurrentCellY = StartY;
 	Facing = StartFacing;
+	bIsPitFalling = false;
+	PitFallElapsed = 0.f;
+	PitFallTargetLevelId = NAME_None;
+	PitFallTargetCellX = INDEX_NONE;
+	PitFallTargetCellY = INDEX_NONE;
+	PitFallTargetFacing = EGridEdge::None;
 
 	SnapToCurrentCell();
 }
@@ -185,7 +192,7 @@ void AGrimrockPartyPawn::HandleStrafeRight(const FInputActionValue& Value)
 
 bool AGrimrockPartyPawn::TryStartMove(EGridEdge MoveDirection)
 {
-	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || !HasLevelRuntimeActor())
+	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || bIsPitFalling || !HasLevelRuntimeActor())
 	{
 		return false;
 	}
@@ -241,7 +248,7 @@ bool AGrimrockPartyPawn::TryStartMove(EGridEdge MoveDirection)
 
 bool AGrimrockPartyPawn::TryStartBlockedMoveFeedback(EGridEdge MoveDirection)
 {
-	if (!bEnableBlockedMoveFeedback || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || !HasLevelRuntimeActor() ||
+	if (!bEnableBlockedMoveFeedback || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || bIsPitFalling || !HasLevelRuntimeActor() ||
 		BlockedMoveDistance <= KINDA_SMALL_NUMBER)
 	{
 		return false;
@@ -369,9 +376,83 @@ float AGrimrockPartyPawn::SelectMovementAudioPitch(int32 OccurrenceNumber) const
 	return PitchStream.FRandRange(1.f - Variation, 1.f + Variation);
 }
 
+bool AGrimrockPartyPawn::PlayPitFallScream()
+{
+	return PlayMovementSound(PitFallScreamSounds, PitFallScreamVolume, PitFallScreamAudioOccurrence, PitFallScreamPlaybackRequestCount);
+}
+
+bool AGrimrockPartyPawn::BeginPitFall(const FGridObjectTransitionParams& Transition)
+{
+	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || bIsPitFalling || !HasLevelRuntimeActor() ||
+		Transition.TargetLevelId.IsNone() || Transition.TargetFacing == EGridEdge::None)
+	{
+		return false;
+	}
+
+	ClearBufferedCommand();
+	bIsFreeLooking = false;
+	FreeLookYaw = 0.f;
+	FreeLookPitch = 0.f;
+	ApplyFreeLookRotation();
+
+	PitFallStartLocation = GetActorLocation();
+	PitFallElapsed = 0.f;
+	PitFallTargetLevelId = Transition.TargetLevelId;
+	PitFallTargetCellX = Transition.TargetCellX;
+	PitFallTargetCellY = Transition.TargetCellY;
+	PitFallTargetFacing = Transition.TargetFacing;
+	bIsPitFalling = true;
+	PlayPitFallScream();
+	return true;
+}
+
+void AGrimrockPartyPawn::UpdatePitFall(float DeltaSeconds)
+{
+	if (!bIsPitFalling)
+	{
+		return;
+	}
+
+	if (!LevelRuntimeActor)
+	{
+		bIsPitFalling = false;
+		SetActorLocation(PitFallStartLocation);
+		return;
+	}
+
+	const float SafeDuration = FMath::Max(0.05f, PitFallDuration);
+	PitFallElapsed += FMath::Max(0.f, DeltaSeconds);
+	const float Alpha = FMath::Clamp(PitFallElapsed / SafeDuration, 0.f, 1.f);
+	const float FallAlpha = Alpha * Alpha;
+	SetActorLocation(PitFallStartLocation - FVector::UpVector * FMath::Max(0.f, PitFallDistance) * FallAlpha);
+
+	if (Alpha < 1.f)
+	{
+		return;
+	}
+
+	const FName TargetLevelId = PitFallTargetLevelId;
+	const int32 TargetCellX = PitFallTargetCellX;
+	const int32 TargetCellY = PitFallTargetCellY;
+	const EGridEdge TargetFacing = PitFallTargetFacing;
+
+	bIsPitFalling = false;
+	PitFallElapsed = 0.f;
+	PitFallTargetLevelId = NAME_None;
+	PitFallTargetCellX = INDEX_NONE;
+	PitFallTargetCellY = INDEX_NONE;
+	PitFallTargetFacing = EGridEdge::None;
+	ClearBufferedCommand();
+
+	if (!LevelRuntimeActor->TravelToDungeonLevel(TargetLevelId, TargetCellX, TargetCellY, TargetFacing, this))
+	{
+		SnapToCurrentCell();
+	}
+}
+
 bool AGrimrockPartyPawn::TryStartTurn(bool bTurnRight)
 {
-	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive)
+	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || bIsPitFalling)
 	{
 		return false;
 	}
@@ -434,7 +515,10 @@ void AGrimrockPartyPawn::UpdateMove(float DeltaSeconds)
 					}
 				}
 			}
-			LevelRuntimeActor->TryExecuteTransitionAtCell(CurrentCellX, CurrentCellY, this, false);
+			if (!LevelRuntimeActor->TryBeginPitFallAtCell(CurrentCellX, CurrentCellY, this))
+			{
+				LevelRuntimeActor->TryExecuteTransitionAtCell(CurrentCellX, CurrentCellY, this, false);
+			}
 		}
 	}
 }

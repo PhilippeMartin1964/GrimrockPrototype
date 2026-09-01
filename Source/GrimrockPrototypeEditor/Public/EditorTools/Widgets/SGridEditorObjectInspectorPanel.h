@@ -40,6 +40,7 @@ private:
 	TSharedRef<SWidget> BuildLeverDetailsSection(const FGridLevelObjectData& Obj);
 	TSharedRef<SWidget> BuildButtonDetailsSection(const FGridLevelObjectData& Obj);
 	TSharedRef<SWidget> BuildPressurePlateDetailsSection(const FGridLevelObjectData& Obj);
+	TSharedRef<SWidget> BuildPitDetailsSection(const FGridLevelObjectData& Obj);
 	TSharedRef<SWidget> BuildTeleporterDetailsSection(const FGridLevelObjectData& Obj);
 	TSharedRef<SWidget> BuildTransitionDetailsSection(const FGridLevelObjectData& Obj);
 	TSharedRef<SWidget> BuildLightDetailsSection(const UGridObjectArchetypeAsset& Archetype);

@@ -157,6 +157,51 @@
 				Archetype.LocalOffsetVertical = 0.f;
 				Archetype.MarkPackageDirty();
 			}
+
+			void ConfigureStaticPitArchetype(UGridObjectArchetypeAsset& Archetype, UStaticMesh* Mesh)
+			{
+				Archetype.Modify();
+				Archetype.ArchetypeId = FName(TEXT("Pit_Stone_01"));
+				Archetype.DisplayName = FText::FromString(TEXT("Stone Pit"));
+				Archetype.SupportedType = EGridLevelObjectType::Pit;
+				Archetype.Description = FText::FromString(TEXT("Static open inter-level pit."));
+				Archetype.bDefaultInitiallyEnabled = true;
+				Archetype.bDefaultInitiallyActive = false;
+				Archetype.DefaultTag = NAME_None;
+				Archetype.DefaultBehavior = FGridObjectBehaviorParams();
+				Archetype.DefaultBehavior.Pit.bInitiallyOpen = true;
+				Archetype.DefaultBehavior.Pit.bUseSameCellCoordinates = true;
+				Archetype.DefaultBehavior.Transition.bIsTransition = true;
+				Archetype.DefaultBehavior.Transition.TargetLevelId = NAME_None;
+				Archetype.DefaultBehavior.Transition.TargetCellX = 0;
+				Archetype.DefaultBehavior.Transition.TargetCellY = 0;
+				Archetype.DefaultBehavior.Transition.TargetFacing = EGridEdge::North;
+				Archetype.DefaultBehavior.Transition.bRequireUseAction = false;
+				Archetype.Category = FName(TEXT("Hazards"));
+				Archetype.ObjectCategory = EGridObjectCategory::Mechanism;
+				Archetype.PlacementKind = EGridObjectPlacementKind::Floor;
+				Archetype.bCanShareCell = false;
+				Archetype.bCanShareAnchor = false;
+				Archetype.bReplacesStandardWall = false;
+				Archetype.bBlocksMovement = false;
+				Archetype.bHideCellFloor = true;
+				Archetype.bIsInteractable = false;
+				Archetype.bIsReadable = false;
+				Archetype.bIsLightSource = false;
+				Archetype.PreviewMesh = Mesh;
+				Archetype.PreviewMaterial = nullptr;
+				Archetype.FixedMesh = nullptr;
+				Archetype.MovingMesh = nullptr;
+				Archetype.FixedMaterial = nullptr;
+				Archetype.MovingMaterial = nullptr;
+				Archetype.RuntimeActorClass = AGridGenericObjectActor::StaticClass();
+				Archetype.ItemActorClass = nullptr;
+				Archetype.PlacementZOffset = 0.f;
+				Archetype.WallInset = 6.f;
+				Archetype.LocalOffsetAlongWall = 0.f;
+				Archetype.LocalOffsetVertical = 0.f;
+				Archetype.MarkPackageDirty();
+			}
 #endif
 			}
 

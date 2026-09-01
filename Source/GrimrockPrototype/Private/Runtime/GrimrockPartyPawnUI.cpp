@@ -12,7 +12,7 @@
 
 void AGrimrockPartyPawn::ToggleInventoryWidget()
 {
-	if (bCharacterCreationModalActive)
+	if (bCharacterCreationModalActive || bIsPitFalling)
 	{
 		return;
 	}
@@ -29,7 +29,7 @@ void AGrimrockPartyPawn::ToggleInventoryWidget()
 
 void AGrimrockPartyPawn::ShowInventoryWidget()
 {
-	if (bCharacterCreationModalActive)
+	if (bCharacterCreationModalActive || bIsPitFalling)
 	{
 		return;
 	}
@@ -245,7 +245,7 @@ bool AGrimrockPartyPawn::TryExecuteCombatHotbarSlot(int32 SlotIndex)
 bool AGrimrockPartyPawn::IsCombatHotbarExecutionBlocked() const
 {
 	const AGrimrockPlayerController* PlayerController = Cast<AGrimrockPlayerController>(GetController());
-	return bInventoryWidgetVisible || bCharacterCreationModalActive || (PlayerController && PlayerController->bInventoryUiOpen);
+	return bInventoryWidgetVisible || bCharacterCreationModalActive || bIsPitFalling || (PlayerController && PlayerController->bInventoryUiOpen);
 }
 
 void AGrimrockPartyPawn::CloseCharacterCreationWidget()

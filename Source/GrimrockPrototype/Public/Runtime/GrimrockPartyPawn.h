@@ -4,6 +4,7 @@
 #include "GameFramework/Pawn.h"
 #include "Core/GridTypes.h"
 #include "Core/GridDirectionUtils.h"
+#include "Core/GridObjectBehavior.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "GrimrockPartyPawn.generated.h"
 
@@ -130,6 +131,19 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
 	float EyeHeight = 110.f;
+
+	/** PIT01 controlled fall presentation. Gameplay remains grid-authoritative. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Pit Fall", meta = (ClampMin = "0.05"))
+	float PitFallDuration = 0.65f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Pit Fall", meta = (ClampMin = "0.0"))
+	float PitFallDistance = 220.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Pit Fall")
+	TArray<TObjectPtr<USoundBase>> PitFallScreamSounds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Pit Fall", meta = (ClampMin = "0.0"))
+	float PitFallScreamVolume = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
 	float ShortThrowSpeedScale = 0.45f;
@@ -490,6 +504,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void SetGridStart(AGridLevelRuntimeActor* InLevelRuntimeActor, int32 StartX, int32 StartY, EGridEdge StartFacing);
 
+
+	UFUNCTION(BlueprintCallable, Category = "Movement|Pit Fall")
+	bool BeginPitFall(const FGridObjectTransitionParams& Transition);
+
+	UFUNCTION(BlueprintPure, Category = "Movement|Pit Fall")
+	bool IsPitFalling() const
+	{
+		return bIsPitFalling;
+	}
+
 protected:
 	void HandleMoveForward(const FInputActionValue& Value);
 	void HandleMoveBackward(const FInputActionValue& Value);
@@ -512,6 +536,7 @@ protected:
 
 	void UpdateMove(float DeltaSeconds);
 	void UpdateTurn(float DeltaSeconds);
+	void UpdatePitFall(float DeltaSeconds);
 	bool TryStartBlockedMoveFeedback(EGridEdge MoveDirection);
 	void UpdateBlockedMoveFeedback(float DeltaSeconds);
 
@@ -565,6 +590,7 @@ private:
 	bool IsBusy() const;
 	bool PlayFootstepSound();
 	bool PlayBlockedMoveSound();
+	bool PlayPitFallScream();
 	bool PlayMovementSound(
 		const TArray<TObjectPtr<USoundBase>>& Sounds, float VolumeMultiplier, int32& OccurrenceCounter, int32& PlaybackRequestCounter);
 	float SelectMovementAudioPitch(int32 OccurrenceNumber) const;
@@ -587,6 +613,16 @@ private:
 	int32 BlockedMoveAudioOccurrence = 0;
 	int32 FootstepAudioPlaybackRequestCount = 0;
 	int32 BlockedMoveAudioPlaybackRequestCount = 0;
+	int32 PitFallScreamAudioOccurrence = 0;
+	int32 PitFallScreamPlaybackRequestCount = 0;
+
+	bool bIsPitFalling = false;
+	float PitFallElapsed = 0.f;
+	FVector PitFallStartLocation = FVector::ZeroVector;
+	FName PitFallTargetLevelId = NAME_None;
+	int32 PitFallTargetCellX = INDEX_NONE;
+	int32 PitFallTargetCellY = INDEX_NONE;
+	EGridEdge PitFallTargetFacing = EGridEdge::None;
 
 	float TurnStartYaw = 0.f;
 	float TurnTargetYaw = 0.f;
@@ -616,4 +652,5 @@ private:
 	friend class FGridMonsterMON12PartyMobilityLifecycleTest;
 	friend class FGridPartyBlockedMovementFeedbackTest;
 	friend class FGridPartyMovementAudioFeedbackTest;
+	friend class FGridPIT01FallLifecycleTest;
 };

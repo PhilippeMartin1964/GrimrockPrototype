@@ -48,6 +48,8 @@ namespace GridEditorWidgetHelpers
 				return FText::FromString(TEXT("*"));
 			case EGridLevelObjectType::Receptacle:
 				return FText::FromString(TEXT("R"));
+			case EGridLevelObjectType::Pit:
+				return FText::FromString(TEXT("V"));
 			default:
 				return FText::FromString(TEXT("?"));
 		}

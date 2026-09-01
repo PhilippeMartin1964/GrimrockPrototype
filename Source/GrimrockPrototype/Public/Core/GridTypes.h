@@ -46,7 +46,8 @@ enum class EGridLevelObjectType : uint8
 	Item UMETA(DisplayName = "Item"),
 	Logic UMETA(DisplayName = "Logic"),
 	StoryCompanion UMETA(DisplayName = "Story Companion"),
-	CustomRecruiter UMETA(DisplayName = "Custom Recruiter")
+	CustomRecruiter UMETA(DisplayName = "Custom Recruiter"),
+	Pit UMETA(DisplayName = "Pit")
 };
 
 UENUM(BlueprintType)

@@ -600,6 +600,9 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		if (Obj.Behavior.Transition.bIsTransition)
 		{
 			const FGridObjectTransitionParams& Transition = Obj.Behavior.Transition;
+			const bool bPitUsesSameCell = Obj.Type == EGridLevelObjectType::Pit && Obj.Behavior.Pit.bUseSameCellCoordinates;
+			const int32 EffectiveTargetCellX = bPitUsesSameCell ? Obj.CellX : Transition.TargetCellX;
+			const int32 EffectiveTargetCellY = bPitUsesSameCell ? Obj.CellY : Transition.TargetCellY;
 			if (Transition.TargetLevelId.IsNone())
 			{
 				AddMessage(EGridLevelValidationSeverity::Error, TEXT("Transition has no TargetLevelId."), Obj.ObjectId);
@@ -629,20 +632,51 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 
 			if (TargetLevelAsset)
 			{
-				if (!TargetLevelAsset->IsValidCoord(Transition.TargetCellX, Transition.TargetCellY))
+				if (!TargetLevelAsset->IsValidCoord(EffectiveTargetCellX, EffectiveTargetCellY))
 				{
 					AddMessage(EGridLevelValidationSeverity::Error,
 						FString::Printf(
-							TEXT("Transition target cell X=%d Y=%d is outside target level bounds."), Transition.TargetCellX, Transition.TargetCellY),
+							TEXT("Transition target cell X=%d Y=%d is outside target level bounds."), EffectiveTargetCellX, EffectiveTargetCellY),
 						Obj.ObjectId);
 				}
 			}
-			else if (!LevelAsset->IsValidCoord(Transition.TargetCellX, Transition.TargetCellY))
+			else if (!LevelAsset->IsValidCoord(EffectiveTargetCellX, EffectiveTargetCellY))
 			{
 				AddMessage(EGridLevelValidationSeverity::Warning,
 					FString::Printf(TEXT("Transition target cell X=%d Y=%d is outside the current level bounds; target level bounds could not be validated."),
-						Transition.TargetCellX, Transition.TargetCellY),
+						EffectiveTargetCellX, EffectiveTargetCellY),
 					Obj.ObjectId);
+			}
+		}
+
+		if (Obj.Type == EGridLevelObjectType::Pit)
+		{
+			if (!Obj.Behavior.Transition.bIsTransition)
+			{
+				AddMessage(EGridLevelValidationSeverity::Error, TEXT("Pit requires an inter-level Transition."), Obj.ObjectId);
+			}
+			if (Obj.Behavior.Transition.bRequireUseAction)
+			{
+				AddMessage(EGridLevelValidationSeverity::Error, TEXT("Pit transition cannot require the Use action."), Obj.ObjectId);
+			}
+
+			const FGridObjectTransitionParams& PitTransition = Obj.Behavior.Transition;
+			const int32 PitTargetX = Obj.Behavior.Pit.bUseSameCellCoordinates ? Obj.CellX : PitTransition.TargetCellX;
+			const int32 PitTargetY = Obj.Behavior.Pit.bUseSameCellCoordinates ? Obj.CellY : PitTransition.TargetCellY;
+			const UGridLevelAsset* PitTargetLevel = DungeonAsset ? DungeonAsset->GetLevelAssetById(PitTransition.TargetLevelId) : nullptr;
+			if (Obj.Behavior.Pit.bInitiallyOpen && PitTargetLevel && PitTargetLevel->IsValidCoord(PitTargetX, PitTargetY))
+			{
+				const bool bOpenPitAtDestination = PitTargetLevel->Objects.ContainsByPredicate(
+					[PitTargetX, PitTargetY](const FGridLevelObjectData& Candidate)
+					{
+						return Candidate.Type == EGridLevelObjectType::Pit && Candidate.CellX == PitTargetX && Candidate.CellY == PitTargetY &&
+							Candidate.bInitiallyEnabled && Candidate.Behavior.Pit.bInitiallyOpen;
+					});
+				if (bOpenPitAtDestination)
+				{
+					AddMessage(EGridLevelValidationSeverity::Error,
+						TEXT("PIT01 destination contains another initially open pit; chained falls are not supported yet."), Obj.ObjectId);
+				}
 			}
 		}
 

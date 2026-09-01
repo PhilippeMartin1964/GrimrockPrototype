@@ -270,6 +270,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Editor|Palette")
 	bool EnsureStairsTransitionArchetypes(FString& OutError);
 
+
+	UFUNCTION(BlueprintCallable, Category = "Editor|Palette")
+	bool EnsureStaticPitArchetype(FString& OutError);
+
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
 	void LogEditorRuntimeAssetConsistency() const;
 

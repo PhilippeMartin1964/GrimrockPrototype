@@ -88,6 +88,7 @@ bool AGridLevelEditorActor::IsCellCenteredObject(EGridLevelObjectType ObjectType
 		case EGridLevelObjectType::Teleporter:
 		case EGridLevelObjectType::Trigger:
 		case EGridLevelObjectType::Decoration:
+		case EGridLevelObjectType::Pit:
 			return true;
 		default:
 			return false;

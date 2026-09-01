@@ -290,7 +290,7 @@ void AGrimrockPlayerController::SetupInputComponent()
 bool AGrimrockPlayerController::BeginPhysicalThrowAiming()
 {
 	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
-	if (!PartyPawn || bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() || PartyPawn->HasCursorItem() ||
+	if (!PartyPawn || bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() || PartyPawn->IsPitFalling() || PartyPawn->HasCursorItem() ||
 		(IsValid(PartyPawn->LevelRuntimeActor) && PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()))
 	{
 		return false;
@@ -323,7 +323,7 @@ bool AGrimrockPlayerController::BeginPhysicalThrowAiming()
 bool AGrimrockPlayerController::BeginPhysicalInventoryThrowAiming(FName ItemDefinitionId)
 {
 	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
-	if (!PartyPawn || bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() || PartyPawn->HasCursorItem() ||
+	if (!PartyPawn || bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() || PartyPawn->IsPitFalling() || PartyPawn->HasCursorItem() ||
 		(IsValid(PartyPawn->LevelRuntimeActor) && PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()))
 	{
 		return false;
@@ -376,7 +376,7 @@ bool AGrimrockPlayerController::UpdatePhysicalThrowAiming()
 	FGridItemInstance MainHandItem;
 	UGridItemDefinitionAsset* Definition = nullptr;
 	FText Reason;
-	const bool bSourceValid = PartyPawn && !bInventoryUiOpen && !PartyPawn->IsCharacterCreationModalActive() &&
+	const bool bSourceValid = PartyPawn && !bInventoryUiOpen && !PartyPawn->IsCharacterCreationModalActive() && !PartyPawn->IsPitFalling() &&
 		(!IsValid(PartyPawn->LevelRuntimeActor) || !PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()) &&
 		(PhysicalThrowInventoryDefinitionId.IsNone()
 			? ResolvePhysicalThrowEquippedMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Definition, Reason)
@@ -869,6 +869,10 @@ void AGrimrockPlayerController::HandleCancelCombatTargeting()
 
 void AGrimrockPlayerController::HandleLeftMousePressed()
 {
+	if (const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn()); PartyPawn && PartyPawn->IsPitFalling())
+	{
+		return;
+	}
 	if (HandlePhysicalThrowAimingClick())
 	{
 		return;

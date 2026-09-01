@@ -396,6 +396,18 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 		}
 	}
 
+
+	const FGridObjectPaletteEntry* PitEntry = CurrentEditorActor->ObjectPalette->FindEntryById(FName(TEXT("Pit_Stone_01")));
+	if (!PitEntry || !PitEntry->DefaultArchetype || PitEntry->DefaultArchetype->SupportedType != EGridLevelObjectType::Pit ||
+		!PitEntry->DefaultArchetype->DefaultBehavior.Transition.bIsTransition)
+	{
+		FString Error;
+		if (!CurrentEditorActor->EnsureStaticPitArchetype(Error))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Static pit palette provisioning failed: %s"), *Error);
+		}
+	}
+
 	TArray<FName> Categories;
 	for (const FGridObjectPaletteEntry& Entry : CurrentEditorActor->ObjectPalette->Entries)
 	{

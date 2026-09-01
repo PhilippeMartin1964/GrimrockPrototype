@@ -60,6 +60,20 @@ struct FGridTeleporterBehaviorParams
 };
 
 USTRUCT(BlueprintType)
+struct FGridPitBehaviorParams
+{
+	GENERATED_BODY()
+
+	/** PIT01 static pits start open. PIT03 will make this state controllable at runtime. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit")
+	bool bInitiallyOpen = true;
+
+	/** When enabled, the destination uses the pit source X/Y on the target dungeon level. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit")
+	bool bUseSameCellCoordinates = true;
+};
+
+USTRUCT(BlueprintType)
 struct FGridObjectTransitionParams
 {
 	GENERATED_BODY()
@@ -268,6 +282,9 @@ struct FGridObjectBehaviorParams
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transition")
 	FGridObjectTransitionParams Transition;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit")
+	FGridPitBehaviorParams Pit;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
 	FGridReceptacleBehaviorParams Receptacle;

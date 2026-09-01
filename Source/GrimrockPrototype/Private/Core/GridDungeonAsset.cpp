@@ -214,6 +214,9 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 		for (const FGridLevelObjectData& Obj : SourceLevelAsset->Objects)
 		{
 			const FGridObjectTransitionParams& Transition = Obj.Behavior.Transition;
+			const bool bPitUsesSameCell = Obj.Type == EGridLevelObjectType::Pit && Obj.Behavior.Pit.bUseSameCellCoordinates;
+			const int32 EffectiveTargetCellX = bPitUsesSameCell ? Obj.CellX : Transition.TargetCellX;
+			const int32 EffectiveTargetCellY = bPitUsesSameCell ? Obj.CellY : Transition.TargetCellY;
 			if (!Transition.bIsTransition)
 			{
 				continue;
@@ -264,14 +267,14 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 
 			if (TargetLevelAsset)
 			{
-				if (!TargetLevelAsset->IsValidCoord(Transition.TargetCellX, Transition.TargetCellY))
+				if (!TargetLevelAsset->IsValidCoord(EffectiveTargetCellX, EffectiveTargetCellY))
 				{
 					++LocalErrors;
 					StatusMessages.Add(TEXT("Target cell is outside target level bounds"));
 				}
 				else
 				{
-					const FGridLevelCellData& TargetCell = TargetLevelAsset->GetCell(Transition.TargetCellX, Transition.TargetCellY);
+					const FGridLevelCellData& TargetCell = TargetLevelAsset->GetCell(EffectiveTargetCellX, EffectiveTargetCellY);
 					if (TargetCell.CellType == EGridCellType::Empty)
 					{
 						++LocalWarnings;
@@ -302,7 +305,7 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 					"[%d] SourceLevelId=%s SourceDisplayName=%s SourceLevelAsset=%s ObjectId=%s ArchetypeId=%s Type=%s Cell=(%d,%d) Edge=%s TargetLevelId=%s TargetCell=(%d,%d) TargetFacing=%s bRequireUseAction=%s Status=%s"),
 				TransitionObjectCount, *SourceEntry.LevelId.ToString(), *SourceEntry.DisplayName.ToString(), *SourceLevelAsset->GetPathName(),
 				*Obj.ObjectId.ToString(), *Obj.ArchetypeId.ToString(), *GetGridObjectTypeName(Obj.Type), Obj.CellX, Obj.CellY, *GetGridEdgeName(Obj.Edge),
-				*Transition.TargetLevelId.ToString(), Transition.TargetCellX, Transition.TargetCellY, *GetGridEdgeName(Transition.TargetFacing),
+				*Transition.TargetLevelId.ToString(), EffectiveTargetCellX, EffectiveTargetCellY, *GetGridEdgeName(Transition.TargetFacing),
 				Transition.bRequireUseAction ? TEXT("true") : TEXT("false"), *TransitionStatus);
 
 			if (StatusMessages.Num() > 0)

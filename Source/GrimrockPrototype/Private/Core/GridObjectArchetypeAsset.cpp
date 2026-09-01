@@ -146,6 +146,7 @@ namespace
 			case EGridLevelObjectType::PressurePlate:
 			case EGridLevelObjectType::Lever:
 			case EGridLevelObjectType::Trigger:
+			case EGridLevelObjectType::Pit:
 				return EGridObjectCategory::Mechanism;
 
 			case EGridLevelObjectType::Receptacle:
@@ -513,6 +514,35 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			break;
 		}
 
+		case EGridLevelObjectType::Pit:
+		{
+			if (!IsFloorOrCenterPlacement(PlacementKind))
+			{
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit PlacementKind must be Floor or Center."));
+			}
+			if (!PreviewMesh)
+			{
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit requires a PreviewMesh."));
+			}
+			if (bBlocksMovement)
+			{
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit must not block movement; entering its cell triggers the fall."));
+			}
+			if (!bHideCellFloor)
+			{
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Pit should hide the standard cell floor."));
+			}
+			if (!DefaultBehavior.Transition.bIsTransition)
+			{
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit requires Transition.bIsTransition=true."));
+			}
+			if (DefaultBehavior.Transition.bRequireUseAction)
+			{
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit transition cannot require the Use action."));
+			}
+			break;
+		}
+
 		case EGridLevelObjectType::PressurePlate:
 		{
 			if (!IsFloorOrCenterPlacement(PlacementKind))
@@ -753,6 +783,7 @@ bool UGridObjectArchetypeAsset::SupportsCenterPlacement() const
 		case EGridLevelObjectType::MonsterSpawn:
 		case EGridLevelObjectType::ItemSpawn:
 		case EGridLevelObjectType::Item:
+		case EGridLevelObjectType::Pit:
 			return true;
 
 		default:
@@ -787,6 +818,7 @@ bool UGridObjectArchetypeAsset::RequiresRuntimeActorClass() const
 		case EGridLevelObjectType::PressurePlate:
 		case EGridLevelObjectType::Teleporter:
 		case EGridLevelObjectType::Receptacle:
+		case EGridLevelObjectType::Pit:
 			return true;
 
 		default:

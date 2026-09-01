@@ -62,5 +62,5 @@ bool AGrimrockPartyPawn::TryConsumeBufferedCommand()
 
 bool AGrimrockPartyPawn::IsBusy() const
 {
-	return bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive;
+	return bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || bIsPitFalling;
 }
