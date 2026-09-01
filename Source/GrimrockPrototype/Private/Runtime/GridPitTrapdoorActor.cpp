@@ -165,11 +165,16 @@ void AGridPitTrapdoorActor::UpdateAnimation(float DeltaSeconds)
 
 	const float SafeDuration = FMath::Max(0.01f, CurrentMoveDuration);
 	MoveElapsed += FMath::Max(0.0f, DeltaSeconds);
-	const float Alpha = FMath::Clamp(MoveElapsed / SafeDuration, 0.0f, 1.0f);
+
+	// Treat the exact scheduled duration as an endpoint even when float math
+	// produces a value a few ulps below SafeDuration (common after reversals,
+	// where CurrentMoveDuration is itself computed from an interpolated alpha).
+	const bool bReachedEndpoint = MoveElapsed + KINDA_SMALL_NUMBER >= SafeDuration;
+	const float Alpha = bReachedEndpoint ? 1.0f : FMath::Clamp(MoveElapsed / SafeDuration, 0.0f, 1.0f);
 	CurrentOpenAlpha = FMath::Lerp(MoveStartAlpha, MoveTargetAlpha, Alpha);
 	ApplyOpenAlpha(CurrentOpenAlpha);
 
-	if (Alpha < 1.0f)
+	if (!bReachedEndpoint)
 	{
 		return;
 	}
