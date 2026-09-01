@@ -339,6 +339,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 	if (!State || !State->bHasBeenVisited)
 	{
 		ApplyInitialMonsterStateForCurrentLevel();
+		ApplyPendingInboundItemsForCurrentLevel();
 		return false;
 	}
 
@@ -659,5 +660,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		*State->LevelId.ToString(), State->Doors.Num(), PersistenceCountRemovedRuntimeObjects(State), State->Items.Num(), State->Receptacles.Num(),
 		State->InteractiveObjects.Num(), State->Monsters.Num(), DeadMonsterCount);
 
+	ApplyPendingInboundItemsForCurrentLevel();
 	return true;
 }

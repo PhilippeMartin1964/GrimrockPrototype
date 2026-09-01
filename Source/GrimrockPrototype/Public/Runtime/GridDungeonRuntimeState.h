@@ -7,6 +7,7 @@
 #include "GridDungeonRuntimeState.generated.h"
 
 class UGridReadableContentAsset;
+class UGridItemDefinitionAsset;
 
 USTRUCT(BlueprintType)
 struct FGridRuntimeDoorState
@@ -105,6 +106,20 @@ struct FGridRuntimeItemState
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	FText ReadTextOverride;
+};
+
+USTRUCT(BlueprintType)
+struct FGridPendingWorldItemState
+{
+	GENERATED_BODY()
+
+	/** Normal world-item state that will be materialized when the destination level becomes active. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGridRuntimeItemState ItemState;
+
+	/** Keeps the definition resolvable even when the destination level does not otherwise reference this item type. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TObjectPtr<UGridItemDefinitionAsset> ItemDefinitionAsset = nullptr;
 };
 
 USTRUCT(BlueprintType)
@@ -246,6 +261,10 @@ struct FGridLevelRuntimeState
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TMap<FGuid, FGridRuntimeItemState> Items;
+
+	/** PIT02 items that already left an upper level but whose destination level is not currently active. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FGuid, FGridPendingWorldItemState> PendingInboundItems;
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TMap<FGuid, FGridRuntimeReceptacleState> Receptacles;
