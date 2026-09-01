@@ -1374,14 +1374,14 @@ bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridOb
 		if (!bPitOpen)
 		{
 			UE_LOG(LogTemp, Verbose,
-				TEXT("GridPit cell detected but closed Cell=(%d,%d) ObjectId=%s ArchetypeId=%s StoredType=%s."),
-				CellX, CellY, *Obj.ObjectId.ToString(), *Obj.ArchetypeId.ToString(), *GetGridObjectTypeName(Obj.Type));
+				TEXT("GridPit cell detected but closed Cell=(%d,%d) ObjectId=%s ArchetypeId=%s StoredType=%d."),
+				CellX, CellY, *Obj.ObjectId.ToString(), *Obj.ArchetypeId.ToString(), static_cast<int32>(Obj.Type));
 			continue;
 		}
 
 		UE_LOG(LogTemp, Log,
-			TEXT("GridPit OPEN cell entered Cell=(%d,%d) ObjectId=%s ArchetypeId=%s StoredType=%s CurrentLevel=%s."),
-			CellX, CellY, *Obj.ObjectId.ToString(), *Obj.ArchetypeId.ToString(), *GetGridObjectTypeName(Obj.Type),
+			TEXT("GridPit OPEN cell entered Cell=(%d,%d) ObjectId=%s ArchetypeId=%s StoredType=%d CurrentLevel=%s."),
+			CellX, CellY, *Obj.ObjectId.ToString(), *Obj.ArchetypeId.ToString(), static_cast<int32>(Obj.Type),
 			*CurrentDungeonLevelId.ToString());
 
 		OutTransition = Obj.Behavior.Transition;
