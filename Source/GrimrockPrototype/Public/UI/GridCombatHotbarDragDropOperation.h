@@ -6,7 +6,7 @@
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "GridCombatHotbarDragDropOperation.generated.h"
 
-/** Payload used to move a shortcut or assign an action/spell palette entry. */
+/** Payload used to move a shortcut or assign a Spellbook entry. */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGridCombatHotbarDragDropOperation : public UDragDropOperation
 {
@@ -23,16 +23,10 @@ public:
 	FGridCombatHotbarBinding Binding;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Hotbar|Drag")
-	bool bFromActionPalette = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|Hotbar|Drag")
 	bool bFromSpellbook = false;
 
 	UFUNCTION(BlueprintCallable, Category = "Combat|Hotbar|Drag")
 	void InitializeFromHotbarSlot(int32 InCharacterIndex, int32 InSourceSlotIndex, const FGridCombatHotbarBinding& InBinding);
-
-	UFUNCTION(BlueprintCallable, Category = "Combat|Hotbar|Drag")
-	void InitializeFromActionPalette(int32 InCharacterIndex, const FGridAvailableCombatAction& InAction);
 
 	UFUNCTION(BlueprintCallable, Category = "Combat|Hotbar|Drag")
 	void InitializeFromSpellbookEntry(int32 InCharacterIndex, const FGridSpellbookEntryView& InEntry);

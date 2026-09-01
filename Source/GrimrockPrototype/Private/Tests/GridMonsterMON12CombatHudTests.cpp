@@ -936,14 +936,8 @@ bool FGridMonsterMON1285ActionPaletteBindingTest::RunTest(const FString& Paramet
 	Character.ClassId = MageClass->ClassId;
 	Character.ClassDefinition = MageClass;
 	Fixture.Hud->ActionWidgetClass = UGridCombatHudActionWidget::StaticClass();
-	UWrapBox* PalettePanel = NewObject<UWrapBox>(Fixture.Hud, TEXT("Panel_ActionPalette_Test"));
-	Fixture.Hud->Panel_ActionPalette = PalettePanel;
 	Fixture.Hud->RefreshFromSources();
 
-	TestEqual(TEXT("The obsolete action palette is empty"), Fixture.Hud->View.ActionPalette.Num(), 0);
-	TestEqual(TEXT("No palette widgets are created"), Fixture.Hud->ActionPaletteWidgets.Num(), 0);
-	TestEqual(TEXT("The legacy palette panel owns no widgets"), PalettePanel->GetChildrenCount(), 0);
-	TestEqual(TEXT("The legacy palette panel stays collapsed"), PalettePanel->GetVisibility(), ESlateVisibility::Collapsed);
 	FGridAvailableCombatAction SpellAction;
 	if (!TestTrue(TEXT("The direct spell remains in the TurnManager catalogue"),
 			FindCatalogAction(Fixture.TurnManager, 0, TEXT("Spell_MON1285_ArcaneBolt"), SpellAction)))
@@ -1231,7 +1225,6 @@ bool FGridMonsterMON1287PersistentHotbarTest::RunTest(const FString& Parameters)
 	HotbarCanvasSlot->SetSize(FVector2D(700.0f, 180.0f));
 	Fixture.Hud->Panel_CombatHud = RootPanel;
 	Fixture.Hud->Panel_Actions = HotbarPanel;
-	Fixture.Hud->Panel_ActionPalette = nullptr;
 	Fixture.Hud->Panel_Initiative = NewObject<UHorizontalBox>(Fixture.Hud, TEXT("Panel_Initiative_1287"));
 	Fixture.Hud->Button_EndTurn = NewObject<UButton>(Fixture.Hud, TEXT("Button_EndTurn_1287"));
 	Fixture.Hud->ActionWidgetClass = UGridCombatHudActionWidget::StaticClass();
@@ -1248,10 +1241,6 @@ bool FGridMonsterMON1287PersistentHotbarTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("The fixed hotbar remains visible out of combat"), HotbarPanel->GetVisibility(), ESlateVisibility::SelfHitTestInvisible);
 	TestEqual(TEXT("Combat-only initiative is hidden out of combat"), Fixture.Hud->Panel_Initiative->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Combat-only end turn is hidden out of combat"), Fixture.Hud->Button_EndTurn->GetVisibility(), ESlateVisibility::Collapsed);
-	TestNull(TEXT("The simplified HUD creates no palette fallback"), Fixture.Hud->Panel_ActionPalette.Get());
-	TestEqual(TEXT("The obsolete palette has no runtime widgets"), Fixture.Hud->ActionPaletteWidgets.Num(), 0);
-	TestEqual(TEXT("The obsolete palette view stays empty"), Fixture.Hud->View.ActionPalette.Num(), 0);
-
 	TestTrue(TEXT("Out-of-combat slot 1 remains PrimaryAttack"), Fixture.Hud->View.Actions[0].Binding.IsPrimaryAttackBinding());
 	TestTrue(TEXT("PrimaryAttack resolves out of combat"), Fixture.Hud->View.Actions[0].bResolved);
 	TestEqual(TEXT("A character without a weapon falls back to unarmed"), Fixture.Hud->View.Actions[0].Action.Definition.ActionId, FName(TEXT("Attack_Unarmed")));
@@ -1448,13 +1437,6 @@ bool FGridMonsterMON129ActionRolloverTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("The disabled rollover keeps the description"), DisabledToolTip.Contains(TEXT("Lance un shuriken sur la cible.")));
 	TestTrue(TEXT("The disabled rollover explains unavailability"), DisabledToolTip.Contains(TEXT("Indisponible : aucun combat n’est actif.")));
 
-	UGridCombatHudActionWidget* PaletteWidget = NewObject<UGridCombatHudActionWidget>();
-	PaletteWidget->Button_Action = NewObject<UButton>(PaletteWidget);
-	PaletteWidget->InitializePaletteAction(nullptr, AvailableAction);
-	const FString PaletteToolTip = PaletteWidget->Button_Action->GetToolTipText().ToString();
-	TestTrue(TEXT("The palette rollover contains the action name"), PaletteToolTip.Contains(TEXT("Shuriken")));
-	TestTrue(TEXT("The palette rollover contains the complete cost"), PaletteToolTip.Contains(TEXT("Coût : 2 PA — quantité : 4")));
-	TestTrue(TEXT("The palette rollover explains drag assignment"), PaletteToolTip.Contains(TEXT("Glissez cette action vers un raccourci.")));
 	return true;
 }
 
@@ -1470,7 +1452,6 @@ bool FGridMonsterMON1210ActionPaletteTargetingTest::RunTest(const FString& Param
 		return false;
 	}
 
-	Fixture.Hud->Panel_ActionPalette = NewObject<UHorizontalBox>(Fixture.Hud);
 	Fixture.Hud->Panel_Targeting = NewObject<UVerticalBox>(Fixture.Hud);
 	Fixture.Hud->Text_TargetingInstructions = NewObject<UTextBlock>(Fixture.Hud);
 	Fixture.Hud->Text_TargetingCell = NewObject<UTextBlock>(Fixture.Hud);
@@ -1491,12 +1472,10 @@ bool FGridMonsterMON1210ActionPaletteTargetingTest::RunTest(const FString& Param
 		return false;
 	}
 	TestTrue(TEXT("The area spell configures shortcut seven"), Fixture.Hud->AssignCombatActionToHotbarSlot(6, AreaSpell));
-	TestEqual(TEXT("The obsolete palette stays hidden before targeting"), Fixture.Hud->Panel_ActionPalette->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("The targeting panel is initially hidden"), Fixture.Hud->Panel_Targeting->GetVisibility(), ESlateVisibility::Collapsed);
 
 	FGridCombatActionRequestResult Pending;
 	TestTrue(TEXT("The shortcut opens area targeting"), Fixture.Hud->RequestHotbarSlot(6, Pending));
-	TestEqual(TEXT("Targeting keeps the obsolete palette hidden"), Fixture.Hud->Panel_ActionPalette->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("The targeting panel is visible"), Fixture.Hud->Panel_Targeting->GetVisibility(), ESlateVisibility::SelfHitTestInvisible);
 	const FString Instructions = Fixture.Hud->Text_TargetingInstructions->GetText().ToString();
 	TestTrue(TEXT("The instructions name the action"), Instructions.Contains(TEXT("Explosion arcanique")));
@@ -1512,7 +1491,6 @@ bool FGridMonsterMON1210ActionPaletteTargetingTest::RunTest(const FString& Param
 	TestFalse(TEXT("Valid feedback exposes no cell coordinates"), ValidStatus.Contains(TEXT("(1,2)")));
 
 	Fixture.Hud->CancelCombatActionTargeting();
-	TestEqual(TEXT("Cancellation keeps the obsolete palette hidden"), Fixture.Hud->Panel_ActionPalette->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Cancellation hides the targeting panel"), Fixture.Hud->Panel_Targeting->GetVisibility(), ESlateVisibility::Collapsed);
 	return true;
 }

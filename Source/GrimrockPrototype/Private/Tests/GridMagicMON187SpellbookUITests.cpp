@@ -183,7 +183,6 @@ bool FGridMON187DragDropPayloadTest::RunTest(const FString& Parameters)
 	UGridCombatHotbarDragDropOperation* Operation = NewObject<UGridCombatHotbarDragDropOperation>();
 	Operation->InitializeFromSpellbookEntry(0, Entries[0]);
 	TestTrue(TEXT("Payload is marked as Spellbook source"), Operation->bFromSpellbook);
-	TestFalse(TEXT("Payload is not an action-palette source"), Operation->bFromActionPalette);
 	TestEqual(TEXT("Payload keeps SpellId"), Operation->Binding.SourceDefinitionId, SpellId);
 
 	TestTrue(TEXT("Blueprint drop hook commits through MON12 hotbar"),

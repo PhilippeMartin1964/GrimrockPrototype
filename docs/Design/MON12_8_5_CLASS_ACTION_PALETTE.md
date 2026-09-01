@@ -1,5 +1,9 @@
 # MON12.8.5 — Palette des capacités et sorts de classe
 
+> **Obsolète depuis HOTBAR01.2 — Remove Legacy Action Palette (01.09.2026).**  
+> La palette d’actions intermédiaire a été supprimée de l’architecture runtime. Ne pas recréer `Panel_ActionPalette` dans `WBP_GridCombatHud`. Les actions sont affectées directement depuis leur source métier (inventaire, Spellbook, futures pages de capacités) vers la barre `1–9,0`. `Panel_Targeting` reste actif pour les actions nécessitant une cible.
+
+
 ## Résultat
 
 Le HUD peut maintenant afficher les actions sans objet source du personnage

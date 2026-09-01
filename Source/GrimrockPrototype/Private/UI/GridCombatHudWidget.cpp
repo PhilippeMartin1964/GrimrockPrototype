@@ -18,7 +18,6 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/Widget.h"
-#include "Components/WrapBox.h"
 #include "Components/WrapBoxSlot.h"
 #include "InputCoreTypes.h"
 #include "Magic/GridPartySpellbookComponent.h"
@@ -67,7 +66,7 @@ namespace
 			Left.PreferredSourceRuntimeId == Right.PreferredSourceRuntimeId && Left.PreferredEquipmentSlot == Right.PreferredEquipmentSlot;
 	}
 
-	bool IsActionPaletteSource(EGridCombatActionSourcePolicy SourcePolicy)
+	bool IsDirectHotbarActionSource(EGridCombatActionSourcePolicy SourcePolicy)
 	{
 		return SourcePolicy == EGridCombatActionSourcePolicy::Universal || SourcePolicy == EGridCombatActionSourcePolicy::Ability ||
 			SourcePolicy == EGridCombatActionSourcePolicy::Spell;
@@ -238,16 +237,6 @@ namespace
 		PrimaryView.DisabledReason = ResolvedPrimary->bEnabled ? FText::GetEmpty() : ResolvedPrimary->DisabledReason;
 	}
 
-	bool IsSpellbookManagedAction(const FGridAvailableCombatAction& Action)
-	{
-		// Spellbook actions use SpellId as both action and source definition
-		// identity. They belong to Menu -> Sorts and the configured hotbar,
-		// not to the legacy combat action palette. Class-provided Spell
-		// actions keep their class SourceDefinitionId and remain in palette.
-		return Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Spell && !Action.Definition.ActionId.IsNone() &&
-			Action.SourceDefinitionId == Action.Definition.ActionId;
-	}
-
 	EGridEquipmentSlot ResolveDraggedEquipmentSlot(EGridInventoryUiSlotType SlotType, int32 SlotIndex)
 	{
 		switch (SlotType)
@@ -326,33 +315,6 @@ namespace
 		return FText::FromString(Result);
 	}
 
-	FText BuildPaletteActionToolTip(const FGridAvailableCombatAction& Action)
-	{
-		FString Result = Action.Definition.DisplayName.ToString();
-		if (Result.IsEmpty())
-		{
-			Result = Action.Definition.ActionId.ToString();
-		}
-		Result += FString::Printf(TEXT("\nCoût : %s"), *FormatActionCostAndQuantity(Action));
-		const FString Description = Action.Definition.Description.ToString();
-		if (!Description.IsEmpty())
-		{
-			Result += TEXT("\n\n");
-			Result += Description;
-		}
-		if (!Action.bEnabled)
-		{
-			FString Reason = Action.DisabledReason.ToString();
-			if (Reason.IsEmpty())
-			{
-				Reason = TEXT("cette action n’est pas utilisable.");
-			}
-			Result += TEXT("\n\nIndisponible : ");
-			Result += Reason;
-		}
-		Result += TEXT("\n\nGlissez cette action vers un raccourci.");
-		return FText::FromString(Result);
-	}
 }
 
 void FGridCombatHudViewModelBuilder::BuildPartyMembers(
@@ -459,24 +421,7 @@ float FGridCombatHudViewModelBuilder::CalculateHealthPercent(int32 CurrentHealth
 void UGridCombatHudActionWidget::InitializeAction(UGridCombatHudWidget* InOwnerHud, const FGridCombatHudActionView& InView)
 {
 	OwnerHud = InOwnerHud;
-	bActionPaletteEntry = false;
 	View = InView;
-	EnsureQuantityBadge();
-	RefreshWidgets();
-}
-
-void UGridCombatHudActionWidget::InitializePaletteAction(UGridCombatHudWidget* InOwnerHud, const FGridAvailableCombatAction& InAction)
-{
-	OwnerHud = InOwnerHud;
-	bActionPaletteEntry = true;
-	View = FGridCombatHudActionView();
-	View.bHasBinding = true;
-	View.bResolved = true;
-	View.Action = InAction;
-	View.Binding.ActionId = InAction.Definition.ActionId;
-	View.Binding.SourcePolicy = InAction.Definition.SourcePolicy;
-	View.Binding.SourceDefinitionId = InAction.SourceDefinitionId;
-	View.DisabledReason = InAction.bEnabled ? FText::GetEmpty() : InAction.DisabledReason;
 	EnsureQuantityBadge();
 	RefreshWidgets();
 }
@@ -498,7 +443,7 @@ void UGridCombatHudActionWidget::NativeDestruct()
 
 bool UGridCombatHudActionWidget::TryExecuteAction()
 {
-	if (!IsValid(OwnerHud) || bActionPaletteEntry || !View.bHasBinding)
+	if (!IsValid(OwnerHud) || !View.bHasBinding)
 	{
 		return false;
 	}
@@ -570,11 +515,7 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 	if (Button_Action)
 	{
 		Button_Action->SetIsEnabled(true);
-		if (bActionPaletteEntry)
-		{
-			Button_Action->SetToolTipText(BuildPaletteActionToolTip(View.Action));
-		}
-		else if (!View.bHasBinding)
+		if (!View.bHasBinding)
 		{
 			Button_Action->SetToolTipText(
 				FText::FromString(TEXT("Déposez ici un objet de l'inventaire, un sort ou une capacité.")));
@@ -600,11 +541,11 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 	if (Text_ShortcutNumber)
 	{
 		Text_ShortcutNumber->SetText(View.ShortcutText);
-		Text_ShortcutNumber->SetVisibility(bActionPaletteEntry ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+		Text_ShortcutNumber->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 	if (Text_Quantity)
 	{
-		const bool bShowQuantity = !bActionPaletteEntry && View.bHasBinding && View.bResolved &&
+		const bool bShowQuantity = View.bHasBinding && View.bResolved &&
 			View.Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem && View.Action.CurrentSourceItemQuantityCost > 0 &&
 			View.Action.CurrentSourceItemQuantity > 0;
 		Text_Quantity->SetText(bShowQuantity
@@ -628,14 +569,7 @@ FReply UGridCombatHudActionWidget::NativeOnPreviewMouseButtonDown(const FGeometr
 		return Super::NativeOnPreviewMouseButtonDown(InGeometry, InMouseEvent);
 	}
 
-	if (bActionPaletteEntry && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
-	{
-		bLeftMousePressed = true;
-		bDragDetected = false;
-		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
-	}
-
-	if (!bActionPaletteEntry && InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton && View.bHasBinding)
+	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton && View.bHasBinding)
 	{
 		bLeftMousePressed = false;
 		bDragDetected = false;
@@ -655,7 +589,7 @@ FReply UGridCombatHudActionWidget::NativeOnMouseButtonUp(const FGeometry& InGeom
 {
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && bLeftMousePressed)
 	{
-		const bool bShouldExecute = !bActionPaletteEntry && !bDragDetected;
+		const bool bShouldExecute = !bDragDetected;
 		bLeftMousePressed = false;
 		bDragDetected = false;
 		if (bShouldExecute)
@@ -683,14 +617,7 @@ void UGridCombatHudActionWidget::NativeOnDragDetected(const FGeometry& InGeometr
 	{
 		return;
 	}
-	if (bActionPaletteEntry)
-	{
-		Operation->InitializeFromActionPalette(View.Action.CharacterIndex, View.Action);
-	}
-	else
-	{
-		Operation->InitializeFromHotbarSlot(View.Action.CharacterIndex, View.HotbarSlotIndex, View.Binding);
-	}
+	Operation->InitializeFromHotbarSlot(View.Action.CharacterIndex, View.HotbarSlotIndex, View.Binding);
 	Operation->DefaultDragVisual = nullptr;
 	Operation->Pivot = EDragPivot::MouseDown;
 	OutOperation = Operation;
@@ -937,15 +864,6 @@ void UGridCombatHudWidget::RefreshFromSources()
 			Panel->RefreshFromSources();
 		}
 	}
-	View.ActionPalette.Reset();
-	if (Panel_ActionPalette)
-	{
-		Panel_ActionPalette->SetVisibility(ESlateVisibility::Collapsed);
-	}
-	if (RuntimeActionPalettePanel)
-	{
-		RuntimeActionPalettePanel->SetVisibility(ESlateVisibility::Collapsed);
-	}
 	EnsureActionWidgets();
 	RefreshActionWidgets();
 	EnsureInitiativeWidgets();
@@ -1142,33 +1060,6 @@ bool UGridCombatHudWidget::HandleHotbarDrop(int32 TargetSlotIndex, UDragDropOper
 			return HotbarOperation->CommitSpellbookDrop(InventoryComponent, CharacterSpellbook, TargetSlotIndex) == EGridSpellHotbarAssignmentResult::Success;
 		}
 
-		if (HotbarOperation->bFromActionPalette)
-		{
-			if (IsPhysicalThrowMainHandAction(HotbarOperation->Binding.ActionId))
-			{
-				const FGridAvailableCombatAction* UtilityAction = View.ActionPalette.FindByPredicate(
-					[](const FGridAvailableCombatAction& Candidate)
-					{
-						return IsPhysicalThrowMainHandAction(Candidate.Definition.ActionId);
-					});
-				return HotbarOperation->CharacterIndex == View.ActiveCharacterIndex && UtilityAction &&
-					AssignCombatActionToHotbarSlot(TargetSlotIndex, *UtilityAction);
-			}
-
-			TArray<FGridAvailableCombatAction> CurrentActions;
-			if (IsValid(TurnManagerComponent))
-			{
-				TurnManagerComponent->GetAvailableCombatActions(View.ActiveCharacterIndex, CurrentActions);
-			}
-			const FGridAvailableCombatAction* CurrentAction = CurrentActions.FindByPredicate(
-				[HotbarOperation](const FGridAvailableCombatAction& Candidate)
-				{
-					return IsActionPaletteSource(Candidate.Definition.SourcePolicy) && DoesHotbarBindingMatchAction(HotbarOperation->Binding, Candidate);
-				});
-			return HotbarOperation->CharacterIndex == View.ActiveCharacterIndex && CurrentAction &&
-				AssignCombatActionToHotbarSlot(TargetSlotIndex, *CurrentAction);
-		}
-
 		FGridCombatHotbarBinding CurrentBinding;
 		return HotbarOperation->CharacterIndex == View.ActiveCharacterIndex &&
 			InventoryComponent->GetCharacterCombatHotbarBinding(View.ActiveCharacterIndex, HotbarOperation->SourceSlotIndex, CurrentBinding) &&
@@ -1190,7 +1081,7 @@ bool UGridCombatHudWidget::HandleHotbarDrop(int32 TargetSlotIndex, UDragDropOper
 bool UGridCombatHudWidget::AssignCombatActionToHotbarSlot(int32 TargetSlotIndex, const FGridAvailableCombatAction& Action)
 {
 	if (!IsValid(InventoryComponent) || View.ActiveCharacterIndex == INDEX_NONE || Action.CharacterIndex != View.ActiveCharacterIndex || TargetSlotIndex < 0 ||
-		TargetSlotIndex >= FGridCombatHotbarBinding::SlotCount || !IsActionPaletteSource(Action.Definition.SourcePolicy))
+		TargetSlotIndex >= FGridCombatHotbarBinding::SlotCount || !IsDirectHotbarActionSource(Action.Definition.SourcePolicy))
 	{
 		return false;
 	}
@@ -1216,7 +1107,7 @@ bool UGridCombatHudWidget::AssignCombatActionToHotbarSlot(int32 TargetSlotIndex,
 		{
 			return Candidate.MatchesSource(Action.Definition.ActionId, Action.Definition.SourcePolicy, Action.SourceDefinitionId, Action.SourceEquipmentSlot);
 		});
-	if (!CurrentAction || !IsActionPaletteSource(CurrentAction->Definition.SourcePolicy))
+	if (!CurrentAction || !IsDirectHotbarActionSource(CurrentAction->Definition.SourcePolicy))
 	{
 		return false;
 	}
@@ -1261,9 +1152,7 @@ void UGridCombatHudWidget::NativeDestruct()
 	UnbindFromSources();
 	PartyMemberPanels.Reset();
 	HotbarActionWidgets.Reset();
-	ActionPaletteWidgets.Reset();
 	HotbarRow = nullptr;
-	RuntimeActionPalettePanel = nullptr;
 	InitiativeSlotWidgets.Reset();
 	InitiativeRoundSeparatorWidgets.Reset();
 	InitiativeRoundSeparatorTexts.Reset();
@@ -1465,109 +1354,6 @@ void UGridCombatHudWidget::RefreshActionWidgets()
 	}
 }
 
-void UGridCombatHudWidget::EnsureActionPalettePanel()
-{
-	if ((Panel_ActionPalette && Panel_ActionPalette != Panel_Actions) || !WidgetTree || !Panel_Actions)
-	{
-		return;
-	}
-
-	UCanvasPanel* CanvasParent = Cast<UCanvasPanel>(Panel_Actions->GetParent());
-	if (!CanvasParent)
-	{
-		return;
-	}
-
-	UWrapBox* FallbackPanel = WidgetTree->ConstructWidget<UWrapBox>(
-		UWrapBox::StaticClass(), MakeUniqueObjectName(WidgetTree, UWrapBox::StaticClass(), TEXT("Panel_ActionPalette_Runtime")));
-	if (!FallbackPanel)
-	{
-		return;
-	}
-
-	UCanvasPanelSlot* PaletteSlot = CanvasParent->AddChildToCanvas(FallbackPanel);
-	const UCanvasPanelSlot* ActionSlot = Cast<UCanvasPanelSlot>(Panel_Actions->Slot);
-	if (PaletteSlot && ActionSlot)
-	{
-		const FVector2D ActionSize = ActionSlot->GetSize();
-		PaletteSlot->SetAnchors(ActionSlot->GetAnchors());
-		PaletteSlot->SetAlignment(ActionSlot->GetAlignment());
-		PaletteSlot->SetPosition(ActionSlot->GetPosition() + FVector2D(0.0f, -ActionSize.Y - 8.0f));
-		PaletteSlot->SetSize(FVector2D(ActionSize.X, FMath::Clamp(ActionSize.Y * 0.45f, 64.0f, 96.0f)));
-		PaletteSlot->SetAutoSize(false);
-	}
-
-	RuntimeActionPalettePanel = FallbackPanel;
-	Panel_ActionPalette = FallbackPanel;
-}
-
-void UGridCombatHudWidget::EnsureActionPaletteWidgets()
-{
-	EnsureActionPalettePanel();
-	if (!Panel_ActionPalette || Panel_ActionPalette == Panel_Actions || !ActionWidgetClass)
-	{
-		return;
-	}
-
-	const int32 DesiredCount = View.ActionPalette.Num();
-	bool bPoolValid = ActionPaletteWidgets.Num() == DesiredCount && Panel_ActionPalette->GetChildrenCount() == DesiredCount;
-	for (const UGridCombatHudActionWidget* ActionWidget : ActionPaletteWidgets)
-	{
-		bPoolValid = bPoolValid && IsValid(ActionWidget) && ActionWidget->GetParent() == Panel_ActionPalette;
-	}
-	if (bPoolValid)
-	{
-		return;
-	}
-
-	Panel_ActionPalette->ClearChildren();
-	ActionPaletteWidgets.Reset(DesiredCount);
-	for (int32 ActionIndex = 0; ActionIndex < DesiredCount; ++ActionIndex)
-	{
-		UGridCombatHudActionWidget* ActionWidget = CreateWidget<UGridCombatHudActionWidget>(this, ActionWidgetClass);
-		if (!ActionWidget)
-		{
-			continue;
-		}
-
-		UPanelSlot* PaletteSlot = Panel_ActionPalette->AddChild(ActionWidget);
-		const float HalfSpacing = FMath::Max(0.0f, HotbarSlotSpacing) * 0.5f;
-		if (UHorizontalBoxSlot* HorizontalSlot = Cast<UHorizontalBoxSlot>(PaletteSlot))
-		{
-			HorizontalSlot->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
-			HorizontalSlot->SetPadding(FMargin(HalfSpacing, 0.0f, HalfSpacing, 0.0f));
-			HorizontalSlot->SetVerticalAlignment(VAlign_Fill);
-		}
-		else if (UWrapBoxSlot* WrapSlot = Cast<UWrapBoxSlot>(PaletteSlot))
-		{
-			WrapSlot->SetPadding(FMargin(HalfSpacing, 0.0f, HalfSpacing, 0.0f));
-		}
-		ActionPaletteWidgets.Add(ActionWidget);
-	}
-}
-
-void UGridCombatHudWidget::RefreshActionPaletteWidgets()
-{
-	EnsureActionPalettePanel();
-	if (!Panel_ActionPalette || Panel_ActionPalette == Panel_Actions)
-	{
-		return;
-	}
-
-	Panel_ActionPalette->SetVisibility(
-		!bCombatActionTargetingActive && !View.ActionPalette.IsEmpty() ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-	for (int32 ActionIndex = 0; ActionIndex < ActionPaletteWidgets.Num(); ++ActionIndex)
-	{
-		UGridCombatHudActionWidget* ActionWidget = ActionPaletteWidgets[ActionIndex];
-		if (!IsValid(ActionWidget) || !View.ActionPalette.IsValidIndex(ActionIndex))
-		{
-			continue;
-		}
-		ActionWidget->InitializePaletteAction(this, View.ActionPalette[ActionIndex]);
-		ActionWidget->SetVisibility(ESlateVisibility::Visible);
-	}
-}
-
 void UGridCombatHudWidget::EnsureInitiativeWidgets()
 {
 	if (!Panel_Initiative || !InitiativeSlotWidgetClass)
@@ -1713,10 +1499,6 @@ void UGridCombatHudWidget::RefreshBoundWidgets()
 	{
 		Panel_Actions->SetVisibility(View.ActiveCharacterIndex != INDEX_NONE ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 	}
-	if (Panel_ActionPalette)
-	{
-		Panel_ActionPalette->SetVisibility(ESlateVisibility::Collapsed);
-	}
 	if (Panel_Initiative)
 	{
 		Panel_Initiative->SetVisibility(bShowCombatOnly ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
@@ -1777,11 +1559,6 @@ void UGridCombatHudWidget::ValidateCombatActionTargetingState()
 
 void UGridCombatHudWidget::RefreshTargetingWidgets()
 {
-	if (Panel_ActionPalette && Panel_ActionPalette != Panel_Actions)
-	{
-		Panel_ActionPalette->SetVisibility(
-			!bCombatActionTargetingActive && !View.ActionPalette.IsEmpty() ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-	}
 	if (Panel_Targeting)
 	{
 		Panel_Targeting->SetVisibility(bCombatActionTargetingActive ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);

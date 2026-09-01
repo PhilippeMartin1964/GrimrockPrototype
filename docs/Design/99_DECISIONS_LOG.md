@@ -900,3 +900,19 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Une patrouille active requiert au moins deux waypoints ; les cellules, orientations et attentes sont validées par `UGridLevelAsset::ValidateMonsterSpawns()`.
 - Aucun `Tick` IA n'est ajouté par MON14.2.
 - Le document d'implémentation est `docs/Design/MON14_2_DIRECTIONAL_PERCEPTION_PATROL_DATA.md`.
+
+
+---
+
+## 2026-09-01 — HOTBAR01.2 : suppression définitive de l’Action Palette
+
+### Décisions validées
+
+- La barre `1–9,0` est l’unique barre d’actions générale.
+- `Panel_ActionPalette` est supprimé de `WBP_GridCombatHud` et de l’API native `UGridCombatHudWidget`.
+- Aucun fallback C++ ne doit recréer une palette intermédiaire.
+- Les objets viennent directement de l’inventaire ; les sorts viennent directement du Spellbook ; les futures capacités doivent venir de leur écran métier.
+- `Panel_Targeting` reste conservé et indépendant de toute palette.
+- Le payload de drag `InitializeFromActionPalette()` / `bFromActionPalette` est supprimé.
+- Le Spellbook conserve son payload dédié et ne dépend pas de la palette.
+- Le binding historique `ThrowMainHand` reste seulement pour la compatibilité des sauvegardes existantes.
