@@ -92,6 +92,7 @@ private:
 	bool ConsumeRuntimeActionBudget(const TCHAR* ActionLabel);
 	bool EvaluateGridObjectLinkCondition(const FGridObjectLink& LinkData, AActor* SourceActor, AActor* TargetActor) const;
 	bool ApplyDoorLinkCommand(const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
+	bool ApplyPitLinkCommand(const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
 	bool ApplyReceptacleLinkCommand(const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
 	bool ApplyStatefulLinkCommand(const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
 	bool SetTargetActiveState(const FGridLevelObjectData& TargetObject, bool bActive);

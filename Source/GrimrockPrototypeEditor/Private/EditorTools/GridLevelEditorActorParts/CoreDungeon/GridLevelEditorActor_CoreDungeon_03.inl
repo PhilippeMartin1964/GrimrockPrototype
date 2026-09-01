@@ -158,13 +158,13 @@
 				Archetype.MarkPackageDirty();
 			}
 
-			void ConfigureStaticPitArchetype(UGridObjectArchetypeAsset& Archetype, UStaticMesh* Mesh)
+			void ConfigurePitTrapdoorArchetype(UGridObjectArchetypeAsset& Archetype, UStaticMesh* Mesh)
 			{
 				Archetype.Modify();
 				Archetype.ArchetypeId = FName(TEXT("Pit_Stone_01"));
 				Archetype.DisplayName = FText::FromString(TEXT("Stone Pit"));
 				Archetype.SupportedType = EGridLevelObjectType::Pit;
-				Archetype.Description = FText::FromString(TEXT("Static open inter-level pit."));
+				Archetype.Description = FText::FromString(TEXT("Controlled inter-level pit with optional trapdoor cover."));
 				Archetype.bDefaultInitiallyEnabled = true;
 				Archetype.bDefaultInitiallyActive = false;
 				Archetype.DefaultTag = NAME_None;
@@ -190,11 +190,10 @@
 				Archetype.bIsLightSource = false;
 				Archetype.PreviewMesh = Mesh;
 				Archetype.PreviewMaterial = nullptr;
-				Archetype.FixedMesh = nullptr;
-				Archetype.MovingMesh = nullptr;
+				Archetype.FixedMesh = Mesh;
 				Archetype.FixedMaterial = nullptr;
-				Archetype.MovingMaterial = nullptr;
-				Archetype.RuntimeActorClass = AGridGenericObjectActor::StaticClass();
+				// Preserve optional user-authored MovingMesh/MovingMaterial as the closed trapdoor cover.
+				Archetype.RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
 				Archetype.ItemActorClass = nullptr;
 				Archetype.PlacementZOffset = 0.f;
 				Archetype.WallInset = 6.f;

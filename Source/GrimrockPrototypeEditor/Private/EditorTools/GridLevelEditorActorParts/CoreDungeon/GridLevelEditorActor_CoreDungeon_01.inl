@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridGenericObjectActor.h"
+#include "Runtime/GridPitTrapdoorActor.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -211,6 +212,9 @@ namespace
 
 			case EGridLevelObjectType::Receptacle:
 				return Event == EGridObjectEvent::ItemInserted || Event == EGridObjectEvent::ItemRemoved || Event == EGridObjectEvent::ItemChanged;
+
+			case EGridLevelObjectType::Pit:
+				return Event == EGridObjectEvent::Opened || Event == EGridObjectEvent::Closed;
 
 			case EGridLevelObjectType::MonsterSpawn:
 			{

@@ -1,5 +1,8 @@
 # PIT01 — Static Inter-Level Pit
 
+> **Évolution PIT03 (01.09.2026).** Le booléen `bInitiallyOpen` n'est plus l'autorité permanente après le démarrage. L'état Open/Closed est désormais persisté par `FGridRuntimePitState` et peut être commandé par les connecteurs. Le reste du contrat PIT01 (destination et chute du groupe) reste valide.
+
+
 Date : 01.09.2026
 
 ## Objectif

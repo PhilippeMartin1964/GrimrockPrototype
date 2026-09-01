@@ -417,12 +417,26 @@ public:
 	bool TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn);
 
 
+	/** PIT03 runtime authority. Open=true means the cell behaves as a fall-through pit. */
+	UFUNCTION(BlueprintPure, Category = "Dungeon|Pit")
+	bool IsPitOpen(FGuid PitObjectId) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Dungeon|Pit")
+	bool SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmitEvent = true);
+
+	UFUNCTION(BlueprintCallable, Category = "Dungeon|Pit")
+	bool TogglePit(FGuid PitObjectId, bool bEmitEvent = true);
+
+
 	/** PIT02: routes a normal world item through an open pit instead of leaving it on the source level. */
 	bool TryRouteWorldItemThroughOpenPit(
 		const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinitionAsset, int32 CellX, int32 CellY, const FVector& LocalOffset);
 
 	/** PIT02: materializes queued arrivals for the current dungeon level. Returns the number successfully spawned. */
 	int32 ApplyPendingInboundItemsForCurrentLevel();
+
+	/** PIT03: routes already placed center World Items when a closed trapdoor opens underneath them. */
+	int32 DropWorldItemsThroughOpenPitAtCell(int32 CellX, int32 CellY);
 
 	void RebuildRuntimeObjects();
 	void AddRuntimeObjectActor(const FGridLevelObjectData& ObjectData);
@@ -522,6 +536,7 @@ private:
 	void ClearSpawnedMonsterActors();
 	void AbortActiveCombatAndMonsterActions();
 	void ApplyInitialMonsterStateForCurrentLevel();
+	bool IsPitOpenForLevel(FName LevelId, const FGridLevelObjectData& PitObject) const;
 
 	template <typename TActor>
 	TActor* SpawnRuntimeObjectActor(const FGridLevelObjectData& ObjectData, UStaticMesh*& OutMesh, UMaterialInterface*& OutMaterial, FTransform& OutTransform)

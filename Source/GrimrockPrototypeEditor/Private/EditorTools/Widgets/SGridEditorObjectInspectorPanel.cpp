@@ -1147,7 +1147,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPitDetailsSection(cons
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
 		[
 			SNew(STextBlock)
-				.Text(FText::FromString(TEXT("PIT01 is a static pit. An open pit triggers after the party fully enters the cell. When Same Cell Coordinates is enabled, Transition Target Cell X/Y are ignored.")))
+				.Text(FText::FromString(TEXT("PIT03 supports runtime Open/Close/Toggle commands. Closed behaves as a floor; Open triggers falls and World Item routing. When Same Cell Coordinates is enabled, Transition Target Cell X/Y are ignored.")))
 				.AutoWrapText(true)
 				.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))
 		]);

@@ -919,6 +919,13 @@ bool UGridActivationComponent::ApplyLinkCommand(const FGridObjectLink& LinkData)
 			break;
 		}
 
+		case EGridLevelObjectType::Pit:
+		{
+			bSuccess = ApplyPitLinkCommand(*TargetObject, ResolvedCommand);
+			FailureReason = bSuccess ? nullptr : TEXT("pit command failed");
+			break;
+		}
+
 		case EGridLevelObjectType::Button:
 		case EGridLevelObjectType::Decoration:
 		case EGridLevelObjectType::ItemSpawn:
@@ -1193,6 +1200,31 @@ bool UGridActivationComponent::ApplyDoorLinkCommand(const FGridLevelObjectData& 
 		case EGridObjectCommand::Close:
 		case EGridObjectCommand::Deactivate:
 			return RuntimeActor->CloseDoorOnEdge(TargetObject.CellX, TargetObject.CellY, TargetObject.Edge);
+
+		default:
+			return false;
+	}
+}
+
+bool UGridActivationComponent::ApplyPitLinkCommand(const FGridLevelObjectData& TargetObject, EGridObjectCommand Command)
+{
+	if (!RuntimeActor || TargetObject.Type != EGridLevelObjectType::Pit)
+	{
+		return false;
+	}
+
+	switch (Command)
+	{
+		case EGridObjectCommand::Toggle:
+			return RuntimeActor->TogglePit(TargetObject.ObjectId);
+
+		case EGridObjectCommand::Open:
+		case EGridObjectCommand::Activate:
+			return RuntimeActor->SetPitOpen(TargetObject.ObjectId, true);
+
+		case EGridObjectCommand::Close:
+		case EGridObjectCommand::Deactivate:
+			return RuntimeActor->SetPitOpen(TargetObject.ObjectId, false);
 
 		default:
 			return false;

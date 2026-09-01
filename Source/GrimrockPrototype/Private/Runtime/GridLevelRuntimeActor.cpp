@@ -24,6 +24,7 @@
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "Runtime/GridPressurePlateActor.h"
+#include "Runtime/GridPitTrapdoorActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -1151,6 +1152,106 @@ bool AGridLevelRuntimeActor::FindTransitionAtCell(int32 CellX, int32 CellY, bool
 	return bFoundUsableTransition;
 }
 
+bool AGridLevelRuntimeActor::IsPitOpenForLevel(FName LevelId, const FGridLevelObjectData& PitObject) const
+{
+	if (PitObject.Type != EGridLevelObjectType::Pit || !PitObject.ObjectId.IsValid())
+	{
+		return false;
+	}
+
+	const FName RuntimeLevelId = DungeonAsset && !LevelId.IsNone() ? LevelId : SingleLevelRuntimeStateId;
+	if (const FGridLevelRuntimeState* State = DungeonRuntimeState.LevelStates.Find(RuntimeLevelId))
+	{
+		if (const FGridRuntimePitState* PitState = State->Pits.Find(PitObject.ObjectId))
+		{
+			return PitState->bIsOpen;
+		}
+	}
+
+	return PitObject.Behavior.Pit.bInitiallyOpen;
+}
+
+bool AGridLevelRuntimeActor::IsPitOpen(FGuid PitObjectId) const
+{
+	if (!LevelAsset || !PitObjectId.IsValid())
+	{
+		return false;
+	}
+
+	const FGridLevelObjectData* PitObject = LevelAsset->Objects.FindByPredicate(
+		[&PitObjectId](const FGridLevelObjectData& Candidate)
+		{
+			return Candidate.ObjectId == PitObjectId && Candidate.Type == EGridLevelObjectType::Pit;
+		});
+	return PitObject && IsPitOpenForLevel(CurrentDungeonLevelId, *PitObject);
+}
+
+bool AGridLevelRuntimeActor::SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmitEvent)
+{
+	if (!LevelAsset || !PitObjectId.IsValid())
+	{
+		return false;
+	}
+
+	const FGridLevelObjectData* PitObject = LevelAsset->Objects.FindByPredicate(
+		[&PitObjectId](const FGridLevelObjectData& Candidate)
+		{
+			return Candidate.ObjectId == PitObjectId && Candidate.Type == EGridLevelObjectType::Pit;
+		});
+	if (!PitObject || !PitObject->bInitiallyEnabled)
+	{
+		return false;
+	}
+
+	const bool bWasOpen = IsPitOpenForLevel(CurrentDungeonLevelId, *PitObject);
+	FGridLevelRuntimeState* State = GetOrCreateRuntimeStateForCurrentLevel();
+	if (!State)
+	{
+		return false;
+	}
+
+	FGridRuntimePitState& PitState = State->Pits.FindOrAdd(PitObjectId);
+	PitState.ObjectId = PitObjectId;
+	PitState.bIsOpen = bOpen;
+
+	if (AGridPitTrapdoorActor* PitActor = FindRuntimeObjectActor<AGridPitTrapdoorActor>(PitObjectId))
+	{
+		PitActor->SetPitOpenVisualState(bOpen, bWasOpen != bOpen);
+	}
+
+	if (bWasOpen == bOpen)
+	{
+		return true;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("GridPit state changed ObjectId=%s Cell=(%d,%d) Previous=%s New=%s"), *PitObjectId.ToString(),
+		PitObject->CellX, PitObject->CellY, bWasOpen ? TEXT("Open") : TEXT("Closed"), bOpen ? TEXT("Open") : TEXT("Closed"));
+
+	if (bOpen)
+	{
+		DropWorldItemsThroughOpenPitAtCell(PitObject->CellX, PitObject->CellY);
+
+		if (AGrimrockPartyPawn* PartyPawn = GetWorld() ? Cast<AGrimrockPartyPawn>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0)) : nullptr)
+		{
+			if (PartyPawn->CurrentCellX == PitObject->CellX && PartyPawn->CurrentCellY == PitObject->CellY && !PartyPawn->IsPitFalling())
+			{
+				TryBeginPitFallAtCell(PitObject->CellX, PitObject->CellY, PartyPawn);
+			}
+		}
+	}
+
+	if (bEmitEvent && ActivationComponent)
+	{
+		ExecuteLinksFromRuntimeObject(PitObjectId, bOpen ? EGridObjectEvent::Opened : EGridObjectEvent::Closed);
+	}
+	return true;
+}
+
+bool AGridLevelRuntimeActor::TogglePit(FGuid PitObjectId, bool bEmitEvent)
+{
+	return SetPitOpen(PitObjectId, !IsPitOpen(PitObjectId), bEmitEvent);
+}
+
 bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridObjectTransitionParams& OutTransition) const
 {
 	if (!LevelAsset)
@@ -1161,7 +1262,7 @@ bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridOb
 	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
 	{
 		if (Obj.Type != EGridLevelObjectType::Pit || Obj.CellX != CellX || Obj.CellY != CellY || !Obj.bInitiallyEnabled ||
-			!Obj.Behavior.Pit.bInitiallyOpen || !Obj.Behavior.Transition.bIsTransition || Obj.Behavior.Transition.bRequireUseAction)
+			!IsPitOpenForLevel(CurrentDungeonLevelId, Obj) || !Obj.Behavior.Transition.bIsTransition || Obj.Behavior.Transition.bRequireUseAction)
 		{
 			continue;
 		}
@@ -1212,10 +1313,11 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 	}
 
 	const bool bDestinationContainsOpenPit = TargetLevelAsset->Objects.ContainsByPredicate(
-		[&Transition](const FGridLevelObjectData& Candidate)
+		[this, &Transition](const FGridLevelObjectData& Candidate)
 		{
 			return Candidate.Type == EGridLevelObjectType::Pit && Candidate.CellX == Transition.TargetCellX &&
-				Candidate.CellY == Transition.TargetCellY && Candidate.bInitiallyEnabled && Candidate.Behavior.Pit.bInitiallyOpen;
+				Candidate.CellY == Transition.TargetCellY && Candidate.bInitiallyEnabled &&
+				IsPitOpenForLevel(Transition.TargetLevelId, Candidate);
 		});
 	if (bDestinationContainsOpenPit)
 	{
@@ -1960,6 +2062,12 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor(const FGridLevelObjectData& O
 	// Generic object-audio contract: every runtime grid object receives the
 	// archetype event map, regardless of gameplay type.
 	Actor->ConfigureObjectAudio(Archetype);
+
+
+	if (AGridPitTrapdoorActor* PitActor = Cast<AGridPitTrapdoorActor>(Actor))
+	{
+		PitActor->SetPitOpenVisualState(IsPitOpen(ObjectData.ObjectId), false);
+	}
 
 	if (ActivationComponent)
 	{

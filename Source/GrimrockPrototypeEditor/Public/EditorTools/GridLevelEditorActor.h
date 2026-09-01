@@ -272,7 +272,7 @@ public:
 
 
 	UFUNCTION(BlueprintCallable, Category = "Editor|Palette")
-	bool EnsureStaticPitArchetype(FString& OutError);
+	bool EnsurePitTrapdoorArchetype(FString& OutError);
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
 	void LogEditorRuntimeAssetConsistency() const;

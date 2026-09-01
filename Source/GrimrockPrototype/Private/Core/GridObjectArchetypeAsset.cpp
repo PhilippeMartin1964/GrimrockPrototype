@@ -911,6 +911,7 @@ bool UGridObjectArchetypeAsset::UsesMovingMeshParams() const
 		case EGridLevelObjectType::Button:
 		case EGridLevelObjectType::Lever:
 		case EGridLevelObjectType::Receptacle:
+		case EGridLevelObjectType::Pit:
 			return true;
 
 		default:
@@ -920,7 +921,7 @@ bool UGridObjectArchetypeAsset::UsesMovingMeshParams() const
 
 bool UGridObjectArchetypeAsset::UsesFixedMeshParams() const
 {
-	return SupportedType == EGridLevelObjectType::Door || UsesItemParams();
+	return SupportedType == EGridLevelObjectType::Door || SupportedType == EGridLevelObjectType::Pit || UsesItemParams();
 }
 
 bool UGridObjectArchetypeAsset::UsesRuntimeActorClass() const

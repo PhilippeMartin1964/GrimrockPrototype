@@ -426,10 +426,11 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	}
 
 	const bool bDestinationContainsOpenPit = TargetLevelAsset->Objects.ContainsByPredicate(
-		[&Transition](const FGridLevelObjectData& Candidate)
+		[this, &Transition](const FGridLevelObjectData& Candidate)
 		{
 			return Candidate.Type == EGridLevelObjectType::Pit && Candidate.CellX == Transition.TargetCellX &&
-				Candidate.CellY == Transition.TargetCellY && Candidate.bInitiallyEnabled && Candidate.Behavior.Pit.bInitiallyOpen;
+				Candidate.CellY == Transition.TargetCellY && Candidate.bInitiallyEnabled &&
+				IsPitOpenForLevel(Transition.TargetLevelId, Candidate);
 		});
 	if (bDestinationContainsOpenPit)
 	{
@@ -558,6 +559,88 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 		UE_LOG(LogTemp, Log, TEXT("GridPit PendingItem apply Level=%s Applied=%d"), *RuntimeLevelId.ToString(), AppliedCount);
 	}
 	return AppliedCount;
+}
+
+int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, int32 CellY)
+{
+	if (!LevelAsset)
+	{
+		return 0;
+	}
+
+	FGridObjectTransitionParams Transition;
+	if (!FindOpenPitAtCell(CellX, CellY, Transition))
+	{
+		return 0;
+	}
+
+	const FIntPoint PitCell(CellX, CellY);
+	int32 DroppedCount = 0;
+	for (int32 EntryIndex = SpawnedItemEntries.Num() - 1; EntryIndex >= 0; --EntryIndex)
+	{
+		if (!SpawnedItemEntries.IsValidIndex(EntryIndex))
+		{
+			continue;
+		}
+
+		FGridSpawnedItemRuntimeEntry& Entry = SpawnedItemEntries[EntryIndex];
+		AGridItemActor* ItemActor = Entry.ItemActor.Get();
+		if (Entry.Cell != PitCell || Entry.Edge != EGridEdge::None || !IsValid(ItemActor))
+		{
+			continue;
+		}
+
+		UGridItemDefinitionAsset* Definition = Entry.ItemDefinitionAsset.Get();
+		if (!Definition)
+		{
+			const FName DefinitionId = !Entry.ItemDefinitionId.IsNone() ? Entry.ItemDefinitionId : Entry.ItemArchetypeId;
+			Definition = ResolveRuntimeItemDefinition(DefinitionId);
+		}
+		if (!Definition)
+		{
+			continue;
+		}
+
+		FGridItemInstance ItemInstance;
+		ItemInstance.RuntimeObjectId = Entry.ObjectId.IsValid() ? Entry.ObjectId : ItemActor->GetRuntimeObjectId();
+		if (!ItemInstance.RuntimeObjectId.IsValid())
+		{
+			ItemInstance.RuntimeObjectId = FGuid::NewGuid();
+		}
+		ItemInstance.ItemDefinitionId = Definition->ItemDefinitionId;
+		ItemInstance.Quantity = FMath::Max(1, Entry.Quantity);
+		ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled();
+		ItemInstance.ReadableContentAsset = ItemActor->ReadableContentAsset;
+		ItemInstance.ReadableContentId = ItemActor->ReadableContentId;
+		ItemInstance.ReadTitleOverride = ItemActor->ReadTitleOverride;
+		ItemInstance.ReadTextOverride = ItemActor->ReadTextOverride;
+		ItemInstance.LastWorldTransform = ItemActor->GetActorTransform();
+
+		FVector LocalOffset = ItemActor->GetActorLocation() - GetCellCenterWorld(CellX, CellY, 12.0f);
+		LocalOffset.Z = 0.0f;
+		if (!TryRouteWorldItemThroughOpenPit(ItemInstance, Definition, CellX, CellY, LocalOffset))
+		{
+			continue;
+		}
+
+		ItemActor->OnRemovedFromWorld();
+		ItemActor->Destroy();
+		SpawnedItemActors.RemoveAllSwap(
+			[ItemActor](const TObjectPtr<AGridItemActor>& Candidate)
+			{
+				return Candidate.Get() == ItemActor;
+			});
+		SpawnedItemEntries.RemoveAtSwap(EntryIndex);
+		++DroppedCount;
+	}
+
+	if (DroppedCount > 0 && ActivationComponent)
+	{
+		ActivationComponent->RefreshPressurePlatesAtCell(CellX, CellY);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("GridPit opened under WorldItems Cell=(%d,%d) Dropped=%d"), CellX, CellY, DroppedCount);
+	return DroppedCount;
 }
 
 bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(

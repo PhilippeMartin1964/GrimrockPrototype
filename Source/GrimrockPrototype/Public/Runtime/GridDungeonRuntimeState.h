@@ -109,6 +109,18 @@ struct FGridRuntimeItemState
 };
 
 USTRUCT(BlueprintType)
+struct FGridRuntimePitState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGuid ObjectId;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bIsOpen = true;
+};
+
+USTRUCT(BlueprintType)
 struct FGridPendingWorldItemState
 {
 	GENERATED_BODY()
@@ -261,6 +273,10 @@ struct FGridLevelRuntimeState
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TMap<FGuid, FGridRuntimeItemState> Items;
+
+	/** PIT03 authoritative open/closed state for controlled pits that diverged from their authored initial state. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FGuid, FGridRuntimePitState> Pits;
 
 	/** PIT02 items that already left an upper level but whose destination level is not currently active. */
 	UPROPERTY(SaveGame, BlueprintReadWrite)

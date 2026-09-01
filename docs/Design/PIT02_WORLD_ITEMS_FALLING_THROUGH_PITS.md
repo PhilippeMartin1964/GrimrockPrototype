@@ -1,5 +1,8 @@
 # PIT02 — World Items Falling Through Pits
 
+> **Évolution PIT03 (01.09.2026).** Le routage PIT02 consulte désormais l'état runtime Open/Closed. Une trappe Closed conserve les World Items ; une ouverture ultérieure fait tomber les items déjà posés sur la cellule.
+
+
 Date : 01.09.2026
 
 ## Objectif

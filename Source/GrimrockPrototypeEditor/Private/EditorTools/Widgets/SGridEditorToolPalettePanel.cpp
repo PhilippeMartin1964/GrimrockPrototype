@@ -7,6 +7,7 @@
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridTypes.h"
+#include "Runtime/GridPitTrapdoorActor.h"
 
 #include "Brushes/SlateImageBrush.h"
 #include "Engine/Texture2D.h"
@@ -399,12 +400,13 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 
 	const FGridObjectPaletteEntry* PitEntry = CurrentEditorActor->ObjectPalette->FindEntryById(FName(TEXT("Pit_Stone_01")));
 	if (!PitEntry || !PitEntry->DefaultArchetype || PitEntry->DefaultArchetype->SupportedType != EGridLevelObjectType::Pit ||
-		!PitEntry->DefaultArchetype->DefaultBehavior.Transition.bIsTransition)
+		!PitEntry->DefaultArchetype->DefaultBehavior.Transition.bIsTransition ||
+		PitEntry->DefaultArchetype->RuntimeActorClass != AGridPitTrapdoorActor::StaticClass())
 	{
 		FString Error;
-		if (!CurrentEditorActor->EnsureStaticPitArchetype(Error))
+		if (!CurrentEditorActor->EnsurePitTrapdoorArchetype(Error))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Static pit palette provisioning failed: %s"), *Error);
+			UE_LOG(LogTemp, Warning, TEXT("Pit trapdoor palette provisioning failed: %s"), *Error);
 		}
 	}
 

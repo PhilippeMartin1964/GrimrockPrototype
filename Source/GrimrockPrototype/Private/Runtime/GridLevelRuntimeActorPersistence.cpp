@@ -8,6 +8,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridPressurePlateActor.h"
+#include "Runtime/GridPitTrapdoorActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -362,6 +363,14 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		for (const TPair<FGuid, FGridRuntimeDoorState>& Pair : State->Doors)
 		{
 			DoorSystemComponent->ApplyDoorState(Pair.Key, Pair.Value.bIsOpen, Pair.Value.bBlocksMovement);
+		}
+	}
+
+	for (const TPair<FGuid, FGridRuntimePitState>& Pair : State->Pits)
+	{
+		if (AGridPitTrapdoorActor* PitActor = FindRuntimeObjectActor<AGridPitTrapdoorActor>(Pair.Key))
+		{
+			PitActor->SetPitOpenVisualState(Pair.Value.bIsOpen, false);
 		}
 	}
 

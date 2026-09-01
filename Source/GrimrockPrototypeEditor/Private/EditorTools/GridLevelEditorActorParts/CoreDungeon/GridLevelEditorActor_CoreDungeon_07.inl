@@ -86,7 +86,7 @@ bool AGridLevelEditorActor::EnsureStairsTransitionArchetypes(FString& OutError)
 #endif
 }
 
-bool AGridLevelEditorActor::EnsureStaticPitArchetype(FString& OutError)
+bool AGridLevelEditorActor::EnsurePitTrapdoorArchetype(FString& OutError)
 {
 	OutError.Reset();
 	if (!ObjectPalette)
@@ -113,7 +113,7 @@ bool AGridLevelEditorActor::EnsureStaticPitArchetype(FString& OutError)
 		return false;
 	}
 
-	ConfigureStaticPitArchetype(*PitArchetype, PitMesh);
+	ConfigurePitTrapdoorArchetype(*PitArchetype, PitMesh);
 	ObjectPalette->Modify();
 	FGridObjectPaletteEntry* Entry = ObjectPalette->Entries.FindByPredicate(
 		[](const FGridObjectPaletteEntry& Candidate)
@@ -142,11 +142,11 @@ bool AGridLevelEditorActor::EnsureStaticPitArchetype(FString& OutError)
 	PackagesToSave.AddUnique(ObjectPalette->GetOutermost());
 	UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
 
-	UE_LOG(LogTemp, Log, TEXT("Static pit archetype ensured: Pit=%s Palette=%s Created=%s."), *PitArchetype->GetPathName(),
+	UE_LOG(LogTemp, Log, TEXT("Pit trapdoor archetype ensured: Pit=%s Palette=%s Created=%s."), *PitArchetype->GetPathName(),
 		*ObjectPalette->GetPathName(), bCreated ? TEXT("true") : TEXT("false"));
 	return true;
 #else
-	OutError = TEXT("EnsureStaticPitArchetype is editor-only.");
+	OutError = TEXT("EnsurePitTrapdoorArchetype is editor-only.");
 	return false;
 #endif
 }

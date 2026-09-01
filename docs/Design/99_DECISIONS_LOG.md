@@ -930,3 +930,21 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le lancer depuis une MainHand reste une fonctionnalité actuelle via le menu contextuel **Lancer** et le contrôleur de visée physique ; seule sa représentation persistante historique en hotbar disparaît.
 - Les raccourcis physiques actuels sont exclusivement les bindings `ThrowItem_<ItemDefinitionId>` créés directement depuis l'inventaire.
 - Si une sauvegarde prototype existante contient encore un ancien binding supprimé, elle peut être supprimée/réinitialisée au lieu d'introduire du code de migration.
+
+
+---
+
+## 2026-09-01 — PIT03 : Controlled Pit Trapdoor
+
+### Décisions validées
+
+- Une Pit possède un état runtime persistant `Open/Closed`.
+- `Open` est l'unique état dans lequel le groupe et les World Items tombent.
+- `Closed` se comporte comme un plancher logique.
+- Les commandes standard `Open/Close/Toggle/Activate/Deactivate` sont réutilisées ; aucun nouvel enum de commande n'est ajouté.
+- Une Pit émet `Opened` et `Closed`.
+- Ouvrir une Pit sous des World Items déclenche immédiatement leur routage PIT02.
+- Ouvrir une Pit sous le groupe déclenche immédiatement PIT01.
+- `AGridPitTrapdoorActor` porte uniquement la présentation de l'état ; `AGridLevelRuntimeActor` reste l'autorité gameplay.
+- `Fixed Mesh` représente la fosse ouverte permanente ; `Moving Mesh` représente le couvercle Closed optionnel.
+- PIT03 ne comprend pas encore l'animation articulée ; la commutation visuelle est instantanée.

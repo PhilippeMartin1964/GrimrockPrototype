@@ -34,6 +34,9 @@ namespace GridEditorLinkPolicy
 			case EGridLevelObjectType::Receptacle:
 				return { EGridObjectEvent::ItemInserted, EGridObjectEvent::ItemRemoved, EGridObjectEvent::ItemChanged };
 
+			case EGridLevelObjectType::Pit:
+				return { EGridObjectEvent::Opened, EGridObjectEvent::Closed };
+
 			case EGridLevelObjectType::MonsterSpawn:
 				return { EGridObjectEvent::MonsterDied, EGridObjectEvent::MonsterSpawned, EGridObjectEvent::MonsterDespawned,
 					EGridObjectEvent::MonsterTeleported, EGridObjectEvent::EncounterWaveStarted, EGridObjectEvent::EncounterCompleted };
@@ -60,6 +63,7 @@ namespace GridEditorLinkPolicy
 		switch (ObjectData.Type)
 		{
 			case EGridLevelObjectType::Door:
+			case EGridLevelObjectType::Pit:
 				return { EGridObjectCommand::Open, EGridObjectCommand::Close, EGridObjectCommand::Toggle, EGridObjectCommand::Activate,
 					EGridObjectCommand::Deactivate };
 
@@ -134,6 +138,7 @@ namespace GridEditorLinkPolicy
 			case EGridLevelObjectType::Door:
 			case EGridLevelObjectType::Lever:
 			case EGridLevelObjectType::PressurePlate:
+			case EGridLevelObjectType::Pit:
 				return EGridEditorCommandRuntimeSupport::Gameplay;
 
 			case EGridLevelObjectType::Button:
