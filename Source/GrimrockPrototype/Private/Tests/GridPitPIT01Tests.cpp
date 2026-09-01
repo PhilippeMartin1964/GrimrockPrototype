@@ -173,6 +173,7 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	Upper->Objects[0].Behavior.Pit.bInitiallyOpen = true;
 
 	Lower->Objects.Add(MakeStaticPit(2, 2, UpperId));
+	AddExpectedError(TEXT("Pit fall rejected: destination"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestFalse(TEXT("PIT01 rejects chained arrival onto another open pit"), Runtime->TryBeginPitFallAtCell(2, 2, Party));
 	Lower->Objects.Reset();
 
