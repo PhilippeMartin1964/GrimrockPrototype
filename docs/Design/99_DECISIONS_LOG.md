@@ -966,3 +966,19 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le target endpoint est persisté ; une animation partielle n'est pas sérialisée entre niveaux.
 - Sans Moving Mesh, Open/Close restent immédiats.
 - La collision du couvercle suit le dernier endpoint gameplay stabilisé.
+
+
+---
+
+## 2026-09-01 — Pit : chute automatique vers le niveau inférieur
+
+### Décisions validées
+
+- Une `Pit` ouverte et activée est intrinsèquement une cellule de chute.
+- Le déclenchement ne dépend plus de `Transition.bIsTransition` ni de `bRequireUseAction`.
+- `TargetLevelId=None` est le mode standard : le runtime résout automatiquement le niveau inférieur.
+- La résolution préfère le niveau inférieur selon `LogicalPosition.Z`, puis utilise l'ordre du `DungeonAsset` comme fallback prototype.
+- Un `TargetLevelId` explicite valide reste un override.
+- Un `TargetLevelId` explicite invalide retombe automatiquement sur le niveau inférieur et produit un warning.
+- `TargetFacing=None` conserve l'orientation actuelle du groupe.
+- Si aucun niveau inférieur n'existe réellement, le runtime produit désormais une erreur explicite au lieu d'échouer silencieusement.

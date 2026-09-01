@@ -597,18 +597,41 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			}
 		}
 
-		if (Obj.Behavior.Transition.bIsTransition)
+		if (Obj.Type == EGridLevelObjectType::Pit || Obj.Behavior.Transition.bIsTransition)
 		{
 			const FGridObjectTransitionParams& Transition = Obj.Behavior.Transition;
+			const bool bIsPitTransition = Obj.Type == EGridLevelObjectType::Pit;
 			const bool bPitUsesSameCell = Obj.Type == EGridLevelObjectType::Pit && Obj.Behavior.Pit.bUseSameCellCoordinates;
 			const int32 EffectiveTargetCellX = bPitUsesSameCell ? Obj.CellX : Transition.TargetCellX;
 			const int32 EffectiveTargetCellY = bPitUsesSameCell ? Obj.CellY : Transition.TargetCellY;
-			if (Transition.TargetLevelId.IsNone())
+			FName EffectiveTargetLevelId = Transition.TargetLevelId;
+			bool bAutoResolvedPitTarget = false;
+			const FGridDungeonLevelEntry* CurrentDungeonEntry = nullptr;
+			if (DungeonAsset && LevelAsset)
 			{
-				AddMessage(EGridLevelValidationSeverity::Error, TEXT("Transition has no TargetLevelId."), Obj.ObjectId);
+				CurrentDungeonEntry = DungeonAsset->Levels.FindByPredicate(
+					[this](const FGridDungeonLevelEntry& Entry)
+					{
+						return Entry.LevelAsset.Get() == LevelAsset;
+					});
+			}
+			if (bIsPitTransition && DungeonAsset && (EffectiveTargetLevelId.IsNone() || !DungeonAsset->IsValidLevelId(EffectiveTargetLevelId)) &&
+				CurrentDungeonEntry)
+			{
+				if (const FGridDungeonLevelEntry* LowerLevel = DungeonAsset->FindLevelBelow(CurrentDungeonEntry->LevelId))
+				{
+					EffectiveTargetLevelId = LowerLevel->LevelId;
+					bAutoResolvedPitTarget = true;
+				}
 			}
 
-			if (Transition.TargetFacing == EGridEdge::None)
+			if (EffectiveTargetLevelId.IsNone())
+			{
+				AddMessage(EGridLevelValidationSeverity::Error,
+					bIsPitTransition ? TEXT("Pit has no enabled dungeon level below it.") : TEXT("Transition has no TargetLevelId."), Obj.ObjectId);
+			}
+
+			if (!bIsPitTransition && Transition.TargetFacing == EGridEdge::None)
 			{
 				AddMessage(EGridLevelValidationSeverity::Error, TEXT("Transition TargetFacing cannot be None."), Obj.ObjectId);
 			}
@@ -616,12 +639,19 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			const UGridLevelAsset* TargetLevelAsset = nullptr;
 			if (DungeonAsset)
 			{
-				TargetLevelAsset = DungeonAsset->GetLevelAssetById(Transition.TargetLevelId);
-				if (!Transition.TargetLevelId.IsNone() && !TargetLevelAsset)
+				TargetLevelAsset = DungeonAsset->GetLevelAssetById(EffectiveTargetLevelId);
+				if (!EffectiveTargetLevelId.IsNone() && !TargetLevelAsset)
 				{
 					AddMessage(EGridLevelValidationSeverity::Error,
 						FString::Printf(TEXT("Transition target LevelId '%s' was not found as an enabled level with a LevelAsset in the DungeonAsset."),
-							*Transition.TargetLevelId.ToString()),
+							*EffectiveTargetLevelId.ToString()),
+						Obj.ObjectId);
+				}
+				else if (bIsPitTransition && bAutoResolvedPitTarget && !Transition.TargetLevelId.IsNone())
+				{
+					AddMessage(EGridLevelValidationSeverity::Warning,
+						FString::Printf(TEXT("Pit explicit TargetLevelId '%s' is unavailable; runtime will fall to automatic lower level '%s'."),
+							*Transition.TargetLevelId.ToString(), *EffectiveTargetLevelId.ToString()),
 						Obj.ObjectId);
 				}
 			}
@@ -651,19 +681,26 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 
 		if (Obj.Type == EGridLevelObjectType::Pit)
 		{
-			if (!Obj.Behavior.Transition.bIsTransition)
-			{
-				AddMessage(EGridLevelValidationSeverity::Error, TEXT("Pit requires an inter-level Transition."), Obj.ObjectId);
-			}
-			if (Obj.Behavior.Transition.bRequireUseAction)
-			{
-				AddMessage(EGridLevelValidationSeverity::Error, TEXT("Pit transition cannot require the Use action."), Obj.ObjectId);
-			}
-
 			const FGridObjectTransitionParams& PitTransition = Obj.Behavior.Transition;
 			const int32 PitTargetX = Obj.Behavior.Pit.bUseSameCellCoordinates ? Obj.CellX : PitTransition.TargetCellX;
 			const int32 PitTargetY = Obj.Behavior.Pit.bUseSameCellCoordinates ? Obj.CellY : PitTransition.TargetCellY;
-			const UGridLevelAsset* PitTargetLevel = DungeonAsset ? DungeonAsset->GetLevelAssetById(PitTransition.TargetLevelId) : nullptr;
+			FName PitTargetLevelId = PitTransition.TargetLevelId;
+			if (DungeonAsset && (PitTargetLevelId.IsNone() || !DungeonAsset->IsValidLevelId(PitTargetLevelId)))
+			{
+				const FGridDungeonLevelEntry* CurrentEntry = DungeonAsset->Levels.FindByPredicate(
+					[this](const FGridDungeonLevelEntry& Entry)
+					{
+						return Entry.LevelAsset.Get() == LevelAsset;
+					});
+				if (CurrentEntry)
+				{
+					if (const FGridDungeonLevelEntry* LowerLevel = DungeonAsset->FindLevelBelow(CurrentEntry->LevelId))
+					{
+						PitTargetLevelId = LowerLevel->LevelId;
+					}
+				}
+			}
+			const UGridLevelAsset* PitTargetLevel = DungeonAsset ? DungeonAsset->GetLevelAssetById(PitTargetLevelId) : nullptr;
 			if (Obj.Behavior.Pit.bInitiallyOpen && PitTargetLevel && PitTargetLevel->IsValidCoord(PitTargetX, PitTargetY))
 			{
 				const bool bOpenPitAtDestination = PitTargetLevel->Objects.ContainsByPredicate(

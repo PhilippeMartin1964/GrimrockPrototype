@@ -1,5 +1,8 @@
 # PIT01 — Static Inter-Level Pit
 
+> **Correction de contrat (01.09.2026).** Une Pit ouverte est intrinsèquement une cellule de chute. Elle ne dépend plus de `Transition.bIsTransition`, de `bRequireUseAction`, ni d'un `Target Level Id` manuel pour fonctionner. Avec `Target Level Id = None`, le niveau inférieur est résolu automatiquement.
+
+
 > **Évolution PIT03 (01.09.2026).** Le booléen `bInitiallyOpen` n'est plus l'autorité permanente après le démarrage. L'état Open/Closed est désormais persisté par `FGridRuntimePitState` et peut être commandé par les connecteurs. Le reste du contrat PIT01 (destination et chute du groupe) reste valide.
 
 
@@ -109,10 +112,12 @@ Le choix utilise la même infrastructure audio déterministe que les sons de dé
    - Open at Start = true ;
    - Use Same Cell Coordinates = true dans le cas standard ;
 5. dans Transition :
-   - définir `Target Level Id` ;
-   - définir `Target Facing` ;
-   - laisser Require Use Action désactivé ;
+   - laisser `Target Level Id = None` pour une fosse standard : le runtime résout automatiquement le niveau inférieur ;
+   - un `Target Level Id` explicite valide reste possible pour une destination spéciale ;
+   - `Target Facing = None` conserve désormais l'orientation actuelle du groupe ;
 6. lancer Validation.
+
+La résolution automatique cherche d'abord le niveau compatible immédiatement plus bas selon `LogicalPosition.Z`. Si les anciennes données n'ont pas encore de Z exploitable, le niveau activé suivant dans la liste du `DungeonAsset` sert de fallback prototype.
 
 Si Same Cell Coordinates est désactivé, saisir aussi Target Cell X/Y.
 
@@ -120,8 +125,7 @@ Si Same Cell Coordinates est désactivé, saisir aussi Target Cell X/Y.
 
 Le Grid Editor vérifie notamment :
 
-- présence d'un TargetLevelId valide ;
-- TargetFacing différent de None ;
+- destination inférieure automatique résoluble, ou TargetLevelId explicite valide ;
 - destination dans les limites ;
 - transition Pit automatique ;
 - destination ne contenant pas une autre fosse initialement ouverte.

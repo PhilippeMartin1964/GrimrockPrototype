@@ -1427,7 +1427,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSecti
         + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
         [
             SNew (STextBlock)
-                .Text (FText::FromString (TEXT ("Transition data is validated, saved in the LevelAsset and executed by the runtime. Pit transitions use the Pit section to control open state and optional same-cell coordinates.")))
+                .Text (FText::FromString (TEXT ("For Pit objects, Target Level Id is optional: None automatically falls to the dungeon level below. A valid explicit Target Level Id overrides that automatic destination.")))
                 .AutoWrapText (true)
                 .ColorAndOpacity (FSlateColor (FLinearColor (0.65f, 0.65f, 0.65f)))
         ];

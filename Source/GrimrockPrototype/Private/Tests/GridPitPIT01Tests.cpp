@@ -106,6 +106,31 @@ bool FGridPIT01DataContractTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("PIT01 defaults to open"), Archetype->DefaultBehavior.Pit.bInitiallyOpen);
 	TestTrue(TEXT("PIT01 defaults to same-cell destination coordinates"), Archetype->DefaultBehavior.Pit.bUseSameCellCoordinates);
 	TestTrue(TEXT("PIT01 is an automatic transition"), !Archetype->DefaultBehavior.Transition.bRequireUseAction);
+
+	UGridDungeonAsset* Dungeon = NewObject<UGridDungeonAsset>();
+	UGridLevelAsset* ListedUpper = MakePitFloor(Dungeon);
+	UGridLevelAsset* ListedLower = MakePitFloor(Dungeon);
+
+	FGridDungeonLevelEntry ListedUpperEntry;
+	ListedUpperEntry.LevelId = TEXT("ListedUpper");
+	ListedUpperEntry.LevelAsset = ListedUpper;
+	ListedUpperEntry.LogicalPosition = FIntVector::ZeroValue;
+	ListedUpperEntry.bEnabled = true;
+
+	FGridDungeonLevelEntry ListedLowerEntry;
+	ListedLowerEntry.LevelId = TEXT("ListedLower");
+	ListedLowerEntry.LevelAsset = ListedLower;
+	ListedLowerEntry.LogicalPosition = FIntVector::ZeroValue;
+	ListedLowerEntry.bEnabled = true;
+
+	Dungeon->Levels = { ListedUpperEntry, ListedLowerEntry };
+	const FGridDungeonLevelEntry* ListFallback = Dungeon->FindLevelBelow(ListedUpperEntry.LevelId);
+	TestNotNull(TEXT("Level-list fallback resolves a lower level when LogicalPosition.Z is not authored"), ListFallback);
+	if (ListFallback)
+	{
+		TestEqual(TEXT("Level-list fallback selects the next enabled dungeon level"), ListFallback->LevelId, ListedLowerEntry.LevelId);
+	}
+
 	return true;
 }
 
@@ -150,7 +175,12 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 
 	Dungeon->DefaultLevelId = UpperId;
 	Dungeon->Levels = { UpperEntry, LowerEntry };
-	Upper->Objects.Add(MakeStaticPit(2, 2, LowerId));
+
+	// Standard Pit authoring: no manual target, no generic transition flag and no arrival facing.
+	// Merely entering an enabled Open Pit must resolve the floor below and start the fall.
+	Upper->Objects.Add(MakeStaticPit(2, 2, NAME_None));
+	Upper->Objects[0].Behavior.Transition.bIsTransition = false;
+	Upper->Objects[0].Behavior.Transition.TargetFacing = EGridEdge::None;
 
 	Runtime->DungeonAsset = Dungeon;
 	Runtime->CurrentDungeonLevelId = UpperId;
@@ -163,7 +193,7 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Open pit resolves at party cell"), Runtime->FindOpenPitAtCell(2, 2, PitTransition));
 	TestEqual(TEXT("Same-cell X overrides authored transition X"), PitTransition.TargetCellX, 2);
 	TestEqual(TEXT("Same-cell Y overrides authored transition Y"), PitTransition.TargetCellY, 2);
-	TestEqual(TEXT("Pit points to lower level"), PitTransition.TargetLevelId, LowerId);
+	TestEqual(TEXT("Pit automatically resolves the lower level"), PitTransition.TargetLevelId, LowerId);
 
 	FGridObjectTransitionParams GenericTransition;
 	TestFalse(TEXT("Generic stair transition path ignores Pit"), Runtime->FindTransitionAtCell(2, 2, false, GenericTransition));
@@ -186,7 +216,7 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Runtime now owns lower LevelAsset"), Runtime->LevelAsset == Lower);
 	TestEqual(TEXT("Party landed on same X"), Party->CurrentCellX, 2);
 	TestEqual(TEXT("Party landed on same Y"), Party->CurrentCellY, 2);
-	TestEqual(TEXT("Party uses authored arrival facing"), Party->Facing, EGridEdge::East);
+	TestEqual(TEXT("Pit with no authored arrival facing preserves party facing"), Party->Facing, EGridEdge::North);
 	return true;
 }
 

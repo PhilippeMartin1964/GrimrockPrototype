@@ -532,14 +532,6 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Pit should hide the standard cell floor."));
 			}
-			if (!DefaultBehavior.Transition.bIsTransition)
-			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit requires Transition.bIsTransition=true."));
-			}
-			if (DefaultBehavior.Transition.bRequireUseAction)
-			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit transition cannot require the Use action."));
-			}
 			break;
 		}
 

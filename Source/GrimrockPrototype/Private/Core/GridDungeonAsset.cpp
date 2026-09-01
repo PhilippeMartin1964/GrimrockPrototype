@@ -32,7 +32,7 @@ namespace
 		int32 TransitionCount = 0;
 		for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
 		{
-			if (Obj.Behavior.Transition.bIsTransition)
+			if (Obj.Type == EGridLevelObjectType::Pit || Obj.Behavior.Transition.bIsTransition)
 			{
 				++TransitionCount;
 			}
@@ -54,6 +54,60 @@ const FGridDungeonLevelEntry* UGridDungeonAsset::FindLevelEntry(FName LevelId) c
 		{
 			return Entry.LevelId == LevelId;
 		});
+}
+
+const FGridDungeonLevelEntry* UGridDungeonAsset::FindLevelBelow(FName SourceLevelId) const
+{
+	const int32 SourceIndex = Levels.IndexOfByPredicate(
+		[SourceLevelId](const FGridDungeonLevelEntry& Entry)
+		{
+			return Entry.LevelId == SourceLevelId;
+		});
+	if (!Levels.IsValidIndex(SourceIndex))
+	{
+		return nullptr;
+	}
+
+	const FGridDungeonLevelEntry& SourceEntry = Levels[SourceIndex];
+
+	const FGridDungeonLevelEntry* BestLogicalLevel = nullptr;
+	for (const FGridDungeonLevelEntry& Candidate : Levels)
+	{
+		if (!Candidate.bEnabled || Candidate.LevelId.IsNone() || !Candidate.LevelAsset || Candidate.LevelId == SourceLevelId)
+		{
+			continue;
+		}
+		if (Candidate.LogicalPosition.X != SourceEntry.LogicalPosition.X ||
+			Candidate.LogicalPosition.Y != SourceEntry.LogicalPosition.Y ||
+			Candidate.LogicalPosition.Z >= SourceEntry.LogicalPosition.Z)
+		{
+			continue;
+		}
+
+		if (!BestLogicalLevel || Candidate.LogicalPosition.Z > BestLogicalLevel->LogicalPosition.Z)
+		{
+			BestLogicalLevel = &Candidate;
+		}
+	}
+
+	if (BestLogicalLevel)
+	{
+		return BestLogicalLevel;
+	}
+
+	// Prototype-friendly fallback: many existing dungeons were authored before
+	// LogicalPosition.Z became meaningful. In that case, the next enabled level
+	// in the DungeonAsset list is treated as the level below.
+	for (int32 CandidateIndex = SourceIndex + 1; CandidateIndex < Levels.Num(); ++CandidateIndex)
+	{
+		const FGridDungeonLevelEntry& Candidate = Levels[CandidateIndex];
+		if (Candidate.bEnabled && !Candidate.LevelId.IsNone() && Candidate.LevelAsset)
+		{
+			return &Candidate;
+		}
+	}
+
+	return nullptr;
 }
 
 bool UGridDungeonAsset::IsValidLevelId(FName LevelId) const
@@ -214,12 +268,24 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 		for (const FGridLevelObjectData& Obj : SourceLevelAsset->Objects)
 		{
 			const FGridObjectTransitionParams& Transition = Obj.Behavior.Transition;
-			const bool bPitUsesSameCell = Obj.Type == EGridLevelObjectType::Pit && Obj.Behavior.Pit.bUseSameCellCoordinates;
+			const bool bIsPit = Obj.Type == EGridLevelObjectType::Pit;
+			const bool bPitUsesSameCell = bIsPit && Obj.Behavior.Pit.bUseSameCellCoordinates;
 			const int32 EffectiveTargetCellX = bPitUsesSameCell ? Obj.CellX : Transition.TargetCellX;
 			const int32 EffectiveTargetCellY = bPitUsesSameCell ? Obj.CellY : Transition.TargetCellY;
-			if (!Transition.bIsTransition)
+			if (!bIsPit && !Transition.bIsTransition)
 			{
 				continue;
+			}
+
+			FName EffectiveTargetLevelId = Transition.TargetLevelId;
+			bool bAutoResolvedPitTarget = false;
+			if (bIsPit && (EffectiveTargetLevelId.IsNone() || !IsValidLevelId(EffectiveTargetLevelId)))
+			{
+				if (const FGridDungeonLevelEntry* LowerLevel = FindLevelBelow(SourceEntry.LevelId))
+				{
+					EffectiveTargetLevelId = LowerLevel->LevelId;
+					bAutoResolvedPitTarget = true;
+				}
 			}
 
 			FString TransitionStatus = TEXT("OK");
@@ -230,14 +296,14 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 			const FGridDungeonLevelEntry* TargetEntry = nullptr;
 			const UGridLevelAsset* TargetLevelAsset = nullptr;
 
-			if (Transition.TargetLevelId.IsNone())
+			if (EffectiveTargetLevelId.IsNone())
 			{
 				++LocalErrors;
-				StatusMessages.Add(TEXT("TargetLevelId is None"));
+				StatusMessages.Add(bIsPit ? TEXT("Pit has no enabled lower dungeon level") : TEXT("TargetLevelId is None"));
 			}
 			else
 			{
-				TargetEntry = FindLevelEntry(Transition.TargetLevelId);
+				TargetEntry = FindLevelEntry(EffectiveTargetLevelId);
 				if (!TargetEntry)
 				{
 					++LocalErrors;
@@ -259,7 +325,7 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 				}
 			}
 
-			if (Transition.TargetFacing == EGridEdge::None)
+			if (!bIsPit && Transition.TargetFacing == EGridEdge::None)
 			{
 				++LocalErrors;
 				StatusMessages.Add(TEXT("TargetFacing is None"));
@@ -305,8 +371,13 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 					"[%d] SourceLevelId=%s SourceDisplayName=%s SourceLevelAsset=%s ObjectId=%s ArchetypeId=%s Type=%s Cell=(%d,%d) Edge=%s TargetLevelId=%s TargetCell=(%d,%d) TargetFacing=%s bRequireUseAction=%s Status=%s"),
 				TransitionObjectCount, *SourceEntry.LevelId.ToString(), *SourceEntry.DisplayName.ToString(), *SourceLevelAsset->GetPathName(),
 				*Obj.ObjectId.ToString(), *Obj.ArchetypeId.ToString(), *GetGridObjectTypeName(Obj.Type), Obj.CellX, Obj.CellY, *GetGridEdgeName(Obj.Edge),
-				*Transition.TargetLevelId.ToString(), EffectiveTargetCellX, EffectiveTargetCellY, *GetGridEdgeName(Transition.TargetFacing),
+				*EffectiveTargetLevelId.ToString(), EffectiveTargetCellX, EffectiveTargetCellY, *GetGridEdgeName(Transition.TargetFacing),
 				Transition.bRequireUseAction ? TEXT("true") : TEXT("false"), *TransitionStatus);
+
+			if (bAutoResolvedPitTarget)
+			{
+				Result += TEXT(" AutoPitTarget=true");
+			}
 
 			if (StatusMessages.Num() > 0)
 			{

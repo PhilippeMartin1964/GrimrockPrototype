@@ -1326,13 +1326,34 @@ bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridOb
 
 	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
 	{
+		// A Pit is intrinsically a fall-through cell when it is enabled and Open.
+		// It must not depend on the generic Transition enable/use flags.
 		if (Obj.Type != EGridLevelObjectType::Pit || Obj.CellX != CellX || Obj.CellY != CellY || !Obj.bInitiallyEnabled ||
-			!IsPitOpen(Obj.ObjectId) || !Obj.Behavior.Transition.bIsTransition || Obj.Behavior.Transition.bRequireUseAction)
+			!IsPitOpen(Obj.ObjectId))
 		{
 			continue;
 		}
 
 		OutTransition = Obj.Behavior.Transition;
+
+		// Standard Pit authoring requires no manual TargetLevelId. Resolve the
+		// level below automatically. A valid explicit target still wins.
+		const bool bExplicitTargetValid =
+			DungeonAsset && !OutTransition.TargetLevelId.IsNone() && DungeonAsset->IsValidLevelId(OutTransition.TargetLevelId);
+		if (!bExplicitTargetValid && DungeonAsset)
+		{
+			if (const FGridDungeonLevelEntry* LowerLevel = DungeonAsset->FindLevelBelow(CurrentDungeonLevelId))
+			{
+				if (!OutTransition.TargetLevelId.IsNone())
+				{
+					UE_LOG(LogTemp, Warning,
+						TEXT("Pit at Cell=(%d,%d) explicit TargetLevelId=%s is unavailable; falling to automatic lower level %s."),
+						CellX, CellY, *OutTransition.TargetLevelId.ToString(), *LowerLevel->LevelId.ToString());
+				}
+				OutTransition.TargetLevelId = LowerLevel->LevelId;
+			}
+		}
+
 		if (Obj.Behavior.Pit.bUseSameCellCoordinates)
 		{
 			OutTransition.TargetCellX = CellX;
@@ -1346,11 +1367,36 @@ bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridOb
 
 bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn)
 {
-	FGridObjectTransitionParams Transition;
-	if (!PartyPawn || !FindOpenPitAtCell(CellX, CellY, Transition) || !DungeonAsset || Transition.TargetLevelId.IsNone() ||
-		Transition.TargetFacing == EGridEdge::None)
+	if (!PartyPawn)
 	{
 		return false;
+	}
+
+	FGridObjectTransitionParams Transition;
+	if (!FindOpenPitAtCell(CellX, CellY, Transition))
+	{
+		return false;
+	}
+
+	if (!DungeonAsset)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Pit fall failed at Cell=(%d,%d): DungeonAsset is null."), CellX, CellY);
+		return false;
+	}
+
+	if (Transition.TargetLevelId.IsNone())
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("Pit fall failed at Cell=(%d,%d) on level %s: no enabled lower dungeon level could be resolved."),
+			CellX, CellY, *CurrentDungeonLevelId.ToString());
+		return false;
+	}
+
+	// A Pit never needs an authored facing just to function. Preserve the
+	// party's current facing when no explicit arrival facing was supplied.
+	if (Transition.TargetFacing == EGridEdge::None)
+	{
+		Transition.TargetFacing = PartyPawn->Facing;
 	}
 
 	const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry(Transition.TargetLevelId);

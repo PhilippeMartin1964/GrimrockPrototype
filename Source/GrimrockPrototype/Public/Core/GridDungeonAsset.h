@@ -65,4 +65,7 @@ public:
 	FString GetTransitionDiagnostics() const;
 
 	const FGridDungeonLevelEntry* FindLevelEntry(FName LevelId) const;
+
+	/** Resolves the nearest enabled dungeon level below SourceLevelId. Prefers LogicalPosition.Z, then level-list order as prototype fallback. */
+	const FGridDungeonLevelEntry* FindLevelBelow(FName SourceLevelId) const;
 };
