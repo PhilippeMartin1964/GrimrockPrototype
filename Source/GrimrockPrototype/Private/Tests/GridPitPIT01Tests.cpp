@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Sound/SoundWave.h"
 
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
@@ -198,6 +199,10 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	Party->SetGridStart(Runtime, 1, 2, EGridEdge::East);
 	Party->bNativeMovementAudioPlaybackEnabled = false;
 	Party->PitFallDuration = 0.10f;
+	Party->PitFallLandingSounds = { NewObject<USoundWave>(Party, TEXT("S_Test_PitLanding_01")) };
+	Party->PitFallLandingCameraImpactDistance = 14.0f;
+	Party->PitFallLandingCameraImpactDuration = 0.07f;
+	Party->PitFallLandingCameraRecoveryDuration = 0.16f;
 
 	FGridObjectTransitionParams PitTransition;
 	TestTrue(TEXT("Static hole resolves as Open even with stale stored Type/ObjectId and false authored state"), Runtime->FindOpenPitAtCell(2, 2, PitTransition));
@@ -233,6 +238,24 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Party lands on nearest usable X when vertical cell is Empty"), Party->CurrentCellX, 2);
 	TestEqual(TEXT("Party lands on nearest usable Y when vertical cell is Empty"), Party->CurrentCellY, 1);
 	TestEqual(TEXT("Pit with no authored arrival facing preserves party facing"), Party->Facing, EGridEdge::East);
+
+	TestEqual(TEXT("Successful Pit landing requests one body-impact sound"), Party->PitFallLandingPlaybackRequestCount, 1);
+	TestTrue(TEXT("Successful Pit landing starts camera impact"), Party->bPitFallLandingCameraImpactActive);
+
+	const FVector LandedActorLocation = Party->GetActorLocation();
+	Party->UpdatePitFallLandingCameraImpact(Party->PitFallLandingCameraImpactDuration);
+	TestTrue(TEXT("Landing camera reaches configured downward compression"),
+		FMath::IsNearlyEqual(
+			Party->CurrentPitFallLandingCameraOffset.Z, -static_cast<double>(Party->PitFallLandingCameraImpactDistance), 0.1));
+	TestTrue(TEXT("Camera impact never moves the grid-authoritative Pawn"),
+		Party->GetActorLocation().Equals(LandedActorLocation, KINDA_SMALL_NUMBER));
+
+	Party->UpdatePitFallLandingCameraImpact(Party->PitFallLandingCameraRecoveryDuration + 0.01f);
+	TestFalse(TEXT("Landing camera impact completes after recovery"), Party->bPitFallLandingCameraImpactActive);
+	TestTrue(TEXT("Landing camera offset returns exactly to zero"),
+		Party->CurrentPitFallLandingCameraOffset.IsNearlyZero(KINDA_SMALL_NUMBER));
+	TestTrue(TEXT("Pawn remains fixed after landing camera recovery"),
+		Party->GetActorLocation().Equals(LandedActorLocation, KINDA_SMALL_NUMBER));
 	return true;
 }
 

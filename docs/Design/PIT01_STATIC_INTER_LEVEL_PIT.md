@@ -157,3 +157,47 @@ Jalons prévus :
 
 - **PIT02 — World Items Falling Through Pits** ;
 - **PIT03 — Controlled Pit Trapdoor**.
+
+
+## Feedback d'atterrissage du groupe
+
+Après une chute PIT01 réussie, le feedback est déclenché **sur le niveau d'arrivée**, uniquement après succès de `TravelToDungeonLevel()`.
+
+Ordre :
+
+```text
+chute visuelle
+-> TravelToDungeonLevel réussi
+-> son d'impact du corps
+-> camera impact vertical
+-> récupération caméra
+```
+
+Paramètres dans `BP_GrimrockPartyPawn > Class Defaults > Movement > Pit Fall > Landing` :
+
+```text
+Pit Fall Landing Sounds
+Pit Fall Landing Volume                 = 1.0
+
+Enable Pit Fall Landing Camera Impact   = True
+Pit Fall Landing Camera Impact Distance = 14 cm
+Pit Fall Landing Camera Impact Duration = 0.07 s
+Pit Fall Landing Camera Recovery Duration = 0.16 s
+```
+
+Le bump caméra est purement visuel. Il est ajouté au `SpringArm` en plus du Head Bob et ne déplace jamais le Pawn ni sa cellule logique.
+
+Courbe :
+
+- compression rapide vers le bas ;
+- amplitude maximale à la fin de `Impact Duration` ;
+- retour amorti à zéro pendant `Recovery Duration`.
+
+Si `Pit Fall Landing Sounds` est vide, aucun son n'est joué mais le bump caméra reste actif.
+
+Le son de chute initial et le son d'atterrissage restent indépendants :
+
+```text
+Pit Fall Scream Sounds  -> début de chute
+Pit Fall Landing Sounds -> impact au sol
+```

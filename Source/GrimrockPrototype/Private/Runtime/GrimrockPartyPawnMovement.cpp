@@ -49,6 +49,9 @@ void AGrimrockPartyPawn::SetGridStart(AGridLevelRuntimeActor* InLevelRuntimeActo
 	PitFallTargetCellX = INDEX_NONE;
 	PitFallTargetCellY = INDEX_NONE;
 	PitFallTargetFacing = EGridEdge::None;
+	bPitFallLandingCameraImpactActive = false;
+	PitFallLandingCameraImpactElapsed = 0.0f;
+	CurrentPitFallLandingCameraOffset = FVector::ZeroVector;
 
 	SnapToCurrentCell();
 }
@@ -381,6 +384,12 @@ bool AGrimrockPartyPawn::PlayPitFallScream()
 	return PlayMovementSound(PitFallScreamSounds, PitFallScreamVolume, PitFallScreamAudioOccurrence, PitFallScreamPlaybackRequestCount);
 }
 
+bool AGrimrockPartyPawn::PlayPitFallLandingSound()
+{
+	return PlayMovementSound(
+		PitFallLandingSounds, PitFallLandingVolume, PitFallLandingAudioOccurrence, PitFallLandingPlaybackRequestCount);
+}
+
 bool AGrimrockPartyPawn::BeginPitFall(const FGridObjectTransitionParams& Transition)
 {
 	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || bIsPitFalling || !HasLevelRuntimeActor() ||
@@ -447,7 +456,59 @@ void AGrimrockPartyPawn::UpdatePitFall(float DeltaSeconds)
 	if (!LevelRuntimeActor->TravelToDungeonLevel(TargetLevelId, TargetCellX, TargetCellY, TargetFacing, this))
 	{
 		SnapToCurrentCell();
+		return;
 	}
+
+	// Landing feedback belongs to the destination level. Trigger it only after
+	// the inter-level travel has succeeded and the party has been snapped there.
+	PlayPitFallLandingSound();
+	StartPitFallLandingCameraImpact();
+}
+
+void AGrimrockPartyPawn::StartPitFallLandingCameraImpact()
+{
+	PitFallLandingCameraImpactElapsed = 0.0f;
+	CurrentPitFallLandingCameraOffset = FVector::ZeroVector;
+	bPitFallLandingCameraImpactActive =
+		bEnablePitFallLandingCameraImpact && PitFallLandingCameraImpactDistance > KINDA_SMALL_NUMBER;
+}
+
+void AGrimrockPartyPawn::UpdatePitFallLandingCameraImpact(float DeltaSeconds)
+{
+	if (!bPitFallLandingCameraImpactActive)
+	{
+		CurrentPitFallLandingCameraOffset = FVector::ZeroVector;
+		return;
+	}
+
+	const float ImpactDuration = FMath::Max(0.01f, PitFallLandingCameraImpactDuration);
+	const float RecoveryDuration = FMath::Max(0.01f, PitFallLandingCameraRecoveryDuration);
+	const float TotalDuration = ImpactDuration + RecoveryDuration;
+
+	PitFallLandingCameraImpactElapsed += FMath::Max(0.0f, DeltaSeconds);
+	if (PitFallLandingCameraImpactElapsed >= TotalDuration)
+	{
+		PitFallLandingCameraImpactElapsed = 0.0f;
+		CurrentPitFallLandingCameraOffset = FVector::ZeroVector;
+		bPitFallLandingCameraImpactActive = false;
+		return;
+	}
+
+	float CompressionAlpha = 0.0f;
+	if (PitFallLandingCameraImpactElapsed <= ImpactDuration)
+	{
+		const float PhaseAlpha = FMath::Clamp(PitFallLandingCameraImpactElapsed / ImpactDuration, 0.0f, 1.0f);
+		CompressionAlpha = 1.0f - FMath::Square(1.0f - PhaseAlpha);
+	}
+	else
+	{
+		const float PhaseAlpha =
+			FMath::Clamp((PitFallLandingCameraImpactElapsed - ImpactDuration) / RecoveryDuration, 0.0f, 1.0f);
+		CompressionAlpha = FMath::Square(1.0f - PhaseAlpha);
+	}
+
+	CurrentPitFallLandingCameraOffset =
+		-FVector::UpVector * FMath::Max(0.0f, PitFallLandingCameraImpactDistance) * CompressionAlpha;
 }
 
 bool AGrimrockPartyPawn::TryStartTurn(bool bTurnRight)

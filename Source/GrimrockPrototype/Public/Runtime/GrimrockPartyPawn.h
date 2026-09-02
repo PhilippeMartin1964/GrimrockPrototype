@@ -145,6 +145,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Pit Fall", meta = (ClampMin = "0.0"))
 	float PitFallScreamVolume = 1.0f;
 
+	/** Played only after a successful inter-level Pit landing. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Pit Fall|Landing")
+	TArray<TObjectPtr<USoundBase>> PitFallLandingSounds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Pit Fall|Landing", meta = (ClampMin = "0.0"))
+	float PitFallLandingVolume = 1.0f;
+
+	/** Visual-only vertical camera compression/rebound at the landing endpoint. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Pit Fall|Landing")
+	bool bEnablePitFallLandingCameraImpact = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Pit Fall|Landing", meta = (ClampMin = "0.0"))
+	float PitFallLandingCameraImpactDistance = 14.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Pit Fall|Landing", meta = (ClampMin = "0.01"))
+	float PitFallLandingCameraImpactDuration = 0.07f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Pit Fall|Landing", meta = (ClampMin = "0.01"))
+	float PitFallLandingCameraRecoveryDuration = 0.16f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
 	float ShortThrowSpeedScale = 0.45f;
 
@@ -537,6 +557,8 @@ protected:
 	void UpdateMove(float DeltaSeconds);
 	void UpdateTurn(float DeltaSeconds);
 	void UpdatePitFall(float DeltaSeconds);
+	void StartPitFallLandingCameraImpact();
+	void UpdatePitFallLandingCameraImpact(float DeltaSeconds);
 	bool TryStartBlockedMoveFeedback(EGridEdge MoveDirection);
 	void UpdateBlockedMoveFeedback(float DeltaSeconds);
 
@@ -591,6 +613,7 @@ private:
 	bool PlayFootstepSound();
 	bool PlayBlockedMoveSound();
 	bool PlayPitFallScream();
+	bool PlayPitFallLandingSound();
 	bool PlayMovementSound(
 		const TArray<TObjectPtr<USoundBase>>& Sounds, float VolumeMultiplier, int32& OccurrenceCounter, int32& PlaybackRequestCounter);
 	float SelectMovementAudioPitch(int32 OccurrenceNumber) const;
@@ -615,6 +638,8 @@ private:
 	int32 BlockedMoveAudioPlaybackRequestCount = 0;
 	int32 PitFallScreamAudioOccurrence = 0;
 	int32 PitFallScreamPlaybackRequestCount = 0;
+	int32 PitFallLandingAudioOccurrence = 0;
+	int32 PitFallLandingPlaybackRequestCount = 0;
 
 	bool bIsPitFalling = false;
 	float PitFallElapsed = 0.f;
@@ -623,6 +648,10 @@ private:
 	int32 PitFallTargetCellX = INDEX_NONE;
 	int32 PitFallTargetCellY = INDEX_NONE;
 	EGridEdge PitFallTargetFacing = EGridEdge::None;
+
+	bool bPitFallLandingCameraImpactActive = false;
+	float PitFallLandingCameraImpactElapsed = 0.0f;
+	FVector CurrentPitFallLandingCameraOffset = FVector::ZeroVector;
 
 	float TurnStartYaw = 0.f;
 	float TurnTargetYaw = 0.f;

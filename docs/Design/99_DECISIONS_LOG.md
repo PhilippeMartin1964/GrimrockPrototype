@@ -1074,3 +1074,17 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - La collision des deux volets est désactivée dès le début de Opening.
 - La fermeture reste asymétrique : gameplay Open et collision désactivée pendant Closing, puis Closed uniquement à l'endpoint complètement fermé.
 - Une inversion Closing -> Opening ne réémet pas `Opened` si la Pit n'avait jamais cessé d'être gameplay Open.
+
+
+---
+
+## 2026-09-02 — PIT01 : impact audio et caméra à l'atterrissage
+
+### Décisions validées
+
+- Le son d'impact du groupe est joué uniquement après un `TravelToDungeonLevel()` réussi.
+- L'audio appartient au Party Pawn et utilise une liste `PitFallLandingSounds` distincte du cri de chute.
+- L'impact caméra est un offset vertical du SpringArm, jamais un déplacement du Pawn.
+- Valeurs par défaut : 14 cm de compression, 0,07 s d'impact, 0,16 s de récupération.
+- Le feedback d'atterrissage se compose avec le Head Bob existant dans `ApplyCameraOffsets()`.
+- Un échec de transition ne joue ni impact sonore ni bump caméra.

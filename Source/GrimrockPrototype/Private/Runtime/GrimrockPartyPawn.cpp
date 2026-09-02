@@ -328,6 +328,7 @@ void AGrimrockPartyPawn::Tick(float DeltaSeconds)
 		UpdatePitFall(DeltaSeconds);
 	}
 
+	UpdatePitFallLandingCameraImpact(DeltaSeconds);
 	UpdateHeadBob(DeltaSeconds);
 	UpdateFreeLook(DeltaSeconds);
 
@@ -572,7 +573,8 @@ void AGrimrockPartyPawn::ApplyCameraOffsets()
 		return;
 	}
 
-	SpringArm->SetRelativeLocation(SpringArmBaseRelativeLocation + CurrentHeadBobOffset);
+	SpringArm->SetRelativeLocation(
+		SpringArmBaseRelativeLocation + CurrentHeadBobOffset + CurrentPitFallLandingCameraOffset);
 }
 
 void AGrimrockPartyPawn::BeginFreeLook()
