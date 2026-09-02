@@ -1045,3 +1045,17 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Sans deux volets, la Pit est une fosse statique toujours ouverte.
 - MovingMesh/MovingMaterial sont désormais invalides pour SupportedType=Pit.
 - Les reversals, événements Opened/Closed et changement gameplay à l'endpoint restent inchangés.
+
+
+---
+
+## 2026-09-02 — PIT03.2 : correction du pivot sans déplacer le volet fermé
+
+### Décisions validées
+
+- Les meshes actuels de volets ont déjà leur position fermée correcte dans l'espace local de la Pit.
+- Déplacer une charnière ne doit donc jamais translater visuellement le volet à l'état Closed.
+- Pour une charnière locale `H`, le composant volet reçoit la translation relative `-H`.
+- À rotation nulle, `H + (-H) = 0` : le transform fermé authored est strictement conservé.
+- Lors de l'ouverture, la rotation du parent hinge fait orbiter le volet autour de la charnière souhaitée.
+- Les valeurs de référence restent Left=(-85,0,-5), Right=(+85,0,-5), angle 80°.

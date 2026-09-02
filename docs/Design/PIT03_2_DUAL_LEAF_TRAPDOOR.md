@@ -84,24 +84,33 @@ Moving Material
 
 ne sont plus valides pour `SupportedType = Pit`.
 
-## Convention de modélisation des volets
+## Convention de transform des volets
 
-Les deux meshes peuvent être modélisés avec leur origine au centre géométrique.
+Les deux meshes conservent exactement le transform fermé qu'ils ont lorsqu'ils sont placés à l'origine locale de la Pit.
 
-Le runtime crée lui-même les pivots de charnière.
+Le runtime déplace uniquement le **référentiel de rotation** vers la charnière, puis compense cette translation sur le composant mesh :
+
+```text
+Hinge Location = H
+Leaf Relative Location = -H
+
+Closed:
+H + (-H) = (0,0,0)
+```
 
 Avec les valeurs par défaut :
 
 ```text
-Left Hinge X  = -85
-Right Hinge X = +85
+Left Hinge  = (-85, 0, -5)
+Left Leaf relative to hinge = (+85, 0, +5)
+
+Right Hinge = (+85, 0, -5)
+Right Leaf relative to hinge = (-85, 0, +5)
 ```
 
-le centre du volet gauche est automatiquement décalé de +42,5 cm depuis sa charnière.
+Le résultat est que modifier les coordonnées de charnière **ne déplace pas le volet lorsqu'il est fermé**. En revanche, dès que le pivot tourne, le volet orbite autour de cette charnière et bascule vers le bas.
 
-Le centre du volet droit est automatiquement décalé de -42,5 cm depuis sa charnière.
-
-Ainsi, si chaque volet mesure environ 85 cm selon X, les deux bords intérieurs se rejoignent autour de X=0 lorsqu'ils sont fermés.
+Cette convention correspond aux meshes actuellement utilisés dans le projet, dont la position fermée correcte est obtenue avec le transform local du volet à zéro.
 
 ## Paramètres d'instance
 

@@ -165,17 +165,19 @@ void AGridPitTrapdoorActor::ConfigureLeafGeometry()
 		RightHingeComponent->SetRelativeLocation(RightHingeLocation);
 	}
 
-	// Leaf meshes are authored around their own geometric centre. Each hinge owns
-	// one leaf and offsets its centre halfway from the hinge to the pit centre X=0.
+	// The authored leaf meshes already have the correct closed transform in Pit-local
+	// space. Moving the parent hinge must therefore be exactly compensated on the
+	// child mesh: HingeLocation + LeafRelativeLocation = (0,0,0) while closed.
+	// When the hinge rotates, that same compensation makes the mesh orbit around H.
 	if (LeftLeafMeshComponent)
 	{
-		LeftLeafMeshComponent->SetRelativeLocation(FVector(-0.5f * LeftHingeLocation.X, 0.0f, 0.0f));
+		LeftLeafMeshComponent->SetRelativeLocation(-LeftHingeLocation);
 		LeftLeafMeshComponent->SetRelativeRotation(FRotator::ZeroRotator);
 		LeftLeafMeshComponent->SetVisibility(LeftLeafMeshComponent->GetStaticMesh() != nullptr, true);
 	}
 	if (RightLeafMeshComponent)
 	{
-		RightLeafMeshComponent->SetRelativeLocation(FVector(-0.5f * RightHingeLocation.X, 0.0f, 0.0f));
+		RightLeafMeshComponent->SetRelativeLocation(-RightHingeLocation);
 		RightLeafMeshComponent->SetRelativeRotation(FRotator::ZeroRotator);
 		RightLeafMeshComponent->SetVisibility(RightLeafMeshComponent->GetStaticMesh() != nullptr, true);
 	}

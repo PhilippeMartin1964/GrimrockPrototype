@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Components/StaticMeshComponent.h"
 
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
@@ -190,6 +191,16 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Right hinge uses requested local X"), PitAActor->GetRightHingeLocation().X, 85.0);
 	TestEqual(TEXT("Right hinge uses requested local Y"), PitAActor->GetRightHingeLocation().Y, 0.0);
 	TestEqual(TEXT("Right hinge uses requested local Z"), PitAActor->GetRightHingeLocation().Z, -5.0);
+
+	const FVector ClosedLeftLeafInPitSpace =
+		PitAActor->GetLeftHingeLocation() + PitAActor->LeftLeafMeshComponent->GetRelativeLocation();
+	const FVector ClosedRightLeafInPitSpace =
+		PitAActor->GetRightHingeLocation() + PitAActor->RightLeafMeshComponent->GetRelativeLocation();
+	TestTrue(TEXT("Moving left hinge preserves authored closed leaf position"),
+		ClosedLeftLeafInPitSpace.Equals(FVector::ZeroVector, KINDA_SMALL_NUMBER));
+	TestTrue(TEXT("Moving right hinge preserves authored closed leaf position"),
+		ClosedRightLeafInPitSpace.Equals(FVector::ZeroVector, KINDA_SMALL_NUMBER));
+
 	TestEqual(TEXT("Closed left leaf pitch is zero"), PitAActor->GetLeftLeafPitch(), 0.0f);
 	TestEqual(TEXT("Closed right leaf pitch is zero"), PitAActor->GetRightLeafPitch(), 0.0f);
 
