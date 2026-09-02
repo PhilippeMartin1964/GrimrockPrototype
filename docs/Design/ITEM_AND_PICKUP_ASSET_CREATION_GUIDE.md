@@ -1366,3 +1366,44 @@ Rappel final :
 Identifiants techniques : anglais stable.
 Textes affichés au joueur : français obligatoire.
 ```
+
+
+## Scintillement des items importants — ITEM-SPARKLE01
+
+Un `UGridItemDefinitionAsset` peut demander un scintillement uniquement lorsqu'il est un pickup dans le monde.
+
+Dans :
+
+`Visual > World Sparkle`
+
+configurer :
+
+```text
+Enable World Sparkle
+World Sparkle Material
+World Sparkle Color
+World Sparkle Intensity
+World Sparkle Speed
+World Sparkle Variation
+```
+
+Le matériau canonique attendu est `M_Item_WorldSparkle` et doit exposer :
+
+```text
+SparkleColor
+SparkleIntensity
+SparkleSpeed
+SparkleVariation
+SparklePhase
+```
+
+Exemples recommandés :
+
+- clé cuivre : couleur chaude cuivrée ;
+- clé fer : couleur argent froid.
+
+L'effet n'est pas lié au type Key et peut être utilisé pour une gemme ou un objet de quête.
+
+Référence complète :
+
+`docs/Design/ITEM_SPARKLE01_WORLD_ITEM_SPARKLE_PRESENTATION.md`

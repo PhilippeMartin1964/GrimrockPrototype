@@ -7,6 +7,7 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "GridItemDefinitionAsset.generated.h"
 
+class UMaterialInterface;
 class UStaticMesh;
 class UTexture2D;
 
@@ -122,6 +123,34 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
 	TSoftObjectPtr<UStaticMesh> EquippedMesh;
+
+	/**
+	 * ITEM-SPARKLE01: optional world-only highlight presentation.
+	 * Uses a dedicated overlay mesh/material and never modifies the item's base material.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|World Sparkle")
+	bool bEnableWorldSparkle = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|World Sparkle",
+		meta = (EditCondition = "bEnableWorldSparkle", EditConditionHides))
+	TSoftObjectPtr<UMaterialInterface> WorldSparkleMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|World Sparkle",
+		meta = (EditCondition = "bEnableWorldSparkle", EditConditionHides))
+	FLinearColor WorldSparkleColor = FLinearColor(1.0f, 0.78f, 0.42f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|World Sparkle",
+		meta = (EditCondition = "bEnableWorldSparkle", EditConditionHides, ClampMin = "0.0"))
+	float WorldSparkleIntensity = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|World Sparkle",
+		meta = (EditCondition = "bEnableWorldSparkle", EditConditionHides, ClampMin = "0.0"))
+	float WorldSparkleSpeed = 1.0f;
+
+	/** 0 = perfectly regular pulse, 1 = strongly irregular material-driven pulse. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|World Sparkle",
+		meta = (EditCondition = "bEnableWorldSparkle", EditConditionHides, ClampMin = "0.0", ClampMax = "1.0"))
+	float WorldSparkleVariation = 0.35f;
 
 	/**
 	 * Legacy serialized flag kept only to preserve existing throwable-weapon

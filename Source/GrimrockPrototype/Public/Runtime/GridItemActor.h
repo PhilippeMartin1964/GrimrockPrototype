@@ -5,6 +5,7 @@
 #include "Runtime/GridInteractableInterface.h"
 #include "GridItemActor.generated.h"
 
+class UMaterialInstanceDynamic;
 class UStaticMeshComponent;
 class UGridItemDefinitionAsset;
 class UGridReadableContentAsset;
@@ -22,6 +23,16 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> MeshComponent;
+
+	/** ITEM-SPARKLE01 presentation-only mesh. Mirrors MeshComponent and never participates in collision/physics. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UStaticMeshComponent> SparkleMeshComponent;
+
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|World Sparkle")
+	TObjectPtr<UMaterialInstanceDynamic> WorldSparkleMaterialInstance = nullptr;
+
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|World Sparkle")
+	bool bWorldSparkleActive = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FName ArchetypeId = NAME_None;
@@ -93,6 +104,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void ConfigureAsAttachedItem();
 
+	UFUNCTION(BlueprintCallable, Category = "Item|World Sparkle")
+	void SetWorldSparkleEnabled(bool bEnabled);
+
+	UFUNCTION(BlueprintPure, Category = "Item|World Sparkle")
+	bool IsWorldSparkleActive() const { return bWorldSparkleActive; }
+
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	FName GetItemArchetypeId() const;
 
@@ -107,6 +124,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void SetRuntimeCell(int32 InCellX, int32 InCellY);
+
+	void RefreshWorldSparklePresentation();
+	float BuildWorldSparklePhase() const;
 
 	virtual bool CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
 	virtual void Interact_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;

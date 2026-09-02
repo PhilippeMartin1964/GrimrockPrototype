@@ -21,6 +21,14 @@ bool UGridItemDefinitionAsset::IsValidDefinition() const
 		return false;
 	}
 
+	if (bEnableWorldSparkle &&
+		(WorldSparkleMaterial.IsNull() || !FMath::IsFinite(WorldSparkleIntensity) || WorldSparkleIntensity < 0.0f ||
+			!FMath::IsFinite(WorldSparkleSpeed) || WorldSparkleSpeed < 0.0f || !FMath::IsFinite(WorldSparkleVariation) ||
+			WorldSparkleVariation < 0.0f || WorldSparkleVariation > 1.0f))
+	{
+		return false;
+	}
+
 	if (bProvidesQuickItemCombatAction)
 	{
 		FGridCombatActionDefinition QuickItemDefinition;

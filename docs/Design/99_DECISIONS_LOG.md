@@ -1101,3 +1101,21 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - `Pit` ne retourne plus vrai pour `UsesMovingMeshParams()` : le vieux `Moving Mesh` mono-volet est définitivement hors contrat.
 - `Pit` conserve `UsesFixedMeshParams() = true` pour la géométrie permanente de la fosse.
 - Les volets passent uniquement par `PitLeftLeafMesh` et `PitRightLeafMesh`.
+
+
+---
+
+## 2026-09-02 — ITEM-SPARKLE01 : World Item Sparkle Presentation
+
+### Décisions validées
+
+- Le scintillement est une propriété générique de `UGridItemDefinitionAsset`, pas un comportement codé spécifiquement pour les clés.
+- L'effet est actif uniquement dans l'état World Pickup.
+- Un item attaché, tenu ou retiré du monde ne scintille pas.
+- Le matériau de base de l'item n'est jamais modifié.
+- `AGridItemActor` utilise un second `UStaticMeshComponent` de présentation, sans collision, physique ni ombre.
+- Un `UMaterialInstanceDynamic` fournit `SparkleColor`, `SparkleIntensity`, `SparkleSpeed`, `SparkleVariation` et `SparklePhase`.
+- L'animation temporelle appartient au matériau GPU ; aucun Tick C++ de scintillement n'est ajouté.
+- `SparklePhase` désynchronise plusieurs items à partir de leur identité runtime.
+- Un asset avec World Sparkle activé sans matériau est invalide.
+- Le mode de réceptacle `PhysicalAtHit` est considéré comme une présentation physique World Pickup et peut donc scintiller ; les placements attachés restent OFF.

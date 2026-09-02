@@ -2,6 +2,8 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInterface.h"
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -20,6 +22,14 @@ AGridItemActor::AGridItemActor()
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	MeshComponent->SetupAttachment(SceneRoot);
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	SparkleMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WorldSparkleMesh"));
+	SparkleMeshComponent->SetupAttachment(MeshComponent);
+	SparkleMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	SparkleMeshComponent->SetSimulatePhysics(false);
+	SparkleMeshComponent->SetEnableGravity(false);
+	SparkleMeshComponent->SetCastShadow(false);
+	SparkleMeshComponent->SetVisibility(false, true);
 }
 
 void AGridItemActor::InitializeItem(FName InArchetypeId, const TArray<FName>& InItemTags, UStaticMesh* Mesh, UMaterialInterface* Material)
@@ -46,6 +56,7 @@ void AGridItemActor::InitializeItem(FName InArchetypeId, const TArray<FName>& In
 			MeshComponent->SetMaterial(0, Material);
 		}
 	}
+	RefreshWorldSparklePresentation();
 }
 
 void AGridItemActor::OnPlacedInWorld()
@@ -56,6 +67,7 @@ void AGridItemActor::OnPlacedInWorld()
 void AGridItemActor::OnRemovedFromWorld()
 {
 	SetItemLightsEnabled(false);
+	SetWorldSparkleEnabled(false);
 }
 
 void AGridItemActor::SetItemLightsEnabled(bool bEnabled)
@@ -99,6 +111,7 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 			MeshComponent->SetStaticMesh(WorldMesh);
 		}
 	}
+	RefreshWorldSparklePresentation();
 }
 
 void AGridItemActor::InitializeFromItemDefinitionId(FName InItemDefinitionId, const FGuid& InRuntimeObjectId)
@@ -177,6 +190,7 @@ void AGridItemActor::ConfigureAsWorldPickup()
 	MeshComponent->SetEnableGravity(true);
 	MeshComponent->SetSimulatePhysics(true);
 	MeshComponent->WakeRigidBody();
+	SetWorldSparkleEnabled(true);
 }
 
 void AGridItemActor::ConfigureAsAttachedItem()
@@ -189,6 +203,78 @@ void AGridItemActor::ConfigureAsAttachedItem()
 	MeshComponent->SetSimulatePhysics(false);
 	MeshComponent->SetEnableGravity(false);
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	SetWorldSparkleEnabled(false);
+}
+
+void AGridItemActor::SetWorldSparkleEnabled(bool bEnabled)
+{
+	const bool bCanEnable = bEnabled && ItemDefinitionAsset && ItemDefinitionAsset->bEnableWorldSparkle &&
+		!ItemDefinitionAsset->WorldSparkleMaterial.IsNull() && MeshComponent && MeshComponent->GetStaticMesh() != nullptr;
+
+	bWorldSparkleActive = bCanEnable;
+	RefreshWorldSparklePresentation();
+}
+
+float AGridItemActor::BuildWorldSparklePhase() const
+{
+	uint32 Hash = RuntimeObjectId.IsValid() ? GetTypeHash(RuntimeObjectId) : GetTypeHash(GetItemDefinitionId());
+	Hash = HashCombine(Hash, GetTypeHash(ArchetypeId));
+	return static_cast<float>(Hash % 10000u) / 10000.0f;
+}
+
+void AGridItemActor::RefreshWorldSparklePresentation()
+{
+	if (!SparkleMeshComponent)
+	{
+		return;
+	}
+
+	SparkleMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	SparkleMeshComponent->SetSimulatePhysics(false);
+	SparkleMeshComponent->SetEnableGravity(false);
+	SparkleMeshComponent->SetCastShadow(false);
+	SparkleMeshComponent->SetRelativeTransform(FTransform::Identity);
+
+	UStaticMesh* SourceMesh = MeshComponent ? MeshComponent->GetStaticMesh() : nullptr;
+	SparkleMeshComponent->SetStaticMesh(SourceMesh);
+
+	if (!bWorldSparkleActive || !ItemDefinitionAsset || !SourceMesh)
+	{
+		SparkleMeshComponent->SetVisibility(false, true);
+		WorldSparkleMaterialInstance = nullptr;
+		return;
+	}
+
+	UMaterialInterface* SparkleMaterial = ItemDefinitionAsset->WorldSparkleMaterial.LoadSynchronous();
+	if (!SparkleMaterial)
+	{
+		bWorldSparkleActive = false;
+		SparkleMeshComponent->SetVisibility(false, true);
+		WorldSparkleMaterialInstance = nullptr;
+		return;
+	}
+
+	WorldSparkleMaterialInstance = UMaterialInstanceDynamic::Create(SparkleMaterial, this);
+	if (!WorldSparkleMaterialInstance)
+	{
+		bWorldSparkleActive = false;
+		SparkleMeshComponent->SetVisibility(false, true);
+		return;
+	}
+
+	WorldSparkleMaterialInstance->SetVectorParameterValue(TEXT("SparkleColor"), ItemDefinitionAsset->WorldSparkleColor);
+	WorldSparkleMaterialInstance->SetScalarParameterValue(TEXT("SparkleIntensity"), FMath::Max(0.0f, ItemDefinitionAsset->WorldSparkleIntensity));
+	WorldSparkleMaterialInstance->SetScalarParameterValue(TEXT("SparkleSpeed"), FMath::Max(0.0f, ItemDefinitionAsset->WorldSparkleSpeed));
+	WorldSparkleMaterialInstance->SetScalarParameterValue(TEXT("SparkleVariation"), FMath::Clamp(ItemDefinitionAsset->WorldSparkleVariation, 0.0f, 1.0f));
+	WorldSparkleMaterialInstance->SetScalarParameterValue(TEXT("SparklePhase"), BuildWorldSparklePhase());
+
+	const int32 MaterialCount = FMath::Max(1, SparkleMeshComponent->GetNumMaterials());
+	for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
+	{
+		SparkleMeshComponent->SetMaterial(MaterialIndex, WorldSparkleMaterialInstance);
+	}
+
+	SparkleMeshComponent->SetVisibility(true, true);
 }
 
 FName AGridItemActor::GetItemArchetypeId() const
