@@ -2,8 +2,10 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Components/BoxComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "GameFramework/Actor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDeathComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
@@ -36,7 +38,7 @@ namespace GridMonsterDeathCollision01
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
 				.AllowAudioPlayback(false)
 				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
+				.CreatePhysicsScene(true)
 				.CreateNavigation(false)
 				.CreateAISystem(false)
 				.ShouldSimulatePhysics(false)
@@ -138,6 +140,8 @@ bool FGridMonsterDeathCollision01ApiTest::RunTest(const FString& Parameters)
 		FindFProperty<FProperty>(DeathClass, GET_MEMBER_NAME_CHECKED(UGridMonsterDeathComponent, bDeathObstacleDetected)));
 	TestNotNull(TEXT("Death component exposes ragdoll state"),
 		FindFProperty<FProperty>(DeathClass, GET_MEMBER_NAME_CHECKED(UGridMonsterDeathComponent, bDeathRagdollActive)));
+	TestNotNull(TEXT("Death component exposes transient collision guard diagnostics"),
+		FindFProperty<FProperty>(DeathClass, GET_MEMBER_NAME_CHECKED(UGridMonsterDeathComponent, DeathCollisionGuardCount)));
 
 	const FName RequiredFunctions[] = {
 		TEXT("ResolveDeathFallWorldDirection"),
@@ -190,6 +194,66 @@ bool FGridMonsterDeathCollision01DirectionTest::RunTest(const FString& Parameter
 	Monster->SetActorRotation(FRotator(0.0f, 90.0f, 0.0f));
 	TestTrue(TEXT("Yaw 90 rotates backwards direction to world -Y"),
 		Monster->DeathComponent->ResolveDeathFallWorldDirection().Equals(FVector(0.0f, -1.0f, 0.0f), 0.001f));
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterDeathCollision01QueryOnlyObstacleTest,
+	"Grimrock.Monsters.MON_DEATH_COLLISION01.QueryOnlyObstacleContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterDeathCollision01QueryOnlyObstacleTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	GridMonsterDeathCollision01::FTestWorld TestWorld;
+	if (!TestNotNull(TEXT("Test world exists"), TestWorld.World))
+	{
+		return false;
+	}
+
+	AGridMonsterActor* Monster = TestWorld.World->SpawnActor<AGridMonsterActor>();
+	UGridMonsterDefinitionAsset* Definition = GridMonsterDeathCollision01::MakeValidDefinition();
+	if (!TestNotNull(TEXT("Monster exists"), Monster) || !TestNotNull(TEXT("Definition exists"), Definition))
+	{
+		return false;
+	}
+
+	Definition->bEnableObstacleAwareDeath = true;
+	Definition->DeathFallLocalDirection = FVector(-1.0f, 0.0f, 0.0f);
+	Definition->DeathObstacleProbeDistance = 120.0f;
+	Definition->DeathObstacleProbeRadius = 20.0f;
+	Definition->DeathObstacleProbeHalfHeight = 50.0f;
+	Monster->MonsterDefinition = Definition;
+	Monster->SetActorLocation(FVector::ZeroVector);
+	Monster->SetActorRotation(FRotator::ZeroRotator);
+	Monster->DeathComponent->InitializeDeathComponent(nullptr);
+
+	AActor* Blocker = TestWorld.World->SpawnActor<AActor>();
+	if (!TestNotNull(TEXT("Query-only blocker actor exists"), Blocker))
+	{
+		return false;
+	}
+
+	UBoxComponent* Box = NewObject<UBoxComponent>(Blocker, TEXT("QueryOnlyDeathWall"));
+	if (!TestNotNull(TEXT("Query-only blocker component exists"), Box))
+	{
+		return false;
+	}
+
+	Blocker->SetRootComponent(Box);
+	Blocker->AddInstanceComponent(Box);
+	Box->InitBoxExtent(FVector(5.0f, 100.0f, 100.0f));
+	Box->SetCollisionObjectType(ECC_WorldStatic);
+	Box->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	Box->SetCollisionResponseToAllChannels(ECR_Block);
+	Box->RegisterComponentWithWorld(TestWorld.World);
+	Blocker->SetActorLocation(FVector(-80.0f, 0.0f, 55.0f));
+	TestWorld.World->UpdateWorldComponents(true, false);
+
+	FHitResult Hit;
+	TestTrue(TEXT("A QueryOnly wall is still detected as a death obstacle"), Monster->DeathComponent->ProbeDeathObstacle(Hit));
+	TestEqual(TEXT("Detected obstacle remains QueryOnly"), Box->GetCollisionEnabled(), ECollisionEnabled::QueryOnly);
+	TestTrue(TEXT("The QueryOnly wall component is the reported obstacle"), Hit.GetComponent() == Box);
 	return true;
 }
 

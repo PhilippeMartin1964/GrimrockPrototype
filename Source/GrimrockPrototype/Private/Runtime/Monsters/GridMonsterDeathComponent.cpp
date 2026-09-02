@@ -391,6 +391,7 @@ void UGridMonsterDeathComponent::StartDeathPresentation()
 		return;
 	}
 
+	ClearDeathCollisionGuards();
 	bDeathObstacleDetected = false;
 	LastDeathObstacleImpactPoint = FVector::ZeroVector;
 
@@ -487,31 +488,26 @@ bool UGridMonsterDeathComponent::ProbeDeathObstacle(FHitResult& OutHit) const
 		return false;
 	}
 
-	const FHitResult* NearestPhysicalHit = nullptr;
+	const FHitResult* NearestObstacleHit = nullptr;
 	for (const FHitResult& Hit : Hits)
 	{
 		const UPrimitiveComponent* HitComponent = Hit.GetComponent();
-		if (!HitComponent)
+		if (!HitComponent || HitComponent->GetCollisionEnabled() == ECollisionEnabled::NoCollision)
 		{
 			continue;
 		}
 
-		const ECollisionEnabled::Type CollisionEnabled = HitComponent->GetCollisionEnabled();
-		const bool bPhysicallyBlocking = CollisionEnabled == ECollisionEnabled::QueryAndPhysics || CollisionEnabled == ECollisionEnabled::PhysicsOnly;
-		if (!bPhysicallyBlocking)
+		// QueryOnly is intentionally accepted. Grid walls and authored room geometry may be query blockers
+		// without participating in Chaos rigid-body collision; the ragdoll path creates a temporary physical guard.
+		if (!NearestObstacleHit || Hit.Distance < NearestObstacleHit->Distance)
 		{
-			continue;
-		}
-
-		if (!NearestPhysicalHit || Hit.Distance < NearestPhysicalHit->Distance)
-		{
-			NearestPhysicalHit = &Hit;
+			NearestObstacleHit = &Hit;
 		}
 	}
 
-	if (NearestPhysicalHit)
+	if (NearestObstacleHit)
 	{
-		OutHit = *NearestPhysicalHit;
+		OutHit = *NearestObstacleHit;
 		return true;
 	}
 	return false;
@@ -542,6 +538,13 @@ bool UGridMonsterDeathComponent::TryStartObstacleAwareDeathRagdoll()
 		return false;
 	}
 
+	if (!BuildDeathCollisionGuard(ObstacleHit))
+	{
+		UE_LOG(LogGridMonsterDeath, Warning,
+			TEXT("[GridMonsterDeath] ObstacleAware guard creation failed Monster=%s Obstacle=%s; using available scene physics."),
+			*GetNameSafe(OwnerMonster), *GetNameSafe(ObstacleHit.GetActor()));
+	}
+
 	if (UAnimInstance* AnimInstance = Mesh->GetAnimInstance())
 	{
 		AnimInstance->StopAllMontages(0.05f);
@@ -559,6 +562,7 @@ bool UGridMonsterDeathComponent::TryStartObstacleAwareDeathRagdoll()
 	if (!Mesh->IsAnySimulatingPhysics())
 	{
 		Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ClearDeathCollisionGuards();
 		UE_LOG(LogGridMonsterDeath, Warning,
 			TEXT("[GridMonsterDeath] ObstacleAware fallback Monster=%s Obstacle=%s Reason=PhysicsSimulationRejected"),
 			*GetNameSafe(OwnerMonster), *GetNameSafe(ObstacleHit.GetActor()));
@@ -590,8 +594,87 @@ bool UGridMonsterDeathComponent::TryStartObstacleAwareDeathRagdoll()
 	return true;
 }
 
+bool UGridMonsterDeathComponent::BuildDeathCollisionGuard(const FHitResult& ObstacleHit)
+{
+	ClearDeathCollisionGuards();
+
+	if (!OwnerMonster || !OwnerMonster->MonsterDefinition)
+	{
+		return false;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	FVector SurfaceNormal = ObstacleHit.ImpactNormal;
+	SurfaceNormal.Z = 0.0f;
+	if (SurfaceNormal.IsNearlyZero())
+	{
+		SurfaceNormal = -ResolveDeathFallWorldDirection();
+	}
+	SurfaceNormal = SurfaceNormal.GetSafeNormal();
+	if (SurfaceNormal.IsNearlyZero())
+	{
+		return false;
+	}
+
+	const UGridMonsterDefinitionAsset* Definition = OwnerMonster->MonsterDefinition;
+	constexpr float GuardHalfThickness = 12.0f;
+	const float GuardHalfWidth = FMath::Max(110.0f, Definition->DeathObstacleProbeRadius * 2.0f);
+	const float GuardHalfHeight = FMath::Max(160.0f, Definition->DeathObstacleProbeHalfHeight);
+
+	UBoxComponent* Guard = NewObject<UBoxComponent>(OwnerMonster, NAME_None, RF_Transient);
+	if (!Guard)
+	{
+		return false;
+	}
+
+	Guard->SetMobility(EComponentMobility::Movable);
+	Guard->InitBoxExtent(FVector(GuardHalfThickness, GuardHalfWidth, GuardHalfHeight));
+	Guard->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	Guard->SetCollisionObjectType(ECC_WorldDynamic);
+	Guard->SetCollisionResponseToAllChannels(ECR_Ignore);
+	Guard->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Block);
+	Guard->SetGenerateOverlapEvents(false);
+	Guard->SetCanEverAffectNavigation(false);
+
+	OwnerMonster->AddInstanceComponent(Guard);
+	Guard->RegisterComponentWithWorld(World);
+
+	FVector GuardCenter = ObstacleHit.ImpactPoint - SurfaceNormal * GuardHalfThickness;
+	GuardCenter.Z = OwnerMonster->GetActorLocation().Z + GuardHalfHeight;
+	const FRotator GuardRotation = FRotationMatrix::MakeFromX(SurfaceNormal).Rotator();
+	Guard->SetWorldLocationAndRotation(GuardCenter, GuardRotation, false, nullptr, ETeleportType::TeleportPhysics);
+
+	DeathCollisionGuards.Add(Guard);
+	DeathCollisionGuardCount = DeathCollisionGuards.Num();
+
+	UE_LOG(LogGridMonsterDeath, Verbose,
+		TEXT("[GridMonsterDeath] CollisionGuard Monster=%s Obstacle=%s Center=%s Normal=%s Extent=(%.1f,%.1f,%.1f)"),
+		*GetNameSafe(OwnerMonster), *GetNameSafe(ObstacleHit.GetActor()), *GuardCenter.ToCompactString(), *SurfaceNormal.ToCompactString(),
+		GuardHalfThickness, GuardHalfWidth, GuardHalfHeight);
+	return true;
+}
+
+void UGridMonsterDeathComponent::ClearDeathCollisionGuards()
+{
+	for (UBoxComponent* Guard : DeathCollisionGuards)
+	{
+		if (IsValid(Guard))
+		{
+			Guard->DestroyComponent();
+		}
+	}
+	DeathCollisionGuards.Reset();
+	DeathCollisionGuardCount = 0;
+}
+
 void UGridMonsterDeathComponent::ResetDeathRagdollPresentation(bool bRestoreVisualPose)
 {
+	ClearDeathCollisionGuards();
 	bDeathObstacleDetected = false;
 	bDeathRagdollActive = false;
 	LastDeathObstacleImpactPoint = FVector::ZeroVector;

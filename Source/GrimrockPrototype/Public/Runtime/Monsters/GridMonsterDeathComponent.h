@@ -7,6 +7,7 @@
 
 class AGridLevelRuntimeActor;
 class AGridMonsterActor;
+class UBoxComponent;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 
@@ -46,6 +47,10 @@ public:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Death|Collision")
 	FVector LastDeathObstacleImpactPoint = FVector::ZeroVector;
+
+	/** Number of temporary invisible physics guards currently protecting query-only death obstacles. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Death|Collision")
+	int32 DeathCollisionGuardCount = 0;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Death|Dissolve")
 	bool bDeathDissolveActive = false;
@@ -132,6 +137,9 @@ private:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> DeathDissolveMaterials;
 
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UBoxComponent>> DeathCollisionGuards;
+
 	float DeathDissolveStartWorldTime = 0.0f;
 
 	UFUNCTION()
@@ -144,6 +152,8 @@ private:
 	void ClearDeathDissolveTimers();
 
 	bool TryStartObstacleAwareDeathRagdoll();
+	bool BuildDeathCollisionGuard(const FHitResult& ObstacleHit);
+	void ClearDeathCollisionGuards();
 	void ScheduleDeathPresentationCompletion();
 	void GenerateAndPlaceLoot();
 	AGridLevelRuntimeActor* FindRuntimeActor() const;

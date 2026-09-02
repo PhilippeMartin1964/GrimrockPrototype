@@ -1137,3 +1137,17 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Un Physics Asset manquant produit un fallback propre vers le montage existant sans affecter la mort logique.
 - La dissolution générique reste autoritaire et arrête la simulation physique lorsque le mesh est finalement caché.
 - Filtre Automation : `Grimrock.Monsters.MON_DEATH_COLLISION01`.
+
+
+---
+
+## 2026-09-02 — MON-DEATH-COLLISION01.1 : garde physique pour obstacles QueryOnly
+
+### Décisions validées
+
+- Un obstacle de mort `QueryOnly` est un obstacle valide : il ne doit pas être ignoré sous prétexte qu'il ne participe pas directement à Chaos.
+- Le probe de chute ignore uniquement `NoCollision`.
+- Lorsqu'un obstacle est détecté, le DeathComponent crée un `UBoxComponent` transient et invisible aligné sur le plan d'impact.
+- Ce garde bloque `PhysicsBody` et garantit que le ragdoll ne dépend pas de la qualité de collision physique du mesh mural décoratif.
+- Le garde est purement présentationnel, ne réactive ni occupation de grille ni collision gameplay, et est détruit au reset ou à la fin de la dissolution.
+- Un test Automation protège explicitement la détection d'un mur `QueryOnly`.

@@ -25,6 +25,8 @@ Chaque `UGridMonsterDefinitionAsset` peut activer `Monster > Animation > Death C
 
 Avant de jouer la présentation de mort, le runtime transforme `DeathFallLocalDirection` selon le Facing courant du monstre et effectue un sweep capsule dans cette direction.
 
+Le probe accepte désormais explicitement les obstacles `QueryOnly`. C'est indispensable car les murs de grille et certaines géométries de salle peuvent bloquer les requêtes gameplay sans fournir directement une surface Chaos fiable pour un ragdoll.
+
 ### Aucun obstacle
 
 ```text
@@ -38,6 +40,7 @@ Probe libre
 ```text
 Probe bloqué
 → le DeathMontage n'est pas utilisé pour cette occurrence
+→ création d'un garde physique invisible au plan d'impact
 → SkeletalMesh passe immédiatement en ragdoll
 → collision seulement avec WorldStatic / WorldDynamic / PhysicsBody
 → vitesse initiale vers la chute + composante descendante
@@ -118,3 +121,19 @@ Grimrock.Monsters.MON_DEATH_COLLISION01
 Les tests couvrent le contrat data-driven, l'API générique, le caractère opt-in, la direction de chute transformée par l'orientation et l'absence de Tick permanent supplémentaire.
 
 Le rendu physique final doit également être validé en PIE contre un mur et une porte fermée.
+
+
+## Correction 01 — QueryOnly / anti-traversée
+
+Le premier playtest sur WereRat a montré qu'un mur pouvait être visible et logiquement bloquant tout en étant ignoré par le premier probe, car celui-ci exigeait `QueryAndPhysics` ou `PhysicsOnly`.
+
+Le contrat corrigé est :
+
+```text
+NoCollision      → ignoré
+QueryOnly        → obstacle valide + garde physique temporaire
+QueryAndPhysics  → obstacle valide + garde physique temporaire
+PhysicsOnly      → obstacle valide + garde physique temporaire
+```
+
+Le garde est un `UBoxComponent` transient, invisible, créé au plan d'impact et détruit avec la fin de la présentation/ragdoll ou la dissolution. Il n'appartient pas à la grille gameplay et ne modifie aucun asset de décor.
