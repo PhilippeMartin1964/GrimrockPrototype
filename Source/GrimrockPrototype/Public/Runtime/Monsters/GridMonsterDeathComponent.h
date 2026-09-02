@@ -5,7 +5,6 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "GridMonsterDeathComponent.generated.h"
 
-class AActor;
 class AGridLevelRuntimeActor;
 class AGridMonsterActor;
 class UMaterialInstanceDynamic;
@@ -36,21 +35,6 @@ public:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Death")
 	bool bDeathPresentationActive = false;
-
-	/** True when the pre-death fall probe found blocking physical geometry. */
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Death|Collision")
-	bool bDeathObstacleDetected = false;
-
-	/** Presentation-only skeletal ragdoll. Never restores grid occupancy or gameplay collision. */
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Death|Collision")
-	bool bDeathRagdollActive = false;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Death|Collision")
-	FVector LastDeathObstacleImpactPoint = FVector::ZeroVector;
-
-	/** Number of temporary invisible physics guards currently protecting query-only death obstacles. */
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Death|Collision")
-	int32 DeathCollisionGuardCount = 0;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Death|Dissolve")
 	bool bDeathDissolveActive = false;
@@ -97,18 +81,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster|Death|Animation Notify")
 	void NotifyDeathPresentationComplete();
 
-	/** Resolves the authored local fall direction in world space using the monster's current facing. */
-	UFUNCTION(BlueprintPure, Category = "Monster|Death|Collision")
-	FVector ResolveDeathFallWorldDirection() const;
-
-	/** Sweeps the authored fall corridor and returns the nearest physically blocking obstacle. */
-	UFUNCTION(BlueprintCallable, Category = "Monster|Death|Collision")
-	bool ProbeDeathObstacle(FHitResult& OutHit) const;
-
-	/** Stops presentation-only corpse physics and optionally restores the authored skeletal visual pose. */
-	UFUNCTION(BlueprintCallable, Category = "Monster|Death|Collision")
-	void ResetDeathRagdollPresentation(bool bRestoreVisualPose = true);
-
 	/** Clears transient dissolve state and optionally restores source materials/visibility. */
 	UFUNCTION(BlueprintCallable, Category = "Monster|Death|Dissolve")
 	void ResetDeathDissolvePresentation(bool bRestoreOriginalMaterials = true, bool bRestoreVisibility = false);
@@ -137,9 +109,6 @@ private:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> DeathDissolveMaterials;
 
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<AActor>> DeathCollisionGuardActors;
-
 	float DeathDissolveStartWorldTime = 0.0f;
 
 	UFUNCTION()
@@ -151,12 +120,6 @@ private:
 	void FinishDeathDissolve();
 	void ClearDeathDissolveTimers();
 
-	bool TryStartObstacleAwareDeathRagdoll();
-	bool TryBuildGridDeathObstacleHit(FHitResult& OutHit) const;
-	bool BuildDeathCollisionGuard(const FHitResult& ObstacleHit);
-	bool BuildDeathCollisionGuardAtPlane(const FVector& PlanePoint, const FVector& SurfaceNormal);
-	void ClearDeathCollisionGuards();
-	void ScheduleDeathPresentationCompletion();
 	void GenerateAndPlaceLoot();
 	AGridLevelRuntimeActor* FindRuntimeActor() const;
 };

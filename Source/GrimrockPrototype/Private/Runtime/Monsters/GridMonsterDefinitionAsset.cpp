@@ -157,31 +157,6 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition(FString& OutError) const
 		Errors.Add(TEXT("DeathExpectedDuration must be finite and greater than zero."));
 	}
 
-	if (bEnableObstacleAwareDeath)
-	{
-		const bool bFallDirectionFinite = FMath::IsFinite(DeathFallLocalDirection.X) && FMath::IsFinite(DeathFallLocalDirection.Y) &&
-			FMath::IsFinite(DeathFallLocalDirection.Z);
-		const FVector2D HorizontalFallDirection(DeathFallLocalDirection.X, DeathFallLocalDirection.Y);
-		if (!bFallDirectionFinite || HorizontalFallDirection.IsNearlyZero())
-		{
-			Errors.Add(TEXT("DeathFallLocalDirection must contain a finite non-zero horizontal direction when obstacle-aware death is enabled."));
-		}
-
-		if (!FMath::IsFinite(DeathObstacleProbeDistance) || DeathObstacleProbeDistance <= 0.0f ||
-			!FMath::IsFinite(DeathObstacleProbeRadius) || DeathObstacleProbeRadius <= 0.0f ||
-			!FMath::IsFinite(DeathObstacleProbeHalfHeight) || DeathObstacleProbeHalfHeight < DeathObstacleProbeRadius)
-		{
-			Errors.Add(TEXT("Death obstacle probe dimensions must be finite, positive, and HalfHeight must be at least Radius."));
-		}
-
-		if (!FMath::IsFinite(DeathRagdollBackwardSpeed) || DeathRagdollBackwardSpeed < 0.0f ||
-			!FMath::IsFinite(DeathRagdollDownwardSpeed) || DeathRagdollDownwardSpeed < 0.0f ||
-			!FMath::IsFinite(DeathRagdollAngularSpeedDegrees) || DeathRagdollAngularSpeedDegrees < 0.0f)
-		{
-			Errors.Add(TEXT("Death ragdoll speeds must be finite and non-negative."));
-		}
-	}
-
 	if (!AlertAudio.IsValidDefinition() || !HurtAudio.IsValidDefinition() || !DeathAudio.IsValidDefinition() || !IdleAudio.IsValidDefinition())
 	{
 		Errors.Add(TEXT("Monster audio event definitions must be valid."));

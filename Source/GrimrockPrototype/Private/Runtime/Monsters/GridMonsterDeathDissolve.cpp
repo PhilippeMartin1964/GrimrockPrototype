@@ -35,7 +35,6 @@ void UGridMonsterDeathComponent::EndPlay(const EEndPlayReason::Type EndPlayReaso
 	}
 
 	ResetDeathDissolvePresentation(true, false);
-	ResetDeathRagdollPresentation(false);
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -67,8 +66,7 @@ void UGridMonsterDeathComponent::ScheduleDeathDissolve()
 	ClearDeathDissolveTimers();
 
 	const UGridMonsterDefinitionAsset* Definition = OwnerMonster->MonsterDefinition;
-	const bool bMayUseDeathPresentation = !Definition->DeathMontage.IsNull() || Definition->bEnableObstacleAwareDeath;
-	const float PresentationDuration = bMayUseDeathPresentation ? FMath::Max(0.01f, Definition->DeathExpectedDuration) : 0.0f;
+	const float PresentationDuration = Definition->DeathMontage.IsNull() ? 0.0f : FMath::Max(0.01f, Definition->DeathExpectedDuration);
 	const float StartDelay = PresentationDuration + CorpseHoldDelaySeconds;
 
 	UE_LOG(LogGridMonsterDeathDissolve, Log, TEXT("[GridMonsterDeathDissolve] Scheduled Monster=%s Presentation=%.3f Hold=%.3f StartAfter=%.3f"),
@@ -190,7 +188,6 @@ void UGridMonsterDeathComponent::FinishDeathDissolve()
 	{
 		OwnerMonster->SkeletalMeshComponent->SetVisibility(false, true);
 	}
-	ResetDeathRagdollPresentation(false);
 
 	UE_LOG(LogGridMonsterDeathDissolve, Log, TEXT("[GridMonsterDeathDissolve] Completed Monster=%s MeshHidden=true ActorRetained=true"),
 		*GetNameSafe(OwnerMonster));

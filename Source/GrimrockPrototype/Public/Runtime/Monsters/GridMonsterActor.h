@@ -337,10 +337,6 @@ public:
 		{
 			Errors.Add(TEXT("SkeletalMeshComponent has no resolved skeletal mesh."));
 		}
-		else if (MonsterDefinition && MonsterDefinition->bEnableObstacleAwareDeath && !SkeletalMeshComponent->GetPhysicsAsset())
-		{
-			Errors.Add(TEXT("Obstacle-aware death requires a Physics Asset on the resolved skeletal mesh."));
-		}
 
 		if (!CombatComponent)
 		{
