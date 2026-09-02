@@ -401,7 +401,8 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 	const FGridObjectPaletteEntry* PitEntry = CurrentEditorActor->ObjectPalette->FindEntryById(FName(TEXT("Pit_Stone_01")));
 	if (!PitEntry || !PitEntry->DefaultArchetype || PitEntry->DefaultArchetype->SupportedType != EGridLevelObjectType::Pit ||
 		!PitEntry->DefaultArchetype->DefaultBehavior.Transition.bIsTransition ||
-		PitEntry->DefaultArchetype->RuntimeActorClass != AGridPitTrapdoorActor::StaticClass())
+		PitEntry->DefaultArchetype->RuntimeActorClass != AGridPitTrapdoorActor::StaticClass() ||
+		PitEntry->DefaultArchetype->MovingMesh != nullptr || PitEntry->DefaultArchetype->MovingMaterial != nullptr)
 	{
 		FString Error;
 		if (!CurrentEditorActor->EnsurePitTrapdoorArchetype(Error))

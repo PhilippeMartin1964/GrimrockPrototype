@@ -1,6 +1,7 @@
 #include "Core/GridObjectArchetypeAsset.h"
 
 #include "Runtime/GridDoorActor.h"
+#include "Runtime/GridPitTrapdoorActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridWallLockActor.h"
 
@@ -532,6 +533,39 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Pit should hide the standard cell floor."));
 			}
+			if (MovingMesh || MovingMaterial)
+			{
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+					TEXT("Pit no longer supports the legacy single MovingMesh/MovingMaterial cover. Use Left Leaf Mesh and Right Leaf Mesh."));
+			}
+			const bool bHasLeftLeaf = PitLeftLeafMesh != nullptr;
+			const bool bHasRightLeaf = PitRightLeafMesh != nullptr;
+			if (bHasLeftLeaf != bHasRightLeaf)
+			{
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+					TEXT("Pit trapdoor cover is incomplete: both Left Leaf Mesh and Right Leaf Mesh are required."));
+			}
+			if (!bHasLeftLeaf && !bHasRightLeaf && !DefaultBehavior.Pit.bInitiallyOpen)
+			{
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning,
+					TEXT("Pit has no dual-leaf cover, so it is a static open hole regardless of Initially Open=false."));
+			}
+			if (HasCompletePitTrapdoorCover() && RuntimeActorClass && !RuntimeActorClass->IsChildOf(AGridPitTrapdoorActor::StaticClass()))
+			{
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+					TEXT("A dual-leaf Pit trapdoor requires GridPitTrapdoorActor (or a derived Blueprint) as Runtime Actor Class."));
+			}
+			if (!FMath::IsFinite(DefaultBehavior.PitAnimation.OpenAngleDegrees) ||
+				DefaultBehavior.PitAnimation.OpenAngleDegrees < 0.0f || DefaultBehavior.PitAnimation.OpenAngleDegrees > 120.0f)
+			{
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+					TEXT("Pit Open Angle must be finite and between 0 and 120 degrees."));
+			}
+			if (DefaultBehavior.PitAnimation.LeftHingeLocation.ContainsNaN() || DefaultBehavior.PitAnimation.RightHingeLocation.ContainsNaN())
+			{
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+					TEXT("Pit hinge locations must contain finite coordinates."));
+			}
 			break;
 		}
 
@@ -810,7 +844,6 @@ bool UGridObjectArchetypeAsset::RequiresRuntimeActorClass() const
 		case EGridLevelObjectType::PressurePlate:
 		case EGridLevelObjectType::Teleporter:
 		case EGridLevelObjectType::Receptacle:
-		case EGridLevelObjectType::Pit:
 			return true;
 
 		default:

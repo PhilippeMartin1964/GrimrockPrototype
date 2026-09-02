@@ -1,18 +1,32 @@
 #include "Runtime/GridPitTrapdoorActor.h"
 
 #include "Components/AudioComponent.h"
+#include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 
 AGridPitTrapdoorActor::AGridPitTrapdoorActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	SetActorTickEnabled(false);
+
+	LeftHingeComponent = CreateDefaultSubobject<USceneComponent>(TEXT("LeftTrapdoorHinge"));
+	LeftHingeComponent->SetupAttachment(SceneRoot);
+
+	RightHingeComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RightTrapdoorHinge"));
+	RightHingeComponent->SetupAttachment(SceneRoot);
+
+	LeftLeafMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LeftTrapdoorLeaf"));
+	LeftLeafMeshComponent->SetupAttachment(LeftHingeComponent);
+	LeftLeafMeshComponent->SetMobility(EComponentMobility::Movable);
+
+	RightLeafMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("RightTrapdoorLeaf"));
+	RightLeafMeshComponent->SetupAttachment(RightHingeComponent);
+	RightLeafMeshComponent->SetMobility(EComponentMobility::Movable);
 }
 
 void AGridPitTrapdoorActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-
 	if (bIsAnimating)
 	{
 		UpdateAnimation(DeltaSeconds);
@@ -35,16 +49,34 @@ void AGridPitTrapdoorActor::InitializeMechanismVisuals(
 	Edge = ObjectData.Edge;
 	SetActorTransform(WorldTransform);
 
-	OpenRelativeRotation = ObjectData.Behavior.PitAnimation.OpenRelativeRotation;
+	LeftHingeLocation = ObjectData.Behavior.PitAnimation.LeftHingeLocation;
+	RightHingeLocation = ObjectData.Behavior.PitAnimation.RightHingeLocation;
+	OpenAngleDegrees = FMath::Clamp(ObjectData.Behavior.PitAnimation.OpenAngleDegrees, 0.0f, 120.0f);
 	MoveDuration = FMath::Max(0.0f, ObjectData.Behavior.PitAnimation.MoveDuration);
-	ClosedRelativeRotation = FRotator::ZeroRotator;
+
+	// PIT03.2 explicitly retires the inherited single MovingMesh path.
+	SetMovingMesh(nullptr, nullptr);
+	if (MovingMeshComponent)
+	{
+		MovingMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		MovingMeshComponent->SetVisibility(false, true);
+	}
 
 	if (Archetype)
 	{
 		SetFixedMesh(Archetype->FixedMesh ? Archetype->FixedMesh.Get() : Archetype->PreviewMesh.Get(),
 			Archetype->FixedMaterial ? Archetype->FixedMaterial.Get() : Archetype->PreviewMaterial.Get());
 
-		SetMovingMesh(Archetype->MovingMesh.Get(), Archetype->MovingMaterial.Get());
+		LeftLeafMeshComponent->SetStaticMesh(Archetype->PitLeftLeafMesh.Get());
+		RightLeafMeshComponent->SetStaticMesh(Archetype->PitRightLeafMesh.Get());
+		if (Archetype->PitLeftLeafMaterial)
+		{
+			LeftLeafMeshComponent->SetMaterial(0, Archetype->PitLeftLeafMaterial.Get());
+		}
+		if (Archetype->PitRightLeafMaterial)
+		{
+			RightLeafMeshComponent->SetMaterial(0, Archetype->PitRightLeafMaterial.Get());
+		}
 	}
 
 	if (FixedMeshComponent)
@@ -52,7 +84,19 @@ void AGridPitTrapdoorActor::InitializeMechanismVisuals(
 		FixedMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
-	bIsOpen = ObjectData.Behavior.Pit.bInitiallyOpen;
+	ConfigureLeafGeometry();
+
+	const bool bHasCover = HasCompleteTrapdoorCover();
+	if (LeftLeafMeshComponent)
+	{
+		LeftLeafMeshComponent->SetVisibility(bHasCover, true);
+	}
+	if (RightLeafMeshComponent)
+	{
+		RightLeafMeshComponent->SetVisibility(bHasCover, true);
+	}
+
+	bIsOpen = bHasCover ? ObjectData.Behavior.Pit.bInitiallyOpen : true;
 	bTargetOpen = bIsOpen;
 	bIsAnimating = false;
 	CurrentOpenAlpha = bIsOpen ? 1.0f : 0.0f;
@@ -62,8 +106,18 @@ void AGridPitTrapdoorActor::InitializeMechanismVisuals(
 	CurrentMoveDuration = 0.0f;
 
 	ApplyOpenAlpha(CurrentOpenAlpha);
-	RefreshMovingMeshCollision();
+	RefreshTrapdoorCollision();
 	RefreshTickEnabled();
+
+	const bool bHasOnlyOneLeaf =
+		(LeftLeafMeshComponent && LeftLeafMeshComponent->GetStaticMesh() != nullptr) !=
+		(RightLeafMeshComponent && RightLeafMeshComponent->GetStaticMesh() != nullptr);
+	if (bHasOnlyOneLeaf)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("GridPit dual-leaf cover incomplete ObjectId=%s Cell=(%d,%d): both Left Leaf Mesh and Right Leaf Mesh are required; Pit stays Open."),
+			*ObjectId.ToString(), CellX, CellY);
+	}
 }
 
 void AGridPitTrapdoorActor::InitializeGridObject(
@@ -71,23 +125,82 @@ void AGridPitTrapdoorActor::InitializeGridObject(
 {
 	(void)Mesh;
 	(void)Material;
-	// Avoid duplicating the open-pit PreviewMesh on the inherited generic MeshComponent.
 	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, nullptr, WorldTransform);
+}
+
+bool AGridPitTrapdoorActor::HasCompleteTrapdoorCover() const
+{
+	return LeftLeafMeshComponent && RightLeafMeshComponent &&
+		LeftLeafMeshComponent->GetStaticMesh() != nullptr && RightLeafMeshComponent->GetStaticMesh() != nullptr;
+}
+
+float AGridPitTrapdoorActor::GetLeftLeafPitch() const
+{
+	return LeftHingeComponent ? LeftHingeComponent->GetRelativeRotation().Pitch : 0.0f;
+}
+
+float AGridPitTrapdoorActor::GetRightLeafPitch() const
+{
+	return RightHingeComponent ? RightHingeComponent->GetRelativeRotation().Pitch : 0.0f;
+}
+
+FVector AGridPitTrapdoorActor::GetLeftHingeLocation() const
+{
+	return LeftHingeComponent ? LeftHingeComponent->GetRelativeLocation() : FVector::ZeroVector;
+}
+
+FVector AGridPitTrapdoorActor::GetRightHingeLocation() const
+{
+	return RightHingeComponent ? RightHingeComponent->GetRelativeLocation() : FVector::ZeroVector;
+}
+
+void AGridPitTrapdoorActor::ConfigureLeafGeometry()
+{
+	if (LeftHingeComponent)
+	{
+		LeftHingeComponent->SetRelativeLocation(LeftHingeLocation);
+	}
+	if (RightHingeComponent)
+	{
+		RightHingeComponent->SetRelativeLocation(RightHingeLocation);
+	}
+
+	// Leaf meshes are authored around their own geometric centre. Each hinge owns
+	// one leaf and offsets its centre halfway from the hinge to the pit centre X=0.
+	if (LeftLeafMeshComponent)
+	{
+		LeftLeafMeshComponent->SetRelativeLocation(FVector(-0.5f * LeftHingeLocation.X, 0.0f, 0.0f));
+		LeftLeafMeshComponent->SetRelativeRotation(FRotator::ZeroRotator);
+		LeftLeafMeshComponent->SetVisibility(LeftLeafMeshComponent->GetStaticMesh() != nullptr, true);
+	}
+	if (RightLeafMeshComponent)
+	{
+		RightLeafMeshComponent->SetRelativeLocation(FVector(-0.5f * RightHingeLocation.X, 0.0f, 0.0f));
+		RightLeafMeshComponent->SetRelativeRotation(FRotator::ZeroRotator);
+		RightLeafMeshComponent->SetVisibility(RightLeafMeshComponent->GetStaticMesh() != nullptr, true);
+	}
 }
 
 void AGridPitTrapdoorActor::SetPitOpenVisualState(bool bOpen, bool bPlayAudio)
 {
-	const bool bHasCoverMesh = MovingMeshComponent && MovingMeshComponent->GetStaticMesh() != nullptr;
+	if (!HasCompleteTrapdoorCover())
+	{
+		const bool bWasOpen = bIsOpen;
+		SnapPitOpenState(true);
+		if (bWasOpen != bIsOpen)
+		{
+			OnPitAnimationFinished.Broadcast(ObjectId, bWasOpen, bIsOpen);
+		}
+		return;
+	}
 
-	// Repeating the active target is a no-op.
 	if (bTargetOpen == bOpen && (bIsAnimating || bIsOpen == bOpen))
 	{
 		return;
 	}
 
 	bTargetOpen = bOpen;
-
-	if (!bHasCoverMesh || MoveDuration <= KINDA_SMALL_NUMBER)
+	if (MoveDuration <= KINDA_SMALL_NUMBER)
 	{
 		const bool bWasOpen = bIsOpen;
 		SnapPitOpenState(bOpen);
@@ -106,17 +219,13 @@ void AGridPitTrapdoorActor::SetPitOpenVisualState(bool bOpen, bool bPlayAudio)
 		bIsOpen = bOpen;
 		CurrentOpenAlpha = DesiredAlpha;
 		ApplyOpenAlpha(CurrentOpenAlpha);
-		RefreshMovingMeshCollision();
+		RefreshTrapdoorCollision();
 		RefreshTickEnabled();
-		// Even when gameplay returns to the already-settled endpoint (for example
-		// Open -> Close -> Open before the first Tick), the runtime must clear the
-		// pending command associated with the cancelled direction.
 		OnPitAnimationFinished.Broadcast(ObjectId, bWasOpen, bIsOpen);
 		return;
 	}
 
 	StopPitMotionSound();
-
 	MoveStartAlpha = CurrentOpenAlpha;
 	MoveTargetAlpha = DesiredAlpha;
 	MoveElapsed = 0.0f;
@@ -125,19 +234,23 @@ void AGridPitTrapdoorActor::SetPitOpenVisualState(bool bOpen, bool bPlayAudio)
 
 	const float AudioStartTime = bOpen ? CurrentOpenAlpha * MoveDuration : (1.0f - CurrentOpenAlpha) * MoveDuration;
 	StartPitMotionSound(bOpen, AudioStartTime, bPlayAudio);
-
-	// Gameplay collision follows the last settled state until the new endpoint is reached.
-	RefreshMovingMeshCollision();
+	RefreshTrapdoorCollision();
 	RefreshTickEnabled();
 
 	UE_LOG(LogTemp, Log,
-		TEXT("GridPit animation start ObjectId=%s Cell=(%d,%d) Direction=%s StartAlpha=%.3f TargetAlpha=%.3f FullDuration=%.3f EffectiveDuration=%.3f"),
-		*ObjectId.ToString(), CellX, CellY, bOpen ? TEXT("Open") : TEXT("Close"), MoveStartAlpha, MoveTargetAlpha, MoveDuration, CurrentMoveDuration);
+		TEXT("GridPit dual-leaf animation start ObjectId=%s Cell=(%d,%d) Direction=%s StartAlpha=%.3f TargetAlpha=%.3f Angle=%.1f Duration=%.3f EffectiveDuration=%.3f"),
+		*ObjectId.ToString(), CellX, CellY, bOpen ? TEXT("Open") : TEXT("Close"), MoveStartAlpha, MoveTargetAlpha,
+		OpenAngleDegrees, MoveDuration, CurrentMoveDuration);
 }
 
 void AGridPitTrapdoorActor::SnapPitOpenState(bool bOpen)
 {
 	StopPitMotionSound();
+
+	if (!HasCompleteTrapdoorCover())
+	{
+		bOpen = true;
+	}
 
 	bIsOpen = bOpen;
 	bTargetOpen = bOpen;
@@ -149,26 +262,22 @@ void AGridPitTrapdoorActor::SnapPitOpenState(bool bOpen)
 	CurrentMoveDuration = 0.0f;
 
 	ApplyOpenAlpha(CurrentOpenAlpha);
-	RefreshMovingMeshCollision();
+	RefreshTrapdoorCollision();
 	RefreshTickEnabled();
 }
 
 void AGridPitTrapdoorActor::UpdateAnimation(float DeltaSeconds)
 {
-	if (!MovingMeshComponent)
+	if (!HasCompleteTrapdoorCover())
 	{
 		const bool bWasOpen = bIsOpen;
-		SnapPitOpenState(bTargetOpen);
+		SnapPitOpenState(true);
 		OnPitAnimationFinished.Broadcast(ObjectId, bWasOpen, bIsOpen);
 		return;
 	}
 
 	const float SafeDuration = FMath::Max(0.01f, CurrentMoveDuration);
 	MoveElapsed += FMath::Max(0.0f, DeltaSeconds);
-
-	// Treat the exact scheduled duration as an endpoint even when float math
-	// produces a value a few ulps below SafeDuration (common after reversals,
-	// where CurrentMoveDuration is itself computed from an interpolated alpha).
 	const bool bReachedEndpoint = MoveElapsed + KINDA_SMALL_NUMBER >= SafeDuration;
 	const float Alpha = bReachedEndpoint ? 1.0f : FMath::Clamp(MoveElapsed / SafeDuration, 0.0f, 1.0f);
 	CurrentOpenAlpha = FMath::Lerp(MoveStartAlpha, MoveTargetAlpha, Alpha);
@@ -187,40 +296,44 @@ void AGridPitTrapdoorActor::UpdateAnimation(float DeltaSeconds)
 	CurrentMoveDuration = 0.0f;
 
 	ApplyOpenAlpha(CurrentOpenAlpha);
-	RefreshMovingMeshCollision();
+	RefreshTrapdoorCollision();
 	RefreshTickEnabled();
 
-	UE_LOG(LogTemp, Log, TEXT("GridPit animation complete ObjectId=%s Cell=(%d,%d) State=%s"), *ObjectId.ToString(), CellX, CellY,
-		bIsOpen ? TEXT("Open") : TEXT("Closed"));
+	UE_LOG(LogTemp, Log, TEXT("GridPit dual-leaf animation complete ObjectId=%s Cell=(%d,%d) State=%s"),
+		*ObjectId.ToString(), CellX, CellY, bIsOpen ? TEXT("Open") : TEXT("Closed"));
 
-	// Always notify endpoint completion. A reversal may return to the original
-	// settled gameplay state; the runtime still needs to clear its pending command.
 	OnPitAnimationFinished.Broadcast(ObjectId, bWasOpen, bIsOpen);
 }
 
 void AGridPitTrapdoorActor::ApplyOpenAlpha(float Alpha)
 {
-	if (!MovingMeshComponent)
-	{
-		return;
-	}
-
 	const float ClampedAlpha = FMath::Clamp(Alpha, 0.0f, 1.0f);
-	const FQuat ClosedQuat = ClosedRelativeRotation.Quaternion();
-	const FQuat OpenQuat = OpenRelativeRotation.Quaternion();
-	MovingMeshComponent->SetRelativeRotation(FQuat::Slerp(ClosedQuat, OpenQuat, ClampedAlpha).Rotator());
-	MovingMeshComponent->SetVisibility(MovingMeshComponent->GetStaticMesh() != nullptr, true);
+	const float Angle = OpenAngleDegrees * ClampedAlpha;
+
+	// Local Y is the hinge axis. The left/right signs are opposite so both
+	// centre-facing leaf edges fold downward into the pit.
+	if (LeftHingeComponent)
+	{
+		LeftHingeComponent->SetRelativeRotation(FRotator(-Angle, 0.0f, 0.0f));
+	}
+	if (RightHingeComponent)
+	{
+		RightHingeComponent->SetRelativeRotation(FRotator(Angle, 0.0f, 0.0f));
+	}
 }
 
-void AGridPitTrapdoorActor::RefreshMovingMeshCollision()
+void AGridPitTrapdoorActor::RefreshTrapdoorCollision()
 {
-	if (!MovingMeshComponent)
+	const bool bEnableCollision = !bIsOpen && HasCompleteTrapdoorCover();
+	const ECollisionEnabled::Type CollisionMode = bEnableCollision ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision;
+	if (LeftLeafMeshComponent)
 	{
-		return;
+		LeftLeafMeshComponent->SetCollisionEnabled(CollisionMode);
 	}
-
-	const bool bHasCoverMesh = MovingMeshComponent->GetStaticMesh() != nullptr;
-	MovingMeshComponent->SetCollisionEnabled(!bIsOpen && bHasCoverMesh ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
+	if (RightLeafMeshComponent)
+	{
+		RightLeafMeshComponent->SetCollisionEnabled(CollisionMode);
+	}
 }
 
 void AGridPitTrapdoorActor::RefreshTickEnabled()

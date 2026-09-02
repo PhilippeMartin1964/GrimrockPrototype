@@ -1251,10 +1251,10 @@ bool AGridLevelRuntimeActor::IsPitOpenForLevel(FName LevelId, const FGridLevelOb
 	}
 
 	// A Pit with no trapdoor cover is physically an open hole. It cannot be
-	// gameplay-Closed because there is no MovingMesh covering the cell.
+	// gameplay-Closed unless both dedicated trapdoor leaf meshes cover the cell.
 	if (const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(PitObject.ArchetypeId))
 	{
-		if (!Archetype->MovingMesh)
+		if (!Archetype->HasCompletePitTrapdoorCover())
 		{
 			return true;
 		}
@@ -1286,7 +1286,7 @@ bool AGridLevelRuntimeActor::IsPitOpen(FGuid PitObjectId) const
 
 	if (const AGridPitTrapdoorActor* PitActor = FindRuntimeObjectActor<AGridPitTrapdoorActor>(PitObjectId))
 	{
-		// PIT03.1: active-level gameplay follows the last physically settled endpoint,
+		// PIT03.2: active-level gameplay follows the last physically settled dual-leaf endpoint,
 		// not the persisted target while the cover is still moving.
 		return PitActor->IsPitOpenVisualState();
 	}
@@ -1317,10 +1317,10 @@ bool AGridLevelRuntimeActor::SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmi
 	}
 
 	const UGridObjectArchetypeAsset* PitArchetype = FindObjectArchetype(PitObject->ArchetypeId);
-	if (!bOpen && PitArchetype && !PitArchetype->MovingMesh)
+	if (!bOpen && PitArchetype && !PitArchetype->HasCompletePitTrapdoorCover())
 	{
 		UE_LOG(LogTemp, Warning,
-			TEXT("GridPit Close ignored ObjectId=%s Cell=(%d,%d): archetype %s has no MovingMesh cover; static Pit remains Open."),
+			TEXT("GridPit Close ignored ObjectId=%s Cell=(%d,%d): archetype %s does not define both trapdoor leaves; static Pit remains Open."),
 			*PitObjectId.ToString(), PitObject->CellX, PitObject->CellY, *PitObject->ArchetypeId.ToString());
 		return false;
 	}

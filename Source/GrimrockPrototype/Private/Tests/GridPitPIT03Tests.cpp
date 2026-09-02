@@ -4,6 +4,8 @@
 
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridObjectArchetypeAsset.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridActivationComponent.h"
@@ -159,9 +161,18 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	ChainPitB.Command = EGridObjectCommand::Open;
 	Upper->Links = { OpenPitA, ChainPitB };
 
+	UGridObjectArchetypeAsset* PitArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
+	PitArchetype->ArchetypeId = TEXT("Pit_Stone_01");
+	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
+	PitArchetype->PlacementKind = EGridObjectPlacementKind::Floor;
+	PitArchetype->PitLeftLeafMesh = NewObject<UStaticMesh>(Runtime);
+	PitArchetype->PitRightLeafMesh = NewObject<UStaticMesh>(Runtime);
+	PitArchetype->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
+
 	Runtime->DungeonAsset = Dungeon;
 	Runtime->CurrentDungeonLevelId = UpperId;
 	Runtime->LevelAsset = Upper;
+	Runtime->ObjectArchetypes.Add(PitArchetype);
 	Party->SetGridStart(Runtime, 1, 1, EGridEdge::North);
 
 	UGridActivationComponent* Activation = Runtime->FindComponentByClass<UGridActivationComponent>();
@@ -244,10 +255,26 @@ bool FGridPIT03PresentationActorTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	Actor->SetPitOpenVisualState(false, false);
-	TestFalse(TEXT("Presentation actor accepts Closed state"), Actor->IsPitOpenVisualState());
+	FGridLevelObjectData Pit = MakeControlledPit(1, 1, TEXT("Lower"), false);
+	Pit.Behavior.PitAnimation.LeftHingeLocation = FVector(-85.0f, 0.0f, -5.0f);
+	Pit.Behavior.PitAnimation.RightHingeLocation = FVector(85.0f, 0.0f, -5.0f);
+	Pit.Behavior.PitAnimation.OpenAngleDegrees = 80.0f;
+	Pit.Behavior.PitAnimation.MoveDuration = 0.0f;
+
+	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(Actor);
+	Archetype->SupportedType = EGridLevelObjectType::Pit;
+	Archetype->PitLeftLeafMesh = NewObject<UStaticMesh>(Actor);
+	Archetype->PitRightLeafMesh = NewObject<UStaticMesh>(Actor);
+
+	Actor->InitializeMechanismVisuals(Pit, Archetype, FTransform::Identity);
+	Actor->InitializeGridObject(Pit, nullptr, nullptr, FTransform::Identity);
+
+	TestTrue(TEXT("Presentation actor requires and sees both leaves"), Actor->HasCompleteTrapdoorCover());
+	TestFalse(TEXT("Presentation actor starts Closed"), Actor->IsPitOpenVisualState());
 	Actor->SetPitOpenVisualState(true, false);
 	TestTrue(TEXT("Presentation actor accepts Open state"), Actor->IsPitOpenVisualState());
+	TestTrue(TEXT("Left leaf reaches -80 degrees"), FMath::IsNearlyEqual(Actor->GetLeftLeafPitch(), -80.0f, 0.1f));
+	TestTrue(TEXT("Right leaf reaches +80 degrees"), FMath::IsNearlyEqual(Actor->GetRightLeafPitch(), 80.0f, 0.1f));
 	return true;
 }
 

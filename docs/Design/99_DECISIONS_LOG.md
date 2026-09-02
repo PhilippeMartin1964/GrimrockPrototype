@@ -951,7 +951,7 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 
 ---
 
-## 2026-09-01 — PIT03.1 : Trapdoor Opening / Closing Animation
+## 2026-09-01 — PIT03.1 : Trapdoor Opening / Closing Animation [SUPERSEDED par PIT03.2]
 
 ### Décisions validées
 
@@ -991,8 +991,8 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 ### Décisions validées
 
 - À la fin d'une translation, la détection d'une Pit ouverte est exécutée avant les triggers, plaques, TurnManager et transitions ordinaires.
-- Une Pit sans `Moving Mesh` est une fosse statique physiquement ouverte, même si d'anciennes données d'instance portent un état Closed incohérent.
-- Une commande `Close` est rejetée sur une Pit sans couvercle.
+- Une Pit sans paire complète `Left Leaf Mesh` + `Right Leaf Mesh` est une fosse statique physiquement ouverte.
+- Une commande `Close` est rejetée sur une Pit sans paire complète de volets.
 - Le runtime reconnaît une Pit par `Type=Pit` ou par un archetype dont `SupportedType=Pit`.
 - Un GUID d'objet invalide n'empêche plus une fosse statique de fonctionner.
 - Le flag générique `bInitiallyEnabled` ne neutralise plus la physique d'une fosse Open.
@@ -1025,3 +1025,23 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Si `Use Same Cell Coordinates = False`, `Target Cell X/Y` redeviennent éditables.
 - `Target Level Id` et `Target Facing` restent configurables pour une Pit.
 - `Require Use Action` est désactivé pour une Pit car il n'a aucune sémantique runtime.
+
+
+---
+
+## 2026-09-02 — PIT03.2 : trappe à deux volets
+
+### Décisions validées
+
+- Le modèle Pit à un seul Moving Mesh est supprimé.
+- Une trappe contrôlée utilise exactement deux volets indépendants.
+- Charnière gauche par défaut : (-85, 0, -5) cm.
+- Charnière droite par défaut : (+85, 0, -5) cm.
+- L'axe de charnière est Y local ; l'animation est donc portée par Pitch.
+- Le volet gauche ouvre à -80° et le volet droit à +80° par défaut.
+- Les meshes de volets sont des champs dédiés de l'archetype : PitLeftLeafMesh et PitRightLeafMesh.
+- Les meshes peuvent être authored autour de leur centre géométrique ; le runtime crée et positionne les pivots.
+- Un seul volet configuré est invalide.
+- Sans deux volets, la Pit est une fosse statique toujours ouverte.
+- MovingMesh/MovingMaterial sont désormais invalides pour SupportedType=Pit.
+- Les reversals, événements Opened/Closed et changement gameplay à l'endpoint restent inchangés.

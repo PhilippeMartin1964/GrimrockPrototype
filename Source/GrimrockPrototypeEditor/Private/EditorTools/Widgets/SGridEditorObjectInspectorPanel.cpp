@@ -574,8 +574,18 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection(c
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Fixed Mesh")), GetObjectNameText(Archetype->FixedMesh.Get()))];
 
-		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			FText::FromString(TEXT("Moving Mesh")), GetObjectNameText(Archetype->MovingMesh.Get()))];
+		if (Obj.Type == EGridLevelObjectType::Pit)
+		{
+			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+				FText::FromString(TEXT("Left Leaf Mesh")), GetObjectNameText(Archetype->PitLeftLeafMesh.Get()))];
+			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+				FText::FromString(TEXT("Right Leaf Mesh")), GetObjectNameText(Archetype->PitRightLeafMesh.Get()))];
+		}
+		else
+		{
+			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+				FText::FromString(TEXT("Moving Mesh")), GetObjectNameText(Archetype->MovingMesh.Get()))];
+		}
 	}
 
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Advanced / Debug")), Root);
@@ -1169,61 +1179,48 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPitDetailsSection(cons
 
 		+ SVerticalBox::Slot().AutoHeight()
 		[
-			BuildFloatBehaviorRow(
-				FText::FromString(TEXT("Open Pitch")),
-				Obj.Behavior.PitAnimation.OpenRelativeRotation.Pitch,
-				-180.0f,
-				180.0f,
-				[](FGridObjectBehaviorParams& Behavior, float NewValue)
-				{
-					Behavior.PitAnimation.OpenRelativeRotation.Pitch = NewValue;
-				})
+			GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+				FText::FromString(TEXT("Trapdoor Layout")),
+				FText::FromString(TEXT("Dual Leaf / Hinge Axis Y")))
 		]
 
-		+ SVerticalBox::Slot().AutoHeight()
-		[
-			BuildFloatBehaviorRow(
-				FText::FromString(TEXT("Open Yaw")),
-				Obj.Behavior.PitAnimation.OpenRelativeRotation.Yaw,
-				-180.0f,
-				180.0f,
-				[](FGridObjectBehaviorParams& Behavior, float NewValue)
-				{
-					Behavior.PitAnimation.OpenRelativeRotation.Yaw = NewValue;
-				})
-		]
+		+ SVerticalBox::Slot().AutoHeight()[BuildFloatBehaviorRow(
+			FText::FromString(TEXT("Left Hinge X")), Obj.Behavior.PitAnimation.LeftHingeLocation.X, -200.f, 200.f,
+			[](FGridObjectBehaviorParams& B, float V){ B.PitAnimation.LeftHingeLocation.X = V; })]
 
-		+ SVerticalBox::Slot().AutoHeight()
-		[
-			BuildFloatBehaviorRow(
-				FText::FromString(TEXT("Open Roll")),
-				Obj.Behavior.PitAnimation.OpenRelativeRotation.Roll,
-				-180.0f,
-				180.0f,
-				[](FGridObjectBehaviorParams& Behavior, float NewValue)
-				{
-					Behavior.PitAnimation.OpenRelativeRotation.Roll = NewValue;
-				})
-		]
+		+ SVerticalBox::Slot().AutoHeight()[BuildFloatBehaviorRow(
+			FText::FromString(TEXT("Left Hinge Y")), Obj.Behavior.PitAnimation.LeftHingeLocation.Y, -200.f, 200.f,
+			[](FGridObjectBehaviorParams& B, float V){ B.PitAnimation.LeftHingeLocation.Y = V; })]
 
-		+ SVerticalBox::Slot().AutoHeight()
-		[
-			BuildFloatBehaviorRow(
-				FText::FromString(TEXT("Move Duration")),
-				Obj.Behavior.PitAnimation.MoveDuration,
-				0.0f,
-				10.0f,
-				[](FGridObjectBehaviorParams& Behavior, float NewValue)
-				{
-					Behavior.PitAnimation.MoveDuration = FMath::Max(0.0f, NewValue);
-				})
-		]
+		+ SVerticalBox::Slot().AutoHeight()[BuildFloatBehaviorRow(
+			FText::FromString(TEXT("Left Hinge Z")), Obj.Behavior.PitAnimation.LeftHingeLocation.Z, -200.f, 200.f,
+			[](FGridObjectBehaviorParams& B, float V){ B.PitAnimation.LeftHingeLocation.Z = V; })]
+
+		+ SVerticalBox::Slot().AutoHeight()[BuildFloatBehaviorRow(
+			FText::FromString(TEXT("Right Hinge X")), Obj.Behavior.PitAnimation.RightHingeLocation.X, -200.f, 200.f,
+			[](FGridObjectBehaviorParams& B, float V){ B.PitAnimation.RightHingeLocation.X = V; })]
+
+		+ SVerticalBox::Slot().AutoHeight()[BuildFloatBehaviorRow(
+			FText::FromString(TEXT("Right Hinge Y")), Obj.Behavior.PitAnimation.RightHingeLocation.Y, -200.f, 200.f,
+			[](FGridObjectBehaviorParams& B, float V){ B.PitAnimation.RightHingeLocation.Y = V; })]
+
+		+ SVerticalBox::Slot().AutoHeight()[BuildFloatBehaviorRow(
+			FText::FromString(TEXT("Right Hinge Z")), Obj.Behavior.PitAnimation.RightHingeLocation.Z, -200.f, 200.f,
+			[](FGridObjectBehaviorParams& B, float V){ B.PitAnimation.RightHingeLocation.Z = V; })]
+
+		+ SVerticalBox::Slot().AutoHeight()[BuildFloatBehaviorRow(
+			FText::FromString(TEXT("Open Angle")), Obj.Behavior.PitAnimation.OpenAngleDegrees, 0.f, 120.f,
+			[](FGridObjectBehaviorParams& B, float V){ B.PitAnimation.OpenAngleDegrees = FMath::Clamp(V, 0.f, 120.f); })]
+
+		+ SVerticalBox::Slot().AutoHeight()[BuildFloatBehaviorRow(
+			FText::FromString(TEXT("Move Duration")), Obj.Behavior.PitAnimation.MoveDuration, 0.f, 10.f,
+			[](FGridObjectBehaviorParams& B, float V){ B.PitAnimation.MoveDuration = FMath::Max(0.f, V); })]
 
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
 		[
 			SNew(STextBlock)
 				.Text(FText::FromString(TEXT(
-					"PIT03.1 animates the optional Moving Mesh around its authored pivot. Gameplay becomes Open only when opening reaches its endpoint; reversals resume from the current angle.")))
+					"PIT03.2 uses two independent leaves. Left opens at -Open Angle and Right at +Open Angle around local Y. Default hinges: (-85,0,-5) and (+85,0,-5). Both leaf meshes are required for a closable trapdoor.")))
 				.AutoWrapText(true)
 				.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))
 		]);

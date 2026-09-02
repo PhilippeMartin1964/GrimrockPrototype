@@ -78,12 +78,20 @@ struct FGridPitAnimationParams
 {
 	GENERATED_BODY()
 
+	/** Local-space hinge of the left leaf. Rotation axis is local Y (Pitch). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit|Animation", meta = (DisplayName = "Left Hinge Location"))
+	FVector LeftHingeLocation = FVector(-85.0f, 0.0f, -5.0f);
+
+	/** Local-space hinge of the right leaf. Rotation axis is local Y (Pitch). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit|Animation", meta = (DisplayName = "Right Hinge Location"))
+	FVector RightHingeLocation = FVector(85.0f, 0.0f, -5.0f);
+
 	/**
-	 * Relative rotation applied to the optional MovingMesh when fully open.
-	 * The mesh pivot must be authored on the intended hinge axis.
+	 * Absolute opening angle for both leaves.
+	 * Left leaf uses -Angle, right leaf uses +Angle so both fold downward toward the pit.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit|Animation", meta = (DisplayName = "Open Relative Rotation"))
-	FRotator OpenRelativeRotation = FRotator(-90.0f, 0.0f, 0.0f);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit|Animation", meta = (DisplayName = "Open Angle", ClampMin = "0.0", ClampMax = "120.0"))
+	float OpenAngleDegrees = 80.0f;
 
 	/** Full Closed -> Open travel time. Reversals scale duration by the remaining fraction. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit|Animation", meta = (DisplayName = "Move Duration", ClampMin = "0.0"))

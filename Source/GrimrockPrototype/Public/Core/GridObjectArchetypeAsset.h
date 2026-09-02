@@ -203,7 +203,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
 		meta = (DisplayName = "Moving Mesh",
-			ToolTip = "Moving Mesh - animated or movable part of a composite object, such as doors, buttons, levers or receptacles with visible item parts."))
+			EditCondition = "SupportedType != EGridLevelObjectType::Pit", EditConditionHides,
+			ToolTip = "Moving Mesh - animated or movable part of a composite object. Pit trapdoors use Left Leaf Mesh and Right Leaf Mesh instead."))
 	TObjectPtr<UStaticMesh> MovingMesh = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
@@ -211,8 +212,32 @@ public:
 	TObjectPtr<UMaterialInterface> FixedMaterial = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
-		meta = (DisplayName = "Moving Material", ToolTip = "Material for the moving/animated part of a composite object."))
+		meta = (DisplayName = "Moving Material",
+			EditCondition = "SupportedType != EGridLevelObjectType::Pit", EditConditionHides,
+			ToolTip = "Material for the generic moving/animated part. Pit trapdoors use per-leaf materials instead."))
 	TObjectPtr<UMaterialInterface> MovingMaterial = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Pit Trapdoor",
+		meta = (DisplayName = "Left Leaf Mesh",
+			EditCondition = "SupportedType == EGridLevelObjectType::Pit", EditConditionHides,
+			ToolTip = "Left trapdoor leaf. Model it centered; runtime positions it relative to the left hinge."))
+	TObjectPtr<UStaticMesh> PitLeftLeafMesh = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Pit Trapdoor",
+		meta = (DisplayName = "Right Leaf Mesh",
+			EditCondition = "SupportedType == EGridLevelObjectType::Pit", EditConditionHides,
+			ToolTip = "Right trapdoor leaf. Model it centered; runtime positions it relative to the right hinge."))
+	TObjectPtr<UStaticMesh> PitRightLeafMesh = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Pit Trapdoor",
+		meta = (DisplayName = "Left Leaf Material",
+			EditCondition = "SupportedType == EGridLevelObjectType::Pit", EditConditionHides))
+	TObjectPtr<UMaterialInterface> PitLeftLeafMaterial = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Pit Trapdoor",
+		meta = (DisplayName = "Right Leaf Material",
+			EditCondition = "SupportedType == EGridLevelObjectType::Pit", EditConditionHides))
+	TObjectPtr<UMaterialInterface> PitRightLeafMaterial = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime",
 		meta = (DisplayName = "Runtime Actor Class",
@@ -298,4 +323,9 @@ public:
 	bool UsesMovingMeshParams() const;
 	bool UsesFixedMeshParams() const;
 	bool UsesRuntimeActorClass() const;
+
+	bool HasCompletePitTrapdoorCover() const
+	{
+		return PitLeftLeafMesh != nullptr && PitRightLeafMesh != nullptr;
+	}
 };

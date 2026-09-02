@@ -80,7 +80,9 @@ namespace GridPIT031
 		Pit.bInitiallyEnabled = true;
 		Pit.Behavior.Pit.bInitiallyOpen = false;
 		Pit.Behavior.Pit.bUseSameCellCoordinates = true;
-		Pit.Behavior.PitAnimation.OpenRelativeRotation = FRotator(-90.0f, 0.0f, 0.0f);
+		Pit.Behavior.PitAnimation.LeftHingeLocation = FVector(-85.0f, 0.0f, -5.0f);
+		Pit.Behavior.PitAnimation.RightHingeLocation = FVector(85.0f, 0.0f, -5.0f);
+		Pit.Behavior.PitAnimation.OpenAngleDegrees = 80.0f;
 		Pit.Behavior.PitAnimation.MoveDuration = 1.0f;
 		Pit.Behavior.Transition.bIsTransition = true;
 		Pit.Behavior.Transition.TargetLevelId = TargetLevelId;
@@ -90,7 +92,7 @@ namespace GridPIT031
 	}
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPIT031AnimationRuntimeTest, "Grimrock.Pit.PIT03_1.AnimationRuntimeContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPIT031AnimationRuntimeTest, "Grimrock.Pit.PIT03_2.AnimationRuntimeContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
@@ -99,7 +101,7 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	using namespace GridPIT031;
 
 	FTestWorld TestWorld;
-	if (!TestNotNull(TEXT("PIT03.1 world exists"), TestWorld.World))
+	if (!TestNotNull(TEXT("PIT03.2 world exists"), TestWorld.World))
 	{
 		return false;
 	}
@@ -147,14 +149,16 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	Upper->Links = { OpenSecondPit };
 
 	UStaticMesh* PitMesh = NewObject<UStaticMesh>(Runtime);
-	UStaticMesh* CoverMesh = NewObject<UStaticMesh>(Runtime);
+	UStaticMesh* LeftLeafMesh = NewObject<UStaticMesh>(Runtime);
+	UStaticMesh* RightLeafMesh = NewObject<UStaticMesh>(Runtime);
 	UGridObjectArchetypeAsset* PitArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
 	PitArchetype->ArchetypeId = TEXT("Pit_Animated_Test");
 	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
 	PitArchetype->PlacementKind = EGridObjectPlacementKind::Floor;
 	PitArchetype->PreviewMesh = PitMesh;
 	PitArchetype->FixedMesh = PitMesh;
-	PitArchetype->MovingMesh = CoverMesh;
+	PitArchetype->PitLeftLeafMesh = LeftLeafMesh;
+	PitArchetype->PitRightLeafMesh = RightLeafMesh;
 	PitArchetype->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
 
 	Runtime->DungeonAsset = Dungeon;
@@ -178,6 +182,16 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
+
+	TestTrue(TEXT("Pit A has a complete dual-leaf cover"), PitAActor->HasCompleteTrapdoorCover());
+	TestEqual(TEXT("Left hinge uses requested local X"), PitAActor->GetLeftHingeLocation().X, -85.0f);
+	TestEqual(TEXT("Left hinge uses requested local Y"), PitAActor->GetLeftHingeLocation().Y, 0.0f);
+	TestEqual(TEXT("Left hinge uses requested local Z"), PitAActor->GetLeftHingeLocation().Z, -5.0f);
+	TestEqual(TEXT("Right hinge uses requested local X"), PitAActor->GetRightHingeLocation().X, 85.0f);
+	TestEqual(TEXT("Right hinge uses requested local Y"), PitAActor->GetRightHingeLocation().Y, 0.0f);
+	TestEqual(TEXT("Right hinge uses requested local Z"), PitAActor->GetRightHingeLocation().Z, -5.0f);
+	TestEqual(TEXT("Closed left leaf pitch is zero"), PitAActor->GetLeftLeafPitch(), 0.0f);
+	TestEqual(TEXT("Closed right leaf pitch is zero"), PitAActor->GetRightLeafPitch(), 0.0f);
 
 	TestFalse(TEXT("Pit A starts closed for gameplay"), Runtime->IsPitOpen(PitAId));
 	TestFalse(TEXT("Pit B starts closed for gameplay"), Runtime->IsPitOpen(PitBId));
@@ -205,6 +219,8 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 
 	PitAActor->Tick(0.40f);
 	TestTrue(TEXT("Pit A is partially open visually"), PitAActor->GetCurrentOpenAlpha() > 0.35f && PitAActor->GetCurrentOpenAlpha() < 0.45f);
+	TestTrue(TEXT("Left leaf rotates downward around Y during opening"), FMath::IsNearlyEqual(PitAActor->GetLeftLeafPitch(), -32.0f, 0.5f));
+	TestTrue(TEXT("Right leaf counter-rotates downward around Y during opening"), FMath::IsNearlyEqual(PitAActor->GetRightLeafPitch(), 32.0f, 0.5f));
 	TestFalse(TEXT("Partially opened Pit A is still closed for gameplay"), Runtime->IsPitOpen(PitAId));
 	TestFalse(TEXT("Opened connector is still delayed"), PitBActor->IsTargetOpen());
 
@@ -212,6 +228,8 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Pit A animation completed"), PitAActor->IsAnimating());
 	TestTrue(TEXT("Pit A is now open for gameplay"), Runtime->IsPitOpen(PitAId));
 	TestEqual(TEXT("Pit A reaches alpha 1"), PitAActor->GetCurrentOpenAlpha(), 1.0f);
+	TestTrue(TEXT("Left leaf reaches -80 degrees"), FMath::IsNearlyEqual(PitAActor->GetLeftLeafPitch(), -80.0f, 0.1f));
+	TestTrue(TEXT("Right leaf reaches +80 degrees"), FMath::IsNearlyEqual(PitAActor->GetRightLeafPitch(), 80.0f, 0.1f));
 	TestTrue(TEXT("Pit A Opened event starts Pit B opening"), PitBActor->IsTargetOpen());
 	TestTrue(TEXT("Pit B animation started from connector"), PitBActor->IsAnimating());
 	TestFalse(TEXT("Pit B is not gameplay-open before its own endpoint"), Runtime->IsPitOpen(PitBId));
@@ -245,7 +263,7 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPIT031NoCoverFallbackTest, "Grimrock.Pit.PIT03_1.NoCoverImmediateFallback",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPIT031NoCoverFallbackTest, "Grimrock.Pit.PIT03_2.NoCoverImmediateFallback",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridPIT031NoCoverFallbackTest::RunTest(const FString& Parameters)
@@ -270,6 +288,9 @@ bool FGridPIT031NoCoverFallbackTest::RunTest(const FString& Parameters)
 	Actor->InitializeMechanismVisuals(Pit, nullptr, FTransform::Identity);
 	Actor->InitializeGridObject(Pit, nullptr, nullptr, FTransform::Identity);
 
+	TestFalse(TEXT("No-cover Pit has no dual-leaf cover"), Actor->HasCompleteTrapdoorCover());
+	TestTrue(TEXT("No-cover Pit is forced Open immediately"), Actor->IsPitOpenVisualState());
+
 	int32 CompletionCount = 0;
 	Actor->OnPitAnimationFinished.AddLambda(
 		[&CompletionCount](FGuid ObjectId, bool bWasOpen, bool bIsOpen)
@@ -281,10 +302,10 @@ bool FGridPIT031NoCoverFallbackTest::RunTest(const FString& Parameters)
 			}
 		});
 
-	Actor->SetPitOpenVisualState(true, false);
-	TestFalse(TEXT("No-cover fallback does not animate"), Actor->IsAnimating());
-	TestTrue(TEXT("No-cover fallback settles Open immediately"), Actor->IsPitOpenVisualState());
-	TestEqual(TEXT("No-cover fallback emits one completion"), CompletionCount, 1);
+	Actor->SetPitOpenVisualState(false, false);
+	TestFalse(TEXT("No-cover static Pit does not animate"), Actor->IsAnimating());
+	TestTrue(TEXT("No-cover static Pit ignores Close and remains Open"), Actor->IsPitOpenVisualState());
+	TestEqual(TEXT("No-cover Close does not fabricate an Open completion"), CompletionCount, 0);
 	return true;
 }
 

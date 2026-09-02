@@ -164,14 +164,16 @@
 				Archetype.ArchetypeId = FName(TEXT("Pit_Stone_01"));
 				Archetype.DisplayName = FText::FromString(TEXT("Stone Pit"));
 				Archetype.SupportedType = EGridLevelObjectType::Pit;
-				Archetype.Description = FText::FromString(TEXT("Controlled inter-level pit with optional trapdoor cover."));
+				Archetype.Description = FText::FromString(TEXT("Controlled inter-level pit with optional dual-leaf trapdoor cover."));
 				Archetype.bDefaultInitiallyEnabled = true;
 				Archetype.bDefaultInitiallyActive = false;
 				Archetype.DefaultTag = NAME_None;
 				Archetype.DefaultBehavior = FGridObjectBehaviorParams();
 				Archetype.DefaultBehavior.Pit.bInitiallyOpen = true;
 				Archetype.DefaultBehavior.Pit.bUseSameCellCoordinates = true;
-				Archetype.DefaultBehavior.PitAnimation.OpenRelativeRotation = FRotator(-90.f, 0.f, 0.f);
+				Archetype.DefaultBehavior.PitAnimation.LeftHingeLocation = FVector(-85.f, 0.f, -5.f);
+				Archetype.DefaultBehavior.PitAnimation.RightHingeLocation = FVector(85.f, 0.f, -5.f);
+				Archetype.DefaultBehavior.PitAnimation.OpenAngleDegrees = 80.f;
 				Archetype.DefaultBehavior.PitAnimation.MoveDuration = 0.75f;
 				Archetype.DefaultBehavior.Transition.bIsTransition = true;
 				Archetype.DefaultBehavior.Transition.TargetLevelId = NAME_None;
@@ -194,7 +196,10 @@
 				Archetype.PreviewMaterial = nullptr;
 				Archetype.FixedMesh = Mesh;
 				Archetype.FixedMaterial = nullptr;
-				// Preserve optional user-authored MovingMesh/MovingMaterial as the closed trapdoor cover.
+				// PIT03.2 removes the old single-leaf MovingMesh contract entirely.
+				Archetype.MovingMesh = nullptr;
+				Archetype.MovingMaterial = nullptr;
+				// Preserve PitLeftLeafMesh/PitRightLeafMesh and their materials if already authored.
 				Archetype.RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
 				Archetype.ItemActorClass = nullptr;
 				Archetype.PlacementZOffset = 0.f;

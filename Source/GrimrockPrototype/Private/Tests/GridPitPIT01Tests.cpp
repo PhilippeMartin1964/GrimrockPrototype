@@ -190,7 +190,6 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	PitArchetype->ArchetypeId = TEXT("Pit_Stone_01");
 	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
 	PitArchetype->PlacementKind = EGridObjectPlacementKind::Floor;
-	PitArchetype->MovingMesh = nullptr;
 	Runtime->ObjectArchetypes.Add(PitArchetype);
 
 	Runtime->DungeonAsset = Dungeon;

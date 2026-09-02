@@ -1,29 +1,33 @@
 # PIT03 — Controlled Pit Trapdoor
 
-> **Évolution PIT03.1 (01.09.2026).** Lorsqu'un Moving Mesh est configuré, Open/Close sont désormais animés. Le gameplay ne change d'état qu'à l'endpoint de l'animation et les commandes opposées reprennent depuis la fraction courante. Sans Moving Mesh, le comportement PIT03 reste instantané.
+> **État actuel : PIT03.2 Dual-Leaf Trapdoor.** Le modèle mono-volet PIT03.1 est supprimé.
 
-
-Date : 01.09.2026
+Date initiale : 01.09.2026  
+Mise à jour : 02.09.2026
 
 ## Objectif
 
 PIT03 transforme la fosse PIT01/PIT02 en mécanisme contrôlable par les connecteurs existants.
 
-État runtime autoritaire :
+État runtime :
 
 ```text
 Closed
+  = les deux volets sont fermés
   = la cellule se comporte comme un plancher
   = le groupe ne tombe pas
-  = les World Items restent sur la cellule
+  = les World Items restent dessus
 
 Open
+  = les deux volets sont ouverts
   = la cellule se comporte comme une fosse
-  = le groupe tombe
-  = les World Items utilisent PIT02
+  = le groupe tombe via PIT01
+  = les World Items tombent via PIT02
 ```
 
-Aucun nouveau type de commande n'est introduit. Une Pit utilise le contrat standard :
+## Commandes
+
+Une Pit reçoit :
 
 - `Open`
 - `Close`
@@ -36,214 +40,138 @@ Elle émet :
 - `Opened`
 - `Closed`
 
-Exemple :
+## Présentation runtime
+
+`AGridPitTrapdoorActor` porte la présentation.
+
+Le modèle actuel est :
 
 ```text
-Lever.Activated
-    -> Pit.Open
-
-Lever.Deactivated
-    -> Pit.Close
+FixedMeshComponent
+LeftTrapdoorHinge
+  -> LeftTrapdoorLeaf
+RightTrapdoorHinge
+  -> RightTrapdoorLeaf
 ```
 
-ou :
+Le `MovingMeshComponent` générique hérité de `AGridMechanismActor` est neutralisé pour les Pit.
+
+## Géométrie dual-leaf
+
+Valeurs par défaut :
 
 ```text
-Button.Activated
-    -> Pit.Toggle
+Left Hinge  = (-85, 0, -5) cm
+Right Hinge = (+85, 0, -5) cm
+Hinge Axis  = local Y
+Open Angle  = 80°
+Move Duration = 0.75 s
 ```
 
-## Autorité runtime
-
-`FGridLevelRuntimeState` contient désormais :
-
-```cpp
-TMap<FGuid, FGridRuntimePitState> Pits;
-```
-
-`FGridRuntimePitState` stocke :
-
-```cpp
-ObjectId
-bIsOpen
-```
-
-Si aucune entrée runtime n'existe encore, `Behavior.Pit.bInitiallyOpen` reste la valeur initiale.
-
-Les APIs sont :
-
-```cpp
-bool IsPitOpen(FGuid PitObjectId) const;
-bool SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmitEvent = true);
-bool TogglePit(FGuid PitObjectId, bool bEmitEvent = true);
-```
-
-Le changement d'état est persistant par niveau et survit aux allers-retours entre floors.
-
-## Ouverture sous le groupe
-
-Lorsqu'une Pit passe de Closed à Open :
-
-1. les World Items déjà posés sur la cellule sont routés par PIT02 ;
-2. si le groupe se trouve sur la cellule, `TryBeginPitFallAtCell()` est déclenché ;
-3. l'événement `Opened` est émis.
-
-La fermeture ne téléporte rien et n'annule pas une chute déjà commencée.
-
-## Présentation : AGridPitTrapdoorActor
-
-PIT03 ajoute :
-
-`AGridPitTrapdoorActor : AGridMechanismActor`
-
-Contrat visuel après PIT03.1 :
-
-- `Fixed Mesh` = géométrie permanente de la fosse ouverte ;
-- `Moving Mesh` = couvercle/trappe optionnel animé autour de son pivot ;
-- Closed = rotation relative nulle, collision active ;
-- Opening = interpolation vers `Pit Animation > Open Relative Rotation`, gameplay encore Closed ;
-- Open = endpoint atteint, collision désactivée ;
-- Closing = interpolation inverse, gameplay encore Open jusqu'à l'endpoint.
-
-Sans `Moving Mesh`, l'objet est une fosse statique : il reste toujours Open et une commande Close est rejetée. Un état Closed n'est valide que lorsqu'un vrai couvercle `Moving Mesh` existe.
-
-## DA_Pit_Stone_01 après PIT03
-
-L'ouverture de la palette met automatiquement l'archetype à niveau.
-
-Valeurs attendues :
+À l'ouverture :
 
 ```text
-Gameplay Type             = Pit
-Category                  = Hazards
-Functional Category       = Mechanism
-Placement Kind            = Floor
-Blocks Movement           = False
-Hide Cell Floor           = True
+Left leaf  Pitch = -80°
+Right leaf Pitch = +80°
+```
 
-Default Behavior > Pit
-  Initially Open          = True
-  Use Same Cell Coordinates = True
+Les deux volets basculent donc en sens opposés vers l'intérieur de la fosse.
 
-Default Behavior > Transition
-  Is Transition           = True
-  Require Use Action      = False
+## DA_Pit_Stone_01
+
+```text
+Gameplay Type            = Pit
+Category                 = Hazards
+Functional Category      = Mechanism
+Placement Kind           = Floor
+Blocks Movement          = False
+Hide Cell Floor          = True
 
 Visual
-  Main Mesh / Preview Mesh = SM_Pit_Stone_01
-  Fixed Mesh               = SM_Pit_Stone_01
-  Moving Mesh              = None ou mesh de trappe fermé
-  Fixed Material           = None
-  Moving Material          = matériau optionnel de la trappe
+├─ Main Mesh / Preview Mesh = SM_Pit_Stone_01
+├─ Fixed Mesh               = SM_Pit_Stone_01
+└─ Pit Trapdoor
+   ├─ Left Leaf Mesh
+   ├─ Right Leaf Mesh
+   ├─ Left Leaf Material
+   └─ Right Leaf Material
 
 Runtime
-  Runtime Actor Class      = GridPitTrapdoorActor
+└─ Runtime Actor Class = GridPitTrapdoorActor
+
+Default Behavior > Pit Animation
+├─ Left Hinge Location  = (-85, 0, -5)
+├─ Right Hinge Location = (+85, 0, -5)
+├─ Open Angle           = 80
+└─ Move Duration        = 0.75
 ```
 
-Important : si `Moving Mesh=None`, l'état Closed fonctionne logiquement mais aucun couvercle n'est visible. Dès qu'un mesh de trappe sera disponible, l'assigner à `Moving Mesh`.
-
-Les éventuels sons sont configurés par le contrat audio générique de l'archetype :
+Les anciens champs Pit à un volet ne sont plus utilisés :
 
 ```text
-Audio Events
-  Open
-  Close
+Moving Mesh
+Moving Material
+Open Relative Rotation
+Open Pitch
+Open Yaw
+Open Roll
 ```
 
-Ils sont optionnels.
+## Fosse statique
+
+Si aucun couple de volets n'est configuré :
+
+```text
+Left Leaf Mesh  = None
+Right Leaf Mesh = None
+```
+
+la Pit est une fosse statique toujours ouverte.
+
+Un état Closed n'est valide que lorsque les deux volets sont présents.
+
+Un seul volet configuré est une erreur de validation.
+
+## Animation et gameplay
+
+Lors d'une ouverture :
+
+1. les deux volets commencent à basculer ;
+2. le gameplay reste Closed pendant le mouvement ;
+3. à l'endpoint Open, les collisions des volets sont désactivées ;
+4. les World Items présents tombent via PIT02 ;
+5. le groupe présent tombe via PIT01 ;
+6. `Opened` est émis.
+
+La fermeture est symétrique.
+
+Une inversion reprend depuis l'angle courant sans snap.
 
 ## Grid Editor
 
-La Pit reste dans :
-
-`Hazards > Stone Pit`
-
-Selected Object > Pit :
+`Selected Object > Pit` expose :
 
 ```text
 Open at Start
 Use Same Cell Coordinates
-Open Pitch
-Open Yaw
-Open Roll
+Trapdoor Layout = Dual Leaf / Hinge Axis Y
+Left Hinge X/Y/Z
+Right Hinge X/Y/Z
+Open Angle
 Move Duration
 ```
 
-Connectors accepte maintenant une Pit comme cible avec :
-
-```text
-Open
-Close
-Toggle
-Activate
-Deactivate
-```
-
-et comme source avec :
-
-```text
-Opened
-Closed
-```
-
-## PIT02 et trappe fermée
-
-`TryDropItemInstanceAtCell()` consulte désormais l'état runtime.
-
-Ainsi :
-
-```text
-Closed Pit + pierre
-  -> pierre reste sur le couvercle
-
-Open Pit + pierre
-  -> pierre tombe au niveau inférieur
-```
-
-Si la trappe s'ouvre alors que la pierre est déjà dessus :
-
-```text
-pierre sur Closed Pit
-  -> commande Open
-  -> DropWorldItemsThroughOpenPitAtCell()
-  -> PendingInboundItems du niveau inférieur
-```
-
-## Persistance
-
-Lors d'un changement de floor :
-
-- l'état Pit reste dans `FGridLevelRuntimeState::Pits` ;
-- `RebuildRuntimeObjects()` restaure le bon état visuel ;
-- `ApplyCurrentLevelRuntimeState()` resynchronise également le `AGridPitTrapdoorActor`.
-
 ## Tests
 
-Filtre :
-
-`Grimrock.Pit.PIT03`
-
-Tests :
+Tests de base :
 
 - `Grimrock.Pit.PIT03.ControlledStateAndLinks`
 - `Grimrock.Pit.PIT03.PresentationActorState`
-- `Grimrock.Pit.PIT03.EditorLinkPolicy`
 
-Le test principal couvre :
+Animation dual-leaf :
 
-- Pit initialement Closed ;
-- World Item posé sur la trappe ;
-- Button.Activated -> Pit.Open ;
-- chute automatique du World Item via PIT02 ;
-- Pit.Opened -> seconde Pit.Open ;
-- Close et Toggle ;
-- persistance après aller-retour entre deux niveaux.
+- filtre `Grimrock.Pit.PIT03_2`
 
-## Hors périmètre après PIT03.1
+Référence détaillée :
 
-- mesh artistique final du couvercle ;
-- dégâts de chute ;
-- monstres tombant ;
-- écrasement par fermeture ;
-- double battant ;
-- puits multi-étages en cascade.
+`docs/Design/PIT03_2_DUAL_LEAF_TRAPDOOR.md`
