@@ -209,6 +209,48 @@ public:
 	float DeathExpectedDuration = 1.0f;
 
 	/**
+	 * MON-DEATH-COLLISION01: when the authored death fall would enter nearby blocking geometry,
+	 * replace the montage presentation with a collision-aware ragdoll. Gameplay death remains unchanged.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Collision")
+	bool bEnableObstacleAwareDeath = false;
+
+	/** Local-space direction of the authored fall. (-X) means backwards relative to the monster facing. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Collision",
+		meta = (EditCondition = "bEnableObstacleAwareDeath", EditConditionHides))
+	FVector DeathFallLocalDirection = FVector(-1.0f, 0.0f, 0.0f);
+
+	/** Horizontal distance tested before starting the death presentation. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Collision",
+		meta = (EditCondition = "bEnableObstacleAwareDeath", EditConditionHides, ClampMin = "1.0"))
+	float DeathObstacleProbeDistance = 120.0f;
+
+	/** Capsule radius used by the obstacle probe. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Collision",
+		meta = (EditCondition = "bEnableObstacleAwareDeath", EditConditionHides, ClampMin = "1.0"))
+	float DeathObstacleProbeRadius = 28.0f;
+
+	/** Capsule half-height used by the obstacle probe. Must be at least the radius. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Collision",
+		meta = (EditCondition = "bEnableObstacleAwareDeath", EditConditionHides, ClampMin = "1.0"))
+	float DeathObstacleProbeHalfHeight = 60.0f;
+
+	/** Initial collision-aware corpse speed along DeathFallLocalDirection. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Collision",
+		meta = (EditCondition = "bEnableObstacleAwareDeath", EditConditionHides, ClampMin = "0.0"))
+	float DeathRagdollBackwardSpeed = 140.0f;
+
+	/** Initial downward speed added when the obstacle ragdoll starts. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Collision",
+		meta = (EditCondition = "bEnableObstacleAwareDeath", EditConditionHides, ClampMin = "0.0"))
+	float DeathRagdollDownwardSpeed = 80.0f;
+
+	/** Initial angular speed around the lateral fall axis. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Collision",
+		meta = (EditCondition = "bEnableObstacleAwareDeath", EditConditionHides, ClampMin = "0.0"))
+	float DeathRagdollAngularSpeedDegrees = 90.0f;
+
+	/**
 	 * Corpse cleanup is a mandatory global runtime invariant.
 	 * Hold time, dissolve duration and the material parameter contract are owned
 	 * by UGridMonsterDeathComponent and are intentionally not monster authoring data.

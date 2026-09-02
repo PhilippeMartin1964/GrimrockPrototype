@@ -1119,3 +1119,21 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - `SparklePhase` désynchronise plusieurs items à partir de leur identité runtime.
 - Un asset avec World Sparkle activé sans matériau est invalide.
 - Le mode de réceptacle `PhysicalAtHit` est considéré comme une présentation physique World Pickup et peut donc scintiller ; les placements attachés restent OFF.
+
+
+---
+
+## 2026-09-02 — MON-DEATH-COLLISION01 : mort de monstre sensible aux obstacles
+
+### Décisions validées
+
+- La collision d'un cadavre est une présentation physique et ne réactive jamais la collision gameplay ni l'occupation de grille.
+- Le système est data-driven dans `UGridMonsterDefinitionAsset` et opt-in par monstre.
+- `DeathFallLocalDirection=(-1,0,0)` représente par défaut une chute vers l'arrière, transformée par le Facing runtime.
+- Un sweep capsule détecte les obstacles physiquement bloquants dans le corridor de chute.
+- En espace libre, le `DeathMontage` MON17.8 reste inchangé.
+- Si un obstacle est détecté et qu'un Physics Asset est disponible, la présentation bascule immédiatement en ragdoll afin de garantir l'absence de traversée cinématique du mur.
+- Le ragdoll bloque seulement `WorldStatic`, `WorldDynamic` et `PhysicsBody`; le collider gameplay du monstre reste OFF.
+- Un Physics Asset manquant produit un fallback propre vers le montage existant sans affecter la mort logique.
+- La dissolution générique reste autoritaire et arrête la simulation physique lorsque le mesh est finalement caché.
+- Filtre Automation : `Grimrock.Monsters.MON_DEATH_COLLISION01`.

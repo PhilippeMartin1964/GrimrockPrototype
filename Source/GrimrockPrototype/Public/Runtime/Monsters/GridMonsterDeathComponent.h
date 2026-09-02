@@ -36,6 +36,17 @@ public:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Death")
 	bool bDeathPresentationActive = false;
 
+	/** True when the pre-death fall probe found blocking physical geometry. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Death|Collision")
+	bool bDeathObstacleDetected = false;
+
+	/** Presentation-only skeletal ragdoll. Never restores grid occupancy or gameplay collision. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Death|Collision")
+	bool bDeathRagdollActive = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Death|Collision")
+	FVector LastDeathObstacleImpactPoint = FVector::ZeroVector;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Death|Dissolve")
 	bool bDeathDissolveActive = false;
 
@@ -81,6 +92,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster|Death|Animation Notify")
 	void NotifyDeathPresentationComplete();
 
+	/** Resolves the authored local fall direction in world space using the monster's current facing. */
+	UFUNCTION(BlueprintPure, Category = "Monster|Death|Collision")
+	FVector ResolveDeathFallWorldDirection() const;
+
+	/** Sweeps the authored fall corridor and returns the nearest physically blocking obstacle. */
+	UFUNCTION(BlueprintCallable, Category = "Monster|Death|Collision")
+	bool ProbeDeathObstacle(FHitResult& OutHit) const;
+
+	/** Stops presentation-only corpse physics and optionally restores the authored skeletal visual pose. */
+	UFUNCTION(BlueprintCallable, Category = "Monster|Death|Collision")
+	void ResetDeathRagdollPresentation(bool bRestoreVisualPose = true);
+
 	/** Clears transient dissolve state and optionally restores source materials/visibility. */
 	UFUNCTION(BlueprintCallable, Category = "Monster|Death|Dissolve")
 	void ResetDeathDissolvePresentation(bool bRestoreOriginalMaterials = true, bool bRestoreVisibility = false);
@@ -120,6 +143,8 @@ private:
 	void FinishDeathDissolve();
 	void ClearDeathDissolveTimers();
 
+	bool TryStartObstacleAwareDeathRagdoll();
+	void ScheduleDeathPresentationCompletion();
 	void GenerateAndPlaceLoot();
 	AGridLevelRuntimeActor* FindRuntimeActor() const;
 };
