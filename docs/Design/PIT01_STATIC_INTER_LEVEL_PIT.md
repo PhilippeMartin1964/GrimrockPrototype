@@ -1,5 +1,8 @@
 # PIT01 — Static Inter-Level Pit
 
+> **Ergonomie Grid Editor (02.09.2026).** Dans `Selected Object > Transition`, une Pit affiche toujours sa destination. Lorsque `Use Same Cell Coordinates = True`, `Target Cell X` et `Target Cell Y` sont désactivés car ils sont ignorés par le runtime ; l'inspecteur affiche explicitement la cellule effective `(Pit.CellX, Pit.CellY)`. Dès que l'option est décochée, X/Y redeviennent éditables. Pour une Pit, l'ancien flag générique `Is Transition` est remplacé visuellement par `Transition Mode = Intrinsic Pit Fall`.
+
+
 > **Correction d’atterrissage (01.09.2026).** Si la cellule exactement sous la Pit est hors limites, `Empty` ou bloque l’occupation, la chute n’est plus annulée. Le runtime cherche automatiquement la cellule praticable la plus proche sur le niveau inférieur, de façon déterministe, et utilise cette cellule comme point d’atterrissage. Une destination contenant directement une autre Pit ouverte reste refusée tant que les chutes en cascade ne sont pas implémentées.
 
 

@@ -1010,3 +1010,18 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le choix est déterministe : distance de Manhattan minimale, puis ordre stable Y/X.
 - PIT01 et PIT02 utilisent exactement la même règle d’atterrissage.
 - Une cellule praticable contenant une autre Pit ouverte reste une erreur explicite tant que les chutes en cascade ne sont pas prises en charge.
+
+
+---
+
+## 2026-09-02 — Pit : clarification des coordonnées de transition dans l'inspecteur
+
+### Décisions validées
+
+- Pour une Pit, la section `Transition` est toujours visible.
+- `Is Transition` n'est plus présenté comme un paramètre fonctionnel de Pit ; l'inspecteur affiche `Transition Mode = Intrinsic Pit Fall`.
+- Si `Use Same Cell Coordinates = True`, les champs `Target Cell X/Y` sont désactivés.
+- L'inspecteur affiche alors les coordonnées réellement demandées, c'est-à-dire la cellule source de la Pit.
+- Si `Use Same Cell Coordinates = False`, `Target Cell X/Y` redeviennent éditables.
+- `Target Level Id` et `Target Facing` restent configurables pour une Pit.
+- `Require Use Action` est désactivé pour une Pit car il n'a aucune sémantique runtime.

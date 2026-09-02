@@ -338,7 +338,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard(con
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
 	const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor ? CurrentEditorActor->FindObjectArchetypeById(Obj.ArchetypeId) : nullptr;
 	const FText TitleText = Archetype && !Archetype->DisplayName.IsEmpty() ? Archetype->DisplayName : TypeText;
-	const bool bShowTransitionSection = Obj.Behavior.Transition.bIsTransition;
+	const bool bShowTransitionSection = Obj.Type == EGridLevelObjectType::Pit || Obj.Behavior.Transition.bIsTransition;
 
 	return SNew(SBorder).Padding(8.f).BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))[SNew(SVerticalBox)
 
@@ -1282,6 +1282,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTeleporterDetailsSecti
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSection(const FGridLevelObjectData& Obj)
 {
+	const bool bIsPit = Obj.Type == EGridLevelObjectType::Pit;
+	const bool bPitUsesSameCellCoordinates = bIsPit && Obj.Behavior.Pit.bUseSameCellCoordinates;
+	const bool bTransitionFieldsEnabled = bIsPit || Obj.Behavior.Transition.bIsTransition;
+
 	auto ApplyBehavior = [this](const FGridObjectBehaviorParams& NewBehavior)
 	{
 		if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
@@ -1293,7 +1297,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSecti
 		}
 	};
 
-	auto BuildIntTransitionRow = [Obj, ApplyBehavior](const FText& Label, int32 CurrentValue,
+	auto BuildIntTransitionRow = [Obj, ApplyBehavior, bTransitionFieldsEnabled, bPitUsesSameCellCoordinates](const FText& Label, int32 CurrentValue,
 									 TFunction<void(FGridObjectBehaviorParams&, int32)> AssignValue) -> TSharedRef<SWidget>
 	{
 		return GridEditorWidgetHelpers::BuildGridPropertyRow(Label,
@@ -1304,7 +1308,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSecti
 				.MinSliderValue(0)
 				.MaxSliderValue(31)
 				.Delta(1)
-				.IsEnabled(Obj.Behavior.Transition.bIsTransition)
+				.IsEnabled(bTransitionFieldsEnabled && !bPitUsesSameCellCoordinates)
 				.OnValueCommitted_Lambda(
 					[Obj, ApplyBehavior, AssignValue](int32 NewValue, ETextCommit::Type CommitType)
 					{
@@ -1314,12 +1318,12 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSecti
 					}));
 	};
 
-	auto BuildFacingButton = [Obj, ApplyBehavior](const TCHAR* Label, EGridEdge Facing) -> TSharedRef<SWidget>
+	auto BuildFacingButton = [Obj, ApplyBehavior, bTransitionFieldsEnabled](const TCHAR* Label, EGridEdge Facing) -> TSharedRef<SWidget>
 	{
 		const bool bSelected = Obj.Behavior.Transition.TargetFacing == Facing;
 		return SNew(SButton)
 			.Text(FText::FromString(Label))
-			.IsEnabled(Obj.Behavior.Transition.bIsTransition)
+			.IsEnabled(bTransitionFieldsEnabled)
 			.ButtonColorAndOpacity(bSelected ? FLinearColor(0.32f, 0.46f, 0.72f, 1.f) : FLinearColor::White)
 			.OnClicked_Lambda(
 				[Obj, ApplyBehavior, Facing]()
@@ -1335,17 +1339,23 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSecti
 
         + SVerticalBox::Slot ().AutoHeight ()
         [
-            SNew (SCheckBox)
-                .IsChecked (Obj.Behavior.Transition.bIsTransition ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior] (ECheckBoxState NewState)
-                {
-                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                    NewBehavior.Transition.bIsTransition = NewState == ECheckBoxState::Checked;
-                    ApplyBehavior (NewBehavior);
-                })
-                [
-                    SNew (STextBlock).Text (FText::FromString (TEXT ("Is Transition")))
-                ]
+            bIsPit
+                ? StaticCastSharedRef<SWidget>(
+                    GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+                        FText::FromString(TEXT("Transition Mode")),
+                        FText::FromString(TEXT("Intrinsic Pit Fall"))))
+                : StaticCastSharedRef<SWidget>(
+                    SNew (SCheckBox)
+                        .IsChecked (Obj.Behavior.Transition.bIsTransition ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                        .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior] (ECheckBoxState NewState)
+                        {
+                            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                            NewBehavior.Transition.bIsTransition = NewState == ECheckBoxState::Checked;
+                            ApplyBehavior (NewBehavior);
+                        })
+                        [
+                            SNew (STextBlock).Text (FText::FromString (TEXT ("Is Transition")))
+                        ])
         ]
 
         + SVerticalBox::Slot ().AutoHeight ()
@@ -1354,7 +1364,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSecti
                 FText::FromString (TEXT ("Target Level Id")),
                 SNew (SEditableTextBox)
                     .Text (GetNameText (Obj.Behavior.Transition.TargetLevelId))
-                    .IsEnabled (Obj.Behavior.Transition.bIsTransition)
+                    .IsEnabled (bTransitionFieldsEnabled)
                     .OnTextCommitted_Lambda ([Obj, ApplyBehavior] (const FText& NewText, ETextCommit::Type CommitType)
                     {
                         FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
@@ -1411,7 +1421,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSecti
         + SVerticalBox::Slot ().AutoHeight ()
         [
             SNew (SCheckBox)
-                .IsEnabled (Obj.Behavior.Transition.bIsTransition)
+                .IsEnabled (bTransitionFieldsEnabled && !bIsPit)
                 .IsChecked (Obj.Behavior.Transition.bRequireUseAction ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
                 .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior] (ECheckBoxState NewState)
                 {
@@ -1427,7 +1437,13 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSecti
         + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
         [
             SNew (STextBlock)
-                .Text (FText::FromString (TEXT ("For Pit objects, Target Level Id is optional: None automatically falls to the dungeon level below. A valid explicit Target Level Id overrides that automatic destination.")))
+                .Text (bIsPit
+                    ? (bPitUsesSameCellCoordinates
+                        ? FText::Format(
+                            FText::FromString(TEXT("Target Cell X/Y are ignored because Use Same Cell Coordinates is enabled. Effective requested landing cell: ({0},{1}). Target Level Id may still explicitly override the lower level.")),
+                            FText::AsNumber(Obj.CellX), FText::AsNumber(Obj.CellY))
+                        : FText::FromString(TEXT("Target Cell X/Y are explicit landing coordinates. Target Level Id may be None for the automatic lower level. If the requested landing cell is not walkable, runtime resolves the nearest usable floor cell.")))
+                    : FText::FromString(TEXT("Transition data is stored on this object and executed by the runtime.")))
                 .AutoWrapText (true)
                 .ColorAndOpacity (FSlateColor (FLinearColor (0.65f, 0.65f, 0.65f)))
         ];
