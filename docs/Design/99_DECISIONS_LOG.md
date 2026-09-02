@@ -1088,3 +1088,16 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Valeurs par défaut : 14 cm de compression, 0,07 s d'impact, 0,16 s de récupération.
 - Le feedback d'atterrissage se compose avec le Head Bob existant dans `ApplyCameraOffsets()`.
 - Un échec de transition ne joue ni impact sonore ni bump caméra.
+
+
+---
+
+## 2026-09-02 — Pit : contrat d'archetype aligné sur PIT03.2
+
+### Décisions validées
+
+- `EGridLevelObjectType::Pit` exige désormais explicitement une `RuntimeActorClass`.
+- Le runtime actor canonique provisionné reste `AGridPitTrapdoorActor`.
+- `Pit` ne retourne plus vrai pour `UsesMovingMeshParams()` : le vieux `Moving Mesh` mono-volet est définitivement hors contrat.
+- `Pit` conserve `UsesFixedMeshParams() = true` pour la géométrie permanente de la fosse.
+- Les volets passent uniquement par `PitLeftLeafMesh` et `PitRightLeafMesh`.

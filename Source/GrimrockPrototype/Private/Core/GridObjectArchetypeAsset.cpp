@@ -844,6 +844,7 @@ bool UGridObjectArchetypeAsset::RequiresRuntimeActorClass() const
 		case EGridLevelObjectType::PressurePlate:
 		case EGridLevelObjectType::Teleporter:
 		case EGridLevelObjectType::Receptacle:
+		case EGridLevelObjectType::Pit:
 			return true;
 
 		default:
@@ -936,7 +937,6 @@ bool UGridObjectArchetypeAsset::UsesMovingMeshParams() const
 		case EGridLevelObjectType::Button:
 		case EGridLevelObjectType::Lever:
 		case EGridLevelObjectType::Receptacle:
-		case EGridLevelObjectType::Pit:
 			return true;
 
 		default:

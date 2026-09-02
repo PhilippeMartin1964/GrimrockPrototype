@@ -103,7 +103,9 @@ bool FGridPIT01DataContractTest::RunTest(const FString& Parameters)
 	Archetype->DefaultBehavior.Transition.bRequireUseAction = false;
 
 	TestTrue(TEXT("Pit is a center/floor placed gameplay object"), Archetype->SupportsCenterPlacement());
-	TestTrue(TEXT("Pit uses a runtime actor for its visual mesh"), Archetype->RequiresRuntimeActorClass());
+	TestTrue(TEXT("Pit requires its dedicated runtime actor contract"), Archetype->RequiresRuntimeActorClass());
+	TestFalse(TEXT("Pit no longer uses the legacy generic Moving Mesh contract"), Archetype->UsesMovingMeshParams());
+	TestTrue(TEXT("Pit still uses a Fixed Mesh for permanent pit geometry"), Archetype->UsesFixedMeshParams());
 	TestTrue(TEXT("PIT01 defaults to open"), Archetype->DefaultBehavior.Pit.bInitiallyOpen);
 	TestTrue(TEXT("PIT01 defaults to same-cell destination coordinates"), Archetype->DefaultBehavior.Pit.bUseSameCellCoordinates);
 	TestTrue(TEXT("PIT01 is an automatic transition"), !Archetype->DefaultBehavior.Transition.bRequireUseAction);
