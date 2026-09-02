@@ -184,12 +184,12 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	}
 
 	TestTrue(TEXT("Pit A has a complete dual-leaf cover"), PitAActor->HasCompleteTrapdoorCover());
-	TestEqual(TEXT("Left hinge uses requested local X"), PitAActor->GetLeftHingeLocation().X, -85.0f);
-	TestEqual(TEXT("Left hinge uses requested local Y"), PitAActor->GetLeftHingeLocation().Y, 0.0f);
-	TestEqual(TEXT("Left hinge uses requested local Z"), PitAActor->GetLeftHingeLocation().Z, -5.0f);
-	TestEqual(TEXT("Right hinge uses requested local X"), PitAActor->GetRightHingeLocation().X, 85.0f);
-	TestEqual(TEXT("Right hinge uses requested local Y"), PitAActor->GetRightHingeLocation().Y, 0.0f);
-	TestEqual(TEXT("Right hinge uses requested local Z"), PitAActor->GetRightHingeLocation().Z, -5.0f);
+	TestEqual(TEXT("Left hinge uses requested local X"), PitAActor->GetLeftHingeLocation().X, -85.0);
+	TestEqual(TEXT("Left hinge uses requested local Y"), PitAActor->GetLeftHingeLocation().Y, 0.0);
+	TestEqual(TEXT("Left hinge uses requested local Z"), PitAActor->GetLeftHingeLocation().Z, -5.0);
+	TestEqual(TEXT("Right hinge uses requested local X"), PitAActor->GetRightHingeLocation().X, 85.0);
+	TestEqual(TEXT("Right hinge uses requested local Y"), PitAActor->GetRightHingeLocation().Y, 0.0);
+	TestEqual(TEXT("Right hinge uses requested local Z"), PitAActor->GetRightHingeLocation().Z, -5.0);
 	TestEqual(TEXT("Closed left leaf pitch is zero"), PitAActor->GetLeftLeafPitch(), 0.0f);
 	TestEqual(TEXT("Closed right leaf pitch is zero"), PitAActor->GetRightLeafPitch(), 0.0f);
 
