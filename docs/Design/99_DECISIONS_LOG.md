@@ -1059,3 +1059,18 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - À rotation nulle, `H + (-H) = 0` : le transform fermé authored est strictement conservé.
 - Lors de l'ouverture, la rotation du parent hinge fait orbiter le volet autour de la charnière souhaitée.
 - Les valeurs de référence restent Left=(-85,0,-5), Right=(+85,0,-5), angle 80°.
+
+
+---
+
+## 2026-09-02 — PIT03.2 : Open active immédiatement
+
+### Décisions validées
+
+- Une commande `Open` rend la Pit gameplay Open immédiatement, sans attendre la fin de l'animation des volets.
+- Un groupe qui entre sur la cellule pendant Opening tombe immédiatement via PIT01.
+- Les World Items présents sont routés immédiatement via PIT02.
+- L'événement `Opened` est émis lors du passage gameplay à Open, donc à réception de la commande.
+- La collision des deux volets est désactivée dès le début de Opening.
+- La fermeture reste asymétrique : gameplay Open et collision désactivée pendant Closing, puis Closed uniquement à l'endpoint complètement fermé.
+- Une inversion Closing -> Opening ne réémet pas `Opened` si la Pit n'avait jamais cessé d'être gameplay Open.

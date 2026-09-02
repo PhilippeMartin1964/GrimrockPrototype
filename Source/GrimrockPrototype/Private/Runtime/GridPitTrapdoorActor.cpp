@@ -326,7 +326,9 @@ void AGridPitTrapdoorActor::ApplyOpenAlpha(float Alpha)
 
 void AGridPitTrapdoorActor::RefreshTrapdoorCollision()
 {
-	const bool bEnableCollision = !bIsOpen && HasCompleteTrapdoorCover();
+	// Opening is hazardous immediately, so leaf collision is removed as soon as
+	// motion starts toward Open. During Closing it stays disabled until Closed.
+	const bool bEnableCollision = !bIsOpen && !bIsAnimating && HasCompleteTrapdoorCover();
 	const ECollisionEnabled::Type CollisionMode = bEnableCollision ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision;
 	if (LeftLeafMeshComponent)
 	{

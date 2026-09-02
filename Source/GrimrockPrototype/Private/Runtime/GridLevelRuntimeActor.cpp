@@ -1286,8 +1286,13 @@ bool AGridLevelRuntimeActor::IsPitOpen(FGuid PitObjectId) const
 
 	if (const AGridPitTrapdoorActor* PitActor = FindRuntimeObjectActor<AGridPitTrapdoorActor>(PitObjectId))
 	{
-		// PIT03.2: active-level gameplay follows the last physically settled dual-leaf endpoint,
-		// not the persisted target while the cover is still moving.
+		// PIT03.2 gameplay contract:
+		// any moving trapdoor is hazardous. Opening becomes hazardous immediately
+		// on command; Closing stays hazardous until the Closed endpoint is reached.
+		if (PitActor->IsAnimating())
+		{
+			return true;
+		}
 		return PitActor->IsPitOpenVisualState();
 	}
 
@@ -1347,7 +1352,20 @@ bool AGridLevelRuntimeActor::SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmi
 			return true;
 		}
 
-		const bool bSameTarget = PitActor->IsTargetOpen() == bOpen;
+		if (bOpen)
+		{
+			// Opening is a gameplay state change immediately on command. Start/reverse
+			// the visual motion first so IsPitOpen() becomes true during Opening, then
+			// apply PIT01/PIT02 and emit Opened without waiting for the visual endpoint.
+			PendingPitEmitEvents.Remove(PitObjectId);
+			PitActor->SetPitOpenVisualState(true, true);
+			FinalizePitGameplayStateChange(PitObjectId, bWasGameplayOpen, true, bEmitEvent);
+			return true;
+		}
+
+		// Closing is intentionally asymmetric: gameplay stays Open while the leaves
+		// move and only becomes Closed at the physical endpoint.
+		const bool bSameTarget = PitActor->IsTargetOpen() == false;
 		if (bSameTarget)
 		{
 			bool& bPendingEmit = PendingPitEmitEvents.FindOrAdd(PitObjectId);
@@ -1358,7 +1376,7 @@ bool AGridLevelRuntimeActor::SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmi
 			PendingPitEmitEvents.Add(PitObjectId, bEmitEvent);
 		}
 
-		PitActor->SetPitOpenVisualState(bOpen, true);
+		PitActor->SetPitOpenVisualState(false, true);
 		return true;
 	}
 
@@ -1388,9 +1406,22 @@ void AGridLevelRuntimeActor::HandlePitTrapdoorAnimationFinished(FGuid PitObjectI
 		return;
 	}
 
+	if (bIsOpen)
+	{
+		// Gameplay Open, PIT01/PIT02 and Opened were already applied when the Open
+		// command was received. The endpoint is presentation-only.
+		PendingPitEmitEvents.Remove(PitObjectId);
+		UE_LOG(LogTemp, Verbose, TEXT("GridPit opening visual endpoint reached ObjectId=%s; gameplay was already Open."),
+			*PitObjectId.ToString());
+		return;
+	}
+
 	const bool bEmitEvent = PendingPitEmitEvents.FindRef(PitObjectId);
 	PendingPitEmitEvents.Remove(PitObjectId);
-	FinalizePitGameplayStateChange(PitObjectId, bWasOpen, bIsOpen, bEmitEvent);
+
+	// A closing animation remains gameplay-Open until this endpoint, even when it
+	// reversed an Opening before that Opening had visually completed.
+	FinalizePitGameplayStateChange(PitObjectId, true, false, bEmitEvent);
 }
 
 void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, bool bWasOpen, bool bIsOpen, bool bEmitEvent)

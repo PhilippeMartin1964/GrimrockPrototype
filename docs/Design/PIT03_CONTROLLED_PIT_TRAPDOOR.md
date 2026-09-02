@@ -136,14 +136,14 @@ Un seul volet configuré est une erreur de validation.
 
 Lors d'une ouverture :
 
-1. les deux volets commencent à basculer ;
-2. le gameplay reste Closed pendant le mouvement ;
-3. à l'endpoint Open, les collisions des volets sont désactivées ;
-4. les World Items présents tombent via PIT02 ;
-5. le groupe présent tombe via PIT01 ;
-6. `Opened` est émis.
+1. la commande Open rend immédiatement la Pit gameplay Open ;
+2. les collisions des deux volets sont désactivées immédiatement ;
+3. les World Items présents tombent immédiatement via PIT02 ;
+4. le groupe présent tombe immédiatement via PIT01 ;
+5. `Opened` est émis immédiatement ;
+6. les deux volets poursuivent ensuite leur animation visuelle jusqu'à ±OpenAngle.
 
-La fermeture est symétrique.
+Lors d'une fermeture, la règle est volontairement asymétrique : la Pit reste gameplay Open et sans collision pendant le mouvement, puis devient Closed et réactive la collision seulement à l'endpoint fermé.
 
 Une inversion reprend depuis l'angle courant sans snap.
 

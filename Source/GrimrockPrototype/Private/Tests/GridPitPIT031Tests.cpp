@@ -224,34 +224,36 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Open command starts animated Pit A"), Runtime->SetPitOpen(PitAId, true, true));
 	TestTrue(TEXT("Pit A animation is running"), PitAActor->IsAnimating());
 	TestTrue(TEXT("Pit A target is Open"), PitAActor->IsTargetOpen());
-	TestFalse(TEXT("Pit A remains closed for gameplay while opening"), Runtime->IsPitOpen(PitAId));
-	TestFalse(TEXT("Pit B has not received Opened chain before Pit A endpoint"), PitBActor->IsTargetOpen());
-	TestEqual(TEXT("Stone remains during opening"), Runtime->GetWorldItemWeightAtCell(2, 2, false), StoneDefinition->Weight);
+	TestTrue(TEXT("Pit A becomes gameplay-open immediately when Open is commanded"), Runtime->IsPitOpen(PitAId));
 
-	PitAActor->Tick(0.40f);
-	TestTrue(TEXT("Pit A is partially open visually"), PitAActor->GetCurrentOpenAlpha() > 0.35f && PitAActor->GetCurrentOpenAlpha() < 0.45f);
-	TestTrue(TEXT("Left leaf rotates downward around Y during opening"), FMath::IsNearlyEqual(PitAActor->GetLeftLeafPitch(), -32.0f, 0.5f));
-	TestTrue(TEXT("Right leaf counter-rotates downward around Y during opening"), FMath::IsNearlyEqual(PitAActor->GetRightLeafPitch(), 32.0f, 0.5f));
-	TestFalse(TEXT("Partially opened Pit A is still closed for gameplay"), Runtime->IsPitOpen(PitAId));
-	TestFalse(TEXT("Opened connector is still delayed"), PitBActor->IsTargetOpen());
+	FGridObjectTransitionParams DuringOpeningTransition;
+	TestTrue(TEXT("Party movement detector resolves Pit A as open while leaves are still opening"),
+		Runtime->FindOpenPitAtCell(2, 2, DuringOpeningTransition));
 
-	PitAActor->Tick(0.60f);
-	TestFalse(TEXT("Pit A animation completed"), PitAActor->IsAnimating());
-	TestTrue(TEXT("Pit A is now open for gameplay"), Runtime->IsPitOpen(PitAId));
-	TestEqual(TEXT("Pit A reaches alpha 1"), PitAActor->GetCurrentOpenAlpha(), 1.0f);
-	TestTrue(TEXT("Left leaf reaches -80 degrees"), FMath::IsNearlyEqual(PitAActor->GetLeftLeafPitch(), -80.0f, 0.1f));
-	TestTrue(TEXT("Right leaf reaches +80 degrees"), FMath::IsNearlyEqual(PitAActor->GetRightLeafPitch(), 80.0f, 0.1f));
-	TestTrue(TEXT("Pit A Opened event starts Pit B opening"), PitBActor->IsTargetOpen());
-	TestTrue(TEXT("Pit B animation started from connector"), PitBActor->IsAnimating());
-	TestFalse(TEXT("Pit B is not gameplay-open before its own endpoint"), Runtime->IsPitOpen(PitBId));
-	TestEqual(TEXT("Stone leaves upper pit only after endpoint"), Runtime->GetWorldItemWeightAtCell(2, 2, false), 0.0f);
+	TestTrue(TEXT("Pit A Opened event immediately starts Pit B opening"), PitBActor->IsTargetOpen());
+	TestTrue(TEXT("Pit B animation immediately starts from chained Opened"), PitBActor->IsAnimating());
+	TestTrue(TEXT("Pit B is gameplay-open immediately while its leaves are opening"), Runtime->IsPitOpen(PitBId));
+	TestEqual(TEXT("Stone falls immediately when Open command is received"), Runtime->GetWorldItemWeightAtCell(2, 2, false), 0.0f);
 
 	const FGridLevelRuntimeState* LowerState = Runtime->DungeonRuntimeState.LevelStates.Find(LowerId);
 	if (!TestNotNull(TEXT("Lower state exists after stone fall"), LowerState))
 	{
 		return false;
 	}
-	TestTrue(TEXT("Stone entered PIT02 pending queue after full opening"), LowerState->PendingInboundItems.Contains(Stone.RuntimeObjectId));
+	TestTrue(TEXT("Stone entered PIT02 pending queue immediately on Open command"), LowerState->PendingInboundItems.Contains(Stone.RuntimeObjectId));
+
+	PitAActor->Tick(0.40f);
+	TestTrue(TEXT("Pit A is partially open visually"), PitAActor->GetCurrentOpenAlpha() > 0.35f && PitAActor->GetCurrentOpenAlpha() < 0.45f);
+	TestTrue(TEXT("Left leaf rotates downward around Y during opening"), FMath::IsNearlyEqual(PitAActor->GetLeftLeafPitch(), -32.0f, 0.5f));
+	TestTrue(TEXT("Right leaf counter-rotates downward around Y during opening"), FMath::IsNearlyEqual(PitAActor->GetRightLeafPitch(), 32.0f, 0.5f));
+	TestTrue(TEXT("Partially opened Pit A remains gameplay-open"), Runtime->IsPitOpen(PitAId));
+
+	PitAActor->Tick(0.60f);
+	TestFalse(TEXT("Pit A visual animation completed"), PitAActor->IsAnimating());
+	TestTrue(TEXT("Pit A remains gameplay-open at visual endpoint"), Runtime->IsPitOpen(PitAId));
+	TestEqual(TEXT("Pit A reaches alpha 1"), PitAActor->GetCurrentOpenAlpha(), 1.0f);
+	TestTrue(TEXT("Left leaf reaches -80 degrees"), FMath::IsNearlyEqual(PitAActor->GetLeftLeafPitch(), -80.0f, 0.1f));
+	TestTrue(TEXT("Right leaf reaches +80 degrees"), FMath::IsNearlyEqual(PitAActor->GetRightLeafPitch(), 80.0f, 0.1f));
 
 	PitBActor->Tick(1.0f);
 	TestTrue(TEXT("Pit B becomes gameplay-open at its endpoint"), Runtime->IsPitOpen(PitBId));

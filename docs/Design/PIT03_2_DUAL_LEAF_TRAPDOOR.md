@@ -1,5 +1,8 @@
 # PIT03.2 — Dual-Leaf Pit Trapdoor
 
+> **Règle gameplay (02.09.2026).** Dès qu'une commande `Open` est reçue, la Pit devient immédiatement dangereuse. Un groupe qui entre sur la cellule pendant l'ouverture tombe sans attendre les ±80°. L'animation des volets est uniquement la présentation du mécanisme en cours d'ouverture. La fermeture reste sûre dans l'autre sens : la Pit ne devient Closed qu'une fois les deux volets complètement fermés.
+
+
 Date : 02.09.2026
 
 ## Statut
@@ -161,12 +164,16 @@ A = 0.4 -> Left -32°, Right +32°
 A = 1.0 -> Left -80°, Right +80°
 ```
 
-Les inversions conservent le comportement PIT03.1 :
+Les inversions conservent le comportement mécanique PIT03.1 :
 
 - aucune remise à zéro ;
 - reprise depuis l'angle courant ;
-- durée proportionnelle à la fraction restante ;
-- changement gameplay uniquement à l'endpoint.
+- durée proportionnelle à la fraction restante.
+
+Le contrat gameplay est désormais asymétrique :
+
+- commande `Open` : la Pit devient gameplay Open immédiatement, avant la fin de l'animation ;
+- commande `Close` : la Pit reste gameplay Open pendant Closing et ne devient Closed qu'à l'endpoint fermé.
 
 ## Collision
 
@@ -176,19 +183,20 @@ Closed :
 
 Opening :
 
-- gameplay encore Closed ;
-- collision des deux volets reste active.
+- gameplay Open immédiatement dès réception de la commande ;
+- collision des deux volets désactivée immédiatement ;
+- PIT01/PIT02 s'appliquent déjà pendant que les volets descendent.
 
 Open :
 
-- collision des deux volets désactivée ;
-- la cellule devient une vraie fosse ;
-- PIT01/PIT02 s'appliquent.
+- gameplay reste Open ;
+- collision reste désactivée.
 
 Closing :
 
-- gameplay encore Open ;
-- collision reste désactivée jusqu'à l'endpoint Closed.
+- gameplay reste Open ;
+- collision reste désactivée jusqu'à l'endpoint Closed ;
+- la collision des deux volets n'est réactivée qu'une fois complètement fermés.
 
 ## DA_Pit_Stone_01
 
@@ -240,7 +248,8 @@ Le test de runtime vérifie :
 - pivots exactement à -85/+85, Y=0, Z=-5 ;
 - rotation opposée -32/+32 à 40 % ;
 - rotation finale -80/+80 ;
-- Opened uniquement à l'endpoint ;
-- chute PIT02 à l'endpoint ;
+- Opened immédiatement à la réception de la commande Open ;
+- la Pit est détectée comme ouverte pendant l'animation ;
+- chute PIT02 immédiatement à la réception de Open ;
 - reversal depuis l'angle courant ;
 - une Pit sans deux volets reste une fosse statique ouverte.
