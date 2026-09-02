@@ -1151,3 +1151,17 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Ce garde bloque `PhysicsBody` et garantit que le ragdoll ne dépend pas de la qualité de collision physique du mesh mural décoratif.
 - Le garde est purement présentationnel, ne réactive ni occupation de grille ni collision gameplay, et est détruit au reset ou à la fin de la dissolution.
 - Un test Automation protège explicitement la détection d'un mur `QueryOnly`.
+
+
+---
+
+## 2026-09-02 — MON-DEATH-COLLISION01.2 : grille autoritaire pour les murs de mort
+
+### Décisions validées
+
+- Pour une chute vers un mur de grille, la collision visuelle du mesh mural n'est plus une autorité.
+- Le DeathComponent résout l'arête cardinale visée depuis `DeathCell` et la direction de chute.
+- Un `EGridWallType::Solid` ou une porte présente dont le passage reste bloqué produit un obstacle synthétique exactement sur le plan de l'arête.
+- Le garde physique est porté par un Actor transient séparé du MonsterActor.
+- Le sweep scène devient un fallback réservé aux obstacles non-grid et ignore les surfaces horizontales/sol/plafond.
+- Un test `GridWallAuthority` vérifie qu'un mur Solid est détecté même lorsqu'aucun mesh mural ni aucune collision scène n'existe.

@@ -137,3 +137,25 @@ PhysicsOnly      → obstacle valide + garde physique temporaire
 ```
 
 Le garde est un `UBoxComponent` transient, invisible, créé au plan d'impact et détruit avec la fin de la présentation/ragdoll ou la dissolution. Il n'appartient pas à la grille gameplay et ne modifie aucun asset de décor.
+
+
+## Correction 02 — grille autoritaire pour les murs
+
+Le second playtest WereRat a démontré que même un garde construit à partir d'un hit physique ne suffisait pas de manière fiable.
+
+Le contrat définitif pour les murs de donjon est désormais :
+
+```text
+DeathCell + direction de chute
+→ résolution de l'arête cardinale visée
+→ mur Solid ? porte présente et passage bloqué ?
+→ OUI : plan de collision calculé directement depuis CellSize / edge
+→ création d'un Actor transient séparé portant le garde physique
+→ ragdoll
+```
+
+Le mesh du mur, son Collision Preset et son statut QueryOnly/Physics ne sont donc plus nécessaires pour empêcher un cadavre de traverser un mur de grille.
+
+Le sweep scène reste seulement un fallback pour les obstacles non-grid. Les hits horizontaux sont filtrés afin que le sol ou le plafond ne puissent plus être sélectionnés comme obstacle de chute.
+
+Le garde n'est plus un composant du MonsterActor : il appartient à un Actor transient séparé, afin d'éviter toute suppression/optimisation de collision entre composants du même Actor.

@@ -5,9 +5,9 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "GridMonsterDeathComponent.generated.h"
 
+class AActor;
 class AGridLevelRuntimeActor;
 class AGridMonsterActor;
-class UBoxComponent;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 
@@ -138,7 +138,7 @@ private:
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> DeathDissolveMaterials;
 
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UBoxComponent>> DeathCollisionGuards;
+	TArray<TObjectPtr<AActor>> DeathCollisionGuardActors;
 
 	float DeathDissolveStartWorldTime = 0.0f;
 
@@ -152,7 +152,9 @@ private:
 	void ClearDeathDissolveTimers();
 
 	bool TryStartObstacleAwareDeathRagdoll();
+	bool TryBuildGridDeathObstacleHit(FHitResult& OutHit) const;
 	bool BuildDeathCollisionGuard(const FHitResult& ObstacleHit);
+	bool BuildDeathCollisionGuardAtPlane(const FVector& PlanePoint, const FVector& SurfaceNormal);
 	void ClearDeathCollisionGuards();
 	void ScheduleDeathPresentationCompletion();
 	void GenerateAndPlaceLoot();

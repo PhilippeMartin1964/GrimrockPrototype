@@ -6,9 +6,11 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDeathComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Core/GridLevelAsset.h"
 #include "UObject/UnrealType.h"
 
 namespace GridMonsterDeathCollision01
@@ -254,6 +256,63 @@ bool FGridMonsterDeathCollision01QueryOnlyObstacleTest::RunTest(const FString& P
 	TestTrue(TEXT("A QueryOnly wall is still detected as a death obstacle"), Monster->DeathComponent->ProbeDeathObstacle(Hit));
 	TestEqual(TEXT("Detected obstacle remains QueryOnly"), Box->GetCollisionEnabled(), ECollisionEnabled::QueryOnly);
 	TestTrue(TEXT("The QueryOnly wall component is the reported obstacle"), Hit.GetComponent() == Box);
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterDeathCollision01GridWallAuthorityTest,
+	"Grimrock.Monsters.MON_DEATH_COLLISION01.GridWallAuthority",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterDeathCollision01GridWallAuthorityTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	GridMonsterDeathCollision01::FTestWorld TestWorld;
+	if (!TestNotNull(TEXT("Test world exists"), TestWorld.World))
+	{
+		return false;
+	}
+
+	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
+	AGridMonsterActor* Monster = TestWorld.World->SpawnActor<AGridMonsterActor>();
+	UGridMonsterDefinitionAsset* Definition = GridMonsterDeathCollision01::MakeValidDefinition();
+	UGridLevelAsset* Level = NewObject<UGridLevelAsset>(GetTransientPackage());
+	if (!TestNotNull(TEXT("Runtime exists"), Runtime) || !TestNotNull(TEXT("Monster exists"), Monster) ||
+		!TestNotNull(TEXT("Definition exists"), Definition) || !TestNotNull(TEXT("Level exists"), Level))
+	{
+		return false;
+	}
+
+	Level->Width = 3;
+	Level->Height = 3;
+	Level->CellSize = 200.0f;
+	Level->EnsureCellCount();
+	for (FGridLevelCellData& Cell : Level->Cells)
+	{
+		Cell.CellType = EGridCellType::Floor;
+		Cell.NorthWall = EGridWallType::None;
+		Cell.EastWall = EGridWallType::None;
+		Cell.SouthWall = EGridWallType::None;
+		Cell.WestWall = EGridWallType::None;
+	}
+	Level->GetCellMutable(1, 1).WestWall = EGridWallType::Solid;
+	Runtime->LevelAsset = Level;
+	Runtime->GridOrigin = FVector::ZeroVector;
+
+	Definition->bEnableObstacleAwareDeath = true;
+	Definition->DeathFallLocalDirection = FVector(-1.0f, 0.0f, 0.0f);
+	Monster->MonsterDefinition = Definition;
+	Monster->SetActorLocation(Runtime->GetCellCenterWorld(1, 1, 0.0f));
+	Monster->SetActorRotation(FRotator::ZeroRotator);
+	Monster->CurrentCell = FIntPoint(1, 1);
+	Monster->DeathComponent->DeathCell = FIntPoint(1, 1);
+	Monster->DeathComponent->InitializeDeathComponent(Runtime);
+
+	FHitResult Hit;
+	TestTrue(TEXT("A solid grid wall is detected without relying on any wall mesh collision"), Monster->DeathComponent->ProbeDeathObstacle(Hit));
+	TestTrue(TEXT("Grid wall hit is synthetic and blocking"), Hit.bBlockingHit);
+	TestTrue(TEXT("West wall normal points back into the monster cell"), Hit.ImpactNormal.Equals(FVector(1.0f, 0.0f, 0.0f), 0.001f));
+	TestEqual(TEXT("West wall plane uses the exact grid edge X"), Hit.ImpactPoint.X, Runtime->GetCellCenterWorld(1, 1, 0.0f).X - 100.0f);
 	return true;
 }
 
