@@ -256,6 +256,7 @@ Nouvelle suite :
 Grimrock.Monsters.MON14.3.CursorRules
 Grimrock.Monsters.MON14.3.PatrolMovement
 Grimrock.Monsters.MON14.3.HearingInvestigation
+Grimrock.Monsters.MON14.3.BlockedHearingWait
 Grimrock.Monsters.MON14.3.DormantPatrol
 Grimrock.Monsters.MON14.3.CombatSuspension
 ```
@@ -270,3 +271,23 @@ L'édition visuelle avancée d'une route dans le Grid Editor reste une sous-éta
 clic. Les données sont déjà sérialisées et le runtime MON14.3 les consomme.
 Cette séparation permet de valider d'abord le comportement de jeu avant de
 multiplier les surfaces d'édition.
+
+
+## Correction MON-AI-BLOCKED-INVESTIGATION01 — cible audible inaccessible
+
+Une porte normale fermée laisse volontairement passer le son via `CanSoundTraverse()`, tout en restant infranchissable via `CanMove()`. Un monstre peut donc connaître précisément la cellule du groupe sans disposer d'aucun chemin vers elle.
+
+Avant correction, `ProcessInvestigation()` interprétait l'absence de chemin comme une perte de cible et entrait immédiatement dans `BeginSearch()`. Tant que le groupe restait audible, l'investigation était relancée après le tour d'horizon, ce qui pouvait produire une succession de rotations in-place ressemblant à un tremblement derrière une porte grillagée.
+
+Le contrat corrigé est :
+
+```text
+cible encore audible + aucun chemin
+→ MonsterState reste Alert
+→ Activity reste Investigating
+→ aucun Turn de recherche
+→ attente 0,25 s
+→ nouvelle tentative de pathfinding
+```
+
+Si l'obstacle s'ouvre, la tentative suivante reprend normalement le déplacement. Si la cible n'est plus audible, le comportement historique de recherche MON14.3 reprend.

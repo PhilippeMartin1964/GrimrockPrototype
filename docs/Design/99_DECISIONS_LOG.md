@@ -1133,3 +1133,17 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le nudge est appliqué lors d'un placement initial de niveau ou d'un dépôt frais dans le monde, jamais lors de la restauration d'une sauvegarde.
 - La pose finale reste entièrement déterminée par Chaos et la collision du `WorldMesh`.
 - Filtre Automation : `Grimrock.Items.ITEM_PHYSICS01.WorldPickupSettling`.
+
+
+---
+
+## 2026-09-03 — MON-AI-BLOCKED-INVESTIGATION01 : attente stable derrière un obstacle
+
+### Décisions validées
+
+- Une cible encore audible mais temporairement inaccessible n'est pas considérée comme perdue.
+- `ProcessInvestigation()` reste en activité `Investigating` et n'appelle plus `BeginSearch()` tant que `bCanHearParty=true` et qu'aucun chemin n'existe.
+- Le monstre ne lance donc plus les rotations de recherche répétées qui pouvaient apparaître comme un tremblement derrière une porte grillagée.
+- Une nouvelle tentative de pathfinding est planifiée après 0,25 s ; l'ouverture de la porte permet alors une reprise naturelle du déplacement.
+- Lorsque l'ouïe est perdue, le cycle historique de recherche MON14.3 reste inchangé.
+- Test Automation : `Grimrock.Monsters.MON14.3.BlockedHearingWait`.

@@ -6,6 +6,8 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/GridDoorActor.h"
+#include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -305,6 +307,98 @@ bool FGridMonsterMON143HearingInvestigationTest::RunTest(const FString& Paramete
 	TestEqual(TEXT("Activity becomes Investigating"), Fixture.Patrol->GetMonsterActivity(Monster->ResolvePersistenceId()),
 		EGridMonsterExplorationActivity::Investigating);
 	TestFalse(TEXT("Hearing alone does not start combat"), Fixture.TurnManager->bCombatActive);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON143BlockedHearingWaitTest, "Grimrock.Monsters.MON14.3.BlockedHearingWait",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON143BlockedHearingWaitTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	FGridMON143Fixture Fixture;
+	TestTrue(TEXT("Fixture initializes"), Fixture.Initialize(FIntPoint(1, 3)));
+	if (!Fixture.Patrol || !Fixture.Runtime || !Fixture.Level || !Fixture.TestWorld.World)
+	{
+		return false;
+	}
+
+	// Build a one-cell-wide corridor so the closed normal door is the only route.
+	for (int32 Y = 0; Y < Fixture.Level->Height; ++Y)
+	{
+		for (int32 X = 0; X < Fixture.Level->Width; ++X)
+		{
+			if (X != 1)
+			{
+				Fixture.Level->GetCellMutable(X, Y).CellType = EGridCellType::Empty;
+			}
+		}
+	}
+
+	FGridLevelObjectData DoorData;
+	DoorData.ObjectId = FGuid::NewGuid();
+	DoorData.Type = EGridLevelObjectType::Door;
+	DoorData.CellX = 1;
+	DoorData.CellY = 1;
+	DoorData.Edge = EGridEdge::North;
+	DoorData.bInitiallyActive = false;
+	DoorData.Behavior.DoorAnimation.OpenHeight = 180.0f;
+	DoorData.Behavior.DoorAnimation.MoveDuration = 0.1f;
+	Fixture.Level->Objects.Add(DoorData);
+
+	UGridDoorSystemComponent* DoorSystem = Fixture.Runtime->FindComponentByClass<UGridDoorSystemComponent>();
+	TestNotNull(TEXT("Door system exists"), DoorSystem);
+	if (!DoorSystem)
+	{
+		return false;
+	}
+	DoorSystem->Initialize(Fixture.Runtime);
+	DoorSystem->RebuildIndexes();
+
+	AGridDoorActor* Door = Fixture.TestWorld.World->SpawnActor<AGridDoorActor>();
+	TestNotNull(TEXT("Closed normal door exists"), Door);
+	if (!Door)
+	{
+		return false;
+	}
+	Door->InitializeDoor(DoorData, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	DoorSystem->RegisterDoorObject(DoorData, Door);
+
+	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_BlockedHearingRat"), 0, 4), FIntPoint(1, 1), EGridEdge::North,
+		EGridMonsterState::Dormant, EGridMonsterPatrolMode::None, TArray<FGridMonsterPatrolWaypoint>());
+	TestNotNull(TEXT("Blocked hearing monster exists"), Monster);
+	if (!Monster)
+	{
+		return false;
+	}
+
+	UGridMonsterBehaviorComponent* Behavior = Monster->FindComponentByClass<UGridMonsterBehaviorComponent>();
+	UGridMonsterMovementComponent* Movement = Monster->FindComponentByClass<UGridMonsterMovementComponent>();
+	TestNotNull(TEXT("Behavior exists"), Behavior);
+	TestNotNull(TEXT("Movement exists"), Movement);
+	TestFalse(TEXT("Closed door blocks movement"), Fixture.Runtime->CanMove(1, 1, EGridEdge::North));
+	TestTrue(TEXT("Closed normal door still carries sound"), Fixture.Runtime->CanSoundTraverse(1, 1, EGridEdge::North));
+
+	TestTrue(TEXT("Blocked hearing perception is processed"), Fixture.Patrol->ProcessMonsterNow(Monster, TEXT("MON143BlockedHearing")));
+	TestTrue(TEXT("Party is heard through the closed normal door"), Behavior && Behavior->bCanHearParty);
+	TestFalse(TEXT("Party is not seen"), Behavior && Behavior->bCanSeeParty);
+	TestEqual(TEXT("Unreachable audible target stays Investigating"), Fixture.Patrol->GetMonsterActivity(Monster->ResolvePersistenceId()),
+		EGridMonsterExplorationActivity::Investigating);
+	TestFalse(TEXT("Unreachable audible target does not start a search turn"), Movement && Movement->IsBusy());
+	TestFalse(TEXT("Blocked hearing does not start combat"), Fixture.TurnManager->bCombatActive);
+
+	TestTrue(TEXT("Repeated blocked hearing is processed without oscillation"), Fixture.Patrol->ProcessMonsterNow(Monster, TEXT("MON143BlockedHearingRepeat")));
+	TestEqual(TEXT("Repeated blocked hearing remains Investigating"), Fixture.Patrol->GetMonsterActivity(Monster->ResolvePersistenceId()),
+		EGridMonsterExplorationActivity::Investigating);
+	TestFalse(TEXT("Repeated blocked hearing still does not start a turn"), Movement && Movement->IsBusy());
+
+	TestTrue(TEXT("Door accepts open command"), Fixture.Runtime->OpenDoorOnEdge(1, 1, EGridEdge::North));
+	Door->Tick(0.1f);
+	TestTrue(TEXT("Door is fully open"), Door->IsFullyOpen());
+	TestTrue(TEXT("Opening the door restores movement"), Fixture.Runtime->CanMove(1, 1, EGridEdge::North));
+
+	TestTrue(TEXT("Investigation retries after the door opens"), Fixture.Patrol->ProcessMonsterNow(Monster, TEXT("MON143BlockedHearingDoorOpened")));
+	TestTrue(TEXT("Monster starts moving once a route exists"), Movement && Movement->IsBusy());
 	return true;
 }
 

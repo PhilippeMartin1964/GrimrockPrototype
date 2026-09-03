@@ -414,6 +414,20 @@ bool UGridMonsterPatrolSubsystem::ProcessInvestigation(FRuntimeEntry& Entry, AGr
 	Entry.Activity = EGridMonsterExplorationActivity::Investigating;
 	if (!Behavior->FindPathToLastKnownPartyCell())
 	{
+		// A continuously audible target behind an impassable door/wall is not "lost".
+		// Stay stably alert and retry later instead of entering the turn-in-place search
+		// loop, which can visually look like the monster is trembling behind the obstacle.
+		if (Behavior->bCanHearParty)
+		{
+			Entry.Activity = EGridMonsterExplorationActivity::Investigating;
+			Entry.SearchTurnsRemaining = 0;
+			ScheduleStep(Entry, 0.25f);
+			UE_LOG(LogGridMonsterPatrol, Verbose,
+				TEXT("[MON-AI-BLOCKED-INVESTIGATION01] Audible target unreachable Monster=%s MonsterCell=(%d,%d) PartyCell=(%d,%d) Action=WaitAndRetry"),
+				*GetNameSafe(Monster), Monster->CurrentCell.X, Monster->CurrentCell.Y, Behavior->LastKnownPartyCell.X, Behavior->LastKnownPartyCell.Y);
+			return true;
+		}
+
 		BeginSearch(Entry, Monster);
 		return true;
 	}
