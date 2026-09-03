@@ -169,14 +169,6 @@ public:
 	float WorldPhysicsInitialTiltDegrees = 0.0f;
 
 	/**
-	 * Initial angular speed applied to the simulated rigid body after world-pickup physics starts.
-	 * This is a fresh-placement kick only; save-game restoration does not reapply it.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Physics|World Pickup",
-		meta = (ClampMin = "0.0", ClampMax = "720.0"))
-	float WorldPhysicsInitialAngularSpeedDegrees = 0.0f;
-
-	/**
 	 * Legacy serialized flag kept only to preserve existing throwable-weapon
 	 * assets. New authoring uses HandUsage/Weight for physical throwing and
 	 * bCombatThrowWeapon for combat projectile semantics.

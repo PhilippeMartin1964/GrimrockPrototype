@@ -21,9 +21,7 @@ bool UGridItemDefinitionAsset::IsValidDefinition() const
 		return false;
 	}
 
-	if (!FMath::IsFinite(WorldPhysicsInitialTiltDegrees) || WorldPhysicsInitialTiltDegrees < 0.0f || WorldPhysicsInitialTiltDegrees > 45.0f ||
-		!FMath::IsFinite(WorldPhysicsInitialAngularSpeedDegrees) || WorldPhysicsInitialAngularSpeedDegrees < 0.0f ||
-		WorldPhysicsInitialAngularSpeedDegrees > 720.0f)
+	if (!FMath::IsFinite(WorldPhysicsInitialTiltDegrees) || WorldPhysicsInitialTiltDegrees < 0.0f || WorldPhysicsInitialTiltDegrees > 45.0f)
 	{
 		return false;
 	}

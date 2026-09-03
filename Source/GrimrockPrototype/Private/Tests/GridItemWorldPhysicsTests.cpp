@@ -71,7 +71,6 @@ bool FGridItemWorldPhysicsSettlingTest::RunTest(const FString& Parameters)
 	Definition->Weight = 0.10f;
 	Definition->bUseItemWeightAsWorldPhysicsMass = true;
 	Definition->WorldPhysicsInitialTiltDegrees = 2.0f;
-	Definition->WorldPhysicsInitialAngularSpeedDegrees = 120.0f;
 	TestTrue(TEXT("Opt-in gem world physics definition is valid"), Definition->IsValidDefinition());
 
 	const FGuid RuntimeId = FGuid::NewGuid();
@@ -117,12 +116,6 @@ bool FGridItemWorldPhysicsSettlingTest::RunTest(const FString& Parameters)
 	InvalidTiltDefinition->Weight = 0.1f;
 	InvalidTiltDefinition->WorldPhysicsInitialTiltDegrees = 50.0f;
 	TestFalse(TEXT("Initial tilt outside the authored safety range is invalid"), InvalidTiltDefinition->IsValidDefinition());
-
-	UGridItemDefinitionAsset* InvalidAngularSpeedDefinition = NewObject<UGridItemDefinitionAsset>(TestWorld.World);
-	InvalidAngularSpeedDefinition->ItemDefinitionId = TEXT("Invalid_Angular_Speed");
-	InvalidAngularSpeedDefinition->Weight = 0.1f;
-	InvalidAngularSpeedDefinition->WorldPhysicsInitialAngularSpeedDegrees = 900.0f;
-	TestFalse(TEXT("Initial angular speed outside the authored safety range is invalid"), InvalidAngularSpeedDefinition->IsValidDefinition());
 
 	return true;
 }
