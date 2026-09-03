@@ -729,8 +729,8 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	ItemActor->InitializeFromItemDefinition(ItemDefinition, RuntimeObjectId);
 	ItemActor->SetRuntimeObjectId(RuntimeObjectId);
 	ItemActor->SetRuntimeCell(CellX, CellY);
-	ItemActor->ApplyWorldPhysicsInitialNudge();
 	ItemActor->ConfigureAsWorldPickup();
+	ItemActor->ApplyWorldPhysicsInitialNudge();
 	ItemActor->OnPlacedInWorld();
 	ItemActor->SetItemLightsEnabled(ItemInstance.bLightsEnabled);
 	ItemActor->InitializeReadableContent(

@@ -1133,3 +1133,12 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le nudge est appliqué lors d'un placement initial de niveau ou d'un dépôt frais dans le monde, jamais lors de la restauration d'une sauvegarde.
 - La pose finale reste entièrement déterminée par Chaos et la collision du `WorldMesh`.
 - Filtre Automation : `Grimrock.Items.ITEM_PHYSICS01.WorldPickupSettling`.
+
+
+### Correction ITEM-PHYSICS01.1 — nudge appliqué au rigid body
+
+- Le nudge de placement est désormais exécuté après `ConfigureAsWorldPickup()`, donc après l'activation de `SimulatePhysics`.
+- Quand le mesh simule, la rotation est appliquée directement à `MeshComponent` avec `TeleportPhysics`, pas seulement à l'Actor root.
+- Un nouveau paramètre `WorldPhysicsInitialAngularSpeedDegrees` permet d'injecter un faible mouvement angulaire initial déterministe.
+- Pour `DA_Item_BlueGem`, valeur de test recommandée : tilt `5°` et vitesse angulaire `120°/s`.
+- Les valeurs par défaut restent nulles afin de préserver tous les anciens items.

@@ -13,12 +13,14 @@ ITEM-PHYSICS01 ne remplace pas la physique existante : `AGridItemActor::Configur
 `UGridItemDefinitionAsset` expose :
 
 ```text
-bUseItemWeightAsWorldPhysicsMass = false
-WorldPhysicsInitialTiltDegrees   = 0.0
+bUseItemWeightAsWorldPhysicsMass      = false
+WorldPhysicsInitialTiltDegrees          = 0.0
+WorldPhysicsInitialAngularSpeedDegrees  = 0.0
 ```
 
 - `bUseItemWeightAsWorldPhysicsMass` : si actif, `Weight` est utilisé comme masse Chaos en kilogrammes pour le pickup libre.
-- `WorldPhysicsInitialTiltDegrees` : petite inclinaison initiale, limitée à 0..45 degrés, appliquée seulement lors d'un placement ou dépôt frais dans le monde.
+- `WorldPhysicsInitialTiltDegrees` : petite inclinaison initiale, limitée à 0..45 degrés.
+- `WorldPhysicsInitialAngularSpeedDegrees` : vitesse angulaire initiale, limitée à 0..720 deg/s, appliquée au rigid body une fois Chaos réellement actif.
 
 Les deux réglages sont opt-in et leurs valeurs par défaut préservent le comportement des assets existants.
 
@@ -37,6 +39,8 @@ pose verticale parfaite
 
 Deux occurrences ayant la même identité runtime reçoivent la même direction de nudge, ce qui évite un aléatoire non déterministe.
 
+Correction ITEM-PHYSICS01.1 : le premier prototype inclinait seulement l'Actor avant l'activation de Chaos. Sur certains meshes, la coque convexe pouvait ensuite stabiliser à nouveau la pierre sur une petite base. Le nudge est désormais appliqué directement au `MeshComponent` après `SetSimulatePhysics(true)`, et peut lui donner une vitesse angulaire initiale afin de garantir que l'équilibre vertical est réellement rompu.
+
 ## Points d'application
 
 Le nudge est appliqué :
@@ -51,9 +55,10 @@ Il n'est volontairement pas appelé par `GridLevelRuntimeActorPersistence.cpp`. 
 Dans `DA_Item_BlueGem` :
 
 ```text
-Weight                                = 0.10
-Use Item Weight As World Physics Mass = true
-World Physics Initial Tilt Degrees    = 2.0
+Weight                                      = 0.10
+Use Item Weight As World Physics Mass       = true
+World Physics Initial Tilt Degrees           = 5.0
+World Physics Initial Angular Speed Degrees  = 120.0
 ```
 
 Le Static Mesh `SM_Gem_Blue` doit disposer d'une collision simple valide. Comme la gemme est convexe, un seul Convex Hull est recommandé. Ne pas utiliser `Use Complex Collision As Simple` pour ce rigid body simulé.
@@ -72,4 +77,4 @@ Le test protège :
 - l'application exacte du tilt configuré ;
 - son caractère déterministe ;
 - le maintien du comportement legacy avec tilt nul ;
-- le rejet d'une masse opt-in nulle et d'un tilt hors plage.
+- le rejet d'une masse opt-in nulle, d'un tilt hors plage et d'une vitesse angulaire hors plage.

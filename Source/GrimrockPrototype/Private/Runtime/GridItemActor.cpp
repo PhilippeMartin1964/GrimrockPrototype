@@ -212,7 +212,9 @@ void AGridItemActor::ApplyWorldPhysicsInitialNudge()
 	}
 
 	const float TiltDegrees = FMath::Clamp(ItemDefinitionAsset->WorldPhysicsInitialTiltDegrees, 0.0f, 45.0f);
-	if (!FMath::IsFinite(TiltDegrees) || TiltDegrees <= KINDA_SMALL_NUMBER)
+	const float AngularSpeedDegrees = FMath::Clamp(ItemDefinitionAsset->WorldPhysicsInitialAngularSpeedDegrees, 0.0f, 720.0f);
+	if (!FMath::IsFinite(TiltDegrees) || !FMath::IsFinite(AngularSpeedDegrees) ||
+		(TiltDegrees <= KINDA_SMALL_NUMBER && AngularSpeedDegrees <= KINDA_SMALL_NUMBER))
 	{
 		return;
 	}
@@ -221,8 +223,32 @@ void AGridItemActor::ApplyWorldPhysicsInitialNudge()
 	Hash = HashCombine(Hash, GetTypeHash(ArchetypeId));
 	const float AzimuthRadians = (static_cast<float>(Hash % 3600u) / 10.0f) * (PI / 180.0f);
 	const FVector TiltAxis(FMath::Cos(AzimuthRadians), FMath::Sin(AzimuthRadians), 0.0f);
-	const FQuat TiltRotation(TiltAxis, FMath::DegreesToRadians(TiltDegrees));
-	AddActorWorldRotation(TiltRotation, false, nullptr, ETeleportType::TeleportPhysics);
+
+	// Once physics is active the mesh owns the rigid-body transform. Apply the
+	// nudge directly to that component instead of rotating only the actor root.
+	if (MeshComponent && MeshComponent->IsSimulatingPhysics())
+	{
+		if (TiltDegrees > KINDA_SMALL_NUMBER)
+		{
+			const FQuat TiltRotation(TiltAxis, FMath::DegreesToRadians(TiltDegrees));
+			const FQuat NudgedRotation = TiltRotation * MeshComponent->GetComponentQuat();
+			MeshComponent->SetWorldRotation(NudgedRotation, false, nullptr, ETeleportType::TeleportPhysics);
+		}
+
+		if (AngularSpeedDegrees > KINDA_SMALL_NUMBER)
+		{
+			MeshComponent->SetPhysicsAngularVelocityInDegrees(TiltAxis * AngularSpeedDegrees, false);
+		}
+		MeshComponent->WakeRigidBody();
+		return;
+	}
+
+	// Fallback used by non-physics automation worlds and before simulation.
+	if (TiltDegrees > KINDA_SMALL_NUMBER)
+	{
+		const FQuat TiltRotation(TiltAxis, FMath::DegreesToRadians(TiltDegrees));
+		AddActorWorldRotation(TiltRotation, false, nullptr, ETeleportType::TeleportPhysics);
+	}
 }
 
 void AGridItemActor::ConfigureAsAttachedItem()

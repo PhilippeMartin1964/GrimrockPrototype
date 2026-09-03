@@ -2295,8 +2295,8 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLevelObjectData& Obje
 	}
 	ItemActor->InitializeReadableContent(ReadableContentAsset, ReadableContentId, ReadTitleOverride, ReadTextOverride);
 	ItemActor->SetRuntimeCell(ObjectData.CellX, ObjectData.CellY);
-	ItemActor->ApplyWorldPhysicsInitialNudge();
 	ItemActor->ConfigureAsWorldPickup();
+	ItemActor->ApplyWorldPhysicsInitialNudge();
 	ItemActor->OnRemovedFromWorld();
 	SpawnedItemActors.Add(ItemActor);
 
