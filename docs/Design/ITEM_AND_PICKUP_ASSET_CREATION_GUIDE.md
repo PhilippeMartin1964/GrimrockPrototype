@@ -458,7 +458,28 @@ Règles :
 - `WorldMesh` avec pivot propre et échelle UE correcte ;
 - `EquippedMesh` peut rester vide tant que l'item n'est pas visible en main.
 
-### 5.9 Lancer d'objet
+### 5.9 Physique des pickups dans le monde
+
+Les items libres utilisent déjà Chaos via `AGridItemActor::ConfigureAsWorldPickup()`. Pour les formes très symétriques pouvant rester dans un équilibre numérique instable (par exemple une gemme posée exactement sur sa pointe), la définition d'item peut demander un très léger déséquilibre initial data-driven.
+
+| Paramètre | Rôle |
+|---|---|
+| `bUseItemWeightAsWorldPhysicsMass` | Utilise `Weight` en kilogrammes comme masse Chaos du pickup libre. Opt-in pour préserver les assets historiques. |
+| `WorldPhysicsInitialTiltDegrees` | Inclinaison déterministe appliquée uniquement lors d'un placement ou dépôt frais dans le monde. `0` désactive le comportement. |
+
+Exemple recommandé pour une gemme :
+
+```text
+Weight                              = 0.10
+bUseItemWeightAsWorldPhysicsMass    = true
+WorldPhysicsInitialTiltDegrees      = 2.0
+```
+
+L'inclinaison ne fixe pas la pose finale : elle rompt seulement l'équilibre parfait, puis la gravité, la collision, l'inertie et la friction déterminent la position de repos. La restauration d'une sauvegarde ne réapplique pas ce nudge afin de ne pas déplacer un objet déjà stabilisé.
+
+Le `WorldMesh` doit disposer d'une collision simple compatible avec la simulation physique. Pour une gemme convexe, un seul Convex Hull est recommandé ; éviter `Use Complex Collision As Simple` pour un rigid body simulé.
+
+### 5.10 Lancer d'objet
 
 | Paramètre | Rôle |
 |---|---|
@@ -470,7 +491,7 @@ Règles :
 
 Clé : généralement non lançable au début. Pierre : lançable. Objet de quête : éviter le lancer tant que la restauration n'est pas robuste.
 
-### 5.10 Lumière
+### 5.11 Lumière
 
 | Paramètre | Rôle |
 |---|---|
@@ -492,7 +513,7 @@ Clé :
 bCanEmitLight = false
 ```
 
-### 5.11 Tags métier
+### 5.12 Tags métier
 
 `ItemTags` décrit la nature métier de l'item. Les tags sont techniques et restent en anglais.
 

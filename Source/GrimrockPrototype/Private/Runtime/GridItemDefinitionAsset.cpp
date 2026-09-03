@@ -21,6 +21,16 @@ bool UGridItemDefinitionAsset::IsValidDefinition() const
 		return false;
 	}
 
+	if (!FMath::IsFinite(WorldPhysicsInitialTiltDegrees) || WorldPhysicsInitialTiltDegrees < 0.0f || WorldPhysicsInitialTiltDegrees > 45.0f)
+	{
+		return false;
+	}
+
+	if (bUseItemWeightAsWorldPhysicsMass && (!FMath::IsFinite(Weight) || Weight <= KINDA_SMALL_NUMBER))
+	{
+		return false;
+	}
+
 	if (bEnableWorldSparkle &&
 		(WorldSparkleMaterial.IsNull() || !FMath::IsFinite(WorldSparkleIntensity) || WorldSparkleIntensity < 0.0f ||
 			!FMath::IsFinite(WorldSparkleSpeed) || WorldSparkleSpeed < 0.0f || !FMath::IsFinite(WorldSparkleVariation) ||

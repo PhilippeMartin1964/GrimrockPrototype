@@ -101,6 +101,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void ConfigureAsWorldPickup();
 
+	/** Applies the opt-in deterministic fresh-placement tilt before Chaos simulation starts. */
+	UFUNCTION(BlueprintCallable, Category = "Item|World Physics")
+	void ApplyWorldPhysicsInitialNudge();
+
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void ConfigureAsAttachedItem();
 

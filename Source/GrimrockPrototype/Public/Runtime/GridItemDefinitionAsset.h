@@ -153,6 +153,22 @@ public:
 	float WorldSparkleVariation = 0.35f;
 
 	/**
+	 * ITEM-PHYSICS01: use the logical item Weight (kg) as the Chaos rigid-body mass
+	 * while the item is a free world pickup. Opt-in preserves legacy item behavior.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Physics|World Pickup")
+	bool bUseItemWeightAsWorldPhysicsMass = false;
+
+	/**
+	 * Small deterministic tilt applied only when an item is freshly placed or dropped
+	 * into the world. It breaks perfectly balanced unstable poses so gravity can settle
+	 * the rigid body naturally. Save-game restoration intentionally does not reapply it.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Physics|World Pickup",
+		meta = (ClampMin = "0.0", ClampMax = "45.0"))
+	float WorldPhysicsInitialTiltDegrees = 0.0f;
+
+	/**
 	 * Legacy serialized flag kept only to preserve existing throwable-weapon
 	 * assets. New authoring uses HandUsage/Weight for physical throwing and
 	 * bCombatThrowWeapon for combat projectile semantics.

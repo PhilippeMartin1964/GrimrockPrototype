@@ -1119,3 +1119,17 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - `SparklePhase` désynchronise plusieurs items à partir de leur identité runtime.
 - Un asset avec World Sparkle activé sans matériau est invalide.
 - Le mode de réceptacle `PhysicalAtHit` est considéré comme une présentation physique World Pickup et peut donc scintiller ; les placements attachés restent OFF.
+
+---
+
+## 2026-09-03 — ITEM-PHYSICS01 : stabilisation physique des pickups monde
+
+### Décisions validées
+
+- Les pickups libres restent des rigid bodies Chaos : collision `PhysicsActor`, gravité et `SimulatePhysics` demeurent la source de vérité de leur pose.
+- `UGridItemDefinitionAsset` expose désormais `bUseItemWeightAsWorldPhysicsMass` et `WorldPhysicsInitialTiltDegrees`.
+- L'utilisation de `Weight` comme masse physique est opt-in afin de ne pas modifier le comportement des anciens items.
+- Le tilt initial est déterministe à partir de l'identité runtime et ne sert qu'à casser un équilibre numérique parfait, par exemple une gemme debout sur sa pointe.
+- Le nudge est appliqué lors d'un placement initial de niveau ou d'un dépôt frais dans le monde, jamais lors de la restauration d'une sauvegarde.
+- La pose finale reste entièrement déterminée par Chaos et la collision du `WorldMesh`.
+- Filtre Automation : `Grimrock.Items.ITEM_PHYSICS01.WorldPickupSettling`.

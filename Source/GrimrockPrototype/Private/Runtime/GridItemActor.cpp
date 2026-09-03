@@ -187,10 +187,42 @@ void AGridItemActor::ConfigureAsWorldPickup()
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	MeshComponent->SetCollisionProfileName(TEXT("PhysicsActor"));
 	MeshComponent->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+
+	if (ItemDefinitionAsset && ItemDefinitionAsset->bUseItemWeightAsWorldPhysicsMass && FMath::IsFinite(ItemDefinitionAsset->Weight) &&
+		ItemDefinitionAsset->Weight > KINDA_SMALL_NUMBER)
+	{
+		MeshComponent->SetMassOverrideInKg(NAME_None, ItemDefinitionAsset->Weight, true);
+	}
+	else
+	{
+		MeshComponent->SetMassOverrideInKg(NAME_None, 0.0f, false);
+	}
+
 	MeshComponent->SetEnableGravity(true);
 	MeshComponent->SetSimulatePhysics(true);
 	MeshComponent->WakeRigidBody();
 	SetWorldSparkleEnabled(true);
+}
+
+void AGridItemActor::ApplyWorldPhysicsInitialNudge()
+{
+	if (!ItemDefinitionAsset)
+	{
+		return;
+	}
+
+	const float TiltDegrees = FMath::Clamp(ItemDefinitionAsset->WorldPhysicsInitialTiltDegrees, 0.0f, 45.0f);
+	if (!FMath::IsFinite(TiltDegrees) || TiltDegrees <= KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	uint32 Hash = RuntimeObjectId.IsValid() ? GetTypeHash(RuntimeObjectId) : GetTypeHash(GetItemDefinitionId());
+	Hash = HashCombine(Hash, GetTypeHash(ArchetypeId));
+	const float AzimuthRadians = (static_cast<float>(Hash % 3600u) / 10.0f) * (PI / 180.0f);
+	const FVector TiltAxis(FMath::Cos(AzimuthRadians), FMath::Sin(AzimuthRadians), 0.0f);
+	const FQuat TiltRotation(TiltAxis, FMath::DegreesToRadians(TiltDegrees));
+	AddActorWorldRotation(TiltRotation, false, nullptr, ETeleportType::TeleportPhysics);
 }
 
 void AGridItemActor::ConfigureAsAttachedItem()
