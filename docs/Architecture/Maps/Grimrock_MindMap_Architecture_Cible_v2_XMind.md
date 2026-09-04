@@ -23,7 +23,13 @@
   - Grille comme source de vérité spatiale
     - Coordonnées par cellule
     - Orientation cardinalisée
-    - Placement local relatif à la cellule ou à l'arête
+    - Placement local relatif à une surface de cellule
+    - Surfaces de placement limitées à Floor, Wall et Ceiling
+    - Center n'est plus un type de placement
+      - Un objet centré = Floor avec position locale U=0, V=0, N=0
+    - Edge n'est plus un type de placement
+      - La frontière entre deux cellules reste une notion topologique séparée
+      - Utilisée notamment par les portes, passages, collisions et acoustique
     - Éviter de stocker des coordonnées monde UE comme source de vérité
   - Références plutôt que duplication
     - ItemDefinitionRef
@@ -39,6 +45,94 @@
     - Cible
     - Lua optionnel
     - Quête optionnelle
+
+- Système de placement spatial cible
+  - Principe
+    - Le placement répond uniquement à la question « où est l'objet ? »
+    - Le comportement spatial répond séparément à « que fait l'objet à cet endroit ? »
+  - Cellule
+    - CellX
+    - CellY
+  - Surface
+    - Floor
+    - Wall
+    - Ceiling
+  - WallSide
+    - Utilisé seulement avec Surface = Wall
+    - North
+    - East
+    - South
+    - West
+  - Coordonnées locales de surface
+    - U
+      - Axe tangent horizontal de la surface
+    - V
+      - Axe tangent secondaire
+      - Vertical pour un mur
+    - N
+      - Axe normal à la surface
+      - Hauteur au-dessus du sol pour Floor
+      - Profondeur par rapport au mur pour Wall
+      - Distance sous le plafond pour Ceiling
+  - Transform local
+    - LocalPosition
+      - U
+      - V
+      - N
+    - LocalRotation
+    - LocalScale
+  - Center supprimé
+    - Équivalent naturel
+      - Surface = Floor
+      - U = 0
+      - V = 0
+      - N = 0
+  - Edge supprimé comme PlacementKind
+    - Edge devient une notion topologique de frontière entre cellules
+    - BoundaryKey normalisé
+      - CellX
+      - CellY
+      - Side
+    - Deux descriptions opposées doivent identifier la même frontière
+      - Cell A / North
+      - Cell voisine / South
+    - Utilisations
+      - Portes
+      - Portes secrètes
+      - Murs ouvrables
+      - Blocage de passage
+      - Collision
+      - Acoustique
+      - Projectiles
+      - Navigation des monstres
+  - Exemples
+    - Statue centrée sur une cellule
+      - Surface = Floor
+      - U = 0
+      - V = 0
+      - N = 0
+    - Gemme décalée au sol
+      - Surface = Floor
+      - U = +25
+      - V = -40
+      - N = +8
+    - Bouton mural
+      - Surface = Wall
+      - WallSide = North
+      - U = 0
+      - V = 145
+      - N = 0
+    - Lustre
+      - Surface = Ceiling
+      - U = 0
+      - V = 0
+      - N = 70
+    - Porte
+      - Surface = Wall
+      - WallSide = South
+      - OccupiesBoundary = true
+      - ReplacesStandardWall = true
+      - BlocksPassageWhenClosed = true
 
 - Définitions globales du jeu
   - Objets du monde
@@ -65,23 +159,45 @@
         - Pit
         - Passage
         - FutureSpecial
-    - Placement
-      - PlacementKind
-        - Center
+    - Placement et contraintes d'authoring
+      - AllowedPlacementSurfaces
         - Floor
         - Wall
-        - Edge
         - Ceiling
+      - DefaultPlacementSurface
+        - Floor
+        - Wall
+        - Ceiling
+      - WallSide requis seulement pour Wall
+        - North
+        - East
+        - South
+        - West
+      - Repère local de surface
+        - U
+          - Axe horizontal de la surface
+        - V
+          - Deuxième axe tangent à la surface
+        - N
+          - Axe normal à la surface
+      - DefaultLocalPosition
+        - U
+        - V
+        - N
+      - DefaultLocalRotation
+      - DefaultLocalScale
+      - SnappingRules
+        - Grid snapping
+        - Surface snapping
+        - Optional socket snapping
+    - Comportement spatial
       - CanShareCell
       - CanShareAnchor
       - BlocksMovement
+      - OccupiesBoundary
       - ReplacesStandardWall
-      - PlacementZOffset
-      - WallInset
-      - LocalOffsetAlongWall
-      - LocalOffsetVertical
-      - DefaultRotation
-      - DefaultScale
+      - BlocksPassageWhenClosed
+      - Boundary semantics séparées du placement
     - Présentation visuelle
       - PreviewMesh
       - FixedMesh
@@ -720,9 +836,23 @@
     - Placement
       - CellX
       - CellY
-      - Edge
-      - LocalYaw
-      - LocalOffset
+      - Surface
+        - Floor
+        - Wall
+        - Ceiling
+      - WallSide
+        - seulement si Surface = Wall
+        - North
+        - East
+        - South
+        - West
+      - LocalPosition
+        - U
+        - V
+        - N
+      - LocalRotation
+      - LocalScale
+      - BoundaryKey dérivé si l'objet occupe une frontière
     - État initial
       - InitiallyEnabled
       - InitiallyActive
@@ -761,9 +891,18 @@
     - Placement monde
       - CellX
       - CellY
-      - PlacementKind
-      - LocalOffset
-      - Rotation
+      - Surface
+        - Floor
+        - Wall
+        - Ceiling
+      - WallSide
+        - seulement si Surface = Wall
+      - LocalPosition
+        - U
+        - V
+        - N
+      - LocalRotation
+      - LocalScale
     - Conteneur
       - ContainerObjectId
       - ContainerSlot
@@ -831,8 +970,18 @@
     - Placement
       - CellX
       - CellY
-      - LocalOffset
-      - Rotation
+      - Surface
+        - Floor
+        - Wall
+        - Ceiling
+      - WallSide
+        - seulement si Surface = Wall
+      - LocalPosition
+        - U
+        - V
+        - N
+      - LocalRotation
+      - LocalScale
     - Activation
       - InitiallyEnabled
       - SpawnOnEvent
@@ -1093,6 +1242,13 @@
   - Inspecteur d'objet
     - DefinitionRef
     - Placement
+      - CellX / CellY
+      - Surface = Floor / Wall / Ceiling
+      - WallSide si Wall
+      - Position locale U / V / N
+      - Rotation locale
+      - Échelle locale
+      - Boundary preview si OccupiesBoundary
     - Local overrides
     - Runtime preview
     - Validation
@@ -1115,6 +1271,9 @@
   - Validation
     - Missing definition
     - Invalid placement
+    - Surface non autorisée pour la définition
+    - WallSide manquant pour un placement mural
+    - Boundary conflict / frontière dupliquée
     - Duplicate IDs
     - Broken links
     - Invalid conditions
@@ -1189,6 +1348,8 @@
         - DefinitionRef = DA_Item_BlueGem
         - State = InWorld
         - Cell = X,Y
+        - Surface = Floor
+        - LocalPosition = U,V,N
     - Dans une alcôve
       - AlcoveInstance
         - DefinitionRef = DA_Receptacle_Alcove
