@@ -29,14 +29,12 @@ void AGridRuntimeObjectActor::InitializeGridObjectBase(
 	CellY = ObjectData.CellY;
 	Edge = ObjectData.Edge;
 
+	// MATERIAL-OWNERSHIP01: mesh material slots are the sole source of truth.
+	// Keep the parameter temporarily for source compatibility with existing call sites.
+	(void)Material;
 	if (MeshComponent)
 	{
 		MeshComponent->SetStaticMesh(Mesh);
-
-		if (Material)
-		{
-			MeshComponent->SetMaterial(0, Material);
-		}
 	}
 
 	SetActorLocation(WorldLocation);

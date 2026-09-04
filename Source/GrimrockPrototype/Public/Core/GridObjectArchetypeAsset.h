@@ -11,8 +11,50 @@
 
 class AGridRuntimeObjectActor;
 class AGridItemActor;
+class UMaterialInterface;
 class USoundBase;
 class USoundAttenuation;
+
+/**
+ * MATERIAL-OWNERSHIP01 compatibility shim.
+ *
+ * The five historical material override fields have been removed from Unreal
+ * reflection/serialization. A zero-state C++ shim keeps old call-sites source
+ * compatible while they are retired incrementally. It can never carry a
+ * material: Static Mesh Material Slots are the sole source of truth.
+ */
+struct FGridRetiredMaterialOverride
+{
+	constexpr FGridRetiredMaterialOverride() = default;
+	constexpr FGridRetiredMaterialOverride(decltype(nullptr))
+	{
+	}
+
+	constexpr FGridRetiredMaterialOverride& operator=(decltype(nullptr))
+	{
+		return *this;
+	}
+
+	constexpr explicit operator bool() const
+	{
+		return false;
+	}
+
+	constexpr bool operator==(decltype(nullptr)) const
+	{
+		return true;
+	}
+
+	constexpr bool operator!=(decltype(nullptr)) const
+	{
+		return false;
+	}
+
+	constexpr UMaterialInterface* Get() const
+	{
+		return nullptr;
+	}
+};
 
 UENUM(BlueprintType)
 enum class EGridArchetypeValidationSeverity : uint8
@@ -190,11 +232,9 @@ public:
 			ToolTip = "Primary mesh used for simple visible objects and editor preview. For composite/animated objects, use FixedMesh and/or MovingMesh."))
 	TObjectPtr<UStaticMesh> PreviewMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual",
-		meta = (DisplayName = "Main Material / Preview Material",
-			ToolTip =
-				"Primary material used for simple visible objects and editor preview. For composite/animated objects, use FixedMaterial and/or MovingMaterial."))
-	TObjectPtr<UMaterialInterface> PreviewMaterial = nullptr;
+	// Retired MATERIAL-OWNERSHIP01 name. Not a UPROPERTY: not reflected,
+	// not editable, not serialized, and always nullptr through its shim.
+	FGridRetiredMaterialOverride PreviewMaterial;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
 		meta = (DisplayName = "Fixed Mesh",
@@ -207,15 +247,9 @@ public:
 			ToolTip = "Moving Mesh - animated or movable part of a composite object. Pit trapdoors use Left Leaf Mesh and Right Leaf Mesh instead."))
 	TObjectPtr<UStaticMesh> MovingMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
-		meta = (DisplayName = "Fixed Material", ToolTip = "Material for the fixed/static part of a composite object."))
-	TObjectPtr<UMaterialInterface> FixedMaterial = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
-		meta = (DisplayName = "Moving Material",
-			EditCondition = "SupportedType != EGridLevelObjectType::Pit", EditConditionHides,
-			ToolTip = "Material for the generic moving/animated part. Pit trapdoors use per-leaf materials instead."))
-	TObjectPtr<UMaterialInterface> MovingMaterial = nullptr;
+	// Retired MATERIAL-OWNERSHIP01 names; see PreviewMaterial above.
+	FGridRetiredMaterialOverride FixedMaterial;
+	FGridRetiredMaterialOverride MovingMaterial;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Pit Trapdoor",
 		meta = (DisplayName = "Left Leaf Mesh",
@@ -229,15 +263,9 @@ public:
 			ToolTip = "Right trapdoor leaf. Model it centered; runtime positions it relative to the right hinge."))
 	TObjectPtr<UStaticMesh> PitRightLeafMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Pit Trapdoor",
-		meta = (DisplayName = "Left Leaf Material",
-			EditCondition = "SupportedType == EGridLevelObjectType::Pit", EditConditionHides))
-	TObjectPtr<UMaterialInterface> PitLeftLeafMaterial = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Pit Trapdoor",
-		meta = (DisplayName = "Right Leaf Material",
-			EditCondition = "SupportedType == EGridLevelObjectType::Pit", EditConditionHides))
-	TObjectPtr<UMaterialInterface> PitRightLeafMaterial = nullptr;
+	// Retired MATERIAL-OWNERSHIP01 names; leaf materials live in each leaf mesh.
+	FGridRetiredMaterialOverride PitLeftLeafMaterial;
+	FGridRetiredMaterialOverride PitRightLeafMaterial;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime",
 		meta = (DisplayName = "Runtime Actor Class",
