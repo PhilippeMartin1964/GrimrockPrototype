@@ -78,6 +78,7 @@ bool FGridMaterialOwnershipMigrationTest::RunTest(const FString& Parameters)
 	};
 
 	static const FString SharedDecalMeshPath(TEXT("/Game/GrimrockPrototype/Meshes/Decorations/Floor/SM_FloorDecalPlane_01"));
+	const int32 ExpectedArchetypeCount = static_cast<int32>(UE_ARRAY_COUNT(Entries));
 
 	int32 MigratedArchetypeCount = 0;
 	int32 CreatedDedicatedMeshCount = 0;
@@ -151,10 +152,10 @@ bool FGridMaterialOwnershipMigrationTest::RunTest(const FString& Parameters)
 		AddInfo(FString::Printf(TEXT("Migrated %s -> Mesh=%s MaterialSlot0=%s"), Entry.ArchetypeAssetPath, *TargetMesh->GetPathName(), *ExpectedMaterial->GetPathName()));
 	}
 
-	TestEqual(TEXT("All eight floor-decoration archetypes migrated"), MigratedArchetypeCount, UE_ARRAY_COUNT(Entries));
+	TestEqual(TEXT("All eight floor-decoration archetypes migrated"), MigratedArchetypeCount, ExpectedArchetypeCount);
 	AddInfo(FString::Printf(TEXT("Material ownership migration complete: %d archetype(s), %d dedicated mesh asset(s) created."),
 		MigratedArchetypeCount, CreatedDedicatedMeshCount));
-	return MigratedArchetypeCount == UE_ARRAY_COUNT(Entries);
+	return MigratedArchetypeCount == ExpectedArchetypeCount;
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
