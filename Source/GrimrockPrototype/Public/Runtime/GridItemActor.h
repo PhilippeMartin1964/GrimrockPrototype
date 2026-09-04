@@ -68,7 +68,7 @@ public:
 	int32 RuntimeCellY = INDEX_NONE;
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
-	virtual void InitializeItem(FName InArchetypeId, const TArray<FName>& InItemTags, UStaticMesh* Mesh, UMaterialInterface* Material);
+	virtual void InitializeItem(FName InArchetypeId, const TArray<FName>& InItemTags, UStaticMesh* Mesh);
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void InitializeFromItemDefinition(UGridItemDefinitionAsset* InDefinition, const FGuid& InRuntimeObjectId);

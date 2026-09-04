@@ -459,16 +459,16 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("Button animation parameters are customized but SupportedType is not Button."));
 	}
 
-	if (!UsesMovingMeshParams() && (MovingMesh || MovingMaterial))
+	if (!UsesMovingMeshParams() && MovingMesh)
 	{
 		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info,
-			TEXT("MovingMesh or MovingMaterial is set but this archetype type does not normally use moving mesh."));
+			TEXT("MovingMesh is set but this archetype type does not normally use moving mesh."));
 	}
 
-	if (!IsWallLockArchetype(*this) && !UsesFixedMeshParams() && (FixedMesh || FixedMaterial))
+	if (!IsWallLockArchetype(*this) && !UsesFixedMeshParams() && FixedMesh)
 	{
 		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info,
-			TEXT("FixedMesh or FixedMaterial is set but this archetype type does not normally use fixed mesh."));
+			TEXT("FixedMesh is set but this archetype type does not normally use fixed mesh."));
 	}
 
 	switch (SupportedType)
@@ -533,10 +533,10 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Pit should hide the standard cell floor."));
 			}
-			if (MovingMesh || MovingMaterial)
+			if (MovingMesh)
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
-					TEXT("Pit no longer supports the legacy single MovingMesh/MovingMaterial cover. Use Left Leaf Mesh and Right Leaf Mesh."));
+					TEXT("Pit no longer supports the legacy single MovingMesh cover. Use Left Leaf Mesh and Right Leaf Mesh."));
 			}
 			const bool bHasLeftLeaf = PitLeftLeafMesh != nullptr;
 			const bool bHasRightLeaf = PitRightLeafMesh != nullptr;

@@ -458,7 +458,6 @@ public:
 	}
 
 	UStaticMesh* GetObjectMesh(const FGridLevelObjectData& ObjectData) const;
-	UMaterialInterface* GetObjectMaterial(const FGridLevelObjectData& ObjectData) const;
 	bool GetObjectPlacementTransform(const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
 	const UGridObjectArchetypeAsset* FindObjectArchetype(FName ArchetypeId) const;
 	UGridItemDefinitionAsset* ResolveRuntimeItemDefinition(FName ItemDefinitionId) const;
@@ -547,11 +546,10 @@ private:
 	void FinalizePitGameplayStateChange(FGuid PitObjectId, bool bWasOpen, bool bIsOpen, bool bEmitEvent);
 
 	template <typename TActor>
-	TActor* SpawnRuntimeObjectActor(const FGridLevelObjectData& ObjectData, UStaticMesh*& OutMesh, UMaterialInterface*& OutMaterial, FTransform& OutTransform)
+	TActor* SpawnRuntimeObjectActor(const FGridLevelObjectData& ObjectData, UStaticMesh*& OutMesh, FTransform& OutTransform)
 	{
 		static_assert(TIsDerivedFrom<TActor, AGridRuntimeObjectActor>::IsDerived, "TActor must derive from AGridRuntimeObjectActor");
 		OutMesh = nullptr;
-		OutMaterial = nullptr;
 		OutTransform = FTransform::Identity;
 
 		if (!LevelAsset)
@@ -559,7 +557,6 @@ private:
 			return nullptr;
 		}
 		OutMesh = GetObjectMesh(ObjectData);
-		OutMaterial = GetObjectMaterial(ObjectData);
 		TSubclassOf<AGridRuntimeObjectActor> ActorClass = GetObjectRuntimeActorClass(ObjectData);
 
 		if (!ActorClass || !OutMesh)

@@ -690,7 +690,6 @@ DA_Object_KeyCopperPickup
 | `bCanShareCell` | généralement `true` |
 | `bCanShareAnchor` | généralement `true` |
 | `PreviewMesh` | mesh monde ou preview |
-| `PreviewMaterial` | optionnel |
 | `RuntimeActorClass` | généralement vide pour item si le runtime item a son chemin propre, ou classe compatible si le pipeline le requiert |
 | `ItemActorClass` | `BP_GridItemActor` ou spécialisation |
 | `PlacementZOffset` | hauteur au-dessus du sol |
@@ -940,7 +939,6 @@ PlacementKind = Floor
 bCanShareCell = true
 bCanShareAnchor = true
 PreviewMesh = SM_Key_Copper
-PreviewMaterial = empty or copper material
 RuntimeActorClass = empty unless required by current item pipeline
 ItemActorClass = BP_GridItemActor
 PlacementZOffset = 12
@@ -1428,3 +1426,5 @@ L'effet n'est pas lié au type Key et peut être utilisé pour une gemme ou un o
 Référence complète :
 
 `docs/Design/ITEM_SPARKLE01_WORLD_ITEM_SPARKLE_PRESENTATION.md`
+
+> Les matériaux d'un pickup sont définis exclusivement dans les Material Slots de son Static Mesh.

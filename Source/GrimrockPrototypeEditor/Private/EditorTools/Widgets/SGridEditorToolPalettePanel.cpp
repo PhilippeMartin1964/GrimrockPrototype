@@ -402,7 +402,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 	if (!PitEntry || !PitEntry->DefaultArchetype || PitEntry->DefaultArchetype->SupportedType != EGridLevelObjectType::Pit ||
 		!PitEntry->DefaultArchetype->DefaultBehavior.Transition.bIsTransition ||
 		PitEntry->DefaultArchetype->RuntimeActorClass != AGridPitTrapdoorActor::StaticClass() ||
-		PitEntry->DefaultArchetype->MovingMesh != nullptr || PitEntry->DefaultArchetype->MovingMaterial != nullptr)
+		PitEntry->DefaultArchetype->MovingMesh != nullptr)
 	{
 		FString Error;
 		if (!CurrentEditorActor->EnsurePitTrapdoorArchetype(Error))

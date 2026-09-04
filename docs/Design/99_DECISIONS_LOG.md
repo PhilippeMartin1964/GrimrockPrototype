@@ -1147,3 +1147,9 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Une nouvelle tentative de pathfinding est planifiée après 0,25 s ; l'ouverture de la porte permet alors une reprise naturelle du déplacement.
 - Lorsque l'ouïe est perdue, le cycle historique de recherche MON14.3 reste inchangé.
 - Test Automation : `Grimrock.Monsters.MON14.3.BlockedHearingWait`.
+
+## 2026-09-04 — MATERIAL-OWNERSHIP01 — Static Mesh Material Slots autoritaires
+
+- Suppression définitive de `PreviewMaterial`, `FixedMaterial`, `MovingMaterial`, `PitLeftLeafMaterial` et `PitRightLeafMaterial` de `GridObjectArchetypeAsset`.
+- Le runtime et la preview ne transportent plus de matériau d'archétype : ils assignent le Static Mesh et conservent ses Material Slots.
+- Les matériaux de présentation explicitement distincts (par exemple chaîne de porte, sparkle item, override plafond éditeur) restent hors de ce contrat.

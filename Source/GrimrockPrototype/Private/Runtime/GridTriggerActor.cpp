@@ -6,9 +6,9 @@ AGridTriggerActor::AGridTriggerActor()
 }
 
 void AGridTriggerActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
+	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	InitializeGridObjectBase(ObjectData, Mesh, Material, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
+	InitializeGridObjectBase(ObjectData, Mesh, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
 	SetActorHiddenInGame(true);
 	if (MeshComponent)
 	{

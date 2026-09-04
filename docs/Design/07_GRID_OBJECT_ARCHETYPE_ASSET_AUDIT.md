@@ -91,11 +91,8 @@ Les recommandations utilisent le vocabulaire suivant :
 | Champ | Catégorie | Type | Utilisé dans l'éditeur | Utilisé au runtime | Types d'objets concernés | Override d'instance ? | Recommandation | Notes |
 |---|---|---|---|---|---|---|---|---|
 | `PreviewMesh` | Visual | `TObjectPtr<UStaticMesh>` | Mesh préféré pour preview éditeur; affichage advanced/debug. | Mesh préféré avant `MovingMesh` et `FixedMesh` dans le spawn runtime générique; validation de présence. | La plupart des objets visibles. | Non. | Essential | Le nom prête à confusion : ce n'est pas editor-only, c'est le mesh principal/simple. |
-| `PreviewMaterial` | Visual | `TObjectPtr<UMaterialInterface>` | Matériau préféré de preview; peu exposé dans l'inspector. | Matériau préféré avant moving/fixed. | La plupart des objets visibles. | Non. | Essential | Même confusion que `PreviewMesh`. |
 | `FixedMesh` | Visual | `TObjectPtr<UStaticMesh>` | Affichage advanced/debug; validation de pertinence. | Fallback mesh; partie fixe mechanism/door; items composites. | Doors, mécanismes composites, items. | Non. | Advanced | À garder advanced pour les objets simples. |
 | `MovingMesh` | Visual | `TObjectPtr<UStaticMesh>` | Affichage advanced/debug; validation de pertinence. | Fallback mesh; partie mobile mechanism/door; visuels item/receptacle. | Doors, buttons, levers, receptacles, items. | Non. | Advanced | Important pour acteurs composites/animés. Distinction à clarifier face à `PreviewMesh`. |
-| `FixedMaterial` | Visual | `TObjectPtr<UMaterialInterface>` | Validation de pertinence. | Matériau fallback; matériau fixed mechanism/door. | Doors, mécanismes composites, items. | Non. | Advanced | À associer à `FixedMesh`. |
-| `MovingMaterial` | Visual | `TObjectPtr<UMaterialInterface>` | Validation de pertinence. | Matériau fallback; matériau moving mechanism/door; visuels item/receptacle. | Doors, buttons, levers, receptacles, items. | Non. | Advanced | À associer à `MovingMesh`. |
 
 ### Runtime
 
@@ -190,11 +187,8 @@ Ces helpers sont importants parce qu'ils encodent l'intention de design actuelle
 ### Visuel
 
 - `PreviewMesh`
-- `PreviewMaterial`
 - `FixedMesh`
 - `MovingMesh`
-- `FixedMaterial`
-- `MovingMaterial`
 
 ### Runtime
 
@@ -229,9 +223,7 @@ L'éditeur devrait éviter de présenter ces trois champs comme équivalents dan
 
 `PreviewMesh` n'est pas seulement un mesh de preview éditeur. C'est actuellement le mesh principal/simple utilisé par la sélection runtime avant fallback vers moving/fixed. `FixedMesh` et `MovingMesh` servent aux acteurs composites ou animés. Le nom `PreviewMesh` peut faire croire à tort qu'il est editor-only.
 
-### `PreviewMaterial` vs `FixedMaterial` vs `MovingMaterial`
 
-Même problème que pour les meshes. `PreviewMaterial` est le matériau principal/simple, pas seulement un matériau de preview.
 
 ### `RuntimeActorClass` vs `ItemActorClass`
 
@@ -263,7 +255,6 @@ Ces champs devraient généralement être édités uniquement dans les DataAsset
 - Règles et offsets de placement : `PlacementKind`, `bCanShareCell`, `bCanShareAnchor`, `bBlocksMovement`, `PlacementZOffset`, `WallInset`, `LocalOffsetAlongWall`, `LocalOffsetVertical`
 - Capacités d'interaction : `bIsInteractable`, `bIsReadable`, `bShowReadableOnlyOnce`
 - Defaults lumière : `bIsLightSource`, `LightColor`, `LightIntensity`, `LightRadius`, `bUseLightFlicker`
-- Visuels : `PreviewMesh`, `PreviewMaterial`, `FixedMesh`, `MovingMesh`, `FixedMaterial`, `MovingMaterial`
 - Classes runtime : `RuntimeActorClass`, `ItemActorClass`
 - Métadonnées item : `ItemTags`
 - Flags legacy de placement : `bPlaceOnEdge`, `bPlaceAtCellCenter`
@@ -310,7 +301,6 @@ Améliorations futures sûres, sans changer runtime ni sérialisation :
 
 - Garder `bPlaceOnEdge` et `bPlaceAtCellCenter` en `AdvancedDisplay`; ne les supprimer qu'après une migration confirmant qu'aucun asset ou palette entry n'en dépend.
 - Améliorer les tooltips de `SupportedType`, `Category` et `ObjectCategory` pour distinguer type gameplay, groupement palette et classification éditeur.
-- Renommer les labels affichés, pas les propriétés C++, de `PreviewMesh` et `PreviewMaterial` vers "Main Mesh" et "Main Material" dans l'UI éditeur.
 - Clarifier le label de `bBlocksMovement` comme blocage générique/non-door lorsqu'il est affiché.
 - Clarifier que `bIsReadable` et `bIsLightSource` sont des flags de capacité runtime, alors que `ObjectCategory` est une classification.
 - Documenter quels types d'objet utilisent chaque groupe de `DefaultBehavior` :
@@ -329,7 +319,6 @@ Renommer ou supprimer ces champs est risqué, car ce sont des UPROPERTY de DataA
 - Les références Blueprint peuvent casser pour `RuntimeActorClass`, `ItemActorClass`, meshes, matériaux, réglages de placement ou helpers exposés.
 - Les level assets sérialisés peuvent perdre des données si les defaults copiés ou hypothèses de behavior changent.
 - Le spawn runtime peut échouer si `RuntimeActorClass`, la sélection de mesh, le placement ou le lookup `ArchetypeId` changent.
-- Le comportement receptacle/item peut régresser si `ItemTags`, `DefaultBehavior.Receptacle`, `MovingMesh` ou `MovingMaterial` changent de sémantique.
 - Le comportement door peut régresser si `SupportedType`, `RuntimeActorClass` ou la sémantique de placement edge changent.
 - Le placement éditeur peut régresser si `PlacementKind`, les flags de partage ou les offsets muraux sont renommés/supprimés.
 
@@ -340,3 +329,5 @@ Ne pas refactorer `UGridObjectArchetypeAsset` immédiatement.
 D'abord documenter l'asset et ses frontières d'usage actuelles. Ensuite nettoyer seulement les labels affichés, tooltips, catégories et la présentation contextuelle de l'inspector. Traiter `PlacementKind`, `ArchetypeId`, les classes runtime, les champs visuels et les defaults de behavior comme une API sérialisée stable tant qu'un plan de migration explicite n'existe pas.
 
 Ne supprimer les champs legacy de placement qu'après migration complète et validation des DataAssets, palette entries, objets placés, références Blueprint et validations runtime/éditeur.
+
+> MATERIAL-OWNERSHIP01 : les matériaux d'objet ne sont plus des paramètres d'archétype. Ils sont définis dans les Material Slots de chaque Static Mesh.

@@ -92,7 +92,6 @@ void UGridEditorPreviewComponent::AddPreviewObject(const FGridLevelObjectData& O
 	}
 
 	UStaticMesh* Mesh = bMonsterSpawn ? nullptr : RuntimeActor->GetObjectMesh(ObjectData);
-	UMaterialInterface* Material = bMonsterSpawn ? nullptr : RuntimeActor->GetObjectMaterial(ObjectData);
 	if (!bMonsterSpawn && !Mesh)
 	{
 		return;
@@ -117,7 +116,7 @@ void UGridEditorPreviewComponent::AddPreviewObject(const FGridLevelObjectData& O
 	}
 	else
 	{
-		PreviewActor->InitializePreviewObject(ObjectData, Mesh, Material);
+		PreviewActor->InitializePreviewObject(ObjectData, Mesh);
 	}
 	SpawnedPreviewObjects.Add(PreviewActor);
 }

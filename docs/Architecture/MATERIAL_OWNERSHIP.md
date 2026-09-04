@@ -77,3 +77,7 @@ Grimrock.Architecture.MaterialOwnership.Audit
 ```
 
 vérifie désormais que les cinq anciens noms ne sont plus des propriétés réfléchies du `GridObjectArchetypeAsset` et que les shims de compatibilité restent nuls.
+
+## Nettoyage final
+
+Les cinq anciens overrides sont supprimés de l'API C++. Les initialisations runtime et preview transportent uniquement les meshes; leurs Material Slots fournissent l'apparence normale.

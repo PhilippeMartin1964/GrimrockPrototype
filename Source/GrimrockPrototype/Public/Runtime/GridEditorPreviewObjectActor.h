@@ -33,7 +33,7 @@ public:
 	EGridLevelObjectType ObjectType = EGridLevelObjectType::None;
 
 	UFUNCTION(BlueprintCallable, Category = "Preview")
-	void InitializePreviewObject(const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* NormalMaterial);
+	void InitializePreviewObject(const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh);
 
 	void InitializeMonsterPreviewObject(const FGridLevelObjectData& ObjectData, UGridMonsterDefinitionAsset* MonsterDefinition);
 
@@ -49,7 +49,4 @@ private:
 	bool bIsHovered = false;
 	bool bIsSelected = false;
 
-private:
-	UPROPERTY(Transient)
-	TObjectPtr<UMaterialInterface> CachedNormalMaterial;
 };

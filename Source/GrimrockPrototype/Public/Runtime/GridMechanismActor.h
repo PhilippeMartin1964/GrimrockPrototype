@@ -23,8 +23,8 @@ protected:
 	TObjectPtr<UStaticMeshComponent> MovingMeshComponent = nullptr;
 
 protected:
-	void SetFixedMesh(UStaticMesh* Mesh, UMaterialInterface* Material);
-	void SetMovingMesh(UStaticMesh* Mesh, UMaterialInterface* Material);
+	void SetFixedMesh(UStaticMesh* Mesh);
+	void SetMovingMesh(UStaticMesh* Mesh);
 
 	void SetMovingRelativeLocation(const FVector& RelativeLocation);
 	FVector GetMovingRelativeLocation() const;

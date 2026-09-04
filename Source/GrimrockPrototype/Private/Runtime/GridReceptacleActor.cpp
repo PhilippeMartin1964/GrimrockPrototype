@@ -158,9 +158,9 @@ void AGridReceptacleActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 }
 
 void AGridReceptacleActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
+	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, Mesh, Material, WorldTransform);
+	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, Mesh, WorldTransform);
 
 	const FGridReceptacleBehaviorParams& Params = ObjectData.Behavior.Receptacle;
 

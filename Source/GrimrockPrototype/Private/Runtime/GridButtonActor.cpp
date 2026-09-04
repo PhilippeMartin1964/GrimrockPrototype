@@ -31,10 +31,10 @@ void AGridButtonActor::Tick(float DeltaSeconds)
 	UpdateAnimation(DeltaSeconds);
 }
 
-void AGridButtonActor::InitializeButton(const FGridLevelObjectData& ObjectData, UStaticMesh* InButtonMesh, UMaterialInterface* InMaterial,
+void AGridButtonActor::InitializeButton(const FGridLevelObjectData& ObjectData, UStaticMesh* InButtonMesh,
 	const FVector& InWorldLocation, const FRotator& InWorldRotation)
 {
-	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, nullptr, FTransform(InWorldRotation, InWorldLocation));
+	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, FTransform(InWorldRotation, InWorldLocation));
 	PressDistance = ObjectData.Behavior.ButtonAnimation.ButtonPressDistance;
 	PressDuration = ObjectData.Behavior.ButtonAnimation.ButtonPressDuration;
 	ReleaseDuration = ObjectData.Behavior.ButtonAnimation.ButtonReleaseDuration;
@@ -130,9 +130,9 @@ void AGridButtonActor::UpdateAnimation(float DeltaSeconds)
 }
 
 void AGridButtonActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
+	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	InitializeButton(ObjectData, Mesh, Material, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
+	InitializeButton(ObjectData, Mesh, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
 }
 
 bool AGridButtonActor::CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const

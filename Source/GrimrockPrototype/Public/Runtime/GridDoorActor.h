@@ -42,32 +42,27 @@ public:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	int32 DoorCloseAudioPlaybackRequestCount = 0;
 
-	/** Number of times an active movement voice was explicitly interrupted/stopped by door state. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	int32 DoorAudioStopRequestCount = 0;
 
-	/** Logical movement-audio state, also available when native playback is disabled in tests. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	bool bDoorMotionAudioActive = false;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	bool bDoorMotionAudioOpening = false;
 
-	/** Effective selected-sample duration after pitch, used only to decide natural completion vs endpoint trim. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	float ActiveDoorAudioExpectedDuration = 0.0f;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	float ActiveDoorAudioPitch = 1.0f;
 
-	/** Timestamp used for the most recently started Open/Close sample. Diagnostic/test only. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	float LastDoorAudioStartTime = 0.0f;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	int32 DoorAudioNaturalCompletionCount = 0;
 
-	/** Runtime voice returned by SpawnSoundAtLocation; only one voice is owned by a door at a time. */
 	UPROPERTY(Transient)
 	TObjectPtr<UAudioComponent> ActiveDoorAudioComponent = nullptr;
 
@@ -89,12 +84,24 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door|Chain")
 	TObjectPtr<UStaticMesh> ChainMovingMesh;
 
+	/** Separate presentation material for the optional chain mechanism; not a door-mesh override. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door|Chain")
 	TObjectPtr<UMaterialInterface> ChainMaterial;
 
 	UFUNCTION(BlueprintCallable, Category = "Door")
-	void InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, UMaterialInterface* InMovingMaterial, UStaticMesh* InFixedMesh,
-		UMaterialInterface* InFixedMaterial, const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen);
+	void InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, UStaticMesh* InFixedMesh,
+		const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen);
+
+	/**
+	 * C++ source-compatibility bridge for existing tests that passed literal nullptr
+	 * in the two former material positions. It cannot accept a material object and
+	 * therefore cannot reintroduce material ownership or routing.
+	 */
+	void InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, decltype(nullptr), UStaticMesh* InFixedMesh,
+		decltype(nullptr), const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen)
+	{
+		InitializeDoor(ObjectData, InMovingMesh, InFixedMesh, ClosedWorldLocation, WorldRotation, bStartOpen);
+	}
 
 	UFUNCTION(BlueprintCallable, Category = "Door")
 	virtual void SetDoorOpenState(bool bOpen);
@@ -133,7 +140,7 @@ public:
 	}
 
 	virtual void InitializeGridObject(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform) override;
+		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform) override;
 
 	virtual bool CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
 	virtual void Interact_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;
@@ -163,6 +170,7 @@ protected:
 	bool bIsAnimating = false;
 	float MoveElapsed = 0.f;
 	float CurrentMoveDuration = 0.f;
+
 private:
 	FVector ChainRestRelativeLocation = FVector::ZeroVector;
 	FVector ChainPulledRelativeLocation = FVector::ZeroVector;

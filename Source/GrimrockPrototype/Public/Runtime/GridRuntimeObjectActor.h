@@ -62,11 +62,11 @@ public:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	virtual void InitializeGridObjectBase(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FVector& WorldLocation, const FRotator& WorldRotation);
+		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FVector& WorldLocation, const FRotator& WorldRotation);
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	virtual void InitializeGridObject(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform);
+		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform);
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	bool MatchesObjectId(FGuid InObjectId) const;

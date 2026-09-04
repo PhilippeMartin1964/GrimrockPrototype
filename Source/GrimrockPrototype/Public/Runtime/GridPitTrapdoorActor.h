@@ -32,7 +32,7 @@ public:
 		const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform) override;
 
 	virtual void InitializeGridObject(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform) override;
+		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Pit")
 	void SetPitOpenVisualState(bool bOpen, bool bPlayAudio = true);

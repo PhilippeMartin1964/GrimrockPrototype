@@ -31,12 +31,11 @@ AGridEditorPreviewObjectActor::AGridEditorPreviewObjectActor()
 	SkeletalMeshComponent->SetVisibility(false, true);
 }
 
-void AGridEditorPreviewObjectActor::InitializePreviewObject(const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* NormalMaterial)
+void AGridEditorPreviewObjectActor::InitializePreviewObject(const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh)
 {
 	ObjectId = ObjectData.ObjectId;
 	ObjectType = ObjectData.Type;
 
-	CachedNormalMaterial = NormalMaterial;
 
 	if (!MeshComponent)
 	{
@@ -53,10 +52,6 @@ void AGridEditorPreviewObjectActor::InitializePreviewObject(const FGridLevelObje
 	MeshComponent->SetVisibility(true, true);
 	MeshComponent->SetStaticMesh(Mesh);
 
-	if (CachedNormalMaterial)
-	{
-		MeshComponent->SetMaterial(0, CachedNormalMaterial);
-	}
 
 	MeshComponent->SetRenderCustomDepth(false);
 	MeshComponent->SetCustomDepthStencilValue(0);
@@ -71,7 +66,6 @@ void AGridEditorPreviewObjectActor::InitializeMonsterPreviewObject(const FGridLe
 {
 	ObjectId = ObjectData.ObjectId;
 	ObjectType = ObjectData.Type;
-	CachedNormalMaterial = nullptr;
 
 	if (MeshComponent)
 	{

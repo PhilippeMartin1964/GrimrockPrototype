@@ -44,7 +44,7 @@ public:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void InitializeGenericObject(const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* Mesh,
-		UMaterialInterface* Material, const FTransform& WorldTransform);
+		const FTransform& WorldTransform);
 
 	UFUNCTION(BlueprintCallable, Category = "Grid|Readable")
 	bool HasReadableText() const;

@@ -17,9 +17,9 @@ void AGridPressurePlateActor::Tick(float DeltaSeconds)
 }
 
 void AGridPressurePlateActor::InitializePlate(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* InPlateMesh, UMaterialInterface* InMaterial, const FVector& InWorldLocation, bool bStartPressed)
+	const FGridLevelObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation, bool bStartPressed)
 {
-	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, nullptr, FTransform(FRotator::ZeroRotator, InWorldLocation));
+	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, FTransform(FRotator::ZeroRotator, InWorldLocation));
 
 	ReleasedHeightAboveFloor = ObjectData.Behavior.PressurePlateAnimation.ReleasedHeightAboveFloor;
 	PressedHeightAboveFloor = ObjectData.Behavior.PressurePlateAnimation.PressedHeightAboveFloor;
@@ -79,7 +79,7 @@ void AGridPressurePlateActor::UpdateAnimation(float DeltaSeconds)
 }
 
 void AGridPressurePlateActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
+	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	InitializePlate(ObjectData, Mesh, Material, WorldTransform.GetLocation(), ObjectData.bInitiallyActive);
+	InitializePlate(ObjectData, Mesh, WorldTransform.GetLocation(), ObjectData.bInitiallyActive);
 }
