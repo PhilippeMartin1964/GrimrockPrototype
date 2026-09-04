@@ -144,11 +144,8 @@
 				Archetype.bIsReadable = false;
 				Archetype.bIsLightSource = false;
 				Archetype.PreviewMesh = Mesh;
-				Archetype.PreviewMaterial = nullptr;
 				Archetype.FixedMesh = nullptr;
 				Archetype.MovingMesh = nullptr;
-				Archetype.FixedMaterial = nullptr;
-				Archetype.MovingMaterial = nullptr;
 				Archetype.RuntimeActorClass = AGridGenericObjectActor::StaticClass();
 				Archetype.ItemActorClass = nullptr;
 				Archetype.PlacementZOffset = 0.f;
@@ -193,13 +190,10 @@
 				Archetype.bIsReadable = false;
 				Archetype.bIsLightSource = false;
 				Archetype.PreviewMesh = Mesh;
-				Archetype.PreviewMaterial = nullptr;
 				Archetype.FixedMesh = Mesh;
-				Archetype.FixedMaterial = nullptr;
 				// PIT03.2 removes the old single-leaf MovingMesh contract entirely.
 				Archetype.MovingMesh = nullptr;
-				Archetype.MovingMaterial = nullptr;
-				// Preserve PitLeftLeafMesh/PitRightLeafMesh and their materials if already authored.
+				// Preserve PitLeftLeafMesh/PitRightLeafMesh if already authored.
 				Archetype.RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
 				Archetype.ItemActorClass = nullptr;
 				Archetype.PlacementZOffset = 0.f;

@@ -31,22 +31,6 @@ bool FGridMaterialOwnershipAuditTest::RunTest(const FString& Parameters)
 		}
 	}
 
-	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>();
-	if (!Archetype)
-	{
-		AddError(TEXT("Unable to create a transient UGridObjectArchetypeAsset for material ownership validation."));
-		return false;
-	}
-
-	const bool bCompatibilityShimsAreNull =
-		Archetype->PreviewMaterial.Get() == nullptr && Archetype->FixedMaterial.Get() == nullptr && Archetype->MovingMaterial.Get() == nullptr &&
-		Archetype->PitLeftLeafMaterial.Get() == nullptr && Archetype->PitRightLeafMaterial.Get() == nullptr;
-	if (!bCompatibilityShimsAreNull)
-	{
-		AddError(TEXT("Retired material compatibility shims must always resolve to nullptr."));
-		bSuccess = false;
-	}
-
 	AddInfo(TEXT("Material ownership contract: GridObjectArchetypeAsset exposes no mesh-material override properties; Static Mesh Material Slots are authoritative."));
 	return bSuccess;
 }

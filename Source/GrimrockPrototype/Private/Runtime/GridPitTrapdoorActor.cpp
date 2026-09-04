@@ -55,7 +55,7 @@ void AGridPitTrapdoorActor::InitializeMechanismVisuals(
 	MoveDuration = FMath::Max(0.0f, ObjectData.Behavior.PitAnimation.MoveDuration);
 
 	// PIT03.2 explicitly retires the inherited single MovingMesh path.
-	SetMovingMesh(nullptr, nullptr);
+	SetMovingMesh(nullptr);
 	if (MovingMeshComponent)
 	{
 		MovingMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -64,19 +64,9 @@ void AGridPitTrapdoorActor::InitializeMechanismVisuals(
 
 	if (Archetype)
 	{
-		SetFixedMesh(Archetype->FixedMesh ? Archetype->FixedMesh.Get() : Archetype->PreviewMesh.Get(),
-			Archetype->FixedMaterial ? Archetype->FixedMaterial.Get() : Archetype->PreviewMaterial.Get());
-
+		SetFixedMesh(Archetype->FixedMesh ? Archetype->FixedMesh.Get() : Archetype->PreviewMesh.Get());
 		LeftLeafMeshComponent->SetStaticMesh(Archetype->PitLeftLeafMesh.Get());
 		RightLeafMeshComponent->SetStaticMesh(Archetype->PitRightLeafMesh.Get());
-		if (Archetype->PitLeftLeafMaterial)
-		{
-			LeftLeafMeshComponent->SetMaterial(0, Archetype->PitLeftLeafMaterial.Get());
-		}
-		if (Archetype->PitRightLeafMaterial)
-		{
-			RightLeafMeshComponent->SetMaterial(0, Archetype->PitRightLeafMaterial.Get());
-		}
 	}
 
 	if (FixedMeshComponent)
@@ -121,11 +111,10 @@ void AGridPitTrapdoorActor::InitializeMechanismVisuals(
 }
 
 void AGridPitTrapdoorActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
+	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
 	(void)Mesh;
-	(void)Material;
-	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, nullptr, WorldTransform);
+	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, WorldTransform);
 }
 
 bool AGridPitTrapdoorActor::HasCompleteTrapdoorCover() const
