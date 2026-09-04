@@ -121,7 +121,7 @@ namespace
 			return false;
 		}
 
-		Door->InitializeDoor(DoorData, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+		Door->InitializeDoor(DoorData, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
 		DoorSystem->RegisterDoorObject(DoorData, Door);
 
 		Test.TestTrue(*FString::Printf(TEXT("%s starts fully closed"), DoorLabel), Door->IsFullyClosed());

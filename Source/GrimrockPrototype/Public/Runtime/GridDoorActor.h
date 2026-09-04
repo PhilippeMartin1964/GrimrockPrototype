@@ -42,27 +42,32 @@ public:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	int32 DoorCloseAudioPlaybackRequestCount = 0;
 
+	/** Number of times an active movement voice was explicitly interrupted/stopped by door state. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	int32 DoorAudioStopRequestCount = 0;
 
+	/** Logical movement-audio state, also available when native playback is disabled in tests. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	bool bDoorMotionAudioActive = false;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	bool bDoorMotionAudioOpening = false;
 
+	/** Effective selected-sample duration after pitch, used only to decide natural completion vs endpoint trim. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	float ActiveDoorAudioExpectedDuration = 0.0f;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	float ActiveDoorAudioPitch = 1.0f;
 
+	/** Timestamp used for the most recently started Open/Close sample. Diagnostic/test only. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	float LastDoorAudioStartTime = 0.0f;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door|Audio")
 	int32 DoorAudioNaturalCompletionCount = 0;
 
+	/** Runtime voice returned by SpawnSoundAtLocation; only one voice is owned by a door at a time. */
 	UPROPERTY(Transient)
 	TObjectPtr<UAudioComponent> ActiveDoorAudioComponent = nullptr;
 
@@ -92,16 +97,6 @@ public:
 	void InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, UStaticMesh* InFixedMesh,
 		const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen);
 
-	/**
-	 * C++ source-compatibility bridge for existing tests that passed literal nullptr
-	 * in the two former material positions. It cannot accept a material object and
-	 * therefore cannot reintroduce material ownership or routing.
-	 */
-	void InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, decltype(nullptr), UStaticMesh* InFixedMesh,
-		decltype(nullptr), const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen)
-	{
-		InitializeDoor(ObjectData, InMovingMesh, InFixedMesh, ClosedWorldLocation, WorldRotation, bStartOpen);
-	}
 
 	UFUNCTION(BlueprintCallable, Category = "Door")
 	virtual void SetDoorOpenState(bool bOpen);

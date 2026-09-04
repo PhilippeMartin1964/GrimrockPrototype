@@ -97,7 +97,7 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 	Data.Behavior.DoorAnimation.OpenHeight = 180.f;
 	Data.Behavior.DoorAnimation.MoveDuration = 1.f;
 
-	Door->InitializeDoor(Data, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	Door->InitializeDoor(Data, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
 	Door->ConfigureObjectAudio(Archetype);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
 
@@ -197,7 +197,7 @@ bool FGridDoorMoveDurationContractTest::RunTest(const FString& Parameters)
 	Data.Behavior.DoorAnimation.OpenHeight = 180.f;
 	Data.Behavior.DoorAnimation.MoveDuration = 5.0f;
 
-	Door->InitializeDoor(Data, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	Door->InitializeDoor(Data, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
 
 	TestTrue(TEXT("Runtime actor copies the placed instance MoveDuration=5.0"), FMath::IsNearlyEqual(Door->MoveDuration, 5.0f));
@@ -257,7 +257,7 @@ bool FGridDoorNaturalTailContractTest::RunTest(const FString& Parameters)
 	Data.Behavior.DoorAnimation.OpenHeight = 180.f;
 	Data.Behavior.DoorAnimation.MoveDuration = 1.0f;
 
-	Door->InitializeDoor(Data, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	Door->InitializeDoor(Data, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
 	Door->ConfigureObjectAudio(Archetype);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
 
@@ -319,7 +319,7 @@ bool FGridDoorPartialAudioResumeTest::RunTest(const FString& Parameters)
 	Data.Behavior.DoorAnimation.OpenHeight = 200.0f;
 	Data.Behavior.DoorAnimation.MoveDuration = 5.0f;
 
-	Door->InitializeDoor(Data, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	Door->InitializeDoor(Data, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
 	Door->ConfigureObjectAudio(Archetype);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
 
