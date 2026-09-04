@@ -267,7 +267,7 @@ bool FGridPIT03PresentationActorTest::RunTest(const FString& Parameters)
 	Archetype->PitRightLeafMesh = NewObject<UStaticMesh>(Actor);
 
 	Actor->InitializeMechanismVisuals(Pit, Archetype, FTransform::Identity);
-	Actor->InitializeGridObject(Pit, nullptr, nullptr, FTransform::Identity);
+	Actor->InitializeGridObject(Pit, nullptr, FTransform::Identity);
 
 	TestTrue(TEXT("Presentation actor requires and sees both leaves"), Actor->HasCompleteTrapdoorCover());
 	TestFalse(TEXT("Presentation actor starts Closed"), Actor->IsPitOpenVisualState());

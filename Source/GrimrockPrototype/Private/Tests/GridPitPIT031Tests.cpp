@@ -299,7 +299,7 @@ bool FGridPIT031NoCoverFallbackTest::RunTest(const FString& Parameters)
 	FGridLevelObjectData Pit = MakeAnimatedPit(1, 1, TEXT("Lower"));
 	Pit.Behavior.Pit.bInitiallyOpen = false;
 	Actor->InitializeMechanismVisuals(Pit, nullptr, FTransform::Identity);
-	Actor->InitializeGridObject(Pit, nullptr, nullptr, FTransform::Identity);
+	Actor->InitializeGridObject(Pit, nullptr, FTransform::Identity);
 
 	TestFalse(TEXT("No-cover Pit has no dual-leaf cover"), Actor->HasCompleteTrapdoorCover());
 	TestTrue(TEXT("No-cover Pit is forced Open immediately"), Actor->IsPitOpenVisualState());

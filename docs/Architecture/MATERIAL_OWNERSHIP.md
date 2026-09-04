@@ -41,9 +41,9 @@ Trois partageaient `SM_FloorDecalPlane_01` avec des matériaux différents. Ils 
 
 Après migration, l'audit des DataAssets ne trouvait plus aucun override matériel renseigné.
 
-## Champs retirés de l'authoring
+## Champs retirés de l'authoring et de l'API
 
-Les anciens noms suivants ne font plus partie du schéma réfléchi du `GridObjectArchetypeAsset` :
+Les anciens noms suivants ne font plus partie du schéma réfléchi ni de l'API C++ du `GridObjectArchetypeAsset` :
 
 ```text
 PreviewMaterial
@@ -53,15 +53,16 @@ PitLeftLeafMaterial
 PitRightLeafMaterial
 ```
 
-Des shims C++ non réfléchis, non sérialisés et toujours nuls sont conservés temporairement pour permettre le retrait progressif des anciens call-sites sans réintroduire une seconde source de vérité. Ils ne peuvent pas être configurés dans un DataAsset et ne peuvent pas fournir de matériau runtime.
+Aucun shim C++ de compatibilité matériau n'est conservé. Les anciens noms ont disparu de la réflexion Unreal et de l'API C++ ; les call-sites utilisent directement les signatures mesh-only actuelles.
 
-Les acteurs runtime génériques et les mécanismes n'appliquent plus le paramètre d'override matériel reçu par leurs anciennes signatures ; le `StaticMeshComponent` conserve donc les Material Slots de son `StaticMesh`.
+Les acteurs runtime génériques, les mécanismes et la preview ne transportent plus de paramètre de matériau d'archétype ; ils assignent le `StaticMesh` et conservent donc ses Material Slots.
 
 ## Ce qui n'est pas concerné
 
 Cette règle concerne le **matériau de rendu principal du mesh d'un objet**. Elle ne supprime pas les matériaux utilisés pour une présentation ou un effet distinct, par exemple :
 
 - `WorldSparkleMaterial` d'un item : effet VFX de scintillement superposé ;
+- `ChainMaterial` du mécanisme de chaîne optionnel d'une porte ;
 - matériaux de sélection/preview éditeur ;
 - matériaux dynamiques créés pour un effet temporaire explicite ;
 - matériaux propres à une UI.
@@ -76,8 +77,8 @@ Le filtre :
 Grimrock.Architecture.MaterialOwnership.Audit
 ```
 
-vérifie désormais que les cinq anciens noms ne sont plus des propriétés réfléchies du `GridObjectArchetypeAsset` et que les shims de compatibilité restent nuls.
+vérifie que les cinq anciens noms ne sont plus des propriétés réfléchies du `GridObjectArchetypeAsset`.
 
-## Nettoyage final
+## État final
 
-Les cinq anciens overrides sont supprimés de l'API C++. Les initialisations runtime et preview transportent uniquement les meshes; leurs Material Slots fournissent l'apparence normale.
+Les cinq anciens overrides sont supprimés du schéma Unreal et de l'API C++. Aucun shim de propriété ou de signature matériau ne subsiste. Les initialisations runtime, les mécanismes et la preview transportent uniquement les meshes ; leurs Material Slots fournissent l'apparence normale.

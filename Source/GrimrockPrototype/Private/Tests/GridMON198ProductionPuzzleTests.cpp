@@ -132,7 +132,7 @@ namespace GridMON198Tests
 			return false;
 		}
 
-		DoorActor->InitializeDoor(DoorData, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+		DoorActor->InitializeDoor(DoorData, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
 		DoorSystem->RegisterDoorObject(DoorData, DoorActor);
 		return !Runtime.IsDoorOpenOnEdge(DoorData.CellX, DoorData.CellY, DoorData.Edge);
 	}

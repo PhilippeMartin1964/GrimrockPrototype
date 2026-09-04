@@ -97,7 +97,7 @@ namespace
 		{
 			return nullptr;
 		}
-		Door->InitializeDoor(Data, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+		Door->InitializeDoor(Data, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
 		Doors->RegisterDoorObject(Data, Door);
 		return Door;
 	}

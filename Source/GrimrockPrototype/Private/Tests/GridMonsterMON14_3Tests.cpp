@@ -361,7 +361,7 @@ bool FGridMonsterMON143BlockedHearingWaitTest::RunTest(const FString& Parameters
 	{
 		return false;
 	}
-	Door->InitializeDoor(DoorData, nullptr, nullptr, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	Door->InitializeDoor(DoorData, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
 	DoorSystem->RegisterDoorObject(DoorData, Door);
 
 	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_BlockedHearingRat"), 0, 4), FIntPoint(1, 1), EGridEdge::North,
