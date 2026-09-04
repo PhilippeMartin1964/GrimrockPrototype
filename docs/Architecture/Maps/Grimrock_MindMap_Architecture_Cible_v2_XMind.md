@@ -131,8 +131,8 @@
       - Surface = Wall
       - WallSide = South
       - OccupiesBoundary = true
-      - ReplacesStandardWall = true
-      - BlocksPassageWhenClosed = true
+      - SuppressBaseWall = true
+
 
 - Définitions globales du jeu
   - Objets du monde
@@ -180,13 +180,9 @@
         - Surface snapping
         - Optional socket snapping
     - Comportement spatial
-      - CanShareCell
-      - CanShareAnchor
-      - BlocksMovement
+      - BlocksCellMovement
       - OccupiesBoundary
-      - ReplacesStandardWall
-      - BlocksPassageWhenClosed
-      - Boundary semantics séparées du placement
+      - SuppressBaseWall
     - Présentation visuelle
       - PreviewMesh
       - FixedMesh
