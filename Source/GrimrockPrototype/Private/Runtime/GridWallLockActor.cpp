@@ -29,9 +29,9 @@ namespace
 }
 
 void AGridWallLockActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
+	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	Super::InitializeGridObject(ObjectData, Mesh, Material, WorldTransform);
+	Super::InitializeGridObject(ObjectData, Mesh, WorldTransform);
 
 	const FGridLockBehaviorParams& LockParams = ObjectData.Behavior.Lock;
 	bIsUnlocked = LockParams.bStartsUnlocked;

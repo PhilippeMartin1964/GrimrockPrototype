@@ -28,15 +28,12 @@ void AGridMechanismActor::InitializeMechanismVisuals(
 		return;
 	}
 
-	// MATERIAL-OWNERSHIP01: meshes carry their own material slots.
-	SetFixedMesh(Archetype->FixedMesh.Get(), nullptr);
-	SetMovingMesh(Archetype->MovingMesh ? Archetype->MovingMesh.Get() : Archetype->PreviewMesh.Get(), nullptr);
+	SetFixedMesh(Archetype->FixedMesh.Get());
+	SetMovingMesh(Archetype->MovingMesh ? Archetype->MovingMesh.Get() : Archetype->PreviewMesh.Get());
 }
 
-void AGridMechanismActor::SetFixedMesh(UStaticMesh* Mesh, UMaterialInterface* Material)
+void AGridMechanismActor::SetFixedMesh(UStaticMesh* Mesh)
 {
-	// Retained temporarily for source compatibility; material overrides are retired.
-	(void)Material;
 	if (!FixedMeshComponent)
 	{
 		return;
@@ -46,10 +43,8 @@ void AGridMechanismActor::SetFixedMesh(UStaticMesh* Mesh, UMaterialInterface* Ma
 	FixedMeshComponent->SetVisibility(Mesh != nullptr);
 }
 
-void AGridMechanismActor::SetMovingMesh(UStaticMesh* Mesh, UMaterialInterface* Material)
+void AGridMechanismActor::SetMovingMesh(UStaticMesh* Mesh)
 {
-	// Retained temporarily for source compatibility; material overrides are retired.
-	(void)Material;
 	if (!MovingMeshComponent)
 	{
 		return;

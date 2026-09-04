@@ -41,7 +41,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Plate")
 	void InitializePlate(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* InPlateMesh, UMaterialInterface* InMaterial, const FVector& InWorldLocation, bool bStartPressed);
+		const FGridLevelObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation, bool bStartPressed);
 
 	UFUNCTION(BlueprintCallable, Category = "Plate")
 	void SetPressed(bool bNewPressed);
@@ -50,7 +50,7 @@ public:
 	void SetWeightState(float InCurrentItemWeight, float InRequiredItemWeight, bool bInUseItemWeight, bool bInActivateWhenPartyPresent);
 
 	virtual void InitializeGridObject(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform) override;
+		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform) override;
 
 protected:
 	void UpdateAnimation(float DeltaSeconds);

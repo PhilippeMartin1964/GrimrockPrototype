@@ -30,14 +30,14 @@ public:
 	float HoldTime = 0.15f;
 
 	UFUNCTION(BlueprintCallable, Category = "Button")
-	void InitializeButton(const FGridLevelObjectData& ObjectData, UStaticMesh* InButtonMesh, UMaterialInterface* InMaterial, const FVector& InWorldLocation,
+	void InitializeButton(const FGridLevelObjectData& ObjectData, UStaticMesh* InButtonMesh, const FVector& InWorldLocation,
 		const FRotator& InWorldRotation);
 
 	UFUNCTION(BlueprintCallable, Category = "Button")
 	void TriggerPress();
 
 	virtual void InitializeGridObject(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform) override;
+		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform) override;
 
 	virtual bool CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
 	virtual void Interact_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;

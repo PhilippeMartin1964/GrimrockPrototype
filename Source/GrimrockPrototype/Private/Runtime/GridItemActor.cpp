@@ -32,7 +32,7 @@ AGridItemActor::AGridItemActor()
 	SparkleMeshComponent->SetVisibility(false, true);
 }
 
-void AGridItemActor::InitializeItem(FName InArchetypeId, const TArray<FName>& InItemTags, UStaticMesh* Mesh, UMaterialInterface* Material)
+void AGridItemActor::InitializeItem(FName InArchetypeId, const TArray<FName>& InItemTags, UStaticMesh* Mesh)
 {
 	ArchetypeId = InArchetypeId;
 	ItemTags = InItemTags;
@@ -45,16 +45,9 @@ void AGridItemActor::InitializeItem(FName InArchetypeId, const TArray<FName>& In
 		RuntimeObjectId = FGuid::NewGuid();
 	}
 
-	if (MeshComponent)
+	if (MeshComponent && Mesh)
 	{
-		if (Mesh)
-		{
-			MeshComponent->SetStaticMesh(Mesh);
-		}
-		if (Material)
-		{
-			MeshComponent->SetMaterial(0, Material);
-		}
+		MeshComponent->SetStaticMesh(Mesh);
 	}
 	RefreshWorldSparklePresentation();
 }

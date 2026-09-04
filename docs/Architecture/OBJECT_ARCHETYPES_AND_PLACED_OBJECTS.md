@@ -103,7 +103,7 @@ L'archétype est la source partagée utilisée à la fois par l'éditeur et le r
 - `PlacementKind`, offsets de placement et règles de partage ;
 - `bReplacesStandardWall`, `bBlocksMovement`, `bHideCellFloor` ;
 - paramètres de lecture, interaction et lumière ;
-- `PreviewMesh`, `PreviewMaterial`, meshes et matériaux fixes/mobiles ;
+- `PreviewMesh`, `FixedMesh`, `MovingMesh` et meshes de volets de Pit; les matériaux appartiennent aux Material Slots des Static Meshes ;
 - `RuntimeActorClass` et `ItemActorClass` ;
 - `ItemTags`.
 

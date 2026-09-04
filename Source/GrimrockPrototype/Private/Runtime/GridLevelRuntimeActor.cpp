@@ -1884,32 +1884,6 @@ UStaticMesh* AGridLevelRuntimeActor::GetObjectMesh(const FGridLevelObjectData& O
 	return nullptr;
 }
 
-UMaterialInterface* AGridLevelRuntimeActor::GetObjectMaterial(const FGridLevelObjectData& ObjectData) const
-{
-	const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(ObjectData.ArchetypeId);
-	if (!Archetype)
-	{
-		return nullptr;
-	}
-
-	if (Archetype->PreviewMaterial)
-	{
-		return Archetype->PreviewMaterial.Get();
-	}
-
-	if (Archetype->MovingMaterial)
-	{
-		return Archetype->MovingMaterial.Get();
-	}
-
-	if (Archetype->FixedMaterial)
-	{
-		return Archetype->FixedMaterial.Get();
-	}
-
-	return nullptr;
-}
-
 AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId, AActor* OwnerActor,
 	USceneComponent* AttachParent, TSubclassOf<AGridItemActor> PreferredItemActorClass) const
 {
@@ -1949,7 +1923,7 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDef
 	}
 	// Optional mesh. InitializeItem must not overwrite BP components
 	// si ItemMesh est nullptr.
-	ItemActor->InitializeItem(ItemDefinitionId, TArray<FName>(), ItemMesh, nullptr);
+	ItemActor->InitializeItem(ItemDefinitionId, TArray<FName>(), ItemMesh);
 	if (ItemDefinition)
 	{
 		ItemActor->InitializeFromItemDefinition(ItemDefinition, FGuid());
@@ -2317,10 +2291,9 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLevelObjectData& Obje
 void AGridLevelRuntimeActor::AddRuntimeObjectActor(const FGridLevelObjectData& ObjectData)
 {
 	UStaticMesh* Mesh = nullptr;
-	UMaterialInterface* Material = nullptr;
 	FTransform Transform;
 	const TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass = GetObjectRuntimeActorClass(ObjectData);
-	AGridRuntimeObjectActor* Actor = SpawnRuntimeObjectActor<AGridRuntimeObjectActor>(ObjectData, Mesh, Material, Transform);
+	AGridRuntimeObjectActor* Actor = SpawnRuntimeObjectActor<AGridRuntimeObjectActor>(ObjectData, Mesh, Transform);
 	UE_LOG(LogTemp, VeryVerbose,
 		TEXT("GridRuntime Diagnostic AddRuntimeObjectActor ObjectId=%s ArchetypeId=%s ObjectData.Type=%s "
 			 "RuntimeActorClass=%s ActorClass=%s Mesh=%s Transform=%s"),
@@ -2338,15 +2311,15 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor(const FGridLevelObjectData& O
 	if (AGridMechanismActor* MechanismActor = Cast<AGridMechanismActor>(Actor))
 	{
 		MechanismActor->InitializeMechanismVisuals(RuntimeObjectData, Archetype, Transform);
-		Actor->InitializeGridObject(RuntimeObjectData, Mesh, Material, Transform);
+		Actor->InitializeGridObject(RuntimeObjectData, Mesh, Transform);
 	}
 	else if (AGridGenericObjectActor* GenericActor = Cast<AGridGenericObjectActor>(Actor))
 	{
-		GenericActor->InitializeGenericObject(RuntimeObjectData, Archetype, Mesh, Material, Transform);
+		GenericActor->InitializeGenericObject(RuntimeObjectData, Archetype, Mesh, Transform);
 	}
 	else
 	{
-		Actor->InitializeGridObject(RuntimeObjectData, Mesh, Material, Transform);
+		Actor->InitializeGridObject(RuntimeObjectData, Mesh, Transform);
 	}
 
 	// Generic object-audio contract: every runtime grid object receives the

@@ -19,10 +19,10 @@ AGridGenericObjectActor::AGridGenericObjectActor()
 }
 
 void AGridGenericObjectActor::InitializeGenericObject(const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* Mesh,
-	UMaterialInterface* Material, const FTransform& WorldTransform)
+	const FTransform& WorldTransform)
 {
 	SourceArchetype = Archetype;
-	InitializeGridObject(ObjectData, Mesh, Material, WorldTransform);
+	InitializeGridObject(ObjectData, Mesh, WorldTransform);
 	ApplyArchetypeOptions(Archetype);
 	if (!ObjectData.OverrideReadableText.IsEmpty())
 	{

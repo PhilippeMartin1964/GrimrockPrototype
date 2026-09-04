@@ -36,10 +36,10 @@ void AGridLeverActor::Tick(float DeltaSeconds)
 	}
 }
 
-void AGridLeverActor::InitializeLever(const FGridLevelObjectData& ObjectData, UStaticMesh* InLeverMesh, UMaterialInterface* InMaterial,
+void AGridLeverActor::InitializeLever(const FGridLevelObjectData& ObjectData, UStaticMesh* InLeverMesh,
 	const FVector& InWorldLocation, const FRotator& InWorldRotation, bool bStartOn)
 {
-	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, nullptr, FTransform(InWorldRotation, InWorldLocation));
+	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, FTransform(InWorldRotation, InWorldLocation));
 
 	LeverOffPitch = ObjectData.Behavior.LeverAnimation.LeverOffPitch;
 	LeverOnPitch = ObjectData.Behavior.LeverAnimation.LeverOnPitch;
@@ -95,9 +95,9 @@ void AGridLeverActor::UpdateAnimation(float DeltaSeconds)
 }
 
 void AGridLeverActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
+	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	InitializeLever(ObjectData, Mesh, Material, WorldTransform.GetLocation(), WorldTransform.Rotator(), ObjectData.bInitiallyActive);
+	InitializeLever(ObjectData, Mesh, WorldTransform.GetLocation(), WorldTransform.Rotator(), ObjectData.bInitiallyActive);
 }
 
 bool AGridLeverActor::CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const

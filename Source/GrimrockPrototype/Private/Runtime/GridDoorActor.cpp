@@ -76,8 +76,8 @@ void AGridDoorActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void AGridDoorActor::InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, UMaterialInterface* InMovingMaterial,
-	UStaticMesh* InFixedMesh, UMaterialInterface* InFixedMaterial, const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen)
+void AGridDoorActor::InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh,
+	UStaticMesh* InFixedMesh, const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen)
 {
 	StopDoorMotionSound();
 
@@ -89,8 +89,8 @@ void AGridDoorActor::InitializeDoor(const FGridLevelObjectData& ObjectData, USta
 	SetActorLocation(ClosedWorldLocation);
 	SetActorRotation(WorldRotation);
 
-	SetFixedMesh(InFixedMesh, InFixedMaterial);
-	SetMovingMesh(InMovingMesh, InMovingMaterial);
+	SetFixedMesh(InFixedMesh);
+	SetMovingMesh(InMovingMesh);
 
 	OpenHeight = ObjectData.Behavior.DoorAnimation.OpenHeight;
 	MoveDuration = ObjectData.Behavior.DoorAnimation.MoveDuration;
@@ -155,7 +155,6 @@ void AGridDoorActor::SetDoorOpenState(bool bOpen)
 	}
 
 	const float FullTravelDistance = FVector::Dist(MovingClosedRelativeLocation, MovingOpenRelativeLocation);
-
 	const float RemainingDistance = FVector::Dist(CurrentLocation, DesiredTarget);
 
 	if (FullTravelDistance <= KINDA_SMALL_NUMBER || RemainingDistance <= KINDA_SMALL_NUMBER)
@@ -512,10 +511,10 @@ void AGridDoorActor::UpdateAnimation(float DeltaSeconds)
 }
 
 void AGridDoorActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
+	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
 	StopDoorMotionSound();
-	Super::InitializeGridObject(ObjectData, Mesh, Material, WorldTransform);
+	Super::InitializeGridObject(ObjectData, Mesh, WorldTransform);
 
 	OpenHeight = ObjectData.Behavior.DoorAnimation.OpenHeight;
 	MoveDuration = ObjectData.Behavior.DoorAnimation.MoveDuration;

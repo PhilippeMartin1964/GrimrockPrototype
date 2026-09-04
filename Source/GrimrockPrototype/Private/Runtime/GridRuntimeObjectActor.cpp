@@ -21,7 +21,7 @@ AGridRuntimeObjectActor::AGridRuntimeObjectActor()
 }
 
 void AGridRuntimeObjectActor::InitializeGridObjectBase(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FVector& WorldLocation, const FRotator& WorldRotation)
+	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FVector& WorldLocation, const FRotator& WorldRotation)
 {
 	ObjectId = ObjectData.ObjectId;
 	ObjectType = ObjectData.Type;
@@ -29,9 +29,6 @@ void AGridRuntimeObjectActor::InitializeGridObjectBase(
 	CellY = ObjectData.CellY;
 	Edge = ObjectData.Edge;
 
-	// MATERIAL-OWNERSHIP01: mesh material slots are the sole source of truth.
-	// Keep the parameter temporarily for source compatibility with existing call sites.
-	(void)Material;
 	if (MeshComponent)
 	{
 		MeshComponent->SetStaticMesh(Mesh);
@@ -57,11 +54,10 @@ bool AGridRuntimeObjectActor::MatchesEdge(int32 InCellX, int32 InCellY, EGridEdg
 }
 
 void AGridRuntimeObjectActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
+	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	InitializeGridObjectBase(ObjectData, Mesh, Material, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
+	InitializeGridObjectBase(ObjectData, Mesh, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
 }
-
 
 void AGridRuntimeObjectActor::ConfigureObjectAudio(const UGridObjectArchetypeAsset* Archetype)
 {

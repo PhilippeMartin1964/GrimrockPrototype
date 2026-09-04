@@ -114,11 +114,8 @@ La colonne `Libellé UE5` correspond au nom affiché dans la fenêtre d’éditi
 | Light | `Light Radius` | `LightRadius` | `float` | Rayon de lumière. | Si `bIsLightSource=true`. | Quelques cellules maximum. | À régler avec la taille cellule 200 cm. |
 | Light | `Use Light Flicker (if supported)` | `bUseLightFlicker` | `bool` | Demande un flicker si le chemin runtime le supporte. | Torches / flammes. | `true` pour support de torche | Le support réel dépend des composants runtime. |
 | Visual | `Main Mesh / Preview Mesh` | `PreviewMesh` | `UStaticMesh*` | Mesh principal/simple et mesh de preview. | Objet visible simple ou item. | `SM_Torch`, `SM_Door` | Malgré le nom, ce n’est pas seulement editor-preview. |
-| Visual | `Main Material / Preview Material` | `PreviewMaterial` | `UMaterialInterface*` | Matériau principal/simple et preview. | Si besoin d’override matériel. | `MI_StoneDoor` | Optionnel si le mesh porte déjà ses matériaux. |
 | Visual | `Fixed Mesh` | `FixedMesh` | `UStaticMesh*` | Partie fixe d’un objet composite. | Portes secrètes, supports, mécanismes composites. | partie fixe de porte secrète | Advanced. |
 | Visual | `Moving Mesh` | `MovingMesh` | `UStaticMesh*` | Partie animée/mobile d’un objet composite. | Porte, bouton, levier, secret door. | panneau mobile de porte | Advanced. |
-| Visual | `Fixed Material` | `FixedMaterial` | `UMaterialInterface*` | Matériau de la partie fixe. | Si `FixedMesh` a besoin d’override. | `MI_WallStone` | Advanced. |
-| Visual | `Moving Material` | `MovingMaterial` | `UMaterialInterface*` | Matériau de la partie mobile. | Si `MovingMesh` a besoin d’override. | `MI_DoorStone` | Advanced. |
 | Runtime | `Runtime Actor Class` | `RuntimeActorClass` | `TSubclassOf<AGridRuntimeObjectActor>` | Classe runtime des objets non-item. | Door, Button, Lever, Receptacle, PressurePlate, etc. | `BP_GridDoorActor` | Non utilisé pour les items pickup. |
 | Runtime | `Item Actor Class` | `ItemActorClass` | `TSubclassOf<AGridItemActor>` | Classe runtime des items manipulables. | `SupportedType=Item`. | `BP_Item_Torch` | Pour item au sol / inventaire futur. Fallback C++ possible. |
 | Placement | `Placement Z Offset` | `PlacementZOffset` | `float` | Offset vertical de placement. | Tous objets visibles. | `10` pour item sol, plus haut pour wall. | Influence aussi les centres logiques de connecteurs. |
@@ -303,3 +300,5 @@ En cas de contradiction :
 2. ce document sert de référence pratique pour les paramètres ;
 3. `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md` reste la référence d’audit technique ;
 4. `08` et `09` restent les références pour les DataAssets existants et leur nommage.
+
+> MATERIAL-OWNERSHIP01 : les matériaux d'objet ne sont plus des paramètres d'archétype. Ils sont définis dans les Material Slots de chaque Static Mesh.
