@@ -2,8 +2,55 @@
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Core/GridObjectArchetypeAsset.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/MaterialInterface.h"
 #include "Misc/AutomationTest.h"
 #include "Modules/ModuleManager.h"
+
+namespace
+{
+	FString DescribeMaterialSlots(const UStaticMesh* Mesh)
+	{
+		if (!Mesh)
+		{
+			return TEXT("<no mesh>");
+		}
+
+		const TArray<FStaticMaterial>& StaticMaterials = Mesh->GetStaticMaterials();
+		if (StaticMaterials.IsEmpty())
+		{
+			return TEXT("<no material slots>");
+		}
+
+		TArray<FString> SlotDescriptions;
+		SlotDescriptions.Reserve(StaticMaterials.Num());
+		for (int32 Index = 0; Index < StaticMaterials.Num(); ++Index)
+		{
+			const UMaterialInterface* SlotMaterial = StaticMaterials[Index].MaterialInterface;
+			SlotDescriptions.Add(FString::Printf(TEXT("%d:%s"), Index, SlotMaterial ? *SlotMaterial->GetPathName() : TEXT("<None>")));
+		}
+
+		return FString::Join(SlotDescriptions, TEXT(" | "));
+	}
+
+	bool MeshContainsMaterial(const UStaticMesh* Mesh, const UMaterialInterface* Material)
+	{
+		if (!Mesh || !Material)
+		{
+			return false;
+		}
+
+		for (const FStaticMaterial& StaticMaterial : Mesh->GetStaticMaterials())
+		{
+			if (StaticMaterial.MaterialInterface == Material)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMaterialOwnershipAuditTest,
 	"Grimrock.Architecture.MaterialOwnership.Audit",
@@ -30,6 +77,18 @@ bool FGridMaterialOwnershipAuditTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	auto ReportOverride = [this](const FAssetData& AssetData, const TCHAR* FieldName, const UStaticMesh* Mesh, const UMaterialInterface* Material)
+	{
+		const FString MeshPath = Mesh ? Mesh->GetPathName() : TEXT("<None>");
+		const FString MaterialPath = Material ? Material->GetPathName() : TEXT("<None>");
+		const bool bAlreadyInMeshSlots = MeshContainsMaterial(Mesh, Material);
+		const FString SlotDescription = DescribeMaterialSlots(Mesh);
+
+		AddError(FString::Printf(
+			TEXT("%s Field=%s Mesh=%s OverrideMaterial=%s AlreadyInMeshSlots=%s MeshSlots=[%s]"),
+			*AssetData.GetObjectPathString(), FieldName, *MeshPath, *MaterialPath, bAlreadyInMeshSlots ? TEXT("YES") : TEXT("NO"), *SlotDescription));
+	};
+
 	int32 ArchetypesWithOverrides = 0;
 	for (const FAssetData& AssetData : AssetDatas)
 	{
@@ -40,34 +99,37 @@ bool FGridMaterialOwnershipAuditTest::RunTest(const FString& Parameters)
 			continue;
 		}
 
-		TArray<FString> OverrideFields;
+		bool bHasOverride = false;
 		if (Archetype->PreviewMaterial)
 		{
-			OverrideFields.Add(TEXT("PreviewMaterial"));
+			bHasOverride = true;
+			ReportOverride(AssetData, TEXT("PreviewMaterial"), Archetype->PreviewMesh.Get(), Archetype->PreviewMaterial.Get());
 		}
 		if (Archetype->FixedMaterial)
 		{
-			OverrideFields.Add(TEXT("FixedMaterial"));
+			bHasOverride = true;
+			ReportOverride(AssetData, TEXT("FixedMaterial"), Archetype->FixedMesh.Get(), Archetype->FixedMaterial.Get());
 		}
 		if (Archetype->MovingMaterial)
 		{
-			OverrideFields.Add(TEXT("MovingMaterial"));
+			bHasOverride = true;
+			const UStaticMesh* EffectiveMovingMesh = Archetype->MovingMesh ? Archetype->MovingMesh.Get() : Archetype->PreviewMesh.Get();
+			ReportOverride(AssetData, TEXT("MovingMaterial"), EffectiveMovingMesh, Archetype->MovingMaterial.Get());
 		}
 		if (Archetype->PitLeftLeafMaterial)
 		{
-			OverrideFields.Add(TEXT("PitLeftLeafMaterial"));
+			bHasOverride = true;
+			ReportOverride(AssetData, TEXT("PitLeftLeafMaterial"), Archetype->PitLeftLeafMesh.Get(), Archetype->PitLeftLeafMaterial.Get());
 		}
 		if (Archetype->PitRightLeafMaterial)
 		{
-			OverrideFields.Add(TEXT("PitRightLeafMaterial"));
+			bHasOverride = true;
+			ReportOverride(AssetData, TEXT("PitRightLeafMaterial"), Archetype->PitRightLeafMesh.Get(), Archetype->PitRightLeafMaterial.Get());
 		}
 
-		if (!OverrideFields.IsEmpty())
+		if (bHasOverride)
 		{
 			++ArchetypesWithOverrides;
-			AddError(FString::Printf(
-				TEXT("%s uses archetype material override(s): %s. Move the material(s) to the corresponding Static Mesh Material Slots before removing the legacy fields."),
-				*AssetData.GetObjectPathString(), *FString::Join(OverrideFields, TEXT(", "))));
 		}
 	}
 
