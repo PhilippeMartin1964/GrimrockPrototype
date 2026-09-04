@@ -160,11 +160,7 @@
         - Passage
         - FutureSpecial
     - Placement et contraintes d'authoring
-      - AllowedPlacementSurfaces
-        - Floor
-        - Wall
-        - Ceiling
-      - DefaultPlacementSurface
+      - PlacementSurface
         - Floor
         - Wall
         - Ceiling
@@ -173,13 +169,6 @@
         - East
         - South
         - West
-      - Repère local de surface
-        - U
-          - Axe horizontal de la surface
-        - V
-          - Deuxième axe tangent à la surface
-        - N
-          - Axe normal à la surface
       - DefaultLocalPosition
         - U
         - V
@@ -836,12 +825,8 @@
     - Placement
       - CellX
       - CellY
-      - Surface
-        - Floor
-        - Wall
-        - Ceiling
       - WallSide
-        - seulement si Surface = Wall
+        - seulement si WorldObjectDefinition.PlacementSurface = Wall
         - North
         - East
         - South
@@ -1243,8 +1228,8 @@
     - DefinitionRef
     - Placement
       - CellX / CellY
-      - Surface = Floor / Wall / Ceiling
-      - WallSide si Wall
+      - PlacementSurface héritée de la définition (lecture seule)
+      - WallSide si PlacementSurface = Wall
       - Position locale U / V / N
       - Rotation locale
       - Échelle locale
@@ -1271,7 +1256,7 @@
   - Validation
     - Missing definition
     - Invalid placement
-    - Surface non autorisée pour la définition
+    - PlacementSurface invalide ou non définie
     - WallSide manquant pour un placement mural
     - Boundary conflict / frontière dupliquée
     - Duplicate IDs
