@@ -184,17 +184,97 @@
       - OccupiesBoundary
       - SuppressBaseWall
     - Présentation visuelle
-      - PreviewMesh
-      - FixedMesh
-      - MovingMesh
-      - CompositeMeshes
-      - PitLeftLeafMesh
-      - PitRightLeafMesh
-      - VisualOffset
-      - VisualRotationOffset
-      - VisualScale
-      - MaterialSlots portés par les meshes
-      - VFX optionnels
+      - Principe
+        - La preview du Grid Editor est construite à partir des mêmes parties que le runtime
+        - Aucun PreviewMesh séparé
+        - Aucun champ spécialisé par type d'objet
+        - Un objet possède 0 à 2 parties mobiles maximum
+      - StaticPart
+        - Optionnelle
+        - Mesh
+        - LocalTransform
+          - Position
+          - Rotation
+          - Scale
+            - Valeur cible normale = 1,1,1
+      - MovingParts
+        - Nombre autorisé
+          - 0
+          - 1
+          - 2
+        - MovingPart[0]
+          - Mesh
+          - LocalTransform
+            - Position
+            - Rotation
+            - Scale
+              - Valeur cible normale = 1,1,1
+          - Motion
+            - Type
+              - Rotation
+              - Translation
+            - Axis
+              - X
+              - Y
+              - Z
+            - Pivot
+              - Utilisé seulement si Type = Rotation
+              - X
+              - Y
+              - Z
+            - Amount
+              - Angle en degrés si Rotation
+              - Distance en cm si Translation
+            - Duration
+        - MovingPart[1]
+          - Même structure que MovingPart[0]
+      - Règles de composition
+        - StaticPart décrit la géométrie fixe de l'objet
+        - MovingParts décrivent uniquement les éléments réellement animés
+        - Le LocalTransform d'une partie décrit sa position relative dans l'objet
+        - Le placement de l'objet dans la cellule reste défini séparément par PlacementSurface et les coordonnées locales U/V/N
+        - Les matériaux restent portés par les StaticMesh Unreal
+        - Aucun MaterialSlots spécifique dans le WorldObjectDefinition
+      - Cas couverts par le même modèle
+        - Objet entièrement statique
+          - StaticPart uniquement
+          - 0 MovingPart
+        - Porte simple battante
+          - 1 MovingPart
+          - Rotation autour de Z
+        - Double porte battante
+          - 2 MovingParts
+          - Rotation autour de Z avec un Pivot gauche et un Pivot droit
+        - Porte verticale
+          - 1 MovingPart
+          - Translation sur Z
+        - Porte secrète verticale
+          - 1 MovingPart
+          - Translation sur Z
+        - Double porte coulissante
+          - 2 MovingParts
+          - Translation horizontale opposée sur X ou Y
+        - Trappe de fosse à deux clapets
+          - 2 MovingParts
+          - Rotation vers le bas autour de l'axe X ou Y selon l'orientation du mesh
+        - Bouton mural
+          - 1 MovingPart
+          - Translation courte dans l'axe local approprié
+        - Levier
+          - 1 MovingPart
+          - Rotation autour de son Pivot
+        - Plaque de pression
+          - 1 MovingPart
+          - Translation courte vers le bas
+    - Effects / VFX
+      - Séparés de la géométrie visuelle
+      - VFXEvents
+        - OnActivate
+        - OnDeactivate
+        - OnOpen
+        - OnClose
+        - OnDestroy
+        - Custom
     - Interaction
       - IsInteractable
       - IsReadable
