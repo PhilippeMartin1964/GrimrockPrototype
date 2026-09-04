@@ -1,0 +1,1243 @@
+# Grimrock Prototype — Mind Map Architecture Cible v2
+
+- Principes directeurs
+  - Une définition = un concept
+    - Un item ramassable possède une seule définition permanente
+    - Un objet du monde possède une seule définition permanente
+    - Un monstre possède une seule définition permanente
+    - Un niveau référence les définitions sans les dupliquer
+  - Définition ≠ Instance
+    - Définition
+      - Décrit ce qu'est la chose
+      - Réutilisable dans plusieurs niveaux
+      - Réutilisable plusieurs fois dans le même niveau
+    - Instance
+      - Décrit où se trouve la chose
+      - Décrit son état local
+      - Possède une identité persistante si nécessaire
+  - Authoring ≠ Runtime
+    - Les Data Assets sont des données d'authoring
+    - Le niveau contient les placements et la logique
+    - Le runtime exécute les définitions et les instances
+    - Le runtime ne doit pas devenir la source de vérité d'authoring
+  - Grille comme source de vérité spatiale
+    - Coordonnées par cellule
+    - Orientation cardinalisée
+    - Placement local relatif à la cellule ou à l'arête
+    - Éviter de stocker des coordonnées monde UE comme source de vérité
+  - Références plutôt que duplication
+    - ItemDefinitionRef
+    - WorldObjectDefinitionRef
+    - MonsterDefinitionRef
+    - QuestDefinitionRef
+    - ReadableContentRef
+    - EnvironmentDefinitionRef
+  - Logique découplée des objets
+    - Événement
+    - Condition
+    - Commande
+    - Cible
+    - Lua optionnel
+    - Quête optionnelle
+
+- Définitions globales du jeu
+  - Objets du monde
+    - Type cible recommandé
+      - UGridWorldObjectDefinitionAsset
+      - Remplace conceptuellement UGridObjectArchetypeAsset
+    - Identité
+      - DefinitionId
+      - DisplayName
+      - Description
+      - Tags
+      - PaletteCategory
+      - FunctionalCategory
+    - Classification
+      - WorldObjectType
+        - Door
+        - Mechanism
+        - Receptacle
+        - Decoration
+        - Light
+        - Teleporter
+        - Readable
+        - Narrative
+        - Pit
+        - Passage
+        - FutureSpecial
+    - Placement
+      - PlacementKind
+        - Center
+        - Floor
+        - Wall
+        - Edge
+        - Ceiling
+      - CanShareCell
+      - CanShareAnchor
+      - BlocksMovement
+      - ReplacesStandardWall
+      - PlacementZOffset
+      - WallInset
+      - LocalOffsetAlongWall
+      - LocalOffsetVertical
+      - DefaultRotation
+      - DefaultScale
+    - Présentation visuelle
+      - PreviewMesh
+      - FixedMesh
+      - MovingMesh
+      - CompositeMeshes
+      - PitLeftLeafMesh
+      - PitRightLeafMesh
+      - VisualOffset
+      - VisualRotationOffset
+      - VisualScale
+      - MaterialSlots portés par les meshes
+      - VFX optionnels
+    - Interaction
+      - IsInteractable
+      - IsReadable
+      - ReadableContentRef
+      - ReadableTextOverride
+      - ShowReadableOnlyOnce
+      - UseDistance
+      - InteractionPriority
+    - État par défaut
+      - InitiallyEnabled
+      - InitiallyActive
+      - InitiallyOpen
+      - InitiallyLocked
+      - DefaultTag
+    - Comportement
+      - DefaultBehavior
+      - Activation
+      - Deactivation
+      - Toggle
+      - Open
+      - Close
+      - Lock
+      - Unlock
+      - Teleport
+      - Trigger
+      - ReceptacleRules
+      - CustomBehavior
+    - Audio
+      - Attenuation
+      - AudioEvents
+        - Open
+        - Close
+        - Press
+        - Release
+        - Activate
+        - Deactivate
+        - Insert
+        - Remove
+        - Reject
+        - Trigger
+        - Reset
+        - Teleport
+        - Interact
+        - Custom
+    - Lumière
+      - IsLightSource
+      - LightColor
+      - LightIntensity
+      - LightRadius
+      - UseLightFlicker
+      - FlickerProfile
+    - Runtime
+      - RuntimeActorClass
+      - RuntimeCapabilities
+      - ValidationRules
+    - Familles d'objets du monde
+      - Portes et passages
+        - Porte simple en pierre
+        - Porte simple en bois
+        - Portail en fer
+        - Porte secrète
+        - Double porte battante
+        - Double porte coulissante
+        - Mur ouvrable
+        - Passage secret
+        - Échelle rétractable
+        - Passage spécial
+      - Mécanismes
+        - Bouton mural
+        - Bouton secret
+        - Levier mural
+        - Plaque de pression
+        - Trigger
+        - Serrure
+        - Keyhole
+        - Gem lock
+        - Trappe au sol
+        - Piège à projectiles
+        - Cracheur de sort
+        - Mur destructible
+        - Piège à pointes
+        - Piège de feu
+        - Mécanisme spécial
+      - Réceptacles
+        - Stockage
+          - Coffre
+          - Caisse
+          - Baril
+          - Sac
+          - Armoire
+        - Présentation
+          - Support de torche
+          - Niche
+          - Alcôve
+          - Présentoir
+        - Mécanisme
+          - Autel
+          - Bol d'offrande
+          - Réceptacle de cristal
+          - Réceptacle de quête
+          - Serrure à objet
+      - Décorations
+        - Posées au sol
+          - Sang
+          - Ossements
+          - Débris
+          - Mousse
+          - Racines
+          - Gravats
+          - Tapis
+          - Symbole au sol
+          - Statuaire basse
+        - Appliquées au mur
+          - Inscription murale
+          - Bannière
+          - Chaîne
+          - Relief
+          - Décor végétal
+          - Support décoratif
+        - Suspendues au plafond
+          - Racines
+          - Lierre
+          - Chaînes
+          - Lustre
+          - Débris suspendus
+      - Lumières
+        - Torche murale
+        - Brasero
+        - Cristal lumineux
+        - Lampe
+        - Lumière invisible
+      - Téléporteurs
+        - Rune visible
+        - Portail visible
+        - Téléporteur invisible
+        - Téléporteur conditionnel
+      - Lisibles
+        - Inscription murale
+        - Stèle
+        - Plaque gravée
+        - Tablette
+        - Panneau
+      - Narratif
+        - Story Companion
+        - Custom Recruiter
+        - Point d'interaction scénaristique
+        - Déclencheur de dialogue
+        - Point de quête visible
+
+  - Objets ramassables
+    - Type
+      - UGridItemDefinitionAsset
+    - Règle fondamentale
+      - Un item ne possède pas de WorldObjectDefinition compagnon
+      - Le même item peut être au sol, en réceptacle, en inventaire, équipé ou lancé
+    - Identité
+      - ItemDefinitionId
+      - DisplayName
+      - Description
+      - ItemType
+      - ItemTags
+    - Présentation
+      - Icon
+      - WorldMesh
+      - EquippedMesh
+      - VisualScale
+      - VisualRotation
+      - WorldSparkle
+        - Enabled
+        - Material
+        - Color
+        - Intensity
+        - Speed
+        - Variation
+    - Inventaire
+      - Weight
+      - Stackable
+      - MaxStackSize
+    - Manipulation
+      - HandUsage
+        - NotHandHeld
+        - OneHanded
+        - TwoHanded
+      - CanBeHeld
+      - CanBeDropped
+      - CanBeThrown
+      - ThrowWeightRule
+      - StrengthScaling
+    - Équipement
+      - CompatibleEquipmentSlots
+      - EquipmentStatBonus
+      - EquipmentResistanceBonus
+      - CombatActions
+      - AttackPresentationProfile
+    - Utilisation rapide
+      - ProvidesQuickItemCombatAction
+      - QuickItemCombatAction
+    - Lancer
+      - CombatThrowWeapon
+      - ThrowSpeed
+      - ThrowArc
+      - ThrowLifeSeconds
+      - ThrowImpactDropOffset
+      - ThrowVisualMode
+        - Stable
+        - Tumble
+        - Spin
+      - ThrowVisualRelativeRotation
+      - ThrowVisualRelativeScale
+      - ThrowVisualTumbleAxis
+      - ThrowVisualTumbleDegreesPerSecond
+      - ThrowVisualSpinDegreesPerSecond
+    - Physique monde
+      - UseItemWeightAsWorldPhysicsMass
+      - WorldPhysicsInitialTiltDegrees
+    - Lecture
+      - Readable
+      - ReadableContentRef
+      - ReadTitle
+      - ReadText
+    - Lumière portable
+      - CanEmitLight
+      - DefaultLightEnabled
+      - LightRadius
+      - LightColor futur
+      - LightIntensity futur
+    - Familles d'items
+      - Équipement
+        - Armes
+          - Épées
+          - Haches
+          - Masses
+          - Dagues
+          - Lances
+          - Arcs
+          - Armes de jet
+          - Armes magiques
+        - Boucliers
+        - Armures
+          - Tête
+          - Torse
+          - Mains
+          - Jambes
+          - Pieds
+        - Bijoux
+          - Anneaux
+          - Amulettes
+      - Utilitaires
+        - Torches
+        - Clés
+          - Cuivre
+          - Fer
+          - Argent
+          - Or
+          - Spéciales
+        - Gemmes
+          - Bleues
+          - Rouges
+          - Vertes
+          - Spéciales
+      - Consommables
+        - Potions
+        - Nourriture
+      - Lisibles
+        - Parchemins
+        - Livres
+        - Lettres
+        - Journaux
+        - Cartes
+      - Composants
+        - Ingrédients
+        - Composants d'artisanat
+        - Composants magiques
+      - Objets de quête
+        - Clés de quête
+        - Artefacts
+        - Objets narratifs
+      - Divers
+        - Pierres
+        - Pièces
+        - Objets décoratifs ramassables
+        - Objets sans gameplay particulier
+
+  - Monstres
+    - Type
+      - UGridMonsterDefinitionAsset
+    - Identité
+      - MonsterId
+      - DisplayName
+      - Description
+      - CategoryId
+      - DangerLevel
+    - Présentation
+      - Icon
+      - SkeletalMesh
+      - AnimationClass
+      - MonsterActorClass
+      - VisualScale
+      - VisualOffset
+      - VisualRotationOffset
+    - Caractéristiques
+      - MaxHealth
+      - PhysicalArmor
+      - MagicalArmor
+      - Initiative
+      - Accuracy
+      - Evasion
+      - ActionPointsPerTurn
+    - Déplacement
+      - GridFootprint
+      - MoveDuration
+      - TurnDuration
+      - BlocksMovement
+      - CanOpenDoors
+      - CanUseTeleporters
+    - Perception
+      - SightRangeCells
+      - HearingRangeCells
+      - AggroPropagationRange
+      - SharesAggroWithGroup
+    - IA
+      - PrimaryAIProfile
+      - AdditionalAIProfiles
+      - PreferredMinDistance
+      - PreferredMaxDistance
+      - RetreatChance
+      - LowHealthThreshold
+    - Combat
+      - Attacks
+        - AttackId
+        - AttackType
+        - Range
+        - Damage
+        - DamageType
+        - Accuracy
+        - Cost
+        - Cooldown
+        - Presentation
+      - DamageModifiers
+      - Resistances
+      - Vulnerabilities
+    - Animation
+      - Idle
+      - IdleVariations
+      - Walk
+      - Turn
+      - Attack
+      - Hurt
+      - Death
+    - Audio
+      - AlertAudio
+      - HurtAudio
+      - DeathAudio
+      - IdleAudio
+      - IdleAudioMinDelay
+      - IdleAudioMaxDelay
+    - VFX
+      - AlertVFX
+      - HurtVFX
+      - DeathVFX
+    - Récompenses
+      - ExperienceReward
+      - LootTable
+        - ItemDefinitionRef
+        - Quantity
+        - Chance
+        - Conditions
+    - Familles
+      - Vermine
+      - Humanoïdes
+      - Morts-vivants
+      - Bêtes
+      - Créatures magiques
+      - Constructs
+      - Boss
+      - Familles futures
+
+  - Contenus lisibles
+    - Type
+      - UGridReadableContentAsset
+    - Identité
+      - ReadableId
+      - Title
+      - Category
+    - Contenu
+      - Body
+      - Page structure futur
+      - Illustration futur
+    - Utilisation
+      - Item readable
+      - World object readable
+      - Quest text
+      - Journal
+      - Lore
+    - Règle
+      - Le contenu lisible est référencé
+      - Il n'impose pas si l'objet est ramassable ou non
+
+  - Quêtes
+    - Type
+      - UGridQuestDefinitionAsset
+    - Identité
+      - QuestId
+      - Title
+      - Description
+    - Objectifs
+      - ObjectiveId
+      - Description
+      - Type
+      - Conditions
+      - Optional
+    - Progression
+      - NotStarted
+      - Active
+      - Completed
+      - Failed
+    - Récompenses
+      - Experience
+      - Items
+      - Variables
+      - Unlocks
+    - Intégration logique
+      - QuestStart
+      - QuestCompleteObjective
+      - QuestComplete
+      - QuestFail
+
+  - Environnements et thèmes
+    - Type cible
+      - UGridEnvironmentDefinitionAsset
+    - Objectif
+      - Définir une famille cohérente de géométrie et d'ambiance
+      - Éviter de coder Pierre, Bois ou Végétation comme type de cellule
+    - Identité
+      - EnvironmentId
+      - DisplayName
+      - Description
+    - Géométrie
+      - FloorMeshSet
+      - WallMeshSet
+      - CeilingMeshSet
+      - PillarMeshSet
+      - TrimMeshSet
+      - CornerMeshSet
+      - StairMeshSet
+    - Matériaux
+      - FloorMaterials
+      - WallMaterials
+      - CeilingMaterials
+      - DetailMaterials
+    - Décoration procédurale futur
+      - FloorDecorationPool
+      - WallDecorationPool
+      - CeilingDecorationPool
+      - DensityRules
+    - Ambiance
+      - AmbientAudio
+      - Reverb
+      - Fog
+      - PostProcess
+      - LightDefaults
+    - Variantes
+      - Pierre
+      - Bois
+      - Végétation
+      - Temple
+      - Ruines
+      - Grotte
+      - Égouts
+      - Extérieur
+      - Ciel ouvert
+
+  - Palettes du Grid Editor
+    - Type
+      - UGridObjectPaletteAsset
+    - Objectif
+      - Présentation UX uniquement
+      - Aucun impact gameplay direct
+    - Groupes
+      - Structure
+      - Doors
+      - Mechanisms
+      - Receptacles
+      - Decorations
+      - Lights
+      - Teleporters
+      - Items
+      - MonsterSpawns
+      - ItemSpawns
+      - Logic
+      - Narrative
+    - Entrées
+      - WorldObjectDefinitionRef
+      - ItemDefinitionRef
+      - MonsterDefinitionRef
+      - ToolType
+      - Icon
+      - SortOrder
+      - SearchKeywords
+
+  - Donjon / campagne
+    - Type cible
+      - UGridDungeonDefinitionAsset
+    - Identité
+      - DungeonId
+      - DisplayName
+      - Description
+    - Niveaux
+      - OrderedLevelRefs
+      - LevelIds
+    - Transitions
+      - StairLinks
+      - PitLinks
+      - PortalLinks
+      - ScriptedTransitions
+    - Progression globale
+      - GlobalVariables
+      - GlobalQuestRefs
+      - Unlocks
+    - Démarrage
+      - StartLevel
+      - StartCell
+      - StartFacing
+    - Runtime
+      - DungeonRuntimeState
+      - SaveGame integration
+
+  - Personnages et groupe
+    - Définitions futures
+      - CharacterDefinitionAsset
+      - PartyDefinitionAsset
+    - Personnage
+      - Identity
+      - Portrait
+      - Stats
+      - Skills
+      - StartingEquipment
+      - StartingInventory
+      - Biography
+      - Voice
+    - Groupe
+      - StartingCharacters
+      - Formation
+      - SharedRules
+      - SharedResources
+
+- Définition d'un niveau
+  - Type
+    - UGridLevelAsset
+  - Identité
+    - LevelId
+    - DisplayName
+    - Description
+    - DefaultEnvironmentDefinitionRef
+  - Grille
+    - Width
+      - Valeur cible standard 32
+    - Height
+      - Valeur cible standard 32
+    - CellSize
+      - Valeur cible standard 200 cm
+    - Cells
+  - Cellule
+    - Identité spatiale
+      - X
+      - Y
+    - CellType
+      - Empty
+      - Floor
+      - Pit
+      - StairsUp
+      - StairsDown
+      - Teleporter
+    - Murs
+      - NorthWall
+      - EastWall
+      - SouthWall
+      - WestWall
+    - Plafond
+      - HasCeiling
+    - Occupation
+      - BlocksOccupancy
+    - Environnement
+      - EnvironmentOverrideRef
+      - FloorVariant
+      - WallVariant
+      - CeilingVariant
+      - Future per-cell theme override
+  - Départ du groupe
+    - StartCellX
+    - StartCellY
+    - StartFacing
+  - Placements
+    - WorldObjectInstances
+    - LooseItemInstances
+    - MonsterSpawns
+    - ItemSpawns
+    - LogicObjects
+  - Logique
+    - Links
+    - LevelVariables
+    - LuaScripts
+    - QuestDefinitionRefs
+  - Transitions
+    - StairTransitions
+    - PitTransitions
+    - TeleporterTransitions
+    - ScriptedTransitions
+  - Métadonnées éditeur
+    - Notes
+    - Validation
+    - Layers
+    - AuthoringHints
+
+- Instances persistantes
+  - Instance d'objet du monde
+    - Type cible
+      - FGridPlacedWorldObject
+    - Identité
+      - ObjectId
+      - LogicId
+    - Définition
+      - WorldObjectDefinitionRef
+    - Placement
+      - CellX
+      - CellY
+      - Edge
+      - LocalYaw
+      - LocalOffset
+    - État initial
+      - InitiallyEnabled
+      - InitiallyActive
+      - InitiallyOpen
+      - InitiallyLocked
+    - Overrides locaux
+      - Tag
+      - Notes
+      - BehaviorOverrides
+      - ReadableOverride
+      - AudioOverride rare
+    - État runtime sauvegardable
+      - Enabled
+      - Active
+      - Open
+      - Locked
+      - CustomState
+
+  - Instance d'item
+    - Type cible
+      - FGridItemInstance
+    - Identité
+      - ItemInstanceId
+    - Définition
+      - ItemDefinitionRef
+    - Quantité
+      - Quantity
+    - État courant
+      - InWorld
+      - InContainer
+      - InInventory
+      - Equipped
+      - ThrownProjectile
+      - LootPending
+      - Destroyed
+    - Placement monde
+      - CellX
+      - CellY
+      - PlacementKind
+      - LocalOffset
+      - Rotation
+    - Conteneur
+      - ContainerObjectId
+      - ContainerSlot
+    - Propriétaire
+      - CharacterId
+      - InventorySlot
+      - EquipmentSlot
+    - État spécifique futur
+      - Charges
+      - Durability
+      - CustomName
+      - QuestState
+    - Règle
+      - Changer de lieu ne change jamais ItemDefinitionRef
+
+  - Contenu d'un réceptacle
+    - ReceptacleObjectId
+    - ContainedItems
+      - ItemInstanceId
+      - ItemDefinitionRef
+      - Quantity
+    - Capacity
+    - WeightLimit
+    - RemovalAllowed
+    - AcceptanceRules
+
+  - Spawn de monstre
+    - Type cible
+      - FGridMonsterSpawn
+    - Identité
+      - SpawnId
+    - Définition
+      - MonsterDefinitionRef
+    - Placement
+      - CellX
+      - CellY
+      - InitialFacing
+    - État initial
+      - InitialMonsterState
+      - InitiallyEnabled
+    - Patrouille
+      - PatrolMode
+      - PatrolWaypoints
+    - Encounter
+      - EncounterGroupId
+      - EncounterWaveIndex
+    - Runtime persistant
+      - Alive
+      - Dead
+      - Despawned
+      - CurrentCell
+      - CurrentFacing
+      - Health
+      - State
+
+  - Spawn d'item
+    - Type cible
+      - FGridItemSpawn
+    - Identité
+      - SpawnId
+    - Définition
+      - ItemDefinitionRef
+    - Quantité
+      - Quantity
+    - Placement
+      - CellX
+      - CellY
+      - LocalOffset
+      - Rotation
+    - Activation
+      - InitiallyEnabled
+      - SpawnOnEvent
+    - Politique future
+      - Respawn
+      - OneShot
+      - Conditional
+
+  - État du niveau sauvegardé
+    - WorldObjectsState
+    - ItemInstancesState
+    - MonsterStates
+    - ReceptacleContents
+    - LevelVariablesState
+    - QuestStateRefs
+    - EncounterStates
+    - LuaPersistentState selon politique
+    - PartyPositionOnLevel
+
+- Logique du niveau
+  - Connecteur
+    - Type
+      - FGridObjectLink
+    - Source
+      - SourceObjectId
+      - SourceEvent
+    - Condition
+      - ConditionType
+      - Parameters
+      - Invert
+    - Cible
+      - TargetObjectId
+    - Commande
+      - Command
+      - Payload
+  - Événements
+    - Activated
+    - Deactivated
+    - ItemInserted
+    - ItemRemoved
+    - ItemChanged
+    - Used
+    - Entered
+    - Exited
+    - Opened
+    - Closed
+    - Enabled
+    - Disabled
+    - MonsterDied
+    - MonsterSpawned
+    - MonsterDespawned
+    - MonsterTeleported
+    - EncounterWaveStarted
+    - EncounterCompleted
+    - FutureCustomEvent
+  - Commandes
+    - Toggle
+    - Open
+    - Close
+    - Activate
+    - Deactivate
+    - Enable
+    - Disable
+    - Lock
+    - Unlock
+    - Spawn
+    - Despawn
+    - Teleport
+    - ShowMessage
+    - ReceptacleConsumeItem
+    - ReceptacleConsumeAllItems
+    - ReceptacleEnableRemoval
+    - ReceptacleDisableRemoval
+    - StartEncounter
+    - LogicExecute
+    - LogicReset
+    - LuaCallback
+    - OfferRecruitment
+    - OpenCustomRecruit
+    - QuestStart
+    - QuestCompleteObjective
+    - QuestComplete
+    - QuestFail
+  - Conditions
+    - None
+    - ReceptacleIsEmpty
+    - ReceptacleHasAnyItem
+    - ReceptacleContainsItemDefinition
+    - ReceptacleContainsItemTag
+    - ReceptacleContainsItemType
+    - ReceptacleItemCountAtLeast
+    - ReceptacleWeightAtLeast
+    - LevelVariableBoolEquals
+    - LevelVariableIntCompare
+    - FutureQuestCondition
+    - FutureMonsterCondition
+    - FuturePartyCondition
+  - Variables de niveau
+    - Bool
+      - VariableId
+      - DefaultValue
+    - Int
+      - VariableId
+      - DefaultValue
+      - Comparison
+  - Nœuds logiques
+    - Logic
+    - And
+    - Or
+    - Not
+    - Counter
+    - Timer
+    - Sequence
+    - Random
+    - Gate
+    - Future extensible nodes
+  - Lua
+    - ScriptId
+    - Source
+    - Enabled
+    - Callbacks
+    - API exposée
+      - Objects
+      - Items
+      - Party
+      - Monsters
+      - Variables
+      - Quests
+      - Messages
+  - Quêtes
+    - QuestDefinitionRef
+    - Quest events
+    - Objective events
+    - Completion events
+
+- Runtime
+  - Niveau runtime
+    - AGridLevelRuntimeActor
+    - Chargement du LevelAsset
+    - Construction géométrie
+      - Floors
+      - Walls
+      - Ceilings
+      - Environment variants
+    - Spawn des WorldObjects
+    - Spawn des items
+    - Spawn des monstres
+    - Initialisation réceptacles
+    - Résolution connecteurs
+    - Initialisation variables
+    - Initialisation Lua
+    - Initialisation quêtes
+  - Groupe
+    - AGrimrockPartyPawn
+    - Déplacement case par case
+    - Rotation
+    - Strafe
+    - Interaction
+    - Free look limité
+    - Chute
+    - Téléportation
+    - Combat
+  - Objets du monde
+    - GridRuntimeObjectActor
+    - DoorActor
+    - SecretDoorActor
+    - ButtonActor
+    - LeverActor
+    - PressurePlateActor
+    - ReceptacleActor
+    - PitTrapdoorActor
+    - LightActor
+    - TeleporterActor
+    - Future mechanism actors
+  - Items
+    - GridItemActor
+    - World pickup
+    - Drop
+    - Container transfer
+    - Inventory transfer
+    - Equip
+    - Unequip
+    - Throw
+    - Physical settle
+    - World sparkle
+  - Monstres
+    - GridMonsterActor
+    - Spawn
+    - Perception
+    - AI
+    - Patrol
+    - Movement
+    - Combat
+    - Hurt
+    - Death
+    - Corpse cleanup
+    - Loot
+  - Combat
+    - Initiative
+    - ActionPoints
+    - Shared movement points
+    - Hotbar
+    - Weapon actions
+    - Quick item actions
+    - Projectile actions
+    - Cooldowns
+    - Damage
+    - Resistances
+  - UI
+    - HUD
+    - Action bar
+    - Inventory
+    - Equipment
+    - Item tooltip
+    - Readable UI
+    - Quest UI
+    - Recruit UI
+    - Cursor / interaction
+  - Sauvegarde
+    - DungeonRuntimeState
+    - LevelRuntimeState
+    - PartyState
+    - CharacterState
+    - InventoryState
+    - ItemInstanceState
+    - MonsterState
+    - QuestState
+    - VariablesState
+
+- Grid Editor
+  - Niveau
+    - Sélection du LevelAsset
+    - Liste des niveaux du donjon
+    - Taille de grille
+    - Environnement par défaut
+  - Outils
+    - Select
+    - Paint Cell
+    - Paint Wall
+    - Paint Object
+    - Paint Item
+    - Paint Spawn
+    - Erase
+  - Palette
+    - World Objects
+    - Items
+    - Monster Spawns
+    - Item Spawns
+    - Logic
+    - Narrative
+  - Inspecteur de cellule
+    - Cell properties
+    - Walls
+    - Ceiling
+    - Environment override
+    - Objects occupying cell
+    - Items occupying cell
+  - Inspecteur d'objet
+    - DefinitionRef
+    - Placement
+    - Local overrides
+    - Runtime preview
+    - Validation
+  - Inspecteur d'item
+    - ItemDefinitionRef
+    - Quantity
+    - Placement
+    - Container assignment
+  - Connecteurs
+    - Source
+    - Event
+    - Condition
+    - Target
+    - Command
+  - Lua
+    - Scripts
+    - Editor
+    - Validation
+    - Callback list
+  - Validation
+    - Missing definition
+    - Invalid placement
+    - Duplicate IDs
+    - Broken links
+    - Invalid conditions
+    - Invalid runtime class
+    - Missing mesh
+    - Missing monster definition
+    - Missing item definition
+    - Invalid transition
+    - Invalid quest reference
+  - PlayTest
+    - Start position
+    - Validation before play
+    - Runtime launch
+    - Return to editor
+  - UX
+    - Fenêtres repositionnables
+    - Palette filtrable
+    - Recherche
+    - Icônes
+    - Multi-object cell selection
+    - Persistence des positions de fenêtres
+
+- Architecture des données
+  - Niveau 1 — Définition globale
+    - WorldObjectDefinition
+    - ItemDefinition
+    - MonsterDefinition
+    - ReadableDefinition
+    - QuestDefinition
+    - EnvironmentDefinition
+    - DungeonDefinition
+  - Niveau 2 — Définition de niveau
+    - GridLevelAsset
+    - Grid geometry
+    - Placements
+    - Logic
+    - Transitions
+  - Niveau 3 — Instance persistante
+    - PlacedWorldObject
+    - ItemInstance
+    - MonsterSpawn
+    - ItemSpawn
+    - ReceptacleContents
+  - Niveau 4 — État runtime
+    - WorldObjectState
+    - ItemState
+    - MonsterState
+    - PartyState
+    - QuestState
+    - VariablesState
+  - Niveau 5 — Présentation runtime
+    - Actors
+    - Components
+    - Meshes
+    - Animations
+    - Audio
+    - VFX
+    - UI
+  - Règle de dépendance
+    - Runtime dépend des instances
+    - Instances dépendent des définitions
+    - Niveau référence les définitions
+    - Définitions ne dépendent pas du niveau
+    - Définitions ne dépendent pas du runtime concret sauf classe de fabrication contrôlée
+
+- Exemples de référence
+  - Gemme bleue
+    - Définition unique
+      - DA_Item_BlueGem
+    - Au sol
+      - ItemInstance
+        - DefinitionRef = DA_Item_BlueGem
+        - State = InWorld
+        - Cell = X,Y
+    - Dans une alcôve
+      - AlcoveInstance
+        - DefinitionRef = DA_Receptacle_Alcove
+      - ItemInstance
+        - DefinitionRef = DA_Item_BlueGem
+        - State = InContainer
+        - ContainerRef = AlcoveInstance
+    - Dans l'inventaire
+      - Même ItemInstance
+        - DefinitionRef inchangé
+        - State = InInventory
+    - Lancée
+      - Même ItemInstance
+        - DefinitionRef inchangé
+        - State = ThrownProjectile
+  - Torche
+    - Définition unique
+      - DA_Item_Torch
+    - Peut être
+      - Au sol
+      - En inventaire
+      - Équipée
+      - Lancée
+      - Dans un support de torche
+    - Support de torche
+      - WorldObjectDefinition distincte
+      - DA_Receptacle_TorchHolder
+  - Clé cuivre
+    - Définition unique
+      - DA_Item_CopperKey
+    - Peut être
+      - Au sol
+      - Dans un coffre
+      - Dans un réceptacle
+      - En inventaire
+      - Lancée
+    - Serrure
+      - WorldObjectDefinition
+      - AcceptanceRule
+        - AcceptedDefinition
+        - ou AcceptedTag
+  - Monstre
+    - Définition
+      - DA_Monster_WereRat
+    - Présence niveau
+      - MonsterSpawn
+        - DefinitionRef = DA_Monster_WereRat
+        - Cell
+        - Facing
+        - State
+        - Patrol
+        - Encounter
