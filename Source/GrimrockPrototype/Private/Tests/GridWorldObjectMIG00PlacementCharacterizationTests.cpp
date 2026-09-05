@@ -9,7 +9,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "UObject/UnrealType.h"
 
-namespace GridWorldObjectMIG00
+namespace GridWorldObjectMIG00Characterization
 {
 	struct FTestWorld
 	{
@@ -131,9 +131,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	using namespace GridWorldObjectMIG00;
 
-	FTestWorld TestWorld;
+	GridWorldObjectMIG00Characterization::FTestWorld TestWorld;
 	if (!TestNotNull(TEXT("MIG00 world exists"), TestWorld.World))
 	{
 		return false;
@@ -145,7 +144,7 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 		return false;
 	}
 
-	Runtime->LevelAsset = MakeLevel(Runtime);
+	Runtime->LevelAsset = GridWorldObjectMIG00Characterization::MakeLevel(Runtime);
 	Runtime->GridOrigin = FVector::ZeroVector;
 	Runtime->SetActorLocation(FVector::ZeroVector);
 
@@ -157,27 +156,27 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	FTransform Transform;
 
 	// Center and Floor share the same cell-centered transform contract.
-	FGridLevelObjectData CenterObject = MakeObject(EGridLevelObjectType::Decoration);
+	FGridLevelObjectData CenterObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Decoration);
 	CenterObject.LocalYaw = 30.0f;
 	Archetype->PlacementKind = EGridObjectPlacementKind::Center;
 	Archetype->PlacementZOffset = 12.0f;
 	TestTrue(TEXT("Center transform resolves"), Runtime->GetObjectPlacementTransform(CenterObject, Transform));
-	TestTrue(TEXT("Center location is cell center + Z offset"), IsLocation(Transform, FVector(300.0f, 500.0f, 12.0f)));
-	TestTrue(TEXT("Center LocalYaw is applied"), IsRotation(Transform, FRotator(0.0f, 30.0f, 0.0f)));
+	TestTrue(TEXT("Center location is cell center + Z offset"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 12.0f)));
+	TestTrue(TEXT("Center LocalYaw is applied"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 30.0f, 0.0f)));
 
 	Archetype->PlacementKind = EGridObjectPlacementKind::Floor;
 	TestTrue(TEXT("Floor transform resolves"), Runtime->GetObjectPlacementTransform(CenterObject, Transform));
-	TestTrue(TEXT("Floor currently matches Center"), IsLocation(Transform, FVector(300.0f, 500.0f, 12.0f)));
+	TestTrue(TEXT("Floor currently matches Center"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 12.0f)));
 
 	// Ceiling is also routed through the old centered/Z-offset path.
 	Archetype->PlacementKind = EGridObjectPlacementKind::Ceiling;
 	Archetype->PlacementZOffset = 188.0f;
 	CenterObject.LocalYaw = 0.0f;
 	TestTrue(TEXT("Ceiling transform resolves"), Runtime->GetObjectPlacementTransform(CenterObject, Transform));
-	TestTrue(TEXT("Ceiling currently uses absolute Z offset from the cell floor"), IsLocation(Transform, FVector(300.0f, 500.0f, 188.0f)));
+	TestTrue(TEXT("Ceiling currently uses absolute Z offset from the cell floor"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 188.0f)));
 
 	// Wall and Edge share the same wall-mounted transform contract.
-	FGridLevelObjectData WallObject = MakeObject(EGridLevelObjectType::Decoration, EGridEdge::North);
+	FGridLevelObjectData WallObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Decoration, EGridEdge::North);
 	WallObject.LocalYaw = 15.0f;
 	Archetype->PlacementKind = EGridObjectPlacementKind::Wall;
 	Archetype->PlacementZOffset = 100.0f;
@@ -185,15 +184,15 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	Archetype->LocalOffsetAlongWall = 25.0f;
 	Archetype->LocalOffsetVertical = 10.0f;
 	TestTrue(TEXT("Wall transform resolves"), Runtime->GetObjectPlacementTransform(WallObject, Transform));
-	TestTrue(TEXT("Wall offsets are applied in wall-local semantics"), IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
-	TestTrue(TEXT("Wall anchor rotation plus LocalYaw is applied"), IsRotation(Transform, FRotator(0.0f, 105.0f, 0.0f)));
+	TestTrue(TEXT("Wall offsets are applied in wall-local semantics"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
+	TestTrue(TEXT("Wall anchor rotation plus LocalYaw is applied"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 105.0f, 0.0f)));
 
 	Archetype->PlacementKind = EGridObjectPlacementKind::Edge;
 	TestTrue(TEXT("Edge transform resolves"), Runtime->GetObjectPlacementTransform(WallObject, Transform));
-	TestTrue(TEXT("Edge currently matches Wall"), IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
+	TestTrue(TEXT("Edge currently matches Wall"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
 
 	// Doors bypass generic wall offsets and use the exact boundary transform.
-	FGridLevelObjectData DoorObject = MakeObject(EGridLevelObjectType::Door, EGridEdge::North);
+	FGridLevelObjectData DoorObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Door, EGridEdge::North);
 	Archetype->SupportedType = EGridLevelObjectType::Door;
 	Archetype->PlacementKind = EGridObjectPlacementKind::Edge;
 	Archetype->PlacementZOffset = 77.0f;
@@ -201,18 +200,18 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	Archetype->LocalOffsetAlongWall = 33.0f;
 	Archetype->LocalOffsetVertical = 44.0f;
 	TestTrue(TEXT("Door transform resolves"), Runtime->GetObjectPlacementTransform(DoorObject, Transform));
-	TestTrue(TEXT("Door is anchored on the exact North boundary"), IsLocation(Transform, FVector(300.0f, 600.0f, 0.0f)));
-	TestTrue(TEXT("Door uses the historical North boundary rotation"), IsRotation(Transform, FRotator::ZeroRotator));
+	TestTrue(TEXT("Door is anchored on the exact North boundary"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 600.0f, 0.0f)));
+	TestTrue(TEXT("Door uses the historical North boundary rotation"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator::ZeroRotator));
 
 	// Item-on-edge is a separate floor-item rule and uses a minimum 18 cm inset.
-	FGridLevelObjectData ItemObject = MakeObject(EGridLevelObjectType::Item, EGridEdge::East);
+	FGridLevelObjectData ItemObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Item, EGridEdge::East);
 	Archetype->SupportedType = EGridLevelObjectType::Item;
 	Archetype->PlacementKind = EGridObjectPlacementKind::Floor;
 	Archetype->PlacementZOffset = 12.0f;
 	Archetype->WallInset = 6.0f;
 	TestTrue(TEXT("Floor item edge transform resolves"), Runtime->GetObjectPlacementTransform(ItemObject, Transform));
-	TestTrue(TEXT("Floor item edge uses the historical minimum inset"), IsLocation(Transform, FVector(382.0f, 500.0f, 12.0f)));
-	TestTrue(TEXT("East floor item faces the edge"), IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
+	TestTrue(TEXT("Floor item edge uses the historical minimum inset"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(382.0f, 500.0f, 12.0f)));
+	TestTrue(TEXT("East floor item faces the edge"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
 
 	return true;
 }
