@@ -29,7 +29,6 @@ void AGridMechanismActor::InitializeMechanismVisuals(
 
 	SetActorTransform(WorldTransform);
 
-	bUsesTargetVisualComposition = false;
 	MovingPart0BaseTransform = FTransform::Identity;
 	MovingPart1BaseTransform = FTransform::Identity;
 	MovingPart0Motion = FGridWorldObjectMotion();
@@ -43,48 +42,27 @@ void AGridMechanismActor::InitializeMechanismVisuals(
 		return;
 	}
 
-	bUsesTargetVisualComposition = Archetype->StaticPart.IsDefined() || !Archetype->MovingParts.IsEmpty();
-	if (bUsesTargetVisualComposition)
-	{
-		SetFixedMesh(Archetype->StaticPart.Mesh.Get());
-		if (FixedMeshComponent)
-		{
-			FixedMeshComponent->SetRelativeTransform(Archetype->StaticPart.LocalTransform);
-		}
-
-		MovingPart0BaseTransform = Archetype->MovingParts.Part0.LocalTransform;
-		MovingPart0Motion = Archetype->MovingParts.Part0.Motion;
-		SetMovingMesh(Archetype->MovingParts.Part0.Mesh.Get());
-		if (MovingMeshComponent)
-		{
-			MovingMeshComponent->SetRelativeTransform(MovingPart0BaseTransform);
-		}
-
-		MovingPart1BaseTransform = Archetype->MovingParts.Part1.LocalTransform;
-		MovingPart1Motion = Archetype->MovingParts.Part1.Motion;
-		SetSecondaryMovingMesh(Archetype->MovingParts.Part1.Mesh.Get());
-		if (SecondaryMovingMeshComponent)
-		{
-			SecondaryMovingMeshComponent->SetRelativeTransform(MovingPart1BaseTransform);
-		}
-		return;
-	}
-
-	// MIG03 legacy asset bridge. Existing .uasset files remain playable until they are resaved with StaticPart/MovingParts.
-	SetFixedMesh(Archetype->FixedMesh.Get());
+	// WORLDOBJ-MIG03.4: StaticPart/MovingParts are the only mechanism presentation contract.
+	SetFixedMesh(Archetype->StaticPart.Mesh.Get());
 	if (FixedMeshComponent)
 	{
-		FixedMeshComponent->SetRelativeTransform(FTransform::Identity);
+		FixedMeshComponent->SetRelativeTransform(Archetype->StaticPart.LocalTransform);
 	}
-	SetMovingMesh(Archetype->MovingMesh ? Archetype->MovingMesh.Get() : Archetype->PreviewMesh.Get());
+
+	MovingPart0BaseTransform = Archetype->MovingParts.Part0.LocalTransform;
+	MovingPart0Motion = Archetype->MovingParts.Part0.Motion;
+	SetMovingMesh(Archetype->MovingParts.Part0.Mesh.Get());
 	if (MovingMeshComponent)
 	{
-		MovingMeshComponent->SetRelativeTransform(FTransform::Identity);
+		MovingMeshComponent->SetRelativeTransform(MovingPart0BaseTransform);
 	}
-	SetSecondaryMovingMesh(nullptr);
+
+	MovingPart1BaseTransform = Archetype->MovingParts.Part1.LocalTransform;
+	MovingPart1Motion = Archetype->MovingParts.Part1.Motion;
+	SetSecondaryMovingMesh(Archetype->MovingParts.Part1.Mesh.Get());
 	if (SecondaryMovingMeshComponent)
 	{
-		SecondaryMovingMeshComponent->SetRelativeTransform(FTransform::Identity);
+		SecondaryMovingMeshComponent->SetRelativeTransform(MovingPart1BaseTransform);
 	}
 }
 

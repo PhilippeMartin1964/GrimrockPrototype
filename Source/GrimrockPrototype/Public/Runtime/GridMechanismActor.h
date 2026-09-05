@@ -19,11 +19,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mechanism")
 	TObjectPtr<UStaticMeshComponent> FixedMeshComponent = nullptr;
 
-	/** Target MovingPart[0]. Kept under the historical component name so existing one-part mechanism code remains simple. */
+	/** MovingPart[0]. Kept under the historical component name so existing one-part mechanism state machines stay compact. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mechanism")
 	TObjectPtr<UStaticMeshComponent> MovingMeshComponent = nullptr;
 
-	/** Target MovingPart[1]. Null mesh means the second moving slot is unused. */
+	/** MovingPart[1]. Null mesh means the second moving slot is unused. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mechanism")
 	TObjectPtr<UStaticMeshComponent> SecondaryMovingMeshComponent = nullptr;
 
@@ -32,11 +32,11 @@ protected:
 	void SetMovingMesh(UStaticMesh* Mesh);
 	void SetSecondaryMovingMesh(UStaticMesh* Mesh);
 
-	/** Compatibility offset used by the existing door/button/plate state machines, relative to MovingPart[0].LocalTransform. */
+	/** Local offset used by one-part mechanism state machines relative to MovingPart[0].LocalTransform. */
 	void SetMovingRelativeLocation(const FVector& RelativeLocation);
 	FVector GetMovingRelativeLocation() const;
 
-	/** Compatibility rotation used by the existing lever state machine, relative to MovingPart[0].LocalTransform. */
+	/** Local rotation used by the lever state machine relative to MovingPart[0].LocalTransform. */
 	void SetMovingRelativeRotation(const FRotator& RelativeRotation);
 	FRotator GetMovingRelativeRotation() const;
 
@@ -47,9 +47,10 @@ protected:
 	/** Longest authored moving-part duration. Paired moving parts share the same normalized state alpha. */
 	float GetTargetMotionDuration() const;
 
+	/** WORLDOBJ-MIG03.4: mechanisms exclusively use StaticPart/MovingParts. */
 	bool UsesTargetVisualComposition() const
 	{
-		return bUsesTargetVisualComposition;
+		return true;
 	}
 
 	const FGridWorldObjectMotion& GetMovingPartMotion(int32 PartIndex) const
@@ -62,5 +63,4 @@ private:
 	FTransform MovingPart1BaseTransform = FTransform::Identity;
 	FGridWorldObjectMotion MovingPart0Motion;
 	FGridWorldObjectMotion MovingPart1Motion;
-	bool bUsesTargetVisualComposition = false;
 };

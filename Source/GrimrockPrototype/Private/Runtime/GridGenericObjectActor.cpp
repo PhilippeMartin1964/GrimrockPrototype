@@ -21,16 +21,15 @@ AGridGenericObjectActor::AGridGenericObjectActor()
 void AGridGenericObjectActor::InitializeGenericObject(const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* Mesh,
 	const FTransform& WorldTransform)
 {
+	(void)Mesh;
 	SourceArchetype = Archetype;
 
-	// WORLDOBJ-MIG03 target composition is authoritative for generic static objects.
-	// The legacy Mesh argument remains only as a temporary bridge for existing assets.
-	const bool bUseTargetStaticPart = Archetype && Archetype->StaticPart.IsDefined();
-	UStaticMesh* ResolvedMesh = bUseTargetStaticPart ? Archetype->StaticPart.Mesh.Get() : Mesh;
+	// WORLDOBJ-MIG03.4: generic world-object presentation is defined only by StaticPart.
+	UStaticMesh* ResolvedMesh = Archetype && Archetype->StaticPart.IsDefined() ? Archetype->StaticPart.Mesh.Get() : nullptr;
 	InitializeGridObject(ObjectData, ResolvedMesh, WorldTransform);
-	if (bUseTargetStaticPart && MeshComponent)
+	if (MeshComponent)
 	{
-		MeshComponent->SetRelativeTransform(Archetype->StaticPart.LocalTransform);
+		MeshComponent->SetRelativeTransform(Archetype ? Archetype->StaticPart.LocalTransform : FTransform::Identity);
 		MeshComponent->SetVisibility(ResolvedMesh != nullptr, true);
 	}
 
