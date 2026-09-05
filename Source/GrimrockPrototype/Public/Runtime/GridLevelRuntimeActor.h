@@ -217,7 +217,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "UI|Combat")
 	void ShowCombatFeedback(const FGridPlayerAttackFeedbackRequest& Feedback);
-
 	UFUNCTION(BlueprintCallable, Category = "UI|Combat")
 	void HideCombatFeedback();
 
@@ -559,7 +558,9 @@ private:
 		OutMesh = GetObjectMesh(ObjectData);
 		TSubclassOf<AGridRuntimeObjectActor> ActorClass = GetObjectRuntimeActorClass(ObjectData);
 
-		if (!ActorClass || !OutMesh)
+		// WORLDOBJ-MIG03: presentation is optional. Actor existence is driven by RuntimeActorClass,
+		// while StaticPart/MovingParts (or no visual at all) are initialized after spawning.
+		if (!ActorClass)
 		{
 			return nullptr;
 		}

@@ -22,7 +22,18 @@ void AGridGenericObjectActor::InitializeGenericObject(const FGridLevelObjectData
 	const FTransform& WorldTransform)
 {
 	SourceArchetype = Archetype;
-	InitializeGridObject(ObjectData, Mesh, WorldTransform);
+
+	// WORLDOBJ-MIG03 target composition is authoritative for generic static objects.
+	// The legacy Mesh argument remains only as a temporary bridge for existing assets.
+	const bool bUseTargetStaticPart = Archetype && Archetype->StaticPart.IsDefined();
+	UStaticMesh* ResolvedMesh = bUseTargetStaticPart ? Archetype->StaticPart.Mesh.Get() : Mesh;
+	InitializeGridObject(ObjectData, ResolvedMesh, WorldTransform);
+	if (bUseTargetStaticPart && MeshComponent)
+	{
+		MeshComponent->SetRelativeTransform(Archetype->StaticPart.LocalTransform);
+		MeshComponent->SetVisibility(ResolvedMesh != nullptr, true);
+	}
+
 	ApplyArchetypeOptions(Archetype);
 	if (!ObjectData.OverrideReadableText.IsEmpty())
 	{
