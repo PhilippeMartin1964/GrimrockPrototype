@@ -33,23 +33,47 @@ bool AGridLevelEditorActor::EnsureStairsTransitionArchetypes(FString& OutError)
 		return false;
 	}
 
-	ConfigureStairsTransitionArchetype(*StairsUpArchetype, FName(TEXT("Stairs_Up")), TEXT("Stairs Up"), StairsUpMesh, false);
-	ConfigureStairsTransitionArchetype(*StairsDownArchetype, FName(TEXT("Stairs_Down")), TEXT("Stairs Down"), StairsDownMesh, true);
-
-	// WORLDOBJ-MIG03.4B: the Grid Editor must persist the target visual contract,
-	// even while the old Configure* helpers are still being removed incrementally.
-	const auto ApplyTargetStairsVisual = [](UGridObjectArchetypeAsset& Archetype, UStaticMesh* Mesh)
+	const auto ConfigureTargetStairsTransitionArchetype = [](UGridObjectArchetypeAsset& Archetype, FName ArchetypeId, const TCHAR* DisplayName,
+		UStaticMesh* Mesh, bool bHideCellFloor)
 	{
+		Archetype.Modify();
+		Archetype.ArchetypeId = ArchetypeId;
+		Archetype.DisplayName = FText::FromString(DisplayName);
+		Archetype.SupportedType = EGridLevelObjectType::Decoration;
+		Archetype.Description = FText::FromString(TEXT("Dungeon transition stair object."));
+		Archetype.bDefaultInitiallyEnabled = true;
+		Archetype.bDefaultInitiallyActive = false;
+		Archetype.DefaultTag = NAME_None;
+		Archetype.DefaultBehavior = FGridObjectBehaviorParams();
+		Archetype.DefaultBehavior.Transition.bIsTransition = true;
+		Archetype.DefaultBehavior.Transition.TargetLevelId = NAME_None;
+		Archetype.DefaultBehavior.Transition.TargetCellX = 0;
+		Archetype.DefaultBehavior.Transition.TargetCellY = 0;
+		Archetype.DefaultBehavior.Transition.TargetFacing = EGridEdge::North;
+		Archetype.DefaultBehavior.Transition.bRequireUseAction = false;
+		Archetype.Category = FName(TEXT("Transitions"));
+		Archetype.ObjectCategory = EGridObjectCategory::Decoration;
 		Archetype.PlacementSurface = EGridObjectPlacementKind::Floor;
 		Archetype.DefaultLocalPosition = FGridSurfaceLocalPosition();
+		Archetype.bCanShareCell = true;
+		Archetype.bCanShareAnchor = true;
+		Archetype.bReplacesStandardWall = false;
+		Archetype.bBlocksMovement = false;
+		Archetype.bHideCellFloor = bHideCellFloor;
+		Archetype.bIsInteractable = false;
+		Archetype.bIsReadable = false;
+		Archetype.bIsLightSource = false;
 		Archetype.StaticPart.Mesh = Mesh;
 		Archetype.StaticPart.LocalTransform = FTransform::Identity;
 		Archetype.MovingParts = FGridWorldObjectMovingParts();
+		Archetype.RuntimeActorClass = AGridGenericObjectActor::StaticClass();
+		Archetype.ItemActorClass = nullptr;
 		Archetype.RefreshPlacementRuntimeProjection();
 		Archetype.MarkPackageDirty();
 	};
-	ApplyTargetStairsVisual(*StairsUpArchetype, StairsUpMesh);
-	ApplyTargetStairsVisual(*StairsDownArchetype, StairsDownMesh);
+
+	ConfigureTargetStairsTransitionArchetype(*StairsUpArchetype, FName(TEXT("Stairs_Up")), TEXT("Stairs Up"), StairsUpMesh, false);
+	ConfigureTargetStairsTransitionArchetype(*StairsDownArchetype, FName(TEXT("Stairs_Down")), TEXT("Stairs Down"), StairsDownMesh, true);
 
 	ObjectPalette->Modify();
 
@@ -90,7 +114,7 @@ bool AGridLevelEditorActor::EnsureStairsTransitionArchetypes(FString& OutError)
 	PackagesToSave.AddUnique(ObjectPalette->GetOutermost());
 	UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
 
-	UE_LOG(LogTemp, Log, TEXT("Stairs transition archetypes ensured: Stairs_Up=%s Stairs_Down=%s Palette=%s CreatedUp=%s CreatedDown=%s."),
+	UE_LOG(LogTemp, Log, TEXT("Stairs transition archetypes ensured from target visual composition: Stairs_Up=%s Stairs_Down=%s Palette=%s CreatedUp=%s CreatedDown=%s."),
 		*StairsUpArchetype->GetPathName(), *StairsDownArchetype->GetPathName(), *ObjectPalette->GetPathName(), bCreatedUp ? TEXT("true") : TEXT("false"),
 		bCreatedDown ? TEXT("true") : TEXT("false"));
 
@@ -128,50 +152,52 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorArchetype(FString& OutError)
 		return false;
 	}
 
-	ConfigurePitTrapdoorArchetype(*PitArchetype, PitMesh);
-
-	// WORLDOBJ-MIG03.4B: persist the target StaticPart/MovingParts contract.
+	PitArchetype->Modify();
+	PitArchetype->ArchetypeId = FName(TEXT("Pit_Stone_01"));
+	PitArchetype->DisplayName = FText::FromString(TEXT("Stone Pit"));
+	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
+	PitArchetype->Description = FText::FromString(TEXT("Controlled inter-level pit with optional dual-part trapdoor cover."));
+	PitArchetype->bDefaultInitiallyEnabled = true;
+	PitArchetype->bDefaultInitiallyActive = false;
+	PitArchetype->DefaultTag = NAME_None;
+	PitArchetype->DefaultBehavior = FGridObjectBehaviorParams();
+	PitArchetype->DefaultBehavior.Pit.bInitiallyOpen = true;
+	PitArchetype->DefaultBehavior.Pit.bUseSameCellCoordinates = true;
+	PitArchetype->DefaultBehavior.PitAnimation.LeftHingeLocation = FVector(-85.f, 0.f, -5.f);
+	PitArchetype->DefaultBehavior.PitAnimation.RightHingeLocation = FVector(85.f, 0.f, -5.f);
+	PitArchetype->DefaultBehavior.PitAnimation.OpenAngleDegrees = 80.f;
+	PitArchetype->DefaultBehavior.PitAnimation.MoveDuration = 0.75f;
+	PitArchetype->DefaultBehavior.Transition.bIsTransition = true;
+	PitArchetype->DefaultBehavior.Transition.TargetLevelId = NAME_None;
+	PitArchetype->DefaultBehavior.Transition.TargetCellX = 0;
+	PitArchetype->DefaultBehavior.Transition.TargetCellY = 0;
+	PitArchetype->DefaultBehavior.Transition.TargetFacing = EGridEdge::North;
+	PitArchetype->DefaultBehavior.Transition.bRequireUseAction = false;
+	PitArchetype->Category = FName(TEXT("Hazards"));
+	PitArchetype->ObjectCategory = EGridObjectCategory::Mechanism;
 	PitArchetype->PlacementSurface = EGridObjectPlacementKind::Floor;
 	PitArchetype->DefaultLocalPosition = FGridSurfaceLocalPosition();
+	PitArchetype->bCanShareCell = false;
+	PitArchetype->bCanShareAnchor = false;
+	PitArchetype->bReplacesStandardWall = false;
+	PitArchetype->bBlocksMovement = false;
+	PitArchetype->bHideCellFloor = true;
+	PitArchetype->bIsInteractable = false;
+	PitArchetype->bIsReadable = false;
+	PitArchetype->bIsLightSource = false;
 	PitArchetype->StaticPart.Mesh = PitMesh;
 	PitArchetype->StaticPart.LocalTransform = FTransform::Identity;
+	PitArchetype->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
+	PitArchetype->ItemActorClass = nullptr;
 
-	// A single target leaf is never a valid trapdoor. Reset it first, then allow
-	// the one-time editor migration below to rebuild a complete pair if possible.
+	// Target contract: a Pit has either no moving cover or a complete Part0/Part1 pair.
+	// Provisioning never reads the removed legacy leaf fields and never invents missing meshes.
 	if (PitArchetype->MovingParts.NumDefined() == 1)
 	{
 		PitArchetype->MovingParts = FGridWorldObjectMovingParts();
 		UE_LOG(LogTemp, Warning,
-			TEXT("WORLDOBJ-MIG03.4B: incomplete Pit MovingParts reset for %s; a Pit requires either zero or two moving leaves."),
+			TEXT("WORLDOBJ-MIG03.4D: incomplete Pit MovingParts reset for %s; a Pit requires either zero or two moving parts."),
 			*PitArchetype->GetPathName());
-	}
-
-	// One-time data migration only: runtime compatibility with the old leaf fields
-	// has already been removed. Copy a complete legacy pair into the target schema
-	// so the asset can be resaved before those fields are physically deleted.
-	if (PitArchetype->MovingParts.IsEmpty() && PitArchetype->PitLeftLeafMesh && PitArchetype->PitRightLeafMesh)
-	{
-		const FGridPitAnimationParams& PitAnimation = PitArchetype->DefaultBehavior.PitAnimation;
-		const float OpenAngle = FMath::Abs(PitAnimation.OpenAngleDegrees);
-		const float MoveDuration = FMath::Max(0.0f, PitAnimation.MoveDuration);
-
-		PitArchetype->MovingParts.Part0.Mesh = PitArchetype->PitLeftLeafMesh.Get();
-		PitArchetype->MovingParts.Part0.LocalTransform = FTransform::Identity;
-		PitArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
-		PitArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-		PitArchetype->MovingParts.Part0.Motion.Pivot = PitAnimation.LeftHingeLocation;
-		PitArchetype->MovingParts.Part0.Motion.Amount = -OpenAngle;
-		PitArchetype->MovingParts.Part0.Motion.Duration = MoveDuration;
-
-		PitArchetype->MovingParts.Part1.Mesh = PitArchetype->PitRightLeafMesh.Get();
-		PitArchetype->MovingParts.Part1.LocalTransform = FTransform::Identity;
-		PitArchetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
-		PitArchetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-		PitArchetype->MovingParts.Part1.Motion.Pivot = PitAnimation.RightHingeLocation;
-		PitArchetype->MovingParts.Part1.Motion.Amount = OpenAngle;
-		PitArchetype->MovingParts.Part1.Motion.Duration = MoveDuration;
-
-		UE_LOG(LogTemp, Log, TEXT("WORLDOBJ-MIG03.4B: migrated legacy Pit leaf pair to MovingParts for %s."), *PitArchetype->GetPathName());
 	}
 
 	PitArchetype->RefreshPlacementRuntimeProjection();
@@ -205,8 +231,8 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorArchetype(FString& OutError)
 	PackagesToSave.AddUnique(ObjectPalette->GetOutermost());
 	UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
 
-	UE_LOG(LogTemp, Log, TEXT("Pit trapdoor archetype ensured: Pit=%s Palette=%s Created=%s."), *PitArchetype->GetPathName(),
-		*ObjectPalette->GetPathName(), bCreated ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogTemp, Log, TEXT("Pit trapdoor archetype ensured from target visual composition: Pit=%s Palette=%s Created=%s MovingParts=%d."),
+		*PitArchetype->GetPathName(), *ObjectPalette->GetPathName(), bCreated ? TEXT("true") : TEXT("false"), PitArchetype->MovingParts.NumDefined());
 	return true;
 #else
 	OutError = TEXT("EnsurePitTrapdoorArchetype is editor-only.");
