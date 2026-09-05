@@ -42,24 +42,92 @@ void AGridPitTrapdoorActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AGridPitTrapdoorActor::InitializeMechanismVisuals(
 	const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform)
 {
-	ObjectId = ObjectData.ObjectId;
-	ObjectType = ObjectData.Type;
-	CellX = ObjectData.CellX;
-	CellY = ObjectData.CellY;
-	Edge = ObjectData.Edge;
-	SetActorTransform(WorldTransform);
+	AGridMechanismActor::InitializeMechanismVisuals(ObjectData, Archetype, WorldTransform);
 
 	LeftHingeLocation = ObjectData.Behavior.PitAnimation.LeftHingeLocation;
 	RightHingeLocation = ObjectData.Behavior.PitAnimation.RightHingeLocation;
 	OpenAngleDegrees = FMath::Clamp(ObjectData.Behavior.PitAnimation.OpenAngleDegrees, 0.0f, 120.0f);
 	MoveDuration = FMath::Max(0.0f, ObjectData.Behavior.PitAnimation.MoveDuration);
 
-	// PIT03.2 explicitly retires the inherited single MovingMesh path.
+	if (FixedMeshComponent)
+	{
+		FixedMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	if (UsesTargetVisualComposition())
+	{
+		// The target composition directly owns the two animated leaves. The old
+		// dedicated hinge/leaf components remain only as a bridge for legacy assets.
+		if (LeftLeafMeshComponent)
+		{
+			LeftLeafMeshComponent->SetStaticMesh(nullptr);
+			LeftLeafMeshComponent->SetVisibility(false, true);
+			LeftLeafMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+		if (RightLeafMeshComponent)
+		{
+			RightLeafMeshComponent->SetStaticMesh(nullptr);
+			RightLeafMeshComponent->SetVisibility(false, true);
+			RightLeafMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+
+		const float TargetDuration = GetTargetMotionDuration();
+		if (TargetDuration > KINDA_SMALL_NUMBER)
+		{
+			MoveDuration = TargetDuration;
+		}
+		if (GetMovingPartMotion(0).Type == EGridWorldObjectMotionType::Rotation)
+		{
+			OpenAngleDegrees = FMath::Abs(GetMovingPartMotion(0).Amount);
+		}
+
+		const bool bHasCover = HasCompleteTrapdoorCover();
+		bIsOpen = bHasCover ? ObjectData.Behavior.Pit.bInitiallyOpen : true;
+		bTargetOpen = bIsOpen;
+		bIsAnimating = false;
+		CurrentOpenAlpha = bIsOpen ? 1.0f : 0.0f;
+		MoveStartAlpha = CurrentOpenAlpha;
+		MoveTargetAlpha = CurrentOpenAlpha;
+		MoveElapsed = 0.0f;
+		CurrentMoveDuration = 0.0f;
+
+		ApplyOpenAlpha(CurrentOpenAlpha);
+		RefreshTrapdoorCollision();
+		RefreshTickEnabled();
+
+		const bool bHasPrimary = MovingMeshComponent && MovingMeshComponent->GetStaticMesh() != nullptr;
+		const bool bHasSecondary = SecondaryMovingMeshComponent && SecondaryMovingMeshComponent->GetStaticMesh() != nullptr;
+		if (bHasPrimary != bHasSecondary)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("GridPit target dual-leaf cover incomplete ObjectId=%s Cell=(%d,%d): MovingPart[0] and MovingPart[1] are both required; Pit stays Open."),
+				*ObjectId.ToString(), CellX, CellY);
+		}
+		return;
+	}
+
+	// Legacy PIT03 bridge. The inherited one-part mechanism visual is explicitly
+	// disabled because old pit assets still author two dedicated leaf meshes.
 	SetMovingMesh(nullptr);
+	SetSecondaryMovingMesh(nullptr);
 	if (MovingMeshComponent)
 	{
 		MovingMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		MovingMeshComponent->SetVisibility(false, true);
+	}
+	if (SecondaryMovingMeshComponent)
+	{
+		SecondaryMovingMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		SecondaryMovingMeshComponent->SetVisibility(false, true);
+	}
+
+	if (LeftLeafMeshComponent)
+	{
+		LeftLeafMeshComponent->SetStaticMesh(nullptr);
+	}
+	if (RightLeafMeshComponent)
+	{
+		RightLeafMeshComponent->SetStaticMesh(nullptr);
 	}
 
 	if (Archetype)
@@ -67,11 +135,6 @@ void AGridPitTrapdoorActor::InitializeMechanismVisuals(
 		SetFixedMesh(Archetype->FixedMesh ? Archetype->FixedMesh.Get() : Archetype->PreviewMesh.Get());
 		LeftLeafMeshComponent->SetStaticMesh(Archetype->PitLeftLeafMesh.Get());
 		RightLeafMeshComponent->SetStaticMesh(Archetype->PitRightLeafMesh.Get());
-	}
-
-	if (FixedMeshComponent)
-	{
-		FixedMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
 	ConfigureLeafGeometry();
@@ -119,32 +182,59 @@ void AGridPitTrapdoorActor::InitializeGridObject(
 
 bool AGridPitTrapdoorActor::HasCompleteTrapdoorCover() const
 {
+	if (UsesTargetVisualComposition())
+	{
+		return MovingMeshComponent && SecondaryMovingMeshComponent && MovingMeshComponent->GetStaticMesh() != nullptr &&
+			SecondaryMovingMeshComponent->GetStaticMesh() != nullptr;
+	}
+
 	return LeftLeafMeshComponent && RightLeafMeshComponent &&
 		LeftLeafMeshComponent->GetStaticMesh() != nullptr && RightLeafMeshComponent->GetStaticMesh() != nullptr;
 }
 
 float AGridPitTrapdoorActor::GetLeftLeafPitch() const
 {
+	if (UsesTargetVisualComposition())
+	{
+		return MovingMeshComponent ? MovingMeshComponent->GetRelativeRotation().Pitch : 0.0f;
+	}
 	return LeftHingeComponent ? LeftHingeComponent->GetRelativeRotation().Pitch : 0.0f;
 }
 
 float AGridPitTrapdoorActor::GetRightLeafPitch() const
 {
+	if (UsesTargetVisualComposition())
+	{
+		return SecondaryMovingMeshComponent ? SecondaryMovingMeshComponent->GetRelativeRotation().Pitch : 0.0f;
+	}
 	return RightHingeComponent ? RightHingeComponent->GetRelativeRotation().Pitch : 0.0f;
 }
 
 FVector AGridPitTrapdoorActor::GetLeftHingeLocation() const
 {
+	if (UsesTargetVisualComposition())
+	{
+		return GetMovingPartMotion(0).Pivot;
+	}
 	return LeftHingeComponent ? LeftHingeComponent->GetRelativeLocation() : FVector::ZeroVector;
 }
 
 FVector AGridPitTrapdoorActor::GetRightHingeLocation() const
 {
+	if (UsesTargetVisualComposition())
+	{
+		return GetMovingPartMotion(1).Pivot;
+	}
 	return RightHingeComponent ? RightHingeComponent->GetRelativeLocation() : FVector::ZeroVector;
 }
 
 void AGridPitTrapdoorActor::ConfigureLeafGeometry()
 {
+	if (UsesTargetVisualComposition())
+	{
+		return;
+	}
+
 	if (LeftHingeComponent)
 	{
 		LeftHingeComponent->SetRelativeLocation(LeftHingeLocation);
@@ -299,6 +389,12 @@ void AGridPitTrapdoorActor::UpdateAnimation(float DeltaSeconds)
 void AGridPitTrapdoorActor::ApplyOpenAlpha(float Alpha)
 {
 	const float ClampedAlpha = FMath::Clamp(Alpha, 0.0f, 1.0f);
+	if (UsesTargetVisualComposition())
+	{
+		ApplyAllMovingPartMotionsAlpha(ClampedAlpha);
+		return;
+	}
+
 	const float Angle = OpenAngleDegrees * ClampedAlpha;
 
 	// Local Y is the hinge axis. The left/right signs are opposite so both
@@ -319,6 +415,20 @@ void AGridPitTrapdoorActor::RefreshTrapdoorCollision()
 	// motion starts toward Open. During Closing it stays disabled until Closed.
 	const bool bEnableCollision = !bIsOpen && !bIsAnimating && HasCompleteTrapdoorCover();
 	const ECollisionEnabled::Type CollisionMode = bEnableCollision ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision;
+
+	if (UsesTargetVisualComposition())
+	{
+		if (MovingMeshComponent)
+		{
+			MovingMeshComponent->SetCollisionEnabled(CollisionMode);
+		}
+		if (SecondaryMovingMeshComponent)
+		{
+			SecondaryMovingMeshComponent->SetCollisionEnabled(CollisionMode);
+		}
+		return;
+	}
+
 	if (LeftLeafMeshComponent)
 	{
 		LeftLeafMeshComponent->SetCollisionEnabled(CollisionMode);

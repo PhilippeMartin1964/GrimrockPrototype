@@ -56,6 +56,11 @@ private:
 	FRotator AnimStartRotation = FRotator::ZeroRotator;
 	FRotator AnimTargetRotation = FRotator::ZeroRotator;
 
+	float CurrentMotionAlpha = 0.0f;
+	float AnimStartMotionAlpha = 0.0f;
+	float AnimTargetMotionAlpha = 0.0f;
+	float CurrentToggleDuration = 0.0f;
+
 	bool bIsAnimating = false;
 	float AnimElapsed = 0.f;
 };

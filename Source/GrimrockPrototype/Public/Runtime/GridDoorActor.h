@@ -97,7 +97,6 @@ public:
 	void InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, UStaticMesh* InFixedMesh,
 		const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen);
 
-
 	UFUNCTION(BlueprintCallable, Category = "Door")
 	virtual void SetDoorOpenState(bool bOpen);
 
@@ -161,6 +160,10 @@ protected:
 	FVector MovingOpenRelativeLocation = FVector::ZeroVector;
 	FVector MoveStartRelativeLocation = FVector::ZeroVector;
 	FVector MoveTargetRelativeLocation = FVector::ZeroVector;
+
+	float CurrentMotionAlpha = 0.0f;
+	float MoveStartMotionAlpha = 0.0f;
+	float MoveTargetMotionAlpha = 0.0f;
 
 	bool bIsAnimating = false;
 	float MoveElapsed = 0.f;

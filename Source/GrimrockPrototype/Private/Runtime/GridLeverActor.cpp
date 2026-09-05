@@ -51,8 +51,27 @@ void AGridLeverActor::InitializeLever(const FGridLevelObjectData& ObjectData, US
 	bIsOn = bStartOn;
 	bIsAnimating = false;
 	AnimElapsed = 0.f;
+	CurrentToggleDuration = 0.0f;
 
-	SetMovingRelativeRotation(bIsOn ? OnRelativeRotation : OffRelativeRotation);
+	if (UsesTargetVisualComposition())
+	{
+		const float TargetDuration = GetTargetMotionDuration();
+		if (TargetDuration > KINDA_SMALL_NUMBER)
+		{
+			ToggleDuration = TargetDuration;
+		}
+		CurrentMotionAlpha = bIsOn ? 1.0f : 0.0f;
+		AnimStartMotionAlpha = CurrentMotionAlpha;
+		AnimTargetMotionAlpha = CurrentMotionAlpha;
+		ApplyMovingPartMotionAlpha(0, CurrentMotionAlpha);
+	}
+	else
+	{
+		CurrentMotionAlpha = bIsOn ? 1.0f : 0.0f;
+		AnimStartMotionAlpha = CurrentMotionAlpha;
+		AnimTargetMotionAlpha = CurrentMotionAlpha;
+		SetMovingRelativeRotation(bIsOn ? OnRelativeRotation : OffRelativeRotation);
+	}
 }
 
 void AGridLeverActor::SetLeverState(bool bNewOn)
@@ -64,8 +83,29 @@ void AGridLeverActor::SetLeverState(bool bNewOn)
 
 	bIsOn = bNewOn;
 	AnimElapsed = 0.f;
-	bIsAnimating = true;
 
+	if (UsesTargetVisualComposition())
+	{
+		AnimStartMotionAlpha = CurrentMotionAlpha;
+		AnimTargetMotionAlpha = bIsOn ? 1.0f : 0.0f;
+		const float Travel = FMath::Abs(AnimTargetMotionAlpha - AnimStartMotionAlpha);
+		if (Travel <= KINDA_SMALL_NUMBER)
+		{
+			CurrentMotionAlpha = AnimTargetMotionAlpha;
+			ApplyMovingPartMotionAlpha(0, CurrentMotionAlpha);
+			bIsAnimating = false;
+			CurrentToggleDuration = 0.0f;
+			SetActorTickEnabled(false);
+			return;
+		}
+
+		CurrentToggleDuration = FMath::Max(0.01f, ToggleDuration * Travel);
+		bIsAnimating = true;
+		SetActorTickEnabled(true);
+		return;
+	}
+
+	bIsAnimating = true;
 	AnimStartRotation = GetMovingRelativeRotation();
 	AnimTargetRotation = bIsOn ? OnRelativeRotation : OffRelativeRotation;
 	SetActorTickEnabled(true);
@@ -78,6 +118,26 @@ void AGridLeverActor::ToggleLever()
 
 void AGridLeverActor::UpdateAnimation(float DeltaSeconds)
 {
+	if (UsesTargetVisualComposition())
+	{
+		const float SafeDuration = FMath::Max(0.01f, CurrentToggleDuration);
+		AnimElapsed += DeltaSeconds;
+		const float Alpha = FMath::Clamp(AnimElapsed / SafeDuration, 0.f, 1.f);
+		CurrentMotionAlpha = FMath::Lerp(AnimStartMotionAlpha, AnimTargetMotionAlpha, Alpha);
+		ApplyMovingPartMotionAlpha(0, CurrentMotionAlpha);
+
+		if (Alpha >= 1.f)
+		{
+			CurrentMotionAlpha = AnimTargetMotionAlpha;
+			ApplyMovingPartMotionAlpha(0, CurrentMotionAlpha);
+			bIsAnimating = false;
+			AnimElapsed = 0.f;
+			CurrentToggleDuration = 0.0f;
+			SetActorTickEnabled(false);
+		}
+		return;
+	}
+
 	const float SafeDuration = FMath::Max(0.01f, ToggleDuration);
 
 	AnimElapsed += DeltaSeconds;

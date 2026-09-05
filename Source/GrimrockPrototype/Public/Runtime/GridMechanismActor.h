@@ -44,6 +44,9 @@ protected:
 	void ApplyMovingPartMotionAlpha(int32 PartIndex, float Alpha);
 	void ApplyAllMovingPartMotionsAlpha(float Alpha);
 
+	/** Longest authored moving-part duration. Paired moving parts share the same normalized state alpha. */
+	float GetTargetMotionDuration() const;
+
 	bool UsesTargetVisualComposition() const
 	{
 		return bUsesTargetVisualComposition;

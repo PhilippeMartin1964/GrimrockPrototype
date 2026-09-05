@@ -61,6 +61,11 @@ private:
 	FVector AnimStartLocation = FVector::ZeroVector;
 	FVector AnimTargetLocation = FVector::ZeroVector;
 
+	float CurrentMotionAlpha = 0.0f;
+	float AnimStartMotionAlpha = 0.0f;
+	float AnimTargetMotionAlpha = 0.0f;
+	float CurrentMoveDuration = 0.0f;
+
 	bool bIsAnimating = false;
 	float AnimElapsed = 0.f;
 };

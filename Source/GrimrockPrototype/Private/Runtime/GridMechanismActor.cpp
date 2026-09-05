@@ -180,3 +180,17 @@ void AGridMechanismActor::ApplyAllMovingPartMotionsAlpha(float Alpha)
 	ApplyMovingPartMotionAlpha(0, Alpha);
 	ApplyMovingPartMotionAlpha(1, Alpha);
 }
+
+float AGridMechanismActor::GetTargetMotionDuration() const
+{
+	float Duration = 0.0f;
+	if (MovingMeshComponent && MovingMeshComponent->GetStaticMesh())
+	{
+		Duration = FMath::Max(Duration, FMath::Max(0.0f, MovingPart0Motion.Duration));
+	}
+	if (SecondaryMovingMeshComponent && SecondaryMovingMeshComponent->GetStaticMesh())
+	{
+		Duration = FMath::Max(Duration, FMath::Max(0.0f, MovingPart1Motion.Duration));
+	}
+	return Duration;
+}

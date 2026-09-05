@@ -105,6 +105,9 @@ void AGridDoorActor::InitializeDoor(const FGridLevelObjectData& ObjectData, USta
 
 	bIsOpen = bStartOpen;
 	bIsAnimating = false;
+	CurrentMotionAlpha = bIsOpen ? 1.0f : 0.0f;
+	MoveStartMotionAlpha = CurrentMotionAlpha;
+	MoveTargetMotionAlpha = CurrentMotionAlpha;
 
 	SetMovingRelativeLocation(bIsOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation);
 
@@ -116,6 +119,62 @@ void AGridDoorActor::SetDoorOpenState(bool bOpen)
 {
 	if (!MovingMeshComponent)
 	{
+		return;
+	}
+
+	if (UsesTargetVisualComposition())
+	{
+		if (!MovingMeshComponent->GetStaticMesh())
+		{
+			return;
+		}
+
+		const float DesiredAlpha = bOpen ? 1.0f : 0.0f;
+		if (!bIsAnimating && bIsOpen == bOpen && FMath::IsNearlyEqual(CurrentMotionAlpha, DesiredAlpha, KINDA_SMALL_NUMBER))
+		{
+			return;
+		}
+		if (bIsAnimating && FMath::IsNearlyEqual(MoveTargetMotionAlpha, DesiredAlpha, KINDA_SMALL_NUMBER))
+		{
+			return;
+		}
+		if (bIsAnimating)
+		{
+			StopDoorMotionSound();
+		}
+
+		if (FMath::IsNearlyEqual(CurrentMotionAlpha, DesiredAlpha, KINDA_SMALL_NUMBER))
+		{
+			bIsOpen = bOpen;
+			bIsAnimating = false;
+			CurrentMotionAlpha = DesiredAlpha;
+			MoveStartMotionAlpha = DesiredAlpha;
+			MoveTargetMotionAlpha = DesiredAlpha;
+			MoveElapsed = 0.f;
+			CurrentMoveDuration = 0.f;
+			ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
+			RefreshTickEnabled();
+			return;
+		}
+
+		MoveStartMotionAlpha = CurrentMotionAlpha;
+		MoveTargetMotionAlpha = DesiredAlpha;
+		MoveElapsed = 0.f;
+		const float TravelRatio = FMath::Abs(MoveTargetMotionAlpha - MoveStartMotionAlpha);
+		CurrentMoveDuration = FMath::Max(0.01f, MoveDuration * TravelRatio);
+
+		const float AudioTimelineDuration = FMath::Max(0.0f, MoveDuration);
+		const float AudioStartTime = bOpen ? CurrentMotionAlpha * AudioTimelineDuration : (1.0f - CurrentMotionAlpha) * AudioTimelineDuration;
+
+		bIsAnimating = true;
+		PlayDoorMotionSound(bOpen, AudioStartTime);
+
+		UE_LOG(LogTemp, Log,
+			TEXT("Grid door target-motion start: ObjectId=%s Cell=(%d,%d) Edge=%d Direction=%s StartAlpha=%.3f TargetAlpha=%.3f Duration=%.3f EffectiveDuration=%.3f"),
+			*ObjectId.ToString(), CellX, CellY, static_cast<int32>(Edge), bOpen ? TEXT("Open") : TEXT("Close"), MoveStartMotionAlpha,
+			MoveTargetMotionAlpha, MoveDuration, CurrentMoveDuration);
+
+		RefreshTickEnabled();
 		return;
 	}
 
@@ -202,7 +261,18 @@ void AGridDoorActor::SnapDoorOpenState(bool bOpen)
 	bIsAnimating = false;
 	MoveElapsed = 0.f;
 	CurrentMoveDuration = 0.f;
-	SetMovingRelativeLocation(bIsOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation);
+
+	if (UsesTargetVisualComposition())
+	{
+		CurrentMotionAlpha = bIsOpen ? 1.0f : 0.0f;
+		MoveStartMotionAlpha = CurrentMotionAlpha;
+		MoveTargetMotionAlpha = CurrentMotionAlpha;
+		ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
+	}
+	else
+	{
+		SetMovingRelativeLocation(bIsOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation);
+	}
 	RefreshTickEnabled();
 }
 
@@ -487,9 +557,29 @@ void AGridDoorActor::UpdateAnimation(float DeltaSeconds)
 	}
 
 	const float SafeDuration = FMath::Max(0.01f, CurrentMoveDuration);
-
 	MoveElapsed += DeltaSeconds;
 	const float Alpha = FMath::Clamp(MoveElapsed / SafeDuration, 0.f, 1.f);
+
+	if (UsesTargetVisualComposition())
+	{
+		CurrentMotionAlpha = FMath::Lerp(MoveStartMotionAlpha, MoveTargetMotionAlpha, Alpha);
+		ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
+
+		if (Alpha >= 1.f)
+		{
+			CurrentMotionAlpha = MoveTargetMotionAlpha;
+			ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
+			bIsOpen = CurrentMotionAlpha >= 0.5f;
+			bIsAnimating = false;
+			const float CompletedMoveDuration = CurrentMoveDuration;
+			MoveElapsed = 0.f;
+			CurrentMoveDuration = 0.f;
+			CompleteDoorMotionSound(CompletedMoveDuration);
+			RefreshTickEnabled();
+			OnDoorAnimationFinished.Broadcast(CellX, CellY, Edge);
+		}
+		return;
+	}
 
 	MovingMeshComponent->SetRelativeLocation(FMath::Lerp(MoveStartRelativeLocation, MoveTargetRelativeLocation, Alpha));
 
@@ -514,18 +604,42 @@ void AGridDoorActor::InitializeGridObject(
 	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
 	StopDoorMotionSound();
-	Super::InitializeGridObject(ObjectData, Mesh, WorldTransform);
+	const bool bTargetComposition = UsesTargetVisualComposition();
+	Super::InitializeGridObject(ObjectData, bTargetComposition ? nullptr : Mesh, WorldTransform);
 
 	OpenHeight = ObjectData.Behavior.DoorAnimation.OpenHeight;
 	MoveDuration = ObjectData.Behavior.DoorAnimation.MoveDuration;
+	if (bTargetComposition)
+	{
+		const float TargetDuration = GetTargetMotionDuration();
+		if (TargetDuration > KINDA_SMALL_NUMBER)
+		{
+			MoveDuration = TargetDuration;
+		}
+	}
 
 	MovingClosedRelativeLocation = FVector::ZeroVector;
 	MovingOpenRelativeLocation = FVector(0.f, 0.f, OpenHeight);
+	MoveStartRelativeLocation = FVector::ZeroVector;
+	MoveTargetRelativeLocation = FVector::ZeroVector;
 
 	bIsOpen = ObjectData.bInitiallyActive;
 	bIsAnimating = false;
+	MoveElapsed = 0.f;
+	CurrentMoveDuration = 0.f;
 
-	SetMovingRelativeLocation(bIsOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation);
+	CurrentMotionAlpha = bIsOpen ? 1.0f : 0.0f;
+	MoveStartMotionAlpha = CurrentMotionAlpha;
+	MoveTargetMotionAlpha = CurrentMotionAlpha;
+	if (bTargetComposition)
+	{
+		ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
+	}
+	else
+	{
+		SetMovingRelativeLocation(bIsOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation);
+	}
+
 	InitializeChainMechanism(ObjectData.Behavior.DoorAnimation);
 	RefreshTickEnabled();
 }

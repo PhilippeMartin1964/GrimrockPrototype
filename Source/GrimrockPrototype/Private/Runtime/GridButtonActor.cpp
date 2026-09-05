@@ -43,7 +43,20 @@ void AGridButtonActor::InitializeButton(const FGridLevelObjectData& ObjectData, 
 	ReleasedLocation = FVector::ZeroVector;
 	PressedLocation = FVector(PressDistance, 0.f, 0.f);
 
-	SetMovingRelativeLocation(ReleasedLocation);
+	if (UsesTargetVisualComposition())
+	{
+		const float TargetDuration = GetTargetMotionDuration();
+		if (TargetDuration > KINDA_SMALL_NUMBER)
+		{
+			PressDuration = TargetDuration;
+			ReleaseDuration = TargetDuration;
+		}
+		ApplyMovingPartMotionAlpha(0, 0.0f);
+	}
+	else
+	{
+		SetMovingRelativeLocation(ReleasedLocation);
+	}
 
 	AnimState = EButtonAnimState::Idle;
 	StateElapsed = 0.f;
@@ -85,13 +98,27 @@ void AGridButtonActor::UpdateAnimation(float DeltaSeconds)
 		{
 			StateElapsed += DeltaSeconds;
 			const float Alpha = FMath::Clamp(StateElapsed / FMath::Max(0.01f, PressDuration), 0.f, 1.f);
-			SetMovingRelativeLocation(FMath::Lerp(ReleasedLocation, PressedLocation, Alpha));
+			if (UsesTargetVisualComposition())
+			{
+				ApplyMovingPartMotionAlpha(0, Alpha);
+			}
+			else
+			{
+				SetMovingRelativeLocation(FMath::Lerp(ReleasedLocation, PressedLocation, Alpha));
+			}
 
 			if (Alpha >= 1.f)
 			{
 				AnimState = EButtonAnimState::Holding;
 				StateElapsed = 0.f;
-				SetMovingRelativeLocation(PressedLocation);
+				if (UsesTargetVisualComposition())
+				{
+					ApplyMovingPartMotionAlpha(0, 1.0f);
+				}
+				else
+				{
+					SetMovingRelativeLocation(PressedLocation);
+				}
 			}
 			break;
 		}
@@ -112,13 +139,27 @@ void AGridButtonActor::UpdateAnimation(float DeltaSeconds)
 		{
 			StateElapsed += DeltaSeconds;
 			const float Alpha = FMath::Clamp(StateElapsed / FMath::Max(0.01f, ReleaseDuration), 0.f, 1.f);
-			SetMovingRelativeLocation(FMath::Lerp(PressedLocation, ReleasedLocation, Alpha));
+			if (UsesTargetVisualComposition())
+			{
+				ApplyMovingPartMotionAlpha(0, 1.0f - Alpha);
+			}
+			else
+			{
+				SetMovingRelativeLocation(FMath::Lerp(PressedLocation, ReleasedLocation, Alpha));
+			}
 
 			if (Alpha >= 1.f)
 			{
 				AnimState = EButtonAnimState::Idle;
 				StateElapsed = 0.f;
-				SetMovingRelativeLocation(ReleasedLocation);
+				if (UsesTargetVisualComposition())
+				{
+					ApplyMovingPartMotionAlpha(0, 0.0f);
+				}
+				else
+				{
+					SetMovingRelativeLocation(ReleasedLocation);
+				}
 				SetActorTickEnabled(false);
 			}
 			break;
