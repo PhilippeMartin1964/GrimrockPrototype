@@ -13,6 +13,7 @@ class AGridRuntimeObjectActor;
 class AGridItemActor;
 class USoundBase;
 class USoundAttenuation;
+struct FPropertyChangedEvent;
 
 UENUM(BlueprintType)
 enum class EGridArchetypeValidationSeverity : uint8
@@ -20,6 +21,35 @@ enum class EGridArchetypeValidationSeverity : uint8
 	Info UMETA(DisplayName = "Info"),
 	Warning UMETA(DisplayName = "Warning"),
 	Error UMETA(DisplayName = "Error")
+};
+
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridSurfaceLocalPosition
+{
+	GENERATED_BODY()
+
+	/** Horizontal tangent coordinate on the selected placement surface. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Placement", meta = (DisplayName = "U"))
+	float U = 0.0f;
+
+	/**
+	 * Second tangent coordinate on the selected surface.
+	 * On Wall this is vertical height. On Floor/Ceiling this is the second in-plane coordinate.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Placement", meta = (DisplayName = "V"))
+	float V = 0.0f;
+
+	/**
+	 * Normal coordinate to the selected surface.
+	 * Floor: height above floor. Wall: inset into the cell. Ceiling: distance below ceiling.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Placement", meta = (DisplayName = "N"))
+	float N = 0.0f;
+
+	bool IsFinite() const
+	{
+		return FMath::IsFinite(U) && FMath::IsFinite(V) && FMath::IsFinite(N);
+	}
 };
 
 USTRUCT(BlueprintType)
@@ -72,7 +102,7 @@ public:
 	FName DefaultTag = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Defaults",
-		meta = (ToolTip = "Default behavior copied to placed object instances. Currently contains teleporter, receptacle and button parameters."))
+		meta = (ToolTip = "Default behavior copied to placed object instances. Currently contains teleporter, receptacle and mechanism parameters."))
 	FGridObjectBehaviorParams DefaultBehavior;
 
 	/** Single 3D attenuation used by every audio event emitted by this object archetype. */
@@ -81,19 +111,13 @@ public:
 			ToolTip = "Single spatial attenuation used by all audio events of this archetype."))
 	TObjectPtr<USoundAttenuation> DefaultAudioAttenuation = nullptr;
 
-	/**
-	 * Semantic audio events available to any grid object.
-	 * Typical keys: Open, Close, Press, Release, Activate, Deactivate, Insert,
-	 * Remove, Reject, Trigger, Reset, Teleport, Interact. Custom FName keys are allowed.
-	 */
+	/** Data-driven semantic audio events such as Open, Close, Press, Activate or Interact. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio",
 		meta = (DisplayName = "Audio Events",
 			ToolTip = "Data-driven audio events for this archetype. Keys are semantic names such as Open, Close, Press, Release or custom names."))
 	TMap<FName, FGridObjectAudioEvent> AudioEvents;
 
-	// Serialized compatibility fields for door DataAssets authored before the
-	// generic object-audio contract. Hidden from authoring; PostLoad/ResolveAudioEvent
-	// migrate them to generic Open/Close events without losing existing assignments.
+	// Existing audio migration is intentionally untouched by WORLDOBJ-MIG01.
 	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use AudioEvents[Open].Sounds."))
 	TArray<TObjectPtr<USoundBase>> DoorOpenSounds;
 
@@ -121,27 +145,44 @@ public:
 				"Editor/validation functional category. Does not directly drive runtime gameplay. SupportedType remains the gameplay type and Category remains the palette grouping."))
 	EGridObjectCategory ObjectCategory = EGridObjectCategory::Decoration;
 
+	/**
+	 * WORLDOBJ-MIG01 placement authority.
+	 * Only Floor, Wall and Ceiling are valid authoring surfaces.
+	 * Center and Edge remain enum symbols temporarily because the shared enum is used outside world-object definitions,
+	 * but they are not valid WorldObject definition values and validation rejects them.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement",
-		meta = (DisplayName = "Placement Kind", ToolTip = "Current source of truth for editor/runtime placement."))
-	EGridObjectPlacementKind PlacementKind = EGridObjectPlacementKind::Center;
+		meta = (DisplayName = "Placement Surface",
+			ToolTip = "Current source of truth for editor/runtime placement. Valid authoring surfaces are Floor, Wall and Ceiling.",
+			ValidEnumValues = "Floor,Wall,Ceiling"))
+	EGridObjectPlacementKind PlacementSurface = EGridObjectPlacementKind::Floor;
+
+	/**
+	 * Local coordinates relative to Placement Surface.
+	 * Floor: U/V in the floor plane, N above floor.
+	 * Wall: U along wall, V vertical, N inset into the cell.
+	 * Ceiling: U/V in the ceiling plane, N below ceiling.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (DisplayName = "Default Local Position"))
+	FGridSurfaceLocalPosition DefaultLocalPosition;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement",
-		meta = (ToolTip = "Editor placement rule: allows this object to share a cell with other objects."))
+		meta = (ToolTip = "Editor placement rule: allows this object to share a cell with other objects. WORLDOBJ-MIG02 will replace this legacy rule."))
 	bool bCanShareCell = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement",
-		meta = (ToolTip = "Editor placement rule: allows this object to share the same edge/anchor with another object."))
+		meta = (ToolTip = "Editor placement rule: allows this object to share the same edge/anchor with another object. WORLDOBJ-MIG02 will replace this legacy rule."))
 	bool bCanShareAnchor = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement|Wall",
 		meta = (DisplayName = "Replaces Standard Wall",
-			EditCondition = "PlacementKind == EGridObjectPlacementKind::Wall || PlacementKind == EGridObjectPlacementKind::Edge", EditConditionHides,
-			ToolTip = "Hides the standard wall mesh on this object's solid wall edge."))
+			EditCondition = "PlacementSurface == EGridObjectPlacementKind::Wall", EditConditionHides,
+			ToolTip = "Hides the standard wall mesh on this object's solid wall boundary. WORLDOBJ-MIG02 will rename this to SuppressBaseWall."))
 	bool bReplacesStandardWall = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement",
 		meta = (DisplayName = "Blocks Movement (Generic Object)",
-			ToolTip = "Door passage blocking is handled by the door system. This flag is mainly for generic non-door objects."))
+			ToolTip = "Door passage blocking is handled by the door system. WORLDOBJ-MIG02 will rename this to BlocksCellMovement."))
 	bool bBlocksMovement = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendering|Cell Override",
@@ -187,34 +228,31 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual",
 		meta = (DisplayName = "Main Mesh / Preview Mesh",
-			ToolTip = "Primary mesh used for simple visible objects and editor preview. For composite/animated objects, use FixedMesh and/or MovingMesh."))
+			ToolTip = "Primary mesh used for simple visible objects and editor preview. WORLDOBJ-MIG03 will replace this visual contract."))
 	TObjectPtr<UStaticMesh> PreviewMesh = nullptr;
-
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
 		meta = (DisplayName = "Fixed Mesh",
-			ToolTip = "Fixed Mesh - static part of a composite object, such as secret doors, doors, buttons, levers or receptacles with visible item parts."))
+			ToolTip = "Static part of a composite object. WORLDOBJ-MIG03 will replace this visual contract."))
 	TObjectPtr<UStaticMesh> FixedMesh = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
 		meta = (DisplayName = "Moving Mesh",
 			EditCondition = "SupportedType != EGridLevelObjectType::Pit", EditConditionHides,
-			ToolTip = "Moving Mesh - animated or movable part of a composite object. Pit trapdoors use Left Leaf Mesh and Right Leaf Mesh instead."))
+			ToolTip = "Animated part of a composite object. WORLDOBJ-MIG03 will replace this visual contract."))
 	TObjectPtr<UStaticMesh> MovingMesh = nullptr;
-
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Pit Trapdoor",
 		meta = (DisplayName = "Left Leaf Mesh",
 			EditCondition = "SupportedType == EGridLevelObjectType::Pit", EditConditionHides,
-			ToolTip = "Left trapdoor leaf. Model it centered; runtime positions it relative to the left hinge."))
+			ToolTip = "Left trapdoor leaf. WORLDOBJ-MIG03 will replace this specialized field."))
 	TObjectPtr<UStaticMesh> PitLeftLeafMesh = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Pit Trapdoor",
 		meta = (DisplayName = "Right Leaf Mesh",
 			EditCondition = "SupportedType == EGridLevelObjectType::Pit", EditConditionHides,
-			ToolTip = "Right trapdoor leaf. Model it centered; runtime positions it relative to the right hinge."))
+			ToolTip = "Right trapdoor leaf. WORLDOBJ-MIG03 will replace this specialized field."))
 	TObjectPtr<UStaticMesh> PitRightLeafMesh = nullptr;
-
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime",
 		meta = (DisplayName = "Runtime Actor Class",
@@ -226,33 +264,41 @@ public:
 		meta = (DisplayName = "Item Actor Class", ToolTip = "Runtime item actor class used when this archetype represents a spawned or carried item."))
 	TSubclassOf<AGridItemActor> ItemActorClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (ClampMin = "0.0"))
-	float PlacementZOffset = 12.f;
+	/**
+	 * Internal WORLDOBJ-MIG01 projection used only by current runtime/editor transform call sites.
+	 * These transient fields are reflected only so existing C++/diagnostic call sites keep compiling;
+	 * they are not editable, are never serialized, and provide no backward-compatible DataAsset path.
+	 * Direct call sites will be collapsed onto PlacementSurface/DefaultLocalPosition in a later cleanup.
+	 */
+	UPROPERTY(Transient)
+	EGridObjectPlacementKind PlacementKind = EGridObjectPlacementKind::Floor;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement|Wall",
-		meta = (ClampMin = "0.0", EditCondition = "PlacementKind == EGridObjectPlacementKind::Wall || PlacementKind == EGridObjectPlacementKind::Edge",
-			EditConditionHides, ToolTip = "Used only when PlacementKind is Wall or Edge."))
-	float WallInset = 6.f;
+	UPROPERTY(Transient)
+	float PlacementZOffset = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement|Wall",
-		meta = (EditCondition = "PlacementKind == EGridObjectPlacementKind::Wall || PlacementKind == EGridObjectPlacementKind::Edge", EditConditionHides,
-			ToolTip = "Used only when PlacementKind is Wall or Edge."))
-	float LocalOffsetAlongWall = 0.f;
+	UPROPERTY(Transient)
+	float WallInset = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement|Wall",
-		meta = (EditCondition = "PlacementKind == EGridObjectPlacementKind::Wall || PlacementKind == EGridObjectPlacementKind::Edge", EditConditionHides,
-			ToolTip = "Used only when PlacementKind is Wall or Edge."))
-	float LocalOffsetVertical = 0.f;
+	UPROPERTY(Transient)
+	float LocalOffsetAlongWall = 0.0f;
+
+	UPROPERTY(Transient)
+	float LocalOffsetVertical = 0.0f;
+
+	bool HasValidPlacementSurface() const
+	{
+		return PlacementSurface == EGridObjectPlacementKind::Floor || PlacementSurface == EGridObjectPlacementKind::Wall ||
+			PlacementSurface == EGridObjectPlacementKind::Ceiling;
+	}
 
 	bool IsEdgePlaced() const
 	{
-		return PlacementKind == EGridObjectPlacementKind::Edge || PlacementKind == EGridObjectPlacementKind::Wall;
+		return PlacementKind == EGridObjectPlacementKind::Wall;
 	}
 
 	bool IsCenterPlaced() const
 	{
-		return PlacementKind == EGridObjectPlacementKind::Center || PlacementKind == EGridObjectPlacementKind::Floor ||
-			PlacementKind == EGridObjectPlacementKind::Ceiling;
+		return PlacementKind == EGridObjectPlacementKind::Floor || PlacementKind == EGridObjectPlacementKind::Ceiling;
 	}
 
 	bool IsWallPlaced() const
@@ -275,14 +321,23 @@ public:
 		return bIsLightSource;
 	}
 
+	/** Recomputes the non-serialized projection consumed by current transform call sites. */
+	void RefreshPlacementRuntimeProjection();
+
 	virtual void PostLoad() override;
 
-	/** Resolves a generic event, including transparent legacy Door Open/Close compatibility. */
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+
+	/** Resolves a generic event, including the pre-existing audio migration path. */
 	bool ResolveAudioEvent(FName EventName, FGridObjectAudioEvent& OutEvent) const;
 
 	bool ValidateArchetype(TArray<FGridArchetypeValidationMessage>& OutMessages) const;
 	bool IsValidArchetype() const;
 	FString GetValidationSummary() const;
+
+	// Existing helper API retained for callers; semantics now resolve against Floor/Wall/Ceiling only.
 	bool RequiresEdgePlacement() const;
 	bool SupportsCenterPlacement() const;
 	bool SupportsWallPlacement() const;

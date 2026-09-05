@@ -5,21 +5,24 @@
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridWallLockActor.h"
 
+#if WITH_EDITOR
+#include "UObject/UnrealType.h"
+#endif
+
 namespace
 {
+	constexpr float CurrentCeilingPlaneHeight = 200.0f;
+
 	const TCHAR* ToValidationSeverityText(EGridArchetypeValidationSeverity Severity)
 	{
 		switch (Severity)
 		{
 			case EGridArchetypeValidationSeverity::Info:
 				return TEXT("Info");
-
 			case EGridArchetypeValidationSeverity::Warning:
 				return TEXT("Warning");
-
 			case EGridArchetypeValidationSeverity::Error:
 				return TEXT("Error");
-
 			default:
 				return TEXT("Unknown");
 		}
@@ -40,20 +43,14 @@ namespace
 		return Archetype.PreviewMesh || Archetype.MovingMesh;
 	}
 
-	bool IsFloorOrCenterPlacement(EGridObjectPlacementKind PlacementKind)
+	bool IsFloorPlacement(EGridObjectPlacementKind PlacementKind)
 	{
-		return PlacementKind == EGridObjectPlacementKind::Floor || PlacementKind == EGridObjectPlacementKind::Center;
+		return PlacementKind == EGridObjectPlacementKind::Floor;
 	}
 
-	bool IsCenterFloorOrCeilingPlacement(EGridObjectPlacementKind PlacementKind)
+	bool IsWallPlacement(EGridObjectPlacementKind PlacementKind)
 	{
-		return PlacementKind == EGridObjectPlacementKind::Center || PlacementKind == EGridObjectPlacementKind::Floor ||
-			PlacementKind == EGridObjectPlacementKind::Ceiling;
-	}
-
-	bool IsWallOrEdgePlacement(EGridObjectPlacementKind PlacementKind)
-	{
-		return PlacementKind == EGridObjectPlacementKind::Wall || PlacementKind == EGridObjectPlacementKind::Edge;
+		return PlacementKind == EGridObjectPlacementKind::Wall;
 	}
 
 	const TCHAR* ToSupportedTypeText(EGridLevelObjectType SupportedType)
@@ -62,40 +59,36 @@ namespace
 		{
 			case EGridLevelObjectType::Door:
 				return TEXT("Door");
-
 			case EGridLevelObjectType::Button:
 				return TEXT("Button");
-
 			case EGridLevelObjectType::PressurePlate:
 				return TEXT("PressurePlate");
-
 			case EGridLevelObjectType::Lever:
 				return TEXT("Lever");
-
 			case EGridLevelObjectType::Decoration:
 				return TEXT("Decoration");
-
 			case EGridLevelObjectType::MonsterSpawn:
 				return TEXT("MonsterSpawn");
-
 			case EGridLevelObjectType::ItemSpawn:
 				return TEXT("ItemSpawn");
-
 			case EGridLevelObjectType::Light:
 				return TEXT("Light");
-
 			case EGridLevelObjectType::Teleporter:
 				return TEXT("Teleporter");
-
 			case EGridLevelObjectType::Trigger:
 				return TEXT("Trigger");
-
 			case EGridLevelObjectType::Receptacle:
 				return TEXT("Receptacle");
-
 			case EGridLevelObjectType::Item:
 				return TEXT("Item");
-
+			case EGridLevelObjectType::Logic:
+				return TEXT("Logic");
+			case EGridLevelObjectType::StoryCompanion:
+				return TEXT("StoryCompanion");
+			case EGridLevelObjectType::CustomRecruiter:
+				return TEXT("CustomRecruiter");
+			case EGridLevelObjectType::Pit:
+				return TEXT("Pit");
 			case EGridLevelObjectType::None:
 			default:
 				return TEXT("None");
@@ -108,31 +101,22 @@ namespace
 		{
 			case EGridObjectCategory::Mechanism:
 				return TEXT("Mechanism");
-
 			case EGridObjectCategory::Decoration:
 				return TEXT("Decoration");
-
 			case EGridObjectCategory::Prop:
 				return TEXT("Prop");
-
 			case EGridObjectCategory::Receptacle:
 				return TEXT("Receptacle");
-
 			case EGridObjectCategory::Light:
 				return TEXT("Light");
-
 			case EGridObjectCategory::Readable:
 				return TEXT("Readable");
-
 			case EGridObjectCategory::Spawn:
 				return TEXT("Spawn");
-
 			case EGridObjectCategory::Teleporter:
 				return TEXT("Teleporter");
-
 			case EGridObjectCategory::Item:
 				return TEXT("Item");
-
 			default:
 				return TEXT("Unknown");
 		}
@@ -177,7 +161,8 @@ namespace
 
 	bool IsObjectCategoryCompatible(EGridLevelObjectType SupportedType, EGridObjectCategory ObjectCategory, bool bIsReadable)
 	{
-		if (SupportedType == EGridLevelObjectType::None)
+		if (SupportedType == EGridLevelObjectType::None || SupportedType == EGridLevelObjectType::Logic ||
+			SupportedType == EGridLevelObjectType::StoryCompanion || SupportedType == EGridLevelObjectType::CustomRecruiter)
 		{
 			return true;
 		}
@@ -194,12 +179,6 @@ namespace
 		}
 
 		return ObjectCategory == GetRecommendedObjectCategory(SupportedType, bIsReadable);
-	}
-
-	bool IsDefaultWallPlacementParams(const UGridObjectArchetypeAsset& Archetype)
-	{
-		return FMath::IsNearlyEqual(Archetype.WallInset, 6.f) && FMath::IsNearlyZero(Archetype.LocalOffsetAlongWall) &&
-			FMath::IsNearlyZero(Archetype.LocalOffsetVertical);
 	}
 
 	bool IsDefaultLightParams(const UGridObjectArchetypeAsset& Archetype)
@@ -253,16 +232,59 @@ namespace
 	}
 }
 
+void UGridObjectArchetypeAsset::RefreshPlacementRuntimeProjection()
+{
+	PlacementKind = PlacementSurface;
+	LocalOffsetAlongWall = DefaultLocalPosition.U;
+	LocalOffsetVertical = 0.0f;
+	WallInset = DefaultLocalPosition.N;
+
+	switch (PlacementSurface)
+	{
+		case EGridObjectPlacementKind::Wall:
+			// The current wall transform consumes ZOffset + LocalOffsetVertical.
+			// V is now the single vertical coordinate, therefore the secondary offset is always zero.
+			PlacementZOffset = DefaultLocalPosition.V;
+			break;
+
+		case EGridObjectPlacementKind::Ceiling:
+			// Current dungeon geometry places the ceiling plane at Z=200 cm.
+			// Target N is measured downward from that surface.
+			PlacementZOffset = CurrentCeilingPlaneHeight - DefaultLocalPosition.N;
+			break;
+
+		case EGridObjectPlacementKind::Floor:
+			PlacementZOffset = DefaultLocalPosition.N;
+			break;
+
+		case EGridObjectPlacementKind::Center:
+		case EGridObjectPlacementKind::Edge:
+		default:
+			// Center and Edge are intentionally invalid authoring values after MIG01.
+			// Do not synthesize a compatibility transform from them.
+			PlacementZOffset = 0.0f;
+			WallInset = 0.0f;
+			LocalOffsetAlongWall = 0.0f;
+			LocalOffsetVertical = 0.0f;
+			break;
+	}
+}
+
 void UGridObjectArchetypeAsset::PostLoad()
 {
 	Super::PostLoad();
+
+	// WORLDOBJ-MIG01 is a clean prototype cut: serialized PlacementZOffset/WallInset/
+	// LocalOffsetAlongWall/LocalOffsetVertical no longer exist. Only the new local
+	// position is projected into the current transform implementation.
+	RefreshPlacementRuntimeProjection();
 
 	if (SupportedType != EGridLevelObjectType::Door)
 	{
 		return;
 	}
 
-	// Historical Door attenuation becomes the single archetype-wide attenuation.
+	// Pre-existing audio migration is unrelated to WORLDOBJ-MIG01 and remains unchanged.
 	if (!DefaultAudioAttenuation && DoorAudioAttenuation)
 	{
 		DefaultAudioAttenuation = DoorAudioAttenuation;
@@ -286,6 +308,14 @@ void UGridObjectArchetypeAsset::PostLoad()
 	MigrateLegacyEvent(TEXT("Close"), DoorCloseSounds);
 }
 
+#if WITH_EDITOR
+void UGridObjectArchetypeAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	RefreshPlacementRuntimeProjection();
+}
+#endif
+
 bool UGridObjectArchetypeAsset::ResolveAudioEvent(FName EventName, FGridObjectAudioEvent& OutEvent) const
 {
 	if (const FGridObjectAudioEvent* Event = AudioEvents.Find(EventName))
@@ -294,8 +324,6 @@ bool UGridObjectArchetypeAsset::ResolveAudioEvent(FName EventName, FGridObjectAu
 		return true;
 	}
 
-	// Compatibility for already-saved door archetypes that still carry the
-	// pre-generic serialized fields and have not yet been resaved after migration.
 	if (SupportedType == EGridLevelObjectType::Door)
 	{
 		const TArray<TObjectPtr<USoundBase>>* LegacySounds = nullptr;
@@ -332,6 +360,18 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 	if (SupportedType == EGridLevelObjectType::None)
 	{
 		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("SupportedType must not be None."));
+	}
+
+	if (!HasValidPlacementSurface())
+	{
+		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+			TEXT("Placement Surface must be Floor, Wall or Ceiling. Center and Edge are no longer valid authoring values."));
+	}
+
+	if (!DefaultLocalPosition.IsFinite())
+	{
+		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+			TEXT("Default Local Position U/V/N must contain finite values."));
 	}
 
 	if (ArchetypeId == FName(TEXT("Door_Secret")) && SupportedType != EGridLevelObjectType::Door)
@@ -387,16 +427,16 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			TEXT("Palette Category is not set. This does not affect runtime, but the object may be harder to organize in the editor palette."));
 	}
 
-	if (bReplacesStandardWall && !IsWallOrEdgePlacement(PlacementKind))
+	if (bReplacesStandardWall && !IsWallPlacement(PlacementSurface))
 	{
 		AddValidationMessage(
-			OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Replaces Standard Wall is enabled but PlacementKind is not Wall or Edge."));
+			OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Replaces Standard Wall is enabled but Placement Surface is not Wall."));
 	}
 
 	if (bReplacesStandardWall && bCanShareAnchor)
 	{
 		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning,
-			TEXT("Replaces Standard Wall is enabled while bCanShareAnchor=true. Multiple wall replacements can overlap on the same edge."));
+			TEXT("Replaces Standard Wall is enabled while bCanShareAnchor=true. Multiple wall replacements can overlap on the same boundary."));
 	}
 
 	if (!IsObjectCategoryCompatible(SupportedType, ObjectCategory, bIsReadable))
@@ -413,12 +453,6 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 				FString::Printf(TEXT("%s should generally use ObjectCategory=%s, but currently uses %s."), ToSupportedTypeText(SupportedType),
 					ToObjectCategoryText(RecommendedCategory), ToObjectCategoryText(ObjectCategory)));
 		}
-	}
-
-	if (!UsesWallPlacementParams() && !IsDefaultWallPlacementParams(*this))
-	{
-		AddValidationMessage(
-			OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("Wall placement parameters are set but this archetype is not wall/edge placed."));
 	}
 
 	if (!bIsReadable && !ReadableText.IsEmpty())
@@ -475,9 +509,9 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 	{
 		case EGridLevelObjectType::Door:
 		{
-			if (!IsWallOrEdgePlacement(PlacementKind))
+			if (!IsWallPlacement(PlacementSurface))
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Door PlacementKind must be Edge or Wall."));
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Door Placement Surface must be Wall."));
 			}
 			if (!HasPreviewOrMovingMesh(*this))
 			{
@@ -486,8 +520,7 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			if (RuntimeActorClass && !RuntimeActorClass->IsChildOf(AGridDoorActor::StaticClass()))
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
-					TEXT(
-						"Door RuntimeActorClass must derive from AGridDoorActor. Door_Secret can use AGridSecretDoorActor or a Blueprint derived from AGridDoorActor."));
+					TEXT("Door RuntimeActorClass must derive from AGridDoorActor."));
 			}
 			if (bCanShareAnchor)
 			{
@@ -499,9 +532,9 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 		case EGridLevelObjectType::Button:
 		case EGridLevelObjectType::Lever:
 		{
-			if (!IsWallOrEdgePlacement(PlacementKind))
+			if (!IsWallPlacement(PlacementSurface))
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Button and Lever PlacementKind must be Wall or Edge."));
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Button and Lever Placement Surface must be Wall."));
 			}
 			if (!bIsInteractable)
 			{
@@ -517,9 +550,9 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 
 		case EGridLevelObjectType::Pit:
 		{
-			if (!IsFloorOrCenterPlacement(PlacementKind))
+			if (!IsFloorPlacement(PlacementSurface))
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit PlacementKind must be Floor or Center."));
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit Placement Surface must be Floor."));
 			}
 			if (!PreviewMesh)
 			{
@@ -571,9 +604,9 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 
 		case EGridLevelObjectType::PressurePlate:
 		{
-			if (!IsFloorOrCenterPlacement(PlacementKind))
+			if (!IsFloorPlacement(PlacementSurface))
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("PressurePlate PlacementKind must be Floor or Center."));
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("PressurePlate Placement Surface must be Floor."));
 			}
 			if (bIsInteractable)
 			{
@@ -590,9 +623,9 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 
 		case EGridLevelObjectType::Trigger:
 		{
-			if (!IsFloorOrCenterPlacement(PlacementKind))
+			if (!IsFloorPlacement(PlacementSurface))
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Trigger PlacementKind must be Floor or Center."));
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Trigger Placement Surface must be Floor."));
 			}
 			break;
 		}
@@ -624,22 +657,20 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			}
 			if (bIsLightSource && LightIntensity <= 0.f)
 			{
-				AddValidationMessage(
-					OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("LightIntensity must be greater than 0 when bIsLightSource is true."));
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("LightIntensity must be greater than 0 when bIsLightSource is true."));
 			}
 			if (bIsLightSource && LightRadius <= 0.f)
 			{
-				AddValidationMessage(
-					OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("LightRadius must be greater than 0 when bIsLightSource is true."));
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("LightRadius must be greater than 0 when bIsLightSource is true."));
 			}
 			break;
 		}
 
 		case EGridLevelObjectType::Teleporter:
 		{
-			if (!IsFloorOrCenterPlacement(PlacementKind))
+			if (!IsFloorPlacement(PlacementSurface))
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Teleporter PlacementKind must be Floor or Center."));
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Teleporter Placement Surface must be Floor."));
 			}
 			if (DefaultBehavior.Teleporter.TargetCellX == INDEX_NONE || DefaultBehavior.Teleporter.TargetCellY == INDEX_NONE)
 			{
@@ -658,8 +689,7 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			if (RuntimeActorClass && !RuntimeActorClass->IsChildOf(AGridReceptacleActor::StaticClass()))
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
-					TEXT(
-						"Receptacle RuntimeActorClass must derive from AGridReceptacleActor. Concrete Receptacle_* variants can use AGridReceptacleActor or a Blueprint derived from it."));
+					TEXT("Receptacle RuntimeActorClass must derive from AGridReceptacleActor."));
 			}
 			if (!IsWallLockArchetype(*this) && !DefaultBehavior.Receptacle.bAcceptAnyItem && DefaultBehavior.Receptacle.AcceptedItems.Num() == 0)
 			{
@@ -688,17 +718,14 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 		case EGridLevelObjectType::MonsterSpawn:
 		case EGridLevelObjectType::ItemSpawn:
 		{
-			if (!IsFloorOrCenterPlacement(PlacementKind))
+			if (!IsFloorPlacement(PlacementSurface))
 			{
 				AddValidationMessage(
-					OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("MonsterSpawn and ItemSpawn PlacementKind must be Floor or Center."));
+					OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("MonsterSpawn and ItemSpawn Placement Surface must be Floor."));
 			}
-			if (SupportedType == EGridLevelObjectType::ItemSpawn)
+			if (SupportedType == EGridLevelObjectType::ItemSpawn && !Category.IsNone() && !IsPaletteCategory(*this, TEXT("Spawns")))
 			{
-				if (!Category.IsNone() && !IsPaletteCategory(*this, TEXT("Spawns")))
-				{
-					AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("ItemSpawn palette category should generally be Spawns."));
-				}
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("ItemSpawn palette category should generally be Spawns."));
 			}
 			break;
 		}
@@ -709,10 +736,10 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("Item palette category should generally be Items."));
 			}
-			if (!IsFloorOrCenterPlacement(PlacementKind) && ArchetypeId != FName(TEXT("Item_Torch")))
+			if (!IsFloorPlacement(PlacementSurface))
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning,
-					TEXT("Item PlacementKind should generally be Floor or Center when placed in the level."));
+					TEXT("Item Placement Surface should be Floor while items still use the world-object placement path."));
 			}
 			const bool bHasDefaultItemDefinition = DefaultBehavior.Item.ItemDefinitionAsset || !DefaultBehavior.Item.ItemDefinitionId.IsNone();
 			if (!ItemActorClass && !bHasDefaultItemDefinition)
@@ -760,11 +787,9 @@ FString UGridObjectArchetypeAsset::GetValidationSummary() const
 			case EGridArchetypeValidationSeverity::Error:
 				++ErrorCount;
 				break;
-
 			case EGridArchetypeValidationSeverity::Warning:
 				++WarningCount;
 				break;
-
 			case EGridArchetypeValidationSeverity::Info:
 				++InfoCount;
 				break;
@@ -785,13 +810,14 @@ FString UGridObjectArchetypeAsset::GetValidationSummary() const
 
 bool UGridObjectArchetypeAsset::RequiresEdgePlacement() const
 {
+	// Historical API name retained for current editor call sites.
+	// After WORLDOBJ-MIG01 this means "requires a Wall surface / WallSide".
 	switch (SupportedType)
 	{
 		case EGridLevelObjectType::Door:
 		case EGridLevelObjectType::Button:
 		case EGridLevelObjectType::Lever:
 			return true;
-
 		default:
 			return false;
 	}
@@ -799,6 +825,8 @@ bool UGridObjectArchetypeAsset::RequiresEdgePlacement() const
 
 bool UGridObjectArchetypeAsset::SupportsCenterPlacement() const
 {
+	// Historical API name retained for current callers; Center is not a valid surface.
+	// The helper now means "supports cell/floor placement".
 	switch (SupportedType)
 	{
 		case EGridLevelObjectType::PressurePlate:
@@ -810,8 +838,9 @@ bool UGridObjectArchetypeAsset::SupportsCenterPlacement() const
 		case EGridLevelObjectType::ItemSpawn:
 		case EGridLevelObjectType::Item:
 		case EGridLevelObjectType::Pit:
+		case EGridLevelObjectType::StoryCompanion:
+		case EGridLevelObjectType::CustomRecruiter:
 			return true;
-
 		default:
 			return false;
 	}
@@ -828,7 +857,6 @@ bool UGridObjectArchetypeAsset::SupportsWallPlacement() const
 		case EGridLevelObjectType::Light:
 		case EGridLevelObjectType::Receptacle:
 			return true;
-
 		default:
 			return false;
 	}
@@ -846,7 +874,6 @@ bool UGridObjectArchetypeAsset::RequiresRuntimeActorClass() const
 		case EGridLevelObjectType::Receptacle:
 		case EGridLevelObjectType::Pit:
 			return true;
-
 		default:
 			return false;
 	}
@@ -860,7 +887,6 @@ bool UGridObjectArchetypeAsset::AllowsInvisibleRuntimeObject() const
 		case EGridLevelObjectType::MonsterSpawn:
 		case EGridLevelObjectType::ItemSpawn:
 			return true;
-
 		default:
 			return false;
 	}
@@ -868,13 +894,12 @@ bool UGridObjectArchetypeAsset::AllowsInvisibleRuntimeObject() const
 
 bool UGridObjectArchetypeAsset::UsesWallPlacementParams() const
 {
-	return PlacementKind == EGridObjectPlacementKind::Wall || PlacementKind == EGridObjectPlacementKind::Edge;
+	return PlacementSurface == EGridObjectPlacementKind::Wall;
 }
 
 bool UGridObjectArchetypeAsset::UsesCenterPlacementParams() const
 {
-	return PlacementKind == EGridObjectPlacementKind::Center || PlacementKind == EGridObjectPlacementKind::Floor ||
-		PlacementKind == EGridObjectPlacementKind::Ceiling;
+	return PlacementSurface == EGridObjectPlacementKind::Floor || PlacementSurface == EGridObjectPlacementKind::Ceiling;
 }
 
 bool UGridObjectArchetypeAsset::UsesReadableParams() const
@@ -918,7 +943,6 @@ bool UGridObjectArchetypeAsset::UsesTriggerParams() const
 		case EGridLevelObjectType::Receptacle:
 		case EGridLevelObjectType::Teleporter:
 			return true;
-
 		default:
 			return false;
 	}
@@ -938,7 +962,6 @@ bool UGridObjectArchetypeAsset::UsesMovingMeshParams() const
 		case EGridLevelObjectType::Lever:
 		case EGridLevelObjectType::Receptacle:
 			return true;
-
 		default:
 			return false;
 	}
