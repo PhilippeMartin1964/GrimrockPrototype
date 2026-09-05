@@ -243,19 +243,19 @@ public:
 	 * are never serialized, and are ignored by the target runtime presentation path.
 	 * WORLDOBJ-MIG03.4D removes the symbols completely after the remaining callers are migrated.
 	 */
-	UPROPERTY(Transient, Category = "Visual|Legacy Runtime Bridge")
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Visual|Legacy Runtime Bridge")
 	TObjectPtr<UStaticMesh> PreviewMesh = nullptr;
 
-	UPROPERTY(Transient, Category = "Visual|Legacy Runtime Bridge")
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Visual|Legacy Runtime Bridge")
 	TObjectPtr<UStaticMesh> FixedMesh = nullptr;
 
-	UPROPERTY(Transient, Category = "Visual|Legacy Runtime Bridge")
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Visual|Legacy Runtime Bridge")
 	TObjectPtr<UStaticMesh> MovingMesh = nullptr;
 
-	UPROPERTY(Transient, Category = "Visual|Legacy Runtime Bridge")
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Visual|Legacy Runtime Bridge")
 	TObjectPtr<UStaticMesh> PitLeftLeafMesh = nullptr;
 
-	UPROPERTY(Transient, Category = "Visual|Legacy Runtime Bridge")
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Visual|Legacy Runtime Bridge")
 	TObjectPtr<UStaticMesh> PitRightLeafMesh = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime",
