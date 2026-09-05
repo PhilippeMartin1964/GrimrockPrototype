@@ -163,7 +163,7 @@ bool FGridWorldObjectMIG03RuntimeSpawnWithoutLegacyMeshTest::RunTest(const FStri
 	TestNotNull(TEXT("StaticPart-only generic object spawns without any legacy mesh"), StaticActor);
 	if (StaticActor && StaticActor->MeshComponent)
 	{
-		TestEqual(TEXT("Generic runtime uses StaticPart mesh"), StaticActor->MeshComponent->GetStaticMesh(), StaticArchetype->StaticPart.Mesh.Get());
+		TestTrue(TEXT("Generic runtime uses StaticPart mesh"), StaticActor->MeshComponent->GetStaticMesh() == StaticArchetype->StaticPart.Mesh.Get());
 		TestTrue(TEXT("Generic runtime applies StaticPart LocalTransform"),
 			StaticActor->MeshComponent->GetRelativeTransform().Equals(StaticArchetype->StaticPart.LocalTransform, 0.01f));
 	}
