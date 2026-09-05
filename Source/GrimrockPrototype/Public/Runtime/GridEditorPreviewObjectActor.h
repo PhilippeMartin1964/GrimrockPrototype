@@ -5,9 +5,11 @@
 #include "Core/GridTypes.h"
 #include "GridEditorPreviewObjectActor.generated.h"
 
+class UStaticMesh;
 class UStaticMeshComponent;
 class USkeletalMeshComponent;
 class UGridMonsterDefinitionAsset;
+class UGridObjectArchetypeAsset;
 
 UCLASS()
 class GRIMROCKPROTOTYPE_API AGridEditorPreviewObjectActor : public AActor
@@ -20,8 +22,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USceneComponent* SceneRoot;
 
+	/** StaticPart for the target composition, or the single legacy preview mesh. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* MeshComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UStaticMeshComponent* MovingPart0MeshComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UStaticMeshComponent* MovingPart1MeshComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USkeletalMeshComponent* SkeletalMeshComponent;
@@ -32,8 +41,12 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Grid")
 	EGridLevelObjectType ObjectType = EGridLevelObjectType::None;
 
+	/** Historical one-mesh preview entry point retained for callers outside MIG03. */
 	UFUNCTION(BlueprintCallable, Category = "Preview")
 	void InitializePreviewObject(const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh);
+
+	/** MIG03 target entry point: renders StaticPart + MovingPart[0..1] from the same definition used by runtime. */
+	void InitializePreviewObjectFromArchetype(const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* LegacyFallbackMesh);
 
 	void InitializeMonsterPreviewObject(const FGridLevelObjectData& ObjectData, UGridMonsterDefinitionAsset* MonsterDefinition);
 
@@ -44,9 +57,9 @@ public:
 	void SetSelected(bool bSelected);
 
 private:
+	void ResetStaticPreviewComponents();
 	void RefreshStencilState();
 
 	bool bIsHovered = false;
 	bool bIsSelected = false;
-
 };

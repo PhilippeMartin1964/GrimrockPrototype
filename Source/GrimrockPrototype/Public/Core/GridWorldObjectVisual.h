@@ -42,7 +42,7 @@ struct GRIMROCKPROTOTYPE_API FGridWorldObjectStaticPart
 	}
 };
 
-/** Motion applied to one moving visual part. */
+/** Motion applied to one moving visual part, in the local frame of the placed world object. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridWorldObjectMotion
 {
@@ -54,7 +54,7 @@ struct GRIMROCKPROTOTYPE_API FGridWorldObjectMotion
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Motion")
 	EGridWorldObjectMotionAxis Axis = EGridWorldObjectMotionAxis::Z;
 
-	/** Local pivot used only for Rotation motion. */
+	/** Local object-space pivot used only for Rotation motion. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Motion",
 		meta = (EditCondition = "Type == EGridWorldObjectMotionType::Rotation", EditConditionHides))
 	FVector Pivot = FVector::ZeroVector;
@@ -65,6 +65,39 @@ struct GRIMROCKPROTOTYPE_API FGridWorldObjectMotion
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Motion", meta = (ClampMin = "0.0"))
 	float Duration = 0.0f;
+
+	FVector GetAxisVector() const
+	{
+		switch (Axis)
+		{
+			case EGridWorldObjectMotionAxis::X:
+				return FVector::XAxisVector;
+			case EGridWorldObjectMotionAxis::Y:
+				return FVector::YAxisVector;
+			case EGridWorldObjectMotionAxis::Z:
+			default:
+				return FVector::ZAxisVector;
+		}
+	}
+
+	/** Evaluates this motion from the authored closed/rest LocalTransform at Alpha in [0,1]. */
+	FTransform Evaluate(const FTransform& BaseLocalTransform, float Alpha) const
+	{
+		const float ClampedAlpha = FMath::Clamp(Alpha, 0.0f, 1.0f);
+		FTransform Result = BaseLocalTransform;
+		const FVector AxisVector = GetAxisVector();
+
+		if (Type == EGridWorldObjectMotionType::Translation)
+		{
+			Result.SetLocation(BaseLocalTransform.GetLocation() + AxisVector * (Amount * ClampedAlpha));
+			return Result;
+		}
+
+		const FQuat DeltaRotation(AxisVector, FMath::DegreesToRadians(Amount * ClampedAlpha));
+		Result.SetLocation(Pivot + DeltaRotation.RotateVector(BaseLocalTransform.GetLocation() - Pivot));
+		Result.SetRotation((DeltaRotation * BaseLocalTransform.GetRotation()).GetNormalized());
+		return Result;
+	}
 };
 
 /** One animated mesh. Mesh == nullptr means the slot is unused. */

@@ -52,7 +52,7 @@ void AGridLeverActor::InitializeLever(const FGridLevelObjectData& ObjectData, US
 	bIsAnimating = false;
 	AnimElapsed = 0.f;
 
-	MovingMeshComponent->SetRelativeRotation(bIsOn ? OnRelativeRotation : OffRelativeRotation);
+	SetMovingRelativeRotation(bIsOn ? OnRelativeRotation : OffRelativeRotation);
 }
 
 void AGridLeverActor::SetLeverState(bool bNewOn)
@@ -66,7 +66,7 @@ void AGridLeverActor::SetLeverState(bool bNewOn)
 	AnimElapsed = 0.f;
 	bIsAnimating = true;
 
-	AnimStartRotation = MovingMeshComponent->GetRelativeRotation();
+	AnimStartRotation = GetMovingRelativeRotation();
 	AnimTargetRotation = bIsOn ? OnRelativeRotation : OffRelativeRotation;
 	SetActorTickEnabled(true);
 }
@@ -83,11 +83,11 @@ void AGridLeverActor::UpdateAnimation(float DeltaSeconds)
 	AnimElapsed += DeltaSeconds;
 	const float Alpha = FMath::Clamp(AnimElapsed / SafeDuration, 0.f, 1.f);
 
-	MovingMeshComponent->SetRelativeRotation(FMath::Lerp(AnimStartRotation, AnimTargetRotation, Alpha));
+	SetMovingRelativeRotation(FMath::Lerp(AnimStartRotation, AnimTargetRotation, Alpha));
 
 	if (Alpha >= 1.f)
 	{
-		MovingMeshComponent->SetRelativeRotation(AnimTargetRotation);
+		SetMovingRelativeRotation(AnimTargetRotation);
 		bIsAnimating = false;
 		AnimElapsed = 0.f;
 		SetActorTickEnabled(false);

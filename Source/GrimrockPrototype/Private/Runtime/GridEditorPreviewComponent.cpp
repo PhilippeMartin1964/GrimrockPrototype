@@ -1,5 +1,6 @@
 #include "Runtime/GridEditorPreviewComponent.h"
 
+#include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -91,11 +92,14 @@ void UGridEditorPreviewComponent::AddPreviewObject(const FGridLevelObjectData& O
 		return;
 	}
 
-	UStaticMesh* Mesh = bMonsterSpawn ? nullptr : RuntimeActor->GetObjectMesh(ObjectData);
-	if (!bMonsterSpawn && !Mesh)
+	const UGridObjectArchetypeAsset* Archetype = bMonsterSpawn ? nullptr : RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId);
+	UStaticMesh* LegacyFallbackMesh = bMonsterSpawn ? nullptr : RuntimeActor->GetObjectMesh(ObjectData);
+	const bool bHasTargetComposition = Archetype && (Archetype->StaticPart.IsDefined() || !Archetype->MovingParts.IsEmpty());
+	if (!bMonsterSpawn && !bHasTargetComposition && !LegacyFallbackMesh)
 	{
 		return;
 	}
+
 	const FVector Location = PlacementTransform.GetLocation();
 	const FRotator Rotation = PlacementTransform.GetRotation().Rotator();
 
@@ -116,7 +120,7 @@ void UGridEditorPreviewComponent::AddPreviewObject(const FGridLevelObjectData& O
 	}
 	else
 	{
-		PreviewActor->InitializePreviewObject(ObjectData, Mesh);
+		PreviewActor->InitializePreviewObjectFromArchetype(ObjectData, Archetype, LegacyFallbackMesh);
 	}
 	SpawnedPreviewObjects.Add(PreviewActor);
 }
@@ -193,9 +197,12 @@ bool UGridEditorPreviewComponent::IsPreviewableObject(const FGridLevelObjectData
 	{
 		return true;
 	}
-	if (!RuntimeActor->GetObjectMesh(ObjectData))
+
+	const UGridObjectArchetypeAsset* Archetype = RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId);
+	if (Archetype && (Archetype->StaticPart.IsDefined() || !Archetype->MovingParts.IsEmpty()))
 	{
-		return false;
+		return true;
 	}
-	return true;
+
+	return RuntimeActor->GetObjectMesh(ObjectData) != nullptr;
 }

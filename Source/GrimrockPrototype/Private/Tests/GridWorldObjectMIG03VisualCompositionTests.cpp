@@ -5,6 +5,8 @@
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Core/GridWorldObjectVisual.h"
 #include "Engine/StaticMesh.h"
+#include "Runtime/GridEditorPreviewObjectActor.h"
+#include "Runtime/GridMechanismActor.h"
 #include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
@@ -83,6 +85,27 @@ bool FGridWorldObjectMIG03VisualCompositionTypesTest::RunTest(const FString& Par
 		TestTrue(TEXT("Z axis exists"), MotionAxisEnum->IsValidEnumValue(static_cast<int64>(EGridWorldObjectMotionAxis::Z)));
 	}
 
+	FGridWorldObjectMotion TranslationMotion;
+	TranslationMotion.Type = EGridWorldObjectMotionType::Translation;
+	TranslationMotion.Axis = EGridWorldObjectMotionAxis::Z;
+	TranslationMotion.Amount = 20.0f;
+	const FTransform TranslationBase(FRotator::ZeroRotator, FVector(1.0f, 2.0f, 3.0f));
+	const FTransform TranslationHalf = TranslationMotion.Evaluate(TranslationBase, 0.5f);
+	TestTrue(TEXT("Translation motion evaluates from the authored local transform"),
+		TranslationHalf.GetLocation().Equals(FVector(1.0f, 2.0f, 13.0f), KINDA_SMALL_NUMBER));
+
+	FGridWorldObjectMotion RotationMotion;
+	RotationMotion.Type = EGridWorldObjectMotionType::Rotation;
+	RotationMotion.Axis = EGridWorldObjectMotionAxis::Z;
+	RotationMotion.Pivot = FVector::ZeroVector;
+	RotationMotion.Amount = 90.0f;
+	const FTransform RotationBase(FRotator::ZeroRotator, FVector(10.0f, 0.0f, 0.0f));
+	const FTransform RotationOpen = RotationMotion.Evaluate(RotationBase, 1.0f);
+	TestTrue(TEXT("Rotation motion orbits around the local pivot"),
+		RotationOpen.GetLocation().Equals(FVector(0.0f, 10.0f, 0.0f), 0.01f));
+	TestTrue(TEXT("Rotation motion rotates the visual part"),
+		RotationOpen.GetRotation().Rotator().Equals(FRotator(0.0f, 90.0f, 0.0f), 0.01f));
+
 	return true;
 }
 
@@ -134,7 +157,6 @@ bool FGridWorldObjectMIG03ArchetypeVisualContractTest::RunTest(const FString& Pa
 	Archetype->MovingParts.Part1.Mesh = Mesh1;
 	TestEqual(TEXT("Two defined slots means two moving parts"), Archetype->GetDefinedMovingPartCount(), 2);
 
-	// Maximum two is structural: the reflected container contains no Part2 and therefore needs no MaxMovingParts parameter.
 	TestNull(TEXT("No third moving-part authoring slot exists"), FGridWorldObjectMovingParts::StaticStruct()->FindPropertyByName(TEXT("Part2")));
 	TestNull(TEXT("No MaxMovingParts parameter exists"), ArchetypeClass->FindPropertyByName(TEXT("MaxMovingParts")));
 
@@ -148,6 +170,36 @@ bool FGridWorldObjectMIG03ArchetypeVisualContractTest::RunTest(const FString& Pa
 			TestTrue(*FString::Printf(TEXT("%s is explicitly categorized as a temporary legacy runtime bridge"), *LegacyName.ToString()),
 				LegacyProperty->GetMetaData(TEXT("Category")).StartsWith(TEXT("Visual|Legacy Runtime Bridge")));
 		}
+	}
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridWorldObjectMIG03RuntimeConsumerContractTest,
+	"Grimrock.WorldObjects.MIG03.RuntimeConsumerContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridWorldObjectMIG03RuntimeConsumerContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UClass* MechanismClass = AGridMechanismActor::StaticClass();
+	UClass* PreviewClass = AGridEditorPreviewObjectActor::StaticClass();
+	TestNotNull(TEXT("Mechanism runtime class exists"), MechanismClass);
+	TestNotNull(TEXT("Editor preview object class exists"), PreviewClass);
+
+	if (MechanismClass)
+	{
+		TestNotNull(TEXT("Mechanism exposes primary moving visual component"), MechanismClass->FindPropertyByName(TEXT("MovingMeshComponent")));
+		TestNotNull(TEXT("Mechanism exposes the second target moving visual component"),
+			MechanismClass->FindPropertyByName(TEXT("SecondaryMovingMeshComponent")));
+	}
+
+	if (PreviewClass)
+	{
+		TestNotNull(TEXT("Preview exposes target MovingPart0 component"), PreviewClass->FindPropertyByName(TEXT("MovingPart0MeshComponent")));
+		TestNotNull(TEXT("Preview exposes target MovingPart1 component"), PreviewClass->FindPropertyByName(TEXT("MovingPart1MeshComponent")));
 	}
 
 	return true;

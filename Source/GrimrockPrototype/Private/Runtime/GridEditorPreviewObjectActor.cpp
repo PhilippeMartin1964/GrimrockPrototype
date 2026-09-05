@@ -5,6 +5,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
 AGridEditorPreviewObjectActor::AGridEditorPreviewObjectActor()
@@ -23,6 +24,20 @@ AGridEditorPreviewObjectActor::AGridEditorPreviewObjectActor()
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	MeshComponent->SetMobility(EComponentMobility::Movable);
 
+	MovingPart0MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MovingPart0"));
+	MovingPart0MeshComponent->SetupAttachment(SceneRoot);
+	MovingPart0MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MovingPart0MeshComponent->SetGenerateOverlapEvents(false);
+	MovingPart0MeshComponent->SetMobility(EComponentMobility::Movable);
+	MovingPart0MeshComponent->SetVisibility(false, true);
+
+	MovingPart1MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MovingPart1"));
+	MovingPart1MeshComponent->SetupAttachment(SceneRoot);
+	MovingPart1MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MovingPart1MeshComponent->SetGenerateOverlapEvents(false);
+	MovingPart1MeshComponent->SetMobility(EComponentMobility::Movable);
+	MovingPart1MeshComponent->SetVisibility(false, true);
+
 	SkeletalMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
 	SkeletalMeshComponent->SetupAttachment(SceneRoot);
 	SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -31,16 +46,29 @@ AGridEditorPreviewObjectActor::AGridEditorPreviewObjectActor()
 	SkeletalMeshComponent->SetVisibility(false, true);
 }
 
+void AGridEditorPreviewObjectActor::ResetStaticPreviewComponents()
+{
+	for (UStaticMeshComponent* Component : {MeshComponent, MovingPart0MeshComponent, MovingPart1MeshComponent})
+	{
+		if (!Component)
+		{
+			continue;
+		}
+		Component->SetStaticMesh(nullptr);
+		Component->SetRelativeTransform(FTransform::Identity);
+		Component->SetVisibility(false, true);
+		Component->SetRenderCustomDepth(false);
+		Component->SetCustomDepthStencilValue(0);
+		Component->MarkRenderStateDirty();
+	}
+}
+
 void AGridEditorPreviewObjectActor::InitializePreviewObject(const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh)
 {
 	ObjectId = ObjectData.ObjectId;
 	ObjectType = ObjectData.Type;
 
-
-	if (!MeshComponent)
-	{
-		return;
-	}
+	ResetStaticPreviewComponents();
 
 	if (SkeletalMeshComponent)
 	{
@@ -49,29 +77,64 @@ void AGridEditorPreviewObjectActor::InitializePreviewObject(const FGridLevelObje
 		SkeletalMeshComponent->SetVisibility(false, true);
 	}
 
-	MeshComponent->SetVisibility(true, true);
-	MeshComponent->SetStaticMesh(Mesh);
-
-
-	MeshComponent->SetRenderCustomDepth(false);
-	MeshComponent->SetCustomDepthStencilValue(0);
-	MeshComponent->MarkRenderStateDirty();
+	if (MeshComponent)
+	{
+		MeshComponent->SetStaticMesh(Mesh);
+		MeshComponent->SetVisibility(Mesh != nullptr, true);
+	}
 
 	bIsHovered = false;
 	bIsSelected = false;
 	RefreshStencilState();
 }
 
-void AGridEditorPreviewObjectActor::InitializeMonsterPreviewObject(const FGridLevelObjectData& ObjectData, UGridMonsterDefinitionAsset* MonsterDefinition)
+void AGridEditorPreviewObjectActor::InitializePreviewObjectFromArchetype(
+	const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* LegacyFallbackMesh)
+{
+	if (!Archetype || (!Archetype->StaticPart.IsDefined() && Archetype->MovingParts.IsEmpty()))
+	{
+		InitializePreviewObject(ObjectData, LegacyFallbackMesh);
+		return;
+	}
+
+	ObjectId = ObjectData.ObjectId;
+	ObjectType = ObjectData.Type;
+	ResetStaticPreviewComponents();
+
+	if (SkeletalMeshComponent)
+	{
+		SkeletalMeshComponent->SetSkeletalMesh(nullptr);
+		SkeletalMeshComponent->SetAnimInstanceClass(nullptr);
+		SkeletalMeshComponent->SetVisibility(false, true);
+	}
+
+	const auto ConfigurePart = [](UStaticMeshComponent* Component, UStaticMesh* Mesh, const FTransform& LocalTransform)
+	{
+		if (!Component)
+		{
+			return;
+		}
+		Component->SetStaticMesh(Mesh);
+		Component->SetRelativeTransform(LocalTransform);
+		Component->SetVisibility(Mesh != nullptr, true);
+	};
+
+	ConfigurePart(MeshComponent, Archetype->StaticPart.Mesh.Get(), Archetype->StaticPart.LocalTransform);
+	ConfigurePart(MovingPart0MeshComponent, Archetype->MovingParts.Part0.Mesh.Get(), Archetype->MovingParts.Part0.LocalTransform);
+	ConfigurePart(MovingPart1MeshComponent, Archetype->MovingParts.Part1.Mesh.Get(), Archetype->MovingParts.Part1.LocalTransform);
+
+	bIsHovered = false;
+	bIsSelected = false;
+	RefreshStencilState();
+}
+
+void AGridEditorPreviewObjectActor::InitializeMonsterPreviewObject(
+	const FGridLevelObjectData& ObjectData, UGridMonsterDefinitionAsset* MonsterDefinition)
 {
 	ObjectId = ObjectData.ObjectId;
 	ObjectType = ObjectData.Type;
 
-	if (MeshComponent)
-	{
-		MeshComponent->SetStaticMesh(nullptr);
-		MeshComponent->SetVisibility(false, true);
-	}
+	ResetStaticPreviewComponents();
 
 	if (!SkeletalMeshComponent || !IsValid(MonsterDefinition))
 	{
@@ -135,5 +198,7 @@ void AGridEditorPreviewObjectActor::RefreshStencilState()
 	};
 
 	ApplyStencil(MeshComponent);
+	ApplyStencil(MovingPart0MeshComponent);
+	ApplyStencil(MovingPart1MeshComponent);
 	ApplyStencil(SkeletalMeshComponent);
 }
