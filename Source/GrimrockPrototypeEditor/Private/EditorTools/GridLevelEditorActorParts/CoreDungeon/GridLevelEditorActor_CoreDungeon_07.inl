@@ -36,6 +36,21 @@ bool AGridLevelEditorActor::EnsureStairsTransitionArchetypes(FString& OutError)
 	ConfigureStairsTransitionArchetype(*StairsUpArchetype, FName(TEXT("Stairs_Up")), TEXT("Stairs Up"), StairsUpMesh, false);
 	ConfigureStairsTransitionArchetype(*StairsDownArchetype, FName(TEXT("Stairs_Down")), TEXT("Stairs Down"), StairsDownMesh, true);
 
+	// WORLDOBJ-MIG03.4B: the Grid Editor must persist the target visual contract,
+	// even while the old Configure* helpers are still being removed incrementally.
+	const auto ApplyTargetStairsVisual = [](UGridObjectArchetypeAsset& Archetype, UStaticMesh* Mesh)
+	{
+		Archetype.PlacementSurface = EGridObjectPlacementKind::Floor;
+		Archetype.DefaultLocalPosition = FGridSurfaceLocalPosition();
+		Archetype.StaticPart.Mesh = Mesh;
+		Archetype.StaticPart.LocalTransform = FTransform::Identity;
+		Archetype.MovingParts = FGridWorldObjectMovingParts();
+		Archetype.RefreshPlacementRuntimeProjection();
+		Archetype.MarkPackageDirty();
+	};
+	ApplyTargetStairsVisual(*StairsUpArchetype, StairsUpMesh);
+	ApplyTargetStairsVisual(*StairsDownArchetype, StairsDownMesh);
+
 	ObjectPalette->Modify();
 
 	const auto AddOrUpdatePaletteEntry = [this](FName EntryId, const FText& DisplayName, UGridObjectArchetypeAsset* Archetype)
@@ -114,6 +129,54 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorArchetype(FString& OutError)
 	}
 
 	ConfigurePitTrapdoorArchetype(*PitArchetype, PitMesh);
+
+	// WORLDOBJ-MIG03.4B: persist the target StaticPart/MovingParts contract.
+	PitArchetype->PlacementSurface = EGridObjectPlacementKind::Floor;
+	PitArchetype->DefaultLocalPosition = FGridSurfaceLocalPosition();
+	PitArchetype->StaticPart.Mesh = PitMesh;
+	PitArchetype->StaticPart.LocalTransform = FTransform::Identity;
+
+	// A single target leaf is never a valid trapdoor. Reset it first, then allow
+	// the one-time editor migration below to rebuild a complete pair if possible.
+	if (PitArchetype->MovingParts.NumDefined() == 1)
+	{
+		PitArchetype->MovingParts = FGridWorldObjectMovingParts();
+		UE_LOG(LogTemp, Warning,
+			TEXT("WORLDOBJ-MIG03.4B: incomplete Pit MovingParts reset for %s; a Pit requires either zero or two moving leaves."),
+			*PitArchetype->GetPathName());
+	}
+
+	// One-time data migration only: runtime compatibility with the old leaf fields
+	// has already been removed. Copy a complete legacy pair into the target schema
+	// so the asset can be resaved before those fields are physically deleted.
+	if (PitArchetype->MovingParts.IsEmpty() && PitArchetype->PitLeftLeafMesh && PitArchetype->PitRightLeafMesh)
+	{
+		const FGridPitAnimationParams& PitAnimation = PitArchetype->DefaultBehavior.PitAnimation;
+		const float OpenAngle = FMath::Abs(PitAnimation.OpenAngleDegrees);
+		const float MoveDuration = FMath::Max(0.0f, PitAnimation.MoveDuration);
+
+		PitArchetype->MovingParts.Part0.Mesh = PitArchetype->PitLeftLeafMesh.Get();
+		PitArchetype->MovingParts.Part0.LocalTransform = FTransform::Identity;
+		PitArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
+		PitArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+		PitArchetype->MovingParts.Part0.Motion.Pivot = PitAnimation.LeftHingeLocation;
+		PitArchetype->MovingParts.Part0.Motion.Amount = -OpenAngle;
+		PitArchetype->MovingParts.Part0.Motion.Duration = MoveDuration;
+
+		PitArchetype->MovingParts.Part1.Mesh = PitArchetype->PitRightLeafMesh.Get();
+		PitArchetype->MovingParts.Part1.LocalTransform = FTransform::Identity;
+		PitArchetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
+		PitArchetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+		PitArchetype->MovingParts.Part1.Motion.Pivot = PitAnimation.RightHingeLocation;
+		PitArchetype->MovingParts.Part1.Motion.Amount = OpenAngle;
+		PitArchetype->MovingParts.Part1.Motion.Duration = MoveDuration;
+
+		UE_LOG(LogTemp, Log, TEXT("WORLDOBJ-MIG03.4B: migrated legacy Pit leaf pair to MovingParts for %s."), *PitArchetype->GetPathName());
+	}
+
+	PitArchetype->RefreshPlacementRuntimeProjection();
+	PitArchetype->MarkPackageDirty();
+
 	ObjectPalette->Modify();
 	FGridObjectPaletteEntry* Entry = ObjectPalette->Entries.FindByPredicate(
 		[](const FGridObjectPaletteEntry& Candidate)
