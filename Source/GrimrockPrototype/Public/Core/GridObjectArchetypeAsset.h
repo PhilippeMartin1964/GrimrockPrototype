@@ -238,26 +238,24 @@ public:
 	FGridWorldObjectMovingParts MovingParts;
 
 	/**
-	 * Temporary runtime/editor visual bridge for MIG03.2 only.
-	 * These fields remain serialized until MIG03.3 rewires all consumers to StaticPart/MovingParts;
-	 * they are not part of the target architecture and will be deleted in MIG03.4.
+	 * WORLDOBJ-MIG03.4C compile-only bridge for the few C++ consumers not yet deleted.
+	 * These names are deliberately Transient and non-editable: they are no longer authoring data,
+	 * are never serialized, and are ignored by the target runtime presentation path.
+	 * WORLDOBJ-MIG03.4D removes the symbols completely after the remaining callers are migrated.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual|Legacy Runtime Bridge",
-		meta = (DisplayName = "Main Mesh / Preview Mesh"))
+	UPROPERTY(Transient, Category = "Visual|Legacy Runtime Bridge")
 	TObjectPtr<UStaticMesh> PreviewMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual|Legacy Runtime Bridge", meta = (DisplayName = "Fixed Mesh"))
+	UPROPERTY(Transient, Category = "Visual|Legacy Runtime Bridge")
 	TObjectPtr<UStaticMesh> FixedMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual|Legacy Runtime Bridge", meta = (DisplayName = "Moving Mesh"))
+	UPROPERTY(Transient, Category = "Visual|Legacy Runtime Bridge")
 	TObjectPtr<UStaticMesh> MovingMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual|Legacy Runtime Bridge",
-		meta = (DisplayName = "Pit Left Leaf Mesh"))
+	UPROPERTY(Transient, Category = "Visual|Legacy Runtime Bridge")
 	TObjectPtr<UStaticMesh> PitLeftLeafMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual|Legacy Runtime Bridge",
-		meta = (DisplayName = "Pit Right Leaf Mesh"))
+	UPROPERTY(Transient, Category = "Visual|Legacy Runtime Bridge")
 	TObjectPtr<UStaticMesh> PitRightLeafMesh = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime",
