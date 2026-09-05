@@ -33,16 +33,6 @@ namespace
 		Messages.Emplace(Severity, FString(Message));
 	}
 
-	bool HasAnyMesh(const UGridObjectArchetypeAsset& Archetype)
-	{
-		return Archetype.PreviewMesh || Archetype.FixedMesh || Archetype.MovingMesh;
-	}
-
-	bool HasPreviewOrMovingMesh(const UGridObjectArchetypeAsset& Archetype)
-	{
-		return Archetype.PreviewMesh || Archetype.MovingMesh;
-	}
-
 	bool IsFloorPlacement(EGridObjectPlacementKind PlacementKind)
 	{
 		return PlacementKind == EGridObjectPlacementKind::Floor;
@@ -493,18 +483,6 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("Button animation parameters are customized but SupportedType is not Button."));
 	}
 
-	if (!UsesMovingMeshParams() && MovingMesh)
-	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info,
-			TEXT("MovingMesh is set but this archetype type does not normally use moving mesh."));
-	}
-
-	if (!IsWallLockArchetype(*this) && !UsesFixedMeshParams() && FixedMesh)
-	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info,
-			TEXT("FixedMesh is set but this archetype type does not normally use fixed mesh."));
-	}
-
 	switch (SupportedType)
 	{
 		case EGridLevelObjectType::Door:
@@ -513,9 +491,9 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Door Placement Surface must be Wall."));
 			}
-			if (!HasPreviewOrMovingMesh(*this))
+			if (!HasMovingVisualPart())
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Door requires PreviewMesh or MovingMesh."));
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Door requires at least one Moving Part."));
 			}
 			if (RuntimeActorClass && !RuntimeActorClass->IsChildOf(AGridDoorActor::StaticClass()))
 			{
@@ -540,10 +518,10 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Button and Lever should generally be interactable."));
 			}
-			if (!HasPreviewOrMovingMesh(*this))
+			if (!HasMovingVisualPart())
 			{
 				AddValidationMessage(
-					OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Button and Lever should generally define PreviewMesh or MovingMesh."));
+					OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Button and Lever should generally define at least one Moving Part."));
 			}
 			break;
 		}
@@ -554,9 +532,9 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit Placement Surface must be Floor."));
 			}
-			if (!PreviewMesh)
+			if (!StaticPart.IsDefined())
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit requires a PreviewMesh."));
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit requires a Static Part for the permanent pit geometry."));
 			}
 			if (bBlocksMovement)
 			{
@@ -566,27 +544,22 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Pit should hide the standard cell floor."));
 			}
-			if (MovingMesh)
+			const bool bHasPart0 = MovingParts.Part0.IsDefined();
+			const bool bHasPart1 = MovingParts.Part1.IsDefined();
+			if (bHasPart0 != bHasPart1)
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
-					TEXT("Pit no longer supports the legacy single MovingMesh cover. Use Left Leaf Mesh and Right Leaf Mesh."));
+					TEXT("Pit trapdoor cover is incomplete: Moving Part 0 and Moving Part 1 must both be defined."));
 			}
-			const bool bHasLeftLeaf = PitLeftLeafMesh != nullptr;
-			const bool bHasRightLeaf = PitRightLeafMesh != nullptr;
-			if (bHasLeftLeaf != bHasRightLeaf)
-			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
-					TEXT("Pit trapdoor cover is incomplete: both Left Leaf Mesh and Right Leaf Mesh are required."));
-			}
-			if (!bHasLeftLeaf && !bHasRightLeaf && !DefaultBehavior.Pit.bInitiallyOpen)
+			if (!bHasPart0 && !bHasPart1 && !DefaultBehavior.Pit.bInitiallyOpen)
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning,
-					TEXT("Pit has no dual-leaf cover, so it is a static open hole regardless of Initially Open=false."));
+					TEXT("Pit has no moving cover, so it is a static open hole regardless of Initially Open=false."));
 			}
 			if (HasCompletePitTrapdoorCover() && RuntimeActorClass && !RuntimeActorClass->IsChildOf(AGridPitTrapdoorActor::StaticClass()))
 			{
 				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
-					TEXT("A dual-leaf Pit trapdoor requires GridPitTrapdoorActor (or a derived Blueprint) as Runtime Actor Class."));
+					TEXT("A dual-part Pit trapdoor requires GridPitTrapdoorActor (or a derived Blueprint) as Runtime Actor Class."));
 			}
 			if (!FMath::IsFinite(DefaultBehavior.PitAnimation.OpenAngleDegrees) ||
 				DefaultBehavior.PitAnimation.OpenAngleDegrees < 0.0f || DefaultBehavior.PitAnimation.OpenAngleDegrees > 120.0f)
@@ -613,10 +586,10 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 				AddValidationMessage(
 					OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("PressurePlate is marked interactable, which is usually unnecessary."));
 			}
-			if (!HasPreviewOrMovingMesh(*this))
+			if (!HasMovingVisualPart())
 			{
 				AddValidationMessage(
-					OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("PressurePlate should generally define PreviewMesh or MovingMesh."));
+					OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("PressurePlate should generally define at least one Moving Part."));
 			}
 			break;
 		}
@@ -632,9 +605,9 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 
 		case EGridLevelObjectType::Decoration:
 		{
-			if (!HasAnyMesh(*this))
+			if (!HasAnyVisualPart())
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Decoration should generally define a mesh."));
+				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Decoration should generally define a visual part."));
 			}
 			if (bIsReadable && !bIsInteractable)
 			{
