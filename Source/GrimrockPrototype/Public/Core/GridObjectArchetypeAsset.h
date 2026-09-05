@@ -350,6 +350,16 @@ public:
 		return MovingParts.NumDefined();
 	}
 
+	bool HasAnyVisualPart() const
+	{
+		return StaticPart.IsDefined() || !MovingParts.IsEmpty();
+	}
+
+	bool HasMovingVisualPart() const
+	{
+		return !MovingParts.IsEmpty();
+	}
+
 	/** Recomputes the non-serialized projection consumed by current transform call sites. */
 	void RefreshPlacementRuntimeProjection();
 
@@ -387,6 +397,6 @@ public:
 
 	bool HasCompletePitTrapdoorCover() const
 	{
-		return PitLeftLeafMesh != nullptr && PitRightLeafMesh != nullptr;
+		return MovingParts.Part0.IsDefined() && MovingParts.Part1.IsDefined();
 	}
 };
