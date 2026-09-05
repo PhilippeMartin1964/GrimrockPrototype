@@ -2,7 +2,9 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Core/GridObjectArchetypeAsset.h"
 #include "Core/GridWorldObjectVisual.h"
+#include "Engine/StaticMesh.h"
 #include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
@@ -17,10 +19,12 @@ bool FGridWorldObjectMIG03VisualCompositionTypesTest::RunTest(const FString& Par
 	UScriptStruct* StaticPartStruct = FGridWorldObjectStaticPart::StaticStruct();
 	UScriptStruct* MotionStruct = FGridWorldObjectMotion::StaticStruct();
 	UScriptStruct* MovingPartStruct = FGridWorldObjectMovingPart::StaticStruct();
+	UScriptStruct* MovingPartsStruct = FGridWorldObjectMovingParts::StaticStruct();
 
 	TestNotNull(TEXT("StaticPart struct exists"), StaticPartStruct);
 	TestNotNull(TEXT("Motion struct exists"), MotionStruct);
 	TestNotNull(TEXT("MovingPart struct exists"), MovingPartStruct);
+	TestNotNull(TEXT("MovingParts container exists"), MovingPartsStruct);
 
 	if (StaticPartStruct)
 	{
@@ -42,6 +46,13 @@ bool FGridWorldObjectMIG03VisualCompositionTypesTest::RunTest(const FString& Par
 		TestNotNull(TEXT("MovingPart exposes Mesh"), MovingPartStruct->FindPropertyByName(TEXT("Mesh")));
 		TestNotNull(TEXT("MovingPart exposes LocalTransform"), MovingPartStruct->FindPropertyByName(TEXT("LocalTransform")));
 		TestNotNull(TEXT("MovingPart exposes Motion"), MovingPartStruct->FindPropertyByName(TEXT("Motion")));
+	}
+
+	if (MovingPartsStruct)
+	{
+		TestNotNull(TEXT("MovingParts exposes Part0"), MovingPartsStruct->FindPropertyByName(TEXT("Part0")));
+		TestNotNull(TEXT("MovingParts exposes Part1"), MovingPartsStruct->FindPropertyByName(TEXT("Part1")));
+		TestNull(TEXT("MovingParts cannot expose a third part"), MovingPartsStruct->FindPropertyByName(TEXT("Part2")));
 	}
 
 	const FGridWorldObjectStaticPart StaticPart;
@@ -70,6 +81,73 @@ bool FGridWorldObjectMIG03VisualCompositionTypesTest::RunTest(const FString& Par
 		TestTrue(TEXT("X axis exists"), MotionAxisEnum->IsValidEnumValue(static_cast<int64>(EGridWorldObjectMotionAxis::X)));
 		TestTrue(TEXT("Y axis exists"), MotionAxisEnum->IsValidEnumValue(static_cast<int64>(EGridWorldObjectMotionAxis::Y)));
 		TestTrue(TEXT("Z axis exists"), MotionAxisEnum->IsValidEnumValue(static_cast<int64>(EGridWorldObjectMotionAxis::Z)));
+	}
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridWorldObjectMIG03ArchetypeVisualContractTest,
+	"Grimrock.WorldObjects.MIG03.ArchetypeVisualContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridWorldObjectMIG03ArchetypeVisualContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UClass* ArchetypeClass = UGridObjectArchetypeAsset::StaticClass();
+	if (!TestNotNull(TEXT("World object archetype class exists"), ArchetypeClass))
+	{
+		return false;
+	}
+
+	FProperty* StaticPartProperty = ArchetypeClass->FindPropertyByName(TEXT("StaticPart"));
+	FProperty* MovingPartsProperty = ArchetypeClass->FindPropertyByName(TEXT("MovingParts"));
+	TestNotNull(TEXT("Archetype exposes StaticPart"), StaticPartProperty);
+	TestNotNull(TEXT("Archetype exposes MovingParts"), MovingPartsProperty);
+
+	if (StaticPartProperty)
+	{
+		TestEqual(TEXT("StaticPart belongs to the target visual composition category"), StaticPartProperty->GetMetaData(TEXT("Category")),
+			FString(TEXT("Visual|Composition")));
+		TestTrue(TEXT("StaticPart is editable authoring data"), StaticPartProperty->HasAnyPropertyFlags(CPF_Edit));
+	}
+	if (MovingPartsProperty)
+	{
+		TestEqual(TEXT("MovingParts belongs to the target visual composition category"), MovingPartsProperty->GetMetaData(TEXT("Category")),
+			FString(TEXT("Visual|Composition")));
+		TestTrue(TEXT("MovingParts is editable authoring data"), MovingPartsProperty->HasAnyPropertyFlags(CPF_Edit));
+	}
+
+	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(GetTransientPackage());
+	if (!TestNotNull(TEXT("Transient archetype exists"), Archetype))
+	{
+		return false;
+	}
+
+	TestEqual(TEXT("New archetype has zero moving parts"), Archetype->GetDefinedMovingPartCount(), 0);
+
+	UStaticMesh* Mesh0 = NewObject<UStaticMesh>(Archetype);
+	UStaticMesh* Mesh1 = NewObject<UStaticMesh>(Archetype);
+	Archetype->MovingParts.Part0.Mesh = Mesh0;
+	TestEqual(TEXT("One defined slot means one moving part"), Archetype->GetDefinedMovingPartCount(), 1);
+	Archetype->MovingParts.Part1.Mesh = Mesh1;
+	TestEqual(TEXT("Two defined slots means two moving parts"), Archetype->GetDefinedMovingPartCount(), 2);
+
+	// Maximum two is structural: the reflected container contains no Part2 and therefore needs no MaxMovingParts parameter.
+	TestNull(TEXT("No third moving-part authoring slot exists"), FGridWorldObjectMovingParts::StaticStruct()->FindPropertyByName(TEXT("Part2")));
+	TestNull(TEXT("No MaxMovingParts parameter exists"), ArchetypeClass->FindPropertyByName(TEXT("MaxMovingParts")));
+
+	const FName LegacyVisualNames[] = {TEXT("PreviewMesh"), TEXT("FixedMesh"), TEXT("MovingMesh"), TEXT("PitLeftLeafMesh"), TEXT("PitRightLeafMesh")};
+	for (const FName LegacyName : LegacyVisualNames)
+	{
+		FProperty* LegacyProperty = ArchetypeClass->FindPropertyByName(LegacyName);
+		TestNotNull(*FString::Printf(TEXT("%s remains only for MIG03 runtime rewiring"), *LegacyName.ToString()), LegacyProperty);
+		if (LegacyProperty)
+		{
+			TestTrue(*FString::Printf(TEXT("%s is explicitly categorized as a temporary legacy runtime bridge"), *LegacyName.ToString()),
+				LegacyProperty->GetMetaData(TEXT("Category")).StartsWith(TEXT("Visual|Legacy Runtime Bridge")));
+		}
 	}
 
 	return true;

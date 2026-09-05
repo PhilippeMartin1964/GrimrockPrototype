@@ -5,6 +5,7 @@
 #include "GridTypes.h"
 #include "GridObjectAudio.h"
 #include "GridObjectBehavior.h"
+#include "GridWorldObjectVisual.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "GridObjectArchetypeAsset.generated.h"
@@ -117,7 +118,7 @@ public:
 			ToolTip = "Data-driven audio events for this archetype. Keys are semantic names such as Open, Close, Press, Release or custom names."))
 	TMap<FName, FGridObjectAudioEvent> AudioEvents;
 
-	// Existing audio migration is intentionally untouched by WORLDOBJ-MIG02.
+	// Existing audio migration is intentionally untouched by WORLDOBJ-MIG03.
 	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use AudioEvents[Open].Sounds."))
 	TArray<TObjectPtr<USoundBase>> DoorOpenSounds;
 
@@ -226,32 +227,37 @@ public:
 			ToolTip = "Currently displayed/configured at archetype level; actual flicker support depends on the runtime light component path."))
 	bool bUseLightFlicker = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual",
-		meta = (DisplayName = "Main Mesh / Preview Mesh",
-			ToolTip = "Primary mesh used for simple visible objects and editor preview. WORLDOBJ-MIG03 will replace this visual contract."))
+	/**
+	 * WORLDOBJ-MIG03 target visual authoring contract.
+	 * StaticPart is optional. MovingParts contains exactly two optional slots, therefore an object can have 0, 1 or 2 moving parts and never a third.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Composition", meta = (DisplayName = "Static Part"))
+	FGridWorldObjectStaticPart StaticPart;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Composition", meta = (DisplayName = "Moving Parts"))
+	FGridWorldObjectMovingParts MovingParts;
+
+	/**
+	 * Temporary runtime/editor visual bridge for MIG03.2 only.
+	 * These fields remain serialized until MIG03.3 rewires all consumers to StaticPart/MovingParts;
+	 * they are not part of the target architecture and will be deleted in MIG03.4.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual|Legacy Runtime Bridge",
+		meta = (DisplayName = "Main Mesh / Preview Mesh"))
 	TObjectPtr<UStaticMesh> PreviewMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
-		meta = (DisplayName = "Fixed Mesh",
-			ToolTip = "Static part of a composite object. WORLDOBJ-MIG03 will replace this visual contract."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual|Legacy Runtime Bridge", meta = (DisplayName = "Fixed Mesh"))
 	TObjectPtr<UStaticMesh> FixedMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
-		meta = (DisplayName = "Moving Mesh",
-			EditCondition = "SupportedType != EGridLevelObjectType::Pit", EditConditionHides,
-			ToolTip = "Animated part of a composite object. WORLDOBJ-MIG03 will replace this visual contract."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual|Legacy Runtime Bridge", meta = (DisplayName = "Moving Mesh"))
 	TObjectPtr<UStaticMesh> MovingMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Pit Trapdoor",
-		meta = (DisplayName = "Left Leaf Mesh",
-			EditCondition = "SupportedType == EGridLevelObjectType::Pit", EditConditionHides,
-			ToolTip = "Left trapdoor leaf. WORLDOBJ-MIG03 will replace this specialized field."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual|Legacy Runtime Bridge",
+		meta = (DisplayName = "Pit Left Leaf Mesh"))
 	TObjectPtr<UStaticMesh> PitLeftLeafMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Pit Trapdoor",
-		meta = (DisplayName = "Right Leaf Mesh",
-			EditCondition = "SupportedType == EGridLevelObjectType::Pit", EditConditionHides,
-			ToolTip = "Right trapdoor leaf. WORLDOBJ-MIG03 will replace this specialized field."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual|Legacy Runtime Bridge",
+		meta = (DisplayName = "Pit Right Leaf Mesh"))
 	TObjectPtr<UStaticMesh> PitRightLeafMesh = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime",
@@ -339,6 +345,11 @@ public:
 	bool IsLightSource() const
 	{
 		return bIsLightSource;
+	}
+
+	int32 GetDefinedMovingPartCount() const
+	{
+		return MovingParts.NumDefined();
 	}
 
 	/** Recomputes the non-serialized projection consumed by current transform call sites. */

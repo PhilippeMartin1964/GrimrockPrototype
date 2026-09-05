@@ -6,7 +6,7 @@
 
 /**
  * WORLDOBJ-MIG03 visual composition foundation.
- * A moving part always represents a real animation; absence is represented by no array entry.
+ * A moving part always represents a real animation; absence is represented by Mesh == nullptr.
  */
 UENUM(BlueprintType)
 enum class EGridWorldObjectMotionType : uint8
@@ -59,7 +59,7 @@ struct GRIMROCKPROTOTYPE_API FGridWorldObjectMotion
 		meta = (EditCondition = "Type == EGridWorldObjectMotionType::Rotation", EditConditionHides))
 	FVector Pivot = FVector::ZeroVector;
 
-	/** Degrees for Rotation, centimeters for Translation. */
+	/** Degrees for Rotation, centimeters for Translation. Signed value carries the direction. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Motion")
 	float Amount = 0.0f;
 
@@ -67,7 +67,7 @@ struct GRIMROCKPROTOTYPE_API FGridWorldObjectMotion
 	float Duration = 0.0f;
 };
 
-/** One animated mesh. WorldObjectDefinition will allow at most two entries. */
+/** One animated mesh. Mesh == nullptr means the slot is unused. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridWorldObjectMovingPart
 {
@@ -86,5 +86,32 @@ struct GRIMROCKPROTOTYPE_API FGridWorldObjectMovingPart
 	bool IsDefined() const
 	{
 		return Mesh != nullptr;
+	}
+};
+
+/**
+ * Strict 0..2 moving-parts container.
+ * Two optional fixed slots are intentional: the authoring schema cannot create a third moving part,
+ * so no MaxMovingParts parameter or array-size validation is required.
+ */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridWorldObjectMovingParts
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual", meta = (DisplayName = "Moving Part 0"))
+	FGridWorldObjectMovingPart Part0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual", meta = (DisplayName = "Moving Part 1"))
+	FGridWorldObjectMovingPart Part1;
+
+	int32 NumDefined() const
+	{
+		return (Part0.IsDefined() ? 1 : 0) + (Part1.IsDefined() ? 1 : 0);
+	}
+
+	bool IsEmpty() const
+	{
+		return NumDefined() == 0;
 	}
 };
