@@ -117,7 +117,7 @@ public:
 			ToolTip = "Data-driven audio events for this archetype. Keys are semantic names such as Open, Close, Press, Release or custom names."))
 	TMap<FName, FGridObjectAudioEvent> AudioEvents;
 
-	// Existing audio migration is intentionally untouched by WORLDOBJ-MIG01.
+	// Existing audio migration is intentionally untouched by WORLDOBJ-MIG02.
 	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use AudioEvents[Open].Sounds."))
 	TArray<TObjectPtr<USoundBase>> DoorOpenSounds;
 
@@ -148,8 +148,6 @@ public:
 	/**
 	 * WORLDOBJ-MIG01 placement authority.
 	 * Only Floor, Wall and Ceiling are valid authoring surfaces.
-	 * Center and Edge remain enum symbols temporarily because the shared enum is used outside world-object definitions,
-	 * but they are not valid WorldObject definition values and validation rejects them.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement",
 		meta = (DisplayName = "Placement Surface",
@@ -166,24 +164,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (DisplayName = "Default Local Position"))
 	FGridSurfaceLocalPosition DefaultLocalPosition;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement",
-		meta = (ToolTip = "Editor placement rule: allows this object to share a cell with other objects. WORLDOBJ-MIG02 will replace this legacy rule."))
-	bool bCanShareCell = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement",
-		meta = (ToolTip = "Editor placement rule: allows this object to share the same edge/anchor with another object. WORLDOBJ-MIG02 will replace this legacy rule."))
-	bool bCanShareAnchor = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement|Wall",
-		meta = (DisplayName = "Replaces Standard Wall",
-			EditCondition = "PlacementSurface == EGridObjectPlacementKind::Wall", EditConditionHides,
-			ToolTip = "Hides the standard wall mesh on this object's solid wall boundary. WORLDOBJ-MIG02 will rename this to SuppressBaseWall."))
-	bool bReplacesStandardWall = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement",
-		meta = (DisplayName = "Blocks Movement (Generic Object)",
-			ToolTip = "Door passage blocking is handled by the door system. WORLDOBJ-MIG02 will rename this to BlocksCellMovement."))
+	/**
+	 * WORLDOBJ-MIG02 spatial behavior contract.
+	 * The authoring surface now exposes exactly three independent spatial semantics.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spatial Behavior",
+		meta = (DisplayName = "Blocks Cell Movement",
+			ToolTip = "Statically blocks grid traversal through this object's cell. Door open/closed passage blocking is handled by the door runtime state instead."))
 	bool bBlocksMovement = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spatial Behavior|Boundary",
+		meta = (DisplayName = "Occupies Boundary",
+			EditCondition = "PlacementSurface == EGridObjectPlacementKind::Wall", EditConditionHides,
+			ToolTip = "Owns the topological boundary between two adjacent cells. Wall-mounted decorations and buttons normally leave this disabled."))
+	bool bOccupiesBoundary = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spatial Behavior|Boundary",
+		meta = (DisplayName = "Suppress Base Wall",
+			EditCondition = "PlacementSurface == EGridObjectPlacementKind::Wall && bOccupiesBoundary", EditConditionHides,
+			ToolTip = "Suppresses the generated structural wall mesh on the occupied boundary. This is visual/construction behavior and is independent of runtime passage state."))
+	bool bReplacesStandardWall = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendering|Cell Override",
 		meta = (DisplayName = "Hide Cell Floor",
@@ -265,10 +265,9 @@ public:
 	TSubclassOf<AGridItemActor> ItemActorClass;
 
 	/**
-	 * Internal WORLDOBJ-MIG01 projection used only by current runtime/editor transform call sites.
-	 * These transient fields are reflected only so existing C++/diagnostic call sites keep compiling;
-	 * they are not editable, are never serialized, and provide no backward-compatible DataAsset path.
-	 * Direct call sites will be collapsed onto PlacementSurface/DefaultLocalPosition in a later cleanup.
+	 * Internal implementation bridges only. They are not authoring parameters and are never serialized.
+	 * Placement bridges remain until the current transform consumers are collapsed onto PlacementSurface/U/V/N.
+	 * Sharing bridges remain only so untouched editor code compiles during WORLDOBJ-MIG02; target sharing is permissive by default.
 	 */
 	UPROPERTY(Transient)
 	EGridObjectPlacementKind PlacementKind = EGridObjectPlacementKind::Floor;
@@ -284,6 +283,12 @@ public:
 
 	UPROPERTY(Transient)
 	float LocalOffsetVertical = 0.0f;
+
+	UPROPERTY(Transient)
+	bool bCanShareCell = true;
+
+	UPROPERTY(Transient)
+	bool bCanShareAnchor = true;
 
 	bool HasValidPlacementSurface() const
 	{
@@ -309,6 +314,21 @@ public:
 	bool IsCeilingPlaced() const
 	{
 		return PlacementKind == EGridObjectPlacementKind::Ceiling;
+	}
+
+	bool BlocksCellMovement() const
+	{
+		return bBlocksMovement;
+	}
+
+	bool OccupiesBoundary() const
+	{
+		return bOccupiesBoundary;
+	}
+
+	bool SuppressesBaseWall() const
+	{
+		return bReplacesStandardWall;
 	}
 
 	bool IsReadable() const
