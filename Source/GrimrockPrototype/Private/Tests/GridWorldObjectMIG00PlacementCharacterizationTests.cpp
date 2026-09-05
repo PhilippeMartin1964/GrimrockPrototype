@@ -184,6 +184,7 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	TestTrue(TEXT("Historical Ceiling location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 188.0f)));
 
 	// Historical Wall offsets map to U=25, V=100+10=110, N=6.
+	// The existing wall-mounted helper uses the boundary anchor rotation only; LocalYaw is ignored.
 	FGridLevelObjectData WallObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Decoration, EGridEdge::North);
 	WallObject.LocalYaw = 15.0f;
 	Archetype->PlacementSurface = EGridObjectPlacementKind::Wall;
@@ -193,7 +194,7 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	Archetype->RefreshPlacementRuntimeProjection();
 	TestTrue(TEXT("Historical Wall transform resolves"), Runtime->GetObjectPlacementTransform(WallObject, Transform));
 	TestTrue(TEXT("Historical Wall location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
-	TestTrue(TEXT("Historical Wall rotation is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 105.0f, 0.0f)));
+	TestTrue(TEXT("Historical Wall anchor rotation is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
 
 	// Historical Edge placement is now Wall placement plus the instance boundary (ObjectData.Edge).
 	TestTrue(TEXT("Historical Edge transform resolves through Wall + Edge topology"), Runtime->GetObjectPlacementTransform(WallObject, Transform));

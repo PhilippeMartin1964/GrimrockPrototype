@@ -205,6 +205,7 @@ bool FGridWorldObjectMIG01PlacementTransformParityTest::RunTest(const FString& P
 	TestTrue(TEXT("Ceiling N is distance below ceiling"), GridWorldObjectMIG01::IsLocation(Transform, FVector(300.0f, 500.0f, 188.0f)));
 
 	// Wall: U = along wall, V = vertical, N = inset into the cell.
+	// MIG01 preserves the existing wall-mounted rotation contract: the boundary anchor drives yaw and LocalYaw is ignored.
 	FGridLevelObjectData WallObject = GridWorldObjectMIG01::MakeObject(EGridLevelObjectType::Decoration, EGridEdge::North);
 	WallObject.LocalYaw = 15.0f;
 	Archetype->PlacementSurface = EGridObjectPlacementKind::Wall;
@@ -214,7 +215,7 @@ bool FGridWorldObjectMIG01PlacementTransformParityTest::RunTest(const FString& P
 	Archetype->RefreshPlacementRuntimeProjection();
 	TestTrue(TEXT("Wall transform resolves"), Runtime->GetObjectPlacementTransform(WallObject, Transform));
 	TestTrue(TEXT("Wall U/V/N preserves characterized placement"), GridWorldObjectMIG01::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
-	TestTrue(TEXT("Wall anchor rotation plus LocalYaw is preserved"), GridWorldObjectMIG01::IsRotation(Transform, FRotator(0.0f, 105.0f, 0.0f)));
+	TestTrue(TEXT("Wall anchor rotation is preserved"), GridWorldObjectMIG01::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
 
 	// Door remains boundary-anchored. Edge is topology (ObjectData.Edge), not a placement surface.
 	FGridLevelObjectData DoorObject = GridWorldObjectMIG01::MakeObject(EGridLevelObjectType::Door, EGridEdge::North);
