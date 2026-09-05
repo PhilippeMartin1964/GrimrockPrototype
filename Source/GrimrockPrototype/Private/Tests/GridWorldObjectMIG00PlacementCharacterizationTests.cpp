@@ -103,21 +103,23 @@ bool FGridWorldObjectMIG00PlacementSchemaCharacterizationTest::RunTest(const FSt
 		return false;
 	}
 
-	TestNotNull(TEXT("Legacy PlacementKind is the current placement authority"), ArchetypeClass->FindPropertyByName(TEXT("PlacementKind")));
-	TestNotNull(TEXT("Legacy PlacementZOffset exists"), ArchetypeClass->FindPropertyByName(TEXT("PlacementZOffset")));
-	TestNotNull(TEXT("Legacy WallInset exists"), ArchetypeClass->FindPropertyByName(TEXT("WallInset")));
-	TestNotNull(TEXT("Legacy LocalOffsetAlongWall exists"), ArchetypeClass->FindPropertyByName(TEXT("LocalOffsetAlongWall")));
-	TestNotNull(TEXT("Legacy LocalOffsetVertical exists"), ArchetypeClass->FindPropertyByName(TEXT("LocalOffsetVertical")));
+	// MIG00 records the legacy schema that existed before MIG01. These fields are now
+	// transient implementation bridges only; the test does not exercise them as authoring data.
+	TestNotNull(TEXT("Legacy PlacementKind bridge exists during MIG01"), ArchetypeClass->FindPropertyByName(TEXT("PlacementKind")));
+	TestNotNull(TEXT("Legacy PlacementZOffset bridge exists during MIG01"), ArchetypeClass->FindPropertyByName(TEXT("PlacementZOffset")));
+	TestNotNull(TEXT("Legacy WallInset bridge exists during MIG01"), ArchetypeClass->FindPropertyByName(TEXT("WallInset")));
+	TestNotNull(TEXT("Legacy LocalOffsetAlongWall bridge exists during MIG01"), ArchetypeClass->FindPropertyByName(TEXT("LocalOffsetAlongWall")));
+	TestNotNull(TEXT("Legacy LocalOffsetVertical bridge exists during MIG01"), ArchetypeClass->FindPropertyByName(TEXT("LocalOffsetVertical")));
 
 	const UEnum* PlacementEnum = StaticEnum<EGridObjectPlacementKind>();
 	TestNotNull(TEXT("Legacy placement enum exists"), PlacementEnum);
 	if (PlacementEnum)
 	{
-		TestTrue(TEXT("Center exists before migration"), PlacementEnum->GetValueByNameString(TEXT("Center")) != INDEX_NONE);
-		TestTrue(TEXT("Edge exists before migration"), PlacementEnum->GetValueByNameString(TEXT("Edge")) != INDEX_NONE);
-		TestTrue(TEXT("Floor exists before migration"), PlacementEnum->GetValueByNameString(TEXT("Floor")) != INDEX_NONE);
-		TestTrue(TEXT("Wall exists before migration"), PlacementEnum->GetValueByNameString(TEXT("Wall")) != INDEX_NONE);
-		TestTrue(TEXT("Ceiling exists before migration"), PlacementEnum->GetValueByNameString(TEXT("Ceiling")) != INDEX_NONE);
+		TestTrue(TEXT("Historical Center symbol is still available during MIG01"), PlacementEnum->GetValueByNameString(TEXT("Center")) != INDEX_NONE);
+		TestTrue(TEXT("Historical Edge symbol is still available during MIG01"), PlacementEnum->GetValueByNameString(TEXT("Edge")) != INDEX_NONE);
+		TestTrue(TEXT("Floor symbol exists"), PlacementEnum->GetValueByNameString(TEXT("Floor")) != INDEX_NONE);
+		TestTrue(TEXT("Wall symbol exists"), PlacementEnum->GetValueByNameString(TEXT("Wall")) != INDEX_NONE);
+		TestTrue(TEXT("Ceiling symbol exists"), PlacementEnum->GetValueByNameString(TEXT("Ceiling")) != INDEX_NONE);
 	}
 
 	return true;
@@ -155,63 +157,71 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 
 	FTransform Transform;
 
-	// Center and Floor share the same cell-centered transform contract.
+	// Historical Center contract: MIG01 expresses it as Floor with a centered local position.
 	FGridLevelObjectData CenterObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Decoration);
 	CenterObject.LocalYaw = 30.0f;
-	Archetype->PlacementKind = EGridObjectPlacementKind::Center;
-	Archetype->PlacementZOffset = 12.0f;
-	TestTrue(TEXT("Center transform resolves"), Runtime->GetObjectPlacementTransform(CenterObject, Transform));
-	TestTrue(TEXT("Center location is cell center + Z offset"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 12.0f)));
-	TestTrue(TEXT("Center LocalYaw is applied"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 30.0f, 0.0f)));
+	Archetype->PlacementSurface = EGridObjectPlacementKind::Floor;
+	Archetype->DefaultLocalPosition.U = 0.0f;
+	Archetype->DefaultLocalPosition.V = 0.0f;
+	Archetype->DefaultLocalPosition.N = 12.0f;
+	Archetype->RefreshPlacementRuntimeProjection();
+	TestTrue(TEXT("Historical Center transform resolves through Floor"), Runtime->GetObjectPlacementTransform(CenterObject, Transform));
+	TestTrue(TEXT("Historical Center location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 12.0f)));
+	TestTrue(TEXT("Historical Center LocalYaw is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 30.0f, 0.0f)));
 
-	Archetype->PlacementKind = EGridObjectPlacementKind::Floor;
-	TestTrue(TEXT("Floor transform resolves"), Runtime->GetObjectPlacementTransform(CenterObject, Transform));
-	TestTrue(TEXT("Floor currently matches Center"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 12.0f)));
+	// Historical Floor contract maps directly to Floor.
+	TestTrue(TEXT("Historical Floor transform resolves"), Runtime->GetObjectPlacementTransform(CenterObject, Transform));
+	TestTrue(TEXT("Historical Floor location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 12.0f)));
 
-	// Ceiling is also routed through the old centered/Z-offset path.
-	Archetype->PlacementKind = EGridObjectPlacementKind::Ceiling;
-	Archetype->PlacementZOffset = 188.0f;
+	// Historical absolute ceiling Z=188 becomes N=12 below the current 200 cm ceiling plane.
+	Archetype->PlacementSurface = EGridObjectPlacementKind::Ceiling;
+	Archetype->DefaultLocalPosition.U = 0.0f;
+	Archetype->DefaultLocalPosition.V = 0.0f;
+	Archetype->DefaultLocalPosition.N = 12.0f;
+	Archetype->RefreshPlacementRuntimeProjection();
 	CenterObject.LocalYaw = 0.0f;
-	TestTrue(TEXT("Ceiling transform resolves"), Runtime->GetObjectPlacementTransform(CenterObject, Transform));
-	TestTrue(TEXT("Ceiling currently uses absolute Z offset from the cell floor"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 188.0f)));
+	TestTrue(TEXT("Historical Ceiling transform resolves"), Runtime->GetObjectPlacementTransform(CenterObject, Transform));
+	TestTrue(TEXT("Historical Ceiling location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 188.0f)));
 
-	// Wall and Edge share the same wall-mounted transform contract.
+	// Historical Wall offsets map to U=25, V=100+10=110, N=6.
 	FGridLevelObjectData WallObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Decoration, EGridEdge::North);
 	WallObject.LocalYaw = 15.0f;
-	Archetype->PlacementKind = EGridObjectPlacementKind::Wall;
-	Archetype->PlacementZOffset = 100.0f;
-	Archetype->WallInset = 6.0f;
-	Archetype->LocalOffsetAlongWall = 25.0f;
-	Archetype->LocalOffsetVertical = 10.0f;
-	TestTrue(TEXT("Wall transform resolves"), Runtime->GetObjectPlacementTransform(WallObject, Transform));
-	TestTrue(TEXT("Wall offsets are applied in wall-local semantics"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
-	TestTrue(TEXT("Wall anchor rotation plus LocalYaw is applied"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 105.0f, 0.0f)));
+	Archetype->PlacementSurface = EGridObjectPlacementKind::Wall;
+	Archetype->DefaultLocalPosition.U = 25.0f;
+	Archetype->DefaultLocalPosition.V = 110.0f;
+	Archetype->DefaultLocalPosition.N = 6.0f;
+	Archetype->RefreshPlacementRuntimeProjection();
+	TestTrue(TEXT("Historical Wall transform resolves"), Runtime->GetObjectPlacementTransform(WallObject, Transform));
+	TestTrue(TEXT("Historical Wall location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
+	TestTrue(TEXT("Historical Wall rotation is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 105.0f, 0.0f)));
 
-	Archetype->PlacementKind = EGridObjectPlacementKind::Edge;
-	TestTrue(TEXT("Edge transform resolves"), Runtime->GetObjectPlacementTransform(WallObject, Transform));
-	TestTrue(TEXT("Edge currently matches Wall"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
+	// Historical Edge placement is now Wall placement plus the instance boundary (ObjectData.Edge).
+	TestTrue(TEXT("Historical Edge transform resolves through Wall + Edge topology"), Runtime->GetObjectPlacementTransform(WallObject, Transform));
+	TestTrue(TEXT("Historical Edge location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
 
-	// Doors bypass generic wall offsets and use the exact boundary transform.
+	// Doors remain exactly boundary-anchored; Edge is topology, not PlacementSurface.
 	FGridLevelObjectData DoorObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Door, EGridEdge::North);
 	Archetype->SupportedType = EGridLevelObjectType::Door;
-	Archetype->PlacementKind = EGridObjectPlacementKind::Edge;
-	Archetype->PlacementZOffset = 77.0f;
-	Archetype->WallInset = 22.0f;
-	Archetype->LocalOffsetAlongWall = 33.0f;
-	Archetype->LocalOffsetVertical = 44.0f;
-	TestTrue(TEXT("Door transform resolves"), Runtime->GetObjectPlacementTransform(DoorObject, Transform));
-	TestTrue(TEXT("Door is anchored on the exact North boundary"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 600.0f, 0.0f)));
-	TestTrue(TEXT("Door uses the historical North boundary rotation"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator::ZeroRotator));
+	Archetype->PlacementSurface = EGridObjectPlacementKind::Wall;
+	Archetype->DefaultLocalPosition.U = 0.0f;
+	Archetype->DefaultLocalPosition.V = 0.0f;
+	Archetype->DefaultLocalPosition.N = 0.0f;
+	Archetype->RefreshPlacementRuntimeProjection();
+	TestTrue(TEXT("Historical Door transform resolves through Wall + boundary"), Runtime->GetObjectPlacementTransform(DoorObject, Transform));
+	TestTrue(TEXT("Historical Door boundary location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 600.0f, 0.0f)));
+	TestTrue(TEXT("Historical Door North rotation is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator::ZeroRotator));
 
-	// Item-on-edge is a separate floor-item rule and uses a minimum 18 cm inset.
+	// Item-on-edge remains an item-instance rule for now; Floor N preserves its historical height.
 	FGridLevelObjectData ItemObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Item, EGridEdge::East);
 	Archetype->SupportedType = EGridLevelObjectType::Item;
-	Archetype->PlacementKind = EGridObjectPlacementKind::Floor;
-	Archetype->PlacementZOffset = 12.0f;
-	Archetype->WallInset = 6.0f;
-	TestTrue(TEXT("Floor item edge transform resolves"), Runtime->GetObjectPlacementTransform(ItemObject, Transform));
-	TestTrue(TEXT("Floor item edge uses the historical minimum inset"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(382.0f, 500.0f, 12.0f)));
-	TestTrue(TEXT("East floor item faces the edge"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
+	Archetype->PlacementSurface = EGridObjectPlacementKind::Floor;
+	Archetype->DefaultLocalPosition.U = 0.0f;
+	Archetype->DefaultLocalPosition.V = 0.0f;
+	Archetype->DefaultLocalPosition.N = 12.0f;
+	Archetype->RefreshPlacementRuntimeProjection();
+	TestTrue(TEXT("Historical floor item edge transform resolves"), Runtime->GetObjectPlacementTransform(ItemObject, Transform));
+	TestTrue(TEXT("Historical floor item edge location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(382.0f, 500.0f, 12.0f)));
+	TestTrue(TEXT("Historical East floor item rotation is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
 
 	return true;
 }
