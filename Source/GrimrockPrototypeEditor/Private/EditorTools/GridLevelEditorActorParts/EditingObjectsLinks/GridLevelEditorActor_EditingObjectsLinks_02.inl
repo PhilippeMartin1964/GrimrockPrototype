@@ -1,47 +1,3 @@
-continue;
-}
-const UGridObjectArchetypeAsset* ExistingArchetype = FindObjectArchetypeById(ExistingObject.ArchetypeId);
-const bool bExistingCanShareCell = ExistingArchetype ? ExistingArchetype->bCanShareCell : true;
-const bool bExistingCanShareAnchor = ExistingArchetype ? ExistingArchetype->bCanShareAnchor : true;
-const bool bExistingObjectOnEdge = IsEdgePlacedObject(ExistingObject);
-const bool bSameAnchor = bNewObjectOnEdge && bExistingObjectOnEdge ? ExistingObject.Edge == SelectedEdge : !bNewObjectOnEdge && !bExistingObjectOnEdge;
-bool bShouldRemove = false;
-if (!bNewCanShareCell || !bExistingCanShareCell)
-{
-	bShouldRemove = true;
-}
-else if (bSameAnchor && (!bNewCanShareAnchor || !bExistingCanShareAnchor))
-{
-	bShouldRemove = true;
-}
-if (bShouldRemove)
-{
-	RemovedIds.Add(ExistingObject.ObjectId);
-	IndicesToRemove.Add(Index);
-}
-}
-if (IndicesToRemove.Num() == 0)
-{
-	return 0;
-}
-#if WITH_EDITOR
-LevelAsset->Modify();
-#endif
-for (int32 IndexToRemove : IndicesToRemove)
-{
-	LevelAsset->Objects.RemoveAt(IndexToRemove);
-}
-LevelAsset->Links.RemoveAll(
-	[&](const FGridObjectLink& Link)
-	{
-		return RemovedIds.Contains(Link.SourceObjectId) || RemovedIds.Contains(Link.TargetObjectId);
-	});
-#if WITH_EDITOR
-LevelAsset->MarkPackageDirty();
-#endif
-return RemovedIds.Num();
-}
-
 void AGridLevelEditorActor::PlaceSelectedObject()
 {
 	if (!HasValidLevelAsset() || !IsValidSelectedCell())
@@ -55,9 +11,10 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		return;
 	}
 	const UGridObjectArchetypeAsset* ObjectArchetype = FindObjectArchetypeById(ObjectArchetypeId);
-	const bool bIsWallReplacingObject = ObjectArchetype && ObjectArchetype->bReplacesStandardWall;
+	const bool bSuppressBaseWall = ObjectArchetype && ObjectArchetype->SuppressesBaseWall();
 	const bool bIsStoneAlcoveReceptacle = ObjectArchetypeId == FName(TEXT("Receptacle_Alcove_Stone"));
-	const bool bPlaceObjectOnEdge = bIsWallReplacingObject || IsEdgePlacedObject(PaintObjectType, ObjectArchetypeId);
+	const bool bPlaceObjectOnEdge = ObjectArchetype ? ObjectArchetype->PlacementSurface == EGridObjectPlacementKind::Wall
+											 : IsEdgePlacedObject(PaintObjectType, ObjectArchetypeId);
 	if (bPlaceObjectOnEdge && SelectedEdge == EGridEdge::None)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: this object type requires a valid edge."));
@@ -126,7 +83,7 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		NewObject.bInitiallyActive = NewObject.Behavior.Receptacle.InitialContent.Num() > 0;
 	}
 
-	if (bIsWallReplacingObject)
+	if (bSuppressBaseWall)
 	{
 		if (FGridLevelCellData* CellData = GetSelectedCellMutable())
 		{

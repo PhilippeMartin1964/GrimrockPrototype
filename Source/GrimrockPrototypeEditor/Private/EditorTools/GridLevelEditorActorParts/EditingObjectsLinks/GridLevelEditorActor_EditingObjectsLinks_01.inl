@@ -1,3 +1,5 @@
+#include "Core/GridBoundary.h"
+
 FVector AGridLevelEditorActor::GetSelectedCellWorldCenter(float ZOffset) const
 {
 	if (PreviewRuntimeActor)
@@ -204,17 +206,71 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal(bool bSameTypeOnly
 
 int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal(EGridLevelObjectType NewObjectType, FName NewArchetypeId, bool bNewObjectOnEdge)
 {
-	if (!HasValidLevelAsset() || !IsValidSelectedCell())
+	(void)NewObjectType;
+	(void)bNewObjectOnEdge;
+
+	if (!HasValidLevelAsset() || !IsValidSelectedCell() || SelectedEdge == EGridEdge::None)
 	{
 		return 0;
 	}
+
 	const UGridObjectArchetypeAsset* NewArchetype = FindObjectArchetypeById(NewArchetypeId);
-	const bool bNewCanShareCell = NewArchetype ? NewArchetype->bCanShareCell : true;
-	const bool bNewCanShareAnchor = NewArchetype ? NewArchetype->bCanShareAnchor : true;
+	if (!NewArchetype || !NewArchetype->OccupiesBoundary())
+	{
+		// Cell and wall-surface sharing are permissive by default in WORLDOBJ-MIG02.
+		return 0;
+	}
+
+	const FGridBoundaryKey NewBoundary = FGridBoundaryKey::MakeCanonical(SelectedCellX, SelectedCellY, SelectedEdge);
+	if (!NewBoundary.IsValid())
+	{
+		return 0;
+	}
+
 	TArray<int32> IndicesToRemove;
 	TArray<FGuid> RemovedIds;
 	for (int32 Index = LevelAsset->Objects.Num() - 1; Index >= 0; --Index)
 	{
 		const FGridLevelObjectData& ExistingObject = LevelAsset->Objects[Index];
-		if (ExistingObject.CellX != SelectedCellX || ExistingObject.CellY != SelectedCellY)
+		if (ExistingObject.Edge == EGridEdge::None)
 		{
+			continue;
+		}
+
+		const UGridObjectArchetypeAsset* ExistingArchetype = FindObjectArchetypeById(ExistingObject.ArchetypeId);
+		if (!ExistingArchetype || !ExistingArchetype->OccupiesBoundary())
+		{
+			continue;
+		}
+
+		const FGridBoundaryKey ExistingBoundary =
+			FGridBoundaryKey::MakeCanonical(ExistingObject.CellX, ExistingObject.CellY, ExistingObject.Edge);
+		if (ExistingBoundary.IsValid() && ExistingBoundary == NewBoundary)
+		{
+			RemovedIds.Add(ExistingObject.ObjectId);
+			IndicesToRemove.Add(Index);
+		}
+	}
+
+	if (IndicesToRemove.Num() == 0)
+	{
+		return 0;
+	}
+
+#if WITH_EDITOR
+	LevelAsset->Modify();
+#endif
+	for (int32 IndexToRemove : IndicesToRemove)
+	{
+		LevelAsset->Objects.RemoveAt(IndexToRemove);
+	}
+	LevelAsset->Links.RemoveAll(
+		[&](const FGridObjectLink& Link)
+		{
+			return RemovedIds.Contains(Link.SourceObjectId) || RemovedIds.Contains(Link.TargetObjectId);
+		});
+#if WITH_EDITOR
+	LevelAsset->MarkPackageDirty();
+#endif
+	return RemovedIds.Num();
+}
