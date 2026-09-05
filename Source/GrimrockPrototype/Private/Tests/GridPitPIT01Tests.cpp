@@ -104,8 +104,8 @@ bool FGridPIT01DataContractTest::RunTest(const FString& Parameters)
 
 	TestTrue(TEXT("Pit is a center/floor placed gameplay object"), Archetype->SupportsCenterPlacement());
 	TestTrue(TEXT("Pit requires its dedicated runtime actor contract"), Archetype->RequiresRuntimeActorClass());
-	TestFalse(TEXT("Pit no longer uses the legacy generic Moving Mesh contract"), Archetype->UsesMovingMeshParams());
-	TestTrue(TEXT("Pit still uses a Fixed Mesh for permanent pit geometry"), Archetype->UsesFixedMeshParams());
+	TestFalse(TEXT("Fresh Pit has no visual composition before geometry is authored"), Archetype->HasAnyVisualPart());
+	TestFalse(TEXT("Fresh Pit has no trapdoor cover before both Moving Parts are authored"), Archetype->HasCompletePitTrapdoorCover());
 	TestTrue(TEXT("PIT01 defaults to open"), Archetype->DefaultBehavior.Pit.bInitiallyOpen);
 	TestTrue(TEXT("PIT01 defaults to same-cell destination coordinates"), Archetype->DefaultBehavior.Pit.bUseSameCellCoordinates);
 	TestTrue(TEXT("PIT01 is an automatic transition"), !Archetype->DefaultBehavior.Transition.bRequireUseAction);
@@ -185,7 +185,7 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	Upper->Objects.Add(MakeStaticPit(2, 2, NAME_None));
 	Upper->Objects[0].Type = EGridLevelObjectType::Decoration;
 	Upper->Objects[0].ObjectId = FGuid();
-	Upper->Objects[0].Behavior.Pit.bInitiallyOpen = false; // no MovingMesh cover => static hole must still be Open
+	Upper->Objects[0].Behavior.Pit.bInitiallyOpen = false; // no MovingParts cover => static hole must still be Open
 	Upper->Objects[0].Behavior.Transition.bIsTransition = false;
 	Upper->Objects[0].Behavior.Transition.TargetFacing = EGridEdge::None;
 

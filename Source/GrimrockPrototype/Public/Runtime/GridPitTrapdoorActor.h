@@ -12,10 +12,10 @@ class UStaticMeshComponent;
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGridPitTrapdoorAnimationFinished, FGuid, bool, bool);
 
 /**
- * PIT03.2 dual-leaf controlled pit trapdoor.
+ * PIT03.2 dual-part controlled pit trapdoor.
  * Gameplay authority remains in AGridLevelRuntimeActor.
- * FixedMesh = permanent pit surround/open-pit geometry.
- * PitLeftLeafMesh/PitRightLeafMesh = two independent leaves rotating around local-Y hinge pivots.
+ * StaticPart = permanent pit surround/open-pit geometry.
+ * MovingParts.Part0/Part1 = the two independently animated trapdoor leaves.
  */
 UCLASS()
 class GRIMROCKPROTOTYPE_API AGridPitTrapdoorActor : public AGridMechanismActor

@@ -86,11 +86,11 @@ namespace GridWorldObjectMIG03RuntimeSpawn
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridWorldObjectMIG03RuntimeSpawnWithoutLegacyMeshTest,
-	"Grimrock.WorldObjects.MIG03.RuntimeSpawnWithoutLegacyMesh",
+	FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest,
+	"Grimrock.WorldObjects.MIG03.RuntimeSpawnFromVisualComposition",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridWorldObjectMIG03RuntimeSpawnWithoutLegacyMeshTest::RunTest(const FString& Parameters)
+bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	using namespace GridWorldObjectMIG03RuntimeSpawn;
@@ -110,7 +110,7 @@ bool FGridWorldObjectMIG03RuntimeSpawnWithoutLegacyMeshTest::RunTest(const FStri
 	Runtime->GridOrigin = FVector::ZeroVector;
 	Runtime->SetActorLocation(FVector::ZeroVector);
 
-	// Static generic object: the target StaticPart is authoritative and all legacy visual fields stay null.
+	// Static generic object: StaticPart alone is authoritative for presentation and local transform.
 	UGridObjectArchetypeAsset* StaticArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
 	StaticArchetype->ArchetypeId = TEXT("MIG03_TargetStatic");
 	StaticArchetype->SupportedType = EGridLevelObjectType::Decoration;
@@ -119,15 +119,14 @@ bool FGridWorldObjectMIG03RuntimeSpawnWithoutLegacyMeshTest::RunTest(const FStri
 	StaticArchetype->StaticPart.Mesh = NewObject<UStaticMesh>(StaticArchetype);
 	StaticArchetype->StaticPart.LocalTransform = FTransform(FRotator(0.0f, 20.0f, 0.0f), FVector(3.0f, 4.0f, 5.0f));
 	StaticArchetype->RefreshPlacementRuntimeProjection();
-	TestNull(TEXT("Target static archetype has no PreviewMesh"), StaticArchetype->PreviewMesh.Get());
-	TestNull(TEXT("Target static archetype has no FixedMesh"), StaticArchetype->FixedMesh.Get());
-	TestNull(TEXT("Target static archetype has no MovingMesh"), StaticArchetype->MovingMesh.Get());
+	TestTrue(TEXT("Static archetype reports a target visual part"), StaticArchetype->HasAnyVisualPart());
+	TestFalse(TEXT("Static archetype has no moving visual part"), StaticArchetype->HasMovingVisualPart());
 	Runtime->ObjectArchetypes.Add(StaticArchetype);
 
 	const FGridLevelObjectData StaticObject = MakeObject(StaticArchetype->ArchetypeId, EGridLevelObjectType::Decoration, 1, 1);
 	Runtime->LevelAsset->Objects.Add(StaticObject);
 
-	// Moving-only mechanism: Part0 must be enough to spawn and initialize the mechanism; no legacy mesh is required.
+	// Moving-only mechanism: Part0 is enough to spawn and initialize the mechanism.
 	UGridObjectArchetypeAsset* ButtonArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
 	ButtonArchetype->ArchetypeId = TEXT("MIG03_TargetButton");
 	ButtonArchetype->SupportedType = EGridLevelObjectType::Button;
@@ -139,19 +138,21 @@ bool FGridWorldObjectMIG03RuntimeSpawnWithoutLegacyMeshTest::RunTest(const FStri
 	ButtonArchetype->MovingParts.Part0.Motion.Amount = 6.0f;
 	ButtonArchetype->MovingParts.Part0.Motion.Duration = 0.08f;
 	ButtonArchetype->RefreshPlacementRuntimeProjection();
-	TestNull(TEXT("Target button has no legacy MovingMesh"), ButtonArchetype->MovingMesh.Get());
+	TestTrue(TEXT("Button archetype reports moving presentation"), ButtonArchetype->HasMovingVisualPart());
+	TestEqual(TEXT("Button archetype defines exactly one moving part"), ButtonArchetype->GetDefinedMovingPartCount(), 1);
 	Runtime->ObjectArchetypes.Add(ButtonArchetype);
 
 	const FGridLevelObjectData ButtonObject = MakeObject(ButtonArchetype->ArchetypeId, EGridLevelObjectType::Button, 2, 1, EGridEdge::North);
 	Runtime->LevelAsset->Objects.Add(ButtonObject);
 
-	// Invisible runtime object: actor existence is independent of presentation mesh existence.
+	// Invisible runtime object: actor existence is independent of presentation existence.
 	UGridObjectArchetypeAsset* TriggerArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
 	TriggerArchetype->ArchetypeId = TEXT("MIG03_InvisibleTrigger");
 	TriggerArchetype->SupportedType = EGridLevelObjectType::Trigger;
 	TriggerArchetype->PlacementSurface = EGridObjectPlacementKind::Floor;
 	TriggerArchetype->RuntimeActorClass = AGridRuntimeObjectActor::StaticClass();
 	TriggerArchetype->RefreshPlacementRuntimeProjection();
+	TestFalse(TEXT("Invisible trigger has no visual composition"), TriggerArchetype->HasAnyVisualPart());
 	Runtime->ObjectArchetypes.Add(TriggerArchetype);
 
 	const FGridLevelObjectData TriggerObject = MakeObject(TriggerArchetype->ArchetypeId, EGridLevelObjectType::Trigger, 1, 2);
@@ -160,7 +161,7 @@ bool FGridWorldObjectMIG03RuntimeSpawnWithoutLegacyMeshTest::RunTest(const FStri
 	Runtime->RebuildLevel(EGridRuntimeRebuildMode::Full);
 
 	AGridGenericObjectActor* StaticActor = Runtime->FindRuntimeObjectActor<AGridGenericObjectActor>(StaticObject.ObjectId);
-	TestNotNull(TEXT("StaticPart-only generic object spawns without any legacy mesh"), StaticActor);
+	TestNotNull(TEXT("StaticPart-only generic object spawns from target visual composition"), StaticActor);
 	if (StaticActor && StaticActor->MeshComponent)
 	{
 		TestTrue(TEXT("Generic runtime uses StaticPart mesh"), StaticActor->MeshComponent->GetStaticMesh() == StaticArchetype->StaticPart.Mesh.Get());
@@ -169,10 +170,10 @@ bool FGridWorldObjectMIG03RuntimeSpawnWithoutLegacyMeshTest::RunTest(const FStri
 	}
 
 	AGridButtonActor* ButtonActor = Runtime->FindRuntimeObjectActor<AGridButtonActor>(ButtonObject.ObjectId);
-	TestNotNull(TEXT("MovingPart-only mechanism spawns without legacy mesh"), ButtonActor);
+	TestNotNull(TEXT("MovingPart-only mechanism spawns from target visual composition"), ButtonActor);
 
 	AGridRuntimeObjectActor* TriggerActor = Runtime->FindRuntimeObjectActor<AGridRuntimeObjectActor>(TriggerObject.ObjectId);
-	TestNotNull(TEXT("Runtime actor can spawn with no presentation mesh at all"), TriggerActor);
+	TestNotNull(TEXT("Runtime actor can spawn with no presentation at all"), TriggerActor);
 	if (TriggerActor && TriggerActor->MeshComponent)
 	{
 		TestNull(TEXT("Invisible runtime actor remains meshless"), TriggerActor->MeshComponent->GetStaticMesh());
