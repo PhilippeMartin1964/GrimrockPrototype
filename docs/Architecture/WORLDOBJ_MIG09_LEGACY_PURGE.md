@@ -1,6 +1,6 @@
 # WORLDOBJ-MIG09 — Purge des compatibilités legacy
 
-Statut : **MIG09-A, MIG09-B1 et MIG09-B2A validés ; MIG09-B2B1 candidat — validation locale UE5.5.4 requise**.
+Statut : **MIG09-A, MIG09-B1, MIG09-B2A et MIG09-B2B1 validés ; MIG09-B2B2 candidat — validation locale UE5.5.4 requise**.
 
 ## 1. Contexte
 
@@ -94,15 +94,24 @@ FGridRuntimeItemState
 
 Pour isoler cette modification de schéma des réécritures de gros consommateurs runtime, un proxy C++ transitoire `FGridRuntimeItemArchetypeCompatProxy` porte encore le nom source `ArchetypeId`. Il ne contient aucune valeur : toute lecture ou écriture est redirigée vers `ItemDefinitionId`. Ce proxy n'est ni `UPROPERTY`, ni `SaveGame`, ni visible en Blueprint.
 
-Le test `Grimrock.WorldObjects.MIG09.RuntimeItemSaveDefinitionAuthority` vérifie :
+Le test `Grimrock.WorldObjects.MIG09.RuntimeItemSaveDefinitionAuthority` vérifie l'absence réfléchie de `ArchetypeId`, la présence de `ItemDefinitionId` et l'absence de second stockage persistant.
 
-- absence réfléchie de `ArchetypeId` dans `FGridRuntimeItemState` ;
-- présence de `ItemDefinitionId` ;
-- lecture/écriture du proxy redirigée vers `ItemDefinitionId` sans second stockage.
+MIG09-B2B1 a été validé localement sous UE5.5.4 avec le filtre `Grimrock.WorldObjects` : `32` succès, `1` warning, `0` échec, exit code `0`.
 
-Le proxy disparaîtra en MIG09-B2B2 après remplacement textuel des derniers consommateurs.
+## 6. MIG09-B2B2 — consommateurs de l'état SaveGame
 
-## 6. Ponts encore à supprimer après MIG09-B2B1
+Les chemins principaux ne lisent et n'écrivent plus `FGridRuntimeItemState::ArchetypeId` :
+
+- capture des world-items dans `GridLevelRuntimeActorPersistence.cpp` ;
+- restauration des world-items ;
+- restauration des contenus de réceptacles ;
+- file d'attente des items traversant une fosse dans `GridLevelRuntimeActorWorldItems.cpp`.
+
+Le comportement devient strict : un état runtime sans `ItemDefinitionId` n'est plus récupéré via une identité `ArchetypeId` historique.
+
+Le proxy C++ reste provisoirement présent pour **une seule écriture résiduelle dans la capture du réceptacle**. Le prochain sous-lot supprime cette dernière écriture, le proxy lui-même, puis le cache `FGridSpawnedItemRuntimeEntry::ItemArchetypeId`.
+
+## 7. Ponts encore à supprimer après MIG09-B2B2
 
 ```text
 UGridLevelAsset::Objects
@@ -121,14 +130,15 @@ champs d'animation Transient pré-MIG04
 anciens contrôles Slate qui éditent encore ces champs
 ```
 
-## 7. Ordre de purge retenu
+## 8. Ordre de purge retenu
 
 ```text
 MIG09-A     supprimer l'usage runtime du marqueur sparse pré-MIG08        ✅ validé
 MIG09-B1    supprimer le stockage AGridItemActor::ArchetypeId             ✅ validé
 MIG09-B2A   supprimer les miroirs ItemArchetypeId des réceptacles          ✅ validé
-MIG09-B2B1  retirer ArchetypeId du schéma SaveGame runtime                 ⏳ candidat
-MIG09-B2B2  réécrire consommateurs + supprimer proxy et cache spawn
+MIG09-B2B1  retirer ArchetypeId du schéma SaveGame runtime                 ✅ validé
+MIG09-B2B2  réécrire les consommateurs SaveGame                            ⏳ candidat
+MIG09-B2B3  supprimer proxy C++ et cache spawn ItemArchetypeId
 MIG09-B2C   supprimer aliases InitializeItem/GetItemArchetypeId après audit Blueprint
 MIG09-C     supprimer les champs d'animation Transient et anciens initializers
 MIG09-D     migrer les derniers consommateurs vers les placements typés

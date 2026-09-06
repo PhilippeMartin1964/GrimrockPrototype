@@ -468,7 +468,6 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 
 	FGridRuntimeItemState ItemState;
 	ItemState.ObjectId = ItemInstance.RuntimeObjectId;
-	ItemState.ArchetypeId = ItemInstance.ItemDefinitionId;
 	ItemState.ItemDefinitionId = ItemInstance.ItemDefinitionId;
 	ItemState.Quantity = FMath::Max(1, ItemInstance.Quantity);
 	ItemState.CellX = Transition.TargetCellX;

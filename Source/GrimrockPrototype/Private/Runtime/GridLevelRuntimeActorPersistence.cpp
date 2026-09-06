@@ -195,7 +195,6 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		ExistingPlacedItemObjectIds.Add(Entry.ObjectId);
 		FGridRuntimeItemState ItemState;
 		ItemState.ObjectId = Entry.ObjectId;
-		ItemState.ArchetypeId = Entry.ItemArchetypeId;
 		ItemState.ItemDefinitionId =
 			!Entry.ItemDefinitionId.IsNone() ? Entry.ItemDefinitionId : PersistenceResolvePickupItemDefinitionId(ItemActor, Entry.ItemArchetypeId);
 		ItemState.Quantity = FMath::Max(1, Entry.Quantity);
@@ -205,7 +204,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 
 		if (ItemState.ItemDefinitionId.IsNone())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridRuntimeState Capture skipped item: ObjectId=%s Actor=%s no ItemDefinitionId or legacy ArchetypeId resolved."),
+			UE_LOG(LogTemp, Warning, TEXT("GridRuntimeState Capture skipped item: ObjectId=%s Actor=%s no ItemDefinitionId resolved."),
 				*Entry.ObjectId.ToString(), *GetNameSafe(ItemActor));
 			continue;
 		}
@@ -474,7 +473,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			break;
 		}
 
-		const FName RuntimeItemDefinitionId = !ItemState.ItemDefinitionId.IsNone() ? ItemState.ItemDefinitionId : ItemState.ArchetypeId;
+		const FName RuntimeItemDefinitionId = ItemState.ItemDefinitionId;
 		if (!bFoundExistingItem && !RuntimeItemDefinitionId.IsNone())
 		{
 			UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition(RuntimeItemDefinitionId);
@@ -501,7 +500,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 				Entry.Edge = RuntimeEdge;
 				Entry.ItemActor = ItemActor;
 				Entry.ObjectId = Pair.Key;
-				Entry.ItemArchetypeId = !ItemState.ArchetypeId.IsNone() ? ItemState.ArchetypeId : RuntimeItemDefinitionId;
+				Entry.ItemArchetypeId = RuntimeItemDefinitionId;
 				Entry.ItemDefinitionAsset = ItemDefinition;
 				Entry.ItemDefinitionId = RuntimeItemDefinitionId;
 				Entry.Quantity = FMath::Max(1, ItemState.Quantity);
@@ -525,11 +524,11 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			: (ReceptacleArchetype ? ReceptacleArchetype->ItemActorClass : nullptr);
 		for (const FGridRuntimeItemState& ItemState : Pair.Value.ContainedItems)
 		{
-			const FName RuntimeItemDefinitionId = !ItemState.ItemDefinitionId.IsNone() ? ItemState.ItemDefinitionId : ItemState.ArchetypeId;
+			const FName RuntimeItemDefinitionId = ItemState.ItemDefinitionId;
 			if (RuntimeItemDefinitionId.IsNone())
 			{
 				UE_LOG(LogTemp, Warning,
-					TEXT("GridRuntimeState Apply skipped receptacle item: ReceptacleId=%s RuntimeId=%s no ItemDefinitionId or legacy ArchetypeId resolved."),
+					TEXT("GridRuntimeState Apply skipped receptacle item: ReceptacleId=%s RuntimeId=%s no ItemDefinitionId resolved."),
 					*Pair.Key.ToString(), *ItemState.ObjectId.ToString());
 				continue;
 			}
@@ -552,10 +551,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			}
 			FGridRuntimeItemState ResolvedItemState = ItemState;
 			ResolvedItemState.ItemDefinitionId = RuntimeItemDefinitionId;
-			if (ResolvedItemState.ArchetypeId.IsNone())
-			{
-				ResolvedItemState.ArchetypeId = RuntimeItemDefinitionId;
-			}
 			ReceptacleActor->RestoreRuntimeContainedItem(ResolvedItemState, ItemActor);
 		}
 		UE_LOG(LogTemp, Verbose, TEXT("GridRuntimeState Apply Receptacle Final ObjectId=%s HasItem=%s Count=%d"), *Pair.Key.ToString(),
