@@ -7,6 +7,7 @@
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridTypes.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPitTrapdoorActor.h"
 
 #include "Brushes/SlateImageBrush.h"
@@ -247,7 +248,6 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolPalettePanel()
 TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolSection()
 {
 	TSharedRef<SHorizontalBox> ToolRow = SNew(SHorizontalBox);
-
 	const auto AddTool = [this, &ToolRow](const FText& Label, EGridEditorTool Tool)
 	{
 		ToolRow->AddSlot()
@@ -397,7 +397,6 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 		}
 	}
 
-
 	const FGridObjectPaletteEntry* PitEntry = CurrentEditorActor->ObjectPalette->FindEntryById(FName(TEXT("Pit_Stone_01")));
 	if (!PitEntry || !PitEntry->DefaultArchetype || PitEntry->DefaultArchetype->SupportedType != EGridLevelObjectType::Pit ||
 		!PitEntry->DefaultArchetype->DefaultBehavior.Transition.bIsTransition ||
@@ -443,7 +442,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 		.Padding(0.f, 0.f, 0.f, 6.f)
 		[
 			SNew(SSearchBox)
-				.HintText(FText::FromString(TEXT("Search palette by name, id, category or archetype...")))
+				.HintText(FText::FromString(TEXT("Search palette by name, id, category or definition...")))
 				.InitialText(FText::FromString(State.SearchText))
 				.OnTextChanged(this, &SGridEditorToolPalettePanel::OnPaletteSearchTextChanged)
 		];
@@ -633,6 +632,12 @@ bool SGridEditorToolPalettePanel::DoesPaletteEntryPassFilters(const FGridObjectP
 	if (Matches(Entry.GetEffectiveDisplayName().ToString()) || Matches(Entry.EntryId.ToString()) || Matches(Category.ToString()))
 	{
 		return true;
+	}
+
+	if (Entry.IsDirectItemEntry())
+	{
+		return Matches(Entry.DefaultItemDefinition->ItemDefinitionId.ToString()) ||
+			Matches(Entry.DefaultItemDefinition->Description.ToString());
 	}
 
 	if (Entry.DefaultArchetype)
@@ -863,7 +868,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteTile(const FGridObj
 
 	const FText Label = Entry.GetEffectiveDisplayName();
 	const FName EntryId = Entry.EntryId;
-	UTexture2D* IconTexture = Entry.Icon.Get();
+	UTexture2D* IconTexture = Entry.IsDirectItemEntry() ? Entry.DefaultItemDefinition->Icon.LoadSynchronous() : Entry.Icon.Get();
 
 	constexpr float TileSize = 96.f;
 	constexpr float IconSize = 60.f;

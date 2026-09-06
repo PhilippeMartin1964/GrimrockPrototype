@@ -88,6 +88,7 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 	ItemDefinitionId = InDefinition->ItemDefinitionId;
 	if (ArchetypeId.IsNone())
 	{
+		// MIG09 compatibility mirror only; no gameplay or presentation code depends on it.
 		ArchetypeId = ItemDefinitionId;
 	}
 	ItemTags = InDefinition->ItemTags;
@@ -118,6 +119,7 @@ void AGridItemActor::InitializeFromItemDefinitionId(FName InItemDefinitionId, co
 	ItemDefinitionId = InItemDefinitionId;
 	if (ArchetypeId.IsNone())
 	{
+		// MIG09 compatibility mirror only.
 		ArchetypeId = InItemDefinitionId;
 	}
 	SetRuntimeObjectId(InRuntimeObjectId);
@@ -210,8 +212,7 @@ void AGridItemActor::ApplyWorldPhysicsInitialNudge()
 		return;
 	}
 
-	uint32 Hash = RuntimeObjectId.IsValid() ? GetTypeHash(RuntimeObjectId) : GetTypeHash(GetItemDefinitionId());
-	Hash = HashCombine(Hash, GetTypeHash(ArchetypeId));
+	const uint32 Hash = RuntimeObjectId.IsValid() ? GetTypeHash(RuntimeObjectId) : GetTypeHash(GetItemDefinitionId());
 	const float AzimuthRadians = (static_cast<float>(Hash % 3600u) / 10.0f) * (PI / 180.0f);
 	const FVector TiltAxis(FMath::Cos(AzimuthRadians), FMath::Sin(AzimuthRadians), 0.0f);
 	const FQuat TiltRotation(TiltAxis, FMath::DegreesToRadians(TiltDegrees));
@@ -242,8 +243,7 @@ void AGridItemActor::SetWorldSparkleEnabled(bool bEnabled)
 
 float AGridItemActor::BuildWorldSparklePhase() const
 {
-	uint32 Hash = RuntimeObjectId.IsValid() ? GetTypeHash(RuntimeObjectId) : GetTypeHash(GetItemDefinitionId());
-	Hash = HashCombine(Hash, GetTypeHash(ArchetypeId));
+	const uint32 Hash = RuntimeObjectId.IsValid() ? GetTypeHash(RuntimeObjectId) : GetTypeHash(GetItemDefinitionId());
 	return static_cast<float>(Hash % 10000u) / 10000.0f;
 }
 
@@ -334,7 +334,7 @@ void AGridItemActor::SetRuntimeCell(int32 InCellX, int32 InCellY)
 
 bool AGridItemActor::CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
 {
-	if (!InstigatorPawn || !HitComponent || HitComponent != MeshComponent || (ArchetypeId.IsNone() && GetItemDefinitionId().IsNone()))
+	if (!InstigatorPawn || !HitComponent || HitComponent != MeshComponent || GetItemDefinitionId().IsNone())
 	{
 		return false;
 	}
@@ -382,7 +382,7 @@ void AGridItemActor::InteractWithHit_Implementation(APawn* InstigatorPawn, UPrim
 
 EGridInteractionCursor AGridItemActor::GetInteractionCursor_Implementation(UPrimitiveComponent* HitComponent) const
 {
-	if (HitComponent != MeshComponent || (ArchetypeId.IsNone() && GetItemDefinitionId().IsNone()))
+	if (HitComponent != MeshComponent || GetItemDefinitionId().IsNone())
 	{
 		return EGridInteractionCursor::Default;
 	}
@@ -395,7 +395,7 @@ EGridInteractionCursor AGridItemActor::GetInteractionCursor_Implementation(UPrim
 
 FText AGridItemActor::GetInteractionText_Implementation(UPrimitiveComponent* HitComponent) const
 {
-	if (HitComponent != MeshComponent || (ArchetypeId.IsNone() && GetItemDefinitionId().IsNone()))
+	if (HitComponent != MeshComponent || GetItemDefinitionId().IsNone())
 	{
 		return FText::GetEmpty();
 	}

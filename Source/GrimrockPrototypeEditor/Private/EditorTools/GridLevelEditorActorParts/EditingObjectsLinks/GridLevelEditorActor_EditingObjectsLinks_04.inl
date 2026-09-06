@@ -194,7 +194,28 @@ bool AGridLevelEditorActor::ApplyPaletteEntry(FName EntryId)
 	}
 
 	const FGridObjectPaletteEntry* Entry = ObjectPalette->FindEntryById(EntryId);
-	if (!Entry || !Entry->DefaultArchetype)
+	if (!Entry)
+	{
+		return false;
+	}
+
+	// WORLDOBJ-MIG05: collectibles are palette-addressable directly through their
+	// ItemDefinition. No companion UGridObjectArchetypeAsset is required.
+	if (Entry->DefaultItemDefinition)
+	{
+		SelectedPaletteEntryId = Entry->EntryId;
+		PaintObjectType = EGridLevelObjectType::Item;
+		ObjectArchetypeId = NAME_None;
+		SelectedArchetypeId = NAME_None;
+		bObjectInitiallyEnabled = true;
+		bObjectInitiallyActive = false;
+		ObjectTag = NAME_None;
+		ObjectBehavior = FGridObjectBehaviorParams();
+		ObjectBehavior.Item.ItemDefinitionAsset = Entry->DefaultItemDefinition;
+		return true;
+	}
+
+	if (!Entry->DefaultArchetype)
 	{
 		return false;
 	}

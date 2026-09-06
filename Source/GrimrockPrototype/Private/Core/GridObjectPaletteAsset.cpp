@@ -1,4 +1,5 @@
 #include "Core/GridObjectPaletteAsset.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "RPG/RPGStoryCompanionAsset.h"
 
@@ -24,9 +25,32 @@ bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridArchetypeValidationMes
 			SeenEntryIds.Add(Entry.EntryId);
 		}
 
+		if (Entry.DefaultItemDefinition)
+		{
+			if (Entry.DefaultArchetype)
+			{
+				OutMessages.Emplace(EGridArchetypeValidationSeverity::Error,
+					FString::Printf(TEXT("Palette entry '%s' must reference either DefaultItemDefinition or DefaultArchetype, not both."), *EntryName));
+			}
+
+			if (Entry.Icon)
+			{
+				OutMessages.Emplace(EGridArchetypeValidationSeverity::Error,
+					FString::Printf(TEXT("Palette entry '%s' is a direct collectible and must use DefaultItemDefinition.Icon instead of duplicating Palette Icon."), *EntryName));
+			}
+
+			if (!Entry.DefaultItemDefinition->IsValidDefinition())
+			{
+				OutMessages.Emplace(EGridArchetypeValidationSeverity::Error,
+					FString::Printf(TEXT("Palette entry '%s' has an invalid DefaultItemDefinition."), *EntryName));
+			}
+			continue;
+		}
+
 		if (!Entry.DefaultArchetype)
 		{
-			OutMessages.Emplace(EGridArchetypeValidationSeverity::Error, FString::Printf(TEXT("Palette entry '%s' requires DefaultArchetype."), *EntryName));
+			OutMessages.Emplace(EGridArchetypeValidationSeverity::Error,
+				FString::Printf(TEXT("Palette entry '%s' requires DefaultArchetype or DefaultItemDefinition."), *EntryName));
 			continue;
 		}
 

@@ -306,6 +306,11 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			return ObjectData.Tag.ToString();
 		}
 
+		if (ObjectData.Type == EGridLevelObjectType::Item && ObjectData.ItemDefinitionAsset && !ObjectData.ItemDefinitionAsset->ItemDefinitionId.IsNone())
+		{
+			return ObjectData.ItemDefinitionAsset->ItemDefinitionId.ToString();
+		}
+
 		if (!ObjectData.ArchetypeId.IsNone())
 		{
 			return ObjectData.ArchetypeId.ToString();
@@ -337,13 +342,14 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			continue;
 		}
 
+		const bool bDirectCollectible = Obj.Type == EGridLevelObjectType::Item && Obj.ItemDefinitionAsset != nullptr;
 		const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(Obj.ArchetypeId);
-		if (Obj.ArchetypeId.IsNone())
+		if (Obj.ArchetypeId.IsNone() && !bDirectCollectible)
 		{
-			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Placed object has no ArchetypeId. Preview and runtime archetype lookup cannot resolve it."),
-				Obj.ObjectId);
+			AddMessage(EGridLevelValidationSeverity::Error,
+				TEXT("Placed world object has no ArchetypeId. Only a direct collectible ItemDefinition may omit it."), Obj.ObjectId);
 		}
-		else if (ObjectPalette && !Archetype)
+		else if (!Obj.ArchetypeId.IsNone() && ObjectPalette && !Archetype)
 		{
 			AddMessage(EGridLevelValidationSeverity::Error,
 				FString::Printf(TEXT("Placed object ArchetypeId '%s' is not exposed by the assigned ObjectPalette."), *Obj.ArchetypeId.ToString()),

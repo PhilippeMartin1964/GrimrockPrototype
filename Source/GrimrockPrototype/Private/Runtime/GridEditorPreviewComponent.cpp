@@ -2,6 +2,7 @@
 
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
@@ -93,8 +94,14 @@ void UGridEditorPreviewComponent::AddPreviewObject(const FGridLevelObjectData& O
 	}
 
 	const UGridObjectArchetypeAsset* Archetype = bMonsterSpawn ? nullptr : RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId);
+	UStaticMesh* DirectItemMesh = nullptr;
+	if (!bMonsterSpawn && ObjectData.Type == EGridLevelObjectType::Item && ObjectData.ItemDefinitionAsset)
+	{
+		DirectItemMesh = ObjectData.ItemDefinitionAsset->WorldMesh.LoadSynchronous();
+	}
+
 	const bool bHasTargetComposition = Archetype && Archetype->HasAnyVisualPart();
-	if (!bMonsterSpawn && !bHasTargetComposition)
+	if (!bMonsterSpawn && !DirectItemMesh && !bHasTargetComposition)
 	{
 		return;
 	}
@@ -116,6 +123,11 @@ void UGridEditorPreviewComponent::AddPreviewObject(const FGridLevelObjectData& O
 	if (bMonsterSpawn)
 	{
 		PreviewActor->InitializeMonsterPreviewObject(ObjectData, MonsterDefinition);
+	}
+	else if (DirectItemMesh)
+	{
+		// WORLDOBJ-MIG05: preview the same WorldMesh used by the runtime item actor.
+		PreviewActor->InitializePreviewObject(ObjectData, DirectItemMesh);
 	}
 	else
 	{
@@ -193,6 +205,12 @@ bool UGridEditorPreviewComponent::IsPreviewableObject(const FGridLevelObjectData
 		return false;
 	}
 	if (ObjectData.Type == EGridLevelObjectType::MonsterSpawn)
+	{
+		return true;
+	}
+
+	// WORLDOBJ-MIG05: a direct collectible is previewable without any world-object archetype.
+	if (ObjectData.Type == EGridLevelObjectType::Item && ObjectData.ItemDefinitionAsset && !ObjectData.ItemDefinitionAsset->WorldMesh.IsNull())
 	{
 		return true;
 	}

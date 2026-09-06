@@ -34,7 +34,8 @@ public:
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|World Sparkle")
 	bool bWorldSparkleActive = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	/** MIG09 compatibility mirror only. Runtime identity and presentation come from ItemDefinitionAsset / ItemDefinitionId. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Item")
 	FName ArchetypeId = NAME_None;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
@@ -67,6 +68,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 	int32 RuntimeCellY = INDEX_NONE;
 
+	/** Legacy compatibility initializer. New collectible flows initialize from UGridItemDefinitionAsset. */
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	virtual void InitializeItem(FName InArchetypeId, const TArray<FName>& InItemTags, UStaticMesh* Mesh);
 
@@ -114,6 +116,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Item|World Sparkle")
 	bool IsWorldSparkleActive() const { return bWorldSparkleActive; }
 
+	/** Legacy compatibility accessor. Prefer GetItemDefinitionId(). */
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	FName GetItemArchetypeId() const;
 
