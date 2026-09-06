@@ -121,7 +121,7 @@ bool FGridWorldObjectMIG06SparseStorageContractTest::RunTest(const FString& Para
 	Source.Lock.bStartsUnlocked = true;
 	Source.Teleporter.TargetCellX = 12;
 	Source.PressurePlateWeight.RequiredItemWeight = 6.0f;
-	Source.DoorAnimation.bEnableChainMechanism = true;
+	Source.DoorAnimation.bHasChainMechanism = true;
 	Source.Receptacle.MaxContainedItems = 3;
 
 	const FGridObjectBehaviorParams Sparse = GridObjectInstanceBehavior::BuildSparseOverrides(Source);
@@ -134,7 +134,7 @@ bool FGridWorldObjectMIG06SparseStorageContractTest::RunTest(const FString& Para
 	// Explicit MIG06-A bridges. These assertions make the remaining debt visible
 	// and prevent it from being mistaken for the final MIG06 contract.
 	TestEqual(TEXT("MIG06-A pressure-plate direct-consumer bridge remains"), Sparse.PressurePlateWeight.RequiredItemWeight, 6.0f);
-	TestTrue(TEXT("MIG06-A door-chain direct-consumer bridge remains"), Sparse.DoorAnimation.bEnableChainMechanism);
+	TestTrue(TEXT("MIG06-A door-chain direct-consumer bridge remains"), Sparse.DoorAnimation.bHasChainMechanism);
 	TestEqual(TEXT("MIG06-A receptacle validation bridge remains"), Sparse.Receptacle.MaxContainedItems, 3);
 
 	return true;
