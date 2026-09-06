@@ -1,3 +1,5 @@
+#include "Core/GridObjectInstanceBehavior.h"
+
 void AGridLevelEditorActor::PlaceSelectedObject()
 {
 	if (!HasValidLevelAsset() || !IsValidSelectedCell())
@@ -48,7 +50,11 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 	NewObject.Tag = ObjectTag;
 	NewObject.Notes = ObjectNotes;
 	NewObject.PaletteEntryId = SelectedPaletteEntryId;
-	NewObject.Behavior = ObjectBehavior;
+
+	// WORLDOBJ-MIG06: new placements no longer clone the complete definition Behavior.
+	// The editor staging object can remain fully resolved, while the level stores only
+	// instance-owned values plus the temporary MIG06-A direct-consumer bridges.
+	NewObject.Behavior = GridObjectInstanceBehavior::BuildSparseOverrides(ObjectBehavior);
 	if (NewObject.Type == EGridLevelObjectType::MonsterSpawn && ObjectPalette)
 	{
 		if (const FGridObjectPaletteEntry* PaletteEntry = ObjectPalette->FindEntryById(SelectedPaletteEntryId))
@@ -100,6 +106,7 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		}
 	}
 	const FGuid NewId = LevelAsset->AddObject(NewObject);
+	LevelAsset->SetSparseBehaviorOverrides(NewId, true);
 	LastSelectedObjectId = NewId;
 	RebuildPreview();
 }
@@ -149,7 +156,20 @@ void AGridLevelEditorActor::SelectObjectAtSelection()
 		ObjectTag = Obj.Tag;
 		ObjectNotes = Obj.Notes;
 		SelectedPaletteEntryId = Obj.PaletteEntryId;
-		ObjectBehavior = Obj.Behavior;
+
+		const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(Obj.ArchetypeId);
+		ObjectBehavior = GridObjectInstanceBehavior::Resolve(LevelAsset, Obj, Archetype);
+		if (Obj.Type == EGridLevelObjectType::Item)
+		{
+			// Loose items have no WorldObjectDefinition after MIG05; rebuild the
+			// temporary paint/inspector staging state from their direct item fields.
+			ObjectBehavior.Item.ItemDefinitionAsset = Obj.ItemDefinitionAsset;
+			ObjectBehavior.Item.ItemDefinitionId = Obj.ItemDefinitionId;
+			ObjectBehavior.Item.DefaultReadableContentAsset = Obj.ReadableContentAsset;
+			ObjectBehavior.Item.DefaultReadableContentId = Obj.ReadableContentId;
+			ObjectBehavior.Item.DefaultReadTitleOverride = Obj.ReadTitleOverride;
+			ObjectBehavior.Item.DefaultReadTextOverride = Obj.ReadTextOverride;
+		}
 		return;
 	}
 

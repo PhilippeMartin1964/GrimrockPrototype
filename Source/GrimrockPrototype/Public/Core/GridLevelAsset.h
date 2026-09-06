@@ -50,6 +50,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
 	TArray<FGridLevelObjectData> Objects;
 
+	/**
+	 * WORLDOBJ-MIG06 migration marker.
+	 *
+	 * Object ids in this set store only sparse instance-owned values in
+	 * FGridLevelObjectData::Behavior. An id absent from the set uses the historical
+	 * pre-MIG06 full Behavior snapshot until the real assets are migrated in MIG08.
+	 */
+	UPROPERTY()
+	TSet<FGuid> SparseBehaviorOverrideObjectIds;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
 	TArray<FGridObjectLink> Links;
 
@@ -91,6 +101,28 @@ public:
 	void RemoveLinksForObject(const FGuid& ObjectId);
 
 	void EnsureObjectIds();
+
+	bool UsesSparseBehaviorOverrides(const FGuid& ObjectId) const
+	{
+		return ObjectId.IsValid() && SparseBehaviorOverrideObjectIds.Contains(ObjectId);
+	}
+
+	void SetSparseBehaviorOverrides(const FGuid& ObjectId, bool bUsesSparseOverrides)
+	{
+		if (!ObjectId.IsValid())
+		{
+			return;
+		}
+
+		if (bUsesSparseOverrides)
+		{
+			SparseBehaviorOverrideObjectIds.Add(ObjectId);
+		}
+		else
+		{
+			SparseBehaviorOverrideObjectIds.Remove(ObjectId);
+		}
+	}
 
 	/**
      * Validates the persistent MON13.1 MonsterSpawn contract only.

@@ -1,3 +1,5 @@
+#include "Core/GridObjectInstanceBehavior.h"
+
 bool AGridLevelEditorActor::FocusSelectedObject()
 {
 	if (!LastSelectedObjectId.IsValid())
@@ -48,7 +50,10 @@ bool AGridLevelEditorActor::ApplyBehaviorToSelectedObject(const FGridObjectBehav
 			continue;
 		}
 
-		Obj.Behavior = NewBehavior;
+		// WORLDOBJ-MIG06: editing an old full-snapshot instance migrates that one
+		// object to the sparse contract. The editor staging state remains fully resolved.
+		Obj.Behavior = GridObjectInstanceBehavior::BuildSparseOverrides(NewBehavior);
+		LevelAsset->SetSparseBehaviorOverrides(Obj.ObjectId, true);
 		ObjectBehavior = NewBehavior;
 
 #if WITH_EDITOR
@@ -85,8 +90,10 @@ bool AGridLevelEditorActor::ResetSelectedObjectBehaviorFromArchetype()
 	LevelAsset->Modify();
 #endif
 
-	Obj->Behavior = Archetype->DefaultBehavior;
-	ObjectBehavior = Obj->Behavior;
+	// Reset means "use the definition again", not "clone the definition again".
+	Obj->Behavior = GridObjectInstanceBehavior::BuildSparseOverrides(Archetype->DefaultBehavior);
+	LevelAsset->SetSparseBehaviorOverrides(Obj->ObjectId, true);
+	ObjectBehavior = Archetype->DefaultBehavior;
 
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();

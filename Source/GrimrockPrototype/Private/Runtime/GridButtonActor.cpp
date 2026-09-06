@@ -1,6 +1,7 @@
 #include "Runtime/GridButtonActor.h"
 
 #include "Components/StaticMeshComponent.h"
+#include "Core/GridObjectInstanceBehavior.h"
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -41,7 +42,15 @@ void AGridButtonActor::InitializeButton(const FGridLevelObjectData& ObjectData, 
 	const float TargetDuration = GetTargetMotionDuration();
 	PressDuration = TargetDuration;
 	ReleaseDuration = TargetDuration;
-	HoldTime = FMath::Max(0.0f, ObjectData.Behavior.ButtonAnimation.ButtonHoldTime);
+
+	// WORLDOBJ-MIG06: ButtonHoldTime belongs to the shared definition for sparse
+	// instances. Direct legacy initializers without a runtime owner retain their
+	// historical ObjectData.Behavior snapshot.
+	const AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor>(GetOwner());
+	const UGridObjectArchetypeAsset* Archetype = RuntimeActor ? RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId) : nullptr;
+	const FGridObjectBehaviorParams EffectiveBehavior =
+		GridObjectInstanceBehavior::Resolve(RuntimeActor ? RuntimeActor->LevelAsset.Get() : nullptr, ObjectData, Archetype);
+	HoldTime = FMath::Max(0.0f, EffectiveBehavior.ButtonAnimation.ButtonHoldTime);
 
 	ApplyMovingPartMotionAlpha(0, 0.0f);
 	AnimState = EButtonAnimState::Idle;

@@ -1,3 +1,5 @@
+#include "Core/GridObjectInstanceBehavior.h"
+
 const FGridLevelObjectData* AGridLevelEditorActor::GetSelectedObjectData() const
 {
 	return FindObjectById(LastSelectedObjectId);
@@ -33,7 +35,18 @@ bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 	bObjectInitiallyActive = Obj->bInitiallyActive;
 	ObjectTag = Obj->Tag;
 	ObjectNotes = Obj->Notes;
-	ObjectBehavior = Obj->Behavior;
+
+	const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(Obj->ArchetypeId);
+	ObjectBehavior = GridObjectInstanceBehavior::Resolve(LevelAsset, *Obj, Archetype);
+	if (Obj->Type == EGridLevelObjectType::Item)
+	{
+		ObjectBehavior.Item.ItemDefinitionAsset = Obj->ItemDefinitionAsset;
+		ObjectBehavior.Item.ItemDefinitionId = Obj->ItemDefinitionId;
+		ObjectBehavior.Item.DefaultReadableContentAsset = Obj->ReadableContentAsset;
+		ObjectBehavior.Item.DefaultReadableContentId = Obj->ReadableContentId;
+		ObjectBehavior.Item.DefaultReadTitleOverride = Obj->ReadTitleOverride;
+		ObjectBehavior.Item.DefaultReadTextOverride = Obj->ReadTextOverride;
+	}
 
 	ResolvePreviewRuntimeActor();
 
