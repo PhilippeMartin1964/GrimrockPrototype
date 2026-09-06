@@ -32,14 +32,11 @@ AGridItemActor::AGridItemActor()
 	SparkleMeshComponent->SetVisibility(false, true);
 }
 
-void AGridItemActor::InitializeItem(FName InArchetypeId, const TArray<FName>& InItemTags, UStaticMesh* Mesh)
+void AGridItemActor::InitializeItem(FName InItemDefinitionId, const TArray<FName>& InItemTags, UStaticMesh* Mesh)
 {
-	ArchetypeId = InArchetypeId;
+	ItemDefinitionAsset = nullptr;
+	ItemDefinitionId = InItemDefinitionId;
 	ItemTags = InItemTags;
-	if (ItemDefinitionId.IsNone())
-	{
-		ItemDefinitionId = InArchetypeId;
-	}
 	if (!RuntimeObjectId.IsValid())
 	{
 		RuntimeObjectId = FGuid::NewGuid();
@@ -86,11 +83,6 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 
 	ItemDefinitionAsset = InDefinition;
 	ItemDefinitionId = InDefinition->ItemDefinitionId;
-	if (ArchetypeId.IsNone())
-	{
-		// MIG09 compatibility mirror only; no gameplay or presentation code depends on it.
-		ArchetypeId = ItemDefinitionId;
-	}
 	ItemTags = InDefinition->ItemTags;
 	SetRuntimeObjectId(InRuntimeObjectId);
 	if (!RuntimeObjectId.IsValid())
@@ -117,11 +109,6 @@ void AGridItemActor::InitializeFromItemDefinitionId(FName InItemDefinitionId, co
 
 	ItemDefinitionAsset = nullptr;
 	ItemDefinitionId = InItemDefinitionId;
-	if (ArchetypeId.IsNone())
-	{
-		// MIG09 compatibility mirror only.
-		ArchetypeId = InItemDefinitionId;
-	}
 	SetRuntimeObjectId(InRuntimeObjectId);
 	if (!RuntimeObjectId.IsValid())
 	{
@@ -304,7 +291,7 @@ void AGridItemActor::RefreshWorldSparklePresentation()
 
 FName AGridItemActor::GetItemArchetypeId() const
 {
-	return ArchetypeId;
+	return GetItemDefinitionId();
 }
 
 UGridItemDefinitionAsset* AGridItemActor::GetItemDefinitionAsset() const

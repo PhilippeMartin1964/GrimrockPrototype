@@ -1,6 +1,6 @@
 # WORLDOBJ-MIG09 — Purge des compatibilités legacy
 
-Statut : **MIG09-A candidat — validation locale UE5.5.4 requise**.
+Statut : **MIG09-A validé ; MIG09-B1 candidat — validation locale UE5.5.4 requise**.
 
 ## 1. Contexte
 
@@ -20,19 +20,39 @@ overrides strictement instance-owned
 comportement effectif
 ```
 
-Les overrides instance-owned restent :
+Les overrides instance-owned restent : Teleporter, Transition, Pit, `Receptacle.InitialContent` et `Lock.bStartsUnlocked`.
 
-- Teleporter ;
-- Transition ;
-- Pit ;
-- Receptacle.InitialContent ;
-- Lock.bStartsUnlocked.
+MIG09-A a été validé localement sous UE5.5.4 avec le filtre `Grimrock.WorldObjects` : `30` succès, `1` warning, `0` échec, exit code `0`.
 
-Un `FGridLevelObjectData` sans définition conserve temporairement son snapshot brut uniquement pour les anciens initializers/tests directs. Ce dernier fallback doit disparaître dans une tranche MIG09 suivante avant la suppression physique de `FGridLevelObjectData`.
+## 3. MIG09-B1 — une seule identité runtime pour les items
 
-## 3. Ponts encore à supprimer après MIG09-A
+`AGridItemActor` ne possède plus de champ `ArchetypeId`.
 
-L'audit du `master` après MIG08 identifie encore notamment :
+La source de vérité est désormais uniquement :
+
+```text
+ItemDefinitionAsset
+        +
+ItemDefinitionId
+```
+
+Deux anciennes API Blueprint/C++ restent temporairement présentes afin d'éviter de casser silencieusement un Blueprint binaire non visible au code search :
+
+```text
+InitializeItem(...)
+GetItemArchetypeId()
+```
+
+Elles ne possèdent plus aucune sémantique d'archétype :
+
+- `InitializeItem()` écrit seulement `ItemDefinitionId`, les tags et éventuellement le mesh fourni ;
+- `GetItemArchetypeId()` retourne strictement `GetItemDefinitionId()` ;
+- la propriété réfléchie `AGridItemActor::ArchetypeId` est physiquement supprimée ;
+- le test MIG05 exige désormais son absence.
+
+Ces deux aliases doivent être supprimés en MIG09-B2 après remplacement/audit des derniers consommateurs et des éventuelles références Blueprint.
+
+## 4. Ponts encore à supprimer après MIG09-B1
 
 ```text
 UGridLevelAsset::Objects
@@ -42,22 +62,26 @@ CommitCompatibilityObjectEdit()
 RefreshLegacyObjectMirrorFromTyped()
 GetObjectCompatibilityView()
 GridLevelPlacementCompatibility
-AGridItemActor::ArchetypeId
-AGridItemActor::InitializeItem()
-AGridItemActor::GetItemArchetypeId()
+AGridItemActor::InitializeItem() alias
+AGridItemActor::GetItemArchetypeId() alias
+FGridSpawnedItemRuntimeEntry::ItemArchetypeId
+FGridRuntimeItemState::ArchetypeId
+FGridContainedReceptacleItem::ItemArchetypeId
+AGridReceptacleActor::ContainedItemArchetypeId
 anciens initializers directs Button / Lever / Door / Pit
 champs d'animation Transient pré-MIG04
 anciens contrôles Slate qui éditent encore ces champs
 ```
 
-## 4. Ordre de purge retenu
+## 5. Ordre de purge retenu
 
 ```text
-MIG09-A  supprimer l'usage runtime du marqueur sparse pré-MIG08
-MIG09-B  supprimer les identités/fallbacks Item legacy
-MIG09-C  supprimer les champs d'animation Transient et anciens initializers
-MIG09-D  migrer les derniers consommateurs vers les placements typés
-MIG09-E  supprimer Objects / FGridLevelObjectData / compatibility projection
+MIG09-A   supprimer l'usage runtime du marqueur sparse pré-MIG08       ✅ validé
+MIG09-B1  supprimer le stockage AGridItemActor::ArchetypeId            ⏳ candidat
+MIG09-B2  supprimer aliases/fallbacks et états ItemArchetypeId restants
+MIG09-C   supprimer les champs d'animation Transient et anciens initializers
+MIG09-D   migrer les derniers consommateurs vers les placements typés
+MIG09-E   supprimer Objects / FGridLevelObjectData / compatibility projection
 ```
 
 Chaque tranche doit laisser `master` compilable et être validée avec le filtre `Grimrock.WorldObjects` avant la suivante.

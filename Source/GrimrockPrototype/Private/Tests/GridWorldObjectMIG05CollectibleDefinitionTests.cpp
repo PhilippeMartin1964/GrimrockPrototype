@@ -94,12 +94,7 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 	TestEqual(TEXT("Direct collectible palette validation has no messages"), ValidationMessages.Num(), 0);
 
 	FProperty* ItemArchetypeBridge = AGridItemActor::StaticClass()->FindPropertyByName(TEXT("ArchetypeId"));
-	TestNotNull(TEXT("Legacy item ArchetypeId bridge remains until MIG09"), ItemArchetypeBridge);
-	if (ItemArchetypeBridge)
-	{
-		TestTrue(TEXT("Legacy item ArchetypeId bridge is transient"), ItemArchetypeBridge->HasAnyPropertyFlags(CPF_Transient));
-		TestTrue(TEXT("Legacy item ArchetypeId bridge is read-only in Details"), ItemArchetypeBridge->HasAnyPropertyFlags(CPF_EditConst));
-	}
+	TestNull(TEXT("MIG09 physically removes duplicate item ArchetypeId runtime state"), ItemArchetypeBridge);
 
 	FMIG05ItemTestWorld TestWorld;
 	TestNotNull(TEXT("MIG05 runtime world exists"), TestWorld.World);
@@ -140,6 +135,8 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 		ItemActor->InitializeFromItemDefinition(Definition, ItemData.ObjectId);
 		TestTrue(TEXT("Generic item actor keeps the canonical definition asset"), ItemActor->GetItemDefinitionAsset() == Definition);
 		TestEqual(TEXT("Generic item actor identity is ItemDefinitionId"), ItemActor->GetItemDefinitionId(), FName(TEXT("BlueGem")));
+		TestEqual(TEXT("MIG09 compatibility alias resolves to canonical ItemDefinitionId without separate state"),
+			ItemActor->GetItemArchetypeId(), ItemActor->GetItemDefinitionId());
 		TestTrue(TEXT("Generic item actor presentation uses ItemDefinition WorldMesh"), ItemActor->MeshComponent->GetStaticMesh() == WorldMesh);
 	}
 

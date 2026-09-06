@@ -34,10 +34,6 @@ public:
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|World Sparkle")
 	bool bWorldSparkleActive = false;
 
-	/** MIG09 compatibility mirror only. Runtime identity and presentation come from ItemDefinitionAsset / ItemDefinitionId. */
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Item")
-	FName ArchetypeId = NAME_None;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
 	TObjectPtr<UGridItemDefinitionAsset> ItemDefinitionAsset = nullptr;
 
@@ -68,9 +64,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 	int32 RuntimeCellY = INDEX_NONE;
 
-	/** Legacy compatibility initializer. New collectible flows initialize from UGridItemDefinitionAsset. */
-	UFUNCTION(BlueprintCallable, Category = "Item")
-	virtual void InitializeItem(FName InArchetypeId, const TArray<FName>& InItemTags, UStaticMesh* Mesh);
+	/** MIG09-B1 compatibility API only. It writes ItemDefinitionId; no ArchetypeId state exists anymore. */
+	UFUNCTION(BlueprintCallable, Category = "Item", meta = (DeprecatedFunction, DeprecationMessage = "Use InitializeFromItemDefinition or InitializeFromItemDefinitionId."))
+	virtual void InitializeItem(FName InItemDefinitionId, const TArray<FName>& InItemTags, UStaticMesh* Mesh);
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void InitializeFromItemDefinition(UGridItemDefinitionAsset* InDefinition, const FGuid& InRuntimeObjectId);
@@ -116,8 +112,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Item|World Sparkle")
 	bool IsWorldSparkleActive() const { return bWorldSparkleActive; }
 
-	/** Legacy compatibility accessor. Prefer GetItemDefinitionId(). */
-	UFUNCTION(BlueprintCallable, Category = "Item")
+	/** MIG09-B1 compatibility alias only. It returns GetItemDefinitionId() and owns no separate state. */
+	UFUNCTION(BlueprintCallable, Category = "Item", meta = (DeprecatedFunction, DeprecationMessage = "Use GetItemDefinitionId."))
 	FName GetItemArchetypeId() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
