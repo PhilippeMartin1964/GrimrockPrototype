@@ -91,7 +91,7 @@ namespace GridTD011Tests
 		Fixture.Archetype->bIsInteractable = true;
 		Fixture.Archetype->RuntimeActorClass = AGridReceptacleActor::StaticClass();
 		Fixture.Mesh = NewObject<UStaticMesh>(Outer);
-		Fixture.Archetype->PreviewMesh = Fixture.Mesh;
+		Fixture.Archetype->StaticPart.Mesh = Fixture.Mesh;
 		return Fixture;
 	}
 

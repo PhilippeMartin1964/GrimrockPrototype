@@ -108,7 +108,7 @@ bool FGridMON1971LogicIdCommandTest::RunTest(const FString& Parameters)
 	LeverArchetype->ObjectCategory = EGridObjectCategory::Mechanism;
 	LeverArchetype->PlacementKind = EGridObjectPlacementKind::Wall;
 	LeverArchetype->RuntimeActorClass = AGridLeverActor::StaticClass();
-	LeverArchetype->MovingMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	LeverArchetype->MovingParts.Part0.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
 	LeverArchetype->bIsInteractable = true;
 
 	FGridLuaScriptSource Script;

@@ -237,27 +237,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Composition", meta = (DisplayName = "Moving Parts"))
 	FGridWorldObjectMovingParts MovingParts;
 
-	/**
-	 * WORLDOBJ-MIG03.4C compile-only bridge for the few C++ consumers not yet deleted.
-	 * These names are deliberately Transient and non-editable: they are no longer authoring data,
-	 * are never serialized, and are ignored by the target runtime presentation path.
-	 * WORLDOBJ-MIG03.4D removes the symbols completely after the remaining callers are migrated.
-	 */
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "Visual|Legacy Runtime Bridge")
-	TObjectPtr<UStaticMesh> PreviewMesh = nullptr;
-
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "Visual|Legacy Runtime Bridge")
-	TObjectPtr<UStaticMesh> FixedMesh = nullptr;
-
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "Visual|Legacy Runtime Bridge")
-	TObjectPtr<UStaticMesh> MovingMesh = nullptr;
-
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "Visual|Legacy Runtime Bridge")
-	TObjectPtr<UStaticMesh> PitLeftLeafMesh = nullptr;
-
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "Visual|Legacy Runtime Bridge")
-	TObjectPtr<UStaticMesh> PitRightLeafMesh = nullptr;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime",
 		meta = (DisplayName = "Runtime Actor Class",
 			ToolTip =

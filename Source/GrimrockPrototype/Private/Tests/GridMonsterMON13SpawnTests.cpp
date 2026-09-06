@@ -103,7 +103,7 @@ namespace
 		Archetype->ObjectCategory = EGridObjectCategory::Mechanism;
 		Archetype->PlacementKind = EGridObjectPlacementKind::Wall;
 		Archetype->RuntimeActorClass = AGridLeverActor::StaticClass();
-		Archetype->MovingMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+		Archetype->MovingParts.Part0.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
 		Archetype->bIsInteractable = true;
 		return Archetype;
 	}
@@ -184,7 +184,7 @@ bool FGridMonsterMON131PersistentModelTest::RunTest(const FString& Parameters)
 	FGridLevelObjectData Spawn = MakeMON13Spawn(Definition, FGuid(), FIntPoint(2, 1));
 	Spawn.MonsterDefinitionId = NAME_None;
 	Spawn.InitialFacing = EGridEdge::East;
-	Spawn.LocalYaw = 0.0f; // Stale preview mirror: InitialFacing is authoritative.
+	Spawn.LocalYaw = 0.0f;
 
 	const FGuid SpawnId = Level->AddObject(Spawn);
 	const FGridLevelObjectData* StoredSpawn = Level->FindMonsterSpawnById(SpawnId);

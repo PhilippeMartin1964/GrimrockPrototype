@@ -455,7 +455,6 @@ public:
 		return nullptr;
 	}
 
-	UStaticMesh* GetObjectMesh(const FGridLevelObjectData& ObjectData) const;
 	bool GetObjectPlacementTransform(const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
 	const UGridObjectArchetypeAsset* FindObjectArchetype(FName ArchetypeId) const;
 	UGridItemDefinitionAsset* ResolveRuntimeItemDefinition(FName ItemDefinitionId) const;

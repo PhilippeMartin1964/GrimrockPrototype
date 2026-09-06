@@ -141,7 +141,7 @@ namespace GridTD075ReceptacleRecovery
 		Archetype->PlacementKind = EGridObjectPlacementKind::Wall;
 		Archetype->bIsInteractable = true;
 		Archetype->RuntimeActorClass = AGridReceptacleActor::StaticClass();
-		Archetype->PreviewMesh = NewObject<UStaticMesh>(Runtime);
+		Archetype->StaticPart.Mesh = NewObject<UStaticMesh>(Runtime);
 
 		Runtime->LevelAsset = Level;
 		Runtime->ObjectArchetypes.Add(Archetype);

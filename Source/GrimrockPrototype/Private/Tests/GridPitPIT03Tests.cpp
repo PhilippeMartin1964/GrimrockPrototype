@@ -165,8 +165,8 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	PitArchetype->ArchetypeId = TEXT("Pit_Stone_01");
 	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
 	PitArchetype->PlacementKind = EGridObjectPlacementKind::Floor;
-	PitArchetype->PitLeftLeafMesh = NewObject<UStaticMesh>(Runtime);
-	PitArchetype->PitRightLeafMesh = NewObject<UStaticMesh>(Runtime);
+	PitArchetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(Runtime);
+	PitArchetype->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(Runtime);
 	PitArchetype->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
 
 	Runtime->DungeonAsset = Dungeon;
@@ -263,8 +263,18 @@ bool FGridPIT03PresentationActorTest::RunTest(const FString& Parameters)
 
 	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(Actor);
 	Archetype->SupportedType = EGridLevelObjectType::Pit;
-	Archetype->PitLeftLeafMesh = NewObject<UStaticMesh>(Actor);
-	Archetype->PitRightLeafMesh = NewObject<UStaticMesh>(Actor);
+	Archetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(Actor);
+	Archetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
+	Archetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	Archetype->MovingParts.Part0.Motion.Pivot = Pit.Behavior.PitAnimation.LeftHingeLocation;
+	Archetype->MovingParts.Part0.Motion.Amount = -Pit.Behavior.PitAnimation.OpenAngleDegrees;
+	Archetype->MovingParts.Part0.Motion.Duration = Pit.Behavior.PitAnimation.MoveDuration;
+	Archetype->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(Actor);
+	Archetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
+	Archetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	Archetype->MovingParts.Part1.Motion.Pivot = Pit.Behavior.PitAnimation.RightHingeLocation;
+	Archetype->MovingParts.Part1.Motion.Amount = Pit.Behavior.PitAnimation.OpenAngleDegrees;
+	Archetype->MovingParts.Part1.Motion.Duration = Pit.Behavior.PitAnimation.MoveDuration;
 
 	Actor->InitializeMechanismVisuals(Pit, Archetype, FTransform::Identity);
 	Actor->InitializeGridObject(Pit, nullptr, FTransform::Identity);

@@ -1858,32 +1858,6 @@ UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition(F
 	return nullptr;
 }
 
-UStaticMesh* AGridLevelRuntimeActor::GetObjectMesh(const FGridLevelObjectData& ObjectData) const
-{
-	const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(ObjectData.ArchetypeId);
-	if (!Archetype)
-	{
-		return nullptr;
-	}
-
-	if (Archetype->PreviewMesh)
-	{
-		return Archetype->PreviewMesh.Get();
-	}
-
-	if (Archetype->MovingMesh)
-	{
-		return Archetype->MovingMesh.Get();
-	}
-
-	if (Archetype->FixedMesh)
-	{
-		return Archetype->FixedMesh.Get();
-	}
-
-	return nullptr;
-}
-
 AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId, AActor* OwnerActor,
 	USceneComponent* AttachParent, TSubclassOf<AGridItemActor> PreferredItemActorClass) const
 {
@@ -2219,7 +2193,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLevelObjectData& Obje
 	}
 	if (!IsSafeRuntimeRenderTransform(Transform))
 	{
-		LogUnsafeObjectTransform(TEXT("AddPlacedItemActor"), ObjectData, GetObjectMesh(ObjectData), Transform);
+		LogUnsafeObjectTransform(TEXT("AddPlacedItemActor"), ObjectData, nullptr, Transform);
 		return;
 	}
 

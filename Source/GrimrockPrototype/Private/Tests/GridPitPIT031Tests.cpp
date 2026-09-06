@@ -156,10 +156,19 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	PitArchetype->ArchetypeId = TEXT("Pit_Animated_Test");
 	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
 	PitArchetype->PlacementKind = EGridObjectPlacementKind::Floor;
-	PitArchetype->PreviewMesh = PitMesh;
-	PitArchetype->FixedMesh = PitMesh;
-	PitArchetype->PitLeftLeafMesh = LeftLeafMesh;
-	PitArchetype->PitRightLeafMesh = RightLeafMesh;
+	PitArchetype->StaticPart.Mesh = PitMesh;
+	PitArchetype->MovingParts.Part0.Mesh = LeftLeafMesh;
+	PitArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
+	PitArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	PitArchetype->MovingParts.Part0.Motion.Pivot = PitA.Behavior.PitAnimation.LeftHingeLocation;
+	PitArchetype->MovingParts.Part0.Motion.Amount = -PitA.Behavior.PitAnimation.OpenAngleDegrees;
+	PitArchetype->MovingParts.Part0.Motion.Duration = PitA.Behavior.PitAnimation.MoveDuration;
+	PitArchetype->MovingParts.Part1.Mesh = RightLeafMesh;
+	PitArchetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
+	PitArchetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	PitArchetype->MovingParts.Part1.Motion.Pivot = PitA.Behavior.PitAnimation.RightHingeLocation;
+	PitArchetype->MovingParts.Part1.Motion.Amount = PitA.Behavior.PitAnimation.OpenAngleDegrees;
+	PitArchetype->MovingParts.Part1.Motion.Duration = PitA.Behavior.PitAnimation.MoveDuration;
 	PitArchetype->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
 
 	Runtime->DungeonAsset = Dungeon;
@@ -192,14 +201,10 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Right hinge uses requested local Y"), PitAActor->GetRightHingeLocation().Y, 0.0);
 	TestEqual(TEXT("Right hinge uses requested local Z"), PitAActor->GetRightHingeLocation().Z, -5.0);
 
-	const FVector ClosedLeftLeafInPitSpace =
-		PitAActor->GetLeftHingeLocation() + PitAActor->LeftLeafMeshComponent->GetRelativeLocation();
-	const FVector ClosedRightLeafInPitSpace =
-		PitAActor->GetRightHingeLocation() + PitAActor->RightLeafMeshComponent->GetRelativeLocation();
-	TestTrue(TEXT("Moving left hinge preserves authored closed leaf position"),
-		ClosedLeftLeafInPitSpace.Equals(FVector::ZeroVector, KINDA_SMALL_NUMBER));
-	TestTrue(TEXT("Moving right hinge preserves authored closed leaf position"),
-		ClosedRightLeafInPitSpace.Equals(FVector::ZeroVector, KINDA_SMALL_NUMBER));
+	TestTrue(TEXT("Closed left leaf uses authored MovingPart local transform"),
+		PitAActor->LeftLeafMeshComponent->GetRelativeTransform().Equals(PitArchetype->MovingParts.Part0.LocalTransform, KINDA_SMALL_NUMBER));
+	TestTrue(TEXT("Closed right leaf uses authored MovingPart local transform"),
+		PitAActor->RightLeafMeshComponent->GetRelativeTransform().Equals(PitArchetype->MovingParts.Part1.LocalTransform, KINDA_SMALL_NUMBER));
 
 	TestEqual(TEXT("Closed left leaf pitch is zero"), PitAActor->GetLeftLeafPitch(), 0.0f);
 	TestEqual(TEXT("Closed right leaf pitch is zero"), PitAActor->GetRightLeafPitch(), 0.0f);

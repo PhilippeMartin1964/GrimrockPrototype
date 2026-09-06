@@ -232,13 +232,8 @@ bool FGridWorldObjectMIG03ArchetypeVisualContractTest::RunTest(const FString& Pa
 	const FName LegacyVisualNames[] = {TEXT("PreviewMesh"), TEXT("FixedMesh"), TEXT("MovingMesh"), TEXT("PitLeftLeafMesh"), TEXT("PitRightLeafMesh")};
 	for (const FName LegacyName : LegacyVisualNames)
 	{
-		FProperty* LegacyProperty = ArchetypeClass->FindPropertyByName(LegacyName);
-		TestNotNull(*FString::Printf(TEXT("%s remains only for MIG03 runtime rewiring"), *LegacyName.ToString()), LegacyProperty);
-		if (LegacyProperty)
-		{
-			TestTrue(*FString::Printf(TEXT("%s is explicitly categorized as a temporary legacy runtime bridge"), *LegacyName.ToString()),
-				LegacyProperty->GetMetaData(TEXT("Category")).StartsWith(TEXT("Visual|Legacy Runtime Bridge")));
-		}
+		TestNull(*FString::Printf(TEXT("%s legacy visual field is physically removed"), *LegacyName.ToString()),
+			ArchetypeClass->FindPropertyByName(LegacyName));
 	}
 
 	return true;
@@ -461,7 +456,7 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 		}
 	}
 
-	// Pit trapdoor: target MovingPart[0]/[1] replace PitLeftLeafMesh/PitRightLeafMesh and their dedicated hinge path.
+	// Pit trapdoor: target MovingPart[0]/[1] own the two leaves and their hinge motions.
 	UGridObjectArchetypeAsset* PitArchetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
 	PitArchetype->StaticPart.Mesh = NewObject<UStaticMesh>(PitArchetype);
 	PitArchetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(PitArchetype);
