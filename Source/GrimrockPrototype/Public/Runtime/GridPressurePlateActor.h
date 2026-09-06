@@ -15,14 +15,9 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Plate")
-	float ReleasedHeightAboveFloor = 4.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Plate")
-	float PressedHeightAboveFloor = 1.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Plate")
-	float MoveDuration = 0.08f;
+	/** Runtime cache. Geometric travel and duration are authored by MovingPart[0].Motion. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Plate")
+	float MoveDuration = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Plate")
 	bool bIsPressed = false;
@@ -56,11 +51,6 @@ protected:
 	void UpdateAnimation(float DeltaSeconds);
 
 private:
-	FVector ReleasedLocation = FVector::ZeroVector;
-	FVector PressedLocation = FVector::ZeroVector;
-	FVector AnimStartLocation = FVector::ZeroVector;
-	FVector AnimTargetLocation = FVector::ZeroVector;
-
 	float CurrentMotionAlpha = 0.0f;
 	float AnimStartMotionAlpha = 0.0f;
 	float AnimTargetMotionAlpha = 0.0f;

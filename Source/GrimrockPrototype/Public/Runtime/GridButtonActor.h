@@ -17,16 +17,15 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Button")
-	float PressDistance = 6.f;
+	/** Runtime cache. Geometric travel and duration are authored by MovingPart[0].Motion. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Button")
+	float PressDuration = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Button")
-	float PressDuration = 0.08f;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Button")
+	float ReleaseDuration = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Button")
-	float ReleaseDuration = 0.10f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Button")
+	/** Gameplay rule: time spent held at logical alpha 1 before release starts. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Button")
 	float HoldTime = 0.15f;
 
 	UFUNCTION(BlueprintCallable, Category = "Button")
@@ -46,7 +45,6 @@ public:
 
 protected:
 	void UpdateAnimation(float DeltaSeconds);
-	FVector GetPressAxis() const;
 
 private:
 	enum class EButtonAnimState : uint8
@@ -56,9 +54,6 @@ private:
 		Holding,
 		Releasing
 	};
-
-	FVector ReleasedLocation = FVector::ZeroVector;
-	FVector PressedLocation = FVector::ZeroVector;
 
 	EButtonAnimState AnimState = EButtonAnimState::Idle;
 	float StateElapsed = 0.f;

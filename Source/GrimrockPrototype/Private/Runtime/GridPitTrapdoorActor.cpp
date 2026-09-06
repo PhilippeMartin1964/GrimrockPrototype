@@ -29,31 +29,21 @@ void AGridPitTrapdoorActor::InitializeMechanismVisuals(
 {
 	AGridMechanismActor::InitializeMechanismVisuals(ObjectData, Archetype, WorldTransform);
 
-	// Behavior still owns gameplay defaults until WORLDOBJ-MIG04 removes the specialized animation parameters.
-	LeftHingeLocation = ObjectData.Behavior.PitAnimation.LeftHingeLocation;
-	RightHingeLocation = ObjectData.Behavior.PitAnimation.RightHingeLocation;
-	OpenAngleDegrees = FMath::Clamp(ObjectData.Behavior.PitAnimation.OpenAngleDegrees, 0.0f, 120.0f);
+	// WORLDOBJ-MIG04: pit geometry is entirely generic MovingParts motion.
+	// Legacy behavior duration remains only as a temporary timing fallback until schema cleanup.
 	MoveDuration = FMath::Max(0.0f, ObjectData.Behavior.PitAnimation.MoveDuration);
-
-	if (FixedMeshComponent)
-	{
-		FixedMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	}
-
-	// WORLDOBJ-MIG03.4: the trapdoor leaves are exactly MovingParts[0] and [1].
 	const float TargetDuration = GetTargetMotionDuration();
 	if (TargetDuration > KINDA_SMALL_NUMBER)
 	{
 		MoveDuration = TargetDuration;
 	}
-	if (GetMovingPartMotion(0).Type == EGridWorldObjectMotionType::Rotation)
+
+	LeftLeafMeshComponent = MovingMeshComponent;
+	RightLeafMeshComponent = SecondaryMovingMeshComponent;
+
+	if (FixedMeshComponent)
 	{
-		OpenAngleDegrees = FMath::Abs(GetMovingPartMotion(0).Amount);
-		LeftHingeLocation = GetMovingPartMotion(0).Pivot;
-	}
-	if (GetMovingPartMotion(1).Type == EGridWorldObjectMotionType::Rotation)
-	{
-		RightHingeLocation = GetMovingPartMotion(1).Pivot;
+		FixedMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
 	const bool bHasCover = HasCompleteTrapdoorCover();
@@ -113,11 +103,6 @@ FVector AGridPitTrapdoorActor::GetRightHingeLocation() const
 	return GetMovingPartMotion(1).Pivot;
 }
 
-void AGridPitTrapdoorActor::ConfigureLeafGeometry()
-{
-	// No specialized leaf geometry remains. MovingPart LocalTransform + Motion.Pivot own the complete geometry.
-}
-
 void AGridPitTrapdoorActor::SetPitOpenVisualState(bool bOpen, bool bPlayAudio)
 {
 	if (!HasCompleteTrapdoorCover())
@@ -175,9 +160,9 @@ void AGridPitTrapdoorActor::SetPitOpenVisualState(bool bOpen, bool bPlayAudio)
 	RefreshTickEnabled();
 
 	UE_LOG(LogTemp, Log,
-		TEXT("GridPit dual-leaf animation start ObjectId=%s Cell=(%d,%d) Direction=%s StartAlpha=%.3f TargetAlpha=%.3f Angle=%.1f Duration=%.3f EffectiveDuration=%.3f"),
+		TEXT("GridPit generic-motion start ObjectId=%s Cell=(%d,%d) Direction=%s StartAlpha=%.3f TargetAlpha=%.3f Duration=%.3f EffectiveDuration=%.3f"),
 		*ObjectId.ToString(), CellX, CellY, bOpen ? TEXT("Open") : TEXT("Close"), MoveStartAlpha, MoveTargetAlpha,
-		OpenAngleDegrees, MoveDuration, CurrentMoveDuration);
+		MoveDuration, CurrentMoveDuration);
 }
 
 void AGridPitTrapdoorActor::SnapPitOpenState(bool bOpen)
@@ -236,7 +221,7 @@ void AGridPitTrapdoorActor::UpdateAnimation(float DeltaSeconds)
 	RefreshTrapdoorCollision();
 	RefreshTickEnabled();
 
-	UE_LOG(LogTemp, Log, TEXT("GridPit dual-leaf animation complete ObjectId=%s Cell=(%d,%d) State=%s"),
+	UE_LOG(LogTemp, Log, TEXT("GridPit generic-motion complete ObjectId=%s Cell=(%d,%d) State=%s"),
 		*ObjectId.ToString(), CellX, CellY, bIsOpen ? TEXT("Open") : TEXT("Closed"));
 
 	OnPitAnimationFinished.Broadcast(ObjectId, bWasOpen, bIsOpen);
@@ -249,8 +234,6 @@ void AGridPitTrapdoorActor::ApplyOpenAlpha(float Alpha)
 
 void AGridPitTrapdoorActor::RefreshTrapdoorCollision()
 {
-	// Opening is hazardous immediately, so leaf collision is removed as soon as
-	// motion starts toward Open. During Closing it stays disabled until Closed.
 	const bool bEnableCollision = !bIsOpen && !bIsAnimating && HasCompleteTrapdoorCover();
 	const ECollisionEnabled::Type CollisionMode = bEnableCollision ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision;
 

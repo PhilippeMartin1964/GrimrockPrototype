@@ -17,14 +17,9 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lever")
-	float LeverOffPitch = 45.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lever")
-	float LeverOnPitch = 135.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lever")
-	float ToggleDuration = 0.10f;
+	/** Runtime cache. Rotation/translation geometry is authored exclusively by MovingPart[0].Motion. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Lever")
+	float ToggleDuration = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Lever")
 	bool bIsOn = false;
@@ -51,11 +46,6 @@ protected:
 	void UpdateAnimation(float DeltaSeconds);
 
 private:
-	FRotator OffRelativeRotation = FRotator::ZeroRotator;
-	FRotator OnRelativeRotation = FRotator::ZeroRotator;
-	FRotator AnimStartRotation = FRotator::ZeroRotator;
-	FRotator AnimTargetRotation = FRotator::ZeroRotator;
-
 	float CurrentMotionAlpha = 0.0f;
 	float AnimStartMotionAlpha = 0.0f;
 	float AnimTargetMotionAlpha = 0.0f;

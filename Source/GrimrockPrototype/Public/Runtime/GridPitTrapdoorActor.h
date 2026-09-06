@@ -5,7 +5,6 @@
 #include "GridPitTrapdoorActor.generated.h"
 
 class UAudioComponent;
-class USceneComponent;
 class UStaticMeshComponent;
 
 /** PitObjectId, previous settled gameplay state, new settled gameplay state. */
@@ -69,17 +68,9 @@ public:
 
 	FOnGridPitTrapdoorAnimationFinished OnPitAnimationFinished;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pit|Animation")
-	FVector LeftHingeLocation = FVector(-85.0f, 0.0f, -5.0f);
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pit|Animation")
-	FVector RightHingeLocation = FVector(85.0f, 0.0f, -5.0f);
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pit|Animation", meta = (ClampMin = "0.0", ClampMax = "120.0"))
-	float OpenAngleDegrees = 80.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pit|Animation", meta = (ClampMin = "0.0"))
-	float MoveDuration = 0.75f;
+	/** Runtime cache. Hinge, angle, axis and authoritative duration live in MovingParts[].Motion. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Pit|Animation")
+	float MoveDuration = 0.0f;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Pit|Animation")
 	bool bIsOpen = true;
@@ -93,12 +84,7 @@ public:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Pit|Animation")
 	float CurrentOpenAlpha = 1.0f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pit|Trapdoor")
-	TObjectPtr<USceneComponent> LeftHingeComponent = nullptr;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pit|Trapdoor")
-	TObjectPtr<USceneComponent> RightHingeComponent = nullptr;
-
+	/** Compatibility aliases for the two generic moving-part components. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pit|Trapdoor")
 	TObjectPtr<UStaticMeshComponent> LeftLeafMeshComponent = nullptr;
 
@@ -108,7 +94,6 @@ public:
 protected:
 	void UpdateAnimation(float DeltaSeconds);
 	void ApplyOpenAlpha(float Alpha);
-	void ConfigureLeafGeometry();
 	void RefreshTrapdoorCollision();
 	void RefreshTickEnabled();
 	void StartPitMotionSound(bool bOpening, float StartTimeSeconds, bool bEnableNativePlayback);

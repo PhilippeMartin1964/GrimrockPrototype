@@ -34,30 +34,23 @@ void AGridButtonActor::Tick(float DeltaSeconds)
 void AGridButtonActor::InitializeButton(const FGridLevelObjectData& ObjectData, UStaticMesh* InButtonMesh,
 	const FVector& InWorldLocation, const FRotator& InWorldRotation)
 {
+	(void)InButtonMesh;
 	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, FTransform(InWorldRotation, InWorldLocation));
-	PressDistance = ObjectData.Behavior.ButtonAnimation.ButtonPressDistance;
-	PressDuration = ObjectData.Behavior.ButtonAnimation.ButtonPressDuration;
-	ReleaseDuration = ObjectData.Behavior.ButtonAnimation.ButtonReleaseDuration;
-	HoldTime = ObjectData.Behavior.ButtonAnimation.ButtonHoldTime;
 
-	ReleasedLocation = FVector::ZeroVector;
-	PressedLocation = FVector(PressDistance, 0.f, 0.f);
+	// WORLDOBJ-MIG04: geometry always comes from MovingPart[0].Motion.
+	// Legacy behavior durations remain only as a temporary timing fallback until the MIG04 schema cleanup.
+	PressDuration = FMath::Max(0.0f, ObjectData.Behavior.ButtonAnimation.ButtonPressDuration);
+	ReleaseDuration = FMath::Max(0.0f, ObjectData.Behavior.ButtonAnimation.ButtonReleaseDuration);
+	HoldTime = FMath::Max(0.0f, ObjectData.Behavior.ButtonAnimation.ButtonHoldTime);
 
-	if (UsesTargetVisualComposition())
+	const float TargetDuration = GetTargetMotionDuration();
+	if (TargetDuration > KINDA_SMALL_NUMBER)
 	{
-		const float TargetDuration = GetTargetMotionDuration();
-		if (TargetDuration > KINDA_SMALL_NUMBER)
-		{
-			PressDuration = TargetDuration;
-			ReleaseDuration = TargetDuration;
-		}
-		ApplyMovingPartMotionAlpha(0, 0.0f);
-	}
-	else
-	{
-		SetMovingRelativeLocation(ReleasedLocation);
+		PressDuration = TargetDuration;
+		ReleaseDuration = TargetDuration;
 	}
 
+	ApplyMovingPartMotionAlpha(0, 0.0f);
 	AnimState = EButtonAnimState::Idle;
 	StateElapsed = 0.f;
 	SetActorTickEnabled(false);
@@ -68,23 +61,6 @@ void AGridButtonActor::TriggerPress()
 	AnimState = EButtonAnimState::Pressing;
 	StateElapsed = 0.f;
 	SetActorTickEnabled(true);
-}
-
-FVector AGridButtonActor::GetPressAxis() const
-{
-	switch (Edge)
-	{
-		case EGridEdge::North:
-			return FVector(0.f, 1.f, 0.f);
-		case EGridEdge::East:
-			return FVector(1.f, 0.f, 0.f);
-		case EGridEdge::South:
-			return FVector(0.f, -1.f, 0.f);
-		case EGridEdge::West:
-			return FVector(-1.f, 0.f, 0.f);
-		default:
-			return FVector::ZeroVector;
-	}
 }
 
 void AGridButtonActor::UpdateAnimation(float DeltaSeconds)
@@ -98,27 +74,13 @@ void AGridButtonActor::UpdateAnimation(float DeltaSeconds)
 		{
 			StateElapsed += DeltaSeconds;
 			const float Alpha = FMath::Clamp(StateElapsed / FMath::Max(0.01f, PressDuration), 0.f, 1.f);
-			if (UsesTargetVisualComposition())
-			{
-				ApplyMovingPartMotionAlpha(0, Alpha);
-			}
-			else
-			{
-				SetMovingRelativeLocation(FMath::Lerp(ReleasedLocation, PressedLocation, Alpha));
-			}
+			ApplyMovingPartMotionAlpha(0, Alpha);
 
 			if (Alpha >= 1.f)
 			{
 				AnimState = EButtonAnimState::Holding;
 				StateElapsed = 0.f;
-				if (UsesTargetVisualComposition())
-				{
-					ApplyMovingPartMotionAlpha(0, 1.0f);
-				}
-				else
-				{
-					SetMovingRelativeLocation(PressedLocation);
-				}
+				ApplyMovingPartMotionAlpha(0, 1.0f);
 			}
 			break;
 		}
@@ -126,7 +88,6 @@ void AGridButtonActor::UpdateAnimation(float DeltaSeconds)
 		case EButtonAnimState::Holding:
 		{
 			StateElapsed += DeltaSeconds;
-
 			if (StateElapsed >= HoldTime)
 			{
 				AnimState = EButtonAnimState::Releasing;
@@ -139,27 +100,13 @@ void AGridButtonActor::UpdateAnimation(float DeltaSeconds)
 		{
 			StateElapsed += DeltaSeconds;
 			const float Alpha = FMath::Clamp(StateElapsed / FMath::Max(0.01f, ReleaseDuration), 0.f, 1.f);
-			if (UsesTargetVisualComposition())
-			{
-				ApplyMovingPartMotionAlpha(0, 1.0f - Alpha);
-			}
-			else
-			{
-				SetMovingRelativeLocation(FMath::Lerp(PressedLocation, ReleasedLocation, Alpha));
-			}
+			ApplyMovingPartMotionAlpha(0, 1.0f - Alpha);
 
 			if (Alpha >= 1.f)
 			{
 				AnimState = EButtonAnimState::Idle;
 				StateElapsed = 0.f;
-				if (UsesTargetVisualComposition())
-				{
-					ApplyMovingPartMotionAlpha(0, 0.0f);
-				}
-				else
-				{
-					SetMovingRelativeLocation(ReleasedLocation);
-				}
+				ApplyMovingPartMotionAlpha(0, 0.0f);
 				SetActorTickEnabled(false);
 			}
 			break;
