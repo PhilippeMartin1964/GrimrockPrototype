@@ -1,6 +1,6 @@
 # WORLDOBJ-MIG09 — Purge des compatibilités legacy
 
-Statut : **MIG09-A validé ; MIG09-B1 candidat — validation locale UE5.5.4 requise**.
+Statut : **MIG09-A et MIG09-B1 validés ; MIG09-B2A candidat — validation locale UE5.5.4 requise**.
 
 ## 1. Contexte
 
@@ -24,7 +24,7 @@ Les overrides instance-owned restent : Teleporter, Transition, Pit, `Receptacle.
 
 MIG09-A a été validé localement sous UE5.5.4 avec le filtre `Grimrock.WorldObjects` : `30` succès, `1` warning, `0` échec, exit code `0`.
 
-## 3. MIG09-B1 — une seule identité runtime pour les items
+## 3. MIG09-B1 — une seule identité runtime pour `AGridItemActor`
 
 `AGridItemActor` ne possède plus de champ `ArchetypeId`.
 
@@ -50,9 +50,33 @@ Elles ne possèdent plus aucune sémantique d'archétype :
 - la propriété réfléchie `AGridItemActor::ArchetypeId` est physiquement supprimée ;
 - le test MIG05 exige désormais son absence.
 
-Ces deux aliases doivent être supprimés en MIG09-B2 après remplacement/audit des derniers consommateurs et des éventuelles références Blueprint.
+MIG09-B1 a été validé localement sous UE5.5.4 avec le filtre `Grimrock.WorldObjects` : `30` succès, `1` warning, `0` échec, exit code `0`.
 
-## 4. Ponts encore à supprimer après MIG09-B1
+## 4. MIG09-B2A — réceptacles : `ItemDefinitionId` uniquement
+
+Le sous-système Receptacle ne conserve plus de seconde identité d'item :
+
+```text
+FGridContainedReceptacleItem
+├── RuntimeObjectId
+├── ItemDefinitionId       <- identité unique
+├── ItemDefinition
+├── ItemActor
+└── état runtime / lecture / présentation
+```
+
+Sont physiquement supprimés :
+
+- `FGridContainedReceptacleItem::ItemArchetypeId` ;
+- `AGridReceptacleActor::ContainedItemArchetypeId`.
+
+Les chemins de capture/restauration ne consultent plus `GetItemArchetypeId()` ni un fallback de réceptacle. Un item contenu sans `ItemDefinitionId` est invalide et n'est pas sérialisé silencieusement sous un ancien identifiant.
+
+`FGridRuntimeItemState::ArchetypeId` existe encore provisoirement dans le format de persistance global. Pendant MIG09-B2A, le réceptacle le remplit avec la même valeur que `ItemDefinitionId` uniquement pour conserver le format actuel. Sa suppression physique appartient à MIG09-B2B.
+
+Le test `Grimrock.WorldObjects.MIG09.ReceptacleItemDefinitionAuthority` vérifie par réflexion que les deux propriétés réceptacle supprimées ne réapparaissent pas.
+
+## 5. Ponts encore à supprimer après MIG09-B2A
 
 ```text
 UGridLevelAsset::Objects
@@ -66,22 +90,22 @@ AGridItemActor::InitializeItem() alias
 AGridItemActor::GetItemArchetypeId() alias
 FGridSpawnedItemRuntimeEntry::ItemArchetypeId
 FGridRuntimeItemState::ArchetypeId
-FGridContainedReceptacleItem::ItemArchetypeId
-AGridReceptacleActor::ContainedItemArchetypeId
 anciens initializers directs Button / Lever / Door / Pit
 champs d'animation Transient pré-MIG04
 anciens contrôles Slate qui éditent encore ces champs
 ```
 
-## 5. Ordre de purge retenu
+## 6. Ordre de purge retenu
 
 ```text
-MIG09-A   supprimer l'usage runtime du marqueur sparse pré-MIG08       ✅ validé
-MIG09-B1  supprimer le stockage AGridItemActor::ArchetypeId            ⏳ candidat
-MIG09-B2  supprimer aliases/fallbacks et états ItemArchetypeId restants
-MIG09-C   supprimer les champs d'animation Transient et anciens initializers
-MIG09-D   migrer les derniers consommateurs vers les placements typés
-MIG09-E   supprimer Objects / FGridLevelObjectData / compatibility projection
+MIG09-A    supprimer l'usage runtime du marqueur sparse pré-MIG08       ✅ validé
+MIG09-B1   supprimer le stockage AGridItemActor::ArchetypeId            ✅ validé
+MIG09-B2A  supprimer les miroirs ItemArchetypeId des réceptacles         ⏳ candidat
+MIG09-B2B  supprimer ItemArchetypeId/ArchetypeId du runtime + persistance
+MIG09-B2C  supprimer les aliases InitializeItem/GetItemArchetypeId après audit Blueprint
+MIG09-C    supprimer les champs d'animation Transient et anciens initializers
+MIG09-D    migrer les derniers consommateurs vers les placements typés
+MIG09-E    supprimer Objects / FGridLevelObjectData / compatibility projection
 ```
 
 Chaque tranche doit laisser `master` compilable et être validée avec le filtre `Grimrock.WorldObjects` avant la suivante.

@@ -43,7 +43,7 @@ struct FGridInitialReceptacleItem
  * Runtime item contained by a receptacle.
  *
  * Single source of truth for contained items.
- * No separate ContainedItemId / ContainedItemArchetypeId / ContainedItemActors.
+ * ItemDefinitionId is the sole item identity; ItemActor is optional presentation.
  */
 USTRUCT(BlueprintType)
 struct FGridContainedReceptacleItem
@@ -55,9 +55,6 @@ struct FGridContainedReceptacleItem
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
 	FName ItemDefinitionId = NAME_None;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
-	FName ItemArchetypeId = NAME_None;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
 	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
@@ -167,9 +164,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Initial Items")
 	TArray<FGridInitialReceptacleItem> InitialContainedItems;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle|Legacy")
-	FName ContainedItemArchetypeId = NAME_None;
 
 public:
 	// ============================================================

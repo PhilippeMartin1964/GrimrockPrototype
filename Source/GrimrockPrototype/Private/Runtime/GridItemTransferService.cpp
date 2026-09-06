@@ -272,7 +272,6 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 		}
 
 		FGridContainedReceptacleItem& RestoredItem = Receptacle->ContainedItems[RestoredIndex];
-		RestoredItem.ItemArchetypeId = SourceSnapshot.ItemArchetypeId;
 		RestoredItem.Weight = SourceSnapshot.Weight;
 		RestoredItem.DisplayName = SourceSnapshot.DisplayName;
 		RestoredItem.bLightsEnabled = SourceSnapshot.bLightsEnabled;
