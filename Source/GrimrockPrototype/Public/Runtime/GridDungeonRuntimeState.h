@@ -8,23 +8,6 @@
 
 class UGridReadableContentAsset;
 class UGridItemDefinitionAsset;
-struct FGridRuntimeItemState;
-
-/**
- * MIG09-B2B1 C++-only transition proxy.
- *
- * ArchetypeId is no longer a reflected/SaveGame field. Existing C++ consumers
- * are temporarily source-compatible while reading/writing the canonical
- * ItemDefinitionId. The proxy owns no identity value and is removed once those
- * consumers have been rewritten in MIG09-B2B2.
- */
-struct FGridRuntimeItemArchetypeCompatProxy
-{
-	FGridRuntimeItemArchetypeCompatProxy& operator=(FName InValue);
-	operator FName() const;
-	bool IsNone() const;
-};
-
 USTRUCT(BlueprintType)
 struct FGridRuntimeDoorState
 {
@@ -82,9 +65,6 @@ struct FGridRuntimeItemState
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	FName ItemDefinitionId = NAME_None;
 
-	/** MIG09-B2B1 source bridge only; not reflected and never serialized. */
-	FGridRuntimeItemArchetypeCompatProxy ArchetypeId;
-
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	int32 Quantity = 1;
 
@@ -124,34 +104,6 @@ struct FGridRuntimeItemState
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	FText ReadTextOverride;
 };
-
-inline FGridRuntimeItemState* GetGridRuntimeItemStateFromCompatProxy(FGridRuntimeItemArchetypeCompatProxy* Proxy)
-{
-	return reinterpret_cast<FGridRuntimeItemState*>(
-		reinterpret_cast<uint8*>(Proxy) - STRUCT_OFFSET(FGridRuntimeItemState, ArchetypeId));
-}
-
-inline const FGridRuntimeItemState* GetGridRuntimeItemStateFromCompatProxy(const FGridRuntimeItemArchetypeCompatProxy* Proxy)
-{
-	return reinterpret_cast<const FGridRuntimeItemState*>(
-		reinterpret_cast<const uint8*>(Proxy) - STRUCT_OFFSET(FGridRuntimeItemState, ArchetypeId));
-}
-
-inline FGridRuntimeItemArchetypeCompatProxy& FGridRuntimeItemArchetypeCompatProxy::operator=(FName InValue)
-{
-	GetGridRuntimeItemStateFromCompatProxy(this)->ItemDefinitionId = InValue;
-	return *this;
-}
-
-inline FGridRuntimeItemArchetypeCompatProxy::operator FName() const
-{
-	return GetGridRuntimeItemStateFromCompatProxy(this)->ItemDefinitionId;
-}
-
-inline bool FGridRuntimeItemArchetypeCompatProxy::IsNone() const
-{
-	return GetGridRuntimeItemStateFromCompatProxy(this)->ItemDefinitionId.IsNone();
-}
 
 USTRUCT(BlueprintType)
 struct FGridRuntimePitState

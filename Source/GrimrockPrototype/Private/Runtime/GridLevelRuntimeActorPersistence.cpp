@@ -17,11 +17,11 @@
 
 namespace
 {
-	FName PersistenceResolvePickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackArchetypeId)
+	FName PersistenceResolvePickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackItemDefinitionId)
 	{
 		if (!ItemActor)
 		{
-			return FallbackArchetypeId;
+			return FallbackItemDefinitionId;
 		}
 		if (const UGridItemDefinitionAsset* Definition = ItemActor->GetItemDefinitionAsset())
 		{
@@ -34,13 +34,8 @@ namespace
 		{
 			return ItemActor->GetItemDefinitionId();
 		}
-		if (!FallbackArchetypeId.IsNone())
-		{
-			return FallbackArchetypeId;
-		}
-		return ItemActor->GetItemArchetypeId();
+		return FallbackItemDefinitionId;
 	}
-
 	const FGridLevelObjectData* PersistenceFindLevelObjectDataById(const UGridLevelAsset* LevelAsset, FGuid ObjectId)
 	{
 		if (!LevelAsset || !ObjectId.IsValid())
@@ -195,8 +190,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		ExistingPlacedItemObjectIds.Add(Entry.ObjectId);
 		FGridRuntimeItemState ItemState;
 		ItemState.ObjectId = Entry.ObjectId;
-		ItemState.ItemDefinitionId =
-			!Entry.ItemDefinitionId.IsNone() ? Entry.ItemDefinitionId : PersistenceResolvePickupItemDefinitionId(ItemActor, Entry.ItemArchetypeId);
+		ItemState.ItemDefinitionId = PersistenceResolvePickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId);
 		ItemState.Quantity = FMath::Max(1, Entry.Quantity);
 		ItemState.CellX = Entry.Cell.X;
 		ItemState.CellY = Entry.Cell.Y;
@@ -500,7 +494,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 				Entry.Edge = RuntimeEdge;
 				Entry.ItemActor = ItemActor;
 				Entry.ObjectId = Pair.Key;
-				Entry.ItemArchetypeId = RuntimeItemDefinitionId;
 				Entry.ItemDefinitionAsset = ItemDefinition;
 				Entry.ItemDefinitionId = RuntimeItemDefinitionId;
 				Entry.Quantity = FMath::Max(1, ItemState.Quantity);

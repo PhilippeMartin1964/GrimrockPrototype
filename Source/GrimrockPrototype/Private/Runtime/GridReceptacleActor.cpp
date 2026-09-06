@@ -748,7 +748,6 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState(FGridRuntimeReceptacleS
 		}
 		FGridRuntimeItemState ItemState;
 		ItemState.ObjectId = Item.RuntimeObjectId.IsValid() ? Item.RuntimeObjectId : FGuid::NewGuid();
-		ItemState.ArchetypeId = ResolvedItemId;
 		ItemState.ItemDefinitionId = ResolvedItemId;
 		ItemState.bIsContainedInReceptacle = true;
 		ItemState.ReceptacleObjectId = ObjectId;

@@ -55,9 +55,6 @@ struct FGridSpawnedItemRuntimeEntry
 	FGuid ObjectId;
 
 	UPROPERTY(Transient)
-	FName ItemArchetypeId = NAME_None;
-
-	UPROPERTY(Transient)
 	TObjectPtr<UGridItemDefinitionAsset> ItemDefinitionAsset = nullptr;
 
 	UPROPERTY(Transient)

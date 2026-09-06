@@ -42,11 +42,11 @@ namespace
 		return EGridEdge::None;
 	}
 
-	FName ResolveWorldPickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackArchetypeId)
+	FName ResolveWorldPickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackItemDefinitionId)
 	{
 		if (!ItemActor)
 		{
-			return FallbackArchetypeId;
+			return FallbackItemDefinitionId;
 		}
 		if (const UGridItemDefinitionAsset* Definition = ItemActor->GetItemDefinitionAsset())
 		{
@@ -59,13 +59,8 @@ namespace
 		{
 			return ItemActor->GetItemDefinitionId();
 		}
-		if (!FallbackArchetypeId.IsNone())
-		{
-			return FallbackArchetypeId;
-		}
-		return ItemActor->GetItemArchetypeId();
-	}
-}
+		return FallbackItemDefinitionId;
+	}}
 
 bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRuntimeEntry& Entry, const AGrimrockPartyPawn* PartyPawn, bool bLogRejection) const
 {
@@ -259,7 +254,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrim
 		}
 
 		const FName ItemDefinitionId =
-			ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId.IsNone() ? Entry.ItemArchetypeId : Entry.ItemDefinitionId);
+			ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId);
 		if (ItemDefinitionId.IsNone())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Item pickup failed at cell %d,%d: missing item definition id."), CellX, CellY);
@@ -336,7 +331,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrim
 		}
 
 		const FName ItemDefinitionId =
-			ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId.IsNone() ? Entry.ItemArchetypeId : Entry.ItemDefinitionId);
+			ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId);
 		if (ItemDefinitionId.IsNone())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Item pickup failed for actor %s: missing item definition id."), *ItemActor->GetName());
@@ -607,7 +602,7 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 		UGridItemDefinitionAsset* Definition = Entry.ItemDefinitionAsset.Get();
 		if (!Definition)
 		{
-			const FName DefinitionId = !Entry.ItemDefinitionId.IsNone() ? Entry.ItemDefinitionId : Entry.ItemArchetypeId;
+			const FName DefinitionId = Entry.ItemDefinitionId;
 			Definition = ResolveRuntimeItemDefinition(DefinitionId);
 		}
 		if (!Definition)
@@ -740,7 +735,6 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	Entry.Edge = Edge;
 	Entry.ItemActor = ItemActor;
 	Entry.ObjectId = RuntimeObjectId;
-	Entry.ItemArchetypeId = ItemInstance.ItemDefinitionId;
 	Entry.ItemDefinitionAsset = ItemDefinition;
 	Entry.ItemDefinitionId = ItemInstance.ItemDefinitionId;
 	Entry.Quantity = FMath::Max(1, ItemInstance.Quantity);
@@ -841,7 +835,7 @@ float AGridLevelRuntimeActor::GetWorldItemWeightAtCell(int32 CellX, int32 CellY,
 		UGridItemDefinitionAsset* ItemDefinition = Entry.ItemDefinitionAsset.Get();
 		if (!ItemDefinition)
 		{
-			const FName DefinitionId = !Entry.ItemDefinitionId.IsNone() ? Entry.ItemDefinitionId : Entry.ItemArchetypeId;
+			const FName DefinitionId = Entry.ItemDefinitionId;
 			ItemDefinition = ResolveRuntimeItemDefinition(DefinitionId);
 		}
 		if (!ItemDefinition)

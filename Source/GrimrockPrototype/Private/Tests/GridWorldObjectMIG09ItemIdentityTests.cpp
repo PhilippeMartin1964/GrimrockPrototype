@@ -4,6 +4,7 @@
 
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/GridItemActor.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "UObject/UnrealType.h"
 
@@ -46,10 +47,10 @@ bool FGridWorldObjectMIG09RuntimeItemSaveIdentityTest::RunTest(const FString& Pa
 
 	FGridRuntimeItemState ItemState;
 	ItemState.ItemDefinitionId = TEXT("MIG09_SaveItem");
-	TestEqual(TEXT("Compatibility reads resolve to ItemDefinitionId"), static_cast<FName>(ItemState.ArchetypeId), FName(TEXT("MIG09_SaveItem")));
+	TestEqual(TEXT("Runtime item state identity is ItemDefinitionId only"), ItemState.ItemDefinitionId, FName(TEXT("MIG09_SaveItem")));
 
-	ItemState.ArchetypeId = TEXT("MIG09_CompatWrite");
-	TestEqual(TEXT("Compatibility writes target ItemDefinitionId without duplicate storage"), ItemState.ItemDefinitionId, FName(TEXT("MIG09_CompatWrite")));
+	TestNull(TEXT("Spawned item runtime entry no longer exposes ItemArchetypeId"),
+		FGridSpawnedItemRuntimeEntry::StaticStruct()->FindPropertyByName(TEXT("ItemArchetypeId")));
 
 	return true;
 }

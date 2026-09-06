@@ -98,30 +98,6 @@ namespace
 		return ObjectData.ArchetypeId;
 	}
 
-	FName ResolvePickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackArchetypeId)
-	{
-		if (!ItemActor)
-		{
-			return FallbackArchetypeId;
-		}
-		if (const UGridItemDefinitionAsset* Definition = ItemActor->GetItemDefinitionAsset())
-		{
-			if (!Definition->ItemDefinitionId.IsNone())
-			{
-				return Definition->ItemDefinitionId;
-			}
-		}
-		if (!ItemActor->GetItemDefinitionId().IsNone())
-		{
-			return ItemActor->GetItemDefinitionId();
-		}
-		if (!FallbackArchetypeId.IsNone())
-		{
-			return FallbackArchetypeId;
-		}
-		return ItemActor->GetItemArchetypeId();
-	}
-
 	const FGridLevelObjectData* FindLevelObjectDataById(const UGridLevelAsset* LevelAsset, FGuid ObjectId)
 	{
 		if (!LevelAsset || !ObjectId.IsValid())
@@ -2253,7 +2229,6 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLevelObjectData& Obje
 	Entry.Edge = ObjectData.Edge;
 	Entry.ItemActor = ItemActor;
 	Entry.ObjectId = ObjectData.ObjectId;
-	Entry.ItemArchetypeId = ObjectData.ArchetypeId;
 	Entry.ItemDefinitionAsset = ItemDefinition;
 	Entry.ItemDefinitionId = ItemDefinitionId;
 	Entry.Quantity = 1;
