@@ -1,6 +1,6 @@
 # WORLDOBJ-MIG09 — Purge des compatibilités legacy
 
-Statut : **MIG09-A et MIG09-B1 validés ; MIG09-B2A candidat — validation locale UE5.5.4 requise**.
+Statut : **MIG09-A, MIG09-B1 et MIG09-B2A validés ; MIG09-B2B1 candidat — validation locale UE5.5.4 requise**.
 
 ## 1. Contexte
 
@@ -72,11 +72,37 @@ Sont physiquement supprimés :
 
 Les chemins de capture/restauration ne consultent plus `GetItemArchetypeId()` ni un fallback de réceptacle. Un item contenu sans `ItemDefinitionId` est invalide et n'est pas sérialisé silencieusement sous un ancien identifiant.
 
-`FGridRuntimeItemState::ArchetypeId` existe encore provisoirement dans le format de persistance global. Pendant MIG09-B2A, le réceptacle le remplit avec la même valeur que `ItemDefinitionId` uniquement pour conserver le format actuel. Sa suppression physique appartient à MIG09-B2B.
-
 Le test `Grimrock.WorldObjects.MIG09.ReceptacleItemDefinitionAuthority` vérifie par réflexion que les deux propriétés réceptacle supprimées ne réapparaissent pas.
 
-## 5. Ponts encore à supprimer après MIG09-B2A
+MIG09-B2A a été validé localement sous UE5.5.4 avec le filtre `Grimrock.WorldObjects` : `31` succès, `1` warning, `0` échec, exit code `0`.
+
+## 5. MIG09-B2B1 — schéma SaveGame des items
+
+`FGridRuntimeItemState::ArchetypeId` n'est plus une propriété réfléchie et n'est plus sérialisé dans le SaveGame.
+
+Le schéma persistant devient :
+
+```text
+FGridRuntimeItemState
+├── ObjectId
+├── ItemDefinitionId       <- identité persistée unique
+├── Quantity
+├── Cell / Edge / Transform
+├── état physique / conteneur / lumière
+└── contenu lisible
+```
+
+Pour isoler cette modification de schéma des réécritures de gros consommateurs runtime, un proxy C++ transitoire `FGridRuntimeItemArchetypeCompatProxy` porte encore le nom source `ArchetypeId`. Il ne contient aucune valeur : toute lecture ou écriture est redirigée vers `ItemDefinitionId`. Ce proxy n'est ni `UPROPERTY`, ni `SaveGame`, ni visible en Blueprint.
+
+Le test `Grimrock.WorldObjects.MIG09.RuntimeItemSaveDefinitionAuthority` vérifie :
+
+- absence réfléchie de `ArchetypeId` dans `FGridRuntimeItemState` ;
+- présence de `ItemDefinitionId` ;
+- lecture/écriture du proxy redirigée vers `ItemDefinitionId` sans second stockage.
+
+Le proxy disparaîtra en MIG09-B2B2 après remplacement textuel des derniers consommateurs.
+
+## 6. Ponts encore à supprimer après MIG09-B2B1
 
 ```text
 UGridLevelAsset::Objects
@@ -89,23 +115,24 @@ GridLevelPlacementCompatibility
 AGridItemActor::InitializeItem() alias
 AGridItemActor::GetItemArchetypeId() alias
 FGridSpawnedItemRuntimeEntry::ItemArchetypeId
-FGridRuntimeItemState::ArchetypeId
+FGridRuntimeItemArchetypeCompatProxy
 anciens initializers directs Button / Lever / Door / Pit
 champs d'animation Transient pré-MIG04
 anciens contrôles Slate qui éditent encore ces champs
 ```
 
-## 6. Ordre de purge retenu
+## 7. Ordre de purge retenu
 
 ```text
-MIG09-A    supprimer l'usage runtime du marqueur sparse pré-MIG08       ✅ validé
-MIG09-B1   supprimer le stockage AGridItemActor::ArchetypeId            ✅ validé
-MIG09-B2A  supprimer les miroirs ItemArchetypeId des réceptacles         ⏳ candidat
-MIG09-B2B  supprimer ItemArchetypeId/ArchetypeId du runtime + persistance
-MIG09-B2C  supprimer les aliases InitializeItem/GetItemArchetypeId après audit Blueprint
-MIG09-C    supprimer les champs d'animation Transient et anciens initializers
-MIG09-D    migrer les derniers consommateurs vers les placements typés
-MIG09-E    supprimer Objects / FGridLevelObjectData / compatibility projection
+MIG09-A     supprimer l'usage runtime du marqueur sparse pré-MIG08        ✅ validé
+MIG09-B1    supprimer le stockage AGridItemActor::ArchetypeId             ✅ validé
+MIG09-B2A   supprimer les miroirs ItemArchetypeId des réceptacles          ✅ validé
+MIG09-B2B1  retirer ArchetypeId du schéma SaveGame runtime                 ⏳ candidat
+MIG09-B2B2  réécrire consommateurs + supprimer proxy et cache spawn
+MIG09-B2C   supprimer aliases InitializeItem/GetItemArchetypeId après audit Blueprint
+MIG09-C     supprimer les champs d'animation Transient et anciens initializers
+MIG09-D     migrer les derniers consommateurs vers les placements typés
+MIG09-E     supprimer Objects / FGridLevelObjectData / compatibility projection
 ```
 
 Chaque tranche doit laisser `master` compilable et être validée avec le filtre `Grimrock.WorldObjects` avant la suivante.
