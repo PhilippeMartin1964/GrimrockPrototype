@@ -4,7 +4,6 @@
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
-#include "EdGraph/EdGraph.h"
 #include "Engine/Blueprint.h"
 #include "K2Node_CallFunction.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -56,37 +55,28 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		}
 
 		++LoadedBlueprintCount;
-		TArray<UEdGraph*> Graphs;
-		FBlueprintEditorUtils::GetAllGraphs(Blueprint, Graphs);
+		TArray<UK2Node_CallFunction*> CallFunctions;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_CallFunction>(Blueprint, CallFunctions);
 
-		for (const UEdGraph* Graph : Graphs)
+		for (const UK2Node_CallFunction* CallFunction : CallFunctions)
 		{
-			if (!Graph)
+			if (!CallFunction)
 			{
 				continue;
 			}
 
-			for (const UEdGraphNode* Node : Graph->Nodes)
+			const FName FunctionName = CallFunction->FunctionReference.GetMemberName();
+			if (!LegacyFunctionNames.Contains(FunctionName))
 			{
-				const UK2Node_CallFunction* CallFunction = Cast<UK2Node_CallFunction>(Node);
-				if (!CallFunction)
-				{
-					continue;
-				}
-
-				const FName FunctionName = CallFunction->FunctionReference.GetMemberName();
-				if (!LegacyFunctionNames.Contains(FunctionName))
-				{
-					continue;
-				}
-
-				LegacyReferences.Add(FString::Printf(
-					TEXT("%s :: Graph=%s :: Function=%s :: Node=%s"),
-					*BlueprintAssetData.PackageName.ToString(),
-					*Graph->GetName(),
-					*FunctionName.ToString(),
-					*GetNameSafe(Node)));
+				continue;
 			}
+
+			LegacyReferences.Add(FString::Printf(
+				TEXT("%s :: Graph=%s :: Function=%s :: Node=%s"),
+				*BlueprintAssetData.PackageName.ToString(),
+				*GetNameSafe(CallFunction->GetGraph()),
+				*FunctionName.ToString(),
+				*GetNameSafe(CallFunction)));
 		}
 	}
 
