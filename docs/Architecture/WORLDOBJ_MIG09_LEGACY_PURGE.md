@@ -1,6 +1,6 @@
 # WORLDOBJ-MIG09 — Purge des compatibilités legacy
 
-Statut : **MIG09-A, MIG09-B1, MIG09-B2A, MIG09-B2B1, MIG09-B2B2, MIG09-B2B3 et MIG09-B2C-A validés ; MIG09-B2C-B candidat — validation locale UE5.5.4 requise**.
+Statut : **MIG09-A, MIG09-B1, MIG09-B2A, MIG09-B2B1, MIG09-B2B2, MIG09-B2B3, MIG09-B2C-A et MIG09-B2C-B validés ; MIG09-C-A candidat — validation locale UE5.5.4 requise**.
 
 ## 1. Contexte
 
@@ -161,9 +161,52 @@ Après l'audit Blueprint vert :
 
 Le test MIG05 vérifie la sémantique du chemin ID-only : identité canonique, absence de `ItemDefinitionAsset`, suppression des tags obsolètes et conservation de la présentation existante.
 
-MIG09-B2C-B est candidat et doit être validé localement sous UE5.5.4 avec le filtre `Grimrock.WorldObjects`.
+MIG09-B2C-B a été validé localement sous UE5.5.4 avec le filtre `Grimrock.WorldObjects` : `33` succès, `1` warning, `0` échec, exit code `0`.
 
-## 10. Ponts encore à supprimer après MIG09-B2C-B
+## 10. MIG09-C-A — audit des anciens initializers de mécanismes
+
+Avant de supprimer les derniers helpers directs des mécanismes, MIG09-C-A ajoute un audit Editor des Blueprints sous `/Game/GrimrockPrototype` pour :
+
+```text
+InitializeButton(...)
+InitializeLever(...)
+InitializeDoor(...)
+```
+
+Le Pit n'a plus d'initializer direct dédié : `AGridPitTrapdoorActor` utilise déjà `InitializeMechanismVisuals()` puis `InitializeGridObject()`.
+
+Le test :
+
+```text
+Grimrock.WorldObjects.MIG09.MechanismLegacyBlueprintReferences
+```
+
+charge tous les `UBlueprint`, parcourt les `UK2Node_CallFunction` et échoue si l'un de ces trois anciens noms est encore appelé.
+
+L'inventaire C++ avant purge montre :
+
+- `InitializeButton()` : aucun consommateur C++ externe à `AGridButtonActor` ;
+- `InitializeLever()` : aucun consommateur C++ externe à `AGridLeverActor` ;
+- `InitializeDoor()` : encore utilisé par des tests directs (`GridDoorAudioFeedbackTests.cpp`, `GridDoorPassageBlockingTests.cpp`, `GridMonsterMON14_3Tests.cpp`, `GridMonsterAcousticHearingTests.cpp`, `GridMON198ProductionPuzzleTests.cpp`).
+
+Les champs pré-MIG04 à supprimer dans les sous-tranches suivantes sont les bridges `Transient` de `GridObjectBehavior.h` :
+
+```text
+FGridPitAnimationParams
+FGridButtonAnimationParams.ButtonPressDistance
+FGridButtonAnimationParams.ButtonPressDuration
+FGridButtonAnimationParams.ButtonReleaseDuration
+FGridLeverAnimationParams
+FGridPressurePlateAnimationParams
+FGridDoorAnimationParams.OpenHeight
+FGridDoorAnimationParams.MoveDuration
+```
+
+Les états runtime `Transient` nécessaires aux acteurs (audio, alpha courant, état d'animation, compteurs de diagnostic) ne font pas partie de cette purge.
+
+MIG09-C-A est candidat et doit être validé localement sous UE5.5.4 avec le filtre `Grimrock.WorldObjects`.
+
+## 11. Ponts encore à supprimer après MIG09-C-A
 
 ```text
 UGridLevelAsset::Objects
@@ -173,23 +216,27 @@ CommitCompatibilityObjectEdit()
 RefreshLegacyObjectMirrorFromTyped()
 GetObjectCompatibilityView()
 GridLevelPlacementCompatibility
-anciens initializers directs Button / Lever / Door / Pit
+InitializeButton()
+InitializeLever()
+InitializeDoor()
 champs d'animation Transient pré-MIG04
 anciens contrôles Slate qui éditent encore ces champs
 ```
 
-## 11. Ordre de purge retenu
+## 12. Ordre de purge retenu
 
 ```text
-MIG09-A       supprimer l'usage runtime du marqueur sparse pré-MIG08        ✅ validé
-MIG09-B1      supprimer le stockage AGridItemActor::ArchetypeId             ✅ validé
-MIG09-B2A     supprimer les miroirs ItemArchetypeId des réceptacles          ✅ validé
-MIG09-B2B1    retirer ArchetypeId du schéma SaveGame runtime                 ✅ validé
-MIG09-B2B2    réécrire les consommateurs SaveGame                            ✅ validé
-MIG09-B2B3    supprimer proxy C++ et cache spawn ItemArchetypeId              ✅ validé
-MIG09-B2C-A   auditer les références Blueprint aux aliases Item              ✅ validé
-MIG09-B2C-B   supprimer InitializeItem/GetItemArchetypeId après audit vert   ⏳ candidat
-MIG09-C       supprimer les champs d'animation Transient et anciens initializers
+MIG09-A       supprimer l'usage runtime du marqueur sparse pré-MIG08         ✅ validé
+MIG09-B1      supprimer le stockage AGridItemActor::ArchetypeId              ✅ validé
+MIG09-B2A     supprimer les miroirs ItemArchetypeId des réceptacles           ✅ validé
+MIG09-B2B1    retirer ArchetypeId du schéma SaveGame runtime                  ✅ validé
+MIG09-B2B2    réécrire les consommateurs SaveGame                             ✅ validé
+MIG09-B2B3    supprimer proxy C++ et cache spawn ItemArchetypeId               ✅ validé
+MIG09-B2C-A   auditer les références Blueprint aux aliases Item               ✅ validé
+MIG09-B2C-B   supprimer InitializeItem/GetItemArchetypeId après audit vert    ✅ validé
+MIG09-C-A     auditer les anciens initializers Blueprint de mécanismes         ⏳ candidat
+MIG09-C-B     migrer les consommateurs C++ puis supprimer les initializers
+MIG09-C-C     supprimer les bridges d'animation Transient et contrôles Slate
 MIG09-D       migrer les derniers consommateurs vers les placements typés
 MIG09-E       supprimer Objects / FGridLevelObjectData / compatibility projection
 ```
