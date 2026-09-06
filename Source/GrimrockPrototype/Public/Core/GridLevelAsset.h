@@ -5,6 +5,7 @@
 #include "GridLuaScriptTypes.h"
 #include "GridLevelVariableTypes.h"
 #include "GridTypes.h"
+#include "GridLevelPlacementTypes.h"
 #include "GridLevelAsset.generated.h"
 
 class UGridQuestDefinitionAsset;
@@ -47,8 +48,33 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Gameplay|Start")
 	FIntPoint GetStartCell() const;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
+	/**
+	 * WORLDOBJ-MIG07 legacy bridge. Runtime/editor consumers still read this array
+	 * during MIG07-A/B. MIG08 migrates real assets to the typed collections below;
+	 * MIG09 removes this monolithic storage once every consumer has moved.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Legacy")
 	TArray<FGridLevelObjectData> Objects;
+
+	/** WORLDOBJ-MIG07 target: reusable world-object placements only. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
+	TArray<FGridWorldObjectInstance> WorldObjectInstances;
+
+	/** WORLDOBJ-MIG07 target: collectibles physically present in the level. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
+	TArray<FGridLooseItemInstance> LooseItemInstances;
+
+	/** WORLDOBJ-MIG07 target: monster spawn placements/generators. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
+	TArray<FGridMonsterSpawnInstance> MonsterSpawns;
+
+	/** WORLDOBJ-MIG07 target: item generators, distinct from loose items. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
+	TArray<FGridItemSpawnInstance> ItemSpawns;
+
+	/** WORLDOBJ-MIG07 target: data-only logic/narrative objects. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
+	TArray<FGridLogicObjectInstance> LogicObjects;
 
 	/**
 	 * WORLDOBJ-MIG06 migration marker.
@@ -121,6 +147,51 @@ public:
 		else
 		{
 			SparseBehaviorOverrideObjectIds.Remove(ObjectId);
+		}
+	}
+
+	/** Number of placements already represented by the MIG07 typed schema. */
+	int32 GetTypedPlacementCount() const
+	{
+		return WorldObjectInstances.Num() + LooseItemInstances.Num() + MonsterSpawns.Num() + ItemSpawns.Num() + LogicObjects.Num();
+	}
+
+	/**
+	 * MIG07 migration helper used by tests and, later, MIG08 asset conversion.
+	 * It projects the current legacy monolith into the target typed collections.
+	 * Runtime authority does not switch to these arrays until MIG07-B.
+	 */
+	void RebuildTypedPlacementProjectionFromLegacy()
+	{
+		WorldObjectInstances.Reset();
+		LooseItemInstances.Reset();
+		MonsterSpawns.Reset();
+		ItemSpawns.Reset();
+		LogicObjects.Reset();
+
+		for (const FGridLevelObjectData& Object : Objects)
+		{
+			switch (GridLevelPlacementConversion::GetBucket(Object.Type))
+			{
+				case EGridLevelPlacementBucket::WorldObject:
+					WorldObjectInstances.Add(GridLevelPlacementConversion::ToWorldObject(Object));
+					break;
+				case EGridLevelPlacementBucket::LooseItem:
+					LooseItemInstances.Add(GridLevelPlacementConversion::ToLooseItem(Object));
+					break;
+				case EGridLevelPlacementBucket::MonsterSpawn:
+					MonsterSpawns.Add(GridLevelPlacementConversion::ToMonsterSpawn(Object));
+					break;
+				case EGridLevelPlacementBucket::ItemSpawn:
+					ItemSpawns.Add(GridLevelPlacementConversion::ToItemSpawn(Object));
+					break;
+				case EGridLevelPlacementBucket::LogicObject:
+					LogicObjects.Add(GridLevelPlacementConversion::ToLogicObject(Object));
+					break;
+				case EGridLevelPlacementBucket::None:
+				default:
+					break;
+			}
 		}
 	}
 
