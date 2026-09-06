@@ -183,10 +183,10 @@ namespace
 			{
 				return true;
 			}
-			return Archetype->PreviewMesh || Archetype->FixedMesh || Archetype->MovingMesh;
+			return Archetype->HasAnyVisualPart();
 		}
 
-		return Archetype->PreviewMesh || Archetype->FixedMesh || Archetype->MovingMesh || Archetype->RuntimeActorClass || Archetype->ItemActorClass;
+		return Archetype->HasAnyVisualPart() || Archetype->RuntimeActorClass || Archetype->ItemActorClass;
 	}
 
 	TSharedRef<SWidget> BuildBehaviorFloatSpinBoxRow(const FText& Label, float Value, TFunction<void(float)> ApplyValue)
@@ -381,7 +381,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(cons
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
 
 	// MonsterSpawn has a dedicated authoring contract below. Generic archetype
-	// metadata (interactable/readable/light, preview meshes...) obscures the
+	// metadata (interactable/readable/light, visual composition...) obscures the
 	// parameters a level designer actually needs for monster placement.
 	if (Archetype && !bIsMonsterSpawn)
 	{
@@ -569,23 +569,16 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection(c
 			FText::FromString(TEXT("Item Actor Class")), GetClassNameText(Archetype->ItemActorClass.Get()))];
 
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			FText::FromString(TEXT("Main Mesh / Preview Mesh")), GetObjectNameText(Archetype->PreviewMesh.Get()))];
+			FText::FromString(TEXT("Static Part Mesh")), GetObjectNameText(Archetype->StaticPart.Mesh.Get()))];
 
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			FText::FromString(TEXT("Fixed Mesh")), GetObjectNameText(Archetype->FixedMesh.Get()))];
+			FText::FromString(TEXT("Moving Part 0 Mesh")), GetObjectNameText(Archetype->MovingParts.Part0.Mesh.Get()))];
 
-		if (Obj.Type == EGridLevelObjectType::Pit)
-		{
-			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-				FText::FromString(TEXT("Left Leaf Mesh")), GetObjectNameText(Archetype->PitLeftLeafMesh.Get()))];
-			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-				FText::FromString(TEXT("Right Leaf Mesh")), GetObjectNameText(Archetype->PitRightLeafMesh.Get()))];
-		}
-		else
-		{
-			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-				FText::FromString(TEXT("Moving Mesh")), GetObjectNameText(Archetype->MovingMesh.Get()))];
-		}
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			FText::FromString(TEXT("Moving Part 1 Mesh")), GetObjectNameText(Archetype->MovingParts.Part1.Mesh.Get()))];
+
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			FText::FromString(TEXT("Moving Part Count")), FText::AsNumber(Archetype->GetDefinedMovingPartCount()))];
 	}
 
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Advanced / Debug")), Root);
@@ -729,10 +722,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection(con
 	if (Archetype)
 	{
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			FText::FromString(TEXT("Moving Mesh")), GetBoolText(Archetype->MovingMesh.Get() != nullptr))];
+			FText::FromString(TEXT("Static Part")), GetBoolText(Archetype->StaticPart.IsDefined()))];
 
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			FText::FromString(TEXT("Fixed Mesh")), GetBoolText(Archetype->FixedMesh.Get() != nullptr))];
+			FText::FromString(TEXT("Moving Parts")), FText::AsNumber(Archetype->GetDefinedMovingPartCount()))];
 	}
 
 	Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
