@@ -6,6 +6,7 @@
 #include "GridLevelVariableTypes.h"
 #include "GridTypes.h"
 #include "GridLevelPlacementTypes.h"
+#include "GridLevelPlacementCompatibility.h"
 #include "GridLevelAsset.generated.h"
 
 class UGridQuestDefinitionAsset;
@@ -77,6 +78,15 @@ public:
 	TArray<FGridLogicObjectInstance> LogicObjects;
 
 	/**
+	 * WORLDOBJ-MIG07-B authority marker. False means the historical Objects array
+	 * is still the persistent source. True means the five typed collections above
+	 * are authoritative and Objects is only a compatibility mirror for consumers
+	 * that have not yet been physically purged.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
+	bool bTypedPlacementStorageAuthoritative = false;
+
+	/**
 	 * WORLDOBJ-MIG06 migration marker.
 	 *
 	 * Object ids in this set store only sparse instance-owned values in
@@ -130,7 +140,19 @@ public:
 
 	bool UsesSparseBehaviorOverrides(const FGuid& ObjectId) const
 	{
-		return ObjectId.IsValid() && SparseBehaviorOverrideObjectIds.Contains(ObjectId);
+		if (!ObjectId.IsValid())
+		{
+			return false;
+		}
+		if (bTypedPlacementStorageAuthoritative)
+		{
+			return WorldObjectInstances.ContainsByPredicate(
+				[&ObjectId](const FGridWorldObjectInstance& Instance)
+				{
+					return Instance.InstanceId == ObjectId;
+				});
+		}
+		return SparseBehaviorOverrideObjectIds.Contains(ObjectId);
 	}
 
 	void SetSparseBehaviorOverrides(const FGuid& ObjectId, bool bUsesSparseOverrides)
@@ -159,7 +181,7 @@ public:
 	/**
 	 * MIG07 migration helper used by tests and, later, MIG08 asset conversion.
 	 * It projects the current legacy monolith into the target typed collections.
-	 * Runtime authority does not switch to these arrays until MIG07-B.
+	 * Runtime authority does not switch until EnableTypedPlacementStorageFromLegacy().
 	 */
 	void RebuildTypedPlacementProjectionFromLegacy()
 	{
@@ -193,6 +215,70 @@ public:
 					break;
 			}
 		}
+	}
+
+	/**
+	 * Explicit MIG07-B cut-over helper. MIG08 will invoke the equivalent operation
+	 * while converting real assets; it is deliberately never implicit for legacy assets.
+	 */
+	void EnableTypedPlacementStorageFromLegacy()
+	{
+		RebuildTypedPlacementProjectionFromLegacy();
+		bTypedPlacementStorageAuthoritative = true;
+		RefreshLegacyObjectMirrorFromTyped();
+	}
+
+	/**
+	 * Rebuilds the historical monolithic array from the typed source of truth.
+	 * This is a compatibility view, not a second authoring authority.
+	 */
+	void RefreshLegacyObjectMirrorFromTyped()
+	{
+		if (!bTypedPlacementStorageAuthoritative)
+		{
+			return;
+		}
+
+		Objects.Reset(GetTypedPlacementCount());
+		SparseBehaviorOverrideObjectIds.Reset();
+
+		for (const FGridWorldObjectInstance& Instance : WorldObjectInstances)
+		{
+			Objects.Add(GridLevelPlacementCompatibility::ToLegacyWorldObject(Instance));
+			if (Instance.InstanceId.IsValid())
+			{
+				SparseBehaviorOverrideObjectIds.Add(Instance.InstanceId);
+			}
+		}
+		for (const FGridLooseItemInstance& Instance : LooseItemInstances)
+		{
+			Objects.Add(GridLevelPlacementCompatibility::ToLegacyLooseItem(Instance));
+		}
+		for (const FGridMonsterSpawnInstance& Spawn : MonsterSpawns)
+		{
+			Objects.Add(GridLevelPlacementCompatibility::ToLegacyMonsterSpawn(Spawn));
+		}
+		for (const FGridItemSpawnInstance& Spawn : ItemSpawns)
+		{
+			Objects.Add(GridLevelPlacementCompatibility::ToLegacyItemSpawn(Spawn));
+		}
+		for (const FGridLogicObjectInstance& Instance : LogicObjects)
+		{
+			Objects.Add(GridLevelPlacementCompatibility::ToLegacyLogicObject(Instance));
+		}
+	}
+
+	/**
+	 * Transitional view for runtime/editor code still typed against FGridLevelObjectData.
+	 * In typed mode, the view is rebuilt from the typed collections before exposure.
+	 */
+	const TArray<FGridLevelObjectData>& GetObjectCompatibilityView() const
+	{
+		if (bTypedPlacementStorageAuthoritative)
+		{
+			const_cast<UGridLevelAsset*>(this)->RefreshLegacyObjectMirrorFromTyped();
+		}
+		return Objects;
 	}
 
 	/**
