@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 
 class UGridLevelAsset;
+class UGridObjectArchetypeAsset;
 class UGridObjectPaletteAsset;
 
 struct GRIMROCKPROTOTYPEEDITOR_API FGridWorldObjectMIG08MigrationResult
@@ -30,4 +31,5 @@ class GRIMROCKPROTOTYPEEDITOR_API FGridWorldObjectMIG08MigrationService
 public:
 	static FGridWorldObjectMIG08MigrationResult MigrateLevelAsset(UGridLevelAsset& LevelAsset);
 	static FGridWorldObjectMIG08MigrationResult MigratePaletteAsset(UGridObjectPaletteAsset& PaletteAsset);
+	static FGridWorldObjectMIG08MigrationResult MigrateArchetypeAsset(UGridObjectArchetypeAsset& Archetype);
 };

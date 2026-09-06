@@ -118,6 +118,8 @@ int32 UGridWorldObjectMIG08Commandlet::Main(const FString& Params)
 	int32 ErrorCount = 0;
 	TArray<UPackage*> PackagesToSave;
 
+	// Pass 1: apply every in-memory migration before validating anything. This makes
+	// validation independent from AssetRegistry ordering (palette -> item, etc.).
 	for (const FAssetData& Entry : AssetEntries)
 	{
 		UDataAsset* DataAsset = Cast<UDataAsset>(Entry.GetAsset());
@@ -137,7 +139,49 @@ int32 UGridWorldObjectMIG08Commandlet::Main(const FString& Params)
 			const FGridWorldObjectMIG08MigrationResult Result = FGridWorldObjectMIG08MigrationService::MigrateLevelAsset(*Level);
 			bChanged = Result.bChanged;
 			AppendMigrationResult(Level->GetPathName(), Result, Lines, WarningCount, ErrorCount);
+		}
+		else if (UGridObjectPaletteAsset* Palette = Cast<UGridObjectPaletteAsset>(DataAsset))
+		{
+			bRelevant = true;
+			const FGridWorldObjectMIG08MigrationResult Result = FGridWorldObjectMIG08MigrationService::MigratePaletteAsset(*Palette);
+			bChanged = Result.bChanged;
+			AppendMigrationResult(Palette->GetPathName(), Result, Lines, WarningCount, ErrorCount);
+		}
+		else if (UGridObjectArchetypeAsset* Archetype = Cast<UGridObjectArchetypeAsset>(DataAsset))
+		{
+			bRelevant = true;
+			const FGridWorldObjectMIG08MigrationResult Result = FGridWorldObjectMIG08MigrationService::MigrateArchetypeAsset(*Archetype);
+			bChanged = Result.bChanged;
+			AppendMigrationResult(Archetype->GetPathName(), Result, Lines, WarningCount, ErrorCount);
+		}
+		else if (Cast<UGridItemDefinitionAsset>(DataAsset))
+		{
+			bRelevant = true;
+		}
 
+		if (!bRelevant)
+		{
+			continue;
+		}
+
+		++LoadedRelevantAssets;
+		if (bChanged)
+		{
+			++ChangedAssets;
+		}
+	}
+
+	// Pass 2: validate the fully migrated in-memory graph.
+	for (const FAssetData& Entry : AssetEntries)
+	{
+		UDataAsset* DataAsset = Cast<UDataAsset>(Entry.GetAsset());
+		if (!DataAsset)
+		{
+			continue;
+		}
+
+		if (UGridLevelAsset* Level = Cast<UGridLevelAsset>(DataAsset))
+		{
 			TArray<FString> MonsterErrors;
 			if (!Level->ValidateMonsterSpawns(MonsterErrors))
 			{
@@ -150,11 +194,6 @@ int32 UGridWorldObjectMIG08Commandlet::Main(const FString& Params)
 		}
 		else if (UGridObjectPaletteAsset* Palette = Cast<UGridObjectPaletteAsset>(DataAsset))
 		{
-			bRelevant = true;
-			const FGridWorldObjectMIG08MigrationResult Result = FGridWorldObjectMIG08MigrationService::MigratePaletteAsset(*Palette);
-			bChanged = Result.bChanged;
-			AppendMigrationResult(Palette->GetPathName(), Result, Lines, WarningCount, ErrorCount);
-
 			TArray<FGridArchetypeValidationMessage> PaletteMessages;
 			Palette->ValidatePalette(PaletteMessages);
 			for (const FGridArchetypeValidationMessage& Message : PaletteMessages)
@@ -173,32 +212,33 @@ int32 UGridWorldObjectMIG08Commandlet::Main(const FString& Params)
 		}
 		else if (const UGridObjectArchetypeAsset* Archetype = Cast<UGridObjectArchetypeAsset>(DataAsset))
 		{
-			bRelevant = true;
 			AppendArchetypeValidation(*Archetype, Lines, WarningCount, ErrorCount);
 		}
 		else if (const UGridItemDefinitionAsset* Item = Cast<UGridItemDefinitionAsset>(DataAsset))
 		{
-			bRelevant = true;
 			if (!Item->IsValidDefinition())
 			{
 				++ErrorCount;
 				Lines.Add(FString::Printf(TEXT("ERROR | %s | invalid ItemDefinition."), *Item->GetPathName()));
 			}
 		}
+	}
 
-		if (!bRelevant)
+	if (bApply && ErrorCount == 0)
+	{
+		// A palette migration can dirty an ItemDefinition package different from the
+		// palette package. Collect dirty packages only after all migrations so every
+		// indirect change is saved without re-saving all 54+ scanned assets.
+		for (const FAssetData& Entry : AssetEntries)
 		{
-			continue;
-		}
-
-		++LoadedRelevantAssets;
-		if (bChanged)
-		{
-			++ChangedAssets;
-		}
-		if (bApply)
-		{
-			PackagesToSave.AddUnique(DataAsset->GetOutermost());
+			if (UDataAsset* DataAsset = Cast<UDataAsset>(Entry.GetAsset()))
+			{
+				UPackage* Package = DataAsset->GetOutermost();
+				if (Package && Package->IsDirty())
+				{
+					PackagesToSave.AddUnique(Package);
+				}
+			}
 		}
 	}
 

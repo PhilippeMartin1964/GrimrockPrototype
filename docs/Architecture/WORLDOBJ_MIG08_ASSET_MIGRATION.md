@@ -1,12 +1,12 @@
 # WORLDOBJ-MIG08 — Migration des assets Unreal réels
 
-Statut : **MIG08-A — harness de migration source-only**.
+Statut : **MIG08-B — migration des définitions d’objets + sauvegarde sélective**.
 
 ## 1. But
 
 MIG08 est la frontière entre la migration du schéma C++ et la migration du contenu Unreal réel.
 
-Les `.uasset` et `.umap` ne doivent jamais être édités comme des fichiers binaires hors Unreal Engine. Le projet fournit donc un commandlet dédié qui charge les assets dans UE5.5.4, applique les conversions autorisées, valide le résultat puis, uniquement en mode `-Apply`, réenregistre les packages.
+Les `.uasset` et `.umap` ne doivent jamais être édités comme des fichiers binaires hors Unreal Engine. Le projet fournit donc un commandlet dédié qui charge les assets dans UE5.5.4, applique les conversions autorisées, valide le résultat puis, uniquement en mode `-Apply`, réenregistre les packages réellement modifiés.
 
 Le commandlet est :
 
@@ -58,18 +58,115 @@ Pour chaque `UGridObjectPaletteAsset` :
 
 Les anciens `UGridObjectArchetypeAsset` de type `Item` ne sont pas supprimés automatiquement : ils deviennent des **candidats de suppression MIG09** une fois qu’aucune palette, aucun niveau et aucun runtime ne les référence encore.
 
-### Définitions
+---
 
-Le commandlet charge également :
+## 3. MIG08-B — définitions d’objets du monde
 
-- `UGridObjectArchetypeAsset` ;
-- `UGridItemDefinitionAsset`.
+Le premier dry-run réel a montré que plusieurs DataAssets gameplay n’avaient jamais été réenregistrés après MIG01/MIG03/MIG04. Le schéma C++ était correct, mais leur contenu sérialisé restait incomplet.
 
-Il exécute les validations courantes afin que MIG08 ne réenregistre pas silencieusement un contenu déjà invalide.
+`MigrateArchetypeAsset()` complète désormais ces définitions avant validation.
+
+### Placement imposé par la sémantique
+
+Le migrateur normalise uniquement les cas non ambigus :
+
+```text
+Door / Button / Lever      -> Wall
+PressurePlate / Trigger    -> Floor
+Pit                        -> Floor
+bReplacesStandardWall=true -> Wall
+```
+
+Les autres types conservent leur `PlacementSurface` existant.
+
+### Contrats visuels historiques restaurés
+
+La migration ne remplace jamais une `StaticPart` ou une `MovingPart` déjà définie. Elle ne complète que les parties absentes pour les IDs canoniques dont le contrat historique est connu.
+
+```text
+Button_Normal
+  StaticPart  = SM_Button_Mettalic_Static
+  MovingPart0 = SM_Button_Mettalic_Mobile
+  Motion      = Translation X +6 cm / 0.08 s
+
+Button_Secret
+  MovingPart0 = SM_SecretButton_03
+  Motion      = Translation X +6 cm / 0.08 s
+
+Lever
+  StaticPart  = SM_LeverStatic_01
+  MovingPart0 = SM_Lever_01
+  Rest        = Pitch 45°
+  Motion      = Rotation Y +90° / 0.10 s
+
+PressurePlate
+  StaticPart  = SM_Grid_PressurePlate_Static
+  MovingPart0 = SM_Grid_PressurePlate_Moving
+  Rest        = Z +4 cm
+  Motion      = Translation Z -3 cm / 0.08 s
+
+Door_Wood
+  MovingPart0 = SM_Door_Wood_Mobile_01
+  Motion      = Translation Z +180 cm / 2.5 s
+
+Door_Grating
+  MovingPart0 = SM_Door_Grating_Mobile_01
+  Motion      = Translation Z +180 cm / 2.5 s
+
+Door_Secret
+  StaticPart  = SM_Wall_Stone_SecretDoorStatic-01
+  MovingPart0 = SM_Wall_Stone_SecretDoor-01
+  Motion      = Translation Z +180 cm / 2.5 s
+
+Pit_Stone_01
+  StaticPart  = SM_Pit_Stone_01
+```
+
+Ces valeurs correspondent aux contrats runtime historiques validés avant MIG04.
+
+### Cas particulier du pit
+
+MIG08-B ne crée jamais artificiellement une couverture de trappe.
+
+Un pit sans `MovingParts` reste une fosse ouverte valide. Si les deux volets existent déjà mais que leur `Motion` n’est pas configuré, le migrateur restaure seulement les motions validées :
+
+```text
+Part0 : Rotation Y, Pivot=(-85,0,-5), Amount=-80°, Duration=0.75 s
+Part1 : Rotation Y, Pivot=( 85,0,-5), Amount=+80°, Duration=0.75 s
+```
+
+Une paire incomplète reste une erreur de contenu et n’est pas maquillée par le migrateur.
 
 ---
 
-## 3. Sécurité
+## 4. Validation en deux passes
+
+Le commandlet travaille maintenant en deux passes :
+
+1. migration en mémoire de tous les LevelAssets, palettes et WorldObjectDefinitions ;
+2. validation du graphe entièrement migré.
+
+Cela évite qu’un résultat dépende de l’ordre alphabétique des packages dans l’Asset Registry, notamment lorsqu’une palette modifie indirectement une `ItemDefinition` chargée ailleurs.
+
+---
+
+## 5. Sauvegarde sélective
+
+En mode `-Apply`, MIG08 ne prépare plus tous les DataAssets scannés pour sauvegarde.
+
+Après migration et validation, le commandlet collecte uniquement les packages `IsDirty()`.
+
+Conséquences :
+
+- les ItemDefinitions modifiées indirectement par la palette sont bien sauvegardées ;
+- un DataAsset seulement lu/validé n’est pas réenregistré ;
+- le diff Git reste limité au contenu réellement migré.
+
+Aucun package n’est sauvegardé si une erreur bloquante subsiste.
+
+---
+
+## 6. Sécurité
 
 Le commandlet est en lecture/écriture mémoire dans les deux modes, mais :
 
@@ -82,7 +179,7 @@ Le migrateur ne supprime aucun `.uasset` et ne modifie aucun `.umap` par manipul
 
 ---
 
-## 4. Workflow recommandé
+## 7. Workflow recommandé
 
 ### Étape 1 — valider le code du migrateur
 
@@ -92,14 +189,22 @@ Le migrateur ne supprime aucun `.uasset` et ne modifie aucun `.umap` par manipul
     -AutomationFilter "Grimrock.WorldObjects"
 ```
 
-Les tests MIG08 ajoutés sont :
+Les tests MIG08 sont :
 
 ```text
 Grimrock.WorldObjects.MIG08.LevelAssetMigration
 Grimrock.WorldObjects.MIG08.PaletteItemMigration
+Grimrock.WorldObjects.MIG08.ArchetypeMigration
 ```
 
-### Étape 2 — dry-run sur le contenu réel
+Le test ArchetypeMigration protège notamment :
+
+- la normalisation Door/Lever/Pit ;
+- les motions historiques ;
+- l’idempotence ;
+- l’interdiction d’inventer des volets de pit.
+
+### Étape 2 — second dry-run sur le contenu réel
 
 ```powershell
 .\Scripts\MigrateWorldObjectAssets.ps1 `
@@ -121,7 +226,7 @@ Toute ligne `ERROR` bloque volontairement le mode Apply.
 
 ### Étape 3 — appliquer la migration
 
-Uniquement après validation du dry-run :
+Uniquement lorsque le dry-run retourne `Errors : 0` :
 
 ```powershell
 .\Scripts\MigrateWorldObjectAssets.ps1 `
@@ -136,7 +241,7 @@ Le script affiche ensuite :
 git status --short -- Content
 ```
 
-Les `.uasset` modifiés sont alors des fichiers produits par UE5.5.4 et peuvent être revus/commités normalement.
+Les `.uasset` modifiés sont alors exclusivement des fichiers produits par UE5.5.4 et peuvent être revus/commités normalement.
 
 ### Étape 4 — validations après sauvegarde
 
@@ -160,16 +265,16 @@ Enfin, les niveaux réels doivent être ouverts et testés dans le Grid Editor /
 
 ---
 
-## 5. Critère de sortie MIG08
+## 8. Critère de sortie MIG08
 
 MIG08 pourra être déclaré clos lorsque :
 
 - tous les `UGridLevelAsset` réels sont sauvegardés avec `bTypedPlacementStorageAuthoritative=true` ;
 - la palette ne dépend plus d’un companion archetype pour les collectibles ;
 - les ItemDefinitions portent directement leur WorldMesh/icon lorsque nécessaire ;
-- les définitions du monde utilisent la composition visuelle courante ;
+- les définitions du monde utilisent `PlacementSurface`, `StaticPart`, `MovingParts` et `Motion` courants ;
 - les niveaux réels et transitions passent les validations ;
-- Git contient les `.uasset` réenregistrés par UE ;
+- Git contient uniquement les `.uasset` réellement réenregistrés par UE ;
 - aucune donnée nécessaire n’a été perdue lors de la conversion ;
 - les anciens assets Item companion restant sont identifiés pour suppression en MIG09.
 
