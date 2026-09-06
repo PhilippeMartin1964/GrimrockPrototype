@@ -22,7 +22,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USceneComponent* SceneRoot;
 
-	/** StaticPart for the target composition, or the single legacy preview mesh. */
+	/** StaticPart for the target visual composition. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* MeshComponent;
 
@@ -41,12 +41,12 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Grid")
 	EGridLevelObjectType ObjectType = EGridLevelObjectType::None;
 
-	/** Historical one-mesh preview entry point retained for callers outside MIG03. */
+	/** Initializes a standalone single-mesh preview when explicitly requested by a caller. */
 	UFUNCTION(BlueprintCallable, Category = "Preview")
 	void InitializePreviewObject(const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh);
 
 	/** MIG03 target entry point: renders StaticPart + MovingPart[0..1] from the same definition used by runtime. */
-	void InitializePreviewObjectFromArchetype(const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* LegacyFallbackMesh);
+	void InitializePreviewObjectFromArchetype(const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype);
 
 	void InitializeMonsterPreviewObject(const FGridLevelObjectData& ObjectData, UGridMonsterDefinitionAsset* MonsterDefinition);
 

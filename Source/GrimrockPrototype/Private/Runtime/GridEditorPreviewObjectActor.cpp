@@ -89,11 +89,11 @@ void AGridEditorPreviewObjectActor::InitializePreviewObject(const FGridLevelObje
 }
 
 void AGridEditorPreviewObjectActor::InitializePreviewObjectFromArchetype(
-	const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* LegacyFallbackMesh)
+	const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype)
 {
-	if (!Archetype || (!Archetype->StaticPart.IsDefined() && Archetype->MovingParts.IsEmpty()))
+	if (!Archetype || !Archetype->HasAnyVisualPart())
 	{
-		InitializePreviewObject(ObjectData, LegacyFallbackMesh);
+		InitializePreviewObject(ObjectData, nullptr);
 		return;
 	}
 
