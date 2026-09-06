@@ -1,6 +1,6 @@
 # WORLDOBJ-MIG09 — Purge des compatibilités legacy
 
-Statut : **MIG09-A, MIG09-B1, MIG09-B2A, MIG09-B2B1, MIG09-B2B2 et MIG09-B2B3 validés ; MIG09-B2C-A candidat — validation locale UE5.5.4 requise**.
+Statut : **MIG09-A, MIG09-B1, MIG09-B2A, MIG09-B2B1, MIG09-B2B2, MIG09-B2B3 et MIG09-B2C-A validés ; MIG09-B2C-B candidat — validation locale UE5.5.4 requise**.
 
 ## 1. Contexte
 
@@ -36,19 +36,19 @@ ItemDefinitionAsset
 ItemDefinitionId
 ```
 
-Deux anciennes API Blueprint/C++ restent temporairement présentes :
+Deux anciennes API Blueprint/C++ restaient temporairement présentes après B1 :
 
 ```text
 InitializeItem(...)
 GetItemArchetypeId()
 ```
 
-Elles ne possèdent plus aucune sémantique d'archétype :
+Elles ne possédaient plus aucune sémantique d'archétype :
 
-- `InitializeItem()` écrit seulement `ItemDefinitionId`, les tags et éventuellement le mesh fourni ;
-- `GetItemArchetypeId()` retourne strictement `GetItemDefinitionId()` ;
-- la propriété réfléchie `AGridItemActor::ArchetypeId` est physiquement supprimée ;
-- le test MIG05 exige désormais son absence.
+- `InitializeItem()` écrivait seulement `ItemDefinitionId`, les tags et éventuellement le mesh fourni ;
+- `GetItemArchetypeId()` retournait strictement `GetItemDefinitionId()` ;
+- la propriété réfléchie `AGridItemActor::ArchetypeId` était physiquement supprimée ;
+- le test MIG05 exigeait déjà son absence.
 
 MIG09-B1 a été validé localement sous UE5.5.4 avec le filtre `Grimrock.WorldObjects` : `30` succès, `1` warning, `0` échec, exit code `0`.
 
@@ -147,9 +147,23 @@ Grimrock.WorldObjects.MIG09.ItemLegacyBlueprintReferences
 
 utilise l'Asset Registry, charge les `UBlueprint`, parcourt tous leurs graphes et inspecte les `UK2Node_CallFunction`. Toute référence à `InitializeItem` ou `GetItemArchetypeId` provoque un échec et affiche le package, le graphe, la fonction et le node concernés.
 
-Cette tranche ne supprime pas encore les deux UFUNCTION. Elle fournit la preuve nécessaire avant MIG09-B2C-B.
+L'audit a été validé localement sous UE5.5.4 avec le filtre `Grimrock.WorldObjects` : `33` succès, `1` warning, `0` échec, exit code `0`.
 
-## 9. Ponts encore à supprimer après MIG09-B2C-A
+## 9. MIG09-B2C-B — suppression définitive des aliases Item
+
+Après l'audit Blueprint vert :
+
+- `AGridItemActor::GetItemArchetypeId()` est physiquement supprimé ;
+- `AGridItemActor::InitializeItem()` est physiquement supprimé, y compris son pont C++ temporaire ;
+- `AGridLevelRuntimeActor::SpawnItemActorForDefinition()` n'appelle plus que `InitializeFromItemDefinition()` ou `InitializeFromItemDefinitionId()` ;
+- le chargement préalable redondant de `WorldMesh` dans la factory est supprimé ;
+- le chemin ID-only remet `ItemTags` à zéro afin de ne pas conserver des tags d'une définition précédente, tout en laissant intact le mesh déjà porté par un Blueprint lorsqu'aucune définition n'est disponible.
+
+Le test MIG05 vérifie la sémantique du chemin ID-only : identité canonique, absence de `ItemDefinitionAsset`, suppression des tags obsolètes et conservation de la présentation existante.
+
+MIG09-B2C-B est candidat et doit être validé localement sous UE5.5.4 avec le filtre `Grimrock.WorldObjects`.
+
+## 10. Ponts encore à supprimer après MIG09-B2C-B
 
 ```text
 UGridLevelAsset::Objects
@@ -159,14 +173,12 @@ CommitCompatibilityObjectEdit()
 RefreshLegacyObjectMirrorFromTyped()
 GetObjectCompatibilityView()
 GridLevelPlacementCompatibility
-AGridItemActor::InitializeItem() alias
-AGridItemActor::GetItemArchetypeId() alias
 anciens initializers directs Button / Lever / Door / Pit
 champs d'animation Transient pré-MIG04
 anciens contrôles Slate qui éditent encore ces champs
 ```
 
-## 10. Ordre de purge retenu
+## 11. Ordre de purge retenu
 
 ```text
 MIG09-A       supprimer l'usage runtime du marqueur sparse pré-MIG08        ✅ validé
@@ -175,8 +187,8 @@ MIG09-B2A     supprimer les miroirs ItemArchetypeId des réceptacles          �
 MIG09-B2B1    retirer ArchetypeId du schéma SaveGame runtime                 ✅ validé
 MIG09-B2B2    réécrire les consommateurs SaveGame                            ✅ validé
 MIG09-B2B3    supprimer proxy C++ et cache spawn ItemArchetypeId              ✅ validé
-MIG09-B2C-A   auditer les références Blueprint aux aliases Item              ⏳ candidat
-MIG09-B2C-B   supprimer InitializeItem/GetItemArchetypeId après audit vert
+MIG09-B2C-A   auditer les références Blueprint aux aliases Item              ✅ validé
+MIG09-B2C-B   supprimer InitializeItem/GetItemArchetypeId après audit vert   ⏳ candidat
 MIG09-C       supprimer les champs d'animation Transient et anciens initializers
 MIG09-D       migrer les derniers consommateurs vers les placements typés
 MIG09-E       supprimer Objects / FGridLevelObjectData / compatibility projection

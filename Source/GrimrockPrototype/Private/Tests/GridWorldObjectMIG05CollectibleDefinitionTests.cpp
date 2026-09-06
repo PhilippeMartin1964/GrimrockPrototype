@@ -96,7 +96,7 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 	FProperty* ItemArchetypeBridge = AGridItemActor::StaticClass()->FindPropertyByName(TEXT("ArchetypeId"));
 	TestNull(TEXT("MIG09 physically removes duplicate item ArchetypeId runtime state"), ItemArchetypeBridge);
 	TestNull(TEXT("MIG09 removes legacy GetItemArchetypeId API"), AGridItemActor::StaticClass()->FindFunctionByName(TEXT("GetItemArchetypeId")));
-	TestNull(TEXT("MIG09 removes reflected legacy InitializeItem API"), AGridItemActor::StaticClass()->FindFunctionByName(TEXT("InitializeItem")));
+	TestNull(TEXT("MIG09 removes legacy InitializeItem API"), AGridItemActor::StaticClass()->FindFunctionByName(TEXT("InitializeItem")));
 
 	FMIG05ItemTestWorld TestWorld;
 	TestNotNull(TEXT("MIG05 runtime world exists"), TestWorld.World);
@@ -138,6 +138,14 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 		TestTrue(TEXT("Generic item actor keeps the canonical definition asset"), ItemActor->GetItemDefinitionAsset() == Definition);
 		TestEqual(TEXT("Generic item actor identity is ItemDefinitionId"), ItemActor->GetItemDefinitionId(), FName(TEXT("BlueGem")));
 		TestTrue(TEXT("Generic item actor presentation uses ItemDefinition WorldMesh"), ItemActor->MeshComponent->GetStaticMesh() == WorldMesh);
+
+		ItemActor->ItemTags.Add(TEXT("LegacyTag"));
+		ItemActor->InitializeFromItemDefinitionId(TEXT("LegacyOnly"), FGuid());
+		TestNull(TEXT("ID-only initialization clears the definition asset"), ItemActor->GetItemDefinitionAsset());
+		TestEqual(TEXT("ID-only initialization owns the canonical identity"), ItemActor->GetItemDefinitionId(), FName(TEXT("LegacyOnly")));
+		TestEqual(TEXT("ID-only initialization clears stale definition tags"), ItemActor->ItemTags.Num(), 0);
+		TestTrue(TEXT("ID-only initialization preserves Blueprint/item presentation when no definition mesh is available"),
+			ItemActor->MeshComponent->GetStaticMesh() == WorldMesh);
 	}
 
 	return true;

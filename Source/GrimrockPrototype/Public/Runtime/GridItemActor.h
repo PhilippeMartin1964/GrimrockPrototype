@@ -6,7 +6,6 @@
 #include "GridItemActor.generated.h"
 
 class UMaterialInstanceDynamic;
-class UStaticMesh;
 class UStaticMeshComponent;
 class UGridItemDefinitionAsset;
 class UGridReadableContentAsset;
@@ -64,12 +63,6 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 	int32 RuntimeCellY = INDEX_NONE;
-
-	/**
-	 * MIG09-B2C temporary C++-only bridge for the last runtime caller.
-	 * Deliberately not reflected to Blueprint. Remove once SpawnItemActorForDefinition uses only canonical initialization.
-	 */
-	void InitializeItem(FName InItemDefinitionId, const TArray<FName>& InItemTags, UStaticMesh* Mesh);
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void InitializeFromItemDefinition(UGridItemDefinitionAsset* InDefinition, const FGuid& InRuntimeObjectId);

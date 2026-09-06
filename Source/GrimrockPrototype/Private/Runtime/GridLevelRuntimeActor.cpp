@@ -1853,7 +1853,6 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDef
 	{
 		ItemClass = AGridItemActor::StaticClass();
 	}
-	UStaticMesh* ItemMesh = ItemDefinition ? ItemDefinition->WorldMesh.LoadSynchronous() : nullptr;
 	const FTransform SpawnTransform(AttachParent ? AttachParent->GetComponentRotation() : FRotator::ZeroRotator,
 		AttachParent ? AttachParent->GetComponentLocation() : GetActorLocation(), FVector::OneVector);
 	if (!IsSafeRuntimeRenderTransform(SpawnTransform))
@@ -1871,9 +1870,6 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDef
 	{
 		return nullptr;
 	}
-	// Optional mesh. InitializeItem must not overwrite BP components
-	// si ItemMesh est nullptr.
-	ItemActor->InitializeItem(ItemDefinitionId, TArray<FName>(), ItemMesh);
 	if (ItemDefinition)
 	{
 		ItemActor->InitializeFromItemDefinition(ItemDefinition, FGuid());

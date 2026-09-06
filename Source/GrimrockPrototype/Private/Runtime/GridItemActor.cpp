@@ -32,23 +32,6 @@ AGridItemActor::AGridItemActor()
 	SparkleMeshComponent->SetVisibility(false, true);
 }
 
-void AGridItemActor::InitializeItem(FName InItemDefinitionId, const TArray<FName>& InItemTags, UStaticMesh* Mesh)
-{
-	ItemDefinitionAsset = nullptr;
-	ItemDefinitionId = InItemDefinitionId;
-	ItemTags = InItemTags;
-	if (!RuntimeObjectId.IsValid())
-	{
-		RuntimeObjectId = FGuid::NewGuid();
-	}
-
-	if (MeshComponent && Mesh)
-	{
-		MeshComponent->SetStaticMesh(Mesh);
-	}
-	RefreshWorldSparklePresentation();
-}
-
 void AGridItemActor::OnPlacedInWorld()
 {
 	SetItemLightsEnabled(true);
@@ -109,6 +92,7 @@ void AGridItemActor::InitializeFromItemDefinitionId(FName InItemDefinitionId, co
 
 	ItemDefinitionAsset = nullptr;
 	ItemDefinitionId = InItemDefinitionId;
+	ItemTags.Reset();
 	SetRuntimeObjectId(InRuntimeObjectId);
 	if (!RuntimeObjectId.IsValid())
 	{
