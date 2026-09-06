@@ -35,6 +35,15 @@ void AGridLevelEditorActor::EnsureLevelReady()
 
 void AGridLevelEditorActor::RebuildPreview()
 {
+	// WORLDOBJ-MIG07-C: existing editor widgets still mutate the compatibility
+	// FGridLevelObjectData mirror. Commit the selected mirror object into the typed
+	// authority before any preview consumer is allowed to rebuild from the level.
+	if (LevelAsset && LevelAsset->bTypedPlacementStorageAuthoritative && LastSelectedObjectId.IsValid())
+	{
+		LevelAsset->CommitCompatibilityObjectEdit(LastSelectedObjectId);
+		LevelAsset->RefreshLegacyObjectMirrorFromTyped();
+	}
+
 	ResolvePreviewRuntimeActor();
 	if (PreviewRuntimeActor)
 	{
@@ -160,11 +169,13 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal(bool bSameTypeOnly
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
+
 	TArray<FGuid> RemovedIds;
 	const EGridLevelObjectType FilterType = PaintObjectType;
-	for (int32 Index = LevelAsset->Objects.Num() - 1; Index >= 0; --Index)
+	const TArray<FGridLevelObjectData>& Objects = LevelAsset->GetObjectCompatibilityView();
+	for (int32 Index = Objects.Num() - 1; Index >= 0; --Index)
 	{
-		const FGridLevelObjectData& Obj = LevelAsset->Objects[Index];
+		const FGridLevelObjectData& Obj = Objects[Index];
 		if (Obj.CellX != SelectedCellX || Obj.CellY != SelectedCellY)
 		{
 			continue;
@@ -173,35 +184,28 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal(bool bSameTypeOnly
 		{
 			continue;
 		}
-		bool bRemove = false;
-		if (IsEdgePlacedObject(Obj))
-		{
-			bRemove = (Obj.Edge == SelectedEdge);
-		}
-		else
-		{
-			bRemove = true;
-		}
+
+		const bool bRemove = IsEdgePlacedObject(Obj) ? Obj.Edge == SelectedEdge : true;
 		if (bRemove)
 		{
 			RemovedIds.Add(Obj.ObjectId);
-			LevelAsset->Objects.RemoveAt(Index);
 		}
 	}
-	if (RemovedIds.Num() > 0)
+
+	int32 RemovedCount = 0;
+	for (const FGuid& RemovedId : RemovedIds)
 	{
-		LevelAsset->Links.RemoveAll(
-			[&](const FGridObjectLink& Link)
-			{
-				return RemovedIds.Contains(Link.SourceObjectId) || RemovedIds.Contains(Link.TargetObjectId);
-			});
+		RemovedCount += LevelAsset->RemoveObjectById(RemovedId) ? 1 : 0;
 	}
 
 #if WITH_EDITOR
-	LevelAsset->MarkPackageDirty();
+	if (RemovedCount > 0)
+	{
+		LevelAsset->MarkPackageDirty();
+	}
 #endif
 
-	return RemovedIds.Num();
+	return RemovedCount;
 }
 
 int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal(EGridLevelObjectType NewObjectType, FName NewArchetypeId, bool bNewObjectOnEdge)
@@ -227,11 +231,10 @@ int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal(EGrid
 		return 0;
 	}
 
-	TArray<int32> IndicesToRemove;
 	TArray<FGuid> RemovedIds;
-	for (int32 Index = LevelAsset->Objects.Num() - 1; Index >= 0; --Index)
+	const TArray<FGridLevelObjectData>& Objects = LevelAsset->GetObjectCompatibilityView();
+	for (const FGridLevelObjectData& ExistingObject : Objects)
 	{
-		const FGridLevelObjectData& ExistingObject = LevelAsset->Objects[Index];
 		if (ExistingObject.Edge == EGridEdge::None)
 		{
 			continue;
@@ -248,11 +251,10 @@ int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal(EGrid
 		if (ExistingBoundary.IsValid() && ExistingBoundary == NewBoundary)
 		{
 			RemovedIds.Add(ExistingObject.ObjectId);
-			IndicesToRemove.Add(Index);
 		}
 	}
 
-	if (IndicesToRemove.Num() == 0)
+	if (RemovedIds.Num() == 0)
 	{
 		return 0;
 	}
@@ -260,17 +262,18 @@ int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal(EGrid
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
-	for (int32 IndexToRemove : IndicesToRemove)
+
+	int32 RemovedCount = 0;
+	for (const FGuid& RemovedId : RemovedIds)
 	{
-		LevelAsset->Objects.RemoveAt(IndexToRemove);
+		RemovedCount += LevelAsset->RemoveObjectById(RemovedId) ? 1 : 0;
 	}
-	LevelAsset->Links.RemoveAll(
-		[&](const FGridObjectLink& Link)
-		{
-			return RemovedIds.Contains(Link.SourceObjectId) || RemovedIds.Contains(Link.TargetObjectId);
-		});
+
 #if WITH_EDITOR
-	LevelAsset->MarkPackageDirty();
+	if (RemovedCount > 0)
+	{
+		LevelAsset->MarkPackageDirty();
+	}
 #endif
-	return RemovedIds.Num();
+	return RemovedCount;
 }

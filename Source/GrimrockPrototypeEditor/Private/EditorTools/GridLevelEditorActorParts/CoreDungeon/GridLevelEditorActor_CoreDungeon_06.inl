@@ -27,6 +27,13 @@ NewLevelAsset->Height = 32;
 NewLevelAsset->CellSize = 200.f;
 NewLevelAsset->EnsureCellCount();
 NewLevelAsset->Objects.Reset();
+NewLevelAsset->WorldObjectInstances.Reset();
+NewLevelAsset->LooseItemInstances.Reset();
+NewLevelAsset->MonsterSpawns.Reset();
+NewLevelAsset->ItemSpawns.Reset();
+NewLevelAsset->LogicObjects.Reset();
+NewLevelAsset->SparseBehaviorOverrideObjectIds.Reset();
+NewLevelAsset->bTypedPlacementStorageAuthoritative = true;
 NewLevelAsset->Links.Reset();
 NewLevelAsset->StartCellX = 1;
 NewLevelAsset->StartCellY = 1;
@@ -95,4 +102,3 @@ return true;
 OutError = TEXT("CreateAndAddDungeonLevel is editor-only.");
 return false;
 #endif
-}

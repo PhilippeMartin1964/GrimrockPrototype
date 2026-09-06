@@ -138,6 +138,14 @@ public:
 
 	void EnsureObjectIds();
 
+	/**
+	 * WORLDOBJ-MIG07-C write-through bridge used by the existing Grid Editor.
+	 * The editor may still stage one object through FGridLevelObjectData, but once
+	 * typed storage is authoritative this method merges that edit back into the
+	 * correct typed collection without destroying typed-only fields.
+	 */
+	bool CommitCompatibilityObjectEdit(const FGuid& ObjectId);
+
 	bool UsesSparseBehaviorOverrides(const FGuid& ObjectId) const
 	{
 		if (!ObjectId.IsValid())
@@ -159,6 +167,24 @@ public:
 	{
 		if (!ObjectId.IsValid())
 		{
+			return;
+		}
+
+		if (bTypedPlacementStorageAuthoritative)
+		{
+			const bool bIsTypedWorldObject = WorldObjectInstances.ContainsByPredicate(
+				[&ObjectId](const FGridWorldObjectInstance& Instance)
+				{
+					return Instance.InstanceId == ObjectId;
+				});
+			if (bUsesSparseOverrides && bIsTypedWorldObject)
+			{
+				SparseBehaviorOverrideObjectIds.Add(ObjectId);
+			}
+			else
+			{
+				SparseBehaviorOverrideObjectIds.Remove(ObjectId);
+			}
 			return;
 		}
 
