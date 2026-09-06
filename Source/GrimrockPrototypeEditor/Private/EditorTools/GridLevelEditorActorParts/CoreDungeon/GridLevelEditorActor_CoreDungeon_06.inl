@@ -102,3 +102,4 @@ return true;
 OutError = TEXT("CreateAndAddDungeonLevel is editor-only.");
 return false;
 #endif
+}
