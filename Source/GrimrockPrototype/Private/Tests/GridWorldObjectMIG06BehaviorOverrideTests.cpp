@@ -60,7 +60,7 @@ bool FGridWorldObjectMIG06SparseBehaviorResolutionTest::RunTest(const FString& P
 	ObjectData.Behavior.DoorAnimation.bHasChainMechanism = false;
 	ObjectData.Behavior.DoorAnimation.ChainPullDistance = 99.0f;
 
-	const FGridObjectBehaviorParams Resolved = GridObjectInstanceBehavior::Resolve(ObjectData, Definition, true);
+	const FGridObjectBehaviorParams Resolved = GridObjectInstanceBehavior::Resolve(ObjectData, Definition);
 	TestEqual(TEXT("Definition owns button hold time"), Resolved.ButtonAnimation.ButtonHoldTime, 0.80f);
 	TestTrue(TEXT("Definition owns lock consume-key rule"), Resolved.Lock.bConsumeKeyOnUnlock);
 	TestFalse(TEXT("Definition owns receptacle accept-any rule"), Resolved.Receptacle.bAcceptAnyItem);
@@ -87,33 +87,36 @@ bool FGridWorldObjectMIG06SparseBehaviorResolutionTest::RunTest(const FString& P
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridWorldObjectMIG06LegacyBehaviorBridgeTest,
-	"Grimrock.WorldObjects.MIG06.LegacyBehaviorBridge",
+	FGridWorldObjectMIG09DefinitionAuthorityCutoverTest,
+	"Grimrock.WorldObjects.MIG09.DefinitionAuthorityCutover",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridWorldObjectMIG06LegacyBehaviorBridgeTest::RunTest(const FString& Parameters)
+bool FGridWorldObjectMIG09DefinitionAuthorityCutoverTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
 	UGridObjectArchetypeAsset* Definition = NewObject<UGridObjectArchetypeAsset>();
-	Definition->ArchetypeId = TEXT("MIG06_LegacyDefinition");
+	Definition->ArchetypeId = TEXT("MIG09_Definition");
 	Definition->SupportedType = EGridLevelObjectType::Button;
 	Definition->DefaultBehavior.ButtonAnimation.ButtonHoldTime = 0.90f;
 
-	FGridLevelObjectData LegacyObject;
-	LegacyObject.ObjectId = FGuid::NewGuid();
-	LegacyObject.ArchetypeId = Definition->ArchetypeId;
-	LegacyObject.Behavior.ButtonAnimation.ButtonHoldTime = 0.25f;
+	FGridLevelObjectData CompatibilityObject;
+	CompatibilityObject.ObjectId = FGuid::NewGuid();
+	CompatibilityObject.ArchetypeId = Definition->ArchetypeId;
+	CompatibilityObject.Behavior.ButtonAnimation.ButtonHoldTime = 0.25f;
 
-	const FGridObjectBehaviorParams LegacyResolved = GridObjectInstanceBehavior::Resolve(LegacyObject, Definition, false);
-	TestEqual(TEXT("Pre-MIG06 object keeps its historical full Behavior snapshot"), LegacyResolved.ButtonAnimation.ButtonHoldTime, 0.25f);
+	const FGridObjectBehaviorParams DefinitionResolved = GridObjectInstanceBehavior::Resolve(CompatibilityObject, Definition);
+	TestEqual(TEXT("MIG09 always resolves shared behavior from the definition when one is available"),
+		DefinitionResolved.ButtonAnimation.ButtonHoldTime, 0.90f);
 
 	UGridLevelAsset* Level = NewObject<UGridLevelAsset>();
-	TestFalse(TEXT("Unmarked object is legacy by default"), Level->UsesSparseBehaviorOverrides(LegacyObject.ObjectId));
-	Level->SetSparseBehaviorOverrides(LegacyObject.ObjectId, true);
-	TestTrue(TEXT("Level can mark one object as sparse"), Level->UsesSparseBehaviorOverrides(LegacyObject.ObjectId));
-	const FGridObjectBehaviorParams SparseResolved = GridObjectInstanceBehavior::Resolve(Level, LegacyObject, Definition);
-	TestEqual(TEXT("Marked sparse object resolves shared definition behavior"), SparseResolved.ButtonAnimation.ButtonHoldTime, 0.90f);
+	const FGridObjectBehaviorParams LevelResolved = GridObjectInstanceBehavior::Resolve(Level, CompatibilityObject, Definition);
+	TestEqual(TEXT("Level migration markers no longer affect definition authority"),
+		LevelResolved.ButtonAnimation.ButtonHoldTime, 0.90f);
+
+	const FGridObjectBehaviorParams DirectCallerFallback = GridObjectInstanceBehavior::Resolve(CompatibilityObject, nullptr);
+	TestEqual(TEXT("Direct callers without a definition keep temporary compatibility until their initializers are purged"),
+		DirectCallerFallback.ButtonAnimation.ButtonHoldTime, 0.25f);
 
 	return true;
 }

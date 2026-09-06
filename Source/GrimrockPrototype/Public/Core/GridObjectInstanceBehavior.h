@@ -4,11 +4,17 @@
 #include "Core/GridObjectArchetypeAsset.h"
 
 /**
- * WORLDOBJ-MIG06 definition/instance behavior resolver.
+ * WORLDOBJ-MIG09 definition/instance behavior resolver.
  *
- * New placements store only instance-owned values in FGridLevelObjectData::Behavior.
- * Existing pre-MIG06 assets keep their historical full snapshot until MIG08 and
- * are identified by the absence of their ObjectId from the level migration set.
+ * MIG08 re-saved production level assets into typed placement storage. A world
+ * object therefore resolves shared behavior from its definition and overlays
+ * only the instance-owned payload carried by the compatibility object view.
+ * The old per-object sparse migration marker no longer participates in runtime
+ * behavior resolution.
+ *
+ * A missing definition still returns the raw object behavior temporarily for
+ * direct legacy actor/test callers. Those direct initializer paths are removed
+ * later in MIG09 before FGridLevelObjectData itself is deleted.
  */
 namespace GridObjectInstanceBehavior
 {
@@ -36,15 +42,16 @@ namespace GridObjectInstanceBehavior
 	}
 
 	inline FGridObjectBehaviorParams Resolve(
-		const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, bool bUsesSparseOverrides)
+		const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype)
 	{
-		// Pre-MIG06 assets retain their historical full instance snapshot exactly.
-		if (!bUsesSparseOverrides)
+		// Temporary direct-call compatibility only. Production world objects have a
+		// definition after MIG08; this branch disappears with the old initializers.
+		if (!Archetype)
 		{
 			return ObjectData.Behavior;
 		}
 
-		FGridObjectBehaviorParams Resolved = Archetype ? Archetype->DefaultBehavior : FGridObjectBehaviorParams();
+		FGridObjectBehaviorParams Resolved = Archetype->DefaultBehavior;
 		ApplyInstanceOwnedOverrides(ObjectData.Behavior, Resolved);
 		return Resolved;
 	}
@@ -52,6 +59,10 @@ namespace GridObjectInstanceBehavior
 	inline FGridObjectBehaviorParams Resolve(
 		const UGridLevelAsset* LevelAsset, const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype)
 	{
-		return Resolve(ObjectData, Archetype, LevelAsset && LevelAsset->UsesSparseBehaviorOverrides(ObjectData.ObjectId));
+		// LevelAsset is retained in the signature only while consumers are still
+		// typed against FGridLevelObjectData. MIG09 no longer consults migration
+		// markers to choose definition authority.
+		(void)LevelAsset;
+		return Resolve(ObjectData, Archetype);
 	}
 }
