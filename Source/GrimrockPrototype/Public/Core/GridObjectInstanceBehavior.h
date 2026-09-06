@@ -16,24 +16,12 @@ namespace GridObjectInstanceBehavior
 	{
 		FGridObjectBehaviorParams Overrides;
 
-		// True level-instance data.
+		// True level-instance data only. Shared rules stay in the definition.
 		Overrides.Teleporter = Source.Teleporter;
 		Overrides.Transition = Source.Transition;
 		Overrides.Pit = Source.Pit;
 		Overrides.Receptacle.InitialContent = Source.Receptacle.InitialContent;
 		Overrides.Lock.bStartsUnlocked = Source.Lock.bStartsUnlocked;
-
-		// MIG06-A compatibility bridges for direct consumers not yet routed through
-		// Resolve(). They are deliberately narrow and are removed by MIG06-B.
-		Overrides.Receptacle.bAcceptAnyItem = Source.Receptacle.bAcceptAnyItem;
-		Overrides.Receptacle.AcceptedItems = Source.Receptacle.AcceptedItems;
-		Overrides.Receptacle.MaxContainedItems = Source.Receptacle.MaxContainedItems;
-		Overrides.Receptacle.VisualPlacementMode = Source.Receptacle.VisualPlacementMode;
-		Overrides.Receptacle.bSimulatePhysicsWhenPlaced = Source.Receptacle.bSimulatePhysicsWhenPlaced;
-		Overrides.Receptacle.PhysicalPlacementSurfaceOffset = Source.Receptacle.PhysicalPlacementSurfaceOffset;
-		Overrides.Receptacle.PhysicalPlacementInitialRotationOffset = Source.Receptacle.PhysicalPlacementInitialRotationOffset;
-		Overrides.PressurePlateWeight = Source.PressurePlateWeight;
-		Overrides.DoorAnimation = Source.DoorAnimation;
 
 		return Overrides;
 	}

@@ -68,6 +68,9 @@ public:
 	virtual void InitializeGridObject(
 		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform);
 
+	/** WORLDOBJ-MIG06: resolves shared definition behavior plus sparse instance overrides. */
+	FGridObjectBehaviorParams ResolveEffectiveBehavior(const FGridLevelObjectData& ObjectData) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	bool MatchesObjectId(FGuid InObjectId) const;
 

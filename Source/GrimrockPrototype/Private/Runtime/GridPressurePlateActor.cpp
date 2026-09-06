@@ -24,8 +24,9 @@ void AGridPressurePlateActor::InitializePlate(
 
 	// WORLDOBJ-MIG04: the plate owns only logical alpha; Motion owns geometry and timing.
 	MoveDuration = GetTargetMotionDuration();
-	SetWeightState(0.0f, ObjectData.Behavior.PressurePlateWeight.RequiredItemWeight, ObjectData.Behavior.PressurePlateWeight.bUseItemWeight,
-		ObjectData.Behavior.PressurePlateWeight.bActivateWhenPartyPresent);
+	const FGridObjectBehaviorParams EffectiveBehavior = ResolveEffectiveBehavior(ObjectData);
+	const FGridPressurePlateWeightParams& WeightParams = EffectiveBehavior.PressurePlateWeight;
+	SetWeightState(0.0f, WeightParams.RequiredItemWeight, WeightParams.bUseItemWeight, WeightParams.bActivateWhenPartyPresent);
 
 	bIsPressed = bStartPressed;
 	bIsAnimating = false;

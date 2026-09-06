@@ -1,34 +1,26 @@
-# WORLDOBJ-MIG06-A — Séparer la définition du comportement d'instance
+# WORLDOBJ-MIG06 — Definition vs Instance : comportement sparse
 
 ## Statut
 
-Première tranche structurelle de WORLDOBJ-MIG06.
+MIG06-A a introduit le stockage sparse et le pont de compatibilité des niveaux historiques.
 
-MIG06-A introduit le stockage sparse pour les nouveaux objets placés et conserve un pont de lecture strict pour les assets historiques. La suppression des derniers consommateurs directs est volontairement terminée dans MIG06-B avant de déclarer MIG06 entièrement clos.
+MIG06-B finalise le contrat C++ : les règles partagées sont résolues depuis `UGridObjectArchetypeAsset::DefaultBehavior`, tandis que le `LevelAsset` ne conserve que les données réellement propres à l'instance.
 
-## Problème traité
+Validation UE5.5.4 de la clôture MIG06 : **à effectuer après publication du commit MIG06-B**.
 
-Avant MIG06, sélectionner un archétype dans la palette revenait à faire conceptuellement :
+---
+
+## Problème supprimé
+
+Avant MIG06, le placement faisait conceptuellement :
 
 ```text
 PlacedObject.Behavior = Definition.DefaultBehavior
 ```
 
-Chaque objet du niveau conservait donc une copie complète du comportement partagé. Après placement, modifier la définition ne modifiait plus l'objet déjà placé : deux sources de vérité existaient.
+Chaque instance conservait donc une copie complète de la définition. Une modification ultérieure du Data Asset ne se propageait plus naturellement aux objets déjà placés.
 
-## Contrat cible
-
-```text
-UGridObjectArchetypeAsset
-└── DefaultBehavior
-    └── comportement partagé / réutilisable
-
-FGridLevelObjectData
-└── Behavior
-    └── uniquement les données réellement propres à cette instance
-```
-
-La résolution effective devient :
+MIG06 remplace ce modèle par :
 
 ```text
 Definition.DefaultBehavior
@@ -38,102 +30,139 @@ Instance sparse overrides
 Effective Behavior
 ```
 
-## Compatibilité des niveaux existants
+Il n'existe plus deux autorités de comportement pour un nouvel objet.
 
-La migration des `.uasset` réels n'a lieu qu'en MIG08. Il faut donc distinguer sans ambiguïté :
+---
 
-- un ancien objet dont `Behavior` est encore un snapshot complet ;
-- un nouvel objet dont `Behavior` contient des overrides sparse.
+## Données stockées par instance
 
-`UGridLevelAsset` possède pour cela :
+`GridObjectInstanceBehavior::BuildSparseOverrides()` ne conserve que :
+
+- `Teleporter` : destination locale ;
+- `Transition` : destination/configuration locale ;
+- `Pit` : état/configuration initiale propre au niveau ;
+- `Receptacle.InitialContent` : contenu initial du réceptacle placé ;
+- `Lock.bStartsUnlocked` : état initial local de la serrure.
+
+Les champs déjà séparés dans `FGridLevelObjectData` restent eux aussi naturellement locaux : position, bord, état enabled/active, Tag, LogicId, texte lisible surchargé, références directes d'item/monstre/compagnon, etc.
+
+---
+
+## Données appartenant exclusivement à la définition
+
+Pour une instance sparse, les familles suivantes sont désormais reprises depuis `DefaultBehavior` :
+
+- `ButtonAnimation.ButtonHoldTime` ;
+- règles de serrure : clés acceptées, consommation, messages ;
+- règles génériques de réceptacle : acceptation, capacité, mode de placement, physique ;
+- `PressurePlateWeight` ;
+- chaîne de porte : présence, distance et durée de traction ;
+- plus généralement tout champ partagé non explicitement listé parmi les overrides d'instance.
+
+Les paramètres géométriques de mécanismes restent quant à eux sous l'autorité de `StaticPart` / `MovingParts[].Motion`, conformément à MIG03/MIG04.
+
+---
+
+## Resolver runtime commun
+
+`AGridRuntimeObjectActor` expose :
+
+```cpp
+FGridObjectBehaviorParams ResolveEffectiveBehavior(const FGridLevelObjectData& ObjectData) const;
+```
+
+En runtime normal, l'acteur est possédé par `AGridLevelRuntimeActor`. Le resolver récupère donc :
+
+1. le `LevelAsset` courant ;
+2. l'archétype par `ArchetypeId` ;
+3. le statut sparse de l'`ObjectId` ;
+4. le comportement effectif via `GridObjectInstanceBehavior::Resolve()`.
+
+Les appels C++ historiques qui instancient directement un acteur sans `AGridLevelRuntimeActor` propriétaire restent automatiquement en mode snapshot legacy. Cela évite de casser les anciens tests avant MIG08/MIG09.
+
+---
+
+## Consommateurs migrés en MIG06-B
+
+### Pressure Plate
+
+`AGridPressurePlateActor` et `UGridActivationComponent` utilisent le comportement effectif pour :
+
+- `bActivateWhenPartyPresent` ;
+- `bUseItemWeight` ;
+- `RequiredItemWeight` ;
+- `bCountEdgeItems`.
+
+### Door
+
+`AGridDoorActor::InitializeGridObject()` résout la chaîne de porte depuis la définition.
+
+Le chemin `InitializeDoor()` reste uniquement un helper de compatibilité directe jusqu'à MIG09.
+
+### Receptacle
+
+`AGridReceptacleActor` résout depuis la définition :
+
+- `bAcceptAnyItem` ;
+- `AcceptedItems` ;
+- `MaxContainedItems` ;
+- `VisualPlacementMode` ;
+- `bSimulatePhysicsWhenPlaced` ;
+- offsets de placement physique.
+
+`InitialContent` reste une donnée d'instance et est réappliqué par le resolver.
+
+### Wall Lock
+
+L'audit MIG06-B a identifié une dépendance supplémentaire : `AGridWallLockActor` lisait encore directement `ObjectData.Behavior.Lock`.
+
+Il utilise désormais le comportement effectif pour :
+
+- clés acceptées ;
+- règle de consommation ;
+- messages verrouillé/déverrouillé/clé manquante ;
+
+alors que `bStartsUnlocked` reste l'override local de l'instance.
+
+---
+
+## Grid Editor
+
+Les nouveaux placements sont marqués dans :
 
 ```text
 SparseBehaviorOverrideObjectIds
 ```
 
-Si l'`ObjectId` est absent, l'objet est pré-MIG06 et son `Behavior` historique reste autoritaire tel quel.
+`GetSelectedObjectData()` fournit désormais à l'inspecteur une **vue temporaire résolue** de l'objet sélectionné. Les widgets peuvent donc continuer à manipuler un `FGridLevelObjectData` complet sans que cette vue soit sérialisée telle quelle dans le niveau.
 
-Si l'`ObjectId` est présent, `GridObjectInstanceBehavior::Resolve()` part de `Archetype.DefaultBehavior` puis applique uniquement les données d'instance.
+Lorsqu'une modification est appliquée, `ApplyBehaviorToSelectedObject()` repasse par `BuildSparseOverrides()` : les valeurs appartenant à la définition ne sont donc pas réintroduites comme copies locales.
 
-Cette solution évite de modifier prématurément la structure monolithique `FGridLevelObjectData`, dont la découpe typée appartient à MIG07.
+La validation d'archétype contrôle les règles partagées de réceptacle. La validation d'instance ne doit conserver que les vérifications liées aux données locales, notamment `InitialContent`.
 
-## Données réellement propres à l'instance
+---
 
-MIG06-A considère déjà comme locales :
+## Compatibilité des anciens niveaux
 
-- destination de téléporteur ;
-- destination/configuration de transition ;
-- état initial/configuration locale de fosse ;
-- contenu initial d'un réceptacle ;
-- état initial verrouillé/déverrouillé d'une serrure.
-
-Les champs déjà séparés dans `FGridLevelObjectData` restent naturellement locaux :
-
-- position/cellule/bord ;
-- état enabled/active initial ;
-- `Tag` ;
-- `LogicId` ;
-- overrides de texte lisible ;
-- définitions directes d'item/monstre/compagnon.
-
-## Données appartenant à la définition
-
-La résolution sparse reprend depuis l'archétype les règles partagées, notamment :
-
-- paramètres génériques de bouton ;
-- règles de serrure autres que l'état initial ;
-- capacité et règles génériques de réceptacle ;
-- règles de plaque de pression ;
-- comportement générique de porte ;
-- paramètres de présentation, mesh, Motion, audio, classe runtime et placement déjà portés par l'archétype.
-
-Le premier consommateur runtime migré explicitement dans cette tranche est le bouton : `ButtonHoldTime` est désormais résolu depuis la définition pour un objet sparse.
-
-## Grid Editor
-
-### Nouveau placement
-
-`PlaceSelectedObject()` ne copie plus `ObjectBehavior` intégralement.
-
-Il appelle :
+MIG08 n'ayant pas encore réenregistré les `.uasset`, l'absence de l'`ObjectId` dans `SparseBehaviorOverrideObjectIds` signifie :
 
 ```text
-GridObjectInstanceBehavior::BuildSparseOverrides(...)
+objet pré-MIG06
+=> ObjectData.Behavior reste son snapshot historique complet
 ```
 
-puis marque le nouvel `ObjectId` dans `SparseBehaviorOverrideObjectIds`.
-
-### Sélection
-
-`SelectObjectAtSelection()` et `SelectObjectById()` reconstruisent le comportement effectif avec :
+La présence de l'`ObjectId` signifie :
 
 ```text
-GridObjectInstanceBehavior::Resolve(LevelAsset, Object, Archetype)
+objet MIG06+
+=> Definition.DefaultBehavior + sparse overrides
 ```
 
-L'inspecteur continue donc de voir une configuration complète compréhensible, sans que le LevelAsset doive en stocker une copie complète.
+Cette distinction disparaîtra lorsque la migration de contenu réelle sera terminée et que les ponts historiques seront purgés en MIG09.
 
-Les items MIG05, qui n'ont plus d'ObjectArchetype, reconstruisent leur état temporaire d'édition depuis leurs références directes `ItemDefinitionAsset` et `ReadableContent`.
+---
 
-### Modification
-
-`ApplyBehaviorToSelectedObject()` convertit automatiquement l'objet sélectionné vers le contrat sparse.
-
-`ResetSelectedObjectBehaviorFromArchetype()` signifie désormais réellement « reprendre la définition », et non plus « recopier la définition dans l'instance ».
-
-## Ponts MIG06-A encore présents
-
-Trois familles restent volontairement recopiées temporairement dans le conteneur sparse parce que du code historique les lit encore directement sans passer par le resolver :
-
-1. `PressurePlateWeight` — lu directement par `UGridActivationComponent` ;
-2. `DoorAnimation` — la partie chaîne de porte possède encore un chemin direct ;
-3. paramètres génériques de `Receptacle` — encore lus directement par certaines validations/parties d'éditeur.
-
-Ces copies sont des **ponts de migration**, pas le contrat cible. Le resolver les ignore lorsqu'il construit le comportement effectif : la définition reste conceptuellement autoritaire.
-
-MIG06-B doit router ces consommateurs par la résolution Definition+Instance puis retirer ces trois copies temporaires de `BuildSparseOverrides()`.
-
-## Tests
+## Tests MIG06
 
 Famille :
 
@@ -141,22 +170,28 @@ Famille :
 Grimrock.WorldObjects.MIG06
 ```
 
-Contrats couverts :
+Les tests vérifient notamment :
 
-- les valeurs partagées viennent de la définition pour une instance sparse ;
-- les données d'instance remplacent correctement les valeurs correspondantes ;
-- un objet pré-MIG06 non marqué conserve exactement son snapshot historique ;
-- un nouvel objet placé par le Grid Editor est marqué sparse ;
-- sélectionner un objet sparse reconstruit les valeurs de définition ;
-- modifier un comportement ne réintroduit pas un champ partagé comme override ;
-- les trois ponts MIG06-A restants sont testés explicitement afin qu'ils ne puissent pas être confondus avec le contrat final.
+- la priorité de la définition sur les champs partagés ;
+- la conservation des données réellement locales ;
+- le comportement legacy d'un objet pré-MIG06 ;
+- l'absence de copie de `PressurePlateWeight` ;
+- l'absence de copie des règles de chaîne de porte ;
+- l'absence de copie des règles génériques de réceptacle ;
+- l'absence de copie des règles de serrure autres que l'état initial ;
+- la conservation de `Receptacle.InitialContent` ;
+- le placement et la sélection sparse dans le Grid Editor.
 
-## Suite
+---
 
-WORLDOBJ-MIG06-B :
+## Critère de clôture
 
-- router `UGridActivationComponent` vers la résolution effective pour les plaques de pression ;
-- router complètement la chaîne de porte vers la définition ;
-- router validation/inspecteur des réceptacles vers le comportement effectif ;
-- supprimer les trois ponts de copie correspondants ;
-- ajouter les garde-fous permettant de déclarer MIG06 clos avant MIG07.
+MIG06 peut être déclaré clos lorsque :
+
+1. le build UE5.5.4 passe ;
+2. `Grimrock.WorldObjects` ne contient aucun échec ;
+3. les nouveaux placements ne recopient plus les règles partagées ;
+4. le runtime et l'inspecteur obtiennent ces règles via la définition ;
+5. les anciens niveaux restent lisibles jusqu'à MIG08.
+
+La suite est alors **MIG07 — scinder `FGridLevelObjectData` en structures typées**.

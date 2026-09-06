@@ -478,7 +478,8 @@ void AGridDoorActor::InitializeGridObject(
 	MoveTargetMotionAlpha = CurrentMotionAlpha;
 	ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
 
-	// The optional chain is behavior/interactivity, not door-leaf geometry.
-	InitializeChainMechanism(ObjectData.Behavior.DoorAnimation);
+	// WORLDOBJ-MIG06: optional chain rules are definition-owned for sparse instances.
+	const FGridObjectBehaviorParams EffectiveBehavior = ResolveEffectiveBehavior(ObjectData);
+	InitializeChainMechanism(EffectiveBehavior.DoorAnimation);
 	RefreshTickEnabled();
 }

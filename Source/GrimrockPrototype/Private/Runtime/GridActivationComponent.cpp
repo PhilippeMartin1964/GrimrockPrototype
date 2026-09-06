@@ -13,6 +13,7 @@
 #include "Runtime/GridLogicRuntime.h"
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridObjectInstanceBehavior.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
@@ -351,7 +352,10 @@ bool UGridActivationComponent::RefreshPressurePlatesAtCell(int32 X, int32 Y)
 			continue;
 		}
 
-		const FGridPressurePlateWeightParams& WeightParams = PlateData->Behavior.PressurePlateWeight;
+		const UGridObjectArchetypeAsset* PlateArchetype = RuntimeActor->FindObjectArchetype(PlateData->ArchetypeId);
+		const FGridObjectBehaviorParams EffectiveBehavior =
+			GridObjectInstanceBehavior::Resolve(RuntimeActor->LevelAsset.Get(), *PlateData, PlateArchetype);
+		const FGridPressurePlateWeightParams& WeightParams = EffectiveBehavior.PressurePlateWeight;
 		const float CurrentItemWeight = RuntimeActor->GetWorldItemWeightAtCell(X, Y, WeightParams.bCountEdgeItems);
 		const bool bPartyActivates = WeightParams.bActivateWhenPartyPresent && RuntimeActor->IsPartyOnCell(X, Y);
 		const bool bWeightActivates = WeightParams.bUseItemWeight && CurrentItemWeight >= FMath::Max(0.0f, WeightParams.RequiredItemWeight);

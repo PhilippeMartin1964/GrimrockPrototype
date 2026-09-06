@@ -162,7 +162,8 @@ void AGridReceptacleActor::InitializeGridObject(
 {
 	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, Mesh, WorldTransform);
 
-	const FGridReceptacleBehaviorParams& Params = ObjectData.Behavior.Receptacle;
+	const FGridObjectBehaviorParams EffectiveBehavior = ResolveEffectiveBehavior(ObjectData);
+	const FGridReceptacleBehaviorParams& Params = EffectiveBehavior.Receptacle;
 
 	bCanRemoveItem = true;
 

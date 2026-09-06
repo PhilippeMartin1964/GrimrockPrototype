@@ -3,7 +3,9 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridObjectInstanceBehavior.h"
 #include "Kismet/GameplayStatics.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 #include "Sound/SoundAttenuation.h"
 #include "Sound/SoundBase.h"
 
@@ -36,6 +38,13 @@ void AGridRuntimeObjectActor::InitializeGridObjectBase(
 
 	SetActorLocation(WorldLocation);
 	SetActorRotation(WorldRotation);
+}
+
+FGridObjectBehaviorParams AGridRuntimeObjectActor::ResolveEffectiveBehavior(const FGridLevelObjectData& ObjectData) const
+{
+	const AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor>(GetOwner());
+	const UGridObjectArchetypeAsset* Archetype = RuntimeActor ? RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId) : nullptr;
+	return GridObjectInstanceBehavior::Resolve(RuntimeActor ? RuntimeActor->LevelAsset.Get() : nullptr, ObjectData, Archetype);
 }
 
 bool AGridRuntimeObjectActor::MatchesObjectId(FGuid InObjectId) const

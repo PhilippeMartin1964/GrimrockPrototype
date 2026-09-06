@@ -22,8 +22,12 @@ bool FGridWorldObjectMIG06SparseBehaviorResolutionTest::RunTest(const FString& P
 	Definition->DefaultBehavior.ButtonAnimation.ButtonHoldTime = 0.80f;
 	Definition->DefaultBehavior.Lock.bConsumeKeyOnUnlock = true;
 	Definition->DefaultBehavior.Lock.bStartsUnlocked = false;
+	Definition->DefaultBehavior.Receptacle.bAcceptAnyItem = false;
 	Definition->DefaultBehavior.Receptacle.MaxContainedItems = 4;
 	Definition->DefaultBehavior.PressurePlateWeight.RequiredItemWeight = 3.5f;
+	Definition->DefaultBehavior.PressurePlateWeight.bUseItemWeight = true;
+	Definition->DefaultBehavior.DoorAnimation.bHasChainMechanism = true;
+	Definition->DefaultBehavior.DoorAnimation.ChainPullDistance = 31.0f;
 
 	UGridItemDefinitionAsset* InitialItem = NewObject<UGridItemDefinitionAsset>();
 	InitialItem->ItemDefinitionId = TEXT("MIG06_InitialItem");
@@ -49,14 +53,22 @@ bool FGridWorldObjectMIG06SparseBehaviorResolutionTest::RunTest(const FString& P
 	// must ignore them and take the authoritative values from the definition.
 	ObjectData.Behavior.ButtonAnimation.ButtonHoldTime = 9.0f;
 	ObjectData.Behavior.Lock.bConsumeKeyOnUnlock = false;
+	ObjectData.Behavior.Receptacle.bAcceptAnyItem = true;
 	ObjectData.Behavior.Receptacle.MaxContainedItems = 99;
 	ObjectData.Behavior.PressurePlateWeight.RequiredItemWeight = 99.0f;
+	ObjectData.Behavior.PressurePlateWeight.bUseItemWeight = false;
+	ObjectData.Behavior.DoorAnimation.bHasChainMechanism = false;
+	ObjectData.Behavior.DoorAnimation.ChainPullDistance = 99.0f;
 
 	const FGridObjectBehaviorParams Resolved = GridObjectInstanceBehavior::Resolve(ObjectData, Definition, true);
 	TestEqual(TEXT("Definition owns button hold time"), Resolved.ButtonAnimation.ButtonHoldTime, 0.80f);
 	TestTrue(TEXT("Definition owns lock consume-key rule"), Resolved.Lock.bConsumeKeyOnUnlock);
+	TestFalse(TEXT("Definition owns receptacle accept-any rule"), Resolved.Receptacle.bAcceptAnyItem);
 	TestEqual(TEXT("Definition owns receptacle capacity"), Resolved.Receptacle.MaxContainedItems, 4);
-	TestEqual(TEXT("Definition owns pressure-plate weight rule through resolver"), Resolved.PressurePlateWeight.RequiredItemWeight, 3.5f);
+	TestTrue(TEXT("Definition owns pressure-plate weight mode"), Resolved.PressurePlateWeight.bUseItemWeight);
+	TestEqual(TEXT("Definition owns pressure-plate weight threshold"), Resolved.PressurePlateWeight.RequiredItemWeight, 3.5f);
+	TestTrue(TEXT("Definition owns door chain presence"), Resolved.DoorAnimation.bHasChainMechanism);
+	TestEqual(TEXT("Definition owns door chain pull distance"), Resolved.DoorAnimation.ChainPullDistance, 31.0f);
 
 	TestEqual(TEXT("Teleporter destination remains instance-owned X"), Resolved.Teleporter.TargetCellX, 7);
 	TestEqual(TEXT("Teleporter destination remains instance-owned Y"), Resolved.Teleporter.TargetCellY, 8);
@@ -115,14 +127,22 @@ bool FGridWorldObjectMIG06SparseStorageContractTest::RunTest(const FString& Para
 {
 	(void)Parameters;
 
+	UGridItemDefinitionAsset* InitialItem = NewObject<UGridItemDefinitionAsset>();
+	InitialItem->ItemDefinitionId = TEXT("MIG06_StorageInitialItem");
+
 	FGridObjectBehaviorParams Source;
 	Source.ButtonAnimation.ButtonHoldTime = 4.0f;
 	Source.Lock.bConsumeKeyOnUnlock = true;
 	Source.Lock.bStartsUnlocked = true;
 	Source.Teleporter.TargetCellX = 12;
 	Source.PressurePlateWeight.RequiredItemWeight = 6.0f;
+	Source.PressurePlateWeight.bUseItemWeight = true;
 	Source.DoorAnimation.bHasChainMechanism = true;
+	Source.Receptacle.bAcceptAnyItem = false;
 	Source.Receptacle.MaxContainedItems = 3;
+	FGridReceptacleInitialItemConfig& InitialContent = Source.Receptacle.InitialContent.AddDefaulted_GetRef();
+	InitialContent.ItemDefinition = InitialItem;
+	InitialContent.Quantity = 2;
 
 	const FGridObjectBehaviorParams Sparse = GridObjectInstanceBehavior::BuildSparseOverrides(Source);
 	TestTrue(TEXT("Button definition behavior is not cloned into sparse storage"),
@@ -130,12 +150,18 @@ bool FGridWorldObjectMIG06SparseStorageContractTest::RunTest(const FString& Para
 	TestFalse(TEXT("Lock consume-key rule is not cloned into sparse storage"), Sparse.Lock.bConsumeKeyOnUnlock);
 	TestTrue(TEXT("Lock initial state is stored as an instance override"), Sparse.Lock.bStartsUnlocked);
 	TestEqual(TEXT("Teleporter destination is stored as an instance override"), Sparse.Teleporter.TargetCellX, 12);
-
-	// Explicit MIG06-A bridges. These assertions make the remaining debt visible
-	// and prevent it from being mistaken for the final MIG06 contract.
-	TestEqual(TEXT("MIG06-A pressure-plate direct-consumer bridge remains"), Sparse.PressurePlateWeight.RequiredItemWeight, 6.0f);
-	TestTrue(TEXT("MIG06-A door-chain direct-consumer bridge remains"), Sparse.DoorAnimation.bHasChainMechanism);
-	TestEqual(TEXT("MIG06-A receptacle validation bridge remains"), Sparse.Receptacle.MaxContainedItems, 3);
+	TestFalse(TEXT("Pressure-plate weight mode is not cloned into sparse storage"), Sparse.PressurePlateWeight.bUseItemWeight);
+	TestTrue(TEXT("Pressure-plate threshold is not cloned into sparse storage"),
+		!FMath::IsNearlyEqual(Sparse.PressurePlateWeight.RequiredItemWeight, Source.PressurePlateWeight.RequiredItemWeight));
+	TestFalse(TEXT("Door chain rules are not cloned into sparse storage"), Sparse.DoorAnimation.bHasChainMechanism);
+	TestTrue(TEXT("Receptacle accept-any rule is not cloned into sparse storage"), Sparse.Receptacle.bAcceptAnyItem);
+	TestTrue(TEXT("Receptacle capacity is not cloned into sparse storage"), Sparse.Receptacle.MaxContainedItems != Source.Receptacle.MaxContainedItems);
+	TestEqual(TEXT("Receptacle initial content remains the sparse instance payload"), Sparse.Receptacle.InitialContent.Num(), 1);
+	if (Sparse.Receptacle.InitialContent.Num() == 1)
+	{
+		TestTrue(TEXT("Sparse initial content keeps its definition"), Sparse.Receptacle.InitialContent[0].ItemDefinition == InitialItem);
+		TestEqual(TEXT("Sparse initial content keeps quantity"), Sparse.Receptacle.InitialContent[0].Quantity, 2);
+	}
 
 	return true;
 }

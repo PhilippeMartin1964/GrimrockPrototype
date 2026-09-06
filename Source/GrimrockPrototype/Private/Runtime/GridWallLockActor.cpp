@@ -33,7 +33,8 @@ void AGridWallLockActor::InitializeGridObject(
 {
 	Super::InitializeGridObject(ObjectData, Mesh, WorldTransform);
 
-	const FGridLockBehaviorParams& LockParams = ObjectData.Behavior.Lock;
+	const FGridObjectBehaviorParams EffectiveBehavior = ResolveEffectiveBehavior(ObjectData);
+	const FGridLockBehaviorParams& LockParams = EffectiveBehavior.Lock;
 	bIsUnlocked = LockParams.bStartsUnlocked;
 	bConsumeKeyOnUnlock = LockParams.bConsumeKeyOnUnlock;
 	LockedMessage = LockParams.LockedMessage;

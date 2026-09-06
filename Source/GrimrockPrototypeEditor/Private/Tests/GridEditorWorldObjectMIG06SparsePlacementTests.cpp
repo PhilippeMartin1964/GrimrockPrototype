@@ -117,6 +117,12 @@ bool FGridEditorWorldObjectMIG06SparsePlacementTest::RunTest(const FString& Para
 
 	TestTrue(TEXT("Sparse object can be selected by id"), EditorActor->SelectObjectById(ObjectId));
 	TestEqual(TEXT("Selection resolves ButtonHoldTime back from definition"), EditorActor->ObjectBehavior.ButtonAnimation.ButtonHoldTime, 0.77f);
+	const FGridLevelObjectData* InspectorView = EditorActor->GetSelectedObjectData();
+	TestNotNull(TEXT("Inspector receives a selected object view"), InspectorView);
+	if (InspectorView)
+	{
+		TestEqual(TEXT("Inspector view resolves definition-owned ButtonHoldTime"), InspectorView->Behavior.ButtonAnimation.ButtonHoldTime, 0.77f);
+	}
 
 	FGridObjectBehaviorParams EditedBehavior = EditorActor->ObjectBehavior;
 	EditedBehavior.ButtonAnimation.ButtonHoldTime = 9.0f; // must not become an instance authority
@@ -134,6 +140,13 @@ bool FGridEditorWorldObjectMIG06SparsePlacementTest::RunTest(const FString& Para
 	TestTrue(TEXT("Edited sparse object can be reselected"), EditorActor->SelectObjectById(ObjectId));
 	TestEqual(TEXT("Reselection restores definition-owned ButtonHoldTime"), EditorActor->ObjectBehavior.ButtonAnimation.ButtonHoldTime, 0.77f);
 	TestEqual(TEXT("Reselection preserves instance transition"), EditorActor->ObjectBehavior.Transition.TargetLevelId, FName(TEXT("MIG06_Target")));
+	InspectorView = EditorActor->GetSelectedObjectData();
+	TestNotNull(TEXT("Inspector view survives sparse edit/reselection"), InspectorView);
+	if (InspectorView)
+	{
+		TestEqual(TEXT("Inspector view keeps definition value after sparse edit"), InspectorView->Behavior.ButtonAnimation.ButtonHoldTime, 0.77f);
+		TestEqual(TEXT("Inspector view keeps instance transition after sparse edit"), InspectorView->Behavior.Transition.TargetLevelId, FName(TEXT("MIG06_Target")));
+	}
 
 	return true;
 }
