@@ -36,24 +36,6 @@ void AGridLeverActor::Tick(float DeltaSeconds)
 	}
 }
 
-void AGridLeverActor::InitializeLever(const FGridLevelObjectData& ObjectData, UStaticMesh* InLeverMesh,
-	const FVector& InWorldLocation, const FRotator& InWorldRotation, bool bStartOn)
-{
-	(void)InLeverMesh;
-	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, FTransform(InWorldRotation, InWorldLocation));
-
-	// WORLDOBJ-MIG04: the lever owns only logical alpha; Motion owns geometry and timing.
-	ToggleDuration = GetTargetMotionDuration();
-	bIsOn = bStartOn;
-	bIsAnimating = false;
-	AnimElapsed = 0.f;
-	CurrentToggleDuration = 0.0f;
-	CurrentMotionAlpha = bIsOn ? 1.0f : 0.0f;
-	AnimStartMotionAlpha = CurrentMotionAlpha;
-	AnimTargetMotionAlpha = CurrentMotionAlpha;
-	ApplyMovingPartMotionAlpha(0, CurrentMotionAlpha);
-}
-
 void AGridLeverActor::SetLeverState(bool bNewOn)
 {
 	if (bIsOn == bNewOn && !bIsAnimating)
@@ -108,7 +90,20 @@ void AGridLeverActor::UpdateAnimation(float DeltaSeconds)
 void AGridLeverActor::InitializeGridObject(
 	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	InitializeLever(ObjectData, Mesh, WorldTransform.GetLocation(), WorldTransform.Rotator(), ObjectData.bInitiallyActive);
+	(void)Mesh;
+	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, WorldTransform);
+
+	// WORLDOBJ-MIG04: the lever owns only logical alpha; Motion owns geometry and timing.
+	ToggleDuration = GetTargetMotionDuration();
+	bIsOn = ObjectData.bInitiallyActive;
+	bIsAnimating = false;
+	AnimElapsed = 0.f;
+	CurrentToggleDuration = 0.0f;
+	CurrentMotionAlpha = bIsOn ? 1.0f : 0.0f;
+	AnimStartMotionAlpha = CurrentMotionAlpha;
+	AnimTargetMotionAlpha = CurrentMotionAlpha;
+	ApplyMovingPartMotionAlpha(0, CurrentMotionAlpha);
+	SetActorTickEnabled(false);
 }
 
 bool AGridLeverActor::CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const

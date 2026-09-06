@@ -29,10 +29,6 @@ public:
 	float HoldTime = 0.15f;
 
 	UFUNCTION(BlueprintCallable, Category = "Button")
-	void InitializeButton(const FGridLevelObjectData& ObjectData, UStaticMesh* InButtonMesh, const FVector& InWorldLocation,
-		const FRotator& InWorldRotation);
-
-	UFUNCTION(BlueprintCallable, Category = "Button")
 	void TriggerPress();
 
 	virtual void InitializeGridObject(

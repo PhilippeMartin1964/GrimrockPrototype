@@ -25,10 +25,6 @@ public:
 	bool bIsOn = false;
 
 	UFUNCTION(BlueprintCallable, Category = "Lever")
-	void InitializeLever(const FGridLevelObjectData& ObjectData, UStaticMesh* InLeverMesh, const FVector& InWorldLocation,
-		const FRotator& InWorldRotation, bool bStartOn);
-
-	UFUNCTION(BlueprintCallable, Category = "Lever")
 	void SetLeverState(bool bNewOn);
 
 	UFUNCTION(BlueprintCallable, Category = "Lever")

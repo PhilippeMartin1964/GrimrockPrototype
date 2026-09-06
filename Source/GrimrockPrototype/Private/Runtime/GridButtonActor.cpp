@@ -32,32 +32,6 @@ void AGridButtonActor::Tick(float DeltaSeconds)
 	UpdateAnimation(DeltaSeconds);
 }
 
-void AGridButtonActor::InitializeButton(const FGridLevelObjectData& ObjectData, UStaticMesh* InButtonMesh,
-	const FVector& InWorldLocation, const FRotator& InWorldRotation)
-{
-	(void)InButtonMesh;
-	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, FTransform(InWorldRotation, InWorldLocation));
-
-	// WORLDOBJ-MIG04: geometry and travel time are authored only by MovingPart[0].Motion.
-	const float TargetDuration = GetTargetMotionDuration();
-	PressDuration = TargetDuration;
-	ReleaseDuration = TargetDuration;
-
-	// WORLDOBJ-MIG06: ButtonHoldTime belongs to the shared definition for sparse
-	// instances. Direct legacy initializers without a runtime owner retain their
-	// historical ObjectData.Behavior snapshot.
-	const AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor>(GetOwner());
-	const UGridObjectArchetypeAsset* Archetype = RuntimeActor ? RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId) : nullptr;
-	const FGridObjectBehaviorParams EffectiveBehavior =
-		GridObjectInstanceBehavior::Resolve(RuntimeActor ? RuntimeActor->LevelAsset.Get() : nullptr, ObjectData, Archetype);
-	HoldTime = FMath::Max(0.0f, EffectiveBehavior.ButtonAnimation.ButtonHoldTime);
-
-	ApplyMovingPartMotionAlpha(0, 0.0f);
-	AnimState = EButtonAnimState::Idle;
-	StateElapsed = 0.f;
-	SetActorTickEnabled(false);
-}
-
 void AGridButtonActor::TriggerPress()
 {
 	AnimState = EButtonAnimState::Pressing;
@@ -122,7 +96,25 @@ void AGridButtonActor::UpdateAnimation(float DeltaSeconds)
 void AGridButtonActor::InitializeGridObject(
 	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	InitializeButton(ObjectData, Mesh, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
+	(void)Mesh;
+	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, WorldTransform);
+
+	// WORLDOBJ-MIG04: geometry and travel time are authored only by MovingPart[0].Motion.
+	const float TargetDuration = GetTargetMotionDuration();
+	PressDuration = TargetDuration;
+	ReleaseDuration = TargetDuration;
+
+	// WORLDOBJ-MIG06: ButtonHoldTime belongs to the shared definition for sparse instances.
+	const AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor>(GetOwner());
+	const UGridObjectArchetypeAsset* Archetype = RuntimeActor ? RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId) : nullptr;
+	const FGridObjectBehaviorParams EffectiveBehavior =
+		GridObjectInstanceBehavior::Resolve(RuntimeActor ? RuntimeActor->LevelAsset.Get() : nullptr, ObjectData, Archetype);
+	HoldTime = FMath::Max(0.0f, EffectiveBehavior.ButtonAnimation.ButtonHoldTime);
+
+	ApplyMovingPartMotionAlpha(0, 0.0f);
+	AnimState = EButtonAnimState::Idle;
+	StateElapsed = 0.f;
+	SetActorTickEnabled(false);
 }
 
 bool AGridButtonActor::CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
