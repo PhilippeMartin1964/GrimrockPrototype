@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Runtime/GridGenericObjectActor.h"
@@ -12,7 +13,6 @@
 #include "GridLevelRuntimeActor.generated.h"
 
 class AGridEditorPreviewObjectActor;
-class UGridObjectArchetypeAsset;
 class UGridItemDefinitionAsset;
 class AGridRuntimeObjectActor;
 class AGridItemActor;
@@ -397,7 +397,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Runtime")
 	bool ApplyCurrentLevelRuntimeState();
-
 	FGridLevelRuntimeState* GetOrCreateRuntimeStateForCurrentLevel();
 	const FGridLevelRuntimeState* FindRuntimeStateForCurrentLevel() const;
 
@@ -555,7 +554,8 @@ private:
 		{
 			return nullptr;
 		}
-		OutMesh = GetObjectMesh(ObjectData);
+		const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(ObjectData.ArchetypeId);
+		OutMesh = Archetype && Archetype->StaticPart.IsDefined() ? Archetype->StaticPart.Mesh.Get() : nullptr;
 		TSubclassOf<AGridRuntimeObjectActor> ActorClass = GetObjectRuntimeActorClass(ObjectData);
 
 		// WORLDOBJ-MIG03: presentation is optional. Actor existence is driven by RuntimeActorClass,
