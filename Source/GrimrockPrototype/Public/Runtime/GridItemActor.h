@@ -6,6 +6,7 @@
 #include "GridItemActor.generated.h"
 
 class UMaterialInstanceDynamic;
+class UStaticMesh;
 class UStaticMeshComponent;
 class UGridItemDefinitionAsset;
 class UGridReadableContentAsset;
@@ -64,9 +65,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 	int32 RuntimeCellY = INDEX_NONE;
 
-	/** MIG09-B1 compatibility API only. It writes ItemDefinitionId; no ArchetypeId state exists anymore. */
-	UFUNCTION(BlueprintCallable, Category = "Item", meta = (DeprecatedFunction, DeprecationMessage = "Use InitializeFromItemDefinition or InitializeFromItemDefinitionId."))
-	virtual void InitializeItem(FName InItemDefinitionId, const TArray<FName>& InItemTags, UStaticMesh* Mesh);
+	/**
+	 * MIG09-B2C temporary C++-only bridge for the last runtime caller.
+	 * Deliberately not reflected to Blueprint. Remove once SpawnItemActorForDefinition uses only canonical initialization.
+	 */
+	void InitializeItem(FName InItemDefinitionId, const TArray<FName>& InItemTags, UStaticMesh* Mesh);
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void InitializeFromItemDefinition(UGridItemDefinitionAsset* InDefinition, const FGuid& InRuntimeObjectId);
@@ -111,10 +114,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Item|World Sparkle")
 	bool IsWorldSparkleActive() const { return bWorldSparkleActive; }
-
-	/** MIG09-B1 compatibility alias only. It returns GetItemDefinitionId() and owns no separate state. */
-	UFUNCTION(BlueprintCallable, Category = "Item", meta = (DeprecatedFunction, DeprecationMessage = "Use GetItemDefinitionId."))
-	FName GetItemArchetypeId() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	UGridItemDefinitionAsset* GetItemDefinitionAsset() const;

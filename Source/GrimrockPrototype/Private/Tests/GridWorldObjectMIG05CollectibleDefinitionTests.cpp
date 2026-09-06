@@ -95,6 +95,8 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 
 	FProperty* ItemArchetypeBridge = AGridItemActor::StaticClass()->FindPropertyByName(TEXT("ArchetypeId"));
 	TestNull(TEXT("MIG09 physically removes duplicate item ArchetypeId runtime state"), ItemArchetypeBridge);
+	TestNull(TEXT("MIG09 removes legacy GetItemArchetypeId API"), AGridItemActor::StaticClass()->FindFunctionByName(TEXT("GetItemArchetypeId")));
+	TestNull(TEXT("MIG09 removes reflected legacy InitializeItem API"), AGridItemActor::StaticClass()->FindFunctionByName(TEXT("InitializeItem")));
 
 	FMIG05ItemTestWorld TestWorld;
 	TestNotNull(TEXT("MIG05 runtime world exists"), TestWorld.World);
@@ -135,8 +137,6 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 		ItemActor->InitializeFromItemDefinition(Definition, ItemData.ObjectId);
 		TestTrue(TEXT("Generic item actor keeps the canonical definition asset"), ItemActor->GetItemDefinitionAsset() == Definition);
 		TestEqual(TEXT("Generic item actor identity is ItemDefinitionId"), ItemActor->GetItemDefinitionId(), FName(TEXT("BlueGem")));
-		TestEqual(TEXT("MIG09 compatibility alias resolves to canonical ItemDefinitionId without separate state"),
-			ItemActor->GetItemArchetypeId(), ItemActor->GetItemDefinitionId());
 		TestTrue(TEXT("Generic item actor presentation uses ItemDefinition WorldMesh"), ItemActor->MeshComponent->GetStaticMesh() == WorldMesh);
 	}
 

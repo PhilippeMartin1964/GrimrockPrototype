@@ -289,11 +289,6 @@ void AGridItemActor::RefreshWorldSparklePresentation()
 	SparkleMeshComponent->SetVisibility(true, true);
 }
 
-FName AGridItemActor::GetItemArchetypeId() const
-{
-	return GetItemDefinitionId();
-}
-
 UGridItemDefinitionAsset* AGridItemActor::GetItemDefinitionAsset() const
 {
 	return ItemDefinitionAsset;
