@@ -69,7 +69,9 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 		HeldItemActor = GetWorld()->SpawnActor<AGridItemActor>(HeldTorchActorClass, FTransform::Identity, SpawnParams);
 		if (HeldItemActor)
 		{
-			HeldItemActor->ArchetypeId = ItemDefinitionId;
+			// MIG09-B: the held torch Blueprint keeps its own presentation, but runtime
+			// identity is the canonical ItemDefinitionId. Do not reintroduce ArchetypeId.
+			HeldItemActor->InitializeFromItemDefinitionId(ItemDefinitionId, FGuid());
 		}
 	}
 	else
