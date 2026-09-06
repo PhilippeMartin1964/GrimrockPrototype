@@ -87,7 +87,9 @@ bool FGridWorldObjectMIG04RuntimeGenericMotionContractTest::RunTest(const FStrin
 	if (DoorOpenHeight)
 	{
 		TestTrue(TEXT("Door OpenHeight cache is transient"), DoorOpenHeight->HasAnyPropertyFlags(CPF_Transient));
-		TestFalse(TEXT("Door OpenHeight cache is not editable"), DoorOpenHeight->HasAnyPropertyFlags(CPF_Edit));
+		// VisibleInstanceOnly deliberately carries CPF_Edit so the value can be shown in Details.
+		// CPF_EditConst is the Unreal reflection flag that makes that visible instance property read-only.
+		TestTrue(TEXT("Door OpenHeight cache is read-only in Details"), DoorOpenHeight->HasAnyPropertyFlags(CPF_EditConst));
 	}
 
 	return true;
