@@ -29,14 +29,8 @@ void AGridPitTrapdoorActor::InitializeMechanismVisuals(
 {
 	AGridMechanismActor::InitializeMechanismVisuals(ObjectData, Archetype, WorldTransform);
 
-	// WORLDOBJ-MIG04: pit geometry is entirely generic MovingParts motion.
-	// Legacy behavior duration remains only as a temporary timing fallback until schema cleanup.
-	MoveDuration = FMath::Max(0.0f, ObjectData.Behavior.PitAnimation.MoveDuration);
-	const float TargetDuration = GetTargetMotionDuration();
-	if (TargetDuration > KINDA_SMALL_NUMBER)
-	{
-		MoveDuration = TargetDuration;
-	}
+	// WORLDOBJ-MIG04: pit geometry and travel time are entirely generic MovingParts motion.
+	MoveDuration = GetTargetMotionDuration();
 
 	LeftLeafMeshComponent = MovingMeshComponent;
 	RightLeafMeshComponent = SecondaryMovingMeshComponent;

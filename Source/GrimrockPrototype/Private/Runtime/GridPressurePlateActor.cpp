@@ -22,15 +22,8 @@ void AGridPressurePlateActor::InitializePlate(
 	(void)InPlateMesh;
 	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, FTransform(FRotator::ZeroRotator, InWorldLocation));
 
-	// WORLDOBJ-MIG04: the plate only owns logical alpha. Geometry is MovingPart[0].Motion.
-	// Legacy behavior duration remains a temporary timing fallback until the MIG04 schema cleanup.
-	MoveDuration = FMath::Max(0.0f, ObjectData.Behavior.PressurePlateAnimation.MoveDuration);
-	const float TargetDuration = GetTargetMotionDuration();
-	if (TargetDuration > KINDA_SMALL_NUMBER)
-	{
-		MoveDuration = TargetDuration;
-	}
-
+	// WORLDOBJ-MIG04: the plate owns only logical alpha; Motion owns geometry and timing.
+	MoveDuration = GetTargetMotionDuration();
 	SetWeightState(0.0f, ObjectData.Behavior.PressurePlateWeight.RequiredItemWeight, ObjectData.Behavior.PressurePlateWeight.bUseItemWeight,
 		ObjectData.Behavior.PressurePlateWeight.bActivateWhenPartyPresent);
 

@@ -42,15 +42,8 @@ void AGridLeverActor::InitializeLever(const FGridLevelObjectData& ObjectData, US
 	(void)InLeverMesh;
 	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, FTransform(InWorldRotation, InWorldLocation));
 
-	// WORLDOBJ-MIG04: the lever only owns logical alpha. Geometry is MovingPart[0].Motion.
-	// Legacy behavior duration remains a temporary timing fallback until the MIG04 schema cleanup.
-	ToggleDuration = FMath::Max(0.0f, ObjectData.Behavior.LeverAnimation.ToggleDuration);
-	const float TargetDuration = GetTargetMotionDuration();
-	if (TargetDuration > KINDA_SMALL_NUMBER)
-	{
-		ToggleDuration = TargetDuration;
-	}
-
+	// WORLDOBJ-MIG04: the lever owns only logical alpha; Motion owns geometry and timing.
+	ToggleDuration = GetTargetMotionDuration();
 	bIsOn = bStartOn;
 	bIsAnimating = false;
 	AnimElapsed = 0.f;

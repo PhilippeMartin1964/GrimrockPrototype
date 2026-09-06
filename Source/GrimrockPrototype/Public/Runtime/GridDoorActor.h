@@ -23,11 +23,13 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door")
-	float OpenHeight = 180.f;
+	/** MIG09 compatibility/debug cache only. Production door geometry is MovingParts[].Motion. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door")
+	float OpenHeight = 0.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door")
-	float MoveDuration = 2.5f;
+	/** Runtime movement duration. Production initialization resolves it from MovingParts[].Motion. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door")
+	float MoveDuration = 0.f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Door")
 	bool bIsOpen = false;
@@ -93,6 +95,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door|Chain")
 	TObjectPtr<UMaterialInterface> ChainMaterial;
 
+	/**
+	 * Compatibility initializer used by older direct tests/Blueprint call sites.
+	 * Production spawning uses InitializeMechanismVisuals + InitializeGridObject, where Motion is authoritative.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Door")
 	void InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, UStaticMesh* InFixedMesh,
 		const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen);
@@ -155,11 +161,6 @@ protected:
 	bool PlayDoorMotionSound(bool bOpening, float StartTimeSeconds);
 	bool StopDoorMotionSound();
 	void CompleteDoorMotionSound(float CompletedMoveDuration);
-
-	FVector MovingClosedRelativeLocation = FVector::ZeroVector;
-	FVector MovingOpenRelativeLocation = FVector::ZeroVector;
-	FVector MoveStartRelativeLocation = FVector::ZeroVector;
-	FVector MoveTargetRelativeLocation = FVector::ZeroVector;
 
 	float CurrentMotionAlpha = 0.0f;
 	float MoveStartMotionAlpha = 0.0f;

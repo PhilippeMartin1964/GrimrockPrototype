@@ -37,18 +37,11 @@ void AGridButtonActor::InitializeButton(const FGridLevelObjectData& ObjectData, 
 	(void)InButtonMesh;
 	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, FTransform(InWorldRotation, InWorldLocation));
 
-	// WORLDOBJ-MIG04: geometry always comes from MovingPart[0].Motion.
-	// Legacy behavior durations remain only as a temporary timing fallback until the MIG04 schema cleanup.
-	PressDuration = FMath::Max(0.0f, ObjectData.Behavior.ButtonAnimation.ButtonPressDuration);
-	ReleaseDuration = FMath::Max(0.0f, ObjectData.Behavior.ButtonAnimation.ButtonReleaseDuration);
-	HoldTime = FMath::Max(0.0f, ObjectData.Behavior.ButtonAnimation.ButtonHoldTime);
-
+	// WORLDOBJ-MIG04: geometry and travel time are authored only by MovingPart[0].Motion.
 	const float TargetDuration = GetTargetMotionDuration();
-	if (TargetDuration > KINDA_SMALL_NUMBER)
-	{
-		PressDuration = TargetDuration;
-		ReleaseDuration = TargetDuration;
-	}
+	PressDuration = TargetDuration;
+	ReleaseDuration = TargetDuration;
+	HoldTime = FMath::Max(0.0f, ObjectData.Behavior.ButtonAnimation.ButtonHoldTime);
 
 	ApplyMovingPartMotionAlpha(0, 0.0f);
 	AnimState = EButtonAnimState::Idle;

@@ -79,6 +79,8 @@ void AGridDoorActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AGridDoorActor::InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh,
 	UStaticMesh* InFixedMesh, const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen)
 {
+	// MIG09 compatibility initializer for older direct tests/Blueprint callers.
+	// It may still obtain a timing value from the transient bridge, but it no longer owns a separate geometry engine.
 	StopDoorMotionSound();
 
 	ObjectId = ObjectData.ObjectId;
@@ -88,18 +90,11 @@ void AGridDoorActor::InitializeDoor(const FGridLevelObjectData& ObjectData, USta
 
 	SetActorLocation(ClosedWorldLocation);
 	SetActorRotation(WorldRotation);
-
 	SetFixedMesh(InFixedMesh);
 	SetMovingMesh(InMovingMesh);
 
 	OpenHeight = ObjectData.Behavior.DoorAnimation.OpenHeight;
-	MoveDuration = ObjectData.Behavior.DoorAnimation.MoveDuration;
-
-	MovingClosedRelativeLocation = FVector::ZeroVector;
-	MovingOpenRelativeLocation = FVector(0.f, 0.f, OpenHeight);
-
-	MoveStartRelativeLocation = FVector::ZeroVector;
-	MoveTargetRelativeLocation = FVector::ZeroVector;
+	MoveDuration = FMath::Max(0.0f, ObjectData.Behavior.DoorAnimation.MoveDuration);
 	MoveElapsed = 0.f;
 	CurrentMoveDuration = 0.f;
 
@@ -108,8 +103,7 @@ void AGridDoorActor::InitializeDoor(const FGridLevelObjectData& ObjectData, USta
 	CurrentMotionAlpha = bIsOpen ? 1.0f : 0.0f;
 	MoveStartMotionAlpha = CurrentMotionAlpha;
 	MoveTargetMotionAlpha = CurrentMotionAlpha;
-
-	SetMovingRelativeLocation(bIsOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation);
+	ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
 
 	InitializeChainMechanism(ObjectData.Behavior.DoorAnimation);
 	RefreshTickEnabled();
@@ -117,138 +111,50 @@ void AGridDoorActor::InitializeDoor(const FGridLevelObjectData& ObjectData, USta
 
 void AGridDoorActor::SetDoorOpenState(bool bOpen)
 {
-	if (!MovingMeshComponent)
+	const float DesiredAlpha = bOpen ? 1.0f : 0.0f;
+	if (!bIsAnimating && bIsOpen == bOpen && FMath::IsNearlyEqual(CurrentMotionAlpha, DesiredAlpha, KINDA_SMALL_NUMBER))
 	{
 		return;
 	}
-
-	if (UsesTargetVisualComposition())
-	{
-		if (!MovingMeshComponent->GetStaticMesh())
-		{
-			return;
-		}
-
-		const float DesiredAlpha = bOpen ? 1.0f : 0.0f;
-		if (!bIsAnimating && bIsOpen == bOpen && FMath::IsNearlyEqual(CurrentMotionAlpha, DesiredAlpha, KINDA_SMALL_NUMBER))
-		{
-			return;
-		}
-		if (bIsAnimating && FMath::IsNearlyEqual(MoveTargetMotionAlpha, DesiredAlpha, KINDA_SMALL_NUMBER))
-		{
-			return;
-		}
-		if (bIsAnimating)
-		{
-			StopDoorMotionSound();
-		}
-
-		if (FMath::IsNearlyEqual(CurrentMotionAlpha, DesiredAlpha, KINDA_SMALL_NUMBER))
-		{
-			bIsOpen = bOpen;
-			bIsAnimating = false;
-			CurrentMotionAlpha = DesiredAlpha;
-			MoveStartMotionAlpha = DesiredAlpha;
-			MoveTargetMotionAlpha = DesiredAlpha;
-			MoveElapsed = 0.f;
-			CurrentMoveDuration = 0.f;
-			ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
-			RefreshTickEnabled();
-			return;
-		}
-
-		MoveStartMotionAlpha = CurrentMotionAlpha;
-		MoveTargetMotionAlpha = DesiredAlpha;
-		MoveElapsed = 0.f;
-		const float TravelRatio = FMath::Abs(MoveTargetMotionAlpha - MoveStartMotionAlpha);
-		CurrentMoveDuration = FMath::Max(0.01f, MoveDuration * TravelRatio);
-
-		const float AudioTimelineDuration = FMath::Max(0.0f, MoveDuration);
-		const float AudioStartTime = bOpen ? CurrentMotionAlpha * AudioTimelineDuration : (1.0f - CurrentMotionAlpha) * AudioTimelineDuration;
-
-		bIsAnimating = true;
-		PlayDoorMotionSound(bOpen, AudioStartTime);
-
-		UE_LOG(LogTemp, Log,
-			TEXT("Grid door target-motion start: ObjectId=%s Cell=(%d,%d) Edge=%d Direction=%s StartAlpha=%.3f TargetAlpha=%.3f Duration=%.3f EffectiveDuration=%.3f"),
-			*ObjectId.ToString(), CellX, CellY, static_cast<int32>(Edge), bOpen ? TEXT("Open") : TEXT("Close"), MoveStartMotionAlpha,
-			MoveTargetMotionAlpha, MoveDuration, CurrentMoveDuration);
-
-		RefreshTickEnabled();
-		return;
-	}
-
-	const FVector DesiredTarget = bOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation;
-
-	if (!bIsAnimating && bIsOpen == bOpen)
+	if (bIsAnimating && FMath::IsNearlyEqual(MoveTargetMotionAlpha, DesiredAlpha, KINDA_SMALL_NUMBER))
 	{
 		return;
 	}
-
-	// Repeated commands toward the already active target are presentation no-ops.
-	// A genuine reversal has a different target and is allowed to start a new sound.
-	if (bIsAnimating && MoveTargetRelativeLocation.Equals(DesiredTarget, 0.1f))
-	{
-		return;
-	}
-
-	// Any genuine target change owns the movement audio too. Stop the previous
-	// voice before evaluating whether the reverse command actually has travel.
-	// This also fixes an immediate Open -> Close before the first animation Tick.
 	if (bIsAnimating)
 	{
 		StopDoorMotionSound();
 	}
 
-	const FVector CurrentLocation = MovingMeshComponent->GetRelativeLocation();
-
-	if (CurrentLocation.Equals(DesiredTarget, 0.1f))
+	if (FMath::IsNearlyEqual(CurrentMotionAlpha, DesiredAlpha, KINDA_SMALL_NUMBER))
 	{
 		bIsOpen = bOpen;
 		bIsAnimating = false;
+		CurrentMotionAlpha = DesiredAlpha;
+		MoveStartMotionAlpha = DesiredAlpha;
+		MoveTargetMotionAlpha = DesiredAlpha;
 		MoveElapsed = 0.f;
 		CurrentMoveDuration = 0.f;
-		MovingMeshComponent->SetRelativeLocation(DesiredTarget);
+		ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
 		RefreshTickEnabled();
 		return;
 	}
 
-	const float FullTravelDistance = FVector::Dist(MovingClosedRelativeLocation, MovingOpenRelativeLocation);
-	const float RemainingDistance = FVector::Dist(CurrentLocation, DesiredTarget);
-
-	if (FullTravelDistance <= KINDA_SMALL_NUMBER || RemainingDistance <= KINDA_SMALL_NUMBER)
-	{
-		bIsOpen = bOpen;
-		bIsAnimating = false;
-		MoveElapsed = 0.f;
-		CurrentMoveDuration = 0.f;
-		MovingMeshComponent->SetRelativeLocation(DesiredTarget);
-		RefreshTickEnabled();
-		return;
-	}
-
-	MoveStartRelativeLocation = CurrentLocation;
-	MoveTargetRelativeLocation = DesiredTarget;
+	MoveStartMotionAlpha = CurrentMotionAlpha;
+	MoveTargetMotionAlpha = DesiredAlpha;
 	MoveElapsed = 0.f;
-
-	const float TravelRatio = FMath::Clamp(RemainingDistance / FullTravelDistance, 0.f, 1.f);
+	const float TravelRatio = FMath::Abs(MoveTargetMotionAlpha - MoveStartMotionAlpha);
 	CurrentMoveDuration = FMath::Max(0.01f, MoveDuration * TravelRatio);
 
-	// Map the current mechanical position to the corresponding point on the
-	// destination-direction audio timeline. Audio beyond MoveDuration is a natural
-	// tail and deliberately does not participate in this synchronization.
-	const float DistanceFromClosed = FVector::Dist(CurrentLocation, MovingClosedRelativeLocation);
-	const float Openness = FMath::Clamp(DistanceFromClosed / FullTravelDistance, 0.0f, 1.0f);
 	const float AudioTimelineDuration = FMath::Max(0.0f, MoveDuration);
-	const float AudioStartTime = bOpen ? Openness * AudioTimelineDuration : (1.0f - Openness) * AudioTimelineDuration;
+	const float AudioStartTime = bOpen ? CurrentMotionAlpha * AudioTimelineDuration : (1.0f - CurrentMotionAlpha) * AudioTimelineDuration;
 
 	bIsAnimating = true;
 	PlayDoorMotionSound(bOpen, AudioStartTime);
 
 	UE_LOG(LogTemp, Log,
-		TEXT("Grid door motion start: ObjectId=%s Cell=(%d,%d) Edge=%d Direction=%s InstanceMoveDuration=%.3f TravelRatio=%.3f Openness=%.3f EffectiveMoveDuration=%.3f AudioStartTime=%.3f AudioExpectedDuration=%.3f Pitch=%.3f"),
-		*ObjectId.ToString(), CellX, CellY, static_cast<int32>(Edge), bOpen ? TEXT("Open") : TEXT("Close"), MoveDuration, TravelRatio, Openness,
-		CurrentMoveDuration, LastDoorAudioStartTime, ActiveDoorAudioExpectedDuration, ActiveDoorAudioPitch);
+		TEXT("Grid door generic-motion start: ObjectId=%s Cell=(%d,%d) Edge=%d Direction=%s StartAlpha=%.3f TargetAlpha=%.3f Duration=%.3f EffectiveDuration=%.3f"),
+		*ObjectId.ToString(), CellX, CellY, static_cast<int32>(Edge), bOpen ? TEXT("Open") : TEXT("Close"), MoveStartMotionAlpha,
+		MoveTargetMotionAlpha, MoveDuration, CurrentMoveDuration);
 
 	RefreshTickEnabled();
 }
@@ -261,18 +167,10 @@ void AGridDoorActor::SnapDoorOpenState(bool bOpen)
 	bIsAnimating = false;
 	MoveElapsed = 0.f;
 	CurrentMoveDuration = 0.f;
-
-	if (UsesTargetVisualComposition())
-	{
-		CurrentMotionAlpha = bIsOpen ? 1.0f : 0.0f;
-		MoveStartMotionAlpha = CurrentMotionAlpha;
-		MoveTargetMotionAlpha = CurrentMotionAlpha;
-		ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
-	}
-	else
-	{
-		SetMovingRelativeLocation(bIsOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation);
-	}
+	CurrentMotionAlpha = bIsOpen ? 1.0f : 0.0f;
+	MoveStartMotionAlpha = CurrentMotionAlpha;
+	MoveTargetMotionAlpha = CurrentMotionAlpha;
+	ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
 	RefreshTickEnabled();
 }
 
@@ -288,9 +186,6 @@ void AGridDoorActor::CloseDoor()
 
 bool AGridDoorActor::PlayDoorMotionSound(bool bOpening, float StartTimeSeconds)
 {
-	// Audio data/variant selection is generic. The door only owns temporal policy:
-	// one movement voice, interruption on direction changes, timeline resume on
-	// reversals, and natural tails at normal endpoints.
 	StopDoorMotionSound();
 
 	const FName EventName = bOpening ? FName(TEXT("Open")) : FName(TEXT("Close"));
@@ -341,10 +236,6 @@ void AGridDoorActor::CompleteDoorMotionSound(float CompletedMoveDuration)
 		return;
 	}
 
-	// Reaching the mechanical endpoint is not an audio interruption. The moving
-	// mass may still ring, slam, scrape or reverberate after its transform has
-	// stopped. Release logical movement ownership but leave the auto-destroying
-	// AudioComponent alive so the authored sample can finish naturally.
 	UE_LOG(LogTemp, Log,
 		TEXT("Grid door audio completion: ObjectId=%s Mode=NaturalTail CompletedMoveDuration=%.3f AudioExpectedDuration=%.3f"),
 		*ObjectId.ToString(), CompletedMoveDuration, ActiveDoorAudioExpectedDuration);
@@ -352,10 +243,6 @@ void AGridDoorActor::CompleteDoorMotionSound(float CompletedMoveDuration)
 	bDoorMotionAudioActive = false;
 	bDoorMotionAudioOpening = false;
 	++DoorAudioNaturalCompletionCount;
-
-	// Keep ActiveDoorAudioComponent referenced while its natural tail is alive.
-	// A later Open/Close will call StopDoorMotionSound() first and can interrupt
-	// that tail before starting the new movement voice, preventing overlap.
 }
 
 void AGridDoorActor::PullChain()
@@ -551,50 +438,22 @@ void AGridDoorActor::RefreshTickEnabled()
 
 void AGridDoorActor::UpdateAnimation(float DeltaSeconds)
 {
-	if (!MovingMeshComponent)
-	{
-		return;
-	}
-
 	const float SafeDuration = FMath::Max(0.01f, CurrentMoveDuration);
 	MoveElapsed += DeltaSeconds;
 	const float Alpha = FMath::Clamp(MoveElapsed / SafeDuration, 0.f, 1.f);
-
-	if (UsesTargetVisualComposition())
-	{
-		CurrentMotionAlpha = FMath::Lerp(MoveStartMotionAlpha, MoveTargetMotionAlpha, Alpha);
-		ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
-
-		if (Alpha >= 1.f)
-		{
-			CurrentMotionAlpha = MoveTargetMotionAlpha;
-			ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
-			bIsOpen = CurrentMotionAlpha >= 0.5f;
-			bIsAnimating = false;
-			const float CompletedMoveDuration = CurrentMoveDuration;
-			MoveElapsed = 0.f;
-			CurrentMoveDuration = 0.f;
-			CompleteDoorMotionSound(CompletedMoveDuration);
-			RefreshTickEnabled();
-			OnDoorAnimationFinished.Broadcast(CellX, CellY, Edge);
-		}
-		return;
-	}
-
-	MovingMeshComponent->SetRelativeLocation(FMath::Lerp(MoveStartRelativeLocation, MoveTargetRelativeLocation, Alpha));
+	CurrentMotionAlpha = FMath::Lerp(MoveStartMotionAlpha, MoveTargetMotionAlpha, Alpha);
+	ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
 
 	if (Alpha >= 1.f)
 	{
-		MovingMeshComponent->SetRelativeLocation(MoveTargetRelativeLocation);
-
-		bIsOpen = MoveTargetRelativeLocation.Equals(MovingOpenRelativeLocation, 0.1f);
+		CurrentMotionAlpha = MoveTargetMotionAlpha;
+		ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
+		bIsOpen = CurrentMotionAlpha >= 0.5f;
 		bIsAnimating = false;
 		const float CompletedMoveDuration = CurrentMoveDuration;
 		MoveElapsed = 0.f;
 		CurrentMoveDuration = 0.f;
-
 		CompleteDoorMotionSound(CompletedMoveDuration);
-
 		RefreshTickEnabled();
 		OnDoorAnimationFinished.Broadcast(CellX, CellY, Edge);
 	}
@@ -603,43 +462,23 @@ void AGridDoorActor::UpdateAnimation(float DeltaSeconds)
 void AGridDoorActor::InitializeGridObject(
 	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
+	(void)Mesh;
 	StopDoorMotionSound();
-	const bool bTargetComposition = UsesTargetVisualComposition();
-	Super::InitializeGridObject(ObjectData, bTargetComposition ? nullptr : Mesh, WorldTransform);
+	Super::InitializeGridObject(ObjectData, nullptr, WorldTransform);
 
-	OpenHeight = ObjectData.Behavior.DoorAnimation.OpenHeight;
-	MoveDuration = ObjectData.Behavior.DoorAnimation.MoveDuration;
-	if (bTargetComposition)
-	{
-		const float TargetDuration = GetTargetMotionDuration();
-		if (TargetDuration > KINDA_SMALL_NUMBER)
-		{
-			MoveDuration = TargetDuration;
-		}
-	}
-
-	MovingClosedRelativeLocation = FVector::ZeroVector;
-	MovingOpenRelativeLocation = FVector(0.f, 0.f, OpenHeight);
-	MoveStartRelativeLocation = FVector::ZeroVector;
-	MoveTargetRelativeLocation = FVector::ZeroVector;
-
+	// WORLDOBJ-MIG04 production contract: Motion is the sole door geometry/timing authority.
+	OpenHeight = 0.0f;
+	MoveDuration = GetTargetMotionDuration();
 	bIsOpen = ObjectData.bInitiallyActive;
 	bIsAnimating = false;
 	MoveElapsed = 0.f;
 	CurrentMoveDuration = 0.f;
-
 	CurrentMotionAlpha = bIsOpen ? 1.0f : 0.0f;
 	MoveStartMotionAlpha = CurrentMotionAlpha;
 	MoveTargetMotionAlpha = CurrentMotionAlpha;
-	if (bTargetComposition)
-	{
-		ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
-	}
-	else
-	{
-		SetMovingRelativeLocation(bIsOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation);
-	}
+	ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
 
+	// The optional chain is behavior/interactivity, not door-leaf geometry.
 	InitializeChainMechanism(ObjectData.Behavior.DoorAnimation);
 	RefreshTickEnabled();
 }

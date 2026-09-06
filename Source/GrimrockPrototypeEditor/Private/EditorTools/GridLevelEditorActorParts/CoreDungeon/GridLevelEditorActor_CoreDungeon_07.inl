@@ -163,10 +163,6 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorArchetype(FString& OutError)
 	PitArchetype->DefaultBehavior = FGridObjectBehaviorParams();
 	PitArchetype->DefaultBehavior.Pit.bInitiallyOpen = true;
 	PitArchetype->DefaultBehavior.Pit.bUseSameCellCoordinates = true;
-	PitArchetype->DefaultBehavior.PitAnimation.LeftHingeLocation = FVector(-85.f, 0.f, -5.f);
-	PitArchetype->DefaultBehavior.PitAnimation.RightHingeLocation = FVector(85.f, 0.f, -5.f);
-	PitArchetype->DefaultBehavior.PitAnimation.OpenAngleDegrees = 80.f;
-	PitArchetype->DefaultBehavior.PitAnimation.MoveDuration = 0.75f;
 	PitArchetype->DefaultBehavior.Transition.bIsTransition = true;
 	PitArchetype->DefaultBehavior.Transition.TargetLevelId = NAME_None;
 	PitArchetype->DefaultBehavior.Transition.TargetCellX = 0;
@@ -190,14 +186,28 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorArchetype(FString& OutError)
 	PitArchetype->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
 	PitArchetype->ItemActorClass = nullptr;
 
-	// Target contract: a Pit has either no moving cover or a complete Part0/Part1 pair.
-	// Provisioning never reads the removed legacy leaf fields and never invents missing meshes.
+	// WORLDOBJ-MIG04: a pit has either no moving cover or a complete Part0/Part1 pair.
+	// When a complete pair exists, Motion is the sole persisted hinge/angle/duration authority.
 	if (PitArchetype->MovingParts.NumDefined() == 1)
 	{
 		PitArchetype->MovingParts = FGridWorldObjectMovingParts();
 		UE_LOG(LogTemp, Warning,
-			TEXT("WORLDOBJ-MIG03.4D: incomplete Pit MovingParts reset for %s; a Pit requires either zero or two moving parts."),
+			TEXT("WORLDOBJ-MIG04: incomplete Pit MovingParts reset for %s; a Pit requires either zero or two moving parts."),
 			*PitArchetype->GetPathName());
+	}
+	else if (PitArchetype->MovingParts.NumDefined() == 2)
+	{
+		PitArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
+		PitArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+		PitArchetype->MovingParts.Part0.Motion.Pivot = FVector(-85.f, 0.f, -5.f);
+		PitArchetype->MovingParts.Part0.Motion.Amount = -80.f;
+		PitArchetype->MovingParts.Part0.Motion.Duration = 0.75f;
+
+		PitArchetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
+		PitArchetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+		PitArchetype->MovingParts.Part1.Motion.Pivot = FVector(85.f, 0.f, -5.f);
+		PitArchetype->MovingParts.Part1.Motion.Amount = 80.f;
+		PitArchetype->MovingParts.Part1.Motion.Duration = 0.75f;
 	}
 
 	PitArchetype->RefreshPlacementRuntimeProjection();
@@ -231,7 +241,7 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorArchetype(FString& OutError)
 	PackagesToSave.AddUnique(ObjectPalette->GetOutermost());
 	UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
 
-	UE_LOG(LogTemp, Log, TEXT("Pit trapdoor archetype ensured from target visual composition: Pit=%s Palette=%s Created=%s MovingParts=%d."),
+	UE_LOG(LogTemp, Log, TEXT("Pit trapdoor archetype ensured from generic Motion: Pit=%s Palette=%s Created=%s MovingParts=%d."),
 		*PitArchetype->GetPathName(), *ObjectPalette->GetPathName(), bCreated ? TEXT("true") : TEXT("false"), PitArchetype->MovingParts.NumDefined());
 	return true;
 #else
