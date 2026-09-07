@@ -1,7 +1,6 @@
 #include "Runtime/GridMonsterEncounterComponent.h"
 
 #include "Core/GridLevelAsset.h"
-#include "Core/GridLevelPlacementCompatibility.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -133,11 +132,8 @@ bool UGridMonsterEncounterComponent::SpawnWaveAtomically(FGridRuntimeMonsterEnco
 		const FGridRuntimeMonsterPlacementState* PreviousPlacement = LevelState->MonsterPlacements.Find(Spawn->SpawnId);
 		const FGridRuntimeMonsterState* RestoreState = PreviousPlacement && PreviousPlacement->bHasMonsterState ? &PreviousPlacement->MonsterState : nullptr;
 
-		// WORLDOBJ-MIG09-E2B: encounter authoring is already typed. This snapshot only bridges
-		// the still-legacy monster spawn runtime API and disappears when that API is migrated.
-		const FGridLevelObjectData LegacySpawn = GridLevelPlacementCompatibility::ToLegacyMonsterSpawn(*Spawn);
-		AGridMonsterActor* SpawnedMonster = RuntimeActor->AddMonsterSpawnActor(LegacySpawn, RestoreState);
-		if (!SpawnedMonster || !RuntimeActor->StoreMonsterPlacementState(LegacySpawn, SpawnedMonster, true))
+		AGridMonsterActor* SpawnedMonster = RuntimeActor->AddMonsterSpawnActor(*Spawn, RestoreState);
+		if (!SpawnedMonster || !RuntimeActor->StoreMonsterPlacementState(*Spawn, SpawnedMonster, true))
 		{
 			auto RollbackSpawnedActor = [this](FGuid SpawnId)
 			{
