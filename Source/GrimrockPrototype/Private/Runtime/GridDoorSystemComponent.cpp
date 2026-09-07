@@ -43,10 +43,16 @@ void UGridDoorSystemComponent::ResetRuntimeState()
 
 void UGridDoorSystemComponent::RegisterDoorObject(const FGridLevelObjectData& ObjectData, AGridRuntimeObjectActor* RuntimeObjectActor)
 {
+	RegisterDoorObject(FGridRuntimeWorldObjectData(ObjectData), RuntimeObjectActor);
+}
+
+void UGridDoorSystemComponent::RegisterDoorObject(const FGridRuntimeWorldObjectData& ObjectData, AGridRuntimeObjectActor* RuntimeObjectActor)
+{
 	if (ObjectData.Type != EGridLevelObjectType::Door)
 	{
 		return;
 	}
+
 	const FGridEdgeKey Key(ObjectData.CellX, ObjectData.CellY, ObjectData.Edge);
 	if (AGridDoorActor* DoorActor = Cast<AGridDoorActor>(RuntimeObjectActor))
 	{
@@ -58,7 +64,7 @@ void UGridDoorSystemComponent::RegisterDoorObject(const FGridLevelObjectData& Ob
 
 bool UGridDoorSystemComponent::HasDoorOnEdge(int32 X, int32 Y, EGridEdge Edge) const
 {
-	return FindDoorObjectDataAtEdge(X, Y, Edge) != nullptr;
+	return FindDoorInstanceAtEdge(X, Y, Edge) != nullptr;
 }
 
 bool UGridDoorSystemComponent::IsDoorOpenOnEdge(int32 X, int32 Y, EGridEdge Edge) const
@@ -67,7 +73,6 @@ bool UGridDoorSystemComponent::IsDoorOpenOnEdge(int32 X, int32 Y, EGridEdge Edge
 	{
 		return false;
 	}
-
 	return !RuntimeBlockedDoorEdges.Contains(FGridEdgeKey(X, Y, Edge));
 }
 
@@ -78,8 +83,8 @@ bool UGridDoorSystemComponent::IsSecretDoorOnEdge(int32 X, int32 Y, EGridEdge Ed
 		return DoorActor->IsA<AGridSecretDoorActor>();
 	}
 
-	const FGridLevelObjectData* ObjectData = FindDoorObjectDataAtEdge(X, Y, Edge);
-	return ObjectData && ObjectData->ArchetypeId == FName(TEXT("Door_Secret"));
+	const FGridWorldObjectInstance* Instance = FindDoorInstanceAtEdge(X, Y, Edge);
+	return Instance && Instance->WorldObjectDefinitionId == FName(TEXT("Door_Secret"));
 }
 
 bool UGridDoorSystemComponent::IsDoorFullyOpenOnEdge(int32 X, int32 Y, EGridEdge Edge) const
@@ -103,10 +108,6 @@ bool UGridDoorSystemComponent::OpenDoorOnEdge(int32 X, int32 Y, EGridEdge Edge)
 	}
 
 	DoorActor->OpenDoor();
-
-	// Passage authority follows the physical animation, not the open command.
-	// A door remains blocking for the complete opening travel and is released
-	// only once the actor reports the fully-open terminal state.
 	SetDoorPassageBlocked(X, Y, Edge, !DoorActor->IsFullyOpen());
 
 	UE_LOG(LogGridDoorSystem, Log, TEXT("Grid door command: Cell=(%d,%d) Edge=%d Command=Open FullyOpen=%s Blocked=%s Animating=%s"), X, Y,
@@ -157,7 +158,6 @@ bool UGridDoorSystemComponent::IsDoorPassageBlocked(int32 X, int32 Y, EGridEdge 
 void UGridDoorSystemComponent::SetDoorPassageBlocked(int32 X, int32 Y, EGridEdge Edge, bool bBlocked)
 {
 	const FGridEdgeKey Key(X, Y, Edge);
-
 	if (bBlocked)
 	{
 		RuntimeBlockedDoorEdges.Add(Key);
@@ -179,23 +179,22 @@ bool UGridDoorSystemComponent::GetDoorState(FGuid ObjectId, bool& bOutOpen, bool
 		return false;
 	}
 
-	for (const FGridLevelObjectData& ObjectData : RuntimeActor->LevelAsset->Objects)
+	for (const FGridWorldObjectInstance& Instance : RuntimeActor->LevelAsset->WorldObjectInstances)
 	{
-		if (ObjectData.ObjectId != ObjectId || ObjectData.Type != EGridLevelObjectType::Door)
+		if (Instance.InstanceId != ObjectId || Instance.Type != EGridLevelObjectType::Door)
 		{
 			continue;
 		}
 
-		bOutBlocked = IsDoorPassageBlocked(ObjectData.CellX, ObjectData.CellY, ObjectData.Edge);
+		bOutBlocked = IsDoorPassageBlocked(Instance.CellX, Instance.CellY, Instance.WallSide);
 		bOutOpen = !bOutBlocked;
-		if (const AGridDoorActor* DoorActor = FindDoorActorAtEdge(ObjectData.CellX, ObjectData.CellY, ObjectData.Edge))
+		if (const AGridDoorActor* DoorActor = FindDoorActorAtEdge(Instance.CellX, Instance.CellY, Instance.WallSide))
 		{
 			bOutMoving = DoorActor->IsAnimating();
 			bOutOpen = DoorActor->IsFullyOpen() || (!bOutBlocked && !DoorActor->IsFullyClosed());
 		}
 		return true;
 	}
-
 	return false;
 }
 
@@ -206,21 +205,20 @@ bool UGridDoorSystemComponent::ApplyDoorState(FGuid ObjectId, bool bOpen, bool b
 		return false;
 	}
 
-	for (const FGridLevelObjectData& ObjectData : RuntimeActor->LevelAsset->Objects)
+	for (const FGridWorldObjectInstance& Instance : RuntimeActor->LevelAsset->WorldObjectInstances)
 	{
-		if (ObjectData.ObjectId != ObjectId || ObjectData.Type != EGridLevelObjectType::Door)
+		if (Instance.InstanceId != ObjectId || Instance.Type != EGridLevelObjectType::Door)
 		{
 			continue;
 		}
 
-		if (AGridDoorActor* DoorActor = FindDoorActorAtEdge(ObjectData.CellX, ObjectData.CellY, ObjectData.Edge))
+		if (AGridDoorActor* DoorActor = FindDoorActorAtEdge(Instance.CellX, Instance.CellY, Instance.WallSide))
 		{
 			DoorActor->SnapDoorOpenState(bOpen);
 		}
-		SetDoorPassageBlocked(ObjectData.CellX, ObjectData.CellY, ObjectData.Edge, bBlocked);
+		SetDoorPassageBlocked(Instance.CellX, Instance.CellY, Instance.WallSide, bBlocked);
 		return true;
 	}
-
 	return false;
 }
 
@@ -234,7 +232,6 @@ void UGridDoorSystemComponent::HandleDoorAnimationFinished(int32 X, int32 Y, EGr
 	SetDoorPassageBlocked(X, Y, Edge, !DoorActor->IsFullyOpen());
 	UE_LOG(LogGridDoorSystem, Log, TEXT("Grid door animation finished: Cell=(%d,%d) Edge=%d FullyOpen=%s Blocked=%s"), X, Y, static_cast<int32>(Edge),
 		DoorActor->IsFullyOpen() ? TEXT("true") : TEXT("false"), IsDoorPassageBlocked(X, Y, Edge) ? TEXT("true") : TEXT("false"));
-
 	GridAutomaticPerceptionEngagement::Request(RuntimeActor, DoorActor->IsFullyOpen() ? TEXT("DoorFullyOpened") : TEXT("DoorFullyClosed"));
 }
 
@@ -247,10 +244,10 @@ AGridDoorActor* UGridDoorSystemComponent::FindDoorActorAtEdge(int32 X, int32 Y, 
 	return nullptr;
 }
 
-const FGridLevelObjectData* UGridDoorSystemComponent::FindDoorObjectDataAtEdge(int32 X, int32 Y, EGridEdge Edge) const
+const FGridWorldObjectInstance* UGridDoorSystemComponent::FindDoorInstanceAtEdge(int32 X, int32 Y, EGridEdge Edge) const
 {
 	const int32* DoorIndex = DoorIndexByEdge.Find(FGridEdgeKey(X, Y, Edge));
-	return DoorIndex ? GetDoorObjectByIndex(*DoorIndex) : nullptr;
+	return DoorIndex ? GetDoorInstanceByIndex(*DoorIndex) : nullptr;
 }
 
 void UGridDoorSystemComponent::RebuildIndexes()
@@ -261,27 +258,30 @@ void UGridDoorSystemComponent::RebuildIndexes()
 	{
 		return;
 	}
-	const TArray<FGridLevelObjectData>& Objects = RuntimeActor->LevelAsset->Objects;
-	for (int32 Index = 0; Index < Objects.Num(); ++Index)
+
+	const TArray<FGridWorldObjectInstance>& Instances = RuntimeActor->LevelAsset->WorldObjectInstances;
+	for (int32 Index = 0; Index < Instances.Num(); ++Index)
 	{
-		const FGridLevelObjectData& ObjectData = Objects[Index];
-		if (ObjectData.Type != EGridLevelObjectType::Door)
+		const FGridWorldObjectInstance& Instance = Instances[Index];
+		if (Instance.Type != EGridLevelObjectType::Door)
 		{
 			continue;
 		}
-		DoorIndexByEdge.Add(FGridEdgeKey(ObjectData.CellX, ObjectData.CellY, ObjectData.Edge), Index);
+		DoorIndexByEdge.Add(FGridEdgeKey(Instance.CellX, Instance.CellY, Instance.WallSide), Index);
 	}
 
 	GridAutomaticPerceptionEngagement::Request(RuntimeActor, TEXT("RuntimeRebuild"));
 }
 
-const FGridLevelObjectData* UGridDoorSystemComponent::GetDoorObjectByIndex(int32 ObjectIndex) const
+const FGridWorldObjectInstance* UGridDoorSystemComponent::GetDoorInstanceByIndex(int32 ObjectIndex) const
 {
 	if (!RuntimeActor || !RuntimeActor->LevelAsset)
 	{
 		return nullptr;
 	}
-	return RuntimeActor->LevelAsset->Objects.IsValidIndex(ObjectIndex) ? &RuntimeActor->LevelAsset->Objects[ObjectIndex] : nullptr;
+	return RuntimeActor->LevelAsset->WorldObjectInstances.IsValidIndex(ObjectIndex)
+		? &RuntimeActor->LevelAsset->WorldObjectInstances[ObjectIndex]
+		: nullptr;
 }
 
 FString UGridDoorSystemComponent::GetDebugSummary() const

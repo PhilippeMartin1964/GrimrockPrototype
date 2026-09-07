@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Core/GridTypes.h"
+#include "Core/GridLevelPlacementTypes.h"
+#include "Runtime/GridRuntimeWorldObjectData.h"
 #include "GridDoorSystemComponent.generated.h"
 
 class AGridLevelRuntimeActor;
@@ -22,7 +24,11 @@ public:
 	void Initialize(AGridLevelRuntimeActor* InRuntimeActor);
 	void ResetRuntimeState();
 
+	/** Temporary E2 compatibility wrapper until AGridLevelRuntimeActor stops passing the legacy DTO. */
 	void RegisterDoorObject(const FGridLevelObjectData& ObjectData, AGridRuntimeObjectActor* RuntimeObjectActor);
+
+	/** Native runtime registration path. */
+	void RegisterDoorObject(const FGridRuntimeWorldObjectData& ObjectData, AGridRuntimeObjectActor* RuntimeObjectActor);
 
 	bool HasDoorOnEdge(int32 X, int32 Y, EGridEdge Edge) const;
 	bool IsDoorOpenOnEdge(int32 X, int32 Y, EGridEdge Edge) const;
@@ -50,10 +56,9 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<AGridLevelRuntimeActor> RuntimeActor;
 
-	const FGridLevelObjectData* FindDoorObjectDataAtEdge(int32 X, int32 Y, EGridEdge Edge) const;
+	const FGridWorldObjectInstance* FindDoorInstanceAtEdge(int32 X, int32 Y, EGridEdge Edge) const;
 	AGridDoorActor* FindDoorActorAtEdge(int32 X, int32 Y, EGridEdge Edge) const;
-
-	const FGridLevelObjectData* GetDoorObjectByIndex(int32 ObjectIndex) const;
+	const FGridWorldObjectInstance* GetDoorInstanceByIndex(int32 ObjectIndex) const;
 
 	TSet<FGridEdgeKey> RuntimeBlockedDoorEdges;
 	TMap<FGridEdgeKey, int32> DoorIndexByEdge;
