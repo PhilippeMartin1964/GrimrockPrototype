@@ -36,22 +36,42 @@ namespace
 		}
 		return FallbackItemDefinitionId;
 	}
-	const FGridLevelObjectData* PersistenceFindLevelObjectDataById(const UGridLevelAsset* LevelAsset, FGuid ObjectId)
+
+	const FGridLooseItemInstance* PersistenceFindLooseItemById(const UGridLevelAsset* LevelAsset, FGuid ObjectId)
 	{
 		if (!LevelAsset || !ObjectId.IsValid())
 		{
 			return nullptr;
 		}
 
-		for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-		{
-			if (ObjectData.ObjectId == ObjectId)
+		return LevelAsset->LooseItemInstances.FindByPredicate(
+			[ObjectId](const FGridLooseItemInstance& Instance)
 			{
-				return &ObjectData;
-			}
+				return Instance.InstanceId == ObjectId;
+			});
+	}
+
+	const FGridWorldObjectInstance* PersistenceFindWorldObjectById(const UGridLevelAsset* LevelAsset, FGuid ObjectId)
+	{
+		if (!LevelAsset || !ObjectId.IsValid())
+		{
+			return nullptr;
 		}
 
-		return nullptr;
+		return LevelAsset->WorldObjectInstances.FindByPredicate(
+			[ObjectId](const FGridWorldObjectInstance& Instance)
+			{
+				return Instance.InstanceId == ObjectId;
+			});
+	}
+
+	bool PersistenceHasMonsterSpawn(const UGridLevelAsset* LevelAsset, FGuid SpawnId)
+	{
+		return LevelAsset && SpawnId.IsValid() && LevelAsset->MonsterSpawns.ContainsByPredicate(
+			[SpawnId](const FGridMonsterSpawnInstance& Spawn)
+			{
+				return Spawn.SpawnId == SpawnId;
+			});
 	}
 
 	int32 PersistenceCountRemovedRuntimeObjects(const FGridLevelRuntimeState* RuntimeState)
@@ -127,22 +147,22 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 	State->Monsters.Reset();
 	State->bHasBeenVisited = true;
 
-	for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+	for (const FGridWorldObjectInstance& Instance : LevelAsset->WorldObjectInstances)
 	{
-		if (!ObjectData.ObjectId.IsValid())
+		if (!Instance.InstanceId.IsValid())
 		{
 			continue;
 		}
 
-		if (ObjectData.Type == EGridLevelObjectType::Door && DoorSystemComponent)
+		if (Instance.Type == EGridLevelObjectType::Door && DoorSystemComponent)
 		{
 			bool bDoorOpen = false;
 			bool bDoorMoving = false;
 			bool bDoorBlocked = true;
-			if (DoorSystemComponent->GetDoorState(ObjectData.ObjectId, bDoorOpen, bDoorMoving, bDoorBlocked))
+			if (DoorSystemComponent->GetDoorState(Instance.InstanceId, bDoorOpen, bDoorMoving, bDoorBlocked))
 			{
 				FGridRuntimeDoorState DoorState;
-				DoorState.ObjectId = ObjectData.ObjectId;
+				DoorState.ObjectId = Instance.InstanceId;
 				DoorState.bIsOpen = bDoorOpen;
 				DoorState.bBlocksMovement = bDoorBlocked;
 				State->Doors.Add(DoorState.ObjectId, DoorState);
@@ -154,28 +174,28 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 	if (ActivationComponent)
 	{
 		ActiveObjectIds = ActivationComponent->GetActiveObjectIds();
-		for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+		for (const FGridWorldObjectInstance& Instance : LevelAsset->WorldObjectInstances)
 		{
-			if (!ObjectData.ObjectId.IsValid())
+			if (!Instance.InstanceId.IsValid())
 			{
 				continue;
 			}
 
-			const bool bIsInteractiveObject = ObjectData.Type == EGridLevelObjectType::Button || ObjectData.Type == EGridLevelObjectType::Lever ||
-				ObjectData.Type == EGridLevelObjectType::PressurePlate || ObjectData.Type == EGridLevelObjectType::Receptacle ||
-				ObjectData.Type == EGridLevelObjectType::Trigger;
+			const bool bIsInteractiveObject = Instance.Type == EGridLevelObjectType::Button || Instance.Type == EGridLevelObjectType::Lever ||
+				Instance.Type == EGridLevelObjectType::PressurePlate || Instance.Type == EGridLevelObjectType::Receptacle ||
+				Instance.Type == EGridLevelObjectType::Trigger;
 			if (!bIsInteractiveObject)
 			{
 				continue;
 			}
 
-			const bool bIsActive = ActiveObjectIds.Contains(ObjectData.ObjectId);
+			const bool bIsActive = ActiveObjectIds.Contains(Instance.InstanceId);
 			FGridRuntimeInteractiveState InteractiveState;
-			InteractiveState.ObjectId = ObjectData.ObjectId;
+			InteractiveState.ObjectId = Instance.InstanceId;
 			InteractiveState.bIsActivated = bIsActive;
 			InteractiveState.bIsPressed = bIsActive;
 			InteractiveState.bIsOn = bIsActive;
-			State->InteractiveObjects.Add(ObjectData.ObjectId, InteractiveState);
+			State->InteractiveObjects.Add(Instance.InstanceId, InteractiveState);
 		}
 	}
 
@@ -212,17 +232,17 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		ItemState.ReadTextOverride = ItemActor->ReadTextOverride;
 		State->Items.Add(Entry.ObjectId, ItemState);
 	}
-	for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+	for (const FGridLooseItemInstance& Instance : LevelAsset->LooseItemInstances)
 	{
-		if (ObjectData.Type != EGridLevelObjectType::Item || !ObjectData.ObjectId.IsValid())
+		if (!Instance.InstanceId.IsValid())
 		{
 			continue;
 		}
 
 		FGridRuntimeObjectPresenceState PresenceState;
-		PresenceState.ObjectId = ObjectData.ObjectId;
-		PresenceState.bRemovedFromInitialPlacement = !ExistingPlacedItemObjectIds.Contains(ObjectData.ObjectId);
-		State->ObjectPresence.Add(ObjectData.ObjectId, PresenceState);
+		PresenceState.ObjectId = Instance.InstanceId;
+		PresenceState.bRemovedFromInitialPlacement = !ExistingPlacedItemObjectIds.Contains(Instance.InstanceId);
+		State->ObjectPresence.Add(Instance.InstanceId, PresenceState);
 	}
 
 	for (const TPair<FGuid, TObjectPtr<AGridRuntimeObjectActor>>& Pair : SpawnedRuntimeObjectActors)
@@ -278,7 +298,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		if (Monster->CaptureRuntimeMonsterState(MonsterState, State->LevelId))
 		{
 			State->Monsters.Add(MonsterState.PersistenceId, MonsterState);
-			if (MonsterState.SpawnObjectId.IsValid() && LevelAsset->FindMonsterSpawnById(MonsterState.SpawnObjectId))
+			if (MonsterState.SpawnObjectId.IsValid() && PersistenceHasMonsterSpawn(LevelAsset, MonsterState.SpawnObjectId))
 			{
 				FGridRuntimeMonsterPlacementState& PlacementState = State->MonsterPlacements.FindOrAdd(MonsterState.SpawnObjectId);
 				PlacementState.SpawnId = MonsterState.SpawnObjectId;
@@ -290,20 +310,20 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		}
 	}
 
-	for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+	for (const FGridMonsterSpawnInstance& Spawn : LevelAsset->MonsterSpawns)
 	{
-		if (ObjectData.Type != EGridLevelObjectType::MonsterSpawn || !ObjectData.ObjectId.IsValid() || CapturedMonsterSpawnIds.Contains(ObjectData.ObjectId))
+		if (!Spawn.SpawnId.IsValid() || CapturedMonsterSpawnIds.Contains(Spawn.SpawnId))
 		{
 			continue;
 		}
 
-		FGridRuntimeMonsterPlacementState* PlacementState = State->MonsterPlacements.Find(ObjectData.ObjectId);
+		FGridRuntimeMonsterPlacementState* PlacementState = State->MonsterPlacements.Find(Spawn.SpawnId);
 		if (!PlacementState)
 		{
 			FGridRuntimeMonsterPlacementState InitialPlacementState;
-			InitialPlacementState.SpawnId = ObjectData.ObjectId;
-			InitialPlacementState.bIsSpawned = ObjectData.bInitiallyEnabled;
-			State->MonsterPlacements.Add(ObjectData.ObjectId, InitialPlacementState);
+			InitialPlacementState.SpawnId = Spawn.SpawnId;
+			InitialPlacementState.bIsSpawned = Spawn.bInitiallyEnabled;
+			State->MonsterPlacements.Add(Spawn.SpawnId, InitialPlacementState);
 		}
 	}
 
@@ -363,8 +383,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 	{
 		if (AGridPitTrapdoorActor* PitActor = FindRuntimeObjectActor<AGridPitTrapdoorActor>(Pair.Key))
 		{
-			// Level reloads settle immediately at the persisted target endpoint.
-			// Mid-animation fractions are presentation-only and are not serialized.
 			PitActor->SnapPitOpenState(Pair.Value.bIsOpen);
 		}
 	}
@@ -474,10 +492,10 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(ItemDefinition, RuntimeItemDefinitionId, this, nullptr);
 			if (ItemActor)
 			{
-				const FGridLevelObjectData* ItemObjectData = PersistenceFindLevelObjectDataById(LevelAsset, Pair.Key);
+				const FGridLooseItemInstance* ItemPlacement = PersistenceFindLooseItemById(LevelAsset, Pair.Key);
 				const FIntPoint RuntimeCell =
-					ItemObjectData ? FIntPoint(ItemObjectData->CellX, ItemObjectData->CellY) : FIntPoint(ItemState.CellX, ItemState.CellY);
-				const EGridEdge RuntimeEdge = ItemObjectData ? ItemObjectData->Edge : ItemState.Edge;
+					ItemPlacement ? FIntPoint(ItemPlacement->CellX, ItemPlacement->CellY) : FIntPoint(ItemState.CellX, ItemState.CellY);
+				const EGridEdge RuntimeEdge = ItemPlacement ? ItemPlacement->SurfaceSide : ItemState.Edge;
 
 				ItemActor->SetActorTransform(ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
 				ItemActor->SetRuntimeObjectId(Pair.Key);
@@ -510,8 +528,9 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		}
 		ReceptacleActor->SetCanRemoveItem(Pair.Value.bCanRemoveItem);
 		const int32 ClearedItemCount = ReceptacleActor->ForceClearRuntimeContents(false);
-		const FGridLevelObjectData* ReceptacleObjectData = PersistenceFindLevelObjectDataById(LevelAsset, Pair.Key);
-		const UGridObjectArchetypeAsset* ReceptacleArchetype = ReceptacleObjectData ? FindObjectArchetype(ReceptacleObjectData->ArchetypeId) : nullptr;
+		const FGridWorldObjectInstance* ReceptaclePlacement = PersistenceFindWorldObjectById(LevelAsset, Pair.Key);
+		const UGridObjectArchetypeAsset* ReceptacleArchetype =
+			ReceptaclePlacement ? FindObjectArchetype(ReceptaclePlacement->WorldObjectDefinitionId) : nullptr;
 		const TSubclassOf<AGridItemActor> PreferredItemActorClass = ReceptacleActor->ContainedItemActorClass
 			? ReceptacleActor->ContainedItemActorClass
 			: (ReceptacleArchetype ? ReceptacleArchetype->ItemActorClass : nullptr);
@@ -625,8 +644,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			continue;
 		}
 
-		// Version 1 and partial legacy states intentionally preserve the
-		// actor's initial runtime values.
 		Monster->EnsureInitialCombatState();
 		SetMonsterRuntimeLevelActive(Monster, true);
 	}
