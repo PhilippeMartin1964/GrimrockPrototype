@@ -60,33 +60,22 @@ bool FGridWorldObjectMIG04RuntimeGenericMotionContractTest::RunTest(const FStrin
 	(void)Parameters;
 
 	TestPropertyRemoved(*this, AGridButtonActor::StaticClass(), TEXT("PressDistance"));
-
 	TestPropertyRemoved(*this, AGridLeverActor::StaticClass(), TEXT("LeverOffPitch"));
 	TestPropertyRemoved(*this, AGridLeverActor::StaticClass(), TEXT("LeverOnPitch"));
-
 	TestPropertyRemoved(*this, AGridPressurePlateActor::StaticClass(), TEXT("ReleasedHeightAboveFloor"));
 	TestPropertyRemoved(*this, AGridPressurePlateActor::StaticClass(), TEXT("PressedHeightAboveFloor"));
-
 	TestPropertyRemoved(*this, AGridPitTrapdoorActor::StaticClass(), TEXT("LeftHingeLocation"));
 	TestPropertyRemoved(*this, AGridPitTrapdoorActor::StaticClass(), TEXT("RightHingeLocation"));
 	TestPropertyRemoved(*this, AGridPitTrapdoorActor::StaticClass(), TEXT("OpenAngleDegrees"));
 	TestPropertyRemoved(*this, AGridPitTrapdoorActor::StaticClass(), TEXT("LeftHingeComponent"));
 	TestPropertyRemoved(*this, AGridPitTrapdoorActor::StaticClass(), TEXT("RightHingeComponent"));
+	TestPropertyRemoved(*this, AGridDoorActor::StaticClass(), TEXT("OpenHeight"));
 
 	TestNotNull(TEXT("Button keeps runtime motion duration cache"), AGridButtonActor::StaticClass()->FindPropertyByName(TEXT("PressDuration")));
 	TestNotNull(TEXT("Lever keeps runtime motion duration cache"), AGridLeverActor::StaticClass()->FindPropertyByName(TEXT("ToggleDuration")));
 	TestNotNull(TEXT("Pressure plate keeps runtime motion duration cache"), AGridPressurePlateActor::StaticClass()->FindPropertyByName(TEXT("MoveDuration")));
 	TestNotNull(TEXT("Pit keeps runtime motion duration cache"), AGridPitTrapdoorActor::StaticClass()->FindPropertyByName(TEXT("MoveDuration")));
-
-	FProperty* DoorOpenHeight = AGridDoorActor::StaticClass()->FindPropertyByName(TEXT("OpenHeight"));
-	TestNotNull(TEXT("Door retains only a transient MIG09 compatibility OpenHeight cache"), DoorOpenHeight);
-	if (DoorOpenHeight)
-	{
-		TestTrue(TEXT("Door OpenHeight cache is transient"), DoorOpenHeight->HasAnyPropertyFlags(CPF_Transient));
-		// VisibleInstanceOnly deliberately carries CPF_Edit so the value can be shown in Details.
-		// CPF_EditConst is the Unreal reflection flag that makes that visible instance property read-only.
-		TestTrue(TEXT("Door OpenHeight cache is read-only in Details"), DoorOpenHeight->HasAnyPropertyFlags(CPF_EditConst));
-	}
+	TestNotNull(TEXT("Door keeps runtime motion duration cache"), AGridDoorActor::StaticClass()->FindPropertyByName(TEXT("MoveDuration")));
 
 	return true;
 }

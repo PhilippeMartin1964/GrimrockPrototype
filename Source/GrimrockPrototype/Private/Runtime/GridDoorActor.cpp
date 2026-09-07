@@ -434,7 +434,6 @@ void AGridDoorActor::InitializeGridObject(
 	Super::InitializeGridObject(ObjectData, nullptr, WorldTransform);
 
 	// WORLDOBJ-MIG04 production contract: Motion is the sole door geometry/timing authority.
-	OpenHeight = 0.0f;
 	MoveDuration = GetTargetMotionDuration();
 	bIsOpen = ObjectData.bInitiallyActive;
 	bIsAnimating = false;

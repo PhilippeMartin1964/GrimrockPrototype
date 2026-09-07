@@ -23,11 +23,7 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
-	/** MIG09 compatibility/debug cache only. Production door geometry is MovingParts[].Motion. */
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door")
-	float OpenHeight = 0.f;
-
-	/** Runtime movement duration. Production initialization resolves it from MovingParts[].Motion. */
+	/** Runtime movement duration resolved from MovingParts[].Motion. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Door")
 	float MoveDuration = 0.f;
 

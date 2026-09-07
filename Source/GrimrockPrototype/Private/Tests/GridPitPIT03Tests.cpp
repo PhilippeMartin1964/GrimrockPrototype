@@ -256,25 +256,25 @@ bool FGridPIT03PresentationActorTest::RunTest(const FString& Parameters)
 	}
 
 	FGridLevelObjectData Pit = MakeControlledPit(1, 1, TEXT("Lower"), false);
-	Pit.Behavior.PitAnimation.LeftHingeLocation = FVector(-85.0f, 0.0f, -5.0f);
-	Pit.Behavior.PitAnimation.RightHingeLocation = FVector(85.0f, 0.0f, -5.0f);
-	Pit.Behavior.PitAnimation.OpenAngleDegrees = 80.0f;
-	Pit.Behavior.PitAnimation.MoveDuration = 0.0f;
+	const FVector LeftHinge(-85.0f, 0.0f, -5.0f);
+	const FVector RightHinge(85.0f, 0.0f, -5.0f);
+	constexpr float OpenAngleDegrees = 80.0f;
+	constexpr float MoveDuration = 0.0f;
 
 	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(Actor);
 	Archetype->SupportedType = EGridLevelObjectType::Pit;
 	Archetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(Actor);
 	Archetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
 	Archetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	Archetype->MovingParts.Part0.Motion.Pivot = Pit.Behavior.PitAnimation.LeftHingeLocation;
-	Archetype->MovingParts.Part0.Motion.Amount = -Pit.Behavior.PitAnimation.OpenAngleDegrees;
-	Archetype->MovingParts.Part0.Motion.Duration = Pit.Behavior.PitAnimation.MoveDuration;
+	Archetype->MovingParts.Part0.Motion.Pivot = LeftHinge;
+	Archetype->MovingParts.Part0.Motion.Amount = -OpenAngleDegrees;
+	Archetype->MovingParts.Part0.Motion.Duration = MoveDuration;
 	Archetype->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(Actor);
 	Archetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
 	Archetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	Archetype->MovingParts.Part1.Motion.Pivot = Pit.Behavior.PitAnimation.RightHingeLocation;
-	Archetype->MovingParts.Part1.Motion.Amount = Pit.Behavior.PitAnimation.OpenAngleDegrees;
-	Archetype->MovingParts.Part1.Motion.Duration = Pit.Behavior.PitAnimation.MoveDuration;
+	Archetype->MovingParts.Part1.Motion.Pivot = RightHinge;
+	Archetype->MovingParts.Part1.Motion.Amount = OpenAngleDegrees;
+	Archetype->MovingParts.Part1.Motion.Duration = MoveDuration;
 
 	Actor->InitializeMechanismVisuals(Pit, Archetype, FTransform::Identity);
 	Actor->InitializeGridObject(Pit, nullptr, FTransform::Identity);

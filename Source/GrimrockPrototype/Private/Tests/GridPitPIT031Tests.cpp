@@ -81,10 +81,6 @@ namespace GridPIT031
 		Pit.bInitiallyEnabled = true;
 		Pit.Behavior.Pit.bInitiallyOpen = false;
 		Pit.Behavior.Pit.bUseSameCellCoordinates = true;
-		Pit.Behavior.PitAnimation.LeftHingeLocation = FVector(-85.0f, 0.0f, -5.0f);
-		Pit.Behavior.PitAnimation.RightHingeLocation = FVector(85.0f, 0.0f, -5.0f);
-		Pit.Behavior.PitAnimation.OpenAngleDegrees = 80.0f;
-		Pit.Behavior.PitAnimation.MoveDuration = 1.0f;
 		Pit.Behavior.Transition.bIsTransition = true;
 		Pit.Behavior.Transition.TargetLevelId = TargetLevelId;
 		Pit.Behavior.Transition.TargetFacing = EGridEdge::North;
@@ -160,15 +156,15 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	PitArchetype->MovingParts.Part0.Mesh = LeftLeafMesh;
 	PitArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
 	PitArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	PitArchetype->MovingParts.Part0.Motion.Pivot = PitA.Behavior.PitAnimation.LeftHingeLocation;
-	PitArchetype->MovingParts.Part0.Motion.Amount = -PitA.Behavior.PitAnimation.OpenAngleDegrees;
-	PitArchetype->MovingParts.Part0.Motion.Duration = PitA.Behavior.PitAnimation.MoveDuration;
+	PitArchetype->MovingParts.Part0.Motion.Pivot = FVector(-85.0f, 0.0f, -5.0f);
+	PitArchetype->MovingParts.Part0.Motion.Amount = -80.0f;
+	PitArchetype->MovingParts.Part0.Motion.Duration = 1.0f;
 	PitArchetype->MovingParts.Part1.Mesh = RightLeafMesh;
 	PitArchetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
 	PitArchetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	PitArchetype->MovingParts.Part1.Motion.Pivot = PitA.Behavior.PitAnimation.RightHingeLocation;
-	PitArchetype->MovingParts.Part1.Motion.Amount = PitA.Behavior.PitAnimation.OpenAngleDegrees;
-	PitArchetype->MovingParts.Part1.Motion.Duration = PitA.Behavior.PitAnimation.MoveDuration;
+	PitArchetype->MovingParts.Part1.Motion.Pivot = FVector(85.0f, 0.0f, -5.0f);
+	PitArchetype->MovingParts.Part1.Motion.Amount = 80.0f;
+	PitArchetype->MovingParts.Part1.Motion.Duration = 1.0f;
 	PitArchetype->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
 
 	Runtime->DungeonAsset = Dungeon;

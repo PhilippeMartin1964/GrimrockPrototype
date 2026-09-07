@@ -95,8 +95,6 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 	Data.CellX = 1;
 	Data.CellY = 1;
 	Data.Edge = EGridEdge::North;
-	Data.Behavior.DoorAnimation.OpenHeight = 180.f;
-	Data.Behavior.DoorAnimation.MoveDuration = 1.f;
 
 	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 1.0f, 180.0f, Archetype);
 	Door->ConfigureObjectAudio(Archetype);
@@ -195,8 +193,6 @@ bool FGridDoorMoveDurationContractTest::RunTest(const FString& Parameters)
 	Data.CellX = 2;
 	Data.CellY = 2;
 	Data.Edge = EGridEdge::East;
-	Data.Behavior.DoorAnimation.OpenHeight = 180.f;
-	Data.Behavior.DoorAnimation.MoveDuration = 5.0f;
 
 	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 5.0f, 180.0f);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
@@ -255,8 +251,6 @@ bool FGridDoorNaturalTailContractTest::RunTest(const FString& Parameters)
 	Data.CellX = 3;
 	Data.CellY = 3;
 	Data.Edge = EGridEdge::North;
-	Data.Behavior.DoorAnimation.OpenHeight = 180.f;
-	Data.Behavior.DoorAnimation.MoveDuration = 1.0f;
 
 	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 1.0f, 180.0f, Archetype);
 	Door->ConfigureObjectAudio(Archetype);
@@ -317,8 +311,6 @@ bool FGridDoorPartialAudioResumeTest::RunTest(const FString& Parameters)
 	Data.CellX = 4;
 	Data.CellY = 4;
 	Data.Edge = EGridEdge::North;
-	Data.Behavior.DoorAnimation.OpenHeight = 200.0f;
-	Data.Behavior.DoorAnimation.MoveDuration = 5.0f;
 
 	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 5.0f, 200.0f, Archetype);
 	Door->ConfigureObjectAudio(Archetype);

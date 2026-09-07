@@ -86,8 +86,6 @@ namespace
 		Door.ArchetypeId = ArchetypeId;
 		Door.bInitiallyEnabled = true;
 		Door.bInitiallyActive = false;
-		Door.Behavior.DoorAnimation.OpenHeight = 180.f;
-		Door.Behavior.DoorAnimation.MoveDuration = 1.f;
 		return Door;
 	}
 

@@ -82,8 +82,6 @@ namespace
 		OutDoorData.CellY = 1;
 		OutDoorData.Edge = EGridEdge::North;
 		OutDoorData.bInitiallyActive = false;
-		OutDoorData.Behavior.DoorAnimation.OpenHeight = 180.f;
-		OutDoorData.Behavior.DoorAnimation.MoveDuration = 1.f;
 		LevelAsset->Objects.Add(OutDoorData);
 		Runtime->LevelAsset = LevelAsset;
 		return LevelAsset;

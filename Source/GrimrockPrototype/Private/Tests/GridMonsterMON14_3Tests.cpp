@@ -343,8 +343,6 @@ bool FGridMonsterMON143BlockedHearingWaitTest::RunTest(const FString& Parameters
 	DoorData.CellY = 1;
 	DoorData.Edge = EGridEdge::North;
 	DoorData.bInitiallyActive = false;
-	DoorData.Behavior.DoorAnimation.OpenHeight = 180.0f;
-	DoorData.Behavior.DoorAnimation.MoveDuration = 0.1f;
 	Fixture.Level->Objects.Add(DoorData);
 
 	UGridDoorSystemComponent* DoorSystem = Fixture.Runtime->FindComponentByClass<UGridDoorSystemComponent>();
