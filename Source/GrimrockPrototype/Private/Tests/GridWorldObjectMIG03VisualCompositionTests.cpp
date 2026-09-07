@@ -307,7 +307,6 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	DoorData.CellY = 1;
 	DoorData.Edge = EGridEdge::North;
 	DoorData.bInitiallyActive = false;
-	DoorData.Behavior.DoorAnimation.MoveDuration = 4.0f;
 
 	AGridDoorActor* Door = TestWorld.World->SpawnActor<AGridDoorActor>();
 	if (!TestNotNull(TEXT("Target-composition door exists"), Door))
@@ -353,8 +352,6 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	ButtonData.CellX = 1;
 	ButtonData.CellY = 2;
 	ButtonData.Edge = EGridEdge::North;
-	ButtonData.Behavior.ButtonAnimation.ButtonPressDuration = 1.0f;
-	ButtonData.Behavior.ButtonAnimation.ButtonReleaseDuration = 1.0f;
 
 	AGridButtonActor* Button = TestWorld.World->SpawnActor<AGridButtonActor>();
 	TestNotNull(TEXT("Target-composition button exists"), Button);
@@ -395,7 +392,6 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	LeverData.CellY = 1;
 	LeverData.Edge = EGridEdge::East;
 	LeverData.bInitiallyActive = false;
-	LeverData.Behavior.LeverAnimation.ToggleDuration = 1.0f;
 
 	AGridLeverActor* Lever = TestWorld.World->SpawnActor<AGridLeverActor>();
 	TestNotNull(TEXT("Target-composition lever exists"), Lever);
@@ -433,7 +429,6 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	PlateData.CellX = 2;
 	PlateData.CellY = 2;
 	PlateData.bInitiallyActive = false;
-	PlateData.Behavior.PressurePlateAnimation.MoveDuration = 1.0f;
 
 	AGridPressurePlateActor* Plate = TestWorld.World->SpawnActor<AGridPressurePlateActor>();
 	TestNotNull(TEXT("Target-composition pressure plate exists"), Plate);
@@ -480,7 +475,6 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	PitData.CellX = 3;
 	PitData.CellY = 3;
 	PitData.Behavior.Pit.bInitiallyOpen = false;
-	PitData.Behavior.PitAnimation.MoveDuration = 1.50f;
 
 	AGridPitTrapdoorActor* Pit = TestWorld.World->SpawnActor<AGridPitTrapdoorActor>();
 	TestNotNull(TEXT("Target-composition pit trapdoor exists"), Pit);
