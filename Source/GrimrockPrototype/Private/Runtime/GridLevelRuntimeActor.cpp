@@ -4,6 +4,7 @@
 #include "Core/GridTypes.h"
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridLevelPlacementCompatibility.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridDoorActor.h"
@@ -1135,8 +1136,6 @@ bool AGridLevelRuntimeActor::IsEffectivePitObject(const FGridLevelObjectData& Ob
 		return true;
 	}
 
-	// Prototype repair path: existing placed objects may retain a stale stored Type
-	// after an archetype evolves. The archetype is authoritative for gameplay kind.
 	const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(ObjectData.ArchetypeId);
 	return Archetype && Archetype->SupportedType == EGridLevelObjectType::Pit;
 }
@@ -1159,30 +1158,25 @@ bool AGridLevelRuntimeActor::ResolvePitLandingCell(
 		return false;
 	}
 
-	const auto ContainsOpenPit =
-		[this, TargetLevelId, TargetLevelAsset](int32 X, int32 Y)
-		{
-			return TargetLevelAsset->Objects.ContainsByPredicate(
-				[this, TargetLevelId, X, Y](const FGridLevelObjectData& Candidate)
-				{
-					return Candidate.CellX == X && Candidate.CellY == Y && IsEffectivePitObject(Candidate) &&
-						IsPitOpenForLevel(TargetLevelId, Candidate);
-				});
-		};
-
-	const auto IsWalkable =
-		[TargetLevelAsset](int32 X, int32 Y)
-		{
-			if (!TargetLevelAsset->IsValidCoord(X, Y))
+	const auto ContainsOpenPit = [this, TargetLevelId, TargetLevelAsset](int32 X, int32 Y)
+	{
+		return TargetLevelAsset->Objects.ContainsByPredicate(
+			[this, TargetLevelId, X, Y](const FGridLevelObjectData& Candidate)
 			{
-				return false;
-			}
-			const FGridLevelCellData& Cell = TargetLevelAsset->GetCell(X, Y);
-			return Cell.CellType != EGridCellType::Empty && !Cell.bBlocksOccupancy;
-		};
+				return Candidate.CellX == X && Candidate.CellY == Y && IsEffectivePitObject(Candidate) && IsPitOpenForLevel(TargetLevelId, Candidate);
+			});
+	};
 
-	// Preserve the explicit no-chained-pit rule when the exact vertical landing
-	// cell itself is a valid floor containing another open Pit.
+	const auto IsWalkable = [TargetLevelAsset](int32 X, int32 Y)
+	{
+		if (!TargetLevelAsset->IsValidCoord(X, Y))
+		{
+			return false;
+		}
+		const FGridLevelCellData& Cell = TargetLevelAsset->GetCell(X, Y);
+		return Cell.CellType != EGridCellType::Empty && !Cell.bBlocksOccupancy;
+	};
+
 	if (IsWalkable(PreferredCellX, PreferredCellY))
 	{
 		if (ContainsOpenPit(PreferredCellX, PreferredCellY))
@@ -1194,8 +1188,6 @@ bool AGridLevelRuntimeActor::ResolvePitLandingCell(
 		return true;
 	}
 
-	// The exact vertical cell may be Empty/unwalkable in real authored levels.
-	// A physical fall must still happen: choose the nearest usable floor cell.
 	int32 BestDistance = MAX_int32;
 	for (int32 Y = 0; Y < TargetLevelAsset->Height; ++Y)
 	{
@@ -1226,8 +1218,6 @@ bool AGridLevelRuntimeActor::IsPitOpenForLevel(FName LevelId, const FGridLevelOb
 		return false;
 	}
 
-	// A Pit with no trapdoor cover is physically an open hole. It cannot be
-	// gameplay-Closed unless both dedicated trapdoor leaf meshes cover the cell.
 	if (const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(PitObject.ArchetypeId))
 	{
 		if (!Archetype->HasCompletePitTrapdoorCover())
@@ -1236,8 +1226,6 @@ bool AGridLevelRuntimeActor::IsPitOpenForLevel(FName LevelId, const FGridLevelOb
 		}
 	}
 
-	// A missing legacy/stale ObjectId must not turn an authored open hole into a
-	// harmless floor. Runtime controlled state requires an id, but initial state does not.
 	if (PitObject.ObjectId.IsValid())
 	{
 		const FName RuntimeLevelId = DungeonAsset && !LevelId.IsNone() ? LevelId : SingleLevelRuntimeStateId;
@@ -1262,9 +1250,6 @@ bool AGridLevelRuntimeActor::IsPitOpen(FGuid PitObjectId) const
 
 	if (const AGridPitTrapdoorActor* PitActor = FindRuntimeObjectActor<AGridPitTrapdoorActor>(PitObjectId))
 	{
-		// PIT03.2 gameplay contract:
-		// any moving trapdoor is hazardous. Opening becomes hazardous immediately
-		// on command; Closing stays hazardous until the Closed endpoint is reached.
 		if (PitActor->IsAnimating())
 		{
 			return true;
@@ -1314,8 +1299,6 @@ bool AGridLevelRuntimeActor::SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmi
 		return false;
 	}
 
-	// Persist the requested endpoint immediately. If the level unloads mid-motion,
-	// returning to it snaps to this endpoint rather than trying to persist half an animation.
 	FGridRuntimePitState& PitState = State->Pits.FindOrAdd(PitObjectId);
 	PitState.ObjectId = PitObjectId;
 	PitState.bIsOpen = bOpen;
@@ -1330,17 +1313,12 @@ bool AGridLevelRuntimeActor::SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmi
 
 		if (bOpen)
 		{
-			// Opening is a gameplay state change immediately on command. Start/reverse
-			// the visual motion first so IsPitOpen() becomes true during Opening, then
-			// apply PIT01/PIT02 and emit Opened without waiting for the visual endpoint.
 			PendingPitEmitEvents.Remove(PitObjectId);
 			PitActor->SetPitOpenVisualState(true, true);
 			FinalizePitGameplayStateChange(PitObjectId, bWasGameplayOpen, true, bEmitEvent);
 			return true;
 		}
 
-		// Closing is intentionally asymmetric: gameplay stays Open while the leaves
-		// move and only becomes Closed at the physical endpoint.
 		const bool bSameTarget = PitActor->IsTargetOpen() == false;
 		if (bSameTarget)
 		{
@@ -1384,8 +1362,6 @@ void AGridLevelRuntimeActor::HandlePitTrapdoorAnimationFinished(FGuid PitObjectI
 
 	if (bIsOpen)
 	{
-		// Gameplay Open, PIT01/PIT02 and Opened were already applied when the Open
-		// command was received. The endpoint is presentation-only.
 		PendingPitEmitEvents.Remove(PitObjectId);
 		UE_LOG(LogTemp, Verbose, TEXT("GridPit opening visual endpoint reached ObjectId=%s; gameplay was already Open."),
 			*PitObjectId.ToString());
@@ -1394,9 +1370,6 @@ void AGridLevelRuntimeActor::HandlePitTrapdoorAnimationFinished(FGuid PitObjectI
 
 	const bool bEmitEvent = PendingPitEmitEvents.FindRef(PitObjectId);
 	PendingPitEmitEvents.Remove(PitObjectId);
-
-	// A closing animation remains gameplay-Open until this endpoint, even when it
-	// reversed an Opening before that Opening had visually completed.
 	FinalizePitGameplayStateChange(PitObjectId, true, false, bEmitEvent);
 }
 
@@ -1448,8 +1421,6 @@ bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridOb
 
 	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
 	{
-		// A Pit is intrinsically a fall-through cell when it is enabled and Open.
-		// It must not depend on the generic Transition enable/use flags.
 		if (!IsEffectivePitObject(Obj) || Obj.CellX != CellX || Obj.CellY != CellY)
 		{
 			continue;
@@ -1466,15 +1437,10 @@ bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridOb
 
 		UE_LOG(LogTemp, Log,
 			TEXT("GridPit OPEN cell entered Cell=(%d,%d) ObjectId=%s ArchetypeId=%s StoredType=%d CurrentLevel=%s."),
-			CellX, CellY, *Obj.ObjectId.ToString(), *Obj.ArchetypeId.ToString(), static_cast<int32>(Obj.Type),
-			*CurrentDungeonLevelId.ToString());
+			CellX, CellY, *Obj.ObjectId.ToString(), *Obj.ArchetypeId.ToString(), static_cast<int32>(Obj.Type), *CurrentDungeonLevelId.ToString());
 
 		OutTransition = Obj.Behavior.Transition;
-
-		// Standard Pit authoring requires no manual TargetLevelId. Resolve the
-		// level below automatically. A valid explicit target still wins.
-		const bool bExplicitTargetValid =
-			DungeonAsset && !OutTransition.TargetLevelId.IsNone() && DungeonAsset->IsValidLevelId(OutTransition.TargetLevelId);
+		const bool bExplicitTargetValid = DungeonAsset && !OutTransition.TargetLevelId.IsNone() && DungeonAsset->IsValidLevelId(OutTransition.TargetLevelId);
 		if (!bExplicitTargetValid && DungeonAsset)
 		{
 			if (const FGridDungeonLevelEntry* LowerLevel = DungeonAsset->FindLevelBelow(CurrentDungeonLevelId))
@@ -1536,8 +1502,6 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 		return false;
 	}
 
-	// A Pit never needs an authored facing just to function. Preserve the
-	// party's current facing when no explicit arrival facing was supplied.
 	if (Transition.TargetFacing == EGridEdge::None)
 	{
 		Transition.TargetFacing = PartyPawn->Facing;
@@ -1681,8 +1645,7 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 	if (TargetCell.CellType == EGridCellType::Empty || TargetCell.bBlocksOccupancy)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Dungeon transition failed: Target cell (%d,%d) is not walkable in LevelAsset %s. CellType=%d BlocksOccupancy=%s."),
-			TargetCellX, TargetCellY, *TargetLevelAsset->GetPathName(), static_cast<int32>(TargetCell.CellType),
-			*GetRuntimeBoolText(TargetCell.bBlocksOccupancy));
+			TargetCellX, TargetCellY, *TargetLevelAsset->GetPathName(), static_cast<int32>(TargetCell.CellType), *GetRuntimeBoolText(TargetCell.bBlocksOccupancy));
 		return false;
 	}
 
@@ -1905,22 +1868,18 @@ bool AGridLevelRuntimeActor::GetFloorEdgeObjectTransform(const FGridLevelObjectD
 			Pos = Base + FVector(CellSize * 0.5f, CellSize - EdgeInset, 0.f);
 			Rot = FRotator(0.f, 0.f, 0.f);
 			break;
-
 		case EGridEdge::South:
 			Pos = Base + FVector(CellSize * 0.5f, EdgeInset, 0.f);
 			Rot = FRotator(0.f, 180.f, 0.f);
 			break;
-
 		case EGridEdge::East:
 			Pos = Base + FVector(CellSize - EdgeInset, CellSize * 0.5f, 0.f);
 			Rot = FRotator(0.f, 90.f, 0.f);
 			break;
-
 		case EGridEdge::West:
 			Pos = Base + FVector(EdgeInset, CellSize * 0.5f, 0.f);
 			Rot = FRotator(0.f, -90.f, 0.f);
 			break;
-
 		default:
 			return false;
 	}
@@ -1950,20 +1909,19 @@ bool AGridLevelRuntimeActor::GetWallMountedObjectTransform(const FGridLevelObjec
 			Pos = Base + FVector((CellSize * 0.5f) + LocalOffsetAlongWall, CellSize - WallInset, 0.f);
 			Rot = FRotator(0.f, 90.f, 0.f);
 			break;
-
 		case EGridEdge::South:
 			Pos = Base + FVector((CellSize * 0.5f) - LocalOffsetAlongWall, WallInset, 0.f);
 			Rot = FRotator(0.f, -90.f, 0.f);
 			break;
-
 		case EGridEdge::East:
 			Pos = Base + FVector(CellSize - WallInset, (CellSize * 0.5f) - LocalOffsetAlongWall, 0.f);
 			Rot = FRotator(0.f, 0.f, 0.f);
 			break;
-
 		case EGridEdge::West:
 			Pos = Base + FVector(WallInset, (CellSize * 0.5f) + LocalOffsetAlongWall, 0.f);
 			Rot = FRotator(0.f, 180.f, 0.f);
+			break;
+		default:
 			break;
 	}
 	OutTransform = FTransform(Rot, Pos, FVector::OneVector);
@@ -1976,12 +1934,11 @@ bool AGridLevelRuntimeActor::GetCenteredObjectTransform(const FGridLevelObjectDa
 	{
 		return false;
 	}
-	const FVector Pos =
-		GetActorLocation() + CellToWorld(ObjectData.CellX, ObjectData.CellY, ZOffset) + FVector(LevelAsset->CellSize * 0.5f, LevelAsset->CellSize * 0.5f, 0.f);
+	const FVector Pos = GetActorLocation() + CellToWorld(ObjectData.CellX, ObjectData.CellY, ZOffset) +
+		FVector(LevelAsset->CellSize * 0.5f, LevelAsset->CellSize * 0.5f, 0.f);
 
 	FRotator Rotation = FRotator::ZeroRotator;
 	Rotation.Yaw = ObjectData.LocalYaw;
-
 	OutTransform = FTransform(Rotation, Pos, FVector::OneVector);
 	return true;
 }
@@ -2009,9 +1966,7 @@ bool AGridLevelRuntimeActor::GetObjectPlacementTransform(const FGridLevelObjectD
 	{
 		FVector Pos = FVector::ZeroVector;
 		FRotator Rot = FRotator::ZeroRotator;
-
 		GetEdgeTransform(ObjectData.CellX, ObjectData.CellY, ObjectData.Edge, LevelAsset->CellSize, Pos, Rot);
-
 		OutTransform = FTransform(Rot, Pos, FVector::OneVector);
 		return true;
 	}
@@ -2044,7 +1999,6 @@ void AGridLevelRuntimeActor::RegisterRuntimeObjectActor(const FGuid& ObjectId, A
 void AGridLevelRuntimeActor::ClearRuntimeObjectActors()
 {
 	ClearSpawnedMonsterActors();
-
 	for (AGridItemActor* ItemActor : SpawnedItemActors)
 	{
 		if (IsValid(ItemActor))
@@ -2078,7 +2032,6 @@ bool AGridLevelRuntimeActor::IsPartyOnCell(int32 CellX, int32 CellY) const
 	{
 		return false;
 	}
-
 	for (TActorIterator<AGrimrockPartyPawn> It(World); It; ++It)
 	{
 		const AGrimrockPartyPawn* PartyPawn = *It;
@@ -2087,7 +2040,6 @@ bool AGridLevelRuntimeActor::IsPartyOnCell(int32 CellX, int32 CellY) const
 			return true;
 		}
 	}
-
 	return false;
 }
 
@@ -2099,17 +2051,7 @@ TSubclassOf<AGridRuntimeObjectActor> AGridLevelRuntimeActor::GetObjectRuntimeAct
 
 bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject(const FGridLevelObjectData& ObjectData) const
 {
-	if (!LevelAsset)
-	{
-		return false;
-	}
-
-	if (!ObjectData.bInitiallyEnabled)
-	{
-		return false;
-	}
-
-	if (!LevelAsset->IsValidCoord(ObjectData.CellX, ObjectData.CellY))
+	if (!LevelAsset || !ObjectData.bInitiallyEnabled || !LevelAsset->IsValidCoord(ObjectData.CellX, ObjectData.CellY))
 	{
 		return false;
 	}
@@ -2143,13 +2085,9 @@ bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject(const FGridLevelObjectData
 		case EGridLevelObjectType::Lever:
 		case EGridLevelObjectType::Receptacle:
 			return ObjectData.Edge != EGridEdge::None;
-
 		case EGridLevelObjectType::PressurePlate:
-			return true;
-
 		case EGridLevelObjectType::Trigger:
 			return true;
-
 		default:
 			return false;
 	}
@@ -2196,22 +2134,10 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLevelObjectData& Obje
 	if (Archetype)
 	{
 		const FGridItemBehaviorParams& ItemDefaults = Archetype->DefaultBehavior.Item;
-		if (!ReadableContentAsset)
-		{
-			ReadableContentAsset = ItemDefaults.DefaultReadableContentAsset;
-		}
-		if (ReadableContentId.IsNone())
-		{
-			ReadableContentId = ItemDefaults.DefaultReadableContentId;
-		}
-		if (ReadTitleOverride.IsEmpty())
-		{
-			ReadTitleOverride = ItemDefaults.DefaultReadTitleOverride;
-		}
-		if (ReadTextOverride.IsEmpty())
-		{
-			ReadTextOverride = ItemDefaults.DefaultReadTextOverride;
-		}
+		if (!ReadableContentAsset) ReadableContentAsset = ItemDefaults.DefaultReadableContentAsset;
+		if (ReadableContentId.IsNone()) ReadableContentId = ItemDefaults.DefaultReadableContentId;
+		if (ReadTitleOverride.IsEmpty()) ReadTitleOverride = ItemDefaults.DefaultReadTitleOverride;
+		if (ReadTextOverride.IsEmpty()) ReadTextOverride = ItemDefaults.DefaultReadTextOverride;
 	}
 	ItemActor->InitializeReadableContent(ReadableContentAsset, ReadableContentId, ReadTitleOverride, ReadTextOverride);
 	ItemActor->SetRuntimeCell(ObjectData.CellX, ObjectData.CellY);
@@ -2240,13 +2166,14 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor(const FGridLevelObjectData& O
 	const TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass = GetObjectRuntimeActorClass(ObjectData);
 	AGridRuntimeObjectActor* Actor = SpawnRuntimeObjectActor<AGridRuntimeObjectActor>(ObjectData, Mesh, Transform);
 	UE_LOG(LogTemp, VeryVerbose,
-		TEXT("GridRuntime Diagnostic AddRuntimeObjectActor ObjectId=%s ArchetypeId=%s ObjectData.Type=%s "
-			 "RuntimeActorClass=%s ActorClass=%s Mesh=%s Transform=%s"),
+		TEXT("GridRuntime Diagnostic AddRuntimeObjectActor ObjectId=%s ArchetypeId=%s ObjectData.Type=%s RuntimeActorClass=%s ActorClass=%s Mesh=%s Transform=%s"),
 		*ObjectData.ObjectId.ToString(), *ObjectData.ArchetypeId.ToString(), *UEnum::GetValueAsString(ObjectData.Type),
 		RuntimeActorClass ? *RuntimeActorClass->GetPathName() : TEXT("None"), Actor ? *Actor->GetClass()->GetPathName() : TEXT("None"),
 		Mesh ? *Mesh->GetPathName() : TEXT("None"), *Transform.ToHumanReadableString());
 	if (!Actor)
+	{
 		return;
+	}
 	FGridLevelObjectData RuntimeObjectData = ObjectData;
 	const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(ObjectData.ArchetypeId);
 	if (AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor>(Actor))
@@ -2266,23 +2193,17 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor(const FGridLevelObjectData& O
 	{
 		Actor->InitializeGridObject(RuntimeObjectData, Mesh, Transform);
 	}
-
-	// Generic object-audio contract: every runtime grid object receives the
-	// archetype event map, regardless of gameplay type.
 	Actor->ConfigureObjectAudio(Archetype);
-
 
 	if (AGridPitTrapdoorActor* PitActor = Cast<AGridPitTrapdoorActor>(Actor))
 	{
 		PitActor->OnPitAnimationFinished.AddUObject(this, &AGridLevelRuntimeActor::HandlePitTrapdoorAnimationFinished);
 		PitActor->SnapPitOpenState(IsPitOpenForLevel(CurrentDungeonLevelId, ObjectData));
 	}
-
 	if (ActivationComponent)
 	{
 		ActivationComponent->RegisterInitialObjectState(RuntimeObjectData);
 	}
-
 	if (ObjectData.Type == EGridLevelObjectType::Door && DoorSystemComponent)
 	{
 		DoorSystemComponent->RegisterDoorObject(ObjectData, Actor);
@@ -2295,44 +2216,60 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects()
 	{
 		return;
 	}
+
 	LevelAsset->EnsureCellCount();
 	RuntimeMonsterSpawnFailureCount = 0;
 	const FGridLevelRuntimeState* SavedLevelState = FindRuntimeStateForCurrentLevel();
-	for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+
+	for (const FGridWorldObjectInstance& Instance : LevelAsset->WorldObjectInstances)
 	{
-		if (ObjectData.Type == EGridLevelObjectType::MonsterSpawn)
-		{
-			const FGridRuntimeMonsterPlacementState* PlacementState = SavedLevelState ? SavedLevelState->MonsterPlacements.Find(ObjectData.ObjectId) : nullptr;
-			const bool bShouldSpawn = PlacementState ? PlacementState->bIsSpawned : ObjectData.bInitiallyEnabled;
-			const FGridRuntimeMonsterState* RestoreState = PlacementState && PlacementState->bHasMonsterState ? &PlacementState->MonsterState : nullptr;
-			if (bShouldSpawn && !AddMonsterSpawnActor(ObjectData, RestoreState))
-			{
-				++RuntimeMonsterSpawnFailureCount;
-			}
-			continue;
-		}
-		if (ObjectData.Type == EGridLevelObjectType::Item)
-		{
-			if (ObjectData.bInitiallyEnabled)
-			{
-				AddPlacedItemActor(ObjectData);
-			}
-			continue;
-		}
+		const FGridLevelObjectData ObjectData = GridLevelPlacementCompatibility::ToLegacyWorldObject(Instance);
 		if (!IsRuntimeSpawnableObject(ObjectData))
 		{
-			if (ObjectData.bInitiallyEnabled)
+			if (Instance.bInitiallyEnabled)
 			{
-				const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(ObjectData.ArchetypeId);
-				const bool bDataOnlyLogicalTarget = ObjectData.Type == EGridLevelObjectType::Logic || ObjectData.Type == EGridLevelObjectType::StoryCompanion ||
-					ObjectData.Type == EGridLevelObjectType::CustomRecruiter;
-				if (Archetype && !Archetype->RuntimeActorClass && !bDataOnlyLogicalTarget)
+				const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(Instance.WorldObjectDefinitionId);
+				if (Archetype && !Archetype->RuntimeActorClass)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Runtime object skipped: archetype %s has no RuntimeActorClass."), *ObjectData.ArchetypeId.ToString());
+					UE_LOG(LogTemp, Warning, TEXT("Runtime object skipped: archetype %s has no RuntimeActorClass."), *Instance.WorldObjectDefinitionId.ToString());
 				}
 			}
 			continue;
 		}
 		AddRuntimeObjectActor(ObjectData);
+	}
+
+	for (const FGridLooseItemInstance& Instance : LevelAsset->LooseItemInstances)
+	{
+		if (!Instance.bInitiallyEnabled)
+		{
+			continue;
+		}
+
+		const FGridLevelObjectData ObjectData = GridLevelPlacementCompatibility::ToLegacyLooseItem(Instance);
+		const int32 EntryCountBeforeSpawn = SpawnedItemEntries.Num();
+		AddPlacedItemActor(ObjectData);
+		if (SpawnedItemEntries.Num() > EntryCountBeforeSpawn)
+		{
+			if (FGridSpawnedItemRuntimeEntry* Entry = SpawnedItemEntries.FindByPredicate(
+				[&Instance](const FGridSpawnedItemRuntimeEntry& Candidate)
+				{
+					return Candidate.ObjectId == Instance.InstanceId;
+				}))
+			{
+				Entry->Quantity = FMath::Max(1, Instance.Quantity);
+			}
+		}
+	}
+
+	for (const FGridMonsterSpawnInstance& Spawn : LevelAsset->MonsterSpawns)
+	{
+		const FGridRuntimeMonsterPlacementState* PlacementState = SavedLevelState ? SavedLevelState->MonsterPlacements.Find(Spawn.SpawnId) : nullptr;
+		const bool bShouldSpawn = PlacementState ? PlacementState->bIsSpawned : Spawn.bInitiallyEnabled;
+		const FGridRuntimeMonsterState* RestoreState = PlacementState && PlacementState->bHasMonsterState ? &PlacementState->MonsterState : nullptr;
+		if (bShouldSpawn && !AddMonsterSpawnActor(Spawn, RestoreState))
+		{
+			++RuntimeMonsterSpawnFailureCount;
+		}
 	}
 }
