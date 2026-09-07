@@ -22,11 +22,10 @@ En particulier :
 - un monstre possède une seule `UGridMonsterDefinitionAsset` ;
 - le niveau référence les définitions, il ne les duplique pas ;
 - preview et runtime consomment les mêmes données ;
-- les Data Assets ne portent pas d'état runtime mutable ;
 - `UGridLevelAsset` reste la source de vérité spatiale ;
-- le SaveGame ne copie pas meshes, sons ou paramètres permanents.
+- le SaveGame ne copie pas les données permanentes de définition.
 
-Schéma cible :
+## 2. Modèle cible
 
 ```text
 GLOBAL DEFINITIONS
@@ -39,7 +38,7 @@ GLOBAL DEFINITIONS
           │
           ▼
 UGridLevelAsset
-├── grille
+├── Cells
 ├── WorldObjectInstances
 ├── LooseItemInstances
 ├── MonsterSpawns
@@ -55,117 +54,34 @@ Runtime Actors / Components
 Runtime State / SaveGame
 ```
 
-## 2. État actuel
-
-Dernière révision validée avant MIG09-E2A :
-
-```text
-268d68659619f036f62c5549242e5453c37c21f0
-WORLDOBJ-MIG09 align sparse marker test with typed authority
-```
-
-Validation locale UE5.5.4 de MIG09-E1 :
-
-```text
-Succeeded              : 32
-Succeeded with warnings: 1
-Failed                 : 0
-Process exit code       : 0
-```
-
-Rapport :
-
-```text
-D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-163759
-```
-
-État des jalons :
+## 3. État des jalons
 
 | Jalon | Statut | Résultat |
 |---|---|---|
-| MIG00 | ✅ validé | Caractérisation du contrat historique. |
-| MIG01 | ✅ validé | Placement `Floor / Wall / Ceiling` + `U/V/N`. |
-| MIG02 | ✅ validé | Spatial/boundary simplifié. |
-| MIG03 | ✅ intégré | `StaticPart` + `MovingParts`. |
-| MIG04 | ✅ intégré | Motion générique des mécanismes. |
-| MIG05 | ✅ intégré | Collectible direct : `UGridItemDefinitionAsset`. |
-| MIG06 | ✅ intégré | Definition + overrides strictement instance-owned. |
-| MIG07 | ✅ intégré | Collections de placements typées. |
-| MIG08 | ✅ historique | Assets migrés ; outillage actif retiré en E1. |
-| MIG09-A/B/C/D | ✅ validés | Purges legacy successives ; Grid Editor détaché du write-back implicite. |
-| MIG09-E1 | ✅ validé | Autorité persistante exclusivement typée ; marqueur supprimé ; `Objects` transitoire. |
-| MIG09-E2A | 🟨 candidat | Frontière runtime world-object explicite, non sérialisée. |
-| MIG09-E2B | ⬜ à faire | Runtime spécialisé et lectures directes des collections typées. |
-| MIG09-E2C | ⬜ à faire | Editor/tests puis suppression physique du DTO et des projections. |
-| MIG10 | ⬜ à faire | Renommage final `UGridObjectArchetypeAsset` → `UGridWorldObjectDefinitionAsset`. |
+| MIG00 | ✅ | Caractérisation du contrat historique. |
+| MIG01 | ✅ | Placement `Floor / Wall / Ceiling` + `U/V/N`. |
+| MIG02 | ✅ | Spatial/boundary simplifié. |
+| MIG03 | ✅ | `StaticPart` + `MovingParts`. |
+| MIG04 | ✅ | Motion générique. |
+| MIG05 | ✅ | Collectible direct : `UGridItemDefinitionAsset`. |
+| MIG06 | ✅ | Definition + overrides strictement instance-owned. |
+| MIG07 | ✅ | Collections de placements typées. |
+| MIG08 | ✅ historique | Assets migrés ; outillage actif retiré. |
+| MIG09-A/B/C/D | ✅ | Purges legacy successives. |
+| MIG09-E1 | ✅ | Autorité persistante exclusivement typée. |
+| MIG09-E2A | ✅ | Frontière runtime world-object native. |
+| MIG09-E2B | ✅ validé | Runtime spécialisé hors cache `Objects`. |
+| MIG09-E2C | 🟨 en cours | Editor/tests puis suppression physique du DTO. |
+| MIG10 | ⬜ | Renommage final `UGridObjectArchetypeAsset` → `UGridWorldObjectDefinitionAsset`. |
 
-MIG10 ne commence pas avant la suppression complète de MIG09-E2.
-
-## 3. Modèle spatial cible
+Validation E2B :
 
 ```text
-PlacementSurface
-├── Floor
-├── Wall
-└── Ceiling
+Grimrock.WorldObjects : 34 success / 0 warnings / 0 failed / exit 0
+MON13.3 LifecyclePersistence : 0 failed / exit 0
 ```
 
-```text
-U = première tangente
-V = seconde tangente ; verticale sur Wall
-N = normale à la surface
-```
-
-Interprétation :
-
-```text
-Floor   : N = hauteur au-dessus du sol
-Wall    : N = profondeur / inset
-Ceiling : N = distance sous le plafond
-```
-
-La frontière topologique reste distincte de la surface de placement.
-
-## 4. Composition visuelle
-
-```text
-WorldObject Definition
-├── StaticPart optional
-└── MovingParts
-    ├── Part0 optional
-    │   └── Motion
-    └── Part1 optional
-        └── Motion
-```
-
-`Motion` : Type, Axis, Pivot, Amount, Duration.
-
-Après MIG09-C, ce bloc est l'unique autorité géométrique et temporelle des mécanismes. Les règles gameplay telles que `ButtonHoldTime`, poids de plaque ou chaîne de porte restent séparées.
-
-## 5. Definition / Instance / Runtime
-
-```text
-Effective runtime object
-    = Definition
-    + Level Instance Configuration
-    + Saved Runtime Delta
-```
-
-### Definition
-
-Possède identité, placement autorisé, spatial permanent, visual/motion, interaction générique, audio/VFX, lumière, classe runtime et comportement partagé.
-
-### Instance
-
-Possède uniquement ce qui varie avec le placement : identité persistante, référence Definition, cellule/côté, transform local éventuel, état initial, Tag/Notes, destination et données strictement locales.
-
-### Runtime / Save
-
-Possède les états mutables et deltas de persistance, pas les données permanentes de Definition.
-
-## 6. Placements typés du niveau
-
-Autorité persistante cible :
+## 4. Autorité persistante
 
 ```text
 UGridLevelAsset
@@ -178,93 +94,70 @@ UGridLevelAsset
 
 `LooseItemInstance` représente un item déjà présent ; `ItemSpawn` représente un générateur.
 
-## 7. MIG09 — purge finale
+`Objects` n'est plus une autorité persistante. Il reste uniquement comme cache de compatibilité transitoire jusqu'à la fin d'E2C.
 
-### Validé
+## 5. MIG09-E2C — dernière purge
 
-```text
-MIG09-A       autorité Definition sans marqueur sparse              ✅
-MIG09-B*      identité Item legacy                                  ✅
-MIG09-C       mécanismes + animation spécialisée                    ✅
-MIG09-D1      SparseBehaviorOverrideObjectIds                       ✅
-MIG09-D2      write-through Grid Editor                             ✅
-MIG09-D3      fallback preview / read mirror Editor                 ✅
-MIG09-E1      autorité persistante exclusivement typée              ✅
-```
-
-### MIG09-E2 — suppression du DTO monolithique
-
-L'audit d'entrée E a trouvé `FGridLevelObjectData` dans 154 fichiers source. Le type était devenu à la fois ancien stockage et DTO transitoire runtime/editor. Un alias conservant le nom serait un faux nettoyage.
-
-E2 est donc découpé en trois macro-tranches cohérentes :
+E2C doit aboutir à :
 
 ```text
-E2A  établir une frontière runtime world-object explicite
-E2B  migrer runtime spécialisé / LevelRuntime vers les collections natives
-E2C  migrer Editor/tests et supprimer physiquement DTO + projections
+Grid Editor -> placements typés
+Tests       -> placements typés
+Core        -> structures natives
+Objects     -> supprimé
+FGridLevelObjectData -> supprimé
+GridLevelPlacementCompatibility -> supprimé
+wrappers runtime DTO -> supprimés
 ```
 
-### MIG09-E2A — Runtime World Object Boundary
+### 5.1. Bloc courant : MonsterSpawn authoring natif
 
-Candidat courant.
-
-`FGridRuntimeWorldObjectData` est un payload C++ runtime-only, non réfléchi et non sérialisé. Il est construit nativement depuis `FGridWorldObjectInstance` et porte uniquement les données requises par l'initialisation d'un acteur world-object.
-
-Les acteurs génériques et mécanismes migrés utilisent :
+Le bloc courant retire les derniers round-trips MonsterSpawn par snapshot dans :
 
 ```text
-InitializeRuntimeWorldObject(...)
-InitializeRuntimeWorldObjectBase(...)
-InitializeRuntimeMechanismVisuals(...)
-ResolveEffectiveBehavior(FGridRuntimeWorldObjectData)
+GridMonsterSpawnConfiguration
+GridLevelEditorActorPatrolRoute
 ```
 
-Les wrappers `FGridLevelObjectData` restent provisoires uniquement pour maintenir les tests/Editor non encore migrés jusqu'à E2C. Ils ne sont pas une autorité et ne sont jamais stockés dans le niveau.
-
-Acteurs migrés E2A :
+La patrouille est éditée directement dans :
 
 ```text
-Button
-Lever
-PressurePlate
-Door
-Trigger
-GenericObject
+UGridLevelAsset::MonsterSpawns
+FGridMonsterSpawnInstance::PatrolMode
+FGridMonsterSpawnInstance::PatrolWaypoints
 ```
 
-Test de garde :
+Le runtime résout également la configuration initiale directement depuis `MonsterSpawns`.
+
+### 5.2. Reste à migrer dans E2C
 
 ```text
-Grimrock.WorldObjects.MIG09.RuntimeWorldObjectPayload
+Editor générique : sélection / inspector / overview / links / Lua / validation
+Items : setters et inspection
+WorldObjects : setters et inspection
+LogicObjects / ItemSpawns : authoring et inspection
+Tests : fixtures FGridLevelObjectData
+Core : derniers helpers DTO
 ```
 
-### MIG09-E2B
+Une fois ces consommateurs migrés, suppression physique en une seule purge :
 
-Après validation E2A :
+```text
+UGridLevelAsset::Objects
+FGridLevelObjectData
+CommitCompatibilityObjectEdit
+RefreshLegacyObjectMirrorFromTyped
+GetObjectCompatibilityView
+BuildCompatibilityObjectProjectionFromTyped
+RebuildTypedPlacementProjectionFromLegacy
+EnableTypedPlacementStorageFromLegacy
+GridLevelPlacementCompatibility.h
+GridLevelPlacementConversion::To*
+```
 
-- Receptacle, WallLock et PitTrapdoor sur frontière runtime native ;
-- `AGridLevelRuntimeActor` directement sur `WorldObjectInstances` ;
-- items monde directement sur `LooseItemInstances` ;
-- monstres/encounters/persistence directement sur `MonsterSpawns` ;
-- Activation, DoorSystem, transitions/pits et diagnostics hors DTO legacy ;
-- aucune lecture runtime directe de `LevelAsset->Objects`.
+## 6. MIG10 — renommage final
 
-### MIG09-E2C
-
-Dernière macro-tranche :
-
-- Grid Editor sur placements typés ;
-- fixtures/tests convertis ;
-- suppression de `Objects` ;
-- suppression de `FGridLevelObjectData` ;
-- suppression de `GridLevelPlacementCompatibility.h` ;
-- suppression de `GridLevelPlacementConversion::To*` ;
-- suppression des wrappers runtime E2 temporaires ;
-- tests de réflexion anti-régression.
-
-## 8. MIG10 — renommage final
-
-Après MIG09-E2 :
+Après clôture de MIG09 :
 
 ```text
 UGridObjectArchetypeAsset
@@ -280,28 +173,16 @@ ObjectArchetypes         -> WorldObjectDefinitions
 FindObjectArchetypeById  -> FindWorldObjectDefinition...
 ```
 
-Ce renommage reste volontairement dernier pour ne pas mélanger schéma sérialisé et renommage de classe.
-
-## 9. Ownership cible
-
-| Couche | Possède | Ne possède pas |
-|---|---|---|
-| Definition Data Asset | Identité/propriétés permanentes. | Position de niveau, état mutable. |
-| `UGridLevelAsset` | Layout, placements typés, logique, état initial, références. | Copie complète des définitions, miroir monolithique. |
-| Runtime Actor/Component | Exécution, animation, collision, état courant. | Authoring permanent. |
-| SaveGame/RuntimeState | Deltas mutables. | Meshes, sons, définition complète. |
-
-## 10. Definition of Done finale
+## 7. Definition of Done finale
 
 ```text
-[ ] aucun pont MIG01/MIG02/MIG03/MIG05/MIG06 requis
-[ ] aucun Behavior visuel dupliquant Motion
 [ ] items = une définition unique
 [ ] objets du monde = une définition unique
 [ ] monstres = une définition unique
 [ ] placements LevelAsset typés uniquement
 [ ] aucun FGridLevelObjectData
 [ ] aucun Objects même transient
+[ ] aucune projection legacy
 [ ] preview et runtime consomment les mêmes définitions
 [ ] SaveGame = deltas mutables uniquement
 [ ] tests protègent les invariants
@@ -309,7 +190,7 @@ Ce renommage reste volontairement dernier pour ne pas mélanger schéma sériali
 [ ] documentation réconciliée avec la mind map
 ```
 
-## 11. Validation courante
+## 8. Validation courante
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
@@ -317,11 +198,23 @@ Ce renommage reste volontairement dernier pour ne pas mélanger schéma sériali
     -AutomationFilter "Grimrock.WorldObjects"
 ```
 
-## 12. Documents associés
+Puis, pour le bloc MonsterSpawn E2C :
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Monsters.MON14.3.1"
+```
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Monsters.MON13.3.LifecyclePersistence"
+```
+
+## 9. Documents associés
 
 - `docs/Architecture/Maps/Grimrock_MindMap_Architecture_Cible_v2_XMind.md`
 - `docs/Architecture/WORLDOBJ_MIG09_LEGACY_PURGE.md`
-- `docs/Architecture/WORLDOBJ_MIG04_GENERIC_MOTION.md`
+- `docs/Architecture/WORLDOBJ_MIG09_E2B_TYPED_RUNTIME_CONSUMERS.md`
 - `docs/Design/12_GRID_OBJECT_INSTANCE_BEHAVIOR_RULE.md`
-
-Les anciennes notes MIG07/MIG08 restent historiques ; elles ne doivent pas servir à réintroduire une autorité supprimée.

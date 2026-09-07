@@ -16,18 +16,12 @@ namespace
 	{
 		switch (Facing)
 		{
-			case EGridEdge::None:
-				return EGridEdge::North;
-			case EGridEdge::North:
-				return EGridEdge::East;
-			case EGridEdge::East:
-				return EGridEdge::South;
-			case EGridEdge::South:
-				return EGridEdge::West;
-			case EGridEdge::West:
-				return EGridEdge::None;
-			default:
-				return EGridEdge::None;
+			case EGridEdge::None: return EGridEdge::North;
+			case EGridEdge::North: return EGridEdge::East;
+			case EGridEdge::East: return EGridEdge::South;
+			case EGridEdge::South: return EGridEdge::West;
+			case EGridEdge::West: return EGridEdge::None;
+			default: return EGridEdge::None;
 		}
 	}
 
@@ -35,14 +29,10 @@ namespace
 	{
 		switch (Mode)
 		{
-			case EGridMonsterPatrolMode::None:
-				return EGridMonsterPatrolMode::Loop;
-			case EGridMonsterPatrolMode::Loop:
-				return EGridMonsterPatrolMode::PingPong;
-			case EGridMonsterPatrolMode::PingPong:
-				return EGridMonsterPatrolMode::None;
-			default:
-				return EGridMonsterPatrolMode::None;
+			case EGridMonsterPatrolMode::None: return EGridMonsterPatrolMode::Loop;
+			case EGridMonsterPatrolMode::Loop: return EGridMonsterPatrolMode::PingPong;
+			case EGridMonsterPatrolMode::PingPong: return EGridMonsterPatrolMode::None;
+			default: return EGridMonsterPatrolMode::None;
 		}
 	}
 
@@ -54,30 +44,36 @@ namespace
 		}
 	}
 
-	void CommitPatrolEdit(UGridLevelAsset* LevelAsset, const FGuid& ObjectId)
+	FGridMonsterSpawnInstance* FindMonsterSpawnMutable(UGridLevelAsset* LevelAsset, const FGuid& SpawnId)
 	{
-		if (!LevelAsset || !ObjectId.IsValid())
+		if (!LevelAsset || !SpawnId.IsValid())
 		{
-			return;
+			return nullptr;
 		}
-
-		const FGridLevelObjectData* StagedObject = LevelAsset->Objects.FindByPredicate(
-			[&ObjectId](const FGridLevelObjectData& Object)
+		return LevelAsset->MonsterSpawns.FindByPredicate(
+			[&SpawnId](const FGridMonsterSpawnInstance& Spawn)
 			{
-				return Object.ObjectId == ObjectId;
+				return Spawn.SpawnId == SpawnId;
 			});
-		if (StagedObject)
+	}
+
+	const FGridMonsterSpawnInstance* FindMonsterSpawn(const UGridLevelAsset* LevelAsset, const FGuid& SpawnId)
+	{
+		if (!LevelAsset || !SpawnId.IsValid())
 		{
-			const FGridLevelObjectData Snapshot = *StagedObject;
-			LevelAsset->AddObject(Snapshot);
+			return nullptr;
 		}
+		return LevelAsset->MonsterSpawns.FindByPredicate(
+			[&SpawnId](const FGridMonsterSpawnInstance& Spawn)
+			{
+				return Spawn.SpawnId == SpawnId;
+			});
 	}
 }
 
 bool AGridLevelEditorActor::CanEditSelectedMonsterPatrolRoute() const
 {
-	const FGridLevelObjectData* Obj = GetSelectedObjectData();
-	return LevelAsset && Obj && Obj->Type == EGridLevelObjectType::MonsterSpawn;
+	return FindMonsterSpawn(LevelAsset, LastSelectedObjectId) != nullptr;
 }
 
 bool AGridLevelEditorActor::IsPatrolRouteEditModeActive() const
@@ -95,7 +91,8 @@ void AGridLevelEditorActor::ToggleSelectedMonsterPatrolRouteEditing()
 		return;
 	}
 
-	if (!CanEditSelectedMonsterPatrolRoute())
+	const FGridMonsterSpawnInstance* Spawn = FindMonsterSpawn(LevelAsset, LastSelectedObjectId);
+	if (!Spawn)
 	{
 		bPatrolRouteEditMode = false;
 		SelectedPatrolWaypointIndex = INDEX_NONE;
@@ -105,32 +102,30 @@ void AGridLevelEditorActor::ToggleSelectedMonsterPatrolRouteEditing()
 	}
 
 	bPatrolRouteEditMode = true;
-	const FGridLevelObjectData* Obj = GetSelectedObjectData();
-	SelectedPatrolWaypointIndex = Obj && Obj->PatrolWaypoints.Num() > 0 ? 0 : INDEX_NONE;
+	SelectedPatrolWaypointIndex = Spawn->PatrolWaypoints.Num() > 0 ? 0 : INDEX_NONE;
 	RedrawGridEditorViewports();
 }
 
 bool AGridLevelEditorActor::SetSelectedMonsterPatrolMode(EGridMonsterPatrolMode NewMode)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
-	if (!LevelAsset || !Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn)
+	FGridMonsterSpawnInstance* Spawn = FindMonsterSpawnMutable(LevelAsset, LastSelectedObjectId);
+	if (!Spawn)
 	{
 		return false;
 	}
-	if (NewMode != EGridMonsterPatrolMode::None && Obj->PatrolWaypoints.Num() < 2)
+	if (NewMode != EGridMonsterPatrolMode::None && Spawn->PatrolWaypoints.Num() < 2)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[MON14.3.1] Patrol mode requires at least two waypoints. ObjectId=%s"), *Obj->ObjectId.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("[MON14.3.1] Patrol mode requires at least two waypoints. SpawnId=%s"), *Spawn->SpawnId.ToString());
 		return false;
 	}
-	if (Obj->PatrolMode == NewMode)
+	if (Spawn->PatrolMode == NewMode)
 	{
 		return true;
 	}
 
 	const FScopedTransaction Transaction(FText::FromString(TEXT("Set Monster Patrol Mode")));
 	LevelAsset->Modify();
-	Obj->PatrolMode = NewMode;
-	CommitPatrolEdit(LevelAsset, Obj->ObjectId);
+	Spawn->PatrolMode = NewMode;
 	LevelAsset->MarkPackageDirty();
 	RedrawGridEditorViewports();
 	return true;
@@ -138,16 +133,16 @@ bool AGridLevelEditorActor::SetSelectedMonsterPatrolMode(EGridMonsterPatrolMode 
 
 bool AGridLevelEditorActor::AddOrSelectPatrolWaypointAtHoveredCell()
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
-	if (!LevelAsset || !Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn || !LevelAsset->IsValidCoord(HoveredCellX, HoveredCellY))
+	FGridMonsterSpawnInstance* Spawn = FindMonsterSpawnMutable(LevelAsset, LastSelectedObjectId);
+	if (!Spawn || !LevelAsset->IsValidCoord(HoveredCellX, HoveredCellY))
 	{
 		return false;
 	}
 
 	const FIntPoint HoveredCell(HoveredCellX, HoveredCellY);
-	for (int32 Index = 0; Index < Obj->PatrolWaypoints.Num(); ++Index)
+	for (int32 Index = 0; Index < Spawn->PatrolWaypoints.Num(); ++Index)
 	{
-		if (Obj->PatrolWaypoints[Index].Cell == HoveredCell)
+		if (Spawn->PatrolWaypoints[Index].Cell == HoveredCell)
 		{
 			SelectedPatrolWaypointIndex = Index;
 			RedrawGridEditorViewports();
@@ -162,14 +157,13 @@ bool AGridLevelEditorActor::AddOrSelectPatrolWaypointAtHoveredCell()
 	NewWaypoint.Cell = HoveredCell;
 	NewWaypoint.Facing = EGridEdge::None;
 	NewWaypoint.WaitSeconds = 0.0f;
-	SelectedPatrolWaypointIndex = Obj->PatrolWaypoints.Add(NewWaypoint);
+	SelectedPatrolWaypointIndex = Spawn->PatrolWaypoints.Add(NewWaypoint);
 
-	if (Obj->PatrolWaypoints.Num() >= 2 && Obj->PatrolMode == EGridMonsterPatrolMode::None)
+	if (Spawn->PatrolWaypoints.Num() >= 2 && Spawn->PatrolMode == EGridMonsterPatrolMode::None)
 	{
-		Obj->PatrolMode = EGridMonsterPatrolMode::Loop;
+		Spawn->PatrolMode = EGridMonsterPatrolMode::Loop;
 	}
 
-	CommitPatrolEdit(LevelAsset, Obj->ObjectId);
 	LevelAsset->MarkPackageDirty();
 	RedrawGridEditorViewports();
 	return true;
@@ -177,8 +171,8 @@ bool AGridLevelEditorActor::AddOrSelectPatrolWaypointAtHoveredCell()
 
 bool AGridLevelEditorActor::SelectPatrolWaypointByIndex(int32 WaypointIndex)
 {
-	const FGridLevelObjectData* Obj = GetSelectedObjectData();
-	if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn || !Obj->PatrolWaypoints.IsValidIndex(WaypointIndex))
+	const FGridMonsterSpawnInstance* Spawn = FindMonsterSpawn(LevelAsset, LastSelectedObjectId);
+	if (!Spawn || !Spawn->PatrolWaypoints.IsValidIndex(WaypointIndex))
 	{
 		return false;
 	}
@@ -190,31 +184,25 @@ bool AGridLevelEditorActor::SelectPatrolWaypointByIndex(int32 WaypointIndex)
 
 bool AGridLevelEditorActor::RemoveSelectedPatrolWaypoint()
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
-	if (!LevelAsset || !Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn || !Obj->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex))
+	FGridMonsterSpawnInstance* Spawn = FindMonsterSpawnMutable(LevelAsset, LastSelectedObjectId);
+	if (!Spawn || !Spawn->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex))
 	{
 		return false;
 	}
 
 	const FScopedTransaction Transaction(FText::FromString(TEXT("Remove Monster Patrol Waypoint")));
 	LevelAsset->Modify();
-	Obj->PatrolWaypoints.RemoveAt(SelectedPatrolWaypointIndex);
+	Spawn->PatrolWaypoints.RemoveAt(SelectedPatrolWaypointIndex);
 
-	if (Obj->PatrolWaypoints.Num() < 2)
+	if (Spawn->PatrolWaypoints.Num() < 2)
 	{
-		Obj->PatrolMode = EGridMonsterPatrolMode::None;
+		Spawn->PatrolMode = EGridMonsterPatrolMode::None;
 	}
 
-	if (Obj->PatrolWaypoints.Num() == 0)
-	{
-		SelectedPatrolWaypointIndex = INDEX_NONE;
-	}
-	else
-	{
-		SelectedPatrolWaypointIndex = FMath::Clamp(SelectedPatrolWaypointIndex, 0, Obj->PatrolWaypoints.Num() - 1);
-	}
+	SelectedPatrolWaypointIndex = Spawn->PatrolWaypoints.Num() == 0
+		? INDEX_NONE
+		: FMath::Clamp(SelectedPatrolWaypointIndex, 0, Spawn->PatrolWaypoints.Num() - 1);
 
-	CommitPatrolEdit(LevelAsset, Obj->ObjectId);
 	LevelAsset->MarkPackageDirty();
 	RedrawGridEditorViewports();
 	return true;
@@ -222,12 +210,12 @@ bool AGridLevelEditorActor::RemoveSelectedPatrolWaypoint()
 
 bool AGridLevelEditorActor::ClearSelectedMonsterPatrolRoute()
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
-	if (!LevelAsset || !Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn)
+	FGridMonsterSpawnInstance* Spawn = FindMonsterSpawnMutable(LevelAsset, LastSelectedObjectId);
+	if (!Spawn)
 	{
 		return false;
 	}
-	if (Obj->PatrolWaypoints.Num() == 0 && Obj->PatrolMode == EGridMonsterPatrolMode::None)
+	if (Spawn->PatrolWaypoints.Num() == 0 && Spawn->PatrolMode == EGridMonsterPatrolMode::None)
 	{
 		SelectedPatrolWaypointIndex = INDEX_NONE;
 		return true;
@@ -235,10 +223,9 @@ bool AGridLevelEditorActor::ClearSelectedMonsterPatrolRoute()
 
 	const FScopedTransaction Transaction(FText::FromString(TEXT("Clear Monster Patrol Route")));
 	LevelAsset->Modify();
-	Obj->PatrolWaypoints.Reset();
-	Obj->PatrolMode = EGridMonsterPatrolMode::None;
+	Spawn->PatrolWaypoints.Reset();
+	Spawn->PatrolMode = EGridMonsterPatrolMode::None;
 	SelectedPatrolWaypointIndex = INDEX_NONE;
-	CommitPatrolEdit(LevelAsset, Obj->ObjectId);
 	LevelAsset->MarkPackageDirty();
 	RedrawGridEditorViewports();
 	return true;
@@ -246,13 +233,13 @@ bool AGridLevelEditorActor::ClearSelectedMonsterPatrolRoute()
 
 bool AGridLevelEditorActor::MoveSelectedPatrolWaypoint(int32 IndexDelta)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
-	if (!LevelAsset || !Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn || !Obj->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex) || IndexDelta == 0)
+	FGridMonsterSpawnInstance* Spawn = FindMonsterSpawnMutable(LevelAsset, LastSelectedObjectId);
+	if (!Spawn || !Spawn->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex) || IndexDelta == 0)
 	{
 		return false;
 	}
 
-	const int32 NewIndex = FMath::Clamp(SelectedPatrolWaypointIndex + IndexDelta, 0, Obj->PatrolWaypoints.Num() - 1);
+	const int32 NewIndex = FMath::Clamp(SelectedPatrolWaypointIndex + IndexDelta, 0, Spawn->PatrolWaypoints.Num() - 1);
 	if (NewIndex == SelectedPatrolWaypointIndex)
 	{
 		return false;
@@ -260,9 +247,8 @@ bool AGridLevelEditorActor::MoveSelectedPatrolWaypoint(int32 IndexDelta)
 
 	const FScopedTransaction Transaction(FText::FromString(TEXT("Reorder Monster Patrol Waypoint")));
 	LevelAsset->Modify();
-	Obj->PatrolWaypoints.Swap(SelectedPatrolWaypointIndex, NewIndex);
+	Spawn->PatrolWaypoints.Swap(SelectedPatrolWaypointIndex, NewIndex);
 	SelectedPatrolWaypointIndex = NewIndex;
-	CommitPatrolEdit(LevelAsset, Obj->ObjectId);
 	LevelAsset->MarkPackageDirty();
 	RedrawGridEditorViewports();
 	return true;
@@ -270,14 +256,13 @@ bool AGridLevelEditorActor::MoveSelectedPatrolWaypoint(int32 IndexDelta)
 
 bool AGridLevelEditorActor::SetSelectedPatrolWaypointFacing(EGridEdge NewFacing)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
-	if (!LevelAsset || !Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn || !Obj->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex) ||
-		!IsPatrolFacingValid(NewFacing))
+	FGridMonsterSpawnInstance* Spawn = FindMonsterSpawnMutable(LevelAsset, LastSelectedObjectId);
+	if (!Spawn || !Spawn->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex) || !IsPatrolFacingValid(NewFacing))
 	{
 		return false;
 	}
 
-	FGridMonsterPatrolWaypoint& Waypoint = Obj->PatrolWaypoints[SelectedPatrolWaypointIndex];
+	FGridMonsterPatrolWaypoint& Waypoint = Spawn->PatrolWaypoints[SelectedPatrolWaypointIndex];
 	if (Waypoint.Facing == NewFacing)
 	{
 		return true;
@@ -286,7 +271,6 @@ bool AGridLevelEditorActor::SetSelectedPatrolWaypointFacing(EGridEdge NewFacing)
 	const FScopedTransaction Transaction(FText::FromString(TEXT("Set Monster Patrol Waypoint Facing")));
 	LevelAsset->Modify();
 	Waypoint.Facing = NewFacing;
-	CommitPatrolEdit(LevelAsset, Obj->ObjectId);
 	LevelAsset->MarkPackageDirty();
 	RedrawGridEditorViewports();
 	return true;
@@ -294,14 +278,13 @@ bool AGridLevelEditorActor::SetSelectedPatrolWaypointFacing(EGridEdge NewFacing)
 
 bool AGridLevelEditorActor::SetSelectedPatrolWaypointWaitSeconds(float NewWaitSeconds)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
-	if (!LevelAsset || !Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn || !Obj->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex) ||
-		!FMath::IsFinite(NewWaitSeconds))
+	FGridMonsterSpawnInstance* Spawn = FindMonsterSpawnMutable(LevelAsset, LastSelectedObjectId);
+	if (!Spawn || !Spawn->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex) || !FMath::IsFinite(NewWaitSeconds))
 	{
 		return false;
 	}
 
-	FGridMonsterPatrolWaypoint& Waypoint = Obj->PatrolWaypoints[SelectedPatrolWaypointIndex];
+	FGridMonsterPatrolWaypoint& Waypoint = Spawn->PatrolWaypoints[SelectedPatrolWaypointIndex];
 	const float ClampedWait = FMath::Max(0.0f, NewWaitSeconds);
 	if (FMath::IsNearlyEqual(Waypoint.WaitSeconds, ClampedWait))
 	{
@@ -311,7 +294,6 @@ bool AGridLevelEditorActor::SetSelectedPatrolWaypointWaitSeconds(float NewWaitSe
 	const FScopedTransaction Transaction(FText::FromString(TEXT("Set Monster Patrol Waypoint Wait")));
 	LevelAsset->Modify();
 	Waypoint.WaitSeconds = ClampedWait;
-	CommitPatrolEdit(LevelAsset, Obj->ObjectId);
 	LevelAsset->MarkPackageDirty();
 	RedrawGridEditorViewports();
 	return true;
@@ -319,22 +301,20 @@ bool AGridLevelEditorActor::SetSelectedPatrolWaypointWaitSeconds(float NewWaitSe
 
 void AGridLevelEditorActor::CycleSelectedMonsterPatrolMode()
 {
-	const FGridLevelObjectData* Obj = GetSelectedObjectData();
-	if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn)
+	const FGridMonsterSpawnInstance* Spawn = FindMonsterSpawn(LevelAsset, LastSelectedObjectId);
+	if (Spawn)
 	{
-		return;
+		SetSelectedMonsterPatrolMode(GetNextPatrolMode(Spawn->PatrolMode));
 	}
-	SetSelectedMonsterPatrolMode(GetNextPatrolMode(Obj->PatrolMode));
 }
 
 void AGridLevelEditorActor::CycleSelectedPatrolWaypointFacing()
 {
-	const FGridLevelObjectData* Obj = GetSelectedObjectData();
-	if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn || !Obj->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex))
+	const FGridMonsterSpawnInstance* Spawn = FindMonsterSpawn(LevelAsset, LastSelectedObjectId);
+	if (Spawn && Spawn->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex))
 	{
-		return;
+		SetSelectedPatrolWaypointFacing(GetNextPatrolFacing(Spawn->PatrolWaypoints[SelectedPatrolWaypointIndex].Facing));
 	}
-	SetSelectedPatrolWaypointFacing(GetNextPatrolFacing(Obj->PatrolWaypoints[SelectedPatrolWaypointIndex].Facing));
 }
 
 void AGridLevelEditorActor::MoveSelectedPatrolWaypointEarlier()
@@ -349,22 +329,20 @@ void AGridLevelEditorActor::MoveSelectedPatrolWaypointLater()
 
 void AGridLevelEditorActor::IncreaseSelectedPatrolWaypointWait()
 {
-	const FGridLevelObjectData* Obj = GetSelectedObjectData();
-	if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn || !Obj->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex))
+	const FGridMonsterSpawnInstance* Spawn = FindMonsterSpawn(LevelAsset, LastSelectedObjectId);
+	if (Spawn && Spawn->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex))
 	{
-		return;
+		SetSelectedPatrolWaypointWaitSeconds(Spawn->PatrolWaypoints[SelectedPatrolWaypointIndex].WaitSeconds + 0.5f);
 	}
-	SetSelectedPatrolWaypointWaitSeconds(Obj->PatrolWaypoints[SelectedPatrolWaypointIndex].WaitSeconds + 0.5f);
 }
 
 void AGridLevelEditorActor::DecreaseSelectedPatrolWaypointWait()
 {
-	const FGridLevelObjectData* Obj = GetSelectedObjectData();
-	if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn || !Obj->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex))
+	const FGridMonsterSpawnInstance* Spawn = FindMonsterSpawn(LevelAsset, LastSelectedObjectId);
+	if (Spawn && Spawn->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex))
 	{
-		return;
+		SetSelectedPatrolWaypointWaitSeconds(Spawn->PatrolWaypoints[SelectedPatrolWaypointIndex].WaitSeconds - 0.5f);
 	}
-	SetSelectedPatrolWaypointWaitSeconds(Obj->PatrolWaypoints[SelectedPatrolWaypointIndex].WaitSeconds - 0.5f);
 }
 
 #endif

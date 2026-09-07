@@ -1,5 +1,6 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
 
+#include "Core/GridLevelAsset.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -39,8 +40,14 @@ void AGridMonsterActor::ApplySpawnPlacementConfiguration()
 	PatrolWaypoints.Reset();
 
 	AGridLevelRuntimeActor* RuntimeActor = FindSpawnRuntimeActor(this);
-	const FGridLevelObjectData* SpawnData =
-		IsValid(RuntimeActor) && RuntimeActor->LevelAsset && SpawnObjectId.IsValid() ? RuntimeActor->LevelAsset->FindMonsterSpawnById(SpawnObjectId) : nullptr;
+	const FGridMonsterSpawnInstance* SpawnData =
+		IsValid(RuntimeActor) && RuntimeActor->LevelAsset && SpawnObjectId.IsValid()
+			? RuntimeActor->LevelAsset->MonsterSpawns.FindByPredicate(
+				[SpawnObjectId = SpawnObjectId](const FGridMonsterSpawnInstance& Spawn)
+				{
+					return Spawn.SpawnId == SpawnObjectId;
+				})
+			: nullptr;
 	if (!SpawnData)
 	{
 		return;

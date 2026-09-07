@@ -1,6 +1,6 @@
 # WORLDOBJ-MIG09 — Purge des compatibilités legacy
 
-Statut : **MIG09-A à MIG09-E1 validés ; MIG09-E2A candidat ; MIG09-E2B/E2C à faire ; MIG10 après MIG09**.
+Statut : **MIG09-A à MIG09-E2B validés ; MIG09-E2C en cours ; MIG10 après clôture de MIG09**.
 
 Date de mise à jour : 2026-09-07.
 
@@ -12,7 +12,7 @@ Référence architecturale prioritaire :
 docs/Architecture/Maps/Grimrock_MindMap_Architecture_Cible_v2_XMind.md
 ```
 
-Règle de migration :
+Règle :
 
 ```text
 une donnée cible existe
@@ -21,7 +21,7 @@ une donnée cible existe
         -> un test empêche sa réapparition
 ```
 
-Le contrat cible reste :
+Contrat cible :
 
 ```text
 Definition
@@ -29,72 +29,24 @@ Definition
 + runtime/save delta
 ```
 
-## 2. État validé
+## 2. État des tranches
 
 | Tranche | État | Résultat |
 |---|---|---|
 | MIG09-A | ✅ | Autorité Definition sans marqueur sparse. |
 | MIG09-B* | ✅ | Identité Item legacy purgée. |
-| MIG09-C | ✅ | Initializers mécanismes et animation spécialisée purgés ; `MovingParts[].Motion` est l'autorité visuelle. |
+| MIG09-C | ✅ | `MovingParts[].Motion` est l'autorité visuelle des mécanismes. |
 | MIG09-D1 | ✅ | `SparseBehaviorOverrideObjectIds` supprimé. |
-| MIG09-D2 | ✅ | Les écritures principales du Grid Editor ne dépendent plus de `CommitCompatibilityObjectEdit()`. |
-| MIG09-D3 | ✅ | `RebuildPreview()` est read-only ; le Grid Editor n'effectue plus de write-back implicite du miroir. |
-| MIG09-E1 | ✅ | Les cinq collections typées sont l'unique autorité persistante ; `Objects` n'est plus qu'un cache transient. |
+| MIG09-D2 | ✅ | Les écritures principales du Grid Editor atteignent l'autorité typée. |
+| MIG09-D3 | ✅ | `RebuildPreview()` est read-only. |
+| MIG09-E1 | ✅ | Les cinq collections typées sont l'unique autorité persistante. |
+| MIG09-E2A | ✅ | Frontière runtime world-object explicite. |
+| MIG09-E2B | ✅ validé localement | Runtime spécialisé hors cache `Objects`. |
+| MIG09-E2C | 🟨 en cours | Editor/tests puis suppression physique du DTO et des projections. |
 
-Validation locale MIG09-E1 :
+## 3. Autorité persistante actuelle
 
-```text
-Build                  : OK
-Succeeded              : 32
-Succeeded with warnings: 1
-Failed                 : 0
-Not run                : 0
-Process exit code       : 0
-```
-
-Rapport :
-
-```text
-D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-163759
-```
-
-Le warning `Visual Studio 2022 compiler is not a preferred version` est un warning UBT distinct du résultat Automation.
-
-## 3. Audit d'entrée MIG09-E
-
-L'audit du `master` validé avant E1 a montré que `FGridLevelObjectData` n'est pas seulement le stockage historique de `UGridLevelAsset` : le type est encore utilisé comme DTO transitoire par de nombreux acteurs, composants, outils Editor et tests.
-
-Le code search GitHub retournait **154 fichiers source** contenant encore `FGridLevelObjectData` au début de MIG09-E, dont notamment :
-
-- 23 fichiers Public ;
-- 24 fichiers Runtime Private ;
-- 43 fichiers de tests runtime ;
-- le reste dans l'Editor et ses tests.
-
-Supprimer le type par alias ou macro masquerait le problème et violerait la règle « aucun legacy juste au cas où ».
-
-MIG09-E garde donc deux objectifs architecturaux :
-
-```text
-MIG09-E1  supprimer l'autorité persistante monolithique
-MIG09-E2  supprimer physiquement le DTO FGridLevelObjectData et ses projections
-```
-
-E2 est exécuté en macro-tranches cohérentes afin de conserver un `master` compilable entre les frontières runtime, Editor et tests ; aucune de ces macro-tranches ne change la cible finale.
-
-## 4. MIG09-E1 — Typed Authority Only
-
-État : **validé**.
-
-### 4.1. Autorité persistante
-
-Le marqueur suivant est supprimé physiquement :
-
-```text
-bTypedPlacementStorageAuthoritative
-```
-
-Il n'existe plus deux modes de stockage possibles. Les seules données persistantes de placement sont :
+Les seules données persistantes de placement sont :
 
 ```text
 WorldObjectInstances
@@ -104,60 +56,42 @@ ItemSpawns
 LogicObjects
 ```
 
-`UsesSparseBehaviorOverrides()` consulte directement `WorldObjectInstances`.
+`UGridLevelAsset::Objects` n'est plus sérialisé. Il reste uniquement comme cache de compatibilité transitoire jusqu'à la fin d'E2C.
 
-### 4.2. `Objects` n'est plus persistant
+## 4. Validation MIG09-E2B
 
-Pendant E1/E2 uniquement, le champ :
-
-```text
-UGridLevelAsset::Objects
-```
-
-reste présent pour les lecteurs E2 non encore migrés, mais il est :
+Validation locale UE5.5.4 du 2026-09-07 :
 
 ```text
-UPROPERTY(Transient)
+Grimrock.WorldObjects
+Succeeded              : 34
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
 ```
-
-Il n'est donc plus une donnée d'authoring sérialisée. `PostLoad()` le reconstruit depuis les collections typées, qui sont l'unique autorité persistante.
-
-### 4.3. Lifecycle du LevelAsset
-
-Les opérations courantes sont désormais toujours typées :
 
 ```text
-AddObject(snapshot transitoire)
-        -> collection typée
-        -> cache E1 reconstruit
-
-RemoveObjectById
-        -> collection typée
-
-EnsureObjectIds
-        -> collections typées
-
-ClearLevel
-        -> collections typées
+Grimrock.Monsters.MON13.3.LifecyclePersistence
+Failed                 : 0
+Process exit code       : 0
+Succeeded with warnings: 1
 ```
 
-Le snapshot `FGridLevelObjectData` reste provisoirement accepté par `AddObject()` uniquement parce que E2 doit migrer ses nombreux callers ; il ne redevient jamais persistent.
+Le warning UBT `Visual Studio 2022 compiler is not a preferred version` est indépendant du résultat Automation.
 
-### 4.4. Retrait de l'outillage MIG08 actif
+E2B a notamment sorti du cache `Objects` :
 
-MIG08 a déjà rempli son rôle et les assets courants ont été migrés/validés. E1 a supprimé l'outillage Editor actif devenu historique :
+- `AGridLevelRuntimeActor` ;
+- world items ;
+- lifecycle/persistence MonsterSpawn ;
+- Activation ;
+- DoorSystem ;
+- transitions/pits/locks/diagnostics runtime.
 
-```text
-GridWorldObjectMIG08MigrationService
-GridWorldObjectMIG08Commandlet
-GridEditorWorldObjectMIG08MigrationTests
-```
+## 5. MIG09-E2C — purge Editor/tests
 
-Les notes MIG08 restent de la documentation historique, pas une API active.
-
-## 5. MIG09-E2 — suppression physique du DTO legacy
-
-Objectif final E2 : supprimer en totalité :
+Objectif final : supprimer physiquement :
 
 ```text
 UGridLevelAsset::Objects
@@ -165,134 +99,86 @@ FGridLevelObjectData
 CommitCompatibilityObjectEdit()
 RefreshLegacyObjectMirrorFromTyped()
 GetObjectCompatibilityView()
+BuildCompatibilityObjectProjectionFromTyped()
 RebuildTypedPlacementProjectionFromLegacy()
 EnableTypedPlacementStorageFromLegacy()
 GridLevelPlacementCompatibility.h
 GridLevelPlacementConversion::To*
+wrappers runtime FGridLevelObjectData temporaires
 ```
 
-Les domaines doivent consommer leurs structures natives :
+### 5.1. Ordre E2C
 
 ```text
-FGridWorldObjectInstance
-FGridLooseItemInstance
-FGridMonsterSpawnInstance
-FGridItemSpawnInstance
-FGridLogicObjectInstance
+1. Editor de production sur placements typés
+2. Tests/fixtures sur structures natives
+3. Core helpers encore DTO -> structures natives
+4. suppression du cache Objects
+5. suppression de FGridLevelObjectData et des conversions
+6. tests anti-régression
 ```
 
-Un payload runtime est permis uniquement s'il représente explicitement la couche Runtime, n'est jamais sérialisé dans `UGridLevelAsset` et n'est pas un alias du DTO legacy.
+### 5.2. Tranche en cours — MonsterSpawn authoring natif
 
-### 5.1. MIG09-E2A — Runtime World Object Boundary
-
-État : **candidat**.
-
-E2A introduit :
+Le premier bloc E2C migre les chemins MonsterSpawn qui conservaient encore un round-trip via `FGridLevelObjectData` :
 
 ```text
-FGridRuntimeWorldObjectData
+GridMonsterSpawnConfiguration
+GridLevelEditorActorPatrolRoute
 ```
 
-Ce type est un `struct` C++ runtime-only, non réfléchi et non sérialisé. Il porte uniquement ce dont un acteur world-object a besoin pendant son initialisation : identité runtime, type, cellule/côté, identifiant de Definition, état initial, texte lisible local et comportement d'instance.
-
-Deux chemins de construction existent pendant la migration :
+La cible est directe :
 
 ```text
-FGridWorldObjectInstance      -> FGridRuntimeWorldObjectData   cible native
-FGridLevelObjectData          -> FGridRuntimeWorldObjectData   pont E2 temporaire
+UGridLevelAsset::MonsterSpawns
+        -> FGridMonsterSpawnInstance
 ```
 
-Le second constructeur disparaît avec `FGridLevelObjectData` en sortie E2.
-
-`AGridRuntimeObjectActor` possède désormais la frontière C++ native :
+Les opérations de patrouille modifient maintenant directement :
 
 ```text
-InitializeRuntimeWorldObjectBase(...)
-InitializeRuntimeWorldObject(...)
-ResolveEffectiveBehavior(FGridRuntimeWorldObjectData)
+PatrolMode
+PatrolWaypoints
 ```
 
-Les anciennes fonctions réfléchies `InitializeGridObject*()` restent temporairement des wrappers de compatibilité ; elles construisent le payload runtime puis délèguent au chemin natif.
-
-`AGridMechanismActor` suit le même principe pour la composition visuelle :
+sur le `FGridMonsterSpawnInstance` sélectionné, sans :
 
 ```text
-InitializeMechanismVisuals(FGridLevelObjectData)      wrapper temporaire
-InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData)   runtime natif
+LevelAsset->Objects
+FGridLevelObjectData snapshot
+AddObject(snapshot)
+CommitPatrolEdit()
 ```
 
-Acteurs migrés dans E2A :
+Le runtime `ApplySpawnPlacementConfiguration()` résout également son placement directement dans `MonsterSpawns`.
+
+### 5.3. Reste E2C
+
+Il reste à migrer :
+
+- sélection/inspection générique du Grid Editor ;
+- Overview/Links/EdMode/Lua/Validation encore basés sur le DTO ;
+- setters Item/WorldObject/Logic encore construisant des snapshots ;
+- fixtures de tests legacy ;
+- `ValidateMonsterSpawns()` et derniers helpers Core DTO ;
+- suppression finale du cache, du DTO, des conversions et wrappers.
+
+## 6. Definition of Done MIG09
 
 ```text
-AGridButtonActor
-AGridLeverActor
-AGridPressurePlateActor
-AGridDoorActor
-AGridTriggerActor
-AGridGenericObjectActor
-```
-
-Le resolver `GridObjectInstanceBehavior` accepte directement le payload runtime. Ses overloads `FGridLevelObjectData` restent uniquement pour les consommateurs Editor/tests non encore migrés.
-
-Test de garde ajouté :
-
-```text
-Grimrock.WorldObjects.MIG09.RuntimeWorldObjectPayload
-```
-
-Il vérifie la projection d'une `FGridWorldObjectInstance` vers le payload runtime ainsi que la règle :
-
-```text
-Behavior effectif = Definition + overrides strictement instance-owned
-```
-
-### 5.2. MIG09-E2B — Runtime spécialisé et structures natives
-
-À faire après validation E2A :
-
-- migrer `Receptacle`, `WallLock` et `PitTrapdoor` vers la frontière runtime native ;
-- faire consommer directement `WorldObjectInstances` par `AGridLevelRuntimeActor` ;
-- faire consommer directement `LooseItemInstances` aux items monde ;
-- faire consommer directement `MonsterSpawns` au runtime monstre/encounter/persistence ;
-- migrer Activation, DoorSystem, transitions/pits et diagnostics hors du DTO legacy ;
-- éliminer les lectures runtime directes de `LevelAsset->Objects`.
-
-### 5.3. MIG09-E2C — Editor, tests et suppression physique
-
-Dernière macro-tranche E2 :
-
-- Grid Editor sur placements typés sans snapshot monolithique ;
-- fixtures/tests convertis aux structures natives adaptées ;
-- suppression de `Objects` ;
-- suppression de `FGridLevelObjectData` ;
-- suppression de `GridLevelPlacementCompatibility.h` et de toutes les projections `To*` ;
-- suppression des wrappers runtime temporaires E2 ;
-- tests de réflexion garantissant l'absence définitive du legacy.
-
-## 6. Sortie MIG09
-
-MIG09 est terminé uniquement lorsque :
-
-```text
-[ ] aucun Objects sérialisé ou transitoire
+[ ] aucun Objects sérialisé ou transient
 [ ] aucun FGridLevelObjectData
-[ ] aucun marqueur d'autorité
 [ ] aucune projection legacy <-> typed
 [ ] runtime sur structures natives / payload runtime légitime
 [ ] Editor sur placements typés
 [ ] tests sans fixtures legacy actives
 [ ] Grimrock.WorldObjects : 0 Failed
+[ ] documentation réconciliée avec la mind map
 ```
 
-Ensuite seulement :
+MIG10 ne commence qu'après cette liste entièrement cochée.
 
-```text
-MIG10
-UGridObjectArchetypeAsset
-        -> UGridWorldObjectDefinitionAsset
-```
-
-## 7. Validation E2A
+## 7. Validation courante
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
@@ -300,13 +186,18 @@ UGridObjectArchetypeAsset
     -AutomationFilter "Grimrock.WorldObjects"
 ```
 
-Critères :
+Pour la tranche MonsterSpawn E2C, ajouter :
 
-```text
-[ ] Development Editor build OK
-[ ] 0 Failed
-[ ] Process exit code 0
-[ ] RuntimeWorldObjectPayload vert
-[ ] Button / Lever / PressurePlate / Door continuent leurs contrats MIG04/MIG06
-[ ] aucun changement de données persistantes de niveau
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Monsters.MON14.3.1"
+```
+
+et :
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Monsters.MON13.3.LifecyclePersistence"
 ```
