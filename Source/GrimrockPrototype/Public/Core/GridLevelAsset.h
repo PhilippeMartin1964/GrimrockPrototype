@@ -51,8 +51,7 @@ public:
 
 	/**
 	 * WORLDOBJ-MIG07 legacy bridge. Runtime/editor consumers still read this array
-	 * during MIG07-A/B. MIG08 migrates real assets to the typed collections below;
-	 * MIG09 removes this monolithic storage once every consumer has moved.
+	 * while MIG09-D/E migrate the remaining call sites. MIG09-E removes it.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Legacy")
 	TArray<FGridLevelObjectData> Objects;
@@ -78,10 +77,8 @@ public:
 	TArray<FGridLogicObjectInstance> LogicObjects;
 
 	/**
-	 * WORLDOBJ-MIG07-B authority marker. False means the historical Objects array
-	 * is still the persistent source. True means the five typed collections above
-	 * are authoritative and Objects is only a compatibility mirror for consumers
-	 * that have not yet been physically purged.
+	 * WORLDOBJ-MIG07-B authority marker. True means the five typed collections
+	 * above are authoritative and Objects is only a compatibility read mirror.
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
 	bool bTypedPlacementStorageAuthoritative = false;
@@ -93,53 +90,33 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Quests")
 	TArray<TObjectPtr<UGridQuestDefinitionAsset>> QuestDefinitions;
 
-	/**
-     * MON19.2.2 logical variables. VariableId is unique across Bool and Int32
-     * definitions; runtime values live in FGridLevelRuntimeState, never here.
-     */
+	/** MON19.2.2 logical variables. Runtime values live in FGridLevelRuntimeState. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Logic|Variables")
 	TArray<FGridLevelVariableDefinition> LevelVariables;
 
-	/**
-     * MON19.3.1 source-only Lua scripts for this level. One future active-level
-     * VM loads all enabled ScriptIds into isolated environments.
-     */
+	/** MON19.3.1 source-only Lua scripts for this level. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Logic|Lua")
 	TArray<FGridLuaScriptSource> LuaScripts;
 
 public:
 	void EnsureCellCount();
-
 	bool IsValidCoord(int32 X, int32 Y) const;
-
 	int32 GetIndex(int32 X, int32 Y) const;
-
 	const FGridLevelCellData& GetCell(int32 X, int32 Y) const;
-
 	FGridLevelCellData& GetCellMutable(int32 X, int32 Y);
-
 	void ClearLevel();
-
 	FGuid AddObject(const FGridLevelObjectData& NewObject);
-
 	bool RemoveObjectById(const FGuid& ObjectId);
-
 	void RemoveLinksForObject(const FGuid& ObjectId);
-
 	void EnsureObjectIds();
 
 	/**
-	 * WORLDOBJ-MIG07-C write-through bridge used by the existing Grid Editor.
-	 * The editor may still stage one object through FGridLevelObjectData, but once
-	 * typed storage is authoritative this method merges that edit back into the
-	 * correct typed collection without destroying typed-only fields.
+	 * Dormant MIG07-C compatibility implementation. MIG09-D2 removes every editor/
+	 * test caller; MIG09-D3 physically deletes this symbol with the compatibility view.
 	 */
 	bool CommitCompatibilityObjectEdit(const FGuid& ObjectId);
 
-	/**
-	 * WORLDOBJ-MIG09-D1: sparse storage is now a structural property of reusable
-	 * world-object placements, not a per-object migration marker.
-	 */
+	/** Sparse behavior is structural for reusable world-object placements. */
 	bool UsesSparseBehaviorOverrides(const FGuid& ObjectId) const
 	{
 		if (!ObjectId.IsValid())
@@ -164,27 +141,13 @@ public:
 			});
 	}
 
-	/**
-	 * Transitional no-op kept only while old Grid Editor call sites are migrated in
-	 * the next MIG09-D slice. Sparse behavior no longer has mutable marker state.
-	 */
-	void SetSparseBehaviorOverrides(const FGuid& ObjectId, bool bUsesSparseOverrides)
-	{
-		(void)ObjectId;
-		(void)bUsesSparseOverrides;
-	}
-
 	/** Number of placements already represented by the MIG07 typed schema. */
 	int32 GetTypedPlacementCount() const
 	{
 		return WorldObjectInstances.Num() + LooseItemInstances.Num() + MonsterSpawns.Num() + ItemSpawns.Num() + LogicObjects.Num();
 	}
 
-	/**
-	 * MIG07 migration helper used by tests and, later, MIG08 asset conversion.
-	 * It projects the current legacy monolith into the target typed collections.
-	 * Runtime authority does not switch until EnableTypedPlacementStorageFromLegacy().
-	 */
+	/** Builds typed placement storage from a pre-MIG08 legacy asset. */
 	void RebuildTypedPlacementProjectionFromLegacy()
 	{
 		WorldObjectInstances.Reset();
@@ -219,10 +182,7 @@ public:
 		}
 	}
 
-	/**
-	 * Explicit MIG07-B cut-over helper. MIG08 will invoke the equivalent operation
-	 * while converting real assets; it is deliberately never implicit for legacy assets.
-	 */
+	/** Explicit legacy-to-typed cut-over helper used by migration/tests. */
 	void EnableTypedPlacementStorageFromLegacy()
 	{
 		RebuildTypedPlacementProjectionFromLegacy();
@@ -230,10 +190,7 @@ public:
 		RefreshLegacyObjectMirrorFromTyped();
 	}
 
-	/**
-	 * Rebuilds the historical monolithic array from the typed source of truth.
-	 * This is a compatibility view, not a second authoring authority.
-	 */
+	/** Rebuilds the historical read mirror from the typed source of truth. */
 	void RefreshLegacyObjectMirrorFromTyped()
 	{
 		if (!bTypedPlacementStorageAuthoritative)
@@ -242,7 +199,6 @@ public:
 		}
 
 		Objects.Reset(GetTypedPlacementCount());
-
 		for (const FGridWorldObjectInstance& Instance : WorldObjectInstances)
 		{
 			Objects.Add(GridLevelPlacementCompatibility::ToLegacyWorldObject(Instance));
@@ -265,10 +221,7 @@ public:
 		}
 	}
 
-	/**
-	 * Transitional view for runtime/editor code still typed against FGridLevelObjectData.
-	 * In typed mode, the view is rebuilt from the typed collections before exposure.
-	 */
+	/** Transitional read-only compatibility view. */
 	const TArray<FGridLevelObjectData>& GetObjectCompatibilityView() const
 	{
 		if (bTypedPlacementStorageAuthoritative)
@@ -278,10 +231,7 @@ public:
 		return Objects;
 	}
 
-	/**
-     * Validates the persistent MON13.1 MonsterSpawn contract only.
-     * Runtime actor creation and occupancy registration belong to later MON13 milestones.
-     */
+	/** Validates the persistent MON13.1 MonsterSpawn contract only. */
 	UFUNCTION(BlueprintCallable, Category = "Gameplay|Monsters|Validation")
 	bool ValidateMonsterSpawns(UPARAM(ref) TArray<FString>& OutErrors) const;
 

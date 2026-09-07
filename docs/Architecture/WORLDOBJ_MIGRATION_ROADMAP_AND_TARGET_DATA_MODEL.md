@@ -4,13 +4,9 @@ Statut : document directeur de migration — mise à jour 2026-09-07.
 
 > Référence architecturale prioritaire : `docs/Architecture/Maps/Grimrock_MindMap_Architecture_Cible_v2_XMind.md`.
 >
-> Ce document décrit la trajectoire d’implémentation. La mind map décrit la cible. En cas de contradiction avec une ancienne note historique, la cible et les décisions de migration les plus récentes prévalent.
+> La mind map décrit la cible ; ce document décrit la trajectoire. En cas de contradiction avec une note historique, la cible et les décisions de migration les plus récentes prévalent.
 
-## 1. Objectif général
-
-WORLDOBJ remplace progressivement un modèle d’archétype trop large et redondant par une architecture simple, orientée données et fondée sur une séparation stricte entre définition, instance de niveau et état runtime.
-
-Invariants :
+## 1. Invariants
 
 ```text
 une définition = un concept permanent
@@ -25,10 +21,10 @@ En particulier :
 - un objet du monde possède une seule définition permanente ;
 - un monstre possède une seule `UGridMonsterDefinitionAsset` ;
 - le niveau référence les définitions, il ne les duplique pas ;
-- la preview et le runtime consomment les mêmes données ;
-- les Data Assets ne servent jamais à stocker un état runtime ;
-- la grille et les placements du `UGridLevelAsset` restent la source de vérité spatiale ;
-- le SaveGame ne copie pas les meshes, sons ou paramètres permanents des définitions.
+- preview et runtime consomment les mêmes données ;
+- les Data Assets ne portent pas d’état runtime mutable ;
+- `UGridLevelAsset` reste la source de vérité spatiale ;
+- le SaveGame ne copie pas meshes, sons ou paramètres permanents.
 
 Schéma cible :
 
@@ -41,9 +37,9 @@ GLOBAL DEFINITIONS
 ├── ReadableContent
 └── QuestDefinition
           │
-          ▼ références
+          ▼
 UGridLevelAsset
-├── structure de grille
+├── grille
 ├── WorldObjectInstances
 ├── LooseItemInstances
 ├── MonsterSpawns
@@ -61,20 +57,26 @@ Runtime State / SaveGame
 
 ## 2. État actuel
 
-Révision validée de clôture MIG09-C :
+Dernière révision validée avant MIG09-D2 :
 
 ```text
-2c54f6bfe7a243bb76f8ddc7940be964cc43f240
-WORLDOBJ-MIG09 remove legacy mechanism animation schema
+ef2968dbb6bd2e665ee992f88c1816fb42b0f3c1
+WORLDOBJ-MIG09 remove sparse behavior migration marker
 ```
 
-Validation locale UE5.5.4 :
+Validation locale UE5.5.4 de MIG09-D1 :
 
 ```text
-Succeeded              : 34
+Succeeded              : 35
 Succeeded with warnings: 1
 Failed                 : 0
-Process exit code      : 0
+Process exit code       : 0
+```
+
+Rapport :
+
+```text
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-134249
 ```
 
 État des jalons :
@@ -82,22 +84,22 @@ Process exit code      : 0
 | Jalon | Statut | Résultat |
 |---|---|---|
 | MIG00 | ✅ validé | Caractérisation du contrat historique. |
-| MIG01 | ✅ validé | Placement `Floor / Wall / Ceiling` + coordonnées locales `U/V/N`. |
+| MIG01 | ✅ validé | Placement `Floor / Wall / Ceiling` + `U/V/N`. |
 | MIG02 | ✅ validé | Spatial/boundary simplifié. |
-| MIG03 | ✅ intégré | Composition visuelle générique `StaticPart` + `MovingParts`. |
-| MIG04 | ✅ intégré | Moteur générique de motion pour les mécanismes. |
-| MIG05 | ✅ intégré | Collectible direct : autorité `UGridItemDefinitionAsset`. |
-| MIG06 | ✅ intégré | Résolution Definition + overrides strictement instance-owned. |
-| MIG07 | ✅ intégré | Fondation des collections de placements typées. |
-| MIG08 | ✅ intégré | Service de migration/réenregistrement et collections typées utilisées par le contenu migré. |
-| MIG09 | 🟨 en cours | A à C validés ; D1 candidat ; D2/D3/E restent à fermer. |
-| MIG10 | ⬜ à faire | Renommage final `UGridObjectArchetypeAsset` → `UGridWorldObjectDefinitionAsset` et clôture. |
+| MIG03 | ✅ intégré | `StaticPart` + `MovingParts`. |
+| MIG04 | ✅ intégré | Motion générique des mécanismes. |
+| MIG05 | ✅ intégré | Collectible direct : `UGridItemDefinitionAsset`. |
+| MIG06 | ✅ intégré | Definition + overrides strictement instance-owned. |
+| MIG07 | ✅ intégré | Collections de placements typées. |
+| MIG08 | ✅ intégré | Migration/réenregistrement des assets et autorité typée. |
+| MIG09-A/B/C/D1 | ✅ validés | Purges legacy successives jusqu’au marqueur sparse. |
+| MIG09-D2 | 🟨 candidat | Détacher les écritures Grid Editor du compatibility commit. |
+| MIG09-D3/E | ⬜ à faire | Supprimer compatibility view puis modèle monolithique. |
+| MIG10 | ⬜ à faire | Renommage final `UGridObjectArchetypeAsset` → `UGridWorldObjectDefinitionAsset`. |
 
-MIG10 ne doit pas commencer avant la suppression complète des ponts MIG09-D/E.
+MIG10 ne commence pas avant la suppression complète de MIG09-D/E.
 
 ## 3. Modèle spatial cible
-
-Une définition indique sa surface :
 
 ```text
 PlacementSurface
@@ -106,10 +108,8 @@ PlacementSurface
 └── Ceiling
 ```
 
-La position locale utilise :
-
 ```text
-U = première tangente de surface
+U = première tangente
 V = seconde tangente ; verticale sur Wall
 N = normale à la surface
 ```
@@ -122,56 +122,25 @@ Wall    : N = profondeur / inset
 Ceiling : N = distance sous le plafond
 ```
 
-Une frontière reste une notion topologique distincte du placement de surface.
+La frontière topologique reste distincte de la surface de placement.
 
-## 4. Composition visuelle et motion
-
-Le contrat visuel est générique :
+## 4. Composition visuelle
 
 ```text
-Visual
+WorldObject Definition
 ├── StaticPart optional
-│   ├── Mesh
-│   └── LocalTransform
 └── MovingParts
     ├── Part0 optional
-    │   ├── Mesh
-    │   ├── LocalTransform
     │   └── Motion
     └── Part1 optional
-        ├── Mesh
-        ├── LocalTransform
         └── Motion
 ```
 
-`Motion` contient :
+`Motion` : Type, Axis, Pivot, Amount, Duration.
 
-```text
-Type     = Rotation | Translation
-Axis     = X | Y | Z
-Pivot    = X/Y/Z
-Amount   = degrés ou centimètres, signé
-Duration = secondes
-```
+Après MIG09-C, ce bloc est l’unique autorité géométrique et temporelle des mécanismes. Les règles gameplay telles que `ButtonHoldTime`, poids de plaque ou chaîne de porte restent séparées.
 
-Après MIG09-C, ce bloc est l’unique autorité de géométrie et de durée pour les mécanismes.
-
-Les champs spécialisés historiques suivants ne font plus partie du modèle cible :
-
-```text
-DoorAnimation.OpenHeight
-DoorAnimation.MoveDuration
-LeverAnimation.LeverOffPitch / LeverOnPitch / ToggleDuration
-ButtonAnimation.ButtonPressDistance / ButtonPressDuration / ButtonReleaseDuration
-PressurePlateAnimation.ReleasedHeightAboveFloor / PressedHeightAboveFloor / MoveDuration
-PitAnimation.LeftHingeLocation / RightHingeLocation / OpenAngleDegrees / MoveDuration
-```
-
-Les règles gameplay distinctes restent séparées, par exemple `ButtonHoldTime`, les règles de poids d’une plaque ou le mécanisme de chaîne d’une porte.
-
-## 5. Définition vs instance
-
-Formule runtime :
+## 5. Definition / Instance / Runtime
 
 ```text
 Effective runtime object
@@ -180,64 +149,24 @@ Effective runtime object
     + Saved Runtime Delta
 ```
 
-### Définition
+### Definition
 
-Possède notamment :
+Possède identité, placement autorisé, spatial permanent, visual/motion, interaction générique, audio/VFX, lumière, classe runtime et comportement partagé.
 
-- identité permanente ;
-- placement autorisé ;
-- comportement spatial permanent ;
-- meshes et `MovingParts[].Motion` ;
-- interaction générique ;
-- audio/VFX ;
-- lumière ;
-- classe runtime ;
-- comportement par défaut partagé.
+### Instance
 
-### Instance de niveau
+Possède uniquement ce qui varie avec le placement : `InstanceId`, référence Definition, cellule/côté, état initial, Tag/Notes, destination, contenu initial et overrides explicitement nécessaires.
 
-Possède seulement ce qui est propre à ce placement :
+### Runtime / Save
 
-- `InstanceId` stable ;
-- référence à la définition ;
-- cellule / côté de mur ;
-- état initial ;
-- Tag / Notes ;
-- destination de téléporteur/transition ;
-- contenu initial local ;
-- overrides explicitement nécessaires.
+Possède les états mutables et deltas de persistance, pas les données permanentes de Definition.
 
-Une instance ne recopie pas une géométrie d’animation qui appartient à la définition.
+## 6. Placements typés du niveau
 
-## 6. Items
-
-Règle absolue :
+La cible est :
 
 ```text
-CopperKey
-└── UGridItemDefinitionAsset
-```
-
-La même définition est utilisée lorsque l’item est :
-
-- au sol ;
-- dans une alcôve ;
-- dans l’inventaire ;
-- équipé ;
-- tenu ;
-- lancé ;
-- créé par un spawn.
-
-Il n’existe pas de seconde définition WorldObject uniquement parce que l’item est visible dans le monde.
-
-L’identité runtime/persistante canonique est `ItemDefinitionId` / `ItemDefinitionAsset`, pas un ancien `ArchetypeId` d’item.
-
-## 7. Placements typés du niveau
-
-La cible de `UGridLevelAsset` est :
-
-```text
-Placements
+UGridLevelAsset
 ├── WorldObjectInstances
 ├── LooseItemInstances
 ├── MonsterSpawns
@@ -245,75 +174,63 @@ Placements
 └── LogicObjects
 ```
 
-`LooseItemInstance` et `ItemSpawn` sont deux concepts distincts : le premier est un item présent, le second est un générateur.
+`LooseItemInstance` représente un item déjà présent ; `ItemSpawn` représente un générateur.
 
-MIG07/MIG08 ont introduit et migré cette direction. MIG09-D/E suppriment maintenant les projections de compatibilité restantes.
-
-## 8. MIG09 — purge finale avant renommage
+## 7. MIG09 — purge finale
 
 ### Validé
 
 ```text
 MIG09-A       autorité Definition sans marqueur sparse              ✅
-MIG09-B1      suppression AGridItemActor::ArchetypeId               ✅
-MIG09-B2A     suppression miroirs ItemArchetypeId réceptacles       ✅
-MIG09-B2B1    retrait ArchetypeId du SaveGame item                  ✅
-MIG09-B2B2    migration consommateurs SaveGame                      ✅
-MIG09-B2B3    suppression proxy/cache ItemArchetypeId               ✅
-MIG09-B2C-A   audit Blueprint anciennes API Item                    ✅
-MIG09-B2C-B   suppression InitializeItem/GetItemArchetypeId         ✅
-MIG09-C       purge mécanismes + animation spécialisée              ✅
+MIG09-B*      identité Item legacy                                  ✅
+MIG09-C       mécanismes + animation spécialisée                    ✅
+MIG09-D1      SparseBehaviorOverrideObjectIds                       ✅
 ```
 
-### MIG09-D1 — marqueur sparse historique
+### MIG09-D2 — écritures Grid Editor
 
-Candidat actuel :
+Candidat courant.
 
-- `SparseBehaviorOverrideObjectIds` est supprimé physiquement ;
-- le runtime n’en dépendait déjà plus depuis MIG09-A ;
-- `UsesSparseBehaviorOverrides()` déduit la sémantique depuis le type de placement, sans état de migration sérialisé ;
-- `SetSparseBehaviorOverrides()` est temporairement un no-op jusqu’à la migration des derniers call sites éditeur ;
-- `Grimrock.WorldObjects.MIG09.SparseMarkerPurge` protège l’absence du marqueur.
+Objectifs :
 
-### MIG09-D2 — write-through/mirror de compatibilité
+- supprimer physiquement `SetSparseBehaviorOverrides()` ;
+- ne plus appeler `CommitCompatibilityObjectEdit()` depuis production/tests ;
+- faire écrire les setters Grid Editor directement vers l’autorité typée via `AddObject(snapshot)` ;
+- préserver les champs typed-only lors d’un update ;
+- conserver seulement un fallback de staging étroit dans `RebuildPreview()` pour les derniers chemins pré-D3 ;
+- migrer le test `MIG07.TypedLifecycle` hors de l’ancien write-through.
 
-À éliminer après validation de D1 :
+`CommitCompatibilityObjectEdit()` reste temporairement déclaré/implémenté mais doit être sans call site actif. Sa suppression physique appartient à D3 avec la compatibility view.
+
+### MIG09-D3 — compatibility view
+
+Après validation D2 :
 
 ```text
-SetSparseBehaviorOverrides()
-CommitCompatibilityObjectEdit()
-RefreshLegacyObjectMirrorFromTyped()
-GetObjectCompatibilityView()
+supprimer fallback RebuildPreview
+supprimer CommitCompatibilityObjectEdit
+supprimer RefreshLegacyObjectMirrorFromTyped
+supprimer GetObjectCompatibilityView
+migrer les derniers lecteurs vers les types natifs
+supprimer GridLevelPlacementCompatibility quand inutilisé
 ```
 
-Le Grid Editor devra écrire directement dans les collections typées, sans repasser par le miroir `Objects`.
-
-### MIG09-D3 — conversion de compatibilité
-
-À supprimer ensuite :
-
-```text
-GridLevelPlacementCompatibility
-```
-
-Les consommateurs restants doivent recevoir les types de placement natifs.
-
-### MIG09-E — suppression du gros modèle historique
+### MIG09-E — modèle monolithique historique
 
 Dernière purge :
 
 ```text
 UGridLevelAsset::Objects
 FGridLevelObjectData
-compatibility projection
 bTypedPlacementStorageAuthoritative
+projection legacy -> typed
 ```
 
-Critère de sortie : le Grid Editor, le runtime et les tests consomment uniquement les placements typés.
+Critère de sortie : Editor, runtime et tests consomment exclusivement les placements typés.
 
-## 9. MIG10 — renommage et clôture
+## 8. MIG10 — renommage final
 
-Une fois MIG09-E validé :
+Après MIG09-E :
 
 ```text
 UGridObjectArchetypeAsset
@@ -321,47 +238,42 @@ UGridObjectArchetypeAsset
 UGridWorldObjectDefinitionAsset
 ```
 
-Le vocabulaire associé doit suivre :
+Vocabulaire associé :
 
 ```text
 ArchetypeId              -> DefinitionId / WorldObjectDefinitionId
 ObjectArchetypes         -> WorldObjectDefinitions
 FindObjectArchetypeById  -> FindWorldObjectDefinition...
-Archetype Default        -> Definition Default
 ```
 
-Le renommage est volontairement le dernier jalon afin de ne pas combiner migration de schéma, compatibilité de contenu et renommage d’une classe sérialisée.
+Ce renommage reste volontairement dernier pour ne pas mélanger schéma sérialisé et renommage de classe.
 
-## 10. Ownership cible
+## 9. Ownership cible
 
 | Couche | Possède | Ne possède pas |
 |---|---|---|
-| Definition Data Asset | Identité et propriétés permanentes. | Position de niveau, état runtime mutable. |
-| `UGridLevelAsset` | Layout, placements, logique, état initial, références. | Copie complète des définitions, acteurs runtime. |
-| Runtime Actor/Component | Exécution, animation, interaction, collisions, état courant. | Source d’authoring permanente. |
-| SaveGame/RuntimeState | Deltas mutables. | Meshes, sons, stats permanentes, définition complète. |
+| Definition Data Asset | Identité/propriétés permanentes. | Position de niveau, état mutable. |
+| `UGridLevelAsset` | Layout, placements, logique, état initial, références. | Copie complète des définitions. |
+| Runtime Actor/Component | Exécution, animation, collision, état courant. | Authoring permanent. |
+| SaveGame/RuntimeState | Deltas mutables. | Meshes, sons, définition complète. |
 
-## 11. Definition of Done finale
-
-Avant clôture de MIG10 :
+## 10. Definition of Done finale
 
 ```text
 [ ] aucun pont MIG01/MIG02/MIG03/MIG05/MIG06 requis
-[ ] aucun Behavior visuel spécialisé dupliquant Motion
+[ ] aucun Behavior visuel dupliquant Motion
 [ ] items = une définition unique
 [ ] objets du monde = une définition unique
 [ ] monstres = une définition unique
 [ ] placements LevelAsset typés uniquement
 [ ] preview et runtime consomment les mêmes définitions
-[ ] SaveGame stocke uniquement des deltas mutables
-[ ] tests automatisés protègent les invariants
+[ ] SaveGame = deltas mutables uniquement
+[ ] tests protègent les invariants
 [ ] niveaux réels jouables après migration
 [ ] documentation réconciliée avec la mind map
 ```
 
-## 12. Validation
-
-Commande standard pour la tranche courante :
+## 11. Validation courante
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
@@ -369,11 +281,11 @@ Commande standard pour la tranche courante :
     -AutomationFilter "Grimrock.WorldObjects"
 ```
 
-## 13. Documents associés
+## 12. Documents associés
 
-- `docs/Architecture/Maps/Grimrock_MindMap_Architecture_Cible_v2_XMind.md` — architecture cible globale.
-- `docs/Architecture/WORLDOBJ_MIG09_LEGACY_PURGE.md` — état détaillé de la purge MIG09.
-- `docs/Architecture/WORLDOBJ_MIG04_GENERIC_MOTION.md` — historique de l’introduction du moteur générique de motion.
-- `docs/Design/12_GRID_OBJECT_INSTANCE_BEHAVIOR_RULE.md` — règle Definition/Instance actuelle.
+- `docs/Architecture/Maps/Grimrock_MindMap_Architecture_Cible_v2_XMind.md`
+- `docs/Architecture/WORLDOBJ_MIG09_LEGACY_PURGE.md`
+- `docs/Architecture/WORLDOBJ_MIG04_GENERIC_MOTION.md`
+- `docs/Design/12_GRID_OBJECT_INSTANCE_BEHAVIOR_RULE.md`
 
-Les anciennes notes d’audit et de paramètres restent utiles comme historique, mais ne doivent pas être utilisées pour réintroduire un champ supprimé par la migration.
+Les anciennes notes restent historiques ; elles ne doivent pas servir à réintroduire un champ ou une autorité supprimés par la migration.

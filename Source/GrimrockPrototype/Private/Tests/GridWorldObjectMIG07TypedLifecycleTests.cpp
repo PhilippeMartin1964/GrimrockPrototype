@@ -49,8 +49,8 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	// Add data that cannot be represented by FGridLevelObjectData. A compatibility
-	// edit must preserve these typed-only values.
+	// Add data that cannot be represented by FGridLevelObjectData. Direct typed
+	// snapshot updates must preserve these typed-only values.
 	FGridWorldObjectInstance& TypedDoor = Level->WorldObjectInstances[0];
 	TypedDoor.bHasLocalTransformOverride = true;
 	TypedDoor.LocalTransformOverride = FTransform(FRotator(11.0f, 5.0f, 7.0f), FVector(1.0f, 2.0f, 3.0f), FVector(1.2f, 1.0f, 0.8f));
@@ -60,57 +60,59 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 	TypedItem.LocalOffset = FVector(12.0f, -8.0f, 4.0f);
 	Level->RefreshLegacyObjectMirrorFromTyped();
 
-	FGridLevelObjectData* DoorMirror = Level->Objects.FindByPredicate(
+	const FGridLevelObjectData* DoorMirror = Level->Objects.FindByPredicate(
 		[&Door](const FGridLevelObjectData& Object)
 		{
 			return Object.ObjectId == Door.ObjectId;
 		});
-	FGridLevelObjectData* ItemMirror = Level->Objects.FindByPredicate(
+	const FGridLevelObjectData* ItemMirror = Level->Objects.FindByPredicate(
 		[&Item](const FGridLevelObjectData& Object)
 		{
 			return Object.ObjectId == Item.ObjectId;
 		});
-	TestNotNull(TEXT("Door compatibility mirror exists"), DoorMirror);
-	TestNotNull(TEXT("Item compatibility mirror exists"), ItemMirror);
+	TestNotNull(TEXT("Door compatibility read view exists"), DoorMirror);
+	TestNotNull(TEXT("Item compatibility read view exists"), ItemMirror);
 	if (!DoorMirror || !ItemMirror)
 	{
 		return false;
 	}
 
-	DoorMirror->Tag = TEXT("DoorAfter");
-	DoorMirror->CellX = 8;
-	DoorMirror->LocalYaw = 55.0f;
-	DoorMirror->Behavior.Transition.TargetLevelId = TEXT("Target_B");
-	TestTrue(TEXT("Door compatibility edit commits into typed authority"), Level->CommitCompatibilityObjectEdit(Door.ObjectId));
+	FGridLevelObjectData DoorEdit = *DoorMirror;
+	DoorEdit.Tag = TEXT("DoorAfter");
+	DoorEdit.CellX = 8;
+	DoorEdit.LocalYaw = 55.0f;
+	DoorEdit.Behavior.Transition.TargetLevelId = TEXT("Target_B");
+	TestEqual(TEXT("Door snapshot writes directly into typed authority"), Level->AddObject(DoorEdit), Door.ObjectId);
 
 	ItemMirror = Level->Objects.FindByPredicate(
 		[&Item](const FGridLevelObjectData& Object)
 		{
 			return Object.ObjectId == Item.ObjectId;
 		});
-	TestNotNull(TEXT("Item mirror remains valid because commit does not rebuild the array"), ItemMirror);
+	TestNotNull(TEXT("Item read view is rebuilt after direct typed update"), ItemMirror);
 	if (!ItemMirror)
 	{
 		return false;
 	}
-	ItemMirror->Tag = TEXT("ItemAfter");
-	ItemMirror->CellY = 9;
-	TestTrue(TEXT("Item compatibility edit commits into typed authority"), Level->CommitCompatibilityObjectEdit(Item.ObjectId));
+	FGridLevelObjectData ItemEdit = *ItemMirror;
+	ItemEdit.Tag = TEXT("ItemAfter");
+	ItemEdit.CellY = 9;
+	TestEqual(TEXT("Item snapshot writes directly into typed authority"), Level->AddObject(ItemEdit), Item.ObjectId);
 
-	TestEqual(TEXT("Door typed Tag follows editor mirror"), Level->WorldObjectInstances[0].Tag, FName(TEXT("DoorAfter")));
-	TestEqual(TEXT("Door typed CellX follows editor mirror"), Level->WorldObjectInstances[0].CellX, 8);
+	TestEqual(TEXT("Door typed Tag follows direct editor snapshot"), Level->WorldObjectInstances[0].Tag, FName(TEXT("DoorAfter")));
+	TestEqual(TEXT("Door typed CellX follows direct editor snapshot"), Level->WorldObjectInstances[0].CellX, 8);
 	TestEqual(TEXT("Door transition remains instance-owned"), Level->WorldObjectInstances[0].InstanceConfig.Transition.TargetLevelId, FName(TEXT("Target_B")));
 	const FTransform& PreservedTransform = Level->WorldObjectInstances[0].LocalTransformOverride;
-	TestTrue(TEXT("Door typed local location survives compatibility edit"), PreservedTransform.GetLocation().Equals(FVector(1.0f, 2.0f, 3.0f)));
-	TestTrue(TEXT("Door typed local scale survives compatibility edit"), PreservedTransform.GetScale3D().Equals(FVector(1.2f, 1.0f, 0.8f)));
-	TestTrue(TEXT("Door typed pitch survives compatibility edit"), FMath::IsNearlyEqual(PreservedTransform.Rotator().Pitch, 11.0f, 0.1f));
-	TestTrue(TEXT("Door typed roll survives compatibility edit"), FMath::IsNearlyEqual(PreservedTransform.Rotator().Roll, 7.0f, 0.1f));
-	TestTrue(TEXT("Door typed yaw follows compatibility edit"), FMath::IsNearlyEqual(PreservedTransform.Rotator().Yaw, 55.0f, 0.1f));
+	TestTrue(TEXT("Door typed local location survives direct snapshot edit"), PreservedTransform.GetLocation().Equals(FVector(1.0f, 2.0f, 3.0f)));
+	TestTrue(TEXT("Door typed local scale survives direct snapshot edit"), PreservedTransform.GetScale3D().Equals(FVector(1.2f, 1.0f, 0.8f)));
+	TestTrue(TEXT("Door typed pitch survives direct snapshot edit"), FMath::IsNearlyEqual(PreservedTransform.Rotator().Pitch, 11.0f, 0.1f));
+	TestTrue(TEXT("Door typed roll survives direct snapshot edit"), FMath::IsNearlyEqual(PreservedTransform.Rotator().Roll, 7.0f, 0.1f));
+	TestTrue(TEXT("Door typed yaw follows direct snapshot edit"), FMath::IsNearlyEqual(PreservedTransform.Rotator().Yaw, 55.0f, 0.1f));
 
-	TestEqual(TEXT("Loose item Tag follows editor mirror"), Level->LooseItemInstances[0].Tag, FName(TEXT("ItemAfter")));
-	TestEqual(TEXT("Loose item CellY follows editor mirror"), Level->LooseItemInstances[0].CellY, 9);
-	TestEqual(TEXT("Loose item typed-only quantity survives compatibility edit"), Level->LooseItemInstances[0].Quantity, 6);
-	TestTrue(TEXT("Loose item typed-only offset survives compatibility edit"), Level->LooseItemInstances[0].LocalOffset.Equals(FVector(12.0f, -8.0f, 4.0f)));
+	TestEqual(TEXT("Loose item Tag follows direct editor snapshot"), Level->LooseItemInstances[0].Tag, FName(TEXT("ItemAfter")));
+	TestEqual(TEXT("Loose item CellY follows direct editor snapshot"), Level->LooseItemInstances[0].CellY, 9);
+	TestEqual(TEXT("Loose item typed-only quantity survives direct snapshot edit"), Level->LooseItemInstances[0].Quantity, 6);
+	TestTrue(TEXT("Loose item typed-only offset survives direct snapshot edit"), Level->LooseItemInstances[0].LocalOffset.Equals(FVector(12.0f, -8.0f, 4.0f)));
 
 	FGridLevelObjectData AddedItem;
 	AddedItem.Type = EGridLevelObjectType::Item;

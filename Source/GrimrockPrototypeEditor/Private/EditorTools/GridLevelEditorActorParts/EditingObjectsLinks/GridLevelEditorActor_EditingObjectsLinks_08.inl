@@ -1,94 +1,106 @@
 bool AGridLevelEditorActor::SetSelectedObjectMonsterDefinitionId(FName NewMonsterDefinitionId)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn)
 	{
 		return false;
 	}
 
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.MonsterDefinitionId = NewMonsterDefinitionId;
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
-
-	Obj->MonsterDefinitionId = NewMonsterDefinitionId;
-
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
 #endif
-
 	RebuildPreview();
 	return true;
 }
 
 bool AGridLevelEditorActor::SyncSelectedMonsterDefinitionIdFromAsset()
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn || !Obj->MonsterDefinitionAsset)
 	{
 		return false;
 	}
 
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.MonsterDefinitionId = Obj->MonsterDefinitionAsset->MonsterId;
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
-
-	Obj->MonsterDefinitionId = Obj->MonsterDefinitionAsset->MonsterId;
-
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
 #endif
-
 	RebuildPreview();
 	return true;
 }
 
 bool AGridLevelEditorActor::SetSelectedObjectEncounterGroupId(FName NewEncounterGroupId)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn)
 	{
 		return false;
 	}
 
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.EncounterGroupId = NewEncounterGroupId;
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
-
-	Obj->EncounterGroupId = NewEncounterGroupId;
-
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
 #endif
-
 	RebuildPreview();
 	return true;
 }
 
 bool AGridLevelEditorActor::SetSelectedObjectEncounterWaveIndex(int32 NewEncounterWaveIndex)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn)
 	{
 		return false;
 	}
 
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.EncounterWaveIndex = FMath::Max(0, NewEncounterWaveIndex);
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
-
-	Obj->EncounterWaveIndex = FMath::Max(0, NewEncounterWaveIndex);
-
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
 #endif
-
 	RebuildPreview();
 	return true;
 }
 
 bool AGridLevelEditorActor::SetSelectedObjectInitialMonsterState(EGridMonsterState NewInitialMonsterState)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!LevelAsset || !Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn ||
 		(NewInitialMonsterState != EGridMonsterState::Idle && NewInitialMonsterState != EGridMonsterState::Dormant))
 	{
@@ -99,35 +111,44 @@ bool AGridLevelEditorActor::SetSelectedObjectInitialMonsterState(EGridMonsterSta
 		return true;
 	}
 
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.InitialMonsterState = NewInitialMonsterState;
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
-
-	Obj->InitialMonsterState = NewInitialMonsterState;
-
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
 #endif
-
 	RebuildPreview();
 	return true;
 }
 
 bool AGridLevelEditorActor::SetSelectedObjectReadableContentAsset(UGridReadableContentAsset* NewReadableContentAsset)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj || Obj->Type != EGridLevelObjectType::Item)
 	{
 		return false;
 	}
 
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.ReadableContentAsset = NewReadableContentAsset;
+	if (NewReadableContentAsset && EditedObject.ReadableContentId.IsNone())
+	{
+		EditedObject.ReadableContentId = NewReadableContentAsset->ReadableContentId;
+	}
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
-	Obj->ReadableContentAsset = NewReadableContentAsset;
-	if (NewReadableContentAsset && Obj->ReadableContentId.IsNone())
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
 	{
-		Obj->ReadableContentId = NewReadableContentAsset->ReadableContentId;
+		return false;
 	}
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
@@ -138,15 +159,20 @@ bool AGridLevelEditorActor::SetSelectedObjectReadableContentAsset(UGridReadableC
 
 bool AGridLevelEditorActor::SetSelectedObjectReadableContentId(FName NewReadableContentId)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj || Obj->Type != EGridLevelObjectType::Item)
 	{
 		return false;
 	}
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.ReadableContentId = NewReadableContentId;
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
-	Obj->ReadableContentId = NewReadableContentId;
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
 #endif
@@ -156,15 +182,20 @@ bool AGridLevelEditorActor::SetSelectedObjectReadableContentId(FName NewReadable
 
 bool AGridLevelEditorActor::SetSelectedObjectReadTitleOverride(const FText& NewReadTitleOverride)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj || Obj->Type != EGridLevelObjectType::Item)
 	{
 		return false;
 	}
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.ReadTitleOverride = NewReadTitleOverride;
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
-	Obj->ReadTitleOverride = NewReadTitleOverride;
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
 #endif
@@ -174,15 +205,20 @@ bool AGridLevelEditorActor::SetSelectedObjectReadTitleOverride(const FText& NewR
 
 bool AGridLevelEditorActor::SetSelectedObjectReadTextOverride(const FText& NewReadTextOverride)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj || Obj->Type != EGridLevelObjectType::Item)
 	{
 		return false;
 	}
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.ReadTextOverride = NewReadTextOverride;
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
-	Obj->ReadTextOverride = NewReadTextOverride;
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
 #endif
@@ -192,51 +228,57 @@ bool AGridLevelEditorActor::SetSelectedObjectReadTextOverride(const FText& NewRe
 
 bool AGridLevelEditorActor::SetSelectedObjectTag(FName NewTag)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj)
 	{
 		return false;
 	}
 
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.Tag = NewTag;
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
-
-	Obj->Tag = NewTag;
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 	ObjectTag = NewTag;
-
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
 #endif
-
 	RebuildPreview();
 	return true;
 }
 
 bool AGridLevelEditorActor::SetSelectedObjectNotes(const FString& NewNotes)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj)
 	{
 		return false;
 	}
 
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.Notes = NewNotes;
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
-
-	Obj->Notes = NewNotes;
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 	ObjectNotes = NewNotes;
-
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
 #endif
-
 	RebuildPreview();
 	return true;
 }
 
 bool AGridLevelEditorActor::SetSelectedObjectReadableText(const FText& NewReadableText)
 {
-	FGridLevelObjectData* SelectedObject = FindSelectedObjectMutable();
+	const FGridLevelObjectData* SelectedObject = FindObjectById(LastSelectedObjectId);
 	if (!SelectedObject || !LevelAsset)

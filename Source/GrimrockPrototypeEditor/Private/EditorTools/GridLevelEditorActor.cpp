@@ -1,5 +1,34 @@
 #include "EditorTools/GridLevelEditorActor.h"
 
+namespace
+{
+	bool ApplyGridEditorObjectSnapshotToAuthority(UGridLevelAsset* LevelAsset, const FGridLevelObjectData& EditedObject)
+	{
+		if (!LevelAsset || !EditedObject.ObjectId.IsValid())
+		{
+			return false;
+		}
+
+		if (LevelAsset->bTypedPlacementStorageAuthoritative)
+		{
+			return LevelAsset->AddObject(EditedObject) == EditedObject.ObjectId;
+		}
+
+		FGridLevelObjectData* LegacyObject = LevelAsset->Objects.FindByPredicate(
+			[&EditedObject](const FGridLevelObjectData& Object)
+			{
+				return Object.ObjectId == EditedObject.ObjectId;
+			});
+		if (!LegacyObject)
+		{
+			return false;
+		}
+
+		*LegacyObject = EditedObject;
+		return true;
+	}
+}
+
 // MON19.2.1R — Décomposition structurelle de AGridLevelEditorActor.
 //
 // Cette unité de traduction reste volontairement unique afin de préserver

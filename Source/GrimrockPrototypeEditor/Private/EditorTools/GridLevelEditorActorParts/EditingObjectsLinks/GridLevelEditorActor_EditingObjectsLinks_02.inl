@@ -52,8 +52,7 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 	NewObject.PaletteEntryId = SelectedPaletteEntryId;
 
 	// WORLDOBJ-MIG06: new placements no longer clone the complete definition Behavior.
-	// The editor staging object can remain fully resolved, while the level stores only
-	// instance-owned values plus the temporary MIG06-A direct-consumer bridges.
+	// The level stores only the instance-owned subset used by the typed placement conversion.
 	NewObject.Behavior = GridObjectInstanceBehavior::BuildSparseOverrides(ObjectBehavior);
 	if (NewObject.Type == EGridLevelObjectType::MonsterSpawn && ObjectPalette)
 	{
@@ -106,7 +105,6 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		}
 	}
 	const FGuid NewId = LevelAsset->AddObject(NewObject);
-	LevelAsset->SetSparseBehaviorOverrides(NewId, true);
 	LastSelectedObjectId = NewId;
 	RebuildPreview();
 }

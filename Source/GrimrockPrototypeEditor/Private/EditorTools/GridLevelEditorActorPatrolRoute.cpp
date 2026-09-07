@@ -56,9 +56,20 @@ namespace
 
 	void CommitPatrolEdit(UGridLevelAsset* LevelAsset, const FGuid& ObjectId)
 	{
-		if (LevelAsset && LevelAsset->bTypedPlacementStorageAuthoritative)
+		if (!LevelAsset || !LevelAsset->bTypedPlacementStorageAuthoritative || !ObjectId.IsValid())
 		{
-			LevelAsset->CommitCompatibilityObjectEdit(ObjectId);
+			return;
+		}
+
+		const FGridLevelObjectData* StagedObject = LevelAsset->Objects.FindByPredicate(
+			[&ObjectId](const FGridLevelObjectData& Object)
+			{
+				return Object.ObjectId == ObjectId;
+			});
+		if (StagedObject)
+		{
+			const FGridLevelObjectData Snapshot = *StagedObject;
+			LevelAsset->AddObject(Snapshot);
 		}
 	}
 }

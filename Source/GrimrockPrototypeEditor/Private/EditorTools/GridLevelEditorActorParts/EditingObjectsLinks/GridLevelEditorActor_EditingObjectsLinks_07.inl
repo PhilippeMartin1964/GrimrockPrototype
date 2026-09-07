@@ -39,32 +39,31 @@ bool AGridLevelEditorActor::ApplyBehaviorToSelectedObject(const FGridObjectBehav
 		return false;
 	}
 
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
+	if (!Obj)
+	{
+		return false;
+	}
+
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.Behavior = GridObjectInstanceBehavior::BuildSparseOverrides(NewBehavior);
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
 
-	for (FGridLevelObjectData& Obj : LevelAsset->Objects)
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
 	{
-		if (Obj.ObjectId != LastSelectedObjectId)
-		{
-			continue;
-		}
-
-		// WORLDOBJ-MIG06: editing an old full-snapshot instance migrates that one
-		// object to the sparse contract. The editor staging state remains fully resolved.
-		Obj.Behavior = GridObjectInstanceBehavior::BuildSparseOverrides(NewBehavior);
-		LevelAsset->SetSparseBehaviorOverrides(Obj.ObjectId, true);
-		ObjectBehavior = NewBehavior;
+		return false;
+	}
+	ObjectBehavior = NewBehavior;
 
 #if WITH_EDITOR
-		LevelAsset->MarkPackageDirty();
+	LevelAsset->MarkPackageDirty();
 #endif
 
-		RebuildPreview();
-		return true;
-	}
-
-	return false;
+	RebuildPreview();
+	return true;
 }
 
 bool AGridLevelEditorActor::ResetSelectedObjectBehaviorFromArchetype()
@@ -74,7 +73,7 @@ bool AGridLevelEditorActor::ResetSelectedObjectBehaviorFromArchetype()
 		return false;
 	}
 
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj)
 	{
 		return false;
@@ -86,13 +85,18 @@ bool AGridLevelEditorActor::ResetSelectedObjectBehaviorFromArchetype()
 		return false;
 	}
 
+	FGridLevelObjectData EditedObject = *Obj;
+	// Reset means "use the definition again", not "clone the definition again".
+	EditedObject.Behavior = GridObjectInstanceBehavior::BuildSparseOverrides(Archetype->DefaultBehavior);
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
 
-	// Reset means "use the definition again", not "clone the definition again".
-	Obj->Behavior = GridObjectInstanceBehavior::BuildSparseOverrides(Archetype->DefaultBehavior);
-	LevelAsset->SetSparseBehaviorOverrides(Obj->ObjectId, true);
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 	ObjectBehavior = Archetype->DefaultBehavior;
 
 #if WITH_EDITOR
@@ -105,17 +109,23 @@ bool AGridLevelEditorActor::ResetSelectedObjectBehaviorFromArchetype()
 
 bool AGridLevelEditorActor::SetSelectedObjectArchetypeId(FName NewArchetypeId)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj)
 	{
 		return false;
 	}
 
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.ArchetypeId = NewArchetypeId;
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
 
-	Obj->ArchetypeId = NewArchetypeId;
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 	ObjectArchetypeId = NewArchetypeId;
 	SelectedArchetypeId = NewArchetypeId;
 
@@ -129,18 +139,24 @@ bool AGridLevelEditorActor::SetSelectedObjectArchetypeId(FName NewArchetypeId)
 
 bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionAsset(UGridItemDefinitionAsset* NewItemDefinitionAsset)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj || Obj->Type != EGridLevelObjectType::Item)
 	{
 		return false;
 	}
 
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.ItemDefinitionAsset = NewItemDefinitionAsset;
+	EditedObject.ItemDefinitionId = NAME_None;
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
 
-	Obj->ItemDefinitionAsset = NewItemDefinitionAsset;
-	Obj->ItemDefinitionId = NAME_None;
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
@@ -152,17 +168,23 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionAsset(UGridItemDefini
 
 bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefinitionId)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj || Obj->Type != EGridLevelObjectType::Item)
 	{
 		return false;
 	}
 
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.ItemDefinitionId = NewItemDefinitionId;
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
 
-	Obj->ItemDefinitionId = NewItemDefinitionId;
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
@@ -174,7 +196,7 @@ bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefin
 
 bool AGridLevelEditorActor::SyncSelectedItemDefinitionIdFromAsset()
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj || Obj->Type != EGridLevelObjectType::Item)
 	{
 		return false;
@@ -194,14 +216,20 @@ bool AGridLevelEditorActor::SyncSelectedItemDefinitionIdFromAsset()
 		return false;
 	}
 
+	FGridLevelObjectData EditedObject = *Obj;
+	// TD07 current-schema repair: promote the direct asset reference and clear
+	// the redundant authoring id instead of recreating Asset+Id dual authority.
+	EditedObject.ItemDefinitionAsset = DefinitionAsset;
+	EditedObject.ItemDefinitionId = NAME_None;
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
 
-	// TD07 current-schema repair: promote the direct asset reference and clear
-	// the redundant authoring id instead of recreating Asset+Id dual authority.
-	Obj->ItemDefinitionAsset = DefinitionAsset;
-	Obj->ItemDefinitionId = NAME_None;
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
 
 #if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
@@ -213,20 +241,26 @@ bool AGridLevelEditorActor::SyncSelectedItemDefinitionIdFromAsset()
 
 bool AGridLevelEditorActor::SetSelectedObjectMonsterDefinitionAsset(UGridMonsterDefinitionAsset* NewMonsterDefinitionAsset)
 {
-	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
+	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
 	if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn)
 	{
 		return false;
+	}
+
+	FGridLevelObjectData EditedObject = *Obj;
+	EditedObject.MonsterDefinitionAsset = NewMonsterDefinitionAsset;
+	if (NewMonsterDefinitionAsset)
+	{
+		EditedObject.MonsterDefinitionId = NewMonsterDefinitionAsset->MonsterId;
 	}
 
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
 
-	Obj->MonsterDefinitionAsset = NewMonsterDefinitionAsset;
-	if (NewMonsterDefinitionAsset)
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
 	{
-		Obj->MonsterDefinitionId = NewMonsterDefinitionAsset->MonsterId;
+		return false;
 	}
 
 #if WITH_EDITOR

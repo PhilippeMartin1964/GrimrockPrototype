@@ -35,12 +35,24 @@ void AGridLevelEditorActor::EnsureLevelReady()
 
 void AGridLevelEditorActor::RebuildPreview()
 {
-	// WORLDOBJ-MIG07-C: existing editor widgets still mutate the compatibility
-	// FGridLevelObjectData mirror. Commit the selected mirror object into the typed
-	// authority before any preview consumer is allowed to rebuild from the level.
-	if (LevelAsset && LevelAsset->bTypedPlacementStorageAuthoritative && LastSelectedObjectId.IsValid())
+	// WORLDOBJ-MIG09-D2: the old UGridLevelAsset::CommitCompatibilityObjectEdit()
+	// write-through is no longer used by the Grid Editor. Most editor setters write
+	// through AddObject() before reaching this point. Keep one narrow staging fallback
+	// for the remaining pre-D3 editor paths, then rebuild the read-only mirror.
+	if (LevelAsset && LevelAsset->bTypedPlacementStorageAuthoritative)
 	{
-		LevelAsset->CommitCompatibilityObjectEdit(LastSelectedObjectId);
+		if (LastSelectedObjectId.IsValid())
+		{
+			if (const FGridLevelObjectData* StagedObject = LevelAsset->Objects.FindByPredicate(
+					[this](const FGridLevelObjectData& Object)
+					{
+						return Object.ObjectId == LastSelectedObjectId;
+					}))
+			{
+				const FGridLevelObjectData StagedSnapshot = *StagedObject;
+				LevelAsset->AddObject(StagedSnapshot);
+			}
+		}
 		LevelAsset->RefreshLegacyObjectMirrorFromTyped();
 	}
 
