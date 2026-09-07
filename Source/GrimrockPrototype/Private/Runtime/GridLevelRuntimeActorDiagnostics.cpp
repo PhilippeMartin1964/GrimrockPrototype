@@ -122,6 +122,7 @@ namespace
 				{
 					++HiddenFloorCells;
 				}
+			}
 		}
 
 		return HiddenFloorCells;
