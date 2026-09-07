@@ -331,11 +331,18 @@ public:
 	/** Applies MON7 metadata to a monster initialized from a LevelAsset placement. */
 	void ApplyMonsterPlacementMetadata(AGridMonsterActor* Monster) const;
 
-	/** Resolves the strict MON13.2 runtime contract without creating an Actor. */
+	/** Typed MON13.2 runtime contract. */
+	bool ResolveMonsterSpawn(const FGridMonsterSpawnInstance& SpawnData, UGridMonsterDefinitionAsset*& OutDefinition,
+		TSubclassOf<AGridMonsterActor>& OutActorClass, FString& OutError) const;
+
+	/** Temporary legacy overload retained until LevelRuntimeActor/preview finish E2B. */
 	bool ResolveMonsterSpawn(const FGridLevelObjectData& ObjectData, UGridMonsterDefinitionAsset*& OutDefinition, TSubclassOf<AGridMonsterActor>& OutActorClass,
 		FString& OutError) const;
 
-	/** Builds the authoritative cell-centered transform from InitialFacing. */
+	/** Typed authoritative cell-centered transform. */
+	bool GetMonsterSpawnTransform(const FGridMonsterSpawnInstance& SpawnData, FTransform& OutTransform) const;
+
+	/** Temporary legacy overload retained until LevelRuntimeActor/preview finish E2B. */
 	bool GetMonsterSpawnTransform(const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
 
 	AGridMonsterActor* FindSpawnedMonsterActor(const FGuid& SpawnId) const;
@@ -527,9 +534,17 @@ private:
 
 	void RegisterRuntimeObjectActor(const FGuid& ObjectId, AGridRuntimeObjectActor* Actor);
 	void ClearRuntimeObjectActors();
+
+	/** E2B typed monster runtime core. */
+	AGridMonsterActor* AddMonsterSpawnActor(const FGridMonsterSpawnInstance& SpawnData, const FGridRuntimeMonsterState* RestoreState = nullptr);
+	bool DespawnMonsterSpawnActor(const FGridMonsterSpawnInstance& SpawnData, bool bRememberState, bool bEmitEvent);
+	bool StoreMonsterPlacementState(const FGridMonsterSpawnInstance& SpawnData, AGridMonsterActor* Monster, bool bIsSpawned);
+
+	/** Temporary legacy wrappers retained until LevelRuntimeActor orchestration is typed. */
 	AGridMonsterActor* AddMonsterSpawnActor(const FGridLevelObjectData& ObjectData, const FGridRuntimeMonsterState* RestoreState = nullptr);
 	bool DespawnMonsterSpawnActor(const FGridLevelObjectData& ObjectData, bool bRememberState, bool bEmitEvent);
 	bool StoreMonsterPlacementState(const FGridLevelObjectData& ObjectData, AGridMonsterActor* Monster, bool bIsSpawned);
+
 	void ClearSpawnedMonsterActors();
 	void AbortActiveCombatAndMonsterActions();
 	void ApplyInitialMonsterStateForCurrentLevel();
