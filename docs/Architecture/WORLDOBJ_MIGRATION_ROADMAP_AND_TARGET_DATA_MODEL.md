@@ -61,11 +61,20 @@ Runtime State / SaveGame
 
 ## 2. État actuel
 
-Révision de travail avant la clôture MIG09-C :
+Révision validée de clôture MIG09-C :
 
 ```text
-91aac59ed0b6a4ba959bfd82e5f2cee3e17a1718
-WORLDOBJ-MIG09 remove legacy animation writes from generic motion tests
+2c54f6bfe7a243bb76f8ddc7940be964cc43f240
+WORLDOBJ-MIG09 remove legacy mechanism animation schema
+```
+
+Validation locale UE5.5.4 :
+
+```text
+Succeeded              : 34
+Succeeded with warnings: 1
+Failed                 : 0
+Process exit code      : 0
 ```
 
 État des jalons :
@@ -81,7 +90,7 @@ WORLDOBJ-MIG09 remove legacy animation writes from generic motion tests
 | MIG06 | ✅ intégré | Résolution Definition + overrides strictement instance-owned. |
 | MIG07 | ✅ intégré | Fondation des collections de placements typées. |
 | MIG08 | ✅ intégré | Service de migration/réenregistrement et collections typées utilisées par le contenu migré. |
-| MIG09 | 🟨 en cours | A à B2C-B validés ; C candidat ; D/E restent à fermer. |
+| MIG09 | 🟨 en cours | A à C validés ; D1 candidat ; D2/D3/E restent à fermer. |
 | MIG10 | ⬜ à faire | Renommage final `UGridObjectArchetypeAsset` → `UGridWorldObjectDefinitionAsset` et clôture. |
 
 MIG10 ne doit pas commencer avant la suppression complète des ponts MIG09-D/E.
@@ -238,11 +247,11 @@ Placements
 
 `LooseItemInstance` et `ItemSpawn` sont deux concepts distincts : le premier est un item présent, le second est un générateur.
 
-MIG07/MIG08 ont introduit et migré cette direction. MIG09-D/E doivent maintenant supprimer les projections de compatibilité restantes.
+MIG07/MIG08 ont introduit et migré cette direction. MIG09-D/E suppriment maintenant les projections de compatibilité restantes.
 
 ## 8. MIG09 — purge finale avant renommage
 
-### Déjà validé
+### Validé
 
 ```text
 MIG09-A       autorité Definition sans marqueur sparse              ✅
@@ -253,33 +262,41 @@ MIG09-B2B2    migration consommateurs SaveGame                      ✅
 MIG09-B2B3    suppression proxy/cache ItemArchetypeId               ✅
 MIG09-B2C-A   audit Blueprint anciennes API Item                    ✅
 MIG09-B2C-B   suppression InitializeItem/GetItemArchetypeId         ✅
+MIG09-C       purge mécanismes + animation spécialisée              ✅
 ```
 
-### MIG09-C — mécanismes et animation spécialisée
+### MIG09-D1 — marqueur sparse historique
 
 Candidat actuel :
 
-- aucun ancien initializer spécialisé de Button/Lever/Door n’est une API runtime de production ;
-- les champs d’animation spécialisés sont physiquement supprimés ;
-- `AGridDoorActor::OpenHeight` disparaît ;
-- les fixtures automatisées authorent directement la motion générique ;
-- l’Inspector n’édite plus la géométrie d’animation au niveau de l’instance.
+- `SparseBehaviorOverrideObjectIds` est supprimé physiquement ;
+- le runtime n’en dépendait déjà plus depuis MIG09-A ;
+- `UsesSparseBehaviorOverrides()` déduit la sémantique depuis le type de placement, sans état de migration sérialisé ;
+- `SetSparseBehaviorOverrides()` est temporairement un no-op jusqu’à la migration des derniers call sites éditeur ;
+- `Grimrock.WorldObjects.MIG09.SparseMarkerPurge` protège l’absence du marqueur.
 
-Validation locale UE5.5.4 requise avant de marquer C validé.
+### MIG09-D2 — write-through/mirror de compatibilité
 
-### MIG09-D — derniers consommateurs de compatibilité
-
-À éliminer après validation de C :
+À éliminer après validation de D1 :
 
 ```text
-SparseBehaviorOverrideObjectIds
+SetSparseBehaviorOverrides()
 CommitCompatibilityObjectEdit()
 RefreshLegacyObjectMirrorFromTyped()
 GetObjectCompatibilityView()
+```
+
+Le Grid Editor devra écrire directement dans les collections typées, sans repasser par le miroir `Objects`.
+
+### MIG09-D3 — conversion de compatibilité
+
+À supprimer ensuite :
+
+```text
 GridLevelPlacementCompatibility
 ```
 
-MIG09-D doit migrer les consommateurs réels vers les collections typées, sans introduire un nouveau proxy.
+Les consommateurs restants doivent recevoir les types de placement natifs.
 
 ### MIG09-E — suppression du gros modèle historique
 
@@ -289,6 +306,7 @@ Dernière purge :
 UGridLevelAsset::Objects
 FGridLevelObjectData
 compatibility projection
+bTypedPlacementStorageAuthoritative
 ```
 
 Critère de sortie : le Grid Editor, le runtime et les tests consomment uniquement les placements typés.
@@ -350,8 +368,6 @@ Commande standard pour la tranche courante :
     -EngineRoot D:\UE_5.5 `
     -AutomationFilter "Grimrock.WorldObjects"
 ```
-
-Les sous-systèmes directement touchés par MIG09-C doivent également rester compatibles avec leurs filtres spécialisés Door/Pit/Monster lors d’une validation élargie.
 
 ## 13. Documents associés
 

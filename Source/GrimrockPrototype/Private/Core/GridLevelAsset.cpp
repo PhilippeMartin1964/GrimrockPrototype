@@ -86,7 +86,6 @@ namespace
 			{
 				return Instance.InstanceId == ObjectId;
 			});
-		Level.SparseBehaviorOverrideObjectIds.Remove(ObjectId);
 		return RemovedCount > 0;
 	}
 
@@ -154,7 +153,6 @@ namespace
 					Instance.LocalTransformOverride = PreservedTransform;
 				}
 				Level.WorldObjectInstances.Add(MoveTemp(Instance));
-				Level.SparseBehaviorOverrideObjectIds.Add(Source.ObjectId);
 				break;
 			}
 
@@ -287,7 +285,6 @@ void UGridLevelAsset::ClearLevel()
 	MonsterSpawns.Reset();
 	ItemSpawns.Reset();
 	LogicObjects.Reset();
-	SparseBehaviorOverrideObjectIds.Reset();
 	Links.Reset();
 
 #if WITH_EDITOR

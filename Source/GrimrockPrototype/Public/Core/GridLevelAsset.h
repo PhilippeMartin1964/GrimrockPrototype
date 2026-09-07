@@ -86,16 +86,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
 	bool bTypedPlacementStorageAuthoritative = false;
 
-	/**
-	 * WORLDOBJ-MIG06 migration marker.
-	 *
-	 * Object ids in this set store only sparse instance-owned values in
-	 * FGridLevelObjectData::Behavior. An id absent from the set uses the historical
-	 * pre-MIG06 full Behavior snapshot until the real assets are migrated in MIG08.
-	 */
-	UPROPERTY()
-	TSet<FGuid> SparseBehaviorOverrideObjectIds;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
 	TArray<FGridObjectLink> Links;
 
@@ -146,12 +136,17 @@ public:
 	 */
 	bool CommitCompatibilityObjectEdit(const FGuid& ObjectId);
 
+	/**
+	 * WORLDOBJ-MIG09-D1: sparse storage is now a structural property of reusable
+	 * world-object placements, not a per-object migration marker.
+	 */
 	bool UsesSparseBehaviorOverrides(const FGuid& ObjectId) const
 	{
 		if (!ObjectId.IsValid())
 		{
 			return false;
 		}
+
 		if (bTypedPlacementStorageAuthoritative)
 		{
 			return WorldObjectInstances.ContainsByPredicate(
@@ -160,42 +155,23 @@ public:
 					return Instance.InstanceId == ObjectId;
 				});
 		}
-		return SparseBehaviorOverrideObjectIds.Contains(ObjectId);
+
+		return Objects.ContainsByPredicate(
+			[&ObjectId](const FGridLevelObjectData& Object)
+			{
+				return Object.ObjectId == ObjectId &&
+					GridLevelPlacementConversion::GetBucket(Object.Type) == EGridLevelPlacementBucket::WorldObject;
+			});
 	}
 
+	/**
+	 * Transitional no-op kept only while old Grid Editor call sites are migrated in
+	 * the next MIG09-D slice. Sparse behavior no longer has mutable marker state.
+	 */
 	void SetSparseBehaviorOverrides(const FGuid& ObjectId, bool bUsesSparseOverrides)
 	{
-		if (!ObjectId.IsValid())
-		{
-			return;
-		}
-
-		if (bTypedPlacementStorageAuthoritative)
-		{
-			const bool bIsTypedWorldObject = WorldObjectInstances.ContainsByPredicate(
-				[&ObjectId](const FGridWorldObjectInstance& Instance)
-				{
-					return Instance.InstanceId == ObjectId;
-				});
-			if (bUsesSparseOverrides && bIsTypedWorldObject)
-			{
-				SparseBehaviorOverrideObjectIds.Add(ObjectId);
-			}
-			else
-			{
-				SparseBehaviorOverrideObjectIds.Remove(ObjectId);
-			}
-			return;
-		}
-
-		if (bUsesSparseOverrides)
-		{
-			SparseBehaviorOverrideObjectIds.Add(ObjectId);
-		}
-		else
-		{
-			SparseBehaviorOverrideObjectIds.Remove(ObjectId);
-		}
+		(void)ObjectId;
+		(void)bUsesSparseOverrides;
 	}
 
 	/** Number of placements already represented by the MIG07 typed schema. */
@@ -266,15 +242,10 @@ public:
 		}
 
 		Objects.Reset(GetTypedPlacementCount());
-		SparseBehaviorOverrideObjectIds.Reset();
 
 		for (const FGridWorldObjectInstance& Instance : WorldObjectInstances)
 		{
 			Objects.Add(GridLevelPlacementCompatibility::ToLegacyWorldObject(Instance));
-			if (Instance.InstanceId.IsValid())
-			{
-				SparseBehaviorOverrideObjectIds.Add(Instance.InstanceId);
-			}
 		}
 		for (const FGridLooseItemInstance& Instance : LooseItemInstances)
 		{

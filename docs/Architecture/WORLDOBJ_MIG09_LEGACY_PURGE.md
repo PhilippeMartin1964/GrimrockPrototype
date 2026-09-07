@@ -1,6 +1,6 @@
 # WORLDOBJ-MIG09 — Purge des compatibilités legacy
 
-Statut : **MIG09-A à MIG09-B2C-B validés ; MIG09-C consolidé candidat — validation locale UE5.5.4 requise ; MIG09-D/E à faire**.
+Statut : **MIG09-A à MIG09-C validés ; MIG09-D1 candidat — validation locale UE5.5.4 requise ; MIG09-D2/D3 et MIG09-E à faire**.
 
 Date de mise à jour : 2026-09-07.
 
@@ -17,7 +17,7 @@ une donnée cible existe
         -> un test empêche sa réapparition
 ```
 
-## 2. Tranches déjà validées
+## 2. Tranches validées
 
 | Tranche | État | Résultat |
 |---|---|---|
@@ -29,6 +29,26 @@ une donnée cible existe
 | MIG09-B2B3 | ✅ validé | Proxy/cache runtime `ItemArchetypeId` supprimés. |
 | MIG09-B2C-A | ✅ validé | Audit Blueprint des anciens aliases Item. |
 | MIG09-B2C-B | ✅ validé | `InitializeItem()` et `GetItemArchetypeId()` supprimés. |
+| MIG09-C | ✅ validé | Initializers mécanismes et schéma d’animation spécialisé supprimés ; `MovingParts[].Motion` reste l’autorité visuelle. |
+
+Validation locale de clôture de MIG09-C :
+
+```text
+Build                  : OK
+Succeeded              : 34
+Succeeded with warnings: 1
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Rapport :
+
+```text
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-125212
+```
+
+Le warning Visual Studio 2022 sur la version de compilateur préférée est un warning de toolchain distinct de l’Automation.
 
 Le filtre de validation de référence reste :
 
@@ -63,7 +83,7 @@ Une instance ne doit pas recopier la géométrie ou la présentation d’un méc
 
 ## 4. MIG09-C — clôture des mécanismes legacy
 
-MIG09-C regroupe désormais en une seule clôture cohérente l’audit des anciennes API, leur suppression et la purge des paramètres d’animation spécialisés.
+MIG09-C est validé.
 
 ### 4.1. Anciens initializers
 
@@ -85,7 +105,7 @@ GridDoorTestUtils::InitializeDoorFromMotion(...)
 
 n’est pas un initializer runtime legacy. C’est un utilitaire de fixture automatisée qui construit explicitement une définition de motion pour tester `AGridDoorActor::InitializeGridObject()`.
 
-Le Pit utilise déjà le chemin générique :
+Le Pit utilise le chemin générique :
 
 ```text
 InitializeMechanismVisuals()
@@ -126,15 +146,7 @@ Les caches runtime réellement nécessaires à l’exécution restent autorisés
 
 ### 4.3. Données gameplay conservées
 
-MIG09-C ne supprime pas les règles qui ne sont pas de la géométrie visuelle.
-
-Le bouton conserve :
-
-```text
-ButtonAnimation.ButtonHoldTime
-```
-
-car il s’agit d’un délai logique de maintien.
+Le bouton conserve `ButtonAnimation.ButtonHoldTime` car il s’agit d’un délai logique de maintien.
 
 La porte conserve :
 
@@ -144,11 +156,7 @@ DoorAnimation.ChainPullDistance
 DoorAnimation.ChainPullDuration
 ```
 
-La plaque de pression conserve ses règles de poids :
-
-```text
-PressurePlateWeight
-```
+La plaque de pression conserve ses règles de poids.
 
 Le Pit conserve notamment :
 
@@ -158,69 +166,63 @@ Pit.bUseSameCellCoordinates
 Transition
 ```
 
-### 4.4. Grid Editor
+## 5. MIG09-D — derniers consommateurs de compatibilité
 
-L’Inspector ne doit plus proposer des contrôles d’instance pour :
+MIG09-D est volontairement découpé afin de supprimer chaque autorité historique sans mélanger plusieurs axes de risque.
 
-- hauteur d’ouverture d’une porte ;
-- durée de déplacement d’une porte ;
-- angles Off/On d’un levier ;
-- distance/durée d’enfoncement d’un bouton ;
-- hauteurs/durée d’une plaque ;
-- pivots, angle et durée des volets d’une trappe.
+### MIG09-D1 — suppression du marqueur sparse historique
 
-Il affiche à la place l’autorité :
+Candidat actuel.
 
-```text
-Definition > Moving Parts[].Motion
-```
-
-Les contrôles qui correspondent à du gameplay d’instance restent éditables.
-
-### 4.5. Tests migrés
-
-Les fixtures Door et Pit ne remplissent plus les anciens champs `Behavior.*Animation` supprimés. Elles définissent directement leur motion dans une `UGridObjectArchetypeAsset` de test, via `GridDoorTestUtils::InitializeDoorFromMotion()` ou via `MovingParts[].Motion` pour les Pits.
-
-Le test `Grimrock.WorldObjects.MIG04.BehaviorSchemaAuthority` protège l’absence réfléchie des anciens champs et la présence des seules règles gameplay conservées.
-
-Le test `Grimrock.WorldObjects.MIG04.RuntimeGenericMotionContract` protège l’absence du cache `AGridDoorActor::OpenHeight` et le maintien des caches runtime de durée réellement nécessaires.
-
-## 5. Critères de validation de MIG09-C
-
-MIG09-C n’est considéré **validé** qu’après retour d’une exécution locale UE5.5.4 sans échec.
-
-À vérifier :
-
-```text
-[ ] build GrimrockPrototypeEditor OK
-[ ] Grimrock.WorldObjects : 0 Failed
-[ ] anciens champs d’animation absents de la réflexion
-[ ] ancien cache AGridDoorActor::OpenHeight absent
-[ ] Inspector mécanismes sans contrôles d’animation d’instance
-[ ] Door/Pit continuent à utiliser MovingParts[].Motion
-```
-
-Les warnings Automation éventuels doivent être distingués des warnings de compilation et examinés séparément ; ils ne sont pas assimilés à un échec sans diagnostic.
-
-## 6. Reste de MIG09 après C
-
-### MIG09-D — derniers consommateurs vers les placements typés
-
-Objectif : supprimer les lectures/écritures qui nécessitent encore la projection de compatibilité du gros objet historique.
-
-À traiter notamment :
+Le stockage suivant est supprimé physiquement de `UGridLevelAsset` :
 
 ```text
 SparseBehaviorOverrideObjectIds
+```
+
+Ce marqueur n’a plus d’autorité depuis MIG09-A. Le caractère sparse d’un objet réutilisable est désormais structurel :
+
+```text
+FGridWorldObjectInstance
+        -> sparse par construction
+```
+
+En mode legacy temporaire, `UsesSparseBehaviorOverrides()` ne consulte plus aucun état de migration sérialisé ; il déduit simplement si l’objet appartient au bucket `WorldObject`.
+
+`SetSparseBehaviorOverrides()` reste provisoirement un no-op uniquement pour permettre de migrer proprement les derniers call sites du Grid Editor dans MIG09-D2. Il ne stocke plus aucune donnée.
+
+Le test :
+
+```text
+Grimrock.WorldObjects.MIG09.SparseMarkerPurge
+```
+
+protège l’absence réfléchie de `SparseBehaviorOverrideObjectIds` et la sémantique structurelle world-object / loose-item.
+
+### MIG09-D2 — suppression du write-through de compatibilité
+
+À traiter après validation de D1 :
+
+```text
+SetSparseBehaviorOverrides()
 CommitCompatibilityObjectEdit()
 RefreshLegacyObjectMirrorFromTyped()
 GetObjectCompatibilityView()
+```
+
+Le Grid Editor devra écrire directement dans les collections typées au lieu de modifier le miroir `Objects` puis de recopier cette modification.
+
+### MIG09-D3 — suppression des conversions de compatibilité restantes
+
+À traiter ensuite :
+
+```text
 GridLevelPlacementCompatibility
 ```
 
-La suppression doit être guidée par les consommateurs réels, pas par un simple renommage.
+Les validations et outils de migration encore basés sur `FGridLevelObjectData` devront consommer les placements typés directement.
 
-### MIG09-E — suppression du modèle objet générique historique
+## 6. MIG09-E — suppression du modèle objet générique historique
 
 Dernière étape avant MIG10 :
 
@@ -228,6 +230,7 @@ Dernière étape avant MIG10 :
 UGridLevelAsset::Objects
 FGridLevelObjectData
 compatibility projection
+bTypedPlacementStorageAuthoritative
 ```
 
 À la fin de MIG09-E, les collections de placements typées sont la seule source d’authoring du niveau.
@@ -243,30 +246,42 @@ MIG09-B2B2    migrer consommateurs SaveGame                              ✅ val
 MIG09-B2B3    supprimer proxy/cache ItemArchetypeId                      ✅ validé
 MIG09-B2C-A   audit Blueprint aliases Item                               ✅ validé
 MIG09-B2C-B   supprimer InitializeItem/GetItemArchetypeId                ✅ validé
-MIG09-C       purge mécanismes + animation spécialisée                   ⏳ candidat
-MIG09-D       derniers consommateurs vers placements typés               ⬜ à faire
-MIG09-E       supprimer Objects/FGridLevelObjectData/projection           ⬜ à faire
-MIG10         renommage final WorldObjectDefinition + clôture             ⬜ après MIG09
+MIG09-C       purge mécanismes + animation spécialisée                   ✅ validé
+MIG09-D1      supprimer SparseBehaviorOverrideObjectIds                  ⏳ candidat
+MIG09-D2      supprimer write-through/mirror compatibility               ⬜ à faire
+MIG09-D3      supprimer GridLevelPlacementCompatibility                  ⬜ à faire
+MIG09-E       supprimer Objects/FGridLevelObjectData/projection          ⬜ à faire
+MIG10         renommage final WorldObjectDefinition + clôture            ⬜ après MIG09
 ```
 
-## 8. Règle de non-régression
-
-Après MIG09-C, aucun nouveau code de production ne doit réintroduire un paramètre visuel spécialisé lorsqu’il peut être décrit par `MovingParts[].Motion`.
-
-Exemple interdit :
+## 8. Critères de validation de MIG09-D1
 
 ```text
-DoorOpenHeight
-LeverOnPitch
-PitOpenAngle
+[ ] build GrimrockPrototypeEditor OK
+[ ] Grimrock.WorldObjects : 0 Failed
+[ ] SparseBehaviorOverrideObjectIds absent de la réflexion
+[ ] nouvel objet WorldObject toujours résolu comme sparse
+[ ] loose item non classé comme WorldObject sparse
+[ ] aucun changement de contenu binaire requis
 ```
 
-Exemple cible :
+## 9. Règle de non-régression
+
+Aucun nouveau marqueur de migration par `ObjectId` ne doit être introduit pour choisir entre Definition et Instance.
+
+Le contrat cible reste :
 
 ```text
-MovingPart.Motion.Amount
-MovingPart.Motion.Pivot
-MovingPart.Motion.Duration
+Definition
++ instance typée
++ runtime delta
 ```
 
-La variation visuelle d’un mécanisme est une donnée de sa définition, pas un nouveau chemin runtime.
+et non :
+
+```text
+Definition
++ ancienne structure générique
++ marqueur de migration
++ proxy
+```
