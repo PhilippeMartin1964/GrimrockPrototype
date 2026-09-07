@@ -42,8 +42,13 @@ public:
 	bool bRuntimeHasBeenRead = false;
 
 public:
+	/** Temporary reflected E2 compatibility wrapper. */
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void InitializeGenericObject(const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* Mesh,
+		const FTransform& WorldTransform);
+
+	/** Runtime-native generic world-object initializer. */
+	void InitializeRuntimeGenericObject(const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* Mesh,
 		const FTransform& WorldTransform);
 
 	UFUNCTION(BlueprintCallable, Category = "Grid|Readable")

@@ -1,7 +1,6 @@
 #include "Runtime/GridButtonActor.h"
 
 #include "Components/StaticMeshComponent.h"
-#include "Core/GridObjectInstanceBehavior.h"
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -93,22 +92,19 @@ void AGridButtonActor::UpdateAnimation(float DeltaSeconds)
 	}
 }
 
-void AGridButtonActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
+void AGridButtonActor::InitializeRuntimeWorldObject(
+	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
 	(void)Mesh;
-	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, WorldTransform);
+	AGridRuntimeObjectActor::InitializeRuntimeWorldObject(ObjectData, nullptr, WorldTransform);
 
 	// WORLDOBJ-MIG04: geometry and travel time are authored only by MovingPart[0].Motion.
 	const float TargetDuration = GetTargetMotionDuration();
 	PressDuration = TargetDuration;
 	ReleaseDuration = TargetDuration;
 
-	// WORLDOBJ-MIG06: ButtonHoldTime belongs to the shared definition for sparse instances.
-	const AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor>(GetOwner());
-	const UGridObjectArchetypeAsset* Archetype = RuntimeActor ? RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId) : nullptr;
-	const FGridObjectBehaviorParams EffectiveBehavior =
-		GridObjectInstanceBehavior::Resolve(RuntimeActor ? RuntimeActor->LevelAsset.Get() : nullptr, ObjectData, Archetype);
+	// WORLDOBJ-MIG06/MIG09-E2: shared gameplay comes from Definition + instance-owned runtime overrides.
+	const FGridObjectBehaviorParams EffectiveBehavior = ResolveEffectiveBehavior(ObjectData);
 	HoldTime = FMath::Max(0.0f, EffectiveBehavior.ButtonAnimation.ButtonHoldTime);
 
 	ApplyMovingPartMotionAlpha(0, 0.0f);

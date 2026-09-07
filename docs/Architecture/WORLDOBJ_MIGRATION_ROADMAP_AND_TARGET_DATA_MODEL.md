@@ -57,17 +57,17 @@ Runtime State / SaveGame
 
 ## 2. État actuel
 
-Dernière révision validée avant MIG09-E1 :
+Dernière révision validée avant MIG09-E2A :
 
 ```text
-23f94e8369ba5ff469345ceef1e672563d0bcc40
-WORLDOBJ-MIG09 isolate Grid Editor from legacy read mirror
+268d68659619f036f62c5549242e5453c37c21f0
+WORLDOBJ-MIG09 align sparse marker test with typed authority
 ```
 
-Validation locale UE5.5.4 de MIG09-D3 :
+Validation locale UE5.5.4 de MIG09-E1 :
 
 ```text
-Succeeded              : 35
+Succeeded              : 32
 Succeeded with warnings: 1
 Failed                 : 0
 Process exit code       : 0
@@ -76,7 +76,7 @@ Process exit code       : 0
 Rapport :
 
 ```text
-D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-155940
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-163759
 ```
 
 État des jalons :
@@ -93,8 +93,10 @@ D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-155940
 | MIG07 | ✅ intégré | Collections de placements typées. |
 | MIG08 | ✅ historique | Assets migrés ; outillage actif retiré en E1. |
 | MIG09-A/B/C/D | ✅ validés | Purges legacy successives ; Grid Editor détaché du write-back implicite. |
-| MIG09-E1 | 🟨 candidat | Autorité persistante exclusivement typée ; marqueur supprimé ; `Objects` transitoire. |
-| MIG09-E2 | ⬜ à faire | Supprimer `Objects`, `FGridLevelObjectData` et toutes les projections legacy. |
+| MIG09-E1 | ✅ validé | Autorité persistante exclusivement typée ; marqueur supprimé ; `Objects` transitoire. |
+| MIG09-E2A | 🟨 candidat | Frontière runtime world-object explicite, non sérialisée. |
+| MIG09-E2B | ⬜ à faire | Runtime spécialisé et lectures directes des collections typées. |
+| MIG09-E2C | ⬜ à faire | Editor/tests puis suppression physique du DTO et des projections. |
 | MIG10 | ⬜ à faire | Renommage final `UGridObjectArchetypeAsset` → `UGridWorldObjectDefinitionAsset`. |
 
 MIG10 ne commence pas avant la suppression complète de MIG09-E2.
@@ -187,51 +189,78 @@ MIG09-C       mécanismes + animation spécialisée                    ✅
 MIG09-D1      SparseBehaviorOverrideObjectIds                       ✅
 MIG09-D2      write-through Grid Editor                             ✅
 MIG09-D3      fallback preview / read mirror Editor                 ✅
+MIG09-E1      autorité persistante exclusivement typée              ✅
 ```
 
-### MIG09-E — découverte de portée
+### MIG09-E2 — suppression du DTO monolithique
 
-L'audit d'entrée E a trouvé `FGridLevelObjectData` dans **154 fichiers source**. Le type est devenu au fil du projet à la fois ancien stockage et DTO transitoire runtime/editor.
+L'audit d'entrée E a trouvé `FGridLevelObjectData` dans 154 fichiers source. Le type était devenu à la fois ancien stockage et DTO transitoire runtime/editor. Un alias conservant le nom serait un faux nettoyage.
 
-Un alias conservant le nom serait un faux nettoyage. La purge est donc faite en deux macro-tranches :
+E2 est donc découpé en trois macro-tranches cohérentes :
 
 ```text
-E1  supprimer l'autorité persistante monolithique
-E2  supprimer le DTO et migrer tous ses consommateurs
+E2A  établir une frontière runtime world-object explicite
+E2B  migrer runtime spécialisé / LevelRuntime vers les collections natives
+E2C  migrer Editor/tests et supprimer physiquement DTO + projections
 ```
 
-### MIG09-E1 — autorité typée inconditionnelle
+### MIG09-E2A — Runtime World Object Boundary
 
 Candidat courant.
 
-Objectifs réalisés :
+`FGridRuntimeWorldObjectData` est un payload C++ runtime-only, non réfléchi et non sérialisé. Il est construit nativement depuis `FGridWorldObjectInstance` et porte uniquement les données requises par l'initialisation d'un acteur world-object.
 
-- supprimer physiquement `bTypedPlacementStorageAuthoritative` ;
-- rendre les cinq collections typées inconditionnellement autoritaires ;
-- faire de `Objects` un cache `Transient`, donc non sérialisé ;
-- reconstruire ce cache uniquement depuis les placements typés pour les derniers lecteurs E2 ;
-- retirer l'outillage actif `MIG08MigrationService` / `MIG08Commandlet` devenu historique ;
-- protéger le contrat par réflexion Automation.
-
-Cette tranche supprime la possibilité qu'un `.uasset` sauvegardé ait encore `Objects` comme source d'authoring.
-
-### MIG09-E2 — modèle monolithique et DTO
-
-Après validation E1, supprimer physiquement :
+Les acteurs génériques et mécanismes migrés utilisent :
 
 ```text
-UGridLevelAsset::Objects
-FGridLevelObjectData
-CommitCompatibilityObjectEdit()
-RefreshLegacyObjectMirrorFromTyped()
-GetObjectCompatibilityView()
-RebuildTypedPlacementProjectionFromLegacy()
-EnableTypedPlacementStorageFromLegacy()
-GridLevelPlacementCompatibility.h
-GridLevelPlacementConversion::ToWorldObject / ToLooseItem / ToMonsterSpawn / ToItemSpawn / ToLogicObject
+InitializeRuntimeWorldObject(...)
+InitializeRuntimeWorldObjectBase(...)
+InitializeRuntimeMechanismVisuals(...)
+ResolveEffectiveBehavior(FGridRuntimeWorldObjectData)
 ```
 
-Les consommateurs doivent utiliser les types natifs de leur domaine. Un éventuel payload runtime résolu est permis uniquement s'il représente explicitement la couche Runtime et n'est ni sérialisé dans le niveau ni un alias legacy.
+Les wrappers `FGridLevelObjectData` restent provisoires uniquement pour maintenir les tests/Editor non encore migrés jusqu'à E2C. Ils ne sont pas une autorité et ne sont jamais stockés dans le niveau.
+
+Acteurs migrés E2A :
+
+```text
+Button
+Lever
+PressurePlate
+Door
+Trigger
+GenericObject
+```
+
+Test de garde :
+
+```text
+Grimrock.WorldObjects.MIG09.RuntimeWorldObjectPayload
+```
+
+### MIG09-E2B
+
+Après validation E2A :
+
+- Receptacle, WallLock et PitTrapdoor sur frontière runtime native ;
+- `AGridLevelRuntimeActor` directement sur `WorldObjectInstances` ;
+- items monde directement sur `LooseItemInstances` ;
+- monstres/encounters/persistence directement sur `MonsterSpawns` ;
+- Activation, DoorSystem, transitions/pits et diagnostics hors DTO legacy ;
+- aucune lecture runtime directe de `LevelAsset->Objects`.
+
+### MIG09-E2C
+
+Dernière macro-tranche :
+
+- Grid Editor sur placements typés ;
+- fixtures/tests convertis ;
+- suppression de `Objects` ;
+- suppression de `FGridLevelObjectData` ;
+- suppression de `GridLevelPlacementCompatibility.h` ;
+- suppression de `GridLevelPlacementConversion::To*` ;
+- suppression des wrappers runtime E2 temporaires ;
+- tests de réflexion anti-régression.
 
 ## 8. MIG10 — renommage final
 

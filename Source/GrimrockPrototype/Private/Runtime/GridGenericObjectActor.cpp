@@ -21,12 +21,18 @@ AGridGenericObjectActor::AGridGenericObjectActor()
 void AGridGenericObjectActor::InitializeGenericObject(const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* Mesh,
 	const FTransform& WorldTransform)
 {
+	InitializeRuntimeGenericObject(FGridRuntimeWorldObjectData(ObjectData), Archetype, Mesh, WorldTransform);
+}
+
+void AGridGenericObjectActor::InitializeRuntimeGenericObject(
+	const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* Mesh, const FTransform& WorldTransform)
+{
 	(void)Mesh;
 	SourceArchetype = Archetype;
 
 	// WORLDOBJ-MIG03.4: generic world-object presentation is defined only by StaticPart.
 	UStaticMesh* ResolvedMesh = Archetype && Archetype->StaticPart.IsDefined() ? Archetype->StaticPart.Mesh.Get() : nullptr;
-	InitializeGridObject(ObjectData, ResolvedMesh, WorldTransform);
+	InitializeRuntimeWorldObject(ObjectData, ResolvedMesh, WorldTransform);
 	if (MeshComponent)
 	{
 		MeshComponent->SetRelativeTransform(Archetype ? Archetype->StaticPart.LocalTransform : FTransform::Identity);

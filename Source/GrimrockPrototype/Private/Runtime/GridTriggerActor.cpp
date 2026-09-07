@@ -5,10 +5,10 @@ AGridTriggerActor::AGridTriggerActor()
 	PrimaryActorTick.bCanEverTick = false;
 }
 
-void AGridTriggerActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
+void AGridTriggerActor::InitializeRuntimeWorldObject(
+	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	InitializeGridObjectBase(ObjectData, Mesh, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
+	InitializeRuntimeWorldObjectBase(ObjectData, Mesh, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
 	SetActorHiddenInGame(true);
 	if (MeshComponent)
 	{

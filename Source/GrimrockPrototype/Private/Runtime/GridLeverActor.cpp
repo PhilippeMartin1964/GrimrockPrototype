@@ -87,11 +87,11 @@ void AGridLeverActor::UpdateAnimation(float DeltaSeconds)
 	}
 }
 
-void AGridLeverActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
+void AGridLeverActor::InitializeRuntimeWorldObject(
+	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
 	(void)Mesh;
-	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, WorldTransform);
+	AGridRuntimeObjectActor::InitializeRuntimeWorldObject(ObjectData, nullptr, WorldTransform);
 
 	// WORLDOBJ-MIG04: the lever owns only logical alpha; Motion owns geometry and timing.
 	ToggleDuration = GetTargetMotionDuration();

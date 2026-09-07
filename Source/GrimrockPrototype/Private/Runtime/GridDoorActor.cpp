@@ -426,12 +426,12 @@ void AGridDoorActor::UpdateAnimation(float DeltaSeconds)
 	}
 }
 
-void AGridDoorActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
+void AGridDoorActor::InitializeRuntimeWorldObject(
+	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
 	(void)Mesh;
 	StopDoorMotionSound();
-	Super::InitializeGridObject(ObjectData, nullptr, WorldTransform);
+	Super::InitializeRuntimeWorldObject(ObjectData, nullptr, WorldTransform);
 
 	// WORLDOBJ-MIG04 production contract: Motion is the sole door geometry/timing authority.
 	MoveDuration = GetTargetMotionDuration();
@@ -444,7 +444,7 @@ void AGridDoorActor::InitializeGridObject(
 	MoveTargetMotionAlpha = CurrentMotionAlpha;
 	ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
 
-	// WORLDOBJ-MIG06: optional chain rules are definition-owned for sparse instances.
+	// WORLDOBJ-MIG06/MIG09-E2: optional chain rules are definition-owned; runtime payload carries only instance-owned overrides.
 	const FGridObjectBehaviorParams EffectiveBehavior = ResolveEffectiveBehavior(ObjectData);
 	InitializeChainMechanism(EffectiveBehavior.DoorAnimation);
 	RefreshTickEnabled();

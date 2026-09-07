@@ -19,8 +19,14 @@ void AGridPressurePlateActor::Tick(float DeltaSeconds)
 void AGridPressurePlateActor::InitializePlate(
 	const FGridLevelObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation, bool bStartPressed)
 {
+	InitializeRuntimePlate(FGridRuntimeWorldObjectData(ObjectData), InPlateMesh, InWorldLocation, bStartPressed);
+}
+
+void AGridPressurePlateActor::InitializeRuntimePlate(
+	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation, bool bStartPressed)
+{
 	(void)InPlateMesh;
-	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, FTransform(FRotator::ZeroRotator, InWorldLocation));
+	AGridRuntimeObjectActor::InitializeRuntimeWorldObject(ObjectData, nullptr, FTransform(FRotator::ZeroRotator, InWorldLocation));
 
 	// WORLDOBJ-MIG04: the plate owns only logical alpha; Motion owns geometry and timing.
 	MoveDuration = GetTargetMotionDuration();
@@ -91,8 +97,8 @@ void AGridPressurePlateActor::UpdateAnimation(float DeltaSeconds)
 	}
 }
 
-void AGridPressurePlateActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
+void AGridPressurePlateActor::InitializeRuntimeWorldObject(
+	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	InitializePlate(ObjectData, Mesh, WorldTransform.GetLocation(), ObjectData.bInitiallyActive);
+	InitializeRuntimePlate(ObjectData, Mesh, WorldTransform.GetLocation(), ObjectData.bInitiallyActive);
 }

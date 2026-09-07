@@ -34,9 +34,13 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Plate|Weight")
 	bool bActivateWhenPartyPresent = true;
 
+	/** Temporary reflected E2 compatibility wrapper. */
 	UFUNCTION(BlueprintCallable, Category = "Plate")
 	void InitializePlate(
 		const FGridLevelObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation, bool bStartPressed);
+
+	void InitializeRuntimePlate(
+		const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation, bool bStartPressed);
 
 	UFUNCTION(BlueprintCallable, Category = "Plate")
 	void SetPressed(bool bNewPressed);
@@ -44,8 +48,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Plate|Weight")
 	void SetWeightState(float InCurrentItemWeight, float InRequiredItemWeight, bool bInUseItemWeight, bool bInActivateWhenPartyPresent);
 
-	virtual void InitializeGridObject(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform) override;
+	virtual void InitializeRuntimeWorldObject(
+		const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform) override;
 
 protected:
 	void UpdateAnimation(float DeltaSeconds);

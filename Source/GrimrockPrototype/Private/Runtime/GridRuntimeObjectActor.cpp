@@ -25,6 +25,12 @@ AGridRuntimeObjectActor::AGridRuntimeObjectActor()
 void AGridRuntimeObjectActor::InitializeGridObjectBase(
 	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FVector& WorldLocation, const FRotator& WorldRotation)
 {
+	InitializeRuntimeWorldObjectBase(FGridRuntimeWorldObjectData(ObjectData), Mesh, WorldLocation, WorldRotation);
+}
+
+void AGridRuntimeObjectActor::InitializeRuntimeWorldObjectBase(
+	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FVector& WorldLocation, const FRotator& WorldRotation)
+{
 	ObjectId = ObjectData.ObjectId;
 	ObjectType = ObjectData.Type;
 	CellX = ObjectData.CellX;
@@ -40,11 +46,11 @@ void AGridRuntimeObjectActor::InitializeGridObjectBase(
 	SetActorRotation(WorldRotation);
 }
 
-FGridObjectBehaviorParams AGridRuntimeObjectActor::ResolveEffectiveBehavior(const FGridLevelObjectData& ObjectData) const
+FGridObjectBehaviorParams AGridRuntimeObjectActor::ResolveEffectiveBehavior(const FGridRuntimeWorldObjectData& ObjectData) const
 {
 	const AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor>(GetOwner());
 	const UGridObjectArchetypeAsset* Archetype = RuntimeActor ? RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId) : nullptr;
-	return GridObjectInstanceBehavior::Resolve(RuntimeActor ? RuntimeActor->LevelAsset.Get() : nullptr, ObjectData, Archetype);
+	return GridObjectInstanceBehavior::Resolve(ObjectData, Archetype);
 }
 
 bool AGridRuntimeObjectActor::MatchesObjectId(FGuid InObjectId) const
@@ -65,7 +71,13 @@ bool AGridRuntimeObjectActor::MatchesEdge(int32 InCellX, int32 InCellY, EGridEdg
 void AGridRuntimeObjectActor::InitializeGridObject(
 	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	InitializeGridObjectBase(ObjectData, Mesh, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
+	InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(ObjectData), Mesh, WorldTransform);
+}
+
+void AGridRuntimeObjectActor::InitializeRuntimeWorldObject(
+	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
+{
+	InitializeRuntimeWorldObjectBase(ObjectData, Mesh, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
 }
 
 void AGridRuntimeObjectActor::ConfigureObjectAudio(const UGridObjectArchetypeAsset* Archetype)

@@ -2,19 +2,15 @@
 
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectArchetypeAsset.h"
+#include "Runtime/GridRuntimeWorldObjectData.h"
 
 /**
  * WORLDOBJ-MIG09 definition/instance behavior resolver.
  *
- * MIG08 re-saved production level assets into typed placement storage. A world
- * object therefore resolves shared behavior from its definition and overlays
- * only the instance-owned payload carried by the compatibility object view.
- * The old per-object sparse migration marker no longer participates in runtime
- * behavior resolution.
- *
- * A missing definition still returns the raw object behavior temporarily for
- * direct legacy actor/test callers. Those direct initializer paths are removed
- * later in MIG09 before FGridLevelObjectData itself is deleted.
+ * Shared behavior belongs to the world-object definition. Only true instance-owned
+ * values are overlaid at runtime. MIG09-E2 introduces FGridRuntimeWorldObjectData
+ * as the non-persistent runtime boundary; the historical FGridLevelObjectData
+ * overloads remain temporary adapters for editor/tests not migrated yet.
  */
 namespace GridObjectInstanceBehavior
 {
@@ -42,10 +38,11 @@ namespace GridObjectInstanceBehavior
 	}
 
 	inline FGridObjectBehaviorParams Resolve(
-		const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype)
+		const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype)
 	{
-		// Temporary direct-call compatibility only. Production world objects have a
-		// definition after MIG08; this branch disappears with the old initializers.
+		// Direct compatibility callers without a definition still retain their raw
+		// snapshot semantics during E2. Native production placements are expected
+		// to resolve a definition.
 		if (!Archetype)
 		{
 			return ObjectData.Behavior;
@@ -56,12 +53,17 @@ namespace GridObjectInstanceBehavior
 		return Resolved;
 	}
 
+	/** Temporary E2 adapter for editor/tests still typed against the legacy DTO. */
+	inline FGridObjectBehaviorParams Resolve(
+		const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype)
+	{
+		return Resolve(FGridRuntimeWorldObjectData(ObjectData), Archetype);
+	}
+
+	/** Temporary E2 adapter; LevelAsset no longer participates in authority selection. */
 	inline FGridObjectBehaviorParams Resolve(
 		const UGridLevelAsset* LevelAsset, const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype)
 	{
-		// LevelAsset is retained in the signature only while consumers are still
-		// typed against FGridLevelObjectData. MIG09 no longer consults migration
-		// markers to choose definition authority.
 		(void)LevelAsset;
 		return Resolve(ObjectData, Archetype);
 	}
