@@ -71,17 +71,17 @@ namespace GridWorldObjectMIG03RuntimeSpawn
 		return Level;
 	}
 
-	FGridLevelObjectData MakeObject(FName ArchetypeId, EGridLevelObjectType Type, int32 X, int32 Y, EGridEdge Edge = EGridEdge::None)
+	FGridWorldObjectInstance MakeWorldObjectInstance(FName DefinitionId, EGridLevelObjectType Type, int32 X, int32 Y, EGridEdge WallSide = EGridEdge::None)
 	{
-		FGridLevelObjectData Object;
-		Object.ObjectId = FGuid::NewGuid();
-		Object.ArchetypeId = ArchetypeId;
-		Object.Type = Type;
-		Object.CellX = X;
-		Object.CellY = Y;
-		Object.Edge = Edge;
-		Object.bInitiallyEnabled = true;
-		return Object;
+		FGridWorldObjectInstance Instance;
+		Instance.InstanceId = FGuid::NewGuid();
+		Instance.WorldObjectDefinitionId = DefinitionId;
+		Instance.Type = Type;
+		Instance.CellX = X;
+		Instance.CellY = Y;
+		Instance.WallSide = WallSide;
+		Instance.bInitiallyEnabled = true;
+		return Instance;
 	}
 }
 
@@ -123,8 +123,9 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	TestFalse(TEXT("Static archetype has no moving visual part"), StaticArchetype->HasMovingVisualPart());
 	Runtime->ObjectArchetypes.Add(StaticArchetype);
 
-	const FGridLevelObjectData StaticObject = MakeObject(StaticArchetype->ArchetypeId, EGridLevelObjectType::Decoration, 1, 1);
-	Runtime->LevelAsset->Objects.Add(StaticObject);
+	const FGridWorldObjectInstance StaticObject =
+		MakeWorldObjectInstance(StaticArchetype->ArchetypeId, EGridLevelObjectType::Decoration, 1, 1);
+	Runtime->LevelAsset->WorldObjectInstances.Add(StaticObject);
 
 	// Moving-only mechanism: Part0 is enough to spawn and initialize the mechanism.
 	UGridObjectArchetypeAsset* ButtonArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
@@ -142,8 +143,9 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	TestEqual(TEXT("Button archetype defines exactly one moving part"), ButtonArchetype->GetDefinedMovingPartCount(), 1);
 	Runtime->ObjectArchetypes.Add(ButtonArchetype);
 
-	const FGridLevelObjectData ButtonObject = MakeObject(ButtonArchetype->ArchetypeId, EGridLevelObjectType::Button, 2, 1, EGridEdge::North);
-	Runtime->LevelAsset->Objects.Add(ButtonObject);
+	const FGridWorldObjectInstance ButtonObject =
+		MakeWorldObjectInstance(ButtonArchetype->ArchetypeId, EGridLevelObjectType::Button, 2, 1, EGridEdge::North);
+	Runtime->LevelAsset->WorldObjectInstances.Add(ButtonObject);
 
 	// Invisible runtime object: actor existence is independent of presentation existence.
 	UGridObjectArchetypeAsset* TriggerArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
@@ -155,12 +157,13 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	TestFalse(TEXT("Invisible trigger has no visual composition"), TriggerArchetype->HasAnyVisualPart());
 	Runtime->ObjectArchetypes.Add(TriggerArchetype);
 
-	const FGridLevelObjectData TriggerObject = MakeObject(TriggerArchetype->ArchetypeId, EGridLevelObjectType::Trigger, 1, 2);
-	Runtime->LevelAsset->Objects.Add(TriggerObject);
+	const FGridWorldObjectInstance TriggerObject =
+		MakeWorldObjectInstance(TriggerArchetype->ArchetypeId, EGridLevelObjectType::Trigger, 1, 2);
+	Runtime->LevelAsset->WorldObjectInstances.Add(TriggerObject);
 
 	Runtime->RebuildLevel(EGridRuntimeRebuildMode::Full);
 
-	AGridGenericObjectActor* StaticActor = Runtime->FindRuntimeObjectActor<AGridGenericObjectActor>(StaticObject.ObjectId);
+	AGridGenericObjectActor* StaticActor = Runtime->FindRuntimeObjectActor<AGridGenericObjectActor>(StaticObject.InstanceId);
 	TestNotNull(TEXT("StaticPart-only generic object spawns from target visual composition"), StaticActor);
 	if (StaticActor && StaticActor->MeshComponent)
 	{
@@ -169,10 +172,10 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 			StaticActor->MeshComponent->GetRelativeTransform().Equals(StaticArchetype->StaticPart.LocalTransform, 0.01f));
 	}
 
-	AGridButtonActor* ButtonActor = Runtime->FindRuntimeObjectActor<AGridButtonActor>(ButtonObject.ObjectId);
+	AGridButtonActor* ButtonActor = Runtime->FindRuntimeObjectActor<AGridButtonActor>(ButtonObject.InstanceId);
 	TestNotNull(TEXT("MovingPart-only mechanism spawns from target visual composition"), ButtonActor);
 
-	AGridRuntimeObjectActor* TriggerActor = Runtime->FindRuntimeObjectActor<AGridRuntimeObjectActor>(TriggerObject.ObjectId);
+	AGridRuntimeObjectActor* TriggerActor = Runtime->FindRuntimeObjectActor<AGridRuntimeObjectActor>(TriggerObject.InstanceId);
 	TestNotNull(TEXT("Runtime actor can spawn with no presentation at all"), TriggerActor);
 	if (TriggerActor && TriggerActor->MeshComponent)
 	{
