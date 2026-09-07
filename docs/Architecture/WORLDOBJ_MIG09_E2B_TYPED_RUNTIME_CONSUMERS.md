@@ -38,6 +38,23 @@ Rapport :
 D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-175225
 ```
 
+### E2B — MonsterEncounter + Runtime Preview typed
+
+```text
+Build                  : OK
+Succeeded              : 33
+Succeeded with warnings: 1
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Rapport :
+
+```text
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-180920
+```
+
 ## Règle E2B
 
 Le runtime ne doit plus consulter `UGridLevelAsset::Objects`. Chaque domaine lit sa collection typée native :
@@ -65,7 +82,7 @@ Les opérations suivantes ne lisent plus le cache `Objects` :
 
 Un wrapper `RegisterDoorObject(FGridLevelObjectData, ...)` reste temporairement uniquement parce que `AGridLevelRuntimeActor` n'a pas encore basculé son orchestration de spawn vers les instances typées.
 
-## Bloc MonsterEncounter — candidat courant
+## Bloc MonsterEncounter — validé
 
 `UGridMonsterEncounterComponent` lit désormais directement `UGridLevelAsset::MonsterSpawns`.
 
@@ -86,7 +103,7 @@ GridLevelPlacementCompatibility::ToLegacyMonsterSpawn(...)
 
 Ce snapshot n'est jamais stocké dans `UGridLevelAsset`. Il existe uniquement parce que `AGridLevelRuntimeActor::AddMonsterSpawnActor()` et `StoreMonsterPlacementState()` utilisent encore `FGridLevelObjectData`. Ces signatures disparaissent dans la prochaine tranche runtime monstre.
 
-## Bloc Runtime Preview — candidat courant
+## Bloc Runtime Preview — validé
 
 `UGridEditorPreviewComponent::RebuildPreviewObjects()` ne parcourt plus `LevelAsset->Objects`.
 
@@ -104,6 +121,30 @@ Puis il construit seulement le snapshot transitoire attendu par les fonctions de
 
 Cette étape garantit déjà que preview et runtime partent de la même autorité typée, avant suppression physique des wrappers `FGridLevelObjectData` en E2C.
 
+## Bloc Diagnostics + Dungeon transitions — candidat courant
+
+Les diagnostics runtime et les diagnostics de transitions du donjon lisent maintenant les collections typées natives.
+
+`GridLevelRuntimeActorDiagnostics` :
+
+```text
+TransitionObjects -> WorldObjectInstances[].InstanceConfig.Transition
+Placement count   -> UGridLevelAsset::GetTypedPlacementCount()
+```
+
+`GridDungeonAsset` :
+
+```text
+Transition/Pit diagnostics -> WorldObjectInstances
+ObjectId                   -> InstanceId
+ArchetypeId                 -> WorldObjectDefinitionId
+Edge                        -> WallSide
+Transition                  -> InstanceConfig.Transition
+Pit                         -> InstanceConfig.Pit
+```
+
+Ces deux lecteurs ne dépendent plus de `UGridLevelAsset::Objects`.
+
 ## Suite E2B
 
 La suite migre :
@@ -111,7 +152,6 @@ La suite migre :
 ```text
 AGridLevelRuntimeActor / GridLevelRuntimeActorMonsters
 GridLevelRuntimeActorPersistence
-GridLevelRuntimeActorDiagnostics
 UGridActivationComponent
 ```
 
@@ -124,9 +164,11 @@ Puis `Receptacle`, `WallLock` et `PitTrapdoor` sont alignés sur la frontière r
 [x] DoorSystem sur WorldObjectInstances
 [x] MonsterEncounter sur MonsterSpawns
 [x] Runtime Preview lit les cinq collections typées
+[x] Runtime diagnostics hors Objects
+[x] Dungeon transition diagnostics hors Objects
 [ ] LevelRuntimeActor sur collections typées
 [ ] LooseItemInstances utilisé par les items monde runtime
 [ ] MonsterSpawns utilisé par runtime monstre/persistence
-[ ] Activation et diagnostics hors DTO legacy
+[ ] Activation hors DTO legacy
 [ ] 0 Failed sur Grimrock.WorldObjects
 ```

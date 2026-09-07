@@ -77,9 +77,9 @@ namespace
 		}
 
 		int32 TransitionCount = 0;
-		for (const FGridLevelObjectData& ObjectData : InLevelAsset->Objects)
+		for (const FGridWorldObjectInstance& ObjectData : InLevelAsset->WorldObjectInstances)
 		{
-			if (ObjectData.Behavior.Transition.bIsTransition)
+			if (ObjectData.InstanceConfig.Transition.bIsTransition)
 			{
 				++TransitionCount;
 			}
@@ -122,7 +122,6 @@ namespace
 				{
 					++HiddenFloorCells;
 				}
-			}
 		}
 
 		return HiddenFloorCells;
@@ -330,7 +329,7 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics() const
 		LevelAsset->IsStartCellValid() ? TEXT("true") : TEXT("false"));
 	Result += FString::Printf(TEXT("Cells=%d ExpectedCells=%d\n"), LevelAsset->Cells.Num(), ExpectedCellCount);
 	Result += FString::Printf(TEXT("NonEmptyCells=%d BlockingCells=%d CeilingCells=%d\n"), NonEmptyCellCount, BlockingCellCount, CeilingCellCount);
-	Result += FString::Printf(TEXT("Objects=%d Links=%d TransitionObjects=%d HiddenFloorCells=%d\n"), LevelAsset->Objects.Num(), LevelAsset->Links.Num(),
+	Result += FString::Printf(TEXT("Placements=%d Links=%d TransitionObjects=%d HiddenFloorCells=%d\n"), LevelAsset->GetTypedPlacementCount(), LevelAsset->Links.Num(),
 		TransitionObjectCount, HiddenFloorCellCount);
 	Result += FString::Printf(TEXT("ObjectArchetypesOnRuntimeActor=%d\n"), ObjectArchetypes.Num());
 	Result += FString::Printf(TEXT("FloorMesh=%s WallMesh=%s CeilingMesh=%s\n"), *GetNameSafe(FloorMesh), *GetNameSafe(WallMesh), *GetNameSafe(CeilingMesh));
@@ -396,13 +395,13 @@ FString AGridLevelRuntimeActor::GetPIEReadinessDiagnostics() const
 	{
 		Result += FString::Printf(TEXT("Start: Cell=(%d,%d) Facing=%s Valid=%s\n"), LevelAsset->StartCellX, LevelAsset->StartCellY,
 			*GridLevelRuntimeDiagnosticsGetRuntimeEdgeText(LevelAsset->StartFacing), *GridLevelRuntimeDiagnosticsGetRuntimeBoolText(bHasValidStart));
-		Result += FString::Printf(TEXT("Asset Stats: Cells=%d Objects=%d Links=%d TransitionObjects=%d\n"), LevelAsset->Cells.Num(), LevelAsset->Objects.Num(),
+		Result += FString::Printf(TEXT("Asset Stats: Cells=%d Placements=%d Links=%d TransitionObjects=%d\n"), LevelAsset->Cells.Num(), LevelAsset->GetTypedPlacementCount(),
 			LevelAsset->Links.Num(), GridLevelRuntimeDiagnosticsCountRuntimeTransitionObjects(LevelAsset));
 	}
 	else
 	{
 		Result += TEXT("Start: Cell=None Facing=None Valid=false\n");
-		Result += TEXT("Asset Stats: Cells=0 Objects=0 Links=0 TransitionObjects=0\n");
+		Result += TEXT("Asset Stats: Cells=0 Placements=0 Links=0 TransitionObjects=0\n");
 	}
 
 	Result += FString::Printf(TEXT("Meshes: Floor=%s Wall=%s Ceiling=%s\n"), *GetNameSafe(FloorMesh), *GetNameSafe(WallMesh), *GetNameSafe(CeilingMesh));

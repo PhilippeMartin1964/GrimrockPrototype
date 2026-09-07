@@ -30,9 +30,9 @@ namespace
 		}
 
 		int32 TransitionCount = 0;
-		for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+		for (const FGridWorldObjectInstance& Obj : LevelAsset->WorldObjectInstances)
 		{
-			if (Obj.Type == EGridLevelObjectType::Pit || Obj.Behavior.Transition.bIsTransition)
+			if (Obj.Type == EGridLevelObjectType::Pit || Obj.InstanceConfig.Transition.bIsTransition)
 			{
 				++TransitionCount;
 			}
@@ -265,11 +265,11 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 		}
 
 		const UGridLevelAsset* SourceLevelAsset = SourceEntry.LevelAsset.Get();
-		for (const FGridLevelObjectData& Obj : SourceLevelAsset->Objects)
+		for (const FGridWorldObjectInstance& Obj : SourceLevelAsset->WorldObjectInstances)
 		{
-			const FGridObjectTransitionParams& Transition = Obj.Behavior.Transition;
+			const FGridObjectTransitionParams& Transition = Obj.InstanceConfig.Transition;
 			const bool bIsPit = Obj.Type == EGridLevelObjectType::Pit;
-			const bool bPitUsesSameCell = bIsPit && Obj.Behavior.Pit.bUseSameCellCoordinates;
+			const bool bPitUsesSameCell = bIsPit && Obj.InstanceConfig.Pit.bUseSameCellCoordinates;
 			const int32 EffectiveTargetCellX = bPitUsesSameCell ? Obj.CellX : Transition.TargetCellX;
 			const int32 EffectiveTargetCellY = bPitUsesSameCell ? Obj.CellY : Transition.TargetCellY;
 			if (!bIsPit && !Transition.bIsTransition)
@@ -370,7 +370,7 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 				TEXT(
 					"[%d] SourceLevelId=%s SourceDisplayName=%s SourceLevelAsset=%s ObjectId=%s ArchetypeId=%s Type=%s Cell=(%d,%d) Edge=%s TargetLevelId=%s TargetCell=(%d,%d) TargetFacing=%s bRequireUseAction=%s Status=%s"),
 				TransitionObjectCount, *SourceEntry.LevelId.ToString(), *SourceEntry.DisplayName.ToString(), *SourceLevelAsset->GetPathName(),
-				*Obj.ObjectId.ToString(), *Obj.ArchetypeId.ToString(), *GetGridObjectTypeName(Obj.Type), Obj.CellX, Obj.CellY, *GetGridEdgeName(Obj.Edge),
+				*Obj.InstanceId.ToString(), *Obj.WorldObjectDefinitionId.ToString(), *GetGridObjectTypeName(Obj.Type), Obj.CellX, Obj.CellY, *GetGridEdgeName(Obj.WallSide),
 				*EffectiveTargetLevelId.ToString(), EffectiveTargetCellX, EffectiveTargetCellY, *GetGridEdgeName(Transition.TargetFacing),
 				Transition.bRequireUseAction ? TEXT("true") : TEXT("false"), *TransitionStatus);
 
