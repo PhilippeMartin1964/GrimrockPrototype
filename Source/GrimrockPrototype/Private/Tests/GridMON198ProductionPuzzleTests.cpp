@@ -16,6 +16,8 @@
 
 namespace GridMON198Tests
 {
+	constexpr float MON198DoorMotionDuration = 0.10f;
+
 	struct FMON198TestWorld
 	{
 		UWorld* World = nullptr;
@@ -23,15 +25,16 @@ namespace GridMON198Tests
 		FMON198TestWorld()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
-															.AllowAudioPlayback(false)
-															.RequiresHitProxies(false)
-															.CreatePhysicsScene(false)
-															.CreateNavigation(false)
-															.CreateAISystem(false)
-															.ShouldSimulatePhysics(false)
-															.SetTransactional(false);
+				.AllowAudioPlayback(false)
+				.RequiresHitProxies(false)
+				.CreatePhysicsScene(false)
+				.CreateNavigation(false)
+				.CreateAISystem(false)
+				.ShouldSimulatePhysics(false)
+				.SetTransactional(false);
 
-			World = UWorld::CreateWorld(EWorldType::Game, false, FName(*FString::Printf(TEXT("MON198_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))),
+			World = UWorld::CreateWorld(EWorldType::Game, false,
+				FName(*FString::Printf(TEXT("MON198_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))),
 				nullptr, true, ERHIFeatureLevel::Num, &Values);
 
 			if (World && GEngine)
@@ -116,12 +119,12 @@ namespace GridMON198Tests
 		return OutActivation != nullptr;
 	}
 
-	bool PrepareClosedDoor(UWorld& World, AGridLevelRuntimeActor& Runtime, const FGridLevelObjectData& DoorData)
+	AGridDoorActor* PrepareClosedDoor(UWorld& World, AGridLevelRuntimeActor& Runtime, const FGridLevelObjectData& DoorData)
 	{
 		UGridDoorSystemComponent* DoorSystem = Runtime.FindComponentByClass<UGridDoorSystemComponent>();
 		if (!DoorSystem)
 		{
-			return false;
+			return nullptr;
 		}
 
 		DoorSystem->Initialize(&Runtime);
@@ -130,12 +133,26 @@ namespace GridMON198Tests
 		AGridDoorActor* DoorActor = World.SpawnActor<AGridDoorActor>();
 		if (!DoorActor)
 		{
-			return false;
+			return nullptr;
 		}
 
-		GridDoorTestUtils::InitializeDoorFromMotion(DoorActor, DoorData, &World, 2.5f, 180.0f);
+		GridDoorTestUtils::InitializeDoorFromMotion(DoorActor, DoorData, &World, MON198DoorMotionDuration, 180.0f);
 		DoorSystem->RegisterDoorObject(DoorData, DoorActor);
-		return !Runtime.IsDoorOpenOnEdge(DoorData.CellX, DoorData.CellY, DoorData.Edge);
+		return Runtime.IsDoorOpenOnEdge(DoorData.CellX, DoorData.CellY, DoorData.Edge) ? nullptr : DoorActor;
+	}
+
+	void CompleteDoorOpening(
+		FAutomationTestBase& Test, AGridLevelRuntimeActor& Runtime, AGridDoorActor& DoorActor, const FGridLevelObjectData& DoorData, const TCHAR* Context)
+	{
+		Test.TestTrue(*FString::Printf(TEXT("%s starts the physical door animation"), Context), DoorActor.IsAnimating());
+		Test.TestFalse(*FString::Printf(TEXT("%s keeps passage blocked while opening"), Context),
+			Runtime.IsDoorOpenOnEdge(DoorData.CellX, DoorData.CellY, DoorData.Edge));
+
+		DoorActor.Tick(MON198DoorMotionDuration + 0.01f);
+
+		Test.TestFalse(*FString::Printf(TEXT("%s completes the physical door animation"), Context), DoorActor.IsAnimating());
+		Test.TestTrue(*FString::Printf(TEXT("%s opens passage only after animation completion"), Context),
+			Runtime.IsDoorOpenOnEdge(DoorData.CellX, DoorData.CellY, DoorData.Edge));
 	}
 
 	FGridObjectLink MakeLink(FGuid SourceId, EGridObjectEvent SourceEvent, FGuid TargetId, EGridObjectCommand Command)
@@ -193,14 +210,15 @@ namespace GridMON198Tests
 
 		Activation->Initialize(Runtime);
 		Activation->RebuildIndexes();
-		if (!PrepareClosedDoor(*TestWorld.World, *Runtime, Door))
+		AGridDoorActor* DoorActor = PrepareClosedDoor(*TestWorld.World, *Runtime, Door);
+		if (!DoorActor)
 		{
 			AddError(TEXT("MON19.8 Puzzle A door fixture is not closed."));
 			return false;
 		}
 
 		TestTrue(TEXT("Lever Activated dispatches direct Door.Open"), Runtime->ExecuteLinksFromRuntimeObject(LeverId, EGridObjectEvent::Activated));
-		TestTrue(TEXT("Direct data-driven puzzle opens the door without Lua"), Runtime->IsDoorOpenOnEdge(Door.CellX, Door.CellY, Door.Edge));
+		CompleteDoorOpening(*this, *Runtime, *DoorActor, Door, TEXT("Direct data-driven puzzle"));
 		return true;
 	}
 
@@ -261,7 +279,8 @@ namespace GridMON198Tests
 
 		Activation->Initialize(Runtime);
 		Activation->RebuildIndexes();
-		if (!PrepareClosedDoor(*TestWorld.World, *Runtime, Door))
+		AGridDoorActor* DoorActor = PrepareClosedDoor(*TestWorld.World, *Runtime, Door);
+		if (!DoorActor)
 		{
 			AddError(TEXT("MON19.8 Puzzle B door fixture is not closed."));
 			return false;
@@ -281,11 +300,12 @@ namespace GridMON198Tests
 		TestTrue(TEXT("RuneCount reads after first lever"), GridLevelVariableStore::TryGetInt32(*Level, *State, TEXT("RuneCount"), RuneCount, Error));
 		TestEqual(TEXT("First lever increments RuneCount once"), RuneCount, 1);
 		TestFalse(TEXT("Threshold is not reached after first lever"), Runtime->IsDoorOpenOnEdge(Door.CellX, Door.CellY, Door.Edge));
+		TestFalse(TEXT("Threshold miss does not start door animation"), DoorActor->IsAnimating());
 
 		TestTrue(TEXT("Second lever executes the same data-driven logic chain"), Runtime->ExecuteLinksFromRuntimeObject(LeverBId, EGridObjectEvent::Activated));
 		TestTrue(TEXT("RuneCount reads after second lever"), GridLevelVariableStore::TryGetInt32(*Level, *State, TEXT("RuneCount"), RuneCount, Error));
 		TestEqual(TEXT("Second lever reaches the threshold"), RuneCount, 2);
-		TestTrue(TEXT("CompareInt Activated opens the door at threshold"), Runtime->IsDoorOpenOnEdge(Door.CellX, Door.CellY, Door.Edge));
+		CompleteDoorOpening(*this, *Runtime, *DoorActor, Door, TEXT("CompareInt threshold puzzle"));
 		return true;
 	}
 
@@ -332,7 +352,8 @@ namespace GridMON198Tests
 
 		Activation->Initialize(Runtime);
 		Activation->RebuildIndexes();
-		if (!PrepareClosedDoor(*TestWorld.World, *Runtime, Door))
+		AGridDoorActor* DoorActor = PrepareClosedDoor(*TestWorld.World, *Runtime, Door);
+		if (!DoorActor)
 		{
 			AddError(TEXT("MON19.8 Puzzle C door fixture is not closed."));
 			return false;
@@ -356,10 +377,11 @@ namespace GridMON198Tests
 		TestTrue(TEXT("RuneCount can be set below threshold"), GridLevelVariableStore::SetInt32(*Level, *State, TEXT("RuneCount"), 1, Error));
 		TestTrue(TEXT("Lua callback succeeds below threshold"), Runtime->ExecuteLinksFromRuntimeObject(TriggerId, EGridObjectEvent::Activated));
 		TestFalse(TEXT("Lua leaves door closed below threshold"), Runtime->IsDoorOpenOnEdge(Door.CellX, Door.CellY, Door.Edge));
+		TestFalse(TEXT("Lua below threshold does not start door animation"), DoorActor->IsAnimating());
 
 		TestTrue(TEXT("RuneCount can be set at threshold"), GridLevelVariableStore::SetInt32(*Level, *State, TEXT("RuneCount"), 2, Error));
 		TestTrue(TEXT("Lua callback succeeds at threshold"), Runtime->ExecuteLinksFromRuntimeObject(TriggerId, EGridObjectEvent::Activated));
-		TestTrue(TEXT("Lua reads persistent state and requests normal Door.Open"), Runtime->IsDoorOpenOnEdge(Door.CellX, Door.CellY, Door.Edge));
+		CompleteDoorOpening(*this, *Runtime, *DoorActor, Door, TEXT("Lua conditional puzzle"));
 		return true;
 	}
 
@@ -404,7 +426,8 @@ namespace GridMON198Tests
 
 		Activation->Initialize(Runtime);
 		Activation->RebuildIndexes();
-		if (!PrepareClosedDoor(*TestWorld.World, *Runtime, Door))
+		AGridDoorActor* DoorActor = PrepareClosedDoor(*TestWorld.World, *Runtime, Door);
+		if (!DoorActor)
 		{
 			AddError(TEXT("MON19.8 Puzzle D door fixture is not closed."));
 			return false;
@@ -419,7 +442,7 @@ namespace GridMON198Tests
 
 		TestTrue(TEXT("EncounterCompleted dispatch reaches Lua bridge"),
 			Runtime->ExecuteLinksFromRuntimeObject(EncounterAnchorId, EGridObjectEvent::EncounterCompleted));
-		TestTrue(TEXT("Encounter Lua bridge opens the LogicId door"), Runtime->IsDoorOpenOnEdge(Door.CellX, Door.CellY, Door.Edge));
+		CompleteDoorOpening(*this, *Runtime, *DoorActor, Door, TEXT("Encounter Lua bridge"));
 		return true;
 	}
 
