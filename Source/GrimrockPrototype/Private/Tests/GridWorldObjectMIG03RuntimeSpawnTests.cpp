@@ -131,6 +131,8 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	UGridObjectArchetypeAsset* ButtonArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
 	ButtonArchetype->ArchetypeId = TEXT("MIG03_TargetButton");
 	ButtonArchetype->SupportedType = EGridLevelObjectType::Button;
+	ButtonArchetype->ObjectCategory = EGridObjectCategory::Mechanism;
+	ButtonArchetype->bIsInteractable = true;
 	ButtonArchetype->PlacementSurface = EGridObjectPlacementKind::Wall;
 	ButtonArchetype->RuntimeActorClass = AGridButtonActor::StaticClass();
 	ButtonArchetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(ButtonArchetype);
@@ -151,6 +153,7 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	UGridObjectArchetypeAsset* TriggerArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
 	TriggerArchetype->ArchetypeId = TEXT("MIG03_InvisibleTrigger");
 	TriggerArchetype->SupportedType = EGridLevelObjectType::Trigger;
+	TriggerArchetype->ObjectCategory = EGridObjectCategory::Mechanism;
 	TriggerArchetype->PlacementSurface = EGridObjectPlacementKind::Floor;
 	TriggerArchetype->RuntimeActorClass = AGridRuntimeObjectActor::StaticClass();
 	TriggerArchetype->RefreshPlacementRuntimeProjection();
