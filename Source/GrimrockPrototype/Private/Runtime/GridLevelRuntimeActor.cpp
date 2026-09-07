@@ -508,6 +508,7 @@ void AGridLevelRuntimeActor::RebuildLevel(EGridRuntimeRebuildMode RebuildMode)
 	}
 
 	LevelAsset->EnsureCellCount();
+	LevelAsset->RefreshLegacyObjectMirrorFromTyped();
 #if WITH_EDITOR
 	for (const UGridObjectArchetypeAsset* Archetype : ObjectArchetypes)
 	{
