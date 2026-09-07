@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "GridDoorTestUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridLevelVariableTypes.h"
 #include "Engine/Engine.h"
@@ -132,7 +133,7 @@ namespace GridMON198Tests
 			return false;
 		}
 
-		DoorActor->InitializeDoor(DoorData, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+		GridDoorTestUtils::InitializeDoorFromMotion(DoorActor, DoorData, &World, 2.5f, 180.0f);
 		DoorSystem->RegisterDoorObject(DoorData, DoorActor);
 		return !Runtime.IsDoorOpenOnEdge(DoorData.CellX, DoorData.CellY, DoorData.Edge);
 	}

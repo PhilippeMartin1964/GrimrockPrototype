@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "GridDoorTestUtils.h"
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -97,7 +98,7 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 	Data.Behavior.DoorAnimation.OpenHeight = 180.f;
 	Data.Behavior.DoorAnimation.MoveDuration = 1.f;
 
-	Door->InitializeDoor(Data, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 1.0f, 180.0f, Archetype);
 	Door->ConfigureObjectAudio(Archetype);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
 
@@ -197,10 +198,10 @@ bool FGridDoorMoveDurationContractTest::RunTest(const FString& Parameters)
 	Data.Behavior.DoorAnimation.OpenHeight = 180.f;
 	Data.Behavior.DoorAnimation.MoveDuration = 5.0f;
 
-	Door->InitializeDoor(Data, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 5.0f, 180.0f);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
 
-	TestTrue(TEXT("Runtime actor copies the placed instance MoveDuration=5.0"), FMath::IsNearlyEqual(Door->MoveDuration, 5.0f));
+	TestTrue(TEXT("Runtime actor copies authored Motion.Duration=5.0"), FMath::IsNearlyEqual(Door->MoveDuration, 5.0f));
 
 	Door->OpenDoor();
 	TestTrue(TEXT("Full opening starts"), Door->IsAnimating());
@@ -257,7 +258,7 @@ bool FGridDoorNaturalTailContractTest::RunTest(const FString& Parameters)
 	Data.Behavior.DoorAnimation.OpenHeight = 180.f;
 	Data.Behavior.DoorAnimation.MoveDuration = 1.0f;
 
-	Door->InitializeDoor(Data, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 1.0f, 180.0f, Archetype);
 	Door->ConfigureObjectAudio(Archetype);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
 
@@ -319,7 +320,7 @@ bool FGridDoorPartialAudioResumeTest::RunTest(const FString& Parameters)
 	Data.Behavior.DoorAnimation.OpenHeight = 200.0f;
 	Data.Behavior.DoorAnimation.MoveDuration = 5.0f;
 
-	Door->InitializeDoor(Data, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 5.0f, 200.0f, Archetype);
 	Door->ConfigureObjectAudio(Archetype);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
 

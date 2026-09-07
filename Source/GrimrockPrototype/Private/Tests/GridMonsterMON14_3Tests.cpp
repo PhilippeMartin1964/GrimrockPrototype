@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "GridDoorTestUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -361,7 +362,7 @@ bool FGridMonsterMON143BlockedHearingWaitTest::RunTest(const FString& Parameters
 	{
 		return false;
 	}
-	Door->InitializeDoor(DoorData, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	GridDoorTestUtils::InitializeDoorFromMotion(Door, DoorData, Fixture.TestWorld.World, 0.1f, 180.0f);
 	DoorSystem->RegisterDoorObject(DoorData, Door);
 
 	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_BlockedHearingRat"), 0, 4), FIntPoint(1, 1), EGridEdge::North,

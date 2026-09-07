@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "GridDoorTestUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -121,7 +122,7 @@ namespace
 			return false;
 		}
 
-		Door->InitializeDoor(DoorData, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+		GridDoorTestUtils::InitializeDoorFromMotion(Door, DoorData, World, 1.0f, 180.0f);
 		DoorSystem->RegisterDoorObject(DoorData, Door);
 
 		Test.TestTrue(*FString::Printf(TEXT("%s starts fully closed"), DoorLabel), Door->IsFullyClosed());

@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "GridDoorTestUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -97,7 +98,7 @@ namespace
 		{
 			return nullptr;
 		}
-		Door->InitializeDoor(Data, nullptr, nullptr, FVector::ZeroVector, FRotator::ZeroRotator, false);
+		GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, World, 1.0f, 180.0f);
 		Doors->RegisterDoorObject(Data, Door);
 		return Door;
 	}

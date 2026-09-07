@@ -76,39 +76,6 @@ void AGridDoorActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void AGridDoorActor::InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh,
-	UStaticMesh* InFixedMesh, const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen)
-{
-	// MIG09 compatibility initializer for older direct tests/Blueprint callers.
-	// It may still obtain a timing value from the transient bridge, but it no longer owns a separate geometry engine.
-	StopDoorMotionSound();
-
-	ObjectId = ObjectData.ObjectId;
-	CellX = ObjectData.CellX;
-	CellY = ObjectData.CellY;
-	Edge = ObjectData.Edge;
-
-	SetActorLocation(ClosedWorldLocation);
-	SetActorRotation(WorldRotation);
-	SetFixedMesh(InFixedMesh);
-	SetMovingMesh(InMovingMesh);
-
-	OpenHeight = ObjectData.Behavior.DoorAnimation.OpenHeight;
-	MoveDuration = FMath::Max(0.0f, ObjectData.Behavior.DoorAnimation.MoveDuration);
-	MoveElapsed = 0.f;
-	CurrentMoveDuration = 0.f;
-
-	bIsOpen = bStartOpen;
-	bIsAnimating = false;
-	CurrentMotionAlpha = bIsOpen ? 1.0f : 0.0f;
-	MoveStartMotionAlpha = CurrentMotionAlpha;
-	MoveTargetMotionAlpha = CurrentMotionAlpha;
-	ApplyAllMovingPartMotionsAlpha(CurrentMotionAlpha);
-
-	InitializeChainMechanism(ObjectData.Behavior.DoorAnimation);
-	RefreshTickEnabled();
-}
-
 void AGridDoorActor::SetDoorOpenState(bool bOpen)
 {
 	const float DesiredAlpha = bOpen ? 1.0f : 0.0f;

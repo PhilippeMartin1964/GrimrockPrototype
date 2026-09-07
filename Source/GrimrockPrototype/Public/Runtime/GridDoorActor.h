@@ -95,10 +95,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door|Chain")
 	TObjectPtr<UMaterialInterface> ChainMaterial;
 
-	/** MIG09-C-B2A temporary C++ test bridge only. Not reflected to Blueprint. */
-	void InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, UStaticMesh* InFixedMesh,
-		const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen);
-
 	UFUNCTION(BlueprintCallable, Category = "Door")
 	virtual void SetDoorOpenState(bool bOpen);
 
