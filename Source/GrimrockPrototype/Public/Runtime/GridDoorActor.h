@@ -95,11 +95,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door|Chain")
 	TObjectPtr<UMaterialInterface> ChainMaterial;
 
-	/**
-	 * Compatibility initializer used by older direct tests/Blueprint call sites.
-	 * Production spawning uses InitializeMechanismVisuals + InitializeGridObject, where Motion is authoritative.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Door")
+	/** MIG09-C-B2A temporary C++ test bridge only. Not reflected to Blueprint. */
 	void InitializeDoor(const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, UStaticMesh* InFixedMesh,
 		const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen);
 

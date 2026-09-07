@@ -9,6 +9,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Modules/ModuleManager.h"
 #include "Runtime/GridButtonActor.h"
+#include "Runtime/GridDoorActor.h"
 #include "Runtime/GridLeverActor.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
@@ -93,6 +94,7 @@ bool FGridEditorWorldObjectMIG09MechanismLegacyBlueprintReferenceAuditTest::RunT
 	TestEqual(TEXT("No Blueprint calls InitializeButton, InitializeLever or InitializeDoor"), LegacyReferences.Num(), 0);
 	TestNull(TEXT("MIG09-C-B1 removes reflected InitializeButton API"), AGridButtonActor::StaticClass()->FindFunctionByName(TEXT("InitializeButton")));
 	TestNull(TEXT("MIG09-C-B1 removes reflected InitializeLever API"), AGridLeverActor::StaticClass()->FindFunctionByName(TEXT("InitializeLever")));
+	TestNull(TEXT("MIG09-C-B2A removes reflected InitializeDoor API"), AGridDoorActor::StaticClass()->FindFunctionByName(TEXT("InitializeDoor")));
 	return LegacyReferences.IsEmpty() && LoadedBlueprintCount == BlueprintAssets.Num();
 }
 
