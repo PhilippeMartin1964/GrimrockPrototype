@@ -669,9 +669,15 @@ bool FGridMonsterMON133LifecyclePersistenceTest::RunTest(const FString& Paramete
 	}
 
 	const FGuid SpawnId(13, 3, 2, 1);
-	FGridLevelObjectData Spawn = MakeMON13Spawn(Definition, SpawnId, FIntPoint(0, 0));
+	FGridMonsterSpawnInstance Spawn;
+	Spawn.SpawnId = SpawnId;
+	Spawn.MonsterDefinition = Definition;
+	Spawn.CellX = 0;
+	Spawn.CellY = 0;
+	Spawn.Facing = EGridEdge::North;
 	Spawn.EncounterGroupId = TEXT("Encounter_MON133_Persistent");
-	Level->Objects.Add(Spawn);
+	Spawn.bInitiallyEnabled = true;
+	Level->MonsterSpawns.Add(Spawn);
 
 	Runtime->RebuildLevel();
 	AGridMonsterActor* InitialMonster = Runtime->FindSpawnedMonsterActor(SpawnId);
