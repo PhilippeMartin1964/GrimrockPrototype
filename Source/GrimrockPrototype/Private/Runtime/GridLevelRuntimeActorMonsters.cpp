@@ -352,10 +352,10 @@ void AGridLevelRuntimeActor::ApplyMonsterPlacementMetadata(AGridMonsterActor* Mo
 		return;
 	}
 
-	const FGridLevelObjectData* Placement = LevelAsset->Objects.FindByPredicate(
-		[Monster](const FGridLevelObjectData& ObjectData)
+	const FGridMonsterSpawnInstance* Placement = LevelAsset->MonsterSpawns.FindByPredicate(
+		[Monster](const FGridMonsterSpawnInstance& Spawn)
 		{
-			return ObjectData.Type == EGridLevelObjectType::MonsterSpawn && ObjectData.ObjectId == Monster->SpawnObjectId;
+			return Spawn.SpawnId == Monster->SpawnObjectId;
 		});
 	if (Placement)
 	{
@@ -597,8 +597,12 @@ bool AGridLevelRuntimeActor::ExecuteMonsterSpawnCommand(FGuid SpawnId, EGridObje
 		return false;
 	}
 
-	const FGridLevelObjectData* ObjectData = LevelAsset->FindMonsterSpawnById(SpawnId);
-	if (!ObjectData)
+	const FGridMonsterSpawnInstance* SpawnData = LevelAsset->MonsterSpawns.FindByPredicate(
+		[SpawnId](const FGridMonsterSpawnInstance& Candidate)
+		{
+			return Candidate.SpawnId == SpawnId;
+		});
+	if (!SpawnData)
 	{
 		UE_LOG(LogGridMonsterState, Warning, TEXT("[GridMonsterLifecycle] CommandRejected SpawnId=%s Command=%s Reason=PlacementNotFound"),
 			*SpawnId.ToString(EGuidFormats::DigitsWithHyphens), *UEnum::GetValueAsString(Command));
@@ -634,12 +638,12 @@ bool AGridLevelRuntimeActor::ExecuteMonsterSpawnCommand(FGuid SpawnId, EGridObje
 
 	if (Command == EGridObjectCommand::Despawn)
 	{
-		return DespawnMonsterSpawnActor(*ObjectData, true, bIsCurrentlySpawned);
+		return DespawnMonsterSpawnActor(*SpawnData, true, bIsCurrentlySpawned);
 	}
 
 	if (Command == EGridObjectCommand::Teleport)
 	{
-		return TeleportSpawnedMonster(SpawnId, ObjectData->CellX, ObjectData->CellY, ObjectData->InitialFacing);
+		return TeleportSpawnedMonster(SpawnId, SpawnData->CellX, SpawnData->CellY, SpawnData->Facing);
 	}
 
 	if (Command != EGridObjectCommand::Spawn)
@@ -661,7 +665,7 @@ bool AGridLevelRuntimeActor::ExecuteMonsterSpawnCommand(FGuid SpawnId, EGridObje
 		}
 	}
 
-	AGridMonsterActor* Monster = AddMonsterSpawnActor(*ObjectData, RestoreState);
+	AGridMonsterActor* Monster = AddMonsterSpawnActor(*SpawnData, RestoreState);
 	if (!Monster)
 	{
 		UE_LOG(LogGridMonsterState, Log, TEXT("[GridMonsterLifecycle] SpawnRejected SpawnId=%s Reason=AtomicSpawnFailed"),
@@ -669,9 +673,9 @@ bool AGridLevelRuntimeActor::ExecuteMonsterSpawnCommand(FGuid SpawnId, EGridObje
 		return false;
 	}
 
-	if (!StoreMonsterPlacementState(*ObjectData, Monster, true))
+	if (!StoreMonsterPlacementState(*SpawnData, Monster, true))
 	{
-		DespawnMonsterSpawnActor(*ObjectData, false, false);
+		DespawnMonsterSpawnActor(*SpawnData, false, false);
 		return false;
 	}
 
@@ -689,7 +693,11 @@ bool AGridLevelRuntimeActor::TeleportSpawnedMonster(FGuid SpawnId, int32 TargetC
 		return false;
 	}
 
-	const FGridLevelObjectData* ObjectData = LevelAsset->FindMonsterSpawnById(SpawnId);
+	const FGridMonsterSpawnInstance* SpawnData = LevelAsset->MonsterSpawns.FindByPredicate(
+		[SpawnId](const FGridMonsterSpawnInstance& Candidate)
+		{
+			return Candidate.SpawnId == SpawnId;
+		});
 	AGridMonsterActor* Monster = FindSpawnedMonsterActor(SpawnId);
 	UGridMonsterMovementComponent* Movement = Monster ? Monster->FindComponentByClass<UGridMonsterMovementComponent>() : nullptr;
 	UGridMonsterOccupancySubsystem* Occupancy = GetWorld() ? GetWorld()->GetSubsystem<UGridMonsterOccupancySubsystem>() : nullptr;
@@ -706,7 +714,7 @@ bool AGridLevelRuntimeActor::TeleportSpawnedMonster(FGuid SpawnId, int32 TargetC
 		}
 	}
 
-	if (!ObjectData || !Monster || (Movement && !Movement->IsInitialized()) || Monster->IsDead() ||
+	if (!SpawnData || !Monster || (Movement && !Movement->IsInitialized()) || Monster->IsDead() ||
 		!GridLevelRuntimeMonstersIsCardinalSpawnFacing(TargetFacing) || !IsValidCell(TargetCellX, TargetCellY) || !IsWalkableCell(TargetCellX, TargetCellY) ||
 		IsPartyOnCell(TargetCellX, TargetCellY) || bGeneratedMonsterOccupiesTarget || !Occupancy || Occupancy->IsCellBlocked(TargetCell, Monster))
 	{
@@ -755,7 +763,7 @@ bool AGridLevelRuntimeActor::TeleportSpawnedMonster(FGuid SpawnId, int32 TargetC
 		return false;
 	}
 
-	if (!StoreMonsterPlacementState(*ObjectData, Monster, true))
+	if (!StoreMonsterPlacementState(*SpawnData, Monster, true))
 	{
 		if (Movement)
 		{
