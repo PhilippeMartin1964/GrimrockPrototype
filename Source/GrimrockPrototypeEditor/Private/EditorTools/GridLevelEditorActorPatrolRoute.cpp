@@ -44,6 +44,21 @@ namespace
 		}
 	}
 
+	void FinalizePatrolMutation(UGridLevelAsset* LevelAsset)
+	{
+		if (!LevelAsset)
+		{
+			return;
+		}
+
+		// WORLDOBJ-MIG09: MonsterSpawns is authoritative. Objects remains a
+		// transient E2 compatibility view for editor panels that have not yet
+		// migrated to typed reads, so refresh it after every typed patrol edit.
+		LevelAsset->RefreshLegacyObjectMirrorFromTyped();
+		LevelAsset->MarkPackageDirty();
+		RedrawGridEditorViewports();
+	}
+
 	FGridMonsterSpawnInstance* FindMonsterSpawnMutable(UGridLevelAsset* LevelAsset, const FGuid& SpawnId)
 	{
 		if (!LevelAsset || !SpawnId.IsValid())
@@ -126,8 +141,7 @@ bool AGridLevelEditorActor::SetSelectedMonsterPatrolMode(EGridMonsterPatrolMode 
 	const FScopedTransaction Transaction(FText::FromString(TEXT("Set Monster Patrol Mode")));
 	LevelAsset->Modify();
 	Spawn->PatrolMode = NewMode;
-	LevelAsset->MarkPackageDirty();
-	RedrawGridEditorViewports();
+	FinalizePatrolMutation(LevelAsset);
 	return true;
 }
 
@@ -164,8 +178,7 @@ bool AGridLevelEditorActor::AddOrSelectPatrolWaypointAtHoveredCell()
 		Spawn->PatrolMode = EGridMonsterPatrolMode::Loop;
 	}
 
-	LevelAsset->MarkPackageDirty();
-	RedrawGridEditorViewports();
+	FinalizePatrolMutation(LevelAsset);
 	return true;
 }
 
@@ -203,8 +216,7 @@ bool AGridLevelEditorActor::RemoveSelectedPatrolWaypoint()
 		? INDEX_NONE
 		: FMath::Clamp(SelectedPatrolWaypointIndex, 0, Spawn->PatrolWaypoints.Num() - 1);
 
-	LevelAsset->MarkPackageDirty();
-	RedrawGridEditorViewports();
+	FinalizePatrolMutation(LevelAsset);
 	return true;
 }
 
@@ -226,8 +238,7 @@ bool AGridLevelEditorActor::ClearSelectedMonsterPatrolRoute()
 	Spawn->PatrolWaypoints.Reset();
 	Spawn->PatrolMode = EGridMonsterPatrolMode::None;
 	SelectedPatrolWaypointIndex = INDEX_NONE;
-	LevelAsset->MarkPackageDirty();
-	RedrawGridEditorViewports();
+	FinalizePatrolMutation(LevelAsset);
 	return true;
 }
 
@@ -249,8 +260,7 @@ bool AGridLevelEditorActor::MoveSelectedPatrolWaypoint(int32 IndexDelta)
 	LevelAsset->Modify();
 	Spawn->PatrolWaypoints.Swap(SelectedPatrolWaypointIndex, NewIndex);
 	SelectedPatrolWaypointIndex = NewIndex;
-	LevelAsset->MarkPackageDirty();
-	RedrawGridEditorViewports();
+	FinalizePatrolMutation(LevelAsset);
 	return true;
 }
 
@@ -271,8 +281,7 @@ bool AGridLevelEditorActor::SetSelectedPatrolWaypointFacing(EGridEdge NewFacing)
 	const FScopedTransaction Transaction(FText::FromString(TEXT("Set Monster Patrol Waypoint Facing")));
 	LevelAsset->Modify();
 	Waypoint.Facing = NewFacing;
-	LevelAsset->MarkPackageDirty();
-	RedrawGridEditorViewports();
+	FinalizePatrolMutation(LevelAsset);
 	return true;
 }
 
@@ -294,8 +303,7 @@ bool AGridLevelEditorActor::SetSelectedPatrolWaypointWaitSeconds(float NewWaitSe
 	const FScopedTransaction Transaction(FText::FromString(TEXT("Set Monster Patrol Waypoint Wait")));
 	LevelAsset->Modify();
 	Waypoint.WaitSeconds = ClampedWait;
-	LevelAsset->MarkPackageDirty();
-	RedrawGridEditorViewports();
+	FinalizePatrolMutation(LevelAsset);
 	return true;
 }
 

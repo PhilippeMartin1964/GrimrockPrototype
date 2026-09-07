@@ -82,15 +82,15 @@ namespace
 			}
 			EditorActor->LevelAsset = LevelAsset;
 
-			FGridLevelObjectData MonsterSpawn;
+			FGridMonsterSpawnInstance MonsterSpawn;
 			MonsterSpawnId = FGuid::NewGuid();
-			MonsterSpawn.ObjectId = MonsterSpawnId;
-			MonsterSpawn.Type = EGridLevelObjectType::MonsterSpawn;
+			MonsterSpawn.SpawnId = MonsterSpawnId;
 			MonsterSpawn.CellX = 2;
 			MonsterSpawn.CellY = 2;
-			MonsterSpawn.InitialFacing = EGridEdge::North;
+			MonsterSpawn.Facing = EGridEdge::North;
 			MonsterSpawn.bInitiallyEnabled = true;
-			LevelAsset->Objects.Add(MonsterSpawn);
+			LevelAsset->MonsterSpawns.Add(MonsterSpawn);
+			LevelAsset->RefreshLegacyObjectMirrorFromTyped();
 
 			return EditorActor->SelectObjectById(MonsterSpawnId);
 		}
