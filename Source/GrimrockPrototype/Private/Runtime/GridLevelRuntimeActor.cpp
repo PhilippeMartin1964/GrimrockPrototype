@@ -99,24 +99,6 @@ namespace
 		return ObjectData.ArchetypeId;
 	}
 
-	const FGridLevelObjectData* FindLevelObjectDataById(const UGridLevelAsset* LevelAsset, FGuid ObjectId)
-	{
-		if (!LevelAsset || !ObjectId.IsValid())
-		{
-			return nullptr;
-		}
-
-		for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-		{
-			if (ObjectData.ObjectId == ObjectId)
-			{
-				return &ObjectData;
-			}
-		}
-
-		return nullptr;
-	}
-
 	void GetWorldMonsters(const UWorld* World, TArray<AGridMonsterActor*>& OutMonsters)
 	{
 		OutMonsters.Reset();
@@ -410,7 +392,7 @@ bool AGridLevelRuntimeActor::ShouldSuppressStandardWallForEdge(int32 X, int32 Y,
 		return false;
 	}
 
-	for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+	for (const FGridLevelObjectData& ObjectData : LevelAsset->BuildCompatibilityObjectProjectionFromTyped())
 	{
 		if (ObjectData.CellX == X && ObjectData.CellY == Y && ObjectData.Edge == Edge)
 		{
@@ -432,7 +414,7 @@ bool AGridLevelRuntimeActor::ShouldHideCellFloor(int32 CellX, int32 CellY) const
 		return false;
 	}
 
-	for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+	for (const FGridLevelObjectData& ObjectData : LevelAsset->BuildCompatibilityObjectProjectionFromTyped())
 	{
 		if (ObjectData.CellX != CellX || ObjectData.CellY != CellY)
 		{
@@ -508,7 +490,6 @@ void AGridLevelRuntimeActor::RebuildLevel(EGridRuntimeRebuildMode RebuildMode)
 	}
 
 	LevelAsset->EnsureCellCount();
-	LevelAsset->RefreshLegacyObjectMirrorFromTyped();
 #if WITH_EDITOR
 	for (const UGridObjectArchetypeAsset* Archetype : ObjectArchetypes)
 	{
@@ -1031,7 +1012,7 @@ AGridWallLockActor* AGridLevelRuntimeActor::FindWallLockAtEdge(int32 FromCellX, 
 
 	const auto FindAtExactEdge = [this](int32 CellX, int32 CellY, EGridEdge CandidateEdge) -> AGridWallLockActor*
 	{
-		for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+		for (const FGridLevelObjectData& ObjectData : LevelAsset->BuildCompatibilityObjectProjectionFromTyped())
 		{
 			if (ObjectData.Type == EGridLevelObjectType::Receptacle && ObjectData.CellX == CellX && ObjectData.CellY == CellY &&
 				ObjectData.Edge == CandidateEdge)
@@ -1096,7 +1077,7 @@ bool AGridLevelRuntimeActor::FindTransitionAtCell(int32 CellX, int32 CellY, bool
 	int32 TransitionCountAtCell = 0;
 	bool bFoundUsableTransition = false;
 
-	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+	for (const FGridLevelObjectData& Obj : LevelAsset->BuildCompatibilityObjectProjectionFromTyped())
 	{
 		const FGridObjectTransitionParams& Transition = Obj.Behavior.Transition;
 		if (IsEffectivePitObject(Obj) || Obj.CellX != CellX || Obj.CellY != CellY || !Transition.bIsTransition)
@@ -1161,7 +1142,7 @@ bool AGridLevelRuntimeActor::ResolvePitLandingCell(
 
 	const auto ContainsOpenPit = [this, TargetLevelId, TargetLevelAsset](int32 X, int32 Y)
 	{
-		return TargetLevelAsset->Objects.ContainsByPredicate(
+		return TargetLevelAsset->BuildCompatibilityObjectProjectionFromTyped().ContainsByPredicate(
 			[this, TargetLevelId, X, Y](const FGridLevelObjectData& Candidate)
 			{
 				return Candidate.CellX == X && Candidate.CellY == Y && IsEffectivePitObject(Candidate) && IsPitOpenForLevel(TargetLevelId, Candidate);
@@ -1258,7 +1239,8 @@ bool AGridLevelRuntimeActor::IsPitOpen(FGuid PitObjectId) const
 		return PitActor->IsPitOpenVisualState();
 	}
 
-	const FGridLevelObjectData* PitObject = LevelAsset->Objects.FindByPredicate(
+	const TArray<FGridLevelObjectData> ObjectProjection = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	const FGridLevelObjectData* PitObject = ObjectProjection.FindByPredicate(
 		[this, &PitObjectId](const FGridLevelObjectData& Candidate)
 		{
 			return Candidate.ObjectId == PitObjectId && IsEffectivePitObject(Candidate);
@@ -1273,7 +1255,8 @@ bool AGridLevelRuntimeActor::SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmi
 		return false;
 	}
 
-	const FGridLevelObjectData* PitObject = LevelAsset->Objects.FindByPredicate(
+	const TArray<FGridLevelObjectData> ObjectProjection = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	const FGridLevelObjectData* PitObject = ObjectProjection.FindByPredicate(
 		[this, &PitObjectId](const FGridLevelObjectData& Candidate)
 		{
 			return Candidate.ObjectId == PitObjectId && IsEffectivePitObject(Candidate);
@@ -1381,7 +1364,8 @@ void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, b
 		return;
 	}
 
-	const FGridLevelObjectData* PitObject = LevelAsset->Objects.FindByPredicate(
+	const TArray<FGridLevelObjectData> ObjectProjection = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	const FGridLevelObjectData* PitObject = ObjectProjection.FindByPredicate(
 		[this, &PitObjectId](const FGridLevelObjectData& Candidate)
 		{
 			return Candidate.ObjectId == PitObjectId && IsEffectivePitObject(Candidate);
@@ -1420,7 +1404,7 @@ bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridOb
 		return false;
 	}
 
-	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+	for (const FGridLevelObjectData& Obj : LevelAsset->BuildCompatibilityObjectProjectionFromTyped())
 	{
 		if (!IsEffectivePitObject(Obj) || Obj.CellX != CellX || Obj.CellY != CellY)
 		{
@@ -1477,7 +1461,7 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 	FGridObjectTransitionParams Transition;
 	if (!FindOpenPitAtCell(CellX, CellY, Transition))
 	{
-		const bool bAnyPitAtCell = LevelAsset && LevelAsset->Objects.ContainsByPredicate(
+		const bool bAnyPitAtCell = LevelAsset && LevelAsset->BuildCompatibilityObjectProjectionFromTyped().ContainsByPredicate(
 			[this, CellX, CellY](const FGridLevelObjectData& Candidate)
 			{
 				return Candidate.CellX == CellX && Candidate.CellY == CellY && IsEffectivePitObject(Candidate);
@@ -1523,7 +1507,7 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 	const bool bPreferredWalkable = TargetLevelAsset->IsValidCoord(PreferredTargetX, PreferredTargetY) &&
 		TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).CellType != EGridCellType::Empty &&
 		!TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).bBlocksOccupancy;
-	const bool bPreferredContainsOpenPit = bPreferredWalkable && TargetLevelAsset->Objects.ContainsByPredicate(
+	const bool bPreferredContainsOpenPit = bPreferredWalkable && TargetLevelAsset->BuildCompatibilityObjectProjectionFromTyped().ContainsByPredicate(
 		[this, &Transition, PreferredTargetX, PreferredTargetY](const FGridLevelObjectData& Candidate)
 		{
 			return Candidate.CellX == PreferredTargetX && Candidate.CellY == PreferredTargetY && IsEffectivePitObject(Candidate) &&
@@ -1754,7 +1738,7 @@ UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition(F
 
 	if (LevelAsset)
 	{
-		for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+		for (const FGridLevelObjectData& ObjectData : LevelAsset->BuildCompatibilityObjectProjectionFromTyped())
 		{
 			if (ObjectData.ItemDefinitionAsset && ObjectData.ItemDefinitionAsset->ItemDefinitionId == ItemDefinitionId)
 			{

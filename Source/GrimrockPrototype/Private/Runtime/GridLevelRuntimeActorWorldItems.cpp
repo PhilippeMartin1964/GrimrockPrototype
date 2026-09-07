@@ -415,7 +415,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	const bool bPreferredWalkable = TargetLevelAsset->IsValidCoord(PreferredTargetX, PreferredTargetY) &&
 		TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).CellType != EGridCellType::Empty &&
 		!TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).bBlocksOccupancy;
-	const bool bPreferredContainsOpenPit = bPreferredWalkable && TargetLevelAsset->Objects.ContainsByPredicate(
+	const bool bPreferredContainsOpenPit = bPreferredWalkable && TargetLevelAsset->BuildCompatibilityObjectProjectionFromTyped().ContainsByPredicate(
 		[this, &Transition, PreferredTargetX, PreferredTargetY](const FGridLevelObjectData& Candidate)
 		{
 			return Candidate.CellX == PreferredTargetX && Candidate.CellY == PreferredTargetY && IsEffectivePitObject(Candidate) &&

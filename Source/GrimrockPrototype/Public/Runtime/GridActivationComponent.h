@@ -108,6 +108,8 @@ private:
 	bool ProcessTriggerEvent(const FGridLevelObjectData& TriggerData, bool bEntering);
 
 private:
+	/** WORLDOBJ-MIG09-E2B runtime-local DTO projection built only from typed LevelAsset placement arrays. */
+	TArray<FGridLevelObjectData> IndexedObjects;
 	TMap<FGuid, int32> ObjectIndexById;
 	TMultiMap<FGuid, int32> LinkIndexesBySource;
 	TMap<FGridEdgeKey, int32> InteractableObjectIndexByEdge;

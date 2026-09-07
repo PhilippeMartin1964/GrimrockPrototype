@@ -50,10 +50,10 @@ namespace
 			return false;
 		}
 
-		return RuntimeActor->LevelAsset->Objects.ContainsByPredicate(
-			[SpawnObjectId](const FGridLevelObjectData& ObjectData)
+		return RuntimeActor->LevelAsset->MonsterSpawns.ContainsByPredicate(
+			[SpawnObjectId](const FGridMonsterSpawnInstance& SpawnData)
 			{
-				return ObjectData.Type == EGridLevelObjectType::MonsterSpawn && ObjectData.ObjectId == SpawnObjectId;
+				return SpawnData.SpawnId == SpawnObjectId;
 			});
 	}
 

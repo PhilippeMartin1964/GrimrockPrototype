@@ -167,30 +167,42 @@ public:
 		RefreshLegacyObjectMirrorFromTyped();
 	}
 
-	/** Rebuilds the non-persistent E1 compatibility cache from typed source of truth. */
-	void RefreshLegacyObjectMirrorFromTyped()
+	/**
+	 * WORLDOBJ-MIG09-E2B transitional DTO projection built directly from typed authority.
+	 * Runtime consumers may use this value projection while E2C removes FGridLevelObjectData itself;
+	 * unlike Objects/GetObjectCompatibilityView(), it never reads or mutates the legacy cache.
+	 */
+	TArray<FGridLevelObjectData> BuildCompatibilityObjectProjectionFromTyped() const
 	{
-		Objects.Reset(GetTypedPlacementCount());
+		TArray<FGridLevelObjectData> Projection;
+		Projection.Reserve(GetTypedPlacementCount());
 		for (const FGridWorldObjectInstance& Instance : WorldObjectInstances)
 		{
-			Objects.Add(GridLevelPlacementCompatibility::ToLegacyWorldObject(Instance));
+			Projection.Add(GridLevelPlacementCompatibility::ToLegacyWorldObject(Instance));
 		}
 		for (const FGridLooseItemInstance& Instance : LooseItemInstances)
 		{
-			Objects.Add(GridLevelPlacementCompatibility::ToLegacyLooseItem(Instance));
+			Projection.Add(GridLevelPlacementCompatibility::ToLegacyLooseItem(Instance));
 		}
 		for (const FGridMonsterSpawnInstance& Spawn : MonsterSpawns)
 		{
-			Objects.Add(GridLevelPlacementCompatibility::ToLegacyMonsterSpawn(Spawn));
+			Projection.Add(GridLevelPlacementCompatibility::ToLegacyMonsterSpawn(Spawn));
 		}
 		for (const FGridItemSpawnInstance& Spawn : ItemSpawns)
 		{
-			Objects.Add(GridLevelPlacementCompatibility::ToLegacyItemSpawn(Spawn));
+			Projection.Add(GridLevelPlacementCompatibility::ToLegacyItemSpawn(Spawn));
 		}
 		for (const FGridLogicObjectInstance& Instance : LogicObjects)
 		{
-			Objects.Add(GridLevelPlacementCompatibility::ToLegacyLogicObject(Instance));
+			Projection.Add(GridLevelPlacementCompatibility::ToLegacyLogicObject(Instance));
 		}
+		return Projection;
+	}
+
+	/** Rebuilds the non-persistent E1 compatibility cache from typed source of truth. */
+	void RefreshLegacyObjectMirrorFromTyped()
+	{
+		Objects = BuildCompatibilityObjectProjectionFromTyped();
 	}
 
 	/** Transitional E1 read view. E2 removes it with FGridLevelObjectData. */

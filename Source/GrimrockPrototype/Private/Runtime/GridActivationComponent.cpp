@@ -147,6 +147,7 @@ void UGridActivationComponent::Initialize(AGridLevelRuntimeActor* InRuntime)
 void UGridActivationComponent::ResetRuntimeState()
 {
 	ActiveObjectIds.Reset();
+	IndexedObjects.Reset();
 	DeclinedStoryCompanionOfferKeys.Reset();
 	DispatchingSourceObjectIds.Reset();
 	RuntimeDispatchDepth = 0;
@@ -451,7 +452,7 @@ bool UGridActivationComponent::ExecuteLuaIssuedCommand(FGuid SourceObjectId, con
 		const FName RequestedLogicId(*TargetReference);
 		const FGridLevelObjectData* ResolvedObject = nullptr;
 		int32 MatchCount = 0;
-		for (const FGridLevelObjectData& Object : RuntimeActor->LevelAsset->Objects)
+		for (const FGridLevelObjectData& Object : IndexedObjects)
 		{
 			if (!Object.LogicId.IsNone() && Object.LogicId == RequestedLogicId)
 			{
@@ -1447,6 +1448,7 @@ void UGridActivationComponent::RegisterInitialObjectState(const FGridLevelObject
 
 void UGridActivationComponent::RebuildIndexes()
 {
+	IndexedObjects.Reset();
 	ObjectIndexById.Reset();
 	LinkIndexesBySource.Reset();
 	InteractableObjectIndexByEdge.Reset();
@@ -1460,7 +1462,8 @@ void UGridActivationComponent::RebuildIndexes()
 
 	RegisterCurrentLevelQuestDefinitions();
 
-	const TArray<FGridLevelObjectData>& Objects = RuntimeActor->LevelAsset->Objects;
+	IndexedObjects = RuntimeActor->LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	const TArray<FGridLevelObjectData>& Objects = IndexedObjects;
 
 	for (int32 Index = 0; Index < Objects.Num(); ++Index)
 	{
@@ -1501,12 +1504,7 @@ void UGridActivationComponent::RebuildIndexes()
 
 const FGridLevelObjectData* UGridActivationComponent::GetObjectByIndex(int32 ObjectIndex) const
 {
-	if (!RuntimeActor || !RuntimeActor->LevelAsset)
-	{
-		return nullptr;
-	}
-
-	return RuntimeActor->LevelAsset->Objects.IsValidIndex(ObjectIndex) ? &RuntimeActor->LevelAsset->Objects[ObjectIndex] : nullptr;
+	return IndexedObjects.IsValidIndex(ObjectIndex) ? &IndexedObjects[ObjectIndex] : nullptr;
 }
 
 bool UGridActivationComponent::ActivateReadableObject(const FGridLevelObjectData& ObjectData)
