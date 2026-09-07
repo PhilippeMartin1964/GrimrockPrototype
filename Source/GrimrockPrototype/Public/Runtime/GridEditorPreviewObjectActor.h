@@ -10,6 +10,7 @@ class UStaticMeshComponent;
 class USkeletalMeshComponent;
 class UGridMonsterDefinitionAsset;
 class UGridObjectArchetypeAsset;
+struct FGridMonsterSpawnInstance;
 
 UCLASS()
 class GRIMROCKPROTOTYPE_API AGridEditorPreviewObjectActor : public AActor
@@ -48,6 +49,10 @@ public:
 	/** MIG03 target entry point: renders StaticPart + MovingPart[0..1] from the same definition used by runtime. */
 	void InitializePreviewObjectFromArchetype(const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype);
 
+	/** E2B typed monster preview entry point. */
+	void InitializeMonsterPreviewObject(const FGridMonsterSpawnInstance& SpawnData, UGridMonsterDefinitionAsset* MonsterDefinition);
+
+	/** Temporary legacy overload retained until the remaining preview DTO paths are removed. */
 	void InitializeMonsterPreviewObject(const FGridLevelObjectData& ObjectData, UGridMonsterDefinitionAsset* MonsterDefinition);
 
 	UFUNCTION(BlueprintCallable, Category = "Preview")

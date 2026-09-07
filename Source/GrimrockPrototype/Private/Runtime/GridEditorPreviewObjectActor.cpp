@@ -5,6 +5,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
@@ -122,6 +123,39 @@ void AGridEditorPreviewObjectActor::InitializePreviewObjectFromArchetype(
 	ConfigurePart(MeshComponent, Archetype->StaticPart.Mesh.Get(), Archetype->StaticPart.LocalTransform);
 	ConfigurePart(MovingPart0MeshComponent, Archetype->MovingParts.Part0.Mesh.Get(), Archetype->MovingParts.Part0.LocalTransform);
 	ConfigurePart(MovingPart1MeshComponent, Archetype->MovingParts.Part1.Mesh.Get(), Archetype->MovingParts.Part1.LocalTransform);
+
+	bIsHovered = false;
+	bIsSelected = false;
+	RefreshStencilState();
+}
+
+void AGridEditorPreviewObjectActor::InitializeMonsterPreviewObject(
+	const FGridMonsterSpawnInstance& SpawnData, UGridMonsterDefinitionAsset* MonsterDefinition)
+{
+	ObjectId = SpawnData.SpawnId;
+	ObjectType = EGridLevelObjectType::MonsterSpawn;
+
+	ResetStaticPreviewComponents();
+
+	if (!SkeletalMeshComponent || !IsValid(MonsterDefinition))
+	{
+		return;
+	}
+
+	SkeletalMeshComponent->SetSkeletalMesh(MonsterDefinition->SkeletalMesh.LoadSynchronous());
+	SkeletalMeshComponent->SetRelativeLocation(MonsterDefinition->VisualOffset);
+	SkeletalMeshComponent->SetRelativeRotation(MonsterDefinition->VisualRotationOffset);
+	SkeletalMeshComponent->SetRelativeScale3D(MonsterDefinition->VisualScale);
+	if (MonsterDefinition->AnimationClass)
+	{
+		SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+		SkeletalMeshComponent->SetAnimInstanceClass(MonsterDefinition->AnimationClass.Get());
+	}
+	else
+	{
+		SkeletalMeshComponent->SetAnimInstanceClass(nullptr);
+	}
+	SkeletalMeshComponent->SetVisibility(true, true);
 
 	bIsHovered = false;
 	bIsSelected = false;

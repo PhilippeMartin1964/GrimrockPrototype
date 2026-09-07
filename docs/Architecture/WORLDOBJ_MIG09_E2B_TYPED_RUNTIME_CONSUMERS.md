@@ -38,7 +38,7 @@ Rapport :
 D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-175225
 ```
 
-### E2B — MonsterEncounter + Runtime Preview typed
+### E2B — MonsterEncounter + lecture Runtime Preview typée
 
 ```text
 Build                  : OK
@@ -53,6 +53,42 @@ Rapport :
 
 ```text
 D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-180920
+```
+
+### E2B — Diagnostics runtime / dungeon typed
+
+Après correction syntaxique minimale du namespace diagnostics :
+
+```text
+Build                  : OK
+Succeeded              : 33
+Succeeded with warnings: 1
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Rapport :
+
+```text
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-182641
+```
+
+### E2B — Monster Runtime typed
+
+```text
+Build                  : OK
+Succeeded              : 33
+Succeeded with warnings: 1
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Rapport :
+
+```text
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-184544
 ```
 
 ## Règle E2B
@@ -95,19 +131,35 @@ Les opérations suivantes ne parcourent plus `LevelAsset->Objects` :
 - résolution de l'ancre d'encounter ;
 - notification de mort d'un membre.
 
-Pendant cette sous-tranche uniquement, l'appel effectif au spawn et à la capture d'état construit encore un snapshot transitoire via :
+L'activation d'une vague appelle maintenant directement les signatures runtime `FGridMonsterSpawnInstance`. Le pont `GridLevelPlacementCompatibility::ToLegacyMonsterSpawn(...)` a disparu de `GridMonsterEncounterComponent`.
+
+## Bloc Monster Runtime — validé
+
+Le pipeline natif existe désormais pour :
 
 ```text
-GridLevelPlacementCompatibility::ToLegacyMonsterSpawn(...)
+ResolveMonsterSpawn(FGridMonsterSpawnInstance)
+GetMonsterSpawnTransform(FGridMonsterSpawnInstance)
+AddMonsterSpawnActor(FGridMonsterSpawnInstance)
+StoreMonsterPlacementState(FGridMonsterSpawnInstance)
+DespawnMonsterSpawnActor(FGridMonsterSpawnInstance)
 ```
 
-Ce snapshot n'est jamais stocké dans `UGridLevelAsset`. Il existe uniquement parce que `AGridLevelRuntimeActor::AddMonsterSpawnActor()` et `StoreMonsterPlacementState()` utilisent encore `FGridLevelObjectData`. Ces signatures disparaissent dans la prochaine tranche runtime monstre.
+Les données utilisées sont directement :
 
-## Bloc Runtime Preview — validé
+```text
+SpawnId
+MonsterDefinition
+CellX / CellY
+Facing
+EncounterGroupId
+```
 
-`UGridEditorPreviewComponent::RebuildPreviewObjects()` ne parcourt plus `LevelAsset->Objects`.
+Les anciennes surcharges `FGridLevelObjectData` restent temporairement uniquement pour les derniers appels de l'orchestrateur principal et du preview historique. Elles doivent disparaître avant la clôture E2B/E2C.
 
-Il lit explicitement :
+## Bloc Runtime Preview — candidat courant
+
+`UGridEditorPreviewComponent::RebuildPreviewObjects()` lit déjà explicitement :
 
 ```text
 WorldObjectInstances
@@ -117,11 +169,11 @@ ItemSpawns
 LogicObjects
 ```
 
-Puis il construit seulement le snapshot transitoire attendu par les fonctions de preview historiques. Le snapshot n'est ni sauvegardé ni réinjecté dans `UGridLevelAsset`.
+Le chemin `MonsterSpawns` est maintenant migré plus loin : il appelle directement `ResolveMonsterSpawn(FGridMonsterSpawnInstance)` et `GetMonsterSpawnTransform(FGridMonsterSpawnInstance)`, puis initialise le preview monstre avec `SpawnId` sans construire de `FGridLevelObjectData`.
 
-Cette étape garantit déjà que preview et runtime partent de la même autorité typée, avant suppression physique des wrappers `FGridLevelObjectData` en E2C.
+Les quatre autres catégories conservent encore leur projection de preview historique ; cette projection sera retirée avec le DTO legacy en E2C.
 
-## Bloc Diagnostics + Dungeon transitions — candidat courant
+## Bloc Diagnostics + Dungeon transitions — validé
 
 Les diagnostics runtime et les diagnostics de transitions du donjon lisent maintenant les collections typées natives.
 
@@ -143,19 +195,15 @@ Transition                  -> InstanceConfig.Transition
 Pit                         -> InstanceConfig.Pit
 ```
 
-Ces deux lecteurs ne dépendent plus de `UGridLevelAsset::Objects`.
-
 ## Suite E2B
 
-La suite migre :
+La suite migre l'orchestration de `AGridLevelRuntimeActor` et la persistence vers les structures typées natives, puis élimine les wrappers monstre legacy. Ensuite :
 
 ```text
-AGridLevelRuntimeActor / GridLevelRuntimeActorMonsters
-GridLevelRuntimeActorPersistence
 UGridActivationComponent
+Receptacle / WallLock / PitTrapdoor
+LooseItemInstances runtime
 ```
-
-Puis `Receptacle`, `WallLock` et `PitTrapdoor` sont alignés sur la frontière runtime native si leurs derniers appels dépendent encore du DTO legacy.
 
 ## Sortie E2B
 
@@ -164,11 +212,12 @@ Puis `Receptacle`, `WallLock` et `PitTrapdoor` sont alignés sur la frontière r
 [x] DoorSystem sur WorldObjectInstances
 [x] MonsterEncounter sur MonsterSpawns
 [x] Runtime Preview lit les cinq collections typées
+[x] Preview monstre utilise directement FGridMonsterSpawnInstance
 [x] Runtime diagnostics hors Objects
 [x] Dungeon transition diagnostics hors Objects
 [ ] LevelRuntimeActor sur collections typées
 [ ] LooseItemInstances utilisé par les items monde runtime
-[ ] MonsterSpawns utilisé par runtime monstre/persistence
+[~] MonsterSpawns utilisé par runtime monstre/persistence ; orchestration principale encore à migrer
 [ ] Activation hors DTO legacy
-[ ] 0 Failed sur Grimrock.WorldObjects
+[ ] 0 Failed sur Grimrock.WorldObjects pour le candidat courant
 ```

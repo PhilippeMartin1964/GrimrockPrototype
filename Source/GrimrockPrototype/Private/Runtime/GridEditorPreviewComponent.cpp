@@ -61,7 +61,10 @@ void UGridEditorPreviewComponent::RebuildPreviewObjects()
 	}
 	for (const FGridMonsterSpawnInstance& Spawn : RuntimeActor->LevelAsset->MonsterSpawns)
 	{
-		TryAddPreview(GridLevelPlacementCompatibility::ToLegacyMonsterSpawn(Spawn));
+		if (IsPreviewableMonsterSpawn(Spawn))
+		{
+			AddMonsterPreviewObject(Spawn);
+		}
 	}
 	for (const FGridItemSpawnInstance& Spawn : RuntimeActor->LevelAsset->ItemSpawns)
 	{
@@ -71,6 +74,57 @@ void UGridEditorPreviewComponent::RebuildPreviewObjects()
 	{
 		TryAddPreview(GridLevelPlacementCompatibility::ToLegacyLogicObject(Instance));
 	}
+}
+
+void UGridEditorPreviewComponent::AddMonsterPreviewObject(const FGridMonsterSpawnInstance& SpawnData)
+{
+	if (!RuntimeActor)
+	{
+		return;
+	}
+
+	TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass = RuntimeActor->EditorPreviewObjectActorClass
+		? RuntimeActor->EditorPreviewObjectActorClass
+		: AGridEditorPreviewObjectActor::StaticClass();
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	FTransform PlacementTransform;
+	UGridMonsterDefinitionAsset* MonsterDefinition = nullptr;
+	TSubclassOf<AGridMonsterActor> MonsterActorClass;
+	FString MonsterSpawnError;
+	if (!RuntimeActor->ResolveMonsterSpawn(SpawnData, MonsterDefinition, MonsterActorClass, MonsterSpawnError) ||
+		!RuntimeActor->GetMonsterSpawnTransform(SpawnData, PlacementTransform))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GridMonsterSpawn] Preview skipped SpawnId=%s Reason=%s"), *SpawnData.SpawnId.ToString(),
+			MonsterSpawnError.IsEmpty() ? TEXT("InvalidTransform") : *MonsterSpawnError);
+		return;
+	}
+	if (!MonsterDefinition || MonsterDefinition->SkeletalMesh.IsNull())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GridMonsterSpawn] Preview skipped SpawnId=%s Definition=%s Reason=MissingSkeletalMesh"),
+			*SpawnData.SpawnId.ToString(), MonsterDefinition ? *MonsterDefinition->MonsterId.ToString() : TEXT("None"));
+		return;
+	}
+
+	FActorSpawnParameters Params;
+	Params.Owner = RuntimeActor;
+	Params.ObjectFlags = RF_Transient;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AGridEditorPreviewObjectActor* PreviewActor = World->SpawnActor<AGridEditorPreviewObjectActor>(
+		PreviewClass, PlacementTransform.GetLocation(), PlacementTransform.GetRotation().Rotator(), Params);
+	if (!PreviewActor)
+	{
+		return;
+	}
+
+	PreviewActor->InitializeMonsterPreviewObject(SpawnData, MonsterDefinition);
+	SpawnedPreviewObjects.Add(PreviewActor);
 }
 
 void UGridEditorPreviewComponent::AddPreviewObject(const FGridLevelObjectData& ObjectData)
@@ -91,40 +145,20 @@ void UGridEditorPreviewComponent::AddPreviewObject(const FGridLevelObjectData& O
 		return;
 	}
 	FTransform PlacementTransform;
-	UGridMonsterDefinitionAsset* MonsterDefinition = nullptr;
-	TSubclassOf<AGridMonsterActor> MonsterActorClass;
-	FString MonsterSpawnError;
-	const bool bMonsterSpawn = ObjectData.Type == EGridLevelObjectType::MonsterSpawn;
-	if (bMonsterSpawn)
-	{
-		if (!RuntimeActor->ResolveMonsterSpawn(ObjectData, MonsterDefinition, MonsterActorClass, MonsterSpawnError) ||
-			!RuntimeActor->GetMonsterSpawnTransform(ObjectData, PlacementTransform))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[GridMonsterSpawn] Preview skipped SpawnId=%s Reason=%s"), *ObjectData.ObjectId.ToString(),
-				MonsterSpawnError.IsEmpty() ? TEXT("InvalidTransform") : *MonsterSpawnError);
-			return;
-		}
-		if (MonsterDefinition->SkeletalMesh.IsNull())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[GridMonsterSpawn] Preview skipped SpawnId=%s Definition=%s Reason=MissingSkeletalMesh"),
-				*ObjectData.ObjectId.ToString(), *MonsterDefinition->MonsterId.ToString());
-			return;
-		}
-	}
-	else if (!RuntimeActor->GetObjectPlacementTransform(ObjectData, PlacementTransform))
+	if (!RuntimeActor->GetObjectPlacementTransform(ObjectData, PlacementTransform))
 	{
 		return;
 	}
 
-	const UGridObjectArchetypeAsset* Archetype = bMonsterSpawn ? nullptr : RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId);
+	const UGridObjectArchetypeAsset* Archetype = RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId);
 	UStaticMesh* DirectItemMesh = nullptr;
-	if (!bMonsterSpawn && ObjectData.Type == EGridLevelObjectType::Item && ObjectData.ItemDefinitionAsset)
+	if (ObjectData.Type == EGridLevelObjectType::Item && ObjectData.ItemDefinitionAsset)
 	{
 		DirectItemMesh = ObjectData.ItemDefinitionAsset->WorldMesh.LoadSynchronous();
 	}
 
 	const bool bHasTargetComposition = Archetype && Archetype->HasAnyVisualPart();
-	if (!bMonsterSpawn && !DirectItemMesh && !bHasTargetComposition)
+	if (!DirectItemMesh && !bHasTargetComposition)
 	{
 		return;
 	}
@@ -143,11 +177,7 @@ void UGridEditorPreviewComponent::AddPreviewObject(const FGridLevelObjectData& O
 	{
 		return;
 	}
-	if (bMonsterSpawn)
-	{
-		PreviewActor->InitializeMonsterPreviewObject(ObjectData, MonsterDefinition);
-	}
-	else if (DirectItemMesh)
+	if (DirectItemMesh)
 	{
 		// WORLDOBJ-MIG05: preview the same WorldMesh used by the runtime item actor.
 		PreviewActor->InitializePreviewObject(ObjectData, DirectItemMesh);
@@ -213,6 +243,11 @@ void UGridEditorPreviewComponent::SetSelectedObject(FGuid ObjectId)
 	}
 }
 
+bool UGridEditorPreviewComponent::IsPreviewableMonsterSpawn(const FGridMonsterSpawnInstance& SpawnData) const
+{
+	return RuntimeActor && RuntimeActor->LevelAsset && SpawnData.bInitiallyEnabled && RuntimeActor->LevelAsset->IsValidCoord(SpawnData.CellX, SpawnData.CellY);
+}
+
 bool UGridEditorPreviewComponent::IsPreviewableObject(const FGridLevelObjectData& ObjectData) const
 {
 	if (!RuntimeActor || !RuntimeActor->LevelAsset)
@@ -226,10 +261,6 @@ bool UGridEditorPreviewComponent::IsPreviewableObject(const FGridLevelObjectData
 	if (!RuntimeActor->LevelAsset->IsValidCoord(ObjectData.CellX, ObjectData.CellY))
 	{
 		return false;
-	}
-	if (ObjectData.Type == EGridLevelObjectType::MonsterSpawn)
-	{
-		return true;
 	}
 
 	// WORLDOBJ-MIG05: a direct collectible is previewable without any world-object archetype.
