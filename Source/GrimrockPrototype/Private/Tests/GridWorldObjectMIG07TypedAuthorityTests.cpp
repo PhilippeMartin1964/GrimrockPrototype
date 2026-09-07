@@ -67,25 +67,26 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 	TestEqual(TEXT("Logic becomes one logic-object instance"), Level->LogicObjects.Num(), 1);
 	TestTrue(TEXT("Typed world-object ids use sparse behavior resolution"), Level->UsesSparseBehaviorOverrides(Door.ObjectId));
 
-	// Poison the old monolith. In typed-authority mode it is only a mirror and must
-	// never become the source of truth again.
+	// The legacy array is only a read mirror in typed-authority mode. Rebuild it
+	// explicitly from typed storage instead of asking a compatibility-view accessor.
 	Level->Objects.Reset();
-	const TArray<FGridLevelObjectData>& RestoredView = Level->GetObjectCompatibilityView();
-	TestEqual(TEXT("Compatibility view is rebuilt from typed storage"), RestoredView.Num(), 4);
+	Level->RefreshLegacyObjectMirrorFromTyped();
+	const TArray<FGridLevelObjectData>& RestoredView = Level->Objects;
+	TestEqual(TEXT("Legacy read mirror is rebuilt from typed storage"), RestoredView.Num(), 4);
 
 	const FGridLevelObjectData* RestoredDoor = RestoredView.FindByPredicate(
 		[&Door](const FGridLevelObjectData& Object)
 		{
 			return Object.ObjectId == Door.ObjectId;
 		});
-	TestNotNull(TEXT("Door survives typed -> legacy compatibility projection"), RestoredDoor);
+	TestNotNull(TEXT("Door survives typed -> legacy read projection"), RestoredDoor);
 	if (RestoredDoor)
 	{
 		TestEqual(TEXT("Door definition id comes from typed storage"), RestoredDoor->ArchetypeId, FName(TEXT("Door_MIG07B")));
 		TestEqual(TEXT("Door wall side comes from typed storage"), RestoredDoor->Edge, EGridEdge::East);
 		TestTrue(TEXT("Door transition remains sparse instance data"), RestoredDoor->Behavior.Transition.bIsTransition);
-		TestEqual(TEXT("Door transition target survives compatibility view"), RestoredDoor->Behavior.Transition.TargetLevelId, FName(TEXT("Target_A")));
-		TestTrue(TEXT("Door initial lock state survives compatibility view"), RestoredDoor->Behavior.Lock.bStartsUnlocked);
+		TestEqual(TEXT("Door transition target survives read projection"), RestoredDoor->Behavior.Transition.TargetLevelId, FName(TEXT("Target_A")));
+		TestTrue(TEXT("Door initial lock state survives read projection"), RestoredDoor->Behavior.Lock.bStartsUnlocked);
 	}
 
 	const FGridLevelObjectData* RestoredItem = RestoredView.FindByPredicate(
@@ -93,11 +94,11 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 		{
 			return Object.ObjectId == Item.ObjectId;
 		});
-	TestNotNull(TEXT("Loose item survives typed -> legacy compatibility projection"), RestoredItem);
+	TestNotNull(TEXT("Loose item survives typed -> legacy read projection"), RestoredItem);
 	if (RestoredItem)
 	{
 		TestTrue(TEXT("Loose item retains its single ItemDefinition"), RestoredItem->ItemDefinitionAsset == ItemDefinition);
-		TestEqual(TEXT("Loose item local yaw survives bridge"), RestoredItem->LocalYaw, 15.0f);
+		TestEqual(TEXT("Loose item local yaw survives projection"), RestoredItem->LocalYaw, 15.0f);
 	}
 
 	const FGridLevelObjectData* RestoredMonster = RestoredView.FindByPredicate(
@@ -105,7 +106,7 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 		{
 			return Object.ObjectId == Monster.ObjectId;
 		});
-	TestNotNull(TEXT("Monster spawn survives typed -> legacy compatibility projection"), RestoredMonster);
+	TestNotNull(TEXT("Monster spawn survives typed -> legacy read projection"), RestoredMonster);
 	if (RestoredMonster)
 	{
 		TestTrue(TEXT("Monster definition remains direct"), RestoredMonster->MonsterDefinitionAsset == MonsterDefinition);
@@ -113,11 +114,11 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 		TestEqual(TEXT("Monster yaw mirror is reconstructed"), RestoredMonster->LocalYaw, 270.0f);
 	}
 
-	// Mutate the typed source and verify that the next compatibility read follows it,
-	// proving that Objects is not an authority in typed mode.
+	// Mutate typed storage and rebuild the temporary read mirror explicitly.
 	Level->WorldObjectInstances[0].InstanceConfig.Transition.TargetLevelId = TEXT("Target_B");
 	Level->LooseItemInstances[0].LocalYaw = 42.0f;
-	const TArray<FGridLevelObjectData>& UpdatedView = Level->GetObjectCompatibilityView();
+	Level->RefreshLegacyObjectMirrorFromTyped();
+	const TArray<FGridLevelObjectData>& UpdatedView = Level->Objects;
 	RestoredDoor = UpdatedView.FindByPredicate(
 		[&Door](const FGridLevelObjectData& Object)
 		{
@@ -128,9 +129,9 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 		{
 			return Object.ObjectId == Item.ObjectId;
 		});
-	TestTrue(TEXT("Typed door update drives compatibility view"),
+	TestTrue(TEXT("Typed door update drives legacy read mirror"),
 		RestoredDoor && RestoredDoor->Behavior.Transition.TargetLevelId == FName(TEXT("Target_B")));
-	TestTrue(TEXT("Typed item update drives compatibility view"), RestoredItem && FMath::IsNearlyEqual(RestoredItem->LocalYaw, 42.0f));
+	TestTrue(TEXT("Typed item update drives legacy read mirror"), RestoredItem && FMath::IsNearlyEqual(RestoredItem->LocalYaw, 42.0f));
 
 	return true;
 }

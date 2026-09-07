@@ -35,27 +35,8 @@ void AGridLevelEditorActor::EnsureLevelReady()
 
 void AGridLevelEditorActor::RebuildPreview()
 {
-	// WORLDOBJ-MIG09-D2: the old UGridLevelAsset::CommitCompatibilityObjectEdit()
-	// write-through is no longer used by the Grid Editor. Most editor setters write
-	// through AddObject() before reaching this point. Keep one narrow staging fallback
-	// for the remaining pre-D3 editor paths, then rebuild the read-only mirror.
-	if (LevelAsset && LevelAsset->bTypedPlacementStorageAuthoritative)
-	{
-		if (LastSelectedObjectId.IsValid())
-		{
-			if (const FGridLevelObjectData* StagedObject = LevelAsset->Objects.FindByPredicate(
-					[this](const FGridLevelObjectData& Object)
-					{
-						return Object.ObjectId == LastSelectedObjectId;
-					}))
-			{
-				const FGridLevelObjectData StagedSnapshot = *StagedObject;
-				LevelAsset->AddObject(StagedSnapshot);
-			}
-		}
-		LevelAsset->RefreshLegacyObjectMirrorFromTyped();
-	}
-
+	// WORLDOBJ-MIG09-D3: preview rebuild is read-only with respect to level data.
+	// Editor mutations must already have reached typed authority before this call.
 	ResolvePreviewRuntimeActor();
 	if (PreviewRuntimeActor)
 	{
@@ -184,7 +165,7 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal(bool bSameTypeOnly
 
 	TArray<FGuid> RemovedIds;
 	const EGridLevelObjectType FilterType = PaintObjectType;
-	const TArray<FGridLevelObjectData>& Objects = LevelAsset->GetObjectCompatibilityView();
+	const TArray<FGridLevelObjectData>& Objects = LevelAsset->Objects;
 	for (int32 Index = Objects.Num() - 1; Index >= 0; --Index)
 	{
 		const FGridLevelObjectData& Obj = Objects[Index];
@@ -244,7 +225,7 @@ int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal(EGrid
 	}
 
 	TArray<FGuid> RemovedIds;
-	const TArray<FGridLevelObjectData>& Objects = LevelAsset->GetObjectCompatibilityView();
+	const TArray<FGridLevelObjectData>& Objects = LevelAsset->Objects;
 	for (const FGridLevelObjectData& ExistingObject : Objects)
 	{
 		if (ExistingObject.Edge == EGridEdge::None)

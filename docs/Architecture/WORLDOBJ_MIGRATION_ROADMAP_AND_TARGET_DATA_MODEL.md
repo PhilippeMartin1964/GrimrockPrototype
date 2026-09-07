@@ -22,7 +22,7 @@ En particulier :
 - un monstre possède une seule `UGridMonsterDefinitionAsset` ;
 - le niveau référence les définitions, il ne les duplique pas ;
 - preview et runtime consomment les mêmes données ;
-- les Data Assets ne portent pas d’état runtime mutable ;
+- les Data Assets ne portent pas d'état runtime mutable ;
 - `UGridLevelAsset` reste la source de vérité spatiale ;
 - le SaveGame ne copie pas meshes, sons ou paramètres permanents.
 
@@ -57,14 +57,14 @@ Runtime State / SaveGame
 
 ## 2. État actuel
 
-Dernière révision validée avant MIG09-D2 :
+Dernière révision validée :
 
 ```text
-ef2968dbb6bd2e665ee992f88c1816fb42b0f3c1
-WORLDOBJ-MIG09 remove sparse behavior migration marker
+ddbbe4d2d286aabec40c8cfd79f6ed407d16f587
+WORLDOBJ-MIG09 detach Grid Editor writes from compatibility commit
 ```
 
-Validation locale UE5.5.4 de MIG09-D1 :
+Validation locale UE5.5.4 de MIG09-D2 :
 
 ```text
 Succeeded              : 35
@@ -76,7 +76,7 @@ Process exit code       : 0
 Rapport :
 
 ```text
-D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-134249
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-154104
 ```
 
 État des jalons :
@@ -91,13 +91,13 @@ D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-134249
 | MIG05 | ✅ intégré | Collectible direct : `UGridItemDefinitionAsset`. |
 | MIG06 | ✅ intégré | Definition + overrides strictement instance-owned. |
 | MIG07 | ✅ intégré | Collections de placements typées. |
-| MIG08 | ✅ intégré | Migration/réenregistrement des assets et autorité typée. |
-| MIG09-A/B/C/D1 | ✅ validés | Purges legacy successives jusqu’au marqueur sparse. |
-| MIG09-D2 | 🟨 candidat | Détacher les écritures Grid Editor du compatibility commit. |
-| MIG09-D3/E | ⬜ à faire | Supprimer compatibility view puis modèle monolithique. |
+| MIG08 | ✅ intégré | Migration/réenregistrement et autorité typée. |
+| MIG09-A/B/C/D1/D2 | ✅ validés | Purges legacy successives jusqu'au write-through Grid Editor. |
+| MIG09-D3 | 🟨 candidat | Preview en lecture seule et confinement du miroir legacy hors des chemins Editor courants. |
+| MIG09-E | ⬜ à faire | Supprimer toute la projection `Objects / FGridLevelObjectData`. |
 | MIG10 | ⬜ à faire | Renommage final `UGridObjectArchetypeAsset` → `UGridWorldObjectDefinitionAsset`. |
 
-MIG10 ne commence pas avant la suppression complète de MIG09-D/E.
+MIG10 ne commence pas avant la suppression complète de MIG09-E.
 
 ## 3. Modèle spatial cible
 
@@ -114,15 +114,11 @@ V = seconde tangente ; verticale sur Wall
 N = normale à la surface
 ```
 
-Interprétation :
-
 ```text
 Floor   : N = hauteur au-dessus du sol
 Wall    : N = profondeur / inset
 Ceiling : N = distance sous le plafond
 ```
-
-La frontière topologique reste distincte de la surface de placement.
 
 ## 4. Composition visuelle
 
@@ -138,7 +134,7 @@ WorldObject Definition
 
 `Motion` : Type, Axis, Pivot, Amount, Duration.
 
-Après MIG09-C, ce bloc est l’unique autorité géométrique et temporelle des mécanismes. Les règles gameplay telles que `ButtonHoldTime`, poids de plaque ou chaîne de porte restent séparées.
+Après MIG09-C, ce bloc est l'unique autorité géométrique et temporelle des mécanismes.
 
 ## 5. Definition / Instance / Runtime
 
@@ -151,19 +147,19 @@ Effective runtime object
 
 ### Definition
 
-Possède identité, placement autorisé, spatial permanent, visual/motion, interaction générique, audio/VFX, lumière, classe runtime et comportement partagé.
+Identité, placement autorisé, spatial permanent, visual/motion, interaction générique, audio/VFX, lumière, classe runtime et comportement partagé.
 
 ### Instance
 
-Possède uniquement ce qui varie avec le placement : `InstanceId`, référence Definition, cellule/côté, état initial, Tag/Notes, destination, contenu initial et overrides explicitement nécessaires.
+`InstanceId`, référence Definition, cellule/côté, état initial, Tag/Notes, destination, contenu initial et overrides explicitement nécessaires.
 
 ### Runtime / Save
 
-Possède les états mutables et deltas de persistance, pas les données permanentes de Definition.
+États mutables et deltas de persistance uniquement.
 
 ## 6. Placements typés du niveau
 
-La cible est :
+La cible reste :
 
 ```text
 UGridLevelAsset
@@ -174,8 +170,6 @@ UGridLevelAsset
 └── LogicObjects
 ```
 
-`LooseItemInstance` représente un item déjà présent ; `ItemSpawn` représente un générateur.
-
 ## 7. MIG09 — purge finale
 
 ### Validé
@@ -185,44 +179,35 @@ MIG09-A       autorité Definition sans marqueur sparse              ✅
 MIG09-B*      identité Item legacy                                  ✅
 MIG09-C       mécanismes + animation spécialisée                    ✅
 MIG09-D1      SparseBehaviorOverrideObjectIds                       ✅
+MIG09-D2      écritures Grid Editor hors compatibility commit       ✅
 ```
 
-### MIG09-D2 — écritures Grid Editor
+### MIG09-D3 — confinement du miroir
 
 Candidat courant.
 
 Objectifs :
 
-- supprimer physiquement `SetSparseBehaviorOverrides()` ;
-- ne plus appeler `CommitCompatibilityObjectEdit()` depuis production/tests ;
-- faire écrire les setters Grid Editor directement vers l’autorité typée via `AddObject(snapshot)` ;
-- préserver les champs typed-only lors d’un update ;
-- conserver seulement un fallback de staging étroit dans `RebuildPreview()` pour les derniers chemins pré-D3 ;
-- migrer le test `MIG07.TypedLifecycle` hors de l’ancien write-through.
+- `RebuildPreview()` devient strictement read-only ;
+- supprimer son fallback de write-back ;
+- ne plus appeler `GetObjectCompatibilityView()` dans les chemins Editor courants ;
+- rendre les rafraîchissements du miroir explicites dans les rares tests qui modifient directement les collections typées ;
+- confiner toute la projection legacy au coeur `UGridLevelAsset` et au service de migration.
 
-`CommitCompatibilityObjectEdit()` reste temporairement déclaré/implémenté mais doit être sans call site actif. Sa suppression physique appartient à D3 avec la compatibility view.
+D3 ne crée aucune nouvelle façade. Les primitives legacy restantes sont supprimées ensemble en MIG09-E.
 
-### MIG09-D3 — compatibility view
+### MIG09-E — suppression de la projection legacy
 
-Après validation D2 :
-
-```text
-supprimer fallback RebuildPreview
-supprimer CommitCompatibilityObjectEdit
-supprimer RefreshLegacyObjectMirrorFromTyped
-supprimer GetObjectCompatibilityView
-migrer les derniers lecteurs vers les types natifs
-supprimer GridLevelPlacementCompatibility quand inutilisé
-```
-
-### MIG09-E — modèle monolithique historique
-
-Dernière purge :
+Une seule tranche substantielle doit supprimer :
 
 ```text
 UGridLevelAsset::Objects
 FGridLevelObjectData
 bTypedPlacementStorageAuthoritative
+CommitCompatibilityObjectEdit()
+RefreshLegacyObjectMirrorFromTyped()
+GetObjectCompatibilityView()
+GridLevelPlacementCompatibility
 projection legacy -> typed
 ```
 
@@ -245,8 +230,6 @@ ArchetypeId              -> DefinitionId / WorldObjectDefinitionId
 ObjectArchetypes         -> WorldObjectDefinitions
 FindObjectArchetypeById  -> FindWorldObjectDefinition...
 ```
-
-Ce renommage reste volontairement dernier pour ne pas mélanger schéma sérialisé et renommage de classe.
 
 ## 9. Ownership cible
 
@@ -287,5 +270,3 @@ Ce renommage reste volontairement dernier pour ne pas mélanger schéma sériali
 - `docs/Architecture/WORLDOBJ_MIG09_LEGACY_PURGE.md`
 - `docs/Architecture/WORLDOBJ_MIG04_GENERIC_MOTION.md`
 - `docs/Design/12_GRID_OBJECT_INSTANCE_BEHAVIOR_RULE.md`
-
-Les anciennes notes restent historiques ; elles ne doivent pas servir à réintroduire un champ ou une autorité supprimés par la migration.

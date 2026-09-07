@@ -125,7 +125,7 @@ bool FGridEditorWorldObjectMIG07TypedWriteThroughTest::RunTest(const FString& Pa
 
 	EditorActor->RemoveObjectsAtSelection();
 	TestEqual(TEXT("Erase path removes typed loose item"), Level->LooseItemInstances.Num(), 0);
-	TestFalse(TEXT("Removed item disappears from compatibility mirror"), Level->GetObjectCompatibilityView().ContainsByPredicate(
+	TestFalse(TEXT("Removed item disappears from legacy read mirror"), Level->Objects.ContainsByPredicate(
 		[&Item](const FGridLevelObjectData& Object)
 		{
 			return Object.ObjectId == Item.ObjectId;
