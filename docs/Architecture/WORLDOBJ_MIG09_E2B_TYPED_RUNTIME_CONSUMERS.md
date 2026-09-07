@@ -1,6 +1,13 @@
 # WORLDOBJ-MIG09-E2B — Runtime Typed Consumers
 
-Statut : **E2B-FINAL implémenté, validation locale requise** — 2026-09-07.
+Statut : **E2B-FINAL validé localement** — 2026-09-07.
+
+Commit validé :
+
+```text
+2f817837e93df9848bf3d96485858f407c6a933e
+WORLDOBJ-MIG09 finish E2B typed runtime consumers
+```
 
 ## But de la tranche
 
@@ -65,16 +72,52 @@ suppression des derniers wrappers DTO temporaires
 [x] MonsterSpawns utilisé par runtime monstre/persistence
 [x] Activation indexée depuis l'autorité typée
 [x] RebuildLevel ne rafraîchit plus Objects pour les consommateurs runtime
-[ ] build UE5.5.4 du candidat E2B-FINAL validé localement
-[ ] Grimrock.WorldObjects validé localement sans échec
+[x] build UE5.5.4 du candidat E2B-FINAL validé localement
+[x] Grimrock.WorldObjects validé localement sans échec ni warning Automation
 ```
 
-## Validation locale attendue
+## Validation locale du 2026-09-07
 
-```powershell
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Grimrock.WorldObjects"
+### `Grimrock.WorldObjects`
+
+```text
+Build                  : OK
+Succeeded              : 34
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
 ```
 
-Le statut ne passe à **validé** qu'après retour du rapport TD04 local.
+Rapport :
+
+```text
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-221214
+```
+
+### `Grimrock.Monsters.MON13.3.LifecyclePersistence`
+
+```text
+Build                  : OK
+Succeeded              : 0
+Succeeded with warnings: 1
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Rapport :
+
+```text
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-221251
+```
+
+Le warning de `LifecyclePersistence` n'est pas détaillé dans la sortie concise fournie. Il n'est donc pas interprété ni masqué ici. Le test est néanmoins validé par le harness : aucun échec et code processus 0.
+
+Le warning UBT `Visual Studio 2022 compiler is not a preferred version` reste distinct des résultats Automation et n'affecte pas la validation E2B.
+
+## Conclusion
+
+**WORLDOBJ-MIG09-E2B est validé.**
+
+La tranche suivante est `WORLDOBJ-MIG09-E2C` : migration du Grid Editor et des fixtures/tests restants, puis suppression physique de `Objects`, `FGridLevelObjectData` et des projections legacy.
