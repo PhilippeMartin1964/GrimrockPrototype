@@ -25,17 +25,18 @@ bool FGridWorldObjectMIG09SparseMarkerPurgeTest::RunTest(const FString& Paramete
 		LevelAssetClass->FindPropertyByName(TEXT("SparseBehaviorOverrideObjectIds")));
 
 	UGridLevelAsset* Level = NewObject<UGridLevelAsset>();
-	FGridLevelObjectData WorldObject;
-	WorldObject.ObjectId = FGuid::NewGuid();
-	WorldObject.Type = EGridLevelObjectType::Button;
-	Level->Objects.Add(WorldObject);
-	TestTrue(TEXT("Sparse behavior is structural for a reusable world object"), Level->UsesSparseBehaviorOverrides(WorldObject.ObjectId));
 
-	FGridLevelObjectData LooseItem;
-	LooseItem.ObjectId = FGuid::NewGuid();
-	LooseItem.Type = EGridLevelObjectType::Item;
-	Level->Objects.Add(LooseItem);
-	TestFalse(TEXT("Loose items are not reusable world-object sparse behavior instances"), Level->UsesSparseBehaviorOverrides(LooseItem.ObjectId));
+	FGridWorldObjectInstance& WorldObject = Level->WorldObjectInstances.AddDefaulted_GetRef();
+	WorldObject.InstanceId = FGuid::NewGuid();
+	WorldObject.WorldObjectDefinitionId = TEXT("MIG09_SparseButton");
+	WorldObject.Type = EGridLevelObjectType::Button;
+	TestTrue(TEXT("Sparse behavior is structural for a reusable world object"), Level->UsesSparseBehaviorOverrides(WorldObject.InstanceId));
+
+	FGridLooseItemInstance& LooseItem = Level->LooseItemInstances.AddDefaulted_GetRef();
+	LooseItem.InstanceId = FGuid::NewGuid();
+	TestFalse(TEXT("Loose items are not reusable world-object sparse behavior instances"), Level->UsesSparseBehaviorOverrides(LooseItem.InstanceId));
+
+	TestEqual(TEXT("MIG09-E1 does not require the transient compatibility cache for sparse-behavior classification"), Level->Objects.Num(), 0);
 
 	return true;
 }
