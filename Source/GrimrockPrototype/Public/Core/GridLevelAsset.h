@@ -50,38 +50,32 @@ public:
 	FIntPoint GetStartCell() const;
 
 	/**
-	 * WORLDOBJ-MIG07 legacy bridge. Runtime/editor consumers still read this array
-	 * while MIG09-D/E migrate the remaining call sites. MIG09-E removes it.
+	 * WORLDOBJ-MIG09-E1 transient compatibility cache only.
+	 * It is never serialized and is rebuilt from the five typed placement arrays.
+	 * MIG09-E2 removes this cache together with FGridLevelObjectData.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Legacy")
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Gameplay|Legacy")
 	TArray<FGridLevelObjectData> Objects;
 
-	/** WORLDOBJ-MIG07 target: reusable world-object placements only. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
+	/** Persistent reusable world-object placements. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements")
 	TArray<FGridWorldObjectInstance> WorldObjectInstances;
 
-	/** WORLDOBJ-MIG07 target: collectibles physically present in the level. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
+	/** Collectibles physically present in the level. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements")
 	TArray<FGridLooseItemInstance> LooseItemInstances;
 
-	/** WORLDOBJ-MIG07 target: monster spawn placements/generators. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
+	/** Monster spawn placements/generators. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements")
 	TArray<FGridMonsterSpawnInstance> MonsterSpawns;
 
-	/** WORLDOBJ-MIG07 target: item generators, distinct from loose items. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
+	/** Item generators, distinct from loose items. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements")
 	TArray<FGridItemSpawnInstance> ItemSpawns;
 
-	/** WORLDOBJ-MIG07 target: data-only logic/narrative objects. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
+	/** Data-only logic/narrative objects. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements")
 	TArray<FGridLogicObjectInstance> LogicObjects;
-
-	/**
-	 * WORLDOBJ-MIG07-B authority marker. True means the five typed collections
-	 * above are authoritative and Objects is only a compatibility read mirror.
-	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay|Placements|MIG07")
-	bool bTypedPlacementStorageAuthoritative = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
 	TArray<FGridObjectLink> Links;
@@ -111,43 +105,27 @@ public:
 	void EnsureObjectIds();
 
 	/**
-	 * Dormant MIG07-C compatibility implementation. MIG09-D2 removes every editor/
-	 * test caller; MIG09-D3 physically deletes this symbol with the compatibility view.
+	 * Dormant compatibility writer. No production/editor caller remains after MIG09-D2.
+	 * MIG09-E2 removes it together with the transient DTO.
 	 */
 	bool CommitCompatibilityObjectEdit(const FGuid& ObjectId);
 
 	/** Sparse behavior is structural for reusable world-object placements. */
 	bool UsesSparseBehaviorOverrides(const FGuid& ObjectId) const
 	{
-		if (!ObjectId.IsValid())
-		{
-			return false;
-		}
-
-		if (bTypedPlacementStorageAuthoritative)
-		{
-			return WorldObjectInstances.ContainsByPredicate(
-				[&ObjectId](const FGridWorldObjectInstance& Instance)
-				{
-					return Instance.InstanceId == ObjectId;
-				});
-		}
-
-		return Objects.ContainsByPredicate(
-			[&ObjectId](const FGridLevelObjectData& Object)
+		return ObjectId.IsValid() && WorldObjectInstances.ContainsByPredicate(
+			[&ObjectId](const FGridWorldObjectInstance& Instance)
 			{
-				return Object.ObjectId == ObjectId &&
-					GridLevelPlacementConversion::GetBucket(Object.Type) == EGridLevelPlacementBucket::WorldObject;
+				return Instance.InstanceId == ObjectId;
 			});
 	}
 
-	/** Number of placements already represented by the MIG07 typed schema. */
 	int32 GetTypedPlacementCount() const
 	{
 		return WorldObjectInstances.Num() + LooseItemInstances.Num() + MonsterSpawns.Num() + ItemSpawns.Num() + LogicObjects.Num();
 	}
 
-	/** Builds typed placement storage from a pre-MIG08 legacy asset. */
+	/** Historical MIG08 conversion entry point kept only for migration characterization tests until E2. */
 	void RebuildTypedPlacementProjectionFromLegacy()
 	{
 		WorldObjectInstances.Reset();
@@ -182,22 +160,16 @@ public:
 		}
 	}
 
-	/** Explicit legacy-to-typed cut-over helper used by migration/tests. */
+	/** Historical MIG08 test helper; typed storage is otherwise always authoritative in E1. */
 	void EnableTypedPlacementStorageFromLegacy()
 	{
 		RebuildTypedPlacementProjectionFromLegacy();
-		bTypedPlacementStorageAuthoritative = true;
 		RefreshLegacyObjectMirrorFromTyped();
 	}
 
-	/** Rebuilds the historical read mirror from the typed source of truth. */
+	/** Rebuilds the non-persistent E1 compatibility cache from typed source of truth. */
 	void RefreshLegacyObjectMirrorFromTyped()
 	{
-		if (!bTypedPlacementStorageAuthoritative)
-		{
-			return;
-		}
-
 		Objects.Reset(GetTypedPlacementCount());
 		for (const FGridWorldObjectInstance& Instance : WorldObjectInstances)
 		{
@@ -221,13 +193,10 @@ public:
 		}
 	}
 
-	/** Transitional read-only compatibility view. */
+	/** Transitional E1 read view. E2 removes it with FGridLevelObjectData. */
 	const TArray<FGridLevelObjectData>& GetObjectCompatibilityView() const
 	{
-		if (bTypedPlacementStorageAuthoritative)
-		{
-			const_cast<UGridLevelAsset*>(this)->RefreshLegacyObjectMirrorFromTyped();
-		}
+		const_cast<UGridLevelAsset*>(this)->RefreshLegacyObjectMirrorFromTyped();
 		return Objects;
 	}
 

@@ -37,20 +37,16 @@ namespace
 
 	void NormalizeMonsterSpawnData(FGridLevelObjectData& ObjectData)
 	{
-		if (ObjectData.Type != EGridLevelObjectType::MonsterSpawn)
+		if (ObjectData.Type == EGridLevelObjectType::MonsterSpawn)
 		{
-			return;
+			ObjectData.LocalYaw = GetYawForFacing(ObjectData.InitialFacing);
 		}
-
-		// InitialFacing is authoritative; LocalYaw is retained only so the
-		// existing generic editor preview keeps the same orientation.
-		ObjectData.LocalYaw = GetYawForFacing(ObjectData.InitialFacing);
 	}
 
 	FString GetMonsterSpawnLabel(const FGridLevelObjectData& Spawn)
 	{
 		return Spawn.ObjectId.IsValid() ? Spawn.ObjectId.ToString(EGuidFormats::DigitsWithHyphens)
-										: FString::Printf(TEXT("at (%d,%d)"), Spawn.CellX, Spawn.CellY);
+			: FString::Printf(TEXT("at (%d,%d)"), Spawn.CellX, Spawn.CellY);
 	}
 
 	bool RemoveTypedPlacementById(UGridLevelAsset& Level, const FGuid& ObjectId)
@@ -198,24 +194,14 @@ void UGridLevelAsset::PostLoad()
 {
 	Super::PostLoad();
 
-	if (bTypedPlacementStorageAuthoritative)
-	{
-		// WORLDOBJ-MIG07-C: a migrated asset never trusts its serialized legacy
-		// mirror. Rebuild it immediately from the typed source of truth.
-		RefreshLegacyObjectMirrorFromTyped();
-		return;
-	}
-
-	for (FGridLevelObjectData& ObjectData : Objects)
-	{
-		NormalizeMonsterSpawnData(ObjectData);
-	}
+	// WORLDOBJ-MIG09-E1: typed collections are now the unconditional persistent
+	// authority. Objects is transient and is rebuilt only for the remaining E2 readers.
+	RefreshLegacyObjectMirrorFromTyped();
 }
 
 void UGridLevelAsset::EnsureCellCount()
 {
 	const int32 Expected = FMath::Max(1, Width) * FMath::Max(1, Height);
-
 	if (Cells.Num() != Expected)
 	{
 		Cells.SetNum(Expected);
@@ -273,7 +259,6 @@ void UGridLevelAsset::ClearLevel()
 #endif
 
 	EnsureCellCount();
-
 	for (FGridLevelCellData& Cell : Cells)
 	{
 		Cell = FGridLevelCellData();
@@ -299,28 +284,18 @@ FGuid UGridLevelAsset::AddObject(const FGridLevelObjectData& NewObject)
 #endif
 
 	FGridLevelObjectData Obj = NewObject;
-
 	if (!Obj.ObjectId.IsValid())
 	{
 		Obj.ObjectId = FGuid::NewGuid();
 	}
 
 	NormalizeMonsterSpawnData(Obj);
-
-	if (bTypedPlacementStorageAuthoritative)
-	{
-		UpsertTypedPlacementFromCompatibility(*this, Obj);
-		RefreshLegacyObjectMirrorFromTyped();
-	}
-	else
-	{
-		Objects.Add(Obj);
-	}
+	UpsertTypedPlacementFromCompatibility(*this, Obj);
+	RefreshLegacyObjectMirrorFromTyped();
 
 #if WITH_EDITOR
 	MarkPackageDirty();
 #endif
-
 	return Obj.ObjectId;
 }
 
@@ -330,36 +305,16 @@ bool UGridLevelAsset::RemoveObjectById(const FGuid& ObjectId)
 	Modify();
 #endif
 
-	if (bTypedPlacementStorageAuthoritative)
+	if (!RemoveTypedPlacementById(*this, ObjectId))
 	{
-		if (!RemoveTypedPlacementById(*this, ObjectId))
-		{
-			return false;
-		}
-		RefreshLegacyObjectMirrorFromTyped();
+		return false;
 	}
-	else
-	{
-		const int32 Index = Objects.IndexOfByPredicate(
-			[&](const FGridLevelObjectData& Obj)
-			{
-				return Obj.ObjectId == ObjectId;
-			});
-
-		if (Index == INDEX_NONE)
-		{
-			return false;
-		}
-
-		Objects.RemoveAt(Index);
-	}
-
+	RefreshLegacyObjectMirrorFromTyped();
 	RemoveLinksForObject(ObjectId);
 
 #if WITH_EDITOR
 	MarkPackageDirty();
 #endif
-
 	return true;
 }
 
@@ -378,57 +333,42 @@ void UGridLevelAsset::EnsureObjectIds()
 	Modify();
 #endif
 
-	if (bTypedPlacementStorageAuthoritative)
+	for (FGridWorldObjectInstance& Instance : WorldObjectInstances)
 	{
-		for (FGridWorldObjectInstance& Instance : WorldObjectInstances)
+		if (!Instance.InstanceId.IsValid())
 		{
-			if (!Instance.InstanceId.IsValid())
-			{
-				Instance.InstanceId = FGuid::NewGuid();
-			}
-		}
-		for (FGridLooseItemInstance& Instance : LooseItemInstances)
-		{
-			if (!Instance.InstanceId.IsValid())
-			{
-				Instance.InstanceId = FGuid::NewGuid();
-			}
-		}
-		for (FGridMonsterSpawnInstance& Spawn : MonsterSpawns)
-		{
-			if (!Spawn.SpawnId.IsValid())
-			{
-				Spawn.SpawnId = FGuid::NewGuid();
-			}
-		}
-		for (FGridItemSpawnInstance& Spawn : ItemSpawns)
-		{
-			if (!Spawn.SpawnId.IsValid())
-			{
-				Spawn.SpawnId = FGuid::NewGuid();
-			}
-		}
-		for (FGridLogicObjectInstance& Instance : LogicObjects)
-		{
-			if (!Instance.InstanceId.IsValid())
-			{
-				Instance.InstanceId = FGuid::NewGuid();
-			}
-		}
-		RefreshLegacyObjectMirrorFromTyped();
-	}
-	else
-	{
-		for (FGridLevelObjectData& Obj : Objects)
-		{
-			if (!Obj.ObjectId.IsValid())
-			{
-				Obj.ObjectId = FGuid::NewGuid();
-			}
-
-			NormalizeMonsterSpawnData(Obj);
+			Instance.InstanceId = FGuid::NewGuid();
 		}
 	}
+	for (FGridLooseItemInstance& Instance : LooseItemInstances)
+	{
+		if (!Instance.InstanceId.IsValid())
+		{
+			Instance.InstanceId = FGuid::NewGuid();
+		}
+	}
+	for (FGridMonsterSpawnInstance& Spawn : MonsterSpawns)
+	{
+		if (!Spawn.SpawnId.IsValid())
+		{
+			Spawn.SpawnId = FGuid::NewGuid();
+		}
+	}
+	for (FGridItemSpawnInstance& Spawn : ItemSpawns)
+	{
+		if (!Spawn.SpawnId.IsValid())
+		{
+			Spawn.SpawnId = FGuid::NewGuid();
+		}
+	}
+	for (FGridLogicObjectInstance& Instance : LogicObjects)
+	{
+		if (!Instance.InstanceId.IsValid())
+		{
+			Instance.InstanceId = FGuid::NewGuid();
+		}
+	}
+	RefreshLegacyObjectMirrorFromTyped();
 
 #if WITH_EDITOR
 	MarkPackageDirty();
@@ -437,10 +377,6 @@ void UGridLevelAsset::EnsureObjectIds()
 
 bool UGridLevelAsset::CommitCompatibilityObjectEdit(const FGuid& ObjectId)
 {
-	if (!bTypedPlacementStorageAuthoritative)
-	{
-		return true;
-	}
 	if (!ObjectId.IsValid())
 	{
 		return false;
@@ -459,6 +395,7 @@ bool UGridLevelAsset::CommitCompatibilityObjectEdit(const FGuid& ObjectId)
 	FGridLevelObjectData EditedSnapshot = *StoredObject;
 	NormalizeMonsterSpawnData(EditedSnapshot);
 	UpsertTypedPlacementFromCompatibility(*this, EditedSnapshot);
+	RefreshLegacyObjectMirrorFromTyped();
 	return true;
 }
 
@@ -534,21 +471,18 @@ bool UGridLevelAsset::ValidateMonsterSpawns(TArray<FString>& OutErrors) const
 		{
 			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s is cell-centered and requires Edge=None."), *SpawnLabel));
 		}
-
 		if (!IsValidMonsterSpawnFacing(Spawn.InitialFacing))
 		{
 			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s requires a cardinal InitialFacing."), *SpawnLabel));
 		}
-
 		if (!IsValidMonsterSpawnInitialState(Spawn.InitialMonsterState))
 		{
 			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s requires InitialMonsterState Idle or Dormant."), *SpawnLabel));
 		}
-
 		if (Spawn.PatrolMode != EGridMonsterPatrolMode::None && Spawn.PatrolWaypoints.Num() < 2)
 		{
-			OutErrors.Add(FString::Printf(
-				TEXT("MonsterSpawn %s patrol mode %s requires at least two waypoints."), *SpawnLabel, *UEnum::GetValueAsString(Spawn.PatrolMode)));
+			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s patrol mode %s requires at least two waypoints."), *SpawnLabel,
+				*UEnum::GetValueAsString(Spawn.PatrolMode)));
 		}
 
 		for (int32 WaypointIndex = 0; WaypointIndex < Spawn.PatrolWaypoints.Num(); ++WaypointIndex)
@@ -571,21 +505,21 @@ bool UGridLevelAsset::ValidateMonsterSpawns(TArray<FString>& OutErrors) const
 					const FGridLevelCellData& WaypointCell = Cells[WaypointCellIndex];
 					if (WaypointCell.CellType == EGridCellType::Empty || WaypointCell.bBlocksOccupancy)
 					{
-						OutErrors.Add(FString::Printf(
-							TEXT("MonsterSpawn %s patrol waypoint %d must use a non-empty cell that allows occupancy."), *SpawnLabel, WaypointIndex));
+						OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s patrol waypoint %d must use a non-empty cell that allows occupancy."), *SpawnLabel,
+							WaypointIndex));
 					}
 				}
 			}
 
 			if (!IsValidPatrolWaypointFacing(Waypoint.Facing))
 			{
-				OutErrors.Add(
-					FString::Printf(TEXT("MonsterSpawn %s patrol waypoint %d requires Facing=None or a cardinal direction."), *SpawnLabel, WaypointIndex));
+				OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s patrol waypoint %d requires Facing=None or a cardinal direction."), *SpawnLabel,
+					WaypointIndex));
 			}
 			if (!FMath::IsFinite(Waypoint.WaitSeconds) || Waypoint.WaitSeconds < 0.0f)
 			{
-				OutErrors.Add(
-					FString::Printf(TEXT("MonsterSpawn %s patrol waypoint %d requires a finite non-negative WaitSeconds."), *SpawnLabel, WaypointIndex));
+				OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s patrol waypoint %d requires a finite non-negative WaitSeconds."), *SpawnLabel,
+					WaypointIndex));
 			}
 		}
 
@@ -599,8 +533,8 @@ bool UGridLevelAsset::ValidateMonsterSpawns(TArray<FString>& OutErrors) const
 		}
 		if (!Spawn.EncounterGroupId.IsNone() && Spawn.EncounterWaveIndex > 0 && Spawn.bInitiallyEnabled)
 		{
-			OutErrors.Add(FString::Printf(
-				TEXT("MonsterSpawn %s belongs to future encounter wave %d and must be disabled at start."), *SpawnLabel, Spawn.EncounterWaveIndex));
+			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s belongs to future encounter wave %d and must be disabled at start."), *SpawnLabel,
+				Spawn.EncounterWaveIndex));
 		}
 		if (!Spawn.EncounterGroupId.IsNone() && Spawn.EncounterWaveIndex >= 0 && IsValidCoord(Spawn.CellX, Spawn.CellY))
 		{
@@ -621,7 +555,6 @@ bool UGridLevelAsset::ValidateMonsterSpawns(TArray<FString>& OutErrors) const
 		const UGridMonsterDefinitionAsset* Definition = Spawn.MonsterDefinitionAsset;
 		const FName AssetDefinitionId = Definition ? Definition->MonsterId : NAME_None;
 		const FName ResolvedDefinitionId = !AssetDefinitionId.IsNone() ? AssetDefinitionId : Spawn.MonsterDefinitionId;
-
 		if (ResolvedDefinitionId.IsNone())
 		{
 			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s requires MonsterDefinitionAsset or MonsterDefinitionId."), *SpawnLabel));
@@ -632,10 +565,9 @@ bool UGridLevelAsset::ValidateMonsterSpawns(TArray<FString>& OutErrors) const
 			FString DefinitionError;
 			if (!Definition->ValidateDefinition(DefinitionError))
 			{
-				OutErrors.Add(FString::Printf(
-					TEXT("MonsterSpawn %s references invalid MonsterDefinition '%s': %s"), *SpawnLabel, *GetNameSafe(Definition), *DefinitionError));
+				OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s references invalid MonsterDefinition '%s': %s"), *SpawnLabel, *GetNameSafe(Definition),
+					*DefinitionError));
 			}
-
 			if (!Spawn.MonsterDefinitionId.IsNone() && Spawn.MonsterDefinitionId != AssetDefinitionId)
 			{
 				OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s stores MonsterDefinitionId '%s' but its asset resolves to '%s'."), *SpawnLabel,

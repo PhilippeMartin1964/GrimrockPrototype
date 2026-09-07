@@ -1,12 +1,18 @@
 # WORLDOBJ-MIG09 — Purge des compatibilités legacy
 
-Statut : **MIG09-A à MIG09-D2 validés ; MIG09-D3 candidat ; MIG09-E à faire**.
+Statut : **MIG09-A à MIG09-D validés ; MIG09-E1 candidat ; MIG09-E2 à faire ; MIG10 après MIG09**.
 
 Date de mise à jour : 2026-09-07.
 
-## 1. But
+## 1. Référence et règle
 
-MIG09 supprime physiquement les ponts temporaires introduits pendant MIG00 à MIG08.
+Référence architecturale prioritaire :
+
+```text
+docs/Architecture/Maps/Grimrock_MindMap_Architecture_Cible_v2_XMind.md
+```
+
+Règle de migration :
 
 ```text
 une donnée cible existe
@@ -15,10 +21,12 @@ une donnée cible existe
         -> un test empêche sa réapparition
 ```
 
-Référence architecturale prioritaire :
+Le contrat cible reste :
 
 ```text
-docs/Architecture/Maps/Grimrock_MindMap_Architecture_Cible_v2_XMind.md
+Definition
++ instance typée minimale
++ runtime/save delta
 ```
 
 ## 2. État validé
@@ -27,11 +35,12 @@ docs/Architecture/Maps/Grimrock_MindMap_Architecture_Cible_v2_XMind.md
 |---|---|---|
 | MIG09-A | ✅ | Autorité Definition sans marqueur sparse. |
 | MIG09-B* | ✅ | Identité Item legacy purgée. |
-| MIG09-C | ✅ | Initializers mécanismes et animation spécialisée purgés ; `MovingParts[].Motion` reste l'autorité visuelle. |
-| MIG09-D1 | ✅ | `SparseBehaviorOverrideObjectIds` supprimé ; le caractère sparse est structurel. |
-| MIG09-D2 | ✅ | Les écritures principales du Grid Editor ne dépendent plus de `CommitCompatibilityObjectEdit()`. `SetSparseBehaviorOverrides()` est supprimé. |
+| MIG09-C | ✅ | Initializers mécanismes et animation spécialisée purgés ; `MovingParts[].Motion` est l'autorité visuelle. |
+| MIG09-D1 | ✅ | `SparseBehaviorOverrideObjectIds` supprimé. |
+| MIG09-D2 | ✅ | Les écritures principales du Grid Editor ne dépendent plus de `CommitCompatibilityObjectEdit()`. |
+| MIG09-D3 | ✅ | `RebuildPreview()` est read-only ; le Grid Editor n'effectue plus de write-back implicite du miroir. |
 
-Validation locale de MIG09-D2 :
+Validation locale MIG09-D3 :
 
 ```text
 Build                  : OK
@@ -45,108 +54,44 @@ Process exit code       : 0
 Rapport :
 
 ```text
-D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-154104
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-155940
 ```
 
-Le warning Visual Studio 2022 sur la version du compilateur préférée reste un warning UBT distinct du résultat Automation.
+Le warning de version du compilateur Visual Studio 2022 est un warning UBT distinct du résultat Automation.
 
-## 3. Contrat Definition / Instance
+## 3. Audit d'entrée MIG09-E
+
+L'audit du `master` validé `23f94e8369ba5ff469345ceef1e672563d0bcc40` a montré que `FGridLevelObjectData` n'est pas seulement le stockage historique de `UGridLevelAsset` : le type est encore utilisé comme DTO transitoire par de nombreux acteurs, composants, outils Editor et tests.
+
+Le code search GitHub retourne **154 fichiers source** contenant encore `FGridLevelObjectData` au début de MIG09-E, dont notamment :
+
+- 23 fichiers Public ;
+- 24 fichiers Runtime Private ;
+- 43 fichiers de tests runtime ;
+- le reste dans l'Editor et ses tests.
+
+Supprimer le type par alias ou macro masquerait le problème et violerait la règle « aucun legacy juste au cas où ».
+
+MIG09-E est donc découpé en **deux macro-tranches**, sans micro-commits :
 
 ```text
-Definition.DefaultBehavior
-        +
-InstanceConfig strictement propre au placement
-        +
-Runtime/Save delta mutable
-        =
-comportement effectif
+MIG09-E1  supprimer l'autorité persistante monolithique
+MIG09-E2  supprimer physiquement le DTO FGridLevelObjectData et ses projections
 ```
 
-Une instance ne recopie ni mesh, ni géométrie d'animation, ni règle permanente de la définition.
-
-## 4. MIG09-D2 — résultat
-
-Le Grid Editor ne dépend plus du write-through historique :
-
-```text
-Objects mutable
-  -> CommitCompatibilityObjectEdit()
-  -> collections typées
-```
-
-Les principaux setters construisent un snapshot temporaire puis écrivent l'autorité via :
-
-```text
-ApplyGridEditorObjectSnapshotToAuthority(...)
-        -> UGridLevelAsset::AddObject(snapshot)
-        -> collection typée concernée
-```
-
-Les champs typed-only sont préservés pendant l'update, notamment :
-
-- `FGridWorldObjectInstance::LocalTransformOverride` ;
-- `FGridLooseItemInstance::Quantity` ;
-- `FGridLooseItemInstance::LocalOffset` ;
-- `FGridItemSpawnInstance::Quantity`.
-
-`CommitCompatibilityObjectEdit()` reste encore présent dans le coeur uniquement, mais sans call site Editor/test voulu.
-
-## 5. MIG09-D3 — confinement du miroir legacy
+## 4. MIG09-E1 — Typed Authority Only
 
 État : **candidat**.
 
-D3 supprime le dernier comportement d'écriture implicite du Grid Editor :
+### 4.1. Autorité persistante
+
+Le marqueur suivant est supprimé physiquement :
 
 ```text
-RebuildPreview()
-        -> aucune mutation de LevelAsset
-```
-
-Le fallback D2 qui recopiait un snapshot sélectionné pendant `RebuildPreview()` est supprimé. Le preview devient strictement consommateur.
-
-Les chemins Editor suivants ne passent plus par `GetObjectCompatibilityView()` :
-
-- suppression d'objets à la sélection ;
-- détection des conflits de frontière ;
-- test d'autorité typée MIG07 ;
-- test de write-through Editor MIG07.
-
-Ces consommateurs lisent le miroir `Objects` déjà maintenu par les opérations de niveau. Lorsqu'un test modifie directement une collection typée, il appelle explicitement `RefreshLegacyObjectMirrorFromTyped()` avant de lire le miroir ; il n'existe donc plus d'accesseur qui masque un rafraîchissement implicite.
-
-### Pourquoi les primitives core restent jusqu'à MIG09-E
-
-Les éléments suivants sont désormais confinés au coeur `UGridLevelAsset` et au service de migration MIG08 :
-
-```text
-CommitCompatibilityObjectEdit()
-RefreshLegacyObjectMirrorFromTyped()
-GetObjectCompatibilityView()
-GridLevelPlacementCompatibility
-Objects
-FGridLevelObjectData
 bTypedPlacementStorageAuthoritative
 ```
 
-Ils forment une seule couche de projection legacy. Les supprimer ensemble en MIG09-E est plus sûr et plus simple que de recréer une façade temporaire entre D3 et E.
-
-Aucun code Editor de preview ne doit désormais utiliser cette couche pour écrire.
-
-## 6. MIG09-E — purge finale du modèle historique
-
-MIG09-E supprimera en une tranche substantielle :
-
-```text
-UGridLevelAsset::Objects
-FGridLevelObjectData
-bTypedPlacementStorageAuthoritative
-CommitCompatibilityObjectEdit()
-RefreshLegacyObjectMirrorFromTyped()
-GetObjectCompatibilityView()
-GridLevelPlacementCompatibility
-projection legacy -> typed
-```
-
-À la sortie de MIG09-E, l'authoring du niveau repose uniquement sur :
+Il n'existe plus deux modes de stockage possibles. Les seules données persistantes de placement sont :
 
 ```text
 WorldObjectInstances
@@ -156,20 +101,125 @@ ItemSpawns
 LogicObjects
 ```
 
-## 7. Ordre opérationnel
+`UsesSparseBehaviorOverrides()` consulte directement `WorldObjectInstances`.
+
+### 4.2. `Objects` n'est plus persistant
+
+Pendant E1 uniquement, le champ :
 
 ```text
-MIG09-A       autorité Definition sans marqueur sparse              ✅
-MIG09-B*      purge identité Item legacy                            ✅
-MIG09-C       purge mécanismes + animation spécialisée              ✅
-MIG09-D1      supprimer SparseBehaviorOverrideObjectIds             ✅
-MIG09-D2      détacher les écritures du compatibility commit        ✅
-MIG09-D3      rendre le preview/read Editor indépendant du helper   ⏳ candidat
-MIG09-E       supprimer toute la projection legacy core             ⬜
-MIG10         renommage WorldObjectDefinition + clôture             ⬜
+UGridLevelAsset::Objects
 ```
 
-## 8. Validation de D3
+reste présent pour les lecteurs E2 non encore migrés, mais devient :
+
+```text
+UPROPERTY(Transient)
+```
+
+Il n'est donc plus une donnée d'authoring sérialisée. `PostLoad()` le reconstruit depuis les collections typées, qui sont l'unique autorité persistante.
+
+Aucune écriture actuelle ne doit prendre `Objects` comme source de vérité.
+
+### 4.3. Lifecycle du LevelAsset
+
+Les opérations courantes sont désormais toujours typées :
+
+```text
+AddObject(snapshot transitoire)
+        -> collection typée
+        -> cache E1 reconstruit
+
+RemoveObjectById
+        -> collection typée
+
+EnsureObjectIds
+        -> collections typées
+
+ClearLevel
+        -> collections typées
+```
+
+Le snapshot `FGridLevelObjectData` reste provisoirement accepté par `AddObject()` uniquement parce que E2 doit migrer ses nombreux callers ; il ne redevient jamais persistent.
+
+### 4.4. Retrait de l'outillage MIG08 actif
+
+MIG08 a déjà rempli son rôle et les assets courants ont été migrés/validés. E1 supprime l'outillage Editor actif devenu historique :
+
+```text
+GridWorldObjectMIG08MigrationService
+GridWorldObjectMIG08Commandlet
+GridEditorWorldObjectMIG08MigrationTests
+```
+
+Les notes MIG08 restent de la documentation historique, pas une API active.
+
+### 4.5. Tests de garde
+
+`Grimrock.WorldObjects.MIG07.TypedLifecycleSchema` vérifie désormais :
+
+```text
+bTypedPlacementStorageAuthoritative absent
+Objects encore présent pendant E1
+Objects porte CPF_Transient
+```
+
+`Grimrock.WorldObjects.MIG07.TypedAuthoritySchema` vérifie l'absence du marqueur et la présence des cinq collections typées.
+
+## 5. MIG09-E2 — suppression physique du DTO legacy
+
+Après validation de E1, E2 doit supprimer en une macro-tranche :
+
+```text
+UGridLevelAsset::Objects
+FGridLevelObjectData
+CommitCompatibilityObjectEdit()
+RefreshLegacyObjectMirrorFromTyped()
+GetObjectCompatibilityView()
+RebuildTypedPlacementProjectionFromLegacy()
+EnableTypedPlacementStorageFromLegacy()
+GridLevelPlacementCompatibility.h
+GridLevelPlacementConversion::To*
+```
+
+Les acteurs runtime recevront les structures natives adaptées :
+
+```text
+FGridWorldObjectInstance
+FGridLooseItemInstance
+FGridMonsterSpawnInstance
+FGridItemSpawnInstance
+FGridLogicObjectInstance
+```
+
+Si un payload runtime résolu est réellement nécessaire, il doit représenter **explicitement** la couche Runtime et ne doit jamais être un alias de `FGridLevelObjectData`, ni être stocké dans `UGridLevelAsset`.
+
+Le Grid Editor doit de son côté éditer les placements typés, pas un snapshot monolithique reconstitué.
+
+## 6. Sortie MIG09
+
+MIG09 est terminé uniquement lorsque :
+
+```text
+[ ] aucun Objects sérialisé ou transitoire
+[ ] aucun FGridLevelObjectData
+[ ] aucun marqueur d'autorité
+[ ] aucune projection legacy <-> typed
+[ ] runtime sur structures natives / payload runtime légitime
+[ ] Editor sur placements typés
+[ ] tests sans fixtures legacy actives
+[ ] Grimrock.WorldObjects : 0 Failed
+```
+
+Ensuite seulement :
+
+```text
+MIG10
+UGridObjectArchetypeAsset
+        -> UGridWorldObjectDefinitionAsset
+```
+
+## 7. Validation E1
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
@@ -180,22 +230,10 @@ MIG10         renommage WorldObjectDefinition + clôture             ⬜
 Critères :
 
 ```text
-[ ] build GrimrockPrototypeEditor OK
-[ ] Grimrock.WorldObjects : 0 Failed
-[ ] RebuildPreview ne modifie plus LevelAsset
-[ ] suppression Editor conserve l'autorité typée
-[ ] MIG07.TypedAuthorityBridge reste vert
-[ ] MIG07.EditorTypedWriteThrough reste vert
-```
-
-## 9. Règle de non-régression
-
-Aucun nouveau marqueur, miroir mutable d'autorité ou write-through implicite ne doit être introduit.
-
-Le contrat final reste :
-
-```text
-Definition
-+ instance typée
-+ runtime delta
+[ ] Development Editor build OK
+[ ] 0 Failed
+[ ] Process exit code 0
+[ ] bTypedPlacementStorageAuthoritative absent de la réflexion
+[ ] Objects = CPF_Transient
+[ ] TypedLifecycle / TypedAuthority verts
 ```

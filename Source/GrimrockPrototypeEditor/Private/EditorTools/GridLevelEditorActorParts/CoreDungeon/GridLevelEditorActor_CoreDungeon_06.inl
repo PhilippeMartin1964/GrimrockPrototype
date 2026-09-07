@@ -32,7 +32,6 @@ NewLevelAsset->LooseItemInstances.Reset();
 NewLevelAsset->MonsterSpawns.Reset();
 NewLevelAsset->ItemSpawns.Reset();
 NewLevelAsset->LogicObjects.Reset();
-NewLevelAsset->bTypedPlacementStorageAuthoritative = true;
 NewLevelAsset->Links.Reset();
 NewLevelAsset->StartCellX = 1;
 NewLevelAsset->StartCellY = 1;

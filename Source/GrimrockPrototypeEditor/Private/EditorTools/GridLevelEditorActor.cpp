@@ -9,23 +9,8 @@ namespace
 			return false;
 		}
 
-		if (LevelAsset->bTypedPlacementStorageAuthoritative)
-		{
-			return LevelAsset->AddObject(EditedObject) == EditedObject.ObjectId;
-		}
-
-		FGridLevelObjectData* LegacyObject = LevelAsset->Objects.FindByPredicate(
-			[&EditedObject](const FGridLevelObjectData& Object)
-			{
-				return Object.ObjectId == EditedObject.ObjectId;
-			});
-		if (!LegacyObject)
-		{
-			return false;
-		}
-
-		*LegacyObject = EditedObject;
-		return true;
+		// WORLDOBJ-MIG09-E1: typed placement collections are always authoritative.
+		return LevelAsset->AddObject(EditedObject) == EditedObject.ObjectId;
 	}
 }
 

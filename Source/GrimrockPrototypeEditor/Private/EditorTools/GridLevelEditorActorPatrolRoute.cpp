@@ -56,7 +56,7 @@ namespace
 
 	void CommitPatrolEdit(UGridLevelAsset* LevelAsset, const FGuid& ObjectId)
 	{
-		if (!LevelAsset || !LevelAsset->bTypedPlacementStorageAuthoritative || !ObjectId.IsValid())
+		if (!LevelAsset || !ObjectId.IsValid())
 		{
 			return;
 		}
@@ -247,8 +247,7 @@ bool AGridLevelEditorActor::ClearSelectedMonsterPatrolRoute()
 bool AGridLevelEditorActor::MoveSelectedPatrolWaypoint(int32 IndexDelta)
 {
 	FGridLevelObjectData* Obj = FindSelectedObjectMutable();
-	if (!LevelAsset || !Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn || !Obj->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex) ||
-		IndexDelta == 0)
+	if (!LevelAsset || !Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn || !Obj->PatrolWaypoints.IsValidIndex(SelectedPatrolWaypointIndex) || IndexDelta == 0)
 	{
 		return false;
 	}

@@ -4,6 +4,7 @@
 
 #include "Core/GridLevelAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGridWorldObjectMIG07TypedLifecycleTest,
@@ -41,7 +42,7 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 	Level->Objects.Add(Item);
 
 	Level->EnableTypedPlacementStorageFromLegacy();
-	TestTrue(TEXT("Typed storage is authoritative after explicit cut-over"), Level->bTypedPlacementStorageAuthoritative);
+	TestEqual(TEXT("Explicit historical conversion creates two typed placements"), Level->GetTypedPlacementCount(), 2);
 	TestEqual(TEXT("Door projects to one world-object instance"), Level->WorldObjectInstances.Num(), 1);
 	TestEqual(TEXT("Item projects to one loose-item instance"), Level->LooseItemInstances.Num(), 1);
 	if (Level->WorldObjectInstances.Num() != 1 || Level->LooseItemInstances.Num() != 1)
@@ -49,8 +50,6 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	// Add data that cannot be represented by FGridLevelObjectData. Direct typed
-	// snapshot updates must preserve these typed-only values.
 	FGridWorldObjectInstance& TypedDoor = Level->WorldObjectInstances[0];
 	TypedDoor.bHasLocalTransformOverride = true;
 	TypedDoor.LocalTransformOverride = FTransform(FRotator(11.0f, 5.0f, 7.0f), FVector(1.0f, 2.0f, 3.0f), FVector(1.2f, 1.0f, 0.8f));
@@ -70,8 +69,8 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 		{
 			return Object.ObjectId == Item.ObjectId;
 		});
-	TestNotNull(TEXT("Door compatibility read view exists"), DoorMirror);
-	TestNotNull(TEXT("Item compatibility read view exists"), ItemMirror);
+	TestNotNull(TEXT("Door transient read view exists"), DoorMirror);
+	TestNotNull(TEXT("Item transient read view exists"), ItemMirror);
 	if (!DoorMirror || !ItemMirror)
 	{
 		return false;
@@ -89,7 +88,7 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 		{
 			return Object.ObjectId == Item.ObjectId;
 		});
-	TestNotNull(TEXT("Item read view is rebuilt after direct typed update"), ItemMirror);
+	TestNotNull(TEXT("Item transient view is rebuilt after typed update"), ItemMirror);
 	if (!ItemMirror)
 	{
 		return false;
@@ -122,7 +121,7 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 	const FGuid AddedItemId = Level->AddObject(AddedItem);
 	TestTrue(TEXT("Typed AddObject creates stable id"), AddedItemId.IsValid());
 	TestEqual(TEXT("Typed AddObject writes loose-item collection"), Level->LooseItemInstances.Num(), 2);
-	TestEqual(TEXT("Compatibility mirror follows typed AddObject"), Level->Objects.Num(), 3);
+	TestEqual(TEXT("Transient read cache follows typed AddObject"), Level->Objects.Num(), 3);
 
 	FGridObjectLink Link;
 	Link.SourceObjectId = Door.ObjectId;
@@ -139,13 +138,12 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("EnsureObjectIds repairs typed logic id"), Level->LogicObjects.Last().InstanceId.IsValid());
 
 	Level->ClearLevel();
-	TestTrue(TEXT("ClearLevel preserves typed-authority mode"), Level->bTypedPlacementStorageAuthoritative);
 	TestEqual(TEXT("ClearLevel clears world objects"), Level->WorldObjectInstances.Num(), 0);
 	TestEqual(TEXT("ClearLevel clears loose items"), Level->LooseItemInstances.Num(), 0);
 	TestEqual(TEXT("ClearLevel clears monster spawns"), Level->MonsterSpawns.Num(), 0);
 	TestEqual(TEXT("ClearLevel clears item spawns"), Level->ItemSpawns.Num(), 0);
 	TestEqual(TEXT("ClearLevel clears logic objects"), Level->LogicObjects.Num(), 0);
-	TestEqual(TEXT("ClearLevel clears compatibility mirror"), Level->Objects.Num(), 0);
+	TestEqual(TEXT("ClearLevel clears transient read cache"), Level->Objects.Num(), 0);
 
 	return true;
 }
@@ -158,8 +156,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FGridWorldObjectMIG07TypedLifecycleSchemaTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	TestNotNull(TEXT("Typed placement authority remains reflected"),
-		UGridLevelAsset::StaticClass()->FindPropertyByName(TEXT("bTypedPlacementStorageAuthoritative")));
+	const UClass* LevelClass = UGridLevelAsset::StaticClass();
+	TestNull(TEXT("MIG09-E1 removes the serialized authority marker"), LevelClass->FindPropertyByName(TEXT("bTypedPlacementStorageAuthoritative")));
+
+	const FProperty* ObjectsProperty = LevelClass->FindPropertyByName(TEXT("Objects"));
+	TestNotNull(TEXT("E1 transient object cache remains until E2"), ObjectsProperty);
+	if (ObjectsProperty)
+	{
+		TestTrue(TEXT("Objects is no longer persistent authoring data"), ObjectsProperty->HasAnyPropertyFlags(CPF_Transient));
+	}
 	return true;
 }
 

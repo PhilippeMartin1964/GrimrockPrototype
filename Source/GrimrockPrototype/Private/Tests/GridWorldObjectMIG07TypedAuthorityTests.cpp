@@ -59,27 +59,24 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 	Level->Objects.Add(Logic);
 
 	Level->EnableTypedPlacementStorageFromLegacy();
-	TestTrue(TEXT("Typed placement storage becomes authoritative only through explicit cut-over"), Level->bTypedPlacementStorageAuthoritative);
-	TestEqual(TEXT("Four typed placements are created"), Level->GetTypedPlacementCount(), 4);
+	TestEqual(TEXT("Historical fixture conversion creates four typed placements"), Level->GetTypedPlacementCount(), 4);
 	TestEqual(TEXT("Door becomes one world-object instance"), Level->WorldObjectInstances.Num(), 1);
 	TestEqual(TEXT("Item becomes one loose-item instance"), Level->LooseItemInstances.Num(), 1);
 	TestEqual(TEXT("Monster becomes one monster-spawn instance"), Level->MonsterSpawns.Num(), 1);
 	TestEqual(TEXT("Logic becomes one logic-object instance"), Level->LogicObjects.Num(), 1);
 	TestTrue(TEXT("Typed world-object ids use sparse behavior resolution"), Level->UsesSparseBehaviorOverrides(Door.ObjectId));
 
-	// The legacy array is only a read mirror in typed-authority mode. Rebuild it
-	// explicitly from typed storage instead of asking a compatibility-view accessor.
 	Level->Objects.Reset();
 	Level->RefreshLegacyObjectMirrorFromTyped();
 	const TArray<FGridLevelObjectData>& RestoredView = Level->Objects;
-	TestEqual(TEXT("Legacy read mirror is rebuilt from typed storage"), RestoredView.Num(), 4);
+	TestEqual(TEXT("Transient read cache is rebuilt from typed storage"), RestoredView.Num(), 4);
 
 	const FGridLevelObjectData* RestoredDoor = RestoredView.FindByPredicate(
 		[&Door](const FGridLevelObjectData& Object)
 		{
 			return Object.ObjectId == Door.ObjectId;
 		});
-	TestNotNull(TEXT("Door survives typed -> legacy read projection"), RestoredDoor);
+	TestNotNull(TEXT("Door survives typed -> transient read projection"), RestoredDoor);
 	if (RestoredDoor)
 	{
 		TestEqual(TEXT("Door definition id comes from typed storage"), RestoredDoor->ArchetypeId, FName(TEXT("Door_MIG07B")));
@@ -94,7 +91,7 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 		{
 			return Object.ObjectId == Item.ObjectId;
 		});
-	TestNotNull(TEXT("Loose item survives typed -> legacy read projection"), RestoredItem);
+	TestNotNull(TEXT("Loose item survives typed -> transient read projection"), RestoredItem);
 	if (RestoredItem)
 	{
 		TestTrue(TEXT("Loose item retains its single ItemDefinition"), RestoredItem->ItemDefinitionAsset == ItemDefinition);
@@ -106,15 +103,14 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 		{
 			return Object.ObjectId == Monster.ObjectId;
 		});
-	TestNotNull(TEXT("Monster spawn survives typed -> legacy read projection"), RestoredMonster);
+	TestNotNull(TEXT("Monster spawn survives typed -> transient read projection"), RestoredMonster);
 	if (RestoredMonster)
 	{
 		TestTrue(TEXT("Monster definition remains direct"), RestoredMonster->MonsterDefinitionAsset == MonsterDefinition);
 		TestEqual(TEXT("Monster facing remains typed"), RestoredMonster->InitialFacing, EGridEdge::West);
-		TestEqual(TEXT("Monster yaw mirror is reconstructed"), RestoredMonster->LocalYaw, 270.0f);
+		TestEqual(TEXT("Monster yaw cache is reconstructed"), RestoredMonster->LocalYaw, 270.0f);
 	}
 
-	// Mutate typed storage and rebuild the temporary read mirror explicitly.
 	Level->WorldObjectInstances[0].InstanceConfig.Transition.TargetLevelId = TEXT("Target_B");
 	Level->LooseItemInstances[0].LocalYaw = 42.0f;
 	Level->RefreshLegacyObjectMirrorFromTyped();
@@ -129,9 +125,9 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 		{
 			return Object.ObjectId == Item.ObjectId;
 		});
-	TestTrue(TEXT("Typed door update drives legacy read mirror"),
+	TestTrue(TEXT("Typed door update drives transient read cache"),
 		RestoredDoor && RestoredDoor->Behavior.Transition.TargetLevelId == FName(TEXT("Target_B")));
-	TestTrue(TEXT("Typed item update drives legacy read mirror"), RestoredItem && FMath::IsNearlyEqual(RestoredItem->LocalYaw, 42.0f));
+	TestTrue(TEXT("Typed item update drives transient read cache"), RestoredItem && FMath::IsNearlyEqual(RestoredItem->LocalYaw, 42.0f));
 
 	return true;
 }
@@ -145,7 +141,13 @@ bool FGridWorldObjectMIG07TypedAuthoritySchemaTest::RunTest(const FString& Param
 {
 	(void)Parameters;
 	const UClass* LevelClass = UGridLevelAsset::StaticClass();
-	TestNotNull(TEXT("Typed placement authority marker exists"), LevelClass->FindPropertyByName(TEXT("bTypedPlacementStorageAuthoritative")));
+	TestNull(TEXT("MIG09-E1 removes the authority migration marker"),
+		LevelClass->FindPropertyByName(TEXT("bTypedPlacementStorageAuthoritative")));
+	TestNotNull(TEXT("WorldObjectInstances remains reflected"), LevelClass->FindPropertyByName(TEXT("WorldObjectInstances")));
+	TestNotNull(TEXT("LooseItemInstances remains reflected"), LevelClass->FindPropertyByName(TEXT("LooseItemInstances")));
+	TestNotNull(TEXT("MonsterSpawns remains reflected"), LevelClass->FindPropertyByName(TEXT("MonsterSpawns")));
+	TestNotNull(TEXT("ItemSpawns remains reflected"), LevelClass->FindPropertyByName(TEXT("ItemSpawns")));
+	TestNotNull(TEXT("LogicObjects remains reflected"), LevelClass->FindPropertyByName(TEXT("LogicObjects")));
 	return true;
 }
 
