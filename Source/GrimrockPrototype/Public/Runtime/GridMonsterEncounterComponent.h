@@ -5,10 +5,10 @@
 #include "GridMonsterEncounterComponent.generated.h"
 
 class AGridLevelRuntimeActor;
-struct FGridLevelObjectData;
+struct FGridMonsterSpawnInstance;
 struct FGridRuntimeMonsterEncounterState;
 
-/** Coordinates persistent MON13.4 encounter waves owned by MonsterSpawn data. */
+/** Coordinates persistent MON13.4 encounter waves owned by typed MonsterSpawn placements. */
 UCLASS(ClassGroup = (Grid), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGridMonsterEncounterComponent : public UActorComponent
 {
@@ -26,7 +26,7 @@ public:
 	int32 GetActiveWaveIndex(FName EncounterGroupId) const;
 
 private:
-	const FGridLevelObjectData* FindSpawn(FGuid SpawnId) const;
+	const FGridMonsterSpawnInstance* FindSpawn(FGuid SpawnId) const;
 	int32 FindNextWaveIndex(const FGridRuntimeMonsterEncounterState& State, int32 AfterWaveIndex) const;
 	bool IsWaveDefeated(const FGridRuntimeMonsterEncounterState& State, int32 WaveIndex) const;
 	bool ActivateWave(FGridRuntimeMonsterEncounterState& State, int32 WaveIndex);

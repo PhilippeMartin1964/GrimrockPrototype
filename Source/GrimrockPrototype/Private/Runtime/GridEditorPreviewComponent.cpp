@@ -1,5 +1,6 @@
 #include "Runtime/GridEditorPreviewComponent.h"
 
+#include "Core/GridLevelPlacementCompatibility.h"
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -40,13 +41,35 @@ void UGridEditorPreviewComponent::RebuildPreviewObjects()
 	{
 		return;
 	}
-	for (const FGridLevelObjectData& ObjectData : RuntimeActor->LevelAsset->Objects)
+
+	auto TryAddPreview = [this](const FGridLevelObjectData& ObjectData)
 	{
-		if (!IsPreviewableObject(ObjectData))
+		if (IsPreviewableObject(ObjectData))
 		{
-			continue;
+			AddPreviewObject(ObjectData);
 		}
-		AddPreviewObject(ObjectData);
+	};
+
+	// WORLDOBJ-MIG09-E2B: typed level placements are the only read source.
+	for (const FGridWorldObjectInstance& Instance : RuntimeActor->LevelAsset->WorldObjectInstances)
+	{
+		TryAddPreview(GridLevelPlacementCompatibility::ToLegacyWorldObject(Instance));
+	}
+	for (const FGridLooseItemInstance& Instance : RuntimeActor->LevelAsset->LooseItemInstances)
+	{
+		TryAddPreview(GridLevelPlacementCompatibility::ToLegacyLooseItem(Instance));
+	}
+	for (const FGridMonsterSpawnInstance& Spawn : RuntimeActor->LevelAsset->MonsterSpawns)
+	{
+		TryAddPreview(GridLevelPlacementCompatibility::ToLegacyMonsterSpawn(Spawn));
+	}
+	for (const FGridItemSpawnInstance& Spawn : RuntimeActor->LevelAsset->ItemSpawns)
+	{
+		TryAddPreview(GridLevelPlacementCompatibility::ToLegacyItemSpawn(Spawn));
+	}
+	for (const FGridLogicObjectInstance& Instance : RuntimeActor->LevelAsset->LogicObjects)
+	{
+		TryAddPreview(GridLevelPlacementCompatibility::ToLegacyLogicObject(Instance));
 	}
 }
 

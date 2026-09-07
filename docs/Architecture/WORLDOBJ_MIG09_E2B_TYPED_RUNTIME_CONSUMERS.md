@@ -2,7 +2,9 @@
 
 Statut : **E2A validé ; E2B en cours** — 2026-09-07.
 
-## Validation E2A
+## Validations acquises
+
+### E2A — Runtime World Object Boundary
 
 ```text
 Build                  : OK
@@ -19,6 +21,23 @@ Rapport :
 D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-174259
 ```
 
+### E2B — DoorSystem typed
+
+```text
+Build                  : OK
+Succeeded              : 33
+Succeeded with warnings: 1
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Rapport :
+
+```text
+D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260907-175225
+```
+
 ## Règle E2B
 
 Le runtime ne doit plus consulter `UGridLevelAsset::Objects`. Chaque domaine lit sa collection typée native :
@@ -33,13 +52,9 @@ Logique         -> LogicObjects
 
 `FGridRuntimeWorldObjectData` reste un payload runtime-only légitime pour initialiser les acteurs world-object. Il n'est jamais sérialisé dans `UGridLevelAsset`.
 
-## Bloc DoorSystem
+## Bloc DoorSystem — validé
 
-`UGridDoorSystemComponent` indexe désormais directement :
-
-```text
-UGridLevelAsset::WorldObjectInstances
-```
+`UGridDoorSystemComponent` indexe désormais directement `UGridLevelAsset::WorldObjectInstances`.
 
 Les opérations suivantes ne lisent plus le cache `Objects` :
 
@@ -48,21 +63,56 @@ Les opérations suivantes ne lisent plus le cache `Objects` :
 - capture/restauration de l'état d'une porte ;
 - reconstruction de l'index des portes.
 
-La map `DoorIndexByEdge` contient désormais des indices dans `WorldObjectInstances`.
+Un wrapper `RegisterDoorObject(FGridLevelObjectData, ...)` reste temporairement uniquement parce que `AGridLevelRuntimeActor` n'a pas encore basculé son orchestration de spawn vers les instances typées.
 
-Un wrapper `RegisterDoorObject(FGridLevelObjectData, ...)` reste temporairement uniquement parce que `AGridLevelRuntimeActor` n'a pas encore basculé son orchestration de spawn vers les instances typées. Il délègue immédiatement à `FGridRuntimeWorldObjectData` et sera supprimé avec les wrappers E2.
+## Bloc MonsterEncounter — candidat courant
+
+`UGridMonsterEncounterComponent` lit désormais directement `UGridLevelAsset::MonsterSpawns`.
+
+Les opérations suivantes ne parcourent plus `LevelAsset->Objects` :
+
+- résolution d'un `SpawnId` ;
+- sélection de la prochaine vague ;
+- détection d'une vague vaincue ;
+- constitution et tri atomique des membres d'une vague ;
+- résolution de l'ancre d'encounter ;
+- notification de mort d'un membre.
+
+Pendant cette sous-tranche uniquement, l'appel effectif au spawn et à la capture d'état construit encore un snapshot transitoire via :
+
+```text
+GridLevelPlacementCompatibility::ToLegacyMonsterSpawn(...)
+```
+
+Ce snapshot n'est jamais stocké dans `UGridLevelAsset`. Il existe uniquement parce que `AGridLevelRuntimeActor::AddMonsterSpawnActor()` et `StoreMonsterPlacementState()` utilisent encore `FGridLevelObjectData`. Ces signatures disparaissent dans la prochaine tranche runtime monstre.
+
+## Bloc Runtime Preview — candidat courant
+
+`UGridEditorPreviewComponent::RebuildPreviewObjects()` ne parcourt plus `LevelAsset->Objects`.
+
+Il lit explicitement :
+
+```text
+WorldObjectInstances
+LooseItemInstances
+MonsterSpawns
+ItemSpawns
+LogicObjects
+```
+
+Puis il construit seulement le snapshot transitoire attendu par les fonctions de preview historiques. Le snapshot n'est ni sauvegardé ni réinjecté dans `UGridLevelAsset`.
+
+Cette étape garantit déjà que preview et runtime partent de la même autorité typée, avant suppression physique des wrappers `FGridLevelObjectData` en E2C.
 
 ## Suite E2B
 
-La prochaine macro-tranche migre ensemble :
+La suite migre :
 
 ```text
-AGridLevelRuntimeActor
-UGridActivationComponent
-UGridMonsterEncounterComponent
+AGridLevelRuntimeActor / GridLevelRuntimeActorMonsters
 GridLevelRuntimeActorPersistence
 GridLevelRuntimeActorDiagnostics
-GridEditorPreviewComponent (runtime preview)
+UGridActivationComponent
 ```
 
 Puis `Receptacle`, `WallLock` et `PitTrapdoor` sont alignés sur la frontière runtime native si leurs derniers appels dépendent encore du DTO legacy.
@@ -71,9 +121,12 @@ Puis `Receptacle`, `WallLock` et `PitTrapdoor` sont alignés sur la frontière r
 
 ```text
 [ ] aucune lecture runtime directe de LevelAsset->Objects
-[ ] WorldObjectInstances utilisé par le runtime world-object
-[ ] LooseItemInstances utilisé par les items monde
-[ ] MonsterSpawns utilisé par monstres/encounters/persistence
+[x] DoorSystem sur WorldObjectInstances
+[x] MonsterEncounter sur MonsterSpawns
+[x] Runtime Preview lit les cinq collections typées
+[ ] LevelRuntimeActor sur collections typées
+[ ] LooseItemInstances utilisé par les items monde runtime
+[ ] MonsterSpawns utilisé par runtime monstre/persistence
 [ ] Activation et diagnostics hors DTO legacy
 [ ] 0 Failed sur Grimrock.WorldObjects
 ```

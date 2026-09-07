@@ -1,6 +1,7 @@
 #include "Runtime/GridMonsterEncounterComponent.h"
 
 #include "Core/GridLevelAsset.h"
+#include "Core/GridLevelPlacementCompatibility.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -15,9 +16,18 @@ void UGridMonsterEncounterComponent::Initialize(AGridLevelRuntimeActor* InRuntim
 	RuntimeActor = InRuntimeActor;
 }
 
-const FGridLevelObjectData* UGridMonsterEncounterComponent::FindSpawn(FGuid SpawnId) const
+const FGridMonsterSpawnInstance* UGridMonsterEncounterComponent::FindSpawn(FGuid SpawnId) const
 {
-	return RuntimeActor && RuntimeActor->LevelAsset ? RuntimeActor->LevelAsset->FindMonsterSpawnById(SpawnId) : nullptr;
+	if (!RuntimeActor || !RuntimeActor->LevelAsset || !SpawnId.IsValid())
+	{
+		return nullptr;
+	}
+
+	return RuntimeActor->LevelAsset->MonsterSpawns.FindByPredicate(
+		[&SpawnId](const FGridMonsterSpawnInstance& Spawn)
+		{
+			return Spawn.SpawnId == SpawnId;
+		});
 }
 
 int32 UGridMonsterEncounterComponent::FindNextWaveIndex(const FGridRuntimeMonsterEncounterState& State, int32 AfterWaveIndex) const
@@ -28,17 +38,16 @@ int32 UGridMonsterEncounterComponent::FindNextWaveIndex(const FGridRuntimeMonste
 	}
 
 	int32 NextWaveIndex = INDEX_NONE;
-	for (const FGridLevelObjectData& ObjectData : RuntimeActor->LevelAsset->Objects)
+	for (const FGridMonsterSpawnInstance& Spawn : RuntimeActor->LevelAsset->MonsterSpawns)
 	{
-		if (ObjectData.Type != EGridLevelObjectType::MonsterSpawn || ObjectData.EncounterGroupId != State.EncounterGroupId ||
-			ObjectData.EncounterWaveIndex <= AfterWaveIndex || State.DefeatedSpawnIds.Contains(ObjectData.ObjectId))
+		if (Spawn.EncounterGroupId != State.EncounterGroupId || Spawn.EncounterWaveIndex <= AfterWaveIndex || State.DefeatedSpawnIds.Contains(Spawn.SpawnId))
 		{
 			continue;
 		}
 
-		if (NextWaveIndex == INDEX_NONE || ObjectData.EncounterWaveIndex < NextWaveIndex)
+		if (NextWaveIndex == INDEX_NONE || Spawn.EncounterWaveIndex < NextWaveIndex)
 		{
-			NextWaveIndex = ObjectData.EncounterWaveIndex;
+			NextWaveIndex = Spawn.EncounterWaveIndex;
 		}
 	}
 	return NextWaveIndex;
@@ -52,16 +61,15 @@ bool UGridMonsterEncounterComponent::IsWaveDefeated(const FGridRuntimeMonsterEnc
 	}
 
 	bool bFoundWaveMember = false;
-	for (const FGridLevelObjectData& ObjectData : RuntimeActor->LevelAsset->Objects)
+	for (const FGridMonsterSpawnInstance& Spawn : RuntimeActor->LevelAsset->MonsterSpawns)
 	{
-		if (ObjectData.Type != EGridLevelObjectType::MonsterSpawn || ObjectData.EncounterGroupId != State.EncounterGroupId ||
-			ObjectData.EncounterWaveIndex != WaveIndex)
+		if (Spawn.EncounterGroupId != State.EncounterGroupId || Spawn.EncounterWaveIndex != WaveIndex)
 		{
 			continue;
 		}
 
 		bFoundWaveMember = true;
-		if (!State.DefeatedSpawnIds.Contains(ObjectData.ObjectId))
+		if (!State.DefeatedSpawnIds.Contains(Spawn.SpawnId))
 		{
 			return false;
 		}
@@ -77,19 +85,18 @@ bool UGridMonsterEncounterComponent::SpawnWaveAtomically(FGridRuntimeMonsterEnco
 		return false;
 	}
 
-	TArray<const FGridLevelObjectData*> WaveSpawns;
-	for (const FGridLevelObjectData& ObjectData : RuntimeActor->LevelAsset->Objects)
+	TArray<const FGridMonsterSpawnInstance*> WaveSpawns;
+	for (const FGridMonsterSpawnInstance& Spawn : RuntimeActor->LevelAsset->MonsterSpawns)
 	{
-		if (ObjectData.Type == EGridLevelObjectType::MonsterSpawn && ObjectData.EncounterGroupId == State.EncounterGroupId &&
-			ObjectData.EncounterWaveIndex == WaveIndex)
+		if (Spawn.EncounterGroupId == State.EncounterGroupId && Spawn.EncounterWaveIndex == WaveIndex)
 		{
-			WaveSpawns.Add(&ObjectData);
+			WaveSpawns.Add(&Spawn);
 		}
 	}
 	WaveSpawns.Sort(
-		[](const FGridLevelObjectData& Left, const FGridLevelObjectData& Right)
+		[](const FGridMonsterSpawnInstance& Left, const FGridMonsterSpawnInstance& Right)
 		{
-			return Left.ObjectId.ToString(EGuidFormats::Digits) < Right.ObjectId.ToString(EGuidFormats::Digits);
+			return Left.SpawnId.ToString(EGuidFormats::Digits) < Right.SpawnId.ToString(EGuidFormats::Digits);
 		});
 	if (WaveSpawns.IsEmpty())
 	{
@@ -107,26 +114,30 @@ bool UGridMonsterEncounterComponent::SpawnWaveAtomically(FGridRuntimeMonsterEnco
 	const bool bPreviouslyVisited = LevelState->bHasBeenVisited;
 	const TSet<FGuid> PreviousDefeatedSpawnIds = State.DefeatedSpawnIds;
 
-	for (const FGridLevelObjectData* ObjectData : WaveSpawns)
+	for (const FGridMonsterSpawnInstance* Spawn : WaveSpawns)
 	{
-		if (!ObjectData || State.DefeatedSpawnIds.Contains(ObjectData->ObjectId))
+		if (!Spawn || State.DefeatedSpawnIds.Contains(Spawn->SpawnId))
 		{
 			continue;
 		}
 
-		if (AGridMonsterActor* ExistingMonster = RuntimeActor->FindSpawnedMonsterActor(ObjectData->ObjectId))
+		if (AGridMonsterActor* ExistingMonster = RuntimeActor->FindSpawnedMonsterActor(Spawn->SpawnId))
 		{
 			if (ExistingMonster->IsDead())
 			{
-				State.DefeatedSpawnIds.Add(ObjectData->ObjectId);
+				State.DefeatedSpawnIds.Add(Spawn->SpawnId);
 			}
 			continue;
 		}
 
-		const FGridRuntimeMonsterPlacementState* PreviousPlacement = LevelState->MonsterPlacements.Find(ObjectData->ObjectId);
+		const FGridRuntimeMonsterPlacementState* PreviousPlacement = LevelState->MonsterPlacements.Find(Spawn->SpawnId);
 		const FGridRuntimeMonsterState* RestoreState = PreviousPlacement && PreviousPlacement->bHasMonsterState ? &PreviousPlacement->MonsterState : nullptr;
-		AGridMonsterActor* SpawnedMonster = RuntimeActor->AddMonsterSpawnActor(*ObjectData, RestoreState);
-		if (!SpawnedMonster || !RuntimeActor->StoreMonsterPlacementState(*ObjectData, SpawnedMonster, true))
+
+		// WORLDOBJ-MIG09-E2B: encounter authoring is already typed. This snapshot only bridges
+		// the still-legacy monster spawn runtime API and disappears when that API is migrated.
+		const FGridLevelObjectData LegacySpawn = GridLevelPlacementCompatibility::ToLegacyMonsterSpawn(*Spawn);
+		AGridMonsterActor* SpawnedMonster = RuntimeActor->AddMonsterSpawnActor(LegacySpawn, RestoreState);
+		if (!SpawnedMonster || !RuntimeActor->StoreMonsterPlacementState(LegacySpawn, SpawnedMonster, true))
 		{
 			auto RollbackSpawnedActor = [this](FGuid SpawnId)
 			{
@@ -143,7 +154,7 @@ bool UGridMonsterEncounterComponent::SpawnWaveAtomically(FGridRuntimeMonsterEnco
 			}
 			if (SpawnedMonster)
 			{
-				RollbackSpawnedActor(ObjectData->ObjectId);
+				RollbackSpawnedActor(Spawn->SpawnId);
 			}
 			LevelState->MonsterPlacements = PreviousPlacements;
 			LevelState->Monsters = PreviousMonsters;
@@ -155,10 +166,10 @@ bool UGridMonsterEncounterComponent::SpawnWaveAtomically(FGridRuntimeMonsterEnco
 			return false;
 		}
 
-		OutNewlySpawnedIds.Add(ObjectData->ObjectId);
+		OutNewlySpawnedIds.Add(Spawn->SpawnId);
 		if (SpawnedMonster->IsDead())
 		{
-			State.DefeatedSpawnIds.Add(ObjectData->ObjectId);
+			State.DefeatedSpawnIds.Add(Spawn->SpawnId);
 		}
 	}
 
@@ -186,11 +197,7 @@ bool UGridMonsterEncounterComponent::ActivateWave(FGridRuntimeMonsterEncounterSt
 	}
 	RuntimeActor->ExecuteLinksFromRuntimeObject(State.AnchorSpawnId, EGridObjectEvent::EncounterWaveStarted);
 
-	// MON13 remains purely responsible for the atomic encounter transaction.
-	// MON14.1 only asks the centralized bridge to inspect perception later,
-	// after every spawn/link side effect in this wave has completed.
 	GridAutomaticPerceptionEngagement::Request(RuntimeActor, TEXT("EncounterWaveActivated"));
-
 	return IsWaveDefeated(State, WaveIndex) ? AdvanceCompletedWave(State) : true;
 }
 
@@ -222,7 +229,7 @@ bool UGridMonsterEncounterComponent::AdvanceCompletedWave(FGridRuntimeMonsterEnc
 
 bool UGridMonsterEncounterComponent::StartEncounter(FGuid AnchorSpawnId)
 {
-	const FGridLevelObjectData* AnchorSpawn = FindSpawn(AnchorSpawnId);
+	const FGridMonsterSpawnInstance* AnchorSpawn = FindSpawn(AnchorSpawnId);
 	if (!AnchorSpawn || AnchorSpawn->EncounterGroupId.IsNone())
 	{
 		UE_LOG(LogGridMonsterState, Warning, TEXT("[GridMonsterEncounter] StartRejected Anchor=%s Reason=MissingEncounterGroup"),
@@ -269,7 +276,7 @@ bool UGridMonsterEncounterComponent::NotifyMonsterDied(FGuid SpawnId)
 		return false;
 	}
 
-	const FGridLevelObjectData* Spawn = FindSpawn(SpawnId);
+	const FGridMonsterSpawnInstance* Spawn = FindSpawn(SpawnId);
 	FGridLevelRuntimeState* LevelState = RuntimeActor->GetOrCreateRuntimeStateForCurrentLevel();
 	FGridRuntimeMonsterEncounterState* State =
 		Spawn && LevelState && !Spawn->EncounterGroupId.IsNone() ? LevelState->MonsterEncounters.Find(Spawn->EncounterGroupId) : nullptr;
@@ -278,12 +285,12 @@ bool UGridMonsterEncounterComponent::NotifyMonsterDied(FGuid SpawnId)
 		return false;
 	}
 
-	const bool bNewDefeat = !State->DefeatedSpawnIds.Contains(Spawn->ObjectId);
-	State->DefeatedSpawnIds.Add(Spawn->ObjectId);
+	const bool bNewDefeat = !State->DefeatedSpawnIds.Contains(Spawn->SpawnId);
+	State->DefeatedSpawnIds.Add(Spawn->SpawnId);
 	if (bNewDefeat)
 	{
 		UE_LOG(LogGridMonsterState, Log, TEXT("[GridMonsterEncounter] MemberDefeated Encounter=%s Wave=%d SpawnId=%s"), *State->EncounterGroupId.ToString(),
-			State->ActiveWaveIndex, *Spawn->ObjectId.ToString(EGuidFormats::DigitsWithHyphens));
+			State->ActiveWaveIndex, *Spawn->SpawnId.ToString(EGuidFormats::DigitsWithHyphens));
 	}
 	return IsWaveDefeated(*State, State->ActiveWaveIndex) ? AdvanceCompletedWave(*State) : true;
 }
