@@ -83,9 +83,15 @@ void UGridEditorPreviewComponent::AddMonsterPreviewObject(const FGridMonsterSpaw
 		return;
 	}
 
-	TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass = RuntimeActor->EditorPreviewObjectActorClass
-		? RuntimeActor->EditorPreviewObjectActorClass
-		: AGridEditorPreviewObjectActor::StaticClass();
+	TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass;
+	if (RuntimeActor->EditorPreviewObjectActorClass)
+	{
+		PreviewClass = RuntimeActor->EditorPreviewObjectActorClass;
+	}
+	else
+	{
+		PreviewClass = AGridEditorPreviewObjectActor::StaticClass();
+	}
 
 	UWorld* World = GetWorld();
 	if (!World)
