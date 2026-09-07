@@ -74,25 +74,15 @@ struct FGridPitBehaviorParams
 };
 
 /**
- * WORLDOBJ-MIG04 compile bridge only.
+ * MIG09-C-C temporary C++ compile bridge only.
  * Pit leaf geometry is authored exclusively in MovingParts[0/1].Motion.
- * These fields are transient/non-editable so old C++ callers can compile until MIG09.
+ * Deliberately absent from Unreal reflection; remove the struct physically in MIG09-C-C2.
  */
-USTRUCT(BlueprintType)
 struct FGridPitAnimationParams
 {
-	GENERATED_BODY()
-
-	UPROPERTY(Transient)
 	FVector LeftHingeLocation = FVector(-85.0f, 0.0f, -5.0f);
-
-	UPROPERTY(Transient)
 	FVector RightHingeLocation = FVector(85.0f, 0.0f, -5.0f);
-
-	UPROPERTY(Transient)
 	float OpenAngleDegrees = 80.0f;
-
-	UPROPERTY(Transient)
 	float MoveDuration = 0.75f;
 };
 
@@ -206,57 +196,36 @@ struct FGridLockBehaviorParams
 };
 
 /**
- * Button behavior keeps only the logical hold time editable.
+ * Button behavior keeps only the logical hold time in Unreal reflection.
  * Travel distance and movement duration live in MovingPart[0].Motion.
- * The transient fields are compile bridges until MIG09.
+ * Plain C++ fields remain only until the MIG09-C-C2 physical purge.
  */
 USTRUCT(BlueprintType)
 struct FGridButtonAnimationParams
 {
 	GENERATED_BODY()
 
-	UPROPERTY(Transient)
 	float ButtonPressDistance = 6.f;
-
-	UPROPERTY(Transient)
 	float ButtonPressDuration = 0.08f;
-
-	UPROPERTY(Transient)
 	float ButtonReleaseDuration = 0.10f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Button", meta = (DisplayName = "Hold Time", ClampMin = "0.0"))
 	float ButtonHoldTime = 0.15f;
 };
 
-/** WORLDOBJ-MIG04 compile bridge. Lever geometry/timing is entirely MovingPart[0].Motion. */
-USTRUCT(BlueprintType)
+/** MIG09-C-C temporary C++ bridge. Lever geometry/timing is entirely MovingPart[0].Motion. */
 struct FGridLeverAnimationParams
 {
-	GENERATED_BODY()
-
-	UPROPERTY(Transient)
 	float LeverOffPitch = 45.f;
-
-	UPROPERTY(Transient)
 	float LeverOnPitch = 135.f;
-
-	UPROPERTY(Transient)
 	float ToggleDuration = 0.10f;
 };
 
-/** WORLDOBJ-MIG04 compile bridge. Pressure-plate geometry/timing is entirely MovingPart[0].Motion. */
-USTRUCT(BlueprintType)
+/** MIG09-C-C temporary C++ bridge. Pressure-plate geometry/timing is entirely MovingPart[0].Motion. */
 struct FGridPressurePlateAnimationParams
 {
-	GENERATED_BODY()
-
-	UPROPERTY(Transient)
 	float ReleasedHeightAboveFloor = 4.f;
-
-	UPROPERTY(Transient)
 	float PressedHeightAboveFloor = 1.f;
-
-	UPROPERTY(Transient)
 	float MoveDuration = 0.08f;
 };
 
@@ -279,19 +248,16 @@ struct FGridPressurePlateWeightParams
 };
 
 /**
- * Door behavior keeps only the optional chain interaction editable.
+ * Door behavior keeps only the optional chain interaction in Unreal reflection.
  * Door leaf/panel geometry and duration live in MovingParts[].Motion.
- * OpenHeight/MoveDuration remain transient only for old direct C++ test helpers until MIG09.
+ * Plain C++ OpenHeight/MoveDuration remain only until MIG09-C-C2.
  */
 USTRUCT(BlueprintType)
 struct FGridDoorAnimationParams
 {
 	GENERATED_BODY()
 
-	UPROPERTY(Transient)
 	float OpenHeight = 180.f;
-
-	UPROPERTY(Transient)
 	float MoveDuration = 2.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Door|Chain")
@@ -321,8 +287,7 @@ struct FGridObjectBehaviorParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit")
 	FGridPitBehaviorParams Pit;
 
-	/** Transient compile bridge only; pit presentation authority is MovingParts[].Motion. */
-	UPROPERTY(Transient)
+	/** MIG09-C-C temporary C++ compile bridge; not part of reflected/serialized behavior. */
 	FGridPitAnimationParams PitAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
@@ -331,22 +296,20 @@ struct FGridObjectBehaviorParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lock")
 	FGridLockBehaviorParams Lock;
 
-	/** Only ButtonHoldTime is editable; geometric fields inside are transient bridges. */
+	/** Only ButtonHoldTime is reflected authoring data. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Button")
 	FGridButtonAnimationParams ButtonAnimation;
 
-	/** Transient compile bridge only; lever presentation authority is MovingPart[0].Motion. */
-	UPROPERTY(Transient)
+	/** MIG09-C-C temporary C++ compile bridge; not part of reflected/serialized behavior. */
 	FGridLeverAnimationParams LeverAnimation;
 
-	/** Transient compile bridge only; pressure-plate presentation authority is MovingPart[0].Motion. */
-	UPROPERTY(Transient)
+	/** MIG09-C-C temporary C++ compile bridge; not part of reflected/serialized behavior. */
 	FGridPressurePlateAnimationParams PressurePlateAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate")
 	FGridPressurePlateWeightParams PressurePlateWeight;
 
-	/** Only Door chain behavior is editable; geometric fields inside are transient bridges. */
+	/** Only Door chain behavior is reflected authoring data. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Door")
 	FGridDoorAnimationParams DoorAnimation;
 };

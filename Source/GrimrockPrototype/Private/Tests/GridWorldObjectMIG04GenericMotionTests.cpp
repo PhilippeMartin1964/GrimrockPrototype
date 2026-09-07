@@ -25,21 +25,17 @@ namespace
 			Class->FindPropertyByName(FName(PropertyName)));
 	}
 
-	void TestTransientBridgeProperty(FAutomationTestBase& Test, UStruct* Struct, const TCHAR* PropertyName)
+	void TestBehaviorPropertyRemoved(FAutomationTestBase& Test, UStruct* Struct, const TCHAR* PropertyName)
 	{
 		if (!Struct)
 		{
-			Test.AddError(FString::Printf(TEXT("Missing struct while checking transient bridge property %s."), PropertyName));
+			Test.AddError(FString::Printf(TEXT("Missing struct while checking removed behavior property %s."), PropertyName));
 			return;
 		}
 
-		FProperty* Property = Struct->FindPropertyByName(FName(PropertyName));
-		if (!Test.TestNotNull(*FString::Printf(TEXT("%s bridge property exists until MIG09"), PropertyName), Property))
-		{
-			return;
-		}
-		Test.TestTrue(*FString::Printf(TEXT("%s is transient"), PropertyName), Property->HasAnyPropertyFlags(CPF_Transient));
-		Test.TestFalse(*FString::Printf(TEXT("%s is not editable authoring data"), PropertyName), Property->HasAnyPropertyFlags(CPF_Edit));
+		Test.TestNull(
+			*FString::Printf(TEXT("%s no longer exposes legacy reflected behavior property %s"), *Struct->GetName(), PropertyName),
+			Struct->FindPropertyByName(FName(PropertyName)));
 	}
 
 	void TestEditableBehaviorProperty(FAutomationTestBase& Test, UStruct* Struct, const TCHAR* PropertyName)
@@ -104,39 +100,23 @@ bool FGridWorldObjectMIG04BehaviorSchemaAuthorityTest::RunTest(const FString& Pa
 {
 	(void)Parameters;
 
-	UScriptStruct* PitAnimation = FGridPitAnimationParams::StaticStruct();
-	TestTransientBridgeProperty(*this, PitAnimation, TEXT("LeftHingeLocation"));
-	TestTransientBridgeProperty(*this, PitAnimation, TEXT("RightHingeLocation"));
-	TestTransientBridgeProperty(*this, PitAnimation, TEXT("OpenAngleDegrees"));
-	TestTransientBridgeProperty(*this, PitAnimation, TEXT("MoveDuration"));
-
-	UScriptStruct* LeverAnimation = FGridLeverAnimationParams::StaticStruct();
-	TestTransientBridgeProperty(*this, LeverAnimation, TEXT("LeverOffPitch"));
-	TestTransientBridgeProperty(*this, LeverAnimation, TEXT("LeverOnPitch"));
-	TestTransientBridgeProperty(*this, LeverAnimation, TEXT("ToggleDuration"));
-
-	UScriptStruct* PressurePlateAnimation = FGridPressurePlateAnimationParams::StaticStruct();
-	TestTransientBridgeProperty(*this, PressurePlateAnimation, TEXT("ReleasedHeightAboveFloor"));
-	TestTransientBridgeProperty(*this, PressurePlateAnimation, TEXT("PressedHeightAboveFloor"));
-	TestTransientBridgeProperty(*this, PressurePlateAnimation, TEXT("MoveDuration"));
-
 	UScriptStruct* ButtonAnimation = FGridButtonAnimationParams::StaticStruct();
-	TestTransientBridgeProperty(*this, ButtonAnimation, TEXT("ButtonPressDistance"));
-	TestTransientBridgeProperty(*this, ButtonAnimation, TEXT("ButtonPressDuration"));
-	TestTransientBridgeProperty(*this, ButtonAnimation, TEXT("ButtonReleaseDuration"));
+	TestBehaviorPropertyRemoved(*this, ButtonAnimation, TEXT("ButtonPressDistance"));
+	TestBehaviorPropertyRemoved(*this, ButtonAnimation, TEXT("ButtonPressDuration"));
+	TestBehaviorPropertyRemoved(*this, ButtonAnimation, TEXT("ButtonReleaseDuration"));
 	TestEditableBehaviorProperty(*this, ButtonAnimation, TEXT("ButtonHoldTime"));
 
 	UScriptStruct* DoorAnimation = FGridDoorAnimationParams::StaticStruct();
-	TestTransientBridgeProperty(*this, DoorAnimation, TEXT("OpenHeight"));
-	TestTransientBridgeProperty(*this, DoorAnimation, TEXT("MoveDuration"));
+	TestBehaviorPropertyRemoved(*this, DoorAnimation, TEXT("OpenHeight"));
+	TestBehaviorPropertyRemoved(*this, DoorAnimation, TEXT("MoveDuration"));
 	TestEditableBehaviorProperty(*this, DoorAnimation, TEXT("bHasChainMechanism"));
 	TestEditableBehaviorProperty(*this, DoorAnimation, TEXT("ChainPullDistance"));
 	TestEditableBehaviorProperty(*this, DoorAnimation, TEXT("ChainPullDuration"));
 
 	UScriptStruct* Behavior = FGridObjectBehaviorParams::StaticStruct();
-	TestTransientBridgeProperty(*this, Behavior, TEXT("PitAnimation"));
-	TestTransientBridgeProperty(*this, Behavior, TEXT("LeverAnimation"));
-	TestTransientBridgeProperty(*this, Behavior, TEXT("PressurePlateAnimation"));
+	TestBehaviorPropertyRemoved(*this, Behavior, TEXT("PitAnimation"));
+	TestBehaviorPropertyRemoved(*this, Behavior, TEXT("LeverAnimation"));
+	TestBehaviorPropertyRemoved(*this, Behavior, TEXT("PressurePlateAnimation"));
 
 	return true;
 }
