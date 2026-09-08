@@ -83,23 +83,23 @@ bool FGridMON1971LogicIdCommandTest::RunTest(const FString& Parameters)
 	Level->Cells[0].CellType = EGridCellType::Floor;
 
 	const FGuid SourceId(19, 7, 1, 1);
-	FGridLevelObjectData Source;
-	Source.ObjectId = SourceId;
+	FGridWorldObjectInstance Source;
+	Source.InstanceId = SourceId;
 	Source.Type = EGridLevelObjectType::Trigger;
-	Level->Objects.Add(Source);
+	Level->WorldObjectInstances.Add(Source);
 
 	const FGuid TargetId(19, 7, 1, 2);
 	const FName TargetArchetypeId(TEXT("MON1971_SecretLever"));
-	FGridLevelObjectData Target;
-	Target.ObjectId = TargetId;
+	FGridWorldObjectInstance Target;
+	Target.InstanceId = TargetId;
 	Target.LogicId = TEXT("SecretLever");
 	Target.Type = EGridLevelObjectType::Lever;
-	Target.ArchetypeId = TargetArchetypeId;
+	Target.WorldObjectDefinitionId = TargetArchetypeId;
 	Target.CellX = 0;
 	Target.CellY = 0;
-	Target.Edge = EGridEdge::North;
+	Target.WallSide = EGridEdge::North;
 	Target.bInitiallyEnabled = true;
-	Level->Objects.Add(Target);
+	Level->WorldObjectInstances.Add(Target);
 
 	UGridObjectArchetypeAsset* LeverArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
 	LeverArchetype->ArchetypeId = TargetArchetypeId;

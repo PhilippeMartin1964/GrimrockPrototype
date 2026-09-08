@@ -41,11 +41,19 @@ namespace
 		return Script;
 	}
 
-	FGridLevelObjectData MakeObject194(FGuid ObjectId, EGridLevelObjectType Type)
+	FGridWorldObjectInstance MakeWorldObject194(FGuid ObjectId, EGridLevelObjectType Type)
 	{
-		FGridLevelObjectData Object;
-		Object.ObjectId = ObjectId;
+		FGridWorldObjectInstance Object;
+		Object.InstanceId = ObjectId;
 		Object.Type = Type;
+		return Object;
+	}
+
+	FGridLogicObjectInstance MakeLogicObject194(FGuid ObjectId)
+	{
+		FGridLogicObjectInstance Object;
+		Object.InstanceId = ObjectId;
+		Object.Type = EGridLevelObjectType::Logic;
 		return Object;
 	}
 
@@ -168,7 +176,7 @@ bool FGridMON194EventContextAndVarsTest::RunTest(const FString& Parameters)
 	}
 
 	const FGuid SourceId(19, 4, 1, 1);
-	Fixture.Level->Objects.Add(MakeObject194(SourceId, EGridLevelObjectType::Trigger));
+	Fixture.Level->WorldObjectInstances.Add(MakeWorldObject194(SourceId, EGridLevelObjectType::Trigger));
 
 	const FString ExpectedSource = SourceId.ToString();
 	const FString ScriptSource =
@@ -219,13 +227,13 @@ bool FGridMON194LuaCommandToLogicTest::RunTest(const FString& Parameters)
 
 	const FGuid SourceId(19, 4, 2, 1);
 	const FGuid LogicId(19, 4, 2, 2);
-	Fixture.Level->Objects.Add(MakeObject194(SourceId, EGridLevelObjectType::Trigger));
+	Fixture.Level->WorldObjectInstances.Add(MakeWorldObject194(SourceId, EGridLevelObjectType::Trigger));
 
-	FGridLevelObjectData AddInt = MakeObject194(LogicId, EGridLevelObjectType::Logic);
+	FGridLogicObjectInstance AddInt = MakeLogicObject194(LogicId);
 	AddInt.Logic.NodeType = EGridLogicNodeType::AddInt;
 	AddInt.Logic.VariableId = TEXT("Count");
 	AddInt.Logic.IntValue = 3;
-	Fixture.Level->Objects.Add(AddInt);
+	Fixture.Level->LogicObjects.Add(AddInt);
 
 	const FString ScriptSource = FString::Printf(TEXT("function on_trigger(event)\n") TEXT("  local ok, err = grid.command('%s', 'LogicExecute')\n")
 													 TEXT("  assert(ok, err)\n") TEXT("end\n"),
@@ -263,7 +271,7 @@ bool FGridMON194VariableConditionTest::RunTest(const FString& Parameters)
 	}
 
 	const FGuid SourceId(19, 4, 3, 1);
-	Fixture.Level->Objects.Add(MakeObject194(SourceId, EGridLevelObjectType::Trigger));
+	Fixture.Level->WorldObjectInstances.Add(MakeWorldObject194(SourceId, EGridLevelObjectType::Trigger));
 	Fixture.Level->LuaScripts.Add(MakeLuaScript194(TEXT("Conditional"),
 		TEXT("function on_trigger(event)\n") TEXT("  local count, err = grid.vars.get_int('Count')\n") TEXT("  assert(err == nil, err)\n") TEXT("  local ok\n")
 			TEXT("  ok, err = grid.vars.set_int('Count', count + 1)\n") TEXT("  assert(ok, err)\n") TEXT("end\n")));
@@ -315,7 +323,7 @@ bool FGridMON194HostFailureTest::RunTest(const FString& Parameters)
 	}
 
 	const FGuid SourceId(19, 4, 4, 1);
-	Fixture.Level->Objects.Add(MakeObject194(SourceId, EGridLevelObjectType::Trigger));
+	Fixture.Level->WorldObjectInstances.Add(MakeWorldObject194(SourceId, EGridLevelObjectType::Trigger));
 	Fixture.Level->LuaScripts.Add(MakeLuaScript194(TEXT("Failures"),
 		TEXT("function on_trigger(event)\n") TEXT("  local ok, err = grid.command('not-a-guid', 'Open')\n")
 			TEXT("  local handled = ok == false and type(err) == 'string'\n") TEXT("  local set_ok, set_err = grid.vars.set_bool('Gate', handled)\n")
@@ -352,7 +360,7 @@ bool FGridMON194SharedActionBudgetTest::RunTest(const FString& Parameters)
 	}
 
 	const FGuid SourceId(19, 4, 5, 1);
-	Fixture.Level->Objects.Add(MakeObject194(SourceId, EGridLevelObjectType::Trigger));
+	Fixture.Level->WorldObjectInstances.Add(MakeWorldObject194(SourceId, EGridLevelObjectType::Trigger));
 
 	constexpr int32 RelayCount = 132;
 	TArray<FGuid> RelayIds;
@@ -361,17 +369,17 @@ bool FGridMON194SharedActionBudgetTest::RunTest(const FString& Parameters)
 	{
 		const FGuid RelayId(19, 4, 50, Index + 1);
 		RelayIds.Add(RelayId);
-		FGridLevelObjectData Relay = MakeObject194(RelayId, EGridLevelObjectType::Logic);
+		FGridLogicObjectInstance Relay = MakeLogicObject194(RelayId);
 		Relay.Logic.NodeType = EGridLogicNodeType::Relay;
-		Fixture.Level->Objects.Add(Relay);
+		Fixture.Level->LogicObjects.Add(Relay);
 	}
 
 	const FGuid FinalId(19, 4, 51, 1);
-	FGridLevelObjectData FinalSet = MakeObject194(FinalId, EGridLevelObjectType::Logic);
+	FGridLogicObjectInstance FinalSet = MakeLogicObject194(FinalId);
 	FinalSet.Logic.NodeType = EGridLogicNodeType::SetBool;
 	FinalSet.Logic.VariableId = TEXT("Gate");
 	FinalSet.Logic.bBoolValue = true;
-	Fixture.Level->Objects.Add(FinalSet);
+	Fixture.Level->LogicObjects.Add(FinalSet);
 
 	FGridObjectLink First;
 	First.SourceObjectId = SourceId;

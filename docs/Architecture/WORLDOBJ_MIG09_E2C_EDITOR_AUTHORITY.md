@@ -1,12 +1,12 @@
 # WORLDOBJ-MIG09-E2C — Autorité typée des helpers d’édition
 
-Statut : **fixtures Editor migrées vers l’autorité typée — validation locale requise**
+Statut : **fixtures Editor validées ; premier lot Runtime migré — validation locale requise**
 
 Date : 2026-09-08
 
 ## Objectif
 
-WORLDOBJ-MIG09-E2C retire les derniers lecteurs et writers du Grid Editor encore dépendants du cache transitoire `UGridLevelAsset::Objects`.
+WORLDOBJ-MIG09-E2C retire les derniers lecteurs et writers du Grid Editor et des fixtures encore dépendants du cache transitoire `UGridLevelAsset::Objects`.
 
 L’autorité persistante de placement est exclusivement :
 
@@ -72,6 +72,15 @@ Failed                 : 0
 Process exit code       : 0
 ```
 
+Fixtures Editor migrées et validées :
+
+```text
+Grimrock.Editor.MonsterSpawn.InspectorAuthoringContract : 1 / 0 / 0
+Grimrock.TechnicalDebt.TD03_2.ObjectInspectorDetails    : 1 / 0 / 0
+Grimrock.TechnicalDebt.TD03_3.ObjectInspectorDetails    : 1 / 0 / 0
+Grimrock.MON20.4.RecruitmentUI.PalettePlacement         : 1 / 0 / 0
+```
+
 Le build Development Editor UE5.5.4 est également passé.
 
 ## 2. LuaService + Validation
@@ -112,11 +121,11 @@ LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
 
 Cette projection locale sert uniquement à la validation ; elle n’est ni stockée ni écrite dans `Objects`.
 
-Les objets `Logic` data-only avec `ArchetypeId=None` sont acceptés structurellement ; ils ne dépendent plus d’un filtre Lua basé sur un texte de diagnostic historique.
+Les objets `Logic` data-only avec `ArchetypeId=None` sont acceptés structurellement.
 
 ## 3. Fixtures Editor migrées vers les structures natives
 
-Le bloc courant retire les écritures/lectures explicites de `Objects` dans les fixtures Editor suivantes :
+Les fixtures Editor suivantes utilisent maintenant directement les collections typées :
 
 ```text
 Grimrock.Editor.MonsterSpawn.InspectorAuthoringContract
@@ -134,11 +143,54 @@ Principes appliqués :
 - StoryCompanion → `FGridLogicObjectInstance` / `LogicObjects` ;
 - les assertions relisent l’autorité typée directement.
 
-Le test TD03.3 ne tente plus de fabriquer artificiellement des identifiants redondants `ItemDefinitionId` / `MonsterDefinitionId` qui n’existent plus dans le modèle typé cible. Il vérifie désormais le contrat durable : les références d’assets sont canoniques et les placements créés par la palette arrivent dans la bonne collection typée.
+## 4. Premier lot de fixtures Runtime migré
 
-## 4. Validation requise pour le bloc fixtures Editor
+Le lot courant retire le stockage persistant `Objects` de trois familles Runtime :
 
-Régression principale :
+```text
+Grimrock.MON19.4.LuaBridge
+Grimrock.MON19.7.1.LuaAuthoring.LogicIdCommand
+Grimrock.Monsters.Perception.AcousticHearing
+```
+
+### MON19.4 LuaBridge
+
+- Trigger source → `FGridWorldObjectInstance` ;
+- nœuds Relay / AddInt / SetBool → `FGridLogicObjectInstance` ;
+- aucune construction de chaîne logique via `Objects`.
+
+### MON19.7.1 LogicId runtime
+
+- Trigger source et Lever cible → `WorldObjectInstances` ;
+- `LogicId` du Lever est stocké directement sur `FGridWorldObjectInstance`.
+
+### AcousticHearing
+
+- monstre dormant → `MonsterSpawns` ;
+- portes normales/secrètes → `WorldObjectInstances` ;
+- `FGridLevelObjectData` n’est conservé que comme DTO local pour les helpers de test `GridDoorTestUtils` / `RegisterDoorObject`, jamais comme stockage de niveau.
+
+## 5. Validation requise pour ce lot Runtime
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.MON19.4.LuaBridge"
+```
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.MON19.7.1.LuaAuthoring.LogicIdCommand"
+```
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Monsters.Perception.AcousticHearing"
+```
+
+Puis la régression générale :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
@@ -146,37 +198,12 @@ Régression principale :
     -AutomationFilter "Grimrock.WorldObjects"
 ```
 
-Puis les contrats directement touchés :
+## 6. Reste de WORLDOBJ-MIG09-E2C
 
-```powershell
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Grimrock.Editor.MonsterSpawn.InspectorAuthoringContract"
-```
-
-```powershell
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Grimrock.TechnicalDebt.TD03_2.ObjectInspectorDetails"
-```
-
-```powershell
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Grimrock.TechnicalDebt.TD03_3.ObjectInspectorDetails"
-```
-
-```powershell
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Grimrock.MON20.4.RecruitmentUI.PalettePlacement"
-```
-
-## 5. Reste de WORLDOBJ-MIG09-E2C
-
-1. migrer les fixtures Runtime résiduelles encore branchées explicitement sur `Objects` ou sur les conversions legacy ;
-2. migrer `ValidateMonsterSpawns()` et les derniers helpers Core/Runtime encore exprimés en DTO lorsque leur frontière peut devenir native ;
-3. supprimer physiquement :
+1. migrer les autres fixtures Runtime résiduelles encore branchées explicitement sur `Objects` ;
+2. traiter les tests historiques MIG07 qui vérifient encore volontairement les conversions legacy ;
+3. migrer `ValidateMonsterSpawns()` et les derniers helpers Core/Runtime encore exprimés en DTO lorsque leur frontière peut devenir native ;
+4. supprimer physiquement :
 
 ```text
 UGridLevelAsset::Objects
@@ -192,6 +219,6 @@ GridLevelPlacementCompatibility.h
 GridLevelPlacementConversion::To*
 ```
 
-4. renforcer les tests anti-régression empêchant toute réintroduction du monolithe.
+5. renforcer les tests anti-régression empêchant toute réintroduction du monolithe.
 
 MIG10 ne commence qu’après suppression physique de ces compatibilités.
