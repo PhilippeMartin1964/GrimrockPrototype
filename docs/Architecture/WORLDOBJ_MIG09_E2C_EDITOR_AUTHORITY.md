@@ -1,12 +1,12 @@
-# WORLDOBJ-MIG09-E2C — Autorité typée des helpers d’édition
+# WORLDOBJ-MIG09-E2C — Autorité typée des helpers d’édition et fixtures
 
-Statut : **fixtures Editor validées ; premier lot Runtime migré — validation locale requise**
+Statut : **premier lot Runtime validé ; TD01.3.2 migré vers l’autorité typée — validation locale requise**
 
 Date : 2026-09-08
 
 ## Objectif
 
-WORLDOBJ-MIG09-E2C retire les derniers lecteurs et writers du Grid Editor et des fixtures encore dépendants du cache transitoire `UGridLevelAsset::Objects`.
+WORLDOBJ-MIG09-E2C retire les derniers lecteurs et writers du Grid Editor, des helpers et des fixtures encore dépendants du cache transitoire `UGridLevelAsset::Objects`.
 
 L’autorité persistante de placement est exclusivement :
 
@@ -20,7 +20,9 @@ LogicObjects
 
 `FGridLevelObjectData` reste temporairement un DTO **par valeur** pour certaines politiques Editor/Runtime. Il ne doit plus être utilisé comme stockage persistant, comme cache d’autorité ni comme cible d’écriture.
 
-## 1. Blocs E2C déjà validés
+## 1. État validé
+
+### 1.1 Editor
 
 Les chemins suivants sont hors du cache `Objects` :
 
@@ -38,7 +40,7 @@ Les chemins suivants sont hors du cache `Objects` :
 - `GridEditorLuaService` ;
 - `AGridLevelEditorActor::ValidateCurrentLevel()`.
 
-Validations locales fournies le 8 septembre 2026 :
+Validations locales déjà fournies le 8 septembre 2026 :
 
 ```text
 Grimrock.WorldObjects
@@ -81,7 +83,53 @@ Grimrock.TechnicalDebt.TD03_3.ObjectInspectorDetails    : 1 / 0 / 0
 Grimrock.MON20.4.RecruitmentUI.PalettePlacement         : 1 / 0 / 0
 ```
 
-Le build Development Editor UE5.5.4 est également passé.
+### 1.2 Premier lot Runtime — validé localement
+
+Le commit `5be706ab` a migré les fixtures suivantes :
+
+```text
+Grimrock.MON19.4.LuaBridge
+Grimrock.MON19.7.1.LuaAuthoring.LogicIdCommand
+Grimrock.Monsters.Perception.AcousticHearing
+```
+
+Résultats fournis le 8 septembre 2026 :
+
+```text
+Grimrock.MON19.4.LuaBridge
+Succeeded              : 4
+Succeeded with warnings: 1
+Failed                 : 0
+Process exit code       : 0
+```
+
+```text
+Grimrock.MON19.7.1.LuaAuthoring.LogicIdCommand
+Succeeded              : 0
+Succeeded with warnings: 1
+Failed                 : 0
+Process exit code       : 0
+```
+
+```text
+Grimrock.Monsters.Perception.AcousticHearing
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Process exit code       : 0
+```
+
+Régression générale après ce lot :
+
+```text
+Grimrock.WorldObjects
+Succeeded              : 34
+Succeeded with warnings: 0
+Failed                 : 0
+Process exit code       : 0
+```
+
+Les deux filtres MON19 classés `Succeeded with warnings` n’ont produit aucun échec et ont terminé avec un code de sortie `0`. Le résumé Automation fourni ne détaille pas ici la nature de ces warnings ; ils ne sont donc pas requalifiés artificiellement.
 
 ## 2. LuaService + Validation
 
@@ -89,7 +137,7 @@ Le build Development Editor UE5.5.4 est également passé.
 
 `GridEditorLuaService` ne lit plus directement `LevelAsset->Objects`.
 
-La résolution d’un objet passe par :
+La résolution d’un objet passe encore temporairement par :
 
 ```cpp
 bool UGridLevelAsset::TryGetCompatibilityObjectSnapshot(
@@ -143,51 +191,62 @@ Principes appliqués :
 - StoryCompanion → `FGridLogicObjectInstance` / `LogicObjects` ;
 - les assertions relisent l’autorité typée directement.
 
-## 4. Premier lot de fixtures Runtime migré
+## 4. Fixtures Runtime migrées
 
-Le lot courant retire le stockage persistant `Objects` de trois familles Runtime :
+### 4.1 Premier lot
+
+`MON19.4`, `MON19.7.1` et `AcousticHearing` n’utilisent plus `Objects` comme stockage de niveau.
+
+- Trigger/Lever/Door → `FGridWorldObjectInstance` ;
+- Relay/AddInt/SetBool → `FGridLogicObjectInstance` ;
+- MonsterSpawn → `FGridMonsterSpawnInstance` ;
+- les DTO `FGridLevelObjectData` encore présents dans `AcousticHearing` sont uniquement locaux aux helpers de porte et ne servent pas de stockage persistant.
+
+### 4.2 Deuxième lot — TD01.3.2 RuntimeHardening
+
+La fixture :
 
 ```text
-Grimrock.MON19.4.LuaBridge
-Grimrock.MON19.7.1.LuaAuthoring.LogicIdCommand
-Grimrock.Monsters.Perception.AcousticHearing
+Grimrock.TechnicalDebt.TD01_3.EventCommandContract.RuntimeHardening
 ```
 
-### MON19.4 LuaBridge
+est maintenant construite directement sur les collections typées.
 
-- Trigger source → `FGridWorldObjectInstance` ;
-- nœuds Relay / AddInt / SetBool → `FGridLogicObjectInstance` ;
-- aucune construction de chaîne logique via `Objects`.
+Avant :
 
-### MON19.7.1 LogicId runtime
+```text
+Trigger     -> Level->Objects
+Teleporter -> Level->Objects
+ItemSpawn  -> Level->Objects
+Light      -> Level->Objects
+```
 
-- Trigger source et Lever cible → `WorldObjectInstances` ;
-- `LogicId` du Lever est stocké directement sur `FGridWorldObjectInstance`.
+Après :
 
-### AcousticHearing
+```text
+Trigger     -> WorldObjectInstances / FGridWorldObjectInstance
+Teleporter -> WorldObjectInstances / FGridWorldObjectInstance
+ItemSpawn  -> ItemSpawns / FGridItemSpawnInstance
+Light      -> WorldObjectInstances / FGridWorldObjectInstance
+```
 
-- monstre dormant → `MonsterSpawns` ;
-- portes normales/secrètes → `WorldObjectInstances` ;
-- `FGridLevelObjectData` n’est conservé que comme DTO local pour les helpers de test `GridDoorTestUtils` / `RegisterDoorObject`, jamais comme stockage de niveau.
+Le helper de fixture `MakeTD0132Object()` basé sur `FGridLevelObjectData` est supprimé. Il est remplacé par deux constructeurs natifs :
 
-## 5. Validation requise pour ce lot Runtime
+```text
+MakeTD0132WorldObject()
+MakeTD0132ItemSpawn()
+```
+
+Le contrat fonctionnel du test ne change pas : il vérifie toujours que les commandes `Activate` / `Deactivate` interdites par la politique `StateOnly` sont rejetées sans modifier l’état runtime des cibles.
+
+## 5. Validation locale requise pour le lot TD01.3.2
+
+Exécuter d’abord le filtre directement touché :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
     -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Grimrock.MON19.4.LuaBridge"
-```
-
-```powershell
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Grimrock.MON19.7.1.LuaAuthoring.LogicIdCommand"
-```
-
-```powershell
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Grimrock.Monsters.Perception.AcousticHearing"
+    -AutomationFilter "Grimrock.TechnicalDebt.TD01_3.EventCommandContract.RuntimeHardening"
 ```
 
 Puis la régression générale :
@@ -197,6 +256,8 @@ Puis la régression générale :
     -EngineRoot D:\UE_5.5 `
     -AutomationFilter "Grimrock.WorldObjects"
 ```
+
+Le build Development Editor UE5.5.4 est inclus par le harness `ValidateUE.ps1`.
 
 ## 6. Reste de WORLDOBJ-MIG09-E2C
 
@@ -222,3 +283,16 @@ GridLevelPlacementConversion::To*
 5. renforcer les tests anti-régression empêchant toute réintroduction du monolithe.
 
 MIG10 ne commence qu’après suppression physique de ces compatibilités.
+
+## 7. Definition of Done MIG09
+
+```text
+[ ] aucun Objects sérialisé ou transient
+[ ] aucun FGridLevelObjectData
+[ ] aucune projection legacy <-> typed
+[ ] runtime sur structures natives / payload runtime légitime
+[ ] Editor sur placements typés
+[ ] tests sans fixtures legacy actives
+[ ] Grimrock.WorldObjects : 0 Failed
+[ ] documentation réconciliée avec la mind map
+```

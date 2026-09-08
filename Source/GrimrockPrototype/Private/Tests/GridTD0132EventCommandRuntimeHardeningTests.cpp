@@ -10,16 +10,26 @@
 
 namespace
 {
-	FGridLevelObjectData MakeTD0132Object(FGuid ObjectId, EGridLevelObjectType Type)
+	FGridWorldObjectInstance MakeTD0132WorldObject(FGuid ObjectId, EGridLevelObjectType Type)
 	{
-		FGridLevelObjectData Object;
-		Object.ObjectId = ObjectId;
+		FGridWorldObjectInstance Object;
+		Object.InstanceId = ObjectId;
 		Object.Type = Type;
 		Object.CellX = 0;
 		Object.CellY = 0;
-		Object.Edge = EGridEdge::None;
+		Object.WallSide = EGridEdge::None;
 		Object.bInitiallyEnabled = true;
 		return Object;
+	}
+
+	FGridItemSpawnInstance MakeTD0132ItemSpawn(FGuid SpawnId)
+	{
+		FGridItemSpawnInstance Spawn;
+		Spawn.SpawnId = SpawnId;
+		Spawn.CellX = 0;
+		Spawn.CellY = 0;
+		Spawn.bInitiallyEnabled = true;
+		return Spawn;
 	}
 
 	FGridObjectLink MakeTD0132Link(FGuid SourceId, FGuid TargetId, EGridObjectEvent SourceEvent, EGridObjectCommand Command)
@@ -39,13 +49,13 @@ namespace
 		FTD0132TestWorld()
 		{
 			const UWorld::InitializationValues Values = UWorld::InitializationValues()
-															.AllowAudioPlayback(false)
-															.RequiresHitProxies(false)
-															.CreatePhysicsScene(false)
-															.CreateNavigation(false)
-															.CreateAISystem(false)
-															.ShouldSimulatePhysics(false)
-															.SetTransactional(false);
+				.AllowAudioPlayback(false)
+				.RequiresHitProxies(false)
+				.CreatePhysicsScene(false)
+				.CreateNavigation(false)
+				.CreateAISystem(false)
+				.ShouldSimulatePhysics(false)
+				.SetTransactional(false);
 
 			World = UWorld::CreateWorld(EWorldType::Game, false, TEXT("TD0132EventCommandRuntimeWorld"), nullptr, true, ERHIFeatureLevel::Num, &Values);
 			if (World && GEngine)
@@ -105,10 +115,10 @@ bool FGridTD0132StateOnlyRuntimeRejectionTest::RunTest(const FString& Parameters
 	const FGuid ItemSpawnId(1, 3, 2, 3);
 	const FGuid LightId(1, 3, 2, 4);
 
-	Level->Objects.Add(MakeTD0132Object(SourceId, EGridLevelObjectType::Trigger));
-	Level->Objects.Add(MakeTD0132Object(TeleporterId, EGridLevelObjectType::Teleporter));
-	Level->Objects.Add(MakeTD0132Object(ItemSpawnId, EGridLevelObjectType::ItemSpawn));
-	Level->Objects.Add(MakeTD0132Object(LightId, EGridLevelObjectType::Light));
+	Level->WorldObjectInstances.Add(MakeTD0132WorldObject(SourceId, EGridLevelObjectType::Trigger));
+	Level->WorldObjectInstances.Add(MakeTD0132WorldObject(TeleporterId, EGridLevelObjectType::Teleporter));
+	Level->ItemSpawns.Add(MakeTD0132ItemSpawn(ItemSpawnId));
+	Level->WorldObjectInstances.Add(MakeTD0132WorldObject(LightId, EGridLevelObjectType::Light));
 
 	for (const FGuid TargetId : { TeleporterId, ItemSpawnId, LightId })
 	{
