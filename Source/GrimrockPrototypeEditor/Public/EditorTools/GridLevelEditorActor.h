@@ -396,6 +396,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Palette")
 	void ApplySelectedPaletteEntry();
 
+	bool TryGetSelectedObjectData(FGridLevelObjectData& OutObject) const;
 	const FGridLevelObjectData* GetSelectedObjectData() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Selection")

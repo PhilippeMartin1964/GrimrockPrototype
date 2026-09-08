@@ -132,9 +132,10 @@ void AGridLevelEditorActor::SelectObjectAtSelection()
 		return;
 	}
 
-	for (int32 Index = LevelAsset->Objects.Num() - 1; Index >= 0; --Index)
+	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	for (int32 Index = CompatibilityObjects.Num() - 1; Index >= 0; --Index)
 	{
-		const FGridLevelObjectData& Obj = LevelAsset->Objects[Index];
+		const FGridLevelObjectData& Obj = CompatibilityObjects[Index];
 
 		if (Obj.CellX != SelectedCellX || Obj.CellY != SelectedCellY)
 		{

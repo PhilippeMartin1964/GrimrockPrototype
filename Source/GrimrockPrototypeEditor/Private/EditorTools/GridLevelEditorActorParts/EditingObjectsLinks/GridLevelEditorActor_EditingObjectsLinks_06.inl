@@ -1,32 +1,35 @@
 #include "Core/GridObjectInstanceBehavior.h"
 
-const FGridLevelObjectData* AGridLevelEditorActor::GetSelectedObjectData() const
+bool AGridLevelEditorActor::TryGetSelectedObjectData(FGridLevelObjectData& OutObject) const
 {
 	const FGridLevelObjectData* StoredObject = FindObjectById(LastSelectedObjectId);
 	if (!StoredObject)
 	{
-		return nullptr;
+		return false;
 	}
 
-	// WORLDOBJ-MIG06: the inspector must see effective Definition + Instance data,
-	// not the sparse serialized payload. The returned pointer is read-only and is
-	// only used as a temporary editor view during Slate refresh/build callbacks.
-	static FGridLevelObjectData EffectiveObject;
-	EffectiveObject = *StoredObject;
+	// WORLDOBJ-MIG09-E2C: expose the selected compatibility DTO by value only.
+	// Callers must not retain a pointer into a transient typed projection.
+	OutObject = *StoredObject;
 	const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(StoredObject->ArchetypeId);
-	EffectiveObject.Behavior = GridObjectInstanceBehavior::Resolve(LevelAsset, *StoredObject, Archetype);
+	OutObject.Behavior = GridObjectInstanceBehavior::Resolve(LevelAsset, *StoredObject, Archetype);
 	if (StoredObject->Type == EGridLevelObjectType::Item)
 	{
-		// MIG05 loose items have no WorldObjectDefinition. Rebuild the temporary
-		// inspector Behavior view from their direct single-definition fields.
-		EffectiveObject.Behavior.Item.ItemDefinitionAsset = StoredObject->ItemDefinitionAsset;
-		EffectiveObject.Behavior.Item.ItemDefinitionId = StoredObject->ItemDefinitionId;
-		EffectiveObject.Behavior.Item.DefaultReadableContentAsset = StoredObject->ReadableContentAsset;
-		EffectiveObject.Behavior.Item.DefaultReadableContentId = StoredObject->ReadableContentId;
-		EffectiveObject.Behavior.Item.DefaultReadTitleOverride = StoredObject->ReadTitleOverride;
-		EffectiveObject.Behavior.Item.DefaultReadTextOverride = StoredObject->ReadTextOverride;
+		OutObject.Behavior.Item.ItemDefinitionAsset = StoredObject->ItemDefinitionAsset;
+		OutObject.Behavior.Item.ItemDefinitionId = StoredObject->ItemDefinitionId;
+		OutObject.Behavior.Item.DefaultReadableContentAsset = StoredObject->ReadableContentAsset;
+		OutObject.Behavior.Item.DefaultReadableContentId = StoredObject->ReadableContentId;
+		OutObject.Behavior.Item.DefaultReadTitleOverride = StoredObject->ReadTitleOverride;
+		OutObject.Behavior.Item.DefaultReadTextOverride = StoredObject->ReadTextOverride;
 	}
-	return &EffectiveObject;
+	return true;
+}
+
+const FGridLevelObjectData* AGridLevelEditorActor::GetSelectedObjectData() const
+{
+	// Temporary E2C compatibility wrapper for the remaining Inspector consumer.
+	static FGridLevelObjectData EffectiveObject;
+	return TryGetSelectedObjectData(EffectiveObject) ? &EffectiveObject : nullptr;
 }
 
 bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)

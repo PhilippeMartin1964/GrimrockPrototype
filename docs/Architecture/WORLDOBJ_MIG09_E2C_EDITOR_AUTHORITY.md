@@ -6,7 +6,7 @@ Date : 2026-09-08
 
 ## Objectif
 
-Cette tranche retire de nouveaux accès directs au cache transitoire `UGridLevelAsset::Objects` dans les helpers centraux du Grid Editor.
+Cette tranche retire progressivement les accès directs au cache transitoire `UGridLevelAsset::Objects` et les dépendances aux pointeurs de DTO temporaires dans les helpers centraux du Grid Editor.
 
 L’autorité persistante reste exclusivement :
 
@@ -20,44 +20,13 @@ LogicObjects
 
 `FGridLevelObjectData` reste temporairement un DTO de compatibilité en valeur jusqu’à la fin de MIG09-E2C. Il ne doit plus être utilisé comme stockage persistant ni comme cible d’écriture.
 
-## Modifications de cette tranche
+## 1. Bloc déjà validé — mutations Editor hors cache
 
-### Suppression et conflits de placement
-
-`RemoveObjectsAtSelectionInternal()` et `RemoveObjectsConflictingWithPlacementInternal()` ne parcourent plus `LevelAsset->Objects`.
-
-Ils construisent une projection locale avec :
-
-```cpp
-LevelAsset->BuildCompatibilityObjectProjectionFromTyped()
-```
-
-Les suppressions continuent ensuite à passer par `RemoveObjectById()`, qui atteint l’autorité typée.
-
-### ApplyEditedSelectedObject
-
-`ApplyEditedSelectedObject()` ne modifie plus un élément mutable du cache `Objects`.
-
-Le flux devient :
-
-```text
-projection locale depuis autorité typée
--> copie du snapshot sélectionné
--> application des champs édités
--> ApplyGridEditorObjectSnapshotToAuthority()
--> MarkPackageDirty()
--> RebuildPreview()
-```
-
-Il n’existe donc plus de write-back direct vers `Objects` dans ce chemin.
-
-### Création d’un nouveau niveau
+`RemoveObjectsAtSelectionInternal()`, `RemoveObjectsConflictingWithPlacementInternal()` et `ApplyEditedSelectedObject()` ne lisent/écrivent plus directement `LevelAsset->Objects`.
 
 `CreateAndAddDungeonLevel()` ne réinitialise plus `NewLevelAsset->Objects`.
 
-Un niveau neuf initialise uniquement les cinq collections typées, les cellules, les liens et les données de départ.
-
-## Baseline déjà validée avant cette tranche
+Validation fournie le 8 septembre 2026 :
 
 ```text
 Grimrock.WorldObjects
@@ -67,15 +36,58 @@ Failed                 : 0
 Process exit code       : 0
 ```
 
-```text
-Grimrock.Editor.MON14.3.1
-Succeeded              : 2
-Succeeded with warnings: 0
-Failed                 : 0
-Process exit code       : 0
+Le build Development Editor UE5.5.4 est également passé.
+
+## 2. Bloc courant — sélection et Lua par valeur
+
+### SelectObjectAtSelection
+
+`SelectObjectAtSelection()` ne parcourt plus `LevelAsset->Objects`.
+
+Il construit une projection locale à partir des collections typées :
+
+```cpp
+const TArray<FGridLevelObjectData> CompatibilityObjects =
+    LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
 ```
 
-## Validation requise
+### Lecture de l’objet sélectionné
+
+Une API par valeur est introduite :
+
+```cpp
+bool TryGetSelectedObjectData(FGridLevelObjectData& OutObject) const;
+```
+
+Elle construit une vue résolue Definition + Instance depuis la projection typée, sans exposer au consommateur un pointeur vers une projection temporaire.
+
+L’ancienne API pointeur :
+
+```cpp
+const FGridLevelObjectData* GetSelectedObjectData() const;
+```
+
+reste temporairement comme wrapper de compatibilité pour le seul gros consommateur UI restant : `SGridEditorObjectInspectorPanel`.
+
+### Panneau Lua
+
+`SGridEditorLuaScriptsPanel` n’utilise plus directement l’API pointeur comme source de ses bindings. Les chemins suivants consomment désormais un snapshot local par valeur :
+
+```text
+RebuildBindingOptions()
+BuildBindingsSection()
+OnCreateBindingClicked()
+```
+
+## 3. Baseline déjà validée avant le bloc courant
+
+```text
+Grimrock.WorldObjects       : 34 / 0 warning / 0 échec
+Grimrock.Editor.MON14.3.1  : 2  / 0 warning / 0 échec
+Grimrock.MON19.2.Editor     : 8  / 0 warning / 0 échec
+```
+
+## 4. Validation requise pour le bloc courant
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
@@ -83,4 +95,19 @@ Process exit code       : 0
     -AutomationFilter "Grimrock.WorldObjects"
 ```
 
-Une fois ce filtre vert, la suite E2C porte sur les derniers consommateurs DTO/cache : Inspector, Lua/Validation, fixtures résiduelles et suppression physique finale de `Objects`, `FGridLevelObjectData` et des conversions de compatibilité.
+Puis :
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.MON19.2.Editor"
+```
+
+## 5. Reste de WORLDOBJ-MIG09-E2C
+
+Après validation de ce bloc :
+
+1. migrer `SGridEditorObjectInspectorPanel` vers `TryGetSelectedObjectData()` puis supprimer `GetSelectedObjectData()` ;
+2. sortir `GridEditorLuaService` et `GridLevelEditorActor_Validation.inl` des derniers accès directs à `Objects` ;
+3. migrer les fixtures/tests résiduels ;
+4. supprimer physiquement `Objects`, `FGridLevelObjectData`, `GridLevelPlacementCompatibility` et les conversions/projections transitoires devenues inutiles.

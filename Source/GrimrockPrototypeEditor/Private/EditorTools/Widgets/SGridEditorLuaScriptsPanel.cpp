@@ -135,10 +135,11 @@ void SGridEditorLuaScriptsPanel::RebuildBindingOptions()
 
 	AGridLevelEditorActor* EditorActor = FindEditorActor();
 	UGridLevelAsset* LevelAsset = EditorActor ? EditorActor->LevelAsset.Get() : nullptr;
-	const FGridLevelObjectData* Source = EditorActor ? EditorActor->GetSelectedObjectData() : nullptr;
-	if (Source)
+	FGridLevelObjectData Source;
+	const bool bHasSource = EditorActor && EditorActor->TryGetSelectedObjectData(Source);
+	if (bHasSource)
 	{
-		for (EGridObjectEvent Event : GridEditorLinkPolicy::GetSupportedEventsForSource(*Source))
+		for (EGridObjectEvent Event : GridEditorLinkPolicy::GetSupportedEventsForSource(Source))
 		{
 			EventOptions.Add(MakeShared<EGridObjectEvent>(Event));
 		}
@@ -449,28 +450,28 @@ TSharedRef<SWidget> SGridEditorLuaScriptsPanel::BuildBindingsSection()
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
 	AGridLevelEditorActor* EditorActor = FindEditorActor();
 	UGridLevelAsset* LevelAsset = EditorActor ? EditorActor->LevelAsset.Get() : nullptr;
-	const FGridLevelObjectData* Source = EditorActor ? EditorActor->GetSelectedObjectData() : nullptr;
+	FGridLevelObjectData Source;
+	const bool bHasSource = EditorActor && EditorActor->TryGetSelectedObjectData(Source);
 
 	Root->AddSlot()
 		.AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("LUA BINDINGS — SELECTED GRID OBJECT"))).Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))];
 
-	if (!LevelAsset || !Source)
+	if (!LevelAsset || !bHasSource)
 	{
 		Root->AddSlot().AutoHeight().Padding(0.f, 5.f, 0.f,
 			0.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Select a Grid object in Grimrock Grid Editor, then press Refresh."))).AutoWrapText(true)];
 		return Root;
 	}
 
-	const FString SourceName =
-		!Source->LogicId.IsNone() ? Source->LogicId.ToString() : (Source->Tag.IsNone() ? Source->ObjectId.ToString().Left(8) : Source->Tag.ToString());
+	const FString SourceName = !Source.LogicId.IsNone() ? Source.LogicId.ToString() : (Source.Tag.IsNone() ? Source.ObjectId.ToString().Left(8) : Source.Tag.ToString());
 
 	Root->AddSlot().AutoHeight().Padding(
-		0.f, 4.f, 0.f, 0.f)[SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("Source: %s @ (%d,%d)"), *SourceName, Source->CellX, Source->CellY)))];
+		0.f, 4.f, 0.f, 0.f)[SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("Source: %s @ (%d,%d)"), *SourceName, Source.CellX, Source.CellY)))];
 
 	Root->AddSlot().AutoHeight().Padding(0.f, 5.f, 0.f, 0.f)[SNew(SHorizontalBox) +
 		SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 8.f, 0.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Logic Id")))] +
 		SHorizontalBox::Slot().FillWidth(1.f)[SNew(SEditableTextBox)
-				.Text(Source->LogicId.IsNone() ? FText::GetEmpty() : FText::FromName(Source->LogicId))
+				.Text(Source.LogicId.IsNone() ? FText::GetEmpty() : FText::FromName(Source.LogicId))
 				.HintText(FText::FromString(TEXT("e.g. SecretDoor")))
 				.ToolTipText(FText::FromString(TEXT("Stable readable alias used by grid.command(\"SecretDoor\", \"Open\"). Must be unique in the level.")))
 				.OnTextCommitted_Lambda(
@@ -490,7 +491,7 @@ TSharedRef<SWidget> SGridEditorLuaScriptsPanel::BuildBindingsSection()
 						Rebuild();
 					})]];
 
-	const TArray<EGridObjectEvent> SupportedEvents = GridEditorLinkPolicy::GetSupportedEventsForSource(*Source);
+	const TArray<EGridObjectEvent> SupportedEvents = GridEditorLinkPolicy::GetSupportedEventsForSource(Source);
 	if (SupportedEvents.IsEmpty())
 	{
 		Root->AddSlot().AutoHeight().Padding(0.f, 5.f, 0.f, 0.f)[SNew(STextBlock)
@@ -723,7 +724,7 @@ TSharedRef<SWidget> SGridEditorLuaScriptsPanel::BuildBindingsSection()
 	for (int32 LinkIndex = 0; LinkIndex < LevelAsset->Links.Num(); ++LinkIndex)
 	{
 		const FGridObjectLink& Link = LevelAsset->Links[LinkIndex];
-		if (Link.SourceObjectId != Source->ObjectId || Link.Command != EGridObjectCommand::LuaCallback)
+		if (Link.SourceObjectId != Source.ObjectId || Link.Command != EGridObjectCommand::LuaCallback)
 		{
 			continue;
 		}
@@ -899,14 +900,15 @@ FReply SGridEditorLuaScriptsPanel::OnValidateClicked()
 FReply SGridEditorLuaScriptsPanel::OnCreateBindingClicked()
 {
 	AGridLevelEditorActor* EditorActor = FindEditorActor();
-	const FGridLevelObjectData* Source = EditorActor ? EditorActor->GetSelectedObjectData() : nullptr;
-	if (!EditorActor || !Source || !SelectedEvent.IsValid() || !SelectedBindingScript.IsValid() || !SelectedCallback.IsValid() || !SelectedCondition.IsValid())
+	FGridLevelObjectData Source;
+	const bool bHasSource = EditorActor && EditorActor->TryGetSelectedObjectData(Source);
+	if (!EditorActor || !bHasSource || !SelectedEvent.IsValid() || !SelectedBindingScript.IsValid() || !SelectedCallback.IsValid() || !SelectedCondition.IsValid())
 	{
 		return FReply::Handled();
 	}
 
 	FGridObjectLink Link;
-	Link.SourceObjectId = Source->ObjectId;
+	Link.SourceObjectId = Source.ObjectId;
 	Link.SourceEvent = *SelectedEvent;
 	Link.Command = EGridObjectCommand::LuaCallback;
 	Link.LuaScriptId = *SelectedBindingScript;
