@@ -268,18 +268,48 @@ EditorActor->ObjectBehavior après sélection/re-sélection
 
 Le contrat testé devient donc explicite : le comportement appartenant à la Definition reste sur la Definition et les overrides d'instance supportés sont stockés dans `FGridWorldObjectInstanceConfig`.
 
-Validation locale requise après les sous-blocs 5.6 et 5.7 :
+Validation locale UE5.5.4 du 2026-09-08 après les sous-blocs 5.6 et 5.7 :
 
 ```text
 Grimrock.WorldObjects
+Succeeded              : 34
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
 ```
 
-### 5.8. Reste E2C
+### 5.8. LinksPanel hors cache de placement
+
+`SGridEditorLinksPanel` ne lit plus `UGridLevelAsset::Objects` et ne dépend plus de `AGridLevelEditorActor::GetSelectedObjectData()`.
+
+Les chemins suivants sont désormais alimentés par des vues locales en valeur construites exclusivement depuis `BuildCompatibilityObjectProjectionFromTyped()` :
+
+```text
+sélection courante du panneau
+lookup source/cible des connecteurs
+résumé d'objet
+liste des sources émettrices
+liste des cibles réceptrices
+options Event / Command / Condition
+validation des connecteurs cassés
+```
+
+Le helper local `FindObjectById()` retourne un `TOptional<FGridLevelObjectData>` en valeur : aucun pointeur vers le cache `Objects` n'est conservé. Cette vue DTO reste transitoire et disparaîtra avec `FGridLevelObjectData` lors de la purge finale E2C.
+
+Validation locale requise pour ce sous-bloc :
+
+```text
+Grimrock.MON19.2.Editor
+Grimrock.WorldObjects
+```
+
+### 5.9. Reste E2C
 
 Il reste à migrer :
 
-- suppression de l'API pointeur `GetSelectedObjectData()` au profit de vues typées/natives ;
-- `SGridEditorObjectInspectorPanel`, `SGridEditorLinksPanel`, `SGridEditorOverviewMapPanel` et `GridLevelEdMode` encore partiellement exprimés en DTO ;
+- suppression finale de l'API pointeur `GetSelectedObjectData()` après migration de ses derniers consommateurs ;
+- `SGridEditorObjectInspectorPanel`, `SGridEditorOverviewMapPanel` et `GridLevelEdMode` encore partiellement exprimés en DTO/cache ;
 - `GridEditorLuaService` / panneaux Lua / Validation ;
 - setters Item/WorldObject/Logic encore construisant des snapshots DTO ;
 - fixtures de tests legacy restantes ;
