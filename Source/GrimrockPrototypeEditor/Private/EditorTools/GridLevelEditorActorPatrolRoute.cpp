@@ -130,7 +130,7 @@ bool AGridLevelEditorActor::SetSelectedMonsterPatrolMode(EGridMonsterPatrolMode 
 	}
 	if (NewMode != EGridMonsterPatrolMode::None && Spawn->PatrolWaypoints.Num() < 2)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[MON14.3.1] Patrol mode requires at least two waypoints. SpawnId=%s"), *Spawn->SpawnId.ToString());
+		UE_LOG(LogTemp, Verbose, TEXT("[MON14.3.1] Patrol mode requires at least two waypoints. SpawnId=%s"), *Spawn->SpawnId.ToString());
 		return false;
 	}
 	if (Spawn->PatrolMode == NewMode)
