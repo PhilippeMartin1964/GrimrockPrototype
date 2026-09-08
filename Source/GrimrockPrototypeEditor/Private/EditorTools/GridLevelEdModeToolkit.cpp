@@ -6,6 +6,7 @@
 #include "EditorTools/GridLevelEdMode.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "Core/GridLevelAsset.h"
 #include "Core/GridTypes.h"
 
 #include "Editor.h"
@@ -416,21 +417,20 @@ FText FGridLevelEdModeToolkit::GetSelectedObjectStatusText() const
 		return FText::FromString(TEXT("None"));
 	}
 
-	const TArray<FGridLevelObjectData> CompatibilityObjects = EditorActor->LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	const FGridLevelObjectData* Obj = CompatibilityObjects.FindByPredicate(
-		[EditorActor](const FGridLevelObjectData& Candidate)
-		{
-			return Candidate.ObjectId == EditorActor->LastSelectedObjectId;
-		});
-	if (!Obj)
+	const EGridLevelObjectType ObjectType = EditorActor->LevelAsset->GetTypedPlacementType(EditorActor->LastSelectedObjectId);
+	int32 CellX = INDEX_NONE;
+	int32 CellY = INDEX_NONE;
+	EGridEdge Edge = EGridEdge::None;
+	if (ObjectType == EGridLevelObjectType::None ||
+		!EditorActor->LevelAsset->TryGetTypedPlacementLocation(EditorActor->LastSelectedObjectId, CellX, CellY, Edge))
 	{
 		return FText::FromString(TEXT("None"));
 	}
 
 	const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType>();
-	const FText TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText(TypeEnum, static_cast<int64>(Obj->Type));
+	const FText TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText(TypeEnum, static_cast<int64>(ObjectType));
 
-	return FText::Format(FText::FromString(TEXT("{0} ({1},{2})")), TypeText, FText::AsNumber(Obj->CellX), FText::AsNumber(Obj->CellY));
+	return FText::Format(FText::FromString(TEXT("{0} ({1},{2})")), TypeText, FText::AsNumber(CellX), FText::AsNumber(CellY));
 }
 
 #endif

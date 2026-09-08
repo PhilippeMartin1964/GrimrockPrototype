@@ -1,6 +1,7 @@
 #include "EditorTools/GridEditorLuaService.h"
 
 #include "Core/GridLevelAsset.h"
+#include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridLevelVariableTypes.h"
 #include "EditorTools/GridEditorLinkPolicy.h"
 #include "EditorTools/GridEditorLinkService.h"
@@ -10,9 +11,13 @@
 
 namespace
 {
-	bool TryFindObjectById(const UGridLevelAsset& LevelAsset, const FGuid& ObjectId, FGridLevelObjectData& OutObject)
+	EGridLogicNodeType GetLogicNodeTypeForPlacement(const UGridLevelAsset& LevelAsset, const FGuid& ObjectId)
 	{
-		return LevelAsset.TryGetCompatibilityObjectSnapshot(ObjectId, OutObject);
+		if (const FGridLogicObjectInstance* Logic = LevelAsset.FindLogicObjectInstanceById(ObjectId))
+		{
+			return Logic->Logic.NodeType;
+		}
+		return EGridLogicNodeType::Relay;
 	}
 
 	const FGridLuaScriptSource* FindScriptById(const UGridLevelAsset& LevelAsset, FName ScriptId)
@@ -155,12 +160,14 @@ namespace
 		{
 			LocationId = Message.SourceObjectId.IsValid() ? Message.SourceObjectId : Message.TargetObjectId;
 		}
-		FGridLevelObjectData Object;
-		if (TryFindObjectById(LevelAsset, LocationId, Object))
+		int32 CellX = INDEX_NONE;
+		int32 CellY = INDEX_NONE;
+		EGridEdge Edge = EGridEdge::None;
+		if (LevelAsset.TryGetTypedPlacementLocation(LocationId, CellX, CellY, Edge))
 		{
-			Message.CellX = Object.CellX;
-			Message.CellY = Object.CellY;
-			Message.Edge = Object.Edge;
+			Message.CellX = CellX;
+			Message.CellY = CellY;
+			Message.Edge = Edge;
 		}
 	}
 
@@ -432,13 +439,14 @@ namespace GridEditorLuaService
 			OutError = TEXT("Lua binding requires a valid SourceObjectId.");
 			return false;
 		}
-		FGridLevelObjectData Source;
-		if (!TryFindObjectById(LevelAsset, Normalized.SourceObjectId, Source))
+		const EGridLevelObjectType SourceType = LevelAsset.GetTypedPlacementType(Normalized.SourceObjectId);
+		if (SourceType == EGridLevelObjectType::None)
 		{
 			OutError = TEXT("Lua binding source object does not exist.");
 			return false;
 		}
-		if (!GridEditorLinkPolicy::GetSupportedEventsForSource(Source).Contains(Normalized.SourceEvent))
+		const EGridLogicNodeType SourceLogicNodeType = GetLogicNodeTypeForPlacement(LevelAsset, Normalized.SourceObjectId);
+		if (!GridEditorLinkPolicy::GetSupportedEventsForSource(SourceType, SourceLogicNodeType).Contains(Normalized.SourceEvent))
 		{
 			OutError = TEXT("Lua binding source event is not emitted by this object type.");
 			return false;
@@ -752,8 +760,8 @@ namespace GridEditorLuaService
 			return false;
 		}
 
-		FGridLevelObjectData Selected;
-		if (!TryFindObjectById(*LevelAsset, EditorActor.LastSelectedObjectId, Selected))
+		const FGuid SelectedId = EditorActor.LastSelectedObjectId;
+		if (!LevelAsset->ContainsTypedPlacementId(SelectedId))
 		{
 			OutError = TEXT("Selected Grid object no longer exists.");
 			return false;
@@ -761,11 +769,12 @@ namespace GridEditorLuaService
 
 		if (!LogicId.IsNone())
 		{
-			const TArray<FGridLevelObjectData> Objects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-			const bool bAlreadyUsed = Objects.ContainsByPredicate(
-				[LogicId, SelectedId = Selected.ObjectId](const FGridLevelObjectData& Object)
+			TArray<FGuid> MatchingIds;
+			LevelAsset->FindTypedPlacementIdsByLogicId(LogicId, MatchingIds);
+			const bool bAlreadyUsed = MatchingIds.ContainsByPredicate(
+				[SelectedId](const FGuid& ObjectId)
 				{
-					return Object.ObjectId != SelectedId && Object.LogicId == LogicId;
+					return ObjectId != SelectedId;
 				});
 			if (bAlreadyUsed)
 			{
@@ -777,7 +786,7 @@ namespace GridEditorLuaService
 #if WITH_EDITOR
 		LevelAsset->Modify();
 #endif
-		if (!LevelAsset->SetTypedPlacementLogicId(Selected.ObjectId, LogicId))
+		if (!LevelAsset->SetTypedPlacementLogicId(SelectedId, LogicId))
 		{
 			OutError = TEXT("Selected Grid object no longer exists in typed placement storage.");
 			return false;
@@ -806,9 +815,8 @@ namespace GridEditorLuaService
 			{
 				if (Message.OptionalObjectId.IsValid() && Message.Message.Contains(TEXT("ArchetypeId")))
 				{
-					FGridLevelObjectData Object;
-					if (TryFindObjectById(*LevelAsset, Message.OptionalObjectId, Object) && Object.Type == EGridLevelObjectType::Logic &&
-						Object.ArchetypeId.IsNone())
+					if (const FGridLogicObjectInstance* Logic = LevelAsset->FindLogicObjectInstanceById(Message.OptionalObjectId);
+						Logic && Logic->Type == EGridLevelObjectType::Logic)
 					{
 						return true;
 					}
@@ -835,9 +843,10 @@ namespace GridEditorLuaService
 
 				if (Message.Message.Contains(TEXT("is not emitted by the current C++ runtime")))
 				{
-					FGridLevelObjectData Source;
-					if (TryFindObjectById(*LevelAsset, Link.SourceObjectId, Source) &&
-						GridEditorLinkPolicy::GetSupportedEventsForSource(Source).Contains(Link.SourceEvent))
+					const EGridLevelObjectType SourceType = LevelAsset->GetTypedPlacementType(Link.SourceObjectId);
+					if (SourceType != EGridLevelObjectType::None &&
+						GridEditorLinkPolicy::GetSupportedEventsForSource(
+							SourceType, GetLogicNodeTypeForPlacement(*LevelAsset, Link.SourceObjectId)).Contains(Link.SourceEvent))
 					{
 						return true;
 					}
@@ -845,45 +854,59 @@ namespace GridEditorLuaService
 				return false;
 			});
 
-		const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
 		TMap<FName, FGuid> LogicIdOwners;
-		for (const FGridLevelObjectData& Object : CompatibilityObjects)
+		const auto ValidateLogicId = [&Messages, LevelAsset, &LogicIdOwners](const FGuid& ObjectId, FName LogicId)
 		{
-			if (!Object.LogicId.IsNone())
+			if (LogicId.IsNone())
 			{
-				if (!IsSimpleLogicId(Object.LogicId))
-				{
-					AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("LogicId"),
-						FString::Printf(TEXT("LogicId '%s' must match [A-Za-z_][A-Za-z0-9_]*."), *Object.LogicId.ToString()), Object.ObjectId);
-				}
-				else if (const FGuid* ExistingOwner = LogicIdOwners.Find(Object.LogicId))
-				{
-					AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("LogicId"),
-						FString::Printf(TEXT("LogicId '%s' is duplicated by objects %s and %s."), *Object.LogicId.ToString(), *ExistingOwner->ToString(),
-							*Object.ObjectId.ToString()),
-						Object.ObjectId);
-				}
-				else
-				{
-					LogicIdOwners.Add(Object.LogicId, Object.ObjectId);
-				}
+				return;
 			}
+			if (!IsSimpleLogicId(LogicId))
+			{
+				AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("LogicId"),
+					FString::Printf(TEXT("LogicId '%s' must match [A-Za-z_][A-Za-z0-9_]*."), *LogicId.ToString()), ObjectId);
+			}
+			else if (const FGuid* ExistingOwner = LogicIdOwners.Find(LogicId))
+			{
+				AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("LogicId"),
+					FString::Printf(TEXT("LogicId '%s' is duplicated by objects %s and %s."), *LogicId.ToString(), *ExistingOwner->ToString(),
+						*ObjectId.ToString()),
+					ObjectId);
+			}
+			else
+			{
+				LogicIdOwners.Add(LogicId, ObjectId);
+			}
+		};
 
+		for (const FGridWorldObjectInstance& Instance : LevelAsset->WorldObjectInstances)
+		{
+			ValidateLogicId(Instance.InstanceId, Instance.LogicId);
+		}
+		for (const FGridLooseItemInstance& Instance : LevelAsset->LooseItemInstances)
+		{
+			ValidateLogicId(Instance.InstanceId, Instance.LogicId);
+		}
+		for (const FGridMonsterSpawnInstance& Spawn : LevelAsset->MonsterSpawns)
+		{
+			ValidateLogicId(Spawn.SpawnId, Spawn.LogicId);
+		}
+		for (const FGridItemSpawnInstance& Spawn : LevelAsset->ItemSpawns)
+		{
+			ValidateLogicId(Spawn.SpawnId, Spawn.LogicId);
+		}
+		for (const FGridLogicObjectInstance& Object : LevelAsset->LogicObjects)
+		{
+			ValidateLogicId(Object.InstanceId, Object.LogicId);
 			if (Object.Type != EGridLevelObjectType::Logic)
 			{
 				continue;
 			}
-			if (!Object.ArchetypeId.IsNone())
-			{
-				AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("Logic"),
-					TEXT("Data-only Logic object must use ArchetypeId=None."), Object.ObjectId);
-			}
-
 			FString LogicError;
 			if (!GridLogicRuntime::ValidateNode(*LevelAsset, Object, LogicError))
 			{
 				AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("Logic"),
-					FString::Printf(TEXT("Logic object is invalid: %s"), *LogicError), Object.ObjectId);
+					FString::Printf(TEXT("Logic object is invalid: %s"), *LogicError), Object.InstanceId);
 			}
 		}
 

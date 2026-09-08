@@ -3,6 +3,7 @@
 #if WITH_EDITOR
 
 #include "Core/GridLevelAsset.h"
+#include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridLevelVariableTypes.h"
 #include "Core/GridTypes.h"
 #include "Editor.h"
@@ -135,13 +136,20 @@ void SGridEditorLuaScriptsPanel::RebuildBindingOptions()
 
 	AGridLevelEditorActor* EditorActor = FindEditorActor();
 	UGridLevelAsset* LevelAsset = EditorActor ? EditorActor->LevelAsset.Get() : nullptr;
-	FGridLevelObjectData Source;
-	const bool bHasSource = EditorActor && EditorActor->TryGetSelectedObjectData(Source);
-	if (bHasSource)
+	if (EditorActor && LevelAsset && EditorActor->LastSelectedObjectId.IsValid())
 	{
-		for (EGridObjectEvent Event : GridEditorLinkPolicy::GetSupportedEventsForSource(Source))
+		const EGridLevelObjectType SourceType = LevelAsset->GetTypedPlacementType(EditorActor->LastSelectedObjectId);
+		if (SourceType != EGridLevelObjectType::None)
 		{
-			EventOptions.Add(MakeShared<EGridObjectEvent>(Event));
+			EGridLogicNodeType LogicNodeType = EGridLogicNodeType::Relay;
+			if (const FGridLogicObjectInstance* Logic = LevelAsset->FindLogicObjectInstanceById(EditorActor->LastSelectedObjectId))
+			{
+				LogicNodeType = Logic->Logic.NodeType;
+			}
+			for (EGridObjectEvent Event : GridEditorLinkPolicy::GetSupportedEventsForSource(SourceType, LogicNodeType))
+			{
+				EventOptions.Add(MakeShared<EGridObjectEvent>(Event));
+			}
 		}
 	}
 

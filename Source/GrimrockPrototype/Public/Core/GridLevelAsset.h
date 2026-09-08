@@ -203,6 +203,53 @@ public:
 		return EGridLevelObjectType::None;
 	}
 
+	/**
+	 * WORLDOBJ-MIG09-E2C typed spatial lookup for editor/runtime diagnostics.
+	 * Returns the legacy-equivalent placement edge only as a scalar value:
+	 * world objects use WallSide, loose items use SurfaceSide, and cell-centered
+	 * monster/item/logic placements report None.
+	 */
+	bool TryGetTypedPlacementLocation(const FGuid& ObjectId, int32& OutCellX, int32& OutCellY, EGridEdge& OutEdge) const
+	{
+		OutCellX = INDEX_NONE;
+		OutCellY = INDEX_NONE;
+		OutEdge = EGridEdge::None;
+
+		if (const FGridWorldObjectInstance* Instance = FindWorldObjectInstanceById(ObjectId))
+		{
+			OutCellX = Instance->CellX;
+			OutCellY = Instance->CellY;
+			OutEdge = Instance->WallSide;
+			return true;
+		}
+		if (const FGridLooseItemInstance* Instance = FindLooseItemInstanceById(ObjectId))
+		{
+			OutCellX = Instance->CellX;
+			OutCellY = Instance->CellY;
+			OutEdge = Instance->SurfaceSide;
+			return true;
+		}
+		if (const FGridMonsterSpawnInstance* Spawn = FindMonsterSpawnInstanceById(ObjectId))
+		{
+			OutCellX = Spawn->CellX;
+			OutCellY = Spawn->CellY;
+			return true;
+		}
+		if (const FGridItemSpawnInstance* Spawn = FindItemSpawnInstanceById(ObjectId))
+		{
+			OutCellX = Spawn->CellX;
+			OutCellY = Spawn->CellY;
+			return true;
+		}
+		if (const FGridLogicObjectInstance* Instance = FindLogicObjectInstanceById(ObjectId))
+		{
+			OutCellX = Instance->CellX;
+			OutCellY = Instance->CellY;
+			return true;
+		}
+		return false;
+	}
+
 	FName GetTypedPlacementLogicId(const FGuid& ObjectId) const
 	{
 		if (const FGridWorldObjectInstance* Instance = FindWorldObjectInstanceById(ObjectId))
