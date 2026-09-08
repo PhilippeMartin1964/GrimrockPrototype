@@ -26,10 +26,10 @@ namespace
 		return Definition;
 	}
 
-	FGridLevelObjectData MakeEditorObject1924(FGuid Id, EGridLevelObjectType Type)
+	FGridWorldObjectInstance MakeEditorObject1924(FGuid Id, EGridLevelObjectType Type)
 	{
-		FGridLevelObjectData Object;
-		Object.ObjectId = Id;
+		FGridWorldObjectInstance Object;
+		Object.InstanceId = Id;
 		Object.Type = Type;
 		return Object;
 	}
@@ -59,8 +59,8 @@ bool FGridEditorMON1924VariableConditionPolicyTest::RunTest(const FString& Param
 	UGridLevelAsset* Level = NewObject<UGridLevelAsset>(GetTransientPackage());
 	const FGuid SourceId(19, 2, 4, 101);
 	const FGuid TargetId(19, 2, 4, 102);
-	Level->Objects.Add(MakeEditorObject1924(SourceId, EGridLevelObjectType::Button));
-	Level->Objects.Add(MakeEditorObject1924(TargetId, EGridLevelObjectType::Door));
+	Level->WorldObjectInstances.Add(MakeEditorObject1924(SourceId, EGridLevelObjectType::Button));
+	Level->WorldObjectInstances.Add(MakeEditorObject1924(TargetId, EGridLevelObjectType::Door));
 	Level->LevelVariables = { MakeEditorBoolVariable1924(TEXT("Gate")), MakeEditorIntVariable1924(TEXT("Count")) };
 
 	FGridObjectLink BoolLink;
