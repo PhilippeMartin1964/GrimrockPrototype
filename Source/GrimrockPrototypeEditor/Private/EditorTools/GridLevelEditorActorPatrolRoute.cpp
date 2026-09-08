@@ -51,10 +51,6 @@ namespace
 			return;
 		}
 
-		// WORLDOBJ-MIG09: MonsterSpawns is authoritative. Objects remains a
-		// transient E2 compatibility view for editor panels that have not yet
-		// migrated to typed reads, so refresh it after every typed patrol edit.
-		LevelAsset->RefreshLegacyObjectMirrorFromTyped();
 		LevelAsset->MarkPackageDirty();
 		RedrawGridEditorViewports();
 	}

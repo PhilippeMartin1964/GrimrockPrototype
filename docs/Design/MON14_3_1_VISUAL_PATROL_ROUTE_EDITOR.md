@@ -12,7 +12,7 @@ UGridLevelAsset::MonsterSpawns
     -> FGridMonsterSpawnInstance::PatrolWaypoints
 ```
 
-Il n'existe plus de round-trip de patrouille via `LevelAsset->Objects`, `FGridLevelObjectData` ou `AddObject(snapshot)`.
+Il n'existe plus de round-trip de patrouille via `LevelAsset->Objects`, `FGridLevelObjectData`, `GetSelectedObjectData()` ou `AddObject(snapshot)`.
 
 ## Objectifs
 
@@ -48,6 +48,8 @@ Runtime MonsterSpawn
 
 La route est donc une propriété directe du placement typé `MonsterSpawn`. Le viewport n'enregistre aucune copie parallèle.
 
+Les mutations de route ne reconstruisent plus `UGridLevelAsset::Objects`. Le test d'édition MON14.3.1 crée et relit également le spawn directement dans `MonsterSpawns`.
+
 ## Activation
 
 1. passer le Grid Editor en outil `Select` ;
@@ -77,6 +79,8 @@ En mode route :
 - `PageUp` / `PageDown` réordonnent le waypoint sélectionné ;
 - `Delete` / `Backspace` suppriment le waypoint ;
 - sous deux waypoints, `PatrolMode` revient à `None`.
+
+Un refus de mode `Loop`/`PingPong` avec moins de deux waypoints est une garde normale et n'est pas journalisé comme warning Automation.
 
 ## Undo / Redo
 
@@ -122,7 +126,18 @@ Grimrock.Editor.MON14.3.1.PatrolRouteEditingModel
 Grimrock.Editor.MON14.3.1.PatrolRouteGuards
 ```
 
-Validation recommandée après la migration E2C :
+Validation locale du 2026-09-08 avant suppression du dernier refresh de compatibilité :
+
+```text
+Grimrock.Editor.MON14.3.1
+Succeeded              : 2
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Après suppression du refresh legacy, relancer :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `

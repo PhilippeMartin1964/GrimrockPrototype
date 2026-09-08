@@ -47,6 +47,20 @@ namespace
 		}
 	};
 
+	const FGridMonsterSpawnInstance* FindTypedMonsterSpawn(const UGridLevelAsset* LevelAsset, const FGuid& SpawnId)
+	{
+		if (!LevelAsset || !SpawnId.IsValid())
+		{
+			return nullptr;
+		}
+
+		return LevelAsset->MonsterSpawns.FindByPredicate(
+			[&SpawnId](const FGridMonsterSpawnInstance& Spawn)
+			{
+				return Spawn.SpawnId == SpawnId;
+			});
+	}
+
 	struct FGridMON1431EditorFixture
 	{
 		FGridMON1431EditorTestWorld TestWorld;
@@ -90,9 +104,12 @@ namespace
 			MonsterSpawn.Facing = EGridEdge::North;
 			MonsterSpawn.bInitiallyEnabled = true;
 			LevelAsset->MonsterSpawns.Add(MonsterSpawn);
-			LevelAsset->RefreshLegacyObjectMirrorFromTyped();
 
-			return EditorActor->SelectObjectById(MonsterSpawnId);
+			EditorActor->LastSelectedObjectId = MonsterSpawnId;
+			EditorActor->SelectedCellX = MonsterSpawn.CellX;
+			EditorActor->SelectedCellY = MonsterSpawn.CellY;
+			EditorActor->SelectedEdge = EGridEdge::None;
+			return true;
 		}
 	};
 }
@@ -119,8 +136,8 @@ bool FGridMON1431PatrolRouteEditingModelTest::RunTest(const FString& Parameters)
 	Fixture.EditorActor->HoveredCellY = 1;
 	TestTrue(TEXT("First waypoint is added"), Fixture.EditorActor->AddOrSelectPatrolWaypointAtHoveredCell());
 
-	const FGridLevelObjectData* Spawn = Fixture.EditorActor->GetSelectedObjectData();
-	TestNotNull(TEXT("Selected spawn remains available"), Spawn);
+	const FGridMonsterSpawnInstance* Spawn = FindTypedMonsterSpawn(Fixture.LevelAsset, Fixture.MonsterSpawnId);
+	TestNotNull(TEXT("Typed spawn remains available"), Spawn);
 	if (!Spawn)
 	{
 		return false;
@@ -131,7 +148,7 @@ bool FGridMON1431PatrolRouteEditingModelTest::RunTest(const FString& Parameters)
 	Fixture.EditorActor->HoveredCellX = 4;
 	Fixture.EditorActor->HoveredCellY = 1;
 	TestTrue(TEXT("Second waypoint is added"), Fixture.EditorActor->AddOrSelectPatrolWaypointAtHoveredCell());
-	Spawn = Fixture.EditorActor->GetSelectedObjectData();
+	Spawn = FindTypedMonsterSpawn(Fixture.LevelAsset, Fixture.MonsterSpawnId);
 	TestEqual(TEXT("Two waypoints stored"), Spawn->PatrolWaypoints.Num(), 2);
 	TestEqual(TEXT("Second waypoint enables Loop by default"), Spawn->PatrolMode, EGridMonsterPatrolMode::Loop);
 	TestEqual(TEXT("Newest waypoint becomes selected"), Fixture.EditorActor->SelectedPatrolWaypointIndex, 1);
@@ -139,34 +156,34 @@ bool FGridMON1431PatrolRouteEditingModelTest::RunTest(const FString& Parameters)
 	Fixture.EditorActor->HoveredCellX = 1;
 	Fixture.EditorActor->HoveredCellY = 1;
 	TestTrue(TEXT("Clicking existing waypoint selects it"), Fixture.EditorActor->AddOrSelectPatrolWaypointAtHoveredCell());
-	Spawn = Fixture.EditorActor->GetSelectedObjectData();
+	Spawn = FindTypedMonsterSpawn(Fixture.LevelAsset, Fixture.MonsterSpawnId);
 	TestEqual(TEXT("Existing waypoint is not duplicated"), Spawn->PatrolWaypoints.Num(), 2);
 	TestEqual(TEXT("Existing first waypoint becomes selected"), Fixture.EditorActor->SelectedPatrolWaypointIndex, 0);
 
 	Fixture.EditorActor->CycleSelectedPatrolWaypointFacing();
-	Spawn = Fixture.EditorActor->GetSelectedObjectData();
+	Spawn = FindTypedMonsterSpawn(Fixture.LevelAsset, Fixture.MonsterSpawnId);
 	TestEqual(TEXT("Facing cycles None to North"), Spawn->PatrolWaypoints[0].Facing, EGridEdge::North);
 
 	Fixture.EditorActor->IncreaseSelectedPatrolWaypointWait();
-	Spawn = Fixture.EditorActor->GetSelectedObjectData();
+	Spawn = FindTypedMonsterSpawn(Fixture.LevelAsset, Fixture.MonsterSpawnId);
 	TestTrue(TEXT("Wait increases by half a second"), FMath::IsNearlyEqual(Spawn->PatrolWaypoints[0].WaitSeconds, 0.5f));
 
 	TestTrue(TEXT("Waypoint can move later"), Fixture.EditorActor->MoveSelectedPatrolWaypoint(1));
-	Spawn = Fixture.EditorActor->GetSelectedObjectData();
+	Spawn = FindTypedMonsterSpawn(Fixture.LevelAsset, Fixture.MonsterSpawnId);
 	TestEqual(TEXT("Moved waypoint keeps its cell"), Spawn->PatrolWaypoints[1].Cell, FIntPoint(1, 1));
 	TestEqual(TEXT("Moved waypoint remains selected"), Fixture.EditorActor->SelectedPatrolWaypointIndex, 1);
 
 	TestTrue(TEXT("Mode changes to PingPong"), Fixture.EditorActor->SetSelectedMonsterPatrolMode(EGridMonsterPatrolMode::PingPong));
-	Spawn = Fixture.EditorActor->GetSelectedObjectData();
+	Spawn = FindTypedMonsterSpawn(Fixture.LevelAsset, Fixture.MonsterSpawnId);
 	TestEqual(TEXT("PingPong stored"), Spawn->PatrolMode, EGridMonsterPatrolMode::PingPong);
 
 	TestTrue(TEXT("Selected waypoint is removed"), Fixture.EditorActor->RemoveSelectedPatrolWaypoint());
-	Spawn = Fixture.EditorActor->GetSelectedObjectData();
+	Spawn = FindTypedMonsterSpawn(Fixture.LevelAsset, Fixture.MonsterSpawnId);
 	TestEqual(TEXT("One waypoint remains"), Spawn->PatrolWaypoints.Num(), 1);
 	TestEqual(TEXT("Patrol disables when fewer than two remain"), Spawn->PatrolMode, EGridMonsterPatrolMode::None);
 
 	TestTrue(TEXT("Route can be cleared"), Fixture.EditorActor->ClearSelectedMonsterPatrolRoute());
-	Spawn = Fixture.EditorActor->GetSelectedObjectData();
+	Spawn = FindTypedMonsterSpawn(Fixture.LevelAsset, Fixture.MonsterSpawnId);
 	TestEqual(TEXT("Route is empty"), Spawn->PatrolWaypoints.Num(), 0);
 	TestEqual(TEXT("No waypoint remains selected"), Fixture.EditorActor->SelectedPatrolWaypointIndex, INDEX_NONE);
 	return true;

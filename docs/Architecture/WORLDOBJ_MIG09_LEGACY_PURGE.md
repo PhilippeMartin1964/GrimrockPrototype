@@ -120,11 +120,12 @@ wrappers runtime FGridLevelObjectData temporaires
 
 ### 5.2. MonsterSpawn authoring natif
 
-Les chemins MonsterSpawn suivants ne font plus de round-trip via `FGridLevelObjectData` :
+Le premier bloc E2C migre les chemins MonsterSpawn qui conservaient encore un round-trip via `FGridLevelObjectData` :
 
 ```text
 GridMonsterSpawnConfiguration
 GridLevelEditorActorPatrolRoute
+GridEditorMON14_3_1Tests
 ```
 
 La cible est directe :
@@ -134,16 +135,36 @@ UGridLevelAsset::MonsterSpawns
         -> FGridMonsterSpawnInstance
 ```
 
-Les opérations de patrouille modifient directement `PatrolMode` et `PatrolWaypoints` sur le `FGridMonsterSpawnInstance` sélectionné. Le fixture `Grimrock.Editor.MON14.3.1` crée lui aussi son spawn dans `MonsterSpawns`.
+Les opérations de patrouille modifient maintenant directement :
 
-Tant que sélection/inspection générique n'est pas encore migrée, `RefreshLegacyObjectMirrorFromTyped()` reste utilisé uniquement pour resynchroniser la vue Editor transitoire après une mutation typée. Ce rafraîchissement n'est pas une autorité d'écriture.
+```text
+PatrolMode
+PatrolWaypoints
+```
 
-Validation locale du 2026-09-08 avant nettoyage du log de garde :
+sur le `FGridMonsterSpawnInstance` sélectionné, sans :
+
+```text
+LevelAsset->Objects
+FGridLevelObjectData snapshot
+AddObject(snapshot)
+CommitPatrolEdit()
+RefreshLegacyObjectMirrorFromTyped()
+GetSelectedObjectData()
+```
+
+Le runtime `ApplySpawnPlacementConfiguration()` résout également son placement directement dans `MonsterSpawns`.
+
+Le fixture MON14.3.1 crée et relit désormais exclusivement un `FGridMonsterSpawnInstance`. `LastSelectedObjectId` est positionné comme état de sélection transitoire du test sans reconstruire le miroir `Objects`.
+
+### 5.3. Validation locale du bloc MonsterSpawn E2C
+
+Validation locale UE5.5.4 du 2026-09-08 avant suppression du dernier refresh de compatibilité :
 
 ```text
 Grimrock.Editor.MON14.3.1
-Succeeded              : 1
-Succeeded with warnings: 1
+Succeeded              : 2
+Succeeded with warnings: 0
 Failed                 : 0
 Not run                : 0
 Process exit code       : 0
@@ -158,9 +179,9 @@ Not run                : 0
 Process exit code       : 0
 ```
 
-Le test `PatrolRouteGuards` exerce volontairement le refus d'un mode de patrouille sans deux waypoints. Ce refus est un comportement normal de validation et ne doit pas produire un warning Automation ; le log associé est donc abaissé à `Verbose`. Une relance de `Grimrock.Editor.MON14.3.1` doit confirmer `2 réussis / 0 warning / 0 échec`.
+Une relance de `Grimrock.Editor.MON14.3.1` est requise après la suppression du refresh legacy dans le code de patrouille.
 
-### 5.3. Reste E2C
+### 5.4. Reste E2C
 
 Il reste à migrer :
 
@@ -194,7 +215,7 @@ MIG10 ne commence qu'après cette liste entièrement cochée.
     -AutomationFilter "Grimrock.WorldObjects"
 ```
 
-Pour la tranche MonsterSpawn E2C, ajouter :
+Pour la tranche MonsterSpawn E2C :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
@@ -202,7 +223,7 @@ Pour la tranche MonsterSpawn E2C, ajouter :
     -AutomationFilter "Grimrock.Editor.MON14.3.1"
 ```
 
-et :
+et, pour le lifecycle runtime :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
