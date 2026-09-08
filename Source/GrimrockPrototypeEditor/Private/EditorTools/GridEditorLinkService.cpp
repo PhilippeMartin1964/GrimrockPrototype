@@ -3,6 +3,7 @@
 #include "EditorTools/GridEditorLinkPolicy.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridLevelVariableTypes.h"
 
 namespace
@@ -31,6 +32,15 @@ namespace
 			default:
 				return false;
 		}
+	}
+
+	EGridLogicNodeType GetLogicNodeTypeForPlacement(const UGridLevelAsset& LevelAsset, const FGuid& PlacementId)
+	{
+		if (const FGridLogicObjectInstance* Logic = LevelAsset.FindLogicObjectInstanceById(PlacementId))
+		{
+			return Logic->Logic.NodeType;
+		}
+		return EGridLogicNodeType::Relay;
 	}
 }
 
@@ -148,25 +158,19 @@ namespace GridEditorLinkService
 			return false;
 		}
 
-		const TArray<FGridLevelObjectData> ObjectView = LevelAsset.BuildCompatibilityObjectProjectionFromTyped();
-		const FGridLevelObjectData* Source = ObjectView.FindByPredicate(
-			[&Link](const FGridLevelObjectData& Object)
-			{
-				return Object.ObjectId == Link.SourceObjectId;
-			});
-		const FGridLevelObjectData* Target = ObjectView.FindByPredicate(
-			[&Link](const FGridLevelObjectData& Object)
-			{
-				return Object.ObjectId == Link.TargetObjectId;
-			});
-		if (!Source || !Target)
+		const EGridLevelObjectType SourceType = LevelAsset.GetTypedPlacementType(Link.SourceObjectId);
+		const EGridLevelObjectType TargetType = LevelAsset.GetTypedPlacementType(Link.TargetObjectId);
+		if (SourceType == EGridLevelObjectType::None || TargetType == EGridLevelObjectType::None)
 		{
 			return false;
 		}
 
-		if (!GridEditorLinkPolicy::GetSupportedEventsForSource(*Source).Contains(Link.SourceEvent) ||
-			!GridEditorLinkPolicy::GetSupportedCommandsForTarget(*Target).Contains(Link.Command) ||
-			!GridEditorLinkPolicy::GetSupportedConditionsForTarget(*Target).Contains(Link.Condition) || !IsConditionConfigurationValid(Link))
+		const EGridLogicNodeType SourceLogicNodeType = GetLogicNodeTypeForPlacement(LevelAsset, Link.SourceObjectId);
+		const EGridLogicNodeType TargetLogicNodeType = GetLogicNodeTypeForPlacement(LevelAsset, Link.TargetObjectId);
+
+		if (!GridEditorLinkPolicy::GetSupportedEventsForSource(SourceType, SourceLogicNodeType).Contains(Link.SourceEvent) ||
+			!GridEditorLinkPolicy::GetSupportedCommandsForTarget(TargetType, TargetLogicNodeType).Contains(Link.Command) ||
+			!GridEditorLinkPolicy::GetSupportedConditionsForTarget(TargetType).Contains(Link.Condition) || !IsConditionConfigurationValid(Link))
 		{
 			return false;
 		}

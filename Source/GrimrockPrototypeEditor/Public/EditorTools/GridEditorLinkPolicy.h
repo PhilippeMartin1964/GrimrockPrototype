@@ -1,10 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/GridTypes.h"
 
-enum class EGridObjectCommand : uint8;
-enum class EGridObjectCondition : uint8;
-enum class EGridObjectEvent : uint8;
 struct FGridLevelObjectData;
 struct FGridObjectLink;
 
@@ -24,33 +22,31 @@ enum class EGridEditorCommandRuntimeSupport : uint8
 /** Shared Grid Editor connector policy used by Slate and automation tests. */
 namespace GridEditorLinkPolicy
 {
+	/** WORLDOBJ-MIG09 native policy surface: connector capabilities depend only on typed identity and, for Logic, its node type. */
+	GRIMROCKPROTOTYPEEDITOR_API bool CanObjectEmitEvents(EGridLevelObjectType ObjectType, EGridLogicNodeType LogicNodeType = EGridLogicNodeType::Relay);
+	GRIMROCKPROTOTYPEEDITOR_API bool CanObjectReceiveCommands(EGridLevelObjectType ObjectType, EGridLogicNodeType LogicNodeType = EGridLogicNodeType::Relay);
+	GRIMROCKPROTOTYPEEDITOR_API TArray<EGridObjectEvent> GetSupportedEventsForSource(
+		EGridLevelObjectType ObjectType, EGridLogicNodeType LogicNodeType = EGridLogicNodeType::Relay);
+	GRIMROCKPROTOTYPEEDITOR_API TArray<EGridObjectCommand> GetSupportedCommandsForTarget(
+		EGridLevelObjectType ObjectType, EGridLogicNodeType LogicNodeType = EGridLogicNodeType::Relay);
+	GRIMROCKPROTOTYPEEDITOR_API TArray<EGridObjectCondition> GetSupportedConditionsForTarget(EGridLevelObjectType ObjectType);
+	GRIMROCKPROTOTYPEEDITOR_API EGridEditorCommandRuntimeSupport GetCommandRuntimeSupport(
+		EGridLevelObjectType ObjectType, EGridLogicNodeType LogicNodeType, EGridObjectCommand Command);
+
+	/** Transitional adapters for remaining legacy editor widgets/tests. Remove with FINAL-C after all callers use the native surface above. */
 	GRIMROCKPROTOTYPEEDITOR_API bool CanObjectEmitEvents(const FGridLevelObjectData& ObjectData);
-
 	GRIMROCKPROTOTYPEEDITOR_API bool CanObjectReceiveCommands(const FGridLevelObjectData& ObjectData);
-
 	GRIMROCKPROTOTYPEEDITOR_API TArray<EGridObjectEvent> GetSupportedEventsForSource(const FGridLevelObjectData& ObjectData);
-
 	GRIMROCKPROTOTYPEEDITOR_API TArray<EGridObjectCommand> GetSupportedCommandsForTarget(const FGridLevelObjectData& ObjectData);
-
-	/**
-     * Returns the condition choices that are valid for the selected target.
-     * Current non-trivial conditions inspect a receptacle target; all other
-     * target types therefore expose only None.
-     */
 	GRIMROCKPROTOTYPEEDITOR_API TArray<EGridObjectCondition> GetSupportedConditionsForTarget(const FGridLevelObjectData& ObjectData);
+	GRIMROCKPROTOTYPEEDITOR_API EGridEditorCommandRuntimeSupport GetCommandRuntimeSupport(
+		const FGridLevelObjectData& ObjectData, EGridObjectCommand Command);
 
 	/**
-     * Describes the effective C++ runtime support for one target/command pair.
-     * StateOnly means the generic activation state can be stored but no complete
-     * specialized gameplay effect is currently implemented.
-     */
-	GRIMROCKPROTOTYPEEDITOR_API EGridEditorCommandRuntimeSupport GetCommandRuntimeSupport(const FGridLevelObjectData& ObjectData, EGridObjectCommand Command);
-
-	/**
-     * Exact persistent identity used by MON19.2 when comparing connectors.
-     * Every condition field participates so two links with the same historical
-     * source/event/target/command quadruplet may legitimately coexist.
-     */
+	 * Exact persistent identity used by MON19.2 when comparing connectors.
+	 * Every condition field participates so two links with the same historical
+	 * source/event/target/command quadruplet may legitimately coexist.
+	 */
 	GRIMROCKPROTOTYPEEDITOR_API bool AreLinksExactlyEquivalent(const FGridObjectLink& A, const FGridObjectLink& B);
 
 	GRIMROCKPROTOTYPEEDITOR_API TArray<EGridObjectEvent> GetEventDisplayOrder();

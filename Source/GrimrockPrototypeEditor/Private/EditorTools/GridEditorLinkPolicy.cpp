@@ -19,9 +19,9 @@ namespace
 
 namespace GridEditorLinkPolicy
 {
-	TArray<EGridObjectEvent> GetSupportedEventsForSource(const FGridLevelObjectData& ObjectData)
+	TArray<EGridObjectEvent> GetSupportedEventsForSource(EGridLevelObjectType ObjectType, EGridLogicNodeType LogicNodeType)
 	{
-		switch (ObjectData.Type)
+		switch (ObjectType)
 		{
 			case EGridLevelObjectType::Button:
 				return { EGridObjectEvent::Activated };
@@ -42,7 +42,7 @@ namespace GridEditorLinkPolicy
 					EGridObjectEvent::MonsterTeleported, EGridObjectEvent::EncounterWaveStarted, EGridObjectEvent::EncounterCompleted };
 
 			case EGridLevelObjectType::Logic:
-				switch (ObjectData.Logic.NodeType)
+				switch (LogicNodeType)
 				{
 					case EGridLogicNodeType::CompareBool:
 					case EGridLogicNodeType::CompareInt:
@@ -58,9 +58,9 @@ namespace GridEditorLinkPolicy
 		}
 	}
 
-	TArray<EGridObjectCommand> GetSupportedCommandsForTarget(const FGridLevelObjectData& ObjectData)
+	TArray<EGridObjectCommand> GetSupportedCommandsForTarget(EGridLevelObjectType ObjectType, EGridLogicNodeType LogicNodeType)
 	{
-		switch (ObjectData.Type)
+		switch (ObjectType)
 		{
 			case EGridLevelObjectType::Door:
 			case EGridLevelObjectType::Pit:
@@ -77,7 +77,7 @@ namespace GridEditorLinkPolicy
 					EGridObjectCommand::StartEncounter };
 
 			case EGridLevelObjectType::Logic:
-				if (ObjectData.Logic.NodeType == EGridLogicNodeType::Latch)
+				if (LogicNodeType == EGridLogicNodeType::Latch)
 				{
 					return { EGridObjectCommand::LogicExecute, EGridObjectCommand::LogicReset };
 				}
@@ -94,12 +94,12 @@ namespace GridEditorLinkPolicy
 		}
 	}
 
-	TArray<EGridObjectCondition> GetSupportedConditionsForTarget(const FGridLevelObjectData& ObjectData)
+	TArray<EGridObjectCondition> GetSupportedConditionsForTarget(EGridLevelObjectType ObjectType)
 	{
 		TArray<EGridObjectCondition> Conditions = { EGridObjectCondition::None, EGridObjectCondition::LevelVariableBoolEquals,
 			EGridObjectCondition::LevelVariableIntCompare };
 
-		if (ObjectData.Type == EGridLevelObjectType::Receptacle)
+		if (ObjectType == EGridLevelObjectType::Receptacle)
 		{
 			Conditions.Add(EGridObjectCondition::ReceptacleIsEmpty);
 			Conditions.Add(EGridObjectCondition::ReceptacleHasAnyItem);
@@ -113,18 +113,19 @@ namespace GridEditorLinkPolicy
 		return Conditions;
 	}
 
-	EGridEditorCommandRuntimeSupport GetCommandRuntimeSupport(const FGridLevelObjectData& ObjectData, EGridObjectCommand Command)
+	EGridEditorCommandRuntimeSupport GetCommandRuntimeSupport(
+		EGridLevelObjectType ObjectType, EGridLogicNodeType LogicNodeType, EGridObjectCommand Command)
 	{
-		if (ObjectData.Type == EGridLevelObjectType::MonsterSpawn || ObjectData.Type == EGridLevelObjectType::Logic ||
-			ObjectData.Type == EGridLevelObjectType::StoryCompanion || ObjectData.Type == EGridLevelObjectType::CustomRecruiter)
+		if (ObjectType == EGridLevelObjectType::MonsterSpawn || ObjectType == EGridLevelObjectType::Logic ||
+			ObjectType == EGridLevelObjectType::StoryCompanion || ObjectType == EGridLevelObjectType::CustomRecruiter)
 		{
-			return GetSupportedCommandsForTarget(ObjectData).Contains(Command) ? EGridEditorCommandRuntimeSupport::Gameplay
+			return GetSupportedCommandsForTarget(ObjectType, LogicNodeType).Contains(Command) ? EGridEditorCommandRuntimeSupport::Gameplay
 																			   : EGridEditorCommandRuntimeSupport::Unsupported;
 		}
 
 		if (IsGridEditorReceptacleCommand(Command))
 		{
-			return ObjectData.Type == EGridLevelObjectType::Receptacle ? EGridEditorCommandRuntimeSupport::Gameplay
+			return ObjectType == EGridLevelObjectType::Receptacle ? EGridEditorCommandRuntimeSupport::Gameplay
 																	   : EGridEditorCommandRuntimeSupport::Unsupported;
 		}
 
@@ -133,7 +134,7 @@ namespace GridEditorLinkPolicy
 			return EGridEditorCommandRuntimeSupport::Unsupported;
 		}
 
-		switch (ObjectData.Type)
+		switch (ObjectType)
 		{
 			case EGridLevelObjectType::Door:
 			case EGridLevelObjectType::Lever:
@@ -160,6 +161,46 @@ namespace GridEditorLinkPolicy
 		}
 	}
 
+	bool CanObjectEmitEvents(EGridLevelObjectType ObjectType, EGridLogicNodeType LogicNodeType)
+	{
+		return !GetSupportedEventsForSource(ObjectType, LogicNodeType).IsEmpty();
+	}
+
+	bool CanObjectReceiveCommands(EGridLevelObjectType ObjectType, EGridLogicNodeType LogicNodeType)
+	{
+		return !GetSupportedCommandsForTarget(ObjectType, LogicNodeType).IsEmpty();
+	}
+
+	TArray<EGridObjectEvent> GetSupportedEventsForSource(const FGridLevelObjectData& ObjectData)
+	{
+		return GetSupportedEventsForSource(ObjectData.Type, ObjectData.Logic.NodeType);
+	}
+
+	TArray<EGridObjectCommand> GetSupportedCommandsForTarget(const FGridLevelObjectData& ObjectData)
+	{
+		return GetSupportedCommandsForTarget(ObjectData.Type, ObjectData.Logic.NodeType);
+	}
+
+	TArray<EGridObjectCondition> GetSupportedConditionsForTarget(const FGridLevelObjectData& ObjectData)
+	{
+		return GetSupportedConditionsForTarget(ObjectData.Type);
+	}
+
+	EGridEditorCommandRuntimeSupport GetCommandRuntimeSupport(const FGridLevelObjectData& ObjectData, EGridObjectCommand Command)
+	{
+		return GetCommandRuntimeSupport(ObjectData.Type, ObjectData.Logic.NodeType, Command);
+	}
+
+	bool CanObjectEmitEvents(const FGridLevelObjectData& ObjectData)
+	{
+		return CanObjectEmitEvents(ObjectData.Type, ObjectData.Logic.NodeType);
+	}
+
+	bool CanObjectReceiveCommands(const FGridLevelObjectData& ObjectData)
+	{
+		return CanObjectReceiveCommands(ObjectData.Type, ObjectData.Logic.NodeType);
+	}
+
 	bool AreLinksExactlyEquivalent(const FGridObjectLink& A, const FGridObjectLink& B)
 	{
 		return A.SourceObjectId == B.SourceObjectId && A.TargetObjectId == B.TargetObjectId && A.SourceEvent == B.SourceEvent && A.Command == B.Command &&
@@ -169,16 +210,6 @@ namespace GridEditorLinkPolicy
 			A.ConditionItemDefinitionId == B.ConditionItemDefinitionId && A.ConditionItemTag == B.ConditionItemTag &&
 			A.ConditionItemType == B.ConditionItemType && A.ConditionCount == B.ConditionCount && A.ConditionWeight == B.ConditionWeight &&
 			A.bInvertCondition == B.bInvertCondition;
-	}
-
-	bool CanObjectEmitEvents(const FGridLevelObjectData& ObjectData)
-	{
-		return !GetSupportedEventsForSource(ObjectData).IsEmpty();
-	}
-
-	bool CanObjectReceiveCommands(const FGridLevelObjectData& ObjectData)
-	{
-		return !GetSupportedCommandsForTarget(ObjectData).IsEmpty();
 	}
 
 	TArray<EGridObjectEvent> GetEventDisplayOrder()
