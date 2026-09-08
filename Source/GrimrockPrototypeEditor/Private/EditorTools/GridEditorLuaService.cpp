@@ -273,7 +273,7 @@ namespace
 				{
 					Merged.Add(Definition.VariableId, Definition);
 				}
-			}
+		}
 		}
 
 		Merged.GenerateValueArray(OutDefinitions);
@@ -804,11 +804,11 @@ namespace GridEditorLuaService
 		Messages.RemoveAll(
 			[LevelAsset](const FGridLevelValidationMessage& Message)
 			{
-				if (Message.Message == TEXT("Placed object has no ArchetypeId. Preview and runtime archetype lookup cannot resolve it.") &&
-					Message.OptionalObjectId.IsValid())
+				if (Message.OptionalObjectId.IsValid() && Message.Message.Contains(TEXT("ArchetypeId")))
 				{
 					FGridLevelObjectData Object;
-					if (TryFindObjectById(*LevelAsset, Message.OptionalObjectId, Object) && Object.Type == EGridLevelObjectType::Logic)
+					if (TryFindObjectById(*LevelAsset, Message.OptionalObjectId, Object) && Object.Type == EGridLevelObjectType::Logic &&
+						Object.ArchetypeId.IsNone())
 					{
 						return true;
 					}
