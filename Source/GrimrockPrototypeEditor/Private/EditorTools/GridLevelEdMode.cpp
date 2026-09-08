@@ -114,11 +114,12 @@ namespace
 	}
 
 	bool BuildConnectorDrawData(
-		AGridLevelEditorActor* EditorActor, const FGridLevelObjectData& SourceObject, const FGridLevelObjectData& TargetObject, FConnectorDrawData& OutDrawData)
+		AGridLevelEditorActor* EditorActor, const FGuid& SourceObjectId, const FGuid& TargetObjectId, FConnectorDrawData& OutDrawData)
 	{
 		FVector SourceCenter = FVector::ZeroVector;
 		FVector TargetCenter = FVector::ZeroVector;
-		if (!EditorActor->GetObjectEditorWorldCenter(SourceObject, SourceCenter) || !EditorActor->GetObjectEditorWorldCenter(TargetObject, TargetCenter))
+		if (!EditorActor->GetObjectEditorWorldCenter(SourceObjectId, SourceCenter) ||
+			!EditorActor->GetObjectEditorWorldCenter(TargetObjectId, TargetCenter))
 		{
 			return false;
 		}
@@ -157,10 +158,10 @@ namespace
 	}
 
 	bool ShouldDrawConnectorForSelection(
-		const AGridLevelEditorActor* EditorActor, const FGridObjectLink& Link, const FGridLevelObjectData& SelectedObject, bool& bOutIncoming)
+		const AGridLevelEditorActor* EditorActor, const FGridObjectLink& Link, const FGuid& SelectedObjectId, bool& bOutIncoming)
 	{
-		const bool bOutgoing = Link.SourceObjectId == SelectedObject.ObjectId;
-		const bool bIncoming = Link.TargetObjectId == SelectedObject.ObjectId;
+		const bool bOutgoing = Link.SourceObjectId == SelectedObjectId;
+		const bool bIncoming = Link.TargetObjectId == SelectedObjectId;
 
 		if ((!EditorActor->bShowOutgoingConnectors || !bOutgoing) && (!EditorActor->bShowIncomingConnectors || !bIncoming))
 		{
@@ -221,9 +222,9 @@ namespace
 		return TEXT("None");
 	}
 
-	void DrawSelectedMonsterPatrolRoute(AGridLevelEditorActor* EditorActor, const FGridLevelObjectData& SelectedObject, FPrimitiveDrawInterface* PDI)
+	void DrawSelectedMonsterPatrolRoute(AGridLevelEditorActor* EditorActor, const FGridMonsterSpawnInstance& SelectedObject, FPrimitiveDrawInterface* PDI)
 	{
-		if (!EditorActor || !PDI || SelectedObject.Type != EGridLevelObjectType::MonsterSpawn || !EditorActor->bShowSelectedMonsterPatrolRoute)
+		if (!EditorActor || !PDI || !EditorActor->bShowSelectedMonsterPatrolRoute)
 		{
 			return;
 		}
@@ -670,45 +671,35 @@ void FGridLevelEdMode::Render(const FSceneView* View, FViewport* Viewport, FPrim
 		}
 	}
 
-	const TArray<FGridLevelObjectData> CompatibilityObjects = EditorActor->LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	const FGridLevelObjectData* SelectedObject = CompatibilityObjects.FindByPredicate(
-		[EditorActor](const FGridLevelObjectData& Obj)
-		{
-			return Obj.ObjectId == EditorActor->LastSelectedObjectId;
-		});
-	if (SelectedObject)
+	const FGuid SelectedObjectId = EditorActor->LastSelectedObjectId;
+	if (!EditorActor->LevelAsset->ContainsTypedPlacementId(SelectedObjectId))
 	{
-		DrawSelectedMonsterPatrolRoute(EditorActor, *SelectedObject, PDI);
+		return;
+	}
 
-		for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
+	if (const FGridMonsterSpawnInstance* SelectedMonster = EditorActor->LevelAsset->FindMonsterSpawnInstanceById(SelectedObjectId))
+	{
+		DrawSelectedMonsterPatrolRoute(EditorActor, *SelectedMonster, PDI);
+	}
+
+	for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
+	{
+		bool bIncoming = false;
+		if (!ShouldDrawConnectorForSelection(EditorActor, Link, SelectedObjectId, bIncoming))
 		{
-			bool bIncoming = false;
-			if (!ShouldDrawConnectorForSelection(EditorActor, Link, *SelectedObject, bIncoming))
-			{
-				continue;
-			}
+			continue;
+		}
 
-			const FGridLevelObjectData* SourceObject = CompatibilityObjects.FindByPredicate(
-				[&Link](const FGridLevelObjectData& Obj)
-				{
-					return Obj.ObjectId == Link.SourceObjectId;
-				});
-			const FGridLevelObjectData* TargetObject = CompatibilityObjects.FindByPredicate(
-				[&Link](const FGridLevelObjectData& Obj)
-				{
-					return Obj.ObjectId == Link.TargetObjectId;
-				});
+		if (!EditorActor->LevelAsset->ContainsTypedPlacementId(Link.SourceObjectId) ||
+			!EditorActor->LevelAsset->ContainsTypedPlacementId(Link.TargetObjectId))
+		{
+			continue;
+		}
 
-			if (!SourceObject || !TargetObject)
-			{
-				continue;
-			}
-
-			FConnectorDrawData DrawData;
-			if (BuildConnectorDrawData(EditorActor, *SourceObject, *TargetObject, DrawData))
-			{
-				DrawConnectorArrow(PDI, DrawData, Link.Command, bIncoming);
-			}
+		FConnectorDrawData DrawData;
+		if (BuildConnectorDrawData(EditorActor, Link.SourceObjectId, Link.TargetObjectId, DrawData))
+		{
+			DrawConnectorArrow(PDI, DrawData, Link.Command, bIncoming);
 		}
 	}
 }
@@ -723,22 +714,18 @@ void FGridLevelEdMode::DrawHUD(FEditorViewportClient* ViewportClient, FViewport*
 		return;
 	}
 
-	const TArray<FGridLevelObjectData> CompatibilityObjects = EditorActor->LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	const FGridLevelObjectData* SelectedObject = CompatibilityObjects.FindByPredicate(
-		[EditorActor](const FGridLevelObjectData& Obj)
-		{
-			return Obj.ObjectId == EditorActor->LastSelectedObjectId;
-		});
-	if (!SelectedObject)
+	const FGuid SelectedObjectId = EditorActor->LastSelectedObjectId;
+	if (!EditorActor->LevelAsset->ContainsTypedPlacementId(SelectedObjectId))
 	{
 		return;
 	}
 
-	if (SelectedObject->Type == EGridLevelObjectType::MonsterSpawn && EditorActor->bShowSelectedMonsterPatrolRoute)
+	const FGridMonsterSpawnInstance* SelectedMonster = EditorActor->LevelAsset->FindMonsterSpawnInstanceById(SelectedObjectId);
+	if (SelectedMonster && EditorActor->bShowSelectedMonsterPatrolRoute)
 	{
-		for (int32 Index = 0; Index < SelectedObject->PatrolWaypoints.Num(); ++Index)
+		for (int32 Index = 0; Index < SelectedMonster->PatrolWaypoints.Num(); ++Index)
 		{
-			const FGridMonsterPatrolWaypoint& Waypoint = SelectedObject->PatrolWaypoints[Index];
+			const FGridMonsterPatrolWaypoint& Waypoint = SelectedMonster->PatrolWaypoints[Index];
 			const FVector LabelWorldPosition = GetPatrolWaypointWorldCenter(EditorActor, Waypoint, 75.0f);
 			FVector2D PixelLocation = FVector2D::ZeroVector;
 			if (!View->WorldToPixel(LabelWorldPosition, PixelLocation))
@@ -755,15 +742,15 @@ void FGridLevelEdMode::DrawHUD(FEditorViewportClient* ViewportClient, FViewport*
 		if (EditorActor->IsPatrolRouteEditModeActive())
 		{
 			const FString Header = FString::Printf(
-				TEXT("PATROL ROUTE EDIT  Mode=%s  Waypoints=%d"), *GetPatrolModeText(SelectedObject->PatrolMode), SelectedObject->PatrolWaypoints.Num());
+				TEXT("PATROL ROUTE EDIT  Mode=%s  Waypoints=%d"), *GetPatrolModeText(SelectedMonster->PatrolMode), SelectedMonster->PatrolWaypoints.Num());
 			Canvas->DrawShadowedString(20.0f, 85.0f, *Header, GEngine->GetSmallFont(), FLinearColor(1.0f, 0.82f, 0.12f, 1.0f));
 
 			Canvas->DrawShadowedString(20.0f, 103.0f, TEXT("Left click add/select | Delete remove | M mode | F facing | PgUp/PgDn reorder | -/+ wait | P exit"),
 				GEngine->GetSmallFont(), FLinearColor(0.92f, 0.92f, 0.92f, 0.95f));
 
-			if (SelectedObject->PatrolWaypoints.IsValidIndex(EditorActor->SelectedPatrolWaypointIndex))
+			if (SelectedMonster->PatrolWaypoints.IsValidIndex(EditorActor->SelectedPatrolWaypointIndex))
 			{
-				const FGridMonsterPatrolWaypoint& Waypoint = SelectedObject->PatrolWaypoints[EditorActor->SelectedPatrolWaypointIndex];
+				const FGridMonsterPatrolWaypoint& Waypoint = SelectedMonster->PatrolWaypoints[EditorActor->SelectedPatrolWaypointIndex];
 				const FString Detail = FString::Printf(TEXT("Waypoint #%d Cell=(%d,%d) Facing=%s Wait=%.1fs"), EditorActor->SelectedPatrolWaypointIndex + 1,
 					Waypoint.Cell.X, Waypoint.Cell.Y, *GetPatrolFacingText(Waypoint.Facing), Waypoint.WaitSeconds);
 				Canvas->DrawShadowedString(20.0f, 121.0f, *Detail, GEngine->GetSmallFont(), FLinearColor(0.25f, 1.0f, 0.55f, 0.95f));
@@ -780,29 +767,19 @@ void FGridLevelEdMode::DrawHUD(FEditorViewportClient* ViewportClient, FViewport*
 	for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
 	{
 		bool bIncoming = false;
-		if (!ShouldDrawConnectorForSelection(EditorActor, Link, *SelectedObject, bIncoming))
+		if (!ShouldDrawConnectorForSelection(EditorActor, Link, SelectedObjectId, bIncoming))
 		{
 			continue;
 		}
 
-		const FGridLevelObjectData* SourceObject = CompatibilityObjects.FindByPredicate(
-			[&Link](const FGridLevelObjectData& Obj)
-			{
-				return Obj.ObjectId == Link.SourceObjectId;
-			});
-		const FGridLevelObjectData* TargetObject = CompatibilityObjects.FindByPredicate(
-			[&Link](const FGridLevelObjectData& Obj)
-			{
-				return Obj.ObjectId == Link.TargetObjectId;
-			});
-
-		if (!SourceObject || !TargetObject)
+		if (!EditorActor->LevelAsset->ContainsTypedPlacementId(Link.SourceObjectId) ||
+			!EditorActor->LevelAsset->ContainsTypedPlacementId(Link.TargetObjectId))
 		{
 			continue;
 		}
 
 		FConnectorDrawData DrawData;
-		if (!BuildConnectorDrawData(EditorActor, *SourceObject, *TargetObject, DrawData))
+		if (!BuildConnectorDrawData(EditorActor, Link.SourceObjectId, Link.TargetObjectId, DrawData))
 		{
 			continue;
 		}

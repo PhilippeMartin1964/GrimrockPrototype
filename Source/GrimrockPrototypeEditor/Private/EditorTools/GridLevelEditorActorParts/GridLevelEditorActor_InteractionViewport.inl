@@ -5,16 +5,21 @@ bool AGridLevelEditorActor::HasAnyObjectInSelectedCell() const
 		return false;
 	}
 
-	const TArray<FGridLevelObjectData> ObjectView = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	for (const FGridLevelObjectData& Obj : ObjectView)
+	const auto IsAtSelectedCell = [this](int32 CellX, int32 CellY)
 	{
-		if (Obj.CellX == SelectedCellX && Obj.CellY == SelectedCellY)
-		{
-			return true;
-		}
-	}
+		return CellX == SelectedCellX && CellY == SelectedCellY;
+	};
 
-	return false;
+	return LevelAsset->WorldObjectInstances.ContainsByPredicate(
+			   [&IsAtSelectedCell](const FGridWorldObjectInstance& Instance) { return IsAtSelectedCell(Instance.CellX, Instance.CellY); }) ||
+		LevelAsset->LooseItemInstances.ContainsByPredicate(
+			[&IsAtSelectedCell](const FGridLooseItemInstance& Instance) { return IsAtSelectedCell(Instance.CellX, Instance.CellY); }) ||
+		LevelAsset->MonsterSpawns.ContainsByPredicate(
+			[&IsAtSelectedCell](const FGridMonsterSpawnInstance& Spawn) { return IsAtSelectedCell(Spawn.CellX, Spawn.CellY); }) ||
+		LevelAsset->ItemSpawns.ContainsByPredicate(
+			[&IsAtSelectedCell](const FGridItemSpawnInstance& Spawn) { return IsAtSelectedCell(Spawn.CellX, Spawn.CellY); }) ||
+		LevelAsset->LogicObjects.ContainsByPredicate(
+			[&IsAtSelectedCell](const FGridLogicObjectInstance& Instance) { return IsAtSelectedCell(Instance.CellX, Instance.CellY); });
 }
 
 bool AGridLevelEditorActor::HasAnyWallInSelectedCell() const
@@ -82,32 +87,51 @@ bool AGridLevelEditorActor::UpdateHoveredObjectFromWorldPoint(const FVector& Wor
 	}
 
 	float BestDistSq = FMath::Square(ObjectHoverPickRadius);
-	const FGridLevelObjectData* BestObject = nullptr;
-	const TArray<FGridLevelObjectData> ObjectView = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	FGuid BestObjectId;
 
-	for (const FGridLevelObjectData& Obj : ObjectView)
+	const auto ConsiderObject = [this, &WorldPoint, &BestDistSq, &BestObjectId](const FGuid& ObjectId)
 	{
 		FVector ObjLocation = FVector::ZeroVector;
-
-		if (!TryGetObjectWorldLocation(Obj, ObjLocation))
+		if (!TryGetObjectWorldLocationById(ObjectId, ObjLocation))
 		{
-			continue;
+			return;
 		}
 
 		const float DistSq = FVector::DistSquared2D(WorldPoint, ObjLocation);
-
 		if (DistSq <= BestDistSq)
 		{
 			BestDistSq = DistSq;
-			BestObject = &Obj;
+			BestObjectId = ObjectId;
 		}
+	};
+
+	for (const FGridWorldObjectInstance& Instance : LevelAsset->WorldObjectInstances)
+	{
+		ConsiderObject(Instance.InstanceId);
+	}
+	for (const FGridLooseItemInstance& Instance : LevelAsset->LooseItemInstances)
+	{
+		ConsiderObject(Instance.InstanceId);
+	}
+	for (const FGridMonsterSpawnInstance& Spawn : LevelAsset->MonsterSpawns)
+	{
+		ConsiderObject(Spawn.SpawnId);
+	}
+	for (const FGridItemSpawnInstance& Spawn : LevelAsset->ItemSpawns)
+	{
+		ConsiderObject(Spawn.SpawnId);
+	}
+	for (const FGridLogicObjectInstance& Instance : LevelAsset->LogicObjects)
+	{
+		ConsiderObject(Instance.InstanceId);
 	}
 
-	if (!BestObject)
+	if (!BestObjectId.IsValid())
 	{
 		return false;
 	}
-	HoveredObjectId = BestObject->ObjectId;
+
+	HoveredObjectId = BestObjectId;
 
 	if (PreviewRuntimeActor)
 	{

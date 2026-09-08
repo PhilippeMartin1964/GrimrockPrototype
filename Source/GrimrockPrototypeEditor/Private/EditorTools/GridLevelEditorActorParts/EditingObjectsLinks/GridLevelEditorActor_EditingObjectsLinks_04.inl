@@ -55,8 +55,7 @@ bool AGridLevelEditorActor::TryGetObjectWorldLocation(const FGridLevelObjectData
 
 bool AGridLevelEditorActor::TryGetSelectedObjectWorldLocation(FVector& OutWorldLocation) const
 {
-	const FGridLevelObjectData* Obj = FindObjectAtSelection();
-	return Obj ? TryGetObjectWorldLocation(*Obj, OutWorldLocation) : false;
+	return LastSelectedObjectId.IsValid() && TryGetObjectWorldLocationById(LastSelectedObjectId, OutWorldLocation);
 }
 
 bool AGridLevelEditorActor::TryGetPendingLinkSourceLocation(FVector& OutWorldLocation) const
@@ -66,8 +65,7 @@ bool AGridLevelEditorActor::TryGetPendingLinkSourceLocation(FVector& OutWorldLoc
 		return false;
 	}
 
-	const FGridLevelObjectData* Obj = FindObjectById(PendingLinkSourceObjectId);
-	return Obj ? TryGetObjectWorldLocation(*Obj, OutWorldLocation) : false;
+	return TryGetObjectWorldLocationById(PendingLinkSourceObjectId, OutWorldLocation);
 }
 
 bool AGridLevelEditorActor::HasPendingLinkSource() const
