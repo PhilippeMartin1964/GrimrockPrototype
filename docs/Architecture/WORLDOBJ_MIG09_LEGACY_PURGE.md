@@ -252,15 +252,29 @@ LastSelectedObjectId
 
 La projection est locale à l'appel Slate ; aucun pointeur n'est conservé et aucun cache `Objects` n'est lu ou rafraîchi.
 
-Ce retrait prépare la suppression physique de `GetSelectedObjectData()` lorsque les panneaux Inspector/Links/Overview/Lua auront été migrés.
+### 5.7. Fixture MIG06 sur autorité typée
 
-Validation locale requise après ce sous-bloc :
+`Grimrock.WorldObjects.MIG06.EditorSparsePlacement` ne lit plus `LevelAsset->Objects` et ne dépend plus de `GetSelectedObjectData()`.
+
+Le test vérifie maintenant directement :
+
+```text
+WorldObjectInstances[0].InstanceId
+WorldObjectInstances[0].InstanceConfig.Transition
+UsesSparseBehaviorOverrides(InstanceId)
+Definition->DefaultBehavior
+EditorActor->ObjectBehavior après sélection/re-sélection
+```
+
+Le contrat testé devient donc explicite : le comportement appartenant à la Definition reste sur la Definition et les overrides d'instance supportés sont stockés dans `FGridWorldObjectInstanceConfig`.
+
+Validation locale requise après les sous-blocs 5.6 et 5.7 :
 
 ```text
 Grimrock.WorldObjects
 ```
 
-### 5.7. Reste E2C
+### 5.8. Reste E2C
 
 Il reste à migrer :
 
