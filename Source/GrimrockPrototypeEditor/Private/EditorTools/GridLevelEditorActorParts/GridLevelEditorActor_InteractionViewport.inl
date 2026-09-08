@@ -5,7 +5,8 @@ bool AGridLevelEditorActor::HasAnyObjectInSelectedCell() const
 		return false;
 	}
 
-	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+	const TArray<FGridLevelObjectData> ObjectView = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	for (const FGridLevelObjectData& Obj : ObjectView)
 	{
 		if (Obj.CellX == SelectedCellX && Obj.CellY == SelectedCellY)
 		{
@@ -82,8 +83,9 @@ bool AGridLevelEditorActor::UpdateHoveredObjectFromWorldPoint(const FVector& Wor
 
 	float BestDistSq = FMath::Square(ObjectHoverPickRadius);
 	const FGridLevelObjectData* BestObject = nullptr;
+	const TArray<FGridLevelObjectData> ObjectView = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
 
-	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+	for (const FGridLevelObjectData& Obj : ObjectView)
 	{
 		FVector ObjLocation = FVector::ZeroVector;
 

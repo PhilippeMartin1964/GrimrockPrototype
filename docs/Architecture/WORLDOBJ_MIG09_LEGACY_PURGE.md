@@ -120,7 +120,7 @@ wrappers runtime FGridLevelObjectData temporaires
 
 ### 5.2. MonsterSpawn authoring natif
 
-Le premier bloc E2C migre les chemins MonsterSpawn qui conservaient encore un round-trip via `FGridLevelObjectData` :
+Les chemins MonsterSpawn suivants sont maintenant sur l'autorité typée :
 
 ```text
 GridMonsterSpawnConfiguration
@@ -135,14 +135,7 @@ UGridLevelAsset::MonsterSpawns
         -> FGridMonsterSpawnInstance
 ```
 
-Les opérations de patrouille modifient maintenant directement :
-
-```text
-PatrolMode
-PatrolWaypoints
-```
-
-sur le `FGridMonsterSpawnInstance` sélectionné, sans :
+Les opérations de patrouille modifient directement `PatrolMode` et `PatrolWaypoints` sans :
 
 ```text
 LevelAsset->Objects
@@ -155,11 +148,11 @@ GetSelectedObjectData()
 
 Le runtime `ApplySpawnPlacementConfiguration()` résout également son placement directement dans `MonsterSpawns`.
 
-Le fixture MON14.3.1 crée et relit désormais exclusivement un `FGridMonsterSpawnInstance`. `LastSelectedObjectId` est positionné comme état de sélection transitoire du test sans reconstruire le miroir `Objects`.
+Le fixture MON14.3.1 crée et relit exclusivement un `FGridMonsterSpawnInstance`. `LastSelectedObjectId` reste un état de sélection transitoire, sans reconstruction du miroir `Objects`.
 
 ### 5.3. Validation locale du bloc MonsterSpawn E2C
 
-Validation locale UE5.5.4 du 2026-09-08 avant suppression du dernier refresh de compatibilité :
+Validation locale UE5.5.4 du 2026-09-08 **après suppression du dernier refresh legacy de patrouille** :
 
 ```text
 Grimrock.Editor.MON14.3.1
@@ -170,6 +163,8 @@ Not run                : 0
 Process exit code       : 0
 ```
 
+Régression WorldObjects validée juste avant ce sous-bloc :
+
 ```text
 Grimrock.WorldObjects
 Succeeded              : 34
@@ -179,14 +174,31 @@ Not run                : 0
 Process exit code       : 0
 ```
 
-Une relance de `Grimrock.Editor.MON14.3.1` est requise après la suppression du refresh legacy dans le code de patrouille.
+### 5.4. Lecteurs Editor sans état mutable
 
-### 5.4. Reste E2C
+Le sous-bloc suivant retire les lectures directes du cache `Objects` là où aucun pointeur mutable/persistant vers le DTO n'est nécessaire :
+
+```text
+GridEditorLinkService
+SGridEditorWorkspaceTab
+GridLevelEditorActor_InteractionViewport
+```
+
+Contrat transitoire E2C :
+
+- `SGridEditorWorkspaceTab` observe `GetTypedPlacementCount()` ;
+- `GridEditorLinkService` construit un snapshot local avec `BuildCompatibilityObjectProjectionFromTyped()` pour les politiques de liens encore exprimées en `FGridLevelObjectData` ;
+- le picking/hover viewport construit lui aussi un snapshot local depuis les cinq collections typées ;
+- aucun de ces chemins ne lit ni ne rafraîchit `UGridLevelAsset::Objects`.
+
+Cette projection locale en valeur n'est **pas** une nouvelle autorité : elle disparaît avec `FGridLevelObjectData` à la fin d'E2C.
+
+### 5.5. Reste E2C
 
 Il reste à migrer :
 
-- sélection/inspection générique du Grid Editor ;
-- Overview/Links/EdMode/Lua/Validation encore basés sur le DTO ;
+- les helpers de sélection/inspection qui retournent encore des pointeurs vers `FGridLevelObjectData` ;
+- Overview/LinksPanel/EdMode/Lua/Validation encore partiellement basés sur le DTO/cache ;
 - setters Item/WorldObject/Logic encore construisant des snapshots ;
 - fixtures de tests legacy ;
 - `ValidateMonsterSpawns()` et derniers helpers Core DTO ;
@@ -215,7 +227,7 @@ MIG10 ne commence qu'après cette liste entièrement cochée.
     -AutomationFilter "Grimrock.WorldObjects"
 ```
 
-Pour la tranche MonsterSpawn E2C :
+Pour MonsterSpawn/patrouille :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
@@ -223,10 +235,10 @@ Pour la tranche MonsterSpawn E2C :
     -AutomationFilter "Grimrock.Editor.MON14.3.1"
 ```
 
-et, pour le lifecycle runtime :
+Pour le service de liens Editor touché par le sous-bloc courant :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
     -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Grimrock.Monsters.MON13.3.LifecyclePersistence"
+    -AutomationFilter "Grimrock.MON19.2.Editor"
 ```

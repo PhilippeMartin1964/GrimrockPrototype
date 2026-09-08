@@ -7,15 +7,6 @@
 
 namespace
 {
-	const FGridLevelObjectData* FindLinkServiceObjectById(const UGridLevelAsset& LevelAsset, const FGuid& ObjectId)
-	{
-		return LevelAsset.Objects.FindByPredicate(
-			[&ObjectId](const FGridLevelObjectData& Object)
-			{
-				return Object.ObjectId == ObjectId;
-			});
-	}
-
 	const FGridLevelVariableDefinition* FindLinkServiceVariableDefinition(const UGridLevelAsset& LevelAsset, FName VariableId)
 	{
 		return LevelAsset.LevelVariables.FindByPredicate(
@@ -157,8 +148,17 @@ namespace GridEditorLinkService
 			return false;
 		}
 
-		const FGridLevelObjectData* Source = FindLinkServiceObjectById(LevelAsset, Link.SourceObjectId);
-		const FGridLevelObjectData* Target = FindLinkServiceObjectById(LevelAsset, Link.TargetObjectId);
+		const TArray<FGridLevelObjectData> ObjectView = LevelAsset.BuildCompatibilityObjectProjectionFromTyped();
+		const FGridLevelObjectData* Source = ObjectView.FindByPredicate(
+			[&Link](const FGridLevelObjectData& Object)
+			{
+				return Object.ObjectId == Link.SourceObjectId;
+			});
+		const FGridLevelObjectData* Target = ObjectView.FindByPredicate(
+			[&Link](const FGridLevelObjectData& Object)
+			{
+				return Object.ObjectId == Link.TargetObjectId;
+			});
 		if (!Source || !Target)
 		{
 			return false;

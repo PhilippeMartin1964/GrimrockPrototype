@@ -132,7 +132,7 @@ void SGridEditorWorkspaceTab::CaptureObservedContext()
 	ObservedSelectedCellY = EditorActor ? EditorActor->SelectedCellY : INDEX_NONE;
 	ObservedSelectedEdge = EditorActor ? static_cast<int32>(EditorActor->SelectedEdge) : INDEX_NONE;
 	ObservedActiveTool = EditorActor ? static_cast<int32>(EditorActor->ActiveTool) : INDEX_NONE;
-	ObservedObjectCount = EditorActor && EditorActor->LevelAsset ? EditorActor->LevelAsset->Objects.Num() : INDEX_NONE;
+	ObservedObjectCount = EditorActor && EditorActor->LevelAsset ? EditorActor->LevelAsset->GetTypedPlacementCount() : INDEX_NONE;
 	ObservedLinkCount = EditorActor && EditorActor->LevelAsset ? EditorActor->LevelAsset->Links.Num() : INDEX_NONE;
 	bObservedPatrolRouteEditMode = EditorActor ? EditorActor->bPatrolRouteEditMode : false;
 	ObservedPatrolWaypointIndex = EditorActor ? EditorActor->SelectedPatrolWaypointIndex : INDEX_NONE;
@@ -153,7 +153,7 @@ bool SGridEditorWorkspaceTab::HasObservedContextChanged() const
 		return false;
 	}
 
-	const int32 ObjectCount = EditorActor->LevelAsset ? EditorActor->LevelAsset->Objects.Num() : INDEX_NONE;
+	const int32 ObjectCount = EditorActor->LevelAsset ? EditorActor->LevelAsset->GetTypedPlacementCount() : INDEX_NONE;
 	const int32 LinkCount = EditorActor->LevelAsset ? EditorActor->LevelAsset->Links.Num() : INDEX_NONE;
 
 	const bool bEditorIdentityChanged =
