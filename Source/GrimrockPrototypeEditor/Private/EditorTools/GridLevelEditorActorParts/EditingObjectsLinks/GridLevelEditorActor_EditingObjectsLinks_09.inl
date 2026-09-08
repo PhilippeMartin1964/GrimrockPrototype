@@ -108,8 +108,7 @@ bool AGridLevelEditorActor::MoveSelectedObjectToCurrentSelection()
 
 	const FGuid SelectedObjectId = SelectedObject->ObjectId;
 	const EGridLevelObjectType SelectedObjectType = SelectedObject->Type;
-	TArray<FGridLevelObjectData> CompatibilityObjects;
-	LevelAsset->BuildCompatibilityObjectProjectionFromTyped(CompatibilityObjects);
+	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
 	const bool bDestinationOccupied = CompatibilityObjects.ContainsByPredicate(
 		[this, SelectedObjectId, SelectedObjectType, bRequiresEdge, DestinationEdge](const FGridLevelObjectData& Obj)
 		{

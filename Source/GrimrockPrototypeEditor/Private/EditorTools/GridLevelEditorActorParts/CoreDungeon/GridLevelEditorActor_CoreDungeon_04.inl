@@ -130,8 +130,7 @@ bool AGridLevelEditorActor::SetSelectedObjectOrientation(EGridEdge Orientation)
 	const bool bUsesEdge = IsEdgePlacedObject(EditedObject);
 	if (bUsesEdge)
 	{
-		TArray<FGridLevelObjectData> CompatibilityObjects;
-		LevelAsset->BuildCompatibilityObjectProjectionFromTyped(CompatibilityObjects);
+		const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
 		const bool bDestinationOccupied = CompatibilityObjects.ContainsByPredicate(
 			[&EditedObject, Orientation](const FGridLevelObjectData& Obj)
 			{

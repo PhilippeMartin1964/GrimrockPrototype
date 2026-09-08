@@ -191,8 +191,7 @@ const FGridLevelObjectData* AGridLevelEditorActor::FindObjectAtSelection() const
 		return nullptr;
 	}
 
-	TArray<FGridLevelObjectData> CompatibilityObjects;
-	LevelAsset->BuildCompatibilityObjectProjectionFromTyped(CompatibilityObjects);
+	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
 	static FGridLevelObjectData SelectionView;
 
 	for (int32 Index = CompatibilityObjects.Num() - 1; Index >= 0; --Index)
@@ -222,8 +221,7 @@ const FGridLevelObjectData* AGridLevelEditorActor::FindObjectById(const FGuid& O
 		return nullptr;
 	}
 
-	TArray<FGridLevelObjectData> CompatibilityObjects;
-	LevelAsset->BuildCompatibilityObjectProjectionFromTyped(CompatibilityObjects);
+	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
 	static FGridLevelObjectData ObjectView;
 
 	for (const FGridLevelObjectData& Obj : CompatibilityObjects)
