@@ -411,7 +411,17 @@ FText FGridLevelEdModeToolkit::GetSelectedEdgeStatusText() const
 FText FGridLevelEdModeToolkit::GetSelectedObjectStatusText() const
 {
 	const AGridLevelEditorActor* EditorActor = GetEditorActor();
-	const FGridLevelObjectData* Obj = EditorActor ? EditorActor->GetSelectedObjectData() : nullptr;
+	if (!EditorActor || !EditorActor->LevelAsset || !EditorActor->LastSelectedObjectId.IsValid())
+	{
+		return FText::FromString(TEXT("None"));
+	}
+
+	const TArray<FGridLevelObjectData> CompatibilityObjects = EditorActor->LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	const FGridLevelObjectData* Obj = CompatibilityObjects.FindByPredicate(
+		[EditorActor](const FGridLevelObjectData& Candidate)
+		{
+			return Candidate.ObjectId == EditorActor->LastSelectedObjectId;
+		});
 	if (!Obj)
 	{
 		return FText::FromString(TEXT("None"));
