@@ -670,7 +670,12 @@ void FGridLevelEdMode::Render(const FSceneView* View, FViewport* Viewport, FPrim
 		}
 	}
 
-	const FGridLevelObjectData* SelectedObject = EditorActor->GetSelectedObjectData();
+	const TArray<FGridLevelObjectData> CompatibilityObjects = EditorActor->LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	const FGridLevelObjectData* SelectedObject = CompatibilityObjects.FindByPredicate(
+		[EditorActor](const FGridLevelObjectData& Obj)
+		{
+			return Obj.ObjectId == EditorActor->LastSelectedObjectId;
+		});
 	if (SelectedObject)
 	{
 		DrawSelectedMonsterPatrolRoute(EditorActor, *SelectedObject, PDI);
@@ -683,12 +688,12 @@ void FGridLevelEdMode::Render(const FSceneView* View, FViewport* Viewport, FPrim
 				continue;
 			}
 
-			const FGridLevelObjectData* SourceObject = EditorActor->LevelAsset->Objects.FindByPredicate(
+			const FGridLevelObjectData* SourceObject = CompatibilityObjects.FindByPredicate(
 				[&Link](const FGridLevelObjectData& Obj)
 				{
 					return Obj.ObjectId == Link.SourceObjectId;
 				});
-			const FGridLevelObjectData* TargetObject = EditorActor->LevelAsset->Objects.FindByPredicate(
+			const FGridLevelObjectData* TargetObject = CompatibilityObjects.FindByPredicate(
 				[&Link](const FGridLevelObjectData& Obj)
 				{
 					return Obj.ObjectId == Link.TargetObjectId;
@@ -718,7 +723,12 @@ void FGridLevelEdMode::DrawHUD(FEditorViewportClient* ViewportClient, FViewport*
 		return;
 	}
 
-	const FGridLevelObjectData* SelectedObject = EditorActor->GetSelectedObjectData();
+	const TArray<FGridLevelObjectData> CompatibilityObjects = EditorActor->LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	const FGridLevelObjectData* SelectedObject = CompatibilityObjects.FindByPredicate(
+		[EditorActor](const FGridLevelObjectData& Obj)
+		{
+			return Obj.ObjectId == EditorActor->LastSelectedObjectId;
+		});
 	if (!SelectedObject)
 	{
 		return;
@@ -775,12 +785,12 @@ void FGridLevelEdMode::DrawHUD(FEditorViewportClient* ViewportClient, FViewport*
 			continue;
 		}
 
-		const FGridLevelObjectData* SourceObject = EditorActor->LevelAsset->Objects.FindByPredicate(
+		const FGridLevelObjectData* SourceObject = CompatibilityObjects.FindByPredicate(
 			[&Link](const FGridLevelObjectData& Obj)
 			{
 				return Obj.ObjectId == Link.SourceObjectId;
 			});
-		const FGridLevelObjectData* TargetObject = EditorActor->LevelAsset->Objects.FindByPredicate(
+		const FGridLevelObjectData* TargetObject = CompatibilityObjects.FindByPredicate(
 			[&Link](const FGridLevelObjectData& Obj)
 			{
 				return Obj.ObjectId == Link.TargetObjectId;
