@@ -165,7 +165,7 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal(bool bSameTypeOnly
 
 	TArray<FGuid> RemovedIds;
 	const EGridLevelObjectType FilterType = PaintObjectType;
-	const TArray<FGridLevelObjectData>& Objects = LevelAsset->Objects;
+	const TArray<FGridLevelObjectData> Objects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
 	for (int32 Index = Objects.Num() - 1; Index >= 0; --Index)
 	{
 		const FGridLevelObjectData& Obj = Objects[Index];
@@ -225,7 +225,7 @@ int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal(EGrid
 	}
 
 	TArray<FGuid> RemovedIds;
-	const TArray<FGridLevelObjectData>& Objects = LevelAsset->Objects;
+	const TArray<FGridLevelObjectData> Objects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
 	for (const FGridLevelObjectData& ExistingObject : Objects)
 	{
 		if (ExistingObject.Edge == EGridEdge::None)

@@ -22,36 +22,43 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 		return false;
 	}
 
+	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	const FGridLevelObjectData* StoredObject = CompatibilityObjects.FindByPredicate(
+		[this](const FGridLevelObjectData& Object)
+		{
+			return Object.ObjectId == LastSelectedObjectId;
+		});
+	if (!StoredObject)
+	{
+		return false;
+	}
+
+	FGridLevelObjectData EditedObject = *StoredObject;
+	EditedObject.Type = PaintObjectType;
+	EditedObject.Edge = IsEdgePlacedObject(PaintObjectType, ObjectArchetypeId) ? SelectedEdge : EGridEdge::None;
+	EditedObject.ArchetypeId = ObjectArchetypeId;
+	EditedObject.PaletteEntryId = SelectedPaletteEntryId;
+	EditedObject.bInitiallyEnabled = bObjectInitiallyEnabled;
+	EditedObject.bInitiallyActive = bObjectInitiallyActive;
+	EditedObject.Tag = ObjectTag;
+	EditedObject.Notes = ObjectNotes;
+	EditedObject.Behavior = ObjectBehavior;
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
 
-	for (FGridLevelObjectData& Obj : LevelAsset->Objects)
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
 	{
-		if (Obj.ObjectId != LastSelectedObjectId)
-		{
-			continue;
-		}
-
-		Obj.Type = PaintObjectType;
-		Obj.Edge = IsEdgePlacedObject(PaintObjectType, ObjectArchetypeId) ? SelectedEdge : EGridEdge::None;
-		Obj.ArchetypeId = ObjectArchetypeId;
-		Obj.PaletteEntryId = SelectedPaletteEntryId;
-		Obj.bInitiallyEnabled = bObjectInitiallyEnabled;
-		Obj.bInitiallyActive = bObjectInitiallyActive;
-		Obj.Tag = ObjectTag;
-		Obj.Notes = ObjectNotes;
-		Obj.Behavior = ObjectBehavior;
-
-#if WITH_EDITOR
-		LevelAsset->MarkPackageDirty();
-#endif
-
-		RebuildPreview();
-		return true;
+		return false;
 	}
 
-	return false;
+#if WITH_EDITOR
+	LevelAsset->MarkPackageDirty();
+#endif
+
+	RebuildPreview();
+	return true;
 }
 
 bool AGridLevelEditorActor::RemoveLinkByIndexForSelectedObject(int32 LinkIndex)

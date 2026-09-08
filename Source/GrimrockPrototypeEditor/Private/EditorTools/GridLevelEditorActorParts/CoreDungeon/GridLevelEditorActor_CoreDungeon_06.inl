@@ -26,7 +26,6 @@ NewLevelAsset->Width = 32;
 NewLevelAsset->Height = 32;
 NewLevelAsset->CellSize = 200.f;
 NewLevelAsset->EnsureCellCount();
-NewLevelAsset->Objects.Reset();
 NewLevelAsset->WorldObjectInstances.Reset();
 NewLevelAsset->LooseItemInstances.Reset();
 NewLevelAsset->MonsterSpawns.Reset();
