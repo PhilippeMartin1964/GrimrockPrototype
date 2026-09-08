@@ -1,153 +1,58 @@
-	{
-		return false;
-	}
-
-	FGridLevelObjectData EditedObject = *SelectedObject;
-	EditedObject.OverrideReadableText = NewReadableText;
-
-#if WITH_EDITOR
-	Modify();
-	LevelAsset->Modify();
-#endif
-
-	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
-	{
-		return false;
-	}
-
-#if WITH_EDITOR
-	LevelAsset->MarkPackageDirty();
-#endif
-
-	RebuildPreview();
-	return true;
-}
-
 bool AGridLevelEditorActor::SetSelectedObjectInitiallyEnabled(bool bNewInitiallyEnabled)
 {
-	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
-	if (!Obj)
-	{
-		return false;
-	}
-
-	FGridLevelObjectData EditedObject = *Obj;
-	EditedObject.bInitiallyEnabled = bNewInitiallyEnabled;
-
-#if WITH_EDITOR
-	LevelAsset->Modify();
-#endif
-	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
-	{
-		return false;
-	}
+	if (!EditGridPlacementAuthoring(LevelAsset, LastSelectedObjectId,
+		[bNewInitiallyEnabled](auto& Placement) { Placement.bInitiallyEnabled = bNewInitiallyEnabled; })) return false;
 	bObjectInitiallyEnabled = bNewInitiallyEnabled;
-#if WITH_EDITOR
-	LevelAsset->MarkPackageDirty();
-#endif
 	RebuildPreview();
 	return true;
 }
 
 bool AGridLevelEditorActor::SetSelectedObjectInitiallyActive(bool bNewInitiallyActive)
 {
-	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
-	if (!Obj)
+	if (!LevelAsset) return false;
+	if (FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId))
 	{
-		return false;
+		LevelAsset->Modify();
+		WorldObjectInstance->bInitiallyActive = bNewInitiallyActive;
 	}
-
-	FGridLevelObjectData EditedObject = *Obj;
-	EditedObject.bInitiallyActive = bNewInitiallyActive;
-
-#if WITH_EDITOR
-	LevelAsset->Modify();
-#endif
-	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	else if (FGridLogicObjectInstance* LogicInstance = LevelAsset->FindLogicObjectInstanceById(LastSelectedObjectId))
 	{
-		return false;
+		LevelAsset->Modify();
+		LogicInstance->bInitiallyActive = bNewInitiallyActive;
 	}
+	else return false;
 	bObjectInitiallyActive = bNewInitiallyActive;
-#if WITH_EDITOR
 	LevelAsset->MarkPackageDirty();
-#endif
 	RebuildPreview();
 	return true;
 }
 
 bool AGridLevelEditorActor::MoveSelectedObjectToCurrentSelection()
 {
-	if (!HasValidLevelAsset() || !IsValidSelectedCell())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: cannot move selected object, destination cell is invalid."));
-		return false;
-	}
-
-	const FGridLevelObjectData* SelectedObject = FindObjectById(LastSelectedObjectId);
-	if (!SelectedObject)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: cannot move selected object, no object is selected."));
-		return false;
-	}
-
-	const bool bRequiresEdge = IsEdgePlacedObject(*SelectedObject);
-	if (bRequiresEdge && SelectedEdge == EGridEdge::None)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: cannot move selected edge-based object to Edge=None."));
-		return false;
-	}
-
+	if (!HasValidLevelAsset() || !IsValidSelectedCell()) return false;
+	int32 CurrentCellX, CurrentCellY;
+	EGridEdge CurrentEdge;
+	if (!LevelAsset->TryGetTypedPlacementLocation(LastSelectedObjectId, CurrentCellX, CurrentCellY, CurrentEdge)) return false;
+	const bool bRequiresEdge = IsEdgePlacedObject(LastSelectedObjectId);
+	if (bRequiresEdge && SelectedEdge == EGridEdge::None) return false;
 	const EGridEdge DestinationEdge = bRequiresEdge ? SelectedEdge : EGridEdge::None;
-	const bool bAlreadyAtDestination =
-		SelectedObject->CellX == SelectedCellX && SelectedObject->CellY == SelectedCellY && SelectedObject->Edge == DestinationEdge;
-	if (bAlreadyAtDestination)
+	if (CurrentCellX == SelectedCellX && CurrentCellY == SelectedCellY && CurrentEdge == DestinationEdge) return true;
+	const EGridLevelObjectType SelectedObjectType = LevelAsset->GetTypedPlacementType(LastSelectedObjectId);
+	for (const FGuid& ObjectId : LevelAsset->GetTypedPlacementIdsAtCell(SelectedCellX, SelectedCellY))
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridLevelEditorActor: selected object is already at the current selection."));
-		return true;
-	}
-
-	const FGuid SelectedObjectId = SelectedObject->ObjectId;
-	const EGridLevelObjectType SelectedObjectType = SelectedObject->Type;
-	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	const bool bDestinationOccupied = CompatibilityObjects.ContainsByPredicate(
-		[this, SelectedObjectId, SelectedObjectType, bRequiresEdge, DestinationEdge](const FGridLevelObjectData& Obj)
+		if (ObjectId == LastSelectedObjectId || LevelAsset->GetTypedPlacementType(ObjectId) != SelectedObjectType) continue;
+		int32 CellX, CellY;
+		EGridEdge Edge;
+		if (LevelAsset->TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge) && (!bRequiresEdge || Edge == DestinationEdge))
 		{
-			if (Obj.ObjectId == SelectedObjectId || Obj.CellX != SelectedCellX || Obj.CellY != SelectedCellY || Obj.Type != SelectedObjectType)
-			{
-				return false;
-			}
-
-			if (bRequiresEdge)
-			{
-				return Obj.Edge == DestinationEdge;
-			}
-
-			return true;
-		});
-	if (bDestinationOccupied)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: cannot move selected object, destination already contains an object of the same type."));
-		return false;
+			UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: cannot move selected object, destination already contains an object of the same type."));
+			return false;
+		}
 	}
-
-	FGridLevelObjectData EditedObject = *SelectedObject;
-	EditedObject.CellX = SelectedCellX;
-	EditedObject.CellY = SelectedCellY;
-	EditedObject.Edge = DestinationEdge;
-
-#if WITH_EDITOR
-	LevelAsset->Modify();
-#endif
-	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
-	{
-		return false;
-	}
-#if WITH_EDITOR
-	LevelAsset->MarkPackageDirty();
-#endif
-
+	if (!EditGridPlacementAuthoring(LevelAsset, LastSelectedObjectId, [this](auto& Placement)
+		{ Placement.CellX = SelectedCellX; Placement.CellY = SelectedCellY; })) return false;
+	if (FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId)) WorldObjectInstance->WallSide = DestinationEdge;
+	else if (FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId)) LooseItemInstance->SurfaceSide = DestinationEdge;
 	RebuildPreview();
-	UE_LOG(LogTemp, Log, TEXT("GridLevelEditorActor: moved selected object %s to X=%d Y=%d Edge=%d."), *SelectedObjectId.ToString(), SelectedCellX,
-		SelectedCellY, static_cast<int32>(DestinationEdge));
 	return true;
 }

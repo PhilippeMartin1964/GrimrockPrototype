@@ -22,35 +22,47 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 		return false;
 	}
 
-	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	const FGridLevelObjectData* StoredObject = CompatibilityObjects.FindByPredicate(
-		[this](const FGridLevelObjectData& Object)
-		{
-			return Object.ObjectId == LastSelectedObjectId;
-		});
-	if (!StoredObject)
+	if (!LevelAsset->ContainsTypedPlacementId(LastSelectedObjectId) ||
+		GridLevelPlacementConversion::GetBucket(LevelAsset->GetTypedPlacementType(LastSelectedObjectId)) != GridLevelPlacementConversion::GetBucket(PaintObjectType))
 	{
 		return false;
 	}
 
-	FGridLevelObjectData EditedObject = *StoredObject;
-	EditedObject.Type = PaintObjectType;
-	EditedObject.Edge = IsEdgePlacedObject(PaintObjectType, ObjectArchetypeId) ? SelectedEdge : EGridEdge::None;
-	EditedObject.ArchetypeId = ObjectArchetypeId;
-	EditedObject.PaletteEntryId = SelectedPaletteEntryId;
-	EditedObject.bInitiallyEnabled = bObjectInitiallyEnabled;
-	EditedObject.bInitiallyActive = bObjectInitiallyActive;
-	EditedObject.Tag = ObjectTag;
-	EditedObject.Notes = ObjectNotes;
-	EditedObject.Behavior = ObjectBehavior;
-
-#if WITH_EDITOR
-	LevelAsset->Modify();
-#endif
-
-	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	if (!EditGridPlacementAuthoring(LevelAsset, LastSelectedObjectId, [this](auto& Placement)
+		{
+			Placement.PaletteEntryId = SelectedPaletteEntryId;
+			Placement.bInitiallyEnabled = bObjectInitiallyEnabled;
+			Placement.Tag = ObjectTag;
+			Placement.Notes = ObjectNotes;
+		})) return false;
+	if (FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId))
 	{
-		return false;
+		WorldObjectInstance->Type = PaintObjectType;
+		WorldObjectInstance->WorldObjectDefinitionId = ObjectArchetypeId;
+		WorldObjectInstance->WallSide = IsEdgePlacedObject(PaintObjectType, ObjectArchetypeId) ? SelectedEdge : EGridEdge::None;
+		WorldObjectInstance->bInitiallyActive = bObjectInitiallyActive;
+		WorldObjectInstance->InstanceConfig.Teleporter = ObjectBehavior.Teleporter;
+		WorldObjectInstance->InstanceConfig.Transition = ObjectBehavior.Transition;
+		WorldObjectInstance->InstanceConfig.Pit = ObjectBehavior.Pit;
+		WorldObjectInstance->InstanceConfig.ReceptacleInitialContent = ObjectBehavior.Receptacle.InitialContent;
+		WorldObjectInstance->InstanceConfig.bStartsUnlocked = ObjectBehavior.Lock.bStartsUnlocked;
+	}
+	else if (FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId))
+	{
+		LooseItemInstance->ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
+		LooseItemInstance->ReadableContentAsset = ObjectBehavior.Item.DefaultReadableContentAsset;
+		LooseItemInstance->ReadableContentId = ObjectBehavior.Item.DefaultReadableContentId;
+		LooseItemInstance->ReadTitleOverride = ObjectBehavior.Item.DefaultReadTitleOverride;
+		LooseItemInstance->ReadTextOverride = ObjectBehavior.Item.DefaultReadTextOverride;
+	}
+	else if (FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId))
+	{
+		ItemSpawn->ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
+	}
+	else if (FGridLogicObjectInstance* LogicInstance = LevelAsset->FindLogicObjectInstanceById(LastSelectedObjectId))
+	{
+		LogicInstance->Type = PaintObjectType;
+		LogicInstance->bInitiallyActive = bObjectInitiallyActive;
 	}
 
 #if WITH_EDITOR

@@ -23,11 +23,11 @@ namespace
 		return Object;
 	}
 
-	FGridObjectLink MakeTD013Link(const FGridLevelObjectData& Source, const FGridLevelObjectData& Target, EGridObjectCommand Command)
+	FGridObjectLink MakeTD013Link(FGuid SourceId, FGuid TargetId, EGridObjectCommand Command)
 	{
 		FGridObjectLink Link;
-		Link.SourceObjectId = Source.ObjectId;
-		Link.TargetObjectId = Target.ObjectId;
+		Link.SourceObjectId = SourceId;
+		Link.TargetObjectId = TargetId;
 		Link.SourceEvent = EGridObjectEvent::Activated;
 		Link.Command = Command;
 		return Link;
@@ -125,19 +125,37 @@ bool FGridTD013EventCommandValidationTest::RunTest(const FString& Parameters)
 	Level->StartFacing = EGridEdge::North;
 	EditorActor->LevelAsset = Level;
 
-	const FGridLevelObjectData Trigger = MakeTD013Object(EGridLevelObjectType::Trigger, 0, 0);
-	const FGridLevelObjectData Teleporter = MakeTD013Object(EGridLevelObjectType::Teleporter, 1, 0);
-	const FGridLevelObjectData ItemSpawn = MakeTD013Object(EGridLevelObjectType::ItemSpawn, 2, 0);
-	const FGridLevelObjectData Logic = MakeTD013Object(EGridLevelObjectType::Logic, 3, 0);
-	const FGridLevelObjectData StoryCompanion = MakeTD013Object(EGridLevelObjectType::StoryCompanion, 0, 1);
-	const FGridLevelObjectData CustomRecruiter = MakeTD013Object(EGridLevelObjectType::CustomRecruiter, 1, 1);
-	Level->Objects = { Trigger, Teleporter, ItemSpawn, Logic, StoryCompanion, CustomRecruiter };
+	FGridWorldObjectInstance Trigger;
+	Trigger.InstanceId = FGuid::NewGuid();
+	Trigger.Type = EGridLevelObjectType::Trigger;
+	FGridWorldObjectInstance Teleporter;
+	Teleporter.InstanceId = FGuid::NewGuid();
+	Teleporter.Type = EGridLevelObjectType::Teleporter;
+	Teleporter.CellX = 1;
+	Level->WorldObjectInstances = { Trigger, Teleporter };
+	FGridItemSpawnInstance ItemSpawn;
+	ItemSpawn.SpawnId = FGuid::NewGuid();
+	ItemSpawn.CellX = 2;
+	Level->ItemSpawns.Add(ItemSpawn);
+	FGridLogicObjectInstance Logic;
+	Logic.InstanceId = FGuid::NewGuid();
+	Logic.CellX = 3;
+	FGridLogicObjectInstance StoryCompanion;
+	StoryCompanion.InstanceId = FGuid::NewGuid();
+	StoryCompanion.Type = EGridLevelObjectType::StoryCompanion;
+	StoryCompanion.CellY = 1;
+	FGridLogicObjectInstance CustomRecruiter;
+	CustomRecruiter.InstanceId = FGuid::NewGuid();
+	CustomRecruiter.Type = EGridLevelObjectType::CustomRecruiter;
+	CustomRecruiter.CellX = 1;
+	CustomRecruiter.CellY = 1;
+	Level->LogicObjects = { Logic, StoryCompanion, CustomRecruiter };
 
-	Level->Links.Add(MakeTD013Link(Trigger, Teleporter, EGridObjectCommand::Activate));
-	Level->Links.Add(MakeTD013Link(Trigger, ItemSpawn, EGridObjectCommand::Activate));
-	Level->Links.Add(MakeTD013Link(Trigger, Logic, EGridObjectCommand::LogicExecute));
-	Level->Links.Add(MakeTD013Link(Trigger, StoryCompanion, EGridObjectCommand::OfferRecruitment));
-	Level->Links.Add(MakeTD013Link(Trigger, CustomRecruiter, EGridObjectCommand::OpenCustomRecruit));
+	Level->Links.Add(MakeTD013Link(Trigger.InstanceId, Teleporter.InstanceId, EGridObjectCommand::Activate));
+	Level->Links.Add(MakeTD013Link(Trigger.InstanceId, ItemSpawn.SpawnId, EGridObjectCommand::Activate));
+	Level->Links.Add(MakeTD013Link(Trigger.InstanceId, Logic.InstanceId, EGridObjectCommand::LogicExecute));
+	Level->Links.Add(MakeTD013Link(Trigger.InstanceId, StoryCompanion.InstanceId, EGridObjectCommand::OfferRecruitment));
+	Level->Links.Add(MakeTD013Link(Trigger.InstanceId, CustomRecruiter.InstanceId, EGridObjectCommand::OpenCustomRecruit));
 
 	const TArray<FGridLevelValidationMessage> Messages = EditorActor->ValidateCurrentLevel();
 	TestTrue(TEXT("Teleporter StateOnly command is rejected by level validation"), HasUnsupportedCommandDiagnostic(Messages, 0));

@@ -127,6 +127,15 @@ public:
 
 	// WORLDOBJ-MIG09-E2C-FINAL-A: native typed lookup surface. Generic runtime/editor
 	// consumers use these helpers instead of rebuilding FGridLevelObjectData projections.
+	FGridWorldObjectInstance* FindWorldObjectInstanceById(const FGuid& ObjectId);
+	FGridLooseItemInstance* FindLooseItemInstanceById(const FGuid& ObjectId);
+	FGridMonsterSpawnInstance* FindMonsterSpawnInstanceById(const FGuid& ObjectId);
+	FGridItemSpawnInstance* FindItemSpawnInstanceById(const FGuid& ObjectId);
+	FGridLogicObjectInstance* FindLogicObjectInstanceById(const FGuid& ObjectId);
+
+	/** Placement identities in authoring order, without a compatibility projection. */
+	TArray<FGuid> GetTypedPlacementIdsAtCell(int32 CellX, int32 CellY) const;
+
 	const FGridWorldObjectInstance* FindWorldObjectInstanceById(const FGuid& ObjectId) const
 	{
 		return ObjectId.IsValid() ? WorldObjectInstances.FindByPredicate(

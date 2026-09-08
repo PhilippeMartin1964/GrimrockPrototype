@@ -244,8 +244,41 @@ bool FGridMonsterMON131ValidationTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Blocked cell is reported"), HasErrorContaining(Errors, TEXT("allows occupancy")));
 	TestNull(TEXT("Typed monster placement is structurally cell-centered"), FGridMonsterSpawnInstance::StaticStruct()->FindPropertyByName(TEXT("Edge")));
 	TestTrue(TEXT("Non-cardinal facing is rejected"), HasErrorContaining(Errors, TEXT("cardinal InitialFacing")));
-	TestTrue(TEXT("Missing definition is reported"), HasErrorContaining(Errors, TEXT("requires MonsterDefinitionAsset")));
+	TestTrue(TEXT("Missing definition is reported"), HasErrorContaining(Errors, TEXT("requires MonsterDefinition")));
 	TestTrue(TEXT("Out-of-bounds spawn is reported"), HasErrorContaining(Errors, TEXT("outside grid bounds")));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON131TypedAuthorityTest, "Grimrock.Monsters.MON13.1.TypedAuthority",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON131TypedAuthorityTest::RunTest(const FString& Parameters)
+{
+	UGridLevelAsset* Level = MakeMON13Level(GetTransientPackage());
+	const FGuid SpawnId = FGuid::NewGuid();
+	Level->MonsterSpawns.Add(MakeMON13Spawn(MakeMON13Definition(Level), SpawnId));
+	TArray<FString> Errors;
+	TestTrue(TEXT("Native monster placement validates without a mirror"), Level->ValidateMonsterSpawns(Errors));
+	TestTrue(TEXT("Validation does not build a compatibility mirror"), Level->Objects.IsEmpty());
+
+	Level->WorldObjectInstances.AddDefaulted_GetRef().InstanceId = SpawnId;
+	TestFalse(TEXT("World object and monster cannot share an id"), Level->ValidateMonsterSpawns(Errors));
+	Level->WorldObjectInstances.Reset();
+	Level->LooseItemInstances.AddDefaulted_GetRef().InstanceId = SpawnId;
+	TestFalse(TEXT("Loose item and monster cannot share an id"), Level->ValidateMonsterSpawns(Errors));
+	Level->LooseItemInstances.Reset();
+	Level->ItemSpawns.AddDefaulted_GetRef().SpawnId = SpawnId;
+	TestFalse(TEXT("Item generator and monster cannot share an id"), Level->ValidateMonsterSpawns(Errors));
+	Level->ItemSpawns.Reset();
+	Level->LogicObjects.AddDefaulted_GetRef().InstanceId = SpawnId;
+	TestFalse(TEXT("Logic placement and monster cannot share an id"), Level->ValidateMonsterSpawns(Errors));
+	Level->LogicObjects.Reset();
+
+	FGridMonsterSpawnInstance* MonsterSpawn = Level->FindMonsterSpawnInstanceById(SpawnId);
+	if (!TestNotNull(TEXT("Mutable lookup finds the authoritative monster"), MonsterSpawn)) return false;
+	MonsterSpawn->CellX = 2;
+	TestTrue(TEXT("Cell lookup follows the native edit"), Level->GetTypedPlacementIdsAtCell(2, 1).Contains(SpawnId));
+	TestTrue(TEXT("Old cell no longer contains the monster"), Level->GetTypedPlacementIdsAtCell(1, 1).IsEmpty());
 	return true;
 }
 

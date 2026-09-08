@@ -3,25 +3,22 @@
 
 bool AGridLevelEditorActor::TryGetSelectedObjectData(FGridLevelObjectData& OutObject) const
 {
-	const FGridLevelObjectData* StoredObject = FindObjectById(LastSelectedObjectId);
-	if (!StoredObject)
+	if (!LevelAsset || !LevelAsset->TryGetCompatibilityObjectSnapshot(LastSelectedObjectId, OutObject))
 	{
 		return false;
 	}
 
-	// WORLDOBJ-MIG09-E2C: expose the selected compatibility DTO by value only.
-	// Callers must not retain a pointer into a transient typed projection.
-	OutObject = *StoredObject;
-	const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(StoredObject->ArchetypeId);
-	OutObject.Behavior = GridObjectInstanceBehavior::Resolve(LevelAsset, *StoredObject, Archetype);
-	if (StoredObject->Type == EGridLevelObjectType::Item)
+	// Compatibility API retained for fixtures until FINAL-B / FINAL-C.
+	const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(OutObject.ArchetypeId);
+	OutObject.Behavior = GridObjectInstanceBehavior::Resolve(LevelAsset, OutObject, Archetype);
+	if (OutObject.Type == EGridLevelObjectType::Item)
 	{
-		OutObject.Behavior.Item.ItemDefinitionAsset = StoredObject->ItemDefinitionAsset;
-		OutObject.Behavior.Item.ItemDefinitionId = StoredObject->ItemDefinitionId;
-		OutObject.Behavior.Item.DefaultReadableContentAsset = StoredObject->ReadableContentAsset;
-		OutObject.Behavior.Item.DefaultReadableContentId = StoredObject->ReadableContentId;
-		OutObject.Behavior.Item.DefaultReadTitleOverride = StoredObject->ReadTitleOverride;
-		OutObject.Behavior.Item.DefaultReadTextOverride = StoredObject->ReadTextOverride;
+		OutObject.Behavior.Item.ItemDefinitionAsset = OutObject.ItemDefinitionAsset;
+		OutObject.Behavior.Item.ItemDefinitionId = OutObject.ItemDefinitionId;
+		OutObject.Behavior.Item.DefaultReadableContentAsset = OutObject.ReadableContentAsset;
+		OutObject.Behavior.Item.DefaultReadableContentId = OutObject.ReadableContentId;
+		OutObject.Behavior.Item.DefaultReadTitleOverride = OutObject.ReadTitleOverride;
+		OutObject.Behavior.Item.DefaultReadTextOverride = OutObject.ReadTextOverride;
 	}
 	return true;
 }
@@ -34,39 +31,60 @@ bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 		return false;
 	}
 
-	const FGridLevelObjectData* Obj = FindObjectById(ObjectId);
-	if (!Obj)
+	int32 CellX, CellY;
+	EGridEdge Edge;
+	if (!LevelAsset->TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge))
 	{
 		ClearSelectedObjectState();
 		return false;
 	}
 
-	LastSelectedObjectId = Obj->ObjectId;
-
-	SelectedCellX = Obj->CellX;
-	SelectedCellY = Obj->CellY;
-	SelectedEdge = Obj->Edge;
-
-	PaintObjectType = Obj->Type;
-	ObjectArchetypeId = Obj->ArchetypeId;
-	SelectedArchetypeId = Obj->ArchetypeId;
-	SelectedPaletteEntryId = Obj->PaletteEntryId;
-
-	bObjectInitiallyEnabled = Obj->bInitiallyEnabled;
-	bObjectInitiallyActive = Obj->bInitiallyActive;
-	ObjectTag = Obj->Tag;
-	ObjectNotes = Obj->Notes;
-
-	const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(Obj->ArchetypeId);
-	ObjectBehavior = GridObjectInstanceBehavior::Resolve(LevelAsset, *Obj, Archetype);
-	if (Obj->Type == EGridLevelObjectType::Item)
+	LastSelectedObjectId = ObjectId;
+	SelectedCellX = CellX;
+	SelectedCellY = CellY;
+	SelectedEdge = Edge;
+	PaintObjectType = LevelAsset->GetTypedPlacementType(ObjectId);
+	ObjectArchetypeId = NAME_None;
+	SelectedArchetypeId = NAME_None;
+	bObjectInitiallyActive = false;
+	ObjectBehavior = FGridObjectBehaviorParams();
+	const auto ReadAuthoring = [this](const auto& Placement)
 	{
-		ObjectBehavior.Item.ItemDefinitionAsset = Obj->ItemDefinitionAsset;
-		ObjectBehavior.Item.ItemDefinitionId = Obj->ItemDefinitionId;
-		ObjectBehavior.Item.DefaultReadableContentAsset = Obj->ReadableContentAsset;
-		ObjectBehavior.Item.DefaultReadableContentId = Obj->ReadableContentId;
-		ObjectBehavior.Item.DefaultReadTitleOverride = Obj->ReadTitleOverride;
-		ObjectBehavior.Item.DefaultReadTextOverride = Obj->ReadTextOverride;
+		SelectedPaletteEntryId = Placement.PaletteEntryId;
+		bObjectInitiallyEnabled = Placement.bInitiallyEnabled;
+		ObjectTag = Placement.Tag;
+		ObjectNotes = Placement.Notes;
+	};
+	if (const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId))
+	{
+		ReadAuthoring(*WorldObjectInstance);
+		ObjectArchetypeId = WorldObjectInstance->WorldObjectDefinitionId;
+		SelectedArchetypeId = ObjectArchetypeId;
+		bObjectInitiallyActive = WorldObjectInstance->bInitiallyActive;
+		ObjectBehavior = GridObjectInstanceBehavior::Resolve(*WorldObjectInstance, FindObjectArchetypeById(ObjectArchetypeId));
+	}
+	else if (const FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(ObjectId))
+	{
+		ReadAuthoring(*LooseItemInstance);
+		ObjectBehavior.Item.ItemDefinitionAsset = LooseItemInstance->ItemDefinition;
+		ObjectBehavior.Item.DefaultReadableContentAsset = LooseItemInstance->ReadableContentAsset;
+		ObjectBehavior.Item.DefaultReadableContentId = LooseItemInstance->ReadableContentId;
+		ObjectBehavior.Item.DefaultReadTitleOverride = LooseItemInstance->ReadTitleOverride;
+		ObjectBehavior.Item.DefaultReadTextOverride = LooseItemInstance->ReadTextOverride;
+	}
+	else if (const FGridMonsterSpawnInstance* MonsterSpawn = LevelAsset->FindMonsterSpawnInstanceById(ObjectId))
+	{
+		ReadAuthoring(*MonsterSpawn);
+	}
+	else if (const FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(ObjectId))
+	{
+		ReadAuthoring(*ItemSpawn);
+		ObjectBehavior.Item.ItemDefinitionAsset = ItemSpawn->ItemDefinition;
+	}
+	else if (const FGridLogicObjectInstance* LogicInstance = LevelAsset->FindLogicObjectInstanceById(ObjectId))
+	{
+		ReadAuthoring(*LogicInstance);
+		bObjectInitiallyActive = LogicInstance->bInitiallyActive;
 	}
 
 	ResolvePreviewRuntimeActor();

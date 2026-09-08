@@ -1,6 +1,6 @@
 # WORLDOBJ-MIG09-E2C — Autorité typée des helpers d’édition et fixtures
 
-Statut : **premier lot Runtime validé ; TD01.3.2 migré vers l’autorité typée — validation locale requise**
+Statut : **FINAL-A Core et Editor validé localement ; publication à effectuer. FINAL-B / FINAL-C restent ouverts.**
 
 Date : 2026-09-08
 
@@ -263,7 +263,7 @@ Le build Development Editor UE5.5.4 est inclus par le harness `ValidateUE.ps1`.
 
 1. migrer les autres fixtures Runtime résiduelles encore branchées explicitement sur `Objects` ;
 2. traiter les tests historiques MIG07 qui vérifient encore volontairement les conversions legacy ;
-3. migrer `ValidateMonsterSpawns()` et les derniers helpers Core/Runtime encore exprimés en DTO lorsque leur frontière peut devenir native ;
+3. purger les adaptateurs Core/Runtime encore exprimés en DTO après migration de leurs consommateurs ; `ValidateMonsterSpawns()` lit désormais les placements typés ;
 4. supprimer physiquement :
 
 ```text
@@ -291,8 +291,58 @@ MIG10 ne commence qu’après suppression physique de ces compatibilités.
 [ ] aucun FGridLevelObjectData
 [ ] aucune projection legacy <-> typed
 [ ] runtime sur structures natives / payload runtime légitime
-[ ] Editor sur placements typés
+[x] consommateurs Editor de production sur placements typés
 [ ] tests sans fixtures legacy actives
-[ ] Grimrock.WorldObjects : 0 Failed
+[x] Grimrock.WorldObjects : 0 Failed (validation locale FINAL-A)
 [ ] documentation réconciliée avec la mind map
 ```
+
+## 8. FINAL-A — fermeture locale de l’autorité Editor (2026-09-08)
+
+Base inspectée : `24c2b7b9`, branche `master`, arbre initial propre. Aucun nettoyage ni réécriture des commits précédents n’a été nécessaire.
+
+- **Core** : lookups mutables des cinq collections, IDs présents dans une cellule, validation native de `MonsterSpawns` et résolution du comportement d’un `FGridWorldObjectInstance`.
+- **Overview** : groupes contenant uniquement des `FGuid`, marqueurs et sélection résolus sur les placements typés.
+- **Édition** : placement, sélection, déplacement, orientation et setters modifient le domaine concret. Les quantités, offsets, routes et configurations non concernées sont préservés.
+- **Inspector** : lecture par ID ; porte, bouton, plaque et règles de réceptacle proviennent de la définition en lecture seule. Les paramètres locaux de pit, téléporteur, transition et contenu initial restent éditables.
+- **Validation** : parcours séparé des cinq collections, unicité inter-collections, définitions, cellules, placements, destinations, réceptacles, patrouilles, rencontres et liens. La politique des liens utilise le vrai type de nœud logique.
+- **Widget Lua** : les deux dernières lectures de sélection legacy sont remplacées, sans modifier le service d’authoring déjà validé.
+
+Le balayage des sources Editor de production ne trouve plus de lecture de `BuildCompatibilityObjectProjectionFromTyped()` ni de `GetObjectCompatibilityView()`. Aucun widget n’appelle `TryGetSelectedObjectData()`. Les surcharges de politique et les anciennes APIs publiques de sélection/position restent provisoirement disponibles pour FINAL-B / FINAL-C. Aucun DTO universel de remplacement n’a été ajouté.
+
+### Validation obtenue
+
+Les cinq blocs ont compilé séparément avec UE 5.5.4 Development Editor. Le lancement standard de `ValidateUE.ps1` échoue avant compilation, car l’environnement interdit la rotation du journal UBT dans AppData. La compilation effective a utilisé :
+
+```powershell
+& 'D:\UE_5.5\Engine\Build\BatchFiles\Build.bat' GrimrockPrototypeEditor Win64 Development `
+    '-Project=D:\Development\GrimrockPrototype\GrimrockPrototype.uproject' -WaitMutex -NoHotReloadFromIDE `
+    -NoUBA -NoUBALocal '-Log=D:\Development\GrimrockPrototype\Saved\Logs\UBT-MIG09-FinalA.log'
+```
+
+Les tests ont tourné avec `UnrealEditor-Cmd.exe`, `-NullRHI`, `-DDC=NoZenLocalFallback` et un cache local au dépôt. Cela évite les écritures interdites de Zen dans AppData. Le paramètre Unity du projet n’a pas été modifié.
+
+Résultat consolidé, en prenant la dernière exécution de chaque test : **98 tests distincts réussis, aucun échec restant**.
+
+- `Grimrock.WorldObjects` : 36 tests, dont les nouvelles régressions `MIG09.EditorTypedMutations` et `MIG09.EditorTypedValidation`.
+- `Grimrock.MON19.2` : 18 réussites sans avertissement, 2 avec avertissements.
+- Tests concernés : `Editor.MonsterSpawn`, `TD03_2`, `TD03_3`, `TD01_3.EventCommandContract`, `MON19.6.Editor`, `MON19.7.1.LuaAuthoring.LogicIdCommand`, `MON19.4.LuaBridge`, `Monsters.MON13`, `Monsters.Perception.AcousticHearing`, `Pit.PIT01` et `Pit.PIT03`.
+- Le filtre réel de l’animation pit est `Grimrock.Pit.PIT03_2`, couvert par le préfixe `Grimrock.Pit.PIT03`. Aucun filtre `PIT03_1` n’a été inventé.
+
+Les fixtures `MIG05.EditorDirectItemPlacement` et `TD01_3.EventCommandContract.Validation` ont été adaptées lorsqu’elles vérifiaient encore le miroir `Objects`. La purge générale des fixtures n’est pas commencée.
+
+Rapports locaux sous `Saved/Automation/MIG09/` :
+
+- `FINAL-A-MON192-20260908-214228` ;
+- `FINAL-A-Editor-20260908-214447` (contient l’échec TD01.3 corrigé ensuite) ;
+- `FINAL-A-Closure-20260908-214624` (42 réussites, dont 2 avec avertissements, zéro échec ; couvre la correction TD01.3).
+
+### Avertissements et limites
+
+Les journaux ont été relus. MON19.2 et LuaBridge exercent les refus de cycles, variables absentes et dépassements du budget d’actions. D’autres avertissements signalent des connexions EOS bloquées par l’environnement, des fixtures de monstre sans party, une définition de levier de fixture sans surface murale, et des définitions de pit de fixture incomplètes. Le test `MON13.5.RealPIEIntegration` passe mais expose aussi des avertissements d’assets réels : partage d’ancrage de portes, remplacements de mur partageables et décorations sans partie visuelle. Ces avertissements ne constituent pas une validation visuelle des assets.
+
+Le résultat couvre compilation et automation, y compris l’intégration PIE automatisée. L’Inspector et l’Overview n’ont pas fait l’objet d’une vérification visuelle interactive dans cette session. Aucun `.uasset` ou `.umap` n’a été modifié.
+
+La publication reste séparée de cette validation locale : l’environnement refuse l’écriture de `.git/FETCH_HEAD` et ne peut pas joindre GitHub. La tentative de staging des seuls fichiers du bloc échoue également : `Unable to create '.git/index.lock': Permission denied`. Aucun fichier n’est staged, aucun commit n’a été créé, et HEAD reste `24c2b7b9`. Les modifications sont conservées dans l’arbre de travail.
+
+Le prochain lot après publication de FINAL-A est FINAL-B, puis FINAL-C. MIG10 reste interdit tant que MIG09 n’est pas fermé.

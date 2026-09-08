@@ -109,17 +109,17 @@ bool FGridEditorWorldObjectMIG05DirectItemPlacementTest::RunTest(const FString& 
 	TestTrue(TEXT("Direct collectible staging references the ItemDefinition"), EditorActor->ObjectBehavior.Item.ItemDefinitionAsset == Definition);
 
 	EditorActor->PlaceSelectedObject();
-	TestEqual(TEXT("Direct collectible placement creates exactly one level object"), Level->Objects.Num(), 1);
-	if (Level->Objects.Num() != 1)
+	TestEqual(TEXT("Direct collectible placement creates exactly one loose item"), Level->LooseItemInstances.Num(), 1);
+	if (Level->LooseItemInstances.Num() != 1)
 	{
 		return false;
 	}
 
-	const FGridLevelObjectData& PlacedItem = Level->Objects[0];
-	TestEqual(TEXT("Placed collectible type is Item"), PlacedItem.Type, EGridLevelObjectType::Item);
-	TestTrue(TEXT("Placed collectible has no companion ArchetypeId"), PlacedItem.ArchetypeId.IsNone());
-	TestTrue(TEXT("Placed collectible stores the canonical ItemDefinition asset"), PlacedItem.ItemDefinitionAsset == Definition);
-	TestTrue(TEXT("Placed collectible does not duplicate ItemDefinitionId"), PlacedItem.ItemDefinitionId.IsNone());
+	const FGridLooseItemInstance& PlacedItem = Level->LooseItemInstances[0];
+	TestEqual(TEXT("Placed collectible type is Item"), Level->GetTypedPlacementType(PlacedItem.InstanceId), EGridLevelObjectType::Item);
+	TestTrue(TEXT("Placed collectible has no companion world object"), Level->WorldObjectInstances.IsEmpty());
+	TestTrue(TEXT("Placed collectible stores the canonical ItemDefinition asset"), PlacedItem.ItemDefinition == Definition);
+	TestEqual(TEXT("Placement creates exactly one typed entry"), Level->GetTypedPlacementCount(), 1);
 	TestEqual(TEXT("Placed collectible keeps the selected cell X"), PlacedItem.CellX, 1);
 	TestEqual(TEXT("Placed collectible keeps the selected cell Y"), PlacedItem.CellY, 1);
 

@@ -259,7 +259,6 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	}
 
 	TSet<FGuid> SeenObjectIds;
-	TMap<FGuid, const FGridLevelObjectData*> ObjectsById;
 	TMap<FGuid, int32> OutgoingLinkCountBySourceId;
 	TMap<FGuid, int32> ReceptacleItemInsertedLinkCountBySourceId;
 	TMap<FGuid, int32> ReceptacleItemRemovedLinkCountBySourceId;
@@ -267,530 +266,285 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	TMap<FIntPoint, FGuid> EnabledMonsterSpawnByCell;
 	TMap<FName, TMap<int32, TMap<FIntPoint, FGuid>>> EncounterMonsterSpawnByWaveAndCell;
 
-	auto IsEdgeOrWallPlacedObject = [this](const FGridLevelObjectData& ObjectData) -> bool
+	const auto ValidatePlacement = [this, &AddMessage, &SeenObjectIds](FGuid ObjectId, int32 CellX, int32 CellY, FName PaletteEntryId, EGridLevelObjectType Type)
 	{
-		return IsEdgePlacedObject(ObjectData);
-	};
-
-	auto GetValidationAnchorKey = [&IsEdgeOrWallPlacedObject](const FGridLevelObjectData& ObjectData) -> FString
-	{
-		if (!IsEdgeOrWallPlacedObject(ObjectData))
-		{
-			return TEXT("Center");
-		}
-
-		switch (ObjectData.Edge)
-		{
-			case EGridEdge::North:
-				return TEXT("North");
-
-			case EGridEdge::East:
-				return TEXT("East");
-
-			case EGridEdge::South:
-				return TEXT("South");
-
-			case EGridEdge::West:
-				return TEXT("West");
-
-			case EGridEdge::None:
-			default:
-				return TEXT("Center");
-		}
-	};
-
-	auto GetObjectValidationName = [](const FGridLevelObjectData& ObjectData) -> FString
-	{
-		if (!ObjectData.Tag.IsNone())
-		{
-			return ObjectData.Tag.ToString();
-		}
-
-		if (ObjectData.Type == EGridLevelObjectType::Item && ObjectData.ItemDefinitionAsset && !ObjectData.ItemDefinitionAsset->ItemDefinitionId.IsNone())
-		{
-			return ObjectData.ItemDefinitionAsset->ItemDefinitionId.ToString();
-		}
-
-		if (!ObjectData.ArchetypeId.IsNone())
-		{
-			return ObjectData.ArchetypeId.ToString();
-		}
-
-		return ObjectData.ObjectId.IsValid() ? ObjectData.ObjectId.ToString().Left(8) : FString(TEXT("InvalidObjectId"));
-	};
-
-	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-
-	for (const FGridLevelObjectData& Obj : CompatibilityObjects)
-	{
-		if (!Obj.ObjectId.IsValid())
-		{
-			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Object at X=%d Y=%d has an invalid ObjectId."), Obj.CellX, Obj.CellY));
-		}
-		else if (SeenObjectIds.Contains(Obj.ObjectId))
-		{
-			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Duplicate ObjectId found."), Obj.ObjectId);
-		}
+		if (!ObjectId.IsValid())
+			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Object at X=%d Y=%d has an invalid ObjectId."), CellX, CellY));
+		else if (SeenObjectIds.Contains(ObjectId))
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Duplicate ObjectId found."), ObjectId);
 		else
+			SeenObjectIds.Add(ObjectId);
+		if (ObjectPalette && !PaletteEntryId.IsNone())
 		{
-			SeenObjectIds.Add(Obj.ObjectId);
-			ObjectsById.Add(Obj.ObjectId, &Obj);
+			const FGridObjectPaletteEntry* Entry = ObjectPalette->FindEntryById(PaletteEntryId);
+			if (!Entry)
+				AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Placed object PaletteEntryId '%s' no longer exists in the assigned ObjectPalette."), *PaletteEntryId.ToString()), ObjectId);
+			else if (Entry->GetEffectiveObjectType() != Type)
+				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Placed object type does not match its PaletteEntryId."), ObjectId);
 		}
+		if (!LevelAsset->IsValidCoord(CellX, CellY))
+		{
+			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Object is outside grid bounds at X=%d Y=%d."), CellX, CellY), ObjectId);
+			return false;
+		}
+		if (!LevelAsset->Cells.IsValidIndex(LevelAsset->GetIndex(CellX, CellY)))
+		{
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Object cannot resolve its cell because the level cell array is incomplete."), ObjectId);
+			return false;
+		}
+		return true;
+	};
+	const auto IsInitiallyEnabled = [this](FGuid ObjectId)
+	{
+		if (const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId)) return WorldObjectInstance->bInitiallyEnabled;
+		if (const FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(ObjectId)) return LooseItemInstance->bInitiallyEnabled;
+		if (const FGridMonsterSpawnInstance* MonsterSpawn = LevelAsset->FindMonsterSpawnInstanceById(ObjectId)) return MonsterSpawn->bInitiallyEnabled;
+		if (const FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(ObjectId)) return ItemSpawn->bInitiallyEnabled;
+		if (const FGridLogicObjectInstance* LogicInstance = LevelAsset->FindLogicObjectInstanceById(ObjectId)) return LogicInstance->bInitiallyEnabled;
+		return false;
+	};
+	const auto GetValidationAnchorKey = [this](FGuid ObjectId)
+	{
+		int32 CellX = 0, CellY = 0;
+		EGridEdge Edge = EGridEdge::None;
+		LevelAsset->TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge);
+		return IsEdgePlacedObject(ObjectId) && Edge != EGridEdge::None ? GetGridEdgeText(Edge) : FString(TEXT("Center"));
+	};
+	const auto GetObjectValidationName = [](const FGridWorldObjectInstance& WorldObjectInstance)
+	{
+		if (!WorldObjectInstance.Tag.IsNone()) return WorldObjectInstance.Tag.ToString();
+		if (!WorldObjectInstance.WorldObjectDefinitionId.IsNone()) return WorldObjectInstance.WorldObjectDefinitionId.ToString();
+		return WorldObjectInstance.InstanceId.IsValid() ? WorldObjectInstance.InstanceId.ToString().Left(8) : FString(TEXT("InvalidObjectId"));
+	};
+	const auto IsCardinal = [](EGridEdge Edge)
+	{
+		return Edge == EGridEdge::North || Edge == EGridEdge::East || Edge == EGridEdge::South || Edge == EGridEdge::West;
+	};
 
-		if (!LevelAsset->IsValidCoord(Obj.CellX, Obj.CellY))
-		{
-			AddMessage(
-				EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Object is outside grid bounds at X=%d Y=%d."), Obj.CellX, Obj.CellY), Obj.ObjectId);
-			continue;
-		}
-
-		const bool bDirectCollectible = Obj.Type == EGridLevelObjectType::Item && Obj.ItemDefinitionAsset != nullptr;
-		const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(Obj.ArchetypeId);
-		if (Obj.ArchetypeId.IsNone() && !bDirectCollectible)
-		{
-			AddMessage(EGridLevelValidationSeverity::Error,
-				TEXT("Placed world object has no ArchetypeId. Only a direct collectible ItemDefinition may omit it."), Obj.ObjectId);
-		}
-		else if (!Obj.ArchetypeId.IsNone() && ObjectPalette && !Archetype)
-		{
-			AddMessage(EGridLevelValidationSeverity::Error,
-				FString::Printf(TEXT("Placed object ArchetypeId '%s' is not exposed by the assigned ObjectPalette."), *Obj.ArchetypeId.ToString()),
-				Obj.ObjectId);
-		}
-
+	for (const FGridWorldObjectInstance& Obj : LevelAsset->WorldObjectInstances)
+	{
+		const FGuid ObjectId = Obj.InstanceId;
+		if (!ValidatePlacement(ObjectId, Obj.CellX, Obj.CellY, Obj.PaletteEntryId, Obj.Type)) continue;
+		const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(Obj.WorldObjectDefinitionId);
+		if (Obj.WorldObjectDefinitionId.IsNone())
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Placed world object has no WorldObjectDefinitionId."), ObjectId);
+		else if (!Archetype)
+			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Placed object definition '%s' cannot be resolved."), *Obj.WorldObjectDefinitionId.ToString()), ObjectId);
+		if (GridLevelPlacementConversion::GetBucket(Obj.Type) != EGridLevelPlacementBucket::WorldObject)
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("WorldObjectInstances contains a type belonging to another placement collection."), ObjectId);
 		if (Archetype && Obj.Type != Archetype->SupportedType)
+			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Placed object Type=%s does not match archetype '%s' SupportedType=%s."), *ToGridObjectTypeText(Obj.Type), *Obj.WorldObjectDefinitionId.ToString(), *ToGridObjectTypeText(Archetype->SupportedType)), ObjectId);
+		if (ObjectPalette && !Obj.PaletteEntryId.IsNone())
 		{
-			AddMessage(EGridLevelValidationSeverity::Error,
-				FString::Printf(TEXT("Placed object Type=%s does not match archetype '%s' SupportedType=%s."), *ToGridObjectTypeText(Obj.Type),
-					*Obj.ArchetypeId.ToString(), *ToGridObjectTypeText(Archetype->SupportedType)),
-				Obj.ObjectId);
+			const FGridObjectPaletteEntry* Entry = ObjectPalette->FindEntryById(Obj.PaletteEntryId);
+			if (Entry && Entry->GetEffectiveArchetypeId() != Obj.WorldObjectDefinitionId)
+				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Placed object PaletteEntryId now resolves to a different world object definition."), ObjectId);
 		}
-
 		if (Archetype)
 		{
 			if (Archetype->bIsReadable)
 			{
-				const FText EffectiveReadableText = Obj.OverrideReadableText.IsEmpty() ? Archetype->ReadableText : Obj.OverrideReadableText;
-				if (EffectiveReadableText.IsEmpty())
-				{
-					AddMessage(EGridLevelValidationSeverity::Warning,
-						Obj.Notes.IsEmpty() ? TEXT("Readable placed object has no text in either its instance override or archetype.")
-											: TEXT("Readable placed object has no text. Notes are editor-only and are not displayed at runtime."),
-						Obj.ObjectId);
-				}
+				if (Obj.ReadableTextOverride.IsEmpty() && Archetype->ReadableText.IsEmpty())
+					AddMessage(EGridLevelValidationSeverity::Warning, Obj.Notes.IsEmpty() ? TEXT("Readable placed object has no text in either its instance override or archetype.") : TEXT("Readable placed object has no text. Notes are editor-only and are not displayed at runtime."), ObjectId);
 				if (!Obj.bInitiallyEnabled)
-				{
-					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Readable placed object is initially disabled and cannot be read until enabled."),
-						Obj.ObjectId);
-				}
+					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Readable placed object is initially disabled and cannot be read until enabled."), ObjectId);
 			}
-			else if (!Obj.OverrideReadableText.IsEmpty())
-			{
-				AddMessage(EGridLevelValidationSeverity::Warning,
-					TEXT("Placed object has a readable-text override, but its archetype is not readable; the override is ignored at runtime."), Obj.ObjectId);
-			}
+			else if (!Obj.ReadableTextOverride.IsEmpty())
+				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Placed object has a readable-text override, but its archetype is not readable; the override is ignored at runtime."), ObjectId);
+			if (Archetype->IsCenterPlaced() && Obj.WallSide != EGridEdge::None)
+				AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Center-placed object has a cardinal Edge=%s; runtime center placement ignores this edge."), *GetGridEdgeText(Obj.WallSide)), ObjectId);
+			if (Archetype->bBlocksMovement && LevelAsset->GetCell(Obj.CellX, Obj.CellY).bBlocksOccupancy)
+				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Object blocks movement on a cell that already blocks occupancy."), ObjectId);
 		}
-
-		if (Archetype && Obj.Type != EGridLevelObjectType::Item && Archetype->IsCenterPlaced() && Obj.Edge != EGridEdge::None)
-		{
-			AddMessage(EGridLevelValidationSeverity::Warning,
-				FString::Printf(TEXT("Center-placed object has a cardinal Edge=%s; runtime center placement ignores this edge."), *GetGridEdgeText(Obj.Edge)),
-				Obj.ObjectId);
-		}
-
-		if (ObjectPalette && !Obj.PaletteEntryId.IsNone())
-		{
-			const FGridObjectPaletteEntry* PaletteEntry = ObjectPalette->FindEntryById(Obj.PaletteEntryId);
-			if (!PaletteEntry)
-			{
-				AddMessage(EGridLevelValidationSeverity::Warning,
-					FString::Printf(TEXT("Placed object PaletteEntryId '%s' no longer exists in the assigned ObjectPalette."), *Obj.PaletteEntryId.ToString()),
-					Obj.ObjectId);
-			}
-			else if (PaletteEntry->GetEffectiveArchetypeId() != Obj.ArchetypeId)
-			{
-				AddMessage(EGridLevelValidationSeverity::Warning,
-					FString::Printf(TEXT("Placed object PaletteEntryId '%s' now resolves to archetype '%s', but the object stores ArchetypeId '%s'."),
-						*Obj.PaletteEntryId.ToString(), *PaletteEntry->GetEffectiveArchetypeId().ToString(), *Obj.ArchetypeId.ToString()),
-					Obj.ObjectId);
-			}
-		}
-
-		if (IsEdgeOrWallPlacedObject(Obj) && Obj.Edge == EGridEdge::None)
-		{
-			AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Edge or wall placed object has Edge=None."), Obj.ObjectId);
-		}
-
-		if (Archetype && Archetype->bBlocksMovement)
-		{
-			const FGridLevelCellData& CellData = LevelAsset->GetCell(Obj.CellX, Obj.CellY);
-			if (CellData.bBlocksOccupancy)
-			{
-				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Object blocks movement on a cell that already blocks occupancy."), Obj.ObjectId);
-			}
-		}
-
-		if (Obj.Type == EGridLevelObjectType::Item)
-		{
-			const UGridItemDefinitionAsset* ArchetypeItemDefinition = Archetype ? Archetype->DefaultBehavior.Item.ItemDefinitionAsset.Get() : nullptr;
-			const FName ArchetypeItemDefinitionId = ArchetypeItemDefinition && !ArchetypeItemDefinition->ItemDefinitionId.IsNone()
-				? ArchetypeItemDefinition->ItemDefinitionId
-				: (Archetype ? Archetype->DefaultBehavior.Item.ItemDefinitionId : NAME_None);
-			const FName LocalAssetDefinitionId = Obj.ItemDefinitionAsset ? Obj.ItemDefinitionAsset->ItemDefinitionId : NAME_None;
-			const FName EffectiveItemDefinitionId =
-				!LocalAssetDefinitionId.IsNone() ? LocalAssetDefinitionId : (!Obj.ItemDefinitionId.IsNone() ? Obj.ItemDefinitionId : ArchetypeItemDefinitionId);
-
-			if (EffectiveItemDefinitionId.IsNone())
-			{
-				AddMessage(EGridLevelValidationSeverity::Error,
-					TEXT("Placed item has no resolvable item definition in the object instance or its archetype defaults."), Obj.ObjectId);
-			}
-
-			if (Obj.ItemDefinitionAsset && LocalAssetDefinitionId.IsNone())
-			{
-				AddMessage(EGridLevelValidationSeverity::Error, TEXT("Placed item references an item definition asset whose ItemDefinitionId is empty."),
-					Obj.ObjectId);
-			}
-
-			if (Obj.ItemDefinitionAsset && !Obj.ItemDefinitionId.IsNone() && Obj.ItemDefinitionId != LocalAssetDefinitionId)
-			{
-				AddMessage(EGridLevelValidationSeverity::Error,
-					FString::Printf(TEXT("Placed item stores ItemDefinitionId '%s' but its definition asset resolves to '%s'."),
-						*Obj.ItemDefinitionId.ToString(), *LocalAssetDefinitionId.ToString()),
-					Obj.ObjectId);
-			}
-
-			const FGridLevelCellData& ItemCell = LevelAsset->GetCell(Obj.CellX, Obj.CellY);
-			if (ItemCell.CellType == EGridCellType::Empty || ItemCell.bBlocksOccupancy)
-			{
-				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Placed item is on a non-walkable cell; normal party pickup cannot reach this cell."),
-					Obj.ObjectId);
-			}
-		}
-
-		if (Obj.Type == EGridLevelObjectType::MonsterSpawn)
-		{
-			const UGridMonsterDefinitionAsset* Definition = Obj.MonsterDefinitionAsset;
-			const FName AssetDefinitionId = Definition ? Definition->MonsterId : NAME_None;
-			const FName ResolvedDefinitionId = !AssetDefinitionId.IsNone() ? AssetDefinitionId : Obj.MonsterDefinitionId;
-
-			if (ResolvedDefinitionId.IsNone())
-			{
-				AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn requires MonsterDefinitionAsset or MonsterDefinitionId."), Obj.ObjectId);
-			}
-
-			if (Definition)
-			{
-				FString DefinitionError;
-				if (!Definition->ValidateDefinition(DefinitionError))
-				{
-					AddMessage(EGridLevelValidationSeverity::Error,
-						FString::Printf(TEXT("MonsterSpawn references an invalid MonsterDefinition: %s"), *DefinitionError), Obj.ObjectId);
-				}
-
-				if (!Obj.MonsterDefinitionId.IsNone() && Obj.MonsterDefinitionId != AssetDefinitionId)
-				{
-					AddMessage(EGridLevelValidationSeverity::Error,
-						FString::Printf(TEXT("MonsterSpawn stores MonsterDefinitionId '%s' but its asset resolves to '%s'."),
-							*Obj.MonsterDefinitionId.ToString(), *AssetDefinitionId.ToString()),
-						Obj.ObjectId);
-				}
-			}
-
-			const bool bCardinalFacing = Obj.InitialFacing == EGridEdge::North || Obj.InitialFacing == EGridEdge::East ||
-				Obj.InitialFacing == EGridEdge::South || Obj.InitialFacing == EGridEdge::West;
-			if (!bCardinalFacing)
-			{
-				AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn requires a cardinal InitialFacing."), Obj.ObjectId);
-			}
-			else if (!FMath::IsNearlyEqual(Obj.LocalYaw, GetYawForOrientation(Obj.InitialFacing)))
-			{
-				AddMessage(EGridLevelValidationSeverity::Warning,
-					TEXT("MonsterSpawn LocalYaw preview mirror differs from InitialFacing; InitialFacing remains authoritative."), Obj.ObjectId);
-			}
-
-			if (Obj.Edge != EGridEdge::None)
-			{
-				AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn is cell-centered and requires Edge=None."), Obj.ObjectId);
-			}
-
-			const FGridLevelCellData& SpawnCell = LevelAsset->GetCell(Obj.CellX, Obj.CellY);
-			if (SpawnCell.CellType == EGridCellType::Empty || SpawnCell.bBlocksOccupancy)
-			{
-				AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn must be placed on a non-empty cell that allows occupancy."), Obj.ObjectId);
-			}
-
-			if (Obj.bInitiallyEnabled)
-			{
-				const FIntPoint CellKey(Obj.CellX, Obj.CellY);
-				if (const FGuid* ExistingSpawnId = EnabledMonsterSpawnByCell.Find(CellKey))
-				{
-					AddMessage(EGridLevelValidationSeverity::Error,
-						FString::Printf(TEXT("MonsterSpawn shares its initial cell with enabled MonsterSpawn %s."), *ExistingSpawnId->ToString()),
-						Obj.ObjectId);
-				}
-				else
-				{
-					EnabledMonsterSpawnByCell.Add(CellKey, Obj.ObjectId);
-				}
-			}
-
-			if (Obj.EncounterWaveIndex < 0)
-			{
-				AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn requires EncounterWaveIndex >= 0."), Obj.ObjectId);
-			}
-			if (Obj.EncounterGroupId.IsNone() && Obj.EncounterWaveIndex > 0)
-			{
-				AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn requires EncounterGroupId when EncounterWaveIndex is greater than 0."),
-					Obj.ObjectId);
-			}
-			if (!Obj.EncounterGroupId.IsNone() && Obj.EncounterWaveIndex > 0 && Obj.bInitiallyEnabled)
-			{
-				AddMessage(EGridLevelValidationSeverity::Error,
-					FString::Printf(TEXT("MonsterSpawn belongs to future encounter wave %d and must be disabled at start."), Obj.EncounterWaveIndex),
-					Obj.ObjectId);
-			}
-			if (!Obj.EncounterGroupId.IsNone() && Obj.EncounterWaveIndex >= 0)
-			{
-				TMap<FIntPoint, FGuid>& SpawnByCell = EncounterMonsterSpawnByWaveAndCell.FindOrAdd(Obj.EncounterGroupId).FindOrAdd(Obj.EncounterWaveIndex);
-				const FIntPoint CellKey(Obj.CellX, Obj.CellY);
-				if (const FGuid* ExistingSpawnId = SpawnByCell.Find(CellKey))
-				{
-					AddMessage(EGridLevelValidationSeverity::Error,
-						FString::Printf(TEXT("MonsterSpawn shares encounter wave %d cell with MonsterSpawn %s in encounter '%s'."), Obj.EncounterWaveIndex,
-							*ExistingSpawnId->ToString(), *Obj.EncounterGroupId.ToString()),
-						Obj.ObjectId);
-				}
-				else
-				{
-					SpawnByCell.Add(CellKey, Obj.ObjectId);
-				}
-			}
-		}
-
+		if (IsEdgePlacedObject(ObjectId) && !IsCardinal(Obj.WallSide))
+			AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Edge or wall placed object requires a cardinal edge."), ObjectId);
 		if (Obj.Type == EGridLevelObjectType::Door)
 		{
-			const FGridLevelCellData& CellData = LevelAsset->GetCell(Obj.CellX, Obj.CellY);
-			const EGridWallType WallType = GetWallTypeForEdge(CellData, Obj.Edge);
-			if (WallType == EGridWallType::Solid)
+			if (GetWallTypeForEdge(LevelAsset->GetCell(Obj.CellX, Obj.CellY), Obj.WallSide) == EGridWallType::Solid)
+				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Door is placed on an edge whose wall is Solid. A door edge must use WallType=None."), ObjectId);
+			int32 NeighborX = Obj.CellX, NeighborY = Obj.CellY;
+			switch (Obj.WallSide)
 			{
-				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Door is placed on an edge whose wall is Solid. A door edge must use WallType=None."),
-					Obj.ObjectId);
+				case EGridEdge::North: ++NeighborY; break;
+				case EGridEdge::East: ++NeighborX; break;
+				case EGridEdge::South: --NeighborY; break;
+				case EGridEdge::West: --NeighborX; break;
+				default: break;
 			}
-
-			int32 NeighborX = Obj.CellX;
-			int32 NeighborY = Obj.CellY;
-			switch (Obj.Edge)
-			{
-				case EGridEdge::North:
-					++NeighborY;
-					break;
-				case EGridEdge::East:
-					++NeighborX;
-					break;
-				case EGridEdge::South:
-					--NeighborY;
-					break;
-				case EGridEdge::West:
-					--NeighborX;
-					break;
-				case EGridEdge::None:
-				default:
-					break;
-			}
-			if (Obj.Edge != EGridEdge::None && !LevelAsset->IsValidCoord(NeighborX, NeighborY))
-			{
-				AddMessage(
-					EGridLevelValidationSeverity::Warning, TEXT("Door is placed on an outer grid edge with no neighboring cell to cross."), Obj.ObjectId);
-			}
+			if (Obj.WallSide != EGridEdge::None && !LevelAsset->IsValidCoord(NeighborX, NeighborY))
+				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Door is placed on an outer grid edge with no neighboring cell to cross."), ObjectId);
 		}
-
-		if (Obj.Type == EGridLevelObjectType::Pit || Obj.Behavior.Transition.bIsTransition)
+		const bool bIsPit = Obj.Type == EGridLevelObjectType::Pit;
+		const FGridObjectTransitionParams& Transition = Obj.InstanceConfig.Transition;
+		if (bIsPit || Transition.bIsTransition)
 		{
-			const FGridObjectTransitionParams& Transition = Obj.Behavior.Transition;
-			const bool bIsPitTransition = Obj.Type == EGridLevelObjectType::Pit;
-			const bool bPitUsesSameCell = Obj.Type == EGridLevelObjectType::Pit && Obj.Behavior.Pit.bUseSameCellCoordinates;
-			const int32 EffectiveTargetCellX = bPitUsesSameCell ? Obj.CellX : Transition.TargetCellX;
-			const int32 EffectiveTargetCellY = bPitUsesSameCell ? Obj.CellY : Transition.TargetCellY;
-			FName EffectiveTargetLevelId = Transition.TargetLevelId;
-			bool bAutoResolvedPitTarget = false;
-			const FGridDungeonLevelEntry* CurrentDungeonEntry = nullptr;
-			if (DungeonAsset && LevelAsset)
+			const bool bSameCell = bIsPit && Obj.InstanceConfig.Pit.bUseSameCellCoordinates;
+			const int32 TargetX = bSameCell ? Obj.CellX : Transition.TargetCellX;
+			const int32 TargetY = bSameCell ? Obj.CellY : Transition.TargetCellY;
+			FName TargetLevelId = Transition.TargetLevelId;
+			bool bAutoResolved = false;
+			if (bIsPit && DungeonAsset && (TargetLevelId.IsNone() || !DungeonAsset->IsValidLevelId(TargetLevelId)))
 			{
-				CurrentDungeonEntry = DungeonAsset->Levels.FindByPredicate(
-					[this](const FGridDungeonLevelEntry& Entry)
-					{
-						return Entry.LevelAsset.Get() == LevelAsset;
-					});
+				const FGridDungeonLevelEntry* CurrentEntry = DungeonAsset->Levels.FindByPredicate([this](const FGridDungeonLevelEntry& Entry){ return Entry.LevelAsset.Get() == LevelAsset; });
+				const FGridDungeonLevelEntry* LowerLevel = CurrentEntry ? DungeonAsset->FindLevelBelow(CurrentEntry->LevelId) : nullptr;
+				if (LowerLevel) { TargetLevelId = LowerLevel->LevelId; bAutoResolved = true; }
 			}
-			if (bIsPitTransition && DungeonAsset && (EffectiveTargetLevelId.IsNone() || !DungeonAsset->IsValidLevelId(EffectiveTargetLevelId)) &&
-				CurrentDungeonEntry)
+			if (TargetLevelId.IsNone())
+				AddMessage(EGridLevelValidationSeverity::Error, bIsPit ? TEXT("Pit has no enabled dungeon level below it.") : TEXT("Transition has no TargetLevelId."), ObjectId);
+			if (!bIsPit && !IsCardinal(Transition.TargetFacing))
+				AddMessage(EGridLevelValidationSeverity::Error, TEXT("Transition TargetFacing must be cardinal."), ObjectId);
+			const UGridLevelAsset* TargetLevel = DungeonAsset ? DungeonAsset->GetLevelAssetById(TargetLevelId) : nullptr;
+			if (!DungeonAsset)
+				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Transition cannot validate TargetLevelId because DungeonAsset is null."), ObjectId);
+			else if (!TargetLevelId.IsNone() && !TargetLevel)
+				AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Transition target LevelId '%s' was not found as an enabled level with a LevelAsset in the DungeonAsset."), *TargetLevelId.ToString()), ObjectId);
+			else if (bAutoResolved && !Transition.TargetLevelId.IsNone())
+				AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Pit explicit TargetLevelId '%s' is unavailable; runtime will fall to automatic lower level '%s'."), *Transition.TargetLevelId.ToString(), *TargetLevelId.ToString()), ObjectId);
+			if (TargetLevel && !TargetLevel->IsValidCoord(TargetX, TargetY))
+				AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Transition target cell X=%d Y=%d is outside target level bounds."), TargetX, TargetY), ObjectId);
+			else if (!TargetLevel && !LevelAsset->IsValidCoord(TargetX, TargetY))
+				AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Transition target cell X=%d Y=%d is outside the current level bounds; target level bounds could not be validated."), TargetX, TargetY), ObjectId);
+			if (bIsPit && Obj.InstanceConfig.Pit.bInitiallyOpen && TargetLevel && TargetLevel->IsValidCoord(TargetX, TargetY))
 			{
-				if (const FGridDungeonLevelEntry* LowerLevel = DungeonAsset->FindLevelBelow(CurrentDungeonEntry->LevelId))
+				const bool bOpenPitAtDestination = TargetLevel->WorldObjectInstances.ContainsByPredicate([TargetX, TargetY](const FGridWorldObjectInstance& Candidate)
 				{
-					EffectiveTargetLevelId = LowerLevel->LevelId;
-					bAutoResolvedPitTarget = true;
-				}
-			}
-
-			if (EffectiveTargetLevelId.IsNone())
-			{
-				AddMessage(EGridLevelValidationSeverity::Error,
-					bIsPitTransition ? TEXT("Pit has no enabled dungeon level below it.") : TEXT("Transition has no TargetLevelId."), Obj.ObjectId);
-			}
-
-			if (!bIsPitTransition && Transition.TargetFacing == EGridEdge::None)
-			{
-				AddMessage(EGridLevelValidationSeverity::Error, TEXT("Transition TargetFacing cannot be None."), Obj.ObjectId);
-			}
-
-			const UGridLevelAsset* TargetLevelAsset = nullptr;
-			if (DungeonAsset)
-			{
-				TargetLevelAsset = DungeonAsset->GetLevelAssetById(EffectiveTargetLevelId);
-				if (!EffectiveTargetLevelId.IsNone() && !TargetLevelAsset)
-				{
-					AddMessage(EGridLevelValidationSeverity::Error,
-						FString::Printf(TEXT("Transition target LevelId '%s' was not found as an enabled level with a LevelAsset in the DungeonAsset."),
-							*EffectiveTargetLevelId.ToString()),
-						Obj.ObjectId);
-				}
-				else if (bIsPitTransition && bAutoResolvedPitTarget && !Transition.TargetLevelId.IsNone())
-				{
-					AddMessage(EGridLevelValidationSeverity::Warning,
-						FString::Printf(TEXT("Pit explicit TargetLevelId '%s' is unavailable; runtime will fall to automatic lower level '%s'."),
-							*Transition.TargetLevelId.ToString(), *EffectiveTargetLevelId.ToString()),
-						Obj.ObjectId);
-				}
-			}
-			else
-			{
-				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Transition cannot validate TargetLevelId because DungeonAsset is null."), Obj.ObjectId);
-			}
-
-			if (TargetLevelAsset)
-			{
-				if (!TargetLevelAsset->IsValidCoord(EffectiveTargetCellX, EffectiveTargetCellY))
-				{
-					AddMessage(EGridLevelValidationSeverity::Error,
-						FString::Printf(
-							TEXT("Transition target cell X=%d Y=%d is outside target level bounds."), EffectiveTargetCellX, EffectiveTargetCellY),
-						Obj.ObjectId);
-				}
-			}
-			else if (!LevelAsset->IsValidCoord(EffectiveTargetCellX, EffectiveTargetCellY))
-			{
-				AddMessage(EGridLevelValidationSeverity::Warning,
-					FString::Printf(TEXT("Transition target cell X=%d Y=%d is outside the current level bounds; target level bounds could not be validated."),
-						EffectiveTargetCellX, EffectiveTargetCellY),
-					Obj.ObjectId);
-			}
-		}
-
-		if (Obj.Type == EGridLevelObjectType::Pit)
-		{
-			const FGridObjectTransitionParams& PitTransition = Obj.Behavior.Transition;
-			const int32 PitTargetX = Obj.Behavior.Pit.bUseSameCellCoordinates ? Obj.CellX : PitTransition.TargetCellX;
-			const int32 PitTargetY = Obj.Behavior.Pit.bUseSameCellCoordinates ? Obj.CellY : PitTransition.TargetCellY;
-			FName PitTargetLevelId = PitTransition.TargetLevelId;
-			if (DungeonAsset && (PitTargetLevelId.IsNone() || !DungeonAsset->IsValidLevelId(PitTargetLevelId)))
-			{
-				const FGridDungeonLevelEntry* CurrentEntry = DungeonAsset->Levels.FindByPredicate(
-					[this](const FGridDungeonLevelEntry& Entry)
-					{
-						return Entry.LevelAsset.Get() == LevelAsset;
-					});
-				if (CurrentEntry)
-				{
-					if (const FGridDungeonLevelEntry* LowerLevel = DungeonAsset->FindLevelBelow(CurrentEntry->LevelId))
-					{
-						PitTargetLevelId = LowerLevel->LevelId;
-					}
-				}
-			}
-			const UGridLevelAsset* PitTargetLevel = DungeonAsset ? DungeonAsset->GetLevelAssetById(PitTargetLevelId) : nullptr;
-			if (Obj.Behavior.Pit.bInitiallyOpen && PitTargetLevel && PitTargetLevel->IsValidCoord(PitTargetX, PitTargetY))
-			{
-				const bool bOpenPitAtDestination = PitTargetLevel->BuildCompatibilityObjectProjectionFromTyped().ContainsByPredicate(
-					[PitTargetX, PitTargetY](const FGridLevelObjectData& Candidate)
-					{
-						return Candidate.Type == EGridLevelObjectType::Pit && Candidate.CellX == PitTargetX && Candidate.CellY == PitTargetY &&
-							Candidate.bInitiallyEnabled && Candidate.Behavior.Pit.bInitiallyOpen;
-					});
+					return Candidate.Type == EGridLevelObjectType::Pit && Candidate.CellX == TargetX && Candidate.CellY == TargetY && Candidate.bInitiallyEnabled && Candidate.InstanceConfig.Pit.bInitiallyOpen;
+				});
 				if (bOpenPitAtDestination)
-				{
-					AddMessage(EGridLevelValidationSeverity::Error,
-						TEXT("PIT01 destination contains another initially open pit; chained falls are not supported yet."), Obj.ObjectId);
-				}
+					AddMessage(EGridLevelValidationSeverity::Error, TEXT("PIT01 destination contains another initially open pit; chained falls are not supported yet."), ObjectId);
 			}
 		}
-
 		if (Obj.Type == EGridLevelObjectType::Receptacle)
 		{
-			const FGridReceptacleBehaviorParams& Receptacle = Obj.Behavior.Receptacle;
-
-			if (!Receptacle.bAcceptAnyItem && Receptacle.AcceptedItems.Num() == 0)
+			if (Archetype)
 			{
-				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Receptacle does not accept any item because AcceptedItems is empty."), Obj.ObjectId);
+				const FGridReceptacleBehaviorParams& Receptacle = Archetype->DefaultBehavior.Receptacle;
+				if (!Receptacle.bAcceptAnyItem && Receptacle.AcceptedItems.IsEmpty())
+					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Receptacle does not accept any item because AcceptedItems is empty."), ObjectId);
+				for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Receptacle.AcceptedItems)
+					if (!AcceptedItem.ItemDefinition)
+						AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Receptacle AcceptedItems contains an entry without an ItemDefinition."), ObjectId);
 			}
-
-			for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Receptacle.AcceptedItems)
-			{
-				if (!AcceptedItem.ItemDefinition)
-				{
-					AddMessage(
-						EGridLevelValidationSeverity::Warning, TEXT("Receptacle AcceptedItems contains an entry without an ItemDefinition."), Obj.ObjectId);
-				}
-			}
-
-			for (const FGridReceptacleInitialItemConfig& InitialItem : Receptacle.InitialContent)
+			for (const FGridReceptacleInitialItemConfig& InitialItem : Obj.InstanceConfig.ReceptacleInitialContent)
 			{
 				if (!InitialItem.ItemDefinition)
+					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Receptacle InitialContent contains an entry without an ItemDefinition."), ObjectId);
+				if (InitialItem.Quantity < 1)
+					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Receptacle InitialContent requires Quantity >= 1."), ObjectId);
+			}
+		}
+		if (Archetype)
+		{
+			const FString Anchor = GetValidationAnchorKey(ObjectId);
+			for (FGuid OtherId : LevelAsset->GetTypedPlacementIdsAtCell(Obj.CellX, Obj.CellY))
+			{
+				if (OtherId == ObjectId) continue;
+				if (!Archetype->bCanShareCell)
 				{
-					AddMessage(
-						EGridLevelValidationSeverity::Warning, TEXT("Receptacle InitialContent contains an entry without an ItemDefinition."), Obj.ObjectId);
+					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Object does not allow sharing its cell but another object is placed there."), ObjectId);
+					break;
+				}
+				if (!Archetype->bCanShareAnchor && Anchor == GetValidationAnchorKey(OtherId))
+				{
+					AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Object does not allow sharing anchor '%s' but another object uses it."), *Anchor), ObjectId);
+					break;
 				}
 			}
 		}
 	}
 
-	for (int32 ObjectIndex = 0; ObjectIndex < CompatibilityObjects.Num(); ++ObjectIndex)
+	const auto ValidateItemDefinition = [&AddMessage](FGuid ObjectId, const UGridItemDefinitionAsset* Definition, int32 Quantity)
 	{
-		const FGridLevelObjectData& ObjectA = CompatibilityObjects[ObjectIndex];
-		const UGridObjectArchetypeAsset* ArchetypeA = FindObjectArchetypeById(ObjectA.ArchetypeId);
-		if (!ArchetypeA || !LevelAsset->IsValidCoord(ObjectA.CellX, ObjectA.CellY))
+		if (!Definition)
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Item placement requires an ItemDefinition asset."), ObjectId);
+		else if (Definition->ItemDefinitionId.IsNone())
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Placed item references an item definition asset whose ItemDefinitionId is empty."), ObjectId);
+		if (Quantity < 1)
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Item placement requires Quantity >= 1."), ObjectId);
+	};
+	for (const FGridLooseItemInstance& LooseItemInstance : LevelAsset->LooseItemInstances)
+	{
+		const bool bValidCell = ValidatePlacement(LooseItemInstance.InstanceId, LooseItemInstance.CellX, LooseItemInstance.CellY, LooseItemInstance.PaletteEntryId, EGridLevelObjectType::Item);
+		ValidateItemDefinition(LooseItemInstance.InstanceId, LooseItemInstance.ItemDefinition, LooseItemInstance.Quantity);
+		if (bValidCell)
 		{
-			continue;
+			const FGridLevelCellData& Cell = LevelAsset->GetCell(LooseItemInstance.CellX, LooseItemInstance.CellY);
+			if (Cell.CellType == EGridCellType::Empty || Cell.bBlocksOccupancy)
+				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Placed item is on a non-walkable cell; normal party pickup cannot reach this cell."), LooseItemInstance.InstanceId);
 		}
-
-		const FString AnchorA = GetValidationAnchorKey(ObjectA);
-		for (int32 OtherIndex = 0; OtherIndex < CompatibilityObjects.Num(); ++OtherIndex)
+	}
+	for (const FGridItemSpawnInstance& ItemSpawn : LevelAsset->ItemSpawns)
+	{
+		ValidatePlacement(ItemSpawn.SpawnId, ItemSpawn.CellX, ItemSpawn.CellY, ItemSpawn.PaletteEntryId, EGridLevelObjectType::ItemSpawn);
+		ValidateItemDefinition(ItemSpawn.SpawnId, ItemSpawn.ItemDefinition, ItemSpawn.Quantity);
+	}
+	for (const FGridMonsterSpawnInstance& MonsterSpawn : LevelAsset->MonsterSpawns)
+	{
+		const FGuid ObjectId = MonsterSpawn.SpawnId;
+		const bool bValidCell = ValidatePlacement(ObjectId, MonsterSpawn.CellX, MonsterSpawn.CellY, MonsterSpawn.PaletteEntryId, EGridLevelObjectType::MonsterSpawn);
+		if (!MonsterSpawn.MonsterDefinition)
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn requires MonsterDefinition."), ObjectId);
+		else
 		{
-			if (ObjectIndex == OtherIndex)
+			FString DefinitionError;
+			if (!MonsterSpawn.MonsterDefinition->ValidateDefinition(DefinitionError))
+				AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("MonsterSpawn references an invalid MonsterDefinition: %s"), *DefinitionError), ObjectId);
+		}
+		if (!IsCardinal(MonsterSpawn.Facing))
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn requires a cardinal InitialFacing."), ObjectId);
+		if (MonsterSpawn.InitialMonsterState != EGridMonsterState::Idle && MonsterSpawn.InitialMonsterState != EGridMonsterState::Dormant)
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn requires InitialMonsterState Idle or Dormant."), ObjectId);
+		if (bValidCell)
+		{
+			const FGridLevelCellData& Cell = LevelAsset->GetCell(MonsterSpawn.CellX, MonsterSpawn.CellY);
+			if (Cell.CellType == EGridCellType::Empty || Cell.bBlocksOccupancy)
+				AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn must be placed on a non-empty cell that allows occupancy."), ObjectId);
+			const FIntPoint CellKey(MonsterSpawn.CellX, MonsterSpawn.CellY);
+			if (MonsterSpawn.bInitiallyEnabled)
 			{
-				continue;
+				if (const FGuid* ExistingId = EnabledMonsterSpawnByCell.Find(CellKey))
+					AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("MonsterSpawn shares its initial cell with enabled MonsterSpawn %s."), *ExistingId->ToString()), ObjectId);
+				else EnabledMonsterSpawnByCell.Add(CellKey, ObjectId);
 			}
-
-			const FGridLevelObjectData& ObjectB = CompatibilityObjects[OtherIndex];
-			if (ObjectA.CellX != ObjectB.CellX || ObjectA.CellY != ObjectB.CellY)
+			if (!MonsterSpawn.EncounterGroupId.IsNone() && MonsterSpawn.EncounterWaveIndex >= 0)
 			{
-				continue;
-			}
-
-			if (!ArchetypeA->bCanShareCell)
-			{
-				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Object does not allow sharing its cell but another object is placed there."),
-					ObjectA.ObjectId);
-				break;
-			}
-
-			if (!ArchetypeA->bCanShareAnchor && AnchorA == GetValidationAnchorKey(ObjectB))
-			{
-				AddMessage(EGridLevelValidationSeverity::Warning,
-					FString::Printf(TEXT("Object does not allow sharing anchor '%s' but another object uses it."), *AnchorA), ObjectA.ObjectId);
-				break;
+				TMap<FIntPoint, FGuid>& SpawnByCell = EncounterMonsterSpawnByWaveAndCell.FindOrAdd(MonsterSpawn.EncounterGroupId).FindOrAdd(MonsterSpawn.EncounterWaveIndex);
+				if (const FGuid* ExistingId = SpawnByCell.Find(CellKey))
+					AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("MonsterSpawn shares encounter wave %d cell with MonsterSpawn %s in encounter '%s'."), MonsterSpawn.EncounterWaveIndex, *ExistingId->ToString(), *MonsterSpawn.EncounterGroupId.ToString()), ObjectId);
+				else SpawnByCell.Add(CellKey, ObjectId);
 			}
 		}
+		if (MonsterSpawn.EncounterWaveIndex < 0)
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn requires EncounterWaveIndex >= 0."), ObjectId);
+		if (MonsterSpawn.EncounterGroupId.IsNone() && MonsterSpawn.EncounterWaveIndex > 0)
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn requires EncounterGroupId when EncounterWaveIndex is greater than 0."), ObjectId);
+		if (!MonsterSpawn.EncounterGroupId.IsNone() && MonsterSpawn.EncounterWaveIndex > 0 && MonsterSpawn.bInitiallyEnabled)
+			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("MonsterSpawn belongs to future encounter wave %d and must be disabled at start."), MonsterSpawn.EncounterWaveIndex), ObjectId);
+		if (MonsterSpawn.PatrolMode != EGridMonsterPatrolMode::None && MonsterSpawn.PatrolWaypoints.Num() < 2)
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn patrol mode requires at least two waypoints."), ObjectId);
+		for (int32 WaypointIndex = 0; WaypointIndex < MonsterSpawn.PatrolWaypoints.Num(); ++WaypointIndex)
+		{
+			const FGridMonsterPatrolWaypoint& Waypoint = MonsterSpawn.PatrolWaypoints[WaypointIndex];
+			const bool bValidWaypoint = LevelAsset->IsValidCoord(Waypoint.Cell.X, Waypoint.Cell.Y) && LevelAsset->Cells.IsValidIndex(LevelAsset->GetIndex(Waypoint.Cell.X, Waypoint.Cell.Y));
+			if (!bValidWaypoint)
+				AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("MonsterSpawn patrol waypoint %d is outside grid bounds or has no cell."), WaypointIndex), ObjectId);
+			else
+			{
+				const FGridLevelCellData& Cell = LevelAsset->GetCell(Waypoint.Cell.X, Waypoint.Cell.Y);
+				if (Cell.CellType == EGridCellType::Empty || Cell.bBlocksOccupancy)
+					AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("MonsterSpawn patrol waypoint %d must use a non-empty cell that allows occupancy."), WaypointIndex), ObjectId);
+			}
+			if (Waypoint.Facing != EGridEdge::None && !IsCardinal(Waypoint.Facing))
+				AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("MonsterSpawn patrol waypoint %d requires Facing=None or a cardinal direction."), WaypointIndex), ObjectId);
+			if (!FMath::IsFinite(Waypoint.WaitSeconds) || Waypoint.WaitSeconds < 0.f)
+				AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("MonsterSpawn patrol waypoint %d requires a finite non-negative WaitSeconds."), WaypointIndex), ObjectId);
+		}
+	}
+	for (const FGridLogicObjectInstance& LogicInstance : LevelAsset->LogicObjects)
+	{
+		ValidatePlacement(LogicInstance.InstanceId, LogicInstance.CellX, LogicInstance.CellY, LogicInstance.PaletteEntryId, LogicInstance.Type);
+		if (GridLevelPlacementConversion::GetBucket(LogicInstance.Type) != EGridLevelPlacementBucket::LogicObject)
+			AddMessage(EGridLevelValidationSeverity::Error, TEXT("LogicObjects contains a type belonging to another placement collection."), LogicInstance.InstanceId);
 	}
 
 	TSet<FString> SeenLinkKeys;
@@ -798,10 +552,14 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	for (int32 LinkIndex = 0; LinkIndex < LevelAsset->Links.Num(); ++LinkIndex)
 	{
 		const FGridObjectLink& Link = LevelAsset->Links[LinkIndex];
-		const FGridLevelObjectData* const* SourceObjectPtr = ObjectsById.Find(Link.SourceObjectId);
-		const FGridLevelObjectData* const* TargetObjectPtr = ObjectsById.Find(Link.TargetObjectId);
-		const FGridLevelObjectData* SourceObject = SourceObjectPtr ? *SourceObjectPtr : nullptr;
-		const FGridLevelObjectData* TargetObject = TargetObjectPtr ? *TargetObjectPtr : nullptr;
+		const bool bHasSource = LevelAsset->ContainsTypedPlacementId(Link.SourceObjectId);
+		const bool bHasTarget = LevelAsset->ContainsTypedPlacementId(Link.TargetObjectId);
+		const EGridLevelObjectType SourceType = LevelAsset->GetTypedPlacementType(Link.SourceObjectId);
+		const EGridLevelObjectType TargetType = LevelAsset->GetTypedPlacementType(Link.TargetObjectId);
+		const FGridLogicObjectInstance* SourceLogic = LevelAsset->FindLogicObjectInstanceById(Link.SourceObjectId);
+		const FGridLogicObjectInstance* TargetLogic = LevelAsset->FindLogicObjectInstanceById(Link.TargetObjectId);
+		const EGridLogicNodeType SourceNodeType = SourceLogic ? SourceLogic->Logic.NodeType : EGridLogicNodeType::Relay;
+		const EGridLogicNodeType TargetNodeType = TargetLogic ? TargetLogic->Logic.NodeType : EGridLogicNodeType::Relay;
 
 		const FString LinkKey = FString::Printf(TEXT("%s|%s|%d|%d|%d|%s|%d|%d|%d|%s|%s|%d|%d|%.9g|%d"), *Link.SourceObjectId.ToString(EGuidFormats::Digits),
 			*Link.TargetObjectId.ToString(EGuidFormats::Digits), static_cast<int32>(Link.SourceEvent), static_cast<int32>(Link.Command),
@@ -822,7 +580,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		{
 			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Link %d has an invalid SourceObjectId."), LinkIndex));
 		}
-		else if (!SourceObject)
+		else if (!bHasSource)
 		{
 			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Link %d SourceObjectId was not found."), LinkIndex), Link.SourceObjectId);
 		}
@@ -831,15 +589,15 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			int32& OutgoingCount = OutgoingLinkCountBySourceId.FindOrAdd(Link.SourceObjectId);
 			++OutgoingCount;
 
-			if (!IsEventEmittedByCurrentRuntime(SourceObject->Type, Link.SourceEvent))
+			if (!GridEditorLinkPolicy::GetSupportedEventsForSource(SourceType, SourceNodeType).Contains(Link.SourceEvent))
 			{
 				AddMessage(EGridLevelValidationSeverity::Warning,
 					FString::Printf(TEXT("Link %d uses SourceEvent=%s, which is not emitted by the current C++ runtime for source type %s."), LinkIndex,
-						*ToGridObjectEventText(Link.SourceEvent), *ToGridObjectTypeText(SourceObject->Type)),
+						*ToGridObjectEventText(Link.SourceEvent), *ToGridObjectTypeText(SourceType)),
 					Link.SourceObjectId);
 			}
-			const bool bDisabledMonsterLifecycleSource = SourceObject->Type == EGridLevelObjectType::MonsterSpawn;
-			if (!SourceObject->bInitiallyEnabled && !bDisabledMonsterLifecycleSource)
+			const bool bDisabledMonsterLifecycleSource = SourceType == EGridLevelObjectType::MonsterSpawn;
+			if (!IsInitiallyEnabled(Link.SourceObjectId) && !bDisabledMonsterLifecycleSource)
 			{
 				AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Link %d source object is initially disabled."), LinkIndex),
 					Link.SourceObjectId);
@@ -877,38 +635,38 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		{
 			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Link %d has an invalid TargetObjectId."), LinkIndex));
 		}
-		else if (!TargetObject)
+		else if (!bHasTarget)
 		{
 			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Link %d TargetObjectId was not found."), LinkIndex), Link.TargetObjectId);
 		}
 		else
 		{
-			if (!IsCommandSupportedByCurrentRuntime(TargetObject->Type, Link.Command))
+			if (GridEditorLinkPolicy::GetCommandRuntimeSupport(TargetType, TargetNodeType, Link.Command) != EGridEditorCommandRuntimeSupport::Gameplay)
 			{
 				AddMessage(EGridLevelValidationSeverity::Error,
 					FString::Printf(TEXT("Link %d command %s is not supported by the current runtime for target type %s."), LinkIndex,
-						*ToGridObjectCommandText(Link.Command), *ToGridObjectTypeText(TargetObject->Type)),
+						*ToGridObjectCommandText(Link.Command), *ToGridObjectTypeText(TargetType)),
 					Link.TargetObjectId);
 			}
-			const bool bCommandCreatesDisabledMonster = TargetObject->Type == EGridLevelObjectType::MonsterSpawn &&
+			const bool bCommandCreatesDisabledMonster = TargetType == EGridLevelObjectType::MonsterSpawn &&
 				(Link.Command == EGridObjectCommand::Spawn || Link.Command == EGridObjectCommand::Activate || Link.Command == EGridObjectCommand::Enable ||
 					Link.Command == EGridObjectCommand::Toggle || Link.Command == EGridObjectCommand::StartEncounter);
-			if (!TargetObject->bInitiallyEnabled && !bCommandCreatesDisabledMonster)
+			if (!IsInitiallyEnabled(Link.TargetObjectId) && !bCommandCreatesDisabledMonster)
 			{
 				AddMessage(EGridLevelValidationSeverity::Warning,
 					FString::Printf(TEXT("Link %d target object is initially disabled and may have no spawned runtime actor."), LinkIndex),
 					Link.TargetObjectId);
 			}
 
-			if (TargetObject->Type == EGridLevelObjectType::MonsterSpawn && Link.Command == EGridObjectCommand::StartEncounter &&
-				TargetObject->EncounterGroupId.IsNone())
+			const FGridMonsterSpawnInstance* TargetMonster = LevelAsset->FindMonsterSpawnInstanceById(Link.TargetObjectId);
+			if (TargetMonster && Link.Command == EGridObjectCommand::StartEncounter && TargetMonster->EncounterGroupId.IsNone())
 			{
 				AddMessage(EGridLevelValidationSeverity::Error,
 					FString::Printf(TEXT("Link %d command Start Encounter requires a MonsterSpawn target with EncounterGroupId."), LinkIndex),
 					Link.TargetObjectId);
 			}
 
-			if (TargetObject->Type == EGridLevelObjectType::Door)
+			if (TargetType == EGridLevelObjectType::Door)
 			{
 				const bool bOpensDoor = Link.Command == EGridObjectCommand::Open || Link.Command == EGridObjectCommand::Activate;
 				const bool bClosesDoor = Link.Command == EGridObjectCommand::Close || Link.Command == EGridObjectCommand::Deactivate;
@@ -938,7 +696,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			const bool bVariableCondition =
 				Link.Condition == EGridObjectCondition::LevelVariableBoolEquals || Link.Condition == EGridObjectCondition::LevelVariableIntCompare;
 
-			if (!bVariableCondition && (!TargetObject || TargetObject->Type != EGridLevelObjectType::Receptacle))
+			if (!bVariableCondition && (!bHasTarget || TargetType != EGridLevelObjectType::Receptacle))
 			{
 				AddMessage(EGridLevelValidationSeverity::Error,
 					FString::Printf(TEXT("Link %d condition %s requires a receptacle target."), LinkIndex, *ToGridObjectConditionText(Link.Condition)),
@@ -1053,18 +811,18 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		}
 	}
 
-	for (const FGridLevelObjectData& Obj : CompatibilityObjects)
+	for (const FGridWorldObjectInstance& Obj : LevelAsset->WorldObjectInstances)
 	{
-		if (Obj.Type == EGridLevelObjectType::Trigger && !OutgoingLinkCountBySourceId.Contains(Obj.ObjectId))
+		if (Obj.Type == EGridLevelObjectType::Trigger && !OutgoingLinkCountBySourceId.Contains(Obj.InstanceId))
 		{
-			AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Trigger has no outgoing links."), Obj.ObjectId);
+			AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Trigger has no outgoing links."), Obj.InstanceId);
 		}
 
 		if (Obj.Type == EGridLevelObjectType::Receptacle)
 		{
-			const int32 ItemInsertedCount = ReceptacleItemInsertedLinkCountBySourceId.FindRef(Obj.ObjectId);
-			const int32 ItemRemovedCount = ReceptacleItemRemovedLinkCountBySourceId.FindRef(Obj.ObjectId);
-			const int32 ItemChangedCount = ReceptacleItemChangedLinkCountBySourceId.FindRef(Obj.ObjectId);
+			const int32 ItemInsertedCount = ReceptacleItemInsertedLinkCountBySourceId.FindRef(Obj.InstanceId);
+			const int32 ItemRemovedCount = ReceptacleItemRemovedLinkCountBySourceId.FindRef(Obj.InstanceId);
+			const int32 ItemChangedCount = ReceptacleItemChangedLinkCountBySourceId.FindRef(Obj.InstanceId);
 
 			if (ItemInsertedCount == 0 && ItemRemovedCount == 0 && ItemChangedCount > 0)
 			{
@@ -1078,7 +836,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 						TEXT(
 							"Receptacle '%s' has ItemRemoved links but no ItemInserted links. This may be intentional, but the puzzle will not reset when an item is inserted again."),
 						*GetObjectValidationName(Obj)),
-					Obj.ObjectId);
+					Obj.InstanceId);
 			}
 
 			if (ItemInsertedCount > 0 && ItemRemovedCount == 0)
@@ -1088,7 +846,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 						TEXT(
 							"Receptacle '%s' has ItemInserted links but no ItemRemoved links. This may be intentional, but the puzzle will not react when the item is removed."),
 						*GetObjectValidationName(Obj)),
-					Obj.ObjectId);
+					Obj.InstanceId);
 			}
 		}
 	}
@@ -1119,12 +877,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			LocationObjectId = ValidationMessage.SourceObjectId.IsValid() ? ValidationMessage.SourceObjectId : ValidationMessage.TargetObjectId;
 		}
 
-		if (const FGridLevelObjectData* const* ObjectPtr = ObjectsById.Find(LocationObjectId))
-		{
-			ValidationMessage.CellX = (*ObjectPtr)->CellX;
-			ValidationMessage.CellY = (*ObjectPtr)->CellY;
-			ValidationMessage.Edge = (*ObjectPtr)->Edge;
-		}
+		LevelAsset->TryGetTypedPlacementLocation(LocationObjectId, ValidationMessage.CellX, ValidationMessage.CellY, ValidationMessage.Edge);
 	}
 
 	return LastValidationMessages;

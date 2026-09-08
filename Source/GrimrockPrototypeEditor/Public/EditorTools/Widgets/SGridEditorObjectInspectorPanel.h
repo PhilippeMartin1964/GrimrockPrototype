@@ -7,7 +7,7 @@
 
 class AGridLevelEditorActor;
 class UGridObjectArchetypeAsset;
-struct FGridLevelObjectData;
+struct FGridWorldObjectInstanceConfig;
 enum class EGridEdge : uint8;
 
 DECLARE_DELEGATE_RetVal(AGridLevelEditorActor*, FOnGetGridEditorObjectInspectorActor);
@@ -29,26 +29,27 @@ public:
 private:
 	AGridLevelEditorActor* GetEditorActor() const;
 	void RequestRefresh() const;
+	void EditWorldObjectConfig(FGuid ObjectId, TFunctionRef<void(FGridWorldObjectInstanceConfig&)> Edit);
 
 	TSharedRef<SWidget> BuildObjectInspectorSection();
-	TSharedRef<SWidget> BuildSelectedObjectCard(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildGameObjectSection(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildContextualComponentSection(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildOrientationWidget(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildAdvancedDebugSection(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildDoorDetailsSection(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildLeverDetailsSection(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildButtonDetailsSection(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildPressurePlateDetailsSection(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildPitDetailsSection(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildTeleporterDetailsSection(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildTransitionDetailsSection(const FGridLevelObjectData& Obj);
+	TSharedRef<SWidget> BuildSelectedObjectCard(FGuid ObjectId);
+	TSharedRef<SWidget> BuildGameObjectSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildContextualComponentSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildOrientationWidget(FGuid ObjectId);
+	TSharedRef<SWidget> BuildAdvancedDebugSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildDoorDetailsSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildLeverDetailsSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildButtonDetailsSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildPressurePlateDetailsSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildPitDetailsSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildTeleporterDetailsSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildTransitionDetailsSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildLightDetailsSection(const UGridObjectArchetypeAsset& Archetype);
-	TSharedRef<SWidget> BuildItemDefinitionSection(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildMonsterSpawnSection(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildTriggerBehaviorSection(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildReceptacleBehaviorSection(const FGridLevelObjectData& Obj);
-	TSharedRef<SWidget> BuildReadableTextSection(const FGridLevelObjectData& Obj);
+	TSharedRef<SWidget> BuildItemDefinitionSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildMonsterSpawnSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildTriggerBehaviorSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildReceptacleBehaviorSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildReadableTextSection(FGuid ObjectId);
 
 	FReply OnApplySelectedObjectClicked();
 	FReply OnResetBehaviorFromArchetypeClicked();

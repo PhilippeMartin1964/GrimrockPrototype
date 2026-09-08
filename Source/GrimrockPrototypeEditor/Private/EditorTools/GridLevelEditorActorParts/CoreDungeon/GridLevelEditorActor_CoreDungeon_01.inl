@@ -218,4 +218,4 @@ namespace
 
 			case EGridLevelObjectType::MonsterSpawn:
 			{
-				FGridLevelObjectData MonsterSpawn;
+				return GridEditorLinkPolicy::GetSupportedEventsForSource(EGridLevelObjectType::MonsterSpawn).Contains(Event);

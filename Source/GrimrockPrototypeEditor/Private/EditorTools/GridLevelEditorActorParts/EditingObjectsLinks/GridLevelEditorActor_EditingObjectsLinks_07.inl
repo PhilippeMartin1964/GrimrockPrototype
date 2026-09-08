@@ -2,271 +2,110 @@
 
 bool AGridLevelEditorActor::FocusSelectedObject()
 {
-	if (!LastSelectedObjectId.IsValid())
-	{
-		return false;
-	}
-
-	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
-	if (!Obj)
-	{
-		return false;
-	}
-
-	SelectedCellX = Obj->CellX;
-	SelectedCellY = Obj->CellY;
-	SelectedEdge = Obj->Edge;
-
+	if (!LevelAsset || !LevelAsset->TryGetTypedPlacementLocation(LastSelectedObjectId, SelectedCellX, SelectedCellY, SelectedEdge)) return false;
 #if WITH_EDITOR
 	if (GEditor)
 	{
-		FVector WorldLocation = FVector::ZeroVector;
-		if (TryGetObjectWorldLocation(*Obj, WorldLocation))
+		FVector WorldLocation;
+		if (TryGetObjectWorldLocationById(LastSelectedObjectId, WorldLocation))
 		{
-			const float FocusExtent = LevelAsset ? FMath::Max(50.f, LevelAsset->CellSize * 0.25f) : 50.f;
+			const float FocusExtent = FMath::Max(50.f, LevelAsset->CellSize * 0.25f);
 			GEditor->MoveViewportCamerasToBox(FBox(WorldLocation - FVector(FocusExtent), WorldLocation + FVector(FocusExtent)), false);
 		}
 	}
 #endif
-
 	return true;
 }
 
 bool AGridLevelEditorActor::ApplyBehaviorToSelectedObject(const FGridObjectBehaviorParams& NewBehavior)
 {
-	if (!HasValidLevelAsset() || !LastSelectedObjectId.IsValid())
-	{
-		return false;
-	}
-
-	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
-	if (!Obj)
-	{
-		return false;
-	}
-
-	FGridLevelObjectData EditedObject = *Obj;
-	EditedObject.Behavior = GridObjectInstanceBehavior::BuildSparseOverrides(NewBehavior);
-
-#if WITH_EDITOR
+	FGridWorldObjectInstance* WorldObjectInstance = LevelAsset ? LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId) : nullptr;
+	if (!WorldObjectInstance) return false;
 	LevelAsset->Modify();
-#endif
-
-	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
-	{
-		return false;
-	}
-	ObjectBehavior = NewBehavior;
-
-#if WITH_EDITOR
+	WorldObjectInstance->InstanceConfig.Teleporter = NewBehavior.Teleporter;
+	WorldObjectInstance->InstanceConfig.Transition = NewBehavior.Transition;
+	WorldObjectInstance->InstanceConfig.Pit = NewBehavior.Pit;
+	WorldObjectInstance->InstanceConfig.ReceptacleInitialContent = NewBehavior.Receptacle.InitialContent;
+	WorldObjectInstance->InstanceConfig.bStartsUnlocked = NewBehavior.Lock.bStartsUnlocked;
+	ObjectBehavior = GridObjectInstanceBehavior::Resolve(*WorldObjectInstance, FindObjectArchetypeById(WorldObjectInstance->WorldObjectDefinitionId));
 	LevelAsset->MarkPackageDirty();
-#endif
-
 	RebuildPreview();
 	return true;
 }
 
 bool AGridLevelEditorActor::ResetSelectedObjectBehaviorFromArchetype()
 {
-	if (!HasValidLevelAsset() || !LastSelectedObjectId.IsValid())
-	{
-		return false;
-	}
-
-	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
-	if (!Obj)
-	{
-		return false;
-	}
-
-	const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(Obj->ArchetypeId);
-	if (!Archetype)
-	{
-		return false;
-	}
-
-	FGridLevelObjectData EditedObject = *Obj;
-	// Reset means "use the definition again", not "clone the definition again".
-	EditedObject.Behavior = GridObjectInstanceBehavior::BuildSparseOverrides(Archetype->DefaultBehavior);
-
-#if WITH_EDITOR
-	LevelAsset->Modify();
-#endif
-
-	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
-	{
-		return false;
-	}
-	ObjectBehavior = Archetype->DefaultBehavior;
-
-#if WITH_EDITOR
-	LevelAsset->MarkPackageDirty();
-#endif
-
-	RebuildPreview();
-	return true;
+	const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset ? LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId) : nullptr;
+	const UGridObjectArchetypeAsset* Archetype = WorldObjectInstance ? FindObjectArchetypeById(WorldObjectInstance->WorldObjectDefinitionId) : nullptr;
+	return Archetype && ApplyBehaviorToSelectedObject(Archetype->DefaultBehavior);
 }
 
 bool AGridLevelEditorActor::SetSelectedObjectArchetypeId(FName NewArchetypeId)
 {
-	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
-	if (!Obj)
-	{
-		return false;
-	}
-
-	FGridLevelObjectData EditedObject = *Obj;
-	EditedObject.ArchetypeId = NewArchetypeId;
-
-#if WITH_EDITOR
+	FGridWorldObjectInstance* WorldObjectInstance = LevelAsset ? LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId) : nullptr;
+	if (!WorldObjectInstance) return false;
 	LevelAsset->Modify();
-#endif
-
-	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
-	{
-		return false;
-	}
+	WorldObjectInstance->WorldObjectDefinitionId = NewArchetypeId;
 	ObjectArchetypeId = NewArchetypeId;
 	SelectedArchetypeId = NewArchetypeId;
-
-#if WITH_EDITOR
+	ObjectBehavior = GridObjectInstanceBehavior::Resolve(*WorldObjectInstance, FindObjectArchetypeById(NewArchetypeId));
 	LevelAsset->MarkPackageDirty();
-#endif
-
 	RebuildPreview();
 	return true;
 }
 
 bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionAsset(UGridItemDefinitionAsset* NewItemDefinitionAsset)
 {
-	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
-	if (!Obj || Obj->Type != EGridLevelObjectType::Item)
+	if (!LevelAsset) return false;
+	if (FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId))
 	{
-		return false;
+		LevelAsset->Modify();
+		LooseItemInstance->ItemDefinition = NewItemDefinitionAsset;
 	}
-
-	FGridLevelObjectData EditedObject = *Obj;
-	EditedObject.ItemDefinitionAsset = NewItemDefinitionAsset;
-	EditedObject.ItemDefinitionId = NAME_None;
-
-#if WITH_EDITOR
-	LevelAsset->Modify();
-#endif
-
-	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	else if (FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId))
 	{
-		return false;
+		LevelAsset->Modify();
+		ItemSpawn->ItemDefinition = NewItemDefinitionAsset;
 	}
-
-#if WITH_EDITOR
+	else return false;
+	ObjectBehavior.Item.ItemDefinitionAsset = NewItemDefinitionAsset;
 	LevelAsset->MarkPackageDirty();
-#endif
-
 	RebuildPreview();
 	return true;
 }
 
 bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId(FName NewItemDefinitionId)
 {
-	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
-	if (!Obj || Obj->Type != EGridLevelObjectType::Item)
+	// Compatibility authoring command: resolve a definition without storing a second identity.
+	if (!LevelAsset) return false;
+	if (const FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId))
 	{
-		return false;
+		if (LooseItemInstance->ItemDefinition && LooseItemInstance->ItemDefinition->ItemDefinitionId == NewItemDefinitionId) return true;
 	}
-
-	FGridLevelObjectData EditedObject = *Obj;
-	EditedObject.ItemDefinitionId = NewItemDefinitionId;
-
-#if WITH_EDITOR
-	LevelAsset->Modify();
-#endif
-
-	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	if (ObjectPalette)
 	{
-		return false;
+		for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
+		{
+			if (Entry.DefaultItemDefinition && Entry.DefaultItemDefinition->ItemDefinitionId == NewItemDefinitionId)
+				return SetSelectedObjectItemDefinitionAsset(Entry.DefaultItemDefinition);
+		}
 	}
-
-#if WITH_EDITOR
-	LevelAsset->MarkPackageDirty();
-#endif
-
-	RebuildPreview();
-	return true;
+	return false;
 }
 
 bool AGridLevelEditorActor::SyncSelectedItemDefinitionIdFromAsset()
 {
-	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
-	if (!Obj || Obj->Type != EGridLevelObjectType::Item)
-	{
-		return false;
-	}
-
-	UGridItemDefinitionAsset* DefinitionAsset = Obj->ItemDefinitionAsset;
-	if (!DefinitionAsset)
-	{
-		if (const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(Obj->ArchetypeId))
-		{
-			DefinitionAsset = Archetype->DefaultBehavior.Item.ItemDefinitionAsset;
-		}
-	}
-
-	if (!DefinitionAsset)
-	{
-		return false;
-	}
-
-	FGridLevelObjectData EditedObject = *Obj;
-	// TD07 current-schema repair: promote the direct asset reference and clear
-	// the redundant authoring id instead of recreating Asset+Id dual authority.
-	EditedObject.ItemDefinitionAsset = DefinitionAsset;
-	EditedObject.ItemDefinitionId = NAME_None;
-
-#if WITH_EDITOR
-	LevelAsset->Modify();
-#endif
-
-	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
-	{
-		return false;
-	}
-
-#if WITH_EDITOR
-	LevelAsset->MarkPackageDirty();
-#endif
-
-	RebuildPreview();
-	return true;
+	const FGridLooseItemInstance* LooseItemInstance = LevelAsset ? LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId) : nullptr;
+	return LooseItemInstance && LooseItemInstance->ItemDefinition;
 }
 
 bool AGridLevelEditorActor::SetSelectedObjectMonsterDefinitionAsset(UGridMonsterDefinitionAsset* NewMonsterDefinitionAsset)
 {
-	const FGridLevelObjectData* Obj = FindObjectById(LastSelectedObjectId);
-	if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn)
-	{
-		return false;
-	}
-
-	FGridLevelObjectData EditedObject = *Obj;
-	EditedObject.MonsterDefinitionAsset = NewMonsterDefinitionAsset;
-	if (NewMonsterDefinitionAsset)
-	{
-		EditedObject.MonsterDefinitionId = NewMonsterDefinitionAsset->MonsterId;
-	}
-
-#if WITH_EDITOR
+	FGridMonsterSpawnInstance* MonsterSpawn = LevelAsset ? LevelAsset->FindMonsterSpawnInstanceById(LastSelectedObjectId) : nullptr;
+	if (!MonsterSpawn) return false;
 	LevelAsset->Modify();
-#endif
-
-	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
-	{
-		return false;
-	}
-
-#if WITH_EDITOR
+	MonsterSpawn->MonsterDefinition = NewMonsterDefinitionAsset;
 	LevelAsset->MarkPackageDirty();
-#endif
-
 	RebuildPreview();
 	return true;
 }

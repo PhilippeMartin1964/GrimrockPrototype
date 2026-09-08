@@ -6,6 +6,7 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectBehavior.h"
+#include "Core/GridObjectInstanceBehavior.h"
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -35,9 +36,51 @@
 
 namespace
 {
-	FText GetInitialActiveStateText(const FGridLevelObjectData& Obj, const TCHAR* ActiveText, const TCHAR* InactiveText)
+	const FGridWorldObjectInstance* GetWorldObjectInstance(const AGridLevelEditorActor* Editor, FGuid ObjectId)
 	{
-		return FText::FromString(Obj.bInitiallyActive ? FString(ActiveText) : FString(InactiveText));
+		return Editor && Editor->LevelAsset ? Editor->LevelAsset->FindWorldObjectInstanceById(ObjectId) : nullptr;
+	}
+
+	const UGridObjectArchetypeAsset* GetWorldObjectDefinition(const AGridLevelEditorActor* Editor, FGuid ObjectId)
+	{
+		const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(Editor, ObjectId);
+		return WorldObjectInstance ? Editor->FindObjectArchetypeById(WorldObjectInstance->WorldObjectDefinitionId) : nullptr;
+	}
+
+	template <typename TValue, typename TRead>
+	TValue ReadPlacementValue(const UGridLevelAsset& Level, FGuid ObjectId, TRead&& Read)
+	{
+		if (const FGridWorldObjectInstance* WorldObjectInstance = Level.FindWorldObjectInstanceById(ObjectId)) return Read(*WorldObjectInstance);
+		if (const FGridLooseItemInstance* LooseItemInstance = Level.FindLooseItemInstanceById(ObjectId)) return Read(*LooseItemInstance);
+		if (const FGridMonsterSpawnInstance* MonsterSpawn = Level.FindMonsterSpawnInstanceById(ObjectId)) return Read(*MonsterSpawn);
+		if (const FGridItemSpawnInstance* ItemSpawn = Level.FindItemSpawnInstanceById(ObjectId)) return Read(*ItemSpawn);
+		if (const FGridLogicObjectInstance* LogicInstance = Level.FindLogicObjectInstanceById(ObjectId)) return Read(*LogicInstance);
+		return TValue();
+	}
+
+	FName GetObjectTagValue(const UGridLevelAsset& Level, FGuid ObjectId)
+	{
+		return ReadPlacementValue<FName>(Level, ObjectId, [](const auto& Placement) { return Placement.Tag; });
+	}
+
+	bool IsPlacementInitiallyActive(const UGridLevelAsset& Level, FGuid ObjectId)
+	{
+		if (const FGridWorldObjectInstance* WorldObjectInstance = Level.FindWorldObjectInstanceById(ObjectId)) return WorldObjectInstance->bInitiallyActive;
+		if (const FGridLogicObjectInstance* LogicInstance = Level.FindLogicObjectInstanceById(ObjectId)) return LogicInstance->bInitiallyActive;
+		return false;
+	}
+
+	float GetPlacementYaw(const UGridLevelAsset& Level, FGuid ObjectId)
+	{
+		if (const FGridWorldObjectInstance* WorldObjectInstance = Level.FindWorldObjectInstanceById(ObjectId))
+			return WorldObjectInstance->bHasLocalTransformOverride ? WorldObjectInstance->LocalTransformOverride.Rotator().Yaw : 0.f;
+		if (const FGridLooseItemInstance* LooseItemInstance = Level.FindLooseItemInstanceById(ObjectId)) return LooseItemInstance->LocalYaw;
+		return 0.f;
+	}
+
+	FText GetInitialActiveStateText(const UGridLevelAsset& Level, FGuid ObjectId, const TCHAR* ActiveText, const TCHAR* InactiveText)
+	{
+		return FText::FromString(IsPlacementInitiallyActive(Level, ObjectId) ? ActiveText : InactiveText);
 	}
 
 	FText GetBoolText(bool bValue)
@@ -66,32 +109,33 @@ namespace
 		return Class ? FText::FromString(Class->GetName()) : FText::FromString(TEXT("None"));
 	}
 
-	FText GetEdgeOrFacingText(const FGridLevelObjectData& Obj)
+	FText GetEdgeOrFacingText(const UGridLevelAsset& Level, FGuid ObjectId)
 	{
 		const UEnum* EdgeEnum = StaticEnum<EGridEdge>();
-		if (Obj.Type == EGridLevelObjectType::MonsterSpawn && Obj.InitialFacing != EGridEdge::None)
+		if (const FGridMonsterSpawnInstance* MonsterSpawn = Level.FindMonsterSpawnInstanceById(ObjectId))
 		{
 			return FText::Format(
-				FText::FromString(TEXT("Facing {0}")), GridEditorWidgetHelpers::GetGridEnumDisplayText(EdgeEnum, static_cast<int64>(Obj.InitialFacing)));
+				FText::FromString(TEXT("Facing {0}")), GridEditorWidgetHelpers::GetGridEnumDisplayText(EdgeEnum, static_cast<int64>(MonsterSpawn->Facing)));
 		}
-		if (Obj.Edge != EGridEdge::None)
+		int32 CellX, CellY;
+		EGridEdge Edge;
+		if (Level.TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge) && Edge != EGridEdge::None)
 		{
-			return GridEditorWidgetHelpers::GetGridEnumDisplayText(EdgeEnum, static_cast<int64>(Obj.Edge));
+			return GridEditorWidgetHelpers::GetGridEnumDisplayText(EdgeEnum, static_cast<int64>(Edge));
 		}
-		return FText::Format(FText::FromString(TEXT("Facing {0} deg")), FText::AsNumber(Obj.LocalYaw));
+		return FText::Format(FText::FromString(TEXT("Facing {0} deg")), FText::AsNumber(GetPlacementYaw(Level, ObjectId)));
 	}
 
-	FText GetHeaderPlacementText(const FGridLevelObjectData& Obj)
+	FText GetHeaderPlacementText(const UGridLevelAsset& Level, FGuid ObjectId)
 	{
-		if (Obj.Edge != EGridEdge::None)
+		int32 CellX, CellY;
+		EGridEdge Edge;
+		if (!Level.TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge)) return FText::GetEmpty();
+		if (Edge != EGridEdge::None || !FMath::IsNearlyZero(GetPlacementYaw(Level, ObjectId)) || Level.FindMonsterSpawnInstanceById(ObjectId))
 		{
-			return FText::Format(FText::FromString(TEXT("@ ({0},{1}) {2}")), FText::AsNumber(Obj.CellX), FText::AsNumber(Obj.CellY), GetEdgeOrFacingText(Obj));
+			return FText::Format(FText::FromString(TEXT("@ ({0},{1}) {2}")), FText::AsNumber(CellX), FText::AsNumber(CellY), GetEdgeOrFacingText(Level, ObjectId));
 		}
-		if (!FMath::IsNearlyZero(Obj.LocalYaw))
-		{
-			return FText::Format(FText::FromString(TEXT("@ ({0},{1}) {2}")), FText::AsNumber(Obj.CellX), FText::AsNumber(Obj.CellY), GetEdgeOrFacingText(Obj));
-		}
-		return FText::Format(FText::FromString(TEXT("@ ({0},{1})")), FText::AsNumber(Obj.CellX), FText::AsNumber(Obj.CellY));
+		return FText::Format(FText::FromString(TEXT("@ ({0},{1})")), FText::AsNumber(CellX), FText::AsNumber(CellY));
 	}
 
 	TSharedRef<SWidget> BuildExplicitConnectorSummary(const FText& EmitsText)
@@ -116,16 +160,6 @@ namespace
 		return CommandEnum ? CommandEnum->GetDisplayNameTextByValue(static_cast<int64>(Command)) : FText::FromString(TEXT("Unknown"));
 	}
 
-	FText GetConnectorObjectSummaryText(const AGridLevelEditorActor* EditorActor, const FGridLevelObjectData& Object)
-	{
-		const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType>();
-		const UGridObjectArchetypeAsset* Archetype = EditorActor ? EditorActor->FindObjectArchetypeById(Object.ArchetypeId) : nullptr;
-		const FText NameText = Archetype && !Archetype->DisplayName.IsEmpty()
-			? Archetype->DisplayName
-			: GridEditorWidgetHelpers::GetGridEnumDisplayText(TypeEnum, static_cast<int64>(Object.Type));
-		return FText::Format(FText::FromString(TEXT("{0} {1}")), NameText, GetHeaderPlacementText(Object));
-	}
-
 	TSharedRef<SWidget> BuildConnectorTextRow(const FText& Text, bool bWarning)
 	{
 		return SNew(STextBlock)
@@ -134,8 +168,9 @@ namespace
 			.ColorAndOpacity(bWarning ? FSlateColor(FLinearColor(1.f, 0.55f, 0.18f, 1.f)) : FSlateColor::UseForeground());
 	}
 
-	bool IsObjectOrientationEditable(const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
+	bool IsObjectOrientationEditable(EGridLevelObjectType Type, const UGridObjectArchetypeAsset* Archetype)
 	{
+		if (Type == EGridLevelObjectType::MonsterSpawn || Type == EGridLevelObjectType::Item) return true;
 		if (!Archetype)
 		{
 			return false;
@@ -147,12 +182,8 @@ namespace
 		{
 			return false;
 		}
-		if (Obj.Type == EGridLevelObjectType::Trigger || Obj.Type == EGridLevelObjectType::ItemSpawn || Obj.Type == EGridLevelObjectType::MonsterSpawn)
+		if (Type == EGridLevelObjectType::Trigger || Type == EGridLevelObjectType::ItemSpawn)
 		{
-			if (Obj.Type == EGridLevelObjectType::MonsterSpawn)
-			{
-				return true;
-			}
 			return Archetype->HasAnyVisualPart();
 		}
 		return Archetype->HasAnyVisualPart() || Archetype->RuntimeActorClass || Archetype->ItemActorClass;
@@ -238,15 +269,15 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildObjectInspectorSection
 		Root->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("No editor actor or level asset.")))];
 		return Root;
 	}
-	FGridLevelObjectData Obj;
-	if (!CurrentEditorActor->TryGetSelectedObjectData(Obj))
+	const FGuid Obj = CurrentEditorActor->LastSelectedObjectId;
+	if (!CurrentEditorActor->LevelAsset->ContainsTypedPlacementId(Obj))
 	{
 		Root->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("No selected object.")))];
 		return Root;
 	}
 	Root->AddSlot().AutoHeight()[BuildSelectedObjectCard(Obj)];
-	const UGridObjectArchetypeAsset* SelectedArchetype = CurrentEditorActor->FindObjectArchetypeById(Obj.ArchetypeId);
-	const bool bShowOrientationWidget = IsObjectOrientationEditable(Obj, SelectedArchetype);
+	const UGridObjectArchetypeAsset* SelectedArchetype = GetWorldObjectDefinition(CurrentEditorActor, Obj);
+	const bool bShowOrientationWidget = IsObjectOrientationEditable(CurrentEditorActor->LevelAsset->GetTypedPlacementType(Obj), SelectedArchetype);
 	Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 4.f, 0.f)[GridEditorWidgetHelpers::BuildGridActionButton(
 			FText::FromString(TEXT("Move To Current Cell")), FOnClicked::CreateSP(this, &SGridEditorObjectInspectorPanel::OnMoveSelectedObjectToCurrentCellClicked))]
@@ -254,14 +285,34 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildObjectInspectorSection
 	return Root;
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildOrientationWidget(const FGridLevelObjectData& Obj)
+void SGridEditorObjectInspectorPanel::EditWorldObjectConfig(FGuid ObjectId, TFunctionRef<void(FGridWorldObjectInstanceConfig&)> Edit)
 {
-	const bool bUsesEdge = Obj.Edge != EGridEdge::None;
-	const EGridEdge CurrentOrientation = Obj.Type == EGridLevelObjectType::MonsterSpawn && Obj.InitialFacing != EGridEdge::None ? Obj.InitialFacing
-		: bUsesEdge ? Obj.Edge
-		: (FMath::IsNearlyEqual(Obj.LocalYaw, 90.f) ? EGridEdge::East
-			: FMath::IsNearlyEqual(Obj.LocalYaw, 180.f) ? EGridEdge::South
-			: FMath::IsNearlyEqual(Obj.LocalYaw, 270.f) ? EGridEdge::West : EGridEdge::North);
+	AGridLevelEditorActor* Editor = GetEditorActor();
+	if (!Editor || !Editor->LevelAsset || Editor->LastSelectedObjectId != ObjectId) return;
+	FGridWorldObjectInstance* WorldObjectInstance = Editor->LevelAsset->FindWorldObjectInstanceById(ObjectId);
+	if (!WorldObjectInstance) return;
+	Editor->LevelAsset->Modify();
+	Edit(WorldObjectInstance->InstanceConfig);
+	Editor->ObjectBehavior = GridObjectInstanceBehavior::Resolve(*WorldObjectInstance, GetWorldObjectDefinition(Editor, ObjectId));
+	Editor->LevelAsset->MarkPackageDirty();
+	Editor->RebuildPreview();
+	RequestRefresh();
+}
+
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildOrientationWidget(FGuid ObjectId)
+{
+	const AGridLevelEditorActor* Editor = GetEditorActor();
+	if (!Editor || !Editor->LevelAsset) return SNullWidget::NullWidget;
+	const UGridLevelAsset& Level = *Editor->LevelAsset;
+	int32 CellX, CellY;
+	EGridEdge Edge;
+	if (!Level.TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge)) return SNullWidget::NullWidget;
+	const FGridMonsterSpawnInstance* MonsterSpawn = Level.FindMonsterSpawnInstanceById(ObjectId);
+	const float Yaw = FRotator::ClampAxis(GetPlacementYaw(Level, ObjectId));
+	const EGridEdge CurrentOrientation = MonsterSpawn ? MonsterSpawn->Facing : Edge != EGridEdge::None ? Edge
+		: (FMath::IsNearlyEqual(Yaw, 90.f) ? EGridEdge::East
+			: FMath::IsNearlyEqual(Yaw, 180.f) ? EGridEdge::South
+			: FMath::IsNearlyEqual(Yaw, 270.f) ? EGridEdge::West : EGridEdge::North);
 	auto MakeButton = [this, CurrentOrientation](const TCHAR* Label, EGridEdge Orientation) -> TSharedRef<SWidget>
 	{
 		return SNew(SButton)
@@ -279,23 +330,26 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildOrientationWidget(cons
 		+ SHorizontalBox::Slot().AutoWidth().Padding(2.f, 0.f, 0.f, 0.f)[MakeButton(TEXT("West"), EGridEdge::West)];
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard(FGuid Obj)
 {
 	const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType>();
-	const FText TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText(TypeEnum, static_cast<int64>(Obj.Type));
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor ? CurrentEditorActor->FindObjectArchetypeById(Obj.ArchetypeId) : nullptr;
+	if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset) return SNullWidget::NullWidget;
+	const EGridLevelObjectType Type = CurrentEditorActor->LevelAsset->GetTypedPlacementType(Obj);
+	const FText TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText(TypeEnum, static_cast<int64>(Type));
+	const UGridObjectArchetypeAsset* Archetype = GetWorldObjectDefinition(CurrentEditorActor, Obj);
+	const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(CurrentEditorActor, Obj);
 	const FText TitleText = Archetype && !Archetype->DisplayName.IsEmpty() ? Archetype->DisplayName : TypeText;
-	const bool bShowTransitionSection = Obj.Type == EGridLevelObjectType::Pit || Obj.Behavior.Transition.bIsTransition;
+	const bool bShowTransitionSection = WorldObjectInstance && (Type == EGridLevelObjectType::Pit || WorldObjectInstance->InstanceConfig.Transition.bIsTransition);
 	return SNew(SBorder).Padding(8.f).BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))[SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 12.f, 0.f)[SNew(SBox).WidthOverride(88.f).HeightOverride(72.f)[
 				SNew(SBorder).Padding(4.f).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))[SNew(STextBlock)
-					.Text(GridEditorWidgetHelpers::GetGridObjectGlyph(Obj.Type)).Font(FCoreStyle::GetDefaultFontStyle("Regular", 36)).Justification(ETextJustify::Center)]]]
+					.Text(GridEditorWidgetHelpers::GetGridObjectGlyph(Type)).Font(FCoreStyle::GetDefaultFontStyle("Regular", 36)).Justification(ETextJustify::Center)]]]
 			+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)[SNew(SVerticalBox)
 				+ SVerticalBox::Slot().AutoHeight()[SNew(STextBlock).Text(TitleText).Font(FCoreStyle::GetDefaultFontStyle("Regular", 20))]
 				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f, 0.f, 0.f)[SNew(STextBlock)
-					.Text(FText::Format(FText::FromString(TEXT("{0} {1}")), TypeText, GetHeaderPlacementText(Obj)))
+					.Text(FText::Format(FText::FromString(TEXT("{0} {1}")), TypeText, GetHeaderPlacementText(*CurrentEditorActor->LevelAsset, Obj)))
 					.ColorAndOpacity(FSlateColor(FLinearColor(0.72f, 0.72f, 0.72f, 1.f)))]]]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildGameObjectSection(Obj)]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildContextualComponentSection(Obj)]
@@ -303,13 +357,16 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard(con
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildAdvancedDebugSection(Obj)]];
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGuid Obj)
 {
-	const bool bIsMonsterSpawn = Obj.Type == EGridLevelObjectType::MonsterSpawn;
 	const UEnum* PlacementKindEnum = StaticEnum<EGridObjectPlacementKind>();
 	const UEnum* ObjectCategoryEnum = StaticEnum<EGridObjectCategory>();
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor ? CurrentEditorActor->FindObjectArchetypeById(Obj.ArchetypeId) : nullptr;
+	if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset) return SNullWidget::NullWidget;
+	const UGridLevelAsset& Level = *CurrentEditorActor->LevelAsset;
+	const bool bIsMonsterSpawn = Level.GetTypedPlacementType(Obj) == EGridLevelObjectType::MonsterSpawn;
+	const bool bHasActiveState = Level.FindWorldObjectInstanceById(Obj) || Level.FindLogicObjectInstanceById(Obj);
+	const UGridObjectArchetypeAsset* Archetype = GetWorldObjectDefinition(CurrentEditorActor, Obj);
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
 	if (Archetype && !bIsMonsterSpawn)
 	{
@@ -324,7 +381,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(cons
 	}
 	Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 12.f, 0.f)[SNew(SCheckBox)
-			.IsChecked(Obj.bInitiallyEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+			.IsChecked(ReadPlacementValue<bool>(Level, Obj, [](const auto& Placement) { return Placement.bInitiallyEnabled; }) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 			.OnCheckStateChanged_Lambda([this](ECheckBoxState NewState)
 			{
 				if (AGridLevelEditorActor* Editor = GetEditorActor())
@@ -333,8 +390,8 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(cons
 					RequestRefresh();
 				}
 			})[SNew(STextBlock).Text(FText::FromString(bIsMonsterSpawn ? TEXT("Present at Start") : TEXT("Enabled at Start")))]]
-		+ SHorizontalBox::Slot().AutoWidth()[!bIsMonsterSpawn ? StaticCastSharedRef<SWidget>(SNew(SCheckBox)
-			.IsChecked(Obj.bInitiallyActive ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+		+ SHorizontalBox::Slot().AutoWidth()[bHasActiveState ? StaticCastSharedRef<SWidget>(SNew(SCheckBox)
+			.IsChecked(IsPlacementInitiallyActive(Level, Obj) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 			.OnCheckStateChanged_Lambda([this](ECheckBoxState NewState)
 			{
 				if (AGridLevelEditorActor* Editor = GetEditorActor())
@@ -352,10 +409,11 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(cons
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(bIsMonsterSpawn ? TEXT("Spawn Presence") : TEXT("Game Object")), Root);
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSection(FGuid Obj)
 {
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor ? CurrentEditorActor->FindObjectArchetypeById(Obj.ArchetypeId) : nullptr;
+	if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset) return SNullWidget::NullWidget;
+	const UGridObjectArchetypeAsset* Archetype = GetWorldObjectDefinition(CurrentEditorActor, Obj);
 	TSharedPtr<SWidget> PrimarySection;
 	if (Archetype && Archetype->IsReadable())
 	{
@@ -363,7 +421,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSec
 	}
 	else
 	{
-		switch (Obj.Type)
+		switch (CurrentEditorActor->LevelAsset->GetTypedPlacementType(Obj))
 		{
 			case EGridLevelObjectType::Door: PrimarySection = BuildDoorDetailsSection(Obj); break;
 			case EGridLevelObjectType::Lever: PrimarySection = BuildLeverDetailsSection(Obj); break;
@@ -373,6 +431,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSec
 			case EGridLevelObjectType::Trigger: PrimarySection = BuildTriggerBehaviorSection(Obj); break;
 			case EGridLevelObjectType::Receptacle: PrimarySection = BuildReceptacleBehaviorSection(Obj); break;
 			case EGridLevelObjectType::Item: PrimarySection = BuildItemDefinitionSection(Obj); break;
+			case EGridLevelObjectType::ItemSpawn: PrimarySection = BuildItemDefinitionSection(Obj); break;
 			case EGridLevelObjectType::MonsterSpawn: PrimarySection = BuildMonsterSpawnSection(Obj); break;
 			case EGridLevelObjectType::Teleporter: PrimarySection = BuildTeleporterDetailsSection(Obj); break;
 			default:
@@ -389,16 +448,20 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSec
 	return Root;
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection(FGuid Obj)
 {
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor ? CurrentEditorActor->FindObjectArchetypeById(Obj.ArchetypeId) : nullptr;
+	if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset) return SNullWidget::NullWidget;
+	const UGridLevelAsset& Level = *CurrentEditorActor->LevelAsset;
+	const UGridObjectArchetypeAsset* Archetype = GetWorldObjectDefinition(CurrentEditorActor, Obj);
+	const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(CurrentEditorActor, Obj);
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("ObjectId")), FText::FromString(Obj.ObjectId.ToString()))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("ArchetypeId")), FText::FromName(Obj.ArchetypeId))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Tag")), FText::FromName(Obj.Tag))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("ObjectId")), FText::FromString(Obj.ToString()))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("ArchetypeId")), FText::FromName(WorldObjectInstance ? WorldObjectInstance->WorldObjectDefinitionId : NAME_None))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Tag")), SNew(SEditableTextBox).Text(FText::FromName(GetObjectTagValue(Level, Obj)))
+			.OnTextCommitted_Lambda([this](const FText& NewText, ETextCommit::Type) { if (AGridLevelEditorActor* Editor = GetEditorActor()) { Editor->SetSelectedObjectTag(GetNameFromEditorText(NewText)); RequestRefresh(); } }))]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Notes")))]
-		+ SVerticalBox::Slot().AutoHeight()[SNew(SMultiLineEditableTextBox).Text(FText::FromString(Obj.Notes)).AutoWrapText(true)
+		+ SVerticalBox::Slot().AutoHeight()[SNew(SMultiLineEditableTextBox).Text(FText::FromString(ReadPlacementValue<FString>(Level, Obj, [](const auto& Placement) { return Placement.Notes; }))).AutoWrapText(true)
 			.OnTextCommitted_Lambda([this](const FText& NewText, ETextCommit::Type)
 			{
 				if (AGridLevelEditorActor* Editor = GetEditorActor())
@@ -407,7 +470,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection(c
 					RequestRefresh();
 				}
 			})];
-	if (Archetype && Obj.Type != EGridLevelObjectType::MonsterSpawn)
+	if (Archetype)
 	{
 		Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Actor Class")), GetClassNameText(Archetype->RuntimeActorClass.Get()))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Item Actor Class")), GetClassNameText(Archetype->ItemActorClass.Get()))];
@@ -419,20 +482,15 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection(c
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Advanced / Debug")), Root);
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection(FGuid ObjectId)
 {
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor ? CurrentEditorActor->FindObjectArchetypeById(Obj.ArchetypeId) : nullptr;
-	auto ApplyBehavior = [this](const FGridObjectBehaviorParams& NewBehavior)
-	{
-		if (AGridLevelEditorActor* Editor = GetEditorActor())
-		{
-			if (Editor->ApplyBehaviorToSelectedObject(NewBehavior)) RequestRefresh();
-		}
-	};
+	const UGridObjectArchetypeAsset* Archetype = GetWorldObjectDefinition(CurrentEditorActor, ObjectId);
+	if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset || !Archetype) return SNullWidget::NullWidget;
+	const FGridObjectBehaviorParams& Behavior = Archetype->DefaultBehavior;
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			FText::FromString(TEXT("Initial State")), GetInitialActiveStateText(Obj, TEXT("Open / Active"), TEXT("Closed / Inactive")))]
+			FText::FromString(TEXT("Initial State")), GetInitialActiveStateText(*CurrentEditorActor->LevelAsset, ObjectId, TEXT("Open / Active"), TEXT("Closed / Inactive")))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Motion Source")), FText::FromString(TEXT("Definition > Moving Parts[].Motion")))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
@@ -440,32 +498,9 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection(con
 			Archetype ? GetBoolText(Archetype->bBlocksMovement) : FText::FromString(TEXT("Runtime door blocking handled by door system")))];
 
 	TSharedRef<SVerticalBox> ChainRoot = SNew(SVerticalBox)
-		+ SVerticalBox::Slot().AutoHeight()[SNew(SCheckBox)
-			.IsChecked(Obj.Behavior.DoorAnimation.bHasChainMechanism ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-			.OnCheckStateChanged_Lambda([Obj, ApplyBehavior](ECheckBoxState NewState)
-			{
-				FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-				NewBehavior.DoorAnimation.bHasChainMechanism = NewState == ECheckBoxState::Checked;
-				ApplyBehavior(NewBehavior);
-			})[SNew(STextBlock).Text(FText::FromString(TEXT("Has Chain Mechanism")))]]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Chain Pull Distance")),
-			SNew(SSpinBox<float>).Value(Obj.Behavior.DoorAnimation.ChainPullDistance).MinValue(0.f).MinSliderValue(0.f).MinDesiredWidth(90.f)
-			.IsEnabled(Obj.Behavior.DoorAnimation.bHasChainMechanism)
-			.OnValueCommitted_Lambda([Obj, ApplyBehavior](float NewValue, ETextCommit::Type)
-			{
-				FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-				NewBehavior.DoorAnimation.ChainPullDistance = NewValue;
-				ApplyBehavior(NewBehavior);
-			}))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Chain Pull Duration")),
-			SNew(SSpinBox<float>).Value(Obj.Behavior.DoorAnimation.ChainPullDuration).MinValue(0.01f).MinSliderValue(0.01f).MinDesiredWidth(90.f)
-			.IsEnabled(Obj.Behavior.DoorAnimation.bHasChainMechanism)
-			.OnValueCommitted_Lambda([Obj, ApplyBehavior](float NewValue, ETextCommit::Type)
-			{
-				FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-				NewBehavior.DoorAnimation.ChainPullDuration = NewValue;
-				ApplyBehavior(NewBehavior);
-			}))];
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Has Chain Mechanism")), GetBoolText(Behavior.DoorAnimation.bHasChainMechanism))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Chain Pull Distance")), FText::AsNumber(Behavior.DoorAnimation.ChainPullDistance))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Chain Pull Duration")), FText::AsNumber(Behavior.DoorAnimation.ChainPullDuration))];
 	Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 3.f)[GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Door Chain")), ChainRoot)];
 	Root->AddSlot().AutoHeight().Padding(0.f, 1.f, 0.f, 3.f)[SNew(STextBlock)
 		.Text(FText::FromString(TEXT("Door geometry and duration are authored once in the World Object Definition Moving Parts.")))
@@ -479,119 +514,73 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection(con
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Door")), Root);
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLeverDetailsSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLeverDetailsSection(FGuid ObjectId)
 {
+	const AGridLevelEditorActor* Editor = GetEditorActor();
+	if (!Editor || !Editor->LevelAsset) return SNullWidget::NullWidget;
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Lever")), SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			FText::FromString(TEXT("Initial State")), GetInitialActiveStateText(Obj, TEXT("Activated"), TEXT("Deactivated")))]
+			FText::FromString(TEXT("Initial State")), GetInitialActiveStateText(*Editor->LevelAsset, ObjectId, TEXT("Activated"), TEXT("Deactivated")))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Motion Source")), FText::FromString(TEXT("Definition > Moving Part[0].Motion")))]
 		+ SVerticalBox::Slot().AutoHeight()[BuildExplicitConnectorSummary(FText::FromString(TEXT("Activated, Deactivated, Toggled")))]);
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildButtonDetailsSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildButtonDetailsSection(FGuid ObjectId)
 {
+	const AGridLevelEditorActor* Editor = GetEditorActor();
+	const UGridObjectArchetypeAsset* Archetype = GetWorldObjectDefinition(Editor, ObjectId);
+	if (!Editor || !Editor->LevelAsset || !Archetype) return SNullWidget::NullWidget;
 	FString ButtonType = TEXT("Generic");
-	const FString ArchetypeIdText = Obj.ArchetypeId.ToString();
+	const FString ArchetypeIdText = Archetype->ArchetypeId.ToString();
 	if (ArchetypeIdText.Contains(TEXT("Button_Secret"), ESearchCase::IgnoreCase)) ButtonType = TEXT("Secret");
 	else if (ArchetypeIdText.Contains(TEXT("Button_Wall"), ESearchCase::IgnoreCase)) ButtonType = TEXT("Wall");
 	else if (ArchetypeIdText.Contains(TEXT("Button_Normal"), ESearchCase::IgnoreCase)) ButtonType = TEXT("Normal");
-	auto ApplyBehavior = [this](const FGridObjectBehaviorParams& NewBehavior)
-	{
-		if (AGridLevelEditorActor* Editor = GetEditorActor())
-		{
-			if (Editor->ApplyBehaviorToSelectedObject(NewBehavior)) RequestRefresh();
-		}
-	};
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Button Type")), FText::FromString(ButtonType))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Initial State")), GetInitialActiveStateText(Obj, TEXT("Pressed"), TEXT("Released")))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Initial State")), GetInitialActiveStateText(*Editor->LevelAsset, ObjectId, TEXT("Pressed"), TEXT("Released")))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Motion Source")), FText::FromString(TEXT("Definition > Moving Part[0].Motion")))]
-		+ SVerticalBox::Slot().AutoHeight()[BuildBehaviorFloatSpinBoxRow(FText::FromString(TEXT("Hold Time")), Obj.Behavior.ButtonAnimation.ButtonHoldTime,
-			[Obj, ApplyBehavior](float NewValue)
-			{
-				FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-				NewBehavior.ButtonAnimation.ButtonHoldTime = FMath::Max(0.f, NewValue);
-				ApplyBehavior(NewBehavior);
-			})]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Hold Time")), FText::AsNumber(Archetype->DefaultBehavior.ButtonAnimation.ButtonHoldTime))]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Emits")), FText::FromString(TEXT("Activated, Used")))];
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Button")), Root);
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSection(FGuid ObjectId)
 {
-	auto ApplyBehavior = [this](TFunction<void(FGridObjectBehaviorParams&)> Mutate)
-	{
-		if (AGridLevelEditorActor* Editor = GetEditorActor())
-		{
-			FGridLevelObjectData Selected;
-			if (Editor->TryGetSelectedObjectData(Selected))
-			{
-				FGridObjectBehaviorParams NewBehavior = Selected.Behavior;
-				Mutate(NewBehavior);
-				if (Editor->ApplyBehaviorToSelectedObject(NewBehavior)) RequestRefresh();
-			}
-		}
-	};
+	const AGridLevelEditorActor* Editor = GetEditorActor();
+	const UGridObjectArchetypeAsset* Archetype = GetWorldObjectDefinition(Editor, ObjectId);
+	if (!Editor || !Editor->LevelAsset || !Archetype) return SNullWidget::NullWidget;
+	const auto& Weight = Archetype->DefaultBehavior.PressurePlateWeight;
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Pressure Plate / Floor Trigger")), SNew(SVerticalBox)
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Initial State")), GetInitialActiveStateText(Obj, TEXT("Activated"), TEXT("Deactivated")))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Initial State")), GetInitialActiveStateText(*Editor->LevelAsset, ObjectId, TEXT("Activated"), TEXT("Deactivated")))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Motion Source")), FText::FromString(TEXT("Definition > Moving Part[0].Motion")))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Party Activates")), SNew(SCheckBox)
-			.IsChecked(Obj.Behavior.PressurePlateWeight.bActivateWhenPartyPresent ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-			.OnCheckStateChanged_Lambda([ApplyBehavior](ECheckBoxState State)
-			{
-				ApplyBehavior([State](FGridObjectBehaviorParams& B){ B.PressurePlateWeight.bActivateWhenPartyPresent = State == ECheckBoxState::Checked; });
-			}))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Use Item Weight")), SNew(SCheckBox)
-			.IsChecked(Obj.Behavior.PressurePlateWeight.bUseItemWeight ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-			.OnCheckStateChanged_Lambda([ApplyBehavior](ECheckBoxState State)
-			{
-				ApplyBehavior([State](FGridObjectBehaviorParams& B){ B.PressurePlateWeight.bUseItemWeight = State == ECheckBoxState::Checked; });
-			}))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Required Item Weight")), SNew(SSpinBox<float>)
-			.Value(Obj.Behavior.PressurePlateWeight.RequiredItemWeight).MinValue(0.f).MinSliderValue(0.f).MinDesiredWidth(90.f)
-			.IsEnabled(Obj.Behavior.PressurePlateWeight.bUseItemWeight)
-			.OnValueCommitted_Lambda([ApplyBehavior](float Value, ETextCommit::Type)
-			{
-				ApplyBehavior([Value](FGridObjectBehaviorParams& B){ B.PressurePlateWeight.RequiredItemWeight = FMath::Max(0.f, Value); });
-			}))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Count Edge Items")), SNew(SCheckBox)
-			.IsChecked(Obj.Behavior.PressurePlateWeight.bCountEdgeItems ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-			.OnCheckStateChanged_Lambda([ApplyBehavior](ECheckBoxState State)
-			{
-				ApplyBehavior([State](FGridObjectBehaviorParams& B){ B.PressurePlateWeight.bCountEdgeItems = State == ECheckBoxState::Checked; });
-			}))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Party Activates")), GetBoolText(Weight.bActivateWhenPartyPresent))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Use Item Weight")), GetBoolText(Weight.bUseItemWeight))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Required Item Weight")), FText::AsNumber(Weight.RequiredItemWeight))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Count Edge Items")), GetBoolText(Weight.bCountEdgeItems))]
 		+ SVerticalBox::Slot().AutoHeight()[BuildExplicitConnectorSummary(FText::FromString(TEXT("Activated, Deactivated, Entered, Exited")))]
 		+ SVerticalBox::Slot().AutoHeight()[SNew(STextBlock)
 			.Text(FText::FromString(TEXT("Use explicit Activated and Deactivated connectors to control what happens on press and release."))).AutoWrapText(true)]);
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPitDetailsSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPitDetailsSection(FGuid ObjectId)
 {
-	auto ApplyBehavior = [this](const FGridObjectBehaviorParams& NewBehavior)
-	{
-		if (AGridLevelEditorActor* Editor = GetEditorActor())
-		{
-			if (Editor->ApplyBehaviorToSelectedObject(NewBehavior)) RequestRefresh();
-		}
-	};
+	const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(GetEditorActor(), ObjectId);
+	if (!WorldObjectInstance) return SNullWidget::NullWidget;
+	const FGridPitBehaviorParams& Pit = WorldObjectInstance->InstanceConfig.Pit;
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Pit")), SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Open at Start")), SNew(SCheckBox)
-			.IsChecked(Obj.Behavior.Pit.bInitiallyOpen ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-			.OnCheckStateChanged_Lambda([Obj, ApplyBehavior](ECheckBoxState State)
+			.IsChecked(Pit.bInitiallyOpen ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+			.OnCheckStateChanged_Lambda([this, ObjectId](ECheckBoxState State)
 			{
-				FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-				NewBehavior.Pit.bInitiallyOpen = State == ECheckBoxState::Checked;
-				ApplyBehavior(NewBehavior);
+				EditWorldObjectConfig(ObjectId, [State](FGridWorldObjectInstanceConfig& Config) { Config.Pit.bInitiallyOpen = State == ECheckBoxState::Checked; });
 			}))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Use Same Cell Coordinates")), SNew(SCheckBox)
-			.IsChecked(Obj.Behavior.Pit.bUseSameCellCoordinates ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-			.OnCheckStateChanged_Lambda([Obj, ApplyBehavior](ECheckBoxState State)
+			.IsChecked(Pit.bUseSameCellCoordinates ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+			.OnCheckStateChanged_Lambda([this, ObjectId](ECheckBoxState State)
 			{
-				FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-				NewBehavior.Pit.bUseSameCellCoordinates = State == ECheckBoxState::Checked;
-				ApplyBehavior(NewBehavior);
+				EditWorldObjectConfig(ObjectId, [State](FGridWorldObjectInstanceConfig& Config) { Config.Pit.bUseSameCellCoordinates = State == ECheckBoxState::Checked; });
 			}))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Trapdoor Layout")), FText::FromString(TEXT("Definition > Moving Parts[0/1].Motion")))]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock)
@@ -599,112 +588,90 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPitDetailsSection(cons
 			.AutoWrapText(true).ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))]);
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTeleporterDetailsSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTeleporterDetailsSection(FGuid ObjectId)
 {
-	auto ApplyBehavior = [this](const FGridObjectBehaviorParams& NewBehavior)
-	{
-		if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
-		{
-			if (CurrentEditorActor->ApplyBehaviorToSelectedObject(NewBehavior))
-			{
-				RequestRefresh();
-			}
-		}
-	};
-	auto BuildIntBehaviorRow = [Obj, ApplyBehavior](const FText& Label, int32 CurrentValue, int32 MinValue, int32 MaxValue,
-		TFunction<void(FGridObjectBehaviorParams&, int32)> AssignValue) -> TSharedRef<SWidget>
+	const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(GetEditorActor(), ObjectId);
+	if (!WorldObjectInstance) return SNullWidget::NullWidget;
+	const FGridTeleporterBehaviorParams& Teleporter = WorldObjectInstance->InstanceConfig.Teleporter;
+	auto BuildIntBehaviorRow = [this, ObjectId](const FText& Label, int32 CurrentValue, int32 MinValue, int32 MaxValue,
+		TFunction<void(FGridWorldObjectInstanceConfig&, int32)> AssignValue) -> TSharedRef<SWidget>
 	{
 		return GridEditorWidgetHelpers::BuildGridPropertyRow(Label,
 			SNew(SSpinBox<int32>).Value(CurrentValue).MinValue(MinValue).MaxValue(MaxValue).MinSliderValue(MinValue).MaxSliderValue(MaxValue).Delta(1)
-			.OnValueCommitted_Lambda([Obj, ApplyBehavior, AssignValue](int32 NewValue, ETextCommit::Type)
+			.OnValueCommitted_Lambda([this, ObjectId, AssignValue](int32 NewValue, ETextCommit::Type)
 			{
-				FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-				AssignValue(NewBehavior, NewValue);
-				ApplyBehavior(NewBehavior);
+				EditWorldObjectConfig(ObjectId, [AssignValue, NewValue](FGridWorldObjectInstanceConfig& Config) { AssignValue(Config, NewValue); });
 			}));
 	};
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
-		+ SVerticalBox::Slot().AutoHeight()[BuildIntBehaviorRow(FText::FromString(TEXT("Target Cell X")), Obj.Behavior.Teleporter.TargetCellX, -1, 31,
-			[](FGridObjectBehaviorParams& Behavior, int32 NewValue){ Behavior.Teleporter.TargetCellX = NewValue; })]
-		+ SVerticalBox::Slot().AutoHeight()[BuildIntBehaviorRow(FText::FromString(TEXT("Target Cell Y")), Obj.Behavior.Teleporter.TargetCellY, -1, 31,
-			[](FGridObjectBehaviorParams& Behavior, int32 NewValue){ Behavior.Teleporter.TargetCellY = NewValue; })]
+		+ SVerticalBox::Slot().AutoHeight()[BuildIntBehaviorRow(FText::FromString(TEXT("Target Cell X")), Teleporter.TargetCellX, -1, 31,
+			[](FGridWorldObjectInstanceConfig& Config, int32 NewValue){ Config.Teleporter.TargetCellX = NewValue; })]
+		+ SVerticalBox::Slot().AutoHeight()[BuildIntBehaviorRow(FText::FromString(TEXT("Target Cell Y")), Teleporter.TargetCellY, -1, 31,
+			[](FGridWorldObjectInstanceConfig& Config, int32 NewValue){ Config.Teleporter.TargetCellY = NewValue; })]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock)
 			.Text(FText::FromString(TEXT("Use -1 / -1 to mark an unset destination."))).AutoWrapText(true)
 			.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))];
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Teleporter")), Root);
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSection(FGuid ObjectId)
 {
+	const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(GetEditorActor(), ObjectId);
+	if (!WorldObjectInstance) return SNullWidget::NullWidget;
+	const FGridWorldObjectInstance& Obj = *WorldObjectInstance;
+	const FGridObjectTransitionParams& Transition = Obj.InstanceConfig.Transition;
 	const bool bIsPit = Obj.Type == EGridLevelObjectType::Pit;
-	const bool bPitUsesSameCellCoordinates = bIsPit && Obj.Behavior.Pit.bUseSameCellCoordinates;
-	const bool bTransitionFieldsEnabled = bIsPit || Obj.Behavior.Transition.bIsTransition;
-	auto ApplyBehavior = [this](const FGridObjectBehaviorParams& NewBehavior)
-	{
-		if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
-		{
-			if (CurrentEditorActor->ApplyBehaviorToSelectedObject(NewBehavior)) RequestRefresh();
-		}
-	};
-	auto BuildIntTransitionRow = [Obj, ApplyBehavior, bTransitionFieldsEnabled, bPitUsesSameCellCoordinates](const FText& Label, int32 CurrentValue,
-		TFunction<void(FGridObjectBehaviorParams&, int32)> AssignValue) -> TSharedRef<SWidget>
+	const bool bPitUsesSameCellCoordinates = bIsPit && Obj.InstanceConfig.Pit.bUseSameCellCoordinates;
+	const bool bTransitionFieldsEnabled = bIsPit || Transition.bIsTransition;
+	auto BuildIntTransitionRow = [this, ObjectId, bTransitionFieldsEnabled, bPitUsesSameCellCoordinates](const FText& Label, int32 CurrentValue,
+		TFunction<void(FGridObjectTransitionParams&, int32)> AssignValue) -> TSharedRef<SWidget>
 	{
 		return GridEditorWidgetHelpers::BuildGridPropertyRow(Label, SNew(SSpinBox<int32>).Value(CurrentValue).MinValue(0).MaxValue(31).MinSliderValue(0).MaxSliderValue(31).Delta(1)
 			.IsEnabled(bTransitionFieldsEnabled && !bPitUsesSameCellCoordinates)
-			.OnValueCommitted_Lambda([Obj, ApplyBehavior, AssignValue](int32 NewValue, ETextCommit::Type)
+			.OnValueCommitted_Lambda([this, ObjectId, AssignValue](int32 NewValue, ETextCommit::Type)
 			{
-				FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-				AssignValue(NewBehavior, NewValue);
-				ApplyBehavior(NewBehavior);
+				EditWorldObjectConfig(ObjectId, [AssignValue, NewValue](FGridWorldObjectInstanceConfig& Config) { AssignValue(Config.Transition, NewValue); });
 			}));
 	};
-	auto BuildFacingButton = [Obj, ApplyBehavior, bTransitionFieldsEnabled](const TCHAR* Label, EGridEdge Facing) -> TSharedRef<SWidget>
+	auto BuildFacingButton = [this, ObjectId, Transition, bTransitionFieldsEnabled](const TCHAR* Label, EGridEdge Facing) -> TSharedRef<SWidget>
 	{
-		const bool bSelected = Obj.Behavior.Transition.TargetFacing == Facing;
+		const bool bSelected = Transition.TargetFacing == Facing;
 		return SNew(SButton).Text(FText::FromString(Label)).IsEnabled(bTransitionFieldsEnabled)
 			.ButtonColorAndOpacity(bSelected ? FLinearColor(0.32f, 0.46f, 0.72f, 1.f) : FLinearColor::White)
-			.OnClicked_Lambda([Obj, ApplyBehavior, Facing]()
+			.OnClicked_Lambda([this, ObjectId, Facing]()
 			{
-				FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-				NewBehavior.Transition.TargetFacing = Facing;
-				ApplyBehavior(NewBehavior);
+				EditWorldObjectConfig(ObjectId, [Facing](FGridWorldObjectInstanceConfig& Config) { Config.Transition.TargetFacing = Facing; });
 				return FReply::Handled();
 			});
 	};
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[bIsPit ? StaticCastSharedRef<SWidget>(GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Transition Mode")), FText::FromString(TEXT("Intrinsic Pit Fall"))))
-			: StaticCastSharedRef<SWidget>(SNew(SCheckBox).IsChecked(Obj.Behavior.Transition.bIsTransition ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-			.OnCheckStateChanged_Lambda([Obj, ApplyBehavior](ECheckBoxState State)
+			: StaticCastSharedRef<SWidget>(SNew(SCheckBox).IsChecked(Transition.bIsTransition ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+			.OnCheckStateChanged_Lambda([this, ObjectId](ECheckBoxState State)
 			{
-				FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-				NewBehavior.Transition.bIsTransition = State == ECheckBoxState::Checked;
-				ApplyBehavior(NewBehavior);
+				EditWorldObjectConfig(ObjectId, [State](FGridWorldObjectInstanceConfig& Config) { Config.Transition.bIsTransition = State == ECheckBoxState::Checked; });
 			})[SNew(STextBlock).Text(FText::FromString(TEXT("Is Transition")))])]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Target Level Id")), SNew(SEditableTextBox)
-			.Text(GetNameText(Obj.Behavior.Transition.TargetLevelId)).IsEnabled(bTransitionFieldsEnabled)
-			.OnTextCommitted_Lambda([Obj, ApplyBehavior](const FText& NewText, ETextCommit::Type)
+			.Text(GetNameText(Transition.TargetLevelId)).IsEnabled(bTransitionFieldsEnabled)
+			.OnTextCommitted_Lambda([this, ObjectId](const FText& NewText, ETextCommit::Type)
 			{
-				FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-				NewBehavior.Transition.TargetLevelId = FName(*NewText.ToString());
-				ApplyBehavior(NewBehavior);
+				EditWorldObjectConfig(ObjectId, [&NewText](FGridWorldObjectInstanceConfig& Config) { Config.Transition.TargetLevelId = GetNameFromEditorText(NewText); });
 			}))]
-		+ SVerticalBox::Slot().AutoHeight()[BuildIntTransitionRow(FText::FromString(TEXT("Target Cell X")), Obj.Behavior.Transition.TargetCellX,
-			[](FGridObjectBehaviorParams& B, int32 V){ B.Transition.TargetCellX = V; })]
-		+ SVerticalBox::Slot().AutoHeight()[BuildIntTransitionRow(FText::FromString(TEXT("Target Cell Y")), Obj.Behavior.Transition.TargetCellY,
-			[](FGridObjectBehaviorParams& B, int32 V){ B.Transition.TargetCellY = V; })]
+		+ SVerticalBox::Slot().AutoHeight()[BuildIntTransitionRow(FText::FromString(TEXT("Target Cell X")), Transition.TargetCellX,
+			[](FGridObjectTransitionParams& Params, int32 V){ Params.TargetCellX = V; })]
+		+ SVerticalBox::Slot().AutoHeight()[BuildIntTransitionRow(FText::FromString(TEXT("Target Cell Y")), Transition.TargetCellY,
+			[](FGridObjectTransitionParams& Params, int32 V){ Params.TargetCellY = V; })]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Target Facing")), SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 2.f, 0.f)[BuildFacingButton(TEXT("North"), EGridEdge::North)]
 			+ SHorizontalBox::Slot().AutoWidth().Padding(2.f, 0.f)[BuildFacingButton(TEXT("East"), EGridEdge::East)]
 			+ SHorizontalBox::Slot().AutoWidth().Padding(2.f, 0.f)[BuildFacingButton(TEXT("South"), EGridEdge::South)]
 			+ SHorizontalBox::Slot().AutoWidth().Padding(2.f, 0.f, 0.f, 0.f)[BuildFacingButton(TEXT("West"), EGridEdge::West)])]
 		+ SVerticalBox::Slot().AutoHeight()[SNew(SCheckBox).IsEnabled(bTransitionFieldsEnabled && !bIsPit)
-			.IsChecked(Obj.Behavior.Transition.bRequireUseAction ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-			.OnCheckStateChanged_Lambda([Obj, ApplyBehavior](ECheckBoxState State)
+			.IsChecked(Transition.bRequireUseAction ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+			.OnCheckStateChanged_Lambda([this, ObjectId](ECheckBoxState State)
 			{
-				FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-				NewBehavior.Transition.bRequireUseAction = State == ECheckBoxState::Checked;
-				ApplyBehavior(NewBehavior);
+				EditWorldObjectConfig(ObjectId, [State](FGridWorldObjectInstanceConfig& Config) { Config.Transition.bRequireUseAction = State == ECheckBoxState::Checked; });
 			})[SNew(STextBlock).Text(FText::FromString(TEXT("Require Use Action")))]]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock)
 			.Text(bIsPit ? (bPitUsesSameCellCoordinates
@@ -727,10 +694,12 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLightDetailsSection(co
 			.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))]);
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReadableTextSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReadableTextSection(FGuid ObjectId)
 {
+	const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(GetEditorActor(), ObjectId);
+	if (!WorldObjectInstance) return SNullWidget::NullWidget;
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Readable Text")), SNew(SMultiLineEditableTextBox)
-		.Text(Obj.OverrideReadableText).AutoWrapText(true).HintText(FText::FromString(TEXT("Text displayed when the player reads this object.")))
+		.Text(WorldObjectInstance->ReadableTextOverride).AutoWrapText(true).HintText(FText::FromString(TEXT("Text displayed when the player reads this object.")))
 		.OnTextCommitted_Lambda([this](const FText& NewText, ETextCommit::Type)
 		{
 			if (AGridLevelEditorActor* Editor = GetEditorActor())
@@ -741,7 +710,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReadableTextSection(co
 		}));
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection(FGuid ObjectId)
 {
 	return SNew(SBorder).Padding(6.f).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))[SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Trigger"))).Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))]
@@ -750,67 +719,55 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection
 		+ SVerticalBox::Slot().AutoHeight()[BuildExplicitConnectorSummary(FText::FromString(TEXT("Activated, Deactivated")))]];
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(FGuid ObjectId)
 {
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor ? CurrentEditorActor->FindObjectArchetypeById(Obj.ArchetypeId) : nullptr;
-	UGridItemDefinitionAsset* ArchetypeDefinitionAsset = Archetype ? Archetype->DefaultBehavior.Item.ItemDefinitionAsset.Get() : nullptr;
-	UGridItemDefinitionAsset* EffectiveDefinitionAsset = Obj.ItemDefinitionAsset ? Obj.ItemDefinitionAsset.Get() : ArchetypeDefinitionAsset;
-	const FName EffectiveDefinitionId = EffectiveDefinitionAsset ? EffectiveDefinitionAsset->ItemDefinitionId : Obj.ItemDefinitionId;
-	const bool bUsingArchetypeDefinition = !Obj.ItemDefinitionAsset && ArchetypeDefinitionAsset;
-	const bool bUsingLegacyFallback = !EffectiveDefinitionAsset && (!Obj.ItemDefinitionId.IsNone() || !Obj.ArchetypeId.IsNone());
-	const bool bConflictingDefinitionId = Obj.ItemDefinitionAsset && !Obj.ItemDefinitionId.IsNone() && Obj.ItemDefinitionAsset->ItemDefinitionId != Obj.ItemDefinitionId;
-	const FText DefinitionSourceText = Obj.ItemDefinitionAsset ? FText::FromString(TEXT("Placed Object"))
-		: bUsingArchetypeDefinition ? FText::FromString(TEXT("Archetype Default"))
-		: !Obj.ItemDefinitionId.IsNone() ? FText::FromString(TEXT("Legacy ItemDefinitionId")) : FText::FromString(TEXT("Legacy ArchetypeId"));
-	return SNew(SBorder).Padding(6.f).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))[SNew(SVerticalBox)
+	if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset) return SNullWidget::NullWidget;
+	const FGridLooseItemInstance* LooseItem = CurrentEditorActor->LevelAsset->FindLooseItemInstanceById(ObjectId);
+	const FGridItemSpawnInstance* ItemSpawn = CurrentEditorActor->LevelAsset->FindItemSpawnInstanceById(ObjectId);
+	if (!LooseItem && !ItemSpawn) return SNullWidget::NullWidget;
+	UGridItemDefinitionAsset* Definition = LooseItem ? LooseItem->ItemDefinition.Get() : ItemSpawn->ItemDefinition.Get();
+	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Item Definition"))).Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Transportable items should use a UGridItemDefinitionAsset. ArchetypeId is kept only for legacy compatibility."))).AutoWrapText(true)]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ItemDefinitionAsset")), BuildItemDefinitionAssetPicker(EffectiveDefinitionAsset,
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Placement")), FText::FromString(LooseItem ? TEXT("Item present in the level") : TEXT("Item generator")))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ItemDefinitionAsset")), BuildItemDefinitionAssetPicker(Definition,
 			[this](UGridItemDefinitionAsset* NewAsset)
 			{
 				if (AGridLevelEditorActor* Editor = GetEditorActor()) if (Editor->SetSelectedObjectItemDefinitionAsset(NewAsset)) RequestRefresh();
 			}))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Effective Item Id")), GetNameText(EffectiveDefinitionId))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Definition Source")), DefinitionSourceText)]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Legacy ArchetypeId")), GetNameText(Obj.ArchetypeId))]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[bUsingArchetypeDefinition ? StaticCastSharedRef<SWidget>(SNew(SButton)
-			.Text(FText::FromString(TEXT("Promote Archetype Definition"))).ToolTipText(FText::FromString(TEXT("Copies the archetype item definition into this placed item using the current authoring schema.")))
-			.OnClicked_Lambda([this]()
-			{
-				if (AGridLevelEditorActor* Editor = GetEditorActor()) if (Editor->SyncSelectedItemDefinitionIdFromAsset()) RequestRefresh();
-				return FReply::Handled();
-			})) : SNullWidget::NullWidget]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[bUsingLegacyFallback ? StaticCastSharedRef<SWidget>(SNew(STextBlock)
-			.Text(FText::FromString(TEXT("Warning: Item has no ItemDefinitionAsset in the placement or archetype. Runtime will use legacy fallback data."))).AutoWrapText(true)
-			.ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.55f, 0.18f, 1.f)))) : SNullWidget::NullWidget]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f, 0.f, 0.f)[bConflictingDefinitionId ? StaticCastSharedRef<SWidget>(SNew(STextBlock)
-			.Text(FText::FromString(TEXT("Warning: ItemDefinitionId differs from the selected asset id."))).AutoWrapText(true)
-			.ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.55f, 0.18f, 1.f)))) : SNullWidget::NullWidget]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 4.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Item Reading / Contenu lisible de l'item ramassé"))).Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Distinct from OverrideReadableText, which is reserved for readable world objects."))).AutoWrapText(true)]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ReadableContentAsset")), BuildReadableContentAssetPicker(Obj.ReadableContentAsset,
-			[this](UGridReadableContentAsset* NewAsset){ if (AGridLevelEditorActor* Editor = GetEditorActor()) if (Editor->SetSelectedObjectReadableContentAsset(NewAsset)) RequestRefresh(); }))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ReadableContentId")), SNew(SEditableTextBox).Text(GetNameText(Obj.ReadableContentId))
-			.OnTextCommitted_Lambda([this](const FText& NewText, ETextCommit::Type){ if (AGridLevelEditorActor* Editor = GetEditorActor()){ Editor->SetSelectedObjectReadableContentId(GetNameFromEditorText(NewText)); RequestRefresh(); } }))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ReadTitleOverride")), SNew(SEditableTextBox).Text(Obj.ReadTitleOverride)
-			.OnTextCommitted_Lambda([this](const FText& NewText, ETextCommit::Type){ if (AGridLevelEditorActor* Editor = GetEditorActor()){ Editor->SetSelectedObjectReadTitleOverride(NewText); RequestRefresh(); } }))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ReadTextOverride")), SNew(SMultiLineEditableTextBox).Text(Obj.ReadTextOverride).AutoWrapText(true)
-			.OnTextCommitted_Lambda([this](const FText& NewText, ETextCommit::Type){ if (AGridLevelEditorActor* Editor = GetEditorActor()){ Editor->SetSelectedObjectReadTextOverride(NewText); RequestRefresh(); } }))]];
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Item Id")), GetNameText(Definition ? Definition->ItemDefinitionId : NAME_None))];
+	if (!Definition)
+	{
+		Root->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("Assign an Item Definition asset."))).AutoWrapText(true)];
+	}
+	if (LooseItem)
+	{
+		Root->AddSlot().AutoHeight().Padding(0.f, 10.f, 0.f, 4.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Item Reading"))).Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))];
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ReadableContentAsset")), BuildReadableContentAssetPicker(LooseItem->ReadableContentAsset,
+			[this](UGridReadableContentAsset* NewAsset){ if (AGridLevelEditorActor* Editor = GetEditorActor()) if (Editor->SetSelectedObjectReadableContentAsset(NewAsset)) RequestRefresh(); }))];
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ReadableContentId")), SNew(SEditableTextBox).Text(GetNameText(LooseItem->ReadableContentId))
+			.OnTextCommitted_Lambda([this](const FText& NewText, ETextCommit::Type){ if (AGridLevelEditorActor* Editor = GetEditorActor()){ Editor->SetSelectedObjectReadableContentId(GetNameFromEditorText(NewText)); RequestRefresh(); } }))];
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ReadTitleOverride")), SNew(SEditableTextBox).Text(LooseItem->ReadTitleOverride)
+			.OnTextCommitted_Lambda([this](const FText& NewText, ETextCommit::Type){ if (AGridLevelEditorActor* Editor = GetEditorActor()){ Editor->SetSelectedObjectReadTitleOverride(NewText); RequestRefresh(); } }))];
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ReadTextOverride")), SNew(SMultiLineEditableTextBox).Text(LooseItem->ReadTextOverride).AutoWrapText(true)
+			.OnTextCommitted_Lambda([this](const FText& NewText, ETextCommit::Type){ if (AGridLevelEditorActor* Editor = GetEditorActor()){ Editor->SetSelectedObjectReadTextOverride(NewText); RequestRefresh(); } }))];
+	}
+	return SNew(SBorder).Padding(6.f).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))[Root];
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildMonsterSpawnSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildMonsterSpawnSection(FGuid ObjectId)
 {
-	const UGridMonsterDefinitionAsset* Definition = Obj.MonsterDefinitionAsset;
+	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
+	const FGridMonsterSpawnInstance* MonsterSpawn = CurrentEditorActor && CurrentEditorActor->LevelAsset
+		? CurrentEditorActor->LevelAsset->FindMonsterSpawnInstanceById(ObjectId) : nullptr;
+	if (!MonsterSpawn) return SNullWidget::NullWidget;
+	const FGridMonsterSpawnInstance& Obj = *MonsterSpawn;
+	const UGridMonsterDefinitionAsset* Definition = Obj.MonsterDefinition;
 	const bool bHasDefinitionAsset = Definition != nullptr;
-	const bool bHasDefinitionId = !Obj.MonsterDefinitionId.IsNone();
-	const bool bConflictingDefinitionId = bHasDefinitionAsset && bHasDefinitionId && Definition->MonsterId != Obj.MonsterDefinitionId;
-	const bool bNeedsDefinitionIdRepair = bHasDefinitionAsset && (!bHasDefinitionId || bConflictingDefinitionId);
 	const UEnum* EdgeEnum = StaticEnum<EGridEdge>();
 	const UEnum* StateEnum = StaticEnum<EGridMonsterState>();
 	const UEnum* PatrolModeEnum = StaticEnum<EGridMonsterPatrolMode>();
 	const UEnum* AIProfileEnum = StaticEnum<EGridMonsterAIProfile>();
-	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
 	const bool bPatrolEditing = CurrentEditorActor && CurrentEditorActor->IsPatrolRouteEditModeActive();
 	const int32 WaypointCount = Obj.PatrolWaypoints.Num();
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
@@ -842,24 +799,18 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildMonsterSpawnSection(co
 		return Menu;
 	};
 	AddHeading(TEXT("Definition"));
-	Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Monster Definition")), BuildMonsterDefinitionAssetPicker(Obj.MonsterDefinitionAsset,
+	Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Monster Definition")), BuildMonsterDefinitionAssetPicker(Obj.MonsterDefinition,
 		[this](UGridMonsterDefinitionAsset* NewAsset){ if (AGridLevelEditorActor* Editor = GetEditorActor()) if (Editor->SetSelectedObjectMonsterDefinitionAsset(NewAsset)) RequestRefresh(); }))];
-	Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Definition Id")), GetNameText(Obj.MonsterDefinitionId))];
+	Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Definition Id")), GetNameText(Definition ? Definition->MonsterId : NAME_None))];
 	if (!bHasDefinitionAsset)
 	{
 		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Error: runtime MonsterSpawn requires a Monster Definition asset."))).AutoWrapText(true).ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.25f, 0.18f, 1.f)))];
-	}
-	else if (bNeedsDefinitionIdRepair)
-	{
-		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)[SNew(STextBlock).Text(FText::FromString(TEXT("Definition Id is missing or differs from the selected asset."))).AutoWrapText(true).ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.55f, 0.18f, 1.f)))]
-			+ SHorizontalBox::Slot().AutoWidth().Padding(8.f, 0.f, 0.f, 0.f)[SNew(SButton).Text(FText::FromString(TEXT("Repair Id"))).OnClicked_Lambda([this](){ if (AGridLevelEditorActor* Editor = GetEditorActor()){ Editor->SyncSelectedMonsterDefinitionIdFromAsset(); RequestRefresh(); } return FReply::Handled(); })]];
 	}
 	AddHeading(TEXT("Spawn"));
 	Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Initial State")), SNew(SComboButton)
 		.ButtonContent()[SNew(STextBlock).Text(GridEditorWidgetHelpers::GetGridEnumDisplayText(StateEnum, static_cast<int64>(Obj.InitialMonsterState)))]
 		.MenuContent()[BuildInitialStateMenu()])];
-	Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Initial Facing")), GridEditorWidgetHelpers::GetGridEnumDisplayText(EdgeEnum, static_cast<int64>(Obj.InitialFacing)))];
+	Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Initial Facing")), GridEditorWidgetHelpers::GetGridEnumDisplayText(EdgeEnum, static_cast<int64>(Obj.Facing)))];
 	Root->AddSlot().AutoHeight().Padding(0.f, 2.f, 0.f, 0.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Use the North / East / South / West buttons below to change the initial facing."))).AutoWrapText(true).ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))];
 	AddHeading(TEXT("Perception — from Monster Definition"));
 	if (Definition)
@@ -916,73 +867,48 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildMonsterSpawnSection(co
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Monster Spawn")), Root);
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSection(const FGridLevelObjectData& Obj)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSection(FGuid ObjectId)
 {
-	auto ApplyBehavior = [this](const FGridObjectBehaviorParams& NewBehavior)
-	{
-		if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor()) if (CurrentEditorActor->ApplyBehaviorToSelectedObject(NewBehavior)) RequestRefresh();
-	};
-	const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor ? CurrentEditorActor->FindObjectArchetypeById(Obj.ArchetypeId) : nullptr;
+	const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(CurrentEditorActor, ObjectId);
+	const UGridObjectArchetypeAsset* Archetype = GetWorldObjectDefinition(CurrentEditorActor, ObjectId);
+	if (!WorldObjectInstance || !Archetype) return SNullWidget::NullWidget;
+	const auto& Receptacle = Archetype->DefaultBehavior.Receptacle;
+	const auto& InitialContent = WorldObjectInstance->InstanceConfig.ReceptacleInitialContent;
 	const UEnum* PlacementKindEnum = StaticEnum<EGridObjectPlacementKind>();
 	const UEnum* VisualPlacementModeEnum = StaticEnum<EGridReceptacleVisualPlacementMode>();
-	auto BuildVisualPlacementModeMenu = [Obj, ApplyBehavior, VisualPlacementModeEnum]() -> TSharedRef<SWidget>
-	{
-		TSharedRef<SVerticalBox> Menu = SNew(SVerticalBox);
-		const EGridReceptacleVisualPlacementMode Modes[] = { EGridReceptacleVisualPlacementMode::AttachedSocket, EGridReceptacleVisualPlacementMode::PhysicalAtHit };
-		for (const EGridReceptacleVisualPlacementMode Mode : Modes)
-		{
-			Menu->AddSlot().AutoHeight()[SNew(SButton).Text(GridEditorWidgetHelpers::GetGridEnumDisplayText(VisualPlacementModeEnum, static_cast<int64>(Mode)))
-				.OnClicked_Lambda([Obj, ApplyBehavior, Mode](){ FGridObjectBehaviorParams B = Obj.Behavior; B.Receptacle.VisualPlacementMode = Mode; ApplyBehavior(B); return FReply::Handled(); })];
-		}
-		return Menu;
-	};
 	TSharedRef<SVerticalBox> AcceptedItemsList = SNew(SVerticalBox);
-	for (int32 AcceptedIndex = 0; AcceptedIndex < Behavior.Receptacle.AcceptedItems.Num(); ++AcceptedIndex)
+	for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Receptacle.AcceptedItems)
 	{
-		const FGridReceptacleAcceptedItemConfig& AcceptedItem = Behavior.Receptacle.AcceptedItems[AcceptedIndex];
-		AcceptedItemsList->AddSlot().AutoHeight().Padding(0.f, 2.f)[SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 4.f, 0.f)[BuildItemDefinitionAssetPicker(AcceptedItem.ItemDefinition,
-				[Obj, ApplyBehavior, AcceptedIndex](UGridItemDefinitionAsset* NewAsset){ FGridObjectBehaviorParams B = Obj.Behavior; if (B.Receptacle.AcceptedItems.IsValidIndex(AcceptedIndex)){ B.Receptacle.AcceptedItems[AcceptedIndex].ItemDefinition = NewAsset; ApplyBehavior(B); } })]
-			+ SHorizontalBox::Slot().AutoWidth()[SNew(SButton).Text(FText::FromString(TEXT("Remove"))).OnClicked_Lambda([Obj, ApplyBehavior, AcceptedIndex](){ FGridObjectBehaviorParams B = Obj.Behavior; if (B.Receptacle.AcceptedItems.IsValidIndex(AcceptedIndex)){ B.Receptacle.AcceptedItems.RemoveAt(AcceptedIndex); ApplyBehavior(B); } return FReply::Handled(); })]];
+		AcceptedItemsList->AddSlot().AutoHeight().Padding(0.f, 2.f)[SNew(STextBlock).Text(FText::FromString(GetNameSafe(AcceptedItem.ItemDefinition)))];
 	}
-	AcceptedItemsList->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(SButton).Text(FText::FromString(TEXT("Add Accepted Item"))).OnClicked_Lambda([Obj, ApplyBehavior](){ FGridObjectBehaviorParams B = Obj.Behavior; B.Receptacle.AcceptedItems.AddDefaulted(); ApplyBehavior(B); return FReply::Handled(); })];
 	TSharedRef<SVerticalBox> InitialContentList = SNew(SVerticalBox);
-	for (int32 InitialIndex = 0; InitialIndex < Behavior.Receptacle.InitialContent.Num(); ++InitialIndex)
+	for (int32 InitialIndex = 0; InitialIndex < InitialContent.Num(); ++InitialIndex)
 	{
-		const FGridReceptacleInitialItemConfig& InitialItem = Behavior.Receptacle.InitialContent[InitialIndex];
+		const FGridReceptacleInitialItemConfig& InitialItem = InitialContent[InitialIndex];
 		InitialContentList->AddSlot().AutoHeight().Padding(0.f, 2.f)[SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 4.f, 0.f)[BuildItemDefinitionAssetPicker(InitialItem.ItemDefinition,
-				[Obj, ApplyBehavior, InitialIndex](UGridItemDefinitionAsset* NewAsset){ FGridObjectBehaviorParams B = Obj.Behavior; if (B.Receptacle.InitialContent.IsValidIndex(InitialIndex)){ B.Receptacle.InitialContent[InitialIndex].ItemDefinition = NewAsset; ApplyBehavior(B); } })]
+				[this, ObjectId, InitialIndex](UGridItemDefinitionAsset* NewAsset){ EditWorldObjectConfig(ObjectId, [InitialIndex, NewAsset](FGridWorldObjectInstanceConfig& Config){ if (Config.ReceptacleInitialContent.IsValidIndex(InitialIndex)) Config.ReceptacleInitialContent[InitialIndex].ItemDefinition = NewAsset; }); })]
 			+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 4.f, 0.f)[SNew(SSpinBox<int32>).Value(InitialItem.Quantity).MinValue(1).MinSliderValue(1).Delta(1).MinDesiredWidth(70.f)
-				.OnValueCommitted_Lambda([Obj, ApplyBehavior, InitialIndex](int32 NewValue, ETextCommit::Type){ FGridObjectBehaviorParams B = Obj.Behavior; if (B.Receptacle.InitialContent.IsValidIndex(InitialIndex)){ B.Receptacle.InitialContent[InitialIndex].Quantity = FMath::Max(1, NewValue); ApplyBehavior(B); } })]
-			+ SHorizontalBox::Slot().AutoWidth()[SNew(SButton).Text(FText::FromString(TEXT("Remove"))).OnClicked_Lambda([Obj, ApplyBehavior, InitialIndex](){ FGridObjectBehaviorParams B = Obj.Behavior; if (B.Receptacle.InitialContent.IsValidIndex(InitialIndex)){ B.Receptacle.InitialContent.RemoveAt(InitialIndex); ApplyBehavior(B); } return FReply::Handled(); })]];
+				.OnValueCommitted_Lambda([this, ObjectId, InitialIndex](int32 NewValue, ETextCommit::Type){ EditWorldObjectConfig(ObjectId, [InitialIndex, NewValue](FGridWorldObjectInstanceConfig& Config){ if (Config.ReceptacleInitialContent.IsValidIndex(InitialIndex)) Config.ReceptacleInitialContent[InitialIndex].Quantity = FMath::Max(1, NewValue); }); })]
+			+ SHorizontalBox::Slot().AutoWidth()[SNew(SButton).Text(FText::FromString(TEXT("Remove"))).OnClicked_Lambda([this, ObjectId, InitialIndex](){ EditWorldObjectConfig(ObjectId, [InitialIndex](FGridWorldObjectInstanceConfig& Config){ if (Config.ReceptacleInitialContent.IsValidIndex(InitialIndex)) Config.ReceptacleInitialContent.RemoveAt(InitialIndex); }); return FReply::Handled(); })]];
 	}
-	InitialContentList->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(SButton).Text(FText::FromString(TEXT("Add Initial Item"))).OnClicked_Lambda([Obj, ApplyBehavior](){ FGridObjectBehaviorParams B = Obj.Behavior; B.Receptacle.InitialContent.AddDefaulted(); ApplyBehavior(B); return FReply::Handled(); })];
+	InitialContentList->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(SButton).Text(FText::FromString(TEXT("Add Initial Item"))).OnClicked_Lambda([this, ObjectId](){ EditWorldObjectConfig(ObjectId, [](FGridWorldObjectInstanceConfig& Config){ Config.ReceptacleInitialContent.AddDefaulted(); }); return FReply::Handled(); })];
 	return SNew(SBorder).Padding(6.f).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))[SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Receptacle"))).Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))]
 		+ SVerticalBox::Slot().AutoHeight()[Archetype ? GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Interactable")), GetBoolText(Archetype->bIsInteractable)) : SNullWidget::NullWidget]
 		+ SVerticalBox::Slot().AutoHeight()[Archetype ? GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Placement Kind")), GridEditorWidgetHelpers::GetGridEnumDisplayText(PlacementKindEnum, static_cast<int64>(Archetype->PlacementKind))) : SNullWidget::NullWidget]
 		+ SVerticalBox::Slot().AutoHeight()[Archetype && Archetype->bIsLightSource ? GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Light Source")), GetBoolText(Archetype->bIsLightSource)) : SNullWidget::NullWidget]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f, 0.f, 2.f)[SNew(SCheckBox).IsChecked(Behavior.Receptacle.bAcceptAnyItem ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-			.OnCheckStateChanged_Lambda([Obj, ApplyBehavior](ECheckBoxState State){ FGridObjectBehaviorParams B = Obj.Behavior; B.Receptacle.bAcceptAnyItem = State == ECheckBoxState::Checked; ApplyBehavior(B); })[SNew(STextBlock).Text(FText::FromString(TEXT("Accept Any Item")))]]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f, 0.f, 4.f)[!Behavior.Receptacle.bAcceptAnyItem ? GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Accepted Items")), AcceptedItemsList) : SNullWidget::NullWidget]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f, 0.f, 2.f)[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Max Contained Items")), SNew(SSpinBox<int32>).Value(Behavior.Receptacle.MaxContainedItems).MinValue(1).MinSliderValue(1).Delta(1).MinDesiredWidth(90.f)
-			.OnValueCommitted_Lambda([Obj, ApplyBehavior](int32 NewValue, ETextCommit::Type){ FGridObjectBehaviorParams B = Obj.Behavior; B.Receptacle.MaxContainedItems = FMath::Max(1, NewValue); ApplyBehavior(B); }))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Visual Placement Mode")), SNew(SComboButton)
-			.ButtonContent()[SNew(STextBlock).Text(GridEditorWidgetHelpers::GetGridEnumDisplayText(VisualPlacementModeEnum, static_cast<int64>(Behavior.Receptacle.VisualPlacementMode)))]
-			.MenuContent()[BuildVisualPlacementModeMenu()])]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f, 0.f, 2.f)[SNew(SCheckBox).IsChecked(Behavior.Receptacle.bSimulatePhysicsWhenPlaced ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-			.OnCheckStateChanged_Lambda([Obj, ApplyBehavior](ECheckBoxState State){ FGridObjectBehaviorParams B = Obj.Behavior; B.Receptacle.bSimulatePhysicsWhenPlaced = State == ECheckBoxState::Checked; ApplyBehavior(B); })[SNew(STextBlock).Text(FText::FromString(TEXT("Simulate Physics When Placed")))]]
-		+ SVerticalBox::Slot().AutoHeight()[BuildBehaviorFloatSpinBoxRow(FText::FromString(TEXT("Physical Placement Surface Offset")), Behavior.Receptacle.PhysicalPlacementSurfaceOffset,
-			[Obj, ApplyBehavior](float V){ FGridObjectBehaviorParams B = Obj.Behavior; B.Receptacle.PhysicalPlacementSurfaceOffset = FMath::Max(0.f, V); ApplyBehavior(B); })]
-		+ SVerticalBox::Slot().AutoHeight()[BuildBehaviorFloatSpinBoxRow(FText::FromString(TEXT("Physical Rotation Pitch")), Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.Pitch,
-			[Obj, ApplyBehavior](float V){ FGridObjectBehaviorParams B = Obj.Behavior; B.Receptacle.PhysicalPlacementInitialRotationOffset.Pitch = V; ApplyBehavior(B); })]
-		+ SVerticalBox::Slot().AutoHeight()[BuildBehaviorFloatSpinBoxRow(FText::FromString(TEXT("Physical Rotation Yaw")), Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.Yaw,
-			[Obj, ApplyBehavior](float V){ FGridObjectBehaviorParams B = Obj.Behavior; B.Receptacle.PhysicalPlacementInitialRotationOffset.Yaw = V; ApplyBehavior(B); })]
-		+ SVerticalBox::Slot().AutoHeight()[BuildBehaviorFloatSpinBoxRow(FText::FromString(TEXT("Physical Rotation Roll")), Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.Roll,
-			[Obj, ApplyBehavior](float V){ FGridObjectBehaviorParams B = Obj.Behavior; B.Receptacle.PhysicalPlacementInitialRotationOffset.Roll = V; ApplyBehavior(B); })]
+		+ SVerticalBox::Slot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("Acceptance and placement rules come from the shared definition."))).AutoWrapText(true)]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Accept Any Item")), GetBoolText(Receptacle.bAcceptAnyItem))]
+		+ SVerticalBox::Slot().AutoHeight()[!Receptacle.bAcceptAnyItem ? GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Accepted Items")), AcceptedItemsList) : SNullWidget::NullWidget]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Max Contained Items")), FText::AsNumber(Receptacle.MaxContainedItems))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Visual Placement Mode")), GridEditorWidgetHelpers::GetGridEnumDisplayText(VisualPlacementModeEnum, static_cast<int64>(Receptacle.VisualPlacementMode)))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Simulate Physics When Placed")), GetBoolText(Receptacle.bSimulatePhysicsWhenPlaced))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Physical Placement Surface Offset")), FText::AsNumber(Receptacle.PhysicalPlacementSurfaceOffset))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Physical Rotation Pitch")), FText::AsNumber(Receptacle.PhysicalPlacementInitialRotationOffset.Pitch))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Physical Rotation Yaw")), FText::AsNumber(Receptacle.PhysicalPlacementInitialRotationOffset.Yaw))]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Physical Rotation Roll")), FText::AsNumber(Receptacle.PhysicalPlacementInitialRotationOffset.Roll))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Initial Content")), InitialContentList)]];
 }
 

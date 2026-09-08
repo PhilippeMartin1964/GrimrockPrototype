@@ -22,6 +22,43 @@
 
 namespace
 {
+	FString GetOverviewObjectIdentifier(const UGridLevelAsset& Level, FGuid ObjectId)
+	{
+		FName Tag;
+		FName DefinitionId;
+		FName PaletteEntryId;
+		if (const FGridWorldObjectInstance* WorldObjectInstance = Level.FindWorldObjectInstanceById(ObjectId))
+		{
+			Tag = WorldObjectInstance->Tag;
+			DefinitionId = WorldObjectInstance->WorldObjectDefinitionId;
+			PaletteEntryId = WorldObjectInstance->PaletteEntryId;
+		}
+		else if (const FGridLooseItemInstance* LooseItemInstance = Level.FindLooseItemInstanceById(ObjectId))
+		{
+			Tag = LooseItemInstance->Tag;
+			PaletteEntryId = LooseItemInstance->PaletteEntryId;
+		}
+		else if (const FGridMonsterSpawnInstance* MonsterSpawn = Level.FindMonsterSpawnInstanceById(ObjectId))
+		{
+			Tag = MonsterSpawn->Tag;
+			PaletteEntryId = MonsterSpawn->PaletteEntryId;
+		}
+		else if (const FGridItemSpawnInstance* ItemSpawn = Level.FindItemSpawnInstanceById(ObjectId))
+		{
+			Tag = ItemSpawn->Tag;
+			PaletteEntryId = ItemSpawn->PaletteEntryId;
+		}
+		else if (const FGridLogicObjectInstance* LogicInstance = Level.FindLogicObjectInstanceById(ObjectId))
+		{
+			Tag = LogicInstance->Tag;
+			PaletteEntryId = LogicInstance->PaletteEntryId;
+		}
+		if (!Tag.IsNone()) return FString::Printf(TEXT("Tag=%s"), *Tag.ToString());
+		if (!DefinitionId.IsNone()) return FString::Printf(TEXT("Archetype=%s"), *DefinitionId.ToString());
+		if (!PaletteEntryId.IsNone()) return FString::Printf(TEXT("Palette=%s"), *PaletteEntryId.ToString());
+		return FString::Printf(TEXT("Id=%s"), *ObjectId.ToString().Left(8));
+	}
+
 	FText GetBooleanText(bool bValue)
 	{
 		return bValue ? FText::FromString(TEXT("Yes")) : FText::FromString(TEXT("No"));
@@ -105,11 +142,6 @@ namespace
 			default:
 				return false;
 		}
-	}
-
-	bool IsDoorMarker(const FGridLevelObjectData& Obj)
-	{
-		return Obj.Type == EGridLevelObjectType::Door;
 	}
 
 	FMargin GetOverviewMarkerPadding(EGridEditorOverviewObjectAnchor Anchor, bool bDoorMarker)
@@ -221,16 +253,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMapSection()
 	}
 
 	const UGridLevelAsset* LevelAsset = CurrentEditorActor->LevelAsset;
-	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	TOptional<FGridLevelObjectData> SelectedObject;
-	if (const FGridLevelObjectData* SelectedObjectView = CompatibilityObjects.FindByPredicate(
-		[CurrentEditorActor](const FGridLevelObjectData& Object)
-		{
-			return Object.ObjectId == CurrentEditorActor->LastSelectedObjectId;
-		}))
-	{
-		SelectedObject = *SelectedObjectView;
-	}
+	const FGuid SelectedObjectId = CurrentEditorActor->LastSelectedObjectId;
 
 	TSharedRef<SUniformGridPanel> GridPanel = SNew(SUniformGridPanel).SlotPadding(FMargin(1.f));
 
@@ -240,7 +263,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMapSection()
 		for (int32 X = LevelAsset->Width - 1; X >= 0; --X)
 		{
 			const int32 DisplayColumn = LevelAsset->Width - 1 - X;
-			GridPanel->AddSlot(DisplayColumn, DisplayRow)[BuildOverviewCell(X, Y, SelectedObject)];
+			GridPanel->AddSlot(DisplayColumn, DisplayRow)[BuildOverviewCell(X, Y, SelectedObjectId)];
 		}
 	}
 
@@ -268,31 +291,18 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMapSection()
 }
 
 TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell(
-	int32 CellX, int32 CellY, const TOptional<FGridLevelObjectData>& SelectedObject)
+	int32 CellX, int32 CellY, FGuid SelectedObjectId)
 {
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
 	const UGridLevelAsset* LevelAsset = CurrentEditorActor ? CurrentEditorActor->LevelAsset : nullptr;
 	const bool bValidCell = LevelAsset && LevelAsset->IsValidCoord(CellX, CellY);
 	const FGridLevelCellData* CellData = bValidCell ? &LevelAsset->GetCell(CellX, CellY) : nullptr;
 
-	TArray<FGridLevelObjectData> CellObjects;
-	if (LevelAsset)
-	{
-		const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-		for (const FGridLevelObjectData& Obj : CompatibilityObjects)
-		{
-			if (Obj.CellX != CellX || Obj.CellY != CellY)
-			{
-				continue;
-			}
-
-			CellObjects.Add(Obj);
-		}
-	}
+	const TArray<FGuid> CellObjects = LevelAsset ? LevelAsset->GetTypedPlacementIdsAtCell(CellX, CellY) : TArray<FGuid>();
 
 	const int32 ObjectCount = CellObjects.Num();
 	const bool bSelectedCell = CurrentEditorActor && CurrentEditorActor->SelectedCellX == CellX && CurrentEditorActor->SelectedCellY == CellY;
-	const bool bSelectedObjectCell = SelectedObject.IsSet() && SelectedObject.GetValue().CellX == CellX && SelectedObject.GetValue().CellY == CellY;
+	const bool bSelectedObjectCell = SelectedObjectId.IsValid() && CellObjects.Contains(SelectedObjectId);
 	const bool bExistingCell = CellData && CellData->CellType != EGridCellType::Empty;
 
 	const bool bHasSpecialOutline = CellData && (bSelectedCell || (bExistingCell && (bSelectedObjectCell || ObjectCount > 1)));
@@ -328,9 +338,11 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell(
 				})[SNew(SBox).WidthOverride(18.f).HeightOverride(18.f)[CellOverlay]]];
 }
 
-TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers(const TArray<FGridLevelObjectData>& CellObjects) const
+TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers(const TArray<FGuid>& CellObjectIds) const
 {
 	TSharedRef<SOverlay> MarkerOverlay = SNew(SOverlay);
+	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
+	const UGridLevelAsset* LevelAsset = CurrentEditorActor ? CurrentEditorActor->LevelAsset : nullptr;
 
 	bool bHasNorthMarker = false;
 	bool bHasEastMarker = false;
@@ -342,9 +354,9 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers(const TA
 	bool bSouthMarkerIsDoor = false;
 	bool bWestMarkerIsDoor = false;
 
-	for (const FGridLevelObjectData& Obj : CellObjects)
+	for (const FGuid& ObjectId : CellObjectIds)
 	{
-		const EGridEditorOverviewObjectAnchor MarkerAnchor = GetMirroredOverviewCellAnchor(GetObjectAnchor(Obj));
+		const EGridEditorOverviewObjectAnchor MarkerAnchor = GetMirroredOverviewCellAnchor(GetObjectAnchor(ObjectId));
 		bool* bAnchorAlreadyUsed = nullptr;
 		bool* bAnchorUsesDoorGeometry = nullptr;
 		switch (MarkerAnchor)
@@ -376,7 +388,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers(const TA
 		}
 
 		*bAnchorAlreadyUsed = true;
-		if (bAnchorUsesDoorGeometry && IsDoorMarker(Obj))
+		if (bAnchorUsesDoorGeometry && LevelAsset && LevelAsset->GetTypedPlacementType(ObjectId) == EGridLevelObjectType::Door)
 		{
 			*bAnchorUsesDoorGeometry = true;
 		}
@@ -487,7 +499,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildObjectsOnSelectedCellSecti
 	bool bHasObjects = false;
 	for (const FGridEditorOverviewAnchorObjectGroup& Group : ObjectGroups)
 	{
-		if (Group.Objects.Num() == 0)
+		if (Group.ObjectIds.Num() == 0)
 		{
 			continue;
 		}
@@ -516,10 +528,8 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildObjectAnchorGroup(const FG
 			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 8))
 			.ColorAndOpacity(FSlateColor(FLinearColor(0.86f, 0.86f, 0.86f, 1.f)))];
 
-	for (const FGridLevelObjectData& Object : Group.Objects)
+	for (const FGuid& ObjectId : Group.ObjectIds)
 	{
-		const FGuid ObjectId = Object.ObjectId;
-
 		GroupBox->AddSlot ()
         .AutoHeight ()
         .Padding (0.f, 1.f, 0.f, 1.f)
@@ -532,7 +542,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildObjectAnchorGroup(const FG
             .Padding (0.f, 0.f, 5.f, 0.f)
             [
                 SNew (STextBlock)
-                    .Text (GetSelectedCellObjectSummaryText (Object))
+                    .Text (GetSelectedCellObjectSummaryText (ObjectId))
                     .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 8))
                     .AutoWrapText (true)
             ]
@@ -641,30 +651,11 @@ FText SGridEditorOverviewMapPanel::GetCellObjectSummaryText(int32 CellX, int32 C
 
 	const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType>();
 	TArray<FString> ObjectSummaries;
-	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	for (const FGridLevelObjectData& Obj : CompatibilityObjects)
+	for (const FGuid& ObjectId : LevelAsset->GetTypedPlacementIdsAtCell(CellX, CellY))
 	{
-		if (Obj.CellX != CellX || Obj.CellY != CellY)
-		{
-			continue;
-		}
-
-		FString Details;
-		if (!Obj.Tag.IsNone())
-		{
-			Details = FString::Printf(TEXT(" tag=%s"), *Obj.Tag.ToString());
-		}
-		else if (!Obj.ArchetypeId.IsNone())
-		{
-			Details = FString::Printf(TEXT(" archetype=%s"), *Obj.ArchetypeId.ToString());
-		}
-		else if (!Obj.PaletteEntryId.IsNone())
-		{
-			Details = FString::Printf(TEXT(" palette=%s"), *Obj.PaletteEntryId.ToString());
-		}
-
-		ObjectSummaries.Add(
-			FString::Printf(TEXT("%s%s"), *GridEditorWidgetHelpers::GetGridEnumDisplayText(TypeEnum, static_cast<int64>(Obj.Type)).ToString(), *Details));
+		ObjectSummaries.Add(FString::Printf(TEXT("%s %s"),
+			*GridEditorWidgetHelpers::GetGridEnumDisplayText(TypeEnum, static_cast<int64>(LevelAsset->GetTypedPlacementType(ObjectId))).ToString(),
+			*GetOverviewObjectIdentifier(*LevelAsset, ObjectId)));
 	}
 
 	return ObjectSummaries.Num() > 0 ? FText::FromString(FString::Join(ObjectSummaries, TEXT("; "))) : FText::FromString(TEXT("None"));
@@ -695,30 +686,16 @@ FText SGridEditorOverviewMapPanel::GetObjectAnchorLabel(EGridEditorOverviewObjec
 	}
 }
 
-FText SGridEditorOverviewMapPanel::GetSelectedCellObjectSummaryText(const FGridLevelObjectData& Object) const
+FText SGridEditorOverviewMapPanel::GetSelectedCellObjectSummaryText(FGuid ObjectId) const
 {
-	const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType>();
-	const FString TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText(TypeEnum, static_cast<int64>(Object.Type)).ToString();
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor ? CurrentEditorActor->FindObjectArchetypeById(Object.ArchetypeId) : nullptr;
-
-	FString IdentifierText;
-	if (!Object.Tag.IsNone())
-	{
-		IdentifierText = FString::Printf(TEXT("Tag=%s"), *Object.Tag.ToString());
-	}
-	else if (!Object.ArchetypeId.IsNone())
-	{
-		IdentifierText = FString::Printf(TEXT("Archetype=%s"), *Object.ArchetypeId.ToString());
-	}
-	else if (!Object.PaletteEntryId.IsNone())
-	{
-		IdentifierText = FString::Printf(TEXT("Palette=%s"), *Object.PaletteEntryId.ToString());
-	}
-	else
-	{
-		IdentifierText = FString::Printf(TEXT("Id=%s"), *Object.ObjectId.ToString().Left(8));
-	}
+	const UGridLevelAsset* LevelAsset = CurrentEditorActor ? CurrentEditorActor->LevelAsset : nullptr;
+	if (!LevelAsset || !LevelAsset->ContainsTypedPlacementId(ObjectId)) return FText::GetEmpty();
+	const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType>();
+	const FString TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText(TypeEnum, static_cast<int64>(LevelAsset->GetTypedPlacementType(ObjectId))).ToString();
+	const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId);
+	const UGridObjectArchetypeAsset* Archetype = WorldObjectInstance ? CurrentEditorActor->FindObjectArchetypeById(WorldObjectInstance->WorldObjectDefinitionId) : nullptr;
+	const FString IdentifierText = GetOverviewObjectIdentifier(*LevelAsset, ObjectId);
 
 	FString ArchetypeDetails;
 	if (Archetype)
@@ -733,43 +710,23 @@ FText SGridEditorOverviewMapPanel::GetSelectedCellObjectSummaryText(const FGridL
 	return FText::FromString(FString::Printf(TEXT("%s | %s%s"), *TypeText, *IdentifierText, *ArchetypeDetails));
 }
 
-EGridEditorOverviewObjectAnchor SGridEditorOverviewMapPanel::GetObjectAnchor(const FGridLevelObjectData& Object) const
+EGridEditorOverviewObjectAnchor SGridEditorOverviewMapPanel::GetObjectAnchor(FGuid ObjectId) const
 {
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor ? CurrentEditorActor->FindObjectArchetypeById(Object.ArchetypeId) : nullptr;
-	if (Archetype)
-	{
-		if (!Archetype->IsEdgePlaced())
-		{
-			return EGridEditorOverviewObjectAnchor::Center;
-		}
-
-		switch (Object.Edge)
-		{
-			case EGridEdge::North:
-				return EGridEditorOverviewObjectAnchor::North;
-
-			case EGridEdge::East:
-				return EGridEditorOverviewObjectAnchor::East;
-
-			case EGridEdge::South:
-				return EGridEditorOverviewObjectAnchor::South;
-
-			case EGridEdge::West:
-				return EGridEditorOverviewObjectAnchor::West;
-
-			case EGridEdge::None:
-			default:
-				return EGridEditorOverviewObjectAnchor::Center;
-		}
-	}
-
-	if (!IsOverviewEdgeObject(Object.Type))
+	const UGridLevelAsset* LevelAsset = CurrentEditorActor ? CurrentEditorActor->LevelAsset : nullptr;
+	int32 CellX, CellY;
+	EGridEdge Edge;
+	if (!LevelAsset || !LevelAsset->TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge)) return EGridEditorOverviewObjectAnchor::None;
+	const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId);
+	const UGridObjectArchetypeAsset* Archetype = WorldObjectInstance ? CurrentEditorActor->FindObjectArchetypeById(WorldObjectInstance->WorldObjectDefinitionId) : nullptr;
+	const bool bEdgePlaced = Archetype ? Archetype->IsEdgePlaced() :
+		(LevelAsset->FindLooseItemInstanceById(ObjectId) ? Edge != EGridEdge::None : IsOverviewEdgeObject(LevelAsset->GetTypedPlacementType(ObjectId)));
+	if (!bEdgePlaced)
 	{
 		return EGridEditorOverviewObjectAnchor::Center;
 	}
 
-	switch (Object.Edge)
+	switch (Edge)
 	{
 		case EGridEdge::North:
 			return EGridEditorOverviewObjectAnchor::North;
@@ -813,20 +770,14 @@ TArray<FGridEditorOverviewAnchorObjectGroup> SGridEditorOverviewMapPanel::GetObj
 		return Groups;
 	}
 
-	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	for (const FGridLevelObjectData& Object : CompatibilityObjects)
+	for (const FGuid& ObjectId : LevelAsset->GetTypedPlacementIdsAtCell(CurrentEditorActor->SelectedCellX, CurrentEditorActor->SelectedCellY))
 	{
-		if (Object.CellX != CurrentEditorActor->SelectedCellX || Object.CellY != CurrentEditorActor->SelectedCellY)
-		{
-			continue;
-		}
-
-		const EGridEditorOverviewObjectAnchor Anchor = GetObjectAnchor(Object);
+		const EGridEditorOverviewObjectAnchor Anchor = GetObjectAnchor(ObjectId);
 		for (FGridEditorOverviewAnchorObjectGroup& Group : Groups)
 		{
 			if (Group.Anchor == Anchor)
 			{
-				Group.Objects.Add(Object);
+				Group.ObjectIds.Add(ObjectId);
 				break;
 			}
 		}
@@ -844,16 +795,7 @@ bool SGridEditorOverviewMapPanel::HasObjectAtCell(int32 CellX, int32 CellY) cons
 		return false;
 	}
 
-	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	for (const FGridLevelObjectData& Obj : CompatibilityObjects)
-	{
-		if (Obj.CellX == CellX && Obj.CellY == CellY)
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return !LevelAsset->GetTypedPlacementIdsAtCell(CellX, CellY).IsEmpty();
 }
 
 #endif

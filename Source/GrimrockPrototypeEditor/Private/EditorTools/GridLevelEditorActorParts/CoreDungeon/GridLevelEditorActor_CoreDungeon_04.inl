@@ -61,6 +61,20 @@ bool AGridLevelEditorActor::IsEdgePlacedObject(const FGridLevelObjectData& Objec
 	return IsEdgePlacedObject(ObjectData.Type, ObjectData.ArchetypeId);
 }
 
+bool AGridLevelEditorActor::IsEdgePlacedObject(const FGuid& ObjectId) const
+{
+	if (!LevelAsset) return false;
+	if (const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId))
+	{
+		return IsEdgePlacedObject(WorldObjectInstance->Type, WorldObjectInstance->WorldObjectDefinitionId);
+	}
+	if (const FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(ObjectId))
+	{
+		return LooseItemInstance->SurfaceSide != EGridEdge::None;
+	}
+	return false;
+}
+
 bool AGridLevelEditorActor::IsEdgePlacedObject(EGridLevelObjectType ObjectType, FName ArchetypeId) const
 {
 	if (ObjectType == EGridLevelObjectType::Item && ArchetypeId == FName(TEXT("Item_Torch")))
@@ -120,53 +134,55 @@ bool AGridLevelEditorActor::SetSelectedObjectOrientation(EGridEdge Orientation)
 		return false;
 	}
 
-	const FGridLevelObjectData* SelectedObject = FindObjectById(LastSelectedObjectId);
-	if (!SelectedObject)
+	int32 CellX, CellY;
+	EGridEdge Edge;
+	if (!LevelAsset->TryGetTypedPlacementLocation(LastSelectedObjectId, CellX, CellY, Edge))
 	{
 		return false;
 	}
 
-	FGridLevelObjectData EditedObject = *SelectedObject;
-	const bool bUsesEdge = IsEdgePlacedObject(EditedObject);
+	const EGridLevelObjectType ObjectType = LevelAsset->GetTypedPlacementType(LastSelectedObjectId);
+	const bool bUsesEdge = IsEdgePlacedObject(LastSelectedObjectId);
 	if (bUsesEdge)
 	{
-		const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-		const bool bDestinationOccupied = CompatibilityObjects.ContainsByPredicate(
-			[&EditedObject, Orientation](const FGridLevelObjectData& Obj)
-			{
-				return Obj.ObjectId != EditedObject.ObjectId && Obj.CellX == EditedObject.CellX && Obj.CellY == EditedObject.CellY &&
-					Obj.Type == EditedObject.Type && Obj.Edge == Orientation;
-			});
-
-		if (bDestinationOccupied)
+		for (const FGuid& ObjectId : LevelAsset->GetTypedPlacementIdsAtCell(CellX, CellY))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: cannot orient selected object, destination edge is occupied."));
-			return false;
+			int32 OtherCellX, OtherCellY;
+			EGridEdge OtherEdge;
+			if (ObjectId != LastSelectedObjectId && LevelAsset->GetTypedPlacementType(ObjectId) == ObjectType &&
+				LevelAsset->TryGetTypedPlacementLocation(ObjectId, OtherCellX, OtherCellY, OtherEdge) && OtherEdge == Orientation)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: cannot orient selected object, destination edge is occupied."));
+				return false;
+			}
 		}
 	}
 
-	if (bUsesEdge)
+	if (FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId))
 	{
-		EditedObject.Edge = Orientation;
+		LevelAsset->Modify();
+		if (bUsesEdge) WorldObjectInstance->WallSide = Orientation;
+		else
+		{
+			if (!WorldObjectInstance->bHasLocalTransformOverride) WorldObjectInstance->LocalTransformOverride = FTransform::Identity;
+			FRotator Rotation = WorldObjectInstance->LocalTransformOverride.Rotator();
+			Rotation.Yaw = GetYawForOrientation(Orientation);
+			WorldObjectInstance->LocalTransformOverride.SetRotation(Rotation.Quaternion());
+			WorldObjectInstance->bHasLocalTransformOverride = !WorldObjectInstance->LocalTransformOverride.Equals(FTransform::Identity);
+		}
 	}
-	else if (EditedObject.Type == EGridLevelObjectType::MonsterSpawn)
+	else if (FGridMonsterSpawnInstance* MonsterSpawn = LevelAsset->FindMonsterSpawnInstanceById(LastSelectedObjectId))
 	{
-		EditedObject.InitialFacing = Orientation;
-		EditedObject.LocalYaw = GetYawForOrientation(Orientation);
+		LevelAsset->Modify();
+		MonsterSpawn->Facing = Orientation;
 	}
-	else
+	else if (FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(LastSelectedObjectId))
 	{
-		EditedObject.LocalYaw = GetYawForOrientation(Orientation);
+		LevelAsset->Modify();
+		if (bUsesEdge) LooseItemInstance->SurfaceSide = Orientation;
+		else LooseItemInstance->LocalYaw = GetYawForOrientation(Orientation);
 	}
-
-#if WITH_EDITOR
-	LevelAsset->Modify();
-#endif
-
-	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
-	{
-		return false;
-	}
+	else return false;
 
 	if (bUsesEdge)
 	{

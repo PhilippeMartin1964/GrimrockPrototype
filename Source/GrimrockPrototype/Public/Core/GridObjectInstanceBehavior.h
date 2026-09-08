@@ -14,6 +14,19 @@
  */
 namespace GridObjectInstanceBehavior
 {
+	inline FGridObjectBehaviorParams Resolve(
+		const FGridWorldObjectInstance& WorldObjectInstance, const UGridObjectArchetypeAsset* Archetype)
+	{
+		FGridObjectBehaviorParams Resolved = Archetype ? Archetype->DefaultBehavior : FGridObjectBehaviorParams();
+		const FGridWorldObjectInstanceConfig& Config = WorldObjectInstance.InstanceConfig;
+		Resolved.Teleporter = Config.Teleporter;
+		Resolved.Transition = Config.Transition;
+		Resolved.Pit = Config.Pit;
+		Resolved.Receptacle.InitialContent = Config.ReceptacleInitialContent;
+		Resolved.Lock.bStartsUnlocked = Config.bStartsUnlocked;
+		return Resolved;
+	}
+
 	inline FGridObjectBehaviorParams BuildSparseOverrides(const FGridObjectBehaviorParams& Source)
 	{
 		FGridObjectBehaviorParams Overrides;

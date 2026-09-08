@@ -2,16 +2,21 @@
 
 namespace
 {
-	bool ApplyGridEditorObjectSnapshotToAuthority(UGridLevelAsset* LevelAsset, const FGridLevelObjectData& EditedObject)
+	// Apply an authoring edit directly to one concrete placement. No snapshot or cache is created.
+	template <typename TEdit>
+	bool EditGridPlacementAuthoring(UGridLevelAsset* LevelAsset, FGuid ObjectId, TEdit&& Edit)
 	{
-		if (!LevelAsset || !EditedObject.ObjectId.IsValid())
-		{
-			return false;
-		}
-
-		// WORLDOBJ-MIG09-E1: typed placement collections are always authoritative.
-		return LevelAsset->AddObject(EditedObject) == EditedObject.ObjectId;
+		if (!LevelAsset || !LevelAsset->ContainsTypedPlacementId(ObjectId)) return false;
+		LevelAsset->Modify();
+		if (FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId)) Edit(*WorldObjectInstance);
+		else if (FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(ObjectId)) Edit(*LooseItemInstance);
+		else if (FGridMonsterSpawnInstance* MonsterSpawn = LevelAsset->FindMonsterSpawnInstanceById(ObjectId)) Edit(*MonsterSpawn);
+		else if (FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(ObjectId)) Edit(*ItemSpawn);
+		else if (FGridLogicObjectInstance* LogicInstance = LevelAsset->FindLogicObjectInstanceById(ObjectId)) Edit(*LogicInstance);
+		LevelAsset->MarkPackageDirty();
+		return true;
 	}
+
 }
 
 // MON19.2.1R — Décomposition structurelle de AGridLevelEditorActor.

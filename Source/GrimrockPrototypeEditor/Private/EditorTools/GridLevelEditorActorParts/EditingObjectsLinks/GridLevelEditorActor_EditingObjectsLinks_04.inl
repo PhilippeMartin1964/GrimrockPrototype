@@ -1,58 +1,3 @@
-{
-	if (Obj.ObjectId == ObjectId)
-	{
-		ObjectView = Obj;
-		return &ObjectView;
-	}
-}
-return nullptr;
-}
-
-bool AGridLevelEditorActor::TryGetObjectWorldLocation(const FGridLevelObjectData& ObjectData, FVector& OutWorldLocation) const
-{
-	if (!HasValidLevelAsset())
-	{
-		return false;
-	}
-	const float CellSize = LevelAsset->CellSize;
-	FVector GridWorldOrigin = FVector::ZeroVector;
-	if (PreviewRuntimeActor)
-	{
-		GridWorldOrigin = PreviewRuntimeActor->GetActorLocation() + PreviewRuntimeActor->GridOrigin;
-	}
-
-	const FVector CellCenter =
-		GridWorldOrigin + FVector((ObjectData.CellX * CellSize) + (CellSize * 0.5f), (ObjectData.CellY * CellSize) + (CellSize * 0.5f), 12.f);
-
-	if (IsEdgePlacedObject(ObjectData))
-	{
-		switch (ObjectData.Edge)
-		{
-			case EGridEdge::North:
-				OutWorldLocation = CellCenter + FVector(0.f, CellSize * 0.5f, 0.f);
-				return true;
-
-			case EGridEdge::East:
-				OutWorldLocation = CellCenter + FVector(CellSize * 0.5f, 0.f, 0.f);
-				return true;
-
-			case EGridEdge::South:
-				OutWorldLocation = CellCenter + FVector(0.f, -CellSize * 0.5f, 0.f);
-				return true;
-
-			case EGridEdge::West:
-				OutWorldLocation = CellCenter + FVector(-CellSize * 0.5f, 0.f, 0.f);
-				return true;
-
-			default:
-				return false;
-		}
-	}
-
-	OutWorldLocation = CellCenter;
-	return true;
-}
-
 bool AGridLevelEditorActor::TryGetSelectedObjectWorldLocation(FVector& OutWorldLocation) const
 {
 	return LastSelectedObjectId.IsValid() && TryGetObjectWorldLocationById(LastSelectedObjectId, OutWorldLocation);
@@ -85,8 +30,8 @@ bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection()
 		return false;
 	}
 
-	const FGridLevelObjectData* SelectedObject = FindObjectAtSelection();
-	if (!SelectedObject)
+	const FGuid SelectedObjectId = FindObjectIdAtSelection();
+	if (!SelectedObjectId.IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: no object at selection for link mode."));
 		return false;
@@ -94,16 +39,16 @@ bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection()
 
 	if (!bHasPendingLinkSource)
 	{
-		PendingLinkSourceObjectId = SelectedObject->ObjectId;
+		PendingLinkSourceObjectId = SelectedObjectId;
 		bHasPendingLinkSource = true;
-		LastSelectedObjectId = SelectedObject->ObjectId;
+		LastSelectedObjectId = SelectedObjectId;
 
-		UE_LOG(LogTemp, Log, TEXT("GridLevelEditorActor: link source set to %s"), *SelectedObject->ObjectId.ToString());
+		UE_LOG(LogTemp, Log, TEXT("GridLevelEditorActor: link source set to %s"), *SelectedObjectId.ToString());
 
 		return true;
 	}
 
-	if (PendingLinkSourceObjectId == SelectedObject->ObjectId)
+	if (PendingLinkSourceObjectId == SelectedObjectId)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: source and target are identical."));
 		return false;
@@ -111,7 +56,7 @@ bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection()
 
 	FGridObjectLink NewLink;
 	NewLink.SourceObjectId = PendingLinkSourceObjectId;
-	NewLink.TargetObjectId = SelectedObject->ObjectId;
+	NewLink.TargetObjectId = SelectedObjectId;
 	NewLink.SourceEvent = LinkSourceEvent;
 	NewLink.Command = LinkCommand;
 	NewLink.Condition = EGridObjectCondition::None;
@@ -125,10 +70,10 @@ bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection()
 
 	if (!bAlreadyExists)
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridLevelEditorActor: link created %s -> %s"), *PendingLinkSourceObjectId.ToString(), *SelectedObject->ObjectId.ToString());
+		UE_LOG(LogTemp, Log, TEXT("GridLevelEditorActor: link created %s -> %s"), *PendingLinkSourceObjectId.ToString(), *SelectedObjectId.ToString());
 	}
 
-	LastSelectedObjectId = SelectedObject->ObjectId;
+	LastSelectedObjectId = SelectedObjectId;
 	ClearPendingLinkSource();
 	if (bAlreadyExists)
 	{
@@ -144,8 +89,8 @@ bool AGridLevelEditorActor::RemoveLinksAtSelection()
 		return false;
 	}
 
-	const FGridLevelObjectData* SelectedObject = FindObjectAtSelection();
-	if (!SelectedObject)
+	const FGuid SelectedObjectId = FindObjectIdAtSelection();
+	if (!SelectedObjectId.IsValid())
 	{
 		return false;
 	}
@@ -157,7 +102,7 @@ bool AGridLevelEditorActor::RemoveLinksAtSelection()
 	const int32 RemovedCount = LevelAsset->Links.RemoveAll(
 		[&](const FGridObjectLink& Link)
 		{
-			return Link.SourceObjectId == SelectedObject->ObjectId || Link.TargetObjectId == SelectedObject->ObjectId;
+			return Link.SourceObjectId == SelectedObjectId || Link.TargetObjectId == SelectedObjectId;
 		});
 
 	if (RemovedCount > 0)

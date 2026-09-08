@@ -546,6 +546,7 @@ private:
 	bool IsValidSelectedCell() const;
 	bool RequiresEdge(EGridLevelObjectType ObjectType) const;
 	bool IsEdgePlacedObject(const FGridLevelObjectData& ObjectData) const;
+	bool IsEdgePlacedObject(const FGuid& ObjectId) const;
 	bool IsEdgePlacedObject(EGridLevelObjectType ObjectType, FName ArchetypeId) const;
 	bool IsCellCenteredObject(EGridLevelObjectType ObjectType) const;
 
@@ -560,10 +561,7 @@ private:
 
 	EGridEdge GetEdgeFromPointInCell(const FVector2D& LocalInCell, float CellSize) const;
 
-	const FGridLevelObjectData* FindObjectAtSelection() const;
-	const FGridLevelObjectData* FindObjectById(const FGuid& ObjectId) const;
-	FGridLevelObjectData* FindSelectedObjectMutable();
-	bool TryGetObjectWorldLocation(const FGridLevelObjectData& ObjectData, FVector& OutWorldLocation) const;
+	FGuid FindObjectIdAtSelection() const;
 
 	void ClearSelectedObjectState();
 

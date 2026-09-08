@@ -184,44 +184,17 @@ void AGridLevelEditorActor::ApplySecondaryToolAction()
 	}
 }
 
-const FGridLevelObjectData* AGridLevelEditorActor::FindObjectAtSelection() const
+FGuid AGridLevelEditorActor::FindObjectIdAtSelection() const
 {
-	if (!HasValidLevelAsset() || !IsValidSelectedCell())
+	if (!HasValidLevelAsset() || !IsValidSelectedCell()) return FGuid();
+	const TArray<FGuid> ObjectIds = LevelAsset->GetTypedPlacementIdsAtCell(SelectedCellX, SelectedCellY);
+	for (int32 Index = ObjectIds.Num() - 1; Index >= 0; --Index)
 	{
-		return nullptr;
+		int32 CellX, CellY;
+		EGridEdge Edge;
+		const FGuid ObjectId = ObjectIds[Index];
+		if (LevelAsset->TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge) &&
+			(!IsEdgePlacedObject(ObjectId) || Edge == SelectedEdge)) return ObjectId;
 	}
-
-	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	static FGridLevelObjectData SelectionView;
-
-	for (int32 Index = CompatibilityObjects.Num() - 1; Index >= 0; --Index)
-	{
-		const FGridLevelObjectData& Obj = CompatibilityObjects[Index];
-
-		if (Obj.CellX != SelectedCellX || Obj.CellY != SelectedCellY)
-		{
-			continue;
-		}
-
-		if (IsEdgePlacedObject(Obj) && Obj.Edge != SelectedEdge)
-		{
-			continue;
-		}
-
-		SelectionView = Obj;
-		return &SelectionView;
-	}
-	return nullptr;
+	return FGuid();
 }
-
-const FGridLevelObjectData* AGridLevelEditorActor::FindObjectById(const FGuid& ObjectId) const
-{
-	if (!HasValidLevelAsset() || !ObjectId.IsValid())
-	{
-		return nullptr;
-	}
-
-	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	static FGridLevelObjectData ObjectView;
-
-	for (const FGridLevelObjectData& Obj : CompatibilityObjects)

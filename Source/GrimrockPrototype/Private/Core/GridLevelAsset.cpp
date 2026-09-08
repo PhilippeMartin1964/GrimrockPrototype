@@ -43,9 +43,9 @@ namespace
 		}
 	}
 
-	FString GetMonsterSpawnLabel(const FGridLevelObjectData& Spawn)
+	FString GetMonsterSpawnLabel(const FGridMonsterSpawnInstance& Spawn)
 	{
-		return Spawn.ObjectId.IsValid() ? Spawn.ObjectId.ToString(EGuidFormats::DigitsWithHyphens)
+		return Spawn.SpawnId.IsValid() ? Spawn.SpawnId.ToString(EGuidFormats::DigitsWithHyphens)
 			: FString::Printf(TEXT("at (%d,%d)"), Spawn.CellX, Spawn.CellY);
 	}
 
@@ -402,32 +402,31 @@ bool UGridLevelAsset::CommitCompatibilityObjectEdit(const FGuid& ObjectId)
 bool UGridLevelAsset::ValidateMonsterSpawns(TArray<FString>& OutErrors) const
 {
 	OutErrors.Reset();
-	const TArray<FGridLevelObjectData>& ObjectView = GetObjectCompatibilityView();
 
 	TMap<FGuid, int32> ObjectIdCounts;
-	for (const FGridLevelObjectData& ObjectData : ObjectView)
+	const auto CountId = [&ObjectIdCounts](const FGuid& ObjectId)
 	{
-		if (ObjectData.ObjectId.IsValid())
+		if (ObjectId.IsValid())
 		{
-			++ObjectIdCounts.FindOrAdd(ObjectData.ObjectId);
+			++ObjectIdCounts.FindOrAdd(ObjectId);
 		}
-	}
+	};
+	for (const FGridWorldObjectInstance& WorldObjectInstance : WorldObjectInstances) CountId(WorldObjectInstance.InstanceId);
+	for (const FGridLooseItemInstance& LooseItemInstance : LooseItemInstances) CountId(LooseItemInstance.InstanceId);
+	for (const FGridMonsterSpawnInstance& MonsterSpawn : MonsterSpawns) CountId(MonsterSpawn.SpawnId);
+	for (const FGridItemSpawnInstance& ItemSpawn : ItemSpawns) CountId(ItemSpawn.SpawnId);
+	for (const FGridLogicObjectInstance& LogicInstance : LogicObjects) CountId(LogicInstance.InstanceId);
 
 	TMap<FIntPoint, FGuid> EnabledSpawnByCell;
 	TMap<FName, TMap<int32, TMap<FIntPoint, FGuid>>> EncounterSpawnByWaveAndCell;
-	for (const FGridLevelObjectData& Spawn : ObjectView)
+	for (const FGridMonsterSpawnInstance& Spawn : MonsterSpawns)
 	{
-		if (Spawn.Type != EGridLevelObjectType::MonsterSpawn)
-		{
-			continue;
-		}
-
 		const FString SpawnLabel = GetMonsterSpawnLabel(Spawn);
-		if (!Spawn.ObjectId.IsValid())
+		if (!Spawn.SpawnId.IsValid())
 		{
 			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s requires a valid ObjectId/SpawnId."), *SpawnLabel));
 		}
-		else if (ObjectIdCounts.FindRef(Spawn.ObjectId) != 1)
+		else if (ObjectIdCounts.FindRef(Spawn.SpawnId) != 1)
 		{
 			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s does not have a unique ObjectId/SpawnId."), *SpawnLabel));
 		}
@@ -461,17 +460,13 @@ bool UGridLevelAsset::ValidateMonsterSpawns(TArray<FString>& OutErrors) const
 					}
 					else
 					{
-						EnabledSpawnByCell.Add(SpawnCell, Spawn.ObjectId);
+						EnabledSpawnByCell.Add(SpawnCell, Spawn.SpawnId);
 					}
 				}
 			}
 		}
 
-		if (Spawn.Edge != EGridEdge::None)
-		{
-			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s is cell-centered and requires Edge=None."), *SpawnLabel));
-		}
-		if (!IsValidMonsterSpawnFacing(Spawn.InitialFacing))
+		if (!IsValidMonsterSpawnFacing(Spawn.Facing))
 		{
 			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s requires a cardinal InitialFacing."), *SpawnLabel));
 		}
@@ -548,16 +543,14 @@ bool UGridLevelAsset::ValidateMonsterSpawns(TArray<FString>& OutErrors) const
 			}
 			else
 			{
-				SpawnByCell.Add(SpawnCell, Spawn.ObjectId);
+				SpawnByCell.Add(SpawnCell, Spawn.SpawnId);
 			}
 		}
 
-		const UGridMonsterDefinitionAsset* Definition = Spawn.MonsterDefinitionAsset;
-		const FName AssetDefinitionId = Definition ? Definition->MonsterId : NAME_None;
-		const FName ResolvedDefinitionId = !AssetDefinitionId.IsNone() ? AssetDefinitionId : Spawn.MonsterDefinitionId;
-		if (ResolvedDefinitionId.IsNone())
+		const UGridMonsterDefinitionAsset* Definition = Spawn.MonsterDefinition;
+		if (!Definition)
 		{
-			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s requires MonsterDefinitionAsset or MonsterDefinitionId."), *SpawnLabel));
+			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s requires MonsterDefinition."), *SpawnLabel));
 		}
 
 		if (Definition)
@@ -568,15 +561,61 @@ bool UGridLevelAsset::ValidateMonsterSpawns(TArray<FString>& OutErrors) const
 				OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s references invalid MonsterDefinition '%s': %s"), *SpawnLabel, *GetNameSafe(Definition),
 					*DefinitionError));
 			}
-			if (!Spawn.MonsterDefinitionId.IsNone() && Spawn.MonsterDefinitionId != AssetDefinitionId)
-			{
-				OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s stores MonsterDefinitionId '%s' but its asset resolves to '%s'."), *SpawnLabel,
-					*Spawn.MonsterDefinitionId.ToString(), *AssetDefinitionId.ToString()));
-			}
 		}
 	}
 
 	return OutErrors.IsEmpty();
+}
+
+FGridWorldObjectInstance* UGridLevelAsset::FindWorldObjectInstanceById(const FGuid& ObjectId)
+{
+	return const_cast<FGridWorldObjectInstance*>(static_cast<const UGridLevelAsset*>(this)->FindWorldObjectInstanceById(ObjectId));
+}
+
+FGridLooseItemInstance* UGridLevelAsset::FindLooseItemInstanceById(const FGuid& ObjectId)
+{
+	return const_cast<FGridLooseItemInstance*>(static_cast<const UGridLevelAsset*>(this)->FindLooseItemInstanceById(ObjectId));
+}
+
+FGridMonsterSpawnInstance* UGridLevelAsset::FindMonsterSpawnInstanceById(const FGuid& ObjectId)
+{
+	return const_cast<FGridMonsterSpawnInstance*>(static_cast<const UGridLevelAsset*>(this)->FindMonsterSpawnInstanceById(ObjectId));
+}
+
+FGridItemSpawnInstance* UGridLevelAsset::FindItemSpawnInstanceById(const FGuid& ObjectId)
+{
+	return const_cast<FGridItemSpawnInstance*>(static_cast<const UGridLevelAsset*>(this)->FindItemSpawnInstanceById(ObjectId));
+}
+
+FGridLogicObjectInstance* UGridLevelAsset::FindLogicObjectInstanceById(const FGuid& ObjectId)
+{
+	return const_cast<FGridLogicObjectInstance*>(static_cast<const UGridLevelAsset*>(this)->FindLogicObjectInstanceById(ObjectId));
+}
+
+TArray<FGuid> UGridLevelAsset::GetTypedPlacementIdsAtCell(int32 CellX, int32 CellY) const
+{
+	TArray<FGuid> ObjectIds;
+	for (const FGridWorldObjectInstance& WorldObjectInstance : WorldObjectInstances)
+	{
+		if (WorldObjectInstance.CellX == CellX && WorldObjectInstance.CellY == CellY) ObjectIds.Add(WorldObjectInstance.InstanceId);
+	}
+	for (const FGridLooseItemInstance& LooseItemInstance : LooseItemInstances)
+	{
+		if (LooseItemInstance.CellX == CellX && LooseItemInstance.CellY == CellY) ObjectIds.Add(LooseItemInstance.InstanceId);
+	}
+	for (const FGridMonsterSpawnInstance& MonsterSpawn : MonsterSpawns)
+	{
+		if (MonsterSpawn.CellX == CellX && MonsterSpawn.CellY == CellY) ObjectIds.Add(MonsterSpawn.SpawnId);
+	}
+	for (const FGridItemSpawnInstance& ItemSpawn : ItemSpawns)
+	{
+		if (ItemSpawn.CellX == CellX && ItemSpawn.CellY == CellY) ObjectIds.Add(ItemSpawn.SpawnId);
+	}
+	for (const FGridLogicObjectInstance& LogicInstance : LogicObjects)
+	{
+		if (LogicInstance.CellX == CellX && LogicInstance.CellY == CellY) ObjectIds.Add(LogicInstance.InstanceId);
+	}
+	return ObjectIds;
 }
 
 const FGridLevelObjectData* UGridLevelAsset::FindMonsterSpawnById(const FGuid& SpawnId) const

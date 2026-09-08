@@ -37,55 +37,74 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 			RemoveObjectsAtSelectionInternal(false);
 		}
 	}
-	FGridLevelObjectData NewObject;
-	NewObject.Type = PaintObjectType;
-	NewObject.CellX = SelectedCellX;
-	NewObject.CellY = SelectedCellY;
-	NewObject.Edge = bPlaceObjectOnEdge ? SelectedEdge : EGridEdge::None;
-	NewObject.LocalYaw = 0.f;
-	NewObject.InitialFacing = NewObject.Type == EGridLevelObjectType::MonsterSpawn ? EGridEdge::North : EGridEdge::None;
-	NewObject.ArchetypeId = ObjectArchetypeId;
-	NewObject.bInitiallyEnabled = bObjectInitiallyEnabled;
-	NewObject.bInitiallyActive = bObjectInitiallyActive;
-	NewObject.Tag = ObjectTag;
-	NewObject.Notes = ObjectNotes;
-	NewObject.PaletteEntryId = SelectedPaletteEntryId;
-
-	// WORLDOBJ-MIG06: new placements no longer clone the complete definition Behavior.
-	// The level stores only the instance-owned subset used by the typed placement conversion.
-	NewObject.Behavior = GridObjectInstanceBehavior::BuildSparseOverrides(ObjectBehavior);
-	if (NewObject.Type == EGridLevelObjectType::MonsterSpawn && ObjectPalette)
+	LevelAsset->Modify();
+	const FGuid NewId = FGuid::NewGuid();
+	// This initializes shared authoring fields on the concrete placement, without a DTO.
+	const auto InitializeAuthoring = [this](auto& Placement)
 	{
-		if (const FGridObjectPaletteEntry* PaletteEntry = ObjectPalette->FindEntryById(SelectedPaletteEntryId))
+		Placement.CellX = SelectedCellX;
+		Placement.CellY = SelectedCellY;
+		Placement.bInitiallyEnabled = bObjectInitiallyEnabled;
+		Placement.Tag = ObjectTag;
+		Placement.Notes = ObjectNotes;
+		Placement.PaletteEntryId = SelectedPaletteEntryId;
+	};
+	const FGridObjectPaletteEntry* PaletteEntry = ObjectPalette ? ObjectPalette->FindEntryById(SelectedPaletteEntryId) : nullptr;
+	if (PaintObjectType == EGridLevelObjectType::Item)
+	{
+		FGridLooseItemInstance& LooseItemInstance = LevelAsset->LooseItemInstances.AddDefaulted_GetRef();
+		InitializeAuthoring(LooseItemInstance);
+		LooseItemInstance.InstanceId = NewId;
+		LooseItemInstance.SurfaceSide = bPlaceObjectOnEdge ? SelectedEdge : EGridEdge::None;
+		LooseItemInstance.ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
+		LooseItemInstance.ReadableContentAsset = ObjectBehavior.Item.DefaultReadableContentAsset;
+		LooseItemInstance.ReadableContentId = ObjectBehavior.Item.DefaultReadableContentId;
+		LooseItemInstance.ReadTitleOverride = ObjectBehavior.Item.DefaultReadTitleOverride;
+		LooseItemInstance.ReadTextOverride = ObjectBehavior.Item.DefaultReadTextOverride;
+	}
+	else if (PaintObjectType == EGridLevelObjectType::MonsterSpawn)
+	{
+		FGridMonsterSpawnInstance& MonsterSpawn = LevelAsset->MonsterSpawns.AddDefaulted_GetRef();
+		InitializeAuthoring(MonsterSpawn);
+		MonsterSpawn.SpawnId = NewId;
+		MonsterSpawn.MonsterDefinition = PaletteEntry ? PaletteEntry->DefaultMonsterDefinition : nullptr;
+	}
+	else if (PaintObjectType == EGridLevelObjectType::ItemSpawn)
+	{
+		FGridItemSpawnInstance& ItemSpawn = LevelAsset->ItemSpawns.AddDefaulted_GetRef();
+		InitializeAuthoring(ItemSpawn);
+		ItemSpawn.SpawnId = NewId;
+		ItemSpawn.ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
+	}
+	else if (PaintObjectType == EGridLevelObjectType::Logic || PaintObjectType == EGridLevelObjectType::StoryCompanion ||
+		PaintObjectType == EGridLevelObjectType::CustomRecruiter)
+	{
+		FGridLogicObjectInstance& LogicInstance = LevelAsset->LogicObjects.AddDefaulted_GetRef();
+		InitializeAuthoring(LogicInstance);
+		LogicInstance.InstanceId = NewId;
+		LogicInstance.Type = PaintObjectType;
+		LogicInstance.bInitiallyActive = bObjectInitiallyActive;
+		LogicInstance.StoryCompanionDefinition = PaletteEntry ? PaletteEntry->DefaultStoryCompanionDefinition : nullptr;
+	}
+	else
+	{
+		FGridWorldObjectInstance& WorldObjectInstance = LevelAsset->WorldObjectInstances.AddDefaulted_GetRef();
+		InitializeAuthoring(WorldObjectInstance);
+		WorldObjectInstance.InstanceId = NewId;
+		WorldObjectInstance.Type = bIsStoneAlcoveReceptacle ? EGridLevelObjectType::Receptacle : PaintObjectType;
+		WorldObjectInstance.WorldObjectDefinitionId = ObjectArchetypeId;
+		WorldObjectInstance.WallSide = bPlaceObjectOnEdge ? SelectedEdge : EGridEdge::None;
+		WorldObjectInstance.bInitiallyActive = bObjectInitiallyActive;
+		WorldObjectInstance.InstanceConfig.Teleporter = ObjectBehavior.Teleporter;
+		WorldObjectInstance.InstanceConfig.Transition = ObjectBehavior.Transition;
+		WorldObjectInstance.InstanceConfig.Pit = ObjectBehavior.Pit;
+		WorldObjectInstance.InstanceConfig.ReceptacleInitialContent = ObjectBehavior.Receptacle.InitialContent;
+		WorldObjectInstance.InstanceConfig.bStartsUnlocked = ObjectBehavior.Lock.bStartsUnlocked;
+		if (bIsStoneAlcoveReceptacle)
 		{
-			NewObject.MonsterDefinitionAsset = PaletteEntry->DefaultMonsterDefinition;
+			WorldObjectInstance.bInitiallyEnabled = true;
+			WorldObjectInstance.bInitiallyActive = !WorldObjectInstance.InstanceConfig.ReceptacleInitialContent.IsEmpty();
 		}
-	}
-	if (NewObject.Type == EGridLevelObjectType::StoryCompanion && ObjectPalette)
-	{
-		if (const FGridObjectPaletteEntry* PaletteEntry = ObjectPalette->FindEntryById(SelectedPaletteEntryId))
-		{
-			NewObject.StoryCompanionDefinition = PaletteEntry->DefaultStoryCompanionDefinition;
-		}
-	}
-	if (NewObject.Type == EGridLevelObjectType::Item)
-	{
-		// Current authoring schema: a placed item owns a direct definition asset
-		// reference. ItemDefinitionId is runtime/save identity and must not become
-		// a second authoring authority.
-		NewObject.ItemDefinitionAsset = ObjectBehavior.Item.ItemDefinitionAsset;
-		NewObject.ItemDefinitionId = NAME_None;
-		NewObject.ReadableContentAsset = ObjectBehavior.Item.DefaultReadableContentAsset;
-		NewObject.ReadableContentId = ObjectBehavior.Item.DefaultReadableContentId;
-		NewObject.ReadTitleOverride = ObjectBehavior.Item.DefaultReadTitleOverride;
-		NewObject.ReadTextOverride = ObjectBehavior.Item.DefaultReadTextOverride;
-	}
-
-	if (bIsStoneAlcoveReceptacle)
-	{
-		NewObject.Type = EGridLevelObjectType::Receptacle;
-		NewObject.bInitiallyEnabled = true;
-		NewObject.bInitiallyActive = NewObject.Behavior.Receptacle.InitialContent.Num() > 0;
 	}
 
 	if (bSuppressBaseWall)
@@ -104,7 +123,7 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 			}
 		}
 	}
-	const FGuid NewId = LevelAsset->AddObject(NewObject);
+	LevelAsset->MarkPackageDirty();
 	LastSelectedObjectId = NewId;
 	RebuildPreview();
 }
@@ -132,45 +151,8 @@ void AGridLevelEditorActor::SelectObjectAtSelection()
 		return;
 	}
 
-	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	for (int32 Index = CompatibilityObjects.Num() - 1; Index >= 0; --Index)
-	{
-		const FGridLevelObjectData& Obj = CompatibilityObjects[Index];
-
-		if (Obj.CellX != SelectedCellX || Obj.CellY != SelectedCellY)
-		{
-			continue;
-		}
-
-		if (IsEdgePlacedObject(Obj) && Obj.Edge != SelectedEdge)
-		{
-			continue;
-		}
-		LastSelectedObjectId = Obj.ObjectId;
-		PaintObjectType = Obj.Type;
-		SelectedEdge = Obj.Edge;
-		bObjectInitiallyEnabled = Obj.bInitiallyEnabled;
-		bObjectInitiallyActive = Obj.bInitiallyActive;
-		ObjectArchetypeId = Obj.ArchetypeId;
-		ObjectTag = Obj.Tag;
-		ObjectNotes = Obj.Notes;
-		SelectedPaletteEntryId = Obj.PaletteEntryId;
-
-		const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(Obj.ArchetypeId);
-		ObjectBehavior = GridObjectInstanceBehavior::Resolve(LevelAsset, Obj, Archetype);
-		if (Obj.Type == EGridLevelObjectType::Item)
-		{
-			// Loose items have no WorldObjectDefinition after MIG05; rebuild the
-			// temporary paint/inspector staging state from their direct item fields.
-			ObjectBehavior.Item.ItemDefinitionAsset = Obj.ItemDefinitionAsset;
-			ObjectBehavior.Item.ItemDefinitionId = Obj.ItemDefinitionId;
-			ObjectBehavior.Item.DefaultReadableContentAsset = Obj.ReadableContentAsset;
-			ObjectBehavior.Item.DefaultReadableContentId = Obj.ReadableContentId;
-			ObjectBehavior.Item.DefaultReadTitleOverride = Obj.ReadTitleOverride;
-			ObjectBehavior.Item.DefaultReadTextOverride = Obj.ReadTextOverride;
-		}
-		return;
-	}
+	const FGuid ObjectId = FindObjectIdAtSelection();
+	if (ObjectId.IsValid() && SelectObjectById(ObjectId)) return;
 
 	ClearSelectedObjectState();
 	UE_LOG(LogTemp, Log, TEXT("GridLevelEditorActor: no object found at current selection."));

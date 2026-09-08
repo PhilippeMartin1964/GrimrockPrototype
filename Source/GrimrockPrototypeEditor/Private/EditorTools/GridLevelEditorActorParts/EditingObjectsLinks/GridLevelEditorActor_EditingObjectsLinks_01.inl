@@ -165,23 +165,22 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal(bool bSameTypeOnly
 
 	TArray<FGuid> RemovedIds;
 	const EGridLevelObjectType FilterType = PaintObjectType;
-	const TArray<FGridLevelObjectData> Objects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	for (int32 Index = Objects.Num() - 1; Index >= 0; --Index)
+	const TArray<FGuid> ObjectIds = LevelAsset->GetTypedPlacementIdsAtCell(SelectedCellX, SelectedCellY);
+	for (int32 Index = ObjectIds.Num() - 1; Index >= 0; --Index)
 	{
-		const FGridLevelObjectData& Obj = Objects[Index];
-		if (Obj.CellX != SelectedCellX || Obj.CellY != SelectedCellY)
-		{
-			continue;
-		}
-		if (bSameTypeOnly && Obj.Type != FilterType)
+		const FGuid ObjectId = ObjectIds[Index];
+		if (bSameTypeOnly && LevelAsset->GetTypedPlacementType(ObjectId) != FilterType)
 		{
 			continue;
 		}
 
-		const bool bRemove = IsEdgePlacedObject(Obj) ? Obj.Edge == SelectedEdge : true;
+		int32 CellX, CellY;
+		EGridEdge Edge;
+		if (!LevelAsset->TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge)) continue;
+		const bool bRemove = !IsEdgePlacedObject(ObjectId) || Edge == SelectedEdge;
 		if (bRemove)
 		{
-			RemovedIds.Add(Obj.ObjectId);
+			RemovedIds.Add(ObjectId);
 		}
 	}
 
@@ -225,25 +224,24 @@ int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal(EGrid
 	}
 
 	TArray<FGuid> RemovedIds;
-	const TArray<FGridLevelObjectData> Objects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
-	for (const FGridLevelObjectData& ExistingObject : Objects)
+	for (const FGridWorldObjectInstance& ExistingObject : LevelAsset->WorldObjectInstances)
 	{
-		if (ExistingObject.Edge == EGridEdge::None)
+		if (ExistingObject.WallSide == EGridEdge::None)
 		{
 			continue;
 		}
 
-		const UGridObjectArchetypeAsset* ExistingArchetype = FindObjectArchetypeById(ExistingObject.ArchetypeId);
+		const UGridObjectArchetypeAsset* ExistingArchetype = FindObjectArchetypeById(ExistingObject.WorldObjectDefinitionId);
 		if (!ExistingArchetype || !ExistingArchetype->OccupiesBoundary())
 		{
 			continue;
 		}
 
 		const FGridBoundaryKey ExistingBoundary =
-			FGridBoundaryKey::MakeCanonical(ExistingObject.CellX, ExistingObject.CellY, ExistingObject.Edge);
+			FGridBoundaryKey::MakeCanonical(ExistingObject.CellX, ExistingObject.CellY, ExistingObject.WallSide);
 		if (ExistingBoundary.IsValid() && ExistingBoundary == NewBoundary)
 		{
-			RemovedIds.Add(ExistingObject.ObjectId);
+			RemovedIds.Add(ExistingObject.InstanceId);
 		}
 	}
 
