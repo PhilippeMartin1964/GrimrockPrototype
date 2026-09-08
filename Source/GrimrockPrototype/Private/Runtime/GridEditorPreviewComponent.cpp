@@ -86,9 +86,11 @@ void UGridEditorPreviewComponent::AddWorldObjectPreview(const FGridWorldObjectIn
 		return;
 	}
 
-	const TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass = RuntimeActor->EditorPreviewObjectActorClass
-		? RuntimeActor->EditorPreviewObjectActorClass
-		: AGridEditorPreviewObjectActor::StaticClass();
+	TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass = RuntimeActor->EditorPreviewObjectActorClass;
+	if (!PreviewClass)
+	{
+		PreviewClass = AGridEditorPreviewObjectActor::StaticClass();
+	}
 	FActorSpawnParameters Params;
 	Params.Owner = RuntimeActor;
 	Params.ObjectFlags = RF_Transient;
@@ -129,9 +131,11 @@ void UGridEditorPreviewComponent::AddLooseItemPreview(const FGridLooseItemInstan
 		return;
 	}
 
-	const TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass = RuntimeActor->EditorPreviewObjectActorClass
-		? RuntimeActor->EditorPreviewObjectActorClass
-		: AGridEditorPreviewObjectActor::StaticClass();
+	TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass = RuntimeActor->EditorPreviewObjectActorClass;
+	if (!PreviewClass)
+	{
+		PreviewClass = AGridEditorPreviewObjectActor::StaticClass();
+	}
 	FActorSpawnParameters Params;
 	Params.Owner = RuntimeActor;
 	Params.ObjectFlags = RF_Transient;
@@ -155,9 +159,11 @@ void UGridEditorPreviewComponent::AddMonsterPreviewObject(const FGridMonsterSpaw
 		return;
 	}
 
-	const TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass = RuntimeActor->EditorPreviewObjectActorClass
-		? RuntimeActor->EditorPreviewObjectActorClass
-		: AGridEditorPreviewObjectActor::StaticClass();
+	TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass = RuntimeActor->EditorPreviewObjectActorClass;
+	if (!PreviewClass)
+	{
+		PreviewClass = AGridEditorPreviewObjectActor::StaticClass();
+	}
 	UWorld* World = GetWorld();
 	if (!World)
 	{
