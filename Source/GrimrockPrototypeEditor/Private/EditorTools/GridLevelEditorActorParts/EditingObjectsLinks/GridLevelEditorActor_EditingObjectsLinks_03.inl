@@ -190,9 +190,14 @@ const FGridLevelObjectData* AGridLevelEditorActor::FindObjectAtSelection() const
 	{
 		return nullptr;
 	}
-	for (int32 Index = LevelAsset->Objects.Num() - 1; Index >= 0; --Index)
+
+	TArray<FGridLevelObjectData> CompatibilityObjects;
+	LevelAsset->BuildCompatibilityObjectProjectionFromTyped(CompatibilityObjects);
+	static FGridLevelObjectData SelectionView;
+
+	for (int32 Index = CompatibilityObjects.Num() - 1; Index >= 0; --Index)
 	{
-		const FGridLevelObjectData& Obj = LevelAsset->Objects[Index];
+		const FGridLevelObjectData& Obj = CompatibilityObjects[Index];
 
 		if (Obj.CellX != SelectedCellX || Obj.CellY != SelectedCellY)
 		{
@@ -204,7 +209,8 @@ const FGridLevelObjectData* AGridLevelEditorActor::FindObjectAtSelection() const
 			continue;
 		}
 
-		return &Obj;
+		SelectionView = Obj;
+		return &SelectionView;
 	}
 	return nullptr;
 }
@@ -216,4 +222,8 @@ const FGridLevelObjectData* AGridLevelEditorActor::FindObjectById(const FGuid& O
 		return nullptr;
 	}
 
-	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+	TArray<FGridLevelObjectData> CompatibilityObjects;
+	LevelAsset->BuildCompatibilityObjectProjectionFromTyped(CompatibilityObjects);
+	static FGridLevelObjectData ObjectView;
+
+	for (const FGridLevelObjectData& Obj : CompatibilityObjects)

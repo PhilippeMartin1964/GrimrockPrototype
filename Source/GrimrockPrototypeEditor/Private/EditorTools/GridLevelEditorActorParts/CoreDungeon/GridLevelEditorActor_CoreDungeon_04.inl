@@ -120,22 +120,23 @@ bool AGridLevelEditorActor::SetSelectedObjectOrientation(EGridEdge Orientation)
 		return false;
 	}
 
-	FGridLevelObjectData* SelectedObject = FindSelectedObjectMutable();
+	const FGridLevelObjectData* SelectedObject = FindObjectById(LastSelectedObjectId);
 	if (!SelectedObject)
 	{
 		return false;
 	}
 
-	const bool bUsesEdge = IsEdgePlacedObject(*SelectedObject);
+	FGridLevelObjectData EditedObject = *SelectedObject;
+	const bool bUsesEdge = IsEdgePlacedObject(EditedObject);
 	if (bUsesEdge)
 	{
-		const FGuid SelectedObjectId = SelectedObject->ObjectId;
-		const EGridLevelObjectType SelectedObjectType = SelectedObject->Type;
-		const bool bDestinationOccupied = LevelAsset->Objects.ContainsByPredicate(
-			[SelectedObjectId, SelectedObjectType, SelectedObject, Orientation](const FGridLevelObjectData& Obj)
+		TArray<FGridLevelObjectData> CompatibilityObjects;
+		LevelAsset->BuildCompatibilityObjectProjectionFromTyped(CompatibilityObjects);
+		const bool bDestinationOccupied = CompatibilityObjects.ContainsByPredicate(
+			[&EditedObject, Orientation](const FGridLevelObjectData& Obj)
 			{
-				return Obj.ObjectId != SelectedObjectId && Obj.CellX == SelectedObject->CellX && Obj.CellY == SelectedObject->CellY &&
-					Obj.Type == SelectedObjectType && Obj.Edge == Orientation;
+				return Obj.ObjectId != EditedObject.ObjectId && Obj.CellX == EditedObject.CellX && Obj.CellY == EditedObject.CellY &&
+					Obj.Type == EditedObject.Type && Obj.Edge == Orientation;
 			});
 
 		if (bDestinationOccupied)
@@ -145,23 +146,32 @@ bool AGridLevelEditorActor::SetSelectedObjectOrientation(EGridEdge Orientation)
 		}
 	}
 
+	if (bUsesEdge)
+	{
+		EditedObject.Edge = Orientation;
+	}
+	else if (EditedObject.Type == EGridLevelObjectType::MonsterSpawn)
+	{
+		EditedObject.InitialFacing = Orientation;
+		EditedObject.LocalYaw = GetYawForOrientation(Orientation);
+	}
+	else
+	{
+		EditedObject.LocalYaw = GetYawForOrientation(Orientation);
+	}
+
 #if WITH_EDITOR
 	LevelAsset->Modify();
 #endif
 
+	if (!ApplyGridEditorObjectSnapshotToAuthority(LevelAsset, EditedObject))
+	{
+		return false;
+	}
+
 	if (bUsesEdge)
 	{
-		SelectedObject->Edge = Orientation;
 		SelectedEdge = Orientation;
-	}
-	else if (SelectedObject->Type == EGridLevelObjectType::MonsterSpawn)
-	{
-		SelectedObject->InitialFacing = Orientation;
-		SelectedObject->LocalYaw = GetYawForOrientation(Orientation);
-	}
-	else
-	{
-		SelectedObject->LocalYaw = GetYawForOrientation(Orientation);
 	}
 
 #if WITH_EDITOR

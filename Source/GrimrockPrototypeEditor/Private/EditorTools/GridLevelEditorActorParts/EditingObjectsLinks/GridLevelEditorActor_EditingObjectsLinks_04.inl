@@ -1,24 +1,11 @@
 {
 	if (Obj.ObjectId == ObjectId)
 	{
-		return &Obj;
+		ObjectView = Obj;
+		return &ObjectView;
 	}
 }
 return nullptr;
-}
-
-FGridLevelObjectData* AGridLevelEditorActor::FindSelectedObjectMutable()
-{
-	if (!HasValidLevelAsset() || !LastSelectedObjectId.IsValid())
-	{
-		return nullptr;
-	}
-
-	return LevelAsset->Objects.FindByPredicate(
-		[this](const FGridLevelObjectData& Obj)
-		{
-			return Obj.ObjectId == LastSelectedObjectId;
-		});
 }
 
 bool AGridLevelEditorActor::TryGetObjectWorldLocation(const FGridLevelObjectData& ObjectData, FVector& OutWorldLocation) const

@@ -152,7 +152,7 @@ Le fixture MON14.3.1 crée et relit exclusivement un `FGridMonsterSpawnInstance`
 
 ### 5.3. Validation locale du bloc MonsterSpawn E2C
 
-Validation locale UE5.5.4 du 2026-09-08 **après suppression du dernier refresh legacy de patrouille** :
+Validation locale UE5.5.4 du 2026-09-08 après suppression du dernier refresh legacy de patrouille :
 
 ```text
 Grimrock.Editor.MON14.3.1
@@ -163,20 +163,9 @@ Not run                : 0
 Process exit code       : 0
 ```
 
-Régression WorldObjects validée juste avant ce sous-bloc :
-
-```text
-Grimrock.WorldObjects
-Succeeded              : 34
-Succeeded with warnings: 0
-Failed                 : 0
-Not run                : 0
-Process exit code       : 0
-```
-
 ### 5.4. Lecteurs Editor sans état mutable
 
-Le sous-bloc suivant retire les lectures directes du cache `Objects` là où aucun pointeur mutable/persistant vers le DTO n'est nécessaire :
+Les chemins suivants ne lisent plus le cache `Objects` :
 
 ```text
 GridEditorLinkService
@@ -191,16 +180,69 @@ Contrat transitoire E2C :
 - le picking/hover viewport construit lui aussi un snapshot local depuis les cinq collections typées ;
 - aucun de ces chemins ne lit ni ne rafraîchit `UGridLevelAsset::Objects`.
 
-Cette projection locale en valeur n'est **pas** une nouvelle autorité : elle disparaît avec `FGridLevelObjectData` à la fin d'E2C.
+Le fixture MON19.2 `PolicyAndTyping` a lui aussi été migré de `Objects` vers deux `FGridWorldObjectInstance` natifs (`Button` et `Door`).
 
-### 5.5. Reste E2C
+Validation locale UE5.5.4 du 2026-09-08 :
+
+```text
+Grimrock.MON19.2.Editor
+Succeeded              : 8
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+```text
+Grimrock.WorldObjects
+Succeeded              : 34
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+### 5.5. Sélection, orientation et déplacement hors cache
+
+Le sous-bloc suivant retire les lectures directes de `Objects` des helpers centraux de sélection et des contrôles d'occupation associés :
+
+```text
+AGridLevelEditorActor::FindObjectAtSelection()
+AGridLevelEditorActor::FindObjectById()
+AGridLevelEditorActor::SetSelectedObjectOrientation()
+AGridLevelEditorActor::MoveSelectedObjectToCurrentSelection()
+```
+
+Les deux helpers de lookup construisent désormais une vue temporaire en valeur depuis `BuildCompatibilityObjectProjectionFromTyped()` ; ils ne retournent plus un pointeur vers un élément du cache `UGridLevelAsset::Objects`.
+
+Les opérations d'orientation et de déplacement :
+
+1. lisent le snapshot depuis l'autorité typée ;
+2. vérifient les conflits sur une projection locale construite depuis les cinq collections typées ;
+3. écrivent via `ApplyGridEditorObjectSnapshotToAuthority()` ;
+4. ne modifient jamais le cache `Objects` directement.
+
+`FindSelectedObjectMutable()` n'a plus d'implémentation active dans ce chemin et sera supprimé de l'API privée lors du nettoyage final de l'en-tête E2C.
+
+Cette étape reste transitoire : `FGridLevelObjectData` sert encore de vue DTO locale. La suppression du DTO lui-même intervient seulement lorsque les panneaux Inspector/Links/Overview et les setters restants consommeront leurs structures natives.
+
+Validation locale requise après ce sous-bloc :
+
+```text
+Grimrock.WorldObjects
+```
+
+Le filtre couvre notamment `Grimrock.WorldObjects.MIG07.EditorTypedWriteThrough`, qui vérifie les écritures typées du Grid Editor, dont le déplacement d'item.
+
+### 5.6. Reste E2C
 
 Il reste à migrer :
 
-- les helpers de sélection/inspection qui retournent encore des pointeurs vers `FGridLevelObjectData` ;
-- Overview/LinksPanel/EdMode/Lua/Validation encore partiellement basés sur le DTO/cache ;
-- setters Item/WorldObject/Logic encore construisant des snapshots ;
-- fixtures de tests legacy ;
+- suppression de l'API pointeur `GetSelectedObjectData()` au profit de vues typées/natives ;
+- `SGridEditorObjectInspectorPanel`, `SGridEditorLinksPanel`, `SGridEditorOverviewMapPanel` et `GridLevelEdMode` encore partiellement exprimés en DTO ;
+- `GridEditorLuaService` / panneaux Lua / Validation ;
+- setters Item/WorldObject/Logic encore construisant des snapshots DTO ;
+- fixtures de tests legacy restantes ;
 - `ValidateMonsterSpawns()` et derniers helpers Core DTO ;
 - suppression finale du cache, du DTO, des conversions et wrappers.
 
@@ -221,13 +263,15 @@ MIG10 ne commence qu'après cette liste entièrement cochée.
 
 ## 7. Validation courante
 
+Régression principale :
+
 ```powershell
 .\Scripts\ValidateUE.ps1 `
     -EngineRoot D:\UE_5.5 `
     -AutomationFilter "Grimrock.WorldObjects"
 ```
 
-Pour MonsterSpawn/patrouille :
+MonsterSpawn/patrouille :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
@@ -235,7 +279,7 @@ Pour MonsterSpawn/patrouille :
     -AutomationFilter "Grimrock.Editor.MON14.3.1"
 ```
 
-Pour le service de liens Editor touché par le sous-bloc courant :
+Connecteurs/variables Editor :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
