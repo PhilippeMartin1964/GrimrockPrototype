@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Core/GridTypes.h"
+#include "Core/GridLevelPlacementTypes.h"
 
 class UGridLevelAsset;
 struct FGridLevelRuntimeState;
@@ -21,6 +22,13 @@ struct GRIMROCKPROTOTYPE_API FGridLogicExecutionResult
  */
 namespace GridLogicRuntime
 {
+	/** WORLDOBJ-MIG09-E2C-FINAL-A native typed Logic placement contract. */
+	GRIMROCKPROTOTYPE_API bool ValidateNode(const UGridLevelAsset& LevelAsset, const FGridLogicObjectInstance& ObjectData, FString& OutError);
+
+	GRIMROCKPROTOTYPE_API bool ExecuteNode(const UGridLevelAsset& LevelAsset, const FGridLogicObjectInstance& ObjectData, FGridLevelRuntimeState& RuntimeState,
+		EGridObjectCommand Command, FGridLogicExecutionResult& OutResult);
+
+	/** Temporary legacy adapters for Editor/tests until E2C-FINAL-B/C. */
 	GRIMROCKPROTOTYPE_API bool ValidateNode(const UGridLevelAsset& LevelAsset, const FGridLevelObjectData& ObjectData, FString& OutError);
 
 	GRIMROCKPROTOTYPE_API bool ExecuteNode(const UGridLevelAsset& LevelAsset, const FGridLevelObjectData& ObjectData, FGridLevelRuntimeState& RuntimeState,

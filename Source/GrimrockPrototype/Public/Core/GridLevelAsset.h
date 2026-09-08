@@ -125,6 +125,154 @@ public:
 		return WorldObjectInstances.Num() + LooseItemInstances.Num() + MonsterSpawns.Num() + ItemSpawns.Num() + LogicObjects.Num();
 	}
 
+	// WORLDOBJ-MIG09-E2C-FINAL-A: native typed lookup surface. Generic runtime/editor
+	// consumers use these helpers instead of rebuilding FGridLevelObjectData projections.
+	const FGridWorldObjectInstance* FindWorldObjectInstanceById(const FGuid& ObjectId) const
+	{
+		return ObjectId.IsValid() ? WorldObjectInstances.FindByPredicate(
+			[&ObjectId](const FGridWorldObjectInstance& Instance)
+			{
+				return Instance.InstanceId == ObjectId;
+			}) : nullptr;
+	}
+
+	const FGridLooseItemInstance* FindLooseItemInstanceById(const FGuid& ObjectId) const
+	{
+		return ObjectId.IsValid() ? LooseItemInstances.FindByPredicate(
+			[&ObjectId](const FGridLooseItemInstance& Instance)
+			{
+				return Instance.InstanceId == ObjectId;
+			}) : nullptr;
+	}
+
+	const FGridMonsterSpawnInstance* FindMonsterSpawnInstanceById(const FGuid& ObjectId) const
+	{
+		return ObjectId.IsValid() ? MonsterSpawns.FindByPredicate(
+			[&ObjectId](const FGridMonsterSpawnInstance& Spawn)
+			{
+				return Spawn.SpawnId == ObjectId;
+			}) : nullptr;
+	}
+
+	const FGridItemSpawnInstance* FindItemSpawnInstanceById(const FGuid& ObjectId) const
+	{
+		return ObjectId.IsValid() ? ItemSpawns.FindByPredicate(
+			[&ObjectId](const FGridItemSpawnInstance& Spawn)
+			{
+				return Spawn.SpawnId == ObjectId;
+			}) : nullptr;
+	}
+
+	const FGridLogicObjectInstance* FindLogicObjectInstanceById(const FGuid& ObjectId) const
+	{
+		return ObjectId.IsValid() ? LogicObjects.FindByPredicate(
+			[&ObjectId](const FGridLogicObjectInstance& Instance)
+			{
+				return Instance.InstanceId == ObjectId;
+			}) : nullptr;
+	}
+
+	bool ContainsTypedPlacementId(const FGuid& ObjectId) const
+	{
+		return FindWorldObjectInstanceById(ObjectId) || FindLooseItemInstanceById(ObjectId) || FindMonsterSpawnInstanceById(ObjectId) ||
+			FindItemSpawnInstanceById(ObjectId) || FindLogicObjectInstanceById(ObjectId);
+	}
+
+	EGridLevelObjectType GetTypedPlacementType(const FGuid& ObjectId) const
+	{
+		if (const FGridWorldObjectInstance* Instance = FindWorldObjectInstanceById(ObjectId))
+		{
+			return Instance->Type;
+		}
+		if (FindLooseItemInstanceById(ObjectId))
+		{
+			return EGridLevelObjectType::Item;
+		}
+		if (FindMonsterSpawnInstanceById(ObjectId))
+		{
+			return EGridLevelObjectType::MonsterSpawn;
+		}
+		if (FindItemSpawnInstanceById(ObjectId))
+		{
+			return EGridLevelObjectType::ItemSpawn;
+		}
+		if (const FGridLogicObjectInstance* Instance = FindLogicObjectInstanceById(ObjectId))
+		{
+			return Instance->Type;
+		}
+		return EGridLevelObjectType::None;
+	}
+
+	FName GetTypedPlacementLogicId(const FGuid& ObjectId) const
+	{
+		if (const FGridWorldObjectInstance* Instance = FindWorldObjectInstanceById(ObjectId))
+		{
+			return Instance->LogicId;
+		}
+		if (const FGridLooseItemInstance* Instance = FindLooseItemInstanceById(ObjectId))
+		{
+			return Instance->LogicId;
+		}
+		if (const FGridMonsterSpawnInstance* Instance = FindMonsterSpawnInstanceById(ObjectId))
+		{
+			return Instance->LogicId;
+		}
+		if (const FGridItemSpawnInstance* Instance = FindItemSpawnInstanceById(ObjectId))
+		{
+			return Instance->LogicId;
+		}
+		if (const FGridLogicObjectInstance* Instance = FindLogicObjectInstanceById(ObjectId))
+		{
+			return Instance->LogicId;
+		}
+		return NAME_None;
+	}
+
+	int32 FindTypedPlacementIdsByLogicId(FName LogicId, TArray<FGuid>& OutObjectIds) const
+	{
+		OutObjectIds.Reset();
+		if (LogicId.IsNone())
+		{
+			return 0;
+		}
+		for (const FGridWorldObjectInstance& Instance : WorldObjectInstances)
+		{
+			if (Instance.LogicId == LogicId && Instance.InstanceId.IsValid())
+			{
+				OutObjectIds.Add(Instance.InstanceId);
+			}
+		}
+		for (const FGridLooseItemInstance& Instance : LooseItemInstances)
+		{
+			if (Instance.LogicId == LogicId && Instance.InstanceId.IsValid())
+			{
+				OutObjectIds.Add(Instance.InstanceId);
+			}
+		}
+		for (const FGridMonsterSpawnInstance& Spawn : MonsterSpawns)
+		{
+			if (Spawn.LogicId == LogicId && Spawn.SpawnId.IsValid())
+			{
+				OutObjectIds.Add(Spawn.SpawnId);
+			}
+		}
+		for (const FGridItemSpawnInstance& Spawn : ItemSpawns)
+		{
+			if (Spawn.LogicId == LogicId && Spawn.SpawnId.IsValid())
+			{
+				OutObjectIds.Add(Spawn.SpawnId);
+			}
+		}
+		for (const FGridLogicObjectInstance& Instance : LogicObjects)
+		{
+			if (Instance.LogicId == LogicId && Instance.InstanceId.IsValid())
+			{
+				OutObjectIds.Add(Instance.InstanceId);
+			}
+		}
+		return OutObjectIds.Num();
+	}
+
 	/** Historical MIG08 conversion entry point kept only for migration characterization tests until E2. */
 	void RebuildTypedPlacementProjectionFromLegacy()
 	{

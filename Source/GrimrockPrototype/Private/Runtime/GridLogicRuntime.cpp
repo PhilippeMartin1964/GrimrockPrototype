@@ -7,7 +7,7 @@
 
 namespace
 {
-	const FGridLevelVariableDefinition* FindLogicVariable(const UGridLevelAsset& LevelAsset, FName VariableId)
+	const FGridLevelVariableDefinition* FindTypedLogicVariable(const UGridLevelAsset& LevelAsset, FName VariableId)
 	{
 		return LevelAsset.LevelVariables.FindByPredicate(
 			[VariableId](const FGridLevelVariableDefinition& Definition)
@@ -16,7 +16,7 @@ namespace
 			});
 	}
 
-	bool IsSupportedNodeType(EGridLogicNodeType NodeType)
+	bool IsSupportedTypedNodeType(EGridLogicNodeType NodeType)
 	{
 		switch (NodeType)
 		{
@@ -31,13 +31,12 @@ namespace
 			case EGridLogicNodeType::CompareInt:
 			case EGridLogicNodeType::Latch:
 				return true;
-
 			default:
 				return false;
 		}
 	}
 
-	bool IsSupportedIntComparison(EGridLogicIntComparison Comparison)
+	bool IsSupportedTypedIntComparison(EGridLogicIntComparison Comparison)
 	{
 		switch (Comparison)
 		{
@@ -48,57 +47,48 @@ namespace
 			case EGridLogicIntComparison::Greater:
 			case EGridLogicIntComparison::GreaterOrEqual:
 				return true;
-
 			default:
 				return false;
 		}
 	}
 
-	bool RequiresBool(EGridLogicNodeType NodeType)
+	bool TypedLogicRequiresBool(EGridLogicNodeType NodeType)
 	{
 		return NodeType == EGridLogicNodeType::SetBool || NodeType == EGridLogicNodeType::ToggleBool || NodeType == EGridLogicNodeType::CompareBool ||
 			NodeType == EGridLogicNodeType::Latch;
 	}
 
-	bool RequiresInt32(EGridLogicNodeType NodeType)
+	bool TypedLogicRequiresInt32(EGridLogicNodeType NodeType)
 	{
 		return NodeType == EGridLogicNodeType::SetInt || NodeType == EGridLogicNodeType::AddInt || NodeType == EGridLogicNodeType::SubtractInt ||
 			NodeType == EGridLogicNodeType::CompareInt;
 	}
 
-	bool CompareInt32(int32 Left, EGridLogicIntComparison Comparison, int32 Right)
+	bool CompareTypedInt32(int32 Left, EGridLogicIntComparison Comparison, int32 Right)
 	{
 		switch (Comparison)
 		{
-			case EGridLogicIntComparison::Equal:
-				return Left == Right;
-			case EGridLogicIntComparison::NotEqual:
-				return Left != Right;
-			case EGridLogicIntComparison::Less:
-				return Left < Right;
-			case EGridLogicIntComparison::LessOrEqual:
-				return Left <= Right;
-			case EGridLogicIntComparison::Greater:
-				return Left > Right;
-			case EGridLogicIntComparison::GreaterOrEqual:
-				return Left >= Right;
-			default:
-				return false;
+			case EGridLogicIntComparison::Equal: return Left == Right;
+			case EGridLogicIntComparison::NotEqual: return Left != Right;
+			case EGridLogicIntComparison::Less: return Left < Right;
+			case EGridLogicIntComparison::LessOrEqual: return Left <= Right;
+			case EGridLogicIntComparison::Greater: return Left > Right;
+			case EGridLogicIntComparison::GreaterOrEqual: return Left >= Right;
+			default: return false;
 		}
 	}
 
-	bool TryCheckedInt32(int64 Candidate, int32& OutValue)
+	bool TryTypedCheckedInt32(int64 Candidate, int32& OutValue)
 	{
 		if (Candidate < static_cast<int64>(MIN_int32) || Candidate > static_cast<int64>(MAX_int32))
 		{
 			return false;
 		}
-
 		OutValue = static_cast<int32>(Candidate);
 		return true;
 	}
 
-	void Emit(FGridLogicExecutionResult& Result, EGridObjectEvent Event)
+	void EmitTypedLogic(FGridLogicExecutionResult& Result, EGridObjectEvent Event)
 	{
 		Result.bEmitEvent = true;
 		Result.EmittedEvent = Event;
@@ -107,7 +97,7 @@ namespace
 
 namespace GridLogicRuntime
 {
-	bool ValidateNode(const UGridLevelAsset& LevelAsset, const FGridLevelObjectData& ObjectData, FString& OutError)
+	bool ValidateNode(const UGridLevelAsset& LevelAsset, const FGridLogicObjectInstance& ObjectData, FString& OutError)
 	{
 		OutError.Reset();
 
@@ -116,22 +106,17 @@ namespace GridLogicRuntime
 			OutError = TEXT("Object is not a Logic node.");
 			return false;
 		}
-		if (!ObjectData.ObjectId.IsValid())
+		if (!ObjectData.InstanceId.IsValid())
 		{
 			OutError = TEXT("Logic node requires a valid ObjectId.");
 			return false;
 		}
-		if (!ObjectData.ArchetypeId.IsNone())
-		{
-			OutError = TEXT("Logic node must remain data-only and cannot reference an ArchetypeId.");
-			return false;
-		}
-		if (!IsSupportedNodeType(ObjectData.Logic.NodeType))
+		if (!IsSupportedTypedNodeType(ObjectData.Logic.NodeType))
 		{
 			OutError = TEXT("Logic node type is unsupported.");
 			return false;
 		}
-		if (ObjectData.Logic.NodeType == EGridLogicNodeType::CompareInt && !IsSupportedIntComparison(ObjectData.Logic.IntComparison))
+		if (ObjectData.Logic.NodeType == EGridLogicNodeType::CompareInt && !IsSupportedTypedIntComparison(ObjectData.Logic.IntComparison))
 		{
 			OutError = TEXT("Logic CompareInt uses an unsupported comparison.");
 			return false;
@@ -146,36 +131,32 @@ namespace GridLogicRuntime
 		{
 			return true;
 		}
-
 		if (ObjectData.Logic.VariableId.IsNone())
 		{
 			OutError = TEXT("Logic node requires VariableId.");
 			return false;
 		}
 
-		const FGridLevelVariableDefinition* Definition = FindLogicVariable(LevelAsset, ObjectData.Logic.VariableId);
+		const FGridLevelVariableDefinition* Definition = FindTypedLogicVariable(LevelAsset, ObjectData.Logic.VariableId);
 		if (!Definition)
 		{
 			OutError = FString::Printf(TEXT("Logic node references undeclared variable '%s'."), *ObjectData.Logic.VariableId.ToString());
 			return false;
 		}
-
-		if (RequiresBool(NodeType) && Definition->Type != EGridLevelVariableType::Bool)
+		if (TypedLogicRequiresBool(NodeType) && Definition->Type != EGridLevelVariableType::Bool)
 		{
 			OutError = FString::Printf(TEXT("Logic node requires Bool variable '%s'."), *ObjectData.Logic.VariableId.ToString());
 			return false;
 		}
-
-		if (RequiresInt32(NodeType) && Definition->Type != EGridLevelVariableType::Int32)
+		if (TypedLogicRequiresInt32(NodeType) && Definition->Type != EGridLevelVariableType::Int32)
 		{
 			OutError = FString::Printf(TEXT("Logic node requires Int32 variable '%s'."), *ObjectData.Logic.VariableId.ToString());
 			return false;
 		}
-
 		return true;
 	}
 
-	bool ExecuteNode(const UGridLevelAsset& LevelAsset, const FGridLevelObjectData& ObjectData, FGridLevelRuntimeState& RuntimeState,
+	bool ExecuteNode(const UGridLevelAsset& LevelAsset, const FGridLogicObjectInstance& ObjectData, FGridLevelRuntimeState& RuntimeState,
 		EGridObjectCommand Command, FGridLogicExecutionResult& OutResult)
 	{
 		OutResult = FGridLogicExecutionResult();
@@ -186,7 +167,6 @@ namespace GridLogicRuntime
 			OutResult.Error = MoveTemp(ValidationError);
 			return false;
 		}
-
 		if (Command != EGridObjectCommand::LogicExecute && Command != EGridObjectCommand::LogicReset)
 		{
 			OutResult.Error = TEXT("Logic node received an unsupported command.");
@@ -209,20 +189,17 @@ namespace GridLogicRuntime
 				OutResult.Error = MoveTemp(Error);
 				return false;
 			}
-
 			if (!bCurrent)
 			{
 				return true;
 			}
-
 			if (!GridLevelVariableStore::SetBool(LevelAsset, RuntimeState, Logic.VariableId, false, Error))
 			{
 				OutResult.Error = MoveTemp(Error);
 				return false;
 			}
-
 			OutResult.bStateChanged = true;
-			Emit(OutResult, EGridObjectEvent::Deactivated);
+			EmitTypedLogic(OutResult, EGridObjectEvent::Deactivated);
 			return true;
 		}
 
@@ -230,7 +207,7 @@ namespace GridLogicRuntime
 		switch (Logic.NodeType)
 		{
 			case EGridLogicNodeType::Relay:
-				Emit(OutResult, EGridObjectEvent::Activated);
+				EmitTypedLogic(OutResult, EGridObjectEvent::Activated);
 				return true;
 
 			case EGridLogicNodeType::SetBool:
@@ -242,9 +219,8 @@ namespace GridLogicRuntime
 					OutResult.Error = MoveTemp(Error);
 					return false;
 				}
-
 				OutResult.bStateChanged = bCurrent != Logic.bBoolValue;
-				Emit(OutResult, EGridObjectEvent::Activated);
+				EmitTypedLogic(OutResult, EGridObjectEvent::Activated);
 				return true;
 			}
 
@@ -257,9 +233,8 @@ namespace GridLogicRuntime
 					OutResult.Error = MoveTemp(Error);
 					return false;
 				}
-
 				OutResult.bStateChanged = true;
-				Emit(OutResult, EGridObjectEvent::Activated);
+				EmitTypedLogic(OutResult, EGridObjectEvent::Activated);
 				return true;
 			}
 
@@ -272,9 +247,8 @@ namespace GridLogicRuntime
 					OutResult.Error = MoveTemp(Error);
 					return false;
 				}
-
 				OutResult.bStateChanged = Current != Logic.IntValue;
-				Emit(OutResult, EGridObjectEvent::Activated);
+				EmitTypedLogic(OutResult, EGridObjectEvent::Activated);
 				return true;
 			}
 
@@ -287,36 +261,33 @@ namespace GridLogicRuntime
 					OutResult.Error = MoveTemp(Error);
 					return false;
 				}
-
-				const int64 Candidate = Logic.NodeType == EGridLogicNodeType::AddInt ? static_cast<int64>(Current) + static_cast<int64>(Logic.IntValue)
-																					 : static_cast<int64>(Current) - static_cast<int64>(Logic.IntValue);
+				const int64 Candidate = Logic.NodeType == EGridLogicNodeType::AddInt
+					? static_cast<int64>(Current) + static_cast<int64>(Logic.IntValue)
+					: static_cast<int64>(Current) - static_cast<int64>(Logic.IntValue);
 				int32 NewValue = 0;
-				if (!TryCheckedInt32(Candidate, NewValue))
+				if (!TryTypedCheckedInt32(Candidate, NewValue))
 				{
 					OutResult.Error = FString::Printf(TEXT("Int32 overflow for variable '%s'."), *Logic.VariableId.ToString());
 					return false;
 				}
-
 				if (!GridLevelVariableStore::SetInt32(LevelAsset, RuntimeState, Logic.VariableId, NewValue, Error))
 				{
 					OutResult.Error = MoveTemp(Error);
 					return false;
 				}
-
 				OutResult.bStateChanged = Current != NewValue;
-				Emit(OutResult, EGridObjectEvent::Activated);
+				EmitTypedLogic(OutResult, EGridObjectEvent::Activated);
 				return true;
 			}
 
 			case EGridLogicNodeType::ResetVariable:
 			{
-				const FGridLevelVariableDefinition* Definition = FindLogicVariable(LevelAsset, Logic.VariableId);
+				const FGridLevelVariableDefinition* Definition = FindTypedLogicVariable(LevelAsset, Logic.VariableId);
 				if (!Definition)
 				{
 					OutResult.Error = FString::Printf(TEXT("Variable '%s' is not declared."), *Logic.VariableId.ToString());
 					return false;
 				}
-
 				if (Definition->Type == EGridLevelVariableType::Bool)
 				{
 					bool bCurrent = false;
@@ -344,8 +315,7 @@ namespace GridLogicRuntime
 					OutResult.Error = TEXT("ResetVariable uses an unsupported variable type.");
 					return false;
 				}
-
-				Emit(OutResult, EGridObjectEvent::Activated);
+				EmitTypedLogic(OutResult, EGridObjectEvent::Activated);
 				return true;
 			}
 
@@ -357,8 +327,7 @@ namespace GridLogicRuntime
 					OutResult.Error = MoveTemp(Error);
 					return false;
 				}
-
-				Emit(OutResult, bCurrent == Logic.bBoolValue ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated);
+				EmitTypedLogic(OutResult, bCurrent == Logic.bBoolValue ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated);
 				return true;
 			}
 
@@ -370,8 +339,7 @@ namespace GridLogicRuntime
 					OutResult.Error = MoveTemp(Error);
 					return false;
 				}
-
-				Emit(OutResult, CompareInt32(Current, Logic.IntComparison, Logic.IntValue) ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated);
+				EmitTypedLogic(OutResult, CompareTypedInt32(Current, Logic.IntComparison, Logic.IntValue) ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated);
 				return true;
 			}
 
@@ -383,20 +351,17 @@ namespace GridLogicRuntime
 					OutResult.Error = MoveTemp(Error);
 					return false;
 				}
-
 				if (bLatched)
 				{
 					return true;
 				}
-
 				if (!GridLevelVariableStore::SetBool(LevelAsset, RuntimeState, Logic.VariableId, true, Error))
 				{
 					OutResult.Error = MoveTemp(Error);
 					return false;
 				}
-
 				OutResult.bStateChanged = true;
-				Emit(OutResult, EGridObjectEvent::Activated);
+				EmitTypedLogic(OutResult, EGridObjectEvent::Activated);
 				return true;
 			}
 
