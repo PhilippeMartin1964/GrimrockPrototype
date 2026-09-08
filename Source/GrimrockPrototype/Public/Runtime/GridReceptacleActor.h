@@ -177,8 +177,8 @@ public:
 	// ============================================================
 	// AGridRuntimeObjectActor
 	// ============================================================
-	virtual void InitializeGridObject(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform) override;
+	virtual void InitializeRuntimeWorldObject(
+		const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform) override;
 
 protected:
 	virtual void BeginPlay() override;

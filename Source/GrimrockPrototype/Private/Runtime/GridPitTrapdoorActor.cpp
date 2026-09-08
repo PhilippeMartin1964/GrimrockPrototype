@@ -24,10 +24,10 @@ void AGridPitTrapdoorActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void AGridPitTrapdoorActor::InitializeMechanismVisuals(
-	const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform)
+void AGridPitTrapdoorActor::InitializeRuntimeMechanismVisuals(
+	const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform)
 {
-	AGridMechanismActor::InitializeMechanismVisuals(ObjectData, Archetype, WorldTransform);
+	AGridMechanismActor::InitializeRuntimeMechanismVisuals(ObjectData, Archetype, WorldTransform);
 
 	// WORLDOBJ-MIG04: pit geometry and travel time are entirely generic MovingParts motion.
 	MoveDuration = GetTargetMotionDuration();
@@ -64,11 +64,11 @@ void AGridPitTrapdoorActor::InitializeMechanismVisuals(
 	}
 }
 
-void AGridPitTrapdoorActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
+void AGridPitTrapdoorActor::InitializeRuntimeWorldObject(
+	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
 	(void)Mesh;
-	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, WorldTransform);
+	AGridRuntimeObjectActor::InitializeRuntimeWorldObject(ObjectData, nullptr, WorldTransform);
 }
 
 bool AGridPitTrapdoorActor::HasCompleteTrapdoorCover() const

@@ -96,30 +96,30 @@ namespace
 		FixtureLevel->StartCellY = MON135StartCell.Y;
 		FixtureLevel->StartFacing = EGridEdge::North;
 
-		FGridLevelObjectData Trigger;
-		Trigger.ObjectId = MON135TriggerId;
+		FGridWorldObjectInstance Trigger;
+		Trigger.InstanceId = MON135TriggerId;
 		Trigger.Type = EGridLevelObjectType::Trigger;
 		Trigger.CellX = MON135TriggerCell.X;
 		Trigger.CellY = MON135TriggerCell.Y;
-		Trigger.Edge = EGridEdge::None;
+		Trigger.WallSide = EGridEdge::None;
 		Trigger.bInitiallyEnabled = true;
-		FixtureLevel->Objects.Add(Trigger);
+		FixtureLevel->WorldObjectInstances.Add(Trigger);
 
 		auto AddEncounterRat = [FixtureLevel, RatDefinition](const FGuid& SpawnId, const FIntPoint& Cell, int32 WaveIndex)
 		{
-			FGridLevelObjectData Spawn;
-			Spawn.ObjectId = SpawnId;
-			Spawn.Type = EGridLevelObjectType::MonsterSpawn;
+			FGridMonsterSpawnInstance Spawn;
+			Spawn.SpawnId = SpawnId;
+
 			Spawn.CellX = Cell.X;
 			Spawn.CellY = Cell.Y;
-			Spawn.Edge = EGridEdge::None;
-			Spawn.InitialFacing = EGridEdge::North;
-			Spawn.MonsterDefinitionAsset = RatDefinition;
-			Spawn.MonsterDefinitionId = RatDefinition->MonsterId;
+
+			Spawn.Facing = EGridEdge::North;
+			Spawn.MonsterDefinition = RatDefinition;
+
 			Spawn.EncounterGroupId = MON135EncounterId;
 			Spawn.EncounterWaveIndex = WaveIndex;
 			Spawn.bInitiallyEnabled = false;
-			FixtureLevel->Objects.Add(Spawn);
+			FixtureLevel->MonsterSpawns.Add(Spawn);
 		};
 
 		AddEncounterRat(MON135RatSpawnId, MON135RatCell, 0);
@@ -292,9 +292,9 @@ namespace
 				return true;
 			}
 
-			const FGridLevelObjectData* RatSpawn = EditorActor->LevelAsset->FindMonsterSpawnById(MON135RatSpawnId);
-			const FGridLevelObjectData* Wave0SecondSpawn = EditorActor->LevelAsset->FindMonsterSpawnById(MON135Wave0SecondSpawnId);
-			const FGridLevelObjectData* Wave1Spawn = EditorActor->LevelAsset->FindMonsterSpawnById(MON135Wave1SpawnId);
+			const FGridMonsterSpawnInstance* RatSpawn = EditorActor->LevelAsset->FindMonsterSpawnInstanceById(MON135RatSpawnId);
+			const FGridMonsterSpawnInstance* Wave0SecondSpawn = EditorActor->LevelAsset->FindMonsterSpawnInstanceById(MON135Wave0SecondSpawnId);
+			const FGridMonsterSpawnInstance* Wave1Spawn = EditorActor->LevelAsset->FindMonsterSpawnInstanceById(MON135Wave1SpawnId);
 			Test->TestNotNull(TEXT("The transient PIE encounter anchor exists"), RatSpawn);
 			Test->TestNotNull(TEXT("The transient second wave-zero Rat exists"), Wave0SecondSpawn);
 			Test->TestNotNull(TEXT("The transient wave-one Rat exists"), Wave1Spawn);
@@ -325,8 +325,8 @@ namespace
 				return true;
 			}
 
-			const FGridLevelObjectData* Trigger = nullptr;
-			for (const FGridLevelObjectData& Object : EditorActor->LevelAsset->Objects)
+			const FGridWorldObjectInstance* Trigger = nullptr;
+			for (const FGridWorldObjectInstance& Object : EditorActor->LevelAsset->WorldObjectInstances)
 			{
 				if (Object.Type == EGridLevelObjectType::Trigger && FIntPoint(Object.CellX, Object.CellY) == MON135TriggerCell)
 				{
@@ -343,7 +343,7 @@ namespace
 			bool bHasExpectedLink = false;
 			for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
 			{
-				if (Link.SourceObjectId == Trigger->ObjectId && Link.TargetObjectId == MON135RatSpawnId && Link.SourceEvent == EGridObjectEvent::Activated &&
+				if (Link.SourceObjectId == Trigger->InstanceId && Link.TargetObjectId == MON135RatSpawnId && Link.SourceEvent == EGridObjectEvent::Activated &&
 					Link.Command == EGridObjectCommand::StartEncounter)
 				{
 					bHasExpectedLink = true;

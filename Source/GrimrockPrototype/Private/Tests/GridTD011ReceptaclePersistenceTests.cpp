@@ -72,22 +72,23 @@ namespace GridTD011Tests
 		Fixture.Level->EnsureCellCount();
 		Fixture.Level->Cells[0].CellType = EGridCellType::Floor;
 
-		FGridLevelObjectData ReceptacleObject;
-		ReceptacleObject.ObjectId = ReceptacleObjectId;
-		ReceptacleObject.ArchetypeId = ReceptacleArchetypeId;
+		FGridWorldObjectInstance ReceptacleObject;
+		ReceptacleObject.InstanceId = ReceptacleObjectId;
+		ReceptacleObject.WorldObjectDefinitionId = ReceptacleArchetypeId;
 		ReceptacleObject.Type = EGridLevelObjectType::Receptacle;
 		ReceptacleObject.CellX = 0;
 		ReceptacleObject.CellY = 0;
-		ReceptacleObject.Edge = EGridEdge::North;
+		ReceptacleObject.WallSide = EGridEdge::North;
 		ReceptacleObject.bInitiallyEnabled = true;
-		Fixture.Level->Objects.Add(ReceptacleObject);
+		Fixture.Level->WorldObjectInstances.Add(ReceptacleObject);
 
 		Fixture.Archetype = NewObject<UGridObjectArchetypeAsset>(Outer);
 		Fixture.Archetype->ArchetypeId = ReceptacleArchetypeId;
 		Fixture.Archetype->SupportedType = EGridLevelObjectType::Receptacle;
 		Fixture.Archetype->Category = TEXT("Receptacles");
 		Fixture.Archetype->ObjectCategory = EGridObjectCategory::Receptacle;
-		Fixture.Archetype->PlacementKind = EGridObjectPlacementKind::Wall;
+		Fixture.Archetype->PlacementSurface = EGridObjectPlacementKind::Wall;
+		Fixture.Archetype->RefreshPlacementRuntimeProjection();
 		Fixture.Archetype->bIsInteractable = true;
 		Fixture.Archetype->RuntimeActorClass = AGridReceptacleActor::StaticClass();
 		Fixture.Mesh = NewObject<UStaticMesh>(Outer);

@@ -12,8 +12,8 @@ class GRIMROCKPROTOTYPE_API AGridWallLockActor : public AGridReceptacleActor
 	GENERATED_BODY()
 
 public:
-	virtual void InitializeGridObject(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform) override;
+	virtual void InitializeRuntimeWorldObject(
+		const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform) override;
 
 	bool TryInteractWithParty(AGrimrockPartyPawn* PartyPawn);
 

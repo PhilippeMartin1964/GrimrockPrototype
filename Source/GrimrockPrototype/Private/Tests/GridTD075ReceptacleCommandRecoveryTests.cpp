@@ -103,29 +103,28 @@ namespace GridTD075ReceptacleRecovery
 		Level->EnsureCellCount();
 		Level->Cells[0].CellType = EGridCellType::Floor;
 
-		FGridLevelObjectData& Source = Level->Objects.AddDefaulted_GetRef();
-		Source.ObjectId = TD075SourceObjectId;
+		FGridLogicObjectInstance& Source = Level->LogicObjects.AddDefaulted_GetRef();
+		Source.InstanceId = TD075SourceObjectId;
 		Source.Type = EGridLevelObjectType::Logic;
 		Source.LogicId = TEXT("TD07_5_Source");
 		Source.CellX = 0;
 		Source.CellY = 0;
 		Source.bInitiallyEnabled = true;
 
-		FGridLevelObjectData& Receptacle = Level->Objects.AddDefaulted_GetRef();
-		Receptacle.ObjectId = TD075ReceptacleObjectId;
-		Receptacle.ArchetypeId = TD075ReceptacleArchetypeId;
+		FGridWorldObjectInstance& Receptacle = Level->WorldObjectInstances.AddDefaulted_GetRef();
+		Receptacle.InstanceId = TD075ReceptacleObjectId;
+		Receptacle.WorldObjectDefinitionId = TD075ReceptacleArchetypeId;
 		Receptacle.Type = EGridLevelObjectType::Receptacle;
 		Receptacle.CellX = 0;
 		Receptacle.CellY = 0;
-		Receptacle.Edge = EGridEdge::North;
+		Receptacle.WallSide = EGridEdge::North;
 		Receptacle.bInitiallyEnabled = true;
-		Receptacle.Behavior.Receptacle.MaxContainedItems = 2;
 
-		FGridReceptacleInitialItemConfig& InitialA = Receptacle.Behavior.Receptacle.InitialContent.AddDefaulted_GetRef();
+		FGridReceptacleInitialItemConfig& InitialA = Receptacle.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef();
 		InitialA.ItemDefinition = ItemA;
 		InitialA.Quantity = 1;
 
-		FGridReceptacleInitialItemConfig& InitialB = Receptacle.Behavior.Receptacle.InitialContent.AddDefaulted_GetRef();
+		FGridReceptacleInitialItemConfig& InitialB = Receptacle.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef();
 		InitialB.ItemDefinition = ItemB;
 		InitialB.Quantity = 1;
 
@@ -137,8 +136,10 @@ namespace GridTD075ReceptacleRecovery
 		UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
 		Archetype->ArchetypeId = TD075ReceptacleArchetypeId;
 		Archetype->SupportedType = EGridLevelObjectType::Receptacle;
+		Archetype->DefaultBehavior.Receptacle.MaxContainedItems = 2;
 		Archetype->ObjectCategory = EGridObjectCategory::Receptacle;
-		Archetype->PlacementKind = EGridObjectPlacementKind::Wall;
+		Archetype->PlacementSurface = EGridObjectPlacementKind::Wall;
+		Archetype->RefreshPlacementRuntimeProjection();
 		Archetype->bIsInteractable = true;
 		Archetype->RuntimeActorClass = AGridReceptacleActor::StaticClass();
 		Archetype->StaticPart.Mesh = NewObject<UStaticMesh>(Runtime);

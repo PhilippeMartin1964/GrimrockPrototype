@@ -28,10 +28,10 @@ namespace
 	}
 }
 
-void AGridWallLockActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
+void AGridWallLockActor::InitializeRuntimeWorldObject(
+	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	Super::InitializeGridObject(ObjectData, Mesh, WorldTransform);
+	Super::InitializeRuntimeWorldObject(ObjectData, Mesh, WorldTransform);
 
 	const FGridObjectBehaviorParams EffectiveBehavior = ResolveEffectiveBehavior(ObjectData);
 	const FGridLockBehaviorParams& LockParams = EffectiveBehavior.Lock;

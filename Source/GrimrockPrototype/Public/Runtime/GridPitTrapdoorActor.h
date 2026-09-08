@@ -27,11 +27,11 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	virtual void InitializeMechanismVisuals(
-		const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform) override;
+	virtual void InitializeRuntimeMechanismVisuals(
+		const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform) override;
 
-	virtual void InitializeGridObject(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform) override;
+	virtual void InitializeRuntimeWorldObject(
+		const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Pit")
 	void SetPitOpenVisualState(bool bOpen, bool bPlayAudio = true);

@@ -11,6 +11,7 @@
 #include "Runtime/GridButtonActor.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPlacementTransformResolver.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 
 namespace GridWorldObjectMIG03RuntimeSpawn
@@ -177,6 +178,13 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 
 	AGridButtonActor* ButtonActor = Runtime->FindRuntimeObjectActor<AGridButtonActor>(ButtonObject.InstanceId);
 	TestNotNull(TEXT("MovingPart-only mechanism spawns from target visual composition"), ButtonActor);
+	if (ButtonActor)
+	{
+		FTransform PreviewPlacement;
+		TestTrue(TEXT("Typed preview placement resolves for the mechanism"),
+			GridPlacementTransformResolver::ResolveWorldObject(*Runtime, ButtonObject, PreviewPlacement));
+		TestTrue(TEXT("Runtime and preview use the same placement transform"), ButtonActor->GetActorTransform().Equals(PreviewPlacement));
+	}
 
 	AGridRuntimeObjectActor* TriggerActor = Runtime->FindRuntimeObjectActor<AGridRuntimeObjectActor>(TriggerObject.InstanceId);
 	TestNotNull(TEXT("Runtime actor can spawn with no presentation at all"), TriggerActor);

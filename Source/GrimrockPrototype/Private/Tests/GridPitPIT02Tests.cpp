@@ -66,22 +66,22 @@ namespace GridPIT02
 		return Level;
 	}
 
-	FGridLevelObjectData MakePit(int32 X, int32 Y, FName TargetLevelId)
+	FGridWorldObjectInstance MakePit(int32 X, int32 Y, FName TargetLevelId)
 	{
-		FGridLevelObjectData Pit;
-		Pit.ObjectId = FGuid::NewGuid();
+		FGridWorldObjectInstance Pit;
+		Pit.InstanceId = FGuid::NewGuid();
 		Pit.Type = EGridLevelObjectType::Pit;
-		Pit.ArchetypeId = TEXT("Pit_Stone_01");
+		Pit.WorldObjectDefinitionId = TEXT("Pit_Stone_01");
 		Pit.CellX = X;
 		Pit.CellY = Y;
-		Pit.Edge = EGridEdge::None;
+		Pit.WallSide = EGridEdge::None;
 		Pit.bInitiallyEnabled = true;
-		Pit.Behavior.Pit.bInitiallyOpen = true;
-		Pit.Behavior.Pit.bUseSameCellCoordinates = true;
-		Pit.Behavior.Transition.bIsTransition = true;
-		Pit.Behavior.Transition.TargetLevelId = TargetLevelId;
-		Pit.Behavior.Transition.TargetFacing = EGridEdge::North;
-		Pit.Behavior.Transition.bRequireUseAction = false;
+		Pit.InstanceConfig.Pit.bInitiallyOpen = true;
+		Pit.InstanceConfig.Pit.bUseSameCellCoordinates = true;
+		Pit.InstanceConfig.Transition.bIsTransition = true;
+		Pit.InstanceConfig.Transition.TargetLevelId = TargetLevelId;
+		Pit.InstanceConfig.Transition.TargetFacing = EGridEdge::North;
+		Pit.InstanceConfig.Transition.bRequireUseAction = false;
 		return Pit;
 	}
 }
@@ -129,7 +129,7 @@ bool FGridPIT02WorldItemsTest::RunTest(const FString& Parameters)
 
 	Dungeon->DefaultLevelId = UpperId;
 	Dungeon->Levels = { UpperEntry, LowerEntry };
-	Upper->Objects.Add(MakePit(2, 2, LowerId));
+	Upper->WorldObjectInstances.Add(MakePit(2, 2, LowerId));
 	Lower->GetCellMutable(2, 2).CellType = EGridCellType::Empty;
 	Lower->GetCellMutable(2, 2).bBlocksOccupancy = false;
 

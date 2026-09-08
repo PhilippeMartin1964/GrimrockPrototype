@@ -65,24 +65,24 @@ namespace
 		return Level;
 	}
 
-	FGridLevelObjectData MakeStaticPit(int32 X, int32 Y, FName TargetLevelId, bool bOpen = true)
+	FGridWorldObjectInstance MakeStaticPit(int32 X, int32 Y, FName TargetLevelId, bool bOpen = true)
 	{
-		FGridLevelObjectData Pit;
-		Pit.ObjectId = FGuid::NewGuid();
+		FGridWorldObjectInstance Pit;
+		Pit.InstanceId = FGuid::NewGuid();
 		Pit.Type = EGridLevelObjectType::Pit;
 		Pit.CellX = X;
 		Pit.CellY = Y;
-		Pit.Edge = EGridEdge::None;
+		Pit.WallSide = EGridEdge::None;
 		Pit.bInitiallyEnabled = true;
-		Pit.ArchetypeId = TEXT("Pit_Stone_01");
-		Pit.Behavior.Pit.bInitiallyOpen = bOpen;
-		Pit.Behavior.Pit.bUseSameCellCoordinates = true;
-		Pit.Behavior.Transition.bIsTransition = true;
-		Pit.Behavior.Transition.TargetLevelId = TargetLevelId;
-		Pit.Behavior.Transition.TargetCellX = 0;
-		Pit.Behavior.Transition.TargetCellY = 0;
-		Pit.Behavior.Transition.TargetFacing = EGridEdge::East;
-		Pit.Behavior.Transition.bRequireUseAction = false;
+		Pit.WorldObjectDefinitionId = TEXT("Pit_Stone_01");
+		Pit.InstanceConfig.Pit.bInitiallyOpen = bOpen;
+		Pit.InstanceConfig.Pit.bUseSameCellCoordinates = true;
+		Pit.InstanceConfig.Transition.bIsTransition = true;
+		Pit.InstanceConfig.Transition.TargetLevelId = TargetLevelId;
+		Pit.InstanceConfig.Transition.TargetCellX = 0;
+		Pit.InstanceConfig.Transition.TargetCellY = 0;
+		Pit.InstanceConfig.Transition.TargetFacing = EGridEdge::East;
+		Pit.InstanceConfig.Transition.bRequireUseAction = false;
 		return Pit;
 	}
 }
@@ -96,7 +96,8 @@ bool FGridPIT01DataContractTest::RunTest(const FString& Parameters)
 
 	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>();
 	Archetype->SupportedType = EGridLevelObjectType::Pit;
-	Archetype->PlacementKind = EGridObjectPlacementKind::Floor;
+	Archetype->PlacementSurface = EGridObjectPlacementKind::Floor;
+		Archetype->RefreshPlacementRuntimeProjection();
 	Archetype->DefaultBehavior.Pit.bInitiallyOpen = true;
 	Archetype->DefaultBehavior.Pit.bUseSameCellCoordinates = true;
 	Archetype->DefaultBehavior.Transition.bIsTransition = true;
@@ -182,17 +183,18 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	// Standard Pit authoring: no manual target, no generic transition flag and no arrival facing.
 	// Also emulate stale placed data from an earlier prototype revision: stored Type and ObjectId are not trusted
 	// when the archetype itself authoritatively identifies a Pit.
-	Upper->Objects.Add(MakeStaticPit(2, 2, NAME_None));
-	Upper->Objects[0].Type = EGridLevelObjectType::Decoration;
-	Upper->Objects[0].ObjectId = FGuid();
-	Upper->Objects[0].Behavior.Pit.bInitiallyOpen = false; // no MovingParts cover => static hole must still be Open
-	Upper->Objects[0].Behavior.Transition.bIsTransition = false;
-	Upper->Objects[0].Behavior.Transition.TargetFacing = EGridEdge::None;
+	Upper->WorldObjectInstances.Add(MakeStaticPit(2, 2, NAME_None));
+	Upper->WorldObjectInstances[0].Type = EGridLevelObjectType::Decoration;
+	Upper->WorldObjectInstances[0].InstanceId = FGuid();
+	Upper->WorldObjectInstances[0].InstanceConfig.Pit.bInitiallyOpen = false; // no MovingParts cover => static hole must still be Open
+	Upper->WorldObjectInstances[0].InstanceConfig.Transition.bIsTransition = false;
+	Upper->WorldObjectInstances[0].InstanceConfig.Transition.TargetFacing = EGridEdge::None;
 
 	UGridObjectArchetypeAsset* PitArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
 	PitArchetype->ArchetypeId = TEXT("Pit_Stone_01");
 	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
-	PitArchetype->PlacementKind = EGridObjectPlacementKind::Floor;
+	PitArchetype->PlacementSurface = EGridObjectPlacementKind::Floor;
+		PitArchetype->RefreshPlacementRuntimeProjection();
 	Runtime->ObjectArchetypes.Add(PitArchetype);
 
 	Runtime->DungeonAsset = Dungeon;
@@ -215,10 +217,10 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	FGridObjectTransitionParams GenericTransition;
 	TestFalse(TEXT("Generic stair transition path ignores the Pit archetype"), Runtime->FindTransitionAtCell(2, 2, false, GenericTransition));
 
-	Lower->Objects.Add(MakeStaticPit(2, 2, UpperId));
+	Lower->WorldObjectInstances.Add(MakeStaticPit(2, 2, UpperId));
 	AddExpectedError(TEXT("Pit fall rejected: destination"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestFalse(TEXT("PIT01 rejects chained arrival onto another open pit"), Runtime->TryBeginPitFallAtCell(2, 2, Party));
-	Lower->Objects.Reset();
+	Lower->WorldObjectInstances.Reset();
 
 	// Real authored-level case: the vertical cell directly below the Pit may be Empty.
 	// The fall must still start and resolve to the nearest usable landing cell.

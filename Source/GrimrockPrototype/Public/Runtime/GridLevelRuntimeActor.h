@@ -10,6 +10,7 @@
 #include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
+#include "Runtime/GridPlacementTransformResolver.h"
 #include "GridLevelRuntimeActor.generated.h"
 
 class AGridEditorPreviewObjectActor;
@@ -335,15 +336,8 @@ public:
 	bool ResolveMonsterSpawn(const FGridMonsterSpawnInstance& SpawnData, UGridMonsterDefinitionAsset*& OutDefinition,
 		TSubclassOf<AGridMonsterActor>& OutActorClass, FString& OutError) const;
 
-	/** Temporary legacy overload retained until LevelRuntimeActor/preview finish E2B. */
-	bool ResolveMonsterSpawn(const FGridLevelObjectData& ObjectData, UGridMonsterDefinitionAsset*& OutDefinition, TSubclassOf<AGridMonsterActor>& OutActorClass,
-		FString& OutError) const;
-
 	/** Typed authoritative cell-centered transform. */
 	bool GetMonsterSpawnTransform(const FGridMonsterSpawnInstance& SpawnData, FTransform& OutTransform) const;
-
-	/** Temporary legacy overload retained until LevelRuntimeActor/preview finish E2B. */
-	bool GetMonsterSpawnTransform(const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
 
 	AGridMonsterActor* FindSpawnedMonsterActor(const FGuid& SpawnId) const;
 
@@ -410,7 +404,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Runtime")
 	bool FindTransitionAtCell(int32 CellX, int32 CellY, bool bTriggeredByUseAction, FGridObjectTransitionParams& OutTransition) const;
 
-
 	/** PIT01: resolves an enabled static open pit without using the generic stair transition path. */
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Pit")
 	bool FindOpenPitAtCell(int32 CellX, int32 CellY, FGridObjectTransitionParams& OutTransition) const;
@@ -418,7 +411,6 @@ public:
 	/** PIT01: validates the destination and starts the party-owned fall presentation. */
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Pit")
 	bool TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn);
-
 
 	/** PIT03 runtime authority. Open=true means the cell behaves as a fall-through pit. */
 	UFUNCTION(BlueprintPure, Category = "Dungeon|Pit")
@@ -429,7 +421,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Pit")
 	bool TogglePit(FGuid PitObjectId, bool bEmitEvent = true);
-
 
 	/** PIT02: routes a normal world item through an open pit instead of leaving it on the source level. */
 	bool TryRouteWorldItemThroughOpenPit(
@@ -442,9 +433,9 @@ public:
 	int32 DropWorldItemsThroughOpenPitAtCell(int32 CellX, int32 CellY);
 
 	void RebuildRuntimeObjects();
-	void AddRuntimeObjectActor(const FGridLevelObjectData& ObjectData);
-	void AddPlacedItemActor(const FGridLevelObjectData& ObjectData);
-	bool IsRuntimeSpawnableObject(const FGridLevelObjectData& ObjectData) const;
+	void AddRuntimeObjectActor(const FGridWorldObjectInstance& ObjectData);
+	void AddPlacedItemActor(const FGridLooseItemInstance& ObjectData);
+	bool IsRuntimeSpawnableObject(const FGridWorldObjectInstance& ObjectData) const;
 
 	template <typename T> T* FindRuntimeObjectActor(const FGuid& ObjectId) const
 	{
@@ -483,12 +474,7 @@ private:
 	bool TryGetOppositeEdge(int32 X, int32 Y, EGridEdge Edge, int32& OutX, int32& OutY, EGridEdge& OutEdge) const;
 	bool TryResolveDoorEdge(int32 X, int32 Y, EGridEdge Edge, int32& OutX, int32& OutY, EGridEdge& OutEdge, bool& bOutResolvedOpposite) const;
 
-	TSubclassOf<AGridRuntimeObjectActor> GetObjectRuntimeActorClass(const FGridLevelObjectData& ObjectData) const;
-
-	bool GetWallMountedObjectTransform(const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset, float LocalOffsetAlongWall,
-		float LocalOffsetVertical, FTransform& OutTransform) const;
-	bool GetFloorEdgeObjectTransform(const FGridLevelObjectData& ObjectData, float ZOffset, float EdgeInset, FTransform& OutTransform) const;
-	bool GetCenteredObjectTransform(const FGridLevelObjectData& ObjectData, float ZOffset, FTransform& OutTransform) const;
+	TSubclassOf<AGridRuntimeObjectActor> GetObjectRuntimeActorClass(const FGridWorldObjectInstance& ObjectData) const;
 
 	UPROPERTY(Transient)
 	TMap<FGuid, TObjectPtr<AGridRuntimeObjectActor>> SpawnedRuntimeObjectActors;
@@ -528,7 +514,7 @@ private:
 	void LogUnsafeInstanceTransform(
 		const TCHAR* FunctionName, const UInstancedStaticMeshComponent* Component, int32 X, int32 Y, EGridEdge Edge, const FTransform& Transform) const;
 	void LogUnsafeObjectTransform(
-		const TCHAR* FunctionName, const FGridLevelObjectData& ObjectData, const UStaticMesh* StaticMesh, const FTransform& Transform) const;
+		const TCHAR* FunctionName, const FGridWorldObjectInstance& ObjectData, const UStaticMesh* StaticMesh, const FTransform& Transform) const;
 	void LogUnsafeItemTransform(const TCHAR* FunctionName, FName ArchetypeId, const AActor* OwnerActor, const USceneComponent* AttachParent,
 		const UStaticMesh* StaticMesh, const FTransform& Transform) const;
 
@@ -540,22 +526,17 @@ private:
 	bool DespawnMonsterSpawnActor(const FGridMonsterSpawnInstance& SpawnData, bool bRememberState, bool bEmitEvent);
 	bool StoreMonsterPlacementState(const FGridMonsterSpawnInstance& SpawnData, AGridMonsterActor* Monster, bool bIsSpawned);
 
-	/** Temporary legacy wrappers retained until LevelRuntimeActor orchestration is typed. */
-	AGridMonsterActor* AddMonsterSpawnActor(const FGridLevelObjectData& ObjectData, const FGridRuntimeMonsterState* RestoreState = nullptr);
-	bool DespawnMonsterSpawnActor(const FGridLevelObjectData& ObjectData, bool bRememberState, bool bEmitEvent);
-	bool StoreMonsterPlacementState(const FGridLevelObjectData& ObjectData, AGridMonsterActor* Monster, bool bIsSpawned);
-
 	void ClearSpawnedMonsterActors();
 	void AbortActiveCombatAndMonsterActions();
 	void ApplyInitialMonsterStateForCurrentLevel();
-	bool IsPitOpenForLevel(FName LevelId, const FGridLevelObjectData& PitObject) const;
-	bool IsEffectivePitObject(const FGridLevelObjectData& ObjectData) const;
+	bool IsPitOpenForLevel(FName LevelId, const FGridWorldObjectInstance& PitObject) const;
+	bool IsEffectivePitObject(const FGridWorldObjectInstance& ObjectData) const;
 	bool ResolvePitLandingCell(FName TargetLevelId, int32 PreferredCellX, int32 PreferredCellY, int32& OutCellX, int32& OutCellY) const;
 	void HandlePitTrapdoorAnimationFinished(FGuid PitObjectId, bool bWasOpen, bool bIsOpen);
 	void FinalizePitGameplayStateChange(FGuid PitObjectId, bool bWasOpen, bool bIsOpen, bool bEmitEvent);
 
 	template <typename TActor>
-	TActor* SpawnRuntimeObjectActor(const FGridLevelObjectData& ObjectData, UStaticMesh*& OutMesh, FTransform& OutTransform)
+	TActor* SpawnRuntimeObjectActor(const FGridWorldObjectInstance& ObjectData, UStaticMesh*& OutMesh, FTransform& OutTransform)
 	{
 		static_assert(TIsDerivedFrom<TActor, AGridRuntimeObjectActor>::IsDerived, "TActor must derive from AGridRuntimeObjectActor");
 		OutMesh = nullptr;
@@ -565,7 +546,7 @@ private:
 		{
 			return nullptr;
 		}
-		const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(ObjectData.ArchetypeId);
+		const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(ObjectData.WorldObjectDefinitionId);
 		OutMesh = Archetype && Archetype->StaticPart.IsDefined() ? Archetype->StaticPart.Mesh.Get() : nullptr;
 		TSubclassOf<AGridRuntimeObjectActor> ActorClass = GetObjectRuntimeActorClass(ObjectData);
 
@@ -580,7 +561,7 @@ private:
 		{
 			return nullptr;
 		}
-		if (!GetObjectPlacementTransform(ObjectData, OutTransform))
+		if (!GridPlacementTransformResolver::ResolveWorldObject(*this, ObjectData, OutTransform))
 		{
 			return nullptr;
 		}
@@ -598,7 +579,7 @@ private:
 		{
 			return nullptr;
 		}
-		RegisterRuntimeObjectActor(ObjectData.ObjectId, Actor);
+		RegisterRuntimeObjectActor(ObjectData.InstanceId, Actor);
 		return Actor;
 	}
 };

@@ -69,22 +69,22 @@ namespace GridPIT031
 		return Level;
 	}
 
-	FGridLevelObjectData MakeAnimatedPit(int32 X, int32 Y, FName TargetLevelId)
+	FGridWorldObjectInstance MakeAnimatedPit(int32 X, int32 Y, FName TargetLevelId)
 	{
-		FGridLevelObjectData Pit;
-		Pit.ObjectId = FGuid::NewGuid();
+		FGridWorldObjectInstance Pit;
+		Pit.InstanceId = FGuid::NewGuid();
 		Pit.Type = EGridLevelObjectType::Pit;
-		Pit.ArchetypeId = TEXT("Pit_Animated_Test");
+		Pit.WorldObjectDefinitionId = TEXT("Pit_Animated_Test");
 		Pit.CellX = X;
 		Pit.CellY = Y;
-		Pit.Edge = EGridEdge::None;
+		Pit.WallSide = EGridEdge::None;
 		Pit.bInitiallyEnabled = true;
-		Pit.Behavior.Pit.bInitiallyOpen = false;
-		Pit.Behavior.Pit.bUseSameCellCoordinates = true;
-		Pit.Behavior.Transition.bIsTransition = true;
-		Pit.Behavior.Transition.TargetLevelId = TargetLevelId;
-		Pit.Behavior.Transition.TargetFacing = EGridEdge::North;
-		Pit.Behavior.Transition.bRequireUseAction = false;
+		Pit.InstanceConfig.Pit.bInitiallyOpen = false;
+		Pit.InstanceConfig.Pit.bUseSameCellCoordinates = true;
+		Pit.InstanceConfig.Transition.bIsTransition = true;
+		Pit.InstanceConfig.Transition.TargetLevelId = TargetLevelId;
+		Pit.InstanceConfig.Transition.TargetFacing = EGridEdge::North;
+		Pit.InstanceConfig.Transition.bRequireUseAction = false;
 		return Pit;
 	}
 }
@@ -132,11 +132,11 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	Dungeon->DefaultLevelId = UpperId;
 	Dungeon->Levels = { UpperEntry, LowerEntry };
 
-	FGridLevelObjectData PitA = MakeAnimatedPit(2, 2, LowerId);
-	FGridLevelObjectData PitB = MakeAnimatedPit(3, 2, LowerId);
-	const FGuid PitAId = PitA.ObjectId;
-	const FGuid PitBId = PitB.ObjectId;
-	Upper->Objects = { PitA, PitB };
+	FGridWorldObjectInstance PitA = MakeAnimatedPit(2, 2, LowerId);
+	FGridWorldObjectInstance PitB = MakeAnimatedPit(3, 2, LowerId);
+	const FGuid PitAId = PitA.InstanceId;
+	const FGuid PitBId = PitB.InstanceId;
+	Upper->WorldObjectInstances = { PitA, PitB };
 
 	FGridObjectLink OpenSecondPit;
 	OpenSecondPit.SourceObjectId = PitAId;
@@ -151,19 +151,21 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	UGridObjectArchetypeAsset* PitArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
 	PitArchetype->ArchetypeId = TEXT("Pit_Animated_Test");
 	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
-	PitArchetype->PlacementKind = EGridObjectPlacementKind::Floor;
+	PitArchetype->PlacementSurface = EGridObjectPlacementKind::Floor;
+		PitArchetype->RefreshPlacementRuntimeProjection();
 	PitArchetype->StaticPart.Mesh = PitMesh;
 	PitArchetype->MovingParts.Part0.Mesh = LeftLeafMesh;
 	PitArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
 	PitArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
 	PitArchetype->MovingParts.Part0.Motion.Pivot = FVector(-85.0f, 0.0f, -5.0f);
-	PitArchetype->MovingParts.Part0.Motion.Amount = -80.0f;
+	// Around Y, positive quaternion rotation maps to negative Unreal Pitch and opens the left leaf downward.
+	PitArchetype->MovingParts.Part0.Motion.Amount = 80.0f;
 	PitArchetype->MovingParts.Part0.Motion.Duration = 1.0f;
 	PitArchetype->MovingParts.Part1.Mesh = RightLeafMesh;
 	PitArchetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
 	PitArchetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
 	PitArchetype->MovingParts.Part1.Motion.Pivot = FVector(85.0f, 0.0f, -5.0f);
-	PitArchetype->MovingParts.Part1.Motion.Amount = 80.0f;
+	PitArchetype->MovingParts.Part1.Motion.Amount = -80.0f;
 	PitArchetype->MovingParts.Part1.Motion.Duration = 1.0f;
 	PitArchetype->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
 
@@ -297,10 +299,10 @@ bool FGridPIT031NoCoverFallbackTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	FGridLevelObjectData Pit = MakeAnimatedPit(1, 1, TEXT("Lower"));
-	Pit.Behavior.Pit.bInitiallyOpen = false;
-	Actor->InitializeMechanismVisuals(Pit, nullptr, FTransform::Identity);
-	Actor->InitializeGridObject(Pit, nullptr, FTransform::Identity);
+	FGridWorldObjectInstance Pit = MakeAnimatedPit(1, 1, TEXT("Lower"));
+	Pit.InstanceConfig.Pit.bInitiallyOpen = false;
+	Actor->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(Pit), nullptr, FTransform::Identity);
+	Actor->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(Pit), nullptr, FTransform::Identity);
 
 	TestFalse(TEXT("No-cover Pit has no dual-leaf cover"), Actor->HasCompleteTrapdoorCover());
 	TestTrue(TEXT("No-cover Pit is forced Open immediately"), Actor->IsPitOpenVisualState());

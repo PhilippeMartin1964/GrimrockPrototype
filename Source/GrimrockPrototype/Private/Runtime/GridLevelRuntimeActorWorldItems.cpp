@@ -1,4 +1,5 @@
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPlacementTransformResolver.h"
 
 #include "Core/GridDirectionUtils.h"
 #include "Engine/World.h"
@@ -415,8 +416,8 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	const bool bPreferredWalkable = TargetLevelAsset->IsValidCoord(PreferredTargetX, PreferredTargetY) &&
 		TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).CellType != EGridCellType::Empty &&
 		!TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).bBlocksOccupancy;
-	const bool bPreferredContainsOpenPit = bPreferredWalkable && TargetLevelAsset->BuildCompatibilityObjectProjectionFromTyped().ContainsByPredicate(
-		[this, &Transition, PreferredTargetX, PreferredTargetY](const FGridLevelObjectData& Candidate)
+	const bool bPreferredContainsOpenPit = bPreferredWalkable && TargetLevelAsset->WorldObjectInstances.ContainsByPredicate(
+		[this, &Transition, PreferredTargetX, PreferredTargetY](const FGridWorldObjectInstance& Candidate)
 		{
 			return Candidate.CellX == PreferredTargetX && Candidate.CellY == PreferredTargetY && IsEffectivePitObject(Candidate) &&
 				IsPitOpenForLevel(Transition.TargetLevelId, Candidate);
@@ -695,12 +696,11 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	}
 	else
 	{
-		FGridLevelObjectData PlacementData;
-		PlacementData.Type = EGridLevelObjectType::Item;
+		FGridLooseItemInstance PlacementData;
 		PlacementData.CellX = CellX;
 		PlacementData.CellY = CellY;
-		PlacementData.Edge = Edge;
-		if (!GetObjectPlacementTransform(PlacementData, DropTransform))
+		PlacementData.SurfaceSide = Edge;
+		if (!GridPlacementTransformResolver::ResolveLooseItem(*this, PlacementData, DropTransform))
 		{
 			return false;
 		}

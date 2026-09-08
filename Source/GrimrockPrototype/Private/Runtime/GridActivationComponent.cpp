@@ -272,6 +272,14 @@ bool UGridActivationComponent::RefreshAllPressurePlates()
 	return bAnyStateChanged;
 }
 
+void UGridActivationComponent::RegisterInitialObjectState(const FGridWorldObjectInstance& Instance)
+{
+	if (Instance.bInitiallyActive && Instance.InstanceId.IsValid())
+	{
+		ActiveObjectIds.Add(Instance.InstanceId);
+	}
+}
+
 void UGridActivationComponent::RegisterInitialObjectState(const FGridLevelObjectData& ObjectData)
 {
 	if (ObjectData.bInitiallyActive && ObjectData.ObjectId.IsValid())

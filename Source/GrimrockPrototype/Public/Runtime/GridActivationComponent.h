@@ -35,6 +35,7 @@ public:
 
 	/** Transitional caller adapter. RebuildIndexes no longer stores this DTO. */
 	void RegisterInitialObjectState(const FGridLevelObjectData& ObjectData);
+	void RegisterInitialObjectState(const FGridWorldObjectInstance& Instance);
 
 	void RebuildIndexes();
 

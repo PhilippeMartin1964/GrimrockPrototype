@@ -200,13 +200,14 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorArchetype(FString& OutError)
 		PitArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
 		PitArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
 		PitArchetype->MovingParts.Part0.Motion.Pivot = FVector(-85.f, 0.f, -5.f);
-		PitArchetype->MovingParts.Part0.Motion.Amount = -80.f;
+		// With the authored +/-85 cm hinges, these signs rotate both leaves downward.
+		PitArchetype->MovingParts.Part0.Motion.Amount = 80.f;
 		PitArchetype->MovingParts.Part0.Motion.Duration = 0.75f;
 
 		PitArchetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
 		PitArchetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
 		PitArchetype->MovingParts.Part1.Motion.Pivot = FVector(85.f, 0.f, -5.f);
-		PitArchetype->MovingParts.Part1.Motion.Amount = 80.f;
+		PitArchetype->MovingParts.Part1.Motion.Amount = -80.f;
 		PitArchetype->MovingParts.Part1.Motion.Duration = 0.75f;
 	}
 

@@ -69,22 +69,22 @@ namespace GridPIT03
 		return Level;
 	}
 
-	FGridLevelObjectData MakeControlledPit(int32 X, int32 Y, FName TargetLevelId, bool bInitiallyOpen)
+	FGridWorldObjectInstance MakeControlledPit(int32 X, int32 Y, FName TargetLevelId, bool bInitiallyOpen)
 	{
-		FGridLevelObjectData Pit;
-		Pit.ObjectId = FGuid::NewGuid();
+		FGridWorldObjectInstance Pit;
+		Pit.InstanceId = FGuid::NewGuid();
 		Pit.Type = EGridLevelObjectType::Pit;
-		Pit.ArchetypeId = TEXT("Pit_Stone_01");
+		Pit.WorldObjectDefinitionId = TEXT("Pit_Stone_01");
 		Pit.CellX = X;
 		Pit.CellY = Y;
-		Pit.Edge = EGridEdge::None;
+		Pit.WallSide = EGridEdge::None;
 		Pit.bInitiallyEnabled = true;
-		Pit.Behavior.Pit.bInitiallyOpen = bInitiallyOpen;
-		Pit.Behavior.Pit.bUseSameCellCoordinates = true;
-		Pit.Behavior.Transition.bIsTransition = true;
-		Pit.Behavior.Transition.TargetLevelId = TargetLevelId;
-		Pit.Behavior.Transition.TargetFacing = EGridEdge::North;
-		Pit.Behavior.Transition.bRequireUseAction = false;
+		Pit.InstanceConfig.Pit.bInitiallyOpen = bInitiallyOpen;
+		Pit.InstanceConfig.Pit.bUseSameCellCoordinates = true;
+		Pit.InstanceConfig.Transition.bIsTransition = true;
+		Pit.InstanceConfig.Transition.TargetLevelId = TargetLevelId;
+		Pit.InstanceConfig.Transition.TargetFacing = EGridEdge::North;
+		Pit.InstanceConfig.Transition.bRequireUseAction = false;
 		return Pit;
 	}
 }
@@ -133,20 +133,20 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	Dungeon->DefaultLevelId = UpperId;
 	Dungeon->Levels = { UpperEntry, LowerEntry };
 
-	FGridLevelObjectData PitA = MakeControlledPit(2, 2, LowerId, false);
-	FGridLevelObjectData PitB = MakeControlledPit(3, 2, LowerId, false);
-	FGridLevelObjectData Button;
-	Button.ObjectId = FGuid::NewGuid();
+	FGridWorldObjectInstance PitA = MakeControlledPit(2, 2, LowerId, false);
+	FGridWorldObjectInstance PitB = MakeControlledPit(3, 2, LowerId, false);
+	FGridWorldObjectInstance Button;
+	Button.InstanceId = FGuid::NewGuid();
 	Button.Type = EGridLevelObjectType::Button;
 	Button.CellX = 1;
 	Button.CellY = 2;
-	Button.Edge = EGridEdge::East;
+	Button.WallSide = EGridEdge::East;
 	Button.bInitiallyEnabled = true;
 
-	const FGuid PitAId = PitA.ObjectId;
-	const FGuid PitBId = PitB.ObjectId;
-	const FGuid ButtonId = Button.ObjectId;
-	Upper->Objects = { Button, PitA, PitB };
+	const FGuid PitAId = PitA.InstanceId;
+	const FGuid PitBId = PitB.InstanceId;
+	const FGuid ButtonId = Button.InstanceId;
+	Upper->WorldObjectInstances = { Button, PitA, PitB };
 
 	FGridObjectLink OpenPitA;
 	OpenPitA.SourceObjectId = ButtonId;
@@ -164,7 +164,8 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	UGridObjectArchetypeAsset* PitArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
 	PitArchetype->ArchetypeId = TEXT("Pit_Stone_01");
 	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
-	PitArchetype->PlacementKind = EGridObjectPlacementKind::Floor;
+	PitArchetype->PlacementSurface = EGridObjectPlacementKind::Floor;
+		PitArchetype->RefreshPlacementRuntimeProjection();
 	PitArchetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(Runtime);
 	PitArchetype->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(Runtime);
 	PitArchetype->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
@@ -255,7 +256,7 @@ bool FGridPIT03PresentationActorTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	FGridLevelObjectData Pit = MakeControlledPit(1, 1, TEXT("Lower"), false);
+	FGridWorldObjectInstance Pit = MakeControlledPit(1, 1, TEXT("Lower"), false);
 	const FVector LeftHinge(-85.0f, 0.0f, -5.0f);
 	const FVector RightHinge(85.0f, 0.0f, -5.0f);
 	constexpr float OpenAngleDegrees = 80.0f;
@@ -267,17 +268,18 @@ bool FGridPIT03PresentationActorTest::RunTest(const FString& Parameters)
 	Archetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
 	Archetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
 	Archetype->MovingParts.Part0.Motion.Pivot = LeftHinge;
-	Archetype->MovingParts.Part0.Motion.Amount = -OpenAngleDegrees;
+	// Positive quaternion rotation around Y produces negative Unreal Pitch.
+	Archetype->MovingParts.Part0.Motion.Amount = OpenAngleDegrees;
 	Archetype->MovingParts.Part0.Motion.Duration = MoveDuration;
 	Archetype->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(Actor);
 	Archetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
 	Archetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
 	Archetype->MovingParts.Part1.Motion.Pivot = RightHinge;
-	Archetype->MovingParts.Part1.Motion.Amount = OpenAngleDegrees;
+	Archetype->MovingParts.Part1.Motion.Amount = -OpenAngleDegrees;
 	Archetype->MovingParts.Part1.Motion.Duration = MoveDuration;
 
-	Actor->InitializeMechanismVisuals(Pit, Archetype, FTransform::Identity);
-	Actor->InitializeGridObject(Pit, nullptr, FTransform::Identity);
+	Actor->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(Pit), Archetype, FTransform::Identity);
+	Actor->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(Pit), nullptr, FTransform::Identity);
 
 	TestTrue(TEXT("Presentation actor requires and sees both leaves"), Actor->HasCompleteTrapdoorCover());
 	TestFalse(TEXT("Presentation actor starts Closed"), Actor->IsPitOpenVisualState());
