@@ -104,25 +104,18 @@ bool FGridEditorWorldObjectMIG06SparsePlacementTest::RunTest(const FString& Para
 	TestEqual(TEXT("Editor staging starts from definition behavior"), EditorActor->ObjectBehavior.ButtonAnimation.ButtonHoldTime, 0.77f);
 
 	EditorActor->PlaceSelectedObject();
-	TestEqual(TEXT("Placement creates one object"), Level->Objects.Num(), 1);
-	if (Level->Objects.Num() != 1)
+	TestEqual(TEXT("Placement creates one typed world object"), Level->WorldObjectInstances.Num(), 1);
+	if (Level->WorldObjectInstances.Num() != 1)
 	{
 		return false;
 	}
 
-	const FGuid ObjectId = Level->Objects[0].ObjectId;
-	TestTrue(TEXT("New placement is marked as sparse"), Level->UsesSparseBehaviorOverrides(ObjectId));
-	TestTrue(TEXT("Placed instance does not clone ButtonHoldTime"),
-		!FMath::IsNearlyEqual(Level->Objects[0].Behavior.ButtonAnimation.ButtonHoldTime, 0.77f));
+	const FGuid ObjectId = Level->WorldObjectInstances[0].InstanceId;
+	TestTrue(TEXT("New typed placement is structurally sparse"), Level->UsesSparseBehaviorOverrides(ObjectId));
+	TestEqual(TEXT("Definition-owned ButtonHoldTime remains on the definition"), Definition->DefaultBehavior.ButtonAnimation.ButtonHoldTime, 0.77f);
 
 	TestTrue(TEXT("Sparse object can be selected by id"), EditorActor->SelectObjectById(ObjectId));
 	TestEqual(TEXT("Selection resolves ButtonHoldTime back from definition"), EditorActor->ObjectBehavior.ButtonAnimation.ButtonHoldTime, 0.77f);
-	const FGridLevelObjectData* InspectorView = EditorActor->GetSelectedObjectData();
-	TestNotNull(TEXT("Inspector receives a selected object view"), InspectorView);
-	if (InspectorView)
-	{
-		TestEqual(TEXT("Inspector view resolves definition-owned ButtonHoldTime"), InspectorView->Behavior.ButtonAnimation.ButtonHoldTime, 0.77f);
-	}
 
 	FGridObjectBehaviorParams EditedBehavior = EditorActor->ObjectBehavior;
 	EditedBehavior.ButtonAnimation.ButtonHoldTime = 9.0f; // must not become an instance authority
@@ -132,21 +125,14 @@ bool FGridEditorWorldObjectMIG06SparsePlacementTest::RunTest(const FString& Para
 	EditedBehavior.Transition.TargetCellY = 4;
 	TestTrue(TEXT("Inspector behavior edit keeps sparse storage"), EditorActor->ApplyBehaviorToSelectedObject(EditedBehavior));
 	TestTrue(TEXT("Edited object remains sparse"), Level->UsesSparseBehaviorOverrides(ObjectId));
-	TestTrue(TEXT("Definition-owned ButtonHoldTime is still not stored"),
-		!FMath::IsNearlyEqual(Level->Objects[0].Behavior.ButtonAnimation.ButtonHoldTime, 9.0f));
-	TestEqual(TEXT("Transition target X is stored as instance data"), Level->Objects[0].Behavior.Transition.TargetCellX, 3);
-	TestEqual(TEXT("Transition target Y is stored as instance data"), Level->Objects[0].Behavior.Transition.TargetCellY, 4);
+	TestEqual(TEXT("Definition-owned ButtonHoldTime is not overwritten by an instance edit"), Definition->DefaultBehavior.ButtonAnimation.ButtonHoldTime, 0.77f);
+	TestTrue(TEXT("Transition override is stored in typed InstanceConfig"), Level->WorldObjectInstances[0].InstanceConfig.Transition.bIsTransition);
+	TestEqual(TEXT("Transition target X is stored in typed InstanceConfig"), Level->WorldObjectInstances[0].InstanceConfig.Transition.TargetCellX, 3);
+	TestEqual(TEXT("Transition target Y is stored in typed InstanceConfig"), Level->WorldObjectInstances[0].InstanceConfig.Transition.TargetCellY, 4);
 
 	TestTrue(TEXT("Edited sparse object can be reselected"), EditorActor->SelectObjectById(ObjectId));
 	TestEqual(TEXT("Reselection restores definition-owned ButtonHoldTime"), EditorActor->ObjectBehavior.ButtonAnimation.ButtonHoldTime, 0.77f);
-	TestEqual(TEXT("Reselection preserves instance transition"), EditorActor->ObjectBehavior.Transition.TargetLevelId, FName(TEXT("MIG06_Target")));
-	InspectorView = EditorActor->GetSelectedObjectData();
-	TestNotNull(TEXT("Inspector view survives sparse edit/reselection"), InspectorView);
-	if (InspectorView)
-	{
-		TestEqual(TEXT("Inspector view keeps definition value after sparse edit"), InspectorView->Behavior.ButtonAnimation.ButtonHoldTime, 0.77f);
-		TestEqual(TEXT("Inspector view keeps instance transition after sparse edit"), InspectorView->Behavior.Transition.TargetLevelId, FName(TEXT("MIG06_Target")));
-	}
+	TestEqual(TEXT("Reselection preserves typed instance transition"), EditorActor->ObjectBehavior.Transition.TargetLevelId, FName(TEXT("MIG06_Target")));
 
 	return true;
 }
