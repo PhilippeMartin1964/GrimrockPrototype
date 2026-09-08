@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
+#include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridLevelVariableTypes.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -31,10 +32,10 @@ namespace
 		return Definition;
 	}
 
-	FGridLevelObjectData MakeAddIntLogicNode1924(FGuid ObjectId, int32 Delta)
+	FGridLogicObjectInstance MakeAddIntLogicNode1924(FGuid InstanceId, int32 Delta)
 	{
-		FGridLevelObjectData Node;
-		Node.ObjectId = ObjectId;
+		FGridLogicObjectInstance Node;
+		Node.InstanceId = InstanceId;
 		Node.Type = EGridLevelObjectType::Logic;
 		Node.Logic.NodeType = EGridLogicNodeType::AddInt;
 		Node.Logic.VariableId = TEXT("Hits");
@@ -111,13 +112,13 @@ namespace
 		OutRuntime->CurrentDungeonLevelId = TEXT("MON1924");
 
 		OutSourceId = FGuid(19, 2, 4, 1);
-		FGridLevelObjectData Source;
-		Source.ObjectId = OutSourceId;
+		FGridWorldObjectInstance Source;
+		Source.InstanceId = OutSourceId;
 		Source.Type = EGridLevelObjectType::Trigger;
-		OutLevel->Objects.Add(Source);
+		OutLevel->WorldObjectInstances.Add(Source);
 
 		OutTargetId = FGuid(19, 2, 4, 2);
-		OutLevel->Objects.Add(MakeAddIntLogicNode1924(OutTargetId, Delta));
+		OutLevel->LogicObjects.Add(MakeAddIntLogicNode1924(OutTargetId, Delta));
 
 		UGridActivationComponent* Activation = OutRuntime->FindComponentByClass<UGridActivationComponent>();
 		if (!Activation)

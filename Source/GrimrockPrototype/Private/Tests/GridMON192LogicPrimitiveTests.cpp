@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
+#include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridLevelVariableTypes.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -32,10 +33,10 @@ namespace GridMON192LogicPrimitiveTests
 		return Definition;
 	}
 
-	FGridLevelObjectData MakeLogicNode(EGridLogicNodeType NodeType, FGuid ObjectId, FName VariableId = NAME_None)
+	FGridLogicObjectInstance MakeLogicNode(EGridLogicNodeType NodeType, FGuid InstanceId, FName VariableId = NAME_None)
 	{
-		FGridLevelObjectData Node;
-		Node.ObjectId = ObjectId;
+		FGridLogicObjectInstance Node;
+		Node.InstanceId = InstanceId;
 		Node.Type = EGridLevelObjectType::Logic;
 		Node.Logic.NodeType = NodeType;
 		Node.Logic.VariableId = VariableId;
@@ -53,7 +54,7 @@ namespace GridMON192LogicPrimitiveTests
 		return Level;
 	}
 
-	bool Execute(UGridLevelAsset& Level, const FGridLevelObjectData& Node, FGridLevelRuntimeState& State, FGridLogicExecutionResult& Result,
+	bool Execute(UGridLevelAsset& Level, const FGridLogicObjectInstance& Node, FGridLevelRuntimeState& State, FGridLogicExecutionResult& Result,
 		EGridObjectCommand Command = EGridObjectCommand::LogicExecute)
 	{
 		return GridLogicRuntime::ExecuteNode(Level, Node, State, Command, Result);
@@ -112,7 +113,7 @@ bool FGridMON1923MutationPrimitivesTest::RunTest(const FString& Parameters)
 	FGridLogicExecutionResult Result;
 	FString Error;
 
-	FGridLevelObjectData SetBool = MakeLogicNode(EGridLogicNodeType::SetBool, FGuid(19, 2, 3, 1), TEXT("Gate"));
+	FGridLogicObjectInstance SetBool = MakeLogicNode(EGridLogicNodeType::SetBool, FGuid(19, 2, 3, 1), TEXT("Gate"));
 	SetBool.Logic.bBoolValue = true;
 	TestTrue(TEXT("SetBool executes"), Execute(*Level, SetBool, State, Result));
 	TestTrue(TEXT("SetBool emits Activated"), Result.bEmitEvent && Result.EmittedEvent == EGridObjectEvent::Activated);
@@ -120,20 +121,20 @@ bool FGridMON1923MutationPrimitivesTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Gate reads after SetBool"), GridLevelVariableStore::TryGetBool(*Level, State, TEXT("Gate"), bGate, Error));
 	TestTrue(TEXT("SetBool writes true"), bGate);
 
-	FGridLevelObjectData ToggleBool = MakeLogicNode(EGridLogicNodeType::ToggleBool, FGuid(19, 2, 3, 2), TEXT("Gate"));
+	FGridLogicObjectInstance ToggleBool = MakeLogicNode(EGridLogicNodeType::ToggleBool, FGuid(19, 2, 3, 2), TEXT("Gate"));
 	TestTrue(TEXT("ToggleBool executes"), Execute(*Level, ToggleBool, State, Result));
 	GridLevelVariableStore::TryGetBool(*Level, State, TEXT("Gate"), bGate, Error);
 	TestFalse(TEXT("ToggleBool writes false"), bGate);
 
-	FGridLevelObjectData SetInt = MakeLogicNode(EGridLogicNodeType::SetInt, FGuid(19, 2, 3, 3), TEXT("Count"));
+	FGridLogicObjectInstance SetInt = MakeLogicNode(EGridLogicNodeType::SetInt, FGuid(19, 2, 3, 3), TEXT("Count"));
 	SetInt.Logic.IntValue = 10;
 	TestTrue(TEXT("SetInt executes"), Execute(*Level, SetInt, State, Result));
 
-	FGridLevelObjectData AddInt = MakeLogicNode(EGridLogicNodeType::AddInt, FGuid(19, 2, 3, 4), TEXT("Count"));
+	FGridLogicObjectInstance AddInt = MakeLogicNode(EGridLogicNodeType::AddInt, FGuid(19, 2, 3, 4), TEXT("Count"));
 	AddInt.Logic.IntValue = 5;
 	TestTrue(TEXT("AddInt executes"), Execute(*Level, AddInt, State, Result));
 
-	FGridLevelObjectData SubtractInt = MakeLogicNode(EGridLogicNodeType::SubtractInt, FGuid(19, 2, 3, 5), TEXT("Count"));
+	FGridLogicObjectInstance SubtractInt = MakeLogicNode(EGridLogicNodeType::SubtractInt, FGuid(19, 2, 3, 5), TEXT("Count"));
 	SubtractInt.Logic.IntValue = 3;
 	TestTrue(TEXT("SubtractInt executes"), Execute(*Level, SubtractInt, State, Result));
 
@@ -141,7 +142,7 @@ bool FGridMON1923MutationPrimitivesTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Count reads after mutations"), GridLevelVariableStore::TryGetInt32(*Level, State, TEXT("Count"), Count, Error));
 	TestEqual(TEXT("Set/Add/Sub compose deterministically"), Count, 12);
 
-	FGridLevelObjectData Reset = MakeLogicNode(EGridLogicNodeType::ResetVariable, FGuid(19, 2, 3, 6), TEXT("Count"));
+	FGridLogicObjectInstance Reset = MakeLogicNode(EGridLogicNodeType::ResetVariable, FGuid(19, 2, 3, 6), TEXT("Count"));
 	TestTrue(TEXT("ResetVariable executes"), Execute(*Level, Reset, State, Result));
 	GridLevelVariableStore::TryGetInt32(*Level, State, TEXT("Count"), Count, Error);
 	TestEqual(TEXT("ResetVariable restores declaration default"), Count, 2);
@@ -159,7 +160,7 @@ bool FGridMON1923ComparisonPrimitivesTest::RunTest(const FString& Parameters)
 	FGridLogicExecutionResult Result;
 	FString Error;
 
-	FGridLevelObjectData CompareBool = MakeLogicNode(EGridLogicNodeType::CompareBool, FGuid(19, 2, 3, 10), TEXT("Gate"));
+	FGridLogicObjectInstance CompareBool = MakeLogicNode(EGridLogicNodeType::CompareBool, FGuid(19, 2, 3, 10), TEXT("Gate"));
 	CompareBool.Logic.bBoolValue = false;
 	TestTrue(TEXT("CompareBool executes"), Execute(*Level, CompareBool, State, Result));
 	TestEqual(TEXT("Bool equality emits Activated"), Result.EmittedEvent, EGridObjectEvent::Activated);
@@ -168,7 +169,7 @@ bool FGridMON1923ComparisonPrimitivesTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("CompareBool false branch executes"), Execute(*Level, CompareBool, State, Result));
 	TestEqual(TEXT("Bool inequality emits Deactivated"), Result.EmittedEvent, EGridObjectEvent::Deactivated);
 
-	FGridLevelObjectData CompareInt = MakeLogicNode(EGridLogicNodeType::CompareInt, FGuid(19, 2, 3, 11), TEXT("Count"));
+	FGridLogicObjectInstance CompareInt = MakeLogicNode(EGridLogicNodeType::CompareInt, FGuid(19, 2, 3, 11), TEXT("Count"));
 	CompareInt.Logic.IntComparison = EGridLogicIntComparison::GreaterOrEqual;
 	CompareInt.Logic.IntValue = 2;
 	TestTrue(TEXT("CompareInt true branch executes"), Execute(*Level, CompareInt, State, Result));
@@ -191,11 +192,11 @@ bool FGridMON1923LatchRelayTest::RunTest(const FString& Parameters)
 	FGridLogicExecutionResult Result;
 	FString Error;
 
-	FGridLevelObjectData Relay = MakeLogicNode(EGridLogicNodeType::Relay, FGuid(19, 2, 3, 20));
+	FGridLogicObjectInstance Relay = MakeLogicNode(EGridLogicNodeType::Relay, FGuid(19, 2, 3, 20));
 	TestTrue(TEXT("Relay executes"), Execute(*Level, Relay, State, Result));
 	TestTrue(TEXT("Relay always emits Activated"), Result.bEmitEvent && Result.EmittedEvent == EGridObjectEvent::Activated);
 
-	FGridLevelObjectData Latch = MakeLogicNode(EGridLogicNodeType::Latch, FGuid(19, 2, 3, 21), TEXT("Latch"));
+	FGridLogicObjectInstance Latch = MakeLogicNode(EGridLogicNodeType::Latch, FGuid(19, 2, 3, 21), TEXT("Latch"));
 	TestTrue(TEXT("First latch execute succeeds"), Execute(*Level, Latch, State, Result));
 	TestTrue(TEXT("First latch execute emits"), Result.bEmitEvent && Result.EmittedEvent == EGridObjectEvent::Activated);
 
@@ -227,23 +228,19 @@ bool FGridMON1923ValidationOverflowTest::RunTest(const FString& Parameters)
 	FGridLogicExecutionResult Result;
 	FString Error;
 
-	FGridLevelObjectData WrongType = MakeLogicNode(EGridLogicNodeType::AddInt, FGuid(19, 2, 3, 30), TEXT("Gate"));
+	FGridLogicObjectInstance WrongType = MakeLogicNode(EGridLogicNodeType::AddInt, FGuid(19, 2, 3, 30), TEXT("Gate"));
 	TestFalse(TEXT("Int primitive rejects Bool declaration"), GridLogicRuntime::ValidateNode(*Level, WrongType, Error));
 	TestTrue(TEXT("Wrong-type validation reports a reason"), !Error.IsEmpty());
 
-	FGridLevelObjectData MissingVariable = MakeLogicNode(EGridLogicNodeType::SetBool, FGuid(19, 2, 3, 31), TEXT("Missing"));
+	FGridLogicObjectInstance MissingVariable = MakeLogicNode(EGridLogicNodeType::SetBool, FGuid(19, 2, 3, 31), TEXT("Missing"));
 	TestFalse(TEXT("Undeclared variable is rejected"), GridLogicRuntime::ValidateNode(*Level, MissingVariable, Error));
 
-	FGridLevelObjectData VisualLogic = MakeLogicNode(EGridLogicNodeType::Relay, FGuid(19, 2, 3, 34));
-	VisualLogic.ArchetypeId = TEXT("ShouldNotSpawn");
-	TestFalse(TEXT("Logic nodes reject runtime archetypes"), GridLogicRuntime::ValidateNode(*Level, VisualLogic, Error));
-
-	FGridLevelObjectData InvalidComparison = MakeLogicNode(EGridLogicNodeType::CompareInt, FGuid(19, 2, 3, 35), TEXT("Count"));
+	FGridLogicObjectInstance InvalidComparison = MakeLogicNode(EGridLogicNodeType::CompareInt, FGuid(19, 2, 3, 35), TEXT("Count"));
 	InvalidComparison.Logic.IntComparison = static_cast<EGridLogicIntComparison>(255);
 	TestFalse(TEXT("Invalid Int comparison is rejected"), GridLogicRuntime::ValidateNode(*Level, InvalidComparison, Error));
 
 	TestTrue(TEXT("Count can be set to MAX_int32"), GridLevelVariableStore::SetInt32(*Level, State, TEXT("Count"), MAX_int32, Error));
-	FGridLevelObjectData Overflow = MakeLogicNode(EGridLogicNodeType::AddInt, FGuid(19, 2, 3, 32), TEXT("Count"));
+	FGridLogicObjectInstance Overflow = MakeLogicNode(EGridLogicNodeType::AddInt, FGuid(19, 2, 3, 32), TEXT("Count"));
 	Overflow.Logic.IntValue = 1;
 	TestFalse(TEXT("AddInt rejects signed overflow"), Execute(*Level, Overflow, State, Result));
 	TestFalse(TEXT("Overflow never emits an event"), Result.bEmitEvent);
@@ -251,7 +248,7 @@ bool FGridMON1923ValidationOverflowTest::RunTest(const FString& Parameters)
 	GridLevelVariableStore::TryGetInt32(*Level, State, TEXT("Count"), Count, Error);
 	TestEqual(TEXT("Overflow failure is atomic"), Count, MAX_int32);
 
-	FGridLevelObjectData Relay = MakeLogicNode(EGridLogicNodeType::Relay, FGuid(19, 2, 3, 33));
+	FGridLogicObjectInstance Relay = MakeLogicNode(EGridLogicNodeType::Relay, FGuid(19, 2, 3, 33));
 	TestFalse(TEXT("Logic Reset is rejected for non-latch"), Execute(*Level, Relay, State, Result, EGridObjectCommand::LogicReset));
 	return true;
 }
@@ -281,20 +278,20 @@ bool FGridMON1923EventCommandChainTest::RunTest(const FString& Parameters)
 	Runtime->CurrentDungeonLevelId = TEXT("MON1923");
 
 	const FGuid SourceId(19, 2, 3, 40);
-	FGridLevelObjectData Source;
-	Source.ObjectId = SourceId;
+	FGridWorldObjectInstance Source;
+	Source.InstanceId = SourceId;
 	Source.Type = EGridLevelObjectType::Trigger;
-	Level->Objects.Add(Source);
+	Level->WorldObjectInstances.Add(Source);
 
 	const FGuid SetBoolId(19, 2, 3, 41);
-	FGridLevelObjectData SetBool = MakeLogicNode(EGridLogicNodeType::SetBool, SetBoolId, TEXT("Gate"));
+	FGridLogicObjectInstance SetBool = MakeLogicNode(EGridLogicNodeType::SetBool, SetBoolId, TEXT("Gate"));
 	SetBool.Logic.bBoolValue = true;
-	Level->Objects.Add(SetBool);
+	Level->LogicObjects.Add(SetBool);
 
 	const FGuid AddIntId(19, 2, 3, 42);
-	FGridLevelObjectData AddInt = MakeLogicNode(EGridLogicNodeType::AddInt, AddIntId, TEXT("Count"));
+	FGridLogicObjectInstance AddInt = MakeLogicNode(EGridLogicNodeType::AddInt, AddIntId, TEXT("Count"));
 	AddInt.Logic.IntValue = 3;
-	Level->Objects.Add(AddInt);
+	Level->LogicObjects.Add(AddInt);
 
 	FGridObjectLink FirstLink;
 	FirstLink.SourceObjectId = SourceId;
