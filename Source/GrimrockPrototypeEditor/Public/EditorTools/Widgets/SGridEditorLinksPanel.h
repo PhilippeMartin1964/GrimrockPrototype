@@ -13,7 +13,6 @@ enum class EGridLogicIntComparison : uint8;
 enum class EGridObjectCommand : uint8;
 enum class EGridObjectCondition : uint8;
 enum class EGridObjectEvent : uint8;
-struct FGridLevelObjectData;
 struct FGridObjectLink;
 
 DECLARE_DELEGATE_RetVal(AGridLevelEditorActor*, FOnGetGridEditorLinksActor);
@@ -42,7 +41,7 @@ private:
 	TSharedRef<SWidget> BuildConnectorLegendItem(const FText& Label, const FSlateColor& Color) const;
 	TSharedRef<SWidget> BuildLinkCreationSection();
 	TSharedRef<SWidget> BuildConditionCreationSection();
-	TSharedRef<SWidget> BuildObjectLinksList(const FGridLevelObjectData& SelectedObject, bool bOutgoing);
+	TSharedRef<SWidget> BuildObjectLinksList(const FGuid& SelectedObjectId, bool bOutgoing);
 	TSharedRef<SWidget> BuildObjectCombo(const FText& EmptyText, bool bSourceObject);
 
 	void RebuildLinksSection();
