@@ -226,15 +226,41 @@ Les opérations d'orientation et de déplacement :
 
 Cette étape reste transitoire : `FGridLevelObjectData` sert encore de vue DTO locale. La suppression du DTO lui-même intervient seulement lorsque les panneaux Inspector/Links/Overview et les setters restants consommeront leurs structures natives.
 
+Validation locale UE5.5.4 du 2026-09-08 après correction des appels à `BuildCompatibilityObjectProjectionFromTyped()` :
+
+```text
+Grimrock.WorldObjects
+Succeeded              : 34
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Le filtre couvre notamment `Grimrock.WorldObjects.MIG07.EditorTypedWriteThrough`, qui vérifie les écritures typées du Grid Editor, dont le déplacement d'item.
+
+### 5.6. Bandeau EdMode hors API de sélection legacy
+
+`FGridLevelEdModeToolkit::GetSelectedObjectStatusText()` ne passe plus par `AGridLevelEditorActor::GetSelectedObjectData()`.
+
+Le bandeau résout désormais l'objet sélectionné à partir de :
+
+```text
+LastSelectedObjectId
++ LevelAsset->BuildCompatibilityObjectProjectionFromTyped()
+```
+
+La projection est locale à l'appel Slate ; aucun pointeur n'est conservé et aucun cache `Objects` n'est lu ou rafraîchi.
+
+Ce retrait prépare la suppression physique de `GetSelectedObjectData()` lorsque les panneaux Inspector/Links/Overview/Lua auront été migrés.
+
 Validation locale requise après ce sous-bloc :
 
 ```text
 Grimrock.WorldObjects
 ```
 
-Le filtre couvre notamment `Grimrock.WorldObjects.MIG07.EditorTypedWriteThrough`, qui vérifie les écritures typées du Grid Editor, dont le déplacement d'item.
-
-### 5.6. Reste E2C
+### 5.7. Reste E2C
 
 Il reste à migrer :
 
