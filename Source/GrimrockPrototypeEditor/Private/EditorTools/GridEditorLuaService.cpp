@@ -10,22 +10,9 @@
 
 namespace
 {
-	const FGridLevelObjectData* FindObjectById(const UGridLevelAsset& LevelAsset, const FGuid& ObjectId)
+	bool TryFindObjectById(const UGridLevelAsset& LevelAsset, const FGuid& ObjectId, FGridLevelObjectData& OutObject)
 	{
-		return LevelAsset.Objects.FindByPredicate(
-			[&ObjectId](const FGridLevelObjectData& Object)
-			{
-				return Object.ObjectId == ObjectId;
-			});
-	}
-
-	FGridLevelObjectData* FindObjectById(UGridLevelAsset& LevelAsset, const FGuid& ObjectId)
-	{
-		return LevelAsset.Objects.FindByPredicate(
-			[&ObjectId](const FGridLevelObjectData& Object)
-			{
-				return Object.ObjectId == ObjectId;
-			});
+		return LevelAsset.TryGetCompatibilityObjectSnapshot(ObjectId, OutObject);
 	}
 
 	const FGridLuaScriptSource* FindScriptById(const UGridLevelAsset& LevelAsset, FName ScriptId)
@@ -168,11 +155,12 @@ namespace
 		{
 			LocationId = Message.SourceObjectId.IsValid() ? Message.SourceObjectId : Message.TargetObjectId;
 		}
-		if (const FGridLevelObjectData* Object = FindObjectById(LevelAsset, LocationId))
+		FGridLevelObjectData Object;
+		if (TryFindObjectById(LevelAsset, LocationId, Object))
 		{
-			Message.CellX = Object->CellX;
-			Message.CellY = Object->CellY;
-			Message.Edge = Object->Edge;
+			Message.CellX = Object.CellX;
+			Message.CellY = Object.CellY;
+			Message.Edge = Object.Edge;
 		}
 	}
 
@@ -444,13 +432,13 @@ namespace GridEditorLuaService
 			OutError = TEXT("Lua binding requires a valid SourceObjectId.");
 			return false;
 		}
-		const FGridLevelObjectData* Source = FindObjectById(LevelAsset, Normalized.SourceObjectId);
-		if (!Source)
+		FGridLevelObjectData Source;
+		if (!TryFindObjectById(LevelAsset, Normalized.SourceObjectId, Source))
 		{
 			OutError = TEXT("Lua binding source object does not exist.");
 			return false;
 		}
-		if (!GridEditorLinkPolicy::GetSupportedEventsForSource(*Source).Contains(Normalized.SourceEvent))
+		if (!GridEditorLinkPolicy::GetSupportedEventsForSource(Source).Contains(Normalized.SourceEvent))
 		{
 			OutError = TEXT("Lua binding source event is not emitted by this object type.");
 			return false;
@@ -764,8 +752,8 @@ namespace GridEditorLuaService
 			return false;
 		}
 
-		FGridLevelObjectData* Selected = FindObjectById(*LevelAsset, EditorActor.LastSelectedObjectId);
-		if (!Selected)
+		FGridLevelObjectData Selected;
+		if (!TryFindObjectById(*LevelAsset, EditorActor.LastSelectedObjectId, Selected))
 		{
 			OutError = TEXT("Selected Grid object no longer exists.");
 			return false;
@@ -773,12 +761,13 @@ namespace GridEditorLuaService
 
 		if (!LogicId.IsNone())
 		{
-			const FGridLevelObjectData* Existing = LevelAsset->Objects.FindByPredicate(
-				[LogicId, Selected](const FGridLevelObjectData& Object)
+			const TArray<FGridLevelObjectData> Objects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+			const bool bAlreadyUsed = Objects.ContainsByPredicate(
+				[LogicId, SelectedId = Selected.ObjectId](const FGridLevelObjectData& Object)
 				{
-					return Object.ObjectId != Selected->ObjectId && Object.LogicId == LogicId;
+					return Object.ObjectId != SelectedId && Object.LogicId == LogicId;
 				});
-			if (Existing)
+			if (bAlreadyUsed)
 			{
 				OutError = FString::Printf(TEXT("LogicId '%s' is already used by another object."), *LogicId.ToString());
 				return false;
@@ -788,7 +777,11 @@ namespace GridEditorLuaService
 #if WITH_EDITOR
 		LevelAsset->Modify();
 #endif
-		Selected->LogicId = LogicId;
+		if (!LevelAsset->SetTypedPlacementLogicId(Selected.ObjectId, LogicId))
+		{
+			OutError = TEXT("Selected Grid object no longer exists in typed placement storage.");
+			return false;
+		}
 #if WITH_EDITOR
 		LevelAsset->MarkPackageDirty();
 #endif
@@ -814,8 +807,8 @@ namespace GridEditorLuaService
 				if (Message.Message == TEXT("Placed object has no ArchetypeId. Preview and runtime archetype lookup cannot resolve it.") &&
 					Message.OptionalObjectId.IsValid())
 				{
-					const FGridLevelObjectData* Object = FindObjectById(*LevelAsset, Message.OptionalObjectId);
-					if (Object && Object->Type == EGridLevelObjectType::Logic)
+					FGridLevelObjectData Object;
+					if (TryFindObjectById(*LevelAsset, Message.OptionalObjectId, Object) && Object.Type == EGridLevelObjectType::Logic)
 					{
 						return true;
 					}
@@ -842,8 +835,9 @@ namespace GridEditorLuaService
 
 				if (Message.Message.Contains(TEXT("is not emitted by the current C++ runtime")))
 				{
-					const FGridLevelObjectData* Source = FindObjectById(*LevelAsset, Link.SourceObjectId);
-					if (Source && GridEditorLinkPolicy::GetSupportedEventsForSource(*Source).Contains(Link.SourceEvent))
+					FGridLevelObjectData Source;
+					if (TryFindObjectById(*LevelAsset, Link.SourceObjectId, Source) &&
+						GridEditorLinkPolicy::GetSupportedEventsForSource(Source).Contains(Link.SourceEvent))
 					{
 						return true;
 					}
@@ -851,8 +845,9 @@ namespace GridEditorLuaService
 				return false;
 			});
 
+		const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
 		TMap<FName, FGuid> LogicIdOwners;
-		for (const FGridLevelObjectData& Object : LevelAsset->Objects)
+		for (const FGridLevelObjectData& Object : CompatibilityObjects)
 		{
 			if (!Object.LogicId.IsNone())
 			{

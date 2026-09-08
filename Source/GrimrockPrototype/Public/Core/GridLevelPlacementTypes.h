@@ -130,6 +130,9 @@ struct FGridLooseItemInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial State")
 	bool bInitiallyEnabled = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Identity")
+	FName LogicId = NAME_None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Readable")
 	TObjectPtr<UGridReadableContentAsset> ReadableContentAsset = nullptr;
 
@@ -351,6 +354,7 @@ namespace GridLevelPlacementConversion
 		Result.SurfaceSide = Source.Edge;
 		Result.LocalYaw = Source.LocalYaw;
 		Result.bInitiallyEnabled = Source.bInitiallyEnabled;
+		Result.LogicId = Source.LogicId;
 		Result.ReadableContentAsset = Source.ReadableContentAsset;
 		Result.ReadableContentId = Source.ReadableContentId;
 		Result.ReadTitleOverride = Source.ReadTitleOverride;

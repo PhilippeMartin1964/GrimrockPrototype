@@ -319,7 +319,9 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		return ObjectData.ObjectId.IsValid() ? ObjectData.ObjectId.ToString().Left(8) : FString(TEXT("InvalidObjectId"));
 	};
 
-	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+
+	for (const FGridLevelObjectData& Obj : CompatibilityObjects)
 	{
 		if (!Obj.ObjectId.IsValid())
 		{
@@ -709,7 +711,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			const UGridLevelAsset* PitTargetLevel = DungeonAsset ? DungeonAsset->GetLevelAssetById(PitTargetLevelId) : nullptr;
 			if (Obj.Behavior.Pit.bInitiallyOpen && PitTargetLevel && PitTargetLevel->IsValidCoord(PitTargetX, PitTargetY))
 			{
-				const bool bOpenPitAtDestination = PitTargetLevel->Objects.ContainsByPredicate(
+				const bool bOpenPitAtDestination = PitTargetLevel->BuildCompatibilityObjectProjectionFromTyped().ContainsByPredicate(
 					[PitTargetX, PitTargetY](const FGridLevelObjectData& Candidate)
 					{
 						return Candidate.Type == EGridLevelObjectType::Pit && Candidate.CellX == PitTargetX && Candidate.CellY == PitTargetY &&
@@ -752,9 +754,9 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		}
 	}
 
-	for (int32 ObjectIndex = 0; ObjectIndex < LevelAsset->Objects.Num(); ++ObjectIndex)
+	for (int32 ObjectIndex = 0; ObjectIndex < CompatibilityObjects.Num(); ++ObjectIndex)
 	{
-		const FGridLevelObjectData& ObjectA = LevelAsset->Objects[ObjectIndex];
+		const FGridLevelObjectData& ObjectA = CompatibilityObjects[ObjectIndex];
 		const UGridObjectArchetypeAsset* ArchetypeA = FindObjectArchetypeById(ObjectA.ArchetypeId);
 		if (!ArchetypeA || !LevelAsset->IsValidCoord(ObjectA.CellX, ObjectA.CellY))
 		{
@@ -762,14 +764,14 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		}
 
 		const FString AnchorA = GetValidationAnchorKey(ObjectA);
-		for (int32 OtherIndex = 0; OtherIndex < LevelAsset->Objects.Num(); ++OtherIndex)
+		for (int32 OtherIndex = 0; OtherIndex < CompatibilityObjects.Num(); ++OtherIndex)
 		{
 			if (ObjectIndex == OtherIndex)
 			{
 				continue;
 			}
 
-			const FGridLevelObjectData& ObjectB = LevelAsset->Objects[OtherIndex];
+			const FGridLevelObjectData& ObjectB = CompatibilityObjects[OtherIndex];
 			if (ObjectA.CellX != ObjectB.CellX || ObjectA.CellY != ObjectB.CellY)
 			{
 				continue;
@@ -1051,7 +1053,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		}
 	}
 
-	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+	for (const FGridLevelObjectData& Obj : CompatibilityObjects)
 	{
 		if (Obj.Type == EGridLevelObjectType::Trigger && !OutgoingLinkCountBySourceId.Contains(Obj.ObjectId))
 		{

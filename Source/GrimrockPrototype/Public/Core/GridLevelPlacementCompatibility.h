@@ -51,6 +51,7 @@ namespace GridLevelPlacementCompatibility
 	{
 		FGridLevelObjectData Result;
 		Result.ObjectId = Source.InstanceId;
+		Result.LogicId = Source.LogicId;
 		Result.Type = EGridLevelObjectType::Item;
 		Result.CellX = Source.CellX;
 		Result.CellY = Source.CellY;

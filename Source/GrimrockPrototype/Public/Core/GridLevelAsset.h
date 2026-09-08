@@ -199,6 +199,77 @@ public:
 		return Projection;
 	}
 
+	/** WORLDOBJ-MIG09-E2C value lookup built directly from typed placement authority. */
+	bool TryGetCompatibilityObjectSnapshot(const FGuid& ObjectId, FGridLevelObjectData& OutObject) const
+	{
+		if (!ObjectId.IsValid())
+		{
+			return false;
+		}
+		const TArray<FGridLevelObjectData> Projection = BuildCompatibilityObjectProjectionFromTyped();
+		const FGridLevelObjectData* Found = Projection.FindByPredicate(
+			[&ObjectId](const FGridLevelObjectData& Object)
+			{
+				return Object.ObjectId == ObjectId;
+			});
+		if (!Found)
+		{
+			return false;
+		}
+		OutObject = *Found;
+		return true;
+	}
+
+	/** WORLDOBJ-MIG09-E2C typed LogicId writer shared by editor authoring services. */
+	bool SetTypedPlacementLogicId(const FGuid& ObjectId, FName NewLogicId)
+	{
+		if (!ObjectId.IsValid())
+		{
+			return false;
+		}
+		for (FGridWorldObjectInstance& Instance : WorldObjectInstances)
+		{
+			if (Instance.InstanceId == ObjectId)
+			{
+				Instance.LogicId = NewLogicId;
+				return true;
+			}
+		}
+		for (FGridLooseItemInstance& Instance : LooseItemInstances)
+		{
+			if (Instance.InstanceId == ObjectId)
+			{
+				Instance.LogicId = NewLogicId;
+				return true;
+			}
+		}
+		for (FGridMonsterSpawnInstance& Spawn : MonsterSpawns)
+		{
+			if (Spawn.SpawnId == ObjectId)
+			{
+				Spawn.LogicId = NewLogicId;
+				return true;
+			}
+		}
+		for (FGridItemSpawnInstance& Spawn : ItemSpawns)
+		{
+			if (Spawn.SpawnId == ObjectId)
+			{
+				Spawn.LogicId = NewLogicId;
+				return true;
+			}
+		}
+		for (FGridLogicObjectInstance& Instance : LogicObjects)
+		{
+			if (Instance.InstanceId == ObjectId)
+			{
+				Instance.LogicId = NewLogicId;
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/** Rebuilds the non-persistent E1 compatibility cache from typed source of truth. */
 	void RefreshLegacyObjectMirrorFromTyped()
 	{

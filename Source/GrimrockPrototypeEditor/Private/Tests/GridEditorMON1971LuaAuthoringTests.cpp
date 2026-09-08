@@ -141,26 +141,26 @@ bool FGridMON1971LogicIdEditorTest::RunTest(const FString& Parameters)
 	UGridLevelAsset* Level = MakeMON1971Level(Editor);
 	Editor->LevelAsset = Level;
 
-	FGridLevelObjectData DoorA;
-	DoorA.ObjectId = FGuid(19, 7, 1, 10);
+	FGridWorldObjectInstance DoorA;
+	DoorA.InstanceId = FGuid(19, 7, 1, 10);
 	DoorA.Type = EGridLevelObjectType::Door;
 	DoorA.CellX = 0;
 	DoorA.CellY = 0;
-	Level->Objects.Add(DoorA);
+	Level->WorldObjectInstances.Add(DoorA);
 
-	FGridLevelObjectData DoorB;
-	DoorB.ObjectId = FGuid(19, 7, 1, 11);
+	FGridWorldObjectInstance DoorB;
+	DoorB.InstanceId = FGuid(19, 7, 1, 11);
 	DoorB.Type = EGridLevelObjectType::Door;
 	DoorB.CellX = 1;
 	DoorB.CellY = 0;
-	Level->Objects.Add(DoorB);
+	Level->WorldObjectInstances.Add(DoorB);
 
 	FString Error;
-	Editor->LastSelectedObjectId = DoorA.ObjectId;
+	Editor->LastSelectedObjectId = DoorA.InstanceId;
 	TestTrue(TEXT("Readable LogicId can be assigned"), GridEditorLuaService::SetSelectedObjectLogicId(*Editor, TEXT("SecretDoor"), Error));
-	TestEqual(TEXT("LogicId is stored on selected object"), Level->Objects[0].LogicId, FName(TEXT("SecretDoor")));
+	TestEqual(TEXT("LogicId is stored on selected typed object"), Level->WorldObjectInstances[0].LogicId, FName(TEXT("SecretDoor")));
 
-	Editor->LastSelectedObjectId = DoorB.ObjectId;
+	Editor->LastSelectedObjectId = DoorB.InstanceId;
 	TestFalse(TEXT("Duplicate LogicId is rejected"), GridEditorLuaService::SetSelectedObjectLogicId(*Editor, TEXT("SecretDoor"), Error));
 	TestTrue(TEXT("Duplicate LogicId is diagnosed"), Error.Contains(TEXT("already used")));
 

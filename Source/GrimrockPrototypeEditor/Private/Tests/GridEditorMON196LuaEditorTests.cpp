@@ -29,10 +29,10 @@ namespace
 		return Variable;
 	}
 
-	FGridLevelObjectData MakeSourceButton(FGuid Id)
+	FGridWorldObjectInstance MakeSourceButton(FGuid Id)
 	{
-		FGridLevelObjectData Source;
-		Source.ObjectId = Id;
+		FGridWorldObjectInstance Source;
+		Source.InstanceId = Id;
 		Source.Type = EGridLevelObjectType::Button;
 		Source.CellX = 0;
 		Source.CellY = 0;
@@ -157,7 +157,7 @@ bool FGridMON196LuaBindingMutationTest::RunTest(const FString& Parameters)
 	UGridLevelAsset* Level = MakeLevel(Editor);
 	Editor->LevelAsset = Level;
 	const FGuid SourceId(19, 6, 1, 1);
-	Level->Objects.Add(MakeSourceButton(SourceId));
+	Level->WorldObjectInstances.Add(MakeSourceButton(SourceId));
 	Level->LevelVariables.Add(MakeBoolVariable(TEXT("Gate")));
 	Level->LuaScripts.Add(MakeScript(TEXT("Puzzle"), TEXT("function on_trigger(event)\nend\n")));
 
@@ -219,15 +219,15 @@ bool FGridMON196ValidationAlignmentTest::RunTest(const FString& Parameters)
 	Editor->LevelAsset = Level;
 
 	const FGuid SourceId(19, 6, 2, 1);
-	Level->Objects.Add(MakeSourceButton(SourceId));
+	Level->WorldObjectInstances.Add(MakeSourceButton(SourceId));
 
-	FGridLevelObjectData Logic;
-	Logic.ObjectId = FGuid(19, 6, 2, 2);
+	FGridLogicObjectInstance Logic;
+	Logic.InstanceId = FGuid(19, 6, 2, 2);
 	Logic.Type = EGridLevelObjectType::Logic;
 	Logic.CellX = 1;
 	Logic.CellY = 1;
 	Logic.Logic.NodeType = EGridLogicNodeType::Relay;
-	Level->Objects.Add(Logic);
+	Level->LogicObjects.Add(Logic);
 
 	Level->LuaScripts.Add(MakeScript(TEXT("Puzzle"), TEXT("function on_trigger(event)\nend\nfunction helper(event)\nend\n")));
 
@@ -252,7 +252,7 @@ bool FGridMON196ValidationAlignmentTest::RunTest(const FString& Parameters)
 		Messages.ContainsByPredicate(
 			[&Logic](const FGridLevelValidationMessage& Message)
 			{
-				return Message.OptionalObjectId == Logic.ObjectId && Message.Message.Contains(TEXT("no ArchetypeId"));
+				return Message.OptionalObjectId == Logic.InstanceId && Message.Message.Contains(TEXT("no ArchetypeId"));
 			}));
 	TestFalse(TEXT("Valid Lua bindings have no Lua validation error"),
 		Messages.ContainsByPredicate(
