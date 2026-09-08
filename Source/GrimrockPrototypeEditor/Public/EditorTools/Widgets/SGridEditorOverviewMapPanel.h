@@ -1,13 +1,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/GridTypes.h"
 #include "Widgets/SCompoundWidget.h"
 
 #if WITH_EDITOR
 
 class AGridLevelEditorActor;
 struct FGridLevelCellData;
-struct FGridLevelObjectData;
 
 DECLARE_DELEGATE_RetVal(AGridLevelEditorActor*, FOnGetGridEditorActor);
 DECLARE_DELEGATE(FOnGridEditorOverviewRequestRefresh);
@@ -25,7 +25,7 @@ enum class EGridEditorOverviewObjectAnchor : uint8
 struct FGridEditorOverviewAnchorObjectGroup
 {
 	EGridEditorOverviewObjectAnchor Anchor = EGridEditorOverviewObjectAnchor::None;
-	TArray<const FGridLevelObjectData*> Objects;
+	TArray<FGridLevelObjectData> Objects;
 };
 
 class SGridEditorOverviewMapPanel : public SCompoundWidget
@@ -46,8 +46,8 @@ private:
 	void RequestRefresh() const;
 
 	TSharedRef<SWidget> BuildOverviewMapSection();
-	TSharedRef<SWidget> BuildOverviewCell(int32 CellX, int32 CellY, const FGridLevelObjectData* SelectedObject);
-	TSharedRef<SWidget> BuildCellObjectMarkers(const TArray<const FGridLevelObjectData*>& CellObjects) const;
+	TSharedRef<SWidget> BuildOverviewCell(int32 CellX, int32 CellY, const TOptional<FGridLevelObjectData>& SelectedObject);
+	TSharedRef<SWidget> BuildCellObjectMarkers(const TArray<FGridLevelObjectData>& CellObjects) const;
 	TSharedRef<SWidget> BuildOverviewColorLegend() const;
 	TSharedRef<SWidget> BuildOverviewLegendSwatch(const FText& Label, const FLinearColor& Color) const;
 	TSharedRef<SWidget> BuildSelectedCellSection();

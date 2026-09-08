@@ -221,7 +221,16 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMapSection()
 	}
 
 	const UGridLevelAsset* LevelAsset = CurrentEditorActor->LevelAsset;
-	const FGridLevelObjectData* SelectedObject = CurrentEditorActor->GetSelectedObjectData();
+	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	TOptional<FGridLevelObjectData> SelectedObject;
+	if (const FGridLevelObjectData* SelectedObjectView = CompatibilityObjects.FindByPredicate(
+		[CurrentEditorActor](const FGridLevelObjectData& Object)
+		{
+			return Object.ObjectId == CurrentEditorActor->LastSelectedObjectId;
+		}))
+	{
+		SelectedObject = *SelectedObjectView;
+	}
 
 	TSharedRef<SUniformGridPanel> GridPanel = SNew(SUniformGridPanel).SlotPadding(FMargin(1.f));
 
@@ -258,30 +267,32 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMapSection()
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildSelectedCellSection()];
 }
 
-TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell(int32 CellX, int32 CellY, const FGridLevelObjectData* SelectedObject)
+TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell(
+	int32 CellX, int32 CellY, const TOptional<FGridLevelObjectData>& SelectedObject)
 {
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
 	const UGridLevelAsset* LevelAsset = CurrentEditorActor ? CurrentEditorActor->LevelAsset : nullptr;
 	const bool bValidCell = LevelAsset && LevelAsset->IsValidCoord(CellX, CellY);
 	const FGridLevelCellData* CellData = bValidCell ? &LevelAsset->GetCell(CellX, CellY) : nullptr;
 
-	TArray<const FGridLevelObjectData*> CellObjects;
+	TArray<FGridLevelObjectData> CellObjects;
 	if (LevelAsset)
 	{
-		for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+		const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+		for (const FGridLevelObjectData& Obj : CompatibilityObjects)
 		{
 			if (Obj.CellX != CellX || Obj.CellY != CellY)
 			{
 				continue;
 			}
 
-			CellObjects.Add(&Obj);
+			CellObjects.Add(Obj);
 		}
 	}
 
 	const int32 ObjectCount = CellObjects.Num();
 	const bool bSelectedCell = CurrentEditorActor && CurrentEditorActor->SelectedCellX == CellX && CurrentEditorActor->SelectedCellY == CellY;
-	const bool bSelectedObjectCell = SelectedObject && SelectedObject->CellX == CellX && SelectedObject->CellY == CellY;
+	const bool bSelectedObjectCell = SelectedObject.IsSet() && SelectedObject.GetValue().CellX == CellX && SelectedObject.GetValue().CellY == CellY;
 	const bool bExistingCell = CellData && CellData->CellType != EGridCellType::Empty;
 
 	const bool bHasSpecialOutline = CellData && (bSelectedCell || (bExistingCell && (bSelectedObjectCell || ObjectCount > 1)));
@@ -317,7 +328,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell(int32 CellX, 
 				})[SNew(SBox).WidthOverride(18.f).HeightOverride(18.f)[CellOverlay]]];
 }
 
-TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers(const TArray<const FGridLevelObjectData*>& CellObjects) const
+TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers(const TArray<FGridLevelObjectData>& CellObjects) const
 {
 	TSharedRef<SOverlay> MarkerOverlay = SNew(SOverlay);
 
@@ -331,14 +342,9 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers(const TA
 	bool bSouthMarkerIsDoor = false;
 	bool bWestMarkerIsDoor = false;
 
-	for (const FGridLevelObjectData* Obj : CellObjects)
+	for (const FGridLevelObjectData& Obj : CellObjects)
 	{
-		if (!Obj)
-		{
-			continue;
-		}
-
-		const EGridEditorOverviewObjectAnchor MarkerAnchor = GetMirroredOverviewCellAnchor(GetObjectAnchor(*Obj));
+		const EGridEditorOverviewObjectAnchor MarkerAnchor = GetMirroredOverviewCellAnchor(GetObjectAnchor(Obj));
 		bool* bAnchorAlreadyUsed = nullptr;
 		bool* bAnchorUsesDoorGeometry = nullptr;
 		switch (MarkerAnchor)
@@ -370,7 +376,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers(const TA
 		}
 
 		*bAnchorAlreadyUsed = true;
-		if (bAnchorUsesDoorGeometry && IsDoorMarker(*Obj))
+		if (bAnchorUsesDoorGeometry && IsDoorMarker(Obj))
 		{
 			*bAnchorUsesDoorGeometry = true;
 		}
@@ -510,14 +516,9 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildObjectAnchorGroup(const FG
 			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 8))
 			.ColorAndOpacity(FSlateColor(FLinearColor(0.86f, 0.86f, 0.86f, 1.f)))];
 
-	for (const FGridLevelObjectData* Object : Group.Objects)
+	for (const FGridLevelObjectData& Object : Group.Objects)
 	{
-		if (!Object)
-		{
-			continue;
-		}
-
-		const FGuid ObjectId = Object->ObjectId;
+		const FGuid ObjectId = Object.ObjectId;
 
 		GroupBox->AddSlot ()
         .AutoHeight ()
@@ -531,7 +532,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildObjectAnchorGroup(const FG
             .Padding (0.f, 0.f, 5.f, 0.f)
             [
                 SNew (STextBlock)
-                    .Text (GetSelectedCellObjectSummaryText (*Object))
+                    .Text (GetSelectedCellObjectSummaryText (Object))
                     .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 8))
                     .AutoWrapText (true)
             ]
@@ -640,7 +641,8 @@ FText SGridEditorOverviewMapPanel::GetCellObjectSummaryText(int32 CellX, int32 C
 
 	const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType>();
 	TArray<FString> ObjectSummaries;
-	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	for (const FGridLevelObjectData& Obj : CompatibilityObjects)
 	{
 		if (Obj.CellX != CellX || Obj.CellY != CellY)
 		{
@@ -811,7 +813,8 @@ TArray<FGridEditorOverviewAnchorObjectGroup> SGridEditorOverviewMapPanel::GetObj
 		return Groups;
 	}
 
-	for (const FGridLevelObjectData& Object : LevelAsset->Objects)
+	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	for (const FGridLevelObjectData& Object : CompatibilityObjects)
 	{
 		if (Object.CellX != CurrentEditorActor->SelectedCellX || Object.CellY != CurrentEditorActor->SelectedCellY)
 		{
@@ -823,7 +826,7 @@ TArray<FGridEditorOverviewAnchorObjectGroup> SGridEditorOverviewMapPanel::GetObj
 		{
 			if (Group.Anchor == Anchor)
 			{
-				Group.Objects.Add(&Object);
+				Group.Objects.Add(Object);
 				break;
 			}
 		}
@@ -841,7 +844,8 @@ bool SGridEditorOverviewMapPanel::HasObjectAtCell(int32 CellX, int32 CellY) cons
 		return false;
 	}
 
-	for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+	const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	for (const FGridLevelObjectData& Obj : CompatibilityObjects)
 	{
 		if (Obj.CellX == CellX && Obj.CellY == CellY)
 		{

@@ -297,19 +297,58 @@ validation des connecteurs cassés
 
 Le helper local `FindObjectById()` retourne un `TOptional<FGridLevelObjectData>` en valeur : aucun pointeur vers le cache `Objects` n'est conservé. Cette vue DTO reste transitoire et disparaîtra avec `FGridLevelObjectData` lors de la purge finale E2C.
 
-Validation locale requise pour ce sous-bloc :
+Validation locale UE5.5.4 du 2026-09-08 après migration du panneau :
 
 ```text
 Grimrock.MON19.2.Editor
-Grimrock.WorldObjects
+Succeeded              : 8
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
 ```
 
-### 5.9. Reste E2C
+```text
+Grimrock.WorldObjects
+Succeeded              : 34
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+### 5.9. EdMode et Overview hors cache de placement
+
+`FGridLevelEdMode::Render()` et `FGridLevelEdMode::DrawHUD()` ne lisent plus `UGridLevelAsset::Objects` et ne passent plus par `GetSelectedObjectData()`.
+
+Pour chaque frame concernée, le mode construit une projection locale depuis l'autorité typée et l'utilise pour :
+
+```text
+objet sélectionné
+patrouille MonsterSpawn
+source/cible des connecteurs
+labels de connecteurs
+```
+
+`SGridEditorOverviewMapPanel` est également migré hors du cache `Objects` et hors de `GetSelectedObjectData()`.
+
+Le panneau Overview ne conserve plus de pointeurs vers des objets stockés dans le niveau. Les groupes de cellule contiennent désormais des `FGridLevelObjectData` **par valeur** ; ces valeurs sont construites depuis `BuildCompatibilityObjectProjectionFromTyped()`. Cela évite les pointeurs pendants qu'aurait provoqués une projection locale temporaire.
+
+Ce sous-bloc reste transitoire au niveau DTO : il supprime la dépendance au cache persistant/transient, mais `FGridLevelObjectData` demeure une vue de compatibilité jusqu'à la purge finale E2C.
+
+Validation locale requise après ce sous-bloc :
+
+```text
+Grimrock.WorldObjects
+Grimrock.Editor.MON14.3.1
+```
+
+### 5.10. Reste E2C
 
 Il reste à migrer :
 
 - suppression finale de l'API pointeur `GetSelectedObjectData()` après migration de ses derniers consommateurs ;
-- `SGridEditorObjectInspectorPanel`, `SGridEditorOverviewMapPanel` et `GridLevelEdMode` encore partiellement exprimés en DTO/cache ;
+- `SGridEditorObjectInspectorPanel` ;
 - `GridEditorLuaService` / panneaux Lua / Validation ;
 - setters Item/WorldObject/Logic encore construisant des snapshots DTO ;
 - fixtures de tests legacy restantes ;
