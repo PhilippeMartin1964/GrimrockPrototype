@@ -91,20 +91,17 @@ bool FGridMonsterSpawnInspectorAuthoringContractTest::RunTest(const FString& Par
 	Definition->PrimaryAIProfile = EGridMonsterAIProfile::Ambush;
 	Definition->bSharesAggroWithGroup = false;
 
-	FGridLevelObjectData Spawn;
-	Spawn.ObjectId = FGuid::NewGuid();
-	Spawn.Type = EGridLevelObjectType::MonsterSpawn;
+	FGridMonsterSpawnInstance Spawn;
+	Spawn.SpawnId = FGuid::NewGuid();
+	Spawn.MonsterDefinition = Definition;
 	Spawn.CellX = 1;
 	Spawn.CellY = 1;
-	Spawn.Edge = EGridEdge::None;
-	Spawn.InitialFacing = EGridEdge::North;
+	Spawn.Facing = EGridEdge::North;
 	Spawn.InitialMonsterState = EGridMonsterState::Idle;
-	Spawn.MonsterDefinitionAsset = Definition;
-	Spawn.MonsterDefinitionId = Definition->MonsterId;
 	Spawn.bInitiallyEnabled = true;
-	LevelAsset->Objects.Add(Spawn);
+	LevelAsset->MonsterSpawns.Add(Spawn);
 
-	TestTrue(TEXT("The MonsterSpawn can be selected"), EditorActor->SelectObjectById(Spawn.ObjectId));
+	TestTrue(TEXT("The MonsterSpawn can be selected"), EditorActor->SelectObjectById(Spawn.SpawnId));
 
 	const UFunction* InitialStateFunction = EditorActor->FindFunction(TEXT("SetSelectedObjectInitialMonsterState"));
 	TestNotNull(TEXT("The focused InitialMonsterState editor action is reflected"), InitialStateFunction);
@@ -113,11 +110,11 @@ bool FGridMonsterSpawnInspectorAuthoringContractTest::RunTest(const FString& Par
 
 	TestTrue(TEXT("The selected spawn can be authored as Dormant"),
 		EditorActor->SetSelectedObjectInitialMonsterState(EGridMonsterState::Dormant));
-	TestEqual(TEXT("Dormant is stored on the placement"), LevelAsset->Objects[0].InitialMonsterState, EGridMonsterState::Dormant);
+	TestEqual(TEXT("Dormant is stored on the typed placement"), LevelAsset->MonsterSpawns[0].InitialMonsterState, EGridMonsterState::Dormant);
 
 	TestFalse(TEXT("Runtime-only Alert is rejected as a fresh authored state"),
 		EditorActor->SetSelectedObjectInitialMonsterState(EGridMonsterState::Alert));
-	TestEqual(TEXT("Rejected state never overwrites Dormant"), LevelAsset->Objects[0].InitialMonsterState, EGridMonsterState::Dormant);
+	TestEqual(TEXT("Rejected state never overwrites Dormant"), LevelAsset->MonsterSpawns[0].InitialMonsterState, EGridMonsterState::Dormant);
 
 	TestEqual(TEXT("Sight remains definition-owned"), Definition->SightRangeCells, 2);
 	TestEqual(TEXT("Hearing remains definition-owned"), Definition->HearingRangeCells, 0);
@@ -127,10 +124,10 @@ bool FGridMonsterSpawnInspectorAuthoringContractTest::RunTest(const FString& Par
 	A.Cell = FIntPoint(1, 1);
 	FGridMonsterPatrolWaypoint B;
 	B.Cell = FIntPoint(2, 1);
-	LevelAsset->Objects[0].PatrolWaypoints = { A, B };
+	LevelAsset->MonsterSpawns[0].PatrolWaypoints = { A, B };
 	TestTrue(TEXT("The existing inspector patrol contract accepts PingPong once two waypoints exist"),
 		EditorActor->SetSelectedMonsterPatrolMode(EGridMonsterPatrolMode::PingPong));
-	TestEqual(TEXT("Patrol mode is stored on the MonsterSpawn"), LevelAsset->Objects[0].PatrolMode, EGridMonsterPatrolMode::PingPong);
+	TestEqual(TEXT("Patrol mode is stored on the typed MonsterSpawn"), LevelAsset->MonsterSpawns[0].PatrolMode, EGridMonsterPatrolMode::PingPong);
 
 	return true;
 }

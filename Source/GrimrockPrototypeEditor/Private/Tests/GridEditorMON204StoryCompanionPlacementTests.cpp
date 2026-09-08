@@ -106,14 +106,13 @@ bool FGridEditorMON2045StoryCompanionPalettePlacementTest::RunTest(const FString
 	TestTrue(TEXT("Story companion palette entry can be selected"), EditorActor->ApplyPaletteEntry(Entry.EntryId));
 	EditorActor->PlaceSelectedObject();
 
-	TestEqual(TEXT("Palette placement creates one level object"), Level->Objects.Num(), 1);
-	if (Level->Objects.Num() == 1)
+	TestEqual(TEXT("Palette placement creates one typed logic object"), Level->LogicObjects.Num(), 1);
+	if (Level->LogicObjects.Num() == 1)
 	{
-		const FGridLevelObjectData& Placed = Level->Objects[0];
+		const FGridLogicObjectInstance& Placed = Level->LogicObjects[0];
 		TestTrue(TEXT("Placed object keeps StoryCompanion type"), Placed.Type == EGridLevelObjectType::StoryCompanion);
 		TestTrue(TEXT("Placed object copies the palette companion definition"), Placed.StoryCompanionDefinition == CompanionDefinition);
 		TestEqual(TEXT("Placed object keeps the source palette entry"), Placed.PaletteEntryId, Entry.EntryId);
-		TestEqual(TEXT("Placed object uses the story companion archetype"), Placed.ArchetypeId, CompanionArchetype->ArchetypeId);
 	}
 
 	return true;

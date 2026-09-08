@@ -83,15 +83,15 @@ bool FGridTD032ObjectInspectorMoveContractTest::RunTest(const FString& Parameter
 	}
 	EditorActor->LevelAsset = LevelAsset;
 
-	FGridLevelObjectData Object;
-	Object.ObjectId = FGuid::NewGuid();
+	FGridWorldObjectInstance Object;
+	Object.InstanceId = FGuid::NewGuid();
 	Object.Type = EGridLevelObjectType::Trigger;
 	Object.CellX = 0;
 	Object.CellY = 0;
-	Object.Edge = EGridEdge::None;
-	LevelAsset->Objects.Add(Object);
+	Object.WallSide = EGridEdge::None;
+	LevelAsset->WorldObjectInstances.Add(Object);
 
-	TestTrue(TEXT("The object can be selected"), EditorActor->SelectObjectById(Object.ObjectId));
+	TestTrue(TEXT("The object can be selected"), EditorActor->SelectObjectById(Object.InstanceId));
 
 	const UFunction* MoveFunction = EditorActor->FindFunction(TEXT("MoveSelectedObjectToCurrentSelection"));
 	TestNotNull(TEXT("MoveSelectedObjectToCurrentSelection remains reflected"), MoveFunction);
@@ -104,11 +104,11 @@ bool FGridTD032ObjectInspectorMoveContractTest::RunTest(const FString& Parameter
 	EditorActor->SelectedEdge = EGridEdge::East;
 
 	TestTrue(TEXT("The canonical Object Inspector move action succeeds"), EditorActor->MoveSelectedObjectToCurrentSelection());
-	TestEqual(TEXT("The level still contains one object"), LevelAsset->Objects.Num(), 1);
-	TestEqual(TEXT("The moved object keeps its identity"), LevelAsset->Objects[0].ObjectId, Object.ObjectId);
-	TestEqual(TEXT("The moved object stores the selected X"), LevelAsset->Objects[0].CellX, 2);
-	TestEqual(TEXT("The moved object stores the selected Y"), LevelAsset->Objects[0].CellY, 1);
-	TestEqual(TEXT("A cell-centered object keeps Edge=None"), LevelAsset->Objects[0].Edge, EGridEdge::None);
+	TestEqual(TEXT("The level still contains one typed world object"), LevelAsset->WorldObjectInstances.Num(), 1);
+	TestEqual(TEXT("The moved object keeps its identity"), LevelAsset->WorldObjectInstances[0].InstanceId, Object.InstanceId);
+	TestEqual(TEXT("The moved object stores the selected X"), LevelAsset->WorldObjectInstances[0].CellX, 2);
+	TestEqual(TEXT("The moved object stores the selected Y"), LevelAsset->WorldObjectInstances[0].CellY, 1);
+	TestEqual(TEXT("A cell-centered object keeps WallSide=None"), LevelAsset->WorldObjectInstances[0].WallSide, EGridEdge::None);
 	TestTrue(TEXT("Moving again to the same destination remains a successful no-op"), EditorActor->MoveSelectedObjectToCurrentSelection());
 
 	return true;

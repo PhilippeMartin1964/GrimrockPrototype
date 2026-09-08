@@ -86,30 +86,26 @@ bool FGridEditorWorldObjectMIG07TypedWriteThroughTest::RunTest(const FString& Pa
 	UGridItemDefinitionAsset* ItemDefinition = NewObject<UGridItemDefinitionAsset>(EditorActor);
 	ItemDefinition->ItemDefinitionId = TEXT("MIG07C_EditorItem");
 
-	FGridLevelObjectData Item;
-	Item.ObjectId = FGuid::NewGuid();
-	Item.Type = EGridLevelObjectType::Item;
-	Item.ItemDefinitionAsset = ItemDefinition;
+	FGridLooseItemInstance Item;
+	Item.InstanceId = FGuid::NewGuid();
+	Item.ItemDefinition = ItemDefinition;
 	Item.CellX = 1;
 	Item.CellY = 1;
-	Level->Objects.Add(Item);
+	Item.Quantity = 9;
+	Item.LocalOffset = FVector(3.0f, 4.0f, 5.0f);
+	Level->LooseItemInstances.Add(Item);
 
-	FGridLevelObjectData Monster;
-	Monster.ObjectId = FGuid::NewGuid();
-	Monster.Type = EGridLevelObjectType::MonsterSpawn;
+	FGridMonsterSpawnInstance Monster;
+	Monster.SpawnId = FGuid::NewGuid();
 	Monster.CellX = 5;
 	Monster.CellY = 5;
-	Monster.InitialFacing = EGridEdge::North;
+	Monster.Facing = EGridEdge::North;
 	Monster.bInitiallyEnabled = true;
-	Level->Objects.Add(Monster);
+	Level->MonsterSpawns.Add(Monster);
 
-	Level->EnableTypedPlacementStorageFromLegacy();
-	Level->LooseItemInstances[0].Quantity = 9;
-	Level->LooseItemInstances[0].LocalOffset = FVector(3.0f, 4.0f, 5.0f);
-	Level->RefreshLegacyObjectMirrorFromTyped();
 	EditorActor->LevelAsset = Level;
 
-	TestTrue(TEXT("Typed loose item can be selected through compatibility editor"), EditorActor->SelectObjectById(Item.ObjectId));
+	TestTrue(TEXT("Typed loose item can be selected through the editor"), EditorActor->SelectObjectById(Item.InstanceId));
 	TestTrue(TEXT("Tag edit succeeds"), EditorActor->SetSelectedObjectTag(TEXT("EditedItem")));
 	TestEqual(TEXT("Tag edit writes through to typed item"), Level->LooseItemInstances[0].Tag, FName(TEXT("EditedItem")));
 	TestEqual(TEXT("Tag edit preserves typed-only item quantity"), Level->LooseItemInstances[0].Quantity, 9);
@@ -125,13 +121,13 @@ bool FGridEditorWorldObjectMIG07TypedWriteThroughTest::RunTest(const FString& Pa
 
 	EditorActor->RemoveObjectsAtSelection();
 	TestEqual(TEXT("Erase path removes typed loose item"), Level->LooseItemInstances.Num(), 0);
-	TestFalse(TEXT("Removed item disappears from legacy read mirror"), Level->Objects.ContainsByPredicate(
-		[&Item](const FGridLevelObjectData& Object)
+	TestFalse(TEXT("Removed item is absent from typed storage"), Level->LooseItemInstances.ContainsByPredicate(
+		[ItemId = Item.InstanceId](const FGridLooseItemInstance& Instance)
 		{
-			return Object.ObjectId == Item.ObjectId;
+			return Instance.InstanceId == ItemId;
 		}));
 
-	TestTrue(TEXT("Typed monster can be selected through compatibility editor"), EditorActor->SelectObjectById(Monster.ObjectId));
+	TestTrue(TEXT("Typed monster can be selected through the editor"), EditorActor->SelectObjectById(Monster.SpawnId));
 	EditorActor->HoveredCellX = 5;
 	EditorActor->HoveredCellY = 6;
 	TestTrue(TEXT("First patrol waypoint can be added"), EditorActor->AddOrSelectPatrolWaypointAtHoveredCell());
