@@ -6,8 +6,9 @@
 
 class AGridLevelRuntimeActor;
 class AGridEditorPreviewObjectActor;
-struct FGridLevelObjectData;
+struct FGridLooseItemInstance;
 struct FGridMonsterSpawnInstance;
+struct FGridWorldObjectInstance;
 
 UCLASS(ClassGroup = (Grid), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGridEditorPreviewComponent : public UActorComponent
@@ -40,8 +41,10 @@ private:
 	FGuid CurrentSelectedObjectId;
 
 private:
-	bool IsPreviewableObject(const FGridLevelObjectData& ObjectData) const;
+	bool IsPreviewableWorldObject(const FGridWorldObjectInstance& Instance) const;
+	bool IsPreviewableLooseItem(const FGridLooseItemInstance& Instance) const;
 	bool IsPreviewableMonsterSpawn(const FGridMonsterSpawnInstance& SpawnData) const;
-	void AddPreviewObject(const FGridLevelObjectData& ObjectData);
+	void AddWorldObjectPreview(const FGridWorldObjectInstance& Instance);
+	void AddLooseItemPreview(const FGridLooseItemInstance& Instance);
 	void AddMonsterPreviewObject(const FGridMonsterSpawnInstance& SpawnData);
 };

@@ -42,18 +42,15 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Grid")
 	EGridLevelObjectType ObjectType = EGridLevelObjectType::None;
 
-	/** Initializes a standalone single-mesh preview when explicitly requested by a caller. */
-	UFUNCTION(BlueprintCallable, Category = "Preview")
-	void InitializePreviewObject(const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh);
+	/** Initializes a standalone single-mesh preview from native typed placement identity. */
+	void InitializePreviewObject(FGuid InObjectId, EGridLevelObjectType InObjectType, UStaticMesh* Mesh);
 
-	/** MIG03 target entry point: renders StaticPart + MovingPart[0..1] from the same definition used by runtime. */
-	void InitializePreviewObjectFromArchetype(const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype);
+	/** Renders StaticPart + MovingPart[0..1] from the same world-object definition used by runtime. */
+	void InitializePreviewObjectFromArchetype(
+		FGuid InObjectId, EGridLevelObjectType InObjectType, const UGridObjectArchetypeAsset* Archetype);
 
-	/** E2B typed monster preview entry point. */
+	/** Typed monster preview entry point. */
 	void InitializeMonsterPreviewObject(const FGridMonsterSpawnInstance& SpawnData, UGridMonsterDefinitionAsset* MonsterDefinition);
-
-	/** Temporary legacy overload retained until the remaining preview DTO paths are removed. */
-	void InitializeMonsterPreviewObject(const FGridLevelObjectData& ObjectData, UGridMonsterDefinitionAsset* MonsterDefinition);
 
 	UFUNCTION(BlueprintCallable, Category = "Preview")
 	void SetHovered(bool bHovered);

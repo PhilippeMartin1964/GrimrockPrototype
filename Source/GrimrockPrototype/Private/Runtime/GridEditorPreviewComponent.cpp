@@ -1,10 +1,11 @@
 #include "Runtime/GridEditorPreviewComponent.h"
 
-#include "Core/GridLevelPlacementCompatibility.h"
+#include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPlacementTransformResolver.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "EngineUtils.h"
@@ -42,22 +43,19 @@ void UGridEditorPreviewComponent::RebuildPreviewObjects()
 		return;
 	}
 
-	auto TryAddPreview = [this](const FGridLevelObjectData& ObjectData)
-	{
-		if (IsPreviewableObject(ObjectData))
-		{
-			AddPreviewObject(ObjectData);
-		}
-	};
-
-	// WORLDOBJ-MIG09-E2B: typed level placements are the only read source.
 	for (const FGridWorldObjectInstance& Instance : RuntimeActor->LevelAsset->WorldObjectInstances)
 	{
-		TryAddPreview(GridLevelPlacementCompatibility::ToLegacyWorldObject(Instance));
+		if (IsPreviewableWorldObject(Instance))
+		{
+			AddWorldObjectPreview(Instance);
+		}
 	}
 	for (const FGridLooseItemInstance& Instance : RuntimeActor->LevelAsset->LooseItemInstances)
 	{
-		TryAddPreview(GridLevelPlacementCompatibility::ToLegacyLooseItem(Instance));
+		if (IsPreviewableLooseItem(Instance))
+		{
+			AddLooseItemPreview(Instance);
+		}
 	}
 	for (const FGridMonsterSpawnInstance& Spawn : RuntimeActor->LevelAsset->MonsterSpawns)
 	{
@@ -66,14 +64,88 @@ void UGridEditorPreviewComponent::RebuildPreviewObjects()
 			AddMonsterPreviewObject(Spawn);
 		}
 	}
-	for (const FGridItemSpawnInstance& Spawn : RuntimeActor->LevelAsset->ItemSpawns)
+}
+
+void UGridEditorPreviewComponent::AddWorldObjectPreview(const FGridWorldObjectInstance& Instance)
+{
+	if (!RuntimeActor)
 	{
-		TryAddPreview(GridLevelPlacementCompatibility::ToLegacyItemSpawn(Spawn));
+		return;
 	}
-	for (const FGridLogicObjectInstance& Instance : RuntimeActor->LevelAsset->LogicObjects)
+
+	const UGridObjectArchetypeAsset* Archetype = RuntimeActor->FindObjectArchetype(Instance.WorldObjectDefinitionId);
+	FTransform PlacementTransform;
+	if (!Archetype || !GridPlacementTransformResolver::ResolveWorldObject(*RuntimeActor, Instance, PlacementTransform))
 	{
-		TryAddPreview(GridLevelPlacementCompatibility::ToLegacyLogicObject(Instance));
+		return;
 	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass = RuntimeActor->EditorPreviewObjectActorClass
+		? RuntimeActor->EditorPreviewObjectActorClass
+		: AGridEditorPreviewObjectActor::StaticClass();
+	FActorSpawnParameters Params;
+	Params.Owner = RuntimeActor;
+	Params.ObjectFlags = RF_Transient;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AGridEditorPreviewObjectActor* PreviewActor = World->SpawnActor<AGridEditorPreviewObjectActor>(
+		PreviewClass, PlacementTransform.GetLocation(), PlacementTransform.GetRotation().Rotator(), Params);
+	if (!PreviewActor)
+	{
+		return;
+	}
+
+	PreviewActor->InitializePreviewObjectFromArchetype(Instance.InstanceId, Instance.Type, Archetype);
+	SpawnedPreviewObjects.Add(PreviewActor);
+}
+
+void UGridEditorPreviewComponent::AddLooseItemPreview(const FGridLooseItemInstance& Instance)
+{
+	if (!RuntimeActor || !Instance.ItemDefinition)
+	{
+		return;
+	}
+
+	FTransform PlacementTransform;
+	if (!GridPlacementTransformResolver::ResolveLooseItem(*RuntimeActor, Instance, PlacementTransform))
+	{
+		return;
+	}
+	UStaticMesh* ItemMesh = Instance.ItemDefinition->WorldMesh.LoadSynchronous();
+	if (!ItemMesh)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass = RuntimeActor->EditorPreviewObjectActorClass
+		? RuntimeActor->EditorPreviewObjectActorClass
+		: AGridEditorPreviewObjectActor::StaticClass();
+	FActorSpawnParameters Params;
+	Params.Owner = RuntimeActor;
+	Params.ObjectFlags = RF_Transient;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AGridEditorPreviewObjectActor* PreviewActor = World->SpawnActor<AGridEditorPreviewObjectActor>(
+		PreviewClass, PlacementTransform.GetLocation(), PlacementTransform.GetRotation().Rotator(), Params);
+	if (!PreviewActor)
+	{
+		return;
+	}
+
+	PreviewActor->InitializePreviewObject(Instance.InstanceId, EGridLevelObjectType::Item, ItemMesh);
+	SpawnedPreviewObjects.Add(PreviewActor);
 }
 
 void UGridEditorPreviewComponent::AddMonsterPreviewObject(const FGridMonsterSpawnInstance& SpawnData)
@@ -83,16 +155,9 @@ void UGridEditorPreviewComponent::AddMonsterPreviewObject(const FGridMonsterSpaw
 		return;
 	}
 
-	TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass;
-	if (RuntimeActor->EditorPreviewObjectActorClass)
-	{
-		PreviewClass = RuntimeActor->EditorPreviewObjectActorClass;
-	}
-	else
-	{
-		PreviewClass = AGridEditorPreviewObjectActor::StaticClass();
-	}
-
+	const TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass = RuntimeActor->EditorPreviewObjectActorClass
+		? RuntimeActor->EditorPreviewObjectActorClass
+		: AGridEditorPreviewObjectActor::StaticClass();
 	UWorld* World = GetWorld();
 	if (!World)
 	{
@@ -133,68 +198,6 @@ void UGridEditorPreviewComponent::AddMonsterPreviewObject(const FGridMonsterSpaw
 	SpawnedPreviewObjects.Add(PreviewActor);
 }
 
-void UGridEditorPreviewComponent::AddPreviewObject(const FGridLevelObjectData& ObjectData)
-{
-	TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass;
-
-	if (RuntimeActor->EditorPreviewObjectActorClass)
-	{
-		PreviewClass = RuntimeActor->EditorPreviewObjectActorClass;
-	}
-	else
-	{
-		PreviewClass = AGridEditorPreviewObjectActor::StaticClass();
-	}
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
-	FTransform PlacementTransform;
-	if (!RuntimeActor->GetObjectPlacementTransform(ObjectData, PlacementTransform))
-	{
-		return;
-	}
-
-	const UGridObjectArchetypeAsset* Archetype = RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId);
-	UStaticMesh* DirectItemMesh = nullptr;
-	if (ObjectData.Type == EGridLevelObjectType::Item && ObjectData.ItemDefinitionAsset)
-	{
-		DirectItemMesh = ObjectData.ItemDefinitionAsset->WorldMesh.LoadSynchronous();
-	}
-
-	const bool bHasTargetComposition = Archetype && Archetype->HasAnyVisualPart();
-	if (!DirectItemMesh && !bHasTargetComposition)
-	{
-		return;
-	}
-
-	const FVector Location = PlacementTransform.GetLocation();
-	const FRotator Rotation = PlacementTransform.GetRotation().Rotator();
-
-	FActorSpawnParameters Params;
-	Params.Owner = RuntimeActor;
-	Params.ObjectFlags = RF_Transient;
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	AGridEditorPreviewObjectActor* PreviewActor = World->SpawnActor<AGridEditorPreviewObjectActor>(PreviewClass, Location, Rotation, Params);
-
-	if (!PreviewActor)
-	{
-		return;
-	}
-	if (DirectItemMesh)
-	{
-		// WORLDOBJ-MIG05: preview the same WorldMesh used by the runtime item actor.
-		PreviewActor->InitializePreviewObject(ObjectData, DirectItemMesh);
-	}
-	else
-	{
-		PreviewActor->InitializePreviewObjectFromArchetype(ObjectData, Archetype);
-	}
-	SpawnedPreviewObjects.Add(PreviewActor);
-}
-
 void UGridEditorPreviewComponent::CleanupOrphanPreviewObjects()
 {
 	UWorld* World = GetWorld();
@@ -205,12 +208,10 @@ void UGridEditorPreviewComponent::CleanupOrphanPreviewObjects()
 	for (TActorIterator<AGridEditorPreviewObjectActor> It(World); It; ++It)
 	{
 		AGridEditorPreviewObjectActor* PreviewActor = *It;
-
 		if (!IsValid(PreviewActor))
 		{
 			continue;
 		}
-
 		if (PreviewActor->GetOwner() == RuntimeActor)
 		{
 			PreviewActor->Destroy();
@@ -249,32 +250,24 @@ void UGridEditorPreviewComponent::SetSelectedObject(FGuid ObjectId)
 	}
 }
 
+bool UGridEditorPreviewComponent::IsPreviewableWorldObject(const FGridWorldObjectInstance& Instance) const
+{
+	if (!RuntimeActor || !RuntimeActor->LevelAsset || !Instance.bInitiallyEnabled ||
+		!RuntimeActor->LevelAsset->IsValidCoord(Instance.CellX, Instance.CellY))
+	{
+		return false;
+	}
+	const UGridObjectArchetypeAsset* Archetype = RuntimeActor->FindObjectArchetype(Instance.WorldObjectDefinitionId);
+	return Archetype && Archetype->HasAnyVisualPart();
+}
+
+bool UGridEditorPreviewComponent::IsPreviewableLooseItem(const FGridLooseItemInstance& Instance) const
+{
+	return RuntimeActor && RuntimeActor->LevelAsset && Instance.bInitiallyEnabled && RuntimeActor->LevelAsset->IsValidCoord(Instance.CellX, Instance.CellY) &&
+		Instance.ItemDefinition && !Instance.ItemDefinition->WorldMesh.IsNull();
+}
+
 bool UGridEditorPreviewComponent::IsPreviewableMonsterSpawn(const FGridMonsterSpawnInstance& SpawnData) const
 {
 	return RuntimeActor && RuntimeActor->LevelAsset && SpawnData.bInitiallyEnabled && RuntimeActor->LevelAsset->IsValidCoord(SpawnData.CellX, SpawnData.CellY);
-}
-
-bool UGridEditorPreviewComponent::IsPreviewableObject(const FGridLevelObjectData& ObjectData) const
-{
-	if (!RuntimeActor || !RuntimeActor->LevelAsset)
-	{
-		return false;
-	}
-	if (!ObjectData.bInitiallyEnabled)
-	{
-		return false;
-	}
-	if (!RuntimeActor->LevelAsset->IsValidCoord(ObjectData.CellX, ObjectData.CellY))
-	{
-		return false;
-	}
-
-	// WORLDOBJ-MIG05: a direct collectible is previewable without any world-object archetype.
-	if (ObjectData.Type == EGridLevelObjectType::Item && ObjectData.ItemDefinitionAsset && !ObjectData.ItemDefinitionAsset->WorldMesh.IsNull())
-	{
-		return true;
-	}
-
-	const UGridObjectArchetypeAsset* Archetype = RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId);
-	return Archetype && Archetype->HasAnyVisualPart();
 }

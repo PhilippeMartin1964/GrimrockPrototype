@@ -64,10 +64,10 @@ void AGridEditorPreviewObjectActor::ResetStaticPreviewComponents()
 	}
 }
 
-void AGridEditorPreviewObjectActor::InitializePreviewObject(const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh)
+void AGridEditorPreviewObjectActor::InitializePreviewObject(FGuid InObjectId, EGridLevelObjectType InObjectType, UStaticMesh* Mesh)
 {
-	ObjectId = ObjectData.ObjectId;
-	ObjectType = ObjectData.Type;
+	ObjectId = InObjectId;
+	ObjectType = InObjectType;
 
 	ResetStaticPreviewComponents();
 
@@ -90,16 +90,16 @@ void AGridEditorPreviewObjectActor::InitializePreviewObject(const FGridLevelObje
 }
 
 void AGridEditorPreviewObjectActor::InitializePreviewObjectFromArchetype(
-	const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype)
+	FGuid InObjectId, EGridLevelObjectType InObjectType, const UGridObjectArchetypeAsset* Archetype)
 {
 	if (!Archetype || !Archetype->HasAnyVisualPart())
 	{
-		InitializePreviewObject(ObjectData, nullptr);
+		InitializePreviewObject(InObjectId, InObjectType, nullptr);
 		return;
 	}
 
-	ObjectId = ObjectData.ObjectId;
-	ObjectType = ObjectData.Type;
+	ObjectId = InObjectId;
+	ObjectType = InObjectType;
 	ResetStaticPreviewComponents();
 
 	if (SkeletalMeshComponent)
@@ -134,39 +134,6 @@ void AGridEditorPreviewObjectActor::InitializeMonsterPreviewObject(
 {
 	ObjectId = SpawnData.SpawnId;
 	ObjectType = EGridLevelObjectType::MonsterSpawn;
-
-	ResetStaticPreviewComponents();
-
-	if (!SkeletalMeshComponent || !IsValid(MonsterDefinition))
-	{
-		return;
-	}
-
-	SkeletalMeshComponent->SetSkeletalMesh(MonsterDefinition->SkeletalMesh.LoadSynchronous());
-	SkeletalMeshComponent->SetRelativeLocation(MonsterDefinition->VisualOffset);
-	SkeletalMeshComponent->SetRelativeRotation(MonsterDefinition->VisualRotationOffset);
-	SkeletalMeshComponent->SetRelativeScale3D(MonsterDefinition->VisualScale);
-	if (MonsterDefinition->AnimationClass)
-	{
-		SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-		SkeletalMeshComponent->SetAnimInstanceClass(MonsterDefinition->AnimationClass.Get());
-	}
-	else
-	{
-		SkeletalMeshComponent->SetAnimInstanceClass(nullptr);
-	}
-	SkeletalMeshComponent->SetVisibility(true, true);
-
-	bIsHovered = false;
-	bIsSelected = false;
-	RefreshStencilState();
-}
-
-void AGridEditorPreviewObjectActor::InitializeMonsterPreviewObject(
-	const FGridLevelObjectData& ObjectData, UGridMonsterDefinitionAsset* MonsterDefinition)
-{
-	ObjectId = ObjectData.ObjectId;
-	ObjectType = ObjectData.Type;
 
 	ResetStaticPreviewComponents();
 
