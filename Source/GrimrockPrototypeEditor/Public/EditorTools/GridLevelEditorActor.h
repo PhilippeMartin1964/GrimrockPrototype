@@ -397,7 +397,6 @@ public:
 	void ApplySelectedPaletteEntry();
 
 	bool TryGetSelectedObjectData(FGridLevelObjectData& OutObject) const;
-	const FGridLevelObjectData* GetSelectedObjectData() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Selection")
 	bool TryGetObjectWorldLocationById(FGuid ObjectId, FVector& OutWorldLocation) const;

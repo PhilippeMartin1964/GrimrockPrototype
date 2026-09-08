@@ -116,22 +116,6 @@ namespace
 		return CommandEnum ? CommandEnum->GetDisplayNameTextByValue(static_cast<int64>(Command)) : FText::FromString(TEXT("Unknown"));
 	}
 
-	const FGridLevelObjectData* FindObjectById(const UGridLevelAsset* LevelAsset, const FGuid& ObjectId)
-	{
-		if (!LevelAsset || !ObjectId.IsValid())
-		{
-			return nullptr;
-		}
-		for (const FGridLevelObjectData& Object : LevelAsset->Objects)
-		{
-			if (Object.ObjectId == ObjectId)
-			{
-				return &Object;
-			}
-		}
-		return nullptr;
-	}
-
 	FText GetConnectorObjectSummaryText(const AGridLevelEditorActor* EditorActor, const FGridLevelObjectData& Object)
 	{
 		const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType>();
@@ -254,19 +238,19 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildObjectInspectorSection
 		Root->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("No editor actor or level asset.")))];
 		return Root;
 	}
-	const FGridLevelObjectData* Obj = CurrentEditorActor->GetSelectedObjectData();
-	if (!Obj)
+	FGridLevelObjectData Obj;
+	if (!CurrentEditorActor->TryGetSelectedObjectData(Obj))
 	{
 		Root->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("No selected object.")))];
 		return Root;
 	}
-	Root->AddSlot().AutoHeight()[BuildSelectedObjectCard(*Obj)];
-	const UGridObjectArchetypeAsset* SelectedArchetype = CurrentEditorActor->FindObjectArchetypeById(Obj->ArchetypeId);
-	const bool bShowOrientationWidget = IsObjectOrientationEditable(*Obj, SelectedArchetype);
+	Root->AddSlot().AutoHeight()[BuildSelectedObjectCard(Obj)];
+	const UGridObjectArchetypeAsset* SelectedArchetype = CurrentEditorActor->FindObjectArchetypeById(Obj.ArchetypeId);
+	const bool bShowOrientationWidget = IsObjectOrientationEditable(Obj, SelectedArchetype);
 	Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 4.f, 0.f)[GridEditorWidgetHelpers::BuildGridActionButton(
 			FText::FromString(TEXT("Move To Current Cell")), FOnClicked::CreateSP(this, &SGridEditorObjectInspectorPanel::OnMoveSelectedObjectToCurrentCellClicked))]
-		+ SHorizontalBox::Slot().AutoWidth().Padding(4.f, 0.f, 0.f, 0.f)[bShowOrientationWidget ? BuildOrientationWidget(*Obj) : SNullWidget::NullWidget]];
+		+ SHorizontalBox::Slot().AutoWidth().Padding(4.f, 0.f, 0.f, 0.f)[bShowOrientationWidget ? BuildOrientationWidget(Obj) : SNullWidget::NullWidget]];
 	return Root;
 }
 
@@ -541,9 +525,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSe
 	{
 		if (AGridLevelEditorActor* Editor = GetEditorActor())
 		{
-			if (const FGridLevelObjectData* Selected = Editor->GetSelectedObjectData())
+			FGridLevelObjectData Selected;
+			if (Editor->TryGetSelectedObjectData(Selected))
 			{
-				FGridObjectBehaviorParams NewBehavior = Selected->Behavior;
+				FGridObjectBehaviorParams NewBehavior = Selected.Behavior;
 				Mutate(NewBehavior);
 				if (Editor->ApplyBehaviorToSelectedObject(NewBehavior)) RequestRefresh();
 			}

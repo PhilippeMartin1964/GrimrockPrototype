@@ -25,13 +25,6 @@ bool AGridLevelEditorActor::TryGetSelectedObjectData(FGridLevelObjectData& OutOb
 	return true;
 }
 
-const FGridLevelObjectData* AGridLevelEditorActor::GetSelectedObjectData() const
-{
-	// Temporary E2C compatibility wrapper for the remaining Inspector consumer.
-	static FGridLevelObjectData EffectiveObject;
-	return TryGetSelectedObjectData(EffectiveObject) ? &EffectiveObject : nullptr;
-}
-
 bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 {
 	if (!HasValidLevelAsset() || !ObjectId.IsValid())

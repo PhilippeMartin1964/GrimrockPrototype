@@ -20,13 +20,11 @@ LogicObjects
 
 `FGridLevelObjectData` reste temporairement un DTO de compatibilité en valeur jusqu’à la fin de MIG09-E2C. Il ne doit plus être utilisé comme stockage persistant ni comme cible d’écriture.
 
-## 1. Bloc déjà validé — mutations Editor hors cache
+## 1. Blocs déjà validés
 
-`RemoveObjectsAtSelectionInternal()`, `RemoveObjectsConflictingWithPlacementInternal()` et `ApplyEditedSelectedObject()` ne lisent/écrivent plus directement `LevelAsset->Objects`.
+Les helpers de mutation centraux (`RemoveObjectsAtSelectionInternal()`, `RemoveObjectsConflictingWithPlacementInternal()`, `ApplyEditedSelectedObject()`), la sélection par cellule, le panneau Lua de bindings, EdMode, Overview, LinksPanel et les fixtures MIG06/MON19.2 concernés lisent désormais depuis l’autorité typée ou des snapshots DTO locaux construits en valeur.
 
-`CreateAndAddDungeonLevel()` ne réinitialise plus `NewLevelAsset->Objects`.
-
-Validation fournie le 8 septembre 2026 :
+Validations locales fournies le 8 septembre 2026 :
 
 ```text
 Grimrock.WorldObjects
@@ -36,58 +34,45 @@ Failed                 : 0
 Process exit code       : 0
 ```
 
-Le build Development Editor UE5.5.4 est également passé.
-
-## 2. Bloc courant — sélection et Lua par valeur
-
-### SelectObjectAtSelection
-
-`SelectObjectAtSelection()` ne parcourt plus `LevelAsset->Objects`.
-
-Il construit une projection locale à partir des collections typées :
-
-```cpp
-const TArray<FGridLevelObjectData> CompatibilityObjects =
-    LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+```text
+Grimrock.MON19.2.Editor
+Succeeded              : 8
+Succeeded with warnings: 0
+Failed                 : 0
+Process exit code       : 0
 ```
 
-### Lecture de l’objet sélectionné
+Le build Development Editor UE5.5.4 est également passé.
 
-Une API par valeur est introduite :
+## 2. Bloc courant — Inspector et fin de l’API pointeur
+
+### Inspector
+
+`SGridEditorObjectInspectorPanel` consomme désormais l’objet sélectionné uniquement via :
 
 ```cpp
 bool TryGetSelectedObjectData(FGridLevelObjectData& OutObject) const;
 ```
 
-Elle construit une vue résolue Definition + Instance depuis la projection typée, sans exposer au consommateur un pointeur vers une projection temporaire.
+Le panneau construit donc ses vues à partir d’un snapshot local en valeur. Le chemin PressurePlate relit également le comportement sélectionné par valeur avant mutation.
 
-L’ancienne API pointeur :
+Le panneau ne conserve plus de pointeur vers un DTO temporaire de sélection.
+
+### Suppression de GetSelectedObjectData()
+
+L’ancienne API :
 
 ```cpp
 const FGridLevelObjectData* GetSelectedObjectData() const;
 ```
 
-reste temporairement comme wrapper de compatibilité pour le seul gros consommateur UI restant : `SGridEditorObjectInspectorPanel`.
+est supprimée de `AGridLevelEditorActor`.
 
-### Panneau Lua
+Le wrapper statique qui exposait un pointeur vers une vue temporaire est supprimé de `GridLevelEditorActor_EditingObjectsLinks_06.inl`.
 
-`SGridEditorLuaScriptsPanel` n’utilise plus directement l’API pointeur comme source de ses bindings. Les chemins suivants consomment désormais un snapshot local par valeur :
+La frontière de lecture sélectionnée devient donc explicitement une API **par valeur**.
 
-```text
-RebuildBindingOptions()
-BuildBindingsSection()
-OnCreateBindingClicked()
-```
-
-## 3. Baseline déjà validée avant le bloc courant
-
-```text
-Grimrock.WorldObjects       : 34 / 0 warning / 0 échec
-Grimrock.Editor.MON14.3.1  : 2  / 0 warning / 0 échec
-Grimrock.MON19.2.Editor     : 8  / 0 warning / 0 échec
-```
-
-## 4. Validation requise pour le bloc courant
+## 3. Validation requise pour le bloc courant
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
@@ -103,11 +88,10 @@ Puis :
     -AutomationFilter "Grimrock.MON19.2.Editor"
 ```
 
-## 5. Reste de WORLDOBJ-MIG09-E2C
+## 4. Reste de WORLDOBJ-MIG09-E2C
 
 Après validation de ce bloc :
 
-1. migrer `SGridEditorObjectInspectorPanel` vers `TryGetSelectedObjectData()` puis supprimer `GetSelectedObjectData()` ;
-2. sortir `GridEditorLuaService` et `GridLevelEditorActor_Validation.inl` des derniers accès directs à `Objects` ;
-3. migrer les fixtures/tests résiduels ;
-4. supprimer physiquement `Objects`, `FGridLevelObjectData`, `GridLevelPlacementCompatibility` et les conversions/projections transitoires devenues inutiles.
+1. sortir `GridEditorLuaService` et `GridLevelEditorActor_Validation.inl` des derniers accès directs à `Objects` ;
+2. migrer les fixtures/tests résiduels encore branchés sur `Objects` ou sur des helpers DTO legacy ;
+3. supprimer physiquement `Objects`, `FGridLevelObjectData`, `GridLevelPlacementCompatibility` et les conversions/projections transitoires devenues inutiles.
