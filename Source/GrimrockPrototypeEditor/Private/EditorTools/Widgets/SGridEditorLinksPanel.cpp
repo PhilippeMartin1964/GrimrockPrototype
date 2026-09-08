@@ -31,7 +31,7 @@ namespace
 	const FLinearColor IncomingConnectorColor(0.70f, 0.55f, 1.f, 1.f);
 	const FLinearColor BrokenConnectorColor(1.f, 0.18f, 0.16f, 1.f);
 
-	const FGridLevelObjectData* FindObjectById(const UGridLevelAsset* LevelAsset, const FGuid& ObjectId);
+	TOptional<FGridLevelObjectData> FindObjectById(const UGridLevelAsset* LevelAsset, const FGuid& ObjectId);
 
 	bool IsConnectorBroken(const FGridObjectLink& Link)
 	{
@@ -50,7 +50,7 @@ namespace
 
 	bool IsConnectorBroken(const FGridObjectLink& Link, const UGridLevelAsset* LevelAsset)
 	{
-		if (IsConnectorBroken(Link) || !FindObjectById(LevelAsset, Link.SourceObjectId))
+		if (IsConnectorBroken(Link) || !FindObjectById(LevelAsset, Link.SourceObjectId).IsSet())
 		{
 			return true;
 		}
@@ -62,25 +62,26 @@ namespace
 			return false;
 		}
 
-		return !FindObjectById(LevelAsset, Link.TargetObjectId);
+		return !FindObjectById(LevelAsset, Link.TargetObjectId).IsSet();
 	}
 
-	const FGridLevelObjectData* FindObjectById(const UGridLevelAsset* LevelAsset, const FGuid& ObjectId)
+	TOptional<FGridLevelObjectData> FindObjectById(const UGridLevelAsset* LevelAsset, const FGuid& ObjectId)
 	{
 		if (!LevelAsset || !ObjectId.IsValid())
 		{
-			return nullptr;
+			return {};
 		}
 
-		for (const FGridLevelObjectData& Object : LevelAsset->Objects)
+		const TArray<FGridLevelObjectData> CompatibilityObjects = LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+		for (const FGridLevelObjectData& Object : CompatibilityObjects)
 		{
 			if (Object.ObjectId == ObjectId)
 			{
-				return &Object;
+				return Object;
 			}
 		}
 
-		return nullptr;
+		return {};
 	}
 }
 
@@ -123,20 +124,22 @@ void SGridEditorLinksPanel::RebuildLinksSection()
 TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection()
 {
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const FGridLevelObjectData* SelectedObject = CurrentEditorActor ? CurrentEditorActor->GetSelectedObjectData() : nullptr;
 
 	if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset)
 	{
 		return SNew(STextBlock).Text(FText::FromString(TEXT("No editor actor or level asset.")));
 	}
 
-	if (!SelectedObject)
+	const TOptional<FGridLevelObjectData> SelectedObject =
+		FindObjectById(CurrentEditorActor->LevelAsset, CurrentEditorActor->LastSelectedObjectId);
+	if (!SelectedObject.IsSet())
 	{
 		return SNew(STextBlock).Text(FText::FromString(TEXT("No selected object.")));
 	}
 
+	const FGridLevelObjectData& SelectedObjectData = SelectedObject.GetValue();
 	const bool bSelectedObjectSupportsConnectors =
-		GridEditorLinkPolicy::CanObjectEmitEvents(*SelectedObject) || GridEditorLinkPolicy::CanObjectReceiveCommands(*SelectedObject);
+		GridEditorLinkPolicy::CanObjectEmitEvents(SelectedObjectData) || GridEditorLinkPolicy::CanObjectReceiveCommands(SelectedObjectData);
 
 	if (!bSelectedObjectSupportsConnectors)
 	{
@@ -172,7 +175,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection()
 							  .ColorAndOpacity(FSlateColor(OutgoingConnectorColor))
 							  .Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))]
 
-					+ SVerticalBox::Slot().AutoHeight()[BuildObjectLinksList(*SelectedObject, true)]]]
+					+ SVerticalBox::Slot().AutoHeight()[BuildObjectLinksList(SelectedObjectData, true)]]]
 
 			  + SHorizontalBox::Slot().FillWidth(0.5f).Padding(
 					4.f, 0.f, 0.f, 0.f)[SNew(SBorder).Padding(6.f).BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))[SNew(SVerticalBox)
@@ -182,7 +185,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection()
 							  .ColorAndOpacity(FSlateColor(IncomingConnectorColor))
 							  .Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))]
 
-					+ SVerticalBox::Slot().AutoHeight()[BuildObjectLinksList(*SelectedObject, false)]]]];
+					+ SVerticalBox::Slot().AutoHeight()[BuildObjectLinksList(SelectedObjectData, false)]]]];
 }
 
 TSharedRef<SWidget> SGridEditorLinksPanel::BuildConnectorsHeader(bool bAllowAddConnector)
@@ -642,10 +645,10 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList(const FGridLevel
 			? FText::Format(FText::FromString(TEXT("-> Lua {0}.{1}")), FText::FromName(Link.LuaScriptId), FText::FromName(Link.LuaCallbackName))
 			: bOutgoing
 			? FText::Format(FText::FromString(TEXT("-> {0} : {1}")),
-				  FindObjectById(CurrentEditorActor->LevelAsset, TargetId) ? GetObjectSummaryText(TargetId) : FText::FromString(TEXT("Missing object")),
+				  FindObjectById(CurrentEditorActor->LevelAsset, TargetId).IsSet() ? GetObjectSummaryText(TargetId) : FText::FromString(TEXT("Missing object")),
 				  GetLinkCommandText(Link.Command))
 			: FText::Format(FText::FromString(TEXT("{0} : {1} -> {2}")),
-				  FindObjectById(CurrentEditorActor->LevelAsset, SourceId) ? GetObjectSummaryText(SourceId) : FText::FromString(TEXT("Missing object")),
+				  FindObjectById(CurrentEditorActor->LevelAsset, SourceId).IsSet() ? GetObjectSummaryText(SourceId) : FText::FromString(TEXT("Missing object")),
 				  GetLinkSourceEventText(Link.SourceEvent), GetLinkCommandText(Link.Command));
 
 		Root->AddSlot ()
@@ -864,31 +867,28 @@ FText SGridEditorLinksPanel::GetObjectSummaryText(const FGuid& ObjectId) const
 		return FText::FromString(TEXT("Invalid object"));
 	}
 
-	for (const FGridLevelObjectData& Obj : CurrentEditorActor->LevelAsset->Objects)
+	const TOptional<FGridLevelObjectData> ObjectView = FindObjectById(CurrentEditorActor->LevelAsset, ObjectId);
+	if (!ObjectView.IsSet())
 	{
-		if (Obj.ObjectId != ObjectId)
-		{
-			continue;
-		}
-
-		const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType>();
-		const FString TypeText = TypeEnum ? TypeEnum->GetDisplayNameTextByValue(static_cast<int64>(Obj.Type)).ToString() : TEXT("Object");
-		const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor->FindObjectArchetypeById(Obj.ArchetypeId);
-		const FString NameText = Archetype && !Archetype->DisplayName.IsEmpty() ? Archetype->DisplayName.ToString() : TypeText;
-		const FString SummaryNameText = Obj.Type == EGridLevelObjectType::ItemSpawn
-			? FString::Printf(TEXT("%s Spawner"), *NameText.Replace(TEXT(" Spawn"), TEXT("")))
-			: Obj.Type == EGridLevelObjectType::MonsterSpawn ? FString::Printf(TEXT("%s Spawner"), *NameText.Replace(TEXT(" Spawn"), TEXT("")))
-															 : NameText;
-		const FString SuffixText =
-			(Obj.Type == EGridLevelObjectType::ItemSpawn || Obj.Type == EGridLevelObjectType::MonsterSpawn) ? TEXT(" [Spawner]") : TEXT("");
-
-		const UEnum* EdgeEnum = StaticEnum<EGridEdge>();
-		const FString EdgeText = EdgeEnum ? EdgeEnum->GetDisplayNameTextByValue(static_cast<int64>(Obj.Edge)).ToString() : TEXT("Unknown");
-
-		return FText::FromString(FString::Printf(TEXT("%s @ (%d,%d) %s%s"), *SummaryNameText, Obj.CellX, Obj.CellY, *EdgeText, *SuffixText));
+		return FText::FromString(TEXT("Missing object"));
 	}
 
-	return FText::FromString(TEXT("Missing object"));
+	const FGridLevelObjectData& Obj = ObjectView.GetValue();
+	const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType>();
+	const FString TypeText = TypeEnum ? TypeEnum->GetDisplayNameTextByValue(static_cast<int64>(Obj.Type)).ToString() : TEXT("Object");
+	const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor->FindObjectArchetypeById(Obj.ArchetypeId);
+	const FString NameText = Archetype && !Archetype->DisplayName.IsEmpty() ? Archetype->DisplayName.ToString() : TypeText;
+	const FString SummaryNameText = Obj.Type == EGridLevelObjectType::ItemSpawn
+		? FString::Printf(TEXT("%s Spawner"), *NameText.Replace(TEXT(" Spawn"), TEXT("")))
+		: Obj.Type == EGridLevelObjectType::MonsterSpawn ? FString::Printf(TEXT("%s Spawner"), *NameText.Replace(TEXT(" Spawn"), TEXT("")))
+															 : NameText;
+	const FString SuffixText =
+		(Obj.Type == EGridLevelObjectType::ItemSpawn || Obj.Type == EGridLevelObjectType::MonsterSpawn) ? TEXT(" [Spawner]") : TEXT("");
+
+	const UEnum* EdgeEnum = StaticEnum<EGridEdge>();
+	const FString EdgeText = EdgeEnum ? EdgeEnum->GetDisplayNameTextByValue(static_cast<int64>(Obj.Edge)).ToString() : TEXT("Unknown");
+
+	return FText::FromString(FString::Printf(TEXT("%s @ (%d,%d) %s%s"), *SummaryNameText, Obj.CellX, Obj.CellY, *EdgeText, *SuffixText));
 }
 
 FText SGridEditorLinksPanel::GetLinkSourceEventText(EGridObjectEvent SourceEvent) const
@@ -1171,7 +1171,9 @@ void SGridEditorLinksPanel::BuildObjectOptions()
 		return;
 	}
 
-	for (const FGridLevelObjectData& Object : CurrentEditorActor->LevelAsset->Objects)
+	const TArray<FGridLevelObjectData> CompatibilityObjects =
+		CurrentEditorActor->LevelAsset->BuildCompatibilityObjectProjectionFromTyped();
+	for (const FGridLevelObjectData& Object : CompatibilityObjects)
 	{
 		if (GridEditorLinkPolicy::CanObjectEmitEvents(Object))
 		{
@@ -1197,10 +1199,11 @@ void SGridEditorLinksPanel::BuildObjectOptions()
 		return nullptr;
 	};
 
-	const FGridLevelObjectData* SelectedObject = CurrentEditorActor->GetSelectedObjectData();
-	if (!SelectedSourceObjectId.IsValid() && SelectedObject)
+	const TOptional<FGridLevelObjectData> SelectedObject =
+		FindObjectById(CurrentEditorActor->LevelAsset, CurrentEditorActor->LastSelectedObjectId);
+	if (!SelectedSourceObjectId.IsValid() && SelectedObject.IsSet())
 	{
-		SelectedSourceObjectId = FindOption(SourceObjectOptions, SelectedObject->ObjectId);
+		SelectedSourceObjectId = FindOption(SourceObjectOptions, SelectedObject.GetValue().ObjectId);
 	}
 	else if (SelectedSourceObjectId.IsValid())
 	{
@@ -1218,13 +1221,15 @@ void SGridEditorLinksPanel::BuildEventOptions()
 	LinkSourceEventOptions.Reset();
 
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const FGridLevelObjectData* SourceObject = CurrentEditorActor && CurrentEditorActor->LevelAsset && SelectedSourceObjectId.IsValid()
-		? FindObjectById(CurrentEditorActor->LevelAsset, *SelectedSourceObjectId)
-		: nullptr;
-
-	if (SourceObject)
+	TOptional<FGridLevelObjectData> SourceObject;
+	if (CurrentEditorActor && CurrentEditorActor->LevelAsset && SelectedSourceObjectId.IsValid())
 	{
-		for (const EGridObjectEvent Event : GridEditorLinkPolicy::GetSupportedEventsForSource(*SourceObject))
+		SourceObject = FindObjectById(CurrentEditorActor->LevelAsset, *SelectedSourceObjectId);
+	}
+
+	if (SourceObject.IsSet())
+	{
+		for (const EGridObjectEvent Event : GridEditorLinkPolicy::GetSupportedEventsForSource(SourceObject.GetValue()))
 		{
 			LinkSourceEventOptions.Add(MakeShared<EGridObjectEvent>(Event));
 		}
@@ -1252,13 +1257,15 @@ void SGridEditorLinksPanel::BuildCommandOptions()
 	LinkCommandOptions.Reset();
 
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const FGridLevelObjectData* TargetObject = CurrentEditorActor && CurrentEditorActor->LevelAsset && SelectedTargetObjectId.IsValid()
-		? FindObjectById(CurrentEditorActor->LevelAsset, *SelectedTargetObjectId)
-		: nullptr;
-
-	if (TargetObject)
+	TOptional<FGridLevelObjectData> TargetObject;
+	if (CurrentEditorActor && CurrentEditorActor->LevelAsset && SelectedTargetObjectId.IsValid())
 	{
-		for (const EGridObjectCommand Command : GridEditorLinkPolicy::GetSupportedCommandsForTarget(*TargetObject))
+		TargetObject = FindObjectById(CurrentEditorActor->LevelAsset, *SelectedTargetObjectId);
+	}
+
+	if (TargetObject.IsSet())
+	{
+		for (const EGridObjectCommand Command : GridEditorLinkPolicy::GetSupportedCommandsForTarget(TargetObject.GetValue()))
 		{
 			LinkCommandOptions.Add(MakeShared<EGridObjectCommand>(Command));
 		}
@@ -1286,13 +1293,15 @@ void SGridEditorLinksPanel::BuildConditionOptions()
 	LinkConditionOptions.Reset();
 
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const FGridLevelObjectData* TargetObject = CurrentEditorActor && CurrentEditorActor->LevelAsset && SelectedTargetObjectId.IsValid()
-		? FindObjectById(CurrentEditorActor->LevelAsset, *SelectedTargetObjectId)
-		: nullptr;
-
-	if (TargetObject)
+	TOptional<FGridLevelObjectData> TargetObject;
+	if (CurrentEditorActor && CurrentEditorActor->LevelAsset && SelectedTargetObjectId.IsValid())
 	{
-		for (const EGridObjectCondition Condition : GridEditorLinkPolicy::GetSupportedConditionsForTarget(*TargetObject))
+		TargetObject = FindObjectById(CurrentEditorActor->LevelAsset, *SelectedTargetObjectId);
+	}
+
+	if (TargetObject.IsSet())
+	{
+		for (const EGridObjectCondition Condition : GridEditorLinkPolicy::GetSupportedConditionsForTarget(TargetObject.GetValue()))
 		{
 			LinkConditionOptions.Add(MakeShared<EGridObjectCondition>(Condition));
 		}
