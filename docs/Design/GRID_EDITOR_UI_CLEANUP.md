@@ -72,7 +72,7 @@ A later audit can decide which technical controls should remain visible on the a
 
 La section `Transition` de l'inspecteur d'objet est maintenant contextuelle.
 
-Elle apparaît uniquement pour les objets dont l'archétype active :
+Elle apparaît uniquement pour les objets dont la définition active :
 
 ```text
 bExposeTransitionSettingsInInspector = true

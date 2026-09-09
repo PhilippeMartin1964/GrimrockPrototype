@@ -1,5 +1,8 @@
 # PIT03.2 — Dual-Leaf Pit Trapdoor
 
+> **Contrat courant MIG10 (2026-09-09)** : voir les [définitions et placements typés](../Architecture/WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les extraits ci-dessous utilisant `FGridLevelObjectData`, `Objects`, les anciens meshes spécialisés ou la copie intégrale de `Behavior` décrivent explicitement l’ancien état ; ils ne sont plus des instructions de schéma. Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, et les visuels utilisent `StaticPart` / `MovingParts`.
+
+
 > **Règle gameplay (02.09.2026).** Dès qu'une commande `Open` est reçue, la Pit devient immédiatement dangereuse. Un groupe qui entre sur la cellule pendant l'ouverture tombe sans attendre les ±80°. L'animation des volets est uniquement la présentation du mécanisme en cours d'ouverture. La fermeture reste sûre dans l'autre sens : la Pit ne devient Closed qu'une fois les deux volets complètement fermés.
 
 
@@ -62,7 +65,7 @@ Il n'intervient plus dans leur présentation ni leur collision.
 
 ## Meshes
 
-`UGridObjectArchetypeAsset` ajoute quatre champs spécifiques :
+`UGridWorldObjectDefinitionAsset` ajoute quatre champs spécifiques :
 
 ```text
 Visual > Pit Trapdoor
@@ -76,7 +79,7 @@ Une trappe contrôlable exige les deux meshes.
 
 Si aucun volet n'est défini, la Pit est une fosse statique toujours ouverte.
 
-Si un seul volet est défini, l'archetype est invalide et le runtime traite la Pit comme ouverte.
+Si un seul volet est défini, la définition est invalide et le runtime traite la Pit comme ouverte.
 
 Les anciens champs :
 

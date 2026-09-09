@@ -138,7 +138,7 @@
   - Objets du monde
     - Type cible recommandé
       - UGridWorldObjectDefinitionAsset
-      - Remplace conceptuellement UGridObjectArchetypeAsset
+      - Type C++ final : UGridWorldObjectDefinitionAsset (MIG10)
     - Identité
       - DefinitionId
       - DisplayName

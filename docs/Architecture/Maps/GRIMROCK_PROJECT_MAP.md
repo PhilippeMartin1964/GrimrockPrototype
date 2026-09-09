@@ -44,7 +44,7 @@
 - ✅ Implémentation fractionnée dans `GridLevelEditorActorParts/*.inl` et services spécialisés.
 - ✅ Paint Cell / Wall, Erase, Select, rotation et déplacement d’objets.
 - ✅ Point de départ et orientation du groupe.
-- ✅ Palette data-driven et archétypes d’objets.
+- ✅ Palette data-driven et définitions d’objets.
 - ✅ Inspecteur contextuel avec données communes et spécialisées.
 - ✅ Connecteurs Event → Command avec conditions.
 - ✅ MonsterSpawn, patrol routes, Logic nodes et variables de niveau.

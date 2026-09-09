@@ -371,7 +371,7 @@ L’inspecteur d’objet doit afficher :
 
 ```text
 ObjectId
-ArchetypeId
+DefinitionId
 Category
 ActorClass
 InitialState

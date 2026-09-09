@@ -14,7 +14,7 @@ Un objet du donjon est défini par :
 
 ```text
 Objet concret
--> Archétype
+-> Définition
 -> Catégorie
 -> Classe runtime
 -> État initial
@@ -199,7 +199,7 @@ AGridItemActor
 ## Règles importantes
 
 1. Ne pas multiplier inutilement les classes C++.
-2. Garder les objets distincts dans les archétypes et la palette.
+2. Garder les objets distincts dans les définitions et la palette.
 3. Factoriser le comportement par classes communes.
 4. Ne pas faire communiquer directement les objets entre eux.
 5. Passer par un système central `Event -> Command`.

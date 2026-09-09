@@ -1,5 +1,8 @@
 # Architecture des portes et mécanismes
 
+> **Contrat courant MIG10 (2026-09-09)** : voir les [définitions et placements typés](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les extraits ci-dessous utilisant `FGridLevelObjectData`, `Objects`, les anciens meshes spécialisés ou la copie intégrale de `Behavior` décrivent explicitement l’ancien état ; ils ne sont plus des instructions de schéma. Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, et les visuels utilisent `StaticPart` / `MovingParts`.
+
+
 Les items, le curseur et leur transfert vers les réceptacles sont documentés dans [`ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md`](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md).
 
 ## 1. Objet du document
@@ -44,7 +47,7 @@ Une porte utilise les champs communs de `FGridLevelObjectData` :
 - `Type=Door` ;
 - `CellX`, `CellY`, cellule qui porte l’arête ;
 - `Edge`, bord cardinal obligatoire ;
-- `ArchetypeId`, résolution de la classe et des meshes ;
+- `WorldObjectDefinitionId`, résolution de la classe et des meshes ;
 - `bInitiallyEnabled`, qui décide si l’acteur est généré ;
 - `bInitiallyActive`, interprété comme « ouverte au démarrage » ;
 - `Behavior.DoorAnimation`, copie locale des paramètres de mouvement et de chaîne.
@@ -55,7 +58,7 @@ La cellule doit rester franchissable et l’arête de la porte doit utiliser `Wa
 
 ## 5. Génération runtime
 
-`AGridLevelRuntimeActor::AddRuntimeObjectActor()` résout l’archétype, génère sa `RuntimeActorClass`, initialise les visuels du mécanisme puis appelle `InitializeGridObject()`.
+`AGridLevelRuntimeActor::AddRuntimeObjectActor()` résout la définition, génère sa `RuntimeActorClass`, initialise les visuels du mécanisme puis appelle `InitializeGridObject()`.
 
 Pour une porte :
 

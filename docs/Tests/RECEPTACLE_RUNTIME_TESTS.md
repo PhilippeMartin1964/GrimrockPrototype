@@ -59,17 +59,17 @@ Assets existants réutilisables :
 
 ## Règle de création des presets
 
-`UGridObjectArchetypeAsset::DefaultBehavior.Receptacle` expose l'acceptation, la
+`UGridWorldObjectDefinitionAsset::DefaultBehavior.Receptacle` expose l'acceptation, la
 capacité, le contenu initial et le placement. Pour chaque preset :
 
 1. Créer une sous-classe Blueprint de `BP_GridReceptacleActor`.
 2. Régler dans ses Class Defaults les propriétés runtime indiquées.
-3. Créer un `UGridObjectArchetypeAsset`.
+3. Créer un `UGridWorldObjectDefinitionAsset`.
 4. Régler `SupportedType=Receptacle`, `ObjectCategory=Receptacle`,
    `bIsInteractable=true` et `RuntimeActorClass` sur le Blueprint du preset.
 5. Régler `DefaultBehavior.Receptacle` selon le tableau ci-dessous.
-6. Ajouter l'archétype à `DA_ObjectPalette_Default` et au tableau
-   `ObjectArchetypes` du `BP_GridLevelRuntimeActor` de la map de test.
+6. Ajouter la définition à `DA_ObjectPalette_Default` et au tableau
+   `WorldObjectDefinitions` du `BP_GridLevelRuntimeActor` de la map de test.
 
 Attention : `InitializeGridObject` remet actuellement `bCanRemoveItem` à `true`.
 Utiliser les commandes `ReceptacleDisableRemoval` et `ReceptacleEnableRemoval`
@@ -84,7 +84,7 @@ Assets :
 ```text
 BP_Receptacle_TorchHolder
 DA_Receptacle_TorchHolder
-ArchetypeId = TorchHolder
+DefinitionId = TorchHolder
 ```
 
 Class Defaults :
@@ -96,7 +96,7 @@ MaxContainedItems = 1
 bSimulatePhysicsWhenPlaced = false
 ```
 
-Archetype :
+Definition :
 
 ```text
 PlacementKind = Wall
@@ -117,7 +117,7 @@ Assets :
 ```text
 BP_Receptacle_Alcove_AnyItem
 DA_Receptacle_Alcove_AnyItem
-ArchetypeId = Alcove_AnyItem
+DefinitionId = Alcove_AnyItem
 ```
 
 Class Defaults :
@@ -130,7 +130,7 @@ bSimulatePhysicsWhenPlaced = true
 PhysicalPlacementSurfaceOffset = 5.0
 ```
 
-Archetype :
+Definition :
 
 ```text
 PlacementKind = Wall
@@ -149,7 +149,7 @@ Assets :
 ```text
 BP_Receptacle_GemSocket_RemovalControlled
 DA_Receptacle_GemSocket_RemovalControlled
-ArchetypeId = GemSocket_RemovalControlled
+DefinitionId = GemSocket_RemovalControlled
 ```
 
 Class Defaults :
@@ -160,7 +160,7 @@ bAcceptAnyItem = true
 MaxContainedItems = 1
 ```
 
-Archetype :
+Definition :
 
 ```text
 PlacementKind = Wall
@@ -179,7 +179,7 @@ Assets :
 ```text
 BP_Receptacle_WeightPlate
 DA_Receptacle_WeightPlate
-ArchetypeId = WeightPlate_Receptacle
+DefinitionId = WeightPlate_Receptacle
 ```
 
 Class Defaults :
@@ -191,7 +191,7 @@ MaxContainedItems = 4
 bSimulatePhysicsWhenPlaced = false
 ```
 
-Archetype :
+Definition :
 
 ```text
 PlacementKind = Floor
@@ -208,7 +208,7 @@ Assets :
 ```text
 BP_Receptacle_SecretAltar
 DA_Receptacle_SecretAltar
-ArchetypeId = SecretAltar
+DefinitionId = SecretAltar
 ```
 
 Class Defaults :
@@ -219,7 +219,7 @@ bAcceptAnyItem = true
 MaxContainedItems = 4
 ```
 
-Archetype :
+Definition :
 
 ```text
 PlacementKind = Floor
@@ -272,7 +272,7 @@ Ne pas créer le fichier `.umap` hors de l'Unreal Editor.
 2. Dupliquer `DA_GridLevelAsset` sous
    `/Game/GrimrockPrototype/Core/DataAssets/Tests/DA_GridLevel_ReceptacleTest`.
 3. Dans le `BP_GridLevelRuntimeActor` de la nouvelle map, assigner ce LevelAsset.
-4. Ajouter les cinq archétypes de réceptacle à `ObjectArchetypes`.
+4. Ajouter les cinq définitions de réceptacle à `WorldObjectDefinitions`.
 5. Ajouter les définitions d'items aux objets Item placés dans le LevelAsset via
    `ItemDefinitionAsset` et `ItemDefinitionId`.
 6. Placer les cinq réceptacles dans des cellules séparées et accessibles.

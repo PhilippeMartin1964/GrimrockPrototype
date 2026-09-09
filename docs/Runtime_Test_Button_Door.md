@@ -22,7 +22,7 @@ Ce document sert de test manuel de non-régression pour le runtime jouable.
 - Le pawn joueur possède une action `Use` configurée.
 - Le niveau runtime utilise un `AGridLevelRuntimeActor` ou `BP_GridLevelRuntimeActor`.
 - Le `BP_GridLevelRuntimeActor` référence le bon `UGridLevelAsset`.
-- Les archetypes nécessaires sont présents dans `ObjectArchetypes`.
+- Les définitions nécessaires sont présentes dans `WorldObjectDefinitions`.
 
 ## Asset concerné
 
@@ -32,14 +32,14 @@ Asset de niveau :
 /Game/GrimrockPrototype/Core/DataAssets/DA_GridLevelAsset
 ```
 
-Assets d'archetypes utiles :
+Assets de définitions utiles :
 
 ```text
 /Game/GrimrockPrototype/Core/DataAssets/DA_Door_Stone
 /Game/GrimrockPrototype/Core/DataAssets/DA_Button_Normal
 ```
 
-Archetype IDs attendus :
+Definition IDs attendus :
 
 ```text
 Door_Stone
@@ -101,7 +101,7 @@ Type = Door
 CellX = 10
 CellY = 10
 Edge = North
-ArchetypeId = Door_Stone
+WorldObjectDefinitionId = Door_Stone
 bInitiallyEnabled = true
 bInitiallyActive = false
 Tag = None
@@ -126,7 +126,7 @@ Type = Button
 CellX = 10
 CellY = 10
 Edge = West
-ArchetypeId = Button_Normal
+WorldObjectDefinitionId = Button_Normal
 bInitiallyEnabled = true
 bInitiallyActive = false
 Tag = None
@@ -168,7 +168,7 @@ Notes :
 - Le connecteur est défini par `Source Object = Button_Normal`, `Source Event = Activated`, `Target Object = Door_Stone`, puis `Command = Open` ou `Toggle`.
 - Le runtime exécute uniquement les connecteurs correspondant au `SourceEvent` exact.
 
-## Vérification des archetypes dans BP_GridLevelRuntimeActor
+## Vérification des définitions dans BP_GridLevelRuntimeActor
 
 Dans `L_GrimrockRuntime`, sélectionner l'acteur `BP_GridLevelRuntimeActor`.
 
@@ -176,11 +176,11 @@ Vérifier :
 
 ```text
 LevelAsset = DA_GridLevelAsset
-ObjectArchetypes contient DA_Door_Stone
-ObjectArchetypes contient DA_Button_Normal
+WorldObjectDefinitions contient DA_Door_Stone
+WorldObjectDefinitions contient DA_Button_Normal
 ```
 
-Sans ces archetypes :
+Sans ces définitions :
 
 - la porte peut ne pas trouver sa classe runtime ;
 - le bouton peut ne pas spawner ;
@@ -269,10 +269,10 @@ Vérifier :
 
 ```text
 Object Type = Button
-ArchetypeId = Button_Normal
+WorldObjectDefinitionId = Button_Normal
 bInitiallyEnabled = true
 Edge != None
-BP_GridLevelRuntimeActor.ObjectArchetypes contient DA_Button_Normal
+BP_GridLevelRuntimeActor.WorldObjectDefinitions contient DA_Button_Normal
 ```
 
 ### La porte n'apparaît pas
@@ -281,10 +281,10 @@ Vérifier :
 
 ```text
 Object Type = Door
-ArchetypeId = Door_Stone
+WorldObjectDefinitionId = Door_Stone
 bInitiallyEnabled = true
 Edge != None
-BP_GridLevelRuntimeActor.ObjectArchetypes contient DA_Door_Stone
+BP_GridLevelRuntimeActor.WorldObjectDefinitions contient DA_Door_Stone
 ```
 
 ### Le bouton s'anime mais la porte ne bouge pas

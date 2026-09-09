@@ -33,13 +33,13 @@ Ce document décrit la production, la présentation et l'exploitation des valida
 
 - **Error** : donnée invalide ou contrat impossible à exécuter correctement.
 - **Warning** : configuration suspecte, asymétrique ou potentiellement intentionnelle.
-- **Info** : indication non bloquante, notamment validation sans problème ou exposition directe d'un archétype d'item.
+- **Info** : indication non bloquante, notamment validation sans problème ou exposition directe d'une définition d'item.
 
 Le panneau affiche les erreurs avant les warnings, puis les informations. Chaque groupe est trié par catégorie.
 
 ## 5. Catégories
 
-Les catégories visibles sont `Core`, `Grid`, `Walls`, `Objects`, `Archetypes`, `Palette`, `Links`, `Doors`, `Receptacles`, `Items`, `Readable` et `Runtime`.
+Les catégories visibles sont `Core`, `Grid`, `Walls`, `Objects`, `Definitions`, `Palette`, `Links`, `Doors`, `Receptacles`, `Items`, `Readable` et `Runtime`.
 
 La catégorie est actuellement déduite de la règle et de son texte par une fonction centrale. Cette approche couvre les règles existantes sans dupliquer chaque appel à `AddMessage()`. Une future règle ambiguë devra soit employer un texte explicite, soit faire évoluer `AddMessage()` pour fournir directement la catégorie.
 
@@ -53,14 +53,14 @@ La catégorie est actuellement déduite de la règle et de son texte par une fon
 | Grille | dimensions, nombre de cellules, taille, cellule de départ |
 | Murs | murs superposés et arêtes directionnelles |
 | Objets | identité, limites de grille, placement, collisions d'ancrage, activation initiale |
-| Archétypes et palette | archétype absent, type incompatible, entrée de palette obsolète, validation de l'archétype |
-| Items | définition absente, asset sans identifiant, conflit asset/identifiant, cellule non jouable, placement |
+| Définitions et palette | définition absente, type incompatible, entrée de palette obsolète, validation de la définition |
+| Items | définition absentee, asset sans identifiant, conflit asset/identifiant, cellule non jouable, placement |
 | Portes | bord absent, mur solide, limite extérieure, commandes contradictoires |
 | Liens | source/cible absente, doublon, événement non émis, commande incompatible, condition invalide |
 | Réceptacles | règles contradictoires, contenu initial invalide, condition ou commande spécialisée incompatible |
 | Lisibles | texte effectif absent, notes non affichées, override ignoré, objet désactivé |
 
-Les validations d'archétype et de palette sont converties vers les mêmes sévérités que le niveau.
+Les validations de définition et de palette sont converties vers les mêmes sévérités que le niveau.
 
 ## 7. Panneau Slate
 
@@ -90,7 +90,7 @@ La sélection appelle `AGridLevelEditorActor::SelectObjectById()` et synchronise
 Les règles métier restent décrites dans leurs documents respectifs :
 
 - [noyau de grille](CORE_DUNGEON_LEVEL_GRID.md) ;
-- [archétypes et objets placés](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md) ;
+- [définitions et objets placés](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md) ;
 - [liens, événements et commandes](LINK_EVENT_COMMAND_FOUNDATION.md) ;
 - [portes](DOOR_MECHANISM_FOUNDATION.md) ;
 - [réceptacles](RECEPTACLE_SYSTEM_FOUNDATION.md) ;
@@ -115,6 +115,6 @@ Le panneau ne redéfinit aucune de ces règles : il rend leurs diagnostics explo
 2. Une erreur doit expliquer le contrat rompu et, si possible, identifier l'objet ou le lien.
 3. Les règles restent dans `ValidateCurrentLevel()` ou dans les validateurs d'assets, jamais dans Slate.
 4. Le panneau filtre et navigue, mais ne décide pas de la validité.
-5. La sélection utilise `ObjectId`, pas le tag ni l'archétype.
+5. La sélection utilise `ObjectId`, pas le tag ni la définition.
 6. Le focus ne doit pas changer les données persistantes.
 7. Une nouvelle famille de règles doit employer une catégorie stable et un message compréhensible.

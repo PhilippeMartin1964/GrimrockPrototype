@@ -1,5 +1,8 @@
 # 10 — Grid Editor UI Consistency Checklist
 
+> **Contrat courant MIG10 (2026-09-09)** : voir les [définitions et placements typés](../Architecture/WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les extraits ci-dessous utilisant `FGridLevelObjectData`, `Objects`, les anciens meshes spécialisés ou la copie intégrale de `Behavior` décrivent explicitement l’ancien état ; ils ne sont plus des instructions de schéma. Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, et les visuels utilisent `StaticPart` / `MovingParts`.
+
+
 Date : 2026-05-23  
 Projet : GrimrockPrototype — Grimrock Grid Editor Mode
 
@@ -40,7 +43,7 @@ Règles :
 ```text
 Focus Selected Object
 Apply Selected Object
-Reset Behavior From Archetype
+Reset Behavior From Definition
 APPLY BEHAVIOR
 Clear Links
 Rotate 90°
@@ -115,7 +118,7 @@ Receptacle ItemInserted   -> Door Close  = remettre l’objet ferme
 | Header | Nom lisible + type + cellule + orientation | [ ] |
 | Game Object | Pas de répétition de Cell X/Y ou Edge/Facing | [ ] |
 | Section contextuelle | Champs utiles uniquement pour ce type d’objet | [ ] |
-| Advanced / Debug | ObjectId, ArchetypeId, Tag en lecture seule | [ ] |
+| Advanced / Debug | ObjectId, DefinitionId, Tag en lecture seule | [ ] |
 | Notes | Champ éditable | [ ] |
 | Orientation | Affichée seulement si l’objet visible/orientable | [ ] |
 | CONNECTORS | Affiché/actif seulement pour les objets logiques | [ ] |
@@ -140,7 +143,7 @@ Attendu :
 - pas de répétition inutile de `Gameplay Type`, `Cell X`, `Cell Y`, `Edge / Facing` dans `Game Object` ;
 - section `Door` visible ;
 - `Supported Commands` cohérent : `Open`, `Close`, `Toggle`, `Lock`, `Unlock` si disponibles ;
-- `Advanced / Debug` en lecture seule pour `ObjectId`, `ArchetypeId`, `Tag` ;
+- `Advanced / Debug` en lecture seule pour l'identité du placement, `WorldObjectDefinitionId`, `Tag` ;
 - `Notes` éditable.
 
 ### Orientation
@@ -379,10 +382,10 @@ Attendu :
 
 - header lisible : `Torch Holder @ (X,Y) East` ;
 - section `Receptacle` visible ;
-- pas de saisie manuelle d’ArchetypeId ;
+- pas de saisie manuelle de l'identifiant de définition ;
 - `Accepted Items` via liste d’items ;
 - `Initial Content` via dropdown `None + items` ;
-- `Rejected Item Archetypes` et `Accepted Item Tags` absents de l’UI normale ou déplacés en advanced si encore disponibles.
+- `Rejected Item Definitions` et `Accepted Item Tags` absents de l’UI normale ou déplacés en advanced si encore disponibles.
 
 ### Orientation
 
@@ -507,7 +510,7 @@ Validation :
 | Pas de lumière au sol | [ ] |
 | Pickup depuis même cellule | [ ] |
 | bHasTorchInHand true après pickup | [ ] |
-| HeldItemArchetypeId = Item_Torch | [ ] |
+| L'item tenu référence la définition de torche attendue | [ ] |
 | Torche en main allumée | [ ] |
 
 ---

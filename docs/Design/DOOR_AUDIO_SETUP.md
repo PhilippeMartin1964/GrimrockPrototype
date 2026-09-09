@@ -5,7 +5,7 @@
 Les portes utilisent le système audio générique des Grid Objects.
 
 ~~~text
-UGridObjectArchetypeAsset
+UGridWorldObjectDefinitionAsset
 └── Audio
     ├── Attenuation
     └── Audio Events
@@ -19,7 +19,7 @@ UGridObjectArchetypeAsset
             └── Pitch Variation
 ~~~
 
-L'atténuation est unique pour l'archetype. Aucun paramètre audio spécifique supplémentaire n'est nécessaire pour la reprise partielle.
+L'atténuation est unique pour la définition. Aucun paramètre audio spécifique supplémentaire n'est nécessaire pour la reprise partielle.
 
 ## Configuration recommandée
 

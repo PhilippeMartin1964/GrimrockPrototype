@@ -1,5 +1,8 @@
 # Objets lisibles et retours d'interaction
 
+> **Contrat courant MIG10 (2026-09-09)** : voir les [définitions et placements typés](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les extraits ci-dessous utilisant `FGridLevelObjectData`, `Objects`, les anciens meshes spécialisés ou la copie intégrale de `Behavior` décrivent explicitement l’ancien état ; ils ne sont plus des instructions de schéma. Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, et les visuels utilisent `StaticPart` / `MovingParts`.
+
+
 ## 1. Objet
 
 Ce document décrit le socle des objets lisibles, du message persistant, du retour d'interaction court et des curseurs. Il ne définit ni dialogue, ni journal, ni interface finale.
@@ -8,7 +11,7 @@ Ce document décrit le socle des objets lisibles, du message persistant, du reto
 
 ## 2. Vocabulaire
 
-- **Texte d'archétype** : `UGridObjectArchetypeAsset::ReadableText`, valeur commune aux instances.
+- **Texte de définition** : `UGridWorldObjectDefinitionAsset::ReadableText`, valeur commune aux instances.
 - **Texte placé** : `FGridLevelObjectData::OverrideReadableText`, remplacement local non vide.
 - **Notes** : `FGridLevelObjectData::Notes`, information d'édition jamais affichée au joueur.
 - **Tag** : `FGridLevelObjectData::Tag`, identifiant runtime, pas un texte d'interface.
@@ -20,7 +23,7 @@ Ce document décrit le socle des objets lisibles, du message persistant, du reto
 | Responsabilité | Déclaration | Implémentation |
 |---|---|---|
 | Données placées | `Core/GridTypes.h` | sérialisation Unreal |
-| Archétype lisible | `Core/GridObjectArchetypeAsset.h` | `Core/GridObjectArchetypeAsset.cpp` |
+| Définition lisible | `Core/GridWorldObjectDefinitionAsset.h` | `Core/GridWorldObjectDefinitionAsset.cpp` |
 | Acteur lisible | `Runtime/GridGenericObjectActor.h` | `Runtime/GridGenericObjectActor.cpp` |
 | Activation du texte | `Runtime/GridActivationComponent.h` | `Runtime/GridActivationComponent.cpp` |
 | Widget | `UI/ReadableMessageWidget.h` | `UI/ReadableMessageWidget.cpp` |
@@ -33,7 +36,7 @@ Les chemins runtime sont sous `Source/GrimrockPrototype/Public` ou `Private`. Le
 
 ## 4. Objets lisibles et stockage
 
-Le comportement lisible générique est porté par `AGridGenericObjectActor`. Un archétype active ce comportement avec `bIsReadable`. À l'initialisation, son `ReadableText` est copié, puis un `OverrideReadableText` non vide le remplace. Un override vide signifie donc « utiliser le texte de l'archétype », pas « masquer le texte ».
+Le comportement lisible générique est porté par `AGridGenericObjectActor`. Une définition active ce comportement avec `bIsReadable`. À l'initialisation, son `ReadableText` est copié, puis un `OverrideReadableText` non vide le remplace. Un override vide signifie donc « utiliser le texte de la définition », pas « masquer le texte ».
 
 `bShowReadableOnlyOnce` empêche une nouvelle lecture après `MarkAsRead()`. Un objet sans texte effectif ou déjà lu lorsque cette option est active refuse `CanInteract()`. Les objets placés sur une arête doivent aussi être accessibles depuis le bon côté.
 
@@ -107,13 +110,13 @@ Le widget de curseur personnalisé doit fournir la fonction Blueprint `SetCursor
 
 La validation signale :
 
-- un archétype lisible sans texte, au niveau de l'archétype ;
+- une définition lisible sans texte, au niveau de la définition ;
 - un objet lisible placé sans texte effectif ;
 - des notes renseignées à la place du texte lisible ;
-- un override présent sur un archétype non lisible ;
+- un override présent sur une définition non lisible ;
 - un objet lisible initialement désactivé.
 
-Un archétype sans texte par défaut reste valide si chaque instance fournit un override. Aucune limite de longueur n'est imposée, car le widget actuel n'en définit pas.
+Une définition sans texte par défaut reste valide si chaque instance fournit un override. Aucune limite de longueur n'est imposée, car le widget actuel n'en définit pas.
 
 ## 12. Diagnostics
 

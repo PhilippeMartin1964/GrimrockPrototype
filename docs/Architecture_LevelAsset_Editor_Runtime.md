@@ -1,5 +1,8 @@
 # Architecture LevelAsset / Editor / Runtime
 
+> **Contrat courant MIG10 (2026-09-09)** : voir les [définitions et placements typés](Architecture/WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les extraits ci-dessous utilisant `FGridLevelObjectData`, `Objects`, les anciens meshes spécialisés ou la copie intégrale de `Behavior` décrivent explicitement l’ancien état ; ils ne sont plus des instructions de schéma. Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, et les visuels utilisent `StaticPart` / `MovingParts`.
+
+
 Statut : reference d'architecture avant le passage au multi-niveaux.
 
 ## Principe central
@@ -41,7 +44,7 @@ Responsabilites :
 - initialiser les composants d'activation et de portes ;
 - fournir les helpers de deplacement et d'interaction.
 
-Point important : chaque instance de `BP_GridLevelRuntimeActor` a sa propre reference `LevelAsset` et sa propre configuration de meshes/archetypes. Deux instances placees dans deux maps differentes peuvent donc diverger.
+Point important : chaque instance de `BP_GridLevelRuntimeActor` a sa propre reference `LevelAsset` et sa propre configuration de meshes/definitions. Deux instances placees dans deux maps differentes peuvent donc diverger.
 
 ### `AGridLevelEditorActor` / `BP_GridLevelEditorActor`
 
@@ -88,7 +91,7 @@ Consequences :
 
 - l'instance editor peut pointer vers `DA_Level_A` ;
 - l'instance runtime peut pointer vers `DA_Level_B` ;
-- les deux instances peuvent avoir des meshes ou archetypes differents ;
+- les deux instances peuvent avoir des meshes ou definitions differents ;
 - un test PIE dans une map peut ne pas representer le niveau edite dans l'autre map.
 
 Ce n'est pas un bug Unreal : c'est la consequence normale d'une configuration portee par des instances d'acteurs placees dans des maps differentes.

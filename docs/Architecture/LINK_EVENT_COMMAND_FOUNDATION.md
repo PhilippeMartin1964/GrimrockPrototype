@@ -173,7 +173,7 @@ Le runtime journalise les événements, les conditions rejetées, les paramètre
 ## 11. Règles d’architecture
 
 1. `UGridLevelAsset::Links` reste la donnée persistante.
-2. Les identités de source et cible sont des `ObjectId`, pas des tags ou des archétypes.
+2. Les identités de source et cible sont des `ObjectId`, pas des tags ou des définitions.
 3. Les acteurs produisent des événements ; le composant d’activation filtre, évalue et dispatche.
 4. L’éditeur modifie et visualise les données, sans reproduire la logique runtime.
 5. Une nouvelle valeur d’enum n’est pas fonctionnelle tant qu’un émetteur ou un dispatch explicite n’existe pas.

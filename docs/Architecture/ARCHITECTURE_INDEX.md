@@ -1,5 +1,8 @@
 # Index de l’architecture
 
+**WORLDOBJ MIG00 → MIG10 : clôture technique du 2026-09-09.** Voir le [rapport MIG10](WORLDOBJ_MIG10_FINAL.md) et le [contrat courant des définitions et placements](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les anciennes notes de cleanup, audits et schémas `object_10_*` décrivent l'état historique antérieur ; ils ne définissent plus le stockage des placements.
+
+
 ## Objet
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
@@ -13,7 +16,7 @@ Phase active : **aucune**. TD07 est validé et clos ; MON21.4 reste en attente d
 2. [Synthèse globale du projet](PROJECT_SYNTHESIS.md)
 3. [Roadmap active](../Design/PROJECT_COMPLETION_ROADMAP.md)
 4. [Donjon, niveau et grille](CORE_DUNGEON_LEVEL_GRID.md)
-5. [Archétypes et objets placés](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md)
+5. [Définitions et objets placés](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md)
 6. [Event, variables, Logic et Lua](ADVANCED_DUNGEON_LOGIC_FOUNDATION.md)
 7. [Combat, monstres et IA](COMBAT_MONSTER_AI_FOUNDATION.md)
 8. [Groupe, RPG et recrutement](PARTY_RPG_RECRUITMENT_FOUNDATION.md)
@@ -29,7 +32,7 @@ Phase active : **aucune**. TD07 est validé et clos ; MON21.4 reste en attente d
 | Document | Portée |
 |---|---|
 | [CORE_DUNGEON_LEVEL_GRID.md](CORE_DUNGEON_LEVEL_GRID.md) | Donjon, niveaux, cellules, murs et génération runtime. |
-| [OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md) | Archétypes, palette, objets placés, preview et actors. |
+| [WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md) | Définitions, palette, objets placés, preview et actors. |
 | [ADVANCED_DUNGEON_LOGIC_FOUNDATION.md](ADVANCED_DUNGEON_LOGIC_FOUNDATION.md) | Variables typées, Logic, Lua, `persistent`, `LogicId`. |
 | [COMBAT_MONSTER_AI_FOUNDATION.md](COMBAT_MONSTER_AI_FOUNDATION.md) | Turn manager, actions, monstres, perception, patrouille, planners. |
 | [PARTY_RPG_RECRUITMENT_FOUNDATION.md](PARTY_RPG_RECRUITMENT_FOUNDATION.md) | Groupe, XP/progression, CharacterPool et recrutement. |

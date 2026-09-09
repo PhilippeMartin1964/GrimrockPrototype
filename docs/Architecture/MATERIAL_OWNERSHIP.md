@@ -5,25 +5,22 @@ Statut : **architecture active**
 
 ## Décision
 
-Pour les objets construits à partir d'un `GridObjectArchetypeAsset`, le matériau visuel appartient au `StaticMesh` référencé et à ses **Material Slots**.
+Pour les objets construits à partir d'un `GridWorldObjectDefinitionAsset`, le matériau visuel appartient au `StaticMesh` référencé et à ses **Material Slots**.
 
 ```text
-GridObjectArchetypeAsset
-    ├── PreviewMesh
-    ├── FixedMesh
-    ├── MovingMesh
-    ├── PitLeftLeafMesh
-    └── PitRightLeafMesh
+GridWorldObjectDefinitionAsset
+    ├── StaticPart.Mesh
+    └── MovingParts.Part0 / Part1 → Mesh
 
 StaticMesh
     └── Material Slots   ← source de vérité du matériau de rendu
 ```
 
-Le `GridObjectArchetypeAsset` ne doit plus fournir d'override de matériau pour ces meshes.
+Le `GridWorldObjectDefinitionAsset` ne doit plus fournir d'override de matériau pour ces meshes.
 
 ## Migration effectuée
 
-L'audit `Grimrock.Architecture.MaterialOwnership.Audit` a trouvé huit archétypes utilisant encore `PreviewMaterial`.
+L'audit `Grimrock.Architecture.MaterialOwnership.Audit` a trouvé huit définitions utilisant encore `PreviewMaterial`.
 
 Cinq étaient déjà redondants avec le Material Slot de leur mesh :
 
@@ -43,7 +40,7 @@ Après migration, l'audit des DataAssets ne trouvait plus aucun override matéri
 
 ## Champs retirés de l'authoring et de l'API
 
-Les anciens noms suivants ne font plus partie du schéma réfléchi ni de l'API C++ du `GridObjectArchetypeAsset` :
+Les anciens noms suivants ne font plus partie du schéma réfléchi ni de l'API C++ du `GridWorldObjectDefinitionAsset` :
 
 ```text
 PreviewMaterial
@@ -55,7 +52,7 @@ PitRightLeafMaterial
 
 Aucun shim C++ de compatibilité matériau n'est conservé. Les anciens noms ont disparu de la réflexion Unreal et de l'API C++ ; les call-sites utilisent directement les signatures mesh-only actuelles.
 
-Les acteurs runtime génériques, les mécanismes et la preview ne transportent plus de paramètre de matériau d'archétype ; ils assignent le `StaticMesh` et conservent donc ses Material Slots.
+Les acteurs runtime génériques, les mécanismes et la preview ne transportent plus de paramètre de matériau de définition ; ils assignent le `StaticMesh` et conservent donc ses Material Slots.
 
 ## Ce qui n'est pas concerné
 
@@ -77,7 +74,7 @@ Le filtre :
 Grimrock.Architecture.MaterialOwnership.Audit
 ```
 
-vérifie que les cinq anciens noms ne sont plus des propriétés réfléchies du `GridObjectArchetypeAsset`.
+vérifie que les cinq anciens noms ne sont plus des propriétés réfléchies du `GridWorldObjectDefinitionAsset`.
 
 ## État final
 

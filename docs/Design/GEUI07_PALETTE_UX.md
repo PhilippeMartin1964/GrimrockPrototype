@@ -33,7 +33,7 @@ All | Favorites | Recent | Doors | Mechanisms | Receptacles | ...
 
 `Favorites` et `Recent` sont des vues de présentation, pas de nouvelles catégories d’objets.
 
-Les catégories effectives existantes restent celles faisant autorité et continuent de provenir de `UGridObjectPaletteAsset` / des données d’archétype.
+Les catégories effectives existantes restent celles faisant autorité et continuent de provenir de `UGridObjectPaletteAsset` / des données de définition.
 
 La recherche s’applique à chaque vue :
 
@@ -213,13 +213,13 @@ Validation visuelle :
 11. Rechercher dans Favorites et Recent.
 12. Fermer puis rouvrir la fenêtre Tools & Palette ; confirmer que Favorites et Recent sont conservés.
 13. Redémarrer l’Unreal Editor et confirmer qu’ils sont toujours conservés.
-14. Confirmer que sélectionner une entrée active toujours Paint Object et utilise le même archétype.
+14. Confirmer que sélectionner une entrée active toujours Paint Object et utilise la même définition.
 
 ## 10. Hors périmètre explicite
 
 GEUI07 ne :
 
-- modifie pas les DataAssets palette/archétype ;
+- modifie pas les DataAssets palette/définition ;
 - ajoute pas de métadonnée favorite au contenu gameplay ;
 - ne synchronise pas les favoris entre machines/utilisateurs ;
 - ajoute pas de réordonnancement par glisser-déposer ;

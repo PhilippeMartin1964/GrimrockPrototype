@@ -1,5 +1,8 @@
 # GrimrockPrototype — Monstres, animations, IA et combat tour par tour
 
+> Guide historique du prototype de juillet 2026. Les identités et placements cités décrivent cet ancien état ; le contrat courant est celui de [MIG10](../Architecture/WORLDOBJ_MIG10_FINAL.md).
+
+
 ## Prototype initial : Rat géant — `MON_RatGiant`
 
 **Projet :** GrimrockPrototype  

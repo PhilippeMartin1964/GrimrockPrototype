@@ -1,10 +1,10 @@
 # WORLDOBJ — Roadmap MIG00 à MIG10 et modèle de données cible
 
-Statut : **WORLDOBJ-MIG09 ✅ CLOSED — FINAL-D validé ; MIG10 non commencé**
+Statut : **WORLDOBJ MIG00 → MIG10 ✅ CLOSED**
 
 Mise à jour : **2026-09-09**
 
-Clôture de la migration de données, sans certification visuelle de tous les niveaux. Le [rapport FINAL-D](WORLDOBJ_MIG09_FINAL_D.md) consigne 349 tests sans échec, le rebuild complet et le défaut de départ préexistant de `DA_GridLevel_01`.
+Clôture du modèle et du vocabulaire, sans certification visuelle de tous les niveaux. Le [rapport MIG10 final](WORLDOBJ_MIG10_FINAL.md) consigne 350 tests sans échec, le rebuild complet non-unity, 92 DataAssets et 3 maps chargeables. Le défaut de départ préexistant de `DA_GridLevel_01` reste inchangé.
 
 > Référence architecturale prioritaire : `docs/Architecture/Maps/Grimrock_MindMap_Architecture_Cible_v2_XMind.md`.
 >
@@ -76,7 +76,9 @@ Runtime State / SaveGame
 | MIG09-E2A | ✅ | Frontière runtime world-object native. |
 | MIG09-E2B | ✅ | Runtime spécialisé hors cache `Objects`. |
 | MIG09-E2C | ✅ | Consommateurs et fixtures natifs ; DTO/cache supprimés ; FINAL-A/B/C/D validés. |
-| MIG10 | ⬜ | Renommage final `UGridObjectArchetypeAsset` → `UGridWorldObjectDefinitionAsset`. |
+| MIG10-A | ✅ | Type C++ et API WorldObjectDefinition finalisés. |
+| MIG10-B | ✅ | 38 définitions sérialisées migrées, identifiants préservés. |
+| MIG10-C | ✅ | Audit, documentation, régression finale et clôture. |
 
 ## 4. Autorité persistante
 
@@ -201,27 +203,19 @@ Aucun substitut monolithique ne doit être créé sous un autre nom.
 7. documentation réconciliée
 ```
 
-Une fois FINAL-D validé, **MIG09 est clos**. MIG10 reste une migration séparée, non commencée ; aucun renommage de `UGridObjectArchetypeAsset` n'est effectué dans FINAL-D.
+FINAL-D a clos MIG09 sans renommage de classe. MIG10 a ensuite finalisé les noms dans une étape distincte.
 
-## 7. MIG10 — renommage final
+## 7. MIG10 — renommage final clos
 
-MIG10 ne change pas le modèle de données : il donne enfin le vocabulaire définitif au concept déjà stabilisé.
+A ✅ — `UGridWorldObjectDefinitionAsset`, `DefinitionId`, références de placement `WorldObjectDefinitionId`, palette `DefaultWorldObjectDefinition`, registre `WorldObjectDefinitions` et lookup `FindWorldObjectDefinitionById` sont les noms finaux.
 
-```text
-UGridObjectArchetypeAsset
-        ↓
-UGridWorldObjectDefinitionAsset
-```
+B ✅ — 38 définitions resauvegardées avec le nouveau class tag ; 38 identifiants préservés et uniques. Les placements et liens sont inchangés.
 
-Vocabulaire associé :
+C ✅ — documentation active réconciliée, rebuild complet UE5.5.4 non-unity vert, baseline FINAL-D étendue à 350 tests (0 failed, 0 not run), 92 DataAssets et 3 maps chargeables. Voir le [rapport final](WORLDOBJ_MIG10_FINAL.md).
 
-```text
-ArchetypeId              -> DefinitionId / WorldObjectDefinitionId
-ObjectArchetypes         -> WorldObjectDefinitions
-FindObjectArchetypeById  -> FindWorldObjectDefinition...
-```
+Les Core Redirects temporaires restent nécessaires pour les Blueprints/assets externes éventuels conservant les anciens noms. Aucun alias ou wrapper C++ de compatibilité MIG10 n'est ajouté.
 
-MIG10 ne doit pas servir de prétexte à réintroduire une couche de compatibilité durable. Les redirects Unreal éventuellement nécessaires à la migration d'assets sont temporaires et documentés.
+Le chemin de package historique `Content/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/` est volontairement conservé : il ne représente plus une classe ni un concept architectural actif. Une réorganisation Content éventuelle relève d'une tâche distincte avec AssetTools.
 
 ## 8. Definition of Done MIG09
 
@@ -245,17 +239,17 @@ La jouabilité interactive n'est pas certifiée : le départ de `DA_GridLevel_01
 ## 9. Definition of Done finale MIG00 → MIG10
 
 ```text
-[ ] items = une définition unique
-[ ] objets du monde = une définition unique
-[ ] monstres = une définition unique
-[ ] placements LevelAsset typés uniquement
-[ ] preview et runtime consomment les mêmes définitions
-[ ] SaveGame = deltas mutables uniquement
-[ ] tests protègent les invariants
-[ ] vocabulaire WorldObjectDefinition finalisé par MIG10
+[x] items = une définition unique
+[x] objets du monde = une définition unique
+[x] monstres = une définition unique
+[x] placements LevelAsset typés uniquement
+[x] preview et runtime consomment les mêmes définitions
+[x] SaveGame = deltas mutables uniquement
+[x] tests protègent les invariants
+[x] vocabulaire WorldObjectDefinition finalisé
 ```
 
-## 10. Validation courante FINAL-A
+## 10. Commande de validation ciblée
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
@@ -263,7 +257,7 @@ La jouabilité interactive n'est pas certifiée : le départ de `DA_GridLevel_01
     -AutomationFilter "Grimrock.WorldObjects"
 ```
 
-Les filtres directement liés à Activation / Logic / Lua doivent accompagner cette régression avant de déclarer FINAL-A validé.
+Cette commande ciblée ne remplace pas la régression finale : les 17 familles effectivement exécutées et leurs résultats sont consignés dans le rapport MIG10 final.
 
 ## 11. Documents associés
 

@@ -39,7 +39,7 @@ L’inspecteur existant reste l’autorité pour :
 - résumé de l’objet sélectionné ;
 - placement et orientation ;
 - état initially enabled / active ;
-- classification dérivée de l’archétype ;
+- classification dérivée de la définition ;
 - champs de composants contextuels ;
 - comportement des portes, boutons, leviers et plaques de pression ;
 - triggers et receptacles ;

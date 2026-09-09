@@ -9,7 +9,7 @@ Ce document décrit le socle réellement implémenté pour les items placés dan
 | Domaine | Déclaration | Implémentation |
 |---|---|---|
 | Objet placé | `Source/GrimrockPrototype/Public/Core/GridTypes.h` | structure sans `.cpp` |
-| Paramètres d'archétype | `Source/GrimrockPrototype/Public/Core/GridObjectArchetypeAsset.h` | `Source/GrimrockPrototype/Private/Core/GridObjectArchetypeAsset.cpp` |
+| Paramètres de définition | `Source/GrimrockPrototype/Public/Core/GridWorldObjectDefinitionAsset.h` | `Source/GrimrockPrototype/Private/Core/GridWorldObjectDefinitionAsset.cpp` |
 | Définition d'item | `Source/GrimrockPrototype/Public/Runtime/GridItemDefinitionAsset.h` | `Source/GrimrockPrototype/Private/Runtime/GridItemDefinitionAsset.cpp` |
 | Instance et propriété | `Source/GrimrockPrototype/Public/Runtime/GridInventoryTypes.h` | structures sans `.cpp` |
 | Acteur d'item | `Source/GrimrockPrototype/Public/Runtime/GridItemActor.h` | `Source/GrimrockPrototype/Private/Runtime/GridItemActor.cpp` |
@@ -28,7 +28,7 @@ Ce document décrit le socle réellement implémenté pour les items placés dan
 | `ItemDefinitionId` | identifiant stable utilisable sans référence directe chargée |
 | `ItemActor` | représentation physique ou visuelle d'un item |
 | `ItemInstance` | identité runtime, quantité, poids, lumière et propriétaire logique |
-| `PlacedObject` | enregistrement persistant d'un item dans `UGridLevelAsset::Objects` |
+| `FGridLooseItemInstance` | placement persistant dans `UGridLevelAsset::LooseItemInstances` |
 | `ContainedReceptacleItem` | état d'une instance possédée et éventuellement visualisée par un réceptacle |
 | `CursorItem` | instance temporairement possédée par le curseur |
 | `InventoryItem` | instance stockée dans une case d'un personnage du groupe |
@@ -39,17 +39,15 @@ Ce document décrit le socle réellement implémenté pour les items placés dan
 
 `FGridItemInstance` est l'instance runtime. Son identité est `RuntimeObjectId`; sa nature est `ItemDefinitionId`. Les champs `OwnerType`, `OwnerGuid`, `OwnerCharacterIndex` et `EquipmentSlot` décrivent son propriétaire logique.
 
-`FGridLevelObjectData` de type `Item` est un placement persistant. Dans le schéma d'authoring courant, sa définition canonique est une référence directe `ItemDefinitionAsset`. `ItemDefinitionId` est réservé aux identités runtime/save et aux anciens fallbacks ; il ne doit pas être saisi comme seconde autorité d'authoring.
+`FGridLooseItemInstance` est le placement persistant. Sa référence `ItemDefinition` est l'unique définition canonique du collectible. `ItemDefinitionId` identifie la définition dans les états runtime/save ; il ne constitue pas une seconde autorité d'authoring du placement.
 
-Lors d'un placement depuis la palette, `PlaceSelectedObject()` promeut automatiquement `DefaultBehavior.Item.ItemDefinitionAsset` de l'archétype vers `FGridLevelObjectData::ItemDefinitionAsset` et laisse `ItemDefinitionId=None`.
-
-Le runtime conserve néanmoins l'ordre de compatibilité suivant : définition locale, définition par défaut de l'archétype, puis anciens identifiants. `ArchetypeId` sélectionne l'archétype de placement et de génération ; il n'est plus une définition d'item pour les nouvelles données.
+La palette référence directement `DefaultItemDefinition`, sans `DefaultWorldObjectDefinition` compagnon. Le placement n'utilise aucun fallback de définition world-object. Voir le [contrat courant](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md).
 
 ## 4. Génération dans le monde
 
 `AGridLevelRuntimeActor::RebuildRuntimeObjects()` traite les objets `Item` actifs par `AddPlacedItemActor()`. L'acteur créé est enregistré dans `SpawnedItemEntries` avec sa cellule, son arête, son identifiant d'objet et sa définition.
 
-Un item avec `Edge=None` est placé au centre de la cellule. Un item avec une arête cardinale utilise le placement au bord du sol, même si son archétype est normalement centré. Ce comportement est propre aux items placés.
+Un item avec `Edge=None` est placé au centre de la cellule. Un item avec une arête cardinale utilise le placement au bord du sol, même si sa définition est normalement centré. Ce comportement est propre aux items placés.
 
 `AGridItemActor::ConfigureAsWorldPickup()` active la collision, la visibilité et la physique nécessaires au ramassage. L'état lumineux d'un item placé par le niveau est actuellement désactivé après sa création par `OnRemovedFromWorld()`. Une torche contenue ou tenue suit un autre chemin lumineux.
 
@@ -124,15 +122,14 @@ Le composant d'inventaire peut enregistrer automatiquement les définitions d'it
 
 Quand un item est ramassé depuis le niveau, la définition est résolue via `AGridLevelRuntimeActor::ResolveRuntimeItemDefinition`, puis enregistrée dans `UGridPartyInventoryComponent`.
 
-Cela évite de devoir renseigner manuellement chaque `DA_Item_*` dans le Blueprint du pawn, tant que l'item provient d'un LevelAsset, d'un archétype ou d'un contenu runtime résoluble.
+Cela évite de devoir renseigner manuellement chaque `DA_Item_*` dans le Blueprint du pawn, tant que l'item provient d'un LevelAsset, d'une définition ou d'un contenu runtime résoluble.
 
 ### Tags d'items
 
 Les tags métier d'un item appartiennent à `UGridItemDefinitionAsset.ItemTags`.
 
-Un archétype de placement comme `DA_Object_StonePickup` peut ajouter des tags de placement si nécessaire, mais ne doit pas être obligé de recopier les tags métier de l'item.
+Le placement conserve éventuellement un `Tag` local ; il ne recopie pas les tags métier dans une définition world-object compagnon. La palette valide directement `DefaultItemDefinition` pour les collectibles.
 
-La validation des archétypes accepte donc un item si l'archétype définit `ItemActorClass`, `ItemTags`, ou une définition d'item par défaut dans `DefaultBehavior.Item`.
 
 ## 7. Curseur et transferts
 
@@ -332,12 +329,12 @@ Une torche peut apparaître sous trois formes distinctes :
 
 `AGridLevelEditorActor::ValidateCurrentLevel()` signale désormais :
 
-- un item sans définition résoluble dans l'objet ou l'archétype ;
+- un item sans définition résoluble dans l'objet ou la définition ;
 - un asset de définition dont `ItemDefinitionId` est vide ;
 - un conflit entre `ItemDefinitionAsset` et `ItemDefinitionId` locaux ;
 - un item placé sur une cellule vide ou bloquant l'occupation.
 
-Les validations existantes continuent de contrôler l'identifiant d'objet, l'archétype, le type, la palette et le placement.
+Les validations existantes continuent de contrôler l'identifiant d'objet, la définition, le type, la palette et le placement.
 
 ## 10. Diagnostics
 

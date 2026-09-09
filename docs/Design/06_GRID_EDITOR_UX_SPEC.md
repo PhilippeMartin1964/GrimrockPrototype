@@ -1,5 +1,8 @@
 # GrimrockPrototype — Spécification UX du Grimrock Grid Editor Mode
 
+> **Contrat courant MIG10 (2026-09-09)** : voir les [définitions et placements typés](../Architecture/WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les extraits ci-dessous utilisant `FGridLevelObjectData`, `Objects`, les anciens meshes spécialisés ou la copie intégrale de `Behavior` décrivent explicitement l’ancien état ; ils ne sont plus des instructions de schéma. Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, et les visuels utilisent `StaticPart` / `MovingParts`.
+
+
 ## Objectif du document
 
 Ce document complète les documents existants du dossier `docs/Design`.
@@ -56,7 +59,7 @@ Exemples :
 ```text
 Outgoing Links      -> Connectors / Outgoing Connectors
 Incoming Links      -> Incoming Connectors
-Accepted Archetype  -> Accepted Item
+Accepted Definition  -> Accepted Item
 Initial Contained   -> Initial Content
 ```
 
@@ -68,7 +71,7 @@ L’inspecteur actuel affiche simultanément :
 
 - l’identité brute de l’objet ;
 - sa position ;
-- son archétype ;
+- sa définition ;
 - son tag ;
 - ses états initiaux ;
 - ses paramètres de comportement ;
@@ -169,7 +172,7 @@ Les boutons suivants ne doivent plus apparaître comme actions principales perma
 ```text
 Focus Selected Object
 Apply Selected Object
-Reset Behavior From Archetype
+Reset Behavior From Definition
 Select Target
 Clear Links
 APPLY BEHAVIOR
@@ -181,7 +184,7 @@ APPLY BEHAVIOR
 |---|---|---|
 | `Focus Selected Object` | Retirer | Raccourci viewport `F` ou menu contextuel |
 | `Apply Selected Object` | Retirer | Auto-apply lors de la modification des champs |
-| `Reset Behavior From Archetype` | Masquer | Menu `Advanced / Debug` ou menu `...` |
+| `Reset Behavior From Definition` | Masquer | Menu `Advanced / Debug` ou menu `...` |
 | `Select Target` | Remplacer | Mode `Pick Target in Viewport` dans `+ Add Connector` |
 | `Clear Links` | Masquer | Action dangereuse dans menu `...`, avec confirmation |
 | `APPLY BEHAVIOR` | Retirer | Auto-apply des champs contextuels |
@@ -197,11 +200,11 @@ Les champs suivants ne doivent pas être visibles par défaut :
 ```text
 ObjectId
 Raw Type
-Raw ArchetypeId
+Raw DefinitionId
 Raw Tag
 Internal Notes
-Raw Accepted Archetype Ids
-Raw Rejected Archetype Ids
+Raw Accepted Definition Ids
+Raw Rejected Definition Ids
 Raw Accepted Item Tags
 Raw Rejected Item Tags
 Runtime Actor Class
@@ -218,11 +221,11 @@ Ils restent utiles, mais uniquement dans une section fermée par défaut :
 
 ---
 
-## Distinction entre Archetype et Instance
+## Distinction entre Definition et Instance
 
 L’interface doit clairement distinguer :
 
-### Archetype
+### Definition
 
 Définition générale de l’objet.
 
@@ -236,7 +239,7 @@ Receptacle_Alcove
 Lock_BrassKey
 ```
 
-L’archetype définit typiquement :
+La définition définit typiquement :
 
 - nom affiché ;
 - catégorie ;
@@ -262,7 +265,7 @@ L’instance définit typiquement :
 - liens entrants ;
 - overrides éventuels.
 
-L’inspecteur doit donc éviter de mélanger les propriétés d’archétype et les propriétés d’instance.
+L’inspecteur doit donc éviter de mélanger les propriétés de définition et les propriétés d’instance.
 
 ---
 
@@ -290,7 +293,7 @@ Opening Mode: Vertical Slide
 
 ▸ Advanced / Debug
 ObjectId
-ArchetypeId
+DefinitionId
 Runtime Actor Class
 Raw Door Params
 ```
@@ -322,7 +325,7 @@ Disable Self:         [ ]
 
 ▸ Advanced / Debug
 ObjectId
-ArchetypeId
+DefinitionId
 Raw Trigger Params
 ```
 
@@ -350,7 +353,7 @@ Disable Self: [ ]
 
 ▸ Advanced / Debug
 ObjectId
-ArchetypeId
+DefinitionId
 Raw Lever Params
 ```
 
@@ -377,7 +380,7 @@ Disable Self: [ ]
 
 ▸ Advanced / Debug
 ObjectId
-ArchetypeId
+DefinitionId
 Raw Button Params
 ```
 
@@ -403,7 +406,7 @@ Consumes Key: [ ]
 
 ▸ Advanced / Debug
 ObjectId
-ArchetypeId
+DefinitionId
 Raw Required Item Id
 ```
 
@@ -431,7 +434,7 @@ Initial Items:
 
 ▸ Advanced / Debug
 ObjectId
-ArchetypeId
+DefinitionId
 Raw Item List
 ```
 
@@ -461,8 +464,8 @@ Consume Inserted Item: [ ]
 
 ▸ Advanced / Debug
 ObjectId
-ArchetypeId
-Raw Accepted Archetype Ids
+DefinitionId
+Raw Accepted Definition Ids
 Raw Accepted Tags
 ```
 
@@ -487,7 +490,7 @@ Duration
 Invert Connectors
 Fire On Enter
 Fire On Exit
-Item Spawn / SpawnedItemArchetypeId
+Item Spawn / SpawnedItemDefinitionId
 ```
 
 Le comportement gameplay doit être exprimé par des connecteurs explicites `Source Object / Event / Target Object / Command`.
@@ -672,9 +675,9 @@ Il ne faut pas utiliser aveuglément le pivot du mesh ou de l’acteur.
 
 ---
 
-## GridObjectArchetypeAsset — clarification nécessaire
+## GridWorldObjectDefinitionAsset — clarification nécessaire
 
-Le `GridObjectArchetypeAsset` contient beaucoup de champs.
+Le `GridWorldObjectDefinitionAsset` contient beaucoup de champs.
 
 Il faut clarifier leur rôle, car tous les champs ne concernent pas tous les objets.
 
@@ -701,7 +704,7 @@ Cette richesse est utile, mais elle rend l’éditeur difficile à comprendre si
 
 ### Action demandée
 
-Créer un audit de `GridObjectArchetypeAsset` avec le tableau suivant :
+Créer un audit de `GridWorldObjectDefinitionAsset` avec le tableau suivant :
 
 | Field Name | Type | Used By | Used In Editor | Used In Runtime | Object Types Concerned | Instance Override | Keep / Hide / Remove | Comment |
 |---|---|---|---|---|---|---|---|---|
@@ -730,15 +733,15 @@ Exemples :
 
 ```text
 ObjectId
-ArchetypeId
+DefinitionId
 Runtime Actor Class
 Raw Tags
 Raw Offsets
 ```
 
-### Archetype Only
+### Definition Only
 
-Visible uniquement lors de l’édition de l’archétype, pas de l’instance placée.
+Visible uniquement lors de l’édition de la définition, pas de l’instance placée.
 
 Exemples :
 
@@ -818,7 +821,7 @@ Objectif : rendre les liens visibles spatialement.
 5. Afficher les liens sortants de l’objet sélectionné.
 6. Ajouter plus tard `Show All Connectors`.
 
-### Phase 5 — Audit de GridObjectArchetypeAsset
+### Phase 5 — Audit de GridWorldObjectDefinitionAsset
 
 Objectif : comprendre et nettoyer l’asset central.
 
@@ -828,7 +831,7 @@ Objectif : comprendre et nettoyer l’asset central.
 2. Dire quels objets les utilisent.
 3. Dire s’ils sont runtime, editor ou les deux.
 4. Dire s’ils sont modifiables par instance.
-5. Classer chaque champ : `Essential`, `Advanced`, `Archetype Only`, `Remove Later`.
+5. Classer chaque champ : `Essential`, `Advanced`, `Definition Only`, `Remove Later`.
 
 ### Phase 6 — Validation de niveau
 
@@ -845,7 +848,7 @@ Cette validation devra détecter :
 - lien vers objet supprimé ;
 - commande invalide pour la cible ;
 - événement incohérent pour la source ;
-- archetype absent ;
+- definition absent ;
 - runtime actor manquant ;
 - item initial inconnu ;
 - porte sans edge valide ;
@@ -863,7 +866,7 @@ Supprimer de la vue principale :
 ```text
 Focus Selected Object
 Apply Selected Object
-Reset Behavior From Archetype
+Reset Behavior From Definition
 Select Target
 Clear Links
 APPLY BEHAVIOR
@@ -913,7 +916,7 @@ La base doit partir du centre logique de la source.
 
 La pointe doit arriver au centre logique de la cible.
 
-### Tâche 6 — Produire l’audit GridObjectArchetypeAsset
+### Tâche 6 — Produire l’audit GridWorldObjectDefinitionAsset
 
 Créer un document séparé :
 
@@ -921,7 +924,7 @@ Créer un document séparé :
 docs/Design/07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md
 ```
 
-Ce document devra lister tous les champs de `GridObjectArchetypeAsset` et dire à quoi ils servent.
+Ce document devra lister tous les champs de `GridWorldObjectDefinitionAsset` et dire à quoi ils servent.
 
 ---
 
@@ -950,7 +953,7 @@ L’utilisateur ne doit plus devoir interpréter en permanence des champs techni
 
 ```text
 ObjectId
-ArchetypeId
+DefinitionId
 Raw Tags
 Outgoing Links
 ```
@@ -985,12 +988,12 @@ The orientation widget is shown for visible orientable objects using `PlacementK
 
 The `CONNECTORS` panel hides the `+` action for selected objects that can neither emit events nor receive commands. Ground items such as `Item_Torch` are placeable, physical and pickupable, but they are not connector sources or connector targets.
 
-`Advanced / Debug` is primarily read-only: `ObjectId`, `ArchetypeId`, and `Tag` are read-only, while `Notes` remains editable.
+`Advanced / Debug` is primarily read-only: `ObjectId`, `DefinitionId`, and `Tag` are read-only, while `Notes` remains editable.
 
 Receptacles use safe item selectors:
 
 - `Accept Any Item`
-- `Accepted Items`, as a selectable list of `Item` archetypes
-- `Initial Content`, as a `None + Item archetypes` dropdown
+- `Accepted Items`, as a selectable list of `Item` definitions
+- `Initial Content`, as a `None + Item definitions` dropdown
 
-Advanced receptacle rules such as rejected archetypes and accepted item tags are not exposed by default. If `Initial Content` is not compatible with `Accepted Items`, the inspector shows a warning without blocking save.
+Advanced receptacle rules such as rejected definitions and accepted item tags are not exposed by default. If `Initial Content` is not compatible with `Accepted Items`, the inspector shows a warning without blocking save.

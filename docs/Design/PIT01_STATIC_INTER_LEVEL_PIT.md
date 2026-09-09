@@ -1,12 +1,15 @@
 # PIT01 — Static Inter-Level Pit
 
+> **Contrat courant MIG10 (2026-09-09)** : voir les [définitions et placements typés](../Architecture/WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les extraits ci-dessous utilisant `FGridLevelObjectData`, `Objects`, les anciens meshes spécialisés ou la copie intégrale de `Behavior` décrivent explicitement l’ancien état ; ils ne sont plus des instructions de schéma. Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, et les visuels utilisent `StaticPart` / `MovingParts`.
+
+
 > **Ergonomie Grid Editor (02.09.2026).** Dans `Selected Object > Transition`, une Pit affiche toujours sa destination. Lorsque `Use Same Cell Coordinates = True`, `Target Cell X` et `Target Cell Y` sont désactivés car ils sont ignorés par le runtime ; l'inspecteur affiche explicitement la cellule effective `(Pit.CellX, Pit.CellY)`. Dès que l'option est décochée, X/Y redeviennent éditables. Pour une Pit, l'ancien flag générique `Is Transition` est remplacé visuellement par `Transition Mode = Intrinsic Pit Fall`.
 
 
 > **Correction d’atterrissage (01.09.2026).** Si la cellule exactement sous la Pit est hors limites, `Empty` ou bloque l’occupation, la chute n’est plus annulée. Le runtime cherche automatiquement la cellule praticable la plus proche sur le niveau inférieur, de façon déterministe, et utilise cette cellule comme point d’atterrissage. Une destination contenant directement une autre Pit ouverte reste refusée tant que les chutes en cascade ne sont pas implémentées.
 
 
-> **Correction runtime (01.09.2026).** Une fosse statique sans paire complète `Left Leaf Mesh` + `Right Leaf Mesh` est toujours physiquement ouverte. Le runtime reconnaît aussi une Pit par son archetype si le `Type` stocké dans un ancien objet placé est obsolète, et un GUID invalide n'empêche plus la chute statique. À la fin d'un déplacement, la détection Pit est prioritaire sur les triggers, plaques, TurnManager et transitions ordinaires.
+> **Correction runtime (01.09.2026).** Une fosse statique sans paire complète `Left Leaf Mesh` + `Right Leaf Mesh` est toujours physiquement ouverte. Le runtime reconnaît aussi une Pit par sa définition si le `Type` stocké dans un ancien objet placé est obsolète, et un GUID invalide n'empêche plus la chute statique. À la fin d'un déplacement, la détection Pit est prioritaire sur les triggers, plaques, TurnManager et transitions ordinaires.
 
 
 > **Correction de contrat (01.09.2026).** Une Pit ouverte est intrinsèquement une cellule de chute. Elle ne dépend plus de `Transition.bIsTransition`, de `bRequireUseAction`, ni d'un `Target Level Id` manuel pour fonctionner. Avec `Target Level Id = None`, le niveau inférieur est résolu automatiquement.
@@ -39,7 +42,7 @@ La destination inter-niveaux reste portée par `FGridObjectTransitionParams` :
 - `TargetFacing` ;
 - `bRequireUseAction=false` obligatoire.
 
-## Archétype Stone Pit
+## Définition Stone Pit
 
 Le Grid Editor provisionne automatiquement, si `SM_Pit_Stone_01` existe :
 
@@ -47,7 +50,7 @@ Le Grid Editor provisionne automatiquement, si `SM_Pit_Stone_01` existe :
 
 avec :
 
-- ArchetypeId : `Pit_Stone_01` ;
+- DefinitionId : `Pit_Stone_01` ;
 - SupportedType : `Pit` ;
 - Palette Category : `Hazards` ;
 - PlacementKind : `Floor` ;

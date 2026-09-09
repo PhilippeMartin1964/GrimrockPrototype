@@ -10,7 +10,7 @@ GEUI04 transforme l’onglet dockable `Tools & Palette` existant en surface d’
 Le jalon reste neutre vis-à-vis du modèle de données :
 
 - aucun changement de schéma de `UGridObjectPaletteAsset` ;
-- aucun changement de schéma de `UGridObjectArchetypeAsset` ;
+- aucun changement de schéma de `UGridWorldObjectDefinitionAsset` ;
 - aucun nouvel enum de catégorie gameplay ;
 - aucune persistance Favorites/Recent à ce stade ;
 - aucun changement de comportement runtime.
@@ -43,9 +43,9 @@ La recherche correspond aux données existantes :
 - nom d’affichage effectif ;
 - EntryId de palette ;
 - catégorie effective ;
-- ArchetypeId de l’archétype ;
-- DisplayName de l’archétype ;
-- Description de l’archétype.
+- DefinitionId de la définition ;
+- DisplayName de la définition ;
+- Description de la définition.
 
 La saisie met à jour uniquement la zone de résultats de la palette, de sorte que le champ de recherche conserve le focus au lieu de reconstruire l’espace de travail complet à chaque frappe.
 
@@ -161,18 +161,18 @@ Validation visuelle :
    - nom d’objet visible ;
    - fragment d’EntryId ;
    - nom de catégorie ;
-   - id/nom d’archétype.
+   - id/nom de définition.
 9. Confirmer que le nombre de résultats se met à jour en direct.
 10. Sélectionner plusieurs filtres de catégorie puis revenir à `All`.
 11. Redimensionner la fenêtre et confirmer que les tuiles d’objet reviennent à la ligne au lieu de se déformer.
-12. Sélectionner une entrée de palette filtrée et confirmer que Paint Object utilise toujours le même archétype.
+12. Sélectionner une entrée de palette filtrée et confirmer que Paint Object utilise toujours la même définition.
 13. Confirmer que l’ancienne section inline Tools / Palette fonctionne toujours.
 
 ## 9. Hors périmètre explicite
 
 GEUI04 ne :
 
-- modifie pas les assets palette/archétype ;
+- modifie pas les assets palette/définition ;
 - ajoute pas de nouvel enum de catégorie ;
 - ajoute pas Favorites ;
 - ajoute pas Recently Used ;
@@ -259,7 +259,7 @@ Chaque tuile de palette est un carré strict de **96 x 96** avec :
 
 Lorsqu’un onglet de catégorie précis est sélectionné, son titre de catégorie n’est pas répété au-dessus de la grille. Les en-têtes de catégorie sont conservés uniquement dans l’onglet `All`, où ils séparent les groupes.
 
-Ce jalon ne modifie que la présentation ; la sélection de palette et l’application de l’archétype restent inchangées.
+Ce jalon ne modifie que la présentation ; la sélection de palette et l’application de la définition restent inchangées.
 
 ## GEUI04.3 — Restaurer la sémantique de Select et masquer l’outil Link
 

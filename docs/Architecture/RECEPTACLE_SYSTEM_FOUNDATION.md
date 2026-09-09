@@ -30,7 +30,7 @@ séparées.
 |---|---|---|
 | Objet placé et liens | `Source/GrimrockPrototype/Public/Core/GridTypes.h` | structures sans `.cpp` |
 | Paramètres persistants | `Source/GrimrockPrototype/Public/Core/GridObjectBehavior.h` | structure sans `.cpp` |
-| Archétype | `Source/GrimrockPrototype/Public/Core/GridObjectArchetypeAsset.h` | `Source/GrimrockPrototype/Private/Core/GridObjectArchetypeAsset.cpp` |
+| Définition | `Source/GrimrockPrototype/Public/Core/GridWorldObjectDefinitionAsset.h` | `Source/GrimrockPrototype/Private/Core/GridWorldObjectDefinitionAsset.cpp` |
 | Définition et instance d'item | `Source/GrimrockPrototype/Public/Runtime/GridItemDefinitionAsset.h`, `GridInventoryTypes.h` | `Source/GrimrockPrototype/Private/Runtime/GridItemDefinitionAsset.cpp` |
 | Acteur de réceptacle | `Source/GrimrockPrototype/Public/Runtime/GridReceptacleActor.h` | `Source/GrimrockPrototype/Private/Runtime/GridReceptacleActor.cpp` |
 | Acteur d'item | `Source/GrimrockPrototype/Public/Runtime/GridItemActor.h` | `Source/GrimrockPrototype/Private/Runtime/GridItemActor.cpp` |
@@ -43,22 +43,11 @@ séparées.
 
 ## 4. Données persistantes et valeurs runtime
 
-Le niveau persiste les champs communs `ObjectId`, `Type`, cellule, `Edge`, `ArchetypeId`, états initiaux, `Tag` et `Behavior`.
+Le niveau persiste un `FGridWorldObjectInstance` : `InstanceId`, `WorldObjectDefinitionId`, cellule, `WallSide`, états initiaux et configuration locale. `InstanceConfig.ReceptacleInitialContent` porte le contenu initial propre au placement.
 
-`Behavior.Receptacle` persiste :
+La définition fournit la classe runtime, les parties visuelles, le placement et les règles partagées de `DefaultBehavior.Receptacle` : acceptation, capacité et présentation du contenu. Le resolver combine ces règles avec le contenu initial local ; le placement ne sérialise pas une copie complète de `Behavior`.
 
-- `bAcceptAnyItem` ;
-- `AcceptedItems`, liste d'assets `UGridItemDefinitionAsset` ;
-- `InitialContent`, tableau d'assets de définition et de quantités ;
-- `MaxContainedItems` ;
-- `VisualPlacementMode` ;
-- `bSimulatePhysicsWhenPlaced` ;
-- `PhysicalPlacementSurfaceOffset` ;
-- `PhysicalPlacementInitialRotationOffset`.
-
-L'archétype fournit la classe `RuntimeActorClass`, la classe visuelle `ItemActorClass`, les meshes, le placement et le comportement copié lors du placement. Une modification ultérieure de l'archétype ne resynchronise pas automatiquement `Behavior`.
-
-`bCanRemoveItem` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de placement au clic peuvent être définis par le comportement de l'archétype. La capacité est entièrement définie par `MaxContainedItems` : `1` produit un comportement single-slot, une valeur supérieure à `1` autorise plusieurs items et une valeur inférieure ou égale à `0` est illimitée. L'acceptation dépend de `bAcceptAnyItem` et de `AcceptedItems`, tandis que `InitialContent` définit le contenu initial.
+`bCanRemoveItem` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de placement au clic peuvent être définis par le comportement de la définition. La capacité est entièrement définie par `MaxContainedItems` : `1` produit un comportement single-slot, une valeur supérieure à `1` autorise plusieurs items et une valeur inférieure ou égale à `0` est illimitée. L'acceptation dépend de `bAcceptAnyItem` et de `AcceptedItems`, tandis que `InitialContent` définit le contenu initial.
 
 Il n'existe pas d'autre axe runtime de typologie ou d'organisation du stockage.
 Les seuls modes visuels sont ceux listés en section 5.
@@ -67,7 +56,7 @@ Les seuls modes visuels sont ceux listés en section 5.
 
 ## 5. Génération et contenu runtime
 
-`AGridLevelRuntimeActor::RebuildRuntimeObjects()` résout l'archétype, la classe, le mesh et le transform. `AddRuntimeObjectActor()` assigne `ItemActorClass`, appelle `InitializeGridObject()` et indexe l'acteur par `ObjectId`.
+`AGridLevelRuntimeActor::RebuildRuntimeObjects()` résout la définition, la classe, le mesh et le transform. `AddRuntimeObjectActor()` assigne `ItemActorClass`, appelle `InitializeGridObject()` et indexe l'acteur par `ObjectId`.
 
 Le réceptacle connaît sa cellule et son bord par la classe de base `AGridRuntimeObjectActor`. `ContainedItems` est la source de vérité runtime. Chaque entrée conserve identité, définition éventuelle, quantité, poids, nom, lumière et acteur visuel éventuel.
 
@@ -190,12 +179,12 @@ Liens typiques :
 
 ## 10. Validation éditeur et diagnostics
 
-`ValidateArchetype()` vérifie notamment le type, la classe dérivée de
+`ValidateDefinition()` vérifie notamment le type, la classe dérivée de
 `AGridReceptacleActor`, l'interactivité, la présence d'au moins une entrée dans
 `AcceptedItems` lorsque `bAcceptAnyItem=false`, les entrées sans asset de
 définition et les entrées invalides de `InitialContent`.
 
-`ValidateCurrentLevel()` vérifie le placement générique de bord, les identités, l'archétype, les liens et :
+`ValidateCurrentLevel()` vérifie le placement générique de bord, les identités, la définition, les liens et :
 
 - `AcceptedItems` vide lorsque `bAcceptAnyItem=false` ;
 - entrée de `AcceptedItems` sans asset de définition ;
@@ -215,7 +204,7 @@ Le runtime journalise les transferts, refus, changements d'autorisation de retra
 - aucun conteneur à grille ni interface de coffre complète ;
 - aucune limite d'acceptation par poids ou quantité ;
 - `ConsumeAllItems` émet plusieurs `ItemChanged` ;
-- la résolution d'une définition dépend des assets référencés par le niveau, les archétypes ou l'inventaire ;
+- la résolution d'une définition dépend des assets référencés par le niveau, les définitions ou l'inventaire ;
 - les changements runtime d'autorisation de retrait ne sont pas capturés dans `FGridRuntimeReceptacleState` ;
 - les refus courants de dépôt ont un retour court, mais un retrait désactivé reste principalement signalé par le curseur et les logs.
 
@@ -230,7 +219,7 @@ Le runtime journalise les transferts, refus, changements d'autorisation de retra
 7. Les événements de contenu sont émis par l'acteur réceptacle, une seule fois par chemin métier.
 8. Une condition invalide échoue avant inversion.
 9. Les commandes spécialisées ciblent uniquement un acteur réceptacle généré.
-10. Les variantes de support, alcôve ou autel restent des archétypes ou Blueprints, pas de nouveaux types de niveau.
+10. Les variantes de support, alcôve ou autel restent des définitions ou Blueprints, pas de nouveaux types de niveau.
 
 Les curseurs de dépôt et les retours courts de refus sont décrits dans
 [`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md`](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md).

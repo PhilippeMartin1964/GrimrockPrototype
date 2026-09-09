@@ -54,7 +54,7 @@ Use `LogEditorRuntimeAssetConsistency` first when the editor actor and preview r
 
 Use `LogLevelAssetDiagnostics` to inspect the runtime actor's assigned asset, grid size, object counts, links, and start cell.
 
-Use `LogPIEReadinessDiagnostics` before Play to check the runtime actor, start cell, meshes, components, archetypes, and pawn availability in the current world.
+Use `LogPIEReadinessDiagnostics` before Play to check the runtime actor, start cell, meshes, components, definitions, and pawn availability in the current world.
 
 In PIE, `LogPIEReadinessDiagnostics` also reports the active GameMode class, Default Pawn Class and Player Controller Class. If it reports the native `AGrimrockGameMode`, the spawned pawn is the native C++ pawn unless the active GameMode Blueprint overrides it. If it reports `BP_GrimrockGameMode`, check that Blueprint's class settings.
 

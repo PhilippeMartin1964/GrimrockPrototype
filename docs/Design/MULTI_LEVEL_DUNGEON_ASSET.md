@@ -95,7 +95,7 @@ Les transitions multi-niveaux doivent maintenant être représentées par des ob
 - `Stairs Up`
 - `Stairs Down`
 
-Ces objets sont des archétypes `UGridObjectArchetypeAsset` configurés comme décorations de sol non bloquantes. Ils utilisent les meshes `SM_Stairs_Up_01` et `SM_Stairs_Down_01`, se placent au centre d'une cellule et portent `Behavior.Transition.bIsTransition = true` par défaut.
+Ces objets sont des définitions `UGridWorldObjectDefinitionAsset` configurées comme décorations de sol non bloquantes. Ils utilisent les meshes `SM_Stairs_Up_01` et `SM_Stairs_Down_01`, se placent au centre d'une cellule et portent `Behavior.Transition.bIsTransition = true` par défaut.
 
 Chaque escalier doit ensuite être configuré dans l'inspecteur :
 

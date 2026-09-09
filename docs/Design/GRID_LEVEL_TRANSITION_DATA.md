@@ -16,16 +16,16 @@ A placed grid object can be marked as a transition and configured as:
 - `PassageWest`
 - future `Portal`
 
-These names should be represented by archetypes or palette entries. They should not become new `EGridLevelObjectType` values unless a later runtime requirement proves that necessary.
+These names should be represented by definitions or palette entries. They should not become new `EGridLevelObjectType` values unless a later runtime requirement proves that necessary.
 
 ## StairsUp / StairsDown
 
 `Stairs Up` et `Stairs Down` sont des objets de palette dédiés aux transitions entre niveaux.
 
-Ils utilisent le système existant d'archétypes :
+Ils utilisent le système existant de définitions :
 
-- `ArchetypeId = Stairs_Up`
-- `ArchetypeId = Stairs_Down`
+- `DefinitionId = Stairs_Up`
+- `DefinitionId = Stairs_Down`
 - `SupportedType = Decoration`
 - `PlacementKind = Floor`
 - `Category = Transitions`
@@ -64,9 +64,9 @@ Si `bRequireUseAction = false`, la transition se déclenche en entrant sur la ce
 
 ### Stairs_Down rendering behavior
 
-`Stairs_Down` masque le mesh de sol standard de sa cellule via `UGridObjectArchetypeAsset::bHideCellFloor = true`.
+`Stairs_Down` masque le mesh de sol standard de sa cellule via `UGridWorldObjectDefinitionAsset::bHideCellFloor = true`.
 
-Ce comportement est un override de rendu porté par l'archétype :
+Ce comportement est un override de rendu porté par la définition :
 
 - la cellule reste inchangée dans le `UGridLevelAsset`;
 - la cellule ne devient pas `Empty`;
@@ -109,15 +109,15 @@ Text fields such as `Target Level Id` use `OnTextCommitted`, so press Enter or l
 
 La section `Transition` de l'inspecteur d'objet n'est plus globale.
 
-Elle apparaît uniquement si l'archétype de l'objet sélectionné active :
+Elle apparaît uniquement si la définition de l'objet sélectionné active :
 
 ```text
 bExposeTransitionSettingsInInspector = true
 ```
 
-À ce stade, seuls les archétypes `Stairs_Up` et `Stairs_Down` activent ce flag. Les objets ordinaires comme `FloorBones`, les runes, les alcôves, les torches, les boutons, les leviers, les plaques et les décorations ne montrent plus les champs `TargetLevelId`, `TargetCellX`, `TargetCellY` et `TargetFacing`.
+À ce stade, seules les définitions `Stairs_Up` et `Stairs_Down` activent ce flag. Les objets ordinaires comme `FloorBones`, les runes, les alcôves, les torches, les boutons, les leviers, les plaques et les décorations ne montrent plus les champs `TargetLevelId`, `TargetCellX`, `TargetCellY` et `TargetFacing`.
 
-Masquer cette UI ne modifie pas les données. Si un ancien objet contient déjà `Behavior.Transition.bIsTransition = true`, la donnée reste dans le `UGridLevelAsset`, les diagnostics peuvent encore la lister et le runtime peut encore l'exécuter. Elle n'est simplement plus éditable depuis l'inspecteur tant que son archétype n'autorise pas explicitement la section `Transition`.
+Masquer cette UI ne modifie pas les données. Si un ancien objet contient déjà `Behavior.Transition.bIsTransition = true`, la donnée reste dans le `UGridLevelAsset`, les diagnostics peuvent encore la lister et le runtime peut encore l'exécuter. Elle n'est simplement plus éditable depuis l'inspecteur tant que sa définition n'autorise pas explicitement la section `Transition`.
 
 ## Diagnostic Workflow
 
@@ -135,7 +135,7 @@ Expected log shape:
 
 ```text
 TransitionObjects=1
-[0] SourceLevelId=Into_The_Dark SourceDisplayName=Into The Dark SourceLevelAsset=/Game/.../DA_GridLevel_00 ObjectId=... ArchetypeId=Floor_Bones Type=Decoration Cell=(28,25) Edge=None TargetLevelId=Old_Tunnels TargetCell=(28,26) TargetFacing=North bRequireUseAction=false Status=OK
+[0] SourceLevelId=Into_The_Dark SourceDisplayName=Into The Dark SourceLevelAsset=/Game/.../DA_GridLevel_00 ObjectId=... DefinitionId=Floor_Bones Type=Decoration Cell=(28,25) Edge=None TargetLevelId=Old_Tunnels TargetCell=(28,26) TargetFacing=North bRequireUseAction=false Status=OK
 Status=OK
 ```
 

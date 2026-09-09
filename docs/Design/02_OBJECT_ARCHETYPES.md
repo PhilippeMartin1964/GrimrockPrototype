@@ -1,19 +1,19 @@
-# GrimrockPrototype — Archétypes d’objets
+# GrimrockPrototype — Définitions d’objets
 
 ## Objectif
 
-Ce document définit les archétypes concrets à créer ou à vérifier dans le projet.
+Ce document présente un catalogue de concepts d’objets. Le schéma actif est décrit dans [la référence des paramètres](11_GRID_WORLD_OBJECT_DEFINITION_PARAMETERS_REFERENCE.md). Les exemples de champs et notes de patches ci-dessous sont des intentions historiques, pas une déclaration du schéma courant.
 
-Un archétype représente un objet visible et sélectionnable dans l’éditeur, même s’il partage sa classe C++ avec d’autres objets.
+Une définition représente un objet visible et sélectionnable dans l’éditeur, même s’il partage sa classe C++ avec d’autres objets.
 
 ---
 
 ## Principe
 
-Un archétype doit préciser :
+Une définition doit préciser :
 
 ```text
-ArchetypeId
+DefinitionId
 DisplayName
 Category
 ActorClass
@@ -25,7 +25,7 @@ Meshes / Materials / Preview
 Behavior parameters
 ```
 
-L’archétype permet de séparer :
+La définition permet de séparer :
 
 - le comportement C++ ;
 - l’identité de l’objet ;
@@ -34,15 +34,15 @@ L’archétype permet de séparer :
 
 ---
 
-## Champs recommandés pour `UGridObjectArchetypeAsset`
+## Champs recommandés pour `UGridWorldObjectDefinitionAsset`
 
-Cette section est historique et donne une intention de structuration. La source actuelle pour les champs de `UGridObjectArchetypeAsset` est `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md`, qui reflète les nettoyages UI/runtime récents.
+Cette section est historique et donne une intention de structuration. La source actuelle est `11_GRID_WORLD_OBJECT_DEFINITION_PARAMETERS_REFERENCE.md` ; `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md` est un audit historique.
 
 Les noms actuels à privilégier sont notamment :
 
 ```cpp
 UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Grid Object")
-FName ArchetypeId;
+FName DefinitionId;
 
 UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Grid Object")
 FText DisplayName;
@@ -53,7 +53,7 @@ EGridLevelObjectType SupportedType;
 UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Palette")
 FName Category;
 
-UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Archetype")
+UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Definition")
 EGridObjectCategory ObjectCategory;
 
 UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Placement")
@@ -63,13 +63,13 @@ UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Runtime")
 TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass;
 ```
 
-Les événements et commandes supportés sont filtrés par les helpers éditeur CONNECTORS à partir du type/archetype. Ils ne sont pas stockés sous forme de listes `EmittedEvents` / `AcceptedCommands` dans le DataAsset actuel.
+Les événements et commandes supportés sont filtrés par les helpers éditeur CONNECTORS à partir du type/definition. Ils ne sont pas stockés sous forme de listes `EmittedEvents` / `AcceptedCommands` dans le DataAsset actuel.
 
 ---
 
-## Archétypes de mécanismes
+## Définitions de mécanismes
 
-| ArchetypeId recommandé | Nom éditeur | Catégorie | Classe runtime | Remarque |
+| DefinitionId recommandé | Nom éditeur | Catégorie | Classe runtime | Remarque |
 |---|---|---|---|---|
 | `Button_Normal` | Bouton | `Mechanism` | `AGridButtonActor` | bouton standard |
 | `Button_Secret` | Bouton secret | `Mechanism` | `AGridButtonActor` | mesh discret, objet distinct |
@@ -84,9 +84,9 @@ Les formes longues comme `Lever_Standard`, `PressurePlate_Stone` ou `Trigger_Flo
 
 ---
 
-## Archétypes de réceptacles
+## Définitions de réceptacles
 
-| ArchetypeId recommandé | Nom éditeur | Catégorie | Classe runtime | Remarque |
+| DefinitionId recommandé | Nom éditeur | Catégorie | Classe runtime | Remarque |
 |---|---|---|---|---|
 | `Receptacle_Generic` | Réceptacle | `Receptacle` | `AGridReceptacleActor` | base générique |
 | `Receptacle_Alcove` | Alcove | `Receptacle` | `AGridReceptacleActor` | niche murale |
@@ -96,15 +96,15 @@ Les formes longues comme `Lever_Standard`, `PressurePlate_Stone` ou `Trigger_Flo
 | `Receptacle_CoinSlot` | Fente à pièce | `Receptacle` | `AGridReceptacleActor` | accepte `Coin` |
 | `Lock_Keyhole` | Serrure | `Receptacle` | `AGridReceptacleActor` ou `AGridLockActor` | accepte clé |
 
-Note Patch E : les réceptacles concrets sont des archétypes. `Receptacle_Alcove`, `Receptacle_TorchHolder`, `Receptacle_Altar` et `Receptacle_OfferingBowl` restent tous `SupportedType = Receptacle` et utilisent une `RuntimeActorClass` dérivée de `AGridReceptacleActor`. Les comportements spécifiques seront ajoutés plus tard via `Behavior` et les commandes, pas par multiplication de `EGridLevelObjectType`.
+Note Patch E : les réceptacles concrets sont des définitions. `Receptacle_Alcove`, `Receptacle_TorchHolder`, `Receptacle_Altar` et `Receptacle_OfferingBowl` restent tous `SupportedType = Receptacle` et utilisent une `RuntimeActorClass` dérivée de `AGridReceptacleActor`. Les comportements spécifiques seront ajoutés plus tard via `Behavior` et les commandes, pas par multiplication de `EGridLevelObjectType`.
 
 Note Patch F : les réceptacles utilisent `Behavior.Receptacle.bAcceptAnyItem` ou une liste `AcceptedItems` de `UGridItemDefinitionAsset`. Les anciens filtres par tags, types et identifiants saisis manuellement ne font plus partie du modèle actuel.
 
 ---
 
-## Archétypes de passages
+## Définitions de passages
 
-| ArchetypeId recommandé | Nom éditeur | Catégorie | Classe runtime | Remarque |
+| DefinitionId recommandé | Nom éditeur | Catégorie | Classe runtime | Remarque |
 |---|---|---|---|---|
 | `Door_Stone` | Porte | `Passage` | `AGridDoorActor` | porte standard |
 | `Door_Secret` | Porte secrète | `Passage` | `AGridSecretDoorActor` | partie fixe + partie mobile |
@@ -113,9 +113,11 @@ Note Patch F : les réceptacles utilisent `Behavior.Receptacle.bAcceptAnyItem` o
 
 ---
 
-## Archétypes d’items
+## Définitions d’items
 
-| ArchetypeId recommandé | Nom éditeur | Catégorie | Classe runtime | Remarque |
+Les collectibles utilisent directement `UGridItemDefinitionAsset`, sans définition world-object compagnon. Les identifiants indicatifs du tableau ne décrivent pas une deuxième identité de pickup.
+
+| DefinitionId recommandé | Nom éditeur | Catégorie | Classe runtime | Remarque |
 |---|---|---|---|---|
 | `Item_Key` | Clé | `Item` | `AGridItemActor` | clé générique |
 | `Item_Coin` | Pièce | `Item` | `AGridItemActor` | fente / offrande |
@@ -127,9 +129,9 @@ Note Patch F : les réceptacles utilisent `Behavior.Receptacle.bAcceptAnyItem` o
 
 ---
 
-## Archétypes Readable / Spawn
+## Définitions Readable / Spawn
 
-| ArchetypeId recommandé | Nom éditeur | Catégorie | Classe runtime | Remarque |
+| DefinitionId recommandé | Nom éditeur | Catégorie | Classe runtime | Remarque |
 |---|---|---|---|---|
 | `Readable_WallInscription` | WallInscription | `Readable` | système existant | ne pas renommer |
 | `Spawn_Player` | Spawn joueur | `Spawn` | marker ou donnée | position initiale |
@@ -203,13 +205,13 @@ mesh fixe + mesh mobile
 
 La partie fixe doit être visible en édition et en runtime.
 
-Note Patch D : `Door_Secret` reste un archétype `Door`. La logique runtime utilise `EGridLevelObjectType::Door` et accepte une `RuntimeActorClass` dérivée de `AGridDoorActor`, par exemple `AGridSecretDoorActor` ou un Blueprint dérivé. Le preview éditeur actuel affiche un mesh principal unique (`PreviewMesh`, puis `MovingMesh`, puis `FixedMesh`) et ne rend pas encore un composite fixe + mobile complet.
+Note Patch D : `Door_Secret` reste une définition `Door`. La logique runtime utilise `EGridLevelObjectType::Door` et accepte une `RuntimeActorClass` dérivée de `AGridDoorActor`, par exemple `AGridSecretDoorActor` ou un Blueprint dérivé. Le preview éditeur actuel affiche un mesh principal unique (`PreviewMesh`, puis `MovingMesh`, puis `FixedMesh`) et ne rend pas encore un composite fixe + mobile complet.
 
 ---
 
 ## Règle d’évolution
 
-Chaque nouvel objet doit d’abord être ajouté comme archétype avant de créer une nouvelle classe C++.
+Chaque nouvel objet doit d’abord être ajouté comme définition avant de créer une nouvelle classe C++.
 
 Créer une nouvelle classe C++ uniquement si :
 

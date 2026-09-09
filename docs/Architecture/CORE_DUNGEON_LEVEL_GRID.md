@@ -1,5 +1,8 @@
 # Grimrock Prototype - Architecture noyau Donjon / Niveau / Grille
 
+> **Contrat courant MIG10 (2026-09-09)** : voir les [définitions et placements typés](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les extraits ci-dessous utilisant `FGridLevelObjectData`, `Objects`, les anciens meshes spécialisés ou la copie intégrale de `Behavior` décrivent explicitement l’ancien état ; ils ne sont plus des instructions de schéma. Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, et les visuels utilisent `StaticPart` / `MovingParts`.
+
+
 ## 1. Objet du document
 
 Ce document décrit le socle réellement implémenté pour organiser, éditer et générer un donjon quadrillé :
@@ -235,7 +238,7 @@ La structure persistante contient :
 
 ```text
 ObjectId, Type, CellX, CellY, Edge, LocalYaw
-ArchetypeId, ItemDefinitionAsset, ItemDefinitionId
+DefinitionId, ItemDefinitionAsset, ItemDefinitionId
 bInitiallyEnabled, bInitiallyActive
 Tag, Notes, OverrideReadableText, PaletteEntryId, Behavior
 ```
@@ -400,7 +403,7 @@ Deux chemins existent :
 ```text
 RebuildPreview()
   assigne LevelAsset,
-  synchronise les archétypes de la palette,
+  synchronise les définitions de la palette,
   appelle RebuildLevel() en mode Full.
 
 RebuildGeometryPreview()
@@ -424,7 +427,7 @@ L'illustration de flux éditeur reste valable si « Preview Runtime » est compr
 
 ```text
 LevelAsset, DungeonAsset, CurrentDungeonLevelId
-ObjectArchetypes
+WorldObjectDefinitions
 FloorMesh, WallMesh, CeilingMesh
 FloorISM, WallISM, CeilingISM
 ```
@@ -456,7 +459,7 @@ Les fonctions suivantes sont publiques C++ mais non `BlueprintCallable` :
 ```cpp
 RebuildRuntimeObjects();
 AddRuntimeObjectActor(...);
-FindObjectArchetype(...);
+FindWorldObjectDefinition(...);
 ```
 
 Déclaration : `GridLevelRuntimeActor.h`. Implémentation : `GridLevelRuntimeActor.cpp`.
@@ -637,7 +640,7 @@ classDiagram
 - [ ] les objets nécessitant un bord ont un `Edge` cardinal.
 - [ ] chaque `SourceObjectId` et `TargetObjectId` référence un objet existant.
 
-`ValidateCurrentLevel()` contrôle les entrées du donjon, les dimensions, la cardinalité de `Cells`, le départ, les murs partagés, les objets, les archétypes et les liens. `GetDungeonDiagnostics()` fournit une synthèse textuelle complémentaire des entrées de donjon.
+`ValidateCurrentLevel()` contrôle les entrées du donjon, les dimensions, la cardinalité de `Cells`, le départ, les murs partagés, les objets, les définitions et les liens. `GetDungeonDiagnostics()` fournit une synthèse textuelle complémentaire des entrées de donjon.
 
 ---
 
@@ -710,6 +713,6 @@ AGridLevelRuntimeActor
   les objets d'aperçu ou runtime.
 ```
 
-Le document est volontairement limité au noyau Donjon / Niveau / Grille. L'architecture des archétypes, de la palette et des objets placés est détaillée dans [`OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md`](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md). Les comportements spécialisés des objets et des liens restent dans des documents séparés.
+Le document est volontairement limité au noyau Donjon / Niveau / Grille. L'architecture des définitions, de la palette et des objets placés est détaillée dans [`WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md`](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les comportements spécialisés des objets et des liens restent dans des documents séparés.
 
 L'exploitation des erreurs de niveau dans l'éditeur est décrite dans [`LEVEL_VALIDATION_PANEL_FOUNDATION.md`](LEVEL_VALIDATION_PANEL_FOUNDATION.md).

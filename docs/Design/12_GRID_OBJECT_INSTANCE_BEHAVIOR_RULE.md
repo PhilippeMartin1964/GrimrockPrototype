@@ -6,7 +6,7 @@ Projet : GrimrockPrototype — WORLDOBJ
 
 ## 1. Décision officielle
 
-L’ancienne règle « l’archétype est copié intégralement dans chaque objet placé » est obsolète.
+L’ancienne règle « la définition est copiée intégralement dans chaque objet placé » est obsolète.
 
 La règle actuelle est :
 
@@ -24,7 +24,7 @@ Une valeur permanente ou partagée appartient à la définition. Une valeur n’
 
 ### 2.1. Définition
 
-`UGridObjectArchetypeAsset` — futur `UGridWorldObjectDefinitionAsset` à MIG10 — possède les propriétés permanentes du concept réutilisable :
+`UGridWorldObjectDefinitionAsset` possède les propriétés permanentes du concept réutilisable :
 
 - présentation ;
 - `StaticPart` et `MovingParts` ;
@@ -105,7 +105,7 @@ Une porte verticale, coulissante ou battante doit différer par sa `Motion`, pas
 
 ## 4. Behavior restant
 
-`FGridObjectBehaviorParams` contient encore des groupes tant que MIG09-D/E n’a pas terminé la migration vers les structures d’instances typées. Leur présence ne signifie pas que toutes leurs données sont des overrides d’instance.
+`FGridObjectBehaviorParams` porte les règles partagées et le comportement effectif résolu. Les placements typés ne le sérialisent pas intégralement : `FGridWorldObjectInstanceConfig` ne conserve que les cinq groupes locaux autorisés.
 
 ### Teleporter
 
@@ -208,24 +208,14 @@ Ne pas réintroduire :
 ```text
 bOverrideBehavior
 copie automatique intégrale de DefaultBehavior comme source permanente d’instance
-fallback vers un ancien ArchetypeId d’item
+fallback vers l’ancien ArchetypeId d’item (API supprimée)
 paramètre visuel spécialisé qui duplique MovingParts[].Motion
 synchronisation implicite ambiguë Definition <-> Instance
 ```
 
-## 8. Ce qui reste transitoire jusqu’à MIG09-E
+## 8. Persistance typée finalisée
 
-Le gros `FGridLevelObjectData::Behavior` existe encore pour certains chemins de compatibilité du LevelAsset.
-
-Il sera supprimé avec :
-
-```text
-UGridLevelAsset::Objects
-FGridLevelObjectData
-compatibility projection
-```
-
-La cible n’est donc pas de perfectionner ce conteneur, mais de réduire progressivement ses responsabilités jusqu’à sa suppression.
+Depuis MIG09, `UGridLevelAsset` ne stocke que les cinq collections typées. L'ancien `FGridLevelObjectData`, `UGridLevelAsset::Objects` et les projections de compatibilité ont été supprimés. `FGridRuntimeWorldObjectData` reste une frontière d'initialisation native non persistante, spécialisée world-object.
 
 ## 9. Checklist de validation
 
@@ -251,4 +241,4 @@ Runtime    = ce qui lui arrive pendant la partie
 SaveGame   = les deltas nécessaires pour restaurer cet état
 ```
 
-C’est cette séparation qui doit guider MIG09-D, MIG09-E puis le renommage final MIG10.
+Cette séparation est le contrat courant après MIG09 et le renommage final MIG10.

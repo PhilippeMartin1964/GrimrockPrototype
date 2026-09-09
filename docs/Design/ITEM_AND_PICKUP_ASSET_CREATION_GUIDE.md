@@ -1,5 +1,24 @@
 # Guide de création des items ramassables et plaçables
 
+
+## Workflow actif après MIG10 — 2026-09-09
+
+Le collectible possède **une seule `UGridItemDefinitionAsset`**. Ce contrat remplace le workflow à deux définitions conservé en annexe historique ci-dessous.
+
+1. Créer ou sélectionner `DA_Item_XXX` ; renseigner `ItemDefinitionId`, nom, description, règles gameplay, `Icon` et `WorldMesh` sur cette définition unique.
+2. Dans `UGridObjectPaletteAsset`, créer une entrée qui référence `DefaultItemDefinition`. Laisser `DefaultWorldObjectDefinition` vide pour un collectible.
+3. Placer l'item dans `UGridLevelAsset::LooseItemInstances` : `FGridLooseItemInstance.ItemDefinition` référence directement cet asset. Régler quantité, cellule, orientation et éventuels paramètres de lecture locaux.
+4. Pour un générateur, utiliser `ItemSpawns`, distinct d'un item déjà présent au sol. Pour un réceptacle, son contenu initial référence les ItemDefinitions ; le réceptacle lui-même est un objet du monde avec sa propre `UGridWorldObjectDefinitionAsset`.
+5. Valider le niveau, l'aperçu et le transfert runtime. `AGridItemActor` reçoit la définition canonique ; inventaire, dépôt et réceptacle conservent l'identité de l'item.
+
+Ne pas créer de définition world-object compagnon pour un pickup. Les anciens assets et chemins de packages peuvent subsister historiquement, mais ne sont plus le modèle de production des collectibles.
+
+Références actives : [définitions et placements](../Architecture/WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md), [paramètres world-object](11_GRID_WORLD_OBJECT_DEFINITION_PARAMETERS_REFERENCE.md), [clôture MIG10](../Architecture/WORLDOBJ_MIG10_FINAL.md).
+
+## Annexe historique — guide antérieur à MIG05/MIG09/MIG10
+
+**Tout le contenu ci-dessous décrit explicitement l'ancien système.** Les mentions d'archétype, de pickup compagnon, de `FGridLevelObjectData` et les anciens chemins sont conservés pour retracer l'ancien workflow ; ne pas appliquer ces instructions au schéma actuel. Les recommandations de présentation et les exemples de contenu doivent être interprétés selon le workflow actif ci-dessus.
+
 Statut : **guide de production Design / Content**  
 Portée : **assets Unreal, configuration éditeur et textes affichés au joueur**  
 Ne remplace pas : `docs/Architecture/ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md`, qui décrit le socle runtime réellement implémenté.

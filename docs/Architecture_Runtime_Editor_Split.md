@@ -1,5 +1,8 @@
 # Architecture Runtime / Editor Split
 
+> **Contrat courant MIG10 (2026-09-09)** : voir les [définitions et placements typés](Architecture/WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les extraits ci-dessous utilisant `FGridLevelObjectData`, `Objects`, les anciens meshes spécialisés ou la copie intégrale de `Behavior` décrivent explicitement l’ancien état ; ils ne sont plus des instructions de schéma. Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, et les visuels utilisent `StaticPart` / `MovingParts`.
+
+
 Statut : document technique vivant. Ce document décrit la séparation C++ Runtime / Editor. Il complète `docs/Design` mais ne remplace pas la documentation gameplay/editor.
 
 ## Objectif
@@ -206,7 +209,7 @@ Les classes de preview sont encore dans le runtime par décision prudente. Elles
 | `Public/Core/GridDirectionUtils.h` | Runtime | Helpers de direction grille | Stable. |
 | `Public/Core/GridLevelAsset.h` | Runtime | Asset de niveau, cellules, objets, liens | Données partagées runtime/editor. |
 | `Private/Core/GridLevelAsset.cpp` | Runtime | Implémentation de l'asset de niveau | Contient `WITH_EDITOR` pour `Modify` / `MarkPackageDirty`, acceptable. |
-| `Public/Core/GridObjectArchetypeAsset.h` | Runtime | Archétypes data-driven d'objets | Partagé runtime/editor. |
+| `Public/Core/GridWorldObjectDefinitionAsset.h` | Runtime | Définitions data-driven d'objets | Partagé runtime/editor. |
 | `Public/Core/GridObjectBehavior.h` | Runtime | Paramètres de comportement d'objet | Partagé runtime/editor. |
 | `Public/Core/GridObjectPaletteAsset.h` | Runtime | Palette d'objets pour l'édition | Peut rester runtime comme DataAsset partagé. |
 | `Public/Runtime/GridLevelRuntimeActor.h` | Runtime | Génération niveau, gameplay, interactions | Contient encore des références preview. |
@@ -266,7 +269,7 @@ Responsabilités :
 
 - format de grille ;
 - `UGridLevelAsset` ;
-- archétypes et comportements ;
+- définitions et comportements ;
 - génération de géométrie runtime ;
 - pawn joueur ;
 - objets jouables ;
