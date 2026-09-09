@@ -582,52 +582,7 @@ bool UGridWorldObjectDefinitionAsset::RequiresRuntimeActorClass() const
 	}
 }
 
-bool UGridWorldObjectDefinitionAsset::UsesWallPlacementParams() const { return PlacementSurface == EGridObjectPlacementKind::Wall; }
-bool UGridWorldObjectDefinitionAsset::UsesCenterPlacementParams() const { return PlacementSurface == EGridObjectPlacementKind::Floor || PlacementSurface == EGridObjectPlacementKind::Ceiling; }
-bool UGridWorldObjectDefinitionAsset::UsesReadableParams() const { return bIsReadable || ObjectCategory == EGridObjectCategory::Readable || (SupportedType == EGridLevelObjectType::Decoration && bIsReadable); }
 bool UGridWorldObjectDefinitionAsset::UsesLightParams() const { return bIsLightSource || SupportedType == EGridLevelObjectType::Light || ObjectCategory == EGridObjectCategory::Light; }
-bool UGridWorldObjectDefinitionAsset::UsesItemParams() const { return SupportedType == EGridLevelObjectType::Item || SupportedType == EGridLevelObjectType::ItemSpawn || ItemActorClass != nullptr; }
 bool UGridWorldObjectDefinitionAsset::UsesReceptacleParams() const { return SupportedType == EGridLevelObjectType::Receptacle; }
 bool UGridWorldObjectDefinitionAsset::UsesTeleporterParams() const { return SupportedType == EGridLevelObjectType::Teleporter; }
 bool UGridWorldObjectDefinitionAsset::UsesButtonAnimationParams() const { return SupportedType == EGridLevelObjectType::Button; }
-
-bool UGridWorldObjectDefinitionAsset::UsesTriggerParams() const
-{
-	switch (SupportedType)
-	{
-		case EGridLevelObjectType::Trigger:
-		case EGridLevelObjectType::PressurePlate:
-		case EGridLevelObjectType::Button:
-		case EGridLevelObjectType::Lever:
-		case EGridLevelObjectType::Receptacle:
-		case EGridLevelObjectType::Teleporter:
-			return true;
-		default:
-			return false;
-	}
-}
-
-bool UGridWorldObjectDefinitionAsset::UsesMovingMeshParams() const
-{
-	if (UsesItemParams()) return true;
-	switch (SupportedType)
-	{
-		case EGridLevelObjectType::Door:
-		case EGridLevelObjectType::Button:
-		case EGridLevelObjectType::Lever:
-		case EGridLevelObjectType::Receptacle:
-			return true;
-		default:
-			return false;
-	}
-}
-
-bool UGridWorldObjectDefinitionAsset::UsesFixedMeshParams() const
-{
-	return SupportedType == EGridLevelObjectType::Door || SupportedType == EGridLevelObjectType::Pit || UsesItemParams();
-}
-
-bool UGridWorldObjectDefinitionAsset::UsesRuntimeActorClass() const
-{
-	return RequiresRuntimeActorClass() || RuntimeActorClass != nullptr;
-}

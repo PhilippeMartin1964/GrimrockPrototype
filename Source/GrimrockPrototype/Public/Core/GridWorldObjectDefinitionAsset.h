@@ -352,18 +352,10 @@ public:
 
 	// Existing helper API retained for callers; semantics now resolve against Floor/Wall/Ceiling only.
 	bool RequiresRuntimeActorClass() const;
-	bool UsesWallPlacementParams() const;
-	bool UsesCenterPlacementParams() const;
-	bool UsesReadableParams() const;
 	bool UsesLightParams() const;
-	bool UsesItemParams() const;
 	bool UsesReceptacleParams() const;
 	bool UsesTeleporterParams() const;
 	bool UsesButtonAnimationParams() const;
-	bool UsesTriggerParams() const;
-	bool UsesMovingMeshParams() const;
-	bool UsesFixedMeshParams() const;
-	bool UsesRuntimeActorClass() const;
 
 	bool HasCompletePitTrapdoorCover() const
 	{
