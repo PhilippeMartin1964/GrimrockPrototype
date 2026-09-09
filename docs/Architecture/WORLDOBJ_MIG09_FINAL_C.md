@@ -2,7 +2,7 @@
 
 Date : 2026-09-09. Branche : `master`. Base : `1a49329e9aa0ce3475ab8becefc8d2b7b209e018` (FINAL-B).
 
-**Purge et validation locale terminées. MIG10 non commencé.**
+**FINAL-C publié : `046d58bc429cfbff4b51576cd29ba46b10941eb5` — `WORLDOBJ-MIG09 FINAL-C purge compatibility model`.** La validation de clôture est consignée dans le [rapport FINAL-D](WORLDOBJ_MIG09_FINAL_D.md). MIG10 non commencé.
 
 ## Reprise du working tree
 
@@ -97,7 +97,9 @@ Les avertissements concernent notamment les refus de logique/variables et budget
 
 `git diff --check` est réussi. Aucun `.uasset` ou `.umap` n'a été modifié. Arrêt après FINAL-C.
 
-## Publication bloquée par l'environnement
+## Historique du blocage de publication lors de FINAL-C
+
+Ce blocage a été résolu après la session de validation : le commit FINAL-C ci-dessus est publié et vérifié sur `origin/master` au démarrage de FINAL-D. Les commandes ci-dessous sont historiques et ne doivent pas être rejouées.
 
 `git ls-remote origin refs/heads/master` confirme `1a49329e9aa0ce3475ab8becefc8d2b7b209e018`, sans divergence à la vérification finale. Le staging des seuls fichiers de l'étape échoue : `Unable to create '.git/index.lock': Permission denied`. Aucun commit ni push n'a donc été réalisé ; tout le travail reste dans le working tree sur `master`.
 

@@ -1,10 +1,10 @@
 # WORLDOBJ-MIG09 — Purge des compatibilités legacy
 
-Statut : **MIG09 FINAL-C validé localement ; purge physique terminée. MIG10 non commencé.**
+Statut : **WORLDOBJ-MIG09 ✅ CLOSED — FINAL-A/B/C/D validés. MIG10 non commencé.**
 
 Date de mise à jour : 2026-09-09.
 
-Le [rapport FINAL-C](WORLDOBJ_MIG09_FINAL_C.md) décrit l'état final, les callers runtime conservés et les preuves de validation. Les sections 4 et 5 ci-dessous constituent l'historique des étapes intermédiaires ; leurs descriptions de caches et de projections ne décrivent plus le code actuel.
+Le [rapport FINAL-D](WORLDOBJ_MIG09_FINAL_D.md) clôture la migration : rebuild complet non-unity, 349 tests sans échec et audit des assets réels. Il documente aussi le départ invalide préexistant de `DA_GridLevel_01` et la limite de validation interactive. Le [rapport FINAL-C](WORLDOBJ_MIG09_FINAL_C.md) détaille la purge. Les sections 4 et 5 ci-dessous constituent l'historique des étapes intermédiaires ; leurs descriptions de caches et de projections ne décrivent plus le code actuel.
 
 ## 1. Référence et règle
 
@@ -44,7 +44,7 @@ Definition
 | MIG09-E1 | ✅ | Les cinq collections typées sont l'unique autorité persistante. |
 | MIG09-E2A | ✅ | Frontière runtime world-object explicite. |
 | MIG09-E2B | ✅ validé localement | Runtime spécialisé hors cache `Objects`. |
-| MIG09-E2C | ✅ validé localement | FINAL-A/B : consommateurs natifs ; FINAL-C : DTO, cache et adaptateurs supprimés. |
+| MIG09-E2C | ✅ | FINAL-A/B : consommateurs natifs ; FINAL-C : purge ; FINAL-D : régression et clôture. |
 
 ## 3. Autorité persistante actuelle
 

@@ -1,7 +1,10 @@
 # WORLDOBJ — Roadmap MIG00 à MIG10 et modèle de données cible
 
-Statut : **document directeur — MIG09-E2C-FINAL en cours**  
-Mise à jour : **2026-09-08**
+Statut : **WORLDOBJ-MIG09 ✅ CLOSED — FINAL-D validé ; MIG10 non commencé**
+
+Mise à jour : **2026-09-09**
+
+Clôture de la migration de données, sans certification visuelle de tous les niveaux. Le [rapport FINAL-D](WORLDOBJ_MIG09_FINAL_D.md) consigne 349 tests sans échec, le rebuild complet et le défaut de départ préexistant de `DA_GridLevel_01`.
 
 > Référence architecturale prioritaire : `docs/Architecture/Maps/Grimrock_MindMap_Architecture_Cible_v2_XMind.md`.
 >
@@ -72,7 +75,7 @@ Runtime State / SaveGame
 | MIG09-E1 | ✅ | Autorité persistante exclusivement typée. |
 | MIG09-E2A | ✅ | Frontière runtime world-object native. |
 | MIG09-E2B | ✅ | Runtime spécialisé hors cache `Objects`. |
-| MIG09-E2C | 🟨 **FINAL en cours** | Derniers consommateurs de production, fixtures, puis suppression physique du DTO/cache. |
+| MIG09-E2C | ✅ | Consommateurs et fixtures natifs ; DTO/cache supprimés ; FINAL-A/B/C/D validés. |
 | MIG10 | ⬜ | Renommage final `UGridObjectArchetypeAsset` → `UGridWorldObjectDefinitionAsset`. |
 
 ## 4. Autorité persistante
@@ -90,7 +93,7 @@ UGridLevelAsset
 
 `LooseItemInstance` représente un item déjà présent ; `ItemSpawn` représente un générateur.
 
-`Objects` n'est plus une autorité persistante. Il reste uniquement comme cache de compatibilité transitoire jusqu'à la purge physique FINAL-C.
+`UGridLevelAsset::Objects`, `FGridLevelObjectData` et les projections de compatibilité ont été physiquement supprimés dans FINAL-C (`046d58bc`). Editor, runtime et fixtures consomment les structures natives. `FGridRuntimeWorldObjectData` est conservé uniquement comme frontière d'initialisation runtime spécialisée non persistante ; il n'est ni stocké dans le niveau ni un DTO général d'authoring.
 
 ## 5. Validations acquises au 8 septembre 2026
 
@@ -119,15 +122,15 @@ Failed                 : 0
 Process exit code       : 0
 ```
 
-## 6. MIG09-E2C-FINAL — stratégie de clôture
+## 6. MIG09-E2C-FINAL — étapes de clôture
 
-Il n'y a plus de micro-lot par fixture. E2C est désormais fermé en quatre blocs cohérents.
+Les descriptions FINAL-A à FINAL-C ci-dessous conservent la stratégie historique. Ces trois blocs sont publiés ; les anciens états transitoires ne décrivent plus le code actuel. Le [rapport FINAL-D](WORLDOBJ_MIG09_FINAL_D.md) fournit la validation finale et ses limites.
 
 ### FINAL-A — consommateurs de production natifs
 
 Objectif : aucun consommateur de production ne doit reconstruire une collection monolithique `FGridLevelObjectData` pour travailler sur le niveau.
 
-Le bloc courant migre en priorité `UGridActivationComponent`, qui conservait encore :
+FINAL-A a migré `UGridActivationComponent`, qui conservait auparavant :
 
 ```text
 BuildCompatibilityObjectProjectionFromTyped()
@@ -155,7 +158,7 @@ GetTypedPlacementType
 FindTypedPlacementIdsByLogicId
 ```
 
-`GridLogicRuntime` possède également une API native `FGridLogicObjectInstance`. L'overload `FGridLevelObjectData` reste provisoirement uniquement pour les consommateurs Editor/tests non encore migrés.
+`GridLogicRuntime` possède une API native `FGridLogicObjectInstance`. Sa surcharge legacy, conservée temporairement entre FINAL-A et FINAL-B, a été supprimée dans FINAL-C.
 
 FINAL-A n'est considéré validé qu'après build UE5.5.4 et régressions locales.
 
@@ -198,7 +201,7 @@ Aucun substitut monolithique ne doit être créé sous un autre nom.
 7. documentation réconciliée
 ```
 
-Une fois FINAL-D validé, **MIG09 est clos** et MIG10 démarre immédiatement.
+Une fois FINAL-D validé, **MIG09 est clos**. MIG10 reste une migration séparée, non commencée ; aucun renommage de `UGridObjectArchetypeAsset` n'est effectué dans FINAL-D.
 
 ## 7. MIG10 — renommage final
 
@@ -223,17 +226,21 @@ MIG10 ne doit pas servir de prétexte à réintroduire une couche de compatibili
 ## 8. Definition of Done MIG09
 
 ```text
-[ ] aucun Objects sérialisé ou transient
-[ ] aucun FGridLevelObjectData
-[ ] aucune projection legacy <-> typed
-[ ] aucun consommateur de production sur DTO legacy
-[ ] runtime sur structures natives / payload runtime légitime
-[ ] Editor sur placements typés
-[ ] tests sans fixtures legacy actives
-[ ] Grimrock.WorldObjects : 0 Failed
-[ ] niveaux réels jouables
-[ ] documentation réconciliée avec la mind map
+[x] aucun Objects sérialisé ou transient
+[x] aucun FGridLevelObjectData
+[x] aucune projection legacy <-> typed
+[x] aucun consommateur de production sur DTO legacy
+[x] runtime sur structures natives / payload runtime légitime
+[x] Editor sur placements typés
+[x] tests sans fixtures legacy actives
+[x] rebuild complet Development Editor non-unity réussi
+[x] Automation FINAL-D : 349 tests, 0 Failed
+[x] niveaux réels chargés et audités ; réserves détaillées dans FINAL-D
+[x] documentation réconciliée avec la mind map pour MIG09
+[x] git diff --check réussi
 ```
+
+La jouabilité interactive n'est pas certifiée : le départ de `DA_GridLevel_01` est invalide depuis avant la purge et aucun smoke test visuel n'a été exécuté. Ces réserves de contenu sont distinctes de la clôture technique MIG09.
 
 ## 9. Definition of Done finale MIG00 → MIG10
 

@@ -1,10 +1,10 @@
 # WORLDOBJ-MIG09-E2C — Autorité typée des helpers d’édition et fixtures
 
-Statut : **FINAL-B publié dans `1a49329e` ; FINAL-C validé localement le 2026-09-09. MIG10 non commencé.**
+Statut : **WORLDOBJ-MIG09 ✅ CLOSED — FINAL-A/B/C/D validés. FINAL-C publié dans `046d58bc`. MIG10 non commencé.**
 
 Date : 2026-09-09
 
-Le [rapport FINAL-C](WORLDOBJ_MIG09_FINAL_C.md) fait autorité pour l'état final et la validation. Les sections 1 à 6 et 8 conservent l'historique des étapes précédentes, y compris leurs anciens blocages de publication et travaux alors restants.
+Le [rapport FINAL-D](WORLDOBJ_MIG09_FINAL_D.md) fait autorité pour la clôture et ses limites : 349 tests sans échec, rebuild complet et audit des niveaux. Le [rapport FINAL-C](WORLDOBJ_MIG09_FINAL_C.md) décrit la purge publiée. Les sections 1 à 6 et 8 conservent l'historique des étapes précédentes, y compris leurs anciens blocages de publication et travaux alors restants.
 
 ## Objectif
 
