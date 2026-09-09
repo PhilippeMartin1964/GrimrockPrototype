@@ -7,6 +7,8 @@
 
 namespace
 {
+	constexpr float CurrentWorldObjectCeilingPlaneHeight = 200.0f;
+
 	FVector GetCellOrigin(const AGridLevelRuntimeActor& RuntimeActor, int32 CellX, int32 CellY, float ZOffset)
 	{
 		const float CellSize = RuntimeActor.LevelAsset ? RuntimeActor.LevelAsset->CellSize : 200.0f;
@@ -157,15 +159,19 @@ namespace GridPlacementTransformResolver
 		{
 			return ResolveDoorEdge(RuntimeActor, Instance.CellX, Instance.CellY, Instance.WallSide, OutTransform);
 		}
-		if (Definition->IsEdgePlaced())
+		if (Definition->PlacementSurface == EGridObjectPlacementKind::Wall)
 		{
-			return ResolveWallMounted(RuntimeActor, Instance.CellX, Instance.CellY, Instance.WallSide, Definition->PlacementZOffset, Definition->WallInset,
-				Definition->LocalOffsetAlongWall, Definition->LocalOffsetVertical, OutTransform);
+			return ResolveWallMounted(RuntimeActor, Instance.CellX, Instance.CellY, Instance.WallSide, Definition->DefaultLocalPosition.V,
+				Definition->DefaultLocalPosition.N, Definition->DefaultLocalPosition.U, 0.0f, OutTransform);
 		}
-		if (Definition->IsCenterPlaced())
+		if (Definition->PlacementSurface == EGridObjectPlacementKind::Floor || Definition->PlacementSurface == EGridObjectPlacementKind::Ceiling)
 		{
 			const float LocalYaw = Instance.bHasLocalTransformOverride ? Instance.LocalTransformOverride.Rotator().Yaw : 0.0f;
-			return ResolveCentered(RuntimeActor, Instance.CellX, Instance.CellY, LocalYaw, Definition->PlacementZOffset, OutTransform);
+			// Preserve the current centered U/V behavior and the fixed 200 cm ceiling plane.
+			const float ZOffset = Definition->PlacementSurface == EGridObjectPlacementKind::Ceiling
+				? CurrentWorldObjectCeilingPlaneHeight - Definition->DefaultLocalPosition.N
+				: Definition->DefaultLocalPosition.N;
+			return ResolveCentered(RuntimeActor, Instance.CellX, Instance.CellY, LocalYaw, ZOffset, OutTransform);
 		}
 		return false;
 	}
