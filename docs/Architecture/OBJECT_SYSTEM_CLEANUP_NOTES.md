@@ -1,6 +1,6 @@
 # Notes d’audit du système d’objets
 
-Statut : **mis à jour après WORLDOBJ-MIG10 et ALIGN-A — 2026-09-09**.
+Statut : **mis à jour après WORLDOBJ-MIG10, ALIGN-A et ALIGN-B5.3 — 2026-09-09**.
 
 Ce document conserve les conclusions utiles de l’audit initial, mais les anciens noms d’archétypes et helpers ne doivent plus être lus comme le contrat courant. Le modèle actif est documenté dans `docs/Design/02_OBJECT_ARCHETYPES.md` et `docs/Architecture/WORLDOBJ_MIG10_FINAL.md`.
 
@@ -13,29 +13,41 @@ Ce document conserve les conclusions utiles de l’audit initial, mais les ancie
 - six anciens world-object pickups ont été supprimés en ALIGN-A6 après audit AssetRegistry et validation runtime : BlueGem, CopperKey, IronKey, Shuriken, Stone et TestNote ;
 - `DA_MonsterSpawn`, `DA_Archetype_CustomRecruiter_Service` et `DA_Archetype_StoryCompanion_Recruit` restent volontairement présents et référencés.
 
+## Résolutions apportées par ALIGN-B5
+
+- ALIGN-B5.1 a fait consommer directement `PlacementSurface + DefaultLocalPosition.U/V/N` par le resolver runtime, à comportement identique ;
+- ALIGN-B5.2 a migré les lecteurs éditeur et le dernier lecteur runtime vers ce même contrat permanent ;
+- ALIGN-B5.3 a supprimé physiquement les anciennes projections de placement `PlacementKind`, `PlacementZOffset`, `WallInset`, `LocalOffsetAlongWall`, `LocalOffsetVertical` ainsi que `RefreshPlacementRuntimeProjection()`, `IsEdgePlaced()`, `IsCenterPlaced()` et `IsWallPlaced()` ;
+- `PostLoad()` reste conservé parce qu’il porte encore la migration audio legacy des portes ; seul le hook `PostEditChangeProperty()` qui ne servait qu’à la projection de placement a été supprimé.
+
 ## Contrat courant
 
 Les objets structurels et mécanismes utilisent `UGridWorldObjectDefinitionAsset`. Les collectibles utilisent directement `UGridItemDefinitionAsset` via `FGridObjectPaletteEntry::DefaultItemDefinition` et `FGridLooseItemInstance::ItemDefinition`.
 
-Le placement d’authoring est défini par :
+Le placement world-object possède désormais une autorité unique :
 
 ```text
 PlacementSurface
 DefaultLocalPosition.U / V / N
 ```
 
-Les champs `PlacementKind`, `PlacementZOffset`, `WallInset`, `LocalOffsetAlongWall` et `LocalOffsetVertical` restent des projections `Transient` internes. `RefreshPlacementRuntimeProjection()`, `IsCenterPlaced()` et `IsEdgePlaced()` restent également conservés parce que des consommateurs existants les utilisent encore ; ALIGN-A ne les traite pas comme code mort.
+`Floor`, `Wall` et `Ceiling` sont les seules surfaces d’authoring valides. Pour les placements muraux, la face concrète reste portée par l’instance via `WallSide` / `EGridEdge`.
+
+Il n’existe plus de projection parallèle de placement dans `UGridWorldObjectDefinitionAsset`. Le runtime et l’éditeur consomment directement le contrat ci-dessus.
 
 ## Points encore volontairement conservés
 
-- `IsRuntimeSpawnableObject()` et ses fallbacks non liés directement au nettoyage A1/A2 n’ont pas été modifiés sans audit dédié ;
 - la preview reste plus simple que certains acteurs runtime composites ;
 - modifier une identité de définition placée n’implique pas une migration automatique des données déjà sérialisées ;
 - plusieurs fonctions `BlueprintCallable` restent conservées tant qu’un audit Blueprint n’a pas prouvé qu’elles sont inutilisées ;
 - les anciens tableaux/paramètres audio de porte restent présents comme migration audio distincte ;
 - `ItemActorClass` reste conservé ;
 - `FGridWorldObjectInstance::Type` reste conservé ;
-- les ponts de projection placement restent conservés tant que les consommateurs de transforms ne sont pas tous rabattus sur `PlacementSurface` et U/V/N.
+- `WorldObjectDefinitions` reste le registre runtime des définitions world-object ; son éventuelle simplification relève d’un chantier distinct ;
+- `bCanShareCell` et `bCanShareAnchor` restent présents comme bridges de partage distincts du placement ;
+- `Floor` et `Ceiling` exposent `U/V` dans le modèle de coordonnées, mais ces composantes ne sont pas encore consommées par les transforms runtime centrées ;
+- le plan plafond courant reste à 200 cm dans les chemins de résolution existants ;
+- les semantics de frontières et de murs directionnels ne sont pas modifiées par ALIGN-B5.
 
 ## Politique pour les assets
 

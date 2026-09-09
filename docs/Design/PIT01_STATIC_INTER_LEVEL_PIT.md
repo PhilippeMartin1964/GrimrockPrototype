@@ -1,6 +1,6 @@
 # PIT01 — Static Inter-Level Pit
 
-> **Contrat courant MIG10 (2026-09-09)** : voir les [définitions et placements typés](../Architecture/WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les extraits ci-dessous utilisant `FGridLevelObjectData`, `Objects`, les anciens meshes spécialisés ou la copie intégrale de `Behavior` décrivent explicitement l’ancien état ; ils ne sont plus des instructions de schéma. Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, et les visuels utilisent `StaticPart` / `MovingParts`.
+> **Contrat courant après MIG10 et ALIGN-B5.3 (2026-09-09)** : voir les [définitions et placements typés](../Architecture/WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, les visuels utilisent `StaticPart` / `MovingParts`, et l'autorité de placement est `PlacementSurface + DefaultLocalPosition.U/V/N`.
 
 
 > **Ergonomie Grid Editor (02.09.2026).** Dans `Selected Object > Transition`, une Pit affiche toujours sa destination. Lorsque `Use Same Cell Coordinates = True`, `Target Cell X` et `Target Cell Y` sont désactivés car ils sont ignorés par le runtime ; l'inspecteur affiche explicitement la cellule effective `(Pit.CellX, Pit.CellY)`. Dès que l'option est décochée, X/Y redeviennent éditables. Pour une Pit, l'ancien flag générique `Is Transition` est remplacé visuellement par `Transition Mode = Intrinsic Pit Fall`.
@@ -53,7 +53,8 @@ avec :
 - DefinitionId : `Pit_Stone_01` ;
 - SupportedType : `Pit` ;
 - Palette Category : `Hazards` ;
-- PlacementKind : `Floor` ;
+- PlacementSurface : `Floor` ;
+- DefaultLocalPosition : `U=0, V=0, N=0` sauf ajustement visuel volontaire ;
 - PreviewMesh : `SM_Pit_Stone_01` ;
 - `bHideCellFloor=true` ;
 - `bBlocksMovement=false` ;

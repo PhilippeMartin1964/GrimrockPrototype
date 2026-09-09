@@ -1,8 +1,8 @@
 # 11 — Référence des paramètres GridWorldObjectDefinitionAsset
 
-Statut : **document actif de référence**, 2026-09-09. Version cible : UE 5.5.4.
+Statut : **document actif de référence après ALIGN-B5.3**, 2026-09-09. Version cible : UE 5.5.4.
 
-La déclaration de référence est `Source/GrimrockPrototype/Public/Core/GridWorldObjectDefinitionAsset.h`. Ce guide décrit l'authoring courant après MIG10. Les audits 07/08 et le plan 09 conservent leur vocabulaire historique et ne sont pas des références de schéma actuel.
+La déclaration de référence est `Source/GrimrockPrototype/Public/Core/GridWorldObjectDefinitionAsset.h`. Ce guide décrit l'authoring courant après MIG10 et ALIGN-B5.3. Les audits 07/08 et le plan 09 conservent leur vocabulaire historique et ne sont pas des références de schéma actuel.
 
 ## 1. Définition et placement
 
@@ -39,9 +39,17 @@ Les seules configurations comportementales persistantes propres à une instance 
 | `bReplacesStandardWall` | Suppression visuelle du mur structurel sur cette frontière. |
 | `bHideCellFloor` | Suppression du mesh de sol, sans modifier à elle seule la praticabilité. |
 
-Au sol, `U/V` décrivent le plan et `N` la hauteur. Sur un mur, `U` suit le mur, `V` est vertical et `N` l'enfoncement vers la cellule. Au plafond, `N` mesure la distance sous le plafond.
+Depuis `WORLDOBJ-ALIGN-B5.3`, aucune projection de placement parallèle n'existe plus dans `UGridWorldObjectDefinitionAsset`. Le runtime et l'éditeur consomment directement `PlacementSurface` et `DefaultLocalPosition.U/V/N`. Les anciennes propriétés `PlacementKind`, `PlacementZOffset`, `WallInset`, `LocalOffsetAlongWall` et `LocalOffsetVertical`, ainsi que les helpers de projection associés, ont été supprimés.
 
-Les propriétés transitoires de projection telles que `PlacementKind` et les anciens offsets ne sont pas des paramètres d'authoring sérialisés. Elles restent un détail d'implémentation préexistant ; MIG10 n'en crée ni n'en migre aucune.
+Le repère local est défini ainsi :
+
+- **Floor** : `U/V` décrivent le plan du sol et `N` la hauteur au-dessus du sol ;
+- **Wall** : `U` suit le mur, `V` est vertical et `N` mesure l'inset depuis la frontière vers l'intérieur de la cellule ;
+- **Ceiling** : `U/V` décrivent le plan du plafond et `N` la distance sous le plafond.
+
+Le modèle de données prévoit donc `U/V/N` sur les trois surfaces. Le support runtime courant applique directement les trois composantes sur `Wall`. Pour `Floor` et `Ceiling`, `U/V` restent actuellement ignorés et le placement reste centré en XY ; seule la composante `N` affecte la position verticale. Le plan plafond courant reste fixé à 200 cm dans les chemins de résolution existants.
+
+La face concrète d'un world-object mural placé est portée par l'instance via `WallSide` / `EGridEdge`. `EGridEdge` reste donc un concept actif ; ce n'est pas une surface d'authoring.
 
 ## 5. Visuels et motion
 

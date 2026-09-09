@@ -1,7 +1,6 @@
 # GrimrockPrototype — Spécification UX du Grimrock Grid Editor Mode
 
-> **Contrat courant MIG10 (2026-09-09)** : voir les [définitions et placements typés](../Architecture/WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les extraits ci-dessous utilisant `FGridLevelObjectData`, `Objects`, les anciens meshes spécialisés ou la copie intégrale de `Behavior` décrivent explicitement l’ancien état ; ils ne sont plus des instructions de schéma. Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, et les visuels utilisent `StaticPart` / `MovingParts`.
-
+> **Contrat courant après MIG10 et ALIGN-B5.3 (2026-09-09)** : voir les [définitions et placements typés](../Architecture/WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, les visuels utilisent `StaticPart` / `MovingParts`, et l'autorité de placement est `PlacementSurface + DefaultLocalPosition.U/V/N`. `EGridEdge` / `WallSide` reste le concept d'instance utilisé pour choisir une face murale.
 
 ## Objectif du document
 
@@ -691,7 +690,7 @@ Un même asset semble porter plusieurs familles de données :
 - preview éditeur ;
 - classe runtime ;
 - meshes ;
-- offsets ;
+- coordonnées locales ;
 - comportement ;
 - interaction ;
 - paramètres de porte ;
@@ -736,7 +735,6 @@ ObjectId
 DefinitionId
 Runtime Actor Class
 Raw Tags
-Raw Offsets
 ```
 
 ### Definition Only
@@ -748,7 +746,8 @@ Exemples :
 ```text
 Preview Mesh
 Default Material
-Default Placement Type
+Placement Surface
+Default Local Position
 Default Runtime Actor Class
 Default Component List
 ```
@@ -961,15 +960,18 @@ Outgoing Links
 Les anciens champs `Trigger Mode`, `Fire On Enter`, `Fire On Exit`, `Delay`, `Duration`, `Invert Connectors` et `Item Spawn` ne sont plus des données disponibles dans l'inspector.
 
 Ces données techniques restantes restent disponibles, mais elles ne doivent plus dominer l’interface.
+
 ---
 
 ## 2026-05-22 - Selected Object Layout Update
+
+> **Mise à jour ALIGN-B5.3 (2026-09-09)** : le libellé et la logique de placement ci-dessous utilisent désormais `PlacementSurface`. L’ancien champ `PlacementKind` a été supprimé.
 
 The current `Selected Object` inspector must avoid duplicating information already shown in its header.
 
 `Game Object` shows only:
 
-- `Placement Kind`
+- `Placement Surface`
 - `Palette Category`
 - `Functional Category`
 - `Runtime Interactable`
@@ -982,9 +984,9 @@ The current `Selected Object` inspector must avoid duplicating information alrea
 
 The duplicated `Connectors` section is removed from `Selected Object`. Connectors are shown only in the dedicated `CONNECTORS` panel.
 
-The `Rotate 90 deg` action is replaced by a `North / East / South / West` orientation widget. For edge-placed objects it changes the placement edge. For center/floor objects it changes the facing yaw.
+The `Rotate 90 deg` action is replaced by a `North / East / South / West` orientation widget. For wall-anchored objects it changes the placement edge (`WallSide`). For floor/ceiling world-objects it changes the facing yaw when orientation is supported.
 
-The orientation widget is shown for visible orientable objects using `PlacementKind = Edge`, `Wall`, `Floor`, or `Center`. Visible floor decorations and visible floor items are orientable. The widget is hidden only for purely logical or invisible objects, such as invisible triggers or invisible spawns.
+For world-object definitions, placement classification comes from `PlacementSurface = Floor | Wall | Ceiling`; `Wall` means the placed instance uses a cardinal `WallSide`. Loose items keep their own `SurfaceSide` / `LocalYaw` placement data. Visible floor decorations and visible floor items are orientable. The widget is hidden only for purely logical or invisible objects, such as invisible triggers or invisible spawns.
 
 The `CONNECTORS` panel hides the `+` action for selected objects that can neither emit events nor receive commands. Ground items such as `Item_Torch` are placeable, physical and pickupable, but they are not connector sources or connector targets.
 

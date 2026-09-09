@@ -1,6 +1,6 @@
 # GrimrockPrototype — Définitions d’objets
 
-Statut : **modèle actif après WORLDOBJ-MIG10 et ALIGN-A — 2026-09-09**.
+Statut : **modèle actif après WORLDOBJ-MIG10, ALIGN-A et ALIGN-B5.3 — 2026-09-09**.
 
 Ce document donne la vue d’ensemble du modèle courant. La référence détaillée des champs de `UGridWorldObjectDefinitionAsset` reste [11_GRID_WORLD_OBJECT_DEFINITION_PARAMETERS_REFERENCE.md](11_GRID_WORLD_OBJECT_DEFINITION_PARAMETERS_REFERENCE.md).
 
@@ -79,7 +79,7 @@ Audio
 
 ### 2.1 Placement
 
-L’autorité d’authoring est :
+L’autorité unique d’authoring et de résolution du placement world-object est :
 
 ```text
 PlacementSurface
@@ -88,17 +88,11 @@ DefaultLocalPosition.V
 DefaultLocalPosition.N
 ```
 
-Les champs suivants existent encore comme **projection transiente interne** pour des consommateurs de transforms qui n’ont pas encore été entièrement rabattus sur le modèle U/V/N :
+Depuis `WORLDOBJ-ALIGN-B5.3`, les anciennes projections parallèles `PlacementKind`, `PlacementZOffset`, `WallInset`, `LocalOffsetAlongWall` et `LocalOffsetVertical` ont été supprimées de `UGridWorldObjectDefinitionAsset`, ainsi que `RefreshPlacementRuntimeProjection()`, `IsEdgePlaced()`, `IsCenterPlaced()` et `IsWallPlaced()`.
 
-```text
-PlacementKind
-PlacementZOffset
-WallInset
-LocalOffsetAlongWall
-LocalOffsetVertical
-```
+Le runtime et l’éditeur consomment directement `PlacementSurface + DefaultLocalPosition.U/V/N`. `Floor`, `Wall` et `Ceiling` sont les seules surfaces d’authoring valides. La face concrète d’un objet mural placé reste portée par l’instance via `WallSide` / `EGridEdge`.
 
-Ils ne sont pas des paramètres à authorer dans les DataAssets et ne doivent pas être présentés comme le modèle cible.
+Le modèle de coordonnées prévoit `U/V` sur `Floor` et `Ceiling`, mais le runtime courant continue à ignorer ces deux composantes pour les placements centrés au sol et au plafond. Sur `Wall`, `U`, `V` et `N` sont consommés directement.
 
 ## 3. Items ramassables
 

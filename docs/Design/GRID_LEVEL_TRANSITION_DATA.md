@@ -27,10 +27,13 @@ Ils utilisent le système existant de définitions :
 - `DefinitionId = Stairs_Up`
 - `DefinitionId = Stairs_Down`
 - `SupportedType = Decoration`
-- `PlacementKind = Floor`
+- `PlacementSurface = Floor`
+- `DefaultLocalPosition = U=0, V=0, N=0` sauf ajustement visuel volontaire de la définition
 - `Category = Transitions`
 - `RuntimeActorClass = AGridGenericObjectActor`
 - `bBlocksMovement = false`
+
+Depuis ALIGN-B5.3, `PlacementSurface + DefaultLocalPosition.U/V/N` est l'unique contrat de placement world-object ; l'ancien `PlacementKind` n'existe plus.
 
 Meshes attendus :
 

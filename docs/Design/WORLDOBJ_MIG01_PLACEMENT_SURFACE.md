@@ -1,5 +1,7 @@
 # WORLDOBJ-MIG01 — Placement Surface simplifié
 
+> **Évolution ultérieure — ALIGN-B5.3 (2026-09-09).** Les projections transientes conservées temporairement pendant MIG01 ont ensuite été entièrement supprimées. Le contrat final et courant est `PlacementSurface + DefaultLocalPosition.U/V/N`, consommé directement par le runtime et l’éditeur. La section « Projection transitoire interne » ci-dessous décrit volontairement l’état historique de MIG01.
+
 ## Objectif
 
 `WORLDOBJ-MIG01` simplifie le contrat de placement des définitions d'objets du monde en séparant clairement :
@@ -56,11 +58,13 @@ Les anciens paramètres suivants ne sont plus sérialisés comme paramètres d'a
 
 `Edge` n'est plus une surface : la frontière reste décrite par `FGridLevelObjectData::Edge` pour les objets nécessitant une orientation ou une frontière de cellule, notamment les portes et objets muraux.
 
-## Projection transitoire interne
+## Projection transitoire interne — état historique de MIG01
 
-Le runtime et certaines parties de l'éditeur consomment encore les anciens helpers de transform. `WORLDOBJ-MIG01` conserve donc temporairement une projection **Transient**, non éditable et non sérialisée, calculée depuis `PlacementSurface` et `DefaultLocalPosition`.
+Au moment de `WORLDOBJ-MIG01`, le runtime et certaines parties de l'éditeur consommaient encore les anciens helpers de transform. MIG01 conservait donc temporairement une projection **Transient**, non éditable et non sérialisée, calculée depuis `PlacementSurface` et `DefaultLocalPosition`.
 
-Cette projection n'est pas une voie de compatibilité Data Asset. Elle sert uniquement à éviter de mélanger dans la même étape la refonte du contrat de données et la réécriture de tous les consommateurs C++.
+Cette projection n'était pas une voie de compatibilité Data Asset. Elle servait uniquement à éviter de mélanger dans la même étape la refonte du contrat de données et la réécriture de tous les consommateurs C++.
+
+Depuis `WORLDOBJ-ALIGN-B5.3`, cette projection et ses helpers n'existent plus.
 
 ## Règles de validation
 
@@ -68,7 +72,7 @@ Cette projection n'est pas une voie de compatibilité Data Asset. Elle sert uniq
 - `Pit`, `PressurePlate`, `Trigger`, `Teleporter`, `MonsterSpawn`, `ItemSpawn` : `Floor` ;
 - `Decoration` et `Light` : `Floor`, `Wall` ou `Ceiling` selon la définition ;
 - `Receptacle` : surface libre selon la définition, avec `Wall` pour les réceptacles muraux ;
-- les items encore placés via le chemin WorldObject restent temporairement sur `Floor`.
+- les items encore placés via le chemin WorldObject restent temporairement sur `Floor` dans le contexte historique de MIG01.
 
 ## Tests
 
