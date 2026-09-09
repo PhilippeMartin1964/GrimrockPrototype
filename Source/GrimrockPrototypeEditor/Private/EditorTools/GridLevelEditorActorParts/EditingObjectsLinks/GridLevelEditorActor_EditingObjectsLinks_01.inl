@@ -53,17 +53,38 @@ void AGridLevelEditorActor::SyncPreviewRuntimeWorldObjectDefinitionsFromPalette(
 		return;
 	}
 
-#if WITH_EDITOR
-	PreviewRuntimeActor->Modify();
-#endif
-
+	TArray<TObjectPtr<UGridWorldObjectDefinitionAsset>> PaletteDefinitions;
+	PaletteDefinitions.Reserve(ObjectPalette->Entries.Num());
 	for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
 	{
 		if (Entry.DefaultWorldObjectDefinition)
 		{
-			PreviewRuntimeActor->WorldObjectDefinitions.AddUnique(Entry.DefaultWorldObjectDefinition);
+			PaletteDefinitions.AddUnique(Entry.DefaultWorldObjectDefinition);
 		}
 	}
+
+	bool bNeedsSync = PreviewRuntimeActor->WorldObjectDefinitions.Num() != PaletteDefinitions.Num();
+	if (!bNeedsSync)
+	{
+		for (int32 Index = 0; Index < PaletteDefinitions.Num(); ++Index)
+		{
+			if (PreviewRuntimeActor->WorldObjectDefinitions[Index] != PaletteDefinitions[Index])
+			{
+				bNeedsSync = true;
+				break;
+			}
+		}
+	}
+
+	if (!bNeedsSync)
+	{
+		return;
+	}
+
+#if WITH_EDITOR
+	PreviewRuntimeActor->Modify();
+#endif
+	PreviewRuntimeActor->WorldObjectDefinitions = MoveTemp(PaletteDefinitions);
 }
 
 void AGridLevelEditorActor::ClearSelectedCell()
