@@ -276,6 +276,57 @@ bool FGridTD0731CurrentSchemaAssetAuditTest::RunTest(const FString& Parameters)
 
 	TArray<FAssetData> AssetData;
 	AssetRegistry.GetAssets(Filter, AssetData);
+
+	// MIG10 migration audit only: redirected packages can retain their old registry class tag until resaved.
+	FARFilter DefinitionFilter;
+	DefinitionFilter.PackagePaths = Filter.PackagePaths;
+	DefinitionFilter.bRecursivePaths = true;
+	const FTopLevelAssetPath OldDefinitionClass(TEXT("/Script/GrimrockPrototype"), TEXT("GridObjectArchetypeAsset"));
+	const FTopLevelAssetPath NewDefinitionClass = UGridWorldObjectDefinitionAsset::StaticClass()->GetClassPathName();
+	DefinitionFilter.ClassPaths.Add(OldDefinitionClass);
+	DefinitionFilter.ClassPaths.Add(NewDefinitionClass);
+	DefinitionFilter.bIncludeOnlyOnDiskAssets = true;
+	TArray<FAssetData> DefinitionAssets;
+	AssetRegistry.GetAssets(DefinitionFilter, DefinitionAssets);
+	int32 OldClassTagged = 0;
+	int32 NewClassTagged = 0;
+	TSet<FSoftObjectPath> SeenAssets;
+	for (const FAssetData& Entry : AssetData)
+	{
+		SeenAssets.Add(Entry.GetSoftObjectPath());
+	}
+	TSet<FName> DefinitionIds;
+	for (const FAssetData& Entry : DefinitionAssets)
+	{
+		OldClassTagged += Entry.AssetClassPath == OldDefinitionClass ? 1 : 0;
+		NewClassTagged += Entry.AssetClassPath == NewDefinitionClass ? 1 : 0;
+		if (!SeenAssets.Contains(Entry.GetSoftObjectPath()))
+		{
+			SeenAssets.Add(Entry.GetSoftObjectPath());
+			AssetData.Add(Entry);
+		}
+		const UGridWorldObjectDefinitionAsset* Definition = Cast<UGridWorldObjectDefinitionAsset>(Entry.GetAsset());
+		if (!TestNotNull(*Entry.PackageName.ToString(), Definition))
+		{
+			continue;
+		}
+		TestFalse(TEXT("MIG10 preserves every serialized DefinitionId"), Definition->DefinitionId.IsNone());
+		TestFalse(TEXT("MIG10 definition ids remain unique"), DefinitionIds.Contains(Definition->DefinitionId));
+		DefinitionIds.Add(Definition->DefinitionId);
+		TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
+		Definition->ValidateDefinition(Messages);
+		for (const FGridWorldObjectDefinitionValidationMessage& Message : Messages)
+		{
+			if (Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error)
+			{
+				AddError(FString::Printf(TEXT("%s: %s"), *Entry.PackageName.ToString(), *Message.Message));
+			}
+		}
+	}
+	TestEqual(TEXT("MIG10 registry baseline: old plus new definition tags"), OldClassTagged + NewClassTagged, 38);
+	TestEqual(TEXT("MIG10-B resaved definitions carry the new on-disk class tag"), NewClassTagged, 38);
+	TestEqual(TEXT("MIG10 complete DataAsset baseline"), AssetData.Num(), 92);
+	AddInfo(FString::Printf(TEXT("MIG10 OldClassTagged=%d NewClassTagged=%d"), OldClassTagged, NewClassTagged));
 	AssetData.Sort(
 		[](const FAssetData& Left, const FAssetData& Right)
 		{

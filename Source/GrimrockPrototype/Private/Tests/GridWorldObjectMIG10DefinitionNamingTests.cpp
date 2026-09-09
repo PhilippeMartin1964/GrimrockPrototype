@@ -21,6 +21,8 @@ bool FGridWorldObjectMIG10DefinitionNamingTest::RunTest(const FString& Parameter
 	TestNotNull(TEXT("Definition owns DefinitionId"), DefinitionClass->FindPropertyByName(TEXT("DefinitionId")));
 	// These old serialized names are intentional negative assertions, not compatibility APIs.
 	TestNull(TEXT("The old identity property is absent"), DefinitionClass->FindPropertyByName(TEXT("ArchetypeId")));
+	TestEqual(TEXT("Serialized identity redirects after the class has already been renamed"),
+		FProperty::FindRedirectedPropertyName(DefinitionClass, TEXT("ArchetypeId")), FName(TEXT("DefinitionId")));
 	TestNull(TEXT("No old reflected class or wrapper exists"),
 		FindObject<UClass>(nullptr, TEXT("/Script/GrimrockPrototype.GridObjectArchetypeAsset")));
 	TestNotNull(TEXT("Placements retain their qualified definition reference"),
