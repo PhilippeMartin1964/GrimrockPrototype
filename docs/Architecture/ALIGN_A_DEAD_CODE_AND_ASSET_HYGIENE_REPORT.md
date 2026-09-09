@@ -2,7 +2,7 @@
 
 Date : 2026-09-09
 
-Statut : **implémentation terminée ; validation finale élargie encore à exécuter avant clôture définitive**.
+Statut : **ALIGN-A ✅ CLOSED**.
 
 ## 1. Objectif
 
@@ -46,7 +46,8 @@ Sont également conservés :
 | ALIGN-A5 | `24ddbf2796f338a7f4cd84cc5e2f9f142c6693de` | resave de `L_GrimrockEditor` et retrait des références pickup résiduelles |
 | ALIGN-A6-B | `8e91d7b6a328dcb21b897a51ac71b210e1ab1416` | test d’audit mis à jour avec les attentes de présence/absence |
 | ALIGN-A6 | `e4cfe23e19d26e2d56b58514472b157531a722da` | suppression des 6 anciens world-object pickup assets |
-| ALIGN-A7 | commit de cette documentation | cohérence documentaire et rapport de clôture technique |
+| ALIGN-A7 | `56f854bb330d0e2d11e549c3bc7eefe1b3fe924a` | cohérence documentaire et rapport de clôture technique |
+| ALIGN-A8 | commit de cette clôture | validation finale enregistrée et ALIGN-A fermé |
 
 ## 4. Code mort supprimé
 
@@ -163,7 +164,7 @@ Un collectible direct ne doit pas avoir de `DefaultWorldObjectDefinition` compag
 
 La validation de `FGridObjectPaletteEntry::IsValidEntry()` encode ce contrat : une entrée item directe est valide avec `DefaultItemDefinition`, sans `DefaultWorldObjectDefinition` ni icône de palette séparée.
 
-## 8. Validation locale déjà obtenue
+## 8. Validation locale obtenue
 
 Les validations UE5.5.4 suivantes ont été fournies localement pendant ALIGN-A :
 
@@ -183,25 +184,27 @@ Les validations UE5.5.4 suivantes ont été fournies localement pendant ALIGN-A 
 
 Les filtres `Grimrock.ItemPickup` et `Grimrock.ItemTooltip` ne sont pas des filtres Automation existants dans le Source courant ; ils ne doivent pas être utilisés comme preuve de régression. Le contrat pickup est couvert par `TD02_1.WorldItemsContract` et les transferts par `TD02_7.PartyItemTransfer`.
 
-## 9. Gate final avant fermeture définitive
+## 9. Gate final ALIGN-A8
 
-Après récupération du commit ALIGN-A7, exécuter la validation élargie suivante :
+Après récupération d’ALIGN-A7 sur `master = 56f854bb330d0e2d11e549c3bc7eefe1b3fe924a`, les validations finales ont été exécutées localement sous UE5.5.4 :
 
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.WorldObjects"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Pit"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Monsters.MON13"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Items"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD02_1.WorldItemsContract"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD02_7.PartyItemTransfer"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Editor.ALIGN_A3.AssetReferenceAudit"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Editor.ALIGN_A4.PreviewDefinitionSync"
-```
+| Filtre | Succeeded | Avec warnings | Failed | Not run | Exit code |
+|---|---:|---:|---:|---:|---:|
+| `Grimrock.Pit` | 5 | 3 | 0 | 0 | 0 |
+| `Grimrock.Monsters.MON13` | 14 | 4 | 0 | 0 | 0 |
+| `Grimrock.Items` | 2 | 0 | 0 | 0 | 0 |
+| `Grimrock.Editor.ALIGN_A4.PreviewDefinitionSync` | 1 | 0 | 0 | 0 | 0 |
 
-Si ces filtres passent sans échec, ALIGN-A peut être marqué **CLOSED** par une dernière mise à jour documentaire courte du présent rapport, sans nouvelle modification runtime/content.
+Les quatre builds Development Editor associés sont passés. Les warnings de `Grimrock.Pit` et `Grimrock.Monsters.MON13` sont des résultats `Succeeded with warnings`, sans échec Automation et avec code processus 0.
+
+Ces résultats complètent les validations A6 déjà obtenues pour `Grimrock.WorldObjects`, l’audit AssetRegistry et les contrats de pickup/transfert.
+
+**Gate final satisfait : ALIGN-A est CLOSED.**
 
 ## 10. Conclusion technique
 
 ALIGN-A a supprimé 13 helpers morts, corrigé une accumulation de références sérialisées dans la preview, supprimé six assets pickup devenus réellement orphelins et aligné la documentation sur le modèle post-MIG10.
 
 Le résultat recherché est atteint : un item ramassable est défini une fois, par `UGridItemDefinitionAsset`, et n’a plus besoin d’un `UGridWorldObjectDefinitionAsset` compagnon uniquement pour être placé dans un niveau.
+
+Aucune autre suppression d’asset ou de bridge n’est implicite dans cette clôture. Tout nettoyage supplémentaire doit faire l’objet d’un nouvel audit ciblé.
