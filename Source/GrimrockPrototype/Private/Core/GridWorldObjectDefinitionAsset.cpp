@@ -565,56 +565,6 @@ FString UGridWorldObjectDefinitionAsset::GetValidationSummary() const
 	return Summary;
 }
 
-bool UGridWorldObjectDefinitionAsset::RequiresEdgePlacement() const
-{
-	switch (SupportedType)
-	{
-		case EGridLevelObjectType::Door:
-		case EGridLevelObjectType::Button:
-		case EGridLevelObjectType::Lever:
-			return true;
-		default:
-			return false;
-	}
-}
-
-bool UGridWorldObjectDefinitionAsset::SupportsCenterPlacement() const
-{
-	switch (SupportedType)
-	{
-		case EGridLevelObjectType::PressurePlate:
-		case EGridLevelObjectType::Trigger:
-		case EGridLevelObjectType::Decoration:
-		case EGridLevelObjectType::Light:
-		case EGridLevelObjectType::Teleporter:
-		case EGridLevelObjectType::MonsterSpawn:
-		case EGridLevelObjectType::ItemSpawn:
-		case EGridLevelObjectType::Item:
-		case EGridLevelObjectType::Pit:
-		case EGridLevelObjectType::StoryCompanion:
-		case EGridLevelObjectType::CustomRecruiter:
-			return true;
-		default:
-			return false;
-	}
-}
-
-bool UGridWorldObjectDefinitionAsset::SupportsWallPlacement() const
-{
-	switch (SupportedType)
-	{
-		case EGridLevelObjectType::Door:
-		case EGridLevelObjectType::Button:
-		case EGridLevelObjectType::Lever:
-		case EGridLevelObjectType::Decoration:
-		case EGridLevelObjectType::Light:
-		case EGridLevelObjectType::Receptacle:
-			return true;
-		default:
-			return false;
-	}
-}
-
 bool UGridWorldObjectDefinitionAsset::RequiresRuntimeActorClass() const
 {
 	switch (SupportedType)
@@ -626,19 +576,6 @@ bool UGridWorldObjectDefinitionAsset::RequiresRuntimeActorClass() const
 		case EGridLevelObjectType::Teleporter:
 		case EGridLevelObjectType::Receptacle:
 		case EGridLevelObjectType::Pit:
-			return true;
-		default:
-			return false;
-	}
-}
-
-bool UGridWorldObjectDefinitionAsset::AllowsInvisibleRuntimeObject() const
-{
-	switch (SupportedType)
-	{
-		case EGridLevelObjectType::Trigger:
-		case EGridLevelObjectType::MonsterSpawn:
-		case EGridLevelObjectType::ItemSpawn:
 			return true;
 		default:
 			return false;

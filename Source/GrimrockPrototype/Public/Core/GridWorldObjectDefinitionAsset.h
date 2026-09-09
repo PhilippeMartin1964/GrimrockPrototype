@@ -294,11 +294,6 @@ public:
 		return PlacementKind == EGridObjectPlacementKind::Wall;
 	}
 
-	bool IsCeilingPlaced() const
-	{
-		return PlacementKind == EGridObjectPlacementKind::Ceiling;
-	}
-
 	bool BlocksCellMovement() const
 	{
 		return bBlocksMovement;
@@ -356,11 +351,7 @@ public:
 	FString GetValidationSummary() const;
 
 	// Existing helper API retained for callers; semantics now resolve against Floor/Wall/Ceiling only.
-	bool RequiresEdgePlacement() const;
-	bool SupportsCenterPlacement() const;
-	bool SupportsWallPlacement() const;
 	bool RequiresRuntimeActorClass() const;
-	bool AllowsInvisibleRuntimeObject() const;
 	bool UsesWallPlacementParams() const;
 	bool UsesCenterPlacementParams() const;
 	bool UsesReadableParams() const;

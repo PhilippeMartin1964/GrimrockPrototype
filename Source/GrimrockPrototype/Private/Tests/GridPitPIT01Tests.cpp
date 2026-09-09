@@ -103,7 +103,7 @@ bool FGridPIT01DataContractTest::RunTest(const FString& Parameters)
 	Definition->DefaultBehavior.Transition.bIsTransition = true;
 	Definition->DefaultBehavior.Transition.bRequireUseAction = false;
 
-	TestTrue(TEXT("Pit is a center/floor placed gameplay object"), Definition->SupportsCenterPlacement());
+	TestEqual(TEXT("Pit is authored on the Floor placement surface"), Definition->PlacementSurface, EGridObjectPlacementKind::Floor);
 	TestTrue(TEXT("Pit requires its dedicated runtime actor contract"), Definition->RequiresRuntimeActorClass());
 	TestFalse(TEXT("Fresh Pit has no visual composition before geometry is authored"), Definition->HasAnyVisualPart());
 	TestFalse(TEXT("Fresh Pit has no trapdoor cover before both Moving Parts are authored"), Definition->HasCompletePitTrapdoorCover());
