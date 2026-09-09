@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridTypedPlacementAuditTestUtils.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
@@ -74,24 +75,11 @@ namespace GridTD0737Normalization
 
 		if (const UGridLevelAsset* Level = Cast<UGridLevelAsset>(&DataAsset))
 		{
-			for (int32 ObjectIndex = 0; ObjectIndex < Level->Objects.Num(); ++ObjectIndex)
-			{
-				const FGridLevelObjectData& Object = Level->Objects[ObjectIndex];
-				const FString Context = FString::Printf(TEXT("Objects[%d]"), ObjectIndex);
-
-				const UGridItemDefinitionAsset* Item = Object.ItemDefinitionAsset.Get();
-				AuditPair(AssetPath, Context + TEXT(".ItemDefinition"), Item, Item ? Item->ItemDefinitionId : NAME_None, Object.ItemDefinitionId, Candidates);
-
-				const UGridReadableContentAsset* Readable = Object.ReadableContentAsset.Get();
-				AuditPair(AssetPath, Context + TEXT(".ReadableContent"), Readable, Readable ? Readable->ReadableContentId : NAME_None, Object.ReadableContentId,
-					Candidates);
-
-				const UGridMonsterDefinitionAsset* Monster = Object.MonsterDefinitionAsset.Get();
-				AuditPair(
-					AssetPath, Context + TEXT(".MonsterDefinition"), Monster, Monster ? Monster->MonsterId : NAME_None, Object.MonsterDefinitionId, Candidates);
-
-				AuditBehavior(AssetPath, Context + TEXT(".Behavior"), Object.Behavior, Candidates);
-			}
+			GridTypedPlacementAuditTestUtils::AuditDefinitionReferences(*Level,
+				[&](const FString& Context, const UObject* Definition, FName CanonicalId, FName StoredId, const TCHAR*)
+				{
+					AuditPair(AssetPath, Context, Definition, CanonicalId, StoredId, Candidates);
+				});
 			return;
 		}
 
@@ -290,17 +278,12 @@ bool FGridTD0737MonsterSpawnAuthoringAuthorityTest::RunTest(const FString& Param
 	}
 
 	int32 MonsterSpawnCount = 0;
-	for (const FGridLevelObjectData& Object : Level->Objects)
+	for (const FGridMonsterSpawnInstance& Object : Level->MonsterSpawns)
 	{
-		if (Object.Type != EGridLevelObjectType::MonsterSpawn)
-		{
-			continue;
-		}
-
 		++MonsterSpawnCount;
-		TestNotNull(*FString::Printf(TEXT("MonsterSpawn %s has definition asset"), *Object.ObjectId.ToString()), Object.MonsterDefinitionAsset.Get());
-		TestTrue(*FString::Printf(TEXT("MonsterSpawn %s mirror id is empty"), *Object.ObjectId.ToString()), Object.MonsterDefinitionId.IsNone());
+		TestNotNull(*FString::Printf(TEXT("MonsterSpawn %s has definition asset"), *Object.SpawnId.ToString()), Object.MonsterDefinition.Get());
 	}
+	TestNull(TEXT("Typed monster placement has no mirrored definition id"), FGridMonsterSpawnInstance::StaticStruct()->FindPropertyByName(TEXT("MonsterDefinitionId")));
 	TestTrue(TEXT("Production level contains MonsterSpawn authoring coverage"), MonsterSpawnCount > 0);
 
 	FString LevelSource;

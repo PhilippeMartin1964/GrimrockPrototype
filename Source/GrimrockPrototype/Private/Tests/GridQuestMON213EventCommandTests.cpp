@@ -140,8 +140,8 @@ bool FGridQuestMON213EventCommandIntegrationTest::RunTest(const FString& Paramet
 	Level->EnsureCellCount();
 
 	const FGuid SourceId = FGuid::NewGuid();
-	FGridLevelObjectData& Source = Level->Objects.AddDefaulted_GetRef();
-	Source.ObjectId = SourceId;
+	FGridLogicObjectInstance& Source = Level->LogicObjects.AddDefaulted_GetRef();
+	Source.InstanceId = SourceId;
 	Source.Type = EGridLevelObjectType::Logic;
 	Source.LogicId = TEXT("MON213_Source");
 

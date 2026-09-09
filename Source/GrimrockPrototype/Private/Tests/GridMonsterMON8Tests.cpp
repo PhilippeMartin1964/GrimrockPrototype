@@ -561,29 +561,26 @@ bool FGridMonsterMON8MonsterDiedEventTest::RunTest(const FString& Parameters)
 	const FGuid UnlinkedSourceId(30, 0, 0, 3);
 	UGridMonsterDefinitionAsset* Definition = MakeMON8MonsterDefinition(Runtime, TEXT("MON8_EventRat"));
 
-	FGridLevelObjectData Source;
-	Source.ObjectId = SourceId;
-	Source.Type = EGridLevelObjectType::MonsterSpawn;
+	FGridMonsterSpawnInstance Source;
+	Source.SpawnId = SourceId;
 	Source.CellX = 1;
 	Source.CellY = 1;
-	Source.Edge = EGridEdge::None;
-	Source.InitialFacing = EGridEdge::North;
-	Source.MonsterDefinitionAsset = Definition;
-	Source.MonsterDefinitionId = Definition->MonsterId;
-	LevelAsset->Objects.Add(Source);
+	Source.Facing = EGridEdge::North;
+	Source.MonsterDefinition = Definition;
+	LevelAsset->MonsterSpawns.Add(Source);
 
-	FGridLevelObjectData UnlinkedSource = Source;
-	UnlinkedSource.ObjectId = UnlinkedSourceId;
+	FGridMonsterSpawnInstance UnlinkedSource = Source;
+	UnlinkedSource.SpawnId = UnlinkedSourceId;
 	UnlinkedSource.CellX = 2;
 	UnlinkedSource.CellY = 2;
-	LevelAsset->Objects.Add(UnlinkedSource);
+	LevelAsset->MonsterSpawns.Add(UnlinkedSource);
 
-	FGridLevelObjectData Target;
-	Target.ObjectId = TargetId;
+	FGridWorldObjectInstance Target;
+	Target.InstanceId = TargetId;
 	Target.Type = EGridLevelObjectType::Trigger;
 	Target.CellX = 3;
 	Target.CellY = 3;
-	LevelAsset->Objects.Add(Target);
+	LevelAsset->WorldObjectInstances.Add(Target);
 
 	FGridObjectLink Link;
 	Link.SourceObjectId = SourceId;

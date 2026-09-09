@@ -42,15 +42,13 @@ bool FGridEditorMON1924VariableConditionPolicyTest::RunTest(const FString& Param
 {
 	(void)Parameters;
 
-	FGridLevelObjectData Door;
-	Door.Type = EGridLevelObjectType::Door;
+	const EGridLevelObjectType Door = EGridLevelObjectType::Door;
 	const TArray<EGridObjectCondition> DoorConditions = GridEditorLinkPolicy::GetSupportedConditionsForTarget(Door);
 	TestEqual(TEXT("Non-receptacle exposes None plus two variable conditions"), DoorConditions.Num(), 3);
 	TestTrue(TEXT("Door exposes Bool variable condition"), DoorConditions.Contains(EGridObjectCondition::LevelVariableBoolEquals));
 	TestTrue(TEXT("Door exposes Int variable condition"), DoorConditions.Contains(EGridObjectCondition::LevelVariableIntCompare));
 
-	FGridLevelObjectData Receptacle;
-	Receptacle.Type = EGridLevelObjectType::Receptacle;
+	const EGridLevelObjectType Receptacle = EGridLevelObjectType::Receptacle;
 	const TArray<EGridObjectCondition> ReceptacleConditions = GridEditorLinkPolicy::GetSupportedConditionsForTarget(Receptacle);
 	TestEqual(TEXT("Receptacle keeps eight historical options and adds two variables"), ReceptacleConditions.Num(), 10);
 	TestTrue(TEXT("Receptacle still exposes item-tag condition"), ReceptacleConditions.Contains(EGridObjectCondition::ReceptacleContainsItemTag));

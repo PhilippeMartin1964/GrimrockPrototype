@@ -66,9 +66,13 @@ bool FGridTD074ActivationSurfaceCharacterizationTest::RunTest(const FString& Par
 
 	FString Header;
 	FString Source;
+	FString LinksSource;
+	FString LuaSource;
 	TestTrue(TEXT("GridActivationComponent header loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/GridActivationComponent.h"), Header));
 	TestTrue(
 		TEXT("GridActivationComponent source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponent.cpp"), Source));
+	TestTrue(TEXT("Activation Links source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponentLinks.cpp"), LinksSource));
+	TestTrue(TEXT("Activation Lua source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponentLua.cpp"), LuaSource));
 
 	const int32 HeaderLines = CountLines(Header);
 	const int32 SourceLines = CountLines(Source);
@@ -80,11 +84,22 @@ bool FGridTD074ActivationSurfaceCharacterizationTest::RunTest(const FString& Par
 	AddInfo(FString::Printf(TEXT("TD07.4 surface: header=%d/%d source=%d/%d methods=%d UE_LOG=%d LogTemp=%d LogGridActivation=%d"), HeaderLines, Header.Len(),
 		SourceLines, Source.Len(), ScopedMethodOccurrences, LogCalls, LogTempCalls, LogGridActivationCalls));
 
-	TestTrue(TEXT("Activation component is currently a concentrated source file"), SourceLines >= 1500);
-	TestTrue(TEXT("Activation component has at least forty scoped implementations"), ScopedMethodOccurrences >= 40);
-	TestEqual(TEXT("Activation uses no LogTemp"), LogTempCalls, 0);
-	TestEqual(TEXT("Activation uses 38 LogGridActivation calls"), LogGridActivationCalls, 38);
-	TestTrue(TEXT("LogGridActivation category is declared"), Source.Contains(TEXT("DEFINE_LOG_CATEGORY_STATIC(LogGridActivation, Log, All);")));
+	// MIG09 split the implementation into independent compilation units. Line/log counts are
+	// observations, not a requirement to preserve the former monolithic implementation.
+	for (const FString* Unit : { &Source, &LinksSource, &LuaSource })
+	{
+		TestTrue(TEXT("Each activation unit includes its own component declaration"), Unit->Contains(TEXT("#include \"Runtime/GridActivationComponent.h\"")));
+		TestTrue(TEXT("Each activation unit owns its log category"), Unit->Contains(TEXT("DEFINE_LOG_CATEGORY_STATIC(LogGridActivation, Log, All);")));
+		TestEqual(TEXT("Each activation unit uses no LogTemp"), CountOccurrences(*Unit, TEXT("UE_LOG(LogTemp")), 0);
+	}
+	FString BuildRules;
+	TestTrue(TEXT("Runtime build rules load"), LoadProjectFile(TEXT("Source/GrimrockPrototype/GrimrockPrototype.Build.cs"), BuildRules));
+	TestTrue(TEXT("Runtime compilation remains non-unity"), BuildRules.Contains(TEXT("bUseUnity = false;")));
+	for (const TCHAR* Collection : { TEXT("WorldObjectInstances"), TEXT("LooseItemInstances"), TEXT("MonsterSpawns"), TEXT("ItemSpawns"), TEXT("LogicObjects") })
+	{
+		TestTrue(*FString::Printf(TEXT("Activation indexes native collection %s"), Collection), Source.Contains(Collection));
+	}
+	AddInfo(FString::Printf(TEXT("Split units: core=%d lines links=%d lines lua=%d lines"), SourceLines, CountLines(LinksSource), CountLines(LuaSource)));
 	return true;
 }
 
@@ -99,13 +114,32 @@ bool FGridTD074ActivationResponsibilitiesCharacterizationTest::RunTest(const FSt
 	FString Source;
 	TestTrue(
 		TEXT("GridActivationComponent source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponent.cpp"), Source));
+	FString LinksSource;
+	FString LuaSource;
+	TestTrue(TEXT("Activation Links source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponentLinks.cpp"), LinksSource));
+	TestTrue(TEXT("Activation Lua source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponentLua.cpp"), LuaSource));
+	const FString AllSources = Source + LinksSource + LuaSource;
+	// Preserve every historical responsibility, checking its current owner and unique definition.
+	const auto CheckResponsibility = [this, &AllSources](const FString& Owner, const TCHAR* Symbol)
+	{
+		const FString Definition = FString::Printf(TEXT("UGridActivationComponent::%s("), Symbol);
+		TestTrue(*FString::Printf(TEXT("Responsibility %s is implemented by its owning unit"), Symbol), Owner.Contains(Definition));
+		TestEqual(*FString::Printf(TEXT("Responsibility %s has exactly one implementation"), Symbol), CountOccurrences(AllSources, *Definition), 1);
+	};
 
 	for (const TCHAR* RequiredSymbol : { TEXT("TryInteractAtEdge"), TEXT("RefreshPressurePlatesAtCell"), TEXT("ProcessTriggersAtCell"),
-			 TEXT("ExecuteLinksFromObjectForEventInternal"), TEXT("ApplyLinkCommand"), TEXT("EvaluateGridObjectLinkCondition"), TEXT("ApplyQuestLinkCommand"),
-			 TEXT("ReloadLuaRuntime"), TEXT("ExecuteLuaCallbackLink"), TEXT("ExecuteLuaIssuedCommand"), TEXT("IsStoryCompanionAlreadyActive"),
 			 TEXT("ActivateReadableObject"), TEXT("ActivateReceptacle"), TEXT("RebuildIndexes"), TEXT("GetDebugSummary") })
 	{
-		TestTrue(*FString::Printf(TEXT("Responsibility symbol %s remains in ActivationComponent"), RequiredSymbol), Source.Contains(RequiredSymbol));
+		CheckResponsibility(Source, RequiredSymbol);
+	}
+	for (const TCHAR* RequiredSymbol : { TEXT("ExecuteLinksFromObjectForEventInternal"), TEXT("ApplyLinkCommand"),
+		TEXT("EvaluateGridObjectLinkCondition"), TEXT("ApplyQuestLinkCommand"), TEXT("IsStoryCompanionAlreadyActive") })
+	{
+		CheckResponsibility(LinksSource, RequiredSymbol);
+	}
+	for (const TCHAR* RequiredSymbol : { TEXT("ReloadLuaRuntime"), TEXT("ExecuteLuaCallbackLink"), TEXT("ExecuteLuaIssuedCommand") })
+	{
+		CheckResponsibility(LuaSource, RequiredSymbol);
 	}
 
 	AddInfo(TEXT(

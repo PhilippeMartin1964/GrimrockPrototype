@@ -137,16 +137,16 @@ bool FRPGMON2055EventCommandMissingPlayerPawnTest::RunTest(const FString& Parame
 	Level->Cells[0].CellType = EGridCellType::Floor;
 
 	const FGuid SourceId(20, 5, 5, 1);
-	FGridLevelObjectData Source;
-	Source.ObjectId = SourceId;
+	FGridWorldObjectInstance Source;
+	Source.InstanceId = SourceId;
 	Source.Type = EGridLevelObjectType::Trigger;
-	Level->Objects.Add(Source);
+	Level->WorldObjectInstances.Add(Source);
 
 	const FGuid RecruiterId(20, 5, 5, 2);
-	FGridLevelObjectData Recruiter;
-	Recruiter.ObjectId = RecruiterId;
+	FGridLogicObjectInstance Recruiter;
+	Recruiter.InstanceId = RecruiterId;
 	Recruiter.Type = EGridLevelObjectType::CustomRecruiter;
-	Level->Objects.Add(Recruiter);
+	Level->LogicObjects.Add(Recruiter);
 
 	FGridObjectLink Link;
 	Link.SourceObjectId = SourceId;

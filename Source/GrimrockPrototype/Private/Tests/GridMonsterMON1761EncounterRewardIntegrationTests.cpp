@@ -205,19 +205,16 @@ namespace
 		AddMON176GuaranteedLoot(Definition, MakeMON176ItemDefinition(Definition, TEXT("MON176_EmptyVial")));
 	}
 
-	FGridLevelObjectData MakeMON176Spawn(UGridMonsterDefinitionAsset* Definition, FGuid SpawnId, FIntPoint Cell, FName EncounterId = NAME_None,
+	FGridMonsterSpawnInstance MakeMON176Spawn(UGridMonsterDefinitionAsset* Definition, FGuid SpawnId, FIntPoint Cell, FName EncounterId = NAME_None,
 		int32 WaveIndex = 0, bool bInitiallyEnabled = true)
 	{
-		FGridLevelObjectData Spawn;
-		Spawn.ObjectId = SpawnId;
-		Spawn.Type = EGridLevelObjectType::MonsterSpawn;
+		FGridMonsterSpawnInstance Spawn;
+		Spawn.SpawnId = SpawnId;
 		Spawn.CellX = Cell.X;
 		Spawn.CellY = Cell.Y;
-		Spawn.Edge = EGridEdge::None;
-		Spawn.InitialFacing = EGridEdge::North;
+		Spawn.Facing = EGridEdge::North;
 		Spawn.InitialMonsterState = EGridMonsterState::Idle;
-		Spawn.MonsterDefinitionAsset = Definition;
-		Spawn.MonsterDefinitionId = Definition ? Definition->MonsterId : NAME_None;
+		Spawn.MonsterDefinition = Definition;
 		Spawn.EncounterGroupId = EncounterId;
 		Spawn.EncounterWaveIndex = WaveIndex;
 		Spawn.bInitiallyEnabled = bInitiallyEnabled;
@@ -331,9 +328,9 @@ bool FGridMonsterMON1761EncounterWaveParticipationTest::RunTest(const FString& P
 	const FGuid Wave0BId(17, 6, 2, 2);
 	const FGuid Wave1Id(17, 6, 2, 3);
 
-	Level->Objects.Add(MakeMON176Spawn(Definition, Wave0AId, FIntPoint(1, 1), EncounterId, 0, false));
-	Level->Objects.Add(MakeMON176Spawn(Definition, Wave0BId, FIntPoint(2, 1), EncounterId, 0, false));
-	Level->Objects.Add(MakeMON176Spawn(Definition, Wave1Id, FIntPoint(3, 1), EncounterId, 1, false));
+	Level->MonsterSpawns.Add(MakeMON176Spawn(Definition, Wave0AId, FIntPoint(1, 1), EncounterId, 0, false));
+	Level->MonsterSpawns.Add(MakeMON176Spawn(Definition, Wave0BId, FIntPoint(2, 1), EncounterId, 0, false));
+	Level->MonsterSpawns.Add(MakeMON176Spawn(Definition, Wave1Id, FIntPoint(3, 1), EncounterId, 1, false));
 
 	Runtime->RebuildLevel();
 	TestEqual(TEXT("Encounter Goblins start absent"), Runtime->GetSpawnedMonsterActorCount(), 0);
@@ -461,7 +458,7 @@ bool FGridMonsterMON1761PersistenceNoReplayTest::RunTest(const FString& Paramete
 	UGridMonsterDefinitionAsset* Definition = MakeMON176SyntheticGoblin(Runtime, ProductionGoblin);
 	AddMON176GuaranteedLoot(Definition, ProductionStone);
 	const FGuid SpawnId(17, 6, 4, 1);
-	Level->Objects.Add(MakeMON176Spawn(Definition, SpawnId, FIntPoint(2, 2)));
+	Level->MonsterSpawns.Add(MakeMON176Spawn(Definition, SpawnId, FIntPoint(2, 2)));
 
 	Runtime->RebuildLevel();
 	AGridMonsterActor* Monster = Runtime->FindSpawnedMonsterActor(SpawnId);

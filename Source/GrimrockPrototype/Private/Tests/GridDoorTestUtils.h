@@ -10,7 +10,7 @@ namespace GridDoorTestUtils
 {
 	inline UGridObjectArchetypeAsset* InitializeDoorFromMotion(
 		AGridDoorActor* Door,
-		const FGridLevelObjectData& ObjectData,
+		const FGridWorldObjectInstance& ObjectData,
 		UObject* Outer,
 		float MotionDuration,
 		float MotionAmount = 180.0f,
@@ -37,8 +37,9 @@ namespace GridDoorTestUtils
 		MovingPart.Motion.Amount = MotionAmount;
 		MovingPart.Motion.Duration = FMath::Max(0.0f, MotionDuration);
 
-		Door->InitializeMechanismVisuals(ObjectData, Archetype, FTransform::Identity);
-		Door->InitializeGridObject(ObjectData, nullptr, FTransform::Identity);
+		const FGridRuntimeWorldObjectData RuntimeData(ObjectData);
+		Door->InitializeRuntimeMechanismVisuals(RuntimeData, Archetype, FTransform::Identity);
+		Door->InitializeRuntimeWorldObject(RuntimeData, nullptr, FTransform::Identity);
 		return Archetype;
 	}
 }

@@ -157,20 +157,18 @@ bool FGridMonsterMON171SpawnPersistenceContractTest::RunTest(const FString& Para
 	TArray<FGridArchetypeValidationMessage> PaletteMessages;
 	TestTrue(TEXT("Goblin Thrower enters the existing MonsterSpawn palette contract"), Palette->ValidatePalette(PaletteMessages));
 
-	FGridLevelObjectData Spawn;
-	Spawn.ObjectId = FGuid(17, 1, 1, 1);
-	Spawn.Type = EGridLevelObjectType::MonsterSpawn;
+	FGridMonsterSpawnInstance Spawn;
+	Spawn.SpawnId = FGuid(17, 1, 1, 1);
 	Spawn.CellX = 2;
 	Spawn.CellY = 1;
-	Spawn.Edge = EGridEdge::None;
-	Spawn.InitialFacing = EGridEdge::West;
+	Spawn.Facing = EGridEdge::West;
 	Spawn.InitialMonsterState = EGridMonsterState::Dormant;
-	Spawn.MonsterDefinitionAsset = Definition;
-	Spawn.MonsterDefinitionId = Definition->MonsterId;
+	Spawn.MonsterDefinition = Definition;
 	Spawn.bInitiallyEnabled = true;
 
-	const FGuid SpawnId = Level->AddObject(Spawn);
-	const FGridLevelObjectData* StoredSpawn = Level->FindMonsterSpawnById(SpawnId);
+	Level->MonsterSpawns.Add(Spawn);
+	const FGuid SpawnId = Spawn.SpawnId;
+	const FGridMonsterSpawnInstance* StoredSpawn = Level->FindMonsterSpawnInstanceById(SpawnId);
 	TestNotNull(TEXT("Goblin Thrower placement is stored as a generic MonsterSpawn"), StoredSpawn);
 
 	TArray<FString> SpawnErrors;

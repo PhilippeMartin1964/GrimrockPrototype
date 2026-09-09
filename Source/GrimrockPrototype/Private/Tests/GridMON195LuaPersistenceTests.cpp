@@ -54,10 +54,10 @@ namespace
 		Level->LevelVariables = { MakeBoolVariable195(TEXT("Gate"), false), MakeIntVariable195(TEXT("Count"), 10),
 			MakeIntVariable195(TEXT("SessionObserved"), 0) };
 
-		FGridLevelObjectData Source;
-		Source.ObjectId = MON195SourceId;
+		FGridWorldObjectInstance Source;
+		Source.InstanceId = MON195SourceId;
 		Source.Type = EGridLevelObjectType::Trigger;
-		Level->Objects.Add(Source);
+		Level->WorldObjectInstances.Add(Source);
 
 		FGridObjectLink Link;
 		Link.SourceObjectId = MON195SourceId;

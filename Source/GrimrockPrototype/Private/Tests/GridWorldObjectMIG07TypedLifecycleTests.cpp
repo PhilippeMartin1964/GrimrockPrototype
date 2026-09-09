@@ -19,30 +19,27 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 	UGridItemDefinitionAsset* ItemDefinition = NewObject<UGridItemDefinitionAsset>();
 	ItemDefinition->ItemDefinitionId = TEXT("MIG07C_Item");
 
-	FGridLevelObjectData Door;
-	Door.ObjectId = FGuid::NewGuid();
+	FGridWorldObjectInstance Door;
+	Door.InstanceId = FGuid::NewGuid();
 	Door.Type = EGridLevelObjectType::Door;
-	Door.ArchetypeId = TEXT("Door_MIG07C");
+	Door.WorldObjectDefinitionId = TEXT("Door_MIG07C");
 	Door.CellX = 2;
 	Door.CellY = 3;
-	Door.Edge = EGridEdge::North;
-	Door.LocalYaw = 5.0f;
+	Door.WallSide = EGridEdge::North;
 	Door.Tag = TEXT("DoorBefore");
-	Door.Behavior.Transition.bIsTransition = true;
-	Door.Behavior.Transition.TargetLevelId = TEXT("Target_A");
-	Level->Objects.Add(Door);
+	Door.InstanceConfig.Transition.bIsTransition = true;
+	Door.InstanceConfig.Transition.TargetLevelId = TEXT("Target_A");
+	Level->WorldObjectInstances.Add(Door);
 
-	FGridLevelObjectData Item;
-	Item.ObjectId = FGuid::NewGuid();
-	Item.Type = EGridLevelObjectType::Item;
-	Item.ItemDefinitionAsset = ItemDefinition;
+	FGridLooseItemInstance Item;
+	Item.InstanceId = FGuid::NewGuid();
+	Item.ItemDefinition = ItemDefinition;
 	Item.CellX = 4;
 	Item.CellY = 5;
 	Item.Tag = TEXT("ItemBefore");
-	Level->Objects.Add(Item);
+	Level->LooseItemInstances.Add(Item);
 
-	Level->EnableTypedPlacementStorageFromLegacy();
-	TestEqual(TEXT("Explicit historical conversion creates two typed placements"), Level->GetTypedPlacementCount(), 2);
+	TestEqual(TEXT("Native construction creates two typed placements"), Level->GetTypedPlacementCount(), 2);
 	TestEqual(TEXT("Door projects to one world-object instance"), Level->WorldObjectInstances.Num(), 1);
 	TestEqual(TEXT("Item projects to one loose-item instance"), Level->LooseItemInstances.Num(), 1);
 	if (Level->WorldObjectInstances.Num() != 1 || Level->LooseItemInstances.Num() != 1)
@@ -57,46 +54,24 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 	FGridLooseItemInstance& TypedItem = Level->LooseItemInstances[0];
 	TypedItem.Quantity = 6;
 	TypedItem.LocalOffset = FVector(12.0f, -8.0f, 4.0f);
-	Level->RefreshLegacyObjectMirrorFromTyped();
 
-	const FGridLevelObjectData* DoorMirror = Level->Objects.FindByPredicate(
-		[&Door](const FGridLevelObjectData& Object)
-		{
-			return Object.ObjectId == Door.ObjectId;
-		});
-	const FGridLevelObjectData* ItemMirror = Level->Objects.FindByPredicate(
-		[&Item](const FGridLevelObjectData& Object)
-		{
-			return Object.ObjectId == Item.ObjectId;
-		});
-	TestNotNull(TEXT("Door transient read view exists"), DoorMirror);
-	TestNotNull(TEXT("Item transient read view exists"), ItemMirror);
-	if (!DoorMirror || !ItemMirror)
+	FGridWorldObjectInstance* DoorEdit = Level->FindWorldObjectInstanceById(Door.InstanceId);
+	FGridLooseItemInstance* ItemEdit = Level->FindLooseItemInstanceById(Item.InstanceId);
+	TestNotNull(TEXT("Door native edit lookup exists"), DoorEdit);
+	TestNotNull(TEXT("Item native edit lookup exists"), ItemEdit);
+	if (!DoorEdit || !ItemEdit)
 	{
 		return false;
 	}
 
-	FGridLevelObjectData DoorEdit = *DoorMirror;
-	DoorEdit.Tag = TEXT("DoorAfter");
-	DoorEdit.CellX = 8;
-	DoorEdit.LocalYaw = 55.0f;
-	DoorEdit.Behavior.Transition.TargetLevelId = TEXT("Target_B");
-	TestEqual(TEXT("Door snapshot writes directly into typed authority"), Level->AddObject(DoorEdit), Door.ObjectId);
-
-	ItemMirror = Level->Objects.FindByPredicate(
-		[&Item](const FGridLevelObjectData& Object)
-		{
-			return Object.ObjectId == Item.ObjectId;
-		});
-	TestNotNull(TEXT("Item transient view is rebuilt after typed update"), ItemMirror);
-	if (!ItemMirror)
-	{
-		return false;
-	}
-	FGridLevelObjectData ItemEdit = *ItemMirror;
-	ItemEdit.Tag = TEXT("ItemAfter");
-	ItemEdit.CellY = 9;
-	TestEqual(TEXT("Item snapshot writes directly into typed authority"), Level->AddObject(ItemEdit), Item.ObjectId);
+	DoorEdit->Tag = TEXT("DoorAfter");
+	DoorEdit->CellX = 8;
+	FRotator Rotation = DoorEdit->LocalTransformOverride.Rotator();
+	Rotation.Yaw = 55.0f;
+	DoorEdit->LocalTransformOverride.SetRotation(Rotation.Quaternion());
+	DoorEdit->InstanceConfig.Transition.TargetLevelId = TEXT("Target_B");
+	ItemEdit->Tag = TEXT("ItemAfter");
+	ItemEdit->CellY = 9;
 
 	TestEqual(TEXT("Door typed Tag follows direct editor snapshot"), Level->WorldObjectInstances[0].Tag, FName(TEXT("DoorAfter")));
 	TestEqual(TEXT("Door typed CellX follows direct editor snapshot"), Level->WorldObjectInstances[0].CellX, 8);
@@ -113,18 +88,19 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Loose item typed-only quantity survives direct snapshot edit"), Level->LooseItemInstances[0].Quantity, 6);
 	TestTrue(TEXT("Loose item typed-only offset survives direct snapshot edit"), Level->LooseItemInstances[0].LocalOffset.Equals(FVector(12.0f, -8.0f, 4.0f)));
 
-	FGridLevelObjectData AddedItem;
-	AddedItem.Type = EGridLevelObjectType::Item;
-	AddedItem.ItemDefinitionAsset = ItemDefinition;
+	FGridLooseItemInstance AddedItem;
+	AddedItem.ItemDefinition = ItemDefinition;
 	AddedItem.CellX = 10;
 	AddedItem.CellY = 11;
-	const FGuid AddedItemId = Level->AddObject(AddedItem);
-	TestTrue(TEXT("Typed AddObject creates stable id"), AddedItemId.IsValid());
-	TestEqual(TEXT("Typed AddObject writes loose-item collection"), Level->LooseItemInstances.Num(), 2);
-	TestEqual(TEXT("Transient read cache follows typed AddObject"), Level->Objects.Num(), 3);
+	Level->LooseItemInstances.Add(AddedItem);
+	Level->EnsureObjectIds();
+	const FGuid AddedItemId = Level->LooseItemInstances.Last().InstanceId;
+	TestTrue(TEXT("EnsureObjectIds creates stable item id"), AddedItemId.IsValid());
+	TestEqual(TEXT("Native addition writes loose-item collection"), Level->LooseItemInstances.Num(), 2);
+	TestEqual(TEXT("Typed count includes the new item"), Level->GetTypedPlacementCount(), 3);
 
 	FGridObjectLink Link;
-	Link.SourceObjectId = Door.ObjectId;
+	Link.SourceObjectId = Door.InstanceId;
 	Link.TargetObjectId = AddedItemId;
 	Level->Links.Add(Link);
 	TestTrue(TEXT("Typed RemoveObjectById removes placement"), Level->RemoveObjectById(AddedItemId));
@@ -143,7 +119,7 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("ClearLevel clears monster spawns"), Level->MonsterSpawns.Num(), 0);
 	TestEqual(TEXT("ClearLevel clears item spawns"), Level->ItemSpawns.Num(), 0);
 	TestEqual(TEXT("ClearLevel clears logic objects"), Level->LogicObjects.Num(), 0);
-	TestEqual(TEXT("ClearLevel clears transient read cache"), Level->Objects.Num(), 0);
+	TestEqual(TEXT("ClearLevel clears every typed placement"), Level->GetTypedPlacementCount(), 0);
 
 	return true;
 }
@@ -159,11 +135,15 @@ bool FGridWorldObjectMIG07TypedLifecycleSchemaTest::RunTest(const FString& Param
 	const UClass* LevelClass = UGridLevelAsset::StaticClass();
 	TestNull(TEXT("MIG09-E1 removes the serialized authority marker"), LevelClass->FindPropertyByName(TEXT("bTypedPlacementStorageAuthoritative")));
 
-	const FProperty* ObjectsProperty = LevelClass->FindPropertyByName(TEXT("Objects"));
-	TestNotNull(TEXT("E1 transient object cache remains until E2"), ObjectsProperty);
-	if (ObjectsProperty)
+	for (const FName Name : { FName(TEXT("WorldObjectInstances")), FName(TEXT("LooseItemInstances")), FName(TEXT("MonsterSpawns")),
+		FName(TEXT("ItemSpawns")), FName(TEXT("LogicObjects")) })
 	{
-		TestTrue(TEXT("Objects is no longer persistent authoring data"), ObjectsProperty->HasAnyPropertyFlags(CPF_Transient));
+		const FProperty* Property = LevelClass->FindPropertyByName(Name);
+		TestNotNull(*FString::Printf(TEXT("%s is reflected"), *Name.ToString()), Property);
+		if (Property)
+		{
+			TestFalse(TEXT("Typed placements are persistent authoring data"), Property->HasAnyPropertyFlags(CPF_Transient));
+		}
 	}
 	return true;
 }

@@ -108,17 +108,14 @@ namespace GridMonsterMON20102DeadRestoreOccupancy
 		return Definition;
 	}
 
-	FGridLevelObjectData MakeSpawn(UGridMonsterDefinitionAsset* Definition, const FGuid& SpawnId, FIntPoint Cell)
+	FGridMonsterSpawnInstance MakeSpawn(UGridMonsterDefinitionAsset* Definition, const FGuid& SpawnId, FIntPoint Cell)
 	{
-		FGridLevelObjectData Spawn;
-		Spawn.ObjectId = SpawnId;
-		Spawn.Type = EGridLevelObjectType::MonsterSpawn;
+		FGridMonsterSpawnInstance Spawn;
+		Spawn.SpawnId = SpawnId;
 		Spawn.CellX = Cell.X;
 		Spawn.CellY = Cell.Y;
-		Spawn.Edge = EGridEdge::None;
-		Spawn.InitialFacing = EGridEdge::North;
-		Spawn.MonsterDefinitionAsset = Definition;
-		Spawn.MonsterDefinitionId = Definition ? Definition->MonsterId : NAME_None;
+		Spawn.Facing = EGridEdge::North;
+		Spawn.MonsterDefinition = Definition;
 		Spawn.EncounterGroupId = TEXT("MON20102_Encounter");
 		Spawn.bInitiallyEnabled = true;
 		return Spawn;
@@ -208,7 +205,7 @@ bool FGridMonsterMON20102DeadRestoreOverPartyCellTest::RunTest(const FString& Pa
 
 	const FGuid SpawnId(20, 10, 2, 1);
 	const FIntPoint SharedCell(2, 2);
-	Level->Objects.Add(MakeSpawn(Definition, SpawnId, SharedCell));
+	Level->MonsterSpawns.Add(MakeSpawn(Definition, SpawnId, SharedCell));
 	InstallRestoreState(Runtime, SpawnId, MakeRestoreState(SpawnId, Definition->MonsterId, SharedCell, true));
 
 	AGrimrockPartyPawn* Party = SpawnParty(TestWorld.World, Runtime, SharedCell);
@@ -268,7 +265,7 @@ bool FGridMonsterMON20102LivingRestoreStillRejectsPartyCellTest::RunTest(const F
 
 	const FGuid SpawnId(20, 10, 2, 2);
 	const FIntPoint SharedCell(1, 2);
-	Level->Objects.Add(MakeSpawn(Definition, SpawnId, SharedCell));
+	Level->MonsterSpawns.Add(MakeSpawn(Definition, SpawnId, SharedCell));
 	InstallRestoreState(Runtime, SpawnId, MakeRestoreState(SpawnId, Definition->MonsterId, SharedCell, false));
 
 	if (!SpawnParty(TestWorld.World, Runtime, SharedCell))

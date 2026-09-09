@@ -36,7 +36,7 @@ bool FGridWorldObjectMIG09SparseMarkerPurgeTest::RunTest(const FString& Paramete
 	LooseItem.InstanceId = FGuid::NewGuid();
 	TestFalse(TEXT("Loose items are not reusable world-object sparse behavior instances"), Level->UsesSparseBehaviorOverrides(LooseItem.InstanceId));
 
-	TestEqual(TEXT("MIG09-E1 does not require the transient compatibility cache for sparse-behavior classification"), Level->Objects.Num(), 0);
+	TestEqual(TEXT("Sparse classification preserves the native placement count"), Level->GetTypedPlacementCount(), 2);
 
 	return true;
 }

@@ -149,10 +149,10 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 		Cell.CellType = EGridCellType::Floor;
 		Cell.bBlocksOccupancy = false;
 	}
-	FGridLevelObjectData DefinitionLookup;
-	DefinitionLookup.Type = EGridLevelObjectType::Item;
-	DefinitionLookup.ItemDefinitionAsset = Definition;
-	LevelAsset->Objects.Add(DefinitionLookup);
+	FGridLooseItemInstance DefinitionLookup;
+	DefinitionLookup.InstanceId = FGuid::NewGuid();
+	DefinitionLookup.ItemDefinition = Definition;
+	LevelAsset->LooseItemInstances.Add(DefinitionLookup);
 	Runtime->LevelAsset = LevelAsset;
 
 	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
@@ -356,15 +356,13 @@ bool FGridMON1142PlacedItemRebuildUniquenessTest::RunTest(const FString& Paramet
 	Definition->WorldMesh = NewObject<UStaticMesh>(Runtime);
 
 	const FGuid PlacedObjectId = FGuid::NewGuid();
-	FGridLevelObjectData PlacedItem;
-	PlacedItem.ObjectId = PlacedObjectId;
-	PlacedItem.Type = EGridLevelObjectType::Item;
+	FGridLooseItemInstance PlacedItem;
+	PlacedItem.InstanceId = PlacedObjectId;
 	PlacedItem.CellX = 0;
 	PlacedItem.CellY = 0;
 	PlacedItem.bInitiallyEnabled = true;
-	PlacedItem.ItemDefinitionAsset = Definition;
-	PlacedItem.ItemDefinitionId = Definition->ItemDefinitionId;
-	LevelAsset->Objects.Add(PlacedItem);
+	PlacedItem.ItemDefinition = Definition;
+	LevelAsset->LooseItemInstances.Add(PlacedItem);
 	Runtime->LevelAsset = LevelAsset;
 
 	const auto CountLivePlacedItems = [&TestWorld, &PlacedObjectId]()

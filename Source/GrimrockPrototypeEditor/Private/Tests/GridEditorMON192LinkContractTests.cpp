@@ -9,13 +9,6 @@
 
 namespace
 {
-	FGridLevelObjectData MakeObject(EGridLevelObjectType Type)
-	{
-		FGridLevelObjectData Object;
-		Object.Type = Type;
-		return Object;
-	}
-
 	template <typename TEnum> bool ContainsExactly(const TArray<TEnum>& Actual, std::initializer_list<TEnum> Expected)
 	{
 		if (Actual.Num() != static_cast<int32>(Expected.size()))
@@ -42,15 +35,15 @@ bool FGridEditorMON192LinkPolicyMatrixTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	const FGridLevelObjectData Button = MakeObject(EGridLevelObjectType::Button);
-	const FGridLevelObjectData Lever = MakeObject(EGridLevelObjectType::Lever);
-	const FGridLevelObjectData PressurePlate = MakeObject(EGridLevelObjectType::PressurePlate);
-	const FGridLevelObjectData Trigger = MakeObject(EGridLevelObjectType::Trigger);
-	const FGridLevelObjectData Receptacle = MakeObject(EGridLevelObjectType::Receptacle);
-	const FGridLevelObjectData MonsterSpawn = MakeObject(EGridLevelObjectType::MonsterSpawn);
-	const FGridLevelObjectData Door = MakeObject(EGridLevelObjectType::Door);
-	const FGridLevelObjectData Teleporter = MakeObject(EGridLevelObjectType::Teleporter);
-	const FGridLevelObjectData Light = MakeObject(EGridLevelObjectType::Light);
+	const EGridLevelObjectType Button = EGridLevelObjectType::Button;
+	const EGridLevelObjectType Lever = EGridLevelObjectType::Lever;
+	const EGridLevelObjectType PressurePlate = EGridLevelObjectType::PressurePlate;
+	const EGridLevelObjectType Trigger = EGridLevelObjectType::Trigger;
+	const EGridLevelObjectType Receptacle = EGridLevelObjectType::Receptacle;
+	const EGridLevelObjectType MonsterSpawn = EGridLevelObjectType::MonsterSpawn;
+	const EGridLevelObjectType Door = EGridLevelObjectType::Door;
+	const EGridLevelObjectType Teleporter = EGridLevelObjectType::Teleporter;
+	const EGridLevelObjectType Light = EGridLevelObjectType::Light;
 
 	TestTrue(
 		TEXT("Button emits exactly Activated"), ContainsExactly(GridEditorLinkPolicy::GetSupportedEventsForSource(Button), { EGridObjectEvent::Activated }));
@@ -86,39 +79,39 @@ bool FGridEditorMON192LinkPolicyMatrixTest::RunTest(const FString& Parameters)
 	for (const EGridObjectCommand Command : DoorCommands)
 	{
 		TestTrue(TEXT("Every official Door command has real gameplay support"),
-			GridEditorLinkPolicy::GetCommandRuntimeSupport(Door, Command) == EGridEditorCommandRuntimeSupport::Gameplay);
+			GridEditorLinkPolicy::GetCommandRuntimeSupport(Door, EGridLogicNodeType::Relay, Command) == EGridEditorCommandRuntimeSupport::Gameplay);
 	}
 
 	for (const EGridObjectCommand Command : ReceptacleCommands)
 	{
 		TestTrue(TEXT("Every official Receptacle command has real gameplay support"),
-			GridEditorLinkPolicy::GetCommandRuntimeSupport(Receptacle, Command) == EGridEditorCommandRuntimeSupport::Gameplay);
+			GridEditorLinkPolicy::GetCommandRuntimeSupport(Receptacle, EGridLogicNodeType::Relay, Command) == EGridEditorCommandRuntimeSupport::Gameplay);
 	}
 
 	for (const EGridObjectCommand Command : MonsterCommands)
 	{
 		TestTrue(TEXT("Every official MonsterSpawn command has real gameplay support"),
-			GridEditorLinkPolicy::GetCommandRuntimeSupport(MonsterSpawn, Command) == EGridEditorCommandRuntimeSupport::Gameplay);
+			GridEditorLinkPolicy::GetCommandRuntimeSupport(MonsterSpawn, EGridLogicNodeType::Relay, Command) == EGridEditorCommandRuntimeSupport::Gameplay);
 	}
 
 	for (const EGridObjectCommand Command : GridEditorLinkPolicy::GetSupportedCommandsForTarget(Teleporter))
 	{
 		TestTrue(TEXT("Teleporter connector commands are explicitly classified StateOnly"),
-			GridEditorLinkPolicy::GetCommandRuntimeSupport(Teleporter, Command) == EGridEditorCommandRuntimeSupport::StateOnly);
+			GridEditorLinkPolicy::GetCommandRuntimeSupport(Teleporter, EGridLogicNodeType::Relay, Command) == EGridEditorCommandRuntimeSupport::StateOnly);
 	}
 
 	for (const EGridObjectCommand Command : GridEditorLinkPolicy::GetSupportedCommandsForTarget(Light))
 	{
 		TestTrue(TEXT("Light connector commands are explicitly classified StateOnly"),
-			GridEditorLinkPolicy::GetCommandRuntimeSupport(Light, Command) == EGridEditorCommandRuntimeSupport::StateOnly);
+			GridEditorLinkPolicy::GetCommandRuntimeSupport(Light, EGridLogicNodeType::Relay, Command) == EGridEditorCommandRuntimeSupport::StateOnly);
 	}
 
 	TestTrue(TEXT("Lever generic activation has real runtime behavior"),
-		GridEditorLinkPolicy::GetCommandRuntimeSupport(Lever, EGridObjectCommand::Activate) == EGridEditorCommandRuntimeSupport::Gameplay);
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(Lever, EGridLogicNodeType::Relay, EGridObjectCommand::Activate) == EGridEditorCommandRuntimeSupport::Gameplay);
 	TestTrue(TEXT("PressurePlate generic Toggle has real runtime behavior"),
-		GridEditorLinkPolicy::GetCommandRuntimeSupport(PressurePlate, EGridObjectCommand::Toggle) == EGridEditorCommandRuntimeSupport::Gameplay);
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(PressurePlate, EGridLogicNodeType::Relay, EGridObjectCommand::Toggle) == EGridEditorCommandRuntimeSupport::Gameplay);
 	TestTrue(TEXT("Unsupported command remains distinguishable"),
-		GridEditorLinkPolicy::GetCommandRuntimeSupport(Door, EGridObjectCommand::ShowMessage) == EGridEditorCommandRuntimeSupport::Unsupported);
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(Door, EGridLogicNodeType::Relay, EGridObjectCommand::ShowMessage) == EGridEditorCommandRuntimeSupport::Unsupported);
 
 	const TArray<EGridObjectCondition> ReceptacleConditions = GridEditorLinkPolicy::GetSupportedConditionsForTarget(Receptacle);
 	TestTrue(TEXT("Receptacle exposes its eight historical conditions plus two level-variable conditions"),

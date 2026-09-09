@@ -75,35 +75,26 @@ namespace
 		return Level;
 	}
 
-	FGridLevelObjectData MakeDoor(FIntPoint Cell, EGridEdge Edge, FName ArchetypeId)
+	FGridWorldObjectInstance MakeDoor(FIntPoint Cell, EGridEdge Edge, FName ArchetypeId)
 	{
-		FGridLevelObjectData Door;
-		Door.ObjectId = FGuid::NewGuid();
+		FGridWorldObjectInstance Door;
+		Door.InstanceId = FGuid::NewGuid();
 		Door.Type = EGridLevelObjectType::Door;
 		Door.CellX = Cell.X;
 		Door.CellY = Cell.Y;
-		Door.Edge = Edge;
-		Door.ArchetypeId = ArchetypeId;
+		Door.WallSide = Edge;
+		Door.WorldObjectDefinitionId = ArchetypeId;
 		Door.bInitiallyEnabled = true;
 		Door.bInitiallyActive = false;
 		return Door;
 	}
 
-	void AddDoorPlacement(UGridLevelAsset& Level, const FGridLevelObjectData& Data)
+	void AddDoorPlacement(UGridLevelAsset& Level, const FGridWorldObjectInstance& Data)
 	{
-		FGridWorldObjectInstance Door;
-		Door.InstanceId = Data.ObjectId;
-		Door.WorldObjectDefinitionId = Data.ArchetypeId;
-		Door.Type = Data.Type;
-		Door.CellX = Data.CellX;
-		Door.CellY = Data.CellY;
-		Door.WallSide = Data.Edge;
-		Door.bInitiallyEnabled = Data.bInitiallyEnabled;
-		Door.bInitiallyActive = Data.bInitiallyActive;
-		Level.WorldObjectInstances.Add(Door);
+		Level.WorldObjectInstances.Add(Data);
 	}
 
-	AGridDoorActor* RegisterDoor(UWorld* World, UGridDoorSystemComponent* Doors, const FGridLevelObjectData& Data, UClass* DoorClass)
+	AGridDoorActor* RegisterDoor(UWorld* World, UGridDoorSystemComponent* Doors, const FGridWorldObjectInstance& Data, UClass* DoorClass)
 	{
 		AGridDoorActor* Door = World ? World->SpawnActor<AGridDoorActor>(DoorClass) : nullptr;
 		if (!Door || !Doors)
@@ -111,7 +102,7 @@ namespace
 			return nullptr;
 		}
 		GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, World, 1.0f, 180.0f);
-		Doors->RegisterDoorObject(Data, Door);
+		Doors->RegisterDoorObject(FGridRuntimeWorldObjectData(Data), Door);
 		return Door;
 	}
 }
@@ -202,7 +193,7 @@ bool FGridMonsterAcousticHearingTest::RunTest(const FString& Parameters)
 	}
 	Doors->Initialize(Runtime);
 
-	FGridLevelObjectData NormalDoorData = MakeDoor(FIntPoint(1, 1), EGridEdge::East, TEXT("Door_Wood"));
+	FGridWorldObjectInstance NormalDoorData = MakeDoor(FIntPoint(1, 1), EGridEdge::East, TEXT("Door_Wood"));
 	AddDoorPlacement(*Level, NormalDoorData);
 	Doors->RebuildIndexes();
 	TestNotNull(TEXT("Normal door registers"), RegisterDoor(TestWorld.World, Doors, NormalDoorData, AGridDoorActor::StaticClass()));
@@ -217,14 +208,14 @@ bool FGridMonsterAcousticHearingTest::RunTest(const FString& Parameters)
 
 	Level->GetCellMutable(3, 1).EastWall = EGridWallType::Solid;
 	Level->GetCellMutable(4, 1).WestWall = EGridWallType::Solid;
-	FGridLevelObjectData SecretDoorData = MakeDoor(FIntPoint(3, 1), EGridEdge::East, TEXT("Door_Secret"));
+	FGridWorldObjectInstance SecretDoorData = MakeDoor(FIntPoint(3, 1), EGridEdge::East, TEXT("Door_Secret"));
 	AddDoorPlacement(*Level, SecretDoorData);
 	Doors->RebuildIndexes();
 	TestNotNull(TEXT("Secret door registers"), RegisterDoor(TestWorld.World, Doors, SecretDoorData, AGridSecretDoorActor::StaticClass()));
 	TestTrue(TEXT("Secret door is identified"), Doors->IsSecretDoorOnEdge(3, 1, EGridEdge::East));
 	TestFalse(TEXT("A closed secret door blocks sound"), Runtime->CanSoundTraverse(3, 1, EGridEdge::East));
 
-	TestTrue(TEXT("Secret door state can be restored open"), Doors->ApplyDoorState(SecretDoorData.ObjectId, true, false));
+	TestTrue(TEXT("Secret door state can be restored open"), Doors->ApplyDoorState(SecretDoorData.InstanceId, true, false));
 	TestTrue(TEXT("A fully open secret door transmits sound"), Runtime->CanSoundTraverse(3, 1, EGridEdge::East));
 
 	return true;

@@ -11,18 +11,6 @@
 
 namespace
 {
-	FGridLevelObjectData MakeTD013Object(EGridLevelObjectType Type, int32 CellX = 0, int32 CellY = 0)
-	{
-		FGridLevelObjectData Object;
-		Object.ObjectId = FGuid::NewGuid();
-		Object.Type = Type;
-		Object.CellX = CellX;
-		Object.CellY = CellY;
-		Object.Edge = EGridEdge::None;
-		Object.bInitiallyEnabled = true;
-		return Object;
-	}
-
 	FGridObjectLink MakeTD013Link(FGuid SourceId, FGuid TargetId, EGridObjectCommand Command)
 	{
 		FGridObjectLink Link;
@@ -55,12 +43,12 @@ bool FGridTD013EventCommandPolicyTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	const FGridLevelObjectData Teleporter = MakeTD013Object(EGridLevelObjectType::Teleporter);
-	const FGridLevelObjectData Light = MakeTD013Object(EGridLevelObjectType::Light);
-	const FGridLevelObjectData ItemSpawn = MakeTD013Object(EGridLevelObjectType::ItemSpawn);
-	const FGridLevelObjectData Logic = MakeTD013Object(EGridLevelObjectType::Logic);
-	const FGridLevelObjectData StoryCompanion = MakeTD013Object(EGridLevelObjectType::StoryCompanion);
-	const FGridLevelObjectData CustomRecruiter = MakeTD013Object(EGridLevelObjectType::CustomRecruiter);
+	const EGridLevelObjectType Teleporter = EGridLevelObjectType::Teleporter;
+	const EGridLevelObjectType Light = EGridLevelObjectType::Light;
+	const EGridLevelObjectType ItemSpawn = EGridLevelObjectType::ItemSpawn;
+	const EGridLevelObjectType Logic = EGridLevelObjectType::Logic;
+	const EGridLevelObjectType StoryCompanion = EGridLevelObjectType::StoryCompanion;
+	const EGridLevelObjectType CustomRecruiter = EGridLevelObjectType::CustomRecruiter;
 
 	TestFalse(
 		TEXT("Teleporter is not an authorable command target until specialized gameplay exists"), GridEditorLinkPolicy::CanObjectReceiveCommands(Teleporter));
@@ -68,18 +56,18 @@ bool FGridTD013EventCommandPolicyTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("ItemSpawn is not an authorable command target until commanded spawning exists"), GridEditorLinkPolicy::CanObjectReceiveCommands(ItemSpawn));
 
 	TestTrue(TEXT("Teleporter legacy activation remains classified StateOnly"),
-		GridEditorLinkPolicy::GetCommandRuntimeSupport(Teleporter, EGridObjectCommand::Activate) == EGridEditorCommandRuntimeSupport::StateOnly);
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(Teleporter, EGridLogicNodeType::Relay, EGridObjectCommand::Activate) == EGridEditorCommandRuntimeSupport::StateOnly);
 	TestTrue(TEXT("Light legacy activation remains classified StateOnly"),
-		GridEditorLinkPolicy::GetCommandRuntimeSupport(Light, EGridObjectCommand::Activate) == EGridEditorCommandRuntimeSupport::StateOnly);
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(Light, EGridLogicNodeType::Relay, EGridObjectCommand::Activate) == EGridEditorCommandRuntimeSupport::StateOnly);
 	TestTrue(TEXT("ItemSpawn legacy activation remains classified StateOnly"),
-		GridEditorLinkPolicy::GetCommandRuntimeSupport(ItemSpawn, EGridObjectCommand::Activate) == EGridEditorCommandRuntimeSupport::StateOnly);
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(ItemSpawn, EGridLogicNodeType::Relay, EGridObjectCommand::Activate) == EGridEditorCommandRuntimeSupport::StateOnly);
 
 	TestTrue(TEXT("LogicExecute remains real gameplay"),
-		GridEditorLinkPolicy::GetCommandRuntimeSupport(Logic, EGridObjectCommand::LogicExecute) == EGridEditorCommandRuntimeSupport::Gameplay);
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(Logic, EGridLogicNodeType::Relay, EGridObjectCommand::LogicExecute) == EGridEditorCommandRuntimeSupport::Gameplay);
 	TestTrue(TEXT("OfferRecruitment remains real gameplay"),
-		GridEditorLinkPolicy::GetCommandRuntimeSupport(StoryCompanion, EGridObjectCommand::OfferRecruitment) == EGridEditorCommandRuntimeSupport::Gameplay);
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(StoryCompanion, EGridLogicNodeType::Relay, EGridObjectCommand::OfferRecruitment) == EGridEditorCommandRuntimeSupport::Gameplay);
 	TestTrue(TEXT("OpenCustomRecruit remains real gameplay"),
-		GridEditorLinkPolicy::GetCommandRuntimeSupport(CustomRecruiter, EGridObjectCommand::OpenCustomRecruit) == EGridEditorCommandRuntimeSupport::Gameplay);
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(CustomRecruiter, EGridLogicNodeType::Relay, EGridObjectCommand::OpenCustomRecruit) == EGridEditorCommandRuntimeSupport::Gameplay);
 
 	return true;
 }

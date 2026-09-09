@@ -80,12 +80,12 @@ bool FGridMON2044RecruitmentEventCommandContractTest::RunTest(const FString& Par
 			static_cast<int64>(EGridLevelObjectType::StoryCompanion));
 	}
 
-	UScriptStruct* ObjectDataStruct = FGridLevelObjectData::StaticStruct();
+	UScriptStruct* ObjectDataStruct = FGridLogicObjectInstance::StaticStruct();
 	TestNotNull(TEXT("Grid level object struct exists"), ObjectDataStruct);
 	if (ObjectDataStruct)
 	{
 		TestNotNull(TEXT("Story companion definition is part of level object data"),
-			ObjectDataStruct->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FGridLevelObjectData, StoryCompanionDefinition)));
+			ObjectDataStruct->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FGridLogicObjectInstance, StoryCompanionDefinition)));
 	}
 
 	return true;
@@ -121,17 +121,17 @@ bool FGridMON2044RecruitmentMissingDefinitionTest::RunTest(const FString& Parame
 	Level->Cells[0].CellType = EGridCellType::Floor;
 
 	const FGuid SourceId(20, 4, 4, 1);
-	FGridLevelObjectData Source;
-	Source.ObjectId = SourceId;
+	FGridWorldObjectInstance Source;
+	Source.InstanceId = SourceId;
 	Source.Type = EGridLevelObjectType::Trigger;
-	Level->Objects.Add(Source);
+	Level->WorldObjectInstances.Add(Source);
 
 	const FGuid CompanionId(20, 4, 4, 2);
-	FGridLevelObjectData Companion;
-	Companion.ObjectId = CompanionId;
+	FGridLogicObjectInstance Companion;
+	Companion.InstanceId = CompanionId;
 	Companion.Type = EGridLevelObjectType::StoryCompanion;
 	Companion.StoryCompanionDefinition = nullptr;
-	Level->Objects.Add(Companion);
+	Level->LogicObjects.Add(Companion);
 
 	FGridObjectLink Link;
 	Link.SourceObjectId = SourceId;

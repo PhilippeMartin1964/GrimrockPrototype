@@ -12,17 +12,15 @@ bool FGridEditorMON2055CustomRecruitLinkPolicyTest::RunTest(const FString& Param
 {
 	(void)Parameters;
 
-	FGridLevelObjectData Recruiter;
-	Recruiter.ObjectId = FGuid(20, 5, 5, 100);
-	Recruiter.Type = EGridLevelObjectType::CustomRecruiter;
+	const EGridLevelObjectType Recruiter = EGridLevelObjectType::CustomRecruiter;
 
 	const TArray<EGridObjectCommand> Commands = GridEditorLinkPolicy::GetSupportedCommandsForTarget(Recruiter);
 	TestEqual(TEXT("Custom recruiter exposes exactly one target command"), Commands.Num(), 1);
 	TestTrue(TEXT("Custom recruiter exposes OpenCustomRecruit"), Commands.Contains(EGridObjectCommand::OpenCustomRecruit));
 	TestTrue(TEXT("OpenCustomRecruit has Gameplay runtime support"),
-		GridEditorLinkPolicy::GetCommandRuntimeSupport(Recruiter, EGridObjectCommand::OpenCustomRecruit) == EGridEditorCommandRuntimeSupport::Gameplay);
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(Recruiter, EGridLogicNodeType::Relay, EGridObjectCommand::OpenCustomRecruit) == EGridEditorCommandRuntimeSupport::Gameplay);
 	TestTrue(TEXT("Custom recruiter rejects generic Toggle"),
-		GridEditorLinkPolicy::GetCommandRuntimeSupport(Recruiter, EGridObjectCommand::Toggle) == EGridEditorCommandRuntimeSupport::Unsupported);
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(Recruiter, EGridLogicNodeType::Relay, EGridObjectCommand::Toggle) == EGridEditorCommandRuntimeSupport::Unsupported);
 	TestTrue(TEXT("Custom recruiter can receive editor links"), GridEditorLinkPolicy::CanObjectReceiveCommands(Recruiter));
 	TestFalse(TEXT("Custom recruiter is a target only and emits no events"), GridEditorLinkPolicy::CanObjectEmitEvents(Recruiter));
 

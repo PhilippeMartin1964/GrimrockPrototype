@@ -163,21 +163,18 @@ namespace
 			}
 
 			const FGuid StableId = FGuid::NewGuid();
-			FGridLevelObjectData Spawn;
-			Spawn.ObjectId = StableId;
-			Spawn.Type = EGridLevelObjectType::MonsterSpawn;
+			FGridMonsterSpawnInstance Spawn;
+			Spawn.SpawnId = StableId;
 			Spawn.CellX = Cell.X;
 			Spawn.CellY = Cell.Y;
-			Spawn.Edge = EGridEdge::None;
-			Spawn.InitialFacing = Facing;
+			Spawn.Facing = Facing;
 			Spawn.InitialMonsterState = InitialState;
-			Spawn.MonsterDefinitionAsset = Definition;
-			Spawn.MonsterDefinitionId = Definition->MonsterId;
+			Spawn.MonsterDefinition = Definition;
 			Spawn.EncounterGroupId = EncounterGroupId;
 			Spawn.PatrolMode = PatrolMode;
 			Spawn.PatrolWaypoints = Waypoints;
 			Spawn.bInitiallyEnabled = true;
-			Level->Objects.Add(Spawn);
+			Level->MonsterSpawns.Add(Spawn);
 
 			FActorSpawnParameters Params;
 			Params.Owner = Runtime;

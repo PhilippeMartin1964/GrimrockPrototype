@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridLevelAsset.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
@@ -33,7 +34,13 @@ bool FGridTD0736LegacyPlacementMirrorsTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	TestNotNull(TEXT("PlacementKind current authority exists"), ArchetypeClass->FindPropertyByName(TEXT("PlacementKind")));
+	// MIG01/MIG09: the surface is authored; the old placement kind is only a transient runtime projection.
+	const FProperty* SurfaceProperty = ArchetypeClass->FindPropertyByName(TEXT("PlacementSurface"));
+	const FProperty* KindProperty = ArchetypeClass->FindPropertyByName(TEXT("PlacementKind"));
+	TestTrue(TEXT("PlacementSurface is editable and persistent"),
+		SurfaceProperty && SurfaceProperty->HasAnyPropertyFlags(CPF_Edit) && !SurfaceProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("PlacementKind is transient and is not editable"),
+		KindProperty && KindProperty->HasAnyPropertyFlags(CPF_Transient) && !KindProperty->HasAnyPropertyFlags(CPF_Edit));
 	TestNull(TEXT("Legacy bPlaceOnEdge mirror is removed"), ArchetypeClass->FindPropertyByName(TEXT("bPlaceOnEdge")));
 	TestNull(TEXT("Legacy bPlaceAtCellCenter mirror is removed"), ArchetypeClass->FindPropertyByName(TEXT("bPlaceAtCellCenter")));
 
@@ -45,15 +52,49 @@ bool FGridTD0736LegacyPlacementMirrorsTest::RunTest(const FString& Parameters)
 		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Core/GridObjectArchetypeAsset.cpp"), ValidationSource));
 	TestTrue(TEXT("Grid editor core-dungeon source loads"),
 		LoadProjectFile(
-			TEXT("Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEditorActorParts/CoreDungeon/GridLevelEditorActor_CoreDungeon_03.inl"),
+			TEXT("Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEditorActorParts/CoreDungeon/GridLevelEditorActor_CoreDungeon_07.inl"),
 			EditorSource));
 
 	TestTrue(
-		TEXT("PlacementKind is documented as current source of truth"), HeaderSource.Contains(TEXT("Current source of truth for editor/runtime placement")));
+		TEXT("PlacementSurface is documented as current source of truth"), HeaderSource.Contains(TEXT("Current source of truth for editor/runtime placement")));
 	TestFalse(
 		TEXT("Legacy mirror validation is removed"), ValidationSource.Contains(TEXT("bPlaceOnEdge")) || ValidationSource.Contains(TEXT("bPlaceAtCellCenter")));
-	TestTrue(TEXT("Current editor authoring explicitly sets PlacementKind"),
-		EditorSource.Contains(TEXT("Archetype.PlacementKind = EGridObjectPlacementKind::Floor")));
+	TestTrue(TEXT("Current editor authoring sets the surface and refreshes its runtime projection"),
+		EditorSource.Contains(TEXT("Archetype.PlacementSurface = EGridObjectPlacementKind::Floor")) &&
+		EditorSource.Contains(TEXT("Archetype.RefreshPlacementRuntimeProjection()")));
+
+	UGridObjectArchetypeAsset* Definition = NewObject<UGridObjectArchetypeAsset>();
+	Definition->ArchetypeId = TEXT("TD0736_WallPlacement");
+	Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
+	Definition->RefreshPlacementRuntimeProjection();
+	TestTrue(TEXT("Authored wall surface projects to edge placement"), Definition->IsEdgePlaced());
+	UGridLevelAsset* Level = NewObject<UGridLevelAsset>();
+	FGridWorldObjectInstance Instance;
+	Instance.InstanceId = FGuid::NewGuid();
+	Instance.Type = EGridLevelObjectType::Decoration;
+	Instance.WorldObjectDefinitionId = Definition->ArchetypeId;
+	Instance.CellX = 1;
+	Instance.CellY = 2;
+	Instance.WallSide = EGridEdge::East;
+	Instance.bHasLocalTransformOverride = true;
+	Instance.LocalTransformOverride = FTransform(FRotator(0.f, 30.f, 0.f), FVector(10.f, 20.f, 40.f));
+	Level->WorldObjectInstances.Add(Instance);
+	const FGridWorldObjectInstance* Stored = Level->FindWorldObjectInstanceById(Instance.InstanceId);
+	if (!TestNotNull(TEXT("Native collection owns the placed instance"), Stored))
+	{
+		return false;
+	}
+	int32 CellX = INDEX_NONE;
+	int32 CellY = INDEX_NONE;
+	EGridEdge Edge = EGridEdge::None;
+	TestTrue(TEXT("Native location lookup succeeds"), Level->TryGetTypedPlacementLocation(Instance.InstanceId, CellX, CellY, Edge));
+	TestEqual(TEXT("Cell X is preserved"), CellX, 1);
+	TestEqual(TEXT("Cell Y is preserved"), CellY, 2);
+	TestEqual(TEXT("Wall side is preserved"), Edge, EGridEdge::East);
+	TestEqual(TEXT("Definition identity is preserved"), Stored->WorldObjectDefinitionId, Definition->ArchetypeId);
+	TestTrue(TEXT("Explicit local transform is preserved"),
+		Stored->bHasLocalTransformOverride && Stored->LocalTransformOverride.Equals(Instance.LocalTransformOverride));
+	TestEqual(TEXT("The native instance is counted exactly once"), Level->GetTypedPlacementCount(), 1);
 	return true;
 }
 
@@ -65,15 +106,15 @@ bool FGridTD0736MonsterSpawnYawFallbackTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	using namespace GridTD0736Characterization;
 
-	UScriptStruct* ObjectStruct = FGridLevelObjectData::StaticStruct();
+	UScriptStruct* ObjectStruct = FGridMonsterSpawnInstance::StaticStruct();
 	TestNotNull(TEXT("Grid level object struct exists"), ObjectStruct);
 	if (!ObjectStruct)
 	{
 		return false;
 	}
 
-	TestNotNull(TEXT("Current InitialFacing field exists"), ObjectStruct->FindPropertyByName(TEXT("InitialFacing")));
-	TestNotNull(TEXT("Generic LocalYaw field exists"), ObjectStruct->FindPropertyByName(TEXT("LocalYaw")));
+	TestNotNull(TEXT("Typed Facing field exists"), ObjectStruct->FindPropertyByName(TEXT("Facing")));
+	TestNull(TEXT("Monster placement has no redundant yaw mirror"), ObjectStruct->FindPropertyByName(TEXT("LocalYaw")));
 
 	FString LevelAssetSource;
 	FString AuditSource;
@@ -84,8 +125,9 @@ bool FGridTD0736MonsterSpawnYawFallbackTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Legacy yaw converter is removed"), LevelAssetSource.Contains(TEXT("GetFacingForLegacyYaw")));
 	TestFalse(TEXT("InitialFacing is never reconstructed from LocalYaw"),
 		LevelAssetSource.Contains(TEXT("ObjectData.InitialFacing = GetFacingForLegacyYaw(ObjectData.LocalYaw)")));
-	TestTrue(TEXT("InitialFacing then rewrites the preview LocalYaw mirror"),
-		LevelAssetSource.Contains(TEXT("ObjectData.LocalYaw = GetYawForFacing(ObjectData.InitialFacing)")));
+	FGridMonsterSpawnInstance Spawn;
+	Spawn.Facing = EGridEdge::West;
+	TestEqual(TEXT("Typed facing is the sole persisted monster orientation"), Spawn.Facing, EGridEdge::West);
 	TestFalse(TEXT("TD07.3.1 legacy MonsterSpawn facing findings are removed"),
 		AuditSource.Contains(TEXT("MONSTERSPAWN.LEGACY_YAW_FACING")) || AuditSource.Contains(TEXT("MONSTERSPAWN.FACING_YAW_MISMATCH")));
 	return true;

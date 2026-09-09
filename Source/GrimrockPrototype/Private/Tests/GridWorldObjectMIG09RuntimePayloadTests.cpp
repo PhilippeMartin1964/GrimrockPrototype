@@ -58,19 +58,10 @@ bool FGridWorldObjectMIG09RuntimePayloadTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Instance-owned Pit state overrides Definition"), Resolved.Pit.bInitiallyOpen);
 	TestTrue(TEXT("Instance-owned lock initial state overrides Definition"), Resolved.Lock.bStartsUnlocked);
 
-	FGridLevelObjectData LegacySnapshot;
-	LegacySnapshot.ObjectId = Instance.InstanceId;
-	LegacySnapshot.ArchetypeId = Instance.WorldObjectDefinitionId;
-	LegacySnapshot.Type = Instance.Type;
-	LegacySnapshot.CellX = Instance.CellX;
-	LegacySnapshot.CellY = Instance.CellY;
-	LegacySnapshot.Edge = Instance.WallSide;
-	LegacySnapshot.bInitiallyActive = true;
-	LegacySnapshot.Behavior.Pit.bInitiallyOpen = false;
-	const FGridRuntimeWorldObjectData BridgedData = LegacySnapshot;
-	TestEqual(TEXT("Temporary E2 legacy bridge preserves ObjectId"), BridgedData.ObjectId, LegacySnapshot.ObjectId);
-	TestEqual(TEXT("Temporary E2 legacy bridge preserves ArchetypeId"), BridgedData.ArchetypeId, LegacySnapshot.ArchetypeId);
-	TestFalse(TEXT("Temporary E2 legacy bridge preserves behavior snapshot"), BridgedData.Behavior.Pit.bInitiallyOpen);
+	const FGridObjectBehaviorParams NativeResolved = GridObjectInstanceBehavior::Resolve(Instance, Definition);
+	TestEqual(TEXT("Runtime boundary preserves native shared behavior"), Resolved.ButtonAnimation.ButtonHoldTime, NativeResolved.ButtonAnimation.ButtonHoldTime);
+	TestEqual(TEXT("Runtime boundary preserves native Pit override"), Resolved.Pit.bInitiallyOpen, NativeResolved.Pit.bInitiallyOpen);
+	TestEqual(TEXT("Runtime boundary preserves native lock override"), Resolved.Lock.bStartsUnlocked, NativeResolved.Lock.bStartsUnlocked);
 
 	return true;
 }

@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridTypedPlacementAuditTestUtils.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
@@ -91,25 +92,11 @@ namespace GridTD0737Characterization
 
 		if (const UGridLevelAsset* Level = Cast<UGridLevelAsset>(&DataAsset))
 		{
-			for (int32 ObjectIndex = 0; ObjectIndex < Level->Objects.Num(); ++ObjectIndex)
-			{
-				const FGridLevelObjectData& Object = Level->Objects[ObjectIndex];
-				const FString Context = FString::Printf(TEXT("Objects[%d] ObjectId=%s"), ObjectIndex, *Object.ObjectId.ToString(EGuidFormats::Digits));
-
-				const UGridItemDefinitionAsset* ItemDefinition = Object.ItemDefinitionAsset.Get();
-				AuditDefinitionPair(AssetPath, Context + TEXT(".ItemDefinition"), ItemDefinition, ItemDefinition ? ItemDefinition->ItemDefinitionId : NAME_None,
-					Object.ItemDefinitionId, TEXT("Item"), Candidates);
-
-				const UGridReadableContentAsset* ReadableDefinition = Object.ReadableContentAsset.Get();
-				AuditDefinitionPair(AssetPath, Context + TEXT(".ReadableContent"), ReadableDefinition,
-					ReadableDefinition ? ReadableDefinition->ReadableContentId : NAME_None, Object.ReadableContentId, TEXT("ReadableContent"), Candidates);
-
-				const UGridMonsterDefinitionAsset* MonsterDefinition = Object.MonsterDefinitionAsset.Get();
-				AuditDefinitionPair(AssetPath, Context + TEXT(".MonsterDefinition"), MonsterDefinition,
-					MonsterDefinition ? MonsterDefinition->MonsterId : NAME_None, Object.MonsterDefinitionId, TEXT("Monster"), Candidates);
-
-				AuditBehavior(AssetPath, Context + TEXT(".Behavior"), Object.Behavior, Candidates);
-			}
+			GridTypedPlacementAuditTestUtils::AuditDefinitionReferences(*Level,
+				[&](const FString& Context, const UObject* Definition, FName CanonicalId, FName StoredId, const TCHAR* Domain)
+				{
+					AuditDefinitionPair(AssetPath, Context, Definition, CanonicalId, StoredId, Domain, Candidates);
+				});
 			return;
 		}
 

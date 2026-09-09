@@ -23,68 +23,63 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 
 	UGridMonsterDefinitionAsset* MonsterDefinition = NewObject<UGridMonsterDefinitionAsset>();
 
-	FGridLevelObjectData Door;
-	Door.ObjectId = FGuid::NewGuid();
+	FGridWorldObjectInstance Door;
+	Door.InstanceId = FGuid::NewGuid();
 	Door.Type = EGridLevelObjectType::Door;
-	Door.ArchetypeId = TEXT("Door_Iron");
+	Door.WorldObjectDefinitionId = TEXT("Door_Iron");
 	Door.CellX = 3;
 	Door.CellY = 4;
-	Door.Edge = EGridEdge::North;
+	Door.WallSide = EGridEdge::North;
 	Door.bInitiallyEnabled = true;
 	Door.bInitiallyActive = false;
 	Door.Tag = TEXT("MainDoor");
-	Door.Behavior.Transition.bIsTransition = true;
-	Door.Behavior.Transition.TargetLevelId = TEXT("LowerLevel");
-	Door.Behavior.Receptacle.InitialContent.AddDefaulted_GetRef().ItemDefinition = ItemDefinition;
-	Door.Behavior.Lock.bStartsUnlocked = true;
-	Level->Objects.Add(Door);
+	Door.InstanceConfig.Transition.bIsTransition = true;
+	Door.InstanceConfig.Transition.TargetLevelId = TEXT("LowerLevel");
+	Door.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef().ItemDefinition = ItemDefinition;
+	Door.InstanceConfig.bStartsUnlocked = true;
+	Level->WorldObjectInstances.Add(Door);
 
-	FGridLevelObjectData LooseItem;
-	LooseItem.ObjectId = FGuid::NewGuid();
-	LooseItem.Type = EGridLevelObjectType::Item;
-	LooseItem.ItemDefinitionAsset = ItemDefinition;
+	FGridLooseItemInstance LooseItem;
+	LooseItem.InstanceId = FGuid::NewGuid();
+	LooseItem.ItemDefinition = ItemDefinition;
 	LooseItem.CellX = 5;
 	LooseItem.CellY = 6;
 	LooseItem.LocalYaw = 22.5f;
-	Level->Objects.Add(LooseItem);
+	Level->LooseItemInstances.Add(LooseItem);
 
-	FGridLevelObjectData Monster;
-	Monster.ObjectId = FGuid::NewGuid();
-	Monster.Type = EGridLevelObjectType::MonsterSpawn;
-	Monster.MonsterDefinitionAsset = MonsterDefinition;
+	FGridMonsterSpawnInstance Monster;
+	Monster.SpawnId = FGuid::NewGuid();
+	Monster.MonsterDefinition = MonsterDefinition;
 	Monster.CellX = 7;
 	Monster.CellY = 8;
-	Monster.InitialFacing = EGridEdge::West;
+	Monster.Facing = EGridEdge::West;
 	Monster.InitialMonsterState = EGridMonsterState::Dormant;
 	Monster.PatrolMode = EGridMonsterPatrolMode::Loop;
 	Monster.EncounterGroupId = TEXT("Encounter_A");
 	Monster.EncounterWaveIndex = 2;
-	Level->Objects.Add(Monster);
+	Level->MonsterSpawns.Add(Monster);
 
-	FGridLevelObjectData ItemSpawn;
-	ItemSpawn.ObjectId = FGuid::NewGuid();
-	ItemSpawn.Type = EGridLevelObjectType::ItemSpawn;
-	ItemSpawn.Behavior.Item.ItemDefinitionAsset = ItemDefinition;
+	FGridItemSpawnInstance ItemSpawn;
+	ItemSpawn.SpawnId = FGuid::NewGuid();
+	ItemSpawn.ItemDefinition = ItemDefinition;
 	ItemSpawn.CellX = 9;
 	ItemSpawn.CellY = 10;
-	Level->Objects.Add(ItemSpawn);
+	Level->ItemSpawns.Add(ItemSpawn);
 
-	FGridLevelObjectData Logic;
-	Logic.ObjectId = FGuid::NewGuid();
+	FGridLogicObjectInstance Logic;
+	Logic.InstanceId = FGuid::NewGuid();
 	Logic.Type = EGridLevelObjectType::Logic;
 	Logic.LogicId = TEXT("PuzzleRelay");
 	Logic.CellX = 1;
 	Logic.CellY = 2;
 	Logic.Logic.NodeType = EGridLogicNodeType::Latch;
-	Level->Objects.Add(Logic);
+	Level->LogicObjects.Add(Logic);
 
-	FGridLevelObjectData Story;
-	Story.ObjectId = FGuid::NewGuid();
+	FGridLogicObjectInstance Story;
+	Story.InstanceId = FGuid::NewGuid();
 	Story.Type = EGridLevelObjectType::StoryCompanion;
 	Story.LogicId = TEXT("CompanionOffer");
-	Level->Objects.Add(Story);
-
-	Level->RebuildTypedPlacementProjectionFromLegacy();
+	Level->LogicObjects.Add(Story);
 
 	TestEqual(TEXT("One reusable world object is projected"), Level->WorldObjectInstances.Num(), 1);
 	TestEqual(TEXT("One loose item is projected"), Level->LooseItemInstances.Num(), 1);
@@ -96,7 +91,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 	if (Level->WorldObjectInstances.Num() == 1)
 	{
 		const FGridWorldObjectInstance& Instance = Level->WorldObjectInstances[0];
-		TestEqual(TEXT("World object keeps stable instance id"), Instance.InstanceId, Door.ObjectId);
+		TestEqual(TEXT("World object keeps stable instance id"), Instance.InstanceId, Door.InstanceId);
 		TestEqual(TEXT("World object references its reusable definition"), Instance.WorldObjectDefinitionId, FName(TEXT("Door_Iron")));
 		TestEqual(TEXT("Wall side is separated from generic placement"), Instance.WallSide, EGridEdge::North);
 		TestTrue(TEXT("Transition is retained in minimal instance config"), Instance.InstanceConfig.Transition.bIsTransition);
@@ -108,16 +103,16 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 	if (Level->LooseItemInstances.Num() == 1)
 	{
 		const FGridLooseItemInstance& Instance = Level->LooseItemInstances[0];
-		TestEqual(TEXT("Loose item keeps stable instance id"), Instance.InstanceId, LooseItem.ObjectId);
+		TestEqual(TEXT("Loose item keeps stable instance id"), Instance.InstanceId, LooseItem.InstanceId);
 		TestTrue(TEXT("Loose item directly references ItemDefinition"), Instance.ItemDefinition == ItemDefinition);
-		TestEqual(TEXT("Loose item defaults to quantity one when projected from legacy"), Instance.Quantity, 1);
+		TestEqual(TEXT("Loose item defaults to quantity one"), Instance.Quantity, 1);
 		TestEqual(TEXT("Loose item preserves local yaw bridge"), Instance.LocalYaw, 22.5f);
 	}
 
 	if (Level->MonsterSpawns.Num() == 1)
 	{
 		const FGridMonsterSpawnInstance& Spawn = Level->MonsterSpawns[0];
-		TestEqual(TEXT("Monster SpawnId is the legacy stable ObjectId"), Spawn.SpawnId, Monster.ObjectId);
+		TestEqual(TEXT("Monster SpawnId remains stable"), Spawn.SpawnId, Monster.SpawnId);
 		TestTrue(TEXT("Monster spawn directly references MonsterDefinition"), Spawn.MonsterDefinition == MonsterDefinition);
 		TestEqual(TEXT("Monster facing is typed"), Spawn.Facing, EGridEdge::West);
 		TestEqual(TEXT("Monster initial state is typed"), Spawn.InitialMonsterState, EGridMonsterState::Dormant);
@@ -128,9 +123,9 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 	if (Level->ItemSpawns.Num() == 1)
 	{
 		const FGridItemSpawnInstance& Spawn = Level->ItemSpawns[0];
-		TestEqual(TEXT("Item SpawnId remains stable"), Spawn.SpawnId, ItemSpawn.ObjectId);
-		TestTrue(TEXT("Legacy ItemSpawn item definition projects directly"), Spawn.ItemDefinition == ItemDefinition);
-		TestEqual(TEXT("Legacy ItemSpawn projects quantity one"), Spawn.Quantity, 1);
+		TestEqual(TEXT("Item SpawnId remains stable"), Spawn.SpawnId, ItemSpawn.SpawnId);
+		TestTrue(TEXT("ItemSpawn references its item definition directly"), Spawn.ItemDefinition == ItemDefinition);
+		TestEqual(TEXT("ItemSpawn defaults to quantity one"), Spawn.Quantity, 1);
 	}
 
 	if (Level->LogicObjects.Num() == 2)

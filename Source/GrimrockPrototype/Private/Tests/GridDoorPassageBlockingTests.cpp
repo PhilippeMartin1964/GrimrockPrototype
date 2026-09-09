@@ -53,7 +53,7 @@ namespace
 		}
 	};
 
-	UGridLevelAsset* MakeDoorPassageLevel(AGridLevelRuntimeActor* Runtime, FGridLevelObjectData& OutDoorData)
+	UGridLevelAsset* MakeDoorPassageLevel(AGridLevelRuntimeActor* Runtime, FGridWorldObjectInstance& OutDoorData)
 	{
 		if (!Runtime)
 		{
@@ -75,14 +75,14 @@ namespace
 			Cell.bBlocksOccupancy = false;
 		}
 
-		OutDoorData = FGridLevelObjectData();
-		OutDoorData.ObjectId = FGuid::NewGuid();
+		OutDoorData = FGridWorldObjectInstance();
+		OutDoorData.InstanceId = FGuid::NewGuid();
 		OutDoorData.Type = EGridLevelObjectType::Door;
 		OutDoorData.CellX = 1;
 		OutDoorData.CellY = 1;
-		OutDoorData.Edge = EGridEdge::North;
+		OutDoorData.WallSide = EGridEdge::North;
 		OutDoorData.bInitiallyActive = false;
-		LevelAsset->Objects.Add(OutDoorData);
+		LevelAsset->WorldObjectInstances.Add(OutDoorData);
 		Runtime->LevelAsset = LevelAsset;
 		return LevelAsset;
 	}
@@ -97,7 +97,7 @@ namespace
 			return false;
 		}
 
-		FGridLevelObjectData DoorData;
+		FGridWorldObjectInstance DoorData;
 		if (!MakeDoorPassageLevel(Runtime, DoorData))
 		{
 			Test.AddError(FString::Printf(TEXT("%s level fixture could not be created"), DoorLabel));
@@ -121,7 +121,7 @@ namespace
 		}
 
 		GridDoorTestUtils::InitializeDoorFromMotion(Door, DoorData, World, 1.0f, 180.0f);
-		DoorSystem->RegisterDoorObject(DoorData, Door);
+		DoorSystem->RegisterDoorObject(FGridRuntimeWorldObjectData(DoorData), Door);
 
 		Test.TestTrue(*FString::Printf(TEXT("%s starts fully closed"), DoorLabel), Door->IsFullyClosed());
 		Test.TestTrue(*FString::Printf(TEXT("%s initially blocks party passage"), DoorLabel), DoorSystem->IsDoorPassageBlocked(1, 1, EGridEdge::North));

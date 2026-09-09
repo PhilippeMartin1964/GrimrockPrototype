@@ -17,14 +17,12 @@ bool FGridEditorMON133MonsterSpawnLinkPolicyTest::RunTest(const FString& Paramet
 {
 	(void)Parameters;
 
-	FGridLevelObjectData Trigger;
-	Trigger.Type = EGridLevelObjectType::Trigger;
+	const EGridLevelObjectType Trigger = EGridLevelObjectType::Trigger;
 	const TArray<EGridObjectEvent> TriggerEvents = GridEditorLinkPolicy::GetSupportedEventsForSource(Trigger);
 	TestTrue(TEXT("Trigger remains a connector source"), GridEditorLinkPolicy::CanObjectEmitEvents(Trigger));
 	TestTrue(TEXT("Trigger exposes Activated"), TriggerEvents.Contains(EGridObjectEvent::Activated));
 
-	FGridLevelObjectData MonsterSpawn;
-	MonsterSpawn.Type = EGridLevelObjectType::MonsterSpawn;
+	const EGridLevelObjectType MonsterSpawn = EGridLevelObjectType::MonsterSpawn;
 	const TArray<EGridObjectCommand> MonsterCommands = GridEditorLinkPolicy::GetSupportedCommandsForTarget(MonsterSpawn);
 	TestTrue(TEXT("MonsterSpawn appears in Target Object"), GridEditorLinkPolicy::CanObjectReceiveCommands(MonsterSpawn));
 	TestTrue(TEXT("MonsterSpawn keeps every MON13.3 runtime command"), MonsterCommands.Num() >= 8);
@@ -57,9 +55,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorMON134EncounterLinkPolicyTest, "Grim
 bool FGridEditorMON134EncounterLinkPolicyTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	FGridLevelObjectData MonsterSpawn;
-	MonsterSpawn.Type = EGridLevelObjectType::MonsterSpawn;
-	MonsterSpawn.EncounterGroupId = TEXT("Encounter_MON134");
+	const EGridLevelObjectType MonsterSpawn = EGridLevelObjectType::MonsterSpawn;
 
 	const TArray<EGridObjectCommand> MonsterCommands = GridEditorLinkPolicy::GetSupportedCommandsForTarget(MonsterSpawn);
 	TestEqual(TEXT("MonsterSpawn exposes all encounter commands"), MonsterCommands.Num(), 9);

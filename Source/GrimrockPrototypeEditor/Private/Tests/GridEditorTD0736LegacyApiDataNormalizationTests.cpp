@@ -66,8 +66,8 @@ bool FGridTD0736MonsterSpawnFacingAuthorityTest::RunTest(const FString& Paramete
 
 	TestFalse(TEXT("Legacy yaw-to-facing converter is gone"), LevelAssetSource.Contains(TEXT("GetFacingForLegacyYaw")));
 	TestFalse(TEXT("InitialFacing is never recovered from LocalYaw"), LevelAssetSource.Contains(TEXT("InitialFacing = GetFacingForLegacyYaw")));
-	TestTrue(TEXT("InitialFacing remains authoritative for the generic preview yaw mirror"),
-		LevelAssetSource.Contains(TEXT("ObjectData.LocalYaw = GetYawForFacing(ObjectData.InitialFacing)")));
+	TestNotNull(TEXT("Facing remains the native monster orientation"), FGridMonsterSpawnInstance::StaticStruct()->FindPropertyByName(TEXT("Facing")));
+	TestNull(TEXT("Native monster placement has no preview yaw mirror"), FGridMonsterSpawnInstance::StaticStruct()->FindPropertyByName(TEXT("LocalYaw")));
 	return true;
 }
 
@@ -102,16 +102,11 @@ bool FGridTD0736CurrentMonsterSpawnAssetsTest::RunTest(const FString& Parameters
 			continue;
 		}
 
-		for (const FGridLevelObjectData& Object : Level->Objects)
+		for (const FGridMonsterSpawnInstance& Object : Level->MonsterSpawns)
 		{
-			if (Object.Type != EGridLevelObjectType::MonsterSpawn)
-			{
-				continue;
-			}
-
 			++MonsterSpawnCount;
 			TestTrue(*FString::Printf(TEXT("%s MonsterSpawn has durable cardinal InitialFacing"), *AssetData.PackageName.ToString()),
-				IsCardinalFacing(Object.InitialFacing));
+				IsCardinalFacing(Object.Facing));
 		}
 
 		TArray<FString> SpawnErrors;

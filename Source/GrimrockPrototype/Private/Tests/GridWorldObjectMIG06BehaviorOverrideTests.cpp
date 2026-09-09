@@ -43,22 +43,17 @@ bool FGridWorldObjectMIG06SparseBehaviorResolutionTest::RunTest(const FString& P
 	InitialContent.ItemDefinition = InitialItem;
 	InitialContent.Quantity = 2;
 
-	FGridLevelObjectData ObjectData;
-	ObjectData.ObjectId = FGuid::NewGuid();
+	FGridWorldObjectInstance ObjectData;
+	ObjectData.InstanceId = FGuid::NewGuid();
 	ObjectData.Type = EGridLevelObjectType::Button;
-	ObjectData.ArchetypeId = Definition->ArchetypeId;
-	ObjectData.Behavior = GridObjectInstanceBehavior::BuildSparseOverrides(Staged);
+	ObjectData.WorldObjectDefinitionId = Definition->ArchetypeId;
+	ObjectData.InstanceConfig.Teleporter = Staged.Teleporter;
+	ObjectData.InstanceConfig.Transition = Staged.Transition;
+	ObjectData.InstanceConfig.Pit = Staged.Pit;
+	ObjectData.InstanceConfig.ReceptacleInitialContent = Staged.Receptacle.InitialContent;
+	ObjectData.InstanceConfig.bStartsUnlocked = Staged.Lock.bStartsUnlocked;
 
-	// Poison definition-owned fields in the stored sparse container. Resolve()
-	// must ignore them and take the authoritative values from the definition.
-	ObjectData.Behavior.ButtonAnimation.ButtonHoldTime = 9.0f;
-	ObjectData.Behavior.Lock.bConsumeKeyOnUnlock = false;
-	ObjectData.Behavior.Receptacle.bAcceptAnyItem = true;
-	ObjectData.Behavior.Receptacle.MaxContainedItems = 99;
-	ObjectData.Behavior.PressurePlateWeight.RequiredItemWeight = 99.0f;
-	ObjectData.Behavior.PressurePlateWeight.bUseItemWeight = false;
-	ObjectData.Behavior.DoorAnimation.bHasChainMechanism = false;
-	ObjectData.Behavior.DoorAnimation.ChainPullDistance = 99.0f;
+	// The native instance cannot store shared rules; resolution reads the definition.
 
 	const FGridObjectBehaviorParams Resolved = GridObjectInstanceBehavior::Resolve(ObjectData, Definition);
 	TestEqual(TEXT("Definition owns button hold time"), Resolved.ButtonAnimation.ButtonHoldTime, 0.80f);
@@ -100,23 +95,24 @@ bool FGridWorldObjectMIG09DefinitionAuthorityCutoverTest::RunTest(const FString&
 	Definition->SupportedType = EGridLevelObjectType::Button;
 	Definition->DefaultBehavior.ButtonAnimation.ButtonHoldTime = 0.90f;
 
-	FGridLevelObjectData CompatibilityObject;
-	CompatibilityObject.ObjectId = FGuid::NewGuid();
-	CompatibilityObject.ArchetypeId = Definition->ArchetypeId;
-	CompatibilityObject.Behavior.ButtonAnimation.ButtonHoldTime = 0.25f;
+	FGridWorldObjectInstance Instance;
+	Instance.InstanceId = FGuid::NewGuid();
+	Instance.Type = EGridLevelObjectType::Button;
+	Instance.WorldObjectDefinitionId = Definition->ArchetypeId;
 
-	const FGridObjectBehaviorParams DefinitionResolved = GridObjectInstanceBehavior::Resolve(CompatibilityObject, Definition);
+	const FGridObjectBehaviorParams DefinitionResolved = GridObjectInstanceBehavior::Resolve(Instance, Definition);
 	TestEqual(TEXT("MIG09 always resolves shared behavior from the definition when one is available"),
 		DefinitionResolved.ButtonAnimation.ButtonHoldTime, 0.90f);
 
 	UGridLevelAsset* Level = NewObject<UGridLevelAsset>();
-	const FGridObjectBehaviorParams LevelResolved = GridObjectInstanceBehavior::Resolve(Level, CompatibilityObject, Definition);
+	Level->WorldObjectInstances.Add(Instance);
+	const FGridObjectBehaviorParams LevelResolved = GridObjectInstanceBehavior::Resolve(*Level->FindWorldObjectInstanceById(Instance.InstanceId), Definition);
 	TestEqual(TEXT("Level migration markers no longer affect definition authority"),
 		LevelResolved.ButtonAnimation.ButtonHoldTime, 0.90f);
 
-	const FGridObjectBehaviorParams DirectCallerFallback = GridObjectInstanceBehavior::Resolve(CompatibilityObject, nullptr);
-	TestEqual(TEXT("Direct callers without a definition keep temporary compatibility until their initializers are purged"),
-		DirectCallerFallback.ButtonAnimation.ButtonHoldTime, 0.25f);
+	const FGridObjectBehaviorParams DirectCallerFallback = GridObjectInstanceBehavior::Resolve(Instance, nullptr);
+	TestEqual(TEXT("Native callers without a definition use default shared behavior"),
+		DirectCallerFallback.ButtonAnimation.ButtonHoldTime, FGridObjectBehaviorParams().ButtonAnimation.ButtonHoldTime);
 
 	return true;
 }

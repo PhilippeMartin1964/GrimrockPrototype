@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Runtime/GridPlacementTransformResolver.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Core/GridLevelAsset.h"
@@ -117,16 +118,14 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 	Runtime->LevelAsset->CellSize = 200.0f;
 	Runtime->LevelAsset->EnsureCellCount();
 
-	FGridLevelObjectData ItemData;
-	ItemData.ObjectId = FGuid::NewGuid();
-	ItemData.Type = EGridLevelObjectType::Item;
+	FGridLooseItemInstance ItemData;
+	ItemData.InstanceId = FGuid::NewGuid();
 	ItemData.CellX = 0;
 	ItemData.CellY = 0;
-	ItemData.ArchetypeId = NAME_None;
-	ItemData.ItemDefinitionAsset = Definition;
+	ItemData.ItemDefinition = Definition;
 
 	FTransform PlacementTransform;
-	TestTrue(TEXT("Loose item placement transform resolves without any ObjectArchetype"), Runtime->GetObjectPlacementTransform(ItemData, PlacementTransform));
+	TestTrue(TEXT("Loose item placement transform resolves without any ObjectArchetype"), GridPlacementTransformResolver::ResolveLooseItem(*Runtime, ItemData, PlacementTransform));
 	TestTrue(TEXT("Direct loose item remains centered on its cell"),
 		PlacementTransform.GetLocation().Equals(Runtime->GetCellCenterWorld(0, 0, 12.0f), KINDA_SMALL_NUMBER));
 
@@ -134,7 +133,7 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 	TestNotNull(TEXT("Generic item actor exists"), ItemActor);
 	if (ItemActor)
 	{
-		ItemActor->InitializeFromItemDefinition(Definition, ItemData.ObjectId);
+		ItemActor->InitializeFromItemDefinition(Definition, ItemData.InstanceId);
 		TestTrue(TEXT("Generic item actor keeps the canonical definition asset"), ItemActor->GetItemDefinitionAsset() == Definition);
 		TestEqual(TEXT("Generic item actor identity is ItemDefinitionId"), ItemActor->GetItemDefinitionId(), FName(TEXT("BlueGem")));
 		TestTrue(TEXT("Generic item actor presentation uses ItemDefinition WorldMesh"), ItemActor->MeshComponent->GetStaticMesh() == WorldMesh);

@@ -127,9 +127,26 @@ bool FGridTD052RuntimeActorDiagnosticsContractTest::RunTest(const FString& Param
 	TestTrue(TEXT("Level diagnostics expose the start pose"), LevelDiagnostics.Contains(TEXT("StartCell=(1,0) StartFacing=East StartCellValid=true")));
 	TestTrue(TEXT("Level diagnostics expose cell count consistency"), LevelDiagnostics.Contains(TEXT("Cells=4 ExpectedCells=4")));
 	TestTrue(TEXT("Level diagnostics expose cell classifications"), LevelDiagnostics.Contains(TEXT("NonEmptyCells=4 BlockingCells=0 CeilingCells=0")));
-	TestTrue(TEXT("Level diagnostics expose object and transition counts"),
-		LevelDiagnostics.Contains(TEXT("Objects=0 Links=0 TransitionObjects=0 HiddenFloorCells=0")));
+	TestTrue(TEXT("Level diagnostics expose typed placement and transition counts"),
+		LevelDiagnostics.Contains(TEXT("Placements=0 Links=0 TransitionObjects=0 HiddenFloorCells=0")));
 	TestTrue(TEXT("A structurally consistent level reports OK"), LevelDiagnostics.Contains(TEXT("Status=OK")));
+
+	// MIG09: diagnostics count the five authoritative collections, including non-world placements.
+	FGridWorldObjectInstance Transition;
+	Transition.InstanceId = FGuid::NewGuid();
+	Transition.Type = EGridLevelObjectType::Decoration;
+	Transition.InstanceConfig.Transition.bIsTransition = true;
+	LevelAsset->WorldObjectInstances.Add(Transition);
+	LevelAsset->LooseItemInstances.AddDefaulted();
+	LevelAsset->MonsterSpawns.AddDefaulted();
+	LevelAsset->ItemSpawns.AddDefaulted();
+	LevelAsset->LogicObjects.AddDefaulted();
+	TestTrue(TEXT("Diagnostics count every native placement bucket and the world transition"),
+		RuntimeActor->GetLevelAssetDiagnostics().Contains(TEXT("Placements=5 Links=0 TransitionObjects=1")));
+	LevelAsset->LooseItemInstances.Reset();
+	LevelAsset->WorldObjectInstances[0].InstanceConfig.Transition.bIsTransition = false;
+	TestTrue(TEXT("Diagnostics immediately reflect native collection and local transition edits"),
+		RuntimeActor->GetLevelAssetDiagnostics().Contains(TEXT("Placements=4 Links=0 TransitionObjects=0")));
 
 	const FString PIEReadiness = RuntimeActor->GetPIEReadinessDiagnostics();
 	TestTrue(TEXT("PIE readiness keeps its heading"), PIEReadiness.Contains(TEXT("GridLevelRuntimeActor PIE Readiness")));

@@ -153,20 +153,17 @@ namespace
 			}
 
 			const FGuid StableId = SpawnId.IsValid() ? SpawnId : FGuid::NewGuid();
-			FGridLevelObjectData Spawn;
-			Spawn.ObjectId = StableId;
-			Spawn.Type = EGridLevelObjectType::MonsterSpawn;
+			FGridMonsterSpawnInstance Spawn;
+			Spawn.SpawnId = StableId;
 			Spawn.CellX = Cell.X;
 			Spawn.CellY = Cell.Y;
-			Spawn.Edge = EGridEdge::None;
-			Spawn.InitialFacing = Facing;
+			Spawn.Facing = Facing;
 			Spawn.InitialMonsterState = InitialState;
 			Spawn.PatrolMode = PatrolMode;
 			Spawn.PatrolWaypoints = Waypoints;
-			Spawn.MonsterDefinitionAsset = Definition;
-			Spawn.MonsterDefinitionId = Definition->MonsterId;
+			Spawn.MonsterDefinition = Definition;
 			Spawn.bInitiallyEnabled = true;
-			Level->Objects.Add(Spawn);
+			Level->MonsterSpawns.Add(Spawn);
 
 			FActorSpawnParameters Params;
 			Params.Owner = Runtime;
@@ -336,14 +333,14 @@ bool FGridMonsterMON143BlockedHearingWaitTest::RunTest(const FString& Parameters
 		}
 	}
 
-	FGridLevelObjectData DoorData;
-	DoorData.ObjectId = FGuid::NewGuid();
+	FGridWorldObjectInstance DoorData;
+	DoorData.InstanceId = FGuid::NewGuid();
 	DoorData.Type = EGridLevelObjectType::Door;
 	DoorData.CellX = 1;
 	DoorData.CellY = 1;
-	DoorData.Edge = EGridEdge::North;
+	DoorData.WallSide = EGridEdge::North;
 	DoorData.bInitiallyActive = false;
-	Fixture.Level->Objects.Add(DoorData);
+	Fixture.Level->WorldObjectInstances.Add(DoorData);
 
 	UGridDoorSystemComponent* DoorSystem = Fixture.Runtime->FindComponentByClass<UGridDoorSystemComponent>();
 	TestNotNull(TEXT("Door system exists"), DoorSystem);
@@ -361,7 +358,7 @@ bool FGridMonsterMON143BlockedHearingWaitTest::RunTest(const FString& Parameters
 		return false;
 	}
 	GridDoorTestUtils::InitializeDoorFromMotion(Door, DoorData, Fixture.TestWorld.World, 0.1f, 180.0f);
-	DoorSystem->RegisterDoorObject(DoorData, Door);
+	DoorSystem->RegisterDoorObject(FGridRuntimeWorldObjectData(DoorData), Door);
 
 	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_BlockedHearingRat"), 0, 4), FIntPoint(1, 1), EGridEdge::North,
 		EGridMonsterState::Dormant, EGridMonsterPatrolMode::None, TArray<FGridMonsterPatrolWaypoint>());

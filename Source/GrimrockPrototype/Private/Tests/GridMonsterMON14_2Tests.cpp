@@ -84,18 +84,15 @@ namespace
 		return Definition;
 	}
 
-	FGridLevelObjectData MON142MakeSpawn(UGridMonsterDefinitionAsset* Definition, FGuid SpawnId, FIntPoint Cell = FIntPoint(2, 2))
+	FGridMonsterSpawnInstance MON142MakeSpawn(UGridMonsterDefinitionAsset* Definition, FGuid SpawnId, FIntPoint Cell = FIntPoint(2, 2))
 	{
-		FGridLevelObjectData Spawn;
-		Spawn.ObjectId = SpawnId;
-		Spawn.Type = EGridLevelObjectType::MonsterSpawn;
+		FGridMonsterSpawnInstance Spawn;
+		Spawn.SpawnId = SpawnId;
 		Spawn.CellX = Cell.X;
 		Spawn.CellY = Cell.Y;
-		Spawn.Edge = EGridEdge::None;
-		Spawn.InitialFacing = EGridEdge::North;
+		Spawn.Facing = EGridEdge::North;
 		Spawn.InitialMonsterState = EGridMonsterState::Idle;
-		Spawn.MonsterDefinitionAsset = Definition;
-		Spawn.MonsterDefinitionId = Definition ? Definition->MonsterId : NAME_None;
+		Spawn.MonsterDefinition = Definition;
 		Spawn.bInitiallyEnabled = true;
 		return Spawn;
 	}
@@ -157,7 +154,7 @@ bool FGridMonsterMON142SpawnModelValidationTest::RunTest(const FString& Paramete
 	UGridLevelAsset* Level = MON142MakeFloorLevel(GetTransientPackage());
 	UGridMonsterDefinitionAsset* Definition = MON142MakeDefinition(Level, TEXT("MON14_2_ValidationRat"));
 
-	FGridLevelObjectData Spawn = MON142MakeSpawn(Definition, FGuid(14, 2, 1, 1));
+	FGridMonsterSpawnInstance Spawn = MON142MakeSpawn(Definition, FGuid(14, 2, 1, 1));
 	Spawn.InitialMonsterState = EGridMonsterState::Dormant;
 	Spawn.PatrolMode = EGridMonsterPatrolMode::Loop;
 
@@ -170,33 +167,33 @@ bool FGridMonsterMON142SpawnModelValidationTest::RunTest(const FString& Paramete
 	Second.Facing = EGridEdge::West;
 	Second.WaitSeconds = 1.0f;
 	Spawn.PatrolWaypoints = { First, Second };
-	Level->Objects.Add(Spawn);
+	Level->MonsterSpawns.Add(Spawn);
 
 	TArray<FString> Errors;
 	TestTrue(TEXT("Dormant spawn with a two-point loop validates"), Level->ValidateMonsterSpawns(Errors));
 	TestTrue(TEXT("Valid MON14.2 model has no errors"), Errors.IsEmpty());
 
-	Level->Objects[0].InitialMonsterState = EGridMonsterState::Alert;
+	Level->MonsterSpawns[0].InitialMonsterState = EGridMonsterState::Alert;
 	TestFalse(TEXT("Alert is not an authored fresh-spawn state"), Level->ValidateMonsterSpawns(Errors));
 	TestTrue(TEXT("Invalid initial state is reported"), MON142HasErrorContaining(Errors, TEXT("InitialMonsterState Idle or Dormant")));
 
-	Level->Objects[0].InitialMonsterState = EGridMonsterState::Dormant;
-	Level->Objects[0].PatrolWaypoints.SetNum(1);
+	Level->MonsterSpawns[0].InitialMonsterState = EGridMonsterState::Dormant;
+	Level->MonsterSpawns[0].PatrolWaypoints.SetNum(1);
 	TestFalse(TEXT("A live patrol requires two waypoints"), Level->ValidateMonsterSpawns(Errors));
 	TestTrue(TEXT("Short patrol is reported"), MON142HasErrorContaining(Errors, TEXT("requires at least two waypoints")));
 
-	Level->Objects[0].PatrolWaypoints = { First, Second };
-	Level->Objects[0].PatrolWaypoints[1].Cell = FIntPoint(99, 99);
+	Level->MonsterSpawns[0].PatrolWaypoints = { First, Second };
+	Level->MonsterSpawns[0].PatrolWaypoints[1].Cell = FIntPoint(99, 99);
 	TestFalse(TEXT("Out-of-bounds patrol waypoint is rejected"), Level->ValidateMonsterSpawns(Errors));
 	TestTrue(TEXT("Out-of-bounds waypoint is reported"), MON142HasErrorContaining(Errors, TEXT("patrol waypoint 1 is outside grid bounds")));
 
-	Level->Objects[0].PatrolWaypoints[1] = Second;
-	Level->Objects[0].PatrolWaypoints[1].WaitSeconds = -1.0f;
+	Level->MonsterSpawns[0].PatrolWaypoints[1] = Second;
+	Level->MonsterSpawns[0].PatrolWaypoints[1].WaitSeconds = -1.0f;
 	TestFalse(TEXT("Negative waypoint wait is rejected"), Level->ValidateMonsterSpawns(Errors));
 	TestTrue(TEXT("Invalid wait is reported"), MON142HasErrorContaining(Errors, TEXT("finite non-negative WaitSeconds")));
 
-	Level->Objects[0].PatrolWaypoints[1] = Second;
-	Level->Objects[0].PatrolWaypoints[1].Facing = static_cast<EGridEdge>(255);
+	Level->MonsterSpawns[0].PatrolWaypoints[1] = Second;
+	Level->MonsterSpawns[0].PatrolWaypoints[1].Facing = static_cast<EGridEdge>(255);
 	TestFalse(TEXT("Invalid waypoint facing is rejected"), Level->ValidateMonsterSpawns(Errors));
 	TestTrue(TEXT("Invalid waypoint facing is reported"), MON142HasErrorContaining(Errors, TEXT("Facing=None or a cardinal direction")));
 	return true;
@@ -225,8 +222,8 @@ bool FGridMonsterMON142FreshSpawnConfigurationTest::RunTest(const FString& Param
 
 	UGridMonsterDefinitionAsset* Definition = MON142MakeDefinition(Runtime, TEXT("MON14_2_FreshRat"));
 	const FGuid SpawnId(14, 2, 2, 1);
-	FGridLevelObjectData Spawn = MON142MakeSpawn(Definition, SpawnId, FIntPoint(3, 3));
-	Spawn.InitialFacing = EGridEdge::South;
+	FGridMonsterSpawnInstance Spawn = MON142MakeSpawn(Definition, SpawnId, FIntPoint(3, 3));
+	Spawn.Facing = EGridEdge::South;
 	Spawn.InitialMonsterState = EGridMonsterState::Dormant;
 	Spawn.EncounterGroupId = TEXT("PatrolRoom_A");
 	Spawn.PatrolMode = EGridMonsterPatrolMode::PingPong;
@@ -240,7 +237,7 @@ bool FGridMonsterMON142FreshSpawnConfigurationTest::RunTest(const FString& Param
 	B.Facing = EGridEdge::West;
 	B.WaitSeconds = 0.75f;
 	Spawn.PatrolWaypoints = { A, B };
-	Runtime->LevelAsset->Objects.Add(Spawn);
+	Runtime->LevelAsset->MonsterSpawns.Add(Spawn);
 
 	FActorSpawnParameters Params;
 	Params.Owner = Runtime;
@@ -299,9 +296,9 @@ bool FGridMonsterMON142BehaviorFacingIntegrationTest::RunTest(const FString& Par
 
 	UGridMonsterDefinitionAsset* Definition = MON142MakeDefinition(Runtime, TEXT("MON14_2_FacingRat"));
 	const FGuid SpawnId(14, 2, 3, 1);
-	FGridLevelObjectData Spawn = MON142MakeSpawn(Definition, SpawnId, FIntPoint(2, 2));
-	Spawn.InitialFacing = EGridEdge::North;
-	Runtime->LevelAsset->Objects.Add(Spawn);
+	FGridMonsterSpawnInstance Spawn = MON142MakeSpawn(Definition, SpawnId, FIntPoint(2, 2));
+	Spawn.Facing = EGridEdge::North;
+	Runtime->LevelAsset->MonsterSpawns.Add(Spawn);
 
 	FActorSpawnParameters Params;
 	Params.Owner = Runtime;

@@ -12,9 +12,7 @@ bool FGridEditorPIT03LinkPolicyTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	FGridLevelObjectData Pit;
-	Pit.ObjectId = FGuid::NewGuid();
-	Pit.Type = EGridLevelObjectType::Pit;
+	const EGridLevelObjectType Pit = EGridLevelObjectType::Pit;
 
 	const TArray<EGridObjectCommand> Commands = GridEditorLinkPolicy::GetSupportedCommandsForTarget(Pit);
 	TestEqual(TEXT("Pit exposes five state commands"), Commands.Num(), 5);
@@ -32,7 +30,7 @@ bool FGridEditorPIT03LinkPolicyTest::RunTest(const FString& Parameters)
 	for (const EGridObjectCommand Command : Commands)
 	{
 		TestEqual(TEXT("Every Pit command has gameplay runtime support"),
-			GridEditorLinkPolicy::GetCommandRuntimeSupport(Pit, Command), EGridEditorCommandRuntimeSupport::Gameplay);
+			GridEditorLinkPolicy::GetCommandRuntimeSupport(Pit, EGridLogicNodeType::Relay, Command), EGridEditorCommandRuntimeSupport::Gameplay);
 	}
 
 	TestTrue(TEXT("Pit can receive connectors"), GridEditorLinkPolicy::CanObjectReceiveCommands(Pit));

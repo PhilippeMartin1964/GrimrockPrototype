@@ -300,12 +300,12 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	DoorArchetype->MovingParts.Part1.Motion.Amount = -20.0f;
 	DoorArchetype->MovingParts.Part1.Motion.Duration = 0.20f;
 
-	FGridLevelObjectData DoorData;
-	DoorData.ObjectId = FGuid::NewGuid();
+	FGridWorldObjectInstance DoorData;
+	DoorData.InstanceId = FGuid::NewGuid();
 	DoorData.Type = EGridLevelObjectType::Door;
 	DoorData.CellX = 1;
 	DoorData.CellY = 1;
-	DoorData.Edge = EGridEdge::North;
+	DoorData.WallSide = EGridEdge::North;
 	DoorData.bInitiallyActive = false;
 
 	AGridDoorActor* Door = TestWorld.World->SpawnActor<AGridDoorActor>();
@@ -313,8 +313,8 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	{
 		return false;
 	}
-	Door->InitializeMechanismVisuals(DoorData, DoorArchetype, FTransform::Identity);
-	Door->InitializeGridObject(DoorData, nullptr, FTransform::Identity);
+	Door->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(DoorData), DoorArchetype, FTransform::Identity);
+	Door->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(DoorData), nullptr, FTransform::Identity);
 	TestEqual(TEXT("Door consumes authored Motion.Duration"), Door->MoveDuration, 0.20f);
 	Door->OpenDoor();
 	TestTrue(TEXT("Target door starts opening"), Door->IsAnimating());
@@ -346,19 +346,19 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	ButtonArchetype->MovingParts.Part0.Motion.Amount = 7.0f;
 	ButtonArchetype->MovingParts.Part0.Motion.Duration = 0.05f;
 
-	FGridLevelObjectData ButtonData;
-	ButtonData.ObjectId = FGuid::NewGuid();
+	FGridWorldObjectInstance ButtonData;
+	ButtonData.InstanceId = FGuid::NewGuid();
 	ButtonData.Type = EGridLevelObjectType::Button;
 	ButtonData.CellX = 1;
 	ButtonData.CellY = 2;
-	ButtonData.Edge = EGridEdge::North;
+	ButtonData.WallSide = EGridEdge::North;
 
 	AGridButtonActor* Button = TestWorld.World->SpawnActor<AGridButtonActor>();
 	TestNotNull(TEXT("Target-composition button exists"), Button);
 	if (Button)
 	{
-		Button->InitializeMechanismVisuals(ButtonData, ButtonArchetype, FTransform::Identity);
-		Button->InitializeGridObject(ButtonData, nullptr, FTransform::Identity);
+		Button->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(ButtonData), ButtonArchetype, FTransform::Identity);
+		Button->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(ButtonData), nullptr, FTransform::Identity);
 		TestEqual(TEXT("Button press duration comes from Motion"), Button->PressDuration, 0.05f);
 		TestEqual(TEXT("Button release duration comes from Motion"), Button->ReleaseDuration, 0.05f);
 		Button->TriggerPress();
@@ -385,20 +385,20 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	LeverArchetype->MovingParts.Part0.Motion.Amount = 90.0f;
 	LeverArchetype->MovingParts.Part0.Motion.Duration = 0.10f;
 
-	FGridLevelObjectData LeverData;
-	LeverData.ObjectId = FGuid::NewGuid();
+	FGridWorldObjectInstance LeverData;
+	LeverData.InstanceId = FGuid::NewGuid();
 	LeverData.Type = EGridLevelObjectType::Lever;
 	LeverData.CellX = 2;
 	LeverData.CellY = 1;
-	LeverData.Edge = EGridEdge::East;
+	LeverData.WallSide = EGridEdge::East;
 	LeverData.bInitiallyActive = false;
 
 	AGridLeverActor* Lever = TestWorld.World->SpawnActor<AGridLeverActor>();
 	TestNotNull(TEXT("Target-composition lever exists"), Lever);
 	if (Lever)
 	{
-		Lever->InitializeMechanismVisuals(LeverData, LeverArchetype, FTransform::Identity);
-		Lever->InitializeGridObject(LeverData, nullptr, FTransform::Identity);
+		Lever->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(LeverData), LeverArchetype, FTransform::Identity);
+		Lever->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(LeverData), nullptr, FTransform::Identity);
 		TestEqual(TEXT("Lever duration comes from Motion"), Lever->ToggleDuration, 0.10f);
 		Lever->SetLeverState(true);
 		Lever->Tick(0.10f);
@@ -423,8 +423,8 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	PlateArchetype->MovingParts.Part0.Motion.Amount = -3.0f;
 	PlateArchetype->MovingParts.Part0.Motion.Duration = 0.07f;
 
-	FGridLevelObjectData PlateData;
-	PlateData.ObjectId = FGuid::NewGuid();
+	FGridWorldObjectInstance PlateData;
+	PlateData.InstanceId = FGuid::NewGuid();
 	PlateData.Type = EGridLevelObjectType::PressurePlate;
 	PlateData.CellX = 2;
 	PlateData.CellY = 2;
@@ -434,8 +434,8 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	TestNotNull(TEXT("Target-composition pressure plate exists"), Plate);
 	if (Plate)
 	{
-		Plate->InitializeMechanismVisuals(PlateData, PlateArchetype, FTransform::Identity);
-		Plate->InitializeGridObject(PlateData, nullptr, FTransform::Identity);
+		Plate->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(PlateData), PlateArchetype, FTransform::Identity);
+		Plate->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(PlateData), nullptr, FTransform::Identity);
 		TestEqual(TEXT("Pressure plate duration comes from Motion"), Plate->MoveDuration, 0.07f);
 		Plate->SetPressed(true);
 		Plate->Tick(0.07f);
@@ -469,19 +469,19 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	PitArchetype->MovingParts.Part1.Motion.Amount = 80.0f;
 	PitArchetype->MovingParts.Part1.Motion.Duration = 0.30f;
 
-	FGridLevelObjectData PitData;
-	PitData.ObjectId = FGuid::NewGuid();
+	FGridWorldObjectInstance PitData;
+	PitData.InstanceId = FGuid::NewGuid();
 	PitData.Type = EGridLevelObjectType::Pit;
 	PitData.CellX = 3;
 	PitData.CellY = 3;
-	PitData.Behavior.Pit.bInitiallyOpen = false;
+	PitData.InstanceConfig.Pit.bInitiallyOpen = false;
 
 	AGridPitTrapdoorActor* Pit = TestWorld.World->SpawnActor<AGridPitTrapdoorActor>();
 	TestNotNull(TEXT("Target-composition pit trapdoor exists"), Pit);
 	if (Pit)
 	{
-		Pit->InitializeMechanismVisuals(PitData, PitArchetype, FTransform::Identity);
-		Pit->InitializeGridObject(PitData, nullptr, FTransform::Identity);
+		Pit->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(PitData), PitArchetype, FTransform::Identity);
+		Pit->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(PitData), nullptr, FTransform::Identity);
 		TestTrue(TEXT("Target pit recognizes its two-part cover"), Pit->HasCompleteTrapdoorCover());
 		TestEqual(TEXT("Pit duration comes from MovingParts Motion"), Pit->MoveDuration, 0.30f);
 		TestTrue(TEXT("Pit left pivot comes from MovingPart[0] Motion"), Pit->GetLeftHingeLocation().Equals(PitArchetype->MovingParts.Part0.Motion.Pivot));

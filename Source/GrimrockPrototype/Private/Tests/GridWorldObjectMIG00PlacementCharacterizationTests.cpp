@@ -7,6 +7,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPlacementTransformResolver.h"
 #include "UObject/UnrealType.h"
 
 namespace GridWorldObjectMIG00Characterization
@@ -63,16 +64,15 @@ namespace GridWorldObjectMIG00Characterization
 		return Level;
 	}
 
-	FGridLevelObjectData MakeObject(EGridLevelObjectType Type, EGridEdge Edge = EGridEdge::None)
+	FGridWorldObjectInstance MakeObject(EGridLevelObjectType Type, EGridEdge Edge = EGridEdge::None)
 	{
-		FGridLevelObjectData Object;
-		Object.ObjectId = FGuid::NewGuid();
+		FGridWorldObjectInstance Object;
+		Object.InstanceId = FGuid::NewGuid();
 		Object.Type = Type;
-		Object.ArchetypeId = TEXT("WORLDOBJ_MIG00_Test");
+		Object.WorldObjectDefinitionId = TEXT("WORLDOBJ_MIG00_Test");
 		Object.CellX = 1;
 		Object.CellY = 2;
-		Object.Edge = Edge;
-		Object.LocalYaw = 0.0f;
+		Object.WallSide = Edge;
 		return Object;
 	}
 
@@ -158,19 +158,20 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	FTransform Transform;
 
 	// Historical Center contract: MIG01 expresses it as Floor with a centered local position.
-	FGridLevelObjectData CenterObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Decoration);
-	CenterObject.LocalYaw = 30.0f;
+	FGridWorldObjectInstance CenterObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Decoration);
+	CenterObject.bHasLocalTransformOverride = true;
+	CenterObject.LocalTransformOverride = FTransform(FRotator(0.0f, 30.0f, 0.0f));
 	Archetype->PlacementSurface = EGridObjectPlacementKind::Floor;
 	Archetype->DefaultLocalPosition.U = 0.0f;
 	Archetype->DefaultLocalPosition.V = 0.0f;
 	Archetype->DefaultLocalPosition.N = 12.0f;
 	Archetype->RefreshPlacementRuntimeProjection();
-	TestTrue(TEXT("Historical Center transform resolves through Floor"), Runtime->GetObjectPlacementTransform(CenterObject, Transform));
+	TestTrue(TEXT("Historical Center transform resolves through Floor"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, CenterObject, Transform));
 	TestTrue(TEXT("Historical Center location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 12.0f)));
 	TestTrue(TEXT("Historical Center LocalYaw is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 30.0f, 0.0f)));
 
 	// Historical Floor contract maps directly to Floor.
-	TestTrue(TEXT("Historical Floor transform resolves"), Runtime->GetObjectPlacementTransform(CenterObject, Transform));
+	TestTrue(TEXT("Historical Floor transform resolves"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, CenterObject, Transform));
 	TestTrue(TEXT("Historical Floor location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 12.0f)));
 
 	// Historical absolute ceiling Z=188 becomes N=12 below the current 200 cm ceiling plane.
@@ -179,48 +180,54 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	Archetype->DefaultLocalPosition.V = 0.0f;
 	Archetype->DefaultLocalPosition.N = 12.0f;
 	Archetype->RefreshPlacementRuntimeProjection();
-	CenterObject.LocalYaw = 0.0f;
-	TestTrue(TEXT("Historical Ceiling transform resolves"), Runtime->GetObjectPlacementTransform(CenterObject, Transform));
+	CenterObject.bHasLocalTransformOverride = true;
+	CenterObject.LocalTransformOverride = FTransform(FRotator(0.0f, 0.0f, 0.0f));
+	TestTrue(TEXT("Historical Ceiling transform resolves"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, CenterObject, Transform));
 	TestTrue(TEXT("Historical Ceiling location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 188.0f)));
 
 	// Historical Wall offsets map to U=25, V=100+10=110, N=6.
 	// The existing wall-mounted helper uses the boundary anchor rotation only; LocalYaw is ignored.
-	FGridLevelObjectData WallObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Decoration, EGridEdge::North);
-	WallObject.LocalYaw = 15.0f;
+	FGridWorldObjectInstance WallObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Decoration, EGridEdge::North);
+	WallObject.bHasLocalTransformOverride = true;
+	WallObject.LocalTransformOverride = FTransform(FRotator(0.0f, 15.0f, 0.0f));
 	Archetype->PlacementSurface = EGridObjectPlacementKind::Wall;
 	Archetype->DefaultLocalPosition.U = 25.0f;
 	Archetype->DefaultLocalPosition.V = 110.0f;
 	Archetype->DefaultLocalPosition.N = 6.0f;
 	Archetype->RefreshPlacementRuntimeProjection();
-	TestTrue(TEXT("Historical Wall transform resolves"), Runtime->GetObjectPlacementTransform(WallObject, Transform));
+	TestTrue(TEXT("Historical Wall transform resolves"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, WallObject, Transform));
 	TestTrue(TEXT("Historical Wall location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
 	TestTrue(TEXT("Historical Wall anchor rotation is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
 
 	// Historical Edge placement is now Wall placement plus the instance boundary (ObjectData.Edge).
-	TestTrue(TEXT("Historical Edge transform resolves through Wall + Edge topology"), Runtime->GetObjectPlacementTransform(WallObject, Transform));
+	TestTrue(TEXT("Historical Edge transform resolves through Wall + Edge topology"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, WallObject, Transform));
 	TestTrue(TEXT("Historical Edge location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
 
 	// Doors remain exactly boundary-anchored; Edge is topology, not PlacementSurface.
-	FGridLevelObjectData DoorObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Door, EGridEdge::North);
+	FGridWorldObjectInstance DoorObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Door, EGridEdge::North);
 	Archetype->SupportedType = EGridLevelObjectType::Door;
 	Archetype->PlacementSurface = EGridObjectPlacementKind::Wall;
 	Archetype->DefaultLocalPosition.U = 0.0f;
 	Archetype->DefaultLocalPosition.V = 0.0f;
 	Archetype->DefaultLocalPosition.N = 0.0f;
 	Archetype->RefreshPlacementRuntimeProjection();
-	TestTrue(TEXT("Historical Door transform resolves through Wall + boundary"), Runtime->GetObjectPlacementTransform(DoorObject, Transform));
+	TestTrue(TEXT("Historical Door transform resolves through Wall + boundary"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, DoorObject, Transform));
 	TestTrue(TEXT("Historical Door boundary location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 600.0f, 0.0f)));
 	TestTrue(TEXT("Historical Door North rotation is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator::ZeroRotator));
 
 	// Item-on-edge remains an item-instance rule for now; Floor N preserves its historical height.
-	FGridLevelObjectData ItemObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Item, EGridEdge::East);
+	FGridLooseItemInstance ItemObject;
+	ItemObject.InstanceId = FGuid::NewGuid();
+	ItemObject.CellX = 1;
+	ItemObject.CellY = 2;
+	ItemObject.SurfaceSide = EGridEdge::East;
 	Archetype->SupportedType = EGridLevelObjectType::Item;
 	Archetype->PlacementSurface = EGridObjectPlacementKind::Floor;
 	Archetype->DefaultLocalPosition.U = 0.0f;
 	Archetype->DefaultLocalPosition.V = 0.0f;
 	Archetype->DefaultLocalPosition.N = 12.0f;
 	Archetype->RefreshPlacementRuntimeProjection();
-	TestTrue(TEXT("Historical floor item edge transform resolves"), Runtime->GetObjectPlacementTransform(ItemObject, Transform));
+	TestTrue(TEXT("Historical floor item edge transform resolves"), GridPlacementTransformResolver::ResolveLooseItem(*Runtime, ItemObject, Transform));
 	TestTrue(TEXT("Historical floor item edge location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(382.0f, 500.0f, 12.0f)));
 	TestTrue(TEXT("Historical East floor item rotation is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
 

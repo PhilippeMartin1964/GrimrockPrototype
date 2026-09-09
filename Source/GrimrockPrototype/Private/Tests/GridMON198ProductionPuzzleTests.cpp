@@ -67,10 +67,10 @@ namespace GridMON198Tests
 		return Definition;
 	}
 
-	FGridLevelObjectData MakeLogicNode(EGridLogicNodeType NodeType, FGuid ObjectId, FName VariableId = NAME_None)
+	FGridLogicObjectInstance MakeLogicNode(EGridLogicNodeType NodeType, FGuid ObjectId, FName VariableId = NAME_None)
 	{
-		FGridLevelObjectData Node;
-		Node.ObjectId = ObjectId;
+		FGridLogicObjectInstance Node;
+		Node.InstanceId = ObjectId;
 		Node.Type = EGridLevelObjectType::Logic;
 		Node.Logic.NodeType = NodeType;
 		Node.Logic.VariableId = VariableId;
@@ -90,15 +90,15 @@ namespace GridMON198Tests
 		return Level;
 	}
 
-	FGridLevelObjectData MakeDoor(FGuid ObjectId, FName LogicId = TEXT("SecretDoor"))
+	FGridWorldObjectInstance MakeDoor(FGuid ObjectId, FName LogicId = TEXT("SecretDoor"))
 	{
-		FGridLevelObjectData Door;
-		Door.ObjectId = ObjectId;
+		FGridWorldObjectInstance Door;
+		Door.InstanceId = ObjectId;
 		Door.LogicId = LogicId;
 		Door.Type = EGridLevelObjectType::Door;
 		Door.CellX = 0;
 		Door.CellY = 0;
-		Door.Edge = EGridEdge::East;
+		Door.WallSide = EGridEdge::East;
 		Door.bInitiallyActive = false;
 		return Door;
 	}
@@ -119,7 +119,7 @@ namespace GridMON198Tests
 		return OutActivation != nullptr;
 	}
 
-	AGridDoorActor* PrepareClosedDoor(UWorld& World, AGridLevelRuntimeActor& Runtime, const FGridLevelObjectData& DoorData)
+	AGridDoorActor* PrepareClosedDoor(UWorld& World, AGridLevelRuntimeActor& Runtime, const FGridWorldObjectInstance& DoorData)
 	{
 		UGridDoorSystemComponent* DoorSystem = Runtime.FindComponentByClass<UGridDoorSystemComponent>();
 		if (!DoorSystem)
@@ -137,22 +137,22 @@ namespace GridMON198Tests
 		}
 
 		GridDoorTestUtils::InitializeDoorFromMotion(DoorActor, DoorData, &World, MON198DoorMotionDuration, 180.0f);
-		DoorSystem->RegisterDoorObject(DoorData, DoorActor);
-		return Runtime.IsDoorOpenOnEdge(DoorData.CellX, DoorData.CellY, DoorData.Edge) ? nullptr : DoorActor;
+		DoorSystem->RegisterDoorObject(FGridRuntimeWorldObjectData(DoorData), DoorActor);
+		return Runtime.IsDoorOpenOnEdge(DoorData.CellX, DoorData.CellY, DoorData.WallSide) ? nullptr : DoorActor;
 	}
 
 	void CompleteDoorOpening(
-		FAutomationTestBase& Test, AGridLevelRuntimeActor& Runtime, AGridDoorActor& DoorActor, const FGridLevelObjectData& DoorData, const TCHAR* Context)
+		FAutomationTestBase& Test, AGridLevelRuntimeActor& Runtime, AGridDoorActor& DoorActor, const FGridWorldObjectInstance& DoorData, const TCHAR* Context)
 	{
 		Test.TestTrue(*FString::Printf(TEXT("%s starts the physical door animation"), Context), DoorActor.IsAnimating());
 		Test.TestFalse(*FString::Printf(TEXT("%s keeps passage blocked while opening"), Context),
-			Runtime.IsDoorOpenOnEdge(DoorData.CellX, DoorData.CellY, DoorData.Edge));
+			Runtime.IsDoorOpenOnEdge(DoorData.CellX, DoorData.CellY, DoorData.WallSide));
 
 		DoorActor.Tick(MON198DoorMotionDuration + 0.01f);
 
 		Test.TestFalse(*FString::Printf(TEXT("%s completes the physical door animation"), Context), DoorActor.IsAnimating());
 		Test.TestTrue(*FString::Printf(TEXT("%s opens passage only after animation completion"), Context),
-			Runtime.IsDoorOpenOnEdge(DoorData.CellX, DoorData.CellY, DoorData.Edge));
+			Runtime.IsDoorOpenOnEdge(DoorData.CellX, DoorData.CellY, DoorData.WallSide));
 	}
 
 	FGridObjectLink MakeLink(FGuid SourceId, EGridObjectEvent SourceEvent, FGuid TargetId, EGridObjectCommand Command)
@@ -199,14 +199,14 @@ namespace GridMON198Tests
 		}
 
 		const FGuid LeverId(19, 8, 1, 1);
-		FGridLevelObjectData Lever;
-		Lever.ObjectId = LeverId;
+		FGridWorldObjectInstance Lever;
+		Lever.InstanceId = LeverId;
 		Lever.Type = EGridLevelObjectType::Lever;
-		Level->Objects.Add(Lever);
+		Level->WorldObjectInstances.Add(Lever);
 
-		const FGridLevelObjectData Door = MakeDoor(FGuid(19, 8, 1, 2));
-		Level->Objects.Add(Door);
-		Level->Links.Add(MakeLink(LeverId, EGridObjectEvent::Activated, Door.ObjectId, EGridObjectCommand::Open));
+		const FGridWorldObjectInstance Door = MakeDoor(FGuid(19, 8, 1, 2));
+		Level->WorldObjectInstances.Add(Door);
+		Level->Links.Add(MakeLink(LeverId, EGridObjectEvent::Activated, Door.InstanceId, EGridObjectCommand::Open));
 
 		Activation->Initialize(Runtime);
 		Activation->RebuildIndexes();
@@ -247,35 +247,35 @@ namespace GridMON198Tests
 		Level->LevelVariables.Add(MakeIntVariable(TEXT("RuneCount"), 0));
 
 		const FGuid LeverAId(19, 8, 2, 1);
-		FGridLevelObjectData LeverA;
-		LeverA.ObjectId = LeverAId;
+		FGridWorldObjectInstance LeverA;
+		LeverA.InstanceId = LeverAId;
 		LeverA.Type = EGridLevelObjectType::Lever;
-		Level->Objects.Add(LeverA);
+		Level->WorldObjectInstances.Add(LeverA);
 
 		const FGuid LeverBId(19, 8, 2, 2);
-		FGridLevelObjectData LeverB;
-		LeverB.ObjectId = LeverBId;
+		FGridWorldObjectInstance LeverB;
+		LeverB.InstanceId = LeverBId;
 		LeverB.Type = EGridLevelObjectType::Lever;
-		Level->Objects.Add(LeverB);
+		Level->WorldObjectInstances.Add(LeverB);
 
 		const FGuid AddId(19, 8, 2, 3);
-		FGridLevelObjectData Add = MakeLogicNode(EGridLogicNodeType::AddInt, AddId, TEXT("RuneCount"));
+		FGridLogicObjectInstance Add = MakeLogicNode(EGridLogicNodeType::AddInt, AddId, TEXT("RuneCount"));
 		Add.Logic.IntValue = 1;
-		Level->Objects.Add(Add);
+		Level->LogicObjects.Add(Add);
 
 		const FGuid CompareId(19, 8, 2, 4);
-		FGridLevelObjectData Compare = MakeLogicNode(EGridLogicNodeType::CompareInt, CompareId, TEXT("RuneCount"));
+		FGridLogicObjectInstance Compare = MakeLogicNode(EGridLogicNodeType::CompareInt, CompareId, TEXT("RuneCount"));
 		Compare.Logic.IntComparison = EGridLogicIntComparison::GreaterOrEqual;
 		Compare.Logic.IntValue = 2;
-		Level->Objects.Add(Compare);
+		Level->LogicObjects.Add(Compare);
 
-		const FGridLevelObjectData Door = MakeDoor(FGuid(19, 8, 2, 5));
-		Level->Objects.Add(Door);
+		const FGridWorldObjectInstance Door = MakeDoor(FGuid(19, 8, 2, 5));
+		Level->WorldObjectInstances.Add(Door);
 
 		Level->Links.Add(MakeLink(LeverAId, EGridObjectEvent::Activated, AddId, EGridObjectCommand::LogicExecute));
 		Level->Links.Add(MakeLink(LeverBId, EGridObjectEvent::Activated, AddId, EGridObjectCommand::LogicExecute));
 		Level->Links.Add(MakeLink(AddId, EGridObjectEvent::Activated, CompareId, EGridObjectCommand::LogicExecute));
-		Level->Links.Add(MakeLink(CompareId, EGridObjectEvent::Activated, Door.ObjectId, EGridObjectCommand::Open));
+		Level->Links.Add(MakeLink(CompareId, EGridObjectEvent::Activated, Door.InstanceId, EGridObjectCommand::Open));
 
 		Activation->Initialize(Runtime);
 		Activation->RebuildIndexes();
@@ -299,7 +299,7 @@ namespace GridMON198Tests
 		int32 RuneCount = 0;
 		TestTrue(TEXT("RuneCount reads after first lever"), GridLevelVariableStore::TryGetInt32(*Level, *State, TEXT("RuneCount"), RuneCount, Error));
 		TestEqual(TEXT("First lever increments RuneCount once"), RuneCount, 1);
-		TestFalse(TEXT("Threshold is not reached after first lever"), Runtime->IsDoorOpenOnEdge(Door.CellX, Door.CellY, Door.Edge));
+		TestFalse(TEXT("Threshold is not reached after first lever"), Runtime->IsDoorOpenOnEdge(Door.CellX, Door.CellY, Door.WallSide));
 		TestFalse(TEXT("Threshold miss does not start door animation"), DoorActor->IsAnimating());
 
 		TestTrue(TEXT("Second lever executes the same data-driven logic chain"), Runtime->ExecuteLinksFromRuntimeObject(LeverBId, EGridObjectEvent::Activated));
@@ -334,13 +334,13 @@ namespace GridMON198Tests
 		Level->LevelVariables.Add(MakeIntVariable(TEXT("RuneCount"), 0));
 
 		const FGuid TriggerId(19, 8, 3, 1);
-		FGridLevelObjectData Trigger;
-		Trigger.ObjectId = TriggerId;
+		FGridWorldObjectInstance Trigger;
+		Trigger.InstanceId = TriggerId;
 		Trigger.Type = EGridLevelObjectType::Trigger;
-		Level->Objects.Add(Trigger);
+		Level->WorldObjectInstances.Add(Trigger);
 
-		const FGridLevelObjectData Door = MakeDoor(FGuid(19, 8, 3, 2));
-		Level->Objects.Add(Door);
+		const FGridWorldObjectInstance Door = MakeDoor(FGuid(19, 8, 3, 2));
+		Level->WorldObjectInstances.Add(Door);
 
 		FGridLuaScriptSource Script;
 		Script.ScriptId = TEXT("ConditionalPuzzle");
@@ -376,7 +376,7 @@ namespace GridMON198Tests
 		FString Error;
 		TestTrue(TEXT("RuneCount can be set below threshold"), GridLevelVariableStore::SetInt32(*Level, *State, TEXT("RuneCount"), 1, Error));
 		TestTrue(TEXT("Lua callback succeeds below threshold"), Runtime->ExecuteLinksFromRuntimeObject(TriggerId, EGridObjectEvent::Activated));
-		TestFalse(TEXT("Lua leaves door closed below threshold"), Runtime->IsDoorOpenOnEdge(Door.CellX, Door.CellY, Door.Edge));
+		TestFalse(TEXT("Lua leaves door closed below threshold"), Runtime->IsDoorOpenOnEdge(Door.CellX, Door.CellY, Door.WallSide));
 		TestFalse(TEXT("Lua below threshold does not start door animation"), DoorActor->IsAnimating());
 
 		TestTrue(TEXT("RuneCount can be set at threshold"), GridLevelVariableStore::SetInt32(*Level, *State, TEXT("RuneCount"), 2, Error));
@@ -408,13 +408,12 @@ namespace GridMON198Tests
 		}
 
 		const FGuid EncounterAnchorId(19, 8, 4, 1);
-		FGridLevelObjectData EncounterAnchor;
-		EncounterAnchor.ObjectId = EncounterAnchorId;
-		EncounterAnchor.Type = EGridLevelObjectType::MonsterSpawn;
-		Level->Objects.Add(EncounterAnchor);
+		FGridMonsterSpawnInstance EncounterAnchor;
+		EncounterAnchor.SpawnId = EncounterAnchorId;
+		Level->MonsterSpawns.Add(EncounterAnchor);
 
-		const FGridLevelObjectData Door = MakeDoor(FGuid(19, 8, 4, 2));
-		Level->Objects.Add(Door);
+		const FGridWorldObjectInstance Door = MakeDoor(FGuid(19, 8, 4, 2));
+		Level->WorldObjectInstances.Add(Door);
 
 		FGridLuaScriptSource Script;
 		Script.ScriptId = TEXT("EncounterBridge");

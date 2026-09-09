@@ -93,6 +93,12 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 		GridTD066CreateItemDefinition(Component, TEXT("Axe_TD066"), EGridItemType::Weapon, EGridEquipmentSlot::MainHand, 3.0f);
 	UGridItemDefinitionAsset* ShieldDefinition =
 		GridTD066CreateItemDefinition(Component, TEXT("Shield_TD066"), EGridItemType::Shield, EGridEquipmentSlot::OffHand, 4.0f);
+	UGridItemDefinitionAsset* HelmetDefinition =
+		GridTD066CreateItemDefinition(Component, TEXT("Helmet_TD066"), EGridItemType::Armor, EGridEquipmentSlot::Head);
+	if (!TestNotNull(TEXT("Helmet definition is created"), HelmetDefinition))
+	{
+		return false;
+	}
 	if (!TestNotNull(TEXT("Sword definition is created"), SwordDefinition) || !TestNotNull(TEXT("Axe definition is created"), AxeDefinition) ||
 		!TestNotNull(TEXT("Shield definition is created"), ShieldDefinition))
 	{
@@ -114,10 +120,12 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	TestTrue(TEXT("Sword definition is registered"), Component->RegisterItemDefinition(SwordDefinition));
 	TestTrue(TEXT("Axe definition is registered"), Component->RegisterItemDefinition(AxeDefinition));
 	TestTrue(TEXT("Shield definition is registered"), Component->RegisterItemDefinition(ShieldDefinition));
+	TestTrue(TEXT("Helmet definition is registered"), Component->RegisterItemDefinition(HelmetDefinition));
 
 	const FGridItemInstance Sword = GridTD066CreateItem(SwordDefinition->ItemDefinitionId, 1, SwordDefinition->Weight);
 	const FGridItemInstance Axe = GridTD066CreateItem(AxeDefinition->ItemDefinitionId, 1, AxeDefinition->Weight);
 	const FGridItemInstance Shield = GridTD066CreateItem(ShieldDefinition->ItemDefinitionId, 1, ShieldDefinition->Weight);
+	const FGridItemInstance Helmet = GridTD066CreateItem(HelmetDefinition->ItemDefinitionId);
 	const FGuid SwordRuntimeId = Sword.RuntimeObjectId;
 	const FGuid AxeRuntimeId = Axe.RuntimeObjectId;
 	const FGuid ShieldRuntimeId = Shield.RuntimeObjectId;
@@ -125,6 +133,7 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	TestTrue(TEXT("Sword enters inventory"), Component->AddItemToCharacterInventory(0, Sword));
 	TestTrue(TEXT("Axe enters inventory"), Component->AddItemToCharacterInventory(0, Axe));
 	TestTrue(TEXT("Shield enters inventory"), Component->AddItemToCharacterInventory(0, Shield));
+	TestTrue(TEXT("Helmet enters inventory"), Component->AddItemToCharacterInventory(0, Helmet));
 	if (!GridTD066ValidateOwnership(*this, Component, TEXT("Initial equipment setup")))
 	{
 		return false;
@@ -133,8 +142,14 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
 	TestTrue(TEXT("Registered compatibility accepts the sword in MainHand"),
 		Component->CanEquipItemToSlot(0, Character.InventorySlots[0].Item, EGridEquipmentSlot::MainHand));
-	TestFalse(TEXT("Registered compatibility rejects the sword in OffHand"),
+	// Physical item throwing (0ee09e9c) intentionally permits OneHanded items in either hand.
+	// Preserve the rejection/atomicity contract below with a genuinely incompatible head item.
+	TestEqual(TEXT("Auto hand usage recognizes the sword as one-handed"), SwordDefinition->GetEffectiveHandUsage(), EGridItemHandUsage::OneHanded);
+	TestTrue(TEXT("One-handed sword also accepts OffHand"),
 		Component->CanEquipItemToSlot(0, Character.InventorySlots[0].Item, EGridEquipmentSlot::OffHand));
+	TestTrue(TEXT("One-handed shield also accepts MainHand"), Component->CanEquipItemToSlot(0, Shield, EGridEquipmentSlot::MainHand));
+	TestFalse(TEXT("Sword still rejects the Head slot"), Component->CanEquipItemToSlot(0, Sword, EGridEquipmentSlot::Head));
+	TestTrue(TEXT("Helmet accepts its declared Head slot"), Component->CanEquipItemToSlot(0, Helmet, EGridEquipmentSlot::Head));
 
 	TestTrue(TEXT("Equipping from inventory into an empty MainHand succeeds"), Component->EquipItemFromInventorySlot(0, 0, EGridEquipmentSlot::MainHand));
 	TestTrue(TEXT("The source inventory slot is cleared after an empty-slot equip"), Character.InventorySlots[0].IsEmpty());
@@ -148,13 +163,15 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	TestTrue(TEXT("Equip records the actual equipment slot"), EquippedItem.EquipmentSlot == EGridEquipmentSlot::MainHand);
 
 	AddExpectedError(TEXT("GridInventory Equip Failed Character=0 Slot=MainHand Reason=UnsupportedSlot"), EAutomationExpectedErrorFlags::Contains, 1);
-	TestFalse(TEXT("An incompatible Shield -> MainHand equip is rejected"), Component->EquipItemFromInventorySlot(0, 2, EGridEquipmentSlot::MainHand));
-	TestTrue(TEXT("A rejected incompatible equip leaves the shield in its source slot"), Character.InventorySlots[2].Item.RuntimeObjectId == ShieldRuntimeId);
+	TestFalse(TEXT("An incompatible Helmet -> MainHand equip is rejected"), Component->EquipItemFromInventorySlot(0, 3, EGridEquipmentSlot::MainHand));
+	TestTrue(TEXT("A rejected incompatible equip leaves the helmet in its source slot"), Character.InventorySlots[3].Item.RuntimeObjectId == Helmet.RuntimeObjectId);
 	TestTrue(TEXT("A rejected incompatible equip leaves the existing MainHand unchanged"),
 		Component->GetEquippedItem(0, EGridEquipmentSlot::MainHand, EquippedItem) && EquippedItem.RuntimeObjectId == SwordRuntimeId);
 
 	TestTrue(TEXT("The shield equips to its declared OffHand slot"), Component->EquipItemFromInventorySlot(0, 2, EGridEquipmentSlot::OffHand));
 	TestTrue(TEXT("OffHand reports occupied after shield equip"), Component->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::OffHand));
+	TestTrue(TEXT("OffHand equip preserves the shield runtime identity"),
+		Component->GetEquippedItem(0, EGridEquipmentSlot::OffHand, EquippedItem) && EquippedItem.RuntimeObjectId == ShieldRuntimeId);
 
 	const FGridEquipmentStatBonus InitialBonus = Component->ComputeCharacterEquipmentStatBonus(0);
 	TestEqual(TEXT("Equipped definitions aggregate Strength"), InitialBonus.StrengthBonus, 2);

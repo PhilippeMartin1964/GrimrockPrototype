@@ -259,7 +259,7 @@ bool FGridMonsterMON131TypedAuthorityTest::RunTest(const FString& Parameters)
 	Level->MonsterSpawns.Add(MakeMON13Spawn(MakeMON13Definition(Level), SpawnId));
 	TArray<FString> Errors;
 	TestTrue(TEXT("Native monster placement validates without a mirror"), Level->ValidateMonsterSpawns(Errors));
-	TestTrue(TEXT("Validation does not build a compatibility mirror"), Level->Objects.IsEmpty());
+	TestEqual(TEXT("Validation preserves native placement count"), Level->GetTypedPlacementCount(), 1);
 
 	Level->WorldObjectInstances.AddDefaulted_GetRef().InstanceId = SpawnId;
 	TestFalse(TEXT("World object and monster cannot share an id"), Level->ValidateMonsterSpawns(Errors));

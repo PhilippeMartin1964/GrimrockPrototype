@@ -252,17 +252,14 @@ namespace
 		return Definition;
 	}
 
-	FGridLevelObjectData MakeEncounterSpawn(UGridMonsterDefinitionAsset* Definition, FGuid SpawnId, FIntPoint Cell, FName GroupId, int32 WaveIndex)
+	FGridMonsterSpawnInstance MakeEncounterSpawn(UGridMonsterDefinitionAsset* Definition, FGuid SpawnId, FIntPoint Cell, FName GroupId, int32 WaveIndex)
 	{
-		FGridLevelObjectData Spawn;
-		Spawn.ObjectId = SpawnId;
-		Spawn.Type = EGridLevelObjectType::MonsterSpawn;
+		FGridMonsterSpawnInstance Spawn;
+		Spawn.SpawnId = SpawnId;
 		Spawn.CellX = Cell.X;
 		Spawn.CellY = Cell.Y;
-		Spawn.Edge = EGridEdge::None;
-		Spawn.InitialFacing = EGridEdge::South;
-		Spawn.MonsterDefinitionAsset = Definition;
-		Spawn.MonsterDefinitionId = Definition ? Definition->MonsterId : NAME_None;
+		Spawn.Facing = EGridEdge::South;
+		Spawn.MonsterDefinition = Definition;
 		Spawn.EncounterGroupId = GroupId;
 		Spawn.EncounterWaveIndex = WaveIndex;
 		Spawn.bInitiallyEnabled = true;
@@ -400,8 +397,8 @@ bool FGridMonsterMON141ExclusionTest::RunTest(const FString& Parameters)
 	Disabled->bMonsterEnabled = false;
 
 	const FGuid FutureSpawnId = FGuid::NewGuid();
-	FGridLevelObjectData FutureSpawn = MakeEncounterSpawn(Definition, FutureSpawnId, FIntPoint(1, 5), TEXT("FutureWave"), 2);
-	Fixture.Level->Objects.Add(FutureSpawn);
+	FGridMonsterSpawnInstance FutureSpawn = MakeEncounterSpawn(Definition, FutureSpawnId, FIntPoint(1, 5), TEXT("FutureWave"), 2);
+	Fixture.Level->MonsterSpawns.Add(FutureSpawn);
 
 	TestFalse(TEXT("Dead, disabled and future-wave-only placements do not engage"), Fixture.Evaluate());
 	TestFalse(TEXT("Future wave has no Actor before activation"), IsValid(Fixture.Runtime->FindSpawnedMonsterActor(FutureSpawnId)));
@@ -460,7 +457,7 @@ bool FGridMonsterMON141EncounterVisibilityTest::RunTest(const FString& Parameter
 		if (!Definition)
 			return false;
 		const FGuid SpawnId = FGuid(14, 2, 1, 1);
-		Fixture.Level->Objects.Add(MakeEncounterSpawn(Definition, SpawnId, FIntPoint(3, 3), TEXT("EncounterHidden"), 0));
+		Fixture.Level->MonsterSpawns.Add(MakeEncounterSpawn(Definition, SpawnId, FIntPoint(3, 3), TEXT("EncounterHidden"), 0));
 		TestTrue(TEXT("StartEncounter without LOS still succeeds as a spawn transaction"), Fixture.Runtime->StartMonsterEncounter(SpawnId));
 		TestNotNull(TEXT("Encounter member was spawned"), Fixture.Runtime->FindSpawnedMonsterActor(SpawnId));
 		TestFalse(TEXT("Encounter without visual LOS does not auto-start combat"), Fixture.Engagement->ProcessPendingEvaluationNow());
@@ -475,7 +472,7 @@ bool FGridMonsterMON141EncounterVisibilityTest::RunTest(const FString& Parameter
 		if (!Definition)
 			return false;
 		const FGuid SpawnId = FGuid(14, 2, 2, 1);
-		Fixture.Level->Objects.Add(MakeEncounterSpawn(Definition, SpawnId, FIntPoint(1, 4), TEXT("EncounterVisible"), 0));
+		Fixture.Level->MonsterSpawns.Add(MakeEncounterSpawn(Definition, SpawnId, FIntPoint(1, 4), TEXT("EncounterVisible"), 0));
 		TestTrue(TEXT("StartEncounter with LOS succeeds as a spawn transaction"), Fixture.Runtime->StartMonsterEncounter(SpawnId));
 		TestNotNull(TEXT("Visible encounter member was spawned"), Fixture.Runtime->FindSpawnedMonsterActor(SpawnId));
 		TestTrue(TEXT("Visible encounter starts combat only in deferred perception evaluation"), Fixture.Engagement->ProcessPendingEvaluationNow());
