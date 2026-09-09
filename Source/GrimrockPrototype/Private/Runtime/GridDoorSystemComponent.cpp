@@ -41,10 +41,6 @@ void UGridDoorSystemComponent::ResetRuntimeState()
 	RuntimeBlockedDoorEdges.Reset();
 }
 
-void UGridDoorSystemComponent::RegisterDoorObject(const FGridLevelObjectData& ObjectData, AGridRuntimeObjectActor* RuntimeObjectActor)
-{
-	RegisterDoorObject(FGridRuntimeWorldObjectData(ObjectData), RuntimeObjectActor);
-}
 
 void UGridDoorSystemComponent::RegisterDoorObject(const FGridRuntimeWorldObjectData& ObjectData, AGridRuntimeObjectActor* RuntimeObjectActor)
 {

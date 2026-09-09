@@ -22,11 +22,6 @@ AGridRuntimeObjectActor::AGridRuntimeObjectActor()
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
-void AGridRuntimeObjectActor::InitializeGridObjectBase(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FVector& WorldLocation, const FRotator& WorldRotation)
-{
-	InitializeRuntimeWorldObjectBase(FGridRuntimeWorldObjectData(ObjectData), Mesh, WorldLocation, WorldRotation);
-}
 
 void AGridRuntimeObjectActor::InitializeRuntimeWorldObjectBase(
 	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FVector& WorldLocation, const FRotator& WorldRotation)
@@ -68,11 +63,6 @@ bool AGridRuntimeObjectActor::MatchesEdge(int32 InCellX, int32 InCellY, EGridEdg
 	return CellX == InCellX && CellY == InCellY && Edge == InEdge;
 }
 
-void AGridRuntimeObjectActor::InitializeGridObject(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
-{
-	InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(ObjectData), Mesh, WorldTransform);
-}
 
 void AGridRuntimeObjectActor::InitializeRuntimeWorldObject(
 	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)

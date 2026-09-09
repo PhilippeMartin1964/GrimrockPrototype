@@ -171,35 +171,6 @@ namespace GridEditorLinkPolicy
 		return !GetSupportedCommandsForTarget(ObjectType, LogicNodeType).IsEmpty();
 	}
 
-	TArray<EGridObjectEvent> GetSupportedEventsForSource(const FGridLevelObjectData& ObjectData)
-	{
-		return GetSupportedEventsForSource(ObjectData.Type, ObjectData.Logic.NodeType);
-	}
-
-	TArray<EGridObjectCommand> GetSupportedCommandsForTarget(const FGridLevelObjectData& ObjectData)
-	{
-		return GetSupportedCommandsForTarget(ObjectData.Type, ObjectData.Logic.NodeType);
-	}
-
-	TArray<EGridObjectCondition> GetSupportedConditionsForTarget(const FGridLevelObjectData& ObjectData)
-	{
-		return GetSupportedConditionsForTarget(ObjectData.Type);
-	}
-
-	EGridEditorCommandRuntimeSupport GetCommandRuntimeSupport(const FGridLevelObjectData& ObjectData, EGridObjectCommand Command)
-	{
-		return GetCommandRuntimeSupport(ObjectData.Type, ObjectData.Logic.NodeType, Command);
-	}
-
-	bool CanObjectEmitEvents(const FGridLevelObjectData& ObjectData)
-	{
-		return CanObjectEmitEvents(ObjectData.Type, ObjectData.Logic.NodeType);
-	}
-
-	bool CanObjectReceiveCommands(const FGridLevelObjectData& ObjectData)
-	{
-		return CanObjectReceiveCommands(ObjectData.Type, ObjectData.Logic.NodeType);
-	}
 
 	bool AreLinksExactlyEquivalent(const FGridObjectLink& A, const FGridObjectLink& B)
 	{

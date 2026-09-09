@@ -23,7 +23,7 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 	}
 
 	if (!LevelAsset->ContainsTypedPlacementId(LastSelectedObjectId) ||
-		GridLevelPlacementConversion::GetBucket(LevelAsset->GetTypedPlacementType(LastSelectedObjectId)) != GridLevelPlacementConversion::GetBucket(PaintObjectType))
+		GridLevelPlacement::GetBucket(LevelAsset->GetTypedPlacementType(LastSelectedObjectId)) != GridLevelPlacement::GetBucket(PaintObjectType))
 	{
 		return false;
 	}

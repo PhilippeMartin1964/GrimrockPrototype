@@ -1,8 +1,10 @@
 # WORLDOBJ-MIG09-E2C — Autorité typée des helpers d’édition et fixtures
 
-Statut : **FINAL-A Core et Editor validé localement ; publication à effectuer. FINAL-B / FINAL-C restent ouverts.**
+Statut : **FINAL-B publié dans `1a49329e` ; FINAL-C validé localement le 2026-09-09. MIG10 non commencé.**
 
-Date : 2026-09-08
+Date : 2026-09-09
+
+Le [rapport FINAL-C](WORLDOBJ_MIG09_FINAL_C.md) fait autorité pour l'état final et la validation. Les sections 1 à 6 et 8 conservent l'historique des étapes précédentes, y compris leurs anciens blocages de publication et travaux alors restants.
 
 ## Objectif
 
@@ -18,7 +20,7 @@ ItemSpawns
 LogicObjects
 ```
 
-`FGridLevelObjectData` reste temporairement un DTO **par valeur** pour certaines politiques Editor/Runtime. Il ne doit plus être utilisé comme stockage persistant, comme cache d’autorité ni comme cible d’écriture.
+`FGridLevelObjectData`, le cache `Objects` et les projections de compatibilité sont désormais physiquement supprimés. Les consommateurs utilisent les placements natifs ; la frontière d'initialisation world-object reste un payload runtime non persistant spécialisé.
 
 ## 1. État validé
 
@@ -287,14 +289,14 @@ MIG10 ne commence qu’après suppression physique de ces compatibilités.
 ## 7. Definition of Done MIG09
 
 ```text
-[ ] aucun Objects sérialisé ou transient
-[ ] aucun FGridLevelObjectData
-[ ] aucune projection legacy <-> typed
-[ ] runtime sur structures natives / payload runtime légitime
+[x] aucun Objects sérialisé ou transient
+[x] aucun FGridLevelObjectData
+[x] aucune projection legacy <-> typed
+[x] runtime sur structures natives / payload runtime légitime
 [x] consommateurs Editor de production sur placements typés
-[ ] tests sans fixtures legacy actives
-[x] Grimrock.WorldObjects : 0 Failed (validation locale FINAL-A)
-[ ] documentation réconciliée avec la mind map
+[x] tests sans fixtures legacy actives
+[x] Grimrock.WorldObjects : 36 réussites, 0 Failed (validation locale FINAL-C)
+[x] documentation réconciliée avec la mind map pour le périmètre MIG09
 ```
 
 ## 8. FINAL-A — fermeture locale de l’autorité Editor (2026-09-08)

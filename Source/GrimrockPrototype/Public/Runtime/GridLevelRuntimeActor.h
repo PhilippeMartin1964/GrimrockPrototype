@@ -450,7 +450,6 @@ public:
 		return nullptr;
 	}
 
-	bool GetObjectPlacementTransform(const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
 	const UGridObjectArchetypeAsset* FindObjectArchetype(FName ArchetypeId) const;
 	UGridItemDefinitionAsset* ResolveRuntimeItemDefinition(FName ItemDefinitionId) const;
 	AGridItemActor* SpawnItemActorForDefinition(UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId, AActor* OwnerActor,

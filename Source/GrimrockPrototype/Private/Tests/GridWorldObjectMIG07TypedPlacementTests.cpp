@@ -148,19 +148,20 @@ bool FGridWorldObjectMIG07SchemaReflectionTest::RunTest(const FString& Parameter
 	(void)Parameters;
 
 	const UClass* LevelClass = UGridLevelAsset::StaticClass();
+	TestNull(TEXT("Level has no generic placement mirror"), LevelClass->FindPropertyByName(TEXT("Objects")));
 	TestNotNull(TEXT("WorldObjectInstances collection exists"), LevelClass->FindPropertyByName(TEXT("WorldObjectInstances")));
 	TestNotNull(TEXT("LooseItemInstances collection exists"), LevelClass->FindPropertyByName(TEXT("LooseItemInstances")));
 	TestNotNull(TEXT("MonsterSpawns collection exists"), LevelClass->FindPropertyByName(TEXT("MonsterSpawns")));
 	TestNotNull(TEXT("ItemSpawns collection exists"), LevelClass->FindPropertyByName(TEXT("ItemSpawns")));
 	TestNotNull(TEXT("LogicObjects collection exists"), LevelClass->FindPropertyByName(TEXT("LogicObjects")));
 
-	TestEqual(TEXT("Item classifies as loose item"), GridLevelPlacementConversion::GetBucket(EGridLevelObjectType::Item), EGridLevelPlacementBucket::LooseItem);
-	TestEqual(TEXT("MonsterSpawn classifies independently"), GridLevelPlacementConversion::GetBucket(EGridLevelObjectType::MonsterSpawn),
+	TestEqual(TEXT("Item classifies as loose item"), GridLevelPlacement::GetBucket(EGridLevelObjectType::Item), EGridLevelPlacementBucket::LooseItem);
+	TestEqual(TEXT("MonsterSpawn classifies independently"), GridLevelPlacement::GetBucket(EGridLevelObjectType::MonsterSpawn),
 		EGridLevelPlacementBucket::MonsterSpawn);
-	TestEqual(TEXT("ItemSpawn is distinct from loose item"), GridLevelPlacementConversion::GetBucket(EGridLevelObjectType::ItemSpawn),
+	TestEqual(TEXT("ItemSpawn is distinct from loose item"), GridLevelPlacement::GetBucket(EGridLevelObjectType::ItemSpawn),
 		EGridLevelPlacementBucket::ItemSpawn);
-	TestEqual(TEXT("Logic classifies as data-only logic"), GridLevelPlacementConversion::GetBucket(EGridLevelObjectType::Logic), EGridLevelPlacementBucket::LogicObject);
-	TestEqual(TEXT("Door classifies as reusable world object"), GridLevelPlacementConversion::GetBucket(EGridLevelObjectType::Door),
+	TestEqual(TEXT("Logic classifies as data-only logic"), GridLevelPlacement::GetBucket(EGridLevelObjectType::Logic), EGridLevelPlacementBucket::LogicObject);
+	TestEqual(TEXT("Door classifies as reusable world object"), GridLevelPlacement::GetBucket(EGridLevelObjectType::Door),
 		EGridLevelPlacementBucket::WorldObject);
 
 	return true;

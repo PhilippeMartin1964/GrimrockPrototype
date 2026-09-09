@@ -33,8 +33,6 @@ public:
 	bool RefreshPressurePlatesAtCell(int32 X, int32 Y);
 	bool RefreshAllPressurePlates();
 
-	/** Transitional caller adapter. RebuildIndexes no longer stores this DTO. */
-	void RegisterInitialObjectState(const FGridLevelObjectData& ObjectData);
 	void RegisterInitialObjectState(const FGridWorldObjectInstance& Instance);
 
 	void RebuildIndexes();

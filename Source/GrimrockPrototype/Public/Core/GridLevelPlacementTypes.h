@@ -287,7 +287,8 @@ struct FGridLogicObjectInstance
 	FName PaletteEntryId = NAME_None;
 };
 
-namespace GridLevelPlacementConversion
+/** Scalar classification of the native placement collections; no data conversion. */
+namespace GridLevelPlacement
 {
 	inline EGridLevelPlacementBucket GetBucket(EGridLevelObjectType Type)
 	{
@@ -310,113 +311,4 @@ namespace GridLevelPlacementConversion
 		}
 	}
 
-	inline FGridWorldObjectInstanceConfig BuildWorldInstanceConfig(const FGridObjectBehaviorParams& Behavior)
-	{
-		FGridWorldObjectInstanceConfig Result;
-		Result.Teleporter = Behavior.Teleporter;
-		Result.Transition = Behavior.Transition;
-		Result.Pit = Behavior.Pit;
-		Result.ReceptacleInitialContent = Behavior.Receptacle.InitialContent;
-		Result.bStartsUnlocked = Behavior.Lock.bStartsUnlocked;
-		return Result;
-	}
-
-	inline FGridWorldObjectInstance ToWorldObject(const FGridLevelObjectData& Source)
-	{
-		FGridWorldObjectInstance Result;
-		Result.InstanceId = Source.ObjectId;
-		Result.WorldObjectDefinitionId = Source.ArchetypeId;
-		Result.Type = Source.Type;
-		Result.CellX = Source.CellX;
-		Result.CellY = Source.CellY;
-		Result.WallSide = Source.Edge;
-		Result.bHasLocalTransformOverride = !FMath::IsNearlyZero(Source.LocalYaw);
-		Result.LocalTransformOverride = FTransform(FRotator(0.f, Source.LocalYaw, 0.f));
-		Result.bInitiallyEnabled = Source.bInitiallyEnabled;
-		Result.bInitiallyActive = Source.bInitiallyActive;
-		Result.LogicId = Source.LogicId;
-		Result.Tag = Source.Tag;
-		Result.Notes = Source.Notes;
-		Result.PaletteEntryId = Source.PaletteEntryId;
-		Result.ReadableTextOverride = Source.OverrideReadableText;
-		Result.InstanceConfig = BuildWorldInstanceConfig(Source.Behavior);
-		return Result;
-	}
-
-	inline FGridLooseItemInstance ToLooseItem(const FGridLevelObjectData& Source)
-	{
-		FGridLooseItemInstance Result;
-		Result.InstanceId = Source.ObjectId;
-		Result.ItemDefinition = Source.ItemDefinitionAsset ? Source.ItemDefinitionAsset : Source.Behavior.Item.ItemDefinitionAsset;
-		Result.Quantity = 1;
-		Result.CellX = Source.CellX;
-		Result.CellY = Source.CellY;
-		Result.SurfaceSide = Source.Edge;
-		Result.LocalYaw = Source.LocalYaw;
-		Result.bInitiallyEnabled = Source.bInitiallyEnabled;
-		Result.LogicId = Source.LogicId;
-		Result.ReadableContentAsset = Source.ReadableContentAsset;
-		Result.ReadableContentId = Source.ReadableContentId;
-		Result.ReadTitleOverride = Source.ReadTitleOverride;
-		Result.ReadTextOverride = Source.ReadTextOverride;
-		Result.Tag = Source.Tag;
-		Result.Notes = Source.Notes;
-		Result.PaletteEntryId = Source.PaletteEntryId;
-		return Result;
-	}
-
-	inline FGridMonsterSpawnInstance ToMonsterSpawn(const FGridLevelObjectData& Source)
-	{
-		FGridMonsterSpawnInstance Result;
-		Result.SpawnId = Source.ObjectId;
-		Result.MonsterDefinition = Source.MonsterDefinitionAsset;
-		Result.CellX = Source.CellX;
-		Result.CellY = Source.CellY;
-		Result.Facing = Source.InitialFacing;
-		Result.InitialMonsterState = Source.InitialMonsterState;
-		Result.PatrolMode = Source.PatrolMode;
-		Result.PatrolWaypoints = Source.PatrolWaypoints;
-		Result.EncounterGroupId = Source.EncounterGroupId;
-		Result.EncounterWaveIndex = Source.EncounterWaveIndex;
-		Result.bInitiallyEnabled = Source.bInitiallyEnabled;
-		Result.LogicId = Source.LogicId;
-		Result.Tag = Source.Tag;
-		Result.Notes = Source.Notes;
-		Result.PaletteEntryId = Source.PaletteEntryId;
-		return Result;
-	}
-
-	inline FGridItemSpawnInstance ToItemSpawn(const FGridLevelObjectData& Source)
-	{
-		FGridItemSpawnInstance Result;
-		Result.SpawnId = Source.ObjectId;
-		Result.ItemDefinition = Source.ItemDefinitionAsset ? Source.ItemDefinitionAsset : Source.Behavior.Item.ItemDefinitionAsset;
-		Result.Quantity = 1;
-		Result.CellX = Source.CellX;
-		Result.CellY = Source.CellY;
-		Result.bInitiallyEnabled = Source.bInitiallyEnabled;
-		Result.LogicId = Source.LogicId;
-		Result.Tag = Source.Tag;
-		Result.Notes = Source.Notes;
-		Result.PaletteEntryId = Source.PaletteEntryId;
-		return Result;
-	}
-
-	inline FGridLogicObjectInstance ToLogicObject(const FGridLevelObjectData& Source)
-	{
-		FGridLogicObjectInstance Result;
-		Result.InstanceId = Source.ObjectId;
-		Result.LogicId = Source.LogicId;
-		Result.Type = Source.Type;
-		Result.CellX = Source.CellX;
-		Result.CellY = Source.CellY;
-		Result.bInitiallyEnabled = Source.bInitiallyEnabled;
-		Result.bInitiallyActive = Source.bInitiallyActive;
-		Result.Logic = Source.Logic;
-		Result.StoryCompanionDefinition = Source.StoryCompanionDefinition;
-		Result.Tag = Source.Tag;
-		Result.Notes = Source.Notes;
-		Result.PaletteEntryId = Source.PaletteEntryId;
-		return Result;
-	}
 }

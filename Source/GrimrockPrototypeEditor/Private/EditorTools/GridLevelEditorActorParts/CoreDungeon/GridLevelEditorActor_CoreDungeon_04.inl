@@ -56,10 +56,6 @@ bool AGridLevelEditorActor::RequiresEdge(EGridLevelObjectType ObjectType) const
 	}
 }
 
-bool AGridLevelEditorActor::IsEdgePlacedObject(const FGridLevelObjectData& ObjectData) const
-{
-	return IsEdgePlacedObject(ObjectData.Type, ObjectData.ArchetypeId);
-}
 
 bool AGridLevelEditorActor::IsEdgePlacedObject(const FGuid& ObjectId) const
 {

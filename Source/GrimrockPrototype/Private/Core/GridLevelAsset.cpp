@@ -18,30 +18,6 @@ namespace
 		return Facing == EGridEdge::None || IsValidMonsterSpawnFacing(Facing);
 	}
 
-	float GetYawForFacing(EGridEdge Facing)
-	{
-		switch (Facing)
-		{
-			case EGridEdge::East:
-				return 90.0f;
-			case EGridEdge::South:
-				return 180.0f;
-			case EGridEdge::West:
-				return 270.0f;
-			case EGridEdge::North:
-			case EGridEdge::None:
-			default:
-				return 0.0f;
-		}
-	}
-
-	void NormalizeMonsterSpawnData(FGridLevelObjectData& ObjectData)
-	{
-		if (ObjectData.Type == EGridLevelObjectType::MonsterSpawn)
-		{
-			ObjectData.LocalYaw = GetYawForFacing(ObjectData.InitialFacing);
-		}
-	}
 
 	FString GetMonsterSpawnLabel(const FGridMonsterSpawnInstance& Spawn)
 	{
@@ -85,119 +61,8 @@ namespace
 		return RemovedCount > 0;
 	}
 
-	void UpsertTypedPlacementFromCompatibility(UGridLevelAsset& Level, const FGridLevelObjectData& Source)
-	{
-		if (!Source.ObjectId.IsValid())
-		{
-			return;
-		}
-
-		FGridWorldObjectInstance PreviousWorld;
-		bool bHadWorld = false;
-		if (const FGridWorldObjectInstance* Existing = Level.WorldObjectInstances.FindByPredicate(
-				[&Source](const FGridWorldObjectInstance& Instance)
-				{
-					return Instance.InstanceId == Source.ObjectId;
-				}))
-		{
-			PreviousWorld = *Existing;
-			bHadWorld = true;
-		}
-
-		FGridLooseItemInstance PreviousLooseItem;
-		bool bHadLooseItem = false;
-		if (const FGridLooseItemInstance* Existing = Level.LooseItemInstances.FindByPredicate(
-				[&Source](const FGridLooseItemInstance& Instance)
-				{
-					return Instance.InstanceId == Source.ObjectId;
-				}))
-		{
-			PreviousLooseItem = *Existing;
-			bHadLooseItem = true;
-		}
-
-		FGridItemSpawnInstance PreviousItemSpawn;
-		bool bHadItemSpawn = false;
-		if (const FGridItemSpawnInstance* Existing = Level.ItemSpawns.FindByPredicate(
-				[&Source](const FGridItemSpawnInstance& Spawn)
-				{
-					return Spawn.SpawnId == Source.ObjectId;
-				}))
-		{
-			PreviousItemSpawn = *Existing;
-			bHadItemSpawn = true;
-		}
-
-		RemoveTypedPlacementById(Level, Source.ObjectId);
-
-		switch (GridLevelPlacementConversion::GetBucket(Source.Type))
-		{
-			case EGridLevelPlacementBucket::WorldObject:
-			{
-				FGridWorldObjectInstance Instance = GridLevelPlacementConversion::ToWorldObject(Source);
-				if (bHadWorld)
-				{
-					FTransform PreservedTransform = PreviousWorld.LocalTransformOverride;
-					FRotator PreservedRotation = PreservedTransform.Rotator();
-					PreservedRotation.Yaw = Source.LocalYaw;
-					PreservedTransform.SetRotation(PreservedRotation.Quaternion());
-
-					const bool bHasTypedOnlyTransform = !PreservedTransform.GetLocation().IsNearlyZero() ||
-						!PreservedTransform.GetScale3D().Equals(FVector::OneVector) || !FMath::IsNearlyZero(PreservedRotation.Pitch) ||
-						!FMath::IsNearlyZero(PreservedRotation.Roll);
-					Instance.bHasLocalTransformOverride = bHasTypedOnlyTransform || !FMath::IsNearlyZero(Source.LocalYaw);
-					Instance.LocalTransformOverride = PreservedTransform;
-				}
-				Level.WorldObjectInstances.Add(MoveTemp(Instance));
-				break;
-			}
-
-			case EGridLevelPlacementBucket::LooseItem:
-			{
-				FGridLooseItemInstance Instance = GridLevelPlacementConversion::ToLooseItem(Source);
-				if (bHadLooseItem)
-				{
-					Instance.Quantity = PreviousLooseItem.Quantity;
-					Instance.LocalOffset = PreviousLooseItem.LocalOffset;
-				}
-				Level.LooseItemInstances.Add(MoveTemp(Instance));
-				break;
-			}
-
-			case EGridLevelPlacementBucket::MonsterSpawn:
-				Level.MonsterSpawns.Add(GridLevelPlacementConversion::ToMonsterSpawn(Source));
-				break;
-
-			case EGridLevelPlacementBucket::ItemSpawn:
-			{
-				FGridItemSpawnInstance Spawn = GridLevelPlacementConversion::ToItemSpawn(Source);
-				if (bHadItemSpawn)
-				{
-					Spawn.Quantity = PreviousItemSpawn.Quantity;
-				}
-				Level.ItemSpawns.Add(MoveTemp(Spawn));
-				break;
-			}
-
-			case EGridLevelPlacementBucket::LogicObject:
-				Level.LogicObjects.Add(GridLevelPlacementConversion::ToLogicObject(Source));
-				break;
-
-			case EGridLevelPlacementBucket::None:
-			default:
-				break;
-		}
-	}
 }
 
-void UGridLevelAsset::PostLoad()
-{
-	Super::PostLoad();
-
-	// WORLDOBJ-MIG09-E1: typed collections are now the unconditional persistent
-	// authority. Objects is transient and is rebuilt only for the remaining E2 readers.
-	RefreshLegacyObjectMirrorFromTyped();
-}
 
 void UGridLevelAsset::EnsureCellCount()
 {
@@ -264,7 +129,6 @@ void UGridLevelAsset::ClearLevel()
 		Cell = FGridLevelCellData();
 	}
 
-	Objects.Reset();
 	WorldObjectInstances.Reset();
 	LooseItemInstances.Reset();
 	MonsterSpawns.Reset();
@@ -277,27 +141,6 @@ void UGridLevelAsset::ClearLevel()
 #endif
 }
 
-FGuid UGridLevelAsset::AddObject(const FGridLevelObjectData& NewObject)
-{
-#if WITH_EDITOR
-	Modify();
-#endif
-
-	FGridLevelObjectData Obj = NewObject;
-	if (!Obj.ObjectId.IsValid())
-	{
-		Obj.ObjectId = FGuid::NewGuid();
-	}
-
-	NormalizeMonsterSpawnData(Obj);
-	UpsertTypedPlacementFromCompatibility(*this, Obj);
-	RefreshLegacyObjectMirrorFromTyped();
-
-#if WITH_EDITOR
-	MarkPackageDirty();
-#endif
-	return Obj.ObjectId;
-}
 
 bool UGridLevelAsset::RemoveObjectById(const FGuid& ObjectId)
 {
@@ -309,7 +152,6 @@ bool UGridLevelAsset::RemoveObjectById(const FGuid& ObjectId)
 	{
 		return false;
 	}
-	RefreshLegacyObjectMirrorFromTyped();
 	RemoveLinksForObject(ObjectId);
 
 #if WITH_EDITOR
@@ -368,36 +210,12 @@ void UGridLevelAsset::EnsureObjectIds()
 			Instance.InstanceId = FGuid::NewGuid();
 		}
 	}
-	RefreshLegacyObjectMirrorFromTyped();
 
 #if WITH_EDITOR
 	MarkPackageDirty();
 #endif
 }
 
-bool UGridLevelAsset::CommitCompatibilityObjectEdit(const FGuid& ObjectId)
-{
-	if (!ObjectId.IsValid())
-	{
-		return false;
-	}
-
-	const FGridLevelObjectData* StoredObject = Objects.FindByPredicate(
-		[&ObjectId](const FGridLevelObjectData& Object)
-		{
-			return Object.ObjectId == ObjectId;
-		});
-	if (!StoredObject)
-	{
-		return false;
-	}
-
-	FGridLevelObjectData EditedSnapshot = *StoredObject;
-	NormalizeMonsterSpawnData(EditedSnapshot);
-	UpsertTypedPlacementFromCompatibility(*this, EditedSnapshot);
-	RefreshLegacyObjectMirrorFromTyped();
-	return true;
-}
 
 bool UGridLevelAsset::ValidateMonsterSpawns(TArray<FString>& OutErrors) const
 {
@@ -616,18 +434,4 @@ TArray<FGuid> UGridLevelAsset::GetTypedPlacementIdsAtCell(int32 CellX, int32 Cel
 		if (LogicInstance.CellX == CellX && LogicInstance.CellY == CellY) ObjectIds.Add(LogicInstance.InstanceId);
 	}
 	return ObjectIds;
-}
-
-const FGridLevelObjectData* UGridLevelAsset::FindMonsterSpawnById(const FGuid& SpawnId) const
-{
-	if (!SpawnId.IsValid())
-	{
-		return nullptr;
-	}
-
-	return GetObjectCompatibilityView().FindByPredicate(
-		[&SpawnId](const FGridLevelObjectData& ObjectData)
-		{
-			return ObjectData.Type == EGridLevelObjectType::MonsterSpawn && ObjectData.ObjectId == SpawnId;
-		});
 }

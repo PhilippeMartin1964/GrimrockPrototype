@@ -61,19 +61,9 @@ public:
 	TObjectPtr<USoundAttenuation> DefaultObjectAudioAttenuation = nullptr;
 
 public:
-	/** Temporary reflected E2 compatibility wrapper. Native runtime code uses InitializeRuntimeWorldObjectBase(). */
-	UFUNCTION(BlueprintCallable, Category = "Grid")
-	virtual void InitializeGridObjectBase(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FVector& WorldLocation, const FRotator& WorldRotation);
-
 	/** Runtime-native base initializer; never serialized or exposed to Blueprint. */
 	virtual void InitializeRuntimeWorldObjectBase(
 		const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FVector& WorldLocation, const FRotator& WorldRotation);
-
-	/** Temporary reflected E2 compatibility wrapper. Native runtime actors override InitializeRuntimeWorldObject(). */
-	UFUNCTION(BlueprintCallable, Category = "Grid")
-	virtual void InitializeGridObject(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform);
 
 	/** Runtime-native world-object initialization boundary introduced by MIG09-E2. */
 	virtual void InitializeRuntimeWorldObject(

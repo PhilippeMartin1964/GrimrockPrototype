@@ -1806,14 +1806,6 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDef
 	return ItemActor;
 }
 
-bool AGridLevelRuntimeActor::GetObjectPlacementTransform(const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const
-{
-	if (ObjectData.Type == EGridLevelObjectType::Item)
-	{
-		return GridPlacementTransformResolver::ResolveLooseItem(*this, GridLevelPlacementConversion::ToLooseItem(ObjectData), OutTransform);
-	}
-	return GridPlacementTransformResolver::ResolveWorldObject(*this, GridLevelPlacementConversion::ToWorldObject(ObjectData), OutTransform);
-}
 
 void AGridLevelRuntimeActor::RegisterRuntimeObjectActor(const FGuid& ObjectId, AGridRuntimeObjectActor* Actor)
 {

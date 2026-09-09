@@ -330,7 +330,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Placed world object has no WorldObjectDefinitionId."), ObjectId);
 		else if (!Archetype)
 			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Placed object definition '%s' cannot be resolved."), *Obj.WorldObjectDefinitionId.ToString()), ObjectId);
-		if (GridLevelPlacementConversion::GetBucket(Obj.Type) != EGridLevelPlacementBucket::WorldObject)
+		if (GridLevelPlacement::GetBucket(Obj.Type) != EGridLevelPlacementBucket::WorldObject)
 			AddMessage(EGridLevelValidationSeverity::Error, TEXT("WorldObjectInstances contains a type belonging to another placement collection."), ObjectId);
 		if (Archetype && Obj.Type != Archetype->SupportedType)
 			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Placed object Type=%s does not match archetype '%s' SupportedType=%s."), *ToGridObjectTypeText(Obj.Type), *Obj.WorldObjectDefinitionId.ToString(), *ToGridObjectTypeText(Archetype->SupportedType)), ObjectId);
@@ -543,7 +543,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	for (const FGridLogicObjectInstance& LogicInstance : LevelAsset->LogicObjects)
 	{
 		ValidatePlacement(LogicInstance.InstanceId, LogicInstance.CellX, LogicInstance.CellY, LogicInstance.PaletteEntryId, LogicInstance.Type);
-		if (GridLevelPlacementConversion::GetBucket(LogicInstance.Type) != EGridLevelPlacementBucket::LogicObject)
+		if (GridLevelPlacement::GetBucket(LogicInstance.Type) != EGridLevelPlacementBucket::LogicObject)
 			AddMessage(EGridLevelValidationSeverity::Error, TEXT("LogicObjects contains a type belonging to another placement collection."), LogicInstance.InstanceId);
 	}
 

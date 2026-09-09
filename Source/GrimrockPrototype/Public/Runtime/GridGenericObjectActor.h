@@ -13,8 +13,8 @@ class UPointLightComponent;
  * and simple light sources.
  *
  * The level runtime actor still computes placement. This actor applies generic
- * archetype-driven options when InitializeGenericObject is used. If it is spawned
- * through the base InitializeGridObject path, it still behaves as a safe static
+ * archetype-driven options when InitializeRuntimeGenericObject is used. If it is spawned
+ * through the base InitializeRuntimeWorldObject path, it still behaves as a safe static
  * visual actor.
  */
 UCLASS()
@@ -42,11 +42,6 @@ public:
 	bool bRuntimeHasBeenRead = false;
 
 public:
-	/** Temporary reflected E2 compatibility wrapper. */
-	UFUNCTION(BlueprintCallable, Category = "Grid")
-	void InitializeGenericObject(const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* Mesh,
-		const FTransform& WorldTransform);
-
 	/** Runtime-native generic world-object initializer. */
 	void InitializeRuntimeGenericObject(const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* Mesh,
 		const FTransform& WorldTransform);

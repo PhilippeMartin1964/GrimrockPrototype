@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "Core/GridTypes.h"
 
-struct FGridLevelObjectData;
 struct FGridObjectLink;
 
 /**
@@ -33,14 +32,6 @@ namespace GridEditorLinkPolicy
 	GRIMROCKPROTOTYPEEDITOR_API EGridEditorCommandRuntimeSupport GetCommandRuntimeSupport(
 		EGridLevelObjectType ObjectType, EGridLogicNodeType LogicNodeType, EGridObjectCommand Command);
 
-	/** Transitional adapters for remaining legacy editor widgets/tests. Remove with FINAL-C after all callers use the native surface above. */
-	GRIMROCKPROTOTYPEEDITOR_API bool CanObjectEmitEvents(const FGridLevelObjectData& ObjectData);
-	GRIMROCKPROTOTYPEEDITOR_API bool CanObjectReceiveCommands(const FGridLevelObjectData& ObjectData);
-	GRIMROCKPROTOTYPEEDITOR_API TArray<EGridObjectEvent> GetSupportedEventsForSource(const FGridLevelObjectData& ObjectData);
-	GRIMROCKPROTOTYPEEDITOR_API TArray<EGridObjectCommand> GetSupportedCommandsForTarget(const FGridLevelObjectData& ObjectData);
-	GRIMROCKPROTOTYPEEDITOR_API TArray<EGridObjectCondition> GetSupportedConditionsForTarget(const FGridLevelObjectData& ObjectData);
-	GRIMROCKPROTOTYPEEDITOR_API EGridEditorCommandRuntimeSupport GetCommandRuntimeSupport(
-		const FGridLevelObjectData& ObjectData, EGridObjectCommand Command);
 
 	/**
 	 * Exact persistent identity used by MON19.2 when comparing connectors.

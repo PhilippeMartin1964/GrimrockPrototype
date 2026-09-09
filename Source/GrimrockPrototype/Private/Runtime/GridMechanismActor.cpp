@@ -18,11 +18,6 @@ AGridMechanismActor::AGridMechanismActor()
 	SecondaryMovingMeshComponent->SetMobility(EComponentMobility::Movable);
 }
 
-void AGridMechanismActor::InitializeMechanismVisuals(
-	const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform)
-{
-	InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(ObjectData), Archetype, WorldTransform);
-}
 
 void AGridMechanismActor::InitializeRuntimeMechanismVisuals(
 	const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform)

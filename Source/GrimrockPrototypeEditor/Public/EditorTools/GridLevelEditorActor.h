@@ -396,12 +396,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Palette")
 	void ApplySelectedPaletteEntry();
 
-	bool TryGetSelectedObjectData(FGridLevelObjectData& OutObject) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Selection")
 	bool TryGetObjectWorldLocationById(FGuid ObjectId, FVector& OutWorldLocation) const;
 
-	bool GetObjectEditorWorldCenter(const FGridLevelObjectData& Obj, FVector& OutWorldCenter) const;
 	bool GetObjectEditorWorldCenter(const FGuid& ObjectId, FVector& OutWorldCenter) const;
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Selection")
@@ -545,7 +543,6 @@ private:
 	bool HasValidLevelAsset() const;
 	bool IsValidSelectedCell() const;
 	bool RequiresEdge(EGridLevelObjectType ObjectType) const;
-	bool IsEdgePlacedObject(const FGridLevelObjectData& ObjectData) const;
 	bool IsEdgePlacedObject(const FGuid& ObjectId) const;
 	bool IsEdgePlacedObject(EGridLevelObjectType ObjectType, FName ArchetypeId) const;
 	bool IsCellCenteredObject(EGridLevelObjectType ObjectType) const;

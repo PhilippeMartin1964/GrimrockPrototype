@@ -280,13 +280,6 @@ void UGridActivationComponent::RegisterInitialObjectState(const FGridWorldObject
 	}
 }
 
-void UGridActivationComponent::RegisterInitialObjectState(const FGridLevelObjectData& ObjectData)
-{
-	if (ObjectData.bInitiallyActive && ObjectData.ObjectId.IsValid())
-	{
-		ActiveObjectIds.Add(ObjectData.ObjectId);
-	}
-}
 
 void UGridActivationComponent::RebuildIndexes()
 {

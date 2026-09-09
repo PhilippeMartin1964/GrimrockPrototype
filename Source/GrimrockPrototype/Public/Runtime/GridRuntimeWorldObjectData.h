@@ -3,11 +3,14 @@
 #include "Core/GridLevelPlacementTypes.h"
 
 /**
- * WORLDOBJ-MIG09-E2 runtime-only payload for one placed world object.
+ * Runtime-only initialization payload for one placed world object.
  *
  * This structure is intentionally not reflected and is never stored in UGridLevelAsset.
- * It isolates runtime actors from the historical monolithic FGridLevelObjectData DTO while
- * E2 migrates the remaining runtime/editor/test consumers to their native typed placements.
+ * It carries world-object identity, pose and initial state to the actor hierarchy.
+ * Its only placement constructor accepts FGridWorldObjectInstance: no loose item,
+ * monster spawn, item generator or logic placement is represented here.
+ * Behavior contains defaults plus the five instance-owned overrides; shared rules
+ * are resolved from the definition by GridObjectInstanceBehavior at initialization.
  */
 struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 {
@@ -24,20 +27,6 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 
 	FGridRuntimeWorldObjectData() = default;
 
-	/** Temporary E2 bridge for callers not yet migrated away from FGridLevelObjectData. */
-	FGridRuntimeWorldObjectData(const FGridLevelObjectData& Source)
-		: ObjectId(Source.ObjectId)
-		, Type(Source.Type)
-		, CellX(Source.CellX)
-		, CellY(Source.CellY)
-		, Edge(Source.Edge)
-		, ArchetypeId(Source.ArchetypeId)
-		, bInitiallyEnabled(Source.bInitiallyEnabled)
-		, bInitiallyActive(Source.bInitiallyActive)
-		, OverrideReadableText(Source.OverrideReadableText)
-		, Behavior(Source.Behavior)
-	{
-	}
 
 	/** Native target path: build the runtime payload directly from a typed world-object placement. */
 	explicit FGridRuntimeWorldObjectData(const FGridWorldObjectInstance& Source)

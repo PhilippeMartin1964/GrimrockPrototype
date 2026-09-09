@@ -1,8 +1,10 @@
 # WORLDOBJ-MIG09 — Purge des compatibilités legacy
 
-Statut : **MIG09-A à MIG09-E2B validés ; MIG09-E2C en cours ; MIG10 après clôture de MIG09**.
+Statut : **MIG09 FINAL-C validé localement ; purge physique terminée. MIG10 non commencé.**
 
-Date de mise à jour : 2026-09-08.
+Date de mise à jour : 2026-09-09.
+
+Le [rapport FINAL-C](WORLDOBJ_MIG09_FINAL_C.md) décrit l'état final, les callers runtime conservés et les preuves de validation. Les sections 4 et 5 ci-dessous constituent l'historique des étapes intermédiaires ; leurs descriptions de caches et de projections ne décrivent plus le code actuel.
 
 ## 1. Référence et règle
 
@@ -42,7 +44,7 @@ Definition
 | MIG09-E1 | ✅ | Les cinq collections typées sont l'unique autorité persistante. |
 | MIG09-E2A | ✅ | Frontière runtime world-object explicite. |
 | MIG09-E2B | ✅ validé localement | Runtime spécialisé hors cache `Objects`. |
-| MIG09-E2C | 🟨 en cours | Editor/tests puis suppression physique du DTO et des projections. |
+| MIG09-E2C | ✅ validé localement | FINAL-A/B : consommateurs natifs ; FINAL-C : DTO, cache et adaptateurs supprimés. |
 
 ## 3. Autorité persistante actuelle
 
@@ -56,7 +58,7 @@ ItemSpawns
 LogicObjects
 ```
 
-`UGridLevelAsset::Objects` n'est plus sérialisé. Il reste uniquement comme cache de compatibilité transitoire jusqu'à la fin d'E2C.
+`UGridLevelAsset::Objects` est physiquement supprimé, ainsi que le DTO et les conversions de compatibilité. Aucun DTO générique de remplacement n'est introduit.
 
 ## 4. Validation MIG09-E2B
 
@@ -358,14 +360,14 @@ Il reste à migrer :
 ## 6. Definition of Done MIG09
 
 ```text
-[ ] aucun Objects sérialisé ou transient
-[ ] aucun FGridLevelObjectData
-[ ] aucune projection legacy <-> typed
-[ ] runtime sur structures natives / payload runtime légitime
-[ ] Editor sur placements typés
-[ ] tests sans fixtures legacy actives
-[ ] Grimrock.WorldObjects : 0 Failed
-[ ] documentation réconciliée avec la mind map
+[x] aucun Objects sérialisé ou transient
+[x] aucun FGridLevelObjectData
+[x] aucune projection legacy <-> typed
+[x] runtime sur structures natives / payload runtime légitime
+[x] Editor sur placements typés
+[x] tests sans fixtures legacy actives
+[x] Grimrock.WorldObjects : 36 réussites, 0 Failed
+[x] documentation réconciliée avec la mind map pour le périmètre MIG09
 ```
 
 MIG10 ne commence qu'après cette liste entièrement cochée.

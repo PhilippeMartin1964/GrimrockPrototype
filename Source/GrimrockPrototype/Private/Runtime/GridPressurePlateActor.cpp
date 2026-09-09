@@ -16,11 +16,6 @@ void AGridPressurePlateActor::Tick(float DeltaSeconds)
 	}
 }
 
-void AGridPressurePlateActor::InitializePlate(
-	const FGridLevelObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation, bool bStartPressed)
-{
-	InitializeRuntimePlate(FGridRuntimeWorldObjectData(ObjectData), InPlateMesh, InWorldLocation, bStartPressed);
-}
 
 void AGridPressurePlateActor::InitializeRuntimePlate(
 	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation, bool bStartPressed)

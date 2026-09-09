@@ -8,7 +8,7 @@ struct FGridWorldObjectInstance;
 
 /**
  * WORLDOBJ-MIG09 typed placement transform authority shared by runtime and editor preview.
- * It consumes the persistent typed placement directly and never reconstructs FGridLevelObjectData.
+ * It consumes each persistent typed placement directly without a generic projection.
  */
 namespace GridPlacementTransformResolver
 {

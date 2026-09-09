@@ -24,9 +24,6 @@ public:
 	void Initialize(AGridLevelRuntimeActor* InRuntimeActor);
 	void ResetRuntimeState();
 
-	/** Temporary E2 compatibility wrapper until AGridLevelRuntimeActor stops passing the legacy DTO. */
-	void RegisterDoorObject(const FGridLevelObjectData& ObjectData, AGridRuntimeObjectActor* RuntimeObjectActor);
-
 	/** Native runtime registration path. */
 	void RegisterDoorObject(const FGridRuntimeWorldObjectData& ObjectData, AGridRuntimeObjectActor* RuntimeObjectActor);
 

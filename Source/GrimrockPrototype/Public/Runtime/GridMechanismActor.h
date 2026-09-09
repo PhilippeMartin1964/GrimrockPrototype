@@ -13,10 +13,6 @@ class GRIMROCKPROTOTYPE_API AGridMechanismActor : public AGridRuntimeObjectActor
 public:
 	AGridMechanismActor();
 
-	/** Temporary E2 compatibility wrapper for callers still passing FGridLevelObjectData. */
-	virtual void InitializeMechanismVisuals(
-		const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform);
-
 	/** Runtime-native mechanism presentation boundary. */
 	virtual void InitializeRuntimeMechanismVisuals(
 		const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform);

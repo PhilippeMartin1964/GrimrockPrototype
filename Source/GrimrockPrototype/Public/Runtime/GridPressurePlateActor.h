@@ -34,11 +34,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Plate|Weight")
 	bool bActivateWhenPartyPresent = true;
 
-	/** Temporary reflected E2 compatibility wrapper. */
-	UFUNCTION(BlueprintCallable, Category = "Plate")
-	void InitializePlate(
-		const FGridLevelObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation, bool bStartPressed);
-
 	void InitializeRuntimePlate(
 		const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation, bool bStartPressed);
 
