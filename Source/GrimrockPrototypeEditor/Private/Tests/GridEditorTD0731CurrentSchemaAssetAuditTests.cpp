@@ -277,7 +277,7 @@ bool FGridTD0731CurrentSchemaAssetAuditTest::RunTest(const FString& Parameters)
 	TArray<FAssetData> AssetData;
 	AssetRegistry.GetAssets(Filter, AssetData);
 
-	// MIG10 migration audit only: redirected packages can retain their old registry class tag until resaved.
+	// Inspect on-disk class tags so redirects cannot hide packages that still use the legacy class name.
 	FARFilter DefinitionFilter;
 	DefinitionFilter.PackagePaths = Filter.PackagePaths;
 	DefinitionFilter.bRecursivePaths = true;
@@ -310,9 +310,16 @@ bool FGridTD0731CurrentSchemaAssetAuditTest::RunTest(const FString& Parameters)
 		{
 			continue;
 		}
-		TestFalse(TEXT("MIG10 preserves every serialized DefinitionId"), Definition->DefinitionId.IsNone());
-		TestFalse(TEXT("MIG10 definition ids remain unique"), DefinitionIds.Contains(Definition->DefinitionId));
+		const FString AssetPath = Entry.PackageName.ToString();
+		TestFalse(FString::Printf(TEXT("%s: Current WorldObjectDefinition id is non-empty"), *AssetPath), Definition->DefinitionId.IsNone());
+		TestFalse(FString::Printf(TEXT("%s: Current WorldObjectDefinition ids remain unique"), *AssetPath), DefinitionIds.Contains(Definition->DefinitionId));
 		DefinitionIds.Add(Definition->DefinitionId);
+		TestFalse(FString::Printf(TEXT("%s: WorldObjectDefinitions cannot represent collectibles"), *AssetPath),
+			Definition->SupportedType == EGridLevelObjectType::Item);
+		TestTrue(FString::Printf(TEXT("%s: WorldObjectDefinitions cannot retain legacy Item behavior asset references"), *AssetPath),
+			Definition->DefaultBehavior.Item.ItemDefinitionAsset == nullptr);
+		TestTrue(FString::Printf(TEXT("%s: WorldObjectDefinitions cannot retain legacy Item behavior ids"), *AssetPath),
+			Definition->DefaultBehavior.Item.ItemDefinitionId.IsNone());
 		TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
 		Definition->ValidateDefinition(Messages);
 		for (const FGridWorldObjectDefinitionValidationMessage& Message : Messages)
@@ -323,10 +330,8 @@ bool FGridTD0731CurrentSchemaAssetAuditTest::RunTest(const FString& Parameters)
 			}
 		}
 	}
-	TestEqual(TEXT("MIG10 registry baseline: old plus new definition tags"), OldClassTagged + NewClassTagged, 38);
-	TestEqual(TEXT("MIG10-B resaved definitions carry the new on-disk class tag"), NewClassTagged, 38);
-	TestEqual(TEXT("MIG10 complete DataAsset baseline"), AssetData.Num(), 92);
-	AddInfo(FString::Printf(TEXT("MIG10 OldClassTagged=%d NewClassTagged=%d"), OldClassTagged, NewClassTagged));
+	TestEqual(TEXT("Current schema has no legacy WorldObjectDefinition class tags"), OldClassTagged, 0);
+	AddInfo(FString::Printf(TEXT("Current schema OldClassTagged=%d NewClassTagged=%d DataAssets=%d"), OldClassTagged, NewClassTagged, AssetData.Num()));
 	AssetData.Sort(
 		[](const FAssetData& Left, const FAssetData& Right)
 		{
