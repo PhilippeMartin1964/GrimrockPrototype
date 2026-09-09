@@ -112,24 +112,17 @@ bool FGridWorldObjectMIG01PlacementSchemaTest::RunTest(const FString& Parameters
 
 	TestNotNull(TEXT("DefaultLocalPosition exists"), DefinitionClass->FindPropertyByName(TEXT("DefaultLocalPosition")));
 
-	const TArray<FName> TransientBridgeProperties = {
+	const TArray<FName> RemovedPlacementProperties = {
 		TEXT("PlacementKind"),
 		TEXT("PlacementZOffset"),
 		TEXT("WallInset"),
 		TEXT("LocalOffsetAlongWall"),
 		TEXT("LocalOffsetVertical")
 	};
-	for (const FName PropertyName : TransientBridgeProperties)
+	for (const FName PropertyName : RemovedPlacementProperties)
 	{
-		FProperty* Property = DefinitionClass->FindPropertyByName(PropertyName);
-		TestNotNull(*FString::Printf(TEXT("%s remains only as a transient source bridge"), *PropertyName.ToString()), Property);
-		if (Property)
-		{
-			TestTrue(*FString::Printf(TEXT("%s is transient and therefore not serialized"), *PropertyName.ToString()),
-				Property->HasAnyPropertyFlags(CPF_Transient));
-			TestFalse(*FString::Printf(TEXT("%s is not an authoring parameter"), *PropertyName.ToString()),
-				Property->HasAnyPropertyFlags(CPF_Edit));
-		}
+		TestNull(*FString::Printf(TEXT("%s has been removed from the placement schema"), *PropertyName.ToString()),
+			DefinitionClass->FindPropertyByName(PropertyName));
 	}
 
 	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
@@ -190,7 +183,6 @@ bool FGridWorldObjectMIG01PlacementTransformParityTest::RunTest(const FString& P
 	Definition->DefaultLocalPosition.U = 0.0f;
 	Definition->DefaultLocalPosition.V = 0.0f;
 	Definition->DefaultLocalPosition.N = 12.0f;
-	Definition->RefreshPlacementRuntimeProjection();
 	TestTrue(TEXT("Floor transform resolves"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, FloorObject, Transform));
 	TestTrue(TEXT("Floor N preserves the characterized height"), GridWorldObjectMIG01::IsLocation(Transform, FVector(300.0f, 500.0f, 12.0f)));
 	TestTrue(TEXT("Per-instance LocalYaw is preserved"), GridWorldObjectMIG01::IsRotation(Transform, FRotator(0.0f, 30.0f, 0.0f)));
@@ -200,7 +192,6 @@ bool FGridWorldObjectMIG01PlacementTransformParityTest::RunTest(const FString& P
 	Definition->DefaultLocalPosition.U = 0.0f;
 	Definition->DefaultLocalPosition.V = 0.0f;
 	Definition->DefaultLocalPosition.N = 12.0f;
-	Definition->RefreshPlacementRuntimeProjection();
 	FloorObject.bHasLocalTransformOverride = true;
 	FloorObject.LocalTransformOverride = FTransform(FRotator(0.0f, 0.0f, 0.0f));
 	TestTrue(TEXT("Ceiling transform resolves"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, FloorObject, Transform));
@@ -215,7 +206,6 @@ bool FGridWorldObjectMIG01PlacementTransformParityTest::RunTest(const FString& P
 	Definition->DefaultLocalPosition.U = 25.0f;
 	Definition->DefaultLocalPosition.V = 110.0f;
 	Definition->DefaultLocalPosition.N = 6.0f;
-	Definition->RefreshPlacementRuntimeProjection();
 	TestTrue(TEXT("Wall transform resolves"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, WallObject, Transform));
 	TestTrue(TEXT("Wall U/V/N preserves characterized placement"), GridWorldObjectMIG01::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
 	TestTrue(TEXT("Wall anchor rotation is preserved"), GridWorldObjectMIG01::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
@@ -227,7 +217,6 @@ bool FGridWorldObjectMIG01PlacementTransformParityTest::RunTest(const FString& P
 	Definition->DefaultLocalPosition.U = 0.0f;
 	Definition->DefaultLocalPosition.V = 0.0f;
 	Definition->DefaultLocalPosition.N = 0.0f;
-	Definition->RefreshPlacementRuntimeProjection();
 	TestTrue(TEXT("Door transform resolves on Wall surface"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, DoorObject, Transform));
 	TestTrue(TEXT("Door remains anchored on the exact North boundary"), GridWorldObjectMIG01::IsLocation(Transform, FVector(300.0f, 600.0f, 0.0f)));
 	TestTrue(TEXT("Door historical boundary rotation is preserved"), GridWorldObjectMIG01::IsRotation(Transform, FRotator::ZeroRotator));

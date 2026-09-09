@@ -88,7 +88,6 @@ namespace GridTD011Tests
 		Fixture.Definition->Category = TEXT("Receptacles");
 		Fixture.Definition->ObjectCategory = EGridObjectCategory::Receptacle;
 		Fixture.Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
-		Fixture.Definition->RefreshPlacementRuntimeProjection();
 		Fixture.Definition->bIsInteractable = true;
 		Fixture.Definition->RuntimeActorClass = AGridReceptacleActor::StaticClass();
 		Fixture.Mesh = NewObject<UStaticMesh>(Outer);

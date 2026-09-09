@@ -97,7 +97,6 @@ bool FGridPIT01DataContractTest::RunTest(const FString& Parameters)
 	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
 	Definition->SupportedType = EGridLevelObjectType::Pit;
 	Definition->PlacementSurface = EGridObjectPlacementKind::Floor;
-		Definition->RefreshPlacementRuntimeProjection();
 	Definition->DefaultBehavior.Pit.bInitiallyOpen = true;
 	Definition->DefaultBehavior.Pit.bUseSameCellCoordinates = true;
 	Definition->DefaultBehavior.Transition.bIsTransition = true;
@@ -194,7 +193,6 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	PitDefinition->DefinitionId = TEXT("Pit_Stone_01");
 	PitDefinition->SupportedType = EGridLevelObjectType::Pit;
 	PitDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
-		PitDefinition->RefreshPlacementRuntimeProjection();
 	Runtime->WorldObjectDefinitions.Add(PitDefinition);
 
 	Runtime->DungeonAsset = Dungeon;

@@ -231,8 +231,8 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter(const FGuid& ObjectId, FV
 
 			case EGridObjectPlacementKind::Ceiling:
 			{
-				const float PlacementZOffset = Definition ? CurrentWorldObjectCeilingPlaneHeight - Definition->DefaultLocalPosition.N : FallbackCellHeight - CeilingObjectInset;
-				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, CellSize * 0.5f, PlacementZOffset);
+				const float ZOffset = Definition ? CurrentWorldObjectCeilingPlaneHeight - Definition->DefaultLocalPosition.N : FallbackCellHeight - CeilingObjectInset;
+				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, CellSize * 0.5f, ZOffset);
 				return true;
 			}
 
@@ -240,8 +240,8 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter(const FGuid& ObjectId, FV
 			case EGridObjectPlacementKind::Floor:
 			default:
 			{
-				const float PlacementZOffset = Definition ? Definition->DefaultLocalPosition.N : 12.f;
-				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, CellSize * 0.5f, PlacementZOffset);
+				const float ZOffset = Definition ? Definition->DefaultLocalPosition.N : 12.f;
+				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, CellSize * 0.5f, ZOffset);
 				return true;
 			}
 		}
@@ -264,26 +264,26 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter(const FGuid& ObjectId, FV
 			? PreviewRuntimeActor->GetActorLocation() + PreviewRuntimeActor->GridOrigin
 			: GetActorLocation();
 		const FVector CellBase = GridWorldOrigin + FVector(Instance->CellX * CellSize, Instance->CellY * CellSize, 0.f);
-		const float PlacementZOffset = 12.f;
+		const float ZOffset = 12.f;
 		const float EdgeInset = 18.f;
 
 		switch (Instance->SurfaceSide)
 		{
 			case EGridEdge::North:
-				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, CellSize - EdgeInset, PlacementZOffset);
+				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, CellSize - EdgeInset, ZOffset);
 				return true;
 			case EGridEdge::South:
-				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, EdgeInset, PlacementZOffset);
+				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, EdgeInset, ZOffset);
 				return true;
 			case EGridEdge::East:
-				OutWorldCenter = CellBase + FVector(CellSize - EdgeInset, CellSize * 0.5f, PlacementZOffset);
+				OutWorldCenter = CellBase + FVector(CellSize - EdgeInset, CellSize * 0.5f, ZOffset);
 				return true;
 			case EGridEdge::West:
-				OutWorldCenter = CellBase + FVector(EdgeInset, CellSize * 0.5f, PlacementZOffset);
+				OutWorldCenter = CellBase + FVector(EdgeInset, CellSize * 0.5f, ZOffset);
 				return true;
 			case EGridEdge::None:
 			default:
-				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, CellSize * 0.5f, PlacementZOffset);
+				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, CellSize * 0.5f, ZOffset);
 				return true;
 		}
 	}

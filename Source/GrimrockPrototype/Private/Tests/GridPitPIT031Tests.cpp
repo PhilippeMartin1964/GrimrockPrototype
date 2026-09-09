@@ -152,7 +152,6 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	PitDefinition->DefinitionId = TEXT("Pit_Animated_Test");
 	PitDefinition->SupportedType = EGridLevelObjectType::Pit;
 	PitDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
-		PitDefinition->RefreshPlacementRuntimeProjection();
 	PitDefinition->StaticPart.Mesh = PitMesh;
 	PitDefinition->MovingParts.Part0.Mesh = LeftLeafMesh;
 	PitDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;

@@ -91,8 +91,8 @@ namespace
 		return true;
 	}
 
-	bool ResolveWallMounted(const AGridLevelRuntimeActor& RuntimeActor, int32 CellX, int32 CellY, EGridEdge Edge, float ZOffset, float WallInset,
-		float LocalOffsetAlongWall, float LocalOffsetVertical, FTransform& OutTransform)
+	bool ResolveWallMounted(const AGridLevelRuntimeActor& RuntimeActor, int32 CellX, int32 CellY, EGridEdge Edge, float Vertical, float Inset,
+		float AlongWall, FTransform& OutTransform)
 	{
 		if (!RuntimeActor.LevelAsset || Edge == EGridEdge::None)
 		{
@@ -100,25 +100,25 @@ namespace
 		}
 
 		const float CellSize = RuntimeActor.LevelAsset->CellSize;
-		const FVector Base = GetCellOrigin(RuntimeActor, CellX, CellY, ZOffset + LocalOffsetVertical);
+		const FVector Base = GetCellOrigin(RuntimeActor, CellX, CellY, Vertical);
 		FVector Position = Base;
 		FRotator Rotation = FRotator::ZeroRotator;
 		switch (Edge)
 		{
 			case EGridEdge::North:
-				Position = Base + FVector((CellSize * 0.5f) + LocalOffsetAlongWall, CellSize - WallInset, 0.0f);
+				Position = Base + FVector((CellSize * 0.5f) + AlongWall, CellSize - Inset, 0.0f);
 				Rotation = FRotator(0.0f, 90.0f, 0.0f);
 				break;
 			case EGridEdge::South:
-				Position = Base + FVector((CellSize * 0.5f) - LocalOffsetAlongWall, WallInset, 0.0f);
+				Position = Base + FVector((CellSize * 0.5f) - AlongWall, Inset, 0.0f);
 				Rotation = FRotator(0.0f, -90.0f, 0.0f);
 				break;
 			case EGridEdge::East:
-				Position = Base + FVector(CellSize - WallInset, (CellSize * 0.5f) - LocalOffsetAlongWall, 0.0f);
+				Position = Base + FVector(CellSize - Inset, (CellSize * 0.5f) - AlongWall, 0.0f);
 				Rotation = FRotator(0.0f, 0.0f, 0.0f);
 				break;
 			case EGridEdge::West:
-				Position = Base + FVector(WallInset, (CellSize * 0.5f) + LocalOffsetAlongWall, 0.0f);
+				Position = Base + FVector(Inset, (CellSize * 0.5f) + AlongWall, 0.0f);
 				Rotation = FRotator(0.0f, 180.0f, 0.0f);
 				break;
 			default:
@@ -162,7 +162,7 @@ namespace GridPlacementTransformResolver
 		if (Definition->PlacementSurface == EGridObjectPlacementKind::Wall)
 		{
 			return ResolveWallMounted(RuntimeActor, Instance.CellX, Instance.CellY, Instance.WallSide, Definition->DefaultLocalPosition.V,
-				Definition->DefaultLocalPosition.N, Definition->DefaultLocalPosition.U, 0.0f, OutTransform);
+				Definition->DefaultLocalPosition.N, Definition->DefaultLocalPosition.U, OutTransform);
 		}
 		if (Definition->PlacementSurface == EGridObjectPlacementKind::Floor || Definition->PlacementSurface == EGridObjectPlacementKind::Ceiling)
 		{

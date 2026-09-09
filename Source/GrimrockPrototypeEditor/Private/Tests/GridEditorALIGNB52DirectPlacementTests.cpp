@@ -59,6 +59,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorALIGNB52DirectPlacementTest,
 bool FGridEditorALIGNB52DirectPlacementTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	const TArray<FName> RemovedPlacementProperties = {
+		TEXT("PlacementKind"), TEXT("PlacementZOffset"), TEXT("WallInset"), TEXT("LocalOffsetAlongWall"), TEXT("LocalOffsetVertical")
+	};
+	for (const FName PropertyName : RemovedPlacementProperties)
+	{
+		TestNull(*FString::Printf(TEXT("%s is absent from the definition"), *PropertyName.ToString()),
+			UGridWorldObjectDefinitionAsset::StaticClass()->FindPropertyByName(PropertyName));
+	}
+
 	FALIGNB52EditorTestWorld TestWorld;
 	if (!TestNotNull(TEXT("Editor test world exists"), TestWorld.World)) return false;
 	AGridLevelEditorActor* Editor = TestWorld.World->SpawnActor<AGridLevelEditorActor>();
@@ -84,12 +93,6 @@ bool FGridEditorALIGNB52DirectPlacementTest::RunTest(const FString& Parameters)
 	Definition->DefaultLocalPosition.U = 25.0f;
 	Definition->DefaultLocalPosition.V = 110.0f;
 	Definition->DefaultLocalPosition.N = 6.0f;
-	// Never refresh the projection: classification and centers must ignore these stale bridges.
-	Definition->PlacementKind = EGridObjectPlacementKind::Floor;
-	Definition->PlacementZOffset = 999.0f;
-	Definition->WallInset = 777.0f;
-	Definition->LocalOffsetAlongWall = 666.0f;
-	Definition->LocalOffsetVertical = 555.0f;
 
 	Editor->ObjectPalette = NewObject<UGridObjectPaletteAsset>(Editor);
 	FGridObjectPaletteEntry& Entry = Editor->ObjectPalette->Entries.AddDefaulted_GetRef();
@@ -106,7 +109,7 @@ bool FGridEditorALIGNB52DirectPlacementTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Placement uses the authored Wall surface"), Object.WallSide, EGridEdge::North);
 	TestTrue(TEXT("Placed wall can be selected"), Editor->SelectObjectById(ObjectId));
 	TestTrue(TEXT("Wall orientation can be changed"), Editor->SetSelectedObjectOrientation(EGridEdge::East));
-	TestEqual(TEXT("Classification changes WallSide despite the Floor bridge"), Object.WallSide, EGridEdge::East);
+	TestEqual(TEXT("Wall classification changes WallSide"), Object.WallSide, EGridEdge::East);
 	TestFalse(TEXT("Wall orientation does not create a local transform override"), Object.bHasLocalTransformOverride);
 
 	// No runtime actor is spawned until after these assertions: every center exercises the editor fallback.
@@ -130,19 +133,15 @@ bool FGridEditorALIGNB52DirectPlacementTest::RunTest(const FString& Parameters)
 	Object.WallSide = EGridEdge::West;
 	CheckCenter(TEXT("West Wall"), FVector(206.0f, 525.0f, 110.0f));
 	Object.WallSide = EGridEdge::North;
-	Definition->PlacementKind = EGridObjectPlacementKind::Ceiling;
-	Definition->PlacementZOffset = -999.0f;
-	Definition->WallInset = -777.0f;
-	Definition->LocalOffsetAlongWall = -666.0f;
-	Definition->LocalOffsetVertical = -555.0f;
-	CheckCenter(TEXT("Wall after changing every bridge"), FVector(325.0f, 594.0f, 110.0f));
+	Object.bHasLocalTransformOverride = false;
+	CheckCenter(TEXT("Wall without override keeps the same center"), FVector(325.0f, 594.0f, 110.0f));
+	Object.bHasLocalTransformOverride = true;
 
-	Definition->PlacementKind = EGridObjectPlacementKind::Wall;
 	Definition->PlacementSurface = EGridObjectPlacementKind::Floor;
 	Definition->DefaultLocalPosition.N = 12.0f;
 	CheckCenter(TEXT("Floor ignores nonzero U/V and transform override"), FVector(300.0f, 500.0f, 12.0f));
 	TestTrue(TEXT("Floor orientation can be changed"), Editor->SetSelectedObjectOrientation(EGridEdge::East));
-	TestEqual(TEXT("Floor classification does not change WallSide despite Wall bridge"), Object.WallSide, EGridEdge::North);
+	TestEqual(TEXT("Floor classification does not change WallSide"), Object.WallSide, EGridEdge::North);
 	TestFalse(TEXT("Floor orientation changes the local yaw"), FMath::IsNearlyEqual(Object.LocalTransformOverride.Rotator().Yaw, 30.0));
 
 	Definition->PlacementSurface = EGridObjectPlacementKind::Ceiling;
@@ -154,16 +153,11 @@ bool FGridEditorALIGNB52DirectPlacementTest::RunTest(const FString& Parameters)
 	Object.Type = EGridLevelObjectType::Door;
 	Definition->SupportedType = EGridLevelObjectType::Door;
 	Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
-	CheckCenter(TEXT("North Door ignores U/V/N, bridges and override"), FVector(300.0f, 600.0f, 150.0f));
+	CheckCenter(TEXT("North Door ignores U/V/N and override"), FVector(300.0f, 600.0f, 150.0f));
 	Definition->DefaultLocalPosition.U = -45.0f;
 	Definition->DefaultLocalPosition.V = 240.0f;
 	Definition->DefaultLocalPosition.N = 19.0f;
-	Definition->PlacementKind = EGridObjectPlacementKind::Floor;
-	Definition->PlacementZOffset = 987.0f;
-	Definition->WallInset = 765.0f;
-	Definition->LocalOffsetAlongWall = 543.0f;
-	Definition->LocalOffsetVertical = 321.0f;
-	CheckCenter(TEXT("North Door after changing coordinates and bridges"), FVector(300.0f, 600.0f, 150.0f));
+	CheckCenter(TEXT("North Door after changing coordinates"), FVector(300.0f, 600.0f, 150.0f));
 	Object.WallSide = EGridEdge::South;
 	CheckCenter(TEXT("South Door"), FVector(300.0f, 400.0f, 150.0f));
 	Object.WallSide = EGridEdge::East;
@@ -191,16 +185,14 @@ bool FGridEditorALIGNB52DirectPlacementTest::RunTest(const FString& Parameters)
 	RuntimeObject.bInitiallyEnabled = true;
 	RuntimeObject.WallSide = EGridEdge::None;
 	Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
-	Definition->PlacementKind = EGridObjectPlacementKind::Floor;
-	TestFalse(TEXT("Wall spawn requires WallSide despite a Floor bridge"), Runtime->IsRuntimeSpawnableObject(RuntimeObject));
+	TestFalse(TEXT("Wall spawn requires WallSide"), Runtime->IsRuntimeSpawnableObject(RuntimeObject));
 	RuntimeObject.WallSide = EGridEdge::North;
 	TestTrue(TEXT("Wall spawn accepts a cardinal WallSide"), Runtime->IsRuntimeSpawnableObject(RuntimeObject));
 	RuntimeObject.WallSide = EGridEdge::None;
-	Definition->PlacementKind = EGridObjectPlacementKind::Wall;
 	Definition->PlacementSurface = EGridObjectPlacementKind::Floor;
-	TestTrue(TEXT("Floor spawn ignores a Wall bridge"), Runtime->IsRuntimeSpawnableObject(RuntimeObject));
+	TestTrue(TEXT("Floor spawn needs no WallSide"), Runtime->IsRuntimeSpawnableObject(RuntimeObject));
 	Definition->PlacementSurface = EGridObjectPlacementKind::Ceiling;
-	TestTrue(TEXT("Ceiling spawn ignores a Wall bridge"), Runtime->IsRuntimeSpawnableObject(RuntimeObject));
+	TestTrue(TEXT("Ceiling spawn needs no WallSide"), Runtime->IsRuntimeSpawnableObject(RuntimeObject));
 	RuntimeObject.bInitiallyEnabled = false;
 	TestFalse(TEXT("Disabled objects remain excluded from spawning"), Runtime->IsRuntimeSpawnableObject(RuntimeObject));
 

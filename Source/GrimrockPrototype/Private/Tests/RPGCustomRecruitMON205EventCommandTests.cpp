@@ -94,7 +94,7 @@ bool FRPGMON2055CustomRecruiterDefinitionContractTest::RunTest(const FString& Pa
 	Definition->DefinitionId = TEXT("CustomRecruiter_Service");
 	Definition->DisplayName = FText::FromString(TEXT("Custom Recruiter"));
 	Definition->SupportedType = EGridLevelObjectType::CustomRecruiter;
-	Definition->PlacementKind = EGridObjectPlacementKind::Center;
+	Definition->PlacementSurface = EGridObjectPlacementKind::Floor;
 	Definition->Category = TEXT("Recruitment");
 	Definition->ObjectCategory = EGridObjectCategory::Decoration;
 	Definition->bDefaultInitiallyEnabled = true;

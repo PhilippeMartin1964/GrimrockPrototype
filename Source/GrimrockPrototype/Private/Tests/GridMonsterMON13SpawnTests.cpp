@@ -102,7 +102,6 @@ namespace
 		Definition->Category = TEXT("Mechanisms");
 		Definition->ObjectCategory = EGridObjectCategory::Mechanism;
 		Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
-		Definition->RefreshPlacementRuntimeProjection();
 		Definition->RuntimeActorClass = AGridLeverActor::StaticClass();
 		Definition->MovingParts.Part0.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
 		Definition->bIsInteractable = true;
@@ -291,7 +290,7 @@ bool FGridMonsterMON131PaletteContractTest::RunTest(const FString& Parameters)
 	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(Palette);
 	Definition->DefinitionId = TEXT("Monster_RatGiant");
 	Definition->SupportedType = EGridLevelObjectType::MonsterSpawn;
-	Definition->PlacementKind = EGridObjectPlacementKind::Center;
+	Definition->PlacementSurface = EGridObjectPlacementKind::Floor;
 
 	FGridObjectPaletteEntry Entry;
 	Entry.EntryId = TEXT("MON_RatGiant");

@@ -68,7 +68,6 @@ bool AGridLevelEditorActor::EnsureStairsTransitionDefinitions(FString& OutError)
 		Definition.MovingParts = FGridWorldObjectMovingParts();
 		Definition.RuntimeActorClass = AGridGenericObjectActor::StaticClass();
 		Definition.ItemActorClass = nullptr;
-		Definition.RefreshPlacementRuntimeProjection();
 		Definition.MarkPackageDirty();
 	};
 
@@ -211,7 +210,6 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 		PitDefinition->MovingParts.Part1.Motion.Duration = 0.75f;
 	}
 
-	PitDefinition->RefreshPlacementRuntimeProjection();
 	PitDefinition->MarkPackageDirty();
 
 	ObjectPalette->Modify();
@@ -250,4 +248,3 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 	return false;
 #endif
 }
-

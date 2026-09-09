@@ -145,7 +145,7 @@ bool FGridMonsterMON171SpawnPersistenceContractTest::RunTest(const FString& Para
 	WorldObjectDefinition->DefinitionId = TEXT("Monster_GoblinThrower");
 	WorldObjectDefinition->DisplayName = FText::FromString(TEXT("Gobelin lanceur"));
 	WorldObjectDefinition->SupportedType = EGridLevelObjectType::MonsterSpawn;
-	WorldObjectDefinition->PlacementKind = EGridObjectPlacementKind::Center;
+	WorldObjectDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
 
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>(Level);
 	FGridObjectPaletteEntry Entry;

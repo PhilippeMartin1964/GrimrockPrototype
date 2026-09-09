@@ -139,7 +139,6 @@ namespace GridTD075ReceptacleRecovery
 		Definition->DefaultBehavior.Receptacle.MaxContainedItems = 2;
 		Definition->ObjectCategory = EGridObjectCategory::Receptacle;
 		Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
-		Definition->RefreshPlacementRuntimeProjection();
 		Definition->bIsInteractable = true;
 		Definition->RuntimeActorClass = AGridReceptacleActor::StaticClass();
 		Definition->StaticPart.Mesh = NewObject<UStaticMesh>(Runtime);

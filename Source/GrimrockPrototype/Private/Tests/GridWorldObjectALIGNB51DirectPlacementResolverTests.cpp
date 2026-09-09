@@ -59,6 +59,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FGridWorldObjectALIGNB51DirectPlacementResolverTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	const TArray<FName> RemovedPlacementProperties = {
+		TEXT("PlacementKind"), TEXT("PlacementZOffset"), TEXT("WallInset"), TEXT("LocalOffsetAlongWall"), TEXT("LocalOffsetVertical")
+	};
+	for (const FName PropertyName : RemovedPlacementProperties)
+	{
+		TestNull(*FString::Printf(TEXT("%s is absent from the definition"), *PropertyName.ToString()),
+			UGridWorldObjectDefinitionAsset::StaticClass()->FindPropertyByName(PropertyName));
+	}
+
 	GridWorldObjectALIGNB51::FTestWorld TestWorld;
 	if (!TestNotNull(TEXT("ALIGN-B5.1 world exists"), TestWorld.World))
 	{
@@ -91,17 +100,10 @@ bool FGridWorldObjectALIGNB51DirectPlacementResolverTest::RunTest(const FString&
 	Object.WallSide = EGridEdge::North;
 	Object.LocalTransformOverride = FTransform(FRotator(10.0f, 30.0f, 20.0f), FVector(41.0f, 42.0f, 43.0f), FVector(2.0f));
 
-	// Deliberately stale bridges: never refresh the runtime projection in this test.
-	Definition->PlacementKind = EGridObjectPlacementKind::Wall;
-	Definition->PlacementZOffset = 999.0f;
-	Definition->WallInset = 777.0f;
-	Definition->LocalOffsetAlongWall = 666.0f;
-	Definition->LocalOffsetVertical = 555.0f;
-
 	const auto CheckTransform = [&](const TCHAR* Label, const FVector& Location, float Yaw)
 	{
 		FTransform Transform;
-		if (TestTrue(*FString::Printf(TEXT("%s resolves with poisoned bridges"), Label),
+		if (TestTrue(*FString::Printf(TEXT("%s resolves directly from the authored surface"), Label),
 			GridPlacementTransformResolver::ResolveWorldObject(*Runtime, Object, Transform)))
 		{
 			TestTrue(*FString::Printf(TEXT("%s preserves the full transform"), Label),
@@ -132,20 +134,20 @@ bool FGridWorldObjectALIGNB51DirectPlacementResolverTest::RunTest(const FString&
 
 	Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
 	Definition->DefaultLocalPosition.N = 6.0f;
-	Definition->PlacementKind = EGridObjectPlacementKind::Floor;
 	Object.bHasLocalTransformOverride = true;
 	CheckTransform(TEXT("North Wall reads U/V/N and ignores override"), FVector(325.0f, 594.0f, 110.0f), 90.0f);
-	Definition->PlacementKind = EGridObjectPlacementKind::Wall;
-	CheckTransform(TEXT("North Wall ignores all numeric bridges"), FVector(325.0f, 594.0f, 110.0f), 90.0f);
+	Object.bHasLocalTransformOverride = false;
+	CheckTransform(TEXT("North Wall without override keeps the same transform"), FVector(325.0f, 594.0f, 110.0f), 90.0f);
 
-	// Unsupported authoring surfaces must not fall back to an otherwise valid bridge.
+	// Unsupported authoring surfaces must still be rejected.
 	FTransform Transform;
 	Definition->PlacementSurface = EGridObjectPlacementKind::Center;
-	TestFalse(TEXT("Center is rejected despite a Wall bridge"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, Object, Transform));
+	TestFalse(TEXT("Center is rejected"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, Object, Transform));
 	Definition->PlacementSurface = EGridObjectPlacementKind::Edge;
-	TestFalse(TEXT("Edge is rejected despite a Wall bridge"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, Object, Transform));
+	TestFalse(TEXT("Edge is rejected"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, Object, Transform));
 
 	Object.Type = EGridLevelObjectType::Door;
+	Object.bHasLocalTransformOverride = true;
 	Definition->SupportedType = EGridLevelObjectType::Door;
 	Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
 	CheckTransform(TEXT("North Door ignores nonzero U/V/N and override"), FVector(300.0f, 600.0f, 0.0f), 0.0f);

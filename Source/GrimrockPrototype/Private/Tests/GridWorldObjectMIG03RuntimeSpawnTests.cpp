@@ -119,7 +119,6 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	StaticDefinition->RuntimeActorClass = AGridGenericObjectActor::StaticClass();
 	StaticDefinition->StaticPart.Mesh = NewObject<UStaticMesh>(StaticDefinition);
 	StaticDefinition->StaticPart.LocalTransform = FTransform(FRotator(0.0f, 20.0f, 0.0f), FVector(3.0f, 4.0f, 5.0f));
-	StaticDefinition->RefreshPlacementRuntimeProjection();
 	TestTrue(TEXT("Static definition reports a target visual part"), StaticDefinition->HasAnyVisualPart());
 	TestFalse(TEXT("Static definition has no moving visual part"), StaticDefinition->HasMovingVisualPart());
 	Runtime->WorldObjectDefinitions.Add(StaticDefinition);
@@ -141,7 +140,6 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	ButtonDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::X;
 	ButtonDefinition->MovingParts.Part0.Motion.Amount = 6.0f;
 	ButtonDefinition->MovingParts.Part0.Motion.Duration = 0.08f;
-	ButtonDefinition->RefreshPlacementRuntimeProjection();
 	TestTrue(TEXT("Button definition reports moving presentation"), ButtonDefinition->HasMovingVisualPart());
 	TestEqual(TEXT("Button definition defines exactly one moving part"), ButtonDefinition->GetDefinedMovingPartCount(), 1);
 	Runtime->WorldObjectDefinitions.Add(ButtonDefinition);
@@ -157,7 +155,6 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	TriggerDefinition->ObjectCategory = EGridObjectCategory::Mechanism;
 	TriggerDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
 	TriggerDefinition->RuntimeActorClass = AGridRuntimeObjectActor::StaticClass();
-	TriggerDefinition->RefreshPlacementRuntimeProjection();
 	TestFalse(TEXT("Invisible trigger has no visual composition"), TriggerDefinition->HasAnyVisualPart());
 	Runtime->WorldObjectDefinitions.Add(TriggerDefinition);
 

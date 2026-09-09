@@ -88,7 +88,7 @@ bool FGridEditorMON2045StoryCompanionPalettePlacementTest::RunTest(const FString
 	CompanionWorldObjectDefinition->DefinitionId = TEXT("StoryCompanion_Recruit");
 	CompanionWorldObjectDefinition->DisplayName = FText::FromString(TEXT("Story Companion"));
 	CompanionWorldObjectDefinition->SupportedType = EGridLevelObjectType::StoryCompanion;
-	CompanionWorldObjectDefinition->PlacementKind = EGridObjectPlacementKind::Center;
+	CompanionWorldObjectDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
 
 	URPGStoryCompanionAsset* CompanionDefinition = NewObject<URPGStoryCompanionAsset>(Palette);
 

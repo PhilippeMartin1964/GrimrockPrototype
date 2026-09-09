@@ -14,7 +14,6 @@ class AGridRuntimeObjectActor;
 class AGridItemActor;
 class USoundBase;
 class USoundAttenuation;
-struct FPropertyChangedEvent;
 
 UENUM(BlueprintType)
 enum class EGridWorldObjectDefinitionValidationSeverity : uint8
@@ -248,25 +247,9 @@ public:
 	TSubclassOf<AGridItemActor> ItemActorClass;
 
 	/**
-	 * Internal implementation bridges only. They are not authoring parameters and are never serialized.
-	 * Placement bridges remain until the current transform consumers are collapsed onto PlacementSurface/U/V/N.
+	 * Internal sharing bridges only. They are not authoring parameters and are never serialized.
 	 * Sharing bridges remain only so untouched editor code compiles during WORLDOBJ-MIG02; target sharing is permissive by default.
 	 */
-	UPROPERTY(Transient)
-	EGridObjectPlacementKind PlacementKind = EGridObjectPlacementKind::Floor;
-
-	UPROPERTY(Transient)
-	float PlacementZOffset = 0.0f;
-
-	UPROPERTY(Transient)
-	float WallInset = 0.0f;
-
-	UPROPERTY(Transient)
-	float LocalOffsetAlongWall = 0.0f;
-
-	UPROPERTY(Transient)
-	float LocalOffsetVertical = 0.0f;
-
 	UPROPERTY(Transient)
 	bool bCanShareCell = true;
 
@@ -277,21 +260,6 @@ public:
 	{
 		return PlacementSurface == EGridObjectPlacementKind::Floor || PlacementSurface == EGridObjectPlacementKind::Wall ||
 			PlacementSurface == EGridObjectPlacementKind::Ceiling;
-	}
-
-	bool IsEdgePlaced() const
-	{
-		return PlacementKind == EGridObjectPlacementKind::Wall;
-	}
-
-	bool IsCenterPlaced() const
-	{
-		return PlacementKind == EGridObjectPlacementKind::Floor || PlacementKind == EGridObjectPlacementKind::Ceiling;
-	}
-
-	bool IsWallPlaced() const
-	{
-		return PlacementKind == EGridObjectPlacementKind::Wall;
 	}
 
 	bool BlocksCellMovement() const
@@ -334,14 +302,7 @@ public:
 		return !MovingParts.IsEmpty();
 	}
 
-	/** Recomputes the non-serialized projection consumed by current transform call sites. */
-	void RefreshPlacementRuntimeProjection();
-
 	virtual void PostLoad() override;
-
-#if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
 
 	/** Resolves a generic event, including the pre-existing audio migration path. */
 	bool ResolveAudioEvent(FName EventName, FGridObjectAudioEvent& OutEvent) const;

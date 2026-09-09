@@ -5,14 +5,8 @@
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridWallLockActor.h"
 
-#if WITH_EDITOR
-#include "UObject/UnrealType.h"
-#endif
-
 namespace
 {
-	constexpr float CurrentCeilingPlaneHeight = 200.0f;
-
 	const TCHAR* ToValidationSeverityText(EGridWorldObjectDefinitionValidationSeverity Severity)
 	{
 		switch (Severity)
@@ -33,14 +27,14 @@ namespace
 		Messages.Emplace(Severity, FString(Message));
 	}
 
-	bool IsFloorPlacement(EGridObjectPlacementKind PlacementKind)
+	bool IsFloorPlacement(EGridObjectPlacementKind PlacementSurface)
 	{
-		return PlacementKind == EGridObjectPlacementKind::Floor;
+		return PlacementSurface == EGridObjectPlacementKind::Floor;
 	}
 
-	bool IsWallPlacement(EGridObjectPlacementKind PlacementKind)
+	bool IsWallPlacement(EGridObjectPlacementKind PlacementSurface)
 	{
-		return PlacementKind == EGridObjectPlacementKind::Wall;
+		return PlacementSurface == EGridObjectPlacementKind::Wall;
 	}
 
 	const TCHAR* ToSupportedTypeText(EGridLevelObjectType SupportedType)
@@ -181,39 +175,9 @@ namespace
 	}
 }
 
-void UGridWorldObjectDefinitionAsset::RefreshPlacementRuntimeProjection()
-{
-	PlacementKind = PlacementSurface;
-	LocalOffsetAlongWall = DefaultLocalPosition.U;
-	LocalOffsetVertical = 0.0f;
-	WallInset = DefaultLocalPosition.N;
-
-	switch (PlacementSurface)
-	{
-		case EGridObjectPlacementKind::Wall:
-			PlacementZOffset = DefaultLocalPosition.V;
-			break;
-		case EGridObjectPlacementKind::Ceiling:
-			PlacementZOffset = CurrentCeilingPlaneHeight - DefaultLocalPosition.N;
-			break;
-		case EGridObjectPlacementKind::Floor:
-			PlacementZOffset = DefaultLocalPosition.N;
-			break;
-		case EGridObjectPlacementKind::Center:
-		case EGridObjectPlacementKind::Edge:
-		default:
-			PlacementZOffset = 0.0f;
-			WallInset = 0.0f;
-			LocalOffsetAlongWall = 0.0f;
-			LocalOffsetVertical = 0.0f;
-			break;
-	}
-}
-
 void UGridWorldObjectDefinitionAsset::PostLoad()
 {
 	Super::PostLoad();
-	RefreshPlacementRuntimeProjection();
 
 	if (SupportedType != EGridLevelObjectType::Door)
 	{
@@ -241,14 +205,6 @@ void UGridWorldObjectDefinitionAsset::PostLoad()
 	MigrateLegacyEvent(TEXT("Open"), DoorOpenSounds);
 	MigrateLegacyEvent(TEXT("Close"), DoorCloseSounds);
 }
-
-#if WITH_EDITOR
-void UGridWorldObjectDefinitionAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-	RefreshPlacementRuntimeProjection();
-}
-#endif
 
 bool UGridWorldObjectDefinitionAsset::ResolveAudioEvent(FName EventName, FGridObjectAudioEvent& OutEvent) const
 {

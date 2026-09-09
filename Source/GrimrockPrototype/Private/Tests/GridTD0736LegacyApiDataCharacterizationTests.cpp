@@ -34,13 +34,12 @@ bool FGridTD0736LegacyPlacementMirrorsTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	// MIG01/MIG09: the surface is authored; the old placement kind is only a transient runtime projection.
+	// The authored surface is persistent; the old placement projection has been removed.
 	const FProperty* SurfaceProperty = DefinitionClass->FindPropertyByName(TEXT("PlacementSurface"));
 	const FProperty* KindProperty = DefinitionClass->FindPropertyByName(TEXT("PlacementKind"));
 	TestTrue(TEXT("PlacementSurface is editable and persistent"),
 		SurfaceProperty && SurfaceProperty->HasAnyPropertyFlags(CPF_Edit) && !SurfaceProperty->HasAnyPropertyFlags(CPF_Transient));
-	TestTrue(TEXT("PlacementKind is transient and is not editable"),
-		KindProperty && KindProperty->HasAnyPropertyFlags(CPF_Transient) && !KindProperty->HasAnyPropertyFlags(CPF_Edit));
+	TestNull(TEXT("PlacementKind is removed"), KindProperty);
 	TestNull(TEXT("Legacy bPlaceOnEdge mirror is removed"), DefinitionClass->FindPropertyByName(TEXT("bPlaceOnEdge")));
 	TestNull(TEXT("Legacy bPlaceAtCellCenter mirror is removed"), DefinitionClass->FindPropertyByName(TEXT("bPlaceAtCellCenter")));
 
@@ -59,15 +58,14 @@ bool FGridTD0736LegacyPlacementMirrorsTest::RunTest(const FString& Parameters)
 		TEXT("PlacementSurface is documented as current source of truth"), HeaderSource.Contains(TEXT("Current source of truth for editor/runtime placement")));
 	TestFalse(
 		TEXT("Legacy mirror validation is removed"), ValidationSource.Contains(TEXT("bPlaceOnEdge")) || ValidationSource.Contains(TEXT("bPlaceAtCellCenter")));
-	TestTrue(TEXT("Current editor authoring sets the surface and refreshes its runtime projection"),
+	TestTrue(TEXT("Current editor authoring sets the surface and local coordinates"),
 		EditorSource.Contains(TEXT("Definition.PlacementSurface = EGridObjectPlacementKind::Floor")) &&
-		EditorSource.Contains(TEXT("Definition.RefreshPlacementRuntimeProjection()")));
+		EditorSource.Contains(TEXT("Definition.DefaultLocalPosition = FGridSurfaceLocalPosition()")));
 
 	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
 	Definition->DefinitionId = TEXT("TD0736_WallPlacement");
 	Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
-	Definition->RefreshPlacementRuntimeProjection();
-	TestTrue(TEXT("Authored wall surface projects to edge placement"), Definition->IsEdgePlaced());
+	TestEqual(TEXT("Authored wall placement uses the permanent surface"), Definition->PlacementSurface, EGridObjectPlacementKind::Wall);
 	UGridLevelAsset* Level = NewObject<UGridLevelAsset>();
 	FGridWorldObjectInstance Instance;
 	Instance.InstanceId = FGuid::NewGuid();

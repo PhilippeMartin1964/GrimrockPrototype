@@ -103,13 +103,12 @@ bool FGridWorldObjectMIG00PlacementSchemaCharacterizationTest::RunTest(const FSt
 		return false;
 	}
 
-	// MIG00 records the legacy schema that existed before MIG01. These fields are now
-	// transient implementation bridges only; the test does not exercise them as authoring data.
-	TestNotNull(TEXT("Legacy PlacementKind bridge exists during MIG01"), DefinitionClass->FindPropertyByName(TEXT("PlacementKind")));
-	TestNotNull(TEXT("Legacy PlacementZOffset bridge exists during MIG01"), DefinitionClass->FindPropertyByName(TEXT("PlacementZOffset")));
-	TestNotNull(TEXT("Legacy WallInset bridge exists during MIG01"), DefinitionClass->FindPropertyByName(TEXT("WallInset")));
-	TestNotNull(TEXT("Legacy LocalOffsetAlongWall bridge exists during MIG01"), DefinitionClass->FindPropertyByName(TEXT("LocalOffsetAlongWall")));
-	TestNotNull(TEXT("Legacy LocalOffsetVertical bridge exists during MIG01"), DefinitionClass->FindPropertyByName(TEXT("LocalOffsetVertical")));
+	// The pre-MIG01 schema has been removed; the historical placement behavior below remains characterized.
+	TestNull(TEXT("Legacy PlacementKind bridge is removed"), DefinitionClass->FindPropertyByName(TEXT("PlacementKind")));
+	TestNull(TEXT("Legacy PlacementZOffset bridge is removed"), DefinitionClass->FindPropertyByName(TEXT("PlacementZOffset")));
+	TestNull(TEXT("Legacy WallInset bridge is removed"), DefinitionClass->FindPropertyByName(TEXT("WallInset")));
+	TestNull(TEXT("Legacy LocalOffsetAlongWall bridge is removed"), DefinitionClass->FindPropertyByName(TEXT("LocalOffsetAlongWall")));
+	TestNull(TEXT("Legacy LocalOffsetVertical bridge is removed"), DefinitionClass->FindPropertyByName(TEXT("LocalOffsetVertical")));
 
 	const UEnum* PlacementEnum = StaticEnum<EGridObjectPlacementKind>();
 	TestNotNull(TEXT("Legacy placement enum exists"), PlacementEnum);
@@ -165,7 +164,6 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	Definition->DefaultLocalPosition.U = 0.0f;
 	Definition->DefaultLocalPosition.V = 0.0f;
 	Definition->DefaultLocalPosition.N = 12.0f;
-	Definition->RefreshPlacementRuntimeProjection();
 	TestTrue(TEXT("Historical Center transform resolves through Floor"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, CenterObject, Transform));
 	TestTrue(TEXT("Historical Center location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 12.0f)));
 	TestTrue(TEXT("Historical Center LocalYaw is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 30.0f, 0.0f)));
@@ -179,7 +177,6 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	Definition->DefaultLocalPosition.U = 0.0f;
 	Definition->DefaultLocalPosition.V = 0.0f;
 	Definition->DefaultLocalPosition.N = 12.0f;
-	Definition->RefreshPlacementRuntimeProjection();
 	CenterObject.bHasLocalTransformOverride = true;
 	CenterObject.LocalTransformOverride = FTransform(FRotator(0.0f, 0.0f, 0.0f));
 	TestTrue(TEXT("Historical Ceiling transform resolves"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, CenterObject, Transform));
@@ -194,7 +191,6 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	Definition->DefaultLocalPosition.U = 25.0f;
 	Definition->DefaultLocalPosition.V = 110.0f;
 	Definition->DefaultLocalPosition.N = 6.0f;
-	Definition->RefreshPlacementRuntimeProjection();
 	TestTrue(TEXT("Historical Wall transform resolves"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, WallObject, Transform));
 	TestTrue(TEXT("Historical Wall location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
 	TestTrue(TEXT("Historical Wall anchor rotation is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
@@ -210,7 +206,6 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	Definition->DefaultLocalPosition.U = 0.0f;
 	Definition->DefaultLocalPosition.V = 0.0f;
 	Definition->DefaultLocalPosition.N = 0.0f;
-	Definition->RefreshPlacementRuntimeProjection();
 	TestTrue(TEXT("Historical Door transform resolves through Wall + boundary"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, DoorObject, Transform));
 	TestTrue(TEXT("Historical Door boundary location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 600.0f, 0.0f)));
 	TestTrue(TEXT("Historical Door North rotation is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator::ZeroRotator));

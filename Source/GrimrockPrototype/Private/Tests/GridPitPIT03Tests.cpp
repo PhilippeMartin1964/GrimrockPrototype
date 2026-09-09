@@ -165,7 +165,6 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	PitDefinition->DefinitionId = TEXT("Pit_Stone_01");
 	PitDefinition->SupportedType = EGridLevelObjectType::Pit;
 	PitDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
-		PitDefinition->RefreshPlacementRuntimeProjection();
 	PitDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(Runtime);
 	PitDefinition->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(Runtime);
 	PitDefinition->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
