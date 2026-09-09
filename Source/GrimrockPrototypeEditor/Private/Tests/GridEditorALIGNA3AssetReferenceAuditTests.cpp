@@ -14,18 +14,19 @@ namespace GridEditorALIGNA3AssetReferenceAuditPrivate
 	{
 		const TCHAR* Label;
 		const TCHAR* PackagePath;
+		bool bExpectedToExist;
 	};
 
 	static const FAssetAuditCandidate Candidates[] = {
-		{ TEXT("BlueGemPickup"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Object_BlueGemPickup") },
-		{ TEXT("KeyCopperPickup"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Object_KeyCopperPickup") },
-		{ TEXT("KeyIronPickup"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Object_KeyIronPickup") },
-		{ TEXT("ShurikenPickup"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Object_ShurikenPickup") },
-		{ TEXT("StonePickup"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Object_StonePickup") },
-		{ TEXT("TestNotePickup"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Object_TestNotePickup") },
-		{ TEXT("MonsterSpawn"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_MonsterSpawn") },
-		{ TEXT("ArchetypeCustomRecruiterService"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Archetype_CustomRecruiter_Service") },
-		{ TEXT("ArchetypeStoryCompanionRecruit"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Archetype_StoryCompanion_Recruit") },
+		{ TEXT("BlueGemPickup"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Object_BlueGemPickup"), false },
+		{ TEXT("KeyCopperPickup"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Object_KeyCopperPickup"), false },
+		{ TEXT("KeyIronPickup"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Object_KeyIronPickup"), false },
+		{ TEXT("ShurikenPickup"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Object_ShurikenPickup"), false },
+		{ TEXT("StonePickup"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Object_StonePickup"), false },
+		{ TEXT("TestNotePickup"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Object_TestNotePickup"), false },
+		{ TEXT("MonsterSpawn"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_MonsterSpawn"), true },
+		{ TEXT("ArchetypeCustomRecruiterService"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Archetype_CustomRecruiter_Service"), true },
+		{ TEXT("ArchetypeStoryCompanionRecruit"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Archetype_StoryCompanion_Recruit"), true },
 	};
 }
 
@@ -41,7 +42,7 @@ bool FGridEditorALIGNA3AssetReferenceAuditTest::RunTest(const FString& Parameter
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 	AssetRegistry.SearchAllAssets(true);
 
-	AddInfo(TEXT("[ALIGN-A3] Policy=AssetRegistry on-disk referencers only; Referencers=0 never implies DELETE_SAFE and requires code/string/dynamic-load checks."));
+	AddInfo(TEXT("[ALIGN-A3] Policy=AssetRegistry on-disk referencers only; removed legacy pickup definitions must stay absent; retained authoring definitions must stay present."));
 
 	for (const FAssetAuditCandidate& Candidate : Candidates)
 	{
@@ -49,14 +50,31 @@ bool FGridEditorALIGNA3AssetReferenceAuditTest::RunTest(const FString& Parameter
 		TArray<FAssetData> PackageAssets;
 		const bool bAssetQuerySucceeded = AssetRegistry.GetAssetsByPackageName(PackageName, PackageAssets, true, false);
 		const bool bExists = bAssetQuerySucceeded && !PackageAssets.IsEmpty();
-		TestTrue(*FString::Printf(TEXT("ALIGN-A3 candidate exists: %s"), Candidate.Label), bExists);
+
+		const FString ExistenceAssertion = FString::Printf(
+			TEXT("ALIGN-A3 expected %s: %s"),
+			Candidate.bExpectedToExist ? TEXT("asset to exist") : TEXT("legacy asset to be absent"),
+			Candidate.Label);
+
+		if (Candidate.bExpectedToExist)
+		{
+			TestTrue(*ExistenceAssertion, bExists);
+		}
+		else
+		{
+			TestFalse(*ExistenceAssertion, bExists);
+		}
 
 		TArray<FName> Referencers;
-		const bool bReferencerQuerySucceeded = AssetRegistry.GetReferencers(
-			PackageName,
-			Referencers,
-			UE::AssetRegistry::EDependencyCategory::All,
-			UE::AssetRegistry::FDependencyQuery());
+		bool bReferencerQuerySucceeded = false;
+		if (bExists)
+		{
+			bReferencerQuerySucceeded = AssetRegistry.GetReferencers(
+				PackageName,
+				Referencers,
+				UE::AssetRegistry::EDependencyCategory::All,
+				UE::AssetRegistry::FDependencyQuery());
+		}
 
 		Referencers.Sort([](const FName& A, const FName& B)
 		{
@@ -64,9 +82,10 @@ bool FGridEditorALIGNA3AssetReferenceAuditTest::RunTest(const FString& Parameter
 		});
 
 		AddInfo(FString::Printf(
-			TEXT("[ALIGN-A3] Asset=%s Label=%s Exists=%s ReferencerQuery=%s Referencers=%d"),
+			TEXT("[ALIGN-A3] Asset=%s Label=%s ExpectedExists=%s Exists=%s ReferencerQuery=%s Referencers=%d"),
 			Candidate.PackagePath,
 			Candidate.Label,
+			Candidate.bExpectedToExist ? TEXT("true") : TEXT("false"),
 			bExists ? TEXT("true") : TEXT("false"),
 			bReferencerQuerySucceeded ? TEXT("true") : TEXT("false"),
 			Referencers.Num()));
