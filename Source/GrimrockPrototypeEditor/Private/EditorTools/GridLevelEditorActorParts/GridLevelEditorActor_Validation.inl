@@ -343,7 +343,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			}
 			else if (!Obj.ReadableTextOverride.IsEmpty())
 				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Placed object has a readable-text override, but its definition is not readable; the override is ignored at runtime."), ObjectId);
-			if (Definition->IsCenterPlaced() && Obj.WallSide != EGridEdge::None)
+			if ((Definition->PlacementSurface == EGridObjectPlacementKind::Floor || Definition->PlacementSurface == EGridObjectPlacementKind::Ceiling) && Obj.WallSide != EGridEdge::None)
 				AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Center-placed object has a cardinal Edge=%s; runtime center placement ignores this edge."), *GetGridEdgeText(Obj.WallSide)), ObjectId);
 			if (Definition->bBlocksMovement && LevelAsset->GetCell(Obj.CellX, Obj.CellY).bBlocksOccupancy)
 				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Object blocks movement on a cell that already blocks occupancy."), ObjectId);

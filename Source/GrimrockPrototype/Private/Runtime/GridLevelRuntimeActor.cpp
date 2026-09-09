@@ -1870,7 +1870,7 @@ bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject(const FGridWorldObjectInst
 		return false;
 	}
 	const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinition(Instance.WorldObjectDefinitionId);
-	return Definition && Definition->RuntimeActorClass && (!Definition->IsEdgePlaced() || Instance.WallSide != EGridEdge::None);
+	return Definition && Definition->RuntimeActorClass && (Definition->PlacementSurface != EGridObjectPlacementKind::Wall || Instance.WallSide != EGridEdge::None);
 }
 
 void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& ObjectData)

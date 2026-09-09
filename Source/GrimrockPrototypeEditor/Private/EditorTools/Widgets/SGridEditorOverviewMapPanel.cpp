@@ -704,7 +704,7 @@ FText SGridEditorOverviewMapPanel::GetSelectedCellObjectSummaryText(FGuid Object
 		const UEnum* PlacementEnum = StaticEnum<EGridObjectPlacementKind>();
 		DefinitionDetails = FString::Printf(TEXT(" | %s/%s"),
 			*GridEditorWidgetHelpers::GetGridEnumDisplayText(CategoryEnum, static_cast<int64>(Definition->ObjectCategory)).ToString(),
-			*GridEditorWidgetHelpers::GetGridEnumDisplayText(PlacementEnum, static_cast<int64>(Definition->PlacementKind)).ToString());
+			*GridEditorWidgetHelpers::GetGridEnumDisplayText(PlacementEnum, static_cast<int64>(Definition->PlacementSurface)).ToString());
 	}
 
 	return FText::FromString(FString::Printf(TEXT("%s | %s%s"), *TypeText, *IdentifierText, *DefinitionDetails));
@@ -719,7 +719,7 @@ EGridEditorOverviewObjectAnchor SGridEditorOverviewMapPanel::GetObjectAnchor(FGu
 	if (!LevelAsset || !LevelAsset->TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge)) return EGridEditorOverviewObjectAnchor::None;
 	const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId);
 	const UGridWorldObjectDefinitionAsset* Definition = WorldObjectInstance ? CurrentEditorActor->FindWorldObjectDefinitionById(WorldObjectInstance->WorldObjectDefinitionId) : nullptr;
-	const bool bEdgePlaced = Definition ? Definition->IsEdgePlaced() :
+	const bool bEdgePlaced = Definition ? Definition->PlacementSurface == EGridObjectPlacementKind::Wall :
 		(LevelAsset->FindLooseItemInstanceById(ObjectId) ? Edge != EGridEdge::None : IsOverviewEdgeObject(LevelAsset->GetTypedPlacementType(ObjectId)));
 	if (!bEdgePlaced)
 	{

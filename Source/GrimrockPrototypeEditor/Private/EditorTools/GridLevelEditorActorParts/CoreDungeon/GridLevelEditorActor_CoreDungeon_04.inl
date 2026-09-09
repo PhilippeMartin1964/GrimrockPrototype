@@ -80,7 +80,7 @@ bool AGridLevelEditorActor::IsEdgePlacedObject(EGridLevelObjectType ObjectType, 
 
 	if (const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinitionById(InWorldObjectDefinitionId))
 	{
-		return Definition->IsEdgePlaced() || Definition->IsWallPlaced();
+		return Definition->PlacementSurface == EGridObjectPlacementKind::Wall;
 	}
 
 	return RequiresEdge(ObjectType);

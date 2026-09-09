@@ -175,9 +175,9 @@ namespace
 		{
 			return false;
 		}
-		const bool bPlacementCanFace = Definition->PlacementKind == EGridObjectPlacementKind::Edge ||
-			Definition->PlacementKind == EGridObjectPlacementKind::Wall || Definition->PlacementKind == EGridObjectPlacementKind::Floor ||
-			Definition->PlacementKind == EGridObjectPlacementKind::Center;
+		const bool bPlacementCanFace = Definition->PlacementSurface == EGridObjectPlacementKind::Edge ||
+			Definition->PlacementSurface == EGridObjectPlacementKind::Wall || Definition->PlacementSurface == EGridObjectPlacementKind::Floor ||
+			Definition->PlacementSurface == EGridObjectPlacementKind::Center;
 		if (!bPlacementCanFace)
 		{
 			return false;
@@ -371,7 +371,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 	if (Definition && !bIsMonsterSpawn)
 	{
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Placement Kind")),
-			GridEditorWidgetHelpers::GetGridEnumDisplayText(PlacementKindEnum, static_cast<int64>(Definition->PlacementKind)))];
+			GridEditorWidgetHelpers::GetGridEnumDisplayText(PlacementKindEnum, static_cast<int64>(Definition->PlacementSurface)))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Palette Category")), GetNameText(Definition->Category))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Functional Category")),
 			GridEditorWidgetHelpers::GetGridEnumDisplayText(ObjectCategoryEnum, static_cast<int64>(Definition->ObjectCategory)))];
@@ -897,7 +897,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 	return SNew(SBorder).Padding(6.f).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))[SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Receptacle"))).Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))]
 		+ SVerticalBox::Slot().AutoHeight()[Definition ? GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Interactable")), GetBoolText(Definition->bIsInteractable)) : SNullWidget::NullWidget]
-		+ SVerticalBox::Slot().AutoHeight()[Definition ? GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Placement Kind")), GridEditorWidgetHelpers::GetGridEnumDisplayText(PlacementKindEnum, static_cast<int64>(Definition->PlacementKind))) : SNullWidget::NullWidget]
+		+ SVerticalBox::Slot().AutoHeight()[Definition ? GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Placement Kind")), GridEditorWidgetHelpers::GetGridEnumDisplayText(PlacementKindEnum, static_cast<int64>(Definition->PlacementSurface))) : SNullWidget::NullWidget]
 		+ SVerticalBox::Slot().AutoHeight()[Definition && Definition->bIsLightSource ? GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Light Source")), GetBoolText(Definition->bIsLightSource)) : SNullWidget::NullWidget]
 		+ SVerticalBox::Slot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("Acceptance and placement rules come from the shared definition."))).AutoWrapText(true)]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Accept Any Item")), GetBoolText(Receptacle.bAcceptAnyItem))]

@@ -143,6 +143,7 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter(const FGuid& ObjectId, FV
 	constexpr float FallbackCellHeight = 300.f;
 	constexpr float DoorCenterHeight = FallbackCellHeight * 0.5f;
 	constexpr float CeilingObjectInset = 32.f;
+	constexpr float CurrentWorldObjectCeilingPlaneHeight = 200.0f;
 
 	if (const FGridWorldObjectInstance* Instance = LevelAsset->FindWorldObjectInstanceById(ObjectId))
 	{
@@ -166,8 +167,8 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter(const FGuid& ObjectId, FV
 			: GetActorLocation();
 		const FVector CellBase = GridWorldOrigin + FVector(Instance->CellX * CellSize, Instance->CellY * CellSize, 0.f);
 		const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinitionById(Instance->WorldObjectDefinitionId);
-		const EGridObjectPlacementKind PlacementKind =
-			Definition ? Definition->PlacementKind
+		const EGridObjectPlacementKind PlacementSurface =
+			Definition ? Definition->PlacementSurface
 					  : (IsEdgePlacedObject(Instance->Type, Instance->WorldObjectDefinitionId)
 								? EGridObjectPlacementKind::Edge
 								: EGridObjectPlacementKind::Center);
@@ -194,7 +195,7 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter(const FGuid& ObjectId, FV
 			}
 		}
 
-		switch (PlacementKind)
+		switch (PlacementSurface)
 		{
 			case EGridObjectPlacementKind::Wall:
 			case EGridObjectPlacementKind::Edge:
@@ -204,25 +205,23 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter(const FGuid& ObjectId, FV
 					return false;
 				}
 
-				const float PlacementZOffset = Definition ? Definition->PlacementZOffset : 12.f;
-				const float WallInset = Definition ? Definition->WallInset : 6.f;
-				const float LocalOffsetAlongWall = Definition ? Definition->LocalOffsetAlongWall : 0.f;
-				const float LocalOffsetVertical = Definition ? Definition->LocalOffsetVertical : 0.f;
-				const float FinalZ = PlacementZOffset + LocalOffsetVertical;
+				const float Vertical = Definition ? Definition->DefaultLocalPosition.V : 12.f;
+				const float Inset = Definition ? Definition->DefaultLocalPosition.N : 6.f;
+				const float AlongWall = Definition ? Definition->DefaultLocalPosition.U : 0.f;
 
 				switch (Instance->WallSide)
 				{
 					case EGridEdge::North:
-						OutWorldCenter = CellBase + FVector((CellSize * 0.5f) + LocalOffsetAlongWall, CellSize - WallInset, FinalZ);
+						OutWorldCenter = CellBase + FVector((CellSize * 0.5f) + AlongWall, CellSize - Inset, Vertical);
 						return true;
 					case EGridEdge::South:
-						OutWorldCenter = CellBase + FVector((CellSize * 0.5f) - LocalOffsetAlongWall, WallInset, FinalZ);
+						OutWorldCenter = CellBase + FVector((CellSize * 0.5f) - AlongWall, Inset, Vertical);
 						return true;
 					case EGridEdge::East:
-						OutWorldCenter = CellBase + FVector(CellSize - WallInset, (CellSize * 0.5f) - LocalOffsetAlongWall, FinalZ);
+						OutWorldCenter = CellBase + FVector(CellSize - Inset, (CellSize * 0.5f) - AlongWall, Vertical);
 						return true;
 					case EGridEdge::West:
-						OutWorldCenter = CellBase + FVector(WallInset, (CellSize * 0.5f) + LocalOffsetAlongWall, FinalZ);
+						OutWorldCenter = CellBase + FVector(Inset, (CellSize * 0.5f) + AlongWall, Vertical);
 						return true;
 					case EGridEdge::None:
 					default:
@@ -232,7 +231,7 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter(const FGuid& ObjectId, FV
 
 			case EGridObjectPlacementKind::Ceiling:
 			{
-				const float PlacementZOffset = Definition ? Definition->PlacementZOffset : FallbackCellHeight - CeilingObjectInset;
+				const float PlacementZOffset = Definition ? CurrentWorldObjectCeilingPlaneHeight - Definition->DefaultLocalPosition.N : FallbackCellHeight - CeilingObjectInset;
 				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, CellSize * 0.5f, PlacementZOffset);
 				return true;
 			}
@@ -241,7 +240,7 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter(const FGuid& ObjectId, FV
 			case EGridObjectPlacementKind::Floor:
 			default:
 			{
-				const float PlacementZOffset = Definition ? Definition->PlacementZOffset : 12.f;
+				const float PlacementZOffset = Definition ? Definition->DefaultLocalPosition.N : 12.f;
 				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, CellSize * 0.5f, PlacementZOffset);
 				return true;
 			}
