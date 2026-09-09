@@ -1,6 +1,6 @@
 # WORLDOBJ-MIG09 FINAL-D — clôture de la migration
 
-Date : 2026-09-09. **WORLDOBJ-MIG09 ✅ CLOSED techniquement en local ; publication FINAL-D bloquée par l'environnement. MIG10 non commencé.**
+Date : 2026-09-09. **WORLDOBJ-MIG09 ✅ CLOSED — FINAL-D publié dans `0bfe69583042f7b04fd0329df43d9a13e1333d76`. MIG10 non commencé.**
 
 La clôture porte sur la migration du modèle de données. Elle ne certifie pas la jouabilité visuelle de tous les niveaux : le départ de `DA_GridLevel_01` est invalide, défaut de contenu préexistant décrit ci-dessous.
 
@@ -11,7 +11,7 @@ La clôture porte sur la migration du modèle de données. Elle ne certifie pas 
 | FINAL-A, clôture de l'autorité Editor | `1809a674ccc85bb5eef2584849df889a1d9ad4cd` |
 | FINAL-B | `1a49329e9aa0ce3475ab8becefc8d2b7b209e018` |
 | FINAL-C | `046d58bc429cfbff4b51576cd29ba46b10941eb5` |
-| FINAL-D | Aucun SHA : création du commit bloquée sur `.git/index.lock` ; titre prévu `WORLDOBJ-MIG09 FINAL-D close migration` |
+| FINAL-D | `0bfe69583042f7b04fd0329df43d9a13e1333d76` |
 
 Au démarrage, `git fetch origin` a réussi, HEAD et `origin/master` étaient tous deux à FINAL-C, sur `master`, avec un working tree propre. FINAL-A possède aussi des commits antérieurs de sous-lots ; le SHA donné est celui de sa clôture.
 
@@ -139,28 +139,10 @@ L'environnement de cette session ne fournit pas de contrôle natif visuel intera
 
 Les critères techniques de clôture MIG09 sont satisfaits : rebuild complet vert, Automation sans échec, grep legacy vide, LevelAsset exclusivement typé, aucun consommateur legacy, documentation réconciliée et `git diff --check` vert. Les réserves de contenu et de contrôle interactif ci-dessus restent explicites.
 
-## Publication restante
+## Publication FINAL-D
 
-Le staging des cinq documents échoue avec `Unable to create '.git/index.lock': Permission denied`. La dernière tentative `git ls-remote origin refs/heads/master` échoue aussi sur la connexion GitHub via le proxy de l'environnement. Aucun commit ni push FINAL-D n'a été réalisé. HEAD reste `046d58bc`, avec les seuls cinq documents de cette étape modifiés ou ajoutés. L'égalité distante a été vérifiée par le fetch initial, mais ne peut pas être reconfirmée à la fin.
+FINAL-D a été publié sur `master` dans le commit `0bfe69583042f7b04fd0329df43d9a13e1333d76` (`WORLDOBJ-MIG09 FINAL-D close migration`). Le push a avancé `origin/master` depuis `046d58bc429cfbff4b51576cd29ba46b10941eb5` vers ce commit, puis `git status --short` a confirmé un working tree propre.
 
-Depuis un terminal autorisé, après avoir vérifié que HEAD et `origin/master` correspondent toujours à `046d58bc429cfbff4b51576cd29ba46b10941eb5` et qu'aucun changement imprévu ne s'est ajouté :
+Le présent correctif documentaire met uniquement à jour les métadonnées de publication qui avaient été rédigées avant que le commit FINAL-D puisse être créé. Il ne modifie ni le périmètre, ni les validations, ni le SHA de FINAL-D.
 
-```powershell
-git fetch origin
-git rev-parse HEAD
-git rev-parse origin/master
-git status --short
-git diff --check
-git add -- docs/Architecture/WORLDOBJ_MIGRATION_ROADMAP_AND_TARGET_DATA_MODEL.md docs/Architecture/WORLDOBJ_MIG09_LEGACY_PURGE.md docs/Architecture/WORLDOBJ_MIG09_E2C_EDITOR_AUTHORITY.md docs/Architecture/WORLDOBJ_MIG09_FINAL_C.md docs/Architecture/WORLDOBJ_MIG09_FINAL_D.md
-git diff --cached --check
-git diff --cached --stat
-git commit -m "WORLDOBJ-MIG09 FINAL-D close migration"
-git rev-list --count 046d58bc429cfbff4b51576cd29ba46b10941eb5..HEAD
-git push origin master
-git log -1 --oneline
-git status --short
-```
-
-Le nombre de commits doit être exactement `1` avant le push. Arrêter en cas de divergence ou de changements imprévus.
-
-**WORLDOBJ-MIG09 CLOSED techniquement en local. Publication FINAL-D restante. Aucun renommage d'archétype. MIG10 non commencé. STOP.**
+**WORLDOBJ-MIG09 ✅ CLOSED. FINAL-D publié. Aucun renommage d'archétype. MIG10 non commencé.**
