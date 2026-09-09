@@ -195,19 +195,6 @@ bool SGridEditorWorkspaceTab::HasObservedContextChanged() const
 	}
 }
 
-TSharedRef<SWidget> SGridEditorWorkspaceTab::BuildMigrationNotice(const FText& Text) const
-{
-	return SNew(SBorder)
-		.Padding(FMargin(8.f, 6.f))
-		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-		[
-			SNew(STextBlock)
-				.Text(Text)
-				.AutoWrapText(true)
-				.ColorAndOpacity(FSlateColor(FLinearColor(0.70f, 0.75f, 0.82f, 1.f)))
-		];
-}
-
 TSharedRef<SWidget> SGridEditorWorkspaceTab::BuildContent()
 {
 	switch (WorkspaceTab)

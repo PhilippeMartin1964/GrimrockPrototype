@@ -59,7 +59,6 @@ private:
 	TSharedRef<SWidget> BuildPlaytestValidationContent();
 	TSharedRef<SWidget> BuildToolsPaletteContent();
 	TSharedRef<SWidget> BuildSelectedObjectContent();
-	TSharedRef<SWidget> BuildMigrationNotice(const FText& Text) const;
 
 private:
 	EGridEditorWorkspaceTab WorkspaceTab = EGridEditorWorkspaceTab::DungeonLevels;

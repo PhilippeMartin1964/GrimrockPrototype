@@ -8,17 +8,10 @@
 #if WITH_EDITOR
 
 class SWidget;
-class UGridObjectPaletteAsset;
 enum class EGridLevelObjectType : uint8;
 
 namespace GridEditorWidgetHelpers
 {
-	struct FGridWorldObjectDefinitionOption
-	{
-		FName WorldObjectDefinitionId = NAME_None;
-		FText Label;
-	};
-
 	FText GetGridEnumDisplayText(const UEnum* Enum, int64 Value);
 	FText GetGridObjectGlyph(EGridLevelObjectType Type);
 
@@ -33,7 +26,6 @@ namespace GridEditorWidgetHelpers
 
 	FString NameArrayToCommaSeparatedText(const TArray<FName>& Names);
 	TArray<FName> ParseCommaSeparatedNames(const FString& Text);
-	TArray<FGridWorldObjectDefinitionOption> GetItemDefinitionOptions(const UGridObjectPaletteAsset* ObjectPalette);
 }
 
 #endif

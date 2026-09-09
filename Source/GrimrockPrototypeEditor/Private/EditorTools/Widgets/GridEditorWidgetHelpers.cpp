@@ -2,8 +2,6 @@
 
 #if WITH_EDITOR
 
-#include "Core/GridWorldObjectDefinitionAsset.h"
-#include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridTypes.h"
 
 #include "Styling/AppStyle.h"
@@ -176,40 +174,6 @@ namespace GridEditorWidgetHelpers
 		}
 
 		return Names;
-	}
-
-	TArray<FGridWorldObjectDefinitionOption> GetItemDefinitionOptions(const UGridObjectPaletteAsset* ObjectPalette)
-	{
-		TArray<FGridWorldObjectDefinitionOption> Options;
-		if (!ObjectPalette)
-		{
-			return Options;
-		}
-
-		TSet<FName> SeenIds;
-		for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
-		{
-			const UGridWorldObjectDefinitionAsset* Definition = Entry.DefaultWorldObjectDefinition;
-			if (!Definition || Definition->DefinitionId.IsNone() || Definition->SupportedType != EGridLevelObjectType::Item ||
-				SeenIds.Contains(Definition->DefinitionId))
-			{
-				continue;
-			}
-
-			FGridWorldObjectDefinitionOption Option;
-			Option.WorldObjectDefinitionId = Definition->DefinitionId;
-			Option.Label = !Definition->DisplayName.IsEmpty() ? Definition->DisplayName : FText::FromName(Definition->DefinitionId);
-			Options.Add(Option);
-			SeenIds.Add(Option.WorldObjectDefinitionId);
-		}
-
-		Options.Sort(
-			[](const FGridWorldObjectDefinitionOption& A, const FGridWorldObjectDefinitionOption& B)
-			{
-				return A.Label.ToString() < B.Label.ToString();
-			});
-
-		return Options;
 	}
 }
 
