@@ -120,7 +120,8 @@ struct FGridObjectPaletteEntry
 			return !DefaultWorldObjectDefinition && !Icon && DefaultItemDefinition->IsValidDefinition();
 		}
 
-		return DefaultWorldObjectDefinition && !DefaultWorldObjectDefinition->DefinitionId.IsNone() && DefaultWorldObjectDefinition->SupportedType != EGridLevelObjectType::None;
+		return DefaultWorldObjectDefinition && !DefaultWorldObjectDefinition->DefinitionId.IsNone() && DefaultWorldObjectDefinition->SupportedType != EGridLevelObjectType::None
+			&& DefaultWorldObjectDefinition->SupportedType != EGridLevelObjectType::Item;
 	}
 };
 

@@ -286,6 +286,11 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 
 	if (DefinitionId.IsNone()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("DefinitionId is not set."));
 	if (SupportedType == EGridLevelObjectType::None) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("SupportedType must not be None."));
+	if (DefaultBehavior.Item.ItemDefinitionAsset || !DefaultBehavior.Item.ItemDefinitionId.IsNone())
+	{
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
+			TEXT("WorldObjectDefinition cannot retain DefaultBehavior.Item definition references. Use UGridItemDefinitionAsset and FGridLooseItemInstance instead."));
+	}
 	if (!HasValidPlacementSurface())
 	{
 		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
@@ -516,10 +521,8 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 		}
 		case EGridLevelObjectType::Item:
 		{
-			if (!Category.IsNone() && !IsPaletteCategory(*this, TEXT("Items"))) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("Item palette category should generally be Items."));
-			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Item Placement Surface should be Floor while items still use the world-object placement path."));
-			const bool bHasDefaultItemDefinition = DefaultBehavior.Item.ItemDefinitionAsset || !DefaultBehavior.Item.ItemDefinitionId.IsNone();
-			if (!ItemActorClass && !bHasDefaultItemDefinition) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Item should generally define ItemActorClass or DefaultBehavior.Item."));
+			AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
+				TEXT("WorldObjectDefinition cannot represent a collectible Item. Use UGridItemDefinitionAsset and FGridLooseItemInstance instead."));
 			break;
 		}
 		case EGridLevelObjectType::None:

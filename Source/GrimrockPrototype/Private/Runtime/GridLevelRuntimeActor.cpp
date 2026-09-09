@@ -1734,12 +1734,6 @@ UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition(F
 			continue;
 		}
 
-		const auto& ItemParams = Definition->DefaultBehavior.Item;
-		if (ItemParams.ItemDefinitionAsset && ItemParams.ItemDefinitionAsset->ItemDefinitionId == ItemDefinitionId)
-		{
-			return ItemParams.ItemDefinitionAsset;
-		}
-
 		const FGridReceptacleBehaviorParams& ReceptacleParams = Definition->DefaultBehavior.Receptacle;
 		for (const FGridReceptacleInitialItemConfig& InitialItem : ReceptacleParams.InitialContent)
 		{

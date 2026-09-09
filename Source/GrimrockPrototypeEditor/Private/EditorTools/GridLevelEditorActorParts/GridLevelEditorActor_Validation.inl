@@ -19,7 +19,6 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		}
 
 		TSet<const UGridWorldObjectDefinitionAsset*> ValidatedDefinitions;
-		TSet<const UGridWorldObjectDefinitionAsset*> DirectPaintItemDefinitions;
 
 		TArray<FGridWorldObjectDefinitionValidationMessage> PaletteMessages;
 		ObjectPalette->ValidatePalette(PaletteMessages);
@@ -37,13 +36,6 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			}
 
 			const FString DefinitionName = Definition->DefinitionId.IsNone() ? Definition->GetName() : Definition->DefinitionId.ToString();
-
-			if (Definition->SupportedType == EGridLevelObjectType::Item && !DirectPaintItemDefinitions.Contains(Definition))
-			{
-				DirectPaintItemDefinitions.Add(Definition);
-				AddMessage(EGridLevelValidationSeverity::Info,
-					FString::Printf(TEXT("Definition %s: Item definition is directly available in the paint palette as a placed pickup item."), *DefinitionName));
-			}
 
 			if (ValidatedDefinitions.Contains(Definition))
 			{

@@ -25,6 +25,12 @@ bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridWorldObjectDefinitionV
 			SeenEntryIds.Add(Entry.EntryId);
 		}
 
+		if (Entry.DefaultWorldObjectDefinition && Entry.DefaultWorldObjectDefinition->SupportedType == EGridLevelObjectType::Item)
+		{
+			OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
+				FString::Printf(TEXT("Palette entry '%s' cannot use a WorldObjectDefinition for a collectible Item. Use DefaultItemDefinition instead."), *EntryName));
+		}
+
 		if (Entry.DefaultItemDefinition)
 		{
 			if (Entry.DefaultWorldObjectDefinition)

@@ -215,18 +215,12 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	TestTrue(TEXT("Historical Door boundary location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 600.0f, 0.0f)));
 	TestTrue(TEXT("Historical Door North rotation is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator::ZeroRotator));
 
-	// Item-on-edge remains an item-instance rule for now; Floor N preserves its historical height.
+	// Loose item edge placement is independent of WorldObjectDefinition.
 	FGridLooseItemInstance ItemObject;
 	ItemObject.InstanceId = FGuid::NewGuid();
 	ItemObject.CellX = 1;
 	ItemObject.CellY = 2;
 	ItemObject.SurfaceSide = EGridEdge::East;
-	Definition->SupportedType = EGridLevelObjectType::Item;
-	Definition->PlacementSurface = EGridObjectPlacementKind::Floor;
-	Definition->DefaultLocalPosition.U = 0.0f;
-	Definition->DefaultLocalPosition.V = 0.0f;
-	Definition->DefaultLocalPosition.N = 12.0f;
-	Definition->RefreshPlacementRuntimeProjection();
 	TestTrue(TEXT("Historical floor item edge transform resolves"), GridPlacementTransformResolver::ResolveLooseItem(*Runtime, ItemObject, Transform));
 	TestTrue(TEXT("Historical floor item edge location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(382.0f, 500.0f, 12.0f)));
 	TestTrue(TEXT("Historical East floor item rotation is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));

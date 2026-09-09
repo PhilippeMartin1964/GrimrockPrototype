@@ -142,12 +142,6 @@ bool FGridPIT02WorldItemsTest::RunTest(const FString& Parameters)
 	StoneDefinition->ItemDefinitionId = TEXT("Item_PIT02_Stone");
 	StoneDefinition->Weight = 1.25f;
 
-	UGridWorldObjectDefinitionAsset* StoneWorldObjectDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
-	StoneWorldObjectDefinition->DefinitionId = TEXT("Item_PIT02_Stone");
-	StoneWorldObjectDefinition->SupportedType = EGridLevelObjectType::Item;
-	StoneWorldObjectDefinition->DefaultBehavior.Item.ItemDefinitionAsset = StoneDefinition;
-	Runtime->WorldObjectDefinitions.Add(StoneWorldObjectDefinition);
-
 	FGridItemInstance Stone;
 	Stone.RuntimeObjectId = FGuid::NewGuid();
 	Stone.ItemDefinitionId = StoneDefinition->ItemDefinitionId;

@@ -232,18 +232,12 @@ bool FGridWorldObjectMIG01PlacementTransformParityTest::RunTest(const FString& P
 	TestTrue(TEXT("Door remains anchored on the exact North boundary"), GridWorldObjectMIG01::IsLocation(Transform, FVector(300.0f, 600.0f, 0.0f)));
 	TestTrue(TEXT("Door historical boundary rotation is preserved"), GridWorldObjectMIG01::IsRotation(Transform, FRotator::ZeroRotator));
 
-	// Item edge placement remains a separate item-instance rule for now.
+	// Loose item edge placement is independent of WorldObjectDefinition.
 	FGridLooseItemInstance ItemObject;
 	ItemObject.InstanceId = FGuid::NewGuid();
 	ItemObject.CellX = 1;
 	ItemObject.CellY = 2;
 	ItemObject.SurfaceSide = EGridEdge::East;
-	Definition->SupportedType = EGridLevelObjectType::Item;
-	Definition->PlacementSurface = EGridObjectPlacementKind::Floor;
-	Definition->DefaultLocalPosition.U = 0.0f;
-	Definition->DefaultLocalPosition.V = 0.0f;
-	Definition->DefaultLocalPosition.N = 12.0f;
-	Definition->RefreshPlacementRuntimeProjection();
 	TestTrue(TEXT("Floor item edge transform resolves"), GridPlacementTransformResolver::ResolveLooseItem(*Runtime, ItemObject, Transform));
 	TestTrue(TEXT("Floor item edge keeps the characterized 18 cm minimum inset"), GridWorldObjectMIG01::IsLocation(Transform, FVector(382.0f, 500.0f, 12.0f)));
 	TestTrue(TEXT("East floor item faces the edge"), GridWorldObjectMIG01::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));

@@ -129,6 +129,11 @@ bool AGridLevelEditorActor::ApplyPaletteEntry(FName EntryId)
 		return false;
 	}
 
+	if (Entry->DefaultWorldObjectDefinition && Entry->DefaultWorldObjectDefinition->SupportedType == EGridLevelObjectType::Item)
+	{
+		return false;
+	}
+
 	// WORLDOBJ-MIG05: collectibles are palette-addressable directly through their
 	// ItemDefinition. No companion UGridWorldObjectDefinitionAsset is required.
 	if (Entry->DefaultItemDefinition)
