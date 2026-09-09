@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/GridLevelPlacementTypes.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GridRuntimeWorldObjectData.h"
 
 /**
@@ -14,9 +14,9 @@
 namespace GridObjectInstanceBehavior
 {
 	inline FGridObjectBehaviorParams Resolve(
-		const FGridWorldObjectInstance& WorldObjectInstance, const UGridObjectArchetypeAsset* Archetype)
+		const FGridWorldObjectInstance& WorldObjectInstance, const UGridWorldObjectDefinitionAsset* Definition)
 	{
-		FGridObjectBehaviorParams Resolved = Archetype ? Archetype->DefaultBehavior : FGridObjectBehaviorParams();
+		FGridObjectBehaviorParams Resolved = Definition ? Definition->DefaultBehavior : FGridObjectBehaviorParams();
 		const FGridWorldObjectInstanceConfig& Config = WorldObjectInstance.InstanceConfig;
 		Resolved.Teleporter = Config.Teleporter;
 		Resolved.Transition = Config.Transition;
@@ -50,16 +50,16 @@ namespace GridObjectInstanceBehavior
 	}
 
 	inline FGridObjectBehaviorParams Resolve(
-		const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype)
+		const FGridRuntimeWorldObjectData& ObjectData, const UGridWorldObjectDefinitionAsset* Definition)
 	{
 		// Without a definition, the native payload contains behavior defaults and
 		// the five instance-owned overrides copied from the world-object placement.
-		if (!Archetype)
+		if (!Definition)
 		{
 			return ObjectData.Behavior;
 		}
 
-		FGridObjectBehaviorParams Resolved = Archetype->DefaultBehavior;
+		FGridObjectBehaviorParams Resolved = Definition->DefaultBehavior;
 		ApplyInstanceOwnedOverrides(ObjectData.Behavior, Resolved);
 		return Resolved;
 	}

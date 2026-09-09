@@ -130,13 +130,13 @@ bool AGridLevelEditorActor::ApplyPaletteEntry(FName EntryId)
 	}
 
 	// WORLDOBJ-MIG05: collectibles are palette-addressable directly through their
-	// ItemDefinition. No companion UGridObjectArchetypeAsset is required.
+	// ItemDefinition. No companion UGridWorldObjectDefinitionAsset is required.
 	if (Entry->DefaultItemDefinition)
 	{
 		SelectedPaletteEntryId = Entry->EntryId;
 		PaintObjectType = EGridLevelObjectType::Item;
-		ObjectArchetypeId = NAME_None;
-		SelectedArchetypeId = NAME_None;
+		WorldObjectDefinitionId = NAME_None;
+		SelectedWorldObjectDefinitionId = NAME_None;
 		bObjectInitiallyEnabled = true;
 		bObjectInitiallyActive = false;
 		ObjectTag = NAME_None;
@@ -145,7 +145,7 @@ bool AGridLevelEditorActor::ApplyPaletteEntry(FName EntryId)
 		return true;
 	}
 
-	if (!Entry->DefaultArchetype)
+	if (!Entry->DefaultWorldObjectDefinition)
 	{
 		return false;
 	}

@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
@@ -85,8 +85,8 @@ bool FGridEditorWorldObjectMIG06SparsePlacementTest::RunTest(const FString& Para
 	}
 	EditorActor->LevelAsset = Level;
 
-	UGridObjectArchetypeAsset* Definition = NewObject<UGridObjectArchetypeAsset>(EditorActor);
-	Definition->ArchetypeId = TEXT("MIG06_Button");
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(EditorActor);
+	Definition->DefinitionId = TEXT("MIG06_Button");
 	Definition->SupportedType = EGridLevelObjectType::Button;
 	Definition->PlacementSurface = EGridObjectPlacementKind::Center;
 	Definition->DefaultBehavior.ButtonAnimation.ButtonHoldTime = 0.77f;
@@ -94,7 +94,7 @@ bool FGridEditorWorldObjectMIG06SparsePlacementTest::RunTest(const FString& Para
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>(EditorActor);
 	FGridObjectPaletteEntry& Entry = Palette->Entries.AddDefaulted_GetRef();
 	Entry.EntryId = TEXT("MIG06_Button");
-	Entry.DefaultArchetype = Definition;
+	Entry.DefaultWorldObjectDefinition = Definition;
 	EditorActor->ObjectPalette = Palette;
 
 	EditorActor->SelectedCellX = 1;

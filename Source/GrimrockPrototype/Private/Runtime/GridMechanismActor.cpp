@@ -20,7 +20,7 @@ AGridMechanismActor::AGridMechanismActor()
 
 
 void AGridMechanismActor::InitializeRuntimeMechanismVisuals(
-	const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform)
+	const FGridRuntimeWorldObjectData& ObjectData, const UGridWorldObjectDefinitionAsset* Definition, const FTransform& WorldTransform)
 {
 	ObjectId = ObjectData.ObjectId;
 	ObjectType = ObjectData.Type;
@@ -35,7 +35,7 @@ void AGridMechanismActor::InitializeRuntimeMechanismVisuals(
 	MovingPart0Motion = FGridWorldObjectMotion();
 	MovingPart1Motion = FGridWorldObjectMotion();
 
-	if (!Archetype)
+	if (!Definition)
 	{
 		SetFixedMesh(nullptr);
 		SetMovingMesh(nullptr);
@@ -44,23 +44,23 @@ void AGridMechanismActor::InitializeRuntimeMechanismVisuals(
 	}
 
 	// WORLDOBJ-MIG03.4: StaticPart/MovingParts are the only mechanism presentation contract.
-	SetFixedMesh(Archetype->StaticPart.Mesh.Get());
+	SetFixedMesh(Definition->StaticPart.Mesh.Get());
 	if (FixedMeshComponent)
 	{
-		FixedMeshComponent->SetRelativeTransform(Archetype->StaticPart.LocalTransform);
+		FixedMeshComponent->SetRelativeTransform(Definition->StaticPart.LocalTransform);
 	}
 
-	MovingPart0BaseTransform = Archetype->MovingParts.Part0.LocalTransform;
-	MovingPart0Motion = Archetype->MovingParts.Part0.Motion;
-	SetMovingMesh(Archetype->MovingParts.Part0.Mesh.Get());
+	MovingPart0BaseTransform = Definition->MovingParts.Part0.LocalTransform;
+	MovingPart0Motion = Definition->MovingParts.Part0.Motion;
+	SetMovingMesh(Definition->MovingParts.Part0.Mesh.Get());
 	if (MovingMeshComponent)
 	{
 		MovingMeshComponent->SetRelativeTransform(MovingPart0BaseTransform);
 	}
 
-	MovingPart1BaseTransform = Archetype->MovingParts.Part1.LocalTransform;
-	MovingPart1Motion = Archetype->MovingParts.Part1.Motion;
-	SetSecondaryMovingMesh(Archetype->MovingParts.Part1.Mesh.Get());
+	MovingPart1BaseTransform = Definition->MovingParts.Part1.LocalTransform;
+	MovingPart1Motion = Definition->MovingParts.Part1.Motion;
+	SetSecondaryMovingMesh(Definition->MovingParts.Part1.Mesh.Get());
 	if (SecondaryMovingMeshComponent)
 	{
 		SecondaryMovingMeshComponent->SetRelativeTransform(MovingPart1BaseTransform);

@@ -1,7 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -14,7 +14,7 @@
 namespace GridTD011Tests
 {
 	const FGuid ReceptacleObjectId(1, 1, 1, 1);
-	const FName ReceptacleArchetypeId(TEXT("TD01_Receptacle"));
+	const FName ReceptacleWorldObjectDefinitionId(TEXT("TD01_Receptacle"));
 
 	struct FTestWorld
 	{
@@ -59,7 +59,7 @@ namespace GridTD011Tests
 	struct FRuntimeFixture
 	{
 		UGridLevelAsset* Level = nullptr;
-		UGridObjectArchetypeAsset* Archetype = nullptr;
+		UGridWorldObjectDefinitionAsset* Definition = nullptr;
 		TObjectPtr<UStaticMesh> Mesh = nullptr;
 	};
 
@@ -74,7 +74,7 @@ namespace GridTD011Tests
 
 		FGridWorldObjectInstance ReceptacleObject;
 		ReceptacleObject.InstanceId = ReceptacleObjectId;
-		ReceptacleObject.WorldObjectDefinitionId = ReceptacleArchetypeId;
+		ReceptacleObject.WorldObjectDefinitionId = ReceptacleWorldObjectDefinitionId;
 		ReceptacleObject.Type = EGridLevelObjectType::Receptacle;
 		ReceptacleObject.CellX = 0;
 		ReceptacleObject.CellY = 0;
@@ -82,17 +82,17 @@ namespace GridTD011Tests
 		ReceptacleObject.bInitiallyEnabled = true;
 		Fixture.Level->WorldObjectInstances.Add(ReceptacleObject);
 
-		Fixture.Archetype = NewObject<UGridObjectArchetypeAsset>(Outer);
-		Fixture.Archetype->ArchetypeId = ReceptacleArchetypeId;
-		Fixture.Archetype->SupportedType = EGridLevelObjectType::Receptacle;
-		Fixture.Archetype->Category = TEXT("Receptacles");
-		Fixture.Archetype->ObjectCategory = EGridObjectCategory::Receptacle;
-		Fixture.Archetype->PlacementSurface = EGridObjectPlacementKind::Wall;
-		Fixture.Archetype->RefreshPlacementRuntimeProjection();
-		Fixture.Archetype->bIsInteractable = true;
-		Fixture.Archetype->RuntimeActorClass = AGridReceptacleActor::StaticClass();
+		Fixture.Definition = NewObject<UGridWorldObjectDefinitionAsset>(Outer);
+		Fixture.Definition->DefinitionId = ReceptacleWorldObjectDefinitionId;
+		Fixture.Definition->SupportedType = EGridLevelObjectType::Receptacle;
+		Fixture.Definition->Category = TEXT("Receptacles");
+		Fixture.Definition->ObjectCategory = EGridObjectCategory::Receptacle;
+		Fixture.Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
+		Fixture.Definition->RefreshPlacementRuntimeProjection();
+		Fixture.Definition->bIsInteractable = true;
+		Fixture.Definition->RuntimeActorClass = AGridReceptacleActor::StaticClass();
 		Fixture.Mesh = NewObject<UStaticMesh>(Outer);
-		Fixture.Archetype->StaticPart.Mesh = Fixture.Mesh;
+		Fixture.Definition->StaticPart.Mesh = Fixture.Mesh;
 		return Fixture;
 	}
 
@@ -107,7 +107,7 @@ namespace GridTD011Tests
 		}
 
 		Runtime->LevelAsset = Fixture.Level;
-		Runtime->ObjectArchetypes.Add(Fixture.Archetype);
+		Runtime->WorldObjectDefinitions.Add(Fixture.Definition);
 		if (RestoredState)
 		{
 			Runtime->DungeonRuntimeState = *RestoredState;

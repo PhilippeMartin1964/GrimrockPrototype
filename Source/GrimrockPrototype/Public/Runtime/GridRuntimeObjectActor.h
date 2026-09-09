@@ -8,7 +8,7 @@
 #include "GridRuntimeObjectActor.generated.h"
 
 class UAudioComponent;
-class UGridObjectArchetypeAsset;
+class UGridWorldObjectDefinitionAsset;
 class USoundAttenuation;
 class USoundBase;
 class UStaticMeshComponent;
@@ -53,7 +53,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Grid")
 	EGridEdge Edge = EGridEdge::None;
 
-	/** Runtime snapshot of the archetype's generic audio events. */
+	/** Runtime snapshot of the definition's generic audio events. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Audio")
 	TMap<FName, FGridObjectAudioEvent> ObjectAudioEvents;
 
@@ -81,8 +81,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	bool MatchesEdge(int32 InCellX, int32 InCellY, EGridEdge InEdge) const;
 
-	/** Copies generic audio configuration from any object archetype. */
-	void ConfigureObjectAudio(const UGridObjectArchetypeAsset* Archetype);
+	/** Copies generic audio configuration from any object definition. */
+	void ConfigureObjectAudio(const UGridWorldObjectDefinitionAsset* Definition);
 
 	UFUNCTION(BlueprintPure, Category = "Audio")
 	bool HasObjectAudioEvent(FName EventName) const;

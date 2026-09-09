@@ -44,7 +44,7 @@ void AGridLevelEditorActor::SyncPreviewRuntimeLevelAsset()
 	PreviewRuntimeActor->LevelAsset = LevelAsset;
 	PreviewRuntimeActor->DungeonAsset = DungeonAsset;
 	PreviewRuntimeActor->CurrentDungeonLevelId = CurrentDungeonLevelId;
-	SyncPreviewRuntimeObjectArchetypesFromPalette();
+	SyncPreviewRuntimeWorldObjectDefinitionsFromPalette();
 	PreviewRuntimeActor->RebuildLevel();
 
 	LogEditorRuntimeAssetConsistency();

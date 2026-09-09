@@ -79,23 +79,23 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 	Entry.EntryId = TEXT("BlueGem");
 	Entry.DefaultItemDefinition = Definition;
 
-	TestTrue(TEXT("Direct collectible palette entry is valid without an object archetype"), Entry.IsValidEntry());
-	TestTrue(TEXT("Direct collectible entry owns no companion archetype"), Entry.DefaultArchetype == nullptr);
+	TestTrue(TEXT("Direct collectible palette entry is valid without an object definition"), Entry.IsValidEntry());
+	TestTrue(TEXT("Direct collectible entry owns no companion definition"), Entry.DefaultWorldObjectDefinition == nullptr);
 	TestTrue(TEXT("Direct collectible entry does not duplicate the definition icon"), Entry.Icon == nullptr);
 	TestEqual(TEXT("Direct collectible entry resolves to Item"), Entry.GetEffectiveObjectType(), EGridLevelObjectType::Item);
-	TestTrue(TEXT("Direct collectible entry has no effective ArchetypeId"), Entry.GetEffectiveArchetypeId().IsNone());
+	TestTrue(TEXT("Direct collectible entry has no effective WorldObjectDefinitionId"), Entry.GetEffectiveWorldObjectDefinitionId().IsNone());
 	TestEqual(TEXT("Direct collectible entry uses Items category"), Entry.GetEffectiveCategory(), FName(TEXT("Items")));
 	TestEqual(TEXT("Direct collectible entry uses ItemDefinition display name"), Entry.GetEffectiveDisplayName().ToString(), FString(TEXT("Blue Gem")));
 	TestTrue(TEXT("Collectible icon lives on the ItemDefinition"), Definition->Icon.Get() == DefinitionIcon);
 
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>();
 	Palette->Entries.Add(Entry);
-	TArray<FGridArchetypeValidationMessage> ValidationMessages;
+	TArray<FGridWorldObjectDefinitionValidationMessage> ValidationMessages;
 	TestTrue(TEXT("Palette accepts a direct ItemDefinition collectible"), Palette->ValidatePalette(ValidationMessages));
 	TestEqual(TEXT("Direct collectible palette validation has no messages"), ValidationMessages.Num(), 0);
 
-	FProperty* ItemArchetypeBridge = AGridItemActor::StaticClass()->FindPropertyByName(TEXT("ArchetypeId"));
-	TestNull(TEXT("MIG09 physically removes duplicate item ArchetypeId runtime state"), ItemArchetypeBridge);
+	FProperty* LegacyItemIdentity = AGridItemActor::StaticClass()->FindPropertyByName(TEXT("ArchetypeId"));
+	TestNull(TEXT("MIG09 physically removes duplicate item identity"), LegacyItemIdentity);
 	TestNull(TEXT("MIG09 removes legacy GetItemArchetypeId API"), AGridItemActor::StaticClass()->FindFunctionByName(TEXT("GetItemArchetypeId")));
 	TestNull(TEXT("MIG09 removes legacy InitializeItem API"), AGridItemActor::StaticClass()->FindFunctionByName(TEXT("InitializeItem")));
 
@@ -125,7 +125,7 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 	ItemData.ItemDefinition = Definition;
 
 	FTransform PlacementTransform;
-	TestTrue(TEXT("Loose item placement transform resolves without any ObjectArchetype"), GridPlacementTransformResolver::ResolveLooseItem(*Runtime, ItemData, PlacementTransform));
+	TestTrue(TEXT("Loose item placement transform resolves without any WorldObjectDefinition"), GridPlacementTransformResolver::ResolveLooseItem(*Runtime, ItemData, PlacementTransform));
 	TestTrue(TEXT("Direct loose item remains centered on its cell"),
 		PlacementTransform.GetLocation().Equals(Runtime->GetCellCenterWorld(0, 0, 12.0f), KINDA_SMALL_NUMBER));
 
@@ -163,23 +163,23 @@ bool FGridWorldObjectMIG05PaletteAmbiguityTest::RunTest(const FString& Parameter
 	Definition->ItemDefinitionId = TEXT("CopperKey");
 	Definition->DisplayName = FText::FromString(TEXT("Copper Key"));
 
-	UGridObjectArchetypeAsset* LegacyArchetype = NewObject<UGridObjectArchetypeAsset>();
-	LegacyArchetype->ArchetypeId = TEXT("Item_CopperKey_Legacy");
-	LegacyArchetype->SupportedType = EGridLevelObjectType::Item;
+	UGridWorldObjectDefinitionAsset* LegacyDefinition = NewObject<UGridWorldObjectDefinitionAsset>();
+	LegacyDefinition->DefinitionId = TEXT("Item_CopperKey_Legacy");
+	LegacyDefinition->SupportedType = EGridLevelObjectType::Item;
 
 	FGridObjectPaletteEntry Entry;
 	Entry.EntryId = TEXT("CopperKey");
 	Entry.DefaultItemDefinition = Definition;
-	Entry.DefaultArchetype = LegacyArchetype;
+	Entry.DefaultWorldObjectDefinition = LegacyDefinition;
 
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>();
 	Palette->Entries.Add(Entry);
-	TArray<FGridArchetypeValidationMessage> Messages;
+	TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
 	TestFalse(TEXT("Palette rejects two authoring definitions for one collectible"), Palette->ValidatePalette(Messages));
 	TestTrue(TEXT("Dual-definition palette entry emits an error"),
-		Messages.ContainsByPredicate([](const FGridArchetypeValidationMessage& Message)
+		Messages.ContainsByPredicate([](const FGridWorldObjectDefinitionValidationMessage& Message)
 		{
-			return Message.Severity == EGridArchetypeValidationSeverity::Error;
+			return Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error;
 		}));
 
 	return true;
@@ -208,12 +208,12 @@ bool FGridWorldObjectMIG05PaletteIconAuthorityTest::RunTest(const FString& Param
 
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>();
 	Palette->Entries.Add(Entry);
-	TArray<FGridArchetypeValidationMessage> Messages;
+	TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
 	TestFalse(TEXT("Palette rejects duplicated collectible icon authority"), Palette->ValidatePalette(Messages));
 	TestTrue(TEXT("Collectible icon duplication emits a specific validation error"),
-		Messages.ContainsByPredicate([](const FGridArchetypeValidationMessage& Message)
+		Messages.ContainsByPredicate([](const FGridWorldObjectDefinitionValidationMessage& Message)
 		{
-			return Message.Severity == EGridArchetypeValidationSeverity::Error && Message.Message.Contains(TEXT("DefaultItemDefinition.Icon"));
+			return Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error && Message.Message.Contains(TEXT("DefaultItemDefinition.Icon"));
 		}));
 
 	return true;

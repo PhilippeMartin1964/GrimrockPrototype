@@ -3,7 +3,7 @@
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "RPG/RPGStoryCompanionAsset.h"
 
-bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridArchetypeValidationMessage>& OutMessages) const
+bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridWorldObjectDefinitionValidationMessage>& OutMessages) const
 {
 	OutMessages.Reset();
 
@@ -14,11 +14,11 @@ bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridArchetypeValidationMes
 
 		if (Entry.EntryId.IsNone())
 		{
-			OutMessages.Emplace(EGridArchetypeValidationSeverity::Error, TEXT("Palette entry requires EntryId."));
+			OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Palette entry requires EntryId."));
 		}
 		else if (SeenEntryIds.Contains(Entry.EntryId))
 		{
-			OutMessages.Emplace(EGridArchetypeValidationSeverity::Error, FString::Printf(TEXT("Palette entry id '%s' is duplicated."), *EntryName));
+			OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error, FString::Printf(TEXT("Palette entry id '%s' is duplicated."), *EntryName));
 		}
 		else
 		{
@@ -27,50 +27,50 @@ bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridArchetypeValidationMes
 
 		if (Entry.DefaultItemDefinition)
 		{
-			if (Entry.DefaultArchetype)
+			if (Entry.DefaultWorldObjectDefinition)
 			{
-				OutMessages.Emplace(EGridArchetypeValidationSeverity::Error,
-					FString::Printf(TEXT("Palette entry '%s' must reference either DefaultItemDefinition or DefaultArchetype, not both."), *EntryName));
+				OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
+					FString::Printf(TEXT("Palette entry '%s' must reference either DefaultItemDefinition or DefaultWorldObjectDefinition, not both."), *EntryName));
 			}
 
 			if (Entry.Icon)
 			{
-				OutMessages.Emplace(EGridArchetypeValidationSeverity::Error,
+				OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
 					FString::Printf(TEXT("Palette entry '%s' is a direct collectible and must use DefaultItemDefinition.Icon instead of duplicating Palette Icon."), *EntryName));
 			}
 
 			if (!Entry.DefaultItemDefinition->IsValidDefinition())
 			{
-				OutMessages.Emplace(EGridArchetypeValidationSeverity::Error,
+				OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
 					FString::Printf(TEXT("Palette entry '%s' has an invalid DefaultItemDefinition."), *EntryName));
 			}
 			continue;
 		}
 
-		if (!Entry.DefaultArchetype)
+		if (!Entry.DefaultWorldObjectDefinition)
 		{
-			OutMessages.Emplace(EGridArchetypeValidationSeverity::Error,
-				FString::Printf(TEXT("Palette entry '%s' requires DefaultArchetype or DefaultItemDefinition."), *EntryName));
+			OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
+				FString::Printf(TEXT("Palette entry '%s' requires DefaultWorldObjectDefinition or DefaultItemDefinition."), *EntryName));
 			continue;
 		}
 
-		if (Entry.DefaultArchetype->ArchetypeId.IsNone())
+		if (Entry.DefaultWorldObjectDefinition->DefinitionId.IsNone())
 		{
 			OutMessages.Emplace(
-				EGridArchetypeValidationSeverity::Error, FString::Printf(TEXT("Palette entry '%s' DefaultArchetype requires ArchetypeId."), *EntryName));
+				EGridWorldObjectDefinitionValidationSeverity::Error, FString::Printf(TEXT("Palette entry '%s' DefaultWorldObjectDefinition requires WorldObjectDefinitionId."), *EntryName));
 		}
 
-		if (Entry.DefaultArchetype->SupportedType == EGridLevelObjectType::None)
+		if (Entry.DefaultWorldObjectDefinition->SupportedType == EGridLevelObjectType::None)
 		{
-			OutMessages.Emplace(EGridArchetypeValidationSeverity::Error,
-				FString::Printf(TEXT("Palette entry '%s' DefaultArchetype SupportedType must not be None."), *EntryName));
+			OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
+				FString::Printf(TEXT("Palette entry '%s' DefaultWorldObjectDefinition SupportedType must not be None."), *EntryName));
 		}
 
-		if (Entry.DefaultArchetype->SupportedType == EGridLevelObjectType::MonsterSpawn)
+		if (Entry.DefaultWorldObjectDefinition->SupportedType == EGridLevelObjectType::MonsterSpawn)
 		{
 			if (!Entry.DefaultMonsterDefinition)
 			{
-				OutMessages.Emplace(EGridArchetypeValidationSeverity::Error,
+				OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
 					FString::Printf(TEXT("Palette entry '%s' requires DefaultMonsterDefinition for MonsterSpawn."), *EntryName));
 			}
 			else
@@ -78,30 +78,30 @@ bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridArchetypeValidationMes
 				FString DefinitionError;
 				if (!Entry.DefaultMonsterDefinition->ValidateDefinition(DefinitionError))
 				{
-					OutMessages.Emplace(EGridArchetypeValidationSeverity::Error,
+					OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
 						FString::Printf(TEXT("Palette entry '%s' has an invalid DefaultMonsterDefinition: %s"), *EntryName, *DefinitionError));
 				}
 			}
 		}
 
-		if (Entry.DefaultArchetype->SupportedType == EGridLevelObjectType::StoryCompanion)
+		if (Entry.DefaultWorldObjectDefinition->SupportedType == EGridLevelObjectType::StoryCompanion)
 		{
 			if (!Entry.DefaultStoryCompanionDefinition)
 			{
-				OutMessages.Emplace(EGridArchetypeValidationSeverity::Error,
+				OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
 					FString::Printf(TEXT("Palette entry '%s' requires DefaultStoryCompanionDefinition for StoryCompanion."), *EntryName));
 			}
 			else if (!Entry.DefaultStoryCompanionDefinition->IsValidDefinition())
 			{
-				OutMessages.Emplace(EGridArchetypeValidationSeverity::Error,
+				OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
 					FString::Printf(TEXT("Palette entry '%s' has an invalid DefaultStoryCompanionDefinition."), *EntryName));
 			}
 		}
 	}
 
-	for (const FGridArchetypeValidationMessage& Message : OutMessages)
+	for (const FGridWorldObjectDefinitionValidationMessage& Message : OutMessages)
 	{
-		if (Message.Severity == EGridArchetypeValidationSeverity::Error)
+		if (Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error)
 		{
 			return false;
 		}

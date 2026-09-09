@@ -4,7 +4,7 @@
 
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -386,25 +386,25 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 
 	const FGridObjectPaletteEntry* StairsUpEntry = CurrentEditorActor->ObjectPalette->FindEntryById(FName(TEXT("Stairs_Up")));
 	const FGridObjectPaletteEntry* StairsDownEntry = CurrentEditorActor->ObjectPalette->FindEntryById(FName(TEXT("Stairs_Down")));
-	if (!StairsUpEntry || !StairsUpEntry->DefaultArchetype || !StairsDownEntry || !StairsDownEntry->DefaultArchetype ||
-		!StairsUpEntry->DefaultArchetype->DefaultBehavior.Transition.bIsTransition ||
-		!StairsDownEntry->DefaultArchetype->DefaultBehavior.Transition.bIsTransition)
+	if (!StairsUpEntry || !StairsUpEntry->DefaultWorldObjectDefinition || !StairsDownEntry || !StairsDownEntry->DefaultWorldObjectDefinition ||
+		!StairsUpEntry->DefaultWorldObjectDefinition->DefaultBehavior.Transition.bIsTransition ||
+		!StairsDownEntry->DefaultWorldObjectDefinition->DefaultBehavior.Transition.bIsTransition)
 	{
 		FString Error;
-		if (!CurrentEditorActor->EnsureStairsTransitionArchetypes(Error))
+		if (!CurrentEditorActor->EnsureStairsTransitionDefinitions(Error))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Stairs transition palette provisioning failed: %s"), *Error);
 		}
 	}
 
 	const FGridObjectPaletteEntry* PitEntry = CurrentEditorActor->ObjectPalette->FindEntryById(FName(TEXT("Pit_Stone_01")));
-	if (!PitEntry || !PitEntry->DefaultArchetype || PitEntry->DefaultArchetype->SupportedType != EGridLevelObjectType::Pit ||
-		!PitEntry->DefaultArchetype->DefaultBehavior.Transition.bIsTransition ||
-		PitEntry->DefaultArchetype->RuntimeActorClass != AGridPitTrapdoorActor::StaticClass() ||
-		!PitEntry->DefaultArchetype->StaticPart.IsDefined() || PitEntry->DefaultArchetype->MovingParts.NumDefined() == 1)
+	if (!PitEntry || !PitEntry->DefaultWorldObjectDefinition || PitEntry->DefaultWorldObjectDefinition->SupportedType != EGridLevelObjectType::Pit ||
+		!PitEntry->DefaultWorldObjectDefinition->DefaultBehavior.Transition.bIsTransition ||
+		PitEntry->DefaultWorldObjectDefinition->RuntimeActorClass != AGridPitTrapdoorActor::StaticClass() ||
+		!PitEntry->DefaultWorldObjectDefinition->StaticPart.IsDefined() || PitEntry->DefaultWorldObjectDefinition->MovingParts.NumDefined() == 1)
 	{
 		FString Error;
-		if (!CurrentEditorActor->EnsurePitTrapdoorArchetype(Error))
+		if (!CurrentEditorActor->EnsurePitTrapdoorDefinition(Error))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Pit trapdoor palette provisioning failed: %s"), *Error);
 		}
@@ -640,11 +640,11 @@ bool SGridEditorToolPalettePanel::DoesPaletteEntryPassFilters(const FGridObjectP
 			Matches(Entry.DefaultItemDefinition->Description.ToString());
 	}
 
-	if (Entry.DefaultArchetype)
+	if (Entry.DefaultWorldObjectDefinition)
 	{
-		return Matches(Entry.DefaultArchetype->ArchetypeId.ToString()) ||
-			Matches(Entry.DefaultArchetype->DisplayName.ToString()) ||
-			Matches(Entry.DefaultArchetype->Description.ToString());
+		return Matches(Entry.DefaultWorldObjectDefinition->DefinitionId.ToString()) ||
+			Matches(Entry.DefaultWorldObjectDefinition->DisplayName.ToString()) ||
+			Matches(Entry.DefaultWorldObjectDefinition->Description.ToString());
 	}
 
 	return false;

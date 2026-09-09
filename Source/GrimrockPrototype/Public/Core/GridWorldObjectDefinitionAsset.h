@@ -8,7 +8,7 @@
 #include "GridWorldObjectVisual.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
-#include "GridObjectArchetypeAsset.generated.h"
+#include "GridWorldObjectDefinitionAsset.generated.h"
 
 class AGridRuntimeObjectActor;
 class AGridItemActor;
@@ -17,7 +17,7 @@ class USoundAttenuation;
 struct FPropertyChangedEvent;
 
 UENUM(BlueprintType)
-enum class EGridArchetypeValidationSeverity : uint8
+enum class EGridWorldObjectDefinitionValidationSeverity : uint8
 {
 	Info UMETA(DisplayName = "Info"),
 	Warning UMETA(DisplayName = "Warning"),
@@ -54,19 +54,19 @@ struct GRIMROCKPROTOTYPE_API FGridSurfaceLocalPosition
 };
 
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridArchetypeValidationMessage
+struct GRIMROCKPROTOTYPE_API FGridWorldObjectDefinitionValidationMessage
 {
 	GENERATED_BODY()
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
-	EGridArchetypeValidationSeverity Severity = EGridArchetypeValidationSeverity::Info;
+	EGridWorldObjectDefinitionValidationSeverity Severity = EGridWorldObjectDefinitionValidationSeverity::Info;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
 	FString Message;
 
-	FGridArchetypeValidationMessage() = default;
+	FGridWorldObjectDefinitionValidationMessage() = default;
 
-	FGridArchetypeValidationMessage(EGridArchetypeValidationSeverity InSeverity, const FString& InMessage)
+	FGridWorldObjectDefinitionValidationMessage(EGridWorldObjectDefinitionValidationSeverity InSeverity, const FString& InMessage)
 		: Severity(InSeverity)
 		, Message(InMessage)
 	{
@@ -74,23 +74,23 @@ struct GRIMROCKPROTOTYPE_API FGridArchetypeValidationMessage
 };
 
 UCLASS(BlueprintType)
-class GRIMROCKPROTOTYPE_API UGridObjectArchetypeAsset : public UDataAsset
+class GRIMROCKPROTOTYPE_API UGridWorldObjectDefinitionAsset : public UDataAsset
 {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Archetype")
-	FName ArchetypeId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Definition")
+	FName DefinitionId = NAME_None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Archetype")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Definition")
 	FText DisplayName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Archetype",
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Definition",
 		meta = (DisplayName = "Gameplay Type",
-			ToolTip = "Gameplay behavior family supported by this archetype. Concrete variants stay in ArchetypeId and DisplayName."))
+			ToolTip = "Gameplay behavior family supported by this definition. Concrete variants stay in DefinitionId and DisplayName."))
 	EGridLevelObjectType SupportedType = EGridLevelObjectType::None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Archetype")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Definition")
 	FText Description;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Defaults")
@@ -106,16 +106,16 @@ public:
 		meta = (ToolTip = "Default behavior copied to placed object instances. Currently contains teleporter, receptacle and mechanism parameters."))
 	FGridObjectBehaviorParams DefaultBehavior;
 
-	/** Single 3D attenuation used by every audio event emitted by this object archetype. */
+	/** Single 3D attenuation used by every audio event emitted by this object definition. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio",
 		meta = (DisplayName = "Attenuation",
-			ToolTip = "Single spatial attenuation used by all audio events of this archetype."))
+			ToolTip = "Single spatial attenuation used by all audio events of this definition."))
 	TObjectPtr<USoundAttenuation> DefaultAudioAttenuation = nullptr;
 
 	/** Data-driven semantic audio events such as Open, Close, Press, Activate or Interact. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio",
 		meta = (DisplayName = "Audio Events",
-			ToolTip = "Data-driven audio events for this archetype. Keys are semantic names such as Open, Close, Press, Release or custom names."))
+			ToolTip = "Data-driven audio events for this definition. Keys are semantic names such as Open, Close, Press, Release or custom names."))
 	TMap<FName, FGridObjectAudioEvent> AudioEvents;
 
 	// Existing audio migration is intentionally untouched by WORLDOBJ-MIG03.
@@ -131,7 +131,7 @@ public:
 	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use AudioEvents event PitchVariation."))
 	float DoorAudioPitchVariation = 0.0f;
 
-	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use the archetype Audio > Attenuation field."))
+	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use the definition Audio > Attenuation field."))
 	TObjectPtr<USoundAttenuation> DoorAudioAttenuation = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",
@@ -140,7 +140,7 @@ public:
 				"Editor palette grouping only. Does not affect gameplay. Examples: Doors, Mechanisms, Wall Decorations, Floor Decorations, Receptacles, Lights, Spawns."))
 	FName Category = NAME_None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Archetype",
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Definition",
 		meta = (DisplayName = "Functional Category",
 			ToolTip =
 				"Editor/validation functional category. Does not directly drive runtime gameplay. SupportedType remains the gameplay type and Category remains the palette grouping."))
@@ -224,7 +224,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Light",
 		meta = (DisplayName = "Use Light Flicker (if supported)", EditCondition = "bIsLightSource", EditConditionHides,
-			ToolTip = "Currently displayed/configured at archetype level; actual flicker support depends on the runtime light component path."))
+			ToolTip = "Currently displayed/configured at definition level; actual flicker support depends on the runtime light component path."))
 	bool bUseLightFlicker = false;
 
 	/**
@@ -240,11 +240,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime",
 		meta = (DisplayName = "Runtime Actor Class",
 			ToolTip =
-				"Runtime actor class used to spawn this archetype. Gameplay Type defines what the object is; Runtime Actor Class defines how it is instantiated."))
+				"Runtime actor class used to spawn this definition. Gameplay Type defines what the object is; Runtime Actor Class defines how it is instantiated."))
 	TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime",
-		meta = (DisplayName = "Item Actor Class", ToolTip = "Runtime item actor class used when this archetype represents a spawned or carried item."))
+		meta = (DisplayName = "Item Actor Class", ToolTip = "Runtime item actor class used when this definition represents a spawned or carried item."))
 	TSubclassOf<AGridItemActor> ItemActorClass;
 
 	/**
@@ -351,8 +351,8 @@ public:
 	/** Resolves a generic event, including the pre-existing audio migration path. */
 	bool ResolveAudioEvent(FName EventName, FGridObjectAudioEvent& OutEvent) const;
 
-	bool ValidateArchetype(TArray<FGridArchetypeValidationMessage>& OutMessages) const;
-	bool IsValidArchetype() const;
+	bool ValidateDefinition(TArray<FGridWorldObjectDefinitionValidationMessage>& OutMessages) const;
+	bool IsValidDefinition() const;
 	FString GetValidationSummary() const;
 
 	// Existing helper API retained for callers; semantics now resolve against Floor/Wall/Ceiling only.

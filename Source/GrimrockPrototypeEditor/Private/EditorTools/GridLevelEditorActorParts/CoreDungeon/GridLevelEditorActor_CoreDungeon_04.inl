@@ -71,16 +71,16 @@ bool AGridLevelEditorActor::IsEdgePlacedObject(const FGuid& ObjectId) const
 	return false;
 }
 
-bool AGridLevelEditorActor::IsEdgePlacedObject(EGridLevelObjectType ObjectType, FName ArchetypeId) const
+bool AGridLevelEditorActor::IsEdgePlacedObject(EGridLevelObjectType ObjectType, FName InWorldObjectDefinitionId) const
 {
-	if (ObjectType == EGridLevelObjectType::Item && ArchetypeId == FName(TEXT("Item_Torch")))
+	if (ObjectType == EGridLevelObjectType::Item && InWorldObjectDefinitionId == FName(TEXT("Item_Torch")))
 	{
 		return true;
 	}
 
-	if (const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(ArchetypeId))
+	if (const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinitionById(InWorldObjectDefinitionId))
 	{
-		return Archetype->IsEdgePlaced() || Archetype->IsWallPlaced();
+		return Definition->IsEdgePlaced() || Definition->IsWallPlaced();
 	}
 
 	return RequiresEdge(ObjectType);
@@ -105,18 +105,18 @@ bool AGridLevelEditorActor::IsCellCenteredObject(EGridLevelObjectType ObjectType
 	}
 }
 
-const UGridObjectArchetypeAsset* AGridLevelEditorActor::FindObjectArchetypeById(FName ArchetypeId) const
+const UGridWorldObjectDefinitionAsset* AGridLevelEditorActor::FindWorldObjectDefinitionById(FName InWorldObjectDefinitionId) const
 {
-	if (ArchetypeId.IsNone() || !ObjectPalette)
+	if (InWorldObjectDefinitionId.IsNone() || !ObjectPalette)
 	{
 		return nullptr;
 	}
 
 	for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
 	{
-		if (Entry.DefaultArchetype && Entry.DefaultArchetype->ArchetypeId == ArchetypeId)
+		if (Entry.DefaultWorldObjectDefinition && Entry.DefaultWorldObjectDefinition->DefinitionId == InWorldObjectDefinitionId)
 		{
-			return Entry.DefaultArchetype;
+			return Entry.DefaultWorldObjectDefinition;
 		}
 	}
 

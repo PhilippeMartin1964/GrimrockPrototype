@@ -4,7 +4,7 @@
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
@@ -33,9 +33,9 @@ bool FGridTD0736LegacySymbolsAbsentTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UClass* ArchetypeClass = UGridObjectArchetypeAsset::StaticClass();
-	TestNull(TEXT("bPlaceOnEdge is removed"), ArchetypeClass->FindPropertyByName(TEXT("bPlaceOnEdge")));
-	TestNull(TEXT("bPlaceAtCellCenter is removed"), ArchetypeClass->FindPropertyByName(TEXT("bPlaceAtCellCenter")));
+	UClass* DefinitionClass = UGridWorldObjectDefinitionAsset::StaticClass();
+	TestNull(TEXT("bPlaceOnEdge is removed"), DefinitionClass->FindPropertyByName(TEXT("bPlaceOnEdge")));
+	TestNull(TEXT("bPlaceAtCellCenter is removed"), DefinitionClass->FindPropertyByName(TEXT("bPlaceAtCellCenter")));
 
 	TestNull(TEXT("HasCharacterCommittedAttackThisPhase is removed"),
 		UGridTurnManagerComponent::StaticClass()->FindFunctionByName(TEXT("HasCharacterCommittedAttackThisPhase")));

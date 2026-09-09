@@ -1,7 +1,7 @@
 #include "Runtime/GridEditorPreviewComponent.h"
 
 #include "Core/GridLevelPlacementTypes.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -73,9 +73,9 @@ void UGridEditorPreviewComponent::AddWorldObjectPreview(const FGridWorldObjectIn
 		return;
 	}
 
-	const UGridObjectArchetypeAsset* Archetype = RuntimeActor->FindObjectArchetype(Instance.WorldObjectDefinitionId);
+	const UGridWorldObjectDefinitionAsset* Definition = RuntimeActor->FindWorldObjectDefinition(Instance.WorldObjectDefinitionId);
 	FTransform PlacementTransform;
-	if (!Archetype || !GridPlacementTransformResolver::ResolveWorldObject(*RuntimeActor, Instance, PlacementTransform))
+	if (!Definition || !GridPlacementTransformResolver::ResolveWorldObject(*RuntimeActor, Instance, PlacementTransform))
 	{
 		return;
 	}
@@ -103,7 +103,7 @@ void UGridEditorPreviewComponent::AddWorldObjectPreview(const FGridWorldObjectIn
 		return;
 	}
 
-	PreviewActor->InitializePreviewObjectFromArchetype(Instance.InstanceId, Instance.Type, Archetype);
+	PreviewActor->InitializePreviewObjectFromDefinition(Instance.InstanceId, Instance.Type, Definition);
 	SpawnedPreviewObjects.Add(PreviewActor);
 }
 
@@ -263,8 +263,8 @@ bool UGridEditorPreviewComponent::IsPreviewableWorldObject(const FGridWorldObjec
 	{
 		return false;
 	}
-	const UGridObjectArchetypeAsset* Archetype = RuntimeActor->FindObjectArchetype(Instance.WorldObjectDefinitionId);
-	return Archetype && Archetype->HasAnyVisualPart();
+	const UGridWorldObjectDefinitionAsset* Definition = RuntimeActor->FindWorldObjectDefinition(Instance.WorldObjectDefinitionId);
+	return Definition && Definition->HasAnyVisualPart();
 }
 
 bool UGridEditorPreviewComponent::IsPreviewableLooseItem(const FGridLooseItemInstance& Instance) const

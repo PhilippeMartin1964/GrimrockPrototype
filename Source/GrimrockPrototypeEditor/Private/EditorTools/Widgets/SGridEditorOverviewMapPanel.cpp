@@ -5,7 +5,7 @@
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
@@ -54,7 +54,7 @@ namespace
 			PaletteEntryId = LogicInstance->PaletteEntryId;
 		}
 		if (!Tag.IsNone()) return FString::Printf(TEXT("Tag=%s"), *Tag.ToString());
-		if (!DefinitionId.IsNone()) return FString::Printf(TEXT("Archetype=%s"), *DefinitionId.ToString());
+		if (!DefinitionId.IsNone()) return FString::Printf(TEXT("Definition=%s"), *DefinitionId.ToString());
 		if (!PaletteEntryId.IsNone()) return FString::Printf(TEXT("Palette=%s"), *PaletteEntryId.ToString());
 		return FString::Printf(TEXT("Id=%s"), *ObjectId.ToString().Left(8));
 	}
@@ -694,20 +694,20 @@ FText SGridEditorOverviewMapPanel::GetSelectedCellObjectSummaryText(FGuid Object
 	const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType>();
 	const FString TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText(TypeEnum, static_cast<int64>(LevelAsset->GetTypedPlacementType(ObjectId))).ToString();
 	const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId);
-	const UGridObjectArchetypeAsset* Archetype = WorldObjectInstance ? CurrentEditorActor->FindObjectArchetypeById(WorldObjectInstance->WorldObjectDefinitionId) : nullptr;
+	const UGridWorldObjectDefinitionAsset* Definition = WorldObjectInstance ? CurrentEditorActor->FindWorldObjectDefinitionById(WorldObjectInstance->WorldObjectDefinitionId) : nullptr;
 	const FString IdentifierText = GetOverviewObjectIdentifier(*LevelAsset, ObjectId);
 
-	FString ArchetypeDetails;
-	if (Archetype)
+	FString DefinitionDetails;
+	if (Definition)
 	{
 		const UEnum* CategoryEnum = StaticEnum<EGridObjectCategory>();
 		const UEnum* PlacementEnum = StaticEnum<EGridObjectPlacementKind>();
-		ArchetypeDetails = FString::Printf(TEXT(" | %s/%s"),
-			*GridEditorWidgetHelpers::GetGridEnumDisplayText(CategoryEnum, static_cast<int64>(Archetype->ObjectCategory)).ToString(),
-			*GridEditorWidgetHelpers::GetGridEnumDisplayText(PlacementEnum, static_cast<int64>(Archetype->PlacementKind)).ToString());
+		DefinitionDetails = FString::Printf(TEXT(" | %s/%s"),
+			*GridEditorWidgetHelpers::GetGridEnumDisplayText(CategoryEnum, static_cast<int64>(Definition->ObjectCategory)).ToString(),
+			*GridEditorWidgetHelpers::GetGridEnumDisplayText(PlacementEnum, static_cast<int64>(Definition->PlacementKind)).ToString());
 	}
 
-	return FText::FromString(FString::Printf(TEXT("%s | %s%s"), *TypeText, *IdentifierText, *ArchetypeDetails));
+	return FText::FromString(FString::Printf(TEXT("%s | %s%s"), *TypeText, *IdentifierText, *DefinitionDetails));
 }
 
 EGridEditorOverviewObjectAnchor SGridEditorOverviewMapPanel::GetObjectAnchor(FGuid ObjectId) const
@@ -718,8 +718,8 @@ EGridEditorOverviewObjectAnchor SGridEditorOverviewMapPanel::GetObjectAnchor(FGu
 	EGridEdge Edge;
 	if (!LevelAsset || !LevelAsset->TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge)) return EGridEditorOverviewObjectAnchor::None;
 	const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId);
-	const UGridObjectArchetypeAsset* Archetype = WorldObjectInstance ? CurrentEditorActor->FindObjectArchetypeById(WorldObjectInstance->WorldObjectDefinitionId) : nullptr;
-	const bool bEdgePlaced = Archetype ? Archetype->IsEdgePlaced() :
+	const UGridWorldObjectDefinitionAsset* Definition = WorldObjectInstance ? CurrentEditorActor->FindWorldObjectDefinitionById(WorldObjectInstance->WorldObjectDefinitionId) : nullptr;
+	const bool bEdgePlaced = Definition ? Definition->IsEdgePlaced() :
 		(LevelAsset->FindLooseItemInstanceById(ObjectId) ? Edge != EGridEdge::None : IsOverviewEdgeObject(LevelAsset->GetTypedPlacementType(ObjectId)));
 	if (!bEdgePlaced)
 	{

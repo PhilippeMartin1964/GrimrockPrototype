@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/GridRuntimeObjectActor.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "GridMechanismActor.generated.h"
 
 UCLASS()
@@ -15,7 +15,7 @@ public:
 
 	/** Runtime-native mechanism presentation boundary. */
 	virtual void InitializeRuntimeMechanismVisuals(
-		const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform);
+		const FGridRuntimeWorldObjectData& ObjectData, const UGridWorldObjectDefinitionAsset* Definition, const FTransform& WorldTransform);
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mechanism")

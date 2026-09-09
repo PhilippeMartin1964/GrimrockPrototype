@@ -75,7 +75,7 @@ namespace
 		return Level;
 	}
 
-	FGridWorldObjectInstance MakeDoor(FIntPoint Cell, EGridEdge Edge, FName ArchetypeId)
+	FGridWorldObjectInstance MakeDoor(FIntPoint Cell, EGridEdge Edge, FName WorldObjectDefinitionId)
 	{
 		FGridWorldObjectInstance Door;
 		Door.InstanceId = FGuid::NewGuid();
@@ -83,7 +83,7 @@ namespace
 		Door.CellX = Cell.X;
 		Door.CellY = Cell.Y;
 		Door.WallSide = Edge;
-		Door.WorldObjectDefinitionId = ArchetypeId;
+		Door.WorldObjectDefinitionId = WorldObjectDefinitionId;
 		Door.bInitiallyEnabled = true;
 		Door.bInitiallyActive = false;
 		return Door;

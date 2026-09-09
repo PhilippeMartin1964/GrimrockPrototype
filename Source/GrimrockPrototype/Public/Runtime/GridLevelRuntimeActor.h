@@ -4,7 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Runtime/GridGenericObjectActor.h"
@@ -177,8 +177,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Diagnostics")
 	FString GetPIEReadinessDiagnostics() const;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Object Archetypes")
-	TArray<TObjectPtr<UGridObjectArchetypeAsset>> ObjectArchetypes;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "World Object Definitions")
+	TArray<TObjectPtr<UGridWorldObjectDefinitionAsset>> WorldObjectDefinitions;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UReadableMessageWidget> ReadableMessageWidgetClass;
@@ -450,7 +450,7 @@ public:
 		return nullptr;
 	}
 
-	const UGridObjectArchetypeAsset* FindObjectArchetype(FName ArchetypeId) const;
+	const UGridWorldObjectDefinitionAsset* FindWorldObjectDefinition(FName WorldObjectDefinitionId) const;
 	UGridItemDefinitionAsset* ResolveRuntimeItemDefinition(FName ItemDefinitionId) const;
 	AGridItemActor* SpawnItemActorForDefinition(UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId, AActor* OwnerActor,
 		USceneComponent* AttachParent, TSubclassOf<AGridItemActor> PreferredItemActorClass = nullptr) const;
@@ -514,7 +514,7 @@ private:
 		const TCHAR* FunctionName, const UInstancedStaticMeshComponent* Component, int32 X, int32 Y, EGridEdge Edge, const FTransform& Transform) const;
 	void LogUnsafeObjectTransform(
 		const TCHAR* FunctionName, const FGridWorldObjectInstance& ObjectData, const UStaticMesh* StaticMesh, const FTransform& Transform) const;
-	void LogUnsafeItemTransform(const TCHAR* FunctionName, FName ArchetypeId, const AActor* OwnerActor, const USceneComponent* AttachParent,
+	void LogUnsafeItemTransform(const TCHAR* FunctionName, FName WorldObjectDefinitionId, const AActor* OwnerActor, const USceneComponent* AttachParent,
 		const UStaticMesh* StaticMesh, const FTransform& Transform) const;
 
 	void RegisterRuntimeObjectActor(const FGuid& ObjectId, AGridRuntimeObjectActor* Actor);
@@ -545,8 +545,8 @@ private:
 		{
 			return nullptr;
 		}
-		const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype(ObjectData.WorldObjectDefinitionId);
-		OutMesh = Archetype && Archetype->StaticPart.IsDefined() ? Archetype->StaticPart.Mesh.Get() : nullptr;
+		const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinition(ObjectData.WorldObjectDefinitionId);
+		OutMesh = Definition && Definition->StaticPart.IsDefined() ? Definition->StaticPart.Mesh.Get() : nullptr;
 		TSubclassOf<AGridRuntimeObjectActor> ActorClass = GetObjectRuntimeActorClass(ObjectData);
 
 		// WORLDOBJ-MIG03: presentation is optional. Actor existence is driven by RuntimeActorClass,

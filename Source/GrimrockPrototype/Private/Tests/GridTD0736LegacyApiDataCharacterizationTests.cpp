@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridLevelAsset.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -27,29 +27,29 @@ bool FGridTD0736LegacyPlacementMirrorsTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	using namespace GridTD0736Characterization;
 
-	UClass* ArchetypeClass = UGridObjectArchetypeAsset::StaticClass();
-	TestNotNull(TEXT("Archetype class exists"), ArchetypeClass);
-	if (!ArchetypeClass)
+	UClass* DefinitionClass = UGridWorldObjectDefinitionAsset::StaticClass();
+	TestNotNull(TEXT("Definition class exists"), DefinitionClass);
+	if (!DefinitionClass)
 	{
 		return false;
 	}
 
 	// MIG01/MIG09: the surface is authored; the old placement kind is only a transient runtime projection.
-	const FProperty* SurfaceProperty = ArchetypeClass->FindPropertyByName(TEXT("PlacementSurface"));
-	const FProperty* KindProperty = ArchetypeClass->FindPropertyByName(TEXT("PlacementKind"));
+	const FProperty* SurfaceProperty = DefinitionClass->FindPropertyByName(TEXT("PlacementSurface"));
+	const FProperty* KindProperty = DefinitionClass->FindPropertyByName(TEXT("PlacementKind"));
 	TestTrue(TEXT("PlacementSurface is editable and persistent"),
 		SurfaceProperty && SurfaceProperty->HasAnyPropertyFlags(CPF_Edit) && !SurfaceProperty->HasAnyPropertyFlags(CPF_Transient));
 	TestTrue(TEXT("PlacementKind is transient and is not editable"),
 		KindProperty && KindProperty->HasAnyPropertyFlags(CPF_Transient) && !KindProperty->HasAnyPropertyFlags(CPF_Edit));
-	TestNull(TEXT("Legacy bPlaceOnEdge mirror is removed"), ArchetypeClass->FindPropertyByName(TEXT("bPlaceOnEdge")));
-	TestNull(TEXT("Legacy bPlaceAtCellCenter mirror is removed"), ArchetypeClass->FindPropertyByName(TEXT("bPlaceAtCellCenter")));
+	TestNull(TEXT("Legacy bPlaceOnEdge mirror is removed"), DefinitionClass->FindPropertyByName(TEXT("bPlaceOnEdge")));
+	TestNull(TEXT("Legacy bPlaceAtCellCenter mirror is removed"), DefinitionClass->FindPropertyByName(TEXT("bPlaceAtCellCenter")));
 
 	FString HeaderSource;
 	FString ValidationSource;
 	FString EditorSource;
-	TestTrue(TEXT("Archetype header loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Core/GridObjectArchetypeAsset.h"), HeaderSource));
-	TestTrue(TEXT("Archetype validation source loads"),
-		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Core/GridObjectArchetypeAsset.cpp"), ValidationSource));
+	TestTrue(TEXT("Definition header loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Core/GridWorldObjectDefinitionAsset.h"), HeaderSource));
+	TestTrue(TEXT("Definition validation source loads"),
+		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Core/GridWorldObjectDefinitionAsset.cpp"), ValidationSource));
 	TestTrue(TEXT("Grid editor core-dungeon source loads"),
 		LoadProjectFile(
 			TEXT("Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEditorActorParts/CoreDungeon/GridLevelEditorActor_CoreDungeon_07.inl"),
@@ -60,11 +60,11 @@ bool FGridTD0736LegacyPlacementMirrorsTest::RunTest(const FString& Parameters)
 	TestFalse(
 		TEXT("Legacy mirror validation is removed"), ValidationSource.Contains(TEXT("bPlaceOnEdge")) || ValidationSource.Contains(TEXT("bPlaceAtCellCenter")));
 	TestTrue(TEXT("Current editor authoring sets the surface and refreshes its runtime projection"),
-		EditorSource.Contains(TEXT("Archetype.PlacementSurface = EGridObjectPlacementKind::Floor")) &&
-		EditorSource.Contains(TEXT("Archetype.RefreshPlacementRuntimeProjection()")));
+		EditorSource.Contains(TEXT("Definition.PlacementSurface = EGridObjectPlacementKind::Floor")) &&
+		EditorSource.Contains(TEXT("Definition.RefreshPlacementRuntimeProjection()")));
 
-	UGridObjectArchetypeAsset* Definition = NewObject<UGridObjectArchetypeAsset>();
-	Definition->ArchetypeId = TEXT("TD0736_WallPlacement");
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
+	Definition->DefinitionId = TEXT("TD0736_WallPlacement");
 	Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
 	Definition->RefreshPlacementRuntimeProjection();
 	TestTrue(TEXT("Authored wall surface projects to edge placement"), Definition->IsEdgePlaced());
@@ -72,7 +72,7 @@ bool FGridTD0736LegacyPlacementMirrorsTest::RunTest(const FString& Parameters)
 	FGridWorldObjectInstance Instance;
 	Instance.InstanceId = FGuid::NewGuid();
 	Instance.Type = EGridLevelObjectType::Decoration;
-	Instance.WorldObjectDefinitionId = Definition->ArchetypeId;
+	Instance.WorldObjectDefinitionId = Definition->DefinitionId;
 	Instance.CellX = 1;
 	Instance.CellY = 2;
 	Instance.WallSide = EGridEdge::East;
@@ -91,7 +91,7 @@ bool FGridTD0736LegacyPlacementMirrorsTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Cell X is preserved"), CellX, 1);
 	TestEqual(TEXT("Cell Y is preserved"), CellY, 2);
 	TestEqual(TEXT("Wall side is preserved"), Edge, EGridEdge::East);
-	TestEqual(TEXT("Definition identity is preserved"), Stored->WorldObjectDefinitionId, Definition->ArchetypeId);
+	TestEqual(TEXT("Definition identity is preserved"), Stored->WorldObjectDefinitionId, Definition->DefinitionId);
 	TestTrue(TEXT("Explicit local transform is preserved"),
 		Stored->bHasLocalTransformOverride && Stored->LocalTransformOverride.Equals(Instance.LocalTransformOverride));
 	TestEqual(TEXT("The native instance is counted exactly once"), Level->GetTypedPlacementCount(), 1);

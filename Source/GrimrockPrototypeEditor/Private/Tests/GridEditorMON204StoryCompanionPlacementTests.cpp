@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
@@ -84,17 +84,17 @@ bool FGridEditorMON2045StoryCompanionPalettePlacementTest::RunTest(const FString
 	Level->Cells[0].CellType = EGridCellType::Floor;
 
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>(EditorActor);
-	UGridObjectArchetypeAsset* CompanionArchetype = NewObject<UGridObjectArchetypeAsset>(Palette);
-	CompanionArchetype->ArchetypeId = TEXT("StoryCompanion_Recruit");
-	CompanionArchetype->DisplayName = FText::FromString(TEXT("Story Companion"));
-	CompanionArchetype->SupportedType = EGridLevelObjectType::StoryCompanion;
-	CompanionArchetype->PlacementKind = EGridObjectPlacementKind::Center;
+	UGridWorldObjectDefinitionAsset* CompanionWorldObjectDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Palette);
+	CompanionWorldObjectDefinition->DefinitionId = TEXT("StoryCompanion_Recruit");
+	CompanionWorldObjectDefinition->DisplayName = FText::FromString(TEXT("Story Companion"));
+	CompanionWorldObjectDefinition->SupportedType = EGridLevelObjectType::StoryCompanion;
+	CompanionWorldObjectDefinition->PlacementKind = EGridObjectPlacementKind::Center;
 
 	URPGStoryCompanionAsset* CompanionDefinition = NewObject<URPGStoryCompanionAsset>(Palette);
 
 	FGridObjectPaletteEntry Entry;
 	Entry.EntryId = TEXT("StoryCompanion_TestCandidate");
-	Entry.DefaultArchetype = CompanionArchetype;
+	Entry.DefaultWorldObjectDefinition = CompanionWorldObjectDefinition;
 	Entry.DefaultStoryCompanionDefinition = CompanionDefinition;
 	Palette->Entries.Add(Entry);
 

@@ -12,19 +12,19 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: PaintObjectType is None."));
 		return;
 	}
-	const UGridObjectArchetypeAsset* ObjectArchetype = FindObjectArchetypeById(ObjectArchetypeId);
-	const bool bSuppressBaseWall = ObjectArchetype && ObjectArchetype->SuppressesBaseWall();
-	const bool bIsStoneAlcoveReceptacle = ObjectArchetypeId == FName(TEXT("Receptacle_Alcove_Stone"));
-	const bool bPlaceObjectOnEdge = ObjectArchetype ? ObjectArchetype->PlacementSurface == EGridObjectPlacementKind::Wall
-											 : IsEdgePlacedObject(PaintObjectType, ObjectArchetypeId);
+	const UGridWorldObjectDefinitionAsset* WorldObjectDefinition = FindWorldObjectDefinitionById(WorldObjectDefinitionId);
+	const bool bSuppressBaseWall = WorldObjectDefinition && WorldObjectDefinition->SuppressesBaseWall();
+	const bool bIsStoneAlcoveReceptacle = WorldObjectDefinitionId == FName(TEXT("Receptacle_Alcove_Stone"));
+	const bool bPlaceObjectOnEdge = WorldObjectDefinition ? WorldObjectDefinition->PlacementSurface == EGridObjectPlacementKind::Wall
+											 : IsEdgePlacedObject(PaintObjectType, WorldObjectDefinitionId);
 	if (bPlaceObjectOnEdge && SelectedEdge == EGridEdge::None)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: this object type requires a valid edge."));
 		return;
 	}
-	if (ObjectArchetype)
+	if (WorldObjectDefinition)
 	{
-		RemoveObjectsConflictingWithPlacementInternal(PaintObjectType, ObjectArchetypeId, bPlaceObjectOnEdge);
+		RemoveObjectsConflictingWithPlacementInternal(PaintObjectType, WorldObjectDefinitionId, bPlaceObjectOnEdge);
 	}
 	else
 	{
@@ -92,7 +92,7 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		InitializeAuthoring(WorldObjectInstance);
 		WorldObjectInstance.InstanceId = NewId;
 		WorldObjectInstance.Type = bIsStoneAlcoveReceptacle ? EGridLevelObjectType::Receptacle : PaintObjectType;
-		WorldObjectInstance.WorldObjectDefinitionId = ObjectArchetypeId;
+		WorldObjectInstance.WorldObjectDefinitionId = WorldObjectDefinitionId;
 		WorldObjectInstance.WallSide = bPlaceObjectOnEdge ? SelectedEdge : EGridEdge::None;
 		WorldObjectInstance.bInitiallyActive = bObjectInitiallyActive;
 		WorldObjectInstance.InstanceConfig.Teleporter = ObjectBehavior.Teleporter;

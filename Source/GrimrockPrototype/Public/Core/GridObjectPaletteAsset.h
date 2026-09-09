@@ -2,13 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "GridObjectArchetypeAsset.h"
+#include "GridWorldObjectDefinitionAsset.h"
 #include "GridTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "GridObjectPaletteAsset.generated.h"
 
 class UTexture2D;
-class UGridObjectArchetypeAsset;
+class UGridWorldObjectDefinitionAsset;
 class URPGStoryCompanionAsset;
 
 USTRUCT(BlueprintType)
@@ -33,13 +33,13 @@ struct FGridObjectPaletteEntry
 
 	/** World-object definition for non-collectible entries. Collectible items use DefaultItemDefinition directly. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette")
-	TObjectPtr<UGridObjectArchetypeAsset> DefaultArchetype = nullptr;
+	TObjectPtr<UGridWorldObjectDefinitionAsset> DefaultWorldObjectDefinition = nullptr;
 
-	/** WORLDOBJ-MIG05: canonical direct palette definition for a collectible Item. No companion ObjectArchetype is required. */
+	/** WORLDOBJ-MIG05: canonical direct palette definition for a collectible Item. No companion WorldObjectDefinition is required. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Item")
 	TObjectPtr<UGridItemDefinitionAsset> DefaultItemDefinition = nullptr;
 
-	/** Required default when the archetype places a MonsterSpawn. */
+	/** Required default when the definition places a MonsterSpawn. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Monster")
 	TObjectPtr<UGridMonsterDefinitionAsset> DefaultMonsterDefinition = nullptr;
 
@@ -52,15 +52,15 @@ struct FGridObjectPaletteEntry
 		return DefaultItemDefinition != nullptr;
 	}
 
-	FName GetEffectiveArchetypeId() const
+	FName GetEffectiveWorldObjectDefinitionId() const
 	{
-		return IsDirectItemEntry() ? NAME_None : (DefaultArchetype ? DefaultArchetype->ArchetypeId : NAME_None);
+		return IsDirectItemEntry() ? NAME_None : (DefaultWorldObjectDefinition ? DefaultWorldObjectDefinition->DefinitionId : NAME_None);
 	}
 
 	EGridLevelObjectType GetEffectiveObjectType() const
 	{
 		return IsDirectItemEntry() ? EGridLevelObjectType::Item
-			: (DefaultArchetype ? DefaultArchetype->SupportedType : EGridLevelObjectType::None);
+			: (DefaultWorldObjectDefinition ? DefaultWorldObjectDefinition->SupportedType : EGridLevelObjectType::None);
 	}
 
 	FName GetEffectiveCategory() const
@@ -75,9 +75,9 @@ struct FGridObjectPaletteEntry
 			return FName(TEXT("Items"));
 		}
 
-		if (DefaultArchetype && !DefaultArchetype->Category.IsNone())
+		if (DefaultWorldObjectDefinition && !DefaultWorldObjectDefinition->Category.IsNone())
 		{
-			return DefaultArchetype->Category;
+			return DefaultWorldObjectDefinition->Category;
 		}
 
 		return FName(TEXT("Uncategorized"));
@@ -99,13 +99,13 @@ struct FGridObjectPaletteEntry
 			return !DefaultItemDefinition->ItemDefinitionId.IsNone() ? FText::FromName(DefaultItemDefinition->ItemDefinitionId) : FText::FromName(EntryId);
 		}
 
-		if (DefaultArchetype && !DefaultArchetype->DisplayName.IsEmpty())
+		if (DefaultWorldObjectDefinition && !DefaultWorldObjectDefinition->DisplayName.IsEmpty())
 		{
-			return DefaultArchetype->DisplayName;
+			return DefaultWorldObjectDefinition->DisplayName;
 		}
 
-		const FName EffectiveArchetypeId = GetEffectiveArchetypeId();
-		return !EffectiveArchetypeId.IsNone() ? FText::FromName(EffectiveArchetypeId) : FText::FromName(EntryId);
+		const FName EffectiveWorldObjectDefinitionId = GetEffectiveWorldObjectDefinitionId();
+		return !EffectiveWorldObjectDefinitionId.IsNone() ? FText::FromName(EffectiveWorldObjectDefinitionId) : FText::FromName(EntryId);
 	}
 
 	bool IsValidEntry() const
@@ -117,10 +117,10 @@ struct FGridObjectPaletteEntry
 
 		if (IsDirectItemEntry())
 		{
-			return !DefaultArchetype && !Icon && DefaultItemDefinition->IsValidDefinition();
+			return !DefaultWorldObjectDefinition && !Icon && DefaultItemDefinition->IsValidDefinition();
 		}
 
-		return DefaultArchetype && !DefaultArchetype->ArchetypeId.IsNone() && DefaultArchetype->SupportedType != EGridLevelObjectType::None;
+		return DefaultWorldObjectDefinition && !DefaultWorldObjectDefinition->DefinitionId.IsNone() && DefaultWorldObjectDefinition->SupportedType != EGridLevelObjectType::None;
 	}
 };
 
@@ -142,5 +142,5 @@ public:
 			});
 	}
 
-	bool ValidatePalette(TArray<FGridArchetypeValidationMessage>& OutMessages) const;
+	bool ValidatePalette(TArray<FGridWorldObjectDefinitionValidationMessage>& OutMessages) const;
 };

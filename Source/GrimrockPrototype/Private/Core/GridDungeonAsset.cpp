@@ -368,7 +368,7 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 
 			Result += FString::Printf(
 				TEXT(
-					"[%d] SourceLevelId=%s SourceDisplayName=%s SourceLevelAsset=%s ObjectId=%s ArchetypeId=%s Type=%s Cell=(%d,%d) Edge=%s TargetLevelId=%s TargetCell=(%d,%d) TargetFacing=%s bRequireUseAction=%s Status=%s"),
+					"[%d] SourceLevelId=%s SourceDisplayName=%s SourceLevelAsset=%s ObjectId=%s WorldObjectDefinitionId=%s Type=%s Cell=(%d,%d) Edge=%s TargetLevelId=%s TargetCell=(%d,%d) TargetFacing=%s bRequireUseAction=%s Status=%s"),
 				TransitionObjectCount, *SourceEntry.LevelId.ToString(), *SourceEntry.DisplayName.ToString(), *SourceLevelAsset->GetPathName(),
 				*Obj.InstanceId.ToString(), *Obj.WorldObjectDefinitionId.ToString(), *GetGridObjectTypeName(Obj.Type), Obj.CellX, Obj.CellY, *GetGridEdgeName(Obj.WallSide),
 				*EffectiveTargetLevelId.ToString(), EffectiveTargetCellX, EffectiveTargetCellY, *GetGridEdgeName(Transition.TargetFacing),

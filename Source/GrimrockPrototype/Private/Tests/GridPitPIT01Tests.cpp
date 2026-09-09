@@ -5,7 +5,7 @@
 
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -94,22 +94,22 @@ bool FGridPIT01DataContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>();
-	Archetype->SupportedType = EGridLevelObjectType::Pit;
-	Archetype->PlacementSurface = EGridObjectPlacementKind::Floor;
-		Archetype->RefreshPlacementRuntimeProjection();
-	Archetype->DefaultBehavior.Pit.bInitiallyOpen = true;
-	Archetype->DefaultBehavior.Pit.bUseSameCellCoordinates = true;
-	Archetype->DefaultBehavior.Transition.bIsTransition = true;
-	Archetype->DefaultBehavior.Transition.bRequireUseAction = false;
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
+	Definition->SupportedType = EGridLevelObjectType::Pit;
+	Definition->PlacementSurface = EGridObjectPlacementKind::Floor;
+		Definition->RefreshPlacementRuntimeProjection();
+	Definition->DefaultBehavior.Pit.bInitiallyOpen = true;
+	Definition->DefaultBehavior.Pit.bUseSameCellCoordinates = true;
+	Definition->DefaultBehavior.Transition.bIsTransition = true;
+	Definition->DefaultBehavior.Transition.bRequireUseAction = false;
 
-	TestTrue(TEXT("Pit is a center/floor placed gameplay object"), Archetype->SupportsCenterPlacement());
-	TestTrue(TEXT("Pit requires its dedicated runtime actor contract"), Archetype->RequiresRuntimeActorClass());
-	TestFalse(TEXT("Fresh Pit has no visual composition before geometry is authored"), Archetype->HasAnyVisualPart());
-	TestFalse(TEXT("Fresh Pit has no trapdoor cover before both Moving Parts are authored"), Archetype->HasCompletePitTrapdoorCover());
-	TestTrue(TEXT("PIT01 defaults to open"), Archetype->DefaultBehavior.Pit.bInitiallyOpen);
-	TestTrue(TEXT("PIT01 defaults to same-cell destination coordinates"), Archetype->DefaultBehavior.Pit.bUseSameCellCoordinates);
-	TestTrue(TEXT("PIT01 is an automatic transition"), !Archetype->DefaultBehavior.Transition.bRequireUseAction);
+	TestTrue(TEXT("Pit is a center/floor placed gameplay object"), Definition->SupportsCenterPlacement());
+	TestTrue(TEXT("Pit requires its dedicated runtime actor contract"), Definition->RequiresRuntimeActorClass());
+	TestFalse(TEXT("Fresh Pit has no visual composition before geometry is authored"), Definition->HasAnyVisualPart());
+	TestFalse(TEXT("Fresh Pit has no trapdoor cover before both Moving Parts are authored"), Definition->HasCompletePitTrapdoorCover());
+	TestTrue(TEXT("PIT01 defaults to open"), Definition->DefaultBehavior.Pit.bInitiallyOpen);
+	TestTrue(TEXT("PIT01 defaults to same-cell destination coordinates"), Definition->DefaultBehavior.Pit.bUseSameCellCoordinates);
+	TestTrue(TEXT("PIT01 is an automatic transition"), !Definition->DefaultBehavior.Transition.bRequireUseAction);
 
 	UGridDungeonAsset* Dungeon = NewObject<UGridDungeonAsset>();
 	UGridLevelAsset* ListedUpper = MakePitFloor(Dungeon);
@@ -182,7 +182,7 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 
 	// Standard Pit authoring: no manual target, no generic transition flag and no arrival facing.
 	// Also emulate stale placed data from an earlier prototype revision: stored Type and ObjectId are not trusted
-	// when the archetype itself authoritatively identifies a Pit.
+	// when the definition itself authoritatively identifies a Pit.
 	Upper->WorldObjectInstances.Add(MakeStaticPit(2, 2, NAME_None));
 	Upper->WorldObjectInstances[0].Type = EGridLevelObjectType::Decoration;
 	Upper->WorldObjectInstances[0].InstanceId = FGuid();
@@ -190,12 +190,12 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	Upper->WorldObjectInstances[0].InstanceConfig.Transition.bIsTransition = false;
 	Upper->WorldObjectInstances[0].InstanceConfig.Transition.TargetFacing = EGridEdge::None;
 
-	UGridObjectArchetypeAsset* PitArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
-	PitArchetype->ArchetypeId = TEXT("Pit_Stone_01");
-	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
-	PitArchetype->PlacementSurface = EGridObjectPlacementKind::Floor;
-		PitArchetype->RefreshPlacementRuntimeProjection();
-	Runtime->ObjectArchetypes.Add(PitArchetype);
+	UGridWorldObjectDefinitionAsset* PitDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
+	PitDefinition->DefinitionId = TEXT("Pit_Stone_01");
+	PitDefinition->SupportedType = EGridLevelObjectType::Pit;
+	PitDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
+		PitDefinition->RefreshPlacementRuntimeProjection();
+	Runtime->WorldObjectDefinitions.Add(PitDefinition);
 
 	Runtime->DungeonAsset = Dungeon;
 	Runtime->CurrentDungeonLevelId = UpperId;
@@ -215,7 +215,7 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Pit automatically resolves the lower level"), PitTransition.TargetLevelId, LowerId);
 
 	FGridObjectTransitionParams GenericTransition;
-	TestFalse(TEXT("Generic stair transition path ignores the Pit archetype"), Runtime->FindTransitionAtCell(2, 2, false, GenericTransition));
+	TestFalse(TEXT("Generic stair transition path ignores the Pit definition"), Runtime->FindTransitionAtCell(2, 2, false, GenericTransition));
 
 	Lower->WorldObjectInstances.Add(MakeStaticPit(2, 2, UpperId));
 	AddExpectedError(TEXT("Pit fall rejected: destination"), EAutomationExpectedErrorFlags::Contains, 1);

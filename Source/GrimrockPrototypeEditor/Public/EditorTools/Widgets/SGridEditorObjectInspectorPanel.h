@@ -6,7 +6,7 @@
 #if WITH_EDITOR
 
 class AGridLevelEditorActor;
-class UGridObjectArchetypeAsset;
+class UGridWorldObjectDefinitionAsset;
 struct FGridWorldObjectInstanceConfig;
 enum class EGridEdge : uint8;
 
@@ -44,7 +44,7 @@ private:
 	TSharedRef<SWidget> BuildPitDetailsSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildTeleporterDetailsSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildTransitionDetailsSection(FGuid ObjectId);
-	TSharedRef<SWidget> BuildLightDetailsSection(const UGridObjectArchetypeAsset& Archetype);
+	TSharedRef<SWidget> BuildLightDetailsSection(const UGridWorldObjectDefinitionAsset& Definition);
 	TSharedRef<SWidget> BuildItemDefinitionSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildMonsterSpawnSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildTriggerBehaviorSection(FGuid ObjectId);
@@ -52,7 +52,7 @@ private:
 	TSharedRef<SWidget> BuildReadableTextSection(FGuid ObjectId);
 
 	FReply OnApplySelectedObjectClicked();
-	FReply OnResetBehaviorFromArchetypeClicked();
+	FReply OnResetBehaviorFromDefinitionClicked();
 	FReply OnMoveSelectedObjectToCurrentCellClicked();
 	FReply OnFocusSelectedObjectClicked();
 	FReply OnSetSelectedObjectOrientationClicked(EGridEdge Orientation);

@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
@@ -90,16 +90,16 @@ bool FGridTD033DefinitionSyncContractTest::RunTest(const FString& Parameters)
 	UGridItemDefinitionAsset* ItemDefinition = NewObject<UGridItemDefinitionAsset>(EditorActor);
 	ItemDefinition->ItemDefinitionId = TEXT("TD033_Item");
 
-	UGridObjectArchetypeAsset* ItemArchetype = NewObject<UGridObjectArchetypeAsset>(EditorActor);
-	ItemArchetype->ArchetypeId = TEXT("TD033_ItemPickup");
-	ItemArchetype->SupportedType = EGridLevelObjectType::Item;
-	ItemArchetype->DefaultBehavior.Item.ItemDefinitionAsset = ItemDefinition;
-	ItemArchetype->DefaultBehavior.Item.ItemDefinitionId = NAME_None;
+	UGridWorldObjectDefinitionAsset* ItemWorldObjectDefinition = NewObject<UGridWorldObjectDefinitionAsset>(EditorActor);
+	ItemWorldObjectDefinition->DefinitionId = TEXT("TD033_ItemPickup");
+	ItemWorldObjectDefinition->SupportedType = EGridLevelObjectType::Item;
+	ItemWorldObjectDefinition->DefaultBehavior.Item.ItemDefinitionAsset = ItemDefinition;
+	ItemWorldObjectDefinition->DefaultBehavior.Item.ItemDefinitionId = NAME_None;
 
 	UGridObjectPaletteAsset* ObjectPalette = NewObject<UGridObjectPaletteAsset>(EditorActor);
 	FGridObjectPaletteEntry& ItemPaletteEntry = ObjectPalette->Entries.AddDefaulted_GetRef();
 	ItemPaletteEntry.EntryId = TEXT("TD033_Item");
-	ItemPaletteEntry.DefaultArchetype = ItemArchetype;
+	ItemPaletteEntry.DefaultWorldObjectDefinition = ItemWorldObjectDefinition;
 	EditorActor->ObjectPalette = ObjectPalette;
 
 	UGridMonsterDefinitionAsset* MonsterDefinition = NewObject<UGridMonsterDefinitionAsset>(EditorActor);

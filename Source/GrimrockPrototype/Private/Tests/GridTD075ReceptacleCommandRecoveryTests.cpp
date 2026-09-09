@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -15,7 +15,7 @@ namespace GridTD075ReceptacleRecovery
 {
 	const FGuid TD075SourceObjectId(7, 5, 1, 1);
 	const FGuid TD075ReceptacleObjectId(7, 5, 2, 2);
-	const FName TD075ReceptacleArchetypeId(TEXT("TD07_5_Receptacle"));
+	const FName TD075ReceptacleWorldObjectDefinitionId(TEXT("TD07_5_Receptacle"));
 
 	struct FTD075TestWorld
 	{
@@ -113,7 +113,7 @@ namespace GridTD075ReceptacleRecovery
 
 		FGridWorldObjectInstance& Receptacle = Level->WorldObjectInstances.AddDefaulted_GetRef();
 		Receptacle.InstanceId = TD075ReceptacleObjectId;
-		Receptacle.WorldObjectDefinitionId = TD075ReceptacleArchetypeId;
+		Receptacle.WorldObjectDefinitionId = TD075ReceptacleWorldObjectDefinitionId;
 		Receptacle.Type = EGridLevelObjectType::Receptacle;
 		Receptacle.CellX = 0;
 		Receptacle.CellY = 0;
@@ -133,19 +133,19 @@ namespace GridTD075ReceptacleRecovery
 		Level->Links.Add(MakeTD075Link(EGridObjectEvent::Opened, EGridObjectCommand::ReceptacleEnableRemoval));
 		Level->Links.Add(MakeTD075Link(EGridObjectEvent::Closed, EGridObjectCommand::ReceptacleConsumeAllItems));
 
-		UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
-		Archetype->ArchetypeId = TD075ReceptacleArchetypeId;
-		Archetype->SupportedType = EGridLevelObjectType::Receptacle;
-		Archetype->DefaultBehavior.Receptacle.MaxContainedItems = 2;
-		Archetype->ObjectCategory = EGridObjectCategory::Receptacle;
-		Archetype->PlacementSurface = EGridObjectPlacementKind::Wall;
-		Archetype->RefreshPlacementRuntimeProjection();
-		Archetype->bIsInteractable = true;
-		Archetype->RuntimeActorClass = AGridReceptacleActor::StaticClass();
-		Archetype->StaticPart.Mesh = NewObject<UStaticMesh>(Runtime);
+		UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
+		Definition->DefinitionId = TD075ReceptacleWorldObjectDefinitionId;
+		Definition->SupportedType = EGridLevelObjectType::Receptacle;
+		Definition->DefaultBehavior.Receptacle.MaxContainedItems = 2;
+		Definition->ObjectCategory = EGridObjectCategory::Receptacle;
+		Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
+		Definition->RefreshPlacementRuntimeProjection();
+		Definition->bIsInteractable = true;
+		Definition->RuntimeActorClass = AGridReceptacleActor::StaticClass();
+		Definition->StaticPart.Mesh = NewObject<UStaticMesh>(Runtime);
 
 		Runtime->LevelAsset = Level;
-		Runtime->ObjectArchetypes.Add(Archetype);
+		Runtime->WorldObjectDefinitions.Add(Definition);
 		Runtime->RebuildLevel();
 		return Runtime;
 	}

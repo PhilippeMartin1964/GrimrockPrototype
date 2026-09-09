@@ -10,7 +10,7 @@
 
 class AGridLevelRuntimeActor;
 class UGridObjectPaletteAsset;
-class UGridObjectArchetypeAsset;
+class UGridWorldObjectDefinitionAsset;
 class UGridItemDefinitionAsset;
 class UGridReadableContentAsset;
 class UGridMonsterDefinitionAsset;
@@ -147,7 +147,7 @@ public:
 	bool bObjectInitiallyActive = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
-	FName ObjectArchetypeId = NAME_None;
+	FName WorldObjectDefinitionId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
 	FName ObjectTag = NAME_None;
@@ -183,7 +183,7 @@ public:
 	FName SelectedPaletteEntryId = NAME_None;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Palette")
-	FName SelectedArchetypeId = NAME_None;
+	FName SelectedWorldObjectDefinitionId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
 	FGridObjectBehaviorParams ObjectBehavior;
@@ -268,11 +268,11 @@ public:
 	bool CreateAndAddDungeonLevel(FName NewLevelId, FText DisplayName, FIntVector LogicalPosition, FString& OutError);
 
 	UFUNCTION(BlueprintCallable, Category = "Editor|Palette")
-	bool EnsureStairsTransitionArchetypes(FString& OutError);
+	bool EnsureStairsTransitionDefinitions(FString& OutError);
 
 
 	UFUNCTION(BlueprintCallable, Category = "Editor|Palette")
-	bool EnsurePitTrapdoorArchetype(FString& OutError);
+	bool EnsurePitTrapdoorDefinition(FString& OutError);
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
 	void LogEditorRuntimeAssetConsistency() const;
@@ -409,10 +409,10 @@ public:
 	bool ApplyBehaviorToSelectedObject(const FGridObjectBehaviorParams& NewBehavior);
 
 	UFUNCTION(BlueprintCallable, Category = "Object Paint")
-	bool ResetSelectedObjectBehaviorFromArchetype();
+	bool ResetSelectedObjectBehaviorFromDefinition();
 
 	UFUNCTION(BlueprintCallable, Category = "Object Paint")
-	bool SetSelectedObjectArchetypeId(FName NewArchetypeId);
+	bool SetSelectedWorldObjectDefinitionId(FName NewWorldObjectDefinitionId);
 
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
 	bool SetSelectedObjectItemDefinitionAsset(UGridItemDefinitionAsset* NewItemDefinitionAsset);
@@ -526,7 +526,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Validation")
 	TArray<FGridLevelValidationMessage> ValidateCurrentLevel();
 
-	const UGridObjectArchetypeAsset* FindObjectArchetypeById(FName ArchetypeId) const;
+	const UGridWorldObjectDefinitionAsset* FindWorldObjectDefinitionById(FName InWorldObjectDefinitionId) const;
 
 	bool SetSelectedObjectOrientation(EGridEdge Orientation);
 
@@ -544,14 +544,14 @@ private:
 	bool IsValidSelectedCell() const;
 	bool RequiresEdge(EGridLevelObjectType ObjectType) const;
 	bool IsEdgePlacedObject(const FGuid& ObjectId) const;
-	bool IsEdgePlacedObject(EGridLevelObjectType ObjectType, FName ArchetypeId) const;
+	bool IsEdgePlacedObject(EGridLevelObjectType ObjectType, FName InWorldObjectDefinitionId) const;
 	bool IsCellCenteredObject(EGridLevelObjectType ObjectType) const;
 
 	FGridLevelCellData* GetSelectedCellMutable();
 	EGridWallType* GetSelectedWallMutable(FGridLevelCellData& CellData);
 
 	int32 RemoveObjectsAtSelectionInternal(bool bSameTypeOnly);
-	int32 RemoveObjectsConflictingWithPlacementInternal(EGridLevelObjectType NewObjectType, FName NewArchetypeId, bool bNewObjectOnEdge);
+	int32 RemoveObjectsConflictingWithPlacementInternal(EGridLevelObjectType NewObjectType, FName NewWorldObjectDefinitionId, bool bNewObjectOnEdge);
 
 	FVector GetSelectedCellWorldCenter(float ZOffset = 0.f) const;
 	bool TryConvertWorldHitToSelection(const FVector& WorldHitLocation, const FVector& HitNormal);
@@ -568,7 +568,7 @@ private:
 	void PaintSelectedCell();
 
 	void RebuildGeometryPreview();
-	void SyncPreviewRuntimeObjectArchetypesFromPalette();
+	void SyncPreviewRuntimeWorldObjectDefinitionsFromPalette();
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextRenderComponent> CoordinateHoverLabel;

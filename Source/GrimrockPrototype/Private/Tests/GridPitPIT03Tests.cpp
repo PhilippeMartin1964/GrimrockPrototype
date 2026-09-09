@@ -4,7 +4,7 @@
 
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -161,19 +161,19 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	ChainPitB.Command = EGridObjectCommand::Open;
 	Upper->Links = { OpenPitA, ChainPitB };
 
-	UGridObjectArchetypeAsset* PitArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
-	PitArchetype->ArchetypeId = TEXT("Pit_Stone_01");
-	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
-	PitArchetype->PlacementSurface = EGridObjectPlacementKind::Floor;
-		PitArchetype->RefreshPlacementRuntimeProjection();
-	PitArchetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(Runtime);
-	PitArchetype->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(Runtime);
-	PitArchetype->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
+	UGridWorldObjectDefinitionAsset* PitDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
+	PitDefinition->DefinitionId = TEXT("Pit_Stone_01");
+	PitDefinition->SupportedType = EGridLevelObjectType::Pit;
+	PitDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
+		PitDefinition->RefreshPlacementRuntimeProjection();
+	PitDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(Runtime);
+	PitDefinition->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(Runtime);
+	PitDefinition->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
 
 	Runtime->DungeonAsset = Dungeon;
 	Runtime->CurrentDungeonLevelId = UpperId;
 	Runtime->LevelAsset = Upper;
-	Runtime->ObjectArchetypes.Add(PitArchetype);
+	Runtime->WorldObjectDefinitions.Add(PitDefinition);
 	Party->SetGridStart(Runtime, 1, 1, EGridEdge::North);
 
 	UGridActivationComponent* Activation = Runtime->FindComponentByClass<UGridActivationComponent>();
@@ -262,23 +262,23 @@ bool FGridPIT03PresentationActorTest::RunTest(const FString& Parameters)
 	constexpr float OpenAngleDegrees = 80.0f;
 	constexpr float MoveDuration = 0.0f;
 
-	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(Actor);
-	Archetype->SupportedType = EGridLevelObjectType::Pit;
-	Archetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(Actor);
-	Archetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	Archetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	Archetype->MovingParts.Part0.Motion.Pivot = LeftHinge;
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(Actor);
+	Definition->SupportedType = EGridLevelObjectType::Pit;
+	Definition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(Actor);
+	Definition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
+	Definition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	Definition->MovingParts.Part0.Motion.Pivot = LeftHinge;
 	// Positive quaternion rotation around Y produces negative Unreal Pitch.
-	Archetype->MovingParts.Part0.Motion.Amount = OpenAngleDegrees;
-	Archetype->MovingParts.Part0.Motion.Duration = MoveDuration;
-	Archetype->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(Actor);
-	Archetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	Archetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	Archetype->MovingParts.Part1.Motion.Pivot = RightHinge;
-	Archetype->MovingParts.Part1.Motion.Amount = -OpenAngleDegrees;
-	Archetype->MovingParts.Part1.Motion.Duration = MoveDuration;
+	Definition->MovingParts.Part0.Motion.Amount = OpenAngleDegrees;
+	Definition->MovingParts.Part0.Motion.Duration = MoveDuration;
+	Definition->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(Actor);
+	Definition->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
+	Definition->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	Definition->MovingParts.Part1.Motion.Pivot = RightHinge;
+	Definition->MovingParts.Part1.Motion.Amount = -OpenAngleDegrees;
+	Definition->MovingParts.Part1.Motion.Duration = MoveDuration;
 
-	Actor->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(Pit), Archetype, FTransform::Identity);
+	Actor->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(Pit), Definition, FTransform::Identity);
 	Actor->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(Pit), nullptr, FTransform::Identity);
 
 	TestTrue(TEXT("Presentation actor requires and sees both leaves"), Actor->HasCompleteTrapdoorCover());

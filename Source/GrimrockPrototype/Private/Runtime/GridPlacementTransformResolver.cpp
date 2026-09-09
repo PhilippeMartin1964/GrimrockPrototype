@@ -2,7 +2,7 @@
 
 #include "Core/GridLevelAsset.h"
 #include "Core/GridLevelPlacementTypes.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 
 namespace
@@ -148,8 +148,8 @@ namespace GridPlacementTransformResolver
 			return false;
 		}
 
-		const UGridObjectArchetypeAsset* Archetype = RuntimeActor.FindObjectArchetype(Instance.WorldObjectDefinitionId);
-		if (!Archetype)
+		const UGridWorldObjectDefinitionAsset* Definition = RuntimeActor.FindWorldObjectDefinition(Instance.WorldObjectDefinitionId);
+		if (!Definition)
 		{
 			return false;
 		}
@@ -157,15 +157,15 @@ namespace GridPlacementTransformResolver
 		{
 			return ResolveDoorEdge(RuntimeActor, Instance.CellX, Instance.CellY, Instance.WallSide, OutTransform);
 		}
-		if (Archetype->IsEdgePlaced())
+		if (Definition->IsEdgePlaced())
 		{
-			return ResolveWallMounted(RuntimeActor, Instance.CellX, Instance.CellY, Instance.WallSide, Archetype->PlacementZOffset, Archetype->WallInset,
-				Archetype->LocalOffsetAlongWall, Archetype->LocalOffsetVertical, OutTransform);
+			return ResolveWallMounted(RuntimeActor, Instance.CellX, Instance.CellY, Instance.WallSide, Definition->PlacementZOffset, Definition->WallInset,
+				Definition->LocalOffsetAlongWall, Definition->LocalOffsetVertical, OutTransform);
 		}
-		if (Archetype->IsCenterPlaced())
+		if (Definition->IsCenterPlaced())
 		{
 			const float LocalYaw = Instance.bHasLocalTransformOverride ? Instance.LocalTransformOverride.Rotator().Yaw : 0.0f;
-			return ResolveCentered(RuntimeActor, Instance.CellX, Instance.CellY, LocalYaw, Archetype->PlacementZOffset, OutTransform);
+			return ResolveCentered(RuntimeActor, Instance.CellX, Instance.CellY, LocalYaw, Definition->PlacementZOffset, OutTransform);
 		}
 		return false;
 	}

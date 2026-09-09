@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridTypes.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -83,29 +83,29 @@ bool FRPGMON2055EventCommandContractTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2055CustomRecruiterArchetypeContractTest, "Grimrock.MON20.5.CustomRecruit.CustomRecruiterArchetypeContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2055CustomRecruiterDefinitionContractTest, "Grimrock.MON20.5.CustomRecruit.CustomRecruiterDefinitionContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FRPGMON2055CustomRecruiterArchetypeContractTest::RunTest(const FString& Parameters)
+bool FRPGMON2055CustomRecruiterDefinitionContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>();
-	Archetype->ArchetypeId = TEXT("CustomRecruiter_Service");
-	Archetype->DisplayName = FText::FromString(TEXT("Custom Recruiter"));
-	Archetype->SupportedType = EGridLevelObjectType::CustomRecruiter;
-	Archetype->PlacementKind = EGridObjectPlacementKind::Center;
-	Archetype->Category = TEXT("Recruitment");
-	Archetype->ObjectCategory = EGridObjectCategory::Decoration;
-	Archetype->bDefaultInitiallyEnabled = true;
-	Archetype->bDefaultInitiallyActive = false;
-	Archetype->RuntimeActorClass = nullptr;
-	Archetype->bIsInteractable = false;
-	Archetype->bIsReadable = false;
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
+	Definition->DefinitionId = TEXT("CustomRecruiter_Service");
+	Definition->DisplayName = FText::FromString(TEXT("Custom Recruiter"));
+	Definition->SupportedType = EGridLevelObjectType::CustomRecruiter;
+	Definition->PlacementKind = EGridObjectPlacementKind::Center;
+	Definition->Category = TEXT("Recruitment");
+	Definition->ObjectCategory = EGridObjectCategory::Decoration;
+	Definition->bDefaultInitiallyEnabled = true;
+	Definition->bDefaultInitiallyActive = false;
+	Definition->RuntimeActorClass = nullptr;
+	Definition->bIsInteractable = false;
+	Definition->bIsReadable = false;
 
-	TArray<FGridArchetypeValidationMessage> Messages;
-	TestTrue(TEXT("Data-only CustomRecruiter archetype validates without RuntimeActorClass"), Archetype->ValidateArchetype(Messages));
-	TestFalse(TEXT("CustomRecruiter does not require a runtime actor class"), Archetype->RequiresRuntimeActorClass());
+	TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
+	TestTrue(TEXT("Data-only CustomRecruiter definition validates without RuntimeActorClass"), Definition->ValidateDefinition(Messages));
+	TestFalse(TEXT("CustomRecruiter does not require a runtime actor class"), Definition->RequiresRuntimeActorClass());
 	return true;
 }
 

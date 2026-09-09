@@ -1,11 +1,11 @@
 SelectedPaletteEntryId = Entry->EntryId;
-PaintObjectType = Entry->DefaultArchetype->SupportedType;
-ObjectArchetypeId = Entry->DefaultArchetype->ArchetypeId;
-SelectedArchetypeId = Entry->DefaultArchetype->ArchetypeId;
-bObjectInitiallyEnabled = Entry->DefaultArchetype->bDefaultInitiallyEnabled;
-bObjectInitiallyActive = Entry->DefaultArchetype->bDefaultInitiallyActive;
-ObjectTag = Entry->DefaultArchetype->DefaultTag;
-ObjectBehavior = Entry->DefaultArchetype->DefaultBehavior;
+PaintObjectType = Entry->DefaultWorldObjectDefinition->SupportedType;
+WorldObjectDefinitionId = Entry->DefaultWorldObjectDefinition->DefinitionId;
+SelectedWorldObjectDefinitionId = Entry->DefaultWorldObjectDefinition->DefinitionId;
+bObjectInitiallyEnabled = Entry->DefaultWorldObjectDefinition->bDefaultInitiallyEnabled;
+bObjectInitiallyActive = Entry->DefaultWorldObjectDefinition->bDefaultInitiallyActive;
+ObjectTag = Entry->DefaultWorldObjectDefinition->DefaultTag;
+ObjectBehavior = Entry->DefaultWorldObjectDefinition->DefaultBehavior;
 
 return true;
 }
@@ -38,8 +38,8 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 	if (FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId))
 	{
 		WorldObjectInstance->Type = PaintObjectType;
-		WorldObjectInstance->WorldObjectDefinitionId = ObjectArchetypeId;
-		WorldObjectInstance->WallSide = IsEdgePlacedObject(PaintObjectType, ObjectArchetypeId) ? SelectedEdge : EGridEdge::None;
+		WorldObjectInstance->WorldObjectDefinitionId = WorldObjectDefinitionId;
+		WorldObjectInstance->WallSide = IsEdgePlacedObject(PaintObjectType, WorldObjectDefinitionId) ? SelectedEdge : EGridEdge::None;
 		WorldObjectInstance->bInitiallyActive = bObjectInitiallyActive;
 		WorldObjectInstance->InstanceConfig.Teleporter = ObjectBehavior.Teleporter;
 		WorldObjectInstance->InstanceConfig.Transition = ObjectBehavior.Transition;
@@ -159,8 +159,8 @@ void AGridLevelEditorActor::ClearSelectedObjectState()
 	LastSelectedObjectId.Invalidate();
 
 	PaintObjectType = EGridLevelObjectType::None;
-	ObjectArchetypeId = NAME_None;
-	SelectedArchetypeId = NAME_None;
+	WorldObjectDefinitionId = NAME_None;
+	SelectedWorldObjectDefinitionId = NAME_None;
 	SelectedPaletteEntryId = NAME_None;
 
 	bObjectInitiallyEnabled = true;

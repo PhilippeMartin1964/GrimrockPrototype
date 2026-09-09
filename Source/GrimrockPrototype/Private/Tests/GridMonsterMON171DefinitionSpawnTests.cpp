@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -141,20 +141,20 @@ bool FGridMonsterMON171SpawnPersistenceContractTest::RunTest(const FString& Para
 	UGridLevelAsset* Level = MakeMON171Level(GetTransientPackage());
 	UGridMonsterDefinitionAsset* Definition = MakeMON171GoblinDefinition(Level);
 
-	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(Level);
-	Archetype->ArchetypeId = TEXT("Monster_GoblinThrower");
-	Archetype->DisplayName = FText::FromString(TEXT("Gobelin lanceur"));
-	Archetype->SupportedType = EGridLevelObjectType::MonsterSpawn;
-	Archetype->PlacementKind = EGridObjectPlacementKind::Center;
+	UGridWorldObjectDefinitionAsset* WorldObjectDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Level);
+	WorldObjectDefinition->DefinitionId = TEXT("Monster_GoblinThrower");
+	WorldObjectDefinition->DisplayName = FText::FromString(TEXT("Gobelin lanceur"));
+	WorldObjectDefinition->SupportedType = EGridLevelObjectType::MonsterSpawn;
+	WorldObjectDefinition->PlacementKind = EGridObjectPlacementKind::Center;
 
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>(Level);
 	FGridObjectPaletteEntry Entry;
 	Entry.EntryId = TEXT("MON_GoblinThrower");
-	Entry.DefaultArchetype = Archetype;
+	Entry.DefaultWorldObjectDefinition = WorldObjectDefinition;
 	Entry.DefaultMonsterDefinition = Definition;
 	Palette->Entries.Add(Entry);
 
-	TArray<FGridArchetypeValidationMessage> PaletteMessages;
+	TArray<FGridWorldObjectDefinitionValidationMessage> PaletteMessages;
 	TestTrue(TEXT("Goblin Thrower enters the existing MonsterSpawn palette contract"), Palette->ValidatePalette(PaletteMessages));
 
 	FGridMonsterSpawnInstance Spawn;

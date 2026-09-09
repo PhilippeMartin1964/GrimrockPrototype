@@ -1,6 +1,6 @@
 #include "Runtime/GridGenericObjectActor.h"
 
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Components/PointLightComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Runtime/GridInteractionUtils.h"
@@ -20,21 +20,21 @@ AGridGenericObjectActor::AGridGenericObjectActor()
 
 
 void AGridGenericObjectActor::InitializeRuntimeGenericObject(
-	const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* Mesh, const FTransform& WorldTransform)
+	const FGridRuntimeWorldObjectData& ObjectData, const UGridWorldObjectDefinitionAsset* Definition, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
 	(void)Mesh;
-	SourceArchetype = Archetype;
+	SourceWorldObjectDefinition = Definition;
 
 	// WORLDOBJ-MIG03.4: generic world-object presentation is defined only by StaticPart.
-	UStaticMesh* ResolvedMesh = Archetype && Archetype->StaticPart.IsDefined() ? Archetype->StaticPart.Mesh.Get() : nullptr;
+	UStaticMesh* ResolvedMesh = Definition && Definition->StaticPart.IsDefined() ? Definition->StaticPart.Mesh.Get() : nullptr;
 	InitializeRuntimeWorldObject(ObjectData, ResolvedMesh, WorldTransform);
 	if (MeshComponent)
 	{
-		MeshComponent->SetRelativeTransform(Archetype ? Archetype->StaticPart.LocalTransform : FTransform::Identity);
+		MeshComponent->SetRelativeTransform(Definition ? Definition->StaticPart.LocalTransform : FTransform::Identity);
 		MeshComponent->SetVisibility(ResolvedMesh != nullptr, true);
 	}
 
-	ApplyArchetypeOptions(Archetype);
+	ApplyDefinitionOptions(Definition);
 	if (!ObjectData.OverrideReadableText.IsEmpty())
 	{
 		RuntimeReadableText = ObjectData.OverrideReadableText;
@@ -56,13 +56,13 @@ void AGridGenericObjectActor::MarkAsRead()
 	bRuntimeHasBeenRead = true;
 }
 
-void AGridGenericObjectActor::ApplyArchetypeOptions(const UGridObjectArchetypeAsset* Archetype)
+void AGridGenericObjectActor::ApplyDefinitionOptions(const UGridWorldObjectDefinitionAsset* Definition)
 {
 	RuntimeReadableText = FText::GetEmpty();
 	bRuntimeReadableOnlyOnce = false;
 	bRuntimeHasBeenRead = false;
 
-	if (!Archetype)
+	if (!Definition)
 	{
 		if (PointLightComponent)
 		{
@@ -74,9 +74,9 @@ void AGridGenericObjectActor::ApplyArchetypeOptions(const UGridObjectArchetypeAs
 
 	if (MeshComponent)
 	{
-		const bool bIsReadable = Archetype->IsReadable();
+		const bool bIsReadable = Definition->IsReadable();
 		const ECollisionEnabled::Type CollisionMode =
-			Archetype->bBlocksMovement || bIsReadable ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision;
+			Definition->bBlocksMovement || bIsReadable ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision;
 		MeshComponent->SetCollisionEnabled(CollisionMode);
 
 		if (bIsReadable)
@@ -85,10 +85,10 @@ void AGridGenericObjectActor::ApplyArchetypeOptions(const UGridObjectArchetypeAs
 		}
 	}
 
-	if (Archetype->IsReadable())
+	if (Definition->IsReadable())
 	{
-		RuntimeReadableText = Archetype->ReadableText;
-		bRuntimeReadableOnlyOnce = Archetype->bShowReadableOnlyOnce;
+		RuntimeReadableText = Definition->ReadableText;
+		bRuntimeReadableOnlyOnce = Definition->bShowReadableOnlyOnce;
 	}
 
 	if (!PointLightComponent)
@@ -96,14 +96,14 @@ void AGridGenericObjectActor::ApplyArchetypeOptions(const UGridObjectArchetypeAs
 		return;
 	}
 
-	const bool bEnableLight = Archetype->IsLightSource();
+	const bool bEnableLight = Definition->IsLightSource();
 	PointLightComponent->SetVisibility(bEnableLight);
 
 	if (bEnableLight)
 	{
-		PointLightComponent->SetLightColor(Archetype->LightColor);
-		PointLightComponent->SetIntensity(Archetype->LightIntensity);
-		PointLightComponent->SetAttenuationRadius(Archetype->LightRadius);
+		PointLightComponent->SetLightColor(Definition->LightColor);
+		PointLightComponent->SetIntensity(Definition->LightIntensity);
+		PointLightComponent->SetAttenuationRadius(Definition->LightRadius);
 	}
 	else
 	{

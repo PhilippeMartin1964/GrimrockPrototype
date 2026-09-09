@@ -4,7 +4,7 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -112,57 +112,57 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	Runtime->SetActorLocation(FVector::ZeroVector);
 
 	// Static generic object: StaticPart alone is authoritative for presentation and local transform.
-	UGridObjectArchetypeAsset* StaticArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
-	StaticArchetype->ArchetypeId = TEXT("MIG03_TargetStatic");
-	StaticArchetype->SupportedType = EGridLevelObjectType::Decoration;
-	StaticArchetype->PlacementSurface = EGridObjectPlacementKind::Floor;
-	StaticArchetype->RuntimeActorClass = AGridGenericObjectActor::StaticClass();
-	StaticArchetype->StaticPart.Mesh = NewObject<UStaticMesh>(StaticArchetype);
-	StaticArchetype->StaticPart.LocalTransform = FTransform(FRotator(0.0f, 20.0f, 0.0f), FVector(3.0f, 4.0f, 5.0f));
-	StaticArchetype->RefreshPlacementRuntimeProjection();
-	TestTrue(TEXT("Static archetype reports a target visual part"), StaticArchetype->HasAnyVisualPart());
-	TestFalse(TEXT("Static archetype has no moving visual part"), StaticArchetype->HasMovingVisualPart());
-	Runtime->ObjectArchetypes.Add(StaticArchetype);
+	UGridWorldObjectDefinitionAsset* StaticDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
+	StaticDefinition->DefinitionId = TEXT("MIG03_TargetStatic");
+	StaticDefinition->SupportedType = EGridLevelObjectType::Decoration;
+	StaticDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
+	StaticDefinition->RuntimeActorClass = AGridGenericObjectActor::StaticClass();
+	StaticDefinition->StaticPart.Mesh = NewObject<UStaticMesh>(StaticDefinition);
+	StaticDefinition->StaticPart.LocalTransform = FTransform(FRotator(0.0f, 20.0f, 0.0f), FVector(3.0f, 4.0f, 5.0f));
+	StaticDefinition->RefreshPlacementRuntimeProjection();
+	TestTrue(TEXT("Static definition reports a target visual part"), StaticDefinition->HasAnyVisualPart());
+	TestFalse(TEXT("Static definition has no moving visual part"), StaticDefinition->HasMovingVisualPart());
+	Runtime->WorldObjectDefinitions.Add(StaticDefinition);
 
 	const FGridWorldObjectInstance StaticObject =
-		MakeWorldObjectInstance(StaticArchetype->ArchetypeId, EGridLevelObjectType::Decoration, 1, 1);
+		MakeWorldObjectInstance(StaticDefinition->DefinitionId, EGridLevelObjectType::Decoration, 1, 1);
 	Runtime->LevelAsset->WorldObjectInstances.Add(StaticObject);
 
 	// Moving-only mechanism: Part0 is enough to spawn and initialize the mechanism.
-	UGridObjectArchetypeAsset* ButtonArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
-	ButtonArchetype->ArchetypeId = TEXT("MIG03_TargetButton");
-	ButtonArchetype->SupportedType = EGridLevelObjectType::Button;
-	ButtonArchetype->ObjectCategory = EGridObjectCategory::Mechanism;
-	ButtonArchetype->bIsInteractable = true;
-	ButtonArchetype->PlacementSurface = EGridObjectPlacementKind::Wall;
-	ButtonArchetype->RuntimeActorClass = AGridButtonActor::StaticClass();
-	ButtonArchetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(ButtonArchetype);
-	ButtonArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
-	ButtonArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::X;
-	ButtonArchetype->MovingParts.Part0.Motion.Amount = 6.0f;
-	ButtonArchetype->MovingParts.Part0.Motion.Duration = 0.08f;
-	ButtonArchetype->RefreshPlacementRuntimeProjection();
-	TestTrue(TEXT("Button archetype reports moving presentation"), ButtonArchetype->HasMovingVisualPart());
-	TestEqual(TEXT("Button archetype defines exactly one moving part"), ButtonArchetype->GetDefinedMovingPartCount(), 1);
-	Runtime->ObjectArchetypes.Add(ButtonArchetype);
+	UGridWorldObjectDefinitionAsset* ButtonDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
+	ButtonDefinition->DefinitionId = TEXT("MIG03_TargetButton");
+	ButtonDefinition->SupportedType = EGridLevelObjectType::Button;
+	ButtonDefinition->ObjectCategory = EGridObjectCategory::Mechanism;
+	ButtonDefinition->bIsInteractable = true;
+	ButtonDefinition->PlacementSurface = EGridObjectPlacementKind::Wall;
+	ButtonDefinition->RuntimeActorClass = AGridButtonActor::StaticClass();
+	ButtonDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(ButtonDefinition);
+	ButtonDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
+	ButtonDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::X;
+	ButtonDefinition->MovingParts.Part0.Motion.Amount = 6.0f;
+	ButtonDefinition->MovingParts.Part0.Motion.Duration = 0.08f;
+	ButtonDefinition->RefreshPlacementRuntimeProjection();
+	TestTrue(TEXT("Button definition reports moving presentation"), ButtonDefinition->HasMovingVisualPart());
+	TestEqual(TEXT("Button definition defines exactly one moving part"), ButtonDefinition->GetDefinedMovingPartCount(), 1);
+	Runtime->WorldObjectDefinitions.Add(ButtonDefinition);
 
 	const FGridWorldObjectInstance ButtonObject =
-		MakeWorldObjectInstance(ButtonArchetype->ArchetypeId, EGridLevelObjectType::Button, 2, 1, EGridEdge::North);
+		MakeWorldObjectInstance(ButtonDefinition->DefinitionId, EGridLevelObjectType::Button, 2, 1, EGridEdge::North);
 	Runtime->LevelAsset->WorldObjectInstances.Add(ButtonObject);
 
 	// Invisible runtime object: actor existence is independent of presentation existence.
-	UGridObjectArchetypeAsset* TriggerArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
-	TriggerArchetype->ArchetypeId = TEXT("MIG03_InvisibleTrigger");
-	TriggerArchetype->SupportedType = EGridLevelObjectType::Trigger;
-	TriggerArchetype->ObjectCategory = EGridObjectCategory::Mechanism;
-	TriggerArchetype->PlacementSurface = EGridObjectPlacementKind::Floor;
-	TriggerArchetype->RuntimeActorClass = AGridRuntimeObjectActor::StaticClass();
-	TriggerArchetype->RefreshPlacementRuntimeProjection();
-	TestFalse(TEXT("Invisible trigger has no visual composition"), TriggerArchetype->HasAnyVisualPart());
-	Runtime->ObjectArchetypes.Add(TriggerArchetype);
+	UGridWorldObjectDefinitionAsset* TriggerDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
+	TriggerDefinition->DefinitionId = TEXT("MIG03_InvisibleTrigger");
+	TriggerDefinition->SupportedType = EGridLevelObjectType::Trigger;
+	TriggerDefinition->ObjectCategory = EGridObjectCategory::Mechanism;
+	TriggerDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
+	TriggerDefinition->RuntimeActorClass = AGridRuntimeObjectActor::StaticClass();
+	TriggerDefinition->RefreshPlacementRuntimeProjection();
+	TestFalse(TEXT("Invisible trigger has no visual composition"), TriggerDefinition->HasAnyVisualPart());
+	Runtime->WorldObjectDefinitions.Add(TriggerDefinition);
 
 	const FGridWorldObjectInstance TriggerObject =
-		MakeWorldObjectInstance(TriggerArchetype->ArchetypeId, EGridLevelObjectType::Trigger, 1, 2);
+		MakeWorldObjectInstance(TriggerDefinition->DefinitionId, EGridLevelObjectType::Trigger, 1, 2);
 	Runtime->LevelAsset->WorldObjectInstances.Add(TriggerObject);
 
 	Runtime->RebuildLevel(EGridRuntimeRebuildMode::Full);
@@ -171,9 +171,9 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	TestNotNull(TEXT("StaticPart-only generic object spawns from target visual composition"), StaticActor);
 	if (StaticActor && StaticActor->MeshComponent)
 	{
-		TestTrue(TEXT("Generic runtime uses StaticPart mesh"), StaticActor->MeshComponent->GetStaticMesh() == StaticArchetype->StaticPart.Mesh.Get());
+		TestTrue(TEXT("Generic runtime uses StaticPart mesh"), StaticActor->MeshComponent->GetStaticMesh() == StaticDefinition->StaticPart.Mesh.Get());
 		TestTrue(TEXT("Generic runtime applies StaticPart LocalTransform"),
-			StaticActor->MeshComponent->GetRelativeTransform().Equals(StaticArchetype->StaticPart.LocalTransform, 0.01f));
+			StaticActor->MeshComponent->GetRelativeTransform().Equals(StaticDefinition->StaticPart.LocalTransform, 0.01f));
 	}
 
 	AGridButtonActor* ButtonActor = Runtime->FindRuntimeObjectActor<AGridButtonActor>(ButtonObject.InstanceId);

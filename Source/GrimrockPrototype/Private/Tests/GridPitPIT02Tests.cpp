@@ -4,7 +4,7 @@
 
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -142,11 +142,11 @@ bool FGridPIT02WorldItemsTest::RunTest(const FString& Parameters)
 	StoneDefinition->ItemDefinitionId = TEXT("Item_PIT02_Stone");
 	StoneDefinition->Weight = 1.25f;
 
-	UGridObjectArchetypeAsset* StoneArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
-	StoneArchetype->ArchetypeId = TEXT("Item_PIT02_Stone");
-	StoneArchetype->SupportedType = EGridLevelObjectType::Item;
-	StoneArchetype->DefaultBehavior.Item.ItemDefinitionAsset = StoneDefinition;
-	Runtime->ObjectArchetypes.Add(StoneArchetype);
+	UGridWorldObjectDefinitionAsset* StoneWorldObjectDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
+	StoneWorldObjectDefinition->DefinitionId = TEXT("Item_PIT02_Stone");
+	StoneWorldObjectDefinition->SupportedType = EGridLevelObjectType::Item;
+	StoneWorldObjectDefinition->DefaultBehavior.Item.ItemDefinitionAsset = StoneDefinition;
+	Runtime->WorldObjectDefinitions.Add(StoneWorldObjectDefinition);
 
 	FGridItemInstance Stone;
 	Stone.RuntimeObjectId = FGuid::NewGuid();

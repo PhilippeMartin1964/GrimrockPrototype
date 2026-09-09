@@ -2,7 +2,7 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -44,8 +44,8 @@ void AGridRuntimeObjectActor::InitializeRuntimeWorldObjectBase(
 FGridObjectBehaviorParams AGridRuntimeObjectActor::ResolveEffectiveBehavior(const FGridRuntimeWorldObjectData& ObjectData) const
 {
 	const AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor>(GetOwner());
-	const UGridObjectArchetypeAsset* Archetype = RuntimeActor ? RuntimeActor->FindObjectArchetype(ObjectData.ArchetypeId) : nullptr;
-	return GridObjectInstanceBehavior::Resolve(ObjectData, Archetype);
+	const UGridWorldObjectDefinitionAsset* Definition = RuntimeActor ? RuntimeActor->FindWorldObjectDefinition(ObjectData.WorldObjectDefinitionId) : nullptr;
+	return GridObjectInstanceBehavior::Resolve(ObjectData, Definition);
 }
 
 bool AGridRuntimeObjectActor::MatchesObjectId(FGuid InObjectId) const
@@ -70,23 +70,23 @@ void AGridRuntimeObjectActor::InitializeRuntimeWorldObject(
 	InitializeRuntimeWorldObjectBase(ObjectData, Mesh, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
 }
 
-void AGridRuntimeObjectActor::ConfigureObjectAudio(const UGridObjectArchetypeAsset* Archetype)
+void AGridRuntimeObjectActor::ConfigureObjectAudio(const UGridWorldObjectDefinitionAsset* Definition)
 {
 	ObjectAudioEvents.Reset();
 	ObjectAudioEventOccurrences.Reset();
 	DefaultObjectAudioAttenuation = nullptr;
 
-	if (!Archetype)
+	if (!Definition)
 	{
 		return;
 	}
 
-	ObjectAudioEvents = Archetype->AudioEvents;
+	ObjectAudioEvents = Definition->AudioEvents;
 	// One object = one attenuation profile. Legacy Door attenuation is only a
 	// compatibility fallback for assets that have not yet been resaved.
-	DefaultObjectAudioAttenuation = Archetype->DefaultAudioAttenuation
-		? Archetype->DefaultAudioAttenuation
-		: (Archetype->SupportedType == EGridLevelObjectType::Door ? Archetype->DoorAudioAttenuation : nullptr);
+	DefaultObjectAudioAttenuation = Definition->DefaultAudioAttenuation
+		? Definition->DefaultAudioAttenuation
+		: (Definition->SupportedType == EGridLevelObjectType::Door ? Definition->DoorAudioAttenuation : nullptr);
 
 	// Preserve already-authored door assets that still contain the legacy fields.
 	for (const FName EventName : { FName(TEXT("Open")), FName(TEXT("Close")) })
@@ -97,7 +97,7 @@ void AGridRuntimeObjectActor::ConfigureObjectAudio(const UGridObjectArchetypeAss
 		}
 
 		FGridObjectAudioEvent LegacyResolvedEvent;
-		if (Archetype->ResolveAudioEvent(EventName, LegacyResolvedEvent))
+		if (Definition->ResolveAudioEvent(EventName, LegacyResolvedEvent))
 		{
 			ObjectAudioEvents.Add(EventName, MoveTemp(LegacyResolvedEvent));
 		}

@@ -6,7 +6,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/DataAsset.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
@@ -100,9 +100,9 @@ namespace GridTD0737Characterization
 			return;
 		}
 
-		if (const UGridObjectArchetypeAsset* Archetype = Cast<UGridObjectArchetypeAsset>(&DataAsset))
+		if (const UGridWorldObjectDefinitionAsset* Definition = Cast<UGridWorldObjectDefinitionAsset>(&DataAsset))
 		{
-			AuditBehavior(AssetPath, TEXT("DefaultBehavior"), Archetype->DefaultBehavior, Candidates);
+			AuditBehavior(AssetPath, TEXT("DefaultBehavior"), Definition->DefaultBehavior, Candidates);
 			return;
 		}
 

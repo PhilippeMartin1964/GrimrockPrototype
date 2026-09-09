@@ -5,7 +5,7 @@
 #include "Animation/AnimInstance.h"
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/Engine.h"
@@ -94,19 +94,19 @@ namespace
 		return Spawn;
 	}
 
-	UGridObjectArchetypeAsset* GridMonsterMON13MakeLeverMarkerArchetype(UObject* Outer, FName ArchetypeId)
+	UGridWorldObjectDefinitionAsset* GridMonsterMON13MakeLeverMarkerDefinition(UObject* Outer, FName WorldObjectDefinitionId)
 	{
-		UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(Outer);
-		Archetype->ArchetypeId = ArchetypeId;
-		Archetype->SupportedType = EGridLevelObjectType::Lever;
-		Archetype->Category = TEXT("Mechanisms");
-		Archetype->ObjectCategory = EGridObjectCategory::Mechanism;
-		Archetype->PlacementSurface = EGridObjectPlacementKind::Wall;
-		Archetype->RefreshPlacementRuntimeProjection();
-		Archetype->RuntimeActorClass = AGridLeverActor::StaticClass();
-		Archetype->MovingParts.Part0.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
-		Archetype->bIsInteractable = true;
-		return Archetype;
+		UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(Outer);
+		Definition->DefinitionId = WorldObjectDefinitionId;
+		Definition->SupportedType = EGridLevelObjectType::Lever;
+		Definition->Category = TEXT("Mechanisms");
+		Definition->ObjectCategory = EGridObjectCategory::Mechanism;
+		Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
+		Definition->RefreshPlacementRuntimeProjection();
+		Definition->RuntimeActorClass = AGridLeverActor::StaticClass();
+		Definition->MovingParts.Part0.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+		Definition->bIsInteractable = true;
+		return Definition;
 	}
 
 	bool HasErrorContaining(const TArray<FString>& Errors, const TCHAR* ExpectedText)
@@ -288,17 +288,17 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON131PaletteContractTest, "Grimroc
 bool FGridMonsterMON131PaletteContractTest::RunTest(const FString& Parameters)
 {
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>(GetTransientPackage());
-	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(Palette);
-	Archetype->ArchetypeId = TEXT("Monster_RatGiant");
-	Archetype->SupportedType = EGridLevelObjectType::MonsterSpawn;
-	Archetype->PlacementKind = EGridObjectPlacementKind::Center;
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(Palette);
+	Definition->DefinitionId = TEXT("Monster_RatGiant");
+	Definition->SupportedType = EGridLevelObjectType::MonsterSpawn;
+	Definition->PlacementKind = EGridObjectPlacementKind::Center;
 
 	FGridObjectPaletteEntry Entry;
 	Entry.EntryId = TEXT("MON_RatGiant");
-	Entry.DefaultArchetype = Archetype;
+	Entry.DefaultWorldObjectDefinition = Definition;
 	Palette->Entries.Add(Entry);
 
-	TArray<FGridArchetypeValidationMessage> Messages;
+	TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
 	TestFalse(TEXT("Monster palette entry requires a definition"), Palette->ValidatePalette(Messages));
 
 	Palette->Entries[0].DefaultMonsterDefinition = MakeMON13Definition(Palette, TEXT("MON_RatGiant"));
@@ -546,7 +546,7 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest(const FString& Parameters
 	const FGuid FirstSpawnId(13, 3, 1, 2);
 	const FGuid SecondSpawnId(13, 3, 1, 3);
 	const FGuid SpawnEventMarkerId(13, 3, 1, 4);
-	const FName SpawnEventMarkerArchetypeId(TEXT("MON133_EventMarkerLever"));
+	const FName SpawnEventMarkerWorldObjectDefinitionId(TEXT("MON133_EventMarkerLever"));
 
 	FGridWorldObjectInstance Trigger;
 	Trigger.InstanceId = TriggerId;
@@ -569,7 +569,7 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest(const FString& Parameters
 
 	FGridWorldObjectInstance SpawnEventMarker;
 	SpawnEventMarker.InstanceId = SpawnEventMarkerId;
-	SpawnEventMarker.WorldObjectDefinitionId = SpawnEventMarkerArchetypeId;
+	SpawnEventMarker.WorldObjectDefinitionId = SpawnEventMarkerWorldObjectDefinitionId;
 	SpawnEventMarker.Type = EGridLevelObjectType::Lever;
 	SpawnEventMarker.CellX = 2;
 	SpawnEventMarker.CellY = 3;
@@ -577,7 +577,7 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest(const FString& Parameters
 	SpawnEventMarker.bInitiallyEnabled = true;
 	SpawnEventMarker.bInitiallyActive = false;
 	Level->WorldObjectInstances.Add(SpawnEventMarker);
-	Runtime->ObjectArchetypes.Add(GridMonsterMON13MakeLeverMarkerArchetype(Runtime, SpawnEventMarkerArchetypeId));
+	Runtime->WorldObjectDefinitions.Add(GridMonsterMON13MakeLeverMarkerDefinition(Runtime, SpawnEventMarkerWorldObjectDefinitionId));
 
 	FGridObjectLink TriggerLink;
 	TriggerLink.SourceObjectId = TriggerId;
@@ -846,7 +846,7 @@ bool FGridMonsterMON134EncounterWavesTest::RunTest(const FString& Parameters)
 	const FGuid Wave1Id(13, 4, 1, 4);
 	const FGuid WaveStartedMarkerId(13, 4, 1, 5);
 	const FGuid CompletedMarkerId(13, 4, 1, 6);
-	const FName EncounterMarkerArchetypeId(TEXT("MON134_EventMarkerLever"));
+	const FName EncounterMarkerWorldObjectDefinitionId(TEXT("MON134_EventMarkerLever"));
 
 	FGridWorldObjectInstance Trigger;
 	Trigger.InstanceId = TriggerId;
@@ -877,7 +877,7 @@ bool FGridMonsterMON134EncounterWavesTest::RunTest(const FString& Parameters)
 
 	FGridWorldObjectInstance WaveStartedMarker;
 	WaveStartedMarker.InstanceId = WaveStartedMarkerId;
-	WaveStartedMarker.WorldObjectDefinitionId = EncounterMarkerArchetypeId;
+	WaveStartedMarker.WorldObjectDefinitionId = EncounterMarkerWorldObjectDefinitionId;
 	WaveStartedMarker.Type = EGridLevelObjectType::Lever;
 	WaveStartedMarker.CellX = 0;
 	WaveStartedMarker.CellY = 3;
@@ -890,7 +890,7 @@ bool FGridMonsterMON134EncounterWavesTest::RunTest(const FString& Parameters)
 	CompletedMarker.InstanceId = CompletedMarkerId;
 	CompletedMarker.CellX = 1;
 	Level->WorldObjectInstances.Add(CompletedMarker);
-	Runtime->ObjectArchetypes.Add(GridMonsterMON13MakeLeverMarkerArchetype(Runtime, EncounterMarkerArchetypeId));
+	Runtime->WorldObjectDefinitions.Add(GridMonsterMON13MakeLeverMarkerDefinition(Runtime, EncounterMarkerWorldObjectDefinitionId));
 
 	FGridObjectLink StartLink;
 	StartLink.SourceObjectId = TriggerId;

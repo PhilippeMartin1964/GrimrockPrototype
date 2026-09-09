@@ -11,7 +11,7 @@
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Runtime/GridRuntimeWorldObjectData.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Engine/Engine.h"
 
@@ -213,8 +213,8 @@ bool UGridActivationComponent::RefreshPressurePlatesAtCell(int32 X, int32 Y)
 			continue;
 		}
 
-		const UGridObjectArchetypeAsset* PlateArchetype = RuntimeActor->FindObjectArchetype(PlateData->WorldObjectDefinitionId);
-		const FGridObjectBehaviorParams EffectiveBehavior = GridObjectInstanceBehavior::Resolve(FGridRuntimeWorldObjectData(*PlateData), PlateArchetype);
+		const UGridWorldObjectDefinitionAsset* PlateDefinition = RuntimeActor->FindWorldObjectDefinition(PlateData->WorldObjectDefinitionId);
+		const FGridObjectBehaviorParams EffectiveBehavior = GridObjectInstanceBehavior::Resolve(FGridRuntimeWorldObjectData(*PlateData), PlateDefinition);
 		const FGridPressurePlateWeightParams& WeightParams = EffectiveBehavior.PressurePlateWeight;
 		const float CurrentItemWeight = RuntimeActor->GetWorldItemWeightAtCell(X, Y, WeightParams.bCountEdgeItems);
 		const bool bPartyActivates = WeightParams.bActivateWhenPartyPresent && RuntimeActor->IsPartyOnCell(X, Y);

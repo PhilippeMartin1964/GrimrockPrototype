@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
@@ -55,20 +55,20 @@ bool FGridMIG09EditorTypedMutationsTest::RunTest(const FString& Parameters)
 	UGridLevelAsset* Level = Fixture.Level;
 	UGridItemDefinitionAsset* ItemDefinition = NewObject<UGridItemDefinitionAsset>(Level);
 	ItemDefinition->ItemDefinitionId = TEXT("MIG09_Item");
-	UGridObjectArchetypeAsset* Definition = NewObject<UGridObjectArchetypeAsset>(Level);
-	Definition->ArchetypeId = TEXT("MIG09_Receptacle");
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(Level);
+	Definition->DefinitionId = TEXT("MIG09_Receptacle");
 	Definition->SupportedType = EGridLevelObjectType::Receptacle;
 	Definition->DefaultBehavior.Receptacle.MaxContainedItems = 4;
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>(Editor);
 	FGridObjectPaletteEntry& Entry = Palette->Entries.AddDefaulted_GetRef();
-	Entry.EntryId = Definition->ArchetypeId;
-	Entry.DefaultArchetype = Definition;
+	Entry.EntryId = Definition->DefinitionId;
+	Entry.DefaultWorldObjectDefinition = Definition;
 	Editor->ObjectPalette = Palette;
 
 	FGridWorldObjectInstance& WorldObject = Level->WorldObjectInstances.AddDefaulted_GetRef();
 	WorldObject.InstanceId = FGuid::NewGuid();
 	WorldObject.Type = EGridLevelObjectType::Receptacle;
-	WorldObject.WorldObjectDefinitionId = Definition->ArchetypeId;
+	WorldObject.WorldObjectDefinitionId = Definition->DefinitionId;
 	WorldObject.bHasLocalTransformOverride = true;
 	WorldObject.LocalTransformOverride = FTransform(FRotator(10.f, 20.f, 30.f), FVector(1.f, 2.f, 3.f), FVector(2.f));
 	FGridLooseItemInstance& LooseItem = Level->LooseItemInstances.AddDefaulted_GetRef();

@@ -13,9 +13,9 @@ enum class EGridLevelObjectType : uint8;
 
 namespace GridEditorWidgetHelpers
 {
-	struct FGridArchetypeOption
+	struct FGridWorldObjectDefinitionOption
 	{
-		FName ArchetypeId = NAME_None;
+		FName WorldObjectDefinitionId = NAME_None;
 		FText Label;
 	};
 
@@ -33,7 +33,7 @@ namespace GridEditorWidgetHelpers
 
 	FString NameArrayToCommaSeparatedText(const TArray<FName>& Names);
 	TArray<FName> ParseCommaSeparatedNames(const FString& Text);
-	TArray<FGridArchetypeOption> GetItemArchetypeOptions(const UGridObjectPaletteAsset* ObjectPalette);
+	TArray<FGridWorldObjectDefinitionOption> GetItemDefinitionOptions(const UGridObjectPaletteAsset* ObjectPalette);
 }
 
 #endif

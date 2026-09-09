@@ -6,7 +6,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/DataAsset.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
@@ -149,9 +149,9 @@ namespace GridTD0731SchemaAuditPrivate
 			});
 	}
 
-	void AuditArchetypeAsset(const UGridObjectArchetypeAsset& Archetype, const FString& AssetPath, TArray<FGridTD0731Finding>& Findings)
+	void AuditDefinitionAsset(const UGridWorldObjectDefinitionAsset& Definition, const FString& AssetPath, TArray<FGridTD0731Finding>& Findings)
 	{
-		AuditBehavior(AssetPath, TEXT("DefaultBehavior"), Archetype.DefaultBehavior, Findings);
+		AuditBehavior(AssetPath, TEXT("DefaultBehavior"), Definition.DefaultBehavior, Findings);
 	}
 
 	void AuditItemDefinition(const UGridItemDefinitionAsset& Item, const FString& AssetPath, TArray<FGridTD0731Finding>& Findings)
@@ -181,9 +181,9 @@ namespace GridTD0731SchemaAuditPrivate
 		{
 			AuditLevelAsset(*Level, AssetPath, Findings);
 		}
-		else if (const UGridObjectArchetypeAsset* Archetype = Cast<UGridObjectArchetypeAsset>(&DataAsset))
+		else if (const UGridWorldObjectDefinitionAsset* Definition = Cast<UGridWorldObjectDefinitionAsset>(&DataAsset))
 		{
-			AuditArchetypeAsset(*Archetype, AssetPath, Findings);
+			AuditDefinitionAsset(*Definition, AssetPath, Findings);
 		}
 		else if (const UGridItemDefinitionAsset* Item = Cast<UGridItemDefinitionAsset>(&DataAsset))
 		{

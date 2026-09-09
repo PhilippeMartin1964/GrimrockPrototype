@@ -6,7 +6,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/DataAsset.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -83,9 +83,9 @@ namespace GridTD0737Normalization
 			return;
 		}
 
-		if (const UGridObjectArchetypeAsset* Archetype = Cast<UGridObjectArchetypeAsset>(&DataAsset))
+		if (const UGridWorldObjectDefinitionAsset* Definition = Cast<UGridWorldObjectDefinitionAsset>(&DataAsset))
 		{
-			AuditBehavior(AssetPath, TEXT("DefaultBehavior"), Archetype->DefaultBehavior, Candidates);
+			AuditBehavior(AssetPath, TEXT("DefaultBehavior"), Definition->DefaultBehavior, Candidates);
 			return;
 		}
 
@@ -237,10 +237,10 @@ bool FGridTD0737LockAuthoringNormalizedTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridObjectArchetypeAsset* CopperLock =
-		LoadObject<UGridObjectArchetypeAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_CopperWall.DA_Lock_CopperWall"));
-	UGridObjectArchetypeAsset* IronLock =
-		LoadObject<UGridObjectArchetypeAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_IronWall.DA_Lock_IronWall"));
+	UGridWorldObjectDefinitionAsset* CopperLock =
+		LoadObject<UGridWorldObjectDefinitionAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_CopperWall.DA_Lock_CopperWall"));
+	UGridWorldObjectDefinitionAsset* IronLock =
+		LoadObject<UGridWorldObjectDefinitionAsset>(nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Lock_IronWall.DA_Lock_IronWall"));
 
 	if (!TestNotNull(TEXT("Copper wall lock exists"), CopperLock) || !TestNotNull(TEXT("Iron wall lock exists"), IronLock))
 	{

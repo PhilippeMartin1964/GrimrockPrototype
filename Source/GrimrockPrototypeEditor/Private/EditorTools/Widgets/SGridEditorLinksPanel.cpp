@@ -11,7 +11,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Core/GridLevelVariableTypes.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridTypes.h"
 
 #include "Styling/AppStyle.h"
@@ -882,7 +882,7 @@ FText SGridEditorLinksPanel::GetObjectSummaryText(const FGuid& ObjectId) const
 
 	if (const FGridWorldObjectInstance* Instance = LevelAsset->FindWorldObjectInstanceById(ObjectId))
 	{
-		if (const UGridObjectArchetypeAsset* Definition = CurrentEditorActor->FindObjectArchetypeById(Instance->WorldObjectDefinitionId))
+		if (const UGridWorldObjectDefinitionAsset* Definition = CurrentEditorActor->FindWorldObjectDefinitionById(Instance->WorldObjectDefinitionId))
 		{
 			if (!Definition->DisplayName.IsEmpty())
 			{

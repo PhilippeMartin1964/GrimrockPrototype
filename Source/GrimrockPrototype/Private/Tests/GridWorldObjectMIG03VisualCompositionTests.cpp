@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Components/StaticMeshComponent.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridWorldObjectVisual.h"
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
@@ -179,24 +179,24 @@ bool FGridWorldObjectMIG03VisualCompositionTypesTest::RunTest(const FString& Par
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridWorldObjectMIG03ArchetypeVisualContractTest,
-	"Grimrock.WorldObjects.MIG03.ArchetypeVisualContract",
+	FGridWorldObjectMIG03DefinitionVisualContractTest,
+	"Grimrock.WorldObjects.MIG03.DefinitionVisualContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridWorldObjectMIG03ArchetypeVisualContractTest::RunTest(const FString& Parameters)
+bool FGridWorldObjectMIG03DefinitionVisualContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UClass* ArchetypeClass = UGridObjectArchetypeAsset::StaticClass();
-	if (!TestNotNull(TEXT("World object archetype class exists"), ArchetypeClass))
+	UClass* DefinitionClass = UGridWorldObjectDefinitionAsset::StaticClass();
+	if (!TestNotNull(TEXT("World object definition class exists"), DefinitionClass))
 	{
 		return false;
 	}
 
-	FProperty* StaticPartProperty = ArchetypeClass->FindPropertyByName(TEXT("StaticPart"));
-	FProperty* MovingPartsProperty = ArchetypeClass->FindPropertyByName(TEXT("MovingParts"));
-	TestNotNull(TEXT("Archetype exposes StaticPart"), StaticPartProperty);
-	TestNotNull(TEXT("Archetype exposes MovingParts"), MovingPartsProperty);
+	FProperty* StaticPartProperty = DefinitionClass->FindPropertyByName(TEXT("StaticPart"));
+	FProperty* MovingPartsProperty = DefinitionClass->FindPropertyByName(TEXT("MovingParts"));
+	TestNotNull(TEXT("Definition exposes StaticPart"), StaticPartProperty);
+	TestNotNull(TEXT("Definition exposes MovingParts"), MovingPartsProperty);
 
 	if (StaticPartProperty)
 	{
@@ -211,29 +211,29 @@ bool FGridWorldObjectMIG03ArchetypeVisualContractTest::RunTest(const FString& Pa
 		TestTrue(TEXT("MovingParts is editable authoring data"), MovingPartsProperty->HasAnyPropertyFlags(CPF_Edit));
 	}
 
-	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(GetTransientPackage());
-	if (!TestNotNull(TEXT("Transient archetype exists"), Archetype))
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(GetTransientPackage());
+	if (!TestNotNull(TEXT("Transient definition exists"), Definition))
 	{
 		return false;
 	}
 
-	TestEqual(TEXT("New archetype has zero moving parts"), Archetype->GetDefinedMovingPartCount(), 0);
+	TestEqual(TEXT("New definition has zero moving parts"), Definition->GetDefinedMovingPartCount(), 0);
 
-	UStaticMesh* Mesh0 = NewObject<UStaticMesh>(Archetype);
-	UStaticMesh* Mesh1 = NewObject<UStaticMesh>(Archetype);
-	Archetype->MovingParts.Part0.Mesh = Mesh0;
-	TestEqual(TEXT("One defined slot means one moving part"), Archetype->GetDefinedMovingPartCount(), 1);
-	Archetype->MovingParts.Part1.Mesh = Mesh1;
-	TestEqual(TEXT("Two defined slots means two moving parts"), Archetype->GetDefinedMovingPartCount(), 2);
+	UStaticMesh* Mesh0 = NewObject<UStaticMesh>(Definition);
+	UStaticMesh* Mesh1 = NewObject<UStaticMesh>(Definition);
+	Definition->MovingParts.Part0.Mesh = Mesh0;
+	TestEqual(TEXT("One defined slot means one moving part"), Definition->GetDefinedMovingPartCount(), 1);
+	Definition->MovingParts.Part1.Mesh = Mesh1;
+	TestEqual(TEXT("Two defined slots means two moving parts"), Definition->GetDefinedMovingPartCount(), 2);
 
 	TestNull(TEXT("No third moving-part authoring slot exists"), FGridWorldObjectMovingParts::StaticStruct()->FindPropertyByName(TEXT("Part2")));
-	TestNull(TEXT("No MaxMovingParts parameter exists"), ArchetypeClass->FindPropertyByName(TEXT("MaxMovingParts")));
+	TestNull(TEXT("No MaxMovingParts parameter exists"), DefinitionClass->FindPropertyByName(TEXT("MaxMovingParts")));
 
 	const FName LegacyVisualNames[] = {TEXT("PreviewMesh"), TEXT("FixedMesh"), TEXT("MovingMesh"), TEXT("PitLeftLeafMesh"), TEXT("PitRightLeafMesh")};
 	for (const FName LegacyName : LegacyVisualNames)
 	{
 		TestNull(*FString::Printf(TEXT("%s legacy visual field is physically removed"), *LegacyName.ToString()),
-			ArchetypeClass->FindPropertyByName(LegacyName));
+			DefinitionClass->FindPropertyByName(LegacyName));
 	}
 
 	return true;
@@ -285,20 +285,20 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	}
 
 	// Door: two opposite moving leaves must be driven by the same normalized open state.
-	UGridObjectArchetypeAsset* DoorArchetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
-	DoorArchetype->StaticPart.Mesh = NewObject<UStaticMesh>(DoorArchetype);
-	DoorArchetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(DoorArchetype);
-	DoorArchetype->MovingParts.Part0.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(10.0f, 0.0f, 0.0f));
-	DoorArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
-	DoorArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::X;
-	DoorArchetype->MovingParts.Part0.Motion.Amount = 20.0f;
-	DoorArchetype->MovingParts.Part0.Motion.Duration = 0.20f;
-	DoorArchetype->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(DoorArchetype);
-	DoorArchetype->MovingParts.Part1.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(-10.0f, 0.0f, 0.0f));
-	DoorArchetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Translation;
-	DoorArchetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::X;
-	DoorArchetype->MovingParts.Part1.Motion.Amount = -20.0f;
-	DoorArchetype->MovingParts.Part1.Motion.Duration = 0.20f;
+	UGridWorldObjectDefinitionAsset* DoorDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
+	DoorDefinition->StaticPart.Mesh = NewObject<UStaticMesh>(DoorDefinition);
+	DoorDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(DoorDefinition);
+	DoorDefinition->MovingParts.Part0.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(10.0f, 0.0f, 0.0f));
+	DoorDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
+	DoorDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::X;
+	DoorDefinition->MovingParts.Part0.Motion.Amount = 20.0f;
+	DoorDefinition->MovingParts.Part0.Motion.Duration = 0.20f;
+	DoorDefinition->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(DoorDefinition);
+	DoorDefinition->MovingParts.Part1.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(-10.0f, 0.0f, 0.0f));
+	DoorDefinition->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Translation;
+	DoorDefinition->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::X;
+	DoorDefinition->MovingParts.Part1.Motion.Amount = -20.0f;
+	DoorDefinition->MovingParts.Part1.Motion.Duration = 0.20f;
 
 	FGridWorldObjectInstance DoorData;
 	DoorData.InstanceId = FGuid::NewGuid();
@@ -313,7 +313,7 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	{
 		return false;
 	}
-	Door->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(DoorData), DoorArchetype, FTransform::Identity);
+	Door->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(DoorData), DoorDefinition, FTransform::Identity);
 	Door->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(DoorData), nullptr, FTransform::Identity);
 	TestEqual(TEXT("Door consumes authored Motion.Duration"), Door->MoveDuration, 0.20f);
 	Door->OpenDoor();
@@ -329,22 +329,22 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	{
 		TestTrue(TEXT("Door MovingPart[0] reaches authored open transform"),
 			DoorPart0->GetRelativeTransform().Equals(
-				DoorArchetype->MovingParts.Part0.Motion.Evaluate(DoorArchetype->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
+				DoorDefinition->MovingParts.Part0.Motion.Evaluate(DoorDefinition->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
 	}
 	if (DoorPart1)
 	{
 		TestTrue(TEXT("Door MovingPart[1] reaches authored open transform"),
 			DoorPart1->GetRelativeTransform().Equals(
-				DoorArchetype->MovingParts.Part1.Motion.Evaluate(DoorArchetype->MovingParts.Part1.LocalTransform, 1.0f), 0.01f));
+				DoorDefinition->MovingParts.Part1.Motion.Evaluate(DoorDefinition->MovingParts.Part1.LocalTransform, 1.0f), 0.01f));
 	}
 
 	// Button: the target Motion replaces the old hard-coded press offset while hold behavior remains gameplay data.
-	UGridObjectArchetypeAsset* ButtonArchetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
-	ButtonArchetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(ButtonArchetype);
-	ButtonArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
-	ButtonArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::X;
-	ButtonArchetype->MovingParts.Part0.Motion.Amount = 7.0f;
-	ButtonArchetype->MovingParts.Part0.Motion.Duration = 0.05f;
+	UGridWorldObjectDefinitionAsset* ButtonDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
+	ButtonDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(ButtonDefinition);
+	ButtonDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
+	ButtonDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::X;
+	ButtonDefinition->MovingParts.Part0.Motion.Amount = 7.0f;
+	ButtonDefinition->MovingParts.Part0.Motion.Duration = 0.05f;
 
 	FGridWorldObjectInstance ButtonData;
 	ButtonData.InstanceId = FGuid::NewGuid();
@@ -357,7 +357,7 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	TestNotNull(TEXT("Target-composition button exists"), Button);
 	if (Button)
 	{
-		Button->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(ButtonData), ButtonArchetype, FTransform::Identity);
+		Button->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(ButtonData), ButtonDefinition, FTransform::Identity);
 		Button->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(ButtonData), nullptr, FTransform::Identity);
 		TestEqual(TEXT("Button press duration comes from Motion"), Button->PressDuration, 0.05f);
 		TestEqual(TEXT("Button release duration comes from Motion"), Button->ReleaseDuration, 0.05f);
@@ -367,7 +367,7 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 		{
 			TestTrue(TEXT("Button reaches authored pressed transform"),
 				ButtonPart->GetRelativeTransform().Equals(
-					ButtonArchetype->MovingParts.Part0.Motion.Evaluate(ButtonArchetype->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
+					ButtonDefinition->MovingParts.Part0.Motion.Evaluate(ButtonDefinition->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
 		}
 		else
 		{
@@ -376,14 +376,14 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	}
 
 	// Lever: target rotation and pivot own the visual state instead of LeverOffPitch/LeverOnPitch.
-	UGridObjectArchetypeAsset* LeverArchetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
-	LeverArchetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(LeverArchetype);
-	LeverArchetype->MovingParts.Part0.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(12.0f, 0.0f, 0.0f));
-	LeverArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	LeverArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Z;
-	LeverArchetype->MovingParts.Part0.Motion.Pivot = FVector::ZeroVector;
-	LeverArchetype->MovingParts.Part0.Motion.Amount = 90.0f;
-	LeverArchetype->MovingParts.Part0.Motion.Duration = 0.10f;
+	UGridWorldObjectDefinitionAsset* LeverDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
+	LeverDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(LeverDefinition);
+	LeverDefinition->MovingParts.Part0.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(12.0f, 0.0f, 0.0f));
+	LeverDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
+	LeverDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Z;
+	LeverDefinition->MovingParts.Part0.Motion.Pivot = FVector::ZeroVector;
+	LeverDefinition->MovingParts.Part0.Motion.Amount = 90.0f;
+	LeverDefinition->MovingParts.Part0.Motion.Duration = 0.10f;
 
 	FGridWorldObjectInstance LeverData;
 	LeverData.InstanceId = FGuid::NewGuid();
@@ -397,7 +397,7 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	TestNotNull(TEXT("Target-composition lever exists"), Lever);
 	if (Lever)
 	{
-		Lever->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(LeverData), LeverArchetype, FTransform::Identity);
+		Lever->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(LeverData), LeverDefinition, FTransform::Identity);
 		Lever->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(LeverData), nullptr, FTransform::Identity);
 		TestEqual(TEXT("Lever duration comes from Motion"), Lever->ToggleDuration, 0.10f);
 		Lever->SetLeverState(true);
@@ -406,7 +406,7 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 		{
 			TestTrue(TEXT("Lever reaches authored on transform"),
 				LeverPart->GetRelativeTransform().Equals(
-					LeverArchetype->MovingParts.Part0.Motion.Evaluate(LeverArchetype->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
+					LeverDefinition->MovingParts.Part0.Motion.Evaluate(LeverDefinition->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
 		}
 		else
 		{
@@ -415,13 +415,13 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	}
 
 	// Pressure plate: target translation owns the released/pressed visual positions.
-	UGridObjectArchetypeAsset* PlateArchetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
-	PlateArchetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(PlateArchetype);
-	PlateArchetype->MovingParts.Part0.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(0.0f, 0.0f, 4.0f));
-	PlateArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
-	PlateArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Z;
-	PlateArchetype->MovingParts.Part0.Motion.Amount = -3.0f;
-	PlateArchetype->MovingParts.Part0.Motion.Duration = 0.07f;
+	UGridWorldObjectDefinitionAsset* PlateDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
+	PlateDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(PlateDefinition);
+	PlateDefinition->MovingParts.Part0.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(0.0f, 0.0f, 4.0f));
+	PlateDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
+	PlateDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Z;
+	PlateDefinition->MovingParts.Part0.Motion.Amount = -3.0f;
+	PlateDefinition->MovingParts.Part0.Motion.Duration = 0.07f;
 
 	FGridWorldObjectInstance PlateData;
 	PlateData.InstanceId = FGuid::NewGuid();
@@ -434,7 +434,7 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	TestNotNull(TEXT("Target-composition pressure plate exists"), Plate);
 	if (Plate)
 	{
-		Plate->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(PlateData), PlateArchetype, FTransform::Identity);
+		Plate->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(PlateData), PlateDefinition, FTransform::Identity);
 		Plate->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(PlateData), nullptr, FTransform::Identity);
 		TestEqual(TEXT("Pressure plate duration comes from Motion"), Plate->MoveDuration, 0.07f);
 		Plate->SetPressed(true);
@@ -443,7 +443,7 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 		{
 			TestTrue(TEXT("Pressure plate reaches authored pressed transform"),
 				PlatePart->GetRelativeTransform().Equals(
-					PlateArchetype->MovingParts.Part0.Motion.Evaluate(PlateArchetype->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
+					PlateDefinition->MovingParts.Part0.Motion.Evaluate(PlateDefinition->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
 		}
 		else
 		{
@@ -452,22 +452,22 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	}
 
 	// Pit trapdoor: target MovingPart[0]/[1] own the two leaves and their hinge motions.
-	UGridObjectArchetypeAsset* PitArchetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
-	PitArchetype->StaticPart.Mesh = NewObject<UStaticMesh>(PitArchetype);
-	PitArchetype->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(PitArchetype);
-	PitArchetype->MovingParts.Part0.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(-40.0f, 0.0f, 0.0f));
-	PitArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	PitArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	PitArchetype->MovingParts.Part0.Motion.Pivot = FVector(-85.0f, 0.0f, -5.0f);
-	PitArchetype->MovingParts.Part0.Motion.Amount = -80.0f;
-	PitArchetype->MovingParts.Part0.Motion.Duration = 0.30f;
-	PitArchetype->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(PitArchetype);
-	PitArchetype->MovingParts.Part1.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(40.0f, 0.0f, 0.0f));
-	PitArchetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	PitArchetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	PitArchetype->MovingParts.Part1.Motion.Pivot = FVector(85.0f, 0.0f, -5.0f);
-	PitArchetype->MovingParts.Part1.Motion.Amount = 80.0f;
-	PitArchetype->MovingParts.Part1.Motion.Duration = 0.30f;
+	UGridWorldObjectDefinitionAsset* PitDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
+	PitDefinition->StaticPart.Mesh = NewObject<UStaticMesh>(PitDefinition);
+	PitDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(PitDefinition);
+	PitDefinition->MovingParts.Part0.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(-40.0f, 0.0f, 0.0f));
+	PitDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
+	PitDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	PitDefinition->MovingParts.Part0.Motion.Pivot = FVector(-85.0f, 0.0f, -5.0f);
+	PitDefinition->MovingParts.Part0.Motion.Amount = -80.0f;
+	PitDefinition->MovingParts.Part0.Motion.Duration = 0.30f;
+	PitDefinition->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(PitDefinition);
+	PitDefinition->MovingParts.Part1.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(40.0f, 0.0f, 0.0f));
+	PitDefinition->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
+	PitDefinition->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	PitDefinition->MovingParts.Part1.Motion.Pivot = FVector(85.0f, 0.0f, -5.0f);
+	PitDefinition->MovingParts.Part1.Motion.Amount = 80.0f;
+	PitDefinition->MovingParts.Part1.Motion.Duration = 0.30f;
 
 	FGridWorldObjectInstance PitData;
 	PitData.InstanceId = FGuid::NewGuid();
@@ -480,12 +480,12 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	TestNotNull(TEXT("Target-composition pit trapdoor exists"), Pit);
 	if (Pit)
 	{
-		Pit->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(PitData), PitArchetype, FTransform::Identity);
+		Pit->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(PitData), PitDefinition, FTransform::Identity);
 		Pit->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(PitData), nullptr, FTransform::Identity);
 		TestTrue(TEXT("Target pit recognizes its two-part cover"), Pit->HasCompleteTrapdoorCover());
 		TestEqual(TEXT("Pit duration comes from MovingParts Motion"), Pit->MoveDuration, 0.30f);
-		TestTrue(TEXT("Pit left pivot comes from MovingPart[0] Motion"), Pit->GetLeftHingeLocation().Equals(PitArchetype->MovingParts.Part0.Motion.Pivot));
-		TestTrue(TEXT("Pit right pivot comes from MovingPart[1] Motion"), Pit->GetRightHingeLocation().Equals(PitArchetype->MovingParts.Part1.Motion.Pivot));
+		TestTrue(TEXT("Pit left pivot comes from MovingPart[0] Motion"), Pit->GetLeftHingeLocation().Equals(PitDefinition->MovingParts.Part0.Motion.Pivot));
+		TestTrue(TEXT("Pit right pivot comes from MovingPart[1] Motion"), Pit->GetRightHingeLocation().Equals(PitDefinition->MovingParts.Part1.Motion.Pivot));
 		Pit->SetPitOpenVisualState(true, false);
 		TestTrue(TEXT("Target pit starts opening"), Pit->IsAnimating());
 		Pit->Tick(0.30f);
@@ -499,13 +499,13 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 		{
 			TestTrue(TEXT("Pit MovingPart[0] reaches authored open transform"),
 				PitPart0->GetRelativeTransform().Equals(
-					PitArchetype->MovingParts.Part0.Motion.Evaluate(PitArchetype->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
+					PitDefinition->MovingParts.Part0.Motion.Evaluate(PitDefinition->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
 		}
 		if (PitPart1)
 		{
 			TestTrue(TEXT("Pit MovingPart[1] reaches authored open transform"),
 				PitPart1->GetRelativeTransform().Equals(
-					PitArchetype->MovingParts.Part1.Motion.Evaluate(PitArchetype->MovingParts.Part1.LocalTransform, 1.0f), 0.01f));
+					PitDefinition->MovingParts.Part1.Motion.Evaluate(PitDefinition->MovingParts.Part1.LocalTransform, 1.0f), 0.01f));
 		}
 	}
 

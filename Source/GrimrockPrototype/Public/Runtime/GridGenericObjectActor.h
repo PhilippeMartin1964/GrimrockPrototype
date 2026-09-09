@@ -5,7 +5,7 @@
 #include "Runtime/GridInteractableInterface.h"
 #include "GridGenericObjectActor.generated.h"
 
-class UGridObjectArchetypeAsset;
+class UGridWorldObjectDefinitionAsset;
 class UPointLightComponent;
 
 /**
@@ -13,7 +13,7 @@ class UPointLightComponent;
  * and simple light sources.
  *
  * The level runtime actor still computes placement. This actor applies generic
- * archetype-driven options when InitializeRuntimeGenericObject is used. If it is spawned
+ * definition-driven options when InitializeRuntimeGenericObject is used. If it is spawned
  * through the base InitializeRuntimeWorldObject path, it still behaves as a safe static
  * visual actor.
  */
@@ -29,8 +29,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UPointLightComponent> PointLightComponent;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Grid|Archetype")
-	TObjectPtr<const UGridObjectArchetypeAsset> SourceArchetype;
+	UPROPERTY(BlueprintReadOnly, Category = "Grid|Definition")
+	TObjectPtr<const UGridWorldObjectDefinitionAsset> SourceWorldObjectDefinition;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Grid|Readable")
 	FText RuntimeReadableText;
@@ -43,7 +43,7 @@ public:
 
 public:
 	/** Runtime-native generic world-object initializer. */
-	void InitializeRuntimeGenericObject(const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* Mesh,
+	void InitializeRuntimeGenericObject(const FGridRuntimeWorldObjectData& ObjectData, const UGridWorldObjectDefinitionAsset* Definition, UStaticMesh* Mesh,
 		const FTransform& WorldTransform);
 
 	UFUNCTION(BlueprintCallable, Category = "Grid|Readable")
@@ -61,5 +61,5 @@ public:
 	virtual FText GetInteractionText_Implementation(UPrimitiveComponent* HitComponent) const override;
 
 protected:
-	void ApplyArchetypeOptions(const UGridObjectArchetypeAsset* Archetype);
+	void ApplyDefinitionOptions(const UGridWorldObjectDefinitionAsset* Definition);
 };

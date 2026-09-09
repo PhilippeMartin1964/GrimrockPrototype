@@ -70,7 +70,7 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 		if (HeldItemActor)
 		{
 			// MIG09-B: the held torch Blueprint keeps its own presentation, but runtime
-			// identity is the canonical ItemDefinitionId. Do not reintroduce ArchetypeId.
+			// identity is the canonical ItemDefinitionId. Do not reintroduce WorldObjectDefinitionId.
 			HeldItemActor->InitializeFromItemDefinitionId(ItemDefinitionId, FGuid());
 		}
 	}

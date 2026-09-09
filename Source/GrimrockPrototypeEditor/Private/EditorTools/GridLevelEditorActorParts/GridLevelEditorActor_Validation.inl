@@ -11,73 +11,73 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		LastValidationMessages.Add(ValidationMessage);
 	};
 
-	auto AddArchetypeValidationMessages = [this, &AddMessage]()
+	auto AddDefinitionValidationMessages = [this, &AddMessage]()
 	{
 		if (!ObjectPalette)
 		{
 			return;
 		}
 
-		TSet<const UGridObjectArchetypeAsset*> ValidatedArchetypes;
-		TSet<const UGridObjectArchetypeAsset*> DirectPaintItemArchetypes;
+		TSet<const UGridWorldObjectDefinitionAsset*> ValidatedDefinitions;
+		TSet<const UGridWorldObjectDefinitionAsset*> DirectPaintItemDefinitions;
 
-		TArray<FGridArchetypeValidationMessage> PaletteMessages;
+		TArray<FGridWorldObjectDefinitionValidationMessage> PaletteMessages;
 		ObjectPalette->ValidatePalette(PaletteMessages);
-		for (const FGridArchetypeValidationMessage& PaletteMessage : PaletteMessages)
+		for (const FGridWorldObjectDefinitionValidationMessage& PaletteMessage : PaletteMessages)
 		{
-			AddMessage(ConvertArchetypeValidationSeverity(PaletteMessage.Severity), FString::Printf(TEXT("ObjectPalette: %s"), *PaletteMessage.Message));
+			AddMessage(ConvertDefinitionValidationSeverity(PaletteMessage.Severity), FString::Printf(TEXT("ObjectPalette: %s"), *PaletteMessage.Message));
 		}
 
 		for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
 		{
-			const UGridObjectArchetypeAsset* Archetype = Entry.DefaultArchetype.Get();
-			if (!Archetype)
+			const UGridWorldObjectDefinitionAsset* Definition = Entry.DefaultWorldObjectDefinition.Get();
+			if (!Definition)
 			{
 				continue;
 			}
 
-			const FString ArchetypeName = Archetype->ArchetypeId.IsNone() ? Archetype->GetName() : Archetype->ArchetypeId.ToString();
+			const FString DefinitionName = Definition->DefinitionId.IsNone() ? Definition->GetName() : Definition->DefinitionId.ToString();
 
-			if (Archetype->SupportedType == EGridLevelObjectType::Item && !DirectPaintItemArchetypes.Contains(Archetype))
+			if (Definition->SupportedType == EGridLevelObjectType::Item && !DirectPaintItemDefinitions.Contains(Definition))
 			{
-				DirectPaintItemArchetypes.Add(Archetype);
+				DirectPaintItemDefinitions.Add(Definition);
 				AddMessage(EGridLevelValidationSeverity::Info,
-					FString::Printf(TEXT("Archetype %s: Item archetype is directly available in the paint palette as a placed pickup item."), *ArchetypeName));
+					FString::Printf(TEXT("Definition %s: Item definition is directly available in the paint palette as a placed pickup item."), *DefinitionName));
 			}
 
-			if (ValidatedArchetypes.Contains(Archetype))
+			if (ValidatedDefinitions.Contains(Definition))
 			{
 				continue;
 			}
 
-			ValidatedArchetypes.Add(Archetype);
+			ValidatedDefinitions.Add(Definition);
 
-			TArray<FGridArchetypeValidationMessage> ArchetypeMessages;
-			Archetype->ValidateArchetype(ArchetypeMessages);
+			TArray<FGridWorldObjectDefinitionValidationMessage> DefinitionMessages;
+			Definition->ValidateDefinition(DefinitionMessages);
 
-			for (const FGridArchetypeValidationMessage& ArchetypeMessage : ArchetypeMessages)
+			for (const FGridWorldObjectDefinitionValidationMessage& DefinitionMessage : DefinitionMessages)
 			{
-				AddMessage(ConvertArchetypeValidationSeverity(ArchetypeMessage.Severity),
-					FString::Printf(TEXT("Archetype %s: %s"), *ArchetypeName, *ArchetypeMessage.Message));
+				AddMessage(ConvertDefinitionValidationSeverity(DefinitionMessage.Severity),
+					FString::Printf(TEXT("Definition %s: %s"), *DefinitionName, *DefinitionMessage.Message));
 			}
 		}
 	};
 
-	auto AddExpectedConcreteArchetypeMessages = [this, &AddMessage]()
+	auto AddExpectedConcreteDefinitionMessages = [this, &AddMessage]()
 	{
 		if (!ObjectPalette)
 		{
 			return;
 		}
 
-		for (const FExpectedConcreteArchetypeSpec& ExpectedSpec : ExpectedConcreteArchetypes)
+		for (const FExpectedConcreteDefinitionSpec& ExpectedSpec : ExpectedConcreteDefinitions)
 		{
-			const FName ExpectedArchetypeId(ExpectedSpec.ArchetypeId);
+			const FName ExpectedWorldObjectDefinitionId(ExpectedSpec.WorldObjectDefinitionId);
 			const FGridObjectPaletteEntry* MatchingEntry = nullptr;
 
 			for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
 			{
-				if (Entry.GetEffectiveArchetypeId() == ExpectedArchetypeId)
+				if (Entry.GetEffectiveWorldObjectDefinitionId() == ExpectedWorldObjectDefinitionId)
 				{
 					MatchingEntry = &Entry;
 					break;
@@ -89,8 +89,8 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 				AddMessage(EGridLevelValidationSeverity::Warning,
 					FString::Printf(
 						TEXT(
-							"ObjectPalette should expose concrete archetype '%s'. Variants must be palette entries/archetypes, not new EGridLevelObjectType values."),
-						ExpectedSpec.ArchetypeId));
+							"ObjectPalette should expose concrete definition '%s'. Variants must be palette entries/definitions, not new EGridLevelObjectType values."),
+						ExpectedSpec.WorldObjectDefinitionId));
 				continue;
 			}
 
@@ -98,7 +98,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			if (EffectiveType != ExpectedSpec.ExpectedType)
 			{
 				AddMessage(EGridLevelValidationSeverity::Error,
-					FString::Printf(TEXT("ObjectPalette archetype '%s' should use Type=%s, but currently uses Type=%s."), ExpectedSpec.ArchetypeId,
+					FString::Printf(TEXT("ObjectPalette definition '%s' should use Type=%s, but currently uses Type=%s."), ExpectedSpec.WorldObjectDefinitionId,
 						*ToGridObjectTypeText(ExpectedSpec.ExpectedType), *ToGridObjectTypeText(EffectiveType)));
 			}
 		}
@@ -160,8 +160,8 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		}
 	}
 
-	AddArchetypeValidationMessages();
-	AddExpectedConcreteArchetypeMessages();
+	AddDefinitionValidationMessages();
+	AddExpectedConcreteDefinitionMessages();
 
 	if (!LevelAsset)
 	{
@@ -325,35 +325,35 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	{
 		const FGuid ObjectId = Obj.InstanceId;
 		if (!ValidatePlacement(ObjectId, Obj.CellX, Obj.CellY, Obj.PaletteEntryId, Obj.Type)) continue;
-		const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(Obj.WorldObjectDefinitionId);
+		const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinitionById(Obj.WorldObjectDefinitionId);
 		if (Obj.WorldObjectDefinitionId.IsNone())
 			AddMessage(EGridLevelValidationSeverity::Error, TEXT("Placed world object has no WorldObjectDefinitionId."), ObjectId);
-		else if (!Archetype)
+		else if (!Definition)
 			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Placed object definition '%s' cannot be resolved."), *Obj.WorldObjectDefinitionId.ToString()), ObjectId);
 		if (GridLevelPlacement::GetBucket(Obj.Type) != EGridLevelPlacementBucket::WorldObject)
 			AddMessage(EGridLevelValidationSeverity::Error, TEXT("WorldObjectInstances contains a type belonging to another placement collection."), ObjectId);
-		if (Archetype && Obj.Type != Archetype->SupportedType)
-			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Placed object Type=%s does not match archetype '%s' SupportedType=%s."), *ToGridObjectTypeText(Obj.Type), *Obj.WorldObjectDefinitionId.ToString(), *ToGridObjectTypeText(Archetype->SupportedType)), ObjectId);
+		if (Definition && Obj.Type != Definition->SupportedType)
+			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Placed object Type=%s does not match definition '%s' SupportedType=%s."), *ToGridObjectTypeText(Obj.Type), *Obj.WorldObjectDefinitionId.ToString(), *ToGridObjectTypeText(Definition->SupportedType)), ObjectId);
 		if (ObjectPalette && !Obj.PaletteEntryId.IsNone())
 		{
 			const FGridObjectPaletteEntry* Entry = ObjectPalette->FindEntryById(Obj.PaletteEntryId);
-			if (Entry && Entry->GetEffectiveArchetypeId() != Obj.WorldObjectDefinitionId)
+			if (Entry && Entry->GetEffectiveWorldObjectDefinitionId() != Obj.WorldObjectDefinitionId)
 				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Placed object PaletteEntryId now resolves to a different world object definition."), ObjectId);
 		}
-		if (Archetype)
+		if (Definition)
 		{
-			if (Archetype->bIsReadable)
+			if (Definition->bIsReadable)
 			{
-				if (Obj.ReadableTextOverride.IsEmpty() && Archetype->ReadableText.IsEmpty())
-					AddMessage(EGridLevelValidationSeverity::Warning, Obj.Notes.IsEmpty() ? TEXT("Readable placed object has no text in either its instance override or archetype.") : TEXT("Readable placed object has no text. Notes are editor-only and are not displayed at runtime."), ObjectId);
+				if (Obj.ReadableTextOverride.IsEmpty() && Definition->ReadableText.IsEmpty())
+					AddMessage(EGridLevelValidationSeverity::Warning, Obj.Notes.IsEmpty() ? TEXT("Readable placed object has no text in either its instance override or definition.") : TEXT("Readable placed object has no text. Notes are editor-only and are not displayed at runtime."), ObjectId);
 				if (!Obj.bInitiallyEnabled)
 					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Readable placed object is initially disabled and cannot be read until enabled."), ObjectId);
 			}
 			else if (!Obj.ReadableTextOverride.IsEmpty())
-				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Placed object has a readable-text override, but its archetype is not readable; the override is ignored at runtime."), ObjectId);
-			if (Archetype->IsCenterPlaced() && Obj.WallSide != EGridEdge::None)
+				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Placed object has a readable-text override, but its definition is not readable; the override is ignored at runtime."), ObjectId);
+			if (Definition->IsCenterPlaced() && Obj.WallSide != EGridEdge::None)
 				AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Center-placed object has a cardinal Edge=%s; runtime center placement ignores this edge."), *GetGridEdgeText(Obj.WallSide)), ObjectId);
-			if (Archetype->bBlocksMovement && LevelAsset->GetCell(Obj.CellX, Obj.CellY).bBlocksOccupancy)
+			if (Definition->bBlocksMovement && LevelAsset->GetCell(Obj.CellX, Obj.CellY).bBlocksOccupancy)
 				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Object blocks movement on a cell that already blocks occupancy."), ObjectId);
 		}
 		if (IsEdgePlacedObject(ObjectId) && !IsCardinal(Obj.WallSide))
@@ -416,9 +416,9 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		}
 		if (Obj.Type == EGridLevelObjectType::Receptacle)
 		{
-			if (Archetype)
+			if (Definition)
 			{
-				const FGridReceptacleBehaviorParams& Receptacle = Archetype->DefaultBehavior.Receptacle;
+				const FGridReceptacleBehaviorParams& Receptacle = Definition->DefaultBehavior.Receptacle;
 				if (!Receptacle.bAcceptAnyItem && Receptacle.AcceptedItems.IsEmpty())
 					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Receptacle does not accept any item because AcceptedItems is empty."), ObjectId);
 				for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Receptacle.AcceptedItems)
@@ -433,18 +433,18 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Receptacle InitialContent requires Quantity >= 1."), ObjectId);
 			}
 		}
-		if (Archetype)
+		if (Definition)
 		{
 			const FString Anchor = GetValidationAnchorKey(ObjectId);
 			for (FGuid OtherId : LevelAsset->GetTypedPlacementIdsAtCell(Obj.CellX, Obj.CellY))
 			{
 				if (OtherId == ObjectId) continue;
-				if (!Archetype->bCanShareCell)
+				if (!Definition->bCanShareCell)
 				{
 					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Object does not allow sharing its cell but another object is placed there."), ObjectId);
 					break;
 				}
-				if (!Archetype->bCanShareAnchor && Anchor == GetValidationAnchorKey(OtherId))
+				if (!Definition->bCanShareAnchor && Anchor == GetValidationAnchorKey(OtherId))
 				{
 					AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Object does not allow sharing anchor '%s' but another object uses it."), *Anchor), ObjectId);
 					break;

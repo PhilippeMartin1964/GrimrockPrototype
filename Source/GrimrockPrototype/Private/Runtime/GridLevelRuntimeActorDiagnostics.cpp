@@ -332,7 +332,7 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics() const
 	Result += FString::Printf(TEXT("NonEmptyCells=%d BlockingCells=%d CeilingCells=%d\n"), NonEmptyCellCount, BlockingCellCount, CeilingCellCount);
 	Result += FString::Printf(TEXT("Placements=%d Links=%d TransitionObjects=%d HiddenFloorCells=%d\n"), LevelAsset->GetTypedPlacementCount(), LevelAsset->Links.Num(),
 		TransitionObjectCount, HiddenFloorCellCount);
-	Result += FString::Printf(TEXT("ObjectArchetypesOnRuntimeActor=%d\n"), ObjectArchetypes.Num());
+	Result += FString::Printf(TEXT("WorldObjectDefinitionsOnRuntimeActor=%d\n"), WorldObjectDefinitions.Num());
 	Result += FString::Printf(TEXT("FloorMesh=%s WallMesh=%s CeilingMesh=%s\n"), *GetNameSafe(FloorMesh), *GetNameSafe(WallMesh), *GetNameSafe(CeilingMesh));
 
 	if (LevelAsset->Cells.Num() != ExpectedCellCount)
@@ -360,12 +360,12 @@ FString AGridLevelRuntimeActor::GetPIEReadinessDiagnostics() const
 	const bool bHasRequiredMeshes = FloorMesh && WallMesh && CeilingMesh;
 	const bool bHasValidStart = LevelAsset && LevelAsset->IsStartCellValid();
 
-	int32 NullArchetypeCount = 0;
-	for (const TObjectPtr<UGridObjectArchetypeAsset>& Archetype : ObjectArchetypes)
+	int32 NullDefinitionCount = 0;
+	for (const TObjectPtr<UGridWorldObjectDefinitionAsset>& Definition : WorldObjectDefinitions)
 	{
-		if (!Archetype)
+		if (!Definition)
 		{
-			++NullArchetypeCount;
+			++NullDefinitionCount;
 		}
 	}
 
@@ -406,7 +406,7 @@ FString AGridLevelRuntimeActor::GetPIEReadinessDiagnostics() const
 	}
 
 	Result += FString::Printf(TEXT("Meshes: Floor=%s Wall=%s Ceiling=%s\n"), *GetNameSafe(FloorMesh), *GetNameSafe(WallMesh), *GetNameSafe(CeilingMesh));
-	Result += FString::Printf(TEXT("ObjectArchetypes: Count=%d NullEntries=%d\n"), ObjectArchetypes.Num(), NullArchetypeCount);
+	Result += FString::Printf(TEXT("WorldObjectDefinitions: Count=%d NullEntries=%d\n"), WorldObjectDefinitions.Num(), NullDefinitionCount);
 	Result += FString::Printf(TEXT("Components: Activation=%s Doors=%s EditorPreview=%s\n"),
 		*GridLevelRuntimeDiagnosticsGetRuntimeBoolText(ActivationComponent != nullptr),
 		*GridLevelRuntimeDiagnosticsGetRuntimeBoolText(DoorSystemComponent != nullptr),

@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridBoundary.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
@@ -15,15 +15,15 @@ bool FGridWorldObjectMIG02SpatialBehaviorSchemaTest::RunTest(const FString& Para
 {
 	(void)Parameters;
 
-	UClass* ArchetypeClass = UGridObjectArchetypeAsset::StaticClass();
-	if (!TestNotNull(TEXT("World object archetype class exists"), ArchetypeClass))
+	UClass* DefinitionClass = UGridWorldObjectDefinitionAsset::StaticClass();
+	if (!TestNotNull(TEXT("World object definition class exists"), DefinitionClass))
 	{
 		return false;
 	}
 
-	FProperty* BlocksMovement = ArchetypeClass->FindPropertyByName(TEXT("bBlocksMovement"));
-	FProperty* OccupiesBoundary = ArchetypeClass->FindPropertyByName(TEXT("bOccupiesBoundary"));
-	FProperty* ReplacesWall = ArchetypeClass->FindPropertyByName(TEXT("bReplacesStandardWall"));
+	FProperty* BlocksMovement = DefinitionClass->FindPropertyByName(TEXT("bBlocksMovement"));
+	FProperty* OccupiesBoundary = DefinitionClass->FindPropertyByName(TEXT("bOccupiesBoundary"));
+	FProperty* ReplacesWall = DefinitionClass->FindPropertyByName(TEXT("bReplacesStandardWall"));
 	TestNotNull(TEXT("Blocks Cell Movement authoring property exists"), BlocksMovement);
 	TestNotNull(TEXT("Occupies Boundary authoring property exists"), OccupiesBoundary);
 	TestNotNull(TEXT("Suppress Base Wall authoring property exists"), ReplacesWall);
@@ -46,7 +46,7 @@ bool FGridWorldObjectMIG02SpatialBehaviorSchemaTest::RunTest(const FString& Para
 	}
 
 	int32 EditableSpatialPropertyCount = 0;
-	for (TFieldIterator<FProperty> It(ArchetypeClass, EFieldIteratorFlags::ExcludeSuper); It; ++It)
+	for (TFieldIterator<FProperty> It(DefinitionClass, EFieldIteratorFlags::ExcludeSuper); It; ++It)
 	{
 		const FProperty* Property = *It;
 		if (Property && Property->HasAnyPropertyFlags(CPF_Edit) && Property->GetMetaData(TEXT("Category")).StartsWith(TEXT("Spatial Behavior")))
@@ -59,7 +59,7 @@ bool FGridWorldObjectMIG02SpatialBehaviorSchemaTest::RunTest(const FString& Para
 	const FName LegacySharingNames[] = {TEXT("bCanShareCell"), TEXT("bCanShareAnchor")};
 	for (const FName LegacySharingName : LegacySharingNames)
 	{
-		FProperty* LegacyProperty = ArchetypeClass->FindPropertyByName(LegacySharingName);
+		FProperty* LegacyProperty = DefinitionClass->FindPropertyByName(LegacySharingName);
 		TestNotNull(*FString::Printf(TEXT("%s remains only as an internal compile bridge"), *LegacySharingName.ToString()), LegacyProperty);
 		if (LegacyProperty)
 		{
@@ -68,17 +68,17 @@ bool FGridWorldObjectMIG02SpatialBehaviorSchemaTest::RunTest(const FString& Para
 		}
 	}
 
-	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>();
-	TestFalse(TEXT("Default does not block cell movement"), Archetype->BlocksCellMovement());
-	TestFalse(TEXT("Default does not occupy a boundary"), Archetype->OccupiesBoundary());
-	TestFalse(TEXT("Default does not suppress a base wall"), Archetype->SuppressesBaseWall());
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
+	TestFalse(TEXT("Default does not block cell movement"), Definition->BlocksCellMovement());
+	TestFalse(TEXT("Default does not occupy a boundary"), Definition->OccupiesBoundary());
+	TestFalse(TEXT("Default does not suppress a base wall"), Definition->SuppressesBaseWall());
 
-	Archetype->bBlocksMovement = true;
-	Archetype->bOccupiesBoundary = true;
-	Archetype->bReplacesStandardWall = true;
-	TestTrue(TEXT("BlocksCellMovement semantic accessor reflects authoring data"), Archetype->BlocksCellMovement());
-	TestTrue(TEXT("OccupiesBoundary semantic accessor reflects authoring data"), Archetype->OccupiesBoundary());
-	TestTrue(TEXT("SuppressesBaseWall semantic accessor reflects authoring data"), Archetype->SuppressesBaseWall());
+	Definition->bBlocksMovement = true;
+	Definition->bOccupiesBoundary = true;
+	Definition->bReplacesStandardWall = true;
+	TestTrue(TEXT("BlocksCellMovement semantic accessor reflects authoring data"), Definition->BlocksCellMovement());
+	TestTrue(TEXT("OccupiesBoundary semantic accessor reflects authoring data"), Definition->OccupiesBoundary());
+	TestTrue(TEXT("SuppressesBaseWall semantic accessor reflects authoring data"), Definition->SuppressesBaseWall());
 
 	return true;
 }

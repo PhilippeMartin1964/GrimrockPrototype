@@ -1,4 +1,4 @@
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 
 #include "Runtime/GridDoorActor.h"
 #include "Runtime/GridPitTrapdoorActor.h"
@@ -13,22 +13,22 @@ namespace
 {
 	constexpr float CurrentCeilingPlaneHeight = 200.0f;
 
-	const TCHAR* ToValidationSeverityText(EGridArchetypeValidationSeverity Severity)
+	const TCHAR* ToValidationSeverityText(EGridWorldObjectDefinitionValidationSeverity Severity)
 	{
 		switch (Severity)
 		{
-			case EGridArchetypeValidationSeverity::Info:
+			case EGridWorldObjectDefinitionValidationSeverity::Info:
 				return TEXT("Info");
-			case EGridArchetypeValidationSeverity::Warning:
+			case EGridWorldObjectDefinitionValidationSeverity::Warning:
 				return TEXT("Warning");
-			case EGridArchetypeValidationSeverity::Error:
+			case EGridWorldObjectDefinitionValidationSeverity::Error:
 				return TEXT("Error");
 			default:
 				return TEXT("Unknown");
 		}
 	}
 
-	void AddValidationMessage(TArray<FGridArchetypeValidationMessage>& Messages, EGridArchetypeValidationSeverity Severity, const TCHAR* Message)
+	void AddValidationMessage(TArray<FGridWorldObjectDefinitionValidationMessage>& Messages, EGridWorldObjectDefinitionValidationSeverity Severity, const TCHAR* Message)
 	{
 		Messages.Emplace(Severity, FString(Message));
 	}
@@ -134,10 +134,10 @@ namespace
 		return ObjectCategory == GetRecommendedObjectCategory(SupportedType, bIsReadable);
 	}
 
-	bool IsDefaultLightParams(const UGridObjectArchetypeAsset& Archetype)
+	bool IsDefaultLightParams(const UGridWorldObjectDefinitionAsset& Definition)
 	{
-		return Archetype.LightColor.Equals(FLinearColor::White) && FMath::IsNearlyEqual(Archetype.LightIntensity, 500.f) &&
-			FMath::IsNearlyEqual(Archetype.LightRadius, 500.f) && !Archetype.bUseLightFlicker;
+		return Definition.LightColor.Equals(FLinearColor::White) && FMath::IsNearlyEqual(Definition.LightIntensity, 500.f) &&
+			FMath::IsNearlyEqual(Definition.LightRadius, 500.f) && !Definition.bUseLightFlicker;
 	}
 
 	bool HasReceptacleBehaviorParams(const FGridObjectBehaviorParams& Behavior)
@@ -148,10 +148,10 @@ namespace
 			!Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.IsNearlyZero();
 	}
 
-	bool IsWallLockArchetype(const UGridObjectArchetypeAsset& Archetype)
+	bool IsWallLockDefinition(const UGridWorldObjectDefinitionAsset& Definition)
 	{
-		return (Archetype.RuntimeActorClass && Archetype.RuntimeActorClass->IsChildOf(AGridWallLockActor::StaticClass())) ||
-			Archetype.DefaultBehavior.Lock.AcceptedKeyIds.Num() > 0 || Archetype.DefaultBehavior.Lock.AcceptedKeyItems.Num() > 0;
+		return (Definition.RuntimeActorClass && Definition.RuntimeActorClass->IsChildOf(AGridWallLockActor::StaticClass())) ||
+			Definition.DefaultBehavior.Lock.AcceptedKeyIds.Num() > 0 || Definition.DefaultBehavior.Lock.AcceptedKeyItems.Num() > 0;
 	}
 
 	bool HasTeleporterBehaviorParams(const FGridObjectBehaviorParams& Behavior)
@@ -164,24 +164,24 @@ namespace
 		return !FMath::IsNearlyEqual(Behavior.ButtonAnimation.ButtonHoldTime, 0.15f);
 	}
 
-	bool IsPaletteCategory(const UGridObjectArchetypeAsset& Archetype, const TCHAR* ExpectedCategory)
+	bool IsPaletteCategory(const UGridWorldObjectDefinitionAsset& Definition, const TCHAR* ExpectedCategory)
 	{
-		return Archetype.Category == FName(ExpectedCategory);
+		return Definition.Category == FName(ExpectedCategory);
 	}
 
-	bool IsExpectedConcreteReceptacleArchetype(FName ArchetypeId)
+	bool IsExpectedConcreteReceptacleDefinition(FName DefinitionId)
 	{
 		static const FName ReceptacleAlcoveId(TEXT("Receptacle_Alcove"));
 		static const FName ReceptacleStoneAlcoveId(TEXT("Receptacle_Alcove_Stone"));
 		static const FName ReceptacleTorchHolderId(TEXT("Receptacle_TorchHolder"));
 		static const FName ReceptacleAltarId(TEXT("Receptacle_Altar"));
 		static const FName ReceptacleOfferingBowlId(TEXT("Receptacle_OfferingBowl"));
-		return ArchetypeId == ReceptacleAlcoveId || ArchetypeId == ReceptacleStoneAlcoveId || ArchetypeId == ReceptacleTorchHolderId ||
-			ArchetypeId == ReceptacleAltarId || ArchetypeId == ReceptacleOfferingBowlId;
+		return DefinitionId == ReceptacleAlcoveId || DefinitionId == ReceptacleStoneAlcoveId || DefinitionId == ReceptacleTorchHolderId ||
+			DefinitionId == ReceptacleAltarId || DefinitionId == ReceptacleOfferingBowlId;
 	}
 }
 
-void UGridObjectArchetypeAsset::RefreshPlacementRuntimeProjection()
+void UGridWorldObjectDefinitionAsset::RefreshPlacementRuntimeProjection()
 {
 	PlacementKind = PlacementSurface;
 	LocalOffsetAlongWall = DefaultLocalPosition.U;
@@ -210,7 +210,7 @@ void UGridObjectArchetypeAsset::RefreshPlacementRuntimeProjection()
 	}
 }
 
-void UGridObjectArchetypeAsset::PostLoad()
+void UGridWorldObjectDefinitionAsset::PostLoad()
 {
 	Super::PostLoad();
 	RefreshPlacementRuntimeProjection();
@@ -243,14 +243,14 @@ void UGridObjectArchetypeAsset::PostLoad()
 }
 
 #if WITH_EDITOR
-void UGridObjectArchetypeAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void UGridWorldObjectDefinitionAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 	RefreshPlacementRuntimeProjection();
 }
 #endif
 
-bool UGridObjectArchetypeAsset::ResolveAudioEvent(FName EventName, FGridObjectAudioEvent& OutEvent) const
+bool UGridWorldObjectDefinitionAsset::ResolveAudioEvent(FName EventName, FGridObjectAudioEvent& OutEvent) const
 {
 	if (const FGridObjectAudioEvent* Event = AudioEvents.Find(EventName))
 	{
@@ -280,152 +280,152 @@ bool UGridObjectArchetypeAsset::ResolveAudioEvent(FName EventName, FGridObjectAu
 	return false;
 }
 
-bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidationMessage>& OutMessages) const
+bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObjectDefinitionValidationMessage>& OutMessages) const
 {
 	OutMessages.Reset();
 
-	if (ArchetypeId.IsNone()) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("ArchetypeId is not set."));
-	if (SupportedType == EGridLevelObjectType::None) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("SupportedType must not be None."));
+	if (DefinitionId.IsNone()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("DefinitionId is not set."));
+	if (SupportedType == EGridLevelObjectType::None) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("SupportedType must not be None."));
 	if (!HasValidPlacementSurface())
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
 			TEXT("Placement Surface must be Floor, Wall or Ceiling. Center and Edge are no longer valid authoring values."));
 	}
 	if (!DefaultLocalPosition.IsFinite())
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
 			TEXT("Default Local Position U/V/N must contain finite values."));
 	}
-	if (ArchetypeId == FName(TEXT("Door_Secret")) && SupportedType != EGridLevelObjectType::Door)
+	if (DefinitionId == FName(TEXT("Door_Secret")) && SupportedType != EGridLevelObjectType::Door)
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
-			TEXT("Door_Secret must use SupportedType=Door. Visual variants must stay archetypes, not EGridLevelObjectType values."));
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
+			TEXT("Door_Secret must use SupportedType=Door. Visual variants must stay definitions, not EGridLevelObjectType values."));
 	}
-	if (IsExpectedConcreteReceptacleArchetype(ArchetypeId) && SupportedType != EGridLevelObjectType::Receptacle)
+	if (IsExpectedConcreteReceptacleDefinition(DefinitionId) && SupportedType != EGridLevelObjectType::Receptacle)
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
-			TEXT("Concrete receptacle archetypes must use SupportedType=Receptacle. Visual variants must stay archetypes, not EGridLevelObjectType values."));
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
+			TEXT("Concrete receptacle definitions must use SupportedType=Receptacle. Visual variants must stay definitions, not EGridLevelObjectType values."));
 	}
-	if ((ArchetypeId == FName(TEXT("Receptacle_Alcove")) || ArchetypeId == FName(TEXT("Receptacle_Alcove_Stone"))) &&
+	if ((DefinitionId == FName(TEXT("Receptacle_Alcove")) || DefinitionId == FName(TEXT("Receptacle_Alcove_Stone"))) &&
 		DefaultBehavior.Receptacle.MaxContainedItems == 1)
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Receptacle alcoves must use MaxContainedItems > 1 or <= 0."));
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Receptacle alcoves must use MaxContainedItems > 1 or <= 0."));
 	}
-	if ((ArchetypeId == FName(TEXT("Receptacle_Alcove")) || ArchetypeId == FName(TEXT("Receptacle_Alcove_Stone"))) &&
+	if ((DefinitionId == FName(TEXT("Receptacle_Alcove")) || DefinitionId == FName(TEXT("Receptacle_Alcove_Stone"))) &&
 		DefaultBehavior.Receptacle.VisualPlacementMode != EGridReceptacleVisualPlacementMode::PhysicalAtHit)
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Receptacle alcoves must use VisualPlacementMode=PhysicalAtHit."));
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Receptacle alcoves must use VisualPlacementMode=PhysicalAtHit."));
 	}
 	if (RequiresRuntimeActorClass() && !RuntimeActorClass)
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("RuntimeActorClass is required for this SupportedType."));
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("RuntimeActorClass is required for this SupportedType."));
 	}
 
 	for (const TPair<FName, FGridObjectAudioEvent>& Pair : AudioEvents)
 	{
-		if (Pair.Key.IsNone()) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Audio event key must not be None."));
+		if (Pair.Key.IsNone()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Audio event key must not be None."));
 		if (!FMath::IsFinite(Pair.Value.Volume) || Pair.Value.Volume < 0.f)
 		{
-			AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+			AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
 				*FString::Printf(TEXT("Audio event %s Volume must be finite and >= 0."), *Pair.Key.ToString()));
 		}
 		if (!FMath::IsFinite(Pair.Value.PitchVariation) || Pair.Value.PitchVariation < 0.f || Pair.Value.PitchVariation > 0.25f)
 		{
-			AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+			AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
 				*FString::Printf(TEXT("Audio event %s PitchVariation must be finite and between 0.0 and 0.25."), *Pair.Key.ToString()));
 		}
 	}
 
 	if (Category.IsNone())
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info,
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info,
 			TEXT("Palette Category is not set. This does not affect runtime, but the object may be harder to organize in the editor palette."));
 	}
 	if (bReplacesStandardWall && !IsWallPlacement(PlacementSurface))
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Replaces Standard Wall is enabled but Placement Surface is not Wall."));
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Replaces Standard Wall is enabled but Placement Surface is not Wall."));
 	}
 	if (bReplacesStandardWall && bCanShareAnchor)
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning,
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning,
 			TEXT("Replaces Standard Wall is enabled while bCanShareAnchor=true. Multiple wall replacements can overlap on the same boundary."));
 	}
 	if (!IsObjectCategoryCompatible(SupportedType, ObjectCategory, bIsReadable))
 	{
 		if (SupportedType == EGridLevelObjectType::Decoration && bIsReadable)
 		{
-			AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Readable Decoration should generally use ObjectCategory=Readable."));
+			AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Readable Decoration should generally use ObjectCategory=Readable."));
 		}
 		else
 		{
 			const EGridObjectCategory RecommendedCategory = GetRecommendedObjectCategory(SupportedType, bIsReadable);
-			OutMessages.Emplace(EGridArchetypeValidationSeverity::Warning,
+			OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Warning,
 				FString::Printf(TEXT("%s should generally use ObjectCategory=%s, but currently uses %s."), ToSupportedTypeText(SupportedType),
 					ToObjectCategoryText(RecommendedCategory), ToObjectCategoryText(ObjectCategory)));
 		}
 	}
-	if (!bIsReadable && !ReadableText.IsEmpty()) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("ReadableText is set but bIsReadable=false."));
-	if (!bIsReadable && bShowReadableOnlyOnce) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("bShowReadableOnlyOnce is enabled but bIsReadable=false."));
+	if (!bIsReadable && !ReadableText.IsEmpty()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("ReadableText is set but bIsReadable=false."));
+	if (!bIsReadable && bShowReadableOnlyOnce) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("bShowReadableOnlyOnce is enabled but bIsReadable=false."));
 	if (!UsesLightParams() && !bIsLightSource && !IsDefaultLightParams(*this))
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("Light parameters are customized but this archetype is not a light source."));
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("Light parameters are customized but this definition is not a light source."));
 	}
-	if (bUseLightFlicker && !bIsLightSource) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Light flicker is enabled but bIsLightSource=false."));
+	if (bUseLightFlicker && !bIsLightSource) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Light flicker is enabled but bIsLightSource=false."));
 	if (!UsesReceptacleParams() && HasReceptacleBehaviorParams(DefaultBehavior))
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("Receptacle behavior parameters are set but SupportedType is not Receptacle."));
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("Receptacle behavior parameters are set but SupportedType is not Receptacle."));
 	}
 	if (!UsesTeleporterParams() && HasTeleporterBehaviorParams(DefaultBehavior))
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("Teleporter target cell is set but SupportedType is not Teleporter."));
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("Teleporter target cell is set but SupportedType is not Teleporter."));
 	}
 	if (!UsesButtonAnimationParams() && HasCustomButtonBehaviorParams(DefaultBehavior))
 	{
-		AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("Button behavior parameters are customized but SupportedType is not Button."));
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("Button behavior parameters are customized but SupportedType is not Button."));
 	}
 
 	switch (SupportedType)
 	{
 		case EGridLevelObjectType::Door:
 		{
-			if (!IsWallPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Door Placement Surface must be Wall."));
-			if (!HasMovingVisualPart()) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Door requires at least one Moving Part."));
+			if (!IsWallPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Door Placement Surface must be Wall."));
+			if (!HasMovingVisualPart()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Door requires at least one Moving Part."));
 			if (RuntimeActorClass && !RuntimeActorClass->IsChildOf(AGridDoorActor::StaticClass()))
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Door RuntimeActorClass must derive from AGridDoorActor."));
+				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Door RuntimeActorClass must derive from AGridDoorActor."));
 			}
-			if (bCanShareAnchor) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Door should generally have bCanShareAnchor set to false."));
+			if (bCanShareAnchor) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Door should generally have bCanShareAnchor set to false."));
 			break;
 		}
 		case EGridLevelObjectType::Button:
 		case EGridLevelObjectType::Lever:
 		{
-			if (!IsWallPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Button and Lever Placement Surface must be Wall."));
-			if (!bIsInteractable) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Button and Lever should generally be interactable."));
-			if (!HasMovingVisualPart()) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Button and Lever should generally define at least one Moving Part."));
+			if (!IsWallPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Button and Lever Placement Surface must be Wall."));
+			if (!bIsInteractable) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Button and Lever should generally be interactable."));
+			if (!HasMovingVisualPart()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Button and Lever should generally define at least one Moving Part."));
 			break;
 		}
 		case EGridLevelObjectType::Pit:
 		{
-			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit Placement Surface must be Floor."));
-			if (!StaticPart.IsDefined()) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit requires a Static Part for the permanent pit geometry."));
-			if (bBlocksMovement) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Pit must not block movement; entering its cell triggers the fall."));
-			if (!bHideCellFloor) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Pit should hide the standard cell floor."));
+			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Pit Placement Surface must be Floor."));
+			if (!StaticPart.IsDefined()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Pit requires a Static Part for the permanent pit geometry."));
+			if (bBlocksMovement) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Pit must not block movement; entering its cell triggers the fall."));
+			if (!bHideCellFloor) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Pit should hide the standard cell floor."));
 			const bool bHasPart0 = MovingParts.Part0.IsDefined();
 			const bool bHasPart1 = MovingParts.Part1.IsDefined();
 			if (bHasPart0 != bHasPart1)
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
 					TEXT("Pit trapdoor cover is incomplete: Moving Part 0 and Moving Part 1 must both be defined."));
 			}
 			if (!bHasPart0 && !bHasPart1 && !DefaultBehavior.Pit.bInitiallyOpen)
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning,
+				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning,
 					TEXT("Pit has no moving cover, so it is a static open hole regardless of Initially Open=false."));
 			}
 			if (HasCompletePitTrapdoorCover() && RuntimeActorClass && !RuntimeActorClass->IsChildOf(AGridPitTrapdoorActor::StaticClass()))
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
 					TEXT("A dual-part Pit trapdoor requires GridPitTrapdoorActor (or a derived Blueprint) as Runtime Actor Class."));
 			}
 			if (bHasPart0)
@@ -434,17 +434,17 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 				const FGridWorldObjectMotion& Motion1 = MovingParts.Part1.Motion;
 				if (!FMath::IsFinite(Motion0.Amount) || !FMath::IsFinite(Motion1.Amount) || FMath::Abs(Motion0.Amount) > 120.0f || FMath::Abs(Motion1.Amount) > 120.0f)
 				{
-					AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+					AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
 						TEXT("Pit trapdoor Motion.Amount must be finite and within +/-120 degrees."));
 				}
 				if (Motion0.Pivot.ContainsNaN() || Motion1.Pivot.ContainsNaN())
 				{
-					AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+					AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
 						TEXT("Pit trapdoor Motion.Pivot coordinates must be finite."));
 				}
 				if (!FMath::IsFinite(Motion0.Duration) || !FMath::IsFinite(Motion1.Duration) || Motion0.Duration < 0.0f || Motion1.Duration < 0.0f)
 				{
-					AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error,
+					AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
 						TEXT("Pit trapdoor Motion.Duration must be finite and >= 0."));
 				}
 			}
@@ -452,74 +452,74 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 		}
 		case EGridLevelObjectType::PressurePlate:
 		{
-			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("PressurePlate Placement Surface must be Floor."));
-			if (bIsInteractable) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("PressurePlate is marked interactable, which is usually unnecessary."));
-			if (!HasMovingVisualPart()) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("PressurePlate should generally define at least one Moving Part."));
+			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("PressurePlate Placement Surface must be Floor."));
+			if (bIsInteractable) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("PressurePlate is marked interactable, which is usually unnecessary."));
+			if (!HasMovingVisualPart()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("PressurePlate should generally define at least one Moving Part."));
 			break;
 		}
 		case EGridLevelObjectType::Trigger:
-			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Trigger Placement Surface must be Floor."));
+			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Trigger Placement Surface must be Floor."));
 			break;
 		case EGridLevelObjectType::Decoration:
 		{
-			if (!HasAnyVisualPart()) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Decoration should generally define a visual part."));
-			if (bIsReadable && !bIsInteractable) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Readable decoration should generally also be interactable."));
-			if (bIsReadable && ReadableText.IsEmpty()) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("ReadableText is empty; this is acceptable when OverrideReadableText is defined on level object data."));
+			if (!HasAnyVisualPart()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Decoration should generally define a visual part."));
+			if (bIsReadable && !bIsInteractable) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Readable decoration should generally also be interactable."));
+			if (bIsReadable && ReadableText.IsEmpty()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("ReadableText is empty; this is acceptable when OverrideReadableText is defined on level object data."));
 			break;
 		}
 		case EGridLevelObjectType::Light:
 		{
-			if (!bIsLightSource) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Light should generally have bIsLightSource set to true."));
-			if (bIsLightSource && LightIntensity <= 0.f) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("LightIntensity must be greater than 0 when bIsLightSource is true."));
-			if (bIsLightSource && LightRadius <= 0.f) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("LightRadius must be greater than 0 when bIsLightSource is true."));
+			if (!bIsLightSource) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Light should generally have bIsLightSource set to true."));
+			if (bIsLightSource && LightIntensity <= 0.f) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("LightIntensity must be greater than 0 when bIsLightSource is true."));
+			if (bIsLightSource && LightRadius <= 0.f) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("LightRadius must be greater than 0 when bIsLightSource is true."));
 			break;
 		}
 		case EGridLevelObjectType::Teleporter:
 		{
-			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Teleporter Placement Surface must be Floor."));
+			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Teleporter Placement Surface must be Floor."));
 			if (DefaultBehavior.Teleporter.TargetCellX == INDEX_NONE || DefaultBehavior.Teleporter.TargetCellY == INDEX_NONE)
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Teleporter should define DefaultBehavior TargetCellX and TargetCellY."));
+				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Teleporter should define DefaultBehavior TargetCellX and TargetCellY."));
 			}
 			break;
 		}
 		case EGridLevelObjectType::Receptacle:
 		{
-			if (!bIsInteractable) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Receptacle should generally be interactable."));
+			if (!bIsInteractable) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Receptacle should generally be interactable."));
 			if (RuntimeActorClass && !RuntimeActorClass->IsChildOf(AGridReceptacleActor::StaticClass()))
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("Receptacle RuntimeActorClass must derive from AGridReceptacleActor."));
+				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Receptacle RuntimeActorClass must derive from AGridReceptacleActor."));
 			}
-			if (!IsWallLockArchetype(*this) && !DefaultBehavior.Receptacle.bAcceptAnyItem && DefaultBehavior.Receptacle.AcceptedItems.Num() == 0)
+			if (!IsWallLockDefinition(*this) && !DefaultBehavior.Receptacle.bAcceptAnyItem && DefaultBehavior.Receptacle.AcceptedItems.Num() == 0)
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Receptacle does not accept any item because AcceptedItems is empty."));
+				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Receptacle does not accept any item because AcceptedItems is empty."));
 			}
 			for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : DefaultBehavior.Receptacle.AcceptedItems)
 			{
-				if (!AcceptedItem.ItemDefinition) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Receptacle AcceptedItems contains an entry without an ItemDefinition."));
+				if (!AcceptedItem.ItemDefinition) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Receptacle AcceptedItems contains an entry without an ItemDefinition."));
 			}
 			for (const FGridReceptacleInitialItemConfig& InitialItem : DefaultBehavior.Receptacle.InitialContent)
 			{
-				if (!InitialItem.ItemDefinition) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Receptacle InitialContent contains an entry without an ItemDefinition."));
+				if (!InitialItem.ItemDefinition) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Receptacle InitialContent contains an entry without an ItemDefinition."));
 			}
 			break;
 		}
 		case EGridLevelObjectType::MonsterSpawn:
 		case EGridLevelObjectType::ItemSpawn:
 		{
-			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Error, TEXT("MonsterSpawn and ItemSpawn Placement Surface must be Floor."));
+			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("MonsterSpawn and ItemSpawn Placement Surface must be Floor."));
 			if (SupportedType == EGridLevelObjectType::ItemSpawn && !Category.IsNone() && !IsPaletteCategory(*this, TEXT("Spawns")))
 			{
-				AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("ItemSpawn palette category should generally be Spawns."));
+				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("ItemSpawn palette category should generally be Spawns."));
 			}
 			break;
 		}
 		case EGridLevelObjectType::Item:
 		{
-			if (!Category.IsNone() && !IsPaletteCategory(*this, TEXT("Items"))) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Info, TEXT("Item palette category should generally be Items."));
-			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Item Placement Surface should be Floor while items still use the world-object placement path."));
+			if (!Category.IsNone() && !IsPaletteCategory(*this, TEXT("Items"))) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("Item palette category should generally be Items."));
+			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Item Placement Surface should be Floor while items still use the world-object placement path."));
 			const bool bHasDefaultItemDefinition = DefaultBehavior.Item.ItemDefinitionAsset || !DefaultBehavior.Item.ItemDefinitionId.IsNone();
-			if (!ItemActorClass && !bHasDefaultItemDefinition) AddValidationMessage(OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT("Item should generally define ItemActorClass or DefaultBehavior.Item."));
+			if (!ItemActorClass && !bHasDefaultItemDefinition) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Item should generally define ItemActorClass or DefaultBehavior.Item."));
 			break;
 		}
 		case EGridLevelObjectType::None:
@@ -527,45 +527,45 @@ bool UGridObjectArchetypeAsset::ValidateArchetype(TArray<FGridArchetypeValidatio
 			break;
 	}
 
-	for (const FGridArchetypeValidationMessage& Message : OutMessages)
+	for (const FGridWorldObjectDefinitionValidationMessage& Message : OutMessages)
 	{
-		if (Message.Severity == EGridArchetypeValidationSeverity::Error) return false;
+		if (Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error) return false;
 	}
 	return true;
 }
 
-bool UGridObjectArchetypeAsset::IsValidArchetype() const
+bool UGridWorldObjectDefinitionAsset::IsValidDefinition() const
 {
-	TArray<FGridArchetypeValidationMessage> Messages;
-	return ValidateArchetype(Messages);
+	TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
+	return ValidateDefinition(Messages);
 }
 
-FString UGridObjectArchetypeAsset::GetValidationSummary() const
+FString UGridWorldObjectDefinitionAsset::GetValidationSummary() const
 {
-	TArray<FGridArchetypeValidationMessage> Messages;
-	ValidateArchetype(Messages);
+	TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
+	ValidateDefinition(Messages);
 	int32 ErrorCount = 0;
 	int32 WarningCount = 0;
 	int32 InfoCount = 0;
-	for (const FGridArchetypeValidationMessage& Message : Messages)
+	for (const FGridWorldObjectDefinitionValidationMessage& Message : Messages)
 	{
 		switch (Message.Severity)
 		{
-			case EGridArchetypeValidationSeverity::Error: ++ErrorCount; break;
-			case EGridArchetypeValidationSeverity::Warning: ++WarningCount; break;
-			case EGridArchetypeValidationSeverity::Info: ++InfoCount; break;
+			case EGridWorldObjectDefinitionValidationSeverity::Error: ++ErrorCount; break;
+			case EGridWorldObjectDefinitionValidationSeverity::Warning: ++WarningCount; break;
+			case EGridWorldObjectDefinitionValidationSeverity::Info: ++InfoCount; break;
 		}
 	}
-	const FString ArchetypeName = ArchetypeId.IsNone() ? GetName() : ArchetypeId.ToString();
-	FString Summary = FString::Printf(TEXT("Grid archetype validation: %s | Errors=%d Warnings=%d Info=%d"), *ArchetypeName, ErrorCount, WarningCount, InfoCount);
-	for (const FGridArchetypeValidationMessage& Message : Messages)
+	const FString DefinitionName = DefinitionId.IsNone() ? GetName() : DefinitionId.ToString();
+	FString Summary = FString::Printf(TEXT("Grid definition validation: %s | Errors=%d Warnings=%d Info=%d"), *DefinitionName, ErrorCount, WarningCount, InfoCount);
+	for (const FGridWorldObjectDefinitionValidationMessage& Message : Messages)
 	{
 		Summary += FString::Printf(TEXT("\n- [%s] %s"), ToValidationSeverityText(Message.Severity), *Message.Message);
 	}
 	return Summary;
 }
 
-bool UGridObjectArchetypeAsset::RequiresEdgePlacement() const
+bool UGridWorldObjectDefinitionAsset::RequiresEdgePlacement() const
 {
 	switch (SupportedType)
 	{
@@ -578,7 +578,7 @@ bool UGridObjectArchetypeAsset::RequiresEdgePlacement() const
 	}
 }
 
-bool UGridObjectArchetypeAsset::SupportsCenterPlacement() const
+bool UGridWorldObjectDefinitionAsset::SupportsCenterPlacement() const
 {
 	switch (SupportedType)
 	{
@@ -599,7 +599,7 @@ bool UGridObjectArchetypeAsset::SupportsCenterPlacement() const
 	}
 }
 
-bool UGridObjectArchetypeAsset::SupportsWallPlacement() const
+bool UGridWorldObjectDefinitionAsset::SupportsWallPlacement() const
 {
 	switch (SupportedType)
 	{
@@ -615,7 +615,7 @@ bool UGridObjectArchetypeAsset::SupportsWallPlacement() const
 	}
 }
 
-bool UGridObjectArchetypeAsset::RequiresRuntimeActorClass() const
+bool UGridWorldObjectDefinitionAsset::RequiresRuntimeActorClass() const
 {
 	switch (SupportedType)
 	{
@@ -632,7 +632,7 @@ bool UGridObjectArchetypeAsset::RequiresRuntimeActorClass() const
 	}
 }
 
-bool UGridObjectArchetypeAsset::AllowsInvisibleRuntimeObject() const
+bool UGridWorldObjectDefinitionAsset::AllowsInvisibleRuntimeObject() const
 {
 	switch (SupportedType)
 	{
@@ -645,16 +645,16 @@ bool UGridObjectArchetypeAsset::AllowsInvisibleRuntimeObject() const
 	}
 }
 
-bool UGridObjectArchetypeAsset::UsesWallPlacementParams() const { return PlacementSurface == EGridObjectPlacementKind::Wall; }
-bool UGridObjectArchetypeAsset::UsesCenterPlacementParams() const { return PlacementSurface == EGridObjectPlacementKind::Floor || PlacementSurface == EGridObjectPlacementKind::Ceiling; }
-bool UGridObjectArchetypeAsset::UsesReadableParams() const { return bIsReadable || ObjectCategory == EGridObjectCategory::Readable || (SupportedType == EGridLevelObjectType::Decoration && bIsReadable); }
-bool UGridObjectArchetypeAsset::UsesLightParams() const { return bIsLightSource || SupportedType == EGridLevelObjectType::Light || ObjectCategory == EGridObjectCategory::Light; }
-bool UGridObjectArchetypeAsset::UsesItemParams() const { return SupportedType == EGridLevelObjectType::Item || SupportedType == EGridLevelObjectType::ItemSpawn || ItemActorClass != nullptr; }
-bool UGridObjectArchetypeAsset::UsesReceptacleParams() const { return SupportedType == EGridLevelObjectType::Receptacle; }
-bool UGridObjectArchetypeAsset::UsesTeleporterParams() const { return SupportedType == EGridLevelObjectType::Teleporter; }
-bool UGridObjectArchetypeAsset::UsesButtonAnimationParams() const { return SupportedType == EGridLevelObjectType::Button; }
+bool UGridWorldObjectDefinitionAsset::UsesWallPlacementParams() const { return PlacementSurface == EGridObjectPlacementKind::Wall; }
+bool UGridWorldObjectDefinitionAsset::UsesCenterPlacementParams() const { return PlacementSurface == EGridObjectPlacementKind::Floor || PlacementSurface == EGridObjectPlacementKind::Ceiling; }
+bool UGridWorldObjectDefinitionAsset::UsesReadableParams() const { return bIsReadable || ObjectCategory == EGridObjectCategory::Readable || (SupportedType == EGridLevelObjectType::Decoration && bIsReadable); }
+bool UGridWorldObjectDefinitionAsset::UsesLightParams() const { return bIsLightSource || SupportedType == EGridLevelObjectType::Light || ObjectCategory == EGridObjectCategory::Light; }
+bool UGridWorldObjectDefinitionAsset::UsesItemParams() const { return SupportedType == EGridLevelObjectType::Item || SupportedType == EGridLevelObjectType::ItemSpawn || ItemActorClass != nullptr; }
+bool UGridWorldObjectDefinitionAsset::UsesReceptacleParams() const { return SupportedType == EGridLevelObjectType::Receptacle; }
+bool UGridWorldObjectDefinitionAsset::UsesTeleporterParams() const { return SupportedType == EGridLevelObjectType::Teleporter; }
+bool UGridWorldObjectDefinitionAsset::UsesButtonAnimationParams() const { return SupportedType == EGridLevelObjectType::Button; }
 
-bool UGridObjectArchetypeAsset::UsesTriggerParams() const
+bool UGridWorldObjectDefinitionAsset::UsesTriggerParams() const
 {
 	switch (SupportedType)
 	{
@@ -670,7 +670,7 @@ bool UGridObjectArchetypeAsset::UsesTriggerParams() const
 	}
 }
 
-bool UGridObjectArchetypeAsset::UsesMovingMeshParams() const
+bool UGridWorldObjectDefinitionAsset::UsesMovingMeshParams() const
 {
 	if (UsesItemParams()) return true;
 	switch (SupportedType)
@@ -685,12 +685,12 @@ bool UGridObjectArchetypeAsset::UsesMovingMeshParams() const
 	}
 }
 
-bool UGridObjectArchetypeAsset::UsesFixedMeshParams() const
+bool UGridWorldObjectDefinitionAsset::UsesFixedMeshParams() const
 {
 	return SupportedType == EGridLevelObjectType::Door || SupportedType == EGridLevelObjectType::Pit || UsesItemParams();
 }
 
-bool UGridObjectArchetypeAsset::UsesRuntimeActorClass() const
+bool UGridWorldObjectDefinitionAsset::UsesRuntimeActorClass() const
 {
 	return RequiresRuntimeActorClass() || RuntimeActorClass != nullptr;
 }

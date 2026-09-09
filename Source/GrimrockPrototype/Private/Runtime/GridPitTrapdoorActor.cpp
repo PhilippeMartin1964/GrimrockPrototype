@@ -25,9 +25,9 @@ void AGridPitTrapdoorActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 }
 
 void AGridPitTrapdoorActor::InitializeRuntimeMechanismVisuals(
-	const FGridRuntimeWorldObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform)
+	const FGridRuntimeWorldObjectData& ObjectData, const UGridWorldObjectDefinitionAsset* Definition, const FTransform& WorldTransform)
 {
-	AGridMechanismActor::InitializeRuntimeMechanismVisuals(ObjectData, Archetype, WorldTransform);
+	AGridMechanismActor::InitializeRuntimeMechanismVisuals(ObjectData, Definition, WorldTransform);
 
 	// WORLDOBJ-MIG04: pit geometry and travel time are entirely generic MovingParts motion.
 	MoveDuration = GetTargetMotionDuration();

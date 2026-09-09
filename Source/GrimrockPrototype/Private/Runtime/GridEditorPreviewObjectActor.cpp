@@ -6,7 +6,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Core/GridLevelPlacementTypes.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
 AGridEditorPreviewObjectActor::AGridEditorPreviewObjectActor()
@@ -89,10 +89,10 @@ void AGridEditorPreviewObjectActor::InitializePreviewObject(FGuid InObjectId, EG
 	RefreshStencilState();
 }
 
-void AGridEditorPreviewObjectActor::InitializePreviewObjectFromArchetype(
-	FGuid InObjectId, EGridLevelObjectType InObjectType, const UGridObjectArchetypeAsset* Archetype)
+void AGridEditorPreviewObjectActor::InitializePreviewObjectFromDefinition(
+	FGuid InObjectId, EGridLevelObjectType InObjectType, const UGridWorldObjectDefinitionAsset* Definition)
 {
-	if (!Archetype || !Archetype->HasAnyVisualPart())
+	if (!Definition || !Definition->HasAnyVisualPart())
 	{
 		InitializePreviewObject(InObjectId, InObjectType, nullptr);
 		return;
@@ -120,9 +120,9 @@ void AGridEditorPreviewObjectActor::InitializePreviewObjectFromArchetype(
 		Component->SetVisibility(Mesh != nullptr, true);
 	};
 
-	ConfigurePart(MeshComponent, Archetype->StaticPart.Mesh.Get(), Archetype->StaticPart.LocalTransform);
-	ConfigurePart(MovingPart0MeshComponent, Archetype->MovingParts.Part0.Mesh.Get(), Archetype->MovingParts.Part0.LocalTransform);
-	ConfigurePart(MovingPart1MeshComponent, Archetype->MovingParts.Part1.Mesh.Get(), Archetype->MovingParts.Part1.LocalTransform);
+	ConfigurePart(MeshComponent, Definition->StaticPart.Mesh.Get(), Definition->StaticPart.LocalTransform);
+	ConfigurePart(MovingPart0MeshComponent, Definition->MovingParts.Part0.Mesh.Get(), Definition->MovingParts.Part0.LocalTransform);
+	ConfigurePart(MovingPart1MeshComponent, Definition->MovingParts.Part1.Mesh.Get(), Definition->MovingParts.Part1.LocalTransform);
 
 	bIsHovered = false;
 	bIsSelected = false;

@@ -6,7 +6,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/DataAsset.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -89,9 +89,9 @@ namespace GridTD0738StrictSchema
 			return;
 		}
 
-		if (const UGridObjectArchetypeAsset* Archetype = Cast<UGridObjectArchetypeAsset>(&DataAsset))
+		if (const UGridWorldObjectDefinitionAsset* Definition = Cast<UGridWorldObjectDefinitionAsset>(&DataAsset))
 		{
-			AuditBehavior(AssetPath, TEXT("DefaultBehavior"), Archetype->DefaultBehavior, Candidates);
+			AuditBehavior(AssetPath, TEXT("DefaultBehavior"), Definition->DefaultBehavior, Candidates);
 			return;
 		}
 
@@ -208,9 +208,9 @@ bool FGridTD0738LegacySymbolsAbsentTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UClass* ArchetypeClass = UGridObjectArchetypeAsset::StaticClass();
-	TestNull(TEXT("bPlaceOnEdge is absent"), ArchetypeClass->FindPropertyByName(TEXT("bPlaceOnEdge")));
-	TestNull(TEXT("bPlaceAtCellCenter is absent"), ArchetypeClass->FindPropertyByName(TEXT("bPlaceAtCellCenter")));
+	UClass* DefinitionClass = UGridWorldObjectDefinitionAsset::StaticClass();
+	TestNull(TEXT("bPlaceOnEdge is absent"), DefinitionClass->FindPropertyByName(TEXT("bPlaceOnEdge")));
+	TestNull(TEXT("bPlaceAtCellCenter is absent"), DefinitionClass->FindPropertyByName(TEXT("bPlaceAtCellCenter")));
 
 	UClass* ItemClass = UGridItemDefinitionAsset::StaticClass();
 	TestNull(TEXT("Legacy item bProvidesAttack is absent"), ItemClass->FindPropertyByName(TEXT("bProvidesAttack")));

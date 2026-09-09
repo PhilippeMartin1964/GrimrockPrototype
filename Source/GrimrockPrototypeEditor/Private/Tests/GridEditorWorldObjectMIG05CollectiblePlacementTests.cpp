@@ -102,10 +102,10 @@ bool FGridEditorWorldObjectMIG05DirectItemPlacementTest::RunTest(const FString& 
 	EditorActor->SelectedCellY = 1;
 	EditorActor->SelectedEdge = EGridEdge::None;
 
-	TestTrue(TEXT("Direct ItemDefinition palette entry can be selected without DefaultArchetype"), EditorActor->ApplyPaletteEntry(Entry.EntryId));
+	TestTrue(TEXT("Direct ItemDefinition palette entry can be selected without DefaultWorldObjectDefinition"), EditorActor->ApplyPaletteEntry(Entry.EntryId));
 	TestEqual(TEXT("Direct collectible palette selects Item paint type"), EditorActor->PaintObjectType, EGridLevelObjectType::Item);
-	TestTrue(TEXT("Direct collectible palette leaves ObjectArchetypeId empty"), EditorActor->ObjectArchetypeId.IsNone());
-	TestTrue(TEXT("Direct collectible palette leaves SelectedArchetypeId empty"), EditorActor->SelectedArchetypeId.IsNone());
+	TestTrue(TEXT("Direct collectible palette leaves WorldObjectDefinitionId empty"), EditorActor->WorldObjectDefinitionId.IsNone());
+	TestTrue(TEXT("Direct collectible palette leaves SelectedWorldObjectDefinitionId empty"), EditorActor->SelectedWorldObjectDefinitionId.IsNone());
 	TestTrue(TEXT("Direct collectible staging references the ItemDefinition"), EditorActor->ObjectBehavior.Item.ItemDefinitionAsset == Definition);
 
 	EditorActor->PlaceSelectedObject();

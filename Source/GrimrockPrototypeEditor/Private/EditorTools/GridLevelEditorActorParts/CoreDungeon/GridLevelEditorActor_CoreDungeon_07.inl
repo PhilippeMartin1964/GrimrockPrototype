@@ -1,4 +1,4 @@
-bool AGridLevelEditorActor::EnsureStairsTransitionArchetypes(FString& OutError)
+bool AGridLevelEditorActor::EnsureStairsTransitionDefinitions(FString& OutError)
 {
 	OutError.Reset();
 
@@ -22,62 +22,62 @@ bool AGridLevelEditorActor::EnsureStairsTransitionArchetypes(FString& OutError)
 
 	bool bCreatedUp = false;
 	bool bCreatedDown = false;
-	UGridObjectArchetypeAsset* StairsUpArchetype = LoadOrCreateObjectArchetypeAsset(
+	UGridWorldObjectDefinitionAsset* StairsUpDefinition = LoadOrCreateWorldObjectDefinitionAsset(
 		TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Stairs_Up"), TEXT("DA_Stairs_Up"), bCreatedUp);
-	UGridObjectArchetypeAsset* StairsDownArchetype = LoadOrCreateObjectArchetypeAsset(
+	UGridWorldObjectDefinitionAsset* StairsDownDefinition = LoadOrCreateWorldObjectDefinitionAsset(
 		TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Stairs_Down"), TEXT("DA_Stairs_Down"), bCreatedDown);
 
-	if (!StairsUpArchetype || !StairsDownArchetype)
+	if (!StairsUpDefinition || !StairsDownDefinition)
 	{
-		OutError = TEXT("Failed to load or create Stairs_Up / Stairs_Down archetype assets.");
+		OutError = TEXT("Failed to load or create Stairs_Up / Stairs_Down definition assets.");
 		return false;
 	}
 
-	const auto ConfigureTargetStairsTransitionArchetype = [](UGridObjectArchetypeAsset& Archetype, FName ArchetypeId, const TCHAR* DisplayName,
+	const auto ConfigureTargetStairsTransitionDefinition = [](UGridWorldObjectDefinitionAsset& Definition, FName WorldObjectDefinitionId, const TCHAR* DisplayName,
 		UStaticMesh* Mesh, bool bHideCellFloor)
 	{
-		Archetype.Modify();
-		Archetype.ArchetypeId = ArchetypeId;
-		Archetype.DisplayName = FText::FromString(DisplayName);
-		Archetype.SupportedType = EGridLevelObjectType::Decoration;
-		Archetype.Description = FText::FromString(TEXT("Dungeon transition stair object."));
-		Archetype.bDefaultInitiallyEnabled = true;
-		Archetype.bDefaultInitiallyActive = false;
-		Archetype.DefaultTag = NAME_None;
-		Archetype.DefaultBehavior = FGridObjectBehaviorParams();
-		Archetype.DefaultBehavior.Transition.bIsTransition = true;
-		Archetype.DefaultBehavior.Transition.TargetLevelId = NAME_None;
-		Archetype.DefaultBehavior.Transition.TargetCellX = 0;
-		Archetype.DefaultBehavior.Transition.TargetCellY = 0;
-		Archetype.DefaultBehavior.Transition.TargetFacing = EGridEdge::North;
-		Archetype.DefaultBehavior.Transition.bRequireUseAction = false;
-		Archetype.Category = FName(TEXT("Transitions"));
-		Archetype.ObjectCategory = EGridObjectCategory::Decoration;
-		Archetype.PlacementSurface = EGridObjectPlacementKind::Floor;
-		Archetype.DefaultLocalPosition = FGridSurfaceLocalPosition();
-		Archetype.bCanShareCell = true;
-		Archetype.bCanShareAnchor = true;
-		Archetype.bReplacesStandardWall = false;
-		Archetype.bBlocksMovement = false;
-		Archetype.bHideCellFloor = bHideCellFloor;
-		Archetype.bIsInteractable = false;
-		Archetype.bIsReadable = false;
-		Archetype.bIsLightSource = false;
-		Archetype.StaticPart.Mesh = Mesh;
-		Archetype.StaticPart.LocalTransform = FTransform::Identity;
-		Archetype.MovingParts = FGridWorldObjectMovingParts();
-		Archetype.RuntimeActorClass = AGridGenericObjectActor::StaticClass();
-		Archetype.ItemActorClass = nullptr;
-		Archetype.RefreshPlacementRuntimeProjection();
-		Archetype.MarkPackageDirty();
+		Definition.Modify();
+		Definition.DefinitionId = WorldObjectDefinitionId;
+		Definition.DisplayName = FText::FromString(DisplayName);
+		Definition.SupportedType = EGridLevelObjectType::Decoration;
+		Definition.Description = FText::FromString(TEXT("Dungeon transition stair object."));
+		Definition.bDefaultInitiallyEnabled = true;
+		Definition.bDefaultInitiallyActive = false;
+		Definition.DefaultTag = NAME_None;
+		Definition.DefaultBehavior = FGridObjectBehaviorParams();
+		Definition.DefaultBehavior.Transition.bIsTransition = true;
+		Definition.DefaultBehavior.Transition.TargetLevelId = NAME_None;
+		Definition.DefaultBehavior.Transition.TargetCellX = 0;
+		Definition.DefaultBehavior.Transition.TargetCellY = 0;
+		Definition.DefaultBehavior.Transition.TargetFacing = EGridEdge::North;
+		Definition.DefaultBehavior.Transition.bRequireUseAction = false;
+		Definition.Category = FName(TEXT("Transitions"));
+		Definition.ObjectCategory = EGridObjectCategory::Decoration;
+		Definition.PlacementSurface = EGridObjectPlacementKind::Floor;
+		Definition.DefaultLocalPosition = FGridSurfaceLocalPosition();
+		Definition.bCanShareCell = true;
+		Definition.bCanShareAnchor = true;
+		Definition.bReplacesStandardWall = false;
+		Definition.bBlocksMovement = false;
+		Definition.bHideCellFloor = bHideCellFloor;
+		Definition.bIsInteractable = false;
+		Definition.bIsReadable = false;
+		Definition.bIsLightSource = false;
+		Definition.StaticPart.Mesh = Mesh;
+		Definition.StaticPart.LocalTransform = FTransform::Identity;
+		Definition.MovingParts = FGridWorldObjectMovingParts();
+		Definition.RuntimeActorClass = AGridGenericObjectActor::StaticClass();
+		Definition.ItemActorClass = nullptr;
+		Definition.RefreshPlacementRuntimeProjection();
+		Definition.MarkPackageDirty();
 	};
 
-	ConfigureTargetStairsTransitionArchetype(*StairsUpArchetype, FName(TEXT("Stairs_Up")), TEXT("Stairs Up"), StairsUpMesh, false);
-	ConfigureTargetStairsTransitionArchetype(*StairsDownArchetype, FName(TEXT("Stairs_Down")), TEXT("Stairs Down"), StairsDownMesh, true);
+	ConfigureTargetStairsTransitionDefinition(*StairsUpDefinition, FName(TEXT("Stairs_Up")), TEXT("Stairs Up"), StairsUpMesh, false);
+	ConfigureTargetStairsTransitionDefinition(*StairsDownDefinition, FName(TEXT("Stairs_Down")), TEXT("Stairs Down"), StairsDownMesh, true);
 
 	ObjectPalette->Modify();
 
-	const auto AddOrUpdatePaletteEntry = [this](FName EntryId, const FText& DisplayName, UGridObjectArchetypeAsset* Archetype)
+	const auto AddOrUpdatePaletteEntry = [this](FName EntryId, const FText& DisplayName, UGridWorldObjectDefinitionAsset* Definition)
 	{
 		FGridObjectPaletteEntry* ExistingEntry = ObjectPalette->Entries.FindByPredicate(
 			[EntryId](const FGridObjectPaletteEntry& Entry)
@@ -93,39 +93,39 @@ bool AGridLevelEditorActor::EnsureStairsTransitionArchetypes(FString& OutError)
 		ExistingEntry->EntryId = EntryId;
 		ExistingEntry->DisplayNameOverride = DisplayName;
 		ExistingEntry->CategoryOverride = FName(TEXT("Transitions"));
-		ExistingEntry->DefaultArchetype = Archetype;
+		ExistingEntry->DefaultWorldObjectDefinition = Definition;
 	};
 
-	AddOrUpdatePaletteEntry(FName(TEXT("Stairs_Up")), FText::FromString(TEXT("Stairs Up")), StairsUpArchetype);
-	AddOrUpdatePaletteEntry(FName(TEXT("Stairs_Down")), FText::FromString(TEXT("Stairs Down")), StairsDownArchetype);
+	AddOrUpdatePaletteEntry(FName(TEXT("Stairs_Up")), FText::FromString(TEXT("Stairs Up")), StairsUpDefinition);
+	AddOrUpdatePaletteEntry(FName(TEXT("Stairs_Down")), FText::FromString(TEXT("Stairs Down")), StairsDownDefinition);
 	ObjectPalette->MarkPackageDirty();
 
 	ResolvePreviewRuntimeActor();
 	if (PreviewRuntimeActor)
 	{
 		PreviewRuntimeActor->Modify();
-		PreviewRuntimeActor->ObjectArchetypes.AddUnique(StairsUpArchetype);
-		PreviewRuntimeActor->ObjectArchetypes.AddUnique(StairsDownArchetype);
+		PreviewRuntimeActor->WorldObjectDefinitions.AddUnique(StairsUpDefinition);
+		PreviewRuntimeActor->WorldObjectDefinitions.AddUnique(StairsDownDefinition);
 	}
 
 	TArray<UPackage*> PackagesToSave;
-	PackagesToSave.AddUnique(StairsUpArchetype->GetOutermost());
-	PackagesToSave.AddUnique(StairsDownArchetype->GetOutermost());
+	PackagesToSave.AddUnique(StairsUpDefinition->GetOutermost());
+	PackagesToSave.AddUnique(StairsDownDefinition->GetOutermost());
 	PackagesToSave.AddUnique(ObjectPalette->GetOutermost());
 	UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
 
-	UE_LOG(LogTemp, Log, TEXT("Stairs transition archetypes ensured from target visual composition: Stairs_Up=%s Stairs_Down=%s Palette=%s CreatedUp=%s CreatedDown=%s."),
-		*StairsUpArchetype->GetPathName(), *StairsDownArchetype->GetPathName(), *ObjectPalette->GetPathName(), bCreatedUp ? TEXT("true") : TEXT("false"),
+	UE_LOG(LogTemp, Log, TEXT("Stairs transition definitions ensured from target visual composition: Stairs_Up=%s Stairs_Down=%s Palette=%s CreatedUp=%s CreatedDown=%s."),
+		*StairsUpDefinition->GetPathName(), *StairsDownDefinition->GetPathName(), *ObjectPalette->GetPathName(), bCreatedUp ? TEXT("true") : TEXT("false"),
 		bCreatedDown ? TEXT("true") : TEXT("false"));
 
 	return true;
 #else
-	OutError = TEXT("EnsureStairsTransitionArchetypes is editor-only.");
+	OutError = TEXT("EnsureStairsTransitionDefinitions is editor-only.");
 	return false;
 #endif
 }
 
-bool AGridLevelEditorActor::EnsurePitTrapdoorArchetype(FString& OutError)
+bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 {
 	OutError.Reset();
 	if (!ObjectPalette)
@@ -144,75 +144,75 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorArchetype(FString& OutError)
 	}
 
 	bool bCreated = false;
-	UGridObjectArchetypeAsset* PitArchetype = LoadOrCreateObjectArchetypeAsset(
+	UGridWorldObjectDefinitionAsset* PitDefinition = LoadOrCreateWorldObjectDefinitionAsset(
 		TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Pit_Stone_01"), TEXT("DA_Pit_Stone_01"), bCreated);
-	if (!PitArchetype)
+	if (!PitDefinition)
 	{
 		OutError = TEXT("Failed to load or create DA_Pit_Stone_01.");
 		return false;
 	}
 
-	PitArchetype->Modify();
-	PitArchetype->ArchetypeId = FName(TEXT("Pit_Stone_01"));
-	PitArchetype->DisplayName = FText::FromString(TEXT("Stone Pit"));
-	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
-	PitArchetype->Description = FText::FromString(TEXT("Controlled inter-level pit with optional dual-part trapdoor cover."));
-	PitArchetype->bDefaultInitiallyEnabled = true;
-	PitArchetype->bDefaultInitiallyActive = false;
-	PitArchetype->DefaultTag = NAME_None;
-	PitArchetype->DefaultBehavior = FGridObjectBehaviorParams();
-	PitArchetype->DefaultBehavior.Pit.bInitiallyOpen = true;
-	PitArchetype->DefaultBehavior.Pit.bUseSameCellCoordinates = true;
-	PitArchetype->DefaultBehavior.Transition.bIsTransition = true;
-	PitArchetype->DefaultBehavior.Transition.TargetLevelId = NAME_None;
-	PitArchetype->DefaultBehavior.Transition.TargetCellX = 0;
-	PitArchetype->DefaultBehavior.Transition.TargetCellY = 0;
-	PitArchetype->DefaultBehavior.Transition.TargetFacing = EGridEdge::North;
-	PitArchetype->DefaultBehavior.Transition.bRequireUseAction = false;
-	PitArchetype->Category = FName(TEXT("Hazards"));
-	PitArchetype->ObjectCategory = EGridObjectCategory::Mechanism;
-	PitArchetype->PlacementSurface = EGridObjectPlacementKind::Floor;
-	PitArchetype->DefaultLocalPosition = FGridSurfaceLocalPosition();
-	PitArchetype->bCanShareCell = false;
-	PitArchetype->bCanShareAnchor = false;
-	PitArchetype->bReplacesStandardWall = false;
-	PitArchetype->bBlocksMovement = false;
-	PitArchetype->bHideCellFloor = true;
-	PitArchetype->bIsInteractable = false;
-	PitArchetype->bIsReadable = false;
-	PitArchetype->bIsLightSource = false;
-	PitArchetype->StaticPart.Mesh = PitMesh;
-	PitArchetype->StaticPart.LocalTransform = FTransform::Identity;
-	PitArchetype->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
-	PitArchetype->ItemActorClass = nullptr;
+	PitDefinition->Modify();
+	PitDefinition->DefinitionId = FName(TEXT("Pit_Stone_01"));
+	PitDefinition->DisplayName = FText::FromString(TEXT("Stone Pit"));
+	PitDefinition->SupportedType = EGridLevelObjectType::Pit;
+	PitDefinition->Description = FText::FromString(TEXT("Controlled inter-level pit with optional dual-part trapdoor cover."));
+	PitDefinition->bDefaultInitiallyEnabled = true;
+	PitDefinition->bDefaultInitiallyActive = false;
+	PitDefinition->DefaultTag = NAME_None;
+	PitDefinition->DefaultBehavior = FGridObjectBehaviorParams();
+	PitDefinition->DefaultBehavior.Pit.bInitiallyOpen = true;
+	PitDefinition->DefaultBehavior.Pit.bUseSameCellCoordinates = true;
+	PitDefinition->DefaultBehavior.Transition.bIsTransition = true;
+	PitDefinition->DefaultBehavior.Transition.TargetLevelId = NAME_None;
+	PitDefinition->DefaultBehavior.Transition.TargetCellX = 0;
+	PitDefinition->DefaultBehavior.Transition.TargetCellY = 0;
+	PitDefinition->DefaultBehavior.Transition.TargetFacing = EGridEdge::North;
+	PitDefinition->DefaultBehavior.Transition.bRequireUseAction = false;
+	PitDefinition->Category = FName(TEXT("Hazards"));
+	PitDefinition->ObjectCategory = EGridObjectCategory::Mechanism;
+	PitDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
+	PitDefinition->DefaultLocalPosition = FGridSurfaceLocalPosition();
+	PitDefinition->bCanShareCell = false;
+	PitDefinition->bCanShareAnchor = false;
+	PitDefinition->bReplacesStandardWall = false;
+	PitDefinition->bBlocksMovement = false;
+	PitDefinition->bHideCellFloor = true;
+	PitDefinition->bIsInteractable = false;
+	PitDefinition->bIsReadable = false;
+	PitDefinition->bIsLightSource = false;
+	PitDefinition->StaticPart.Mesh = PitMesh;
+	PitDefinition->StaticPart.LocalTransform = FTransform::Identity;
+	PitDefinition->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
+	PitDefinition->ItemActorClass = nullptr;
 
 	// WORLDOBJ-MIG04: a pit has either no moving cover or a complete Part0/Part1 pair.
 	// When a complete pair exists, Motion is the sole persisted hinge/angle/duration authority.
-	if (PitArchetype->MovingParts.NumDefined() == 1)
+	if (PitDefinition->MovingParts.NumDefined() == 1)
 	{
-		PitArchetype->MovingParts = FGridWorldObjectMovingParts();
+		PitDefinition->MovingParts = FGridWorldObjectMovingParts();
 		UE_LOG(LogTemp, Warning,
 			TEXT("WORLDOBJ-MIG04: incomplete Pit MovingParts reset for %s; a Pit requires either zero or two moving parts."),
-			*PitArchetype->GetPathName());
+			*PitDefinition->GetPathName());
 	}
-	else if (PitArchetype->MovingParts.NumDefined() == 2)
+	else if (PitDefinition->MovingParts.NumDefined() == 2)
 	{
-		PitArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
-		PitArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-		PitArchetype->MovingParts.Part0.Motion.Pivot = FVector(-85.f, 0.f, -5.f);
+		PitDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
+		PitDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+		PitDefinition->MovingParts.Part0.Motion.Pivot = FVector(-85.f, 0.f, -5.f);
 		// With the authored +/-85 cm hinges, these signs rotate both leaves downward.
-		PitArchetype->MovingParts.Part0.Motion.Amount = 80.f;
-		PitArchetype->MovingParts.Part0.Motion.Duration = 0.75f;
+		PitDefinition->MovingParts.Part0.Motion.Amount = 80.f;
+		PitDefinition->MovingParts.Part0.Motion.Duration = 0.75f;
 
-		PitArchetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
-		PitArchetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-		PitArchetype->MovingParts.Part1.Motion.Pivot = FVector(85.f, 0.f, -5.f);
-		PitArchetype->MovingParts.Part1.Motion.Amount = -80.f;
-		PitArchetype->MovingParts.Part1.Motion.Duration = 0.75f;
+		PitDefinition->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
+		PitDefinition->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+		PitDefinition->MovingParts.Part1.Motion.Pivot = FVector(85.f, 0.f, -5.f);
+		PitDefinition->MovingParts.Part1.Motion.Amount = -80.f;
+		PitDefinition->MovingParts.Part1.Motion.Duration = 0.75f;
 	}
 
-	PitArchetype->RefreshPlacementRuntimeProjection();
-	PitArchetype->MarkPackageDirty();
+	PitDefinition->RefreshPlacementRuntimeProjection();
+	PitDefinition->MarkPackageDirty();
 
 	ObjectPalette->Modify();
 	FGridObjectPaletteEntry* Entry = ObjectPalette->Entries.FindByPredicate(
@@ -227,26 +227,26 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorArchetype(FString& OutError)
 	Entry->EntryId = FName(TEXT("Pit_Stone_01"));
 	Entry->DisplayNameOverride = FText::FromString(TEXT("Stone Pit"));
 	Entry->CategoryOverride = FName(TEXT("Hazards"));
-	Entry->DefaultArchetype = PitArchetype;
+	Entry->DefaultWorldObjectDefinition = PitDefinition;
 	ObjectPalette->MarkPackageDirty();
 
 	ResolvePreviewRuntimeActor();
 	if (PreviewRuntimeActor)
 	{
 		PreviewRuntimeActor->Modify();
-		PreviewRuntimeActor->ObjectArchetypes.AddUnique(PitArchetype);
+		PreviewRuntimeActor->WorldObjectDefinitions.AddUnique(PitDefinition);
 	}
 
 	TArray<UPackage*> PackagesToSave;
-	PackagesToSave.AddUnique(PitArchetype->GetOutermost());
+	PackagesToSave.AddUnique(PitDefinition->GetOutermost());
 	PackagesToSave.AddUnique(ObjectPalette->GetOutermost());
 	UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
 
-	UE_LOG(LogTemp, Log, TEXT("Pit trapdoor archetype ensured from generic Motion: Pit=%s Palette=%s Created=%s MovingParts=%d."),
-		*PitArchetype->GetPathName(), *ObjectPalette->GetPathName(), bCreated ? TEXT("true") : TEXT("false"), PitArchetype->MovingParts.NumDefined());
+	UE_LOG(LogTemp, Log, TEXT("Pit trapdoor definition ensured from generic Motion: Pit=%s Palette=%s Created=%s MovingParts=%d."),
+		*PitDefinition->GetPathName(), *ObjectPalette->GetPathName(), bCreated ? TEXT("true") : TEXT("false"), PitDefinition->MovingParts.NumDefined());
 	return true;
 #else
-	OutError = TEXT("EnsurePitTrapdoorArchetype is editor-only.");
+	OutError = TEXT("EnsurePitTrapdoorDefinition is editor-only.");
 	return false;
 #endif
 }

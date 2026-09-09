@@ -1,6 +1,6 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "EngineUtils.h"
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridDoorSystemComponent.h"
@@ -529,11 +529,11 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		ReceptacleActor->SetCanRemoveItem(Pair.Value.bCanRemoveItem);
 		const int32 ClearedItemCount = ReceptacleActor->ForceClearRuntimeContents(false);
 		const FGridWorldObjectInstance* ReceptaclePlacement = PersistenceFindWorldObjectById(LevelAsset, Pair.Key);
-		const UGridObjectArchetypeAsset* ReceptacleArchetype =
-			ReceptaclePlacement ? FindObjectArchetype(ReceptaclePlacement->WorldObjectDefinitionId) : nullptr;
+		const UGridWorldObjectDefinitionAsset* ReceptacleDefinition =
+			ReceptaclePlacement ? FindWorldObjectDefinition(ReceptaclePlacement->WorldObjectDefinitionId) : nullptr;
 		const TSubclassOf<AGridItemActor> PreferredItemActorClass = ReceptacleActor->ContainedItemActorClass
 			? ReceptacleActor->ContainedItemActorClass
-			: (ReceptacleArchetype ? ReceptacleArchetype->ItemActorClass : nullptr);
+			: (ReceptacleDefinition ? ReceptacleDefinition->ItemActorClass : nullptr);
 		for (const FGridRuntimeItemState& ItemState : Pair.Value.ContainedItems)
 		{
 			const FName RuntimeItemDefinitionId = ItemState.ItemDefinitionId;

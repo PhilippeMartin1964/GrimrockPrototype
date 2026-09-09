@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "GridDoorTestUtils.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridDoorActor.h"
@@ -66,21 +66,21 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
-	Archetype->ArchetypeId = TEXT("Door_Audio_Test");
-	Archetype->SupportedType = EGridLevelObjectType::Door;
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
+	Definition->DefinitionId = TEXT("Door_Audio_Test");
+	Definition->SupportedType = EGridLevelObjectType::Door;
 	FGridObjectAudioEvent OpenEvent;
 	OpenEvent.Volume = 0.8f;
 	OpenEvent.PitchVariation = 0.0f;
-	OpenEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
-	OpenEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
-	Archetype->AudioEvents.Add(TEXT("Open"), OpenEvent);
+	OpenEvent.Sounds.Add(NewObject<USoundWave>(Definition));
+	OpenEvent.Sounds.Add(NewObject<USoundWave>(Definition));
+	Definition->AudioEvents.Add(TEXT("Open"), OpenEvent);
 
 	FGridObjectAudioEvent CloseEvent;
 	CloseEvent.Volume = 0.8f;
 	CloseEvent.PitchVariation = 0.0f;
-	CloseEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
-	Archetype->AudioEvents.Add(TEXT("Close"), CloseEvent);
+	CloseEvent.Sounds.Add(NewObject<USoundWave>(Definition));
+	Definition->AudioEvents.Add(TEXT("Close"), CloseEvent);
 
 	AGridDoorActor* Door = TestWorld.World->SpawnActor<AGridDoorActor>();
 	TestNotNull(TEXT("The door Actor exists"), Door);
@@ -96,8 +96,8 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 	Data.CellY = 1;
 	Data.WallSide = EGridEdge::North;
 
-	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 1.0f, 180.0f, Archetype);
-	Door->ConfigureObjectAudio(Archetype);
+	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 1.0f, 180.0f, Definition);
+	Door->ConfigureObjectAudio(Definition);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
 
 	TestEqual(TEXT("No opening request exists after initialization"), Door->DoorOpenAudioPlaybackRequestCount, 0);
@@ -227,16 +227,16 @@ bool FGridDoorNaturalTailContractTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
-	Archetype->ArchetypeId = TEXT("Door_NaturalTail_Test");
-	Archetype->SupportedType = EGridLevelObjectType::Door;
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
+	Definition->DefinitionId = TEXT("Door_NaturalTail_Test");
+	Definition->SupportedType = EGridLevelObjectType::Door;
 	FGridObjectAudioEvent OpenEvent;
-	OpenEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
-	Archetype->AudioEvents.Add(TEXT("Open"), OpenEvent);
+	OpenEvent.Sounds.Add(NewObject<USoundWave>(Definition));
+	Definition->AudioEvents.Add(TEXT("Open"), OpenEvent);
 
 	FGridObjectAudioEvent CloseEvent;
-	CloseEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
-	Archetype->AudioEvents.Add(TEXT("Close"), CloseEvent);
+	CloseEvent.Sounds.Add(NewObject<USoundWave>(Definition));
+	Definition->AudioEvents.Add(TEXT("Close"), CloseEvent);
 
 	AGridDoorActor* Door = TestWorld.World->SpawnActor<AGridDoorActor>();
 	TestNotNull(TEXT("Natural-tail door exists"), Door);
@@ -252,8 +252,8 @@ bool FGridDoorNaturalTailContractTest::RunTest(const FString& Parameters)
 	Data.CellY = 3;
 	Data.WallSide = EGridEdge::North;
 
-	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 1.0f, 180.0f, Archetype);
-	Door->ConfigureObjectAudio(Archetype);
+	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 1.0f, 180.0f, Definition);
+	Door->ConfigureObjectAudio(Definition);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
 
 	Door->OpenDoor();
@@ -284,19 +284,19 @@ bool FGridDoorPartialAudioResumeTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
-	Archetype->ArchetypeId = TEXT("Door_PartialAudioResume_Test");
-	Archetype->SupportedType = EGridLevelObjectType::Door;
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
+	Definition->DefinitionId = TEXT("Door_PartialAudioResume_Test");
+	Definition->SupportedType = EGridLevelObjectType::Door;
 
 	FGridObjectAudioEvent OpenEvent;
 	OpenEvent.PitchVariation = 0.0f;
-	OpenEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
-	Archetype->AudioEvents.Add(TEXT("Open"), OpenEvent);
+	OpenEvent.Sounds.Add(NewObject<USoundWave>(Definition));
+	Definition->AudioEvents.Add(TEXT("Open"), OpenEvent);
 
 	FGridObjectAudioEvent CloseEvent;
 	CloseEvent.PitchVariation = 0.0f;
-	CloseEvent.Sounds.Add(NewObject<USoundWave>(Archetype));
-	Archetype->AudioEvents.Add(TEXT("Close"), CloseEvent);
+	CloseEvent.Sounds.Add(NewObject<USoundWave>(Definition));
+	Definition->AudioEvents.Add(TEXT("Close"), CloseEvent);
 
 	AGridDoorActor* Door = TestWorld.World->SpawnActor<AGridDoorActor>();
 	TestNotNull(TEXT("Partial-resume door exists"), Door);
@@ -312,8 +312,8 @@ bool FGridDoorPartialAudioResumeTest::RunTest(const FString& Parameters)
 	Data.CellY = 4;
 	Data.WallSide = EGridEdge::North;
 
-	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 5.0f, 200.0f, Archetype);
-	Door->ConfigureObjectAudio(Archetype);
+	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 5.0f, 200.0f, Definition);
+	Door->ConfigureObjectAudio(Definition);
 	Door->bNativeDoorAudioPlaybackEnabled = false;
 
 	// Closed -> Open starts the authored Open track from zero.

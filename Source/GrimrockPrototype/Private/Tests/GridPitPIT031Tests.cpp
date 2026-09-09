@@ -5,7 +5,7 @@
 
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -148,31 +148,31 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	UStaticMesh* PitMesh = NewObject<UStaticMesh>(Runtime);
 	UStaticMesh* LeftLeafMesh = NewObject<UStaticMesh>(Runtime);
 	UStaticMesh* RightLeafMesh = NewObject<UStaticMesh>(Runtime);
-	UGridObjectArchetypeAsset* PitArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
-	PitArchetype->ArchetypeId = TEXT("Pit_Animated_Test");
-	PitArchetype->SupportedType = EGridLevelObjectType::Pit;
-	PitArchetype->PlacementSurface = EGridObjectPlacementKind::Floor;
-		PitArchetype->RefreshPlacementRuntimeProjection();
-	PitArchetype->StaticPart.Mesh = PitMesh;
-	PitArchetype->MovingParts.Part0.Mesh = LeftLeafMesh;
-	PitArchetype->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	PitArchetype->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	PitArchetype->MovingParts.Part0.Motion.Pivot = FVector(-85.0f, 0.0f, -5.0f);
+	UGridWorldObjectDefinitionAsset* PitDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
+	PitDefinition->DefinitionId = TEXT("Pit_Animated_Test");
+	PitDefinition->SupportedType = EGridLevelObjectType::Pit;
+	PitDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
+		PitDefinition->RefreshPlacementRuntimeProjection();
+	PitDefinition->StaticPart.Mesh = PitMesh;
+	PitDefinition->MovingParts.Part0.Mesh = LeftLeafMesh;
+	PitDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
+	PitDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	PitDefinition->MovingParts.Part0.Motion.Pivot = FVector(-85.0f, 0.0f, -5.0f);
 	// Around Y, positive quaternion rotation maps to negative Unreal Pitch and opens the left leaf downward.
-	PitArchetype->MovingParts.Part0.Motion.Amount = 80.0f;
-	PitArchetype->MovingParts.Part0.Motion.Duration = 1.0f;
-	PitArchetype->MovingParts.Part1.Mesh = RightLeafMesh;
-	PitArchetype->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	PitArchetype->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	PitArchetype->MovingParts.Part1.Motion.Pivot = FVector(85.0f, 0.0f, -5.0f);
-	PitArchetype->MovingParts.Part1.Motion.Amount = -80.0f;
-	PitArchetype->MovingParts.Part1.Motion.Duration = 1.0f;
-	PitArchetype->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
+	PitDefinition->MovingParts.Part0.Motion.Amount = 80.0f;
+	PitDefinition->MovingParts.Part0.Motion.Duration = 1.0f;
+	PitDefinition->MovingParts.Part1.Mesh = RightLeafMesh;
+	PitDefinition->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
+	PitDefinition->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	PitDefinition->MovingParts.Part1.Motion.Pivot = FVector(85.0f, 0.0f, -5.0f);
+	PitDefinition->MovingParts.Part1.Motion.Amount = -80.0f;
+	PitDefinition->MovingParts.Part1.Motion.Duration = 1.0f;
+	PitDefinition->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
 
 	Runtime->DungeonAsset = Dungeon;
 	Runtime->CurrentDungeonLevelId = UpperId;
 	Runtime->LevelAsset = Upper;
-	Runtime->ObjectArchetypes.Add(PitArchetype);
+	Runtime->WorldObjectDefinitions.Add(PitDefinition);
 	Runtime->RebuildRuntimeObjects();
 
 	UGridActivationComponent* Activation = Runtime->FindComponentByClass<UGridActivationComponent>();
@@ -200,9 +200,9 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Right hinge uses requested local Z"), PitAActor->GetRightHingeLocation().Z, -5.0);
 
 	TestTrue(TEXT("Closed left leaf uses authored MovingPart local transform"),
-		PitAActor->LeftLeafMeshComponent->GetRelativeTransform().Equals(PitArchetype->MovingParts.Part0.LocalTransform, KINDA_SMALL_NUMBER));
+		PitAActor->LeftLeafMeshComponent->GetRelativeTransform().Equals(PitDefinition->MovingParts.Part0.LocalTransform, KINDA_SMALL_NUMBER));
 	TestTrue(TEXT("Closed right leaf uses authored MovingPart local transform"),
-		PitAActor->RightLeafMeshComponent->GetRelativeTransform().Equals(PitArchetype->MovingParts.Part1.LocalTransform, KINDA_SMALL_NUMBER));
+		PitAActor->RightLeafMeshComponent->GetRelativeTransform().Equals(PitDefinition->MovingParts.Part1.LocalTransform, KINDA_SMALL_NUMBER));
 
 	TestEqual(TEXT("Closed left leaf pitch is zero"), PitAActor->GetLeftLeafPitch(), 0.0f);
 	TestEqual(TEXT("Closed right leaf pitch is zero"), PitAActor->GetRightLeafPitch(), 0.0f);

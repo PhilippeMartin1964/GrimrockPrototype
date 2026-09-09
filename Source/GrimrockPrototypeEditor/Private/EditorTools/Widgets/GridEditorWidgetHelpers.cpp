@@ -2,7 +2,7 @@
 
 #if WITH_EDITOR
 
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridTypes.h"
 
@@ -178,9 +178,9 @@ namespace GridEditorWidgetHelpers
 		return Names;
 	}
 
-	TArray<FGridArchetypeOption> GetItemArchetypeOptions(const UGridObjectPaletteAsset* ObjectPalette)
+	TArray<FGridWorldObjectDefinitionOption> GetItemDefinitionOptions(const UGridObjectPaletteAsset* ObjectPalette)
 	{
-		TArray<FGridArchetypeOption> Options;
+		TArray<FGridWorldObjectDefinitionOption> Options;
 		if (!ObjectPalette)
 		{
 			return Options;
@@ -189,22 +189,22 @@ namespace GridEditorWidgetHelpers
 		TSet<FName> SeenIds;
 		for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
 		{
-			const UGridObjectArchetypeAsset* Archetype = Entry.DefaultArchetype;
-			if (!Archetype || Archetype->ArchetypeId.IsNone() || Archetype->SupportedType != EGridLevelObjectType::Item ||
-				SeenIds.Contains(Archetype->ArchetypeId))
+			const UGridWorldObjectDefinitionAsset* Definition = Entry.DefaultWorldObjectDefinition;
+			if (!Definition || Definition->DefinitionId.IsNone() || Definition->SupportedType != EGridLevelObjectType::Item ||
+				SeenIds.Contains(Definition->DefinitionId))
 			{
 				continue;
 			}
 
-			FGridArchetypeOption Option;
-			Option.ArchetypeId = Archetype->ArchetypeId;
-			Option.Label = !Archetype->DisplayName.IsEmpty() ? Archetype->DisplayName : FText::FromName(Archetype->ArchetypeId);
+			FGridWorldObjectDefinitionOption Option;
+			Option.WorldObjectDefinitionId = Definition->DefinitionId;
+			Option.Label = !Definition->DisplayName.IsEmpty() ? Definition->DisplayName : FText::FromName(Definition->DefinitionId);
 			Options.Add(Option);
-			SeenIds.Add(Option.ArchetypeId);
+			SeenIds.Add(Option.WorldObjectDefinitionId);
 		}
 
 		Options.Sort(
-			[](const FGridArchetypeOption& A, const FGridArchetypeOption& B)
+			[](const FGridWorldObjectDefinitionOption& A, const FGridWorldObjectDefinitionOption& B)
 			{
 				return A.Label.ToString() < B.Label.ToString();
 			});

@@ -23,8 +23,8 @@ bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 	SelectedCellY = CellY;
 	SelectedEdge = Edge;
 	PaintObjectType = LevelAsset->GetTypedPlacementType(ObjectId);
-	ObjectArchetypeId = NAME_None;
-	SelectedArchetypeId = NAME_None;
+	WorldObjectDefinitionId = NAME_None;
+	SelectedWorldObjectDefinitionId = NAME_None;
 	bObjectInitiallyActive = false;
 	ObjectBehavior = FGridObjectBehaviorParams();
 	const auto ReadAuthoring = [this](const auto& Placement)
@@ -37,10 +37,10 @@ bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 	if (const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId))
 	{
 		ReadAuthoring(*WorldObjectInstance);
-		ObjectArchetypeId = WorldObjectInstance->WorldObjectDefinitionId;
-		SelectedArchetypeId = ObjectArchetypeId;
+		WorldObjectDefinitionId = WorldObjectInstance->WorldObjectDefinitionId;
+		SelectedWorldObjectDefinitionId = WorldObjectDefinitionId;
 		bObjectInitiallyActive = WorldObjectInstance->bInitiallyActive;
-		ObjectBehavior = GridObjectInstanceBehavior::Resolve(*WorldObjectInstance, FindObjectArchetypeById(ObjectArchetypeId));
+		ObjectBehavior = GridObjectInstanceBehavior::Resolve(*WorldObjectInstance, FindWorldObjectDefinitionById(WorldObjectDefinitionId));
 	}
 	else if (const FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(ObjectId))
 	{
@@ -165,9 +165,9 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter(const FGuid& ObjectId, FV
 			? PreviewRuntimeActor->GetActorLocation() + PreviewRuntimeActor->GridOrigin
 			: GetActorLocation();
 		const FVector CellBase = GridWorldOrigin + FVector(Instance->CellX * CellSize, Instance->CellY * CellSize, 0.f);
-		const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById(Instance->WorldObjectDefinitionId);
+		const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinitionById(Instance->WorldObjectDefinitionId);
 		const EGridObjectPlacementKind PlacementKind =
-			Archetype ? Archetype->PlacementKind
+			Definition ? Definition->PlacementKind
 					  : (IsEdgePlacedObject(Instance->Type, Instance->WorldObjectDefinitionId)
 								? EGridObjectPlacementKind::Edge
 								: EGridObjectPlacementKind::Center);
@@ -204,10 +204,10 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter(const FGuid& ObjectId, FV
 					return false;
 				}
 
-				const float PlacementZOffset = Archetype ? Archetype->PlacementZOffset : 12.f;
-				const float WallInset = Archetype ? Archetype->WallInset : 6.f;
-				const float LocalOffsetAlongWall = Archetype ? Archetype->LocalOffsetAlongWall : 0.f;
-				const float LocalOffsetVertical = Archetype ? Archetype->LocalOffsetVertical : 0.f;
+				const float PlacementZOffset = Definition ? Definition->PlacementZOffset : 12.f;
+				const float WallInset = Definition ? Definition->WallInset : 6.f;
+				const float LocalOffsetAlongWall = Definition ? Definition->LocalOffsetAlongWall : 0.f;
+				const float LocalOffsetVertical = Definition ? Definition->LocalOffsetVertical : 0.f;
 				const float FinalZ = PlacementZOffset + LocalOffsetVertical;
 
 				switch (Instance->WallSide)
@@ -232,7 +232,7 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter(const FGuid& ObjectId, FV
 
 			case EGridObjectPlacementKind::Ceiling:
 			{
-				const float PlacementZOffset = Archetype ? Archetype->PlacementZOffset : FallbackCellHeight - CeilingObjectInset;
+				const float PlacementZOffset = Definition ? Definition->PlacementZOffset : FallbackCellHeight - CeilingObjectInset;
 				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, CellSize * 0.5f, PlacementZOffset);
 				return true;
 			}
@@ -241,7 +241,7 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter(const FGuid& ObjectId, FV
 			case EGridObjectPlacementKind::Floor:
 			default:
 			{
-				const float PlacementZOffset = Archetype ? Archetype->PlacementZOffset : 12.f;
+				const float PlacementZOffset = Definition ? Definition->PlacementZOffset : 12.f;
 				OutWorldCenter = CellBase + FVector(CellSize * 0.5f, CellSize * 0.5f, PlacementZOffset);
 				return true;
 			}

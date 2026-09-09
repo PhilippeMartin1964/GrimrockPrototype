@@ -41,12 +41,12 @@ void AGridLevelEditorActor::RebuildPreview()
 	if (PreviewRuntimeActor)
 	{
 		PreviewRuntimeActor->LevelAsset = LevelAsset;
-		SyncPreviewRuntimeObjectArchetypesFromPalette();
+		SyncPreviewRuntimeWorldObjectDefinitionsFromPalette();
 		PreviewRuntimeActor->RebuildLevel();
 	}
 }
 
-void AGridLevelEditorActor::SyncPreviewRuntimeObjectArchetypesFromPalette()
+void AGridLevelEditorActor::SyncPreviewRuntimeWorldObjectDefinitionsFromPalette()
 {
 	if (!PreviewRuntimeActor || !ObjectPalette)
 	{
@@ -59,9 +59,9 @@ void AGridLevelEditorActor::SyncPreviewRuntimeObjectArchetypesFromPalette()
 
 	for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
 	{
-		if (Entry.DefaultArchetype)
+		if (Entry.DefaultWorldObjectDefinition)
 		{
-			PreviewRuntimeActor->ObjectArchetypes.AddUnique(Entry.DefaultArchetype);
+			PreviewRuntimeActor->WorldObjectDefinitions.AddUnique(Entry.DefaultWorldObjectDefinition);
 		}
 	}
 }
@@ -200,7 +200,7 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal(bool bSameTypeOnly
 	return RemovedCount;
 }
 
-int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal(EGridLevelObjectType NewObjectType, FName NewArchetypeId, bool bNewObjectOnEdge)
+int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal(EGridLevelObjectType NewObjectType, FName NewWorldObjectDefinitionId, bool bNewObjectOnEdge)
 {
 	(void)NewObjectType;
 	(void)bNewObjectOnEdge;
@@ -210,8 +210,8 @@ int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal(EGrid
 		return 0;
 	}
 
-	const UGridObjectArchetypeAsset* NewArchetype = FindObjectArchetypeById(NewArchetypeId);
-	if (!NewArchetype || !NewArchetype->OccupiesBoundary())
+	const UGridWorldObjectDefinitionAsset* NewDefinition = FindWorldObjectDefinitionById(NewWorldObjectDefinitionId);
+	if (!NewDefinition || !NewDefinition->OccupiesBoundary())
 	{
 		// Cell and wall-surface sharing are permissive by default in WORLDOBJ-MIG02.
 		return 0;
@@ -231,8 +231,8 @@ int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal(EGrid
 			continue;
 		}
 
-		const UGridObjectArchetypeAsset* ExistingArchetype = FindObjectArchetypeById(ExistingObject.WorldObjectDefinitionId);
-		if (!ExistingArchetype || !ExistingArchetype->OccupiesBoundary())
+		const UGridWorldObjectDefinitionAsset* ExistingDefinition = FindWorldObjectDefinitionById(ExistingObject.WorldObjectDefinitionId);
+		if (!ExistingDefinition || !ExistingDefinition->OccupiesBoundary())
 		{
 			continue;
 		}

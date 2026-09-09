@@ -7,7 +7,7 @@
 #include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/GridPitTrapdoorActor.h"
 #include "Core/GridObjectPaletteAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
@@ -25,14 +25,14 @@
 
 namespace
 {
-	struct FExpectedConcreteArchetypeSpec
+	struct FExpectedConcreteDefinitionSpec
 	{
-		const TCHAR* ArchetypeId;
+		const TCHAR* WorldObjectDefinitionId;
 		EGridLevelObjectType ExpectedType;
 	};
 
-	// Visual variants are concrete archetypes/palette entries, not EGridLevelObjectType values.
-	static const FExpectedConcreteArchetypeSpec ExpectedConcreteArchetypes[] = { { TEXT("Button_Normal"), EGridLevelObjectType::Button },
+	// Visual variants are concrete definitions/palette entries, not EGridLevelObjectType values.
+	static const FExpectedConcreteDefinitionSpec ExpectedConcreteDefinitions[] = { { TEXT("Button_Normal"), EGridLevelObjectType::Button },
 		{ TEXT("Button_Secret"), EGridLevelObjectType::Button }, { TEXT("Button_Wall"), EGridLevelObjectType::Button },
 		{ TEXT("Door_Stone"), EGridLevelObjectType::Door }, { TEXT("Door_Secret"), EGridLevelObjectType::Door },
 		{ TEXT("Receptacle_Alcove"), EGridLevelObjectType::Receptacle }, { TEXT("Receptacle_Alcove_Stone"), EGridLevelObjectType::Receptacle },
@@ -74,17 +74,17 @@ namespace
 		}
 	}
 
-	EGridLevelValidationSeverity ConvertArchetypeValidationSeverity(EGridArchetypeValidationSeverity Severity)
+	EGridLevelValidationSeverity ConvertDefinitionValidationSeverity(EGridWorldObjectDefinitionValidationSeverity Severity)
 	{
 		switch (Severity)
 		{
-			case EGridArchetypeValidationSeverity::Error:
+			case EGridWorldObjectDefinitionValidationSeverity::Error:
 				return EGridLevelValidationSeverity::Error;
 
-			case EGridArchetypeValidationSeverity::Warning:
+			case EGridWorldObjectDefinitionValidationSeverity::Warning:
 				return EGridLevelValidationSeverity::Warning;
 
-			case EGridArchetypeValidationSeverity::Info:
+			case EGridWorldObjectDefinitionValidationSeverity::Info:
 			default:
 				return EGridLevelValidationSeverity::Info;
 		}
@@ -120,9 +120,9 @@ namespace
 		{
 			return TEXT("Monsters");
 		}
-		if (Message.Contains(TEXT("Archetype")) || Message.Contains(TEXT("archetype")))
+		if (Message.Contains(TEXT("Definition")) || Message.Contains(TEXT("definition")))
 		{
-			return TEXT("Archetypes");
+			return TEXT("Definitions");
 		}
 		if (Message.Contains(TEXT("wall")) || Message.Contains(TEXT("Wall")) || Message.Contains(TEXT("shared edge")))
 		{

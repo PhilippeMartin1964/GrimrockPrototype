@@ -813,7 +813,7 @@ namespace GridEditorLuaService
 		Messages.RemoveAll(
 			[LevelAsset](const FGridLevelValidationMessage& Message)
 			{
-				if (Message.OptionalObjectId.IsValid() && Message.Message.Contains(TEXT("ArchetypeId")))
+				if (Message.OptionalObjectId.IsValid() && Message.Message.Contains(TEXT("WorldObjectDefinitionId")))
 				{
 					if (const FGridLogicObjectInstance* Logic = LevelAsset->FindLogicObjectInstanceById(Message.OptionalObjectId);
 						Logic && Logic->Type == EGridLevelObjectType::Logic)

@@ -248,11 +248,11 @@ bool FGridMON196ValidationAlignmentTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Targetless Lua link is not a false legacy error"), HasMessageContaining(Messages, TEXT("invalid TargetObjectId")));
 	TestFalse(TEXT("Different Lua callbacks are not false duplicates"), HasMessageContaining(Messages, TEXT("Link 1 duplicates an identical link")));
 	TestFalse(TEXT("Data-only Relay has no Logic validation error"), HasMessageContaining(Messages, TEXT("Logic object is invalid"), TEXT("Logic")));
-	TestFalse(TEXT("Data-only Logic does not require an archetype"),
+	TestFalse(TEXT("Data-only Logic does not require an definition"),
 		Messages.ContainsByPredicate(
 			[&Logic](const FGridLevelValidationMessage& Message)
 			{
-				return Message.OptionalObjectId == Logic.InstanceId && Message.Message.Contains(TEXT("no ArchetypeId"));
+				return Message.OptionalObjectId == Logic.InstanceId && Message.Message.Contains(TEXT("no WorldObjectDefinitionId"));
 			}));
 	TestFalse(TEXT("Valid Lua bindings have no Lua validation error"),
 		Messages.ContainsByPredicate(

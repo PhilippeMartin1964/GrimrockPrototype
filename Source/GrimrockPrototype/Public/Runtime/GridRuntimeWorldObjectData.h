@@ -19,7 +19,7 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 	int32 CellX = INDEX_NONE;
 	int32 CellY = INDEX_NONE;
 	EGridEdge Edge = EGridEdge::None;
-	FName ArchetypeId = NAME_None;
+	FName WorldObjectDefinitionId = NAME_None;
 	bool bInitiallyEnabled = true;
 	bool bInitiallyActive = false;
 	FText OverrideReadableText;
@@ -35,7 +35,7 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 		, CellX(Source.CellX)
 		, CellY(Source.CellY)
 		, Edge(Source.WallSide)
-		, ArchetypeId(Source.WorldObjectDefinitionId)
+		, WorldObjectDefinitionId(Source.WorldObjectDefinitionId)
 		, bInitiallyEnabled(Source.bInitiallyEnabled)
 		, bInitiallyActive(Source.bInitiallyActive)
 		, OverrideReadableText(Source.ReadableTextOverride)

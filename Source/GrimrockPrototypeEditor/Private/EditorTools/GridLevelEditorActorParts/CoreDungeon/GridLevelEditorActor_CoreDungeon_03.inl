@@ -85,14 +85,14 @@
 				return nullptr;
 			}
 
-			UGridObjectArchetypeAsset* LoadOrCreateObjectArchetypeAsset(const TCHAR* PackageName, const TCHAR* AssetName, bool& bOutCreated)
+			UGridWorldObjectDefinitionAsset* LoadOrCreateWorldObjectDefinitionAsset(const TCHAR* PackageName, const TCHAR* AssetName, bool& bOutCreated)
 			{
 				bOutCreated = false;
 
 				const FString ObjectPath = FString::Printf(TEXT("%s.%s"), PackageName, AssetName);
-				if (UGridObjectArchetypeAsset* ExistingArchetype = LoadObject<UGridObjectArchetypeAsset>(nullptr, *ObjectPath))
+				if (UGridWorldObjectDefinitionAsset* ExistingDefinition = LoadObject<UGridWorldObjectDefinitionAsset>(nullptr, *ObjectPath))
 				{
-					return ExistingArchetype;
+					return ExistingDefinition;
 				}
 
 				UPackage* Package = CreatePackage(PackageName);
@@ -101,17 +101,17 @@
 					return nullptr;
 				}
 
-				UGridObjectArchetypeAsset* NewArchetype = NewObject<UGridObjectArchetypeAsset>(
-					Package, UGridObjectArchetypeAsset::StaticClass(), AssetName, RF_Public | RF_Standalone | RF_Transactional);
+				UGridWorldObjectDefinitionAsset* NewDefinition = NewObject<UGridWorldObjectDefinitionAsset>(
+					Package, UGridWorldObjectDefinitionAsset::StaticClass(), AssetName, RF_Public | RF_Standalone | RF_Transactional);
 
-				if (NewArchetype)
+				if (NewDefinition)
 				{
-					FAssetRegistryModule::AssetCreated(NewArchetype);
+					FAssetRegistryModule::AssetCreated(NewDefinition);
 					Package->MarkPackageDirty();
 					bOutCreated = true;
 				}
 
-				return NewArchetype;
+				return NewDefinition;
 			}
 #endif
 			}

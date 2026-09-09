@@ -9,7 +9,7 @@ class UStaticMesh;
 class UStaticMeshComponent;
 class USkeletalMeshComponent;
 class UGridMonsterDefinitionAsset;
-class UGridObjectArchetypeAsset;
+class UGridWorldObjectDefinitionAsset;
 struct FGridMonsterSpawnInstance;
 
 UCLASS()
@@ -46,8 +46,8 @@ public:
 	void InitializePreviewObject(FGuid InObjectId, EGridLevelObjectType InObjectType, UStaticMesh* Mesh);
 
 	/** Renders StaticPart + MovingPart[0..1] from the same world-object definition used by runtime. */
-	void InitializePreviewObjectFromArchetype(
-		FGuid InObjectId, EGridLevelObjectType InObjectType, const UGridObjectArchetypeAsset* Archetype);
+	void InitializePreviewObjectFromDefinition(
+		FGuid InObjectId, EGridLevelObjectType InObjectType, const UGridWorldObjectDefinitionAsset* Definition);
 
 	/** Typed monster preview entry point. */
 	void InitializeMonsterPreviewObject(const FGridMonsterSpawnInstance& SpawnData, UGridMonsterDefinitionAsset* MonsterDefinition);

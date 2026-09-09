@@ -27,28 +27,28 @@ bool AGridLevelEditorActor::ApplyBehaviorToSelectedObject(const FGridObjectBehav
 	WorldObjectInstance->InstanceConfig.Pit = NewBehavior.Pit;
 	WorldObjectInstance->InstanceConfig.ReceptacleInitialContent = NewBehavior.Receptacle.InitialContent;
 	WorldObjectInstance->InstanceConfig.bStartsUnlocked = NewBehavior.Lock.bStartsUnlocked;
-	ObjectBehavior = GridObjectInstanceBehavior::Resolve(*WorldObjectInstance, FindObjectArchetypeById(WorldObjectInstance->WorldObjectDefinitionId));
+	ObjectBehavior = GridObjectInstanceBehavior::Resolve(*WorldObjectInstance, FindWorldObjectDefinitionById(WorldObjectInstance->WorldObjectDefinitionId));
 	LevelAsset->MarkPackageDirty();
 	RebuildPreview();
 	return true;
 }
 
-bool AGridLevelEditorActor::ResetSelectedObjectBehaviorFromArchetype()
+bool AGridLevelEditorActor::ResetSelectedObjectBehaviorFromDefinition()
 {
 	const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset ? LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId) : nullptr;
-	const UGridObjectArchetypeAsset* Archetype = WorldObjectInstance ? FindObjectArchetypeById(WorldObjectInstance->WorldObjectDefinitionId) : nullptr;
-	return Archetype && ApplyBehaviorToSelectedObject(Archetype->DefaultBehavior);
+	const UGridWorldObjectDefinitionAsset* Definition = WorldObjectInstance ? FindWorldObjectDefinitionById(WorldObjectInstance->WorldObjectDefinitionId) : nullptr;
+	return Definition && ApplyBehaviorToSelectedObject(Definition->DefaultBehavior);
 }
 
-bool AGridLevelEditorActor::SetSelectedObjectArchetypeId(FName NewArchetypeId)
+bool AGridLevelEditorActor::SetSelectedWorldObjectDefinitionId(FName NewWorldObjectDefinitionId)
 {
 	FGridWorldObjectInstance* WorldObjectInstance = LevelAsset ? LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId) : nullptr;
 	if (!WorldObjectInstance) return false;
 	LevelAsset->Modify();
-	WorldObjectInstance->WorldObjectDefinitionId = NewArchetypeId;
-	ObjectArchetypeId = NewArchetypeId;
-	SelectedArchetypeId = NewArchetypeId;
-	ObjectBehavior = GridObjectInstanceBehavior::Resolve(*WorldObjectInstance, FindObjectArchetypeById(NewArchetypeId));
+	WorldObjectInstance->WorldObjectDefinitionId = NewWorldObjectDefinitionId;
+	WorldObjectDefinitionId = NewWorldObjectDefinitionId;
+	SelectedWorldObjectDefinitionId = NewWorldObjectDefinitionId;
+	ObjectBehavior = GridObjectInstanceBehavior::Resolve(*WorldObjectInstance, FindWorldObjectDefinitionById(NewWorldObjectDefinitionId));
 	LevelAsset->MarkPackageDirty();
 	RebuildPreview();
 	return true;

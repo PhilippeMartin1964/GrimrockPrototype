@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Runtime/GridRuntimeWorldObjectData.h"
 
@@ -32,7 +32,7 @@ bool FGridWorldObjectMIG09RuntimePayloadTest::RunTest(const FString& Parameters)
 
 	const FGridRuntimeWorldObjectData RuntimeData(Instance);
 	TestEqual(TEXT("Typed InstanceId maps to runtime ObjectId"), RuntimeData.ObjectId, Instance.InstanceId);
-	TestEqual(TEXT("Typed definition id maps to runtime archetype lookup id"), RuntimeData.ArchetypeId, Instance.WorldObjectDefinitionId);
+	TestEqual(TEXT("Typed definition id maps to runtime definition lookup id"), RuntimeData.WorldObjectDefinitionId, Instance.WorldObjectDefinitionId);
 	TestEqual(TEXT("Typed CellX maps to runtime"), RuntimeData.CellX, 7);
 	TestEqual(TEXT("Typed CellY maps to runtime"), RuntimeData.CellY, 9);
 	TestEqual(TEXT("Typed WallSide maps to runtime Edge"), RuntimeData.Edge, EGridEdge::West);
@@ -42,8 +42,8 @@ bool FGridWorldObjectMIG09RuntimePayloadTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Typed transition target maps to runtime"), RuntimeData.Behavior.Transition.TargetLevelId, FName(TEXT("LowerLevel")));
 	TestTrue(TEXT("Typed lock initial state remains instance-owned"), RuntimeData.Behavior.Lock.bStartsUnlocked);
 
-	UGridObjectArchetypeAsset* Definition = NewObject<UGridObjectArchetypeAsset>();
-	Definition->ArchetypeId = Instance.WorldObjectDefinitionId;
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
+	Definition->DefinitionId = Instance.WorldObjectDefinitionId;
 	Definition->DefaultBehavior.ButtonAnimation.ButtonHoldTime = 0.75f;
 	Definition->DefaultBehavior.DoorAnimation.bHasChainMechanism = true;
 	Definition->DefaultBehavior.DoorAnimation.ChainPullDistance = 24.0f;

@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -89,27 +89,27 @@ bool FGridMON1971LogicIdCommandTest::RunTest(const FString& Parameters)
 	Level->WorldObjectInstances.Add(Source);
 
 	const FGuid TargetId(19, 7, 1, 2);
-	const FName TargetArchetypeId(TEXT("MON1971_SecretLever"));
+	const FName TargetWorldObjectDefinitionId(TEXT("MON1971_SecretLever"));
 	FGridWorldObjectInstance Target;
 	Target.InstanceId = TargetId;
 	Target.LogicId = TEXT("SecretLever");
 	Target.Type = EGridLevelObjectType::Lever;
-	Target.WorldObjectDefinitionId = TargetArchetypeId;
+	Target.WorldObjectDefinitionId = TargetWorldObjectDefinitionId;
 	Target.CellX = 0;
 	Target.CellY = 0;
 	Target.WallSide = EGridEdge::North;
 	Target.bInitiallyEnabled = true;
 	Level->WorldObjectInstances.Add(Target);
 
-	UGridObjectArchetypeAsset* LeverArchetype = NewObject<UGridObjectArchetypeAsset>(Runtime);
-	LeverArchetype->ArchetypeId = TargetArchetypeId;
-	LeverArchetype->SupportedType = EGridLevelObjectType::Lever;
-	LeverArchetype->Category = TEXT("Mechanisms");
-	LeverArchetype->ObjectCategory = EGridObjectCategory::Mechanism;
-	LeverArchetype->PlacementKind = EGridObjectPlacementKind::Wall;
-	LeverArchetype->RuntimeActorClass = AGridLeverActor::StaticClass();
-	LeverArchetype->MovingParts.Part0.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
-	LeverArchetype->bIsInteractable = true;
+	UGridWorldObjectDefinitionAsset* LeverDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
+	LeverDefinition->DefinitionId = TargetWorldObjectDefinitionId;
+	LeverDefinition->SupportedType = EGridLevelObjectType::Lever;
+	LeverDefinition->Category = TEXT("Mechanisms");
+	LeverDefinition->ObjectCategory = EGridObjectCategory::Mechanism;
+	LeverDefinition->PlacementKind = EGridObjectPlacementKind::Wall;
+	LeverDefinition->RuntimeActorClass = AGridLeverActor::StaticClass();
+	LeverDefinition->MovingParts.Part0.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	LeverDefinition->bIsInteractable = true;
 
 	FGridLuaScriptSource Script;
 	Script.ScriptId = TEXT("Puzzle");
@@ -128,7 +128,7 @@ bool FGridMON1971LogicIdCommandTest::RunTest(const FString& Parameters)
 
 	Runtime->LevelAsset = Level;
 	Runtime->CurrentDungeonLevelId = TEXT("MON1971");
-	Runtime->ObjectArchetypes.Add(LeverArchetype);
+	Runtime->WorldObjectDefinitions.Add(LeverDefinition);
 	Runtime->RebuildLevel();
 	if (!TestNotNull(TEXT("LogicId target has a runtime lever actor"), Runtime->FindRuntimeObjectActor<AGridLeverActor>(TargetId)))
 	{

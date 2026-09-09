@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridRuntimeObjectActor.h"
@@ -66,22 +66,22 @@ bool FGridObjectGenericAudioContractTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	// Prove the contract is not door-specific: a Button archetype can define and
+	// Prove the contract is not door-specific: a Button definition can define and
 	// resolve an arbitrary Press event through the shared runtime base class.
-	UGridObjectArchetypeAsset* ButtonArchetype = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
-	ButtonArchetype->ArchetypeId = TEXT("Button_GenericAudio_Test");
-	ButtonArchetype->SupportedType = EGridLevelObjectType::Button;
-	USoundAttenuation* SharedAttenuation = NewObject<USoundAttenuation>(ButtonArchetype);
-	ButtonArchetype->DefaultAudioAttenuation = SharedAttenuation;
+	UGridWorldObjectDefinitionAsset* ButtonDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
+	ButtonDefinition->DefinitionId = TEXT("Button_GenericAudio_Test");
+	ButtonDefinition->SupportedType = EGridLevelObjectType::Button;
+	USoundAttenuation* SharedAttenuation = NewObject<USoundAttenuation>(ButtonDefinition);
+	ButtonDefinition->DefaultAudioAttenuation = SharedAttenuation;
 
-	USoundWave* PressSoundA = NewObject<USoundWave>(ButtonArchetype);
-	USoundWave* PressSoundB = NewObject<USoundWave>(ButtonArchetype);
+	USoundWave* PressSoundA = NewObject<USoundWave>(ButtonDefinition);
+	USoundWave* PressSoundB = NewObject<USoundWave>(ButtonDefinition);
 	FGridObjectAudioEvent PressEvent;
 	PressEvent.Volume = 0.65f;
 	PressEvent.PitchVariation = 0.0f;
 	PressEvent.Sounds.Add(PressSoundA);
 	PressEvent.Sounds.Add(PressSoundB);
-	ButtonArchetype->AudioEvents.Add(TEXT("Press"), PressEvent);
+	ButtonDefinition->AudioEvents.Add(TEXT("Press"), PressEvent);
 
 	AGridRuntimeObjectActor* RuntimeObject = TestWorld.World->SpawnActor<AGridRuntimeObjectActor>();
 	TestNotNull(TEXT("The generic runtime object exists"), RuntimeObject);
@@ -89,9 +89,9 @@ bool FGridObjectGenericAudioContractTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-	RuntimeObject->ConfigureObjectAudio(ButtonArchetype);
+	RuntimeObject->ConfigureObjectAudio(ButtonDefinition);
 
-	TestTrue(TEXT("A non-door runtime object uses the archetype's single attenuation"), RuntimeObject->DefaultObjectAudioAttenuation == SharedAttenuation);
+	TestTrue(TEXT("A non-door runtime object uses the definition's single attenuation"), RuntimeObject->DefaultObjectAudioAttenuation == SharedAttenuation);
 	TestTrue(TEXT("A non-door runtime object exposes its configured Press event"), RuntimeObject->HasObjectAudioEvent(TEXT("Press")));
 	TestFalse(TEXT("An undeclared event is not invented"), RuntimeObject->HasObjectAudioEvent(TEXT("Open")));
 
@@ -104,9 +104,9 @@ bool FGridObjectGenericAudioContractTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Default detailed playback starts at zero"), FMath::IsNearlyEqual(Second.StartTimeSeconds, 0.0f));
 	TestTrue(TEXT("Mechanical-safe zero pitch variation preserves pitch 1.0"), FMath::IsNearlyEqual(First.Pitch, 1.0f));
 
-	// Backward compatibility: already-saved door archetypes using the historical
+	// Backward compatibility: already-saved door definitions using the historical
 	// fields still resolve as generic Open/Close until they are resaved/migrated.
-	UGridObjectArchetypeAsset* LegacyDoor = NewObject<UGridObjectArchetypeAsset>(TestWorld.World);
+	UGridWorldObjectDefinitionAsset* LegacyDoor = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
 	LegacyDoor->SupportedType = EGridLevelObjectType::Door;
 	USoundWave* LegacyOpen = NewObject<USoundWave>(LegacyDoor);
 	LegacyDoor->DoorOpenSounds.Add(LegacyOpen);

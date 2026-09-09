@@ -6,9 +6,9 @@
 class USoundBase;
 
 /**
- * Data-driven audio event available to any grid object archetype.
+ * Data-driven audio event available to any grid object definition.
  *
- * Event names live in UGridObjectArchetypeAsset::AudioEvents and deliberately
+ * Event names live in UGridWorldObjectDefinitionAsset::AudioEvents and deliberately
  * use FName keys rather than an enum so custom/player-authored objects can add
  * new semantic events without extending C++.
  */

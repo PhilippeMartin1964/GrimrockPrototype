@@ -75,7 +75,7 @@
 			const TArray<FGridReceptacleInitialItemConfig>& InitialContent = WorldObjectInstance.InstanceConfig.ReceptacleInitialContent;
 			const FString Status = GetReceptacleWorkflowStatus(InitialContent);
 			if (Status == TEXT("OK_INITIAL_CONTENT")) ++ReceptaclesUsingInitialDefinition;
-			Result += FString::Printf(TEXT("  Receptacle ObjectId=%s ArchetypeId=%s InitialContentCount=%d Status=%s\n"),
+			Result += FString::Printf(TEXT("  Receptacle ObjectId=%s WorldObjectDefinitionId=%s InitialContentCount=%d Status=%s\n"),
 				*WorldObjectInstance.InstanceId.ToString(), *WorldObjectInstance.WorldObjectDefinitionId.ToString(), InitialContent.Num(), *Status);
 		}
 		Result += FString::Printf(

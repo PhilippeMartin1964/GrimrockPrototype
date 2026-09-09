@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
-#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
@@ -16,8 +16,8 @@ bool FGridWorldObjectMIG06SparseBehaviorResolutionTest::RunTest(const FString& P
 {
 	(void)Parameters;
 
-	UGridObjectArchetypeAsset* Definition = NewObject<UGridObjectArchetypeAsset>();
-	Definition->ArchetypeId = TEXT("MIG06_Definition");
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
+	Definition->DefinitionId = TEXT("MIG06_Definition");
 	Definition->SupportedType = EGridLevelObjectType::Button;
 	Definition->DefaultBehavior.ButtonAnimation.ButtonHoldTime = 0.80f;
 	Definition->DefaultBehavior.Lock.bConsumeKeyOnUnlock = true;
@@ -46,7 +46,7 @@ bool FGridWorldObjectMIG06SparseBehaviorResolutionTest::RunTest(const FString& P
 	FGridWorldObjectInstance ObjectData;
 	ObjectData.InstanceId = FGuid::NewGuid();
 	ObjectData.Type = EGridLevelObjectType::Button;
-	ObjectData.WorldObjectDefinitionId = Definition->ArchetypeId;
+	ObjectData.WorldObjectDefinitionId = Definition->DefinitionId;
 	ObjectData.InstanceConfig.Teleporter = Staged.Teleporter;
 	ObjectData.InstanceConfig.Transition = Staged.Transition;
 	ObjectData.InstanceConfig.Pit = Staged.Pit;
@@ -90,15 +90,15 @@ bool FGridWorldObjectMIG09DefinitionAuthorityCutoverTest::RunTest(const FString&
 {
 	(void)Parameters;
 
-	UGridObjectArchetypeAsset* Definition = NewObject<UGridObjectArchetypeAsset>();
-	Definition->ArchetypeId = TEXT("MIG09_Definition");
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
+	Definition->DefinitionId = TEXT("MIG09_Definition");
 	Definition->SupportedType = EGridLevelObjectType::Button;
 	Definition->DefaultBehavior.ButtonAnimation.ButtonHoldTime = 0.90f;
 
 	FGridWorldObjectInstance Instance;
 	Instance.InstanceId = FGuid::NewGuid();
 	Instance.Type = EGridLevelObjectType::Button;
-	Instance.WorldObjectDefinitionId = Definition->ArchetypeId;
+	Instance.WorldObjectDefinitionId = Definition->DefinitionId;
 
 	const FGridObjectBehaviorParams DefinitionResolved = GridObjectInstanceBehavior::Resolve(Instance, Definition);
 	TestEqual(TEXT("MIG09 always resolves shared behavior from the definition when one is available"),
