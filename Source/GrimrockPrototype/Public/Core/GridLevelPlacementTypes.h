@@ -18,6 +18,15 @@ enum class EGridLevelPlacementBucket : uint8
 	LogicObject
 };
 
+/** Sparse per-instance decision for the optional door-chain mechanism. */
+UENUM(BlueprintType)
+enum class EGridDoorChainMode : uint8
+{
+	Inherit UMETA(DisplayName = "Inherit Definition"),
+	Enabled UMETA(DisplayName = "Enabled"),
+	Disabled UMETA(DisplayName = "Disabled")
+};
+
 /** Sparse generic override for one authored MovingPart slot of a placed world object. */
 USTRUCT(BlueprintType)
 struct FGridWorldObjectMovingPartInstanceOverride
@@ -70,6 +79,20 @@ struct FGridWorldObjectInstanceConfig
 	/** Sparse visual exceptions. Shared geometry/motion remains authored on the Definition. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Moving Parts")
 	TArray<FGridWorldObjectMovingPartInstanceOverride> MovingPartOverrides;
+
+	/**
+	 * Sparse door-chain enablement override.
+	 * Inherit preserves the Definition value; Enabled/Disabled force only the chain presence.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Door|Chain")
+	EGridDoorChainMode DoorChainMode = EGridDoorChainMode::Inherit;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Door|Chain")
+	bool bOverrideChainPullDuration = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Door|Chain",
+		meta = (EditCondition = "bOverrideChainPullDuration", EditConditionHides, ClampMin = "0.01"))
+	float ChainPullDuration = 0.25f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Lock")
 	bool bStartsUnlocked = false;

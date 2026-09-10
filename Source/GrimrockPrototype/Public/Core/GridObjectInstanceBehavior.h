@@ -8,11 +8,36 @@
  * WORLDOBJ-MIG09 definition/instance behavior resolver.
  *
  * Shared behavior belongs to the world-object definition. Only true instance-owned
- * values are overlaid at runtime. Native placements and the non-persistent
- * world-object runtime payload share the same five instance-owned overrides.
+ * values are overlaid at runtime. Door-chain presence uses a tri-state sparse override
+ * so "inherit" remains distinguishable from an explicit enabled/disabled decision.
  */
 namespace GridObjectInstanceBehavior
 {
+	inline void ApplyDoorChainOverrides(
+		EGridDoorChainMode ChainMode,
+		bool bOverrideChainPullDuration,
+		float ChainPullDuration,
+		FGridDoorAnimationParams& InOutDoorAnimation)
+	{
+		switch (ChainMode)
+		{
+			case EGridDoorChainMode::Enabled:
+				InOutDoorAnimation.bHasChainMechanism = true;
+				break;
+			case EGridDoorChainMode::Disabled:
+				InOutDoorAnimation.bHasChainMechanism = false;
+				break;
+			case EGridDoorChainMode::Inherit:
+			default:
+				break;
+		}
+
+		if (bOverrideChainPullDuration)
+		{
+			InOutDoorAnimation.ChainPullDuration = ChainPullDuration;
+		}
+	}
+
 	inline FGridObjectBehaviorParams Resolve(
 		const FGridWorldObjectInstance& WorldObjectInstance, const UGridWorldObjectDefinitionAsset* Definition)
 	{
@@ -23,6 +48,11 @@ namespace GridObjectInstanceBehavior
 		Resolved.Pit = Config.Pit;
 		Resolved.Receptacle.InitialContent = Config.ReceptacleInitialContent;
 		Resolved.Lock.bStartsUnlocked = Config.bStartsUnlocked;
+		ApplyDoorChainOverrides(
+			Config.DoorChainMode,
+			Config.bOverrideChainPullDuration,
+			Config.ChainPullDuration,
+			Resolved.DoorAnimation);
 		return Resolved;
 	}
 
@@ -52,15 +82,26 @@ namespace GridObjectInstanceBehavior
 	inline FGridObjectBehaviorParams Resolve(
 		const FGridRuntimeWorldObjectData& ObjectData, const UGridWorldObjectDefinitionAsset* Definition)
 	{
-		// Without a definition, the native payload contains behavior defaults and
-		// the five instance-owned overrides copied from the world-object placement.
+		// Without a definition, start from the sparse behavior payload and still apply
+		// the separately transported door-chain controls.
 		if (!Definition)
 		{
-			return ObjectData.Behavior;
+			FGridObjectBehaviorParams Resolved = ObjectData.Behavior;
+			ApplyDoorChainOverrides(
+				ObjectData.DoorChainMode,
+				ObjectData.bOverrideChainPullDuration,
+				ObjectData.ChainPullDuration,
+				Resolved.DoorAnimation);
+			return Resolved;
 		}
 
 		FGridObjectBehaviorParams Resolved = Definition->DefaultBehavior;
 		ApplyInstanceOwnedOverrides(ObjectData.Behavior, Resolved);
+		ApplyDoorChainOverrides(
+			ObjectData.DoorChainMode,
+			ObjectData.bOverrideChainPullDuration,
+			ObjectData.ChainPullDuration,
+			Resolved.DoorAnimation);
 		return Resolved;
 	}
 

@@ -9,9 +9,9 @@
  * It carries world-object identity, pose and initial state to the actor hierarchy.
  * Its only placement constructor accepts FGridWorldObjectInstance: no loose item,
  * monster spawn, item generator or logic placement is represented here.
- * Behavior contains defaults plus the five instance-owned behavior overrides; shared rules
- * are resolved from the definition by GridObjectInstanceBehavior at initialization.
- * MovingPartOverrides remains a separate visual-animation channel and never enters Behavior.
+ * Behavior carries the legacy-compatible sparse behavior payload; shared rules are resolved
+ * from the definition by GridObjectInstanceBehavior at initialization.
+ * MovingPartOverrides and door-chain instance controls remain separate sparse channels.
  */
 struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 {
@@ -26,6 +26,9 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 	FText OverrideReadableText;
 	FGridObjectBehaviorParams Behavior;
 	TArray<FGridWorldObjectMovingPartInstanceOverride> MovingPartOverrides;
+	EGridDoorChainMode DoorChainMode = EGridDoorChainMode::Inherit;
+	bool bOverrideChainPullDuration = false;
+	float ChainPullDuration = 0.25f;
 
 	FGridRuntimeWorldObjectData() = default;
 
@@ -48,5 +51,8 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 		Behavior.Receptacle.InitialContent = Source.InstanceConfig.ReceptacleInitialContent;
 		Behavior.Lock.bStartsUnlocked = Source.InstanceConfig.bStartsUnlocked;
 		MovingPartOverrides = Source.InstanceConfig.MovingPartOverrides;
+		DoorChainMode = Source.InstanceConfig.DoorChainMode;
+		bOverrideChainPullDuration = Source.InstanceConfig.bOverrideChainPullDuration;
+		ChainPullDuration = Source.InstanceConfig.ChainPullDuration;
 	}
 };
