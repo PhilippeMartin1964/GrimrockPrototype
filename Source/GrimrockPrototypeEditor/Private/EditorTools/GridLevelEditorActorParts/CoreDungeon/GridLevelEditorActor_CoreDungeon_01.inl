@@ -211,8 +211,7 @@ namespace
 				return Event == EGridObjectEvent::Activated || Event == EGridObjectEvent::Deactivated;
 
 			case EGridLevelObjectType::Receptacle:
-				return Event == EGridObjectEvent::ItemInserted || Event == EGridObjectEvent::ItemRemoved || Event == EGridObjectEvent::ItemChanged ||
-					Event == EGridObjectEvent::Activated;
+				return Event == EGridObjectEvent::ItemInserted || Event == EGridObjectEvent::ItemRemoved || Event == EGridObjectEvent::ItemChanged;
 
 			case EGridLevelObjectType::Pit:
 				return Event == EGridObjectEvent::Opened || Event == EGridObjectEvent::Closed;
