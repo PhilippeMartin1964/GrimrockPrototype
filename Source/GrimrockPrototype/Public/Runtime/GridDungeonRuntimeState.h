@@ -53,6 +53,20 @@ struct FGridRuntimeObjectPresenceState
 	bool bRemovedFromInitialPlacement = false;
 };
 
+/** PUZZLE01-LUA01 persistent visual overrides authored by generic runtime scripting commands. */
+USTRUCT(BlueprintType)
+struct FGridRuntimeObjectVisualState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGuid ObjectId;
+
+	/** Material slot -> definition-owned material alias. No UObject path is serialized. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FName, FName> MaterialAliasesBySlot;
+};
+
 USTRUCT(BlueprintType)
 struct FGridRuntimeItemState
 {
@@ -267,6 +281,10 @@ struct FGridLevelRuntimeState
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TMap<FGuid, FGridRuntimeObjectPresenceState> ObjectPresence;
+
+	/** Generic runtime visual overrides. Entries survive level rebuild and SaveGame round-trips. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FGuid, FGridRuntimeObjectVisualState> ObjectVisuals;
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TMap<FGuid, FGridRuntimeItemState> Items;
