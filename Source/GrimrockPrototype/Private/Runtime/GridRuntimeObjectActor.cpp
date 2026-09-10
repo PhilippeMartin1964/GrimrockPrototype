@@ -5,6 +5,7 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInterface.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Sound/SoundAttenuation.h"
 #include "Sound/SoundBase.h"
@@ -39,6 +40,10 @@ void AGridRuntimeObjectActor::InitializeRuntimeWorldObjectBase(
 
 	SetActorLocation(WorldLocation);
 	SetActorRotation(WorldRotation);
+
+	// PUZZLE01-LUA01: aliases are persistent level state, therefore every fresh
+	// runtime actor rebuild restores them immediately after its main mesh exists.
+	ApplyPersistedRuntimeMaterialAliases();
 }
 
 FGridObjectBehaviorParams AGridRuntimeObjectActor::ResolveEffectiveBehavior(const FGridRuntimeWorldObjectData& ObjectData) const
@@ -166,4 +171,109 @@ FGridObjectAudioPlaybackResult AGridRuntimeObjectActor::PlayObjectAudioEventDeta
 	}
 
 	return Result;
+}
+
+bool AGridRuntimeObjectActor::SetRuntimeMaterialAlias(FName MaterialSlotName, FName MaterialAlias, bool bPersist, FString& OutError)
+{
+	OutError.Reset();
+	if (!ObjectId.IsValid())
+	{
+		OutError = TEXT("Runtime object has no valid ObjectId.");
+		return false;
+	}
+	if (MaterialSlotName.IsNone() || MaterialAlias.IsNone())
+	{
+		OutError = TEXT("Material slot name and material alias must be non-empty.");
+		return false;
+	}
+	if (!MeshComponent || !MeshComponent->GetStaticMesh())
+	{
+		OutError = TEXT("Runtime object has no main static mesh for material replacement.");
+		return false;
+	}
+
+	AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor>(GetOwner());
+	if (!RuntimeActor || !RuntimeActor->LevelAsset)
+	{
+		OutError = TEXT("Runtime object has no owning level runtime/LevelAsset.");
+		return false;
+	}
+
+	const FGridWorldObjectInstance* Placement = RuntimeActor->LevelAsset->FindWorldObjectInstanceById(ObjectId);
+	if (!Placement)
+	{
+		OutError = FString::Printf(TEXT("Runtime object %s has no world-object placement."), *ObjectId.ToString());
+		return false;
+	}
+
+	const UGridWorldObjectDefinitionAsset* Definition = RuntimeActor->FindWorldObjectDefinition(Placement->WorldObjectDefinitionId);
+	if (!Definition)
+	{
+		OutError = FString::Printf(TEXT("World-object definition '%s' is unavailable."), *Placement->WorldObjectDefinitionId.ToString());
+		return false;
+	}
+
+	const TObjectPtr<UMaterialInterface>* MaterialPtr = Definition->RuntimeMaterialAliases.Find(MaterialAlias);
+	UMaterialInterface* Material = MaterialPtr ? MaterialPtr->Get() : nullptr;
+	if (!Material)
+	{
+		OutError = FString::Printf(TEXT("Material alias '%s' is not declared by definition '%s'."), *MaterialAlias.ToString(), *Definition->DefinitionId.ToString());
+		return false;
+	}
+
+	const int32 MaterialIndex = MeshComponent->GetMaterialIndex(MaterialSlotName);
+	if (MaterialIndex == INDEX_NONE)
+	{
+		OutError = FString::Printf(TEXT("Material slot '%s' does not exist on runtime object '%s'."), *MaterialSlotName.ToString(), *ObjectId.ToString());
+		return false;
+	}
+
+	FGridLevelRuntimeState* RuntimeState = nullptr;
+	if (bPersist)
+	{
+		RuntimeState = RuntimeActor->GetOrCreateRuntimeStateForCurrentLevel();
+		if (!RuntimeState)
+		{
+			OutError = TEXT("Current level runtime state is unavailable for persistent material override.");
+			return false;
+		}
+	}
+
+	MeshComponent->SetMaterial(MaterialIndex, Material);
+
+	if (RuntimeState)
+	{
+		FGridRuntimeObjectVisualState& VisualState = RuntimeState->ObjectVisuals.FindOrAdd(ObjectId);
+		VisualState.ObjectId = ObjectId;
+		VisualState.MaterialAliasesBySlot.Add(MaterialSlotName, MaterialAlias);
+	}
+
+	return true;
+}
+
+void AGridRuntimeObjectActor::ApplyPersistedRuntimeMaterialAliases()
+{
+	if (!ObjectId.IsValid() || !MeshComponent || !MeshComponent->GetStaticMesh())
+	{
+		return;
+	}
+
+	const AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor>(GetOwner());
+	const FGridLevelRuntimeState* RuntimeState = RuntimeActor ? RuntimeActor->FindRuntimeStateForCurrentLevel() : nullptr;
+	const FGridRuntimeObjectVisualState* VisualState = RuntimeState ? RuntimeState->ObjectVisuals.Find(ObjectId) : nullptr;
+	if (!VisualState)
+	{
+		return;
+	}
+
+	for (const TPair<FName, FName>& Pair : VisualState->MaterialAliasesBySlot)
+	{
+		FString Error;
+		if (!SetRuntimeMaterialAlias(Pair.Key, Pair.Value, false, Error))
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("GridRuntimeObject persisted material override skipped: ObjectId=%s Slot=%s Alias=%s Reason=%s"),
+				*ObjectId.ToString(), *Pair.Key.ToString(), *Pair.Value.ToString(), *Error);
+		}
+	}
 }

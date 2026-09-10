@@ -2,6 +2,7 @@
 
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLevelVariableStore.h"
+#include "Runtime/GridRuntimeObjectActor.h"
 #include "Core/GridLevelAsset.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridActivation, Log, All);
@@ -15,6 +16,51 @@ namespace
 			return Enum->GetNameStringByValue(static_cast<int64>(EventType));
 		}
 		return FString::Printf(TEXT("%d"), static_cast<int32>(EventType));
+	}
+
+	bool ResolveLuaVisualTargetObjectId(AGridLevelRuntimeActor* RuntimeActor, const FString& TargetReferenceText, FGuid& OutTargetId, FString& OutError)
+	{
+		const FString TargetReference = TargetReferenceText.TrimStartAndEnd();
+		if (TargetReference.IsEmpty())
+		{
+			OutError = TEXT("grid.visual.set_material target reference cannot be empty.");
+			return false;
+		}
+
+		if (FGuid::Parse(TargetReference, OutTargetId) && OutTargetId.IsValid())
+		{
+			OutError.Reset();
+			return true;
+		}
+
+		if (!RuntimeActor || !RuntimeActor->LevelAsset)
+		{
+			OutError = TEXT("grid.visual.set_material cannot resolve LogicId without a current LevelAsset.");
+			return false;
+		}
+
+		TArray<FGuid> MatchingIds;
+		const int32 MatchCount = RuntimeActor->LevelAsset->FindTypedPlacementIdsByLogicId(FName(*TargetReference), MatchingIds);
+		if (MatchCount == 0)
+		{
+			OutError = FString::Printf(TEXT("grid.visual.set_material target '%s' is neither a valid ObjectId nor a declared LogicId."), *TargetReference);
+			return false;
+		}
+		if (MatchCount > 1)
+		{
+			OutError = FString::Printf(TEXT("grid.visual.set_material LogicId '%s' is ambiguous (%d objects)."), *TargetReference, MatchCount);
+			return false;
+		}
+
+		OutTargetId = MatchingIds[0];
+		if (!OutTargetId.IsValid())
+		{
+			OutError = FString::Printf(TEXT("grid.visual.set_material LogicId '%s' resolves to an object without a valid ObjectId."), *TargetReference);
+			return false;
+		}
+
+		OutError.Reset();
+		return true;
 	}
 }
 
@@ -186,6 +232,37 @@ bool UGridActivationComponent::ExecuteLuaCallbackLink(const FGridObjectLink& Lin
 	HostApi.Command = [this, SourceObjectId = LinkData.SourceObjectId](const FString& TargetId, const FString& CommandName, FString& OutHostError)
 	{
 		return ExecuteLuaIssuedCommand(SourceObjectId, TargetId, CommandName, OutHostError);
+	};
+	HostApi.SetMaterial = [this](const FString& TargetReference, const FString& MaterialSlot, const FString& MaterialAlias, FString& OutHostError)
+	{
+		if (!ConsumeRuntimeActionBudget(TEXT("LuaVisualSetMaterial")))
+		{
+			OutHostError = TEXT("grid.visual.set_material rejected: shared Event/Command/Lua budget exhausted.");
+			return false;
+		}
+
+		FGuid TargetId;
+		if (!ResolveLuaVisualTargetObjectId(RuntimeActor, TargetReference, TargetId, OutHostError))
+		{
+			return false;
+		}
+
+		AGridRuntimeObjectActor* TargetActor = RuntimeActor->FindRuntimeObjectActor<AGridRuntimeObjectActor>(TargetId);
+		if (!TargetActor)
+		{
+			OutHostError = FString::Printf(TEXT("grid.visual.set_material target '%s' has no runtime world-object actor."), *TargetReference);
+			return false;
+		}
+
+		const FString SlotText = MaterialSlot.TrimStartAndEnd();
+		const FString AliasText = MaterialAlias.TrimStartAndEnd();
+		if (SlotText.IsEmpty() || AliasText.IsEmpty())
+		{
+			OutHostError = TEXT("grid.visual.set_material requires non-empty material slot and alias strings.");
+			return false;
+		}
+
+		return TargetActor->SetRuntimeMaterialAlias(FName(*SlotText), FName(*AliasText), true, OutHostError);
 	};
 	HostApi.Log = [ScriptId = LinkData.LuaScriptId](const FString& Message)
 	{

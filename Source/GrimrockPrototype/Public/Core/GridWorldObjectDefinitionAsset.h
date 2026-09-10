@@ -12,6 +12,7 @@
 
 class AGridRuntimeObjectActor;
 class AGridItemActor;
+class UMaterialInterface;
 class USoundBase;
 class USoundAttenuation;
 
@@ -235,6 +236,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Composition", meta = (DisplayName = "Moving Parts"))
 	FGridWorldObjectMovingParts MovingParts;
+
+	/**
+	 * PUZZLE01-LUA01 generic cook-safe visual vocabulary.
+	 * Lua scripts address materials by semantic alias instead of Unreal asset paths.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Runtime Materials",
+		meta = (DisplayName = "Runtime Material Aliases",
+			ToolTip = "Materials that runtime scripting may apply to named slots. Lua uses the alias key; Unreal asset paths are never exposed to the sandbox."))
+	TMap<FName, TObjectPtr<UMaterialInterface>> RuntimeMaterialAliases;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime",
 		meta = (DisplayName = "Runtime Actor Class",

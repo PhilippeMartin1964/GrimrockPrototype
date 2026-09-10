@@ -296,6 +296,31 @@ struct FGridLuaVm::FImpl
 		return PushActionResult(InState, bSuccess, Error);
 	}
 
+	static int LuaSetMaterial(lua_State* InState)
+	{
+		FImpl* Self = GetSelf(InState);
+		if (!Self || !Self->ActiveHost || !Self->ActiveHost->SetMaterial)
+		{
+			return PushActionResult(InState, false, TEXT("grid.visual.set_material is unavailable outside a hosted callback."));
+		}
+		if (lua_type(InState, 1) != LUA_TSTRING || lua_type(InState, 2) != LUA_TSTRING || lua_type(InState, 3) != LUA_TSTRING)
+		{
+			return PushActionResult(InState, false,
+				TEXT("grid.visual.set_material expects target ObjectId/LogicId, material slot and material alias strings."));
+		}
+
+		const char* TargetUtf8 = lua_tostring(InState, 1);
+		const char* SlotUtf8 = lua_tostring(InState, 2);
+		const char* AliasUtf8 = lua_tostring(InState, 3);
+		const FString Target = TargetUtf8 ? FString(UTF8_TO_TCHAR(TargetUtf8)) : FString();
+		const FString Slot = SlotUtf8 ? FString(UTF8_TO_TCHAR(SlotUtf8)) : FString();
+		const FString Alias = AliasUtf8 ? FString(UTF8_TO_TCHAR(AliasUtf8)) : FString();
+
+		FString Error;
+		const bool bSuccess = Self->ActiveHost->SetMaterial(Target, Slot, Alias, Error);
+		return PushActionResult(InState, bSuccess, Error);
+	}
+
 	static int LuaLog(lua_State* InState)
 	{
 		FImpl* Self = GetSelf(InState);
@@ -417,6 +442,12 @@ struct FGridLuaVm::FImpl
 		lua_pushcfunction(State, &FImpl::LuaSetInt);
 		lua_setfield(State, VarsIndex, "set_int");
 		lua_setfield(State, GridIndex, "vars");
+
+		lua_newtable(State);
+		const int32 VisualIndex = lua_absindex(State, -1);
+		lua_pushcfunction(State, &FImpl::LuaSetMaterial);
+		lua_setfield(State, VisualIndex, "set_material");
+		lua_setfield(State, GridIndex, "visual");
 
 		lua_pushcfunction(State, &FImpl::LuaCommand);
 		lua_setfield(State, GridIndex, "command");

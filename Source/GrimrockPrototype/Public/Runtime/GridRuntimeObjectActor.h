@@ -98,6 +98,15 @@ public:
 	FGridObjectAudioPlaybackResult PlayObjectAudioEventDetailed(
 		FName EventName, bool bEnableNativePlayback = true, float StartTimeSeconds = 0.0f);
 
+	/**
+	 * PUZZLE01-LUA01 generic visual primitive. Resolves MaterialAlias through the
+	 * object's Definition and applies it to a named slot of the main MeshComponent.
+	 * When bPersist is true only the alias is stored in level runtime state.
+	 */
+	bool SetRuntimeMaterialAlias(FName MaterialSlotName, FName MaterialAlias, bool bPersist, FString& OutError);
+
 private:
+	void ApplyPersistedRuntimeMaterialAliases();
+
 	TMap<FName, int32> ObjectAudioEventOccurrences;
 };

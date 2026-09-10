@@ -54,6 +54,10 @@ struct GRIMROCKLUA_API FGridLuaHostApi
 	TFunction<bool(FName, int32&, FString&)> GetInt32;
 	TFunction<bool(FName, int32, FString&)> SetInt32;
 	TFunction<bool(const FString&, const FString&, FString&)> Command;
+
+	/** PUZZLE01-LUA01: cook-safe runtime visual primitive, resolved by target LogicId/ObjectId and material alias. */
+	TFunction<bool(const FString&, const FString&, const FString&, FString&)> SetMaterial;
+
 	TFunction<void(const FString&)> Log;
 };
 
