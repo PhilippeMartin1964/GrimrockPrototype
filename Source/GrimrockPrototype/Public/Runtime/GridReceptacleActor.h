@@ -253,10 +253,10 @@ public:
      * ItemDefinition is optional but preferred when available.
      */
 	UFUNCTION(BlueprintCallable, Category = "Receptacle")
-	bool TryInsertItem(FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGrimrockPartyPawn* PartyPawn);
+	virtual bool TryInsertItem(FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGrimrockPartyPawn* PartyPawn);
 
 	UFUNCTION(BlueprintCallable, Category = "Receptacle")
-	bool TryInsertItemInstanceFromCursor(const FGridItemInstance& CursorItem, FGridItemInstance& OutAcceptedItem);
+	virtual bool TryInsertItemInstanceFromCursor(const FGridItemInstance& CursorItem, FGridItemInstance& OutAcceptedItem);
 
 	/**
      * Takes the first contained item.
@@ -309,14 +309,14 @@ public:
      * Authoritative runtime clear:
      * destroys item actors and resets logical + visual state.
      */
-	int32 ForceClearRuntimeContents(bool bMarkInitialItemsRemoved);
+	virtual int32 ForceClearRuntimeContents(bool bMarkInitialItemsRemoved);
 
 	/**
      * Restores one runtime-contained item.
      *
      * Runtime actor is responsible for resolving/spawning ItemActor if needed.
      */
-	bool RestoreRuntimeContainedItem(const FGridRuntimeItemState& ItemState, AGridItemActor* ItemActor);
+	virtual bool RestoreRuntimeContainedItem(const FGridRuntimeItemState& ItemState, AGridItemActor* ItemActor);
 
 public:
 	// ============================================================

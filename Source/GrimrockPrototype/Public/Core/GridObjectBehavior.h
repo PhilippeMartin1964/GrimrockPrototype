@@ -5,6 +5,7 @@
 
 class UGridItemDefinitionAsset;
 class UGridReadableContentAsset;
+class UMaterialInterface;
 
 UENUM(BlueprintType)
 enum class EGridReceptacleVisualPlacementMode : uint8
@@ -118,6 +119,45 @@ struct FGridReceptacleAcceptedItemConfig
 	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
 };
 
+/** One progressive presentation change applied after the corresponding accepted item count is reached. */
+USTRUCT(BlueprintType)
+struct FGridReceptacleProgressMaterialStep
+{
+	GENERATED_BODY()
+
+	/** Static-mesh material slot to replace for this progress step. Prefer stable semantic names such as Eye_Left / Eye_Right. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Progress", meta = (DisplayName = "Material Slot Name"))
+	FName MaterialSlotName = NAME_None;
+
+	/** Material applied to MaterialSlotName when this step becomes active. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Progress", meta = (DisplayName = "Material"))
+	TObjectPtr<UMaterialInterface> Material = nullptr;
+};
+
+/**
+ * PUZZLE01 progressive consumable-receptacle presentation.
+ *
+ * When enabled, items accepted by the receptacle are removed from player ownership and retained only as
+ * non-removable logical charges. Their individual world actors are suppressed. The number of logical charges
+ * is the progress value, MaxContainedItems is the completion threshold, and MaterialSteps[0..progress-1]
+ * are applied to the receptacle mesh. Completion emits Activated once on the insertion that reaches capacity.
+ */
+USTRUCT(BlueprintType)
+struct FGridReceptacleProgressiveConsumeParams
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Progressive Consume",
+		meta = (DisplayName = "Enabled",
+			ToolTip = "Consumes accepted items into non-removable logical progress charges, suppresses their item actors and emits Activated when Max Contained Items is reached."))
+	bool bEnabled = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Progressive Consume",
+		meta = (EditCondition = "bEnabled", EditConditionHides,
+			ToolTip = "Step 0 is applied after the first accepted item, step 1 after the second, and so on. Max Contained Items remains the completion threshold."))
+	TArray<FGridReceptacleProgressMaterialStep> MaterialSteps;
+};
+
 USTRUCT(BlueprintType)
 struct FGridReceptacleBehaviorParams
 {
@@ -134,6 +174,9 @@ struct FGridReceptacleBehaviorParams
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle", meta = (DisplayName = "Max Contained Items", ClampMin = "1"))
 	int32 MaxContainedItems = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Progressive Consume")
+	FGridReceptacleProgressiveConsumeParams ProgressiveConsume;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
 	EGridReceptacleVisualPlacementMode VisualPlacementMode = EGridReceptacleVisualPlacementMode::AttachedSocket;

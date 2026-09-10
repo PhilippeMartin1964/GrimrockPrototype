@@ -53,9 +53,9 @@ bool FGridEditorMON192LinkPolicyMatrixTest::RunTest(const FString& Parameters)
 		ContainsExactly(GridEditorLinkPolicy::GetSupportedEventsForSource(PressurePlate), { EGridObjectEvent::Activated, EGridObjectEvent::Deactivated }));
 	TestTrue(TEXT("Trigger emits exactly Activated and Deactivated"),
 		ContainsExactly(GridEditorLinkPolicy::GetSupportedEventsForSource(Trigger), { EGridObjectEvent::Activated, EGridObjectEvent::Deactivated }));
-	TestTrue(TEXT("Receptacle emits exactly its three item events"),
+	TestTrue(TEXT("Receptacle emits item lifecycle events plus progressive completion Activated"),
 		ContainsExactly(GridEditorLinkPolicy::GetSupportedEventsForSource(Receptacle),
-			{ EGridObjectEvent::ItemInserted, EGridObjectEvent::ItemRemoved, EGridObjectEvent::ItemChanged }));
+			{ EGridObjectEvent::ItemInserted, EGridObjectEvent::ItemRemoved, EGridObjectEvent::ItemChanged, EGridObjectEvent::Activated }));
 	TestTrue(TEXT("MonsterSpawn emits exactly its six lifecycle events"),
 		ContainsExactly(GridEditorLinkPolicy::GetSupportedEventsForSource(MonsterSpawn),
 			{ EGridObjectEvent::MonsterDied, EGridObjectEvent::MonsterSpawned, EGridObjectEvent::MonsterDespawned, EGridObjectEvent::MonsterTeleported,

@@ -32,7 +32,7 @@ namespace GridEditorLinkPolicy
 				return { EGridObjectEvent::Activated, EGridObjectEvent::Deactivated };
 
 			case EGridLevelObjectType::Receptacle:
-				return { EGridObjectEvent::ItemInserted, EGridObjectEvent::ItemRemoved, EGridObjectEvent::ItemChanged };
+				return { EGridObjectEvent::ItemInserted, EGridObjectEvent::ItemRemoved, EGridObjectEvent::ItemChanged, EGridObjectEvent::Activated };
 
 			case EGridLevelObjectType::Pit:
 				return { EGridObjectEvent::Opened, EGridObjectEvent::Closed };
