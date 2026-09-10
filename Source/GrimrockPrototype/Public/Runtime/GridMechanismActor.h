@@ -46,8 +46,11 @@ protected:
 	void ApplyMovingPartMotionAlpha(int32 PartIndex, float Alpha);
 	void ApplyAllMovingPartMotionsAlpha(float Alpha);
 
-	/** Longest authored moving-part duration. Paired moving parts share the same normalized state alpha. */
-	float GetTargetMotionDuration() const;
+	/**
+	 * Longest authored moving-part duration for the requested direction.
+	 * ReverseDuration <= 0 falls back to Duration per moving part.
+	 */
+	float GetTargetMotionDuration(bool bReverse = false) const;
 
 	/** WORLDOBJ-MIG03.4: mechanisms exclusively use StaticPart/MovingParts. */
 	bool UsesTargetVisualComposition() const

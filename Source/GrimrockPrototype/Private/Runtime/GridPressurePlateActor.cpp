@@ -23,8 +23,8 @@ void AGridPressurePlateActor::InitializeRuntimePlate(
 	(void)InPlateMesh;
 	AGridRuntimeObjectActor::InitializeRuntimeWorldObject(ObjectData, nullptr, FTransform(FRotator::ZeroRotator, InWorldLocation));
 
-	// WORLDOBJ-MIG04: the plate owns only logical alpha; Motion owns geometry and timing.
-	MoveDuration = GetTargetMotionDuration();
+	// RECOVERY01-C2: MoveDuration remains the forward cache; reverse timing is resolved on demand.
+	MoveDuration = GetTargetMotionDuration(false);
 	const FGridObjectBehaviorParams EffectiveBehavior = ResolveEffectiveBehavior(ObjectData);
 	const FGridPressurePlateWeightParams& WeightParams = EffectiveBehavior.PressurePlateWeight;
 	SetWeightState(0.0f, WeightParams.RequiredItemWeight, WeightParams.bUseItemWeight, WeightParams.bActivateWhenPartyPresent);
@@ -45,6 +45,7 @@ void AGridPressurePlateActor::SetPressed(bool bNewPressed)
 	{
 		return;
 	}
+	const bool bReverseMotion = !bNewPressed;
 	bIsPressed = bNewPressed;
 	AnimElapsed = 0.f;
 	AnimStartMotionAlpha = CurrentMotionAlpha;
@@ -60,7 +61,8 @@ void AGridPressurePlateActor::SetPressed(bool bNewPressed)
 		return;
 	}
 
-	CurrentMoveDuration = FMath::Max(0.01f, MoveDuration * Travel);
+	const float DirectionDuration = GetTargetMotionDuration(bReverseMotion);
+	CurrentMoveDuration = FMath::Max(0.01f, DirectionDuration * Travel);
 	bIsAnimating = true;
 	SetActorTickEnabled(true);
 }

@@ -43,6 +43,7 @@ void AGridLeverActor::SetLeverState(bool bNewOn)
 		return;
 	}
 
+	const bool bReverseMotion = !bNewOn;
 	bIsOn = bNewOn;
 	AnimElapsed = 0.f;
 	AnimStartMotionAlpha = CurrentMotionAlpha;
@@ -58,7 +59,8 @@ void AGridLeverActor::SetLeverState(bool bNewOn)
 		return;
 	}
 
-	CurrentToggleDuration = FMath::Max(0.01f, ToggleDuration * Travel);
+	const float DirectionDuration = GetTargetMotionDuration(bReverseMotion);
+	CurrentToggleDuration = FMath::Max(0.01f, DirectionDuration * Travel);
 	bIsAnimating = true;
 	SetActorTickEnabled(true);
 }
@@ -93,8 +95,8 @@ void AGridLeverActor::InitializeRuntimeWorldObject(
 	(void)Mesh;
 	AGridRuntimeObjectActor::InitializeRuntimeWorldObject(ObjectData, nullptr, WorldTransform);
 
-	// WORLDOBJ-MIG04: the lever owns only logical alpha; Motion owns geometry and timing.
-	ToggleDuration = GetTargetMotionDuration();
+	// RECOVERY01-C2: ToggleDuration remains the forward cache; reverse timing is resolved on demand.
+	ToggleDuration = GetTargetMotionDuration(false);
 	bIsOn = ObjectData.bInitiallyActive;
 	bIsAnimating = false;
 	AnimElapsed = 0.f;

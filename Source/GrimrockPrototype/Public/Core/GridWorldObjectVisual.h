@@ -63,8 +63,20 @@ struct GRIMROCKPROTOTYPE_API FGridWorldObjectMotion
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Motion")
 	float Amount = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Motion", meta = (ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Motion", meta = (DisplayName = "Forward Duration", ClampMin = "0.0"))
 	float Duration = 0.0f;
+
+	/**
+	 * Optional full Alpha 1 -> 0 travel time.
+	 * A value <= 0 preserves the historical symmetric behavior by falling back to Duration.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Motion", meta = (DisplayName = "Reverse Duration", ClampMin = "0.0"))
+	float ReverseDuration = 0.0f;
+
+	float GetDuration(bool bReverse) const
+	{
+		return bReverse && ReverseDuration > 0.0f ? ReverseDuration : Duration;
+	}
 
 	FVector GetAxisVector() const
 	{

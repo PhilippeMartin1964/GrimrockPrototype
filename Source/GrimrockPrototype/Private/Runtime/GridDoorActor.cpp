@@ -110,9 +110,10 @@ void AGridDoorActor::SetDoorOpenState(bool bOpen)
 	MoveTargetMotionAlpha = DesiredAlpha;
 	MoveElapsed = 0.f;
 	const float TravelRatio = FMath::Abs(MoveTargetMotionAlpha - MoveStartMotionAlpha);
-	CurrentMoveDuration = FMath::Max(0.01f, MoveDuration * TravelRatio);
+	const float DirectionDuration = GetTargetMotionDuration(!bOpen);
+	CurrentMoveDuration = FMath::Max(0.01f, DirectionDuration * TravelRatio);
 
-	const float AudioTimelineDuration = FMath::Max(0.0f, MoveDuration);
+	const float AudioTimelineDuration = FMath::Max(0.0f, DirectionDuration);
 	const float AudioStartTime = bOpen ? CurrentMotionAlpha * AudioTimelineDuration : (1.0f - CurrentMotionAlpha) * AudioTimelineDuration;
 
 	bIsAnimating = true;
@@ -121,7 +122,7 @@ void AGridDoorActor::SetDoorOpenState(bool bOpen)
 	UE_LOG(LogTemp, Log,
 		TEXT("Grid door generic-motion start: ObjectId=%s Cell=(%d,%d) Edge=%d Direction=%s StartAlpha=%.3f TargetAlpha=%.3f Duration=%.3f EffectiveDuration=%.3f"),
 		*ObjectId.ToString(), CellX, CellY, static_cast<int32>(Edge), bOpen ? TEXT("Open") : TEXT("Close"), MoveStartMotionAlpha,
-		MoveTargetMotionAlpha, MoveDuration, CurrentMoveDuration);
+		MoveTargetMotionAlpha, DirectionDuration, CurrentMoveDuration);
 
 	RefreshTickEnabled();
 }
@@ -433,8 +434,8 @@ void AGridDoorActor::InitializeRuntimeWorldObject(
 	StopDoorMotionSound();
 	Super::InitializeRuntimeWorldObject(ObjectData, nullptr, WorldTransform);
 
-	// WORLDOBJ-MIG04 production contract: Motion is the sole door geometry/timing authority.
-	MoveDuration = GetTargetMotionDuration();
+	// RECOVERY01-C2: MoveDuration remains the forward cache; close timing resolves ReverseDuration on demand.
+	MoveDuration = GetTargetMotionDuration(false);
 	bIsOpen = ObjectData.bInitiallyActive;
 	bIsAnimating = false;
 	MoveElapsed = 0.f;

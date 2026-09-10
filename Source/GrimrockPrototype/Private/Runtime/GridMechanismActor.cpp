@@ -166,16 +166,16 @@ void AGridMechanismActor::ApplyAllMovingPartMotionsAlpha(float Alpha)
 	ApplyMovingPartMotionAlpha(1, Alpha);
 }
 
-float AGridMechanismActor::GetTargetMotionDuration() const
+float AGridMechanismActor::GetTargetMotionDuration(bool bReverse) const
 {
 	float Duration = 0.0f;
 	if (MovingMeshComponent && MovingMeshComponent->GetStaticMesh())
 	{
-		Duration = FMath::Max(Duration, FMath::Max(0.0f, MovingPart0Motion.Duration));
+		Duration = FMath::Max(Duration, FMath::Max(0.0f, MovingPart0Motion.GetDuration(bReverse)));
 	}
 	if (SecondaryMovingMeshComponent && SecondaryMovingMeshComponent->GetStaticMesh())
 	{
-		Duration = FMath::Max(Duration, FMath::Max(0.0f, MovingPart1Motion.Duration));
+		Duration = FMath::Max(Duration, FMath::Max(0.0f, MovingPart1Motion.GetDuration(bReverse)));
 	}
 	return Duration;
 }

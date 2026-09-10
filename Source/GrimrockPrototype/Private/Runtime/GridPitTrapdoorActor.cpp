@@ -29,8 +29,8 @@ void AGridPitTrapdoorActor::InitializeRuntimeMechanismVisuals(
 {
 	AGridMechanismActor::InitializeRuntimeMechanismVisuals(ObjectData, Definition, WorldTransform);
 
-	// WORLDOBJ-MIG04: pit geometry and travel time are entirely generic MovingParts motion.
-	MoveDuration = GetTargetMotionDuration();
+	// RECOVERY01-C2: MoveDuration remains the forward/open cache; closing resolves ReverseDuration on demand.
+	MoveDuration = GetTargetMotionDuration(false);
 
 	LeftLeafMeshComponent = MovingMeshComponent;
 	RightLeafMeshComponent = SecondaryMovingMeshComponent;
@@ -116,7 +116,8 @@ void AGridPitTrapdoorActor::SetPitOpenVisualState(bool bOpen, bool bPlayAudio)
 	}
 
 	bTargetOpen = bOpen;
-	if (MoveDuration <= KINDA_SMALL_NUMBER)
+	const float DirectionDuration = GetTargetMotionDuration(!bOpen);
+	if (DirectionDuration <= KINDA_SMALL_NUMBER)
 	{
 		const bool bWasOpen = bIsOpen;
 		SnapPitOpenState(bOpen);
@@ -145,10 +146,11 @@ void AGridPitTrapdoorActor::SetPitOpenVisualState(bool bOpen, bool bPlayAudio)
 	MoveStartAlpha = CurrentOpenAlpha;
 	MoveTargetAlpha = DesiredAlpha;
 	MoveElapsed = 0.0f;
-	CurrentMoveDuration = FMath::Max(0.01f, MoveDuration * FMath::Abs(MoveTargetAlpha - MoveStartAlpha));
+	CurrentMoveDuration = FMath::Max(0.01f, DirectionDuration * FMath::Abs(MoveTargetAlpha - MoveStartAlpha));
 	bIsAnimating = true;
 
-	const float AudioStartTime = bOpen ? CurrentOpenAlpha * MoveDuration : (1.0f - CurrentOpenAlpha) * MoveDuration;
+	const float AudioStartTime =
+		bOpen ? CurrentOpenAlpha * DirectionDuration : (1.0f - CurrentOpenAlpha) * DirectionDuration;
 	StartPitMotionSound(bOpen, AudioStartTime, bPlayAudio);
 	RefreshTrapdoorCollision();
 	RefreshTickEnabled();
@@ -156,7 +158,7 @@ void AGridPitTrapdoorActor::SetPitOpenVisualState(bool bOpen, bool bPlayAudio)
 	UE_LOG(LogTemp, Log,
 		TEXT("GridPit generic-motion start ObjectId=%s Cell=(%d,%d) Direction=%s StartAlpha=%.3f TargetAlpha=%.3f Duration=%.3f EffectiveDuration=%.3f"),
 		*ObjectId.ToString(), CellX, CellY, bOpen ? TEXT("Open") : TEXT("Close"), MoveStartAlpha, MoveTargetAlpha,
-		MoveDuration, CurrentMoveDuration);
+		DirectionDuration, CurrentMoveDuration);
 }
 
 void AGridPitTrapdoorActor::SnapPitOpenState(bool bOpen)

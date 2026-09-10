@@ -98,10 +98,9 @@ void AGridButtonActor::InitializeRuntimeWorldObject(
 	(void)Mesh;
 	AGridRuntimeObjectActor::InitializeRuntimeWorldObject(ObjectData, nullptr, WorldTransform);
 
-	// WORLDOBJ-MIG04: geometry and travel time are authored only by MovingPart[0].Motion.
-	const float TargetDuration = GetTargetMotionDuration();
-	PressDuration = TargetDuration;
-	ReleaseDuration = TargetDuration;
+	// RECOVERY01-C2: generic Motion owns both forward and optional reverse timing.
+	PressDuration = GetTargetMotionDuration(false);
+	ReleaseDuration = GetTargetMotionDuration(true);
 
 	// WORLDOBJ-MIG06/MIG09-E2: shared gameplay comes from Definition + instance-owned runtime overrides.
 	const FGridObjectBehaviorParams EffectiveBehavior = ResolveEffectiveBehavior(ObjectData);
