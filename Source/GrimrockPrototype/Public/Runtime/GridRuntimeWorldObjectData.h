@@ -6,12 +6,8 @@
  * Runtime-only initialization payload for one placed world object.
  *
  * This structure is intentionally not reflected and is never stored in UGridLevelAsset.
- * It carries world-object identity, pose and initial state to the actor hierarchy.
- * Its only placement constructor accepts FGridWorldObjectInstance: no loose item,
- * monster spawn, item generator or logic placement is represented here.
- * Behavior carries the legacy-compatible sparse behavior payload; shared rules are resolved
- * from the definition by GridObjectInstanceBehavior at initialization.
- * MovingPartOverrides and door-chain instance controls remain separate sparse channels.
+ * Shared rules are resolved from the Definition. Native placement state is carried in Behavior;
+ * moving-part, door-chain and GEUI09 interaction overrides remain separate sparse channels.
  */
 struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 {
@@ -26,12 +22,12 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 	FText OverrideReadableText;
 	FGridObjectBehaviorParams Behavior;
 	TArray<FGridWorldObjectMovingPartInstanceOverride> MovingPartOverrides;
+	FGridWorldObjectInteractionOverrides InteractionOverrides;
 	EGridDoorChainMode DoorChainMode = EGridDoorChainMode::Inherit;
 	bool bOverrideChainPullDuration = false;
 	float ChainPullDuration = 0.25f;
 
 	FGridRuntimeWorldObjectData() = default;
-
 
 	/** Native target path: build the runtime payload directly from a typed world-object placement. */
 	explicit FGridRuntimeWorldObjectData(const FGridWorldObjectInstance& Source)
@@ -51,6 +47,7 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 		Behavior.Receptacle.InitialContent = Source.InstanceConfig.ReceptacleInitialContent;
 		Behavior.Lock.bStartsUnlocked = Source.InstanceConfig.bStartsUnlocked;
 		MovingPartOverrides = Source.InstanceConfig.MovingPartOverrides;
+		InteractionOverrides = Source.InstanceConfig.InteractionOverrides;
 		DoorChainMode = Source.InstanceConfig.DoorChainMode;
 		bOverrideChainPullDuration = Source.InstanceConfig.bOverrideChainPullDuration;
 		ChainPullDuration = Source.InstanceConfig.ChainPullDuration;

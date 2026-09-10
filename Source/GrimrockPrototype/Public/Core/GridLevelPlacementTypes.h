@@ -58,6 +58,75 @@ struct FGridWorldObjectMovingPartInstanceOverride
 	float MotionDuration = 0.0f;
 };
 
+/** Instance-owned acceptance/capacity rules for a receptacle puzzle. Presentation remains Definition-owned. */
+USTRUCT(BlueprintType)
+struct FGridReceptacleInstanceRuleValues
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Receptacle")
+	bool bAcceptAnyItem = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Receptacle")
+	TArray<FGridReceptacleAcceptedItemConfig> AcceptedItems;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Receptacle", meta = (ClampMin = "1"))
+	int32 MaxContainedItems = 1;
+};
+
+/** Instance-owned accepted-key set for a wall-lock puzzle. Lock presentation/messages remain Definition-owned. */
+USTRUCT(BlueprintType)
+struct FGridLockAcceptedKeyInstanceRuleValues
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Lock|Accepted Keys")
+	TArray<TObjectPtr<UGridItemDefinitionAsset>> AcceptedKeyItems;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Lock|Accepted Keys")
+	TArray<FName> AcceptedKeyIds;
+};
+
+/**
+ * GEUI09 sparse puzzle-rule overrides.
+ *
+ * The Definition remains authoritative unless the corresponding bOverride flag is true.
+ * This is intentionally not a full FGridObjectBehaviorParams copy.
+ */
+USTRUCT(BlueprintType)
+struct FGridWorldObjectInteractionOverrides
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Button")
+	bool bOverrideButtonHoldTime = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Button",
+		meta = (EditCondition = "bOverrideButtonHoldTime", EditConditionHides, ClampMin = "0.0"))
+	float ButtonHoldTime = 0.15f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Pressure Plate")
+	bool bOverridePressurePlateWeight = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Pressure Plate",
+		meta = (EditCondition = "bOverridePressurePlateWeight", EditConditionHides))
+	FGridPressurePlateWeightParams PressurePlateWeight;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Receptacle")
+	bool bOverrideReceptacleRules = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Receptacle",
+		meta = (EditCondition = "bOverrideReceptacleRules", EditConditionHides))
+	FGridReceptacleInstanceRuleValues ReceptacleRules;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Lock")
+	bool bOverrideAcceptedKeys = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Lock",
+		meta = (EditCondition = "bOverrideAcceptedKeys", EditConditionHides))
+	FGridLockAcceptedKeyInstanceRuleValues AcceptedKeys;
+};
+
 /** Minimal per-instance state/configuration for one placed world object. */
 USTRUCT(BlueprintType)
 struct FGridWorldObjectInstanceConfig
@@ -75,8 +144,15 @@ struct FGridWorldObjectInstanceConfig
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Receptacle")
 	TArray<FGridReceptacleInitialItemConfig> ReceptacleInitialContent;
+	/**
+	 * Sparse gameplay/puzzle overrides exposed by the Grid Editor Selected Object inspector.
+	 * Permanent presentation and shared defaults remain on the Definition.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Interaction")
+	FGridWorldObjectInteractionOverrides InteractionOverrides;
 
 	/** Sparse visual exceptions. Shared geometry/motion remains authored on the Definition. */
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Moving Parts")
 	TArray<FGridWorldObjectMovingPartInstanceOverride> MovingPartOverrides;
 

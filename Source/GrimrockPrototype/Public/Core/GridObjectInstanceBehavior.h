@@ -5,11 +5,11 @@
 #include "Runtime/GridRuntimeWorldObjectData.h"
 
 /**
- * WORLDOBJ-MIG09 definition/instance behavior resolver.
+ * Definition/instance behavior resolver.
  *
- * Shared behavior belongs to the world-object definition. Only true instance-owned
- * values are overlaid at runtime. Door-chain presence uses a tri-state sparse override
- * so "inherit" remains distinguishable from an explicit enabled/disabled decision.
+ * Shared behavior belongs to the world-object Definition. True level-instance values are
+ * overlaid at runtime. GEUI09 adds a deliberately sparse interaction/puzzle override layer;
+ * it never serializes a second full FGridObjectBehaviorParams on the placement.
  */
 namespace GridObjectInstanceBehavior
 {
@@ -34,7 +34,37 @@ namespace GridObjectInstanceBehavior
 
 		if (bOverrideChainPullDuration)
 		{
-			InOutDoorAnimation.ChainPullDuration = ChainPullDuration;
+			InOutDoorAnimation.ChainPullDuration = FMath::Max(0.01f, ChainPullDuration);
+		}
+	}
+
+	inline void ApplyInteractionOverrides(
+		const FGridWorldObjectInteractionOverrides& Overrides,
+		FGridObjectBehaviorParams& InOutBehavior)
+	{
+		if (Overrides.bOverrideButtonHoldTime)
+		{
+			InOutBehavior.ButtonAnimation.ButtonHoldTime = FMath::Max(0.0f, Overrides.ButtonHoldTime);
+		}
+
+		if (Overrides.bOverridePressurePlateWeight)
+		{
+			InOutBehavior.PressurePlateWeight = Overrides.PressurePlateWeight;
+			InOutBehavior.PressurePlateWeight.RequiredItemWeight =
+				FMath::Max(0.0f, InOutBehavior.PressurePlateWeight.RequiredItemWeight);
+		}
+
+		if (Overrides.bOverrideReceptacleRules)
+		{
+			InOutBehavior.Receptacle.bAcceptAnyItem = Overrides.ReceptacleRules.bAcceptAnyItem;
+			InOutBehavior.Receptacle.AcceptedItems = Overrides.ReceptacleRules.AcceptedItems;
+			InOutBehavior.Receptacle.MaxContainedItems = FMath::Max(1, Overrides.ReceptacleRules.MaxContainedItems);
+		}
+
+		if (Overrides.bOverrideAcceptedKeys)
+		{
+			InOutBehavior.Lock.AcceptedKeyItems = Overrides.AcceptedKeys.AcceptedKeyItems;
+			InOutBehavior.Lock.AcceptedKeyIds = Overrides.AcceptedKeys.AcceptedKeyIds;
 		}
 	}
 
@@ -43,11 +73,14 @@ namespace GridObjectInstanceBehavior
 	{
 		FGridObjectBehaviorParams Resolved = Definition ? Definition->DefaultBehavior : FGridObjectBehaviorParams();
 		const FGridWorldObjectInstanceConfig& Config = WorldObjectInstance.InstanceConfig;
+
 		Resolved.Teleporter = Config.Teleporter;
 		Resolved.Transition = Config.Transition;
 		Resolved.Pit = Config.Pit;
 		Resolved.Receptacle.InitialContent = Config.ReceptacleInitialContent;
 		Resolved.Lock.bStartsUnlocked = Config.bStartsUnlocked;
+
+		ApplyInteractionOverrides(Config.InteractionOverrides, Resolved);
 		ApplyDoorChainOverrides(
 			Config.DoorChainMode,
 			Config.bOverrideChainPullDuration,
@@ -60,7 +93,7 @@ namespace GridObjectInstanceBehavior
 	{
 		FGridObjectBehaviorParams Overrides;
 
-		// True level-instance data only. Shared rules stay in the definition.
+		// Native level-instance data only. GEUI09 interaction overrides travel separately.
 		Overrides.Teleporter = Source.Teleporter;
 		Overrides.Transition = Source.Transition;
 		Overrides.Pit = Source.Pit;
@@ -82,11 +115,10 @@ namespace GridObjectInstanceBehavior
 	inline FGridObjectBehaviorParams Resolve(
 		const FGridRuntimeWorldObjectData& ObjectData, const UGridWorldObjectDefinitionAsset* Definition)
 	{
-		// Without a definition, start from the sparse behavior payload and still apply
-		// the separately transported door-chain controls.
 		if (!Definition)
 		{
 			FGridObjectBehaviorParams Resolved = ObjectData.Behavior;
+			ApplyInteractionOverrides(ObjectData.InteractionOverrides, Resolved);
 			ApplyDoorChainOverrides(
 				ObjectData.DoorChainMode,
 				ObjectData.bOverrideChainPullDuration,
@@ -97,6 +129,7 @@ namespace GridObjectInstanceBehavior
 
 		FGridObjectBehaviorParams Resolved = Definition->DefaultBehavior;
 		ApplyInstanceOwnedOverrides(ObjectData.Behavior, Resolved);
+		ApplyInteractionOverrides(ObjectData.InteractionOverrides, Resolved);
 		ApplyDoorChainOverrides(
 			ObjectData.DoorChainMode,
 			ObjectData.bOverrideChainPullDuration,
@@ -104,5 +137,4 @@ namespace GridObjectInstanceBehavior
 			Resolved.DoorAnimation);
 		return Resolved;
 	}
-
 }

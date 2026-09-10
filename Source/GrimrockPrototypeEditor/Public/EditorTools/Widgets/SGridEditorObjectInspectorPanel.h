@@ -49,6 +49,7 @@ private:
 	TSharedRef<SWidget> BuildMonsterSpawnSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildTriggerBehaviorSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildReceptacleBehaviorSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildLockBehaviorSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildReadableTextSection(FGuid ObjectId);
 
 	FReply OnApplySelectedObjectClicked();
