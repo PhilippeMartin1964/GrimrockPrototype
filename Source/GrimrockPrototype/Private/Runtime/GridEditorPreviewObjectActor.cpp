@@ -7,6 +7,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
+#include "Core/GridWorldObjectInstanceVisual.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
 AGridEditorPreviewObjectActor::AGridEditorPreviewObjectActor()
@@ -90,7 +91,10 @@ void AGridEditorPreviewObjectActor::InitializePreviewObject(FGuid InObjectId, EG
 }
 
 void AGridEditorPreviewObjectActor::InitializePreviewObjectFromDefinition(
-	FGuid InObjectId, EGridLevelObjectType InObjectType, const UGridWorldObjectDefinitionAsset* Definition)
+	FGuid InObjectId,
+	EGridLevelObjectType InObjectType,
+	const UGridWorldObjectDefinitionAsset* Definition,
+	const FGridWorldObjectInstanceConfig* InstanceConfig)
 {
 	if (!Definition || !Definition->HasAnyVisualPart())
 	{
@@ -120,9 +124,17 @@ void AGridEditorPreviewObjectActor::InitializePreviewObjectFromDefinition(
 		Component->SetVisibility(Mesh != nullptr, true);
 	};
 
+	const TArray<FGridWorldObjectMovingPartInstanceOverride> EmptyOverrides;
+	const TArray<FGridWorldObjectMovingPartInstanceOverride>& Overrides =
+		InstanceConfig ? InstanceConfig->MovingPartOverrides : EmptyOverrides;
+	const FGridWorldObjectMovingPart ResolvedPart0 =
+		GridWorldObjectInstanceVisual::ResolveMovingPart(Definition->MovingParts.Part0, Overrides, 0);
+	const FGridWorldObjectMovingPart ResolvedPart1 =
+		GridWorldObjectInstanceVisual::ResolveMovingPart(Definition->MovingParts.Part1, Overrides, 1);
+
 	ConfigurePart(MeshComponent, Definition->StaticPart.Mesh.Get(), Definition->StaticPart.LocalTransform);
-	ConfigurePart(MovingPart0MeshComponent, Definition->MovingParts.Part0.Mesh.Get(), Definition->MovingParts.Part0.LocalTransform);
-	ConfigurePart(MovingPart1MeshComponent, Definition->MovingParts.Part1.Mesh.Get(), Definition->MovingParts.Part1.LocalTransform);
+	ConfigurePart(MovingPart0MeshComponent, ResolvedPart0.Mesh.Get(), ResolvedPart0.LocalTransform);
+	ConfigurePart(MovingPart1MeshComponent, ResolvedPart1.Mesh.Get(), ResolvedPart1.LocalTransform);
 
 	bIsHovered = false;
 	bIsSelected = false;

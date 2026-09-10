@@ -86,6 +86,14 @@ public:
 public:
 	void EnsureCellCount();
 	bool IsValidCoord(int32 X, int32 Y) const;
+
+	/**
+	 * Replaces only the instance-owned configuration of one persistent world object.
+	 * WorldObjectInstances remains read-only through reflection; this is the narrow
+	 * authoring mutation boundary used by editor tooling and deterministic migrations.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Gameplay|Placements")
+	bool SetWorldObjectInstanceConfig(const FGuid& ObjectId, const FGridWorldObjectInstanceConfig& NewConfig);
 	int32 GetIndex(int32 X, int32 Y) const;
 	const FGridLevelCellData& GetCell(int32 X, int32 Y) const;
 	FGridLevelCellData& GetCellMutable(int32 X, int32 Y);

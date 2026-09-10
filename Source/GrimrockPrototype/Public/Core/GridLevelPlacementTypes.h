@@ -18,6 +18,37 @@ enum class EGridLevelPlacementBucket : uint8
 	LogicObject
 };
 
+/** Sparse generic override for one authored MovingPart slot of a placed world object. */
+USTRUCT(BlueprintType)
+struct FGridWorldObjectMovingPartInstanceOverride
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Moving Part", meta = (ClampMin = "0", ClampMax = "1"))
+	int32 PartIndex = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Moving Part")
+	bool bOverrideLocalTransform = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Moving Part",
+		meta = (EditCondition = "bOverrideLocalTransform", EditConditionHides))
+	FTransform LocalTransform = FTransform::Identity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Moving Part")
+	bool bOverrideMotionAmount = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Moving Part",
+		meta = (EditCondition = "bOverrideMotionAmount", EditConditionHides))
+	float MotionAmount = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Moving Part")
+	bool bOverrideMotionDuration = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Moving Part",
+		meta = (EditCondition = "bOverrideMotionDuration", EditConditionHides, ClampMin = "0.0"))
+	float MotionDuration = 0.0f;
+};
+
 /** Minimal per-instance state/configuration for one placed world object. */
 USTRUCT(BlueprintType)
 struct FGridWorldObjectInstanceConfig
@@ -35,6 +66,10 @@ struct FGridWorldObjectInstanceConfig
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Receptacle")
 	TArray<FGridReceptacleInitialItemConfig> ReceptacleInitialContent;
+
+	/** Sparse visual exceptions. Shared geometry/motion remains authored on the Definition. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Moving Parts")
+	TArray<FGridWorldObjectMovingPartInstanceOverride> MovingPartOverrides;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Lock")
 	bool bStartsUnlocked = false;

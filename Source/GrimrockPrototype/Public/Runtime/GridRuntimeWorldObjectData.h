@@ -9,8 +9,9 @@
  * It carries world-object identity, pose and initial state to the actor hierarchy.
  * Its only placement constructor accepts FGridWorldObjectInstance: no loose item,
  * monster spawn, item generator or logic placement is represented here.
- * Behavior contains defaults plus the five instance-owned overrides; shared rules
+ * Behavior contains defaults plus the five instance-owned behavior overrides; shared rules
  * are resolved from the definition by GridObjectInstanceBehavior at initialization.
+ * MovingPartOverrides remains a separate visual-animation channel and never enters Behavior.
  */
 struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 {
@@ -24,6 +25,7 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 	bool bInitiallyActive = false;
 	FText OverrideReadableText;
 	FGridObjectBehaviorParams Behavior;
+	TArray<FGridWorldObjectMovingPartInstanceOverride> MovingPartOverrides;
 
 	FGridRuntimeWorldObjectData() = default;
 
@@ -45,5 +47,6 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 		Behavior.Pit = Source.InstanceConfig.Pit;
 		Behavior.Receptacle.InitialContent = Source.InstanceConfig.ReceptacleInitialContent;
 		Behavior.Lock.bStartsUnlocked = Source.InstanceConfig.bStartsUnlocked;
+		MovingPartOverrides = Source.InstanceConfig.MovingPartOverrides;
 	}
 };

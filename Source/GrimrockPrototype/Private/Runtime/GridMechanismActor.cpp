@@ -1,5 +1,6 @@
 #include "Runtime/GridMechanismActor.h"
 #include "Components/StaticMeshComponent.h"
+#include "Core/GridWorldObjectInstanceVisual.h"
 
 AGridMechanismActor::AGridMechanismActor()
 {
@@ -50,17 +51,22 @@ void AGridMechanismActor::InitializeRuntimeMechanismVisuals(
 		FixedMeshComponent->SetRelativeTransform(Definition->StaticPart.LocalTransform);
 	}
 
-	MovingPart0BaseTransform = Definition->MovingParts.Part0.LocalTransform;
-	MovingPart0Motion = Definition->MovingParts.Part0.Motion;
-	SetMovingMesh(Definition->MovingParts.Part0.Mesh.Get());
+	const FGridWorldObjectMovingPart ResolvedPart0 = GridWorldObjectInstanceVisual::ResolveMovingPart(
+		Definition->MovingParts.Part0, ObjectData.MovingPartOverrides, 0);
+	const FGridWorldObjectMovingPart ResolvedPart1 = GridWorldObjectInstanceVisual::ResolveMovingPart(
+		Definition->MovingParts.Part1, ObjectData.MovingPartOverrides, 1);
+
+	MovingPart0BaseTransform = ResolvedPart0.LocalTransform;
+	MovingPart0Motion = ResolvedPart0.Motion;
+	SetMovingMesh(ResolvedPart0.Mesh.Get());
 	if (MovingMeshComponent)
 	{
 		MovingMeshComponent->SetRelativeTransform(MovingPart0BaseTransform);
 	}
 
-	MovingPart1BaseTransform = Definition->MovingParts.Part1.LocalTransform;
-	MovingPart1Motion = Definition->MovingParts.Part1.Motion;
-	SetSecondaryMovingMesh(Definition->MovingParts.Part1.Mesh.Get());
+	MovingPart1BaseTransform = ResolvedPart1.LocalTransform;
+	MovingPart1Motion = ResolvedPart1.Motion;
+	SetSecondaryMovingMesh(ResolvedPart1.Mesh.Get());
 	if (SecondaryMovingMeshComponent)
 	{
 		SecondaryMovingMeshComponent->SetRelativeTransform(MovingPart1BaseTransform);

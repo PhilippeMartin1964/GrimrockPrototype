@@ -78,6 +78,28 @@ bool UGridLevelAsset::IsValidCoord(int32 X, int32 Y) const
 	return X >= 0 && X < Width && Y >= 0 && Y < Height;
 }
 
+bool UGridLevelAsset::SetWorldObjectInstanceConfig(
+	const FGuid& ObjectId, const FGridWorldObjectInstanceConfig& NewConfig)
+{
+	FGridWorldObjectInstance* Instance = FindWorldObjectInstanceById(ObjectId);
+	if (!Instance)
+	{
+		return false;
+	}
+
+#if WITH_EDITOR
+	Modify();
+#endif
+
+	Instance->InstanceConfig = NewConfig;
+
+#if WITH_EDITOR
+	MarkPackageDirty();
+#endif
+
+	return true;
+}
+
 int32 UGridLevelAsset::GetIndex(int32 X, int32 Y) const
 {
 	return Y * Width + X;

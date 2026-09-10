@@ -11,6 +11,7 @@ class USkeletalMeshComponent;
 class UGridMonsterDefinitionAsset;
 class UGridWorldObjectDefinitionAsset;
 struct FGridMonsterSpawnInstance;
+struct FGridWorldObjectInstanceConfig;
 
 UCLASS()
 class GRIMROCKPROTOTYPE_API AGridEditorPreviewObjectActor : public AActor
@@ -45,9 +46,12 @@ public:
 	/** Initializes a standalone single-mesh preview from native typed placement identity. */
 	void InitializePreviewObject(FGuid InObjectId, EGridLevelObjectType InObjectType, UStaticMesh* Mesh);
 
-	/** Renders StaticPart + MovingPart[0..1] from the same world-object definition used by runtime. */
+	/** Renders StaticPart + resolved MovingPart[0..1] using the same sparse instance overrides as runtime. */
 	void InitializePreviewObjectFromDefinition(
-		FGuid InObjectId, EGridLevelObjectType InObjectType, const UGridWorldObjectDefinitionAsset* Definition);
+		FGuid InObjectId,
+		EGridLevelObjectType InObjectType,
+		const UGridWorldObjectDefinitionAsset* Definition,
+		const FGridWorldObjectInstanceConfig* InstanceConfig = nullptr);
 
 	/** Typed monster preview entry point. */
 	void InitializeMonsterPreviewObject(const FGridMonsterSpawnInstance& SpawnData, UGridMonsterDefinitionAsset* MonsterDefinition);

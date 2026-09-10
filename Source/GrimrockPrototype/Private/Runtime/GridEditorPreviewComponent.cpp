@@ -103,7 +103,7 @@ void UGridEditorPreviewComponent::AddWorldObjectPreview(const FGridWorldObjectIn
 		return;
 	}
 
-	PreviewActor->InitializePreviewObjectFromDefinition(Instance.InstanceId, Instance.Type, Definition);
+	PreviewActor->InitializePreviewObjectFromDefinition(Instance.InstanceId, Instance.Type, Definition, &Instance.InstanceConfig);
 	SpawnedPreviewObjects.Add(PreviewActor);
 }
 
