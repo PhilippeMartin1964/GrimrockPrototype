@@ -1,7 +1,7 @@
 # 12 — Règle Definition / Instance des objets du monde
 
-Statut : **document actif de référence**  
-Date : 2026-09-07  
+Statut : **document actif de référence après WORLDOBJ-RECOVERY01**  
+Date : 2026-09-10  
 Projet : GrimrockPrototype — WORLDOBJ
 
 ## 1. Décision officielle
@@ -52,7 +52,7 @@ L’instance possède uniquement ce qui est réellement local au niveau, par exe
 - Tag / Notes ;
 - texte ou configuration explicitement locale.
 
-Une instance ne possède pas une copie de la géométrie d’animation de sa définition.
+Une instance ne possède pas une copie de la géométrie d’animation de sa définition. RECOVERY01-C1.1 autorise uniquement des exceptions sparse par `PartIndex` sur `LocalTransform`, `Motion.Amount` ou `Motion.Duration`; le mesh, le type, l’axe, le pivot et `ReverseDuration` restent exclusivement définis par la Definition.
 
 ### 2.3. Runtime
 
@@ -78,7 +78,8 @@ Definition
         ├── Axis
         ├── Pivot
         ├── Amount
-        └── Duration
+        ├── Duration          # Alpha 0 -> 1
+        └── ReverseDuration   # Alpha 1 -> 0 ; <= 0 => Duration
 ```
 
 Les anciens paramètres spécialisés ne doivent pas revenir :
@@ -101,11 +102,11 @@ PitAnimation.OpenAngleDegrees
 PitAnimation.MoveDuration
 ```
 
-Une porte verticale, coulissante ou battante doit différer par sa `Motion`, pas par un nouveau champ spécialisé dans `Behavior`.
+Une porte verticale, coulissante ou battante doit différer par sa `Motion`, pas par un nouveau champ spécialisé dans `Behavior`. RECOVERY01-C1.1 ajoute seulement une couche d'exception locale sparse ; RECOVERY01-C2 ajoute `ReverseDuration` au contrat générique de `Motion`, ce qui remplace le besoin historique de `ButtonReleaseDuration` sans recréer un schéma spécialisé.
 
 ## 4. Behavior restant
 
-`FGridObjectBehaviorParams` porte les règles partagées et le comportement effectif résolu. Les placements typés ne le sérialisent pas intégralement : `FGridWorldObjectInstanceConfig` ne conserve que les cinq groupes locaux autorisés.
+`FGridObjectBehaviorParams` porte les règles partagées et le comportement effectif résolu. Les placements ne le sérialisent pas intégralement : `FGridWorldObjectInstanceConfig` conserve les données naturellement locales ainsi que les deux canaux d’exception sparse introduits par RECOVERY01 (parties mobiles et chaîne de porte).
 
 ### Teleporter
 
@@ -162,28 +163,30 @@ Behavior.DoorAnimation.ChainPullDistance
 Behavior.DoorAnimation.ChainPullDuration
 ```
 
-La course et la durée du panneau de porte sont dans `MovingParts[].Motion`.
+RECOVERY01-C1.2 permet à un placement de forcer uniquement la présence de chaîne via `DoorChainMode = Inherit / Enabled / Disabled` et, si nécessaire, sa durée de traction. La distance reste Definition-owned : aucune `ChainPullDistance` d'instance n'existe.
+
+La course du panneau et ses durées forward/reverse sont dans `MovingParts[].Motion`.
 
 ## 5. Règle du Grid Editor
 
 L’Inspector ne doit exposer comme paramètres d’instance que les valeurs que le niveau est autorisé à surcharger.
 
-Il ne doit plus permettre d’éditer sur une porte placée :
+Il ne doit pas réintroduire sur une porte placée les anciens champs spécialisés :
 
 ```text
 Open Height
-Instance Move Duration
+DoorAnimation.MoveDuration
 ```
 
-ni sur les autres mécanismes les pivots, angles, hauteurs ou durées visuelles spécialisés.
+ni sur les autres mécanismes les anciens pivots, angles, hauteurs ou durées visuelles spécialisés. Les exceptions `MovingPartOverrides` existent comme canal sparse de niveau ; elles ne doivent pas devenir une copie éditable complète de la Motion.
 
-Pour ces valeurs, l’Inspector indique l’autorité :
+Pour la configuration permanente, l'autorité reste :
 
 ```text
 Definition > Moving Parts[].Motion
 ```
 
-Si le designer souhaite une autre animation permanente, il modifie ou crée une définition appropriée.
+Si le designer souhaite une autre animation permanente, il modifie ou crée une définition appropriée. Un override d'instance n'est justifié que lorsqu'un placement précis doit réellement différer.
 
 ## 6. Règle runtime
 
@@ -220,15 +223,17 @@ Depuis MIG09, `UGridLevelAsset` ne stocke que les cinq collections typées. L'an
 ## 9. Checklist de validation
 
 ```text
-[ ] géométrie/durée des mécanismes uniquement dans MovingParts[].Motion
+[ ] géométrie/motion partagée des mécanismes dans Definition.MovingParts[].Motion
+[ ] overrides de partie mobile strictement sparse : LocalTransform / Amount / Duration seulement
+[ ] ReverseDuration générique ; <= 0 retombe sur Duration
 [ ] ButtonHoldTime reste une règle logique
 [ ] règles de poids de plaque préservées
-[ ] chaîne de porte préservée
+[ ] chaîne de porte : tri-state local + durée optionnelle, jamais de distance locale
 [ ] destinations Teleporter/Transition restent locales
 [ ] contenu initial Receptacle reste local
+[ ] MonsterSpawn et LogicObject restent typés sans ancien N/LocalOffset world-object
 [ ] aucune API spécialisée InitializeButton/InitializeLever/InitializeDoor de production
-[ ] aucun ancien champ d’animation spécialisé réfléchi/sérialisé
-[ ] Inspector n’édite plus ces champs
+[ ] aucun ancien champ d’animation spécialisé réintroduit comme autorité
 [ ] runtime ne modifie jamais un Data Asset pour stocker l’état courant
 ```
 

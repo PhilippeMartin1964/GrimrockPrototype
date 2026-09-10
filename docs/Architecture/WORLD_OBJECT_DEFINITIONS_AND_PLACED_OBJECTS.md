@@ -1,6 +1,6 @@
 # Définitions des objets du monde et objets placés
 
-Statut : **contrat actif après WORLDOBJ-MIG10**, 2026-09-09.
+Statut : **contrat actif après WORLDOBJ-MIG10 + WORLDOBJ-RECOVERY01**, 2026-09-10.
 
 ## 1. Autorités
 
@@ -18,6 +18,10 @@ Le niveau conserve uniquement les collections de placements typées :
 
 Les items ramassables utilisent une seule `UGridItemDefinitionAsset`. Les monstres utilisent une seule `UGridMonsterDefinitionAsset`. Un item déjà présent et un générateur d'items restent deux sortes de placements distinctes.
 
+`MonsterSpawns` et `LogicObjects` sont des placements typés centrés sur une cellule ; ils ne consomment pas `DefaultLocalPosition.U/V/N`. Les anciens offsets `Z=12` des représentations world-object de `MonsterSpawn`, `CustomRecruiter_Service` et `StoryCompanion_Recruit` ont donc été classés **non applicables** par RECOVERY01 et ne sont pas restaurés. `MonsterSpawn` est résolu via `FGridMonsterSpawnInstance`; `StoryCompanion` et `CustomRecruiter` via `FGridLogicObjectInstance`.
+
+`MonsterSpawns` et `LogicObjects` sont des placements typés centrés sur une cellule ; ils ne consomment pas `DefaultLocalPosition.U/V/N`. Les anciens offsets `Z=12` des représentations world-object de `MonsterSpawn`, `CustomRecruiter_Service` et `StoryCompanion_Recruit` ont donc été classés **non applicables** par RECOVERY01 et ne sont pas restaurés. `MonsterSpawn` est résolu via `FGridMonsterSpawnInstance`; `StoryCompanion` et `CustomRecruiter` via `FGridLogicObjectInstance`.
+
 ## 2. Instance world-object
 
 `FGridWorldObjectInstance`, déclaré dans `Core/GridLevelPlacementTypes.h`, contient :
@@ -25,9 +29,11 @@ Les items ramassables utilisent une seule `UGridItemDefinitionAsset`. Les monstr
 - `InstanceId`, identité stable ; `WorldObjectDefinitionId`, référence de définition ; `Type`, discriminateur fonctionnel ;
 - `CellX`, `CellY`, `WallSide`, et l'override optionnel `bHasLocalTransformOverride` / `LocalTransformOverride` ;
 - `bInitiallyEnabled`, `bInitiallyActive`, `LogicId`, `Tag`, `Notes`, `PaletteEntryId` et `ReadableTextOverride` ;
-- `InstanceConfig`, configuration locale strictement limitée à `Teleporter`, `Transition`, `Pit`, `ReceptacleInitialContent` et `bStartsUnlocked`.
+- `InstanceConfig.Teleporter`, `Transition`, `Pit`, `ReceptacleInitialContent` et `bStartsUnlocked` pour les données naturellement locales au niveau ;
+- `InstanceConfig.MovingPartOverrides` pour les rares exceptions visuelles historiques d'une partie mobile (`LocalTransform`, `Amount`, durée forward), indexées par `PartIndex` 0 ou 1 ;
+- `DoorChainMode` (`Inherit` / `Enabled` / `Disabled`) et l'override optionnel de `ChainPullDuration` pour les exceptions historiques de chaîne de porte.
 
-La géométrie d'animation et les règles permanentes ne sont pas recopiées dans cette instance. Le comportement effectif résout `Definition.DefaultBehavior` avec les seules données locales autorisées. Voir la [règle Definition / Instance](../Design/12_GRID_OBJECT_INSTANCE_BEHAVIOR_RULE.md).
+La définition reste l'autorité de la géométrie et de la motion partagées. Une instance ne contient jamais une copie complète de `MovingParts` : les overrides C1.1 sont sparse et ne peuvent pas remplacer le mesh, le type de motion, l'axe, le pivot ou `ReverseDuration`. De même, la chaîne conserve sa distance partagée dans la définition ; aucune `ChainPullDistance` d'instance n'existe. Le comportement effectif résout la définition avec ces seules données locales autorisées. Voir la [règle Definition / Instance](../Design/12_GRID_OBJECT_INSTANCE_BEHAVIOR_RULE.md).
 
 ## 3. Palette et édition
 
@@ -43,7 +49,7 @@ La palette alimente `AGridLevelRuntimeActor::WorldObjectDefinitions`. `FindWorld
 
 `UGridEditorPreviewComponent` initialise les objets de preview depuis la définition. Les items résolvent leur `WorldMesh` depuis `ItemDefinition`, et les monstres leur présentation depuis `MonsterDefinition`. Un aperçu ne certifie pas le fonctionnement interactif du niveau.
 
-`FGridRuntimeWorldObjectData` est une frontière C++ non réfléchie d'initialisation runtime spécialisée. Elle est construite depuis `FGridWorldObjectInstance` et n'est pas stockée dans le LevelAsset. Les acteurs runtime et leurs caches sont transitoires.
+`FGridRuntimeWorldObjectData` est une frontière C++ non réfléchie d'initialisation runtime spécialisée. Elle est construite depuis `FGridWorldObjectInstance`, transporte notamment les overrides sparse de parties mobiles et de chaîne, et n'est pas stockée dans le LevelAsset. Les acteurs runtime résolvent ensuite la définition + ces exceptions une seule fois dans leurs caches transitoires.
 
 ## 5. Persistance
 

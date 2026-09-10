@@ -1,6 +1,6 @@
 # 11 — Référence des paramètres GridWorldObjectDefinitionAsset
 
-Statut : **document actif de référence après ALIGN-B5.3**, 2026-09-09. Version cible : UE 5.5.4.
+Statut : **document actif de référence après ALIGN-B5.3 + WORLDOBJ-RECOVERY01**, 2026-09-10. Version cible : UE 5.5.4.
 
 La déclaration de référence est `Source/GrimrockPrototype/Public/Core/GridWorldObjectDefinitionAsset.h`. Ce guide décrit l'authoring courant après MIG10 et ALIGN-B5.3. Les audits 07/08 et le plan 09 conservent leur vocabulaire historique et ne sont pas des références de schéma actuel.
 
@@ -26,7 +26,7 @@ Le type gameplay, la catégorie fonctionnelle et la catégorie de palette ont de
 
 `bDefaultInitiallyEnabled`, `bDefaultInitiallyActive` et `DefaultTag` fournissent les valeurs initiales au placement. `DefaultBehavior` porte les règles partagées, notamment les règles de poids, de réceptacle et les paramètres logiques des mécanismes.
 
-Les seules configurations comportementales persistantes propres à une instance world-object sont `InstanceConfig.Teleporter`, `Transition`, `Pit`, `ReceptacleInitialContent` et `bStartsUnlocked`. Le resolver combine la définition avec ces données locales. Voir la [règle Definition / Instance](12_GRID_OBJECT_INSTANCE_BEHAVIOR_RULE.md).
+Les données naturellement locales restent `InstanceConfig.Teleporter`, `Transition`, `Pit`, `ReceptacleInitialContent` et `bStartsUnlocked`. RECOVERY01 autorise en plus deux familles d'exceptions **sparse** lorsque l'histoire du niveau exige une différence réelle : `MovingPartOverrides` (`LocalTransform`, `Motion.Amount`, `Motion.Duration`) et les overrides de chaîne (`DoorChainMode`, `bOverrideChainPullDuration`, `ChainPullDuration`). Le resolver combine la définition avec ces données locales sans recopier la définition. Il n'existe ni override de mesh/type/axe/pivot/`ReverseDuration`, ni `ChainPullDistance` d'instance. Voir la [règle Definition / Instance](12_GRID_OBJECT_INSTANCE_BEHAVIOR_RULE.md).
 
 ## 4. Placement et comportement spatial
 
@@ -55,9 +55,9 @@ La face concrète d'un world-object mural placé est portée par l'instance via 
 
 `StaticPart` est optionnelle. `MovingParts` fournit exactement deux slots optionnels, `Part0` et `Part1` : zéro, une ou deux parties mobiles.
 
-Les matériaux appartiennent aux Material Slots des Static Meshes. Chaque partie mobile porte sa `Motion` : type, axe, pivot, amplitude et durée. Une porte verticale, coulissante ou battante se configure par cette motion ; les volets de Pit utilisent les deux parties mobiles.
+Les matériaux appartiennent aux Material Slots des Static Meshes. Chaque partie mobile porte sa `Motion` : type, axe, pivot, amplitude, `Duration` (Alpha 0 -> 1) et `ReverseDuration` optionnelle (Alpha 1 -> 0). Lorsque `ReverseDuration <= 0`, le runtime retombe sur `Duration`, ce qui conserve un mouvement symétrique par défaut. Une porte verticale, coulissante ou battante se configure par cette motion ; les volets de Pit utilisent les deux parties mobiles.
 
-L'instance ne possède pas de copie de cette géométrie. Après modification de la définition, reconstruire l'aperçu ou le runtime pour observer la nouvelle présentation.
+La définition reste l'autorité. `MovingPartOverrides` permet seulement une exception locale sparse sur le transform de repos, l'amplitude ou la durée forward d'une partie existante. Après modification de la définition ou d'un override d'instance, reconstruire l'aperçu ou le runtime pour observer la nouvelle présentation.
 
 ## 6. Interaction et lumière
 

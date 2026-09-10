@@ -1,6 +1,6 @@
 # Index de l’architecture
 
-**WORLDOBJ MIG00 → MIG10 : clôture technique du 2026-09-09.** Voir le [rapport MIG10](WORLDOBJ_MIG10_FINAL.md) et le [contrat courant des définitions et placements](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les anciennes notes de cleanup, audits et schémas `object_10_*` décrivent l'état historique antérieur ; ils ne définissent plus le stockage des placements.
+**WORLDOBJ MIG00 → MIG10 + RECOVERY01 : modèle courant consolidé au 2026-09-10.** Voir le [rapport MIG10](WORLDOBJ_MIG10_FINAL.md), le [rapport final RECOVERY01](WORLDOBJ_RECOVERY01_FINAL.md) et le [contrat courant des définitions et placements](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les anciennes notes de cleanup, audits et schémas `object_10_*` décrivent l'état historique antérieur ; ils ne définissent plus le stockage des placements.
 
 
 ## Objet
