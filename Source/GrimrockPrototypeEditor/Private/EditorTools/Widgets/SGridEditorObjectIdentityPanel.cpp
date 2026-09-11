@@ -168,7 +168,7 @@ TSharedRef<SWidget> SGridEditorObjectIdentityPanel::BuildRoot()
 						{
 							Rebuild();
 						}
-					})]
+					}))]
 		+ SVerticalBox::Slot().AutoHeight()
 		[
 			GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Type")), GetTypeText(ObjectId))
