@@ -6,6 +6,7 @@
 #include "Editor.h"
 #include "EditorTools/GridEditorLuaService.h"
 #include "EditorTools/GridLevelEditorActor.h"
+#include "EditorTools/GridLuaAuthoringCompiler.h"
 #include "EngineUtils.h"
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
@@ -194,7 +195,7 @@ TSharedRef<SWidget> SGridEditorLuaScriptsPanel::BuildScriptsSection()
 		+ SHorizontalBox::Slot().AutoWidth()
 		[
 			SNew(SButton)
-				.Text(FText::FromString(TEXT("Validate Lua")))
+				.Text(FText::FromString(TEXT("Compile Lua")))
 				.IsEnabled(LevelAsset != nullptr)
 				.OnClicked(this, &SGridEditorLuaScriptsPanel::OnValidateClicked)
 		]
@@ -225,7 +226,7 @@ TSharedRef<SWidget> SGridEditorLuaScriptsPanel::BuildScriptsSection()
 								{
 									FString Error;
 									const bool bOk = GridEditorLuaService::SetScriptEnabled(*Asset, ScriptId, State == ECheckBoxState::Checked, Error);
-									SetStatus(bOk ? TEXT("Script state updated.") : Error, bOk);
+									SetStatus(bOk ? TEXT("Script state updated. Use Compile Lua to validate the enabled script set.") : Error, bOk);
 									if (ScriptId == SelectedScriptId)
 									{
 										LoadSelectedScriptDraft();
@@ -399,7 +400,7 @@ FReply SGridEditorLuaScriptsPanel::OnAddScriptClicked()
 		SelectedScriptId = NewId;
 		LoadSelectedScriptDraft();
 	}
-	SetStatus(bOk ? TEXT("Lua script added.") : Error, bOk);
+	SetStatus(bOk ? TEXT("Lua script added. Use Apply or Compile Lua after editing.") : Error, bOk);
 	Rebuild();
 	return FReply::Handled();
 }
@@ -414,14 +415,26 @@ FReply SGridEditorLuaScriptsPanel::OnSelectScriptClicked(FName ScriptId)
 
 FReply SGridEditorLuaScriptsPanel::OnApplyScriptClicked()
 {
-	UGridLevelAsset* LevelAsset = GetLevelAsset();
-	if (!LevelAsset || SelectedScriptId.IsNone())
+	AGridLevelEditorActor* EditorActor = FindEditorActor();
+	UGridLevelAsset* LevelAsset = EditorActor ? EditorActor->LevelAsset.Get() : nullptr;
+	if (!EditorActor || !LevelAsset || SelectedScriptId.IsNone())
 	{
 		return FReply::Handled();
 	}
 
 	const FString TrimmedId = DraftScriptId.TrimStartAndEnd();
 	const FName NewId = TrimmedId.IsEmpty() ? NAME_None : FName(*TrimmedId);
+
+	// LUA-COMP01: compile the exact in-memory candidate before RenameScript or
+	// SetScriptSource is allowed to mutate the LevelAsset.
+	FGridLuaCompileResult CompileResult;
+	if (!FGridLuaAuthoringCompiler::CompileScriptDraft(*EditorActor, SelectedScriptId, NewId, DraftSource, CompileResult))
+	{
+		SetStatus(CompileResult.GetSummaryText(), false);
+		Rebuild();
+		return FReply::Handled();
+	}
+
 	FString Error;
 	bool bOk = GridEditorLuaService::RenameScript(*LevelAsset, SelectedScriptId, NewId, Error);
 	if (bOk)
@@ -429,7 +442,7 @@ FReply SGridEditorLuaScriptsPanel::OnApplyScriptClicked()
 		SelectedScriptId = NewId;
 		bOk = GridEditorLuaService::SetScriptSource(*LevelAsset, SelectedScriptId, DraftSource, Error);
 	}
-	SetStatus(bOk ? TEXT("Lua script applied. Persistent state synchronized automatically.") : Error, bOk);
+	SetStatus(bOk ? TEXT("Lua script compiled and applied. Persistent state synchronized automatically.") : Error, bOk);
 	if (bOk)
 	{
 		LoadSelectedScriptDraft();
@@ -470,36 +483,16 @@ FReply SGridEditorLuaScriptsPanel::OnRemoveScriptClicked()
 
 FReply SGridEditorLuaScriptsPanel::OnValidateClicked()
 {
-	UGridLevelAsset* LevelAsset = GetLevelAsset();
-	if (!LevelAsset)
+	AGridLevelEditorActor* EditorActor = FindEditorActor();
+	if (!EditorActor || !EditorActor->LevelAsset)
 	{
 		return FReply::Handled();
 	}
 
-	FGridEditorLuaAnalysis Analysis;
-	const bool bValid = GridEditorLuaService::AnalyzeLevel(*LevelAsset, Analysis);
+	FGridLuaCompileResult CompileResult;
+	const bool bValid = FGridLuaAuthoringCompiler::CompileLevel(*EditorActor, CompileResult);
 	RefreshSelectedScriptMetadata();
-
-	if (bValid)
-	{
-		SetStatus(FString::Printf(TEXT("Lua validation OK: %d script(s), VM build accepted."), Analysis.Scripts.Num()), true);
-	}
-	else
-	{
-		FString Error = Analysis.GlobalError;
-		if (Error.IsEmpty())
-		{
-			for (const FGridEditorLuaScriptAnalysis& Script : Analysis.Scripts)
-			{
-				if (Script.bEnabled && !Script.bValid)
-				{
-					Error = FString::Printf(TEXT("%s: %s"), *Script.ScriptId.ToString(), *Script.Error);
-					break;
-				}
-			}
-		}
-		SetStatus(Error.IsEmpty() ? TEXT("Lua validation failed.") : Error, false);
-	}
+	SetStatus(CompileResult.GetSummaryText(), bValid);
 	Rebuild();
 	return FReply::Handled();
 }
