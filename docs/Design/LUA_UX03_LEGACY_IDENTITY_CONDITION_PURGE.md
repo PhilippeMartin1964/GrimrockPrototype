@@ -1,24 +1,20 @@
-# LUA-UX03 — Purge des identités et conditions de lien héritées
+# LUA-UX03 — Purge dure des identités et conditions héritées
 
 ## Objectif
 
-LUA-UX03 termine le recentrage de l'authoring des énigmes autour du contrat cible du Grid Editor :
+LUA-UX03 fixe le contrat cible du Grid Editor :
 
-- `LogicId` est l'identité logique lisible et stable utilisée par Lua ;
-- les connecteurs natifs restent de simples liaisons **événement -> commande** ;
-- les conditions de puzzle générales sont exprimées dans Lua ;
-- les conditions natives propres aux réceptacles restent disponibles lorsqu'elles décrivent directement l'état du réceptacle.
-
-Cette étape retire donc de l'authoring actif deux mécanismes historiques qui faisaient double emploi : le `Tag` générique des placements et les conditions de connecteur fondées sur les `LevelVariables`.
+- `LogicId` est l'identité logique lisible utilisée par Lua et les événements ;
+- un connecteur natif simple reste une liaison **événement -> commande** ;
+- les conditions, compteurs, séquences et combinaisons de puzzle sont écrits dans Lua ;
+- seules les conditions intrinsèques de réceptacle restent dans le moteur de connecteurs.
 
 ## 1. Identité des objets
 
-### Contrat cible
-
-Pour adresser un objet depuis Lua, on utilise :
+`LogicId` est l'identité logique de l'instance. Il doit être unique dans le niveau et respecter :
 
 ```text
-LogicId
+[A-Za-z_][A-Za-z0-9_]*
 ```
 
 Exemple :
@@ -28,47 +24,20 @@ local ok, err = grid.command("GuardianDoor", "Open")
 assert(ok, err)
 ```
 
-Le `LogicId` doit rester unique dans le niveau et respecter le format :
+Le `Tag` générique de placement n'est plus une propriété Unreal sérialisée ni un champ d'authoring. Les tags appartenant aux **définitions d'items** sont une notion différente et restent disponibles pour classifier les items.
 
-```text
-[A-Za-z_][A-Za-z0-9_]*
-```
+## 2. Suppression physique des conditions LevelVariable de connecteur
 
-### Suppression du Tag de placement
-
-Le champ `Tag` n'est plus une propriété Unreal des structures de placement suivantes :
-
-```text
-FGridWorldObjectInstance
-FGridLooseItemInstance
-FGridMonsterSpawnInstance
-FGridItemSpawnInstance
-FGridLogicObjectInstance
-```
-
-Il n'est donc plus :
-
-- exposé dans l'authoring ;
-- sérialisé dans le LevelAsset ;
-- copié lors du placement ;
-- modifié par l'inspecteur Selected Object.
-
-`DefaultTag` est également retiré de `UGridWorldObjectDefinitionAsset`.
-
-Pour éviter une migration C++ inutilement brutale dans cette étape, un membre source-only `Tag` peut subsister temporairement dans certaines structures. Il n'est **pas** un `UPROPERTY`, n'est pas sauvegardé et ne fait plus partie du contrat de données. De la même manière, l'ancienne fonction d'édition `SetSelectedObjectTag` reste provisoirement disponible comme pont de compatibilité source mais refuse toute mutation.
-
-Les `ItemTag` appartenant aux définitions d'items ne sont pas concernés : ils servent à classifier les items et restent utiles aux règles de réceptacle et d'inventaire.
-
-## 2. Connecteurs : suppression des conditions LevelVariable
-
-Les conditions historiques suivantes ne sont plus proposées ni exécutées comme conditions de connecteur :
+Les deux anciennes conditions générales de connecteur :
 
 ```text
 LevelVariableBoolEquals
 LevelVariableIntCompare
 ```
 
-Les payloads associés ne font plus partie des propriétés sérialisées de `FGridObjectLink` :
+sont supprimées de `EGridObjectCondition`. Elles ne sont ni cachées, ni dépréciées, ni conservées comme tombstones.
+
+Leurs anciens paramètres sont également supprimés de `FGridObjectLink` :
 
 ```text
 ConditionVariableId
@@ -77,11 +46,11 @@ ConditionIntComparison
 ConditionIntValue
 ```
 
-Les anciennes valeurs d'enum sont conservées uniquement comme tombstones `Hidden` afin de préserver les ordinaux historiques et de rendre la migration d'anciens assets déterministe. Elles ne constituent plus une API d'authoring ni une fonctionnalité runtime.
+Il n'existe donc plus de chemin runtime, de chemin éditeur ou de contrat de données permettant d'utiliser ce mini-langage de conditions.
 
-## 3. Lua devient l'autorité des conditions de puzzle
+## 3. Lua est l'autorité des conditions de puzzle
 
-Une liaison Lua est volontairement inconditionnelle côté connecteur :
+Une liaison Lua est inconditionnelle côté connecteur :
 
 ```text
 SourceObjectId + SourceEvent
@@ -89,7 +58,7 @@ SourceObjectId + SourceEvent
     -> ScriptId + CallbackName
 ```
 
-La condition se trouve dans le script :
+Toute règle conditionnelle est dans le script :
 
 ```lua
 persistent = {
@@ -101,23 +70,15 @@ function on_gem_inserted(event)
         return
     end
 
-    -- règle de puzzle ici
+    -- règle de puzzle
 end
 ```
 
-Cela évite de répartir la même règle entre l'UI des connecteurs, les LevelVariables et le script Lua.
-
-Les `LevelVariables` ne sont **pas supprimées**. Elles restent l'infrastructure typée utilisée notamment par :
-
-- `persistent` Lua ;
-- la persistance SaveGame ;
-- le runtime de logique générique existant.
-
-Ce qui disparaît est uniquement leur rôle de condition générale directement attachée à un connecteur.
+Les `LevelVariables` restent une infrastructure interne typée pour `persistent`, la persistance SaveGame et les primitives génériques qui en ont besoin. Elles ne sont plus un langage d'authoring de conditions de connecteur.
 
 ## 4. Conditions natives conservées
 
-Les conditions intrinsèques à un réceptacle restent supportées :
+Les seules conditions natives de connecteur sont celles qui décrivent directement l'état d'un réceptacle :
 
 ```text
 ReceptacleIsEmpty
@@ -129,44 +90,35 @@ ReceptacleItemCountAtLeast
 ReceptacleWeightAtLeast
 ```
 
-Elles décrivent directement l'état du composant cible et ne constituent pas un mini-langage de puzzle parallèle à Lua.
-
-Pour les autres cibles, le connecteur standard expose désormais uniquement :
+Pour les autres cibles :
 
 ```text
 Condition = None
 ```
 
-## 5. Migration des niveaux existants
-
-Après mise à jour du code :
-
-1. ouvrir les LevelAssets concernés ;
-2. remplacer toute logique dépendant d'un ancien `Tag` d'objet par un `LogicId` explicite ;
-3. déplacer toute condition `LevelVariableBoolEquals` / `LevelVariableIntCompare` dans le callback Lua correspondant ;
-4. lancer la validation du Grid Editor ;
-5. sauvegarder les assets migrés.
-
-Les anciennes données `Tag` et les anciens payloads de condition ne sont plus des propriétés sérialisées actives. Un ancien enum de condition peut encore être lu grâce au tombstone ; la validation doit alors conduire à remplacer cette ancienne liaison plutôt qu'à la conserver silencieusement.
-
-## 6. Validation automatisée
-
-Test dédié :
+Règle d'architecture :
 
 ```text
-Grimrock.LUAUX03.LegacyAuthoringPurge
+Event -> Command                        : connecteur natif
+Event -> condition/compteur/séquence   : Lua
 ```
 
-Il vérifie notamment :
+## 5. Tests
 
-- l'absence de propriété réfléchie/sérialisée `Tag` sur les cinq structures de placement ;
-- l'absence de `DefaultTag` sur la définition d'objet ;
-- l'absence des quatre payloads LevelVariable dans les propriétés sérialisées de `FGridObjectLink` ;
-- l'absence des deux anciennes conditions dans les choix de connecteur ;
-- le maintien des conditions natives de réceptacle ;
-- le refus d'une condition de puzzle placée sur un binding Lua.
+Le filtre dédié est :
 
-Validation locale recommandée :
+```text
+Grimrock.LUAUX03
+```
+
+Le test `Grimrock.LUAUX03.HardPurge` vérifie le contrat actuel :
+
+- les cibles génériques n'exposent que `Condition=None` ;
+- les réceptacles exposent uniquement leurs prédicats natifs ;
+- un binding Lua refuse toute condition côté connecteur ;
+- les règles de puzzle doivent être placées dans le callback Lua.
+
+Validation locale :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
@@ -174,7 +126,7 @@ Validation locale recommandée :
     -AutomationFilter "Grimrock.LUAUX03"
 ```
 
-Puis, pour vérifier les contrats MON19 impactés :
+Puis :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `

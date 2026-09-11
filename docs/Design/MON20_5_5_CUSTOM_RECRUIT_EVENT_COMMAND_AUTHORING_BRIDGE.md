@@ -131,12 +131,7 @@ Logic.Activated
     -> CustomRecruiter.OpenCustomRecruit
 ```
 
-Les conditions de lien existantes restent disponibles, notamment les variables MON19 :
-
-```text
-Condition = LevelVariableBoolEquals
-Condition = LevelVariableIntCompare
-```
+Depuis LUA-UX03, les connecteurs génériques sont inconditionnels. Toute règle conditionnelle liée au recrutement est écrite dans Lua puis appelle `OpenCustomRecruit` via `grid.command()`.
 
 ---
 
@@ -317,19 +312,18 @@ Après `22 / 22 Success`, l'authoring de production peut être effectué dans le
 2. ajouter l'entrée correspondante dans le `GridObjectPaletteAsset` ;
 3. placer le target `CustomRecruiter` ;
 4. sélectionner le Trigger source ;
-5. ouvrir `CONNECTORS` ;
-6. cliquer `+` ;
+5. ouvrir les événements de l'objet sélectionné ;
+6. ajouter une action ;
 7. configurer :
 
 ```text
-Source Object = Trigger
 Event         = Activated
 Target Object = CustomRecruiter placé
 Command       = OpenCustomRecruit
 Condition     = None
 ```
 
-8. `Create` ;
+8. créer l'action ;
 9. lancer PIE.
 
 PIE attendu :

@@ -504,14 +504,6 @@ bool UGridActivationComponent::EvaluateGridObjectLinkCondition(const FGridObject
 		return true;
 	}
 
-	if (LinkData.Condition == EGridObjectCondition::LevelVariableBoolEquals || LinkData.Condition == EGridObjectCondition::LevelVariableIntCompare)
-	{
-		UE_LOG(LogGridActivation, Warning,
-			TEXT("Grid link condition rejected: Source=%s Target=%s Condition=%s Reason=legacy LevelVariable link conditions are disabled; move puzzle logic into Lua"),
-			*LinkData.SourceObjectId.ToString(), *LinkData.TargetObjectId.ToString(), *GridObjectConditionToString(LinkData.Condition));
-		return false;
-	}
-
 	bool bConditionResult = false;
 	const AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor>(TargetActor);
 	if (!ReceptacleActor)

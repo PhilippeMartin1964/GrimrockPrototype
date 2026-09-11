@@ -4,6 +4,8 @@ Statut : **VALIDÉ sous Unreal Engine 5.5.4 — clos**
 Date : **23 août 2026**  
 Référence de départ : `9e22108f66fb7479c56f332a6a33966aa8c28152` (`Valider MON19.5 persistance restauration Lua`)
 
+> **Note d'architecture actuelle — LUA-UX03 :** ce document conserve l'historique du jalon MON19.6. Le contrat courant rend les bindings Lua inconditionnels côté connecteur ; toute condition générale de puzzle est écrite dans Lua. La fenêtre Lua est désormais centrée sur les scripts et les appels sont authorés depuis `Selected Object`.
+
 ## 1. Objectif
 
 MON19.6 rend le scripting Lua utilisable par un level designer sans exposer `lua_State`, sans ajouter un second bus d'événements et sans alourdir davantage le panneau CONNECTORS.
@@ -30,32 +32,7 @@ Window
     -> Grimrock Lua Scripts
 ```
 
-Il affiche :
-
-```text
-GRIMROCK LUA — SCRIPTS & BINDINGS
-
-LEVEL LUA SCRIPTS
-    + Add Script
-    Validate Lua
-    [Enabled] ScriptId    N binding(s)
-
-SELECTED SCRIPT
-    ScriptId
-    Source multiligne
-    Apply / Revert / Remove
-    callbacks globaux détectés
-
-LUA BINDINGS — SELECTED GRID OBJECT
-    Event
-    Script
-    Callback
-    Condition
-    Create Lua Binding
-    bindings existants / Remove
-```
-
-Pour créer un binding, le level designer sélectionne d'abord l'objet source dans Grimrock Grid Editor puis rafraîchit l'onglet Lua.
+À l'origine du jalon, il regroupait scripts et bindings. Depuis LUA-UX02/LUA-UX03, la fenêtre Lua ne gère plus que les scripts ; les bindings sont authorés depuis `Selected Object`.
 
 L'intégration finale du menu utilise une seule entrée explicite `ToolMenus`, adossée à l'action native du tab spawner. La validation visuelle fournie sous UE5.5.4 confirme qu'une seule entrée `Grimrock Lua Scripts` est visible dans `Window`.
 
@@ -137,9 +114,8 @@ SourceEvent    = événement supporté
 Command        = LuaCallback
 LuaScriptId    = script activé
 LuaCallbackName= callback global détecté
+Condition      = None
 ```
-
-Le nouvel éditeur crée directement cette forme canonique.
 
 Il ne crée aucun Actor, objet intermédiaire ou tableau parallèle de bindings.
 
@@ -149,28 +125,27 @@ Les liens restent stockés dans :
 UGridLevelAsset::Links
 ```
 
-Le panneau CONNECTORS a été aligné sur ce contrat : un `LuaCallback` targetless est affiché comme `Lua Script.callback`, sans faux `Missing object` ni bouton `Go To Target`. Ce comportement a été validé visuellement sous UE5.5.4.
+Le panneau d'événements est aligné sur ce contrat : un `LuaCallback` targetless est affiché comme `Lua Script.callback`, sans faux `Missing object` ni faux objet cible.
 
 ## 6. Conditions de binding Lua
 
-Les conditions autorisées correspondent à ce que le runtime MON19.4 sait évaluer sans TargetActor :
+Depuis LUA-UX03, un binding Lua est **toujours inconditionnel côté connecteur** :
 
 ```text
-None
-LevelVariableBoolEquals
-LevelVariableIntCompare
+Condition = None
 ```
 
-Les conditions Receptacle ne sont pas proposées et sont rejetées par le service Lua.
+Les conditions, comparaisons, compteurs, séquences et combinaisons de puzzle sont écrits dans le callback Lua :
 
-Pour les variables, l'onglet filtre les choix selon le type :
-
-```text
-Bool  -> LevelVariableBoolEquals
-Int32 -> LevelVariableIntCompare
+```lua
+if persistent.GateOpen and persistent.RuneCount >= 3 then
+    grid.command("GuardianDoor", "Open")
+end
 ```
 
-Les six comparateurs MON19.2.3 sont réutilisés pour Int32.
+Les `LevelVariables` restent l'infrastructure typée utilisée notamment par `persistent` et la persistance SaveGame. Elles ne servent plus de langage de conditions attaché aux connecteurs.
+
+Les conditions intrinsèques d'un réceptacle restent disponibles pour les connecteurs natifs directs, mais ne sont pas autorisées sur un binding Lua.
 
 ## 7. Analyse Lua éditeur
 
@@ -184,13 +159,7 @@ construction du VM complet du niveau
 callbacks globaux détectables
 ```
 
-Le bouton :
-
-```text
-Validate Lua
-```
-
-présente un résultat immédiat dans l'onglet Lua.
+La validation Lua présente un résultat immédiat dans l'onglet Lua.
 
 Cela ne remplace pas la validation générale du niveau.
 
@@ -202,13 +171,13 @@ Le panneau existant :
 VALIDATION -> Refresh Validation
 ```
 
-passe désormais par :
+passe par :
 
 ```text
 GridEditorLuaService::ValidateCurrentLevelWithLua()
 ```
 
-Le validateur historique est conservé, puis MON19.6 corrige uniquement les hypothèses devenues fausses et ajoute les diagnostics autoritaires Logic/Lua.
+Le validateur historique est conservé, puis le service ajoute les diagnostics autoritaires Logic/Lua.
 
 ### 8.1 Logic data-only
 
@@ -235,11 +204,7 @@ Le nœud est ensuite validé par :
 GridLogicRuntime::ValidateNode
 ```
 
-Un Logic possédant au contraire un ArchetypeId produit maintenant une erreur dédiée.
-
 ### 8.2 Lua targetless
-
-L'ancien validateur exigeait un `TargetObjectId` pour tous les liens.
 
 Pour :
 
@@ -247,7 +212,7 @@ Pour :
 Command = LuaCallback
 ```
 
-ce faux positif est retiré. La validation Lua vérifie ensuite explicitement :
+la validation Lua vérifie explicitement :
 
 ```text
 source/event valides
@@ -257,7 +222,7 @@ script existant et activé
 script compilable
 CallbackName présent
 callback global détecté
-condition autorisée et typée
+Condition = None
 ```
 
 ### 8.3 Identité des liens Lua
@@ -271,7 +236,7 @@ Puzzle.on_trigger
 Puzzle.helper
 ```
 
-partagent source/event/condition mais ne sont pas exactement équivalents selon :
+partagent source/event mais ne sont pas exactement équivalents selon :
 
 ```text
 GridEditorLinkPolicy::AreLinksExactlyEquivalent
@@ -281,7 +246,7 @@ Un véritable doublon exact reste signalé.
 
 ## 9. Fichiers
 
-Nouveaux :
+Principaux fichiers du jalon :
 
 ```text
 Source/GrimrockPrototypeEditor/Public/EditorTools/GridEditorLuaService.h
@@ -291,15 +256,6 @@ Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorLuaScripts
 Source/GrimrockPrototypeEditor/Private/Tests/GridEditorMON196LuaEditorTests.cpp
 Source/GrimrockPrototypeEditor/Private/Tests/GridEditorMON196ReferenceCountRegressionTest.cpp
 docs/Design/MON19_6_LUA_EDITOR_VALIDATION.md
-```
-
-Modifiés :
-
-```text
-Source/GrimrockPrototypeEditor/GrimrockPrototypeEditor.Build.cs
-Source/GrimrockPrototypeEditor/GrimrockPrototypeEditor.cpp
-Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorValidationPanel.cpp
-Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorLinksPanel.cpp
 ```
 
 Le module éditeur dépend explicitement de `GrimrockLua` ; le runtime `GrimrockPrototype` n'acquiert aucune nouvelle dépendance.
@@ -312,7 +268,7 @@ Suite :
 Grimrock.MON19.6.Editor
 ```
 
-Tests finaux :
+Tests :
 
 ```text
 Grimrock.MON19.6.Editor.LuaScriptAnalysis
@@ -321,21 +277,20 @@ Grimrock.MON19.6.Editor.LuaReferenceCountRegression
 Grimrock.MON19.6.Editor.ValidationAlignment
 ```
 
-Ils couvrent :
+Ils couvrent notamment :
 
 - compilation/analyse de scripts ;
 - détection de callbacks globaux ;
 - rejet d'une source syntaxiquement invalide ;
 - création targetless ;
-- condition Bool typée ;
-- rejet d'une condition Receptacle sur Lua ;
+- rejet d'une condition côté binding Lua ;
 - rename ScriptId + mise à jour des bindings ;
 - protection de disable/remove lorsqu'un script est référencé ;
 - comptage de plusieurs références vers un même script ;
 - suppression de binding ;
 - correction du faux `TargetObjectId` ;
 - correction du faux doublon entre callbacks distincts ;
-- validation d'un Logic Relay data-only sans ArchetypeId.
+- validation d'un Logic Relay data-only.
 
 ## 11. Validation UE5.5.4
 
@@ -354,21 +309,7 @@ Soit :
 Grimrock.MON19.6.Editor = 4/4 Success
 ```
 
-Validation visuelle également confirmée :
-
-```text
-Window
-    -> une seule entrée Grimrock Lua Scripts
-
-CONNECTORS
-    -> Lua Script.on_secret_button
-    -> aucun faux Missing object
-    -> aucun Go To Target pour un LuaCallback targetless
-```
-
-Les non-régressions MON19.4 / MON19.3 / MON19.2 demandées pendant le jalon avaient également été fournies avec succès avant les derniers correctifs purement UI.
-
-MON19.6 est donc **VALIDÉ et clos**.
+MON19.6 est donc **VALIDÉ et clos**. Les décisions d'architecture ultérieures de LUA-UX03 remplacent le sous-contrat historique de conditions de binding.
 
 ## 12. Hors périmètre
 
