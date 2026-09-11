@@ -24,36 +24,35 @@ namespace
 {
 	FString GetOverviewObjectIdentifier(const UGridLevelAsset& Level, FGuid ObjectId)
 	{
-		FName Tag;
+		const FName LogicId = Level.GetTypedPlacementLogicId(ObjectId);
+		if (!LogicId.IsNone())
+		{
+			return FString::Printf(TEXT("LogicId=%s"), *LogicId.ToString());
+		}
+
 		FName DefinitionId;
 		FName PaletteEntryId;
 		if (const FGridWorldObjectInstance* WorldObjectInstance = Level.FindWorldObjectInstanceById(ObjectId))
 		{
-			Tag = WorldObjectInstance->Tag;
 			DefinitionId = WorldObjectInstance->WorldObjectDefinitionId;
 			PaletteEntryId = WorldObjectInstance->PaletteEntryId;
 		}
 		else if (const FGridLooseItemInstance* LooseItemInstance = Level.FindLooseItemInstanceById(ObjectId))
 		{
-			Tag = LooseItemInstance->Tag;
 			PaletteEntryId = LooseItemInstance->PaletteEntryId;
 		}
 		else if (const FGridMonsterSpawnInstance* MonsterSpawn = Level.FindMonsterSpawnInstanceById(ObjectId))
 		{
-			Tag = MonsterSpawn->Tag;
 			PaletteEntryId = MonsterSpawn->PaletteEntryId;
 		}
 		else if (const FGridItemSpawnInstance* ItemSpawn = Level.FindItemSpawnInstanceById(ObjectId))
 		{
-			Tag = ItemSpawn->Tag;
 			PaletteEntryId = ItemSpawn->PaletteEntryId;
 		}
 		else if (const FGridLogicObjectInstance* LogicInstance = Level.FindLogicObjectInstanceById(ObjectId))
 		{
-			Tag = LogicInstance->Tag;
 			PaletteEntryId = LogicInstance->PaletteEntryId;
 		}
-		if (!Tag.IsNone()) return FString::Printf(TEXT("Tag=%s"), *Tag.ToString());
 		if (!DefinitionId.IsNone()) return FString::Printf(TEXT("Definition=%s"), *DefinitionId.ToString());
 		if (!PaletteEntryId.IsNone()) return FString::Printf(TEXT("Palette=%s"), *PaletteEntryId.ToString());
 		return FString::Printf(TEXT("Id=%s"), *ObjectId.ToString().Left(8));

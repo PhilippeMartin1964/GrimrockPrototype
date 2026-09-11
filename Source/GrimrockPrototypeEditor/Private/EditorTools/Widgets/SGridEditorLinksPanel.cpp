@@ -11,7 +11,6 @@
 #include "Styling/CoreStyle.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SComboBox.h"
-#include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/SBoxPanel.h"
@@ -294,60 +293,9 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildRoot()
 		return Root;
 	}
 
-	Root->AddSlot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildIdentitySection()];
 	Root->AddSlot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildActionCreationSection()];
 	Root->AddSlot().AutoHeight().Padding(0.f, 10.f, 0.f, 0.f)[BuildActionsListSection()];
 	return Root;
-}
-
-TSharedRef<SWidget> SGridEditorLinksPanel::BuildIdentitySection()
-{
-	AGridLevelEditorActor* Actor = GetEditorActor();
-	UGridLevelAsset* LevelAsset = Actor ? Actor->LevelAsset.Get() : nullptr;
-	const FGuid ObjectId = Actor ? Actor->LastSelectedObjectId : FGuid();
-	const FName LogicId = LevelAsset ? LevelAsset->GetTypedPlacementLogicId(ObjectId) : NAME_None;
-
-	return SNew(SBorder)
-		.Padding(6.f)
-		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot().AutoHeight()
-			[
-				SNew(STextBlock)
-					.Text(FText::FromString(GetObjectSummary(ObjectId)))
-					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 9))
-			]
-			+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 5.f, 0.f, 0.f)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 8.f, 0.f)
-				[
-					SNew(STextBlock).Text(FText::FromString(TEXT("Logic Id")))
-				]
-				+ SHorizontalBox::Slot().FillWidth(1.f)
-				[
-					SNew(SEditableTextBox)
-						.Text(LogicId.IsNone() ? FText::GetEmpty() : FText::FromName(LogicId))
-						.HintText(FText::FromString(TEXT("e.g. GuardianDoor")))
-						.ToolTipText(FText::FromString(TEXT("Unique readable identity used by Lua and object actions.")))
-						.OnTextCommitted_Lambda([this](const FText& Text, ETextCommit::Type)
-						{
-							AGridLevelEditorActor* CurrentActor = GetEditorActor();
-							if (!CurrentActor)
-							{
-								return;
-							}
-							const FString Trimmed = Text.ToString().TrimStartAndEnd();
-							FString Error;
-							if (GridEditorLuaService::SetSelectedObjectLogicId(*CurrentActor, Trimmed.IsEmpty() ? NAME_None : FName(*Trimmed), Error))
-							{
-								RequestRefresh();
-							}
-						})
-				]
-			]
-		];
 }
 
 TSharedRef<SWidget> SGridEditorLinksPanel::BuildActionCreationSection()

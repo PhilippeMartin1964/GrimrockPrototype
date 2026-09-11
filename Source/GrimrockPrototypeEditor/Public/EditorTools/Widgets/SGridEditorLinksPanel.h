@@ -14,11 +14,11 @@ DECLARE_DELEGATE_RetVal(AGridLevelEditorActor*, FOnGetGridEditorLinksActor);
 DECLARE_DELEGATE(FOnGridEditorLinksRequestRefresh);
 
 /**
- * LUA-UX01: Selected Object Event -> Action authoring.
+ * LUA-UX01/02: Selected Object Event -> Action authoring.
  *
- * New authoring deliberately exposes only two action forms:
- * - Event -> Command (unconditional, data-driven);
- * - Event -> Lua Callback (all conditional/puzzle logic lives in Lua).
+ * Object identity is authored exclusively on the Properties page. This panel
+ * only maps a selected object's events to unconditional commands or Lua
+ * callbacks. Conditional/puzzle logic belongs in Lua.
  *
  * Historical conditional links remain readable/removable for asset
  * compatibility, but this panel never creates new conditional links.
@@ -47,7 +47,6 @@ private:
 	void BuildCallbackOptions();
 
 	TSharedRef<SWidget> BuildRoot();
-	TSharedRef<SWidget> BuildIdentitySection();
 	TSharedRef<SWidget> BuildActionCreationSection();
 	TSharedRef<SWidget> BuildActionsListSection();
 

@@ -7,6 +7,7 @@
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
 #include "EditorTools/Widgets/SGridEditorDungeonLevelsPanel.h"
 #include "EditorTools/Widgets/SGridEditorLinksPanel.h"
+#include "EditorTools/Widgets/SGridEditorObjectIdentityPanel.h"
 #include "EditorTools/Widgets/SGridEditorObjectInspectorPanel.h"
 #include "EditorTools/Widgets/SGridEditorOverviewMapPanel.h"
 #include "EditorTools/Widgets/SGridEditorPlaytestPanel.h"
@@ -24,6 +25,7 @@
 #include "Widgets/Layout/SSplitter.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/SNullWidget.h"
 #include "Widgets/Text/STextBlock.h"
 
 namespace
@@ -399,20 +401,34 @@ TSharedRef<SWidget> SGridEditorWorkspaceTab::BuildSelectedObjectContent()
 		};
 
 	AddPageTab(FText::FromString(TEXT("Properties")), EGridEditorSelectedObjectPage::Properties, bPropertiesSelected);
-	AddPageTab(FText::FromString(TEXT("Connectors")), EGridEditorSelectedObjectPage::Connectors, bConnectorsSelected);
+	AddPageTab(FText::FromString(TEXT("Events & Actions")), EGridEditorSelectedObjectPage::Connectors, bConnectorsSelected);
 
-	TSharedRef<SWidget> ActivePage =
-		bPropertiesSelected
-			? StaticCastSharedRef<SWidget>(
+	TSharedRef<SWidget> ActivePage = SNullWidget::NullWidget;
+	if (bPropertiesSelected)
+	{
+		ActivePage = SNew(SVerticalBox)
+			+ SVerticalBox::Slot().AutoHeight()
+			[
+				SNew(SGridEditorObjectIdentityPanel)
+					.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
+					.OnGetEditorActor(FOnGetGridEditorObjectIdentityActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
+					.OnRequestRefresh(FOnGridEditorObjectIdentityRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild))
+			]
+			+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)
+			[
 				SNew(SGridEditorObjectInspectorPanel)
 					.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
 					.OnGetEditorActor(FOnGetGridEditorObjectInspectorActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
-					.OnRequestRefresh(FOnGridEditorObjectInspectorRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild)))
-			: StaticCastSharedRef<SWidget>(
-				SNew(SGridEditorLinksPanel)
-					.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
-					.OnGetEditorActor(FOnGetGridEditorLinksActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
-					.OnRequestRefresh(FOnGridEditorLinksRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild)));
+					.OnRequestRefresh(FOnGridEditorObjectInspectorRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild))
+			];
+	}
+	else
+	{
+		ActivePage = SNew(SGridEditorLinksPanel)
+			.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
+			.OnGetEditorActor(FOnGetGridEditorLinksActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
+			.OnRequestRefresh(FOnGridEditorLinksRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild));
+	}
 
 	return SNew(SBorder)
 		.Padding(8.f)
