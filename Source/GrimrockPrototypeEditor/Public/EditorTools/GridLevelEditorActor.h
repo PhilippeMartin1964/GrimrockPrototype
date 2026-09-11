@@ -149,7 +149,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
 	FName WorldObjectDefinitionId = NAME_None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
+	// LUA-UX03 source-only tombstone. LogicId is the only author-facing logical identity.
 	FName ObjectTag = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint", meta = (MultiLine = "true"))
@@ -505,7 +505,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Reading")
 	bool SetSelectedObjectReadTextOverride(const FText& NewReadTextOverride);
 
-	UFUNCTION(BlueprintCallable, Category = "Object Paint")
+	// LUA-UX03 source-compatibility bridge. Tag authoring is retired; implementation always rejects mutation.
 	bool SetSelectedObjectTag(FName NewTag);
 
 	UFUNCTION(BlueprintCallable, Category = "Object Paint")

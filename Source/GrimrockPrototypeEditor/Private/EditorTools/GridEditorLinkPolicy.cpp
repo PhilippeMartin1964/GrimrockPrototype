@@ -96,8 +96,7 @@ namespace GridEditorLinkPolicy
 
 	TArray<EGridObjectCondition> GetSupportedConditionsForTarget(EGridLevelObjectType ObjectType)
 	{
-		TArray<EGridObjectCondition> Conditions = { EGridObjectCondition::None, EGridObjectCondition::LevelVariableBoolEquals,
-			EGridObjectCondition::LevelVariableIntCompare };
+		TArray<EGridObjectCondition> Conditions = { EGridObjectCondition::None };
 
 		if (ObjectType == EGridLevelObjectType::Receptacle)
 		{
@@ -176,8 +175,6 @@ namespace GridEditorLinkPolicy
 	{
 		return A.SourceObjectId == B.SourceObjectId && A.TargetObjectId == B.TargetObjectId && A.SourceEvent == B.SourceEvent && A.Command == B.Command &&
 			A.LuaScriptId == B.LuaScriptId && A.LuaCallbackName == B.LuaCallbackName && A.Condition == B.Condition &&
-			A.ConditionVariableId == B.ConditionVariableId && A.ConditionBoolValue == B.ConditionBoolValue &&
-			A.ConditionIntComparison == B.ConditionIntComparison && A.ConditionIntValue == B.ConditionIntValue &&
 			A.ConditionItemDefinitionId == B.ConditionItemDefinitionId && A.ConditionItemTag == B.ConditionItemTag &&
 			A.ConditionItemType == B.ConditionItemType && A.ConditionCount == B.ConditionCount && A.ConditionWeight == B.ConditionWeight &&
 			A.bInvertCondition == B.bInvertCondition;

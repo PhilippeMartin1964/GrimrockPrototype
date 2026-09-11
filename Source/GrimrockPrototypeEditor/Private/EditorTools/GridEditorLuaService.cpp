@@ -101,8 +101,7 @@ namespace
 
 	bool IsSupportedLuaCondition(EGridObjectCondition Condition)
 	{
-		return Condition == EGridObjectCondition::None || Condition == EGridObjectCondition::LevelVariableBoolEquals ||
-			Condition == EGridObjectCondition::LevelVariableIntCompare;
+		return Condition == EGridObjectCondition::None;
 	}
 
 	FGridObjectLink NormalizeLuaLink(const FGridObjectLink& Link)
@@ -456,27 +455,10 @@ namespace GridEditorLuaService
 			OutError = TEXT("Lua binding requires ScriptId and CallbackName.");
 			return false;
 		}
-		if (!IsSupportedLuaCondition(Normalized.Condition) || !GridEditorLinkService::IsConditionConfigurationValid(Normalized))
+		if (!IsSupportedLuaCondition(Normalized.Condition))
 		{
-			OutError = TEXT("Lua bindings support only None or typed level-variable conditions.");
+			OutError = TEXT("Lua bindings are unconditional; put puzzle conditions inside Lua.");
 			return false;
-		}
-
-		if (Normalized.Condition == EGridObjectCondition::LevelVariableBoolEquals || Normalized.Condition == EGridObjectCondition::LevelVariableIntCompare)
-		{
-			const FGridLevelVariableDefinition* Variable = FindVariableDefinition(LevelAsset, Normalized.ConditionVariableId);
-			if (!Variable)
-			{
-				OutError = FString::Printf(TEXT("Lua binding references undeclared level variable '%s'."), *Normalized.ConditionVariableId.ToString());
-				return false;
-			}
-			const EGridLevelVariableType RequiredType =
-				Normalized.Condition == EGridObjectCondition::LevelVariableBoolEquals ? EGridLevelVariableType::Bool : EGridLevelVariableType::Int32;
-			if (Variable->Type != RequiredType)
-			{
-				OutError = FString::Printf(TEXT("Lua binding variable '%s' has the wrong type."), *Normalized.ConditionVariableId.ToString());
-				return false;
-			}
 		}
 
 		TArray<FName> Callbacks;

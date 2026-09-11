@@ -114,16 +114,15 @@ bool FGridEditorMON192LinkPolicyMatrixTest::RunTest(const FString& Parameters)
 		GridEditorLinkPolicy::GetCommandRuntimeSupport(Door, EGridLogicNodeType::Relay, EGridObjectCommand::ShowMessage) == EGridEditorCommandRuntimeSupport::Unsupported);
 
 	const TArray<EGridObjectCondition> ReceptacleConditions = GridEditorLinkPolicy::GetSupportedConditionsForTarget(Receptacle);
-	TestTrue(TEXT("Receptacle exposes its eight historical conditions plus two level-variable conditions"),
+	TestTrue(TEXT("Receptacle exposes only native receptacle conditions"),
 		ContainsExactly(ReceptacleConditions,
-			{ EGridObjectCondition::None, EGridObjectCondition::LevelVariableBoolEquals, EGridObjectCondition::LevelVariableIntCompare,
-				EGridObjectCondition::ReceptacleIsEmpty, EGridObjectCondition::ReceptacleHasAnyItem, EGridObjectCondition::ReceptacleContainsItemDefinition,
-				EGridObjectCondition::ReceptacleContainsItemTag, EGridObjectCondition::ReceptacleContainsItemType,
-				EGridObjectCondition::ReceptacleItemCountAtLeast, EGridObjectCondition::ReceptacleWeightAtLeast }));
+			{ EGridObjectCondition::None, EGridObjectCondition::ReceptacleIsEmpty, EGridObjectCondition::ReceptacleHasAnyItem,
+				EGridObjectCondition::ReceptacleContainsItemDefinition, EGridObjectCondition::ReceptacleContainsItemTag,
+				EGridObjectCondition::ReceptacleContainsItemType, EGridObjectCondition::ReceptacleItemCountAtLeast,
+				EGridObjectCondition::ReceptacleWeightAtLeast }));
 
-	TestTrue(TEXT("Door exposes None plus both level-variable conditions"),
-		ContainsExactly(GridEditorLinkPolicy::GetSupportedConditionsForTarget(Door),
-			{ EGridObjectCondition::None, EGridObjectCondition::LevelVariableBoolEquals, EGridObjectCondition::LevelVariableIntCompare }));
+	TestTrue(TEXT("Non-receptacle targets expose only an unconditional connector"),
+		ContainsExactly(GridEditorLinkPolicy::GetSupportedConditionsForTarget(Door), { EGridObjectCondition::None }));
 
 	return true;
 }

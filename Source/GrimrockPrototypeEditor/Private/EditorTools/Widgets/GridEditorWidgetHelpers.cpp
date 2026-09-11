@@ -7,7 +7,6 @@
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
 #include "Widgets/SBoxPanel.h"
-#include "Widgets/SNullWidget.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SBorder.h"
@@ -56,15 +55,6 @@ namespace GridEditorWidgetHelpers
 
 	TSharedRef<SWidget> BuildGridPropertyRow(const FText& Label, TSharedRef<SWidget> ValueWidget)
 	{
-		// LUA-UX02 compatibility fence: placed-object Tag is still serialized in
-		// legacy assets, but it is no longer an author-facing identity. Keeping
-		// the field serialized avoids an unsafe asset migration while removing
-		// the last custom Grid Editor authoring row that exposed it.
-		if (Label.ToString().Equals(TEXT("Tag"), ESearchCase::CaseSensitive))
-		{
-			return SNullWidget::NullWidget;
-		}
-
 		return SNew(SHorizontalBox) +
 			SHorizontalBox::Slot()
 				.FillWidth(0.35f)

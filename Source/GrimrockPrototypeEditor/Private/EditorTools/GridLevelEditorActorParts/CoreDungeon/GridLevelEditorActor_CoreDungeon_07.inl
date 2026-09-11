@@ -43,7 +43,6 @@ bool AGridLevelEditorActor::EnsureStairsTransitionDefinitions(FString& OutError)
 		Definition.Description = FText::FromString(TEXT("Dungeon transition stair object."));
 		Definition.bDefaultInitiallyEnabled = true;
 		Definition.bDefaultInitiallyActive = false;
-		Definition.DefaultTag = NAME_None;
 		Definition.DefaultBehavior = FGridObjectBehaviorParams();
 		Definition.DefaultBehavior.Transition.bIsTransition = true;
 		Definition.DefaultBehavior.Transition.TargetLevelId = NAME_None;
@@ -158,7 +157,6 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 	PitDefinition->Description = FText::FromString(TEXT("Controlled inter-level pit with optional dual-part trapdoor cover."));
 	PitDefinition->bDefaultInitiallyEnabled = true;
 	PitDefinition->bDefaultInitiallyActive = false;
-	PitDefinition->DefaultTag = NAME_None;
 	PitDefinition->DefaultBehavior = FGridObjectBehaviorParams();
 	PitDefinition->DefaultBehavior.Pit.bInitiallyOpen = true;
 	PitDefinition->DefaultBehavior.Pit.bUseSameCellCoordinates = true;

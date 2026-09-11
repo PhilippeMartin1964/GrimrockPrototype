@@ -31,7 +31,6 @@ bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 	{
 		SelectedPaletteEntryId = Placement.PaletteEntryId;
 		bObjectInitiallyEnabled = Placement.bInitiallyEnabled;
-		ObjectTag = Placement.Tag;
 		ObjectNotes = Placement.Notes;
 	};
 	if (const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId))

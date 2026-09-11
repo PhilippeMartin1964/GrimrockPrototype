@@ -97,7 +97,7 @@ bool FGridMIG09EditorTypedMutationsTest::RunTest(const FString& Parameters)
 	for (int32 Index = 0; Index < UE_ARRAY_COUNT(Ids); ++Index)
 	{
 		TestTrue(TEXT("Select native placement"), Editor->SelectObjectById(Ids[Index]));
-		TestTrue(TEXT("Edit tag on native placement"), Editor->SetSelectedObjectTag(TEXT("Edited")));
+		TestTrue(TEXT("Edit notes on native placement"), Editor->SetSelectedObjectNotes(TEXT("Edited")));
 		Editor->SelectedCellX = Index;
 		Editor->SelectedCellY = 1;
 		Editor->SelectedEdge = EGridEdge::North;

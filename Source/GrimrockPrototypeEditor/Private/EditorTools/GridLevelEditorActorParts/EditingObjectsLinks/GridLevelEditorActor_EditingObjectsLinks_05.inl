@@ -4,7 +4,6 @@ WorldObjectDefinitionId = Entry->DefaultWorldObjectDefinition->DefinitionId;
 SelectedWorldObjectDefinitionId = Entry->DefaultWorldObjectDefinition->DefinitionId;
 bObjectInitiallyEnabled = Entry->DefaultWorldObjectDefinition->bDefaultInitiallyEnabled;
 bObjectInitiallyActive = Entry->DefaultWorldObjectDefinition->bDefaultInitiallyActive;
-ObjectTag = Entry->DefaultWorldObjectDefinition->DefaultTag;
 ObjectBehavior = Entry->DefaultWorldObjectDefinition->DefaultBehavior;
 
 return true;
@@ -32,7 +31,6 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 		{
 			Placement.PaletteEntryId = SelectedPaletteEntryId;
 			Placement.bInitiallyEnabled = bObjectInitiallyEnabled;
-			Placement.Tag = ObjectTag;
 			Placement.Notes = ObjectNotes;
 		})) return false;
 	if (FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId))

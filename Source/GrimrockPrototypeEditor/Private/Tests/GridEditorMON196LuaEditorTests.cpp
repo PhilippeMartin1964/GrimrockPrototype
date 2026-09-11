@@ -3,7 +3,6 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
-#include "Core/GridLevelVariableTypes.h"
 #include "EditorTools/GridEditorLuaService.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
@@ -18,15 +17,6 @@ namespace
 		Script.bEnabled = bEnabled;
 		Script.Source = Source;
 		return Script;
-	}
-
-	FGridLevelVariableDefinition MakeBoolVariable(FName Id)
-	{
-		FGridLevelVariableDefinition Variable;
-		Variable.VariableId = Id;
-		Variable.Type = EGridLevelVariableType::Bool;
-		Variable.bDefaultBoolValue = false;
-		return Variable;
 	}
 
 	FGridWorldObjectInstance MakeSourceButton(FGuid Id)
@@ -158,7 +148,6 @@ bool FGridMON196LuaBindingMutationTest::RunTest(const FString& Parameters)
 	Editor->LevelAsset = Level;
 	const FGuid SourceId(19, 6, 1, 1);
 	Level->WorldObjectInstances.Add(MakeSourceButton(SourceId));
-	Level->LevelVariables.Add(MakeBoolVariable(TEXT("Gate")));
 	Level->LuaScripts.Add(MakeScript(TEXT("Puzzle"), TEXT("function on_trigger(event)\nend\n")));
 
 	FGridObjectLink Link;
@@ -167,12 +156,10 @@ bool FGridMON196LuaBindingMutationTest::RunTest(const FString& Parameters)
 	Link.Command = EGridObjectCommand::LuaCallback;
 	Link.LuaScriptId = TEXT("Puzzle");
 	Link.LuaCallbackName = TEXT("on_trigger");
-	Link.Condition = EGridObjectCondition::LevelVariableBoolEquals;
-	Link.ConditionVariableId = TEXT("Gate");
-	Link.ConditionBoolValue = true;
+	Link.Condition = EGridObjectCondition::None;
 
 	FString Error;
-	TestTrue(TEXT("Targetless typed Lua binding is supported"), GridEditorLuaService::IsLuaLinkSupported(*Level, Link, Error));
+	TestTrue(TEXT("Targetless unconditional Lua binding is supported"), GridEditorLuaService::IsLuaLinkSupported(*Level, Link, Error));
 	TestTrue(TEXT("Lua binding is added"), GridEditorLuaService::AddLuaLink(*Editor, Link, Error));
 	TestEqual(TEXT("One link stored"), Level->Links.Num(), 1);
 	if (!Level->Links.IsEmpty())
@@ -182,7 +169,7 @@ bool FGridMON196LuaBindingMutationTest::RunTest(const FString& Parameters)
 
 	FGridObjectLink InvalidCondition = Link;
 	InvalidCondition.Condition = EGridObjectCondition::ReceptacleHasAnyItem;
-	TestFalse(TEXT("Receptacle condition is rejected for Lua"), GridEditorLuaService::IsLuaLinkSupported(*Level, InvalidCondition, Error));
+	TestFalse(TEXT("Puzzle condition is rejected for Lua; condition belongs inside the script"), GridEditorLuaService::IsLuaLinkSupported(*Level, InvalidCondition, Error));
 
 	TestTrue(TEXT("Rename updates script and binding atomically"), GridEditorLuaService::RenameScript(*Level, TEXT("Puzzle"), TEXT("CryptPuzzle"), Error));
 	TestEqual(TEXT("Binding follows renamed ScriptId"), Level->Links[0].LuaScriptId, FName(TEXT("CryptPuzzle")));

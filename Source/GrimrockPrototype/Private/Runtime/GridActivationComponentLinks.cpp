@@ -6,7 +6,6 @@
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-#include "Runtime/GridLevelVariableStore.h"
 #include "Runtime/GridLogicRuntime.h"
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Core/GridLevelAsset.h"
@@ -59,20 +58,6 @@ namespace
 			return Enum->GetNameStringByValue(static_cast<int64>(Condition));
 		}
 		return FString::Printf(TEXT("%d"), static_cast<int32>(Condition));
-	}
-
-	bool TryEvaluateGridIntComparison(int32 Left, EGridLogicIntComparison Comparison, int32 Right, bool& OutResult)
-	{
-		switch (Comparison)
-		{
-			case EGridLogicIntComparison::Equal: OutResult = Left == Right; return true;
-			case EGridLogicIntComparison::NotEqual: OutResult = Left != Right; return true;
-			case EGridLogicIntComparison::Less: OutResult = Left < Right; return true;
-			case EGridLogicIntComparison::LessOrEqual: OutResult = Left <= Right; return true;
-			case EGridLogicIntComparison::Greater: OutResult = Left > Right; return true;
-			case EGridLogicIntComparison::GreaterOrEqual: OutResult = Left >= Right; return true;
-			default: return false;
-		}
 	}
 
 	bool IsReceptacleCommand(EGridObjectCommand Command)
@@ -519,61 +504,15 @@ bool UGridActivationComponent::EvaluateGridObjectLinkCondition(const FGridObject
 		return true;
 	}
 
-	bool bConditionResult = false;
 	if (LinkData.Condition == EGridObjectCondition::LevelVariableBoolEquals || LinkData.Condition == EGridObjectCondition::LevelVariableIntCompare)
 	{
-		if (!RuntimeActor || !RuntimeActor->LevelAsset || LinkData.ConditionVariableId.IsNone())
-		{
-			UE_LOG(LogGridActivation, Warning,
-				TEXT("Grid link variable condition rejected: Source=%s Target=%s Condition=%s Variable=%s Reason=missing runtime, level asset or variable id"),
-				*LinkData.SourceObjectId.ToString(), *LinkData.TargetObjectId.ToString(), *GridObjectConditionToString(LinkData.Condition),
-				*LinkData.ConditionVariableId.ToString());
-			return false;
-		}
-
-		FGridLevelRuntimeState* RuntimeState = RuntimeActor->GetOrCreateRuntimeStateForCurrentLevel();
-		if (!RuntimeState)
-		{
-			return false;
-		}
-
-		FString VariableError;
-		if (LinkData.Condition == EGridObjectCondition::LevelVariableBoolEquals)
-		{
-			bool bCurrentValue = false;
-			if (!GridLevelVariableStore::TryGetBool(*RuntimeActor->LevelAsset, *RuntimeState, LinkData.ConditionVariableId, bCurrentValue, VariableError))
-			{
-				UE_LOG(LogGridActivation, Warning, TEXT("Grid link variable condition rejected: Source=%s Target=%s Variable=%s Reason=%s"),
-					*LinkData.SourceObjectId.ToString(), *LinkData.TargetObjectId.ToString(), *LinkData.ConditionVariableId.ToString(), *VariableError);
-				return false;
-			}
-			bConditionResult = bCurrentValue == LinkData.ConditionBoolValue;
-		}
-		else
-		{
-			int32 CurrentValue = 0;
-			if (!GridLevelVariableStore::TryGetInt32(*RuntimeActor->LevelAsset, *RuntimeState, LinkData.ConditionVariableId, CurrentValue, VariableError))
-			{
-				UE_LOG(LogGridActivation, Warning, TEXT("Grid link variable condition rejected: Source=%s Target=%s Variable=%s Reason=%s"),
-					*LinkData.SourceObjectId.ToString(), *LinkData.TargetObjectId.ToString(), *LinkData.ConditionVariableId.ToString(), *VariableError);
-				return false;
-			}
-			if (!TryEvaluateGridIntComparison(CurrentValue, LinkData.ConditionIntComparison, LinkData.ConditionIntValue, bConditionResult))
-			{
-				return false;
-			}
-		}
-
-		const bool bFinalResult = LinkData.bInvertCondition ? !bConditionResult : bConditionResult;
-		if (!bFinalResult)
-		{
-			UE_LOG(LogGridActivation, Verbose, TEXT("Grid link variable condition failed: Source=%s Target=%s Condition=%s Variable=%s Inverted=%s"),
-				*LinkData.SourceObjectId.ToString(), *LinkData.TargetObjectId.ToString(), *GridObjectConditionToString(LinkData.Condition),
-				*LinkData.ConditionVariableId.ToString(), LinkData.bInvertCondition ? TEXT("true") : TEXT("false"));
-		}
-		return bFinalResult;
+		UE_LOG(LogGridActivation, Warning,
+			TEXT("Grid link condition rejected: Source=%s Target=%s Condition=%s Reason=legacy LevelVariable link conditions are disabled; move puzzle logic into Lua"),
+			*LinkData.SourceObjectId.ToString(), *LinkData.TargetObjectId.ToString(), *GridObjectConditionToString(LinkData.Condition));
+		return false;
 	}
 
+	bool bConditionResult = false;
 	const AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor>(TargetActor);
 	if (!ReceptacleActor)
 	{

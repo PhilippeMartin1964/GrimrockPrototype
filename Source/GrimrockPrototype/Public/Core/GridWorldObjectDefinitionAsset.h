@@ -99,9 +99,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Defaults")
 	bool bDefaultInitiallyActive = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Defaults")
-	FName DefaultTag = NAME_None;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Defaults",
 		meta = (ToolTip = "Default behavior copied to placed object instances. Currently contains teleporter, receptacle and mechanism parameters."))
 	FGridObjectBehaviorParams DefaultBehavior;

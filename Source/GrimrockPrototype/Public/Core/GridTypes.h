@@ -117,8 +117,9 @@ enum class EGridObjectCondition : uint8
 	ReceptacleContainsItemType UMETA(DisplayName = "Receptacle Contains Item Type"),
 	ReceptacleItemCountAtLeast UMETA(DisplayName = "Receptacle Item Count At Least"),
 	ReceptacleWeightAtLeast UMETA(DisplayName = "Receptacle Weight At Least"),
-	LevelVariableBoolEquals UMETA(DisplayName = "Level Variable Bool Equals"),
-	LevelVariableIntCompare UMETA(DisplayName = "Level Variable Int Compare")
+	// LUA-UX03: tombstones keep old enum ordinals readable while removing them from authoring/runtime support.
+	LevelVariableBoolEquals UMETA(Hidden),
+	LevelVariableIntCompare UMETA(Hidden)
 };
 
 UENUM(BlueprintType)
@@ -208,16 +209,10 @@ struct FGridObjectLink
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Condition")
 	EGridObjectCondition Condition = EGridObjectCondition::None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Condition|Variable")
+	// LUA-UX03 source-compatibility tombstones. These are intentionally not UPROPERTYs and are no longer serialized or authored.
 	FName ConditionVariableId = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Condition|Variable")
 	bool ConditionBoolValue = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Condition|Variable")
 	EGridLogicIntComparison ConditionIntComparison = EGridLogicIntComparison::Equal;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Condition|Variable")
 	int32 ConditionIntValue = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Condition")

@@ -4,36 +4,9 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridLevelPlacementTypes.h"
-#include "Core/GridLevelVariableTypes.h"
 
 namespace
 {
-	const FGridLevelVariableDefinition* FindLinkServiceVariableDefinition(const UGridLevelAsset& LevelAsset, FName VariableId)
-	{
-		return LevelAsset.LevelVariables.FindByPredicate(
-			[VariableId](const FGridLevelVariableDefinition& Definition)
-			{
-				return Definition.VariableId == VariableId;
-			});
-	}
-
-	bool IsSupportedIntComparison(EGridLogicIntComparison Comparison)
-	{
-		switch (Comparison)
-		{
-			case EGridLogicIntComparison::Equal:
-			case EGridLogicIntComparison::NotEqual:
-			case EGridLogicIntComparison::Less:
-			case EGridLogicIntComparison::LessOrEqual:
-			case EGridLogicIntComparison::Greater:
-			case EGridLogicIntComparison::GreaterOrEqual:
-				return true;
-
-			default:
-				return false;
-		}
-	}
-
 	EGridLogicNodeType GetLogicNodeTypeForPlacement(const UGridLevelAsset& LevelAsset, const FGuid& PlacementId)
 	{
 		if (const FGridLogicObjectInstance* Logic = LevelAsset.FindLogicObjectInstanceById(PlacementId))
@@ -50,20 +23,12 @@ namespace GridEditorLinkService
 	{
 		FGridObjectLink Normalized = Link;
 
-		const FName VariableId = Normalized.ConditionVariableId;
-		const bool bBoolValue = Normalized.ConditionBoolValue;
-		const EGridLogicIntComparison IntComparison = Normalized.ConditionIntComparison;
-		const int32 IntValue = Normalized.ConditionIntValue;
 		const FName DefinitionId = Normalized.ConditionItemDefinitionId;
 		const FName ItemTag = Normalized.ConditionItemTag;
 		const EGridItemType ItemType = Normalized.ConditionItemType;
 		const int32 Count = Normalized.ConditionCount;
 		const float Weight = Normalized.ConditionWeight;
 
-		Normalized.ConditionVariableId = NAME_None;
-		Normalized.ConditionBoolValue = false;
-		Normalized.ConditionIntComparison = EGridLogicIntComparison::Equal;
-		Normalized.ConditionIntValue = 0;
 		Normalized.ConditionItemDefinitionId = NAME_None;
 		Normalized.ConditionItemTag = NAME_None;
 		Normalized.ConditionItemType = EGridItemType::None;
@@ -72,17 +37,6 @@ namespace GridEditorLinkService
 
 		switch (Normalized.Condition)
 		{
-			case EGridObjectCondition::LevelVariableBoolEquals:
-				Normalized.ConditionVariableId = VariableId;
-				Normalized.ConditionBoolValue = bBoolValue;
-				break;
-
-			case EGridObjectCondition::LevelVariableIntCompare:
-				Normalized.ConditionVariableId = VariableId;
-				Normalized.ConditionIntComparison = IntComparison;
-				Normalized.ConditionIntValue = IntValue;
-				break;
-
 			case EGridObjectCondition::ReceptacleContainsItemDefinition:
 				Normalized.ConditionItemDefinitionId = DefinitionId;
 				break;
@@ -124,12 +78,6 @@ namespace GridEditorLinkService
 			case EGridObjectCondition::ReceptacleIsEmpty:
 			case EGridObjectCondition::ReceptacleHasAnyItem:
 				return true;
-
-			case EGridObjectCondition::LevelVariableBoolEquals:
-				return !Link.ConditionVariableId.IsNone();
-
-			case EGridObjectCondition::LevelVariableIntCompare:
-				return !Link.ConditionVariableId.IsNone() && IsSupportedIntComparison(Link.ConditionIntComparison);
 
 			case EGridObjectCondition::ReceptacleContainsItemDefinition:
 				return !Link.ConditionItemDefinitionId.IsNone();
@@ -173,22 +121,6 @@ namespace GridEditorLinkService
 			!GridEditorLinkPolicy::GetSupportedConditionsForTarget(TargetType).Contains(Link.Condition) || !IsConditionConfigurationValid(Link))
 		{
 			return false;
-		}
-
-		if (Link.Condition == EGridObjectCondition::LevelVariableBoolEquals || Link.Condition == EGridObjectCondition::LevelVariableIntCompare)
-		{
-			const FGridLevelVariableDefinition* Definition = FindLinkServiceVariableDefinition(LevelAsset, Link.ConditionVariableId);
-			if (!Definition)
-			{
-				return false;
-			}
-
-			const EGridLevelVariableType RequiredType =
-				Link.Condition == EGridObjectCondition::LevelVariableBoolEquals ? EGridLevelVariableType::Bool : EGridLevelVariableType::Int32;
-			if (Definition->Type != RequiredType)
-			{
-				return false;
-			}
 		}
 
 		return true;

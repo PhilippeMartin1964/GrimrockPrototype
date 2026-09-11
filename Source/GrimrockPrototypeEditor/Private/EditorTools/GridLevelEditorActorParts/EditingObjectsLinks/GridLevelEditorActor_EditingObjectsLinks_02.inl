@@ -45,7 +45,6 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		Placement.CellX = SelectedCellX;
 		Placement.CellY = SelectedCellY;
 		Placement.bInitiallyEnabled = bObjectInitiallyEnabled;
-		Placement.Tag = ObjectTag;
 		Placement.Notes = ObjectNotes;
 		Placement.PaletteEntryId = SelectedPaletteEntryId;
 	};

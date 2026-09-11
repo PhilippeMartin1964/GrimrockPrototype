@@ -215,7 +215,7 @@ struct FGridWorldObjectInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Identity")
 	FName LogicId = NAME_None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Authoring")
+	// LUA-UX03 source-compatibility tombstone; no longer reflected/serialized or authored.
 	FName Tag = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Authoring")
@@ -279,7 +279,6 @@ struct FGridLooseItemInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Readable", meta = (MultiLine = "true"))
 	FText ReadTextOverride;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Authoring")
 	FName Tag = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Authoring")
@@ -331,7 +330,6 @@ struct FGridMonsterSpawnInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Identity")
 	FName LogicId = NAME_None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Authoring")
 	FName Tag = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Authoring")
@@ -368,7 +366,6 @@ struct FGridItemSpawnInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Identity")
 	FName LogicId = NAME_None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Authoring")
 	FName Tag = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Authoring")
@@ -411,7 +408,6 @@ struct FGridLogicObjectInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Story Companion")
 	TObjectPtr<URPGStoryCompanionAsset> StoryCompanionDefinition = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Authoring")
 	FName Tag = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Authoring")

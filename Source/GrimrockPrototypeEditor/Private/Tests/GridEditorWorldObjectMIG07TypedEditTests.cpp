@@ -106,10 +106,10 @@ bool FGridEditorWorldObjectMIG07TypedWriteThroughTest::RunTest(const FString& Pa
 	EditorActor->LevelAsset = Level;
 
 	TestTrue(TEXT("Typed loose item can be selected through the editor"), EditorActor->SelectObjectById(Item.InstanceId));
-	TestTrue(TEXT("Tag edit succeeds"), EditorActor->SetSelectedObjectTag(TEXT("EditedItem")));
-	TestEqual(TEXT("Tag edit writes through to typed item"), Level->LooseItemInstances[0].Tag, FName(TEXT("EditedItem")));
-	TestEqual(TEXT("Tag edit preserves typed-only item quantity"), Level->LooseItemInstances[0].Quantity, 9);
-	TestTrue(TEXT("Tag edit preserves typed-only item local offset"), Level->LooseItemInstances[0].LocalOffset.Equals(FVector(3.0f, 4.0f, 5.0f)));
+	TestTrue(TEXT("Notes edit succeeds"), EditorActor->SetSelectedObjectNotes(TEXT("EditedItem")));
+	TestEqual(TEXT("Notes edit writes through to typed item"), Level->LooseItemInstances[0].Notes, FString(TEXT("EditedItem")));
+	TestEqual(TEXT("Notes edit preserves typed-only item quantity"), Level->LooseItemInstances[0].Quantity, 9);
+	TestTrue(TEXT("Notes edit preserves typed-only item local offset"), Level->LooseItemInstances[0].LocalOffset.Equals(FVector(3.0f, 4.0f, 5.0f)));
 
 	EditorActor->SelectedCellX = 7;
 	EditorActor->SelectedCellY = 8;

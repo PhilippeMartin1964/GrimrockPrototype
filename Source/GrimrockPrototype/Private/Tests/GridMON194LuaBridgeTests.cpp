@@ -259,58 +259,6 @@ bool FGridMON194LuaCommandToLogicTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridMON194VariableConditionTest, "Grimrock.MON19.4.LuaBridge.LinkCondition", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
-bool FGridMON194VariableConditionTest::RunTest(const FString& Parameters)
-{
-	(void)Parameters;
-	FMON194RuntimeFixture Fixture;
-	if (!Fixture.Initialize(*this))
-	{
-		return false;
-	}
-
-	const FGuid SourceId(19, 4, 3, 1);
-	Fixture.Level->WorldObjectInstances.Add(MakeWorldObject194(SourceId, EGridLevelObjectType::Trigger));
-	Fixture.Level->LuaScripts.Add(MakeLuaScript194(TEXT("Conditional"),
-		TEXT("function on_trigger(event)\n") TEXT("  local count, err = grid.vars.get_int('Count')\n") TEXT("  assert(err == nil, err)\n") TEXT("  local ok\n")
-			TEXT("  ok, err = grid.vars.set_int('Count', count + 1)\n") TEXT("  assert(ok, err)\n") TEXT("end\n")));
-
-	FGridObjectLink Link = MakeLuaLink194(SourceId, TEXT("Conditional"), TEXT("on_trigger"));
-	Link.Condition = EGridObjectCondition::LevelVariableBoolEquals;
-	Link.ConditionVariableId = TEXT("Gate");
-	Link.ConditionBoolValue = true;
-	Fixture.Level->Links.Add(Link);
-
-	if (!Fixture.FinalizeLevel(*this))
-	{
-		return false;
-	}
-
-	TestFalse(
-		TEXT("False level-variable condition blocks Lua callback"), Fixture.Activation->ExecuteLinksFromObjectForEvent(SourceId, EGridObjectEvent::Activated));
-
-	FGridLevelRuntimeState* State = Fixture.Runtime->GetOrCreateRuntimeStateForCurrentLevel();
-	TestNotNull(TEXT("Conditional test state exists"), State);
-	if (!State)
-	{
-		return false;
-	}
-
-	FString Error;
-	int32 Count = 0;
-	GridLevelVariableStore::TryGetInt32(*Fixture.Level, *State, TEXT("Count"), Count, Error);
-	TestEqual(TEXT("Blocked callback does not mutate Count"), Count, 1);
-
-	TestTrue(TEXT("Gate can be enabled"), GridLevelVariableStore::SetBool(*Fixture.Level, *State, TEXT("Gate"), true, Error));
-	TestTrue(
-		TEXT("True level-variable condition permits Lua callback"), Fixture.Activation->ExecuteLinksFromObjectForEvent(SourceId, EGridObjectEvent::Activated));
-	GridLevelVariableStore::TryGetInt32(*Fixture.Level, *State, TEXT("Count"), Count, Error);
-	TestEqual(TEXT("Permitted callback mutates Count once"), Count, 2);
-	return true;
-}
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGridMON194HostFailureTest, "Grimrock.MON19.4.LuaBridge.HostFailureIsProtected", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridMON194HostFailureTest::RunTest(const FString& Parameters)
