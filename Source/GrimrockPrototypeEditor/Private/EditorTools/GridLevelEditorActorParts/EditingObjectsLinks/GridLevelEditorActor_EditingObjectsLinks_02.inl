@@ -66,7 +66,7 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		InitializeAuthoring(MonsterSpawn);
 		MonsterSpawn.SpawnId = NewId;
 		MonsterSpawn.MonsterDefinition = PaletteEntry ? PaletteEntry->DefaultMonsterDefinition : nullptr;
-		MonsterSpawn.bInitiallyEnabled = bObjectInitiallyEnabled;
+		MonsterSpawn.bSpawnAtStart = bObjectInitiallyEnabled;
 	}
 	else if (PaintObjectType == EGridLevelObjectType::ItemSpawn)
 	{
@@ -74,7 +74,7 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		InitializeAuthoring(ItemSpawn);
 		ItemSpawn.SpawnId = NewId;
 		ItemSpawn.ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
-		ItemSpawn.bInitiallyEnabled = bObjectInitiallyEnabled;
+		ItemSpawn.bSpawnAtStart = bObjectInitiallyEnabled;
 	}
 	else if (PaintObjectType == EGridLevelObjectType::Logic || PaintObjectType == EGridLevelObjectType::StoryCompanion ||
 		PaintObjectType == EGridLevelObjectType::CustomRecruiter)
