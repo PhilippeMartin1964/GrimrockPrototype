@@ -3,6 +3,7 @@
 #if WITH_EDITOR
 
 #include "Core/GridLevelAsset.h"
+#include "Core/GridObjectBehavior.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "EditorTools/GridLevelEditorActor.h"
