@@ -196,6 +196,7 @@ namespace
 		}
 		return true;
 	}
+
 }
 
 AGrimrockPlayerController::AGrimrockPlayerController()
@@ -238,36 +239,51 @@ void AGrimrockPlayerController::PlayerTick(float DeltaTime)
 void AGrimrockPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
+
 	if (!InputComponent)
 	{
 		return;
 	}
+
 	InputComponent->BindKey(EKeys::LeftMouseButton, IE_Pressed, this, &AGrimrockPlayerController::HandleLeftMousePressed);
-	FInputKeyBinding& CancelTargetingBinding = InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AGrimrockPlayerController::HandleCancelCombatTargeting);
+	FInputKeyBinding& CancelTargetingBinding =
+		InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AGrimrockPlayerController::HandleCancelCombatTargeting);
 	CancelTargetingBinding.bConsumeInput = false;
+
 #if !UE_BUILD_SHIPPING
-	FInputKeyBinding& StartPerceptionBinding = InputComponent->BindKey(EKeys::NumPadOne, IE_Pressed, this, &AGrimrockPlayerController::HandleMON5StartCombatFromPerception);
+	FInputKeyBinding& StartPerceptionBinding =
+		InputComponent->BindKey(EKeys::NumPadOne, IE_Pressed, this, &AGrimrockPlayerController::HandleMON5StartCombatFromPerception);
 	StartPerceptionBinding.bConsumeInput = true;
 	StartPerceptionBinding.bExecuteWhenPaused = false;
+
 	FInputKeyBinding& EndPlayerPhaseBinding = InputComponent->BindKey(EKeys::NumPadTwo, IE_Pressed, this, &AGrimrockPlayerController::HandleMON5EndPlayerPhase);
 	EndPlayerPhaseBinding.bConsumeInput = true;
 	EndPlayerPhaseBinding.bExecuteWhenPaused = false;
+
 	FInputKeyBinding& AbortCombatBinding = InputComponent->BindKey(EKeys::NumPadThree, IE_Pressed, this, &AGrimrockPlayerController::HandleMON5AbortCombat);
 	AbortCombatBinding.bConsumeInput = true;
 	AbortCombatBinding.bExecuteWhenPaused = false;
+
 	FInputKeyBinding& LogTurnStateBinding = InputComponent->BindKey(EKeys::NumPadFour, IE_Pressed, this, &AGrimrockPlayerController::HandleMON5LogTurnState);
 	LogTurnStateBinding.bConsumeInput = true;
 	LogTurnStateBinding.bExecuteWhenPaused = false;
-	FInputKeyBinding& StartAllBinding = InputComponent->BindKey(EKeys::NumPadFive, IE_Pressed, this, &AGrimrockPlayerController::HandleMON5StartCombatWithAllMonsters);
+
+	FInputKeyBinding& StartAllBinding =
+		InputComponent->BindKey(EKeys::NumPadFive, IE_Pressed, this, &AGrimrockPlayerController::HandleMON5StartCombatWithAllMonsters);
 	StartAllBinding.bConsumeInput = true;
 	StartAllBinding.bExecuteWhenPaused = false;
+
 	FInputKeyBinding& ForceVictoryBinding = InputComponent->BindKey(EKeys::NumPadSix, IE_Pressed, this, &AGrimrockPlayerController::HandleMON5ForceVictory);
 	ForceVictoryBinding.bConsumeInput = true;
 	ForceVictoryBinding.bExecuteWhenPaused = false;
-	FInputKeyBinding& RequestPlayerAttackBinding = InputComponent->BindKey(EKeys::NumPadSeven, IE_Pressed, this, &AGrimrockPlayerController::HandleMON11RequestSelectedCharacterAttack);
+
+	FInputKeyBinding& RequestPlayerAttackBinding =
+		InputComponent->BindKey(EKeys::NumPadSeven, IE_Pressed, this, &AGrimrockPlayerController::HandleMON11RequestSelectedCharacterAttack);
 	RequestPlayerAttackBinding.bConsumeInput = true;
 	RequestPlayerAttackBinding.bExecuteWhenPaused = false;
-	UE_LOG(LogGridTurnManagerInput, Log, TEXT("[GridTurnManagerInput] Bound NumPad 1-7 PlayerController=%s InputComponent=%s"), *GetNameSafe(this), *GetNameSafe(InputComponent));
+
+	UE_LOG(LogGridTurnManagerInput, Log, TEXT("[GridTurnManagerInput] Bound NumPad 1-7 PlayerController=%s InputComponent=%s"), *GetNameSafe(this),
+		*GetNameSafe(InputComponent));
 #endif
 }
 
@@ -279,6 +295,7 @@ bool AGrimrockPlayerController::BeginPhysicalThrowAiming()
 	{
 		return false;
 	}
+
 	FGridItemInstance MainHandItem;
 	UGridItemDefinitionAsset* Definition = nullptr;
 	FText Reason;
@@ -290,6 +307,7 @@ bool AGrimrockPlayerController::BeginPhysicalThrowAiming()
 		}
 		return false;
 	}
+
 	if (IsValid(PartyPawn->CombatHudWidgetInstance))
 	{
 		PartyPawn->CombatHudWidgetInstance->CancelCombatActionTargeting();
@@ -310,6 +328,7 @@ bool AGrimrockPlayerController::BeginPhysicalInventoryThrowAiming(FName ItemDefi
 	{
 		return false;
 	}
+
 	UGridItemDefinitionAsset* Definition = nullptr;
 	FText Reason;
 	if (!ResolvePhysicalThrowInventoryItem(PartyPawn, INDEX_NONE, ItemDefinitionId, Definition, Reason))
@@ -320,6 +339,7 @@ bool AGrimrockPlayerController::BeginPhysicalInventoryThrowAiming(FName ItemDefi
 		}
 		return false;
 	}
+
 	if (IsValid(PartyPawn->CombatHudWidgetInstance))
 	{
 		PartyPawn->CombatHudWidgetInstance->CancelCombatActionTargeting();
@@ -351,6 +371,7 @@ bool AGrimrockPlayerController::UpdatePhysicalThrowAiming()
 	{
 		return false;
 	}
+
 	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
 	FGridItemInstance MainHandItem;
 	UGridItemDefinitionAsset* Definition = nullptr;
@@ -365,6 +386,7 @@ bool AGrimrockPlayerController::UpdatePhysicalThrowAiming()
 		CancelPhysicalThrowAiming();
 		return false;
 	}
+
 	FHitResult HitResult;
 	const bool bHasTarget = TryGetWorldHitUnderCursor(HitResult);
 	const FVector StartLocation = PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : PartyPawn->GetActorLocation();
@@ -382,6 +404,7 @@ bool AGrimrockPlayerController::HandlePhysicalThrowAimingClick()
 	{
 		return false;
 	}
+
 	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
 	FGridItemInstance MainHandItem;
 	UGridItemDefinitionAsset* Definition = nullptr;
@@ -398,12 +421,14 @@ bool AGrimrockPlayerController::HandlePhysicalThrowAimingClick()
 		CancelPhysicalThrowAiming();
 		return true;
 	}
+
 	FHitResult HitResult;
 	if (!TryGetWorldHitUnderCursor(HitResult))
 	{
 		ShowInteractionFeedback(FText::FromString(TEXT("Aucune cible de lancer sous le curseur.")));
 		return true;
 	}
+
 	const FVector StartLocation = PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : PartyPawn->GetActorLocation();
 	const FVector TargetOffset = HitResult.ImpactPoint - StartLocation;
 	const float TargetDistance = TargetOffset.Size();
@@ -412,6 +437,7 @@ bool AGrimrockPlayerController::HandlePhysicalThrowAimingClick()
 		ShowInteractionFeedback(FText::FromString(TEXT("Cible de lancer trop éloignée ou invalide.")));
 		return true;
 	}
+
 	const FName InventoryThrowDefinitionId = PhysicalThrowInventoryDefinitionId;
 	const bool bThrown = InventoryThrowDefinitionId.IsNone()
 		? PartyPawn->TryThrowSelectedCharacterMainHandItem(TargetOffset)
@@ -421,6 +447,7 @@ bool AGrimrockPlayerController::HandlePhysicalThrowAimingClick()
 		ShowInteractionFeedback(FText::FromString(TEXT("Lancer impossible.")));
 		return true;
 	}
+
 	CancelPhysicalThrowAiming();
 	PartyPawn->RefreshCombatActionPanelWidget();
 	return true;
@@ -432,16 +459,21 @@ UGridTurnManagerComponent* AGrimrockPlayerController::ResolveMON5TurnManager() c
 	UWorld* World = GetWorld();
 	if (!World)
 	{
-		UE_LOG(LogGridTurnManagerInput, Warning, TEXT("[GridTurnManagerInput] Cannot resolve TurnManager: World is null. PlayerController=%s"), *GetNameSafe(this));
+		UE_LOG(LogGridTurnManagerInput, Warning, TEXT("[GridTurnManagerInput] Cannot resolve TurnManager: World is null. PlayerController=%s"),
+			*GetNameSafe(this));
 		return nullptr;
 	}
+
 	const APawn* ControlledPawn = GetPawn();
 	const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(ControlledPawn);
 	AGridLevelRuntimeActor* RuntimeActor = PartyPawn ? PartyPawn->LevelRuntimeActor.Get() : nullptr;
+
 	if (!PartyPawn)
 	{
-		UE_LOG(LogGridTurnManagerInput, Warning, TEXT("[GridTurnManagerInput] Controlled pawn is not AGrimrockPartyPawn. Pawn=%s PlayerController=%s"), *GetNameSafe(ControlledPawn), *GetNameSafe(this));
+		UE_LOG(LogGridTurnManagerInput, Warning, TEXT("[GridTurnManagerInput] Controlled pawn is not AGrimrockPartyPawn. Pawn=%s PlayerController=%s"),
+			*GetNameSafe(ControlledPawn), *GetNameSafe(this));
 	}
+
 	if (!RuntimeActor)
 	{
 		for (TActorIterator<AGridLevelRuntimeActor> It(World); It; ++It)
@@ -450,11 +482,14 @@ UGridTurnManagerComponent* AGrimrockPlayerController::ResolveMON5TurnManager() c
 			break;
 		}
 	}
+
 	if (!RuntimeActor)
 	{
-		UE_LOG(LogGridTurnManagerInput, Warning, TEXT("[GridTurnManagerInput] No GridLevelRuntimeActor could be resolved. Pawn=%s PlayerController=%s"), *GetNameSafe(ControlledPawn), *GetNameSafe(this));
+		UE_LOG(LogGridTurnManagerInput, Warning, TEXT("[GridTurnManagerInput] No GridLevelRuntimeActor could be resolved. Pawn=%s PlayerController=%s"),
+			*GetNameSafe(ControlledPawn), *GetNameSafe(this));
 		return nullptr;
 	}
+
 	UGridTurnManagerComponent* TurnManager = RuntimeActor->FindComponentByClass<UGridTurnManagerComponent>();
 	if (!TurnManager)
 	{
@@ -465,7 +500,9 @@ UGridTurnManagerComponent* AGrimrockPlayerController::ResolveMON5TurnManager() c
 
 void AGrimrockPlayerController::LogMON5CommandResult(const TCHAR* CommandName, bool bSucceeded) const
 {
-	const FString Message = FString::Printf(TEXT("[GridTurnManagerInput] %s=%s"), CommandName ? CommandName : TEXT("UnknownCommand"), bSucceeded ? TEXT("true") : TEXT("false"));
+	const FString Message =
+		FString::Printf(TEXT("[GridTurnManagerInput] %s=%s"), CommandName ? CommandName : TEXT("UnknownCommand"), bSucceeded ? TEXT("true") : TEXT("false"));
+
 	UE_LOG(LogGridTurnManagerInput, Log, TEXT("%s"), *Message);
 	if (GEngine)
 	{
@@ -478,11 +515,13 @@ void AGrimrockPlayerController::HandleMON5StartCombatFromPerception()
 	UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager();
 	LogMON5CommandResult(TEXT("StartCombatFromPerception"), TurnManager && TurnManager->StartCombatFromPerception());
 }
+
 void AGrimrockPlayerController::HandleMON5EndPlayerPhase()
 {
 	UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager();
 	LogMON5CommandResult(TEXT("EndActivePlayerTurn"), TurnManager && TurnManager->EndActivePlayerTurn());
 }
+
 void AGrimrockPlayerController::HandleMON5AbortCombat()
 {
 	UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager();
@@ -492,6 +531,7 @@ void AGrimrockPlayerController::HandleMON5AbortCombat()
 	}
 	LogMON5CommandResult(TEXT("AbortCombat"), TurnManager && TurnManager->CurrentPhase == EGridCombatPhase::Exploration);
 }
+
 void AGrimrockPlayerController::HandleMON5LogTurnState()
 {
 	UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager();
@@ -501,11 +541,13 @@ void AGrimrockPlayerController::HandleMON5LogTurnState()
 	}
 	LogMON5CommandResult(TEXT("LogCurrentTurnState"), TurnManager != nullptr);
 }
+
 void AGrimrockPlayerController::HandleMON5StartCombatWithAllMonsters()
 {
 	UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager();
 	LogMON5CommandResult(TEXT("StartCombatWithAllMonsters"), TurnManager && TurnManager->StartCombatWithAllMonsters());
 }
+
 void AGrimrockPlayerController::HandleMON5ForceVictory()
 {
 	UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager();
@@ -515,6 +557,7 @@ void AGrimrockPlayerController::HandleMON5ForceVictory()
 	}
 	LogMON5CommandResult(TEXT("ForceVictory"), TurnManager && TurnManager->CurrentPhase == EGridCombatPhase::Victory);
 }
+
 void AGrimrockPlayerController::HandleMON11RequestSelectedCharacterAttack()
 {
 	UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager();
@@ -522,21 +565,29 @@ void AGrimrockPlayerController::HandleMON11RequestSelectedCharacterAttack()
 	FGridAttackResult Result;
 	EGridPlayerAttackRejectReason RejectReason = EGridPlayerAttackRejectReason::TurnManagerNotInitialized;
 	const bool bAccepted = TurnManager && TurnManager->RequestSelectedCharacterAttack(Request, Result, RejectReason);
-	const FString ReasonText = StaticEnum<EGridPlayerAttackRejectReason>() ? StaticEnum<EGridPlayerAttackRejectReason>()->GetNameStringByValue(static_cast<int64>(RejectReason)) : TEXT("Unknown");
-	const UGridPlayerAttackPresentationComponent* Presentation = TurnManager && TurnManager->GetOwner() ? TurnManager->GetOwner()->FindComponentByClass<UGridPlayerAttackPresentationComponent>() : nullptr;
-	const FString Message = FString::Printf(TEXT("[GridPlayerAttack] Accepted=%s Reason=%s Attacker=%d Attack=%s Item=%s Slot=%s Range=%d Target=%s TargetCell=(%d,%d) DamageType=%s PhysicalSubtype=%s Natural=%d Roll=%d Defense=%d Hit=%s Critical=%s RawDamage=%d ArmorPhysical=%d ArmorMagical=%d HealthDamage=%d Health=%d->%d TargetDefeated=%s PresentationAttackCount=%d PresentationImpactHitCount=%d PresentationImpactMissCount=%d FeedbackCount=%d LastPresentationEvent=%s LastFeedbackOutcome=%s Sound=%s Niagara=%s HeldItemMotionStarted=%s ThrownItemLaunchRequests=%d ThrownItemLaunchStarted=%s ThrownItemLaunchCount=%d"),
-		bAccepted ? TEXT("true") : TEXT("false"), *ReasonText, Request.AttackerCharacterIndex, *Request.AttackId.ToString(), *Request.OffensiveItemDefinitionId.ToString(),
-		*UEnum::GetValueAsString(Request.OffensiveEquipmentSlot), Request.RangeCells, *Request.TargetMonsterId.ToString(EGuidFormats::Digits), Request.TargetCell.X, Request.TargetCell.Y,
-		*UEnum::GetValueAsString(Result.DamageType), *UEnum::GetValueAsString(Result.PhysicalSubtype), Result.NaturalAttackRoll, Result.AttackRoll, Result.DefenseValue,
+	const FString ReasonText = StaticEnum<EGridPlayerAttackRejectReason>()
+		? StaticEnum<EGridPlayerAttackRejectReason>()->GetNameStringByValue(static_cast<int64>(RejectReason))
+		: TEXT("Unknown");
+	const UGridPlayerAttackPresentationComponent* Presentation =
+		TurnManager && TurnManager->GetOwner() ? TurnManager->GetOwner()->FindComponentByClass<UGridPlayerAttackPresentationComponent>() : nullptr;
+	const FString Message = FString::Printf(
+		TEXT(
+			"[GridPlayerAttack] Accepted=%s Reason=%s Attacker=%d Attack=%s Item=%s Slot=%s Range=%d Target=%s TargetCell=(%d,%d) DamageType=%s PhysicalSubtype=%s Natural=%d Roll=%d Defense=%d Hit=%s Critical=%s RawDamage=%d ArmorPhysical=%d ArmorMagical=%d HealthDamage=%d Health=%d->%d TargetDefeated=%s PresentationAttackCount=%d PresentationImpactHitCount=%d PresentationImpactMissCount=%d FeedbackCount=%d LastPresentationEvent=%s LastFeedbackOutcome=%s Sound=%s Niagara=%s HeldItemMotionStarted=%s ThrownItemLaunchRequests=%d ThrownItemLaunchStarted=%s ThrownItemLaunchCount=%d"),
+		bAccepted ? TEXT("true") : TEXT("false"), *ReasonText, Request.AttackerCharacterIndex, *Request.AttackId.ToString(),
+		*Request.OffensiveItemDefinitionId.ToString(), *UEnum::GetValueAsString(Request.OffensiveEquipmentSlot), Request.RangeCells,
+		*Request.TargetMonsterId.ToString(EGuidFormats::Digits), Request.TargetCell.X, Request.TargetCell.Y, *UEnum::GetValueAsString(Result.DamageType),
+		*UEnum::GetValueAsString(Result.PhysicalSubtype), Result.NaturalAttackRoll, Result.AttackRoll, Result.DefenseValue,
 		Result.bHit ? TEXT("true") : TEXT("false"), Result.bCriticalHit ? TEXT("true") : TEXT("false"), Result.RawDamage, Result.PhysicalArmorDamage,
 		Result.MagicalArmorDamage, Result.HealthDamage, Result.TargetHealthBefore, Result.TargetHealthAfter,
 		Result.TargetHealthBefore > 0 && Result.TargetHealthAfter <= 0 ? TEXT("true") : TEXT("false"), Presentation ? Presentation->PresentationAttackCount : 0,
 		Presentation ? Presentation->PresentationImpactHitCount : 0, Presentation ? Presentation->PresentationImpactMissCount : 0,
 		Presentation ? Presentation->FeedbackCount : 0, Presentation ? *UEnum::GetValueAsString(Presentation->LastPresentationRequest.Event) : TEXT("None"),
 		Presentation ? *UEnum::GetValueAsString(Presentation->LastFeedbackRequest.Outcome) : TEXT("None"),
-		Presentation ? *GetNameSafe(Presentation->LastPresentationRequest.ResolvedSound.Get()) : TEXT("None"), Presentation ? *GetNameSafe(Presentation->LastPresentationRequest.ResolvedSystem.Get()) : TEXT("None"),
+		Presentation ? *GetNameSafe(Presentation->LastPresentationRequest.ResolvedSound.Get()) : TEXT("None"),
+		Presentation ? *GetNameSafe(Presentation->LastPresentationRequest.ResolvedSystem.Get()) : TEXT("None"),
 		Presentation && Presentation->bHeldItemMotionStarted ? TEXT("true") : TEXT("false"), Presentation ? Presentation->ThrownItemLaunchRequestCount : 0,
 		Presentation && Presentation->bThrownItemLaunchStarted ? TEXT("true") : TEXT("false"), Presentation ? Presentation->ThrownItemLaunchStartedCount : 0);
+
 	UE_LOG(LogGridTurnManagerInput, Log, TEXT("%s"), *Message);
 	if (GEngine)
 	{
@@ -573,13 +624,16 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
 {
 	FGridMouseInteractionResolution Resolution;
 	Resolution.PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
+
 	if (Resolution.PartyPawn && Resolution.PartyPawn->LevelRuntimeActor && Resolution.PartyPawn->LevelRuntimeActor->HasActiveReadableMessage())
 	{
 		Resolution.Intent = EGridMouseInteractionIntent::DismissReadableMessage;
 		Resolution.DiagnosticReason = TEXT("ReadableMessageActive");
 		return Resolution;
 	}
+
 	Resolution.bHasCursorItem = Resolution.PartyPawn && Resolution.PartyPawn->GetCursorItem(Resolution.CursorItem);
+
 	const UGridInventoryWidget* InventoryWidget = Resolution.PartyPawn ? Resolution.PartyPawn->GetInventoryWidget() : nullptr;
 	Resolution.bItemActionMenuOpen = InventoryWidget && InventoryWidget->IsItemActionMenuOpen();
 	if (bInventoryUiOpen && !Resolution.bHasCursorItem && Resolution.bItemActionMenuOpen)
@@ -588,12 +642,14 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
 		Resolution.DiagnosticReason = TEXT("ItemActionMenuOpen");
 		return Resolution;
 	}
+
 	if (bInventoryUiOpen && !Resolution.bHasCursorItem)
 	{
 		Resolution.Intent = EGridMouseInteractionIntent::IgnoreInventoryUiWithoutCursorItem;
 		Resolution.DiagnosticReason = TEXT("OpenWithoutCursorItem");
 		return Resolution;
 	}
+
 	if (Resolution.bHasCursorItem)
 	{
 		Resolution.bHasWorldHit = TryGetWorldHitUnderCursor(Resolution.HitResult);
@@ -603,16 +659,19 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
 			Resolution.DiagnosticReason = TEXT("NoWorldHit");
 			return Resolution;
 		}
+
 		Resolution.bWithinInteractionDistance = IsHitWithinInteractionDistance(Resolution.HitResult);
 		Resolution.ReceptacleActor = ResolveReceptacleFromHitActor(Resolution.HitResult.GetActor());
 		Resolution.WallLockActor = ResolveWallLockFromHitActor(Resolution.HitResult.GetActor());
+
 		AGridLevelRuntimeActor* RuntimeActor = Resolution.PartyPawn ? Resolution.PartyPawn->LevelRuntimeActor.Get() : nullptr;
 		if (Resolution.ReceptacleActor)
 		{
 			if (Resolution.bWithinInteractionDistance)
 			{
-				Resolution.bReceptacleAccessible = RuntimeActor && RuntimeActor->CanPartyInteractWithEdgeObject(
-					Resolution.ReceptacleActor->CellX, Resolution.ReceptacleActor->CellY, Resolution.ReceptacleActor->Edge, Resolution.PartyPawn);
+				Resolution.bReceptacleAccessible = RuntimeActor &&
+					RuntimeActor->CanPartyInteractWithEdgeObject(
+						Resolution.ReceptacleActor->CellX, Resolution.ReceptacleActor->CellY, Resolution.ReceptacleActor->Edge, Resolution.PartyPawn);
 			}
 			Resolution.Intent = Resolution.WallLockActor ? EGridMouseInteractionIntent::CursorItemWallLock : EGridMouseInteractionIntent::CursorItemReceptacle;
 			Resolution.DiagnosticReason = Resolution.bReceptacleAccessible
@@ -620,22 +679,27 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
 				: (Resolution.bWithinInteractionDistance ? TEXT("ReceptacleInaccessible") : TEXT("ReceptacleOutOfRange"));
 			return Resolution;
 		}
-		if (TryResolveWorldDropFromHit(Resolution.HitResult, Resolution.PartyPawn, Resolution.DropCellX, Resolution.DropCellY, Resolution.DropLocalOffset))
+
+		if (Resolution.bWithinInteractionDistance &&
+			TryResolveWorldDropFromHit(Resolution.HitResult, Resolution.PartyPawn, Resolution.DropCellX, Resolution.DropCellY, Resolution.DropLocalOffset))
 		{
 			Resolution.Intent = EGridMouseInteractionIntent::CursorItemWorldDrop;
 			Resolution.DiagnosticReason = TEXT("WorldDropCandidate");
 			return Resolution;
 		}
+
 		Resolution.Intent = EGridMouseInteractionIntent::CursorItemThrow;
 		Resolution.DiagnosticReason = TEXT("ThrowCandidate");
 		return Resolution;
 	}
+
 	if (!TryGetInteractableUnderCursor(Resolution.HitResult, Resolution.InteractableActor))
 	{
 		Resolution.Intent = EGridMouseInteractionIntent::FallbackNoInteractable;
 		Resolution.DiagnosticReason = TEXT("NoInteractable");
 		return Resolution;
 	}
+
 	Resolution.bWithinInteractionDistance = IsHitWithinInteractionDistance(Resolution.HitResult);
 	if (!Resolution.bWithinInteractionDistance)
 	{
@@ -643,6 +707,7 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
 		Resolution.DiagnosticReason = TEXT("OutOfRange");
 		return Resolution;
 	}
+
 	Resolution.HitComponent = Resolution.HitResult.GetComponent();
 	APawn* ControlledPawn = GetPawn();
 	if (!ControlledPawn || !Resolution.HitComponent)
@@ -651,12 +716,14 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
 		Resolution.DiagnosticReason = TEXT("InvalidPawnOrComponent");
 		return Resolution;
 	}
+
 	if (!IGridInteractableInterface::Execute_CanInteract(Resolution.InteractableActor, ControlledPawn, Resolution.HitComponent))
 	{
 		Resolution.Intent = EGridMouseInteractionIntent::WorldInteractableCanInteractRejected;
 		Resolution.DiagnosticReason = TEXT("CanInteractRejected");
 		return Resolution;
 	}
+
 	Resolution.Intent = EGridMouseInteractionIntent::WorldInteractable;
 	Resolution.DiagnosticReason = TEXT("Interactable");
 	return Resolution;
@@ -671,7 +738,8 @@ bool AGrimrockPlayerController::TryResolveCombatTargetCellUnderCursor(FIntPoint&
 	int32 CellX = INDEX_NONE;
 	int32 CellY = INDEX_NONE;
 	FVector LocalOffset = FVector::ZeroVector;
-	if (!IsValid(RuntimeActor) || !TryGetWorldHitUnderCursor(HitResult) || !RuntimeActor->TryResolveWorldCellFromImpactPoint(HitResult.ImpactPoint, CellX, CellY, LocalOffset))
+	if (!IsValid(RuntimeActor) || !TryGetWorldHitUnderCursor(HitResult) ||
+		!RuntimeActor->TryResolveWorldCellFromImpactPoint(HitResult.ImpactPoint, CellX, CellY, LocalOffset))
 	{
 		return false;
 	}
@@ -687,6 +755,7 @@ void AGrimrockPlayerController::DrawCombatTargetingPreview(const AGrimrockPartyP
 	{
 		return;
 	}
+
 	const FGridCombatActionTargetingPreview& Preview = Hud->TargetingPreview;
 	const float HalfCell = FMath::Max(4.0f, RuntimeActor->LevelAsset->CellSize * 0.46f);
 	const FColor AreaColor = Preview.bValid ? FColor(48, 220, 96) : FColor(220, 48, 48);
@@ -696,9 +765,11 @@ void AGrimrockPlayerController::DrawCombatTargetingPreview(const AGrimrockPartyP
 		DrawDebugBox(GetWorld(), RuntimeActor->GetCellCenterWorld(Cell.X, Cell.Y, 8.0f), FVector(HalfCell, HalfCell, bCenter ? 5.0f : 2.5f),
 			bCenter && Preview.bValid ? FColor::Yellow : AreaColor, false, 0.0f, 0, bCenter ? 5.0f : 2.0f);
 	}
+
 	if (Preview.AffectedCells.IsEmpty() && RuntimeActor->IsValidCell(Preview.TargetCell.X, Preview.TargetCell.Y))
 	{
-		DrawDebugBox(GetWorld(), RuntimeActor->GetCellCenterWorld(Preview.TargetCell.X, Preview.TargetCell.Y, 8.0f), FVector(HalfCell, HalfCell, 5.0f), FColor::Red, false, 0.0f, 0, 5.0f);
+		DrawDebugBox(GetWorld(), RuntimeActor->GetCellCenterWorld(Preview.TargetCell.X, Preview.TargetCell.Y, 8.0f), FVector(HalfCell, HalfCell, 5.0f),
+			FColor::Red, false, 0.0f, 0, 5.0f);
 	}
 }
 
@@ -710,13 +781,15 @@ bool AGrimrockPlayerController::UpdateCombatTargeting()
 	{
 		return false;
 	}
-	if (bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() || (IsValid(PartyPawn->LevelRuntimeActor) && PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()))
+	if (bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() ||
+		(IsValid(PartyPawn->LevelRuntimeActor) && PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()))
 	{
 		Hud->CancelCombatActionTargeting();
 		DefaultMouseCursor = EMouseCursor::Default;
 		CurrentMouseCursor = EMouseCursor::Default;
 		return false;
 	}
+
 	FIntPoint TargetCell;
 	if (TryResolveCombatTargetCellUnderCursor(TargetCell))
 	{
@@ -745,11 +818,13 @@ bool AGrimrockPlayerController::HandleCombatTargetingClick()
 	{
 		return false;
 	}
-	if (bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() || (IsValid(PartyPawn->LevelRuntimeActor) && PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()))
+	if (bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() ||
+		(IsValid(PartyPawn->LevelRuntimeActor) && PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()))
 	{
 		Hud->CancelCombatActionTargeting();
 		return false;
 	}
+
 	FIntPoint TargetCell;
 	if (!TryResolveCombatTargetCellUnderCursor(TargetCell))
 	{
@@ -757,10 +832,12 @@ bool AGrimrockPlayerController::HandleCombatTargetingClick()
 		ShowInteractionFeedback(FText::FromString(TEXT("Sélectionnez une cellule du donjon.")));
 		return true;
 	}
+
 	FGridCombatActionRequestResult Result;
 	if (!Hud->ConfirmCombatActionTarget(TargetCell, Result))
 	{
-		const FText Reason = Hud->TargetingPreview.InvalidReason.IsEmpty() ? FText::FromString(TEXT("Cette cible est invalide.")) : Hud->TargetingPreview.InvalidReason;
+		const FText Reason =
+			Hud->TargetingPreview.InvalidReason.IsEmpty() ? FText::FromString(TEXT("Cette cible est invalide.")) : Hud->TargetingPreview.InvalidReason;
 		ShowInteractionFeedback(Reason);
 	}
 	else
@@ -778,6 +855,7 @@ void AGrimrockPlayerController::HandleCancelCombatTargeting()
 		CancelPhysicalThrowAiming();
 		return;
 	}
+
 	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
 	UGridCombatHudWidget* Hud = PartyPawn ? PartyPawn->CombatHudWidgetInstance.Get() : nullptr;
 	if (!IsValid(Hud) || !Hud->IsCombatActionTargetingActive())
@@ -805,6 +883,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 	}
 	const FGridMouseInteractionResolution MouseResolution = ResolveLeftMouseInteraction();
 	AGrimrockPartyPawn* PartyPawn = MouseResolution.PartyPawn;
+
 	if (MouseResolution.Intent == EGridMouseInteractionIntent::DismissReadableMessage)
 	{
 		if (PartyPawn && PartyPawn->LevelRuntimeActor && PartyPawn->LevelRuntimeActor->DismissReadableMessage())
@@ -813,56 +892,117 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 		}
 		return;
 	}
+
 	if (MouseResolution.Intent == EGridMouseInteractionIntent::IgnoreModalUi)
 	{
 		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=ModalUI Result=Ignored Reason=ItemActionMenuOpen"));
+		if (bDebugMouseInteraction)
+		{
+			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction ignored: item action menu open."));
+		}
 		return;
 	}
+
 	if (MouseResolution.Intent == EGridMouseInteractionIntent::IgnoreInventoryUiWithoutCursorItem)
 	{
 		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=InventoryUI Result=Ignored Reason=OpenWithoutCursorItem"));
+		if (bDebugMouseInteraction)
+		{
+			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction ignored: inventory UI open."));
+		}
 		return;
 	}
+
 	if (MouseResolution.bHasCursorItem)
 	{
 		const FGridItemInstance& CursorItem = MouseResolution.CursorItem;
-		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Item=%s RuntimeId=%s"), *CursorItem.ItemDefinitionId.ToString(), *CursorItem.RuntimeObjectId.ToString());
+		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Item=%s RuntimeId=%s"), *CursorItem.ItemDefinitionId.ToString(),
+			*CursorItem.RuntimeObjectId.ToString());
+
 		if (MouseResolution.Intent == EGridMouseInteractionIntent::CursorItemNoWorldHit)
 		{
-			ShowInteractionFeedback(FText::FromString(TEXT("Impossible de déposer ou lancer ici.")));
+			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=WorldHit Result=NoTarget"));
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory WorldDrop Failed Reason=NoTarget"));
+			ShowInteractionFeedback(FText::FromString(TEXT("Impossible de d\u00E9poser ou lancer ici.")));
 			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickCursorNoWorldHit"));
 			return;
 		}
+
 		const FHitResult& WorldHitResult = MouseResolution.HitResult;
 		const bool bWithinInteractionDistance = MouseResolution.bWithinInteractionDistance;
 		AGridReceptacleActor* ReceptacleActor = MouseResolution.ReceptacleActor;
 		AGridWallLockActor* WallLockActor = MouseResolution.WallLockActor;
 		AGridLevelRuntimeActor* RuntimeActor = PartyPawn ? PartyPawn->LevelRuntimeActor.Get() : nullptr;
+
 		if (ReceptacleActor)
 		{
+			UE_LOG(LogGridMouse, Log,
+				TEXT("GridMouse Click Priority=CursorItem Branch=ReceptacleCandidate Item=%s Target=%s HitActor=%s WithinDistance=%s Accessible=%s"),
+				*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(ReceptacleActor), *GetNameSafe(WorldHitResult.GetActor()),
+				bWithinInteractionDistance ? TEXT("true") : TEXT("false"), MouseResolution.bReceptacleAccessible ? TEXT("true") : TEXT("false"));
+
 			if (MouseResolution.bReceptacleAccessible)
 			{
 				if (MouseResolution.Intent == EGridMouseInteractionIntent::CursorItemWallLock)
 				{
 					const bool bWasUnlocked = WallLockActor && WallLockActor->bIsUnlocked;
+					const bool bAcceptedKey = WallLockActor && WallLockActor->CanAcceptKeyDefinition(CursorItem.ItemDefinitionId);
+					UE_LOG(LogGridMouse, Log,
+						TEXT("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=Attempt AcceptedKey=%s AlreadyUnlocked=%s"),
+						*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(WallLockActor), bAcceptedKey ? TEXT("true") : TEXT("false"),
+						bWasUnlocked ? TEXT("true") : TEXT("false"));
+					UE_LOG(LogTemp, Log, TEXT("GridInventory WorldDrop RoutedToWallLock Item=%s Target=%s"), *CursorItem.ItemDefinitionId.ToString(),
+						*GetNameSafe(WallLockActor));
 					IGridInteractableInterface::Execute_InteractWithHit(WallLockActor, PartyPawn, WorldHitResult.GetComponent(), WorldHitResult);
+
 					if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget())
 					{
 						InventoryWidget->RefreshInventory();
 					}
 					const bool bNowUnlocked = WallLockActor && WallLockActor->bIsUnlocked;
-					UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=%s"), *CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(WallLockActor), !bWasUnlocked && bNowUnlocked ? TEXT("Inserted") : TEXT("Rejected"));
+					if (!bWasUnlocked && bNowUnlocked)
+					{
+						UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=Inserted"),
+							*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(WallLockActor));
+					}
+					else
+					{
+						UGridItemDefinitionAsset* CursorItemDefinition =
+							RuntimeActor ? RuntimeActor->ResolveRuntimeItemDefinition(CursorItem.ItemDefinitionId) : nullptr;
+						const TCHAR* RejectReason = bWasUnlocked
+							? TEXT("AlreadyUnlocked")
+							: (bAcceptedKey ? TEXT("InsertFailed")
+											: (CursorItemDefinition && CursorItemDefinition->ItemType != EGridItemType::Key ? TEXT("NonKeyItem")
+																															: TEXT("IncompatibleKey")));
+						UE_LOG(LogGridMouse, Log,
+							TEXT("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=Rejected Reason=%s"),
+							*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(WallLockActor), RejectReason);
+					}
 					SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("ClickWallLockAttemptComplete"));
 					return;
 				}
+
+				UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ReceptacleAttempt Item=%s Target=%s Result=Validate"),
+					*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(ReceptacleActor));
 				FGridReceptacleAcceptanceResult AcceptanceResult;
 				if (!ReceptacleActor->EvaluateItemAcceptance(CursorItem, AcceptanceResult, true))
 				{
+					UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ReceptacleAttempt Item=%s Target=%s Result=Rejected Reason=%s"),
+						*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(ReceptacleActor), GetReceptacleRejectReasonName(AcceptanceResult.RejectReason));
 					ShowInteractionFeedback(GetReceptacleRejectFeedbackText(AcceptanceResult.RejectReason));
 					SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickReceptacleRejected"));
 					return;
 				}
+
+				UE_LOG(LogTemp, Log, TEXT("GridInventory WorldDrop Attempt Item=%s Target=%s"), *CursorItem.ItemDefinitionId.ToString(),
+					*GetNameSafe(ReceptacleActor));
+
 				const bool bPlaced = ReceptacleActor->TryPlaceCursorItemFromHit(PartyPawn, WorldHitResult);
+				UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ReceptacleAttempt Item=%s Target=%s Result=%s%s"),
+					*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(ReceptacleActor), bPlaced ? TEXT("Placed") : TEXT("Rejected"),
+					bPlaced ? TEXT("") : TEXT(" Reason=PlaceFailed"));
+				UE_LOG(LogTemp, Log, TEXT("GridInventory WorldDrop Result=%s"), bPlaced ? TEXT("true") : TEXT("false"));
+
 				if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget())
 				{
 					InventoryWidget->RefreshInventory();
@@ -871,14 +1011,30 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 				{
 					ShowInteractionFeedback(FText::FromString(TEXT("Impossible de placer cet objet ici.")));
 				}
-				SetGridInteractionCursor(bPlaced ? EGridInteractionCursor::Default : EGridInteractionCursor::CannotPlaceItem, TEXT("ClickReceptacleAttemptComplete"));
+				SetGridInteractionCursor(
+					bPlaced ? EGridInteractionCursor::Default : EGridInteractionCursor::CannotPlaceItem, TEXT("ClickReceptacleAttemptComplete"));
 				return;
 			}
-			ShowInteractionFeedback(FText::FromString(TEXT("Cible hors de portée.")));
+
+			if (WallLockActor)
+			{
+				UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=Rejected Reason=%s"),
+					*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(WallLockActor),
+					bWithinInteractionDistance ? TEXT("EdgeInaccessible") : TEXT("OutOfRange"));
+			}
+			else
+			{
+				UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ReceptacleAttempt Item=%s Target=%s Result=Rejected Reason=%s"),
+					*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(ReceptacleActor),
+					bWithinInteractionDistance ? TEXT("EdgeInaccessible") : TEXT("OutOfRange"));
+			}
+			ShowInteractionFeedback(FText::FromString(TEXT("Cible hors de port\u00E9e.")));
 			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickReceptacleInaccessible"));
 			return;
 		}
-		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=WorldDropAttempt Item=%s WithinDistance=%s"), *CursorItem.ItemDefinitionId.ToString(), bWithinInteractionDistance ? TEXT("true") : TEXT("false"));
+
+		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=WorldDropAttempt Item=%s WithinDistance=%s"),
+			*CursorItem.ItemDefinitionId.ToString(), bWithinInteractionDistance ? TEXT("true") : TEXT("false"));
 		if (MouseResolution.Intent == EGridMouseInteractionIntent::CursorItemWorldDrop &&
 			PartyPawn->TryDropCursorItemAtCell(MouseResolution.DropCellX, MouseResolution.DropCellY, EGridEdge::None, MouseResolution.DropLocalOffset))
 		{
@@ -886,27 +1042,49 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 			{
 				InventoryWidget->RefreshInventory();
 			}
+			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=WorldDropAttempt Item=%s Result=Dropped Cell=(%d,%d)"),
+				*CursorItem.ItemDefinitionId.ToString(), MouseResolution.DropCellX, MouseResolution.DropCellY);
 			SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("ClickWorldDropSuccess"));
 			return;
 		}
+
 		UGridItemDefinitionAsset* ItemDefinition = RuntimeActor ? RuntimeActor->ResolveRuntimeItemDefinition(CursorItem.ItemDefinitionId) : nullptr;
+		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Throwable=%s"), *CursorItem.ItemDefinitionId.ToString(),
+			CanSelectedCharacterPhysicallyThrow(PartyPawn, ItemDefinition) ? TEXT("true") : TEXT("false"));
 		if (!CanSelectedCharacterPhysicallyThrow(PartyPawn, ItemDefinition))
 		{
-			ShowInteractionFeedback(FText::FromString(TEXT("Cet objet ne peut pas être lancé.")));
+			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Result=NotThrowable"),
+				*CursorItem.ItemDefinitionId.ToString());
+			ShowInteractionFeedback(FText::FromString(TEXT("Cet objet ne peut pas \u00EAtre lanc\u00E9.")));
 			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickThrowNotThrowable"));
 			return;
 		}
+
 		const FVector ThrowStartLocation = PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : PartyPawn->GetActorLocation();
 		FVector TargetOffset = WorldHitResult.ImpactPoint - ThrowStartLocation;
 		const float TargetDistance = TargetOffset.Size();
-		if (TargetOffset.IsNearlyZero() || (MaxThrowTargetDistance > 0.f && TargetDistance > MaxThrowTargetDistance))
+		if (TargetOffset.IsNearlyZero())
 		{
-			ShowInteractionFeedback(FText::FromString(TEXT("Cible trop éloignée ou invalide.")));
-			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickThrowInvalidTarget"));
+			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Result=InvalidTargetOffset"),
+				*CursorItem.ItemDefinitionId.ToString());
+			ShowInteractionFeedback(FText::FromString(TEXT("Impossible de d\u00E9poser ou lancer ici.")));
+			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickThrowInvalidOffset"));
 			return;
 		}
+
+		if (MaxThrowTargetDistance > 0.f && TargetDistance > MaxThrowTargetDistance)
+		{
+			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Result=TooFar Distance=%.2f Max=%.2f"),
+				*CursorItem.ItemDefinitionId.ToString(), TargetDistance, MaxThrowTargetDistance);
+			ShowInteractionFeedback(FText::FromString(TEXT("Cible trop \u00E9loign\u00E9e.")));
+			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickThrowTooFar"));
+			return;
+		}
+
 		const EGridItemThrowMode ThrowMode = TargetDistance < ThrowDistanceThreshold ? EGridItemThrowMode::ShortToss : EGridItemThrowMode::Throw;
 		const bool bThrown = PartyPawn->TryThrowOneCursorItem(TargetOffset, ThrowMode);
+		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Result=%s Distance=%.2f Mode=%d"),
+			*CursorItem.ItemDefinitionId.ToString(), bThrown ? TEXT("Thrown") : TEXT("Failed"), TargetDistance, static_cast<int32>(ThrowMode));
 		if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget())
 		{
 			InventoryWidget->RefreshInventory();
@@ -917,30 +1095,66 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickThrowFailed"));
 			return;
 		}
+
 		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("ClickThrowSuccess"));
 		return;
 	}
+
 	AActor* InteractableActor = MouseResolution.InteractableActor;
 	if (MouseResolution.Intent == EGridMouseInteractionIntent::FallbackNoInteractable)
 	{
+		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=WorldInteractable Result=None Fallback=NoInteractable"));
+		if (bDebugMouseInteraction)
+		{
+			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction: no interactable under cursor."));
+		}
 		return;
 	}
+
 	if (MouseResolution.Intent == EGridMouseInteractionIntent::WorldInteractableOutOfRange)
 	{
-		ShowInteractionFeedback(FText::FromString(TEXT("Hors de portée.")));
+		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=WorldInteractable Actor=%s Result=OutOfRange"), *GetNameSafe(InteractableActor));
+		ShowInteractionFeedback(FText::FromString(TEXT("Hors de port\u00E9e.")));
+		if (bDebugMouseInteraction)
+		{
+			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction: %s is outside interaction distance."), *GetNameSafe(InteractableActor));
+		}
 		return;
 	}
+
 	APawn* ControlledPawn = GetPawn();
 	UPrimitiveComponent* HitComponent = MouseResolution.HitComponent;
 	if (MouseResolution.Intent == EGridMouseInteractionIntent::WorldInteractableInvalidPawnOrComponent)
 	{
+		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=WorldInteractable Actor=%s Result=InvalidPawnOrComponent Component=%s"),
+			*GetNameSafe(InteractableActor), *GetNameSafe(HitComponent));
+		if (bDebugMouseInteraction)
+		{
+			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction: invalid pawn or hit component for %s."), *GetNameSafe(InteractableActor));
+		}
 		return;
 	}
+
 	if (MouseResolution.Intent == EGridMouseInteractionIntent::WorldInteractableCanInteractRejected)
 	{
+		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=WorldInteractable Actor=%s Component=%s Result=CanInteractRejected"),
+			*GetNameSafe(InteractableActor), *GetNameSafe(HitComponent));
 		ShowInteractionFeedback(FText::FromString(TEXT("Action impossible.")));
+		if (bDebugMouseInteraction)
+		{
+			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction: CanInteract rejected %s on component %s."), *GetNameSafe(InteractableActor),
+				*GetNameSafe(HitComponent));
+		}
 		return;
 	}
+
+	UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=WorldInteractable Actor=%s Component=%s Result=Interact"), *GetNameSafe(InteractableActor),
+		*GetNameSafe(HitComponent));
+	if (bDebugMouseInteraction)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Mouse interaction: Interact %s on component %s."), *GetNameSafe(InteractableActor), *GetNameSafe(HitComponent));
+	}
+
 	IGridInteractableInterface::Execute_InteractWithHit(InteractableActor, ControlledPawn, HitComponent, MouseResolution.HitResult);
 }
 
@@ -963,6 +1177,7 @@ void AGrimrockPlayerController::UpdateHoveredInteractable()
 		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverInventoryUiOpen"));
 		return;
 	}
+
 	if (bHasCursorItem)
 	{
 		const FGridMouseInteractionResolution MouseResolution = ResolveLeftMouseInteraction();
@@ -978,6 +1193,7 @@ void AGrimrockPlayerController::UpdateHoveredInteractable()
 		}
 		return;
 	}
+
 	FHitResult HitResult;
 	AActor* InteractableActor = nullptr;
 	if (!TryGetInteractableUnderCursor(HitResult, InteractableActor))
@@ -985,11 +1201,13 @@ void AGrimrockPlayerController::UpdateHoveredInteractable()
 		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverNoInteractable"));
 		return;
 	}
+
 	if (!IsHitWithinInteractionDistance(HitResult))
 	{
 		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverOutOfRange"));
 		return;
 	}
+
 	APawn* ControlledPawn = GetPawn();
 	UPrimitiveComponent* HitComponent = HitResult.GetComponent();
 	if (!ControlledPawn || !HitComponent)
@@ -997,33 +1215,40 @@ void AGrimrockPlayerController::UpdateHoveredInteractable()
 		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverInvalidPawnOrComponent"));
 		return;
 	}
+
 	if (!IGridInteractableInterface::Execute_CanInteract(InteractableActor, ControlledPawn, HitComponent))
 	{
 		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverCanInteractRejected"));
 		return;
 	}
+
 	const EGridInteractionCursor InteractionCursor = IGridInteractableInterface::Execute_GetInteractionCursor(InteractableActor, HitComponent);
 	SetGridInteractionCursor(InteractionCursor, TEXT("HoverInteractable"));
 }
 
-bool AGrimrockPlayerController::ResolveCursorItemHoverCursor(const FGridMouseInteractionResolution& MouseResolution, EGridInteractionCursor& OutCursor, const TCHAR*& OutReason) const
+bool AGrimrockPlayerController::ResolveCursorItemHoverCursor(
+	const FGridMouseInteractionResolution& MouseResolution, EGridInteractionCursor& OutCursor, const TCHAR*& OutReason) const
 {
 	if (!MouseResolution.bHasCursorItem)
 	{
 		return false;
 	}
+
 	switch (MouseResolution.Intent)
 	{
 		case EGridMouseInteractionIntent::CursorItemNoWorldHit:
 			OutCursor = EGridInteractionCursor::Default;
 			OutReason = TEXT("HoverCursorItemNoWorldHit");
 			return true;
+
 		case EGridMouseInteractionIntent::CursorItemWallLock:
 			OutCursor = MouseResolution.bReceptacleAccessible ? EGridInteractionCursor::PlaceItem : EGridInteractionCursor::CannotPlaceItem;
 			OutReason = MouseResolution.bReceptacleAccessible ? TEXT("HoverCursorItemWallLock") : TEXT("HoverCursorItemWallLockInaccessible");
 			return true;
+
 		case EGridMouseInteractionIntent::CursorItemReceptacle:
-			if (MouseResolution.bReceptacleAccessible && MouseResolution.ReceptacleActor && MouseResolution.ReceptacleActor->CanAcceptItemInstance(MouseResolution.CursorItem))
+			if (MouseResolution.bReceptacleAccessible && MouseResolution.ReceptacleActor &&
+				MouseResolution.ReceptacleActor->CanAcceptItemInstance(MouseResolution.CursorItem))
 			{
 				OutCursor = EGridInteractionCursor::PlaceItem;
 				OutReason = TEXT("HoverCursorItemReceptacle");
@@ -1034,24 +1259,30 @@ bool AGrimrockPlayerController::ResolveCursorItemHoverCursor(const FGridMouseInt
 				OutReason = TEXT("HoverCursorItemCannotPlace");
 			}
 			return true;
+
 		case EGridMouseInteractionIntent::CursorItemWorldDrop:
 			OutCursor = EGridInteractionCursor::PlaceItem;
 			OutReason = TEXT("HoverCursorItemWorldDrop");
 			return true;
+
 		case EGridMouseInteractionIntent::CursorItemThrow:
 		{
 			const AGrimrockPartyPawn* PartyPawn = MouseResolution.PartyPawn;
 			const AGridLevelRuntimeActor* RuntimeActor = PartyPawn ? PartyPawn->LevelRuntimeActor.Get() : nullptr;
-			const UGridItemDefinitionAsset* ItemDefinition = RuntimeActor ? RuntimeActor->ResolveRuntimeItemDefinition(MouseResolution.CursorItem.ItemDefinitionId) : nullptr;
-			const FVector ThrowStartLocation = PartyPawn && PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : (PartyPawn ? PartyPawn->GetActorLocation() : FVector::ZeroVector);
+			const UGridItemDefinitionAsset* ItemDefinition =
+				RuntimeActor ? RuntimeActor->ResolveRuntimeItemDefinition(MouseResolution.CursorItem.ItemDefinitionId) : nullptr;
+			const FVector ThrowStartLocation =
+				PartyPawn && PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : (PartyPawn ? PartyPawn->GetActorLocation() : FVector::ZeroVector);
 			const FVector TargetOffset = MouseResolution.HitResult.ImpactPoint - ThrowStartLocation;
 			const float TargetDistance = TargetOffset.Size();
 			const bool bCanAimThrow = MouseResolution.bHasWorldHit && CanSelectedCharacterPhysicallyThrow(PartyPawn, ItemDefinition) && !TargetOffset.IsNearlyZero() &&
 				(MaxThrowTargetDistance <= 0.f || TargetDistance <= MaxThrowTargetDistance);
+
 			OutCursor = bCanAimThrow ? EGridInteractionCursor::AimThrow : EGridInteractionCursor::CannotPlaceItem;
 			OutReason = bCanAimThrow ? TEXT("HoverCursorItemThrow") : TEXT("HoverCursorItemCannotPlace");
 			return true;
 		}
+
 		default:
 			OutCursor = EGridInteractionCursor::CannotPlaceItem;
 			OutReason = TEXT("HoverCursorItemCannotPlace");
@@ -1061,10 +1292,16 @@ bool AGrimrockPlayerController::ResolveCursorItemHoverCursor(const FGridMouseInt
 
 void AGrimrockPlayerController::InitializeCustomCursor()
 {
-	if (!CustomCursorWidgetClass || CustomCursorWidget)
+	if (!CustomCursorWidgetClass)
 	{
 		return;
 	}
+
+	if (CustomCursorWidget)
+	{
+		return;
+	}
+
 	CustomCursorWidget = CreateWidget<UUserWidget>(this, CustomCursorWidgetClass);
 	if (CustomCursorWidget)
 	{
@@ -1083,13 +1320,16 @@ void AGrimrockPlayerController::SetGridInteractionCursor(EGridInteractionCursor 
 	{
 		if (IsHoverCursorReason(Reason))
 		{
-			UE_LOG(LogGridMouse, Verbose, TEXT("GridMouse Hover CursorChanged From=%s To=%s Reason=%s"), *UEnum::GetValueAsString(PreviousCursor), *UEnum::GetValueAsString(NewCursor), Reason ? Reason : TEXT("None"));
+			UE_LOG(LogGridMouse, Verbose, TEXT("GridMouse Hover CursorChanged From=%s To=%s Reason=%s"), *UEnum::GetValueAsString(PreviousCursor),
+				*UEnum::GetValueAsString(NewCursor), Reason ? Reason : TEXT("None"));
 		}
 		else
 		{
-			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Hover CursorChanged From=%s To=%s Reason=%s"), *UEnum::GetValueAsString(PreviousCursor), *UEnum::GetValueAsString(NewCursor), Reason ? Reason : TEXT("None"));
+			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Hover CursorChanged From=%s To=%s Reason=%s"), *UEnum::GetValueAsString(PreviousCursor),
+				*UEnum::GetValueAsString(NewCursor), Reason ? Reason : TEXT("None"));
 		}
 	}
+
 	if (CustomCursorWidget)
 	{
 		DefaultMouseCursor = EMouseCursor::None;
@@ -1097,21 +1337,25 @@ void AGrimrockPlayerController::SetGridInteractionCursor(EGridInteractionCursor 
 		bShowMouseCursor = false;
 		CustomCursorWidget->SetIsEnabled(true);
 		CustomCursorWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+
 		static const FName SetCursorStateFunctionName = TEXT("SetCursorState");
 		UFunction* SetCursorStateFunction = CustomCursorWidget->FindFunction(SetCursorStateFunctionName);
 		if (!SetCursorStateFunction)
 		{
 			return;
 		}
+
 		struct FSetCursorStateParams
 		{
 			EGridInteractionCursor Cursor;
 		};
+
 		FSetCursorStateParams Params;
 		Params.Cursor = NewCursor;
 		CustomCursorWidget->ProcessEvent(SetCursorStateFunction, &Params);
 		return;
 	}
+
 	DefaultMouseCursor = EMouseCursor::Default;
 	CurrentMouseCursor = NewCursor == EGridInteractionCursor::Take ? EMouseCursor::Hand : EMouseCursor::Default;
 	bShowMouseCursor = true;
@@ -1140,17 +1384,22 @@ bool AGrimrockPlayerController::TryGetInteractableUnderCursor(FHitResult& OutHit
 	const FVector Start = WorldOrigin;
 	const FVector End = Start + WorldDirection * 10000.f;
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(GridMouseInteractionTrace), true);
+
 	QueryParams.AddIgnoredActor(ControlledPawn);
 	FHitResult Hit;
 	if (!World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, QueryParams))
 	{
 		return false;
 	}
+
+	// The first visibility blocker owns the click. Never search through geometry
+	// or a rejected component for a deeper interactable.
 	AActor* HitActor = Hit.GetActor();
 	if (!HitActor)
 	{
 		return false;
 	}
+
 	AActor* InteractableActor = ResolveReceptacleFromHitActor(HitActor);
 	if (!InteractableActor)
 	{
@@ -1160,6 +1409,7 @@ bool AGrimrockPlayerController::TryGetInteractableUnderCursor(FHitResult& OutHit
 	{
 		return false;
 	}
+
 	OutHitResult = Hit;
 	OutInteractableActor = InteractableActor;
 	return true;
@@ -1174,18 +1424,21 @@ bool AGrimrockPlayerController::TryGetWorldHitUnderCursor(FHitResult& OutHitResu
 	{
 		return false;
 	}
+
 	UWorld* World = GetWorld();
 	APawn* ControlledPawn = GetPawn();
 	if (!World || !ControlledPawn)
 	{
 		return false;
 	}
+
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(GridMouseWorldDropTrace), true);
 	QueryParams.AddIgnoredActor(ControlledPawn);
 	return World->LineTraceSingleByChannel(OutHitResult, WorldOrigin, WorldOrigin + WorldDirection * 10000.f, ECC_Visibility, QueryParams);
 }
 
-bool AGrimrockPlayerController::TryResolveWorldDropFromHit(const FHitResult& HitResult, const AGrimrockPartyPawn* PartyPawn, int32& OutCellX, int32& OutCellY, FVector& OutLocalOffset) const
+bool AGrimrockPlayerController::TryResolveWorldDropFromHit(
+	const FHitResult& HitResult, const AGrimrockPartyPawn* PartyPawn, int32& OutCellX, int32& OutCellY, FVector& OutLocalOffset) const
 {
 	OutCellX = INDEX_NONE;
 	OutCellY = INDEX_NONE;
@@ -1195,11 +1448,13 @@ bool AGrimrockPlayerController::TryResolveWorldDropFromHit(const FHitResult& Hit
 	{
 		return false;
 	}
+
 	const float CellSize = RuntimeActor->LevelAsset->CellSize;
 	if (CellSize <= KINDA_SMALL_NUMBER)
 	{
 		return false;
 	}
+
 	const FVector GridLocalPoint = HitResult.ImpactPoint - RuntimeActor->GetActorLocation() - RuntimeActor->GridOrigin;
 	OutCellX = FMath::FloorToInt(GridLocalPoint.X / CellSize);
 	OutCellY = FMath::FloorToInt(GridLocalPoint.Y / CellSize);
@@ -1207,18 +1462,17 @@ bool AGrimrockPlayerController::TryResolveWorldDropFromHit(const FHitResult& Hit
 	{
 		return false;
 	}
-	const int32 DeltaX = FMath::Abs(OutCellX - PartyPawn->CurrentCellX);
-	const int32 DeltaY = FMath::Abs(OutCellY - PartyPawn->CurrentCellY);
-	if (DeltaX + DeltaY > 1)
+
+	int32 FrontCellX = INDEX_NONE;
+	int32 FrontCellY = INDEX_NONE;
+	const bool bHasFrontCell = RuntimeActor->TryGetNeighborCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY, PartyPawn->Facing, FrontCellX, FrontCellY);
+	const bool bAllowedCell =
+		(OutCellX == PartyPawn->CurrentCellX && OutCellY == PartyPawn->CurrentCellY) || (bHasFrontCell && OutCellX == FrontCellX && OutCellY == FrontCellY);
+	if (!bAllowedCell)
 	{
 		return false;
 	}
-	const float HandReach = FMath::Max(0.0f, RuntimeActor->WorldItemPickupReach);
-	const FVector TargetCellCenter = RuntimeActor->GetCellCenterWorld(OutCellX, OutCellY, PartyPawn->GetActorLocation().Z);
-	if (FVector::DistSquared2D(PartyPawn->GetActorLocation(), TargetCellCenter) > FMath::Square(HandReach))
-	{
-		return false;
-	}
+
 	const FVector CellCenter = RuntimeActor->GetCellCenterWorld(OutCellX, OutCellY, 12.f);
 	const FVector RawOffset = HitResult.ImpactPoint - CellCenter;
 	const float MaxOffset = CellSize * 0.35f;
@@ -1230,37 +1484,45 @@ bool AGrimrockPlayerController::TryGetReceptacleUnderCursor(FHitResult& OutHitRe
 {
 	OutReceptacleActor = nullptr;
 	OutHitResult = FHitResult();
+
 	FVector WorldOrigin = FVector::ZeroVector;
 	FVector WorldDirection = FVector::ZeroVector;
 	if (!DeprojectMousePositionToWorld(WorldOrigin, WorldDirection))
 	{
 		return false;
 	}
+
 	UWorld* World = GetWorld();
 	APawn* ControlledPawn = GetPawn();
 	if (!World || !ControlledPawn)
 	{
 		return false;
 	}
+
 	const FVector Start = WorldOrigin;
 	const FVector End = Start + WorldDirection * 10000.f;
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(GridMouseReceptacleTrace), true);
 	QueryParams.AddIgnoredActor(ControlledPawn);
+
 	FHitResult Hit;
 	if (!World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, QueryParams))
 	{
 		return false;
 	}
+
+	// Item placement follows the same direct-hit rule as ordinary interaction.
 	AActor* HitActor = Hit.GetActor();
 	if (!HitActor)
 	{
 		return false;
 	}
+
 	AGridReceptacleActor* ReceptacleActor = ResolveReceptacleFromHitActor(HitActor);
 	if (!ReceptacleActor)
 	{
 		return false;
 	}
+
 	OutHitResult = Hit;
 	OutReceptacleActor = ReceptacleActor;
 	return true;
@@ -1273,5 +1535,6 @@ bool AGrimrockPlayerController::IsHitWithinInteractionDistance(const FHitResult&
 	{
 		return false;
 	}
+
 	return FVector::DistSquared(ControlledPawn->GetActorLocation(), HitResult.ImpactPoint) <= FMath::Square(MaxInteractionDistance);
 }
