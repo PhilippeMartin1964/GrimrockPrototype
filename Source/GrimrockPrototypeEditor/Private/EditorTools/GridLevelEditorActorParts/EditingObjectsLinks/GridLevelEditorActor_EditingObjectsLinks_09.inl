@@ -1,8 +1,22 @@
 bool AGridLevelEditorActor::SetSelectedObjectInitiallyEnabled(bool bNewInitiallyEnabled)
 {
-	if (!EditGridPlacementAuthoring(LevelAsset, LastSelectedObjectId,
-		[bNewInitiallyEnabled](auto& Placement) { Placement.bInitiallyEnabled = bNewInitiallyEnabled; })) return false;
+	if (!LevelAsset) return false;
+	if (FGridMonsterSpawnInstance* MonsterSpawn = LevelAsset->FindMonsterSpawnInstanceById(LastSelectedObjectId))
+	{
+		LevelAsset->Modify();
+		MonsterSpawn->bInitiallyEnabled = bNewInitiallyEnabled;
+	}
+	else if (FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId))
+	{
+		LevelAsset->Modify();
+		ItemSpawn->bInitiallyEnabled = bNewInitiallyEnabled;
+	}
+	else
+	{
+		return false;
+	}
 	bObjectInitiallyEnabled = bNewInitiallyEnabled;
+	LevelAsset->MarkPackageDirty();
 	RebuildPreview();
 	return true;
 }
@@ -10,17 +24,22 @@ bool AGridLevelEditorActor::SetSelectedObjectInitiallyEnabled(bool bNewInitially
 bool AGridLevelEditorActor::SetSelectedObjectInitiallyActive(bool bNewInitiallyActive)
 {
 	if (!LevelAsset) return false;
-	if (FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId))
+	FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId);
+	if (!WorldObjectInstance) return false;
+
+	LevelAsset->Modify();
+	if (WorldObjectInstance->Type == EGridLevelObjectType::Door)
 	{
-		LevelAsset->Modify();
-		WorldObjectInstance->bInitiallyActive = bNewInitiallyActive;
+		WorldObjectInstance->InstanceConfig.bDoorInitiallyOpen = bNewInitiallyActive;
 	}
-	else if (FGridLogicObjectInstance* LogicInstance = LevelAsset->FindLogicObjectInstanceById(LastSelectedObjectId))
+	else if (WorldObjectInstance->Type == EGridLevelObjectType::Teleporter)
 	{
-		LevelAsset->Modify();
-		LogicInstance->bInitiallyActive = bNewInitiallyActive;
+		WorldObjectInstance->InstanceConfig.bTeleporterInitiallyEnabled = bNewInitiallyActive;
 	}
-	else return false;
+	else
+	{
+		return false;
+	}
 	bObjectInitiallyActive = bNewInitiallyActive;
 	LevelAsset->MarkPackageDirty();
 	RebuildPreview();
