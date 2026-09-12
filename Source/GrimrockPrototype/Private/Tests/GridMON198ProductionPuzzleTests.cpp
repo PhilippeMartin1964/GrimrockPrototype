@@ -99,7 +99,7 @@ namespace GridMON198Tests
 		Door.CellX = 0;
 		Door.CellY = 0;
 		Door.WallSide = EGridEdge::East;
-		Door.bInitiallyActive = false;
+		Door.InstanceConfig.bDoorInitiallyOpen = false;
 		return Door;
 	}
 
