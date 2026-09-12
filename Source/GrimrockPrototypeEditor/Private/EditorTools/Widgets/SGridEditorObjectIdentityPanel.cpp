@@ -9,6 +9,7 @@
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
 #include "Styling/SlateColor.h"
+#include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/SBoxPanel.h"
@@ -136,8 +137,84 @@ TSharedRef<SWidget> SGridEditorObjectIdentityPanel::BuildRoot()
 			];
 	}
 
+	TSharedRef<SVerticalBox> ContentRoot = SNew(SVerticalBox);
+
+	int32 CellX = INDEX_NONE;
+	int32 CellY = INDEX_NONE;
+	EGridEdge CellEdge = EGridEdge::None;
+	if (LevelAsset->TryGetTypedPlacementLocation(ObjectId, CellX, CellY, CellEdge))
+	{
+		const TArray<FGuid> CellObjectIds = LevelAsset->GetTypedPlacementIdsAtCell(CellX, CellY);
+		if (CellObjectIds.Num() > 1)
+		{
+			TSharedRef<SVerticalBox> CellSelector = SNew(SVerticalBox)
+				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 5.f)
+				[
+					SNew(STextBlock)
+						.Text(FText::FromString(FString::Printf(
+							TEXT("%d objects share cell (%d,%d). Choose the object you want to edit."),
+							CellObjectIds.Num(), CellX, CellY)))
+						.AutoWrapText(true)
+						.ColorAndOpacity(FSlateColor(FLinearColor(0.72f, 0.72f, 0.72f, 1.f)))
+				];
+
+			for (const FGuid CandidateId : CellObjectIds)
+			{
+				const bool bCurrent = CandidateId == ObjectId;
+				const FName CandidateLogicId = LevelAsset->GetTypedPlacementLogicId(CandidateId);
+				FString Identifier = CandidateLogicId.IsNone() ? GetDefinitionText(CandidateId).ToString() : CandidateLogicId.ToString();
+				if (Identifier.IsEmpty() || Identifier == TEXT("None"))
+				{
+					Identifier = CandidateId.ToString(EGuidFormats::Digits).Left(8);
+				}
+				const FText CandidateLabel = FText::FromString(FString::Printf(
+					TEXT("%s — %s"), *GetTypeText(CandidateId).ToString(), *Identifier));
+
+				CellSelector->AddSlot().AutoHeight().Padding(0.f, 1.f)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center).Padding(0.f, 0.f, 6.f, 0.f)
+					[
+						SNew(STextBlock)
+							.Text(CandidateLabel)
+							.Font(FCoreStyle::GetDefaultFontStyle(bCurrent ? "Bold" : "Regular", 8))
+							.AutoWrapText(true)
+					]
+					+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+					[
+						SNew(SButton)
+							.Text(FText::FromString(bCurrent ? TEXT("Selected") : TEXT("Select")))
+							.IsEnabled(!bCurrent)
+							.ContentPadding(FMargin(8.f, 2.f))
+							.ToolTipText(FText::FromString(bCurrent ? TEXT("This object is currently selected.") : TEXT("Select this object on the current cell.")))
+							.OnClicked_Lambda([this, CandidateId]() -> FReply
+							{
+								if (AGridLevelEditorActor* CurrentActor = GetEditorActor())
+								{
+									if (CurrentActor->SelectObjectById(CandidateId))
+									{
+										RequestRefresh();
+									}
+									else
+									{
+										Rebuild();
+									}
+								}
+								return FReply::Handled();
+							})
+					]
+				];
+			}
+
+			ContentRoot->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, 8.f)
+			[
+				GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Objects on Cell")), CellSelector)
+			];
+		}
+	}
+
 	const FName LogicId = LevelAsset->GetTypedPlacementLogicId(ObjectId);
-	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
+	TSharedRef<SVerticalBox> IdentityRoot = SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()
 		[
 			GridEditorWidgetHelpers::BuildGridPropertyRow(
@@ -191,7 +268,7 @@ TSharedRef<SWidget> SGridEditorObjectIdentityPanel::BuildRoot()
 
 	if (!StatusText.IsEmpty())
 	{
-		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
+		IdentityRoot->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
 		[
 			SNew(STextBlock)
 				.Text(FText::FromString(StatusText))
@@ -202,7 +279,12 @@ TSharedRef<SWidget> SGridEditorObjectIdentityPanel::BuildRoot()
 		];
 	}
 
-	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Identity")), Root);
+	ContentRoot->AddSlot().AutoHeight()
+	[
+		GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Identity")), IdentityRoot)
+	];
+
+	return ContentRoot;
 }
 
 #endif
