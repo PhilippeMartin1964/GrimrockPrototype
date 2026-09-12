@@ -2,8 +2,9 @@ SelectedPaletteEntryId = Entry->EntryId;
 PaintObjectType = Entry->DefaultWorldObjectDefinition->SupportedType;
 WorldObjectDefinitionId = Entry->DefaultWorldObjectDefinition->DefinitionId;
 SelectedWorldObjectDefinitionId = Entry->DefaultWorldObjectDefinition->DefinitionId;
-bObjectInitiallyEnabled = Entry->DefaultWorldObjectDefinition->bDefaultInitiallyEnabled;
-bObjectInitiallyActive = Entry->DefaultWorldObjectDefinition->bDefaultInitiallyActive;
+// Ordinary placed objects always exist. This editor scratch flag is used only by spawn placements.
+bObjectInitiallyEnabled = true;
+bObjectInitiallyActive = false;
 ObjectBehavior = Entry->DefaultWorldObjectDefinition->DefaultBehavior;
 
 return true;
@@ -30,7 +31,6 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 	if (!EditGridPlacementAuthoring(LevelAsset, LastSelectedObjectId, [this](auto& Placement)
 		{
 			Placement.PaletteEntryId = SelectedPaletteEntryId;
-			Placement.bInitiallyEnabled = bObjectInitiallyEnabled;
 			Placement.Notes = ObjectNotes;
 		})) return false;
 	if (FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId))
@@ -38,7 +38,6 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 		WorldObjectInstance->Type = PaintObjectType;
 		WorldObjectInstance->WorldObjectDefinitionId = WorldObjectDefinitionId;
 		WorldObjectInstance->WallSide = IsEdgePlacedObject(PaintObjectType, WorldObjectDefinitionId) ? SelectedEdge : EGridEdge::None;
-		WorldObjectInstance->bInitiallyActive = bObjectInitiallyActive;
 		WorldObjectInstance->InstanceConfig.Teleporter = ObjectBehavior.Teleporter;
 		WorldObjectInstance->InstanceConfig.Transition = ObjectBehavior.Transition;
 		WorldObjectInstance->InstanceConfig.Pit = ObjectBehavior.Pit;
@@ -53,14 +52,18 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 		LooseItemInstance->ReadTitleOverride = ObjectBehavior.Item.DefaultReadTitleOverride;
 		LooseItemInstance->ReadTextOverride = ObjectBehavior.Item.DefaultReadTextOverride;
 	}
+	else if (FGridMonsterSpawnInstance* MonsterSpawn = LevelAsset->FindMonsterSpawnInstanceById(LastSelectedObjectId))
+	{
+		MonsterSpawn->bInitiallyEnabled = bObjectInitiallyEnabled;
+	}
 	else if (FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId))
 	{
 		ItemSpawn->ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
+		ItemSpawn->bInitiallyEnabled = bObjectInitiallyEnabled;
 	}
 	else if (FGridLogicObjectInstance* LogicInstance = LevelAsset->FindLogicObjectInstanceById(LastSelectedObjectId))
 	{
 		LogicInstance->Type = PaintObjectType;
-		LogicInstance->bInitiallyActive = bObjectInitiallyActive;
 	}
 
 #if WITH_EDITOR
