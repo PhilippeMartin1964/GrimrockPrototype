@@ -79,7 +79,6 @@ namespace GridTD011Tests
 		ReceptacleObject.CellX = 0;
 		ReceptacleObject.CellY = 0;
 		ReceptacleObject.WallSide = EGridEdge::North;
-		ReceptacleObject.bInitiallyEnabled = true;
 		Fixture.Level->WorldObjectInstances.Add(ReceptacleObject);
 
 		Fixture.Definition = NewObject<UGridWorldObjectDefinitionAsset>(Outer);
