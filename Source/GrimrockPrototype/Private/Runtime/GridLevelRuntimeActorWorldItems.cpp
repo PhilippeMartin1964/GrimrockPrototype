@@ -3,6 +3,7 @@
 
 #include "Core/GridDirectionUtils.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -61,7 +62,45 @@ namespace
 			return ItemActor->GetItemDefinitionId();
 		}
 		return FallbackItemDefinitionId;
-	}}
+	}
+
+	const AGrimrockPartyPawn* ResolveWorldItemInteractionParty(const AGridLevelRuntimeActor* RuntimeActor)
+	{
+		if (!RuntimeActor || !RuntimeActor->GetWorld())
+		{
+			return nullptr;
+		}
+
+		for (TActorIterator<AGrimrockPartyPawn> It(RuntimeActor->GetWorld()); It; ++It)
+		{
+			const AGrimrockPartyPawn* PartyPawn = *It;
+			if (IsValid(PartyPawn) && PartyPawn->LevelRuntimeActor == RuntimeActor)
+			{
+				return PartyPawn;
+			}
+		}
+		return nullptr;
+	}
+
+	bool IsWithinWorldItemHandReach(const AGridLevelRuntimeActor* RuntimeActor, const AGrimrockPartyPawn* PartyPawn, int32 CellX, int32 CellY)
+	{
+		if (!RuntimeActor || !PartyPawn)
+		{
+			return false;
+		}
+
+		const int32 DeltaX = FMath::Abs(CellX - PartyPawn->CurrentCellX);
+		const int32 DeltaY = FMath::Abs(CellY - PartyPawn->CurrentCellY);
+		if (DeltaX + DeltaY > 1)
+		{
+			return false;
+		}
+
+		const float Reach = FMath::Max(0.0f, RuntimeActor->WorldItemPickupReach);
+		const FVector TargetCellCenter = RuntimeActor->GetCellCenterWorld(CellX, CellY, PartyPawn->GetActorLocation().Z);
+		return FVector::DistSquared2D(PartyPawn->GetActorLocation(), TargetCellCenter) <= FMath::Square(Reach);
+	}
+}
 
 bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRuntimeEntry& Entry, const AGrimrockPartyPawn* PartyPawn, bool bLogRejection) const
 {
@@ -86,9 +125,9 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 
 	const FIntPoint PartyCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
 
-	// Free floor pickups use a physical horizontal reach instead of requiring
-	// the party to stand on the exact same grid cell. The grid still limits
-	// this to the current cell or one traversable cardinal neighbour.
+	// Free floor pickups use the same one-cell hand-reach concept as direct cursor placement.
+	// Physical obstruction is owned by the mouse Visibility hit, not by CanMove(): an open
+	// gap in a grating may be reachable even while the grid edge remains movement-blocked.
 	if (Entry.Edge == EGridEdge::None)
 	{
 		const AGridItemActor* ItemActor = Entry.ItemActor.Get();
@@ -127,17 +166,6 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 				UE_LOG(LogTemp, Warning,
 					TEXT("Grid item pickup rejected: free pickup is not in the party cell or a cardinal neighbour. PartyCell=(%d,%d) ItemCell=(%d,%d)."),
 					PartyCell.X, PartyCell.Y, Entry.Cell.X, Entry.Cell.Y);
-			}
-			return false;
-		}
-
-		if (!CanMove(PartyCell.X, PartyCell.Y, PickupDirection))
-		{
-			if (bLogRejection)
-			{
-				UE_LOG(LogTemp, Warning,
-					TEXT("Grid item pickup rejected: free pickup is separated by a blocked grid edge. PartyCell=(%d,%d) ItemCell=(%d,%d) Direction=%s."),
-					PartyCell.X, PartyCell.Y, Entry.Cell.X, Entry.Cell.Y, *GetWorldItemEdgeText(PickupDirection));
 			}
 			return false;
 		}
@@ -254,8 +282,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrim
 			continue;
 		}
 
-		const FName ItemDefinitionId =
-			ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId);
+		const FName ItemDefinitionId = ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId);
 		if (ItemDefinitionId.IsNone())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Item pickup failed at cell %d,%d: missing item definition id."), CellX, CellY);
@@ -331,8 +358,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrim
 			return false;
 		}
 
-		const FName ItemDefinitionId =
-			ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId);
+		const FName ItemDefinitionId = ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId);
 		if (ItemDefinitionId.IsNone())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Item pickup failed for actor %s: missing item definition id."), *ItemActor->GetName());
@@ -458,8 +484,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 		FMath::Clamp(LocalOffset.X, -MaxOffset, MaxOffset),
 		FMath::Clamp(LocalOffset.Y, -MaxOffset, MaxOffset),
 		0.0f);
-	const FVector TargetWorldLocation =
-		GetActorLocation() + GridOrigin +
+	const FVector TargetWorldLocation = GetActorLocation() + GridOrigin +
 		FVector((Transition.TargetCellX + 0.5f) * TargetCellSize, (Transition.TargetCellY + 0.5f) * TargetCellSize, 12.0f) + ClampedOffset;
 
 	FGridRuntimeItemState ItemState;
@@ -671,6 +696,19 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	if (Cell.CellType == EGridCellType::Empty || Cell.bBlocksOccupancy)
 	{
 		return false;
+	}
+
+	if (ItemInstance.OwnerType == EGridItemOwnerType::Cursor)
+	{
+		const AGrimrockPartyPawn* PartyPawn = ResolveWorldItemInteractionParty(this);
+		if (!IsWithinWorldItemHandReach(this, PartyPawn, CellX, CellY))
+		{
+			UE_LOG(LogTemp, Log,
+				TEXT("GridInventory WorldDrop Rejected Item=%s Reason=BeyondHandReach PartyCell=(%d,%d) TargetCell=(%d,%d) Reach=%.1f"),
+				*ItemInstance.ItemDefinitionId.ToString(), PartyPawn ? PartyPawn->CurrentCellX : INDEX_NONE, PartyPawn ? PartyPawn->CurrentCellY : INDEX_NONE,
+				CellX, CellY, FMath::Max(0.0f, WorldItemPickupReach));
+			return false;
+		}
 	}
 
 	UGridItemDefinitionAsset* ItemDefinition = IsValid(ItemDefinitionAsset) ? ItemDefinitionAsset : ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId);
