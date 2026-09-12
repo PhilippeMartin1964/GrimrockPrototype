@@ -4,12 +4,12 @@ bool AGridLevelEditorActor::SetSelectedObjectInitiallyEnabled(bool bNewInitially
 	if (FGridMonsterSpawnInstance* MonsterSpawn = LevelAsset->FindMonsterSpawnInstanceById(LastSelectedObjectId))
 	{
 		LevelAsset->Modify();
-		MonsterSpawn->bInitiallyEnabled = bNewInitiallyEnabled;
+		MonsterSpawn->bSpawnAtStart = bNewInitiallyEnabled;
 	}
 	else if (FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId))
 	{
 		LevelAsset->Modify();
-		ItemSpawn->bInitiallyEnabled = bNewInitiallyEnabled;
+		ItemSpawn->bSpawnAtStart = bNewInitiallyEnabled;
 	}
 	else
 	{
