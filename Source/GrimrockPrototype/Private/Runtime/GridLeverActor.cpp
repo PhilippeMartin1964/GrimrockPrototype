@@ -95,13 +95,14 @@ void AGridLeverActor::InitializeRuntimeWorldObject(
 	(void)Mesh;
 	AGridRuntimeObjectActor::InitializeRuntimeWorldObject(ObjectData, nullptr, WorldTransform);
 
+	// A placed lever has no authored initial-state override: it always starts at rest/off.
 	// RECOVERY01-C2: ToggleDuration remains the forward cache; reverse timing is resolved on demand.
 	ToggleDuration = GetTargetMotionDuration(false);
-	bIsOn = ObjectData.bInitiallyActive;
+	bIsOn = false;
 	bIsAnimating = false;
 	AnimElapsed = 0.f;
 	CurrentToggleDuration = 0.0f;
-	CurrentMotionAlpha = bIsOn ? 1.0f : 0.0f;
+	CurrentMotionAlpha = 0.0f;
 	AnimStartMotionAlpha = CurrentMotionAlpha;
 	AnimTargetMotionAlpha = CurrentMotionAlpha;
 	ApplyMovingPartMotionAlpha(0, CurrentMotionAlpha);
