@@ -680,8 +680,7 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
 			return Resolution;
 		}
 
-		if (Resolution.bWithinInteractionDistance &&
-			TryResolveWorldDropFromHit(Resolution.HitResult, Resolution.PartyPawn, Resolution.DropCellX, Resolution.DropCellY, Resolution.DropLocalOffset))
+		if (TryResolveWorldDropFromHit(Resolution.HitResult, Resolution.PartyPawn, Resolution.DropCellX, Resolution.DropCellY, Resolution.DropLocalOffset))
 		{
 			Resolution.Intent = EGridMouseInteractionIntent::CursorItemWorldDrop;
 			Resolution.DiagnosticReason = TEXT("WorldDropCandidate");
@@ -1463,12 +1462,16 @@ bool AGrimrockPlayerController::TryResolveWorldDropFromHit(
 		return false;
 	}
 
-	int32 FrontCellX = INDEX_NONE;
-	int32 FrontCellY = INDEX_NONE;
-	const bool bHasFrontCell = RuntimeActor->TryGetNeighborCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY, PartyPawn->Facing, FrontCellX, FrontCellY);
-	const bool bAllowedCell =
-		(OutCellX == PartyPawn->CurrentCellX && OutCellY == PartyPawn->CurrentCellY) || (bHasFrontCell && OutCellX == FrontCellX && OutCellY == FrontCellY);
-	if (!bAllowedCell)
+	const int32 DeltaX = FMath::Abs(OutCellX - PartyPawn->CurrentCellX);
+	const int32 DeltaY = FMath::Abs(OutCellY - PartyPawn->CurrentCellY);
+	if (DeltaX + DeltaY > 1)
+	{
+		return false;
+	}
+
+	const float HandReach = FMath::Max(0.0f, RuntimeActor->WorldItemPickupReach);
+	const FVector TargetCellCenter = RuntimeActor->GetCellCenterWorld(OutCellX, OutCellY, PartyPawn->GetActorLocation().Z);
+	if (FVector::DistSquared2D(PartyPawn->GetActorLocation(), TargetCellCenter) > FMath::Square(HandReach))
 	{
 		return false;
 	}
