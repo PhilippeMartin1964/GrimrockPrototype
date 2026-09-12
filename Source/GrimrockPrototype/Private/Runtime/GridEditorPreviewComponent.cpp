@@ -274,5 +274,5 @@ bool UGridEditorPreviewComponent::IsPreviewableLooseItem(const FGridLooseItemIns
 
 bool UGridEditorPreviewComponent::IsPreviewableMonsterSpawn(const FGridMonsterSpawnInstance& SpawnData) const
 {
-	return RuntimeActor && RuntimeActor->LevelAsset && SpawnData.bInitiallyEnabled && RuntimeActor->LevelAsset->IsValidCoord(SpawnData.CellX, SpawnData.CellY);
+	return RuntimeActor && RuntimeActor->LevelAsset && SpawnData.bSpawnAtStart && RuntimeActor->LevelAsset->IsValidCoord(SpawnData.CellX, SpawnData.CellY);
 }
