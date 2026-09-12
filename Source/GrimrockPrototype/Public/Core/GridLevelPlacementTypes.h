@@ -323,9 +323,9 @@ struct FGridMonsterSpawnInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Encounter", meta = (ClampMin = "0"))
 	int32 EncounterWaveIndex = 0;
 
-	/** A spawn placement may deliberately create no monster until commanded. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
-	bool bSpawnAtStart = true;
+	/** Spawn-only state: whether this generator creates its monster when the level starts. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn", meta = (DisplayName = "Spawn at Start"))
+	bool bInitiallyEnabled = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Identity")
 	FName LogicId = NAME_None;
@@ -360,9 +360,9 @@ struct FGridItemSpawnInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Placement")
 	int32 CellY = 0;
 
-	/** A spawn placement may deliberately create no item until commanded. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
-	bool bSpawnAtStart = true;
+	/** Spawn-only state: whether this generator creates its item when the level starts. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn", meta = (DisplayName = "Spawn at Start"))
+	bool bInitiallyEnabled = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Identity")
 	FName LogicId = NAME_None;
