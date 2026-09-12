@@ -150,6 +150,7 @@ void FGridMonsterOccupancyRegistry::UnregisterMonster(const FGuid& MonsterId)
 				OccupiedCells.Remove(OccupiedCell);
 			}
 		}
+	}
 }
 
 void FGridMonsterOccupancyRegistry::Reset()
