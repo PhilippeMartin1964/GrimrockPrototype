@@ -116,17 +116,6 @@ TSharedRef<SWidget> SGridEditorPressurePlateInstancePanel::BuildContent()
 			FText::FromString(TEXT("Initial State")),
 			FText::FromString(Instance->bInitiallyActive ? TEXT("Pressed / Activated") : TEXT("Released / Deactivated")))]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[GridEditorWidgetHelpers::BuildGridPropertyRow(
-			FText::FromString(TEXT("Override Activation Rules")),
-			SNew(SCheckBox)
-				.IsChecked(bOverrideRules ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-				.OnCheckStateChanged_Lambda([this, ObjectId](ECheckBoxState State)
-				{
-					SetActivationRulesOverrideEnabled(ObjectId, State == ECheckBoxState::Checked);
-				}))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			FText::FromString(TEXT("Rules Source")),
-			FText::FromString(bOverrideRules ? TEXT("Instance Override") : TEXT("Definition")))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
 			FText::FromString(TEXT("Monster Activates")),
 			SNew(SCheckBox)
 				.IsEnabled(bOverrideRules)
@@ -137,13 +126,13 @@ TSharedRef<SWidget> SGridEditorPressurePlateInstancePanel::BuildContent()
 				}))]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 5.f, 0.f, 0.f)[
 			SNew(STextBlock)
-				.Text(FText::FromString(TEXT("Pressed at Start is the pressure-plate meaning of the generic Active at Start flag. Monster activation is puzzle-local and requires Activation Rules to be overridden. Party and item-weight rules remain editable in the Pressure Plate section above.")))
+				.Text(FText::FromString(TEXT("Pressed at Start is the pressure-plate meaning of the generic Active at Start flag. Monster Activates is an instance activation rule; enable Override Activation Rules in the Pressure Plate section immediately above to edit it.")))
 				.AutoWrapText(true)
 				.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))
 		];
 
 	return GridEditorWidgetHelpers::BuildGridPanelSection(
-		FText::FromString(TEXT("Pressure Plate — Instance State")),
+		FText::FromString(TEXT("Instance State")),
 		Root);
 }
 
