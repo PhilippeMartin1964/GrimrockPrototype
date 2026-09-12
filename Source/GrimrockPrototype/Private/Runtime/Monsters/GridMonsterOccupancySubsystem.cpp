@@ -37,9 +37,14 @@ namespace
 	void RefreshPressurePlateAtMonsterCell(const AGridMonsterActor* Monster, const FIntPoint& Cell)
 	{
 		AGridLevelRuntimeActor* RuntimeActor = ResolveRuntimeActorForMonster(Monster);
-		if (IsValid(RuntimeActor) && RuntimeActor->ActivationComponent)
+		if (!IsValid(RuntimeActor))
 		{
-			RuntimeActor->ActivationComponent->RefreshPressurePlatesAtCell(Cell.X, Cell.Y);
+			return;
+		}
+
+		if (UGridActivationComponent* ActivationComponent = RuntimeActor->FindComponentByClass<UGridActivationComponent>())
+		{
+			ActivationComponent->RefreshPressurePlatesAtCell(Cell.X, Cell.Y);
 		}
 	}
 }
@@ -145,7 +150,6 @@ void FGridMonsterOccupancyRegistry::UnregisterMonster(const FGuid& MonsterId)
 				OccupiedCells.Remove(OccupiedCell);
 			}
 		}
-	}
 }
 
 void FGridMonsterOccupancyRegistry::Reset()

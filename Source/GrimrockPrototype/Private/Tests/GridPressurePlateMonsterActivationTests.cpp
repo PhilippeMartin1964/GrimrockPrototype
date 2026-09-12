@@ -89,7 +89,8 @@ bool FGridPressurePlateMonsterActivationTest::RunTest(const FString& Parameters)
 	}
 
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
-	if (!TestNotNull(TEXT("Runtime exists"), Runtime) || !TestNotNull(TEXT("Activation component exists"), Runtime ? Runtime->ActivationComponent.Get() : nullptr))
+	UGridActivationComponent* Activation = Runtime ? Runtime->FindComponentByClass<UGridActivationComponent>() : nullptr;
+	if (!TestNotNull(TEXT("Runtime exists"), Runtime) || !TestNotNull(TEXT("Activation component exists"), Activation))
 	{
 		return false;
 	}
@@ -122,9 +123,9 @@ bool FGridPressurePlateMonsterActivationTest::RunTest(const FString& Parameters)
 	PlateDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
 	Runtime->WorldObjectDefinitions.Add(PlateDefinition);
 
-	Runtime->ActivationComponent->Initialize(Runtime);
-	Runtime->ActivationComponent->RebuildIndexes();
-	Runtime->ActivationComponent->RefreshAllPressurePlates();
+	Activation->Initialize(Runtime);
+	Activation->RebuildIndexes();
+	Activation->RefreshAllPressurePlates();
 
 	UGridMonsterDefinitionAsset* MonsterDefinition = NewObject<UGridMonsterDefinitionAsset>(Runtime);
 	MonsterDefinition->MonsterId = TEXT("Monster_PRESSURE_MON01");
@@ -150,23 +151,23 @@ bool FGridPressurePlateMonsterActivationTest::RunTest(const FString& Parameters)
 	}
 
 	TestTrue(TEXT("Monster registers on the source cell"), Occupancy->RegisterMonster(Monster, FIntPoint(0, 0)));
-	TestFalse(TEXT("Monster-enabled plate starts released"), Runtime->ActivationComponent->GetActiveObjectIds().Contains(MonsterPlateId));
-	TestFalse(TEXT("Monster-disabled plate starts released"), Runtime->ActivationComponent->GetActiveObjectIds().Contains(PassivePlateId));
+	TestFalse(TEXT("Monster-enabled plate starts released"), Activation->GetActiveObjectIds().Contains(MonsterPlateId));
+	TestFalse(TEXT("Monster-disabled plate starts released"), Activation->GetActiveObjectIds().Contains(PassivePlateId));
 
 	TestTrue(TEXT("Monster can reserve the monster-enabled plate cell"), Occupancy->TryReserveCell(Monster, FIntPoint(1, 0)));
-	TestFalse(TEXT("Reservation alone does not press the plate"), Runtime->ActivationComponent->GetActiveObjectIds().Contains(MonsterPlateId));
+	TestFalse(TEXT("Reservation alone does not press the plate"), Activation->GetActiveObjectIds().Contains(MonsterPlateId));
 
 	TestTrue(TEXT("Committed monster move onto plate succeeds"), Occupancy->CommitMove(Monster, FIntPoint(0, 0), FIntPoint(1, 0)));
-	TestTrue(TEXT("Committed monster occupancy presses enabled plate"), Runtime->ActivationComponent->GetActiveObjectIds().Contains(MonsterPlateId));
+	TestTrue(TEXT("Committed monster occupancy presses enabled plate"), Activation->GetActiveObjectIds().Contains(MonsterPlateId));
 
 	TestTrue(TEXT("Monster can reserve the monster-disabled plate cell"), Occupancy->TryReserveCell(Monster, FIntPoint(2, 0)));
-	TestTrue(TEXT("Source plate remains pressed until move commits"), Runtime->ActivationComponent->GetActiveObjectIds().Contains(MonsterPlateId));
+	TestTrue(TEXT("Source plate remains pressed until move commits"), Activation->GetActiveObjectIds().Contains(MonsterPlateId));
 	TestTrue(TEXT("Committed monster move off enabled plate succeeds"), Occupancy->CommitMove(Monster, FIntPoint(1, 0), FIntPoint(2, 0)));
-	TestFalse(TEXT("Leaving monster-enabled plate releases it"), Runtime->ActivationComponent->GetActiveObjectIds().Contains(MonsterPlateId));
-	TestFalse(TEXT("Monster occupancy does not press opt-out plate"), Runtime->ActivationComponent->GetActiveObjectIds().Contains(PassivePlateId));
+	TestFalse(TEXT("Leaving monster-enabled plate releases it"), Activation->GetActiveObjectIds().Contains(MonsterPlateId));
+	TestFalse(TEXT("Monster occupancy does not press opt-out plate"), Activation->GetActiveObjectIds().Contains(PassivePlateId));
 
 	Occupancy->UnregisterMonster(Monster);
-	TestFalse(TEXT("Unregister leaves opt-out plate released"), Runtime->ActivationComponent->GetActiveObjectIds().Contains(PassivePlateId));
+	TestFalse(TEXT("Unregister leaves opt-out plate released"), Activation->GetActiveObjectIds().Contains(PassivePlateId));
 	return true;
 }
 
