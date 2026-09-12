@@ -76,8 +76,8 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	}
 
 	UGridLevelAsset* LevelAsset = NewObject<UGridLevelAsset>(Runtime);
-	LevelAsset->Width = 3;
-	LevelAsset->Height = 3;
+	LevelAsset->Width = 4;
+	LevelAsset->Height = 4;
 	LevelAsset->CellSize = 200.0f;
 	LevelAsset->EnsureCellCount();
 	for (FGridLevelCellData& Cell : LevelAsset->Cells)
@@ -145,6 +145,28 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 		return nullptr;
 	};
 
+	FGridItemInstance CursorAdjacentItem = WorldItem;
+	CursorAdjacentItem.RuntimeObjectId = FGuid::NewGuid();
+	CursorAdjacentItem.OwnerType = EGridItemOwnerType::Cursor;
+	LevelAsset->GetCellMutable(1, 1).EastWall = EGridWallType::Solid;
+	TestTrue(TEXT("A cursor item can be placed by hand in one cardinal neighbour even when grid movement is blocked"),
+		Runtime->TryDropItemInstanceAtCell(CursorAdjacentItem, Definition, 2, 1, EGridEdge::None, FVector::ZeroVector));
+	TestNotNull(TEXT("The one-cell hand placement creates its world actor"), FindWorldItemActor(CursorAdjacentItem.RuntimeObjectId));
+	LevelAsset->GetCellMutable(1, 1).EastWall = EGridWallType::None;
+
+	FGridItemInstance CursorTwoCellsAway = WorldItem;
+	CursorTwoCellsAway.RuntimeObjectId = FGuid::NewGuid();
+	CursorTwoCellsAway.OwnerType = EGridItemOwnerType::Cursor;
+	TestFalse(TEXT("A cursor item cannot be placed directly two cells away"),
+		Runtime->TryDropItemInstanceAtCell(CursorTwoCellsAway, Definition, 3, 1, EGridEdge::None, FVector::ZeroVector));
+	TestNull(TEXT("Rejected two-cell hand placement creates no world actor"), FindWorldItemActor(CursorTwoCellsAway.RuntimeObjectId));
+
+	FGridItemInstance CursorDiagonalItem = WorldItem;
+	CursorDiagonalItem.RuntimeObjectId = FGuid::NewGuid();
+	CursorDiagonalItem.OwnerType = EGridItemOwnerType::Cursor;
+	TestFalse(TEXT("A cursor item cannot be placed directly on a diagonal neighbour"),
+		Runtime->TryDropItemInstanceAtCell(CursorDiagonalItem, Definition, 2, 2, EGridEdge::None, FVector::ZeroVector));
+
 	FGridItemInstance NearbyFreeItem = WorldItem;
 	NearbyFreeItem.RuntimeObjectId = FGuid::NewGuid();
 	TestTrue(TEXT("A free item can be dropped in the neighbouring cell"),
@@ -166,9 +188,9 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	Runtime->WorldItemPickupReach = 210.0f;
 
 	LevelAsset->GetCellMutable(1, 1).NorthWall = EGridWallType::Solid;
-	TestFalse(TEXT("A wall blocks pickup of a free item in the neighbouring cell"), Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
+	TestTrue(TEXT("Grid movement blockage does not veto a visible one-cell pickup; the mouse visibility hit owns obstacle rejection"),
+		Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
 	LevelAsset->GetCellMutable(1, 1).NorthWall = EGridWallType::None;
-	TestTrue(TEXT("Opening the grid edge restores neighbouring free-item pickup"), Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
 
 	FGridItemInstance DiagonalFreeItem = WorldItem;
 	DiagonalFreeItem.RuntimeObjectId = FGuid::NewGuid();
