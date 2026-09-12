@@ -18,7 +18,6 @@ namespace
 		Object.CellX = 0;
 		Object.CellY = 0;
 		Object.WallSide = EGridEdge::None;
-		Object.bInitiallyEnabled = true;
 		return Object;
 	}
 
@@ -28,7 +27,7 @@ namespace
 		Spawn.SpawnId = SpawnId;
 		Spawn.CellX = 0;
 		Spawn.CellY = 0;
-		Spawn.bInitiallyEnabled = true;
+		Spawn.bSpawnAtStart = true;
 		return Spawn;
 	}
 
