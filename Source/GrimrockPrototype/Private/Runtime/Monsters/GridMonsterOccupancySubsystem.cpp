@@ -1,8 +1,48 @@
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 
+#include "EngineUtils.h"
+#include "Runtime/GridActivationComponent.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 
 DEFINE_LOG_CATEGORY(LogGridMonsterOccupancy);
+
+namespace
+{
+	AGridLevelRuntimeActor* ResolveRuntimeActorForMonster(const AGridMonsterActor* Monster)
+	{
+		if (!IsValid(Monster))
+		{
+			return nullptr;
+		}
+
+		if (AGridLevelRuntimeActor* OwnerRuntime = Cast<AGridLevelRuntimeActor>(Monster->GetOwner()))
+		{
+			return OwnerRuntime;
+		}
+
+		UWorld* World = Monster->GetWorld();
+		if (!World)
+		{
+			return nullptr;
+		}
+
+		for (TActorIterator<AGridLevelRuntimeActor> It(World); It; ++It)
+		{
+			return *It;
+		}
+		return nullptr;
+	}
+
+	void RefreshPressurePlateAtMonsterCell(const AGridMonsterActor* Monster, const FIntPoint& Cell)
+	{
+		AGridLevelRuntimeActor* RuntimeActor = ResolveRuntimeActorForMonster(Monster);
+		if (IsValid(RuntimeActor) && RuntimeActor->ActivationComponent)
+		{
+			RuntimeActor->ActivationComponent->RefreshPressurePlatesAtCell(Cell.X, Cell.Y);
+		}
+	}
+}
 
 bool FGridMonsterOccupancyRegistry::TryRegisterMonster(const FGuid& MonsterId, const FIntPoint& Cell)
 {
@@ -212,6 +252,7 @@ bool UGridMonsterOccupancySubsystem::RegisterMonster(AGridMonsterActor* Monster,
 	}
 
 	RegisteredActors.Add(MonsterId, Monster);
+	RefreshPressurePlateAtMonsterCell(Monster, Cell);
 	return true;
 }
 
@@ -223,8 +264,14 @@ void UGridMonsterOccupancySubsystem::UnregisterMonster(AGridMonsterActor* Monste
 		return;
 	}
 
+	FIntPoint PreviousCell;
+	const bool bHadOccupiedCell = Registry.TryGetMonsterCell(MonsterId, PreviousCell);
 	Registry.UnregisterMonster(MonsterId);
 	RegisteredActors.Remove(MonsterId);
+	if (bHadOccupiedCell)
+	{
+		RefreshPressurePlateAtMonsterCell(Monster, PreviousCell);
+	}
 }
 
 bool UGridMonsterOccupancySubsystem::TryReserveCell(AGridMonsterActor* Monster, FIntPoint Cell)
@@ -234,7 +281,14 @@ bool UGridMonsterOccupancySubsystem::TryReserveCell(AGridMonsterActor* Monster, 
 
 bool UGridMonsterOccupancySubsystem::CommitMove(AGridMonsterActor* Monster, FIntPoint FromCell, FIntPoint ToCell)
 {
-	return Registry.CommitReservation(ResolveMonsterId(Monster), FromCell, ToCell);
+	if (!Registry.CommitReservation(ResolveMonsterId(Monster), FromCell, ToCell))
+	{
+		return false;
+	}
+
+	RefreshPressurePlateAtMonsterCell(Monster, FromCell);
+	RefreshPressurePlateAtMonsterCell(Monster, ToCell);
+	return true;
 }
 
 void UGridMonsterOccupancySubsystem::CancelReservation(AGridMonsterActor* Monster)

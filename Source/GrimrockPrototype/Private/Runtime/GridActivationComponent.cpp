@@ -9,11 +9,13 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
+#include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "Runtime/GridRuntimeWorldObjectData.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Engine/Engine.h"
+#include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridActivation, Log, All);
 
@@ -205,6 +207,9 @@ bool UGridActivationComponent::RefreshPressurePlatesAtCell(int32 X, int32 Y)
 	PressurePlateIdsByCell.MultiFind(FIntPoint(X, Y), PlateIds);
 	bool bAnyStateChanged = false;
 
+	const UGridMonsterOccupancySubsystem* MonsterOccupancy =
+		RuntimeActor->GetWorld() ? RuntimeActor->GetWorld()->GetSubsystem<UGridMonsterOccupancySubsystem>() : nullptr;
+
 	for (const FGuid& PlateId : PlateIds)
 	{
 		const FGridWorldObjectInstance* PlateData = RuntimeActor->LevelAsset->FindWorldObjectInstanceById(PlateId);
@@ -218,8 +223,9 @@ bool UGridActivationComponent::RefreshPressurePlatesAtCell(int32 X, int32 Y)
 		const FGridPressurePlateWeightParams& WeightParams = EffectiveBehavior.PressurePlateWeight;
 		const float CurrentItemWeight = RuntimeActor->GetWorldItemWeightAtCell(X, Y, WeightParams.bCountEdgeItems);
 		const bool bPartyActivates = WeightParams.bActivateWhenPartyPresent && RuntimeActor->IsPartyOnCell(X, Y);
+		const bool bMonsterActivates = WeightParams.bActivateWhenMonsterPresent && MonsterOccupancy && MonsterOccupancy->IsCellOccupied(FIntPoint(X, Y));
 		const bool bWeightActivates = WeightParams.bUseItemWeight && CurrentItemWeight >= FMath::Max(0.0f, WeightParams.RequiredItemWeight);
-		const bool bShouldBePressed = bPartyActivates || bWeightActivates;
+		const bool bShouldBePressed = bPartyActivates || bMonsterActivates || bWeightActivates;
 		const bool bWasPressed = ActiveObjectIds.Contains(PlateId);
 
 		if (AGridPressurePlateActor* PlateActor = RuntimeActor->FindRuntimeObjectActor<AGridPressurePlateActor>(PlateId))
@@ -247,9 +253,10 @@ bool UGridActivationComponent::RefreshPressurePlatesAtCell(int32 X, int32 Y)
 		}
 
 		const EGridObjectEvent StateEvent = bShouldBePressed ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated;
-		UE_LOG(LogGridActivation, Log, TEXT("GridPressurePlate StateChanged Id=%s Cell=(%d,%d) Party=%s ItemWeight=%.2f RequiredWeight=%.2f Pressed=%s"),
-			*PlateId.ToString(), X, Y, bPartyActivates ? TEXT("true") : TEXT("false"), CurrentItemWeight, WeightParams.RequiredItemWeight,
-			bShouldBePressed ? TEXT("true") : TEXT("false"));
+		UE_LOG(LogGridActivation, Log,
+			TEXT("GridPressurePlate StateChanged Id=%s Cell=(%d,%d) Party=%s Monster=%s ItemWeight=%.2f RequiredWeight=%.2f Pressed=%s"),
+			*PlateId.ToString(), X, Y, bPartyActivates ? TEXT("true") : TEXT("false"), bMonsterActivates ? TEXT("true") : TEXT("false"),
+			CurrentItemWeight, WeightParams.RequiredItemWeight, bShouldBePressed ? TEXT("true") : TEXT("false"));
 		ExecuteLinksFromObjectForEvent(PlateId, StateEvent);
 		bAnyStateChanged = true;
 	}

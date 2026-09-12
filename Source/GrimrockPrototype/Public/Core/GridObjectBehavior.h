@@ -200,6 +200,10 @@ struct FGridPressurePlateWeightParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate|Weight")
 	bool bActivateWhenPartyPresent = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate|Weight",
+		meta = (DisplayName = "Activate When Monster Present", ToolTip = "If true, an occupying monster presses the plate. Reserved destination cells do not count until the monster actually arrives."))
+	bool bActivateWhenMonsterPresent = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate|Weight")
 	bool bUseItemWeight = false;
 
