@@ -3,6 +3,8 @@
 #if WITH_EDITOR
 
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "EditorTools/Widgets/SGridEditorDoorMotionOverridePanel.h"
+#include "EditorTools/Widgets/SGridEditorPressurePlateInstancePanel.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectBehavior.h"
@@ -431,9 +433,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSec
 	if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset) return SNullWidget::NullWidget;
 
 	const UGridWorldObjectDefinitionAsset* Definition = GetWorldObjectDefinition(CurrentEditorActor, Obj);
+	const EGridLevelObjectType ObjectType = CurrentEditorActor->LevelAsset->GetTypedPlacementType(Obj);
 	TSharedPtr<SWidget> PrimarySection;
 
-	switch (CurrentEditorActor->LevelAsset->GetTypedPlacementType(Obj))
+	switch (ObjectType)
 	{
 		case EGridLevelObjectType::Door:
 			PrimarySection = BuildDoorDetailsSection(Obj);
@@ -478,7 +481,26 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSec
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[PrimarySection.ToSharedRef()];
 
-	// Readable is an additional capability, not a replacement for the object's primary component.
+	// Object-specific companion sections belong immediately after their primary section.
+	// This keeps one authoring theme contiguous before unrelated capabilities/debug data.
+	if (ObjectType == EGridLevelObjectType::PressurePlate)
+	{
+		Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[
+			SNew(SGridEditorPressurePlateInstancePanel)
+				.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
+				.OnGetEditorActor(FOnGetGridEditorPressurePlateInstanceActor::CreateSP(this, &SGridEditorObjectInspectorPanel::GetEditorActor))
+				.OnRequestRefresh(FOnGridEditorPressurePlateInstanceRequestRefresh::CreateSP(this, &SGridEditorObjectInspectorPanel::RequestRefresh))];
+	}
+	else if (ObjectType == EGridLevelObjectType::Door)
+	{
+		Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[
+			SNew(SGridEditorDoorMotionOverridePanel)
+				.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
+				.OnGetEditorActor(FOnGetGridEditorDoorMotionOverrideActor::CreateSP(this, &SGridEditorObjectInspectorPanel::GetEditorActor))
+				.OnRequestRefresh(FOnGridEditorDoorMotionOverrideRequestRefresh::CreateSP(this, &SGridEditorObjectInspectorPanel::RequestRefresh))];
+	}
+
+	// Readable and light are additional capabilities, not replacements for the object's primary theme.
 	if (Definition && Definition->IsReadable())
 	{
 		Root->AddSlot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildReadableTextSection(Obj)];
@@ -881,7 +903,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSecti
 			.IsEnabled(bTransitionFieldsEnabled && !bPitUsesSameCellCoordinates)
 			.OnValueCommitted_Lambda([this, ObjectId, AssignValue](int32 NewValue, ETextCommit::Type)
 			{
-				EditWorldObjectConfig(ObjectId, [AssignValue, NewValue](FGridWorldObjectInstanceConfig& Config) { AssignValue(Config.Transition, NewValue); });
+				EditWorldObjectConfig(ObjectId, [AssignValue, NewValue](FGridObjectTransitionParams& Config) { AssignValue(Config, NewValue); });
 			}));
 	};
 	auto BuildFacingButton = [this, ObjectId, Transition, bTransitionFieldsEnabled](const TCHAR* Label, EGridEdge Facing) -> TSharedRef<SWidget>
@@ -909,9 +931,9 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSecti
 			{
 				EditWorldObjectConfig(ObjectId, [&NewText](FGridWorldObjectInstanceConfig& Config) { Config.Transition.TargetLevelId = GetNameFromEditorText(NewText); });
 			}))]
-		+ SVerticalBox::Slot().AutoHeight()[BuildIntTransitionRow(FText::FromString(TEXT("Target Cell X")), Transition.TargetCellX,
+		+ SVerticalBox::Slot().AutoHeight()[BuildIntBehaviorRow(FText::FromString(TEXT("Target Cell X")), Transition.TargetCellX,
 			[](FGridObjectTransitionParams& Params, int32 V){ Params.TargetCellX = V; })]
-		+ SVerticalBox::Slot().AutoHeight()[BuildIntTransitionRow(FText::FromString(TEXT("Target Cell Y")), Transition.TargetCellY,
+		+ SVerticalBox::Slot().AutoHeight()[BuildIntBehaviorRow(FText::FromString(TEXT("Target Cell Y")), Transition.TargetCellY,
 			[](FGridObjectTransitionParams& Params, int32 V){ Params.TargetCellY = V; })]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Target Facing")), SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 2.f, 0.f)[BuildFacingButton(TEXT("North"), EGridEdge::North)]
