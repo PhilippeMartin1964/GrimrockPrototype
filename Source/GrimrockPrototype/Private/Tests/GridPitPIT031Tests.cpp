@@ -78,7 +78,6 @@ namespace GridPIT031
 		Pit.CellX = X;
 		Pit.CellY = Y;
 		Pit.WallSide = EGridEdge::None;
-		Pit.bInitiallyEnabled = true;
 		Pit.InstanceConfig.Pit.bInitiallyOpen = false;
 		Pit.InstanceConfig.Pit.bUseSameCellCoordinates = true;
 		Pit.InstanceConfig.Transition.bIsTransition = true;
