@@ -54,12 +54,12 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 	}
 	else if (FGridMonsterSpawnInstance* MonsterSpawn = LevelAsset->FindMonsterSpawnInstanceById(LastSelectedObjectId))
 	{
-		MonsterSpawn->bInitiallyEnabled = bObjectInitiallyEnabled;
+		MonsterSpawn->bSpawnAtStart = bObjectInitiallyEnabled;
 	}
 	else if (FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(LastSelectedObjectId))
 	{
 		ItemSpawn->ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
-		ItemSpawn->bInitiallyEnabled = bObjectInitiallyEnabled;
+		ItemSpawn->bSpawnAtStart = bObjectInitiallyEnabled;
 	}
 	else if (FGridLogicObjectInstance* LogicInstance = LevelAsset->FindLogicObjectInstanceById(LastSelectedObjectId))
 	{
