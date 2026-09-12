@@ -255,7 +255,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	TMap<FGuid, int32> ReceptacleItemInsertedLinkCountBySourceId;
 	TMap<FGuid, int32> ReceptacleItemRemovedLinkCountBySourceId;
 	TMap<FGuid, int32> ReceptacleItemChangedLinkCountBySourceId;
-	TMap<FIntPoint, FGuid> EnabledMonsterSpawnByCell;
+	TMap<FIntPoint, FGuid> SpawnAtStartMonsterByCell;
 	TMap<FName, TMap<int32, TMap<FIntPoint, FGuid>>> EncounterMonsterSpawnByWaveAndCell;
 
 	const auto ValidatePlacement = [this, &AddMessage, &SeenObjectIds](FGuid ObjectId, int32 CellX, int32 CellY, FName PaletteEntryId, EGridLevelObjectType Type)
@@ -285,15 +285,6 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			return false;
 		}
 		return true;
-	};
-	const auto IsInitiallyEnabled = [this](FGuid ObjectId)
-	{
-		if (const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId)) return WorldObjectInstance->bInitiallyEnabled;
-		if (const FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(ObjectId)) return LooseItemInstance->bInitiallyEnabled;
-		if (const FGridMonsterSpawnInstance* MonsterSpawn = LevelAsset->FindMonsterSpawnInstanceById(ObjectId)) return MonsterSpawn->bInitiallyEnabled;
-		if (const FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(ObjectId)) return ItemSpawn->bInitiallyEnabled;
-		if (const FGridLogicObjectInstance* LogicInstance = LevelAsset->FindLogicObjectInstanceById(ObjectId)) return LogicInstance->bInitiallyEnabled;
-		return false;
 	};
 	const auto GetValidationAnchorKey = [this](FGuid ObjectId)
 	{
@@ -338,8 +329,6 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			{
 				if (Obj.ReadableTextOverride.IsEmpty() && Definition->ReadableText.IsEmpty())
 					AddMessage(EGridLevelValidationSeverity::Warning, Obj.Notes.IsEmpty() ? TEXT("Readable placed object has no text in either its instance override or definition.") : TEXT("Readable placed object has no text. Notes are editor-only and are not displayed at runtime."), ObjectId);
-				if (!Obj.bInitiallyEnabled)
-					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Readable placed object is initially disabled and cannot be read until enabled."), ObjectId);
 			}
 			else if (!Obj.ReadableTextOverride.IsEmpty())
 				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Placed object has a readable-text override, but its definition is not readable; the override is ignored at runtime."), ObjectId);
@@ -400,7 +389,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			{
 				const bool bOpenPitAtDestination = TargetLevel->WorldObjectInstances.ContainsByPredicate([TargetX, TargetY](const FGridWorldObjectInstance& Candidate)
 				{
-					return Candidate.Type == EGridLevelObjectType::Pit && Candidate.CellX == TargetX && Candidate.CellY == TargetY && Candidate.bInitiallyEnabled && Candidate.InstanceConfig.Pit.bInitiallyOpen;
+					return Candidate.Type == EGridLevelObjectType::Pit && Candidate.CellX == TargetX && Candidate.CellY == TargetY && Candidate.InstanceConfig.Pit.bInitiallyOpen;
 				});
 				if (bOpenPitAtDestination)
 					AddMessage(EGridLevelValidationSeverity::Error, TEXT("PIT01 destination contains another initially open pit; chained falls are not supported yet."), ObjectId);
@@ -492,11 +481,11 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			if (Cell.CellType == EGridCellType::Empty || Cell.bBlocksOccupancy)
 				AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn must be placed on a non-empty cell that allows occupancy."), ObjectId);
 			const FIntPoint CellKey(MonsterSpawn.CellX, MonsterSpawn.CellY);
-			if (MonsterSpawn.bInitiallyEnabled)
+			if (MonsterSpawn.bSpawnAtStart)
 			{
-				if (const FGuid* ExistingId = EnabledMonsterSpawnByCell.Find(CellKey))
-					AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("MonsterSpawn shares its initial cell with enabled MonsterSpawn %s."), *ExistingId->ToString()), ObjectId);
-				else EnabledMonsterSpawnByCell.Add(CellKey, ObjectId);
+				if (const FGuid* ExistingId = SpawnAtStartMonsterByCell.Find(CellKey))
+					AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("MonsterSpawn shares its initial cell with MonsterSpawn %s that also spawns at start."), *ExistingId->ToString()), ObjectId);
+				else SpawnAtStartMonsterByCell.Add(CellKey, ObjectId);
 			}
 			if (!MonsterSpawn.EncounterGroupId.IsNone() && MonsterSpawn.EncounterWaveIndex >= 0)
 			{
@@ -510,8 +499,8 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn requires EncounterWaveIndex >= 0."), ObjectId);
 		if (MonsterSpawn.EncounterGroupId.IsNone() && MonsterSpawn.EncounterWaveIndex > 0)
 			AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn requires EncounterGroupId when EncounterWaveIndex is greater than 0."), ObjectId);
-		if (!MonsterSpawn.EncounterGroupId.IsNone() && MonsterSpawn.EncounterWaveIndex > 0 && MonsterSpawn.bInitiallyEnabled)
-			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("MonsterSpawn belongs to future encounter wave %d and must be disabled at start."), MonsterSpawn.EncounterWaveIndex), ObjectId);
+		if (!MonsterSpawn.EncounterGroupId.IsNone() && MonsterSpawn.EncounterWaveIndex > 0 && MonsterSpawn.bSpawnAtStart)
+			AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("MonsterSpawn belongs to future encounter wave %d and must not spawn at start."), MonsterSpawn.EncounterWaveIndex), ObjectId);
 		if (MonsterSpawn.PatrolMode != EGridMonsterPatrolMode::None && MonsterSpawn.PatrolWaypoints.Num() < 2)
 			AddMessage(EGridLevelValidationSeverity::Error, TEXT("MonsterSpawn patrol mode requires at least two waypoints."), ObjectId);
 		for (int32 WaypointIndex = 0; WaypointIndex < MonsterSpawn.PatrolWaypoints.Num(); ++WaypointIndex)
@@ -586,12 +575,6 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 						*ToGridObjectEventText(Link.SourceEvent), *ToGridObjectTypeText(SourceType)),
 					Link.SourceObjectId);
 			}
-			const bool bDisabledMonsterLifecycleSource = SourceType == EGridLevelObjectType::MonsterSpawn;
-			if (!IsInitiallyEnabled(Link.SourceObjectId) && !bDisabledMonsterLifecycleSource)
-			{
-				AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Link %d source object is initially disabled."), LinkIndex),
-					Link.SourceObjectId);
-			}
 
 			switch (Link.SourceEvent)
 			{
@@ -636,15 +619,6 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 				AddMessage(EGridLevelValidationSeverity::Error,
 					FString::Printf(TEXT("Link %d command %s is not supported by the current runtime for target type %s."), LinkIndex,
 						*ToGridObjectCommandText(Link.Command), *ToGridObjectTypeText(TargetType)),
-					Link.TargetObjectId);
-			}
-			const bool bCommandCreatesDisabledMonster = TargetType == EGridLevelObjectType::MonsterSpawn &&
-				(Link.Command == EGridObjectCommand::Spawn || Link.Command == EGridObjectCommand::Activate || Link.Command == EGridObjectCommand::Enable ||
-					Link.Command == EGridObjectCommand::Toggle || Link.Command == EGridObjectCommand::StartEncounter);
-			if (!IsInitiallyEnabled(Link.TargetObjectId) && !bCommandCreatesDisabledMonster)
-			{
-				AddMessage(EGridLevelValidationSeverity::Warning,
-					FString::Printf(TEXT("Link %d target object is initially disabled and may have no spawned runtime actor."), LinkIndex),
 					Link.TargetObjectId);
 			}
 
