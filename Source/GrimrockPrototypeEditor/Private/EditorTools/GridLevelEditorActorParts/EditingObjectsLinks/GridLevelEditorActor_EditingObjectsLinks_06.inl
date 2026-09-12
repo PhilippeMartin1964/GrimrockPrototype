@@ -38,6 +38,11 @@ bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 		ReadAuthoring(*WorldObjectInstance);
 		WorldObjectDefinitionId = WorldObjectInstance->WorldObjectDefinitionId;
 		SelectedWorldObjectDefinitionId = WorldObjectDefinitionId;
+		bObjectInitiallyActive = WorldObjectInstance->Type == EGridLevelObjectType::Door
+			? WorldObjectInstance->InstanceConfig.bDoorInitiallyOpen
+			: WorldObjectInstance->Type == EGridLevelObjectType::Teleporter
+				? WorldObjectInstance->InstanceConfig.bTeleporterInitiallyEnabled
+				: false;
 		ObjectBehavior = GridObjectInstanceBehavior::Resolve(*WorldObjectInstance, FindWorldObjectDefinitionById(WorldObjectDefinitionId));
 	}
 	else if (const FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(ObjectId))
@@ -52,12 +57,12 @@ bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 	else if (const FGridMonsterSpawnInstance* MonsterSpawn = LevelAsset->FindMonsterSpawnInstanceById(ObjectId))
 	{
 		ReadAuthoring(*MonsterSpawn);
-		bObjectInitiallyEnabled = MonsterSpawn->bInitiallyEnabled;
+		bObjectInitiallyEnabled = MonsterSpawn->bSpawnAtStart;
 	}
 	else if (const FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(ObjectId))
 	{
 		ReadAuthoring(*ItemSpawn);
-		bObjectInitiallyEnabled = ItemSpawn->bInitiallyEnabled;
+		bObjectInitiallyEnabled = ItemSpawn->bSpawnAtStart;
 		ObjectBehavior.Item.ItemDefinitionAsset = ItemSpawn->ItemDefinition;
 	}
 	else if (const FGridLogicObjectInstance* LogicInstance = LevelAsset->FindLogicObjectInstanceById(ObjectId))
