@@ -1034,16 +1034,28 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 
 		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=WorldDropAttempt Item=%s WithinDistance=%s"),
 			*CursorItem.ItemDefinitionId.ToString(), bWithinInteractionDistance ? TEXT("true") : TEXT("false"));
-		if (MouseResolution.Intent == EGridMouseInteractionIntent::CursorItemWorldDrop &&
-			PartyPawn->TryDropCursorItemAtCell(MouseResolution.DropCellX, MouseResolution.DropCellY, EGridEdge::None, MouseResolution.DropLocalOffset))
+		if (MouseResolution.Intent == EGridMouseInteractionIntent::CursorItemWorldDrop)
 		{
-			if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget())
+			const bool bPlaced =
+				PartyPawn->TryDropCursorItemAtCell(MouseResolution.DropCellX, MouseResolution.DropCellY, EGridEdge::None, MouseResolution.DropLocalOffset);
+			if (bPlaced)
 			{
-				InventoryWidget->RefreshInventory();
+				if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget())
+				{
+					InventoryWidget->RefreshInventory();
+				}
+				UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=WorldDropAttempt Item=%s Result=Dropped Cell=(%d,%d)"),
+					*CursorItem.ItemDefinitionId.ToString(), MouseResolution.DropCellX, MouseResolution.DropCellY);
+				SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("ClickWorldDropSuccess"));
 			}
-			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=WorldDropAttempt Item=%s Result=Dropped Cell=(%d,%d)"),
-				*CursorItem.ItemDefinitionId.ToString(), MouseResolution.DropCellX, MouseResolution.DropCellY);
-			SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("ClickWorldDropSuccess"));
+			else
+			{
+				UE_LOG(LogGridMouse, Log,
+					TEXT("GridMouse Click Priority=CursorItem Branch=WorldDropAttempt Item=%s Result=Rejected Cell=(%d,%d) Reason=PlaceFailed"),
+					*CursorItem.ItemDefinitionId.ToString(), MouseResolution.DropCellX, MouseResolution.DropCellY);
+				ShowInteractionFeedback(FText::FromString(TEXT("Impossible de placer cet objet ici.")));
+				SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickWorldDropFailed"));
+			}
 			return;
 		}
 
@@ -1054,7 +1066,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 		{
 			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Result=NotThrowable"),
 				*CursorItem.ItemDefinitionId.ToString());
-			ShowInteractionFeedback(FText::FromString(TEXT("Cet objet ne peut pas \u00EAtre lanc\u00E9.")));
+			ShowInteractionFeedback(FText::FromString(TEXT("Cet objet ne peut pas être lancé.")));
 			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickThrowNotThrowable"));
 			return;
 		}
@@ -1066,7 +1078,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 		{
 			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Result=InvalidTargetOffset"),
 				*CursorItem.ItemDefinitionId.ToString());
-			ShowInteractionFeedback(FText::FromString(TEXT("Impossible de d\u00E9poser ou lancer ici.")));
+			ShowInteractionFeedback(FText::FromString(TEXT("Impossible de déposer ou lancer ici.")));
 			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickThrowInvalidOffset"));
 			return;
 		}
@@ -1075,7 +1087,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 		{
 			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Result=TooFar Distance=%.2f Max=%.2f"),
 				*CursorItem.ItemDefinitionId.ToString(), TargetDistance, MaxThrowTargetDistance);
-			ShowInteractionFeedback(FText::FromString(TEXT("Cible trop \u00E9loign\u00E9e.")));
+			ShowInteractionFeedback(FText::FromString(TEXT("Cible trop éloignée.")));
 			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickThrowTooFar"));
 			return;
 		}
@@ -1113,7 +1125,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 	if (MouseResolution.Intent == EGridMouseInteractionIntent::WorldInteractableOutOfRange)
 	{
 		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=WorldInteractable Actor=%s Result=OutOfRange"), *GetNameSafe(InteractableActor));
-		ShowInteractionFeedback(FText::FromString(TEXT("Hors de port\u00E9e.")));
+		ShowInteractionFeedback(FText::FromString(TEXT("Hors de portée.")));
 		if (bDebugMouseInteraction)
 		{
 			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction: %s is outside interaction distance."), *GetNameSafe(InteractableActor));
