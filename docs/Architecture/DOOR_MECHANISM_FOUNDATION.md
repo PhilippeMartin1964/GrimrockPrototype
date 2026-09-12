@@ -1,114 +1,128 @@
 # Architecture des portes et mécanismes
 
-> **Contrat courant MIG10 (2026-09-09)** : voir les [définitions et placements typés](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les extraits ci-dessous utilisant `FGridLevelObjectData`, `Objects`, les anciens meshes spécialisés ou la copie intégrale de `Behavior` décrivent explicitement l’ancien état ; ils ne sont plus des instructions de schéma. Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, et les visuels utilisent `StaticPart` / `MovingParts`.
-
+> **Contrat courant (2026-09-12)** : placements typés, `UGridWorldObjectDefinitionAsset`, motion générique `MovingParts[].Motion` et états initiaux sémantiques. Voir aussi [Définitions et placements typés](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md).
 
 Les items, le curseur et leur transfert vers les réceptacles sont documentés dans [`ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md`](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md).
 
 ## 1. Objet du document
 
-Ce document décrit la fondation existante qui relie une porte placée, son acteur runtime, les commandes issues des mécanismes, son animation et la passabilité de la grille.
+Ce document décrit la fondation qui relie une porte placée, sa définition réutilisable, son acteur runtime, les commandes issues des mécanismes, son animation et la passabilité de la grille.
 
-Il ne définit ni serrure complexe, ni système de clés, ni nouveau type de porte.
+Il ne décrit pas le système général d'inventaire ni les puzzles particuliers.
 
 ## 2. Vocabulaire
 
-**Porte placée** : `FGridLevelObjectData` de type `Door`, persistée dans `UGridLevelAsset::Objects`.
+**Porte placée** : `FGridWorldObjectInstance` de type `Door`, persistée dans `UGridLevelAsset::WorldObjectInstances` et référant une `UGridWorldObjectDefinitionAsset` par `WorldObjectDefinitionId`.
 
-**Arête de porte** : triplet cellule `CellX`, `CellY` et bord cardinal `Edge`.
+**Arête de porte** : triplet cellule `CellX`, `CellY` et bord cardinal `WallSide`.
 
-**État de passage** : présence ou absence de l’arête dans `UGridDoorSystemComponent::RuntimeBlockedDoorEdges`. C’est la source de vérité de `CanMove()`.
+**État initial** : `InstanceConfig.bDoorInitiallyOpen`. Une porte placée existe parce qu'elle est présente dans `WorldObjectInstances` ; il n'existe plus de booléen générique d'existence ou d'activité.
 
-**État visuel** : position cible et animation de `AGridDoorActor`. `bIsOpen` indique la position atteinte lorsque l’animation se termine.
+**État de passage** : état maintenu par `UGridDoorSystemComponent`. `CanMove()` ne considère une porte franchissable que lorsque l'ouverture est réellement arrivée à son état terminal ouvert.
 
-**Mécanisme source** : bouton, levier, plaque, réceptacle ou trigger dont un événement sélectionne un `FGridObjectLink`.
+**État visuel** : alpha et cible d'animation de `AGridDoorActor`. `IsFullyOpen()` / `IsFullyClosed()` représentent les états terminaux.
+
+**Mécanisme source** : bouton, levier, plaque, réceptacle, trigger ou autre émetteur dont un événement sélectionne un `FGridObjectLink`.
 
 ![Flux commande, état et passage](../Images/door_10_1_command_state_flow.svg)
 
 ## 3. Cartographie du code
 
-| Domaine | Déclaration | Implémentation | Responsabilité |
-|---|---|---|---|
-| Données placées | `Source/GrimrockPrototype/Public/Core/GridTypes.h` | structure sans `.cpp` | Position, bord, état initial, comportement et identité. |
-| Paramètres de porte | `Source/GrimrockPrototype/Public/Core/GridObjectBehavior.h` | structure sans `.cpp` | Hauteur, durée et chaîne optionnelle. |
-| Niveau | `Source/GrimrockPrototype/Public/Core/GridLevelAsset.h` | `Source/GrimrockPrototype/Private/Core/GridLevelAsset.cpp` | Stockage persistant dans `Objects` et `Links`. |
-| Acteur visuel | `Source/GrimrockPrototype/Public/Runtime/GridDoorActor.h` | `Source/GrimrockPrototype/Private/Runtime/GridDoorActor.cpp` | Meshes, animation verticale, chaîne et interaction. |
-| État central | `Source/GrimrockPrototype/Public/Runtime/GridDoorSystemComponent.h` | `Source/GrimrockPrototype/Private/Runtime/GridDoorSystemComponent.cpp` | Index des portes, passage bloqué, commandes et état runtime. |
-| Niveau runtime | `Source/GrimrockPrototype/Public/Runtime/GridLevelRuntimeActor.h` | `Source/GrimrockPrototype/Private/Runtime/GridLevelRuntimeActor.cpp` | Génération, résolution des deux côtés d’une arête et `CanMove()`. |
-| Liens | `Source/GrimrockPrototype/Public/Runtime/GridActivationComponent.h` | `Source/GrimrockPrototype/Private/Runtime/GridActivationComponent.cpp` | Traduit les commandes de lien en opérations de porte. |
-| Validation | `Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEditorActor.h` | `Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEditorActor.cpp` | Cohérence placement, arête et liens entrants. |
-| Panneau de liens | `Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorLinksPanel.cpp` | même fichier | Propose les commandes compatibles avec une porte. |
+| Domaine | Déclaration / implémentation | Responsabilité |
+|---|---|---|
+| Placement typé | `Core/GridLevelPlacementTypes.h` | Identité, cellule, bord, état initial et overrides d'instance. |
+| Définition | `Core/GridWorldObjectDefinitionAsset.h/.cpp` | Présentation, motion, audio et comportement partagé. |
+| Motion | `Core/GridWorldObjectVisual.h` | `StaticPart`, `MovingParts`, type/axe/pivot/amplitude/durées. |
+| Niveau | `Core/GridLevelAsset.h/.cpp` | `WorldObjectInstances`, `Links` et validation de base. |
+| Acteur visuel | `Runtime/GridDoorActor.h/.cpp` | Animation et représentation runtime de la porte. |
+| État central | `Runtime/GridDoorSystemComponent.h/.cpp` | Index des portes, blocage de passage et synchronisation d'état. |
+| Niveau runtime | `Runtime/GridLevelRuntimeActor.h/.cpp` | Résolution des arêtes, commandes et `CanMove()`. |
+| Liens | `Runtime/GridActivationComponent.h/.cpp` | Traduit les commandes de lien en opérations de porte. |
+| Éditeur | module `GrimrockPrototypeEditor` | Placement, Selected Object, liens, validation et preview. |
 
 ## 4. Données persistantes
 
-Une porte utilise les champs communs de `FGridLevelObjectData` :
+Une porte placée porte notamment :
 
-- `ObjectId`, identité des liens et de l’état runtime ;
+- `InstanceId`, identité stable pour les liens et la persistance ;
 - `Type=Door` ;
-- `CellX`, `CellY`, cellule qui porte l’arête ;
-- `Edge`, bord cardinal obligatoire ;
-- `WorldObjectDefinitionId`, résolution de la classe et des meshes ;
-- `bInitiallyEnabled`, qui décide si l’acteur est généré ;
-- `bInitiallyActive`, interprété comme « ouverte au démarrage » ;
-- `Behavior.DoorAnimation`, copie locale des paramètres de mouvement et de chaîne.
+- `WorldObjectDefinitionId` ;
+- `CellX`, `CellY`, `WallSide` ;
+- `InstanceConfig.bDoorInitiallyOpen` ;
+- les éventuels `MovingPartOverrides` sparse ;
+- les éventuels overrides de chaîne (`DoorChainMode`, durée de traction) ;
+- les données locales de serrure lorsqu'elles sont utilisées.
 
-`FGridDoorAnimationParams` contient `OpenHeight`, `MoveDuration`, `bHasChainMechanism`, `ChainPullDistance` et `ChainPullDuration`.
+La définition porte la composition visuelle et la motion partagée :
 
-La cellule doit rester franchissable et l’arête de la porte doit utiliser `WallType=None`. Un mur `Solid` continue de bloquer `CanMove()` même si la porte est ouverte.
+```text
+StaticPart
+MovingParts.Part0
+  ├── Mesh
+  ├── LocalTransform
+  └── Motion { Type, Axis, Pivot, Amount, Duration, ReverseDuration }
+MovingParts.Part1      // optionnelle
+```
 
-## 5. Génération runtime
+Il n'existe plus de `DoorAnimation.OpenHeight` comme autorité de course. Pour une translation, `Motion.Amount` est exprimé en centimètres ; pour une rotation, en degrés. `Duration` est la durée forward et `ReverseDuration` la durée inverse optionnelle.
 
-`AGridLevelRuntimeActor::AddRuntimeObjectActor()` résout la définition, génère sa `RuntimeActorClass`, initialise les visuels du mécanisme puis appelle `InitializeGridObject()`.
+Un placement peut surcharger uniquement les propriétés autorisées par `MovingPartOverrides` : transform local, amplitude et durée forward. Mesh, type de motion, axe, pivot et durée inverse restent Definition-owned.
+
+La cellule doit rester franchissable et l'arête structurelle de la porte ne doit pas être doublée par un mur bloquant. Une porte entièrement ouverte n'annule pas un mur structurel `Solid` qui bloquerait encore `CanMove()`.
+
+## 5. Initialisation runtime
+
+`AGridLevelRuntimeActor` résout la définition, construit `FGridRuntimeWorldObjectData`, génère la classe runtime et initialise les visuels.
 
 Pour une porte :
 
-1. `AGridDoorActor` reçoit `ObjectId`, cellule et bord ;
-2. le mesh mobile est placé fermé ou à `OpenHeight` selon `bInitiallyActive` ;
-3. la chaîne est créée si elle est activée et si ses meshes existent ;
-4. `UGridDoorSystemComponent::RegisterDoorObject()` indexe l’acteur par arête ;
-5. l’arête est initialement bloquée si `bInitiallyActive=false`.
+1. `InstanceConfig.bDoorInitiallyOpen` est normalisé dans le payload runtime ;
+2. `AGridDoorActor` résout les `MovingParts` effectives (Definition + overrides sparse) ;
+3. l'alpha initial vaut 0 pour une porte fermée et 1 pour une porte ouverte ;
+4. `UGridDoorSystemComponent` indexe la porte par arête ;
+5. le passage initial est bloqué tant que la porte n'est pas entièrement ouverte.
 
-`DoorIndexByEdge` résout les données placées. `DoorActorByEdge` résout l’acteur visuel.
+`FGridRuntimeWorldObjectData` est une frontière d'implémentation non persistée. Ses champs normalisés ne doivent pas être utilisés comme modèle d'authoring.
 
-## 6. État logique et visuel
+## 6. État logique, visuel et passabilité
 
-`RuntimeBlockedDoorEdges` est la source de vérité de la passabilité :
+`AGridDoorActor` conserve notamment :
 
-- arête présente : porte bloquante ;
-- arête absente : passage autorisé par le système de porte.
+- la cible ouverte/fermée ;
+- l'alpha de motion courant ;
+- l'état d'animation ;
+- `IsFullyOpen()` / `IsFullyClosed()`.
 
-`AGridDoorActor` conserve l’état de son animation :
+La règle de passage est volontairement stricte :
 
-- `bIsAnimating`, mouvement en cours ;
-- `bIsOpen`, position finale atteinte ;
-- `IsFullyOpen()` et `IsFullyClosed()`, états terminaux.
+```text
+porte fermée          -> passage bloqué
+porte en ouverture    -> passage bloqué
+porte entièrement ouverte -> passage autorisé
+porte en fermeture    -> passage bloqué
+```
 
-La politique runtime est asymétrique et volontaire :
+Le test `Grimrock.Runtime.Doors.PassageBlockedUntilFullyOpen` verrouille ce contrat pour une porte normale et une porte secrète.
 
-- une commande d’ouverture libère immédiatement l’arête, puis lance l’animation ;
-- une commande de fermeture bloque immédiatement l’arête, puis lance l’animation ;
-- la fin d’animation vérifie et resynchronise l’arête avec la position finale.
-
-Cette règle évite une porte visuellement en mouvement dont la passabilité conserve un ordre précédent. Une commande inverse pendant l’animation inverse aussi la cible visuelle et l’état de passage.
+Une inversion de commande pendant une animation change la cible sans considérer une porte partiellement ouverte comme franchissable. Le système central et l'acteur visuel restent ainsi cohérents.
 
 ![Cohérence des états de porte](../Images/door_10_3_state_consistency.svg)
 
 ## 7. Commandes applicables
 
-`UGridActivationComponent::ApplyDoorLinkCommand()` applique :
+`UGridActivationComponent` peut appliquer à une porte :
 
 | Commande | Effet |
 |---|---|
-| `Open` | Appelle `OpenDoorOnEdge()`. |
-| `Activate` | Alias actuel de `Open`. |
-| `Close` | Appelle `CloseDoorOnEdge()`. |
-| `Deactivate` | Alias actuel de `Close`. |
-| `Toggle` | Inverse l’état de passage central. |
-| Autre valeur | Échec du lien et diagnostic. |
+| `Open` | Demande l'ouverture. |
+| `Activate` | Alias fonctionnel d'ouverture pour les liens génériques. |
+| `Close` | Demande la fermeture. |
+| `Deactivate` | Alias fonctionnel de fermeture. |
+| `Toggle` | Inverse la cible courante. |
 
-`AGridLevelRuntimeActor` résout d’abord l’arête directe, puis l’arête opposée de la cellule voisine. Une commande fonctionne donc depuis les deux représentations d’une même séparation.
+`AGridLevelRuntimeActor` résout l'arête directe puis, lorsque nécessaire, l'arête opposée de la cellule voisine. Les deux côtés d'une même séparation adressent donc la même porte.
 
-Une commande répétant l’état courant est sans danger. L’acteur ignore une cible visuelle déjà atteinte et l’état de passage reste idempotent.
+Les commandes sont idempotentes : redemander la cible déjà atteinte ne crée pas une seconde animation incohérente.
 
 ## 8. Sources de commande
 
@@ -117,98 +131,68 @@ Une commande répétant l’état courant est sans danger. L’acteur ignore une
 Les chemins suivants convergent vers le même système :
 
 - bouton `Activated` ;
-- levier `Activated` ou `Deactivated` ;
-- plaque `Activated` ou `Deactivated` ;
+- levier `Activated` / `Deactivated` ;
+- plaque `Activated` / `Deactivated` ;
 - réceptacle `ItemInserted`, `ItemRemoved` ou `ItemChanged` ;
-- trigger `Activated` ou `Deactivated` ;
-- tout autre émetteur runtime explicitement pris en charge.
+- trigger et logique de niveau ;
+- callbacks Lua via les commandes runtime autorisées.
 
-`SourceEvent` sélectionne le lien. `Command` choisit ensuite `Open`, `Close`, `Toggle`, `Activate` ou `Deactivate`.
-Pour les réceptacles, voir [`RECEPTACLE_SYSTEM_FOUNDATION.md`](RECEPTACLE_SYSTEM_FOUNDATION.md).
+`SourceEvent` sélectionne le lien. `Command` choisit l'opération cible. Pour les réceptacles, voir [`RECEPTACLE_SYSTEM_FOUNDATION.md`](RECEPTACLE_SYSTEM_FOUNDATION.md).
 
-## 9. Chaîne optionnelle
+## 9. Leviers et plaques de pression
 
-La chaîne appartient à `AGridDoorActor` :
+Un levier placé ne possède pas d'override « On at Start ». Il commence au repos / Off ; sa motion est définie par `MovingParts[].Motion`.
 
-- `ChainInteractionBox` bloque uniquement `ECC_Visibility` et sert au clic ;
-- les meshes de chaîne n’ont pas de collision ;
-- `CanInteract()` vérifie le composant touché, l’état des animations et le bon côté de l’arête avec `CanPartyInteractWithEdgeObject()` ;
-- le mauvais côté est refusé ;
-- `PullChain()` anime la traction ;
-- à la fin de la traction, la chaîne appelle `AGridLevelRuntimeActor::ToggleDoorOnEdge()`.
+Une plaque de pression ne possède pas d'état « Pressed at Start » authoré. Elle démarre relâchée, puis `UGridActivationComponent` calcule son état effectif à partir des règles de la définition ou de l'override d'instance : présence du groupe, présence d'un monstre si cette règle est activée, poids des items et règles de bord.
 
-La chaîne utilise donc désormais la même source de vérité que les liens. Elle ne modifie plus directement `AGridDoorActor`.
+Cette séparation évite qu'un ancien booléen générique « actif » signifie selon le type « porte ouverte », « levier On » ou « plaque pressée ».
 
-## 10. `CanMove()` et collision
+## 10. Chaîne optionnelle
 
-`AGridLevelRuntimeActor::CanMove()` vérifie, dans l’ordre :
+La chaîne reste une interaction de porte :
 
-1. la cellule de départ ;
-2. la cellule voisine ;
-3. `DoorSystemComponent->IsDoorPassageBlocked()` sur l’arête directe ou opposée ;
-4. le mur directionnel de la cellule de départ.
+- son hit-test sert à l'interaction souris ;
+- sa motion est indépendante de la source de vérité de passage ;
+- `PullChain()` déclenche finalement la commande de porte via le runtime ;
+- `DoorChainMode` peut hériter, forcer l'activation ou la désactivation au niveau de l'instance ;
+- la durée de traction peut être surchargée par instance, mais la géométrie partagée reste Definition-owned.
 
-Une porte ouverte n’annule pas un mur `Solid`. La validation éditeur signale cette configuration.
+La chaîne ne modifie donc pas directement la passabilité en contournant le système central.
 
-Le déplacement case par case ne prend pas la collision du mesh comme source de vérité. La base `AGridRuntimeObjectActor::MeshComponent` est sans collision ; les composants de mécanisme peuvent conserver leurs réglages de mesh, mais `CanMove()` reste autoritaire pour la traversée. La collision `Visibility` de la chaîne concerne uniquement la sélection par la souris.
+## 11. `CanMove()` et collision
 
-## 11. État de niveau
+Le déplacement case par case consulte les données de grille et le système de porte ; la collision physique du mesh n'est pas la source de vérité du déplacement logique.
 
-`CaptureCurrentLevelRuntimeState()` demande au système de porte :
+Une porte ne devient franchissable qu'après l'état terminal ouvert. Les composants de collision ou de visibilité peuvent servir au clic et à la présentation, mais ne remplacent pas cette règle.
 
-- l’état ouvert ;
-- l’état d’animation ;
-- l’état bloquant.
+## 12. Persistance
 
-L’état persistant de transition de niveau conserve `bIsOpen` et `bBlocksMovement`. `ApplyDoorState()` replace instantanément le visuel et l’arête lors de la restauration. L’animation en cours n’est pas reprise.
+Le SaveGame conserve les deltas runtime nécessaires à la restauration de la porte. Lors d'un chargement, le placement fournit le défaut sémantique (`bDoorInitiallyOpen`) et le runtime persistant, lorsqu'il existe, reprend ensuite l'autorité sur l'état mutable.
 
-## 12. Validation éditeur
+La composition visuelle, les meshes et la motion partagée ne sont pas dupliqués dans la sauvegarde : ils sont retrouvés via la définition.
 
-`ValidateCurrentLevel()` signale :
+## 13. Éditeur
 
-- porte ou objet d’arête avec `Edge=None` ;
-- porte posée sur un mur `Solid` ;
-- porte sur une limite extérieure sans cellule voisine ;
-- commande non compatible avec une cible de type porte ;
-- source ou cible absente ou désactivée ;
-- même événement d’une même source qui ouvre et ferme la même porte.
+Dans **Selected Object**, une porte expose `Open at Start`, directement mappé sur `InstanceConfig.bDoorInitiallyOpen`.
 
-`SGridEditorLinksPanel` propose pour une porte : `Open`, `Close`, `Toggle`, `Activate` et `Deactivate`.
+Le panneau de motion d'instance permet de surcharger la course/angle et la durée forward des parties mobiles sans recopier la définition complète. L'UI doit distinguer clairement la valeur de Definition et l'override local.
 
-## 13. Diagnostics
+La validation doit signaler notamment :
 
-Le runtime journalise :
+- une porte murale sans `WallSide` cardinal ;
+- une définition absente ou incompatible ;
+- une frontière incohérente avec la géométrie structurelle ;
+- des liens dont la commande n'est pas supportée par la cible.
 
-- l’échec de résolution d’un acteur de porte ;
-- chaque commande d’ouverture ou fermeture avec l’état bloquant ;
-- la fin d’animation avec l’état final ;
-- l’échec d’une chaîne qui ne peut pas résoudre ou commander le runtime ;
-- le résultat du lien source vers cible.
+## 14. Règles d'architecture
 
-`GetDebugSummary()` expose le nombre de portes indexées, d’acteurs associés et d’arêtes bloquées.
-
-## 14. Règles d’architecture
-
-1. `UGridLevelAsset::Objects` conserve les portes placées.
-2. `UGridDoorSystemComponent::RuntimeBlockedDoorEdges` décide de la passabilité.
-3. `AGridDoorActor` anime et représente visuellement cet ordre.
-4. Toute commande, y compris la chaîne, passe par le système central.
-5. `CanMove()` reste autoritaire face à la collision physique des meshes.
-6. `bInitiallyActive` signifie « porte initialement ouverte ».
-7. Une arête de porte doit avoir `WallType=None`.
-8. Les deux côtés d’une arête résolvent la même porte.
-
-## 15. Limites actuelles
-
-- aucune serrure ou clé générale ;
-- aucune protection contre la fermeture sur le groupe, qui se déplace par cellules ;
-- l’ouverture autorise le passage dès le début de l’animation ;
-- la restauration replace la porte sans reprendre une animation interrompue ;
-- `Opened` et `Closed` existent dans l’enum mais ne sont pas émis ;
-- la collision des meshes dépend encore de leurs composants et assets, sans piloter `CanMove()`.
-
-Le curseur de chaîne et les retours d'interaction associés sont décrits dans
-[`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md`](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md).
-
-Les validations de porte et leur navigation dans l'éditeur sont décrites dans
-[`LEVEL_VALIDATION_PANEL_FOUNDATION.md`](LEVEL_VALIDATION_PANEL_FOUNDATION.md).
+1. `WorldObjectInstances` conserve les portes placées.
+2. `InstanceConfig.bDoorInitiallyOpen` est l'unique état initial authoré de la porte.
+3. `MovingParts[].Motion` est l'autorité de mouvement partagée.
+4. Les overrides de mouvement d'instance restent sparse.
+5. Le système de porte décide de la passabilité logique.
+6. `AGridDoorActor` représente et anime cet état.
+7. Une porte partiellement ouverte reste bloquante.
+8. Toute commande, y compris la chaîne et Lua, passe par l'API runtime centrale.
+9. `CanMove()` reste autoritaire face à la collision physique des meshes.
+10. Les deux côtés d'une arête résolvent la même porte.

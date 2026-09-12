@@ -206,7 +206,7 @@ namespace
 	}
 
 	FGridMonsterSpawnInstance MakeMON176Spawn(UGridMonsterDefinitionAsset* Definition, FGuid SpawnId, FIntPoint Cell, FName EncounterId = NAME_None,
-		int32 WaveIndex = 0, bool bInitiallyEnabled = true)
+		int32 WaveIndex = 0, bool bSpawnAtStart = true)
 	{
 		FGridMonsterSpawnInstance Spawn;
 		Spawn.SpawnId = SpawnId;
@@ -217,7 +217,7 @@ namespace
 		Spawn.MonsterDefinition = Definition;
 		Spawn.EncounterGroupId = EncounterId;
 		Spawn.EncounterWaveIndex = WaveIndex;
-		Spawn.bInitiallyEnabled = bInitiallyEnabled;
+		Spawn.bSpawnAtStart = bSpawnAtStart;
 		return Spawn;
 	}
 

@@ -1,14 +1,14 @@
 # MON14.2 — Perception directionnelle, état initial et données de patrouille
 
-## Statut
+Statut : **contrat courant sur placements typés**, 2026-09-12.
 
 MON14.2 prolonge MON14.1 sans modifier le TurnManager ni le protocole de démarrage du combat.
 
 Le jalon introduit trois fondations :
 
-1. un état initial `Idle` ou `Dormant` sérialisé par `MonsterSpawn` ;
+1. un état initial `Idle` ou `Dormant` sérialisé par `FGridMonsterSpawnInstance` ;
 2. une vision axiale directionnelle qui tient compte du `Facing` courant du monstre ;
-3. un modèle de données de patrouille sérialisé, mais sans exécution de mouvement avant MON14.3.
+3. un modèle de données de patrouille sérialisé, exécuté ensuite par MON14.3.
 
 ## Principes conservés de MON14.1
 
@@ -25,50 +25,51 @@ Une source directe automatique doit **voir** le groupe. L'ouïe seule peut mettr
 
 Le chemin manuel/diagnostic `StartCombatFromPerception()` conserve son contrat historique vue **ou** ouïe.
 
-Aucun `Tick` IA n'est ajouté.
+Aucun `Tick` IA permanent n'est ajouté.
 
 ## 1. État initial du MonsterSpawn
 
-`FGridLevelObjectData` possède maintenant :
+`FGridMonsterSpawnInstance` contient :
 
 ```cpp
 EGridMonsterState InitialMonsterState = EGridMonsterState::Idle;
+bool bSpawnAtStart = true;
 ```
 
-Les seules valeurs authoring valides sont :
+Les seules valeurs d'authoring initial validées sont :
 
 - `Idle` ;
 - `Dormant`.
 
-Les états `Alert`, `Pursuing`, `Attacking`, `Repositioning`, `Hurt` et `Dead` sont des états runtime et ne peuvent pas être utilisés comme état de départ d'un placement frais.
+Les états `Alert`, `Pursuing`, `Attacking`, `Repositioning`, `Hurt` et `Dead` sont des états runtime et ne doivent pas être utilisés comme état de départ d'un placement frais.
 
 ### Présence et dormance restent distinctes
 
-La règle MON14.1 est maintenue :
-
 ```text
-bInitiallyEnabled = false
-    => le monstre est absent
+bSpawnAtStart = false
+    => aucun Actor au démarrage
 
-bInitiallyEnabled = true + InitialMonsterState = Dormant
-    => le monstre est présent mais dormant
+bSpawnAtStart = true + InitialMonsterState = Dormant
+    => Actor présent mais dormant
 ```
 
-`Dormant` ne doit donc jamais être simulé en désactivant le `MonsterSpawn`.
+`Dormant` ne doit donc jamais être simulé en supprimant le spawn initial.
+
+Il n'existe plus de `bInitiallyEnabled` ou `bInitiallyActive` générique sur `MonsterSpawn`.
 
 ### Fresh game et Continue
 
-Lors d'une création fraîche, `AGridMonsterActor::InitializeMonster()` lit la configuration du `MonsterSpawn` possédant le même `SpawnId` et applique `Idle` ou `Dormant` avant `BeginPlay`.
+Lors d'une création fraîche, le runtime applique la configuration du `FGridMonsterSpawnInstance` possédant le même `SpawnId`, notamment `InitialMonsterState`.
 
-Lors d'un Continue, MON9/MON13 restaure ensuite l'état runtime sauvegardé. L'état initial du placement n'écrase jamais un état persistant déjà connu.
+Lors d'un Continue, l'état runtime sauvegardé prévaut sur l'état initial du placement lorsqu'un état persistant existe déjà.
 
 ## 2. Champ de vision directionnel
 
-MON4 utilisait déjà une géométrie de vue simple et adaptée au dungeon crawler :
+MON4 utilise une géométrie de vue adaptée au dungeon crawler :
 
 - même ligne X ou Y ;
 - portée en cellules ;
-- chaque edge traversé doit être praticable ;
+- chaque edge traversé doit être praticable pour la vue ;
 - murs et portes fermées bloquent la vue ;
 - pas de vision autour d'un angle.
 
@@ -83,7 +84,7 @@ South : cible sur X identique et Y inférieur
 West  : cible sur Y identique et X inférieur
 ```
 
-Le modèle reste volontairement un **rayon cardinal**, pas un cône angulaire. C'est cohérent avec le déplacement case par case et permet de produire des gardes lisibles sans introduire de physique ou de perception continue.
+Le modèle reste volontairement un **rayon cardinal**, pas un cône angulaire. Il est cohérent avec le déplacement case par case et garde les gardes lisibles sans introduire une perception physique continue.
 
 ### API pure
 
@@ -93,24 +94,31 @@ Le modèle reste volontairement un **rayon cardinal**, pas un cône angulaire. C
 HasStraightLineOfSight(...)
 ```
 
-comme contrat géométrique MON4 indépendant du Facing.
+comme contrat géométrique indépendant du Facing.
 
-MON14.2 ajoute :
+MON14.2 utilise également :
 
 ```cpp
 IsTargetInFacingDirection(...)
 HasDirectionalLineOfSight(...)
 ```
 
-`UGridMonsterBehaviorComponent::RefreshPerception()` utilise désormais `HasDirectionalLineOfSight()`.
+`UGridMonsterBehaviorComponent::RefreshPerception()` s'appuie sur la ligne de vue directionnelle.
 
 ### Ouïe
 
-L'ouïe n'est pas modifiée : elle reste omnidirectionnelle et fondée sur la distance de Manhattan.
+L'ouïe reste omnidirectionnelle et fondée sur la topologie/distance prévue par le système acoustique du projet. Elle ne déclenche pas à elle seule le combat automatique.
 
 ## 3. Données de patrouille
 
-MON14.2 introduit :
+Le placement typé contient :
+
+```cpp
+EGridMonsterPatrolMode PatrolMode;
+TArray<FGridMonsterPatrolWaypoint> PatrolWaypoints;
+```
+
+avec :
 
 ```cpp
 EGridMonsterPatrolMode
@@ -132,75 +140,68 @@ FGridMonsterPatrolWaypoint
 };
 ```
 
-Chaque `MonsterSpawn` possède :
-
-```cpp
-EGridMonsterPatrolMode PatrolMode;
-TArray<FGridMonsterPatrolWaypoint> PatrolWaypoints;
-```
-
-Le runtime copie ces données vers l'Actor lors d'un spawn frais.
-
 ### Sémantique des waypoints
 
 - `Cell` est la cellule d'arrivée ;
 - `Facing=None` signifie que le waypoint n'impose pas d'orientation finale ;
-- une direction cardinale impose l'orientation d'arrivée future ;
+- une direction cardinale impose l'orientation d'arrivée ;
 - `WaitSeconds=0` signifie aucune attente ;
-- une route `Loop` reviendra du dernier waypoint vers le premier ;
-- une route `PingPong` parcourra la liste dans les deux sens.
+- `Loop` revient du dernier waypoint au premier ;
+- `PingPong` parcourt la liste dans les deux sens.
 
-Ces deux dernières règles sont **des contrats de données seulement dans MON14.2**.
+La route appartient au `LevelAsset`. Le curseur d'exécution MON14.3 reste runtime/transitoire.
 
-## 4. Ce que MON14.2 n'implémente pas
+## 4. Validation des MonsterSpawn
 
-MON14.2 ne fait pas encore marcher un monstre hors combat.
+`UGridLevelAsset::ValidateMonsterSpawns()` vérifie notamment :
 
-Il n'ajoute donc pas :
+- `InitialMonsterState` = `Idle` ou `Dormant` ;
+- `Facing` du spawn cardinal ;
+- une patrouille active (`Loop` ou `PingPong`) avec au moins deux waypoints ;
+- chaque waypoint dans la grille ;
+- cellule non vide et autorisant l'occupation ;
+- `Facing` de waypoint = `None` ou cardinal ;
+- `WaitSeconds` fini et positif ou nul.
 
-- de scheduler de patrouille ;
-- de déplacement automatique entre waypoints ;
-- d'attente runtime ;
-- de retournement automatique au waypoint ;
-- d'investigation après bruit ;
-- de retour à la patrouille après perte du groupe ;
-- de mouvement IA dans `Tick`.
+Une liste de waypoints peut rester stockée avec `PatrolMode=None`, ce qui permet de désactiver temporairement une route sans perdre son authoring.
 
-Ces comportements appartiennent à MON14.3.
+## 5. Placement typé et compatibilité conceptuelle
 
-## 5. Validation des MonsterSpawn
-
-`UGridLevelAsset::ValidateMonsterSpawns()` valide maintenant :
-
-- `InitialMonsterState` doit être `Idle` ou `Dormant` ;
-- une patrouille active (`Loop` ou `PingPong`) requiert au moins deux waypoints ;
-- chaque waypoint doit être dans la grille ;
-- sa cellule doit être non vide et autoriser l'occupation ;
-- son `Facing` doit être `None` ou cardinal ;
-- `WaitSeconds` doit être fini et positif ou nul.
-
-Une liste de waypoints peut rester stockée avec `PatrolMode=None`. Cela permet de désactiver temporairement une route sans perdre son authoring.
-
-## 6. Compatibilité des assets existants
-
-Aucune migration de version n'est nécessaire pour les LevelAssets :
+Le modèle courant est :
 
 ```text
-ancien MonsterSpawn
-    -> InitialMonsterState = Idle
-    -> PatrolMode = None
-    -> PatrolWaypoints = []
+UGridLevelAsset::MonsterSpawns
+    -> FGridMonsterSpawnInstance
 ```
 
-La migration existante de `LocalYaw -> InitialFacing` reste inchangée.
+Il n'existe plus de :
 
-## 7. Édition
+```text
+FGridLevelObjectData MonsterSpawn
+MonsterDefinitionId
+Edge
+LocalYaw
+bInitiallyEnabled
+bInitiallyActive
+```
 
-Les nouvelles données sont sérialisées directement dans `FGridLevelObjectData` et exposées comme propriétés `Monster` / `Monster|Patrol`.
+La définition de monstre est référencée directement par `MonsterDefinition`; l'orientation persistée est `Facing`; la présence initiale est `bSpawnAtStart`.
 
-Le panneau sélectionné spécialisé du Grimrock Grid Editor conserve pour l'instant son UI MON13 compacte. L'ajout d'un véritable éditeur visuel de route (ajout/suppression/ordre des waypoints directement dans le viewport) est volontairement associé à MON14.3, lorsque les routes deviennent exécutables et testables en exploration.
+## 6. Édition
 
-## 8. Tests automatisés
+Le Grid Editor édite les données directement sur `FGridMonsterSpawnInstance` :
+
+- `MonsterDefinition` ;
+- `Facing` ;
+- `Spawn at Start` ;
+- `InitialMonsterState` ;
+- `PatrolMode` ;
+- `PatrolWaypoints` ;
+- données de rencontre.
+
+L'éditeur visuel de route MON14.3.1 fournit l'authoring de viewport pour les waypoints.
+
+## 7. Tests automatisés
 
 La suite :
 
@@ -208,37 +209,28 @@ La suite :
 Grimrock.Monsters.MON14.2
 ```
 
-couvre :
+couvre notamment :
 
 - les quatre directions cardinales ;
 - l'absence de vision arrière/latérale ;
 - la portée et les edges bloquants ;
-- la conservation du helper géométrique MON4 ;
+- le helper géométrique MON4 ;
 - la validation `Idle/Dormant` ;
 - la validation des routes et waypoints ;
-- le transfert `Dormant`, `Facing`, `PatrolMode` et waypoints vers un Actor frais ;
-- l'absence de mouvement automatique en MON14.2 ;
+- le transfert de l'état initial, du Facing, du PatrolMode et des waypoints vers un Actor frais ;
 - l'intégration réelle du Facing dans `UGridMonsterBehaviorComponent`.
 
-La suite MON14.1 est adaptée afin que ses monstres de test soient explicitement orientés vers le groupe.
+Validation locale recommandée :
 
-## 9. Régressions recommandées
-
-Après compilation UE 5.5.4 :
-
-```text
-Grimrock.Monsters.MON4
-Grimrock.Monsters.MON5
-Grimrock.Monsters.MON7
-Grimrock.Monsters.MON13
-Grimrock.Monsters.MON14.1
-Grimrock.Monsters.MON14.2
-Grimrock.Monsters.MON
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Monsters.MON14.2"
 ```
 
-## 10. Suite proposée — MON14.3
+## 8. Relation avec MON14.3
 
-MON14.3 pourra maintenant implémenter la véritable exploration des gardes :
+MON14.3 exécute la véritable exploration :
 
 ```text
 Idle + PatrolMode != None
@@ -254,4 +246,4 @@ vue du groupe
     -> engagement MON14.1
 ```
 
-L'implémentation devra rester événementielle : un timer/scheduler discret ou les callbacks de fin de mouvement sont préférables à une logique IA permanente dans `Tick`.
+L'orchestration reste événementielle : timers discrets et callbacks de fin de mouvement plutôt qu'une boucle IA permanente dans `Tick`.

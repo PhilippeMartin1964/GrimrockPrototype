@@ -1,12 +1,10 @@
 # WORLDOBJ-MIG07 — Placements de niveau typés
 
-Statut : MIG07-A — fondation de schéma C++.
+Statut : **migration achevée ; contrat relu après la refonte des états initiaux sémantiques**, 2026-09-12.
 
 ## Objectif
 
-`FGridLevelObjectData` est devenu un conteneur historique trop large : il transporte en même temps des données de WorldObject, item, monstre, logique, lecture, patrol, encounter et comportement d'instance.
-
-MIG07 remplace progressivement ce monolithe par les cinq familles prévues dans l'architecture cible :
+MIG07 a remplacé l'ancien placement monolithique par cinq familles natives dans `UGridLevelAsset` :
 
 ```text
 UGridLevelAsset
@@ -18,9 +16,9 @@ UGridLevelAsset
     └── LogicObjects
 ```
 
-La séparation est sémantique : un objet ne transporte plus les champs appartenant aux autres familles.
+La séparation est sémantique : un objet ne transporte que les champs appartenant à sa famille. Les anciennes projections et collections de compatibilité ont ensuite été supprimées par MIG09.
 
-## Structures introduites
+## Structures actuelles
 
 ### `FGridWorldObjectInstance`
 
@@ -30,30 +28,35 @@ Représente une instance d'une définition réutilisable du monde : porte, bouto
 FGridWorldObjectInstance
 ├── InstanceId
 ├── WorldObjectDefinitionId
-├── Type                   [pont jusqu'à MIG10]
+├── Type
 ├── CellX / CellY
 ├── WallSide
 ├── LocalTransformOverride optionnel
-├── bInitiallyEnabled
-├── bInitiallyActive
 ├── LogicId
 ├── Tag / Notes / PaletteEntryId
 ├── ReadableTextOverride
 └── InstanceConfig
 ```
 
-`InstanceConfig` ne contient que les données naturellement locales au niveau :
+`InstanceConfig` contient les données naturellement locales au niveau et les rares overrides autorisés :
 
 ```text
 FGridWorldObjectInstanceConfig
+├── bDoorInitiallyOpen
+├── bTeleporterInitiallyEnabled
 ├── Teleporter
 ├── Transition
 ├── Pit
 ├── ReceptacleInitialContent
+├── InteractionOverrides
+├── MovingPartOverrides
+├── DoorChainMode / ChainPullDuration override
 └── bStartsUnlocked
 ```
 
-Les règles générales de plaque, serrure, réceptacle, chaîne de porte, animation, spatialité, audio, etc. restent dans la définition conformément à MIG06.
+Un world object présent dans `WorldObjectInstances` existe dans le niveau. Il n'utilise plus de booléen générique pour exprimer son existence ou son état actif. Les états initiaux authorés sont propres au type : porte ouverte/fermée, téléporteur activé/désactivé, pit ouvert/fermé, serrure verrouillée/déverrouillée. Un levier démarre au repos/Off. Une plaque de pression démarre relâchée et son état effectif est dérivé au runtime de l'occupation et du poids.
+
+Les règles générales de plaque, serrure, réceptacle, chaîne de porte, motion, spatialité et audio restent dans la définition, sauf les overrides d'instance explicitement prévus.
 
 ### `FGridLooseItemInstance`
 
@@ -68,10 +71,10 @@ FGridLooseItemInstance
 ├── SurfaceSide
 ├── LocalOffset / LocalYaw
 ├── Readable overrides
-└── état/metadata d'instance
+└── metadata d'instance
 ```
 
-La référence d'item est directe : aucun `WorldObjectDefinition` compagnon n'est réintroduit.
+La référence d'item est directe : aucun `WorldObjectDefinition` compagnon n'est réintroduit. Sa présence dans `LooseItemInstances` signifie que l'item est placé dans le niveau.
 
 ### `FGridMonsterSpawnInstance`
 
@@ -85,10 +88,13 @@ FGridMonsterSpawnInstance
 ├── PatrolMode / PatrolWaypoints
 ├── EncounterGroupId
 ├── EncounterWaveIndex
-└── état/metadata d'instance
+├── bSpawnAtStart
+└── metadata d'instance
 ```
 
-Le `SpawnId` correspond au rôle historique de `ObjectId` pour la persistance MON13.
+`SpawnId` est l'identité stable utilisée pour la persistance. `bSpawnAtStart=false` signifie que le placement existe mais que son Actor n'est pas créé au démarrage ; il pourra apparaître ensuite via les commandes de spawn/encounter.
+
+`InitialMonsterState=Dormant` a une autre signification : le monstre est créé au démarrage lorsque `bSpawnAtStart=true`, mais commence dans l'état `Dormant`.
 
 ### `FGridItemSpawnInstance`
 
@@ -98,6 +104,7 @@ FGridItemSpawnInstance
 ├── ItemDefinition
 ├── Quantity
 ├── CellX / CellY
+├── bSpawnAtStart
 └── règles/metadata du générateur
 ```
 
@@ -107,7 +114,7 @@ Invariant important :
 LooseItemInstance != ItemSpawnInstance
 ```
 
-Le premier est un item présent. Le second est un générateur.
+Le premier est un item présent. Le second est un générateur ; `bSpawnAtStart` contrôle uniquement la génération initiale du second.
 
 ### `FGridLogicObjectInstance`
 
@@ -119,59 +126,43 @@ FGridLogicObjectInstance
 ├── LogicId
 ├── Type
 ├── CellX / CellY
-├── InitialState
 ├── Logic
 ├── StoryCompanionDefinition
 └── Tag / Notes / PaletteEntryId
 ```
 
-## MIG07-A : projection depuis le schéma historique
+La présence dans `LogicObjects` suffit à définir l'existence de la cible logique. Son état mutable éventuel appartient à sa configuration logique ou au runtime persistant, pas à un booléen générique de placement.
 
-Le runtime et le Grid Editor utilisent encore `UGridLevelAsset::Objects` comme autorité durant cette première tranche.
+## Autorité Definition / Instance
 
-`UGridLevelAsset::RebuildTypedPlacementProjectionFromLegacy()` permet de projeter explicitement le monolithe vers le modèle cible :
+`UGridWorldObjectDefinitionAsset` ne fournit plus de defaults génériques d'existence ou d'activité. La définition porte le concept partagé : présentation, motion, audio, placement, comportement par défaut et classe runtime.
 
-```text
-FGridLevelObjectData.Type
-        │
-        ├─ Item          -> LooseItemInstances
-        ├─ MonsterSpawn  -> MonsterSpawns
-        ├─ ItemSpawn     -> ItemSpawns
-        ├─ Logic/Story   -> LogicObjects
-        └─ autres        -> WorldObjectInstances
-```
-
-La projection n'est volontairement **pas exécutée automatiquement dans `PostLoad()`**. Les `.uasset` réels ne doivent pas être migrés implicitement avant MIG08.
-
-Les cinq nouvelles collections sont donc `VisibleAnywhere` pendant MIG07-A : elles décrivent et testent le schéma cible, mais ne constituent pas encore une seconde interface d'authoring concurrente.
-
-## Pourquoi conserver temporairement `Objects`
-
-MIG08 est l'étape explicitement réservée à la conversion et au réenregistrement des Data Assets Unreal réels. Supprimer `Objects` avant cette migration rendrait les assets existants illisibles ou imposerait un fallback caché.
-
-La séquence voulue est :
-
-```text
-MIG07-A  nouvelles structures + projection + tests
-MIG07-B  runtime/editor consomment les structures typées
-MIG08    conversion/réenregistrement des .uasset réels
-MIG09    suppression physique de FGridLevelObjectData/Objects et des ponts
-```
+Le niveau porte seulement ce qui varie réellement par placement. Ce découpage évite qu'un même booléen signifie successivement « existe », « actif », « ouvert », « pressé », « On » ou « doit spawner » selon le type.
 
 ## Garde-fous
 
-Les tests `Grimrock.WorldObjects.MIG07` vérifient :
+Les tests `Grimrock.WorldObjects.MIG07` et `Grimrock.WorldObjects.InitialState.SemanticContract` vérifient notamment :
 
 - l'existence des cinq collections dans `UGridLevelAsset` ;
 - la classification indépendante `LooseItem` / `ItemSpawn` ;
-- la projection de l'identité stable ;
-- la référence directe ItemDefinition/MonsterDefinition ;
+- l'identité stable de chaque famille ;
+- les références directes `ItemDefinition` / `MonsterDefinition` ;
 - le maintien du patrol et de l'encounter dans `MonsterSpawns` ;
 - le maintien de `Transition`, `Pit`, contenu initial de réceptacle et état initial de serrure dans `InstanceConfig` ;
+- `bSpawnAtStart` sur les générateurs de monstres et d'items ;
+- l'absence de propriétés génériques d'état initial sur les placements persistés ;
 - l'absence de mélange entre les cinq familles.
 
-## Suite MIG07-B
+## Héritage de migration
 
-La seconde tranche doit faire basculer progressivement les consommateurs vers les collections typées et construire, uniquement lorsque nécessaire pour la compatibilité MIG08, une projection legacy temporaire vers `FGridLevelObjectData`.
+La séquence historique a été :
 
-Critère de fermeture MIG07 : le runtime et le Grid Editor n'ont plus besoin de considérer `FGridLevelObjectData` comme leur modèle conceptuel principal. `Objects` ne subsiste alors que comme mécanisme de migration des anciens assets jusqu'à MIG09.
+```text
+MIG07-A  nouvelles structures + projection + tests
+MIG07-B  runtime/editor basculent vers les structures typées
+MIG08    conversion/réenregistrement des .uasset réels
+MIG09    suppression physique du modèle monolithique et des ponts
+MIG10    consolidation des définitions world-object
+```
+
+Ce document décrit désormais le résultat de cette migration plutôt que les ponts temporaires utilisés pendant son exécution.

@@ -98,7 +98,7 @@ bool FGridMonsterSpawnInspectorAuthoringContractTest::RunTest(const FString& Par
 	Spawn.CellY = 1;
 	Spawn.Facing = EGridEdge::North;
 	Spawn.InitialMonsterState = EGridMonsterState::Idle;
-	Spawn.bInitiallyEnabled = true;
+	Spawn.bSpawnAtStart = true;
 	LevelAsset->MonsterSpawns.Add(Spawn);
 
 	TestTrue(TEXT("The MonsterSpawn can be selected"), EditorActor->SelectObjectById(Spawn.SpawnId));

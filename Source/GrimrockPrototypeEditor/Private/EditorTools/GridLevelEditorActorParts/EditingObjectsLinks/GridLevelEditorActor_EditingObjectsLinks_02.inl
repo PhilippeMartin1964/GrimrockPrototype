@@ -39,12 +39,11 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 	}
 	LevelAsset->Modify();
 	const FGuid NewId = FGuid::NewGuid();
-	// This initializes shared authoring fields on the concrete placement, without a DTO.
+	// Presence is implied by placement. Shared authoring initializes only spatial/metadata fields.
 	const auto InitializeAuthoring = [this](auto& Placement)
 	{
 		Placement.CellX = SelectedCellX;
 		Placement.CellY = SelectedCellY;
-		Placement.bInitiallyEnabled = bObjectInitiallyEnabled;
 		Placement.Notes = ObjectNotes;
 		Placement.PaletteEntryId = SelectedPaletteEntryId;
 	};
@@ -67,6 +66,7 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		InitializeAuthoring(MonsterSpawn);
 		MonsterSpawn.SpawnId = NewId;
 		MonsterSpawn.MonsterDefinition = PaletteEntry ? PaletteEntry->DefaultMonsterDefinition : nullptr;
+		MonsterSpawn.bSpawnAtStart = bObjectInitiallyEnabled;
 	}
 	else if (PaintObjectType == EGridLevelObjectType::ItemSpawn)
 	{
@@ -74,6 +74,7 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		InitializeAuthoring(ItemSpawn);
 		ItemSpawn.SpawnId = NewId;
 		ItemSpawn.ItemDefinition = ObjectBehavior.Item.ItemDefinitionAsset;
+		ItemSpawn.bSpawnAtStart = bObjectInitiallyEnabled;
 	}
 	else if (PaintObjectType == EGridLevelObjectType::Logic || PaintObjectType == EGridLevelObjectType::StoryCompanion ||
 		PaintObjectType == EGridLevelObjectType::CustomRecruiter)
@@ -82,7 +83,6 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		InitializeAuthoring(LogicInstance);
 		LogicInstance.InstanceId = NewId;
 		LogicInstance.Type = PaintObjectType;
-		LogicInstance.bInitiallyActive = bObjectInitiallyActive;
 		LogicInstance.StoryCompanionDefinition = PaletteEntry ? PaletteEntry->DefaultStoryCompanionDefinition : nullptr;
 	}
 	else
@@ -93,17 +93,11 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 		WorldObjectInstance.Type = bIsStoneAlcoveReceptacle ? EGridLevelObjectType::Receptacle : PaintObjectType;
 		WorldObjectInstance.WorldObjectDefinitionId = WorldObjectDefinitionId;
 		WorldObjectInstance.WallSide = bPlaceObjectOnEdge ? SelectedEdge : EGridEdge::None;
-		WorldObjectInstance.bInitiallyActive = bObjectInitiallyActive;
 		WorldObjectInstance.InstanceConfig.Teleporter = ObjectBehavior.Teleporter;
 		WorldObjectInstance.InstanceConfig.Transition = ObjectBehavior.Transition;
 		WorldObjectInstance.InstanceConfig.Pit = ObjectBehavior.Pit;
 		WorldObjectInstance.InstanceConfig.ReceptacleInitialContent = ObjectBehavior.Receptacle.InitialContent;
 		WorldObjectInstance.InstanceConfig.bStartsUnlocked = ObjectBehavior.Lock.bStartsUnlocked;
-		if (bIsStoneAlcoveReceptacle)
-		{
-			WorldObjectInstance.bInitiallyEnabled = true;
-			WorldObjectInstance.bInitiallyActive = !WorldObjectInstance.InstanceConfig.ReceptacleInitialContent.IsEmpty();
-		}
 	}
 
 	if (bSuppressBaseWall)

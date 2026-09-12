@@ -2,7 +2,7 @@
 
 ## Statut
 
-Implémentation C++ prête pour compilation et validation UE 5.5.4.
+Implémentation C++ validée comme fondation MON14. Le document utilise le modèle courant `FGridMonsterSpawnInstance` et les états initiaux sémantiques.
 
 MON14.3 transforme les données de route introduites par MON14.2 en comportement
 d'exploration réellement exécuté. Le principe reste celui du projet : aucune
@@ -125,8 +125,8 @@ Dormant + ouïe seule
 
 Cette règle distingue volontairement :
 
-- **Dormant** : acteur présent mais inactif ;
-- `bInitiallyEnabled=false` : acteur absent.
+- **Dormant** : Actor présent mais inactif (`bSpawnAtStart=true`, `InitialMonsterState=Dormant`) ;
+- `bSpawnAtStart=false` : aucun Actor créé au démarrage.
 
 ## Investigation par l'ouïe
 
@@ -271,7 +271,6 @@ L'édition visuelle avancée d'une route dans le Grid Editor reste une sous-éta
 clic. Les données sont déjà sérialisées et le runtime MON14.3 les consomme.
 Cette séparation permet de valider d'abord le comportement de jeu avant de
 multiplier les surfaces d'édition.
-
 
 ## Correction MON-AI-BLOCKED-INVESTIGATION01 — cible audible inaccessible
 

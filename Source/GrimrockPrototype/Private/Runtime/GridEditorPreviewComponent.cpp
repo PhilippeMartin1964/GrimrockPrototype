@@ -258,8 +258,7 @@ void UGridEditorPreviewComponent::SetSelectedObject(FGuid ObjectId)
 
 bool UGridEditorPreviewComponent::IsPreviewableWorldObject(const FGridWorldObjectInstance& Instance) const
 {
-	if (!RuntimeActor || !RuntimeActor->LevelAsset || !Instance.bInitiallyEnabled ||
-		!RuntimeActor->LevelAsset->IsValidCoord(Instance.CellX, Instance.CellY))
+	if (!RuntimeActor || !RuntimeActor->LevelAsset || !RuntimeActor->LevelAsset->IsValidCoord(Instance.CellX, Instance.CellY))
 	{
 		return false;
 	}
@@ -269,11 +268,11 @@ bool UGridEditorPreviewComponent::IsPreviewableWorldObject(const FGridWorldObjec
 
 bool UGridEditorPreviewComponent::IsPreviewableLooseItem(const FGridLooseItemInstance& Instance) const
 {
-	return RuntimeActor && RuntimeActor->LevelAsset && Instance.bInitiallyEnabled && RuntimeActor->LevelAsset->IsValidCoord(Instance.CellX, Instance.CellY) &&
+	return RuntimeActor && RuntimeActor->LevelAsset && RuntimeActor->LevelAsset->IsValidCoord(Instance.CellX, Instance.CellY) &&
 		Instance.ItemDefinition && !Instance.ItemDefinition->WorldMesh.IsNull();
 }
 
 bool UGridEditorPreviewComponent::IsPreviewableMonsterSpawn(const FGridMonsterSpawnInstance& SpawnData) const
 {
-	return RuntimeActor && RuntimeActor->LevelAsset && SpawnData.bInitiallyEnabled && RuntimeActor->LevelAsset->IsValidCoord(SpawnData.CellX, SpawnData.CellY);
+	return RuntimeActor && RuntimeActor->LevelAsset && SpawnData.bSpawnAtStart && RuntimeActor->LevelAsset->IsValidCoord(SpawnData.CellX, SpawnData.CellY);
 }

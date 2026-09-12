@@ -262,7 +262,7 @@ namespace
 		Spawn.MonsterDefinition = Definition;
 		Spawn.EncounterGroupId = GroupId;
 		Spawn.EncounterWaveIndex = WaveIndex;
-		Spawn.bInitiallyEnabled = true;
+		Spawn.bSpawnAtStart = WaveIndex == 0;
 		return Spawn;
 	}
 }

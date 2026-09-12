@@ -436,7 +436,7 @@ void AGridDoorActor::InitializeRuntimeWorldObject(
 
 	// RECOVERY01-C2: MoveDuration remains the forward cache; close timing resolves ReverseDuration on demand.
 	MoveDuration = GetTargetMotionDuration(false);
-	bIsOpen = ObjectData.bInitiallyActive;
+	bIsOpen = ObjectData.bDoorInitiallyOpen;
 	bIsAnimating = false;
 	MoveElapsed = 0.f;
 	CurrentMoveDuration = 0.f;

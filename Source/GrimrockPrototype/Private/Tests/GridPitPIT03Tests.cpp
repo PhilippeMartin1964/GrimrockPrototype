@@ -78,7 +78,6 @@ namespace GridPIT03
 		Pit.CellX = X;
 		Pit.CellY = Y;
 		Pit.WallSide = EGridEdge::None;
-		Pit.bInitiallyEnabled = true;
 		Pit.InstanceConfig.Pit.bInitiallyOpen = bInitiallyOpen;
 		Pit.InstanceConfig.Pit.bUseSameCellCoordinates = true;
 		Pit.InstanceConfig.Transition.bIsTransition = true;
@@ -141,7 +140,6 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	Button.CellX = 1;
 	Button.CellY = 2;
 	Button.WallSide = EGridEdge::East;
-	Button.bInitiallyEnabled = true;
 
 	const FGuid PitAId = PitA.InstanceId;
 	const FGuid PitBId = PitB.InstanceId;

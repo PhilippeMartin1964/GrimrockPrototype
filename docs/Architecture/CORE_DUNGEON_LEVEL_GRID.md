@@ -1,27 +1,24 @@
-# Grimrock Prototype - Architecture noyau Donjon / Niveau / Grille
+# Grimrock Prototype — Architecture noyau Donjon / Niveau / Grille
 
-> **Contrat courant MIG10 (2026-09-09)** : voir les [définitions et placements typés](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les extraits ci-dessous utilisant `FGridLevelObjectData`, `Objects`, les anciens meshes spécialisés ou la copie intégrale de `Behavior` décrivent explicitement l’ancien état ; ils ne sont plus des instructions de schéma. Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, et les visuels utilisent `StaticPart` / `MovingParts`.
-
+> **Contrat courant — 2026-09-12 / UE 5.5.4.** Le niveau repose sur des placements typés. L'ancien modèle monolithique `Objects` / `FGridLevelObjectData` n'est plus une architecture active. Voir aussi [Définitions et placements typés](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md).
 
 ## 1. Objet du document
 
-Ce document décrit le socle réellement implémenté pour organiser, éditer et générer un donjon quadrillé :
+Ce document décrit le socle commun qui organise, édite et exécute un donjon quadrillé :
 
 - `UGridDungeonAsset` et ses entrées de niveau ;
-- `UGridLevelAsset`, ses cellules, objets et liens ;
+- `UGridLevelAsset`, ses cellules, placements et liens ;
 - `AGridLevelEditorActor` et le mode **Grimrock Grid Editor** ;
-- les outils **Paint Cell** et **Paint Wall** ;
-- `AGridLevelRuntimeActor` et la génération de la géométrie.
+- `AGridLevelRuntimeActor` et la représentation jouable ;
+- les règles de coordonnées, murs, identité et état initial.
 
-Les systèmes de gameplay spécialisés ne sont pas détaillés ici : items, portes, réceptacles, passages secrets, pits, téléporteurs, triggers, inventaire et énigmes. Ils ne sont cités que lorsque leur présence explique une donnée ou une étape générique du noyau.
-
----
+Les systèmes spécialisés — portes, réceptacles, pits, téléporteurs, monstres, items, Lua, inventaire et combat — utilisent ce noyau mais possèdent leur propre documentation.
 
 ## 2. Séparation des responsabilités
 
 ```text
 UGridDungeonAsset
-  organise les niveaux et désigne un niveau par défaut.
+  organise les niveaux et leurs positions logiques.
 
 UGridLevelAsset
   stocke les données persistantes d'un niveau.
@@ -31,68 +28,42 @@ AGridLevelEditorActor + Grimrock Grid Editor
 
 AGridLevelRuntimeActor
   lit le LevelAsset et construit la représentation runtime.
+
+SaveGame / FGridDungeonRuntimeState
+  stocke les deltas mutables produits pendant le jeu.
 ```
 
 Règle centrale :
 
 ```text
-DataAsset persistant != acteur éditeur != acteur runtime
+DataAsset persistant != acteur éditeur != acteur runtime != état de sauvegarde
 ```
 
-`AGridLevelEditorActor` et `AGridLevelRuntimeActor` référencent les assets, mais ne doivent pas devenir une seconde source de vérité pour la grille.
+L'acteur éditeur et l'acteur runtime référencent les assets ; ils ne deviennent jamais une seconde source de vérité pour la définition statique du niveau.
 
 ```mermaid
 flowchart TD
     A[UGridDungeonAsset] --> B[FGridDungeonLevelEntry]
     B --> C[UGridLevelAsset]
-    C --> D[Cells: FGridLevelCellData]
-    C --> E[Objects: FGridLevelObjectData]
-    C --> F[Links: FGridObjectLink]
-    G[Grimrock Grid Editor] --> H[AGridLevelEditorActor]
-    H --> C
-    H --> I[AGridLevelRuntimeActor d'aperçu]
-    J[AGridLevelRuntimeActor] --> C
-    J --> K[FloorISM]
-    J --> L[WallISM]
-    J --> M[CeilingISM]
+    C --> D[Cells]
+    C --> E[WorldObjectInstances]
+    C --> F[LooseItemInstances]
+    C --> G[MonsterSpawns]
+    C --> H[ItemSpawns]
+    C --> I[LogicObjects]
+    C --> J[Links]
+    K[Grimrock Grid Editor] --> L[AGridLevelEditorActor]
+    L --> C
+    L --> M[AGridLevelRuntimeActor Preview]
+    N[AGridLevelRuntimeActor Game] --> C
+    N --> O[Runtime actors / geometry / state]
 ```
 
----
+## 3. `UGridDungeonAsset`
 
-## 3. Cartographie du code
+`UGridDungeonAsset` organise plusieurs `UGridLevelAsset`. Il ne contient pas lui-même la grille d'un niveau.
 
-| Domaine | Type | Déclaration | Implémentation | Rôle |
-|---|---|---|---|---|
-| Donjon | `UGridDungeonAsset`, `FGridDungeonLevelEntry` | `Source/GrimrockPrototype/Public/Core/GridDungeonAsset.h` | `Source/GrimrockPrototype/Private/Core/GridDungeonAsset.cpp` | Liste et résolution des niveaux. |
-| Niveau | `UGridLevelAsset` | `Source/GrimrockPrototype/Public/Core/GridLevelAsset.h` | `Source/GrimrockPrototype/Private/Core/GridLevelAsset.cpp` | Grille et données persistantes du niveau. |
-| Données | `FGridLevelCellData`, `FGridLevelObjectData`, `FGridObjectLink` | `Source/GrimrockPrototype/Public/Core/GridTypes.h` | Structures sans fichier `.cpp` dédié. | Cellules, objets placés et liens. |
-| Runtime | `AGridLevelRuntimeActor` | `Source/GrimrockPrototype/Public/Runtime/GridLevelRuntimeActor.h` | `Source/GrimrockPrototype/Private/Runtime/GridLevelRuntimeActor.cpp` | Géométrie, requêtes de grille et objets runtime. |
-| Éditeur | `AGridLevelEditorActor`, `EGridEditorTool` | `Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEditorActor.h` | `Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEditorActor.cpp` | Mutation du `LevelAsset`, sélection et aperçu. |
-| Mode éditeur | `FGridLevelEdMode` | `Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEdMode.h` | `Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEdMode.cpp` | Entrées souris, survol et déclenchement des outils. |
-| Interface du mode | `FGridLevelEdModeToolkit` | `Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEdModeToolkit.h` | `Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEdModeToolkit.cpp` | Panneaux Slate du mode. |
-| Enregistrement | module `GrimrockPrototypeEditor` | - | `Source/GrimrockPrototypeEditor/GrimrockPrototypeEditor.cpp` | Enregistre le mode sous le libellé **Grimrock Grid Editor**. |
-
-Le toolkit s'appuie aussi sur les panneaux de `Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/`, notamment la palette d'outils, la carte d'ensemble et la validation. Aucune classe de commandes ni personnalisation `IDetailCustomization` dédiée à ce mode n'a été trouvée.
-
----
-
-## 4. `UGridDungeonAsset`
-
-`UGridDungeonAsset` est un `UDataAsset` qui organise plusieurs `UGridLevelAsset`. Il ne contient pas lui-même de grille.
-
-![Le donjon comme classeur](../Images/core_20_1_dungeon_binder.svg)
-
-### 4.1. Données
-
-```text
-DungeonName
-Author
-Version
-DefaultLevelId
-Levels[]
-```
-
-Chaque `FGridDungeonLevelEntry` contient :
+Chaque `FGridDungeonLevelEntry` porte notamment :
 
 ```text
 LevelId
@@ -102,90 +73,93 @@ LogicalPosition
 bEnabled
 ```
 
-`LogicalPosition` est une position logique dans le donjon, pas une position Unreal garantie.
+`DefaultLevelId` désigne le niveau par défaut. `LogicalPosition` décrit l'organisation logique du donjon ; ce n'est pas une transform Unreal d'acteur.
 
-### 4.2. API réelle
+Les transitions inter-niveaux résolvent un `LevelId` vers l'entrée active correspondante. Le runtime courant conserve également `CurrentDungeonLevelId` pour identifier le niveau actif et sa persistance.
 
-Les fonctions suivantes sont publiques. Les cinq premières sont `BlueprintCallable`; `FindLevelEntry()` est une API C++ publique.
+## 4. `UGridLevelAsset`
 
-```cpp
-bool IsValidLevelId(FName LevelId) const;
-UGridLevelAsset* GetLevelAssetById(FName LevelId) const;
-UGridLevelAsset* GetDefaultLevelAsset() const;
-FString GetDungeonDiagnostics() const;
-FString GetTransitionDiagnostics() const;
-const FGridDungeonLevelEntry* FindLevelEntry(FName LevelId) const;
-```
-
-Comportements importants :
-
-- `IsValidLevelId()` exige une entrée existante, activée et associée à un `LevelAsset`.
-- `GetLevelAssetById()` refuse les entrées désactivées.
-- `GetDefaultLevelAsset()` utilise `DefaultLevelId`, puis se rabat sur le premier niveau activé possédant un identifiant non vide et un asset.
-- `GetDungeonDiagnostics()` détecte notamment les assets manquants, les identifiants vides ou dupliqués, les positions logiques dupliquées et un niveau par défaut absent ou invalide.
-
-Références : `GridDungeonAsset.h`, `GridDungeonAsset.cpp`.
-
----
-
-## 5. `UGridLevelAsset`
-
-`UGridLevelAsset` est le stockage persistant d'un niveau.
-
-![Le niveau comme carte quadrillée](../Images/core_20_2_level_grid_map.svg)
+`UGridLevelAsset` est l'autorité persistante d'un niveau.
 
 ```text
-Width, Height, CellSize
+Width / Height / CellSize
 Cells[]
-StartCellX, StartCellY, StartFacing
-Objects[]
+StartCellX / StartCellY / StartFacing
+WorldObjectInstances[]
+LooseItemInstances[]
+MonsterSpawns[]
+ItemSpawns[]
+LogicObjects[]
 Links[]
+LuaScripts[]
+LevelVariables[]
+QuestDefinitions[]
 ```
 
-`Cells` est indexé en ligne par :
+`Cells` est indexé par :
 
 ```cpp
 Index = Y * Width + X;
 ```
 
-### 5.1. API réelle
+Le niveau fournit les opérations communes de coordonnées, accès aux cellules, identité de placement, suppression, recherche typée et validation. Une suppression de placement doit également supprimer les liens qui le référencent.
 
-Toutes les fonctions ci-dessous sont publiques C++. Seules `IsStartCellValid()` et `GetStartCell()` sont `BlueprintCallable`.
+## 5. Les cinq familles de placements
 
-```cpp
-bool IsStartCellValid() const;
-FIntPoint GetStartCell() const;
-void EnsureCellCount();
-bool IsValidCoord(int32 X, int32 Y) const;
-int32 GetIndex(int32 X, int32 Y) const;
-const FGridLevelCellData& GetCell(int32 X, int32 Y) const;
-FGridLevelCellData& GetCellMutable(int32 X, int32 Y);
-void ClearLevel();
-FGuid AddObject(const FGridLevelObjectData& NewObject);
-bool RemoveObjectById(const FGuid& ObjectId);
-void RemoveLinksForObject(const FGuid& ObjectId);
-void EnsureObjectIds();
+### 5.1 `WorldObjectInstances`
+
+`FGridWorldObjectInstance` représente les objets réutilisables du décor et du gameplay : portes, boutons, leviers, plaques de pression, téléporteurs, pits, triggers, réceptacles, décorations, lumières, etc.
+
+Le placement référence une `UGridWorldObjectDefinitionAsset` par `WorldObjectDefinitionId`.
+
+### 5.2 `LooseItemInstances`
+
+`FGridLooseItemInstance` représente un item déjà présent physiquement dans le niveau. Il référence directement une `UGridItemDefinitionAsset`.
+
+Il ne faut pas créer un `WorldObjectDefinitionAsset` supplémentaire pour représenter le même item ramassable.
+
+### 5.3 `MonsterSpawns`
+
+`FGridMonsterSpawnInstance` décrit une implantation de monstre : définition, cellule, orientation, état initial du monstre, patrol, encounter et présence initiale via `bSpawnAtStart`.
+
+Le `SpawnId` est l'identité persistante de cette implantation.
+
+### 5.4 `ItemSpawns`
+
+`FGridItemSpawnInstance` est un générateur d'items, distinct d'un item déjà posé. Sa génération initiale est contrôlée par `bSpawnAtStart`.
+
+```text
+LooseItemInstance != ItemSpawnInstance
 ```
 
-Précisions :
+### 5.5 `LogicObjects`
 
-- `EnsureCellCount()` redimensionne `Cells` à `max(1, Width) * max(1, Height)` sans corriger `Width` ni `Height`.
-- `GetCell()` et `GetCellMutable()` utilisent `check(IsValidCoord(...))`; l'appelant doit valider les coordonnées.
-- `ClearLevel()` réinitialise les cellules, puis vide `Objects` et `Links`; il ne change pas les dimensions ni le départ.
-- `AddObject()` crée un `ObjectId` si nécessaire.
-- `RemoveObjectById()` supprime aussi les liens entrants et sortants via `RemoveLinksForObject()`.
-- `EnsureObjectIds()` attribue uniquement les identifiants manquants.
-- en build éditeur, les opérations de mutation concernées appellent `Modify()` et `MarkPackageDirty()`.
+`FGridLogicObjectInstance` représente les cibles data-only : relais logiques, compteurs, comparateurs, certains services de recrutement et autres objets ne nécessitant pas d'acteur physique.
 
-Références : `GridLevelAsset.h`, `GridLevelAsset.cpp`.
+## 6. États initiaux : règle sémantique
 
----
+Le noyau ne possède plus de booléens génériques « initially enabled » / « initially active » sur les placements persistés.
 
-## 6. Cellules et murs
+La présence dans une collection signifie que le placement existe. Lorsqu'un état initial a une signification de gameplay réelle, il est nommé selon le type :
 
-`FGridLevelCellData` est déclaré dans `GridTypes.h`.
+| Type | Donnée persistante |
+|---|---|
+| Door | `InstanceConfig.bDoorInitiallyOpen` |
+| Teleporter | `InstanceConfig.bTeleporterInitiallyEnabled` |
+| Pit | `InstanceConfig.Pit.bInitiallyOpen` |
+| Lock | `InstanceConfig.bStartsUnlocked` |
+| MonsterSpawn | `bSpawnAtStart` |
+| ItemSpawn | `bSpawnAtStart` |
+| Lever | pas d'override : démarre Off |
+| PressurePlate | pas d'état pressé authoré ; état dérivé au runtime |
+| Loose item | sa présence dans `LooseItemInstances` signifie qu'il est placé |
+| Logic object | sa présence dans `LogicObjects` signifie qu'il existe |
 
-![Une cellule et ses quatre murs](../Images/core_20_3_cell_four_walls.svg)
+`UGridWorldObjectDefinitionAsset` ne fournit pas de defaults génériques d'existence/activité à recopier dans les placements.
+
+## 7. Cellules
+
+`FGridLevelCellData` porte le contenu structurel de la grille :
 
 ```text
 CellType
@@ -197,74 +171,77 @@ bHasCeiling
 bBlocksOccupancy
 ```
 
-Valeurs actuelles :
+La grille de référence du prototype utilise des cellules carrées ; le projet courant emploie principalement des cellules de 200 cm de côté, avec une hauteur de donjon gérée par les meshes et conventions de niveau.
+
+Une cellule `Empty` n'est pas une cellule praticable. `bBlocksOccupancy` permet de rendre non occupable une cellule autrement valide.
+
+## 8. Orientation et coordonnées
+
+Convention du projet :
 
 ```text
-EGridCellType : Empty, Floor, Pit, StairsUp, StairsDown, Teleporter
-EGridWallType : None, Solid
+North = Y+
+East  = X+
+South = Y-
+West  = X-
 ```
 
-Dans le noyau runtime :
+Les objets muraux portent leur face concrète dans `WallSide`. Les monstres portent leur orientation dans `Facing`. Les conversions de direction doivent utiliser les helpers communs plutôt que réimplémenter des mappings locaux.
 
-- `Empty` n'est pas rendu et n'est pas praticable ;
-- toute cellule non vide est praticable si `bBlocksOccupancy == false` ;
-- `bHasCeiling` commande l'ajout d'une instance dans `CeilingISM` ;
-- `bBlocksOccupancy` est consulté par `IsWalkableCell()`.
+Le centre monde d'une cellule est calculé à partir du `CellSize`, du `GridOrigin` et de la transform de l'acteur runtime.
 
-### 6.1. Règle réellement implémentée pour les murs partagés
+## 9. Murs et frontières
 
-Les quatre murs sont stockés indépendamment dans chaque cellule. Actuellement :
+Chaque cellule stocke ses quatre champs de mur. Une frontière entre deux cellules peut donc être décrite depuis l'un ou l'autre côté.
 
-- `PaintSelectedWall()` modifie uniquement le bord sélectionné ;
-- `ClearSelectedWall()` efface uniquement ce bord ;
-- aucune synchronisation automatique n'écrit le bord opposé de la cellule voisine ;
-- `RebuildLevel()` rend chaque bord non nul rencontré ; deux bords opposés renseignés peuvent donc produire deux instances superposées ;
-- `GetWallOnEdge()` lit uniquement le bord demandé sur la cellule donnée ;
-- `CanMove()` consulte le mur de la cellule source, pas le bord opposé de la cellule cible.
+Le contenu doit éviter les incohérences suivantes :
 
-La cohérence des murs partagés est donc une convention de contenu, pas une invariance imposée par le code. L'illustration montre correctement les quatre champs d'une cellule, mais ne doit pas être interprétée comme une synchronisation bidirectionnelle.
+- deux murs structurels superposés sur la même séparation ;
+- un bord défini d'un seul côté alors qu'un algorithme consulte l'autre ;
+- une porte combinée à un mur structurel qui continue de bloquer le déplacement ;
+- un objet mural sans `WallSide` cardinal.
 
-`ValidateCurrentLevel()` agrège deux avertissements dédiés : nombre de bords renseignés des deux côtés, susceptibles de produire des instances superposées, et nombre de bords asymétriques dont le résultat de déplacement dépend de la cellule source.
+Les objets de frontière, notamment les portes, utilisent leurs propres systèmes de blocage logique en plus de la géométrie structurelle.
 
----
+## 10. Définitions world-object
 
-## 7. Objets et liens dans le niveau
+`UGridWorldObjectDefinitionAsset` décrit le concept partagé :
 
-Cette section fixe seulement leur place dans le noyau.
+- identité et classification ;
+- surface de placement et position locale par défaut ;
+- `StaticPart` et jusqu'à deux `MovingParts` ;
+- motion, audio et comportement partagé ;
+- classe runtime ;
+- interaction, lecture, lumière et règles spécialisées.
 
-### 7.1. `FGridLevelObjectData`
+Une instance ne recopie pas la définition. Les exceptions locales restent sparse : transform/amplitude/durée forward d'une partie mobile, certaines règles d'interaction, chaîne de porte et données réellement propres au puzzle.
 
-La structure persistante contient :
+Voir [11 — Référence des paramètres GridWorldObjectDefinitionAsset](../Design/11_GRID_WORLD_OBJECT_DEFINITION_PARAMETERS_REFERENCE.md).
+
+## 11. Liens
+
+`FGridObjectLink` relie un événement source à une commande cible ou à un callback Lua.
+
+Conceptuellement :
 
 ```text
-ObjectId, Type, CellX, CellY, Edge, LocalYaw
-DefinitionId, ItemDefinitionAsset, ItemDefinitionId
-bInitiallyEnabled, bInitiallyActive
-Tag, Notes, OverrideReadableText, PaletteEntryId, Behavior
+SourceObjectId
+SourceEvent
+        │
+        ▼
+Command / LuaCallback
+        │
+        ▼
+TargetObjectId éventuel
 ```
 
-Un `UGridLevelAsset` stocke ces données dans `Objects`; il ne sérialise pas les acteurs runtime générés.
+Les identités utilisées par les liens sont celles des placements natifs (`InstanceId` / `SpawnId`). Il n'existe pas de projection parallèle d'identité.
 
-### 7.2. `FGridObjectLink`
+Les conditions natives sont réservées aux requêtes simples réellement prises en charge, notamment certains états de réceptacle. Les branches de puzzle complexes appartiennent à Lua.
 
-La structure contient :
+## 12. `AGridLevelEditorActor`
 
-```text
-SourceObjectId, TargetObjectId
-SourceEvent, Command, Condition
-ConditionItemDefinitionId, ConditionItemTag, ConditionItemType
-ConditionCount, ConditionWeight, bInvertCondition
-```
-
-Les liens sont stockés dans `UGridLevelAsset::Links`. Leur exécution détaillée appartient à une documentation séparée.
-
-Référence : `Source/GrimrockPrototype/Public/Core/GridTypes.h`.
-
----
-
-## 8. `AGridLevelEditorActor`
-
-`AGridLevelEditorActor` appartient au module `GrimrockPrototypeEditor`. Il référence :
+`AGridLevelEditorActor` est le contrôleur de l'authoring du niveau. Il référence notamment :
 
 ```text
 LevelAsset
@@ -274,445 +251,93 @@ PreviewRuntimeActor
 ObjectPalette
 ```
 
-Il maintient aussi la sélection (`SelectedCellX/Y`, `SelectedEdge`), le survol (`HoveredCellX/Y`, `HoveredEdge`, `HoveredObjectId`) et l'outil actif.
+Le mode **Grimrock Grid Editor** utilise cet acteur pour :
 
-### 8.1. Outils
+- peindre cellules et murs ;
+- placer les cinq familles d'objets ;
+- sélectionner et déplacer les placements ;
+- éditer leurs propriétés sémantiques ;
+- créer les liens ;
+- reconstruire l'aperçu ;
+- exécuter la validation du niveau.
 
-`EGridEditorTool` est déclaré dans `GridLevelEditorActor.h` :
+Les mutations persistantes appellent `Modify()`, marquent le package sale et reconstruisent l'aperçu lorsque nécessaire.
 
-```text
-Select
-PaintCell
-PaintWall
-PaintObject
-Erase
-Link
-```
+## 13. Selected Object
 
-Les fonctions publiques du noyau d'édition comprennent :
+L'inspecteur doit refléter le type sélectionné, pas exposer des concepts génériques artificiels.
 
-```cpp
-EnsureLevelReady();
-RebuildPreview();
-ApplyCurrentDungeonLevel();
-LoadDefaultDungeonLevelInEditor();
-CreateAndAddDungeonLevel(...);
-ClearSelectedCell();
-PaintSelectedWall();
-ClearSelectedWall();
-ApplyViewportHitSelection(...);
-SelectCellFromOverview(...);
-CommitHoveredCellSelection();
-ApplyPrimaryToolAction();
-ApplySecondaryToolAction();
-EraseAtSelection();
-ValidateCurrentLevel();
-```
-
-Elles sont déclarées dans `GridLevelEditorActor.h` et implémentées dans `GridLevelEditorActor.cpp`. Elles sont publiques et, selon la fonction, `BlueprintCallable` et parfois `CallInEditor`.
-
-Deux helpers importants ne constituent pas une API publique :
-
-```cpp
-PaintSelectedCell();       // private
-RebuildGeometryPreview();  // private
-```
-
-### 8.2. Mutations du `LevelAsset`
-
-Le code confirme que l'acteur éditeur modifie directement le `LevelAsset` :
-
-- `PaintSelectedCell()` écrit `CellType`, `bHasCeiling` et `bBlocksOccupancy` ;
-- `PaintSelectedWall()` écrit le champ de mur correspondant à `SelectedEdge` ;
-- `ClearSelectedWall()` remet ce champ à `None` ;
-- `ClearSelectedCell()` remet toute la cellule à sa valeur par défaut et supprime les objets de la sélection ;
-- ces opérations appellent `Modify()`, marquent le package sale et reconstruisent l'aperçu géométrique.
-
-`EnsureLevelReady()` appelle `EnsureCellCount()`, `EnsureObjectIds()` puis `RebuildPreview()`.
-
-### 8.3. Sélection et actions
-
-- `ApplyViewportHitSelection()` convertit un point monde en survol, puis valide ce survol.
-- `SelectCellFromOverview()` sélectionne directement une cellule valide et place `SelectedEdge` à `None`.
-- `CommitHoveredCellSelection()` copie cellule et bord survolés vers la sélection.
-- `ApplyPrimaryToolAction()` distribue l'action selon `ActiveTool`.
-- `ApplySecondaryToolAction()` efface une cellule, un mur ou des objets selon l'outil.
-- `EraseAtSelection()` tente d'abord les objets, puis le mur sélectionné, puis une cellule non vide sans objet ni mur.
-
-Références : `GridLevelEditorActor.h`, `GridLevelEditorActor.cpp`.
-
----
-
-## 9. Grimrock Grid Editor
-
-Le mode est `FGridLevelEdMode`, identifié par `EM_GrimrockGridLevelEdMode`. Le module éditeur l'enregistre sous le libellé **Grimrock Grid Editor**.
-
-![Flux éditeur](../Images/core_20_4_editor_flow.svg)
-
-Flux réel :
-
-```mermaid
-sequenceDiagram
-    participant U as Utilisateur
-    participant M as FGridLevelEdMode
-    participant E as AGridLevelEditorActor
-    participant L as UGridLevelAsset
-    participant P as PreviewRuntimeActor
-
-    U->>M: déplacement ou clic dans le viewport
-    M->>E: ApplyGridHoverFromWorldPoint()
-    M->>E: CommitHoveredCellSelection()
-    M->>E: ApplyPrimaryToolAction() ou ApplySecondaryToolAction()
-    E->>L: modifie la cellule ou le mur
-    E->>P: RebuildLevel(GeometryOnly)
-```
-
-`FGridLevelEdMode` gère les entrées souris, le survol, le glisser-peindre et évite de repeindre plusieurs fois la même cellule, le même bord et le même outil. Il délègue les mutations à `AGridLevelEditorActor`.
-
-`FGridLevelEdModeToolkit` construit l'interface Slate et utilise les panneaux de `EditorTools/Widgets`. Il ne remplace pas la logique de mutation portée par l'acteur éditeur.
-
----
-
-## 10. Paint Cell et Paint Wall
-
-| Outil | Champs écrits | Contraintes |
-|---|---|---|
-| Paint Cell | `CellType`, `bHasCeiling`, `bBlocksOccupancy` | Utilise `PaintCellType`, `bPaintCellHasCeiling`, `bPaintCellBlocksOccupancy`. |
-| Paint Wall | un seul parmi `NorthWall`, `EastWall`, `SouthWall`, `WestWall` | Refuse une cellule `Empty`; exige un `SelectedEdge` cardinal. |
-
-Le clic principal appelle `ApplyPrimaryToolAction()` :
-
-- `PaintCell` appelle le helper privé `PaintSelectedCell()` ;
-- `PaintWall` appelle `PaintSelectedWall()`.
-
-Le clic secondaire appelle `ApplySecondaryToolAction()` :
-
-- `PaintCell` appelle `ClearSelectedCell()` ;
-- `PaintWall` appelle `ClearSelectedWall()`.
-
-Les deux chemins reconstruisent seulement la géométrie avec `RebuildLevel(EGridRuntimeRebuildMode::GeometryOnly)`. Ils ne reconstruisent pas les acteurs d'objets.
-
----
-
-## 11. Aperçu éditeur
-
-`PreviewRuntimeActor` est un `AGridLevelRuntimeActor` référencé par l'acteur éditeur. `ResolvePreviewRuntimeActor()` utilise la référence existante ou recherche le premier acteur de cette classe dans le monde éditeur.
-
-Deux chemins existent :
+Exemples :
 
 ```text
-RebuildPreview()
-  assigne LevelAsset,
-  synchronise les définitions de la palette,
-  appelle RebuildLevel() en mode Full.
-
-RebuildGeometryPreview()
-  assigne LevelAsset,
-  appelle RebuildLevel(GeometryOnly).
+Door         -> Open at Start
+Teleporter   -> Enabled at Start
+MonsterSpawn -> Spawn at Start
+ItemSpawn    -> Spawn at Start
+Pit          -> Open at Start
+Lever        -> aucun On at Start
+PressurePlate-> aucun Pressed at Start
 ```
 
-En monde non jeu, un rebuild complet peut reconstruire les objets d'aperçu via `UGridEditorPreviewComponent`. Un rebuild `GeometryOnly` conserve les acteurs/objets d'aperçu et ne reconstruit que `FloorISM`, `WallISM` et `CeilingISM`.
+Pour une plaque de pression, son état effectif est recalculé depuis la présence du groupe, des monstres autorisés et le poids des items. Pour une porte, la course/angle et la durée forward peuvent recevoir un override d'instance sparse.
 
-L'illustration de flux éditeur reste valable si « Preview Runtime » est compris comme un véritable `AGridLevelRuntimeActor` utilisé en monde éditeur.
+## 14. `AGridLevelRuntimeActor`
 
----
+Le runtime lit le niveau et construit :
 
-## 12. `AGridLevelRuntimeActor`
+- les instances de géométrie structurelle (`FloorISM`, `WallISM`, `CeilingISM`) ;
+- les acteurs world-object ;
+- les items placés ;
+- les monstres demandés au démarrage ou par encounter/commande ;
+- les index des systèmes de porte, activation, interaction et preview selon le contexte.
 
-`AGridLevelRuntimeActor` appartient au module runtime `GrimrockPrototype`.
+`FGridRuntimeWorldObjectData` est une frontière C++ non réfléchie entre placement et acteur runtime. Elle conserve les noms sémantiques nécessaires, par exemple `bDoorInitiallyOpen` et `bTeleporterInitiallyEnabled`; elle ne réintroduit pas de booléens génériques d'état initial.
 
-![Flux runtime](../Images/core_20_5_runtime_flow.svg)
+## 15. Preview éditeur
 
-### 12.1. Composants et références
+Le preview utilise les mêmes placements et définitions que le runtime autant que possible. La transform de placement doit passer par les resolvers partagés pour éviter les divergences entre édition et jeu.
 
-```text
-LevelAsset, DungeonAsset, CurrentDungeonLevelId
-WorldObjectDefinitions
-FloorMesh, WallMesh, CeilingMesh
-FloorISM, WallISM, CeilingISM
-```
+Un preview peut être volontairement plus léger qu'un runtime de jeu : il sert à l'authoring et à la sélection, pas à simuler automatiquement tous les systèmes de gameplay.
 
-`FloorISM`, `WallISM` et `CeilingISM` sont des `UInstancedStaticMeshComponent` créés dans le constructeur.
+## 16. Persistance runtime
 
-### 12.2. API de grille exposée
+`FGridDungeonRuntimeState` / `FGridLevelRuntimeState` stockent les mutations survenues pendant le jeu :
 
-Les fonctions suivantes sont publiques et `BlueprintCallable` :
+- état des portes et pits ;
+- états interactifs utiles ;
+- présence et transformation des items ;
+- contenu des réceptacles ;
+- monstres, implantations et encounters ;
+- variables de niveau et autres deltas persistants.
 
-```cpp
-RebuildLevel(EGridRuntimeRebuildMode RebuildMode = Full);
-ClearVisuals(EGridRuntimeRebuildMode RebuildMode = Full);
-GetCellCenterWorld(...);
-IsValidCell(...);
-GetCell(...);
-IsWalkableCell(...);
-TryGetNeighborCell(...);
-GetWallOnEdge(...);
-CanMove(...);
-ShouldHideCellFloor(...);
-TryInteractAtEdge(...);
-```
+Lors d'un nouveau jeu, le runtime part des données authorées du `LevelAsset`. Lors d'un Continue, le snapshot mutable restauré reprend ensuite l'autorité.
 
-`CellToWorld()` existe mais est `protected`; il ne doit pas être présenté comme API publique. `GetCellCenterWorld()` est l'aide publique qui inclut la position de l'acteur.
+La définition permanente d'un objet n'est pas copiée dans le SaveGame.
 
-Les fonctions suivantes sont publiques C++ mais non `BlueprintCallable` :
+## 17. Validation
 
-```cpp
-RebuildRuntimeObjects();
-AddRuntimeObjectActor(...);
-FindWorldObjectDefinition(...);
-```
+La validation du Grid Editor doit notamment contrôler :
 
-Déclaration : `GridLevelRuntimeActor.h`. Implémentation : `GridLevelRuntimeActor.cpp`.
+- coordonnées dans les limites ;
+- identités stables valides et uniques entre les cinq familles ;
+- références de définitions ;
+- surfaces et `WallSide` compatibles ;
+- conflits de cellules/encounters pour les monstres ;
+- cohérence des liens ;
+- configuration des transitions ;
+- règles spécifiques des objets lorsque leur absence rend le niveau incohérent.
 
-### 12.3. Génération de la géométrie
+La validation signale un problème ; elle ne doit pas transformer silencieusement le modèle de données pour le masquer.
 
-`RebuildLevel()` :
+## 18. Invariants à conserver
 
-1. appelle `ClearVisuals()` avec le même mode ;
-2. vérifie `LevelAsset` et les trois composants ISM ;
-3. appelle `LevelAsset->EnsureCellCount()` ;
-4. affecte les meshes aux composants ;
-5. parcourt toutes les cellules non vides ;
-6. ajoute le sol sauf si `ShouldHideCellFloor()` le masque ;
-7. ajoute le plafond si `bHasCeiling` ;
-8. ajoute chaque mur `Solid` avec `AddEdgeInstance()` ;
-9. en rebuild complet seulement, reconstruit les objets d'aperçu en éditeur ou les objets runtime en monde jeu.
-
-`RebuildRuntimeObjects()` parcourt `LevelAsset->Objects`, traite séparément les objets de type `Item`, filtre les objets non générables et appelle `AddRuntimeObjectActor()` pour les autres.
-
-L'illustration runtime reste correcte pour un rebuild complet. En mode `GeometryOnly`, la branche « objets runtime » n'est pas exécutée.
-
-### 12.4. Requêtes de déplacement
-
-- `IsValidCell()` délègue à `LevelAsset->IsValidCoord()`.
-- `IsWalkableCell()` exige une cellule valide, non `Empty` et non bloquante.
-- `TryGetNeighborCell()` applique le décalage cardinal et valide la destination.
-- `GetWallOnEdge()` retourne `Solid` pour une cellule ou une direction invalide.
-- `CanMove()` valide source et destination, consulte le système de porte, puis le mur de la cellule source.
-
----
-
-## 13. Gestion des niveaux du donjon
-
-### 13.1. Appliquer un niveau
-
-`ApplyCurrentDungeonLevel()` :
-
-1. utilise `CurrentDungeonLevelId`, ou `DefaultLevelId` s'il est vide ;
-2. recherche l'entrée avec `FindLevelEntry()` ;
-3. exige une entrée activée avec un `LevelAsset` ;
-4. assigne `CurrentDungeonLevelId` et `LevelAsset` ;
-5. synchronise et reconstruit le `PreviewRuntimeActor`.
-
-`LoadDefaultDungeonLevelInEditor()` charge le niveau par défaut s'il est valide, sinon le premier niveau activé possédant un asset.
-
-### 13.2. Créer et ajouter un niveau
-
-`CreateAndAddDungeonLevel()` est publique et `BlueprintCallable`, mais son travail de création d'asset est protégé par `WITH_EDITOR`.
-
-Elle :
-
-- refuse un `LevelId` ou une `LogicalPosition` déjà utilisés ;
-- crée un `UGridLevelAsset` sous `/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels` ;
-- initialise une grille `32 x 32`, `CellSize = 200`, puis `EnsureCellCount()` ;
-- place le départ en `(1,1)`, orienté au nord, et initialise cette cellule en `Floor` praticable avec plafond ;
-- ajoute une entrée activée au `DungeonAsset` ;
-- définit le niveau par défaut si nécessaire ;
-- applique le nouveau niveau, synchronise l'aperçu et sauvegarde les packages ;
-- restaure l'état précédent et n'enregistre pas le nouvel asset si l'application échoue.
-
-### 13.3. Supprimer un niveau
-
-Aucune fonction dédiée de suppression d'une entrée de donjon n'est implémentée dans `UGridDungeonAsset` ou `AGridLevelEditorActor`. La suppression reste une opération manuelle sur `DungeonAsset->Levels`, avec mise à jour de `DefaultLevelId` et traitement séparé de l'éventuel asset devenu inutilisé.
-
----
-
-## 14. Cycle de vie d'un niveau
-
-```mermaid
-flowchart TD
-    A[Créer ou choisir UGridDungeonAsset] --> B[Créer UGridLevelAsset]
-    B --> C[Ajouter FGridDungeonLevelEntry]
-    C --> D[ApplyCurrentDungeonLevel]
-    D --> E[Paint Cell / Paint Wall]
-    E --> F[LevelAsset marqué modifié]
-    F --> G[Aperçu GeometryOnly ou Full]
-    G --> H[Sauvegarde des assets]
-    H --> I[AGridLevelRuntimeActor::RebuildLevel]
-```
-
----
-
-## 15. Diagramme de classes
-
-```mermaid
-classDiagram
-    class UGridDungeonAsset {
-        FText DungeonName
-        FText Author
-        FString Version
-        FName DefaultLevelId
-        TArray~FGridDungeonLevelEntry~ Levels
-    }
-    class FGridDungeonLevelEntry {
-        FName LevelId
-        FText DisplayName
-        UGridLevelAsset LevelAsset
-        FIntVector LogicalPosition
-        bool bEnabled
-    }
-    class UGridLevelAsset {
-        int32 Width
-        int32 Height
-        float CellSize
-        TArray~FGridLevelCellData~ Cells
-        int32 StartCellX
-        int32 StartCellY
-        EGridEdge StartFacing
-        TArray~FGridLevelObjectData~ Objects
-        TArray~FGridObjectLink~ Links
-    }
-    class FGridLevelCellData {
-        EGridCellType CellType
-        EGridWallType NorthWall
-        EGridWallType EastWall
-        EGridWallType SouthWall
-        EGridWallType WestWall
-        bool bHasCeiling
-        bool bBlocksOccupancy
-    }
-    class FGridLevelObjectData
-    class FGridObjectLink
-    class AGridLevelEditorActor
-    class AGridLevelRuntimeActor
-
-    UGridDungeonAsset "1" o-- "*" FGridDungeonLevelEntry
-    FGridDungeonLevelEntry --> UGridLevelAsset
-    UGridLevelAsset "1" o-- "*" FGridLevelCellData
-    UGridLevelAsset "1" o-- "*" FGridLevelObjectData
-    UGridLevelAsset "1" o-- "*" FGridObjectLink
-    AGridLevelEditorActor --> UGridLevelAsset
-    AGridLevelEditorActor --> AGridLevelRuntimeActor : aperçu
-    AGridLevelRuntimeActor --> UGridLevelAsset
-```
-
----
-
-## 16. Règles d'architecture
-
-1. Les données durables vivent dans `UGridDungeonAsset` et `UGridLevelAsset`.
-2. `AGridLevelEditorActor` modifie le `LevelAsset`; il n'est pas une source persistante parallèle.
-3. `AGridLevelRuntimeActor` lit le `LevelAsset` et génère une représentation.
-4. Paint Cell écrit uniquement les propriétés internes de cellule.
-5. Paint Wall écrit uniquement le bord sélectionné; le bord voisin n'est pas synchronisé.
-6. Les appels à `GetCell()` et `GetCellMutable()` doivent être précédés d'une validation de coordonnées.
-7. La conversion publique vers le centre monde doit utiliser `GetCellCenterWorld()`; `CellToWorld()` est un helper protégé du runtime.
-8. Un aperçu `GeometryOnly` ne doit pas être confondu avec une reconstruction complète des objets.
-
----
-
-## 17. Checklist de validation
-
-### Donjon
-
-- [ ] `LevelId` non vide et unique.
-- [ ] `LogicalPosition` unique lorsque le workflow éditeur l'exige.
-- [ ] chaque niveau activé possède un `LevelAsset`.
-- [ ] `DefaultLevelId` référence un niveau activé, ou le fallback est accepté explicitement.
-
-### Niveau
-
-- [ ] `Width > 0`, `Height > 0`, `CellSize > 0`.
-- [ ] `Cells.Num() == max(1, Width) * max(1, Height)`.
-- [ ] la cellule de départ est dans la grille, non vide et non bloquante.
-
-### Cellules et murs
-
-- [ ] les cellules destinées au déplacement ne sont ni `Empty` ni bloquantes.
-- [ ] les murs partagés respectent une convention de contenu explicite.
-- [ ] aucun doublon visuel involontaire n'est créé par deux murs opposés superposés.
-- [ ] les déplacements ne dépendent pas d'un mur renseigné uniquement sur la cellule cible.
-
-### Objets et liens
-
-- [ ] chaque `ObjectId` est valide et unique.
-- [ ] les coordonnées des objets sont dans la grille.
-- [ ] les objets nécessitant un bord ont un `Edge` cardinal.
-- [ ] chaque `SourceObjectId` et `TargetObjectId` référence un objet existant.
-
-`ValidateCurrentLevel()` contrôle les entrées du donjon, les dimensions, la cardinalité de `Cells`, le départ, les murs partagés, les objets, les définitions et les liens. `GetDungeonDiagnostics()` fournit une synthèse textuelle complémentaire des entrées de donjon.
-
----
-
-## 18. Workflows
-
-### 18.1. Créer un donjon
-
-1. Créer un `UGridDungeonAsset`.
-2. Renseigner `DungeonName`, `Author` et `Version`.
-3. Assigner le `DungeonAsset` à un `AGridLevelEditorActor`.
-4. Utiliser `CreateAndAddDungeonLevel()` ou créer manuellement un `UGridLevelAsset` et une entrée.
-5. Définir `DefaultLevelId`.
-6. Appliquer le niveau avec `ApplyCurrentDungeonLevel()`.
-7. Peindre les cellules et les murs, puis sauvegarder les assets.
-
-### 18.2. Ajouter un niveau
-
-1. Choisir un `LevelId` et une `LogicalPosition` libres.
-2. Créer le `UGridLevelAsset`.
-3. Ajouter un `FGridDungeonLevelEntry` activé.
-4. Définir `CurrentDungeonLevelId`.
-5. appeler `ApplyCurrentDungeonLevel()`.
-6. Éditer et sauvegarder.
-
-Le bouton du toolkit utilise `CreateAndAddDungeonLevel()` pour automatiser ces étapes.
-
-### 18.3. Supprimer un niveau
-
-1. Retirer manuellement l'entrée de `DungeonAsset->Levels`.
-2. Corriger `DefaultLevelId` si nécessaire.
-3. Appliquer un autre niveau dans l'acteur éditeur.
-4. Sauvegarder le `DungeonAsset`.
-5. Supprimer le `UGridLevelAsset` séparément seulement s'il n'est plus référencé.
-
----
-
-## 19. Index des illustrations
-
-| Illustration | Section | Fichier |
-|---|---|---|
-| Le donjon comme classeur | `UGridDungeonAsset` | `../Images/core_20_1_dungeon_binder.svg` |
-| Le niveau comme carte quadrillée | `UGridLevelAsset` | `../Images/core_20_2_level_grid_map.svg` |
-| Une cellule et ses quatre murs | Cellules et murs | `../Images/core_20_3_cell_four_walls.svg` |
-| Flux éditeur | Grimrock Grid Editor | `../Images/core_20_4_editor_flow.svg` |
-| Flux runtime | `AGridLevelRuntimeActor` | `../Images/core_20_5_runtime_flow.svg` |
-
----
-
-## 20. Résumé du noyau
-
-```text
-UGridDungeonAsset
-  organise et résout les niveaux.
-
-UGridLevelAsset
-  stocke dimensions, cellules, départ, objets et liens.
-
-FGridLevelCellData
-  stocke le type de cellule, quatre murs indépendants,
-  le plafond et le blocage d'occupation.
-
-AGridLevelEditorActor
-  modifie le LevelAsset et pilote un runtime d'aperçu.
-
-FGridLevelEdMode + FGridLevelEdModeToolkit
-  fournissent les interactions viewport et l'interface du mode.
-
-AGridLevelRuntimeActor
-  génère FloorISM, WallISM, CeilingISM et, lors d'un rebuild complet,
-  les objets d'aperçu ou runtime.
-```
-
-Le document est volontairement limité au noyau Donjon / Niveau / Grille. L'architecture des définitions, de la palette et des objets placés est détaillée dans [`WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md`](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les comportements spécialisés des objets et des liens restent dans des documents séparés.
-
-L'exploitation des erreurs de niveau dans l'éditeur est décrite dans [`LEVEL_VALIDATION_PANEL_FOUNDATION.md`](LEVEL_VALIDATION_PANEL_FOUNDATION.md).
+1. Le `LevelAsset` reste l'autorité persistante du niveau.
+2. Les placements sont répartis entre cinq collections typées.
+3. Chaque placement possède une identité stable unique à l'échelle du niveau.
+4. Definition = concept partagé ; Instance = différence locale réelle.
+5. Aucun booléen générique d'état initial n'est authoré sur les placements.
+6. Un item ramassable n'a qu'une `UGridItemDefinitionAsset`.
+7. Un monstre n'a qu'une `UGridMonsterDefinitionAsset`.
+8. `LooseItemInstance` et `ItemSpawnInstance` restent deux concepts distincts.
+9. Preview et runtime partagent les mêmes autorités de placement.
+10. Le SaveGame stocke des deltas runtime, pas des copies de définitions.

@@ -84,8 +84,7 @@ namespace
 		Door.CellY = Cell.Y;
 		Door.WallSide = Edge;
 		Door.WorldObjectDefinitionId = WorldObjectDefinitionId;
-		Door.bInitiallyEnabled = true;
-		Door.bInitiallyActive = false;
+		Door.InstanceConfig.bDoorInitiallyOpen = false;
 		return Door;
 	}
 
@@ -164,7 +163,7 @@ bool FGridMonsterAcousticHearingTest::RunTest(const FString& Parameters)
 	Spawn.Facing = EGridEdge::East;
 	Spawn.InitialMonsterState = EGridMonsterState::Dormant;
 	Spawn.MonsterDefinition = Definition;
-	Spawn.bInitiallyEnabled = true;
+	Spawn.bSpawnAtStart = true;
 	Level->MonsterSpawns.Add(Spawn);
 
 	FActorSpawnParameters Params;

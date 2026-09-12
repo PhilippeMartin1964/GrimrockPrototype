@@ -73,7 +73,6 @@ namespace
 		Pit.CellX = X;
 		Pit.CellY = Y;
 		Pit.WallSide = EGridEdge::None;
-		Pit.bInitiallyEnabled = true;
 		Pit.WorldObjectDefinitionId = TEXT("Pit_Stone_01");
 		Pit.InstanceConfig.Pit.bInitiallyOpen = bOpen;
 		Pit.InstanceConfig.Pit.bUseSameCellCoordinates = true;

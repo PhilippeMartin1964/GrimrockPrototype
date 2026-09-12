@@ -90,7 +90,7 @@ namespace
 		Spawn.MonsterDefinition = Definition;
 
 		Spawn.EncounterGroupId = TEXT("Encounter_MON13");
-		Spawn.bInitiallyEnabled = true;
+		Spawn.bSpawnAtStart = true;
 		return Spawn;
 	}
 
@@ -200,7 +200,7 @@ bool FGridMonsterMON131PersistentModelTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Explicit InitialFacing remains authoritative"), StoredSpawn->Facing, EGridEdge::East);
 	TestNull(TEXT("Typed spawn has no duplicate definition id"), FGridMonsterSpawnInstance::StaticStruct()->FindPropertyByName(TEXT("MonsterDefinitionId")));
 	TestEqual(TEXT("Encounter id remains persistent"), StoredSpawn->EncounterGroupId, FName(TEXT("Encounter_MON13")));
-	TestTrue(TEXT("Initial enabled state remains persistent"), StoredSpawn->bInitiallyEnabled);
+	TestTrue(TEXT("Spawn-at-start state remains persistent"), StoredSpawn->bSpawnAtStart);
 
 	TArray<FString> Errors;
 	TestTrue(TEXT("Complete MonsterSpawn model validates"), Level->ValidateMonsterSpawns(Errors));
@@ -221,7 +221,7 @@ bool FGridMonsterMON131ValidationTest::RunTest(const FString& Parameters)
 	Level->MonsterSpawns.Add(Valid);
 
 	FGridMonsterSpawnInstance DuplicateId = MakeMON13Spawn(Definition, SharedId, FIntPoint(2, 1));
-	DuplicateId.bInitiallyEnabled = false;
+	DuplicateId.bSpawnAtStart = false;
 	Level->MonsterSpawns.Add(DuplicateId);
 
 	FGridMonsterSpawnInstance DuplicateCell = MakeMON13Spawn(Definition, FGuid(13, 1, 1, 2), FIntPoint(1, 1));
@@ -239,7 +239,7 @@ bool FGridMonsterMON131ValidationTest::RunTest(const FString& Parameters)
 	TArray<FString> Errors;
 	TestFalse(TEXT("Invalid MonsterSpawn set is rejected"), Level->ValidateMonsterSpawns(Errors));
 	TestTrue(TEXT("Duplicate SpawnId is reported"), HasErrorContaining(Errors, TEXT("unique ObjectId/SpawnId")));
-	TestTrue(TEXT("Duplicate enabled cell is reported"), HasErrorContaining(Errors, TEXT("shares initial cell")));
+	TestTrue(TEXT("Duplicate spawn-at-start cell is reported"), HasErrorContaining(Errors, TEXT("shares initial cell")));
 	TestTrue(TEXT("Blocked cell is reported"), HasErrorContaining(Errors, TEXT("allows occupancy")));
 	TestNull(TEXT("Typed monster placement is structurally cell-centered"), FGridMonsterSpawnInstance::StaticStruct()->FindPropertyByName(TEXT("Edge")));
 	TestTrue(TEXT("Non-cardinal facing is rejected"), HasErrorContaining(Errors, TEXT("cardinal InitialFacing")));
@@ -434,19 +434,19 @@ bool FGridMonsterMON132AtomicFailureTest::RunTest(const FString& Parameters)
 	Level->Cells[Level->GetIndex(3, 0)].bBlocksOccupancy = true;
 	Level->MonsterSpawns.Add(Blocked);
 
-	FGridMonsterSpawnInstance Disabled = MakeMON13Spawn(nullptr, FGuid(13, 2, 2, 4), FIntPoint(0, 1));
-	Disabled.bInitiallyEnabled = false;
-	Level->MonsterSpawns.Add(Disabled);
+	FGridMonsterSpawnInstance Deferred = MakeMON13Spawn(nullptr, FGuid(13, 2, 2, 4), FIntPoint(0, 1));
+	Deferred.bSpawnAtStart = false;
+	Level->MonsterSpawns.Add(Deferred);
 
 	AddExpectedError(TEXT("[GridMonsterSpawn] Skipped"), EAutomationExpectedErrorFlags::Contains, 4, false);
 	Runtime->RebuildLevel();
 	TestEqual(TEXT("Only the valid placement creates an Actor"), Runtime->GetSpawnedMonsterActorCount(), 1);
-	TestEqual(TEXT("Every enabled invalid placement is counted"), Runtime->GetMonsterSpawnFailureCount(), 4);
+	TestEqual(TEXT("Every spawn-at-start invalid placement is counted"), Runtime->GetMonsterSpawnFailureCount(), 4);
 	TestNotNull(TEXT("Valid placement remains available"), Runtime->FindSpawnedMonsterActor(ValidId));
 	TestNull(TEXT("Missing definition creates no partial Actor"), Runtime->FindSpawnedMonsterActor(Mismatched.SpawnId));
 	TestNull(TEXT("Blocked placement creates no partial Actor"), Runtime->FindSpawnedMonsterActor(Blocked.SpawnId));
 	TestNull(TEXT("Occupied placement creates no partial Actor"), Runtime->FindSpawnedMonsterActor(DuplicateCell.SpawnId));
-	TestNull(TEXT("Disabled placement creates no Actor"), Runtime->FindSpawnedMonsterActor(Disabled.SpawnId));
+	TestNull(TEXT("Deferred placement creates no Actor"), Runtime->FindSpawnedMonsterActor(Deferred.SpawnId));
 	TestEqual(TEXT("Invalid placements leak no world Actor"), CountMON132WorldMonsters(TestWorld.World), 1);
 	return true;
 }
@@ -553,16 +553,15 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest(const FString& Parameters
 	Trigger.CellX = 3;
 	Trigger.CellY = 3;
 	Trigger.WallSide = EGridEdge::None;
-	Trigger.bInitiallyEnabled = true;
 	Level->WorldObjectInstances.Add(Trigger);
 
 	FGridMonsterSpawnInstance FirstSpawn = MakeMON13Spawn(FirstDefinition, FirstSpawnId, FIntPoint(0, 1));
-	FirstSpawn.bInitiallyEnabled = false;
+	FirstSpawn.bSpawnAtStart = false;
 	FirstSpawn.EncounterGroupId = TEXT("Encounter_MON133_Rats");
 	Level->MonsterSpawns.Add(FirstSpawn);
 
 	FGridMonsterSpawnInstance SecondSpawn = MakeMON13Spawn(SecondDefinition, SecondSpawnId, FIntPoint(1, 0));
-	SecondSpawn.bInitiallyEnabled = false;
+	SecondSpawn.bSpawnAtStart = false;
 	SecondSpawn.EncounterGroupId = TEXT("Encounter_MON133_Rats");
 	Level->MonsterSpawns.Add(SecondSpawn);
 
@@ -573,8 +572,6 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest(const FString& Parameters
 	SpawnEventMarker.CellX = 2;
 	SpawnEventMarker.CellY = 3;
 	SpawnEventMarker.WallSide = EGridEdge::North;
-	SpawnEventMarker.bInitiallyEnabled = true;
-	SpawnEventMarker.bInitiallyActive = false;
 	Level->WorldObjectInstances.Add(SpawnEventMarker);
 	Runtime->WorldObjectDefinitions.Add(GridMonsterMON13MakeLeverMarkerDefinition(Runtime, SpawnEventMarkerWorldObjectDefinitionId));
 
@@ -608,7 +605,7 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest(const FString& Parameters
 
 	Runtime->RebuildLevel();
 	TestEqual(TEXT("Deferred-spawn fixture uses a PIE world"), TestWorld.World->WorldType, EWorldType::PIE);
-	TestEqual(TEXT("Disabled placements start absent"), Runtime->GetSpawnedMonsterActorCount(), 0);
+	TestEqual(TEXT("Deferred placements start absent"), Runtime->GetSpawnedMonsterActorCount(), 0);
 	TestNull(TEXT("The first SpawnId is absent after RebuildLevel"), Runtime->FindSpawnedMonsterActor(FirstSpawnId));
 	Runtime->HandlePartyCellChanged(Level->StartCellX, Level->StartCellY, Level->StartCellX, Level->StartCellY);
 	TestEqual(TEXT("Startup notification away from the trigger spawns nothing"), Runtime->GetSpawnedMonsterActorCount(), 0);
@@ -620,7 +617,7 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest(const FString& Parameters
 	AGridMonsterActor* FirstMonster = Runtime->FindSpawnedMonsterActor(FirstSpawnId);
 	AGridMonsterActor* SecondMonster = Runtime->FindSpawnedMonsterActor(SecondSpawnId);
 	TestNotNull(TEXT("First deferred monster exists"), FirstMonster);
-	TestNull(TEXT("Unrelated disabled placement remains absent"), SecondMonster);
+	TestNull(TEXT("Unrelated deferred placement remains absent"), SecondMonster);
 	TestTrue(TEXT("MonsterSpawned executes its linked marker command"), Activation->GetActiveObjectIds().Contains(SpawnEventMarkerId));
 	if (!FirstMonster)
 	{
@@ -703,7 +700,7 @@ bool FGridMonsterMON133LifecyclePersistenceTest::RunTest(const FString& Paramete
 	Spawn.CellY = 0;
 	Spawn.Facing = EGridEdge::North;
 	Spawn.EncounterGroupId = TEXT("Encounter_MON133_Persistent");
-	Spawn.bInitiallyEnabled = true;
+	Spawn.bSpawnAtStart = true;
 	Level->MonsterSpawns.Add(Spawn);
 
 	Runtime->RebuildLevel();
@@ -853,25 +850,24 @@ bool FGridMonsterMON134EncounterWavesTest::RunTest(const FString& Parameters)
 	Trigger.CellX = 3;
 	Trigger.CellY = 3;
 	Trigger.WallSide = EGridEdge::None;
-	Trigger.bInitiallyEnabled = true;
 	Level->WorldObjectInstances.Add(Trigger);
 
 	FGridMonsterSpawnInstance Wave0Anchor = MakeMON13Spawn(Definition, Wave0AnchorId, FIntPoint(0, 1));
 	Wave0Anchor.EncounterGroupId = EncounterId;
 	Wave0Anchor.EncounterWaveIndex = 0;
-	Wave0Anchor.bInitiallyEnabled = false;
+	Wave0Anchor.bSpawnAtStart = false;
 	Level->MonsterSpawns.Add(Wave0Anchor);
 
 	FGridMonsterSpawnInstance Wave0Second = MakeMON13Spawn(Definition, Wave0SecondId, FIntPoint(1, 1));
 	Wave0Second.EncounterGroupId = EncounterId;
 	Wave0Second.EncounterWaveIndex = 0;
-	Wave0Second.bInitiallyEnabled = false;
+	Wave0Second.bSpawnAtStart = false;
 	Level->MonsterSpawns.Add(Wave0Second);
 
 	FGridMonsterSpawnInstance Wave1 = MakeMON13Spawn(Definition, Wave1Id, FIntPoint(2, 1));
 	Wave1.EncounterGroupId = EncounterId;
 	Wave1.EncounterWaveIndex = 1;
-	Wave1.bInitiallyEnabled = false;
+	Wave1.bSpawnAtStart = false;
 	Level->MonsterSpawns.Add(Wave1);
 
 	FGridWorldObjectInstance WaveStartedMarker;
@@ -881,8 +877,6 @@ bool FGridMonsterMON134EncounterWavesTest::RunTest(const FString& Parameters)
 	WaveStartedMarker.CellX = 0;
 	WaveStartedMarker.CellY = 3;
 	WaveStartedMarker.WallSide = EGridEdge::North;
-	WaveStartedMarker.bInitiallyEnabled = true;
-	WaveStartedMarker.bInitiallyActive = false;
 	Level->WorldObjectInstances.Add(WaveStartedMarker);
 
 	FGridWorldObjectInstance CompletedMarker = WaveStartedMarker;
@@ -1015,12 +1009,12 @@ bool FGridMonsterMON134AtomicWaveFailureTest::RunTest(const FString& Parameters)
 	const FGuid AnchorId(13, 4, 2, 1);
 	FGridMonsterSpawnInstance Anchor = MakeMON13Spawn(Definition, AnchorId, FIntPoint(1, 1));
 	Anchor.EncounterGroupId = EncounterId;
-	Anchor.bInitiallyEnabled = false;
+	Anchor.bSpawnAtStart = false;
 	Level->MonsterSpawns.Add(Anchor);
 
 	FGridMonsterSpawnInstance Conflict = MakeMON13Spawn(Definition, FGuid(13, 4, 2, 2), FIntPoint(1, 1));
 	Conflict.EncounterGroupId = EncounterId;
-	Conflict.bInitiallyEnabled = false;
+	Conflict.bSpawnAtStart = false;
 	Level->MonsterSpawns.Add(Conflict);
 
 	Runtime->RebuildLevel();
@@ -1056,19 +1050,19 @@ bool FGridMonsterMON134ValidationTest::RunTest(const FString& Parameters)
 	FGridMonsterSpawnInstance UngroupedFutureWave = MakeMON13Spawn(Definition, FGuid(13, 4, 3, 2), FIntPoint(1, 0));
 	UngroupedFutureWave.EncounterGroupId = NAME_None;
 	UngroupedFutureWave.EncounterWaveIndex = 1;
-	UngroupedFutureWave.bInitiallyEnabled = false;
+	UngroupedFutureWave.bSpawnAtStart = false;
 	Level->MonsterSpawns.Add(UngroupedFutureWave);
 
-	FGridMonsterSpawnInstance EnabledFutureWave = MakeMON13Spawn(Definition, FGuid(13, 4, 3, 3), FIntPoint(2, 0));
-	EnabledFutureWave.EncounterGroupId = TEXT("Encounter_MON134_Future");
-	EnabledFutureWave.EncounterWaveIndex = 1;
-	EnabledFutureWave.bInitiallyEnabled = true;
-	Level->MonsterSpawns.Add(EnabledFutureWave);
+	FGridMonsterSpawnInstance SpawnAtStartFutureWave = MakeMON13Spawn(Definition, FGuid(13, 4, 3, 3), FIntPoint(2, 0));
+	SpawnAtStartFutureWave.EncounterGroupId = TEXT("Encounter_MON134_Future");
+	SpawnAtStartFutureWave.EncounterWaveIndex = 1;
+	SpawnAtStartFutureWave.bSpawnAtStart = true;
+	Level->MonsterSpawns.Add(SpawnAtStartFutureWave);
 
 	FGridMonsterSpawnInstance SharedWaveCellA = MakeMON13Spawn(Definition, FGuid(13, 4, 3, 4), FIntPoint(0, 1));
 	SharedWaveCellA.EncounterGroupId = TEXT("Encounter_MON134_Shared");
 	SharedWaveCellA.EncounterWaveIndex = 2;
-	SharedWaveCellA.bInitiallyEnabled = false;
+	SharedWaveCellA.bSpawnAtStart = false;
 	Level->MonsterSpawns.Add(SharedWaveCellA);
 
 	FGridMonsterSpawnInstance SharedWaveCellB = SharedWaveCellA;
@@ -1079,7 +1073,7 @@ bool FGridMonsterMON134ValidationTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Invalid encounter wave data is rejected"), Level->ValidateMonsterSpawns(Errors));
 	TestTrue(TEXT("Negative wave index is reported"), HasErrorContaining(Errors, TEXT("EncounterWaveIndex >= 0")));
 	TestTrue(TEXT("Future wave requires an encounter group"), HasErrorContaining(Errors, TEXT("requires EncounterGroupId")));
-	TestTrue(TEXT("Future wave must start disabled"), HasErrorContaining(Errors, TEXT("must be disabled at start")));
+	TestTrue(TEXT("Future wave must not spawn at start"), HasErrorContaining(Errors, TEXT("must not spawn at start")));
 	TestTrue(TEXT("Same-wave cell conflict is reported"), HasErrorContaining(Errors, TEXT("shares encounter wave")));
 	return true;
 }

@@ -102,7 +102,7 @@ namespace
 			MonsterSpawn.CellX = 2;
 			MonsterSpawn.CellY = 2;
 			MonsterSpawn.Facing = EGridEdge::North;
-			MonsterSpawn.bInitiallyEnabled = true;
+			MonsterSpawn.bSpawnAtStart = true;
 			LevelAsset->MonsterSpawns.Add(MonsterSpawn);
 
 			EditorActor->LastSelectedObjectId = MonsterSpawnId;

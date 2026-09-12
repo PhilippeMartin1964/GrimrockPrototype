@@ -117,7 +117,7 @@ namespace GridMonsterMON20102DeadRestoreOccupancy
 		Spawn.Facing = EGridEdge::North;
 		Spawn.MonsterDefinition = Definition;
 		Spawn.EncounterGroupId = TEXT("MON20102_Encounter");
-		Spawn.bInitiallyEnabled = true;
+		Spawn.bSpawnAtStart = true;
 		return Spawn;
 	}
 

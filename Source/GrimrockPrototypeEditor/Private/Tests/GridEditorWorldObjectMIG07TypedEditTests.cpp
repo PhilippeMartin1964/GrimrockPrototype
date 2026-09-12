@@ -100,7 +100,7 @@ bool FGridEditorWorldObjectMIG07TypedWriteThroughTest::RunTest(const FString& Pa
 	Monster.CellX = 5;
 	Monster.CellY = 5;
 	Monster.Facing = EGridEdge::North;
-	Monster.bInitiallyEnabled = true;
+	Monster.bSpawnAtStart = true;
 	Level->MonsterSpawns.Add(Monster);
 
 	EditorActor->LevelAsset = Level;

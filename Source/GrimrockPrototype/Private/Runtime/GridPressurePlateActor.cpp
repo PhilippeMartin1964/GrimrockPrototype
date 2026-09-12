@@ -18,22 +18,23 @@ void AGridPressurePlateActor::Tick(float DeltaSeconds)
 
 
 void AGridPressurePlateActor::InitializeRuntimePlate(
-	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation, bool bStartPressed)
+	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation)
 {
 	(void)InPlateMesh;
 	AGridRuntimeObjectActor::InitializeRuntimeWorldObject(ObjectData, nullptr, FTransform(FRotator::ZeroRotator, InWorldLocation));
 
+	// A pressure plate never has an authored pressed state. Its effective state is derived from actual occupancy/weight after rebuild.
 	// RECOVERY01-C2: MoveDuration remains the forward cache; reverse timing is resolved on demand.
 	MoveDuration = GetTargetMotionDuration(false);
 	const FGridObjectBehaviorParams EffectiveBehavior = ResolveEffectiveBehavior(ObjectData);
 	const FGridPressurePlateWeightParams& WeightParams = EffectiveBehavior.PressurePlateWeight;
 	SetWeightState(0.0f, WeightParams.RequiredItemWeight, WeightParams.bUseItemWeight, WeightParams.bActivateWhenPartyPresent);
 
-	bIsPressed = bStartPressed;
+	bIsPressed = false;
 	bIsAnimating = false;
 	AnimElapsed = 0.f;
 	CurrentMoveDuration = 0.0f;
-	CurrentMotionAlpha = bIsPressed ? 1.0f : 0.0f;
+	CurrentMotionAlpha = 0.0f;
 	AnimStartMotionAlpha = CurrentMotionAlpha;
 	AnimTargetMotionAlpha = CurrentMotionAlpha;
 	ApplyMovingPartMotionAlpha(0, CurrentMotionAlpha);
@@ -97,5 +98,5 @@ void AGridPressurePlateActor::UpdateAnimation(float DeltaSeconds)
 void AGridPressurePlateActor::InitializeRuntimeWorldObject(
 	const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* Mesh, const FTransform& WorldTransform)
 {
-	InitializeRuntimePlate(ObjectData, Mesh, WorldTransform.GetLocation(), ObjectData.bInitiallyActive);
+	InitializeRuntimePlate(ObjectData, Mesh, WorldTransform.GetLocation());
 }

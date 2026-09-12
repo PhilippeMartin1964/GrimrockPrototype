@@ -1,6 +1,6 @@
 # 11 — Référence des paramètres GridWorldObjectDefinitionAsset
 
-Statut : **document actif de référence après ALIGN-B5.3 + WORLDOBJ-RECOVERY01**, 2026-09-10. Version cible : UE 5.5.4.
+Statut : **document actif de référence après ALIGN-B5.3 + WORLDOBJ-RECOVERY01 + états initiaux sémantiques**, 2026-09-12. Version cible : UE 5.5.4.
 
 La déclaration de référence est `Source/GrimrockPrototype/Public/Core/GridWorldObjectDefinitionAsset.h`. Ce guide décrit l'authoring courant après MIG10 et ALIGN-B5.3. Les audits 07/08 et le plan 09 conservent leur vocabulaire historique et ne sont pas des références de schéma actuel.
 
@@ -24,9 +24,24 @@ Le type gameplay, la catégorie fonctionnelle et la catégorie de palette ont de
 
 ## 3. Defaults et overrides
 
-`bDefaultInitiallyEnabled`, `bDefaultInitiallyActive` et `DefaultTag` fournissent les valeurs initiales au placement. `DefaultBehavior` porte les règles partagées, notamment les règles de poids, de réceptacle et les paramètres logiques des mécanismes.
+`DefaultBehavior` porte les règles partagées, notamment les règles de poids, de réceptacle et les paramètres logiques des mécanismes. La définition ne porte plus de booléens génériques destinés à être copiés comme « enabled » ou « active » lors du placement.
+
+Les états initiaux qui dépendent du puzzle appartiennent à la structure typée du placement :
+
+| Placement | État initial authoré |
+|---|---|
+| Door | `InstanceConfig.bDoorInitiallyOpen` |
+| Teleporter | `InstanceConfig.bTeleporterInitiallyEnabled` |
+| Pit | `InstanceConfig.Pit.bInitiallyOpen` |
+| Lock | `InstanceConfig.bStartsUnlocked` |
+| MonsterSpawn | `bSpawnAtStart` |
+| ItemSpawn | `bSpawnAtStart` |
+| Lever | aucun override : démarre au repos / Off |
+| PressurePlate | aucun état pressé authoré : état dérivé de l'occupation et du poids |
 
 Les données naturellement locales restent `InstanceConfig.Teleporter`, `Transition`, `Pit`, `ReceptacleInitialContent` et `bStartsUnlocked`. RECOVERY01 autorise en plus deux familles d'exceptions **sparse** lorsque l'histoire du niveau exige une différence réelle : `MovingPartOverrides` (`LocalTransform`, `Motion.Amount`, `Motion.Duration`) et les overrides de chaîne (`DoorChainMode`, `bOverrideChainPullDuration`, `ChainPullDuration`). Le resolver combine la définition avec ces données locales sans recopier la définition. Il n'existe ni override de mesh/type/axe/pivot/`ReverseDuration`, ni `ChainPullDistance` d'instance. Voir la [règle Definition / Instance](12_GRID_OBJECT_INSTANCE_BEHAVIOR_RULE.md).
+
+La présence d'un `FGridWorldObjectInstance`, `FGridLooseItemInstance` ou `FGridLogicObjectInstance` dans sa collection native signifie que ce placement existe. La présence initiale d'un générateur de monstre ou d'item est, elle, explicitement contrôlée par `bSpawnAtStart`.
 
 ## 4. Placement et comportement spatial
 

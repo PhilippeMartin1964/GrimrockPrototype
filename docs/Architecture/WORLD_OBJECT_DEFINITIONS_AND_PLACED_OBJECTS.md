@@ -1,6 +1,6 @@
 # Définitions des objets du monde et objets placés
 
-Statut : **contrat actif après WORLDOBJ-MIG10 + WORLDOBJ-RECOVERY01**, 2026-09-10.
+Statut : **contrat actif après WORLDOBJ-MIG10 + WORLDOBJ-RECOVERY01 + refonte des états initiaux sémantiques**, 2026-09-12.
 
 ## 1. Autorités
 
@@ -20,18 +20,31 @@ Les items ramassables utilisent une seule `UGridItemDefinitionAsset`. Les monstr
 
 `MonsterSpawns` et `LogicObjects` sont des placements typés centrés sur une cellule ; ils ne consomment pas `DefaultLocalPosition.U/V/N`. Les anciens offsets `Z=12` des représentations world-object de `MonsterSpawn`, `CustomRecruiter_Service` et `StoryCompanion_Recruit` ont donc été classés **non applicables** par RECOVERY01 et ne sont pas restaurés. `MonsterSpawn` est résolu via `FGridMonsterSpawnInstance`; `StoryCompanion` et `CustomRecruiter` via `FGridLogicObjectInstance`.
 
-`MonsterSpawns` et `LogicObjects` sont des placements typés centrés sur une cellule ; ils ne consomment pas `DefaultLocalPosition.U/V/N`. Les anciens offsets `Z=12` des représentations world-object de `MonsterSpawn`, `CustomRecruiter_Service` et `StoryCompanion_Recruit` ont donc été classés **non applicables** par RECOVERY01 et ne sont pas restaurés. `MonsterSpawn` est résolu via `FGridMonsterSpawnInstance`; `StoryCompanion` et `CustomRecruiter` via `FGridLogicObjectInstance`.
-
 ## 2. Instance world-object
 
 `FGridWorldObjectInstance`, déclaré dans `Core/GridLevelPlacementTypes.h`, contient :
 
 - `InstanceId`, identité stable ; `WorldObjectDefinitionId`, référence de définition ; `Type`, discriminateur fonctionnel ;
 - `CellX`, `CellY`, `WallSide`, et l'override optionnel `bHasLocalTransformOverride` / `LocalTransformOverride` ;
-- `bInitiallyEnabled`, `bInitiallyActive`, `LogicId`, `Tag`, `Notes`, `PaletteEntryId` et `ReadableTextOverride` ;
+- `LogicId`, `Tag`, `Notes`, `PaletteEntryId` et `ReadableTextOverride` ;
 - `InstanceConfig.Teleporter`, `Transition`, `Pit`, `ReceptacleInitialContent` et `bStartsUnlocked` pour les données naturellement locales au niveau ;
+- `InstanceConfig.bDoorInitiallyOpen` pour l'état initial d'une porte ;
+- `InstanceConfig.bTeleporterInitiallyEnabled` pour l'état initial d'un téléporteur ;
 - `InstanceConfig.MovingPartOverrides` pour les rares exceptions visuelles historiques d'une partie mobile (`LocalTransform`, `Amount`, durée forward), indexées par `PartIndex` 0 ou 1 ;
 - `DoorChainMode` (`Inherit` / `Enabled` / `Disabled`) et l'override optionnel de `ChainPullDuration` pour les exceptions historiques de chaîne de porte.
+
+Il n'existe plus de `bInitiallyEnabled` ou `bInitiallyActive` générique dans les placements persistés. L'existence d'un world object, d'un loose item ou d'un objet logique est impliquée par sa présence dans la collection du niveau. Les états initiaux qui ont une vraie signification gameplay sont nommés explicitement :
+
+| Type | Autorité d'état initial |
+|---|---|
+| Door | `InstanceConfig.bDoorInitiallyOpen` |
+| Teleporter | `InstanceConfig.bTeleporterInitiallyEnabled` |
+| Pit | `InstanceConfig.Pit.bInitiallyOpen` |
+| Lock | `InstanceConfig.bStartsUnlocked` |
+| MonsterSpawn | `bSpawnAtStart` |
+| ItemSpawn | `bSpawnAtStart` |
+| Lever | aucun override initial : démarre au repos / Off |
+| PressurePlate | aucun état pressé authoré : état dérivé au runtime de l'occupation et du poids |
 
 La définition reste l'autorité de la géométrie et de la motion partagées. Une instance ne contient jamais une copie complète de `MovingParts` : les overrides C1.1 sont sparse et ne peuvent pas remplacer le mesh, le type de motion, l'axe, le pivot ou `ReverseDuration`. De même, la chaîne conserve sa distance partagée dans la définition ; aucune `ChainPullDistance` d'instance n'existe. Le comportement effectif résout la définition avec ces seules données locales autorisées. Voir la [règle Definition / Instance](../Design/12_GRID_OBJECT_INSTANCE_BEHAVIOR_RULE.md).
 
@@ -43,13 +56,15 @@ La définition reste l'autorité de la géométrie et de la motion partagées. U
 
 `AGridLevelEditorActor` édite les collections natives de `UGridLevelAsset`. `ValidateCurrentLevel()` contrôle les identités, placements, références, liens, définitions et règles spécifiques. Les messages ne constituent pas une migration ou une resauvegarde implicite.
 
+Les anciens defaults génériques `bDefaultInitiallyEnabled` et `bDefaultInitiallyActive` ont été supprimés de `UGridWorldObjectDefinitionAsset`. Une définition fournit les comportements partagés ; les états de puzzle propres à un placement restent dans sa configuration sémantique.
+
 ## 4. Preview et runtime
 
 La palette alimente `AGridLevelRuntimeActor::WorldObjectDefinitions`. `FindWorldObjectDefinition()` résout le `WorldObjectDefinitionId`. Preview et runtime consomment cette même définition et les placements typés ; ils partagent `GridPlacementTransformResolver`.
 
 `UGridEditorPreviewComponent` initialise les objets de preview depuis la définition. Les items résolvent leur `WorldMesh` depuis `ItemDefinition`, et les monstres leur présentation depuis `MonsterDefinition`. Un aperçu ne certifie pas le fonctionnement interactif du niveau.
 
-`FGridRuntimeWorldObjectData` est une frontière C++ non réfléchie d'initialisation runtime spécialisée. Elle est construite depuis `FGridWorldObjectInstance`, transporte notamment les overrides sparse de parties mobiles et de chaîne, et n'est pas stockée dans le LevelAsset. Les acteurs runtime résolvent ensuite la définition + ces exceptions une seule fois dans leurs caches transitoires.
+`FGridRuntimeWorldObjectData` est une frontière C++ non réfléchie d'initialisation runtime spécialisée. Elle est construite depuis `FGridWorldObjectInstance`, transporte notamment les états sémantiques nécessaires (`bDoorInitiallyOpen`, `bTeleporterInitiallyEnabled`), les overrides sparse de parties mobiles et les overrides de chaîne, et n'est pas stockée dans le LevelAsset. Elle ne réintroduit plus de booléens runtime génériques `enabled/active`. Les acteurs runtime résolvent ensuite la définition + ces exceptions une seule fois dans leurs caches transitoires.
 
 ## 5. Persistance
 

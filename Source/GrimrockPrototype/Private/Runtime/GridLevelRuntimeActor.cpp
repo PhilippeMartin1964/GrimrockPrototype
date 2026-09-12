@@ -1225,7 +1225,7 @@ bool AGridLevelRuntimeActor::SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmi
 	{
 		return false;
 	}
-	if (!PitObject || !PitObject->bInitiallyEnabled)
+	if (!PitObject)
 	{
 		return false;
 	}
@@ -1431,7 +1431,7 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 			});
 		if (bAnyPitAtCell)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridPit fall not started at Cell=(%d,%d): Pit exists but is disabled or Closed."), CellX, CellY);
+			UE_LOG(LogTemp, Warning, TEXT("GridPit fall not started at Cell=(%d,%d): Pit exists but is Closed."), CellX, CellY);
 		}
 		return false;
 	}
@@ -1865,7 +1865,7 @@ TSubclassOf<AGridRuntimeObjectActor> AGridLevelRuntimeActor::GetObjectRuntimeAct
 
 bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject(const FGridWorldObjectInstance& Instance) const
 {
-	if (!LevelAsset || !Instance.bInitiallyEnabled || !LevelAsset->IsValidCoord(Instance.CellX, Instance.CellY))
+	if (!LevelAsset || !LevelAsset->IsValidCoord(Instance.CellX, Instance.CellY))
 	{
 		return false;
 	}
@@ -1995,13 +1995,10 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects()
 	{
 		if (!IsRuntimeSpawnableObject(Instance))
 		{
-			if (Instance.bInitiallyEnabled)
+			const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinition(Instance.WorldObjectDefinitionId);
+			if (Definition && !Definition->RuntimeActorClass)
 			{
-				const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinition(Instance.WorldObjectDefinitionId);
-				if (Definition && !Definition->RuntimeActorClass)
-				{
-					UE_LOG(LogTemp, Warning, TEXT("Runtime object skipped: definition %s has no RuntimeActorClass."), *Instance.WorldObjectDefinitionId.ToString());
-				}
+				UE_LOG(LogTemp, Warning, TEXT("Runtime object skipped: definition %s has no RuntimeActorClass."), *Instance.WorldObjectDefinitionId.ToString());
 			}
 			continue;
 		}
@@ -2010,18 +2007,13 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects()
 
 	for (const FGridLooseItemInstance& Instance : LevelAsset->LooseItemInstances)
 	{
-		if (!Instance.bInitiallyEnabled)
-		{
-			continue;
-		}
-
 		AddPlacedItemActor(Instance);
 	}
 
 	for (const FGridMonsterSpawnInstance& Spawn : LevelAsset->MonsterSpawns)
 	{
 		const FGridRuntimeMonsterPlacementState* PlacementState = SavedLevelState ? SavedLevelState->MonsterPlacements.Find(Spawn.SpawnId) : nullptr;
-		const bool bShouldSpawn = PlacementState ? PlacementState->bIsSpawned : Spawn.bInitiallyEnabled;
+		const bool bShouldSpawn = PlacementState ? PlacementState->bIsSpawned : Spawn.bSpawnAtStart;
 		const FGridRuntimeMonsterState* RestoreState = PlacementState && PlacementState->bHasMonsterState ? &PlacementState->MonsterState : nullptr;
 		if (bShouldSpawn && !AddMonsterSpawnActor(Spawn, RestoreState))
 		{
