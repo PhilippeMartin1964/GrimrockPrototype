@@ -5,6 +5,7 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "EditorTools/Widgets/SGridEditorDoorMotionOverridePanel.h"
 #include "EditorTools/Widgets/SGridEditorDungeonLevelsPanel.h"
 #include "EditorTools/Widgets/SGridEditorLinksPanel.h"
 #include "EditorTools/Widgets/SGridEditorObjectIdentityPanel.h"
@@ -420,6 +421,13 @@ TSharedRef<SWidget> SGridEditorWorkspaceTab::BuildSelectedObjectContent()
 					.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
 					.OnGetEditorActor(FOnGetGridEditorObjectInspectorActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
 					.OnRequestRefresh(FOnGridEditorObjectInspectorRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild))
+			]
+			+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)
+			[
+				SNew(SGridEditorDoorMotionOverridePanel)
+					.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
+					.OnGetEditorActor(FOnGetGridEditorDoorMotionOverrideActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
+					.OnRequestRefresh(FOnGridEditorDoorMotionOverrideRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild))
 			];
 	}
 	else
