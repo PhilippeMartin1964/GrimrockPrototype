@@ -1,301 +1,218 @@
 # MON13.2 — Pipeline d'instanciation `MonsterSpawn`
 
+Statut : **contrat courant après WORLDOBJ-MIG10 et refonte des états initiaux sémantiques**, 2026-09-12.
+
 ## Objectif
 
-MON13.2 relie le placement persistant créé en MON13.1 à son Actor de jeu :
+MON13.2 relie le placement typé persistant à son Actor de jeu :
 
 ```text
-FGridLevelObjectData MonsterSpawn
-    → UGridMonsterDefinitionAsset
-    → MonsterActorClass
+FGridMonsterSpawnInstance
+    → MonsterDefinition
+    → UGridMonsterDefinitionAsset::MonsterActorClass
     → AGridMonsterActor initialisé
 ```
 
-Un Rat géant placé dans le Grid Editor doit désormais apparaître avec son mesh
-squelettique dans l'aperçu, puis être créé comme véritable monstre au lancement
-du niveau.
+Le jalon historique utilisait encore `FGridLevelObjectData`, `MonsterDefinitionId`, `Edge`, `bInitiallyEnabled` et `bInitiallyActive`. Ces champs ne font plus partie du pipeline courant.
 
-`DA_MonsterSpawn.RuntimeActorClass` doit rester à `None`. La classe concrète est
-toujours lue depuis `DA_MON_RatGiant.MonsterActorClass`.
+## Source de vérité
+
+Le runtime lit directement `UGridLevelAsset::MonsterSpawns`.
+
+Pour chaque `FGridMonsterSpawnInstance` :
+
+- `SpawnId` est l'identité persistante ;
+- `MonsterDefinition` est la référence directe à la définition ;
+- `CellX`, `CellY` et `Facing` décrivent la pose ;
+- `bSpawnAtStart` décide de la création initiale ;
+- `InitialMonsterState` décrit l'état initial du monstre créé ;
+- `EncounterGroupId` et `EncounterWaveIndex` décrivent son appartenance à une rencontre.
+
+La classe gameplay est toujours résolue depuis :
+
+```text
+MonsterDefinition->MonsterActorClass
+```
+
+Aucun `RuntimeActorClass` d'un world-object générique n'est utilisé pour créer un monstre.
 
 ## Contrat de résolution strict
 
-`AGridLevelRuntimeActor::ResolveMonsterSpawn()` refuse le placement avant toute
-création d'Actor si l'une des conditions suivantes n'est pas satisfaite :
+`AGridLevelRuntimeActor::ResolveMonsterSpawn()` refuse un placement avant création si le contrat minimal n'est pas satisfait :
 
-- le type est `MonsterSpawn` ;
-- `ObjectId`, qui est aussi le `SpawnId`, est valide ;
-- la cellule existe, n'est pas vide et autorise l'occupation ;
-- `Edge=None` ;
-- `InitialFacing` est `North`, `East`, `South` ou `West` ;
-- `MonsterDefinitionAsset` est présent ;
-- `MonsterDefinitionId` est présent et égal au `MonsterId` du DataAsset ;
-- la définition complète est valide ;
-- `MonsterActorClass` existe, dérive d'`AGridMonsterActor` et n'est pas
-  abstraite.
+- `LevelAsset` existe ;
+- `SpawnId` est valide ;
+- la cellule est dans le niveau et autorise l'occupation ;
+- `Facing` est cardinal ;
+- `MonsterDefinition` existe ;
+- la définition passe `ValidateDefinition()` ;
+- `MonsterActorClass` existe ;
+- la classe dérive d'`AGridMonsterActor` ;
+- la classe n'est pas abstraite.
 
-Pour le Rat géant de production, cette dernière condition ne suffit pas à
-garantir le combat. `DA_MON_RatGiant.MonsterActorClass` doit désigner exactement :
+Il n'existe plus de validation d'un `MonsterDefinitionId` dupliqué dans le placement, puisque ce miroir a été supprimé.
+
+## Création initiale
+
+Au démarrage initial d'un niveau, seuls les placements avec :
+
+```text
+bSpawnAtStart = true
+```
+
+sont candidats à la création.
+
+`bSpawnAtStart=false` signifie simplement : **pas d'Actor initial**. Le placement reste dans `MonsterSpawns` et peut être utilisé plus tard par les commandes runtime MON13.3.
+
+Le runtime :
+
+1. résout la définition et la classe ;
+2. calcule le transform centré sur la cellule depuis `Facing` ;
+3. refuse les conflits d'identité ;
+4. refuse une cellule occupée par le groupe, un autre monstre ou une réservation ;
+5. crée l'Actor avec `SpawnActorDeferred` ;
+6. appelle `InitializeMonster()` avec la définition, le `SpawnId`, la cellule, le facing et le groupe de rencontre ;
+7. termine le spawn ;
+8. initialise/enregistre l'occupation ;
+9. applique les métadonnées de placement et l'état runtime attendu ;
+10. conserve l'Actor généré dans la table indexée par `SpawnId`.
+
+Un refus est atomique : aucun Actor partiellement initialisé ne doit rester dans le monde.
+
+## Occupation et identité
+
+Avant de créer un monstre vivant, le runtime vérifie notamment :
+
+- qu'aucun Actor existant n'utilise déjà le même `SpawnId` comme identité persistante ;
+- qu'aucun monstre généré vivant n'occupe déjà la cellule ;
+- que le groupe n'occupe pas la cellule ;
+- que `UGridMonsterOccupancySubsystem` n'y signale pas de conflit.
+
+L'identité n'est jamais régénérée pendant un rebuild : `SpawnId` reste stable.
+
+## Présentation
+
+La validité gameplay de la définition est distincte de la présentation. Le runtime peut produire un diagnostic `PresentationWarning` si le setup visuel de l'Actor est incomplet.
+
+Pour le Rat géant de production, la définition doit pointer vers la classe Blueprint réellement équipée des composants requis par le gameplay, par exemple :
 
 ```text
 /Game/GrimrockPrototype/Monsters/RatGiant/Blueprints/BP_MON_RatGiant.BP_MON_RatGiant_C
 ```
 
-La classe native `/Script/GrimrockPrototype.GridMonsterActor` fournit
-`MonsterCombat`, mais pas les composants `MonsterMovement` et
-`MonsterBehavior` ajoutés dans `BP_MON_RatGiant`. Elle peut donc présenter un
-Rat sans permettre son admission par le TurnManager.
-
-MON13.2 ne tente pas encore de charger un DataAsset à partir d'un
-`MonsterDefinitionId` seul. Le pointeur `MonsterDefinitionAsset` reste donc
-obligatoire dans le placement.
-
-## Création runtime
-
-Pour chaque `MonsterSpawn` dont `bInitiallyEnabled=true`, le runtime :
-
-1. résout et valide toutes les données sans modifier le monde ;
-2. vérifie l'unicité du `SpawnId` dans les Actors présents ;
-3. refuse une cellule occupée par le groupe, un autre monstre ou une
-   réservation ;
-4. calcule le centre exact de la cellule et la rotation depuis
-   `InitialFacing` ;
-5. crée `MonsterActorClass` avec `SpawnActorDeferred` ;
-6. appelle `InitializeMonster()` avant `FinishSpawningActor()` ;
-7. transmet la définition, le `SpawnId`, la cellule, l'orientation et
-   `EncounterGroupId` ;
-8. initialise les PV, armures, composants visuels et métadonnées de niveau ;
-9. enregistre l'Actor généré dans une table indexée par `SpawnId`.
-
-Un placement désactivé ne crée aucun Actor et n'est pas compté comme une erreur.
-`bInitiallyActive` reste une propriété générique : il ne commande pas encore un
-spawn dynamique.
-
-### Refus atomique
-
-Une erreur de définition, d'identité, de cellule, d'orientation, de classe ou
-d'occupation produit un log `Skipped` et aucun Actor n'est conservé. Le compteur
-`RuntimeMonsterSpawnFailureCount` permet de repérer immédiatement le nombre de
-placements activés qui n'ont pas pu être créés.
-
-Une configuration de présentation incomplète — mesh ou Animation Blueprint
-absent — n'invalide pas les données de combat. L'Actor gameplay peut exister,
-mais le log contient alors `PresentationWarning` et l'aperçu squelettique est
-omis si le mesh manque.
-
-## Rebuild et persistance
-
-Les monstres créés depuis le `LevelAsset` sont distincts des monstres placés
-directement dans une carte :
-
-- ils sont suivis dans `SpawnedMonsterActors` par leur `SpawnId` ;
-- un rebuild complet interrompt le combat, libère l'occupation et détruit
-  uniquement ces Actors générés ;
-- le pipeline les recrée ensuite depuis le `LevelAsset` ;
-- MON9 restaure leur état sauvegardé en utilisant le même `SpawnId` : cellule,
-  orientation, PV, armures, mort, activation et rencontre.
-
-Ce cycle permet de quitter puis revisiter un niveau sans conserver un Actor de
-l'ancien niveau ni créer une seconde identité persistante.
+La classe native `AGridMonsterActor` seule ne garantit pas la composition Blueprint attendue par tous les systèmes de combat/mouvement.
 
 ## Aperçu éditeur
 
-`UGridEditorPreviewComponent` traite `MonsterSpawn` séparément des objets à mesh
-statique. Il crée un `AGridEditorPreviewObjectActor` transitoire avec un
-`USkeletalMeshComponent`, puis applique :
+`UGridEditorPreviewComponent` traite `FGridMonsterSpawnInstance` comme un placement typé de monstre. Il résout la même `MonsterDefinition`, puis affiche un Actor de preview transitoire à partir de la présentation de la définition.
 
-- `SkeletalMesh` ;
-- `VisualOffset` ;
-- `VisualScale` ;
-- `AnimationClass` ;
-- la position de cellule ;
-- la rotation autoritaire de `InitialFacing` ;
-- les stencils de survol et de sélection.
+L'aperçu applique notamment :
 
-Cet Actor de prévisualisation est editor-only, sans collision et sans logique
-de combat. Aucun `AGridMonsterActor` gameplay n'est créé hors PIE.
+- le Skeletal Mesh ;
+- l'Animation Class ;
+- l'offset et l'échelle de présentation ;
+- la cellule ;
+- le `Facing` cardinal ;
+- les stencils de sélection/survol.
 
-## Diagnostics attendus
+L'Actor de preview n'est pas un `AGridMonsterActor` gameplay et n'entre pas dans l'occupation ou le combat.
+
+## Rebuild et persistance
+
+Les monstres générés depuis le niveau sont suivis par `SpawnId`. Un rebuild complet :
+
+- interrompt les opérations runtime qui ne peuvent pas survivre au rebuild ;
+- libère/détruit les Actors générés concernés ;
+- reconstruit depuis les placements et l'état runtime persistant ;
+- ne crée aucune seconde identité.
+
+Lorsqu'un état runtime a déjà été enregistré, la restauration peut replacer le monstre dans sa dernière cellule/orientation et restaurer son état plutôt que de repartir systématiquement du placement initial.
+
+## Diagnostics
 
 Création réussie :
 
 ```text
-[GridMonsterSpawn] Spawned SpawnId=... DefinitionId=MON_RatGiant Class=... Cell=(X,Y) Facing=... Encounter=... RuntimeLevel=...
+[GridMonsterSpawn] Spawned SpawnId=... DefinitionId=... Class=... Cell=(X,Y) Facing=... Encounter=...
 ```
 
-Refus avant création :
+Refus :
 
 ```text
-[GridMonsterSpawn] Skipped SpawnId=... Cell=(X,Y) DefinitionId=... Reason=...
+[GridMonsterSpawn] Skipped SpawnId=... Cell=(X,Y) Definition=... Reason=...
 ```
 
 Présentation incomplète :
 
 ```text
-[GridMonsterSpawn] PresentationWarning SpawnId=... DefinitionId=... Actor=... Reason=...
+[GridMonsterSpawn] PresentationWarning SpawnId=... Reason=...
 ```
 
-Le résumé runtime contient également :
+`RuntimeMonsterSpawnFailureCount` permet de repérer les créations attendues mais refusées.
+
+## Tests Automation
+
+Le pipeline MON13.2 est couvert notamment par :
 
 ```text
-Spawned Monsters=N Failures=M
+Grimrock.Monsters.MON13.2.RuntimePipeline
+Grimrock.Monsters.MON13.2.AtomicFailure
+Grimrock.Monsters.MON13.2.EditorPreview
 ```
 
-Le warning historique suivant ne doit plus apparaître pour un
-`MonsterSpawn` :
+Validation locale recommandée :
 
-```text
-Runtime object skipped: archetype MonsterSpawn has no RuntimeActorClass.
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.Monsters.MON13.2"
 ```
 
-## Automation Tests
+## Checklist Grid Editor / PIE
 
-MON13.2 ajoute :
+### Configuration
 
-- `Grimrock.Monsters.MON13.2.RuntimePipeline` ;
-- `Grimrock.Monsters.MON13.2.AtomicFailure` ;
-- `Grimrock.Monsters.MON13.2.EditorPreview`.
+- vérifier `MonsterDefinition` et `MonsterActorClass` ;
+- vérifier Skeletal Mesh, Animation Class, offset et échelle ;
+- vérifier l'entrée de palette et sa `DefaultMonsterDefinition` ;
+- lancer `Refresh Validation`.
 
-Les trois fixtures MON13.2 construisent une définition transitoire, puis chargent
-explicitement la classe gameplay et la présentation réelles du Rat géant :
+### Aperçu
 
-```text
-/Game/GrimrockPrototype/Monsters/RatGiant/Blueprints/BP_MON_RatGiant.BP_MON_RatGiant_C
-/Game/GrimrockPrototype/Monsters/RatGiant/Meshes/SK_RatGiant.SK_RatGiant
-/Game/GrimrockPrototype/Monsters/RatGiant/Animation/ABP_MON_RatGiant.ABP_MON_RatGiant_C
-```
+1. Placer un monstre sur une cellule libre.
+2. Choisir un `Facing` facile à reconnaître.
+3. Vérifier l'aperçu hors PIE.
+4. Sauvegarder/recharger.
 
-Chaque ressource fait l'objet d'une assertion et la fixture s'arrête
-immédiatement si le mesh ou la classe d'animation manque. Les tests runtime
-exercent ainsi un spawn complet sans masquer `PresentationWarning` et sans créer
-de faux `USkeletalMesh` dépourvu de squelette ou de données de rendu.
+Résultat attendu : même `SpawnId`, même cellule, même orientation et aucune création d'un Actor gameplay dans l'éditeur.
 
-`AtomicFailure` attend exactement quatre logs contenant
-`[GridMonsterSpawn] Skipped`, correspondant aux quatre placements activés
-invalides. Le placement valide utilise la même présentation complète que les
-deux autres tests.
+### Création initiale
 
-Commande UE 5.5.4 :
+1. Cocher `Spawn at Start`.
+2. Lancer PIE.
+3. Vérifier le log `[GridMonsterSpawn]`.
 
-```bat
-D:\UE_5.5\Engine\Binaries\Win64\UnrealEditor-Cmd.exe D:\Development\GrimrockPrototype\GrimrockPrototype.uproject -unattended -nop4 -nosplash -NullRHI -ExecCmds="Automation RunTests Grimrock.Monsters.MON13.2" -TestExit="Automation Test Queue Empty" -ReportOutputPath="D:\Development\GrimrockPrototype\Saved\TestReports\MON13_2"
-```
+Résultat attendu : un seul Actor, même `SpawnId`, bonne définition, bonne cellule et bonne orientation.
 
-### Validation du 12 août 2026
+### Spawn différé
 
-- compilation `GrimrockPrototypeEditor Win64 Development` : réussie ;
-- `Grimrock.Monsters.MON13.2` : 3/3 réussis, 0 warning, 0 erreur ;
-- `Grimrock.Monsters.MON13` : 6/6 réussis, 0 warning, 0 erreur ;
-- `Grimrock.Monsters.MON8.MonsterDiedEvent` : réussi ;
-- aucun `PresentationWarning` dans les tests MON13.
+1. Décocher `Spawn at Start`.
+2. Lancer PIE.
 
-## Checklist éditeur et PIE
+Résultat attendu : aucun Actor initial et aucune erreur simplement parce que le placement est différé.
 
-### 1 — Configuration des assets
+### Refus contrôlés
 
-- [ ] ouvrir `DA_MonsterSpawn` et vérifier `RuntimeActorClass=None` ;
-- [ ] ouvrir `DA_MON_RatGiant` et vérifier
-  `MonsterActorClass=BP_MON_RatGiant` ;
-- [ ] vérifier `SkeletalMesh`, `AnimationClass`, `VisualOffset` et
-  `VisualScale` ;
-- [ ] ouvrir `DA_ObjectPalette_Default` ;
-- [ ] vérifier `Default Archetype=DA_MonsterSpawn` ;
-- [ ] vérifier `Default Monster Definition=DA_MON_RatGiant` ;
-- [ ] sauvegarder les trois DataAssets ;
-- [ ] lancer `Refresh Validation` sans erreur MON13.
+Sur une copie de niveau, tester séparément :
 
-### 2 — Aperçu dans le Grid Editor
+- `MonsterDefinition=null` ;
+- `Facing=None` ;
+- cellule bloquée ;
+- `SpawnId` dupliqué ;
+- cellule déjà occupée.
 
-1. Placer un Rat géant sur une cellule praticable et libre.
-2. Choisir une orientation facile à vérifier, par exemple `East`.
-3. Sélectionner un autre objet puis revenir au rat.
-4. Utiliser `Reload Current`.
+Chaque cas doit être refusé sans Actor résiduel ni duplication.
 
-Résultats attendus :
+## Suite
 
-- [ ] le Rat géant est visible sans lancer PIE ;
-- [ ] il est centré sur la cellule ;
-- [ ] son échelle et son offset correspondent à `DA_MON_RatGiant` ;
-- [ ] son orientation reste `East` après rechargement ;
-- [ ] le contour de sélection/survol fonctionne ;
-- [ ] le World Outliner ne contient pas d'`AGridMonsterActor` gameplay créé par
-  l'aperçu ;
-- [ ] aucun warning `RuntimeActorClass` n'est produit.
-
-### 3 — Création au lancement du niveau
-
-1. Noter le `SpawnId`, la cellule, l'orientation et `EncounterGroupId`.
-2. Lancer PIE depuis le niveau runtime normal.
-3. Rechercher `[GridMonsterSpawn]` dans l'Output Log.
-4. Sélectionner le Rat géant dans le World Outliner pendant PIE.
-
-Résultats attendus :
-
-- [ ] une ligne `Spawned` existe pour le `SpawnId` noté ;
-- [ ] un seul Actor de la classe indiquée par `MonsterActorClass` existe ;
-- [ ] `SpawnObjectId` est égal au `SpawnId` ;
-- [ ] `PersistentMonsterId` n'est pas utilisé comme seconde identité ;
-- [ ] `MonsterDefinition` vaut `DA_MON_RatGiant` ;
-- [ ] `CurrentCell`, `Facing` et `EncounterGroupId` correspondent au placement ;
-- [ ] `CurrentHealth=MaxHealth` et `bCombatStatsInitialized=true` ;
-- [ ] le rat possède son mesh, son Animation Blueprint, son offset et son
-  échelle ;
-- [ ] le résumé runtime affiche `Spawned Monsters=1 Failures=0` ;
-- [ ] aucun warning `Runtime object skipped` ne concerne `MonsterSpawn`.
-
-### 4 — Rebuild sans duplication
-
-Pendant PIE, utiliser le bouton ou la commande de rebuild complet du runtime,
-hors combat.
-
-- [ ] l'ancien Actor est détruit ;
-- [ ] un seul nouvel Actor porte le même `SpawnId` ;
-- [ ] aucune cellule n'est occupée deux fois ;
-- [ ] le résumé reste `Spawned Monsters=1 Failures=0`.
-
-### 5 — Refus contrôlé sur une copie de test
-
-Effectuer une seule mutation à la fois sur une copie du `LevelAsset`, puis
-restaurer immédiatement la donnée :
-
-| Mutation | Résultat attendu |
-|---|---|
-| vider `MonsterDefinitionAsset` | `Skipped`, aucun Actor |
-| modifier seulement `MonsterDefinitionId` | `Skipped`, aucun Actor |
-| mettre `InitialFacing=None` | `Skipped`, aucun Actor |
-| placer le spawn sur une cellule bloquée | `Skipped`, aucun Actor |
-| dupliquer le `SpawnId` d'un autre rat | premier Actor conservé, second refusé |
-| décocher `Enabled at Start` | aucun Actor et aucune erreur runtime |
-
-Après chaque cas, vérifier que `Failures` augmente uniquement pour les
-placements activés invalides et qu'aucun Actor partiel n'apparaît dans le World
-Outliner.
-
-### 6 — Résultat à relever
-
-| Contrôle | Résultat observé | Statut |
-|---|---|---|
-| Compilation Development Editor Win64 |  | [ ] OK / [ ] KO |
-| Tests `Grimrock.Monsters.MON13.2.*` |  | [ ] OK / [ ] KO |
-| Aperçu squelettique hors PIE |  | [ ] OK / [ ] KO |
-| Création unique en PIE |  | [ ] OK / [ ] KO |
-| Identité et données transmises |  | [ ] OK / [ ] KO |
-| Rebuild sans duplication |  | [ ] OK / [ ] KO |
-| Refus atomiques |  | [ ] OK / [ ] KO |
-| Absence du warning historique |  | [ ] OK / [ ] KO |
-
-En cas d'échec, relever le `SpawnId`, la cellule, la définition, la classe, la
-ligne `[GridMonsterSpawn]` complète et une capture du World Outliner.
-
-## Suite du pipeline
-
-MON13.3 implémente désormais `Spawn`, `Despawn`, l'activation différée et la
-téléportation intra-niveau. Voir
-`docs/Design/MON13_3_MONSTER_RUNTIME_COMMANDS.md`.
-
-Restent hors périmètre :
-
-- suppression définitive non réversible d'un placement ;
-- `Teleport` inter-niveaux ;
-- résolution Asset Manager d'un `MonsterDefinitionId` sans pointeur d'asset ;
-- gestion globale des rencontres par `EncounterGroupId`.
+MON13.3 ajoute les commandes runtime `Spawn`, `Despawn`, `Teleport` et les événements de cycle de vie associés.
