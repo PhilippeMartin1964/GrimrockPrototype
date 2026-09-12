@@ -515,6 +515,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::MakeObjectOptionWidget(TSharedPtr<FGu
 void SGridEditorLinksPanel::OnEventSelectionChanged(TSharedPtr<EGridObjectEvent> Item, ESelectInfo::Type)
 {
 	SelectedEvent = Item;
+	Rebuild();
 }
 
 void SGridEditorLinksPanel::OnActionTypeSelectionChanged(TSharedPtr<FName> Item, ESelectInfo::Type)
@@ -533,6 +534,7 @@ void SGridEditorLinksPanel::OnTargetSelectionChanged(TSharedPtr<FGuid> Item, ESe
 void SGridEditorLinksPanel::OnCommandSelectionChanged(TSharedPtr<EGridObjectCommand> Item, ESelectInfo::Type)
 {
 	SelectedCommand = Item;
+	Rebuild();
 }
 
 void SGridEditorLinksPanel::OnScriptSelectionChanged(TSharedPtr<FName> Item, ESelectInfo::Type)
@@ -546,6 +548,7 @@ void SGridEditorLinksPanel::OnScriptSelectionChanged(TSharedPtr<FName> Item, ESe
 void SGridEditorLinksPanel::OnCallbackSelectionChanged(TSharedPtr<FName> Item, ESelectInfo::Type)
 {
 	SelectedCallback = Item;
+	Rebuild();
 }
 
 FReply SGridEditorLinksPanel::OnCreateActionClicked()
