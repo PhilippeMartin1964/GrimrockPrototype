@@ -64,7 +64,7 @@ La palette alimente `AGridLevelRuntimeActor::WorldObjectDefinitions`. `FindWorld
 
 `UGridEditorPreviewComponent` initialise les objets de preview depuis la définition. Les items résolvent leur `WorldMesh` depuis `ItemDefinition`, et les monstres leur présentation depuis `MonsterDefinition`. Un aperçu ne certifie pas le fonctionnement interactif du niveau.
 
-`FGridRuntimeWorldObjectData` est une frontière C++ non réfléchie d'initialisation runtime spécialisée. Elle est construite depuis `FGridWorldObjectInstance`, transporte notamment les overrides sparse de parties mobiles et de chaîne, et n'est pas stockée dans le LevelAsset. Elle peut normaliser certains états sémantiques en champs d'implémentation pour les acteurs runtime ; ces champs ne sont pas des propriétés d'authoring persistées. Les acteurs runtime résolvent ensuite la définition + ces exceptions une seule fois dans leurs caches transitoires.
+`FGridRuntimeWorldObjectData` est une frontière C++ non réfléchie d'initialisation runtime spécialisée. Elle est construite depuis `FGridWorldObjectInstance`, transporte notamment les états sémantiques nécessaires (`bDoorInitiallyOpen`, `bTeleporterInitiallyEnabled`), les overrides sparse de parties mobiles et les overrides de chaîne, et n'est pas stockée dans le LevelAsset. Elle ne réintroduit plus de booléens runtime génériques `enabled/active`. Les acteurs runtime résolvent ensuite la définition + ces exceptions une seule fois dans leurs caches transitoires.
 
 ## 5. Persistance
 
