@@ -2,7 +2,7 @@
 
 Statut : **VALIDÉ / CLOS**
 
-Date de clôture : 15 août 2026.
+Date de clôture : 15 août 2026. Terminologie de placement mise à jour le 12 septembre 2026 pour le modèle typé courant.
 
 MON14 ferme le chantier consacré au passage entre exploration et combat ainsi qu'au comportement hors combat des monstres.
 
@@ -53,20 +53,20 @@ Les évaluations sont différées et coalescées afin de ne pas démarrer un com
 
 La vision est désormais directionnelle : une cible doit se trouver sur le rayon axial avant du `Facing` cardinal courant du monstre.
 
-`MonsterSpawn` possède un état initial :
+`FGridMonsterSpawnInstance` possède un état initial :
 
 ```text
 Idle
 Dormant
 ```
 
-`Dormant` signifie : acteur présent mais inactif.
+`Dormant` signifie : Actor présent mais inactif.
 
 ```text
-bInitiallyEnabled=false
+bSpawnAtStart=false
 ```
 
-continue de signifier : acteur absent.
+signifie : aucun Actor créé au démarrage. La présence initiale et la dormance restent donc deux notions distinctes.
 
 Les routes de patrouille sont sérialisées dans le LevelAsset :
 
