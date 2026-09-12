@@ -102,6 +102,8 @@ bool FGridMonsterPitTraversalTest::RunTest(const FString& Parameters)
 
 	UGridMonsterDefinitionAsset* MonsterDefinition = NewObject<UGridMonsterDefinitionAsset>(Runtime);
 	MonsterDefinition->MonsterId = TEXT("Monster_PitTraversal_Test");
+	MonsterDefinition->DisplayName = FText::FromString(TEXT("Pit Traversal Test Monster"));
+	MonsterDefinition->CategoryId = TEXT("Test");
 	MonsterDefinition->GridFootprint = FIntPoint(1, 1);
 	MonsterDefinition->MoveDuration = 1.0f;
 
