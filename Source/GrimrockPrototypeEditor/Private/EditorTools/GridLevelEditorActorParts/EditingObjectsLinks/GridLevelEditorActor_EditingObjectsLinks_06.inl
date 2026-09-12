@@ -25,12 +25,12 @@ bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 	PaintObjectType = LevelAsset->GetTypedPlacementType(ObjectId);
 	WorldObjectDefinitionId = NAME_None;
 	SelectedWorldObjectDefinitionId = NAME_None;
+	bObjectInitiallyEnabled = true;
 	bObjectInitiallyActive = false;
 	ObjectBehavior = FGridObjectBehaviorParams();
 	const auto ReadAuthoring = [this](const auto& Placement)
 	{
 		SelectedPaletteEntryId = Placement.PaletteEntryId;
-		bObjectInitiallyEnabled = Placement.bInitiallyEnabled;
 		ObjectNotes = Placement.Notes;
 	};
 	if (const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId))
@@ -38,7 +38,6 @@ bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 		ReadAuthoring(*WorldObjectInstance);
 		WorldObjectDefinitionId = WorldObjectInstance->WorldObjectDefinitionId;
 		SelectedWorldObjectDefinitionId = WorldObjectDefinitionId;
-		bObjectInitiallyActive = WorldObjectInstance->bInitiallyActive;
 		ObjectBehavior = GridObjectInstanceBehavior::Resolve(*WorldObjectInstance, FindWorldObjectDefinitionById(WorldObjectDefinitionId));
 	}
 	else if (const FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(ObjectId))
@@ -53,16 +52,17 @@ bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 	else if (const FGridMonsterSpawnInstance* MonsterSpawn = LevelAsset->FindMonsterSpawnInstanceById(ObjectId))
 	{
 		ReadAuthoring(*MonsterSpawn);
+		bObjectInitiallyEnabled = MonsterSpawn->bInitiallyEnabled;
 	}
 	else if (const FGridItemSpawnInstance* ItemSpawn = LevelAsset->FindItemSpawnInstanceById(ObjectId))
 	{
 		ReadAuthoring(*ItemSpawn);
+		bObjectInitiallyEnabled = ItemSpawn->bInitiallyEnabled;
 		ObjectBehavior.Item.ItemDefinitionAsset = ItemSpawn->ItemDefinition;
 	}
 	else if (const FGridLogicObjectInstance* LogicInstance = LevelAsset->FindLogicObjectInstanceById(ObjectId))
 	{
 		ReadAuthoring(*LogicInstance);
-		bObjectInitiallyActive = LogicInstance->bInitiallyActive;
 	}
 
 	ResolvePreviewRuntimeActor();
