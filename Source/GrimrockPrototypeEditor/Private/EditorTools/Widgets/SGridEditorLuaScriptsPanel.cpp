@@ -7,6 +7,7 @@
 #include "EditorTools/GridEditorLuaService.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EditorTools/GridLuaAuthoringCompiler.h"
+#include "EditorTools/GridLuaSyntaxHighlighter.h"
 #include "EngineUtils.h"
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
@@ -292,6 +293,8 @@ TSharedRef<SWidget> SGridEditorLuaScriptsPanel::BuildScriptsSection()
 						.MinDesiredHeight(320.f)
 						[
 							SNew(SMultiLineEditableTextBox)
+								.Marshaller(FGridLuaSyntaxHighlighter::Create())
+								.Font(FCoreStyle::GetDefaultFontStyle("Mono", 10))
 								.Text(FText::FromString(DraftSource))
 								.HintText(FText::FromString(TEXT("Lua source")))
 								.AutoWrapText(false)
