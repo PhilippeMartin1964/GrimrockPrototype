@@ -83,8 +83,17 @@ namespace
 
 	bool IsPlacementInitiallyActive(const UGridLevelAsset& Level, FGuid ObjectId)
 	{
-		if (const FGridWorldObjectInstance* WorldObjectInstance = Level.FindWorldObjectInstanceById(ObjectId)) return WorldObjectInstance->bInitiallyActive;
-		if (const FGridLogicObjectInstance* LogicInstance = Level.FindLogicObjectInstanceById(ObjectId)) return LogicInstance->bInitiallyActive;
+		if (const FGridWorldObjectInstance* WorldObjectInstance = Level.FindWorldObjectInstanceById(ObjectId))
+		{
+			if (WorldObjectInstance->Type == EGridLevelObjectType::Door)
+			{
+				return WorldObjectInstance->InstanceConfig.bDoorInitiallyOpen;
+			}
+			if (WorldObjectInstance->Type == EGridLevelObjectType::Teleporter)
+			{
+				return WorldObjectInstance->InstanceConfig.bTeleporterInitiallyEnabled;
+			}
+		}
 		return false;
 	}
 
@@ -382,8 +391,12 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
 	if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset) return SNullWidget::NullWidget;
 	const UGridLevelAsset& Level = *CurrentEditorActor->LevelAsset;
-	const bool bIsMonsterSpawn = Level.GetTypedPlacementType(Obj) == EGridLevelObjectType::MonsterSpawn;
-	const bool bHasActiveState = Level.FindWorldObjectInstanceById(Obj) || Level.FindLogicObjectInstanceById(Obj);
+	const EGridLevelObjectType ObjectType = Level.GetTypedPlacementType(Obj);
+	const bool bIsMonsterSpawn = ObjectType == EGridLevelObjectType::MonsterSpawn;
+	const bool bIsItemSpawn = ObjectType == EGridLevelObjectType::ItemSpawn;
+	const bool bIsSpawn = bIsMonsterSpawn || bIsItemSpawn;
+	const bool bIsDoor = ObjectType == EGridLevelObjectType::Door;
+	const bool bIsTeleporter = ObjectType == EGridLevelObjectType::Teleporter;
 	const UGridWorldObjectDefinitionAsset* Definition = GetWorldObjectDefinition(CurrentEditorActor, Obj);
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
 	if (Definition && !bIsMonsterSpawn)
@@ -397,9 +410,14 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Readable")), GetBoolText(Definition->bIsReadable))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Light Source")), GetBoolText(Definition->bIsLightSource))];
 	}
-	Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 12.f, 0.f)[SNew(SCheckBox)
-			.IsChecked(ReadPlacementValue<bool>(Level, Obj, [](const auto& Placement) { return Placement.bInitiallyEnabled; }) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+
+	if (bIsSpawn)
+	{
+		const bool bSpawnAtStart = bIsMonsterSpawn
+			? (Level.FindMonsterSpawnInstanceById(Obj) && Level.FindMonsterSpawnInstanceById(Obj)->bSpawnAtStart)
+			: (Level.FindItemSpawnInstanceById(Obj) && Level.FindItemSpawnInstanceById(Obj)->bSpawnAtStart);
+		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(SCheckBox)
+			.IsChecked(bSpawnAtStart ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 			.OnCheckStateChanged_Lambda([this](ECheckBoxState NewState)
 			{
 				if (AGridLevelEditorActor* Editor = GetEditorActor())
@@ -407,8 +425,11 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 					Editor->SetSelectedObjectInitiallyEnabled(NewState == ECheckBoxState::Checked);
 					RequestRefresh();
 				}
-			})[SNew(STextBlock).Text(FText::FromString(bIsMonsterSpawn ? TEXT("Present at Start") : TEXT("Enabled at Start")))]]
-		+ SHorizontalBox::Slot().AutoWidth()[bHasActiveState ? StaticCastSharedRef<SWidget>(SNew(SCheckBox)
+			})[SNew(STextBlock).Text(FText::FromString(TEXT("Spawn at Start")))]];
+	}
+	else if (bIsDoor || bIsTeleporter)
+	{
+		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(SCheckBox)
 			.IsChecked(IsPlacementInitiallyActive(Level, Obj) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 			.OnCheckStateChanged_Lambda([this](ECheckBoxState NewState)
 			{
@@ -417,14 +438,22 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 					Editor->SetSelectedObjectInitiallyActive(NewState == ECheckBoxState::Checked);
 					RequestRefresh();
 				}
-			})[SNew(STextBlock).Text(FText::FromString(TEXT("Active at Start")))]) : SNullWidget::NullWidget]];
+			})[SNew(STextBlock).Text(FText::FromString(bIsDoor ? TEXT("Open at Start") : TEXT("Enabled at Start")))]];
+	}
+
 	if (bIsMonsterSpawn)
 	{
 		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock)
-			.Text(FText::FromString(TEXT("Present = the monster Actor exists when the level starts. Unchecked = absent until a Spawn command or encounter creates it.")))
+			.Text(FText::FromString(TEXT("Checked = the monster Actor is created when the level starts. Unchecked = absent until a Spawn command or encounter creates it.")))
 			.AutoWrapText(true).ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))];
 	}
-	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(bIsMonsterSpawn ? TEXT("Spawn Presence") : TEXT("Game Object")), Root);
+	else if (bIsItemSpawn)
+	{
+		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock)
+			.Text(FText::FromString(TEXT("Checked = the item generator creates its item when the level starts.")))
+			.AutoWrapText(true).ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))];
+	}
+	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(bIsSpawn ? TEXT("Spawn") : TEXT("Game Object")), Root);
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSection(FGuid Obj)
@@ -588,9 +617,9 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection(FGu
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Initial State")),
-			GetInitialActiveStateText(*Editor->LevelAsset, ObjectId, TEXT("Open / Active"), TEXT("Closed / Inactive")))]
+			GetInitialActiveStateText(*Editor->LevelAsset, ObjectId, TEXT("Open"), TEXT("Closed")))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			FText::FromString(TEXT("Motion Source")), FText::FromString(TEXT("Definition > Moving Parts[].Motion")))]
+			FText::FromString(TEXT("Motion Defaults")), FText::FromString(TEXT("Definition > Moving Parts[].Motion")))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Blocks Movement (Generic Object)")), GetBoolText(Definition->bBlocksMovement))];
 
@@ -648,7 +677,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection(FGu
 		GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Door Chain")), ChainRoot)];
 	Root->AddSlot().AutoHeight().Padding(0.f, 1.f, 0.f, 3.f)[
 		SNew(STextBlock)
-			.Text(FText::FromString(TEXT("Door mesh, travel geometry and panel motion stay Definition-owned.")))
+			.Text(FText::FromString(TEXT("Mesh, motion type, axis, pivot and reverse duration remain Definition-owned. Travel/angle and forward duration may be overridden per instance below.")))
 			.AutoWrapText(true)
 			.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))];
 	Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
@@ -666,7 +695,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLeverDetailsSection(FG
 			FText::FromString(TEXT("Initial State")), GetInitialActiveStateText(*Editor->LevelAsset, ObjectId, TEXT("Activated"), TEXT("Deactivated")))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Motion Source")), FText::FromString(TEXT("Definition > Moving Part[0].Motion")))]
-		+ SVerticalBox::Slot().AutoHeight()[BuildExplicitConnectorSummary(FText::FromString(TEXT("Activated, Deactivated, Toggled")))]);
+		+ SVerticalBox::Slot().AutoHeight()[BuildExplicitConnectorSummary(FText::FromString(TEXT("Activated, Deactivated, Toggled"))) ]);
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildButtonDetailsSection(FGuid ObjectId)
@@ -689,8 +718,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildButtonDetailsSection(F
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Button Type")), FText::FromString(ButtonType))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			FText::FromString(TEXT("Initial State")),
-			GetInitialActiveStateText(*Editor->LevelAsset, ObjectId, TEXT("Pressed"), TEXT("Released")))]
+			FText::FromString(TEXT("Initial State")), FText::FromString(TEXT("Released")))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Motion Source")), FText::FromString(TEXT("Definition > Moving Part[0].Motion")))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
@@ -753,8 +781,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSe
 		FText::FromString(TEXT("Pressure Plate / Floor Trigger")),
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			FText::FromString(TEXT("Initial State")),
-			GetInitialActiveStateText(*Editor->LevelAsset, ObjectId, TEXT("Activated"), TEXT("Deactivated")))]
+			FText::FromString(TEXT("Initial State")), FText::FromString(TEXT("Released")))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
 			FText::FromString(TEXT("Motion Source")), FText::FromString(TEXT("Definition > Moving Part[0].Motion")))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
@@ -858,7 +885,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPitDetailsSection(FGui
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Trapdoor Layout")), FText::FromString(TEXT("Definition > Moving Parts[0/1].Motion")))]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock)
 			.Text(FText::FromString(TEXT("Trapdoor hinges, rotation angle and duration are authored once in the World Object Definition. The level instance stores only pit state and transition data.")))
-			.AutoWrapText(true).ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))]);
+			.AutoWrapText(true).ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))];
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTeleporterDetailsSection(FGuid ObjectId)
@@ -964,7 +991,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLightDetailsSection(co
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Use Light Flicker (if supported)")), GetBoolText(Definition.bUseLightFlicker))]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 1.f, 0.f, 0.f)[SNew(STextBlock)
 			.Text(FText::FromString(TEXT("Actual flicker support depends on the runtime light component path."))).AutoWrapText(true)
-			.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))]);
+			.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))];
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReadableTextSection(FGuid ObjectId)
