@@ -17,8 +17,8 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 	int32 CellY = INDEX_NONE;
 	EGridEdge Edge = EGridEdge::None;
 	FName WorldObjectDefinitionId = NAME_None;
-	bool bInitiallyEnabled = true;
-	bool bInitiallyActive = false;
+	bool bDoorInitiallyOpen = false;
+	bool bTeleporterInitiallyEnabled = true;
 	FText OverrideReadableText;
 	FGridObjectBehaviorParams Behavior;
 	TArray<FGridWorldObjectMovingPartInstanceOverride> MovingPartOverrides;
@@ -37,8 +37,8 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 		, CellY(Source.CellY)
 		, Edge(Source.WallSide)
 		, WorldObjectDefinitionId(Source.WorldObjectDefinitionId)
-		, bInitiallyEnabled(Source.bInitiallyEnabled)
-		, bInitiallyActive(Source.bInitiallyActive)
+		, bDoorInitiallyOpen(Source.InstanceConfig.bDoorInitiallyOpen)
+		, bTeleporterInitiallyEnabled(Source.InstanceConfig.bTeleporterInitiallyEnabled)
 		, OverrideReadableText(Source.ReadableTextOverride)
 	{
 		Behavior.Teleporter = Source.InstanceConfig.Teleporter;
