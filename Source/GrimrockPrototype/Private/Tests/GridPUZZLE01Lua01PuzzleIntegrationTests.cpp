@@ -140,7 +140,6 @@ bool FGridPUZZLE01Lua01GuardianPuzzleIntegrationTest::RunTest(const FString& Par
 	GuardianPlacement.WorldObjectDefinitionId = GuardianDefinition->DefinitionId;
 	GuardianPlacement.CellX = 0;
 	GuardianPlacement.CellY = 0;
-	GuardianPlacement.bInitiallyEnabled = true;
 	Level->WorldObjectInstances.Add(GuardianPlacement);
 
 	FGridLuaScriptSource Script;
