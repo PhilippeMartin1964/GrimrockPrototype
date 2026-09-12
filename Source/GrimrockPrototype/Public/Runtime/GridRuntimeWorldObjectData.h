@@ -6,8 +6,9 @@
  * Runtime-only initialization payload for one placed world object.
  *
  * This structure is intentionally not reflected and is never stored in UGridLevelAsset.
- * Shared rules are resolved from the Definition. Native placement state is carried in Behavior;
- * moving-part, door-chain and GEUI09 interaction overrides remain separate sparse channels.
+ * Authoring uses semantic initial-state fields. The generic runtime booleans below are normalized
+ * implementation state only: placed world objects always exist, and only stateful types opt into
+ * an active startup state.
  */
 struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 {
@@ -17,6 +18,8 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 	int32 CellY = INDEX_NONE;
 	EGridEdge Edge = EGridEdge::None;
 	FName WorldObjectDefinitionId = NAME_None;
+	bool bInitiallyEnabled = true;
+	bool bInitiallyActive = false;
 	bool bDoorInitiallyOpen = false;
 	bool bTeleporterInitiallyEnabled = true;
 	FText OverrideReadableText;
@@ -37,6 +40,11 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 		, CellY(Source.CellY)
 		, Edge(Source.WallSide)
 		, WorldObjectDefinitionId(Source.WorldObjectDefinitionId)
+		, bInitiallyEnabled(true)
+		, bInitiallyActive(
+			Source.Type == EGridLevelObjectType::Door ? Source.InstanceConfig.bDoorInitiallyOpen
+			: Source.Type == EGridLevelObjectType::Teleporter ? Source.InstanceConfig.bTeleporterInitiallyEnabled
+			: false)
 		, bDoorInitiallyOpen(Source.InstanceConfig.bDoorInitiallyOpen)
 		, bTeleporterInitiallyEnabled(Source.InstanceConfig.bTeleporterInitiallyEnabled)
 		, OverrideReadableText(Source.ReadableTextOverride)
