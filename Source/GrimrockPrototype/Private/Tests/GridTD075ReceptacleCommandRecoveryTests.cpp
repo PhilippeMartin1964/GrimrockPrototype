@@ -109,7 +109,6 @@ namespace GridTD075ReceptacleRecovery
 		Source.LogicId = TEXT("TD07_5_Source");
 		Source.CellX = 0;
 		Source.CellY = 0;
-		Source.bInitiallyEnabled = true;
 
 		FGridWorldObjectInstance& Receptacle = Level->WorldObjectInstances.AddDefaulted_GetRef();
 		Receptacle.InstanceId = TD075ReceptacleObjectId;
@@ -118,7 +117,6 @@ namespace GridTD075ReceptacleRecovery
 		Receptacle.CellX = 0;
 		Receptacle.CellY = 0;
 		Receptacle.WallSide = EGridEdge::North;
-		Receptacle.bInitiallyEnabled = true;
 
 		FGridReceptacleInitialItemConfig& InitialA = Receptacle.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef();
 		InitialA.ItemDefinition = ItemA;
