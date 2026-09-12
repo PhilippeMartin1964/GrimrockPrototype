@@ -306,7 +306,7 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	DoorData.CellX = 1;
 	DoorData.CellY = 1;
 	DoorData.WallSide = EGridEdge::North;
-	DoorData.bInitiallyActive = false;
+	DoorData.InstanceConfig.bDoorInitiallyOpen = false;
 
 	AGridDoorActor* Door = TestWorld.World->SpawnActor<AGridDoorActor>();
 	if (!TestNotNull(TEXT("Target-composition door exists"), Door))
@@ -391,7 +391,6 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	LeverData.CellX = 2;
 	LeverData.CellY = 1;
 	LeverData.WallSide = EGridEdge::East;
-	LeverData.bInitiallyActive = false;
 
 	AGridLeverActor* Lever = TestWorld.World->SpawnActor<AGridLeverActor>();
 	TestNotNull(TEXT("Target-composition lever exists"), Lever);
@@ -428,7 +427,6 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	PlateData.Type = EGridLevelObjectType::PressurePlate;
 	PlateData.CellX = 2;
 	PlateData.CellY = 2;
-	PlateData.bInitiallyActive = false;
 
 	AGridPressurePlateActor* Plate = TestWorld.World->SpawnActor<AGridPressurePlateActor>();
 	TestNotNull(TEXT("Target-composition pressure plate exists"), Plate);

@@ -98,7 +98,6 @@ bool FGridMON1971LogicIdCommandTest::RunTest(const FString& Parameters)
 	Target.CellX = 0;
 	Target.CellY = 0;
 	Target.WallSide = EGridEdge::North;
-	Target.bInitiallyEnabled = true;
 	Level->WorldObjectInstances.Add(Target);
 
 	UGridWorldObjectDefinitionAsset* LeverDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);

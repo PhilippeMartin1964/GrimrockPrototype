@@ -322,7 +322,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		{
 			FGridRuntimeMonsterPlacementState InitialPlacementState;
 			InitialPlacementState.SpawnId = Spawn.SpawnId;
-			InitialPlacementState.bIsSpawned = Spawn.bInitiallyEnabled;
+			InitialPlacementState.bIsSpawned = Spawn.bSpawnAtStart;
 			State->MonsterPlacements.Add(Spawn.SpawnId, InitialPlacementState);
 		}
 	}

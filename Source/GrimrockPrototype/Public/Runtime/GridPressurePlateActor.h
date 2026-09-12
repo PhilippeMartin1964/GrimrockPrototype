@@ -35,7 +35,7 @@ public:
 	bool bActivateWhenPartyPresent = true;
 
 	void InitializeRuntimePlate(
-		const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation, bool bStartPressed);
+		const FGridRuntimeWorldObjectData& ObjectData, UStaticMesh* InPlateMesh, const FVector& InWorldLocation);
 
 	UFUNCTION(BlueprintCallable, Category = "Plate")
 	void SetPressed(bool bNewPressed);

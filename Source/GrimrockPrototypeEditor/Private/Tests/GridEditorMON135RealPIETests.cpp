@@ -102,7 +102,6 @@ namespace
 		Trigger.CellX = MON135TriggerCell.X;
 		Trigger.CellY = MON135TriggerCell.Y;
 		Trigger.WallSide = EGridEdge::None;
-		Trigger.bInitiallyEnabled = true;
 		FixtureLevel->WorldObjectInstances.Add(Trigger);
 
 		auto AddEncounterRat = [FixtureLevel, RatDefinition](const FGuid& SpawnId, const FIntPoint& Cell, int32 WaveIndex)
@@ -118,7 +117,7 @@ namespace
 
 			Spawn.EncounterGroupId = MON135EncounterId;
 			Spawn.EncounterWaveIndex = WaveIndex;
-			Spawn.bInitiallyEnabled = false;
+			Spawn.bSpawnAtStart = false;
 			FixtureLevel->MonsterSpawns.Add(Spawn);
 		};
 
@@ -302,9 +301,9 @@ namespace
 			{
 				return true;
 			}
-			Test->TestFalse(TEXT("The encounter anchor starts disabled"), RatSpawn->bInitiallyEnabled);
-			Test->TestFalse(TEXT("The second wave-zero Rat starts disabled"), Wave0SecondSpawn->bInitiallyEnabled);
-			Test->TestFalse(TEXT("The wave-one Rat starts disabled"), Wave1Spawn->bInitiallyEnabled);
+			Test->TestFalse(TEXT("The encounter anchor does not spawn at start"), RatSpawn->bSpawnAtStart);
+			Test->TestFalse(TEXT("The second wave-zero Rat does not spawn at start"), Wave0SecondSpawn->bSpawnAtStart);
+			Test->TestFalse(TEXT("The wave-one Rat does not spawn at start"), Wave1Spawn->bSpawnAtStart);
 			Test->TestEqual(TEXT("The encounter anchor cell is unchanged"), FIntPoint(RatSpawn->CellX, RatSpawn->CellY), MON135RatCell);
 			Test->TestEqual(TEXT("The second wave-zero cell is unchanged"), FIntPoint(Wave0SecondSpawn->CellX, Wave0SecondSpawn->CellY), MON135Wave0SecondCell);
 			Test->TestEqual(TEXT("The wave-one cell is unchanged"), FIntPoint(Wave1Spawn->CellX, Wave1Spawn->CellY), MON135Wave1Cell);
@@ -319,7 +318,7 @@ namespace
 			const bool bStartCellValid = EditorActor->LevelAsset->IsStartCellValid();
 			Test->TestTrue(TEXT("The transient fixture StartCell is valid"), bStartCellValid);
 			Test->TestTrue(TEXT("The transient fixture StartCell remains outside the encounter trigger"), State->StartCell != MON135TriggerCell);
-			if (RatSpawn->bInitiallyEnabled || Wave0SecondSpawn->bInitiallyEnabled || Wave1Spawn->bInitiallyEnabled ||
+			if (RatSpawn->bSpawnAtStart || Wave0SecondSpawn->bSpawnAtStart || Wave1Spawn->bSpawnAtStart ||
 				FIntPoint(RatSpawn->CellX, RatSpawn->CellY) != MON135RatCell || !bStartCellValid || State->StartCell == MON135TriggerCell)
 			{
 				return true;
@@ -428,7 +427,7 @@ namespace
 			Test->TestTrue(TEXT("The PIE startup injection is registered"), State->bSetupSucceeded);
 			UE_LOG(LogTemp, Log,
 				TEXT(
-					"[MON135PIE] Phase=IntegrationSetup SaveSlot=%s AnchorSpawnId=%s Encounter=Encounter_Rats_01 Wave0=2 Wave1=1 bInitiallyEnabled=false StartCell=(%d,%d) TriggerCell=(27,24)"),
+					"[MON135PIE] Phase=IntegrationSetup SaveSlot=%s AnchorSpawnId=%s Encounter=Encounter_Rats_01 Wave0=2 Wave1=1 bSpawnAtStart=false StartCell=(%d,%d) TriggerCell=(27,24)"),
 				*State->TemporarySaveSlot, *MON135RatSpawnId.ToString(), State->StartCell.X, State->StartCell.Y);
 			return true;
 		}

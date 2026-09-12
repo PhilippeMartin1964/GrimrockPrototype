@@ -162,7 +162,7 @@ namespace
 			Spawn.PatrolMode = PatrolMode;
 			Spawn.PatrolWaypoints = Waypoints;
 			Spawn.MonsterDefinition = Definition;
-			Spawn.bInitiallyEnabled = true;
+			Spawn.bSpawnAtStart = true;
 			Level->MonsterSpawns.Add(Spawn);
 
 			FActorSpawnParameters Params;
@@ -339,7 +339,7 @@ bool FGridMonsterMON143BlockedHearingWaitTest::RunTest(const FString& Parameters
 	DoorData.CellX = 1;
 	DoorData.CellY = 1;
 	DoorData.WallSide = EGridEdge::North;
-	DoorData.bInitiallyActive = false;
+	DoorData.InstanceConfig.bDoorInitiallyOpen = false;
 	Fixture.Level->WorldObjectInstances.Add(DoorData);
 
 	UGridDoorSystemComponent* DoorSystem = Fixture.Runtime->FindComponentByClass<UGridDoorSystemComponent>();

@@ -62,7 +62,6 @@ namespace GridPressurePlateMonsterActivationTests
 		Plate.CellX = X;
 		Plate.CellY = 0;
 		Plate.WallSide = EGridEdge::None;
-		Plate.bInitiallyEnabled = true;
 		Plate.InstanceConfig.InteractionOverrides.bOverridePressurePlateWeight = true;
 		Plate.InstanceConfig.InteractionOverrides.PressurePlateWeight.bActivateWhenPartyPresent = false;
 		Plate.InstanceConfig.InteractionOverrides.PressurePlateWeight.bActivateWhenMonsterPresent = bMonsterActivates;

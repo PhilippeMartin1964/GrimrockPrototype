@@ -55,7 +55,7 @@ void UGridDoorSystemComponent::RegisterDoorObject(const FGridRuntimeWorldObjectD
 		DoorActorByEdge.Add(Key, DoorActor);
 		DoorActor->OnDoorAnimationFinished.AddDynamic(this, &UGridDoorSystemComponent::HandleDoorAnimationFinished);
 	}
-	SetDoorPassageBlocked(ObjectData.CellX, ObjectData.CellY, ObjectData.Edge, !ObjectData.bInitiallyActive);
+	SetDoorPassageBlocked(ObjectData.CellX, ObjectData.CellY, ObjectData.Edge, !ObjectData.bDoorInitiallyOpen);
 }
 
 bool UGridDoorSystemComponent::HasDoorOnEdge(int32 X, int32 Y, EGridEdge Edge) const

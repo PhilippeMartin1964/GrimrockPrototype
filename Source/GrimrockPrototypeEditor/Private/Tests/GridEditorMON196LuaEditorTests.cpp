@@ -26,7 +26,6 @@ namespace
 		Source.Type = EGridLevelObjectType::Button;
 		Source.CellX = 0;
 		Source.CellY = 0;
-		Source.bInitiallyEnabled = true;
 		return Source;
 	}
 

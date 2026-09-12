@@ -81,7 +81,6 @@ namespace GridWorldObjectMIG03RuntimeSpawn
 		Instance.CellX = X;
 		Instance.CellY = Y;
 		Instance.WallSide = WallSide;
-		Instance.bInitiallyEnabled = true;
 		return Instance;
 	}
 }
@@ -111,7 +110,6 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	Runtime->GridOrigin = FVector::ZeroVector;
 	Runtime->SetActorLocation(FVector::ZeroVector);
 
-	// Static generic object: StaticPart alone is authoritative for presentation and local transform.
 	UGridWorldObjectDefinitionAsset* StaticDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
 	StaticDefinition->DefinitionId = TEXT("MIG03_TargetStatic");
 	StaticDefinition->SupportedType = EGridLevelObjectType::Decoration;
@@ -127,7 +125,6 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 		MakeWorldObjectInstance(StaticDefinition->DefinitionId, EGridLevelObjectType::Decoration, 1, 1);
 	Runtime->LevelAsset->WorldObjectInstances.Add(StaticObject);
 
-	// Moving-only mechanism: Part0 is enough to spawn and initialize the mechanism.
 	UGridWorldObjectDefinitionAsset* ButtonDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
 	ButtonDefinition->DefinitionId = TEXT("MIG03_TargetButton");
 	ButtonDefinition->SupportedType = EGridLevelObjectType::Button;
@@ -148,7 +145,6 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 		MakeWorldObjectInstance(ButtonDefinition->DefinitionId, EGridLevelObjectType::Button, 2, 1, EGridEdge::North);
 	Runtime->LevelAsset->WorldObjectInstances.Add(ButtonObject);
 
-	// Invisible runtime object: actor existence is independent of presentation existence.
 	UGridWorldObjectDefinitionAsset* TriggerDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
 	TriggerDefinition->DefinitionId = TEXT("MIG03_InvisibleTrigger");
 	TriggerDefinition->SupportedType = EGridLevelObjectType::Trigger;

@@ -173,7 +173,7 @@ namespace
 			Spawn.EncounterGroupId = EncounterGroupId;
 			Spawn.PatrolMode = PatrolMode;
 			Spawn.PatrolWaypoints = Waypoints;
-			Spawn.bInitiallyEnabled = true;
+			Spawn.bSpawnAtStart = true;
 			Level->MonsterSpawns.Add(Spawn);
 
 			FActorSpawnParameters Params;

@@ -160,7 +160,7 @@ namespace
 			Spawn.InitialMonsterState = InitialState;
 			Spawn.MonsterDefinition = Definition;
 			Spawn.EncounterGroupId = EncounterGroupId;
-			Spawn.bInitiallyEnabled = true;
+			Spawn.bSpawnAtStart = true;
 			Level->MonsterSpawns.Add(Spawn);
 
 			FActorSpawnParameters Params;

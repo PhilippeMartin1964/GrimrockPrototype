@@ -81,7 +81,7 @@ namespace
 		OutDoorData.CellX = 1;
 		OutDoorData.CellY = 1;
 		OutDoorData.WallSide = EGridEdge::North;
-		OutDoorData.bInitiallyActive = false;
+		OutDoorData.InstanceConfig.bDoorInitiallyOpen = false;
 		LevelAsset->WorldObjectInstances.Add(OutDoorData);
 		Runtime->LevelAsset = LevelAsset;
 		return LevelAsset;

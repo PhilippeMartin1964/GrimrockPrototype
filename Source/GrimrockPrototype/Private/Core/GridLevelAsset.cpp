@@ -18,7 +18,6 @@ namespace
 		return Facing == EGridEdge::None || IsValidMonsterSpawnFacing(Facing);
 	}
 
-
 	FString GetMonsterSpawnLabel(const FGridMonsterSpawnInstance& Spawn)
 	{
 		return Spawn.SpawnId.IsValid() ? Spawn.SpawnId.ToString(EGuidFormats::DigitsWithHyphens)
@@ -60,9 +59,7 @@ namespace
 			});
 		return RemovedCount > 0;
 	}
-
 }
-
 
 void UGridLevelAsset::EnsureCellCount()
 {
@@ -163,7 +160,6 @@ void UGridLevelAsset::ClearLevel()
 #endif
 }
 
-
 bool UGridLevelAsset::RemoveObjectById(const FGuid& ObjectId)
 {
 #if WITH_EDITOR
@@ -238,7 +234,6 @@ void UGridLevelAsset::EnsureObjectIds()
 #endif
 }
 
-
 bool UGridLevelAsset::ValidateMonsterSpawns(TArray<FString>& OutErrors) const
 {
 	OutErrors.Reset();
@@ -290,7 +285,7 @@ bool UGridLevelAsset::ValidateMonsterSpawns(TArray<FString>& OutErrors) const
 					OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s must be placed on a non-empty cell that allows occupancy."), *SpawnLabel));
 				}
 
-				if (Spawn.bInitiallyEnabled)
+				if (Spawn.bSpawnAtStart)
 				{
 					const FIntPoint SpawnCell(Spawn.CellX, Spawn.CellY);
 					if (const FGuid* ExistingSpawnId = EnabledSpawnByCell.Find(SpawnCell))
@@ -366,9 +361,9 @@ bool UGridLevelAsset::ValidateMonsterSpawns(TArray<FString>& OutErrors) const
 		{
 			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s requires EncounterGroupId when EncounterWaveIndex is greater than 0."), *SpawnLabel));
 		}
-		if (!Spawn.EncounterGroupId.IsNone() && Spawn.EncounterWaveIndex > 0 && Spawn.bInitiallyEnabled)
+		if (!Spawn.EncounterGroupId.IsNone() && Spawn.EncounterWaveIndex > 0 && Spawn.bSpawnAtStart)
 		{
-			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s belongs to future encounter wave %d and must be disabled at start."), *SpawnLabel,
+			OutErrors.Add(FString::Printf(TEXT("MonsterSpawn %s belongs to future encounter wave %d and must not spawn at start."), *SpawnLabel,
 				Spawn.EncounterWaveIndex));
 		}
 		if (!Spawn.EncounterGroupId.IsNone() && Spawn.EncounterWaveIndex >= 0 && IsValidCoord(Spawn.CellX, Spawn.CellY))

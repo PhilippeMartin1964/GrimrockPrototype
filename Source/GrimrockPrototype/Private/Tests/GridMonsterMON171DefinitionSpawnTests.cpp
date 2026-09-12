@@ -164,7 +164,7 @@ bool FGridMonsterMON171SpawnPersistenceContractTest::RunTest(const FString& Para
 	Spawn.Facing = EGridEdge::West;
 	Spawn.InitialMonsterState = EGridMonsterState::Dormant;
 	Spawn.MonsterDefinition = Definition;
-	Spawn.bInitiallyEnabled = true;
+	Spawn.bSpawnAtStart = true;
 
 	Level->MonsterSpawns.Add(Spawn);
 	const FGuid SpawnId = Spawn.SpawnId;

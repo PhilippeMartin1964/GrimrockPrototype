@@ -281,7 +281,14 @@ bool UGridActivationComponent::RefreshAllPressurePlates()
 
 void UGridActivationComponent::RegisterInitialObjectState(const FGridWorldObjectInstance& Instance)
 {
-	if (Instance.bInitiallyActive && Instance.InstanceId.IsValid())
+	if (!Instance.InstanceId.IsValid())
+	{
+		return;
+	}
+
+	// Fresh authored state is semantic, not generic. Doors are owned by the door system,
+	// pressure plates are derived from actual occupancy, and levers/buttons/triggers start at rest.
+	if (Instance.Type == EGridLevelObjectType::Teleporter && Instance.InstanceConfig.bTeleporterInitiallyEnabled)
 	{
 		ActiveObjectIds.Add(Instance.InstanceId);
 	}

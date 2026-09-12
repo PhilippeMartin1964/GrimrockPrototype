@@ -94,7 +94,6 @@ bool FGridMonsterPitTraversalTest::RunTest(const FString& Parameters)
 	Pit.CellX = 1;
 	Pit.CellY = 0;
 	Pit.WallSide = EGridEdge::None;
-	Pit.bInitiallyEnabled = true;
 	Pit.InstanceConfig.Pit.bInitiallyOpen = true;
 	const FGuid PitId = Pit.InstanceId;
 	Level->WorldObjectInstances.Add(Pit);

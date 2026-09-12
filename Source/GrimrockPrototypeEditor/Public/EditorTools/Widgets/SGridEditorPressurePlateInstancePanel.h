@@ -11,11 +11,11 @@ DECLARE_DELEGATE_RetVal(AGridLevelEditorActor*, FOnGetGridEditorPressurePlateIns
 DECLARE_DELEGATE(FOnGridEditorPressurePlateInstanceRequestRefresh);
 
 /**
- * Selected Object companion panel for pressure-plate instance state that is
- * intentionally authored at level scope.
+ * Selected Object companion panel for pressure-plate instance activation rules.
  *
- * It exposes the initial pressed state and the optional monster-occupancy
- * activation rule without introducing a second runtime data model.
+ * A pressure plate has no authored "pressed at start" state: runtime pressure is
+ * derived from actual party/monster occupancy and item weight. This companion
+ * exposes the optional monster-occupancy rule without introducing generic state.
  */
 class SGridEditorPressurePlateInstancePanel : public SCompoundWidget
 {
@@ -33,8 +33,6 @@ private:
 	void RequestRefresh() const;
 	TSharedRef<SWidget> BuildContent();
 
-	void SetPressedAtStart(FGuid ObjectId, bool bPressed);
-	void SetActivationRulesOverrideEnabled(FGuid ObjectId, bool bEnabled);
 	void SetMonsterActivates(FGuid ObjectId, bool bMonsterActivates);
 
 	TWeakObjectPtr<AGridLevelEditorActor> EditorActor;

@@ -93,7 +93,7 @@ namespace
 		Spawn.Facing = EGridEdge::North;
 		Spawn.InitialMonsterState = EGridMonsterState::Idle;
 		Spawn.MonsterDefinition = Definition;
-		Spawn.bInitiallyEnabled = true;
+		Spawn.bSpawnAtStart = true;
 		return Spawn;
 	}
 

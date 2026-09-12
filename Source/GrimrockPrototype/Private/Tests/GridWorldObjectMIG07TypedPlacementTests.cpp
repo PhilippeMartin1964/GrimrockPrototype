@@ -30,8 +30,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 	Door.CellX = 3;
 	Door.CellY = 4;
 	Door.WallSide = EGridEdge::North;
-	Door.bInitiallyEnabled = true;
-	Door.bInitiallyActive = false;
+	Door.InstanceConfig.bDoorInitiallyOpen = false;
 	Door.Tag = TEXT("MainDoor");
 	Door.InstanceConfig.Transition.bIsTransition = true;
 	Door.InstanceConfig.Transition.TargetLevelId = TEXT("LowerLevel");
@@ -57,6 +56,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 	Monster.PatrolMode = EGridMonsterPatrolMode::Loop;
 	Monster.EncounterGroupId = TEXT("Encounter_A");
 	Monster.EncounterWaveIndex = 2;
+	Monster.bSpawnAtStart = false;
 	Level->MonsterSpawns.Add(Monster);
 
 	FGridItemSpawnInstance ItemSpawn;
@@ -64,6 +64,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 	ItemSpawn.ItemDefinition = ItemDefinition;
 	ItemSpawn.CellX = 9;
 	ItemSpawn.CellY = 10;
+	ItemSpawn.bSpawnAtStart = true;
 	Level->ItemSpawns.Add(ItemSpawn);
 
 	FGridLogicObjectInstance Logic;
@@ -94,6 +95,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 		TestEqual(TEXT("World object keeps stable instance id"), Instance.InstanceId, Door.InstanceId);
 		TestEqual(TEXT("World object references its reusable definition"), Instance.WorldObjectDefinitionId, FName(TEXT("Door_Iron")));
 		TestEqual(TEXT("Wall side is separated from generic placement"), Instance.WallSide, EGridEdge::North);
+		TestFalse(TEXT("Door initial state is stored semantically"), Instance.InstanceConfig.bDoorInitiallyOpen);
 		TestTrue(TEXT("Transition is retained in minimal instance config"), Instance.InstanceConfig.Transition.bIsTransition);
 		TestEqual(TEXT("Transition target is retained"), Instance.InstanceConfig.Transition.TargetLevelId, FName(TEXT("LowerLevel")));
 		TestTrue(TEXT("Lock initial state is instance-owned"), Instance.InstanceConfig.bStartsUnlocked);
@@ -118,6 +120,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 		TestEqual(TEXT("Monster initial state is typed"), Spawn.InitialMonsterState, EGridMonsterState::Dormant);
 		TestEqual(TEXT("Encounter group is typed"), Spawn.EncounterGroupId, FName(TEXT("Encounter_A")));
 		TestEqual(TEXT("Encounter wave is typed"), Spawn.EncounterWaveIndex, 2);
+		TestFalse(TEXT("Future encounter wave does not spawn at level start"), Spawn.bSpawnAtStart);
 	}
 
 	if (Level->ItemSpawns.Num() == 1)
@@ -126,6 +129,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 		TestEqual(TEXT("Item SpawnId remains stable"), Spawn.SpawnId, ItemSpawn.SpawnId);
 		TestTrue(TEXT("ItemSpawn references its item definition directly"), Spawn.ItemDefinition == ItemDefinition);
 		TestEqual(TEXT("ItemSpawn defaults to quantity one"), Spawn.Quantity, 1);
+		TestTrue(TEXT("ItemSpawn stores startup generation semantically"), Spawn.bSpawnAtStart);
 	}
 
 	if (Level->LogicObjects.Num() == 2)
