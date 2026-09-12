@@ -7,6 +7,7 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
+#include "Runtime/Monsters/GridMonsterTraversalUtils.h"
 
 DEFINE_LOG_CATEGORY(LogGridMonsterMovement);
 
@@ -41,6 +42,15 @@ void UGridMonsterMovementComponent::TickComponent(float DeltaTime, ELevelTick Ti
 	if (!IsValid(Monster) || ActiveMotion == EGridMonsterMotionType::None)
 	{
 		SetComponentTickEnabled(false);
+		return;
+	}
+
+	// A pit can open after this move was reserved. Never let a monster finish
+	// crossing a trapdoor that is opening, open, or still closing: snap the
+	// monster back and release its reservation until both leaves are closed.
+	if (ActiveMotion == EGridMonsterMotionType::Move && RuntimeActor && GridMonsterTraversalUtils::IsOpenPitCell(RuntimeActor, MotionTargetCell))
+	{
+		CancelCurrentAction();
 		return;
 	}
 
@@ -165,7 +175,8 @@ bool UGridMonsterMovementComponent::TryMove(EGridEdge Direction)
 	}
 
 	const FIntPoint TargetCell(TargetX, TargetY);
-	if (!RuntimeActor->IsValidCell(TargetX, TargetY) || !RuntimeActor->IsWalkableCell(TargetX, TargetY) || RuntimeActor->IsPartyOnCell(TargetX, TargetY) ||
+	if (!RuntimeActor->IsValidCell(TargetX, TargetY) || !RuntimeActor->IsWalkableCell(TargetX, TargetY) ||
+		GridMonsterTraversalUtils::IsOpenPitCell(RuntimeActor, TargetCell) || RuntimeActor->IsPartyOnCell(TargetX, TargetY) ||
 		OccupancySubsystem->IsCellBlocked(TargetCell, Monster))
 	{
 		return false;
@@ -213,7 +224,8 @@ bool UGridMonsterMovementComponent::TeleportToGridPose(FIntPoint Cell, EGridEdge
 {
 	AGridMonsterActor* Monster = GetMonsterOwner();
 	if (!bInitialized || !IsValid(Monster) || !RuntimeActor || !OccupancySubsystem || IsBusy() || !RuntimeActor->IsValidCell(Cell.X, Cell.Y) ||
-		!RuntimeActor->IsWalkableCell(Cell.X, Cell.Y) || RuntimeActor->IsPartyOnCell(Cell.X, Cell.Y) || OccupancySubsystem->IsCellBlocked(Cell, Monster))
+		!RuntimeActor->IsWalkableCell(Cell.X, Cell.Y) || GridMonsterTraversalUtils::IsOpenPitCell(RuntimeActor, Cell) ||
+		RuntimeActor->IsPartyOnCell(Cell.X, Cell.Y) || OccupancySubsystem->IsCellBlocked(Cell, Monster))
 	{
 		return false;
 	}
@@ -317,7 +329,8 @@ bool UGridMonsterMovementComponent::ValidateInitialization(AGridMonsterActor* Mo
 	}
 
 	return CandidateRuntime->IsValidCell(Monster->CurrentCell.X, Monster->CurrentCell.Y) &&
-		CandidateRuntime->IsWalkableCell(Monster->CurrentCell.X, Monster->CurrentCell.Y);
+		CandidateRuntime->IsWalkableCell(Monster->CurrentCell.X, Monster->CurrentCell.Y) &&
+		!GridMonsterTraversalUtils::IsOpenPitCell(CandidateRuntime, Monster->CurrentCell);
 }
 
 bool UGridMonsterMovementComponent::StartTurn(EGridEdge TargetFacing, int32 DirectionSign)

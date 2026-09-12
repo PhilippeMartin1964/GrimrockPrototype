@@ -10,6 +10,7 @@
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "Runtime/Monsters/GridMonsterPatrolSubsystem.h"
+#include "Runtime/Monsters/GridMonsterTraversalUtils.h"
 
 DEFINE_LOG_CATEGORY(LogGridMonsterAI);
 
@@ -400,6 +401,11 @@ bool UGridMonsterBehaviorComponent::IsCellBlockedForOwner(const FIntPoint& Cell)
 {
 	const AGridMonsterActor* Monster = GetMonsterOwner();
 	if (!RuntimeActor || !OccupancySubsystem)
+	{
+		return true;
+	}
+
+	if (GridMonsterTraversalUtils::IsOpenPitCell(RuntimeActor, Cell))
 	{
 		return true;
 	}
