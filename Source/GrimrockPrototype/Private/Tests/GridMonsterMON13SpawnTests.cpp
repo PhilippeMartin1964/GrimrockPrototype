@@ -1073,7 +1073,7 @@ bool FGridMonsterMON134ValidationTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Invalid encounter wave data is rejected"), Level->ValidateMonsterSpawns(Errors));
 	TestTrue(TEXT("Negative wave index is reported"), HasErrorContaining(Errors, TEXT("EncounterWaveIndex >= 0")));
 	TestTrue(TEXT("Future wave requires an encounter group"), HasErrorContaining(Errors, TEXT("requires EncounterGroupId")));
-	TestTrue(TEXT("Future wave must not spawn at start"), HasErrorContaining(Errors, TEXT("must be disabled at start")));
+	TestTrue(TEXT("Future wave must not spawn at start"), HasErrorContaining(Errors, TEXT("must not spawn at start")));
 	TestTrue(TEXT("Same-wave cell conflict is reported"), HasErrorContaining(Errors, TEXT("shares encounter wave")));
 	return true;
 }
