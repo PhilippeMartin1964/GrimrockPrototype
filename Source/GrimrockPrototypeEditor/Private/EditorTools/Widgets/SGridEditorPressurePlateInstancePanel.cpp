@@ -105,17 +105,6 @@ TSharedRef<SWidget> SGridEditorPressurePlateInstancePanel::BuildContent()
 
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
-			FText::FromString(TEXT("Pressed at Start")),
-			SNew(SCheckBox)
-				.IsChecked(Instance->bInitiallyActive ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-				.OnCheckStateChanged_Lambda([this, ObjectId](ECheckBoxState State)
-				{
-					SetPressedAtStart(ObjectId, State == ECheckBoxState::Checked);
-				}))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			FText::FromString(TEXT("Initial State")),
-			FText::FromString(Instance->bInitiallyActive ? TEXT("Pressed / Activated") : TEXT("Released / Deactivated")))]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[GridEditorWidgetHelpers::BuildGridPropertyRow(
 			FText::FromString(TEXT("Monster Activates")),
 			SNew(SCheckBox)
 				.IsEnabled(bOverrideRules)
@@ -126,54 +115,14 @@ TSharedRef<SWidget> SGridEditorPressurePlateInstancePanel::BuildContent()
 				}))]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 5.f, 0.f, 0.f)[
 			SNew(STextBlock)
-				.Text(FText::FromString(TEXT("Pressed at Start is the pressure-plate meaning of the generic Active at Start flag. Monster Activates is an instance activation rule; enable Override Activation Rules in the Pressure Plate section immediately above to edit it.")))
+				.Text(FText::FromString(TEXT("Pressure plates have no authored Pressed at Start flag. They start released, then derive their effective state from party/monster occupancy and item weight. Enable Override Activation Rules in the Pressure Plate section above to edit Monster Activates.")))
 				.AutoWrapText(true)
 				.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))
 		];
 
 	return GridEditorWidgetHelpers::BuildGridPanelSection(
-		FText::FromString(TEXT("Instance State")),
+		FText::FromString(TEXT("Monster Activation")),
 		Root);
-}
-
-void SGridEditorPressurePlateInstancePanel::SetPressedAtStart(FGuid ObjectId, bool bPressed)
-{
-	AGridLevelEditorActor* Editor = GetEditorActor();
-	if (!Editor || Editor->LastSelectedObjectId != ObjectId ||
-		!Editor->LevelAsset || Editor->LevelAsset->GetTypedPlacementType(ObjectId) != EGridLevelObjectType::PressurePlate)
-	{
-		return;
-	}
-
-	if (Editor->SetSelectedObjectInitiallyActive(bPressed))
-	{
-		RequestRefresh();
-	}
-}
-
-void SGridEditorPressurePlateInstancePanel::SetActivationRulesOverrideEnabled(FGuid ObjectId, bool bEnabled)
-{
-	AGridLevelEditorActor* Editor = GetEditorActor();
-	const FGridWorldObjectInstance* Instance = GetPressurePlateInstance(Editor, ObjectId);
-	const UGridWorldObjectDefinitionAsset* Definition = GetPressurePlateDefinition(Editor, Instance);
-	if (!Instance || !Definition)
-	{
-		return;
-	}
-
-	const FGridPressurePlateWeightParams DefaultWeight = Definition->DefaultBehavior.PressurePlateWeight;
-	if (EditPressurePlateConfig(Editor, ObjectId,
-		[bEnabled, DefaultWeight](FGridWorldObjectInstanceConfig& Config)
-		{
-			if (bEnabled && !Config.InteractionOverrides.bOverridePressurePlateWeight)
-			{
-				Config.InteractionOverrides.PressurePlateWeight = DefaultWeight;
-			}
-			Config.InteractionOverrides.bOverridePressurePlateWeight = bEnabled;
-		}))
-	{
-		RequestRefresh();
-	}
 }
 
 void SGridEditorPressurePlateInstancePanel::SetMonsterActivates(FGuid ObjectId, bool bMonsterActivates)
