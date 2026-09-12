@@ -133,6 +133,14 @@ struct FGridWorldObjectInstanceConfig
 {
 	GENERATED_BODY()
 
+	/** Puzzle-local initial state. Closed is the normal authored default. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Door|Initial State")
+	bool bDoorInitiallyOpen = false;
+
+	/** Puzzle-local initial state. A teleporter may require a mechanism to enable it. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Teleporter|Initial State")
+	bool bTeleporterInitiallyEnabled = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Teleporter")
 	FGridTeleporterBehaviorParams Teleporter;
 
@@ -144,6 +152,7 @@ struct FGridWorldObjectInstanceConfig
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Receptacle")
 	TArray<FGridReceptacleInitialItemConfig> ReceptacleInitialContent;
+
 	/**
 	 * Sparse gameplay/puzzle overrides exposed by the Grid Editor Selected Object inspector.
 	 * Permanent presentation and shared defaults remain on the Definition.
@@ -152,7 +161,6 @@ struct FGridWorldObjectInstanceConfig
 	FGridWorldObjectInteractionOverrides InteractionOverrides;
 
 	/** Sparse visual exceptions. Shared geometry/motion remains authored on the Definition. */
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Moving Parts")
 	TArray<FGridWorldObjectMovingPartInstanceOverride> MovingPartOverrides;
 
@@ -174,7 +182,7 @@ struct FGridWorldObjectInstanceConfig
 	bool bStartsUnlocked = false;
 };
 
-/** Persistent placement of a reusable world-object definition. */
+/** Persistent placement of a reusable world-object definition. Presence is implied by placement. */
 USTRUCT(BlueprintType)
 struct FGridWorldObjectInstance
 {
@@ -206,12 +214,6 @@ struct FGridWorldObjectInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Placement", meta = (EditCondition = "bHasLocalTransformOverride", EditConditionHides))
 	FTransform LocalTransformOverride = FTransform::Identity;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial State")
-	bool bInitiallyEnabled = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial State")
-	bool bInitiallyActive = false;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Identity")
 	FName LogicId = NAME_None;
 
@@ -231,7 +233,7 @@ struct FGridWorldObjectInstance
 	FGridWorldObjectInstanceConfig InstanceConfig;
 };
 
-/** A collectible physically present in the level. It is not a spawn generator. */
+/** A collectible physically present in the level. Presence is implied by placement. */
 USTRUCT(BlueprintType)
 struct FGridLooseItemInstance
 {
@@ -260,9 +262,6 @@ struct FGridLooseItemInstance
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Placement")
 	float LocalYaw = 0.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial State")
-	bool bInitiallyEnabled = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Identity")
 	FName LogicId = NAME_None;
@@ -324,8 +323,9 @@ struct FGridMonsterSpawnInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Encounter", meta = (ClampMin = "0"))
 	int32 EncounterWaveIndex = 0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial State")
-	bool bInitiallyEnabled = true;
+	/** A spawn placement may deliberately create no monster until commanded. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+	bool bSpawnAtStart = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Identity")
 	FName LogicId = NAME_None;
@@ -360,8 +360,9 @@ struct FGridItemSpawnInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Placement")
 	int32 CellY = 0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial State")
-	bool bInitiallyEnabled = true;
+	/** A spawn placement may deliberately create no item until commanded. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+	bool bSpawnAtStart = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Identity")
 	FName LogicId = NAME_None;
@@ -375,7 +376,7 @@ struct FGridItemSpawnInstance
 	FName PaletteEntryId = NAME_None;
 };
 
-/** Data-only logical/narrative target. No runtime Actor is required by this structure. */
+/** Data-only logical/narrative target. Presence is implied by placement. */
 USTRUCT(BlueprintType)
 struct FGridLogicObjectInstance
 {
@@ -395,12 +396,6 @@ struct FGridLogicObjectInstance
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Placement")
 	int32 CellY = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial State")
-	bool bInitiallyEnabled = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Initial State")
-	bool bInitiallyActive = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Logic")
 	FGridLogicNodeParams Logic;
