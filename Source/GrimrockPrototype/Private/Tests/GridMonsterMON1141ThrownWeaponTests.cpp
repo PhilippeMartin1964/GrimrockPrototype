@@ -360,7 +360,6 @@ bool FGridMON1142PlacedItemRebuildUniquenessTest::RunTest(const FString& Paramet
 	PlacedItem.InstanceId = PlacedObjectId;
 	PlacedItem.CellX = 0;
 	PlacedItem.CellY = 0;
-	PlacedItem.bInitiallyEnabled = true;
 	PlacedItem.ItemDefinition = Definition;
 	LevelAsset->LooseItemInstances.Add(PlacedItem);
 	Runtime->LevelAsset = LevelAsset;
