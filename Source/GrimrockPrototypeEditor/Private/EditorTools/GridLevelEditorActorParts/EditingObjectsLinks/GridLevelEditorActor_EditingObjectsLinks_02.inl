@@ -172,11 +172,3 @@ bool AGridLevelEditorActor::SelectCellFromOverview(int32 CellX, int32 CellY)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: overview cell selection is outside grid bounds X=%d Y=%d."), CellX, CellY);
 		return false;
-	}
-	SelectedCellX = CellX;
-	SelectedCellY = CellY;
-	SelectedEdge = EGridEdge::None;
-	ClearSelectedObjectState();
-	RebuildPreview();
-	return true;
-}
