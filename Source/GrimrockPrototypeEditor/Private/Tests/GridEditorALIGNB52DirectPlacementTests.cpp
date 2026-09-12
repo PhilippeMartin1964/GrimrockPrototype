@@ -112,7 +112,6 @@ bool FGridEditorALIGNB52DirectPlacementTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Wall classification changes WallSide"), Object.WallSide, EGridEdge::East);
 	TestFalse(TEXT("Wall orientation does not create a local transform override"), Object.bHasLocalTransformOverride);
 
-	// No runtime actor is spawned until after these assertions: every center exercises the editor fallback.
 	const auto CheckCenter = [&](const TCHAR* Label, const FVector& Expected)
 	{
 		TestTrue(TEXT("PreviewRuntimeActor remains absent"), Editor->PreviewRuntimeActor == nullptr);
@@ -165,7 +164,6 @@ bool FGridEditorALIGNB52DirectPlacementTest::RunTest(const FString& Parameters)
 	Object.WallSide = EGridEdge::West;
 	CheckCenter(TEXT("West Door"), FVector(200.0f, 500.0f, 150.0f));
 
-	// Missing definitions retain the existing type-based heuristics.
 	Object.WorldObjectDefinitionId = TEXT("ALIGN_B5_2_Missing");
 	Object.WallSide = EGridEdge::North;
 	CheckCenter(TEXT("Door without definition"), FVector(300.0f, 600.0f, 150.0f));
@@ -174,7 +172,6 @@ bool FGridEditorALIGNB52DirectPlacementTest::RunTest(const FString& Parameters)
 	Object.Type = EGridLevelObjectType::Decoration;
 	CheckCenter(TEXT("Decoration without definition"), FVector(300.0f, 500.0f, 12.0f));
 
-	// The remaining runtime spawn guard must use the same surface authority as the editor.
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	if (!TestNotNull(TEXT("Runtime actor exists for spawn classification"), Runtime)) return false;
 	Runtime->LevelAsset = Level;
@@ -182,7 +179,6 @@ bool FGridEditorALIGNB52DirectPlacementTest::RunTest(const FString& Parameters)
 	Definition->RuntimeActorClass = AGridRuntimeObjectActor::StaticClass();
 	FGridWorldObjectInstance RuntimeObject = Object;
 	RuntimeObject.WorldObjectDefinitionId = Definition->DefinitionId;
-	RuntimeObject.bInitiallyEnabled = true;
 	RuntimeObject.WallSide = EGridEdge::None;
 	Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
 	TestFalse(TEXT("Wall spawn requires WallSide"), Runtime->IsRuntimeSpawnableObject(RuntimeObject));
@@ -193,8 +189,7 @@ bool FGridEditorALIGNB52DirectPlacementTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Floor spawn needs no WallSide"), Runtime->IsRuntimeSpawnableObject(RuntimeObject));
 	Definition->PlacementSurface = EGridObjectPlacementKind::Ceiling;
 	TestTrue(TEXT("Ceiling spawn needs no WallSide"), Runtime->IsRuntimeSpawnableObject(RuntimeObject));
-	RuntimeObject.bInitiallyEnabled = false;
-	TestFalse(TEXT("Disabled objects remain excluded from spawning"), Runtime->IsRuntimeSpawnableObject(RuntimeObject));
+	TestTrue(TEXT("Placed world-object presence is implied by the placement itself"), Runtime->IsRuntimeSpawnableObject(RuntimeObject));
 
 	return true;
 }
