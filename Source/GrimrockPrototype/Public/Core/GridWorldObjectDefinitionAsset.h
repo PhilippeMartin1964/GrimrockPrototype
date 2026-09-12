@@ -93,14 +93,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Definition")
 	FText Description;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Defaults")
-	bool bDefaultInitiallyEnabled = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Defaults")
-	bool bDefaultInitiallyActive = false;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Defaults",
-		meta = (ToolTip = "Default behavior copied to placed object instances. Currently contains teleporter, receptacle and mechanism parameters."))
+		meta = (ToolTip = "Shared behavior defaults for placed object instances. Puzzle-local initial state belongs to the placed instance."))
 	FGridObjectBehaviorParams DefaultBehavior;
 
 	/** Single 3D attenuation used by every audio event emitted by this object definition. */
