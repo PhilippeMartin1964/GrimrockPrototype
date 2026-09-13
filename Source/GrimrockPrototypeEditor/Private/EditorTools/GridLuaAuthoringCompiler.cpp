@@ -764,11 +764,6 @@ FString FGridLuaCompileDiagnostic::ToDisplayString() const
 	return FString::Printf(TEXT("LUA-COMPILE %s%s line %d:%d: %s"), *Code, *ScriptText, Line, Column, *Message);
 }
 
-FString FGridLuaCompileResult::GetFirstErrorText() const
-{
-	return Diagnostics.IsEmpty() ? FString() : Diagnostics[0].ToDisplayString();
-}
-
 FString FGridLuaCompileResult::GetSummaryText(int32 MaxDiagnostics) const
 {
 	if (Succeeded())
@@ -798,12 +793,6 @@ bool FGridLuaAuthoringCompiler::CompileLevel(const AGridLevelEditorActor& Editor
 		return false;
 	}
 	return CompileCandidateInternal(EditorActor, EditorActor.LevelAsset->LuaScripts, EditorActor.LevelAsset->Links, OutResult);
-}
-
-bool FGridLuaAuthoringCompiler::CompileCandidate(const AGridLevelEditorActor& EditorActor, const TArray<FGridLuaScriptSource>& CandidateScripts,
-	const TArray<FGridObjectLink>& CandidateLinks, FGridLuaCompileResult& OutResult)
-{
-	return CompileCandidateInternal(EditorActor, CandidateScripts, CandidateLinks, OutResult);
 }
 
 bool FGridLuaAuthoringCompiler::CompileScriptDraft(const AGridLevelEditorActor& EditorActor, FName OldScriptId, FName NewScriptId,

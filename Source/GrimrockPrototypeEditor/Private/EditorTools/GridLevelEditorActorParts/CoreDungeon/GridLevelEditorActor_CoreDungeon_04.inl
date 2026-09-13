@@ -86,25 +86,6 @@ bool AGridLevelEditorActor::IsEdgePlacedObject(EGridLevelObjectType ObjectType, 
 	return RequiresEdge(ObjectType);
 }
 
-bool AGridLevelEditorActor::IsCellCenteredObject(EGridLevelObjectType ObjectType) const
-{
-	switch (ObjectType)
-	{
-		case EGridLevelObjectType::PressurePlate:
-		case EGridLevelObjectType::MonsterSpawn:
-		case EGridLevelObjectType::ItemSpawn:
-		case EGridLevelObjectType::Item:
-		case EGridLevelObjectType::Light:
-		case EGridLevelObjectType::Teleporter:
-		case EGridLevelObjectType::Trigger:
-		case EGridLevelObjectType::Decoration:
-		case EGridLevelObjectType::Pit:
-			return true;
-		default:
-			return false;
-	}
-}
-
 const UGridWorldObjectDefinitionAsset* AGridLevelEditorActor::FindWorldObjectDefinitionById(FName InWorldObjectDefinitionId) const
 {
 	if (InWorldObjectDefinitionId.IsNone() || !ObjectPalette)

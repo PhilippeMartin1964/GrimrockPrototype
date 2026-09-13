@@ -76,11 +76,6 @@ namespace
 		return TValue();
 	}
 
-	FName GetObjectTagValue(const UGridLevelAsset& Level, FGuid ObjectId)
-	{
-		return ReadPlacementValue<FName>(Level, ObjectId, [](const auto& Placement) { return Placement.Tag; });
-	}
-
 	bool IsPlacementInitiallyActive(const UGridLevelAsset& Level, FGuid ObjectId)
 	{
 		if (const FGridWorldObjectInstance* WorldObjectInstance = Level.FindWorldObjectInstanceById(ObjectId))
@@ -174,27 +169,6 @@ namespace
 		return Root;
 	}
 
-	FText GetConnectorEventText(EGridObjectEvent Event)
-	{
-		const UEnum* EventEnum = StaticEnum<EGridObjectEvent>();
-		const FText EventText = EventEnum ? EventEnum->GetDisplayNameTextByValue(static_cast<int64>(Event)) : FText::FromString(TEXT("Unknown"));
-		return FText::Format(FText::FromString(TEXT("On {0}")), EventText);
-	}
-
-	FText GetConnectorCommandText(EGridObjectCommand Command)
-	{
-		const UEnum* CommandEnum = StaticEnum<EGridObjectCommand>();
-		return CommandEnum ? CommandEnum->GetDisplayNameTextByValue(static_cast<int64>(Command)) : FText::FromString(TEXT("Unknown"));
-	}
-
-	TSharedRef<SWidget> BuildConnectorTextRow(const FText& Text, bool bWarning)
-	{
-		return SNew(STextBlock)
-			.Text(Text)
-			.AutoWrapText(true)
-			.ColorAndOpacity(bWarning ? FSlateColor(FLinearColor(1.f, 0.55f, 0.18f, 1.f)) : FSlateColor::UseForeground());
-	}
-
 	bool IsObjectOrientationEditable(EGridLevelObjectType Type, const UGridWorldObjectDefinitionAsset* Definition)
 	{
 		if (Type == EGridLevelObjectType::MonsterSpawn || Type == EGridLevelObjectType::Item) return true;
@@ -214,18 +188,6 @@ namespace
 			return Definition->HasAnyVisualPart();
 		}
 		return Definition->HasAnyVisualPart() || Definition->RuntimeActorClass || Definition->ItemActorClass;
-	}
-
-	TSharedRef<SWidget> BuildBehaviorFloatSpinBoxRow(const FText& Label, float Value, TFunction<void(float)> ApplyValue)
-	{
-		return GridEditorWidgetHelpers::BuildGridPropertyRow(Label,
-			SNew(SSpinBox<float>)
-				.Value(Value)
-				.MinDesiredWidth(90.f)
-				.OnValueCommitted_Lambda([ApplyValue](float NewValue, ETextCommit::Type CommitType)
-				{
-					ApplyValue(NewValue);
-				}));
 	}
 
 	TSharedRef<SWidget> BuildItemDefinitionAssetPicker(UGridItemDefinitionAsset* CurrentAsset, TFunction<void(UGridItemDefinitionAsset*)> ApplyAsset)
@@ -552,8 +514,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection(F
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("ObjectId")), FText::FromString(Obj.ToString()))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("WorldObjectDefinitionId")), FText::FromName(WorldObjectInstance ? WorldObjectInstance->WorldObjectDefinitionId : NAME_None))]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Tag")), SNew(SEditableTextBox).Text(FText::FromName(GetObjectTagValue(Level, Obj)))
-			.OnTextCommitted_Lambda([this](const FText& NewText, ETextCommit::Type) { if (AGridLevelEditorActor* Editor = GetEditorActor()) { Editor->SetSelectedObjectTag(GetNameFromEditorText(NewText)); RequestRefresh(); } }))]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Notes")))]
 		+ SVerticalBox::Slot().AutoHeight()[SNew(SMultiLineEditableTextBox).Text(FText::FromString(ReadPlacementValue<FString>(Level, Obj, [](const auto& Placement) { return Placement.Notes; }))).AutoWrapText(true)
 			.OnTextCommitted_Lambda([this](const FText& NewText, ETextCommit::Type)
@@ -1606,41 +1566,11 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLockBehaviorSection(FG
 }
 
 
-FReply SGridEditorObjectInspectorPanel::OnApplySelectedObjectClicked()
-{
-	if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
-	{
-		CurrentEditorActor->Modify();
-		if (CurrentEditorActor->ApplyEditedSelectedObject()) RequestRefresh();
-	}
-	return FReply::Handled();
-}
-
-FReply SGridEditorObjectInspectorPanel::OnResetBehaviorFromDefinitionClicked()
-{
-	if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
-	{
-		CurrentEditorActor->Modify();
-		if (CurrentEditorActor->ResetSelectedObjectBehaviorFromDefinition()) RequestRefresh();
-	}
-	return FReply::Handled();
-}
-
 FReply SGridEditorObjectInspectorPanel::OnMoveSelectedObjectToCurrentCellClicked()
 {
 	if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
 	{
 		CurrentEditorActor->MoveSelectedObjectToCurrentSelection();
-		RequestRefresh();
-	}
-	return FReply::Handled();
-}
-
-FReply SGridEditorObjectInspectorPanel::OnFocusSelectedObjectClicked()
-{
-	if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
-	{
-		CurrentEditorActor->FocusSelectedObject();
 		RequestRefresh();
 	}
 	return FReply::Handled();

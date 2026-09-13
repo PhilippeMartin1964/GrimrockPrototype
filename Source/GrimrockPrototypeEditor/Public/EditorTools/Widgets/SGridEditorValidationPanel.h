@@ -19,9 +19,7 @@ struct FGridEditorValidationPanelState
 	bool bShowInfos = true;
 	FString SearchText;
 
-	void CountValidationErrorsWarnings(int32& OutErrorCount, int32& OutWarningCount) const;
 	void CountValidationMessages(int32& OutErrorCount, int32& OutWarningCount, int32& OutInfoCount) const;
-	FText GetValidationStatusText() const;
 };
 
 DECLARE_DELEGATE_RetVal(AGridLevelEditorActor*, FOnGetGridEditorValidationActor);

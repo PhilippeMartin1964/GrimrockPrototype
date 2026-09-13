@@ -197,25 +197,3 @@ namespace
 				return false;
 		}
 	}
-
-	bool IsEventEmittedByCurrentRuntime(EGridLevelObjectType SourceType, EGridObjectEvent Event)
-	{
-		switch (SourceType)
-		{
-			case EGridLevelObjectType::Button:
-				return Event == EGridObjectEvent::Activated;
-
-			case EGridLevelObjectType::Lever:
-			case EGridLevelObjectType::PressurePlate:
-			case EGridLevelObjectType::Trigger:
-				return Event == EGridObjectEvent::Activated || Event == EGridObjectEvent::Deactivated;
-
-			case EGridLevelObjectType::Receptacle:
-				return Event == EGridObjectEvent::ItemInserted || Event == EGridObjectEvent::ItemRemoved || Event == EGridObjectEvent::ItemChanged;
-
-			case EGridLevelObjectType::Pit:
-				return Event == EGridObjectEvent::Opened || Event == EGridObjectEvent::Closed;
-
-			case EGridLevelObjectType::MonsterSpawn:
-			{
-				return GridEditorLinkPolicy::GetSupportedEventsForSource(EGridLevelObjectType::MonsterSpawn).Contains(Event);

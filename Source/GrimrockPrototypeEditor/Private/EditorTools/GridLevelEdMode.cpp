@@ -98,21 +98,6 @@ namespace
 		PDI->DrawLine(Tip, RightWing, Color, DepthPriority, Thickness);
 	}
 
-	void DrawDebugObjectBox(FPrimitiveDrawInterface* PDI, const FVector& Center, const FColor& Color, float Size)
-	{
-		DrawWireBox(PDI, FBox(Center - FVector(Size, Size, Size), Center + FVector(Size, Size, Size)), Color, SDPG_Foreground);
-	}
-
-	void DrawDebugVerticalMarker(FPrimitiveDrawInterface* PDI, const FVector& Center, const FLinearColor& Color, float Height, float Radius, float Thickness)
-	{
-		const FVector Bottom = Center + FVector(0.f, 0.f, 8.f);
-		const FVector Top = Center + FVector(0.f, 0.f, Height);
-
-		PDI->DrawLine(Bottom, Top, Color, SDPG_Foreground, Thickness);
-
-		DrawWireBox(PDI, FBox(Top - FVector(Radius, Radius, Radius), Top + FVector(Radius, Radius, Radius)), Color.ToFColor(true), SDPG_Foreground);
-	}
-
 	bool BuildConnectorDrawData(
 		AGridLevelEditorActor* EditorActor, const FGuid& SourceObjectId, const FGuid& TargetObjectId, FConnectorDrawData& OutDrawData)
 	{
@@ -362,19 +347,6 @@ void FGridLevelEdMode::ApplyPaint() const
 	if (AGridLevelEditorActor* EditorActor = FindEditorActor())
 	{
 		EditorActor->ApplyPrimaryToolAction();
-
-		if (Toolkit.IsValid())
-		{
-			Toolkit->RefreshPalette();
-		}
-	}
-}
-
-void FGridLevelEdMode::ApplyErase() const
-{
-	if (AGridLevelEditorActor* EditorActor = FindEditorActor())
-	{
-		EditorActor->ApplySecondaryToolAction();
 
 		if (Toolkit.IsValid())
 		{

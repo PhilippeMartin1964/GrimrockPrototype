@@ -57,7 +57,6 @@ private:
 	bool UpdateHoverFromMouse(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY) const;
 
 	void ApplyPaint() const;
-	void ApplyErase() const;
 
 private:
 	bool bIsPainting = false;

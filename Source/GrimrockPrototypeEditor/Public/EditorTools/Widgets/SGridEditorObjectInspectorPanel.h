@@ -52,10 +52,7 @@ private:
 	TSharedRef<SWidget> BuildLockBehaviorSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildReadableTextSection(FGuid ObjectId);
 
-	FReply OnApplySelectedObjectClicked();
-	FReply OnResetBehaviorFromDefinitionClicked();
 	FReply OnMoveSelectedObjectToCurrentCellClicked();
-	FReply OnFocusSelectedObjectClicked();
 	FReply OnSetSelectedObjectOrientationClicked(EGridEdge Orientation);
 
 private:

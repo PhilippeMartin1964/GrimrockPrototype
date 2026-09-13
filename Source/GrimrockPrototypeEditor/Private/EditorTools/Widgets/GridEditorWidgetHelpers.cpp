@@ -83,49 +83,6 @@ namespace GridEditorWidgetHelpers
 			+ SVerticalBox::Slot().AutoHeight()[Content]];
 	}
 
-	TSharedRef<SWidget> BuildGridCollapsiblePanelSection(
-		const FText& Title, const TFunctionRef<TSharedRef<SWidget>()>& BuildContent, bool bExpanded, const FOnClicked& OnToggleClicked)
-	{
-		TSharedRef<SVerticalBox> SectionBox = SNew(SVerticalBox)
-
-			+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, bExpanded ? 6.f : 0.f)[SNew(SButton)
-					  .ButtonStyle(&FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("NoBorder"))
-					  .ContentPadding(FMargin(2.f, 1.f))
-					  .HAlign(HAlign_Fill)
-					  .OnClicked(OnToggleClicked)[SNew(SHorizontalBox)
-
-						  + SHorizontalBox::Slot()
-								.AutoWidth()
-								.VAlign(VAlign_Center)
-								.Padding(0.f, 0.f, 5.f, 0.f)[SNew(STextBlock)
-										.Text(bExpanded ? FText::FromString(FString::Chr(0x25BC)) : FText::FromString(FString::Chr(0x25B6)))
-										.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))]
-
-						  + SHorizontalBox::Slot().FillWidth(1.f).VAlign(
-								VAlign_Center)[SNew(STextBlock).Text(Title).Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))]]];
-
-		if (bExpanded)
-		{
-			SectionBox->AddSlot().AutoHeight()[BuildContent()];
-		}
-
-		return SNew(SBorder).Padding(6.f).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))[SectionBox];
-	}
-
-	TSharedRef<SWidget> BuildGridStatusBadge(const FText& Label, const FText& Value, const FSlateColor& AccentColor)
-	{
-		return SNew(SBorder)
-			.Padding(FMargin(7.f, 4.f))
-			.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))[SNew(SHorizontalBox)
-
-				+ SHorizontalBox::Slot()
-					  .AutoWidth()
-					  .VAlign(VAlign_Center)
-					  .Padding(0.f, 0.f, 5.f, 0.f)[SNew(STextBlock).Text(Label).ColorAndOpacity(AccentColor).Font(FCoreStyle::GetDefaultFontStyle("Bold", 8))]
-
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[SNew(STextBlock).Text(Value).Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))]];
-	}
-
 	TSharedRef<SWidget> BuildGridCompactStatusBadge(const FText& Label, const FText& Value, const FSlateColor& AccentColor)
 	{
 		return SNew(SBorder)
@@ -138,42 +95,6 @@ namespace GridEditorWidgetHelpers
 					  .Padding(0.f, 0.f, 4.f, 0.f)[SNew(STextBlock).Text(Label).ColorAndOpacity(AccentColor).Font(FCoreStyle::GetDefaultFontStyle("Bold", 8))]
 
 				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[SNew(STextBlock).Text(Value).Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))]];
-	}
-
-	FString NameArrayToCommaSeparatedText(const TArray<FName>& Names)
-	{
-		TArray<FString> Parts;
-		Parts.Reserve(Names.Num());
-
-		for (const FName& Name : Names)
-		{
-			if (!Name.IsNone())
-			{
-				Parts.Add(Name.ToString());
-			}
-		}
-
-		return FString::Join(Parts, TEXT(", "));
-	}
-
-	TArray<FName> ParseCommaSeparatedNames(const FString& Text)
-	{
-		TArray<FString> Parts;
-		Text.ParseIntoArray(Parts, TEXT(","), true);
-
-		TArray<FName> Names;
-		Names.Reserve(Parts.Num());
-
-		for (FString& Part : Parts)
-		{
-			Part.TrimStartAndEndInline();
-			if (!Part.IsEmpty())
-			{
-				Names.Add(FName(*Part));
-			}
-		}
-
-		return Names;
 	}
 }
 

@@ -1,17 +1,3 @@
-			}
-			default:
-				return false;
-		}
-	}
-
-	bool IsCommandSupportedByCurrentRuntime(EGridLevelObjectType TargetType, EGridObjectCommand Command)
-	{
-		// The type-only diagnostic remains permissive for LogicReset; link validation resolves the real node.
-		const EGridLogicNodeType NodeType = TargetType == EGridLevelObjectType::Logic && Command == EGridObjectCommand::LogicReset
-			? EGridLogicNodeType::Latch : EGridLogicNodeType::Relay;
-		return GridEditorLinkPolicy::GetCommandRuntimeSupport(TargetType, NodeType, Command) == EGridEditorCommandRuntimeSupport::Gameplay;
-	}
-
 	FString GetLevelAssetStatsText(const UGridLevelAsset* Asset)
 	{
 		return Asset ? FString::Printf(TEXT("Cells=%d Objects=%d Links=%d"), Asset->Cells.Num(), Asset->GetTypedPlacementCount(), Asset->Links.Num())

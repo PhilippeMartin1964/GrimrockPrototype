@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Styling/SlateColor.h"
-#include "Templates/Function.h"
 #include "Widgets/Input/SButton.h"
 
 #if WITH_EDITOR
@@ -19,13 +18,7 @@ namespace GridEditorWidgetHelpers
 	TSharedRef<SWidget> BuildGridReadOnlyPropertyRow(const FText& Label, const FText& Value);
 	TSharedRef<SWidget> BuildGridActionButton(const FText& Label, const FOnClicked& OnClicked);
 	TSharedRef<SWidget> BuildGridPanelSection(const FText& Title, TSharedRef<SWidget> Content);
-	TSharedRef<SWidget> BuildGridCollapsiblePanelSection(
-		const FText& Title, const TFunctionRef<TSharedRef<SWidget>()>& BuildContent, bool bExpanded, const FOnClicked& OnToggleClicked);
-	TSharedRef<SWidget> BuildGridStatusBadge(const FText& Label, const FText& Value, const FSlateColor& AccentColor);
 	TSharedRef<SWidget> BuildGridCompactStatusBadge(const FText& Label, const FText& Value, const FSlateColor& AccentColor);
-
-	FString NameArrayToCommaSeparatedText(const TArray<FName>& Names);
-	TArray<FName> ParseCommaSeparatedNames(const FString& Text);
 }
 
 #endif

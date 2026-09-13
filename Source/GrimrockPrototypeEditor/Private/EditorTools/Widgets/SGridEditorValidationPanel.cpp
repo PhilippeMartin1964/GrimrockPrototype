@@ -91,12 +91,6 @@ namespace
 	}
 }
 
-void FGridEditorValidationPanelState::CountValidationErrorsWarnings(int32& OutErrorCount, int32& OutWarningCount) const
-{
-	int32 InfoCount = 0;
-	CountValidationMessages(OutErrorCount, OutWarningCount, InfoCount);
-}
-
 void FGridEditorValidationPanelState::CountValidationMessages(int32& OutErrorCount, int32& OutWarningCount, int32& OutInfoCount) const
 {
 	OutErrorCount = 0;
@@ -118,22 +112,6 @@ void FGridEditorValidationPanelState::CountValidationMessages(int32& OutErrorCou
 			++OutInfoCount;
 		}
 	}
-}
-
-FText FGridEditorValidationPanelState::GetValidationStatusText() const
-{
-	if (!bValidationHasRun)
-	{
-		return FText::FromString(TEXT("Not run"));
-	}
-
-	int32 ErrorCount = 0;
-	int32 WarningCount = 0;
-	int32 InfoCount = 0;
-	CountValidationMessages(ErrorCount, WarningCount, InfoCount);
-
-	return FText::Format(
-		FText::FromString(TEXT("{0} errors, {1} warnings, {2} infos")), FText::AsNumber(ErrorCount), FText::AsNumber(WarningCount), FText::AsNumber(InfoCount));
 }
 
 bool SGridEditorValidationPanel::DoesMessageMatchSearch(const FGridLevelValidationMessage& ValidationMessage) const

@@ -29,7 +29,6 @@ struct GRIMROCKPROTOTYPEEDITOR_API FGridLuaCompileResult
 		return Diagnostics.IsEmpty();
 	}
 
-	FString GetFirstErrorText() const;
 	FString GetSummaryText(int32 MaxDiagnostics = 8) const;
 };
 
@@ -45,10 +44,6 @@ class GRIMROCKPROTOTYPEEDITOR_API FGridLuaAuthoringCompiler
 public:
 	/** Compile the scripts and Lua bindings currently stored by the editor level. */
 	static bool CompileLevel(const AGridLevelEditorActor& EditorActor, FGridLuaCompileResult& OutResult);
-
-	/** Compile an arbitrary candidate script/link set against the current level objects. */
-	static bool CompileCandidate(const AGridLevelEditorActor& EditorActor, const TArray<FGridLuaScriptSource>& CandidateScripts,
-		const TArray<FGridObjectLink>& CandidateLinks, FGridLuaCompileResult& OutResult);
 
 	/**
 	 * Builds the exact candidate produced by renaming/editing one script, updates

@@ -104,12 +104,6 @@ bool AGridLevelEditorActor::SetSelectedObjectReadTextOverride(const FText& NewRe
 	return true;
 }
 
-bool AGridLevelEditorActor::SetSelectedObjectTag(FName NewTag)
-{
-	(void)NewTag;
-	return false;
-}
-
 bool AGridLevelEditorActor::SetSelectedObjectNotes(const FString& NewNotes)
 {
 	if (!EditGridPlacementAuthoring(LevelAsset, LastSelectedObjectId, [&NewNotes](auto& Placement) { Placement.Notes = NewNotes; })) return false;

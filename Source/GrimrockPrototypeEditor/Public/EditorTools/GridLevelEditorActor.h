@@ -149,9 +149,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
 	FName WorldObjectDefinitionId = NAME_None;
 
-	// LUA-UX03 source-only tombstone. LogicId is the only author-facing logical identity.
-	FName ObjectTag = NAME_None;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint", meta = (MultiLine = "true"))
 	FString ObjectNotes;
 
@@ -505,9 +502,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Reading")
 	bool SetSelectedObjectReadTextOverride(const FText& NewReadTextOverride);
 
-	// LUA-UX03 source-compatibility bridge. Tag authoring is retired; implementation always rejects mutation.
-	bool SetSelectedObjectTag(FName NewTag);
-
 	UFUNCTION(BlueprintCallable, Category = "Object Paint")
 	bool SetSelectedObjectNotes(const FString& NewNotes);
 
@@ -545,7 +539,6 @@ private:
 	bool RequiresEdge(EGridLevelObjectType ObjectType) const;
 	bool IsEdgePlacedObject(const FGuid& ObjectId) const;
 	bool IsEdgePlacedObject(EGridLevelObjectType ObjectType, FName InWorldObjectDefinitionId) const;
-	bool IsCellCenteredObject(EGridLevelObjectType ObjectType) const;
 
 	FGridLevelCellData* GetSelectedCellMutable();
 	EGridWallType* GetSelectedWallMutable(FGridLevelCellData& CellData);

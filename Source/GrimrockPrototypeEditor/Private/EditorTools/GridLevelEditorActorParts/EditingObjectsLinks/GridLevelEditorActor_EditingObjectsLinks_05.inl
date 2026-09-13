@@ -167,7 +167,6 @@ void AGridLevelEditorActor::ClearSelectedObjectState()
 	bObjectInitiallyEnabled = true;
 	bObjectInitiallyActive = false;
 
-	ObjectTag = NAME_None;
 	ObjectNotes.Empty();
 	ObjectBehavior = FGridObjectBehaviorParams();
 	ResolvePreviewRuntimeActor();

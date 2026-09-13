@@ -144,7 +144,6 @@ bool AGridLevelEditorActor::ApplyPaletteEntry(FName EntryId)
 		SelectedWorldObjectDefinitionId = NAME_None;
 		bObjectInitiallyEnabled = true;
 		bObjectInitiallyActive = false;
-		ObjectTag = NAME_None;
 		ObjectBehavior = FGridObjectBehaviorParams();
 		ObjectBehavior.Item.ItemDefinitionAsset = Entry->DefaultItemDefinition;
 		return true;
