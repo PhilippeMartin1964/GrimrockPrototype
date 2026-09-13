@@ -293,7 +293,8 @@ public:
 	AGridWallLockActor* FindWallLockAtEdge(int32 FromCellX, int32 FromCellY, EGridEdge Edge) const;
 
 	/**
-	 * Shared horizontal hand reach for free world pickup and direct cursor placement.
+	 * Canonical horizontal hand reach for free world pickup, cursor placement and inventory/hotbar targeting.
+	 * The serialized property name is retained for Blueprint compatibility.
 	 * A visible target at or below this distance is manipulated by hand; farther cursor targets use throwing.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime|Interaction", meta = (ClampMin = "0.0"))

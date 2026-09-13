@@ -29,13 +29,6 @@ class URPGStoryCompanionAsset;
 class URPGStoryCompanionRecruitmentWidget;
 
 UENUM(BlueprintType)
-enum class EGridItemThrowMode : uint8
-{
-	ShortToss,
-	Throw
-};
-
-UENUM(BlueprintType)
 enum class EGrimrockPartyStartupMode : uint8
 {
 	NewGame,
@@ -164,12 +157,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Pit Fall|Landing", meta = (ClampMin = "0.01"))
 	float PitFallLandingCameraRecoveryDuration = 0.16f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
-	float ShortThrowSpeedScale = 0.45f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
-	float ShortThrowArcScale = 1.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|View")
 	FVector CameraLocalOffset = FVector(-40.f, 0.f, 0.f);
@@ -460,7 +447,7 @@ public:
 	bool TryDropCursorItemAtCell(int32 CellX, int32 CellY, EGridEdge Edge, const FVector& LocalOffset);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
-	bool TryThrowOneCursorItem(const FVector& LaunchDirection, EGridItemThrowMode ThrowMode);
+	bool TryThrowOneCursorItem(const FVector& LaunchDirection);
 
 	/**
 	 * Enters the shared utility-throw aiming mode. The item stays equipped until

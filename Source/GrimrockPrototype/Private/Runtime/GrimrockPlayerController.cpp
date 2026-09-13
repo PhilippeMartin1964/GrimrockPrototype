@@ -396,7 +396,9 @@ bool AGrimrockPlayerController::UpdatePhysicalThrowAiming()
 
 bool AGrimrockPlayerController::IsWithinHandPlacementReach(const AGrimrockPartyPawn* PartyPawn, const FHitResult& HitResult) const
 {
-	return PartyPawn && FVector::DistSquared2D(PartyPawn->GetActorLocation(), HitResult.ImpactPoint) <= FMath::Square(FMath::Max(0.0f, ThrowDistanceThreshold));
+	const AGridLevelRuntimeActor* Runtime = PartyPawn ? PartyPawn->LevelRuntimeActor.Get() : nullptr;
+	return Runtime && FVector::DistSquared2D(PartyPawn->GetActorLocation(), HitResult.ImpactPoint) <=
+		FMath::Square(FMath::Max(0.0f, Runtime->WorldItemPickupReach));
 }
 
 EGridInteractionCursor AGrimrockPlayerController::ResolvePhysicalThrowTargetCursor(const AGrimrockPartyPawn* PartyPawn, const FHitResult& HitResult) const
@@ -1162,10 +1164,9 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 			return;
 		}
 
-		const EGridItemThrowMode ThrowMode = TargetDistance < ThrowDistanceThreshold ? EGridItemThrowMode::ShortToss : EGridItemThrowMode::Throw;
-		const bool bThrown = PartyPawn->TryThrowOneCursorItem(TargetOffset, ThrowMode);
-		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Result=%s Distance=%.2f Mode=%d"),
-			*CursorItem.ItemDefinitionId.ToString(), bThrown ? TEXT("Thrown") : TEXT("Failed"), TargetDistance, static_cast<int32>(ThrowMode));
+		const bool bThrown = PartyPawn->TryThrowOneCursorItem(TargetOffset);
+		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Result=%s Distance=%.2f"),
+			*CursorItem.ItemDefinitionId.ToString(), bThrown ? TEXT("Thrown") : TEXT("Failed"), TargetDistance);
 		if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget())
 		{
 			InventoryWidget->RefreshInventory();

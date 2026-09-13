@@ -3,6 +3,8 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
+#include "Runtime/GridActivationComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -197,6 +199,11 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	Party->Facing = EGridEdge::East;
 	TestTrue(TEXT("A free item exactly 200 cm away is pickable regardless of facing"), Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
 
+	const FVector PickupLocation = NearbyFreeActor->GetActorLocation();
+	NearbyFreeActor->SetActorLocation(PickupLocation + FVector(0.0f, 0.01f, 0.0f));
+	TestFalse(TEXT("A free world item just beyond 200 cm is not pickable"), Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
+	NearbyFreeActor->SetActorLocation(PickupLocation);
+
 	Runtime->WorldItemPickupReach = 199.0f;
 	TestFalse(TEXT("The same free item is rejected when the hand reach is shorter than 200 cm"), Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
 	Runtime->WorldItemPickupReach = 200.0f;
@@ -263,12 +270,18 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	UClass* ControllerClass = LoadClass<AGrimrockPlayerController>(
 		nullptr, TEXT("/Game/GrimrockPrototype/Blueprints/Runtime/BP_GrimrockPlayerController.BP_GrimrockPlayerController_C"));
 	TestNotNull(TEXT("The shipped player-controller Blueprint loads"), ControllerClass);
+	UClass* RuntimeClass = LoadClass<AGridLevelRuntimeActor>(nullptr,
+		TEXT("/Game/GrimrockPrototype/Blueprints/Runtime/BP_GridLevelRuntimeActor.BP_GridLevelRuntimeActor_C"));
+	if (!TestNotNull(TEXT("The shipped runtime Blueprint loads"), RuntimeClass))
+	{
+		return false;
+	}
+	TestEqual(TEXT("The serialized runtime hand reach defaults to 200 cm"),
+		RuntimeClass->GetDefaultObject<AGridLevelRuntimeActor>()->WorldItemPickupReach, 200.0f);
 	if (!ControllerClass)
 	{
 		return false;
 	}
-	TestEqual(TEXT("The Blueprint has no stale serialized hand-placement threshold"),
-		ControllerClass->GetDefaultObject<AGrimrockPlayerController>()->ThrowDistanceThreshold, 200.0f);
 	AGrimrockPlayerController* Controller = TestWorld.World->SpawnActor<AGrimrockPlayerController>(ControllerClass);
 	if (!TestNotNull(TEXT("The hotbar controller is created"), Controller))
 	{
@@ -319,10 +332,43 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 		EGridInteractionCursor::PlaceItem);
 
 	PlateHit.ImpactPoint = Runtime->GetCellCenterWorld(2, 1, 0.0f);
+	Runtime->WorldItemPickupReach = 199.0f;
+	TestEqual(TEXT("Hotbar targeting reads the canonical runtime reach"),
+		Controller->ResolvePhysicalThrowTargetCursor(Party, PlateHit), EGridInteractionCursor::AimThrow);
+	TestFalse(TEXT("Ordinary cursor placement reads the same runtime reach"), Controller->IsWithinHandPlacementReach(Party, PlateHit));
+	Runtime->WorldItemPickupReach = 200.0f;
+	TestTrue(TEXT("Ordinary cursor placement includes the canonical boundary"), Controller->IsWithinHandPlacementReach(Party, PlateHit));
 	const float PreviousWeight = Runtime->GetWorldItemWeightAtCell(2, 1);
+	FGridWorldObjectInstance WeightPlate;
+	WeightPlate.InstanceId = FGuid::NewGuid();
+	WeightPlate.Type = EGridLevelObjectType::PressurePlate;
+	WeightPlate.WorldObjectDefinitionId = TEXT("TD021_WeightPlate");
+	WeightPlate.CellX = 2;
+	WeightPlate.CellY = 1;
+	WeightPlate.InstanceConfig.InteractionOverrides.bOverridePressurePlateWeight = true;
+	WeightPlate.InstanceConfig.InteractionOverrides.PressurePlateWeight.bActivateWhenPartyPresent = false;
+	WeightPlate.InstanceConfig.InteractionOverrides.PressurePlateWeight.bUseItemWeight = true;
+	WeightPlate.InstanceConfig.InteractionOverrides.PressurePlateWeight.RequiredItemWeight = PreviousWeight + Definition->Weight;
+	LevelAsset->WorldObjectInstances.Add(WeightPlate);
+	UGridWorldObjectDefinitionAsset* PlateDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
+	PlateDefinition->DefinitionId = WeightPlate.WorldObjectDefinitionId;
+	PlateDefinition->SupportedType = EGridLevelObjectType::PressurePlate;
+	PlateDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
+	Runtime->WorldObjectDefinitions.Add(PlateDefinition);
+	UGridActivationComponent* Activation = Runtime->FindComponentByClass<UGridActivationComponent>();
+	if (!TestNotNull(TEXT("Pressure plate activation component exists"), Activation))
+	{
+		return false;
+	}
+	Activation->Initialize(Runtime);
+	Activation->RebuildIndexes();
+	Activation->RefreshAllPressurePlates();
+	TestFalse(TEXT("The weight plate starts below its threshold"), Activation->GetActiveObjectIds().Contains(WeightPlate.InstanceId));
 	TestTrue(TEXT("Clicking the plate at exactly 200 cm is handled"), Controller->HandlePhysicalThrowAimingHit(PlateHit));
 	TestEqual(TEXT("The close hotbar click places exactly one Stone in the targeted cell"), Runtime->GetWorldItemWeightAtCell(2, 1),
 		PreviousWeight + Definition->Weight);
+	TestTrue(TEXT("WorldDrop immediately refreshes and activates the weight plate without a tick"),
+		Activation->GetActiveObjectIds().Contains(WeightPlate.InstanceId));
 	TestEqual(TEXT("Placement consumes exactly one inventory unit"), CountSource(), 2);
 	TestEqual(TEXT("The close hotbar click never spawns a projectile"), CountProjectiles(), 0);
 	TestFalse(TEXT("Successful placement exits aiming"), Controller->IsPhysicalThrowAimingActive());

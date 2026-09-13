@@ -103,7 +103,7 @@ bool FGridTD027PartyItemTransferCursorFacadeContractTest::RunTest(const FString&
 	TestEqual(TEXT("The inventory component owns the cursor item as Cursor"), CursorItem.OwnerType, EGridItemOwnerType::Cursor);
 
 	TestFalse(TEXT("Dropping without a runtime level is rejected"), Party->TryDropCursorItemAtCell(0, 0, EGridEdge::None, FVector::ZeroVector));
-	TestFalse(TEXT("Throwing without a runtime level is rejected"), Party->TryThrowOneCursorItem(FVector::ForwardVector, EGridItemThrowMode::Throw));
+	TestFalse(TEXT("Throwing without a runtime level is rejected"), Party->TryThrowOneCursorItem(FVector::ForwardVector));
 	TestTrue(TEXT("Rejected world transfers leave the cursor populated"), Party->GetCursorItem(CursorItem));
 	TestEqual(TEXT("Rejected world transfers do not consume the stack"), CursorItem.Quantity, 2);
 	TestEqual(TEXT("Rejected world transfers preserve the runtime identity"), CursorItem.RuntimeObjectId, SourceItem.RuntimeObjectId);

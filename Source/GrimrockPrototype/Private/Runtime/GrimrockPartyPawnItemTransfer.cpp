@@ -314,7 +314,7 @@ bool AGrimrockPartyPawn::TryDropCursorItemAtCell(int32 CellX, int32 CellY, EGrid
 	return true;
 }
 
-bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection, EGridItemThrowMode ThrowMode)
+bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection)
 {
 	if (!PartyInventoryComponent || !LevelRuntimeActor || !PartyInventoryComponent->HasCursorItem())
 	{
@@ -336,10 +336,7 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection, E
 	{
 		ThrowDirection = Camera ? Camera->GetForwardVector() : GetActorForwardVector();
 	}
-	const bool bShortToss = ThrowMode == EGridItemThrowMode::ShortToss;
-	const float SpeedScale = bShortToss ? FMath::Max(0.0f, ShortThrowSpeedScale) : 1.0f;
-	const float ArcScale = bShortToss ? FMath::Max(0.0f, ShortThrowArcScale) : 1.0f;
-	ThrowDirection = (ThrowDirection + FVector::UpVector * FMath::Max(0.0f, ItemDefinition->ThrowArc) * ArcScale).GetSafeNormal();
+	ThrowDirection = (ThrowDirection + FVector::UpVector * FMath::Max(0.0f, ItemDefinition->ThrowArc)).GetSafeNormal();
 
 	FGridItemInstance ThrownItem;
 	if (!BuildSingleItemInstanceFromCursor(ThrownItem))
@@ -354,7 +351,7 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection, E
 	ThrownItem.EquipmentSlot = EGridEquipmentSlot::None;
 
 	const FVector StartLocation = (Camera ? Camera->GetComponentLocation() : GetActorLocation()) + ThrowDirection * 60.0f;
-	const FVector LaunchVelocity = ThrowDirection * FMath::Max(0.0f, ItemDefinition->ThrowSpeed) * StrengthSpeedScale * SpeedScale;
+	const FVector LaunchVelocity = ThrowDirection * FMath::Max(0.0f, ItemDefinition->ThrowSpeed) * StrengthSpeedScale;
 	if (!LevelRuntimeActor->TrySpawnThrownItemProjectile(ThrownItem, StartLocation, LaunchVelocity, CurrentCellX, CurrentCellY))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Throw Failed Item=%s Quantity=%d Reason=ProjectileSpawnFailed"), *CursorItem.ItemDefinitionId.ToString(),
@@ -365,8 +362,8 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection, E
 	ConsumeOneCursorItemAfterSuccessfulAction();
 
 	UE_LOG(LogTemp, Log,
-		TEXT("GridInventory Throw Item=%s RuntimeId=%s Mode=%s Strength=%d Weight=%.2f SpeedScale=%.3f CursorQuantityBefore=%d CursorQuantityAfter=%d Result=true"),
-		*ThrownItem.ItemDefinitionId.ToString(), *ThrownItem.RuntimeObjectId.ToString(), bShortToss ? TEXT("ShortToss") : TEXT("Throw"), Strength,
+		TEXT("GridInventory Throw Item=%s RuntimeId=%s Strength=%d Weight=%.2f SpeedScale=%.3f CursorQuantityBefore=%d CursorQuantityAfter=%d Result=true"),
+		*ThrownItem.ItemDefinitionId.ToString(), *ThrownItem.RuntimeObjectId.ToString(), Strength,
 		ItemDefinition->Weight, StrengthSpeedScale, CursorItem.Quantity, FMath::Max(0, CursorItem.Quantity - 1));
 	PartyInventoryComponent->LogInventoryOwnershipDiagnostics();
 	return true;

@@ -214,29 +214,11 @@ Il ne doit jamais intercepter les clics souris.
 
 ## 4. Détection souris
 
-La détection utilise un `LineTraceMultiByChannel` sur `ECC_Visibility`.
+La détection utilise le premier impact bloquant d’un `LineTraceSingleByChannel` sur `ECC_Visibility`, après déprojection de la souris. Le pawn contrôlé est ignoré. Aucun parcours ne saute un mur ou un barreau touché pour chercher un acteur interactif derrière.
 
-Le multi-trace est volontaire : un simple premier hit ne suffit pas, car un mur, une porte, un sol, un ISM ou un support peut être touché avant le vrai composant interactif.
+Pour un item libre, le runtime compare la distance horizontale à `WorldItemPickupReach` (200 cm par défaut). Pour le ciblage d’un item tenu ou réservé par la hotbar, un point à portée conduit à une pose directe ; au-delà, le contrôleur évalue le lancer normal. Une pose refusée ne crée jamais de projectile. Les autres acteurs utilisent leurs contrôles de distance et `CanInteract`.
 
-La logique est :
-
-```text
-1. Déprojeter la position souris en rayon monde.
-2. Tracer en ECC_Visibility.
-3. Parcourir les hits du plus proche au plus loin.
-4. Trouver le premier acteur qui implémente UGridInteractableInterface.
-5. Vérifier la distance.
-6. Vérifier CanInteract.
-7. Afficher le curseur ou exécuter Interact.
-```
-
-Le hover utilise `CanInteract` avant d’afficher un curseur interactif. Cela évite d’afficher une main alors que le clic serait refusé.
-
-Hors portée :
-
-```text
-EGridInteractionCursor::Forbidden
-```
+Le hover applique les mêmes contrôles que le clic avant d’afficher son curseur. Une cible monde ordinaire hors portée garde le curseur neutre.
 
 ## 4.1 Priorité finale du clic gauche
 
@@ -265,8 +247,8 @@ Ordre de routage :
 ```text
 1. Wall lock sous souris
 2. Réceptacle / support sous souris
-3. Dépôt monde valide
-4. Lancer, si l'item est throwable et que le contexte le permet
+3. À portée de main : dépôt monde ou refus, jamais de projectile
+4. Au-delà de la portée de main : lancer, si les conditions physiques le permettent
 5. Échec explicite avec log de refus
 ```
 
@@ -276,11 +258,11 @@ La cible face au groupe reste importante pour le menu contextuel d'inventaire, m
 
 Lorsque le joueur tient un item au curseur, le hover ne passe pas par le même chemin que le hover monde classique. `ResolveCursorItemHoverCursor()` applique la priorité suivante :
 
-1. Wall lock accessible : curseur d'utilisation ou de verrouillage selon l'état et la compatibilité.
-2. Réceptacle compatible : curseur `Use`.
-3. Dépôt monde valide : curseur de dépôt ou curseur par défaut d'action item selon le mapping courant.
-4. Lancer possible avec item throwable : feedback de lancer si aucune cible prioritaire ne consomme l'action.
-5. Cible détectée mais action impossible : curseur `Forbidden`.
+1. Wall lock accessible : `PlaceItem` ; sinon `CannotPlaceItem`.
+2. Réceptacle compatible et accessible : `PlaceItem`.
+3. Dépôt monde valide à portée de main : `PlaceItem` → `Cursor_PlaceItem`.
+4. Cible au-delà de la portée de main et lancer possible : `AimThrow` → `Cursor_Aim`.
+5. Cible détectée mais action impossible : `CannotPlaceItem`, sans lancer de secours à portée de main.
 6. Aucun hit monde : curseur neutre, sans interaction promise.
 
 Le hover est une indication, pas une réservation d'action. Le clic refait la validation avant toute mutation.
@@ -294,6 +276,8 @@ Les trois niveaux doivent rester séparés :
 | Hover | Détecter et afficher un feedback honnête via `SetGridInteractionCursor()` | Non |
 | Clic | Résoudre l'intention et choisir le chemin de routage via `ResolveLeftMouseInteraction()` | Non directement |
 | Exécution gameplay | Appeler `Interact`, `TryInteractAtEdge`, les services de transfert, wall lock, drop ou throw | Oui, après validation |
+
+Le ciblage hotbar utilise les noms historiques `BeginPhysicalInventoryThrowAiming`, `UpdatePhysicalThrowAiming` et `HandlePhysicalThrowAimingClick`. Son item reste dans l’inventaire avant le clic. Le hover et le clic partagent `ResolvePhysicalThrowTargetCursor` : pose à portée de main, lancer au-delà.
 
 Cette séparation rend le système prévisible : le hover explique ce qui semble possible, le clic choisit une intention unique, puis le runtime ou le service spécialisé applique les règles définitives.
 
@@ -404,7 +388,9 @@ Le pickup :
 - détruit l’acteur ;
 - retire l’entrée runtime correspondante.
 
-Pour un item libre au sol (`Edge=None`), `CanPartyPickupItemEntry()` utilise une portée horizontale dédiée de **210 cm** (`WorldItemPickupReach`). L'item peut se trouver dans la cellule du groupe ou dans une cellule cardinale immédiatement voisine, quelle que soit l'orientation du groupe, à condition que `CanMove()` autorise le passage entre les deux cellules. Les items posés sur une arête conservent leurs règles directionnelles existantes.
+La portée de main canonique est `AGridLevelRuntimeActor::WorldItemPickupReach`, **200 cm** par défaut. Son nom sérialisé est conservé pour compatibilité Blueprint. Le pickup d’un item libre, la pose depuis le CursorItem ou la hotbar et la décision `PlaceItem` / `AimThrow` utilisent ce même paramètre. La distance est horizontale, entre le PartyPawn et la position physique de l’item ou le point d’impact ciblé ; elle prime sur l’adjacence logique des cellules. `CanMove()` n’est pas consulté pour un item libre visible à portée. Les items d’arête et les réceptacles conservent leurs règles spécifiques.
+
+Le premier impact bloquant du trace `Visibility` possède l’obstacle : un mur plein ou un barreau touché intercepte le rayon ; un espace entre les barreaux laisse atteindre la cible. Une porte fermée ne constitue donc pas, à elle seule, un veto logique. Le projectile conserve sa propre collision physique : il ne traverse la grille que si sa collision passe réellement entre les barreaux.
 
 ### 5.5 AGridReceptacleActor
 

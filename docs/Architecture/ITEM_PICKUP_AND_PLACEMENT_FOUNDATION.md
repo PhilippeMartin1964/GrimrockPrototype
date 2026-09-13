@@ -59,10 +59,10 @@ La portée physique du clic ne suffit pas. `CanPartyPickupItemEntry()` impose au
 
 ![Accessibilité d'un item placé](../Images/item_10_1_pickup_accessibility.svg)
 
-- item libre au sol, `Edge=None` : portée horizontale `WorldItemPickupReach`, par défaut **210 cm** ;
-- un item libre est accessible depuis la cellule du groupe ou depuis une cellule cardinale immédiatement voisine, sans dépendre de l'orientation du groupe ;
-- pour une cellule voisine, le bord séparant les deux cellules doit être traversable selon `CanMove()` : mur ou porte bloquante interdit donc le ramassage ;
-- une cellule diagonale ou plus éloignée est refusée même si un mesh atypique entrait dans le rayon ;
+- item libre au sol, `Edge=None` : distance horizontale physique <= `WorldItemPickupReach`, **200 cm** par défaut ;
+- aucune cellule cardinale ni orientation du groupe n’est imposée à un item libre visible à portée ;
+- le premier impact du trace `Visibility` détermine l’obstacle ; `CanMove()` n’intervient pas ;
+- une cible diagonale ou dans une autre cellule reste accessible si sa distance physique respecte la portée ;
 - item sur une arête de la cellule du groupe : l'arête doit être celle que le groupe regarde ;
 - item dans la cellule située devant : il doit être sur l'arête opposée à la direction regardée, donc face au groupe ;
 - toute autre cellule ou arête est refusée.
@@ -83,7 +83,7 @@ Les items contenus dans un réceptacle délèguent leur interaction au réceptac
 6. `InteractWithHit()` ;
 7. validation de grille et transfert.
 
-Un mur, une porte fermée ou un autre composant bloquant `Visibility` masque donc l'item. Aucun second rayon ni repli implicite ne cherche une cible derrière l'obstacle.
+Un composant qui bloque effectivement le rayon `Visibility` masque l’item. Le rayon peut passer entre les barreaux d’une grille fermée. Aucun second rayon ni repli ne cherche une cible derrière un impact bloquant.
 
 ## 6. Destination d'un ramassage
 
@@ -131,6 +131,10 @@ Les tags métier d'un item appartiennent à `UGridItemDefinitionAsset.ItemTags`.
 Le placement conserve éventuellement un `Tag` local ; il ne recopie pas les tags métier dans une définition world-object compagnon. La palette valide directement `DefaultItemDefinition` pour les collectibles.
 
 
+La portée de main canonique est `AGridLevelRuntimeActor::WorldItemPickupReach`, **200 cm** par défaut. Son nom sérialisé est conservé pour compatibilité Blueprint. Le pickup d’un item libre, la pose depuis le CursorItem ou la hotbar et la décision `PlaceItem` / `AimThrow` utilisent ce même paramètre. La distance est horizontale, entre le PartyPawn et la position physique de l’item ou le point d’impact ciblé ; elle prime sur l’adjacence logique des cellules. `CanMove()` n’est pas consulté pour un item libre visible à portée. Les items d’arête et les réceptacles conservent leurs règles spécifiques.
+
+Le premier impact bloquant du trace `Visibility` possède l’obstacle : un mur plein ou un barreau touché intercepte le rayon ; un espace entre les barreaux laisse atteindre la cible. Une porte fermée ne constitue donc pas, à elle seule, un veto logique. Le projectile conserve sa propre collision physique : il ne traverse la grille que si sa collision passe réellement entre les barreaux.
+
 ## 7. Curseur et transferts
 
 `UGridPartyInventoryComponent` est la source de vérité du curseur avec `bHasCursorItem` et `CursorItem`. Un item pris depuis une case d'inventaire ou d'équipement change de propriétaire logique pour `Cursor`.
@@ -156,7 +160,7 @@ Le placement conserve éventuellement un `Tag` local ; il ne recopie pas les tag
 - `CannotPlaceItem` : curseur occupé sans cible directe valide, hors portée ou refusé ;
 - `Locked` : valeur du contrat d'interface, mais non produite par le chemin générique des items audité ici.
 
-Quand le curseur est occupé, un réceptacle directement touché garde la priorité. Si le premier hit `Visibility` n'est pas un réceptacle, le contrôleur tente un dépôt libre sur la cellule résolue depuis le hit. Il n'existe aucun fallback à travers un mur ou une porte fermée.
+Quand le curseur est occupé, un réceptacle directement touché garde la priorité. Si le premier hit `Visibility` n'est pas un réceptacle, le contrôleur tente un dépôt libre sur la cellule résolue depuis le hit. Aucun fallback ne traverse un impact bloquant ; un rayon passant entre les barreaux peut néanmoins atteindre une cible derrière une grille fermée.
 
 ### Dépôt libre dans le monde
 
@@ -173,7 +177,7 @@ Un item déposé est enregistré dans `SpawnedItemActors` et `SpawnedItemEntries
 
 `FGridLevelRuntimeState::Items` capture son `RuntimeObjectId`, son `ItemDefinitionId`, sa quantité, sa cellule, son arête et sa transform. Le dépôt est donc restauré lors d'une transition de niveau sans créer de placement dans le DataAsset.
 
-Cette première version accepte les hits qui se résolvent sur la cellule du groupe ou sur la cellule directement devant lui. Le placement utilise le centre de la cellule avec un décalage horizontal limité dérivé du point d'impact.
+La pose accepte une cellule jouable résolue depuis un hit `Visibility` à portée de main. Le décalage horizontal exact du point d’impact est conservé, sans recentrage qui pourrait repousser la destination hors de portée.
 
 ### Lancer d'item
 
@@ -195,9 +199,9 @@ Le clic gauche est contextuel lorsqu'un item est présent dans le curseur :
 
 1. Si la cible est un réceptacle compatible et accessible, l'item est placé dans le réceptacle.
 2. Sinon, si la cible est une zone proche compatible, l'item est posé librement dans le monde.
-3. Sinon, si l'item est lançable (`bThrowable=true`), une unité de la pile est projetée :
-   - cible à moins de 200 cm : jet court ;
-   - cible à 200 cm ou plus : lancer.
+3. La frontière physique est inclusive et commune au curseur et à la hotbar :
+   - cible à distance horizontale <= portée de main : pose directe ; un refus conserve la source, sans projectile ;
+   - cible à distance horizontale > portée de main : lancer normal, sous réserve des conditions physiques de lancer.
 4. Si l'item n'est pas lançable et ne peut pas être posé, l'action échoue sans modifier le curseur.
 
 Le clic gauche sans item en curseur conserve le comportement d'interaction normal : boutons, leviers, items monde, panneaux, torches, etc.
@@ -218,17 +222,13 @@ Le système ne dépose pas toute la pile par défaut. Un dépôt complet de pile
 
 Le curseur ne doit pas révéler les objets interactifs situés à plusieurs cellules.
 
-Les états d'interaction (`Use`, `Take`, `Read`, `PlaceItem`, `CannotPlaceItem`, `Forbidden`) sont réservés aux interactions immédiates :
-
-- cellule actuelle ;
-- cellule devant le groupe ;
-- edge adjacent faisant face au groupe.
+Pour les items libres, `Take` et `PlaceItem` suivent la portée physique de main. Les interactions d’arête et les autres acteurs conservent leurs contrôles spécifiques de distance et d’accessibilité.
 
 Un objet visible mais trop éloigné ne doit pas afficher un curseur `Forbidden`. Le curseur reste neutre.
 
 Lorsqu'un item lançable est porté par le curseur, un état de visée (`AimThrow`) peut être affiché pour indiquer que l'objet peut être lancé vers la cible visible. Cet état ne révèle pas une interaction distante ; il indique seulement la possibilité de lancer l'objet tenu.
 
-Le Blueprint `WBP_GridMouseCursor` doit associer `AimThrow` à une icône de visée. Tant que cette branche n'est pas ajoutée à `SetCursorState`, son comportement dépend de la sortie par défaut du switch Blueprint.
+Le Blueprint `WBP_GridMouseCursor` associe `PlaceItem` à `Cursor_PlaceItem` et `AimThrow` à `Cursor_Aim`.
 
 Le clic droit reste exclusivement réservé au free look / mouvement de tête du groupe.
 
@@ -287,7 +287,7 @@ Les compétences restent data-driven via `FGridCombatActionDefinition::Requireme
 
 Le défaut `Tumble` utilise 180°/s au lieu de l'ancien spin générique à 1080°/s. Le shuriken doit être authoré en `Spin` pour conserver sa rotation rapide.
 
-Le jet court garde une vitesse réduite et un arc plus marqué. Dans tous les cas une seule unité est transférée, puis l'impact/expiration utilise le dépôt monde standard afin que l'objet redevienne ramassable, empilable, persistant et compatible avec les PressurePlates par poids.
+Chaque lancer utilise la vitesse et l’arc normaux de la définition d’item, avec le facteur de Force. Une seule unité est transférée, puis l’impact ou l’expiration utilise le dépôt monde standard afin que l’objet redevienne ramassable, persistant et compatible avec les PressurePlates par poids.
 
 ### PressurePlates et poids des items
 
@@ -358,10 +358,10 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 ## 12. Tests manuels PIE
 
 1. Ramasser un item central depuis sa cellule : il rejoint l'inventaire sélectionné.
-2. Depuis une cellule cardinale adjacente, ramasser un item libre situé à environ 200 cm : il est accessible jusqu'à `WorldItemPickupReach`; vérifier qu'une diagonale, une cellule plus éloignée, un mur ou une porte fermée le rendent inaccessible.
+2. Vérifier le pickup à 200 cm exactement, puis son refus au-delà. Une cible diagonale visible à portée reste accessible.
 3. Dans la cellule du groupe, vérifier qu'un item d'arête est accessible uniquement en regardant cette arête.
 4. Dans la cellule devant le groupe, vérifier que seule l'arête faisant face au groupe est accessible.
-5. Placer l'item derrière un mur, une porte fermée puis un autre bloqueur `Visibility` : le premier impact empêche le ramassage.
+5. Vérifier le pickup derrière une grille fermée : barreau touché = cible masquée ; espace entre barreaux = cible accessible à portée. Un mur plein intercepte toujours le rayon.
 6. Ramasser plusieurs exemplaires d'un item stackable : les piles existantes sont complétées jusqu'à `MaxStackSize`, puis une nouvelle pile est créée.
 7. Avec une pile de trois unités, CTRL + clic puis CTRL + drag : le curseur reçoit une unité et la pile source en conserve deux.
 8. Avec une pile dans le curseur, déposer sur une cellule valide : une seule unité apparaît et la pile du curseur est décrémentée.
@@ -382,8 +382,8 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 23. Maintenir le clic droit et déplacer la souris : vérifier le free look et l'absence de projectile.
 24. Avec une pierre dans le curseur, cliquer gauche sur un réceptacle compatible proche : vérifier que le réceptacle reste prioritaire.
 25. Cliquer gauche sur une cellule valide proche : vérifier un dépôt libre sans projectile.
-26. Configurer une pierre avec `bThrowable=true`, placer une pile de trois dans le curseur et cliquer gauche sur une cible non posable à moins de 200 cm : vérifier un jet court quantité 1 et un curseur quantité 2.
-27. Cliquer gauche sur une cible à 200 cm ou plus : vérifier un lancer normal quantité 1 et un curseur décrémenté d'une unité.
+26. Avec une pile de trois pierres, viser une cible non posable à <= 200 cm : vérifier le refus, zéro projectile et une quantité inchangée.
+27. À 200 cm, vérifier une pose directe. À 200,01 cm et 201 cm, vérifier un lancer normal d’une unité.
 28. Lancer la dernière unité d'une pile : vérifier que le curseur est vidé seulement après la création du projectile.
 29. Essayer de lancer un item avec `bThrowable=false` : vérifier le feedback et l'absence de mutation du curseur.
 30. Ramasser une pierre après son impact : vérifier qu'elle rejoint une pile compatible.
@@ -396,7 +396,7 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 ## 13. Limites actuelles
 
 - Le ramassage monde alimente directement l'inventaire, pas le curseur.
-- Le dépôt libre est limité à la cellule courante ou directement devant le groupe.
+- Le dépôt libre exige une cellule jouable et un point visible à portée de main, sans contrainte d’adjacence logique.
 - Le système ne simule pas encore une physique réaliste de contact avec la plaque. Un item compte pour le poids s'il est enregistré comme item runtime sur la cellule de la PressurePlate.
 - Le lancer ne gère pas encore les dégâts, les ennemis, la physique réaliste de rebond, les sons d'impact ou la charge de puissance.
 - Les compétences, la précision, les dégâts et les effets sur les ennemis ne sont pas encore implémentés.
@@ -416,7 +416,7 @@ Le lancer physique d'exploration reste distinct d'une attaque de jet de combat.
 
 Depuis l'équipement, le menu contextuel **Lancer** ouvre directement le mode de visée physique pour l'objet actuellement en MainHand. L'objet reste équipé tant que le joueur n'a pas confirmé une cible valide. Le curseur utilise l'état `AimThrow`; un clic gauche confirme, tandis que `Échap` ou le clic droit annule sans consommer ni déplacer l'objet.
 
-Depuis la barre `1–9,0`, le lancer utilitaire ne repose plus sur une action dynamique liée à la MainHand. Un objet physiquement lançable est glissé directement depuis l'inventaire et crée un binding stable `ThrowItem_<ItemDefinitionId>`. Ce raccourci lance une unité de cette définition depuis l'inventaire et utilise le même système de visée physique.
+Depuis la barre `1–9,0`, un objet lançable glissé depuis l’inventaire crée un binding stable `ThrowItem_<ItemDefinitionId>`. Ce raccourci réserve une unité sans la déplacer avant le clic : pose directe à portée de main, lancer normal au-delà. Les noms exposés de visée sont conservés pour stabilité de l’API Blueprint.
 
 La cible de visée est obtenue par le premier impact du trace `Visibility`. Un mur opaque intercepte donc la visée au lieu de permettre de sélectionner directement un point situé derrière lui. Au déclenchement, le projectile est créé sur le rayon caméra → cible, donc visuellement au centre exact de `Cursor_Aim`. Le point de spawn reste volontairement en avant de la caméra et, pour une cible très proche, avant le premier impact afin de ne jamais naître derrière un mur ou une porte. La trajectoire reste ensuite une vraie trajectoire de `AGridThrownItemActor` : Force, poids, `ThrowSpeed`, `ThrowArc` et gravité déterminent le déplacement réel.
 
@@ -425,4 +425,4 @@ La collision du projectile reste l'autorité physique. `UProjectileMovementCompo
 HOTBAR01.2.1 supprime l'ancien binding synthétique de lancer MainHand. En phase prototype, aucune compatibilité de sauvegarde n'est maintenue pour ce binding obsolète. Les chemins autoritaires sont désormais uniquement :
 
 - **MainHand → Lancer** pour lancer l'objet équipé ;
-- **Inventaire → `ThrowItem_<ItemDefinitionId>` → hotbar** pour un raccourci de projectile physique.
+- **Inventaire → `ThrowItem_<ItemDefinitionId>` → hotbar** pour poser à portée de main ou lancer au-delà.

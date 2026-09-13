@@ -35,6 +35,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
 	bool BeginPhysicalThrowAiming();
 
+	/** World item targeting: place within runtime hand reach, throw beyond it. Legacy Blueprint API name. */
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
 	bool BeginPhysicalInventoryThrowAiming(FName ItemDefinitionId);
 
@@ -52,10 +53,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction", meta = (ClampMin = "0.0"))
 	float MaxInteractionDistance = 300.f;
-
-	/** Cursor-held items are placed by hand at or below this horizontal distance, and thrown only beyond it. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
-	float ThrowDistanceThreshold = 200.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
 	float MaxThrowTargetDistance = 2000.f;
@@ -128,6 +125,7 @@ protected:
 
 	void HandleLeftMousePressed();
 	void HandleCancelCombatTargeting();
+	// Shared aiming lifecycle: inventory targets support placement; equipped MainHand targeting remains throw-only.
 	bool UpdatePhysicalThrowAiming();
 	bool HandlePhysicalThrowAimingClick();
 	bool HandlePhysicalThrowAimingHit(const FHitResult& HitResult);

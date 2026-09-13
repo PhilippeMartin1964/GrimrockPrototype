@@ -23,7 +23,7 @@ Les acteurs interactifs actuels sont `AGridButtonActor`, `AGridLeverActor`, `AGr
 
 `AGrimrockPlayerController` lie directement `LeftMouseButton` à `HandleLeftMousePressed()`. Le contrôleur active le curseur et un mode `GameAndUI` ; `PlayerTick()` recalcule le survol.
 
-La sélection suit un rayon obtenu par déprojection de la position de la souris sur `ECC_Visibility`. Seul le premier impact bloquant est considéré. Un mur, une porte fermée ou tout autre composant bloquant `Visibility` interdit donc la sélection d'un acteur situé derrière. Le système ne recherche pas en profondeur une autre cible valide pour le gameplay.
+La sélection suit un rayon obtenu par déprojection de la position de la souris sur `ECC_Visibility`. Seul le premier impact bloquant est considéré. Un composant effectivement touché et bloquant `Visibility` interdit la sélection derrière cet impact. Le rayon peut toutefois passer entre les barreaux d’une grille fermée. Le système ne recherche pas en profondeur une autre cible valide pour le gameplay.
 
 ![Trace de visibilité et premier obstacle bloquant](../Images/mouse_10_2_visibility_trace.svg)
 
@@ -72,7 +72,9 @@ Ces deux positions couvrent notamment les boutons, leviers, chaînes de porte et
 
 Les boutons, leviers et objets lisibles placés sur un bord font ensuite transiter l'action par `TryInteractAtEdge()`, afin de conserver l'activation et les liens runtime. Les items utilisent les règles propres à `CanPartyPickupItemEntry()` et au service de transfert.
 
-Pour un item libre au sol (`Edge=None`), le ramassage n'exige plus d'occuper exactement sa cellule. La portée horizontale dédiée est `AGridLevelRuntimeActor::WorldItemPickupReach`, **210 cm** par défaut. La cellule de l'item doit être celle du groupe ou une cellule cardinale immédiatement voisine accessible par `CanMove()`. Cette règle permet de prendre un objet centré dans la case voisine sans regarder au pied du groupe, tout en conservant les murs et portes fermées comme séparations.
+La portée de main canonique est `AGridLevelRuntimeActor::WorldItemPickupReach`, **200 cm** par défaut. Son nom sérialisé est conservé pour compatibilité Blueprint. Le pickup d’un item libre, la pose depuis le CursorItem ou la hotbar et la décision `PlaceItem` / `AimThrow` utilisent ce même paramètre. La distance est horizontale, entre le PartyPawn et la position physique de l’item ou le point d’impact ciblé ; elle prime sur l’adjacence logique des cellules. `CanMove()` n’est pas consulté pour un item libre visible à portée. Les items d’arête et les réceptacles conservent leurs règles spécifiques.
+
+Le premier impact bloquant du trace `Visibility` possède l’obstacle : un mur plein ou un barreau touché intercepte le rayon ; un espace entre les barreaux laisse atteindre la cible. Une porte fermée ne constitue donc pas, à elle seule, un veto logique. Le projectile conserve sa propre collision physique : il ne traverse la grille que si sa collision passe réellement entre les barreaux.
 
 ## 6. Acteurs et composants cliquables
 
@@ -133,7 +135,7 @@ Les actions de déplacement et de rotation du pawn ferment également le message
 ## 11. Validation manuelle
 
 - Cliquer un bouton et un levier de face, puis depuis un autre bord.
-- Vérifier qu'un mur ou une porte fermée bloque une cible placée derrière.
+- Vérifier qu’un mur plein ou un barreau touché bloque la cible ; viser entre les barreaux doit permettre d’atteindre une cible à portée.
 - Ramasser un item dans la cellule courante et sur le bord opposé de la cellule située devant.
 - Déposer un item uniquement en cliquant directement sur un réceptacle compatible.
 - Vérifier les curseurs hors de portée et sur un sous-composant refusé.
