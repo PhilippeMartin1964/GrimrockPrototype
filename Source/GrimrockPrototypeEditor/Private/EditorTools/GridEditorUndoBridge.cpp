@@ -5,7 +5,7 @@
 #include "Editor.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EngineUtils.h"
-#include "UObject/CoreUObjectDelegates.h"
+#include "UObject/UObjectGlobals.h"
 #include "UObject/Transactor.h"
 
 namespace
