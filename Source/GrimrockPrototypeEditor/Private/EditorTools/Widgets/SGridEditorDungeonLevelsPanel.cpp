@@ -114,15 +114,20 @@ TSharedRef<SWidget> SGridEditorDungeonLevelsPanel::BuildPanel()
 				CurrentEditorActor->bAutoPreparePIE ? FText::FromString(TEXT("On")) : FText::FromString(TEXT("Off")))
 		];
 
-	TSharedRef<SVerticalBox> ActionButtons = SNew(SVerticalBox);
+	TSharedRef<SHorizontalBox> ActionButtons = SNew(SHorizontalBox);
 
 	const auto AddActionButton = [&ActionButtons](TSharedRef<SWidget> Button)
 	{
 		ActionButtons->AddSlot()
-			.AutoHeight()
-			.Padding(0.f, 0.f, 0.f, 4.f)
+			.FillWidth(1.f)
+			.VAlign(VAlign_Fill)
+			.Padding(0.f, 0.f, 4.f, 0.f)
 			[
-				Button
+				SNew(SBox)
+					.HeightOverride(34.f)
+					[
+						Button
+					]
 			];
 	};
 
