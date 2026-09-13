@@ -432,6 +432,46 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 	return true;
 }
 
+bool AGrimrockPartyPawn::TryDropSelectedCharacterInventoryItemAtCell(FName ItemDefinitionId, int32 CellX, int32 CellY, const FVector& LocalOffset)
+{
+	if (!PartyInventoryComponent || !LevelRuntimeActor || HasCursorItem() || ItemDefinitionId.IsNone())
+	{
+		return false;
+	}
+	const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex();
+	if (!PartyInventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
+	{
+		return false;
+	}
+	const FGridCharacterInventoryState& Character = PartyInventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex];
+	const int32 SlotIndex = Character.InventorySlots.IndexOfByPredicate(
+		[ItemDefinitionId](const FGridInventorySlot& Slot)
+		{
+			return !Slot.IsEmpty() && Slot.Item.ItemDefinitionId == ItemDefinitionId;
+		});
+	if (SlotIndex == INDEX_NONE)
+	{
+		return false;
+	}
+	const FGridInventorySlot OriginalSlot = Character.InventorySlots[SlotIndex];
+	if (!PartyInventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SlotIndex, 1))
+	{
+		return false;
+	}
+
+	const bool bPlaced = TryDropCursorItemAtCell(CellX, CellY, EGridEdge::None, LocalOffset);
+	if (HasCursorItem())
+	{
+		// Restore the exact slot: the ordinary cursor-to-slot API swaps rather than merging split stacks.
+		FGridInventorySlot RestoredSlot = OriginalSlot;
+		RestoredSlot.Item.Quantity -= bPlaced ? 1 : 0;
+		PartyInventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].InventorySlots[SlotIndex] = RestoredSlot;
+		PartyInventoryComponent->ClearCursorItem();
+		PartyInventoryComponent->NotifyPartyInventoryChanged(CharacterIndex);
+	}
+	return bPlaced;
+}
+
 bool AGrimrockPartyPawn::TryThrowSelectedCharacterInventoryItem(FName ItemDefinitionId, const FVector& LaunchDirection)
 {
 	if (!PartyInventoryComponent || !LevelRuntimeActor || ItemDefinitionId.IsNone())

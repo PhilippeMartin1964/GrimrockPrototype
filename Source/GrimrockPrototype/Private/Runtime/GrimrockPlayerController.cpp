@@ -348,7 +348,7 @@ bool AGrimrockPlayerController::BeginPhysicalInventoryThrowAiming(FName ItemDefi
 	PhysicalThrowSourceRuntimeId = FGuid();
 	PhysicalThrowInventoryDefinitionId = ItemDefinitionId;
 	bPhysicalThrowAimingActive = true;
-	SetGridInteractionCursor(EGridInteractionCursor::AimThrow, TEXT("PhysicalInventoryThrowAimingBegin"));
+	UpdatePhysicalThrowAiming();
 	return true;
 }
 
@@ -389,16 +389,55 @@ bool AGrimrockPlayerController::UpdatePhysicalThrowAiming()
 
 	FHitResult HitResult;
 	const bool bHasTarget = TryGetWorldHitUnderCursor(HitResult);
-	const FVector StartLocation = PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : PartyPawn->GetActorLocation();
-	const FVector TargetOffset = bHasTarget ? HitResult.ImpactPoint - StartLocation : FVector::ZeroVector;
-	const float TargetDistance = TargetOffset.Size();
-	const bool bTargetValid = bHasTarget && !TargetOffset.IsNearlyZero() && (MaxThrowTargetDistance <= 0.f || TargetDistance <= MaxThrowTargetDistance);
-	SetGridInteractionCursor(bTargetValid ? EGridInteractionCursor::AimThrow : EGridInteractionCursor::CannotPlaceItem,
-		bTargetValid ? TEXT("PhysicalThrowAimingValidTarget") : TEXT("PhysicalThrowAimingInvalidTarget"));
+	const EGridInteractionCursor Cursor = bHasTarget ? ResolvePhysicalThrowTargetCursor(PartyPawn, HitResult) : EGridInteractionCursor::CannotPlaceItem;
+	SetGridInteractionCursor(Cursor, TEXT("HoverPhysicalItemTarget"));
 	return true;
 }
 
+bool AGrimrockPlayerController::IsWithinHandPlacementReach(const AGrimrockPartyPawn* PartyPawn, const FHitResult& HitResult) const
+{
+	return PartyPawn && FVector::DistSquared2D(PartyPawn->GetActorLocation(), HitResult.ImpactPoint) <= FMath::Square(FMath::Max(0.0f, ThrowDistanceThreshold));
+}
+
+EGridInteractionCursor AGrimrockPlayerController::ResolvePhysicalThrowTargetCursor(const AGrimrockPartyPawn* PartyPawn, const FHitResult& HitResult) const
+{
+	if (!PartyPawn || !HitResult.bBlockingHit)
+	{
+		return EGridInteractionCursor::CannotPlaceItem;
+	}
+	// Inventory hotbar targeting reserves its item until the click; it is not a cursor inventory transfer.
+	if (!PhysicalThrowInventoryDefinitionId.IsNone() && IsWithinHandPlacementReach(PartyPawn, HitResult))
+	{
+		int32 CellX = INDEX_NONE;
+		int32 CellY = INDEX_NONE;
+		FVector LocalOffset = FVector::ZeroVector;
+		return TryResolveWorldDropFromHit(HitResult, PartyPawn, CellX, CellY, LocalOffset) ? EGridInteractionCursor::PlaceItem
+																						   : EGridInteractionCursor::CannotPlaceItem;
+	}
+	const FVector StartLocation = PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : PartyPawn->GetActorLocation();
+	const FVector TargetOffset = HitResult.ImpactPoint - StartLocation;
+	return !TargetOffset.IsNearlyZero() && (MaxThrowTargetDistance <= 0.f || TargetOffset.Size() <= MaxThrowTargetDistance)
+		? EGridInteractionCursor::AimThrow
+		: EGridInteractionCursor::CannotPlaceItem;
+}
+
 bool AGrimrockPlayerController::HandlePhysicalThrowAimingClick()
+{
+	if (!bPhysicalThrowAimingActive)
+	{
+		return false;
+	}
+	FHitResult HitResult;
+	if (!TryGetWorldHitUnderCursor(HitResult))
+	{
+		ShowInteractionFeedback(FText::FromString(TEXT("Aucune cible de lancer sous le curseur.")));
+		return true;
+	}
+
+	return HandlePhysicalThrowAimingHit(HitResult);
+}
+
+bool AGrimrockPlayerController::HandlePhysicalThrowAimingHit(const FHitResult& HitResult)
 {
 	if (!bPhysicalThrowAimingActive)
 	{
@@ -422,10 +461,24 @@ bool AGrimrockPlayerController::HandlePhysicalThrowAimingClick()
 		return true;
 	}
 
-	FHitResult HitResult;
-	if (!TryGetWorldHitUnderCursor(HitResult))
+	const EGridInteractionCursor TargetCursor = ResolvePhysicalThrowTargetCursor(PartyPawn, HitResult);
+	if (TargetCursor != EGridInteractionCursor::AimThrow)
 	{
-		ShowInteractionFeedback(FText::FromString(TEXT("Aucune cible de lancer sous le curseur.")));
+		int32 CellX = INDEX_NONE;
+		int32 CellY = INDEX_NONE;
+		FVector LocalOffset = FVector::ZeroVector;
+		if (TargetCursor == EGridInteractionCursor::PlaceItem && TryResolveWorldDropFromHit(HitResult, PartyPawn, CellX, CellY, LocalOffset) &&
+			PartyPawn->TryDropSelectedCharacterInventoryItemAtCell(PhysicalThrowInventoryDefinitionId, CellX, CellY, LocalOffset))
+		{
+			CancelPhysicalThrowAiming();
+			PartyPawn->RefreshCombatActionPanelWidget();
+		}
+		else
+		{
+			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("PhysicalItemPlacementRejected"));
+			ShowInteractionFeedback(FText::FromString(TEXT("Pose impossible.")));
+		}
+		// A near target must never fall through to a projectile, even if placement fails.
 		return true;
 	}
 
@@ -680,9 +733,7 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
 			return Resolution;
 		}
 
-		const float HandPlacementReach = FMath::Max(0.0f, ThrowDistanceThreshold);
-		const float HandPlacementDistanceSquared = FVector::DistSquared2D(Resolution.PartyPawn->GetActorLocation(), Resolution.HitResult.ImpactPoint);
-		if (HandPlacementDistanceSquared <= FMath::Square(HandPlacementReach))
+		if (IsWithinHandPlacementReach(Resolution.PartyPawn, Resolution.HitResult))
 		{
 			if (TryResolveWorldDropFromHit(
 					Resolution.HitResult, Resolution.PartyPawn, Resolution.DropCellX, Resolution.DropCellY, Resolution.DropLocalOffset))
@@ -1500,8 +1551,8 @@ bool AGrimrockPlayerController::TryResolveWorldDropFromHit(
 
 	const FVector CellCenter = RuntimeActor->GetCellCenterWorld(OutCellX, OutCellY, 12.f);
 	const FVector RawOffset = HitResult.ImpactPoint - CellCenter;
-	const float MaxOffset = CellSize * 0.35f;
-	OutLocalOffset = FVector(FMath::Clamp(RawOffset.X, -MaxOffset, MaxOffset), FMath::Clamp(RawOffset.Y, -MaxOffset, MaxOffset), 0.f);
+	// Preserve the visible target: clamping towards the cell centre can move a <= 200 cm hit out of hand reach.
+	OutLocalOffset = FVector(RawOffset.X, RawOffset.Y, 0.f);
 	return true;
 }
 

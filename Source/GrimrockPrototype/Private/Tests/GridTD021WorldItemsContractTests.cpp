@@ -12,6 +12,9 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/GrimrockPlayerController.h"
+#include "Runtime/GridPressurePlateActor.h"
+#include "Runtime/GridThrownItemActor.h"
 
 namespace
 {
@@ -255,6 +258,106 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Resolved impact X is stable"), ResolvedX, 2);
 	TestEqual(TEXT("Resolved impact Y is stable"), ResolvedY, 0);
 	TestTrue(TEXT("Resolved impact local offset is preserved inside the drop clamp"), LocalOffset.Equals(FVector(30.0f, -25.0f, 0.0f), KINDA_SMALL_NUMBER));
+
+	// The hotbar uses physical inventory aiming, bypassing the ordinary cursor-item resolver.
+	UClass* ControllerClass = LoadClass<AGrimrockPlayerController>(
+		nullptr, TEXT("/Game/GrimrockPrototype/Blueprints/Runtime/BP_GrimrockPlayerController.BP_GrimrockPlayerController_C"));
+	TestNotNull(TEXT("The shipped player-controller Blueprint loads"), ControllerClass);
+	if (!ControllerClass)
+	{
+		return false;
+	}
+	TestEqual(TEXT("The Blueprint has no stale serialized hand-placement threshold"),
+		ControllerClass->GetDefaultObject<AGrimrockPlayerController>()->ThrowDistanceThreshold, 200.0f);
+	AGrimrockPlayerController* Controller = TestWorld.World->SpawnActor<AGrimrockPlayerController>(ControllerClass);
+	if (!TestNotNull(TEXT("The hotbar controller is created"), Controller))
+	{
+		return false;
+	}
+	Controller->Possess(Party);
+	Definition->bThrowable = true;
+	Definition->Weight = 0.5f;
+	Definition->bStackable = true;
+	Definition->MaxStackSize = 99;
+	Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { Character };
+	FGridItemInstance HotbarStack = WorldItem;
+	HotbarStack.RuntimeObjectId = FGuid::NewGuid();
+	HotbarStack.Weight = Definition->Weight;
+	HotbarStack.Quantity = 3;
+	TestTrue(TEXT("The hotbar source stack is stored in inventory"), Party->PartyInventoryComponent->AddItemToCharacterInventory(0, HotbarStack));
+	auto CountSource = [Party, Definition]()
+	{
+		return Party->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(0, Definition->ItemDefinitionId);
+	};
+	auto CountProjectiles = [&TestWorld]()
+	{
+		int32 Count = 0;
+		for (TActorIterator<AGridThrownItemActor> It(TestWorld.World); It; ++It)
+		{
+			Count += !It->IsActorBeingDestroyed() ? 1 : 0;
+		}
+		return Count;
+	};
+	TestTrue(TEXT("The same aiming entry point as a numbered hotbar slot accepts the Stone"),
+		Party->BeginSelectedCharacterInventoryItemThrowAiming(Definition->ItemDefinitionId));
+	TestEqual(TEXT("Aiming does not consume the inventory stack"), CountSource(), 3);
+	TestFalse(TEXT("Hotbar aiming does not put an inventory instance on the ordinary cursor"), Party->HasCursorItem());
+
+	AGridPressurePlateActor* Plate = TestWorld.World->SpawnActor<AGridPressurePlateActor>();
+	FHitResult PlateHit(Plate, nullptr, FVector::ZeroVector, FVector::UpVector);
+	PlateHit.bBlockingHit = true;
+	LevelAsset->GetCellMutable(1, 1).EastWall = EGridWallType::Solid;
+	for (const float Distance : { 199.0f, 200.0f, 200.01f, 201.0f })
+	{
+		PlateHit.ImpactPoint = Party->GetActorLocation() + FVector(Distance, 0.0f, -Party->EyeHeight);
+		TestEqual(FString::Printf(TEXT("Hotbar Visibility hit at %.2f cm selects the distance-based cursor despite a blocked grid edge"), Distance),
+			Controller->ResolvePhysicalThrowTargetCursor(Party, PlateHit),
+			Distance <= 200.0f ? EGridInteractionCursor::PlaceItem : EGridInteractionCursor::AimThrow);
+	}
+	PlateHit.ImpactPoint = Party->GetActorLocation() + FVector(140.0f, 140.0f, -Party->EyeHeight);
+	TestEqual(TEXT("Diagonal horizontal distance below 200 cm also selects PlaceItem"), Controller->ResolvePhysicalThrowTargetCursor(Party, PlateHit),
+		EGridInteractionCursor::PlaceItem);
+
+	PlateHit.ImpactPoint = Runtime->GetCellCenterWorld(2, 1, 0.0f);
+	const float PreviousWeight = Runtime->GetWorldItemWeightAtCell(2, 1);
+	TestTrue(TEXT("Clicking the plate at exactly 200 cm is handled"), Controller->HandlePhysicalThrowAimingHit(PlateHit));
+	TestEqual(TEXT("The close hotbar click places exactly one Stone in the targeted cell"), Runtime->GetWorldItemWeightAtCell(2, 1),
+		PreviousWeight + Definition->Weight);
+	TestEqual(TEXT("Placement consumes exactly one inventory unit"), CountSource(), 2);
+	TestEqual(TEXT("The close hotbar click never spawns a projectile"), CountProjectiles(), 0);
+	TestFalse(TEXT("Successful placement exits aiming"), Controller->IsPhysicalThrowAimingActive());
+	TestFalse(TEXT("Successful placement leaves no temporary cursor item"), Party->HasCursorItem());
+
+	TestFalse(TEXT("Failed physical placement restores the original source slot"),
+		Party->TryDropSelectedCharacterInventoryItemAtCell(Definition->ItemDefinitionId, -1, -1, FVector::ZeroVector));
+	TestEqual(TEXT("Failed placement preserves the inventory quantity"), CountSource(), 2);
+	TestEqual(TEXT("Failed placement preserves the source stack identity and slot"),
+		Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.RuntimeObjectId, HotbarStack.RuntimeObjectId);
+	TestFalse(TEXT("Failed placement leaves no temporary cursor item"), Party->HasCursorItem());
+
+	TestTrue(TEXT("The remaining hotbar stack can be targeted again"), Party->BeginSelectedCharacterInventoryItemThrowAiming(Definition->ItemDefinitionId));
+	LevelAsset->GetCellMutable(2, 1).bBlocksOccupancy = true;
+	Controller->HandlePhysicalThrowAimingHit(PlateHit);
+	TestEqual(TEXT("An invalid near cell never falls back to throwing"), CountProjectiles(), 0);
+	TestEqual(TEXT("An invalid near click preserves the source"), CountSource(), 2);
+	LevelAsset->GetCellMutable(2, 1).bBlocksOccupancy = false;
+	PlateHit.ImpactPoint.X += 1.0f;
+	TestTrue(TEXT("The 201 cm hotbar click is handled"), Controller->HandlePhysicalThrowAimingHit(PlateHit));
+	TestEqual(TEXT("The 201 cm hotbar click creates a projectile"), CountProjectiles(), 1);
+	TestEqual(TEXT("Throwing consumes exactly one inventory unit"), CountSource(), 1);
+	TestFalse(TEXT("Successful throwing exits aiming"), Controller->IsPhysicalThrowAimingActive());
+
+	TestTrue(TEXT("The last unit can be aimed at a cell corner"), Party->BeginSelectedCharacterInventoryItemThrowAiming(Definition->ItemDefinitionId));
+	PlateHit.ImpactPoint = Party->GetActorLocation() + FVector(101.0f, 172.0f, -Party->EyeHeight);
+	TestEqual(
+		TEXT("A visible corner at 199.56 cm is placeable"), Controller->ResolvePhysicalThrowTargetCursor(Party, PlateHit), EGridInteractionCursor::PlaceItem);
+	const float PreviousCornerWeight = Runtime->GetWorldItemWeightAtCell(2, 2);
+	Controller->HandlePhysicalThrowAimingHit(PlateHit);
+	TestEqual(TEXT("Placement preserves the close impact instead of clamping it out of reach"), Runtime->GetWorldItemWeightAtCell(2, 2),
+		PreviousCornerWeight + Definition->Weight);
+	TestEqual(TEXT("Corner placement consumes the last unit"), CountSource(), 0);
+	TestEqual(TEXT("Corner placement creates no additional projectile"), CountProjectiles(), 1);
+	LevelAsset->GetCellMutable(1, 1).EastWall = EGridWallType::None;
 
 	return true;
 }

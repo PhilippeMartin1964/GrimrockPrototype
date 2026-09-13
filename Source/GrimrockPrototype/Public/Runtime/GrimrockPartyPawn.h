@@ -484,6 +484,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
 	bool TryThrowSelectedCharacterInventoryItem(FName ItemDefinitionId, const FVector& LaunchDirection);
 
+	/** Places one inventory unit selected through the hotbar, restoring its source slot if placement fails. */
+	bool TryDropSelectedCharacterInventoryItemAtCell(FName ItemDefinitionId, int32 CellX, int32 CellY, const FVector& LocalOffset);
+
 	/**
      * Transfers one unit from an equipped hand to a recoverable world
      * projectile. Combat damage remains entirely outside this function.

@@ -48,6 +48,8 @@ public:
 	}
 
 protected:
+	friend class FGridTD021WorldItemsContractTest;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction", meta = (ClampMin = "0.0"))
 	float MaxInteractionDistance = 300.f;
 
@@ -128,6 +130,9 @@ protected:
 	void HandleCancelCombatTargeting();
 	bool UpdatePhysicalThrowAiming();
 	bool HandlePhysicalThrowAimingClick();
+	bool HandlePhysicalThrowAimingHit(const FHitResult& HitResult);
+	EGridInteractionCursor ResolvePhysicalThrowTargetCursor(const AGrimrockPartyPawn* PartyPawn, const FHitResult& HitResult) const;
+	bool IsWithinHandPlacementReach(const AGrimrockPartyPawn* PartyPawn, const FHitResult& HitResult) const;
 	void UpdateHoveredInteractable();
 	bool UpdateCombatTargeting();
 	bool HandleCombatTargetingClick();
