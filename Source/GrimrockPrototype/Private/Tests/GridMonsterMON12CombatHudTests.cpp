@@ -1407,7 +1407,7 @@ bool FGridMonsterMON129ActionRolloverTest::RunTest(const FString& Parameters)
 	UGridCombatHudActionWidget* EmptyWidget = NewObject<UGridCombatHudActionWidget>();
 	EmptyWidget->Button_Action = NewObject<UButton>(EmptyWidget);
 	EmptyWidget->InitializeAction(nullptr, EmptyView);
-	TestTrue(TEXT("The empty rollover explains assignment"), EmptyWidget->Button_Action->GetToolTipText().ToString().Contains(TEXT("Déposez ici une arme")));
+	TestTrue(TEXT("The empty rollover explains assignment"), EmptyWidget->Button_Action->GetToolTipText().ToString().Contains(TEXT("Déposez ici un objet de l'inventaire")));
 
 	FGridCombatHudActionView AssignedView;
 	AssignedView.HotbarSlotIndex = 2;
