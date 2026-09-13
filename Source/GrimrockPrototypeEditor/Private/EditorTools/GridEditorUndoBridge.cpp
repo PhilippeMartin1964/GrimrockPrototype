@@ -1,5 +1,6 @@
 #if WITH_EDITOR
 
+#include "Containers/Ticker.h"
 #include "Editor.h"
 #include "EditorModeManager.h"
 #include "EditorUndoClient.h"
@@ -9,6 +10,8 @@
 
 namespace
 {
+	bool bGridEditorUndoRedoRefreshQueued = false;
+
 	class FGridEditorUndoBridge final : public FSelfRegisteringEditorUndoClient
 	{
 	public:
@@ -16,7 +19,7 @@ namespace
 		{
 			if (bSuccess)
 			{
-				RefreshGridEditorAfterUndoRedo();
+				QueueGridEditorRefresh();
 			}
 		}
 
@@ -24,11 +27,27 @@ namespace
 		{
 			if (bSuccess)
 			{
-				RefreshGridEditorAfterUndoRedo();
+				QueueGridEditorRefresh();
 			}
 		}
 
 	private:
+		static void QueueGridEditorRefresh()
+		{
+			if (bGridEditorUndoRedoRefreshQueued)
+			{
+				return;
+			}
+
+			bGridEditorUndoRedoRefreshQueued = true;
+			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([](float /*DeltaTime*/)
+			{
+				bGridEditorUndoRedoRefreshQueued = false;
+				RefreshGridEditorAfterUndoRedo();
+				return false;
+			}));
+		}
+
 		static void RefreshGridEditorAfterUndoRedo()
 		{
 			if (!GEditor || !GLevelEditorModeTools().IsModeActive(FGridLevelEdMode::EM_GridLevelEdModeId))
@@ -66,6 +85,9 @@ namespace
 					}
 				}
 
+				// Rebuild on the next editor tick: by then Undo/Redo has completely
+				// restored the authoritative UGridLevelAsset state. This avoids the
+				// stale-redo preview that previously required pressing Load Default.
 				EditorActor->RebuildPreview();
 			}
 

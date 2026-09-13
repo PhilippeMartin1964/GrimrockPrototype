@@ -14,7 +14,7 @@ The authoring contract is:
 
 ## Transactional viewport actions
 
-The primary and secondary Grid Editor tool actions now create native `FScopedTransaction` entries around their level mutations:
+The primary and secondary Grid Editor tool actions create native `FScopedTransaction` entries around their level mutations:
 
 - Paint Cell;
 - Paint Wall;
@@ -25,24 +25,30 @@ The primary and secondary Grid Editor tool actions now create native `FScopedTra
 - Clear Wall;
 - explicit Remove Grid Objects.
 
-GE-ERASE01 targeted object deletion already had its own `Delete Grid Object` transaction and keeps that dedicated transaction name.
+GE-ERASE01 targeted object deletion already has its own `Delete Grid Object` transaction and keeps that dedicated transaction name.
 
 Selected-object authoring paths that use the shared `EditGridPlacementAuthoring` helper are also transactional through `Edit Grid Object`.
 
 ## Preview synchronization
 
-`FGridEditorUndoBridge` is a self-registering Unreal editor undo client. After a successful undo/redo, while the Grimrock Grid Editor mode is active, it:
+`FGridEditorUndoBridge` is a self-registering Unreal editor undo client. After a successful undo/redo, while the Grimrock Grid Editor mode is active, it schedules the Grid Editor refresh for the next editor tick so the native transaction has completely restored object state before preview reconstruction.
+
+The deferred refresh:
 
 1. finds the active `AGridLevelEditorActor` instances in the editor world;
 2. invalidates selected, hovered or pending-link GUIDs that no longer exist in the restored level asset;
-3. calls `RebuildPreview()`;
+3. calls `RebuildPreview()` from the fully restored `UGridLevelAsset`;
 4. redraws editor viewports.
 
-The level asset remains the authority. The preview is reconstructed from the restored data instead of trying to maintain a parallel editor history.
+This fixes the previous case where `Ctrl+Y` restored the authored data but the visible Grid Editor could remain stale until `Load Default` was pressed.
+
+The level asset remains the authority. The preview is reconstructed from restored data instead of maintaining a parallel editor history.
 
 ## Scope note
 
-GE-UNDO01 establishes the native undo/redo foundation and covers the canonical viewport tool mutations plus shared selected-object edits. Existing specialized editor panels that mutate the level asset through separate direct code paths can be migrated incrementally to the same transaction contract without changing the undo architecture.
+GE-UNDO01 establishes the native undo/redo foundation and covers the canonical viewport tool mutations plus shared selected-object edits. GE-UNDO02 extends the same architecture so a continuous viewport drag becomes one undo step instead of one step per visited cell/edge.
+
+Existing specialized editor panels that mutate the level asset through separate direct code paths can be migrated incrementally to the same transaction contract without changing the undo architecture.
 
 ## Manual validation
 
@@ -52,5 +58,5 @@ GE-UNDO01 establishes the native undo/redo foundation and covers the canonical v
 4. Delete an object with GE-ERASE01, undo it, then redo it; attached links must follow the restored asset state.
 5. Create a logical link and undo it.
 6. Perform several different edits and press `Ctrl+Z` repeatedly to walk backward through them.
-7. Redo several of those operations using Unreal's native redo command.
+7. Redo several of those operations using Unreal's native redo command and verify the preview refreshes without `Load Default`.
 8. Verify that selecting/hovering cells without changing level data does not intentionally add a Grid Editor transaction.

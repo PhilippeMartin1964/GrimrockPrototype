@@ -1,6 +1,7 @@
 #include "EditorTools/GridLevelEditorActor.h"
 
 #if WITH_EDITOR
+#include "Containers/Ticker.h"
 #include "EditorModeManager.h"
 #include "EditorTools/GridLevelEdMode.h"
 #include "Framework/Application/SlateApplication.h"
@@ -35,15 +36,71 @@ namespace
 	}
 
 #if WITH_EDITOR
+	TUniquePtr<FScopedTransaction> GridEditorGestureTransaction;
+	FDelegateHandle GridEditorGestureTickerHandle;
+
+	bool IsGridEditorPaintGestureActive()
+	{
+		if (FEdMode* ActiveMode = GLevelEditorModeTools().GetActiveMode(FGridLevelEdMode::EM_GridLevelEdModeId))
+		{
+			return static_cast<const FGridLevelEdMode*>(ActiveMode)->IsPaintGestureActive();
+		}
+		return false;
+	}
+
+	void EndGridEditorGestureTransaction()
+	{
+		GridEditorGestureTransaction.Reset();
+		if (GridEditorGestureTickerHandle.IsValid())
+		{
+			FTSTicker::GetCoreTicker().RemoveTicker(GridEditorGestureTickerHandle);
+			GridEditorGestureTickerHandle = FDelegateHandle();
+		}
+	}
+
+	bool TickGridEditorGestureTransaction(float /*DeltaTime*/)
+	{
+		if (!GridEditorGestureTransaction || !IsGridEditorPaintGestureActive())
+		{
+			GridEditorGestureTransaction.Reset();
+			GridEditorGestureTickerHandle = FDelegateHandle();
+			return false;
+		}
+		return true;
+	}
+
+	void BeginGridEditorGestureTransaction(const TCHAR* Description)
+	{
+		if (!GridEditorGestureTransaction)
+		{
+			GridEditorGestureTransaction = MakeUnique<FScopedTransaction>(FText::FromString(Description));
+		}
+		if (!GridEditorGestureTickerHandle.IsValid())
+		{
+			GridEditorGestureTickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateStatic(&TickGridEditorGestureTransaction));
+		}
+	}
+
 	template <typename TEdit>
 	void RunGridEditorTransaction(const TCHAR* Description, TEdit&& Edit)
 	{
+		// GE-UNDO02: one continuous viewport gesture is one native Unreal
+		// transaction. Panel/button actions still receive an immediate transaction.
+		if (IsGridEditorPaintGestureActive())
+		{
+			BeginGridEditorGestureTransaction(Description);
+			Edit();
+			return;
+		}
+
+		EndGridEditorGestureTransaction();
 		const FScopedTransaction Transaction(FText::FromString(Description));
 		Edit();
 	}
 
 	void CancelGridEditorPaintGesture()
 	{
+		EndGridEditorGestureTransaction();
 		if (FEdMode* ActiveMode = GLevelEditorModeTools().GetActiveMode(FGridLevelEdMode::EM_GridLevelEdModeId))
 		{
 			static_cast<FGridLevelEdMode*>(ActiveMode)->CancelActivePaintGesture();

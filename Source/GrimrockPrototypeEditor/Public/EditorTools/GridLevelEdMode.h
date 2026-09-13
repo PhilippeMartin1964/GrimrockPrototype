@@ -46,6 +46,12 @@ public:
 		ResetPaintCache();
 	}
 
+	/** GE-UNDO02: true while the viewport is applying one continuous left-mouse authoring gesture. */
+	bool IsPaintGestureActive() const
+	{
+		return bIsPainting;
+	}
+
 private:
 	AGridLevelEditorActor* FindEditorActor() const;
 	bool UpdateHoverFromMouse(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY) const;
