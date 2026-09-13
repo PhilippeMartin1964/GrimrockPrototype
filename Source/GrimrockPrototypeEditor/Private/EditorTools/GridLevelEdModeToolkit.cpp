@@ -6,6 +6,8 @@
 #include "EditorTools/GridLevelEdMode.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "EditorTools/Widgets/SGridEditorDungeonLevelsPanel.h"
+#include "EditorTools/Widgets/SGridEditorOverviewMapPanel.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridTypes.h"
 
@@ -21,6 +23,8 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SScaleBox.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
@@ -89,6 +93,13 @@ void FGridLevelEdModeToolkit::RefreshPalette()
 
 	ToolkitRoot->AddSlot()
 		.AutoHeight()
+		.Padding(0.f, 0.f, 0.f, 6.f)
+		[
+			BuildIntegratedDungeonSection()
+		];
+
+	ToolkitRoot->AddSlot()
+		.AutoHeight()
 		[
 			BuildWorkspaceLauncherSection()
 		];
@@ -103,6 +114,71 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildToolkitWidget()
 	RefreshPalette();
 
 	return Widget;
+}
+
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildIntegratedDungeonSection()
+{
+	AGridLevelEditorActor* EditorActor = GetEditorActor();
+
+	TSharedRef<SWidget> DungeonLevelsPanel =
+		SNew(SGridEditorDungeonLevelsPanel)
+			.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
+			.OnGetEditorActor(FOnGetGridEditorDungeonLevelsActor::CreateRaw(this, &FGridLevelEdModeToolkit::GetEditorActor))
+			.OnRequestRefresh(FOnGridEditorDungeonLevelsRequestRefresh::CreateRaw(this, &FGridLevelEdModeToolkit::RefreshPalette));
+
+	TSharedRef<SWidget> OverviewMapPanel =
+		SNew(SGridEditorOverviewMapPanel)
+			.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
+			.OnGetEditorActor(FOnGetGridEditorActor::CreateRaw(this, &FGridLevelEdModeToolkit::GetEditorActor))
+			.OnRequestRefresh(FOnGridEditorOverviewRequestRefresh::CreateRaw(this, &FGridLevelEdModeToolkit::RefreshPalette));
+
+	return SNew(SBorder)
+		.Padding(FMargin(6.f))
+		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+		[
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.f, 0.f, 0.f, 5.f)
+			[
+				SNew(STextBlock)
+					.Text(FText::FromString(TEXT("DUNGEON LEVELS")))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				DungeonLevelsPanel
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.f, 10.f, 0.f, 5.f)
+			[
+				SNew(STextBlock)
+					.Text(FText::FromString(TEXT("OVERVIEW MAP")))
+					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Fill)
+			[
+				SNew(SBox)
+					.HeightOverride(340.f)
+					.Clipping(EWidgetClipping::ClipToBounds)
+					[
+						SNew(SScaleBox)
+							.Stretch(EStretch::ScaleToFitX)
+							.StretchDirection(EStretchDirection::DownOnly)
+							[
+								OverviewMapPanel
+							]
+					]
+			]
+		];
 }
 
 TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildWorkspaceLauncherSection()
@@ -123,11 +199,6 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildWorkspaceLauncherSection()
 					.OnClicked(FOnClicked::CreateRaw(this, &FGridLevelEdModeToolkit::OpenWorkspaceTab, TabName))
 			];
 	};
-
-	AddWorkspaceButton(
-		FText::FromString(TEXT("Dungeon Levels")),
-		FText::FromString(TEXT("Open dungeon level navigation and the 32x32 overview map.")),
-		GridEditorWorkspaceTabs::DungeonLevels());
 
 	AddWorkspaceButton(
 		FText::FromString(TEXT("PlayTest & Validation")),
@@ -169,7 +240,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildWorkspaceLauncherSection()
 			.Padding(0.f, 0.f, 0.f, 6.f)
 			[
 				SNew(STextBlock)
-					.Text(FText::FromString(TEXT("Open the authoring window you need.")))
+					.Text(FText::FromString(TEXT("Open the specialized authoring window you need.")))
 					.AutoWrapText(true)
 					.ColorAndOpacity(FSlateColor(FLinearColor(0.68f, 0.68f, 0.68f, 1.f)))
 			]

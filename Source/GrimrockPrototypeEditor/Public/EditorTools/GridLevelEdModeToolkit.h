@@ -29,6 +29,7 @@ private:
 
 	TSharedRef<SWidget> BuildToolkitWidget();
 	TSharedRef<SWidget> BuildHeaderSection();
+	TSharedRef<SWidget> BuildIntegratedDungeonSection();
 	TSharedRef<SWidget> BuildWorkspaceLauncherSection();
 
 	FReply OpenWorkspaceTab(FName TabName);
