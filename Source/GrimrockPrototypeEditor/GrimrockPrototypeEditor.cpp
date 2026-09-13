@@ -15,11 +15,19 @@
 #include "ToolMenus.h"
 #include "Widgets/Docking/SDockTab.h"
 
+namespace GridEditorUndoBridge
+{
+	void Startup();
+	void Shutdown();
+}
+
 class FGrimrockPrototypeEditorModule : public IModuleInterface
 {
 public:
 	virtual void StartupModule() override
 	{
+		GridEditorUndoBridge::Startup();
+
 		FEditorModeRegistry::Get().RegisterMode<FGridLevelEdMode>(
 			FGridLevelEdMode::EM_GridLevelEdModeId, FText::FromString(TEXT("Grimrock Grid Editor")), FSlateIcon(), true);
 
@@ -56,6 +64,8 @@ public:
 
 	virtual void ShutdownModule() override
 	{
+		GridEditorUndoBridge::Shutdown();
+
 		FEditorDelegates::PreBeginPIE.Remove(PreBeginPIEHandle);
 		FEditorDelegates::BeginPIE.Remove(BeginPIEHandle);
 		FEditorDelegates::CancelPIE.Remove(CancelPIEHandle);
@@ -73,7 +83,7 @@ public:
 
 		if (FModuleManager::Get().IsModuleLoaded("UnrealEd"))
 		{
-			FEditorModeRegistry::Get().UnregisterMode(FGridLevelEdMode::EM_GridLevelEdModeId);
+			FEditorModeRegistry::Get().UnregisterMode(FGridLevelEdMode::EM_GrimrockGridLevelEdModeId);
 		}
 	}
 
@@ -81,7 +91,7 @@ private:
 	bool CanSpawnGridEditorTab(const FSpawnTabArgs& SpawnTabArgs) const
 	{
 		(void)SpawnTabArgs;
-		return GLevelEditorModeTools().IsModeActive(FGridLevelEdMode::EM_GridLevelEdModeId);
+		return GLevelEditorModeTools().IsModeActive(FGridLevelEdMode::EM_GrimrockGridLevelEdModeId);
 	}
 
 	void RegisterGridWorkspaceTab(const FName& TabName, const FText& DisplayName, const FText& Tooltip, EGridEditorWorkspaceTab WorkspaceTab)
