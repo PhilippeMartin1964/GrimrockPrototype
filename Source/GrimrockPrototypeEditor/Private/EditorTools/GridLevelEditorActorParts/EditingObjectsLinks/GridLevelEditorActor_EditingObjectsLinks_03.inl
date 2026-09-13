@@ -174,6 +174,11 @@ void AGridLevelEditorActor::ApplyPrimaryToolAction()
 			}
 
 #if WITH_EDITOR
+			// Erase is click-only: cancel the viewport paint gesture immediately,
+			// even if the click hits empty space. This prevents a held mouse button
+			// from sweeping across cells and deleting the first element encountered.
+			CancelGridEditorPaintGesture();
+
 			// Erase is intentionally a one-shot tool. Once a real deletion succeeds,
 			// immediately return to Select and terminate the originating viewport
 			// gesture so the next UI click cannot erase geometry behind a menu/panel.
