@@ -34,6 +34,18 @@ public:
 
 	virtual void DrawHUD(FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) override;
 
+	/**
+	 * Cancels the current paint/erase mouse gesture without changing the active tool.
+	 * GE-ERASE01 uses this after modal chooser/confirmation input so the original
+	 * viewport click cannot resume as a drag and affect whatever is under the popup.
+	 */
+	void CancelActivePaintGesture()
+	{
+		bIsPainting = false;
+		bIsErasing = false;
+		ResetPaintCache();
+	}
+
 private:
 	AGridLevelEditorActor* FindEditorActor() const;
 	bool UpdateHoverFromMouse(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY) const;

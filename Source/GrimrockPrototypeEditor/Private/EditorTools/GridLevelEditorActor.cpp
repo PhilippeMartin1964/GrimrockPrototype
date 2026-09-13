@@ -1,6 +1,8 @@
 #include "EditorTools/GridLevelEditorActor.h"
 
 #if WITH_EDITOR
+#include "EditorModeManager.h"
+#include "EditorTools/GridLevelEdMode.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Misc/MessageDialog.h"
 #include "ScopedTransaction.h"
@@ -30,6 +32,14 @@ namespace
 	}
 
 #if WITH_EDITOR
+	void CancelGridEditorPaintGesture()
+	{
+		if (FEdMode* ActiveMode = GLevelEditorModeTools().GetActiveMode(FGridLevelEdMode::EM_GridLevelEdModeId))
+		{
+			static_cast<FGridLevelEdMode*>(ActiveMode)->CancelActivePaintGesture();
+		}
+	}
+
 	FString GetEraseObjectIdentifier(const UGridLevelAsset& LevelAsset, const FGuid& ObjectId)
 	{
 		const FName LogicId = LevelAsset.GetTypedPlacementLogicId(ObjectId);
@@ -248,7 +258,18 @@ namespace
 	bool HandleTargetedObjectErase(AGridLevelEditorActor& EditorActor, const TArray<FGuid>& CandidateIds)
 	{
 		FGuid ObjectId;
-		if (!ChooseEraseObject(EditorActor, CandidateIds, ObjectId) || !ConfirmEraseObject(EditorActor, ObjectId))
+		if (!ChooseEraseObject(EditorActor, CandidateIds, ObjectId))
+		{
+			CancelGridEditorPaintGesture();
+			return false;
+		}
+
+		const bool bConfirmed = ConfirmEraseObject(EditorActor, ObjectId);
+		// The modal chooser/confirmation consumes its own mouse input. End the
+		// originating viewport gesture before returning so it cannot resume as a
+		// paint drag over whatever lies beneath the closed popup.
+		CancelGridEditorPaintGesture();
+		if (!bConfirmed)
 		{
 			return false;
 		}
