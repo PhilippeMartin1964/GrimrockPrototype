@@ -144,8 +144,33 @@ void AGridLevelEditorActor::ApplyPrimaryToolAction()
 			break;
 
 		case EGridEditorTool::Erase:
+		{
+			TArray<FGuid> CandidateIds;
+			if (HasValidLevelAsset() && IsValidSelectedCell())
+			{
+				for (const FGuid& ObjectId : LevelAsset->GetTypedPlacementIdsAtCell(SelectedCellX, SelectedCellY))
+				{
+					int32 CellX = INDEX_NONE;
+					int32 CellY = INDEX_NONE;
+					EGridEdge Edge = EGridEdge::None;
+					if (LevelAsset->TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge) &&
+						(!IsEdgePlacedObject(ObjectId) || Edge == SelectedEdge))
+					{
+						CandidateIds.Add(ObjectId);
+					}
+				}
+			}
+
+#if WITH_EDITOR
+			if (CandidateIds.Num() > 0)
+			{
+				HandleTargetedObjectErase(*this, CandidateIds);
+				break;
+			}
+#endif
 			EraseAtSelection();
 			break;
+		}
 
 		case EGridEditorTool::Link:
 			SelectHoveredObject();
