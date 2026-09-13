@@ -32,8 +32,10 @@ class SGridEditorOverviewMapPanel : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SGridEditorOverviewMapPanel)
+		: _CompactMode(false)
 	{
 	}
+	SLATE_ARGUMENT(bool, CompactMode)
 	SLATE_ARGUMENT(TWeakObjectPtr<AGridLevelEditorActor>, EditorActor)
 	SLATE_EVENT(FOnGetGridEditorActor, OnGetEditorActor)
 	SLATE_EVENT(FOnGridEditorOverviewRequestRefresh, OnRequestRefresh)
@@ -67,6 +69,7 @@ private:
 	TArray<FGridEditorOverviewAnchorObjectGroup> GetObjectsAtSelectedCellGroupedByAnchor() const;
 
 private:
+	bool bCompactMode = false;
 	TWeakObjectPtr<AGridLevelEditorActor> EditorActor;
 	FOnGetGridEditorActor OnGetEditorActor;
 	FOnGridEditorOverviewRequestRefresh OnRequestRefresh;

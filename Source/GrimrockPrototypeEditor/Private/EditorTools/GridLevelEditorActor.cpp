@@ -2,7 +2,11 @@
 
 #if WITH_EDITOR
 #include "Containers/Ticker.h"
+#include "Editor.h"
 #include "EditorModeManager.h"
+#include "EditorViewportClient.h"
+#include "LevelEditorViewport.h"
+#include "UnrealClient.h"
 #include "EditorTools/GridLevelEdMode.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Misc/MessageDialog.h"
@@ -36,6 +40,38 @@ namespace
 	}
 
 #if WITH_EDITOR
+	FLevelEditorViewportClient* FindOverviewNavigationViewport()
+	{
+		if (!GEditor)
+		{
+			return nullptr;
+		}
+
+		const TArray<FLevelEditorViewportClient*>& LevelViewportClients = GEditor->GetLevelViewportClients();
+		FViewport* ActiveViewport = GEditor->GetActiveViewport();
+
+		if (ActiveViewport)
+		{
+			for (FLevelEditorViewportClient* ViewportClient : LevelViewportClients)
+			{
+				if (ViewportClient && ViewportClient->IsPerspective() && ActiveViewport->GetClient() == ViewportClient)
+				{
+					return ViewportClient;
+				}
+			}
+		}
+
+		for (FLevelEditorViewportClient* ViewportClient : LevelViewportClients)
+		{
+			if (ViewportClient && ViewportClient->IsPerspective())
+			{
+				return ViewportClient;
+			}
+		}
+
+		return nullptr;
+	}
+
 	TUniquePtr<FScopedTransaction> GridEditorGestureTransaction;
 	FTSTicker::FDelegateHandle GridEditorGestureTickerHandle;
 
@@ -344,6 +380,34 @@ namespace
 	}
 #endif
 }
+
+#if WITH_EDITOR
+bool AGridLevelEditorActor::FocusSelectedCellInEditorViewport()
+{
+	if (!LevelAsset)
+	{
+		return false;
+	}
+
+	FLevelEditorViewportClient* ViewportClient = FindOverviewNavigationViewport();
+	if (!ViewportClient)
+	{
+		return false;
+	}
+
+	const float CellSize = FMath::Max(LevelAsset->CellSize, 1.f);
+	const FVector FocusPoint = GetSelectionPreviewCenter(CellSize * 0.75f);
+	const FRotator PreservedRotation = ViewportClient->GetViewRotation();
+	const float FocusDistance = CellSize * 5.f;
+
+	ViewportClient->SetViewLocation(FocusPoint - PreservedRotation.Vector() * FocusDistance);
+	ViewportClient->SetViewRotation(PreservedRotation);
+	ViewportClient->SetLookAtLocation(FocusPoint, false);
+	ViewportClient->Invalidate();
+	return true;
+}
+
+#endif
 
 // MON19.2.1R — Décomposition structurelle de AGridLevelEditorActor.
 //

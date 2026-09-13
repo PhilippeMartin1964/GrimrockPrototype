@@ -7,11 +7,7 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 
-#include "Editor.h"
-#include "EditorViewportClient.h"
 #include "InputCoreTypes.h"
-#include "LevelEditorViewport.h"
-#include "UnrealClient.h"
 
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
@@ -72,62 +68,6 @@ namespace
 	private:
 		FOnClicked OnDoubleClicked;
 	};
-
-	FLevelEditorViewportClient* FindOverviewNavigationViewport()
-	{
-		if (!GEditor)
-		{
-			return nullptr;
-		}
-
-		const TArray<FLevelEditorViewportClient*>& LevelViewportClients = GEditor->GetLevelViewportClients();
-		FViewport* ActiveViewport = GEditor->GetActiveViewport();
-
-		if (ActiveViewport)
-		{
-			for (FLevelEditorViewportClient* ViewportClient : LevelViewportClients)
-			{
-				if (ViewportClient && ViewportClient->IsPerspective() && ActiveViewport->GetClient() == ViewportClient)
-				{
-					return ViewportClient;
-				}
-			}
-		}
-
-		for (FLevelEditorViewportClient* ViewportClient : LevelViewportClients)
-		{
-			if (ViewportClient && ViewportClient->IsPerspective())
-			{
-				return ViewportClient;
-			}
-		}
-
-		return nullptr;
-	}
-
-	void NavigateOverviewViewportToSelection(AGridLevelEditorActor& EditorActor)
-	{
-		if (!EditorActor.LevelAsset)
-		{
-			return;
-		}
-
-		FLevelEditorViewportClient* ViewportClient = FindOverviewNavigationViewport();
-		if (!ViewportClient)
-		{
-			return;
-		}
-
-		const float CellSize = FMath::Max(EditorActor.LevelAsset->CellSize, 1.f);
-		const FVector FocusPoint = EditorActor.GetSelectionPreviewCenter(CellSize * 0.75f);
-		const FRotator PreservedRotation = ViewportClient->GetViewRotation();
-		const float FocusDistance = CellSize * 5.f;
-
-		ViewportClient->SetViewLocation(FocusPoint - PreservedRotation.Vector() * FocusDistance);
-		ViewportClient->SetViewRotation(PreservedRotation);
-		ViewportClient->SetLookAtLocation(FocusPoint, false);
-		ViewportClient->Invalidate();
-	}
 
 	FString GetOverviewObjectIdentifier(const UGridLevelAsset& Level, FGuid ObjectId)
 	{
@@ -325,6 +265,7 @@ namespace
 
 void SGridEditorOverviewMapPanel::Construct(const FArguments& InArgs)
 {
+	bCompactMode = InArgs._CompactMode;
 	EditorActor = InArgs._EditorActor;
 	OnGetEditorActor = InArgs._OnGetEditorActor;
 	OnRequestRefresh = InArgs._OnRequestRefresh;
@@ -377,7 +318,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMapSection()
 	const float OverviewWidth = static_cast<float>(LevelAsset->Width) * OverviewCellPitch;
 	const float OverviewHeight = static_cast<float>(LevelAsset->Height) * OverviewCellPitch;
 
-	return SNew(SVerticalBox)
+	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 
 		+ SVerticalBox::Slot().AutoHeight()
 		[
@@ -391,9 +332,13 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMapSection()
 				]
 		]
 
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[BuildOverviewColorLegend()]
+		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[BuildOverviewColorLegend()];
 
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildSelectedCellSection()];
+	if (!bCompactMode)
+	{
+		Root->AddSlot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildSelectedCellSection()];
+	}
+	return Root;
 }
 
 TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell(
@@ -448,7 +393,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell(
 					{
 						if (CurrentActor->SelectCellFromOverview(CellX, CellY))
 						{
-							NavigateOverviewViewportToSelection(*CurrentActor);
+							CurrentActor->FocusSelectedCellInEditorViewport();
 							RequestRefresh();
 						}
 					}

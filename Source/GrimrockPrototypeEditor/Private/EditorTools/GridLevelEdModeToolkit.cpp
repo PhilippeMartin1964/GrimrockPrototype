@@ -128,6 +128,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildIntegratedDungeonSection()
 
 	TSharedRef<SWidget> OverviewMapPanel =
 		SNew(SGridEditorOverviewMapPanel)
+			.CompactMode(true)
 			.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
 			.OnGetEditorActor(FOnGetGridEditorActor::CreateRaw(this, &FGridLevelEdModeToolkit::GetEditorActor))
 			.OnRequestRefresh(FOnGridEditorOverviewRequestRefresh::CreateRaw(this, &FGridLevelEdModeToolkit::RefreshPalette));
@@ -175,13 +176,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildIntegratedDungeonSection()
 							.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
 							.BorderBackgroundColor(FSlateColor(FLinearColor(0.10f, 0.10f, 0.10f, 1.f)))
 							[
-								SNew(SBox)
-									.WidthOverride(640.f)
-									.HeightOverride(664.f)
-									.Clipping(EWidgetClipping::ClipToBounds)
-									[
-										OverviewMapPanel
-									]
+								OverviewMapPanel
 							]
 					]
 			]

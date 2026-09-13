@@ -325,6 +325,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Selection")
 	bool SelectCellFromOverview(int32 CellX, int32 CellY);
 
+	// Preserve the perspective camera rotation while focusing the selected cell.
+	bool FocusSelectedCellInEditorViewport();
+
 	UFUNCTION(BlueprintCallable, Category = "Selection")
 	bool ApplyGridHoverFromWorldPoint(const FVector& WorldPoint);
 
