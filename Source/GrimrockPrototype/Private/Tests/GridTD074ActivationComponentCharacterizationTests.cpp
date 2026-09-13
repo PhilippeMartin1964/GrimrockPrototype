@@ -186,7 +186,8 @@ bool FGridTD074ActivationCoverageCharacterizationTest::RunTest(const FString& Pa
 
 	for (const TCHAR* RelativePath : { TEXT("Source/GrimrockPrototype/Private/Tests/GridTD0132EventCommandRuntimeHardeningTests.cpp"),
 			 TEXT("Source/GrimrockPrototype/Private/Tests/GridMON192LogicPrimitiveTests.cpp"),
-			 TEXT("Source/GrimrockPrototype/Private/Tests/GridMON1924VariableLinkConditionTests.cpp"),
+			 TEXT("Source/GrimrockPrototype/Private/Tests/GridLevelMON192VariableTests.cpp"),
+			 TEXT("Source/GrimrockPrototypeEditor/Private/Tests/GridEditorLUAUX03HardPurgeTests.cpp"),
 			 TEXT("Source/GrimrockPrototype/Private/Tests/GridMON194LuaBridgeTests.cpp"),
 			 TEXT("Source/GrimrockPrototype/Private/Tests/GridMON1971LuaLogicIdTests.cpp"),
 			 TEXT("Source/GrimrockPrototype/Private/Tests/GridMON198ProductionPuzzleTests.cpp"),
@@ -199,7 +200,8 @@ bool FGridTD074ActivationCoverageCharacterizationTest::RunTest(const FString& Pa
 			FPaths::FileExists(FPaths::Combine(FPaths::ProjectDir(), RelativePath)));
 	}
 
-	AddInfo(TEXT("TD07.4 found established regression coverage around Event->Command, Logic, Lua, monsters, story recruitment and custom recruitment."));
+	AddInfo(TEXT(
+		"TD07.4 found established regression coverage around Event->Command, Logic, LevelVariables, Lua hard-purge, monsters, story recruitment and custom recruitment."));
 	return true;
 }
 

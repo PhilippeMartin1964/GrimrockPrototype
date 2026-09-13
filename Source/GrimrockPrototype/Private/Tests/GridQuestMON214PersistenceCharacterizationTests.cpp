@@ -134,17 +134,24 @@ bool FGridQuestMON214PipelineGapCharacterizationTest::RunTest(const FString& Par
 	using namespace GridQuestMON214Characterization;
 
 	FString PawnSaveSource;
-	FString ActivationSource;
+	FString ActivationCoreSource;
+	FString ActivationLinksSource;
 	TestTrue(
 		TEXT("Party save pipeline source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GrimrockPartyPawnSave.cpp"), PawnSaveSource));
-	TestTrue(TEXT("Activation source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponent.cpp"), ActivationSource));
+	TestTrue(TEXT("Activation core source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponent.cpp"), ActivationCoreSource));
+	TestTrue(
+		TEXT("Activation links source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridActivationComponentLinks.cpp"), ActivationLinksSource));
 
 	TestFalse(TEXT("Current save pipeline does not capture CampaignQuestState yet"), PawnSaveSource.Contains(TEXT("CampaignQuestState")));
 	TestFalse(TEXT("Current save pipeline does not access UGridQuestSubsystem yet"), PawnSaveSource.Contains(TEXT("UGridQuestSubsystem")));
 
-	TestTrue(TEXT("Current quest registration is level-scoped"), ActivationSource.Contains(TEXT("RuntimeActor->LevelAsset->QuestDefinitions")));
-	TestTrue(TEXT("Current registration helper is explicitly current-level scoped"), ActivationSource.Contains(TEXT("RegisterCurrentLevelQuestDefinitions")));
-	TestFalse(TEXT("Current activation registration does not scan DungeonAsset levels"), ActivationSource.Contains(TEXT("DungeonAsset->Levels")));
+	TestTrue(TEXT("Current quest registration is level-scoped"), ActivationLinksSource.Contains(TEXT("RuntimeActor->LevelAsset->QuestDefinitions")));
+	TestTrue(TEXT("Current registration helper remains implemented"),
+		ActivationLinksSource.Contains(TEXT("void UGridActivationComponent::RegisterCurrentLevelQuestDefinitions()")));
+	TestTrue(TEXT("Activation core invokes current-level quest registration"), ActivationCoreSource.Contains(TEXT("RegisterCurrentLevelQuestDefinitions();")));
+
+	const FString ActivationSources = ActivationCoreSource + ActivationLinksSource;
+	TestFalse(TEXT("Current activation registration does not scan DungeonAsset levels"), ActivationSources.Contains(TEXT("DungeonAsset->Levels")));
 
 	return true;
 }
