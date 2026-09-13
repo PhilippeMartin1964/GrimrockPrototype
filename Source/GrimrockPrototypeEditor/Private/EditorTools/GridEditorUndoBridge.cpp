@@ -1,101 +1,154 @@
 #if WITH_EDITOR
 
 #include "Containers/Ticker.h"
+#include "Core/GridLevelAsset.h"
 #include "Editor.h"
-#include "EditorModeManager.h"
-#include "EditorUndoClient.h"
-#include "EditorTools/GridLevelEdMode.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EngineUtils.h"
+#include "UObject/CoreUObjectDelegates.h"
+#include "UObject/Transactor.h"
 
 namespace
 {
-	bool bGridEditorUndoRedoRefreshQueued = false;
+	FDelegateHandle ObjectTransactedHandle;
+	FTSTicker::FDelegateHandle RefreshTickerHandle;
+	TArray<TWeakObjectPtr<UGridLevelAsset>> PendingLevelAssets;
+	bool bBridgeStarted = false;
 
-	class FGridEditorUndoBridge final : public FSelfRegisteringEditorUndoClient
+	bool IsPendingLevelAsset(const UGridLevelAsset* LevelAsset)
 	{
-	public:
-		virtual void PostUndo(bool bSuccess) override
-		{
-			if (bSuccess)
+		return LevelAsset && PendingLevelAssets.ContainsByPredicate(
+			[LevelAsset](const TWeakObjectPtr<UGridLevelAsset>& PendingAsset)
 			{
-				QueueGridEditorRefresh();
-			}
+				return PendingAsset.Get() == LevelAsset;
+			});
+	}
+
+	void SanitizeEditorSelectionAfterUndoRedo(AGridLevelEditorActor& EditorActor, UGridLevelAsset& LevelAsset)
+	{
+		if (EditorActor.LastSelectedObjectId.IsValid() && !LevelAsset.ContainsTypedPlacementId(EditorActor.LastSelectedObjectId))
+		{
+			EditorActor.LastSelectedObjectId.Invalidate();
+		}
+		if (EditorActor.HoveredObjectId.IsValid() && !LevelAsset.ContainsTypedPlacementId(EditorActor.HoveredObjectId))
+		{
+			EditorActor.HoveredObjectId.Invalidate();
+		}
+		if (EditorActor.PendingLinkSourceObjectId.IsValid() && !LevelAsset.ContainsTypedPlacementId(EditorActor.PendingLinkSourceObjectId))
+		{
+			EditorActor.ClearPendingLinkSource();
+		}
+	}
+
+	bool RefreshAffectedGridEditorPreviews(float /*DeltaTime*/)
+	{
+		RefreshTickerHandle = FTSTicker::FDelegateHandle();
+
+		if (!bBridgeStarted || !GEditor || GEditor->PlayWorld)
+		{
+			PendingLevelAssets.Reset();
+			return false;
 		}
 
-		virtual void PostRedo(bool bSuccess) override
+		UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+		if (!EditorWorld || EditorWorld->WorldType != EWorldType::Editor)
 		{
-			if (bSuccess)
-			{
-				QueueGridEditorRefresh();
-			}
+			PendingLevelAssets.Reset();
+			return false;
 		}
 
-	private:
-		static void QueueGridEditorRefresh()
+		bool bRefreshedAnyPreview = false;
+		for (TActorIterator<AGridLevelEditorActor> It(EditorWorld); It; ++It)
 		{
-			if (bGridEditorUndoRedoRefreshQueued)
+			AGridLevelEditorActor* EditorActor = *It;
+			if (!EditorActor)
 			{
-				return;
+				continue;
 			}
 
-			bGridEditorUndoRedoRefreshQueued = true;
-			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([](float /*DeltaTime*/)
+			UGridLevelAsset* LevelAsset = EditorActor->LevelAsset.Get();
+			if (!IsPendingLevelAsset(LevelAsset))
 			{
-				bGridEditorUndoRedoRefreshQueued = false;
-				RefreshGridEditorAfterUndoRedo();
-				return false;
-			}));
+				continue;
+			}
+
+			SanitizeEditorSelectionAfterUndoRedo(*EditorActor, *LevelAsset);
+
+			// OnObjectTransacted is emitted while the native transaction is still
+			// applying. Rebuilding here, on the following editor tick, guarantees
+			// the UGridLevelAsset is fully restored and avoids calling Modify()
+			// while GIsTransacting is true.
+			EditorActor->RebuildPreview();
+			bRefreshedAnyPreview = true;
 		}
 
-		static void RefreshGridEditorAfterUndoRedo()
+		PendingLevelAssets.Reset();
+		if (bRefreshedAnyPreview)
 		{
-			if (!GEditor || !GLevelEditorModeTools().IsModeActive(FGridLevelEdMode::EM_GridLevelEdModeId))
-			{
-				return;
-			}
-
-			UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
-			if (!EditorWorld)
-			{
-				return;
-			}
-
-			for (TActorIterator<AGridLevelEditorActor> It(EditorWorld); It; ++It)
-			{
-				AGridLevelEditorActor* EditorActor = *It;
-				if (!EditorActor)
-				{
-					continue;
-				}
-
-				if (UGridLevelAsset* LevelAsset = EditorActor->LevelAsset.Get())
-				{
-					if (EditorActor->LastSelectedObjectId.IsValid() && !LevelAsset->ContainsTypedPlacementId(EditorActor->LastSelectedObjectId))
-					{
-						EditorActor->LastSelectedObjectId.Invalidate();
-					}
-					if (EditorActor->HoveredObjectId.IsValid() && !LevelAsset->ContainsTypedPlacementId(EditorActor->HoveredObjectId))
-					{
-						EditorActor->HoveredObjectId.Invalidate();
-					}
-					if (EditorActor->PendingLinkSourceObjectId.IsValid() && !LevelAsset->ContainsTypedPlacementId(EditorActor->PendingLinkSourceObjectId))
-					{
-						EditorActor->ClearPendingLinkSource();
-					}
-				}
-
-				// Rebuild on the next editor tick: by then Undo/Redo has completely
-				// restored the authoritative UGridLevelAsset state. This avoids the
-				// stale-redo preview that previously required pressing Load Default.
-				EditorActor->RebuildPreview();
-			}
-
 			GEditor->RedrawAllViewports(true);
 		}
-	};
+		return false;
+	}
 
-	FGridEditorUndoBridge GGridEditorUndoBridge;
+	void QueueGridEditorRefresh(UGridLevelAsset* LevelAsset)
+	{
+		if (!LevelAsset)
+		{
+			return;
+		}
+
+		PendingLevelAssets.AddUnique(TWeakObjectPtr<UGridLevelAsset>(LevelAsset));
+		if (!RefreshTickerHandle.IsValid())
+		{
+			RefreshTickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateStatic(&RefreshAffectedGridEditorPreviews));
+		}
+	}
+
+	void HandleObjectTransacted(UObject* Object, const FTransactionObjectEvent& TransactionEvent)
+	{
+		if (!bBridgeStarted || TransactionEvent.GetEventType() != ETransactionObjectEventType::UndoRedo)
+		{
+			return;
+		}
+
+		if (UGridLevelAsset* LevelAsset = Cast<UGridLevelAsset>(Object))
+		{
+			QueueGridEditorRefresh(LevelAsset);
+		}
+	}
+}
+
+namespace GridEditorUndoBridge
+{
+	void Startup()
+	{
+		if (bBridgeStarted)
+		{
+			return;
+		}
+
+		bBridgeStarted = true;
+		ObjectTransactedHandle = FCoreUObjectDelegates::OnObjectTransacted.AddStatic(&HandleObjectTransacted);
+	}
+
+	void Shutdown()
+	{
+		bBridgeStarted = false;
+
+		if (ObjectTransactedHandle.IsValid())
+		{
+			FCoreUObjectDelegates::OnObjectTransacted.Remove(ObjectTransactedHandle);
+			ObjectTransactedHandle = FDelegateHandle();
+		}
+
+		if (RefreshTickerHandle.IsValid())
+		{
+			FTSTicker::GetCoreTicker().RemoveTicker(RefreshTickerHandle);
+			RefreshTickerHandle = FTSTicker::FDelegateHandle();
+		}
+
+		PendingLevelAssets.Reset();
+	}
 }
 
 #endif // WITH_EDITOR
