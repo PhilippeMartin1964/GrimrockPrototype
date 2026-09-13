@@ -7,6 +7,12 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 
+#include "Editor.h"
+#include "EditorViewportClient.h"
+#include "InputCoreTypes.h"
+#include "LevelEditorViewport.h"
+#include "UnrealClient.h"
+
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
 #include "Styling/SlateColor.h"
@@ -22,6 +28,104 @@
 
 namespace
 {
+	class SGridEditorOverviewCellButton : public SButton
+	{
+	public:
+		SLATE_BEGIN_ARGS(SGridEditorOverviewCellButton)
+		{
+		}
+		SLATE_EVENT(FOnClicked, OnClicked)
+		SLATE_EVENT(FOnClicked, OnDoubleClicked)
+		SLATE_ATTRIBUTE(FText, ToolTipText)
+		SLATE_DEFAULT_SLOT(FArguments, Content)
+		SLATE_END_ARGS()
+
+		void Construct(const FArguments& InArgs)
+		{
+			OnDoubleClicked = InArgs._OnDoubleClicked;
+
+			SButton::Construct(
+				SButton::FArguments()
+					.ButtonStyle(&FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("NoBorder"))
+					.ButtonColorAndOpacity(FLinearColor::White)
+					.ContentPadding(FMargin(0.f))
+					.ToolTipText(InArgs._ToolTipText)
+					.OnClicked(InArgs._OnClicked)
+					[
+						InArgs._Content.Widget
+					]);
+		}
+
+		virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override
+		{
+			if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && OnDoubleClicked.IsBound())
+			{
+				return OnDoubleClicked.Execute();
+			}
+
+			return SButton::OnMouseButtonDoubleClick(InMyGeometry, InMouseEvent);
+		}
+
+	private:
+		FOnClicked OnDoubleClicked;
+	};
+
+	FLevelEditorViewportClient* FindOverviewNavigationViewport()
+	{
+		if (!GEditor)
+		{
+			return nullptr;
+		}
+
+		const TArray<FLevelEditorViewportClient*>& LevelViewportClients = GEditor->GetLevelViewportClients();
+		FViewport* ActiveViewport = GEditor->GetActiveViewport();
+
+		if (ActiveViewport)
+		{
+			for (FLevelEditorViewportClient* ViewportClient : LevelViewportClients)
+			{
+				if (ViewportClient && ViewportClient->IsPerspective() && ActiveViewport->GetClient() == ViewportClient)
+				{
+					return ViewportClient;
+				}
+			}
+		}
+
+		for (FLevelEditorViewportClient* ViewportClient : LevelViewportClients)
+		{
+			if (ViewportClient && ViewportClient->IsPerspective())
+			{
+				return ViewportClient;
+			}
+		}
+
+		return nullptr;
+	}
+
+	void NavigateOverviewViewportToSelection(AGridLevelEditorActor& EditorActor)
+	{
+		if (!EditorActor.LevelAsset)
+		{
+			return;
+		}
+
+		FLevelEditorViewportClient* ViewportClient = FindOverviewNavigationViewport();
+		if (!ViewportClient)
+		{
+			return;
+		}
+
+		const float CellSize = FMath::Max(EditorActor.LevelAsset->CellSize, 1.f);
+		const FVector FocusPoint = EditorActor.GetSelectionPreviewCenter(CellSize * 0.75f);
+		const FRotator PreservedRotation = ViewportClient->GetViewRotation();
+		const float FocusDistance = CellSize * 5.f;
+
+		ViewportClient->SetViewLocation(FocusPoint - PreservedRotation.Vector() * FocusDistance);
+		ViewportClient->SetViewRotation(PreservedRotation);
+		ViewportClient->SetLookAtLocation(FocusPoint, false);
+		ViewportClient->Invalidate();
+	}
+
 	FString GetOverviewObjectIdentifier(const UGridLevelAsset& Level, FGuid ObjectId)
 	{
 		const FName LogicId = Level.GetTypedPlacementLogicId(ObjectId);
@@ -325,16 +429,33 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell(
 		AddOverviewOutline(CellOverlay, OutlineColor);
 	}
 
-	return SNew(SBox).WidthOverride(18.f).HeightOverride(18.f)[SNew(SButton)
-			.ButtonStyle(&FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("NoBorder"))
-			.ButtonColorAndOpacity(FLinearColor::White)
-			.ContentPadding(FMargin(0.f))
+	return SNew(SBox).WidthOverride(18.f).HeightOverride(18.f)
+	[
+		SNew(SGridEditorOverviewCellButton)
 			.ToolTipText(GetOverviewCellTooltipText(CellX, CellY))
 			.OnClicked_Lambda(
 				[this, CellX, CellY]() -> FReply
 				{
 					return OnOverviewCellClicked(CellX, CellY);
-				})[SNew(SBox).WidthOverride(18.f).HeightOverride(18.f)[CellOverlay]]];
+				})
+			.OnDoubleClicked_Lambda(
+				[this, CellX, CellY]() -> FReply
+				{
+					if (AGridLevelEditorActor* CurrentActor = GetEditorActor())
+					{
+						if (CurrentActor->SelectCellFromOverview(CellX, CellY))
+						{
+							NavigateOverviewViewportToSelection(*CurrentActor);
+							RequestRefresh();
+						}
+					}
+
+					return FReply::Handled();
+				})
+			[
+				SNew(SBox).WidthOverride(18.f).HeightOverride(18.f)[CellOverlay]
+			]
+	];
 }
 
 TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers(const TArray<FGuid>& CellObjectIds) const
@@ -604,7 +725,7 @@ FText SGridEditorOverviewMapPanel::GetOverviewCellTooltipText(int32 CellX, int32
 	const FGridLevelCellData& CellData = LevelAsset->GetCell(CellX, CellY);
 	const UEnum* CellTypeEnum = StaticEnum<EGridCellType>();
 
-	return FText::Format(FText::FromString(TEXT("Cell X={0} Y={1}\nType: {2}\nCeiling: {3}\nBlocks Occupancy: {4}\nWalls: {5}\nObjects: {6}")),
+	return FText::Format(FText::FromString(TEXT("Cell X={0} Y={1}\nType: {2}\nCeiling: {3}\nBlocks Occupancy: {4}\nWalls: {5}\nObjects: {6}\nDouble-click: move viewport here")),
 		FText::AsNumber(CellX), FText::AsNumber(CellY), GridEditorWidgetHelpers::GetGridEnumDisplayText(CellTypeEnum, static_cast<int64>(CellData.CellType)),
 		GetBooleanText(CellData.bHasCeiling), GetBooleanText(CellData.bBlocksOccupancy), GetCellWallSummaryText(CellData),
 		GetCellObjectSummaryText(CellX, CellY));
