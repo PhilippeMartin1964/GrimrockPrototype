@@ -36,7 +36,7 @@ namespace
 		}
 		SLATE_EVENT(FOnClicked, OnClicked)
 		SLATE_EVENT(FOnClicked, OnDoubleClicked)
-		SLATE_ATTRIBUTE(FText, ToolTipText)
+		SLATE_ARGUMENT(FText, CellToolTipText)
 		SLATE_DEFAULT_SLOT(FArguments, Content)
 		SLATE_END_ARGS()
 
@@ -49,11 +49,14 @@ namespace
 					.ButtonStyle(&FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("NoBorder"))
 					.ButtonColorAndOpacity(FLinearColor::White)
 					.ContentPadding(FMargin(0.f))
-					.ToolTipText(InArgs._ToolTipText)
 					.OnClicked(InArgs._OnClicked)
 					[
 						InArgs._Content.Widget
 					]);
+
+			// Keep the tooltip on the actual hit-test widget. Using a custom Slate
+			// argument avoids shadowing SWidget's built-in ToolTipText argument.
+			SetToolTipText(InArgs._CellToolTipText);
 		}
 
 		virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override
@@ -432,7 +435,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell(
 	return SNew(SBox).WidthOverride(18.f).HeightOverride(18.f)
 	[
 		SNew(SGridEditorOverviewCellButton)
-			.ToolTipText(GetOverviewCellTooltipText(CellX, CellY))
+			.CellToolTipText(GetOverviewCellTooltipText(CellX, CellY))
 			.OnClicked_Lambda(
 				[this, CellX, CellY]() -> FReply
 				{
