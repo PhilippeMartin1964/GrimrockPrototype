@@ -83,7 +83,7 @@ public:
 
 		if (FModuleManager::Get().IsModuleLoaded("UnrealEd"))
 		{
-			FEditorModeRegistry::Get().UnregisterMode(FGridLevelEdMode::EM_GrimrockGridLevelEdModeId);
+			FEditorModeRegistry::Get().UnregisterMode(FGridLevelEdMode::EM_GridLevelEdModeId);
 		}
 	}
 
@@ -91,7 +91,7 @@ private:
 	bool CanSpawnGridEditorTab(const FSpawnTabArgs& SpawnTabArgs) const
 	{
 		(void)SpawnTabArgs;
-		return GLevelEditorModeTools().IsModeActive(FGridLevelEdMode::EM_GrimrockGridLevelEdModeId);
+		return GLevelEditorModeTools().IsModeActive(FGridLevelEdMode::EM_GridLevelEdModeId);
 	}
 
 	void RegisterGridWorkspaceTab(const FName& TabName, const FText& DisplayName, const FText& Tooltip, EGridEditorWorkspaceTab WorkspaceTab)
