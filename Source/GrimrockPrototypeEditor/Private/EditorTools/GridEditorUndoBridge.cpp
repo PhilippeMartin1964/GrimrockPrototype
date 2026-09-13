@@ -5,8 +5,8 @@
 #include "Editor.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EngineUtils.h"
+#include "Misc/TransactionObjectEvent.h"
 #include "UObject/UObjectGlobals.h"
-#include "UObject/Transactor.h"
 
 namespace
 {
