@@ -37,7 +37,7 @@ namespace
 
 #if WITH_EDITOR
 	TUniquePtr<FScopedTransaction> GridEditorGestureTransaction;
-	FDelegateHandle GridEditorGestureTickerHandle;
+	FTSTicker::FDelegateHandle GridEditorGestureTickerHandle;
 
 	bool IsGridEditorPaintGestureActive()
 	{
@@ -54,7 +54,7 @@ namespace
 		if (GridEditorGestureTickerHandle.IsValid())
 		{
 			FTSTicker::GetCoreTicker().RemoveTicker(GridEditorGestureTickerHandle);
-			GridEditorGestureTickerHandle = FDelegateHandle();
+			GridEditorGestureTickerHandle = FTSTicker::FDelegateHandle();
 		}
 	}
 
@@ -63,7 +63,7 @@ namespace
 		if (!GridEditorGestureTransaction || !IsGridEditorPaintGestureActive())
 		{
 			GridEditorGestureTransaction.Reset();
-			GridEditorGestureTickerHandle = FDelegateHandle();
+			GridEditorGestureTickerHandle = FTSTicker::FDelegateHandle();
 			return false;
 		}
 		return true;
