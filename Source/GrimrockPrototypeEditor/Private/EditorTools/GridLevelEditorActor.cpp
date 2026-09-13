@@ -37,25 +37,25 @@ namespace
 		{
 			return LogicId.ToString();
 		}
-		if (const FGridWorldObjectInstance* Instance = LevelAsset.FindWorldObjectInstanceById(ObjectId))
+		if (const FGridWorldObjectInstance* WorldObjectInstance = LevelAsset.FindWorldObjectInstanceById(ObjectId))
 		{
-			if (!Instance->WorldObjectDefinitionId.IsNone()) return Instance->WorldObjectDefinitionId.ToString();
+			if (!WorldObjectInstance->WorldObjectDefinitionId.IsNone()) return WorldObjectInstance->WorldObjectDefinitionId.ToString();
 		}
-		else if (const FGridLooseItemInstance* Instance = LevelAsset.FindLooseItemInstanceById(ObjectId))
+		else if (const FGridLooseItemInstance* LooseItemInstance = LevelAsset.FindLooseItemInstanceById(ObjectId))
 		{
-			if (!Instance->PaletteEntryId.IsNone()) return Instance->PaletteEntryId.ToString();
+			if (!LooseItemInstance->PaletteEntryId.IsNone()) return LooseItemInstance->PaletteEntryId.ToString();
 		}
-		else if (const FGridMonsterSpawnInstance* Instance = LevelAsset.FindMonsterSpawnInstanceById(ObjectId))
+		else if (const FGridMonsterSpawnInstance* MonsterSpawn = LevelAsset.FindMonsterSpawnInstanceById(ObjectId))
 		{
-			if (!Instance->PaletteEntryId.IsNone()) return Instance->PaletteEntryId.ToString();
+			if (!MonsterSpawn->PaletteEntryId.IsNone()) return MonsterSpawn->PaletteEntryId.ToString();
 		}
-		else if (const FGridItemSpawnInstance* Instance = LevelAsset.FindItemSpawnInstanceById(ObjectId))
+		else if (const FGridItemSpawnInstance* ItemSpawn = LevelAsset.FindItemSpawnInstanceById(ObjectId))
 		{
-			if (!Instance->PaletteEntryId.IsNone()) return Instance->PaletteEntryId.ToString();
+			if (!ItemSpawn->PaletteEntryId.IsNone()) return ItemSpawn->PaletteEntryId.ToString();
 		}
-		else if (const FGridLogicObjectInstance* Instance = LevelAsset.FindLogicObjectInstanceById(ObjectId))
+		else if (const FGridLogicObjectInstance* LogicInstance = LevelAsset.FindLogicObjectInstanceById(ObjectId))
 		{
-			if (!Instance->PaletteEntryId.IsNone()) return Instance->PaletteEntryId.ToString();
+			if (!LogicInstance->PaletteEntryId.IsNone()) return LogicInstance->PaletteEntryId.ToString();
 		}
 		return ObjectId.ToString(EGuidFormats::Digits).Left(8);
 	}
@@ -91,11 +91,15 @@ namespace
 
 	int32 CountEraseObjectLinks(const UGridLevelAsset& LevelAsset, const FGuid& ObjectId)
 	{
-		return LevelAsset.Links.CountByPredicate(
-			[&ObjectId](const FGridObjectLink& Link)
+		int32 LinkCount = 0;
+		for (const FGridObjectLink& Link : LevelAsset.Links)
+		{
+			if (Link.SourceObjectId == ObjectId || Link.TargetObjectId == ObjectId)
 			{
-				return Link.SourceObjectId == ObjectId || Link.TargetObjectId == ObjectId;
-			});
+				++LinkCount;
+			}
+		}
+		return LinkCount;
 	}
 
 	bool ChooseEraseObject(const AGridLevelEditorActor& EditorActor, const TArray<FGuid>& CandidateIds, FGuid& OutObjectId)
@@ -139,7 +143,8 @@ namespace
 					[
 						SAssignNew(CandidateList, SVerticalBox)
 					]
-				];
+				]
+			];
 
 		TWeakPtr<SWindow> WeakWindow = Window;
 		TArray<FGuid> OrderedIds = CandidateIds;
