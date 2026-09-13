@@ -35,7 +35,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
 	bool BeginPhysicalThrowAiming();
 
-
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
 	bool BeginPhysicalInventoryThrowAiming(FName ItemDefinitionId);
 
@@ -52,6 +51,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction", meta = (ClampMin = "0.0"))
 	float MaxInteractionDistance = 300.f;
 
+	/** Cursor-held items are placed by hand at or below this horizontal distance, and thrown only beyond it. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
 	float ThrowDistanceThreshold = 200.f;
 
@@ -66,7 +66,6 @@ protected:
 
 	UPROPERTY(Transient)
 	FGuid PhysicalThrowSourceRuntimeId;
-
 
 	UPROPERTY(Transient)
 	FName PhysicalThrowInventoryDefinitionId = NAME_None;
@@ -92,6 +91,7 @@ protected:
 		IgnoreInventoryUiWithoutCursorItem,
 		IgnoreModalUi,
 		CursorItemNoWorldHit,
+		CursorItemCannotPlace,
 		CursorItemWallLock,
 		CursorItemReceptacle,
 		CursorItemWorldDrop,

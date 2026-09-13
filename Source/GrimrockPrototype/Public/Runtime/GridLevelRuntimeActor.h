@@ -293,11 +293,11 @@ public:
 	AGridWallLockActor* FindWallLockAtEdge(int32 FromCellX, int32 FromCellY, EGridEdge Edge) const;
 
 	/**
-	 * Maximum horizontal reach for free world pickups (Edge=None).
-	 * Free pickups may be taken from the party cell or one traversable cardinal neighbour.
+	 * Shared horizontal hand reach for free world pickup and direct cursor placement.
+	 * A visible target at or below this distance is manipulated by hand; farther cursor targets use throwing.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime|Interaction", meta = (ClampMin = "0.0"))
-	float WorldItemPickupReach = 210.0f;
+	float WorldItemPickupReach = 200.0f;
 
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction")
 	bool TryPickupItemAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn);

@@ -90,7 +90,7 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 		Cell.bBlocksOccupancy = false;
 	}
 	Runtime->LevelAsset = LevelAsset;
-	Runtime->WorldItemPickupReach = 210.0f;
+	TestEqual(TEXT("World item hand reach defaults to 200 cm"), Runtime->WorldItemPickupReach, 200.0f);
 
 	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Runtime);
 	Definition->ItemDefinitionId = TEXT("TD02_Stone");
@@ -149,22 +149,35 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	CursorAdjacentItem.RuntimeObjectId = FGuid::NewGuid();
 	CursorAdjacentItem.OwnerType = EGridItemOwnerType::Cursor;
 	LevelAsset->GetCellMutable(1, 1).EastWall = EGridWallType::Solid;
-	TestTrue(TEXT("A cursor item can be placed by hand in one cardinal neighbour even when grid movement is blocked"),
+	TestTrue(TEXT("A cursor item can be placed by hand exactly 200 cm away even when grid movement is blocked"),
 		Runtime->TryDropItemInstanceAtCell(CursorAdjacentItem, Definition, 2, 1, EGridEdge::None, FVector::ZeroVector));
-	TestNotNull(TEXT("The one-cell hand placement creates its world actor"), FindWorldItemActor(CursorAdjacentItem.RuntimeObjectId));
+	TestNotNull(TEXT("The 200 cm hand placement creates its world actor"), FindWorldItemActor(CursorAdjacentItem.RuntimeObjectId));
 	LevelAsset->GetCellMutable(1, 1).EastWall = EGridWallType::None;
+
+	FGridItemInstance CursorJustBeyondReach = WorldItem;
+	CursorJustBeyondReach.RuntimeObjectId = FGuid::NewGuid();
+	CursorJustBeyondReach.OwnerType = EGridItemOwnerType::Cursor;
+	TestFalse(TEXT("A cursor item is not placed by hand at 201 cm"),
+		Runtime->TryDropItemInstanceAtCell(CursorJustBeyondReach, Definition, 2, 1, EGridEdge::None, FVector(1.0f, 0.0f, 0.0f)));
+	TestNull(TEXT("Rejected 201 cm hand placement creates no world actor"), FindWorldItemActor(CursorJustBeyondReach.RuntimeObjectId));
+
+	FGridItemInstance CursorDiagonalNearCorner = WorldItem;
+	CursorDiagonalNearCorner.RuntimeObjectId = FGuid::NewGuid();
+	CursorDiagonalNearCorner.OwnerType = EGridItemOwnerType::Cursor;
+	TestTrue(TEXT("Physical distance, not cell adjacency, owns hand placement when a diagonal point is within 200 cm"),
+		Runtime->TryDropItemInstanceAtCell(CursorDiagonalNearCorner, Definition, 2, 2, EGridEdge::None, FVector(-60.0f, -60.0f, 0.0f)));
 
 	FGridItemInstance CursorTwoCellsAway = WorldItem;
 	CursorTwoCellsAway.RuntimeObjectId = FGuid::NewGuid();
 	CursorTwoCellsAway.OwnerType = EGridItemOwnerType::Cursor;
-	TestFalse(TEXT("A cursor item cannot be placed directly two cells away"),
+	TestFalse(TEXT("A cursor item cannot be placed directly two cell centres away"),
 		Runtime->TryDropItemInstanceAtCell(CursorTwoCellsAway, Definition, 3, 1, EGridEdge::None, FVector::ZeroVector));
 	TestNull(TEXT("Rejected two-cell hand placement creates no world actor"), FindWorldItemActor(CursorTwoCellsAway.RuntimeObjectId));
 
 	FGridItemInstance CursorDiagonalItem = WorldItem;
 	CursorDiagonalItem.RuntimeObjectId = FGuid::NewGuid();
 	CursorDiagonalItem.OwnerType = EGridItemOwnerType::Cursor;
-	TestFalse(TEXT("A cursor item cannot be placed directly on a diagonal neighbour"),
+	TestFalse(TEXT("A diagonal cell centre is outside the 200 cm hand reach"),
 		Runtime->TryDropItemInstanceAtCell(CursorDiagonalItem, Definition, 2, 2, EGridEdge::None, FVector::ZeroVector));
 
 	FGridItemInstance NearbyFreeItem = WorldItem;
@@ -179,16 +192,14 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	}
 
 	Party->Facing = EGridEdge::East;
-	TestTrue(TEXT("A free item one cell away is pickable within the physical reach regardless of facing"),
-		Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
+	TestTrue(TEXT("A free item exactly 200 cm away is pickable regardless of facing"), Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
 
-	Runtime->WorldItemPickupReach = 190.0f;
-	TestFalse(TEXT("The same free item is rejected when the physical reach is shorter than one cell"),
-		Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
-	Runtime->WorldItemPickupReach = 210.0f;
+	Runtime->WorldItemPickupReach = 199.0f;
+	TestFalse(TEXT("The same free item is rejected when the hand reach is shorter than 200 cm"), Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
+	Runtime->WorldItemPickupReach = 200.0f;
 
 	LevelAsset->GetCellMutable(1, 1).NorthWall = EGridWallType::Solid;
-	TestTrue(TEXT("Grid movement blockage does not veto a visible one-cell pickup; the mouse visibility hit owns obstacle rejection"),
+	TestTrue(TEXT("Grid movement blockage does not veto a visible pickup within hand reach; the mouse visibility hit owns obstacle rejection"),
 		Runtime->CanPartyPickupItemActor(NearbyFreeActor, Party));
 	LevelAsset->GetCellMutable(1, 1).NorthWall = EGridWallType::None;
 
@@ -202,10 +213,9 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-	TestFalse(TEXT("A diagonal free item is outside the immediate pickup neighbourhood"), Runtime->CanPartyPickupItemActor(DiagonalFreeActor, Party));
+	TestFalse(TEXT("A diagonal cell-centre item is outside the 200 cm pickup reach"), Runtime->CanPartyPickupItemActor(DiagonalFreeActor, Party));
 
-	TestTrue(TEXT("Picking up the neighbouring free actor transfers the actor actually clicked"),
-		Runtime->TryPickupItemActor(NearbyFreeActor, Party));
+	TestTrue(TEXT("Picking up the neighbouring free actor transfers the actor actually clicked"), Runtime->TryPickupItemActor(NearbyFreeActor, Party));
 
 	TestTrue(TEXT("A valid item can be dropped on the edge facing the party"),
 		Runtime->TryDropItemInstanceAtCell(WorldItem, Definition, 1, 2, EGridEdge::South, FVector::ZeroVector));

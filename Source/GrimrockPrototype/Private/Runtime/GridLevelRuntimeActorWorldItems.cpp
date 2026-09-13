@@ -22,28 +22,6 @@ namespace
 		return FString::Printf(TEXT("%d"), static_cast<int32>(Edge));
 	}
 
-	EGridEdge GetAdjacentPickupDirection(const FIntPoint& FromCell, const FIntPoint& ToCell)
-	{
-		const FIntPoint Delta = ToCell - FromCell;
-		if (Delta == FIntPoint(0, 1))
-		{
-			return EGridEdge::North;
-		}
-		if (Delta == FIntPoint(1, 0))
-		{
-			return EGridEdge::East;
-		}
-		if (Delta == FIntPoint(0, -1))
-		{
-			return EGridEdge::South;
-		}
-		if (Delta == FIntPoint(-1, 0))
-		{
-			return EGridEdge::West;
-		}
-		return EGridEdge::None;
-	}
-
 	FName ResolveWorldPickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackItemDefinitionId)
 	{
 		if (!ItemActor)
@@ -82,23 +60,18 @@ namespace
 		return nullptr;
 	}
 
-	bool IsWithinWorldItemHandReach(const AGridLevelRuntimeActor* RuntimeActor, const AGrimrockPartyPawn* PartyPawn, int32 CellX, int32 CellY)
+	bool IsWithinWorldItemHandReach(
+		const AGridLevelRuntimeActor* RuntimeActor, const AGrimrockPartyPawn* PartyPawn, int32 CellX, int32 CellY, const FVector& LocalOffset)
 	{
 		if (!RuntimeActor || !PartyPawn)
 		{
 			return false;
 		}
 
-		const int32 DeltaX = FMath::Abs(CellX - PartyPawn->CurrentCellX);
-		const int32 DeltaY = FMath::Abs(CellY - PartyPawn->CurrentCellY);
-		if (DeltaX + DeltaY > 1)
-		{
-			return false;
-		}
-
 		const float Reach = FMath::Max(0.0f, RuntimeActor->WorldItemPickupReach);
-		const FVector TargetCellCenter = RuntimeActor->GetCellCenterWorld(CellX, CellY, PartyPawn->GetActorLocation().Z);
-		return FVector::DistSquared2D(PartyPawn->GetActorLocation(), TargetCellCenter) <= FMath::Square(Reach);
+		const FVector TargetWorldLocation = RuntimeActor->GetCellCenterWorld(CellX, CellY, PartyPawn->GetActorLocation().Z) +
+			FVector(LocalOffset.X, LocalOffset.Y, 0.0f);
+		return FVector::DistSquared2D(PartyPawn->GetActorLocation(), TargetWorldLocation) <= FMath::Square(Reach);
 	}
 }
 
@@ -125,9 +98,8 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 
 	const FIntPoint PartyCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
 
-	// Free floor pickups use the same one-cell hand-reach concept as direct cursor placement.
-	// Physical obstruction is owned by the mouse Visibility hit, not by CanMove(): an open
-	// gap in a grating may be reachable even while the grid edge remains movement-blocked.
+	// Free floor pickups use pure horizontal hand reach. Physical obstruction is owned by the
+	// mouse Visibility hit, so a grating opening may be reachable even while movement is blocked.
 	if (Entry.Edge == EGridEdge::None)
 	{
 		const AGridItemActor* ItemActor = Entry.ItemActor.Get();
@@ -149,23 +121,6 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 				UE_LOG(LogTemp, Warning,
 					TEXT("Grid item pickup rejected: free pickup is out of reach. PartyCell=(%d,%d) ItemCell=(%d,%d) Distance=%.1f Reach=%.1f."),
 					PartyCell.X, PartyCell.Y, Entry.Cell.X, Entry.Cell.Y, FMath::Sqrt(DistanceSquared), PickupReach);
-			}
-			return false;
-		}
-
-		if (Entry.Cell == PartyCell)
-		{
-			return true;
-		}
-
-		const EGridEdge PickupDirection = GetAdjacentPickupDirection(PartyCell, Entry.Cell);
-		if (PickupDirection == EGridEdge::None)
-		{
-			if (bLogRejection)
-			{
-				UE_LOG(LogTemp, Warning,
-					TEXT("Grid item pickup rejected: free pickup is not in the party cell or a cardinal neighbour. PartyCell=(%d,%d) ItemCell=(%d,%d)."),
-					PartyCell.X, PartyCell.Y, Entry.Cell.X, Entry.Cell.Y);
 			}
 			return false;
 		}
@@ -701,7 +656,7 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	if (ItemInstance.OwnerType == EGridItemOwnerType::Cursor)
 	{
 		const AGrimrockPartyPawn* PartyPawn = ResolveWorldItemInteractionParty(this);
-		if (!IsWithinWorldItemHandReach(this, PartyPawn, CellX, CellY))
+		if (!IsWithinWorldItemHandReach(this, PartyPawn, CellX, CellY, LocalOffset))
 		{
 			UE_LOG(LogTemp, Log,
 				TEXT("GridInventory WorldDrop Rejected Item=%s Reason=BeyondHandReach PartyCell=(%d,%d) TargetCell=(%d,%d) Reach=%.1f"),

@@ -680,15 +680,26 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
 			return Resolution;
 		}
 
-		if (TryResolveWorldDropFromHit(Resolution.HitResult, Resolution.PartyPawn, Resolution.DropCellX, Resolution.DropCellY, Resolution.DropLocalOffset))
+		const float HandPlacementReach = FMath::Max(0.0f, ThrowDistanceThreshold);
+		const float HandPlacementDistanceSquared = FVector::DistSquared2D(Resolution.PartyPawn->GetActorLocation(), Resolution.HitResult.ImpactPoint);
+		if (HandPlacementDistanceSquared <= FMath::Square(HandPlacementReach))
 		{
-			Resolution.Intent = EGridMouseInteractionIntent::CursorItemWorldDrop;
-			Resolution.DiagnosticReason = TEXT("WorldDropCandidate");
+			if (TryResolveWorldDropFromHit(
+					Resolution.HitResult, Resolution.PartyPawn, Resolution.DropCellX, Resolution.DropCellY, Resolution.DropLocalOffset))
+			{
+				Resolution.Intent = EGridMouseInteractionIntent::CursorItemWorldDrop;
+				Resolution.DiagnosticReason = TEXT("WorldDropCandidateWithinHandReach");
+			}
+			else
+			{
+				Resolution.Intent = EGridMouseInteractionIntent::CursorItemCannotPlace;
+				Resolution.DiagnosticReason = TEXT("NearTargetCannotPlace");
+			}
 			return Resolution;
 		}
 
 		Resolution.Intent = EGridMouseInteractionIntent::CursorItemThrow;
-		Resolution.DiagnosticReason = TEXT("ThrowCandidate");
+		Resolution.DiagnosticReason = TEXT("ThrowCandidateBeyondHandReach");
 		return Resolution;
 	}
 
@@ -924,6 +935,14 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 			UE_LOG(LogTemp, Warning, TEXT("GridInventory WorldDrop Failed Reason=NoTarget"));
 			ShowInteractionFeedback(FText::FromString(TEXT("Impossible de d\u00E9poser ou lancer ici.")));
 			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickCursorNoWorldHit"));
+			return;
+		}
+
+		if (MouseResolution.Intent == EGridMouseInteractionIntent::CursorItemCannotPlace)
+		{
+			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=NearTarget Result=CannotPlace"));
+			ShowInteractionFeedback(FText::FromString(TEXT("Impossible de placer cet objet ici.")));
+			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickCursorNearCannotPlace"));
 			return;
 		}
 
@@ -1252,6 +1271,11 @@ bool AGrimrockPlayerController::ResolveCursorItemHoverCursor(
 			OutReason = TEXT("HoverCursorItemNoWorldHit");
 			return true;
 
+		case EGridMouseInteractionIntent::CursorItemCannotPlace:
+			OutCursor = EGridInteractionCursor::CannotPlaceItem;
+			OutReason = TEXT("HoverCursorItemNearCannotPlace");
+			return true;
+
 		case EGridMouseInteractionIntent::CursorItemWallLock:
 			OutCursor = MouseResolution.bReceptacleAccessible ? EGridInteractionCursor::PlaceItem : EGridInteractionCursor::CannotPlaceItem;
 			OutReason = MouseResolution.bReceptacleAccessible ? TEXT("HoverCursorItemWallLock") : TEXT("HoverCursorItemWallLockInaccessible");
@@ -1470,20 +1494,6 @@ bool AGrimrockPlayerController::TryResolveWorldDropFromHit(
 	OutCellX = FMath::FloorToInt(GridLocalPoint.X / CellSize);
 	OutCellY = FMath::FloorToInt(GridLocalPoint.Y / CellSize);
 	if (!RuntimeActor->IsWalkableCell(OutCellX, OutCellY))
-	{
-		return false;
-	}
-
-	const int32 DeltaX = FMath::Abs(OutCellX - PartyPawn->CurrentCellX);
-	const int32 DeltaY = FMath::Abs(OutCellY - PartyPawn->CurrentCellY);
-	if (DeltaX + DeltaY > 1)
-	{
-		return false;
-	}
-
-	const float HandReach = FMath::Max(0.0f, RuntimeActor->WorldItemPickupReach);
-	const FVector TargetCellCenter = RuntimeActor->GetCellCenterWorld(OutCellX, OutCellY, PartyPawn->GetActorLocation().Z);
-	if (FVector::DistSquared2D(PartyPawn->GetActorLocation(), TargetCellCenter) > FMath::Square(HandReach))
 	{
 		return false;
 	}
