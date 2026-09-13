@@ -174,12 +174,48 @@ void AGridLevelEditorActor::ApplyPrimaryToolAction()
 			}
 
 #if WITH_EDITOR
+			// Erase is intentionally a one-shot tool. Once a real deletion succeeds,
+			// immediately return to Select and terminate the originating viewport
+			// gesture so the next UI click cannot erase geometry behind a menu/panel.
+			const auto FinishSuccessfulErase = [this]()
+			{
+				ActiveTool = EGridEditorTool::Select;
+				CancelGridEditorPaintGesture();
+			};
+
 			if (CandidateIds.Num() > 0)
 			{
-				HandleTargetedObjectErase(*this, CandidateIds);
+				if (HandleTargetedObjectErase(*this, CandidateIds))
+				{
+					FinishSuccessfulErase();
+				}
 				break;
 			}
+
+			const bool bHadValidSelection = HasValidLevelAsset() && IsValidSelectedCell();
+			const int32 ObjectCountBefore = bHadValidSelection ? LevelAsset->GetTypedPlacementCount() : INDEX_NONE;
+			FGridLevelCellData CellBefore;
+			if (bHadValidSelection)
+			{
+				CellBefore = LevelAsset->GetCell(SelectedCellX, SelectedCellY);
+			}
+
 			RunGridEditorTransaction(TEXT("Erase Grid Element"), [this]() { EraseAtSelection(); });
+
+			bool bEraseSucceeded = false;
+			if (bHadValidSelection && HasValidLevelAsset() && IsValidSelectedCell())
+			{
+				const FGridLevelCellData& CellAfter = LevelAsset->GetCell(SelectedCellX, SelectedCellY);
+				bEraseSucceeded = LevelAsset->GetTypedPlacementCount() < ObjectCountBefore || CellBefore.CellType != CellAfter.CellType ||
+					CellBefore.NorthWall != CellAfter.NorthWall || CellBefore.EastWall != CellAfter.EastWall ||
+					CellBefore.SouthWall != CellAfter.SouthWall || CellBefore.WestWall != CellAfter.WestWall ||
+					CellBefore.bHasCeiling != CellAfter.bHasCeiling || CellBefore.bBlocksOccupancy != CellAfter.bBlocksOccupancy;
+			}
+
+			if (bEraseSucceeded)
+			{
+				FinishSuccessfulErase();
+			}
 #else
 			EraseAtSelection();
 #endif
