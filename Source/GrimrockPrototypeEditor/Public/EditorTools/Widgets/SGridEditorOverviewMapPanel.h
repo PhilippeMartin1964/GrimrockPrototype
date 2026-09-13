@@ -65,7 +65,6 @@ private:
 	FText GetSelectedCellObjectSummaryText(FGuid ObjectId) const;
 	EGridEditorOverviewObjectAnchor GetObjectAnchor(FGuid ObjectId) const;
 	TArray<FGridEditorOverviewAnchorObjectGroup> GetObjectsAtSelectedCellGroupedByAnchor() const;
-	bool HasObjectAtCell(int32 CellX, int32 CellY) const;
 
 private:
 	TWeakObjectPtr<AGridLevelEditorActor> EditorActor;

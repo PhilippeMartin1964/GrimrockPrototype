@@ -170,15 +170,18 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildIntegratedDungeonSection()
 					.Stretch(EStretch::ScaleToFitX)
 					.StretchDirection(EStretchDirection::DownOnly)
 					[
-						// GEUI11.1: clip the authoritative full panel to the native 32x32
-						// map square BEFORE scaling. This preserves the complete map while
-						// excluding the legend/detail sections below it from sidebar sizing.
-						SNew(SBox)
-							.WidthOverride(640.f)
-							.HeightOverride(640.f)
-							.Clipping(EWidgetClipping::ClipToBounds)
+						SNew(SBorder)
+							.Padding(2.f)
+							.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+							.BorderBackgroundColor(FSlateColor(FLinearColor(0.10f, 0.10f, 0.10f, 1.f)))
 							[
-								OverviewMapPanel
+								SNew(SBox)
+									.WidthOverride(640.f)
+									.HeightOverride(664.f)
+									.Clipping(EWidgetClipping::ClipToBounds)
+									[
+										OverviewMapPanel
+									]
 							]
 					]
 			]

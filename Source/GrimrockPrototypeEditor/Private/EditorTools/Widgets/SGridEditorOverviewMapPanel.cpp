@@ -785,16 +785,4 @@ TArray<FGridEditorOverviewAnchorObjectGroup> SGridEditorOverviewMapPanel::GetObj
 	return Groups;
 }
 
-bool SGridEditorOverviewMapPanel::HasObjectAtCell(int32 CellX, int32 CellY) const
-{
-	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-	const UGridLevelAsset* LevelAsset = CurrentEditorActor ? CurrentEditorActor->LevelAsset : nullptr;
-	if (!LevelAsset)
-	{
-		return false;
-	}
-
-	return !LevelAsset->GetTypedPlacementIdsAtCell(CellX, CellY).IsEmpty();
-}
-
 #endif
