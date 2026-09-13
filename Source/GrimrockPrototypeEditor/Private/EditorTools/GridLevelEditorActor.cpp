@@ -21,6 +21,9 @@ namespace
 	bool EditGridPlacementAuthoring(UGridLevelAsset* LevelAsset, FGuid ObjectId, TEdit&& Edit)
 	{
 		if (!LevelAsset || !LevelAsset->ContainsTypedPlacementId(ObjectId)) return false;
+#if WITH_EDITOR
+		const FScopedTransaction Transaction(FText::FromString(TEXT("Edit Grid Object")));
+#endif
 		LevelAsset->Modify();
 		if (FGridWorldObjectInstance* WorldObjectInstance = LevelAsset->FindWorldObjectInstanceById(ObjectId)) Edit(*WorldObjectInstance);
 		else if (FGridLooseItemInstance* LooseItemInstance = LevelAsset->FindLooseItemInstanceById(ObjectId)) Edit(*LooseItemInstance);
@@ -32,6 +35,13 @@ namespace
 	}
 
 #if WITH_EDITOR
+	template <typename TEdit>
+	void RunGridEditorTransaction(const TCHAR* Description, TEdit&& Edit)
+	{
+		const FScopedTransaction Transaction(FText::FromString(Description));
+		Edit();
+	}
+
 	void CancelGridEditorPaintGesture()
 	{
 		if (FEdMode* ActiveMode = GLevelEditorModeTools().GetActiveMode(FGridLevelEdMode::EM_GridLevelEdModeId))

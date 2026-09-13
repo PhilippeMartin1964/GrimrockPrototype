@@ -132,15 +132,27 @@ void AGridLevelEditorActor::ApplyPrimaryToolAction()
 			break;
 
 		case EGridEditorTool::PaintCell:
+#if WITH_EDITOR
+			RunGridEditorTransaction(TEXT("Paint Grid Cell"), [this]() { PaintSelectedCell(); });
+#else
 			PaintSelectedCell();
+#endif
 			break;
 
 		case EGridEditorTool::PaintWall:
+#if WITH_EDITOR
+			RunGridEditorTransaction(TEXT("Paint Grid Wall"), [this]() { PaintSelectedWall(); });
+#else
 			PaintSelectedWall();
+#endif
 			break;
 
 		case EGridEditorTool::PaintObject:
+#if WITH_EDITOR
+			RunGridEditorTransaction(TEXT("Place Grid Object"), [this]() { PlaceSelectedObject(); });
+#else
 			PlaceSelectedObject();
+#endif
 			break;
 
 		case EGridEditorTool::Erase:
@@ -167,14 +179,20 @@ void AGridLevelEditorActor::ApplyPrimaryToolAction()
 				HandleTargetedObjectErase(*this, CandidateIds);
 				break;
 			}
-#endif
+			RunGridEditorTransaction(TEXT("Erase Grid Element"), [this]() { EraseAtSelection(); });
+#else
 			EraseAtSelection();
+#endif
 			break;
 		}
 
 		case EGridEditorTool::Link:
 			SelectHoveredObject();
+#if WITH_EDITOR
+			RunGridEditorTransaction(TEXT("Create Grid Link"), [this]() { BeginOrCompleteLinkAtSelection(); });
+#else
 			BeginOrCompleteLinkAtSelection();
+#endif
 			break;
 
 		default:
@@ -187,15 +205,27 @@ void AGridLevelEditorActor::ApplySecondaryToolAction()
 	switch (ActiveTool)
 	{
 		case EGridEditorTool::PaintCell:
+#if WITH_EDITOR
+			RunGridEditorTransaction(TEXT("Clear Grid Cell"), [this]() { ClearSelectedCell(); });
+#else
 			ClearSelectedCell();
+#endif
 			break;
 
 		case EGridEditorTool::PaintWall:
+#if WITH_EDITOR
+			RunGridEditorTransaction(TEXT("Clear Grid Wall"), [this]() { ClearSelectedWall(); });
+#else
 			ClearSelectedWall();
+#endif
 			break;
 
 		case EGridEditorTool::PaintObject:
+#if WITH_EDITOR
+			RunGridEditorTransaction(TEXT("Remove Grid Objects"), [this]() { RemoveObjectsAtSelection(); });
+#else
 			RemoveObjectsAtSelection();
+#endif
 			break;
 
 		case EGridEditorTool::Link:
