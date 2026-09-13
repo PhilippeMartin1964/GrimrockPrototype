@@ -166,13 +166,17 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildIntegratedDungeonSection()
 			.AutoHeight()
 			.HAlign(HAlign_Fill)
 			[
-				SNew(SBox)
-					.HeightOverride(340.f)
-					.Clipping(EWidgetClipping::ClipToBounds)
+				SNew(SScaleBox)
+					.Stretch(EStretch::ScaleToFitX)
+					.StretchDirection(EStretchDirection::DownOnly)
 					[
-						SNew(SScaleBox)
-							.Stretch(EStretch::ScaleToFitX)
-							.StretchDirection(EStretchDirection::DownOnly)
+						// GEUI11.1: clip the authoritative full panel to the native 32x32
+						// map square BEFORE scaling. This preserves the complete map while
+						// excluding the legend/detail sections below it from sidebar sizing.
+						SNew(SBox)
+							.WidthOverride(640.f)
+							.HeightOverride(640.f)
+							.Clipping(EWidgetClipping::ClipToBounds)
 							[
 								OverviewMapPanel
 							]
