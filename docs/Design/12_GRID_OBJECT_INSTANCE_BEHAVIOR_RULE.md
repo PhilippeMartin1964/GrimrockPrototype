@@ -45,8 +45,7 @@ L’instance possède uniquement ce qui est réellement local au niveau, par exe
 - identifiant d’instance stable ;
 - cellule et orientation ;
 - état initial ;
-- destination de téléporteur ;
-- destination de transition ;
+- destination Relocation (Teleporter, Stairs, Passage ou Pit) ;
 - contenu initial d’un réceptacle ;
 - état initial de serrure ;
 - Tag / Notes ;
@@ -108,26 +107,25 @@ Une porte verticale, coulissante ou battante doit différer par sa `Motion`, pas
 
 `FGridObjectBehaviorParams` porte les règles partagées et le comportement effectif résolu. Les placements ne le sérialisent pas intégralement : `FGridWorldObjectInstanceConfig` conserve les données naturellement locales ainsi que les deux canaux d’exception sparse introduits par RECOVERY01 (parties mobiles et chaîne de porte).
 
-### Teleporter
+### Relocation / Pit
 
-La destination est naturellement locale :
-
-```text
-Behavior.Teleporter.TargetCellX
-Behavior.Teleporter.TargetCellY
-```
-
-### Transition / Pit
-
-Données locales possibles :
+The single destination is local to the placement:
 
 ```text
-Behavior.Transition
-Behavior.Pit.bInitiallyOpen
-Behavior.Pit.bUseSameCellCoordinates
+InstanceConfig.Relocation.TargetLevelId
+InstanceConfig.Relocation.TargetCellX
+InstanceConfig.Relocation.TargetCellY
+InstanceConfig.Relocation.TargetFacing
+InstanceConfig.Pit.bInitiallyOpen
+InstanceConfig.Pit.bUseSameCellCoordinates
 ```
 
-La géométrie des volets d’un Pit n’est pas locale ; elle appartient à `MovingParts[].Motion`.
+`DefaultBehavior.Relocation` supplies initial placement defaults. The resolver uses
+`Config.Relocation` for the placed destination; it never maintains a duplicate destination.
+Both coordinates default to INDEX_NONE (unset). Teleporters are always candidates;
+other non-Pit objects require configured coordinates. Normal None level means current level,
+while Pit None means automatic lower level. Facing None preserves facing. Activation is
+automatic on cell entry. Pit flap geometry remains in `MovingParts[].Motion`.
 
 ### Receptacle
 
@@ -229,7 +227,7 @@ Depuis MIG09, `UGridLevelAsset` ne stocke que les cinq collections typées. L'an
 [ ] ButtonHoldTime reste une règle logique
 [ ] règles de poids de plaque préservées
 [ ] chaîne de porte : tri-state local + durée optionnelle, jamais de distance locale
-[ ] destinations Teleporter/Transition restent locales
+[ ] destinations Relocation restent locales
 [ ] contenu initial Receptacle reste local
 [ ] MonsterSpawn et LogicObject restent typés sans ancien N/LocalOffset world-object
 [ ] aucune API spécialisée InitializeButton/InitializeLever/InitializeDoor de production

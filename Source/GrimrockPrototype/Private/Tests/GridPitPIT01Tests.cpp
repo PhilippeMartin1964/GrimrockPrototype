@@ -76,12 +76,10 @@ namespace
 		Pit.WorldObjectDefinitionId = TEXT("Pit_Stone_01");
 		Pit.InstanceConfig.Pit.bInitiallyOpen = bOpen;
 		Pit.InstanceConfig.Pit.bUseSameCellCoordinates = true;
-		Pit.InstanceConfig.Transition.bIsTransition = true;
-		Pit.InstanceConfig.Transition.TargetLevelId = TargetLevelId;
-		Pit.InstanceConfig.Transition.TargetCellX = 0;
-		Pit.InstanceConfig.Transition.TargetCellY = 0;
-		Pit.InstanceConfig.Transition.TargetFacing = EGridEdge::East;
-		Pit.InstanceConfig.Transition.bRequireUseAction = false;
+		Pit.InstanceConfig.Relocation.TargetLevelId = TargetLevelId;
+		Pit.InstanceConfig.Relocation.TargetCellX = 0;
+		Pit.InstanceConfig.Relocation.TargetCellY = 0;
+		Pit.InstanceConfig.Relocation.TargetFacing = EGridEdge::East;
 		return Pit;
 	}
 }
@@ -98,8 +96,6 @@ bool FGridPIT01DataContractTest::RunTest(const FString& Parameters)
 	Definition->PlacementSurface = EGridObjectPlacementKind::Floor;
 	Definition->DefaultBehavior.Pit.bInitiallyOpen = true;
 	Definition->DefaultBehavior.Pit.bUseSameCellCoordinates = true;
-	Definition->DefaultBehavior.Transition.bIsTransition = true;
-	Definition->DefaultBehavior.Transition.bRequireUseAction = false;
 
 	TestEqual(TEXT("Pit is authored on the Floor placement surface"), Definition->PlacementSurface, EGridObjectPlacementKind::Floor);
 	TestTrue(TEXT("Pit requires its dedicated runtime actor contract"), Definition->RequiresRuntimeActorClass());
@@ -107,7 +103,6 @@ bool FGridPIT01DataContractTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Fresh Pit has no trapdoor cover before both Moving Parts are authored"), Definition->HasCompletePitTrapdoorCover());
 	TestTrue(TEXT("PIT01 defaults to open"), Definition->DefaultBehavior.Pit.bInitiallyOpen);
 	TestTrue(TEXT("PIT01 defaults to same-cell destination coordinates"), Definition->DefaultBehavior.Pit.bUseSameCellCoordinates);
-	TestTrue(TEXT("PIT01 is an automatic transition"), !Definition->DefaultBehavior.Transition.bRequireUseAction);
 
 	UGridDungeonAsset* Dungeon = NewObject<UGridDungeonAsset>();
 	UGridLevelAsset* ListedUpper = MakePitFloor(Dungeon);
@@ -178,15 +173,14 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	Dungeon->DefaultLevelId = UpperId;
 	Dungeon->Levels = { UpperEntry, LowerEntry };
 
-	// Standard Pit authoring: no manual target, no generic transition flag and no arrival facing.
+	// Standard Pit authoring: no manual target and no arrival facing.
 	// Also emulate stale placed data from an earlier prototype revision: stored Type and ObjectId are not trusted
 	// when the definition itself authoritatively identifies a Pit.
 	Upper->WorldObjectInstances.Add(MakeStaticPit(2, 2, NAME_None));
 	Upper->WorldObjectInstances[0].Type = EGridLevelObjectType::Decoration;
 	Upper->WorldObjectInstances[0].InstanceId = FGuid();
 	Upper->WorldObjectInstances[0].InstanceConfig.Pit.bInitiallyOpen = false; // no MovingParts cover => static hole must still be Open
-	Upper->WorldObjectInstances[0].InstanceConfig.Transition.bIsTransition = false;
-	Upper->WorldObjectInstances[0].InstanceConfig.Transition.TargetFacing = EGridEdge::None;
+	Upper->WorldObjectInstances[0].InstanceConfig.Relocation.TargetFacing = EGridEdge::None;
 
 	UGridWorldObjectDefinitionAsset* PitDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
 	PitDefinition->DefinitionId = TEXT("Pit_Stone_01");
@@ -205,14 +199,14 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	Party->PitFallLandingCameraImpactDuration = 0.07f;
 	Party->PitFallLandingCameraRecoveryDuration = 0.16f;
 
-	FGridObjectTransitionParams PitTransition;
-	TestTrue(TEXT("Static hole resolves as Open even with stale stored Type/ObjectId and false authored state"), Runtime->FindOpenPitAtCell(2, 2, PitTransition));
-	TestEqual(TEXT("Same-cell X overrides authored transition X"), PitTransition.TargetCellX, 2);
-	TestEqual(TEXT("Same-cell Y overrides authored transition Y"), PitTransition.TargetCellY, 2);
-	TestEqual(TEXT("Pit automatically resolves the lower level"), PitTransition.TargetLevelId, LowerId);
+	FGridRelocationBehaviorParams PitRelocation;
+	TestTrue(TEXT("Static hole resolves as Open even with stale stored Type/ObjectId and false authored state"), Runtime->FindOpenPitAtCell(2, 2, PitRelocation));
+	TestEqual(TEXT("Same-cell X overrides authored relocation X"), PitRelocation.TargetCellX, 2);
+	TestEqual(TEXT("Same-cell Y overrides authored relocation Y"), PitRelocation.TargetCellY, 2);
+	TestEqual(TEXT("Pit automatically resolves the lower level"), PitRelocation.TargetLevelId, LowerId);
 
-	FGridObjectTransitionParams GenericTransition;
-	TestFalse(TEXT("Generic stair transition path ignores the Pit definition"), Runtime->FindTransitionAtCell(2, 2, false, GenericTransition));
+	FGridRelocationBehaviorParams GenericRelocation;
+	TestFalse(TEXT("Generic relocation path ignores the Pit definition"), Runtime->FindRelocationAtCell(2, 2, GenericRelocation));
 
 	Lower->WorldObjectInstances.Add(MakeStaticPit(2, 2, UpperId));
 	AddExpectedError(TEXT("Pit fall rejected: destination"), EAutomationExpectedErrorFlags::Contains, 1);

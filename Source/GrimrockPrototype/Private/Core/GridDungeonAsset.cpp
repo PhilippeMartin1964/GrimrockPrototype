@@ -24,23 +24,23 @@ namespace
 		return FString::Printf(TEXT("%d"), static_cast<int32>(Type));
 	}
 
-	int32 CountTransitionObjects(const UGridLevelAsset* LevelAsset)
+	int32 CountRelocationObjects(const UGridLevelAsset* LevelAsset)
 	{
 		if (!LevelAsset)
 		{
 			return 0;
 		}
 
-		int32 TransitionCount = 0;
+		int32 RelocationCount = 0;
 		for (const FGridWorldObjectInstance& Obj : LevelAsset->WorldObjectInstances)
 		{
 			if (Obj.Type == EGridLevelObjectType::Pit || GridRelocation::IsCandidate(Obj))
 			{
-				++TransitionCount;
+				++RelocationCount;
 			}
 		}
 
-		return TransitionCount;
+		return RelocationCount;
 	}
 }
 
@@ -161,7 +161,7 @@ FString UGridDungeonAsset::GetDungeonDiagnostics() const
 	int32 EnabledCount = 0;
 	int32 MissingAssetCount = 0;
 	int32 EmptyLevelIdCount = 0;
-	int32 TransitionObjectCount = 0;
+	int32 RelocationObjectCount = 0;
 	TSet<FName> SeenIds;
 	TSet<FName> DuplicateIds;
 	TSet<FIntVector> SeenLogicalPositions;
@@ -185,7 +185,7 @@ FString UGridDungeonAsset::GetDungeonDiagnostics() const
 		}
 		if (Entry.bEnabled)
 		{
-			TransitionObjectCount += CountTransitionObjects(Entry.LevelAsset);
+			RelocationObjectCount += CountRelocationObjects(Entry.LevelAsset);
 		}
 		if (!Entry.LevelId.IsNone())
 		{
@@ -211,7 +211,7 @@ FString UGridDungeonAsset::GetDungeonDiagnostics() const
 	Result += FString::Printf(TEXT("EmptyLevelIds: %d\n"), EmptyLevelIdCount);
 	Result += FString::Printf(TEXT("DuplicateLevelIds: %d\n"), DuplicateIds.Num());
 	Result += FString::Printf(TEXT("DuplicateLogicalPositions: %d\n"), DuplicateLogicalPositions.Num());
-	Result += FString::Printf(TEXT("RelocationObjects=%d\n"), TransitionObjectCount);
+	Result += FString::Printf(TEXT("RelocationObjects=%d\n"), RelocationObjectCount);
 
 	if (Levels.Num() == 0)
 	{
@@ -255,7 +255,7 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 	Result += TEXT("GridDungeonAsset Relocation Diagnostics\n");
 	Result += FString::Printf(TEXT("DungeonAsset=%s\n"), *GetPathName());
 
-	int32 TransitionObjectCount = 0;
+	int32 RelocationObjectCount = 0;
 	int32 ErrorCount = 0;
 	int32 WarningCount = 0;
 
@@ -269,17 +269,17 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 		const UGridLevelAsset* SourceLevelAsset = SourceEntry.LevelAsset.Get();
 		for (const FGridWorldObjectInstance& Obj : SourceLevelAsset->WorldObjectInstances)
 		{
-			const FGridObjectTransitionParams Transition = GridRelocation::Resolve(Obj);
+			const FGridRelocationBehaviorParams Relocation = Obj.InstanceConfig.Relocation;
 			const bool bIsPit = Obj.Type == EGridLevelObjectType::Pit;
 			const bool bPitUsesSameCell = bIsPit && Obj.InstanceConfig.Pit.bUseSameCellCoordinates;
-			const int32 EffectiveTargetCellX = bPitUsesSameCell ? Obj.CellX : Transition.TargetCellX;
-			const int32 EffectiveTargetCellY = bPitUsesSameCell ? Obj.CellY : Transition.TargetCellY;
+			const int32 EffectiveTargetCellX = bPitUsesSameCell ? Obj.CellX : Relocation.TargetCellX;
+			const int32 EffectiveTargetCellY = bPitUsesSameCell ? Obj.CellY : Relocation.TargetCellY;
 			if (!bIsPit && !GridRelocation::IsCandidate(Obj))
 			{
 				continue;
 			}
 
-			FName EffectiveTargetLevelId = Transition.TargetLevelId;
+			FName EffectiveTargetLevelId = Relocation.TargetLevelId;
 			bool bAutoResolvedPitTarget = false;
 			if (bIsPit && (EffectiveTargetLevelId.IsNone() || !IsValidLevelId(EffectiveTargetLevelId)))
 			{
@@ -290,7 +290,7 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 				}
 			}
 
-			FString TransitionStatus = TEXT("OK");
+			FString RelocationStatus = TEXT("OK");
 			TArray<FString> StatusMessages;
 			int32 LocalErrors = 0;
 			int32 LocalWarnings = 0;
@@ -357,11 +357,11 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 
 			if (LocalErrors > 0)
 			{
-				TransitionStatus = TEXT("ERROR");
+				RelocationStatus = TEXT("ERROR");
 			}
 			else if (LocalWarnings > 0)
 			{
-				TransitionStatus = TEXT("WARNING");
+				RelocationStatus = TEXT("WARNING");
 			}
 
 			ErrorCount += LocalErrors;
@@ -369,11 +369,11 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 
 			Result += FString::Printf(
 				TEXT(
-					"[%d] SourceLevelId=%s SourceDisplayName=%s SourceLevelAsset=%s ObjectId=%s WorldObjectDefinitionId=%s Type=%s Cell=(%d,%d) Edge=%s TargetLevelId=%s TargetCell=(%d,%d) TargetFacing=%s bRequireUseAction=%s Status=%s"),
-				TransitionObjectCount, *SourceEntry.LevelId.ToString(), *SourceEntry.DisplayName.ToString(), *SourceLevelAsset->GetPathName(),
+					"[%d] SourceLevelId=%s SourceDisplayName=%s SourceLevelAsset=%s ObjectId=%s WorldObjectDefinitionId=%s Type=%s Cell=(%d,%d) Edge=%s TargetLevelId=%s TargetCell=(%d,%d) TargetFacing=%s Status=%s"),
+				RelocationObjectCount, *SourceEntry.LevelId.ToString(), *SourceEntry.DisplayName.ToString(), *SourceLevelAsset->GetPathName(),
 				*Obj.InstanceId.ToString(), *Obj.WorldObjectDefinitionId.ToString(), *GetGridObjectTypeName(Obj.Type), Obj.CellX, Obj.CellY, *GetGridEdgeName(Obj.WallSide),
-				*EffectiveTargetLevelId.ToString(), EffectiveTargetCellX, EffectiveTargetCellY, *GetGridEdgeName(Transition.TargetFacing),
-				Transition.bRequireUseAction ? TEXT("true") : TEXT("false"), *TransitionStatus);
+				*EffectiveTargetLevelId.ToString(), EffectiveTargetCellX, EffectiveTargetCellY, *GetGridEdgeName(Relocation.TargetFacing),
+				*RelocationStatus);
 
 			if (bAutoResolvedPitTarget)
 			{
@@ -386,11 +386,11 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 			}
 			Result += TEXT("\n");
 
-			++TransitionObjectCount;
+			++RelocationObjectCount;
 		}
 	}
 
-	Result += FString::Printf(TEXT("RelocationObjects=%d\n"), TransitionObjectCount);
+	Result += FString::Printf(TEXT("RelocationObjects=%d\n"), RelocationObjectCount);
 	Result += FString::Printf(TEXT("Errors=%d\n"), ErrorCount);
 	Result += FString::Printf(TEXT("Warnings=%d\n"), WarningCount);
 

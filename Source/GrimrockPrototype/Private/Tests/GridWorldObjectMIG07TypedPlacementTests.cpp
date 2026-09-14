@@ -32,8 +32,9 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 	Door.WallSide = EGridEdge::North;
 	Door.InstanceConfig.bDoorInitiallyOpen = false;
 	Door.Tag = TEXT("MainDoor");
-	Door.InstanceConfig.Transition.bIsTransition = true;
-	Door.InstanceConfig.Transition.TargetLevelId = TEXT("LowerLevel");
+	Door.InstanceConfig.Relocation.TargetCellX = 0;
+	Door.InstanceConfig.Relocation.TargetCellY = 0;
+	Door.InstanceConfig.Relocation.TargetLevelId = TEXT("LowerLevel");
 	Door.InstanceConfig.ReceptacleInitialContent.AddDefaulted_GetRef().ItemDefinition = ItemDefinition;
 	Door.InstanceConfig.bStartsUnlocked = true;
 	Level->WorldObjectInstances.Add(Door);
@@ -96,8 +97,7 @@ bool FGridWorldObjectMIG07TypedPlacementProjectionTest::RunTest(const FString& P
 		TestEqual(TEXT("World object references its reusable definition"), Instance.WorldObjectDefinitionId, FName(TEXT("Door_Iron")));
 		TestEqual(TEXT("Wall side is separated from generic placement"), Instance.WallSide, EGridEdge::North);
 		TestFalse(TEXT("Door initial state is stored semantically"), Instance.InstanceConfig.bDoorInitiallyOpen);
-		TestTrue(TEXT("Transition is retained in minimal instance config"), Instance.InstanceConfig.Transition.bIsTransition);
-		TestEqual(TEXT("Transition target is retained"), Instance.InstanceConfig.Transition.TargetLevelId, FName(TEXT("LowerLevel")));
+		TestEqual(TEXT("Relocation target is retained"), Instance.InstanceConfig.Relocation.TargetLevelId, FName(TEXT("LowerLevel")));
 		TestTrue(TEXT("Lock initial state is instance-owned"), Instance.InstanceConfig.bStartsUnlocked);
 		TestEqual(TEXT("Initial receptacle content is instance-owned"), Instance.InstanceConfig.ReceptacleInitialContent.Num(), 1);
 	}

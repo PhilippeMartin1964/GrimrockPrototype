@@ -80,10 +80,8 @@ namespace GridPIT03
 		Pit.WallSide = EGridEdge::None;
 		Pit.InstanceConfig.Pit.bInitiallyOpen = bInitiallyOpen;
 		Pit.InstanceConfig.Pit.bUseSameCellCoordinates = true;
-		Pit.InstanceConfig.Transition.bIsTransition = true;
-		Pit.InstanceConfig.Transition.TargetLevelId = TargetLevelId;
-		Pit.InstanceConfig.Transition.TargetFacing = EGridEdge::North;
-		Pit.InstanceConfig.Transition.bRequireUseAction = false;
+		Pit.InstanceConfig.Relocation.TargetLevelId = TargetLevelId;
+		Pit.InstanceConfig.Relocation.TargetFacing = EGridEdge::North;
 		return Pit;
 	}
 }
@@ -184,8 +182,8 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Pit A starts closed"), Runtime->IsPitOpen(PitAId));
 	TestFalse(TEXT("Pit B starts closed"), Runtime->IsPitOpen(PitBId));
 
-	FGridObjectTransitionParams Transition;
-	TestFalse(TEXT("Closed Pit A is not a fall-through cell"), Runtime->FindOpenPitAtCell(2, 2, Transition));
+	FGridRelocationBehaviorParams Relocation;
+	TestFalse(TEXT("Closed Pit A is not a fall-through cell"), Runtime->FindOpenPitAtCell(2, 2, Relocation));
 
 	UGridItemDefinitionAsset* StoneDefinition = NewObject<UGridItemDefinitionAsset>(Runtime);
 	StoneDefinition->ItemDefinitionId = TEXT("Item_PIT03_Stone");
@@ -203,7 +201,7 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Button Activated -> Pit A Open executes"), Runtime->ExecuteLinksFromRuntimeObject(ButtonId, EGridObjectEvent::Activated));
 	TestTrue(TEXT("Pit A is open after command"), Runtime->IsPitOpen(PitAId));
 	TestTrue(TEXT("Pit A Opened event chained to Pit B Open"), Runtime->IsPitOpen(PitBId));
-	TestTrue(TEXT("Open Pit A is now a fall-through cell"), Runtime->FindOpenPitAtCell(2, 2, Transition));
+	TestTrue(TEXT("Open Pit A is now a fall-through cell"), Runtime->FindOpenPitAtCell(2, 2, Relocation));
 	TestEqual(TEXT("Opening under a World Item removes its upper-level weight"), Runtime->GetWorldItemWeightAtCell(2, 2, false), 0.0f);
 
 	const FGridLevelRuntimeState* LowerState = Runtime->DungeonRuntimeState.LevelStates.Find(LowerId);

@@ -855,54 +855,53 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildRelocationDetailsSecti
 	const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(GetEditorActor(), ObjectId);
 	if (!WorldObjectInstance) return SNullWidget::NullWidget;
 	const FGridWorldObjectInstance& Obj = *WorldObjectInstance;
-	const FGridObjectTransitionParams Transition = GridRelocation::Resolve(Obj);
+	const FGridRelocationBehaviorParams Relocation = Obj.InstanceConfig.Relocation;
 	const bool bIsPit = Obj.Type == EGridLevelObjectType::Pit;
 	const bool bPitUsesSameCellCoordinates = bIsPit && Obj.InstanceConfig.Pit.bUseSameCellCoordinates;
 	// Resolve again at commit time so successive edits retain the latest destination.
-	auto EditDestination = [this, ObjectId](TFunction<void(FGridObjectTransitionParams&)> Edit)
+	auto EditDestination = [this, ObjectId](TFunction<void(FGridRelocationBehaviorParams&)> Edit)
 	{
 		const FGridWorldObjectInstance* Current = GetWorldObjectInstance(GetEditorActor(), ObjectId);
 		if (!Current) return;
-		FGridObjectTransitionParams Destination = GridRelocation::Resolve(*Current);
+		FGridRelocationBehaviorParams Destination = Current->InstanceConfig.Relocation;
 		Edit(Destination);
-		const EGridLevelObjectType Type = Current->Type;
-		EditWorldObjectConfig(ObjectId, [Destination, Type](FGridWorldObjectInstanceConfig& Config)
+		EditWorldObjectConfig(ObjectId, [Destination](FGridWorldObjectInstanceConfig& Config)
 		{
-			GridRelocation::ApplyAuthoringEdit(Config, Type, Destination);
+			Config.Relocation = Destination;
 		});
 	};
 	auto BuildIntRelocationRow = [EditDestination, bPitUsesSameCellCoordinates](const FText& Label, int32 CurrentValue,
-		TFunction<void(FGridObjectTransitionParams&, int32)> AssignValue) -> TSharedRef<SWidget>
+		TFunction<void(FGridRelocationBehaviorParams&, int32)> AssignValue) -> TSharedRef<SWidget>
 	{
 		return GridEditorWidgetHelpers::BuildGridPropertyRow(Label, SNew(SSpinBox<int32>).Value(CurrentValue).MinValue(-1).MinSliderValue(0).MaxSliderValue(31).Delta(1)
 			.IsEnabled(!bPitUsesSameCellCoordinates)
 			.OnValueCommitted_Lambda([EditDestination, AssignValue](int32 NewValue, ETextCommit::Type)
 			{
-				EditDestination([AssignValue, NewValue](FGridObjectTransitionParams& Params) { AssignValue(Params, NewValue); });
+				EditDestination([AssignValue, NewValue](FGridRelocationBehaviorParams& Params) { AssignValue(Params, NewValue); });
 			}));
 	};
-	auto BuildFacingButton = [EditDestination, Transition](const TCHAR* Label, EGridEdge Facing) -> TSharedRef<SWidget>
+	auto BuildFacingButton = [EditDestination, Relocation](const TCHAR* Label, EGridEdge Facing) -> TSharedRef<SWidget>
 	{
-		const bool bSelected = Transition.TargetFacing == Facing;
+		const bool bSelected = Relocation.TargetFacing == Facing;
 		return SNew(SButton).Text(FText::FromString(Label))
 			.ButtonColorAndOpacity(bSelected ? FLinearColor(0.32f, 0.46f, 0.72f, 1.f) : FLinearColor::White)
 			.OnClicked_Lambda([EditDestination, Facing]()
 			{
-				EditDestination([Facing](FGridObjectTransitionParams& Params) { Params.TargetFacing = Facing; });
+				EditDestination([Facing](FGridRelocationBehaviorParams& Params) { Params.TargetFacing = Facing; });
 				return FReply::Handled();
 			});
 	};
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Destination Level")), SNew(SEditableTextBox)
-			.Text(GetNameText(Transition.TargetLevelId))
+			.Text(GetNameText(Relocation.TargetLevelId))
 			.OnTextCommitted_Lambda([EditDestination](const FText& NewText, ETextCommit::Type)
 			{
-				EditDestination([&NewText](FGridObjectTransitionParams& Params) { Params.TargetLevelId = GetNameFromEditorText(NewText); });
+				EditDestination([&NewText](FGridRelocationBehaviorParams& Params) { Params.TargetLevelId = GetNameFromEditorText(NewText); });
 			}))]
-		+ SVerticalBox::Slot().AutoHeight()[BuildIntRelocationRow(FText::FromString(TEXT("Destination Cell X")), Transition.TargetCellX,
-			[](FGridObjectTransitionParams& Params, int32 V){ Params.TargetCellX = V; })]
-		+ SVerticalBox::Slot().AutoHeight()[BuildIntRelocationRow(FText::FromString(TEXT("Destination Cell Y")), Transition.TargetCellY,
-			[](FGridObjectTransitionParams& Params, int32 V){ Params.TargetCellY = V; })]
+		+ SVerticalBox::Slot().AutoHeight()[BuildIntRelocationRow(FText::FromString(TEXT("Destination Cell X")), Relocation.TargetCellX,
+			[](FGridRelocationBehaviorParams& Params, int32 V){ Params.TargetCellX = V; })]
+		+ SVerticalBox::Slot().AutoHeight()[BuildIntRelocationRow(FText::FromString(TEXT("Destination Cell Y")), Relocation.TargetCellY,
+			[](FGridRelocationBehaviorParams& Params, int32 V){ Params.TargetCellY = V; })]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Facing")), SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 2.f, 0.f)[BuildFacingButton(TEXT("None"), EGridEdge::None)]
 			+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 2.f, 0.f)[BuildFacingButton(TEXT("North"), EGridEdge::North)]

@@ -12,29 +12,38 @@ movement interpolation completes. There is no Use-action relocation path.
 | Pit | Automatic lower dungeon level | Existing Pit facing fallback |
 
 Normal candidates are every `Type=Teleporter` and every non-Pit object with
-`InstanceConfig.Transition.bIsTransition=true`. Ordinary objects have no relocation panel.
+configured `InstanceConfig.Relocation` coordinates. Ordinary objects have no relocation panel.
 Pits remain separate gameplay objects: PIT01/PIT03, trapdoor state, safe landing selection
 and `bUseSameCellCoordinates` retain their existing behavior.
 
-## Serialized compatibility
+## Canonical schema (RELOC01.2)
 
-The canonical authoring payload is `FGridWorldObjectInstance::InstanceConfig.Transition`.
-All existing `FGridObjectTransitionParams` fields remain serialized with their original names:
-`bIsTransition`, `TargetLevelId`, `TargetCellX`, `TargetCellY`, `TargetFacing`, `bRequireUseAction`.
-The two booleans are internal compatibility fields, hidden from Selected Object authoring.
-Normal relocation ignores `bRequireUseAction`, including old assets where it is true.
+`FGridRelocationBehaviorParams` is the only destination structure. Both
+`FGridObjectBehaviorParams.Relocation` (definition defaults / resolved behavior) and
+`FGridWorldObjectInstanceConfig.Relocation` (placed destination) use it:
 
-A legacy Teleporter with `bIsTransition=false` reads its destination from
-`InstanceConfig.Teleporter.TargetCellX/Y`, with current level and preserved facing.
-Loading, resolving or selecting the object never migrates or dirties the asset.
-On a Relocation field edit, the inspector resolves the complete existing destination,
-then applies the edit to Transition, sets `bIsTransition=true` and `bRequireUseAction=false`,
-and mirrors Teleporter X/Y into both payloads. Other normal relocation edits set the same
-internal flags. There is no second persistent relocation structure or PostLoad migration.
+- `TargetLevelId = None`: current level for normal relocation, automatic lower level for Pit.
+- `TargetCellX = INDEX_NONE`, `TargetCellY = INDEX_NONE`: destination unset.
+- `TargetFacing = None`: preserve incoming facing.
+
+A non-Pit object is a candidate if it is a Teleporter or its two destination coordinates
+are configured (nonnegative). There is no activation-mode or relocation-enable boolean in
+this structure. Teleporter runtime enable state remains in the activation component.
+
+Definition > Default Behavior exposes one Relocation section. Placement creation copies
+these destination defaults to InstanceConfig.Relocation; subsequent selection, runtime
+resolution and instance edits use that canonical local payload. Stairs defaults are
+None / 0 / 0 / North, with SupportedType=Decoration.
+
+RELOC01.2 is a strict schema replacement without backward compatibility. No relocation
+CoreRedirects, migration reader, old destination fallback or compatibility members remain.
+Existing assets are not rewritten by this code change; destinations stored under removed
+property names are not imported. Author destinations using Relocation before playtesting
+old level content. New writes contain only the canonical destination fields.
 
 ## Selected Object workflow
 
-Select a Teleporter, Stairs, Passage or existing transition object. The single **Relocation**
+Select a Teleporter, Stairs, Passage or configured relocation object. The single **Relocation**
 panel contains **Destination Level**, **Destination Cell X**, **Destination Cell Y**, **Facing**.
 Destination Level is a text field: enter an enabled dungeon LevelId, or None for current level.
 Commit text with Enter or by leaving the field. Facing includes None to preserve facing.
@@ -48,9 +57,8 @@ an inactive Teleporter never relocates the party, but its destination is still v
 
 ## Runtime and validation
 
-The public compatibility APIs `FindTransitionAtCell` and `TryExecuteTransitionAtCell` retain
-their names and signatures. Lookup excludes Pit, resolves legacy data, ignores the historical
-Use gate, and checks the Teleporter activation state through `IsObjectActive`.
+The runtime APIs `FindRelocationAtCell` and `TryExecuteRelocationAtCell` exclude Pit, read
+InstanceConfig.Relocation, and check Teleporter activation state through `IsObjectActive`.
 
 Movement completion keeps this order: Pit priority, HandlePartyCellChanged, combat turn
 completion, normal relocation. Successful relocation clears buffered movement.
@@ -71,11 +79,10 @@ Empty nor occupancy-blocked. Editor validation and dungeon diagnostics accept no
 and Facing None, inspect the source asset for current-level destinations, and inspect the
 enabled target asset for cross-level destinations. Invalid coordinates/levels are errors;
 Empty and occupancy-blocked destinations are warnings in diagnostics. Disabled Teleporters
-are counted and validated, using legacy X/Y where applicable. Pit None must resolve a lower
+are counted and validated. Pit None must resolve a lower
 level or produces the existing Pit error; same-cell coordinates retain priority.
 
-The diagnostic API `GetTransitionDiagnostics` keeps its compatibility name; displayed counts
-are `RelocationObjects` (including dedicated Pit destinations).
+Diagnostics display `RelocationObjects` counts (including dedicated Pit destinations).
 
 ## StairsUp / StairsDown
 
@@ -117,7 +124,7 @@ Le traitement du mur ou d'une face sombre devant la descente est prévu séparé
 
 ## Verification
 
-`Grimrock.Relocation.RELOC01` covers legacy and modern data, authoring normalization,
+`Grimrock.Relocation.RELOC01` covers canonical destinations, schema absence checks,
 automatic enabled/disabled entry, buffered movement, same-level rebuild/state invariants,
 return-teleporter loop prevention, cross-level travel and persistence, facing preservation,
 Pit lower-level resolution and both editor/dungeon validation.

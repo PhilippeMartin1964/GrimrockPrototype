@@ -132,11 +132,12 @@ bool FGridTD052RuntimeActorDiagnosticsContractTest::RunTest(const FString& Param
 	TestTrue(TEXT("A structurally consistent level reports OK"), LevelDiagnostics.Contains(TEXT("Status=OK")));
 
 	// MIG09: diagnostics count the five authoritative collections, including non-world placements.
-	FGridWorldObjectInstance Transition;
-	Transition.InstanceId = FGuid::NewGuid();
-	Transition.Type = EGridLevelObjectType::Decoration;
-	Transition.InstanceConfig.Transition.bIsTransition = true;
-	LevelAsset->WorldObjectInstances.Add(Transition);
+	FGridWorldObjectInstance Relocation;
+	Relocation.InstanceId = FGuid::NewGuid();
+	Relocation.Type = EGridLevelObjectType::Decoration;
+	Relocation.InstanceConfig.Relocation.TargetCellX = 0;
+	Relocation.InstanceConfig.Relocation.TargetCellY = 0;
+	LevelAsset->WorldObjectInstances.Add(Relocation);
 	LevelAsset->LooseItemInstances.AddDefaulted();
 	LevelAsset->MonsterSpawns.AddDefaulted();
 	LevelAsset->ItemSpawns.AddDefaulted();
@@ -144,7 +145,7 @@ bool FGridTD052RuntimeActorDiagnosticsContractTest::RunTest(const FString& Param
 	TestTrue(TEXT("Diagnostics count every native placement bucket and the world transition"),
 		RuntimeActor->GetLevelAssetDiagnostics().Contains(TEXT("Placements=5 Links=0 RelocationObjects=1")));
 	LevelAsset->LooseItemInstances.Reset();
-	LevelAsset->WorldObjectInstances[0].InstanceConfig.Transition.bIsTransition = false;
+	LevelAsset->WorldObjectInstances[0].InstanceConfig.Relocation = FGridRelocationBehaviorParams();
 	TestTrue(TEXT("Diagnostics immediately reflect native collection and local transition edits"),
 		RuntimeActor->GetLevelAssetDiagnostics().Contains(TEXT("Placements=4 Links=0 RelocationObjects=0")));
 

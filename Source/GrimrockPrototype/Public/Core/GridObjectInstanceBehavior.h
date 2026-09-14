@@ -74,8 +74,7 @@ namespace GridObjectInstanceBehavior
 		FGridObjectBehaviorParams Resolved = Definition ? Definition->DefaultBehavior : FGridObjectBehaviorParams();
 		const FGridWorldObjectInstanceConfig& Config = WorldObjectInstance.InstanceConfig;
 
-		Resolved.Teleporter = Config.Teleporter;
-		Resolved.Transition = Config.Transition;
+		Resolved.Relocation = Config.Relocation;
 		Resolved.Pit = Config.Pit;
 		Resolved.Receptacle.InitialContent = Config.ReceptacleInitialContent;
 		Resolved.Lock.bStartsUnlocked = Config.bStartsUnlocked;
@@ -94,8 +93,7 @@ namespace GridObjectInstanceBehavior
 		FGridObjectBehaviorParams Overrides;
 
 		// Native level-instance data only. GEUI09 interaction overrides travel separately.
-		Overrides.Teleporter = Source.Teleporter;
-		Overrides.Transition = Source.Transition;
+		Overrides.Relocation = Source.Relocation;
 		Overrides.Pit = Source.Pit;
 		Overrides.Receptacle.InitialContent = Source.Receptacle.InitialContent;
 		Overrides.Lock.bStartsUnlocked = Source.Lock.bStartsUnlocked;
@@ -105,8 +103,7 @@ namespace GridObjectInstanceBehavior
 
 	inline void ApplyInstanceOwnedOverrides(const FGridObjectBehaviorParams& Overrides, FGridObjectBehaviorParams& InOutBehavior)
 	{
-		InOutBehavior.Teleporter = Overrides.Teleporter;
-		InOutBehavior.Transition = Overrides.Transition;
+		InOutBehavior.Relocation = Overrides.Relocation;
 		InOutBehavior.Pit = Overrides.Pit;
 		InOutBehavior.Receptacle.InitialContent = Overrides.Receptacle.InitialContent;
 		InOutBehavior.Lock.bStartsUnlocked = Overrides.Lock.bStartsUnlocked;

@@ -25,8 +25,9 @@ bool FGridWorldObjectMIG09RuntimePayloadTest::RunTest(const FString& Parameters)
 	Instance.ReadableTextOverride = FText::FromString(TEXT("Runtime override"));
 	Instance.InstanceConfig.bDoorInitiallyOpen = true;
 	Instance.InstanceConfig.Pit.bInitiallyOpen = false;
-	Instance.InstanceConfig.Transition.bIsTransition = true;
-	Instance.InstanceConfig.Transition.TargetLevelId = TEXT("LowerLevel");
+	Instance.InstanceConfig.Relocation.TargetCellX = 0;
+	Instance.InstanceConfig.Relocation.TargetCellY = 0;
+	Instance.InstanceConfig.Relocation.TargetLevelId = TEXT("LowerLevel");
 	Instance.InstanceConfig.bStartsUnlocked = true;
 
 	const FGridRuntimeWorldObjectData RuntimeData(Instance);
@@ -37,8 +38,7 @@ bool FGridWorldObjectMIG09RuntimePayloadTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Typed WallSide maps to runtime Edge"), RuntimeData.Edge, EGridEdge::West);
 	TestTrue(TEXT("Door initial open state maps explicitly to runtime"), RuntimeData.bDoorInitiallyOpen);
 	TestFalse(TEXT("Typed Pit state remains instance-owned"), RuntimeData.Behavior.Pit.bInitiallyOpen);
-	TestTrue(TEXT("Typed transition remains instance-owned"), RuntimeData.Behavior.Transition.bIsTransition);
-	TestEqual(TEXT("Typed transition target maps to runtime"), RuntimeData.Behavior.Transition.TargetLevelId, FName(TEXT("LowerLevel")));
+	TestEqual(TEXT("Typed transition target maps to runtime"), RuntimeData.Behavior.Relocation.TargetLevelId, FName(TEXT("LowerLevel")));
 	TestTrue(TEXT("Typed lock initial state remains instance-owned"), RuntimeData.Behavior.Lock.bStartsUnlocked);
 
 	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();

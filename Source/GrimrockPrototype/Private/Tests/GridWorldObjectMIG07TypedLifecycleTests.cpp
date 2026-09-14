@@ -27,8 +27,9 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 	Door.CellY = 3;
 	Door.WallSide = EGridEdge::North;
 	Door.Tag = TEXT("DoorBefore");
-	Door.InstanceConfig.Transition.bIsTransition = true;
-	Door.InstanceConfig.Transition.TargetLevelId = TEXT("Target_A");
+	Door.InstanceConfig.Relocation.TargetCellX = 0;
+	Door.InstanceConfig.Relocation.TargetCellY = 0;
+	Door.InstanceConfig.Relocation.TargetLevelId = TEXT("Target_A");
 	Level->WorldObjectInstances.Add(Door);
 
 	FGridLooseItemInstance Item;
@@ -69,13 +70,13 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 	FRotator Rotation = DoorEdit->LocalTransformOverride.Rotator();
 	Rotation.Yaw = 55.0f;
 	DoorEdit->LocalTransformOverride.SetRotation(Rotation.Quaternion());
-	DoorEdit->InstanceConfig.Transition.TargetLevelId = TEXT("Target_B");
+	DoorEdit->InstanceConfig.Relocation.TargetLevelId = TEXT("Target_B");
 	ItemEdit->Tag = TEXT("ItemAfter");
 	ItemEdit->CellY = 9;
 
 	TestEqual(TEXT("Door typed Tag follows direct editor snapshot"), Level->WorldObjectInstances[0].Tag, FName(TEXT("DoorAfter")));
 	TestEqual(TEXT("Door typed CellX follows direct editor snapshot"), Level->WorldObjectInstances[0].CellX, 8);
-	TestEqual(TEXT("Door transition remains instance-owned"), Level->WorldObjectInstances[0].InstanceConfig.Transition.TargetLevelId, FName(TEXT("Target_B")));
+	TestEqual(TEXT("Door transition remains instance-owned"), Level->WorldObjectInstances[0].InstanceConfig.Relocation.TargetLevelId, FName(TEXT("Target_B")));
 	const FTransform& PreservedTransform = Level->WorldObjectInstances[0].LocalTransformOverride;
 	TestTrue(TEXT("Door typed local location survives direct snapshot edit"), PreservedTransform.GetLocation().Equals(FVector(1.0f, 2.0f, 3.0f)));
 	TestTrue(TEXT("Door typed local scale survives direct snapshot edit"), PreservedTransform.GetScale3D().Equals(FVector(1.2f, 1.0f, 0.8f)));

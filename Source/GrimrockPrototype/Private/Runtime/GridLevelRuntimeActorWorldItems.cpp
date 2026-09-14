@@ -370,55 +370,55 @@ bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrim
 bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinitionAsset, int32 CellX, int32 CellY, const FVector& LocalOffset)
 {
-	FGridObjectTransitionParams Transition;
-	if (!DungeonAsset || !ItemInstance.IsValid() || !ItemDefinitionAsset || !FindOpenPitAtCell(CellX, CellY, Transition))
+	FGridRelocationBehaviorParams Relocation;
+	if (!DungeonAsset || !ItemInstance.IsValid() || !ItemDefinitionAsset || !FindOpenPitAtCell(CellX, CellY, Relocation))
 	{
 		return false;
 	}
 
-	if (Transition.TargetLevelId.IsNone() || Transition.TargetLevelId == CurrentDungeonLevelId)
+	if (Relocation.TargetLevelId.IsNone() || Relocation.TargetLevelId == CurrentDungeonLevelId)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Source=(%d,%d) Reason=InvalidTargetLevel Target=%s"),
-			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), CellX, CellY, *Transition.TargetLevelId.ToString());
+			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), CellX, CellY, *Relocation.TargetLevelId.ToString());
 		return false;
 	}
 
-	const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry(Transition.TargetLevelId);
+	const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry(Relocation.TargetLevelId);
 	UGridLevelAsset* TargetLevelAsset = TargetEntry && TargetEntry->bEnabled ? TargetEntry->LevelAsset.Get() : nullptr;
 	if (!TargetLevelAsset)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Source=(%d,%d) Reason=InvalidTargetLevelAsset TargetLevel=%s"),
-			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), CellX, CellY, *Transition.TargetLevelId.ToString());
+			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), CellX, CellY, *Relocation.TargetLevelId.ToString());
 		return false;
 	}
 
-	const int32 PreferredTargetX = Transition.TargetCellX;
-	const int32 PreferredTargetY = Transition.TargetCellY;
+	const int32 PreferredTargetX = Relocation.TargetCellX;
+	const int32 PreferredTargetY = Relocation.TargetCellY;
 	const bool bPreferredWalkable = TargetLevelAsset->IsValidCoord(PreferredTargetX, PreferredTargetY) &&
 		TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).CellType != EGridCellType::Empty &&
 		!TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).bBlocksOccupancy;
 	const bool bPreferredContainsOpenPit = bPreferredWalkable && TargetLevelAsset->WorldObjectInstances.ContainsByPredicate(
-		[this, &Transition, PreferredTargetX, PreferredTargetY](const FGridWorldObjectInstance& Candidate)
+		[this, &Relocation, PreferredTargetX, PreferredTargetY](const FGridWorldObjectInstance& Candidate)
 		{
 			return Candidate.CellX == PreferredTargetX && Candidate.CellY == PreferredTargetY && IsEffectivePitObject(Candidate) &&
-				IsPitOpenForLevel(Transition.TargetLevelId, Candidate);
+				IsPitOpenForLevel(Relocation.TargetLevelId, Candidate);
 		});
 	if (bPreferredContainsOpenPit)
 	{
 		UE_LOG(LogTemp, Warning,
 			TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Reason=ChainedPitNotSupported TargetLevel=%s Target=(%d,%d)"),
-			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), *Transition.TargetLevelId.ToString(),
+			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), *Relocation.TargetLevelId.ToString(),
 			PreferredTargetX, PreferredTargetY);
 		return false;
 	}
 
 	int32 LandingCellX = INDEX_NONE;
 	int32 LandingCellY = INDEX_NONE;
-	if (!ResolvePitLandingCell(Transition.TargetLevelId, PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY))
+	if (!ResolvePitLandingCell(Relocation.TargetLevelId, PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY))
 	{
 		UE_LOG(LogTemp, Warning,
 			TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Reason=NoUsableLandingCell TargetLevel=%s Requested=(%d,%d)"),
-			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), *Transition.TargetLevelId.ToString(),
+			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), *Relocation.TargetLevelId.ToString(),
 			PreferredTargetX, PreferredTargetY);
 		return false;
 	}
@@ -427,10 +427,10 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	{
 		UE_LOG(LogTemp, Warning,
 			TEXT("GridPit ItemTransfer landing fallback Item=%s RuntimeId=%s TargetLevel=%s Requested=(%d,%d) Resolved=(%d,%d)"),
-			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), *Transition.TargetLevelId.ToString(),
+			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), *Relocation.TargetLevelId.ToString(),
 			PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY);
-		Transition.TargetCellX = LandingCellX;
-		Transition.TargetCellY = LandingCellY;
+		Relocation.TargetCellX = LandingCellX;
+		Relocation.TargetCellY = LandingCellY;
 	}
 
 	const float TargetCellSize = FMath::Max(1.0f, TargetLevelAsset->CellSize);
@@ -440,14 +440,14 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 		FMath::Clamp(LocalOffset.Y, -MaxOffset, MaxOffset),
 		0.0f);
 	const FVector TargetWorldLocation = GetActorLocation() + GridOrigin +
-		FVector((Transition.TargetCellX + 0.5f) * TargetCellSize, (Transition.TargetCellY + 0.5f) * TargetCellSize, 12.0f) + ClampedOffset;
+		FVector((Relocation.TargetCellX + 0.5f) * TargetCellSize, (Relocation.TargetCellY + 0.5f) * TargetCellSize, 12.0f) + ClampedOffset;
 
 	FGridRuntimeItemState ItemState;
 	ItemState.ObjectId = ItemInstance.RuntimeObjectId;
 	ItemState.ItemDefinitionId = ItemInstance.ItemDefinitionId;
 	ItemState.Quantity = FMath::Max(1, ItemInstance.Quantity);
-	ItemState.CellX = Transition.TargetCellX;
-	ItemState.CellY = Transition.TargetCellY;
+	ItemState.CellX = Relocation.TargetCellX;
+	ItemState.CellY = Relocation.TargetCellY;
 	ItemState.Edge = EGridEdge::None;
 	ItemState.Transform = FTransform(FRotator::ZeroRotator, TargetWorldLocation, FVector::OneVector);
 	ItemState.bIsSimulatingPhysics = false;
@@ -462,14 +462,14 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	PendingState.ItemState = ItemState;
 	PendingState.ItemDefinitionAsset = ItemDefinitionAsset;
 
-	FGridLevelRuntimeState& TargetState = DungeonRuntimeState.LevelStates.FindOrAdd(Transition.TargetLevelId);
-	TargetState.LevelId = Transition.TargetLevelId;
+	FGridLevelRuntimeState& TargetState = DungeonRuntimeState.LevelStates.FindOrAdd(Relocation.TargetLevelId);
+	TargetState.LevelId = Relocation.TargetLevelId;
 	TargetState.PendingInboundItems.Add(ItemState.ObjectId, PendingState);
 
 	UE_LOG(LogTemp, Log,
 		TEXT("GridPit ItemTransfer queued Item=%s RuntimeId=%s SourceLevel=%s Source=(%d,%d) TargetLevel=%s Target=(%d,%d) Offset=%s"),
 		*ItemState.ItemDefinitionId.ToString(), *ItemState.ObjectId.ToString(), *CurrentDungeonLevelId.ToString(), CellX, CellY,
-		*Transition.TargetLevelId.ToString(), Transition.TargetCellX, Transition.TargetCellY, *ClampedOffset.ToCompactString());
+		*Relocation.TargetLevelId.ToString(), Relocation.TargetCellX, Relocation.TargetCellY, *ClampedOffset.ToCompactString());
 	return true;
 }
 
@@ -558,8 +558,8 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 		return 0;
 	}
 
-	FGridObjectTransitionParams Transition;
-	if (!FindOpenPitAtCell(CellX, CellY, Transition))
+	FGridRelocationBehaviorParams Relocation;
+	if (!FindOpenPitAtCell(CellX, CellY, Relocation))
 	{
 		return 0;
 	}
@@ -675,8 +675,8 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 
 	if (Edge == EGridEdge::None)
 	{
-		FGridObjectTransitionParams PitTransition;
-		if (FindOpenPitAtCell(CellX, CellY, PitTransition))
+		FGridRelocationBehaviorParams PitRelocation;
+		if (FindOpenPitAtCell(CellX, CellY, PitRelocation))
 		{
 			return TryRouteWorldItemThroughOpenPit(ItemInstance, ItemDefinition, CellX, CellY, LocalOffset);
 		}

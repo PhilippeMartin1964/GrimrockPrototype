@@ -22,8 +22,7 @@ bool AGridLevelEditorActor::ApplyBehaviorToSelectedObject(const FGridObjectBehav
 	FGridWorldObjectInstance* WorldObjectInstance = LevelAsset ? LevelAsset->FindWorldObjectInstanceById(LastSelectedObjectId) : nullptr;
 	if (!WorldObjectInstance) return false;
 	LevelAsset->Modify();
-	WorldObjectInstance->InstanceConfig.Teleporter = NewBehavior.Teleporter;
-	WorldObjectInstance->InstanceConfig.Transition = NewBehavior.Transition;
+	WorldObjectInstance->InstanceConfig.Relocation = NewBehavior.Relocation;
 	WorldObjectInstance->InstanceConfig.Pit = NewBehavior.Pit;
 	WorldObjectInstance->InstanceConfig.ReceptacleInitialContent = NewBehavior.Receptacle.InitialContent;
 	WorldObjectInstance->InstanceConfig.bStartsUnlocked = NewBehavior.Lock.bStartsUnlocked;

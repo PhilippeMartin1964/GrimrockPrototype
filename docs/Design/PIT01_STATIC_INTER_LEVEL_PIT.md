@@ -3,7 +3,7 @@
 > **Contrat courant après MIG10 et ALIGN-B5.3 (2026-09-09)** : voir les [définitions et placements typés](../Architecture/WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Le placement world-object référence `WorldObjectDefinitionId`, la définition porte `DefinitionId`, les visuels utilisent `StaticPart` / `MovingParts`, et l'autorité de placement est `PlacementSurface + DefaultLocalPosition.U/V/N`.
 
 
-> **Ergonomie Grid Editor (02.09.2026).** Dans `Selected Object > Transition`, une Pit affiche toujours sa destination. Lorsque `Use Same Cell Coordinates = True`, `Target Cell X` et `Target Cell Y` sont désactivés car ils sont ignorés par le runtime ; l'inspecteur affiche explicitement la cellule effective `(Pit.CellX, Pit.CellY)`. Dès que l'option est décochée, X/Y redeviennent éditables. Pour une Pit, l'ancien flag générique `Is Transition` est remplacé visuellement par `Transition Mode = Intrinsic Pit Fall`.
+> **RELOC01.2 editor contract.** Selected Object > Relocation exposes the Pit destination. Use Same Cell Coordinates disables destination X/Y editing and uses the source cell coordinates. Destination Level=None selects the automatic lower level. There is no mode flag or Use-action control.
 
 
 > **Correction d’atterrissage (01.09.2026).** Si la cellule exactement sous la Pit est hors limites, `Empty` ou bloque l’occupation, la chute n’est plus annulée. Le runtime cherche automatiquement la cellule praticable la plus proche sur le niveau inférieur, de façon déterministe, et utilise cette cellule comme point d’atterrissage. Une destination contenant directement une autre Pit ouverte reste refusée tant que les chutes en cascade ne sont pas implémentées.
@@ -12,7 +12,7 @@
 > **Correction runtime (01.09.2026).** Une fosse statique sans paire complète `Left Leaf Mesh` + `Right Leaf Mesh` est toujours physiquement ouverte. Le runtime reconnaît aussi une Pit par sa définition si le `Type` stocké dans un ancien objet placé est obsolète, et un GUID invalide n'empêche plus la chute statique. À la fin d'un déplacement, la détection Pit est prioritaire sur les triggers, plaques, TurnManager et transitions ordinaires.
 
 
-> **Correction de contrat (01.09.2026).** Une Pit ouverte est intrinsèquement une cellule de chute. Elle ne dépend plus de `Transition.bIsTransition`, de `bRequireUseAction`, ni d'un `Target Level Id` manuel pour fonctionner. Avec `Target Level Id = None`, le niveau inférieur est résolu automatiquement.
+> **RELOC01.2 runtime contract.** An open Pit is intrinsically a fall cell. Its destination is InstanceConfig.Relocation; Destination Level=None resolves the automatic lower level. The dedicated fall path remains separate from normal relocation.
 
 
 > **Évolution PIT03 (01.09.2026).** Le booléen `bInitiallyOpen` n'est plus l'autorité permanente après le démarrage. L'état Open/Closed est désormais persisté par `FGridRuntimePitState` et peut être commandé par les connecteurs. Le reste du contrat PIT01 (destination et chute du groupe) reste valide.
@@ -35,12 +35,11 @@ Un nouveau type de GridObject `Pit` est ajouté à la fin de `EGridLevelObjectTy
 - `bInitiallyOpen` : état initial de la fosse ;
 - `bUseSameCellCoordinates` : utilise les X/Y de la fosse comme destination dans le niveau cible.
 
-La destination inter-niveaux reste portée par `FGridObjectTransitionParams` :
+La destination inter-niveaux reste portée par `FGridRelocationBehaviorParams` :
 
 - `TargetLevelId` ;
 - `TargetCellX/Y` lorsque Same Cell Coordinates est désactivé ;
 - `TargetFacing` ;
-- `bRequireUseAction=false` obligatoire.
 
 ## Définition Stone Pit
 

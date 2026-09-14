@@ -141,11 +141,8 @@ struct FGridWorldObjectInstanceConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Teleporter|Initial State")
 	bool bTeleporterInitiallyEnabled = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Teleporter")
-	FGridTeleporterBehaviorParams Teleporter;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Transition")
-	FGridObjectTransitionParams Transition;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Relocation")
+	FGridRelocationBehaviorParams Relocation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Pit")
 	FGridPitBehaviorParams Pit;

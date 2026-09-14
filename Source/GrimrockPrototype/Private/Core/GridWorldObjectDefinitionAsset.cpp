@@ -148,11 +148,6 @@ namespace
 			Definition.DefaultBehavior.Lock.AcceptedKeyIds.Num() > 0 || Definition.DefaultBehavior.Lock.AcceptedKeyItems.Num() > 0;
 	}
 
-	bool HasTeleporterBehaviorParams(const FGridObjectBehaviorParams& Behavior)
-	{
-		return Behavior.Teleporter.TargetCellX != INDEX_NONE || Behavior.Teleporter.TargetCellY != INDEX_NONE;
-	}
-
 	bool HasCustomButtonBehaviorParams(const FGridObjectBehaviorParams& Behavior)
 	{
 		return !FMath::IsNearlyEqual(Behavior.ButtonAnimation.ButtonHoldTime, 0.15f);
@@ -336,10 +331,7 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 	{
 		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("Receptacle behavior parameters are set but SupportedType is not Receptacle."));
 	}
-	if (!UsesTeleporterParams() && HasTeleporterBehaviorParams(DefaultBehavior))
-	{
-		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("Teleporter target cell is set but SupportedType is not Teleporter."));
-	}
+
 	if (!UsesButtonAnimationParams() && HasCustomButtonBehaviorParams(DefaultBehavior))
 	{
 		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("Button behavior parameters are customized but SupportedType is not Button."));
@@ -438,9 +430,9 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 		case EGridLevelObjectType::Teleporter:
 		{
 			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Teleporter Placement Surface must be Floor."));
-			if (DefaultBehavior.Teleporter.TargetCellX == INDEX_NONE || DefaultBehavior.Teleporter.TargetCellY == INDEX_NONE)
+			if (DefaultBehavior.Relocation.TargetCellX == INDEX_NONE || DefaultBehavior.Relocation.TargetCellY == INDEX_NONE)
 			{
-				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Teleporter should define DefaultBehavior TargetCellX and TargetCellY."));
+				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Teleporter destination is unset; configure Relocation on the definition or placement."));
 			}
 			break;
 		}
@@ -543,5 +535,4 @@ bool UGridWorldObjectDefinitionAsset::RequiresRuntimeActorClass() const
 
 bool UGridWorldObjectDefinitionAsset::UsesLightParams() const { return bIsLightSource || SupportedType == EGridLevelObjectType::Light || ObjectCategory == EGridObjectCategory::Light; }
 bool UGridWorldObjectDefinitionAsset::UsesReceptacleParams() const { return SupportedType == EGridLevelObjectType::Receptacle; }
-bool UGridWorldObjectDefinitionAsset::UsesTeleporterParams() const { return SupportedType == EGridLevelObjectType::Teleporter; }
 bool UGridWorldObjectDefinitionAsset::UsesButtonAnimationParams() const { return SupportedType == EGridLevelObjectType::Button; }

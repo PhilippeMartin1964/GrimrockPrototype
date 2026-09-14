@@ -481,17 +481,17 @@ bool FGridMonsterMON141EncounterVisibilityTest::RunTest(const FString& Parameter
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON141TransitionRebuildSafetyTest, "Grimrock.Monsters.MON14.1.TransitionRebuildSafety",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON141RelocationRebuildSafetyTest, "Grimrock.Monsters.MON14.1.RelocationRebuildSafety",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMonsterMON141TransitionRebuildSafetyTest::RunTest(const FString& Parameters)
+bool FGridMonsterMON141RelocationRebuildSafetyTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	FGridMON141Fixture Fixture;
 	if (!Fixture.Initialize())
 		return false;
 	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_Transition"), 6, 0), FIntPoint(1, 4));
-	TestNotNull(TEXT("Transition guard monster exists"), Monster);
+	TestNotNull(TEXT("Relocation guard monster exists"), Monster);
 
 	Fixture.Runtime->bIsExecutingDungeonTransition = true;
 	Fixture.Engagement->RequestEvaluation(Fixture.Runtime, TEXT("ContinueRestore"));

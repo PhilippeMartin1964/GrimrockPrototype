@@ -39,7 +39,7 @@ Les états initiaux qui dépendent du puzzle appartiennent à la structure typé
 | Lever | aucun override : démarre au repos / Off |
 | PressurePlate | aucun état pressé authoré : état dérivé de l'occupation et du poids |
 
-Les données naturellement locales restent `InstanceConfig.Teleporter`, `Transition`, `Pit`, `ReceptacleInitialContent` et `bStartsUnlocked`. RECOVERY01 autorise en plus deux familles d'exceptions **sparse** lorsque l'histoire du niveau exige une différence réelle : `MovingPartOverrides` (`LocalTransform`, `Motion.Amount`, `Motion.Duration`) et les overrides de chaîne (`DoorChainMode`, `bOverrideChainPullDuration`, `ChainPullDuration`). Le resolver combine la définition avec ces données locales sans recopier la définition. Il n'existe ni override de mesh/type/axe/pivot/`ReverseDuration`, ni `ChainPullDistance` d'instance. Voir la [règle Definition / Instance](12_GRID_OBJECT_INSTANCE_BEHAVIOR_RULE.md).
+Les données naturellement locales restent `InstanceConfig.Relocation`, `Pit`, `ReceptacleInitialContent` et `bStartsUnlocked`. RECOVERY01 autorise en plus deux familles d'exceptions **sparse** lorsque l'histoire du niveau exige une différence réelle : `MovingPartOverrides` (`LocalTransform`, `Motion.Amount`, `Motion.Duration`) et les overrides de chaîne (`DoorChainMode`, `bOverrideChainPullDuration`, `ChainPullDuration`). Le resolver combine la définition avec ces données locales sans recopier la définition. Il n'existe ni override de mesh/type/axe/pivot/`ReverseDuration`, ni `ChainPullDistance` d'instance. Voir la [règle Definition / Instance](12_GRID_OBJECT_INSTANCE_BEHAVIOR_RULE.md).
 
 La présence d'un `FGridWorldObjectInstance`, `FGridLooseItemInstance` ou `FGridLogicObjectInstance` dans sa collection native signifie que ce placement existe. La présence initiale d'un générateur de monstre ou d'item est, elle, explicitement contrôlée par `bSpawnAtStart`.
 
@@ -100,3 +100,14 @@ Avant utilisation, vérifier `ValidateDefinition()` et `ValidateCurrentLevel()` 
 Le dossier historique `Content/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/` reste inchangé. Son nom ne désigne plus une classe ni un concept architectural actif. Une réorganisation éventuelle des packages relève d'une tâche AssetTools distincte.
 
 Les Core Redirects temporaires préservent le chargement des références externes utilisant les anciens noms ; voir le [rapport MIG10](../Architecture/WORLDOBJ_MIG10_FINAL.md).
+
+## Relocation (RELOC01.2)
+
+`DefaultBehavior.Relocation` and `InstanceConfig.Relocation` share exactly one
+`FGridRelocationBehaviorParams`: TargetLevelId, TargetCellX, TargetCellY, TargetFacing.
+Default Behavior exposes a single Relocation section. Coordinates default to INDEX_NONE;
+configured nonnegative X/Y identify non-Pit relocation objects, and Type=Teleporter is
+always a candidate. Definition defaults initialize placements; local destinations remain
+instance-owned. Normal level None means current level, Facing None preserves facing.
+Pit level None keeps automatic-lower-level resolution. All relocations activate on entry.
+See [Relocation](../Design/GRID_RELOCATION_DATA.md).

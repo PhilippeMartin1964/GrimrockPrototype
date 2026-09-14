@@ -262,7 +262,7 @@ Le test vérifie maintenant directement :
 
 ```text
 WorldObjectInstances[0].InstanceId
-WorldObjectInstances[0].InstanceConfig.Transition
+WorldObjectInstances[0].InstanceConfig.Relocation
 UsesSparseBehaviorOverrides(InstanceId)
 Definition->DefaultBehavior
 EditorActor->ObjectBehavior après sélection/re-sélection

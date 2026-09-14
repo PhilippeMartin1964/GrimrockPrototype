@@ -316,7 +316,6 @@ public:
 	bool RequiresRuntimeActorClass() const;
 	bool UsesLightParams() const;
 	bool UsesReceptacleParams() const;
-	bool UsesTeleporterParams() const;
 	bool UsesButtonAnimationParams() const;
 
 	bool HasCompletePitTrapdoorCover() const

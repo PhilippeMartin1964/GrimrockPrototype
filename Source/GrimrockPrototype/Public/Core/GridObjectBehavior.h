@@ -48,18 +48,6 @@ struct FGridItemBehaviorParams
 };
 
 USTRUCT(BlueprintType)
-struct FGridTeleporterBehaviorParams
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Teleporter", meta = (ToolTip = "Target cell X used only by SupportedType=Teleporter."))
-	int32 TargetCellX = INDEX_NONE;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Teleporter", meta = (ToolTip = "Target cell Y used only by SupportedType=Teleporter."))
-	int32 TargetCellY = INDEX_NONE;
-};
-
-USTRUCT(BlueprintType)
 struct FGridPitBehaviorParams
 {
 	GENERATED_BODY()
@@ -74,27 +62,21 @@ struct FGridPitBehaviorParams
 };
 
 USTRUCT(BlueprintType)
-struct FGridObjectTransitionParams
+struct FGridRelocationBehaviorParams
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transition")
-	bool bIsTransition = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transition", meta = (EditCondition = "bIsTransition"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Relocation")
 	FName TargetLevelId = NAME_None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transition", meta = (EditCondition = "bIsTransition"))
-	int32 TargetCellX = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Relocation")
+	int32 TargetCellX = INDEX_NONE;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transition", meta = (EditCondition = "bIsTransition"))
-	int32 TargetCellY = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Relocation")
+	int32 TargetCellY = INDEX_NONE;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transition", meta = (EditCondition = "bIsTransition"))
-	EGridEdge TargetFacing = EGridEdge::North;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transition", meta = (EditCondition = "bIsTransition"))
-	bool bRequireUseAction = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Relocation")
+	EGridEdge TargetFacing = EGridEdge::None;
 };
 
 USTRUCT(BlueprintType)
@@ -238,13 +220,8 @@ struct FGridObjectBehaviorParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FGridItemBehaviorParams Item;
 
-	// Legacy serialized compatibility data. Relocation is authored on placed instances in the Grid Editor.
-	UPROPERTY(BlueprintReadWrite, Category = "Legacy|Relocation")
-	FGridTeleporterBehaviorParams Teleporter;
-
-	// Legacy serialized compatibility data. Relocation is authored on placed instances in the Grid Editor.
-	UPROPERTY(BlueprintReadWrite, Category = "Legacy|Relocation")
-	FGridObjectTransitionParams Transition;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Relocation")
+	FGridRelocationBehaviorParams Relocation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit")
 	FGridPitBehaviorParams Pit;

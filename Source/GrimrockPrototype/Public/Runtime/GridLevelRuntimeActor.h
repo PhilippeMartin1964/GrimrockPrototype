@@ -400,14 +400,14 @@ public:
 	const FGridLevelRuntimeState* FindRuntimeStateForCurrentLevel() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Runtime")
-	bool TryExecuteTransitionAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn, bool bTriggeredByUseAction);
+	bool TryExecuteRelocationAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn);
 
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Runtime")
-	bool FindTransitionAtCell(int32 CellX, int32 CellY, bool bTriggeredByUseAction, FGridObjectTransitionParams& OutTransition) const;
+	bool FindRelocationAtCell(int32 CellX, int32 CellY, FGridRelocationBehaviorParams& OutRelocation) const;
 
 	/** PIT01: resolves an enabled static open pit without using the generic stair transition path. */
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Pit")
-	bool FindOpenPitAtCell(int32 CellX, int32 CellY, FGridObjectTransitionParams& OutTransition) const;
+	bool FindOpenPitAtCell(int32 CellX, int32 CellY, FGridRelocationBehaviorParams& OutRelocation) const;
 
 	/** PIT01: validates the destination and starts the party-owned fall presentation. */
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Pit")

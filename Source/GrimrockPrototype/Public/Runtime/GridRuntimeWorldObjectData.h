@@ -41,8 +41,7 @@ struct GRIMROCKPROTOTYPE_API FGridRuntimeWorldObjectData
 		, bTeleporterInitiallyEnabled(Source.InstanceConfig.bTeleporterInitiallyEnabled)
 		, OverrideReadableText(Source.ReadableTextOverride)
 	{
-		Behavior.Teleporter = Source.InstanceConfig.Teleporter;
-		Behavior.Transition = Source.InstanceConfig.Transition;
+		Behavior.Relocation = Source.InstanceConfig.Relocation;
 		Behavior.Pit = Source.InstanceConfig.Pit;
 		Behavior.Receptacle.InitialContent = Source.InstanceConfig.ReceptacleInitialContent;
 		Behavior.Lock.bStartsUnlocked = Source.InstanceConfig.bStartsUnlocked;

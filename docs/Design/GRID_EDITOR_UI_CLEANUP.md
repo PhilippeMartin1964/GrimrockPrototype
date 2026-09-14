@@ -68,19 +68,13 @@ The remaining `CallInEditor` buttons on `BP_GridLevelEditorActor` are kept for n
 
 A later audit can decide which technical controls should remain visible on the actor.
 
-## Contextual Transition Inspector
+## Contextual Relocation Inspector
 
-La section `Transition` de l'inspecteur d'objet est maintenant contextuelle.
-
-Elle apparaît uniquement pour les objets dont la définition active :
-
-```text
-bExposeTransitionSettingsInInspector = true
-```
-
-`Stairs_Up` et `Stairs_Down` activent ce flag. Les objets ordinaires ne montrent plus les champs `TargetLevelId`, `TargetCellX`, `TargetCellY` et `TargetFacing`.
-
-Les données `Behavior.Transition` restent supportées par le runtime et par les diagnostics même si l'UI est masquée pour un ancien objet.
+Since RELOC01.2, Selected Object shows one Relocation panel for Teleporter, Pit and
+non-Pit objects with configured destination coordinates. It edits InstanceConfig.Relocation:
+Destination Level, Destination Cell X/Y and Facing. There is no mode checkbox or Use-action
+setting. Ordinary unconfigured objects do not show this panel. Definition defaults use
+DefaultBehavior.Relocation. See [the canonical contract](GRID_RELOCATION_DATA.md).
 
 ## Step 1 Applied
 

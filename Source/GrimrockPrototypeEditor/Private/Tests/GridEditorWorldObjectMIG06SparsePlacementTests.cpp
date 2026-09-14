@@ -119,20 +119,18 @@ bool FGridEditorWorldObjectMIG06SparsePlacementTest::RunTest(const FString& Para
 
 	FGridObjectBehaviorParams EditedBehavior = EditorActor->ObjectBehavior;
 	EditedBehavior.ButtonAnimation.ButtonHoldTime = 9.0f; // must not become an instance authority
-	EditedBehavior.Transition.bIsTransition = true;
-	EditedBehavior.Transition.TargetLevelId = TEXT("MIG06_Target");
-	EditedBehavior.Transition.TargetCellX = 3;
-	EditedBehavior.Transition.TargetCellY = 4;
+	EditedBehavior.Relocation.TargetLevelId = TEXT("MIG06_Target");
+	EditedBehavior.Relocation.TargetCellX = 3;
+	EditedBehavior.Relocation.TargetCellY = 4;
 	TestTrue(TEXT("Inspector behavior edit keeps sparse storage"), EditorActor->ApplyBehaviorToSelectedObject(EditedBehavior));
 	TestTrue(TEXT("Edited object remains sparse"), Level->UsesSparseBehaviorOverrides(ObjectId));
 	TestEqual(TEXT("Definition-owned ButtonHoldTime is not overwritten by an instance edit"), Definition->DefaultBehavior.ButtonAnimation.ButtonHoldTime, 0.77f);
-	TestTrue(TEXT("Transition override is stored in typed InstanceConfig"), Level->WorldObjectInstances[0].InstanceConfig.Transition.bIsTransition);
-	TestEqual(TEXT("Transition target X is stored in typed InstanceConfig"), Level->WorldObjectInstances[0].InstanceConfig.Transition.TargetCellX, 3);
-	TestEqual(TEXT("Transition target Y is stored in typed InstanceConfig"), Level->WorldObjectInstances[0].InstanceConfig.Transition.TargetCellY, 4);
+	TestEqual(TEXT("Relocation target X is stored in typed InstanceConfig"), Level->WorldObjectInstances[0].InstanceConfig.Relocation.TargetCellX, 3);
+	TestEqual(TEXT("Relocation target Y is stored in typed InstanceConfig"), Level->WorldObjectInstances[0].InstanceConfig.Relocation.TargetCellY, 4);
 
 	TestTrue(TEXT("Edited sparse object can be reselected"), EditorActor->SelectObjectById(ObjectId));
 	TestEqual(TEXT("Reselection restores definition-owned ButtonHoldTime"), EditorActor->ObjectBehavior.ButtonAnimation.ButtonHoldTime, 0.77f);
-	TestEqual(TEXT("Reselection preserves typed instance transition"), EditorActor->ObjectBehavior.Transition.TargetLevelId, FName(TEXT("MIG06_Target")));
+	TestEqual(TEXT("Reselection preserves typed instance transition"), EditorActor->ObjectBehavior.Relocation.TargetLevelId, FName(TEXT("MIG06_Target")));
 
 	return true;
 }

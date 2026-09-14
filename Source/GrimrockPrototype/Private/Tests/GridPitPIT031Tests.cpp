@@ -80,10 +80,8 @@ namespace GridPIT031
 		Pit.WallSide = EGridEdge::None;
 		Pit.InstanceConfig.Pit.bInitiallyOpen = false;
 		Pit.InstanceConfig.Pit.bUseSameCellCoordinates = true;
-		Pit.InstanceConfig.Transition.bIsTransition = true;
-		Pit.InstanceConfig.Transition.TargetLevelId = TargetLevelId;
-		Pit.InstanceConfig.Transition.TargetFacing = EGridEdge::North;
-		Pit.InstanceConfig.Transition.bRequireUseAction = false;
+		Pit.InstanceConfig.Relocation.TargetLevelId = TargetLevelId;
+		Pit.InstanceConfig.Relocation.TargetFacing = EGridEdge::North;
 		return Pit;
 	}
 }
@@ -227,9 +225,9 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Pit A target is Open"), PitAActor->IsTargetOpen());
 	TestTrue(TEXT("Pit A becomes gameplay-open immediately when Open is commanded"), Runtime->IsPitOpen(PitAId));
 
-	FGridObjectTransitionParams DuringOpeningTransition;
+	FGridRelocationBehaviorParams DuringOpeningRelocation;
 	TestTrue(TEXT("Party movement detector resolves Pit A as open while leaves are still opening"),
-		Runtime->FindOpenPitAtCell(2, 2, DuringOpeningTransition));
+		Runtime->FindOpenPitAtCell(2, 2, DuringOpeningRelocation));
 
 	TestTrue(TEXT("Pit A Opened event immediately starts Pit B opening"), PitBActor->IsTargetOpen());
 	TestTrue(TEXT("Pit B animation immediately starts from chained Opened"), PitBActor->IsAnimating());

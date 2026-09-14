@@ -38,8 +38,7 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject()
 		WorldObjectInstance->Type = PaintObjectType;
 		WorldObjectInstance->WorldObjectDefinitionId = WorldObjectDefinitionId;
 		WorldObjectInstance->WallSide = IsEdgePlacedObject(PaintObjectType, WorldObjectDefinitionId) ? SelectedEdge : EGridEdge::None;
-		WorldObjectInstance->InstanceConfig.Teleporter = ObjectBehavior.Teleporter;
-		WorldObjectInstance->InstanceConfig.Transition = ObjectBehavior.Transition;
+		WorldObjectInstance->InstanceConfig.Relocation = ObjectBehavior.Relocation;
 		WorldObjectInstance->InstanceConfig.Pit = ObjectBehavior.Pit;
 		WorldObjectInstance->InstanceConfig.ReceptacleInitialContent = ObjectBehavior.Receptacle.InitialContent;
 		WorldObjectInstance->InstanceConfig.bStartsUnlocked = ObjectBehavior.Lock.bStartsUnlocked;

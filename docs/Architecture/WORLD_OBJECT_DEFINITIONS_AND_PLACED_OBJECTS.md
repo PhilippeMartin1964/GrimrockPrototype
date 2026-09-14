@@ -27,7 +27,7 @@ Les items ramassables utilisent une seule `UGridItemDefinitionAsset`. Les monstr
 - `InstanceId`, identité stable ; `WorldObjectDefinitionId`, référence de définition ; `Type`, discriminateur fonctionnel ;
 - `CellX`, `CellY`, `WallSide`, et l'override optionnel `bHasLocalTransformOverride` / `LocalTransformOverride` ;
 - `LogicId`, `Tag`, `Notes`, `PaletteEntryId` et `ReadableTextOverride` ;
-- `InstanceConfig.Teleporter`, `Transition`, `Pit`, `ReceptacleInitialContent` et `bStartsUnlocked` pour les données naturellement locales au niveau ;
+- `InstanceConfig.Relocation`, `Pit`, `ReceptacleInitialContent` et `bStartsUnlocked` pour les données naturellement locales au niveau ;
 - `InstanceConfig.bDoorInitiallyOpen` pour l'état initial d'une porte ;
 - `InstanceConfig.bTeleporterInitiallyEnabled` pour l'état initial d'un téléporteur ;
 - `InstanceConfig.MovingPartOverrides` pour les rares exceptions visuelles historiques d'une partie mobile (`LocalTransform`, `Amount`, durée forward), indexées par `PartIndex` 0 ou 1 ;
@@ -87,3 +87,14 @@ Une éventuelle réorganisation Content nécessitera une tâche dédiée avec As
 - [Audio des objets](../Design/GRID_OBJECT_AUDIO_SYSTEM.md)
 - [Réceptacles](RECEPTACLE_SYSTEM_FOUNDATION.md)
 - [Objets lisibles](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md)
+
+## Relocation (RELOC01.2)
+
+`DefaultBehavior.Relocation` and `InstanceConfig.Relocation` share exactly one
+`FGridRelocationBehaviorParams`: TargetLevelId, TargetCellX, TargetCellY, TargetFacing.
+Default Behavior exposes a single Relocation section. Coordinates default to INDEX_NONE;
+configured nonnegative X/Y identify non-Pit relocation objects, and Type=Teleporter is
+always a candidate. Definition defaults initialize placements; local destinations remain
+instance-owned. Normal level None means current level, Facing None preserves facing.
+Pit level None keeps automatic-lower-level resolution. All relocations activate on entry.
+See [Relocation](../Design/GRID_RELOCATION_DATA.md).

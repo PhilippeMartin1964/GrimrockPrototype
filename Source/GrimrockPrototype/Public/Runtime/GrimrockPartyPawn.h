@@ -518,7 +518,7 @@ public:
 
 
 	UFUNCTION(BlueprintCallable, Category = "Movement|Pit Fall")
-	bool BeginPitFall(const FGridObjectTransitionParams& Transition);
+	bool BeginPitFall(const FGridRelocationBehaviorParams& Relocation);
 
 	UFUNCTION(BlueprintPure, Category = "Movement|Pit Fall")
 	bool IsPitFalling() const

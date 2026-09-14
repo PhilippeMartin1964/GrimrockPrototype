@@ -95,7 +95,7 @@ Les transitions multi-niveaux doivent maintenant être représentées par des ob
 - `Stairs Up`
 - `Stairs Down`
 
-Ces objets sont des définitions `UGridWorldObjectDefinitionAsset` configurées comme décorations de sol non bloquantes. Ils utilisent les meshes `SM_Stairs_Up_01` et `SM_Stairs_Down_01`, se placent au centre d'une cellule et portent `Behavior.Transition.bIsTransition = true` par défaut.
+Ces objets sont des définitions `UGridWorldObjectDefinitionAsset` configurées comme décorations de sol non bloquantes. Ils utilisent les meshes `SM_Stairs_Up_01` et `SM_Stairs_Down_01`, se placent au centre d'une cellule et portent `DefaultBehavior.Relocation` (None / 0 / 0 / North) par défaut.
 
 Chaque escalier doit ensuite être configuré dans l'inspecteur :
 
@@ -104,7 +104,7 @@ Chaque escalier doit ensuite être configuré dans l'inspecteur :
 - `TargetCellY`
 - `TargetFacing`
 
-Since RELOC01, Teleporter, Stairs and Passage share Relocation authoring and activate automatically on cell entry. `bIsTransition` and `bRequireUseAction` remain internal compatibility fields. Normal Destination Level=None means current level (without rebuild); Facing=None preserves facing. Cross-level relocation uses existing dungeon travel, rebuild and persistence. Pit alone keeps None=automatic lower level. See [Grid Relocation](GRID_LEVEL_TRANSITION_DATA.md).
+Since RELOC01, Teleporter, Stairs and Passage share Relocation authoring and activate automatically on cell entry. The only destination schema is `FGridRelocationBehaviorParams`, exposed as `DefaultBehavior.Relocation` and `InstanceConfig.Relocation`; configured X/Y identify relocation-capable objects. Normal Destination Level=None means current level (without rebuild); Facing=None preserves facing. Cross-level relocation uses existing dungeon travel, rebuild and persistence. Pit alone keeps None=automatic lower level. See [Grid Relocation](GRID_RELOCATION_DATA.md).
 
 Comportement de rendu de `Stairs_Down` :
 

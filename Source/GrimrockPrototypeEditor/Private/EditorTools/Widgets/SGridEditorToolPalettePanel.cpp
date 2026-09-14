@@ -1,4 +1,5 @@
 #include "EditorTools/Widgets/SGridEditorToolPalettePanel.h"
+#include "Core/GridRelocationUtils.h"
 
 #if WITH_EDITOR
 
@@ -387,8 +388,8 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 	const FGridObjectPaletteEntry* StairsUpEntry = CurrentEditorActor->ObjectPalette->FindEntryById(FName(TEXT("Stairs_Up")));
 	const FGridObjectPaletteEntry* StairsDownEntry = CurrentEditorActor->ObjectPalette->FindEntryById(FName(TEXT("Stairs_Down")));
 	if (!StairsUpEntry || !StairsUpEntry->DefaultWorldObjectDefinition || !StairsDownEntry || !StairsDownEntry->DefaultWorldObjectDefinition ||
-		!StairsUpEntry->DefaultWorldObjectDefinition->DefaultBehavior.Transition.bIsTransition ||
-		!StairsDownEntry->DefaultWorldObjectDefinition->DefaultBehavior.Transition.bIsTransition)
+		!GridRelocation::IsConfigured(StairsUpEntry->DefaultWorldObjectDefinition->DefaultBehavior.Relocation) ||
+		!GridRelocation::IsConfigured(StairsDownEntry->DefaultWorldObjectDefinition->DefaultBehavior.Relocation))
 	{
 		FString Error;
 		if (!CurrentEditorActor->EnsureStairsTransitionDefinitions(Error))
@@ -399,7 +400,6 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 
 	const FGridObjectPaletteEntry* PitEntry = CurrentEditorActor->ObjectPalette->FindEntryById(FName(TEXT("Pit_Stone_01")));
 	if (!PitEntry || !PitEntry->DefaultWorldObjectDefinition || PitEntry->DefaultWorldObjectDefinition->SupportedType != EGridLevelObjectType::Pit ||
-		!PitEntry->DefaultWorldObjectDefinition->DefaultBehavior.Transition.bIsTransition ||
 		PitEntry->DefaultWorldObjectDefinition->RuntimeActorClass != AGridPitTrapdoorActor::StaticClass() ||
 		!PitEntry->DefaultWorldObjectDefinition->StaticPart.IsDefined() || PitEntry->DefaultWorldObjectDefinition->MovingParts.NumDefined() == 1)
 	{

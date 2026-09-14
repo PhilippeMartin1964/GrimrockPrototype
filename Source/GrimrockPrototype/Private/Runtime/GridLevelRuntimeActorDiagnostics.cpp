@@ -71,23 +71,23 @@ namespace
 		return bValue ? TEXT("true") : TEXT("false");
 	}
 
-	int32 GridLevelRuntimeDiagnosticsCountRuntimeTransitionObjects(const UGridLevelAsset* InLevelAsset)
+	int32 GridLevelRuntimeDiagnosticsCountRuntimeRelocationObjects(const UGridLevelAsset* InLevelAsset)
 	{
 		if (!InLevelAsset)
 		{
 			return 0;
 		}
 
-		int32 TransitionCount = 0;
+		int32 RelocationCount = 0;
 		for (const FGridWorldObjectInstance& ObjectData : InLevelAsset->WorldObjectInstances)
 		{
 			if (ObjectData.Type == EGridLevelObjectType::Pit || GridRelocation::IsCandidate(ObjectData))
 			{
-				++TransitionCount;
+				++RelocationCount;
 			}
 		}
 
-		return TransitionCount;
+		return RelocationCount;
 	}
 
 	int32 GridLevelRuntimeDiagnosticsCountRemovedRuntimeObjects(const FGridLevelRuntimeState* RuntimeState)
@@ -305,7 +305,7 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics() const
 	int32 NonEmptyCellCount = 0;
 	int32 BlockingCellCount = 0;
 	int32 CeilingCellCount = 0;
-	const int32 TransitionObjectCount = GridLevelRuntimeDiagnosticsCountRuntimeTransitionObjects(LevelAsset);
+	const int32 RelocationObjectCount = GridLevelRuntimeDiagnosticsCountRuntimeRelocationObjects(LevelAsset);
 	const int32 HiddenFloorCellCount = GridLevelRuntimeDiagnosticsCountHiddenFloorCells(LevelAsset, this);
 
 	for (const FGridLevelCellData& Cell : LevelAsset->Cells)
@@ -333,7 +333,7 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics() const
 	Result += FString::Printf(TEXT("Cells=%d ExpectedCells=%d\n"), LevelAsset->Cells.Num(), ExpectedCellCount);
 	Result += FString::Printf(TEXT("NonEmptyCells=%d BlockingCells=%d CeilingCells=%d\n"), NonEmptyCellCount, BlockingCellCount, CeilingCellCount);
 	Result += FString::Printf(TEXT("Placements=%d Links=%d RelocationObjects=%d HiddenFloorCells=%d\n"), LevelAsset->GetTypedPlacementCount(), LevelAsset->Links.Num(),
-		TransitionObjectCount, HiddenFloorCellCount);
+		RelocationObjectCount, HiddenFloorCellCount);
 	Result += FString::Printf(TEXT("WorldObjectDefinitionsOnRuntimeActor=%d\n"), WorldObjectDefinitions.Num());
 	Result += FString::Printf(TEXT("FloorMesh=%s WallMesh=%s CeilingMesh=%s\n"), *GetNameSafe(FloorMesh), *GetNameSafe(WallMesh), *GetNameSafe(CeilingMesh));
 
@@ -399,7 +399,7 @@ FString AGridLevelRuntimeActor::GetPIEReadinessDiagnostics() const
 		Result += FString::Printf(TEXT("Start: Cell=(%d,%d) Facing=%s Valid=%s\n"), LevelAsset->StartCellX, LevelAsset->StartCellY,
 			*GridLevelRuntimeDiagnosticsGetRuntimeEdgeText(LevelAsset->StartFacing), *GridLevelRuntimeDiagnosticsGetRuntimeBoolText(bHasValidStart));
 		Result += FString::Printf(TEXT("Asset Stats: Cells=%d Placements=%d Links=%d RelocationObjects=%d\n"), LevelAsset->Cells.Num(), LevelAsset->GetTypedPlacementCount(),
-			LevelAsset->Links.Num(), GridLevelRuntimeDiagnosticsCountRuntimeTransitionObjects(LevelAsset));
+			LevelAsset->Links.Num(), GridLevelRuntimeDiagnosticsCountRuntimeRelocationObjects(LevelAsset));
 	}
 	else
 	{

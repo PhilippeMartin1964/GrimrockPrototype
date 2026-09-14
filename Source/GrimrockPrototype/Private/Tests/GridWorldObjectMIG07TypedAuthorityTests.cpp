@@ -27,8 +27,9 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 	Door.CellX = 3;
 	Door.CellY = 4;
 	Door.WallSide = EGridEdge::East;
-	Door.InstanceConfig.Transition.bIsTransition = true;
-	Door.InstanceConfig.Transition.TargetLevelId = TEXT("Target_A");
+	Door.InstanceConfig.Relocation.TargetCellX = 0;
+	Door.InstanceConfig.Relocation.TargetCellY = 0;
+	Door.InstanceConfig.Relocation.TargetLevelId = TEXT("Target_A");
 	Door.InstanceConfig.bStartsUnlocked = true;
 	Level->WorldObjectInstances.Add(Door);
 
@@ -69,8 +70,7 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 	{
 		TestEqual(TEXT("Door definition id comes from typed storage"), RestoredDoor->WorldObjectDefinitionId, FName(TEXT("Door_MIG07B")));
 		TestEqual(TEXT("Door wall side comes from typed storage"), RestoredDoor->WallSide, EGridEdge::East);
-		TestTrue(TEXT("Door transition remains sparse instance data"), RestoredDoor->InstanceConfig.Transition.bIsTransition);
-		TestEqual(TEXT("Door transition target survives lookup"), RestoredDoor->InstanceConfig.Transition.TargetLevelId, FName(TEXT("Target_A")));
+		TestEqual(TEXT("Door transition target survives lookup"), RestoredDoor->InstanceConfig.Relocation.TargetLevelId, FName(TEXT("Target_A")));
 		TestTrue(TEXT("Door initial lock state survives lookup"), RestoredDoor->InstanceConfig.bStartsUnlocked);
 	}
 
@@ -90,12 +90,12 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 		TestEqual(TEXT("Monster facing remains typed"), RestoredMonster->Facing, EGridEdge::West);
 	}
 
-	Level->WorldObjectInstances[0].InstanceConfig.Transition.TargetLevelId = TEXT("Target_B");
+	Level->WorldObjectInstances[0].InstanceConfig.Relocation.TargetLevelId = TEXT("Target_B");
 	Level->LooseItemInstances[0].LocalYaw = 42.0f;
 	RestoredDoor = Level->FindWorldObjectInstanceById(Door.InstanceId);
 	RestoredItem = Level->FindLooseItemInstanceById(Item.InstanceId);
 	TestTrue(TEXT("Native lookup observes typed door updates"),
-		RestoredDoor && RestoredDoor->InstanceConfig.Transition.TargetLevelId == FName(TEXT("Target_B")));
+		RestoredDoor && RestoredDoor->InstanceConfig.Relocation.TargetLevelId == FName(TEXT("Target_B")));
 	TestTrue(TEXT("Native lookup observes typed item updates"), RestoredItem && FMath::IsNearlyEqual(RestoredItem->LocalYaw, 42.0f));
 
 	return true;

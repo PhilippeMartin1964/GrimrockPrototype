@@ -390,10 +390,10 @@ bool AGrimrockPartyPawn::PlayPitFallLandingSound()
 		PitFallLandingSounds, PitFallLandingVolume, PitFallLandingAudioOccurrence, PitFallLandingPlaybackRequestCount);
 }
 
-bool AGrimrockPartyPawn::BeginPitFall(const FGridObjectTransitionParams& Transition)
+bool AGrimrockPartyPawn::BeginPitFall(const FGridRelocationBehaviorParams& Relocation)
 {
 	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || bIsPitFalling || !HasLevelRuntimeActor() ||
-		Transition.TargetLevelId.IsNone() || Transition.TargetFacing == EGridEdge::None)
+		Relocation.TargetLevelId.IsNone() || Relocation.TargetFacing == EGridEdge::None)
 	{
 		return false;
 	}
@@ -406,10 +406,10 @@ bool AGrimrockPartyPawn::BeginPitFall(const FGridObjectTransitionParams& Transit
 
 	PitFallStartLocation = GetActorLocation();
 	PitFallElapsed = 0.f;
-	PitFallTargetLevelId = Transition.TargetLevelId;
-	PitFallTargetCellX = Transition.TargetCellX;
-	PitFallTargetCellY = Transition.TargetCellY;
-	PitFallTargetFacing = Transition.TargetFacing;
+	PitFallTargetLevelId = Relocation.TargetLevelId;
+	PitFallTargetCellX = Relocation.TargetCellX;
+	PitFallTargetCellY = Relocation.TargetCellY;
+	PitFallTargetFacing = Relocation.TargetFacing;
 	bIsPitFalling = true;
 	PlayPitFallScream();
 	return true;
@@ -585,7 +585,7 @@ void AGrimrockPartyPawn::UpdateMove(float DeltaSeconds)
 					}
 				}
 			}
-			if (LevelRuntimeActor->TryExecuteTransitionAtCell(CurrentCellX, CurrentCellY, this, false))
+			if (LevelRuntimeActor->TryExecuteRelocationAtCell(CurrentCellX, CurrentCellY, this))
 			{
 				ClearBufferedCommand();
 			}

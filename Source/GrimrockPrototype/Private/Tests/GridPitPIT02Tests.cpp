@@ -77,10 +77,8 @@ namespace GridPIT02
 		Pit.WallSide = EGridEdge::None;
 		Pit.InstanceConfig.Pit.bInitiallyOpen = true;
 		Pit.InstanceConfig.Pit.bUseSameCellCoordinates = true;
-		Pit.InstanceConfig.Transition.bIsTransition = true;
-		Pit.InstanceConfig.Transition.TargetLevelId = TargetLevelId;
-		Pit.InstanceConfig.Transition.TargetFacing = EGridEdge::North;
-		Pit.InstanceConfig.Transition.bRequireUseAction = false;
+		Pit.InstanceConfig.Relocation.TargetLevelId = TargetLevelId;
+		Pit.InstanceConfig.Relocation.TargetFacing = EGridEdge::North;
 		return Pit;
 	}
 }

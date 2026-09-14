@@ -358,13 +358,13 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Door is placed on an outer grid edge with no neighboring cell to cross."), ObjectId);
 		}
 		const bool bIsPit = Obj.Type == EGridLevelObjectType::Pit;
-		const FGridObjectTransitionParams Transition = GridRelocation::Resolve(Obj);
+		const FGridRelocationBehaviorParams Relocation = Obj.InstanceConfig.Relocation;
 		if (bIsPit || GridRelocation::IsCandidate(Obj))
 		{
 			const bool bSameCell = bIsPit && Obj.InstanceConfig.Pit.bUseSameCellCoordinates;
-			const int32 TargetX = bSameCell ? Obj.CellX : Transition.TargetCellX;
-			const int32 TargetY = bSameCell ? Obj.CellY : Transition.TargetCellY;
-			FName TargetLevelId = Transition.TargetLevelId;
+			const int32 TargetX = bSameCell ? Obj.CellX : Relocation.TargetCellX;
+			const int32 TargetY = bSameCell ? Obj.CellY : Relocation.TargetCellY;
+			FName TargetLevelId = Relocation.TargetLevelId;
 			bool bAutoResolved = false;
 			if (bIsPit && DungeonAsset && (TargetLevelId.IsNone() || !DungeonAsset->IsValidLevelId(TargetLevelId)))
 			{
@@ -374,7 +374,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			}
 			if (bIsPit && TargetLevelId.IsNone())
 				AddMessage(EGridLevelValidationSeverity::Error, TEXT("Pit has no enabled dungeon level below it."), ObjectId);
-			if (!bIsPit && Transition.TargetFacing != EGridEdge::None && !IsCardinal(Transition.TargetFacing))
+			if (!bIsPit && Relocation.TargetFacing != EGridEdge::None && !IsCardinal(Relocation.TargetFacing))
 				AddMessage(EGridLevelValidationSeverity::Error, TEXT("Relocation TargetFacing must be cardinal."), ObjectId);
 			const FGridDungeonLevelEntry* SourceEntry = DungeonAsset ? DungeonAsset->Levels.FindByPredicate(
 				[this](const FGridDungeonLevelEntry& Entry) { return Entry.LevelAsset.Get() == LevelAsset; }) : nullptr;
@@ -384,8 +384,8 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Relocation cannot validate TargetLevelId because DungeonAsset is null."), ObjectId);
 			else if (!TargetLevelId.IsNone() && !TargetLevel)
 				AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Relocation target LevelId '%s' was not found as an enabled level with a LevelAsset in the DungeonAsset."), *TargetLevelId.ToString()), ObjectId);
-			else if (bAutoResolved && !Transition.TargetLevelId.IsNone())
-				AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Pit explicit TargetLevelId '%s' is unavailable; runtime will fall to automatic lower level '%s'."), *Transition.TargetLevelId.ToString(), *TargetLevelId.ToString()), ObjectId);
+			else if (bAutoResolved && !Relocation.TargetLevelId.IsNone())
+				AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Pit explicit TargetLevelId '%s' is unavailable; runtime will fall to automatic lower level '%s'."), *Relocation.TargetLevelId.ToString(), *TargetLevelId.ToString()), ObjectId);
 			if (TargetLevel && !TargetLevel->IsValidCoord(TargetX, TargetY))
 				AddMessage(EGridLevelValidationSeverity::Error, FString::Printf(TEXT("Relocation target cell X=%d Y=%d is outside target level bounds."), TargetX, TargetY), ObjectId);
 			else if (!TargetLevel && !LevelAsset->IsValidCoord(TargetX, TargetY))

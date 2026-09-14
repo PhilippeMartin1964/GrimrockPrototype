@@ -1034,26 +1034,26 @@ void AGridLevelRuntimeActor::NotifyPawnExitedCell(int32 CellX, int32 CellY)
 	}
 }
 
-bool AGridLevelRuntimeActor::FindTransitionAtCell(int32 CellX, int32 CellY, bool bTriggeredByUseAction, FGridObjectTransitionParams& OutTransition) const
+bool AGridLevelRuntimeActor::FindRelocationAtCell(int32 CellX, int32 CellY, FGridRelocationBehaviorParams& OutRelocation) const
 {
 	if (!LevelAsset)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Dungeon transition lookup failed: LevelAsset is null."));
+		UE_LOG(LogTemp, Warning, TEXT("Relocation lookup failed: LevelAsset is null."));
 		return false;
 	}
 
-	int32 TransitionCountAtCell = 0;
-	bool bFoundUsableTransition = false;
+	int32 RelocationCountAtCell = 0;
+	bool bFoundUsableRelocation = false;
 
 	for (const FGridWorldObjectInstance& Obj : LevelAsset->WorldObjectInstances)
 	{
-		const FGridObjectTransitionParams Transition = GridRelocation::Resolve(Obj);
+		const FGridRelocationBehaviorParams Relocation = Obj.InstanceConfig.Relocation;
 		if (IsEffectivePitObject(Obj) || Obj.CellX != CellX || Obj.CellY != CellY || !GridRelocation::IsCandidate(Obj))
 		{
 			continue;
 		}
 
-		++TransitionCountAtCell;
+		++RelocationCountAtCell;
 
 		if (Obj.Type == EGridLevelObjectType::Teleporter && Obj.InstanceId.IsValid() &&
 			ActivationComponent && !ActivationComponent->IsObjectActive(Obj.InstanceId))
@@ -1061,22 +1061,22 @@ bool AGridLevelRuntimeActor::FindTransitionAtCell(int32 CellX, int32 CellY, bool
 			continue;
 		}
 
-		if (!bFoundUsableTransition)
+		if (!bFoundUsableRelocation)
 		{
-			OutTransition = Transition;
-			bFoundUsableTransition = true;
-			UE_LOG(LogTemp, Log, TEXT("Dungeon transition found at Cell=(%d,%d): TargetLevelId=%s TargetCell=(%d,%d) Facing=%s."), CellX, CellY,
-				*Transition.TargetLevelId.ToString(), Transition.TargetCellX, Transition.TargetCellY, *GetRuntimeEdgeText(Transition.TargetFacing));
+			OutRelocation = Relocation;
+			bFoundUsableRelocation = true;
+			UE_LOG(LogTemp, Log, TEXT("Relocation found at Cell=(%d,%d): TargetLevelId=%s TargetCell=(%d,%d) Facing=%s."), CellX, CellY,
+				*Relocation.TargetLevelId.ToString(), Relocation.TargetCellX, Relocation.TargetCellY, *GetRuntimeEdgeText(Relocation.TargetFacing));
 		}
 	}
 
-	if (TransitionCountAtCell > 1)
+	if (RelocationCountAtCell > 1)
 	{
 		UE_LOG(
-			LogTemp, Warning, TEXT("Dungeon transition: multiple transition objects found at Cell=(%d,%d); using the first valid transition."), CellX, CellY);
+			LogTemp, Warning, TEXT("Relocation: multiple relocation objects found at Cell=(%d,%d); using the first valid relocation."), CellX, CellY);
 	}
 
-	return bFoundUsableTransition;
+	return bFoundUsableRelocation;
 }
 
 bool AGridLevelRuntimeActor::IsEffectivePitObject(const FGridWorldObjectInstance& ObjectData) const
@@ -1362,7 +1362,7 @@ void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, b
 	}
 }
 
-bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridObjectTransitionParams& OutTransition) const
+bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridRelocationBehaviorParams& OutRelocation) const
 {
 	if (!LevelAsset)
 	{
@@ -1389,26 +1389,26 @@ bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridOb
 			TEXT("GridPit OPEN cell entered Cell=(%d,%d) ObjectId=%s WorldObjectDefinitionId=%s StoredType=%d CurrentLevel=%s."),
 			CellX, CellY, *Obj.InstanceId.ToString(), *Obj.WorldObjectDefinitionId.ToString(), static_cast<int32>(Obj.Type), *CurrentDungeonLevelId.ToString());
 
-		OutTransition = Obj.InstanceConfig.Transition;
-		const bool bExplicitTargetValid = DungeonAsset && !OutTransition.TargetLevelId.IsNone() && DungeonAsset->IsValidLevelId(OutTransition.TargetLevelId);
+		OutRelocation = Obj.InstanceConfig.Relocation;
+		const bool bExplicitTargetValid = DungeonAsset && !OutRelocation.TargetLevelId.IsNone() && DungeonAsset->IsValidLevelId(OutRelocation.TargetLevelId);
 		if (!bExplicitTargetValid && DungeonAsset)
 		{
 			if (const FGridDungeonLevelEntry* LowerLevel = DungeonAsset->FindLevelBelow(CurrentDungeonLevelId))
 			{
-				if (!OutTransition.TargetLevelId.IsNone())
+				if (!OutRelocation.TargetLevelId.IsNone())
 				{
 					UE_LOG(LogTemp, Warning,
 						TEXT("Pit at Cell=(%d,%d) explicit TargetLevelId=%s is unavailable; falling to automatic lower level %s."),
-						CellX, CellY, *OutTransition.TargetLevelId.ToString(), *LowerLevel->LevelId.ToString());
+						CellX, CellY, *OutRelocation.TargetLevelId.ToString(), *LowerLevel->LevelId.ToString());
 				}
-				OutTransition.TargetLevelId = LowerLevel->LevelId;
+				OutRelocation.TargetLevelId = LowerLevel->LevelId;
 			}
 		}
 
 		if (Obj.InstanceConfig.Pit.bUseSameCellCoordinates)
 		{
-			OutTransition.TargetCellX = CellX;
-			OutTransition.TargetCellY = CellY;
+			OutRelocation.TargetCellX = CellX;
+			OutRelocation.TargetCellY = CellY;
 		}
 		return true;
 	}
@@ -1423,8 +1423,8 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 		return false;
 	}
 
-	FGridObjectTransitionParams Transition;
-	if (!FindOpenPitAtCell(CellX, CellY, Transition))
+	FGridRelocationBehaviorParams Relocation;
+	if (!FindOpenPitAtCell(CellX, CellY, Relocation))
 	{
 		const bool bAnyPitAtCell = LevelAsset && LevelAsset->WorldObjectInstances.ContainsByPredicate(
 			[this, CellX, CellY](const FGridWorldObjectInstance& Candidate)
@@ -1444,7 +1444,7 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 		return false;
 	}
 
-	if (Transition.TargetLevelId.IsNone())
+	if (Relocation.TargetLevelId.IsNone())
 	{
 		UE_LOG(LogTemp, Error,
 			TEXT("Pit fall failed at Cell=(%d,%d) on level %s: no enabled lower dungeon level could be resolved."),
@@ -1452,46 +1452,46 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 		return false;
 	}
 
-	if (Transition.TargetFacing == EGridEdge::None)
+	if (Relocation.TargetFacing == EGridEdge::None)
 	{
-		Transition.TargetFacing = PartyPawn->Facing;
+		Relocation.TargetFacing = PartyPawn->Facing;
 	}
 
-	const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry(Transition.TargetLevelId);
+	const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry(Relocation.TargetLevelId);
 	if (!TargetEntry || !TargetEntry->bEnabled || !TargetEntry->LevelAsset)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Pit fall rejected at Cell=(%d,%d): target level %s is unavailable."), CellX, CellY,
-			*Transition.TargetLevelId.ToString());
+			*Relocation.TargetLevelId.ToString());
 		return false;
 	}
 
 	UGridLevelAsset* TargetLevelAsset = TargetEntry->LevelAsset.Get();
-	const int32 PreferredTargetX = Transition.TargetCellX;
-	const int32 PreferredTargetY = Transition.TargetCellY;
+	const int32 PreferredTargetX = Relocation.TargetCellX;
+	const int32 PreferredTargetY = Relocation.TargetCellY;
 
 	const bool bPreferredWalkable = TargetLevelAsset->IsValidCoord(PreferredTargetX, PreferredTargetY) &&
 		TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).CellType != EGridCellType::Empty &&
 		!TargetLevelAsset->GetCell(PreferredTargetX, PreferredTargetY).bBlocksOccupancy;
 	const bool bPreferredContainsOpenPit = bPreferredWalkable && TargetLevelAsset->WorldObjectInstances.ContainsByPredicate(
-		[this, &Transition, PreferredTargetX, PreferredTargetY](const FGridWorldObjectInstance& Candidate)
+		[this, &Relocation, PreferredTargetX, PreferredTargetY](const FGridWorldObjectInstance& Candidate)
 		{
 			return Candidate.CellX == PreferredTargetX && Candidate.CellY == PreferredTargetY && IsEffectivePitObject(Candidate) &&
-				IsPitOpenForLevel(Transition.TargetLevelId, Candidate);
+				IsPitOpenForLevel(Relocation.TargetLevelId, Candidate);
 		});
 	if (bPreferredContainsOpenPit)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Pit fall rejected: destination (%d,%d) on level %s contains another open pit."),
-			PreferredTargetX, PreferredTargetY, *Transition.TargetLevelId.ToString());
+			PreferredTargetX, PreferredTargetY, *Relocation.TargetLevelId.ToString());
 		return false;
 	}
 
 	int32 LandingCellX = INDEX_NONE;
 	int32 LandingCellY = INDEX_NONE;
-	if (!ResolvePitLandingCell(Transition.TargetLevelId, PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY))
+	if (!ResolvePitLandingCell(Relocation.TargetLevelId, PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY))
 	{
 		UE_LOG(LogTemp, Error,
 			TEXT("Pit fall failed at Cell=(%d,%d): target level %s contains no usable landing cell near requested (%d,%d)."),
-			CellX, CellY, *Transition.TargetLevelId.ToString(), PreferredTargetX, PreferredTargetY);
+			CellX, CellY, *Relocation.TargetLevelId.ToString(), PreferredTargetX, PreferredTargetY);
 		return false;
 	}
 
@@ -1499,12 +1499,12 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 	{
 		UE_LOG(LogTemp, Warning,
 			TEXT("GridPit landing fallback Source=(%d,%d) TargetLevel=%s Requested=(%d,%d) Resolved=(%d,%d)."),
-			CellX, CellY, *Transition.TargetLevelId.ToString(), PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY);
-		Transition.TargetCellX = LandingCellX;
-		Transition.TargetCellY = LandingCellY;
+			CellX, CellY, *Relocation.TargetLevelId.ToString(), PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY);
+		Relocation.TargetCellX = LandingCellX;
+		Relocation.TargetCellY = LandingCellY;
 	}
 
-	if (!PartyPawn->BeginPitFall(Transition))
+	if (!PartyPawn->BeginPitFall(Relocation))
 	{
 		return false;
 	}
@@ -1513,35 +1513,35 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 	return true;
 }
 
-bool AGridLevelRuntimeActor::TryExecuteTransitionAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn, bool bTriggeredByUseAction)
+bool AGridLevelRuntimeActor::TryExecuteRelocationAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn)
 {
-	FGridObjectTransitionParams Transition;
-	if (!FindTransitionAtCell(CellX, CellY, bTriggeredByUseAction, Transition))
+	FGridRelocationBehaviorParams Relocation;
+	if (!FindRelocationAtCell(CellX, CellY, Relocation))
 	{
 		return false;
 	}
 
 	if (!IsValid(PartyPawn) || bIsExecutingDungeonTransition) return false;
-	const EGridEdge Facing = Transition.TargetFacing == EGridEdge::None ? PartyPawn->Facing : Transition.TargetFacing;
-	const FName TargetLevelId = Transition.TargetLevelId.IsNone() ? CurrentDungeonLevelId : Transition.TargetLevelId;
+	const EGridEdge Facing = Relocation.TargetFacing == EGridEdge::None ? PartyPawn->Facing : Relocation.TargetFacing;
+	const FName TargetLevelId = Relocation.TargetLevelId.IsNone() ? CurrentDungeonLevelId : Relocation.TargetLevelId;
 	if (TargetLevelId != CurrentDungeonLevelId)
 	{
-		const bool bTraveled = TravelToDungeonLevel(TargetLevelId, Transition.TargetCellX, Transition.TargetCellY, Facing, PartyPawn);
+		const bool bTraveled = TravelToDungeonLevel(TargetLevelId, Relocation.TargetCellX, Relocation.TargetCellY, Facing, PartyPawn);
 		if (bTraveled) PartyPawn->ClearBufferedCommand();
 		return bTraveled;
 	}
 
-	if (!LevelAsset || !LevelAsset->IsValidCoord(Transition.TargetCellX, Transition.TargetCellY) ||
-		!LevelAsset->Cells.IsValidIndex(LevelAsset->GetIndex(Transition.TargetCellX, Transition.TargetCellY))) return false;
-	const FGridLevelCellData& TargetCell = LevelAsset->GetCell(Transition.TargetCellX, Transition.TargetCellY);
+	if (!LevelAsset || !LevelAsset->IsValidCoord(Relocation.TargetCellX, Relocation.TargetCellY) ||
+		!LevelAsset->Cells.IsValidIndex(LevelAsset->GetIndex(Relocation.TargetCellX, Relocation.TargetCellY))) return false;
+	const FGridLevelCellData& TargetCell = LevelAsset->GetCell(Relocation.TargetCellX, Relocation.TargetCellY);
 	if (TargetCell.CellType == EGridCellType::Empty || TargetCell.bBlocksOccupancy) return false;
 
 	// Hold the same guard during notifications: one hop per cell-entry event.
 	TGuardValue<bool> RelocationGuard(bIsExecutingDungeonTransition, true);
 	const int32 OldX = PartyPawn->CurrentCellX;
 	const int32 OldY = PartyPawn->CurrentCellY;
-	PartyPawn->CurrentCellX = Transition.TargetCellX;
-	PartyPawn->CurrentCellY = Transition.TargetCellY;
+	PartyPawn->CurrentCellX = Relocation.TargetCellX;
+	PartyPawn->CurrentCellY = Relocation.TargetCellY;
 	PartyPawn->Facing = Facing;
 	PartyPawn->SnapToCurrentCell();
 	HandlePartyCellChanged(OldX, OldY, PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
