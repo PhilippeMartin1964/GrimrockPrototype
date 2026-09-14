@@ -1,3 +1,4 @@
+#include "Core/GridBoundary.h"
 #include "Core/GridRelocationUtils.h"
 
 TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel()
@@ -259,6 +260,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	TMap<FGuid, int32> ReceptacleItemChangedLinkCountBySourceId;
 	TMap<FIntPoint, FGuid> SpawnAtStartMonsterByCell;
 	TMap<FName, TMap<int32, TMap<FIntPoint, FGuid>>> EncounterMonsterSpawnByWaveAndCell;
+	TMap<FGridBoundaryKey, FGuid> OccupiedBoundaries;
 
 	const auto ValidatePlacement = [this, &AddMessage, &SeenObjectIds](FGuid ObjectId, int32 CellX, int32 CellY, FName PaletteEntryId, EGridLevelObjectType Type)
 	{
@@ -287,13 +289,6 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 			return false;
 		}
 		return true;
-	};
-	const auto GetValidationAnchorKey = [this](FGuid ObjectId)
-	{
-		int32 CellX = 0, CellY = 0;
-		EGridEdge Edge = EGridEdge::None;
-		LevelAsset->TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge);
-		return IsEdgePlacedObject(ObjectId) && Edge != EGridEdge::None ? GetGridEdgeText(Edge) : FString(TEXT("Center"));
 	};
 	const auto GetObjectValidationName = [](const FGridWorldObjectInstance& WorldObjectInstance)
 	{
@@ -338,6 +333,30 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 				AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Center-placed object has a cardinal Edge=%s; runtime center placement ignores this edge."), *GetGridEdgeText(Obj.WallSide)), ObjectId);
 			if (Definition->bBlocksMovement && LevelAsset->GetCell(Obj.CellX, Obj.CellY).bBlocksOccupancy)
 				AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Object blocks movement on a cell that already blocks occupancy."), ObjectId);
+			if (Definition->OccupiesBoundary())
+			{
+				if (!IsCardinal(Obj.WallSide))
+				{
+					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Boundary-owning object requires a cardinal edge."), ObjectId);
+				}
+				else
+				{
+					const FGridBoundaryKey Boundary = FGridBoundaryKey::MakeCanonical(Obj.CellX, Obj.CellY, Obj.WallSide);
+					if (!Boundary.IsValid())
+					{
+						AddMessage(EGridLevelValidationSeverity::Error, TEXT("Boundary-owning object resolved an invalid canonical boundary."), ObjectId);
+					}
+					else if (const FGuid* ExistingObjectId = OccupiedBoundaries.Find(Boundary))
+					{
+						AddMessage(EGridLevelValidationSeverity::Error,
+							FString::Printf(TEXT("Multiple objects occupy the same canonical boundary; existing object is %s."), *ExistingObjectId->ToString()), ObjectId);
+					}
+					else
+					{
+						OccupiedBoundaries.Add(Boundary, ObjectId);
+					}
+				}
+			}
 		}
 		if (IsEdgePlacedObject(ObjectId) && !IsCardinal(Obj.WallSide))
 			AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Edge or wall placed object requires a cardinal edge."), ObjectId);
@@ -435,24 +454,6 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Receptacle InitialContent contains an entry without an ItemDefinition."), ObjectId);
 				if (InitialItem.Quantity < 1)
 					AddMessage(EGridLevelValidationSeverity::Error, TEXT("Receptacle InitialContent requires Quantity >= 1."), ObjectId);
-			}
-		}
-		if (Definition)
-		{
-			const FString Anchor = GetValidationAnchorKey(ObjectId);
-			for (FGuid OtherId : LevelAsset->GetTypedPlacementIdsAtCell(Obj.CellX, Obj.CellY))
-			{
-				if (OtherId == ObjectId) continue;
-				if (!Definition->bCanShareCell)
-				{
-					AddMessage(EGridLevelValidationSeverity::Warning, TEXT("Object does not allow sharing its cell but another object is placed there."), ObjectId);
-					break;
-				}
-				if (!Definition->bCanShareAnchor && Anchor == GetValidationAnchorKey(OtherId))
-				{
-					AddMessage(EGridLevelValidationSeverity::Warning, FString::Printf(TEXT("Object does not allow sharing anchor '%s' but another object uses it."), *Anchor), ObjectId);
-					break;
-				}
 			}
 		}
 	}

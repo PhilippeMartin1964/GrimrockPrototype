@@ -10,7 +10,7 @@ Occupies Boundary
 Suppress Base Wall
 ```
 
-La migration reste en mode prototype : les anciennes règles de partage ne sont plus des paramètres d'auteur et aucune compatibilité de Data Asset n'est recherchée.
+La migration reste en mode prototype : aucune compatibilité arrière n'est recherchée pour les anciennes règles de partage.
 
 ## 1. Blocks Cell Movement
 
@@ -34,14 +34,14 @@ Ce paramètre est distinct de `PlacementSurface = Wall` :
 - un bouton mural est placé sur un mur mais ne possède pas la frontière ;
 - une porte, une grille ou une porte secrète possède la frontière.
 
-WORLDOBJ-MIG02 ajoute `FGridBoundaryKey`, qui normalise les deux descriptions possibles d'une même frontière :
+`FGridBoundaryKey` normalise les deux descriptions possibles d'une même frontière :
 
 ```text
 North(X,Y) == South(X,Y+1)
 East(X,Y)  == West(X+1,Y)
 ```
 
-Cette clé servira de base unique pour les conflits topologiques, la validation et la suppression de mur structurel.
+Cette clé est l'autorité pour les conflits topologiques de placement et la validation de niveau.
 
 ## 3. Suppress Base Wall
 
@@ -68,35 +68,42 @@ Occupies Boundary    = true
 Suppress Base Wall   = false
 ```
 
-## Suppression des anciennes règles de partage
+## 4. Règle finale de partage — WORLDOBJ-MIG02.1
 
-`Can Share Cell` et `Can Share Anchor` ne sont plus exposés comme paramètres d'auteur.
+Les anciennes propriétés `Can Share Cell` et `Can Share Anchor` ont été supprimées du schéma C++.
 
-La règle cible est :
+La règle finale est :
 
 - plusieurs objets peuvent partager une cellule ;
 - plusieurs objets peuvent partager une surface murale ;
-- deux objets ayant `Occupies Boundary = true` ne doivent normalement pas posséder la même `FGridBoundaryKey` canonique.
+- un objet ne revendique une frontière que si `Occupies Boundary = true` ;
+- deux objets ayant `Occupies Boundary = true` ne peuvent pas posséder la même `FGridBoundaryKey` canonique.
 
-Les membres C++ historiques de partage subsistent temporairement uniquement en `Transient` pour que les consommateurs éditeur encore non migrés continuent à compiler. Ils ne sont ni éditables ni sérialisés et ne constituent pas une compatibilité arrière des Data Assets.
+La validation de niveau détecte les conflits topologiques à partir de `FGridBoundaryKey`. Il n'existe plus de bridge transient ni de validation fondée sur une notion d'« anchor sharing ».
 
-## Portée de cette étape
+## 5. Contrats de validation
 
-WORLDOBJ-MIG02 établit le schéma minimal et la représentation canonique des frontières.
+- `Occupies Boundary = true` exige `Placement Surface = Wall`.
+- `Suppress Base Wall = true` exige `Placement Surface = Wall` et `Occupies Boundary = true`.
+- une `Door` doit utiliser `Placement Surface = Wall` et `Occupies Boundary = true`.
+- le partage de cellule, à lui seul, n'est jamais une erreur ni un warning.
 
-Le câblage exhaustif de `FGridBoundaryKey` dans les conflits de placement éditeur, la validation de niveau et les derniers consommateurs historiques est la phase de nettoyage immédiatement suivante de MIG02, avant la migration visuelle WORLDOBJ-MIG03.
+Le placement éditeur et la validation utilisent donc le même modèle topologique.
 
 ## Tests
 
 ```text
 Grimrock.WorldObjects.MIG02.SpatialBehaviorSchema
 Grimrock.WorldObjects.MIG02.BoundaryKey
+Grimrock.WorldObjects.MIG02.1.DefinitionValidation
 ```
 
-Ils vérifient :
+Ils vérifient notamment :
 
 - exactement trois paramètres éditables dans `Spatial Behavior` ;
-- les anciennes règles de partage ne sont plus éditables ni sérialisées ;
-- les trois sémantiques ont les valeurs par défaut attendues ;
+- l'absence totale des anciennes propriétés de partage dans le schéma réfléchi ;
+- les trois sémantiques et leurs valeurs par défaut ;
 - la canonicalisation Nord/Sud et Est/Ouest des frontières ;
-- le hash canonique des frontières.
+- le hash canonique des frontières ;
+- le contrat `Suppress Base Wall -> Occupies Boundary` ;
+- l'absence des anciens warnings de partage dans la validation de définition.

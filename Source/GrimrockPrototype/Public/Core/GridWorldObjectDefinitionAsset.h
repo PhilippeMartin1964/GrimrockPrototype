@@ -234,16 +234,6 @@ public:
 		meta = (DisplayName = "Item Actor Class", ToolTip = "Runtime item actor class used when this definition represents a spawned or carried item."))
 	TSubclassOf<AGridItemActor> ItemActorClass;
 
-	/**
-	 * Internal sharing bridges only. They are not authoring parameters and are never serialized.
-	 * Sharing bridges remain only so untouched editor code compiles during WORLDOBJ-MIG02; target sharing is permissive by default.
-	 */
-	UPROPERTY(Transient)
-	bool bCanShareCell = true;
-
-	UPROPERTY(Transient)
-	bool bCanShareAnchor = true;
-
 	bool HasValidPlacementSurface() const
 	{
 		return PlacementSurface == EGridObjectPlacementKind::Floor || PlacementSurface == EGridObjectPlacementKind::Wall ||

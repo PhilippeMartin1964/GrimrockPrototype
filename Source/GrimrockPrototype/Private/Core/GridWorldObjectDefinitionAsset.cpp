@@ -196,14 +196,20 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 		}
 	}
 
+	if (bOccupiesBoundary && !IsWallPlacement(PlacementSurface))
+	{
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
+			TEXT("Occupies Boundary requires Placement Surface=Wall."));
+	}
 	if (bReplacesStandardWall && !IsWallPlacement(PlacementSurface))
 	{
-		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Replaces Standard Wall is enabled but Placement Surface is not Wall."));
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
+			TEXT("Suppress Base Wall requires Placement Surface=Wall."));
 	}
-	if (bReplacesStandardWall && bCanShareAnchor)
+	if (bReplacesStandardWall && !bOccupiesBoundary)
 	{
-		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning,
-			TEXT("Replaces Standard Wall is enabled while bCanShareAnchor=true. Multiple wall replacements can overlap on the same boundary."));
+		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
+			TEXT("Suppress Base Wall requires Occupies Boundary."));
 	}
 	if (!bIsReadable && !ReadableText.IsEmpty()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("ReadableText is set but bIsReadable=false."));
 	if (!bIsReadable && bShowReadableOnlyOnce) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("bShowReadableOnlyOnce is enabled but bIsReadable=false."));
@@ -227,12 +233,12 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 		case EGridLevelObjectType::Door:
 		{
 			if (!IsWallPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Door Placement Surface must be Wall."));
+			if (!bOccupiesBoundary) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Door must occupy its wall boundary."));
 			if (!HasMovingVisualPart()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Door requires at least one Moving Part."));
 			if (RuntimeActorClass && !RuntimeActorClass->IsChildOf(AGridDoorActor::StaticClass()))
 			{
 				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Door RuntimeActorClass must derive from AGridDoorActor."));
 			}
-			if (bCanShareAnchor) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Door should generally have bCanShareAnchor set to false."));
 			break;
 		}
 		case EGridLevelObjectType::Button:

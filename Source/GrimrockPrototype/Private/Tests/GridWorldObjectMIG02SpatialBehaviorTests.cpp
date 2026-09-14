@@ -56,17 +56,10 @@ bool FGridWorldObjectMIG02SpatialBehaviorSchemaTest::RunTest(const FString& Para
 	}
 	TestEqual(TEXT("Exactly three spatial behavior authoring parameters remain"), EditableSpatialPropertyCount, 3);
 
-	const FName LegacySharingNames[] = {TEXT("bCanShareCell"), TEXT("bCanShareAnchor")};
-	for (const FName LegacySharingName : LegacySharingNames)
-	{
-		FProperty* LegacyProperty = DefinitionClass->FindPropertyByName(LegacySharingName);
-		TestNotNull(*FString::Printf(TEXT("%s remains only as an internal compile bridge"), *LegacySharingName.ToString()), LegacyProperty);
-		if (LegacyProperty)
-		{
-			TestTrue(*FString::Printf(TEXT("%s is transient"), *LegacySharingName.ToString()), LegacyProperty->HasAnyPropertyFlags(CPF_Transient));
-			TestFalse(*FString::Printf(TEXT("%s is not an authoring parameter"), *LegacySharingName.ToString()), LegacyProperty->HasAnyPropertyFlags(CPF_Edit));
-		}
-	}
+	const FName LegacyCellSharingName(*(FString(TEXT("bCan")) + TEXT("ShareCell")));
+	const FName LegacyAnchorSharingName(*(FString(TEXT("bCan")) + TEXT("ShareAnchor")));
+	TestNull(TEXT("Legacy cell-sharing property is removed"), DefinitionClass->FindPropertyByName(LegacyCellSharingName));
+	TestNull(TEXT("Legacy anchor-sharing property is removed"), DefinitionClass->FindPropertyByName(LegacyAnchorSharingName));
 
 	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
 	TestFalse(TEXT("Default does not block cell movement"), Definition->BlocksCellMovement());
@@ -113,6 +106,51 @@ bool FGridWorldObjectMIG02BoundaryKeyTest::RunTest(const FString& Parameters)
 	Boundaries.Add(East);
 	Boundaries.Add(SameFromWest);
 	TestEqual(TEXT("Canonical hashing deduplicates opposite descriptions"), Boundaries.Num(), 2);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridWorldObjectMIG021DefinitionValidationTest,
+	"Grimrock.WorldObjects.MIG02.1.DefinitionValidation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridWorldObjectMIG021DefinitionValidationTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();
+	Definition->DefinitionId = TEXT("MIG02_1_Test");
+	Definition->SupportedType = EGridLevelObjectType::Decoration;
+	Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
+	Definition->bOccupiesBoundary = false;
+	Definition->bReplacesStandardWall = true;
+
+	TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
+	TestFalse(TEXT("Suppress Base Wall without Occupies Boundary is invalid"), Definition->ValidateDefinition(Messages));
+	TestTrue(TEXT("Modern validation reports missing boundary ownership"), Messages.ContainsByPredicate([](const FGridWorldObjectDefinitionValidationMessage& Message)
+	{
+		return Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error && Message.Message.Contains(TEXT("Suppress Base Wall requires Occupies Boundary"));
+	}));
+
+	Definition->bOccupiesBoundary = true;
+	Messages.Reset();
+	TestTrue(TEXT("Wall replacement with boundary ownership has no validation errors"), Definition->ValidateDefinition(Messages));
+
+	const FString LegacyAnchorPhrase = FString(TEXT("Can Share")) + TEXT(" Anchor");
+	TestFalse(TEXT("Validation no longer emits legacy anchor-sharing messages"), Messages.ContainsByPredicate([&LegacyAnchorPhrase](const FGridWorldObjectDefinitionValidationMessage& Message)
+	{
+		return Message.Message.Contains(LegacyAnchorPhrase);
+	}));
+
+	Definition->SupportedType = EGridLevelObjectType::Door;
+	Definition->bOccupiesBoundary = false;
+	Messages.Reset();
+	Definition->ValidateDefinition(Messages);
+	TestTrue(TEXT("Door requires canonical boundary ownership"), Messages.ContainsByPredicate([](const FGridWorldObjectDefinitionValidationMessage& Message)
+	{
+		return Message.Severity == EGridWorldObjectDefinitionValidationSeverity::Error && Message.Message.Contains(TEXT("Door must occupy its wall boundary"));
+	}));
 
 	return true;
 }

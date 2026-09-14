@@ -44,8 +44,6 @@ bool AGridLevelEditorActor::EnsureStairsRelocationDefinitions(FString& OutError)
 		Definition.DefaultBehavior = FGridObjectBehaviorParams();
 		Definition.PlacementSurface = EGridObjectPlacementKind::Floor;
 		Definition.DefaultLocalPosition = FGridSurfaceLocalPosition();
-		Definition.bCanShareCell = true;
-		Definition.bCanShareAnchor = true;
 		Definition.bReplacesStandardWall = false;
 		Definition.bBlocksMovement = false;
 		Definition.bHideCellFloor = bHideCellFloor;
@@ -154,8 +152,6 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 	PitDefinition->DefaultBehavior.Relocation.TargetFacing = EGridEdge::North;
 	PitDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
 	PitDefinition->DefaultLocalPosition = FGridSurfaceLocalPosition();
-	PitDefinition->bCanShareCell = false;
-	PitDefinition->bCanShareAnchor = false;
 	PitDefinition->bReplacesStandardWall = false;
 	PitDefinition->bBlocksMovement = false;
 	PitDefinition->bHideCellFloor = true;
