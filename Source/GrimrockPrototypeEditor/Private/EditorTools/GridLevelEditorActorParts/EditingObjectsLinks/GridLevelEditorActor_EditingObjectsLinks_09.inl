@@ -32,9 +32,9 @@ bool AGridLevelEditorActor::SetSelectedObjectInitiallyActive(bool bNewInitiallyA
 	{
 		WorldObjectInstance->InstanceConfig.bDoorInitiallyOpen = bNewInitiallyActive;
 	}
-	else if (WorldObjectInstance->Type == EGridLevelObjectType::Teleporter)
+	else if (WorldObjectInstance->Type == EGridLevelObjectType::Relocation)
 	{
-		WorldObjectInstance->InstanceConfig.bTeleporterInitiallyEnabled = bNewInitiallyActive;
+		WorldObjectInstance->InstanceConfig.bRelocationInitiallyEnabled = bNewInitiallyActive;
 	}
 	else
 	{

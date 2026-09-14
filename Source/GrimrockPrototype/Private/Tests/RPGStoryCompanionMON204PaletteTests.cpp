@@ -27,6 +27,7 @@ bool FGridMON2045StoryCompanionPaletteContractTest::RunTest(const FString& Param
 
 	FGridObjectPaletteEntry TriggerEntry;
 	TriggerEntry.EntryId = TEXT("Trigger_Test");
+	TriggerEntry.PaletteCategory = TEXT("Triggers");
 	TriggerEntry.DefaultWorldObjectDefinition = TriggerDefinition;
 	Palette->Entries.Add(TriggerEntry);
 

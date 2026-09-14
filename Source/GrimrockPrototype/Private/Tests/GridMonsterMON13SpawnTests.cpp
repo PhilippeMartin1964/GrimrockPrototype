@@ -99,8 +99,6 @@ namespace
 		UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(Outer);
 		Definition->DefinitionId = WorldObjectDefinitionId;
 		Definition->SupportedType = EGridLevelObjectType::Lever;
-		Definition->Category = TEXT("Mechanisms");
-		Definition->ObjectCategory = EGridObjectCategory::Mechanism;
 		Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
 		Definition->RuntimeActorClass = AGridLeverActor::StaticClass();
 		Definition->MovingParts.Part0.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
@@ -294,6 +292,7 @@ bool FGridMonsterMON131PaletteContractTest::RunTest(const FString& Parameters)
 
 	FGridObjectPaletteEntry Entry;
 	Entry.EntryId = TEXT("MON_RatGiant");
+	Entry.PaletteCategory = TEXT("Vermin");
 	Entry.DefaultWorldObjectDefinition = Definition;
 	Palette->Entries.Add(Entry);
 

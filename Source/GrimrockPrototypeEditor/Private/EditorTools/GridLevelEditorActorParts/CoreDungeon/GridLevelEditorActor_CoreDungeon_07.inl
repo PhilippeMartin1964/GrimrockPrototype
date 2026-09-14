@@ -1,4 +1,4 @@
-bool AGridLevelEditorActor::EnsureStairsTransitionDefinitions(FString& OutError)
+bool AGridLevelEditorActor::EnsureStairsRelocationDefinitions(FString& OutError)
 {
 	OutError.Reset();
 
@@ -33,21 +33,15 @@ bool AGridLevelEditorActor::EnsureStairsTransitionDefinitions(FString& OutError)
 		return false;
 	}
 
-	const auto ConfigureTargetStairsTransitionDefinition = [](UGridWorldObjectDefinitionAsset& Definition, FName WorldObjectDefinitionId, const TCHAR* DisplayName,
+	const auto ConfigureTargetStairsRelocationDefinition = [](UGridWorldObjectDefinitionAsset& Definition, FName WorldObjectDefinitionId, const TCHAR* DisplayName,
 		UStaticMesh* Mesh, bool bHideCellFloor)
 	{
 		Definition.Modify();
 		Definition.DefinitionId = WorldObjectDefinitionId;
 		Definition.DisplayName = FText::FromString(DisplayName);
-		Definition.SupportedType = EGridLevelObjectType::Decoration;
-		Definition.Description = FText::FromString(TEXT("Dungeon transition stair object."));
+		Definition.SupportedType = EGridLevelObjectType::Relocation;
+		Definition.Description = FText::FromString(TEXT("Dungeon relocation stair for automatic party navigation."));
 		Definition.DefaultBehavior = FGridObjectBehaviorParams();
-		Definition.DefaultBehavior.Relocation.TargetLevelId = NAME_None;
-		Definition.DefaultBehavior.Relocation.TargetCellX = 0;
-		Definition.DefaultBehavior.Relocation.TargetCellY = 0;
-		Definition.DefaultBehavior.Relocation.TargetFacing = EGridEdge::North;
-		Definition.Category = FName(TEXT("Transitions"));
-		Definition.ObjectCategory = EGridObjectCategory::Decoration;
 		Definition.PlacementSurface = EGridObjectPlacementKind::Floor;
 		Definition.DefaultLocalPosition = FGridSurfaceLocalPosition();
 		Definition.bCanShareCell = true;
@@ -66,8 +60,8 @@ bool AGridLevelEditorActor::EnsureStairsTransitionDefinitions(FString& OutError)
 		Definition.MarkPackageDirty();
 	};
 
-	ConfigureTargetStairsTransitionDefinition(*StairsUpDefinition, FName(TEXT("Stairs_Up")), TEXT("Stairs Up"), StairsUpMesh, false);
-	ConfigureTargetStairsTransitionDefinition(*StairsDownDefinition, FName(TEXT("Stairs_Down")), TEXT("Stairs Down"), StairsDownMesh, true);
+	ConfigureTargetStairsRelocationDefinition(*StairsUpDefinition, FName(TEXT("Stairs_Up")), TEXT("Stairs Up"), StairsUpMesh, false);
+	ConfigureTargetStairsRelocationDefinition(*StairsDownDefinition, FName(TEXT("Stairs_Down")), TEXT("Stairs Down"), StairsDownMesh, true);
 
 	ObjectPalette->Modify();
 
@@ -86,7 +80,7 @@ bool AGridLevelEditorActor::EnsureStairsTransitionDefinitions(FString& OutError)
 
 		ExistingEntry->EntryId = EntryId;
 		ExistingEntry->DisplayNameOverride = DisplayName;
-		ExistingEntry->CategoryOverride = FName(TEXT("Transitions"));
+		ExistingEntry->PaletteCategory = FName(TEXT("Navigation"));
 		ExistingEntry->DefaultWorldObjectDefinition = Definition;
 	};
 
@@ -108,13 +102,13 @@ bool AGridLevelEditorActor::EnsureStairsTransitionDefinitions(FString& OutError)
 	PackagesToSave.AddUnique(ObjectPalette->GetOutermost());
 	UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
 
-	UE_LOG(LogTemp, Log, TEXT("Stairs transition definitions ensured from target visual composition: Stairs_Up=%s Stairs_Down=%s Palette=%s CreatedUp=%s CreatedDown=%s."),
+	UE_LOG(LogTemp, Log, TEXT("Stairs relocation definitions ensured from target visual composition: Stairs_Up=%s Stairs_Down=%s Palette=%s CreatedUp=%s CreatedDown=%s."),
 		*StairsUpDefinition->GetPathName(), *StairsDownDefinition->GetPathName(), *ObjectPalette->GetPathName(), bCreatedUp ? TEXT("true") : TEXT("false"),
 		bCreatedDown ? TEXT("true") : TEXT("false"));
 
 	return true;
 #else
-	OutError = TEXT("EnsureStairsTransitionDefinitions is editor-only.");
+	OutError = TEXT("EnsureStairsRelocationDefinitions is editor-only.");
 	return false;
 #endif
 }
@@ -158,8 +152,6 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 	PitDefinition->DefaultBehavior.Relocation.TargetCellX = 0;
 	PitDefinition->DefaultBehavior.Relocation.TargetCellY = 0;
 	PitDefinition->DefaultBehavior.Relocation.TargetFacing = EGridEdge::North;
-	PitDefinition->Category = FName(TEXT("Hazards"));
-	PitDefinition->ObjectCategory = EGridObjectCategory::Mechanism;
 	PitDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
 	PitDefinition->DefaultLocalPosition = FGridSurfaceLocalPosition();
 	PitDefinition->bCanShareCell = false;
@@ -214,7 +206,7 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 	}
 	Entry->EntryId = FName(TEXT("Pit_Stone_01"));
 	Entry->DisplayNameOverride = FText::FromString(TEXT("Stone Pit"));
-	Entry->CategoryOverride = FName(TEXT("Hazards"));
+	Entry->PaletteCategory = FName(TEXT("Hazards"));
 	Entry->DefaultWorldObjectDefinition = PitDefinition;
 	ObjectPalette->MarkPackageDirty();
 

@@ -493,13 +493,13 @@ bool FGridMonsterMON141RelocationRebuildSafetyTest::RunTest(const FString& Param
 	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_Transition"), 6, 0), FIntPoint(1, 4));
 	TestNotNull(TEXT("Relocation guard monster exists"), Monster);
 
-	Fixture.Runtime->bIsExecutingDungeonTransition = true;
+	Fixture.Runtime->bIsExecutingRelocation = true;
 	Fixture.Engagement->RequestEvaluation(Fixture.Runtime, TEXT("ContinueRestore"));
 	TestFalse(TEXT("No combat starts while Continue/transition restoration is guarded"), Fixture.Engagement->ProcessPendingEvaluationNow());
 	TestFalse(TEXT("Combat remains inactive during restoration"), Fixture.TurnManager->bCombatActive);
 	TestTrue(TEXT("Unsafe restoration evaluation is deferred rather than lost"), Fixture.Engagement->HasPendingEvaluation());
 
-	Fixture.Runtime->bIsExecutingDungeonTransition = false;
+	Fixture.Runtime->bIsExecutingRelocation = false;
 	TestTrue(TEXT("Deferred evaluation runs after restoration becomes stable"), Fixture.Engagement->ProcessPendingEvaluationNow());
 
 	FGridMON141Fixture RebuildFixture;

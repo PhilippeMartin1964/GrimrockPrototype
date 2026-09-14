@@ -170,7 +170,7 @@ bool UGridAutomaticPerceptionEngagementSubsystem::ProcessPendingEvaluationNow()
 		return false;
 	}
 
-	if (RuntimeActor->bIsExecutingDungeonTransition)
+	if (RuntimeActor->bIsExecutingRelocation)
 	{
 		PendingReason = Reason;
 		RequeueAfterUnsafeRuntime(RuntimeActor);

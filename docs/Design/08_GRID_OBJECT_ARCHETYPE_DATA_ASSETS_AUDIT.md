@@ -1,5 +1,9 @@
 # Audit des DataAssets GridObjectArchetype
 
+Statut : **rapport historique**. Les tableaux conservent l'état observé lors de cet audit.
+Le contrat courant supprime `ObjectCategory`, place `PaletteCategory` uniquement sur l'entrée
+de palette et utilise le Gameplay Type `Relocation`. Voir [la référence active](11_GRID_WORLD_OBJECT_DEFINITION_PARAMETERS_REFERENCE.md).
+
 Audit des `UGridObjectArchetypeAsset` existants, mis à jour après la normalisation de noms validée dans UE5.
 
 Ce document reste un rapport de documentation. Il ne modifie pas le code C++, les enums, les DataAssets, les Blueprints, le runtime, la sérialisation ou les liens.

@@ -137,9 +137,9 @@ struct FGridWorldObjectInstanceConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Door|Initial State")
 	bool bDoorInitiallyOpen = false;
 
-	/** Puzzle-local initial state. A teleporter may require a mechanism to enable it. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Teleporter|Initial State")
-	bool bTeleporterInitiallyEnabled = true;
+	/** Puzzle-local initial state. A relocation may require a mechanism to enable it. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Relocation|Initial State")
+	bool bRelocationInitiallyEnabled = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Instance|Relocation")
 	FGridRelocationBehaviorParams Relocation;

@@ -484,7 +484,7 @@ bool UGridActivationComponent::ApplyLinkCommand(const FGridObjectLink& LinkData)
 		case EGridLevelObjectType::ItemSpawn:
 		case EGridLevelObjectType::Item:
 		case EGridLevelObjectType::Light:
-		case EGridLevelObjectType::Teleporter:
+		case EGridLevelObjectType::Relocation:
 		case EGridLevelObjectType::Trigger:
 		case EGridLevelObjectType::Receptacle:
 			FailureReason = TEXT("target type has no gameplay command handler");

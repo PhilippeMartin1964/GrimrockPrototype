@@ -43,9 +43,8 @@ FGridWorldObjectInstance
 ```text
 FGridWorldObjectInstanceConfig
 ├── bDoorInitiallyOpen
-├── bTeleporterInitiallyEnabled
-├── Teleporter
-├── Transition
+├── bRelocationInitiallyEnabled
+├── Relocation
 ├── Pit
 ├── ReceptacleInitialContent
 ├── InteractionOverrides
@@ -54,7 +53,7 @@ FGridWorldObjectInstanceConfig
 └── bStartsUnlocked
 ```
 
-Un world object présent dans `WorldObjectInstances` existe dans le niveau. Il n'utilise plus de booléen générique pour exprimer son existence ou son état actif. Les états initiaux authorés sont propres au type : porte ouverte/fermée, téléporteur activé/désactivé, pit ouvert/fermé, serrure verrouillée/déverrouillée. Un levier démarre au repos/Off. Une plaque de pression démarre relâchée et son état effectif est dérivé au runtime de l'occupation et du poids.
+Un world object présent dans `WorldObjectInstances` existe dans le niveau. Il n'utilise plus de booléen générique pour exprimer son existence ou son état actif. Les états initiaux authorés sont propres au type : porte ouverte/fermée, relocation activée/désactivée, pit ouvert/fermé, serrure verrouillée/déverrouillée. Un levier démarre au repos/Off. Une plaque de pression démarre relâchée et son état effectif est dérivé au runtime de l'occupation et du poids.
 
 Les règles générales de plaque, serrure, réceptacle, chaîne de porte, motion, spatialité et audio restent dans la définition, sauf les overrides d'instance explicitement prévus.
 
@@ -148,7 +147,7 @@ Les tests `Grimrock.WorldObjects.MIG07` et `Grimrock.WorldObjects.InitialState.S
 - l'identité stable de chaque famille ;
 - les références directes `ItemDefinition` / `MonsterDefinition` ;
 - le maintien du patrol et de l'encounter dans `MonsterSpawns` ;
-- le maintien de `Transition`, `Pit`, contenu initial de réceptacle et état initial de serrure dans `InstanceConfig` ;
+- le maintien de `Relocation`, `Pit`, contenu initial de réceptacle et état initial de serrure dans `InstanceConfig` ;
 - `bSpawnAtStart` sur les générateurs de monstres et d'items ;
 - l'absence de propriétés génériques d'état initial sur les placements persistés ;
 - l'absence de mélange entre les cinq familles.

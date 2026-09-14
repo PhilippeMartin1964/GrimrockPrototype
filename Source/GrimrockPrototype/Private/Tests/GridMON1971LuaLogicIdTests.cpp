@@ -103,8 +103,6 @@ bool FGridMON1971LogicIdCommandTest::RunTest(const FString& Parameters)
 	UGridWorldObjectDefinitionAsset* LeverDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
 	LeverDefinition->DefinitionId = TargetWorldObjectDefinitionId;
 	LeverDefinition->SupportedType = EGridLevelObjectType::Lever;
-	LeverDefinition->Category = TEXT("Mechanisms");
-	LeverDefinition->ObjectCategory = EGridObjectCategory::Mechanism;
 	LeverDefinition->PlacementSurface = EGridObjectPlacementKind::Wall;
 	LeverDefinition->RuntimeActorClass = AGridLeverActor::StaticClass();
 	LeverDefinition->MovingParts.Part0.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));

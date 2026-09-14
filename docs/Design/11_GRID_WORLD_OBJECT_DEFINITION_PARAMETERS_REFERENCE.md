@@ -1,6 +1,6 @@
 # 11 — Référence des paramètres GridWorldObjectDefinitionAsset
 
-Statut : **document actif de référence après ALIGN-B5.3 + WORLDOBJ-RECOVERY01 + états initiaux sémantiques**, 2026-09-12. Version cible : UE 5.5.4.
+Statut : **document actif de référence après WORLDOBJ-CLASS01**, 2026-09-14. Version cible : UE 5.5.4.
 
 La déclaration de référence est `Source/GrimrockPrototype/Public/Core/GridWorldObjectDefinitionAsset.h`. Ce guide décrit l'authoring courant après MIG10 et ALIGN-B5.3. Les audits 07/08 et le plan 09 conservent leur vocabulaire historique et ne sont pas des références de schéma actuel.
 
@@ -16,11 +16,10 @@ Les collectibles utilisent directement `UGridItemDefinitionAsset`, et les monstr
 |---|---|
 | `DefinitionId` | Identifiant stable de la définition, distinct de l'identité du placement. |
 | `DisplayName`, `Description` | Présentation du concept. |
-| `SupportedType` / Gameplay Type | Famille fonctionnelle de l'objet. |
-| `ObjectCategory` / Functional Category | Classification éditeur et validation. |
-| `Category` / Palette Category | Groupement dans la palette. |
+| `SupportedType` / Gameplay Type | Unique classification fonctionnelle principale de l'objet. `Relocation` couvre escaliers, portails et passages automatiques. |
 
-Le type gameplay, la catégorie fonctionnelle et la catégorie de palette ont des rôles distincts. La catégorie ne choisit pas à elle seule le comportement runtime.
+La définition ne porte aucune catégorie fonctionnelle ni catégorie de palette. Le groupement
+éditeur appartient exclusivement à `FGridObjectPaletteEntry.PaletteCategory`.
 
 ## 3. Defaults et overrides
 
@@ -31,7 +30,7 @@ Les états initiaux qui dépendent du puzzle appartiennent à la structure typé
 | Placement | État initial authoré |
 |---|---|
 | Door | `InstanceConfig.bDoorInitiallyOpen` |
-| Teleporter | `InstanceConfig.bTeleporterInitiallyEnabled` |
+| Relocation | `InstanceConfig.bRelocationInitiallyEnabled` |
 | Pit | `InstanceConfig.Pit.bInitiallyOpen` |
 | Lock | `InstanceConfig.bStartsUnlocked` |
 | MonsterSpawn | `bSpawnAtStart` |
@@ -91,7 +90,7 @@ Les champs audio dépréciés encore présents servent à une migration audio an
 
 `RuntimeActorClass` choisit la classe d'acteur world-object. `ItemActorClass` reste déclaré, mais ne remplace pas l'autorité directe de `ItemDefinition` pour les collectibles.
 
-Une entrée `FGridObjectPaletteEntry` référence `DefaultWorldObjectDefinition` pour un objet du monde ou `DefaultItemDefinition` pour un collectible. Le runtime reçoit les définitions world-object dans `WorldObjectDefinitions` ; la palette reste un outil d'authoring.
+Une entrée `FGridObjectPaletteEntry` référence `DefaultWorldObjectDefinition` pour un objet du monde ou `DefaultItemDefinition` pour un collectible. `PaletteCategory` est l'unique autorité de groupement et doit être renseignée pour chaque entrée officielle. Le runtime reçoit les définitions world-object dans `WorldObjectDefinitions` ; la palette reste un outil d'authoring.
 
 ## 9. Validation et chemins de packages
 
@@ -101,13 +100,12 @@ Le dossier historique `Content/GrimrockPrototype/Core/DataAssets/GridObjectArche
 
 Les Core Redirects temporaires préservent le chargement des références externes utilisant les anciens noms ; voir le [rapport MIG10](../Architecture/WORLDOBJ_MIG10_FINAL.md).
 
-## Relocation (RELOC01.2)
+## Relocation (WORLDOBJ-CLASS01)
 
 `DefaultBehavior.Relocation` and `InstanceConfig.Relocation` share exactly one
 `FGridRelocationBehaviorParams`: TargetLevelId, TargetCellX, TargetCellY, TargetFacing.
-Default Behavior exposes a single Relocation section. Coordinates default to INDEX_NONE;
-configured nonnegative X/Y identify non-Pit relocation objects, and Type=Teleporter is
-always a candidate. Definition defaults initialize placements; local destinations remain
-instance-owned. Normal level None means current level, Facing None preserves facing.
+Default Behavior exposes a single Relocation section. Coordinates default to INDEX_NONE.
+A normal candidate requires `Type=Relocation` and configured nonnegative X/Y. Definition
+defaults initialize placements; local destinations remain instance-owned. Normal level None means current level, Facing None preserves facing.
 Pit level None keeps automatic-lower-level resolution. All relocations activate on entry.
 See [Relocation](../Design/GRID_RELOCATION_DATA.md).

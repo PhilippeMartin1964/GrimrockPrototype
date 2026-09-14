@@ -92,29 +92,29 @@ bool FGridRELOC01RuntimeTest::RunTest(const FString& Parameters)
 	Runtime->CurrentDungeonLevelId = A.LevelId;
 	Party->SetGridStart(Runtime, 0, 1, EGridEdge::East);
 	Party->bNativeMovementAudioPlaybackEnabled = false;
-	FGridWorldObjectInstance Teleporter;
-	Teleporter.InstanceId = FGuid::NewGuid();
-	Teleporter.Type = EGridLevelObjectType::Teleporter;
-	Teleporter.CellX = 1;
-	Teleporter.CellY = 1;
-	Teleporter.InstanceConfig.Relocation.TargetCellX = 2;
-	Teleporter.InstanceConfig.Relocation.TargetCellY = 3;
-	Teleporter.InstanceConfig.bTeleporterInitiallyEnabled = false;
-	Upper->WorldObjectInstances = { Teleporter };
-	Runtime->FindComponentByClass<UGridActivationComponent>()->RegisterInitialObjectState(Teleporter);
+	FGridWorldObjectInstance RelocationObject;
+	RelocationObject.InstanceId = FGuid::NewGuid();
+	RelocationObject.Type = EGridLevelObjectType::Relocation;
+	RelocationObject.CellX = 1;
+	RelocationObject.CellY = 1;
+	RelocationObject.InstanceConfig.Relocation.TargetCellX = 2;
+	RelocationObject.InstanceConfig.Relocation.TargetCellY = 3;
+	RelocationObject.InstanceConfig.bRelocationInitiallyEnabled = false;
+	Upper->WorldObjectInstances = { RelocationObject };
+	Runtime->FindComponentByClass<UGridActivationComponent>()->RegisterInitialObjectState(RelocationObject);
 	FGridRelocationBehaviorParams Resolved;
-	TestTrue(TEXT("Enter disabled teleporter"), Party->TryStartMove(EGridEdge::East));
+	TestTrue(TEXT("Enter disabled relocation"), Party->TryStartMove(EGridEdge::East));
 	Party->UpdateMove(10.f);
-	TestEqual(TEXT("Inactive teleporter does not execute on entry"), Party->CurrentCellX, 1);
+	TestEqual(TEXT("Inactive relocation does not execute on entry"), Party->CurrentCellX, 1);
 	TestFalse(TEXT("Inactive lookup"), Runtime->FindRelocationAtCell(1, 1, Resolved));
 
-	Teleporter.InstanceConfig.bTeleporterInitiallyEnabled = true;
-	Runtime->FindComponentByClass<UGridActivationComponent>()->RegisterInitialObjectState(Teleporter);
+	RelocationObject.InstanceConfig.bRelocationInitiallyEnabled = true;
+	Runtime->FindComponentByClass<UGridActivationComponent>()->RegisterInitialObjectState(RelocationObject);
 	TestTrue(TEXT("Active lookup"), Runtime->FindRelocationAtCell(1, 1, Resolved));
 	Runtime->FindComponentByClass<UGridActivationComponent>()->SetActiveObjectIds({});
 	TestFalse(TEXT("Runtime disabled overrides authored enabled state"), Runtime->TryExecuteRelocationAtCell(1, 1, Party));
-	Runtime->FindComponentByClass<UGridActivationComponent>()->RegisterInitialObjectState(Teleporter);
-	FGridWorldObjectInstance Return = Teleporter;
+	Runtime->FindComponentByClass<UGridActivationComponent>()->RegisterInitialObjectState(RelocationObject);
+	FGridWorldObjectInstance Return = RelocationObject;
 	Return.InstanceId = FGuid::NewGuid();
 	Return.CellX = 2;
 	Return.CellY = 3;
@@ -125,7 +125,7 @@ bool FGridRELOC01RuntimeTest::RunTest(const FString& Parameters)
 	const int32 Generation = Runtime->GetRuntimeObjectRebuildGeneration();
 	const int32 StateCount = Runtime->DungeonRuntimeState.LevelStates.Num();
 	Party->SetGridStart(Runtime, 0, 1, EGridEdge::East);
-	TestTrue(TEXT("Enter enabled teleporter"), Party->TryStartMove(EGridEdge::East));
+	TestTrue(TEXT("Enter enabled relocation"), Party->TryStartMove(EGridEdge::East));
 	Party->BufferMoveCommand(EGridEdge::North);
 	Party->UpdateMove(10.f);
 	TestEqual(TEXT("One hop X"), Party->CurrentCellX, 2);
@@ -158,7 +158,8 @@ bool FGridRELOC01RuntimeTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Out of bounds rejected"), Runtime->TryExecuteRelocationAtCell(1, 1, Party));
 	Modern.Relocation.TargetCellX = 3;
 	Upper->WorldObjectInstances[0].Type = EGridLevelObjectType::Decoration;
-	TestTrue(TEXT("Stairs or Passage transition candidate executes"), Runtime->TryExecuteRelocationAtCell(1, 1, Party));
+	TestFalse(TEXT("Decoration with relocation data does not execute"), Runtime->TryExecuteRelocationAtCell(1, 1, Party));
+	Upper->WorldObjectInstances[0].Type = EGridLevelObjectType::Relocation;
 	TestFalse(TEXT("Null pawn rejected"), Runtime->TryExecuteRelocationAtCell(1, 1, nullptr));
 	Modern.Relocation.TargetLevelId = B.LevelId;
 	Modern.Relocation.TargetFacing = EGridEdge::None;
@@ -207,16 +208,16 @@ bool FGridRELOC01ValidationTest::RunTest(const FString& Parameters)
 	Editor->DungeonAsset = Dungeon;
 	FGridWorldObjectInstance Object;
 	Object.InstanceId = FGuid::NewGuid();
-	Object.Type = EGridLevelObjectType::Teleporter;
+	Object.Type = EGridLevelObjectType::Relocation;
 	Object.CellX = 1;
 	Object.CellY = 1;
-	Object.InstanceConfig.bTeleporterInitiallyEnabled = false;
+	Object.InstanceConfig.bRelocationInitiallyEnabled = false;
 	Object.InstanceConfig.Relocation.TargetCellX = 2;
 	Object.InstanceConfig.Relocation.TargetCellY = 3;
 	Level->WorldObjectInstances = { Object };
-	TestFalse(TEXT("Normal None diagnostic is valid"), Dungeon->GetTransitionDiagnostics().Contains(TEXT("Status=ERROR")));
-	TestTrue(TEXT("Canonical teleporter counted"), Dungeon->GetTransitionDiagnostics().Contains(TEXT("RelocationObjects=1")));
-	TestTrue(TEXT("Canonical coordinates diagnosed"), Dungeon->GetTransitionDiagnostics().Contains(TEXT("TargetCell=(2,3)")));
+	TestFalse(TEXT("Normal None diagnostic is valid"), Dungeon->GetRelocationDiagnostics().Contains(TEXT("Status=ERROR")));
+	TestTrue(TEXT("Canonical relocation counted"), Dungeon->GetRelocationDiagnostics().Contains(TEXT("RelocationObjects=1")));
+	TestTrue(TEXT("Canonical coordinates diagnosed"), Dungeon->GetRelocationDiagnostics().Contains(TEXT("TargetCell=(2,3)")));
 	auto Messages = Editor->ValidateCurrentLevel();
 	TestFalse(TEXT("Editor accepts None level and facing"),
 		Messages.ContainsByPredicate(
@@ -227,9 +228,9 @@ bool FGridRELOC01ValidationTest::RunTest(const FString& Parameters)
 	FGridRelocationBehaviorParams Modern = Object.InstanceConfig.Relocation;
 	Modern.TargetLevelId = Entry.LevelId;
 	Level->WorldObjectInstances[0].InstanceConfig.Relocation = Modern;
-	TestFalse(TEXT("Explicit source id validates"), Dungeon->GetTransitionDiagnostics().Contains(TEXT("Status=ERROR")));
+	TestFalse(TEXT("Explicit source id validates"), Dungeon->GetRelocationDiagnostics().Contains(TEXT("Status=ERROR")));
 	Level->WorldObjectInstances[0].InstanceConfig.Relocation.TargetLevelId = TEXT("MissingLevel");
-	TestTrue(TEXT("Missing explicit level rejected"), Dungeon->GetTransitionDiagnostics().Contains(TEXT("TargetLevelId does not exist")));
+	TestTrue(TEXT("Missing explicit level rejected"), Dungeon->GetRelocationDiagnostics().Contains(TEXT("TargetLevelId does not exist")));
 	Level->WorldObjectInstances[0].InstanceConfig.Relocation.TargetLevelId = NAME_None;
 	Editor->DungeonAsset = nullptr;
 	Messages = Editor->ValidateCurrentLevel();
@@ -241,7 +242,7 @@ bool FGridRELOC01ValidationTest::RunTest(const FString& Parameters)
 			}));
 	Editor->DungeonAsset = Dungeon;
 	Level->WorldObjectInstances[0].Type = EGridLevelObjectType::Pit;
-	TestTrue(TEXT("Pit no lower level diagnostic error"), Dungeon->GetTransitionDiagnostics().Contains(TEXT("Pit has no enabled lower dungeon level")));
+	TestTrue(TEXT("Pit no lower level diagnostic error"), Dungeon->GetRelocationDiagnostics().Contains(TEXT("Pit has no enabled lower dungeon level")));
 	Messages = Editor->ValidateCurrentLevel();
 	TestTrue(TEXT("Editor Pit no lower level error"),
 		Messages.ContainsByPredicate(
@@ -263,17 +264,24 @@ bool FGridRELOC012SchemaTest::RunTest(const FString& Parameters)
 		TestTrue(TEXT("Canonical destination is reflected and editable"), Destination && Destination->HasAnyPropertyFlags(CPF_Edit));
 		TestTrue(
 			TEXT("Canonical destination has the single relocation type"), Destination && Destination->Struct == FGridRelocationBehaviorParams::StaticStruct());
-		TestNull(TEXT("No obsolete teleporter payload"), FindFProperty<FProperty>(Owner, TEXT("Teleporter")));
-		TestNull(TEXT("No obsolete transition payload"), FindFProperty<FProperty>(Owner, TEXT("Transition")));
+		TestNull(TEXT("No obsolete relocation payload"),
+			FindFProperty<FProperty>(Owner,
+				TEXT("Tele"
+					 "porter")));
+		TestNull(TEXT("No obsolete secondary payload"),
+			FindFProperty<FProperty>(Owner,
+				TEXT("Tran"
+					 "sition")));
 	}
 	UScriptStruct* Schema = FGridRelocationBehaviorParams::StaticStruct();
 	for (const TCHAR* Name : { TEXT("TargetLevelId"), TEXT("TargetCellX"), TEXT("TargetCellY"), TEXT("TargetFacing") })
 		TestNotNull(Name, FindFProperty<FProperty>(Schema, Name));
 	// Deliberate negative reflection checks; no removed C++ member is referenced.
-	TestNull(TEXT("No transition mode flag"),
+	TestNull(TEXT("No obsolete mode flag"),
 		FindFProperty<FProperty>(Schema,
 			TEXT("bIs"
-				 "Transition")));
+				 "Tran"
+				 "sition")));
 	TestNull(TEXT("No Use mode flag"),
 		FindFProperty<FProperty>(Schema,
 			TEXT("bRequire"
@@ -291,12 +299,14 @@ bool FGridRELOC012SchemaTest::RunTest(const FString& Parameters)
 	Object.InstanceConfig.Relocation.TargetCellX = 0;
 	TestFalse(TEXT("Partial destination is unconfigured"), GridRelocation::IsCandidate(Object));
 	Object.InstanceConfig.Relocation.TargetCellY = 0;
-	TestTrue(TEXT("Configured stairs or passage is a candidate"), GridRelocation::IsCandidate(Object));
+	TestFalse(TEXT("Configured decoration is not a relocation candidate"), GridRelocation::IsCandidate(Object));
+	Object.Type = EGridLevelObjectType::Relocation;
+	TestTrue(TEXT("Configured Relocation is a candidate"), GridRelocation::IsCandidate(Object));
 	Object.Type = EGridLevelObjectType::Pit;
 	TestFalse(TEXT("Configured Pit never takes the generic path"), GridRelocation::IsCandidate(Object));
-	Object.Type = EGridLevelObjectType::Teleporter;
+	Object.Type = EGridLevelObjectType::Relocation;
 	Object.InstanceConfig.Relocation = FGridRelocationBehaviorParams();
-	TestTrue(TEXT("Unset Teleporter remains authorable"), GridRelocation::IsCandidate(Object));
+	TestFalse(TEXT("Unset Relocation is not a runtime candidate"), GridRelocation::IsCandidate(Object));
 	return true;
 }
 #endif

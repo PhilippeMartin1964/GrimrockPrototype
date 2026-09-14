@@ -11,6 +11,6 @@ namespace GridRelocation
 
 	inline bool IsCandidate(const FGridWorldObjectInstance& Object)
 	{
-		return Object.Type != EGridLevelObjectType::Pit && (Object.Type == EGridLevelObjectType::Teleporter || IsConfigured(Object.InstanceConfig.Relocation));
+		return Object.Type == EGridLevelObjectType::Relocation && IsConfigured(Object.InstanceConfig.Relocation);
 	}
 }

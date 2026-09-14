@@ -59,7 +59,7 @@ namespace
 
 	FName GetPaletteCategoryForEntry(const FGridObjectPaletteEntry& Entry)
 	{
-		const FName EffectiveCategory = Entry.GetEffectiveCategory();
+		const FName EffectiveCategory = Entry.GetPaletteCategory();
 		return EffectiveCategory.IsNone() ? FName(TEXT("Uncategorized")) : EffectiveCategory;
 	}
 
@@ -76,7 +76,7 @@ namespace
 			return 1;
 		if (Category == FName(TEXT("Receptacles")))
 			return 2;
-		if (Category == FName(TEXT("Transitions")))
+		if (Category == FName(TEXT("Navigation")))
 			return 3;
 		if (Category == FName(TEXT("Items")))
 			return 4;
@@ -392,9 +392,9 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 		!GridRelocation::IsConfigured(StairsDownEntry->DefaultWorldObjectDefinition->DefaultBehavior.Relocation))
 	{
 		FString Error;
-		if (!CurrentEditorActor->EnsureStairsTransitionDefinitions(Error))
+		if (!CurrentEditorActor->EnsureStairsRelocationDefinitions(Error))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Stairs transition palette provisioning failed: %s"), *Error);
+			UE_LOG(LogTemp, Warning, TEXT("Stairs relocation palette provisioning failed: %s"), *Error);
 		}
 	}
 

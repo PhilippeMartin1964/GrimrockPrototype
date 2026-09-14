@@ -84,8 +84,6 @@ namespace GridTD011Tests
 		Fixture.Definition = NewObject<UGridWorldObjectDefinitionAsset>(Outer);
 		Fixture.Definition->DefinitionId = ReceptacleWorldObjectDefinitionId;
 		Fixture.Definition->SupportedType = EGridLevelObjectType::Receptacle;
-		Fixture.Definition->Category = TEXT("Receptacles");
-		Fixture.Definition->ObjectCategory = EGridObjectCategory::Receptacle;
 		Fixture.Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
 		Fixture.Definition->bIsInteractable = true;
 		Fixture.Definition->RuntimeActorClass = AGridReceptacleActor::StaticClass();

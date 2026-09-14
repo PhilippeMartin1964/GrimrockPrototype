@@ -288,7 +288,7 @@ void UGridActivationComponent::RegisterInitialObjectState(const FGridWorldObject
 
 	// Fresh authored state is semantic, not generic. Doors are owned by the door system,
 	// pressure plates are derived from actual occupancy, and levers/buttons/triggers start at rest.
-	if (Instance.Type == EGridLevelObjectType::Teleporter && Instance.InstanceConfig.bTeleporterInitiallyEnabled)
+	if (Instance.Type == EGridLevelObjectType::Relocation && Instance.InstanceConfig.bRelocationInitiallyEnabled)
 	{
 		ActiveObjectIds.Add(Instance.InstanceId);
 	}

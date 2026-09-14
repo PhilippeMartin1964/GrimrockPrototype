@@ -1055,7 +1055,7 @@ bool AGridLevelRuntimeActor::FindRelocationAtCell(int32 CellX, int32 CellY, FGri
 
 		++RelocationCountAtCell;
 
-		if (Obj.Type == EGridLevelObjectType::Teleporter && Obj.InstanceId.IsValid() &&
+		if (Obj.Type == EGridLevelObjectType::Relocation && Obj.InstanceId.IsValid() &&
 			ActivationComponent && !ActivationComponent->IsObjectActive(Obj.InstanceId))
 		{
 			continue;
@@ -1521,7 +1521,7 @@ bool AGridLevelRuntimeActor::TryExecuteRelocationAtCell(int32 CellX, int32 CellY
 		return false;
 	}
 
-	if (!IsValid(PartyPawn) || bIsExecutingDungeonTransition) return false;
+	if (!IsValid(PartyPawn) || bIsExecutingRelocation) return false;
 	const EGridEdge Facing = Relocation.TargetFacing == EGridEdge::None ? PartyPawn->Facing : Relocation.TargetFacing;
 	const FName TargetLevelId = Relocation.TargetLevelId.IsNone() ? CurrentDungeonLevelId : Relocation.TargetLevelId;
 	if (TargetLevelId != CurrentDungeonLevelId)
@@ -1537,7 +1537,7 @@ bool AGridLevelRuntimeActor::TryExecuteRelocationAtCell(int32 CellX, int32 CellY
 	if (TargetCell.CellType == EGridCellType::Empty || TargetCell.bBlocksOccupancy) return false;
 
 	// Hold the same guard during notifications: one hop per cell-entry event.
-	TGuardValue<bool> RelocationGuard(bIsExecutingDungeonTransition, true);
+	TGuardValue<bool> RelocationGuard(bIsExecutingRelocation, true);
 	const int32 OldX = PartyPawn->CurrentCellX;
 	const int32 OldY = PartyPawn->CurrentCellY;
 	PartyPawn->CurrentCellX = Relocation.TargetCellX;
@@ -1552,67 +1552,67 @@ bool AGridLevelRuntimeActor::TryExecuteRelocationAtCell(int32 CellX, int32 CellY
 bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 	FName TargetLevelId, int32 TargetCellX, int32 TargetCellY, EGridEdge TargetFacing, AGrimrockPartyPawn* PartyPawn)
 {
-	if (bIsExecutingDungeonTransition)
+	if (bIsExecutingRelocation)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Dungeon transition ignored: another transition is already executing."));
+		UE_LOG(LogTemp, Warning, TEXT("Dungeon travel ignored: another relocation is already executing."));
 		return false;
 	}
 
-	struct FScopedDungeonTransitionGuard
+	struct FScopedRelocationGuard
 	{
 		bool& bGuard;
 
-		explicit FScopedDungeonTransitionGuard(bool& InGuard)
+		explicit FScopedRelocationGuard(bool& InGuard)
 			: bGuard(InGuard)
 		{
 			bGuard = true;
 		}
 
-		~FScopedDungeonTransitionGuard()
+		~FScopedRelocationGuard()
 		{
 			bGuard = false;
 		}
 	};
 
-	FScopedDungeonTransitionGuard TransitionGuard(bIsExecutingDungeonTransition);
+	FScopedRelocationGuard RelocationGuard(bIsExecutingRelocation);
 
 	if (!DungeonAsset)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon transition failed: DungeonAsset is null."));
+		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: DungeonAsset is null."));
 		return false;
 	}
 
 	if (TargetLevelId.IsNone())
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon transition failed: TargetLevelId is None."));
+		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: TargetLevelId is None."));
 		return false;
 	}
 
 	const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry(TargetLevelId);
 	if (!TargetEntry)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon transition failed: TargetLevelId %s was not found in DungeonAsset %s."), *TargetLevelId.ToString(),
+		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: TargetLevelId %s was not found in DungeonAsset %s."), *TargetLevelId.ToString(),
 			*DungeonAsset->GetPathName());
 		return false;
 	}
 
 	if (!TargetEntry->bEnabled)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon transition failed: TargetLevelId %s is disabled."), *TargetLevelId.ToString());
+		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: TargetLevelId %s is disabled."), *TargetLevelId.ToString());
 		return false;
 	}
 
 	UGridLevelAsset* TargetLevelAsset = TargetEntry->LevelAsset.Get();
 	if (!TargetLevelAsset)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon transition failed: TargetLevelId %s has no LevelAsset."), *TargetLevelId.ToString());
+		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: TargetLevelId %s has no LevelAsset."), *TargetLevelId.ToString());
 		return false;
 	}
 
 	if (!TargetLevelAsset->IsValidCoord(TargetCellX, TargetCellY) ||
 		!TargetLevelAsset->Cells.IsValidIndex(TargetLevelAsset->GetIndex(TargetCellX, TargetCellY)))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon transition failed: Target cell (%d,%d) is outside LevelAsset %s."), TargetCellX, TargetCellY,
+		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: Target cell (%d,%d) is outside LevelAsset %s."), TargetCellX, TargetCellY,
 			*TargetLevelAsset->GetPathName());
 		return false;
 	}
@@ -1620,24 +1620,24 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 	const FGridLevelCellData& TargetCell = TargetLevelAsset->GetCell(TargetCellX, TargetCellY);
 	if (TargetCell.CellType == EGridCellType::Empty || TargetCell.bBlocksOccupancy)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon transition failed: Target cell (%d,%d) is not walkable in LevelAsset %s. CellType=%d BlocksOccupancy=%s."),
+		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: Target cell (%d,%d) is not walkable in LevelAsset %s. CellType=%d BlocksOccupancy=%s."),
 			TargetCellX, TargetCellY, *TargetLevelAsset->GetPathName(), static_cast<int32>(TargetCell.CellType), *GetRuntimeBoolText(TargetCell.bBlocksOccupancy));
 		return false;
 	}
 
 	if (TargetFacing == EGridEdge::None)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon transition failed: TargetFacing is None."));
+		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: TargetFacing is None."));
 		return false;
 	}
 
 	if (!PartyPawn)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon transition failed: PartyPawn is null."));
+		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: PartyPawn is null."));
 		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Dungeon transition: %s -> %s, Cell=(%d,%d), Facing=%s."), *CurrentDungeonLevelId.ToString(), *TargetLevelId.ToString(),
+	UE_LOG(LogTemp, Log, TEXT("Dungeon travel: %s -> %s, Cell=(%d,%d), Facing=%s."), *CurrentDungeonLevelId.ToString(), *TargetLevelId.ToString(),
 		TargetCellX, TargetCellY, *GetRuntimeEdgeText(TargetFacing));
 
 	AbortActiveCombatAndMonsterActions();
@@ -1671,7 +1671,7 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 		ActivationComponent->RefreshAllPressurePlates();
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Dungeon transition complete: CurrentDungeonLevelId=%s LevelAsset=%s PartyCell=(%d,%d) Facing=%s."),
+	UE_LOG(LogTemp, Log, TEXT("Dungeon travel complete: CurrentDungeonLevelId=%s LevelAsset=%s PartyCell=(%d,%d) Facing=%s."),
 		*CurrentDungeonLevelId.ToString(), LevelAsset ? *LevelAsset->GetPathName() : TEXT("None"), TargetCellX, TargetCellY, *GetRuntimeEdgeText(TargetFacing));
 	return true;
 }

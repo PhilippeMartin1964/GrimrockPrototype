@@ -106,15 +106,15 @@ void AGridLevelEditorActor::LogDungeonDiagnostics() const
 	UE_LOG(LogTemp, Log, TEXT("%s"), *GetDungeonDiagnostics());
 }
 
-void AGridLevelEditorActor::LogDungeonTransitionDiagnostics() const
+void AGridLevelEditorActor::LogDungeonRelocationDiagnostics() const
 {
 	if (!DungeonAsset)
 	{
-		UE_LOG(LogTemp, Error, TEXT("LogDungeonTransitionDiagnostics failed: DungeonAsset is null."));
+		UE_LOG(LogTemp, Error, TEXT("LogDungeonRelocationDiagnostics failed: DungeonAsset is null."));
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("%s"), *DungeonAsset->GetTransitionDiagnostics());
+	UE_LOG(LogTemp, Log, TEXT("%s"), *DungeonAsset->GetRelocationDiagnostics());
 }
 
 bool AGridLevelEditorActor::CreateAndAddDungeonLevel(FName NewLevelId, FText DisplayName, FIntVector LogicalPosition, FString& OutError)

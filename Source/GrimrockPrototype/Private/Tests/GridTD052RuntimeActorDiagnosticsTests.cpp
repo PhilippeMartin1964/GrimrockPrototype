@@ -127,14 +127,14 @@ bool FGridTD052RuntimeActorDiagnosticsContractTest::RunTest(const FString& Param
 	TestTrue(TEXT("Level diagnostics expose the start pose"), LevelDiagnostics.Contains(TEXT("StartCell=(1,0) StartFacing=East StartCellValid=true")));
 	TestTrue(TEXT("Level diagnostics expose cell count consistency"), LevelDiagnostics.Contains(TEXT("Cells=4 ExpectedCells=4")));
 	TestTrue(TEXT("Level diagnostics expose cell classifications"), LevelDiagnostics.Contains(TEXT("NonEmptyCells=4 BlockingCells=0 CeilingCells=0")));
-	TestTrue(TEXT("Level diagnostics expose typed placement and transition counts"),
+	TestTrue(TEXT("Level diagnostics expose typed placement and relocation counts"),
 		LevelDiagnostics.Contains(TEXT("Placements=0 Links=0 RelocationObjects=0 HiddenFloorCells=0")));
 	TestTrue(TEXT("A structurally consistent level reports OK"), LevelDiagnostics.Contains(TEXT("Status=OK")));
 
 	// MIG09: diagnostics count the five authoritative collections, including non-world placements.
 	FGridWorldObjectInstance Relocation;
 	Relocation.InstanceId = FGuid::NewGuid();
-	Relocation.Type = EGridLevelObjectType::Decoration;
+	Relocation.Type = EGridLevelObjectType::Relocation;
 	Relocation.InstanceConfig.Relocation.TargetCellX = 0;
 	Relocation.InstanceConfig.Relocation.TargetCellY = 0;
 	LevelAsset->WorldObjectInstances.Add(Relocation);
@@ -142,11 +142,11 @@ bool FGridTD052RuntimeActorDiagnosticsContractTest::RunTest(const FString& Param
 	LevelAsset->MonsterSpawns.AddDefaulted();
 	LevelAsset->ItemSpawns.AddDefaulted();
 	LevelAsset->LogicObjects.AddDefaulted();
-	TestTrue(TEXT("Diagnostics count every native placement bucket and the world transition"),
+	TestTrue(TEXT("Diagnostics count every native placement bucket and the world relocation"),
 		RuntimeActor->GetLevelAssetDiagnostics().Contains(TEXT("Placements=5 Links=0 RelocationObjects=1")));
 	LevelAsset->LooseItemInstances.Reset();
 	LevelAsset->WorldObjectInstances[0].InstanceConfig.Relocation = FGridRelocationBehaviorParams();
-	TestTrue(TEXT("Diagnostics immediately reflect native collection and local transition edits"),
+	TestTrue(TEXT("Diagnostics immediately reflect native collection and local relocation edits"),
 		RuntimeActor->GetLevelAssetDiagnostics().Contains(TEXT("Placements=4 Links=0 RelocationObjects=0")));
 
 	const FString PIEReadiness = RuntimeActor->GetPIEReadinessDiagnostics();

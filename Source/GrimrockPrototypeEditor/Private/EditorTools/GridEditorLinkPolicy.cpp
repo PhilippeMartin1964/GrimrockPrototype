@@ -146,7 +146,7 @@ namespace GridEditorLinkPolicy
 			case EGridLevelObjectType::ItemSpawn:
 			case EGridLevelObjectType::Item:
 			case EGridLevelObjectType::Light:
-			case EGridLevelObjectType::Teleporter:
+			case EGridLevelObjectType::Relocation:
 			case EGridLevelObjectType::Trigger:
 			case EGridLevelObjectType::Receptacle:
 				return EGridEditorCommandRuntimeSupport::StateOnly;

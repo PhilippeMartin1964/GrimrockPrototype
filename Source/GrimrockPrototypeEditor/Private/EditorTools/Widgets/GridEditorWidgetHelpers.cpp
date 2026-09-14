@@ -30,8 +30,8 @@ namespace GridEditorWidgetHelpers
 				return FText::FromString(TEXT("L"));
 			case EGridLevelObjectType::PressurePlate:
 				return FText::FromString(TEXT("P"));
-			case EGridLevelObjectType::Teleporter:
-				return FText::FromString(TEXT("X"));
+			case EGridLevelObjectType::Relocation:
+				return FText::FromString(TEXT("R"));
 			case EGridLevelObjectType::Trigger:
 				return FText::FromString(TEXT("T"));
 			case EGridLevelObjectType::MonsterSpawn:

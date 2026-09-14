@@ -125,18 +125,6 @@ public:
 	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use the definition Audio > Attenuation field."))
 	TObjectPtr<USoundAttenuation> DoorAudioAttenuation = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",
-		meta = (DisplayName = "Palette Category",
-			ToolTip =
-				"Editor palette grouping only. Does not affect gameplay. Examples: Doors, Mechanisms, Wall Decorations, Floor Decorations, Receptacles, Lights, Spawns."))
-	FName Category = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Definition",
-		meta = (DisplayName = "Functional Category",
-			ToolTip =
-				"Editor/validation functional category. Does not directly drive runtime gameplay. SupportedType remains the gameplay type and Category remains the palette grouping."))
-	EGridObjectCategory ObjectCategory = EGridObjectCategory::Decoration;
-
 	/**
 	 * WORLDOBJ-MIG01 placement authority.
 	 * Only Floor, Wall and Ceiling are valid authoring surfaces.
@@ -189,7 +177,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction",
 		meta = (DisplayName = "Runtime Readable",
-			ToolTip = "Controls whether the object behaves as readable at runtime. Functional Category = Readable is only classification."))
+			ToolTip = "Controls whether the object behaves as readable at runtime."))
 	bool bIsReadable = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction", meta = (MultiLine = "true", EditCondition = "bIsReadable", EditConditionHides))
@@ -200,8 +188,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Light",
 		meta = (DisplayName = "Runtime Light Source",
-			ToolTip =
-				"Controls whether the object creates/configures a runtime light. Gameplay Type or Functional Category may also classify the object as Light."))
+			ToolTip = "Controls whether the object creates/configures a runtime light. Gameplay Type may also classify the object as Light."))
 	bool bIsLightSource = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Light", meta = (EditCondition = "bIsLightSource", EditConditionHides))

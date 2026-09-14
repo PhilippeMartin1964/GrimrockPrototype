@@ -1,6 +1,8 @@
 # Audit de GridObjectArchetypeAsset
 
-Statut : audit initial Phase 4A, mis à jour après les nettoyages UI/runtime.
+Statut : **rapport historique Phase 4A**. Les descriptions de `ObjectCategory`, de la
+catégorie portée par la définition et du Gameplay Type Teleporter sont remplacées par le
+contrat WORLDOBJ-CLASS01. Voir [la référence active](11_GRID_WORLD_OBJECT_DEFINITION_PARAMETERS_REFERENCE.md).
 
 Audit Phase 4A de `UGridObjectArchetypeAsset`.
 

@@ -75,7 +75,6 @@ AssetName
 ClassName
 Enum value
 ItemTags
-ObjectCategory
 SupportedType
 Parameter name
 Blueprint class name
@@ -703,8 +702,7 @@ DA_Object_KeyCopperPickup
 | `ArchetypeId` | `Item_CopperKey_Pickup`, `Item_Stone_Rough_Pickup`, etc. |
 | `DisplayName` | Nom dans la palette. Français recommandé pour cohérence éditeur, même si non affiché au joueur. |
 | `SupportedType` | `Item` |
-| `ObjectCategory` | `Item` |
-| `Category` | `Items`, `Items/Keys`, `Items/Quest`, etc. |
+| `PaletteEntry.PaletteCategory` | `Items`, `Items/Keys`, `Items/Quest`, etc. |
 | `PlacementKind` | `Floor` ou `Center`, parfois `Edge` |
 | `bCanShareCell` | généralement `true` |
 | `bCanShareAnchor` | généralement `true` |
@@ -748,12 +746,6 @@ Category = Items/Tools
 Category = Items/Weapons
 Category = Items/Food
 Category = Items/Quest
-```
-
-`ObjectCategory` doit rester :
-
-```text
-ObjectCategory = Item
 ```
 
 ### 9.6 Placement
@@ -952,8 +944,7 @@ Paramètres :
 ArchetypeId = Item_CopperKey_Pickup
 DisplayName = Clé en cuivre
 SupportedType = Item
-ObjectCategory = Item
-Category = Items/Keys
+PaletteEntry.PaletteCategory = Items/Keys
 PlacementKind = Floor
 bCanShareCell = true
 bCanShareAnchor = true
@@ -1062,8 +1053,7 @@ DA_Object_StonePickup
 ArchetypeId = Item_RoughStone_Pickup
 DisplayName = Pierre brute
 SupportedType = Item
-ObjectCategory = Item
-Category = Items/Props
+PaletteEntry.PaletteCategory = Items/Props
 PlacementKind = Floor
 PreviewMesh = SM_Stone_Rough
 DefaultBehavior.Item.ItemDefinitionAsset = DA_Item_RoughStone
@@ -1104,8 +1094,7 @@ DA_Object_WoodenTorchPickup
 ArchetypeId = Item_WoodenTorch_Pickup
 DisplayName = Torche en bois
 SupportedType = Item
-ObjectCategory = Item
-Category = Items/Light
+PaletteEntry.PaletteCategory = Items/Light
 PlacementKind = Floor
 PreviewMesh = SM_Torch_Wooden
 DefaultBehavior.Item.ItemDefinitionAsset = DA_Item_WoodenTorch
@@ -1241,8 +1230,7 @@ Petite clé en cuivre usée par le temps. Elle ouvre sans doute une serrure simp
 - [ ] Renseigner `ArchetypeId`.
 - [ ] Renseigner `DisplayName` en français recommandé.
 - [ ] Mettre `SupportedType = Item`.
-- [ ] Mettre `ObjectCategory = Item`.
-- [ ] Choisir `Category`.
+- [ ] Choisir `PaletteEntry.PaletteCategory`.
 - [ ] Choisir `PlacementKind`.
 - [ ] Assigner `PreviewMesh`.
 - [ ] Assigner `ItemActorClass`.

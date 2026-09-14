@@ -1,6 +1,6 @@
 # Définitions des objets du monde et objets placés
 
-Statut : **contrat actif après WORLDOBJ-MIG10 + WORLDOBJ-RECOVERY01 + refonte des états initiaux sémantiques**, 2026-09-12.
+Statut : **contrat actif après WORLDOBJ-CLASS01**, 2026-09-14.
 
 ## 1. Autorités
 
@@ -29,7 +29,7 @@ Les items ramassables utilisent une seule `UGridItemDefinitionAsset`. Les monstr
 - `LogicId`, `Tag`, `Notes`, `PaletteEntryId` et `ReadableTextOverride` ;
 - `InstanceConfig.Relocation`, `Pit`, `ReceptacleInitialContent` et `bStartsUnlocked` pour les données naturellement locales au niveau ;
 - `InstanceConfig.bDoorInitiallyOpen` pour l'état initial d'une porte ;
-- `InstanceConfig.bTeleporterInitiallyEnabled` pour l'état initial d'un téléporteur ;
+- `InstanceConfig.bRelocationInitiallyEnabled` pour l'état initial d'une Relocation ;
 - `InstanceConfig.MovingPartOverrides` pour les rares exceptions visuelles historiques d'une partie mobile (`LocalTransform`, `Amount`, durée forward), indexées par `PartIndex` 0 ou 1 ;
 - `DoorChainMode` (`Inherit` / `Enabled` / `Disabled`) et l'override optionnel de `ChainPullDuration` pour les exceptions historiques de chaîne de porte.
 
@@ -38,7 +38,7 @@ Il n'existe plus de `bInitiallyEnabled` ou `bInitiallyActive` générique dans l
 | Type | Autorité d'état initial |
 |---|---|
 | Door | `InstanceConfig.bDoorInitiallyOpen` |
-| Teleporter | `InstanceConfig.bTeleporterInitiallyEnabled` |
+| Relocation | `InstanceConfig.bRelocationInitiallyEnabled` |
 | Pit | `InstanceConfig.Pit.bInitiallyOpen` |
 | Lock | `InstanceConfig.bStartsUnlocked` |
 | MonsterSpawn | `bSpawnAtStart` |
@@ -50,7 +50,7 @@ La définition reste l'autorité de la géométrie et de la motion partagées. U
 
 ## 3. Palette et édition
 
-`UGridObjectPaletteAsset::Entries` expose des `FGridObjectPaletteEntry`. Une entrée world-object référence `DefaultWorldObjectDefinition` ; une entrée collectible référence directement `DefaultItemDefinition`. Le libellé, la catégorie et l'icône de palette relèvent de la présentation de l'éditeur.
+`UGridObjectPaletteAsset::Entries` expose des `FGridObjectPaletteEntry`. Une entrée world-object référence `DefaultWorldObjectDefinition` ; une entrée collectible référence directement `DefaultItemDefinition`. `PaletteCategory` est l'unique autorité de groupement de palette. La définition porte seulement son Gameplay Type et ne connaît pas son groupement éditeur.
 
 `AGridLevelEditorActor::FindWorldObjectDefinitionById()` résout une définition depuis la palette. `FGridObjectPaletteEntry::GetEffectiveWorldObjectDefinitionId()` fournit l'identifiant effectif d'une entrée world-object. `PaletteEntryId` conserve une provenance d'authoring, sans remplacer l'identité de placement ni la référence de définition.
 
@@ -64,7 +64,7 @@ La palette alimente `AGridLevelRuntimeActor::WorldObjectDefinitions`. `FindWorld
 
 `UGridEditorPreviewComponent` initialise les objets de preview depuis la définition. Les items résolvent leur `WorldMesh` depuis `ItemDefinition`, et les monstres leur présentation depuis `MonsterDefinition`. Un aperçu ne certifie pas le fonctionnement interactif du niveau.
 
-`FGridRuntimeWorldObjectData` est une frontière C++ non réfléchie d'initialisation runtime spécialisée. Elle est construite depuis `FGridWorldObjectInstance`, transporte notamment les états sémantiques nécessaires (`bDoorInitiallyOpen`, `bTeleporterInitiallyEnabled`), les overrides sparse de parties mobiles et les overrides de chaîne, et n'est pas stockée dans le LevelAsset. Elle ne réintroduit plus de booléens runtime génériques `enabled/active`. Les acteurs runtime résolvent ensuite la définition + ces exceptions une seule fois dans leurs caches transitoires.
+`FGridRuntimeWorldObjectData` est une frontière C++ non réfléchie d'initialisation runtime spécialisée. Elle est construite depuis `FGridWorldObjectInstance`, transporte notamment les états sémantiques nécessaires (`bDoorInitiallyOpen`, `bRelocationInitiallyEnabled`), les overrides sparse de parties mobiles et les overrides de chaîne, et n'est pas stockée dans le LevelAsset. Elle ne réintroduit plus de booléens runtime génériques `enabled/active`. Les acteurs runtime résolvent ensuite la définition + ces exceptions une seule fois dans leurs caches transitoires.
 
 ## 5. Persistance
 
@@ -88,13 +88,12 @@ Une éventuelle réorganisation Content nécessitera une tâche dédiée avec As
 - [Réceptacles](RECEPTACLE_SYSTEM_FOUNDATION.md)
 - [Objets lisibles](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md)
 
-## Relocation (RELOC01.2)
+## Relocation (WORLDOBJ-CLASS01)
 
 `DefaultBehavior.Relocation` and `InstanceConfig.Relocation` share exactly one
 `FGridRelocationBehaviorParams`: TargetLevelId, TargetCellX, TargetCellY, TargetFacing.
-Default Behavior exposes a single Relocation section. Coordinates default to INDEX_NONE;
-configured nonnegative X/Y identify non-Pit relocation objects, and Type=Teleporter is
-always a candidate. Definition defaults initialize placements; local destinations remain
+Default Behavior exposes a single Relocation section. Coordinates default to INDEX_NONE.
+A generic candidate requires `Type=Relocation` and configured nonnegative X/Y. Definition defaults initialize placements; local destinations remain
 instance-owned. Normal level None means current level, Facing None preserves facing.
 Pit level None keeps automatic-lower-level resolution. All relocations activate on entry.
 See [Relocation](../Design/GRID_RELOCATION_DATA.md).

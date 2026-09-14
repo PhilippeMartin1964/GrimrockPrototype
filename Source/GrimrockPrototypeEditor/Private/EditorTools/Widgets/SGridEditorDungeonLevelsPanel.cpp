@@ -182,13 +182,13 @@ TSharedRef<SWidget> SGridEditorDungeonLevelsPanel::BuildPanel()
 
 	AddActionButton(
 		GridEditorWidgetHelpers::BuildGridActionButton(
-			FText::FromString(TEXT("Log Transitions")),
+			FText::FromString(TEXT("Log Relocations")),
 			FOnClicked::CreateLambda(
 				[this]()
 				{
 					if (AGridLevelEditorActor* Editor = GetEditorActor())
 					{
-						Editor->LogDungeonTransitionDiagnostics();
+						Editor->LogDungeonRelocationDiagnostics();
 					}
 					return FReply::Handled();
 				})));

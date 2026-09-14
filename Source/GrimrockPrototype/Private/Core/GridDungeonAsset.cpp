@@ -249,7 +249,7 @@ FString UGridDungeonAsset::GetDungeonDiagnostics() const
 	return Result;
 }
 
-FString UGridDungeonAsset::GetTransitionDiagnostics() const
+FString UGridDungeonAsset::GetRelocationDiagnostics() const
 {
 	FString Result;
 	Result += TEXT("GridDungeonAsset Relocation Diagnostics\n");

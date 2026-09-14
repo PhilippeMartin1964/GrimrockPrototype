@@ -110,16 +110,16 @@ bool FGridTD0132StateOnlyRuntimeRejectionTest::RunTest(const FString& Parameters
 	Runtime->CurrentDungeonLevelId = TEXT("TD0132");
 
 	const FGuid SourceId(1, 3, 2, 1);
-	const FGuid TeleporterId(1, 3, 2, 2);
+	const FGuid RelocationId(1, 3, 2, 2);
 	const FGuid ItemSpawnId(1, 3, 2, 3);
 	const FGuid LightId(1, 3, 2, 4);
 
 	Level->WorldObjectInstances.Add(MakeTD0132WorldObject(SourceId, EGridLevelObjectType::Trigger));
-	Level->WorldObjectInstances.Add(MakeTD0132WorldObject(TeleporterId, EGridLevelObjectType::Teleporter));
+	Level->WorldObjectInstances.Add(MakeTD0132WorldObject(RelocationId, EGridLevelObjectType::Relocation));
 	Level->ItemSpawns.Add(MakeTD0132ItemSpawn(ItemSpawnId));
 	Level->WorldObjectInstances.Add(MakeTD0132WorldObject(LightId, EGridLevelObjectType::Light));
 
-	for (const FGuid TargetId : { TeleporterId, ItemSpawnId, LightId })
+	for (const FGuid TargetId : { RelocationId, ItemSpawnId, LightId })
 	{
 		Level->Links.Add(MakeTD0132Link(SourceId, TargetId, EGridObjectEvent::Activated, EGridObjectCommand::Activate));
 		Level->Links.Add(MakeTD0132Link(SourceId, TargetId, EGridObjectEvent::Deactivated, EGridObjectCommand::Deactivate));
@@ -137,18 +137,18 @@ bool FGridTD0132StateOnlyRuntimeRejectionTest::RunTest(const FString& Parameters
 
 	AddExpectedError(TEXT("Grid link failed:"), EAutomationExpectedErrorFlags::Contains, 6);
 	TestFalse(TEXT("StateOnly Activate links are rejected at runtime"), Activation->ExecuteLinksFromObjectForEvent(SourceId, EGridObjectEvent::Activated));
-	TestFalse(TEXT("Teleporter was not activated by a rejected link"), Activation->GetActiveObjectIds().Contains(TeleporterId));
+	TestFalse(TEXT("Relocation was not activated by a rejected link"), Activation->GetActiveObjectIds().Contains(RelocationId));
 	TestFalse(TEXT("ItemSpawn was not activated by a rejected link"), Activation->GetActiveObjectIds().Contains(ItemSpawnId));
 	TestFalse(TEXT("Light was not activated by a rejected link"), Activation->GetActiveObjectIds().Contains(LightId));
 
 	TSet<FGuid> PreexistingActiveIds;
-	PreexistingActiveIds.Add(TeleporterId);
+	PreexistingActiveIds.Add(RelocationId);
 	PreexistingActiveIds.Add(ItemSpawnId);
 	PreexistingActiveIds.Add(LightId);
 	Activation->SetActiveObjectIds(PreexistingActiveIds);
 
 	TestFalse(TEXT("StateOnly Deactivate links are rejected at runtime"), Activation->ExecuteLinksFromObjectForEvent(SourceId, EGridObjectEvent::Deactivated));
-	TestTrue(TEXT("Rejected Teleporter deactivation preserves preexisting state"), Activation->GetActiveObjectIds().Contains(TeleporterId));
+	TestTrue(TEXT("Rejected Relocation deactivation preserves preexisting state"), Activation->GetActiveObjectIds().Contains(RelocationId));
 	TestTrue(TEXT("Rejected ItemSpawn deactivation preserves preexisting state"), Activation->GetActiveObjectIds().Contains(ItemSpawnId));
 	TestTrue(TEXT("Rejected Light deactivation preserves preexisting state"), Activation->GetActiveObjectIds().Contains(LightId));
 

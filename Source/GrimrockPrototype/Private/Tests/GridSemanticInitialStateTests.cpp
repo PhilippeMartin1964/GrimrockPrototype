@@ -52,7 +52,10 @@ bool FGridSemanticInitialStateContractTest::RunTest(const FString& Parameters)
 		TestNull(TEXT("Instance config has no generic bInitiallyEnabled property"), ConfigStruct->FindPropertyByName(TEXT("bInitiallyEnabled")));
 		TestNull(TEXT("Instance config has no generic bInitiallyActive property"), ConfigStruct->FindPropertyByName(TEXT("bInitiallyActive")));
 		TestNotNull(TEXT("Door exposes semantic bDoorInitiallyOpen"), ConfigStruct->FindPropertyByName(TEXT("bDoorInitiallyOpen")));
-		TestNotNull(TEXT("Teleporter exposes semantic bTeleporterInitiallyEnabled"), ConfigStruct->FindPropertyByName(TEXT("bTeleporterInitiallyEnabled")));
+		TestNotNull(TEXT("Relocation exposes semantic bRelocationInitiallyEnabled"), ConfigStruct->FindPropertyByName(TEXT("bRelocationInitiallyEnabled")));
+		TestNull(TEXT("Legacy relocation state name is absent"),
+			ConfigStruct->FindPropertyByName(TEXT("bTeleporter"
+												 "InitiallyEnabled")));
 		TestNotNull(TEXT("Lock exposes semantic bStartsUnlocked"), ConfigStruct->FindPropertyByName(TEXT("bStartsUnlocked")));
 		TestNull(TEXT("Lever has no authored bLeverInitiallyOn override"), ConfigStruct->FindPropertyByName(TEXT("bLeverInitiallyOn")));
 		TestNull(TEXT("Pressure plate has no authored bPressurePlateInitiallyPressed override"),
@@ -81,7 +84,7 @@ bool FGridSemanticInitialStateContractTest::RunTest(const FString& Parameters)
 
 	FGridWorldObjectInstanceConfig Config;
 	TestFalse(TEXT("Doors start closed by default"), Config.bDoorInitiallyOpen);
-	TestTrue(TEXT("Teleporters start enabled by default"), Config.bTeleporterInitiallyEnabled);
+	TestTrue(TEXT("Relocations start enabled by default"), Config.bRelocationInitiallyEnabled);
 	TestFalse(TEXT("Locks start locked by default"), Config.bStartsUnlocked);
 	TestTrue(TEXT("Pits preserve their explicit semantic default"), Config.Pit.bInitiallyOpen);
 

@@ -86,9 +86,9 @@ namespace
 			{
 				return WorldObjectInstance->InstanceConfig.bDoorInitiallyOpen;
 			}
-			if (WorldObjectInstance->Type == EGridLevelObjectType::Teleporter)
+			if (WorldObjectInstance->Type == EGridLevelObjectType::Relocation)
 			{
-				return WorldObjectInstance->InstanceConfig.bTeleporterInitiallyEnabled;
+				return WorldObjectInstance->InstanceConfig.bRelocationInitiallyEnabled;
 			}
 		}
 		return false;
@@ -331,7 +331,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard(FGu
 	const UGridWorldObjectDefinitionAsset* Definition = GetWorldObjectDefinition(CurrentEditorActor, Obj);
 	const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(CurrentEditorActor, Obj);
 	const FText TitleText = Definition && !Definition->DisplayName.IsEmpty() ? Definition->DisplayName : TypeText;
-	const bool bShowRelocationSection = WorldObjectInstance && (Type == EGridLevelObjectType::Pit || GridRelocation::IsCandidate(*WorldObjectInstance));
+	const bool bShowRelocationSection = WorldObjectInstance && (Type == EGridLevelObjectType::Pit || Type == EGridLevelObjectType::Relocation);
 	return SNew(SBorder).Padding(8.f).BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))[SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 12.f, 0.f)[SNew(SBox).WidthOverride(88.f).HeightOverride(72.f)[
@@ -351,7 +351,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard(FGu
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGuid Obj)
 {
 	const UEnum* PlacementKindEnum = StaticEnum<EGridObjectPlacementKind>();
-	const UEnum* ObjectCategoryEnum = StaticEnum<EGridObjectCategory>();
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
 	if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset) return SNullWidget::NullWidget;
 	const UGridLevelAsset& Level = *CurrentEditorActor->LevelAsset;
@@ -360,16 +359,13 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 	const bool bIsItemSpawn = ObjectType == EGridLevelObjectType::ItemSpawn;
 	const bool bIsSpawn = bIsMonsterSpawn || bIsItemSpawn;
 	const bool bIsDoor = ObjectType == EGridLevelObjectType::Door;
-	const bool bIsTeleporter = ObjectType == EGridLevelObjectType::Teleporter;
+	const bool bIsRelocation = ObjectType == EGridLevelObjectType::Relocation;
 	const UGridWorldObjectDefinitionAsset* Definition = GetWorldObjectDefinition(CurrentEditorActor, Obj);
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
 	if (Definition && !bIsMonsterSpawn)
 	{
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Placement Kind")),
 			GridEditorWidgetHelpers::GetGridEnumDisplayText(PlacementKindEnum, static_cast<int64>(Definition->PlacementSurface)))];
-		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Palette Category")), GetNameText(Definition->Category))];
-		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Functional Category")),
-			GridEditorWidgetHelpers::GetGridEnumDisplayText(ObjectCategoryEnum, static_cast<int64>(Definition->ObjectCategory)))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Interactable")), GetBoolText(Definition->bIsInteractable))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Readable")), GetBoolText(Definition->bIsReadable))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Light Source")), GetBoolText(Definition->bIsLightSource))];
@@ -391,7 +387,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 				}
 			})[SNew(STextBlock).Text(FText::FromString(TEXT("Spawn at Start")))]];
 	}
-	else if (bIsDoor || bIsTeleporter)
+	else if (bIsDoor || bIsRelocation)
 	{
 		Root->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(SCheckBox)
 			.IsChecked(IsPlacementInitiallyActive(Level, Obj) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
@@ -402,7 +398,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection(FGui
 					Editor->SetSelectedObjectInitiallyActive(NewState == ECheckBoxState::Checked);
 					RequestRefresh();
 				}
-			})[SNew(STextBlock).Text(FText::FromString(bIsDoor ? TEXT("Open at Start") : TEXT("Enabled at Start")))]];
+			})[SNew(STextBlock).Text(FText::FromString(bIsDoor ? TEXT("Open at Start") : TEXT("Initially Enabled")))]];
 	}
 
 	if (bIsMonsterSpawn)
@@ -459,7 +455,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSec
 		case EGridLevelObjectType::MonsterSpawn:
 			PrimarySection = BuildMonsterSpawnSection(Obj);
 			break;
-		case EGridLevelObjectType::Teleporter:
+		case EGridLevelObjectType::Relocation:
 			PrimarySection = SNullWidget::NullWidget;
 			break;
 		default:
@@ -846,7 +842,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPitDetailsSection(FGui
 			}))]
 		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Trapdoor Layout")), FText::FromString(TEXT("Definition > Moving Parts[0/1].Motion")))]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock)
-			.Text(FText::FromString(TEXT("Trapdoor hinges, rotation angle and duration are authored once in the World Object Definition. The level instance stores only pit state and transition data.")))
+			.Text(FText::FromString(TEXT("Trapdoor hinges, rotation angle and duration are authored once in the World Object Definition. The level instance stores only pit state and relocation data.")))
 			.AutoWrapText(true).ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))]);
 }
 

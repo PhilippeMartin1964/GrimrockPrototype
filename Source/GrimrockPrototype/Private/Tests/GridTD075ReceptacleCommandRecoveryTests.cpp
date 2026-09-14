@@ -135,7 +135,6 @@ namespace GridTD075ReceptacleRecovery
 		Definition->DefinitionId = TD075ReceptacleWorldObjectDefinitionId;
 		Definition->SupportedType = EGridLevelObjectType::Receptacle;
 		Definition->DefaultBehavior.Receptacle.MaxContainedItems = 2;
-		Definition->ObjectCategory = EGridObjectCategory::Receptacle;
 		Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
 		Definition->bIsInteractable = true;
 		Definition->RuntimeActorClass = AGridReceptacleActor::StaticClass();

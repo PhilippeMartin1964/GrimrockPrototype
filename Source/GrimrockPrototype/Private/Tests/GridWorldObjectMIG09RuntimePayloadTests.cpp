@@ -38,7 +38,7 @@ bool FGridWorldObjectMIG09RuntimePayloadTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Typed WallSide maps to runtime Edge"), RuntimeData.Edge, EGridEdge::West);
 	TestTrue(TEXT("Door initial open state maps explicitly to runtime"), RuntimeData.bDoorInitiallyOpen);
 	TestFalse(TEXT("Typed Pit state remains instance-owned"), RuntimeData.Behavior.Pit.bInitiallyOpen);
-	TestEqual(TEXT("Typed transition target maps to runtime"), RuntimeData.Behavior.Relocation.TargetLevelId, FName(TEXT("LowerLevel")));
+	TestEqual(TEXT("Typed relocation target maps to runtime"), RuntimeData.Behavior.Relocation.TargetLevelId, FName(TEXT("LowerLevel")));
 	TestTrue(TEXT("Typed lock initial state remains instance-owned"), RuntimeData.Behavior.Lock.bStartsUnlocked);
 
 	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>();

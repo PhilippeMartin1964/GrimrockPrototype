@@ -70,7 +70,7 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 	{
 		TestEqual(TEXT("Door definition id comes from typed storage"), RestoredDoor->WorldObjectDefinitionId, FName(TEXT("Door_MIG07B")));
 		TestEqual(TEXT("Door wall side comes from typed storage"), RestoredDoor->WallSide, EGridEdge::East);
-		TestEqual(TEXT("Door transition target survives lookup"), RestoredDoor->InstanceConfig.Relocation.TargetLevelId, FName(TEXT("Target_A")));
+		TestEqual(TEXT("Door relocation target survives lookup"), RestoredDoor->InstanceConfig.Relocation.TargetLevelId, FName(TEXT("Target_A")));
 		TestTrue(TEXT("Door initial lock state survives lookup"), RestoredDoor->InstanceConfig.bStartsUnlocked);
 	}
 

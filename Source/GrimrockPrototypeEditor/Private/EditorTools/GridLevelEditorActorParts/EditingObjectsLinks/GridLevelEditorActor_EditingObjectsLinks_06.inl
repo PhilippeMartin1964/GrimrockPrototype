@@ -40,8 +40,8 @@ bool AGridLevelEditorActor::SelectObjectById(FGuid ObjectId)
 		SelectedWorldObjectDefinitionId = WorldObjectDefinitionId;
 		bObjectInitiallyActive = WorldObjectInstance->Type == EGridLevelObjectType::Door
 			? WorldObjectInstance->InstanceConfig.bDoorInitiallyOpen
-			: WorldObjectInstance->Type == EGridLevelObjectType::Teleporter
-				? WorldObjectInstance->InstanceConfig.bTeleporterInitiallyEnabled
+			: WorldObjectInstance->Type == EGridLevelObjectType::Relocation
+				? WorldObjectInstance->InstanceConfig.bRelocationInitiallyEnabled
 				: false;
 		ObjectBehavior = GridObjectInstanceBehavior::Resolve(*WorldObjectInstance, FindWorldObjectDefinitionById(WorldObjectDefinitionId));
 	}

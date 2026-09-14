@@ -101,7 +101,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 	if (!DungeonAsset)
 	{
 		AddMessage(EGridLevelValidationSeverity::Warning,
-			TEXT("DungeonAsset is missing. The editor can use LevelAsset directly, but dungeon level ids and transitions cannot be fully validated."));
+			TEXT("DungeonAsset is missing. The editor can use LevelAsset directly, but dungeon level ids and relocations cannot be fully validated."));
 	}
 	else
 	{
@@ -359,6 +359,16 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel(
 		}
 		const bool bIsPit = Obj.Type == EGridLevelObjectType::Pit;
 		const FGridRelocationBehaviorParams Relocation = Obj.InstanceConfig.Relocation;
+		if (Obj.Type == EGridLevelObjectType::Relocation && !GridRelocation::IsConfigured(Relocation))
+		{
+			AddMessage(EGridLevelValidationSeverity::Error,
+				TEXT("Relocation requires Destination Cell X and Destination Cell Y."), ObjectId);
+		}
+		else if (!bIsPit && Obj.Type != EGridLevelObjectType::Relocation && GridRelocation::IsConfigured(Relocation))
+		{
+			AddMessage(EGridLevelValidationSeverity::Error,
+				TEXT("Relocation destination data is configured on an object whose Gameplay Type is not Relocation."), ObjectId);
+		}
 		if (bIsPit || GridRelocation::IsCandidate(Obj))
 		{
 			const bool bSameCell = bIsPit && Obj.InstanceConfig.Pit.bUseSameCellCoordinates;

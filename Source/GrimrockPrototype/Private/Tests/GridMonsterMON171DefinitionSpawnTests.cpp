@@ -150,6 +150,7 @@ bool FGridMonsterMON171SpawnPersistenceContractTest::RunTest(const FString& Para
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>(Level);
 	FGridObjectPaletteEntry Entry;
 	Entry.EntryId = TEXT("MON_GoblinThrower");
+	Entry.PaletteCategory = TEXT("Goblin");
 	Entry.DefaultWorldObjectDefinition = WorldObjectDefinition;
 	Entry.DefaultMonsterDefinition = Definition;
 	Palette->Entries.Add(Entry);

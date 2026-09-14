@@ -17,8 +17,7 @@ enum class EGridCellType : uint8
 	Floor UMETA(DisplayName = "Floor"),
 	Pit UMETA(DisplayName = "Pit"),
 	StairsUp UMETA(DisplayName = "Stairs Up"),
-	StairsDown UMETA(DisplayName = "Stairs Down"),
-	Teleporter UMETA(DisplayName = "Teleporter")
+	StairsDown UMETA(DisplayName = "Stairs Down")
 };
 
 UENUM(BlueprintType)
@@ -40,7 +39,7 @@ enum class EGridLevelObjectType : uint8
 	MonsterSpawn UMETA(DisplayName = "Monster Spawn"),
 	ItemSpawn UMETA(DisplayName = "Item Spawn"),
 	Light UMETA(DisplayName = "Light"),
-	Teleporter UMETA(DisplayName = "Teleporter"),
+	Relocation UMETA(DisplayName = "Relocation"),
 	Trigger UMETA(DisplayName = "Trigger"),
 	Receptacle UMETA(DisplayName = "Receptacle"),
 	Item UMETA(DisplayName = "Item"),
@@ -58,20 +57,6 @@ enum class EGridObjectPlacementKind : uint8
 	Floor UMETA(DisplayName = "Floor"),
 	Wall UMETA(DisplayName = "Wall"),
 	Ceiling UMETA(DisplayName = "Ceiling")
-};
-
-UENUM(BlueprintType)
-enum class EGridObjectCategory : uint8
-{
-	Mechanism UMETA(DisplayName = "Mechanism"),
-	Decoration UMETA(DisplayName = "Decoration"),
-	Prop UMETA(DisplayName = "Prop"),
-	Receptacle UMETA(DisplayName = "Receptacle"),
-	Light UMETA(DisplayName = "Light"),
-	Readable UMETA(DisplayName = "Readable"),
-	Spawn UMETA(DisplayName = "Spawn"),
-	Teleporter UMETA(DisplayName = "Teleporter"),
-	Item UMETA(DisplayName = "Item")
 };
 
 UENUM(BlueprintType)

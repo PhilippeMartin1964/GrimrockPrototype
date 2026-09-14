@@ -1153,3 +1153,12 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Suppression définitive de `PreviewMaterial`, `FixedMaterial`, `MovingMaterial`, `PitLeftLeafMaterial` et `PitRightLeafMaterial` de `GridObjectArchetypeAsset`.
 - Le runtime et la preview ne transportent plus de matériau d'archétype : ils assignent le Static Mesh et conservent ses Material Slots.
 - Les matériaux de présentation explicitement distincts (par exemple chaîne de porte, sparkle item, override plafond éditeur) restent hors de ce contrat.
+
+## 2026-09-14 — WORLDOBJ-CLASS01 — Classification simplifiée
+
+- `SupportedType` / Gameplay Type est l'unique classification fonctionnelle principale d'une World Object Definition.
+- Le Gameplay Type `Relocation` remplace définitivement l'ancien type Teleporter pour les escaliers, portails et passages automatiques.
+- `EGridObjectCategory`, `ObjectCategory` et la catégorie de palette portée par la définition sont supprimés sans compatibilité.
+- `FGridObjectPaletteEntry.PaletteCategory` est l'unique autorité de groupement de palette.
+- `Stairs_Up` et `Stairs_Down` sont des Relocations de sol, classées `Navigation` dans la palette, avec une destination par défaut non configurée.
+- `bRelocationInitiallyEnabled` porte l'état initial d'une Relocation et vaut vrai par défaut.

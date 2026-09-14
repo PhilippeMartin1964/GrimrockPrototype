@@ -11,6 +11,11 @@ bool UGridObjectPaletteAsset::ValidatePalette(TArray<FGridWorldObjectDefinitionV
 	for (const FGridObjectPaletteEntry& Entry : Entries)
 	{
 		const FString EntryName = Entry.EntryId.IsNone() ? TEXT("<unset>") : Entry.EntryId.ToString();
+		if (Entry.PaletteCategory.IsNone())
+		{
+			OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Error,
+				FString::Printf(TEXT("Palette entry '%s' requires Palette Category."), *EntryName));
+		}
 
 		if (Entry.EntryId.IsNone())
 		{

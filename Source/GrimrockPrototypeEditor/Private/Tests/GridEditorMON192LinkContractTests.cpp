@@ -42,7 +42,7 @@ bool FGridEditorMON192LinkPolicyMatrixTest::RunTest(const FString& Parameters)
 	const EGridLevelObjectType Receptacle = EGridLevelObjectType::Receptacle;
 	const EGridLevelObjectType MonsterSpawn = EGridLevelObjectType::MonsterSpawn;
 	const EGridLevelObjectType Door = EGridLevelObjectType::Door;
-	const EGridLevelObjectType Teleporter = EGridLevelObjectType::Teleporter;
+	const EGridLevelObjectType Relocation = EGridLevelObjectType::Relocation;
 	const EGridLevelObjectType Light = EGridLevelObjectType::Light;
 
 	TestTrue(
@@ -94,10 +94,10 @@ bool FGridEditorMON192LinkPolicyMatrixTest::RunTest(const FString& Parameters)
 			GridEditorLinkPolicy::GetCommandRuntimeSupport(MonsterSpawn, EGridLogicNodeType::Relay, Command) == EGridEditorCommandRuntimeSupport::Gameplay);
 	}
 
-	for (const EGridObjectCommand Command : GridEditorLinkPolicy::GetSupportedCommandsForTarget(Teleporter))
+	for (const EGridObjectCommand Command : GridEditorLinkPolicy::GetSupportedCommandsForTarget(Relocation))
 	{
-		TestTrue(TEXT("Teleporter connector commands are explicitly classified StateOnly"),
-			GridEditorLinkPolicy::GetCommandRuntimeSupport(Teleporter, EGridLogicNodeType::Relay, Command) == EGridEditorCommandRuntimeSupport::StateOnly);
+		TestTrue(TEXT("Relocation connector commands are explicitly classified StateOnly"),
+			GridEditorLinkPolicy::GetCommandRuntimeSupport(Relocation, EGridLogicNodeType::Relay, Command) == EGridEditorCommandRuntimeSupport::StateOnly);
 	}
 
 	for (const EGridObjectCommand Command : GridEditorLinkPolicy::GetSupportedCommandsForTarget(Light))

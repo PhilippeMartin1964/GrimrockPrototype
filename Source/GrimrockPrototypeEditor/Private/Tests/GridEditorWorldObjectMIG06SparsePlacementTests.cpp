@@ -130,7 +130,7 @@ bool FGridEditorWorldObjectMIG06SparsePlacementTest::RunTest(const FString& Para
 
 	TestTrue(TEXT("Edited sparse object can be reselected"), EditorActor->SelectObjectById(ObjectId));
 	TestEqual(TEXT("Reselection restores definition-owned ButtonHoldTime"), EditorActor->ObjectBehavior.ButtonAnimation.ButtonHoldTime, 0.77f);
-	TestEqual(TEXT("Reselection preserves typed instance transition"), EditorActor->ObjectBehavior.Relocation.TargetLevelId, FName(TEXT("MIG06_Target")));
+	TestEqual(TEXT("Reselection preserves typed instance relocation"), EditorActor->ObjectBehavior.Relocation.TargetLevelId, FName(TEXT("MIG06_Target")));
 
 	return true;
 }

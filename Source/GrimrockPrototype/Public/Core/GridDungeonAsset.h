@@ -62,7 +62,7 @@ public:
 	FString GetDungeonDiagnostics() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Diagnostics")
-	FString GetTransitionDiagnostics() const;
+	FString GetRelocationDiagnostics() const;
 
 	const FGridDungeonLevelEntry* FindLevelEntry(FName LevelId) const;
 

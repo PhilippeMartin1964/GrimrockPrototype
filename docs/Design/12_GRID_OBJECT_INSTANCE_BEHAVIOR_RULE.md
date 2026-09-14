@@ -45,7 +45,7 @@ L’instance possède uniquement ce qui est réellement local au niveau, par exe
 - identifiant d’instance stable ;
 - cellule et orientation ;
 - état initial ;
-- destination Relocation (Teleporter, Stairs, Passage ou Pit) ;
+- destination Relocation (Gameplay Type `Relocation`, notamment escaliers, portails et passages, ou Pit) ;
 - contenu initial d’un réceptacle ;
 - état initial de serrure ;
 - Tag / Notes ;
@@ -122,8 +122,8 @@ InstanceConfig.Pit.bUseSameCellCoordinates
 
 `DefaultBehavior.Relocation` supplies initial placement defaults. The resolver uses
 `Config.Relocation` for the placed destination; it never maintains a duplicate destination.
-Both coordinates default to INDEX_NONE (unset). Teleporters are always candidates;
-other non-Pit objects require configured coordinates. Normal None level means current level,
+Both coordinates default to INDEX_NONE (unset). A generic candidate requires Gameplay Type
+`Relocation` and configured coordinates. Normal None level means current level,
 while Pit None means automatic lower level. Facing None preserves facing. Activation is
 automatic on cell entry. Pit flap geometry remains in `MovingParts[].Motion`.
 

@@ -112,7 +112,7 @@ public:
 	FName CurrentDungeonLevelId = NAME_None;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dungeon|Runtime")
-	bool bIsExecutingDungeonTransition = false;
+	bool bIsExecutingRelocation = false;
 
 	UPROPERTY(Transient)
 	FGridDungeonRuntimeState DungeonRuntimeState;
@@ -405,7 +405,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Runtime")
 	bool FindRelocationAtCell(int32 CellX, int32 CellY, FGridRelocationBehaviorParams& OutRelocation) const;
 
-	/** PIT01: resolves an enabled static open pit without using the generic stair transition path. */
+	/** PIT01: resolves an enabled static open pit without using the generic relocation path. */
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Pit")
 	bool FindOpenPitAtCell(int32 CellX, int32 CellY, FGridRelocationBehaviorParams& OutRelocation) const;
 

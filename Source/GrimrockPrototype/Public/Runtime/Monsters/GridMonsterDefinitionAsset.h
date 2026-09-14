@@ -99,7 +99,7 @@ public:
 	bool bCanOpenDoors = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Movement")
-	bool bCanUseTeleporters = false;
+	bool bCanUseRelocations = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Perception", meta = (ClampMin = "0"))
 	int32 SightRangeCells = 0;

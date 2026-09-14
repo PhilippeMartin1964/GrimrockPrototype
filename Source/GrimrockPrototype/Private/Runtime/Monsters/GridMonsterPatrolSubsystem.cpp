@@ -609,7 +609,7 @@ void UGridMonsterPatrolSubsystem::CancelExplorationMotion(FRuntimeEntry& Entry)
 
 bool UGridMonsterPatrolSubsystem::IsRuntimeSafeForExploration(AGridLevelRuntimeActor* RuntimeActor) const
 {
-	if (!IsValid(RuntimeActor) || RuntimeActor->bIsExecutingDungeonTransition)
+	if (!IsValid(RuntimeActor) || RuntimeActor->bIsExecutingRelocation)
 	{
 		return false;
 	}

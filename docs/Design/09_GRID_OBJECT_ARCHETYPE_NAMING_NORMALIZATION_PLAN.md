@@ -1,5 +1,8 @@
 # Plan de normalisation des noms d'archétypes GridObject
 
+Statut : **plan historique achevé**. Ses colonnes `ObjectCategory` et ses propositions
+Teleporter ne décrivent plus le schéma courant. Voir [la référence active](11_GRID_WORLD_OBJECT_DEFINITION_PARAMETERS_REFERENCE.md).
+
 Plan de migration des noms de DataAssets `UGridObjectArchetypeAsset` et de leurs `ArchetypeId`, mis à jour après validation UE5 de la Phase 5A.
 
 Ce document est un plan de documentation. Il ne modifie pas le code C++, les `.uasset`, les Blueprints, les enums, les liens, les niveaux ou la sérialisation.

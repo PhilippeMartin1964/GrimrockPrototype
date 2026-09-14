@@ -128,7 +128,6 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	UGridWorldObjectDefinitionAsset* ButtonDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
 	ButtonDefinition->DefinitionId = TEXT("MIG03_TargetButton");
 	ButtonDefinition->SupportedType = EGridLevelObjectType::Button;
-	ButtonDefinition->ObjectCategory = EGridObjectCategory::Mechanism;
 	ButtonDefinition->bIsInteractable = true;
 	ButtonDefinition->PlacementSurface = EGridObjectPlacementKind::Wall;
 	ButtonDefinition->RuntimeActorClass = AGridButtonActor::StaticClass();
@@ -148,7 +147,6 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	UGridWorldObjectDefinitionAsset* TriggerDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
 	TriggerDefinition->DefinitionId = TEXT("MIG03_InvisibleTrigger");
 	TriggerDefinition->SupportedType = EGridLevelObjectType::Trigger;
-	TriggerDefinition->ObjectCategory = EGridObjectCategory::Mechanism;
 	TriggerDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
 	TriggerDefinition->RuntimeActorClass = AGridRuntimeObjectActor::StaticClass();
 	TestFalse(TEXT("Invisible trigger has no visual composition"), TriggerDefinition->HasAnyVisualPart());

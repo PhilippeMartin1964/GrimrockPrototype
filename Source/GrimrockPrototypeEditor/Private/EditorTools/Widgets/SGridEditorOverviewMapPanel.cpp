@@ -768,10 +768,8 @@ FText SGridEditorOverviewMapPanel::GetSelectedCellObjectSummaryText(FGuid Object
 	FString DefinitionDetails;
 	if (Definition)
 	{
-		const UEnum* CategoryEnum = StaticEnum<EGridObjectCategory>();
 		const UEnum* PlacementEnum = StaticEnum<EGridObjectPlacementKind>();
-		DefinitionDetails = FString::Printf(TEXT(" | %s/%s"),
-			*GridEditorWidgetHelpers::GetGridEnumDisplayText(CategoryEnum, static_cast<int64>(Definition->ObjectCategory)).ToString(),
+		DefinitionDetails = FString::Printf(TEXT(" | %s"),
 			*GridEditorWidgetHelpers::GetGridEnumDisplayText(PlacementEnum, static_cast<int64>(Definition->PlacementSurface)).ToString());
 	}
 

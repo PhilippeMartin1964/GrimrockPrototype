@@ -37,97 +37,6 @@ namespace
 		return PlacementSurface == EGridObjectPlacementKind::Wall;
 	}
 
-	const TCHAR* ToSupportedTypeText(EGridLevelObjectType SupportedType)
-	{
-		switch (SupportedType)
-		{
-			case EGridLevelObjectType::Door: return TEXT("Door");
-			case EGridLevelObjectType::Button: return TEXT("Button");
-			case EGridLevelObjectType::PressurePlate: return TEXT("PressurePlate");
-			case EGridLevelObjectType::Lever: return TEXT("Lever");
-			case EGridLevelObjectType::Decoration: return TEXT("Decoration");
-			case EGridLevelObjectType::MonsterSpawn: return TEXT("MonsterSpawn");
-			case EGridLevelObjectType::ItemSpawn: return TEXT("ItemSpawn");
-			case EGridLevelObjectType::Light: return TEXT("Light");
-			case EGridLevelObjectType::Teleporter: return TEXT("Teleporter");
-			case EGridLevelObjectType::Trigger: return TEXT("Trigger");
-			case EGridLevelObjectType::Receptacle: return TEXT("Receptacle");
-			case EGridLevelObjectType::Item: return TEXT("Item");
-			case EGridLevelObjectType::Logic: return TEXT("Logic");
-			case EGridLevelObjectType::StoryCompanion: return TEXT("StoryCompanion");
-			case EGridLevelObjectType::CustomRecruiter: return TEXT("CustomRecruiter");
-			case EGridLevelObjectType::Pit: return TEXT("Pit");
-			case EGridLevelObjectType::None:
-			default: return TEXT("None");
-		}
-	}
-
-	const TCHAR* ToObjectCategoryText(EGridObjectCategory Category)
-	{
-		switch (Category)
-		{
-			case EGridObjectCategory::Mechanism: return TEXT("Mechanism");
-			case EGridObjectCategory::Decoration: return TEXT("Decoration");
-			case EGridObjectCategory::Prop: return TEXT("Prop");
-			case EGridObjectCategory::Receptacle: return TEXT("Receptacle");
-			case EGridObjectCategory::Light: return TEXT("Light");
-			case EGridObjectCategory::Readable: return TEXT("Readable");
-			case EGridObjectCategory::Spawn: return TEXT("Spawn");
-			case EGridObjectCategory::Teleporter: return TEXT("Teleporter");
-			case EGridObjectCategory::Item: return TEXT("Item");
-			default: return TEXT("Unknown");
-		}
-	}
-
-	EGridObjectCategory GetRecommendedObjectCategory(EGridLevelObjectType SupportedType, bool bIsReadable)
-	{
-		switch (SupportedType)
-		{
-			case EGridLevelObjectType::Door:
-			case EGridLevelObjectType::Button:
-			case EGridLevelObjectType::PressurePlate:
-			case EGridLevelObjectType::Lever:
-			case EGridLevelObjectType::Trigger:
-			case EGridLevelObjectType::Pit:
-				return EGridObjectCategory::Mechanism;
-			case EGridLevelObjectType::Receptacle:
-				return EGridObjectCategory::Receptacle;
-			case EGridLevelObjectType::Decoration:
-				return bIsReadable ? EGridObjectCategory::Readable : EGridObjectCategory::Decoration;
-			case EGridLevelObjectType::Light:
-				return EGridObjectCategory::Light;
-			case EGridLevelObjectType::Teleporter:
-				return EGridObjectCategory::Teleporter;
-			case EGridLevelObjectType::MonsterSpawn:
-			case EGridLevelObjectType::ItemSpawn:
-				return EGridObjectCategory::Spawn;
-			case EGridLevelObjectType::Item:
-				return EGridObjectCategory::Item;
-			case EGridLevelObjectType::None:
-			default:
-				return EGridObjectCategory::Decoration;
-		}
-	}
-
-	bool IsObjectCategoryCompatible(EGridLevelObjectType SupportedType, EGridObjectCategory ObjectCategory, bool bIsReadable)
-	{
-		if (SupportedType == EGridLevelObjectType::None || SupportedType == EGridLevelObjectType::Logic ||
-			SupportedType == EGridLevelObjectType::StoryCompanion || SupportedType == EGridLevelObjectType::CustomRecruiter)
-		{
-			return true;
-		}
-		if (SupportedType == EGridLevelObjectType::Decoration)
-		{
-			if (bIsReadable)
-			{
-				return ObjectCategory == EGridObjectCategory::Readable;
-			}
-			return ObjectCategory == EGridObjectCategory::Decoration || ObjectCategory == EGridObjectCategory::Readable ||
-				ObjectCategory == EGridObjectCategory::Prop;
-		}
-		return ObjectCategory == GetRecommendedObjectCategory(SupportedType, bIsReadable);
-	}
-
 	bool IsDefaultLightParams(const UGridWorldObjectDefinitionAsset& Definition)
 	{
 		return Definition.LightColor.Equals(FLinearColor::White) && FMath::IsNearlyEqual(Definition.LightIntensity, 500.f) &&
@@ -151,11 +60,6 @@ namespace
 	bool HasCustomButtonBehaviorParams(const FGridObjectBehaviorParams& Behavior)
 	{
 		return !FMath::IsNearlyEqual(Behavior.ButtonAnimation.ButtonHoldTime, 0.15f);
-	}
-
-	bool IsPaletteCategory(const UGridWorldObjectDefinitionAsset& Definition, const TCHAR* ExpectedCategory)
-	{
-		return Definition.Category == FName(ExpectedCategory);
 	}
 
 	bool IsExpectedConcreteReceptacleDefinition(FName DefinitionId)
@@ -292,11 +196,6 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 		}
 	}
 
-	if (Category.IsNone())
-	{
-		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info,
-			TEXT("Palette Category is not set. This does not affect runtime, but the object may be harder to organize in the editor palette."));
-	}
 	if (bReplacesStandardWall && !IsWallPlacement(PlacementSurface))
 	{
 		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Replaces Standard Wall is enabled but Placement Surface is not Wall."));
@@ -305,20 +204,6 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 	{
 		AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning,
 			TEXT("Replaces Standard Wall is enabled while bCanShareAnchor=true. Multiple wall replacements can overlap on the same boundary."));
-	}
-	if (!IsObjectCategoryCompatible(SupportedType, ObjectCategory, bIsReadable))
-	{
-		if (SupportedType == EGridLevelObjectType::Decoration && bIsReadable)
-		{
-			AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Readable Decoration should generally use ObjectCategory=Readable."));
-		}
-		else
-		{
-			const EGridObjectCategory RecommendedCategory = GetRecommendedObjectCategory(SupportedType, bIsReadable);
-			OutMessages.Emplace(EGridWorldObjectDefinitionValidationSeverity::Warning,
-				FString::Printf(TEXT("%s should generally use ObjectCategory=%s, but currently uses %s."), ToSupportedTypeText(SupportedType),
-					ToObjectCategoryText(RecommendedCategory), ToObjectCategoryText(ObjectCategory)));
-		}
 	}
 	if (!bIsReadable && !ReadableText.IsEmpty()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("ReadableText is set but bIsReadable=false."));
 	if (!bIsReadable && bShowReadableOnlyOnce) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("bShowReadableOnlyOnce is enabled but bIsReadable=false."));
@@ -427,13 +312,9 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 			if (bIsLightSource && LightRadius <= 0.f) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("LightRadius must be greater than 0 when bIsLightSource is true."));
 			break;
 		}
-		case EGridLevelObjectType::Teleporter:
+		case EGridLevelObjectType::Relocation:
 		{
-			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Teleporter Placement Surface must be Floor."));
-			if (DefaultBehavior.Relocation.TargetCellX == INDEX_NONE || DefaultBehavior.Relocation.TargetCellY == INDEX_NONE)
-			{
-				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Teleporter destination is unset; configure Relocation on the definition or placement."));
-			}
+			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Relocation Placement Surface must be Floor."));
 			break;
 		}
 		case EGridLevelObjectType::Receptacle:
@@ -461,10 +342,6 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 		case EGridLevelObjectType::ItemSpawn:
 		{
 			if (!IsFloorPlacement(PlacementSurface)) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("MonsterSpawn and ItemSpawn Placement Surface must be Floor."));
-			if (SupportedType == EGridLevelObjectType::ItemSpawn && !Category.IsNone() && !IsPaletteCategory(*this, TEXT("Spawns")))
-			{
-				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Info, TEXT("ItemSpawn palette category should generally be Spawns."));
-			}
 			break;
 		}
 		case EGridLevelObjectType::Item:
@@ -524,7 +401,7 @@ bool UGridWorldObjectDefinitionAsset::RequiresRuntimeActorClass() const
 		case EGridLevelObjectType::Button:
 		case EGridLevelObjectType::Lever:
 		case EGridLevelObjectType::PressurePlate:
-		case EGridLevelObjectType::Teleporter:
+		case EGridLevelObjectType::Relocation:
 		case EGridLevelObjectType::Receptacle:
 		case EGridLevelObjectType::Pit:
 			return true;
@@ -533,6 +410,6 @@ bool UGridWorldObjectDefinitionAsset::RequiresRuntimeActorClass() const
 	}
 }
 
-bool UGridWorldObjectDefinitionAsset::UsesLightParams() const { return bIsLightSource || SupportedType == EGridLevelObjectType::Light || ObjectCategory == EGridObjectCategory::Light; }
+bool UGridWorldObjectDefinitionAsset::UsesLightParams() const { return bIsLightSource || SupportedType == EGridLevelObjectType::Light; }
 bool UGridWorldObjectDefinitionAsset::UsesReceptacleParams() const { return SupportedType == EGridLevelObjectType::Receptacle; }
 bool UGridWorldObjectDefinitionAsset::UsesButtonAnimationParams() const { return SupportedType == EGridLevelObjectType::Button; }

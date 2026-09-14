@@ -63,8 +63,8 @@ bool FGridWorldObjectMIG06SparseBehaviorResolutionTest::RunTest(const FString& P
 	TestTrue(TEXT("Definition owns door chain presence"), Resolved.DoorAnimation.bHasChainMechanism);
 	TestEqual(TEXT("Definition owns door chain pull distance"), Resolved.DoorAnimation.ChainPullDistance, 31.0f);
 
-	TestEqual(TEXT("Teleporter destination remains instance-owned X"), Resolved.Relocation.TargetCellX, 7);
-	TestEqual(TEXT("Teleporter destination remains instance-owned Y"), Resolved.Relocation.TargetCellY, 8);
+	TestEqual(TEXT("Relocation destination remains instance-owned X"), Resolved.Relocation.TargetCellX, 7);
+	TestEqual(TEXT("Relocation destination remains instance-owned Y"), Resolved.Relocation.TargetCellY, 8);
 	TestEqual(TEXT("Relocation target level remains instance-owned"), Resolved.Relocation.TargetLevelId, FName(TEXT("LowerFloor")));
 	TestFalse(TEXT("Pit initial open state remains instance-owned"), Resolved.Pit.bInitiallyOpen);
 	TestTrue(TEXT("Lock initial unlocked state remains instance-owned"), Resolved.Lock.bStartsUnlocked);
@@ -145,7 +145,7 @@ bool FGridWorldObjectMIG06SparseStorageContractTest::RunTest(const FString& Para
 		!FMath::IsNearlyEqual(Sparse.ButtonAnimation.ButtonHoldTime, Source.ButtonAnimation.ButtonHoldTime));
 	TestFalse(TEXT("Lock consume-key rule is not cloned into sparse storage"), Sparse.Lock.bConsumeKeyOnUnlock);
 	TestTrue(TEXT("Lock initial state is stored as an instance override"), Sparse.Lock.bStartsUnlocked);
-	TestEqual(TEXT("Teleporter destination is stored as an instance override"), Sparse.Relocation.TargetCellX, 12);
+	TestEqual(TEXT("Relocation destination is stored as an instance override"), Sparse.Relocation.TargetCellX, 12);
 	TestFalse(TEXT("Pressure-plate weight mode is not cloned into sparse storage"), Sparse.PressurePlateWeight.bUseItemWeight);
 	TestTrue(TEXT("Pressure-plate threshold is not cloned into sparse storage"),
 		!FMath::IsNearlyEqual(Sparse.PressurePlateWeight.RequiredItemWeight, Source.PressurePlateWeight.RequiredItemWeight));

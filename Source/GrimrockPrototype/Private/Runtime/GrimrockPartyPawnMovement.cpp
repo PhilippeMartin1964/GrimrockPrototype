@@ -560,7 +560,7 @@ void AGrimrockPartyPawn::UpdateMove(float DeltaSeconds)
 		if (LevelRuntimeActor)
 		{
 			// A physical open Pit has absolute priority on cell entry. Do this before
-			// triggers, pressure plates, combat turn completion or generic transitions
+			// triggers, pressure plates, combat turn completion or generic relocations
 			// so no secondary cell event can suppress the fall.
 			if (LevelRuntimeActor->TryBeginPitFallAtCell(CurrentCellX, CurrentCellY, this))
 			{

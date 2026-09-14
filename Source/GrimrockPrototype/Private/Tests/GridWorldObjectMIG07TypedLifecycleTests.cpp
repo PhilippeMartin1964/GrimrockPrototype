@@ -76,7 +76,7 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 
 	TestEqual(TEXT("Door typed Tag follows direct editor snapshot"), Level->WorldObjectInstances[0].Tag, FName(TEXT("DoorAfter")));
 	TestEqual(TEXT("Door typed CellX follows direct editor snapshot"), Level->WorldObjectInstances[0].CellX, 8);
-	TestEqual(TEXT("Door transition remains instance-owned"), Level->WorldObjectInstances[0].InstanceConfig.Relocation.TargetLevelId, FName(TEXT("Target_B")));
+	TestEqual(TEXT("Door relocation remains instance-owned"), Level->WorldObjectInstances[0].InstanceConfig.Relocation.TargetLevelId, FName(TEXT("Target_B")));
 	const FTransform& PreservedTransform = Level->WorldObjectInstances[0].LocalTransformOverride;
 	TestTrue(TEXT("Door typed local location survives direct snapshot edit"), PreservedTransform.GetLocation().Equals(FVector(1.0f, 2.0f, 3.0f)));
 	TestTrue(TEXT("Door typed local scale survives direct snapshot edit"), PreservedTransform.GetScale3D().Equals(FVector(1.2f, 1.0f, 0.8f)));

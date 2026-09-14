@@ -84,7 +84,8 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 	TestTrue(TEXT("Direct collectible entry does not duplicate the definition icon"), Entry.Icon == nullptr);
 	TestEqual(TEXT("Direct collectible entry resolves to Item"), Entry.GetEffectiveObjectType(), EGridLevelObjectType::Item);
 	TestTrue(TEXT("Direct collectible entry has no effective WorldObjectDefinitionId"), Entry.GetEffectiveWorldObjectDefinitionId().IsNone());
-	TestEqual(TEXT("Direct collectible entry uses Items category"), Entry.GetEffectiveCategory(), FName(TEXT("Items")));
+	Entry.PaletteCategory = FName(TEXT("Items"));
+	TestEqual(TEXT("Direct collectible entry uses its palette category"), Entry.GetPaletteCategory(), FName(TEXT("Items")));
 	TestEqual(TEXT("Direct collectible entry uses ItemDefinition display name"), Entry.GetEffectiveDisplayName().ToString(), FString(TEXT("Blue Gem")));
 	TestTrue(TEXT("Collectible icon lives on the ItemDefinition"), Definition->Icon.Get() == DefinitionIcon);
 

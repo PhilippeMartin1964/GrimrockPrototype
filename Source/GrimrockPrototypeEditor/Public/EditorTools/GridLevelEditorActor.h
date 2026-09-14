@@ -255,8 +255,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Editor|Dungeon")
 	void LogDungeonDiagnostics() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Log Dungeon Transition Diagnostics"))
-	void LogDungeonTransitionDiagnostics() const;
+	UFUNCTION(BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Log Dungeon Relocation Diagnostics"))
+	void LogDungeonRelocationDiagnostics() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Editor|Dungeon")
 	FString GetDungeonDiagnostics() const;
@@ -265,7 +265,7 @@ public:
 	bool CreateAndAddDungeonLevel(FName NewLevelId, FText DisplayName, FIntVector LogicalPosition, FString& OutError);
 
 	UFUNCTION(BlueprintCallable, Category = "Editor|Palette")
-	bool EnsureStairsTransitionDefinitions(FString& OutError);
+	bool EnsureStairsRelocationDefinitions(FString& OutError);
 
 
 	UFUNCTION(BlueprintCallable, Category = "Editor|Palette")

@@ -24,8 +24,9 @@ struct FGridObjectPaletteEntry
 	FText DisplayNameOverride;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",
-		meta = (ToolTip = "Optional grouping override for this palette tile. Leave empty to use the referenced definition category."))
-	FName CategoryOverride = NAME_None;
+		meta = (DisplayName = "Palette Category",
+			ToolTip = "Editor-only grouping used to organize this entry in the Grid Editor palette."))
+	FName PaletteCategory = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",
 		meta = (ToolTip = "Palette icon for world-object entries. Direct collectible entries use DefaultItemDefinition.Icon and must leave this unset."))
@@ -63,24 +64,9 @@ struct FGridObjectPaletteEntry
 			: (DefaultWorldObjectDefinition ? DefaultWorldObjectDefinition->SupportedType : EGridLevelObjectType::None);
 	}
 
-	FName GetEffectiveCategory() const
+	FName GetPaletteCategory() const
 	{
-		if (!CategoryOverride.IsNone())
-		{
-			return CategoryOverride;
-		}
-
-		if (IsDirectItemEntry())
-		{
-			return FName(TEXT("Items"));
-		}
-
-		if (DefaultWorldObjectDefinition && !DefaultWorldObjectDefinition->Category.IsNone())
-		{
-			return DefaultWorldObjectDefinition->Category;
-		}
-
-		return FName(TEXT("Uncategorized"));
+		return PaletteCategory.IsNone() ? FName(TEXT("Uncategorized")) : PaletteCategory;
 	}
 
 	FText GetEffectiveDisplayName() const

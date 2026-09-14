@@ -43,7 +43,7 @@ bool FGridTD013EventCommandPolicyTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	const EGridLevelObjectType Teleporter = EGridLevelObjectType::Teleporter;
+	const EGridLevelObjectType Relocation = EGridLevelObjectType::Relocation;
 	const EGridLevelObjectType Light = EGridLevelObjectType::Light;
 	const EGridLevelObjectType ItemSpawn = EGridLevelObjectType::ItemSpawn;
 	const EGridLevelObjectType Logic = EGridLevelObjectType::Logic;
@@ -51,12 +51,12 @@ bool FGridTD013EventCommandPolicyTest::RunTest(const FString& Parameters)
 	const EGridLevelObjectType CustomRecruiter = EGridLevelObjectType::CustomRecruiter;
 
 	TestFalse(
-		TEXT("Teleporter is not an authorable command target until specialized gameplay exists"), GridEditorLinkPolicy::CanObjectReceiveCommands(Teleporter));
+		TEXT("Relocation is not an authorable command target"), GridEditorLinkPolicy::CanObjectReceiveCommands(Relocation));
 	TestFalse(TEXT("Light is not an authorable command target while it only stores generic state"), GridEditorLinkPolicy::CanObjectReceiveCommands(Light));
 	TestFalse(TEXT("ItemSpawn is not an authorable command target until commanded spawning exists"), GridEditorLinkPolicy::CanObjectReceiveCommands(ItemSpawn));
 
-	TestTrue(TEXT("Teleporter legacy activation remains classified StateOnly"),
-		GridEditorLinkPolicy::GetCommandRuntimeSupport(Teleporter, EGridLogicNodeType::Relay, EGridObjectCommand::Activate) == EGridEditorCommandRuntimeSupport::StateOnly);
+	TestTrue(TEXT("Relocation activation remains classified StateOnly"),
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(Relocation, EGridLogicNodeType::Relay, EGridObjectCommand::Activate) == EGridEditorCommandRuntimeSupport::StateOnly);
 	TestTrue(TEXT("Light legacy activation remains classified StateOnly"),
 		GridEditorLinkPolicy::GetCommandRuntimeSupport(Light, EGridLogicNodeType::Relay, EGridObjectCommand::Activate) == EGridEditorCommandRuntimeSupport::StateOnly);
 	TestTrue(TEXT("ItemSpawn legacy activation remains classified StateOnly"),
@@ -116,11 +116,11 @@ bool FGridTD013EventCommandValidationTest::RunTest(const FString& Parameters)
 	FGridWorldObjectInstance Trigger;
 	Trigger.InstanceId = FGuid::NewGuid();
 	Trigger.Type = EGridLevelObjectType::Trigger;
-	FGridWorldObjectInstance Teleporter;
-	Teleporter.InstanceId = FGuid::NewGuid();
-	Teleporter.Type = EGridLevelObjectType::Teleporter;
-	Teleporter.CellX = 1;
-	Level->WorldObjectInstances = { Trigger, Teleporter };
+	FGridWorldObjectInstance Relocation;
+	Relocation.InstanceId = FGuid::NewGuid();
+	Relocation.Type = EGridLevelObjectType::Relocation;
+	Relocation.CellX = 1;
+	Level->WorldObjectInstances = { Trigger, Relocation };
 	FGridItemSpawnInstance ItemSpawn;
 	ItemSpawn.SpawnId = FGuid::NewGuid();
 	ItemSpawn.CellX = 2;
@@ -139,14 +139,14 @@ bool FGridTD013EventCommandValidationTest::RunTest(const FString& Parameters)
 	CustomRecruiter.CellY = 1;
 	Level->LogicObjects = { Logic, StoryCompanion, CustomRecruiter };
 
-	Level->Links.Add(MakeTD013Link(Trigger.InstanceId, Teleporter.InstanceId, EGridObjectCommand::Activate));
+	Level->Links.Add(MakeTD013Link(Trigger.InstanceId, Relocation.InstanceId, EGridObjectCommand::Activate));
 	Level->Links.Add(MakeTD013Link(Trigger.InstanceId, ItemSpawn.SpawnId, EGridObjectCommand::Activate));
 	Level->Links.Add(MakeTD013Link(Trigger.InstanceId, Logic.InstanceId, EGridObjectCommand::LogicExecute));
 	Level->Links.Add(MakeTD013Link(Trigger.InstanceId, StoryCompanion.InstanceId, EGridObjectCommand::OfferRecruitment));
 	Level->Links.Add(MakeTD013Link(Trigger.InstanceId, CustomRecruiter.InstanceId, EGridObjectCommand::OpenCustomRecruit));
 
 	const TArray<FGridLevelValidationMessage> Messages = EditorActor->ValidateCurrentLevel();
-	TestTrue(TEXT("Teleporter StateOnly command is rejected by level validation"), HasUnsupportedCommandDiagnostic(Messages, 0));
+	TestTrue(TEXT("Relocation StateOnly command is rejected by level validation"), HasUnsupportedCommandDiagnostic(Messages, 0));
 	TestTrue(TEXT("ItemSpawn StateOnly command is rejected by level validation"), HasUnsupportedCommandDiagnostic(Messages, 1));
 	TestFalse(TEXT("LogicExecute gameplay command is not rejected by level validation"), HasUnsupportedCommandDiagnostic(Messages, 2));
 	TestFalse(TEXT("OfferRecruitment gameplay command is not rejected by level validation"), HasUnsupportedCommandDiagnostic(Messages, 3));

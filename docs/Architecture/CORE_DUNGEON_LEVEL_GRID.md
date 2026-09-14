@@ -145,7 +145,7 @@ La présence dans une collection signifie que le placement existe. Lorsqu'un ét
 | Type | Donnée persistante |
 |---|---|
 | Door | `InstanceConfig.bDoorInitiallyOpen` |
-| Teleporter | `InstanceConfig.bTeleporterInitiallyEnabled` |
+| Relocation | `InstanceConfig.bRelocationInitiallyEnabled` |
 | Pit | `InstanceConfig.Pit.bInitiallyOpen` |
 | Lock | `InstanceConfig.bStartsUnlocked` |
 | MonsterSpawn | `bSpawnAtStart` |
@@ -271,7 +271,7 @@ Exemples :
 
 ```text
 Door         -> Open at Start
-Teleporter   -> Enabled at Start
+Relocation   -> Initially Enabled
 MonsterSpawn -> Spawn at Start
 ItemSpawn    -> Spawn at Start
 Pit          -> Open at Start
@@ -291,7 +291,7 @@ Le runtime lit le niveau et construit :
 - les monstres demandés au démarrage ou par encounter/commande ;
 - les index des systèmes de porte, activation, interaction et preview selon le contexte.
 
-`FGridRuntimeWorldObjectData` est une frontière C++ non réfléchie entre placement et acteur runtime. Elle conserve les noms sémantiques nécessaires, par exemple `bDoorInitiallyOpen` et `bTeleporterInitiallyEnabled`; elle ne réintroduit pas de booléens génériques d'état initial.
+`FGridRuntimeWorldObjectData` est une frontière C++ non réfléchie entre placement et acteur runtime. Elle conserve les noms sémantiques nécessaires, par exemple `bDoorInitiallyOpen` et `bRelocationInitiallyEnabled`; elle ne réintroduit pas de booléens génériques d'état initial.
 
 ## 15. Preview éditeur
 
@@ -324,7 +324,7 @@ La validation du Grid Editor doit notamment contrôler :
 - surfaces et `WallSide` compatibles ;
 - conflits de cellules/encounters pour les monstres ;
 - cohérence des liens ;
-- configuration des transitions ;
+- configuration des relocations ;
 - règles spécifiques des objets lorsque leur absence rend le niveau incohérent.
 
 La validation signale un problème ; elle ne doit pas transformer silencieusement le modèle de données pour le masquer.
