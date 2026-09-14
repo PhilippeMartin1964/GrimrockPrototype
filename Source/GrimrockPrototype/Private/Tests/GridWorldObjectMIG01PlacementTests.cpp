@@ -198,7 +198,7 @@ bool FGridWorldObjectMIG01PlacementTransformParityTest::RunTest(const FString& P
 	TestTrue(TEXT("Ceiling N is distance below ceiling"), GridWorldObjectMIG01::IsLocation(Transform, FVector(300.0f, 500.0f, 188.0f)));
 
 	// Wall: U = along wall, V = vertical, N = inset into the cell.
-	// MIG01 preserves the existing wall-mounted rotation contract: the boundary anchor drives yaw and LocalYaw is ignored.
+	// The boundary anchor drives yaw and LocalYaw is ignored.
 	FGridWorldObjectInstance WallObject = GridWorldObjectMIG01::MakeObject(EGridLevelObjectType::Decoration, EGridEdge::North);
 	WallObject.bHasLocalTransformOverride = true;
 	WallObject.LocalTransformOverride = FTransform(FRotator(0.0f, 15.0f, 0.0f));
@@ -210,7 +210,7 @@ bool FGridWorldObjectMIG01PlacementTransformParityTest::RunTest(const FString& P
 	TestTrue(TEXT("Wall U/V/N preserves characterized placement"), GridWorldObjectMIG01::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
 	TestTrue(TEXT("Wall anchor rotation is preserved"), GridWorldObjectMIG01::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
 
-	// Door remains boundary-anchored. Edge is topology (ObjectData.Edge), not a placement surface.
+	// Door uses the same canonical Y-axis boundary frame as every wall-bound mesh.
 	FGridWorldObjectInstance DoorObject = GridWorldObjectMIG01::MakeObject(EGridLevelObjectType::Door, EGridEdge::North);
 	Definition->SupportedType = EGridLevelObjectType::Door;
 	Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
@@ -219,7 +219,7 @@ bool FGridWorldObjectMIG01PlacementTransformParityTest::RunTest(const FString& P
 	Definition->DefaultLocalPosition.N = 0.0f;
 	TestTrue(TEXT("Door transform resolves on Wall surface"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, DoorObject, Transform));
 	TestTrue(TEXT("Door remains anchored on the exact North boundary"), GridWorldObjectMIG01::IsLocation(Transform, FVector(300.0f, 600.0f, 0.0f)));
-	TestTrue(TEXT("Door historical boundary rotation is preserved"), GridWorldObjectMIG01::IsRotation(Transform, FRotator::ZeroRotator));
+	TestTrue(TEXT("Door uses canonical North boundary rotation"), GridWorldObjectMIG01::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
 
 	// Loose item edge placement is independent of WorldObjectDefinition.
 	FGridLooseItemInstance ItemObject;

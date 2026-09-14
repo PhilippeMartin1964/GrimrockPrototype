@@ -183,7 +183,7 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	TestTrue(TEXT("Historical Ceiling location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 500.0f, 188.0f)));
 
 	// Historical Wall offsets map to U=25, V=100+10=110, N=6.
-	// The existing wall-mounted helper uses the boundary anchor rotation only; LocalYaw is ignored.
+	// The canonical wall-mounted frame uses the boundary yaw only; LocalYaw is ignored.
 	FGridWorldObjectInstance WallObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Decoration, EGridEdge::North);
 	WallObject.bHasLocalTransformOverride = true;
 	WallObject.LocalTransformOverride = FTransform(FRotator(0.0f, 15.0f, 0.0f));
@@ -199,7 +199,7 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	TestTrue(TEXT("Historical Edge transform resolves through Wall + Edge topology"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, WallObject, Transform));
 	TestTrue(TEXT("Historical Edge location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(325.0f, 594.0f, 110.0f)));
 
-	// Doors remain exactly boundary-anchored; Edge is topology, not PlacementSurface.
+	// Door location remains boundary-anchored, while WALL-AXIS01 supersedes the old X-axis rotation characterization.
 	FGridWorldObjectInstance DoorObject = GridWorldObjectMIG00Characterization::MakeObject(EGridLevelObjectType::Door, EGridEdge::North);
 	Definition->SupportedType = EGridLevelObjectType::Door;
 	Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
@@ -208,7 +208,7 @@ bool FGridWorldObjectMIG00PlacementTransformCharacterizationTest::RunTest(const 
 	Definition->DefaultLocalPosition.N = 0.0f;
 	TestTrue(TEXT("Historical Door transform resolves through Wall + boundary"), GridPlacementTransformResolver::ResolveWorldObject(*Runtime, DoorObject, Transform));
 	TestTrue(TEXT("Historical Door boundary location is preserved"), GridWorldObjectMIG00Characterization::IsLocation(Transform, FVector(300.0f, 600.0f, 0.0f)));
-	TestTrue(TEXT("Historical Door North rotation is preserved"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator::ZeroRotator));
+	TestTrue(TEXT("Door North rotation uses canonical Y-axis wall frame"), GridWorldObjectMIG00Characterization::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
 
 	// Loose item edge placement is independent of WorldObjectDefinition.
 	FGridLooseItemInstance ItemObject;

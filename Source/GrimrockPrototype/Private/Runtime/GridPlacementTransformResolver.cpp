@@ -1,5 +1,6 @@
 #include "Runtime/GridPlacementTransformResolver.h"
 
+#include "Core/GridDirectionUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
@@ -17,39 +18,14 @@ namespace
 
 	bool ResolveDoorEdge(const AGridLevelRuntimeActor& RuntimeActor, int32 CellX, int32 CellY, EGridEdge Edge, FTransform& OutTransform)
 	{
-		if (!RuntimeActor.LevelAsset || Edge == EGridEdge::None)
+		if (!RuntimeActor.LevelAsset)
 		{
 			return false;
 		}
 
 		const float CellSize = RuntimeActor.LevelAsset->CellSize;
-		const FVector Base = GetCellOrigin(RuntimeActor, CellX, CellY, 0.0f);
-		FVector Position = Base;
-		FRotator Rotation = FRotator::ZeroRotator;
-		switch (Edge)
-		{
-			case EGridEdge::North:
-				Position = Base + FVector(CellSize * 0.5f, CellSize, 0.0f);
-				Rotation = FRotator(0.0f, 0.0f, 0.0f);
-				break;
-			case EGridEdge::East:
-				Position = Base + FVector(CellSize, CellSize * 0.5f, 0.0f);
-				Rotation = FRotator(0.0f, -90.0f, 0.0f);
-				break;
-			case EGridEdge::South:
-				Position = Base + FVector(CellSize * 0.5f, 0.0f, 0.0f);
-				Rotation = FRotator(0.0f, 180.0f, 0.0f);
-				break;
-			case EGridEdge::West:
-				Position = Base + FVector(0.0f, CellSize * 0.5f, 0.0f);
-				Rotation = FRotator(0.0f, 90.0f, 0.0f);
-				break;
-			default:
-				return false;
-		}
-
-		OutTransform = FTransform(Rotation, Position, FVector::OneVector);
-		return true;
+		const FVector CellOrigin = GetCellOrigin(RuntimeActor, CellX, CellY, 0.0f);
+		return GridDirectionUtils::ResolveBoundaryTransform(CellOrigin, CellSize, Edge, 0.0f, 0.0f, 0.0f, OutTransform);
 	}
 
 	bool ResolveFloorEdge(const AGridLevelRuntimeActor& RuntimeActor, int32 CellX, int32 CellY, EGridEdge Edge, float LocalYaw, float ZOffset,
@@ -94,39 +70,14 @@ namespace
 	bool ResolveWallMounted(const AGridLevelRuntimeActor& RuntimeActor, int32 CellX, int32 CellY, EGridEdge Edge, float Vertical, float Inset,
 		float AlongWall, FTransform& OutTransform)
 	{
-		if (!RuntimeActor.LevelAsset || Edge == EGridEdge::None)
+		if (!RuntimeActor.LevelAsset)
 		{
 			return false;
 		}
 
 		const float CellSize = RuntimeActor.LevelAsset->CellSize;
-		const FVector Base = GetCellOrigin(RuntimeActor, CellX, CellY, Vertical);
-		FVector Position = Base;
-		FRotator Rotation = FRotator::ZeroRotator;
-		switch (Edge)
-		{
-			case EGridEdge::North:
-				Position = Base + FVector((CellSize * 0.5f) + AlongWall, CellSize - Inset, 0.0f);
-				Rotation = FRotator(0.0f, 90.0f, 0.0f);
-				break;
-			case EGridEdge::South:
-				Position = Base + FVector((CellSize * 0.5f) - AlongWall, Inset, 0.0f);
-				Rotation = FRotator(0.0f, -90.0f, 0.0f);
-				break;
-			case EGridEdge::East:
-				Position = Base + FVector(CellSize - Inset, (CellSize * 0.5f) - AlongWall, 0.0f);
-				Rotation = FRotator(0.0f, 0.0f, 0.0f);
-				break;
-			case EGridEdge::West:
-				Position = Base + FVector(Inset, (CellSize * 0.5f) + AlongWall, 0.0f);
-				Rotation = FRotator(0.0f, 180.0f, 0.0f);
-				break;
-			default:
-				return false;
-		}
-
-		OutTransform = FTransform(Rotation, Position, FVector::OneVector);
-		return true;
+		const FVector CellOrigin = GetCellOrigin(RuntimeActor, CellX, CellY, 0.0f);
+		return GridDirectionUtils::ResolveBoundaryTransform(CellOrigin, CellSize, Edge, Vertical, Inset, AlongWall, OutTransform);
 	}
 
 	bool ResolveCentered(const AGridLevelRuntimeActor& RuntimeActor, int32 CellX, int32 CellY, float LocalYaw, float ZOffset, FTransform& OutTransform)

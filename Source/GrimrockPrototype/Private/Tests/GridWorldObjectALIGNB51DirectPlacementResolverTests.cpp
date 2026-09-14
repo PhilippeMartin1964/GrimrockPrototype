@@ -150,11 +150,11 @@ bool FGridWorldObjectALIGNB51DirectPlacementResolverTest::RunTest(const FString&
 	Object.bHasLocalTransformOverride = true;
 	Definition->SupportedType = EGridLevelObjectType::Door;
 	Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
-	CheckTransform(TEXT("North Door ignores nonzero U/V/N and override"), FVector(300.0f, 600.0f, 0.0f), 0.0f);
+	CheckTransform(TEXT("North Door ignores nonzero U/V/N and override"), FVector(300.0f, 600.0f, 0.0f), 90.0f);
 	Definition->DefaultLocalPosition.U = -45.0f;
 	Definition->DefaultLocalPosition.V = 240.0f;
 	Definition->DefaultLocalPosition.N = 19.0f;
-	CheckTransform(TEXT("North Door stays on boundary after U/V/N change"), FVector(300.0f, 600.0f, 0.0f), 0.0f);
+	CheckTransform(TEXT("North Door stays on boundary after U/V/N change"), FVector(300.0f, 600.0f, 0.0f), 90.0f);
 
 	return true;
 }

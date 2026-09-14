@@ -405,41 +405,13 @@ void AGridLevelRuntimeActor::AddEdgeInstance(UInstancedStaticMeshComponent* Targ
 	{
 		return;
 	}
-	const FVector Base = CellToWorld(X, Y, 0.f);
-	FVector Pos = Base;
-	FRotator Rot = FRotator::ZeroRotator;
-	switch (Edge)
+
+	FTransform T;
+	if (!GridDirectionUtils::ResolveBoundaryTransform(CellToWorld(X, Y, 0.f), CellSize, Edge, 0.f, 0.f, 0.f, T))
 	{
-		case EGridEdge::North:
-		{
-			Pos = Base + FVector(CellSize * 0.5f, CellSize, 0.f);
-			Rot = FRotator(0.f, 0.f, 0.f);
-			break;
-		}
-		case EGridEdge::South:
-		{
-			Pos = Base + FVector(CellSize * 0.5f, 0.f, 0.f);
-			Rot = FRotator(0.f, 180.f, 0.f);
-			break;
-		}
-		case EGridEdge::East:
-		{
-			Pos = Base + FVector(CellSize, CellSize * 0.5f, 0.f);
-			Rot = FRotator(0.f, -90.f, 0.f);
-			break;
-		}
-		case EGridEdge::West:
-		{
-			Pos = Base + FVector(0.f, CellSize * 0.5f, 0.f);
-			Rot = FRotator(0.f, 90.f, 0.f);
-			break;
-		}
-		default:
-		{
-			return;
-		}
+		return;
 	}
-	const FTransform T(Rot, Pos, FVector::OneVector);
+
 	if (!IsSafeRuntimeRenderTransform(T))
 	{
 		LogUnsafeInstanceTransform(TEXT("AddEdgeInstance"), TargetISM, X, Y, Edge, T);
@@ -748,35 +720,17 @@ bool AGridLevelRuntimeActor::CanSoundTraverse(int32 FromX, int32 FromY, EGridEdg
 
 void AGridLevelRuntimeActor::GetEdgeTransform(int32 X, int32 Y, EGridEdge Edge, float CellSize, FVector& OutWorldLocation, FRotator& OutWorldRotation) const
 {
-	const FVector Base = GetActorLocation() + CellToWorld(X, Y, 0.f);
-
-	switch (Edge)
+	const FVector CellOrigin = GetActorLocation() + CellToWorld(X, Y, 0.f);
+	FTransform Transform;
+	if (GridDirectionUtils::ResolveBoundaryTransform(CellOrigin, CellSize, Edge, 0.f, 0.f, 0.f, Transform))
 	{
-		case EGridEdge::North:
-			OutWorldLocation = Base + FVector(CellSize * 0.5f, CellSize, 0.f);
-			OutWorldRotation = FRotator(0.f, 0.f, 0.f);
-			break;
-
-		case EGridEdge::East:
-			OutWorldLocation = Base + FVector(CellSize, CellSize * 0.5f, 0.f);
-			OutWorldRotation = FRotator(0.f, -90.f, 0.f);
-			break;
-
-		case EGridEdge::South:
-			OutWorldLocation = Base + FVector(CellSize * 0.5f, 0.f, 0.f);
-			OutWorldRotation = FRotator(0.f, 180.f, 0.f);
-			break;
-
-		case EGridEdge::West:
-			OutWorldLocation = Base + FVector(0.f, CellSize * 0.5f, 0.f);
-			OutWorldRotation = FRotator(0.f, 90.f, 0.f);
-			break;
-
-		default:
-			OutWorldLocation = Base;
-			OutWorldRotation = FRotator::ZeroRotator;
-			break;
+		OutWorldLocation = Transform.GetLocation();
+		OutWorldRotation = Transform.Rotator();
+		return;
 	}
+
+	OutWorldLocation = CellOrigin;
+	OutWorldRotation = FRotator::ZeroRotator;
 }
 
 bool AGridLevelRuntimeActor::HasDoorOnEdge(int32 X, int32 Y, EGridEdge Edge) const
@@ -1048,6 +1002,7 @@ bool AGridLevelRuntimeActor::FindRelocationAtCell(int32 CellX, int32 CellY, FGri
 	for (const FGridWorldObjectInstance& Obj : LevelAsset->WorldObjectInstances)
 	{
 		const FGridRelocationBehaviorParams Relocation = Obj.InstanceConfig.Relocation;
+
 		if (IsEffectivePitObject(Obj) || Obj.CellX != CellX || Obj.CellY != CellY || !GridRelocation::IsCandidate(Obj))
 		{
 			continue;
