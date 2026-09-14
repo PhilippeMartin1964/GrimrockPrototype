@@ -238,10 +238,12 @@ struct FGridObjectBehaviorParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FGridItemBehaviorParams Item;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Teleporter")
+	// Legacy serialized compatibility data. Relocation is authored on placed instances in the Grid Editor.
+	UPROPERTY(BlueprintReadWrite, Category = "Legacy|Relocation")
 	FGridTeleporterBehaviorParams Teleporter;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transition")
+	// Legacy serialized compatibility data. Relocation is authored on placed instances in the Grid Editor.
+	UPROPERTY(BlueprintReadWrite, Category = "Legacy|Relocation")
 	FGridObjectTransitionParams Transition;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pit")
