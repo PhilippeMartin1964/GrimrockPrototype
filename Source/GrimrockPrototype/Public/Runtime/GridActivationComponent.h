@@ -44,6 +44,7 @@ public:
 	{
 		return ActiveObjectIds;
 	}
+	bool IsObjectActive(FGuid ObjectId) const { return ActiveObjectIds.Contains(ObjectId); }
 	void SetActiveObjectIds(const TSet<FGuid>& InActiveObjectIds);
 
 	FString GetDebugSummary() const;

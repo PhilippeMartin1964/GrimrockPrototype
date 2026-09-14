@@ -1,4 +1,6 @@
 #include "Runtime/GridLevelRuntimeActor.h"
+
+#include "Core/GridRelocationUtils.h"
 #include "Runtime/GridPIEPlaytestRequest.h"
 #include "Runtime/GridMonsterEncounterComponent.h"
 #include "Core/GridTypes.h"
@@ -1045,17 +1047,17 @@ bool AGridLevelRuntimeActor::FindTransitionAtCell(int32 CellX, int32 CellY, bool
 
 	for (const FGridWorldObjectInstance& Obj : LevelAsset->WorldObjectInstances)
 	{
-		const FGridObjectTransitionParams& Transition = Obj.InstanceConfig.Transition;
-		if (IsEffectivePitObject(Obj) || Obj.CellX != CellX || Obj.CellY != CellY || !Transition.bIsTransition)
+		const FGridObjectTransitionParams Transition = GridRelocation::Resolve(Obj);
+		if (IsEffectivePitObject(Obj) || Obj.CellX != CellX || Obj.CellY != CellY || !GridRelocation::IsCandidate(Obj))
 		{
 			continue;
 		}
 
 		++TransitionCountAtCell;
 
-		if (!bTriggeredByUseAction && Transition.bRequireUseAction)
+		if (Obj.Type == EGridLevelObjectType::Teleporter && Obj.InstanceId.IsValid() &&
+			ActivationComponent && !ActivationComponent->IsObjectActive(Obj.InstanceId))
 		{
-			UE_LOG(LogTemp, Log, TEXT("Dungeon transition ignored at Cell=(%d,%d): object %s requires Use action."), CellX, CellY, *Obj.InstanceId.ToString());
 			continue;
 		}
 
@@ -1519,7 +1521,32 @@ bool AGridLevelRuntimeActor::TryExecuteTransitionAtCell(int32 CellX, int32 CellY
 		return false;
 	}
 
-	return TravelToDungeonLevel(Transition.TargetLevelId, Transition.TargetCellX, Transition.TargetCellY, Transition.TargetFacing, PartyPawn);
+	if (!IsValid(PartyPawn) || bIsExecutingDungeonTransition) return false;
+	const EGridEdge Facing = Transition.TargetFacing == EGridEdge::None ? PartyPawn->Facing : Transition.TargetFacing;
+	const FName TargetLevelId = Transition.TargetLevelId.IsNone() ? CurrentDungeonLevelId : Transition.TargetLevelId;
+	if (TargetLevelId != CurrentDungeonLevelId)
+	{
+		const bool bTraveled = TravelToDungeonLevel(TargetLevelId, Transition.TargetCellX, Transition.TargetCellY, Facing, PartyPawn);
+		if (bTraveled) PartyPawn->ClearBufferedCommand();
+		return bTraveled;
+	}
+
+	if (!LevelAsset || !LevelAsset->IsValidCoord(Transition.TargetCellX, Transition.TargetCellY) ||
+		!LevelAsset->Cells.IsValidIndex(LevelAsset->GetIndex(Transition.TargetCellX, Transition.TargetCellY))) return false;
+	const FGridLevelCellData& TargetCell = LevelAsset->GetCell(Transition.TargetCellX, Transition.TargetCellY);
+	if (TargetCell.CellType == EGridCellType::Empty || TargetCell.bBlocksOccupancy) return false;
+
+	// Hold the same guard during notifications: one hop per cell-entry event.
+	TGuardValue<bool> RelocationGuard(bIsExecutingDungeonTransition, true);
+	const int32 OldX = PartyPawn->CurrentCellX;
+	const int32 OldY = PartyPawn->CurrentCellY;
+	PartyPawn->CurrentCellX = Transition.TargetCellX;
+	PartyPawn->CurrentCellY = Transition.TargetCellY;
+	PartyPawn->Facing = Facing;
+	PartyPawn->SnapToCurrentCell();
+	HandlePartyCellChanged(OldX, OldY, PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+	PartyPawn->ClearBufferedCommand();
+	return true;
 }
 
 bool AGridLevelRuntimeActor::TravelToDungeonLevel(
@@ -1582,7 +1609,8 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 		return false;
 	}
 
-	if (!TargetLevelAsset->IsValidCoord(TargetCellX, TargetCellY))
+	if (!TargetLevelAsset->IsValidCoord(TargetCellX, TargetCellY) ||
+		!TargetLevelAsset->Cells.IsValidIndex(TargetLevelAsset->GetIndex(TargetCellX, TargetCellY)))
 	{
 		UE_LOG(LogTemp, Error, TEXT("Dungeon transition failed: Target cell (%d,%d) is outside LevelAsset %s."), TargetCellX, TargetCellY,
 			*TargetLevelAsset->GetPathName());

@@ -103,9 +103,8 @@ Chaque escalier doit ensuite être configuré dans l'inspecteur :
 - `TargetCellX`
 - `TargetCellY`
 - `TargetFacing`
-- `bRequireUseAction`
 
-`bRequireUseAction = false` déclenche la transition en marchant sur l'escalier. `bRequireUseAction = true` est réservé aux transitions nécessitant l'action `Use`, qui seront traitées plus tard.
+Since RELOC01, Teleporter, Stairs and Passage share Relocation authoring and activate automatically on cell entry. `bIsTransition` and `bRequireUseAction` remain internal compatibility fields. Normal Destination Level=None means current level (without rebuild); Facing=None preserves facing. Cross-level relocation uses existing dungeon travel, rebuild and persistence. Pit alone keeps None=automatic lower level. See [Grid Relocation](GRID_LEVEL_TRANSITION_DATA.md).
 
 Comportement de rendu de `Stairs_Down` :
 

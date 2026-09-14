@@ -1,22 +1,81 @@
-# Grid Level Transition Data
+# Grid Relocation ? Runtime and Editor (RELOC01)
 
-## Purpose
+## Contract
 
-Grid transitions are stored as object behavior data in `UGridLevelAsset`. Editor diagnostics validate transition intent, and runtime execution can switch the active `LevelAsset` inside one `AGridLevelRuntimeActor`.
+Teleporter, Stairs and Passage share the user-facing **Relocation** destination panel.
+A normal relocation activates automatically when the party enters its source cell, after
+movement interpolation completes. There is no Use-action relocation path.
 
-## Supported Uses
+| Object | Destination Level = None | Facing = None |
+| --- | --- | --- |
+| Normal relocation | Current/source level | Preserve incoming party facing |
+| Pit | Automatic lower dungeon level | Existing Pit facing fallback |
 
-A placed grid object can be marked as a transition and configured as:
+Normal candidates are every `Type=Teleporter` and every non-Pit object with
+`InstanceConfig.Transition.bIsTransition=true`. Ordinary objects have no relocation panel.
+Pits remain separate gameplay objects: PIT01/PIT03, trapdoor state, safe landing selection
+and `bUseSameCellCoordinates` retain their existing behavior.
 
-- `StairsUp`
-- `StairsDown`
-- `PassageNorth`
-- `PassageSouth`
-- `PassageEast`
-- `PassageWest`
-- future `Portal`
+## Serialized compatibility
 
-These names should be represented by definitions or palette entries. They should not become new `EGridLevelObjectType` values unless a later runtime requirement proves that necessary.
+The canonical authoring payload is `FGridWorldObjectInstance::InstanceConfig.Transition`.
+All existing `FGridObjectTransitionParams` fields remain serialized with their original names:
+`bIsTransition`, `TargetLevelId`, `TargetCellX`, `TargetCellY`, `TargetFacing`, `bRequireUseAction`.
+The two booleans are internal compatibility fields, hidden from Selected Object authoring.
+Normal relocation ignores `bRequireUseAction`, including old assets where it is true.
+
+A legacy Teleporter with `bIsTransition=false` reads its destination from
+`InstanceConfig.Teleporter.TargetCellX/Y`, with current level and preserved facing.
+Loading, resolving or selecting the object never migrates or dirties the asset.
+On a Relocation field edit, the inspector resolves the complete existing destination,
+then applies the edit to Transition, sets `bIsTransition=true` and `bRequireUseAction=false`,
+and mirrors Teleporter X/Y into both payloads. Other normal relocation edits set the same
+internal flags. There is no second persistent relocation structure or PostLoad migration.
+
+## Selected Object workflow
+
+Select a Teleporter, Stairs, Passage or existing transition object. The single **Relocation**
+panel contains **Destination Level**, **Destination Cell X**, **Destination Cell Y**, **Facing**.
+Destination Level is a text field: enter an enabled dungeon LevelId, or None for current level.
+Commit text with Enter or by leaving the field. Facing includes None to preserve facing.
+Changes are applied to the selected instance without a separate Apply button.
+
+For Pit the panel explains `None = automatic lower dungeon level`. Its separate Pit section
+retains Open at Start and Use Same Cell Coordinates; the latter disables destination X/Y edits.
+For Teleporter the existing Enabled initial state remains in the Game Object section.
+Runtime enable/disable commands use `UGridActivationComponent`'s active-object state;
+an inactive Teleporter never relocates the party, but its destination is still validated.
+
+## Runtime and validation
+
+The public compatibility APIs `FindTransitionAtCell` and `TryExecuteTransitionAtCell` retain
+their names and signatures. Lookup excludes Pit, resolves legacy data, ignores the historical
+Use gate, and checks the Teleporter activation state through `IsObjectActive`.
+
+Movement completion keeps this order: Pit priority, HandlePartyCellChanged, combat turn
+completion, normal relocation. Successful relocation clears buffered movement.
+
+For None or the explicit current LevelId, relocation validates the current level cell,
+updates pawn coordinates/facing, calls `SnapToCurrentCell`, and notifies cell change for
+pressure plates, triggers and perception. It does **not** call TravelToDungeonLevel,
+RebuildLevel or runtime-state capture/restore. A guard covers notifications and prevents
+nested relocation; the destination is not recursively checked. One entry produces one hop.
+
+For another LevelId, the existing `TravelToDungeonLevel` path validates an enabled entry
+with a LevelAsset, captures source state, changes CurrentDungeonLevelId/LevelAsset,
+rebuilds and restores target runtime state. Normal None is resolved before this call.
+`TravelToDungeonLevel(None)` is not a Pit-aware API.
+
+Execution requires a valid pawn and an existing in-bounds destination cell which is neither
+Empty nor occupancy-blocked. Editor validation and dungeon diagnostics accept normal None
+and Facing None, inspect the source asset for current-level destinations, and inspect the
+enabled target asset for cross-level destinations. Invalid coordinates/levels are errors;
+Empty and occupancy-blocked destinations are warnings in diagnostics. Disabled Teleporters
+are counted and validated, using legacy X/Y where applicable. Pit None must resolve a lower
+level or produces the existing Pit error; same-cell coordinates retain priority.
+
+The diagnostic API `GetTransitionDiagnostics` keeps its compatibility name; displayed counts
+are `RelocationObjects` (including dedicated Pit destinations).
 
 ## StairsUp / StairsDown
 
@@ -40,31 +99,6 @@ Meshes attendus :
 - `Stairs_Up` utilise `SM_Stairs_Up_01`.
 - `Stairs_Down` utilise `SM_Stairs_Down_01`.
 
-Les escaliers sont placés au centre d'une cellule et ne bloquent pas le déplacement. Ils portent par défaut :
-
-```text
-Behavior.Transition.bIsTransition = true
-Behavior.Transition.TargetLevelId = None
-Behavior.Transition.TargetCellX = 0
-Behavior.Transition.TargetCellY = 0
-Behavior.Transition.TargetFacing = North
-Behavior.Transition.bRequireUseAction = false
-```
-
-`TargetLevelId` reste vide par défaut. Le diagnostic de transitions doit donc afficher une erreur tant que la destination n'est pas configurée. C'est attendu.
-
-Workflow recommandé :
-
-1. Créer ou sélectionner un niveau cible dans `DUNGEON LEVELS`.
-2. Dans le niveau source, placer `Stairs Down`.
-3. Configurer `TargetLevelId`, `TargetCellX`, `TargetCellY` et `TargetFacing`.
-4. Dans le niveau cible, placer `Stairs Up`.
-5. Configurer la transition retour.
-6. Lancer PIE.
-7. Marcher sur l'escalier.
-
-Si `bRequireUseAction = false`, la transition se déclenche en entrant sur la cellule. Si `bRequireUseAction = true`, la transition par action `Use` sera traitée dans une étape ultérieure.
-
 ### Stairs_Down rendering behavior
 
 `Stairs_Down` masque le mesh de sol standard de sa cellule via `UGridWorldObjectDefinitionAsset::bHideCellFloor = true`.
@@ -81,90 +115,13 @@ Ce comportement est un override de rendu porté par la définition :
 
 Le traitement du mur ou d'une face sombre devant la descente est prévu séparément. Une option future pourra utiliser un flag du type `bHideForwardWall` ou `bSpawnDarkForwardPlane`, basé sur une orientation fiable de l'objet de sol. Ce comportement n'est pas activé automatiquement dans cette étape.
 
-## Fields
+## Verification
 
-`FGridObjectTransitionParams` is part of `FGridObjectBehaviorParams`:
+`Grimrock.Relocation.RELOC01` covers legacy and modern data, authoring normalization,
+automatic enabled/disabled entry, buffered movement, same-level rebuild/state invariants,
+return-teleporter loop prevention, cross-level travel and persistence, facing preservation,
+Pit lower-level resolution and both editor/dungeon validation.
 
-- `bIsTransition`
-- `TargetLevelId`
-- `TargetCellX`
-- `TargetCellY`
-- `TargetFacing`
-- `bRequireUseAction`
-
-`TargetLevelId` should match an enabled entry in the current `UGridDungeonAsset`. `TargetCellX` and `TargetCellY` should point to a valid cell in the target `UGridLevelAsset`.
-
-## Editor Workflow
-
-In `BP_GridLevelEditorActor`:
-
-- Select an object representing stairs, a passage, or a portal.
-- In the object inspector, enable `Transition`.
-- Set the target level id and target cell.
-- Set target facing.
-- Run level validation to catch missing target levels or invalid target cells.
-
-The transition inspector saves values directly into the selected object's `Behavior` inside the `LevelAsset`. There is no separate `Apply` button for transition data.
-
-Text fields such as `Target Level Id` use `OnTextCommitted`, so press Enter or leave the field to commit the value.
-
-## Contextual Inspector
-
-La section `Transition` de l'inspecteur d'objet n'est plus globale.
-
-Elle apparaît uniquement si la définition de l'objet sélectionné active :
-
-```text
-bExposeTransitionSettingsInInspector = true
-```
-
-À ce stade, seules les définitions `Stairs_Up` et `Stairs_Down` activent ce flag. Les objets ordinaires comme `FloorBones`, les runes, les alcôves, les torches, les boutons, les leviers, les plaques et les décorations ne montrent plus les champs `TargetLevelId`, `TargetCellX`, `TargetCellY` et `TargetFacing`.
-
-Masquer cette UI ne modifie pas les données. Si un ancien objet contient déjà `Behavior.Transition.bIsTransition = true`, la donnée reste dans le `UGridLevelAsset`, les diagnostics peuvent encore la lister et le runtime peut encore l'exécuter. Elle n'est simplement plus éditable depuis l'inspecteur tant que sa définition n'autorise pas explicitement la section `Transition`.
-
-## Diagnostic Workflow
-
-1. Select the transition object.
-2. Check `Is Transition`.
-3. Fill `Target Level Id`.
-4. Press Enter or leave the field.
-5. Fill `Target Cell X` and `Target Cell Y`.
-6. Choose `Target Facing`.
-7. Save the edited `UGridLevelAsset`.
-8. Select `BP_GridLevelEditorActor`.
-9. Click `Log Dungeon Transition Diagnostics`.
-
-Expected log shape:
-
-```text
-TransitionObjects=1
-[0] SourceLevelId=Into_The_Dark SourceDisplayName=Into The Dark SourceLevelAsset=/Game/.../DA_GridLevel_00 ObjectId=... DefinitionId=Floor_Bones Type=Decoration Cell=(28,25) Edge=None TargetLevelId=Old_Tunnels TargetCell=(28,26) TargetFacing=North bRequireUseAction=false Status=OK
-Status=OK
-```
-
-Runtime diagnostics report how many transition objects exist in the loaded `LevelAsset`.
-
-## Runtime Transition Execution
-
-`AGridLevelRuntimeActor` can execute automatic dungeon transitions at runtime.
-
-The runtime actor keeps:
-
-- `DungeonAsset`: used to resolve `TargetLevelId` into a target `UGridLevelAsset`.
-- `CurrentDungeonLevelId`: the dungeon level id currently loaded.
-- `LevelAsset`: the immediate level data currently reconstructed in the runtime actor.
-
-When `AGrimrockPartyPawn` finishes a successful grid move, it asks the runtime actor to execute a transition on the destination cell. The transition is checked only after the movement interpolation has completed.
-
-Automatic transitions execute only when `bRequireUseAction == false`. Transitions that require Use are ignored by movement for now; Use-triggered transitions will be handled later.
-
-Execution flow:
-
-1. `TryExecuteTransitionAtCell` looks for a transition object on the pawn cell.
-2. `TravelToDungeonLevel` validates `DungeonAsset`, `TargetLevelId`, the target level asset, target cell, target facing, and the pawn.
-3. `CurrentDungeonLevelId` is set to the target level id.
-4. `LevelAsset` is replaced by the target level asset.
-5. `RebuildLevel()` reconstructs the runtime level.
-6. The pawn is placed on `TargetCellX`, `TargetCellY`, `TargetFacing`.
-
-No UE map change, streaming, save game, menu flow, or visual transition is involved in this step.
+Use `Scripts/ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Relocation.RELOC01"`.
+Relevant regressions: `Grimrock.Pit.PIT01`, `Grimrock.WorldObjects`,
+`Grimrock.TechnicalDebt.TD03`, `Grimrock.LUAUX03`.

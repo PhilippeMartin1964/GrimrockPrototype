@@ -511,6 +511,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void SnapToCurrentCell();
 
+	void ClearBufferedCommand();
+
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void SetGridStart(AGridLevelRuntimeActor* InLevelRuntimeActor, int32 StartX, int32 StartY, EGridEdge StartFacing);
 
@@ -589,7 +591,6 @@ private:
 
 	void BufferMoveCommand(EGridEdge MoveDirection);
 	void BufferTurnCommand(bool bTurnRight);
-	void ClearBufferedCommand();
 	void ApplyCharacterCreationInputMode(bool bIsActive);
 	bool LoadCurrentGameData(FText& OutError, bool bApplyDungeonState);
 	bool RehydrateLoadedItemDefinitions(FText& OutError);
@@ -672,4 +673,5 @@ private:
 	friend class FGridPartyBlockedMovementFeedbackTest;
 	friend class FGridPartyMovementAudioFeedbackTest;
 	friend class FGridPIT01FallLifecycleTest;
+	friend class FGridRELOC01RuntimeTest;
 };

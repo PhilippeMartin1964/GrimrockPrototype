@@ -1,5 +1,7 @@
 #include "EditorTools/Widgets/SGridEditorObjectInspectorPanel.h"
 
+#include "Core/GridRelocationUtils.h"
+
 #if WITH_EDITOR
 
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
@@ -329,7 +331,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard(FGu
 	const UGridWorldObjectDefinitionAsset* Definition = GetWorldObjectDefinition(CurrentEditorActor, Obj);
 	const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(CurrentEditorActor, Obj);
 	const FText TitleText = Definition && !Definition->DisplayName.IsEmpty() ? Definition->DisplayName : TypeText;
-	const bool bShowTransitionSection = WorldObjectInstance && (Type == EGridLevelObjectType::Pit || WorldObjectInstance->InstanceConfig.Transition.bIsTransition);
+	const bool bShowRelocationSection = WorldObjectInstance && (Type == EGridLevelObjectType::Pit || GridRelocation::IsCandidate(*WorldObjectInstance));
 	return SNew(SBorder).Padding(8.f).BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))[SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()[SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 12.f, 0.f)[SNew(SBox).WidthOverride(88.f).HeightOverride(72.f)[
@@ -342,7 +344,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard(FGu
 					.ColorAndOpacity(FSlateColor(FLinearColor(0.72f, 0.72f, 0.72f, 1.f)))]]]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildGameObjectSection(Obj)]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildContextualComponentSection(Obj)]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[bShowTransitionSection ? BuildTransitionDetailsSection(Obj) : SNullWidget::NullWidget]
+		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[bShowRelocationSection ? BuildRelocationDetailsSection(Obj) : SNullWidget::NullWidget]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[BuildAdvancedDebugSection(Obj)]];
 }
 
@@ -458,7 +460,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSec
 			PrimarySection = BuildMonsterSpawnSection(Obj);
 			break;
 		case EGridLevelObjectType::Teleporter:
-			PrimarySection = BuildTeleporterDetailsSection(Obj);
+			PrimarySection = SNullWidget::NullWidget;
 			break;
 		default:
 			PrimarySection = GridEditorWidgetHelpers::BuildGridPanelSection(
@@ -848,98 +850,71 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPitDetailsSection(FGui
 			.AutoWrapText(true).ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))]);
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTeleporterDetailsSection(FGuid ObjectId)
-{
-	const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(GetEditorActor(), ObjectId);
-	if (!WorldObjectInstance) return SNullWidget::NullWidget;
-	const FGridTeleporterBehaviorParams& Teleporter = WorldObjectInstance->InstanceConfig.Teleporter;
-	auto BuildIntBehaviorRow = [this, ObjectId](const FText& Label, int32 CurrentValue, int32 MinValue, int32 MaxValue,
-		TFunction<void(FGridWorldObjectInstanceConfig&, int32)> AssignValue) -> TSharedRef<SWidget>
-	{
-		return GridEditorWidgetHelpers::BuildGridPropertyRow(Label,
-			SNew(SSpinBox<int32>).Value(CurrentValue).MinValue(MinValue).MaxValue(MaxValue).MinSliderValue(MinValue).MaxSliderValue(MaxValue).Delta(1)
-			.OnValueCommitted_Lambda([this, ObjectId, AssignValue](int32 NewValue, ETextCommit::Type)
-			{
-				EditWorldObjectConfig(ObjectId, [AssignValue, NewValue](FGridWorldObjectInstanceConfig& Config) { AssignValue(Config, NewValue); });
-			}));
-	};
-	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
-		+ SVerticalBox::Slot().AutoHeight()[BuildIntBehaviorRow(FText::FromString(TEXT("Target Cell X")), Teleporter.TargetCellX, -1, 31,
-			[](FGridWorldObjectInstanceConfig& Config, int32 NewValue){ Config.Teleporter.TargetCellX = NewValue; })]
-		+ SVerticalBox::Slot().AutoHeight()[BuildIntBehaviorRow(FText::FromString(TEXT("Target Cell Y")), Teleporter.TargetCellY, -1, 31,
-			[](FGridWorldObjectInstanceConfig& Config, int32 NewValue){ Config.Teleporter.TargetCellY = NewValue; })]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock)
-			.Text(FText::FromString(TEXT("Use -1 / -1 to mark an unset destination."))).AutoWrapText(true)
-			.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))];
-	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Teleporter")), Root);
-}
-
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSection(FGuid ObjectId)
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildRelocationDetailsSection(FGuid ObjectId)
 {
 	const FGridWorldObjectInstance* WorldObjectInstance = GetWorldObjectInstance(GetEditorActor(), ObjectId);
 	if (!WorldObjectInstance) return SNullWidget::NullWidget;
 	const FGridWorldObjectInstance& Obj = *WorldObjectInstance;
-	const FGridObjectTransitionParams& Transition = Obj.InstanceConfig.Transition;
+	const FGridObjectTransitionParams Transition = GridRelocation::Resolve(Obj);
 	const bool bIsPit = Obj.Type == EGridLevelObjectType::Pit;
 	const bool bPitUsesSameCellCoordinates = bIsPit && Obj.InstanceConfig.Pit.bUseSameCellCoordinates;
-	const bool bTransitionFieldsEnabled = bIsPit || Transition.bIsTransition;
-	auto BuildIntTransitionRow = [this, ObjectId, bTransitionFieldsEnabled, bPitUsesSameCellCoordinates](const FText& Label, int32 CurrentValue,
+	// Resolve again at commit time so successive edits retain the latest destination.
+	auto EditDestination = [this, ObjectId](TFunction<void(FGridObjectTransitionParams&)> Edit)
+	{
+		const FGridWorldObjectInstance* Current = GetWorldObjectInstance(GetEditorActor(), ObjectId);
+		if (!Current) return;
+		FGridObjectTransitionParams Destination = GridRelocation::Resolve(*Current);
+		Edit(Destination);
+		const EGridLevelObjectType Type = Current->Type;
+		EditWorldObjectConfig(ObjectId, [Destination, Type](FGridWorldObjectInstanceConfig& Config)
+		{
+			GridRelocation::ApplyAuthoringEdit(Config, Type, Destination);
+		});
+	};
+	auto BuildIntRelocationRow = [EditDestination, bPitUsesSameCellCoordinates](const FText& Label, int32 CurrentValue,
 		TFunction<void(FGridObjectTransitionParams&, int32)> AssignValue) -> TSharedRef<SWidget>
 	{
-		return GridEditorWidgetHelpers::BuildGridPropertyRow(Label, SNew(SSpinBox<int32>).Value(CurrentValue).MinValue(0).MaxValue(31).MinSliderValue(0).MaxSliderValue(31).Delta(1)
-			.IsEnabled(bTransitionFieldsEnabled && !bPitUsesSameCellCoordinates)
-			.OnValueCommitted_Lambda([this, ObjectId, AssignValue](int32 NewValue, ETextCommit::Type)
+		return GridEditorWidgetHelpers::BuildGridPropertyRow(Label, SNew(SSpinBox<int32>).Value(CurrentValue).MinValue(-1).MinSliderValue(0).MaxSliderValue(31).Delta(1)
+			.IsEnabled(!bPitUsesSameCellCoordinates)
+			.OnValueCommitted_Lambda([EditDestination, AssignValue](int32 NewValue, ETextCommit::Type)
 			{
-				EditWorldObjectConfig(ObjectId, [AssignValue, NewValue](FGridWorldObjectInstanceConfig& Config) { AssignValue(Config.Transition, NewValue); });
+				EditDestination([AssignValue, NewValue](FGridObjectTransitionParams& Params) { AssignValue(Params, NewValue); });
 			}));
 	};
-	auto BuildFacingButton = [this, ObjectId, Transition, bTransitionFieldsEnabled](const TCHAR* Label, EGridEdge Facing) -> TSharedRef<SWidget>
+	auto BuildFacingButton = [EditDestination, Transition](const TCHAR* Label, EGridEdge Facing) -> TSharedRef<SWidget>
 	{
 		const bool bSelected = Transition.TargetFacing == Facing;
-		return SNew(SButton).Text(FText::FromString(Label)).IsEnabled(bTransitionFieldsEnabled)
+		return SNew(SButton).Text(FText::FromString(Label))
 			.ButtonColorAndOpacity(bSelected ? FLinearColor(0.32f, 0.46f, 0.72f, 1.f) : FLinearColor::White)
-			.OnClicked_Lambda([this, ObjectId, Facing]()
+			.OnClicked_Lambda([EditDestination, Facing]()
 			{
-				EditWorldObjectConfig(ObjectId, [Facing](FGridWorldObjectInstanceConfig& Config) { Config.Transition.TargetFacing = Facing; });
+				EditDestination([Facing](FGridObjectTransitionParams& Params) { Params.TargetFacing = Facing; });
 				return FReply::Handled();
 			});
 	};
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
-		+ SVerticalBox::Slot().AutoHeight()[bIsPit ? StaticCastSharedRef<SWidget>(GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			FText::FromString(TEXT("Transition Mode")), FText::FromString(TEXT("Intrinsic Pit Fall"))))
-			: StaticCastSharedRef<SWidget>(SNew(SCheckBox).IsChecked(Transition.bIsTransition ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-			.OnCheckStateChanged_Lambda([this, ObjectId](ECheckBoxState State)
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Destination Level")), SNew(SEditableTextBox)
+			.Text(GetNameText(Transition.TargetLevelId))
+			.OnTextCommitted_Lambda([EditDestination](const FText& NewText, ETextCommit::Type)
 			{
-				EditWorldObjectConfig(ObjectId, [State](FGridWorldObjectInstanceConfig& Config) { Config.Transition.bIsTransition = State == ECheckBoxState::Checked; });
-			})[SNew(STextBlock).Text(FText::FromString(TEXT("Is Transition")))])]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Target Level Id")), SNew(SEditableTextBox)
-			.Text(GetNameText(Transition.TargetLevelId)).IsEnabled(bTransitionFieldsEnabled)
-			.OnTextCommitted_Lambda([this, ObjectId](const FText& NewText, ETextCommit::Type)
-			{
-				EditWorldObjectConfig(ObjectId, [&NewText](FGridWorldObjectInstanceConfig& Config) { Config.Transition.TargetLevelId = GetNameFromEditorText(NewText); });
+				EditDestination([&NewText](FGridObjectTransitionParams& Params) { Params.TargetLevelId = GetNameFromEditorText(NewText); });
 			}))]
-		+ SVerticalBox::Slot().AutoHeight()[BuildIntTransitionRow(FText::FromString(TEXT("Target Cell X")), Transition.TargetCellX,
+		+ SVerticalBox::Slot().AutoHeight()[BuildIntRelocationRow(FText::FromString(TEXT("Destination Cell X")), Transition.TargetCellX,
 			[](FGridObjectTransitionParams& Params, int32 V){ Params.TargetCellX = V; })]
-		+ SVerticalBox::Slot().AutoHeight()[BuildIntTransitionRow(FText::FromString(TEXT("Target Cell Y")), Transition.TargetCellY,
+		+ SVerticalBox::Slot().AutoHeight()[BuildIntRelocationRow(FText::FromString(TEXT("Destination Cell Y")), Transition.TargetCellY,
 			[](FGridObjectTransitionParams& Params, int32 V){ Params.TargetCellY = V; })]
-		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Target Facing")), SNew(SHorizontalBox)
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("Facing")), SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 2.f, 0.f)[BuildFacingButton(TEXT("None"), EGridEdge::None)]
 			+ SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 2.f, 0.f)[BuildFacingButton(TEXT("North"), EGridEdge::North)]
 			+ SHorizontalBox::Slot().AutoWidth().Padding(2.f, 0.f)[BuildFacingButton(TEXT("East"), EGridEdge::East)]
 			+ SHorizontalBox::Slot().AutoWidth().Padding(2.f, 0.f)[BuildFacingButton(TEXT("South"), EGridEdge::South)]
 			+ SHorizontalBox::Slot().AutoWidth().Padding(2.f, 0.f, 0.f, 0.f)[BuildFacingButton(TEXT("West"), EGridEdge::West)])]
-		+ SVerticalBox::Slot().AutoHeight()[SNew(SCheckBox).IsEnabled(bTransitionFieldsEnabled && !bIsPit)
-			.IsChecked(Transition.bRequireUseAction ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-			.OnCheckStateChanged_Lambda([this, ObjectId](ECheckBoxState State)
-			{
-				EditWorldObjectConfig(ObjectId, [State](FGridWorldObjectInstanceConfig& Config) { Config.Transition.bRequireUseAction = State == ECheckBoxState::Checked; });
-			})[SNew(STextBlock).Text(FText::FromString(TEXT("Require Use Action")))]]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock)
-			.Text(bIsPit ? (bPitUsesSameCellCoordinates
-				? FText::Format(FText::FromString(TEXT("Target Cell X/Y are ignored because Use Same Cell Coordinates is enabled. Effective requested landing cell: ({0},{1}). Target Level Id may still explicitly override the lower level.")), FText::AsNumber(Obj.CellX), FText::AsNumber(Obj.CellY))
-				: FText::FromString(TEXT("Target Cell X/Y are explicit landing coordinates. Target Level Id may be None for the automatic lower level. If the requested landing cell is not walkable, runtime resolves the nearest usable floor cell.")))
-				: FText::FromString(TEXT("Transition data is stored on this object and executed by the runtime.")))
+			.Text(FText::FromString(bIsPit
+				? TEXT("None = automatic lower dungeon level. Use Same Cell Coordinates overrides destination X/Y; unusable landing cells resolve to the nearest usable floor.")
+				: TEXT("None = current level. Facing None = preserve facing. Relocation activates automatically on cell entry.")))
 			.AutoWrapText(true).ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))];
-	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Transition")), Root);
+	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Relocation")), Root);
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLightDetailsSection(const UGridWorldObjectDefinitionAsset& Definition)

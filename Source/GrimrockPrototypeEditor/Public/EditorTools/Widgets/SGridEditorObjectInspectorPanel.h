@@ -42,8 +42,7 @@ private:
 	TSharedRef<SWidget> BuildButtonDetailsSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildPressurePlateDetailsSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildPitDetailsSection(FGuid ObjectId);
-	TSharedRef<SWidget> BuildTeleporterDetailsSection(FGuid ObjectId);
-	TSharedRef<SWidget> BuildTransitionDetailsSection(FGuid ObjectId);
+	TSharedRef<SWidget> BuildRelocationDetailsSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildLightDetailsSection(const UGridWorldObjectDefinitionAsset& Definition);
 	TSharedRef<SWidget> BuildItemDefinitionSection(FGuid ObjectId);
 	TSharedRef<SWidget> BuildMonsterSpawnSection(FGuid ObjectId);

@@ -1,5 +1,7 @@
 #include "Core/GridDungeonAsset.h"
 
+#include "Core/GridRelocationUtils.h"
+
 namespace
 {
 	FString GetGridEdgeName(EGridEdge Edge)
@@ -32,7 +34,7 @@ namespace
 		int32 TransitionCount = 0;
 		for (const FGridWorldObjectInstance& Obj : LevelAsset->WorldObjectInstances)
 		{
-			if (Obj.Type == EGridLevelObjectType::Pit || Obj.InstanceConfig.Transition.bIsTransition)
+			if (Obj.Type == EGridLevelObjectType::Pit || GridRelocation::IsCandidate(Obj))
 			{
 				++TransitionCount;
 			}
@@ -209,7 +211,7 @@ FString UGridDungeonAsset::GetDungeonDiagnostics() const
 	Result += FString::Printf(TEXT("EmptyLevelIds: %d\n"), EmptyLevelIdCount);
 	Result += FString::Printf(TEXT("DuplicateLevelIds: %d\n"), DuplicateIds.Num());
 	Result += FString::Printf(TEXT("DuplicateLogicalPositions: %d\n"), DuplicateLogicalPositions.Num());
-	Result += FString::Printf(TEXT("TransitionObjects=%d\n"), TransitionObjectCount);
+	Result += FString::Printf(TEXT("RelocationObjects=%d\n"), TransitionObjectCount);
 
 	if (Levels.Num() == 0)
 	{
@@ -250,7 +252,7 @@ FString UGridDungeonAsset::GetDungeonDiagnostics() const
 FString UGridDungeonAsset::GetTransitionDiagnostics() const
 {
 	FString Result;
-	Result += TEXT("GridDungeonAsset Transition Diagnostics\n");
+	Result += TEXT("GridDungeonAsset Relocation Diagnostics\n");
 	Result += FString::Printf(TEXT("DungeonAsset=%s\n"), *GetPathName());
 
 	int32 TransitionObjectCount = 0;
@@ -267,12 +269,12 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 		const UGridLevelAsset* SourceLevelAsset = SourceEntry.LevelAsset.Get();
 		for (const FGridWorldObjectInstance& Obj : SourceLevelAsset->WorldObjectInstances)
 		{
-			const FGridObjectTransitionParams& Transition = Obj.InstanceConfig.Transition;
+			const FGridObjectTransitionParams Transition = GridRelocation::Resolve(Obj);
 			const bool bIsPit = Obj.Type == EGridLevelObjectType::Pit;
 			const bool bPitUsesSameCell = bIsPit && Obj.InstanceConfig.Pit.bUseSameCellCoordinates;
 			const int32 EffectiveTargetCellX = bPitUsesSameCell ? Obj.CellX : Transition.TargetCellX;
 			const int32 EffectiveTargetCellY = bPitUsesSameCell ? Obj.CellY : Transition.TargetCellY;
-			if (!bIsPit && !Transition.bIsTransition)
+			if (!bIsPit && !GridRelocation::IsCandidate(Obj))
 			{
 				continue;
 			}
@@ -296,7 +298,11 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 			const FGridDungeonLevelEntry* TargetEntry = nullptr;
 			const UGridLevelAsset* TargetLevelAsset = nullptr;
 
-			if (EffectiveTargetLevelId.IsNone())
+			if (!bIsPit && (EffectiveTargetLevelId.IsNone() || EffectiveTargetLevelId == SourceEntry.LevelId))
+			{
+				TargetLevelAsset = SourceLevelAsset;
+			}
+			else if (EffectiveTargetLevelId.IsNone())
 			{
 				++LocalErrors;
 				StatusMessages.Add(bIsPit ? TEXT("Pit has no enabled lower dungeon level") : TEXT("TargetLevelId is None"));
@@ -316,19 +322,14 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 				}
 				else if (!TargetEntry->LevelAsset)
 				{
-					++LocalWarnings;
+					if (bIsPit) ++LocalWarnings;
+					else ++LocalErrors;
 					StatusMessages.Add(TEXT("Target LevelAsset is null"));
 				}
 				else
 				{
 					TargetLevelAsset = TargetEntry->LevelAsset.Get();
 				}
-			}
-
-			if (!bIsPit && Transition.TargetFacing == EGridEdge::None)
-			{
-				++LocalErrors;
-				StatusMessages.Add(TEXT("TargetFacing is None"));
 			}
 
 			if (TargetLevelAsset)
@@ -389,7 +390,7 @@ FString UGridDungeonAsset::GetTransitionDiagnostics() const
 		}
 	}
 
-	Result += FString::Printf(TEXT("TransitionObjects=%d\n"), TransitionObjectCount);
+	Result += FString::Printf(TEXT("RelocationObjects=%d\n"), TransitionObjectCount);
 	Result += FString::Printf(TEXT("Errors=%d\n"), ErrorCount);
 	Result += FString::Printf(TEXT("Warnings=%d\n"), WarningCount);
 

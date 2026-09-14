@@ -585,7 +585,10 @@ void AGrimrockPartyPawn::UpdateMove(float DeltaSeconds)
 					}
 				}
 			}
-			LevelRuntimeActor->TryExecuteTransitionAtCell(CurrentCellX, CurrentCellY, this, false);
+			if (LevelRuntimeActor->TryExecuteTransitionAtCell(CurrentCellX, CurrentCellY, this, false))
+			{
+				ClearBufferedCommand();
+			}
 		}
 	}
 }
