@@ -99,8 +99,8 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 
 	UGridItemDefinitionAsset* StackDefinition = GridTD068CreateDefinition(Component, TEXT("StackApply_TD068"), 2.5f, true, 3);
 	StackDefinition->DisplayName = FText::FromString(TEXT("Registered stack"));
-	StackDefinition->bCanEmitLight = true;
-	StackDefinition->bDefaultLightEnabled = true;
+	StackDefinition->LightEmitter.bUsePointLight = true;
+	StackDefinition->LightEmitter.bDefaultEnabled = true;
 	TestTrue(TEXT("The stack definition registers"), Component->RegisterItemDefinition(StackDefinition));
 
 	FGridItemInstance StackItem = GridTD068CreateItem(StackDefinition->ItemDefinitionId, 99);
