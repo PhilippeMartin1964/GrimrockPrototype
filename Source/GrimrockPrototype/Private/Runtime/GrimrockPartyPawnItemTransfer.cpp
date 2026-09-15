@@ -278,16 +278,35 @@ bool AGrimrockPartyPawn::TryPlaceCursorItemInReceptacle(AGridReceptacleActor* Re
 		return false;
 	}
 
-	FGridItemInstance AcceptedItem;
-	if (!ReceptacleActor->TryInsertItemInstanceFromCursor(SingleItem, AcceptedItem))
+	FGridReceptacleAcceptanceResult AcceptanceResult;
+	if (!ReceptacleActor->EvaluateItemAcceptance(SingleItem, AcceptanceResult, true))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Place ToReceptacle Failed Item=%s RuntimeId=%s Receptacle=%s Reason=ReceptacleRejected"),
-			*CursorItem.ItemDefinitionId.ToString(), *CursorItem.RuntimeObjectId.ToString(), *ReceptacleActor->GetName());
+		UE_LOG(LogTemp, Warning,
+			TEXT("GridInventory Cursor Place ToReceptacle Failed Item=%s RuntimeId=%s Receptacle=%s Reason=ReceptacleRejected RejectCode=%d"),
+			*CursorItem.ItemDefinitionId.ToString(), *CursorItem.RuntimeObjectId.ToString(), *ReceptacleActor->GetName(),
+			static_cast<int32>(AcceptanceResult.RejectReason));
 		return false;
 	}
 
+	// Commit the source side before the receptacle emits ItemInserted. Lua callbacks must never
+	// observe the same logical item still owned by the cursor while it already exists in the receptacle.
 	ConsumeOneCursorItemAfterSuccessfulAction();
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor ConsumedOne AfterReceptacle Item=%s RuntimeId=%s Receptacle=%s"), *AcceptedItem.ItemDefinitionId.ToString(),
+
+	FGridItemInstance AcceptedItem;
+	if (!ReceptacleActor->TryInsertItemInstanceFromCursor(SingleItem, AcceptedItem))
+	{
+		const bool bRestored = PartyInventoryComponent->SetCursorItem(CursorItem);
+		if (bRestored)
+		{
+			PartyInventoryComponent->NotifyPartyInventoryChanged(INDEX_NONE);
+		}
+		UE_LOG(LogTemp, Error,
+			TEXT("GridInventory Cursor Place ToReceptacle Failed Item=%s RuntimeId=%s Receptacle=%s Reason=DestinationInsertFailed CursorRestored=%s"),
+			*CursorItem.ItemDefinitionId.ToString(), *CursorItem.RuntimeObjectId.ToString(), *ReceptacleActor->GetName(), bRestored ? TEXT("true") : TEXT("false"));
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor TransferredOne ToReceptacle Item=%s RuntimeId=%s Receptacle=%s"), *AcceptedItem.ItemDefinitionId.ToString(),
 		*AcceptedItem.RuntimeObjectId.ToString(), *ReceptacleActor->GetName());
 	PartyInventoryComponent->LogInventoryOwnershipDiagnostics();
 
@@ -668,7 +687,10 @@ bool AGrimrockPartyPawn::BuildSingleItemInstanceFromCursor(FGridItemInstance& Ou
 	}
 
 	OutSingleItem = CursorItem;
-	OutSingleItem.RuntimeObjectId = FGuid::NewGuid();
+	if (CursorItem.Quantity > 1)
+	{
+		OutSingleItem.RuntimeObjectId = FGuid::NewGuid();
+	}
 	OutSingleItem.Quantity = 1;
 	return true;
 }
@@ -685,11 +707,17 @@ void AGrimrockPartyPawn::ConsumeOneCursorItemAfterSuccessfulAction()
 	{
 		FGridItemInstance RemainingCursorItem = CursorItem;
 		RemainingCursorItem.Quantity -= 1;
-		PartyInventoryComponent->SetCursorItem(RemainingCursorItem);
+		if (PartyInventoryComponent->SetCursorItem(RemainingCursorItem))
+		{
+			PartyInventoryComponent->NotifyPartyInventoryChanged(INDEX_NONE);
+		}
 		return;
 	}
 
-	PartyInventoryComponent->ClearCursorItem();
+	if (PartyInventoryComponent->ClearCursorItem())
+	{
+		PartyInventoryComponent->NotifyPartyInventoryChanged(INDEX_NONE);
+	}
 }
 
 bool AGrimrockPartyPawn::DebugPlaceCursorItemInFrontReceptacle()
