@@ -368,7 +368,7 @@ bool UGridItemContextActionLibrary::ResolveFacingTarget(AGrimrockPartyPawn* Part
 	QueryParams.AddIgnoredActor(PartyPawn);
 	if (PartyPawn->HeldItemActor)
 	{
-		QueryParams.AddIgnoredActor(PartyPawn->HeldItemActor);
+		QueryParams.AddIgnoredActor(PartyPawn->HeldItemActor.Get());
 	}
 
 	FHitResult HitResult;
