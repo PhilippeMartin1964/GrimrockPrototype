@@ -5,6 +5,7 @@
 #include "Runtime/GridInteractableInterface.h"
 #include "GridItemActor.generated.h"
 
+class UGridLightEmitterComponent;
 class UMaterialInstanceDynamic;
 class UStaticMeshComponent;
 class UGridItemDefinitionAsset;
@@ -27,6 +28,10 @@ public:
 	/** ITEM-SPARKLE01 presentation-only mesh. Mirrors MeshComponent and never participates in collision/physics. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> SparkleMeshComponent;
+
+	/** ITEM-LIGHT01 generic runtime light/flame executor configured exclusively from ItemDefinitionAsset. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UGridLightEmitterComponent> LightEmitterComponent;
 
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|World Sparkle")
 	TObjectPtr<UMaterialInstanceDynamic> WorldSparkleMaterialInstance = nullptr;
