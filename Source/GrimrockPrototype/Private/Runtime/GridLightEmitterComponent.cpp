@@ -7,24 +7,45 @@
 UGridLightEmitterComponent::UGridLightEmitterComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
 
 void UGridLightEmitterComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
 	FlickerPhase = FMath::FRandRange(0.f, 1000.f);
-	SetLightEnabled(bEnableOnBeginPlay);
+	RefreshTickState();
+}
+
+void UGridLightEmitterComponent::ApplyConfig(const FGridLightEmitterConfig& InConfig)
+{
+	const bool bRestoreEnabled = bLightEnabled;
+	SetLightEnabled(false);
+	RuntimeConfig = InConfig;
+
+	if (NiagaraComponent)
+	{
+		NiagaraComponent->SetAsset(RuntimeConfig.NiagaraSystem.IsNull() ? nullptr : RuntimeConfig.NiagaraSystem.LoadSynchronous());
+	}
+
+	RefreshEmitterTransforms();
+	if (bRestoreEnabled)
+	{
+		SetLightEnabled(true);
+	}
+	else
+	{
+		RefreshTickState();
+	}
 }
 
 void UGridLightEmitterComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (bLightEnabled && bUsePointLight && PointLightComponent)
+	if (bLightEnabled && RuntimeConfig.bUsePointLight && PointLightComponent)
 	{
-		if (bEnableLightFlicker)
+		if (RuntimeConfig.bEnableLightFlicker)
 		{
 			UpdatePointLightOutput();
 		}
@@ -35,25 +56,33 @@ void UGridLightEmitterComponent::TickComponent(float DeltaTime, ELevelTick TickT
 
 void UGridLightEmitterComponent::SetLightEnabled(bool bEnabled)
 {
-	bLightEnabled = bEnabled;
+	bLightEnabled = bEnabled && RuntimeConfig.HasEmitter();
 
-	if (bEnabled && NiagaraSystem && !NiagaraComponent)
+	if (bLightEnabled && !RuntimeConfig.NiagaraSystem.IsNull())
 	{
-		NiagaraComponent = NewObject<UNiagaraComponent>(GetOwner(), TEXT("GridItemNiagara"));
-		if (NiagaraComponent)
+		UNiagaraSystem* DesiredSystem = RuntimeConfig.NiagaraSystem.LoadSynchronous();
+		if (DesiredSystem && !NiagaraComponent)
 		{
-			NiagaraComponent->SetupAttachment(this);
-			NiagaraComponent->SetAsset(NiagaraSystem);
-			NiagaraComponent->RegisterComponent();
-			RefreshEmitterTransforms();
+			NiagaraComponent = NewObject<UNiagaraComponent>(GetOwner(), TEXT("GridItemNiagara"));
+			if (NiagaraComponent)
+			{
+				NiagaraComponent->SetupAttachment(this);
+				NiagaraComponent->SetAsset(DesiredSystem);
+				NiagaraComponent->RegisterComponent();
+			}
+		}
+		else if (NiagaraComponent && NiagaraComponent->GetAsset() != DesiredSystem)
+		{
+			NiagaraComponent->SetAsset(DesiredSystem);
 		}
 	}
 
 	if (NiagaraComponent)
 	{
 		RefreshEmitterTransforms();
-		NiagaraComponent->SetVisibility(bEnabled, true);
-		if (bEnabled)
+		const bool bShowNiagara = bLightEnabled && !RuntimeConfig.NiagaraSystem.IsNull();
+		NiagaraComponent->SetVisibility(bShowNiagara, true);
+		if (bShowNiagara)
 		{
 			NiagaraComponent->Activate(true);
 		}
@@ -63,7 +92,7 @@ void UGridLightEmitterComponent::SetLightEnabled(bool bEnabled)
 		}
 	}
 
-	if (bUsePointLight && !PointLightComponent)
+	if (bLightEnabled && RuntimeConfig.bUsePointLight && !PointLightComponent)
 	{
 		PointLightComponent = NewObject<UPointLightComponent>(GetOwner(), TEXT("GridItemPointLight"));
 		if (PointLightComponent)
@@ -72,7 +101,6 @@ void UGridLightEmitterComponent::SetLightEnabled(bool bEnabled)
 			PointLightComponent->bUseInverseSquaredFalloff = false;
 			PointLightComponent->LightFalloffExponent = 4.f;
 			PointLightComponent->RegisterComponent();
-			RefreshEmitterTransforms();
 		}
 	}
 
@@ -81,38 +109,45 @@ void UGridLightEmitterComponent::SetLightEnabled(bool bEnabled)
 		RefreshEmitterTransforms();
 		UpdatePointLightOutput();
 		UpdatePointLightColor();
-		PointLightComponent->SetVisibility(bEnabled && bUsePointLight);
+		PointLightComponent->SetVisibility(bLightEnabled && RuntimeConfig.bUsePointLight);
 	}
+
+	RefreshTickState();
 }
 
 void UGridLightEmitterComponent::RefreshEmitterTransforms()
 {
 	if (NiagaraComponent)
 	{
-		NiagaraComponent->SetRelativeLocation(NiagaraRelativeLocation);
-		NiagaraComponent->SetRelativeRotation(NiagaraRelativeRotation);
+		NiagaraComponent->SetRelativeLocation(RuntimeConfig.NiagaraRelativeLocation);
+		NiagaraComponent->SetRelativeRotation(RuntimeConfig.NiagaraRelativeRotation);
 	}
 
 	if (PointLightComponent)
 	{
-		PointLightComponent->SetRelativeLocation(PointLightRelativeLocation);
-		PointLightComponent->SetRelativeRotation(PointLightRelativeRotation);
+		PointLightComponent->SetRelativeLocation(RuntimeConfig.PointLightRelativeLocation);
+		PointLightComponent->SetRelativeRotation(RuntimeConfig.PointLightRelativeRotation);
 	}
+}
+
+void UGridLightEmitterComponent::RefreshTickState()
+{
+	SetComponentTickEnabled(bLightEnabled && RuntimeConfig.RequiresRuntimeTick());
 }
 
 float UGridLightEmitterComponent::GetEffectiveBaseIntensity() const
 {
-	return FMath::Max(0.f, BaseLightIntensity > 0.f ? BaseLightIntensity : LightIntensity);
+	return FMath::Max(0.f, RuntimeConfig.BaseLightIntensity > 0.f ? RuntimeConfig.BaseLightIntensity : RuntimeConfig.LightIntensity);
 }
 
 float UGridLightEmitterComponent::GetEffectiveBaseRadius() const
 {
-	return FMath::Max(0.f, BaseAttenuationRadius > 0.f ? BaseAttenuationRadius : LightRadius);
+	return FMath::Max(0.f, RuntimeConfig.BaseAttenuationRadius > 0.f ? RuntimeConfig.BaseAttenuationRadius : RuntimeConfig.LightRadius);
 }
 
 FLinearColor UGridLightEmitterComponent::GetEffectiveBaseColor() const
 {
-	return BaseLightColor == FLinearColor::Black ? LightColor : BaseLightColor;
+	return RuntimeConfig.BaseLightColor == FLinearColor::Black ? RuntimeConfig.LightColor : RuntimeConfig.BaseLightColor;
 }
 
 void UGridLightEmitterComponent::UpdatePointLightOutput()
@@ -128,19 +163,19 @@ void UGridLightEmitterComponent::UpdatePointLightOutput()
 	float Intensity = BaseIntensity;
 	float Radius = BaseRadius;
 
-	if (bLightEnabled && bEnableLightFlicker)
+	if (bLightEnabled && RuntimeConfig.bEnableLightFlicker)
 	{
 		const UWorld* World = GetWorld();
 		const float TimeSeconds = World ? World->GetTimeSeconds() : 0.f;
 		const float Time = TimeSeconds + FlickerPhase;
 
-		const float PrimaryNoise = FMath::PerlinNoise1D(Time * FlickerSpeed);
-		const float SecondaryWave = FMath::Sin(Time * FlickerSecondarySpeed) * 0.35f;
+		const float PrimaryNoise = FMath::PerlinNoise1D(Time * RuntimeConfig.FlickerSpeed);
+		const float SecondaryWave = FMath::Sin(Time * RuntimeConfig.FlickerSecondarySpeed) * 0.35f;
 		const float SlowWave = FMath::Sin(Time * 1.37f) * 0.15f;
 		const float Flicker = FMath::Clamp(PrimaryNoise + SecondaryWave + SlowWave, -1.f, 1.f);
 
-		Intensity = BaseIntensity + (Flicker * FlickerIntensityAmount);
-		Radius = BaseRadius + (Flicker * FlickerRadiusAmount);
+		Intensity = BaseIntensity + (Flicker * RuntimeConfig.FlickerIntensityAmount);
+		Radius = BaseRadius + (Flicker * RuntimeConfig.FlickerRadiusAmount);
 	}
 
 	PointLightComponent->SetIntensity(FMath::Max(0.f, Intensity));
@@ -154,9 +189,9 @@ void UGridLightEmitterComponent::UpdatePointLightFlickerPosition()
 		return;
 	}
 
-	if (!bLightEnabled || !bEnableLightPositionFlicker)
+	if (!bLightEnabled || !RuntimeConfig.bEnableLightPositionFlicker)
 	{
-		PointLightComponent->SetRelativeLocation(PointLightRelativeLocation);
+		PointLightComponent->SetRelativeLocation(RuntimeConfig.PointLightRelativeLocation);
 		return;
 	}
 
@@ -164,18 +199,20 @@ void UGridLightEmitterComponent::UpdatePointLightFlickerPosition()
 	const float TimeSeconds = World ? World->GetTimeSeconds() : 0.f;
 	const float Time = TimeSeconds + FlickerPhase;
 
-	const float XNoise = FMath::PerlinNoise1D((Time * PositionFlickerSpeed) + 11.17f);
-	const float YNoise = FMath::PerlinNoise1D((Time * (PositionFlickerSpeed * 0.83f)) + 37.91f);
-	const float ZNoise = FMath::PerlinNoise1D((Time * (PositionFlickerSecondarySpeed * 0.55f)) + 73.43f);
+	const float XNoise = FMath::PerlinNoise1D((Time * RuntimeConfig.PositionFlickerSpeed) + 11.17f);
+	const float YNoise = FMath::PerlinNoise1D((Time * (RuntimeConfig.PositionFlickerSpeed * 0.83f)) + 37.91f);
+	const float ZNoise = FMath::PerlinNoise1D((Time * (RuntimeConfig.PositionFlickerSecondarySpeed * 0.55f)) + 73.43f);
 
-	const float SoftX = XNoise + (FMath::Sin((Time * PositionFlickerSecondarySpeed) + 0.4f) * 0.2f);
-	const float SoftY = YNoise + (FMath::Sin((Time * (PositionFlickerSecondarySpeed * 0.77f)) + 1.9f) * 0.2f);
-	const float SoftZ = ZNoise + (FMath::Sin((Time * (PositionFlickerSpeed * 1.41f)) + 2.7f) * 0.15f);
+	const float SoftX = XNoise + (FMath::Sin((Time * RuntimeConfig.PositionFlickerSecondarySpeed) + 0.4f) * 0.2f);
+	const float SoftY = YNoise + (FMath::Sin((Time * (RuntimeConfig.PositionFlickerSecondarySpeed * 0.77f)) + 1.9f) * 0.2f);
+	const float SoftZ = ZNoise + (FMath::Sin((Time * (RuntimeConfig.PositionFlickerSpeed * 1.41f)) + 2.7f) * 0.15f);
 
-	const FVector Offset(FMath::Clamp(SoftX, -1.f, 1.f) * PointLightFlickerPositionAmplitude.X,
-		FMath::Clamp(SoftY, -1.f, 1.f) * PointLightFlickerPositionAmplitude.Y, FMath::Clamp(SoftZ, -1.f, 1.f) * PointLightFlickerPositionAmplitude.Z);
+	const FVector Offset(
+		FMath::Clamp(SoftX, -1.f, 1.f) * RuntimeConfig.PointLightFlickerPositionAmplitude.X,
+		FMath::Clamp(SoftY, -1.f, 1.f) * RuntimeConfig.PointLightFlickerPositionAmplitude.Y,
+		FMath::Clamp(SoftZ, -1.f, 1.f) * RuntimeConfig.PointLightFlickerPositionAmplitude.Z);
 
-	PointLightComponent->SetRelativeLocation(PointLightRelativeLocation + Offset);
+	PointLightComponent->SetRelativeLocation(RuntimeConfig.PointLightRelativeLocation + Offset);
 }
 
 void UGridLightEmitterComponent::UpdatePointLightColor()
@@ -187,7 +224,7 @@ void UGridLightEmitterComponent::UpdatePointLightColor()
 
 	const FLinearColor EffectiveBaseColor = GetEffectiveBaseColor();
 
-	if (!bLightEnabled || !bEnableLightColorFlicker)
+	if (!bLightEnabled || !RuntimeConfig.bEnableLightColorFlicker)
 	{
 		PointLightComponent->SetLightColor(EffectiveBaseColor);
 		return;
@@ -197,12 +234,12 @@ void UGridLightEmitterComponent::UpdatePointLightColor()
 	const float TimeSeconds = World ? World->GetTimeSeconds() : 0.f;
 	const float Time = TimeSeconds + FlickerPhase;
 
-	const float Noise = FMath::PerlinNoise1D((Time * ColorFlickerSpeed) + 149.37f);
-	const float Wave = FMath::Sin((Time * (ColorFlickerSpeed * 1.7f)) + 0.8f) * 0.25f;
+	const float Noise = FMath::PerlinNoise1D((Time * RuntimeConfig.ColorFlickerSpeed) + 149.37f);
+	const float Wave = FMath::Sin((Time * (RuntimeConfig.ColorFlickerSpeed * 1.7f)) + 0.8f) * 0.25f;
 	const float FlickerAlpha = FMath::Clamp((Noise + Wave + 1.f) * 0.5f, 0.f, 1.f);
 
-	const FLinearColor FlameColor = FLinearColor::LerpUsingHSV(FlickerWarmColor, FlickerHotColor, FlickerAlpha);
-	const float BlendAmount = FMath::Clamp(ColorFlickerAmount, 0.f, 1.f);
+	const FLinearColor FlameColor = FLinearColor::LerpUsingHSV(RuntimeConfig.FlickerWarmColor, RuntimeConfig.FlickerHotColor, FlickerAlpha);
+	const float BlendAmount = FMath::Clamp(RuntimeConfig.ColorFlickerAmount, 0.f, 1.f);
 	const FLinearColor ResultColor = FLinearColor::LerpUsingHSV(EffectiveBaseColor, FlameColor, BlendAmount);
 
 	PointLightComponent->SetLightColor(ResultColor);
