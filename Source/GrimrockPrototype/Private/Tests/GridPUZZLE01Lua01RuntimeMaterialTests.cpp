@@ -131,6 +131,8 @@ bool FGridPUZZLE01Lua01RuntimeMaterialAliasTest::RunTest(const FString& Paramete
 
 	const FGridLevelRuntimeState* SavedState = Runtime->FindRuntimeStateForCurrentLevel();
 	TestNotNull(TEXT("Persistent level runtime state exists"), SavedState);
+	const FName SavedLevelId = SavedState ? SavedState->LevelId : NAME_None;
+	TestFalse(TEXT("Persistent level runtime state has a canonical LevelId"), SavedLevelId.IsNone());
 	const FGridRuntimeObjectVisualState* SavedVisual = SavedState ? SavedState->ObjectVisuals.Find(GuardianId) : nullptr;
 	TestNotNull(TEXT("Material alias override is stored by ObjectId"), SavedVisual);
 	if (SavedVisual)
@@ -159,8 +161,8 @@ bool FGridPUZZLE01Lua01RuntimeMaterialAliasTest::RunTest(const FString& Paramete
 		return false;
 	}
 
-	const FGridLevelRuntimeState* LoadedState = LoadedSave->DungeonRuntimeState.LevelStates.Find(TEXT("PUZZLE01_LUA01"));
-	TestNotNull(TEXT("Round-tripped level runtime state exists"), LoadedState);
+	const FGridLevelRuntimeState* LoadedState = LoadedSave->DungeonRuntimeState.LevelStates.Find(SavedLevelId);
+	TestNotNull(TEXT("Round-tripped level runtime state exists under its canonical LevelId"), LoadedState);
 	const FGridRuntimeObjectVisualState* LoadedVisual = LoadedState ? LoadedState->ObjectVisuals.Find(GuardianId) : nullptr;
 	TestNotNull(TEXT("Round-tripped visual override exists"), LoadedVisual);
 	if (LoadedVisual)
