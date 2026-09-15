@@ -33,17 +33,9 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 		return false;
 	}
 
-	const bool bUseHeldTorchClass = ItemDefinitionId == DefaultHeldItemDefinitionId && HeldTorchActorClass;
-
-	if (!bUseHeldTorchClass && !LevelRuntimeActor)
+	if (!LevelRuntimeActor)
 	{
 		LevelRuntimeActor = Cast<AGridLevelRuntimeActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridLevelRuntimeActor::StaticClass()));
-	}
-
-	if (!bUseHeldTorchClass && !LevelRuntimeActor)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Held item equip failed: no AGridLevelRuntimeActor found for %s."), *ItemDefinitionId.ToString());
-		return false;
 	}
 
 	UGridItemDefinitionAsset* ItemDefinition = PartyInventoryComponent ? PartyInventoryComponent->FindItemDefinition(ItemDefinitionId) : nullptr;
@@ -51,7 +43,7 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 	{
 		ItemDefinition = LevelRuntimeActor->ResolveRuntimeItemDefinition(ItemDefinitionId);
 	}
-	if (!bUseHeldTorchClass && !ItemDefinition)
+	if (!ItemDefinition)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Held item equip failed: item definition %s could not be resolved."), *ItemDefinitionId.ToString());
 		return false;
@@ -60,23 +52,21 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 	ClearHeldItem();
 
 	USceneComponent* AttachParent = HeldItemRoot ? HeldItemRoot.Get() : GetRootComponent();
-	if (bUseHeldTorchClass)
+	if (LevelRuntimeActor)
+	{
+		HeldItemActor = LevelRuntimeActor->SpawnItemActorForDefinition(ItemDefinition, ItemDefinitionId, this, AttachParent);
+	}
+	else if (UWorld* World = GetWorld())
 	{
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
 		SpawnParams.Instigator = GetInstigator();
-
-		HeldItemActor = GetWorld()->SpawnActor<AGridItemActor>(HeldTorchActorClass, FTransform::Identity, SpawnParams);
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		HeldItemActor = World->SpawnActor<AGridItemActor>(AGridItemActor::StaticClass(), FTransform::Identity, SpawnParams);
 		if (HeldItemActor)
 		{
-			// MIG09-B: the held torch Blueprint keeps its own presentation, but runtime
-			// identity is the canonical ItemDefinitionId. Do not reintroduce WorldObjectDefinitionId.
-			HeldItemActor->InitializeFromItemDefinitionId(ItemDefinitionId, FGuid());
+			HeldItemActor->InitializeFromItemDefinition(ItemDefinition, FGuid());
 		}
-	}
-	else
-	{
-		HeldItemActor = LevelRuntimeActor->SpawnItemActorForDefinition(ItemDefinition, ItemDefinitionId, this, AttachParent);
 	}
 
 	if (!HeldItemActor)
@@ -85,17 +75,18 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 		return false;
 	}
 
-	if (!bUseHeldTorchClass && ItemDefinition && HeldItemActor->MeshComponent)
+	if (HeldItemActor->MeshComponent)
 	{
 		HeldItemActor->MeshComponent->SetStaticMesh(ItemDefinition->LoadHeldMesh());
 	}
+	HeldItemActor->ConfigureAsAttachedItem();
 	HeldItemActor->AttachToComponent(AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	HeldItemActor->SetActorRelativeLocation(HeldItemRelativeLocation);
 	HeldItemActor->SetActorRelativeRotation(HeldItemRelativeRotation);
 	HeldItemActor->SetActorRelativeScale3D(HeldItemRelativeScale);
 	HeldItemActor->OnPlacedInWorld();
 	HeldItemDefinitionId = ItemDefinitionId;
-	bHasTorchInHand = ItemDefinitionId == DefaultHeldItemDefinitionId;
+	bHasLightInHand = false;
 
 	UE_LOG(LogTemp, Log, TEXT("Held item equipped: %s Mesh=%s"), *ItemDefinitionId.ToString(),
 		HeldItemActor->MeshComponent ? *GetNameSafe(HeldItemActor->MeshComponent->GetStaticMesh()) : TEXT("None"));
@@ -112,7 +103,7 @@ void AGrimrockPartyPawn::ClearHeldItem()
 	}
 
 	HeldItemDefinitionId = NAME_None;
-	bHasTorchInHand = false;
+	bHasLightInHand = false;
 }
 
 FName AGrimrockPartyPawn::GetHeldItemDefinitionId() const
@@ -146,7 +137,7 @@ UGridItemDefinitionAsset* AGrimrockPartyPawn::ResolveEquippedItemDefinition(cons
 bool AGrimrockPartyPawn::DoesEquippedItemEmitLight(const FGridItemInstance& Item) const
 {
 	const UGridItemDefinitionAsset* ItemDefinition = ResolveEquippedItemDefinition(Item);
-	return Item.IsValid() && ((ItemDefinition && ItemDefinition->bCanEmitLight) || Item.bLightsEnabled);
+	return Item.IsValid() && Item.bLightsEnabled && ItemDefinition && ItemDefinition->HasLightEmitter();
 }
 
 bool AGrimrockPartyPawn::RecomputeEquippedLightState(
@@ -214,7 +205,7 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 	{
 		HeldItemActor->SetItemLightsEnabled(bAnyEquippedLight);
 	}
-	bHasTorchInHand = bAnyEquippedLight;
+	bHasLightInHand = bAnyEquippedLight;
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory HeldVisual Sync Equipped Character=%d Slot=%s Item=%s"), CharacterIndex,
 		GridPartyPawnHeldItemGetEquipmentSlotName(VisualSlot), *VisualItem->ItemDefinitionId.ToString());
