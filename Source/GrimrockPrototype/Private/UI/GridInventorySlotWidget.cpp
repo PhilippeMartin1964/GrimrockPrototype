@@ -218,7 +218,7 @@ FText UGridInventorySlotWidget::GetCompatibleEquipmentSlotsText() const
 FText UGridInventorySlotWidget::GetLightTooltipText() const
 {
 	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
-	return Definition && Definition->bCanEmitLight ? NSLOCTEXT("GridInventoryTooltip", "EmitsLight", "Lumière : oui") : FText::GetEmpty();
+	return Definition && Definition->HasLightEmitter() ? NSLOCTEXT("GridInventoryTooltip", "EmitsLight", "Lumière : oui") : FText::GetEmpty();
 }
 
 FText UGridInventorySlotWidget::GetTooltipText() const
