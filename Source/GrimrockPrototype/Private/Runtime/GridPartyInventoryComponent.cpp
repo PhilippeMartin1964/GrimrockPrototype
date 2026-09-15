@@ -36,52 +36,29 @@ namespace
 	{
 		switch (Slot)
 		{
-			case EGridEquipmentSlot::None:
-				return TEXT("None");
-			case EGridEquipmentSlot::MainHand:
-				return TEXT("MainHand");
-			case EGridEquipmentSlot::OffHand:
-				return TEXT("OffHand");
-			case EGridEquipmentSlot::Head:
-				return TEXT("Head");
-			case EGridEquipmentSlot::Chest:
-				return TEXT("Chest");
-			case EGridEquipmentSlot::Legs:
-				return TEXT("Legs");
-			case EGridEquipmentSlot::Feet:
-				return TEXT("Feet");
-			case EGridEquipmentSlot::Amulet:
-				return TEXT("Amulet");
-			case EGridEquipmentSlot::Ring1:
-				return TEXT("Ring1");
-			case EGridEquipmentSlot::Ring2:
-				return TEXT("Ring2");
-			case EGridEquipmentSlot::Shoulders:
-				return TEXT("Shoulders");
-			case EGridEquipmentSlot::Gloves:
-				return TEXT("Gloves");
-			case EGridEquipmentSlot::Belt:
-				return TEXT("Belt");
-			case EGridEquipmentSlot::Cloak:
-				return TEXT("Cloak");
-			case EGridEquipmentSlot::Talisman:
-				return TEXT("Talisman");
-			case EGridEquipmentSlot::QuickSlot1:
-				return TEXT("QuickSlot1");
-			case EGridEquipmentSlot::QuickSlot2:
-				return TEXT("QuickSlot2");
-			case EGridEquipmentSlot::Face:
-				return TEXT("Visage");
-			case EGridEquipmentSlot::Shirt:
-				return TEXT("Chemise");
-			case EGridEquipmentSlot::Bracers:
-				return TEXT("Brassards");
-			case EGridEquipmentSlot::Earring1:
-				return TEXT("Bijou d'oreille I");
-			case EGridEquipmentSlot::Earring2:
-				return TEXT("Bijou d'oreille II");
-			default:
-				return TEXT("Unsupported");
+			case EGridEquipmentSlot::None: return TEXT("None");
+			case EGridEquipmentSlot::MainHand: return TEXT("MainHand");
+			case EGridEquipmentSlot::OffHand: return TEXT("OffHand");
+			case EGridEquipmentSlot::Head: return TEXT("Head");
+			case EGridEquipmentSlot::Chest: return TEXT("Chest");
+			case EGridEquipmentSlot::Legs: return TEXT("Legs");
+			case EGridEquipmentSlot::Feet: return TEXT("Feet");
+			case EGridEquipmentSlot::Amulet: return TEXT("Amulet");
+			case EGridEquipmentSlot::Ring1: return TEXT("Ring1");
+			case EGridEquipmentSlot::Ring2: return TEXT("Ring2");
+			case EGridEquipmentSlot::Shoulders: return TEXT("Shoulders");
+			case EGridEquipmentSlot::Gloves: return TEXT("Gloves");
+			case EGridEquipmentSlot::Belt: return TEXT("Belt");
+			case EGridEquipmentSlot::Cloak: return TEXT("Cloak");
+			case EGridEquipmentSlot::Talisman: return TEXT("Talisman");
+			case EGridEquipmentSlot::QuickSlot1: return TEXT("QuickSlot1");
+			case EGridEquipmentSlot::QuickSlot2: return TEXT("QuickSlot2");
+			case EGridEquipmentSlot::Face: return TEXT("Visage");
+			case EGridEquipmentSlot::Shirt: return TEXT("Chemise");
+			case EGridEquipmentSlot::Bracers: return TEXT("Brassards");
+			case EGridEquipmentSlot::Earring1: return TEXT("Bijou d'oreille I");
+			case EGridEquipmentSlot::Earring2: return TEXT("Bijou d'oreille II");
+			default: return TEXT("Unsupported");
 		}
 	}
 
@@ -89,33 +66,24 @@ namespace
 	{
 		switch (OwnerType)
 		{
-			case EGridItemOwnerType::World:
-				return TEXT("World");
-			case EGridItemOwnerType::Receptacle:
-				return TEXT("Receptacle");
-			case EGridItemOwnerType::CharacterInventory:
-				return TEXT("CharacterInventory");
-			case EGridItemOwnerType::EquipmentSlot:
-				return TEXT("EquipmentSlot");
-			case EGridItemOwnerType::Cursor:
-				return TEXT("Cursor");
-			case EGridItemOwnerType::HeldBySelectedCharacter:
-				return TEXT("HeldBySelectedCharacter");
-			case EGridItemOwnerType::Removed:
-				return TEXT("Removed");
-			default:
-				return TEXT("None");
+			case EGridItemOwnerType::World: return TEXT("World");
+			case EGridItemOwnerType::Receptacle: return TEXT("Receptacle");
+			case EGridItemOwnerType::CharacterInventory: return TEXT("CharacterInventory");
+			case EGridItemOwnerType::EquipmentSlot: return TEXT("EquipmentSlot");
+			case EGridItemOwnerType::Cursor: return TEXT("Cursor");
+			case EGridItemOwnerType::HeldBySelectedCharacter: return TEXT("HeldBySelectedCharacter");
+			case EGridItemOwnerType::Removed: return TEXT("Removed");
+			default: return TEXT("None");
 		}
 	}
 
 	bool CharacterHasInventoryItemDefinition(const FGridCharacterInventoryState& CharacterState, FName ItemDefinitionId)
 	{
-		return !ItemDefinitionId.IsNone() &&
-			CharacterState.InventorySlots.ContainsByPredicate(
-				[ItemDefinitionId](const FGridInventorySlot& Slot)
-				{
-					return !Slot.IsEmpty() && Slot.Item.ItemDefinitionId == ItemDefinitionId && Slot.Item.Quantity > 0;
-				});
+		return !ItemDefinitionId.IsNone() && CharacterState.InventorySlots.ContainsByPredicate(
+			[ItemDefinitionId](const FGridInventorySlot& Slot)
+			{
+				return !Slot.IsEmpty() && Slot.Item.ItemDefinitionId == ItemDefinitionId && Slot.Item.Quantity > 0;
+			});
 	}
 
 	void ClearQuickItemHotbarBindings(FGridCharacterInventoryState& CharacterState, FName ItemDefinitionId)
@@ -127,7 +95,6 @@ namespace
 			{
 				continue;
 			}
-
 			Binding.Reset(SlotIndex);
 		}
 	}
@@ -191,8 +158,7 @@ namespace
 			}
 			else if (Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
 			{
-				if (!CharacterHasInventoryItemDefinition(CharacterState, Binding.SourceDefinitionId) ||
-					AssignedQuickItemDefinitionIds.Contains(Binding.SourceDefinitionId))
+				if (!CharacterHasInventoryItemDefinition(CharacterState, Binding.SourceDefinitionId) || AssignedQuickItemDefinitionIds.Contains(Binding.SourceDefinitionId))
 				{
 					Binding.Reset(SlotIndex);
 				}
@@ -236,31 +202,25 @@ void UGridPartyInventoryComponent::NotifyPartyInventoryChanged(int32 CharacterIn
 void UGridPartyInventoryComponent::InitializeDefaultPartyIfNeeded()
 {
 	PartyInventoryState.MaxActiveCharacters = FMath::Max(1, DefaultMaxActiveCharacters);
-
 	if (PartyInventoryState.ActiveCharacters.Num() == 0)
 	{
 		FGridCharacterInventoryState DefaultCharacter;
 		InitializeCharacterDefaults(DefaultCharacter, 0);
 		PartyInventoryState.ActiveCharacters.Add(DefaultCharacter);
 	}
-
 	for (int32 CharacterIndex = 0; CharacterIndex < PartyInventoryState.ActiveCharacters.Num(); ++CharacterIndex)
 	{
 		InitializeCharacterDefaults(PartyInventoryState.ActiveCharacters[CharacterIndex], CharacterIndex);
 	}
-
 	for (FGridCharacterInventoryState& CharacterState : PartyInventoryState.CharacterPool)
 	{
 		InitializeCombatHotbarDefaults(CharacterState);
 	}
-
 	EnsureEquipmentCountMatchesActiveCharacters();
-
 	if (!IsValidCharacterIndex(PartyInventoryState.SelectedCharacterIndex))
 	{
 		PartyInventoryState.SelectedCharacterIndex = PartyInventoryState.ActiveCharacters.Num() > 0 ? 0 : INDEX_NONE;
 	}
-
 	NotifyPartyInventoryChanged(INDEX_NONE);
 }
 
@@ -278,25 +238,21 @@ void UGridPartyInventoryComponent::ResetPartyForNewGame()
 bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyInventoryState& SavedState, FText& OutError)
 {
 	OutError = FText::GetEmpty();
-
 	if (!SavedState.bInitialCharacterCreationCompleted)
 	{
 		OutError = FText::FromString(TEXT("La sauvegarde ne contient aucun personnage finalisé."));
 		return false;
 	}
-
 	if (SavedState.ActiveCharacters.Num() < 1 || SavedState.MaxActiveCharacters < SavedState.ActiveCharacters.Num())
 	{
 		OutError = FText::FromString(TEXT("Le groupe sauvegardé possède un nombre de personnages invalide."));
 		return false;
 	}
-
 	if (SavedState.ActiveEquipment.Num() != SavedState.ActiveCharacters.Num())
 	{
 		OutError = FText::FromString(TEXT("Les personnages et leurs équipements sauvegardés ne sont pas alignés."));
 		return false;
 	}
-
 	if (!SavedState.ActiveCharacters.IsValidIndex(SavedState.SelectedCharacterIndex))
 	{
 		OutError = FText::FromString(TEXT("Le personnage sélectionné dans la sauvegarde est invalide."));
@@ -311,16 +267,7 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 			OutError = FText::FromString(TEXT("Un personnage sauvegardé ne possède pas d'identifiant valide."));
 			return false;
 		}
-
-		if (Character.CombatHotbarSlots.IsEmpty())
-		{
-			InitializeCombatHotbarDefaults(Character);
-		}
-		else
-		{
-			SanitizeCombatHotbarBindings(Character);
-		}
-
+		if (Character.CombatHotbarSlots.IsEmpty()) InitializeCombatHotbarDefaults(Character); else SanitizeCombatHotbarBindings(Character);
 		FString HotbarError;
 		if (!ValidateCombatHotbar(Character, HotbarError))
 		{
@@ -328,18 +275,9 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 			return false;
 		}
 	}
-
 	for (FGridCharacterInventoryState& Character : RestoredState.CharacterPool)
 	{
-		if (Character.CombatHotbarSlots.IsEmpty())
-		{
-			InitializeCombatHotbarDefaults(Character);
-		}
-		else
-		{
-			SanitizeCombatHotbarBindings(Character);
-		}
-
+		if (Character.CombatHotbarSlots.IsEmpty()) InitializeCombatHotbarDefaults(Character); else SanitizeCombatHotbarBindings(Character);
 		FString HotbarError;
 		if (!ValidateCombatHotbar(Character, HotbarError))
 		{
@@ -351,7 +289,6 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 	const FGridPartyInventoryState PreviousState = PartyInventoryState;
 	PartyInventoryState = MoveTemp(RestoredState);
 	NotifyPartyInventoryChanged(INDEX_NONE);
-
 	FString OwnershipError;
 	if (!ValidateInventoryOwnership(OwnershipError))
 	{
@@ -360,20 +297,17 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 		OutError = FText::FromString(FString::Printf(TEXT("L'ownership de la sauvegarde est invalide : %s"), *OwnershipError));
 		return false;
 	}
-
 	return true;
 }
 
 bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCreationRequest& Request, FText& OutError)
 {
 	OutError = FText::GetEmpty();
-
 	if (HasCompletedInitialCharacterCreation())
 	{
 		OutError = FText::FromString(TEXT("La création initiale du personnage est déjà terminée."));
 		return false;
 	}
-
 	FString NormalizedName = Request.DisplayName.ToString();
 	NormalizedName.TrimStartAndEndInline();
 	if (NormalizedName.Len() < 1 || NormalizedName.Len() > 24)
@@ -381,21 +315,17 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 		OutError = FText::FromString(TEXT("Le nom du personnage doit contenir entre 1 et 24 caractères."));
 		return false;
 	}
-
 	if (!Request.RaceDefinition || !Request.RaceDefinition->IsValidDefinition())
 	{
 		OutError = FText::FromString(TEXT("Une définition de race valide est requise."));
 		return false;
 	}
-
 	if (!Request.ClassDefinition || !Request.ClassDefinition->IsValidDefinition())
 	{
 		OutError = FText::FromString(TEXT("Une définition de classe valide est requise."));
 		return false;
 	}
-
-	URPGClassAsset* CombatActionSourceClass =
-		Request.CombatActionSourceClassDefinition ? Request.CombatActionSourceClassDefinition.Get() : Request.ClassDefinition.Get();
+	URPGClassAsset* CombatActionSourceClass = Request.CombatActionSourceClassDefinition ? Request.CombatActionSourceClassDefinition.Get() : Request.ClassDefinition.Get();
 	if (!CombatActionSourceClass || !CombatActionSourceClass->IsValidDefinition() || CombatActionSourceClass->ClassId != Request.ClassDefinition->ClassId)
 	{
 		OutError = FText::FromString(TEXT("La source des actions de classe est invalide."));
@@ -407,8 +337,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	FRPGAuthoringIdentityResolver::RememberPortraitVisual(Request.RaceDefinition->RaceId, Request.PortraitGender, Request.PortraitVariantId, Request.Portrait);
 	FRPGAuthoringIdentityResolver::RememberClassIcon(Request.ClassDefinition->ClassId, Request.ClassIcon);
 
-	const FRPGAttributes FinalAttributes =
-		URPGCharacterRulesLibrary::AddAttributes(Request.ClassDefinition->BaseAttributes, Request.RaceDefinition->AttributeBonuses);
+	const FRPGAttributes FinalAttributes = URPGCharacterRulesLibrary::AddAttributes(Request.ClassDefinition->BaseAttributes, Request.RaceDefinition->AttributeBonuses);
 	if (!URPGCharacterRulesLibrary::AreAttributesInRange(FinalAttributes))
 	{
 		OutError = FText::FromString(TEXT("Toutes les caractéristiques initiales doivent être comprises entre 6 et 20."));
@@ -431,8 +360,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	NewCharacter.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(NewCharacter.DerivedStats, Request.ClassDefinition);
 	NewCharacter.PortraitGender = Request.PortraitGender;
 	NewCharacter.PortraitVariantId = Request.PortraitVariantId;
-	NewCharacter.Portrait =
-		FRPGAuthoringIdentityResolver::ResolvePortraitVisual(NewCharacter.RaceId, NewCharacter.PortraitGender, NewCharacter.PortraitVariantId);
+	NewCharacter.Portrait = FRPGAuthoringIdentityResolver::ResolvePortraitVisual(NewCharacter.RaceId, NewCharacter.PortraitGender, NewCharacter.PortraitVariantId);
 	NewCharacter.ClassIcon = FRPGAuthoringIdentityResolver::ResolveClassIcon(NewCharacter.ClassId);
 	NewCharacter.InventorySlots.SetNum(FMath::Max(0, DefaultInventorySlotCountPerCharacter));
 	InitializeCombatHotbarDefaults(NewCharacter);
@@ -449,7 +377,6 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	const FGridPartyInventoryState PreviousPartyState = PartyInventoryState;
 	PartyInventoryState = MoveTemp(NewPartyState);
 	NotifyPartyInventoryChanged(INDEX_NONE);
-
 	FString OwnershipError;
 	if (!ValidateInventoryOwnership(OwnershipError))
 	{
@@ -458,29 +385,13 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 		OutError = FText::FromString(FString::Printf(TEXT("La création du personnage a échoué lors de la validation de l'ownership : %s"), *OwnershipError));
 		return false;
 	}
-
 	return true;
 }
 
-int32 UGridPartyInventoryComponent::GetActiveCharacterCount() const
-{
-	return PartyInventoryState.ActiveCharacters.Num();
-}
-
-int32 UGridPartyInventoryComponent::GetMaxActiveCharacters() const
-{
-	return PartyInventoryState.MaxActiveCharacters;
-}
-
-int32 UGridPartyInventoryComponent::GetMaxActiveCharacterCount() const
-{
-	return GetMaxActiveCharacters();
-}
-
-int32 UGridPartyInventoryComponent::GetSelectedCharacterIndex() const
-{
-	return PartyInventoryState.SelectedCharacterIndex;
-}
+int32 UGridPartyInventoryComponent::GetActiveCharacterCount() const { return PartyInventoryState.ActiveCharacters.Num(); }
+int32 UGridPartyInventoryComponent::GetMaxActiveCharacters() const { return PartyInventoryState.MaxActiveCharacters; }
+int32 UGridPartyInventoryComponent::GetMaxActiveCharacterCount() const { return GetMaxActiveCharacters(); }
+int32 UGridPartyInventoryComponent::GetSelectedCharacterIndex() const { return PartyInventoryState.SelectedCharacterIndex; }
 
 bool UGridPartyInventoryComponent::SetSelectedCharacterIndex(int32 NewIndex)
 {
@@ -490,12 +401,8 @@ bool UGridPartyInventoryComponent::SetSelectedCharacterIndex(int32 NewIndex)
 		UE_LOG(LogTemp, Log, TEXT("GridInventory SelectedCharacter Changed Old=%d New=%d Result=false"), OldIndex, NewIndex);
 		return false;
 	}
-
 	PartyInventoryState.SelectedCharacterIndex = NewIndex;
-	if (OldIndex != NewIndex)
-	{
-		NotifyPartyInventoryChanged(INDEX_NONE);
-	}
+	if (OldIndex != NewIndex) NotifyPartyInventoryChanged(INDEX_NONE);
 	UE_LOG(LogTemp, Log, TEXT("GridInventory SelectedCharacter Changed Old=%d New=%d Result=true"), OldIndex, NewIndex);
 	return true;
 }
@@ -503,17 +410,11 @@ bool UGridPartyInventoryComponent::SetSelectedCharacterIndex(int32 NewIndex)
 bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGridInventoryCharacterSummary& OutSummary) const
 {
 	OutSummary = FGridInventoryCharacterSummary();
-	if (!IsValidCharacterIndex(CharacterIndex))
-	{
-		return false;
-	}
-
+	if (!IsValidCharacterIndex(CharacterIndex)) return false;
 	const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	OutSummary.CharacterIndex = CharacterIndex;
 	OutSummary.CharacterId = CharacterState.CharacterId.IsValid() ? FName(*CharacterState.CharacterId.ToString(EGuidFormats::DigitsWithHyphens)) : NAME_None;
-	OutSummary.DisplayName = CharacterState.DisplayName.IsEmpty()
-		? FText::FromString(CharacterIndex == 0 ? TEXT("Hero_01") : FString::Printf(TEXT("Hero_%02d"), CharacterIndex + 1))
-		: CharacterState.DisplayName;
+	OutSummary.DisplayName = CharacterState.DisplayName.IsEmpty() ? FText::FromString(CharacterIndex == 0 ? TEXT("Hero_01") : FString::Printf(TEXT("Hero_%02d"), CharacterIndex + 1)) : CharacterState.DisplayName;
 	OutSummary.ClassId = CharacterState.ClassId;
 	OutSummary.ClassDisplayName = CharacterState.ClassDisplayName.IsEmpty() ? FText::FromName(CharacterState.ClassId) : CharacterState.ClassDisplayName;
 	OutSummary.RaceId = CharacterState.RaceId;
@@ -540,8 +441,7 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	OutSummary.DerivedStats.MaxMana = FMath::Max(0, OutSummary.DerivedStats.MaxMana + OutSummary.EquipmentStatBonus.MaxManaBonus);
 	OutSummary.Resources.CurrentMana = FMath::Clamp(OutSummary.Resources.CurrentMana, 0, OutSummary.DerivedStats.MaxMana);
 	OutSummary.Resources.CurrentPhysicalArmor = FMath::Max(0, OutSummary.Resources.CurrentPhysicalArmor + OutSummary.EquipmentStatBonus.ArmorBonus);
-	OutSummary.Portrait =
-		FRPGAuthoringIdentityResolver::ResolvePortraitVisual(CharacterState.RaceId, CharacterState.PortraitGender, CharacterState.PortraitVariantId);
+	OutSummary.Portrait = FRPGAuthoringIdentityResolver::ResolvePortraitVisual(CharacterState.RaceId, CharacterState.PortraitGender, CharacterState.PortraitVariantId);
 	OutSummary.UsedInventorySlots = CountOccupiedSlots(CharacterState);
 	OutSummary.MaxInventorySlots = CharacterState.InventorySlots.Num();
 	OutSummary.CurrentWeight = CalculateCharacterCurrentWeight(CharacterIndex);
@@ -551,10 +451,7 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	return true;
 }
 
-bool UGridPartyInventoryComponent::IsValidCharacterIndex(int32 Index) const
-{
-	return PartyInventoryState.IsValidActiveCharacterIndex(Index);
-}
+bool UGridPartyInventoryComponent::IsValidCharacterIndex(int32 Index) const { return PartyInventoryState.IsValidActiveCharacterIndex(Index); }
 
 bool UGridPartyInventoryComponent::CanAddItemToCharacterInventory(int32 CharacterIndex, const FGridItemInstance& Item) const
 {
@@ -562,35 +459,19 @@ bool UGridPartyInventoryComponent::CanAddItemToCharacterInventory(int32 Characte
 	const int32 InitialQuantity = ItemToAdd.Quantity;
 	ApplyItemDefinitionToInstance(ItemToAdd);
 	ItemToAdd.Quantity = InitialQuantity;
-
-	if (!IsValidCharacterIndex(CharacterIndex) || !ItemToAdd.IsValid())
-	{
-		return false;
-	}
-
+	if (!IsValidCharacterIndex(CharacterIndex) || !ItemToAdd.IsValid()) return false;
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
 	const bool bStackable = Definition && Definition->bStackable;
 	const int32 MaxStackSize = bStackable ? FMath::Max(1, Definition->MaxStackSize) : 1;
-
 	int64 AvailableCapacity = 0;
 	const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	for (const FGridInventorySlot& Slot : CharacterState.InventorySlots)
 	{
-		if (Slot.IsEmpty())
-		{
-			AvailableCapacity += MaxStackSize;
-		}
+		if (Slot.IsEmpty()) AvailableCapacity += MaxStackSize;
 		else if (bStackable && Slot.Item.ItemDefinitionId == ItemToAdd.ItemDefinitionId && HaveMatchingReadableContent(Slot.Item, ItemToAdd))
-		{
 			AvailableCapacity += FMath::Max(0, MaxStackSize - FMath::Max(1, Slot.Item.Quantity));
-		}
-
-		if (AvailableCapacity >= InitialQuantity)
-		{
-			return true;
-		}
+		if (AvailableCapacity >= InitialQuantity) return true;
 	}
-
 	return AvailableCapacity >= InitialQuantity;
 }
 
@@ -605,74 +486,43 @@ bool UGridPartyInventoryComponent::AddItemToCharacterInventory(int32 CharacterIn
 	const int32 InitialQuantity = ItemToAdd.Quantity;
 	ApplyItemDefinitionToInstance(ItemToAdd);
 	ItemToAdd.Quantity = InitialQuantity;
-
-	if (!IsValidCharacterIndex(CharacterIndex) || !ItemToAdd.IsValid() || !CanAddItemToCharacterInventory(CharacterIndex, ItemToAdd))
-	{
-		return false;
-	}
-
+	if (!IsValidCharacterIndex(CharacterIndex) || !ItemToAdd.IsValid() || !CanAddItemToCharacterInventory(CharacterIndex, ItemToAdd)) return false;
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
 	const bool bStackable = Definition && Definition->bStackable;
 	const int32 MaxStackSize = bStackable ? FMath::Max(1, Definition->MaxStackSize) : 1;
-
 	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	ItemToAdd.OwnerType = EGridItemOwnerType::CharacterInventory;
 	ItemToAdd.OwnerGuid = CharacterState.CharacterId;
 	ItemToAdd.OwnerCharacterIndex = CharacterIndex;
 	ItemToAdd.EquipmentSlot = EGridEquipmentSlot::None;
-
 	TArray<FGridInventorySlot> UpdatedInventorySlots = CharacterState.InventorySlots;
 	int32 RemainingQuantity = InitialQuantity;
 	if (bStackable)
 	{
 		for (FGridInventorySlot& Slot : UpdatedInventorySlots)
 		{
-			if (RemainingQuantity <= 0)
-			{
-				break;
-			}
-			if (Slot.IsEmpty() || Slot.Item.ItemDefinitionId != ItemToAdd.ItemDefinitionId || !HaveMatchingReadableContent(Slot.Item, ItemToAdd))
-			{
-				continue;
-			}
-
+			if (RemainingQuantity <= 0) break;
+			if (Slot.IsEmpty() || Slot.Item.ItemDefinitionId != ItemToAdd.ItemDefinitionId || !HaveMatchingReadableContent(Slot.Item, ItemToAdd)) continue;
 			const int32 AvailableInStack = FMath::Max(0, MaxStackSize - FMath::Max(1, Slot.Item.Quantity));
 			const int32 QuantityToStack = FMath::Min(RemainingQuantity, AvailableInStack);
 			Slot.Item.Quantity += QuantityToStack;
 			RemainingQuantity -= QuantityToStack;
 		}
 	}
-
 	bool bUsedIncomingRuntimeObjectId = false;
 	for (FGridInventorySlot& Slot : UpdatedInventorySlots)
 	{
-		if (RemainingQuantity <= 0)
-		{
-			break;
-		}
-		if (!Slot.IsEmpty())
-		{
-			continue;
-		}
-
+		if (RemainingQuantity <= 0) break;
+		if (!Slot.IsEmpty()) continue;
 		FGridItemInstance NewStack = ItemToAdd;
 		NewStack.Quantity = FMath::Min(RemainingQuantity, MaxStackSize);
-		if (bUsedIncomingRuntimeObjectId)
-		{
-			NewStack.RuntimeObjectId = FGuid::NewGuid();
-		}
-
+		if (bUsedIncomingRuntimeObjectId) NewStack.RuntimeObjectId = FGuid::NewGuid();
 		Slot.bOccupied = true;
 		Slot.Item = NewStack;
 		RemainingQuantity -= NewStack.Quantity;
 		bUsedIncomingRuntimeObjectId = true;
 	}
-
-	if (RemainingQuantity != 0)
-	{
-		return false;
-	}
-
+	if (RemainingQuantity != 0) return false;
 	CharacterState.InventorySlots = MoveTemp(UpdatedInventorySlots);
 	NotifyPartyInventoryChanged(CharacterIndex);
 	return true;
@@ -686,51 +536,32 @@ bool UGridPartyInventoryComponent::AddItemToSelectedCharacterInventory(const FGr
 bool UGridPartyInventoryComponent::RemoveItemFromCharacterInventoryByRuntimeId(int32 CharacterIndex, FGuid RuntimeObjectId, FGridItemInstance& OutRemovedItem)
 {
 	OutRemovedItem = FGridItemInstance();
-	if (!IsValidCharacterIndex(CharacterIndex) || !RuntimeObjectId.IsValid())
-	{
-		return false;
-	}
-
+	if (!IsValidCharacterIndex(CharacterIndex) || !RuntimeObjectId.IsValid()) return false;
 	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	for (FGridInventorySlot& Slot : CharacterState.InventorySlots)
 	{
-		if (Slot.IsEmpty() || Slot.Item.RuntimeObjectId != RuntimeObjectId)
-		{
-			continue;
-		}
-
+		if (Slot.IsEmpty() || Slot.Item.RuntimeObjectId != RuntimeObjectId) continue;
 		OutRemovedItem = Slot.Item;
 		Slot = FGridInventorySlot();
 		NotifyPartyInventoryChanged(CharacterIndex);
 		return true;
 	}
-
 	return false;
 }
 
-bool UGridPartyInventoryComponent::RemoveFirstItemFromCharacterInventoryByDefinitionId(
-	int32 CharacterIndex, FName ItemDefinitionId, FGridItemInstance& OutRemovedItem)
+bool UGridPartyInventoryComponent::RemoveFirstItemFromCharacterInventoryByDefinitionId(int32 CharacterIndex, FName ItemDefinitionId, FGridItemInstance& OutRemovedItem)
 {
 	OutRemovedItem = FGridItemInstance();
-	if (!IsValidCharacterIndex(CharacterIndex) || ItemDefinitionId.IsNone())
-	{
-		return false;
-	}
-
+	if (!IsValidCharacterIndex(CharacterIndex) || ItemDefinitionId.IsNone()) return false;
 	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	for (FGridInventorySlot& Slot : CharacterState.InventorySlots)
 	{
-		if (Slot.IsEmpty() || Slot.Item.ItemDefinitionId != ItemDefinitionId)
-		{
-			continue;
-		}
-
+		if (Slot.IsEmpty() || Slot.Item.ItemDefinitionId != ItemDefinitionId) continue;
 		OutRemovedItem = Slot.Item;
 		Slot = FGridInventorySlot();
 		NotifyPartyInventoryChanged(CharacterIndex);
 		return true;
 	}
-
 	return false;
 }
 
@@ -751,19 +582,12 @@ bool UGridPartyInventoryComponent::HasItemDefinitionInSelectedCharacterInventory
 
 int32 UGridPartyInventoryComponent::CountItemDefinitionInCharacterInventory(int32 CharacterIndex, FName ItemDefinitionId) const
 {
-	if (!IsValidCharacterIndex(CharacterIndex) || ItemDefinitionId.IsNone())
-	{
-		return 0;
-	}
-
+	if (!IsValidCharacterIndex(CharacterIndex) || ItemDefinitionId.IsNone()) return 0;
 	int32 Count = 0;
 	const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	for (const FGridInventorySlot& Slot : CharacterState.InventorySlots)
 	{
-		if (!Slot.IsEmpty() && Slot.Item.ItemDefinitionId == ItemDefinitionId)
-		{
-			Count += FMath::Max(1, Slot.Item.Quantity);
-		}
+		if (!Slot.IsEmpty() && Slot.Item.ItemDefinitionId == ItemDefinitionId) Count += FMath::Max(1, Slot.Item.Quantity);
 	}
 	return Count;
 }
@@ -775,29 +599,14 @@ int32 UGridPartyInventoryComponent::CountItemDefinitionInSelectedCharacterInvent
 
 bool UGridPartyInventoryComponent::RemoveItemDefinitionFromCharacterInventory(int32 CharacterIndex, FName ItemDefinitionId, int32 Quantity)
 {
-	if (!IsValidCharacterIndex(CharacterIndex) || ItemDefinitionId.IsNone() || Quantity <= 0)
-	{
-		return false;
-	}
-
-	if (CountItemDefinitionInCharacterInventory(CharacterIndex, ItemDefinitionId) < Quantity)
-	{
-		return false;
-	}
-
+	if (!IsValidCharacterIndex(CharacterIndex) || ItemDefinitionId.IsNone() || Quantity <= 0) return false;
+	if (CountItemDefinitionInCharacterInventory(CharacterIndex, ItemDefinitionId) < Quantity) return false;
 	int32 RemainingToRemove = Quantity;
 	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	for (FGridInventorySlot& Slot : CharacterState.InventorySlots)
 	{
-		if (RemainingToRemove <= 0)
-		{
-			break;
-		}
-		if (Slot.IsEmpty() || Slot.Item.ItemDefinitionId != ItemDefinitionId)
-		{
-			continue;
-		}
-
+		if (RemainingToRemove <= 0) break;
+		if (Slot.IsEmpty() || Slot.Item.ItemDefinitionId != ItemDefinitionId) continue;
 		const int32 SlotQuantity = FMath::Max(1, Slot.Item.Quantity);
 		if (SlotQuantity > RemainingToRemove)
 		{
@@ -810,14 +619,8 @@ bool UGridPartyInventoryComponent::RemoveItemDefinitionFromCharacterInventory(in
 			Slot = FGridInventorySlot();
 		}
 	}
-
-	if (RemainingToRemove != 0)
-	{
-		return false;
-	}
-
+	if (RemainingToRemove != 0) return false;
 	ClearQuickItemHotbarBindings(CharacterState, ItemDefinitionId);
-
 	NotifyPartyInventoryChanged(CharacterIndex);
 	return true;
 }
@@ -829,73 +632,38 @@ bool UGridPartyInventoryComponent::RemoveItemDefinitionFromSelectedCharacterInve
 
 bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAsset* Definition)
 {
-	if (!Definition || Definition->ItemDefinitionId.IsNone())
-	{
-		return false;
-	}
-
-	if (RuntimeItemDefinitionsById.Contains(Definition->ItemDefinitionId))
-	{
-		return true;
-	}
-
+	if (!Definition || Definition->ItemDefinitionId.IsNone()) return false;
+	if (RuntimeItemDefinitionsById.Contains(Definition->ItemDefinitionId)) return true;
 	RuntimeItemDefinitionsById.Add(Definition->ItemDefinitionId, Definition);
 	NotifyPartyInventoryChanged(INDEX_NONE);
-
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Registered ItemDefinition=%s Asset=%s"), *Definition->ItemDefinitionId.ToString(), *Definition->GetPathName());
-
 	return true;
 }
 
 bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(TFunctionRef<UGridItemDefinitionAsset*(FName)> Resolver, FName& OutMissingDefinitionId)
 {
 	OutMissingDefinitionId = NAME_None;
-
 	TSet<FName> DefinitionIds;
 	auto CollectCharacterItems = [&DefinitionIds](const FGridCharacterInventoryState& Character)
 	{
-		for (const FGridInventorySlot& Slot : Character.InventorySlots)
-		{
-			if (!Slot.IsEmpty())
-			{
-				DefinitionIds.Add(Slot.Item.ItemDefinitionId);
-			}
-		}
+		for (const FGridInventorySlot& Slot : Character.InventorySlots) if (!Slot.IsEmpty()) DefinitionIds.Add(Slot.Item.ItemDefinitionId);
 		for (const FGridCombatHotbarBinding& Binding : Character.CombatHotbarSlots)
 		{
-			const bool bUsesItemDefinition =
-				Binding.SourcePolicy == EGridCombatActionSourcePolicy::Equipment || Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
-			if (!Binding.IsEmpty() && bUsesItemDefinition && !Binding.SourceDefinitionId.IsNone())
-			{
-				DefinitionIds.Add(Binding.SourceDefinitionId);
-			}
+			const bool bUsesItemDefinition = Binding.SourcePolicy == EGridCombatActionSourcePolicy::Equipment || Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
+			if (!Binding.IsEmpty() && bUsesItemDefinition && !Binding.SourceDefinitionId.IsNone()) DefinitionIds.Add(Binding.SourceDefinitionId);
 		}
 	};
-
-	for (const FGridCharacterInventoryState& Character : PartyInventoryState.ActiveCharacters)
-	{
-		CollectCharacterItems(Character);
-	}
-	for (const FGridCharacterInventoryState& Character : PartyInventoryState.CharacterPool)
-	{
-		CollectCharacterItems(Character);
-	}
+	for (const FGridCharacterInventoryState& Character : PartyInventoryState.ActiveCharacters) CollectCharacterItems(Character);
+	for (const FGridCharacterInventoryState& Character : PartyInventoryState.CharacterPool) CollectCharacterItems(Character);
 	for (const FGridCharacterEquipmentState& Equipment : PartyInventoryState.ActiveEquipment)
 	{
-		ForEachEquipmentItem(Equipment,
-			[&DefinitionIds](EGridEquipmentSlot Slot, const FGridItemInstance& Item)
-			{
-				(void)Slot;
-				if (Item.IsValid())
-				{
-					DefinitionIds.Add(Item.ItemDefinitionId);
-				}
-			});
+		ForEachEquipmentItem(Equipment, [&DefinitionIds](EGridEquipmentSlot Slot, const FGridItemInstance& Item)
+		{
+			(void)Slot;
+			if (Item.IsValid()) DefinitionIds.Add(Item.ItemDefinitionId);
+		});
 	}
-	if (PartyInventoryState.bHasCursorItem && PartyInventoryState.CursorItem.IsValid())
-	{
-		DefinitionIds.Add(PartyInventoryState.CursorItem.ItemDefinitionId);
-	}
+	if (PartyInventoryState.bHasCursorItem && PartyInventoryState.CursorItem.IsValid()) DefinitionIds.Add(PartyInventoryState.CursorItem.ItemDefinitionId);
 
 	TArray<UGridItemDefinitionAsset*> ResolvedDefinitions;
 	ResolvedDefinitions.Reserve(DefinitionIds.Num());
@@ -909,27 +677,15 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(TFunctionRef<UG
 		}
 		ResolvedDefinitions.Add(Definition);
 	}
-
 	RuntimeItemDefinitionsById.Reset();
-	for (UGridItemDefinitionAsset* Definition : ResolvedDefinitions)
-	{
-		RegisterItemDefinition(Definition);
-	}
+	for (UGridItemDefinitionAsset* Definition : ResolvedDefinitions) RegisterItemDefinition(Definition);
 	return true;
 }
 
 UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition(FName ItemDefinitionId) const
 {
-	if (ItemDefinitionId.IsNone())
-	{
-		return nullptr;
-	}
-
-	if (const TObjectPtr<UGridItemDefinitionAsset>* Definition = RuntimeItemDefinitionsById.Find(ItemDefinitionId))
-	{
-		return Definition->Get();
-	}
-
+	if (ItemDefinitionId.IsNone()) return nullptr;
+	if (const TObjectPtr<UGridItemDefinitionAsset>* Definition = RuntimeItemDefinitionsById.Find(ItemDefinitionId)) return Definition->Get();
 	return nullptr;
 }
 
@@ -941,25 +697,11 @@ bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstan
 		UE_LOG(LogTemp, Verbose, TEXT("GridInventory ItemDefinition Missing ItemDefinitionId=%s"), *ItemInstance.ItemDefinitionId.ToString());
 		return false;
 	}
-
 	ItemInstance.Weight = Definition->Weight;
-	if (ItemInstance.DisplayName.IsEmpty())
-	{
-		ItemInstance.DisplayName = Definition->DisplayName;
-	}
-	if (Definition->bCanEmitLight)
-	{
-		ItemInstance.bLightsEnabled = Definition->bDefaultLightEnabled;
-	}
-	if (!Definition->bStackable)
-	{
-		ItemInstance.Quantity = 1;
-	}
-	else
-	{
-		ItemInstance.Quantity = FMath::Clamp(ItemInstance.Quantity, 1, FMath::Max(1, Definition->MaxStackSize));
-	}
-
+	if (ItemInstance.DisplayName.IsEmpty()) ItemInstance.DisplayName = Definition->DisplayName;
+	ItemInstance.bLightsEnabled = Definition->IsLightEnabledByDefault();
+	if (!Definition->bStackable) ItemInstance.Quantity = 1;
+	else ItemInstance.Quantity = FMath::Clamp(ItemInstance.Quantity, 1, FMath::Max(1, Definition->MaxStackSize));
 	UE_LOG(LogTemp, Verbose, TEXT("GridInventory ItemDefinition Applied Item=%s Weight=%.2f Type=%d"), *ItemInstance.ItemDefinitionId.ToString(),
 		ItemInstance.Weight, static_cast<int32>(Definition->ItemType));
 	return true;
@@ -967,59 +709,32 @@ bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstan
 
 float UGridPartyInventoryComponent::CalculateCharacterCurrentWeight(int32 CharacterIndex) const
 {
-	if (!IsValidCharacterIndex(CharacterIndex))
-	{
-		return 0.0f;
-	}
-
+	if (!IsValidCharacterIndex(CharacterIndex)) return 0.0f;
 	const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	float TotalWeight = 0.0f;
-
-	for (const FGridInventorySlot& Slot : CharacterState.InventorySlots)
-	{
-		if (!Slot.IsEmpty())
-		{
-			TotalWeight += GetItemTotalWeight(Slot.Item);
-		}
-	}
-
-	if (PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
-	{
-		TotalWeight += CalculateEquipmentWeight(PartyInventoryState.ActiveEquipment[CharacterIndex]);
-	}
-
+	for (const FGridInventorySlot& Slot : CharacterState.InventorySlots) if (!Slot.IsEmpty()) TotalWeight += GetItemTotalWeight(Slot.Item);
+	if (PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex)) TotalWeight += CalculateEquipmentWeight(PartyInventoryState.ActiveEquipment[CharacterIndex]);
 	return FMath::Max(0.0f, TotalWeight);
 }
 
 float UGridPartyInventoryComponent::CalculateCharacterBaseMaxWeight(int32 CharacterIndex) const
 {
-	if (!IsValidCharacterIndex(CharacterIndex))
-	{
-		return 0.0f;
-	}
-
+	if (!IsValidCharacterIndex(CharacterIndex)) return 0.0f;
 	return URPGCharacterRulesLibrary::CalculateMaxCarryWeight(PartyInventoryState.ActiveCharacters[CharacterIndex].Attributes);
 }
 
 bool UGridPartyInventoryComponent::ValidateInventoryOwnership(FString& OutError) const
 {
 	OutError.Empty();
-
 	TMap<FGuid, FString> RuntimeOwners;
 	auto RegisterRuntimeOwner = [&RuntimeOwners, &OutError](const FGridItemInstance& Item, const FString& Location) -> bool
 	{
-		if (!Item.IsValid())
-		{
-			return true;
-		}
-
+		if (!Item.IsValid()) return true;
 		if (const FString* ExistingOwner = RuntimeOwners.Find(Item.RuntimeObjectId))
 		{
-			OutError =
-				FString::Printf(TEXT("Duplicate RuntimeObjectId=%s Existing=%s Duplicate=%s"), *Item.RuntimeObjectId.ToString(), **ExistingOwner, *Location);
+			OutError = FString::Printf(TEXT("Duplicate RuntimeObjectId=%s Existing=%s Duplicate=%s"), *Item.RuntimeObjectId.ToString(), **ExistingOwner, *Location);
 			return false;
 		}
-
 		RuntimeOwners.Add(Item.RuntimeObjectId, Location);
 		return true;
 	};
@@ -1031,20 +746,13 @@ bool UGridPartyInventoryComponent::ValidateInventoryOwnership(FString& OutError)
 			OutError = TEXT("CursorItem flag is set but CursorItem is invalid");
 			return false;
 		}
-
-		if (PartyInventoryState.CursorItem.OwnerType != EGridItemOwnerType::Cursor || PartyInventoryState.CursorItem.OwnerCharacterIndex != INDEX_NONE ||
-			PartyInventoryState.CursorItem.EquipmentSlot != EGridEquipmentSlot::None)
+		if (PartyInventoryState.CursorItem.OwnerType != EGridItemOwnerType::Cursor || PartyInventoryState.CursorItem.OwnerCharacterIndex != INDEX_NONE || PartyInventoryState.CursorItem.EquipmentSlot != EGridEquipmentSlot::None)
 		{
-			OutError = FString::Printf(TEXT("CursorItem has invalid ownership Owner=%s Character=%d Slot=%s"),
-				GetOwnerTypeName(PartyInventoryState.CursorItem.OwnerType), PartyInventoryState.CursorItem.OwnerCharacterIndex,
-				GetEquipmentSlotName(PartyInventoryState.CursorItem.EquipmentSlot));
+			OutError = FString::Printf(TEXT("CursorItem has invalid ownership Owner=%s Character=%d Slot=%s"), GetOwnerTypeName(PartyInventoryState.CursorItem.OwnerType),
+				PartyInventoryState.CursorItem.OwnerCharacterIndex, GetEquipmentSlotName(PartyInventoryState.CursorItem.EquipmentSlot));
 			return false;
 		}
-
-		if (!RegisterRuntimeOwner(PartyInventoryState.CursorItem, TEXT("CursorItem")))
-		{
-			return false;
-		}
+		if (!RegisterRuntimeOwner(PartyInventoryState.CursorItem, TEXT("CursorItem"))) return false;
 	}
 	else if (PartyInventoryState.CursorItem.IsValid())
 	{
@@ -1058,126 +766,61 @@ bool UGridPartyInventoryComponent::ValidateInventoryOwnership(FString& OutError)
 		for (int32 SlotIndex = 0; SlotIndex < CharacterState.InventorySlots.Num(); ++SlotIndex)
 		{
 			const FGridInventorySlot& InventorySlot = CharacterState.InventorySlots[SlotIndex];
-			if (InventorySlot.IsEmpty())
-			{
-				continue;
-			}
-
+			if (InventorySlot.IsEmpty()) continue;
 			const FGridItemInstance& Item = InventorySlot.Item;
-			if (Item.OwnerType != EGridItemOwnerType::CharacterInventory || Item.OwnerCharacterIndex != CharacterIndex ||
-				Item.EquipmentSlot != EGridEquipmentSlot::None)
+			if (Item.OwnerType != EGridItemOwnerType::CharacterInventory || Item.OwnerCharacterIndex != CharacterIndex || Item.EquipmentSlot != EGridEquipmentSlot::None)
 			{
-				OutError =
-					FString::Printf(TEXT("Inventory item has invalid ownership Character=%d Slot=%d Item=%s Owner=%s OwnerCharacter=%d EquipmentSlot=%s"),
-						CharacterIndex, SlotIndex, *Item.ItemDefinitionId.ToString(), GetOwnerTypeName(Item.OwnerType), Item.OwnerCharacterIndex,
-						GetEquipmentSlotName(Item.EquipmentSlot));
+				OutError = FString::Printf(TEXT("Inventory item has invalid ownership Character=%d Slot=%d Item=%s Owner=%s OwnerCharacter=%d EquipmentSlot=%s"),
+					CharacterIndex, SlotIndex, *Item.ItemDefinitionId.ToString(), GetOwnerTypeName(Item.OwnerType), Item.OwnerCharacterIndex, GetEquipmentSlotName(Item.EquipmentSlot));
 				return false;
 			}
-
 			const FString Location = FString::Printf(TEXT("Inventory Character=%d Slot=%d"), CharacterIndex, SlotIndex);
-			if (!RegisterRuntimeOwner(Item, Location))
+			if (!RegisterRuntimeOwner(Item, Location)) return false;
+		}
+		if (!PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex)) continue;
+		ForEachEquipmentItem(PartyInventoryState.ActiveEquipment[CharacterIndex], [CharacterIndex, &RegisterRuntimeOwner, &OutError](EGridEquipmentSlot Slot, const FGridItemInstance& Item)
+		{
+			if (!Item.IsValid()) return;
+			if (Item.OwnerType != EGridItemOwnerType::EquipmentSlot || Item.OwnerCharacterIndex != CharacterIndex || Item.EquipmentSlot != Slot)
 			{
-				return false;
+				OutError = FString::Printf(TEXT("Equipment item has invalid ownership Character=%d Slot=%s Item=%s Owner=%s OwnerCharacter=%d EquipmentSlot=%s"),
+					CharacterIndex, GetEquipmentSlotName(Slot), *Item.ItemDefinitionId.ToString(), GetOwnerTypeName(Item.OwnerType), Item.OwnerCharacterIndex,
+					GetEquipmentSlotName(Item.EquipmentSlot));
+				return;
 			}
-		}
-
-		if (!PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
-		{
-			continue;
-		}
-
-		ForEachEquipmentItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
-			[CharacterIndex, &RegisterRuntimeOwner, &OutError](EGridEquipmentSlot Slot, const FGridItemInstance& Item)
-			{
-				if (!Item.IsValid())
-				{
-					return;
-				}
-
-				if (Item.OwnerType != EGridItemOwnerType::EquipmentSlot || Item.OwnerCharacterIndex != CharacterIndex || Item.EquipmentSlot != Slot)
-				{
-					OutError =
-						FString::Printf(TEXT("Equipment item has invalid ownership Character=%d Slot=%s Item=%s Owner=%s OwnerCharacter=%d EquipmentSlot=%s"),
-							CharacterIndex, GetEquipmentSlotName(Slot), *Item.ItemDefinitionId.ToString(), GetOwnerTypeName(Item.OwnerType),
-							Item.OwnerCharacterIndex, GetEquipmentSlotName(Item.EquipmentSlot));
-					return;
-				}
-
-				const FString Location = FString::Printf(TEXT("Equipment Character=%d Slot=%s"), CharacterIndex, GetEquipmentSlotName(Slot));
-				RegisterRuntimeOwner(Item, Location);
-			});
-
-		if (!OutError.IsEmpty())
-		{
-			return false;
-		}
+			const FString Location = FString::Printf(TEXT("Equipment Character=%d Slot=%s"), CharacterIndex, GetEquipmentSlotName(Slot));
+			RegisterRuntimeOwner(Item, Location);
+		});
+		if (!OutError.IsEmpty()) return false;
 	}
-
 	return true;
 }
 
 void UGridPartyInventoryComponent::EnsureEquipmentCountMatchesActiveCharacters()
 {
 	const int32 CharacterCount = PartyInventoryState.ActiveCharacters.Num();
-	if (PartyInventoryState.ActiveEquipment.Num() < CharacterCount)
-	{
-		PartyInventoryState.ActiveEquipment.SetNum(CharacterCount);
-	}
-	else if (PartyInventoryState.ActiveEquipment.Num() > CharacterCount)
-	{
-		PartyInventoryState.ActiveEquipment.SetNum(CharacterCount);
-	}
+	if (PartyInventoryState.ActiveEquipment.Num() < CharacterCount) PartyInventoryState.ActiveEquipment.SetNum(CharacterCount);
+	else if (PartyInventoryState.ActiveEquipment.Num() > CharacterCount) PartyInventoryState.ActiveEquipment.SetNum(CharacterCount);
 }
 
 void UGridPartyInventoryComponent::InitializeCharacterDefaults(FGridCharacterInventoryState& CharacterState, int32 CharacterIndex) const
 {
-	if (!CharacterState.CharacterId.IsValid())
-	{
-		CharacterState.CharacterId = FGuid::NewGuid();
-	}
-
-	if (CharacterState.DisplayName.IsEmpty())
-	{
-		CharacterState.DisplayName = FText::FromString(CharacterIndex == 0 ? TEXT("Hero_01") : FString::Printf(TEXT("Hero_%02d"), CharacterIndex + 1));
-	}
-
-	if (CharacterState.ClassId.IsNone())
-	{
-		CharacterState.ClassId = TEXT("Warrior");
-	}
-
-	if (CharacterState.RaceId.IsNone())
-	{
-		CharacterState.RaceId = TEXT("Human");
-	}
-
-	if (CharacterState.ClassDisplayName.IsEmpty())
-	{
-		CharacterState.ClassDisplayName = FText::FromName(CharacterState.ClassId);
-	}
-
-	if (CharacterState.RaceDisplayName.IsEmpty())
-	{
-		CharacterState.RaceDisplayName = FText::FromName(CharacterState.RaceId);
-	}
-
+	if (!CharacterState.CharacterId.IsValid()) CharacterState.CharacterId = FGuid::NewGuid();
+	if (CharacterState.DisplayName.IsEmpty()) CharacterState.DisplayName = FText::FromString(CharacterIndex == 0 ? TEXT("Hero_01") : FString::Printf(TEXT("Hero_%02d"), CharacterIndex + 1));
+	if (CharacterState.ClassId.IsNone()) CharacterState.ClassId = TEXT("Warrior");
+	if (CharacterState.RaceId.IsNone()) CharacterState.RaceId = TEXT("Human");
+	if (CharacterState.ClassDisplayName.IsEmpty()) CharacterState.ClassDisplayName = FText::FromName(CharacterState.ClassId);
+	if (CharacterState.RaceDisplayName.IsEmpty()) CharacterState.RaceDisplayName = FText::FromName(CharacterState.RaceId);
 	CharacterState.Level = FMath::Max(1, CharacterState.Level);
 	CharacterState.Experience = FMath::Max(0, CharacterState.Experience);
-	CharacterState.LastAcknowledgedLevel =
-		FMath::Clamp(CharacterState.LastAcknowledgedLevel, URPGCharacterRulesLibrary::GetMinimumLevel(), CharacterState.Level);
-
+	CharacterState.LastAcknowledgedLevel = FMath::Clamp(CharacterState.LastAcknowledgedLevel, URPGCharacterRulesLibrary::GetMinimumLevel(), CharacterState.Level);
 	CharacterState.Attributes.Strength = FMath::Max(0, CharacterState.Attributes.Strength);
 	CharacterState.Attributes.Dexterity = FMath::Max(0, CharacterState.Attributes.Dexterity);
 	CharacterState.Attributes.Constitution = FMath::Max(0, CharacterState.Attributes.Constitution);
 	CharacterState.Attributes.Intelligence = FMath::Max(0, CharacterState.Attributes.Intelligence);
 	CharacterState.Attributes.Wisdom = FMath::Max(0, CharacterState.Attributes.Wisdom);
 	CharacterState.Attributes.Charisma = FMath::Max(0, CharacterState.Attributes.Charisma);
-
-	if (CharacterState.InventorySlots.Num() == 0)
-	{
-		CharacterState.InventorySlots.SetNum(FMath::Max(0, DefaultInventorySlotCountPerCharacter));
-	}
-
+	if (CharacterState.InventorySlots.Num() == 0) CharacterState.InventorySlots.SetNum(FMath::Max(0, DefaultInventorySlotCountPerCharacter));
 	InitializeCombatHotbarDefaults(CharacterState);
 }
 
@@ -1185,23 +828,17 @@ void UGridPartyInventoryComponent::InitializeCombatHotbarDefaults(FGridCharacter
 {
 	TArray<FGridCombatHotbarBinding> PreviousBindings = MoveTemp(CharacterState.CombatHotbarSlots);
 	CharacterState.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
-
 	for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
 	{
 		FGridCombatHotbarBinding& Binding = CharacterState.CombatHotbarSlots[SlotIndex];
 		Binding.Reset(SlotIndex);
-
 		if (PreviousBindings.IsValidIndex(SlotIndex))
 		{
 			FGridCombatHotbarBinding PreviousBinding = PreviousBindings[SlotIndex];
 			PreviousBinding.SlotIndex = SlotIndex;
-			if (PreviousBinding.IsValid())
-			{
-				Binding = MoveTemp(PreviousBinding);
-			}
+			if (PreviousBinding.IsValid()) Binding = MoveTemp(PreviousBinding);
 		}
 	}
-
 	SanitizeCombatHotbarBindings(CharacterState);
 }
 
@@ -1213,7 +850,6 @@ bool UGridPartyInventoryComponent::ValidateCombatHotbar(const FGridCharacterInve
 		OutError = FString::Printf(TEXT("SlotCount=%d Expected=%d"), CharacterState.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::SlotCount);
 		return false;
 	}
-
 	TSet<FGuid> AssignedEquipmentRuntimeIds;
 	TSet<FName> AssignedQuickItemDefinitionIds;
 	for (int32 SlotIndex = 0; SlotIndex < CharacterState.CombatHotbarSlots.Num(); ++SlotIndex)
@@ -1235,7 +871,6 @@ bool UGridPartyInventoryComponent::ValidateCombatHotbar(const FGridCharacterInve
 			OutError = FString::Printf(TEXT("PrimaryAttackDuplicated Slot=%d"), SlotIndex);
 			return false;
 		}
-
 		if (Binding.SourcePolicy == EGridCombatActionSourcePolicy::Equipment)
 		{
 			if (AssignedEquipmentRuntimeIds.Contains(Binding.PreferredSourceRuntimeId))
@@ -1260,17 +895,12 @@ bool UGridPartyInventoryComponent::ValidateCombatHotbar(const FGridCharacterInve
 			AssignedQuickItemDefinitionIds.Add(Binding.SourceDefinitionId);
 		}
 	}
-
 	return true;
 }
 
 float UGridPartyInventoryComponent::CalculateEquipmentWeight(const FGridCharacterEquipmentState& EquipmentState) const
 {
 	float TotalWeight = 0.0f;
-	ForEachEquipmentItem(EquipmentState,
-		[&TotalWeight](EGridEquipmentSlot, const FGridItemInstance& Item)
-		{
-			TotalWeight += GetItemTotalWeight(Item);
-		});
+	ForEachEquipmentItem(EquipmentState, [&TotalWeight](EGridEquipmentSlot, const FGridItemInstance& Item) { TotalWeight += GetItemTotalWeight(Item); });
 	return TotalWeight;
 }
