@@ -137,6 +137,15 @@ namespace GridPlacementTransformResolver
 		{
 			return ResolveFloorEdge(RuntimeActor, Instance.CellX, Instance.CellY, Instance.SurfaceSide, Instance.LocalYaw, 12.0f, 18.0f, OutTransform);
 		}
-		return ResolveCentered(RuntimeActor, Instance.CellX, Instance.CellY, Instance.LocalYaw, 12.0f, OutTransform);
+
+		if (!ResolveCentered(RuntimeActor, Instance.CellX, Instance.CellY, Instance.LocalYaw, 12.0f, OutTransform))
+		{
+			return false;
+		}
+
+		// Loose-item placement already owns LocalOffset. Use its horizontal components for precise
+		// floor authoring while preserving the canonical authored floor height.
+		OutTransform.AddToTranslation(FVector(Instance.LocalOffset.X, Instance.LocalOffset.Y, 0.0f));
+		return true;
 	}
 }

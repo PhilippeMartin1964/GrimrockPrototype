@@ -994,6 +994,47 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection(
 	}
 	if (LooseItem)
 	{
+		if (LooseItem->SurfaceSide == EGridEdge::None)
+		{
+			const float HalfCell = FMath::Max(0.0f, CurrentEditorActor->LevelAsset->CellSize * 0.5f);
+			auto CommitLocalOffset = [this, ObjectId, HalfCell](bool bEditX, float NewValue)
+			{
+				AGridLevelEditorActor* Editor = GetEditorActor();
+				if (!Editor || !Editor->LevelAsset) return;
+				FGridLooseItemInstance* MutableItem = Editor->LevelAsset->FindLooseItemInstanceById(ObjectId);
+				if (!MutableItem || MutableItem->SurfaceSide != EGridEdge::None) return;
+				Editor->LevelAsset->Modify();
+				const float ClampedValue = FMath::Clamp(NewValue, -HalfCell, HalfCell);
+				if (bEditX) MutableItem->LocalOffset.X = ClampedValue;
+				else MutableItem->LocalOffset.Y = ClampedValue;
+				Editor->LevelAsset->MarkPackageDirty();
+				Editor->RebuildPreview();
+				RequestRefresh();
+			};
+
+			Root->AddSlot().AutoHeight().Padding(0.f, 10.f, 0.f, 4.f)[SNew(STextBlock)
+				.Text(FText::FromString(TEXT("Item Placement"))).Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))];
+			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
+				FText::FromString(TEXT("Local X (cm)")),
+				SNew(SSpinBox<float>)
+					.Value(LooseItem->LocalOffset.X)
+					.MinValue(-HalfCell).MaxValue(HalfCell)
+					.MinSliderValue(-HalfCell).MaxSliderValue(HalfCell)
+					.Delta(1.0f).MinDesiredWidth(90.f)
+					.OnValueCommitted_Lambda([CommitLocalOffset](float NewValue, ETextCommit::Type){ CommitLocalOffset(true, NewValue); }))];
+			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(
+				FText::FromString(TEXT("Local Y (cm)")),
+				SNew(SSpinBox<float>)
+					.Value(LooseItem->LocalOffset.Y)
+					.MinValue(-HalfCell).MaxValue(HalfCell)
+					.MinSliderValue(-HalfCell).MaxSliderValue(HalfCell)
+					.Delta(1.0f).MinDesiredWidth(90.f)
+					.OnValueCommitted_Lambda([CommitLocalOffset](float NewValue, ETextCommit::Type){ CommitLocalOffset(false, NewValue); }))];
+			Root->AddSlot().AutoHeight().Padding(0.f, 2.f, 0.f, 0.f)[SNew(STextBlock)
+				.Text(FText::FromString(TEXT("X: West (-) / East (+)   Y: South (-) / North (+). Position is relative to the cell center.")))
+				.AutoWrapText(true).ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))];
+		}
+
 		Root->AddSlot().AutoHeight().Padding(0.f, 10.f, 0.f, 4.f)[SNew(STextBlock).Text(FText::FromString(TEXT("Item Reading"))).Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridPropertyRow(FText::FromString(TEXT("ReadableContentAsset")), BuildReadableContentAssetPicker(LooseItem->ReadableContentAsset,
 			[this](UGridReadableContentAsset* NewAsset){ if (AGridLevelEditorActor* Editor = GetEditorActor()) if (Editor->SetSelectedObjectReadableContentAsset(NewAsset)) RequestRefresh(); }))];

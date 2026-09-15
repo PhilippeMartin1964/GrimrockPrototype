@@ -221,12 +221,26 @@ bool FGridWorldObjectMIG01PlacementTransformParityTest::RunTest(const FString& P
 	TestTrue(TEXT("Door remains anchored on the exact North boundary"), GridWorldObjectMIG01::IsLocation(Transform, FVector(300.0f, 600.0f, 0.0f)));
 	TestTrue(TEXT("Door uses canonical North boundary rotation"), GridWorldObjectMIG01::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
 
-	// Loose item edge placement is independent of WorldObjectDefinition.
+	// A free loose item uses its already-authored LocalOffset X/Y relative to the cell center.
+	FGridLooseItemInstance FreeItemObject;
+	FreeItemObject.InstanceId = FGuid::NewGuid();
+	FreeItemObject.CellX = 1;
+	FreeItemObject.CellY = 2;
+	FreeItemObject.SurfaceSide = EGridEdge::None;
+	FreeItemObject.LocalOffset = FVector(35.0f, -70.0f, 999.0f);
+	FreeItemObject.LocalYaw = 22.5f;
+	TestTrue(TEXT("Free floor item transform resolves"), GridPlacementTransformResolver::ResolveLooseItem(*Runtime, FreeItemObject, Transform));
+	TestTrue(TEXT("Free floor item applies LocalOffset X/Y and preserves canonical Z"),
+		GridWorldObjectMIG01::IsLocation(Transform, FVector(335.0f, 430.0f, 12.0f)));
+	TestTrue(TEXT("Free floor item preserves LocalYaw"), GridWorldObjectMIG01::IsRotation(Transform, FRotator(0.0f, 22.5f, 0.0f)));
+
+	// Loose item edge placement is independent of WorldObjectDefinition and remains edge-anchored.
 	FGridLooseItemInstance ItemObject;
 	ItemObject.InstanceId = FGuid::NewGuid();
 	ItemObject.CellX = 1;
 	ItemObject.CellY = 2;
 	ItemObject.SurfaceSide = EGridEdge::East;
+	ItemObject.LocalOffset = FVector(35.0f, -70.0f, 0.0f);
 	TestTrue(TEXT("Floor item edge transform resolves"), GridPlacementTransformResolver::ResolveLooseItem(*Runtime, ItemObject, Transform));
 	TestTrue(TEXT("Floor item edge keeps the characterized 18 cm minimum inset"), GridWorldObjectMIG01::IsLocation(Transform, FVector(382.0f, 500.0f, 12.0f)));
 	TestTrue(TEXT("East floor item faces the edge"), GridWorldObjectMIG01::IsRotation(Transform, FRotator(0.0f, 90.0f, 0.0f)));
