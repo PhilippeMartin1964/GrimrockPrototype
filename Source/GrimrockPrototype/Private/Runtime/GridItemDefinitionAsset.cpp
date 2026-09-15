@@ -39,6 +39,11 @@ bool UGridItemDefinitionAsset::IsValidDefinition() const
 		return false;
 	}
 
+	if (!LightEmitter.IsValid())
+	{
+		return false;
+	}
+
 	if (bProvidesQuickItemCombatAction)
 	{
 		FGridCombatActionDefinition QuickItemDefinition;
@@ -64,6 +69,16 @@ bool UGridItemDefinitionAsset::CanEquipToSlot(EGridEquipmentSlot Slot) const
 	}
 
 	return CompatibleEquipmentSlots.Contains(Slot);
+}
+
+bool UGridItemDefinitionAsset::HasLightEmitter() const
+{
+	return LightEmitter.HasEmitter();
+}
+
+bool UGridItemDefinitionAsset::IsLightEnabledByDefault() const
+{
+	return HasLightEmitter() && LightEmitter.bDefaultEnabled;
 }
 
 EGridItemHandUsage UGridItemDefinitionAsset::GetEffectiveHandUsage() const
