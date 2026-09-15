@@ -349,7 +349,7 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 		ItemInstance.OwnerGuid = FGuid();
 		ItemInstance.OwnerCharacterIndex = INDEX_NONE;
 		ItemInstance.EquipmentSlot = EGridEquipmentSlot::None;
-		ItemInstance.bLightsEnabled = ItemDefinition && ItemDefinition->bDefaultLightEnabled;
+		ItemInstance.bLightsEnabled = ItemDefinition && ItemDefinition->IsLightEnabledByDefault();
 
 		const FVector LocalOffset = GetMON8LootLocalOffset(PlacedLootCount);
 		if (RuntimeActor)
