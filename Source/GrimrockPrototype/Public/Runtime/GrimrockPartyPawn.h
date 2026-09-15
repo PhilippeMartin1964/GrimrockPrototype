@@ -283,15 +283,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Camera|Free Look")
 	bool bIsFreeLooking = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
-	FName DefaultInteractionItemId = TEXT("Item_Torch");
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Held Item")
-	FName DefaultHeldItemDefinitionId = TEXT("Item_Torch");
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Held Item")
-	TSubclassOf<AGridItemActor> HeldTorchActorClass;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Held Item")
 	FVector HeldItemRelativeLocation = FVector(45.f, 22.f, -24.f);
 
@@ -304,9 +295,6 @@ public:
 	// Visual-only actor attached to the party view. Real item ownership stays in inventory, equipment, cursor, receptacle, or world state.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Held Item")
 	TObjectPtr<AGridItemActor> HeldItemActor;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Held Item")
-	bool bHasTorchInHand = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Held Item")
 	FName HeldItemDefinitionId = NAME_None;

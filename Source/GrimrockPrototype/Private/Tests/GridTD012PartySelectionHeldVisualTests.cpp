@@ -3,9 +3,11 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Misc/AutomationTest.h"
+#include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UObject/UnrealType.h"
 
 namespace GridTD012Tests
 {
@@ -67,6 +69,11 @@ namespace GridTD012Tests
 		return Item;
 	}
 
+	bool IsHeldLightActive(const AGrimrockPartyPawn* PartyPawn)
+	{
+		return PartyPawn && PartyPawn->HeldItemActor && PartyPawn->HeldItemActor->AreItemLightsEnabled();
+	}
+
 	AGrimrockPartyPawn* SpawnPartyWithTwoCharacters(FAutomationTestBase& Test, UWorld* World)
 	{
 		AGrimrockPartyPawn* PartyPawn = World ? World->SpawnActor<AGrimrockPartyPawn>() : nullptr;
@@ -102,6 +109,23 @@ namespace GridTD012Tests
 	}
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD012NoLegacyTorchFieldsTest,
+	"Grimrock.TechnicalDebt.TD01_2.PartySelectionHeldVisual.NoLegacyTorchFields",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridTD012NoLegacyTorchFieldsTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	UClass* PawnClass = AGrimrockPartyPawn::StaticClass();
+	TestNull(TEXT("DefaultInteractionItemId is physically removed"), FindFProperty<FProperty>(PawnClass, TEXT("DefaultInteractionItemId")));
+	TestNull(TEXT("DefaultHeldItemDefinitionId is physically removed"), FindFProperty<FProperty>(PawnClass, TEXT("DefaultHeldItemDefinitionId")));
+	TestNull(TEXT("HeldTorchActorClass is physically removed"), FindFProperty<FProperty>(PawnClass, TEXT("HeldTorchActorClass")));
+	TestNull(TEXT("bHasTorchInHand is physically removed"), FindFProperty<FProperty>(PawnClass, TEXT("bHasTorchInHand")));
+	TestNotNull(TEXT("HeldItemActor remains the visual runtime authority"), FindFProperty<FProperty>(PawnClass, TEXT("HeldItemActor")));
+	TestNotNull(TEXT("HeldItemDefinitionId remains the held item identity"), FindFProperty<FProperty>(PawnClass, TEXT("HeldItemDefinitionId")));
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD012SelectionChangeTest, "Grimrock.TechnicalDebt.TD01_2.PartySelectionHeldVisual.SelectionChange",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
@@ -123,17 +147,17 @@ bool FGridTD012SelectionChangeTest::RunTest(const FString& Parameters)
 	UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
 
 	TestEqual(TEXT("Character 0 initially presents its equipped light"), PartyPawn->GetHeldItemDefinitionId(), GridTD012Tests::CharacterZeroLightItemId);
-	TestTrue(TEXT("Character 0 initially owns the held light presentation"), PartyPawn->bHasTorchInHand);
+	TestTrue(TEXT("Character 0 held actor carries the equipped light state"), GridTD012Tests::IsHeldLightActive(PartyPawn));
 
 	TestTrue(TEXT("Selection changes from character 0 to 1 through the authoritative setter"), Inventory->SetSelectedCharacterIndex(1));
 	TestEqual(TEXT("Character 1 becomes selected"), Inventory->GetSelectedCharacterIndex(), 1);
 	TestTrue(TEXT("Character 1 has no held visual after the selection notification"), PartyPawn->GetHeldItemDefinitionId().IsNone());
-	TestFalse(TEXT("Character 1 has no held light presentation"), PartyPawn->bHasTorchInHand);
+	TestNull(TEXT("Character 1 has no held actor"), PartyPawn->HeldItemActor.Get());
 
 	TestTrue(TEXT("Selection changes from character 1 back to 0 through the authoritative setter"), Inventory->SetSelectedCharacterIndex(0));
 	TestEqual(TEXT("Character 0 becomes selected again"), Inventory->GetSelectedCharacterIndex(), 0);
 	TestEqual(TEXT("Character 0 held visual is restored automatically"), PartyPawn->GetHeldItemDefinitionId(), GridTD012Tests::CharacterZeroLightItemId);
-	TestTrue(TEXT("Character 0 held light presentation is restored automatically"), PartyPawn->bHasTorchInHand);
+	TestTrue(TEXT("Character 0 held actor light state is restored automatically"), GridTD012Tests::IsHeldLightActive(PartyPawn));
 	return true;
 }
 
@@ -162,18 +186,18 @@ bool FGridTD012SelectedCharacterFilterTest::RunTest(const FString& Parameters)
 	Inventory->NotifyPartyInventoryChanged(1);
 	TestEqual(TEXT("An unrelated character notification does not resynchronize the selected held visual"), PartyPawn->GetHeldItemDefinitionId(),
 		GridTD012Tests::CharacterZeroLightItemId);
-	TestTrue(TEXT("Unrelated character notification preserves current presentation state"), PartyPawn->bHasTorchInHand);
+	TestTrue(TEXT("Unrelated character notification preserves the current held actor light"), GridTD012Tests::IsHeldLightActive(PartyPawn));
 
 	Inventory->NotifyPartyInventoryChanged(0);
 	TestTrue(TEXT("The selected character notification resynchronizes the held visual"), PartyPawn->GetHeldItemDefinitionId().IsNone());
-	TestFalse(TEXT("The selected character notification clears stale held-light state"), PartyPawn->bHasTorchInHand);
+	TestNull(TEXT("The selected character notification clears the stale held actor"), PartyPawn->HeldItemActor.Get());
 
 	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand =
 		GridTD012Tests::MakeCharacterZeroLightItem(Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId);
 	Inventory->NotifyPartyInventoryChanged(INDEX_NONE);
 	TestEqual(TEXT("Party-wide selection or registry notification resynchronizes the held visual"), PartyPawn->GetHeldItemDefinitionId(),
 		GridTD012Tests::CharacterZeroLightItemId);
-	TestTrue(TEXT("Party-wide notification restores the selected held-light state"), PartyPawn->bHasTorchInHand);
+	TestTrue(TEXT("Party-wide notification restores the selected held actor light"), GridTD012Tests::IsHeldLightActive(PartyPawn));
 	return true;
 }
 

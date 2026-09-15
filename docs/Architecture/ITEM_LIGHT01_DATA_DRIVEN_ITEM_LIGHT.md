@@ -1,6 +1,6 @@
 # ITEM-LIGHT01 — Data-Driven Item Light Emitter
 
-Statut : implémenté en C++, validation UE locale requise.  
+Statut : implémenté et validé localement sous UE 5.5.4.  
 Portée : items ramassables, monde, réceptacles, équipement/visuel tenu et projectiles récupérables.
 
 ## 1. Principe
@@ -112,7 +112,24 @@ EquippedMesh
 
 avec `WorldMesh` comme fallback via `LoadHeldMesh()`.
 
-Le booléen historique `bHasTorchInHand` est encore conservé comme état public/Blueprint de présentation, mais il signifie désormais « le personnage sélectionné présente une source lumineuse tenue » ; la logique ne dépend plus de l'identifiant `Item_Torch`.
+Le Pawn ne conserve plus aucun contrat spécifique à la torche pour la présentation tenue :
+
+```text
+DefaultInteractionItemId     // supprimé
+DefaultHeldItemDefinitionId  // supprimé
+HeldTorchActorClass          // supprimé
+bHasTorchInHand              // supprimé
+```
+
+L'autorité runtime est directement :
+
+```text
+HeldItemActor
+HeldItemDefinitionId
+HeldItemActor->AreItemLightsEnabled()
+```
+
+Il n'existe aucun fallback, alias ou champ deprecated pour ces anciens membres.
 
 ## 6. Réceptacles et inventaire
 
@@ -177,7 +194,10 @@ Régressions associées :
 Grimrock.TechnicalDebt.TD01_2
 Grimrock.TechnicalDebt.TD06_8
 Grimrock.Monsters.MON11.Presentation.ThrownWeaponLifecycle
+Grimrock.CharacterCreation.CC5
 ```
+
+`TD01_2.PartySelectionHeldVisual.NoLegacyTorchFields` vérifie explicitement que les quatre anciens champs spécifiques torche ne réapparaissent pas dans la réflexion Unreal.
 
 ## 10. Règle d'architecture
 
