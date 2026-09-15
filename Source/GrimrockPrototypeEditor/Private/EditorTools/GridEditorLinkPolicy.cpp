@@ -13,7 +13,8 @@ namespace
 	bool IsGridEditorReceptacleCommand(EGridObjectCommand Command)
 	{
 		return Command == EGridObjectCommand::ReceptacleConsumeItem || Command == EGridObjectCommand::ReceptacleConsumeAllItems ||
-			Command == EGridObjectCommand::ReceptacleEnableRemoval || Command == EGridObjectCommand::ReceptacleDisableRemoval;
+			Command == EGridObjectCommand::ReceptacleEnableRemoval || Command == EGridObjectCommand::ReceptacleDisableRemoval ||
+			Command == EGridObjectCommand::ReceptacleEnableInsertion || Command == EGridObjectCommand::ReceptacleDisableInsertion;
 	}
 }
 
@@ -69,7 +70,8 @@ namespace GridEditorLinkPolicy
 
 			case EGridLevelObjectType::Receptacle:
 				return { EGridObjectCommand::ReceptacleConsumeItem, EGridObjectCommand::ReceptacleConsumeAllItems, EGridObjectCommand::ReceptacleEnableRemoval,
-					EGridObjectCommand::ReceptacleDisableRemoval };
+					EGridObjectCommand::ReceptacleDisableRemoval, EGridObjectCommand::ReceptacleEnableInsertion,
+					EGridObjectCommand::ReceptacleDisableInsertion };
 
 			case EGridLevelObjectType::MonsterSpawn:
 				return { EGridObjectCommand::Spawn, EGridObjectCommand::Despawn, EGridObjectCommand::Teleport, EGridObjectCommand::Activate,

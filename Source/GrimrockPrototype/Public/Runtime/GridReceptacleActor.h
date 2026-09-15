@@ -137,6 +137,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
 	bool bCanRemoveItem = true;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle|Runtime")
+	bool bCanInsertItems = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
 	bool bAcceptAnyItem = true;
 
@@ -282,6 +285,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Receptacle")
 	void SetCanRemoveItem(bool bNewCanRemoveItem);
+
+	UFUNCTION(BlueprintCallable, Category = "Receptacle")
+	void SetCanInsertItems(bool bNewCanInsertItems);
 
 	/**
      * Main interaction entry point used by mouse / runtime interaction.

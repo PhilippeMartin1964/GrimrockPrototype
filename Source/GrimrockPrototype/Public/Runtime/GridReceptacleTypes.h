@@ -12,7 +12,8 @@ enum class EGridReceptacleRejectReason : uint8
 	InvalidItem,
 	Full,
 	ExplicitlyRejected,
-	NoMatchingAcceptanceRule
+	NoMatchingAcceptanceRule,
+	InsertionDisabled
 };
 
 USTRUCT(BlueprintType)

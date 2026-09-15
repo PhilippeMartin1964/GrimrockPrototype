@@ -157,6 +157,9 @@ struct FGridRuntimeReceptacleState
 	bool bCanRemoveItem = true;
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bCanInsertItems = true;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TArray<FGridRuntimeItemState> ContainedItems;
 };
 

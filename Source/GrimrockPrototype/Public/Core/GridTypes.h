@@ -88,7 +88,9 @@ enum class EGridObjectCommand : uint8
 	QuestStart = 25 UMETA(DisplayName = "Quest Start"),
 	QuestCompleteObjective = 26 UMETA(DisplayName = "Quest Complete Objective"),
 	QuestComplete = 27 UMETA(DisplayName = "Quest Complete"),
-	QuestFail = 28 UMETA(DisplayName = "Quest Fail")
+	QuestFail = 28 UMETA(DisplayName = "Quest Fail"),
+	ReceptacleEnableInsertion = 29 UMETA(DisplayName = "Receptacle Enable Insertion"),
+	ReceptacleDisableInsertion = 30 UMETA(DisplayName = "Receptacle Disable Insertion")
 };
 
 UENUM(BlueprintType)

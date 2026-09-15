@@ -527,6 +527,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			continue;
 		}
 		ReceptacleActor->SetCanRemoveItem(Pair.Value.bCanRemoveItem);
+		ReceptacleActor->SetCanInsertItems(Pair.Value.bCanInsertItems);
 		const int32 ClearedItemCount = ReceptacleActor->ForceClearRuntimeContents(false);
 		const FGridWorldObjectInstance* ReceptaclePlacement = PersistenceFindWorldObjectById(LevelAsset, Pair.Key);
 		const UGridWorldObjectDefinitionAsset* ReceptacleDefinition =

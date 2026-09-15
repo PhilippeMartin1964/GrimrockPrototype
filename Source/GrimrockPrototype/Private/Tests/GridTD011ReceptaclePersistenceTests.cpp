@@ -159,7 +159,9 @@ bool FGridTD011DisabledRoundTripTest::RunTest(const FString& Parameters)
 
 	AGridReceptacleActor* SourceReceptacle = SourceRuntime->FindRuntimeObjectActor<AGridReceptacleActor>(ReceptacleObjectId);
 	SourceReceptacle->SetCanRemoveItem(false);
+	SourceReceptacle->SetCanInsertItems(false);
 	TestFalse(TEXT("Runtime receptacle is disabled before capture"), SourceReceptacle->bCanRemoveItem);
+	TestFalse(TEXT("Runtime receptacle insertion is disabled before capture"), SourceReceptacle->bCanInsertItems);
 	TestTrue(TEXT("Disabled runtime state captures"), SourceRuntime->CaptureCurrentLevelRuntimeState());
 
 	const FGridLevelRuntimeState* CapturedState = SourceRuntime->FindRuntimeStateForCurrentLevel();
@@ -171,6 +173,7 @@ bool FGridTD011DisabledRoundTripTest::RunTest(const FString& Parameters)
 		return false;
 	}
 	TestFalse(TEXT("Snapshot stores disabled removal permission"), CapturedReceptacle->bCanRemoveItem);
+	TestFalse(TEXT("Snapshot stores disabled insertion permission"), CapturedReceptacle->bCanInsertItems);
 
 	UGrimrockPartySaveGame* Loaded = RoundTripDungeonState(*this, SourceRuntime->DungeonRuntimeState);
 	if (!Loaded)
@@ -186,8 +189,10 @@ bool FGridTD011DisabledRoundTripTest::RunTest(const FString& Parameters)
 	}
 	AGridReceptacleActor* RestoredReceptacle = RestoredRuntime->FindRuntimeObjectActor<AGridReceptacleActor>(ReceptacleObjectId);
 	TestTrue(TEXT("Rebuild initializes the runtime default before apply"), RestoredReceptacle->bCanRemoveItem);
+	TestTrue(TEXT("Rebuild initializes insertion enabled before apply"), RestoredReceptacle->bCanInsertItems);
 	TestTrue(TEXT("Saved runtime snapshot applies"), RestoredRuntime->ApplyCurrentLevelRuntimeState());
 	TestFalse(TEXT("Disabled removal permission survives Save/Continue"), RestoredReceptacle->bCanRemoveItem);
+	TestFalse(TEXT("Disabled insertion permission survives Save/Continue"), RestoredReceptacle->bCanInsertItems);
 	return true;
 }
 
@@ -214,7 +219,10 @@ bool FGridTD011EnabledRoundTripTest::RunTest(const FString& Parameters)
 	AGridReceptacleActor* Receptacle = Runtime->FindRuntimeObjectActor<AGridReceptacleActor>(ReceptacleObjectId);
 	Receptacle->SetCanRemoveItem(false);
 	Receptacle->SetCanRemoveItem(true);
+	Receptacle->SetCanInsertItems(false);
+	Receptacle->SetCanInsertItems(true);
 	TestTrue(TEXT("Runtime receptacle is enabled before capture"), Receptacle->bCanRemoveItem);
+	TestTrue(TEXT("Runtime receptacle insertion is enabled before capture"), Receptacle->bCanInsertItems);
 	TestTrue(TEXT("Enabled runtime state captures"), Runtime->CaptureCurrentLevelRuntimeState());
 
 	const FGridLevelRuntimeState* CapturedState = Runtime->FindRuntimeStateForCurrentLevel();
@@ -225,11 +233,14 @@ bool FGridTD011EnabledRoundTripTest::RunTest(const FString& Parameters)
 		return false;
 	}
 	TestTrue(TEXT("Snapshot stores enabled removal permission"), CapturedReceptacle->bCanRemoveItem);
+	TestTrue(TEXT("Snapshot stores enabled insertion permission"), CapturedReceptacle->bCanInsertItems);
 
 	Receptacle->SetCanRemoveItem(false);
+	Receptacle->SetCanInsertItems(false);
 	TestFalse(TEXT("Runtime mutation proves restore is authoritative"), Receptacle->bCanRemoveItem);
 	TestTrue(TEXT("Captured runtime snapshot reapplies"), Runtime->ApplyCurrentLevelRuntimeState());
 	TestTrue(TEXT("Enabled removal permission restores from snapshot"), Receptacle->bCanRemoveItem);
+	TestTrue(TEXT("Enabled insertion permission restores from snapshot"), Receptacle->bCanInsertItems);
 	return true;
 }
 

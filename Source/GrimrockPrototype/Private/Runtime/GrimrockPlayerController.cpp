@@ -59,6 +59,8 @@ namespace
 			case EGridReceptacleRejectReason::ExplicitlyRejected:
 			case EGridReceptacleRejectReason::NoMatchingAcceptanceRule:
 				return FText::FromString(TEXT("Cet objet ne convient pas."));
+			case EGridReceptacleRejectReason::InsertionDisabled:
+				return FText::FromString(TEXT("Ce réceptacle n'accepte plus d'objet."));
 			case EGridReceptacleRejectReason::None:
 			default:
 				return FText::FromString(TEXT("Impossible de placer cet objet ici."));
@@ -77,6 +79,8 @@ namespace
 				return TEXT("ExplicitlyRejected");
 			case EGridReceptacleRejectReason::NoMatchingAcceptanceRule:
 				return TEXT("NoMatchingAcceptanceRule");
+			case EGridReceptacleRejectReason::InsertionDisabled:
+				return TEXT("InsertionDisabled");
 			case EGridReceptacleRejectReason::None:
 			default:
 				return TEXT("Unknown");

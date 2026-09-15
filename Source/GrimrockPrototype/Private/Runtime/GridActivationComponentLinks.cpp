@@ -68,6 +68,8 @@ namespace
 			case EGridObjectCommand::ReceptacleConsumeAllItems:
 			case EGridObjectCommand::ReceptacleEnableRemoval:
 			case EGridObjectCommand::ReceptacleDisableRemoval:
+			case EGridObjectCommand::ReceptacleEnableInsertion:
+			case EGridObjectCommand::ReceptacleDisableInsertion:
 				return true;
 			default:
 				return false;
@@ -625,6 +627,12 @@ bool UGridActivationComponent::ApplyReceptacleLinkCommand(const FGridWorldObject
 			break;
 		case EGridObjectCommand::ReceptacleDisableRemoval:
 			ReceptacleActor->SetCanRemoveItem(false);
+			break;
+		case EGridObjectCommand::ReceptacleEnableInsertion:
+			ReceptacleActor->SetCanInsertItems(true);
+			break;
+		case EGridObjectCommand::ReceptacleDisableInsertion:
+			ReceptacleActor->SetCanInsertItems(false);
 			break;
 		default:
 			bSuccess = false;

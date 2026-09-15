@@ -130,6 +130,8 @@ namespace GridTD075ReceptacleRecovery
 		Level->Links.Add(MakeTD075Link(EGridObjectEvent::Used, EGridObjectCommand::ReceptacleDisableRemoval));
 		Level->Links.Add(MakeTD075Link(EGridObjectEvent::Opened, EGridObjectCommand::ReceptacleEnableRemoval));
 		Level->Links.Add(MakeTD075Link(EGridObjectEvent::Closed, EGridObjectCommand::ReceptacleConsumeAllItems));
+		Level->Links.Add(MakeTD075Link(EGridObjectEvent::ItemInserted, EGridObjectCommand::ReceptacleDisableInsertion));
+		Level->Links.Add(MakeTD075Link(EGridObjectEvent::ItemRemoved, EGridObjectCommand::ReceptacleEnableInsertion));
 
 		UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
 		Definition->DefinitionId = TD075ReceptacleWorldObjectDefinitionId;
@@ -176,6 +178,16 @@ bool FGridTD075ReceptacleCommandRecoveryTest::RunTest(const FString& Parameters)
 
 	TestEqual(TEXT("Fixture starts with two contained items"), Receptacle->GetContainedItemCount(), 2);
 	TestTrue(TEXT("Fixture starts with removal enabled"), Receptacle->bCanRemoveItem);
+	TestTrue(TEXT("Fixture starts with insertion enabled"), Receptacle->bCanInsertItems);
+
+	TestTrue(TEXT("Event -> ReceptacleDisableInsertion succeeds"),
+		Runtime->ExecuteLinksFromRuntimeObject(GridTD075ReceptacleRecovery::TD075SourceObjectId, EGridObjectEvent::ItemInserted));
+	TestFalse(TEXT("DisableInsertion updates receptacle runtime state"), Receptacle->bCanInsertItems);
+	TestFalse(TEXT("Disabled insertion rejects items before transfer"), Receptacle->CanAcceptItem(TEXT("TD07_5_ItemA")));
+
+	TestTrue(TEXT("Event -> ReceptacleEnableInsertion succeeds"),
+		Runtime->ExecuteLinksFromRuntimeObject(GridTD075ReceptacleRecovery::TD075SourceObjectId, EGridObjectEvent::ItemRemoved));
+	TestTrue(TEXT("EnableInsertion updates receptacle runtime state"), Receptacle->bCanInsertItems);
 
 	TestTrue(TEXT("Event -> ReceptacleConsumeItem succeeds"),
 		Runtime->ExecuteLinksFromRuntimeObject(GridTD075ReceptacleRecovery::TD075SourceObjectId, EGridObjectEvent::Activated));

@@ -102,6 +102,8 @@ namespace
 				return TEXT("rejected explicitly");
 			case EGridReceptacleRejectReason::NoMatchingAcceptanceRule:
 				return TEXT("rejected because no rule matched");
+			case EGridReceptacleRejectReason::InsertionDisabled:
+				return TEXT("insertion disabled");
 			default:
 				return TEXT("unknown");
 		}
@@ -162,6 +164,7 @@ void AGridReceptacleActor::InitializeRuntimeWorldObject(
 	const FGridReceptacleBehaviorParams& Params = EffectiveBehavior.Receptacle;
 
 	bCanRemoveItem = true;
+	bCanInsertItems = true;
 
 	bAcceptAnyItem = Params.bAcceptAnyItem;
 	AcceptedItemDefinitionIds.Reset();
@@ -327,6 +330,10 @@ bool AGridReceptacleActor::CanAcceptItem(FName ItemDefinitionId) const
 	{
 		return false;
 	}
+	if (!bCanInsertItems)
+	{
+		return false;
+	}
 	if (IsFull())
 	{
 		return false;
@@ -411,6 +418,10 @@ bool AGridReceptacleActor::EvaluateItemAcceptance(const FGridItemInstance& Item,
 	if (!Item.IsValid())
 	{
 		return Reject(EGridReceptacleRejectReason::InvalidItem);
+	}
+	if (!bCanInsertItems)
+	{
+		return Reject(EGridReceptacleRejectReason::InsertionDisabled);
 	}
 	if (IsFull())
 	{
@@ -662,6 +673,14 @@ void AGridReceptacleActor::SetCanRemoveItem(bool bNewCanRemoveItem)
 		bPreviousCanRemoveItem ? TEXT("true") : TEXT("false"), bCanRemoveItem ? TEXT("true") : TEXT("false"));
 }
 
+void AGridReceptacleActor::SetCanInsertItems(bool bNewCanInsertItems)
+{
+	const bool bPreviousCanInsertItems = bCanInsertItems;
+	bCanInsertItems = bNewCanInsertItems;
+	UE_LOG(LogGridReceptacle, Verbose, TEXT("GridReceptacle InsertionChanged ObjectId=%s Previous=%s New=%s"), *ObjectId.ToString(),
+		bPreviousCanInsertItems ? TEXT("true") : TEXT("false"), bCanInsertItems ? TEXT("true") : TEXT("false"));
+}
+
 bool AGridReceptacleActor::TryInteractWithParty(AGrimrockPartyPawn* PartyPawn)
 {
 	if (!PartyPawn)
@@ -726,6 +745,7 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState(FGridRuntimeReceptacleS
 {
 	OutState.ObjectId = ObjectId;
 	OutState.bCanRemoveItem = bCanRemoveItem;
+	OutState.bCanInsertItems = bCanInsertItems;
 	OutState.ContainedItems.Reset();
 
 	for (const FGridContainedReceptacleItem& Item : ContainedItems)
@@ -1230,6 +1250,10 @@ FString AGridReceptacleActor::GetItemAcceptanceFailureReason(FName ItemDefinitio
 	if (IsFull())
 	{
 		return TEXT("receptacle is full");
+	}
+	if (!bCanInsertItems)
+	{
+		return TEXT("receptacle insertion is disabled");
 	}
 	if (!bAcceptAnyItem && !AcceptedItemDefinitionIds.Contains(ItemDefinitionId))
 	{

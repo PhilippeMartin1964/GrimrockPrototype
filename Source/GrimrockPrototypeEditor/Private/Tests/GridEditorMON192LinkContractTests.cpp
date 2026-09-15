@@ -68,10 +68,11 @@ bool FGridEditorMON192LinkPolicyMatrixTest::RunTest(const FString& Parameters)
 			{ EGridObjectCommand::Open, EGridObjectCommand::Close, EGridObjectCommand::Toggle, EGridObjectCommand::Activate, EGridObjectCommand::Deactivate }));
 
 	const TArray<EGridObjectCommand> ReceptacleCommands = GridEditorLinkPolicy::GetSupportedCommandsForTarget(Receptacle);
-	TestTrue(TEXT("Receptacle exposes exactly four specialized commands"),
+	TestTrue(TEXT("Receptacle exposes exactly six specialized commands"),
 		ContainsExactly(ReceptacleCommands,
 			{ EGridObjectCommand::ReceptacleConsumeItem, EGridObjectCommand::ReceptacleConsumeAllItems, EGridObjectCommand::ReceptacleEnableRemoval,
-				EGridObjectCommand::ReceptacleDisableRemoval }));
+				EGridObjectCommand::ReceptacleDisableRemoval, EGridObjectCommand::ReceptacleEnableInsertion,
+				EGridObjectCommand::ReceptacleDisableInsertion }));
 
 	const TArray<EGridObjectCommand> MonsterCommands = GridEditorLinkPolicy::GetSupportedCommandsForTarget(MonsterSpawn);
 	TestEqual(TEXT("MonsterSpawn keeps the nine MON13 commands"), MonsterCommands.Num(), 9);
