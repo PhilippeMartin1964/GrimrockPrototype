@@ -179,7 +179,7 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 	TorchDefinition->DisplayName = FText::FromString(TEXT("Torche"));
 	TorchDefinition->ItemType = EGridItemType::Torch;
 	TorchDefinition->Weight = 1.0f;
-	TorchDefinition->bCanEmitLight = true;
+	TorchDefinition->LightEmitter.bUsePointLight = true;
 	TorchDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::OffHand);
 	UStaticMesh* TorchMesh = NewObject<UStaticMesh>(Party);
 	TorchDefinition->WorldMesh = TorchMesh;
@@ -191,6 +191,7 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 	EquippedTorch.DisplayName = TorchDefinition->DisplayName;
 	EquippedTorch.Quantity = 1;
 	EquippedTorch.Weight = TorchDefinition->Weight;
+	EquippedTorch.bLightsEnabled = true;
 	EquippedTorch.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	EquippedTorch.OwnerGuid = Character.CharacterId;
 	EquippedTorch.OwnerCharacterIndex = 0;
