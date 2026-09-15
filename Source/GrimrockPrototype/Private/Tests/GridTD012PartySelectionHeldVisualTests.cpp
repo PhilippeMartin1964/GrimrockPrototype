@@ -3,7 +3,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Misc/AutomationTest.h"
-#include "Runtime/GridItemActor.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
@@ -84,10 +84,19 @@ namespace GridTD012Tests
 		Inventory->PartyInventoryState.ActiveCharacters[1].CharacterId = FGuid::NewGuid();
 		Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
 		Inventory->PartyInventoryState.MaxActiveCharacters = 2;
-		Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = MakeCharacterZeroLightItem(Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId);
 
-		PartyPawn->DefaultHeldItemDefinitionId = CharacterZeroLightItemId;
-		PartyPawn->HeldTorchActorClass = AGridItemActor::StaticClass();
+		UGridItemDefinitionAsset* LightDefinition = NewObject<UGridItemDefinitionAsset>(Inventory);
+		LightDefinition->ItemDefinitionId = CharacterZeroLightItemId;
+		LightDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+		LightDefinition->LightEmitter.bUsePointLight = true;
+		LightDefinition->LightEmitter.bDefaultEnabled = true;
+		if (!Inventory->RegisterItemDefinition(LightDefinition))
+		{
+			Test.AddError(TEXT("TD01.2 could not register its data-driven light item definition."));
+			return nullptr;
+		}
+
+		Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = MakeCharacterZeroLightItem(Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId);
 		PartyPawn->SyncHeldVisualFromSelectedCharacterEquipment();
 		return PartyPawn;
 	}
