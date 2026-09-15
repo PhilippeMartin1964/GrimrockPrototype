@@ -86,7 +86,7 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 	HeldItemActor->SetActorRelativeScale3D(HeldItemRelativeScale);
 	HeldItemActor->OnPlacedInWorld();
 	HeldItemDefinitionId = ItemDefinitionId;
-	bHasLightInHand = false;
+	bHasTorchInHand = false;
 
 	UE_LOG(LogTemp, Log, TEXT("Held item equipped: %s Mesh=%s"), *ItemDefinitionId.ToString(),
 		HeldItemActor->MeshComponent ? *GetNameSafe(HeldItemActor->MeshComponent->GetStaticMesh()) : TEXT("None"));
@@ -103,7 +103,7 @@ void AGrimrockPartyPawn::ClearHeldItem()
 	}
 
 	HeldItemDefinitionId = NAME_None;
-	bHasLightInHand = false;
+	bHasTorchInHand = false;
 }
 
 FName AGrimrockPartyPawn::GetHeldItemDefinitionId() const
@@ -205,7 +205,7 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 	{
 		HeldItemActor->SetItemLightsEnabled(bAnyEquippedLight);
 	}
-	bHasLightInHand = bAnyEquippedLight;
+	bHasTorchInHand = bAnyEquippedLight;
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory HeldVisual Sync Equipped Character=%d Slot=%s Item=%s"), CharacterIndex,
 		GridPartyPawnHeldItemGetEquipmentSlotName(VisualSlot), *VisualItem->ItemDefinitionId.ToString());
