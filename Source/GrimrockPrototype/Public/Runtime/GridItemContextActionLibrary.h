@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Runtime/GridItemActionTypes.h"
+#include "Runtime/GridItemActor.h"
 #include "GridItemContextActionLibrary.generated.h"
 
 UCLASS()
