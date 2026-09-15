@@ -294,7 +294,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Receptacle")
 	bool TryInteractWithParty(AGrimrockPartyPawn* PartyPawn);
 
-	virtual bool TryPlaceCursorItemFromHit(AGrimrockPartyPawn* PartyPawn, const FHitResult& HitResult);
+	bool TryPlaceCursorItemFromHit(AGrimrockPartyPawn* PartyPawn, const FHitResult& HitResult);
 
 	void ApplyVisualPlacement(AGridItemActor* ItemActor, const FGridItemInstance& Item, const FHitResult* OptionalHit, int32 ItemIndex, bool bInitialPlacement);
 
@@ -303,7 +303,7 @@ public:
 	// Runtime State Capture / Restore
 	// ============================================================
 
-	virtual void CaptureRuntimeReceptacleState(FGridRuntimeReceptacleState& OutState) const;
+	void CaptureRuntimeReceptacleState(FGridRuntimeReceptacleState& OutState) const;
 
 	/**
      * Authoritative runtime clear:

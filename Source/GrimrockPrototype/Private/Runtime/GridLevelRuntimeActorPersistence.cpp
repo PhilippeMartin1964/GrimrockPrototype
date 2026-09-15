@@ -10,7 +10,6 @@
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridPitTrapdoorActor.h"
 #include "Runtime/GridReceptacleActor.h"
-#include "Runtime/GridConsumingSlotReceptacleActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
@@ -565,10 +564,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			FGridRuntimeItemState ResolvedItemState = ItemState;
 			ResolvedItemState.ItemDefinitionId = RuntimeItemDefinitionId;
 			ReceptacleActor->RestoreRuntimeContainedItem(ResolvedItemState, ItemActor);
-		}
-		if (AGridConsumingSlotReceptacleActor* ConsumingReceptacle = Cast<AGridConsumingSlotReceptacleActor>(ReceptacleActor))
-		{
-			ConsumingReceptacle->RestoreConsumingSlotState(Pair.Value);
 		}
 		UE_LOG(LogTemp, Verbose, TEXT("GridRuntimeState Apply Receptacle Final ObjectId=%s HasItem=%s Count=%d"), *Pair.Key.ToString(),
 			ReceptacleActor->HasItem() ? TEXT("true") : TEXT("false"), ReceptacleActor->GetContainedItemCount());

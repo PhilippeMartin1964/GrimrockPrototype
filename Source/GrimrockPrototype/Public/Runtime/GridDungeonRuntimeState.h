@@ -158,13 +158,6 @@ struct FGridRuntimeReceptacleState
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TArray<FGridRuntimeItemState> ContainedItems;
-
-	/** Consumed items are represented only by their filled slot ids, never as contained/world items. */
-	UPROPERTY(SaveGame, BlueprintReadWrite)
-	TSet<FName> FilledConsumingSlots;
-
-	UPROPERTY(SaveGame, BlueprintReadWrite)
-	bool bConsumingSlotsCompletionEmitted = false;
 };
 
 USTRUCT(BlueprintType)

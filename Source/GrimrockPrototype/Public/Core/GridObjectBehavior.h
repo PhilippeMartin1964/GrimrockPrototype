@@ -100,49 +100,6 @@ struct FGridReceptacleAcceptedItemConfig
 	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
 };
 
-/** One independently targetable, consuming interaction slot on a receptacle. */
-USTRUCT(BlueprintType)
-struct FGridReceptacleConsumingSlotConfig
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consuming Slot")
-	FName SlotId = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consuming Slot|Interaction")
-	FVector InteractionRelativeLocation = FVector::ZeroVector;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consuming Slot|Interaction")
-	FRotator InteractionRelativeRotation = FRotator::ZeroRotator;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consuming Slot|Interaction")
-	FVector InteractionBoxExtent = FVector(10.f);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consuming Slot|Presentation")
-	FName FilledMaterialSlot = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consuming Slot|Presentation")
-	FName FilledMaterialAlias = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consuming Slot|Light")
-	bool bEnableFilledLight = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consuming Slot|Light", meta = (EditCondition = "bEnableFilledLight"))
-	FVector LightRelativeLocation = FVector::ZeroVector;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consuming Slot|Light", meta = (EditCondition = "bEnableFilledLight"))
-	FLinearColor LightColor = FLinearColor::White;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consuming Slot|Light", meta = (EditCondition = "bEnableFilledLight", ClampMin = "0.0"))
-	float LightIntensity = 1000.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consuming Slot|Light", meta = (EditCondition = "bEnableFilledLight", ClampMin = "0.0"))
-	float LightRadius = 200.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consuming Slot")
-	bool bRequiredForActivation = true;
-};
-
 USTRUCT(BlueprintType)
 struct FGridReceptacleBehaviorParams
 {
@@ -156,10 +113,6 @@ struct FGridReceptacleBehaviorParams
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Initial Content")
 	TArray<FGridReceptacleInitialItemConfig> InitialContent;
-
-	/** Opt-in slots used only by AGridConsumingSlotReceptacleActor. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Consuming Slots")
-	TArray<FGridReceptacleConsumingSlotConfig> ConsumingSlots;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle", meta = (DisplayName = "Max Contained Items", ClampMin = "1"))
 	int32 MaxContainedItems = 1;
