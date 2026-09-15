@@ -30,11 +30,14 @@ AGridItemActor::AGridItemActor()
 	SparkleMeshComponent->SetEnableGravity(false);
 	SparkleMeshComponent->SetCastShadow(false);
 	SparkleMeshComponent->SetVisibility(false, true);
+
+	LightEmitterComponent = CreateDefaultSubobject<UGridLightEmitterComponent>(TEXT("LightEmitter"));
+	LightEmitterComponent->SetupAttachment(SceneRoot);
 }
 
 void AGridItemActor::OnPlacedInWorld()
 {
-	SetItemLightsEnabled(true);
+	// Light state is instance-owned and applied explicitly by the world/receptacle/equipment path.
 }
 
 void AGridItemActor::OnRemovedFromWorld()
@@ -45,15 +48,9 @@ void AGridItemActor::OnRemovedFromWorld()
 
 void AGridItemActor::SetItemLightsEnabled(bool bEnabled)
 {
-	TArray<UGridLightEmitterComponent*> LightEmitters;
-	GetComponents<UGridLightEmitterComponent>(LightEmitters);
-
-	for (UGridLightEmitterComponent* LightEmitter : LightEmitters)
+	if (LightEmitterComponent)
 	{
-		if (LightEmitter)
-		{
-			LightEmitter->SetLightEnabled(bEnabled);
-		}
+		LightEmitterComponent->SetLightEnabled(bEnabled);
 	}
 }
 
@@ -80,6 +77,11 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 			MeshComponent->SetStaticMesh(WorldMesh);
 		}
 	}
+	if (LightEmitterComponent)
+	{
+		LightEmitterComponent->ApplyConfig(InDefinition->LightEmitter);
+		LightEmitterComponent->SetLightEnabled(false);
+	}
 	RefreshWorldSparklePresentation();
 }
 
@@ -97,6 +99,11 @@ void AGridItemActor::InitializeFromItemDefinitionId(FName InItemDefinitionId, co
 	if (!RuntimeObjectId.IsValid())
 	{
 		RuntimeObjectId = FGuid::NewGuid();
+	}
+	if (LightEmitterComponent)
+	{
+		LightEmitterComponent->ApplyConfig(FGridLightEmitterConfig());
+		LightEmitterComponent->SetLightEnabled(false);
 	}
 }
 
@@ -116,18 +123,7 @@ void AGridItemActor::InitializeReadableContent(
 
 bool AGridItemActor::AreItemLightsEnabled() const
 {
-	TArray<UGridLightEmitterComponent*> LightEmitters;
-	GetComponents<UGridLightEmitterComponent>(LightEmitters);
-
-	for (const UGridLightEmitterComponent* LightEmitter : LightEmitters)
-	{
-		if (LightEmitter)
-		{
-			return LightEmitter->IsLightEnabled();
-		}
-	}
-
-	return false;
+	return LightEmitterComponent && LightEmitterComponent->IsLightEnabled();
 }
 
 void AGridItemActor::SetRuntimeObjectId(FGuid InRuntimeObjectId)
