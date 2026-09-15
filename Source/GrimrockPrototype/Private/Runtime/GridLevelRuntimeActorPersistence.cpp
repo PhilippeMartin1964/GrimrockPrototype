@@ -387,6 +387,27 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		}
 	}
 
+	for (const TPair<FGuid, FGridRuntimeObjectVisualState>& Pair : State->ObjectVisuals)
+	{
+		AGridRuntimeObjectActor* RuntimeObject = FindRuntimeObjectActor<AGridRuntimeObjectActor>(Pair.Key);
+		if (!RuntimeObject)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridRuntimeState Apply visual skipped: ObjectId=%s Reason=runtime actor not found."), *Pair.Key.ToString());
+			continue;
+		}
+
+		for (const TPair<FName, FName>& MaterialOverride : Pair.Value.MaterialAliasesBySlot)
+		{
+			FString Error;
+			if (!RuntimeObject->SetRuntimeMaterialAlias(MaterialOverride.Key, MaterialOverride.Value, false, Error))
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("GridRuntimeState Apply visual skipped: ObjectId=%s Slot=%s Alias=%s Reason=%s"), *Pair.Key.ToString(),
+					*MaterialOverride.Key.ToString(), *MaterialOverride.Value.ToString(), *Error);
+			}
+		}
+	}
+
 	if (ActivationComponent)
 	{
 		TSet<FGuid> ActiveObjectIds;
