@@ -10,6 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Materials/Material.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Save/GrimrockPartySaveGame.h"
 
@@ -93,26 +94,27 @@ bool FGridPUZZLE01Lua01RuntimeMaterialAliasTest::RunTest(const FString& Paramete
 
 	UGridWorldObjectDefinitionAsset* GuardianDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
 	GuardianDefinition->DefinitionId = TEXT("Guardian");
-	GuardianDefinition->SupportedType = EGridLevelObjectType::Decoration;
-	GuardianDefinition->PlacementSurface = EGridObjectPlacementKind::Center;
+	GuardianDefinition->SupportedType = EGridLevelObjectType::Receptacle;
+	GuardianDefinition->PlacementSurface = EGridObjectPlacementKind::Wall;
 	GuardianDefinition->StaticPart.Mesh = GuardianMesh;
-	GuardianDefinition->RuntimeActorClass = AGridRuntimeObjectActor::StaticClass();
+	GuardianDefinition->RuntimeActorClass = AGridReceptacleActor::StaticClass();
 	GuardianDefinition->RuntimeMaterialAliases.Add(TEXT("BlueGem"), BlueGem);
 	Runtime->WorldObjectDefinitions.Add(GuardianDefinition);
 
 	const FGuid GuardianId(1, 1, 1, 1);
 	FGridWorldObjectInstance GuardianPlacement;
 	GuardianPlacement.InstanceId = GuardianId;
-	GuardianPlacement.Type = EGridLevelObjectType::Decoration;
+	GuardianPlacement.Type = EGridLevelObjectType::Receptacle;
 	GuardianPlacement.CellX = 0;
 	GuardianPlacement.CellY = 0;
+	GuardianPlacement.WallSide = EGridEdge::North;
 	GuardianPlacement.WorldObjectDefinitionId = GuardianDefinition->DefinitionId;
 	GuardianPlacement.LogicId = TEXT("Guardian");
 	Level->WorldObjectInstances.Add(GuardianPlacement);
 
-	Runtime->RebuildLevel();
-	AGridRuntimeObjectActor* Guardian = Runtime->FindRuntimeObjectActor<AGridRuntimeObjectActor>(GuardianId);
-	TestNotNull(TEXT("Guardian runtime object is spawned and registered"), Guardian);
+	Runtime->AddRuntimeObjectActor(GuardianPlacement);
+	AGridReceptacleActor* Guardian = Runtime->FindRuntimeObjectActor<AGridReceptacleActor>(GuardianId);
+	TestNotNull(TEXT("Guardian runtime receptacle is spawned and registered"), Guardian);
 	if (!Guardian || !Guardian->MeshComponent)
 	{
 		return false;
@@ -171,8 +173,8 @@ bool FGridPUZZLE01Lua01RuntimeMaterialAliasTest::RunTest(const FString& Paramete
 		}
 	}
 
-	// Reproduce the real load bug: the level actor and Guardian already exist with authored visuals
-	// when the SaveGame DungeonRuntimeState is injected. ApplyCurrentLevelRuntimeState must restore
+	// Reproduce the real load bug: the Guardian already exists with authored visuals when
+	// the SaveGame DungeonRuntimeState is injected. ApplyCurrentLevelRuntimeState must restore
 	// ObjectVisuals explicitly instead of relying on a fresh actor initialization/rebuild.
 	Guardian->MeshComponent->SetMaterial(0, EmptyLeft);
 	TestTrue(TEXT("Existing Guardian is reset to authored EyesLeft before load apply"), Guardian->MeshComponent->GetMaterial(0) == EmptyLeft);
