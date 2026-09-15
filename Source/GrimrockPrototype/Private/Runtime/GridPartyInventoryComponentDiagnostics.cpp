@@ -216,7 +216,6 @@ namespace
 			{
 				Visitor(Slot, *Item);
 			}
-		}
 	}
 }
 
@@ -353,7 +352,7 @@ void UGridPartyInventoryComponent::LogEquipmentCompatibilityDiagnostics() const
 				*Definition->ItemDefinitionId.ToString(), GridPartyInventoryDiagnosticsGetItemTypeName(Definition->ItemType), *SlotsText);
 		}
 
-		if (Definition->bCanEmitLight)
+		if (Definition->HasLightEmitter())
 		{
 			bool bHasHandSlot = false;
 			for (const EGridEquipmentSlot Slot : Definition->CompatibleEquipmentSlots)
