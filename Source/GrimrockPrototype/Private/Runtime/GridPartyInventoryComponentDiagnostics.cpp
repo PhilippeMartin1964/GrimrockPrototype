@@ -216,6 +216,7 @@ namespace
 			{
 				Visitor(Slot, *Item);
 			}
+		}
 	}
 }
 
