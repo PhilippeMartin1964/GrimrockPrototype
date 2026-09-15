@@ -230,9 +230,12 @@ public:
 				"Runtime actor class used to spawn this definition. Gameplay Type defines what the object is; Runtime Actor Class defines how it is instantiated."))
 	TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime",
-		meta = (DisplayName = "Item Actor Class", ToolTip = "Runtime item actor class used when this definition represents a spawned or carried item."))
-	TSubclassOf<AGridItemActor> ItemActorClass;
+	/**
+	 * WORLDOBJ-ITEMCLASS01 compatibility bridge for pre-cleanup native call-sites.
+	 * Intentionally NOT a UPROPERTY: it is not reflected, serialized, editable or Blueprint-visible.
+	 * It therefore always remains null for authored DataAssets and cannot override the generic item actor path.
+	 */
+	TSubclassOf<AGridItemActor> ItemActorClass = nullptr;
 
 	bool HasValidPlacementSurface() const
 	{

@@ -143,8 +143,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
 	bool bAcceptAnyItem = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Visual")
-	TSubclassOf<AGridItemActor> ContainedItemActorClass;
+	/**
+	 * WORLDOBJ-ITEMCLASS01 compatibility bridge for pre-cleanup native call-sites.
+	 * Intentionally NOT a UPROPERTY: receptacles no longer author or serialize an item actor class.
+	 * Authored content therefore falls back to the generic AGridItemActor path driven by ItemDefinition.
+	 */
+	TSubclassOf<AGridItemActor> ContainedItemActorClass = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Visual")
 	bool bSimulatePhysicsWhenPlaced = false;
