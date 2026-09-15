@@ -14,7 +14,9 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLevelVariableStore.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GrimrockPartyPawn.h"
 
 namespace
 {
@@ -73,6 +75,44 @@ namespace
 		Variable.bDefaultBoolValue = bDefaultValue;
 		return Variable;
 	}
+
+	bool PartyOwnsItemDefinition(const FGridPartyInventoryState& State, FName ItemDefinitionId)
+	{
+		if (State.bHasCursorItem && State.CursorItem.ItemDefinitionId == ItemDefinitionId)
+		{
+			return true;
+		}
+
+		for (const FGridCharacterInventoryState& Character : State.ActiveCharacters)
+		{
+			for (const FGridInventorySlot& Slot : Character.InventorySlots)
+			{
+				if (!Slot.IsEmpty() && Slot.Item.ItemDefinitionId == ItemDefinitionId)
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	int32 FindInventorySlotForItemDefinition(const FGridPartyInventoryState& State, int32 CharacterIndex, FName ItemDefinitionId)
+	{
+		if (!State.ActiveCharacters.IsValidIndex(CharacterIndex))
+		{
+			return INDEX_NONE;
+		}
+
+		const TArray<FGridInventorySlot>& Slots = State.ActiveCharacters[CharacterIndex].InventorySlots;
+		for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
+		{
+			if (!Slots[SlotIndex].IsEmpty() && Slots[SlotIndex].Item.ItemDefinitionId == ItemDefinitionId)
+			{
+				return SlotIndex;
+			}
+		}
+		return INDEX_NONE;
+	}
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridPUZZLE01Lua01GuardianPuzzleIntegrationTest,
@@ -90,9 +130,10 @@ bool FGridPUZZLE01Lua01GuardianPuzzleIntegrationTest::RunTest(const FString& Par
 	}
 
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
-	if (!Runtime)
+	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
+	if (!Runtime || !Party || !Party->PartyInventoryComponent)
 	{
-		AddError(TEXT("Unable to spawn level runtime actor."));
+		AddError(TEXT("Unable to spawn level runtime actor or party pawn."));
 		return false;
 	}
 
@@ -120,7 +161,7 @@ bool FGridPUZZLE01Lua01GuardianPuzzleIntegrationTest::RunTest(const FString& Par
 	UGridWorldObjectDefinitionAsset* GuardianDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
 	GuardianDefinition->DefinitionId = TEXT("Guardian");
 	GuardianDefinition->SupportedType = EGridLevelObjectType::Receptacle;
-	GuardianDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
+	GuardianDefinition->PlacementSurface = EGridObjectPlacementKind::Wall;
 	GuardianDefinition->StaticPart.Mesh = GuardianMesh;
 	GuardianDefinition->RuntimeActorClass = AGridReceptacleActor::StaticClass();
 	GuardianDefinition->bIsInteractable = true;
@@ -140,6 +181,7 @@ bool FGridPUZZLE01Lua01GuardianPuzzleIntegrationTest::RunTest(const FString& Par
 	GuardianPlacement.WorldObjectDefinitionId = GuardianDefinition->DefinitionId;
 	GuardianPlacement.CellX = 0;
 	GuardianPlacement.CellY = 0;
+	GuardianPlacement.WallSide = EGridEdge::North;
 	Level->WorldObjectInstances.Add(GuardianPlacement);
 
 	FGridLuaScriptSource Script;
@@ -194,8 +236,75 @@ bool FGridPUZZLE01Lua01GuardianPuzzleIntegrationTest::RunTest(const FString& Par
 		return false;
 	}
 
-	TestTrue(TEXT("First blue gem is inserted through the ordinary receptacle"), Guardian->TryInsertItem(BlueGem->ItemDefinitionId, BlueGem, nullptr));
-	TestEqual(TEXT("Lua consumes the first inserted gem"), Guardian->GetContainedItemCount(), 0);
+	Party->SetGridStart(Runtime, 0, 0, EGridEdge::North);
+	Party->PartyInventoryComponent->InitializeDefaultPartyIfNeeded();
+	const bool bDefinitionRegistered = Party->PartyInventoryComponent->RegisterItemDefinition(BlueGem);
+	TestTrue(TEXT("Blue gem definition registers in party inventory"), bDefinitionRegistered);
+	if (!bDefinitionRegistered)
+	{
+		return false;
+	}
+
+	auto GiveGemToGuardianThroughRealInventoryPath = [this, Party, Guardian, BlueGem](const TCHAR* StepName)
+	{
+		FGridItemInstance Gem;
+		Gem.RuntimeObjectId = FGuid::NewGuid();
+		Gem.ItemDefinitionId = BlueGem->ItemDefinitionId;
+		Gem.Quantity = 1;
+		Gem.OwnerType = EGridItemOwnerType::World;
+
+		const bool bAddedToInventory = Party->PartyInventoryComponent->AddItemToCharacterInventory(0, Gem);
+		TestTrue(FString::Printf(TEXT("%s: blue gem enters inventory"), StepName), bAddedToInventory);
+		if (!bAddedToInventory)
+		{
+			return false;
+		}
+
+		const int32 InventorySlot =
+			FindInventorySlotForItemDefinition(Party->PartyInventoryComponent->PartyInventoryState, 0, BlueGem->ItemDefinitionId);
+		TestTrue(FString::Printf(TEXT("%s: blue gem inventory slot is found"), StepName), InventorySlot != INDEX_NONE);
+		if (InventorySlot == INDEX_NONE)
+		{
+			return false;
+		}
+
+		const bool bMovedToCursor = Party->PartyInventoryComponent->TryTakeInventorySlotToCursor(0, InventorySlot);
+		TestTrue(FString::Printf(TEXT("%s: blue gem moves from inventory to cursor"), StepName), bMovedToCursor);
+		if (!bMovedToCursor)
+		{
+			return false;
+		}
+
+		const bool bCursorOwnsBlueGem = Party->PartyInventoryComponent->HasCursorItem() &&
+			Party->PartyInventoryComponent->GetCursorItem().ItemDefinitionId == BlueGem->ItemDefinitionId;
+		TestTrue(FString::Printf(TEXT("%s: cursor owns blue gem before insertion"), StepName), bCursorOwnsBlueGem);
+		if (!bCursorOwnsBlueGem)
+		{
+			return false;
+		}
+
+		FHitResult HitResult;
+		HitResult.Component = Guardian->MeshComponent;
+		const bool bPlaced = Guardian->TryPlaceCursorItemFromHit(Party, HitResult);
+		TestTrue(FString::Printf(TEXT("%s: real receptacle mouse path accepts blue gem"), StepName), bPlaced);
+		if (!bPlaced)
+		{
+			return false;
+		}
+
+		TestFalse(FString::Printf(TEXT("%s: consumed blue gem is absent from cursor"), StepName),
+			Party->PartyInventoryComponent->HasCursorItem());
+		TestFalse(FString::Printf(TEXT("%s: consumed blue gem is absent from party inventory"), StepName),
+			PartyOwnsItemDefinition(Party->PartyInventoryComponent->PartyInventoryState, BlueGem->ItemDefinitionId));
+		TestEqual(FString::Printf(TEXT("%s: Lua consumes temporary receptacle content"), StepName), Guardian->GetContainedItemCount(), 0);
+		return !HasAnyErrors();
+	};
+
+	if (!GiveGemToGuardianThroughRealInventoryPath(TEXT("First gem")))
+	{
+		return false;
+	}
+
 	TestTrue(TEXT("Lua lights EyesLeft after the first gem"), Guardian->MeshComponent->GetMaterial(0) == BlueMaterial);
 	TestTrue(TEXT("EyesRight remains dark after the first gem"), Guardian->MeshComponent->GetMaterial(1) == EmptyRight);
 
@@ -209,8 +318,11 @@ bool FGridPUZZLE01Lua01GuardianPuzzleIntegrationTest::RunTest(const FString& Par
 		State && GridLevelVariableStore::TryGetBool(*Level, *State, TEXT("GuardianComplete"), bComplete, Error));
 	TestFalse(TEXT("Guardian is not complete after one gem"), bComplete);
 
-	TestTrue(TEXT("Second blue gem is inserted through the same ordinary receptacle"), Guardian->TryInsertItem(BlueGem->ItemDefinitionId, BlueGem, nullptr));
-	TestEqual(TEXT("Lua consumes the second inserted gem"), Guardian->GetContainedItemCount(), 0);
+	if (!GiveGemToGuardianThroughRealInventoryPath(TEXT("Second gem")))
+	{
+		return false;
+	}
+
 	TestTrue(TEXT("EyesLeft remains lit"), Guardian->MeshComponent->GetMaterial(0) == BlueMaterial);
 	TestTrue(TEXT("Lua lights EyesRight after the second gem"), Guardian->MeshComponent->GetMaterial(1) == BlueMaterial);
 
