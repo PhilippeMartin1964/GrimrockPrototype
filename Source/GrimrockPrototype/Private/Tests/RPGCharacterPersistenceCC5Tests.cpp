@@ -49,8 +49,8 @@ namespace
 		TorchDefinition->ItemType = EGridItemType::Torch;
 		TorchDefinition->Weight = 1.0f;
 		TorchDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-		TorchDefinition->bCanEmitLight = true;
-		TorchDefinition->bDefaultLightEnabled = true;
+		TorchDefinition->LightEmitter.bUsePointLight = true;
+		TorchDefinition->LightEmitter.bDefaultEnabled = true;
 		Component->RegisterItemDefinition(TorchDefinition);
 
 		FGridItemInstance Torch;
