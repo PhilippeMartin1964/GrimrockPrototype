@@ -985,7 +985,7 @@ int32 AGridReceptacleActor::AddContainedItem(
 	{
 		NewItem.Weight = ItemDefinition->Weight;
 		NewItem.DisplayName = ItemDefinition->DisplayName;
-		NewItem.bLightsEnabled = ItemDefinition->bCanEmitLight ? ItemDefinition->bDefaultLightEnabled : true;
+		NewItem.bLightsEnabled = ItemDefinition->IsLightEnabledByDefault();
 	}
 
 	const int32 NewIndex = ContainedItems.Add(NewItem);
