@@ -5,6 +5,7 @@
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "Runtime/GridLightEmitterTypes.h"
 #include "GridItemDefinitionAsset.generated.h"
 
 class UMaterialInterface;
@@ -99,10 +100,10 @@ public:
 	TArray<FGridCombatActionDefinition> CombatActions;
 
 	/**
-     * Enables one inventory-backed combat action for a potion or scroll.
-     * Runtime identity, source policy and a minimum source cost of one are
-     * normalized from ItemDefinitionId by BuildQuickItemCombatActionDefinition.
-     */
+	 * Enables one inventory-backed combat action for a potion or scroll.
+	 * Runtime identity, source policy and a minimum source cost of one are
+	 * normalized from ItemDefinitionId by BuildQuickItemCombatActionDefinition.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Quick Item")
 	bool bProvidesQuickItemCombatAction = false;
 
@@ -216,14 +217,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual", meta = (ClampMin = "0.0"))
 	float ThrowVisualSpinDegreesPerSecond = 1080.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Torch")
-	bool bCanEmitLight = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Torch", meta = (EditCondition = "bCanEmitLight"))
-	bool bDefaultLightEnabled = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Torch", meta = (EditCondition = "bCanEmitLight"))
-	float LightRadius = 600.0f;
+	/** ITEM-LIGHT01: single authored authority for Niagara, point light and flicker presentation. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Light Emitter", meta = (ShowOnlyInnerProperties))
+	FGridLightEmitterConfig LightEmitter;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tags")
 	TArray<FName> ItemTags;
@@ -233,6 +229,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	bool CanEquipToSlot(EGridEquipmentSlot Slot) const;
+
+	UFUNCTION(BlueprintPure, Category = "Light Emitter")
+	bool HasLightEmitter() const;
+
+	UFUNCTION(BlueprintPure, Category = "Light Emitter")
+	bool IsLightEnabledByDefault() const;
 
 	UFUNCTION(BlueprintPure, Category = "Throw")
 	EGridItemHandUsage GetEffectiveHandUsage() const;
