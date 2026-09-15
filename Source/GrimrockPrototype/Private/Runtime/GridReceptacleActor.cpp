@@ -993,7 +993,7 @@ int32 AGridReceptacleActor::AddContainedItem(
 	const EGridReceptacleVisualPlacementMode PlacementMode = GetEffectiveVisualPlacementMode();
 	if (!IsValid(ItemActor) && RuntimeActor)
 	{
-		ItemActor = RuntimeActor->SpawnItemActorForDefinition(ItemDefinition, ItemDefinitionId, this, ItemAttachPoint, ContainedItemActorClass);
+		ItemActor = RuntimeActor->SpawnItemActorForDefinition(ItemDefinition, ItemDefinitionId, this, ItemAttachPoint);
 		if (ItemActor)
 		{
 			if (ItemDefinition)
@@ -1013,12 +1013,7 @@ int32 AGridReceptacleActor::AddContainedItem(
 		if (World)
 		{
 			const FTransform SpawnTransform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform() : GetActorTransform();
-			TSubclassOf<AGridItemActor> ItemActorClass = ContainedItemActorClass;
-			if (!ItemActorClass)
-			{
-				ItemActorClass = AGridItemActor::StaticClass();
-			}
-			AGridItemActor* SpawnedItemActor = World->SpawnActorDeferred<AGridItemActor>(ItemActorClass, SpawnTransform, this);
+			AGridItemActor* SpawnedItemActor = World->SpawnActorDeferred<AGridItemActor>(AGridItemActor::StaticClass(), SpawnTransform, this);
 			if (SpawnedItemActor)
 			{
 				if (ItemDefinition)

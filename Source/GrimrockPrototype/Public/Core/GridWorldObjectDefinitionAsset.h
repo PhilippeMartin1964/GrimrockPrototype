@@ -6,12 +6,10 @@
 #include "GridObjectAudio.h"
 #include "GridObjectBehavior.h"
 #include "GridWorldObjectVisual.h"
-#include "Runtime/GridItemActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "GridWorldObjectDefinitionAsset.generated.h"
 
 class AGridRuntimeObjectActor;
-class AGridItemActor;
 class UMaterialInterface;
 class USoundBase;
 class USoundAttenuation;
@@ -229,13 +227,6 @@ public:
 			ToolTip =
 				"Runtime actor class used to spawn this definition. Gameplay Type defines what the object is; Runtime Actor Class defines how it is instantiated."))
 	TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass;
-
-	/**
-	 * WORLDOBJ-ITEMCLASS01 compatibility bridge for pre-cleanup native call-sites.
-	 * Intentionally NOT a UPROPERTY: it is not reflected, serialized, editable or Blueprint-visible.
-	 * It therefore always remains null for authored DataAssets and cannot override the generic item actor path.
-	 */
-	TSubclassOf<AGridItemActor> ItemActorClass = nullptr;
 
 	bool HasValidPlacementSurface() const
 	{

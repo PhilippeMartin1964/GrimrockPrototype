@@ -54,7 +54,6 @@ bool AGridLevelEditorActor::EnsureStairsRelocationDefinitions(FString& OutError)
 		Definition.StaticPart.LocalTransform = FTransform::Identity;
 		Definition.MovingParts = FGridWorldObjectMovingParts();
 		Definition.RuntimeActorClass = AGridGenericObjectActor::StaticClass();
-		Definition.ItemActorClass = nullptr;
 		Definition.MarkPackageDirty();
 	};
 
@@ -161,7 +160,6 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 	PitDefinition->StaticPart.Mesh = PitMesh;
 	PitDefinition->StaticPart.LocalTransform = FTransform::Identity;
 	PitDefinition->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
-	PitDefinition->ItemActorClass = nullptr;
 
 	// WORLDOBJ-MIG04: a pit has either no moving cover or a complete Part0/Part1 pair.
 	// When a complete pair exists, Motion is the sole persisted hinge/angle/duration authority.

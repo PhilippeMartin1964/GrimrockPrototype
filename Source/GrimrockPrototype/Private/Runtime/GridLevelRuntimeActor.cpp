@@ -1731,7 +1731,7 @@ UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition(F
 }
 
 AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId, AActor* OwnerActor,
-	USceneComponent* AttachParent, TSubclassOf<AGridItemActor> PreferredItemActorClass) const
+	USceneComponent* AttachParent) const
 {
 	ItemDefinitionId = ItemDefinition && !ItemDefinition->ItemDefinitionId.IsNone() ? ItemDefinition->ItemDefinitionId : ItemDefinitionId;
 	if (!ItemDefinition && ItemDefinitionId.IsNone())
@@ -1744,11 +1744,6 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDef
 	{
 		return nullptr;
 	}
-	TSubclassOf<AGridItemActor> ItemClass = PreferredItemActorClass;
-	if (!ItemClass)
-	{
-		ItemClass = AGridItemActor::StaticClass();
-	}
 	const FTransform SpawnTransform(AttachParent ? AttachParent->GetComponentRotation() : FRotator::ZeroRotator,
 		AttachParent ? AttachParent->GetComponentLocation() : GetActorLocation(), FVector::OneVector);
 	if (!IsSafeRuntimeRenderTransform(SpawnTransform))
@@ -1760,7 +1755,7 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDef
 	FActorSpawnParameters Params;
 	Params.Owner = OwnerActor ? OwnerActor : const_cast<AGridLevelRuntimeActor*>(this);
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	AGridItemActor* ItemActor = World->SpawnActor<AGridItemActor>(ItemClass, SpawnTransform.GetLocation(), SpawnTransform.GetRotation().Rotator(), Params);
+	AGridItemActor* ItemActor = World->SpawnActor<AGridItemActor>(AGridItemActor::StaticClass(), SpawnTransform.GetLocation(), SpawnTransform.GetRotation().Rotator(), Params);
 
 	if (!ItemActor)
 	{
@@ -1929,10 +1924,6 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor(const FGridWorldObjectInstanc
 	}
 	const FGridRuntimeWorldObjectData RuntimeObjectData(ObjectData);
 	const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinition(ObjectData.WorldObjectDefinitionId);
-	if (AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor>(Actor))
-	{
-		ReceptacleActor->ContainedItemActorClass = Definition ? Definition->ItemActorClass : nullptr;
-	}
 	if (AGridMechanismActor* MechanismActor = Cast<AGridMechanismActor>(Actor))
 	{
 		MechanismActor->InitializeRuntimeMechanismVisuals(RuntimeObjectData, Definition, Transform);

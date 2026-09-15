@@ -189,7 +189,7 @@ namespace
 		{
 			return Definition->HasAnyVisualPart();
 		}
-		return Definition->HasAnyVisualPart() || Definition->RuntimeActorClass || Definition->ItemActorClass;
+		return Definition->HasAnyVisualPart() || Definition->RuntimeActorClass;
 	}
 
 	TSharedRef<SWidget> BuildItemDefinitionAssetPicker(UGridItemDefinitionAsset* CurrentAsset, TFunction<void(UGridItemDefinitionAsset*)> ApplyAsset)
@@ -525,7 +525,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection(F
 	if (Definition)
 	{
 		Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Actor Class")), GetClassNameText(Definition->RuntimeActorClass.Get()))];
-		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Item Actor Class")), GetClassNameText(Definition->ItemActorClass.Get()))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Static Part Mesh")), GetObjectNameText(Definition->StaticPart.Mesh.Get()))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Moving Part 0 Mesh")), GetObjectNameText(Definition->MovingParts.Part0.Mesh.Get()))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Moving Part 1 Mesh")), GetObjectNameText(Definition->MovingParts.Part1.Mesh.Get()))];

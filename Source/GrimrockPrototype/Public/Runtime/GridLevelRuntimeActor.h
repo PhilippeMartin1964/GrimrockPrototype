@@ -454,7 +454,7 @@ public:
 	const UGridWorldObjectDefinitionAsset* FindWorldObjectDefinition(FName WorldObjectDefinitionId) const;
 	UGridItemDefinitionAsset* ResolveRuntimeItemDefinition(FName ItemDefinitionId) const;
 	AGridItemActor* SpawnItemActorForDefinition(UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId, AActor* OwnerActor,
-		USceneComponent* AttachParent, TSubclassOf<AGridItemActor> PreferredItemActorClass = nullptr) const;
+		USceneComponent* AttachParent) const;
 
 protected:
 	FVector CellToWorld(int32 X, int32 Y, float ZOffset = 0.f) const;

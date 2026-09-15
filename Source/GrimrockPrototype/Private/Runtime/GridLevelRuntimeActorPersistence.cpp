@@ -51,20 +51,6 @@ namespace
 			});
 	}
 
-	const FGridWorldObjectInstance* PersistenceFindWorldObjectById(const UGridLevelAsset* LevelAsset, FGuid ObjectId)
-	{
-		if (!LevelAsset || !ObjectId.IsValid())
-		{
-			return nullptr;
-		}
-
-		return LevelAsset->WorldObjectInstances.FindByPredicate(
-			[ObjectId](const FGridWorldObjectInstance& Instance)
-			{
-				return Instance.InstanceId == ObjectId;
-			});
-	}
-
 	bool PersistenceHasMonsterSpawn(const UGridLevelAsset* LevelAsset, FGuid SpawnId)
 	{
 		return LevelAsset && SpawnId.IsValid() && LevelAsset->MonsterSpawns.ContainsByPredicate(
@@ -550,12 +536,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		ReceptacleActor->SetCanRemoveItem(Pair.Value.bCanRemoveItem);
 		ReceptacleActor->SetCanInsertItems(Pair.Value.bCanInsertItems);
 		const int32 ClearedItemCount = ReceptacleActor->ForceClearRuntimeContents(false);
-		const FGridWorldObjectInstance* ReceptaclePlacement = PersistenceFindWorldObjectById(LevelAsset, Pair.Key);
-		const UGridWorldObjectDefinitionAsset* ReceptacleDefinition =
-			ReceptaclePlacement ? FindWorldObjectDefinition(ReceptaclePlacement->WorldObjectDefinitionId) : nullptr;
-		const TSubclassOf<AGridItemActor> PreferredItemActorClass = ReceptacleActor->ContainedItemActorClass
-			? ReceptacleActor->ContainedItemActorClass
-			: (ReceptacleDefinition ? ReceptacleDefinition->ItemActorClass : nullptr);
 		for (const FGridRuntimeItemState& ItemState : Pair.Value.ContainedItems)
 		{
 			const FName RuntimeItemDefinitionId = ItemState.ItemDefinitionId;
@@ -568,7 +548,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			}
 			UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition(RuntimeItemDefinitionId);
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(
-				ItemDefinition, RuntimeItemDefinitionId, ReceptacleActor, ReceptacleActor->ItemAttachPoint.Get(), PreferredItemActorClass);
+				ItemDefinition, RuntimeItemDefinitionId, ReceptacleActor, ReceptacleActor->ItemAttachPoint.Get());
 			if (ItemActor)
 			{
 				ItemActor->SetRuntimeObjectId(ItemState.ObjectId);
