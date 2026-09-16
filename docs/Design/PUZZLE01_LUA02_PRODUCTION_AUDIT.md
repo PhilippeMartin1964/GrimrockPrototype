@@ -1,15 +1,16 @@
-# PUZZLE01-LUA02 — Audit du contrat de porte du Gardien
+# PUZZLE01-LUA02 — Audit et complétion runtime de la porte du Gardien
 
 Date : 16 septembre 2026  
-Baseline : `cf513efdda81ff3c258fea546dbfab0277489e0b`
+Baseline initiale : `cf513efdda81ff3c258fea546dbfab0277489e0b`
 
 ## Objectif
 
 PUZZLE01-LUA02 ne modifie **aucune ligne** du script Lua de production.
 
-Le ticket doit d'abord établir ce que le niveau de production contient réellement :
+Le ticket établit deux choses distinctes :
 
 ```text
+AUTHORING
 DA_GridLevel_00
   puzzle1_lvl1
       |
@@ -18,6 +19,16 @@ DA_GridLevel_00
       +-- GuardianDoor est bien une Door ?
       +-- Compile Lua accepte le script tel quel ?
       +-- le script référence réellement GuardianDoor ?
+
+RUNTIME
+1re gemme -> puzzle1_lvl1 -> porte reste fermée
+2e gemme -> puzzle1_lvl1 -> grid.command("GuardianDoor", ...)
+                         -> ApplyLinkCommand
+                         -> OpenDoorOnEdge
+                         -> AGridDoorActor::OpenDoor
+                         -> animation de porte démarre
+                         -> état ouvert engagé à l'endpoint
+                         -> passage réellement ouvert
 ```
 
 Cette séquence respecte la règle d'architecture :
@@ -30,7 +41,7 @@ RUNTIME     = exécution + gardes internes
 
 Aucun `must(...)`, `assert(...)`, wrapper `(ok, err)` ou réécriture du Lua n'est introduit par ce ticket.
 
-## Test ajouté
+## 1. Audit authoring de production
 
 Filtre :
 
@@ -57,7 +68,7 @@ et son binding de production :
 ItemInserted -> LuaCallback
 ```
 
-## Validation de GuardianDoor
+### Validation de GuardianDoor
 
 Le test exige qu'un et un seul objet du niveau possède :
 
@@ -73,7 +84,7 @@ Door
 
 Cette vérification porte sur les données de production, pas sur un fixture inventé.
 
-## Le compilateur comme preuve du contenu du script
+### Le compilateur comme preuve du contenu du script
 
 Le test n'utilise volontairement pas :
 
@@ -85,23 +96,7 @@ Une recherche de chaîne serait fragile : espaces, guillemets, commentaires ou f
 
 À la place, le test utilise `FGridLuaAuthoringCompiler` comme autorité.
 
-### Étape A — compilation normale
-
-Une copie transitoire de `DA_GridLevel_00` conserve uniquement `puzzle1_lvl1` et ses bindings Lua, tout en gardant les vraies données du niveau.
-
-Le compilateur doit accepter cette copie sans diagnostic.
-
-Cela valide notamment :
-
-- la syntaxe Lua ;
-- les variables `persistent` ;
-- les callbacks liés ;
-- les `LogicId` utilisés ;
-- les commandes ;
-- les material slots ;
-- les material aliases.
-
-### Étape B — preuve de dépendance à GuardianDoor
+Une copie transitoire de `DA_GridLevel_00` conserve uniquement `puzzle1_lvl1` et ses bindings Lua, tout en gardant les vraies données du niveau. Le compilateur doit l'accepter sans diagnostic.
 
 Une seconde copie transitoire retire uniquement :
 
@@ -109,64 +104,90 @@ Une seconde copie transitoire retire uniquement :
 GuardianDoor.LogicId
 ```
 
-Le script Lua reste **strictement inchangé**.
-
-Le compilateur doit alors produire :
+Le script Lua reste strictement inchangé. Le compilateur doit alors produire :
 
 ```text
 E201 unknown LogicId 'GuardianDoor'
 ```
 
-pour :
+Cela prouve sémantiquement que le vrai script de production référence `GuardianDoor` par un appel statiquement compilable.
+
+## 2. Complétion runtime GuardianDoor
+
+Filtre ajouté :
 
 ```text
-ScriptId = puzzle1_lvl1
+Grimrock.PUZZLE01.LUA02.RuntimeGuardianDoorCompletion
 ```
 
-Si ce diagnostic apparaît, cela prouve sémantiquement que le vrai script de production référence déjà `GuardianDoor` par un appel statiquement compilable.
+Le test runtime charge directement le vrai :
 
-Si la compilation reste valide après retrait du `LogicId`, cela prouve au contraire que `puzzle1_lvl1` ne dépend pas actuellement de `GuardianDoor` et que la complétion fonctionnelle du puzzle n'est pas encore exprimée dans ce script.
+```text
+DA_GridLevel_00
+puzzle1_lvl1
+binding ItemInserted -> LuaCallback
+Guardian LogicId de production
+GuardianDoor LogicId / InstanceId / Type de production
+```
 
-## Aucune mutation de production
+Il ne copie ni ne réécrit le source Lua.
 
-Le test ne sauvegarde rien et ne modifie aucun asset versionné.
+Pour garder le test déterministe et indépendant de la présentation complète de la map, la géométrie est normalisée dans un petit niveau transitoire de deux cellules. Les identités de production utiles au contrat Lua restent celles du vrai niveau ; la porte runtime est une vraie `AGridDoorActor` enregistrée dans le vrai `UGridDoorSystemComponent`.
 
-Toutes les altérations utilisées pour l'audit sont réalisées sur des `DuplicateObject<UGridLevelAsset>` transitoires en mémoire.
+Le Gardien transitoire utilise le runtime générique `AGridReceptacleActor` afin que les commandes déjà présentes dans `puzzle1_lvl1` s'exécutent réellement : consommation de la gemme, changement des yeux, désactivation d'insertion puis commande de porte.
 
-Donc le ticket ne touche :
+### Contrat vérifié
+
+Le test impose :
+
+1. `GuardianDoor` commence complètement fermée ;
+2. la première gemme exécute le callback de production ;
+3. `GuardianGemCount` devient `1` ;
+4. la première gemme ne démarre aucune animation de porte ;
+5. la seconde gemme exécute le même callback de production ;
+6. `GuardianGemCount` devient `2` ;
+7. la seconde gemme est consommée ;
+8. le Gardien refuse toute insertion supplémentaire ;
+9. `GuardianDoor.IsAnimating()` devient vrai immédiatement après la seconde gemme ;
+10. `GuardianDoor.bIsOpen` reste faux pendant l'animation, car il représente l'état atteint à l'endpoint et non l'intention d'ouverture ;
+11. le passage reste bloqué pendant l'animation ;
+12. après la durée de mouvement, `GuardianDoor.bIsOpen` devient vrai et `GuardianDoor.IsFullyOpen()` devient vrai ;
+13. `Runtime->IsDoorOpenOnEdge(...)` confirme alors que le passage est réellement ouvert.
+
+Les points 9 à 13 valident le chemin runtime réel :
+
+```text
+production puzzle1_lvl1
+    -> grid.command("GuardianDoor", ...)
+    -> UGridActivationComponent::ExecuteLuaIssuedCommand
+    -> ApplyLinkCommand
+    -> AGridLevelRuntimeActor::OpenDoorOnEdge
+    -> UGridDoorSystemComponent::OpenDoorOnEdge
+    -> AGridDoorActor::OpenDoor
+    -> AGridDoorActor::SetDoorOpenState(true)
+    -> animation
+    -> UpdateAnimation atteint l'endpoint
+    -> bIsOpen = true
+```
+
+Le test ne se contente donc pas de vérifier la présence textuelle de `GuardianDoor` ou d'une commande dans le script : il exige le démarrage de l'animation puis l'état ouvert réel de la vraie classe de porte runtime.
+
+## 3. Aucune mutation de production
+
+Les deux tests ne sauvegardent rien et ne modifient aucun asset versionné.
+
+Ils ne touchent :
 
 - ni `DA_GridLevel_00.uasset` ;
-- ni `puzzle1_lvl1` ;
+- ni le source de `puzzle1_lvl1` ;
 - ni les LogicId réels ;
-- ni le runtime du jeu.
+- ni les Blueprints de production.
 
-## Lecture du résultat
+Les adaptations nécessaires au test runtime sont uniquement transitoires en mémoire.
 
-### Test vert
+## 4. Validation locale
 
-Un résultat vert signifie simultanément :
-
-1. `puzzle1_lvl1` existe et est activé ;
-2. son binding `ItemInserted -> LuaCallback` existe ;
-3. `GuardianDoor` existe une seule fois ;
-4. `GuardianDoor` est une porte ;
-5. le compilateur accepte le script réel contre les données réelles ;
-6. le compilateur prouve que `puzzle1_lvl1` référence réellement `GuardianDoor`.
-
-Dans ce cas, la prochaine étape de PUZZLE01-LUA02 est uniquement la validation runtime : vérifier que la seconde gemme provoque effectivement l'ouverture de la porte par le chemin réel `grid.command -> ApplyLinkCommand -> OpenDoorOnEdge -> AGridDoorActor::OpenDoor`.
-
-### Test rouge
-
-Le diagnostic devient l'autorité pour la suite :
-
-- `GuardianDoor` absent ou ambigu : correction de donnée / LogicId ;
-- mauvais type de cible : correction de donnée ;
-- `E201`/`E203`/`E204` sur la compilation normale : correction du contrat d'authoring ou du compilateur selon le cas ;
-- absence de `E201` après retrait transitoire de `GuardianDoor` : le script ne référence pas actuellement cette porte.
-
-Aucune correction ne doit être inventée avant d'avoir ce résultat.
-
-## Validation locale
+Commande unique :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `
@@ -174,4 +195,12 @@ Aucune correction ne doit être inventée avant d'avoir ce résultat.
     -AutomationFilter "Grimrock.PUZZLE01.LUA02"
 ```
 
-PUZZLE01-LUA02 reste ouvert tant que cette validation locale n'a pas établi le contrat réel de production.
+Résultat attendu après ce ticket :
+
+```text
+ProductionAuthoringAudit          Succeeded
+RuntimeGuardianDoorCompletion     Succeeded
+Failed                            0
+```
+
+PUZZLE01-LUA02 est **code-complete** après ajout du test runtime, mais reste à clôturer seulement après validation UE5.5.4 locale verte de ces deux tests.
