@@ -36,7 +36,7 @@ Les fichiers audités sont :
 Deux lacunes réelles subsistaient autour d'un DataAsset d'arme de jet mal
 configuré :
 
-- une action d'équipement `bThrowable` déclarant un coût `0` pouvait lancer
+- une action d'équipement `bCombatThrowWeapon` déclarant un coût `0` pouvait lancer
   sans retirer d'unité ;
 - un shuriken d'inventaire déclarant un coût supérieur à `1` pouvait retirer
   plusieurs unités pour un seul projectile.
@@ -56,7 +56,7 @@ raccourci.
 
 | Invariant | Preuve dans le code |
 |---|---|
-| Un seul shuriken consommé | Le catalogue et `RequestCharacterAttackInternal()` imposent `SourceItemQuantityCost = 1` pour `bThrowable`. |
+| Un seul shuriken consommé | Le catalogue et `RequestCharacterAttackInternal()` imposent `SourceItemQuantityCost = 1` pour `bCombatThrowWeapon`. |
 | Paiement avant dégâts | PA, source, mana et cooldown sont engagés avant `ResolveAttack()`, les delegates et `ApplyAttackResult()`. |
 | Refus sans perte | Les validations précèdent toute mutation ; un échec de création restaure l'équipement et les PA. |
 | Cooldown par personnage | La clé runtime associe `CharacterId` et `ActionId`. |

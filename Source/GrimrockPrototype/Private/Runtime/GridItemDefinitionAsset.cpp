@@ -88,7 +88,7 @@ EGridItemHandUsage UGridItemDefinitionAsset::GetEffectiveHandUsage() const
 		return HandUsage;
 	}
 
-	if (bThrowable || CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::MainHand) || CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::OffHand))
+	if (CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::MainHand) || CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::OffHand))
 	{
 		return EGridItemHandUsage::OneHanded;
 	}
@@ -104,7 +104,7 @@ bool UGridItemDefinitionAsset::IsPhysicallyThrowable() const
 
 bool UGridItemDefinitionAsset::IsCombatThrowable() const
 {
-	return bCombatThrowWeapon || bThrowable;
+	return bCombatThrowWeapon;
 }
 
 float UGridItemDefinitionAsset::GetMaxThrowableWeightForStrength(int32 Strength) const

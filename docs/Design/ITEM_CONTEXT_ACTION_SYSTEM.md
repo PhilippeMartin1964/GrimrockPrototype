@@ -390,25 +390,28 @@ Examiner / tooltip
 
 Règle de lancer :
 
-> Lancer n'est proposé que pour les objets équipables et/ou objets explicitement lançables.
+> Lancer n'est proposé que pour les objets physiquement lançables.
 
-Le critère technique peut être :
-
-```text
-bThrowable = true
-```
-
-ou :
+Le critère technique est :
 
 ```text
-ItemTags contient Throwable
+IsPhysicallyThrowable()
+  = HandUsage OneHanded
+  + Weight fini et positif ou nul
+  + ThrowSpeed positive
+
+CanBeThrownByStrength(Strength)
+  = IsPhysicallyThrowable()
+  + Weight <= Strength * 0.25 kg
 ```
 
 Exemple : pierre lançable :
 
 ```text
 ItemType = Misc ou Component
-bThrowable = true
+HandUsage = OneHanded
+Weight = 1.0
+ThrowSpeed = 1200
 Tags = Throwable, WeightObject
 Action proposée = Lancer
 ```
@@ -417,7 +420,7 @@ Exemple : épée non lançable :
 
 ```text
 ItemType = Weapon
-bThrowable = false
+HandUsage = NotHandHeld
 Action Lancer masquée
 ```
 

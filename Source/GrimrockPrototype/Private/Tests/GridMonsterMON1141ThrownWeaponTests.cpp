@@ -87,7 +87,7 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 	Definition->Weight = 0.1f;
 	Definition->bStackable = true;
 	Definition->MaxStackSize = 20;
-	Definition->bThrowable = true;
+	Definition->bCombatThrowWeapon = true;
 	Definition->ThrowSpeed = 1800.0f;
 	Definition->ThrowArc = 0.08f;
 	Definition->ThrowLifeSeconds = 5.0f;
@@ -110,9 +110,9 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("The default throw scale is readable"), Definition->ThrowVisualRelativeScale.Equals(FVector(1.5f), KINDA_SMALL_NUMBER));
 	TestEqual(TEXT("The default throw spin is configured"), Definition->ThrowVisualSpinDegreesPerSecond, 1080.0f);
 	TestTrue(TEXT("A throwable Throw presentation is valid"), Definition->HasValidPlayerAttackPresentation());
-	Definition->bThrowable = false;
+	Definition->bCombatThrowWeapon = false;
 	TestFalse(TEXT("A non-throwable Throw presentation is rejected"), Definition->HasValidPlayerAttackPresentation());
-	Definition->bThrowable = true;
+	Definition->bCombatThrowWeapon = true;
 
 	UGridPartyInventoryComponent* TransferInventory = NewObject<UGridPartyInventoryComponent>();
 	FGridCharacterInventoryState TransferCharacter;

@@ -170,14 +170,6 @@ public:
 	float WorldPhysicsInitialTiltDegrees = 0.0f;
 
 	/**
-	 * Legacy serialized flag kept only to preserve existing throwable-weapon
-	 * assets. New authoring uses HandUsage/Weight for physical throwing and
-	 * bCombatThrowWeapon for combat projectile semantics.
-	 */
-	UPROPERTY()
-	bool bThrowable = false;
-
-	/**
 	 * True only when combat actions from this item consume/launch the item as
 	 * a recoverable projectile. Independent from generic puzzle/exploration throws.
 	 */

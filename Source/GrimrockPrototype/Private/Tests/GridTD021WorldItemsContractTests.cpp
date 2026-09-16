@@ -288,8 +288,9 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 		return false;
 	}
 	Controller->Possess(Party);
-	Definition->bThrowable = true;
+	Definition->HandUsage = EGridItemHandUsage::OneHanded;
 	Definition->Weight = 0.5f;
+	Definition->ThrowSpeed = 1200.0f;
 	Definition->bStackable = true;
 	Definition->MaxStackSize = 99;
 	Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { Character };

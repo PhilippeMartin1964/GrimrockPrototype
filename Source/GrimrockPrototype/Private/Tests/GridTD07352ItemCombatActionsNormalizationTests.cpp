@@ -83,7 +83,7 @@ bool FGridTD07352CombatActionsOnlyBehaviorTest::RunTest(const FString& Parameter
 	TestTrue(TEXT("A current CombatAction grants the main-hand attack"), Weapon->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
 	TestTrue(TEXT("Current CombatActions keep the item definition valid"), Weapon->IsValidDefinition());
 
-	Weapon->bThrowable = true;
+	Weapon->bCombatThrowWeapon = true;
 	FGridCombatActionDefinition InventoryAction;
 	TestTrue(TEXT("Throwable inventory action is built from the configured CombatAction"), Weapon->BuildInventoryCombatActionDefinition(InventoryAction));
 	TestEqual(TEXT("Inventory throw keeps the configured attack profile"), InventoryAction.OffensiveProfile.AttackId, FName(TEXT("Attack_TD07352_Sword")));
@@ -107,7 +107,10 @@ bool FGridTD07352ShurikenAssetAuthorityTest::RunTest(const FString& Parameters)
 	}
 
 	TestEqual(TEXT("Shuriken business id remains stable"), Shuriken->ItemDefinitionId, FName(TEXT("Shuriken")));
-	TestTrue(TEXT("Shuriken remains throwable"), Shuriken->bThrowable);
+	TestEqual(TEXT("Shuriken explicitly remains one-handed"), Shuriken->HandUsage, EGridItemHandUsage::OneHanded);
+	TestTrue(TEXT("Shuriken explicitly remains a combat throw weapon"), Shuriken->bCombatThrowWeapon);
+	TestTrue(TEXT("Shuriken remains physically throwable"), Shuriken->IsPhysicallyThrowable());
+	TestTrue(TEXT("Shuriken remains combat throwable"), Shuriken->IsCombatThrowable());
 	TestTrue(TEXT("Shuriken remains a MainHand item"), Shuriken->CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::MainHand));
 	TestTrue(TEXT("Repaired Shuriken is valid"), Shuriken->IsValidDefinition());
 	TestTrue(TEXT("Repaired Shuriken provides its attack from CombatActions"), Shuriken->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));

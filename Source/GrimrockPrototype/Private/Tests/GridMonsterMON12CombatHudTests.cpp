@@ -1266,7 +1266,7 @@ bool FGridMonsterMON1287InventoryThrowableTest::RunTest(const FString& Parameter
 	ShurikenDefinition->DisplayName = FText::FromString(TEXT("Shuriken"));
 	ShurikenDefinition->Description = FText::FromString(TEXT("Arme de jet rapide."));
 	ShurikenDefinition->ItemType = EGridItemType::Weapon;
-	ShurikenDefinition->bThrowable = true;
+	ShurikenDefinition->bCombatThrowWeapon = true;
 	ShurikenDefinition->bProvidesAttackPresentation = true;
 	ShurikenDefinition->PlayerAttackPresentationProfile.MotionStyle = EGridPlayerAttackMotionStyle::Throw;
 	ShurikenDefinition->PlayerAttackPresentationProfile.bAnimateHeldItem = true;
@@ -1622,7 +1622,7 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 	ShurikenDefinition->ItemType = EGridItemType::Weapon;
 	ShurikenDefinition->bStackable = true;
 	ShurikenDefinition->MaxStackSize = 10;
-	ShurikenDefinition->bThrowable = true;
+	ShurikenDefinition->bCombatThrowWeapon = true;
 	ShurikenDefinition->bProvidesAttackPresentation = true;
 	ShurikenDefinition->PlayerAttackPresentationProfile.MotionStyle = EGridPlayerAttackMotionStyle::Throw;
 	ShurikenDefinition->PlayerAttackPresentationProfile.bAnimateHeldItem = true;

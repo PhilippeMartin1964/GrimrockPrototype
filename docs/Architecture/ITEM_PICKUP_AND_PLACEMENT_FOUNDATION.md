@@ -181,11 +181,12 @@ La pose accepte une cellule jouable résolue depuis un hit `Visibility` à port�
 
 ### Lancer d'item
 
-Les items peuvent être rendus lançables via leur `UGridItemDefinitionAsset`.
+Les items sont physiquement lançables lorsque leur `UGridItemDefinitionAsset` décrit un objet manipulable à une main, un poids valide et une vitesse de lancer positive. La Force du personnage détermine ensuite s'il peut effectivement lancer ce poids.
 
-La première version utilise :
+Le lancer physique utilise :
 
-- `bThrowable` pour autoriser le lancer ;
+- `HandUsage = OneHanded` pour la manipulation à une main ;
+- `Weight` avec la `Strength` du personnage pour la limite de masse ;
 - `ThrowSpeed` pour la vitesse initiale ;
 - `ThrowArc` pour une légère composante verticale ;
 - `ThrowLifeSeconds` pour la durée maximale du projectile ;
@@ -273,7 +274,7 @@ Aucune compétence n'est requise pour le lancer utilitaire : une pierre peut don
 
 #### Attaque de jet
 
-Une attaque de jet reste une action de combat distincte. `bCombatThrowWeapon` indique qu'une action de combat consomme et lance physiquement l'objet. Les anciens assets basés sur `bThrowable` restent compatibles mais ce champ n'est plus authoré.
+Une attaque de jet reste une action de combat distincte. `bCombatThrowWeapon` est son unique autorité et indique qu'une action de combat consomme et lance physiquement l'objet.
 
 Les compétences restent data-driven via `FGridCombatActionDefinition::Requirements`. Une pierre peut ainsi être lançable physiquement par tout personnage assez fort tout en exigeant une compétence de lancer pour être utilisée comme véritable attaque.
 
@@ -389,7 +390,7 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 26. Avec une pile de trois pierres, viser une cible non posable à <= 200 cm : vérifier le refus, zéro projectile et une quantité inchangée.
 27. À 200 cm, vérifier une pose directe. À 200,01 cm et 201 cm, vérifier un lancer normal d’une unité.
 28. Lancer la dernière unité d'une pile : vérifier que le curseur est vidé seulement après la création du projectile.
-29. Essayer de lancer un item avec `bThrowable=false` : vérifier le feedback et l'absence de mutation du curseur.
+29. Essayer de lancer un item dont `HandUsage` n'est pas `OneHanded` : vérifier le feedback et l'absence de mutation du curseur.
 30. Ramasser une pierre après son impact : vérifier qu'elle rejoint une pile compatible.
 31. Lancer une pierre de poids `1.0` sur une PressurePlate dont le seuil vaut `1.0` : vérifier sa conversion en item monde et l'activation de la plaque.
 32. Avec `Pierre x3` dans le curseur, déposer au sol puis dans un réceptacle : vérifier que chaque action consomme exactement une unité.

@@ -2,11 +2,13 @@
 
 Date : 16 septembre 2026
 
+Statut : migration terminée par le commit `33f05524037374d2cd4b31efc47a9679d246151f`. Le champ historique `bThrowable` et les outils one-shot décrits ci-dessous ont ensuite été supprimés par `ITEM-THROW-CLEAN01`.
+
 ## Pourquoi cette migration précède ITEM-THROW-CLEAN01
 
-`bThrowable` est encore sérialisé dans `DA_Weapon_Shuriken`. Le dernier commit ayant modifié cet asset avant l'introduction de `HandUsage` et `bCombatThrowWeapon` est la réparation TD07.3.5.2 du 28 août 2026.
+Au début de cette migration, `bThrowable` était encore sérialisé dans `DA_Weapon_Shuriken`. Le dernier commit ayant modifié cet asset avant l'introduction de `HandUsage` et `bCombatThrowWeapon` était la réparation TD07.3.5.2 du 28 août 2026.
 
-`HandUsage` et `bCombatThrowWeapon` ont ensuite été introduits par la généralisation du lancer physique. Le runtime conserve donc actuellement un fallback :
+`HandUsage` et `bCombatThrowWeapon` avaient ensuite été introduits par la généralisation du lancer physique. Le runtime conservait alors ce fallback :
 
 ```text
 bThrowable
@@ -14,7 +16,7 @@ bThrowable
   -> IsCombatThrowable()
 ```
 
-Supprimer directement `bThrowable` ferait perdre au Shuriken son intention de projectile de combat si le DataAsset n'est pas d'abord réparé.
+Supprimer directement `bThrowable` aurait fait perdre au Shuriken son intention de projectile de combat si le DataAsset n'avait pas d'abord été réparé.
 
 ## Cible
 
@@ -28,9 +30,11 @@ DA_Weapon_Shuriken
 
 `CompatibleEquipmentSlots = MainHand` reste inchangé.
 
-Le champ legacy `bThrowable` n'est volontairement pas effacé par ce ticket : il reste sérialisé jusqu'à ce que `ITEM-THROW-CLEAN01` supprime physiquement le champ C++ après migration. Cela évite une fenêtre intermédiaire où les régressions historiques dépendant encore du champ legacy deviendraient rouges.
+Le champ legacy `bThrowable` n'a volontairement pas été effacé par ce ticket : il est resté sérialisé jusqu'à ce que `ITEM-THROW-CLEAN01` supprime physiquement le champ C++ après migration. Cela a évité une fenêtre intermédiaire où les régressions historiques dépendant encore du champ legacy seraient devenues rouges.
 
-## Outil one-shot
+## Outil one-shot historique
+
+Le test et le script suivants ont servi uniquement à la migration puis ont été supprimés par `ITEM-THROW-CLEAN01`.
 
 Automation :
 
@@ -80,7 +84,7 @@ Aucun autre `.uasset` n'est touché.
 
 ## Suite
 
-Une fois le vrai asset migré et poussé, `ITEM-THROW-CLEAN01` peut supprimer sans fallback :
+Après migration et publication du vrai asset, `ITEM-THROW-CLEAN01` a supprimé sans fallback :
 
 ```text
 UGridItemDefinitionAsset::bThrowable

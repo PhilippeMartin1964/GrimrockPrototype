@@ -46,7 +46,7 @@ page, mais il n'est plus nécessaire au fonctionnement.
 
 ## Shuriken depuis l'inventaire
 
-Une arme marquée `bThrowable`, possédant un profil offensif valide et présente
+Une arme marquée `bCombatThrowWeapon`, possédant un profil offensif valide et présente
 dans l'inventaire peut être glissée directement vers la barre. Elle est
 normalisée comme action `QuickItem` :
 

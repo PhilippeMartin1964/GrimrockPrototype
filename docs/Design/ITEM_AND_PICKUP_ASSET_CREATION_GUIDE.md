@@ -501,8 +501,10 @@ Le `WorldMesh` doit disposer d'une collision simple compatible avec la simulatio
 
 | Paramètre | Rôle |
 |---|---|
-| `bThrowable` | Autorise le lancer. |
+| `HandUsage = OneHanded` | Rend l'objet manipulable pour un lancer physique. |
+| `Weight` | Détermine si la `Strength` du personnage permet le lancer. |
 | `ThrowSpeed` | Vitesse initiale. |
+| `bCombatThrowWeapon` | Autorise séparément l'objet comme attaque de jet. |
 | `ThrowArc` | Composante verticale. |
 | `ThrowLifeSeconds` | Durée de vie du projectile. |
 | `ThrowImpactDropOffset` | Offset après impact. |
@@ -910,7 +912,7 @@ CompatibleEquipmentSlots = empty
 Icon = Icon_CopperKey
 WorldMesh = SM_Key_Copper
 EquippedMesh = empty
-bThrowable = false
+HandUsage = NotHandHeld
 bCanEmitLight = false
 ItemTags:
   - Key
@@ -1035,7 +1037,7 @@ Weight = 1.0
 bStackable = false
 WorldMesh = SM_Stone_Rough
 Icon = Icon_Stone_Rough
-bThrowable = true
+HandUsage = OneHanded
 ThrowSpeed = 1200
 ThrowArc = 0.08
 ThrowLifeSeconds = 5
@@ -1220,7 +1222,8 @@ Petite clé en cuivre usée par le temps. Elle ouvre sans doute une serrure simp
 - [ ] Assigner `Icon`.
 - [ ] Assigner `WorldMesh`.
 - [ ] Assigner `EquippedMesh` si nécessaire.
-- [ ] Configurer `bThrowable` si nécessaire.
+- [ ] Configurer `HandUsage`, `Weight` et `ThrowSpeed` si l'objet doit être physiquement lançable.
+- [ ] Configurer `bCombatThrowWeapon` uniquement si l'objet est aussi une attaque de jet.
 - [ ] Configurer lumière si nécessaire.
 - [ ] Ajouter les `ItemTags` techniques.
 
@@ -1300,7 +1303,7 @@ Petite clé en cuivre usée par le temps. Elle ouvre sans doute une serrure simp
 - [ ] `ItemType = Misc` ou `Component`.
 - [ ] `DisplayName` en français.
 - [ ] `Description` en français.
-- [ ] `bThrowable = true`.
+- [ ] `HandUsage = OneHanded`.
 - [ ] Paramètres de lancer configurés.
 - [ ] Poids cohérent.
 - [ ] Collision et mesh adaptés.

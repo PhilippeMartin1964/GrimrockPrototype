@@ -29,7 +29,7 @@ FGridWorldObjectInstance::Type
 Sont également conservés :
 
 - les anciens paramètres/tableaux audio de porte, migration distincte ;
-- `bThrowable` ;
+- le champ legacy `bThrowable`, supprimé ultérieurement par `ITEM-THROW-CLEAN01` ;
 - `ItemActorClass` ;
 - les API Blueprint non prouvées mortes ;
 - les fallbacks runtime hors périmètre direct ;

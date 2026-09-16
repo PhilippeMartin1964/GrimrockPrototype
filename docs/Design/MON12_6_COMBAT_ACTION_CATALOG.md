@@ -111,7 +111,7 @@ sont restaurés et l'attaque reste refusée. Pour une arme de jet, le projectile
 récupérable est créé par cette transaction autoritaire ; la présentation ne
 retire jamais elle-même l'objet de l'équipement.
 
-Une arme marquée `bThrowable` annonce et consomme toujours exactement une
+Une arme marquée `bCombatThrowWeapon` annonce et consomme toujours exactement une
 unité, qu'elle soit lancée depuis l'équipement ou depuis l'inventaire. Le
 catalogue normalise donc un coût de source erroné (`0`, `2`, etc.) à `1`, et
 le `TurnManager` réapplique cet invariant au moment du paiement. Un DataAsset
@@ -132,7 +132,7 @@ définition de compatibilité :
 - `ActionId` reprend `AttackId` ;
 - le coût reprend `PlayerAttackActionPointCost` ;
 - l'icône, le nom, la portée et le profil offensif restent ceux de l'item ;
-- un item `bThrowable` annonce un coût d'une unité de source ;
+- un item `bCombatThrowWeapon` annonce un coût d'une unité de source ;
 - la présentation MON11.4.2 reste résolue par l'item existant.
 
 Le shuriken et les armes déjà créées ne nécessitent donc aucune modification
