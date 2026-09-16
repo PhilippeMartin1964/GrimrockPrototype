@@ -89,8 +89,10 @@ bool FGridItemLIGHT01DataDrivenEmitterTest::RunTest(const FString& Parameters)
 	ItemInstance.RuntimeObjectId = FGuid::NewGuid();
 	ItemInstance.ItemDefinitionId = Definition->ItemDefinitionId;
 	ItemInstance.Quantity = 1;
-	TestTrue(TEXT("Applying the item definition succeeds"), Inventory->ApplyItemDefinitionToInstance(ItemInstance));
-	TestTrue(TEXT("The item instance receives the authored default light state"), ItemInstance.bLightsEnabled);
+	ItemInstance.bLightsEnabled = Definition->IsLightEnabledByDefault();
+	TestTrue(TEXT("A fresh item instance receives the authored default light state"), ItemInstance.bLightsEnabled);
+	TestTrue(TEXT("Applying the item definition metadata succeeds"), Inventory->ApplyItemDefinitionToInstance(ItemInstance));
+	TestTrue(TEXT("Applying definition metadata preserves the instance-owned light state"), ItemInstance.bLightsEnabled);
 
 	GridItemLIGHT01Tests::FTestWorld TestWorld;
 	if (!TestWorld.World)

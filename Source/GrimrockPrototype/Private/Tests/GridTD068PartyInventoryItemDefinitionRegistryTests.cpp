@@ -108,7 +108,7 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 	TestTrue(TEXT("Apply copies weight"), FMath::IsNearlyEqual(StackItem.Weight, 2.5f));
 	TestTrue(TEXT("Apply fills an empty display name"), StackItem.DisplayName.EqualTo(StackDefinition->DisplayName));
 	TestEqual(TEXT("Apply clamps a stack to MaxStackSize"), StackItem.Quantity, 3);
-	TestTrue(TEXT("Apply copies the default light state"), StackItem.bLightsEnabled);
+	TestFalse(TEXT("Apply preserves the instance-owned disabled light state"), StackItem.bLightsEnabled);
 
 	FGridItemInstance NamedStackItem = GridTD068CreateItem(StackDefinition->ItemDefinitionId, 0);
 	NamedStackItem.DisplayName = FText::FromString(TEXT("Runtime override"));

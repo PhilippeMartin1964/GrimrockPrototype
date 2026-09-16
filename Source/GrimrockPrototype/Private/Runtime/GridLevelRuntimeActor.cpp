@@ -621,9 +621,7 @@ EGridWallType AGridLevelRuntimeActor::GetWallOnEdge(int32 X, int32 Y, EGridEdge 
 	{
 		return EGridWallType::Solid;
 	}
-
 	const FGridLevelCellData& Cell = LevelAsset->GetCell(X, Y);
-
 	// Shared edges are intentionally directional: only the requested cell edge is authoritative.
 	// The editor does not mirror this value to the neighboring cell.
 	switch (Edge)
@@ -1778,7 +1776,6 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDef
 	return ItemActor;
 }
 
-
 void AGridLevelRuntimeActor::RegisterRuntimeObjectActor(const FGuid& ObjectId, AGridRuntimeObjectActor* Actor)
 {
 	if (!ObjectId.IsValid() || !IsValid(Actor))
@@ -1891,7 +1888,9 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	ItemActor->SetRuntimeCell(ObjectData.CellX, ObjectData.CellY);
 	ItemActor->ApplyWorldPhysicsInitialNudge();
 	ItemActor->ConfigureAsWorldPickup();
-	ItemActor->OnRemovedFromWorld();
+	// ITEM-LIGHT02: a LevelAsset loose item is a fresh instance, so its initial
+	// light state is authored by the definition exactly once at materialization.
+	ItemActor->SetItemLightsEnabled(ItemDefinition->IsLightEnabledByDefault());
 	SpawnedItemActors.Add(ItemActor);
 
 	FGridSpawnedItemRuntimeEntry Entry;

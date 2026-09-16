@@ -947,7 +947,8 @@ bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstan
 	{
 		ItemInstance.DisplayName = Definition->DisplayName;
 	}
-	ItemInstance.bLightsEnabled = Definition->IsLightEnabledByDefault();
+	// ITEM-LIGHT02: this function normalizes definition-owned metadata only.
+	// The mutable light state belongs to the item instance and must survive transfers and rehydration.
 	if (!Definition->bStackable)
 	{
 		ItemInstance.Quantity = 1;
