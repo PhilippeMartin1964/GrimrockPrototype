@@ -98,8 +98,16 @@ void UGridLightEmitterComponent::SetLightEnabled(bool bEnabled)
 		if (PointLightComponent)
 		{
 			PointLightComponent->SetupAttachment(this);
+			// Runtime item lights can move with held items, thrown items or the party camera.
+			// Keep them explicitly Movable so Cast Shadows produces real-time shadow maps.
+			PointLightComponent->SetMobility(EComponentMobility::Movable);
 			PointLightComponent->bUseInverseSquaredFalloff = false;
 			PointLightComponent->LightFalloffExponent = 4.f;
+			// CastShadows is the master switch. Keep both static-primitive and
+			// dynamic-primitive shadow paths enabled so dungeon geometry such as
+			// walls/grates and moving actors can occlude the runtime light.
+			PointLightComponent->CastStaticShadows = true;
+			PointLightComponent->CastDynamicShadows = true;
 			PointLightComponent->SetCastShadows(bPointLightCastShadows);
 			PointLightComponent->RegisterComponent();
 		}

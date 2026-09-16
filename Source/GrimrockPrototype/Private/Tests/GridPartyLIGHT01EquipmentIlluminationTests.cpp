@@ -123,6 +123,8 @@ bool FGridPartyLIGHT01EquipmentDrivenIlluminationTest::RunTest(const FString& Pa
 	{
 		return false;
 	}
+	TestFalse(TEXT("Party illumination remains shadowless by default"), PartyLight->bCastShadows);
+	PartyLight->bCastShadows = true;
 	PartyLight->SetupAttachment(PartyPawn->GetRootComponent());
 	PartyPawn->AddInstanceComponent(PartyLight);
 	PartyLight->RegisterComponent();
@@ -155,7 +157,22 @@ bool FGridPartyLIGHT01EquipmentDrivenIlluminationTest::RunTest(const FString& Pa
 	TestTrue(TEXT("Physical item point-light offset is not copied to the party proxy"), PartyLight->RuntimeConfig.PointLightRelativeLocation.IsNearlyZero());
 	TestTrue(TEXT("Physical item point-light rotation is not copied to the party proxy"), PartyLight->RuntimeConfig.PointLightRelativeRotation.IsNearlyZero());
 	TestTrue(TEXT("Party illumination never owns source Niagara"), PartyLight->RuntimeConfig.NiagaraSystem.IsNull());
-	TestFalse(TEXT("Party illumination is shadowless by default for first-person ergonomics"), PartyLight->GetPointLightCastShadows());
+	TestTrue(TEXT("Configured Cast Shadows propagates to the runtime light"), PartyLight->GetPointLightCastShadows());
+
+	UPointLightComponent* RuntimePointLight = PartyPawn->FindComponentByClass<UPointLightComponent>();
+	TestNotNull(TEXT("Party illumination creates a runtime PointLight"), RuntimePointLight);
+	if (RuntimePointLight)
+	{
+		TestEqual(TEXT("Party runtime PointLight is Movable"), RuntimePointLight->GetMobility(), EComponentMobility::Movable);
+		TestTrue(TEXT("Party runtime PointLight master shadow switch is enabled"), RuntimePointLight->CastShadows != 0);
+		TestTrue(TEXT("Party runtime PointLight casts shadows from static dungeon geometry"), RuntimePointLight->CastStaticShadows != 0);
+		TestTrue(TEXT("Party runtime PointLight casts shadows from dynamic dungeon objects"), RuntimePointLight->CastDynamicShadows != 0);
+
+		PartyLight->SetPointLightCastShadows(false);
+		TestFalse(TEXT("Runtime shadow master switch can be disabled"), RuntimePointLight->CastShadows != 0);
+		PartyLight->SetPointLightCastShadows(true);
+		TestTrue(TEXT("Runtime shadow master switch can be re-enabled"), RuntimePointLight->CastShadows != 0);
+	}
 
 	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = GridPartyLIGHT01Tests::MakeEquippedItem(
 		GridPartyLIGHT01Tests::WeakLightId, Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId, 0, EGridEquipmentSlot::MainHand);

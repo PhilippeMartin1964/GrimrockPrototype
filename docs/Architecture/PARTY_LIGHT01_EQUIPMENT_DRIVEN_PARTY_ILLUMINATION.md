@@ -72,6 +72,21 @@ Le mode sans ombres est volontaire pour éviter les grandes ombres de première 
 
 Le composant doit être ajouté explicitement à `BP_GrimrockPartyPawn`, idéalement comme enfant de `Camera`, afin de régler son transform et ses multiplicateurs. Le C++ ne crée plus aucun `PartyIlluminationRuntime` automatique : si le Blueprint ne contient pas de `UGridPartyIlluminationComponent`, le groupe ne diffuse aucune lumière proxy.
 
+### Ombres runtime
+
+Le PointLight créé par `UGridLightEmitterComponent` est explicitement `Movable`. Les chemins d'ombres pour géométrie statique et dynamique restent activés ; `bCastShadows` sert de commutateur maître.
+
+```text
+bCastShadows = false
+  -> aucune ombre portée par la lumière du groupe
+
+bCastShadows = true
+  -> les murs, grilles, portes et autres objets pouvant caster une ombre
+     occultent la lumière du groupe en temps réel
+```
+
+`bCastShadows` ne contrôle pas l'ombre du mesh de la torche tenue lui-même ; il contrôle les ombres produites par le PointLight du groupe sur le décor.
+
 ## 4. Sélection de la source d'équipement
 
 L'éclairage est une propriété du groupe et non du personnage sélectionné.
@@ -144,7 +159,9 @@ Il vérifie notamment :
 - les paramètres intensité/rayon sont transmis ;
 - les offsets physiques de l'item ne sont pas transmis ;
 - le proxy ne crée aucun Niagara ;
-- le proxy est sans ombres par défaut ;
+- le PointLight runtime est `Movable` ;
+- les ombres de géométrie statique et dynamique sont autorisées quand `Cast Shadows` est actif ;
+- le commutateur d'ombres peut être désactivé/réactivé à l'exécution ;
 - le HeldItem garde le canal Niagara mais délègue son PointLight ;
 - la source la plus forte gagne ;
 - le retrait d'une source sélectionne la suivante ;
