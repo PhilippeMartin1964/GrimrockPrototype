@@ -114,12 +114,20 @@ bool FGridPartyLIGHT01EquipmentDrivenIlluminationTest::RunTest(const FString& Pa
 		return false;
 	}
 
-	UGridPartyIlluminationComponent* PartyLight = PartyPawn->FindComponentByClass<UGridPartyIlluminationComponent>();
-	TestNotNull(TEXT("A bare C++ party receives the runtime illumination component"), PartyLight);
+	TestNull(TEXT("A bare C++ party does not receive an automatic illumination component"),
+		PartyPawn->FindComponentByClass<UGridPartyIlluminationComponent>());
+
+	UGridPartyIlluminationComponent* PartyLight = NewObject<UGridPartyIlluminationComponent>(PartyPawn, TEXT("PartyIlluminationTest"));
+	TestNotNull(TEXT("The test can add an explicit party illumination component"), PartyLight);
 	if (!PartyLight)
 	{
 		return false;
 	}
+	PartyLight->SetupAttachment(PartyPawn->GetRootComponent());
+	PartyPawn->AddInstanceComponent(PartyLight);
+	PartyLight->RegisterComponent();
+	TestEqual(TEXT("The explicitly authored illumination component is discoverable"),
+		PartyPawn->FindComponentByClass<UGridPartyIlluminationComponent>(), PartyLight);
 
 	UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
 	Inventory->PartyInventoryState = FGridPartyInventoryState();

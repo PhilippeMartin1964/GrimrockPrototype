@@ -70,7 +70,7 @@ bCastShadows        = false
 
 Le mode sans ombres est volontaire pour éviter les grandes ombres de première personne produites par les objets tenus.
 
-Le composant peut être ajouté directement à `BP_GrimrockPartyPawn` afin de régler son transform sous la caméra et ses multiplicateurs. Si aucun composant n'est authoré dans le Blueprint, le Pawn crée un fallback runtime attaché à la caméra, décalé de `X=25 cm`.
+Le composant doit être ajouté explicitement à `BP_GrimrockPartyPawn`, idéalement comme enfant de `Camera`, afin de régler son transform et ses multiplicateurs. Le C++ ne crée plus aucun `PartyIlluminationRuntime` automatique : si le Blueprint ne contient pas de `UGridPartyIlluminationComponent`, le groupe ne diffuse aucune lumière proxy.
 
 ## 4. Sélection de la source d'équipement
 
@@ -138,6 +138,8 @@ Grimrock.Party.LIGHT01.EquipmentDrivenIllumination
 
 Il vérifie notamment :
 
+- qu'un Pawn C++ nu ne reçoit plus automatiquement de `PartyIlluminationRuntime` ;
+- qu'un composant d'illumination ajouté explicitement est utilisé ;
 - une source portée par un personnage non sélectionné éclaire le groupe ;
 - les paramètres intensité/rayon sont transmis ;
 - les offsets physiques de l'item ne sont pas transmis ;
