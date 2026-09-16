@@ -1,59 +1,48 @@
 # PUZZLE01-CLEAN01 — Guardian Production Script Validation
 
-Date : 16 septembre 2026
+Date : 16 septembre 2026  
+Statut : **historique — validation d'intégration supersédée par PUZZLE01-LUA02 / CLEAN02**
 
-## Décision
+## Décision conservée
 
 Le Gardien reste un `AGridReceptacleActor` générique. Aucune classe C++ spécifique au puzzle n'est ajoutée.
 
 La logique particulière reste dans le script Lua du niveau de production :
 
-- deux gemmes bleues ordinaires sont acceptées ;
+- deux gemmes bleues ordinaires sont utilisées ;
 - chaque insertion consomme réellement une unité ;
 - `EyesLeft`, puis `EyesRight`, reçoivent l'alias matériau `BlueGem` ;
 - après la deuxième gemme, l'insertion est désactivée ;
-- une troisième gemme reste sur le curseur et ne modifie plus le puzzle.
+- la progression est portée par `GuardianGemCount` dans Lua.
 
-## Validation de production
+CLEAN01 a établi ces invariants sans dupliquer le script Lua dans le C++.
 
-`Grimrock.PUZZLE01.LUA01.GuardianPuzzleIntegration` ne maintient plus une copie C++ du script du Gardien.
+## Note historique sur l'ouverture de la porte
 
-Le test charge désormais directement :
+Au moment de CLEAN01, le test disponible n'avait pas encore établi de manière fiable l'ouverture de `GuardianDoor`. CLEAN01 avait donc correctement refusé d'inventer une commande de porte dans le test.
 
-```text
-/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_00
-```
-
-puis récupère :
+Cette incertitude est désormais levée par PUZZLE01-LUA02 :
 
 ```text
-Lua Script Id : puzzle1_lvl1
-Binding       : ItemInserted -> LuaCallback
+Grimrock.PUZZLE01.LUA02.ProductionAuthoringAudit
+Grimrock.PUZZLE01.LUA02.RuntimeGuardianDoorCompletion
 ```
 
-Le `Source` Lua, le nom du callback, le `LogicId` du Gardien et les `LevelVariables` proviennent donc du vrai `LevelAsset`. Le test construit uniquement un monde runtime minimal autour de ces données afin d'exécuter le script de production par le chemin réel curseur -> réceptacle -> lien -> Lua.
+La validation locale UE5.5.4 de LUA02 a confirmé que le vrai `puzzle1_lvl1` référence `GuardianDoor` et que la seconde gemme déclenche réellement l'ouverture de la porte jusqu'à son endpoint ouvert.
 
-Le test valide le contrat actuellement porté par l'asset de production : consommation réelle des deux gemmes, changement successif des deux yeux, compteur persistant, désactivation de l'insertion et rejet sans perte d'une troisième gemme.
-
-## Ouverture de la porte
-
-La première version de CLEAN01 avait ajouté une attente selon laquelle une porte nommée du niveau devait commencer à s'ouvrir après la seconde gemme. Cette attente provenait de la documentation cible, pas d'un contrat déjà établi par le script de production testé.
-
-La validation locale du 16 septembre 2026 a confirmé que toutes les étapes Guardian s'exécutaient mais qu'aucune porte clonée par le test n'entrait en ouverture. Le runtime de porte n'est pas en cause : `ApplyDoorLinkCommand(Open)` délègue à `OpenDoorOnEdge()`, qui appelle immédiatement `DoorActor->OpenDoor()` et rend l'état d'animation observable.
-
-CLEAN01 n'invente donc plus une commande de porte absente du comportement réellement observé du script de production. Si l'ouverture de la porte après la seconde gemme fait partie du puzzle final attendu, elle doit être ajoutée explicitement au script Lua du `LevelAsset` depuis l'éditeur, puis protégée par un test dédié. Aucun `.uasset` binaire n'est réécrit artificiellement dans ce ticket.
+Le passage de CLEAN01 indiquant que la porte n'était pas encore un contrat établi doit donc être lu comme un état historique du ticket, pas comme l'état courant du projet.
 
 ## ReceptacleDisableRemoval
 
-`ReceptacleDisableRemoval` reste une primitive générique valide du moteur, mais elle est redondante pour le Gardien une fois que `ReceptacleConsumeItem` a supprimé immédiatement la gemme : il ne reste alors aucun contenu que le joueur puisse reprendre.
+`ReceptacleDisableRemoval` reste une primitive générique valide du moteur. Elle est redondante pour ce Gardien une fois que `ReceptacleConsumeItem` a supprimé immédiatement la gemme : aucun contenu ne reste à reprendre.
 
-PUZZLE01-CLEAN01 ne retire pas cette primitive du moteur. Le test de production n'en dépend pas et ne l'impose plus comme partie du contrat du puzzle. Une suppression éventuelle de l'appel dans le script de production peut être faite depuis l'éditeur Lua sans changement C++.
+CLEAN01 ne retire donc pas cette primitive générique du moteur.
 
 ## EGridReceptacleRejectReason
 
-`ExplicitlyRejected` n'a plus de producteur dans le runtime courant. Sa valeur numérique `3` est néanmoins conservée pour ne pas renuméroter les valeurs existantes de l'`UENUM`.
+`ExplicitlyRejected` n'avait plus de producteur dans le runtime courant. Sa valeur numérique a été conservée pour éviter de renuméroter l'`UENUM`, mais elle a été masquée de l'authoring Blueprint.
 
-Elle est désormais masquée de l'authoring Blueprint avec `UMETA(Hidden)`. Les raisons actives restent :
+Les raisons actives restent :
 
 ```text
 InvalidItem
@@ -62,14 +51,24 @@ NoMatchingAcceptanceRule
 InsertionDisabled
 ```
 
-## Invariants
+## Test historique supprimé par CLEAN02
 
-PUZZLE01-CLEAN01 n'introduit :
+CLEAN01 utilisait encore :
+
+```text
+Grimrock.PUZZLE01.LUA01.GuardianPuzzleIntegration
+```
+
+PUZZLE01-CLEAN02 supprime ce test devenu redondant après LUA02. Toute la couverture utile du puzzle de production est consolidée dans `RuntimeGuardianDoorCompletion`, sans `Source.Contains(...)` et sans seconde copie du fixture d'intégration.
+
+## Invariants finaux
+
+Le projet n'introduit :
 
 - aucune classe Guardian spécifique ;
 - aucun compteur C++ spécifique au puzzle ;
-- aucun état LeftEye/RightEye C++ ;
+- aucun état `LeftEye` / `RightEye` en C++ ;
 - aucune duplication du script Lua de production dans les tests ;
-- aucune modification binaire `.uasset`.
+- aucune mutation binaire de `DA_GridLevel_00` par les tests.
 
-Le C++ reste limité aux primitives génériques de réceptacle, de commande, de présentation et de persistance.
+Le C++ reste limité aux primitives génériques de réceptacle, commande, présentation, porte et persistance.

@@ -64,7 +64,7 @@ namespace GridPUZZLE01Lua02RuntimeTests
 		}
 	};
 
-	FGridItemInstance MakeGem(FName ItemDefinitionId, int32 Quantity)
+	FGridItemInstance MakeItem(FName ItemDefinitionId, int32 Quantity)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
@@ -189,6 +189,10 @@ bool FGridPUZZLE01Lua02RuntimeGuardianDoorCompletionTest::RunTest(const FString&
 	BlueGem->bStackable = true;
 	BlueGem->MaxStackSize = 10;
 
+	UGridItemDefinitionAsset* WrongItem = NewObject<UGridItemDefinitionAsset>(Runtime);
+	WrongItem->ItemDefinitionId = TEXT("Gem_Red");
+	WrongItem->DisplayName = FText::FromString(TEXT("Red Gem"));
+
 	UGridWorldObjectDefinitionAsset* GuardianDefinition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
 	GuardianDefinition->DefinitionId = TEXT("Guardian_LUA02_Runtime");
 	GuardianDefinition->SupportedType = EGridLevelObjectType::Receptacle;
@@ -265,17 +269,30 @@ bool FGridPUZZLE01Lua02RuntimeGuardianDoorCompletionTest::RunTest(const FString&
 	Party->SetGridStart(Runtime, 0, 0, EGridEdge::North);
 	Party->PartyInventoryComponent->InitializeDefaultPartyIfNeeded();
 	TestTrue(TEXT("Blue gem definition registers"), Party->PartyInventoryComponent->RegisterItemDefinition(BlueGem));
-	TestTrue(TEXT("Two blue gems are placed on the cursor"),
-		Party->PartyInventoryComponent->SetCursorItem(MakeGem(BlueGem->ItemDefinitionId, 2)));
+	TestTrue(TEXT("Wrong item definition registers"), Party->PartyInventoryComponent->RegisterItemDefinition(WrongItem));
 
+	AddExpectedError(TEXT("Receptacle cursor insert refused"), EAutomationExpectedErrorFlags::Contains, 2);
+	AddExpectedError(TEXT("GridInventory Cursor Place ToReceptacle Failed"), EAutomationExpectedErrorFlags::Contains, 2);
 	AddExpectedError(TEXT("cyclic link dispatch"), EAutomationExpectedErrorFlags::Contains, 2);
 
 	FHitResult GuardianHit;
 	GuardianHit.Component = Guardian->MeshComponent;
 
+	TestTrue(TEXT("Wrong item reaches the cursor"), Party->PartyInventoryComponent->SetCursorItem(MakeItem(WrongItem->ItemDefinitionId, 1)));
+	TestFalse(TEXT("Wrong item is rejected by the Guardian receptacle"), Guardian->TryPlaceCursorItemFromHit(Party, GuardianHit));
+	TestTrue(TEXT("Wrong item remains on the cursor"), Party->PartyInventoryComponent->HasCursorItem());
+	TestEqual(TEXT("Wrong item creates no contained entry"), Guardian->GetContainedItemCount(), 0);
+	Party->PartyInventoryComponent->ClearCursorItem();
+
+	TestTrue(TEXT("Three blue gems are placed on the cursor"),
+		Party->PartyInventoryComponent->SetCursorItem(MakeItem(BlueGem->ItemDefinitionId, 3)));
+
 	TestTrue(TEXT("First blue gem executes production puzzle1_lvl1"), Guardian->TryPlaceCursorItemFromHit(Party, GuardianHit));
-	TestTrue(TEXT("First gem is consumed and one cursor gem remains"), Party->PartyInventoryComponent->HasCursorItem());
-	TestEqual(TEXT("Cursor quantity is one after first gem"), Party->PartyInventoryComponent->GetCursorItem().Quantity, 1);
+	TestTrue(TEXT("Cursor retains two unconsumed blue gems"), Party->PartyInventoryComponent->HasCursorItem());
+	TestEqual(TEXT("Cursor quantity is two after first gem"), Party->PartyInventoryComponent->GetCursorItem().Quantity, 2);
+	TestEqual(TEXT("Production Lua consumes the first inserted gem"), Guardian->GetContainedItemCount(), 0);
+	TestTrue(TEXT("Production Lua lights EyesLeft after the first gem"), Guardian->MeshComponent->GetMaterial(0) == BlueMaterial);
+	TestTrue(TEXT("EyesRight remains dark after the first gem"), Guardian->MeshComponent->GetMaterial(1) == EmptyRight);
 	TestTrue(TEXT("GuardianDoor remains fully closed after first gem"), DoorActor->IsFullyClosed());
 	TestFalse(TEXT("First gem does not start GuardianDoor animation"), DoorActor->IsAnimating());
 
@@ -286,20 +303,41 @@ bool FGridPUZZLE01Lua02RuntimeGuardianDoorCompletionTest::RunTest(const FString&
 	TestEqual(TEXT("First gem commits GuardianGemCount=1"), GemCount, 1);
 
 	TestTrue(TEXT("Second blue gem executes production puzzle1_lvl1"), Guardian->TryPlaceCursorItemFromHit(Party, GuardianHit));
-	TestFalse(TEXT("Second gem is consumed and cursor becomes empty"), Party->PartyInventoryComponent->HasCursorItem());
-	TestEqual(TEXT("Production Lua consumes all contained gems"), Guardian->GetContainedItemCount(), 0);
+	TestTrue(TEXT("Cursor retains the third unconsumed blue gem"), Party->PartyInventoryComponent->HasCursorItem());
+	TestEqual(TEXT("Cursor quantity is one after second gem"), Party->PartyInventoryComponent->GetCursorItem().Quantity, 1);
+	TestEqual(TEXT("Production Lua consumes the second inserted gem"), Guardian->GetContainedItemCount(), 0);
+	TestTrue(TEXT("EyesLeft remains lit after the second gem"), Guardian->MeshComponent->GetMaterial(0) == BlueMaterial);
+	TestTrue(TEXT("Production Lua lights EyesRight after the second gem"), Guardian->MeshComponent->GetMaterial(1) == BlueMaterial);
 	TestFalse(TEXT("Production Lua disables further Guardian insertion"), Guardian->bCanInsertItems);
 	TestTrue(TEXT("GuardianGemCount reads after second gem"),
 		GridLevelVariableStore::TryGetInt32(*Level, *State, TEXT("GuardianGemCount"), GemCount, Error));
 	TestEqual(TEXT("Second gem commits GuardianGemCount=2"), GemCount, 2);
 
-	// The production script must drive the command bridge into AGridDoorActor::OpenDoor().
-	// bIsOpen is an endpoint state: it remains false while the physical motion is active
-	// and becomes true only when UpdateAnimation reaches the open endpoint.
+	// bIsOpen is an endpoint state. The second gem must start the physical opening,
+	// while passage remains blocked until the animation reaches its endpoint.
 	TestFalse(TEXT("GuardianDoor endpoint open state remains false while opening"), DoorActor->bIsOpen);
 	TestTrue(TEXT("Second gem starts GuardianDoor physical opening"), DoorActor->IsAnimating());
 	TestFalse(TEXT("GuardianDoor passage remains closed while animation is running"),
 		Runtime->IsDoorOpenOnEdge(DoorPlacement.CellX, DoorPlacement.CellY, DoorPlacement.WallSide));
+
+	const UMaterialInterface* LeftAfterTwo = Guardian->MeshComponent->GetMaterial(0);
+	const UMaterialInterface* RightAfterTwo = Guardian->MeshComponent->GetMaterial(1);
+	TestFalse(TEXT("Third gem is rejected before cursor transfer"), Guardian->TryPlaceCursorItemFromHit(Party, GuardianHit));
+	TestTrue(TEXT("Third gem stays on cursor"), Party->PartyInventoryComponent->HasCursorItem());
+	TestEqual(TEXT("Rejected third gem keeps stack quantity one"), Party->PartyInventoryComponent->GetCursorItem().Quantity, 1);
+	TestEqual(TEXT("Third attempt creates no contained item"), Guardian->GetContainedItemCount(), 0);
+	TestTrue(TEXT("Third attempt leaves left material unchanged"), Guardian->MeshComponent->GetMaterial(0) == LeftAfterTwo);
+	TestTrue(TEXT("Third attempt leaves right material unchanged"), Guardian->MeshComponent->GetMaterial(1) == RightAfterTwo);
+	TestTrue(TEXT("GuardianGemCount remains readable after third attempt"),
+		GridLevelVariableStore::TryGetInt32(*Level, *State, TEXT("GuardianGemCount"), GemCount, Error));
+	TestEqual(TEXT("GuardianGemCount never exceeds two"), GemCount, 2);
+
+	const FGridRuntimeObjectVisualState* VisualState = State ? State->ObjectVisuals.Find(GuardianPlacement.InstanceId) : nullptr;
+	TestNotNull(TEXT("Production Lua visual changes are persisted generically"), VisualState);
+	if (VisualState)
+	{
+		TestEqual(TEXT("Both eye material overrides are persisted"), VisualState->MaterialAliasesBySlot.Num(), 2);
+	}
 
 	DoorActor->Tick(DoorMotionDuration + 0.01f);
 	TestTrue(TEXT("GuardianDoor commits endpoint open state after animation"), DoorActor->bIsOpen);
