@@ -1,7 +1,7 @@
 # PUZZLE01-LUA01 — Gardien aux deux gemmes, architecture Lua-first
 
 Statut : **implémentation C++ proposée — validation UE5.5.4 à effectuer**  
-Date : **10 septembre 2026**  
+Date : **16 septembre 2026**  
 Base : `bb2629dfadc594f71560e46f8dd6fcdbea5779c4`
 
 ## 1. Décision architecturale
@@ -11,14 +11,17 @@ PUZZLE01-LUA01 remplace volontairement la première implémentation PUZZLE01 fon
 La règle retenue est désormais :
 
 ```text
-C++      = primitives génériques et sûres du moteur
-DataAsset= ressources et paramètres réutilisables
-Lua      = logique particulière d'une énigme
+C++         = primitives génériques et sûres du moteur
+DataAsset   = ressources et paramètres réutilisables
+Lua         = logique particulière d'une énigme
+Compilateur = validation statique de l'authoring Lua
 ```
 
 Le moteur ne doit pas connaître les notions « première gemme », « deuxième gemme », « œil gauche », « œil droit » ou « ouvrir la porte du Gardien ».
 
 Ces choix appartiennent au script du niveau.
+
+Le script Lua doit rester **le plus simple possible et aller droit au but**. Les contrôles de validité d'un `LogicId`, d'une commande, d'un slot ou d'un alias statique appartiennent au compilateur Grimrock Lua, pas au script du level designer.
 
 ## 2. Rollback de l'ancien PUZZLE01
 
@@ -43,15 +46,16 @@ La seule nouvelle capacité de présentation nécessaire au puzzle est :
 grid.visual.set_material(target, material_slot, material_alias)
 ```
 
-Exemple :
+Exemple d'authoring cible :
 
 ```lua
-local ok, err = grid.visual.set_material(
+grid.visual.set_material(
     "Guardian",
     "EyesLeft",
     "BlueGem")
-assert(ok, err)
 ```
+
+Aucun `must(...)`, `assert(...)` ni traitement manuel de `(ok, err)` n'est nécessaire pour cet appel statiquement vérifiable.
 
 `target` accepte le même contrat que `grid.command` :
 
@@ -87,15 +91,14 @@ BlueGem -> MI_Gem_Blue
 
 Le script utilise seulement `BlueGem`.
 
-Le moteur :
+Le compilateur doit vérifier avant PlayTest :
 
-1. résout `Guardian` vers son `ObjectId` ;
-2. retrouve le `WorldObjectDefinition` du Gardien ;
-3. résout l'alias `BlueGem` ;
-4. recherche le slot `EyesLeft` ou `EyesRight` sur le `MeshComponent` principal ;
-5. applique le matériau.
+1. que `Guardian` résout exactement un objet ;
+2. que la définition visuelle existe ;
+3. que le slot `EyesLeft` ou `EyesRight` existe sur le mesh ;
+4. que l'alias `BlueGem` est déclaré et non nul.
 
-Un alias absent, un matériau nul, un slot absent ou un objet sans mesh principal provoque un échec contrôlé `false, error` dans Lua.
+Le runtime conserve ses propres gardes internes en cas de données incohérentes, mais le level designer ne doit pas recopier ces contrôles dans son script.
 
 ## 5. Persistance générique de la présentation
 
@@ -148,61 +151,53 @@ Ainsi le C++ ne possède aucun `RequiredGemCount`, `ProgressCount`, `LeftEye` ou
 
 ## 7. Script cible du Gardien
 
-Script recommandé :
+Le script cible exprime uniquement la logique du puzzle :
 
 ```lua
 persistent = {
     GuardianGemCount = 0
 }
 
-local function must(ok, err)
-    assert(ok, err)
-end
-
 function on_gem_inserted(event)
-    -- L'item vient d'être accepté par le réceptacle normal.
-    -- Il disparaît comme item physique et n'est plus récupérable.
-    must(grid.command("Guardian", "ReceptacleConsumeItem"))
-    must(grid.command("Guardian", "ReceptacleDisableRemoval"))
-
-    -- Le puzzle est déjà terminé : une insertion surnuméraire éventuelle
-    -- est simplement consommée sans modifier son état.
     if persistent.GuardianGemCount >= 2 then
         return
     end
 
+    grid.command("Guardian", "ReceptacleConsumeItem")
+
     local next_count = persistent.GuardianGemCount + 1
 
     if next_count == 1 then
-        must(grid.visual.set_material(
+        grid.visual.set_material(
             "Guardian",
             "EyesLeft",
-            "BlueGem"))
+            "BlueGem")
     else
-        must(grid.visual.set_material(
+        grid.visual.set_material(
             "Guardian",
             "EyesRight",
-            "BlueGem"))
+            "BlueGem")
 
-        must(grid.command(
-            "GuardianDoor",
-            "Open"))
+        grid.command("GuardianDoor", "Open")
+        grid.command("Guardian", "ReceptacleDisableInsertion")
     end
 
     persistent.GuardianGemCount = next_count
 end
 ```
 
-Le nombre `2`, l'ordre gauche/droite et l'ouverture de la porte sont donc clairement visibles et modifiables dans le script du puzzle.
+Le nombre `2`, l'ordre gauche/droite et l'ouverture de la porte sont clairement visibles et modifiables dans le script du puzzle.
+
+La validité des appels `grid.command(...)` et `grid.visual.set_material(...)` est une responsabilité de **Compile Lua**. Si une primitive statiquement vérifiable n'est pas encore couverte, il faut étendre le compilateur plutôt qu'ajouter de la plomberie de validation dans le script.
 
 ## 8. Configuration manuelle de `DA_Guardian`
 
 Après récupération de PUZZLE01-LUA01, remettre le Gardien sur le runtime générique :
 
 ```text
-Gameplay Type       = Receptacle
-Runtime Actor Class = GridReceptacleActor
-Runtime Interactable= true
+Gameplay Type        = Receptacle
+Runtime Actor Class  = GridReceptacleActor
+Runtime Interactable = true
 ```
 
 Réceptacle :
@@ -251,10 +246,10 @@ Logic Id = GuardianDoor
 Créer ensuite le binding Lua :
 
 ```text
-Source  : Guardian
-Event   : Item Inserted
-Script  : GuardianGemDoor
-Callback: on_gem_inserted
+Source   : Guardian
+Event    : Item Inserted
+Script   : GuardianGemDoor
+Callback : on_gem_inserted
 ```
 
 Le lien objet direct utilisé pendant le premier PUZZLE01 doit disparaître :
@@ -293,6 +288,7 @@ DA_Item_BlueGem accepté
         -> GuardianGemCount = 2
         -> EyesRight = BlueGem
         -> GuardianDoor.Open
+        -> ReceptacleDisableInsertion
 ```
 
 Le changement de matériau n'est qu'une primitive de présentation. Sa signification « une gemme occupe cet œil » existe uniquement dans le script.
@@ -334,7 +330,7 @@ Les tests vérifient :
 
 - l'existence de `grid.visual.set_material` dans le sandbox hébergé ;
 - le passage de `LogicId`, slot et alias comme simples données ;
-- le retour contrôlé `false, error` si le host visuel n'est pas disponible ;
+- le retour contrôlé `false, error` au niveau runtime si le host visuel n'est pas disponible ;
 - la résolution d'un alias depuis une `WorldObjectDefinition` ;
 - le remplacement par nom de Material Slot ;
 - la persistance Slot -> Alias ;
@@ -344,5 +340,7 @@ Les tests vérifient :
 - la consommation des gemmes par la commande existante ;
 - `EyesLeft`, puis `EyesRight` ;
 - le compteur de puzzle persistant porté par Lua.
+
+Les tests internes peuvent volontairement inspecter les retours techniques `(ok, err)` pour éprouver les gardes du runtime. Cela ne change pas la convention d'authoring : les scripts de niveau ordinaires restent directs et sans wrapper de validation.
 
 Validation à effectuer localement sous UE5.5.4 avant de considérer PUZZLE01-LUA01 comme clos.

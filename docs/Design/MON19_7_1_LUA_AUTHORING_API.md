@@ -1,7 +1,7 @@
 # MON19.7.1 — Lua Authoring API : variables persistantes et LogicId
 
 Statut : **VALIDÉ UE5.5.4**  
-Date : **23 août 2026**  
+Date : **16 septembre 2026**  
 Référence de départ : `3ec89ce23872d7d13fdd79f81c4556e4bc9a4d70` (`Documenter la validation Automation MON19.7`)
 
 ## 1. Objectif
@@ -12,6 +12,20 @@ MON19.7.1 corrige deux problèmes d’authoring révélés pendant le premier pu
 2. `grid.command()` demandait le GUID `ObjectId` complet de la cible, ce qui rendait le script difficile à écrire et à relire.
 
 Le but est de conserver l’architecture persistante et data-driven existante tout en donnant au créateur de niveau une syntaxe Lua directe et lisible.
+
+### Règle d'authoring
+
+Le script Lua doit exprimer l'intention gameplay avec le moins de plomberie possible.
+
+```text
+SCRIPT LUA  = logique du puzzle
+COMPILATEUR = validation des références et contrats statiques
+RUNTIME     = exécution et sûreté interne
+```
+
+Un level designer ne doit pas avoir à écrire `must(...)`, `assert(...)` ou à traiter `(ok, err)` autour des appels `grid.*` uniquement pour vérifier qu'un `LogicId`, une commande ou une donnée statique est valide.
+
+Lorsqu'un appel peut être contrôlé avant le PlayTest, cette validation appartient à **Compile Lua**.
 
 ## 2. Principes conservés
 
@@ -149,14 +163,15 @@ Si `RuneCount` vaut déjà `7` dans le runtime, le callback voit `7`, puis écri
 
 La compatibilité MON19.4 est conservée.
 
-Un ancien script reste valide :
+L'API historique reste utilisable, mais la forme d'authoring reste directe :
 
 ```lua
 function on_secret_button(event)
-    local ok, err = grid.vars.set_bool("GateOpen", true)
-    assert(ok, err)
+    grid.vars.set_bool("GateOpen", true)
 end
 ```
+
+Les retours techniques `(ok, err)` restent disponibles pour le runtime et les tests internes, mais ils ne doivent pas alourdir les scripts de niveau ordinaires.
 
 Si un script possède également une table `persistent`, une entrée `persistent` qui n’a pas changé pendant le callback ne doit pas écraser une mutation directe effectuée via `grid.vars.*`.
 
@@ -229,14 +244,15 @@ La validation générale détecte également les `LogicId` invalides ou dupliqu�
 
 ## 10. `grid.command()` par `LogicId`
 
-Le nouveau code conseillé est :
+Le code conseillé est volontairement minimal :
 
 ```lua
 function on_secret_button(event)
-    local ok, err = grid.command("SecretDoor", "Open")
-    assert(ok, err)
+    grid.command("SecretDoor", "Open")
 end
 ```
+
+Le compilateur d'authoring doit vérifier avant PlayTest que `SecretDoor` existe, qu'il est unique et que `Open` est une commande valide pour cette cible.
 
 Résolution runtime :
 
@@ -274,9 +290,7 @@ persistent = {
 
 function on_secret_button(event)
     persistent.GateOpen = true
-
-    local ok, err = grid.command("SecretDoor", "Open")
-    assert(ok, err)
+    grid.command("SecretDoor", "Open")
 end
 ```
 
@@ -287,7 +301,7 @@ Secret Button.Activated
     -> Lua Script.on_secret_button
 ```
 
-Aucun GUID n’est écrit à la main et `GateOpen` n’a pas besoin d’être précréé manuellement dans le DataAsset.
+Aucun GUID n’est écrit à la main, aucun wrapper de validation n'est nécessaire et `GateOpen` n’a pas besoin d’être précréé manuellement dans le DataAsset.
 
 ## 12. Fichiers modifiés
 
@@ -373,8 +387,7 @@ Pour un bouton qui doit simplement ouvrir une porte, le script minimal valide es
 
 ```lua
 function on_secret_button(event)
-    local ok, err = grid.command("SecretDoor", "Open")
-    assert(ok, err)
+    grid.command("SecretDoor", "Open")
 end
 ```
 

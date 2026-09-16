@@ -1,8 +1,8 @@
 # LUA-COMP01 — Grimrock Lua Authoring Compiler
 
 Statut : **implémenté, validation UE5.5.4 utilisateur requise**  
-Date : **11 septembre 2026**  
-Baseline : `4086e137549aa7fef1c82df693dc96ae44d7995f`
+Date : **16 septembre 2026**  
+Baseline : `3222c168a16cb8a2b0acba8e4b9cc37f9eabfd28`
 
 Référence syntaxique canonique : `docs/Design/LUA_SCRIPTING_LANGUAGE_REFERENCE.md`.
 
@@ -31,7 +31,53 @@ function on_gem_inserted()
 end
 ```
 
-Aucun `must()`, `assert(grid.command(...))` ou traitement manuel de `(ok, err)` n'est requis par la convention d'authoring.
+Aucun `must()`, `assert(grid.command(...))` ou traitement manuel de `(ok, err)` ne fait partie de la convention d'authoring.
+
+## Règle normative — Lua minimal, validation par le compilateur
+
+Le Lua de niveau doit être **le plus simple possible et aller droit au but**.
+
+La règle d'architecture est :
+
+```text
+SCRIPT LUA  = intention gameplay uniquement
+COMPILATEUR = validation de l'authoring
+RUNTIME     = exécution + gardes internes de sûreté
+```
+
+Conséquences obligatoires pour les scripts de niveau :
+
+- un appel statiquement vérifiable s'écrit directement ;
+- le level designer ne doit pas entourer chaque `grid.*` de `must(...)`, `assert(...)`, `pcall(...)` ou d'un traitement manuel de `(ok, err)` uniquement pour valider l'authoring ;
+- l'existence d'un `LogicId`, d'une commande, d'un callback, d'un slot matériau, d'un alias ou de toute autre donnée statique doit être vérifiée par **Compile Lua** avant le PlayTest ;
+- si une nouvelle primitive `grid.*` possède un contrat statiquement vérifiable mais n'est pas encore comprise par le compilateur, **on étend d'abord le compilateur** ; on ne reporte pas cette responsabilité dans chaque script ;
+- les retours techniques `(ok, err)` peuvent rester disponibles au runtime pour l'intégrité moteur, les tests internes ou des usages dynamiques exceptionnels, mais ils ne définissent pas le style d'authoring normal.
+
+Exemple cible :
+
+```lua
+grid.command("GuardianDoor", "Open")
+grid.visual.set_material("Guardian", "EyesRight", "BlueGem")
+```
+
+À ne pas demander au level designer :
+
+```lua
+local ok, err = grid.command("GuardianDoor", "Open")
+assert(ok, err)
+```
+
+ou :
+
+```lua
+local function must(ok, err)
+    assert(ok, err)
+end
+
+must(grid.command("GuardianDoor", "Open"))
+```
+
+Ces formes déplacent à tort une responsabilité de compilation dans le script du puzzle.
 
 ## Chaîne de compilation
 
