@@ -34,22 +34,37 @@ LightIntensity
 LightRadius
 LightColor
 bEnableLightFlicker
-BaseLightIntensity
 FlickerIntensityAmount
 FlickerSpeed
 FlickerSecondarySpeed
-BaseAttenuationRadius
 FlickerRadiusAmount
 bEnableLightPositionFlicker
 PointLightFlickerPositionAmplitude
 PositionFlickerSpeed
 PositionFlickerSecondarySpeed
 bEnableLightColorFlicker
-BaseLightColor
 FlickerWarmColor
 FlickerHotColor
 ColorFlickerAmount
 ColorFlickerSpeed
+```
+
+Depuis `LIGHT-CONFIG02`, les trois bases du PointLight ont chacune une autorité unique :
+
+```text
+LightIntensity = intensité de base
+LightRadius    = rayon de base
+LightColor     = couleur de base
+```
+
+Le flicker module ces valeurs via ses amplitudes. Il n'existe plus de seconde base ni de convention `0 = fallback` / `Black = fallback`.
+
+Supprimés :
+
+```text
+BaseLightIntensity
+BaseAttenuationRadius
+BaseLightColor
 ```
 
 Les anciens champs de `UGridItemDefinitionAsset` ne sont plus l'autorité :
@@ -124,7 +139,7 @@ UGridPartyIlluminationComponent
   PointLight = paramètres transmis depuis ItemDefinition.LightEmitter
 ```
 
-La flamme reste donc physiquement sur l'item tenu, tandis que l'éclairage ergonomique du donjon appartient au groupe. `DA_Item_Torch` reste inchangé et demeure l'unique source des paramètres lumineux de la torche. Voir `PARTY_LIGHT01_EQUIPMENT_DRIVEN_PARTY_ILLUMINATION.md`.
+La flamme reste donc physiquement sur l'item tenu, tandis que l'éclairage ergonomique du donjon appartient au groupe. `DA_Item_Torch` demeure l'unique source des paramètres lumineux de la torche. Voir `PARTY_LIGHT01_EQUIPMENT_DRIVEN_PARTY_ILLUMINATION.md`.
 
 Le Pawn ne conserve plus aucun contrat spécifique à la torche pour la présentation tenue :
 
@@ -170,29 +185,33 @@ Le tick n'est activé que si une variation runtime du PointLight effectivement p
 
 ## 8. Migration de `DA_Item_Torch`
 
-Le `.uasset` doit être migré dans Unreal Editor après compilation C++.
+Le `.uasset` a été migré dans Unreal Editor vers `LightEmitter`.
 
-Dans `DA_Item_Torch`, renseigner le nouveau bloc `Light Emitter` avec les valeurs de présentation actuellement utilisées par la torche :
+La configuration de production doit continuer à renseigner au minimum :
 
 ```text
 bDefaultEnabled = true
-NiagaraSystem = NS_Flame_8_Torch   // si c'est bien le système actuellement retenu
-bUsePointLight = true
+NiagaraSystem   = NS_Flame_8_Torch
+bUsePointLight  = true
+LightIntensity  > 0
+LightRadius     > 0
+LightColor      = couleur de base voulue
 ```
 
-Puis reporter les offsets, intensité, rayon, couleur et paramètres de flicker voulus.
+`LIGHT-CONFIG02` ne réécrit aucun `.uasset` binaire et n'introduit aucun fallback automatique vers les anciennes bases supprimées. Le test `Grimrock.Items.LIGHT_CONFIG02.SinglePointLightAuthority` charge donc explicitement `DA_Item_Torch` et exige que ses trois valeurs canoniques soient utilisables.
 
 Ne pas conserver une seconde configuration équivalente dans `BP_Item_Torch` pour la torche item. Le DataAsset est l'autorité.
 
 ## 9. Tests
 
-Test dédié :
+Tests dédiés :
 
 ```text
 Grimrock.Items.LIGHT01.DataDrivenEmitter
+Grimrock.Items.LIGHT_CONFIG02.SinglePointLightAuthority
 ```
 
-Il vérifie :
+Ils vérifient notamment :
 
 - détection d'un émetteur configuré ;
 - état par défaut ;
@@ -201,7 +220,9 @@ Il vérifie :
 - paramètres du PointLight ;
 - absence de tick pour une lumière fixe ;
 - activation du tick pour le flicker ;
-- extinction complète et arrêt du tick.
+- extinction complète et arrêt du tick ;
+- absence des anciens champs `BaseLightIntensity`, `BaseAttenuationRadius`, `BaseLightColor` dans la réflexion ;
+- présence des valeurs canoniques sur `DA_Item_Torch`.
 
 Régressions associées :
 

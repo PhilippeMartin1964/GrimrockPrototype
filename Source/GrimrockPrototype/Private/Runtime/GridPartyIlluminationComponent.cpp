@@ -13,8 +13,7 @@ namespace
 			return -1.0f;
 		}
 
-		return ItemDefinition->LightEmitter.BaseLightIntensity > 0.0f ? ItemDefinition->LightEmitter.BaseLightIntensity
-			: ItemDefinition->LightEmitter.LightIntensity;
+		return ItemDefinition->LightEmitter.LightIntensity;
 	}
 }
 
@@ -51,11 +50,9 @@ FGridLightEmitterConfig UGridPartyIlluminationComponent::BuildPartyConfig(const 
 	const float SafeRadiusMultiplier = FMath::Max(0.0f, RadiusMultiplier);
 
 	PartyConfig.LightIntensity *= SafeIntensityMultiplier;
-	PartyConfig.BaseLightIntensity *= SafeIntensityMultiplier;
 	PartyConfig.FlickerIntensityAmount *= SafeIntensityMultiplier;
 
 	PartyConfig.LightRadius *= SafeRadiusMultiplier;
-	PartyConfig.BaseAttenuationRadius *= SafeRadiusMultiplier;
 	PartyConfig.FlickerRadiusAmount *= SafeRadiusMultiplier;
 
 	return PartyConfig;

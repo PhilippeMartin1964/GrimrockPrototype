@@ -7,6 +7,7 @@ class UNiagaraSystem;
 
 /**
  * ITEM-LIGHT01: reusable authored presentation for any item that can emit light.
+ * LIGHT-CONFIG02: LightIntensity/LightRadius/LightColor are the single point-light base authorities.
  * The item definition owns this data; UGridLightEmitterComponent only executes it at runtime.
  */
 USTRUCT(BlueprintType)
@@ -37,20 +38,20 @@ struct GRIMROCKPROTOTYPE_API FGridLightEmitterConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Point Light", meta = (EditCondition = "bUsePointLight"))
 	FRotator PointLightRelativeRotation = FRotator::ZeroRotator;
 
+	/** Single authored base intensity. Flicker adds/subtracts FlickerIntensityAmount around this value. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Point Light", meta = (EditCondition = "bUsePointLight", ClampMin = "0.0"))
 	float LightIntensity = 850.f;
 
+	/** Single authored base attenuation radius. Flicker adds/subtracts FlickerRadiusAmount around this value. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Point Light", meta = (EditCondition = "bUsePointLight", ClampMin = "0.0"))
 	float LightRadius = 325.f;
 
+	/** Single authored base point-light color. Color flicker blends from this color toward the flame palette. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Point Light", meta = (EditCondition = "bUsePointLight"))
 	FLinearColor LightColor = FLinearColor(1.f, 0.55f, 0.22f, 1.f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (EditCondition = "bUsePointLight"))
 	bool bEnableLightFlicker = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (EditCondition = "bUsePointLight", ClampMin = "0.0"))
-	float BaseLightIntensity = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (EditCondition = "bUsePointLight", ClampMin = "0.0"))
 	float FlickerIntensityAmount = 90.f;
@@ -60,9 +61,6 @@ struct GRIMROCKPROTOTYPE_API FGridLightEmitterConfig
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (EditCondition = "bUsePointLight", ClampMin = "0.0"))
 	float FlickerSecondarySpeed = 6.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (EditCondition = "bUsePointLight", ClampMin = "0.0"))
-	float BaseAttenuationRadius = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (EditCondition = "bUsePointLight", ClampMin = "0.0"))
 	float FlickerRadiusAmount = 18.f;
@@ -81,9 +79,6 @@ struct GRIMROCKPROTOTYPE_API FGridLightEmitterConfig
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (EditCondition = "bUsePointLight"))
 	bool bEnableLightColorFlicker = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (EditCondition = "bUsePointLight"))
-	FLinearColor BaseLightColor = FLinearColor::Black;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (EditCondition = "bUsePointLight"))
 	FLinearColor FlickerWarmColor = FLinearColor(1.f, 0.42f, 0.12f, 1.f);
@@ -110,9 +105,8 @@ struct GRIMROCKPROTOTYPE_API FGridLightEmitterConfig
 	bool IsValid() const
 	{
 		return FMath::IsFinite(LightIntensity) && LightIntensity >= 0.f && FMath::IsFinite(LightRadius) && LightRadius >= 0.f &&
-			FMath::IsFinite(BaseLightIntensity) && BaseLightIntensity >= 0.f && FMath::IsFinite(FlickerIntensityAmount) && FlickerIntensityAmount >= 0.f &&
-			FMath::IsFinite(FlickerSpeed) && FlickerSpeed >= 0.f && FMath::IsFinite(FlickerSecondarySpeed) && FlickerSecondarySpeed >= 0.f &&
-			FMath::IsFinite(BaseAttenuationRadius) && BaseAttenuationRadius >= 0.f && FMath::IsFinite(FlickerRadiusAmount) && FlickerRadiusAmount >= 0.f &&
+			FMath::IsFinite(FlickerIntensityAmount) && FlickerIntensityAmount >= 0.f && FMath::IsFinite(FlickerSpeed) && FlickerSpeed >= 0.f &&
+			FMath::IsFinite(FlickerSecondarySpeed) && FlickerSecondarySpeed >= 0.f && FMath::IsFinite(FlickerRadiusAmount) && FlickerRadiusAmount >= 0.f &&
 			FMath::IsFinite(PositionFlickerSpeed) && PositionFlickerSpeed >= 0.f && FMath::IsFinite(PositionFlickerSecondarySpeed) && PositionFlickerSecondarySpeed >= 0.f &&
 			FMath::IsFinite(ColorFlickerAmount) && ColorFlickerAmount >= 0.f && ColorFlickerAmount <= 1.f && FMath::IsFinite(ColorFlickerSpeed) &&
 			ColorFlickerSpeed >= 0.f;

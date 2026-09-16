@@ -37,6 +37,16 @@ La définition conserve :
 FGridLightEmitterConfig
 ```
 
+Depuis `LIGHT-CONFIG02`, les bases du PointLight sont uniques :
+
+```text
+LightIntensity
+LightRadius
+LightColor
+```
+
+Le flicker module ces valeurs via ses amplitudes ; il ne possède plus ses propres champs de base.
+
 Le composant du groupe copie uniquement les paramètres utiles au PointLight : intensité, rayon, couleur et flicker.
 
 Il ne copie volontairement pas :
@@ -119,9 +129,9 @@ ItemInstance.bLightsEnabled == true
 && ItemDefinition.LightEmitter.bUsePointLight == true
 ```
 
-Si plusieurs sources sont présentes, la source possédant la plus forte intensité effective (`BaseLightIntensity` si renseignée, sinon `LightIntensity`) est retenue. En cas d'égalité, l'ordre est déterministe : index de personnage croissant, puis `MainHand`, puis `OffHand`.
+Si plusieurs sources sont présentes, la source possédant la plus forte `LightIntensity` est retenue. En cas d'égalité, l'ordre est déterministe : index de personnage croissant, puis `MainHand`, puis `OffHand`.
 
-Cette règle évite d'additionner brutalement plusieurs torches.
+Cette règle évite d'additionner brutalement plusieurs torches et ne dépend plus d'un fallback `BaseLightIntensity`.
 
 Le recalcul de l'éclairage du groupe est volontairement séparé du recalcul du visuel tenu du personnage sélectionné :
 
@@ -166,13 +176,14 @@ La politique de priorité entre équipement, magie et effets temporaires n'est p
 
 ## 7. Validation
 
-Test dédié :
+Tests dédiés :
 
 ```text
 Grimrock.Party.LIGHT01.EquipmentDrivenIllumination
+Grimrock.Items.LIGHT_CONFIG02.SinglePointLightAuthority
 ```
 
-Il vérifie notamment :
+Ils vérifient notamment :
 
 - qu'un Pawn C++ nu ne reçoit plus automatiquement de `PartyIlluminationRuntime` ;
 - qu'un composant d'illumination ajouté explicitement est utilisé ;
@@ -184,10 +195,10 @@ Il vérifie notamment :
 - les ombres de géométrie statique et dynamique sont autorisées quand `Cast Shadows` est actif ;
 - le commutateur d'ombres peut être désactivé/réactivé à l'exécution ;
 - le HeldItem garde le canal Niagara mais délègue son PointLight ;
-- la source la plus forte gagne ;
+- la source la plus forte gagne selon `LightIntensity` ;
 - le retrait d'une source sélectionne la suivante ;
 - le retrait de la dernière source éteint le groupe ;
-- une notification d'un personnage non sélectionné peut modifier l'éclairage sans resynchroniser son HeldItem first-person.
+- les trois anciennes bases alternatives ont disparu de la réflexion.
 
 Le code garantit en outre que le PointLight runtime est enfant de `GridPartyIllumination`, avec un offset local de proxy nul. Le test automatisé courant ne mesure pas encore explicitement le transform monde issu du composant Blueprint ; ce point se vérifie en PIE si un doute subsiste sur un asset particulier.
 
@@ -195,6 +206,7 @@ Régressions recommandées :
 
 ```text
 Grimrock.Items.LIGHT01
+Grimrock.Items.LIGHT_CONFIG02
 Grimrock.TechnicalDebt.TD01_2
 Grimrock.Party.LIGHT01
 ```

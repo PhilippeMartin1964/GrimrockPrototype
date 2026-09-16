@@ -178,21 +178,6 @@ void UGridLightEmitterComponent::RefreshTickState()
 	SetComponentTickEnabled(bLightEnabled && bPointLightPresentationEnabled && RuntimeConfig.RequiresRuntimeTick());
 }
 
-float UGridLightEmitterComponent::GetEffectiveBaseIntensity() const
-{
-	return FMath::Max(0.f, RuntimeConfig.BaseLightIntensity > 0.f ? RuntimeConfig.BaseLightIntensity : RuntimeConfig.LightIntensity);
-}
-
-float UGridLightEmitterComponent::GetEffectiveBaseRadius() const
-{
-	return FMath::Max(0.f, RuntimeConfig.BaseAttenuationRadius > 0.f ? RuntimeConfig.BaseAttenuationRadius : RuntimeConfig.LightRadius);
-}
-
-FLinearColor UGridLightEmitterComponent::GetEffectiveBaseColor() const
-{
-	return RuntimeConfig.BaseLightColor == FLinearColor::Black ? RuntimeConfig.LightColor : RuntimeConfig.BaseLightColor;
-}
-
 void UGridLightEmitterComponent::UpdatePointLightOutput()
 {
 	if (!PointLightComponent)
@@ -200,8 +185,8 @@ void UGridLightEmitterComponent::UpdatePointLightOutput()
 		return;
 	}
 
-	const float BaseIntensity = GetEffectiveBaseIntensity();
-	const float BaseRadius = GetEffectiveBaseRadius();
+	const float BaseIntensity = FMath::Max(0.f, RuntimeConfig.LightIntensity);
+	const float BaseRadius = FMath::Max(0.f, RuntimeConfig.LightRadius);
 
 	float Intensity = BaseIntensity;
 	float Radius = BaseRadius;
@@ -265,11 +250,11 @@ void UGridLightEmitterComponent::UpdatePointLightColor()
 		return;
 	}
 
-	const FLinearColor EffectiveBaseColor = GetEffectiveBaseColor();
+	const FLinearColor BaseColor = RuntimeConfig.LightColor;
 
 	if (!bLightEnabled || !RuntimeConfig.bEnableLightColorFlicker)
 	{
-		PointLightComponent->SetLightColor(EffectiveBaseColor);
+		PointLightComponent->SetLightColor(BaseColor);
 		return;
 	}
 
@@ -283,7 +268,7 @@ void UGridLightEmitterComponent::UpdatePointLightColor()
 
 	const FLinearColor FlameColor = FLinearColor::LerpUsingHSV(RuntimeConfig.FlickerWarmColor, RuntimeConfig.FlickerHotColor, FlickerAlpha);
 	const float BlendAmount = FMath::Clamp(RuntimeConfig.ColorFlickerAmount, 0.f, 1.f);
-	const FLinearColor ResultColor = FLinearColor::LerpUsingHSV(EffectiveBaseColor, FlameColor, BlendAmount);
+	const FLinearColor ResultColor = FLinearColor::LerpUsingHSV(BaseColor, FlameColor, BlendAmount);
 
 	PointLightComponent->SetLightColor(ResultColor);
 }

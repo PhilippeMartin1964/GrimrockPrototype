@@ -76,9 +76,6 @@ private:
 	float FlickerPhase = 0.f;
 
 	void RefreshTickState();
-	float GetEffectiveBaseIntensity() const;
-	float GetEffectiveBaseRadius() const;
-	FLinearColor GetEffectiveBaseColor() const;
 	void UpdatePointLightOutput();
 	void UpdatePointLightFlickerPosition();
 	void UpdatePointLightColor();
