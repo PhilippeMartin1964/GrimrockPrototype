@@ -32,7 +32,9 @@ AGridItemActor::AGridItemActor()
 	SparkleMeshComponent->SetVisibility(false, true);
 
 	LightEmitterComponent = CreateDefaultSubobject<UGridLightEmitterComponent>(TEXT("LightEmitter"));
-	LightEmitterComponent->SetupAttachment(SceneRoot);
+	// ITEM-LIGHT03: world physics is simulated by MeshComponent, so the emitter
+	// must share that transform instead of remaining behind on the actor root.
+	LightEmitterComponent->SetupAttachment(MeshComponent);
 }
 
 void AGridItemActor::OnPlacedInWorld()
