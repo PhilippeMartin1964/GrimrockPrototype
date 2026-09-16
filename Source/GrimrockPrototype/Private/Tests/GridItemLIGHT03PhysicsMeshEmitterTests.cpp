@@ -20,15 +20,15 @@ bool FGridItemLIGHT03PhysicsMeshEmitterAttachmentTest::RunTest(const FString& Pa
 		return false;
 	}
 
-	TestNotNull(TEXT("Physics mesh component exists"), ItemCDO->MeshComponent);
-	TestNotNull(TEXT("Light emitter component exists"), ItemCDO->LightEmitterComponent);
+	TestNotNull(TEXT("Physics mesh component exists"), ItemCDO->MeshComponent.Get());
+	TestNotNull(TEXT("Light emitter component exists"), ItemCDO->LightEmitterComponent.Get());
 	if (!ItemCDO->MeshComponent || !ItemCDO->LightEmitterComponent)
 	{
 		return false;
 	}
 
 	TestTrue(TEXT("Light emitter is attached directly to the physics mesh so world-item motion carries the flame and point light"),
-		ItemCDO->LightEmitterComponent->GetAttachParent() == ItemCDO->MeshComponent);
+		ItemCDO->LightEmitterComponent->GetAttachParent() == ItemCDO->MeshComponent.Get());
 
 	return true;
 }
