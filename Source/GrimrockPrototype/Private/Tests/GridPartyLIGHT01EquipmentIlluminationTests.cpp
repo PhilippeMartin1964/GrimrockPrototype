@@ -163,7 +163,7 @@ bool FGridPartyLIGHT01EquipmentDrivenIlluminationTest::RunTest(const FString& Pa
 	TestNotNull(TEXT("Party illumination creates a runtime PointLight"), RuntimePointLight);
 	if (RuntimePointLight)
 	{
-		TestEqual(TEXT("Party runtime PointLight is Movable"), RuntimePointLight->GetMobility(), EComponentMobility::Movable);
+		TestTrue(TEXT("Party runtime PointLight is Movable"), RuntimePointLight->Mobility == EComponentMobility::Movable);
 		TestTrue(TEXT("Party runtime PointLight master shadow switch is enabled"), RuntimePointLight->CastShadows != 0);
 		TestTrue(TEXT("Party runtime PointLight casts shadows from static dungeon geometry"), RuntimePointLight->CastStaticShadows != 0);
 		TestTrue(TEXT("Party runtime PointLight casts shadows from dynamic dungeon objects"), RuntimePointLight->CastDynamicShadows != 0);
