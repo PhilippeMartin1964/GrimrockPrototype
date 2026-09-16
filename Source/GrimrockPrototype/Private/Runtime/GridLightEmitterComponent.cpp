@@ -66,12 +66,9 @@ void UGridLightEmitterComponent::SetLightEnabled(bool bEnabled)
 			NiagaraComponent = NewObject<UNiagaraComponent>(GetOwner(), TEXT("GridItemNiagara"));
 			if (NiagaraComponent)
 			{
+				NiagaraComponent->SetupAttachment(this);
 				NiagaraComponent->SetAsset(DesiredSystem);
 				NiagaraComponent->RegisterComponent();
-				NiagaraComponent->SetUsingAbsoluteLocation(false);
-				NiagaraComponent->SetUsingAbsoluteRotation(false);
-				NiagaraComponent->SetUsingAbsoluteScale(false);
-				NiagaraComponent->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 			}
 		}
 		else if (NiagaraComponent && NiagaraComponent->GetAsset() != DesiredSystem)
@@ -100,6 +97,7 @@ void UGridLightEmitterComponent::SetLightEnabled(bool bEnabled)
 		PointLightComponent = NewObject<UPointLightComponent>(GetOwner(), TEXT("GridItemPointLight"));
 		if (PointLightComponent)
 		{
+			PointLightComponent->SetupAttachment(this);
 			// Runtime item lights can move with held items, thrown items or the party camera.
 			// Keep them explicitly Movable so Cast Shadows produces real-time shadow maps.
 			PointLightComponent->SetMobility(EComponentMobility::Movable);
@@ -112,14 +110,6 @@ void UGridLightEmitterComponent::SetLightEnabled(bool bEnabled)
 			PointLightComponent->CastDynamicShadows = true;
 			PointLightComponent->SetCastShadows(bPointLightCastShadows);
 			PointLightComponent->RegisterComponent();
-			// These presentation components are created after BeginPlay. Use the
-			// runtime attachment path explicitly instead of relying on constructor-
-			// style SetupAttachment semantics. This guarantees that moving an authored
-			// GridPartyIllumination component moves its PointLight with it.
-			PointLightComponent->SetUsingAbsoluteLocation(false);
-			PointLightComponent->SetUsingAbsoluteRotation(false);
-			PointLightComponent->SetUsingAbsoluteScale(false);
-			PointLightComponent->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 		}
 	}
 
