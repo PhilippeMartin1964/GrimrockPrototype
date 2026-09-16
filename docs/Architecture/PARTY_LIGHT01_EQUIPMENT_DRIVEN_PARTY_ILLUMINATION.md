@@ -1,6 +1,6 @@
 # PARTY-LIGHT01 — Equipment-Driven Party Illumination
 
-Statut : implémenté en C++, validation UE locale requise.
+Statut : implémenté en C++, validation UE locale réussie le 16.09.2026.
 
 ## 1. Principe
 
@@ -72,6 +72,27 @@ Le mode sans ombres est volontaire pour éviter les grandes ombres de première 
 
 Le composant doit être ajouté explicitement à `BP_GrimrockPartyPawn`, idéalement comme enfant de `Camera`, afin de régler son transform et ses multiplicateurs. Le C++ ne crée plus aucun `PartyIlluminationRuntime` automatique : si le Blueprint ne contient pas de `UGridPartyIlluminationComponent`, le groupe ne diffuse aucune lumière proxy.
 
+### Transform du proxy
+
+Le `Transform` de `GridPartyIllumination` contrôle uniquement l'origine du **PointLight ergonomique du groupe**. Le PointLight runtime est attaché au composant ; `BuildPartyConfig()` remet volontairement `PointLightRelativeLocation` et `PointLightRelativeRotation` de l'item à zéro afin que l'origine du proxy soit exactement celle du composant `GridPartyIllumination`.
+
+Ainsi :
+
+```text
+GridPartyIllumination.Location / Rotation
+  -> déplace/oriente le PointLight invisible du groupe
+
+HeldItemRoot + HeldItemRelativeLocation / Rotation / Scale
+  -> place le mesh de l'item tenu
+
+DA_Item_Torch.LightEmitter.NiagaraRelativeLocation / Rotation
+  -> place la flamme Niagara relativement à l'item tenu
+```
+
+Déplacer `GridPartyIllumination` ne doit donc **jamais déplacer la torche visible ni sa flamme**. Pour déplacer la torche tenue, régler `HeldItemRoot` et/ou `HeldItemRelativeLocation`. Pour recaler uniquement la flamme sur le mesh, régler les transforms Niagara de `DA_Item_Torch`.
+
+Avec un rayon de plusieurs mètres, un déplacement du proxy de quelques dizaines de centimètres peut être visuellement discret. Pour vérifier le transform du proxy en PIE, utiliser temporairement un offset nettement plus grand, puis remettre la valeur d'authoring voulue.
+
 ### Ombres runtime
 
 Le PointLight créé par `UGridLightEmitterComponent` est explicitement `Movable`. Les chemins d'ombres pour géométrie statique et dynamique restent activés ; `bCastShadows` sert de commutateur maître.
@@ -121,7 +142,7 @@ Ainsi, équiper ou retirer une torche sur un compagnon modifie bien l'éclairage
 Le `HeldItemActor` reste logiquement allumé, mais son exécuteur lumineux reçoit un masque de présentation :
 
 ```text
-Niagara   = ON
+Niagara    = ON
 PointLight = OFF
 ```
 
@@ -167,6 +188,8 @@ Il vérifie notamment :
 - le retrait d'une source sélectionne la suivante ;
 - le retrait de la dernière source éteint le groupe ;
 - une notification d'un personnage non sélectionné peut modifier l'éclairage sans resynchroniser son HeldItem first-person.
+
+Le code garantit en outre que le PointLight runtime est enfant de `GridPartyIllumination`, avec un offset local de proxy nul. Le test automatisé courant ne mesure pas encore explicitement le transform monde issu du composant Blueprint ; ce point se vérifie en PIE si un doute subsiste sur un asset particulier.
 
 Régressions recommandées :
 

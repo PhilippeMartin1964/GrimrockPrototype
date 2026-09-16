@@ -1,8 +1,8 @@
 # 11 — Référence des paramètres GridWorldObjectDefinitionAsset
 
-Statut : **document actif de référence après WORLDOBJ-CLASS01**, 2026-09-14. Version cible : UE 5.5.4.
+Statut : **document actif de référence après WORLDOBJ-ITEMCLASS01**, 2026-09-16. Version cible : UE 5.5.4.
 
-La déclaration de référence est `Source/GrimrockPrototype/Public/Core/GridWorldObjectDefinitionAsset.h`. Ce guide décrit l'authoring courant après MIG10 et ALIGN-B5.3. Les audits 07/08 et le plan 09 conservent leur vocabulaire historique et ne sont pas des références de schéma actuel.
+La déclaration de référence est `Source/GrimrockPrototype/Public/Core/GridWorldObjectDefinitionAsset.h`. Ce guide décrit l'authoring courant après MIG10, ALIGN-B5.3 et WORLDOBJ-ITEMCLASS01. Les audits 07/08 et le plan 09 conservent leur vocabulaire historique et ne sont pas des références de schéma actuel.
 
 ## 1. Définition et placement
 
@@ -88,9 +88,13 @@ Les champs audio dépréciés encore présents servent à une migration audio an
 
 ## 8. Classes runtime et palette
 
-`RuntimeActorClass` choisit la classe d'acteur world-object. `ItemActorClass` reste déclaré, mais ne remplace pas l'autorité directe de `ItemDefinition` pour les collectibles.
+`RuntimeActorClass` est l'unique classe d'acteur authorable d'une `UGridWorldObjectDefinitionAsset` et choisit la classe du **world object** runtime.
+
+`ItemActorClass`, `ContainedItemActorClass` et le paramètre `PreferredItemActorClass` ont été physiquement supprimés du code actif par `WORLDOBJ-ITEMCLASS01`. Ils ne constituent ni une autorité cachée ni un fallback de compatibilité. Lorsqu'une représentation Actor d'un collectible est nécessaire, le runtime instancie directement l'`AGridItemActor` générique puis l'initialise depuis `UGridItemDefinitionAsset`.
 
 Une entrée `FGridObjectPaletteEntry` référence `DefaultWorldObjectDefinition` pour un objet du monde ou `DefaultItemDefinition` pour un collectible. `PaletteCategory` est l'unique autorité de groupement et doit être renseignée pour chaque entrée officielle. Le runtime reçoit les définitions world-object dans `WorldObjectDefinitions` ; la palette reste un outil d'authoring.
+
+Les packages `.uasset` anciens peuvent encore contenir, jusqu'à leur prochaine resauvegarde, une import/reference sérialisée vers une ancienne classe Blueprint d'item telle que `BP_Item_Torch`. Cette trace n'est pas lisible dans Details puisque la propriété n'existe plus dans la réflexion. Elle doit être purgée par resauvegarde de l'asset concerné, jamais par réintroduction d'`ItemActorClass`.
 
 ## 9. Validation et chemins de packages
 

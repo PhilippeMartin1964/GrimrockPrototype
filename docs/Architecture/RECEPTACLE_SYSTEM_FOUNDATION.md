@@ -47,7 +47,9 @@ Le niveau persiste un `FGridWorldObjectInstance` : `InstanceId`, `WorldObjectDef
 
 La définition fournit la classe runtime, les parties visuelles, le placement et les règles partagées de `DefaultBehavior.Receptacle` : acceptation, capacité et présentation du contenu. Le resolver combine ces règles avec le contenu initial local ; le placement ne sérialise pas une copie complète de `Behavior`.
 
-`bCanRemoveItem` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de placement au clic peuvent être définis par le comportement de la définition. La capacité est entièrement définie par `MaxContainedItems` : `1` produit un comportement single-slot, une valeur supérieure à `1` autorise plusieurs items et une valeur inférieure ou égale à `0` est illimitée. L'acceptation dépend de `bAcceptAnyItem` et de `AcceptedItems`, tandis que `InitialContent` définit le contenu initial.
+`bCanRemoveItem` appartient à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de placement au clic peuvent être définis par le comportement de la définition. La capacité est entièrement définie par `MaxContainedItems` : `1` produit un comportement single-slot, une valeur supérieure à `1` autorise plusieurs items et une valeur inférieure ou égale à `0` est illimitée. L'acceptation dépend de `bAcceptAnyItem` et de `AcceptedItems`, tandis que `InitialContent` définit le contenu initial.
+
+Il n'existe plus de `ContainedItemActorClass` authorable ou caché. Le réceptacle ne choisit jamais la classe Unreal d'un item contenu : toute représentation d'item passe par l'`AGridItemActor` générique initialisé depuis `UGridItemDefinitionAsset`.
 
 Il n'existe pas d'autre axe runtime de typologie ou d'organisation du stockage.
 Les seuls modes visuels sont ceux listés en section 5.
@@ -56,7 +58,9 @@ Les seuls modes visuels sont ceux listés en section 5.
 
 ## 5. Génération et contenu runtime
 
-`AGridLevelRuntimeActor::RebuildRuntimeObjects()` résout la définition, la classe, le mesh et le transform. `AddRuntimeObjectActor()` assigne `ItemActorClass`, appelle `InitializeGridObject()` et indexe l'acteur par `ObjectId`.
+`AGridLevelRuntimeActor::RebuildRuntimeObjects()` résout la définition, la classe, le mesh et le transform. `AddRuntimeObjectActor()` initialise l'objet runtime et l'indexe par `ObjectId`. Lorsqu'un item visuel doit être créé pour un réceptacle, `SpawnItemActorForDefinition()` instancie directement l'`AGridItemActor` générique puis appelle `InitializeFromItemDefinition()`.
+
+`ItemActorClass`, `ContainedItemActorClass` et le paramètre `PreferredItemActorClass` ont été physiquement supprimés du code actif par `WORLDOBJ-ITEMCLASS01`. Aucun réceptacle, world-object ou placement ne possède donc de seconde autorité de classe pour les collectibles.
 
 Le réceptacle connaît sa cellule et son bord par la classe de base `AGridRuntimeObjectActor`. `ContainedItems` est la source de vérité runtime. Chaque entrée conserve identité, définition éventuelle, quantité, poids, nom, lumière et acteur visuel éventuel.
 
@@ -198,6 +202,8 @@ définition et les entrées invalides de `InitialContent`.
 
 Le runtime journalise les transferts, refus, changements d'autorisation de retrait, commandes, conditions et résolutions d'acteurs. Les évaluations utilisées par le survol souris sont silencieuses. Un refus d'action réelle peut produire un warning court. Le diagnostic complet `GridReceptacle Diagnostic` est disponible uniquement avec `bLogDiagnostics=true` et au niveau `VeryVerbose`; `GridRuntime Diagnostic` est également `VeryVerbose`.
 
+Un ancien `.uasset` peut encore conserver dans sa table d'imports une référence sérialisée vers une classe supprimée telle que `BP_Item_Torch`, même si aucune propriété correspondante n'est désormais visible dans Details. Avec le schéma courant chargé, une resauvegarde de l'asset concerné doit purger cette trace legacy. Il ne faut jamais réintroduire `ItemActorClass` ou `ContainedItemActorClass` pour satisfaire ce type de warning.
+
 ## 11. Limites actuelles
 
 - les filtres par type, tag ou définition ne font pas partie du modèle actuel ;
@@ -220,6 +226,7 @@ Le runtime journalise les transferts, refus, changements d'autorisation de retra
 8. Une condition invalide échoue avant inversion.
 9. Les commandes spécialisées ciblent uniquement un acteur réceptacle généré.
 10. Les variantes de support, alcôve ou autel restent des définitions ou Blueprints, pas de nouveaux types de niveau.
+11. Un réceptacle n'authorise jamais une classe d'acteur d'item ; `UGridItemDefinitionAsset` reste l'unique définition du collectible et `AGridItemActor` sa représentation générique.
 
 Les curseurs de dépôt et les retours courts de refus sont décrits dans
 [`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md`](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md).

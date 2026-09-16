@@ -49,7 +49,7 @@ La palette référence directement `DefaultItemDefinition`, sans `DefaultWorldOb
 
 Un item avec `Edge=None` est placé au centre de la cellule. Un item avec une arête cardinale utilise le placement au bord du sol, même si sa définition est normalement centré. Ce comportement est propre aux items placés.
 
-`AGridItemActor::ConfigureAsWorldPickup()` active la collision, la visibilité et la physique nécessaires au ramassage. L'état lumineux d'un item placé par le niveau est actuellement désactivé après sa création par `OnRemovedFromWorld()`. Une torche contenue ou tenue suit un autre chemin lumineux.
+`AGridItemActor::ConfigureAsWorldPickup()` active la collision, la visibilité et la physique nécessaires au ramassage. Depuis `ITEM-LIGHT02`, un item neuf matérialisé depuis une `UGridItemDefinitionAsset` initialise son état lumineux exactement une fois depuis `ItemDefinition->IsLightEnabledByDefault()`. Les transferts ultérieurs conservent ensuite `FGridItemInstance::bLightsEnabled` au lieu de recalculer cet état depuis la définition.
 
 Un item inséré dans un réceptacle `PhysicalAtHit` est détaché, positionné au point cliqué avec l'offset de surface, puis configuré comme pickup physique si `bSimulatePhysicsWhenPlaced` est actif.
 
@@ -323,7 +323,11 @@ Une torche peut apparaître sous trois formes distinctes :
 
 `HeldItemActor` n'est pas une seconde instance de gameplay. Le commentaire et le code de `AGrimrockPartyPawn` le traitent comme une représentation visuelle ; la propriété réelle reste dans l'inventaire, l'équipement, le curseur, un réceptacle ou le monde.
 
-`HeldTorchActorClass` est une classe visuelle spécialisée utilisée pour `DefaultHeldItemDefinitionId`. Les autres items tenus sont générés par le runtime à partir de leur définition.
+Tous les items tenus, torche comprise, utilisent désormais l'`AGridItemActor` générique initialisé depuis `UGridItemDefinitionAsset`. `HeldTorchActorClass`, `DefaultHeldItemDefinitionId` et les anciens chemins spécifiques à la torche ont été physiquement supprimés du contrat runtime. Le mesh tenu vient de `EquippedMesh`, avec `WorldMesh` comme fallback via `LoadHeldMesh()`.
+
+La position du **mesh tenu** est contrôlée par `HeldItemRoot` et `HeldItemRelativeLocation / Rotation / Scale`. La position de la **flamme Niagara** est contrôlée par `DA_Item_Torch.LightEmitter.NiagaraRelativeLocation / Rotation`. `GridPartyIllumination` est un proxy séparé qui ne porte que le PointLight ergonomique du groupe : déplacer ce composant ne déplace ni le mesh de la torche ni sa flamme.
+
+Lorsqu'une torche équipée est allumée, son `HeldItemActor` garde le canal Niagara mais délègue son PointLight à `UGridPartyIlluminationComponent`. Voir [`PARTY_LIGHT01_EQUIPMENT_DRIVEN_PARTY_ILLUMINATION.md`](PARTY_LIGHT01_EQUIPMENT_DRIVEN_PARTY_ILLUMINATION.md).
 
 ## 9. Validation éditeur
 
