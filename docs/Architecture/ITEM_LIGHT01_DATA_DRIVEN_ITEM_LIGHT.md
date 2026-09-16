@@ -89,13 +89,14 @@ Lors de `InitializeFromItemDefinition()` :
 
 1. la configuration `LightEmitter` est copiée dans le composant runtime ;
 2. le composant reste éteint tant que l'état de l'instance n'a pas été appliqué ;
-3. `SetItemLightsEnabled()` active ou désactive le Niagara et/ou le PointLight.
+3. `SetItemLightsEnabled()` applique l'état logique de l'instance ;
+4. le contexte de présentation peut ensuite masquer indépendamment Niagara ou PointLight sans modifier cet état logique.
 
 Aucun `BP_Item_Torch` n'est nécessaire comme autorité runtime pour une torche tenue en main.
 
-## 5. Visuel tenu
+## 5. Visuel tenu et éclairage du groupe
 
-`AGrimrockPartyPawn::EquipHeldItem()` résout désormais l'`ItemDefinition` et génère un `AGridItemActor` générique.
+`AGrimrockPartyPawn::EquipHeldItem()` résout l'`ItemDefinition` et génère un `AGridItemActor` générique.
 
 Le choix d'un item lumineux équipé repose sur :
 
@@ -111,6 +112,19 @@ EquippedMesh
 ```
 
 avec `WorldMesh` comme fallback via `LoadHeldMesh()`.
+
+Depuis `PARTY-LIGHT01`, un item lumineux tenu ne produit plus son PointLight directement depuis le mesh de première personne :
+
+```text
+HeldItemActor
+  Niagara    = ON
+  PointLight = OFF
+
+UGridPartyIlluminationComponent
+  PointLight = paramètres transmis depuis ItemDefinition.LightEmitter
+```
+
+La flamme reste donc physiquement sur l'item tenu, tandis que l'éclairage ergonomique du donjon appartient au groupe. `DA_Item_Torch` reste inchangé et demeure l'unique source des paramètres lumineux de la torche. Voir `PARTY_LIGHT01_EQUIPMENT_DRIVEN_PARTY_ILLUMINATION.md`.
 
 Le Pawn ne conserve plus aucun contrat spécifique à la torche pour la présentation tenue :
 
@@ -149,9 +163,10 @@ Le composant n'effectue aucun tick lorsque :
 
 - il est éteint ;
 - aucun émetteur n'est configuré ;
+- le canal PointLight est masqué par le contexte de présentation ;
 - un PointLight fixe est actif sans flicker.
 
-Le tick n'est activé que si une variation runtime du PointLight est nécessaire : intensité/rayon, position ou couleur.
+Le tick n'est activé que si une variation runtime du PointLight effectivement présenté est nécessaire : intensité/rayon, position ou couleur.
 
 ## 8. Migration de `DA_Item_Torch`
 
@@ -195,6 +210,7 @@ Grimrock.TechnicalDebt.TD01_2
 Grimrock.TechnicalDebt.TD06_8
 Grimrock.Monsters.MON11.Presentation.ThrownWeaponLifecycle
 Grimrock.CharacterCreation.CC5
+Grimrock.Party.LIGHT01
 ```
 
 `TD01_2.PartySelectionHeldVisual.NoLegacyTorchFields` vérifie explicitement que les quatre anciens champs spécifiques torche ne réapparaissent pas dans la réflexion Unreal.

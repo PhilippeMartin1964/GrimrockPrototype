@@ -6,6 +6,8 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridLightEmitterComponent.h"
+#include "Runtime/GridPartyIlluminationComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 namespace
@@ -23,6 +25,17 @@ namespace
 			default:
 				return TEXT("Unsupported");
 		}
+	}
+
+	float GridPartyPawnGetIlluminationScore(const UGridItemDefinitionAsset* ItemDefinition)
+	{
+		if (!ItemDefinition || !ItemDefinition->LightEmitter.bUsePointLight)
+		{
+			return -1.0f;
+		}
+
+		return ItemDefinition->LightEmitter.BaseLightIntensity > 0.0f ? ItemDefinition->LightEmitter.BaseLightIntensity
+			: ItemDefinition->LightEmitter.LightIntensity;
 	}
 }
 
@@ -78,6 +91,12 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 	if (HeldItemActor->MeshComponent)
 	{
 		HeldItemActor->MeshComponent->SetStaticMesh(ItemDefinition->LoadHeldMesh());
+	}
+	if (HeldItemActor->LightEmitterComponent)
+	{
+		// A held item keeps its flame/Niagara presentation, but its physical
+		// PointLight is delegated to the party illumination proxy.
+		HeldItemActor->LightEmitterComponent->SetEmitterChannelsEnabled(true, false);
 	}
 	HeldItemActor->ConfigureAsAttachedItem();
 	HeldItemActor->AttachToComponent(AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
@@ -155,11 +174,59 @@ bool AGrimrockPartyPawn::RecomputeEquippedLightState(
 
 void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 {
-	// TODO 5C: call this after any direct PartyInventoryComponent::SetSelectedCharacterIndex usage outside the pawn.
+	UGridPartyIlluminationComponent* PartyIllumination = FindComponentByClass<UGridPartyIlluminationComponent>();
+
 	if (!PartyInventoryComponent)
 	{
+		if (PartyIllumination)
+		{
+			PartyIllumination->ClearIlluminationSource();
+		}
 		ClearHeldItem();
 		return;
+	}
+
+	// PARTY-LIGHT01: illumination belongs to the party, not to the selected
+	// first-person held mesh. Any active character holding a lit point-light
+	// item in either hand can illuminate the group. The strongest configured
+	// source wins; ties are deterministic by character index then MainHand.
+	if (PartyIllumination)
+	{
+		UGridItemDefinitionAsset* BestDefinition = nullptr;
+		FName BestSourceId = NAME_None;
+		float BestScore = -1.0f;
+
+		const int32 ActiveCharacterCount = PartyInventoryComponent->GetActiveCharacterCount();
+		const EGridEquipmentSlot HandSlots[] = {EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand};
+		for (int32 CharacterIndex = 0; CharacterIndex < ActiveCharacterCount; ++CharacterIndex)
+		{
+			for (EGridEquipmentSlot HandSlot : HandSlots)
+			{
+				FGridItemInstance CandidateItem;
+				if (!PartyInventoryComponent->GetEquippedItem(CharacterIndex, HandSlot, CandidateItem) || !CandidateItem.bLightsEnabled)
+				{
+					continue;
+				}
+
+				UGridItemDefinitionAsset* CandidateDefinition = ResolveEquippedItemDefinition(CandidateItem);
+				const float CandidateScore = GridPartyPawnGetIlluminationScore(CandidateDefinition);
+				if (CandidateScore > BestScore)
+				{
+					BestScore = CandidateScore;
+					BestDefinition = CandidateDefinition;
+					BestSourceId = CandidateItem.ItemDefinitionId;
+				}
+			}
+		}
+
+		if (BestDefinition)
+		{
+			PartyIllumination->ApplyIlluminationSource(BestDefinition->LightEmitter, BestSourceId);
+		}
+		else
+		{
+			PartyIllumination->ClearIlluminationSource();
+		}
 	}
 
 	const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex();
