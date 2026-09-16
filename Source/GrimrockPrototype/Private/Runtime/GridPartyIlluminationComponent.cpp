@@ -20,7 +20,7 @@ namespace
 UGridPartyIlluminationComponent::UGridPartyIlluminationComponent()
 {
 	SetEmitterChannelsEnabled(false, true);
-	SetPointLightCastShadows(false);
+	SetPointLightCastShadows(true);
 }
 
 void UGridPartyIlluminationComponent::BeginPlay()

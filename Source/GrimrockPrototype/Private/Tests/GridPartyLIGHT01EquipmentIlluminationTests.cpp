@@ -123,8 +123,8 @@ bool FGridPartyLIGHT01EquipmentDrivenIlluminationTest::RunTest(const FString& Pa
 	{
 		return false;
 	}
-	TestFalse(TEXT("Party illumination remains shadowless by default"), PartyLight->bCastShadows);
-	PartyLight->bCastShadows = true;
+	TestTrue(TEXT("PARTY-LIGHT03 enables party illumination shadows by default"), PartyLight->bCastShadows);
+	TestTrue(TEXT("PARTY-LIGHT03 initializes the runtime shadow policy enabled"), PartyLight->GetPointLightCastShadows());
 	PartyLight->SetupAttachment(PartyPawn->GetRootComponent());
 	PartyPawn->AddInstanceComponent(PartyLight);
 	PartyLight->RegisterComponent();

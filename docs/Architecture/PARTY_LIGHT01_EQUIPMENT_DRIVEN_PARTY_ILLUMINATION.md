@@ -75,10 +75,10 @@ Valeurs par défaut :
 ```text
 IntensityMultiplier = 1.0
 RadiusMultiplier    = 1.0
-bCastShadows        = false
+bCastShadows        = true
 ```
 
-Le mode sans ombres est volontaire pour éviter les grandes ombres de première personne produites par les objets tenus.
+Depuis `PARTY-LIGHT03`, la lumière du groupe projette donc des ombres par défaut. L'ancien défaut `false`, introduit pour éviter de grandes ombres de première personne, n'est plus la politique runtime : le PointLight du HeldItem reste délégué au proxy de groupe, tandis que le proxy conserve des ombres temps réel sur le décor.
 
 Le composant doit être ajouté explicitement à `BP_GrimrockPartyPawn`, idéalement comme enfant de `Camera`, afin de régler son transform et ses multiplicateurs. Le C++ ne crée plus aucun `PartyIlluminationRuntime` automatique : si le Blueprint ne contient pas de `UGridPartyIlluminationComponent`, le groupe ne diffuse aucune lumière proxy.
 
@@ -108,12 +108,12 @@ Avec un rayon de plusieurs mètres, un déplacement du proxy de quelques dizaine
 Le PointLight créé par `UGridLightEmitterComponent` est explicitement `Movable`. Les chemins d'ombres pour géométrie statique et dynamique restent activés ; `bCastShadows` sert de commutateur maître.
 
 ```text
-bCastShadows = false
-  -> aucune ombre portée par la lumière du groupe
-
-bCastShadows = true
+bCastShadows = true   // défaut PARTY-LIGHT03
   -> les murs, grilles, portes et autres objets pouvant caster une ombre
      occultent la lumière du groupe en temps réel
+
+bCastShadows = false  // opt-out explicite
+  -> aucune ombre portée par la lumière du groupe
 ```
 
 `bCastShadows` ne contrôle pas l'ombre du mesh de la torche tenue lui-même ; il contrôle les ombres produites par le PointLight du groupe sur le décor.
@@ -191,6 +191,7 @@ Ils vérifient notamment :
 - les paramètres intensité/rayon sont transmis ;
 - les offsets physiques de l'item ne sont pas transmis ;
 - le proxy ne crée aucun Niagara ;
+- `PARTY-LIGHT03` impose `bCastShadows = true` par défaut et initialise la politique runtime d'ombres à `true` ;
 - le PointLight runtime est `Movable` ;
 - les ombres de géométrie statique et dynamique sont autorisées quand `Cast Shadows` est actif ;
 - le commutateur d'ombres peut être désactivé/réactivé à l'exécution ;

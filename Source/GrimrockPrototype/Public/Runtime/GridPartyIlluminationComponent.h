@@ -27,9 +27,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Party Illumination", meta = (ClampMin = "0.0"))
 	float RadiusMultiplier = 1.0f;
 
-	/** First-person party light defaults to shadowless to avoid giant held-item shadows. */
+	/** PARTY-LIGHT03: party illumination casts real-time dungeon shadows by default. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Party Illumination")
-	bool bCastShadows = false;
+	bool bCastShadows = true;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Party Illumination")
 	FName ActiveSourceId = NAME_None;
