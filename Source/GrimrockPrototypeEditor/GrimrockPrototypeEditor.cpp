@@ -21,12 +21,19 @@ namespace GridEditorUndoBridge
 	void Shutdown();
 }
 
+namespace GrimrockPartyDetailsCustomization
+{
+	void Startup();
+	void Shutdown();
+}
+
 class FGrimrockPrototypeEditorModule : public IModuleInterface
 {
 public:
 	virtual void StartupModule() override
 	{
 		GridEditorUndoBridge::Startup();
+		GrimrockPartyDetailsCustomization::Startup();
 
 		FEditorModeRegistry::Get().RegisterMode<FGridLevelEdMode>(
 			FGridLevelEdMode::EM_GridLevelEdModeId, FText::FromString(TEXT("Grimrock Grid Editor")), FSlateIcon(), true);
@@ -64,6 +71,7 @@ public:
 
 	virtual void ShutdownModule() override
 	{
+		GrimrockPartyDetailsCustomization::Shutdown();
 		GridEditorUndoBridge::Shutdown();
 
 		FEditorDelegates::PreBeginPIE.Remove(PreBeginPIEHandle);
