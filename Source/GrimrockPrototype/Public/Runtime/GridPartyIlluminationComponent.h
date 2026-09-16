@@ -4,6 +4,9 @@
 #include "Runtime/GridLightEmitterComponent.h"
 #include "GridPartyIlluminationComponent.generated.h"
 
+class AGridLevelRuntimeActor;
+class UGridPartyInventoryComponent;
+
 /**
  * PARTY-LIGHT01: ergonomic first-person illumination owned by the party.
  * A source (equipment today, magic later) provides an FGridLightEmitterConfig;
@@ -36,6 +39,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Party Illumination")
 	void ClearIlluminationSource();
+
+	/** Recomputes the party-wide equipment light without touching the selected held visual. */
+	void RefreshFromEquipment(UGridPartyInventoryComponent* Inventory, AGridLevelRuntimeActor* LevelRuntimeActor);
 
 	UFUNCTION(BlueprintPure, Category = "Party Illumination")
 	bool HasActiveIlluminationSource() const { return !ActiveSourceId.IsNone() && IsLightEnabled(); }

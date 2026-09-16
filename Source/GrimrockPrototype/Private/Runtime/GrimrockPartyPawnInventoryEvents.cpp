@@ -36,16 +36,23 @@ void AGrimrockPartyPawn::PostInitializeComponents()
 
 void AGrimrockPartyPawn::HandlePartyInventoryChanged(int32 CharacterIndex)
 {
-	(void)CharacterIndex;
-
 	if (!PartyInventoryComponent)
 	{
 		SyncHeldVisualFromSelectedCharacterEquipment();
 		return;
 	}
 
-	// PARTY-LIGHT01 is party-wide: an equipment change on any active character
-	// can change illumination, even when the selected first-person character did
-	// not change. SyncHeldVisual also refreshes the selected held presentation.
+	const int32 SelectedCharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex();
+	if (CharacterIndex != INDEX_NONE && CharacterIndex != SelectedCharacterIndex)
+	{
+		// Party illumination is party-wide, so another character can still change
+		// the light. The selected first-person held visual must not be resynced.
+		if (UGridPartyIlluminationComponent* PartyIllumination = FindComponentByClass<UGridPartyIlluminationComponent>())
+		{
+			PartyIllumination->RefreshFromEquipment(PartyInventoryComponent, LevelRuntimeActor);
+		}
+		return;
+	}
+
 	SyncHeldVisualFromSelectedCharacterEquipment();
 }

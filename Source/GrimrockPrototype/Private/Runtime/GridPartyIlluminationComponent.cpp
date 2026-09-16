@@ -1,5 +1,23 @@
 #include "Runtime/GridPartyIlluminationComponent.h"
 
+#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPartyInventoryComponent.h"
+
+namespace
+{
+	float GridPartyIlluminationGetScore(const UGridItemDefinitionAsset* ItemDefinition)
+	{
+		if (!ItemDefinition || !ItemDefinition->LightEmitter.bUsePointLight)
+		{
+			return -1.0f;
+		}
+
+		return ItemDefinition->LightEmitter.BaseLightIntensity > 0.0f ? ItemDefinition->LightEmitter.BaseLightIntensity
+			: ItemDefinition->LightEmitter.LightIntensity;
+	}
+}
+
 UGridPartyIlluminationComponent::UGridPartyIlluminationComponent()
 {
 	SetEmitterChannelsEnabled(false, true);
@@ -65,4 +83,54 @@ void UGridPartyIlluminationComponent::ClearIlluminationSource()
 	ApplyConfig(FGridLightEmitterConfig());
 	SetEmitterChannelsEnabled(false, true);
 	SetPointLightCastShadows(bCastShadows);
+}
+
+void UGridPartyIlluminationComponent::RefreshFromEquipment(UGridPartyInventoryComponent* Inventory, AGridLevelRuntimeActor* LevelRuntimeActor)
+{
+	if (!Inventory)
+	{
+		ClearIlluminationSource();
+		return;
+	}
+
+	UGridItemDefinitionAsset* BestDefinition = nullptr;
+	FName BestSourceId = NAME_None;
+	float BestScore = -1.0f;
+
+	const int32 ActiveCharacterCount = Inventory->GetActiveCharacterCount();
+	const EGridEquipmentSlot HandSlots[] = {EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand};
+	for (int32 CharacterIndex = 0; CharacterIndex < ActiveCharacterCount; ++CharacterIndex)
+	{
+		for (EGridEquipmentSlot HandSlot : HandSlots)
+		{
+			FGridItemInstance CandidateItem;
+			if (!Inventory->GetEquippedItem(CharacterIndex, HandSlot, CandidateItem) || !CandidateItem.bLightsEnabled)
+			{
+				continue;
+			}
+
+			UGridItemDefinitionAsset* CandidateDefinition = Inventory->FindItemDefinition(CandidateItem.ItemDefinitionId);
+			if (!CandidateDefinition && LevelRuntimeActor)
+			{
+				CandidateDefinition = LevelRuntimeActor->ResolveRuntimeItemDefinition(CandidateItem.ItemDefinitionId);
+			}
+
+			const float CandidateScore = GridPartyIlluminationGetScore(CandidateDefinition);
+			if (CandidateScore > BestScore)
+			{
+				BestScore = CandidateScore;
+				BestDefinition = CandidateDefinition;
+				BestSourceId = CandidateItem.ItemDefinitionId;
+			}
+		}
+	}
+
+	if (BestDefinition)
+	{
+		ApplyIlluminationSource(BestDefinition->LightEmitter, BestSourceId);
+	}
+	else
+	{
+		ClearIlluminationSource();
+	}
 }

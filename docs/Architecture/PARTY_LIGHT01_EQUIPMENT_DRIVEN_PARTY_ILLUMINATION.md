@@ -87,6 +87,20 @@ Si plusieurs sources sont présentes, la source possédant la plus forte intensi
 
 Cette règle évite d'additionner brutalement plusieurs torches.
 
+Le recalcul de l'éclairage du groupe est volontairement séparé du recalcul du visuel tenu du personnage sélectionné :
+
+```text
+notification personnage sélectionné / INDEX_NONE
+  -> refresh PartyIllumination
+  -> refresh HeldItem du personnage sélectionné
+
+notification d'un autre personnage
+  -> refresh PartyIllumination uniquement
+  -> HeldItem sélectionné inchangé
+```
+
+Ainsi, équiper ou retirer une torche sur un compagnon modifie bien l'éclairage global sans recréer ni supprimer le visuel first-person du personnage sélectionné.
+
 ## 5. Item tenu
 
 Le `HeldItemActor` reste logiquement allumé, mais son exécuteur lumineux reçoit un masque de présentation :
@@ -132,7 +146,8 @@ Il vérifie notamment :
 - le HeldItem garde le canal Niagara mais délègue son PointLight ;
 - la source la plus forte gagne ;
 - le retrait d'une source sélectionne la suivante ;
-- le retrait de la dernière source éteint le groupe.
+- le retrait de la dernière source éteint le groupe ;
+- une notification d'un personnage non sélectionné peut modifier l'éclairage sans resynchroniser son HeldItem first-person.
 
 Régressions recommandées :
 
