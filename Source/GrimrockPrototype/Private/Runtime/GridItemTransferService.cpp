@@ -46,17 +46,6 @@ namespace
 		OutFailure = LogTransferFailure(Operation, EGridItemTransferResult::DestinationRejectsItem, Message, &Item);
 		return false;
 	}
-
-	void SyncEquipmentVisual(UGridPartyInventoryComponent* Inventory)
-	{
-		if (Inventory)
-		{
-			if (AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(Inventory->GetOwner()))
-			{
-				PartyPawn->SyncHeldVisualFromSelectedCharacterEquipment();
-			}
-		}
-	}
 }
 
 FGridItemTransferResult UGridItemTransferService::TransferInventorySlotToReceptacle(
@@ -147,7 +136,6 @@ FGridItemTransferResult UGridItemTransferService::TransferEquipmentSlotToRecepta
 
 	*SourceItem = FGridItemInstance();
 	Inventory->NotifyPartyInventoryChanged(CharacterIndex);
-	SyncEquipmentVisual(Inventory);
 
 	FGridItemInstance AcceptedItem;
 	if (!Receptacle->TryInsertItemInstanceFromCursor(SourceSnapshot, AcceptedItem))
@@ -160,7 +148,6 @@ FGridItemTransferResult UGridItemTransferService::TransferEquipmentSlotToRecepta
 
 		*SourceItem = SourceSnapshot;
 		Inventory->NotifyPartyInventoryChanged(CharacterIndex);
-		SyncEquipmentVisual(Inventory);
 		return LogTransferFailure(
 			Operation, EGridItemTransferResult::DestinationInsertFailed, TEXT("Destination insertion failed; equipment source was restored."), &SourceSnapshot);
 	}

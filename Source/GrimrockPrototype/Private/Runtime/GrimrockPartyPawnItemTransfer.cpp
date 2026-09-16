@@ -98,14 +98,9 @@ bool AGrimrockPartyPawn::EquipSelectedCharacterItemFromInventorySlot(int32 Inven
 		return false;
 	}
 
-	const bool bEquipped =
-		PartyInventoryComponent->EquipItemFromInventorySlot(PartyInventoryComponent->GetSelectedCharacterIndex(), InventorySlotIndex, TargetSlot);
-
-	if (bEquipped && GridPartyPawnItemTransferIsHandEquipmentSlot(TargetSlot))
-	{
-		SyncHeldVisualFromSelectedCharacterEquipment();
-	}
-	return bEquipped;
+	// PAWN-CLEAN03: the inventory change notification is the sole held-visual sync authority.
+	return PartyInventoryComponent->EquipItemFromInventorySlot(
+		PartyInventoryComponent->GetSelectedCharacterIndex(), InventorySlotIndex, TargetSlot);
 }
 
 bool AGrimrockPartyPawn::UnequipSelectedCharacterItemToInventory(EGridEquipmentSlot SourceSlot)
@@ -116,25 +111,7 @@ bool AGrimrockPartyPawn::UnequipSelectedCharacterItemToInventory(EGridEquipmentS
 		return false;
 	}
 
-	const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex();
-	FGridItemInstance PreviouslyEquippedItem;
-	const bool bHadHandItem = GridPartyPawnItemTransferIsHandEquipmentSlot(SourceSlot) &&
-		PartyInventoryComponent->GetEquippedItem(CharacterIndex, SourceSlot, PreviouslyEquippedItem);
-
-	const bool bUnequipped = PartyInventoryComponent->UnequipItemToInventory(CharacterIndex, SourceSlot);
-	if (bUnequipped && GridPartyPawnItemTransferIsHandEquipmentSlot(SourceSlot))
-	{
-		if (bHadHandItem && PreviouslyEquippedItem.ItemDefinitionId == GetHeldItemDefinitionId())
-		{
-			ClearHeldItem();
-			UE_LOG(LogTemp, Log, TEXT("GridInventory HeldVisual Clear Unequipped Character=%d Slot=%s Item=%s"), CharacterIndex,
-				GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot), *PreviouslyEquippedItem.ItemDefinitionId.ToString());
-		}
-
-		SyncHeldVisualFromSelectedCharacterEquipment();
-	}
-
-	return bUnequipped;
+	return PartyInventoryComponent->UnequipItemToInventory(PartyInventoryComponent->GetSelectedCharacterIndex(), SourceSlot);
 }
 
 bool AGrimrockPartyPawn::TryTakeSelectedCharacterEquipmentSlotToCursor(EGridEquipmentSlot SourceSlot)
@@ -147,11 +124,6 @@ bool AGrimrockPartyPawn::TryTakeSelectedCharacterEquipmentSlotToCursor(EGridEqui
 	}
 
 	const bool bTaken = PartyInventoryComponent->TryTakeSelectedCharacterEquipmentSlotToCursor(SourceSlot);
-	if (bTaken)
-	{
-		SyncHeldVisualFromSelectedCharacterEquipment();
-	}
-
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Take Equipment Relay Pawn=%s Slot=%s Result=%s"), *GetName(),
 		GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot), bTaken ? TEXT("true") : TEXT("false"));
 	return bTaken;
@@ -177,11 +149,6 @@ bool AGrimrockPartyPawn::TryEquipCursorItemToSelectedCharacterSlot(EGridEquipmen
 	}
 
 	const bool bEquipped = PartyInventoryComponent->TryEquipCursorItemToSelectedCharacterSlot(TargetSlot);
-	if (bEquipped && GridPartyPawnItemTransferIsHandEquipmentSlot(TargetSlot))
-	{
-		SyncHeldVisualFromSelectedCharacterEquipment();
-	}
-
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Equip Relay Pawn=%s Slot=%s Result=%s"), *GetName(),
 		GridPartyPawnItemTransferGetEquipmentSlotName(TargetSlot), bEquipped ? TEXT("true") : TEXT("false"));
 	return bEquipped;
@@ -423,7 +390,6 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 		return false;
 	}
 
-	SyncHeldVisualFromSelectedCharacterEquipment();
 	UE_LOG(LogTemp, Log, TEXT("GridInventory MainHandThrow Item=%s Character=%d Strength=%d Weight=%.2f SpeedScale=%.3f Result=true"),
 		*WorldItem.ItemDefinitionId.ToString(), CharacterIndex, Strength, ItemDefinition->Weight, StrengthSpeedScale);
 	return true;
@@ -593,7 +559,6 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 		return nullptr;
 	}
 
-	SyncHeldVisualFromSelectedCharacterEquipment();
 	UE_LOG(LogTemp, Log, TEXT("GridPlayerAttack Throw Launched Item=%s RuntimeId=%s Character=%d Slot=%s Target=(%.2f,%.2f,%.2f) Result=true"),
 		*WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString(), CharacterIndex,
 		GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot), TargetWorldLocation.X, TargetWorldLocation.Y, TargetWorldLocation.Z);
