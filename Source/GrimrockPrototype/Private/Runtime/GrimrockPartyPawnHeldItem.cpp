@@ -63,6 +63,10 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 	if (HeldItemActor->MeshComponent)
 	{
 		HeldItemActor->MeshComponent->SetStaticMesh(ItemDefinition->LoadHeldMesh());
+		// The first-person held visual must never cast a world shadow. External
+		// lights (for example a wall torch behind the party) would otherwise
+		// project the held mesh onto dungeon geometry in front of the camera.
+		HeldItemActor->MeshComponent->SetCastShadow(false);
 	}
 	if (HeldItemActor->LightEmitterComponent)
 	{
