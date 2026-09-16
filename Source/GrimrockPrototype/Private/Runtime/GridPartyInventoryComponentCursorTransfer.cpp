@@ -1,5 +1,6 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
+#include "GridEquipmentSlotUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
 namespace
@@ -16,59 +17,6 @@ namespace
 
 		return INDEX_NONE;
 	}
-
-	const TCHAR* GridPartyInventoryCursorTransferGetEquipmentSlotName(EGridEquipmentSlot Slot)
-	{
-		switch (Slot)
-		{
-			case EGridEquipmentSlot::None:
-				return TEXT("None");
-			case EGridEquipmentSlot::MainHand:
-				return TEXT("MainHand");
-			case EGridEquipmentSlot::OffHand:
-				return TEXT("OffHand");
-			case EGridEquipmentSlot::Head:
-				return TEXT("Head");
-			case EGridEquipmentSlot::Chest:
-				return TEXT("Chest");
-			case EGridEquipmentSlot::Legs:
-				return TEXT("Legs");
-			case EGridEquipmentSlot::Feet:
-				return TEXT("Feet");
-			case EGridEquipmentSlot::Amulet:
-				return TEXT("Amulet");
-			case EGridEquipmentSlot::Ring1:
-				return TEXT("Ring1");
-			case EGridEquipmentSlot::Ring2:
-				return TEXT("Ring2");
-			case EGridEquipmentSlot::Shoulders:
-				return TEXT("Shoulders");
-			case EGridEquipmentSlot::Gloves:
-				return TEXT("Gloves");
-			case EGridEquipmentSlot::Belt:
-				return TEXT("Belt");
-			case EGridEquipmentSlot::Cloak:
-				return TEXT("Cloak");
-			case EGridEquipmentSlot::Talisman:
-				return TEXT("Talisman");
-			case EGridEquipmentSlot::QuickSlot1:
-				return TEXT("QuickSlot1");
-			case EGridEquipmentSlot::QuickSlot2:
-				return TEXT("QuickSlot2");
-			case EGridEquipmentSlot::Face:
-				return TEXT("Visage");
-			case EGridEquipmentSlot::Shirt:
-				return TEXT("Chemise");
-			case EGridEquipmentSlot::Bracers:
-				return TEXT("Brassards");
-			case EGridEquipmentSlot::Earring1:
-				return TEXT("Bijou d'oreille I");
-			case EGridEquipmentSlot::Earring2:
-				return TEXT("Bijou d'oreille II");
-			default:
-				return TEXT("Unsupported");
-		}
-	}
 }
 
 bool UGridPartyInventoryComponent::TryTakeEquipmentSlotToCursor(int32 CharacterIndex, EGridEquipmentSlot SourceSlot)
@@ -78,21 +26,21 @@ bool UGridPartyInventoryComponent::TryTakeEquipmentSlotToCursor(int32 CharacterI
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=InvalidCharacter"), CharacterIndex,
-			GridPartyInventoryCursorTransferGetEquipmentSlotName(SourceSlot));
+			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
 	if (SourceSlot == EGridEquipmentSlot::None)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=InvalidSlot"), CharacterIndex,
-			GridPartyInventoryCursorTransferGetEquipmentSlotName(SourceSlot));
+			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
 	if (HasCursorItem())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=CursorOccupied"), CharacterIndex,
-			GridPartyInventoryCursorTransferGetEquipmentSlotName(SourceSlot));
+			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
@@ -101,14 +49,14 @@ bool UGridPartyInventoryComponent::TryTakeEquipmentSlotToCursor(int32 CharacterI
 	if (!EquippedItem)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=InvalidSlot"), CharacterIndex,
-			GridPartyInventoryCursorTransferGetEquipmentSlotName(SourceSlot));
+			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
 	if (!EquippedItem->IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=EmptySlot"), CharacterIndex,
-			GridPartyInventoryCursorTransferGetEquipmentSlotName(SourceSlot));
+			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
@@ -124,7 +72,7 @@ bool UGridPartyInventoryComponent::TryTakeEquipmentSlotToCursor(int32 CharacterI
 	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Take FromEquipment Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
-		GridPartyInventoryCursorTransferGetEquipmentSlotName(SourceSlot), *ItemToCursor.ItemDefinitionId.ToString(), *ItemToCursor.RuntimeObjectId.ToString());
+		GridEquipmentSlotUtils::GetLogName(SourceSlot), *ItemToCursor.ItemDefinitionId.ToString(), *ItemToCursor.RuntimeObjectId.ToString());
 	return true;
 }
 
@@ -453,7 +401,7 @@ bool UGridPartyInventoryComponent::TryEquipCursorItemToCharacterSlot(int32 Chara
 	if (!CanEquipCursorItemToCharacterSlot(CharacterIndex, TargetSlot) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Equip Failed Character=%d Slot=%s Reason=InvalidOrIncompatible"), CharacterIndex,
-			GridPartyInventoryCursorTransferGetEquipmentSlotName(TargetSlot));
+			GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
 
@@ -463,7 +411,7 @@ bool UGridPartyInventoryComponent::TryEquipCursorItemToCharacterSlot(int32 Chara
 	if (!TargetItem)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Equip Failed Character=%d Slot=%s Reason=InvalidEquipmentSlot"), CharacterIndex,
-			GridPartyInventoryCursorTransferGetEquipmentSlotName(TargetSlot));
+			GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
 
@@ -495,14 +443,12 @@ bool UGridPartyInventoryComponent::TryEquipCursorItemToCharacterSlot(int32 Chara
 	if (bWasOccupied)
 	{
 		UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Equip Swap Character=%d Slot=%s NewItem=%s OldItem=%s Result=true"), CharacterIndex,
-			GridPartyInventoryCursorTransferGetEquipmentSlotName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(),
-			*PreviouslyEquippedItem.ItemDefinitionId.ToString());
+			GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(), *PreviouslyEquippedItem.ItemDefinitionId.ToString());
 	}
 	else
 	{
 		UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Equip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
-			GridPartyInventoryCursorTransferGetEquipmentSlotName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(),
-			*ItemToEquip.RuntimeObjectId.ToString());
+			GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(), *ItemToEquip.RuntimeObjectId.ToString());
 	}
 
 	return true;

@@ -31,67 +31,6 @@
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/RPGCharacterCreationWidget.h"
 
-namespace
-{
-	bool IsPawnHandEquipmentSlot(EGridEquipmentSlot Slot)
-	{
-		return Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand;
-	}
-
-	const TCHAR* GetPawnEquipmentSlotName(EGridEquipmentSlot Slot)
-	{
-		switch (Slot)
-		{
-			case EGridEquipmentSlot::None:
-				return TEXT("None");
-			case EGridEquipmentSlot::MainHand:
-				return TEXT("MainHand");
-			case EGridEquipmentSlot::OffHand:
-				return TEXT("OffHand");
-			case EGridEquipmentSlot::Head:
-				return TEXT("Head");
-			case EGridEquipmentSlot::Chest:
-				return TEXT("Chest");
-			case EGridEquipmentSlot::Legs:
-				return TEXT("Legs");
-			case EGridEquipmentSlot::Feet:
-				return TEXT("Feet");
-			case EGridEquipmentSlot::Amulet:
-				return TEXT("Amulet");
-			case EGridEquipmentSlot::Ring1:
-				return TEXT("Ring1");
-			case EGridEquipmentSlot::Ring2:
-				return TEXT("Ring2");
-			case EGridEquipmentSlot::Shoulders:
-				return TEXT("Shoulders");
-			case EGridEquipmentSlot::Gloves:
-				return TEXT("Gloves");
-			case EGridEquipmentSlot::Belt:
-				return TEXT("Belt");
-			case EGridEquipmentSlot::Cloak:
-				return TEXT("Cloak");
-			case EGridEquipmentSlot::Talisman:
-				return TEXT("Talisman");
-			case EGridEquipmentSlot::QuickSlot1:
-				return TEXT("QuickSlot1");
-			case EGridEquipmentSlot::QuickSlot2:
-				return TEXT("QuickSlot2");
-			case EGridEquipmentSlot::Face:
-				return TEXT("Visage");
-			case EGridEquipmentSlot::Shirt:
-				return TEXT("Chemise");
-			case EGridEquipmentSlot::Bracers:
-				return TEXT("Brassards");
-			case EGridEquipmentSlot::Earring1:
-				return TEXT("Bijou d'oreille I");
-			case EGridEquipmentSlot::Earring2:
-				return TEXT("Bijou d'oreille II");
-			default:
-				return TEXT("Unsupported");
-		}
-	}
-}
-
 AGrimrockPartyPawn::AGrimrockPartyPawn()
 {
 	PrimaryActorTick.bCanEverTick = true;

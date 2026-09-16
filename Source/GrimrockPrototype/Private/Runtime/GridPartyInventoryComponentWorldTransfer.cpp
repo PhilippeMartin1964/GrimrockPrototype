@@ -1,25 +1,6 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
-namespace
-{
-	bool GridPartyInventoryWorldTransferIsHandEquipmentSlot(EGridEquipmentSlot Slot)
-	{
-		return Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand;
-	}
-
-	const TCHAR* GridPartyInventoryWorldTransferGetEquipmentSlotName(EGridEquipmentSlot Slot)
-	{
-		switch (Slot)
-		{
-			case EGridEquipmentSlot::MainHand:
-				return TEXT("MainHand");
-			case EGridEquipmentSlot::OffHand:
-				return TEXT("OffHand");
-			default:
-				return TEXT("Unsupported");
-		}
-	}
-}
+#include "GridEquipmentSlotUtils.h"
 
 bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 	int32 CharacterIndex, EGridEquipmentSlot SourceSlot, FName ExpectedItemDefinitionId, FGridItemInstance& OutWorldItem)
@@ -27,7 +8,7 @@ bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 	OutWorldItem = FGridItemInstance();
 	EnsureEquipmentCountMatchesActiveCharacters();
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex) ||
-		!GridPartyInventoryWorldTransferIsHandEquipmentSlot(SourceSlot) || ExpectedItemDefinitionId.IsNone())
+		!GridEquipmentSlotUtils::IsHandSlot(SourceSlot) || ExpectedItemDefinitionId.IsNone())
 	{
 		return false;
 	}
@@ -58,7 +39,7 @@ bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory EquipmentWorldTransfer Extract Character=%d Slot=%s Item=%s RuntimeId=%s Quantity=%d->%d Result=true"),
-		CharacterIndex, GridPartyInventoryWorldTransferGetEquipmentSlotName(SourceSlot), *OutWorldItem.ItemDefinitionId.ToString(),
+		CharacterIndex, GridEquipmentSlotUtils::GetLogName(SourceSlot), *OutWorldItem.ItemDefinitionId.ToString(),
 		*OutWorldItem.RuntimeObjectId.ToString(), QuantityBefore, QuantityBefore - 1);
 	return true;
 }
@@ -67,7 +48,7 @@ bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(int32 Char
 {
 	EnsureEquipmentCountMatchesActiveCharacters();
 	if (!WorldItem.IsValid() || WorldItem.Quantity != 1 || !IsValidCharacterIndex(CharacterIndex) ||
-		!PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex) || !GridPartyInventoryWorldTransferIsHandEquipmentSlot(TargetSlot))
+		!PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex) || !GridEquipmentSlotUtils::IsHandSlot(TargetSlot))
 	{
 		return false;
 	}
@@ -98,6 +79,6 @@ bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(int32 Char
 	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory EquipmentWorldTransfer Restored Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
-		GridPartyInventoryWorldTransferGetEquipmentSlotName(TargetSlot), *WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString());
+		GridEquipmentSlotUtils::GetLogName(TargetSlot), *WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString());
 	return true;
 }

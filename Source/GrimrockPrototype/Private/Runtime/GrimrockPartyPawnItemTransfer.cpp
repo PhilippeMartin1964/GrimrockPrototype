@@ -1,6 +1,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 
 #include "Camera/CameraComponent.h"
+#include "GridEquipmentSlotUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -10,11 +11,6 @@
 
 namespace
 {
-	bool GridPartyPawnItemTransferIsHandEquipmentSlot(EGridEquipmentSlot Slot)
-	{
-		return Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand;
-	}
-
 	bool GridPartyPawnResolveThrowProfile(
 		const UGridPartyInventoryComponent* Inventory, int32 CharacterIndex, const UGridItemDefinitionAsset* Definition, int32& OutStrength, float& OutSpeedScale)
 	{
@@ -34,59 +30,6 @@ namespace
 		OutStrength = Summary.Attributes.Strength;
 		OutSpeedScale = Definition->GetThrowSpeedScaleForStrength(OutStrength);
 		return OutSpeedScale > 0.0f;
-	}
-
-	const TCHAR* GridPartyPawnItemTransferGetEquipmentSlotName(EGridEquipmentSlot Slot)
-	{
-		switch (Slot)
-		{
-			case EGridEquipmentSlot::None:
-				return TEXT("None");
-			case EGridEquipmentSlot::MainHand:
-				return TEXT("MainHand");
-			case EGridEquipmentSlot::OffHand:
-				return TEXT("OffHand");
-			case EGridEquipmentSlot::Head:
-				return TEXT("Head");
-			case EGridEquipmentSlot::Chest:
-				return TEXT("Chest");
-			case EGridEquipmentSlot::Legs:
-				return TEXT("Legs");
-			case EGridEquipmentSlot::Feet:
-				return TEXT("Feet");
-			case EGridEquipmentSlot::Amulet:
-				return TEXT("Amulet");
-			case EGridEquipmentSlot::Ring1:
-				return TEXT("Ring1");
-			case EGridEquipmentSlot::Ring2:
-				return TEXT("Ring2");
-			case EGridEquipmentSlot::Shoulders:
-				return TEXT("Shoulders");
-			case EGridEquipmentSlot::Gloves:
-				return TEXT("Gloves");
-			case EGridEquipmentSlot::Belt:
-				return TEXT("Belt");
-			case EGridEquipmentSlot::Cloak:
-				return TEXT("Cloak");
-			case EGridEquipmentSlot::Talisman:
-				return TEXT("Talisman");
-			case EGridEquipmentSlot::QuickSlot1:
-				return TEXT("QuickSlot1");
-			case EGridEquipmentSlot::QuickSlot2:
-				return TEXT("QuickSlot2");
-			case EGridEquipmentSlot::Face:
-				return TEXT("Visage");
-			case EGridEquipmentSlot::Shirt:
-				return TEXT("Chemise");
-			case EGridEquipmentSlot::Bracers:
-				return TEXT("Brassards");
-			case EGridEquipmentSlot::Earring1:
-				return TEXT("Bijou d'oreille I");
-			case EGridEquipmentSlot::Earring2:
-				return TEXT("Bijou d'oreille II");
-			default:
-				return TEXT("Unsupported");
-		}
 	}
 }
 
@@ -119,13 +62,13 @@ bool AGrimrockPartyPawn::TryTakeSelectedCharacterEquipmentSlotToCursor(EGridEqui
 	if (!PartyInventoryComponent)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take Equipment Relay Failed Pawn=%s Slot=%s Reason=NoPartyInventoryComponent"), *GetName(),
-			GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot));
+			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
 	const bool bTaken = PartyInventoryComponent->TryTakeSelectedCharacterEquipmentSlotToCursor(SourceSlot);
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Take Equipment Relay Pawn=%s Slot=%s Result=%s"), *GetName(),
-		GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot), bTaken ? TEXT("true") : TEXT("false"));
+		GridEquipmentSlotUtils::GetLogName(SourceSlot), bTaken ? TEXT("true") : TEXT("false"));
 	return bTaken;
 }
 
@@ -144,13 +87,13 @@ bool AGrimrockPartyPawn::TryEquipCursorItemToSelectedCharacterSlot(EGridEquipmen
 	if (!PartyInventoryComponent)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Equip Failed Pawn=%s Slot=%s Reason=NoPartyInventoryComponent"), *GetName(),
-			GridPartyPawnItemTransferGetEquipmentSlotName(TargetSlot));
+			GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
 
 	const bool bEquipped = PartyInventoryComponent->TryEquipCursorItemToSelectedCharacterSlot(TargetSlot);
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Equip Relay Pawn=%s Slot=%s Result=%s"), *GetName(),
-		GridPartyPawnItemTransferGetEquipmentSlotName(TargetSlot), bEquipped ? TEXT("true") : TEXT("false"));
+		GridEquipmentSlotUtils::GetLogName(TargetSlot), bEquipped ? TEXT("true") : TEXT("false"));
 	return bEquipped;
 }
 
@@ -330,8 +273,8 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection)
 
 	UE_LOG(LogTemp, Log,
 		TEXT("GridInventory Throw Item=%s RuntimeId=%s Strength=%d Weight=%.2f SpeedScale=%.3f CursorQuantityBefore=%d CursorQuantityAfter=%d Result=true"),
-		*ThrownItem.ItemDefinitionId.ToString(), *ThrownItem.RuntimeObjectId.ToString(), Strength,
-		ItemDefinition->Weight, StrengthSpeedScale, CursorItem.Quantity, FMath::Max(0, CursorItem.Quantity - 1));
+		*ThrownItem.ItemDefinitionId.ToString(), *ThrownItem.RuntimeObjectId.ToString(), Strength, ItemDefinition->Weight, StrengthSpeedScale, CursorItem.Quantity,
+		FMath::Max(0, CursorItem.Quantity - 1));
 	PartyInventoryComponent->LogInventoryOwnershipDiagnostics();
 	return true;
 }
@@ -510,7 +453,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterInventoryItem(FName ItemDefini
 AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	int32 CharacterIndex, EGridEquipmentSlot SourceSlot, FName ExpectedItemDefinitionId, const FVector& TargetWorldLocation, const FIntPoint& SourceCell)
 {
-	if (!PartyInventoryComponent || !LevelRuntimeActor || !GridPartyPawnItemTransferIsHandEquipmentSlot(SourceSlot) || ExpectedItemDefinitionId.IsNone() ||
+	if (!PartyInventoryComponent || !LevelRuntimeActor || !GridEquipmentSlotUtils::IsHandSlot(SourceSlot) || ExpectedItemDefinitionId.IsNone() ||
 		TargetWorldLocation.ContainsNaN())
 	{
 		return nullptr;
@@ -554,14 +497,14 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	if (!ThrownActor)
 	{
 		const bool bRestored = PartyInventoryComponent->TryRestoreExtractedItemToEquipment(CharacterIndex, SourceSlot, WorldItem);
-		UE_LOG(LogTemp, Error, TEXT("GridPlayerAttack Throw Failed Item=%s Character=%d Slot=%s Restored=%s"), *ExpectedItemDefinitionId.ToString(),
-			CharacterIndex, GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot), bRestored ? TEXT("true") : TEXT("false"));
+		UE_LOG(LogTemp, Error, TEXT("GridPlayerAttack Throw Failed Item=%s Character=%d Slot=%s Restored=%s"), *ExpectedItemDefinitionId.ToString(), CharacterIndex,
+			GridEquipmentSlotUtils::GetLogName(SourceSlot), bRestored ? TEXT("true") : TEXT("false"));
 		return nullptr;
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("GridPlayerAttack Throw Launched Item=%s RuntimeId=%s Character=%d Slot=%s Target=(%.2f,%.2f,%.2f) Result=true"),
-		*WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString(), CharacterIndex,
-		GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot), TargetWorldLocation.X, TargetWorldLocation.Y, TargetWorldLocation.Z);
+		*WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString(), CharacterIndex, GridEquipmentSlotUtils::GetLogName(SourceSlot),
+		TargetWorldLocation.X, TargetWorldLocation.Y, TargetWorldLocation.Z);
 	return ThrownActor;
 }
 

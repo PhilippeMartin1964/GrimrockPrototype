@@ -357,7 +357,6 @@ public:
 	/** Opens the existing character creation wizard in MON20.5 CustomRecruit context. */
 	UFUNCTION(BlueprintCallable, Category = "RPG|Recruitment")
 	bool ShowCustomRecruitCharacterCreationWidget();
-
 	/** Closes only an active CustomRecruit wizard and restores gameplay input. */
 	UFUNCTION(BlueprintCallable, Category = "RPG|Recruitment")
 	void CloseCustomRecruitCharacterCreationWidget();
@@ -567,8 +566,6 @@ private:
 
 	UGridItemDefinitionAsset* ResolveEquippedItemDefinition(const FGridItemInstance& Item) const;
 	bool DoesEquippedItemEmitLight(const FGridItemInstance& Item) const;
-	bool RecomputeEquippedLightState(
-		const FGridItemInstance& MainHandItem, bool bHasMainHandItem, const FGridItemInstance& OffHandItem, bool bHasOffHandItem) const;
 
 	enum class EBufferedCommandType : uint8
 	{

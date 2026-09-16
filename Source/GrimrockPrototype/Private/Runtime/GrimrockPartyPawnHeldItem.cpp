@@ -2,6 +2,7 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
+#include "GridEquipmentSlotUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -9,24 +10,6 @@
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridPartyIlluminationComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-
-namespace
-{
-	const TCHAR* GridPartyPawnHeldItemGetEquipmentSlotName(EGridEquipmentSlot Slot)
-	{
-		switch (Slot)
-		{
-			case EGridEquipmentSlot::None:
-				return TEXT("None");
-			case EGridEquipmentSlot::MainHand:
-				return TEXT("MainHand");
-			case EGridEquipmentSlot::OffHand:
-				return TEXT("OffHand");
-			default:
-				return TEXT("Unsupported");
-		}
-	}
-}
 
 bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 {
@@ -146,21 +129,6 @@ bool AGrimrockPartyPawn::DoesEquippedItemEmitLight(const FGridItemInstance& Item
 	return Item.IsValid() && Item.bLightsEnabled && ItemDefinition && ItemDefinition->HasLightEmitter();
 }
 
-bool AGrimrockPartyPawn::RecomputeEquippedLightState(
-	const FGridItemInstance& MainHandItem, bool bHasMainHandItem, const FGridItemInstance& OffHandItem, bool bHasOffHandItem) const
-{
-	const bool bMainLight = bHasMainHandItem && DoesEquippedItemEmitLight(MainHandItem);
-	const bool bOffLight = bHasOffHandItem && DoesEquippedItemEmitLight(OffHandItem);
-	const bool bResult = bMainLight || bOffLight;
-
-	UE_LOG(LogTemp, Log, TEXT("GridEquipmentLight Recompute MainHand=%s MainLight=%s OffHand=%s OffLight=%s Result=%s"),
-		bHasMainHandItem ? *MainHandItem.ItemDefinitionId.ToString() : TEXT("None"), bMainLight ? TEXT("true") : TEXT("false"),
-		bHasOffHandItem ? *OffHandItem.ItemDefinitionId.ToString() : TEXT("None"), bOffLight ? TEXT("true") : TEXT("false"),
-		bResult ? TEXT("true") : TEXT("false"));
-
-	return bResult;
-}
-
 void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 {
 	if (UGridPartyIlluminationComponent* PartyIllumination = FindComponentByClass<UGridPartyIlluminationComponent>())
@@ -182,7 +150,7 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 
 	const bool bMainLight = bHasMainHandItem && DoesEquippedItemEmitLight(MainHandItem);
 	const bool bOffLight = bHasOffHandItem && DoesEquippedItemEmitLight(OffHandItem);
-	const bool bAnyEquippedLight = RecomputeEquippedLightState(MainHandItem, bHasMainHandItem, OffHandItem, bHasOffHandItem);
+	const bool bAnyEquippedLight = bMainLight || bOffLight;
 
 	const FGridItemInstance* VisualItem = nullptr;
 	EGridEquipmentSlot VisualSlot = EGridEquipmentSlot::None;
@@ -217,5 +185,5 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory HeldVisual Sync Equipped Character=%d Slot=%s Item=%s"), CharacterIndex,
-		GridPartyPawnHeldItemGetEquipmentSlotName(VisualSlot), *VisualItem->ItemDefinitionId.ToString());
+		GridEquipmentSlotUtils::GetLogName(VisualSlot), *VisualItem->ItemDefinitionId.ToString());
 }

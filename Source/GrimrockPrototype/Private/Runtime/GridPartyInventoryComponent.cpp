@@ -1,5 +1,6 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
+#include "GridEquipmentSlotUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
@@ -30,59 +31,6 @@ namespace
 	{
 		return ExistingItem.ReadableContentAsset == IncomingItem.ReadableContentAsset && ExistingItem.ReadableContentId == IncomingItem.ReadableContentId &&
 			ExistingItem.ReadTitleOverride.EqualTo(IncomingItem.ReadTitleOverride) && ExistingItem.ReadTextOverride.EqualTo(IncomingItem.ReadTextOverride);
-	}
-
-	const TCHAR* GetEquipmentSlotName(EGridEquipmentSlot Slot)
-	{
-		switch (Slot)
-		{
-			case EGridEquipmentSlot::None:
-				return TEXT("None");
-			case EGridEquipmentSlot::MainHand:
-				return TEXT("MainHand");
-			case EGridEquipmentSlot::OffHand:
-				return TEXT("OffHand");
-			case EGridEquipmentSlot::Head:
-				return TEXT("Head");
-			case EGridEquipmentSlot::Chest:
-				return TEXT("Chest");
-			case EGridEquipmentSlot::Legs:
-				return TEXT("Legs");
-			case EGridEquipmentSlot::Feet:
-				return TEXT("Feet");
-			case EGridEquipmentSlot::Amulet:
-				return TEXT("Amulet");
-			case EGridEquipmentSlot::Ring1:
-				return TEXT("Ring1");
-			case EGridEquipmentSlot::Ring2:
-				return TEXT("Ring2");
-			case EGridEquipmentSlot::Shoulders:
-				return TEXT("Shoulders");
-			case EGridEquipmentSlot::Gloves:
-				return TEXT("Gloves");
-			case EGridEquipmentSlot::Belt:
-				return TEXT("Belt");
-			case EGridEquipmentSlot::Cloak:
-				return TEXT("Cloak");
-			case EGridEquipmentSlot::Talisman:
-				return TEXT("Talisman");
-			case EGridEquipmentSlot::QuickSlot1:
-				return TEXT("QuickSlot1");
-			case EGridEquipmentSlot::QuickSlot2:
-				return TEXT("QuickSlot2");
-			case EGridEquipmentSlot::Face:
-				return TEXT("Visage");
-			case EGridEquipmentSlot::Shirt:
-				return TEXT("Chemise");
-			case EGridEquipmentSlot::Bracers:
-				return TEXT("Brassards");
-			case EGridEquipmentSlot::Earring1:
-				return TEXT("Bijou d'oreille I");
-			case EGridEquipmentSlot::Earring2:
-				return TEXT("Bijou d'oreille II");
-			default:
-				return TEXT("Unsupported");
-		}
 	}
 
 	const TCHAR* GetOwnerTypeName(EGridItemOwnerType OwnerType)
@@ -200,23 +148,6 @@ namespace
 				{
 					AssignedQuickItemDefinitionIds.Add(Binding.SourceDefinitionId);
 				}
-			}
-		}
-	}
-
-	void ForEachEquipmentItem(const FGridCharacterEquipmentState& EquipmentState, TFunctionRef<void(EGridEquipmentSlot, const FGridItemInstance&)> Visitor)
-	{
-		const EGridEquipmentSlot Slots[] = { EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand, EGridEquipmentSlot::Head, EGridEquipmentSlot::Chest,
-			EGridEquipmentSlot::Legs, EGridEquipmentSlot::Feet, EGridEquipmentSlot::Amulet, EGridEquipmentSlot::Ring1, EGridEquipmentSlot::Ring2,
-			EGridEquipmentSlot::Shoulders, EGridEquipmentSlot::Gloves, EGridEquipmentSlot::Belt, EGridEquipmentSlot::Cloak, EGridEquipmentSlot::Talisman,
-			EGridEquipmentSlot::QuickSlot1, EGridEquipmentSlot::QuickSlot2, EGridEquipmentSlot::Face, EGridEquipmentSlot::Shirt, EGridEquipmentSlot::Bracers,
-			EGridEquipmentSlot::Earring1, EGridEquipmentSlot::Earring2 };
-
-		for (const EGridEquipmentSlot Slot : Slots)
-		{
-			if (const FGridItemInstance* Item = EquipmentState.GetSlot(Slot))
-			{
-				Visitor(Slot, *Item);
 			}
 		}
 	}
@@ -882,7 +813,7 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(TFunctionRef<UG
 	}
 	for (const FGridCharacterEquipmentState& Equipment : PartyInventoryState.ActiveEquipment)
 	{
-		ForEachEquipmentItem(Equipment,
+		GridEquipmentSlotUtils::ForEachEquipmentItem(Equipment,
 			[&DefinitionIds](EGridEquipmentSlot Slot, const FGridItemInstance& Item)
 			{
 				(void)Slot;
@@ -1035,7 +966,7 @@ bool UGridPartyInventoryComponent::ValidateInventoryOwnership(FString& OutError)
 		{
 			OutError = FString::Printf(TEXT("CursorItem has invalid ownership Owner=%s Character=%d Slot=%s"),
 				GetOwnerTypeName(PartyInventoryState.CursorItem.OwnerType), PartyInventoryState.CursorItem.OwnerCharacterIndex,
-				GetEquipmentSlotName(PartyInventoryState.CursorItem.EquipmentSlot));
+				GridEquipmentSlotUtils::GetLogName(PartyInventoryState.CursorItem.EquipmentSlot));
 			return false;
 		}
 
@@ -1068,7 +999,7 @@ bool UGridPartyInventoryComponent::ValidateInventoryOwnership(FString& OutError)
 				OutError =
 					FString::Printf(TEXT("Inventory item has invalid ownership Character=%d Slot=%d Item=%s Owner=%s OwnerCharacter=%d EquipmentSlot=%s"),
 						CharacterIndex, SlotIndex, *Item.ItemDefinitionId.ToString(), GetOwnerTypeName(Item.OwnerType), Item.OwnerCharacterIndex,
-						GetEquipmentSlotName(Item.EquipmentSlot));
+						GridEquipmentSlotUtils::GetLogName(Item.EquipmentSlot));
 				return false;
 			}
 
@@ -1084,7 +1015,7 @@ bool UGridPartyInventoryComponent::ValidateInventoryOwnership(FString& OutError)
 			continue;
 		}
 
-		ForEachEquipmentItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
+		GridEquipmentSlotUtils::ForEachEquipmentItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
 			[CharacterIndex, &RegisterRuntimeOwner, &OutError](EGridEquipmentSlot Slot, const FGridItemInstance& Item)
 			{
 				if (!Item.IsValid())
@@ -1096,12 +1027,13 @@ bool UGridPartyInventoryComponent::ValidateInventoryOwnership(FString& OutError)
 				{
 					OutError =
 						FString::Printf(TEXT("Equipment item has invalid ownership Character=%d Slot=%s Item=%s Owner=%s OwnerCharacter=%d EquipmentSlot=%s"),
-							CharacterIndex, GetEquipmentSlotName(Slot), *Item.ItemDefinitionId.ToString(), GetOwnerTypeName(Item.OwnerType),
-							Item.OwnerCharacterIndex, GetEquipmentSlotName(Item.EquipmentSlot));
+							CharacterIndex, GridEquipmentSlotUtils::GetLogName(Slot), *Item.ItemDefinitionId.ToString(), GetOwnerTypeName(Item.OwnerType),
+							Item.OwnerCharacterIndex, GridEquipmentSlotUtils::GetLogName(Item.EquipmentSlot));
 					return;
 				}
 
-				const FString Location = FString::Printf(TEXT("Equipment Character=%d Slot=%s"), CharacterIndex, GetEquipmentSlotName(Slot));
+				const FString Location =
+					FString::Printf(TEXT("Equipment Character=%d Slot=%s"), CharacterIndex, GridEquipmentSlotUtils::GetLogName(Slot));
 				RegisterRuntimeOwner(Item, Location);
 			});
 
@@ -1265,7 +1197,7 @@ bool UGridPartyInventoryComponent::ValidateCombatHotbar(const FGridCharacterInve
 float UGridPartyInventoryComponent::CalculateEquipmentWeight(const FGridCharacterEquipmentState& EquipmentState) const
 {
 	float TotalWeight = 0.0f;
-	ForEachEquipmentItem(EquipmentState,
+	GridEquipmentSlotUtils::ForEachEquipmentItem(EquipmentState,
 		[&TotalWeight](EGridEquipmentSlot, const FGridItemInstance& Item)
 		{
 			TotalWeight += GetItemTotalWeight(Item);

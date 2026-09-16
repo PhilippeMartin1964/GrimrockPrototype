@@ -1,99 +1,10 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
+#include "GridEquipmentSlotUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
 namespace
 {
-	bool GridPartyInventoryEquipmentIsSupportedSlot(EGridEquipmentSlot Slot)
-	{
-		switch (Slot)
-		{
-			case EGridEquipmentSlot::MainHand:
-			case EGridEquipmentSlot::OffHand:
-			case EGridEquipmentSlot::Head:
-			case EGridEquipmentSlot::Chest:
-			case EGridEquipmentSlot::Legs:
-			case EGridEquipmentSlot::Feet:
-			case EGridEquipmentSlot::Amulet:
-			case EGridEquipmentSlot::Ring1:
-			case EGridEquipmentSlot::Ring2:
-			case EGridEquipmentSlot::Shoulders:
-			case EGridEquipmentSlot::Gloves:
-			case EGridEquipmentSlot::Belt:
-			case EGridEquipmentSlot::Cloak:
-			case EGridEquipmentSlot::Talisman:
-			case EGridEquipmentSlot::QuickSlot1:
-			case EGridEquipmentSlot::QuickSlot2:
-			case EGridEquipmentSlot::Face:
-			case EGridEquipmentSlot::Shirt:
-			case EGridEquipmentSlot::Bracers:
-			case EGridEquipmentSlot::Earring1:
-			case EGridEquipmentSlot::Earring2:
-				return true;
-			case EGridEquipmentSlot::None:
-			default:
-				return false;
-		}
-	}
-
-	bool GridPartyInventoryEquipmentIsHandSlot(EGridEquipmentSlot Slot)
-	{
-		return Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand;
-	}
-
-	const TCHAR* GridPartyInventoryEquipmentGetSlotName(EGridEquipmentSlot Slot)
-	{
-		switch (Slot)
-		{
-			case EGridEquipmentSlot::None:
-				return TEXT("None");
-			case EGridEquipmentSlot::MainHand:
-				return TEXT("MainHand");
-			case EGridEquipmentSlot::OffHand:
-				return TEXT("OffHand");
-			case EGridEquipmentSlot::Head:
-				return TEXT("Head");
-			case EGridEquipmentSlot::Chest:
-				return TEXT("Chest");
-			case EGridEquipmentSlot::Legs:
-				return TEXT("Legs");
-			case EGridEquipmentSlot::Feet:
-				return TEXT("Feet");
-			case EGridEquipmentSlot::Amulet:
-				return TEXT("Amulet");
-			case EGridEquipmentSlot::Ring1:
-				return TEXT("Ring1");
-			case EGridEquipmentSlot::Ring2:
-				return TEXT("Ring2");
-			case EGridEquipmentSlot::Shoulders:
-				return TEXT("Shoulders");
-			case EGridEquipmentSlot::Gloves:
-				return TEXT("Gloves");
-			case EGridEquipmentSlot::Belt:
-				return TEXT("Belt");
-			case EGridEquipmentSlot::Cloak:
-				return TEXT("Cloak");
-			case EGridEquipmentSlot::Talisman:
-				return TEXT("Talisman");
-			case EGridEquipmentSlot::QuickSlot1:
-				return TEXT("QuickSlot1");
-			case EGridEquipmentSlot::QuickSlot2:
-				return TEXT("QuickSlot2");
-			case EGridEquipmentSlot::Face:
-				return TEXT("Visage");
-			case EGridEquipmentSlot::Shirt:
-				return TEXT("Chemise");
-			case EGridEquipmentSlot::Bracers:
-				return TEXT("Brassards");
-			case EGridEquipmentSlot::Earring1:
-				return TEXT("Bijou d'oreille I");
-			case EGridEquipmentSlot::Earring2:
-				return TEXT("Bijou d'oreille II");
-			default:
-				return TEXT("Unsupported");
-		}
-	}
-
 	int32 GridPartyInventoryEquipmentFindFreeInventorySlotIndex(const FGridCharacterInventoryState& CharacterState)
 	{
 		for (int32 SlotIndex = 0; SlotIndex < CharacterState.InventorySlots.Num(); ++SlotIndex)
@@ -120,24 +31,6 @@ namespace
 		InOutTotal.CarryWeightBonus += Bonus.CarryWeightBonus;
 		InOutTotal.ArmorBonus += Bonus.ArmorBonus;
 	}
-
-	void GridPartyInventoryEquipmentForEachItem(
-		const FGridCharacterEquipmentState& EquipmentState, TFunctionRef<void(EGridEquipmentSlot, const FGridItemInstance&)> Visitor)
-	{
-		const EGridEquipmentSlot Slots[] = { EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand, EGridEquipmentSlot::Head, EGridEquipmentSlot::Chest,
-			EGridEquipmentSlot::Legs, EGridEquipmentSlot::Feet, EGridEquipmentSlot::Amulet, EGridEquipmentSlot::Ring1, EGridEquipmentSlot::Ring2,
-			EGridEquipmentSlot::Shoulders, EGridEquipmentSlot::Gloves, EGridEquipmentSlot::Belt, EGridEquipmentSlot::Cloak, EGridEquipmentSlot::Talisman,
-			EGridEquipmentSlot::QuickSlot1, EGridEquipmentSlot::QuickSlot2, EGridEquipmentSlot::Face, EGridEquipmentSlot::Shirt, EGridEquipmentSlot::Bracers,
-			EGridEquipmentSlot::Earring1, EGridEquipmentSlot::Earring2 };
-
-		for (const EGridEquipmentSlot Slot : Slots)
-		{
-			if (const FGridItemInstance* Item = EquipmentState.GetSlot(Slot))
-			{
-				Visitor(Slot, *Item);
-			}
-		}
-	}
 }
 
 bool UGridPartyInventoryComponent::CanEquipItemToSlot(int32 CharacterIndex, const FGridItemInstance& Item, EGridEquipmentSlot TargetSlot) const
@@ -157,13 +50,13 @@ bool UGridPartyInventoryComponent::CanEquipItemToSlot(int32 CharacterIndex, cons
 		return Definition->CanEquipToSlot(TargetSlot);
 	}
 
-	if (!GridPartyInventoryEquipmentIsSupportedSlot(TargetSlot))
+	if (!GridEquipmentSlotUtils::IsSupportedSlot(TargetSlot))
 	{
 		return false;
 	}
 
 	UE_LOG(LogTemp, Verbose, TEXT("GridInventory Equip Compatibility Fallback Item=%s Slot=%s"), *Item.ItemDefinitionId.ToString(),
-		GridPartyInventoryEquipmentGetSlotName(TargetSlot));
+		GridEquipmentSlotUtils::GetLogName(TargetSlot));
 
 	return true;
 }
@@ -175,7 +68,7 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=InvalidCharacter"), CharacterIndex,
-			GridPartyInventoryEquipmentGetSlotName(TargetSlot));
+			GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
 
@@ -183,7 +76,7 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 	if (!CharacterState.InventorySlots.IsValidIndex(InventorySlotIndex) || CharacterState.InventorySlots[InventorySlotIndex].IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=InvalidInventorySlot"), CharacterIndex,
-			GridPartyInventoryEquipmentGetSlotName(TargetSlot));
+			GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
 
@@ -192,7 +85,7 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 	if (!CanEquipItemToSlot(CharacterIndex, ItemToEquip, TargetSlot))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=UnsupportedSlot Item=%s"), CharacterIndex,
-			GridPartyInventoryEquipmentGetSlotName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString());
+			GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString());
 		return false;
 	}
 
@@ -227,7 +120,7 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Equip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
-		GridPartyInventoryEquipmentGetSlotName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(), *ItemToEquip.RuntimeObjectId.ToString());
+		GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(), *ItemToEquip.RuntimeObjectId.ToString());
 	return true;
 }
 
@@ -238,14 +131,14 @@ bool UGridPartyInventoryComponent::UnequipItemToInventory(int32 CharacterIndex, 
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Unequip Failed Character=%d Slot=%s Reason=InvalidCharacter"), CharacterIndex,
-			GridPartyInventoryEquipmentGetSlotName(SourceSlot));
+			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
-	if (!GridPartyInventoryEquipmentIsSupportedSlot(SourceSlot))
+	if (!GridEquipmentSlotUtils::IsSupportedSlot(SourceSlot))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Unequip Failed Character=%d Slot=%s Reason=UnsupportedSlot"), CharacterIndex,
-			GridPartyInventoryEquipmentGetSlotName(SourceSlot));
+			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
@@ -254,7 +147,7 @@ bool UGridPartyInventoryComponent::UnequipItemToInventory(int32 CharacterIndex, 
 	if (!EquippedItem || !EquippedItem->IsValid())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Unequip Failed Character=%d Slot=%s Reason=EmptySlot"), CharacterIndex,
-			GridPartyInventoryEquipmentGetSlotName(SourceSlot));
+			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
@@ -263,7 +156,7 @@ bool UGridPartyInventoryComponent::UnequipItemToInventory(int32 CharacterIndex, 
 	if (FreeSlotIndex == INDEX_NONE)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Unequip Failed Character=%d Slot=%s Reason=InventoryFull"), CharacterIndex,
-			GridPartyInventoryEquipmentGetSlotName(SourceSlot));
+			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
@@ -279,7 +172,7 @@ bool UGridPartyInventoryComponent::UnequipItemToInventory(int32 CharacterIndex, 
 	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Unequip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
-		GridPartyInventoryEquipmentGetSlotName(SourceSlot), *ItemToInventory.ItemDefinitionId.ToString(), *ItemToInventory.RuntimeObjectId.ToString());
+		GridEquipmentSlotUtils::GetLogName(SourceSlot), *ItemToInventory.ItemDefinitionId.ToString(), *ItemToInventory.RuntimeObjectId.ToString());
 	return true;
 }
 
@@ -316,7 +209,7 @@ bool UGridPartyInventoryComponent::TryConsumeEquippedItemQuantityForCombatAction
 {
 	EnsureEquipmentCountMatchesActiveCharacters();
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex) ||
-		!GridPartyInventoryEquipmentIsHandSlot(SourceSlot) || ExpectedItemDefinitionId.IsNone() || Quantity <= 0)
+		!GridEquipmentSlotUtils::IsHandSlot(SourceSlot) || ExpectedItemDefinitionId.IsNone() || Quantity <= 0)
 	{
 		return false;
 	}
@@ -349,7 +242,7 @@ FGridEquipmentStatBonus UGridPartyInventoryComponent::ComputeCharacterEquipmentS
 		return TotalBonus;
 	}
 
-	GridPartyInventoryEquipmentForEachItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
+	GridEquipmentSlotUtils::ForEachEquipmentItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
 		[this, &TotalBonus](EGridEquipmentSlot, const FGridItemInstance& Item)
 		{
 			if (!Item.IsValid())
@@ -377,7 +270,7 @@ FGridDamageResistanceSet UGridPartyInventoryComponent::ComputeCharacterEquipment
 		return TotalResistances;
 	}
 
-	GridPartyInventoryEquipmentForEachItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
+	GridEquipmentSlotUtils::ForEachEquipmentItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
 		[this, &TotalResistances](EGridEquipmentSlot, const FGridItemInstance& Item)
 		{
 			if (!Item.IsValid())
