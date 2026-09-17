@@ -806,11 +806,10 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Exactly one potion remains"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionDefinition->ItemDefinitionId), 1);
 	TestEqual(TEXT("The result records the consumed unit"), FirstUse.QuickItemResult.SourceQuantityAfter, 1);
 	FGridCombatHotbarBinding RemainingPotionBinding;
-	TestTrue(TEXT("The consumed shortcut remains readable"), Inventory->GetCharacterCombatHotbarBinding(0, 1, RemainingPotionBinding));
-	TestTrue(TEXT("Every accepted potion clears its shortcut"), RemainingPotionBinding.IsEmpty());
-	TestFalse(TEXT("The consumed potion disappears from the HUD slot"), Fixture.Hud->View.Actions[1].bHasBinding);
-
-	TestTrue(TEXT("The remaining potion can be assigned again"), Inventory->SetCharacterCombatHotbarBindingFromItem(0, 1, Potion, EGridEquipmentSlot::None));
+	TestTrue(TEXT("The partially consumed shortcut remains readable"), Inventory->GetCharacterCombatHotbarBinding(0, 1, RemainingPotionBinding));
+	TestFalse(TEXT("A partial potion use keeps its shortcut"), RemainingPotionBinding.IsEmpty());
+	TestTrue(TEXT("The remaining potion stays in the HUD slot"), Fixture.Hud->View.Actions[1].bHasBinding);
+	TestEqual(TEXT("The HUD reports the remaining potion quantity"), Fixture.Hud->View.Actions[1].Action.CurrentSourceItemQuantity, 1);
 
 	Character.Resources.CurrentHealth = 20;
 	Character.Resources.CurrentMana = 8;
@@ -907,9 +906,10 @@ bool FGridMonsterMON1284QuickItemScrollAttackTest::RunTest(const FString& Parame
 	TestEqual(TEXT("The scroll result records the remaining unit"), AcceptedScroll.QuickItemResult.SourceQuantityAfter, 1);
 	TestEqual(TEXT("The accepted scroll spends two action points"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
 	FGridCombatHotbarBinding ConsumedScrollBinding;
-	TestTrue(TEXT("The consumed scroll shortcut remains readable"), Inventory->GetCharacterCombatHotbarBinding(0, 1, ConsumedScrollBinding));
-	TestTrue(TEXT("An accepted scroll clears its shortcut"), ConsumedScrollBinding.IsEmpty());
-	TestFalse(TEXT("The consumed scroll disappears from the HUD slot"), Fixture.Hud->View.Actions[1].bHasBinding);
+	TestTrue(TEXT("The partially consumed scroll shortcut remains readable"), Inventory->GetCharacterCombatHotbarBinding(0, 1, ConsumedScrollBinding));
+	TestFalse(TEXT("A partial scroll use keeps its shortcut"), ConsumedScrollBinding.IsEmpty());
+	TestTrue(TEXT("The remaining scroll stays in the HUD slot"), Fixture.Hud->View.Actions[1].bHasBinding);
+	TestEqual(TEXT("The HUD reports the remaining scroll quantity"), Fixture.Hud->View.Actions[1].Action.CurrentSourceItemQuantity, 1);
 	return true;
 }
 
