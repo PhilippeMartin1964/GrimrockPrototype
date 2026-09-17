@@ -46,6 +46,22 @@ struct GRIMROCKPROTOTYPE_API FGridWorldObjectStaticPart
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Effects", meta = (DisplayName = "Active Niagara Local Transform"))
 	FTransform ActiveNiagaraLocalTransform = FTransform::Identity;
 
+	/**
+	 * Optional material slot whose presentation mirrors the owning object's active state.
+	 * The aliases below resolve through UGridWorldObjectDefinitionAsset::RuntimeMaterialAliases;
+	 * no material asset is duplicated here.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Active State", meta = (DisplayName = "State Material Slot"))
+	FName StateMaterialSlot = NAME_None;
+
+	/** RuntimeMaterialAliases key applied to State Material Slot while the object is active. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Active State", meta = (DisplayName = "Active Material Alias"))
+	FName ActiveMaterialAlias = NAME_None;
+
+	/** RuntimeMaterialAliases key applied to State Material Slot while the object is inactive. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Active State", meta = (DisplayName = "Inactive Material Alias"))
+	FName InactiveMaterialAlias = NAME_None;
+
 	bool IsDefined() const
 	{
 		return Mesh != nullptr;

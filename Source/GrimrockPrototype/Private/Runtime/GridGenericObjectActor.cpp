@@ -69,18 +69,36 @@ void AGridGenericObjectActor::InitializeRuntimeGenericObject(
 
 void AGridGenericObjectActor::SetRuntimeActivePresentation(bool bActive)
 {
-	if (!ActiveNiagaraComponent)
+	if (ActiveNiagaraComponent)
+	{
+		if (bActive)
+		{
+			ActiveNiagaraComponent->Activate(true);
+		}
+		else
+		{
+			ActiveNiagaraComponent->DeactivateImmediate();
+		}
+	}
+
+	if (!SourceWorldObjectDefinition)
 	{
 		return;
 	}
 
-	if (bActive)
+	const FGridWorldObjectStaticPart& StaticPart = SourceWorldObjectDefinition->StaticPart;
+	const FName MaterialAlias = bActive ? StaticPart.ActiveMaterialAlias : StaticPart.InactiveMaterialAlias;
+	if (StaticPart.StateMaterialSlot.IsNone() || MaterialAlias.IsNone())
 	{
-		ActiveNiagaraComponent->Activate(true);
+		return;
 	}
-	else
+
+	FString Error;
+	if (!SetRuntimeMaterialAlias(StaticPart.StateMaterialSlot, MaterialAlias, false, Error))
 	{
-		ActiveNiagaraComponent->DeactivateImmediate();
+		UE_LOG(LogTemp, Warning,
+			TEXT("Grid active-state material presentation skipped: ObjectId=%s Slot=%s Alias=%s Active=%s Reason=%s"),
+			*ObjectId.ToString(), *StaticPart.StateMaterialSlot.ToString(), *MaterialAlias.ToString(), bActive ? TEXT("true") : TEXT("false"), *Error);
 	}
 }
 
