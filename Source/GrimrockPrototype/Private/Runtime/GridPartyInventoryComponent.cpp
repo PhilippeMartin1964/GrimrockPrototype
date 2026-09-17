@@ -747,7 +747,10 @@ bool UGridPartyInventoryComponent::RemoveItemDefinitionFromCharacterInventory(in
 		return false;
 	}
 
-	ClearQuickItemHotbarBindings(CharacterState, ItemDefinitionId);
+	if (!CharacterHasInventoryItemDefinition(CharacterState, ItemDefinitionId))
+	{
+		ClearQuickItemHotbarBindings(CharacterState, ItemDefinitionId);
+	}
 
 	NotifyPartyInventoryChanged(CharacterIndex);
 	return true;

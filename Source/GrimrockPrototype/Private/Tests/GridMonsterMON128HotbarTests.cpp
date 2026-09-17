@@ -406,10 +406,10 @@ bool FGridMON1289UniqueEquipmentBindingTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON1289ConsumedQuickItemBindingTest, "Grimrock.Monsters.MON12.8.9.ConsumedQuickItemClearsBinding",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON1289QuickItemBindingLifetimeTest, "Grimrock.Monsters.MON12.8.9.QuickItemBindingPersistsUntilExhausted",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMON1289ConsumedQuickItemBindingTest::RunTest(const FString& Parameters)
+bool FGridMON1289QuickItemBindingLifetimeTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	UGridPartyInventoryComponent* Component = CreateMON128Inventory();
@@ -450,10 +450,9 @@ bool FGridMON1289ConsumedQuickItemBindingTest::RunTest(const FString& Parameters
 
 	TestTrue(TEXT("Consuming one unit succeeds"), Component->RemoveItemDefinitionFromCharacterInventory(0, Potion.ItemDefinitionId, 1));
 	Component->GetCharacterCombatHotbarBinding(0, 5, SecondBinding);
-	TestTrue(TEXT("A successful consumption clears the shortcut"), SecondBinding.IsEmpty());
-	TestEqual(TEXT("One unassigned potion remains in inventory"), Component->CountItemDefinitionInCharacterInventory(0, Potion.ItemDefinitionId), 1);
-
-	TestTrue(TEXT("The remaining potion can be assigned again"), Component->SetCharacterCombatHotbarBindingFromItem(0, 5, Potion, EGridEquipmentSlot::None));
+	TestFalse(TEXT("The shortcut remains while one unit is still available"), SecondBinding.IsEmpty());
+	TestEqual(TEXT("The retained shortcut still targets the same definition"), SecondBinding.SourceDefinitionId, Potion.ItemDefinitionId);
+	TestEqual(TEXT("One assigned potion remains in inventory"), Component->CountItemDefinitionInCharacterInventory(0, Potion.ItemDefinitionId), 1);
 
 	TestTrue(TEXT("Consuming the last unit succeeds"), Component->RemoveItemDefinitionFromCharacterInventory(0, Potion.ItemDefinitionId, 1));
 	Component->GetCharacterCombatHotbarBinding(0, 1, FirstBinding);

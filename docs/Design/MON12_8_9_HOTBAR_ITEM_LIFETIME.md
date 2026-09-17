@@ -2,11 +2,12 @@
 
 ## Résultat
 
-MON12.8.9 fixe deux invariants autoritaires de la barre personnelle :
+MON12.8.9 fixe deux invariants autoritaires de la barre personnelle, complétés par `HOTBAR-STACK01` pour les piles de `QuickItem` :
 
 1. une instance d'arme ne peut être assignée qu'à un seul slot à la fois ;
 2. une même définition de consommable ne peut elle aussi occuper qu'un slot ;
-3. chaque consommation acceptée retire l'action de la barre.
+3. une consommation acceptée conserve le binding tant qu'au moins un exemplaire de la même définition reste dans l'inventaire ;
+4. le binding est remis à vide uniquement lorsque le stock de cette définition atteint zéro.
 
 Ces règles appartiennent à `UGridPartyInventoryComponent`. Elles s'appliquent
 donc au glisser-déposer du HUD, aux touches numériques, à la sauvegarde et à
@@ -31,19 +32,24 @@ Le déplacement ou l'échange d'un raccourci existant continue d'utiliser
 
 ## Consommation
 
-Les potions, parchemins, shurikens non équipés et autres actions `QuickItem`
-sont identifiés par `SourceDefinitionId`.
+Les potions, parchemins, pierres, shurikens non équipés et autres actions
+`QuickItem` sont identifiés par `SourceDefinitionId`.
 
 - déposer de nouveau la même définition déplace son binding vers le slot
   cible ;
-- toute consommation acceptée remet le binding à vide ;
-- les exemplaires restants demeurent dans l'inventaire sans être assignés ;
+- une consommation acceptée décrémente le stock sans retirer le raccourci tant
+  qu'au moins un exemplaire de cette définition reste disponible ;
+- le HUD recalcule alors la quantité affichée à partir de
+  `CountItemDefinitionInCharacterInventory()` (`x4` → `x3` → `x2` → `x1`) ;
+- la consommation du dernier exemplaire remet le binding à vide ;
 - une action refusée conserve le binding et toutes les quantités ;
-- ajouter plus tard une nouvelle pile ne restaure aucun ancien binding.
+- ajouter plus tard une nouvelle pile après épuisement ne restaure aucun ancien
+  binding.
 
-Le `TurnManager` notifie l'inventaire après chaque consommation acceptée. Le
-HUD reçoit donc l'état final et vide le slot sans attendre sa réouverture.
-Une action refusée ne consomme rien et ne modifie aucun binding.
+Le `TurnManager` et les transferts monde notifient l'inventaire après chaque
+consommation acceptée. Le HUD reçoit donc l'état final et rafraîchit la quantité
+sans nécessiter de réaffectation manuelle. Une action refusée ne consomme rien
+et ne modifie aucun binding.
 
 ## Sauvegardes existantes
 
@@ -60,8 +66,9 @@ pas.
 ## Widget Blueprint
 
 Aucune modification de WBP n'est nécessaire. Les slots restent les mêmes ;
-seul leur modèle persistant est corrigé et le rafraîchissement existant de
-`WBP_GridCombatHud` projette immédiatement le nouvel état.
+`WBP_GridCombatHud` projette la quantité courante déjà fournie par le modèle
+HUD. `HOTBAR-STACK01` corrige uniquement la durée de vie du binding : tant que
+le stock reste positif, le slot demeure résolu et son badge `xN` se met à jour.
 
 ## Tests automatisés
 
@@ -75,12 +82,12 @@ Il couvre :
 
 1. le second dépôt de la même arme et l'unicité de son `RuntimeObjectId` ;
 2. le déplacement du binding lors du second dépôt de la même définition ;
-3. la suppression du binding après une consommation acceptée alors qu'un
+3. la conservation du binding après une consommation partielle lorsqu'un
    exemplaire reste en inventaire ;
 4. la suppression après consommation du dernier exemplaire ;
 5. l'absence de réactivation automatique avec une pile de remplacement ;
 6. la normalisation des anciennes sauvegardes.
 
 Les filtres `Grimrock.Monsters.MON12.8.4` et
-`Grimrock.Monsters.MON12.8.7` vérifient également la disparition effective
+`Grimrock.Monsters.MON12.8.7` vérifient également la consommation effective
 d'une potion et d'un shuriken depuis le HUD.
