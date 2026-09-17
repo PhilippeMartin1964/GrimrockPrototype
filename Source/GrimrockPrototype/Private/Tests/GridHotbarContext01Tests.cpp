@@ -85,7 +85,7 @@ bool FGridHotbarContext01InventoryActionTest::RunTest(const FString& Parameters)
 	}
 
 	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
-	if (!TestNotNull(TEXT("The party pawn is spawned"), Party) || !TestNotNull(TEXT("The party inventory exists"), Party ? Party->PartyInventoryComponent : nullptr))
+	if (!TestNotNull(TEXT("The party pawn is spawned"), Party) || !TestNotNull(TEXT("The party inventory exists"), Party ? Party->PartyInventoryComponent.Get() : nullptr))
 	{
 		return false;
 	}
