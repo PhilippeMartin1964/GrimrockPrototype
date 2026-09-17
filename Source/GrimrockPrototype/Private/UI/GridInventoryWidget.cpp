@@ -1950,7 +1950,8 @@ bool UGridInventoryWidget::HandleSlotDrop(
 	bool bSwapOccupiedSlotsAttempted = false;
 	auto TrySwapOccupiedSlots = [&]() -> bool
 	{
-		if (bSplitStack || SourceType == EGridInventoryUiSlotType::Cursor || TargetType == EGridInventoryUiSlotType::Cursor)
+		if (bSplitStack || SourceType == EGridInventoryUiSlotType::Cursor || TargetType == EGridInventoryUiSlotType::Cursor ||
+			(SourceType == EGridInventoryUiSlotType::Inventory && TargetType == EGridInventoryUiSlotType::Inventory))
 		{
 			return false;
 		}

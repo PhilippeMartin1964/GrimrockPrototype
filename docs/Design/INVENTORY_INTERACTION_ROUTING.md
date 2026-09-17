@@ -113,7 +113,7 @@ Tant que ces slots ne sont pas ajoutés au modèle, les Blueprints ne doivent pa
 | Clic gauche slot équipement fonctionnel | `UGridInventorySlotWidget` avec `SlotType=Equipment` | `HandleEquipmentSlotClicked` puis composant inventaire | `TryEquipCursorItemToCharacterSlot` ou `TryTakeEquipmentSlotToCursor` | `RefreshInventory` après mutation | `GridInventory UI EquipmentClicked` |
 | Clic slot placeholder | Blueprint ou widget slot désactivé | Aucune validation gameplay | Aucune mutation | Aucun refresh requis | Aucun crash attendu |
 | Clic droit slot | `UGridInventorySlotWidget::NativeOnMouseButtonDown` | `BuildContextActionsForSlot`, `UGridItemContextActionLibrary` | Aucune mutation à l'ouverture | Blueprint ouvre `WBP_ItemActionMenu` | `GridInventory RightClick`, `GridItemActions Build` |
-| Drag/drop | `NativeOnDragDetected` / `NativeOnDrop` | `HandleSlotDrop` | Swap atomique ou transfert via composant/pawn | `RefreshInventory`; sync visuel si équipement touché | `GridInventory UI Drop`, `GridInventory SwapSlots` |
+| Drag/drop | `NativeOnDragDetected` / `NativeOnDrop` | `HandleSlotDrop` | Inventaire vers inventaire délégué au composant (fusion ou swap) ; swap atomique pour les échanges avec l'équipement | `RefreshInventory`; sync visuel si équipement touché | `GridInventory UI Drop`, `GridInventory SwapSlots` |
 | Clic action menu | `WBP_ItemActionButton` | Action reconstruite et validée par index | `ExecuteInventoryContextActionByIndex` puis `ExecuteResolvedInventoryContextAction` | `RefreshInventory` si action exécutée | `GridItemActions ExecuteByIndex`, `Execute ...` |
 | Clic extérieur menu | `WBP_ItemActionMenu` click catcher | Blueprint vérifie que le clic est hors panneau | `CloseItemActionMenu("ClickOutside")` puis retrait du menu uniquement | Pas de refresh gameplay | `GridItemActionMenu Closed` |
 | Tooltip hover | `WBP_ItemToolTip` / slot widget | Lecture passive | Aucune mutation | Affichage tooltip uniquement | Pas de log requis |
@@ -160,11 +160,12 @@ Le clic droit d'inventaire ne déplace pas l'item et ne démarre pas une interac
 
 1. `UGridInventorySlotWidget` crée un `UGridInventoryDragDropOperation` avec source, index, item et split éventuel.
 2. Le slot cible appelle `HandleSlotDrop(SourceType, SourceIndex, TargetType, TargetIndex, bSplitStack, RequestedQuantity)`.
-3. Si source et cible sont occupées et hors Cursor, `HandleSlotDrop` tente un swap atomique.
-4. Le swap valide chaque item contre son slot de destination avant mutation.
-5. Si le swap est impossible, rien n'est déplacé.
-6. Les autres flux continuent d'utiliser les fonctions historiques du composant/pawn pour les slots vides ou le Cursor.
-7. Après mutation, l'UI est rafraîchie et les visuels équipés sont resynchronisés si un équipement visible est touché.
+3. Un transfert Inventory vers Inventory est toujours délégué à `UGridPartyInventoryComponent::TryMoveCharacterInventorySlot`, qui décide de fusionner deux piles compatibles ou d'échanger deux items différents.
+4. Pour les échanges impliquant l'équipement, `HandleSlotDrop` peut tenter un swap atomique entre deux slots occupés.
+5. Le swap valide chaque item contre son slot de destination avant mutation.
+6. Si le swap est impossible, rien n'est déplacé.
+7. Les autres flux continuent d'utiliser les fonctions historiques du composant/pawn pour les slots vides ou le Cursor.
+8. Après mutation, l'UI est rafraîchie et les visuels équipés sont resynchronisés si un équipement visible est touché.
 
 ## Flux menu contextuel
 

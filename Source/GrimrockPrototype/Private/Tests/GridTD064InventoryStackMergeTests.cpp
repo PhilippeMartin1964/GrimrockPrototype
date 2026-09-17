@@ -2,8 +2,91 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Blueprint/UserWidget.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GrimrockPartyPawn.h"
+#include "UI/GridInventoryWidget.h"
+
+namespace
+{
+	struct FGridTD064InventoryStackMergeWorld
+	{
+		UWorld* World = nullptr;
+
+		FGridTD064InventoryStackMergeWorld()
+		{
+			const UWorld::InitializationValues InitializationValues = UWorld::InitializationValues()
+				.AllowAudioPlayback(false)
+				.RequiresHitProxies(false)
+				.CreatePhysicsScene(false)
+				.CreateNavigation(false)
+				.CreateAISystem(false)
+				.ShouldSimulatePhysics(false)
+				.SetTransactional(false);
+
+			World = UWorld::CreateWorld(EWorldType::Game, false,
+				FName(*FString::Printf(TEXT("TD064InventoryStackMerge_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
+				ERHIFeatureLevel::Num, &InitializationValues);
+			if (World && GEngine)
+			{
+				FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
+				Context.SetCurrentWorld(World);
+			}
+		}
+
+		~FGridTD064InventoryStackMergeWorld()
+		{
+			if (!World)
+			{
+				return;
+			}
+
+			World->DestroyWorld(false);
+			if (GEngine)
+			{
+				GEngine->DestroyWorldContext(World);
+			}
+		}
+	};
+
+	FGridItemInstance MakeItem(const UGridItemDefinitionAsset* Definition, int32 Quantity)
+	{
+		FGridItemInstance Item;
+		Item.RuntimeObjectId = FGuid::NewGuid();
+		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.DisplayName = Definition->DisplayName;
+		Item.Quantity = Quantity;
+		Item.OwnerType = EGridItemOwnerType::World;
+		return Item;
+	}
+
+	void SetInventorySlot(UGridPartyInventoryComponent* Inventory, int32 CharacterIndex, int32 SlotIndex,
+		const UGridItemDefinitionAsset* Definition, int32 Quantity)
+	{
+		FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
+		FGridItemInstance Item = MakeItem(Definition, Quantity);
+		Item.OwnerType = EGridItemOwnerType::CharacterInventory;
+		Item.OwnerGuid = Character.CharacterId;
+		Item.OwnerCharacterIndex = CharacterIndex;
+		Character.InventorySlots[SlotIndex].bOccupied = true;
+		Character.InventorySlots[SlotIndex].Item = Item;
+	}
+
+	void ResetInventory(UGridPartyInventoryComponent* Inventory, int32 CharacterIndex)
+	{
+		for (FGridInventorySlot& Slot : Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex].InventorySlots)
+		{
+			Slot = FGridInventorySlot();
+		}
+		if (Inventory->HasCursorItem())
+		{
+			Inventory->ClearCursorItem();
+		}
+	}
+}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD064InventoryStackMergeTest, "Grimrock.TechnicalDebt.TD06_4.InventoryStackMerge",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -12,72 +95,125 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
-	if (!TestNotNull(TEXT("The inventory component is created"), Component))
-	{
-		return false;
-	}
-	Component->InitializeDefaultPartyIfNeeded();
-
-	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Component);
-	Definition->ItemDefinitionId = TEXT("Stone_TD064_Merge");
-	Definition->DisplayName = FText::FromString(TEXT("Pierre TD06.4 merge"));
-	Definition->ItemType = EGridItemType::Misc;
-	Definition->Weight = 1.0f;
-	Definition->bStackable = true;
-	Definition->MaxStackSize = 10;
-	if (!TestTrue(TEXT("The stackable definition is registered"), Component->RegisterItemDefinition(Definition)))
+	FGridTD064InventoryStackMergeWorld TestWorld;
+	if (!TestNotNull(TEXT("The transient world is created"), TestWorld.World))
 	{
 		return false;
 	}
 
-	FGridItemInstance Stack;
-	Stack.RuntimeObjectId = FGuid::NewGuid();
-	Stack.ItemDefinitionId = Definition->ItemDefinitionId;
-	Stack.DisplayName = Definition->DisplayName;
-	Stack.Quantity = 5;
-	Stack.OwnerType = EGridItemOwnerType::World;
-	const FGuid OriginalRuntimeId = Stack.RuntimeObjectId;
-	TestTrue(TEXT("The five-unit stack enters inventory"), Component->AddItemToCharacterInventory(0, Stack));
+	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
+	if (!TestNotNull(TEXT("The party pawn is spawned"), Party) ||
+		!TestNotNull(TEXT("The party inventory exists"), Party ? Party->PartyInventoryComponent.Get() : nullptr))
+	{
+		return false;
+	}
 
-	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
-	TestEqual(TEXT("The initial stack contains five units"), Character.InventorySlots[0].Item.Quantity, 5);
+	UGridPartyInventoryComponent* Inventory = Party->PartyInventoryComponent;
+	Inventory->InitializeDefaultPartyIfNeeded();
+	const int32 CharacterIndex = Inventory->GetSelectedCharacterIndex();
+	UGridInventoryWidget* Widget = CreateWidget<UGridInventoryWidget>(TestWorld.World, UGridInventoryWidget::StaticClass());
+	if (!TestNotNull(TEXT("The inventory widget is created"), Widget))
+	{
+		return false;
+	}
+	Widget->InitializeInventoryWidget(Party);
 
-	TestTrue(TEXT("Ctrl-style split takes two units to the cursor"), Component->TryTakeInventorySlotQuantityToCursor(0, 0, 2));
-	TestEqual(TEXT("The source stack keeps three units after split"), Character.InventorySlots[0].Item.Quantity, 3);
-	TestEqual(TEXT("The cursor owns two split units"), Component->GetCursorItem().Quantity, 2);
-	TestTrue(TEXT("Dropping the split cursor stack back onto its source merges it"), Component->TryPlaceCursorItemInCharacterInventorySlot(0, 0));
-	TestFalse(TEXT("A complete cursor merge clears the cursor"), Component->HasCursorItem());
-	TestEqual(TEXT("The reunited stack returns to five units"), Character.InventorySlots[0].Item.Quantity, 5);
-	TestTrue(TEXT("The destination stack keeps its original runtime identity"), Character.InventorySlots[0].Item.RuntimeObjectId == OriginalRuntimeId);
+	UGridItemDefinitionAsset* StoneDefinition = NewObject<UGridItemDefinitionAsset>(Inventory);
+	StoneDefinition->ItemDefinitionId = TEXT("Stone_TD064_Merge");
+	StoneDefinition->DisplayName = FText::FromString(TEXT("Pierre TD06.4 merge"));
+	StoneDefinition->ItemType = EGridItemType::Misc;
+	StoneDefinition->bStackable = true;
+	StoneDefinition->MaxStackSize = 10;
+	TestTrue(TEXT("The stackable definition is registered"), Inventory->RegisterItemDefinition(StoneDefinition));
 
-	TestTrue(TEXT("A second split can be placed in another inventory slot"), Component->TryTakeInventorySlotQuantityToCursor(0, 0, 2));
-	TestTrue(TEXT("The split stack can be placed in slot one"), Component->TryPlaceCursorItemInCharacterInventorySlot(0, 1));
-	TestEqual(TEXT("The source stack contains three units before slot merge"), Character.InventorySlots[0].Item.Quantity, 3);
-	TestEqual(TEXT("The secondary stack contains two units before slot merge"), Character.InventorySlots[1].Item.Quantity, 2);
-	TestTrue(TEXT("Moving a matching stack onto the original stack merges it"), Component->TryMoveCharacterInventorySlot(0, 1, 0));
-	TestTrue(TEXT("A complete slot merge clears the source slot"), Character.InventorySlots[1].IsEmpty());
-	TestEqual(TEXT("The direct slot merge restores five units"), Character.InventorySlots[0].Item.Quantity, 5);
-	TestTrue(TEXT("The direct slot merge keeps the destination runtime identity"), Character.InventorySlots[0].Item.RuntimeObjectId == OriginalRuntimeId);
+	UGridItemDefinitionAsset* OtherDefinition = NewObject<UGridItemDefinitionAsset>(Inventory);
+	OtherDefinition->ItemDefinitionId = TEXT("Other_TD064_Swap");
+	OtherDefinition->DisplayName = FText::FromString(TEXT("Autre TD06.4 swap"));
+	OtherDefinition->ItemType = EGridItemType::Misc;
+	OtherDefinition->bStackable = false;
+	OtherDefinition->MaxStackSize = 1;
+	TestTrue(TEXT("The non-stackable definition is registered"), Inventory->RegisterItemDefinition(OtherDefinition));
 
-	Character.InventorySlots[0].Item.Quantity = 9;
-	FGridItemInstance Overflow;
-	Overflow.RuntimeObjectId = FGuid::NewGuid();
-	Overflow.ItemDefinitionId = Definition->ItemDefinitionId;
-	Overflow.DisplayName = Definition->DisplayName;
-	Overflow.Quantity = 3;
-	Overflow.OwnerType = EGridItemOwnerType::World;
-	TestTrue(TEXT("A three-unit matching stack can be put on the cursor"), Component->SetCursorItem(Overflow));
-	TestTrue(TEXT("Merging into a nearly full stack transfers only available capacity"), Component->TryPlaceCursorItemInCharacterInventorySlot(0, 0));
-	TestEqual(TEXT("The destination stack is capped at MaxStackSize"), Character.InventorySlots[0].Item.Quantity, 10);
-	TestTrue(TEXT("The overflow remains on the cursor"), Component->HasCursorItem());
-	TestEqual(TEXT("Exactly two overflow units remain on the cursor"), Component->GetCursorItem().Quantity, 2);
-	TestFalse(TEXT("Dropping onto an already full matching stack is rejected without swapping"), Component->TryPlaceCursorItemInCharacterInventorySlot(0, 0));
-	TestEqual(TEXT("The full destination remains unchanged"), Character.InventorySlots[0].Item.Quantity, 10);
-	TestEqual(TEXT("The rejected full-stack merge preserves the cursor remainder"), Component->GetCursorItem().Quantity, 2);
+	auto TestOwnership = [this, Inventory](const TCHAR* Context)
+	{
+		FString OwnershipError;
+		return TestTrue(Context, Inventory->ValidateInventoryOwnership(OwnershipError));
+	};
 
-	FString OwnershipError;
-	TestTrue(TEXT("All merge paths preserve exclusive inventory ownership"), Component->ValidateInventoryOwnership(OwnershipError));
+	// Scenario A: exercise the real UI routing for Ctrl-split followed by a normal occupied-slot drop.
+	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 2);
+	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
+	const FGuid ScenarioATargetId = Character.InventorySlots[0].Item.RuntimeObjectId;
+	TestTrue(TEXT("A Ctrl-drag splits one stone through HandleSlotDrop"),
+		Widget->HandleSlotDrop(EGridInventoryUiSlotType::Inventory, 0, EGridInventoryUiSlotType::Inventory, 1, true, 1));
+	TestEqual(TEXT("The Ctrl-split leaves one stone in the source"), Character.InventorySlots[0].Item.Quantity, 1);
+	TestEqual(TEXT("The Ctrl-split creates one stone in the target"), Character.InventorySlots[1].Item.Quantity, 1);
+	TestOwnership(TEXT("Ownership is valid after the UI Ctrl-split"));
+	TestTrue(TEXT("A normal occupied-slot drop merges through HandleSlotDrop"),
+		Widget->HandleSlotDrop(EGridInventoryUiSlotType::Inventory, 1, EGridInventoryUiSlotType::Inventory, 0));
+	TestEqual(TEXT("The UI merge restores one stack of two"), Character.InventorySlots[0].Item.Quantity, 2);
+	TestTrue(TEXT("The UI merge clears its source slot"), Character.InventorySlots[1].IsEmpty());
+	TestTrue(TEXT("The UI merge preserves the target runtime identity"), Character.InventorySlots[0].Item.RuntimeObjectId == ScenarioATargetId);
+	TestOwnership(TEXT("Ownership is valid after the UI merge"));
+
+	// Scenario B: a partial merge fills the target and leaves the source remainder in place.
+	ResetInventory(Inventory, CharacterIndex);
+	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 8);
+	SetInventorySlot(Inventory, CharacterIndex, 1, StoneDefinition, 4);
+	const FGuid PartialTargetId = Character.InventorySlots[0].Item.RuntimeObjectId;
+	const FGuid PartialSourceId = Character.InventorySlots[1].Item.RuntimeObjectId;
+	TestTrue(TEXT("An occupied inventory drop performs a partial merge"),
+		Widget->HandleSlotDrop(EGridInventoryUiSlotType::Inventory, 1, EGridInventoryUiSlotType::Inventory, 0));
+	TestEqual(TEXT("The partial merge caps the target at ten"), Character.InventorySlots[0].Item.Quantity, 10);
+	TestEqual(TEXT("The partial merge leaves two in the source"), Character.InventorySlots[1].Item.Quantity, 2);
+	TestTrue(TEXT("The partial merge preserves the target runtime identity"), Character.InventorySlots[0].Item.RuntimeObjectId == PartialTargetId);
+	TestTrue(TEXT("The partial merge preserves the source remainder identity"), Character.InventorySlots[1].Item.RuntimeObjectId == PartialSourceId);
+	TestOwnership(TEXT("Ownership is valid after the partial UI merge"));
+
+	// Scenario C: a full target rejects the drop without mutation or swap.
+	ResetInventory(Inventory, CharacterIndex);
+	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 10);
+	SetInventorySlot(Inventory, CharacterIndex, 1, StoneDefinition, 1);
+	const FGuid FullTargetId = Character.InventorySlots[0].Item.RuntimeObjectId;
+	const FGuid RejectedSourceId = Character.InventorySlots[1].Item.RuntimeObjectId;
+	TestFalse(TEXT("A full matching target rejects the occupied inventory drop"),
+		Widget->HandleSlotDrop(EGridInventoryUiSlotType::Inventory, 1, EGridInventoryUiSlotType::Inventory, 0));
+	TestEqual(TEXT("The rejected target remains at ten"), Character.InventorySlots[0].Item.Quantity, 10);
+	TestEqual(TEXT("The rejected source remains at one"), Character.InventorySlots[1].Item.Quantity, 1);
+	TestTrue(TEXT("The rejected target does not swap"), Character.InventorySlots[0].Item.RuntimeObjectId == FullTargetId);
+	TestTrue(TEXT("The rejected source does not swap"), Character.InventorySlots[1].Item.RuntimeObjectId == RejectedSourceId);
+	TestOwnership(TEXT("Ownership is valid after the rejected UI merge"));
+
+	// Scenario D: different items keep the existing swap behavior.
+	ResetInventory(Inventory, CharacterIndex);
+	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 1);
+	SetInventorySlot(Inventory, CharacterIndex, 1, OtherDefinition, 1);
+	const FGuid SwapTargetId = Character.InventorySlots[0].Item.RuntimeObjectId;
+	const FGuid SwapSourceId = Character.InventorySlots[1].Item.RuntimeObjectId;
+	TestTrue(TEXT("Different inventory items still swap through HandleSlotDrop"),
+		Widget->HandleSlotDrop(EGridInventoryUiSlotType::Inventory, 1, EGridInventoryUiSlotType::Inventory, 0));
+	TestTrue(TEXT("The former source item reaches the target"), Character.InventorySlots[0].Item.RuntimeObjectId == SwapSourceId);
+	TestTrue(TEXT("The former target item reaches the source"), Character.InventorySlots[1].Item.RuntimeObjectId == SwapTargetId);
+	TestOwnership(TEXT("Ownership is valid after the different-item UI swap"));
+
+	// Cursor placement uses the same merge semantics, including partial transfer and full rejection.
+	ResetInventory(Inventory, CharacterIndex);
+	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 8);
+	const FGuid CursorTargetId = Character.InventorySlots[0].Item.RuntimeObjectId;
+	TestTrue(TEXT("A four-stone stack can be placed on the cursor"), Inventory->SetCursorItem(MakeItem(StoneDefinition, 4)));
+	TestTrue(TEXT("A cursor stack partially merges through HandleSlotDrop"),
+		Widget->HandleSlotDrop(EGridInventoryUiSlotType::Cursor, INDEX_NONE, EGridInventoryUiSlotType::Inventory, 0));
+	TestEqual(TEXT("The cursor merge caps the target at ten"), Character.InventorySlots[0].Item.Quantity, 10);
+	TestEqual(TEXT("The cursor keeps the two-stone remainder"), Inventory->GetCursorItem().Quantity, 2);
+	TestTrue(TEXT("The cursor merge preserves the target runtime identity"), Character.InventorySlots[0].Item.RuntimeObjectId == CursorTargetId);
+	TestOwnership(TEXT("Ownership is valid after the partial cursor merge"));
+	TestFalse(TEXT("A full target rejects the cursor remainder without swapping"),
+		Widget->HandleSlotDrop(EGridInventoryUiSlotType::Cursor, INDEX_NONE, EGridInventoryUiSlotType::Inventory, 0));
+	TestEqual(TEXT("The rejected cursor merge leaves the target at ten"), Character.InventorySlots[0].Item.Quantity, 10);
+	TestEqual(TEXT("The rejected cursor merge preserves its remainder"), Inventory->GetCursorItem().Quantity, 2);
+	TestTrue(TEXT("The rejected cursor merge preserves the target identity"), Character.InventorySlots[0].Item.RuntimeObjectId == CursorTargetId);
+	TestOwnership(TEXT("Ownership is valid after the rejected cursor merge"));
+
 	return true;
 }
 
