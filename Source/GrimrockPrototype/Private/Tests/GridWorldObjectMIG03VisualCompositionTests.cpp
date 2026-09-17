@@ -90,12 +90,10 @@ bool FGridWorldObjectMIG03VisualCompositionTypesTest::RunTest(const FString& Par
 	UScriptStruct* StaticPartStruct = FGridWorldObjectStaticPart::StaticStruct();
 	UScriptStruct* MotionStruct = FGridWorldObjectMotion::StaticStruct();
 	UScriptStruct* MovingPartStruct = FGridWorldObjectMovingPart::StaticStruct();
-	UScriptStruct* MovingPartsStruct = FGridWorldObjectMovingParts::StaticStruct();
 
 	TestNotNull(TEXT("StaticPart struct exists"), StaticPartStruct);
 	TestNotNull(TEXT("Motion struct exists"), MotionStruct);
 	TestNotNull(TEXT("MovingPart struct exists"), MovingPartStruct);
-	TestNotNull(TEXT("MovingParts container exists"), MovingPartsStruct);
 
 	if (StaticPartStruct)
 	{
@@ -117,13 +115,6 @@ bool FGridWorldObjectMIG03VisualCompositionTypesTest::RunTest(const FString& Par
 		TestNotNull(TEXT("MovingPart exposes Mesh"), MovingPartStruct->FindPropertyByName(TEXT("Mesh")));
 		TestNotNull(TEXT("MovingPart exposes LocalTransform"), MovingPartStruct->FindPropertyByName(TEXT("LocalTransform")));
 		TestNotNull(TEXT("MovingPart exposes Motion"), MovingPartStruct->FindPropertyByName(TEXT("Motion")));
-	}
-
-	if (MovingPartsStruct)
-	{
-		TestNotNull(TEXT("MovingParts exposes Part0"), MovingPartsStruct->FindPropertyByName(TEXT("Part0")));
-		TestNotNull(TEXT("MovingParts exposes Part1"), MovingPartsStruct->FindPropertyByName(TEXT("Part1")));
-		TestNull(TEXT("MovingParts cannot expose a third part"), MovingPartsStruct->FindPropertyByName(TEXT("Part2")));
 	}
 
 	const FGridWorldObjectStaticPart StaticPart;
@@ -221,12 +212,16 @@ bool FGridWorldObjectMIG03DefinitionVisualContractTest::RunTest(const FString& P
 
 	UStaticMesh* Mesh0 = NewObject<UStaticMesh>(Definition);
 	UStaticMesh* Mesh1 = NewObject<UStaticMesh>(Definition);
-	Definition->MovingParts.Part0.Mesh = Mesh0;
+	Definition->MovingParts.AddDefaulted();
+	Definition->MovingParts[0].Mesh = Mesh0;
 	TestEqual(TEXT("One defined slot means one moving part"), Definition->GetDefinedMovingPartCount(), 1);
-	Definition->MovingParts.Part1.Mesh = Mesh1;
+	Definition->MovingParts.AddDefaulted();
+	Definition->MovingParts[1].Mesh = Mesh1;
 	TestEqual(TEXT("Two defined slots means two moving parts"), Definition->GetDefinedMovingPartCount(), 2);
 
-	TestNull(TEXT("No third moving-part authoring slot exists"), FGridWorldObjectMovingParts::StaticStruct()->FindPropertyByName(TEXT("Part2")));
+	Definition->MovingParts.AddDefaulted();
+	Definition->MovingParts[2].Mesh = NewObject<UStaticMesh>(Definition);
+	TestEqual(TEXT("Three moving parts are authorable"), Definition->GetDefinedMovingPartCount(), 3);
 	TestNull(TEXT("No MaxMovingParts parameter exists"), DefinitionClass->FindPropertyByName(TEXT("MaxMovingParts")));
 
 	const FName LegacyVisualNames[] = {TEXT("PreviewMesh"), TEXT("FixedMesh"), TEXT("MovingMesh"), TEXT("PitLeftLeafMesh"), TEXT("PitRightLeafMesh")};
@@ -256,14 +251,15 @@ bool FGridWorldObjectMIG03RuntimeConsumerContractTest::RunTest(const FString& Pa
 	if (MechanismClass)
 	{
 		TestNotNull(TEXT("Mechanism exposes primary moving visual component"), MechanismClass->FindPropertyByName(TEXT("MovingMeshComponent")));
-		TestNotNull(TEXT("Mechanism exposes the second target moving visual component"),
+		TestNotNull(TEXT("Mechanism exposes dynamic moving visual components"),
+			MechanismClass->FindPropertyByName(TEXT("MovingPartMeshComponents")));
+		TestNull(TEXT("Mechanism no longer exposes a fixed secondary component"),
 			MechanismClass->FindPropertyByName(TEXT("SecondaryMovingMeshComponent")));
 	}
 
 	if (PreviewClass)
 	{
-		TestNotNull(TEXT("Preview exposes target MovingPart0 component"), PreviewClass->FindPropertyByName(TEXT("MovingPart0MeshComponent")));
-		TestNotNull(TEXT("Preview exposes target MovingPart1 component"), PreviewClass->FindPropertyByName(TEXT("MovingPart1MeshComponent")));
+		TestNotNull(TEXT("Preview exposes dynamic moving-part components"), PreviewClass->FindPropertyByName(TEXT("MovingPartMeshComponents")));
 	}
 
 	return true;
@@ -287,18 +283,19 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	// Door: two opposite moving leaves must be driven by the same normalized open state.
 	UGridWorldObjectDefinitionAsset* DoorDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
 	DoorDefinition->StaticPart.Mesh = NewObject<UStaticMesh>(DoorDefinition);
-	DoorDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(DoorDefinition);
-	DoorDefinition->MovingParts.Part0.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(10.0f, 0.0f, 0.0f));
-	DoorDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
-	DoorDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::X;
-	DoorDefinition->MovingParts.Part0.Motion.Amount = 20.0f;
-	DoorDefinition->MovingParts.Part0.Motion.Duration = 0.20f;
-	DoorDefinition->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(DoorDefinition);
-	DoorDefinition->MovingParts.Part1.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(-10.0f, 0.0f, 0.0f));
-	DoorDefinition->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Translation;
-	DoorDefinition->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::X;
-	DoorDefinition->MovingParts.Part1.Motion.Amount = -20.0f;
-	DoorDefinition->MovingParts.Part1.Motion.Duration = 0.20f;
+	DoorDefinition->MovingParts.SetNum(2);
+	DoorDefinition->MovingParts[0].Mesh = NewObject<UStaticMesh>(DoorDefinition);
+	DoorDefinition->MovingParts[0].LocalTransform = FTransform(FRotator::ZeroRotator, FVector(10.0f, 0.0f, 0.0f));
+	DoorDefinition->MovingParts[0].Motion.Type = EGridWorldObjectMotionType::Translation;
+	DoorDefinition->MovingParts[0].Motion.Axis = EGridWorldObjectMotionAxis::X;
+	DoorDefinition->MovingParts[0].Motion.Amount = 20.0f;
+	DoorDefinition->MovingParts[0].Motion.Duration = 0.20f;
+	DoorDefinition->MovingParts[1].Mesh = NewObject<UStaticMesh>(DoorDefinition);
+	DoorDefinition->MovingParts[1].LocalTransform = FTransform(FRotator::ZeroRotator, FVector(-10.0f, 0.0f, 0.0f));
+	DoorDefinition->MovingParts[1].Motion.Type = EGridWorldObjectMotionType::Translation;
+	DoorDefinition->MovingParts[1].Motion.Axis = EGridWorldObjectMotionAxis::X;
+	DoorDefinition->MovingParts[1].Motion.Amount = -20.0f;
+	DoorDefinition->MovingParts[1].Motion.Duration = 0.20f;
 
 	FGridWorldObjectInstance DoorData;
 	DoorData.InstanceId = FGuid::NewGuid();
@@ -322,29 +319,30 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 	TestTrue(TEXT("Target door reaches fully open state"), Door->IsFullyOpen());
 
 	UStaticMeshComponent* DoorPart0 = FindStaticMeshComponentByName(Door, TEXT("MovingMesh"));
-	UStaticMeshComponent* DoorPart1 = FindStaticMeshComponentByName(Door, TEXT("MovingMesh1"));
+	UStaticMeshComponent* DoorPart1 = FindStaticMeshComponentByName(Door, TEXT("MovingPart1"));
 	TestNotNull(TEXT("Door MovingPart[0] component exists"), DoorPart0);
 	TestNotNull(TEXT("Door MovingPart[1] component exists"), DoorPart1);
 	if (DoorPart0)
 	{
 		TestTrue(TEXT("Door MovingPart[0] reaches authored open transform"),
 			DoorPart0->GetRelativeTransform().Equals(
-				DoorDefinition->MovingParts.Part0.Motion.Evaluate(DoorDefinition->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
+				DoorDefinition->MovingParts[0].Motion.Evaluate(DoorDefinition->MovingParts[0].LocalTransform, 1.0f), 0.01f));
 	}
 	if (DoorPart1)
 	{
 		TestTrue(TEXT("Door MovingPart[1] reaches authored open transform"),
 			DoorPart1->GetRelativeTransform().Equals(
-				DoorDefinition->MovingParts.Part1.Motion.Evaluate(DoorDefinition->MovingParts.Part1.LocalTransform, 1.0f), 0.01f));
+				DoorDefinition->MovingParts[1].Motion.Evaluate(DoorDefinition->MovingParts[1].LocalTransform, 1.0f), 0.01f));
 	}
 
 	// Button: the target Motion replaces the old hard-coded press offset while hold behavior remains gameplay data.
 	UGridWorldObjectDefinitionAsset* ButtonDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
-	ButtonDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(ButtonDefinition);
-	ButtonDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
-	ButtonDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::X;
-	ButtonDefinition->MovingParts.Part0.Motion.Amount = 7.0f;
-	ButtonDefinition->MovingParts.Part0.Motion.Duration = 0.05f;
+	ButtonDefinition->MovingParts.SetNum(1);
+	ButtonDefinition->MovingParts[0].Mesh = NewObject<UStaticMesh>(ButtonDefinition);
+	ButtonDefinition->MovingParts[0].Motion.Type = EGridWorldObjectMotionType::Translation;
+	ButtonDefinition->MovingParts[0].Motion.Axis = EGridWorldObjectMotionAxis::X;
+	ButtonDefinition->MovingParts[0].Motion.Amount = 7.0f;
+	ButtonDefinition->MovingParts[0].Motion.Duration = 0.05f;
 
 	FGridWorldObjectInstance ButtonData;
 	ButtonData.InstanceId = FGuid::NewGuid();
@@ -367,7 +365,7 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 		{
 			TestTrue(TEXT("Button reaches authored pressed transform"),
 				ButtonPart->GetRelativeTransform().Equals(
-					ButtonDefinition->MovingParts.Part0.Motion.Evaluate(ButtonDefinition->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
+					ButtonDefinition->MovingParts[0].Motion.Evaluate(ButtonDefinition->MovingParts[0].LocalTransform, 1.0f), 0.01f));
 		}
 		else
 		{
@@ -377,13 +375,14 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 
 	// Lever: target rotation and pivot own the visual state instead of LeverOffPitch/LeverOnPitch.
 	UGridWorldObjectDefinitionAsset* LeverDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
-	LeverDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(LeverDefinition);
-	LeverDefinition->MovingParts.Part0.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(12.0f, 0.0f, 0.0f));
-	LeverDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	LeverDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Z;
-	LeverDefinition->MovingParts.Part0.Motion.Pivot = FVector::ZeroVector;
-	LeverDefinition->MovingParts.Part0.Motion.Amount = 90.0f;
-	LeverDefinition->MovingParts.Part0.Motion.Duration = 0.10f;
+	LeverDefinition->MovingParts.SetNum(1);
+	LeverDefinition->MovingParts[0].Mesh = NewObject<UStaticMesh>(LeverDefinition);
+	LeverDefinition->MovingParts[0].LocalTransform = FTransform(FRotator::ZeroRotator, FVector(12.0f, 0.0f, 0.0f));
+	LeverDefinition->MovingParts[0].Motion.Type = EGridWorldObjectMotionType::Rotation;
+	LeverDefinition->MovingParts[0].Motion.Axis = EGridWorldObjectMotionAxis::Z;
+	LeverDefinition->MovingParts[0].Motion.Pivot = FVector::ZeroVector;
+	LeverDefinition->MovingParts[0].Motion.Amount = 90.0f;
+	LeverDefinition->MovingParts[0].Motion.Duration = 0.10f;
 
 	FGridWorldObjectInstance LeverData;
 	LeverData.InstanceId = FGuid::NewGuid();
@@ -405,7 +404,7 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 		{
 			TestTrue(TEXT("Lever reaches authored on transform"),
 				LeverPart->GetRelativeTransform().Equals(
-					LeverDefinition->MovingParts.Part0.Motion.Evaluate(LeverDefinition->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
+					LeverDefinition->MovingParts[0].Motion.Evaluate(LeverDefinition->MovingParts[0].LocalTransform, 1.0f), 0.01f));
 		}
 		else
 		{
@@ -415,12 +414,13 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 
 	// Pressure plate: target translation owns the released/pressed visual positions.
 	UGridWorldObjectDefinitionAsset* PlateDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
-	PlateDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(PlateDefinition);
-	PlateDefinition->MovingParts.Part0.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(0.0f, 0.0f, 4.0f));
-	PlateDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
-	PlateDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Z;
-	PlateDefinition->MovingParts.Part0.Motion.Amount = -3.0f;
-	PlateDefinition->MovingParts.Part0.Motion.Duration = 0.07f;
+	PlateDefinition->MovingParts.SetNum(1);
+	PlateDefinition->MovingParts[0].Mesh = NewObject<UStaticMesh>(PlateDefinition);
+	PlateDefinition->MovingParts[0].LocalTransform = FTransform(FRotator::ZeroRotator, FVector(0.0f, 0.0f, 4.0f));
+	PlateDefinition->MovingParts[0].Motion.Type = EGridWorldObjectMotionType::Translation;
+	PlateDefinition->MovingParts[0].Motion.Axis = EGridWorldObjectMotionAxis::Z;
+	PlateDefinition->MovingParts[0].Motion.Amount = -3.0f;
+	PlateDefinition->MovingParts[0].Motion.Duration = 0.07f;
 
 	FGridWorldObjectInstance PlateData;
 	PlateData.InstanceId = FGuid::NewGuid();
@@ -441,7 +441,7 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 		{
 			TestTrue(TEXT("Pressure plate reaches authored pressed transform"),
 				PlatePart->GetRelativeTransform().Equals(
-					PlateDefinition->MovingParts.Part0.Motion.Evaluate(PlateDefinition->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
+					PlateDefinition->MovingParts[0].Motion.Evaluate(PlateDefinition->MovingParts[0].LocalTransform, 1.0f), 0.01f));
 		}
 		else
 		{
@@ -451,21 +451,22 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 
 	// Pit trapdoor: target MovingPart[0]/[1] own the two leaves and their hinge motions.
 	UGridWorldObjectDefinitionAsset* PitDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
+	PitDefinition->MovingParts.SetNum(2);
 	PitDefinition->StaticPart.Mesh = NewObject<UStaticMesh>(PitDefinition);
-	PitDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(PitDefinition);
-	PitDefinition->MovingParts.Part0.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(-40.0f, 0.0f, 0.0f));
-	PitDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	PitDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	PitDefinition->MovingParts.Part0.Motion.Pivot = FVector(-85.0f, 0.0f, -5.0f);
-	PitDefinition->MovingParts.Part0.Motion.Amount = -80.0f;
-	PitDefinition->MovingParts.Part0.Motion.Duration = 0.30f;
-	PitDefinition->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(PitDefinition);
-	PitDefinition->MovingParts.Part1.LocalTransform = FTransform(FRotator::ZeroRotator, FVector(40.0f, 0.0f, 0.0f));
-	PitDefinition->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	PitDefinition->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	PitDefinition->MovingParts.Part1.Motion.Pivot = FVector(85.0f, 0.0f, -5.0f);
-	PitDefinition->MovingParts.Part1.Motion.Amount = 80.0f;
-	PitDefinition->MovingParts.Part1.Motion.Duration = 0.30f;
+	PitDefinition->MovingParts[0].Mesh = NewObject<UStaticMesh>(PitDefinition);
+	PitDefinition->MovingParts[0].LocalTransform = FTransform(FRotator::ZeroRotator, FVector(-40.0f, 0.0f, 0.0f));
+	PitDefinition->MovingParts[0].Motion.Type = EGridWorldObjectMotionType::Rotation;
+	PitDefinition->MovingParts[0].Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	PitDefinition->MovingParts[0].Motion.Pivot = FVector(-85.0f, 0.0f, -5.0f);
+	PitDefinition->MovingParts[0].Motion.Amount = -80.0f;
+	PitDefinition->MovingParts[0].Motion.Duration = 0.30f;
+	PitDefinition->MovingParts[1].Mesh = NewObject<UStaticMesh>(PitDefinition);
+	PitDefinition->MovingParts[1].LocalTransform = FTransform(FRotator::ZeroRotator, FVector(40.0f, 0.0f, 0.0f));
+	PitDefinition->MovingParts[1].Motion.Type = EGridWorldObjectMotionType::Rotation;
+	PitDefinition->MovingParts[1].Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	PitDefinition->MovingParts[1].Motion.Pivot = FVector(85.0f, 0.0f, -5.0f);
+	PitDefinition->MovingParts[1].Motion.Amount = 80.0f;
+	PitDefinition->MovingParts[1].Motion.Duration = 0.30f;
 
 	FGridWorldObjectInstance PitData;
 	PitData.InstanceId = FGuid::NewGuid();
@@ -482,28 +483,28 @@ bool FGridWorldObjectMIG03TargetMotionStateMachinesTest::RunTest(const FString& 
 		Pit->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(PitData), nullptr, FTransform::Identity);
 		TestTrue(TEXT("Target pit recognizes its two-part cover"), Pit->HasCompleteTrapdoorCover());
 		TestEqual(TEXT("Pit duration comes from MovingParts Motion"), Pit->MoveDuration, 0.30f);
-		TestTrue(TEXT("Pit left pivot comes from MovingPart[0] Motion"), Pit->GetLeftHingeLocation().Equals(PitDefinition->MovingParts.Part0.Motion.Pivot));
-		TestTrue(TEXT("Pit right pivot comes from MovingPart[1] Motion"), Pit->GetRightHingeLocation().Equals(PitDefinition->MovingParts.Part1.Motion.Pivot));
+		TestTrue(TEXT("Pit left pivot comes from MovingPart[0] Motion"), Pit->GetLeftHingeLocation().Equals(PitDefinition->MovingParts[0].Motion.Pivot));
+		TestTrue(TEXT("Pit right pivot comes from MovingPart[1] Motion"), Pit->GetRightHingeLocation().Equals(PitDefinition->MovingParts[1].Motion.Pivot));
 		Pit->SetPitOpenVisualState(true, false);
 		TestTrue(TEXT("Target pit starts opening"), Pit->IsAnimating());
 		Pit->Tick(0.30f);
 		TestTrue(TEXT("Target pit reaches open state"), Pit->IsPitOpenVisualState());
 
 		UStaticMeshComponent* PitPart0 = FindStaticMeshComponentByName(Pit, TEXT("MovingMesh"));
-		UStaticMeshComponent* PitPart1 = FindStaticMeshComponentByName(Pit, TEXT("MovingMesh1"));
+		UStaticMeshComponent* PitPart1 = FindStaticMeshComponentByName(Pit, TEXT("MovingPart1"));
 		TestNotNull(TEXT("Pit MovingPart[0] component exists"), PitPart0);
 		TestNotNull(TEXT("Pit MovingPart[1] component exists"), PitPart1);
 		if (PitPart0)
 		{
 			TestTrue(TEXT("Pit MovingPart[0] reaches authored open transform"),
 				PitPart0->GetRelativeTransform().Equals(
-					PitDefinition->MovingParts.Part0.Motion.Evaluate(PitDefinition->MovingParts.Part0.LocalTransform, 1.0f), 0.01f));
+					PitDefinition->MovingParts[0].Motion.Evaluate(PitDefinition->MovingParts[0].LocalTransform, 1.0f), 0.01f));
 		}
 		if (PitPart1)
 		{
 			TestTrue(TEXT("Pit MovingPart[1] reaches authored open transform"),
 				PitPart1->GetRelativeTransform().Equals(
-					PitDefinition->MovingParts.Part1.Motion.Evaluate(PitDefinition->MovingParts.Part1.LocalTransform, 1.0f), 0.01f));
+					PitDefinition->MovingParts[1].Motion.Evaluate(PitDefinition->MovingParts[1].LocalTransform, 1.0f), 0.01f));
 		}
 	}
 

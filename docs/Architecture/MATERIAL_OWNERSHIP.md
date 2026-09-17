@@ -10,7 +10,7 @@ Pour les objets construits à partir d'un `GridWorldObjectDefinitionAsset`, le m
 ```text
 GridWorldObjectDefinitionAsset
     ├── StaticPart.Mesh
-    └── MovingParts.Part0 / Part1 → Mesh
+    └── MovingParts[0..N-1] → Mesh
 
 StaticMesh
     └── Material Slots   ← source de vérité du matériau de rendu

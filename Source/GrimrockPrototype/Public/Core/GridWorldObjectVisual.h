@@ -133,30 +133,3 @@ struct GRIMROCKPROTOTYPE_API FGridWorldObjectMovingPart
 		return Mesh != nullptr;
 	}
 };
-
-/**
- * Strict 0..2 moving-parts container.
- * Two optional fixed slots are intentional: the authoring schema cannot create a third moving part,
- * so no MaxMovingParts parameter or array-size validation is required.
- */
-USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridWorldObjectMovingParts
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual", meta = (DisplayName = "Moving Part 0"))
-	FGridWorldObjectMovingPart Part0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual", meta = (DisplayName = "Moving Part 1"))
-	FGridWorldObjectMovingPart Part1;
-
-	int32 NumDefined() const
-	{
-		return (Part0.IsDefined() ? 1 : 0) + (Part1.IsDefined() ? 1 : 0);
-	}
-
-	bool IsEmpty() const
-	{
-		return NumDefined() == 0;
-	}
-};

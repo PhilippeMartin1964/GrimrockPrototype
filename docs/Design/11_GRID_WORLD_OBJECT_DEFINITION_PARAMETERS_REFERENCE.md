@@ -67,7 +67,7 @@ La face concrète d'un world-object mural placé est portée par l'instance via 
 
 ## 5. Visuels et motion
 
-`StaticPart` est optionnelle. `MovingParts` fournit exactement deux slots optionnels, `Part0` et `Part1` : zéro, une ou deux parties mobiles.
+`StaticPart` est optionnelle. `MovingParts` est un tableau de zéro à N `FGridWorldObjectMovingPart`, sans limite `MaxMovingParts`.
 
 Les matériaux appartiennent aux Material Slots des Static Meshes. Chaque partie mobile porte sa `Motion` : type, axe, pivot, amplitude, `Duration` (Alpha 0 -> 1) et `ReverseDuration` optionnelle (Alpha 1 -> 0). Lorsque `ReverseDuration <= 0`, le runtime retombe sur `Duration`, ce qui conserve un mouvement symétrique par défaut. Une porte verticale, coulissante ou battante se configure par cette motion ; les volets de Pit utilisent les deux parties mobiles.
 

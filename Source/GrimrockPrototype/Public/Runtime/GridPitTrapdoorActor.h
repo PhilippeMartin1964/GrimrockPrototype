@@ -14,7 +14,7 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGridPitTrapdoorAnimationFinished, FGui
  * PIT03.2 dual-part controlled pit trapdoor.
  * Gameplay authority remains in AGridLevelRuntimeActor.
  * StaticPart = permanent pit surround/open-pit geometry.
- * MovingParts.Part0/Part1 = the two independently animated trapdoor leaves.
+ * MovingParts[0] and MovingParts[1] = the two independently animated trapdoor leaves.
  */
 UCLASS()
 class GRIMROCKPROTOTYPE_API AGridPitTrapdoorActor : public AGridMechanismActor

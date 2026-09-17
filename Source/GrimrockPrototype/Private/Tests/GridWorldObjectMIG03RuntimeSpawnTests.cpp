@@ -131,11 +131,12 @@ bool FGridWorldObjectMIG03RuntimeSpawnFromVisualCompositionTest::RunTest(const F
 	ButtonDefinition->bIsInteractable = true;
 	ButtonDefinition->PlacementSurface = EGridObjectPlacementKind::Wall;
 	ButtonDefinition->RuntimeActorClass = AGridButtonActor::StaticClass();
-	ButtonDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(ButtonDefinition);
-	ButtonDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
-	ButtonDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::X;
-	ButtonDefinition->MovingParts.Part0.Motion.Amount = 6.0f;
-	ButtonDefinition->MovingParts.Part0.Motion.Duration = 0.08f;
+	ButtonDefinition->MovingParts.SetNum(1);
+	ButtonDefinition->MovingParts[0].Mesh = NewObject<UStaticMesh>(ButtonDefinition);
+	ButtonDefinition->MovingParts[0].Motion.Type = EGridWorldObjectMotionType::Translation;
+	ButtonDefinition->MovingParts[0].Motion.Axis = EGridWorldObjectMotionAxis::X;
+	ButtonDefinition->MovingParts[0].Motion.Amount = 6.0f;
+	ButtonDefinition->MovingParts[0].Motion.Duration = 0.08f;
 	TestTrue(TEXT("Button definition reports moving presentation"), ButtonDefinition->HasMovingVisualPart());
 	TestEqual(TEXT("Button definition defines exactly one moving part"), ButtonDefinition->GetDefinedMovingPartCount(), 1);
 	Runtime->WorldObjectDefinitions.Add(ButtonDefinition);

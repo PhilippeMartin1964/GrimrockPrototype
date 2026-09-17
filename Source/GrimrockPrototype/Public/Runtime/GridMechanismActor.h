@@ -25,14 +25,13 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mechanism")
 	TObjectPtr<UStaticMeshComponent> MovingMeshComponent = nullptr;
 
-	/** MovingPart[1]. Null mesh means the second moving slot is unused. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mechanism")
-	TObjectPtr<UStaticMeshComponent> SecondaryMovingMeshComponent = nullptr;
+	/** Runtime components matching Definition->MovingParts by index. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Mechanism")
+	TArray<TObjectPtr<UStaticMeshComponent>> MovingPartMeshComponents;
 
 protected:
 	void SetFixedMesh(UStaticMesh* Mesh);
 	void SetMovingMesh(UStaticMesh* Mesh);
-	void SetSecondaryMovingMesh(UStaticMesh* Mesh);
 
 	/** Local offset used by one-part mechanism state machines relative to MovingPart[0].LocalTransform. */
 	void SetMovingRelativeLocation(const FVector& RelativeLocation);
@@ -42,7 +41,7 @@ protected:
 	void SetMovingRelativeRotation(const FRotator& RelativeRotation);
 	FRotator GetMovingRelativeRotation() const;
 
-	/** Applies the authored generic Motion for Part0 or Part1 from its LocalTransform. */
+	/** Applies the authored generic Motion for one moving part from its LocalTransform. */
 	void ApplyMovingPartMotionAlpha(int32 PartIndex, float Alpha);
 	void ApplyAllMovingPartMotionsAlpha(float Alpha);
 
@@ -58,14 +57,10 @@ protected:
 		return true;
 	}
 
-	const FGridWorldObjectMotion& GetMovingPartMotion(int32 PartIndex) const
-	{
-		return PartIndex == 1 ? MovingPart1Motion : MovingPart0Motion;
-	}
+	const FGridWorldObjectMotion& GetMovingPartMotion(int32 PartIndex) const;
+	UStaticMeshComponent* GetMovingPartComponent(int32 PartIndex) const;
 
 private:
-	FTransform MovingPart0BaseTransform = FTransform::Identity;
-	FTransform MovingPart1BaseTransform = FTransform::Identity;
-	FGridWorldObjectMotion MovingPart0Motion;
-	FGridWorldObjectMotion MovingPart1Motion;
+	TArray<FTransform> MovingPartBaseTransforms;
+	TArray<FGridWorldObjectMotion> MovingPartMotions;
 };

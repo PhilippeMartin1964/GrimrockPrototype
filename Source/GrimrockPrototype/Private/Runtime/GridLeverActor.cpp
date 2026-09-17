@@ -59,7 +59,7 @@ void AGridLeverActor::SetLeverState(bool bNewOn)
 		return;
 	}
 
-	const float DirectionDuration = GetTargetMotionDuration(bReverseMotion);
+	const float DirectionDuration = FMath::Max(0.0f, GetMovingPartMotion(0).GetDuration(bReverseMotion));
 	CurrentToggleDuration = FMath::Max(0.01f, DirectionDuration * Travel);
 	bIsAnimating = true;
 	SetActorTickEnabled(true);
@@ -97,7 +97,7 @@ void AGridLeverActor::InitializeRuntimeWorldObject(
 
 	// A placed lever has no authored initial-state override: it always starts at rest/off.
 	// RECOVERY01-C2: ToggleDuration remains the forward cache; reverse timing is resolved on demand.
-	ToggleDuration = GetTargetMotionDuration(false);
+	ToggleDuration = FMath::Max(0.0f, GetMovingPartMotion(0).GetDuration(false));
 	bIsOn = false;
 	bIsAnimating = false;
 	AnimElapsed = 0.f;

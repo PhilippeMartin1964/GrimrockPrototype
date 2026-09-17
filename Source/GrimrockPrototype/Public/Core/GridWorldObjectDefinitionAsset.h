@@ -203,15 +203,12 @@ public:
 			ToolTip = "Currently displayed/configured at definition level; actual flicker support depends on the runtime light component path."))
 	bool bUseLightFlicker = false;
 
-	/**
-	 * WORLDOBJ-MIG03 target visual authoring contract.
-	 * StaticPart is optional. MovingParts contains exactly two optional slots, therefore an object can have 0, 1 or 2 moving parts and never a third.
-	 */
+	/** WORLDOBJ-MOVINGPARTS01 visual composition: optional static part and zero or more moving parts. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Composition", meta = (DisplayName = "Static Part"))
 	FGridWorldObjectStaticPart StaticPart;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Composition", meta = (DisplayName = "Moving Parts"))
-	FGridWorldObjectMovingParts MovingParts;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Composition")
+	TArray<FGridWorldObjectMovingPart> MovingParts;
 
 	/**
 	 * PUZZLE01-LUA01 generic cook-safe visual vocabulary.
@@ -261,17 +258,22 @@ public:
 
 	int32 GetDefinedMovingPartCount() const
 	{
-		return MovingParts.NumDefined();
+		int32 Count = 0;
+		for (const FGridWorldObjectMovingPart& Part : MovingParts)
+		{
+			Count += Part.IsDefined() ? 1 : 0;
+		}
+		return Count;
 	}
 
 	bool HasAnyVisualPart() const
 	{
-		return StaticPart.IsDefined() || !MovingParts.IsEmpty();
+		return StaticPart.IsDefined() || HasMovingVisualPart();
 	}
 
 	bool HasMovingVisualPart() const
 	{
-		return !MovingParts.IsEmpty();
+		return MovingParts.ContainsByPredicate([](const FGridWorldObjectMovingPart& Part) { return Part.IsDefined(); });
 	}
 
 	virtual void PostLoad() override;
@@ -291,6 +293,7 @@ public:
 
 	bool HasCompletePitTrapdoorCover() const
 	{
-		return MovingParts.Part0.IsDefined() && MovingParts.Part1.IsDefined();
+		return MovingParts.IsValidIndex(0) && MovingParts.IsValidIndex(1) &&
+			MovingParts[0].IsDefined() && MovingParts[1].IsDefined();
 	}
 };

@@ -28,11 +28,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* MeshComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	UStaticMeshComponent* MovingPart0MeshComponent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	UStaticMeshComponent* MovingPart1MeshComponent;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Components")
+	TArray<TObjectPtr<UStaticMeshComponent>> MovingPartMeshComponents;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USkeletalMeshComponent* SkeletalMeshComponent;
@@ -46,7 +43,7 @@ public:
 	/** Initializes a standalone single-mesh preview from native typed placement identity. */
 	void InitializePreviewObject(FGuid InObjectId, EGridLevelObjectType InObjectType, UStaticMesh* Mesh);
 
-	/** Renders StaticPart + resolved MovingPart[0..1] using the same sparse instance overrides as runtime. */
+	/** Renders StaticPart + all resolved moving parts using the same sparse instance overrides as runtime. */
 	void InitializePreviewObjectFromDefinition(
 		FGuid InObjectId,
 		EGridLevelObjectType InObjectType,

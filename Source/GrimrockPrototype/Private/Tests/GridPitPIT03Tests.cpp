@@ -161,8 +161,9 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	PitDefinition->DefinitionId = TEXT("Pit_Stone_01");
 	PitDefinition->SupportedType = EGridLevelObjectType::Pit;
 	PitDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
-	PitDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(Runtime);
-	PitDefinition->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(Runtime);
+	PitDefinition->MovingParts.SetNum(2);
+	PitDefinition->MovingParts[0].Mesh = NewObject<UStaticMesh>(Runtime);
+	PitDefinition->MovingParts[1].Mesh = NewObject<UStaticMesh>(Runtime);
 	PitDefinition->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
 
 	Runtime->DungeonAsset = Dungeon;
@@ -259,19 +260,20 @@ bool FGridPIT03PresentationActorTest::RunTest(const FString& Parameters)
 
 	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(Actor);
 	Definition->SupportedType = EGridLevelObjectType::Pit;
-	Definition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(Actor);
-	Definition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	Definition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	Definition->MovingParts.Part0.Motion.Pivot = LeftHinge;
+	Definition->MovingParts.SetNum(2);
+	Definition->MovingParts[0].Mesh = NewObject<UStaticMesh>(Actor);
+	Definition->MovingParts[0].Motion.Type = EGridWorldObjectMotionType::Rotation;
+	Definition->MovingParts[0].Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	Definition->MovingParts[0].Motion.Pivot = LeftHinge;
 	// Positive quaternion rotation around Y produces negative Unreal Pitch.
-	Definition->MovingParts.Part0.Motion.Amount = OpenAngleDegrees;
-	Definition->MovingParts.Part0.Motion.Duration = MoveDuration;
-	Definition->MovingParts.Part1.Mesh = NewObject<UStaticMesh>(Actor);
-	Definition->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	Definition->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	Definition->MovingParts.Part1.Motion.Pivot = RightHinge;
-	Definition->MovingParts.Part1.Motion.Amount = -OpenAngleDegrees;
-	Definition->MovingParts.Part1.Motion.Duration = MoveDuration;
+	Definition->MovingParts[0].Motion.Amount = OpenAngleDegrees;
+	Definition->MovingParts[0].Motion.Duration = MoveDuration;
+	Definition->MovingParts[1].Mesh = NewObject<UStaticMesh>(Actor);
+	Definition->MovingParts[1].Motion.Type = EGridWorldObjectMotionType::Rotation;
+	Definition->MovingParts[1].Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	Definition->MovingParts[1].Motion.Pivot = RightHinge;
+	Definition->MovingParts[1].Motion.Amount = -OpenAngleDegrees;
+	Definition->MovingParts[1].Motion.Duration = MoveDuration;
 
 	Actor->InitializeRuntimeMechanismVisuals(FGridRuntimeWorldObjectData(Pit), Definition, FTransform::Identity);
 	Actor->InitializeRuntimeWorldObject(FGridRuntimeWorldObjectData(Pit), nullptr, FTransform::Identity);

@@ -30,7 +30,7 @@ Les items ramassables utilisent une seule `UGridItemDefinitionAsset`. Les monstr
 - `InstanceConfig.Relocation`, `Pit`, `ReceptacleInitialContent` et `bStartsUnlocked` pour les données naturellement locales au niveau ;
 - `InstanceConfig.bDoorInitiallyOpen` pour l'état initial d'une porte ;
 - `InstanceConfig.bRelocationInitiallyEnabled` pour l'état initial d'une Relocation ;
-- `InstanceConfig.MovingPartOverrides` pour les rares exceptions visuelles historiques d'une partie mobile (`LocalTransform`, `Amount`, durée forward), indexées par `PartIndex` 0 ou 1 ;
+- `InstanceConfig.MovingPartOverrides` pour les rares exceptions visuelles historiques d'une partie mobile (`LocalTransform`, `Amount`, durée forward), indexées par `PartIndex` existant ;
 - `DoorChainMode` (`Inherit` / `Enabled` / `Disabled`) et l'override optionnel de `ChainPullDuration` pour les exceptions historiques de chaîne de porte.
 
 Il n'existe plus de `bInitiallyEnabled` ou `bInitiallyActive` générique dans les placements persistés. L'existence d'un world object, d'un loose item ou d'un objet logique est impliquée par sa présence dans la collection du niveau. Les états initiaux qui ont une vraie signification gameplay sont nommés explicitement :

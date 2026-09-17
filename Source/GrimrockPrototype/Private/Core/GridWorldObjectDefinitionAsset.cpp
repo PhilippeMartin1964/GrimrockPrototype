@@ -255,8 +255,8 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 			if (!StaticPart.IsDefined()) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Pit requires a Static Part for the permanent pit geometry."));
 			if (bBlocksMovement) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error, TEXT("Pit must not block movement; entering its cell triggers the fall."));
 			if (!bHideCellFloor) AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Warning, TEXT("Pit should hide the standard cell floor."));
-			const bool bHasPart0 = MovingParts.Part0.IsDefined();
-			const bool bHasPart1 = MovingParts.Part1.IsDefined();
+			const bool bHasPart0 = MovingParts.IsValidIndex(0) && MovingParts[0].IsDefined();
+			const bool bHasPart1 = MovingParts.IsValidIndex(1) && MovingParts[1].IsDefined();
 			if (bHasPart0 != bHasPart1)
 			{
 				AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,
@@ -274,8 +274,8 @@ bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObject
 			}
 			if (bHasPart0)
 			{
-				const FGridWorldObjectMotion& Motion0 = MovingParts.Part0.Motion;
-				const FGridWorldObjectMotion& Motion1 = MovingParts.Part1.Motion;
+				const FGridWorldObjectMotion& Motion0 = MovingParts[0].Motion;
+				const FGridWorldObjectMotion& Motion1 = MovingParts[1].Motion;
 				if (!FMath::IsFinite(Motion0.Amount) || !FMath::IsFinite(Motion1.Amount) || FMath::Abs(Motion0.Amount) > 120.0f || FMath::Abs(Motion1.Amount) > 120.0f)
 				{
 					AddValidationMessage(OutMessages, EGridWorldObjectDefinitionValidationSeverity::Error,

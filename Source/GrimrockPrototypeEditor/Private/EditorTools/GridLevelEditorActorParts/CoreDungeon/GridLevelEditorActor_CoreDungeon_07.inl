@@ -52,7 +52,7 @@ bool AGridLevelEditorActor::EnsureStairsRelocationDefinitions(FString& OutError)
 		Definition.bIsLightSource = false;
 		Definition.StaticPart.Mesh = Mesh;
 		Definition.StaticPart.LocalTransform = FTransform::Identity;
-		Definition.MovingParts = FGridWorldObjectMovingParts();
+		Definition.MovingParts.Reset();
 		Definition.RuntimeActorClass = AGridGenericObjectActor::StaticClass();
 		Definition.MarkPackageDirty();
 	};
@@ -163,27 +163,27 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 
 	// WORLDOBJ-MIG04: a pit has either no moving cover or a complete Part0/Part1 pair.
 	// When a complete pair exists, Motion is the sole persisted hinge/angle/duration authority.
-	if (PitDefinition->MovingParts.NumDefined() == 1)
+	if (PitDefinition->GetDefinedMovingPartCount() == 1)
 	{
-		PitDefinition->MovingParts = FGridWorldObjectMovingParts();
+		PitDefinition->MovingParts.Reset();
 		UE_LOG(LogTemp, Warning,
 			TEXT("WORLDOBJ-MIG04: incomplete Pit MovingParts reset for %s; a Pit requires either zero or two moving parts."),
 			*PitDefinition->GetPathName());
 	}
-	else if (PitDefinition->MovingParts.NumDefined() == 2)
+	else if (PitDefinition->GetDefinedMovingPartCount() == 2)
 	{
-		PitDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
-		PitDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-		PitDefinition->MovingParts.Part0.Motion.Pivot = FVector(-85.f, 0.f, -5.f);
+		PitDefinition->MovingParts[0].Motion.Type = EGridWorldObjectMotionType::Rotation;
+		PitDefinition->MovingParts[0].Motion.Axis = EGridWorldObjectMotionAxis::Y;
+		PitDefinition->MovingParts[0].Motion.Pivot = FVector(-85.f, 0.f, -5.f);
 		// With the authored +/-85 cm hinges, these signs rotate both leaves downward.
-		PitDefinition->MovingParts.Part0.Motion.Amount = 80.f;
-		PitDefinition->MovingParts.Part0.Motion.Duration = 0.75f;
+		PitDefinition->MovingParts[0].Motion.Amount = 80.f;
+		PitDefinition->MovingParts[0].Motion.Duration = 0.75f;
 
-		PitDefinition->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
-		PitDefinition->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-		PitDefinition->MovingParts.Part1.Motion.Pivot = FVector(85.f, 0.f, -5.f);
-		PitDefinition->MovingParts.Part1.Motion.Amount = -80.f;
-		PitDefinition->MovingParts.Part1.Motion.Duration = 0.75f;
+		PitDefinition->MovingParts[1].Motion.Type = EGridWorldObjectMotionType::Rotation;
+		PitDefinition->MovingParts[1].Motion.Axis = EGridWorldObjectMotionAxis::Y;
+		PitDefinition->MovingParts[1].Motion.Pivot = FVector(85.f, 0.f, -5.f);
+		PitDefinition->MovingParts[1].Motion.Amount = -80.f;
+		PitDefinition->MovingParts[1].Motion.Duration = 0.75f;
 	}
 
 	PitDefinition->MarkPackageDirty();
@@ -217,7 +217,7 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 	UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
 
 	UE_LOG(LogTemp, Log, TEXT("Pit trapdoor definition ensured from generic Motion: Pit=%s Palette=%s Created=%s MovingParts=%d."),
-		*PitDefinition->GetPathName(), *ObjectPalette->GetPathName(), bCreated ? TEXT("true") : TEXT("false"), PitDefinition->MovingParts.NumDefined());
+		*PitDefinition->GetPathName(), *ObjectPalette->GetPathName(), bCreated ? TEXT("true") : TEXT("false"), PitDefinition->GetDefinedMovingPartCount());
 	return true;
 #else
 	OutError = TEXT("EnsurePitTrapdoorDefinition is editor-only.");

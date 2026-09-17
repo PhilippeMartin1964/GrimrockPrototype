@@ -26,20 +26,6 @@ AGridEditorPreviewObjectActor::AGridEditorPreviewObjectActor()
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	MeshComponent->SetMobility(EComponentMobility::Movable);
 
-	MovingPart0MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MovingPart0"));
-	MovingPart0MeshComponent->SetupAttachment(SceneRoot);
-	MovingPart0MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	MovingPart0MeshComponent->SetGenerateOverlapEvents(false);
-	MovingPart0MeshComponent->SetMobility(EComponentMobility::Movable);
-	MovingPart0MeshComponent->SetVisibility(false, true);
-
-	MovingPart1MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MovingPart1"));
-	MovingPart1MeshComponent->SetupAttachment(SceneRoot);
-	MovingPart1MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	MovingPart1MeshComponent->SetGenerateOverlapEvents(false);
-	MovingPart1MeshComponent->SetMobility(EComponentMobility::Movable);
-	MovingPart1MeshComponent->SetVisibility(false, true);
-
 	SkeletalMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
 	SkeletalMeshComponent->SetupAttachment(SceneRoot);
 	SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -50,19 +36,23 @@ AGridEditorPreviewObjectActor::AGridEditorPreviewObjectActor()
 
 void AGridEditorPreviewObjectActor::ResetStaticPreviewComponents()
 {
-	for (UStaticMeshComponent* Component : {MeshComponent, MovingPart0MeshComponent, MovingPart1MeshComponent})
+	if (MeshComponent)
 	{
-		if (!Component)
-		{
-			continue;
-		}
-		Component->SetStaticMesh(nullptr);
-		Component->SetRelativeTransform(FTransform::Identity);
-		Component->SetVisibility(false, true);
-		Component->SetRenderCustomDepth(false);
-		Component->SetCustomDepthStencilValue(0);
-		Component->MarkRenderStateDirty();
+		MeshComponent->SetStaticMesh(nullptr);
+		MeshComponent->SetRelativeTransform(FTransform::Identity);
+		MeshComponent->SetVisibility(false, true);
+		MeshComponent->SetRenderCustomDepth(false);
+		MeshComponent->SetCustomDepthStencilValue(0);
+		MeshComponent->MarkRenderStateDirty();
 	}
+	for (UStaticMeshComponent* Component : MovingPartMeshComponents)
+	{
+		if (Component)
+		{
+			Component->DestroyComponent();
+		}
+	}
+	MovingPartMeshComponents.Reset();
 }
 
 void AGridEditorPreviewObjectActor::InitializePreviewObject(FGuid InObjectId, EGridLevelObjectType InObjectType, UStaticMesh* Mesh)
@@ -113,28 +103,28 @@ void AGridEditorPreviewObjectActor::InitializePreviewObjectFromDefinition(
 		SkeletalMeshComponent->SetVisibility(false, true);
 	}
 
-	const auto ConfigurePart = [](UStaticMeshComponent* Component, UStaticMesh* Mesh, const FTransform& LocalTransform)
-	{
-		if (!Component)
-		{
-			return;
-		}
-		Component->SetStaticMesh(Mesh);
-		Component->SetRelativeTransform(LocalTransform);
-		Component->SetVisibility(Mesh != nullptr, true);
-	};
-
 	const TArray<FGridWorldObjectMovingPartInstanceOverride> EmptyOverrides;
 	const TArray<FGridWorldObjectMovingPartInstanceOverride>& Overrides =
 		InstanceConfig ? InstanceConfig->MovingPartOverrides : EmptyOverrides;
-	const FGridWorldObjectMovingPart ResolvedPart0 =
-		GridWorldObjectInstanceVisual::ResolveMovingPart(Definition->MovingParts.Part0, Overrides, 0);
-	const FGridWorldObjectMovingPart ResolvedPart1 =
-		GridWorldObjectInstanceVisual::ResolveMovingPart(Definition->MovingParts.Part1, Overrides, 1);
-
-	ConfigurePart(MeshComponent, Definition->StaticPart.Mesh.Get(), Definition->StaticPart.LocalTransform);
-	ConfigurePart(MovingPart0MeshComponent, ResolvedPart0.Mesh.Get(), ResolvedPart0.LocalTransform);
-	ConfigurePart(MovingPart1MeshComponent, ResolvedPart1.Mesh.Get(), ResolvedPart1.LocalTransform);
+	MeshComponent->SetStaticMesh(Definition->StaticPart.Mesh.Get());
+	MeshComponent->SetRelativeTransform(Definition->StaticPart.LocalTransform);
+	MeshComponent->SetVisibility(Definition->StaticPart.Mesh != nullptr, true);
+	for (int32 PartIndex = 0; PartIndex < Definition->MovingParts.Num(); ++PartIndex)
+	{
+		const FGridWorldObjectMovingPart ResolvedPart = GridWorldObjectInstanceVisual::ResolveMovingPart(
+			Definition->MovingParts[PartIndex], Overrides, PartIndex);
+		UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(this, *FString::Printf(TEXT("MovingPart%d"), PartIndex));
+		Component->SetupAttachment(SceneRoot);
+		Component->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Component->SetGenerateOverlapEvents(false);
+		Component->SetMobility(EComponentMobility::Movable);
+		Component->SetStaticMesh(ResolvedPart.Mesh.Get());
+		Component->SetRelativeTransform(ResolvedPart.LocalTransform);
+		Component->SetVisibility(ResolvedPart.Mesh != nullptr, true);
+		AddInstanceComponent(Component);
+		Component->RegisterComponent();
+		MovingPartMeshComponents.Add(Component);
+	}
 
 	bIsHovered = false;
 	bIsSelected = false;
@@ -211,7 +201,9 @@ void AGridEditorPreviewObjectActor::RefreshStencilState()
 	};
 
 	ApplyStencil(MeshComponent);
-	ApplyStencil(MovingPart0MeshComponent);
-	ApplyStencil(MovingPart1MeshComponent);
+	for (UStaticMeshComponent* Component : MovingPartMeshComponents)
+	{
+		ApplyStencil(Component);
+	}
 	ApplyStencil(SkeletalMeshComponent);
 }

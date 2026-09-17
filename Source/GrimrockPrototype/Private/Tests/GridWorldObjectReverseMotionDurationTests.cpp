@@ -145,13 +145,14 @@ bool FRecoveryC2ReverseMotionDurationTest::RunTest(const FString& Parameters)
 	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
 	Definition->DefinitionId = TEXT("RecoveryC2_Button");
 	Definition->SupportedType = EGridLevelObjectType::Button;
-	Definition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(Definition);
-	Definition->MovingParts.Part0.LocalTransform = FTransform::Identity;
-	Definition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
-	Definition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::X;
-	Definition->MovingParts.Part0.Motion.Amount = 6.0f;
-	Definition->MovingParts.Part0.Motion.Duration = 0.08f;
-	Definition->MovingParts.Part0.Motion.ReverseDuration = 0.10f;
+	Definition->MovingParts.SetNum(1);
+	Definition->MovingParts[0].Mesh = NewObject<UStaticMesh>(Definition);
+	Definition->MovingParts[0].LocalTransform = FTransform::Identity;
+	Definition->MovingParts[0].Motion.Type = EGridWorldObjectMotionType::Translation;
+	Definition->MovingParts[0].Motion.Axis = EGridWorldObjectMotionAxis::X;
+	Definition->MovingParts[0].Motion.Amount = 6.0f;
+	Definition->MovingParts[0].Motion.Duration = 0.08f;
+	Definition->MovingParts[0].Motion.ReverseDuration = 0.10f;
 	Definition->DefaultBehavior.ButtonAnimation.ButtonHoldTime = 0.15f;
 
 	FGridWorldObjectInstance Instance;

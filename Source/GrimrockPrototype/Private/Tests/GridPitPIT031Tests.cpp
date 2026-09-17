@@ -150,19 +150,20 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	PitDefinition->SupportedType = EGridLevelObjectType::Pit;
 	PitDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
 	PitDefinition->StaticPart.Mesh = PitMesh;
-	PitDefinition->MovingParts.Part0.Mesh = LeftLeafMesh;
-	PitDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	PitDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	PitDefinition->MovingParts.Part0.Motion.Pivot = FVector(-85.0f, 0.0f, -5.0f);
+	PitDefinition->MovingParts.SetNum(2);
+	PitDefinition->MovingParts[0].Mesh = LeftLeafMesh;
+	PitDefinition->MovingParts[0].Motion.Type = EGridWorldObjectMotionType::Rotation;
+	PitDefinition->MovingParts[0].Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	PitDefinition->MovingParts[0].Motion.Pivot = FVector(-85.0f, 0.0f, -5.0f);
 	// Around Y, positive quaternion rotation maps to negative Unreal Pitch and opens the left leaf downward.
-	PitDefinition->MovingParts.Part0.Motion.Amount = 80.0f;
-	PitDefinition->MovingParts.Part0.Motion.Duration = 1.0f;
-	PitDefinition->MovingParts.Part1.Mesh = RightLeafMesh;
-	PitDefinition->MovingParts.Part1.Motion.Type = EGridWorldObjectMotionType::Rotation;
-	PitDefinition->MovingParts.Part1.Motion.Axis = EGridWorldObjectMotionAxis::Y;
-	PitDefinition->MovingParts.Part1.Motion.Pivot = FVector(85.0f, 0.0f, -5.0f);
-	PitDefinition->MovingParts.Part1.Motion.Amount = -80.0f;
-	PitDefinition->MovingParts.Part1.Motion.Duration = 1.0f;
+	PitDefinition->MovingParts[0].Motion.Amount = 80.0f;
+	PitDefinition->MovingParts[0].Motion.Duration = 1.0f;
+	PitDefinition->MovingParts[1].Mesh = RightLeafMesh;
+	PitDefinition->MovingParts[1].Motion.Type = EGridWorldObjectMotionType::Rotation;
+	PitDefinition->MovingParts[1].Motion.Axis = EGridWorldObjectMotionAxis::Y;
+	PitDefinition->MovingParts[1].Motion.Pivot = FVector(85.0f, 0.0f, -5.0f);
+	PitDefinition->MovingParts[1].Motion.Amount = -80.0f;
+	PitDefinition->MovingParts[1].Motion.Duration = 1.0f;
 	PitDefinition->RuntimeActorClass = AGridPitTrapdoorActor::StaticClass();
 
 	Runtime->DungeonAsset = Dungeon;
@@ -196,9 +197,9 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Right hinge uses requested local Z"), PitAActor->GetRightHingeLocation().Z, -5.0);
 
 	TestTrue(TEXT("Closed left leaf uses authored MovingPart local transform"),
-		PitAActor->LeftLeafMeshComponent->GetRelativeTransform().Equals(PitDefinition->MovingParts.Part0.LocalTransform, KINDA_SMALL_NUMBER));
+		PitAActor->LeftLeafMeshComponent->GetRelativeTransform().Equals(PitDefinition->MovingParts[0].LocalTransform, KINDA_SMALL_NUMBER));
 	TestTrue(TEXT("Closed right leaf uses authored MovingPart local transform"),
-		PitAActor->RightLeafMeshComponent->GetRelativeTransform().Equals(PitDefinition->MovingParts.Part1.LocalTransform, KINDA_SMALL_NUMBER));
+		PitAActor->RightLeafMeshComponent->GetRelativeTransform().Equals(PitDefinition->MovingParts[1].LocalTransform, KINDA_SMALL_NUMBER));
 
 	TestEqual(TEXT("Closed left leaf pitch is zero"), PitAActor->GetLeftLeafPitch(), 0.0f);
 	TestEqual(TEXT("Closed right leaf pitch is zero"), PitAActor->GetRightLeafPitch(), 0.0f);

@@ -99,8 +99,8 @@ void AGridButtonActor::InitializeRuntimeWorldObject(
 	AGridRuntimeObjectActor::InitializeRuntimeWorldObject(ObjectData, nullptr, WorldTransform);
 
 	// RECOVERY01-C2: generic Motion owns both forward and optional reverse timing.
-	PressDuration = GetTargetMotionDuration(false);
-	ReleaseDuration = GetTargetMotionDuration(true);
+	PressDuration = FMath::Max(0.0f, GetMovingPartMotion(0).GetDuration(false));
+	ReleaseDuration = FMath::Max(0.0f, GetMovingPartMotion(0).GetDuration(true));
 
 	// WORLDOBJ-MIG06/MIG09-E2: shared gameplay comes from Definition + instance-owned runtime overrides.
 	const FGridObjectBehaviorParams EffectiveBehavior = ResolveEffectiveBehavior(ObjectData);

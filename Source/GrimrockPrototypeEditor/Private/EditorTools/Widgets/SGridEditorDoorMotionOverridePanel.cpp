@@ -33,16 +33,7 @@ namespace
 
 	const FGridWorldObjectMovingPart* GetDefinitionMovingPart(const UGridWorldObjectDefinitionAsset* Definition, int32 PartIndex)
 	{
-		if (!Definition)
-		{
-			return nullptr;
-		}
-		switch (PartIndex)
-		{
-			case 0: return &Definition->MovingParts.Part0;
-			case 1: return &Definition->MovingParts.Part1;
-			default: return nullptr;
-		}
+		return Definition && Definition->MovingParts.IsValidIndex(PartIndex) ? &Definition->MovingParts[PartIndex] : nullptr;
 	}
 
 	const FGridWorldObjectMovingPartInstanceOverride* FindMovingPartOverride(
@@ -171,7 +162,7 @@ TSharedRef<SWidget> SGridEditorDoorMotionOverridePanel::BuildContent()
 		];
 
 	bool bHasMovingPart = false;
-	for (int32 PartIndex = 0; PartIndex < 2; ++PartIndex)
+	for (int32 PartIndex = 0; PartIndex < Definition->MovingParts.Num(); ++PartIndex)
 	{
 		const FGridWorldObjectMovingPart* Part = GetDefinitionMovingPart(Definition, PartIndex);
 		if (!Part || !Part->IsDefined())

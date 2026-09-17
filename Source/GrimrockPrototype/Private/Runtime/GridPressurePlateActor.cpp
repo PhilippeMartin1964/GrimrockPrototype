@@ -25,7 +25,7 @@ void AGridPressurePlateActor::InitializeRuntimePlate(
 
 	// A pressure plate never has an authored pressed state. Its effective state is derived from actual occupancy/weight after rebuild.
 	// RECOVERY01-C2: MoveDuration remains the forward cache; reverse timing is resolved on demand.
-	MoveDuration = GetTargetMotionDuration(false);
+	MoveDuration = FMath::Max(0.0f, GetMovingPartMotion(0).GetDuration(false));
 	const FGridObjectBehaviorParams EffectiveBehavior = ResolveEffectiveBehavior(ObjectData);
 	const FGridPressurePlateWeightParams& WeightParams = EffectiveBehavior.PressurePlateWeight;
 	SetWeightState(0.0f, WeightParams.RequiredItemWeight, WeightParams.bUseItemWeight, WeightParams.bActivateWhenPartyPresent);
@@ -62,7 +62,7 @@ void AGridPressurePlateActor::SetPressed(bool bNewPressed)
 		return;
 	}
 
-	const float DirectionDuration = GetTargetMotionDuration(bReverseMotion);
+	const float DirectionDuration = FMath::Max(0.0f, GetMovingPartMotion(0).GetDuration(bReverseMotion));
 	CurrentMoveDuration = FMath::Max(0.01f, DirectionDuration * Travel);
 	bIsAnimating = true;
 	SetActorTickEnabled(true);

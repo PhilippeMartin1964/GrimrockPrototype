@@ -27,7 +27,8 @@ namespace GridDoorTestUtils
 		}
 		Definition->SupportedType = EGridLevelObjectType::Door;
 
-		FGridWorldObjectMovingPart& MovingPart = Definition->MovingParts.Part0;
+		Definition->MovingParts.SetNum(1);
+		FGridWorldObjectMovingPart& MovingPart = Definition->MovingParts[0];
 		if (!MovingPart.Mesh)
 		{
 			MovingPart.Mesh = NewObject<UStaticMesh>(Definition);

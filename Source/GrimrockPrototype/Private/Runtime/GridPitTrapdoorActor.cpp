@@ -30,10 +30,10 @@ void AGridPitTrapdoorActor::InitializeRuntimeMechanismVisuals(
 	AGridMechanismActor::InitializeRuntimeMechanismVisuals(ObjectData, Definition, WorldTransform);
 
 	// RECOVERY01-C2: MoveDuration remains the forward/open cache; closing resolves ReverseDuration on demand.
-	MoveDuration = GetTargetMotionDuration(false);
+	MoveDuration = FMath::Max(0.0f, FMath::Max(GetMovingPartMotion(0).GetDuration(false), GetMovingPartMotion(1).GetDuration(false)));
 
 	LeftLeafMeshComponent = MovingMeshComponent;
-	RightLeafMeshComponent = SecondaryMovingMeshComponent;
+	RightLeafMeshComponent = GetMovingPartComponent(1);
 
 	if (FixedMeshComponent)
 	{
@@ -55,7 +55,7 @@ void AGridPitTrapdoorActor::InitializeRuntimeMechanismVisuals(
 	RefreshTickEnabled();
 
 	const bool bHasPrimary = MovingMeshComponent && MovingMeshComponent->GetStaticMesh() != nullptr;
-	const bool bHasSecondary = SecondaryMovingMeshComponent && SecondaryMovingMeshComponent->GetStaticMesh() != nullptr;
+	const bool bHasSecondary = RightLeafMeshComponent && RightLeafMeshComponent->GetStaticMesh() != nullptr;
 	if (bHasPrimary != bHasSecondary)
 	{
 		UE_LOG(LogTemp, Warning,
@@ -73,8 +73,8 @@ void AGridPitTrapdoorActor::InitializeRuntimeWorldObject(
 
 bool AGridPitTrapdoorActor::HasCompleteTrapdoorCover() const
 {
-	return MovingMeshComponent && SecondaryMovingMeshComponent && MovingMeshComponent->GetStaticMesh() != nullptr &&
-		SecondaryMovingMeshComponent->GetStaticMesh() != nullptr;
+	return GetMovingPartComponent(0) && GetMovingPartComponent(1) && GetMovingPartComponent(0)->GetStaticMesh() != nullptr &&
+		GetMovingPartComponent(1)->GetStaticMesh() != nullptr;
 }
 
 float AGridPitTrapdoorActor::GetLeftLeafPitch() const
@@ -84,7 +84,7 @@ float AGridPitTrapdoorActor::GetLeftLeafPitch() const
 
 float AGridPitTrapdoorActor::GetRightLeafPitch() const
 {
-	return SecondaryMovingMeshComponent ? SecondaryMovingMeshComponent->GetRelativeRotation().Pitch : 0.0f;
+	return RightLeafMeshComponent ? RightLeafMeshComponent->GetRelativeRotation().Pitch : 0.0f;
 }
 
 FVector AGridPitTrapdoorActor::GetLeftHingeLocation() const
@@ -116,7 +116,8 @@ void AGridPitTrapdoorActor::SetPitOpenVisualState(bool bOpen, bool bPlayAudio)
 	}
 
 	bTargetOpen = bOpen;
-	const float DirectionDuration = GetTargetMotionDuration(!bOpen);
+	const float DirectionDuration = FMath::Max(0.0f,
+		FMath::Max(GetMovingPartMotion(0).GetDuration(!bOpen), GetMovingPartMotion(1).GetDuration(!bOpen)));
 	if (DirectionDuration <= KINDA_SMALL_NUMBER)
 	{
 		const bool bWasOpen = bIsOpen;
@@ -225,7 +226,9 @@ void AGridPitTrapdoorActor::UpdateAnimation(float DeltaSeconds)
 
 void AGridPitTrapdoorActor::ApplyOpenAlpha(float Alpha)
 {
-	ApplyAllMovingPartMotionsAlpha(FMath::Clamp(Alpha, 0.0f, 1.0f));
+	const float ClampedAlpha = FMath::Clamp(Alpha, 0.0f, 1.0f);
+	ApplyMovingPartMotionAlpha(0, ClampedAlpha);
+	ApplyMovingPartMotionAlpha(1, ClampedAlpha);
 }
 
 void AGridPitTrapdoorActor::RefreshTrapdoorCollision()
@@ -237,9 +240,9 @@ void AGridPitTrapdoorActor::RefreshTrapdoorCollision()
 	{
 		MovingMeshComponent->SetCollisionEnabled(CollisionMode);
 	}
-	if (SecondaryMovingMeshComponent)
+	if (RightLeafMeshComponent)
 	{
-		SecondaryMovingMeshComponent->SetCollisionEnabled(CollisionMode);
+		RightLeafMeshComponent->SetCollisionEnabled(CollisionMode);
 	}
 }
 

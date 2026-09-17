@@ -526,8 +526,12 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection(F
 	{
 		Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Runtime Actor Class")), GetClassNameText(Definition->RuntimeActorClass.Get()))];
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Static Part Mesh")), GetObjectNameText(Definition->StaticPart.Mesh.Get()))];
-		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Moving Part 0 Mesh")), GetObjectNameText(Definition->MovingParts.Part0.Mesh.Get()))];
-		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Moving Part 1 Mesh")), GetObjectNameText(Definition->MovingParts.Part1.Mesh.Get()))];
+		for (int32 PartIndex = 0; PartIndex < Definition->MovingParts.Num(); ++PartIndex)
+		{
+			Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+				FText::Format(FText::FromString(TEXT("Moving Part {0} Mesh")), FText::AsNumber(PartIndex)),
+				GetObjectNameText(Definition->MovingParts[PartIndex].Mesh.Get()))];
+		}
 		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Moving Part Count")), FText::AsNumber(Definition->GetDefinedMovingPartCount()))];
 	}
 	return GridEditorWidgetHelpers::BuildGridPanelSection(FText::FromString(TEXT("Advanced / Debug")), Root);

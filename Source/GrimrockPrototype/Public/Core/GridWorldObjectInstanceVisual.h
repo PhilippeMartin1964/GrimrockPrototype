@@ -6,7 +6,7 @@
 /**
  * Resolves sparse per-instance visual overrides without mutating the shared definition.
  *
- * The array is intentionally sparse and keyed by PartIndex (0..1). If multiple entries
+ * The array is intentionally sparse and keyed by PartIndex. If multiple entries
  * target the same part, they are applied in authored order so later entries win only for
  * the fields they explicitly override.
  */

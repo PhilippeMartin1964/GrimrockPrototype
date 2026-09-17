@@ -13,10 +13,6 @@ AGridMechanismActor::AGridMechanismActor()
 	MovingMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MovingMesh"));
 	MovingMeshComponent->SetupAttachment(RootComponent);
 	MovingMeshComponent->SetMobility(EComponentMobility::Movable);
-
-	SecondaryMovingMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MovingMesh1"));
-	SecondaryMovingMeshComponent->SetupAttachment(RootComponent);
-	SecondaryMovingMeshComponent->SetMobility(EComponentMobility::Movable);
 }
 
 
@@ -31,16 +27,21 @@ void AGridMechanismActor::InitializeRuntimeMechanismVisuals(
 
 	SetActorTransform(WorldTransform);
 
-	MovingPart0BaseTransform = FTransform::Identity;
-	MovingPart1BaseTransform = FTransform::Identity;
-	MovingPart0Motion = FGridWorldObjectMotion();
-	MovingPart1Motion = FGridWorldObjectMotion();
+	for (int32 Index = MovingPartMeshComponents.Num() - 1; Index >= 1; --Index)
+	{
+		if (UStaticMeshComponent* Component = MovingPartMeshComponents[Index])
+		{
+			Component->DestroyComponent();
+		}
+	}
+	MovingPartMeshComponents.Reset();
+	MovingPartBaseTransforms.Reset();
+	MovingPartMotions.Reset();
 
 	if (!Definition)
 	{
 		SetFixedMesh(nullptr);
 		SetMovingMesh(nullptr);
-		SetSecondaryMovingMesh(nullptr);
 		return;
 	}
 
@@ -51,25 +52,35 @@ void AGridMechanismActor::InitializeRuntimeMechanismVisuals(
 		FixedMeshComponent->SetRelativeTransform(Definition->StaticPart.LocalTransform);
 	}
 
-	const FGridWorldObjectMovingPart ResolvedPart0 = GridWorldObjectInstanceVisual::ResolveMovingPart(
-		Definition->MovingParts.Part0, ObjectData.MovingPartOverrides, 0);
-	const FGridWorldObjectMovingPart ResolvedPart1 = GridWorldObjectInstanceVisual::ResolveMovingPart(
-		Definition->MovingParts.Part1, ObjectData.MovingPartOverrides, 1);
-
-	MovingPart0BaseTransform = ResolvedPart0.LocalTransform;
-	MovingPart0Motion = ResolvedPart0.Motion;
-	SetMovingMesh(ResolvedPart0.Mesh.Get());
-	if (MovingMeshComponent)
+	MovingPartMeshComponents.Reserve(Definition->MovingParts.Num());
+	MovingPartBaseTransforms.Reserve(Definition->MovingParts.Num());
+	MovingPartMotions.Reserve(Definition->MovingParts.Num());
+	for (int32 PartIndex = 0; PartIndex < Definition->MovingParts.Num(); ++PartIndex)
 	{
-		MovingMeshComponent->SetRelativeTransform(MovingPart0BaseTransform);
+		const FGridWorldObjectMovingPart ResolvedPart = GridWorldObjectInstanceVisual::ResolveMovingPart(
+			Definition->MovingParts[PartIndex], ObjectData.MovingPartOverrides, PartIndex);
+		UStaticMeshComponent* Component = MovingMeshComponent;
+		if (PartIndex > 0)
+		{
+			Component = NewObject<UStaticMeshComponent>(this, *FString::Printf(TEXT("MovingPart%d"), PartIndex));
+			Component->SetupAttachment(RootComponent);
+			Component->SetMobility(EComponentMobility::Movable);
+			Component->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Component->SetGenerateOverlapEvents(false);
+			AddInstanceComponent(Component);
+			Component->RegisterComponent();
+		}
+
+		MovingPartMeshComponents.Add(Component);
+		MovingPartBaseTransforms.Add(ResolvedPart.LocalTransform);
+		MovingPartMotions.Add(ResolvedPart.Motion);
+		Component->SetStaticMesh(ResolvedPart.Mesh.Get());
+		Component->SetRelativeTransform(ResolvedPart.LocalTransform);
+		Component->SetVisibility(ResolvedPart.Mesh != nullptr);
 	}
-
-	MovingPart1BaseTransform = ResolvedPart1.LocalTransform;
-	MovingPart1Motion = ResolvedPart1.Motion;
-	SetSecondaryMovingMesh(ResolvedPart1.Mesh.Get());
-	if (SecondaryMovingMeshComponent)
+	if (Definition->MovingParts.IsEmpty())
 	{
-		SecondaryMovingMeshComponent->SetRelativeTransform(MovingPart1BaseTransform);
+		SetMovingMesh(nullptr);
 	}
 }
 
@@ -95,87 +106,81 @@ void AGridMechanismActor::SetMovingMesh(UStaticMesh* Mesh)
 	MovingMeshComponent->SetVisibility(Mesh != nullptr);
 }
 
-void AGridMechanismActor::SetSecondaryMovingMesh(UStaticMesh* Mesh)
-{
-	if (!SecondaryMovingMeshComponent)
-	{
-		return;
-	}
-
-	SecondaryMovingMeshComponent->SetStaticMesh(Mesh);
-	SecondaryMovingMeshComponent->SetVisibility(Mesh != nullptr);
-	SecondaryMovingMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	SecondaryMovingMeshComponent->SetGenerateOverlapEvents(false);
-}
-
 void AGridMechanismActor::SetMovingRelativeLocation(const FVector& RelativeLocation)
 {
-	if (MovingMeshComponent)
+	if (MovingMeshComponent && MovingPartBaseTransforms.IsValidIndex(0))
 	{
-		MovingMeshComponent->SetRelativeLocation(MovingPart0BaseTransform.GetLocation() + RelativeLocation);
+		MovingMeshComponent->SetRelativeLocation(MovingPartBaseTransforms[0].GetLocation() + RelativeLocation);
 	}
 }
 
 FVector AGridMechanismActor::GetMovingRelativeLocation() const
 {
-	return MovingMeshComponent ? MovingMeshComponent->GetRelativeLocation() - MovingPart0BaseTransform.GetLocation() : FVector::ZeroVector;
+	return MovingMeshComponent && MovingPartBaseTransforms.IsValidIndex(0)
+		? MovingMeshComponent->GetRelativeLocation() - MovingPartBaseTransforms[0].GetLocation()
+		: FVector::ZeroVector;
 }
 
 void AGridMechanismActor::SetMovingRelativeRotation(const FRotator& RelativeRotation)
 {
-	if (!MovingMeshComponent)
+	if (!MovingMeshComponent || !MovingPartBaseTransforms.IsValidIndex(0))
 	{
 		return;
 	}
 
-	const FQuat Result = MovingPart0BaseTransform.GetRotation() * RelativeRotation.Quaternion();
+	const FQuat Result = MovingPartBaseTransforms[0].GetRotation() * RelativeRotation.Quaternion();
 	MovingMeshComponent->SetRelativeRotation(Result.GetNormalized());
 }
 
 FRotator AGridMechanismActor::GetMovingRelativeRotation() const
 {
-	if (!MovingMeshComponent)
+	if (!MovingMeshComponent || !MovingPartBaseTransforms.IsValidIndex(0))
 	{
 		return FRotator::ZeroRotator;
 	}
 
-	const FQuat Relative = MovingPart0BaseTransform.GetRotation().Inverse() * MovingMeshComponent->GetRelativeRotation().Quaternion();
+	const FQuat Relative = MovingPartBaseTransforms[0].GetRotation().Inverse() * MovingMeshComponent->GetRelativeRotation().Quaternion();
 	return Relative.GetNormalized().Rotator();
 }
 
 void AGridMechanismActor::ApplyMovingPartMotionAlpha(int32 PartIndex, float Alpha)
 {
-	if (PartIndex == 0)
+	if (MovingPartMeshComponents.IsValidIndex(PartIndex) && MovingPartBaseTransforms.IsValidIndex(PartIndex) &&
+		MovingPartMotions.IsValidIndex(PartIndex) && MovingPartMeshComponents[PartIndex])
 	{
-		if (MovingMeshComponent)
-		{
-			MovingMeshComponent->SetRelativeTransform(MovingPart0Motion.Evaluate(MovingPart0BaseTransform, Alpha));
-		}
-		return;
-	}
-
-	if (PartIndex == 1 && SecondaryMovingMeshComponent)
-	{
-		SecondaryMovingMeshComponent->SetRelativeTransform(MovingPart1Motion.Evaluate(MovingPart1BaseTransform, Alpha));
+		MovingPartMeshComponents[PartIndex]->SetRelativeTransform(
+			MovingPartMotions[PartIndex].Evaluate(MovingPartBaseTransforms[PartIndex], Alpha));
 	}
 }
 
 void AGridMechanismActor::ApplyAllMovingPartMotionsAlpha(float Alpha)
 {
-	ApplyMovingPartMotionAlpha(0, Alpha);
-	ApplyMovingPartMotionAlpha(1, Alpha);
+	for (int32 PartIndex = 0; PartIndex < MovingPartMeshComponents.Num(); ++PartIndex)
+	{
+		ApplyMovingPartMotionAlpha(PartIndex, Alpha);
+	}
 }
 
 float AGridMechanismActor::GetTargetMotionDuration(bool bReverse) const
 {
 	float Duration = 0.0f;
-	if (MovingMeshComponent && MovingMeshComponent->GetStaticMesh())
+	for (int32 PartIndex = 0; PartIndex < MovingPartMeshComponents.Num(); ++PartIndex)
 	{
-		Duration = FMath::Max(Duration, FMath::Max(0.0f, MovingPart0Motion.GetDuration(bReverse)));
-	}
-	if (SecondaryMovingMeshComponent && SecondaryMovingMeshComponent->GetStaticMesh())
-	{
-		Duration = FMath::Max(Duration, FMath::Max(0.0f, MovingPart1Motion.GetDuration(bReverse)));
+		if (MovingPartMeshComponents[PartIndex] && MovingPartMeshComponents[PartIndex]->GetStaticMesh() && MovingPartMotions.IsValidIndex(PartIndex))
+		{
+			Duration = FMath::Max(Duration, FMath::Max(0.0f, MovingPartMotions[PartIndex].GetDuration(bReverse)));
+		}
 	}
 	return Duration;
+}
+
+const FGridWorldObjectMotion& AGridMechanismActor::GetMovingPartMotion(int32 PartIndex) const
+{
+	static const FGridWorldObjectMotion EmptyMotion;
+	return MovingPartMotions.IsValidIndex(PartIndex) ? MovingPartMotions[PartIndex] : EmptyMotion;
+}
+
+UStaticMeshComponent* AGridMechanismActor::GetMovingPartComponent(int32 PartIndex) const
+{
+	return MovingPartMeshComponents.IsValidIndex(PartIndex) ? MovingPartMeshComponents[PartIndex].Get() : nullptr;
 }

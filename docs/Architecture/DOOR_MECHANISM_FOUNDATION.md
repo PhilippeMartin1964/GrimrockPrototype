@@ -57,11 +57,11 @@ La définition porte la composition visuelle et la motion partagée :
 
 ```text
 StaticPart
-MovingParts.Part0
+MovingParts[0]
   ├── Mesh
   ├── LocalTransform
   └── Motion { Type, Axis, Pivot, Amount, Duration, ReverseDuration }
-MovingParts.Part1      // optionnelle
+MovingParts[1..N]      // optionnelles
 ```
 
 Il n'existe plus de `DoorAnimation.OpenHeight` comme autorité de course. Pour une translation, `Motion.Amount` est exprimé en centimètres ; pour une rotation, en degrés. `Duration` est la durée forward et `ReverseDuration` la durée inverse optionnelle.

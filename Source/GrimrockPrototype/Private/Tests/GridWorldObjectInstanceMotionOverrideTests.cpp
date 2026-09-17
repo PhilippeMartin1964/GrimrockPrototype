@@ -213,12 +213,13 @@ bool FRecoveryC11InstanceMovingPartOverridesTest::RunTest(const FString& Paramet
 	}
 
 	UGridWorldObjectDefinitionAsset* DoorDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
-	DoorDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(DoorDefinition);
-	DoorDefinition->MovingParts.Part0.LocalTransform = FTransform::Identity;
-	DoorDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
-	DoorDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Z;
-	DoorDefinition->MovingParts.Part0.Motion.Amount = 170.0f;
-	DoorDefinition->MovingParts.Part0.Motion.Duration = 5.0f;
+	DoorDefinition->MovingParts.SetNum(1);
+	DoorDefinition->MovingParts[0].Mesh = NewObject<UStaticMesh>(DoorDefinition);
+	DoorDefinition->MovingParts[0].LocalTransform = FTransform::Identity;
+	DoorDefinition->MovingParts[0].Motion.Type = EGridWorldObjectMotionType::Translation;
+	DoorDefinition->MovingParts[0].Motion.Axis = EGridWorldObjectMotionAxis::Z;
+	DoorDefinition->MovingParts[0].Motion.Amount = 170.0f;
+	DoorDefinition->MovingParts[0].Motion.Duration = 5.0f;
 
 	FGridWorldObjectInstance DoorInstance;
 	DoorInstance.InstanceId = FGuid::NewGuid();
@@ -263,12 +264,13 @@ bool FRecoveryC11InstanceMovingPartOverridesTest::RunTest(const FString& Paramet
 
 	// 5) Editor preview consumes the same resolved LocalTransform for authored rest state.
 	UGridWorldObjectDefinitionAsset* PlateDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
-	PlateDefinition->MovingParts.Part0.Mesh = NewObject<UStaticMesh>(PlateDefinition);
-	PlateDefinition->MovingParts.Part0.LocalTransform = FTransform::Identity;
-	PlateDefinition->MovingParts.Part0.Motion.Type = EGridWorldObjectMotionType::Translation;
-	PlateDefinition->MovingParts.Part0.Motion.Axis = EGridWorldObjectMotionAxis::Z;
-	PlateDefinition->MovingParts.Part0.Motion.Amount = -4.0f;
-	PlateDefinition->MovingParts.Part0.Motion.Duration = 0.25f;
+	PlateDefinition->MovingParts.SetNum(1);
+	PlateDefinition->MovingParts[0].Mesh = NewObject<UStaticMesh>(PlateDefinition);
+	PlateDefinition->MovingParts[0].LocalTransform = FTransform::Identity;
+	PlateDefinition->MovingParts[0].Motion.Type = EGridWorldObjectMotionType::Translation;
+	PlateDefinition->MovingParts[0].Motion.Axis = EGridWorldObjectMotionAxis::Z;
+	PlateDefinition->MovingParts[0].Motion.Amount = -4.0f;
+	PlateDefinition->MovingParts[0].Motion.Duration = 0.25f;
 
 	FGridWorldObjectInstance PlateInstance;
 	PlateInstance.InstanceId = FGuid::NewGuid();

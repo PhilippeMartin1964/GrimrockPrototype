@@ -67,7 +67,7 @@ FGridWorldObjectInstance
    â””â”€ Door chain overrides
 ```
 
-`FGridWorldObjectMovingPartInstanceOverride` peut seulement surcharger `LocalTransform`, `Motion.Amount` et `Motion.Duration` dâ€™un `PartIndex` 0 ou 1. Il ne peut pas remplacer le mesh, le type, lâ€™axe, le pivot ou `ReverseDuration`.
+`FGridWorldObjectMovingPartInstanceOverride` peut seulement surcharger `LocalTransform`, `Motion.Amount` et `Motion.Duration` dâ€™un `PartIndex` existant. Il ne peut pas remplacer le mesh, le type, lâ€™axe, le pivot ou `ReverseDuration`.
 
 Pour la chaÃ®ne de porte, lâ€™instance peut porter `DoorChainMode = Inherit | Enabled | Disabled` et un override optionnel de `ChainPullDuration`. `ChainPullDistance` reste exclusivement dans la Definition.
 

@@ -101,7 +101,8 @@ namespace
 		Definition->SupportedType = EGridLevelObjectType::Lever;
 		Definition->PlacementSurface = EGridObjectPlacementKind::Wall;
 		Definition->RuntimeActorClass = AGridLeverActor::StaticClass();
-		Definition->MovingParts.Part0.Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+		Definition->MovingParts.SetNum(1);
+		Definition->MovingParts[0].Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
 		Definition->bIsInteractable = true;
 		return Definition;
 	}

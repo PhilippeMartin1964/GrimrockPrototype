@@ -401,7 +401,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 	const FGridObjectPaletteEntry* PitEntry = CurrentEditorActor->ObjectPalette->FindEntryById(FName(TEXT("Pit_Stone_01")));
 	if (!PitEntry || !PitEntry->DefaultWorldObjectDefinition || PitEntry->DefaultWorldObjectDefinition->SupportedType != EGridLevelObjectType::Pit ||
 		PitEntry->DefaultWorldObjectDefinition->RuntimeActorClass != AGridPitTrapdoorActor::StaticClass() ||
-		!PitEntry->DefaultWorldObjectDefinition->StaticPart.IsDefined() || PitEntry->DefaultWorldObjectDefinition->MovingParts.NumDefined() == 1)
+		!PitEntry->DefaultWorldObjectDefinition->StaticPart.IsDefined() || PitEntry->DefaultWorldObjectDefinition->GetDefinedMovingPartCount() == 1)
 	{
 		FString Error;
 		if (!CurrentEditorActor->EnsurePitTrapdoorDefinition(Error))
