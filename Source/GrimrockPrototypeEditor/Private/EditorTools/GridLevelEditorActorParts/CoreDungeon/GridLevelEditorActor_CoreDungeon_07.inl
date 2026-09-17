@@ -62,7 +62,7 @@ bool AGridLevelEditorActor::EnsureStairsRelocationDefinitions(FString& OutError)
 
 	ObjectPalette->Modify();
 
-	const auto AddOrUpdatePaletteEntry = [this](FName EntryId, const FText& DisplayName, UGridWorldObjectDefinitionAsset* Definition)
+	const auto AddOrUpdatePaletteEntry = [this](FName EntryId, UGridWorldObjectDefinitionAsset* Definition)
 	{
 		FGridObjectPaletteEntry* ExistingEntry = ObjectPalette->Entries.FindByPredicate(
 			[EntryId](const FGridObjectPaletteEntry& Entry)
@@ -76,13 +76,12 @@ bool AGridLevelEditorActor::EnsureStairsRelocationDefinitions(FString& OutError)
 		}
 
 		ExistingEntry->EntryId = EntryId;
-		ExistingEntry->DisplayNameOverride = DisplayName;
 		ExistingEntry->PaletteCategory = FName(TEXT("Navigation"));
 		ExistingEntry->DefaultWorldObjectDefinition = Definition;
 	};
 
-	AddOrUpdatePaletteEntry(FName(TEXT("Stairs_Up")), FText::FromString(TEXT("Stairs Up")), StairsUpDefinition);
-	AddOrUpdatePaletteEntry(FName(TEXT("Stairs_Down")), FText::FromString(TEXT("Stairs Down")), StairsDownDefinition);
+	AddOrUpdatePaletteEntry(FName(TEXT("Stairs_Up")), StairsUpDefinition);
+	AddOrUpdatePaletteEntry(FName(TEXT("Stairs_Down")), StairsDownDefinition);
 	ObjectPalette->MarkPackageDirty();
 
 	ResolvePreviewRuntimeActor();
@@ -199,7 +198,6 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 		Entry = &ObjectPalette->Entries.AddDefaulted_GetRef();
 	}
 	Entry->EntryId = FName(TEXT("Pit_Stone_01"));
-	Entry->DisplayNameOverride = FText::FromString(TEXT("Stone Pit"));
 	Entry->PaletteCategory = FName(TEXT("Hazards"));
 	Entry->DefaultWorldObjectDefinition = PitDefinition;
 	ObjectPalette->MarkPackageDirty();

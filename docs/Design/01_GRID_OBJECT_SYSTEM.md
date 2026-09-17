@@ -56,11 +56,13 @@ La palette possède sa propre présentation éditoriale. Chaque
 
 ```text
 EntryId
-DisplayNameOverride
 PaletteCategory
 Icon
 DefaultWorldObjectDefinition ou DefaultItemDefinition
 ```
+
+Le libellé affiché provient directement de la définition référencée. La palette ne possède
+aucune seconde autorité de nom.
 
 `PaletteCategory` est l'unique autorité de groupement. Une définition ne connaît pas sa
 catégorie de palette. Une entrée officielle sans catégorie est invalide.

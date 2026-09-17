@@ -58,6 +58,81 @@ namespace
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridWorldObjectPaletteDisplayNameAuthorityTest,
+	"Grimrock.WorldObjects.PALETTE_CLEAN01.DisplayNameAuthority",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridWorldObjectPaletteDisplayNameAuthorityTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	TestNull(TEXT("Palette entry has no display-name override property"),
+		FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DisplayName") TEXT("Override")));
+
+	UGridWorldObjectDefinitionAsset* WorldObjectDefinition = NewObject<UGridWorldObjectDefinitionAsset>();
+	WorldObjectDefinition->DefinitionId = TEXT("Door_Test");
+	WorldObjectDefinition->DisplayName = FText::FromString(TEXT("Door Alpha"));
+
+	FGridObjectPaletteEntry WorldObjectEntry;
+	WorldObjectEntry.EntryId = TEXT("Door_Entry");
+	WorldObjectEntry.DefaultWorldObjectDefinition = WorldObjectDefinition;
+	TestEqual(TEXT("World-object display name comes from its definition"), WorldObjectEntry.GetEffectiveDisplayName().ToString(), FString(TEXT("Door Alpha")));
+
+	WorldObjectDefinition->DisplayName = FText::FromString(TEXT("Door Beta"));
+	TestEqual(TEXT("World-object display name immediately follows its definition"), WorldObjectEntry.GetEffectiveDisplayName().ToString(), FString(TEXT("Door Beta")));
+
+	WorldObjectDefinition->DisplayName = FText::GetEmpty();
+	TestEqual(TEXT("World-object display name falls back to DefinitionId"), WorldObjectEntry.GetEffectiveDisplayName().ToString(), FString(TEXT("Door_Test")));
+
+	UGridItemDefinitionAsset* ItemDefinition = NewObject<UGridItemDefinitionAsset>();
+	ItemDefinition->ItemDefinitionId = TEXT("Item_Test");
+	ItemDefinition->DisplayName = FText::FromString(TEXT("Item Alpha"));
+
+	FGridObjectPaletteEntry ItemEntry;
+	ItemEntry.EntryId = TEXT("Item_Entry");
+	ItemEntry.DefaultItemDefinition = ItemDefinition;
+	TestEqual(TEXT("Direct-item display name comes from its definition"), ItemEntry.GetEffectiveDisplayName().ToString(), FString(TEXT("Item Alpha")));
+
+	ItemDefinition->DisplayName = FText::FromString(TEXT("Item Beta"));
+	TestEqual(TEXT("Direct-item display name immediately follows its definition"), ItemEntry.GetEffectiveDisplayName().ToString(), FString(TEXT("Item Beta")));
+
+	ItemDefinition->DisplayName = FText::GetEmpty();
+	TestEqual(TEXT("Direct-item display name falls back to ItemDefinitionId"), ItemEntry.GetEffectiveDisplayName().ToString(), FString(TEXT("Item_Test")));
+
+	const UGridObjectPaletteAsset* ProductionPalette = LoadObject<UGridObjectPaletteAsset>(
+		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default.DA_ObjectPalette_Default"));
+	TestNotNull(TEXT("Production palette loads"), ProductionPalette);
+	if (ProductionPalette)
+	{
+		TestTrue(TEXT("Production palette contains entries"), !ProductionPalette->Entries.IsEmpty());
+		for (const FGridObjectPaletteEntry& ProductionEntry : ProductionPalette->Entries)
+		{
+			if (!ProductionEntry.IsValidEntry())
+			{
+				continue;
+			}
+
+			const FText DefinitionDisplayName = ProductionEntry.IsDirectItemEntry()
+				? ProductionEntry.DefaultItemDefinition->DisplayName
+				: ProductionEntry.DefaultWorldObjectDefinition->DisplayName;
+			const FName DefinitionId = ProductionEntry.IsDirectItemEntry()
+				? ProductionEntry.DefaultItemDefinition->ItemDefinitionId
+				: ProductionEntry.DefaultWorldObjectDefinition->DefinitionId;
+			const FText ExpectedDisplayName = !DefinitionDisplayName.IsEmpty()
+				? DefinitionDisplayName
+				: FText::FromName(!DefinitionId.IsNone() ? DefinitionId : ProductionEntry.EntryId);
+
+			TestFalse(*FString::Printf(TEXT("Production entry %s has a display name"), *ProductionEntry.EntryId.ToString()),
+				ProductionEntry.GetEffectiveDisplayName().IsEmpty());
+			TestEqual(*FString::Printf(TEXT("Production entry %s uses its definition display name"), *ProductionEntry.EntryId.ToString()),
+				ProductionEntry.GetEffectiveDisplayName().ToString(), ExpectedDisplayName.ToString());
+		}
+	}
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGridWorldObjectMIG05DirectCollectibleDefinitionTest,
 	"Grimrock.WorldObjects.MIG05.DirectCollectibleDefinition",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)

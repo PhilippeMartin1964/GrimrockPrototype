@@ -52,11 +52,13 @@ ne porte aucune catégorie de palette.
 ```text
 FGridObjectPaletteEntry
   EntryId
-  DisplayNameOverride
   PaletteCategory
   Icon
   DefaultWorldObjectDefinition / DefaultItemDefinition / autres références spécialisées
 ```
+
+Le libellé affiché provient directement de la définition référencée. La palette ne possède
+aucune seconde autorité de nom.
 
 `PaletteCategory=None` s'affiche comme Uncategorized, mais échoue à la validation des palettes
 officielles.

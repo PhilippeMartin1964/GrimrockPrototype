@@ -20,10 +20,6 @@ struct FGridObjectPaletteEntry
 	FName EntryId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",
-		meta = (ToolTip = "Optional label override for this palette tile. Leave empty to use the referenced definition display name."))
-	FText DisplayNameOverride;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",
 		meta = (DisplayName = "Palette Category",
 			ToolTip = "Editor-only grouping used to organize this entry in the Grid Editor palette."))
 	FName PaletteCategory = NAME_None;
@@ -71,11 +67,6 @@ struct FGridObjectPaletteEntry
 
 	FText GetEffectiveDisplayName() const
 	{
-		if (!DisplayNameOverride.IsEmpty())
-		{
-			return DisplayNameOverride;
-		}
-
 		if (IsDirectItemEntry())
 		{
 			if (!DefaultItemDefinition->DisplayName.IsEmpty())
