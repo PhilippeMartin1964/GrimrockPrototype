@@ -47,6 +47,8 @@ GridFacingTarget
 
 Les logs de clic `LogGridMouse` doivent rester visibles au niveau `Log`. Les logs de hover sont normalement au niveau `Verbose`.
 
+Pendant l'exploration normale, un clic souris qui ne produit aucune mutation ni action gameplay est silencieux. Le curseur représente l'affordance ; les raisons de refus restent disponibles dans les logs.
+
 Pour réactiver temporairement les logs de hover :
 
 ```text
@@ -63,8 +65,11 @@ ou au lancement :
 
 | ID | Scénario | Préparation | Action | Résultat attendu | Logs attendus | Régression typique |
 |---|---|---|---|---|---|---|
-| A01 | Clic vide monde | Se placer face à une zone sans interactable | Clic gauche dans le vide | Aucune mutation, fallback `NoInteractable` | `GridMouse`, `NoInteractable` | Activation fantôme ou drop non demandé |
+| A01 | Clic vide monde | Se placer face à une zone sans interactable | Clic gauche dans le vide | Aucune mutation et aucun message, fallback `NoInteractable` | `GridMouse`, `NoInteractable` | Activation fantôme, message de refus ou drop non demandé |
+| A01b | Interactable hors portée | Viser un interactable hors portée | Hover puis clic gauche | Curseur neutre, aucune mutation et aucun message | `GridMouse`, `OutOfRange` | Curseur prometteur ou popup de refus |
+| A01c | Interactable refusé | Viser un acteur dont `CanInteract` retourne false | Hover puis clic gauche | Curseur neutre, aucune mutation et aucun message | `GridMouse`, `CanInteractRejected` | Curseur prometteur ou popup de refus |
 | A02 | Item monde pickup | Placer un item au sol à portée | Hover puis clic gauche sur l'item | Curseur `Take`, item ajouté à l'inventaire, acteur retiré | `GridMouse`, pickup item | Premier item de cellule ramassé au lieu de l'acteur visé |
+| A02b | Pickup impossible | Remplir l'inventaire puis viser un item au sol | Clic gauche sur l'item | Aucune mutation, item conservé dans le monde et aucun message | `InventoryFull` | Popup ou disparition de l'item |
 | A03 | Levier | Se placer à portée d'un levier | Clic gauche sur la partie mobile | Curseur `Pull`, bascule via runtime | `GridMouse`, interaction edge | Appel direct ou clic sur mauvais composant |
 | A04 | Bouton | Se placer à portée d'un bouton | Clic gauche sur la partie mobile | Curseur `Push`, activation via runtime | `GridMouse`, interaction edge | Bouton ignoré ou porte ouverte directement |
 | A05 | Porte / chaîne | Se placer face à une porte liée à un mécanisme | Cliquer la porte, puis actionner bouton/levier | Porte non cliquable directement, ouverture seulement via lien | `GridMouse` côté mécanisme | Porte devenue interactable directe |
@@ -77,18 +82,18 @@ ou au lancement :
 | B06 | Action PlaceOnTarget | Item compatible en inventaire, cible face au groupe | Clic droit item, choisir `Placer` | Transfert atomique vers réceptacle cible | `GridItemActions Execute PlaceOnTarget`, `GridItemTransfer` | Passage par cursor ou retrait avant refus cible |
 | B07 | Absence RemoveFromParent | Ouvrir puis fermer menu plusieurs fois | ClickOutside, action réussie, fermeture répétée | Aucun warning `RemoveFromParent` | Absence de warning | Warning ou disparition de `Page_Inventory` / `TopTabs` |
 | C01 | Pierre curseur sur sol proche | Tenir une pierre throwable au curseur | Cliquer un sol valide proche | `WorldDrop` si dépôt valide | `WorldDropAttempt` | Lancer prioritaire alors qu'un drop valide existe |
-| C02 | Pierre hors portée dépôt | Tenir une pierre throwable, viser hors portée de dépôt | Clic gauche | Tentative de `ThrowAttempt` si lancer possible, sinon refus propre | `ThrowAttempt` | Item supprimé ou déposé hors portée |
+| C02 | Pierre hors portée dépôt | Tenir une pierre throwable, viser hors portée de dépôt | Clic gauche | Tentative de `ThrowAttempt` si lancer possible, sinon refus silencieux | `ThrowAttempt` | Popup, item supprimé ou déposé hors portée |
 | C03 | Torche curseur sur sol proche | Tenir une torche au curseur | Cliquer un sol valide proche | Dépôt monde valide | `WorldDropAttempt` | Refus alors que le sol est valide |
-| C04 | Torche curseur cible invalide | Tenir une torche au curseur, viser une cible incompatible | Clic gauche | `CannotPlaceItem` ou refus propre, torche reste au curseur | `HoverCursorItem`, refus | Dépôt monde accidentel derrière la cible |
-| C05 | Item non throwable | Tenir un item non throwable | Viser hors dépôt valide | Pas de `AimThrow`, refus explicite | Pas de `ThrowAttempt` réussi | `AimThrow` affiché pour item non throwable |
+| C04 | Torche curseur cible invalide | Tenir une torche au curseur, viser une cible incompatible | Clic gauche | `CannotPlaceItem`, refus silencieux, torche reste au curseur | `HoverCursorItem`, refus | Popup ou dépôt monde accidentel derrière la cible |
+| C05 | Item non throwable | Tenir un item non throwable | Viser hors dépôt valide | Pas de `AimThrow`, refus silencieux | Pas de `ThrowAttempt` réussi | Popup ou `AimThrow` affiché pour item non throwable |
 | D01 | Torche vers support compatible | Tenir une torche au curseur | Clic support de torche vide compatible | Support prime sur drop, torche placée | `ReceptacleAttempt`, `GridItemTransfer` | Torche déposée au sol derrière le support |
-| D02 | Item incompatible vers support | Tenir un item incompatible | Clic support/réceptacle | Refus propre, item conservé | `ReceptacleAttempt`, refus compatibilité | Fallback WorldDrop derrière le réceptacle |
+| D02 | Item incompatible vers support | Tenir un item incompatible | Clic support/réceptacle | `CannotPlaceItem`, refus silencieux, item conservé | `ReceptacleAttempt`, refus compatibilité | Popup ou fallback WorldDrop derrière le réceptacle |
 | D03 | Réceptacle plein ou non compatible | Préparer réceptacle plein si possible | Tenter dépôt d'item | Refus sans mutation | `ReceptacleAttempt`, refus capacité/compatibilité | Item perdu, dupliqué ou déplacé au sol |
 | D04 | Pas de dépôt derrière réceptacle | Viser précisément le support/réceptacle avec item tenu | Clic gauche | Le hit réceptacle décide, pas le sol derrière | `ReceptacleAttempt` avant `WorldDropAttempt` | Dépôt monde accidentel derrière la cible |
-| E01 | Clé compatible vers wall lock | Tenir la bonne clé au curseur | Clic sur serrure verrouillée | Wall lock prime, clé insérée après validation, `Activated` émis | `WallLockAttempt`, `UnlockSuccess` | Drop de clé au sol derrière la serrure |
-| E02 | Mauvaise clé vers wall lock | Tenir une mauvaise clé | Clic sur serrure | Refus, aucune ouverture, clé conservée | `WallLockAttempt`, `MissingKey` ou refus | Ouverture avec mauvaise clé |
-| E03 | Item non clé vers wall lock | Tenir une torche, pierre ou autre item | Clic sur serrure | Refus propre, aucun drop derrière | `WallLockAttempt`, refus type | Item déposé derrière la serrure |
-| E04 | Pas d'auto-unlock inventaire | Bonne clé dans inventaire, rien au curseur | Cliquer directement la serrure | Pas d'ouverture silencieuse depuis inventaire | `InventoryAutoUnlockBlocked` ou aide | Serrure scanne l'inventaire et s'ouvre seule |
+| E01 | Clé compatible vers wall lock | Tenir la bonne clé au curseur | Clic sur serrure verrouillée | Wall lock prime, clé insérée après validation, `Activated` émis et feedback de succès conservé | `WallLockAttempt`, `UnlockSuccess` | Drop de clé au sol derrière la serrure ou disparition du feedback de succès |
+| E02 | Mauvaise clé vers wall lock | Tenir une mauvaise clé | Hover puis clic sur serrure | `CannotPlaceItem`, refus silencieux, aucune ouverture, clé conservée | `WallLockAttempt`, refus `IncompatibleKey` | Popup ou ouverture avec mauvaise clé |
+| E03 | Item non clé vers wall lock | Tenir une torche, pierre ou autre item | Clic sur serrure | `CannotPlaceItem`, refus silencieux, aucun drop derrière | `WallLockAttempt`, refus type | Popup ou item déposé derrière la serrure |
+| E04 | Pas d'auto-unlock inventaire | Bonne clé dans inventaire, rien au curseur | Cliquer directement la serrure | Curseur neutre, aucun message et aucune ouverture depuis inventaire | `CanInteractRejected` | Popup ou serrure déverrouillée depuis l'inventaire |
 | F01 | Priorité readable | Message lisible actif, interactable derrière | Clic gauche | Fermeture du message seulement | Readable close avant world interaction | Activation derrière le message |
 | F02 | Priorité UI modale | Menu action item ou UI modale visible | Clic gauche vers monde | Monde bloqué | `GridItemActionMenu` ou blocage UI | Interaction monde traversante |
 | F03 | Priorité inventaire ouvert | Inventaire ouvert, aucun item curseur | Clic gauche monde | Monde ignoré | `GridMouse` inventaire ouvert | Drop ou pickup involontaire |
@@ -119,4 +124,3 @@ ou au lancement :
 6. Vérifier qu'aucun asset, Blueprint, DataAsset ou binaire non voulu n'a changé.
 7. Préparer un commit ciblé uniquement avec les fichiers nécessaires. Ne pas utiliser `git add .`.
 8. Pousser explicitement avec `git push origin master` seulement si le commit est validé et que le push est demandé.
-

@@ -264,7 +264,6 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrim
 		{
 			UE_LOG(LogTemp, Warning, TEXT("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"), *ItemDefinitionId.ToString(),
 				*ItemInstance.RuntimeObjectId.ToString());
-			ShowInteractionFeedback(FText::FromString(TEXT("Inventaire plein.")));
 			return false;
 		}
 
@@ -340,7 +339,6 @@ bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrim
 		{
 			UE_LOG(LogTemp, Warning, TEXT("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"), *ItemDefinitionId.ToString(),
 				*ItemInstance.RuntimeObjectId.ToString());
-			ShowInteractionFeedback(FText::FromString(TEXT("Inventaire plein.")));
 			return false;
 		}
 

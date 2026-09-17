@@ -82,7 +82,6 @@ bool AGridWallLockActor::TryInteractWithParty(AGrimrockPartyPawn* PartyPawn)
 	if (bIsUnlocked)
 	{
 		const FText Message = GetEffectiveAlreadyUnlockedMessage();
-		ShowFeedback(PartyPawn, Message);
 		UE_LOG(LogGridWallLock, Log, TEXT("GridWallLock AlreadyUnlocked ObjectId=%s Message=%s"), *ObjectId.ToString(), *Message.ToString());
 		return true;
 	}
@@ -97,7 +96,6 @@ bool AGridWallLockActor::TryInteractWithParty(AGrimrockPartyPawn* PartyPawn)
 		if (!IsAcceptedKey(CursorItem.ItemDefinitionId))
 		{
 			const FText Message = GetEffectiveMissingKeyMessage();
-			ShowFeedback(PartyPawn, Message);
 			UE_LOG(LogGridWallLock, Log, TEXT("GridWallLock UnlockFailed MissingKey ObjectId=%s AcceptedKeys=[%s] Cursor=%s Inventory=NotScanned"),
 				*ObjectId.ToString(), *JoinItemDefinitionIds(AcceptedKeyDefinitionIds), *CursorItem.ItemDefinitionId.ToString());
 			return false;
@@ -125,7 +123,6 @@ bool AGridWallLockActor::TryInteractWithParty(AGrimrockPartyPawn* PartyPawn)
 	}
 
 	const FText Message = FText::FromString(TEXT("Cette serrure nécessite une clé compatible."));
-	ShowFeedback(PartyPawn, Message);
 	UE_LOG(LogGridWallLock, Log, TEXT("GridWallLock DirectInteract InventoryAutoUnlockBlocked ObjectId=%s AcceptedKeys=[%s] Message=%s"), *ObjectId.ToString(),
 		*JoinItemDefinitionIds(AcceptedKeyDefinitionIds), *Message.ToString());
 	return false;
@@ -155,7 +152,9 @@ bool AGridWallLockActor::CanInteract_Implementation(APawn* InstigatorPawn, UPrim
 {
 	const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn(InstigatorPawn);
 	AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this);
-	return PartyPawn && RuntimeActor && HitComponent == MeshComponent && RuntimeActor->CanPartyInteractWithEdgeObject(CellX, CellY, Edge, PartyPawn);
+	FGridItemInstance CursorItem;
+	return PartyPawn && RuntimeActor && HitComponent == MeshComponent && !bIsUnlocked && PartyPawn->GetCursorItem(CursorItem) &&
+		CanAcceptKeyDefinition(CursorItem.ItemDefinitionId) && RuntimeActor->CanPartyInteractWithEdgeObject(CellX, CellY, Edge, PartyPawn);
 }
 
 void AGridWallLockActor::Interact_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)

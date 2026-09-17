@@ -108,6 +108,8 @@ Elle évalue la cible sous la souris et retourne le curseur le plus honnête pos
 
 Le hover n'exécute aucune mutation. Il ne fait que traduire l'état courant en feedback visuel, avec des logs `Verbose` pour diagnostiquer les refus sans polluer les sessions normales.
 
+Pendant l'exploration normale, un clic souris qui ne produit aucune mutation ni action gameplay est silencieux. Le curseur représente l'affordance ; les raisons de refus restent disponibles dans les logs. Les modes explicites de ciblage combat et lancer conservent leur contrat propre.
+
 ### 3.1.3 SetGridInteractionCursor
 
 `SetGridInteractionCursor()` est le point de sortie unique vers le curseur custom.
@@ -616,11 +618,11 @@ Après toute modification du système d’interaction, tester :
 | Porte / chaîne logique | La porte n'est pas cliquable directement ; elle réagit seulement aux mécanismes et liens. |
 | Torche tenue au curseur vers sol | Hover de dépôt valide, clic gauche dépose la torche si la cellule et la portée l'acceptent. |
 | Torche tenue au curseur vers support | Le support compatible prime sur le dépôt monde ; clic gauche place la torche dans le réceptacle. |
-| Torche tenue au curseur vers cible invalide | Hover `Forbidden` ou neutre selon le hit ; clic gauche échoue explicitement sans mutation. |
+| Torche tenue au curseur vers cible invalide | Hover `Forbidden` ou neutre selon le hit ; clic gauche échoue silencieusement sans mutation. |
 | Pierre tenue au curseur vers dépôt proche | Le dépôt monde valide est préféré au lancer si aucune cible prioritaire n'est touchée. |
-| Pierre tenue au curseur hors portée pour lancer | Le lancer est refusé explicitement ; l'item reste au curseur. |
+| Pierre tenue au curseur hors portée pour lancer | Le lancer est refusé silencieusement ; l'item reste au curseur. |
 | Clé compatible tenue au curseur vers wall lock | La wall lock sous souris prime ; la clé est insérée seulement après validation de compatibilité. |
-| Mauvaise clé ou item non clé tenu au curseur vers wall lock | La wall lock refuse l'action avec un feedback interdit ou un message de refus ; aucun dépôt implicite ne remplace l'échec. |
+| Mauvaise clé ou item non clé tenu au curseur vers wall lock | Le curseur affiche `CannotPlaceItem`, le clic est silencieux et aucun dépôt implicite ne remplace l'échec. |
 
 Ces tests résument les stabilisations MI1 à MI6 sous forme de comportement final attendu. Ils doivent être complétés par les tests historiques :
 
@@ -628,7 +630,7 @@ Ces tests résument les stabilisations MI1 à MI6 sous forme de comportement fin
 Réceptacle vide sans item tenu : pas de curseur interactif.
 Réceptacle plein + clic support : rien.
 Réceptacle plein + clic item contenu : reprise.
-Hors portée : curseur Forbidden.
+Hors portée : curseur neutre et clic silencieux.
 Touche F : inactive par défaut.
 Curseur custom : texture correcte selon EGridInteractionCursor.
 ```
