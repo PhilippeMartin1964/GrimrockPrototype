@@ -1,6 +1,7 @@
 #include "Runtime/GridActivationComponent.h"
 
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridReceptacleActor.h"
@@ -683,6 +684,13 @@ bool UGridActivationComponent::SetTargetActiveState(const FGridWorldObjectInstan
 	const bool bStateChanged = bWasActive != bActive;
 	if (bActive) ActiveObjectIds.Add(TargetObject.InstanceId); else ActiveObjectIds.Remove(TargetObject.InstanceId);
 	if (LeverActor) LeverActor->SetLeverState(bActive); else if (PlateActor) PlateActor->SetPressed(bActive);
+	if (TargetObject.Type == EGridLevelObjectType::Relocation)
+	{
+		if (AGridGenericObjectActor* GenericActor = RuntimeActor->FindRuntimeObjectActor<AGridGenericObjectActor>(TargetObject.InstanceId))
+		{
+			GenericActor->SetRuntimeActivePresentation(bActive);
+		}
+	}
 
 	if (bStateChanged)
 	{

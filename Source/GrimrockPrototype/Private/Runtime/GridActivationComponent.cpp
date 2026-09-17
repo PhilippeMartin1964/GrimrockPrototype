@@ -71,6 +71,24 @@ void UGridActivationComponent::ResetRuntimeState()
 void UGridActivationComponent::SetActiveObjectIds(const TSet<FGuid>& InActiveObjectIds)
 {
 	ActiveObjectIds = InActiveObjectIds;
+
+	if (!RuntimeActor || !RuntimeActor->LevelAsset)
+	{
+		return;
+	}
+
+	for (const FGridWorldObjectInstance& Instance : RuntimeActor->LevelAsset->WorldObjectInstances)
+	{
+		if (Instance.Type != EGridLevelObjectType::Relocation || !Instance.InstanceId.IsValid())
+		{
+			continue;
+		}
+
+		if (AGridGenericObjectActor* GenericActor = RuntimeActor->FindRuntimeObjectActor<AGridGenericObjectActor>(Instance.InstanceId))
+		{
+			GenericActor->SetRuntimeActivePresentation(ActiveObjectIds.Contains(Instance.InstanceId));
+		}
+	}
 }
 
 bool UGridActivationComponent::TryInteractAtEdge(int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn)

@@ -6,6 +6,7 @@
 #include "GridGenericObjectActor.generated.h"
 
 class UGridWorldObjectDefinitionAsset;
+class UNiagaraComponent;
 class UPointLightComponent;
 
 /**
@@ -29,6 +30,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UPointLightComponent> PointLightComponent;
 
+	/** Optional definition-driven Niagara presentation. It mirrors runtime active state and owns no gameplay state. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Components")
+	TObjectPtr<UNiagaraComponent> ActiveNiagaraComponent;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Grid|Definition")
 	TObjectPtr<const UGridWorldObjectDefinitionAsset> SourceWorldObjectDefinition;
 
@@ -45,6 +50,9 @@ public:
 	/** Runtime-native generic world-object initializer. */
 	void InitializeRuntimeGenericObject(const FGridRuntimeWorldObjectData& ObjectData, const UGridWorldObjectDefinitionAsset* Definition, UStaticMesh* Mesh,
 		const FTransform& WorldTransform);
+
+	/** Applies presentation only; runtime activation remains owned by UGridActivationComponent. */
+	void SetRuntimeActivePresentation(bool bActive);
 
 	UFUNCTION(BlueprintCallable, Category = "Grid|Readable")
 	bool HasReadableText() const;

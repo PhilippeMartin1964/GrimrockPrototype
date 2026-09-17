@@ -3,6 +3,7 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Components/PointLightComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "NiagaraComponent.h"
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -35,9 +36,51 @@ void AGridGenericObjectActor::InitializeRuntimeGenericObject(
 	}
 
 	ApplyDefinitionOptions(Definition);
+
+	if (ActiveNiagaraComponent)
+	{
+		ActiveNiagaraComponent->DeactivateImmediate();
+		ActiveNiagaraComponent->SetAsset(nullptr);
+	}
+
+	if (Definition && Definition->StaticPart.ActiveNiagaraSystem)
+	{
+		if (!ActiveNiagaraComponent)
+		{
+			ActiveNiagaraComponent = NewObject<UNiagaraComponent>(this, TEXT("ActiveNiagara"));
+			ActiveNiagaraComponent->SetAutoActivate(false);
+			ActiveNiagaraComponent->SetupAttachment(SceneRoot);
+			AddInstanceComponent(ActiveNiagaraComponent);
+			ActiveNiagaraComponent->RegisterComponent();
+		}
+
+		ActiveNiagaraComponent->SetAsset(Definition->StaticPart.ActiveNiagaraSystem);
+		ActiveNiagaraComponent->SetRelativeTransform(Definition->StaticPart.ActiveNiagaraLocalTransform);
+	}
+
+	const bool bInitiallyActive = ObjectData.Type != EGridLevelObjectType::Relocation || ObjectData.bRelocationInitiallyEnabled;
+	SetRuntimeActivePresentation(bInitiallyActive);
+
 	if (!ObjectData.OverrideReadableText.IsEmpty())
 	{
 		RuntimeReadableText = ObjectData.OverrideReadableText;
+	}
+}
+
+void AGridGenericObjectActor::SetRuntimeActivePresentation(bool bActive)
+{
+	if (!ActiveNiagaraComponent)
+	{
+		return;
+	}
+
+	if (bActive)
+	{
+		ActiveNiagaraComponent->Activate(true);
+	}
+	else
+	{
+		ActiveNiagaraComponent->DeactivateImmediate();
 	}
 }
 

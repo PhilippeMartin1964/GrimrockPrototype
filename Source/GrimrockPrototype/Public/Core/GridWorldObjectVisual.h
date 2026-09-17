@@ -4,6 +4,8 @@
 #include "Engine/StaticMesh.h"
 #include "GridWorldObjectVisual.generated.h"
 
+class UNiagaraSystem;
+
 /**
  * WORLDOBJ-MIG03 visual composition foundation.
  * A moving part always represents a real animation; absence is represented by Mesh == nullptr.
@@ -35,6 +37,14 @@ struct GRIMROCKPROTOTYPE_API FGridWorldObjectStaticPart
 	/** Transform relative to the placed world-object origin, not to the grid cell. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
 	FTransform LocalTransform = FTransform::Identity;
+
+	/** Optional Niagara system shown while the owning world object is active. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Effects", meta = (DisplayName = "Active Niagara System"))
+	TObjectPtr<UNiagaraSystem> ActiveNiagaraSystem = nullptr;
+
+	/** Transform of Active Niagara System relative to the placed world-object origin. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Effects", meta = (DisplayName = "Active Niagara Local Transform"))
+	FTransform ActiveNiagaraLocalTransform = FTransform::Identity;
 
 	bool IsDefined() const
 	{
