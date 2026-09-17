@@ -113,6 +113,8 @@ namespace
 				return TEXT("SplitStack");
 			case EGridItemActionType::ToggleLight:
 				return TEXT("ToggleLight");
+			case EGridItemActionType::AddToHotbar:
+				return TEXT("AddToHotbar");
 			case EGridItemActionType::None:
 			default:
 				return TEXT("None");
@@ -1623,6 +1625,62 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 				const bool bTorchLightEnabled = Receptacle->SetContainedItemLightsEnabled(InsertedItemIndex, true);
 				UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute PlaceOnTarget TorchLightEnabled=%s"), bTorchLightEnabled ? TEXT("true") : TEXT("false"));
 			}
+			break;
+		}
+
+		case EGridItemActionType::AddToHotbar:
+		{
+			if (SourceSlotType != EGridInventoryUiSlotType::Inventory || !InventoryComponent || LastContextItem.ItemDefinitionId.IsNone())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute AddToHotbar Failed Item=%s Reason=InvalidSource"),
+					*LastContextItem.ItemDefinitionId.ToString());
+				break;
+			}
+
+			int32 TargetHotbarSlotIndex = INDEX_NONE;
+			bool bAlreadyBound = false;
+			for (int32 HotbarSlotIndex = 0; HotbarSlotIndex < FGridCombatHotbarBinding::SlotCount; ++HotbarSlotIndex)
+			{
+				if (HotbarSlotIndex == FGridCombatHotbarBinding::PrimaryAttackSlotIndex)
+				{
+					continue;
+				}
+
+				FGridCombatHotbarBinding Binding;
+				if (!InventoryComponent->GetCharacterCombatHotbarBinding(CharacterIndex, HotbarSlotIndex, Binding))
+				{
+					continue;
+				}
+
+				if (Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem && Binding.SourceDefinitionId == LastContextItem.ItemDefinitionId)
+				{
+					bAlreadyBound = true;
+					break;
+				}
+
+				if (TargetHotbarSlotIndex == INDEX_NONE && Binding.IsEmpty())
+				{
+					TargetHotbarSlotIndex = HotbarSlotIndex;
+				}
+			}
+
+			if (bAlreadyBound)
+			{
+				UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute AddToHotbar Skipped Item=%s Reason=AlreadyBound"),
+					*LastContextItem.ItemDefinitionId.ToString());
+				break;
+			}
+			if (TargetHotbarSlotIndex == INDEX_NONE)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute AddToHotbar Failed Item=%s Reason=HotbarFull"),
+					*LastContextItem.ItemDefinitionId.ToString());
+				break;
+			}
+
+			bExecuted = InventoryComponent->SetCharacterCombatHotbarBindingFromItem(
+				CharacterIndex, TargetHotbarSlotIndex, LastContextItem, EGridEquipmentSlot::None);
+			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute AddToHotbar Item=%s Slot=%d Result=%s"),
+				*LastContextItem.ItemDefinitionId.ToString(), TargetHotbarSlotIndex, bExecuted ? TEXT("true") : TEXT("false"));
 			break;
 		}
 

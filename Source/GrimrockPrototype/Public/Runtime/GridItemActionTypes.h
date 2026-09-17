@@ -27,7 +27,8 @@ enum class EGridItemActionType : uint8
 	Throw,
 	Combine,
 	SplitStack,
-	ToggleLight
+	ToggleLight,
+	AddToHotbar
 };
 
 UENUM(BlueprintType)

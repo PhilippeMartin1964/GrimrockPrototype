@@ -50,6 +50,8 @@ namespace
 				return TEXT("SplitStack");
 			case EGridItemActionType::ToggleLight:
 				return TEXT("ToggleLight");
+			case EGridItemActionType::AddToHotbar:
+				return TEXT("AddToHotbar");
 			case EGridItemActionType::None:
 			default:
 				return TEXT("None");
@@ -282,6 +284,48 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 	const bool bIsEquipmentSlotSource = ItemContext.EquipmentSlot != EGridEquipmentSlot::None;
 	const EGridEquipmentSlot EffectiveEquipmentSlot =
 		ItemContext.EquipmentSlot != EGridEquipmentSlot::None ? ItemContext.EquipmentSlot : ItemContext.Item.EquipmentSlot;
+
+	if (bIsInventorySlotSource && Definition && ItemContext.PartyPawn->PartyInventoryComponent)
+	{
+		FGridCombatActionDefinition InventoryAction;
+		const bool bSupportsHotbar = Definition->BuildInventoryCombatActionDefinition(InventoryAction) || Definition->IsPhysicallyThrowable();
+		if (bSupportsHotbar)
+		{
+			UGridPartyInventoryComponent* InventoryComponent = ItemContext.PartyPawn->PartyInventoryComponent;
+			bool bAlreadyBound = false;
+			bool bHasFreeSlot = false;
+			for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
+			{
+				if (SlotIndex == FGridCombatHotbarBinding::PrimaryAttackSlotIndex)
+				{
+					continue;
+				}
+
+				FGridCombatHotbarBinding Binding;
+				if (!InventoryComponent->GetCharacterCombatHotbarBinding(ItemContext.CharacterIndex, SlotIndex, Binding))
+				{
+					continue;
+				}
+
+				bAlreadyBound = bAlreadyBound ||
+					(Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem && Binding.SourceDefinitionId == ItemContext.Item.ItemDefinitionId);
+				bHasFreeSlot = bHasFreeSlot || Binding.IsEmpty();
+			}
+
+			FText DisabledReason;
+			if (bAlreadyBound)
+			{
+				DisabledReason = NSLOCTEXT("GridItemActions", "AlreadyInHotbar", "Déjà dans la barre d'action.");
+			}
+			else if (!bHasFreeSlot)
+			{
+				DisabledReason = NSLOCTEXT("GridItemActions", "HotbarFull", "Barre d'action pleine.");
+			}
+
+			AddAction(OutActions, EGridItemActionType::AddToHotbar, NSLOCTEXT("GridItemActions", "AddToHotbar", "Ajouter à la barre d'action"), nullptr,
+				EGridEquipmentSlot::None, !bAlreadyBound && bHasFreeSlot, DisabledReason);
+		}
+	}
 
 	if (bIsInventorySlotSource && OutFacingTarget.bIsValid && OutFacingTarget.bAcceptsCurrentItem &&
 		OutFacingTarget.TargetType == EGridFacingTargetType::WallLock)
