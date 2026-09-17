@@ -398,7 +398,7 @@ bool AGridLevelEditorActor::FocusSelectedCellInEditorViewport()
 	const float CellSize = FMath::Max(LevelAsset->CellSize, 1.f);
 	const FVector FocusPoint = GetSelectionPreviewCenter(CellSize * 0.75f);
 	const FRotator PreservedRotation = ViewportClient->GetViewRotation();
-	const float FocusDistance = CellSize * 5.f;
+	const float FocusDistance = CellSize * 1.5f;
 
 	ViewportClient->SetViewLocation(FocusPoint - PreservedRotation.Vector() * FocusDistance);
 	ViewportClient->SetViewRotation(PreservedRotation);
