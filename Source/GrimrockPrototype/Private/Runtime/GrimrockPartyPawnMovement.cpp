@@ -1,15 +1,21 @@
 #include "Runtime/GrimrockPartyPawn.h"
 
+#include "Camera/PlayerCameraManager.h"
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridObjectBehavior.h"
+#include "GameFramework/PlayerController.h"
 #include "InputActionValue.h"
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Sound/SoundBase.h"
+#include "TimerManager.h"
 
 namespace
 {
+	constexpr float GridRelocationFadeOutDuration = 0.35f;
+	constexpr float GridRelocationFadeInDuration = 0.35f;
+
 	FVector GetBlockedMoveWorldDirection(EGridEdge Direction)
 	{
 		switch (Direction)
@@ -32,6 +38,90 @@ namespace
 		return RejectReason == EGridPartyMovementRejectReason::TargetCellUnavailable ||
 			   RejectReason == EGridPartyMovementRejectReason::PassageBlocked ||
 			   RejectReason == EGridPartyMovementRejectReason::TargetCellOccupied;
+	}
+
+	void FinishGridRelocationFade(const TWeakObjectPtr<AGrimrockPartyPawn>& WeakParty)
+	{
+		AGrimrockPartyPawn* Party = WeakParty.Get();
+		if (!Party)
+		{
+			return;
+		}
+
+		APlayerController* PlayerController = Cast<APlayerController>(Party->GetController());
+		if (PlayerController && PlayerController->PlayerCameraManager)
+		{
+			PlayerController->PlayerCameraManager->StartCameraFade(
+				1.0f, 0.0f, GridRelocationFadeInDuration, FLinearColor::Black, false, false);
+		}
+
+		UWorld* World = Party->GetWorld();
+		if (!World)
+		{
+			if (PlayerController)
+			{
+				Party->EnableInput(PlayerController);
+			}
+			return;
+		}
+
+		FTimerHandle FadeInTimerHandle;
+		World->GetTimerManager().SetTimer(
+			FadeInTimerHandle,
+			FTimerDelegate::CreateLambda(
+				[WeakParty]()
+				{
+					if (AGrimrockPartyPawn* FadeParty = WeakParty.Get())
+					{
+						if (APlayerController* FadePlayerController = Cast<APlayerController>(FadeParty->GetController()))
+						{
+							FadeParty->EnableInput(FadePlayerController);
+						}
+					}
+				}),
+			GridRelocationFadeInDuration,
+			false);
+	}
+
+	bool BeginGridRelocationFade(AGrimrockPartyPawn* Party, AGridLevelRuntimeActor* Runtime, int32 SourceCellX, int32 SourceCellY)
+	{
+		if (!Party || !Runtime)
+		{
+			return false;
+		}
+
+		UWorld* World = Party->GetWorld();
+		APlayerController* PlayerController = Cast<APlayerController>(Party->GetController());
+		if (!World || !PlayerController || !PlayerController->PlayerCameraManager)
+		{
+			return false;
+		}
+
+		Party->ClearBufferedCommand();
+		Party->DisableInput(PlayerController);
+		PlayerController->PlayerCameraManager->StartCameraFade(
+			0.0f, 1.0f, GridRelocationFadeOutDuration, FLinearColor::Black, false, true);
+
+		const TWeakObjectPtr<AGrimrockPartyPawn> WeakParty(Party);
+		const TWeakObjectPtr<AGridLevelRuntimeActor> WeakRuntime(Runtime);
+		FTimerHandle FadeOutTimerHandle;
+		World->GetTimerManager().SetTimer(
+			FadeOutTimerHandle,
+			FTimerDelegate::CreateLambda(
+				[WeakParty, WeakRuntime, SourceCellX, SourceCellY]()
+				{
+					AGrimrockPartyPawn* FadeParty = WeakParty.Get();
+					AGridLevelRuntimeActor* FadeRuntime = WeakRuntime.Get();
+					if (FadeParty && FadeRuntime)
+					{
+						FadeRuntime->TryExecuteRelocationAtCell(SourceCellX, SourceCellY, FadeParty);
+						FadeParty->ClearBufferedCommand();
+					}
+					FinishGridRelocationFade(WeakParty);
+				}),
+			GridRelocationFadeOutDuration,
+			false);
+		return true;
 	}
 
 	constexpr uint32 PartyMovementAudioPitchSalt = 0x504D4155u;
@@ -585,6 +675,19 @@ void AGrimrockPartyPawn::UpdateMove(float DeltaSeconds)
 					}
 				}
 			}
+
+			FGridRelocationBehaviorParams Relocation;
+			if (LevelRuntimeActor->FindRelocationAtCell(CurrentCellX, CurrentCellY, Relocation))
+			{
+				const int32 RelocationSourceCellX = CurrentCellX;
+				const int32 RelocationSourceCellY = CurrentCellY;
+				if (BeginGridRelocationFade(this, LevelRuntimeActor, RelocationSourceCellX, RelocationSourceCellY))
+				{
+					ClearBufferedCommand();
+					return;
+				}
+			}
+
 			if (LevelRuntimeActor->TryExecuteRelocationAtCell(CurrentCellX, CurrentCellY, this))
 			{
 				ClearBufferedCommand();
