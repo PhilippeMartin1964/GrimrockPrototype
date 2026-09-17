@@ -167,9 +167,11 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 				continue;
 			}
 
+			// Relocations share the same active-id authority as other stateful world objects.
+			// Persist them so revisiting a level does not erase an enabled stair/teleporter.
 			const bool bIsInteractiveObject = Instance.Type == EGridLevelObjectType::Button || Instance.Type == EGridLevelObjectType::Lever ||
 				Instance.Type == EGridLevelObjectType::PressurePlate || Instance.Type == EGridLevelObjectType::Receptacle ||
-				Instance.Type == EGridLevelObjectType::Trigger;
+				Instance.Type == EGridLevelObjectType::Trigger || Instance.Type == EGridLevelObjectType::Relocation;
 			if (!bIsInteractiveObject)
 			{
 				continue;
