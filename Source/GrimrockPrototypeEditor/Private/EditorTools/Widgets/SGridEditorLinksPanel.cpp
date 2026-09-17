@@ -7,6 +7,8 @@
 #include "EditorTools/GridEditorLinkService.h"
 #include "EditorTools/GridEditorLuaService.h"
 #include "EditorTools/GridLevelEditorActor.h"
+#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
 #include "Widgets/Input/SButton.h"
@@ -72,6 +74,41 @@ namespace
 			}
 		}
 		return EGridLogicNodeType::Relay;
+	}
+
+	FName GetTypedPlacementDefinitionId(const UGridLevelAsset* LevelAsset, FGuid ObjectId)
+	{
+		if (!LevelAsset)
+		{
+			return NAME_None;
+		}
+		if (const FGridWorldObjectInstance* Instance = LevelAsset->FindWorldObjectInstanceById(ObjectId))
+		{
+			return Instance->WorldObjectDefinitionId;
+		}
+		if (const FGridLooseItemInstance* Instance = LevelAsset->FindLooseItemInstanceById(ObjectId))
+		{
+			return Instance->ItemDefinition && !Instance->ItemDefinition->ItemDefinitionId.IsNone()
+				? Instance->ItemDefinition->ItemDefinitionId
+				: Instance->PaletteEntryId;
+		}
+		if (const FGridMonsterSpawnInstance* Instance = LevelAsset->FindMonsterSpawnInstanceById(ObjectId))
+		{
+			return Instance->MonsterDefinition && !Instance->MonsterDefinition->MonsterId.IsNone()
+				? Instance->MonsterDefinition->MonsterId
+				: Instance->PaletteEntryId;
+		}
+		if (const FGridItemSpawnInstance* Instance = LevelAsset->FindItemSpawnInstanceById(ObjectId))
+		{
+			return Instance->ItemDefinition && !Instance->ItemDefinition->ItemDefinitionId.IsNone()
+				? Instance->ItemDefinition->ItemDefinitionId
+				: Instance->PaletteEntryId;
+		}
+		if (const FGridLogicObjectInstance* Instance = LevelAsset->FindLogicObjectInstanceById(ObjectId))
+		{
+			return Instance->PaletteEntryId;
+		}
+		return NAME_None;
 	}
 }
 
@@ -704,6 +741,9 @@ FString SGridEditorLinksPanel::GetObjectSummary(FGuid ObjectId) const
 	const EGridLevelObjectType Type = LevelAsset->GetTypedPlacementType(ObjectId);
 	const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType>();
 	const FString TypeText = TypeEnum ? TypeEnum->GetDisplayNameTextByValue(static_cast<int64>(Type)).ToString() : TEXT("Object");
+	const FName DefinitionId = GetTypedPlacementDefinitionId(LevelAsset, ObjectId);
+	const FString DefinitionText = DefinitionId.IsNone() ? TypeText : DefinitionId.ToString();
+	const FString ShortGuid = ObjectId.ToString(EGuidFormats::Digits).Left(8);
 	int32 X = INDEX_NONE;
 	int32 Y = INDEX_NONE;
 	EGridEdge Edge = EGridEdge::None;
@@ -711,9 +751,9 @@ FString SGridEditorLinksPanel::GetObjectSummary(FGuid ObjectId) const
 
 	if (!LogicId.IsNone())
 	{
-		return FString::Printf(TEXT("%s — %s @ (%d,%d)"), *LogicId.ToString(), *TypeText, X, Y);
+		return FString::Printf(TEXT("%s — %s @ (%d,%d) [%s]"), *LogicId.ToString(), *DefinitionText, X, Y, *ShortGuid);
 	}
-	return FString::Printf(TEXT("%s @ (%d,%d) [%s]"), *TypeText, X, Y, *ObjectId.ToString().Left(8));
+	return FString::Printf(TEXT("%s @ (%d,%d) [%s]"), *DefinitionText, X, Y, *ShortGuid);
 }
 
 FString SGridEditorLinksPanel::GetActionSummary(const FGridObjectLink& Link, bool bOutgoing) const
