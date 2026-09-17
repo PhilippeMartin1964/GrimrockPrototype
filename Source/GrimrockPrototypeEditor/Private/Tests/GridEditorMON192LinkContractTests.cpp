@@ -67,6 +67,11 @@ bool FGridEditorMON192LinkPolicyMatrixTest::RunTest(const FString& Parameters)
 		ContainsExactly(DoorCommands,
 			{ EGridObjectCommand::Open, EGridObjectCommand::Close, EGridObjectCommand::Toggle, EGridObjectCommand::Activate, EGridObjectCommand::Deactivate }));
 
+	const TArray<EGridObjectCommand> RelocationCommands = GridEditorLinkPolicy::GetSupportedCommandsForTarget(Relocation);
+	TestTrue(TEXT("Relocation exposes exactly Activate, Deactivate and Toggle"),
+		ContainsExactly(RelocationCommands, { EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle }));
+	TestTrue(TEXT("Relocation is a command target"), GridEditorLinkPolicy::CanObjectReceiveCommands(Relocation));
+
 	const TArray<EGridObjectCommand> ReceptacleCommands = GridEditorLinkPolicy::GetSupportedCommandsForTarget(Receptacle);
 	TestTrue(TEXT("Receptacle exposes exactly six specialized commands"),
 		ContainsExactly(ReceptacleCommands,
@@ -95,11 +100,17 @@ bool FGridEditorMON192LinkPolicyMatrixTest::RunTest(const FString& Parameters)
 			GridEditorLinkPolicy::GetCommandRuntimeSupport(MonsterSpawn, EGridLogicNodeType::Relay, Command) == EGridEditorCommandRuntimeSupport::Gameplay);
 	}
 
-	for (const EGridObjectCommand Command : GridEditorLinkPolicy::GetSupportedCommandsForTarget(Relocation))
+	for (const EGridObjectCommand Command : RelocationCommands)
 	{
-		TestTrue(TEXT("Relocation connector commands are explicitly classified StateOnly"),
-			GridEditorLinkPolicy::GetCommandRuntimeSupport(Relocation, EGridLogicNodeType::Relay, Command) == EGridEditorCommandRuntimeSupport::StateOnly);
+		TestTrue(TEXT("Every official Relocation command has real gameplay support"),
+			GridEditorLinkPolicy::GetCommandRuntimeSupport(Relocation, EGridLogicNodeType::Relay, Command) == EGridEditorCommandRuntimeSupport::Gameplay);
 	}
+	TestTrue(TEXT("Relocation Open remains unsupported"),
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(Relocation, EGridLogicNodeType::Relay, EGridObjectCommand::Open) ==
+			EGridEditorCommandRuntimeSupport::Unsupported);
+	TestTrue(TEXT("Relocation Close remains unsupported"),
+		GridEditorLinkPolicy::GetCommandRuntimeSupport(Relocation, EGridLogicNodeType::Relay, EGridObjectCommand::Close) ==
+			EGridEditorCommandRuntimeSupport::Unsupported);
 
 	for (const EGridObjectCommand Command : GridEditorLinkPolicy::GetSupportedCommandsForTarget(Light))
 	{

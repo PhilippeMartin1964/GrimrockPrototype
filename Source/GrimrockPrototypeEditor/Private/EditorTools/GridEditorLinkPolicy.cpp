@@ -68,6 +68,9 @@ namespace GridEditorLinkPolicy
 				return { EGridObjectCommand::Open, EGridObjectCommand::Close, EGridObjectCommand::Toggle, EGridObjectCommand::Activate,
 					EGridObjectCommand::Deactivate };
 
+			case EGridLevelObjectType::Relocation:
+				return { EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle };
+
 			case EGridLevelObjectType::Receptacle:
 				return { EGridObjectCommand::ReceptacleConsumeItem, EGridObjectCommand::ReceptacleConsumeAllItems, EGridObjectCommand::ReceptacleEnableRemoval,
 					EGridObjectCommand::ReceptacleDisableRemoval, EGridObjectCommand::ReceptacleEnableInsertion,
@@ -118,7 +121,8 @@ namespace GridEditorLinkPolicy
 		EGridLevelObjectType ObjectType, EGridLogicNodeType LogicNodeType, EGridObjectCommand Command)
 	{
 		if (ObjectType == EGridLevelObjectType::MonsterSpawn || ObjectType == EGridLevelObjectType::Logic ||
-			ObjectType == EGridLevelObjectType::StoryCompanion || ObjectType == EGridLevelObjectType::CustomRecruiter)
+			ObjectType == EGridLevelObjectType::StoryCompanion || ObjectType == EGridLevelObjectType::CustomRecruiter ||
+			ObjectType == EGridLevelObjectType::Relocation)
 		{
 			return GetSupportedCommandsForTarget(ObjectType, LogicNodeType).Contains(Command) ? EGridEditorCommandRuntimeSupport::Gameplay
 																			   : EGridEditorCommandRuntimeSupport::Unsupported;
@@ -148,7 +152,6 @@ namespace GridEditorLinkPolicy
 			case EGridLevelObjectType::ItemSpawn:
 			case EGridLevelObjectType::Item:
 			case EGridLevelObjectType::Light:
-			case EGridLevelObjectType::Relocation:
 			case EGridLevelObjectType::Trigger:
 			case EGridLevelObjectType::Receptacle:
 				return EGridEditorCommandRuntimeSupport::StateOnly;

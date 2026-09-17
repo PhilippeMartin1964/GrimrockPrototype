@@ -474,6 +474,7 @@ bool UGridActivationComponent::ApplyLinkCommand(const FGridObjectLink& LinkData)
 			break;
 		case EGridLevelObjectType::PressurePlate:
 		case EGridLevelObjectType::Lever:
+		case EGridLevelObjectType::Relocation:
 			bSuccess = WorldObject && ApplyStatefulLinkCommand(*WorldObject, ResolvedCommand);
 			FailureReason = bSuccess ? nullptr : TEXT("stateful gameplay command failed");
 			break;
@@ -486,7 +487,6 @@ bool UGridActivationComponent::ApplyLinkCommand(const FGridObjectLink& LinkData)
 		case EGridLevelObjectType::ItemSpawn:
 		case EGridLevelObjectType::Item:
 		case EGridLevelObjectType::Light:
-		case EGridLevelObjectType::Relocation:
 		case EGridLevelObjectType::Trigger:
 		case EGridLevelObjectType::Receptacle:
 			FailureReason = TEXT("target type has no gameplay command handler");
@@ -673,6 +673,8 @@ bool UGridActivationComponent::SetTargetActiveState(const FGridWorldObjectInstan
 			PlateActor = RuntimeActor->FindRuntimeObjectActor<AGridPressurePlateActor>(TargetObject.InstanceId);
 			if (!PlateActor) return false;
 			break;
+		case EGridLevelObjectType::Relocation:
+			break;
 		default:
 			return false;
 	}
@@ -685,7 +687,7 @@ bool UGridActivationComponent::SetTargetActiveState(const FGridWorldObjectInstan
 	if (bStateChanged)
 	{
 		const EGridObjectEvent StateEvent = bActive ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated;
-		UE_LOG(LogGridActivation, Log, TEXT("Grid mechanism state changed by link command: Target=%s Type=%s PreviousActive=%s NewActive=%s Event=%s"),
+		UE_LOG(LogGridActivation, Log, TEXT("Grid object state changed by link command: Target=%s Type=%s PreviousActive=%s NewActive=%s Event=%s"),
 			*TargetObject.InstanceId.ToString(), *GridObjectTypeToString(TargetObject.Type), bWasActive ? TEXT("true") : TEXT("false"),
 			bActive ? TEXT("true") : TEXT("false"), *GridObjectEventToString(StateEvent));
 		ExecuteLinksFromObjectForEvent(TargetObject.InstanceId, StateEvent);
