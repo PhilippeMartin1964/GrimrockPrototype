@@ -228,6 +228,34 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(in
 		return true;
 	}
 
+	const UGridItemDefinitionAsset* Definition = FindItemDefinition(CursorItem.ItemDefinitionId);
+	if (Definition && Definition->bStackable && TargetSlot.Item.ItemDefinitionId == CursorItem.ItemDefinitionId)
+	{
+		const int32 MaxStackSize = FMath::Max(1, Definition->MaxStackSize);
+		const int32 AvailableSpace = FMath::Max(0, MaxStackSize - TargetSlot.Item.Quantity);
+		if (AvailableSpace <= 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Merge InventoryStack Character=%d Slot=%d Item=%s Result=false Reason=TargetFull"),
+				CharacterIndex, TargetSlotIndex, *CursorItem.ItemDefinitionId.ToString());
+			return false;
+		}
+
+		const int32 TransferQuantity = FMath::Min(AvailableSpace, CursorItem.Quantity);
+		TargetSlot.Item.Quantity += TransferQuantity;
+		PartyInventoryState.CursorItem.Quantity -= TransferQuantity;
+		if (PartyInventoryState.CursorItem.Quantity <= 0)
+		{
+			PartyInventoryState.CursorItem = FGridItemInstance();
+			PartyInventoryState.bHasCursorItem = false;
+		}
+		NotifyPartyInventoryChanged(CharacterIndex);
+
+		UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Merge InventoryStack Character=%d Slot=%d Item=%s Transferred=%d TargetQuantity=%d CursorQuantity=%d Result=true"),
+			CharacterIndex, TargetSlotIndex, *CursorItem.ItemDefinitionId.ToString(), TransferQuantity, TargetSlot.Item.Quantity,
+			PartyInventoryState.bHasCursorItem ? PartyInventoryState.CursorItem.Quantity : 0);
+		return true;
+	}
+
 	FGridItemInstance SlotItem = TargetSlot.Item;
 	SlotItem.OwnerType = EGridItemOwnerType::Cursor;
 	SlotItem.OwnerGuid = FGuid();
@@ -300,6 +328,33 @@ bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 Character
 
 		UE_LOG(LogTemp, Log, TEXT("GridInventory Move InventorySlot Character=%d Source=%d Target=%d Item=%s Result=true"), CharacterIndex, SourceSlotIndex,
 			TargetSlotIndex, *SourceItem.ItemDefinitionId.ToString());
+		return true;
+	}
+
+	const UGridItemDefinitionAsset* Definition = FindItemDefinition(SourceItem.ItemDefinitionId);
+	if (Definition && Definition->bStackable && TargetSlot.Item.ItemDefinitionId == SourceItem.ItemDefinitionId)
+	{
+		const int32 MaxStackSize = FMath::Max(1, Definition->MaxStackSize);
+		const int32 AvailableSpace = FMath::Max(0, MaxStackSize - TargetSlot.Item.Quantity);
+		if (AvailableSpace <= 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("GridInventory Merge InventoryStacks Character=%d Source=%d Target=%d Item=%s Result=false Reason=TargetFull"),
+				CharacterIndex, SourceSlotIndex, TargetSlotIndex, *SourceItem.ItemDefinitionId.ToString());
+			return false;
+		}
+
+		const int32 TransferQuantity = FMath::Min(AvailableSpace, SourceSlot.Item.Quantity);
+		TargetSlot.Item.Quantity += TransferQuantity;
+		SourceSlot.Item.Quantity -= TransferQuantity;
+		if (SourceSlot.Item.Quantity <= 0)
+		{
+			SourceSlot = FGridInventorySlot();
+		}
+		NotifyPartyInventoryChanged(CharacterIndex);
+
+		UE_LOG(LogTemp, Log, TEXT("GridInventory Merge InventoryStacks Character=%d Source=%d Target=%d Item=%s Transferred=%d TargetQuantity=%d SourceQuantity=%d Result=true"),
+			CharacterIndex, SourceSlotIndex, TargetSlotIndex, *SourceItem.ItemDefinitionId.ToString(), TransferQuantity, TargetSlot.Item.Quantity,
+			SourceSlot.IsEmpty() ? 0 : SourceSlot.Item.Quantity);
 		return true;
 	}
 
