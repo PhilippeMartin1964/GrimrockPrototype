@@ -213,6 +213,10 @@ bool FGridDoorChainPullAudioTest::RunTest(const FString& Parameters)
 	Data.CellX = 5;
 	Data.CellY = 5;
 	Data.WallSide = EGridEdge::North;
+	// The transient test actor has no owning GridLevelRuntimeActor able to resolve
+	// Definition defaults, so enable the chain through the supported sparse instance
+	// override exactly as the existing door-chain runtime tests do.
+	Data.InstanceConfig.DoorChainMode = EGridDoorChainMode::Enabled;
 
 	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 1.0f, 180.0f, Definition);
 	Door->ConfigureObjectAudio(Definition);
