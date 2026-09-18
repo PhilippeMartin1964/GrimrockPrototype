@@ -5,6 +5,8 @@
 #include "GrimrockMainMenuWidget.generated.h"
 
 class UButton;
+class UGridPartyInventoryComponent;
+class URPGCharacterCreationWidget;
 
 /**
  * Main title-screen menu widget.
@@ -68,6 +70,12 @@ private:
 	void BindMainMenuButtons();
 	void RefreshSaveAvailabilityFromGameInstance();
 	bool OpenMainMenuModal(TSubclassOf<UUserWidget> WidgetClass, const TCHAR* MissingClassReason);
+	bool OpenNewGameCharacterCreation();
+	void CloseNewGameCharacterCreation(bool bRestoreMainMenu);
+	void RestoreMainMenuInput();
+	TSubclassOf<URPGCharacterCreationWidget> ResolveCharacterCreationWidgetClass() const;
+	void HandleInitialCharacterCreationCommitted(URPGCharacterCreationWidget* SourceWidget);
+	void HandleInitialCharacterCreationCancelled(URPGCharacterCreationWidget* SourceWidget);
 
 	UFUNCTION()
 	void HandleContinueClicked();
@@ -107,6 +115,18 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu|Modal", meta = (AllowPrivateAccess = "true", ClampMin = "0"))
 	int32 ModalZOrder = 200;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu|New Game", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<URPGCharacterCreationWidget> CharacterCreationWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu|New Game", meta = (AllowPrivateAccess = "true", ClampMin = "0"))
+	int32 CharacterCreationZOrder = 1000;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UGridPartyInventoryComponent> NewGamePartyInventory;
+
+	UPROPERTY(Transient)
+	TObjectPtr<URPGCharacterCreationWidget> NewGameCharacterCreationWidget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu", meta = (AllowPrivateAccess = "true"))
 	bool bQuitDirectlyFromMainMenu = true;

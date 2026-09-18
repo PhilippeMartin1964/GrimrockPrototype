@@ -430,6 +430,13 @@ void URPGCharacterCreationWizardWidget::CancelWizard()
 		return;
 	}
 
+	if (!OwningPartyPawn)
+	{
+		NotifyInitialCharacterCreationCancelled();
+		RemoveFromParent();
+		return;
+	}
+
 	RemoveFromParent();
 
 	UGrimrockGameInstance* GrimrockGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr;
@@ -895,6 +902,7 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation()
 		CreatedAttributes.Charisma);
 
 	SetValidationMessage(FText::GetEmpty(), false);
+	NotifyInitialCharacterCreationCommitted();
 	if (OwningPartyPawn)
 	{
 		OwningPartyPawn->HandleInitialCharacterCreated();

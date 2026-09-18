@@ -44,9 +44,6 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Load Game", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UGrimrockLoadGameSlotWidget> SaveSlotEntryWidgetClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Load Game", meta = (AllowPrivateAccess = "true"))
-	FName RuntimeLevelName = TEXT("L_GrimrockEditor");
-
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VerticalBox_SaveSlots;
 

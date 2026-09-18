@@ -22,8 +22,6 @@ protected:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
-	void DeferNewGameRuntimeActivation(AGrimrockPartyPawn* PartyPawn);
-	void TryActivateDeferredNewGameRuntime();
 	void TryCompleteLoadedGameProgress();
 	void SetWaitingTickEnabled();
 	void ShowBuildProgress(const FText& Title, const FText& StatusText, float Progress);
@@ -43,12 +41,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<AGrimrockPartyPawn> CachedPartyPawn;
-
-	UPROPERTY(Transient)
-	TObjectPtr<AGridLevelRuntimeActor> DeferredRuntimeActor;
-
-	UPROPERTY(Transient)
-	bool bWaitingForInitialCharacterCreation = false;
 
 	UPROPERTY(Transient)
 	bool bWaitingForLoadedGameRuntime = false;

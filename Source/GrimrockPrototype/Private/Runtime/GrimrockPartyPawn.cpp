@@ -134,7 +134,11 @@ void AGrimrockPartyPawn::BeginPlay()
 			{
 				UGameplayStatics::DeleteGameInSlot(PartySaveSlotName, PartySaveUserIndex);
 			}
-			PartyInventoryComponent->ResetPartyForNewGame();
+			if (!PartyInventoryComponent->HasCompletedInitialCharacterCreation())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("PartySave NewGame MissingPreparedParty Pawn=%s"), *GetName());
+				PartyInventoryComponent->ResetPartyForNewGame();
+			}
 		}
 		else if (HasCurrentSave())
 		{
@@ -217,7 +221,7 @@ void AGrimrockPartyPawn::BeginPlay()
 			PartyInventoryComponent ? PartyInventoryComponent->GetActiveCharacterCount() : 0);
 	}
 
-	if (PartyInventoryComponent && !PartyInventoryComponent->HasCompletedInitialCharacterCreation())
+	if (bFreshDungeonPlaytest && PartyInventoryComponent && !PartyInventoryComponent->HasCompletedInitialCharacterCreation())
 	{
 		ShowInitialCharacterCreationWidget();
 	}

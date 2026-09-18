@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "Runtime/GridInventoryTypes.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "GrimrockGameInstance.generated.h"
 
@@ -62,6 +63,24 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Main Menu|Startup")
 	FName GetMainMenuLevelName() const;
 
+	UFUNCTION(BlueprintPure, Category = "Main Menu|Startup")
+	FName GetDungeonLevelName() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Main Menu|Startup", meta = (WorldContext = "WorldContextObject"))
+	bool OpenDungeonLevel(const UObject* WorldContextObject);
+
+	UFUNCTION(BlueprintCallable, Category = "Main Menu|Startup")
+	bool SetPendingNewPartyState(const FGridPartyInventoryState& NewPartyState);
+
+	UFUNCTION(BlueprintPure, Category = "Main Menu|Startup")
+	bool HasPendingNewPartyState() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Main Menu|Startup")
+	bool ConsumePendingNewPartyState(FGridPartyInventoryState& OutPartyState);
+
+	UFUNCTION(BlueprintCallable, Category = "Main Menu|Startup")
+	void ClearPendingNewPartyState();
+
 	UFUNCTION(BlueprintPure, Category = "Main Menu|Save")
 	bool HasDefaultPartySaveGame() const;
 
@@ -114,6 +133,15 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Main Menu|Startup", meta = (AllowPrivateAccess = "true"))
 	FName MainMenuLevelName = TEXT("/Game/GrimrockPrototype/Maps/L_MainMenu");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Main Menu|Startup", meta = (AllowPrivateAccess = "true"))
+	FName DungeonLevelName = TEXT("/Game/GrimrockPrototype/Maps/L_Dungeon");
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Main Menu|Startup", meta = (AllowPrivateAccess = "true"))
+	bool bHasPendingNewPartyState = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Main Menu|Startup", meta = (AllowPrivateAccess = "true"))
+	FGridPartyInventoryState PendingNewPartyState;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Main Menu|Save", meta = (AllowPrivateAccess = "true"))
 	FString DefaultPartySaveSlotName = TEXT("GrimrockParty");

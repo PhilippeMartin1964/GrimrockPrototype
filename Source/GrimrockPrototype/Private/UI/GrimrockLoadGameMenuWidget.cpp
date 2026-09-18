@@ -3,7 +3,6 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
-#include "Kismet/GameplayStatics.h"
 #include "Runtime/GrimrockGameInstance.h"
 #include "UI/GrimrockLoadGameSlotWidget.h"
 
@@ -106,13 +105,9 @@ void UGrimrockLoadGameMenuWidget::HandleSaveSlotSelected(const FString& SlotName
 		return;
 	}
 
-	if (RuntimeLevelName.IsNone())
+	if (!GrimrockGameInstance->OpenDungeonLevel(this))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("LoadGameMenu Load Failed Slot=%s UserIndex=%d Reason=NoRuntimeLevelName"), *SlotName, UserIndex);
+		UE_LOG(LogTemp, Warning, TEXT("LoadGameMenu Load Failed Slot=%s UserIndex=%d Reason=OpenDungeonFailed"), *SlotName, UserIndex);
 		OnLoadSlotRequestFailed(SlotName, UserIndex);
-		return;
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("LoadGameMenu OpenRuntimeLevel Slot=%s UserIndex=%d Level=%s"), *SlotName, UserIndex, *RuntimeLevelName.ToString());
-	UGameplayStatics::OpenLevel(this, RuntimeLevelName);
 }

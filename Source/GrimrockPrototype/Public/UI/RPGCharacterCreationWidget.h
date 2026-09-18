@@ -23,6 +23,8 @@ class UTexture2D;
 DECLARE_MULTICAST_DELEGATE_TwoParams(FRPGCustomRecruitCommittedNativeSignature, URPGCharacterCreationWidget*, int32);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FRPGCustomRecruitCancelledNativeSignature, URPGCharacterCreationWidget*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FRPGInitialCharacterCreationCommittedNativeSignature, URPGCharacterCreationWidget*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FRPGInitialCharacterCreationCancelledNativeSignature, URPGCharacterCreationWidget*);
 
 UCLASS()
 class GRIMROCKPROTOTYPE_API URPGCharacterCreationWidget : public UGrimrockDesignSurfaceWidget
@@ -201,6 +203,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG|Character Creation")
 	void InitializeCharacterCreationWidgetForContext(AGrimrockPartyPawn* InPartyPawn, ERPGCharacterCreationContext InCreationContext);
 
+	/** STARTUP-FLOW01 frontend initialization without a gameplay pawn or dungeon world. */
+	UFUNCTION(BlueprintCallable, Category = "RPG|Character Creation")
+	void InitializeCharacterCreationWidgetForInventory(UGridPartyInventoryComponent* InInventoryComponent, ERPGCharacterCreationContext InCreationContext);
+
 	UFUNCTION(BlueprintPure, Category = "RPG|Character Creation")
 	ERPGCharacterCreationContext GetCreationContext() const;
 
@@ -235,6 +241,16 @@ public:
 		return CustomRecruitCancelledDelegate;
 	}
 
+	FRPGInitialCharacterCreationCommittedNativeSignature& OnInitialCharacterCreationCommitted()
+	{
+		return InitialCharacterCreationCommittedDelegate;
+	}
+
+	FRPGInitialCharacterCreationCancelledNativeSignature& OnInitialCharacterCreationCancelled()
+	{
+		return InitialCharacterCreationCancelledDelegate;
+	}
+
 protected:
 	virtual void NativeConstruct() override;
 
@@ -242,6 +258,8 @@ protected:
 	bool IsCreationContextPartyStateReady() const;
 	void NotifyCustomRecruitCommitted(int32 CharacterIndex);
 	void NotifyCustomRecruitCancelled();
+	void NotifyInitialCharacterCreationCommitted();
+	void NotifyInitialCharacterCreationCancelled();
 
 private:
 	UFUNCTION()
@@ -294,4 +312,6 @@ private:
 
 	FRPGCustomRecruitCommittedNativeSignature CustomRecruitCommittedDelegate;
 	FRPGCustomRecruitCancelledNativeSignature CustomRecruitCancelledDelegate;
+	FRPGInitialCharacterCreationCommittedNativeSignature InitialCharacterCreationCommittedDelegate;
+	FRPGInitialCharacterCreationCancelledNativeSignature InitialCharacterCreationCancelledDelegate;
 };

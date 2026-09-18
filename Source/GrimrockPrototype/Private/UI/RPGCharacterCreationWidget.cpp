@@ -286,9 +286,16 @@ void URPGCharacterCreationWidget::InitializeCharacterCreationWidget(AGrimrockPar
 
 void URPGCharacterCreationWidget::InitializeCharacterCreationWidgetForContext(AGrimrockPartyPawn* InPartyPawn, ERPGCharacterCreationContext InCreationContext)
 {
-	CreationContext = InCreationContext;
+	InitializeCharacterCreationWidgetForInventory(InPartyPawn ? InPartyPawn->PartyInventoryComponent.Get() : nullptr, InCreationContext);
 	OwningPartyPawn = InPartyPawn;
-	InventoryComponent = InPartyPawn ? InPartyPawn->PartyInventoryComponent.Get() : nullptr;
+}
+
+void URPGCharacterCreationWidget::InitializeCharacterCreationWidgetForInventory(
+	UGridPartyInventoryComponent* InInventoryComponent, ERPGCharacterCreationContext InCreationContext)
+{
+	CreationContext = InCreationContext;
+	OwningPartyPawn = nullptr;
+	InventoryComponent = InInventoryComponent;
 	SetValidationMessage(FText::GetEmpty(), false);
 	RefreshPreview();
 }
@@ -504,6 +511,7 @@ bool URPGCharacterCreationWidget::SubmitCharacterCreation()
 	InventoryComponent->SetCharacterVisualSelection(0, Request.PortraitGender, Request.PortraitVariantId, Request.Portrait, Request.ClassIcon);
 
 	SetValidationMessage(FText::GetEmpty(), false);
+	NotifyInitialCharacterCreationCommitted();
 	if (OwningPartyPawn)
 	{
 		OwningPartyPawn->HandleInitialCharacterCreated();
@@ -519,6 +527,16 @@ void URPGCharacterCreationWidget::NotifyCustomRecruitCommitted(int32 CharacterIn
 void URPGCharacterCreationWidget::NotifyCustomRecruitCancelled()
 {
 	CustomRecruitCancelledDelegate.Broadcast(this);
+}
+
+void URPGCharacterCreationWidget::NotifyInitialCharacterCreationCommitted()
+{
+	InitialCharacterCreationCommittedDelegate.Broadcast(this);
+}
+
+void URPGCharacterCreationWidget::NotifyInitialCharacterCreationCancelled()
+{
+	InitialCharacterCreationCancelledDelegate.Broadcast(this);
 }
 
 void URPGCharacterCreationWidget::HandleCreateCharacterClicked()

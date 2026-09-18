@@ -56,6 +56,10 @@ void UGrimrockGameInstance::SetPendingStartupMode(EGrimrockPartyStartupMode NewM
 	{
 		ResetPendingLoadSlot();
 	}
+	else
+	{
+		ClearPendingNewPartyState();
+	}
 
 	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance PendingStartupMode Set Mode=%d"), static_cast<int32>(PendingStartupMode));
 }
@@ -86,6 +90,7 @@ void UGrimrockGameInstance::RequestReturnToMainMenu(const UObject* WorldContextO
 {
 	PendingStartupMode = EGrimrockPartyStartupMode::Continue;
 	ResetPendingLoadSlot();
+	ClearPendingNewPartyState();
 
 	if (MainMenuLevelName.IsNone())
 	{
@@ -101,6 +106,68 @@ void UGrimrockGameInstance::RequestReturnToMainMenu(const UObject* WorldContextO
 FName UGrimrockGameInstance::GetMainMenuLevelName() const
 {
 	return MainMenuLevelName;
+}
+
+FName UGrimrockGameInstance::GetDungeonLevelName() const
+{
+	return DungeonLevelName;
+}
+
+bool UGrimrockGameInstance::OpenDungeonLevel(const UObject* WorldContextObject)
+{
+	if (DungeonLevelName.IsNone())
+	{
+		UE_LOG(LogGrimrockGameInstance, Error, TEXT("GrimrockGameInstance OpenDungeon Failed Reason=NoDungeonLevelName"));
+		return false;
+	}
+
+	const UObject* EffectiveWorldContext = WorldContextObject ? WorldContextObject : this;
+	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance OpenDungeon Level=%s"), *DungeonLevelName.ToString());
+	UGameplayStatics::OpenLevel(EffectiveWorldContext, DungeonLevelName, true);
+	return true;
+}
+
+bool UGrimrockGameInstance::SetPendingNewPartyState(const FGridPartyInventoryState& NewPartyState)
+{
+	if (!IsPartyInventoryStateLoadable(NewPartyState))
+	{
+		UE_LOG(LogGrimrockGameInstance, Warning,
+			TEXT("GrimrockGameInstance PendingNewParty Rejected ActiveCharacters=%d Completed=%s"),
+			NewPartyState.ActiveCharacters.Num(), NewPartyState.bInitialCharacterCreationCompleted ? TEXT("true") : TEXT("false"));
+		return false;
+	}
+
+	PendingNewPartyState = NewPartyState;
+	bHasPendingNewPartyState = true;
+	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance PendingNewParty Set CharacterCount=%d"),
+		PendingNewPartyState.ActiveCharacters.Num());
+	return true;
+}
+
+bool UGrimrockGameInstance::HasPendingNewPartyState() const
+{
+	return bHasPendingNewPartyState;
+}
+
+bool UGrimrockGameInstance::ConsumePendingNewPartyState(FGridPartyInventoryState& OutPartyState)
+{
+	if (!bHasPendingNewPartyState)
+	{
+		OutPartyState = FGridPartyInventoryState();
+		return false;
+	}
+
+	OutPartyState = PendingNewPartyState;
+	PendingNewPartyState = FGridPartyInventoryState();
+	bHasPendingNewPartyState = false;
+	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance PendingNewParty Consumed CharacterCount=%d"), OutPartyState.ActiveCharacters.Num());
+	return true;
+}
+
+void UGrimrockGameInstance::ClearPendingNewPartyState()
+{
+	PendingNewPartyState = FGridPartyInventoryState();
+	bHasPendingNewPartyState = false;
 }
 
 bool UGrimrockGameInstance::HasDefaultPartySaveGame() const

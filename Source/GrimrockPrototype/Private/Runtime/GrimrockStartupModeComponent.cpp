@@ -1,9 +1,6 @@
 #include "Runtime/GrimrockStartupModeComponent.h"
 
 #include "GameFramework/PlayerController.h"
-#include "Kismet/GameplayStatics.h"
-#include "Runtime/GridLevelRuntimeActor.h"
-#include "Runtime/GridPIEPlaytestRequest.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockGameInstance.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -55,7 +52,21 @@ void UGrimrockStartupModeComponent::BeginPlay()
 
 	if (PartyPawn->PartyStartupMode == EGrimrockPartyStartupMode::NewGame)
 	{
-		DeferNewGameRuntimeActivation(PartyPawn);
+		FGridPartyInventoryState PendingPartyState;
+		if (GrimrockGameInstance->ConsumePendingNewPartyState(PendingPartyState))
+		{
+			FText RestoreError;
+			if (!PartyPawn->PartyInventoryComponent || !PartyPawn->PartyInventoryComponent->RestorePartyInventoryState(PendingPartyState, RestoreError))
+			{
+				UE_LOG(LogGrimrockStartupMode, Error, TEXT("GrimrockStartupMode NewGamePartyRestore Failed Pawn=%s Reason=%s"),
+					*GetNameSafe(PartyPawn), *RestoreError.ToString());
+				GrimrockGameInstance->RequestReturnToMainMenu(PartyPawn);
+				return;
+			}
+
+			UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode NewGamePartyApplied Pawn=%s CharacterCount=%d"),
+				*GetNameSafe(PartyPawn), PartyPawn->PartyInventoryComponent->GetActiveCharacterCount());
+		}
 	}
 	else if (bHasPendingLoadRequest || PartyPawn->HasCurrentSave())
 	{
@@ -71,88 +82,8 @@ void UGrimrockStartupModeComponent::BeginPlay()
 void UGrimrockStartupModeComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	TryActivateDeferredNewGameRuntime();
 	TryCompleteLoadedGameProgress();
 	SetWaitingTickEnabled();
-}
-
-void UGrimrockStartupModeComponent::DeferNewGameRuntimeActivation(AGrimrockPartyPawn* PartyPawn)
-{
-	if (!PartyPawn)
-		return;
-
-	AGridLevelRuntimeActor* RuntimeActor = PartyPawn->LevelRuntimeActor.Get();
-	if (!RuntimeActor)
-	{
-		RuntimeActor = GridPIEPlaytestRequest::IsActiveForWorld(GetWorld())
-			? GridPIEPlaytestRequest::ResolveMatchingRuntimeActor(GetWorld())
-			: Cast<AGridLevelRuntimeActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridLevelRuntimeActor::StaticClass()));
-	}
-
-	if (RuntimeActor)
-	{
-		PartyPawn->LevelRuntimeActor = RuntimeActor;
-		RuntimeActor->DungeonRuntimeState = FGridDungeonRuntimeState();
-		RuntimeActor->ClearVisuals(EGridRuntimeRebuildMode::Full);
-		UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode DeferredRuntimeActivation Pawn=%s Runtime=%s Reason=InitialCharacterCreationPending"),
-			*GetNameSafe(PartyPawn), *GetNameSafe(RuntimeActor));
-	}
-	else
-	{
-		UE_LOG(LogGrimrockStartupMode, Warning, TEXT("GrimrockStartupMode DeferredRuntimeActivation MissingRuntimeActor Pawn=%s"), *GetNameSafe(PartyPawn));
-	}
-
-	DeferredRuntimeActor = RuntimeActor;
-	bWaitingForInitialCharacterCreation = true;
-	SetWaitingTickEnabled();
-}
-
-void UGrimrockStartupModeComponent::TryActivateDeferredNewGameRuntime()
-{
-	if (!bWaitingForInitialCharacterCreation)
-		return;
-
-	AGrimrockPartyPawn* PartyPawn = CachedPartyPawn.Get();
-	if (!PartyPawn)
-	{
-		PartyPawn = Cast<AGrimrockPartyPawn>(GetOwner());
-		CachedPartyPawn = PartyPawn;
-	}
-	if (!PartyPawn || !PartyPawn->PartyInventoryComponent)
-		return;
-	if (!PartyPawn->PartyInventoryComponent->HasCompletedInitialCharacterCreation())
-		return;
-
-	AGridLevelRuntimeActor* RuntimeActor = DeferredRuntimeActor.Get();
-	if (!RuntimeActor)
-		RuntimeActor = PartyPawn->LevelRuntimeActor.Get();
-	if (!RuntimeActor)
-	{
-		RuntimeActor = GridPIEPlaytestRequest::IsActiveForWorld(GetWorld())
-			? GridPIEPlaytestRequest::ResolveMatchingRuntimeActor(GetWorld())
-			: Cast<AGridLevelRuntimeActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridLevelRuntimeActor::StaticClass()));
-	}
-	if (!RuntimeActor)
-	{
-		UE_LOG(
-			LogGrimrockStartupMode, Error, TEXT("GrimrockStartupMode ActivateDeferredRuntime Failed Pawn=%s Reason=NoRuntimeActor"), *GetNameSafe(PartyPawn));
-		return;
-	}
-
-	ShowBuildProgress(LOCTEXT("NewGameProgressTitle", "Construction du donjon"), LOCTEXT("NewGameProgressPrepare", "Préparation du niveau..."), 0.05f);
-	PartyPawn->LevelRuntimeActor = RuntimeActor;
-	RuntimeActor->DungeonRuntimeState = FGridDungeonRuntimeState();
-	UpdateBuildProgress(LOCTEXT("NewGameProgressGeometry", "Construction de la géométrie..."), 0.25f);
-	RuntimeActor->RebuildLevel(EGridRuntimeRebuildMode::Full);
-	UpdateBuildProgress(LOCTEXT("NewGameProgressParty", "Placement du groupe..."), 0.85f);
-	PartyPawn->SnapToCurrentCell();
-	RuntimeActor->HandlePartyCellChanged(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY, PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
-
-	bWaitingForInitialCharacterCreation = false;
-	DeferredRuntimeActor = nullptr;
-	CompleteBuildProgress(LOCTEXT("NewGameProgressReady", "Donjon prêt."));
-	UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode ActivatedDeferredRuntime Pawn=%s Runtime=%s"), *GetNameSafe(PartyPawn),
-		*GetNameSafe(RuntimeActor));
 }
 
 void UGrimrockStartupModeComponent::TryCompleteLoadedGameProgress()
@@ -169,12 +100,6 @@ void UGrimrockStartupModeComponent::TryCompleteLoadedGameProgress()
 	if (!PartyPawn || !PartyPawn->PartyInventoryComponent)
 		return;
 
-	if (PartyPawn->bCharacterCreationModalActive && !PartyPawn->PartyInventoryComponent->HasCompletedInitialCharacterCreation())
-	{
-		bWaitingForLoadedGameRuntime = false;
-		CompleteBuildProgress(LOCTEXT("LoadGameProgressAborted", "Chargement interrompu."));
-		return;
-	}
 	if (!PartyPawn->PartyInventoryComponent->HasCompletedInitialCharacterCreation())
 		return;
 
@@ -190,7 +115,7 @@ void UGrimrockStartupModeComponent::TryCompleteLoadedGameProgress()
 
 void UGrimrockStartupModeComponent::SetWaitingTickEnabled()
 {
-	SetComponentTickEnabled(bWaitingForInitialCharacterCreation || bWaitingForLoadedGameRuntime);
+	SetComponentTickEnabled(bWaitingForLoadedGameRuntime);
 }
 
 void UGrimrockStartupModeComponent::ShowBuildProgress(const FText& Title, const FText& StatusText, float Progress)
