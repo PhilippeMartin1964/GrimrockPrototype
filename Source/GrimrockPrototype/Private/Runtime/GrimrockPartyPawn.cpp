@@ -221,6 +221,20 @@ void AGrimrockPartyPawn::BeginPlay()
 			PartyInventoryComponent ? PartyInventoryComponent->GetActiveCharacterCount() : 0);
 	}
 
+	if (!bFreshDungeonPlaytest && PartyStartupMode == EGrimrockPartyStartupMode::NewGame && PartyInventoryComponent &&
+		PartyInventoryComponent->HasCompletedInitialCharacterCreation())
+	{
+		FText SaveError;
+		if (!SaveCurrentGame(SaveError))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("PartySave InitialFrontendCharacter Failed Slot=%s Reason=%s"), *PartySaveSlotName, *SaveError.ToString());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("PartySave InitialFrontendCharacter Saved Slot=%s"), *PartySaveSlotName);
+		}
+	}
+
 	if (bFreshDungeonPlaytest && PartyInventoryComponent && !PartyInventoryComponent->HasCompletedInitialCharacterCreation())
 	{
 		ShowInitialCharacterCreationWidget();
