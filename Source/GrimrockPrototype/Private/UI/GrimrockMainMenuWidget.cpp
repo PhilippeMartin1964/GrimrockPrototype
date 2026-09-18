@@ -181,7 +181,7 @@ void UGrimrockMainMenuWidget::HandleNewGameClicked()
 
 	GrimrockGameInstance->SetPendingStartupMode(EGrimrockPartyStartupMode::NewGame);
 
-	static const FName RuntimeLevelName(TEXT("/Game/GrimrockPrototype/Maps/L_GrimrockRuntime"));
+	static const FName RuntimeLevelName(TEXT("/Game/GrimrockPrototype/Maps/L_GrimrockEditor"));
 	UE_LOG(LogTemp, Log, TEXT("MainMenu NewGame OpenRuntimeLevel Widget=%s Level=%s"), *GetName(), *RuntimeLevelName.ToString());
 	UGameplayStatics::OpenLevel(this, RuntimeLevelName, true);
 }
