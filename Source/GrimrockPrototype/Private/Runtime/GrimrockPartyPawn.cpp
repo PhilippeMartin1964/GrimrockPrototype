@@ -221,7 +221,10 @@ void AGrimrockPartyPawn::BeginPlay()
 			PartyInventoryComponent ? PartyInventoryComponent->GetActiveCharacterCount() : 0);
 	}
 
-	if (!bFreshDungeonPlaytest && PartyStartupMode == EGrimrockPartyStartupMode::NewGame && PartyInventoryComponent &&
+	const UGrimrockGameInstance* StartupGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr;
+	const bool bFrontendDungeonBuildPending = StartupGameInstance && StartupGameInstance->IsNewGameDungeonBuildPending();
+
+	if (!bFreshDungeonPlaytest && !bFrontendDungeonBuildPending && PartyStartupMode == EGrimrockPartyStartupMode::NewGame && PartyInventoryComponent &&
 		PartyInventoryComponent->HasCompletedInitialCharacterCreation())
 	{
 		FText SaveError;

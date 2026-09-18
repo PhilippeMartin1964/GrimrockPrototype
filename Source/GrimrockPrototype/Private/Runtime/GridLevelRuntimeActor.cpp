@@ -1,6 +1,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 
 #include "Core/GridRelocationUtils.h"
+#include "Runtime/GrimrockGameInstance.h"
 #include "Runtime/GridPIEPlaytestRequest.h"
 #include "Runtime/GridMonsterEncounterComponent.h"
 #include "Core/GridTypes.h"
@@ -250,12 +251,14 @@ void AGridLevelRuntimeActor::BeginPlay()
 	{
 		EditorPreviewComponent->Initialize(this);
 	}
-	RebuildLevel();
-	ApplyCurrentLevelRuntimeState();
-	if (ActivationComponent)
+	if (const UGrimrockGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr;
+		GameInstance && GameInstance->IsNewGameDungeonBuildPending())
 	{
-		ActivationComponent->RefreshAllPressurePlates();
+		UE_LOG(LogTemp, Log, TEXT("GridLevelRuntimeActor: initial runtime build deferred for frontend New Game."));
+		return;
 	}
+
+	BuildInitialRuntimeState();
 }
 
 FGridLevelRuntimeState* AGridLevelRuntimeActor::GetOrCreateRuntimeStateForCurrentLevel()
@@ -418,6 +421,17 @@ void AGridLevelRuntimeActor::AddEdgeInstance(UInstancedStaticMeshComponent* Targ
 		return;
 	}
 	TargetISM->AddInstance(T);
+}
+
+bool AGridLevelRuntimeActor::BuildInitialRuntimeState()
+{
+	RebuildLevel();
+	ApplyCurrentLevelRuntimeState();
+	if (ActivationComponent)
+	{
+		ActivationComponent->RefreshAllPressurePlates();
+	}
+	return LevelAsset != nullptr;
 }
 
 void AGridLevelRuntimeActor::RebuildLevel(EGridRuntimeRebuildMode RebuildMode)

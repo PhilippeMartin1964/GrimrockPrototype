@@ -1,6 +1,7 @@
 #include "Runtime/GrimrockStartupModeComponent.h"
 
 #include "GameFramework/PlayerController.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockGameInstance.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -67,6 +68,18 @@ void UGrimrockStartupModeComponent::BeginPlay()
 			UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode NewGamePartyApplied Pawn=%s CharacterCount=%d"),
 				*GetNameSafe(PartyPawn), PartyPawn->PartyInventoryComponent->GetActiveCharacterCount());
 		}
+
+		if (GrimrockGameInstance->IsNewGameDungeonBuildPending())
+		{
+			bWaitingForNewGameRuntimeBuild = true;
+			ShowBuildProgress(
+				LOCTEXT("NewGameProgressTitle", "Construction du donjon"), LOCTEXT("NewGameProgressPrepare", "Préparation du niveau..."), 0.05f);
+			if (APlayerController* PlayerController = Cast<APlayerController>(PartyPawn->GetController()))
+			{
+				PartyPawn->DisableInput(PlayerController);
+			}
+			SetWaitingTickEnabled();
+		}
 	}
 	else if (bHasPendingLoadRequest || PartyPawn->HasCurrentSave())
 	{
@@ -82,8 +95,87 @@ void UGrimrockStartupModeComponent::BeginPlay()
 void UGrimrockStartupModeComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	TryAdvanceNewGameRuntimeBuild();
 	TryCompleteLoadedGameProgress();
 	SetWaitingTickEnabled();
+}
+
+void UGrimrockStartupModeComponent::TryAdvanceNewGameRuntimeBuild()
+{
+	if (!bWaitingForNewGameRuntimeBuild)
+	{
+		return;
+	}
+
+	AGrimrockPartyPawn* PartyPawn = CachedPartyPawn.Get();
+	UGrimrockGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr;
+	if (!PartyPawn || !GameInstance)
+	{
+		return;
+	}
+
+	// Keep the preparation state visible for at least one rendered frame before
+	// the synchronous runtime rebuild starts.
+	if (!bNewGameBuildPreparationPresented)
+	{
+		bNewGameBuildPreparationPresented = true;
+		return;
+	}
+
+	if (!bNewGameBuildRuntimeReady)
+	{
+		AGridLevelRuntimeActor* RuntimeActor = PartyPawn->LevelRuntimeActor;
+		if (!RuntimeActor)
+		{
+			UE_LOG(LogGrimrockStartupMode, Error, TEXT("GrimrockStartupMode NewGameBuild Failed Pawn=%s Reason=NoRuntimeActor"), *GetNameSafe(PartyPawn));
+			bWaitingForNewGameRuntimeBuild = false;
+			GameInstance->CompletePendingNewGameDungeonBuild();
+			HideBuildProgress();
+			GameInstance->RequestReturnToMainMenu(PartyPawn);
+			return;
+		}
+
+		RuntimeActor->DungeonRuntimeState = FGridDungeonRuntimeState();
+		UpdateBuildProgress(LOCTEXT("NewGameProgressGeometry", "Construction de la géométrie..."), 0.25f);
+		if (!RuntimeActor->BuildInitialRuntimeState())
+		{
+			UE_LOG(LogGrimrockStartupMode, Error, TEXT("GrimrockStartupMode NewGameBuild Failed Pawn=%s Reason=NoLevelAsset"), *GetNameSafe(PartyPawn));
+			bWaitingForNewGameRuntimeBuild = false;
+			GameInstance->CompletePendingNewGameDungeonBuild();
+			HideBuildProgress();
+			GameInstance->RequestReturnToMainMenu(PartyPawn);
+			return;
+		}
+
+		UpdateBuildProgress(LOCTEXT("NewGameProgressParty", "Placement du groupe..."), 0.85f);
+		PartyPawn->SnapToCurrentCell();
+		RuntimeActor->HandlePartyCellChanged(
+			PartyPawn->CurrentCellX, PartyPawn->CurrentCellY, PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+
+		FText SaveError;
+		if (!PartyPawn->SaveCurrentGame(SaveError))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("PartySave InitialFrontendCharacter Failed Slot=%s Reason=%s"), *PartyPawn->PartySaveSlotName, *SaveError.ToString());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("PartySave InitialFrontendCharacter Saved Slot=%s"), *PartyPawn->PartySaveSlotName);
+		}
+
+		GameInstance->CompletePendingNewGameDungeonBuild();
+		bNewGameBuildRuntimeReady = true;
+		return;
+	}
+
+	CompleteBuildProgress(LOCTEXT("NewGameProgressReady", "Donjon prêt."));
+	bWaitingForNewGameRuntimeBuild = false;
+	bNewGameBuildPreparationPresented = false;
+	bNewGameBuildRuntimeReady = false;
+
+	if (APlayerController* PlayerController = Cast<APlayerController>(PartyPawn->GetController()))
+	{
+		PartyPawn->EnableInput(PlayerController);
+	}
 }
 
 void UGrimrockStartupModeComponent::TryCompleteLoadedGameProgress()
@@ -115,7 +207,7 @@ void UGrimrockStartupModeComponent::TryCompleteLoadedGameProgress()
 
 void UGrimrockStartupModeComponent::SetWaitingTickEnabled()
 {
-	SetComponentTickEnabled(bWaitingForLoadedGameRuntime);
+	SetComponentTickEnabled(bWaitingForLoadedGameRuntime || bWaitingForNewGameRuntimeBuild);
 }
 
 void UGrimrockStartupModeComponent::ShowBuildProgress(const FText& Title, const FText& StatusText, float Progress)

@@ -81,6 +81,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Main Menu|Startup")
 	void ClearPendingNewPartyState();
 
+	bool IsNewGameDungeonBuildPending() const;
+	void CompletePendingNewGameDungeonBuild();
+
 	UFUNCTION(BlueprintPure, Category = "Main Menu|Save")
 	bool HasDefaultPartySaveGame() const;
 
@@ -142,6 +145,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Main Menu|Startup", meta = (AllowPrivateAccess = "true"))
 	FGridPartyInventoryState PendingNewPartyState;
+
+	UPROPERTY(Transient)
+	bool bPendingNewGameDungeonBuild = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Main Menu|Save", meta = (AllowPrivateAccess = "true"))
 	FString DefaultPartySaveSlotName = TEXT("GrimrockParty");

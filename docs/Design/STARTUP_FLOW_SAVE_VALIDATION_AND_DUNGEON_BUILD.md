@@ -20,9 +20,9 @@ Flux attendu :
 ```text
 Menu principal
 -> Nouvelle partie
--> ouverture du niveau runtime existant dans le flux actuel
--> désactivation/vidage du runtime visible
--> affichage du wizard de création de personnage
+-> affichage du wizard de création de personnage dans L_MainMenu
+-> validation du personnage
+-> ouverture de L_Dungeon
 ```
 
 Tant que le personnage n'est pas validé :
@@ -57,10 +57,13 @@ Flux attendu :
 Wizard de création
 -> Valider personnage
 -> PartyInventoryState.bInitialCharacterCreationCompleted = true
--> affichage de la progression de construction du donjon
--> reconstruction du runtime du donjon
--> placement du groupe
--> sauvegarde possible
+-> PendingNewPartyState + NewGameDungeonBuild pending
+-> Open L_Dungeon
+-> affichage "Construction du donjon" (5 %)
+-> construction de la géométrie/runtime (25 %)
+-> placement du groupe et résolution de la cellule de départ (85 %)
+-> sauvegarde initiale
+-> "Donjon prêt." (100 %)
 -> runtime jouable
 ```
 
@@ -123,6 +126,8 @@ Cette règle évite qu'une annulation de création de personnage, un ancien fich
 Responsabilités :
 
 - stocker le mode de démarrage demandé ;
+- stocker l'état de groupe préparé dans le frontend ;
+- porter le handoff transitoire de construction New Game à travers le changement de map ;
 - stocker le slot de sauvegarde demandé ;
 - centraliser la validation des sauvegardes chargeables ;
 - refuser toute demande de chargement vers un slot non chargeable ;
@@ -174,11 +179,20 @@ Responsabilités :
 
 Responsabilités :
 
-- consommer le mode de démarrage demandé ;
-- différer l'activation du runtime en cas de `NewGame` tant que le personnage n'est pas validé ;
+- consommer le mode de démarrage demandé et l'état de groupe préparé ;
 - afficher la progression de construction/chargement ;
-- reconstruire le runtime après validation du personnage ;
-- terminer la progression après chargement d'une sauvegarde.
+- exécuter au premier tick le rebuild New Game différé par le runtime actor ;
+- replacer le groupe et rafraîchir les mécanismes de la cellule de départ ;
+- créer la sauvegarde initiale après le rebuild ;
+- terminer la progression après construction ou chargement.
+
+### `AGridLevelRuntimeActor`
+
+Responsabilités STARTUP-FLOW02 :
+
+- conserver son auto-rebuild normal pour PIE, Continue et les autres démarrages ;
+- différer uniquement l'initial build lorsqu'un handoff New Game frontend est actif ;
+- exposer une seule primitive `BuildInitialRuntimeState()` utilisée par BeginPlay et par le handoff différé.
 
 ### `UGridDungeonBuildProgressWidget`
 

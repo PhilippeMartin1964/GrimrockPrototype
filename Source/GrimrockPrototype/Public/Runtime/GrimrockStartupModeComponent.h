@@ -22,6 +22,7 @@ protected:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
+	void TryAdvanceNewGameRuntimeBuild();
 	void TryCompleteLoadedGameProgress();
 	void SetWaitingTickEnabled();
 	void ShowBuildProgress(const FText& Title, const FText& StatusText, float Progress);
@@ -44,6 +45,15 @@ private:
 
 	UPROPERTY(Transient)
 	bool bWaitingForLoadedGameRuntime = false;
+
+	UPROPERTY(Transient)
+	bool bWaitingForNewGameRuntimeBuild = false;
+
+	UPROPERTY(Transient)
+	bool bNewGameBuildPreparationPresented = false;
+
+	UPROPERTY(Transient)
+	bool bNewGameBuildRuntimeReady = false;
 
 	FTimerHandle HideBuildProgressTimerHandle;
 };

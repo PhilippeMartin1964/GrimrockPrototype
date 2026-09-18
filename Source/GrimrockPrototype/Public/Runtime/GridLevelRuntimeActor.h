@@ -230,6 +230,8 @@ public:
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Level")
 	void RebuildLevel(EGridRuntimeRebuildMode RebuildMode = EGridRuntimeRebuildMode::Full);
 
+	bool BuildInitialRuntimeState();
+
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Level")
 	void ClearVisuals(EGridRuntimeRebuildMode RebuildMode = EGridRuntimeRebuildMode::Full);
 

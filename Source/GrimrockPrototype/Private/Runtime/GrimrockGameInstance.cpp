@@ -55,6 +55,7 @@ void UGrimrockGameInstance::SetPendingStartupMode(EGrimrockPartyStartupMode NewM
 	if (PendingStartupMode == EGrimrockPartyStartupMode::NewGame)
 	{
 		ResetPendingLoadSlot();
+		bPendingNewGameDungeonBuild = bHasPendingNewPartyState;
 	}
 	else
 	{
@@ -83,6 +84,7 @@ EGrimrockPartyStartupMode UGrimrockGameInstance::ConsumePendingStartupMode()
 void UGrimrockGameInstance::ClearPendingStartupMode()
 {
 	PendingStartupMode = EGrimrockPartyStartupMode::Continue;
+	bPendingNewGameDungeonBuild = false;
 	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance PendingStartupMode Cleared"));
 }
 
@@ -139,6 +141,10 @@ bool UGrimrockGameInstance::SetPendingNewPartyState(const FGridPartyInventorySta
 
 	PendingNewPartyState = NewPartyState;
 	bHasPendingNewPartyState = true;
+	if (PendingStartupMode == EGrimrockPartyStartupMode::NewGame)
+	{
+		bPendingNewGameDungeonBuild = true;
+	}
 	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance PendingNewParty Set CharacterCount=%d"),
 		PendingNewPartyState.ActiveCharacters.Num());
 	return true;
@@ -168,6 +174,23 @@ void UGrimrockGameInstance::ClearPendingNewPartyState()
 {
 	PendingNewPartyState = FGridPartyInventoryState();
 	bHasPendingNewPartyState = false;
+	bPendingNewGameDungeonBuild = false;
+}
+
+bool UGrimrockGameInstance::IsNewGameDungeonBuildPending() const
+{
+	return bPendingNewGameDungeonBuild;
+}
+
+void UGrimrockGameInstance::CompletePendingNewGameDungeonBuild()
+{
+	if (!bPendingNewGameDungeonBuild)
+	{
+		return;
+	}
+
+	bPendingNewGameDungeonBuild = false;
+	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance NewGameDungeonBuild Completed"));
 }
 
 bool UGrimrockGameInstance::HasDefaultPartySaveGame() const

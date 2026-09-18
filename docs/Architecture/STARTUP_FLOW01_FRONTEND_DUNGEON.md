@@ -18,10 +18,16 @@ L_MainMenu
 -> transient UGridPartyInventoryComponent
 -> completed FGridPartyInventoryState
 -> UGrimrockGameInstance.PendingNewPartyState
+-> NewGameDungeonBuild pending
 -> PendingStartupMode = NewGame
 -> Open L_Dungeon
+-> AGridLevelRuntimeActor defers its automatic initial rebuild
 -> UGrimrockStartupModeComponent consumes PendingNewPartyState
--> AGrimrockPartyPawn starts with an already completed party
+-> "Construction du donjon" progress overlay
+-> rebuild runtime + restore initial state
+-> placement du groupe
+-> initial save
+-> "Donjon prêt."
 -> gameplay
 ```
 
@@ -43,6 +49,6 @@ All gameplay travel now uses `UGrimrockGameInstance::DungeonLevelName`. UI class
 
 ## Runtime simplification
 
-`UGrimrockStartupModeComponent` no longer clears the dungeon and waits for initial character creation. For New Game it only applies the frontend-prepared party before the pawn continues its `BeginPlay`.
+`UGrimrockStartupModeComponent` no longer clears the dungeon and waits for initial character creation. For New Game it applies the frontend-prepared party, then STARTUP-FLOW02 owns the one-shot initial dungeon build handoff. The runtime actor skips its normal automatic BeginPlay rebuild while that handoff is pending, so the progress overlay wraps the real runtime construction instead of a duplicate rebuild.
 
 The pawn keeps the old initial-character modal only as a direct fresh-PIE fallback for editor playtests; packaged New Game creation belongs to the frontend.
