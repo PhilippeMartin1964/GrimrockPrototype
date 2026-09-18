@@ -104,7 +104,7 @@ public:
 	/** Data-driven semantic audio events such as Open, Close, Press, Activate or Interact. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio",
 		meta = (DisplayName = "Audio Events",
-			ToolTip = "Data-driven audio events for this definition. Keys are semantic names such as Open, Close, Press, Release or custom names."))
+			ToolTip = "Data-driven audio events for this definition. Prefer existing gameplay semantics when available (for example Activated/Deactivated, Open/Close); custom names remain supported."))
 	TMap<FName, FGridObjectAudioEvent> AudioEvents;
 
 	// Existing audio migration is intentionally untouched by WORLDOBJ-MIG03.

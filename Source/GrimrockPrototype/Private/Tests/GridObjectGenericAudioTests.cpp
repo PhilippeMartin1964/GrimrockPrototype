@@ -5,6 +5,7 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Runtime/GridButtonActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Sound/SoundAttenuation.h"
 #include "Sound/SoundWave.h"
@@ -67,21 +68,21 @@ bool FGridObjectGenericAudioContractTest::RunTest(const FString& Parameters)
 	}
 
 	// Prove the contract is not door-specific: a Button definition can define and
-	// resolve an arbitrary Press event through the shared runtime base class.
+	// resolve its canonical Activated event through the shared runtime base class.
 	UGridWorldObjectDefinitionAsset* ButtonDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
 	ButtonDefinition->DefinitionId = TEXT("Button_GenericAudio_Test");
 	ButtonDefinition->SupportedType = EGridLevelObjectType::Button;
 	USoundAttenuation* SharedAttenuation = NewObject<USoundAttenuation>(ButtonDefinition);
 	ButtonDefinition->DefaultAudioAttenuation = SharedAttenuation;
 
-	USoundWave* PressSoundA = NewObject<USoundWave>(ButtonDefinition);
-	USoundWave* PressSoundB = NewObject<USoundWave>(ButtonDefinition);
-	FGridObjectAudioEvent PressEvent;
-	PressEvent.Volume = 0.65f;
-	PressEvent.PitchVariation = 0.0f;
-	PressEvent.Sounds.Add(PressSoundA);
-	PressEvent.Sounds.Add(PressSoundB);
-	ButtonDefinition->AudioEvents.Add(TEXT("Press"), PressEvent);
+	USoundWave* ActivatedSoundA = NewObject<USoundWave>(ButtonDefinition);
+	USoundWave* ActivatedSoundB = NewObject<USoundWave>(ButtonDefinition);
+	FGridObjectAudioEvent ActivatedEvent;
+	ActivatedEvent.Volume = 0.65f;
+	ActivatedEvent.PitchVariation = 0.0f;
+	ActivatedEvent.Sounds.Add(ActivatedSoundA);
+	ActivatedEvent.Sounds.Add(ActivatedSoundB);
+	ButtonDefinition->AudioEvents.Add(TEXT("Activated"), ActivatedEvent);
 
 	AGridRuntimeObjectActor* RuntimeObject = TestWorld.World->SpawnActor<AGridRuntimeObjectActor>();
 	TestNotNull(TEXT("The generic runtime object exists"), RuntimeObject);
@@ -92,17 +93,30 @@ bool FGridObjectGenericAudioContractTest::RunTest(const FString& Parameters)
 	RuntimeObject->ConfigureObjectAudio(ButtonDefinition);
 
 	TestTrue(TEXT("A non-door runtime object uses the definition's single attenuation"), RuntimeObject->DefaultObjectAudioAttenuation == SharedAttenuation);
-	TestTrue(TEXT("A non-door runtime object exposes its configured Press event"), RuntimeObject->HasObjectAudioEvent(TEXT("Press")));
+	TestTrue(TEXT("A Button runtime object exposes its configured Activated event"), RuntimeObject->HasObjectAudioEvent(TEXT("Activated")));
 	TestFalse(TEXT("An undeclared event is not invented"), RuntimeObject->HasObjectAudioEvent(TEXT("Open")));
 
-	const FGridObjectAudioPlaybackResult First = RuntimeObject->PlayObjectAudioEventDetailed(TEXT("Press"), false, 1.25f);
-	const FGridObjectAudioPlaybackResult Second = RuntimeObject->PlayObjectAudioEventDetailed(TEXT("Press"), false);
+	const FGridObjectAudioPlaybackResult First = RuntimeObject->PlayObjectAudioEventDetailed(TEXT("Activated"), false, 1.25f);
+	const FGridObjectAudioPlaybackResult Second = RuntimeObject->PlayObjectAudioEventDetailed(TEXT("Activated"), false);
 	TestTrue(TEXT("First generic playback request resolves"), First.bRequested);
 	TestTrue(TEXT("Second generic playback request resolves"), Second.bRequested);
-	TestTrue(TEXT("Generic event variants advance deterministically"), First.Sound == PressSoundA && Second.Sound == PressSoundB);
+	TestTrue(TEXT("Generic event variants advance deterministically"), First.Sound == ActivatedSoundA && Second.Sound == ActivatedSoundB);
 	TestTrue(TEXT("Detailed playback preserves an explicit StartTime"), FMath::IsNearlyEqual(First.StartTimeSeconds, 1.25f));
 	TestTrue(TEXT("Default detailed playback starts at zero"), FMath::IsNearlyEqual(Second.StartTimeSeconds, 0.0f));
 	TestTrue(TEXT("Mechanical-safe zero pitch variation preserves pitch 1.0"), FMath::IsNearlyEqual(First.Pitch, 1.0f));
+
+	// BUTTON-AUDIO01: prove the specialized Button actor actually emits the same
+	// Activated audio vocabulary as Events & Actions when TriggerPress executes.
+	AGridButtonActor* ButtonActor = TestWorld.World->SpawnActor<AGridButtonActor>();
+	TestNotNull(TEXT("The audio-enabled Button actor exists"), ButtonActor);
+	if (!ButtonActor)
+	{
+		return false;
+	}
+	ButtonActor->ConfigureObjectAudio(ButtonDefinition);
+	ButtonActor->TriggerPress();
+	const FGridObjectAudioPlaybackResult AfterTrigger = ButtonActor->PlayObjectAudioEventDetailed(TEXT("Activated"), false);
+	TestTrue(TEXT("TriggerPress consumes the first Activated audio variant"), AfterTrigger.Sound == ActivatedSoundB);
 
 	// Backward compatibility: already-saved door definitions using the historical
 	// fields still resolve as generic Open/Close until they are resaved/migrated.

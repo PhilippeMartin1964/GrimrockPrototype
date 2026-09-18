@@ -33,6 +33,9 @@ void AGridButtonActor::Tick(float DeltaSeconds)
 
 void AGridButtonActor::TriggerPress()
 {
+	// BUTTON-AUDIO01: use the same semantic event name exposed by Events & Actions.
+	PlayObjectAudioEvent(TEXT("Activated"));
+
 	AnimState = EButtonAnimState::Pressing;
 	StateElapsed = 0.f;
 	SetActorTickEnabled(true);

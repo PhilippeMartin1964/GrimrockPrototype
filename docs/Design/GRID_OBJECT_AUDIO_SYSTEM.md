@@ -33,7 +33,16 @@ FGridObjectAudioEvent
     PitchVariation
 ~~~
 
-Les noms sont ouverts : `Open`, `Close`, `Press`, `Release`, `Insert`, `Teleport`, `Trigger`, `Interact`, ou un nom personnalisé.
+Les noms restent ouverts, mais un acteur spécialisé doit réutiliser le vocabulaire gameplay existant lorsqu'il existe afin d'éviter deux autorités sémantiques.
+
+~~~text
+Button         -> Activated
+Lever          -> Activated / Deactivated
+PressurePlate  -> Activated / Deactivated
+Door           -> Open / Close
+~~~
+
+Des noms purement physiques ou spécifiques (`Release`, `Insert`, `Teleport`, etc.) restent possibles lorsqu'aucun événement gameplay équivalent n'existe.
 
 ## Runtime
 
@@ -93,7 +102,7 @@ Ils sont cachés et dépréciés pour le nouvel authoring.
 Grimrock.Runtime.Objects.GenericAudioContract
 ~~~
 
-Le test utilise volontairement une définition Button avec un événement `Press` et vérifie que l'atténuation de la définition est bien l'unique profil spatial utilisé par l'objet.
+Le test utilise volontairement une définition Button avec l’événement canonique `Activated`, vérifie que `TriggerPress()` le consomme réellement et confirme que l’atténuation de la définition reste l’unique profil spatial utilisé par l’objet.
 
 ## Lecture à partir d'un timestamp
 
