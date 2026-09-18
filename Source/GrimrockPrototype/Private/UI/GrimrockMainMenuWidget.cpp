@@ -172,7 +172,18 @@ void UGrimrockMainMenuWidget::HandleContinueClicked()
 
 void UGrimrockMainMenuWidget::HandleNewGameClicked()
 {
-	OnNewGameRequested();
+	UGrimrockGameInstance* GrimrockGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr;
+	if (!GrimrockGameInstance)
+	{
+		UE_LOG(LogTemp, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=NoGrimrockGameInstance"), *GetName());
+		return;
+	}
+
+	GrimrockGameInstance->SetPendingStartupMode(EGrimrockPartyStartupMode::NewGame);
+
+	static const FName RuntimeLevelName(TEXT("/Game/GrimrockPrototype/Maps/L_GrimrockRuntime"));
+	UE_LOG(LogTemp, Log, TEXT("MainMenu NewGame OpenRuntimeLevel Widget=%s Level=%s"), *GetName(), *RuntimeLevelName.ToString());
+	UGameplayStatics::OpenLevel(this, RuntimeLevelName, true);
 }
 
 void UGrimrockMainMenuWidget::HandleLoadGameClicked()
