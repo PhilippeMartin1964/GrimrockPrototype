@@ -69,6 +69,21 @@ void AGrimrockPartyPawn::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Standalone safety net: historically PendingStartupMode was consumed only by
+	// a Blueprint-added GrimrockStartupModeComponent. If that component is absent
+	// from a packaged runtime pawn, NewGame would silently fall back to Continue.
+	// Consume an outstanding NewGame request here only when it has not already
+	// been consumed by the component during Super::BeginPlay().
+	if (UGrimrockGameInstance* GrimrockGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr)
+	{
+		if (GrimrockGameInstance->GetPendingStartupMode() == EGrimrockPartyStartupMode::NewGame &&
+			PartyStartupMode != EGrimrockPartyStartupMode::NewGame)
+		{
+			PartyStartupMode = GrimrockGameInstance->ConsumePendingStartupMode();
+			UE_LOG(LogTemp, Log, TEXT("GrimrockPartyPawn StartupFallback Applied Pawn=%s Mode=%d"), *GetName(), static_cast<int32>(PartyStartupMode));
+		}
+	}
+
 	const bool bFreshPIERequestForWorld = GridPIEPlaytestRequest::IsActiveForWorld(GetWorld());
 	if (bFreshPIERequestForWorld)
 	{
