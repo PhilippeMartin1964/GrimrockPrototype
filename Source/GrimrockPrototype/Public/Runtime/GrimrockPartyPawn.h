@@ -260,19 +260,19 @@ public:
 	bool bHeadBobStrafeSway = true;
 	// Free look
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Free Look")
-	float FreeLookYawLimit = 60.f;
+	float FreeLookYawLimit = 80.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Free Look")
-	float FreeLookPitchUpLimit = 35.f;
+	float FreeLookPitchUpLimit = 80.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Free Look")
-	float FreeLookPitchDownLimit = 45.f;
+	float FreeLookPitchDownLimit = 80.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Free Look")
-	float FreeLookSensitivityYaw = 0.20f;
+	float FreeLookSensitivityYaw = 0.50f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Free Look")
-	float FreeLookSensitivityPitch = 0.20f;
+	float FreeLookSensitivityPitch = 0.50f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Free Look")
 	bool bEnableFreeLookRecentering = true;
