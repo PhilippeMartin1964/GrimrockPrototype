@@ -221,6 +221,10 @@ void AGridDoorActor::PullChain()
 		return;
 	}
 
+	// DOOR-CHAIN-AUDIO01: Pull is a physical chain event, distinct from the
+	// subsequent logical Open/Close door motion.
+	PlayObjectAudioEvent(TEXT("Pull"));
+
 	ChainAnimationElapsed = 0.f;
 	bIsChainAnimating = true;
 	ChainInteractionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);

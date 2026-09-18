@@ -166,6 +166,70 @@ bool FGridDoorAudioFeedbackTest::RunTest(const FString& Parameters)
 }
 
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridDoorChainPullAudioTest,
+	"Grimrock.Runtime.Doors.ChainPullAudio",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridDoorChainPullAudioTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	FGridDoorAudioTestWorld TestWorld;
+	TestNotNull(TEXT("The transient chain-audio world exists"), TestWorld.World);
+	if (!TestWorld.World)
+	{
+		return false;
+	}
+
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
+	Definition->DefinitionId = TEXT("Door_ChainAudio_Test");
+	Definition->SupportedType = EGridLevelObjectType::Door;
+	Definition->DefaultBehavior.DoorAnimation.bHasChainMechanism = true;
+	Definition->DefaultBehavior.DoorAnimation.ChainPullDistance = 20.0f;
+	Definition->DefaultBehavior.DoorAnimation.ChainPullDuration = 0.25f;
+
+	USoundWave* PullSoundA = NewObject<USoundWave>(Definition);
+	USoundWave* PullSoundB = NewObject<USoundWave>(Definition);
+	FGridObjectAudioEvent PullEvent;
+	PullEvent.Volume = 1.0f;
+	PullEvent.PitchVariation = 0.0f;
+	PullEvent.Sounds.Add(PullSoundA);
+	PullEvent.Sounds.Add(PullSoundB);
+	Definition->AudioEvents.Add(TEXT("Pull"), PullEvent);
+
+	AGridDoorActor* Door = TestWorld.World->SpawnActor<AGridDoorActor>();
+	TestNotNull(TEXT("The chain-audio door exists"), Door);
+	if (!Door)
+	{
+		return false;
+	}
+
+	Door->ChainSupportMesh = NewObject<UStaticMesh>(Door);
+	Door->ChainMovingMesh = NewObject<UStaticMesh>(Door);
+
+	FGridWorldObjectInstance Data;
+	Data.InstanceId = FGuid::NewGuid();
+	Data.Type = EGridLevelObjectType::Door;
+	Data.CellX = 5;
+	Data.CellY = 5;
+	Data.WallSide = EGridEdge::North;
+
+	GridDoorTestUtils::InitializeDoorFromMotion(Door, Data, TestWorld.World, 1.0f, 180.0f, Definition);
+	Door->ConfigureObjectAudio(Definition);
+
+	TestTrue(TEXT("The runtime door exposes its Pull audio event"), Door->HasObjectAudioEvent(TEXT("Pull")));
+	TestTrue(TEXT("The runtime chain is visible"), Door->ChainMovingMeshComponent && Door->ChainMovingMeshComponent->IsVisible());
+
+	Door->PullChain();
+	Door->PullChain(); // rejected while the first pull is still animating; must stay silent.
+
+	const FGridObjectAudioPlaybackResult AfterPull = Door->PlayObjectAudioEventDetailed(TEXT("Pull"), false);
+	TestTrue(TEXT("An accepted PullChain consumes exactly one Pull audio variant"), AfterPull.bRequested && AfterPull.Sound == PullSoundB);
+
+	return true;
+}
+
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridDoorMoveDurationContractTest,
 	"Grimrock.Runtime.Doors.MoveDurationContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)

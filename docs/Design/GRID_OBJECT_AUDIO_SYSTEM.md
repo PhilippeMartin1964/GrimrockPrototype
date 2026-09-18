@@ -40,9 +40,10 @@ Button         -> Activated
 Lever          -> Activated / Deactivated
 PressurePlate  -> Activated / Deactivated
 Door           -> Open / Close
+Door chain     -> Pull
 ~~~
 
-Des noms purement physiques ou spécifiques (`Release`, `Insert`, `Teleport`, etc.) restent possibles lorsqu'aucun événement gameplay équivalent n'existe.
+Des noms purement physiques ou spécifiques (`Pull`, `Release`, `Insert`, `Teleport`, etc.) restent possibles lorsqu'aucun événement gameplay équivalent n'existe. La chaîne de porte utilise ainsi `Pull` avant que le mouvement de porte n'émette son propre `Open` ou `Close`.
 
 ## Runtime
 
