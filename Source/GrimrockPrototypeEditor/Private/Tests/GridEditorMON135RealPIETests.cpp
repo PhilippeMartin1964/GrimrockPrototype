@@ -23,7 +23,7 @@
 
 namespace
 {
-	const FString MON135MapPath = TEXT("/Game/GrimrockPrototype/Maps/L_GrimrockEditor");
+	const FString MON135MapPath = TEXT("/Game/GrimrockPrototype/Maps/L_Dungeon");
 	const FGuid MON135RatSpawnId(0xF7319908, 0x4F46EDCC, 0x7D64ED9C, 0x42588D57);
 	const FGuid MON135Wave0SecondSpawnId(0xE4DC825C, 0x490F3B73, 0xEA579EB7, 0xAC3D2AEA);
 	const FGuid MON135Wave1SpawnId(0xAAF0E031, 0x45A2838D, 0x0B4CCB98, 0xFC04126C);

@@ -19,8 +19,8 @@ bool FGrimrockSTARTUPFLOW01PendingPartyTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	TestEqual(TEXT("The canonical gameplay map is L_GrimrockEditor"), GameInstance->GetDungeonLevelName(),
-		FName(TEXT("/Game/GrimrockPrototype/Maps/L_GrimrockEditor")));
+	TestEqual(TEXT("The canonical gameplay map is L_Dungeon"), GameInstance->GetDungeonLevelName(),
+		FName(TEXT("/Game/GrimrockPrototype/Maps/L_Dungeon")));
 
 	FGridPartyInventoryState PartyState;
 	PartyState.bInitialCharacterCreationCompleted = true;

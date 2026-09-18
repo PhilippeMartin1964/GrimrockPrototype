@@ -3,11 +3,10 @@
 ## Canonical maps
 
 - `L_MainMenu`: lightweight frontend only.
-- `L_GrimrockEditor`: the single Unreal world hosting dungeon authoring, PIE playtests and packaged gameplay.
-- `L_GrimrockEditor`: current canonical host map. A future rename to `L_Dungeon` must be performed inside Unreal Editor so the package is renamed safely.
+- `L_Dungeon`: the single Unreal world hosting dungeon authoring, PIE playtests and packaged gameplay.
 - `L_GrimrockRuntime`: obsolete historical map, no longer present.
 
-The Unreal map is a host world. Actual dungeon content remains data-driven through the dungeon and level assets. STARTUP-FLOW01 deliberately keeps the existing package name because raw filesystem/Git renames are unsafe for Unreal binary packages.
+The Unreal map is a host world. Actual dungeon content remains data-driven through the dungeon and level assets. The canonical host package is now L_Dungeon; the rename was performed inside Unreal Editor so the binary package and serialized references were updated safely.
 
 ## New Game
 
@@ -20,7 +19,7 @@ L_MainMenu
 -> completed FGridPartyInventoryState
 -> UGrimrockGameInstance.PendingNewPartyState
 -> PendingStartupMode = NewGame
--> Open L_GrimrockEditor
+-> Open L_Dungeon
 -> UGrimrockStartupModeComponent consumes PendingNewPartyState
 -> AGrimrockPartyPawn starts with an already completed party
 -> gameplay
@@ -36,7 +35,7 @@ L_MainMenu
 -> PendingLoadSlot
 -> PendingStartupMode = Continue
 -> UGrimrockGameInstance::OpenDungeonLevel()
--> L_GrimrockEditor
+-> L_Dungeon
 -> restore save
 ```
 

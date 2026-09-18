@@ -1,14 +1,14 @@
-# Testing a Grid Level from L_GrimrockEditor
+# Testing a Grid Level from L_Dungeon
 
 ## 1. Purpose
 
-This workflow allows quick testing of a `UGridLevelAsset` directly from `L_GrimrockEditor`.
+This workflow allows quick testing of a `UGridLevelAsset` directly from `L_Dungeon`.
 
 The editor map can be used to edit the dungeon, preview the dungeon, start a playable PIE test, and then return to editing without opening `L_GrimrockRuntime`.
 
 ## 2. Required Actors
 
-`L_GrimrockEditor` should contain:
+`L_Dungeon` should contain:
 
 - `BP_GridLevelEditorActor`
 - `BP_GridLevelRuntimeActor`
@@ -30,7 +30,7 @@ Open the existing `BP_GrimrockGameMode` and configure it as follows:
 
 ## 3. Workflow
 
-1. Open `L_GrimrockEditor`.
+1. Open `L_Dungeon`.
 2. Select a playable cell.
 3. Run `SetStartFromSelection` on `BP_GridLevelEditorActor`.
 4. Save the `UGridLevelAsset`.
@@ -60,6 +60,6 @@ In PIE, `LogPIEReadinessDiagnostics` also reports the active GameMode class, Def
 
 ## 5. Difference with L_GrimrockRuntime
 
-`L_GrimrockEditor` is for editing and fast local PIE tests.
+`L_Dungeon` is for editing and fast local PIE tests.
 
 `L_GrimrockRuntime`, or a future `L_GrimrockGame`, remains the cleaner gameplay test map. It should be used to validate game flow without editor helper actors, editor grid overlays, or temporary editing setup.

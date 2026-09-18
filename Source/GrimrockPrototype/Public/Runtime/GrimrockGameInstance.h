@@ -135,7 +135,7 @@ private:
 	FName MainMenuLevelName = TEXT("/Game/GrimrockPrototype/Maps/L_MainMenu");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Main Menu|Startup", meta = (AllowPrivateAccess = "true"))
-	FName DungeonLevelName = TEXT("/Game/GrimrockPrototype/Maps/L_GrimrockEditor");
+	FName DungeonLevelName = TEXT("/Game/GrimrockPrototype/Maps/L_Dungeon");
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Main Menu|Startup", meta = (AllowPrivateAccess = "true"))
 	bool bHasPendingNewPartyState = false;
