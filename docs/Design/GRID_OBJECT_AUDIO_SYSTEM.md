@@ -39,11 +39,17 @@ Les noms restent ouverts, mais un acteur spécialisé doit réutiliser le vocabu
 Button         -> Activated
 Lever          -> Activated / Deactivated
 PressurePlate  -> Activated / Deactivated
+Receptacle     -> ItemInserted / ItemRemoved / ItemChanged
 Door           -> Open / Close
 Door chain     -> Pull
+Pit            -> Open / Close
 ~~~
 
 Des noms purement physiques ou spécifiques (`Pull`, `Release`, `Insert`, `Teleport`, etc.) restent possibles lorsqu'aucun événement gameplay équivalent n'existe. La chaîne de porte utilise ainsi `Pull` avant que le mouvement de porte n'émette son propre `Open` ou `Close`.
+
+Pour tout runtime object qui émet un événement gameplay, le routeur tente automatiquement la clé `AudioEvents[NomExactDeLEvénement]`. Cette lecture est indépendante de la présence de liens sortants. Cela couvre notamment `Lever`, `PressurePlate`, `Receptacle` et les variantes spécialisées comme un WallLock émettant `Activated`. Les restaurations de sauvegarde restent silencieuses car elles restaurent la présentation sans émettre d'événement gameplay.
+
+Trois familles sont volontairement exclues du routeur sémantique parce qu'elles possèdent déjà un timing physique spécialisé : `Button` joue `Activated` dans `TriggerPress()`, tandis que `Door` et `Pit` synchronisent `Open` / `Close` avec leur timeline mécanique. `Door chain` ajoute séparément `Pull`.
 
 ## Runtime
 

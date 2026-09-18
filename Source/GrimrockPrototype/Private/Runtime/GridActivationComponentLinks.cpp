@@ -5,6 +5,7 @@
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridLogicRuntime.h"
@@ -89,6 +90,14 @@ namespace
 			default:
 				return false;
 		}
+	}
+
+	bool ShouldPlaySemanticObjectAudio(EGridLevelObjectType ObjectType)
+	{
+		// These actors own physical timing and already play their canonical sounds
+		// themselves. Everything else may mirror emitted gameplay events by name.
+		return ObjectType != EGridLevelObjectType::Button && ObjectType != EGridLevelObjectType::Door &&
+			ObjectType != EGridLevelObjectType::Pit;
 	}
 }
 
@@ -237,6 +246,19 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEventInternal(FGuid Sour
 		UE_LOG(LogGridActivation, Warning, TEXT("Grid object event rejected: Source=%s Event=%s Reason=cyclic link dispatch"), *SourceObjectId.ToString(),
 			*GridObjectEventToString(SourceEvent));
 		return false;
+	}
+
+	// AUDIO-EVENT-ROUTING01: gameplay events are the audio authority for stateful
+	// mechanisms that do not own a more precise physical audio timeline.
+	if (const FGridWorldObjectInstance* SourceObject = RuntimeActor->LevelAsset->FindWorldObjectInstanceById(SourceObjectId))
+	{
+		if (ShouldPlaySemanticObjectAudio(SourceObject->Type))
+		{
+			if (AGridRuntimeObjectActor* SourceActor = RuntimeActor->FindRuntimeObjectActor<AGridRuntimeObjectActor>(SourceObjectId))
+			{
+				SourceActor->PlayObjectAudioEvent(FName(*GridObjectEventToString(SourceEvent)));
+			}
+		}
 	}
 
 	DispatchingSourceObjectIds.Add(SourceObjectId);
