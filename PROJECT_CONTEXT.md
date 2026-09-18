@@ -146,7 +146,7 @@ Content/GrimrockPrototype/
 │       T_Tool_Select.uasset
 │
 ├───Maps
-│       L_Dungeon.umap
+│       L_GrimrockEditor.umap
 │
 ├───Materials
 │   │   M_Ceiling_Editor.uasset
