@@ -262,6 +262,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Rendering")
 	bool ShouldHideCellFloor(int32 CellX, int32 CellY) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Runtime|Rendering")
+	bool ShouldHideCellCeiling(int32 CellX, int32 CellY) const;
+
 	UFUNCTION(BlueprintPure, Category = "Runtime|Diagnostics")
 	int32 GetRuntimeObjectRebuildGeneration() const
 	{

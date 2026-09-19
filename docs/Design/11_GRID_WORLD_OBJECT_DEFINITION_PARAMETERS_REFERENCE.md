@@ -52,6 +52,7 @@ La présence d'un `FGridWorldObjectInstance`, `FGridLooseItemInstance` ou `FGrid
 | `bOccupiesBoundary` | Possession de la frontière topologique entre cellules, pour un placement mural. |
 | `bReplacesStandardWall` | Suppression visuelle du mur structurel sur cette frontière. |
 | `bHideCellFloor` | Suppression du mesh de sol, sans modifier à elle seule la praticabilité. |
+| `bHideCellCeiling` | Suppression du mesh de plafond standard de la cellule, sans modifier le gameplay ni créer de dépendance avec un Pit. |
 
 Depuis `WORLDOBJ-ALIGN-B5.3`, aucune projection de placement parallèle n'existe plus dans `UGridWorldObjectDefinitionAsset`. Le runtime et l'éditeur consomment directement `PlacementSurface` et `DefaultLocalPosition.U/V/N`. Les anciennes propriétés `PlacementKind`, `PlacementZOffset`, `WallInset`, `LocalOffsetAlongWall` et `LocalOffsetVertical`, ainsi que les helpers de projection associés, ont été supprimés.
 

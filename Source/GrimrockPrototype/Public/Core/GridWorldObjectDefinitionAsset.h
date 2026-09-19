@@ -168,6 +168,11 @@ public:
 			ToolTip = "Prevents the standard floor mesh from being generated for the cell containing this object. This does not change cell walkability."))
 	bool bHideCellFloor = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendering|Cell Override",
+		meta = (DisplayName = "Hide Cell Ceiling",
+			ToolTip = "Prevents the standard ceiling mesh from being generated for the cell containing this object. This does not change gameplay or pit behavior."))
+	bool bHideCellCeiling = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction",
 		meta = (DisplayName = "Runtime Interactable",
 			ToolTip = "Controls whether the runtime object can respond to direct player interaction when the runtime actor path supports it."))

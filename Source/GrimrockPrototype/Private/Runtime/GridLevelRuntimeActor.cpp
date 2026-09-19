@@ -402,6 +402,30 @@ bool AGridLevelRuntimeActor::ShouldHideCellFloor(int32 CellX, int32 CellY) const
 	return false;
 }
 
+bool AGridLevelRuntimeActor::ShouldHideCellCeiling(int32 CellX, int32 CellY) const
+{
+	if (!LevelAsset)
+	{
+		return false;
+	}
+
+	for (const FGridWorldObjectInstance& ObjectData : LevelAsset->WorldObjectInstances)
+	{
+		if (ObjectData.CellX != CellX || ObjectData.CellY != CellY)
+		{
+			continue;
+		}
+
+		const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinition(ObjectData.WorldObjectDefinitionId);
+		if (Definition && Definition->bHideCellCeiling)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void AGridLevelRuntimeActor::AddEdgeInstance(UInstancedStaticMeshComponent* TargetISM, int32 X, int32 Y, EGridEdge Edge, float CellSize)
 {
 	if (!TargetISM)
@@ -520,7 +544,7 @@ void AGridLevelRuntimeActor::RebuildLevel(EGridRuntimeRebuildMode RebuildMode)
 				AddFloor(X, Y, CellSize);
 			}
 
-			if (Cell.bHasCeiling)
+			if (Cell.bHasCeiling && !ShouldHideCellCeiling(X, Y))
 			{
 				AddCeiling(X, Y, CellSize);
 			}
