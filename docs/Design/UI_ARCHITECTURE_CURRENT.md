@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-CLEAN01**  
+Statut : **CURRENT — UI-CLEAN01 AUTOMATION VALIDÉE ; nettoyage UMG en cours**  
 Date : **20 septembre 2026**
 
 ## Références canoniques

@@ -1,7 +1,7 @@
 # UI-CLEAN01 — Remove monolithic inventory legacy
 
 Date : **20 septembre 2026**  
-Statut : **IMPLEMENTATION C++ ; validation locale UE5.5.4 à fournir**
+Statut : **AUTOMATION VALIDÉE — 20 septembre 2026 ; nettoyage UMG/.uasset à terminer**
 
 ## Objectif
 
@@ -131,3 +131,19 @@ Grimrock.UI.Clean01.NoInventoryShellFallback
 ~~~
 
 Le test vérifie par réflexion que les propriétés/fonctions legacy ne sont plus exposées et que les deux croix appartiennent aux classes split.
+
+
+## Validation Automation reçue
+
+Validation locale du 20 septembre 2026 :
+
+~~~text
+Filter                 : Grimrock.UI.Clean01
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+~~~
+
+Le chemin C++ monolithique est donc retiré et validé. Le travail restant de UI-CLEAN01 est exclusivement le nettoyage des assets UMG sérialisés : retrait de Page_Inventory / anciens boutons supérieurs de WBP_GrimrockMenu, puis suppression physique de WBP_GridInventory après contrôle du Reference Viewer.
