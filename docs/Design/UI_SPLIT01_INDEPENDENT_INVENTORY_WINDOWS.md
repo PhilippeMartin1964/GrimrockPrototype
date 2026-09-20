@@ -1,7 +1,7 @@
 # UI-SPLIT01 — Independent Character Sheet and Inventory Bag Windows
 
 Date : **20 septembre 2026**  
-Statut : **IMPLEMENTATION C++ ; création/migration des WBP à réaliser puis validation locale UE5.5.4**
+Statut : **AUTOMATION VALIDÉE LOCALEMENT — 20 septembre 2026 ; migration UMG à réaliser**
 
 ## Décision
 
@@ -235,3 +235,10 @@ Ils vérifient les deux classes sémantiques, la configuration split, l'autorit�
 ~~~
 
 Ne pas déclarer UI-SPLIT01 validé avant la sortie locale de ce filtre.
+
+
+## Validation locale
+
+Validation locale confirmée par l'utilisateur le 20 septembre 2026 pour le filtre `Grimrock.UI.Split01`.
+
+La partie C++ de UI-SPLIT01 est donc considérée comme validée. La suite porte exclusivement sur la création/migration UMG de `WBP_CharacterSheet` puis `WBP_InventoryBag`.
