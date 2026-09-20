@@ -411,6 +411,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slots")
 	void RegisterEquipmentSlotWidget(UGridInventorySlotWidget* SlotWidget, EGridEquipmentSlot EquipmentSlot);
 
+	/** True only for views that actually author a paper-doll surface/slot. */
+	UFUNCTION(BlueprintPure, Category = "Inventory|PaperDoll")
+	bool HasPaperDollPresentation() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|PaperDoll")
 	bool ValidatePaperDollEquipmentRegistration() const;
 

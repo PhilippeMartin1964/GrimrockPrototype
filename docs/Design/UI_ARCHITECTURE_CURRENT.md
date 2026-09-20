@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-SPLIT01**  
+Statut : **CURRENT — UI-SPLIT03**  
 Date : **20 septembre 2026**
 
 ## Références canoniques
@@ -50,6 +50,25 @@ Les deux fenêtres dérivent de la même implémentation native `UGridInventoryW
 `WBP_GrimrockMenu` reste temporairement un shell legacy pour Skills/Spellbook/Journal/Map/Recipes/Codex, mais ne porte plus l'Inventaire en mode split.
 
 Référence : `docs/Design/UI_SPLIT01_INDEPENDENT_INVENTORY_WINDOWS.md`.
+
+### UI-SPLIT02 — inventaire split non modal
+
+Le workspace split laisse désormais la vue 3D centrale interactive. Les interactions monde restent disponibles pendant que CharacterSheet et InventoryBag sont ouverts. Le menu contextuel d'item, lui, reste modal lorsqu'il est visible.
+
+Le presenter Blueprint de WBP_ItemActionMenu a été migré vers WBP_InventoryBag et validé en PIE.
+
+Référence : `docs/Design/UI_SPLIT02_WORLD_INTERACTION_AND_CONTEXT_MENU.md`.
+
+### UI-SPLIT03 — paper doll dépendant du rôle
+
+UGridInventoryWidget n'enregistre plus automatiquement les 18 slots paper doll dans toutes ses sous-vues.
+
+```text
+WBP_CharacterSheet -> paper doll présent -> enregistrement + validation
+WBP_InventoryBag   -> aucun paper doll   -> aucun faux warning
+```
+
+Référence : `docs/Design/UI_SPLIT03_ROLE_AWARE_PAPERDOLL.md`.
 
 ### UI-NAV01 — barre inférieure persistante
 

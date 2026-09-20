@@ -13,20 +13,24 @@ void UGridInventoryWidget::NativeConstruct()
 	BindWorkspaceButtons();
 	ApplyWorkspacePanelVisibility();
 	RegisterBoundPartyMemberWidgets();
-	RegisterPaperDollEquipmentSlotWidgets();
 
-	// UI-SPLIT01: the independent bag window intentionally contains no paper
-	// doll. Validate only views that actually expose a paper-doll surface or
-	// at least one authored equipment slot.
-	const bool bHasPaperDollPresentation = Border_EquipmentPanel || SlotWidget_Head || SlotWidget_Face || SlotWidget_Amulet || SlotWidget_Shoulders ||
-		SlotWidget_Shirt || SlotWidget_Chest || SlotWidget_Cloak || SlotWidget_Bracers || SlotWidget_Gloves || SlotWidget_Belt || SlotWidget_Legs ||
-		SlotWidget_Feet || SlotWidget_Ring1 || SlotWidget_Ring2 || SlotWidget_Earring1 || SlotWidget_Earring2 || SlotWidget_MainHand || SlotWidget_OffHand;
-	if (bHasPaperDollPresentation)
+	// UI-SPLIT03: the right-side inventory bag deliberately has no paper doll.
+	// Registration itself must therefore be role-aware, not only validation,
+	// otherwise a correct WBP_InventoryBag emits 18 false SlotMissing warnings.
+	if (HasPaperDollPresentation())
 	{
+		RegisterPaperDollEquipmentSlotWidgets();
 		ValidatePaperDollEquipmentRegistration();
 	}
 
 	RefreshRegisteredSlotWidgets();
+}
+
+bool UGridInventoryWidget::HasPaperDollPresentation() const
+{
+	return Border_EquipmentPanel || SlotWidget_Head || SlotWidget_Face || SlotWidget_Amulet || SlotWidget_Shoulders || SlotWidget_Shirt ||
+		SlotWidget_Chest || SlotWidget_Cloak || SlotWidget_Bracers || SlotWidget_Gloves || SlotWidget_Belt || SlotWidget_Legs || SlotWidget_Feet ||
+		SlotWidget_Ring1 || SlotWidget_Ring2 || SlotWidget_Earring1 || SlotWidget_Earring2 || SlotWidget_MainHand || SlotWidget_OffHand;
 }
 
 void UGridInventoryWidget::NativeDestruct()

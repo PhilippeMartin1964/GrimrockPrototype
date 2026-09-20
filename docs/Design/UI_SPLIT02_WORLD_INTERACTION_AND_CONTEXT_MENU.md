@@ -1,7 +1,7 @@
 # UI-SPLIT02 — Non-modal inventory world interaction and context-menu migration
 
 Date : **20 septembre 2026**  
-Statut : **AUTOMATION VALIDÉE — 20 septembre 2026 ; migration du presenter clic droit à réaliser**
+Statut : **AUTOMATION + VALIDATION MANUELLE PIE VALIDÉES — 20 septembre 2026**
 
 ## Décision
 
@@ -153,3 +153,27 @@ Process exit code       : 0
 ~~~
 
 La politique C++ d'interaction monde avec le workspace split est validée. La suite concerne la migration UMG du presenter de menu contextuel vers WBP_InventoryBag.
+
+
+## Validation manuelle PIE reçue
+
+Le 20 septembre 2026, la migration du presenter de menu contextuel vers WBP_InventoryBag a été validée manuellement.
+
+Validé :
+
+~~~text
+inventaire split ouvert
+-> interaction avec le monde conservée
+
+clic droit sur Item_Torch
+-> 5 actions construites côté C++
+-> WBP_ItemActionMenu affiché
+
+clic extérieur
+-> seul le menu contextuel se ferme
+
+action du menu
+-> inventaire rafraîchi correctement
+~~~
+
+Le problème Blueprint identifié lors de la migration était un chemin d'exécution manquant : Is Not Valid(CurrentItemActionMenu) devait rejoindre directement le Branch de création. La logique gameplay C++ n'était pas en cause.
