@@ -30,11 +30,19 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Inventory|Party")
 	FOnGridPartyMemberClicked OnPartyMemberClicked;
 
+	/** Full portrait used by the party selector. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
+	TObjectPtr<UImage> Image_Portrait;
+
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
 	TObjectPtr<UImage> Image_ClassIcon;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
 	TObjectPtr<UBorder> Border_ClassAccent;
+
+	/** Decorative overlay only: visible for the authoritative selected character. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
+	TObjectPtr<UBorder> Border_Selected;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
 	TObjectPtr<UTextBlock> Text_Name;

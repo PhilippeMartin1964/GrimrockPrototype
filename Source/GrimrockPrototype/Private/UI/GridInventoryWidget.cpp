@@ -531,6 +531,16 @@ FString UGridInventoryWidget::GetSelectedCharacterDisplayText() const
 	return FString::Printf(TEXT("SelectedCharacter: %d %s %s Lv%d"), CharacterIndex, *NameText, *ClassText, Summary.Level);
 }
 
+void UGridInventoryWidget::RegisterBoundPartyMemberWidgets()
+{
+	RegisterPartyMemberWidget(PartyMember_1, 0);
+	RegisterPartyMemberWidget(PartyMember_2, 1);
+	RegisterPartyMemberWidget(PartyMember_3, 2);
+	RegisterPartyMemberWidget(PartyMember_4, 3);
+	RegisterPartyMemberWidget(PartyMember_5, 4);
+	RegisterPartyMemberWidget(PartyMember_6, 5);
+}
+
 void UGridInventoryWidget::RegisterPartyMemberWidget(UGridPartyMemberWidget* MemberWidget, int32 CharacterIndex)
 {
 	if (!MemberWidget)

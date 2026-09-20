@@ -25,6 +25,12 @@ Un Blueprint d'inventaire ne doit pas :
 
 Parent class attendu : `UGridInventoryWidget`.
 
+### Sélecteur de groupe UI-CHAR01
+
+La cible canonique comporte six instances `WBP_PartyMember` nommées exactement `PartyMember_1` à `PartyMember_6`. Elles sont enregistrées automatiquement côté C++ sur les indices `0..5`; ne pas dupliquer ce mapping dans le Graph Blueprint.
+
+Dans `WBP_PartyMember`, `Image_Portrait` affiche le portrait du résumé autoritaire et `Border_Selected` est un overlay décoratif visible uniquement pour le personnage sélectionné.
+
 Rôle :
 
 - racine de la page inventaire ;

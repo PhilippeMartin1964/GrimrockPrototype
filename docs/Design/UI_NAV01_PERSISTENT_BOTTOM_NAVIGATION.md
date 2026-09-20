@@ -1,7 +1,7 @@
 # UI-NAV01 — Persistent Bottom Navigation Bar
 
 Date : **20 septembre 2026**  
-Statut : **IMPLEMENTATION C++ + CONTRAT UMG ; validation locale UE5.5.4 à fournir**
+Statut : **AUTOMATION VALIDÉE — 20 septembre 2026 ; passe UMG/PIE visuelle encore à réaliser**
 
 ## Décision
 
@@ -195,3 +195,19 @@ Après la passe UMG, PIE ciblé :
 10. aucun `BindWidget` critique.
 
 Ne pas déclarer UI-NAV01 validé tant que l'Automation locale et le PIE n'ont pas été fournis.
+
+
+## Validation reçue
+
+Validation locale du 20 septembre 2026 :
+
+```text
+Filter                 : Grimrock.UI.Navigation01
+Succeeded              : 2
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Le contrat C++ UI-NAV01 est donc validé. La passe visuelle UMG/PIE reste distincte.

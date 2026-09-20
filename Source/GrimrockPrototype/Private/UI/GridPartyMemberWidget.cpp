@@ -106,6 +106,19 @@ void UGridPartyMemberWidget::RefreshBoundMemberVisuals()
 	const URPGClassVisualAsset* ClassVisual = FindClassVisualForCachedClass();
 	const TSoftObjectPtr<UTexture2D> ClassIcon = ClassVisual && !ClassVisual->ClassIcon.IsNull() ? ClassVisual->ClassIcon : CachedSummary.ClassIcon;
 
+	if (Image_Portrait)
+	{
+		if (CachedSummary.Portrait.IsNull())
+		{
+			Image_Portrait->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		else
+		{
+			Image_Portrait->SetBrushFromSoftTexture(CachedSummary.Portrait, false);
+			Image_Portrait->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
+
 	if (Image_ClassIcon)
 	{
 		if (ClassIcon.IsNull())
@@ -130,5 +143,10 @@ void UGridPartyMemberWidget::RefreshBoundMemberVisuals()
 			Border_ClassAccent->SetBrushColor(ClassVisual->AccentColor);
 			Border_ClassAccent->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
+	}
+
+	if (Border_Selected)
+	{
+		Border_Selected->SetVisibility(CachedSummary.bIsSelected ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
 }

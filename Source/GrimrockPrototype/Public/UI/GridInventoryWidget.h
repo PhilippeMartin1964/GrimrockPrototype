@@ -76,6 +76,28 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Inventory|Workspace")
 	bool IsInventoryBagPanelVisible() const { return bInventoryBagPanelVisible; }
 
+	/**
+	 * UI-CHAR01 canonical six portrait selectors. Optional during UMG migration;
+	 * when present they are registered natively as indices 0..5.
+	 */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
+	TObjectPtr<UGridPartyMemberWidget> PartyMember_1;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
+	TObjectPtr<UGridPartyMemberWidget> PartyMember_2;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
+	TObjectPtr<UGridPartyMemberWidget> PartyMember_3;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
+	TObjectPtr<UGridPartyMemberWidget> PartyMember_4;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
+	TObjectPtr<UGridPartyMemberWidget> PartyMember_5;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
+	TObjectPtr<UGridPartyMemberWidget> PartyMember_6;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Character Details|Visuals")
 	TArray<TObjectPtr<URPGClassVisualAsset>> AvailableClassVisuals;
 
@@ -423,6 +445,7 @@ protected:
 private:
 	void BindWorkspaceButtons();
 	void ApplyWorkspacePanelVisibility();
+	void RegisterBoundPartyMemberWidgets();
 
 	UFUNCTION()
 	void HandleCloseCharacterSheetClicked();

@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-NAV01**  
+Statut : **CURRENT — UI-CHAR01**  
 Date : **20 septembre 2026**
 
 ## Références canoniques
@@ -55,6 +55,14 @@ WBP_GridCombatHud
 Le menu peut être ouvert, fermé ou changer de page sans modifier la visibilité de `Panel_GlobalNavigation`. Les boutons et les touches passent par les mêmes commandes C++.
 
 Référence : `docs/Design/UI_NAV01_PERSISTENT_BOTTOM_NAVIGATION.md`.
+
+### UI-CHAR01 — personnage sélectionné unique
+
+La refonte ne crée aucun état parallèle. `UGridPartyInventoryComponent::SelectedCharacterIndex` reste l'unique autorité pour la feuille, le paper doll et le sac.
+
+`WBP_GridInventory` peut exposer six instances canoniques `PartyMember_1..6`, enregistrées nativement sur les indices `0..5`. `WBP_PartyMember` reçoit en option `Image_Portrait` et `Border_Selected` pour projeter le portrait et l'état de sélection sans logique Blueprint.
+
+Référence : `docs/Design/UI_CHAR01_SINGLE_SELECTED_CHARACTER.md`.
 
 ```text
 Inventaire      fonctionnel
