@@ -643,10 +643,14 @@ bool UGridInventoryWidget::HandlePartyMemberItemDrop(UGridInventoryDragDropOpera
 	}
 
 	const int32 SourceCharacterIndex = Operation->SourceCharacterIndex;
-	if (!InventoryComponent->IsValidCharacterIndex(SourceCharacterIndex) || !InventoryComponent->IsValidCharacterIndex(TargetCharacterIndex) ||
-		SourceCharacterIndex == TargetCharacterIndex)
+	if (!InventoryComponent->IsValidCharacterIndex(SourceCharacterIndex) || !InventoryComponent->IsValidCharacterIndex(TargetCharacterIndex))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory PartyDrop Failed Reason=InvalidCharacters Source=%d Target=%d"), SourceCharacterIndex, TargetCharacterIndex);
+		return false;
+	}
+	if (SourceCharacterIndex == TargetCharacterIndex)
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("GridInventory PartyDrop Ignored Reason=SameCharacter Character=%d"), SourceCharacterIndex);
 		return false;
 	}
 
@@ -659,7 +663,7 @@ bool UGridInventoryWidget::HandlePartyMemberItemDrop(UGridInventoryDragDropOpera
 	const FGridCharacterInventoryState& SourceCharacter = PartyState.ActiveCharacters[SourceCharacterIndex];
 	if (!SourceCharacter.InventorySlots.IsValidIndex(Operation->SourceSlotIndex) || SourceCharacter.InventorySlots[Operation->SourceSlotIndex].IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory PartyDrop Failed Reason=SourceSlotChanged Source=%d Slot=%d"),
+		UE_LOG(LogTemp, Verbose, TEXT("GridInventory PartyDrop Rejected Reason=SourceSlotChanged Source=%d Slot=%d"),
 			SourceCharacterIndex, Operation->SourceSlotIndex);
 		return false;
 	}
@@ -667,7 +671,7 @@ bool UGridInventoryWidget::HandlePartyMemberItemDrop(UGridInventoryDragDropOpera
 	const FGridItemInstance& CurrentSourceItem = SourceCharacter.InventorySlots[Operation->SourceSlotIndex].Item;
 	if (CurrentSourceItem.RuntimeObjectId != Operation->SourceRuntimeObjectId || CurrentSourceItem.ItemDefinitionId != Operation->SourceItemDefinitionId)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory PartyDrop Failed Reason=SourceIdentityChanged Source=%d Slot=%d"), SourceCharacterIndex,
+		UE_LOG(LogTemp, Verbose, TEXT("GridInventory PartyDrop Rejected Reason=SourceIdentityChanged Source=%d Slot=%d"), SourceCharacterIndex,
 			Operation->SourceSlotIndex);
 		RefreshInventory();
 		return false;
@@ -685,7 +689,7 @@ bool UGridInventoryWidget::HandlePartyMemberItemDrop(UGridInventoryDragDropOpera
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory PartyDrop Result=false Source=%d Target=%d Slot=%d Item=%s Quantity=%d Message=%s"),
+		UE_LOG(LogTemp, Log, TEXT("GridInventory PartyDrop Result=false Source=%d Target=%d Slot=%d Item=%s Quantity=%d Message=%s"),
 			SourceCharacterIndex, TargetCharacterIndex, Operation->SourceSlotIndex, *Operation->SourceItemDefinitionId.ToString(), RequestedQuantity,
 			*TransferResult.Message.ToString());
 	}

@@ -1,7 +1,7 @@
 # UI-INV02 — Drag Transfer Between Party Members
 
 Date : **20 septembre 2026**  
-Statut : **IMPLEMENTATION C++ + CONTRAT UMG ; validation locale UE5.5.4 à fournir**
+Statut : **AUTOMATION FONCTIONNELLE AVEC WARNINGS — clean rerun demandé ; passe UMG non réalisée**
 
 ## Objectif
 
@@ -156,3 +156,23 @@ Après la passe UMG, contrôler en PIE :
 7. remplir B puis vérifier le rejet sans perte ;
 8. vérifier les drops slot-à-slot existants ;
 9. aucun `BindWidget` critique.
+
+
+## Validation reçue le 20 septembre 2026
+
+Première exécution locale :
+
+```text
+Filter                 : Grimrock.UI.Inventory02
+Succeeded              : 0
+Succeeded with warnings: 2
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Le comportement est passé, mais les deux tests ont été classés `Succeeded with warnings` parce qu'ils exercent volontairement des rejets normaux : destination pleine, drag obsolète et drop sur le même portrait.
+
+Le follow-up UI-INV02.1 abaisse ces rejets attendus en `Log/Verbose`. Les véritables incohérences (index invalide, rollback impossible, ownership invalide) restent `Warning/Error`.
+
+Une nouvelle exécution propre de `Grimrock.UI.Inventory02` est demandée avant clôture du contrat C++.

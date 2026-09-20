@@ -318,7 +318,11 @@ FGridItemTransferResult UGridItemTransferService::TransferInventorySlotToCharact
 
 	if (!Inventory->CanAddItemToCharacterInventory(TargetCharacterIndex, Candidate))
 	{
-		return LogTransferFailure(Operation, EGridItemTransferResult::InventoryFull, TEXT("Target character inventory has no capacity for the item."), &Candidate);
+		const FString Message = TEXT("Target character inventory has no capacity for the item.");
+		UE_LOG(LogTemp, Verbose, TEXT("GridItemTransfer Rejected Operation=%s Result=%s Item=%s RuntimeId=%s Message=%s"), Operation,
+			*UEnum::GetValueAsString(EGridItemTransferResult::InventoryFull), *Candidate.ItemDefinitionId.ToString(), *Candidate.RuntimeObjectId.ToString(),
+			*Message);
+		return MakeTransferResult(EGridItemTransferResult::InventoryFull, Message);
 	}
 
 	if (QuantityToTransfer == SourceQuantity)
