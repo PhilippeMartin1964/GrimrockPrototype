@@ -1425,7 +1425,14 @@ bool UGridInventoryWidget::HandleItemSlotRightClicked(EGridInventoryUiSlotType S
 	if (bBuilt)
 	{
 		bItemActionMenuCloseRequested = false;
+		const bool bHasContextMenuPresenter = OnContextActionsRequested.IsBound();
 		OnContextActionsRequested.Broadcast(SlotType, SlotIndex);
+		if (!bHasContextMenuPresenter)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("GridInventory RightClick PresentationMissing Widget=%s Reason=OnContextActionsRequestedUnbound Slot=%s:%d"),
+				*GetNameSafe(this), GetGridInventoryUiSlotTypeName(SlotType), SlotIndex);
+		}
 	}
 	return bBuilt;
 }

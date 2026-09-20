@@ -54,6 +54,7 @@ public:
 
 protected:
 	friend class FGridTD021WorldItemsContractTest;
+	friend class FGridUISplit02WorldInteractionPolicyTest;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction", meta = (ClampMin = "0.0"))
 	float MaxInteractionDistance = 300.f;
@@ -141,6 +142,7 @@ protected:
 	void DrawCombatTargetingPreview(const AGrimrockPartyPawn& PartyPawn) const;
 	void InitializeCustomCursor();
 	void SetGridInteractionCursor(EGridInteractionCursor NewCursor, const TCHAR* Reason = TEXT("Unspecified"));
+	bool ShouldBlockWorldInteractionForInventoryUi(const AGrimrockPartyPawn* PartyPawn, bool bHasCursorItem) const;
 	FGridMouseInteractionResolution ResolveLeftMouseInteraction();
 	bool ResolveCursorItemHoverCursor(const FGridMouseInteractionResolution& MouseResolution, EGridInteractionCursor& OutCursor, const TCHAR*& OutReason) const;
 	bool TryGetInteractableUnderCursor(FHitResult& OutHitResult, AActor*& OutInteractableActor) const;

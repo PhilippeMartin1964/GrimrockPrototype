@@ -242,3 +242,25 @@ Ne pas déclarer UI-SPLIT01 validé avant la sortie locale de ce filtre.
 Validation locale confirmée par l'utilisateur le 20 septembre 2026 pour le filtre `Grimrock.UI.Split01`.
 
 La partie C++ de UI-SPLIT01 est donc considérée comme validée. La suite porte exclusivement sur la création/migration UMG de `WBP_CharacterSheet` puis `WBP_InventoryBag`.
+
+
+## Validation UMG / PIE partielle
+
+Le 20 septembre 2026, la séparation physique en deux fenêtres a été validée manuellement :
+
+~~~text
+X gauche  -> ferme seulement CharacterSheet
+I         -> restaure les deux
+X droite  -> ferme seulement InventoryBag
+I         -> restaure les deux
+I avec les deux visibles -> ferme les deux
+I à nouveau             -> rouvre les deux
+ESC                      -> ferme les deux
+~~~
+
+Deux exigences complémentaires ont ensuite été identifiées :
+
+- le workspace split doit rester non modal vis-à-vis du monde ;
+- le presenter Blueprint du menu clic droit doit être migré de WBP_GridInventory vers WBP_InventoryBag.
+
+La suite est décrite dans UI_SPLIT02_WORLD_INTERACTION_AND_CONTEXT_MENU.md.

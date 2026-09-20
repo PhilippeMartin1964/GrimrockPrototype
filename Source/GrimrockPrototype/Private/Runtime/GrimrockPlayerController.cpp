@@ -661,6 +661,19 @@ void AGrimrockPlayerController::SetInventoryUiOpen(bool bOpen)
 		CustomCursorWidget && CustomCursorWidget->GetIsEnabled() ? TEXT("true") : TEXT("false"));
 }
 
+bool AGrimrockPlayerController::ShouldBlockWorldInteractionForInventoryUi(const AGrimrockPartyPawn* PartyPawn, bool bHasCursorItem) const
+{
+	if (!bInventoryUiOpen || bHasCursorItem)
+	{
+		return false;
+	}
+
+	// UI-SPLIT02: CharacterSheet + InventoryBag are non-modal overlays. Empty
+	// viewport space must keep routing to the world while either split window
+	// remains open. Legacy full-page menu screens stay modal.
+	return !PartyPawn || !PartyPawn->IsInventoryWorkspaceVisible();
+}
+
 AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerController::ResolveLeftMouseInteraction()
 {
 	FGridMouseInteractionResolution Resolution;
@@ -684,10 +697,10 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
 		return Resolution;
 	}
 
-	if (bInventoryUiOpen && !Resolution.bHasCursorItem)
+	if (ShouldBlockWorldInteractionForInventoryUi(Resolution.PartyPawn, Resolution.bHasCursorItem))
 	{
 		Resolution.Intent = EGridMouseInteractionIntent::IgnoreInventoryUiWithoutCursorItem;
-		Resolution.DiagnosticReason = TEXT("OpenWithoutCursorItem");
+		Resolution.DiagnosticReason = TEXT("ModalInventoryUiOpen");
 		return Resolution;
 	}
 
@@ -1245,9 +1258,9 @@ void AGrimrockPlayerController::UpdateHoveredInteractable()
 	const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
 	FGridItemInstance CursorItem;
 	const bool bHasCursorItem = PartyPawn && PartyPawn->GetCursorItem(CursorItem);
-	if (bInventoryUiOpen && !bHasCursorItem)
+	if (ShouldBlockWorldInteractionForInventoryUi(PartyPawn, bHasCursorItem))
 	{
-		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverInventoryUiOpen"));
+		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverModalInventoryUiOpen"));
 		return;
 	}
 

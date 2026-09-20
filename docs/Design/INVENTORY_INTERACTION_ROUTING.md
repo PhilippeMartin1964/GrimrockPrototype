@@ -253,3 +253,29 @@ UGridInventorySlotWidget::NativeOnDragDetected
 Le service effectue le préflight de capacité, la mutation source, l'insertion destination et le rollback source en cas d'échec.
 
 Un drag obsolète est rejeté si le `RuntimeObjectId` du slot source a changé. Un split crée une nouvelle identité pour la quantité transférée. La sélection de personnage n'est pas modifiée par le drop.
+
+
+## UI-SPLIT02 — monde interactif pendant l'inventaire
+
+Le workspace split n'est pas un écran modal. WBP_CharacterSheet et WBP_InventoryBag occupent les bords, tandis que la zone centrale laisse le clic atteindre le monde.
+
+Règle :
+
+~~~text
+split inventory visible + clic sur zone 3D
+-> interaction monde autorisée
+
+item action menu visible
+-> interaction monde bloquée
+
+page legacy plein écran visible
+-> interaction monde bloquée
+~~~
+
+La prise d'un objet monde doit notifier UGridPartyInventoryComponent et rafraîchir automatiquement les deux fenêtres split.
+
+## UI-SPLIT02 — presenter clic droit
+
+Le clic droit natif reste dans UGridInventorySlotWidget/UGridInventoryWidget. La création visuelle de WBP_ItemActionMenu appartenait historiquement au Graph de WBP_GridInventory.
+
+Après split, cette présentation doit vivre dans WBP_InventoryBag. Le C++ loggue désormais PresentationMissing si OnContextActionsRequested n'a aucun listener.
