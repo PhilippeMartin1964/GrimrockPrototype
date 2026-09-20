@@ -201,6 +201,19 @@ La dette de nommage `EInventoryTopTab` / `ToggleInventoryWidget()` reste volonta
 
 ## 7. Ouverture / fermeture
 
+Depuis UI-NAV01, le menu peut être ouvert directement par plusieurs raccourcis persistants :
+
+```text
+I -> Inventory
+K -> Skills
+G -> Recipes (shell Artisanat actuel)
+M -> Map
+J -> Journal
+H -> Codex
+```
+
+La barre qui porte ces commandes reste dans `WBP_GridCombatHud` et n'est jamais enfant de `WBP_GrimrockMenu`.
+
 Point d'entrée historique conservé :
 
 ```text

@@ -24,6 +24,7 @@ class UGridInventoryWidget;
 class UGridCombatHudWidget;
 class UGridTurnManagerComponent;
 class UGrimrockMenuWidget;
+enum class EInventoryTopTab : uint8;
 class URPGCharacterCreationWidget;
 class URPGStoryCompanionAsset;
 class URPGStoryCompanionRecruitmentWidget;
@@ -320,6 +321,29 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	void ToggleInventoryWidget();
 
+	UFUNCTION(BlueprintCallable, Category = "UI|Navigation")
+	void ToggleSkillsWidget();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Navigation")
+	void ToggleCraftingWidget();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Navigation")
+	void ToggleMapWidget();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Navigation")
+	void ToggleJournalWidget();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Navigation")
+	void ToggleHelpWidget();
+
+	/** Global ESC fallback after targeting/modal priorities have been resolved by the PlayerController. */
+	UFUNCTION(BlueprintCallable, Category = "UI|Navigation")
+	void HandleGlobalEscape();
+
+	/** Presentation hook for the future in-game main/pause menu. Never routes to the title-screen map directly. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "UI|Navigation")
+	void OnInGameMainMenuRequested();
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	void ShowInventoryWidget();
 
@@ -577,6 +601,8 @@ private:
 	void BufferMoveCommand(EGridEdge MoveDirection);
 	void BufferTurnCommand(bool bTurnRight);
 	void ApplyCharacterCreationInputMode(bool bIsActive);
+	void ToggleMenuPage(EInventoryTopTab TopTab);
+	void ShowMenuPage(EInventoryTopTab TopTab);
 	bool LoadCurrentGameData(FText& OutError, bool bApplyDungeonState);
 	bool RehydrateLoadedItemDefinitions(FText& OutError);
 	void CloseCharacterCreationWidget();

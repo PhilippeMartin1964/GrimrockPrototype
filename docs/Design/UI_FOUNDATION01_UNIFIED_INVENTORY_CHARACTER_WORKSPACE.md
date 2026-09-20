@@ -50,7 +50,7 @@ WBP_GrimrockMenu
         └── charge / poids
 ```
 
-La barre globale `ESC / I / K / G / M / J / H` et la hotbar sont traitées séparément dans **UI-NAV01** et **UI-HOTBAR01**.
+La barre globale `ESC / I / K / G / M / J / H` est traitée dans **UI-NAV01**. Elle est désormais explicitement **toujours visible**, collée au bas de l'écran et extérieure au workspace Inventory. La hotbar MON12 existante reste à sa droite dans la même bande visuelle ; UI-HOTBAR01 traitera seulement ses évolutions fonctionnelles/visuelles futures.
 
 ## Contrat C++ ajouté
 

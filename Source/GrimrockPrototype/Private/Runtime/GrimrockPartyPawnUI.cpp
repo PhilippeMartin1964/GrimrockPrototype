@@ -12,22 +12,56 @@
 
 void AGrimrockPartyPawn::ToggleInventoryWidget()
 {
+	ToggleMenuPage(EInventoryTopTab::Inventory);
+}
+
+void AGrimrockPartyPawn::ToggleSkillsWidget()
+{
+	ToggleMenuPage(EInventoryTopTab::Skills);
+}
+
+void AGrimrockPartyPawn::ToggleCraftingWidget()
+{
+	ToggleMenuPage(EInventoryTopTab::Recipes);
+}
+
+void AGrimrockPartyPawn::ToggleMapWidget()
+{
+	ToggleMenuPage(EInventoryTopTab::Map);
+}
+
+void AGrimrockPartyPawn::ToggleJournalWidget()
+{
+	ToggleMenuPage(EInventoryTopTab::Journal);
+}
+
+void AGrimrockPartyPawn::ToggleHelpWidget()
+{
+	ToggleMenuPage(EInventoryTopTab::Codex);
+}
+
+void AGrimrockPartyPawn::ToggleMenuPage(EInventoryTopTab TopTab)
+{
 	if (bCharacterCreationModalActive || bIsPitFalling)
 	{
 		return;
 	}
 
-	if (bInventoryWidgetVisible)
+	if (bInventoryWidgetVisible && MenuWidgetInstance && MenuWidgetInstance->CurrentTopTab == TopTab)
 	{
 		HideInventoryWidget();
+		return;
 	}
-	else
-	{
-		ShowInventoryWidget();
-	}
+
+	ShowMenuPage(TopTab);
 }
 
 void AGrimrockPartyPawn::ShowInventoryWidget()
+{
+	ShowMenuPage(EInventoryTopTab::Inventory);
+}
+
+void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 {
 	if (bCharacterCreationModalActive || bIsPitFalling)
 	{
@@ -37,7 +71,7 @@ void AGrimrockPartyPawn::ShowInventoryWidget()
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (!PlayerController)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Show Failed Pawn=%s Reason=NoPlayerController"), *GetName());
+		UE_LOG(LogTemp, Warning, TEXT("GrimrockMenu UI Show Failed Pawn=%s Reason=NoPlayerController"), *GetName());
 		return;
 	}
 
@@ -67,9 +101,18 @@ void AGrimrockPartyPawn::ShowInventoryWidget()
 		MenuWidgetInstance->AddToViewport(100);
 	}
 	MenuWidgetInstance->SetVisibility(ESlateVisibility::Visible);
-	MenuWidgetInstance->OpenInventoryWorkspace();
+	if (TopTab == EInventoryTopTab::Inventory)
+	{
+		MenuWidgetInstance->OpenInventoryWorkspace();
+	}
+	else
+	{
+		MenuWidgetInstance->SetActiveTopTab(TopTab);
+	}
 	bInventoryWidgetVisible = true;
 
+	// The persistent bottom bar/hotbar lives in the runtime HUD, not in the
+	// menu. Keep it above the workspace while the menu is open.
 	if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
 	{
 		CombatHudWidgetInstance->RemoveFromParent();
@@ -96,7 +139,29 @@ void AGrimrockPartyPawn::ShowInventoryWidget()
 		GrimrockPlayerController->SetInventoryUiOpen(true);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GrimrockMenu UI Shown Pawn=%s"), *GetName());
+	UE_LOG(LogTemp, Log, TEXT("GrimrockMenu UI Shown Pawn=%s TopTab=%d"), *GetName(), static_cast<int32>(TopTab));
+}
+
+void AGrimrockPartyPawn::HandleGlobalEscape()
+{
+	if (bCharacterCreationModalActive || bIsPitFalling)
+	{
+		return;
+	}
+
+	if (UGridInventoryWidget* InventoryWidget = GetInventoryWidget(); InventoryWidget && InventoryWidget->IsItemActionMenuOpen())
+	{
+		InventoryWidget->CloseItemActionMenu(FName(TEXT("Escape")));
+		return;
+	}
+
+	if (bInventoryWidgetVisible)
+	{
+		HideInventoryWidget();
+		return;
+	}
+
+	OnInGameMainMenuRequested();
 }
 
 void AGrimrockPartyPawn::HideInventoryWidget()

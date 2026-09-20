@@ -66,6 +66,10 @@ Les quatre bindings sont optionnels pendant la transition. Le contenu actuel doi
 
 La zone Party et le panneau personnage doivent continuer à suivre la structure paper doll ci-dessous.
 
+### Réservation de la barre inférieure
+
+Depuis UI-NAV01, `WBP_GridInventory` ne doit jamais occuper la bande réservée au HUD persistant. Les panneaux gauche/droite s'arrêtent au-dessus de `Panel_GlobalNavigation + Panel_Actions`. La barre inférieure n'est pas recréée dans l'inventaire et ne doit jamais être masquée par lui.
+
 ## Structure canonique du panneau paper doll
 
 ```text

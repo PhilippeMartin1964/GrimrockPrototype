@@ -366,6 +366,34 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UPanelWidget> Panel_Actions;
 
+	/**
+	 * UI-NAV01 persistent bottom navigation chrome. This panel is never tied to
+	 * combat state or GrimrockMenu visibility.
+	 */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
+	TObjectPtr<UPanelWidget> Panel_GlobalNavigation;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
+	TObjectPtr<UButton> Button_NavEscape;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
+	TObjectPtr<UButton> Button_NavInventory;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
+	TObjectPtr<UButton> Button_NavSkills;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
+	TObjectPtr<UButton> Button_NavCrafting;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
+	TObjectPtr<UButton> Button_NavMap;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
+	TObjectPtr<UButton> Button_NavJournal;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
+	TObjectPtr<UButton> Button_NavHelp;
+
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UPanelWidget> Panel_Initiative;
 
@@ -458,6 +486,30 @@ private:
 	void EnsureInitiativeWidgets();
 	void RefreshInitiativeWidgets();
 	void RefreshBoundWidgets();
+	void BindGlobalNavigationButtons();
+	void UnbindGlobalNavigationButtons();
+
+	UFUNCTION()
+	void HandleNavEscapeClicked();
+
+	UFUNCTION()
+	void HandleNavInventoryClicked();
+
+	UFUNCTION()
+	void HandleNavSkillsClicked();
+
+	UFUNCTION()
+	void HandleNavCraftingClicked();
+
+	UFUNCTION()
+	void HandleNavMapClicked();
+
+	UFUNCTION()
+	void HandleNavJournalClicked();
+
+	UFUNCTION()
+	void HandleNavHelpClicked();
+
 	void ValidateCombatActionTargetingState();
 	void RefreshTargetingWidgets();
 

@@ -351,7 +351,18 @@ void AGrimrockPartyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	}
 	PlayerInputComponent->BindKey(EKeys::RightMouseButton, IE_Pressed, this, &AGrimrockPartyPawn::BeginFreeLook);
 	PlayerInputComponent->BindKey(EKeys::RightMouseButton, IE_Released, this, &AGrimrockPartyPawn::EndFreeLook);
-	PlayerInputComponent->BindKey(EKeys::I, IE_Pressed, this, &AGrimrockPartyPawn::ToggleInventoryWidget);
+
+	const auto ConfigureNavigationBinding = [](FInputKeyBinding& Binding)
+	{
+		Binding.bConsumeInput = true;
+		Binding.bExecuteWhenPaused = true;
+	};
+	ConfigureNavigationBinding(PlayerInputComponent->BindKey(EKeys::I, IE_Pressed, this, &AGrimrockPartyPawn::ToggleInventoryWidget));
+	ConfigureNavigationBinding(PlayerInputComponent->BindKey(EKeys::K, IE_Pressed, this, &AGrimrockPartyPawn::ToggleSkillsWidget));
+	ConfigureNavigationBinding(PlayerInputComponent->BindKey(EKeys::G, IE_Pressed, this, &AGrimrockPartyPawn::ToggleCraftingWidget));
+	ConfigureNavigationBinding(PlayerInputComponent->BindKey(EKeys::M, IE_Pressed, this, &AGrimrockPartyPawn::ToggleMapWidget));
+	ConfigureNavigationBinding(PlayerInputComponent->BindKey(EKeys::J, IE_Pressed, this, &AGrimrockPartyPawn::ToggleJournalWidget));
+	ConfigureNavigationBinding(PlayerInputComponent->BindKey(EKeys::H, IE_Pressed, this, &AGrimrockPartyPawn::ToggleHelpWidget));
 
 	const auto ConfigureHotbarBinding = [](FInputKeyBinding& Binding)
 	{

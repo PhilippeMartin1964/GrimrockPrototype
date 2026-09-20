@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-FOUNDATION01**  
+Statut : **CURRENT — UI-NAV01**  
 Date : **20 septembre 2026**
 
 ## Références canoniques
@@ -40,6 +40,21 @@ Panel_InventoryBag     droite
 Les deux wrappers et leurs boutons de fermeture sont `BindWidgetOptional` afin de permettre une transition UMG sans casser l'asset actuel. `I` continue d'utiliser `ToggleInventoryWidget()`, mais la réouverture appelle maintenant `OpenInventoryWorkspace()`, revient sur la page Inventory et restaure les deux panneaux.
 
 Référence : `docs/Design/UI_FOUNDATION01_UNIFIED_INVENTORY_CHARACTER_WORKSPACE.md`.
+
+### UI-NAV01 — barre inférieure persistante
+
+La navigation `ESC / I / K / G / M / J / H` n'est pas enfant du menu. Elle est intégrée à la surface HUD runtime persistante déjà portée par `WBP_GridCombatHud`, à côté de la hotbar MON12.
+
+```text
+WBP_GridCombatHud
+└── BottomBar (ancrée en bas)
+    ├── Panel_GlobalNavigation    toujours visible
+    └── Panel_Actions             hotbar 1..0 existante
+```
+
+Le menu peut être ouvert, fermé ou changer de page sans modifier la visibilité de `Panel_GlobalNavigation`. Les boutons et les touches passent par les mêmes commandes C++.
+
+Référence : `docs/Design/UI_NAV01_PERSISTENT_BOTTOM_NAVIGATION.md`.
 
 ```text
 Inventaire      fonctionnel
@@ -121,6 +136,12 @@ UGridInventoryWidget
     workspace feuille personnage + inventaire
     visibilité indépendante des deux panneaux
     présentation inventaire / équipement existante
+
+UGridCombatHudWidget
+    HUD runtime persistant
+    navigation globale ESC/I/K/G/M/J/H
+    hotbar MON12 1..0
+    éléments combat conditionnels
 
 UGridSkillsWidget
     projection Skills / Talents

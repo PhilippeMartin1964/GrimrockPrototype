@@ -26,6 +26,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/GrimrockPlayerController.h"
 #include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridCombatHotbarDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
@@ -1029,6 +1030,7 @@ bool UGridCombatHudWidget::ClearHotbarSlot(int32 SlotIndex)
 void UGridCombatHudWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+	BindGlobalNavigationButtons();
 	if (Button_EndTurn)
 	{
 		Button_EndTurn->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleEndTurnClicked);
@@ -1041,6 +1043,7 @@ void UGridCombatHudWidget::NativeConstruct()
 void UGridCombatHudWidget::NativeDestruct()
 {
 	CancelCombatActionTargeting();
+	UnbindGlobalNavigationButtons();
 	if (Button_EndTurn)
 	{
 		Button_EndTurn->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleEndTurnClicked);
@@ -1383,8 +1386,141 @@ void UGridCombatHudWidget::RefreshInitiativeWidgets()
 	}
 }
 
+void UGridCombatHudWidget::BindGlobalNavigationButtons()
+{
+	if (Button_NavEscape)
+	{
+		Button_NavEscape->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavEscapeClicked);
+	}
+	if (Button_NavInventory)
+	{
+		Button_NavInventory->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavInventoryClicked);
+	}
+	if (Button_NavSkills)
+	{
+		Button_NavSkills->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavSkillsClicked);
+	}
+	if (Button_NavCrafting)
+	{
+		Button_NavCrafting->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavCraftingClicked);
+	}
+	if (Button_NavMap)
+	{
+		Button_NavMap->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavMapClicked);
+	}
+	if (Button_NavJournal)
+	{
+		Button_NavJournal->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavJournalClicked);
+	}
+	if (Button_NavHelp)
+	{
+		Button_NavHelp->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavHelpClicked);
+	}
+}
+
+void UGridCombatHudWidget::UnbindGlobalNavigationButtons()
+{
+	if (Button_NavEscape)
+	{
+		Button_NavEscape->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavEscapeClicked);
+	}
+	if (Button_NavInventory)
+	{
+		Button_NavInventory->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavInventoryClicked);
+	}
+	if (Button_NavSkills)
+	{
+		Button_NavSkills->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavSkillsClicked);
+	}
+	if (Button_NavCrafting)
+	{
+		Button_NavCrafting->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavCraftingClicked);
+	}
+	if (Button_NavMap)
+	{
+		Button_NavMap->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavMapClicked);
+	}
+	if (Button_NavJournal)
+	{
+		Button_NavJournal->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavJournalClicked);
+	}
+	if (Button_NavHelp)
+	{
+		Button_NavHelp->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavHelpClicked);
+	}
+}
+
+void UGridCombatHudWidget::HandleNavEscapeClicked()
+{
+	if (!IsValid(PartyPawn))
+	{
+		return;
+	}
+
+	if (AGrimrockPlayerController* PlayerController = Cast<AGrimrockPlayerController>(PartyPawn->GetController()))
+	{
+		PlayerController->RequestGlobalEscape();
+		return;
+	}
+
+	PartyPawn->HandleGlobalEscape();
+}
+
+void UGridCombatHudWidget::HandleNavInventoryClicked()
+{
+	if (IsValid(PartyPawn))
+	{
+		PartyPawn->ToggleInventoryWidget();
+	}
+}
+
+void UGridCombatHudWidget::HandleNavSkillsClicked()
+{
+	if (IsValid(PartyPawn))
+	{
+		PartyPawn->ToggleSkillsWidget();
+	}
+}
+
+void UGridCombatHudWidget::HandleNavCraftingClicked()
+{
+	if (IsValid(PartyPawn))
+	{
+		PartyPawn->ToggleCraftingWidget();
+	}
+}
+
+void UGridCombatHudWidget::HandleNavMapClicked()
+{
+	if (IsValid(PartyPawn))
+	{
+		PartyPawn->ToggleMapWidget();
+	}
+}
+
+void UGridCombatHudWidget::HandleNavJournalClicked()
+{
+	if (IsValid(PartyPawn))
+	{
+		PartyPawn->ToggleJournalWidget();
+	}
+}
+
+void UGridCombatHudWidget::HandleNavHelpClicked()
+{
+	if (IsValid(PartyPawn))
+	{
+		PartyPawn->ToggleHelpWidget();
+	}
+}
+
 void UGridCombatHudWidget::RefreshBoundWidgets()
 {
+	if (Panel_GlobalNavigation)
+	{
+		Panel_GlobalNavigation->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+
 	const bool bConfiguringHotbar = IsValid(PartyPawn) && PartyPawn->bInventoryWidgetVisible;
 	const bool bShowCombatOnly = View.bCombatActive && !bConfiguringHotbar;
 	if (Panel_CombatHud)

@@ -64,9 +64,19 @@ Recipes reste une fonctionnalité future hors MON21.
 
 MON20 a fermé le recrutement : Story Companion et Custom Recruit réutilisent les services C++ de recrutement et le wizard existant. Le Blueprint ne réimplémente pas les validations de groupe, identité ou ownership.
 
+## HUD runtime / navigation persistante
+
+UI-NAV01 fixe une barre inférieure permanente, extérieure à `WBP_GrimrockMenu` et `WBP_GridInventory`. Elle est portée par le HUD runtime existant et reste visible lorsque les panneaux sont ouverts ou fermés.
+
+```text
+ESC I K G M J H  ||  hotbar 1..0
+```
+
+Les boutons et touches appellent les mêmes routes C++. Les panneaux du menu doivent réserver sa hauteur et ne jamais la recouvrir.
+
 ## Combat UI
 
-Le HUD ne décide pas initiative/coûts/résolution. Il reflète le Turn Manager et le catalogue d’actions. La hotbar est persistante dans l’état de personnage.
+Le HUD ne décide pas initiative/coûts/résolution. Il reflète le Turn Manager et le catalogue d’actions. La hotbar est persistante dans l’état de personnage. Les éléments combat-only peuvent apparaître/disparaître sans affecter `Panel_GlobalNavigation`.
 
 ## Skills / Spellbook
 

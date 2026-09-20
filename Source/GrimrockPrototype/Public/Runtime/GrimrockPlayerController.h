@@ -31,6 +31,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void SetInventoryUiOpen(bool bOpen);
 
+	/** Canonical ESC route: cancel aiming/targeting first, then delegate global UI navigation. */
+	UFUNCTION(BlueprintCallable, Category = "UI|Navigation")
+	void RequestGlobalEscape();
+
 	/** Starts the exploration/puzzle MainHand throw targeting mode. */
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
 	bool BeginPhysicalThrowAiming();
@@ -124,7 +128,6 @@ protected:
 	};
 
 	void HandleLeftMousePressed();
-	void HandleCancelCombatTargeting();
 	// Shared aiming lifecycle: inventory targets support placement; equipped MainHand targeting remains throw-only.
 	bool UpdatePhysicalThrowAiming();
 	bool HandlePhysicalThrowAimingClick();

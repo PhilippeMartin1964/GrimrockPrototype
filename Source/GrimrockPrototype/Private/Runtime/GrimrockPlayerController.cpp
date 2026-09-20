@@ -231,9 +231,10 @@ void AGrimrockPlayerController::SetupInputComponent()
 	}
 
 	InputComponent->BindKey(EKeys::LeftMouseButton, IE_Pressed, this, &AGrimrockPlayerController::HandleLeftMousePressed);
-	FInputKeyBinding& CancelTargetingBinding =
-		InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AGrimrockPlayerController::HandleCancelCombatTargeting);
-	CancelTargetingBinding.bConsumeInput = false;
+	FInputKeyBinding& GlobalEscapeBinding =
+		InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AGrimrockPlayerController::RequestGlobalEscape);
+	GlobalEscapeBinding.bConsumeInput = true;
+	GlobalEscapeBinding.bExecuteWhenPaused = true;
 
 #if !UE_BUILD_SHIPPING
 	FInputKeyBinding& StartPerceptionBinding =
@@ -896,7 +897,7 @@ bool AGrimrockPlayerController::HandleCombatTargetingClick()
 	return true;
 }
 
-void AGrimrockPlayerController::HandleCancelCombatTargeting()
+void AGrimrockPlayerController::RequestGlobalEscape()
 {
 	if (bPhysicalThrowAimingActive)
 	{
@@ -906,13 +907,25 @@ void AGrimrockPlayerController::HandleCancelCombatTargeting()
 
 	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
 	UGridCombatHudWidget* Hud = PartyPawn ? PartyPawn->CombatHudWidgetInstance.Get() : nullptr;
-	if (!IsValid(Hud) || !Hud->IsCombatActionTargetingActive())
+	if (IsValid(Hud) && Hud->IsCombatActionTargetingActive())
+	{
+		Hud->CancelCombatActionTargeting();
+		DefaultMouseCursor = EMouseCursor::Default;
+		CurrentMouseCursor = EMouseCursor::Default;
+		return;
+	}
+
+	// Recruitment, level-up and character-creation modals already own their
+	// own close/cancel semantics. Do not let global ESC escape behind them.
+	if (bInventoryUiOpen && (!PartyPawn || !PartyPawn->bInventoryWidgetVisible))
 	{
 		return;
 	}
-	Hud->CancelCombatActionTargeting();
-	DefaultMouseCursor = EMouseCursor::Default;
-	CurrentMouseCursor = EMouseCursor::Default;
+
+	if (PartyPawn)
+	{
+		PartyPawn->HandleGlobalEscape();
+	}
 }
 
 void AGrimrockPlayerController::HandleLeftMousePressed()
