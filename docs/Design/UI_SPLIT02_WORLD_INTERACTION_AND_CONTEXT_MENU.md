@@ -1,7 +1,7 @@
 # UI-SPLIT02 — Non-modal inventory world interaction and context-menu migration
 
 Date : **20 septembre 2026**  
-Statut : **IMPLEMENTATION C++ ; validation locale UE5.5.4 à fournir**
+Statut : **AUTOMATION VALIDÉE — 20 septembre 2026 ; migration du presenter clic droit à réaliser**
 
 ## Décision
 
@@ -137,3 +137,19 @@ Ce test vérifie :
 5. vérifier que WBP_ItemActionMenu apparaît ;
 6. cliquer hors menu ;
 7. vérifier que seul le menu contextuel se ferme.
+
+
+## Validation Automation reçue
+
+Validation locale du 20 septembre 2026 :
+
+~~~text
+Filter                 : Grimrock.UI.Split02
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+~~~
+
+La politique C++ d'interaction monde avec le workspace split est validée. La suite concerne la migration UMG du presenter de menu contextuel vers WBP_InventoryBag.
