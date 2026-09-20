@@ -1,7 +1,7 @@
 # UI-CLEAN03 — Remove legacy physical-armor alias
 
 Date : **20 septembre 2026**  
-Statut : **IMPLEMENTATION C++ ; validation locale UE5.5.4 à fournir**
+Statut : **AUTOMATION + CONTRÔLE UMG VALIDÉS — 20 septembre 2026**
 
 ## Objectif
 
@@ -80,3 +80,17 @@ Le test vérifie que :
 - `Text_CharacterArmor` n'existe plus dans la classe native ;
 - `Text_CharacterPhysicalArmor` existe toujours ;
 - `Text_CharacterMagicalArmor` existe toujours.
+
+
+## Validation reçue
+
+~~~text
+Filter                 : Grimrock.UI.Clean03
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+~~~
+
+Contrôle UMG manuel reçu : `WBP_CharacterSheet` ne contient aucun widget `Text_CharacterArmor`. Aucun nettoyage asset supplémentaire n'est requis pour ce binding.
