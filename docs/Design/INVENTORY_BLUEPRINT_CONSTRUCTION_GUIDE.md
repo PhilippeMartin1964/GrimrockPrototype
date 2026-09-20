@@ -171,17 +171,9 @@ SlotWidget_MainHand   -> MainHand
 SlotWidget_OffHand    -> OffHand
 ```
 
-Les slots suivants sont la cible visuelle, mais nécessitent une étape C++ d'alignement avant d'être enregistrés fonctionnellement :
+Les slots `Face`, `Shirt`, `Bracers`, `Earring1` et `Earring2` sont désormais également présents dans `EGridEquipmentSlot` et `FGridCharacterEquipmentState`. Ils peuvent donc être enregistrés comme les autres slots paper doll.
 
-```text
-SlotWidget_Face
-SlotWidget_Shirt
-SlotWidget_Bracers
-SlotWidget_Earring1
-SlotWidget_Earring2
-```
-
-Tant que ces slots ne sont pas ajoutés à `EGridEquipmentSlot` et `FGridCharacterEquipmentState`, ils doivent rester des placeholders visuels ou être désactivés.
+Il n'existe plus de sous-ensemble paper doll volontairement limité côté C++ ; la différence restante est uniquement la présence effective des widgets dans `WBP_GridInventory`.
 
 ## Slots exclus du paper doll
 
@@ -205,25 +197,22 @@ SizeBox_CharacterStatsPanel
       -> Border_ResistancesSection
 ```
 
-Les BindWidget existants de `UGridInventoryWidget` doivent être conservés et réutilisés :
+Les BindWidget de `UGridInventoryWidget` doivent être conservés et réutilisés. UI-CHAR02 complète notamment la projection avec :
 
-- `Text_CharacterName` ;
-- `Text_CharacterRace` ;
-- `Text_CharacterClass` ;
-- `Text_CharacterLevel` ;
-- `Text_CharacterExperience` ;
-- `Text_CharacterStrength` ;
-- `Text_CharacterDexterity` ;
-- `Text_CharacterConstitution` ;
-- `Text_CharacterIntelligence` ;
-- `Text_CharacterWisdom` ;
-- `Text_CharacterCharisma` ;
-- `Text_CharacterHealth` ;
-- `Text_CharacterMana` ;
-- `Text_CharacterCarryWeight` ;
-- `Image_CharacterPortrait` ou futur `Image_CharacterFullBody` ;
-- `Image_CharacterClassIcon` ;
-- `Border_CharacterClassAccent`.
+- `ProgressBar_CharacterHealth` ;
+- `ProgressBar_CharacterMana` ;
+- `ProgressBar_CharacterCarryWeight` ;
+- `Text_CharacterInventorySlots` ;
+- `Text_CharacterPhysicalArmor` ;
+- `Text_CharacterMagicalArmor` ;
+- `Text_CharacterInitiative` ;
+- `Text_CharacterAccuracy` ;
+- `Text_CharacterEvasion` ;
+- `Text_ResistancePhysical`.
+
+Les champs existants `Text_CharacterName/Race/Class/Level/Experience`, les six attributs, les résistances élémentaires, `Text_CharacterHealth/Mana/CarryWeight`, `Image_CharacterPortrait`, `Image_CharacterClassIcon` et `Border_CharacterClassAccent` restent valides.
+
+`Text_CharacterArmor` est conservé comme alias de transition pour l'armure physique ; la cible nouvelle est `Text_CharacterPhysicalArmor`.
 
 ## Couche UI au-dessus
 

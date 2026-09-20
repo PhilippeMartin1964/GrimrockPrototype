@@ -7,6 +7,7 @@
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
 #include "Components/PanelWidget.h"
+#include "Components/ProgressBar.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Components/UniformGridPanel.h"
@@ -32,6 +33,22 @@ namespace
 		{
 			TextBlock->SetText(Value);
 		}
+	}
+
+	void SetInventoryOptionalProgress(UProgressBar* ProgressBar, float CurrentValue, float MaximumValue)
+	{
+		if (!ProgressBar)
+		{
+			return;
+		}
+
+		const float Ratio = MaximumValue > 0.0f ? CurrentValue / MaximumValue : 0.0f;
+		ProgressBar->SetPercent(FMath::Clamp(Ratio, 0.0f, 1.0f));
+	}
+
+	FText FormatInventorySlotUsage(int32 UsedSlots, int32 MaximumSlots)
+	{
+		return FText::FromString(FString::Printf(TEXT("%d / %d"), UsedSlots, MaximumSlots));
 	}
 
 	FText ResolveCharacterDisplayName(const FText& DisplayName, FName Id, const TCHAR* Fallback)
@@ -599,9 +616,19 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails()
 		SetInventoryOptionalText(Text_CharacterWisdom, FText::GetEmpty());
 		SetInventoryOptionalText(Text_CharacterCharisma, FText::GetEmpty());
 		SetInventoryOptionalText(Text_CharacterHealth, FText::GetEmpty());
+		SetInventoryOptionalProgress(ProgressBar_CharacterHealth, 0.0f, 0.0f);
 		SetInventoryOptionalText(Text_CharacterMana, FText::GetEmpty());
+		SetInventoryOptionalProgress(ProgressBar_CharacterMana, 0.0f, 0.0f);
 		SetInventoryOptionalText(Text_CharacterCarryWeight, FText::GetEmpty());
+		SetInventoryOptionalProgress(ProgressBar_CharacterCarryWeight, 0.0f, 0.0f);
+		SetInventoryOptionalText(Text_CharacterInventorySlots, FText::GetEmpty());
 		SetInventoryOptionalText(Text_CharacterArmor, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterPhysicalArmor, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterMagicalArmor, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterInitiative, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterAccuracy, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterEvasion, FText::GetEmpty());
+		SetInventoryOptionalText(Text_ResistancePhysical, FText::GetEmpty());
 		SetInventoryOptionalText(Text_ResistanceFire, FText::GetEmpty());
 		SetInventoryOptionalText(Text_ResistanceIce, FText::GetEmpty());
 		SetInventoryOptionalText(Text_ResistanceLightning, FText::GetEmpty());
@@ -629,11 +656,25 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails()
 	SetInventoryOptionalText(Text_CharacterCharisma, FormatIntWithBonus(Summary.Attributes.Charisma, Summary.EquipmentStatBonus.CharismaBonus));
 	SetInventoryOptionalText(Text_CharacterHealth,
 		FormatCurrentMaxWithMaxBonus(Summary.Resources.CurrentHealth, Summary.DerivedStats.MaxHealth, Summary.EquipmentStatBonus.MaxHealthBonus));
+	SetInventoryOptionalProgress(
+		ProgressBar_CharacterHealth, static_cast<float>(Summary.Resources.CurrentHealth), static_cast<float>(Summary.DerivedStats.MaxHealth));
 	SetInventoryOptionalText(
 		Text_CharacterMana, FormatCurrentMaxWithMaxBonus(Summary.Resources.CurrentMana, Summary.DerivedStats.MaxMana, Summary.EquipmentStatBonus.MaxManaBonus));
+	SetInventoryOptionalProgress(
+		ProgressBar_CharacterMana, static_cast<float>(Summary.Resources.CurrentMana), static_cast<float>(Summary.DerivedStats.MaxMana));
 	SetInventoryOptionalText(
 		Text_CharacterCarryWeight, FormatWeightWithBonus(Summary.CurrentWeight, Summary.MaxWeight, Summary.EquipmentStatBonus.CarryWeightBonus));
-	SetInventoryOptionalText(Text_CharacterArmor, FormatIntWithBonus(Summary.Resources.CurrentPhysicalArmor, Summary.EquipmentStatBonus.ArmorBonus));
+	SetInventoryOptionalProgress(ProgressBar_CharacterCarryWeight, Summary.CurrentWeight, Summary.MaxWeight);
+	SetInventoryOptionalText(Text_CharacterInventorySlots, FormatInventorySlotUsage(Summary.UsedInventorySlots, Summary.MaxInventorySlots));
+
+	const FText PhysicalArmorText = FormatIntWithBonus(Summary.Resources.CurrentPhysicalArmor, Summary.EquipmentStatBonus.ArmorBonus);
+	SetInventoryOptionalText(Text_CharacterArmor, PhysicalArmorText);
+	SetInventoryOptionalText(Text_CharacterPhysicalArmor, PhysicalArmorText);
+	SetInventoryOptionalText(Text_CharacterMagicalArmor, FText::AsNumber(Summary.Resources.CurrentMagicalArmor));
+	SetInventoryOptionalText(Text_CharacterInitiative, FText::AsNumber(Summary.DerivedStats.Initiative));
+	SetInventoryOptionalText(Text_CharacterAccuracy, FText::AsNumber(Summary.DerivedStats.Accuracy));
+	SetInventoryOptionalText(Text_CharacterEvasion, FText::AsNumber(Summary.DerivedStats.Evasion));
+	SetInventoryOptionalText(Text_ResistancePhysical, FText::AsNumber(Summary.FinalResistances.PhysicalResistance));
 	SetInventoryOptionalText(Text_ResistanceFire, FText::AsNumber(Summary.FinalResistances.FireResistance));
 	SetInventoryOptionalText(Text_ResistanceIce, FText::AsNumber(Summary.FinalResistances.IceResistance));
 	SetInventoryOptionalText(Text_ResistanceLightning, FText::AsNumber(Summary.FinalResistances.LightningResistance));

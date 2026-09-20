@@ -18,6 +18,7 @@ class UGridPartyMemberWidget;
 class UHorizontalBox;
 class UImage;
 class UOverlay;
+class UProgressBar;
 class URPGClassVisualAsset;
 class UTextBlock;
 class UUniformGridPanel;
@@ -147,13 +148,44 @@ public:
 	TObjectPtr<UTextBlock> Text_CharacterHealth;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+	TObjectPtr<UProgressBar> ProgressBar_CharacterHealth;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
 	TObjectPtr<UTextBlock> Text_CharacterMana;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+	TObjectPtr<UProgressBar> ProgressBar_CharacterMana;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
 	TObjectPtr<UTextBlock> Text_CharacterCarryWeight;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+	TObjectPtr<UProgressBar> ProgressBar_CharacterCarryWeight;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+	TObjectPtr<UTextBlock> Text_CharacterInventorySlots;
+
+	/** Legacy physical-armor field kept during the UMG migration. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
 	TObjectPtr<UTextBlock> Text_CharacterArmor;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Combat")
+	TObjectPtr<UTextBlock> Text_CharacterPhysicalArmor;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Combat")
+	TObjectPtr<UTextBlock> Text_CharacterMagicalArmor;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Combat")
+	TObjectPtr<UTextBlock> Text_CharacterInitiative;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Combat")
+	TObjectPtr<UTextBlock> Text_CharacterAccuracy;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Combat")
+	TObjectPtr<UTextBlock> Text_CharacterEvasion;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Resistances")
+	TObjectPtr<UTextBlock> Text_ResistancePhysical;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Resistances")
 	TObjectPtr<UTextBlock> Text_ResistanceFire;

@@ -197,13 +197,13 @@ Il regroupe au minimum :
 
 - `Details` : nom, race, classe, niveau, experience ;
 - `Attributes` : FOR, DEX, CON, INT, SAG, CHA ;
-- `DerivedStats` : PV, mana, charge.
+- `Vitals` : PV, mana, charge, occupation des slots ;
+- `Combat` : armure physique, armure magique, initiative, precision, esquive ;
+- `Resistances` : physique, feu, glace, foudre, poison, sacre, necrotique, arcanique.
 
-Il pourra ensuite accueillir :
+Depuis UI-CHAR02, ces champs sont directement projetes depuis `FGridInventoryCharacterSummary`. Les progress bars PV/mana/charge sont egalement disponibles.
 
-- `Combat` : armure physique, armure magique, degats, critique, precision, esquive ;
-- `MobilityAndProgression` : deplacement, initiative, experience, niveau suivant ;
-- `Resistances` : feu, eau, terre, air, poison, puis autres resistances si necessaire.
+Les statistiques sans autorite runtime actuelle, notamment degats et critique, ne doivent pas etre calculees localement dans l'UI. Elles seront ajoutees uniquement lorsqu'une source canonique sera disponible.
 
 Les champs deja exposes par `UGridInventoryWidget` doivent etre reutilises plutot que recrées avec d'autres noms.
 

@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-CHAR01**  
+Statut : **CURRENT — UI-CHAR02**  
 Date : **20 septembre 2026**
 
 ## Références canoniques
@@ -63,6 +63,29 @@ La refonte ne crée aucun état parallèle. `UGridPartyInventoryComponent::Selec
 `WBP_GridInventory` peut exposer six instances canoniques `PartyMember_1..6`, enregistrées nativement sur les indices `0..5`. `WBP_PartyMember` reçoit en option `Image_Portrait` et `Border_Selected` pour projeter le portrait et l'état de sélection sans logique Blueprint.
 
 Référence : `docs/Design/UI_CHAR01_SINGLE_SELECTED_CHARACTER.md`.
+
+### UI-CHAR02 — projection de la feuille personnage
+
+`UGridInventoryWidget` continue de lire directement `FGridInventoryCharacterSummary`. Aucun ViewModel ou calcul gameplay UI supplémentaire n'est ajouté.
+
+La feuille expose désormais, en plus des champs existants :
+
+```text
+ProgressBar_CharacterHealth
+ProgressBar_CharacterMana
+ProgressBar_CharacterCarryWeight
+Text_CharacterInventorySlots
+Text_CharacterPhysicalArmor
+Text_CharacterMagicalArmor
+Text_CharacterInitiative
+Text_CharacterAccuracy
+Text_CharacterEvasion
+Text_ResistancePhysical
+```
+
+Les ratios sont uniquement des projections visuelles des valeurs canoniques et sont clampés dans `[0..1]`.
+
+Référence : `docs/Design/UI_CHAR02_CHARACTER_SHEET_PROJECTION.md`.
 
 ```text
 Inventaire      fonctionnel
