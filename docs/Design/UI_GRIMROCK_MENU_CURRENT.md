@@ -5,7 +5,7 @@
 Ce document est la référence canonique du menu joueur multipage de GrimrockPrototype.
 
 État de référence : **UI01.4.3e VALIDÉ ET CLOS sous UE5.5.4**.  
-Date : **21 août 2026**.
+Date : **20 septembre 2026**.
 
 Référence Git de clôture fonctionnelle Spellbook/hotbar :
 
@@ -201,11 +201,22 @@ La dette de nommage `EInventoryTopTab` / `ToggleInventoryWidget()` reste volonta
 
 ## 7. Ouverture / fermeture
 
-Point d'entrée historique :
+Point d'entrée historique conservé :
 
 ```text
 I -> AGrimrockPartyPawn::ToggleInventoryWidget()
 ```
+
+Depuis UI-FOUNDATION01, l'ouverture visible appelle ensuite :
+
+```text
+UGrimrockMenuWidget::OpenInventoryWorkspace()
+    -> SetActiveTopTab(Inventory)
+    -> UGridInventoryWidget::ResetInventoryWorkspace()
+    -> RefreshInventory()
+```
+
+Le choix est volontaire : `I` signifie Inventaire. Une réouverture revient donc à la page Inventaire et restaure le panneau Feuille de personnage et le panneau Sac, sans créer de nouvelle instance ni de nouvel état gameplay.
 
 Première ouverture :
 
@@ -220,7 +231,7 @@ CreateWidget(MenuWidgetClass)
 
 La même instance est ensuite réutilisée. La fermeture replie le widget, restaure l'état UI du joueur et peut déclencher l'autosave prévu par le pawn.
 
-Le menu mémorise son onglet actif tant que l'instance subsiste.
+Le menu mémorise son onglet actif pendant son utilisation. Une fermeture/réouverture via `I` force cependant le workspace Inventaire, conformément au contrat UI-FOUNDATION01.
 
 ---
 

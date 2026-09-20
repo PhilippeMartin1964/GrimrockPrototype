@@ -39,6 +39,16 @@ void UGrimrockMenuWidget::InitializeMenuWidget(AGrimrockPartyPawn* InPartyPawn)
 	}
 }
 
+void UGrimrockMenuWidget::OpenInventoryWorkspace()
+{
+	SetActiveTopTab(EInventoryTopTab::Inventory);
+	if (Page_Inventory)
+	{
+		Page_Inventory->ResetInventoryWorkspace();
+		Page_Inventory->RefreshInventory();
+	}
+}
+
 void UGrimrockMenuWidget::RefreshInventory()
 {
 	if (Page_Inventory)

@@ -24,6 +24,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	void InitializeMenuWidget(AGrimrockPartyPawn* InPartyPawn);
 
+	/** Opens the canonical inventory workspace and restores both side panels. */
+	UFUNCTION(BlueprintCallable, Category = "Menu")
+	void OpenInventoryWorkspace();
+
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	void RefreshInventory();
 

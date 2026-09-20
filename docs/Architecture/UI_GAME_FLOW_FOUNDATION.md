@@ -1,6 +1,6 @@
 # UI et flux de jeu — Fondation d’architecture
 
-Date de référence : **26 août 2026**
+Date de référence : **20 septembre 2026**
 
 ## Principe
 
@@ -20,6 +20,8 @@ Main Menu
 ```
 
 ## Surfaces fonctionnelles
+
+UI-FOUNDATION01 formalise le workspace Inventaire / Personnage sans créer de nouvelle autorité : `WBP_GridInventory` reste la page unique qui réunit le panneau personnage à gauche et le sac du personnage sélectionné à droite. La zone centrale est destinée à laisser la vue 3D visible.
 
 - `GrimrockMainMenuWidget`, LoadGame menu/slots ;
 - `GridInventoryWidget` et slots/paper doll ;
@@ -73,6 +75,8 @@ Les pages Skills et Spellbook suivent `SelectedCharacterIndex` et projettent les
 Spellbook et SkillRanks sont persistés dans le SaveGame courant **v9**.
 
 ## Sélection de personnage / held visual
+
+UI-FOUNDATION01 réutilise strictement `UGridPartyInventoryComponent::SelectedCharacterIndex` pour la feuille, l'équipement et le sac. Il n'existe pas de sélection UI parallèle.
 
 `TD-PARTY-001` est **RÉSOLU**. `UGridPartyInventoryComponent` reste l’autorité de `SelectedCharacterIndex`. Le changement de sélection émet la notification autoritaire et `AGrimrockPartyPawn` resynchronise le held visual.
 

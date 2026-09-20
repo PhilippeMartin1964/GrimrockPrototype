@@ -67,7 +67,7 @@ void AGrimrockPartyPawn::ShowInventoryWidget()
 		MenuWidgetInstance->AddToViewport(100);
 	}
 	MenuWidgetInstance->SetVisibility(ESlateVisibility::Visible);
-	MenuWidgetInstance->RefreshInventory();
+	MenuWidgetInstance->OpenInventoryWorkspace();
 	bInventoryWidgetVisible = true;
 
 	if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())

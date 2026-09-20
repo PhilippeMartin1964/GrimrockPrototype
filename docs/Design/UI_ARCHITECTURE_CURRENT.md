@@ -1,7 +1,7 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — après TD06.9 / MON21.3**  
-Date : **26 août 2026**
+Statut : **CURRENT — UI-FOUNDATION01**  
+Date : **20 septembre 2026**
 
 ## Références canoniques
 
@@ -26,6 +26,20 @@ docs/Design/PROJECT_COMPLETION_ROADMAP.md
 ## Menu joueur actuel
 
 `WBP_GrimrockMenu` est un menu RPG multipage fonctionnel. Son parent natif est `UGrimrockMenuWidget`.
+
+### UI-FOUNDATION01 — workspace Inventaire / Personnage
+
+La refonte conserve le shell et les pages existants. `Page_Inventory / WBP_GridInventory` devient explicitement le workspace réunissant deux panneaux indépendants :
+
+```text
+Panel_CharacterSheet   gauche
+zone centrale          vue 3D laissée visible
+Panel_InventoryBag     droite
+```
+
+Les deux wrappers et leurs boutons de fermeture sont `BindWidgetOptional` afin de permettre une transition UMG sans casser l'asset actuel. `I` continue d'utiliser `ToggleInventoryWidget()`, mais la réouverture appelle maintenant `OpenInventoryWorkspace()`, revient sur la page Inventory et restaure les deux panneaux.
+
+Référence : `docs/Design/UI_FOUNDATION01_UNIFIED_INVENTORY_CHARACTER_WORKSPACE.md`.
 
 ```text
 Inventaire      fonctionnel
@@ -101,10 +115,12 @@ SourceDefinitionId = SpellId
 
 ```text
 UGrimrockMenuWidget
-    navigation / shell
+    navigation / shell / ouverture du workspace Inventory
 
 UGridInventoryWidget
-    présentation inventaire
+    workspace feuille personnage + inventaire
+    visibilité indépendante des deux panneaux
+    présentation inventaire / équipement existante
 
 UGridSkillsWidget
     projection Skills / Talents

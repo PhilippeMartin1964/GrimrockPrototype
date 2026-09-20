@@ -10,6 +10,8 @@
 void UGridInventoryWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+	BindWorkspaceButtons();
+	ApplyWorkspacePanelVisibility();
 	RegisterPaperDollEquipmentSlotWidgets();
 	ValidatePaperDollEquipmentRegistration();
 	RefreshRegisteredSlotWidgets();

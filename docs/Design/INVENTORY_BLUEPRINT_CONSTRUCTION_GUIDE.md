@@ -40,17 +40,31 @@ Rôle :
 
 ## Structure générale recommandée
 
+Depuis UI-FOUNDATION01, `WBP_GridInventory` reste un **seul widget** mais son contenu est réparti en deux wrappers indépendants autour d'une zone centrale transparente :
+
 ```text
 WBP_GridInventory
--> Border_InventoryPanel
-   -> HorizontalBox_InventoryRoot
-      -> SizeBox_PartyColumn
-      -> SizeBox_SelectedCharacterPanel
-      -> SizeBox_CharacterStatsPanel
-      -> SizeBox_InventoryColumn ou panneau inventaire existant
+-> Overlay_InventoryWorkspace
+   -> Panel_CharacterSheet
+      -> contenu Party + personnage sélectionné + stats + paper doll existant
+   -> zone centrale transparente
+      -> aucune copie de la vue 3D ; le monde derrière le menu reste visible
+   -> Panel_InventoryBag
+      -> grille de slots + poids + futurs filtres/tri
 ```
 
-La colonne Party et la zone inventaire peuvent évoluer, mais le panneau central personnage doit suivre la structure paper doll ci-dessous.
+Noms exacts attendus par le C++ de fondation :
+
+```text
+Panel_CharacterSheet
+Panel_InventoryBag
+Button_CloseCharacterSheet
+Button_CloseInventoryBag
+```
+
+Les quatre bindings sont optionnels pendant la transition. Le contenu actuel doit être déplacé dans ces wrappers, pas recréé avec une deuxième logique d'inventaire.
+
+La zone Party et le panneau personnage doivent continuer à suivre la structure paper doll ci-dessous.
 
 ## Structure canonique du panneau paper doll
 
@@ -331,6 +345,10 @@ Fermeture :
 
 ## Checklist de construction
 
+- `Panel_CharacterSheet` contient le contenu personnage existant.
+- `Panel_InventoryBag` contient la grille de l'inventaire du personnage sélectionné.
+- La zone centrale entre les deux reste transparente et ne bloque pas le pointeur par un catcher plein écran permanent.
+- `Button_CloseCharacterSheet` et `Button_CloseInventoryBag` ferment uniquement leur panneau.
 - Le personnage plein corps est au centre du panneau paper doll.
 - Les slots paper doll sont autour du personnage, pas dans une grille séparée.
 - `SlotWidget_Cursor` est hors paper doll.
