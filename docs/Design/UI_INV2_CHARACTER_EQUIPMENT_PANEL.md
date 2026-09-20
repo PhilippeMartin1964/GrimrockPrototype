@@ -1,12 +1,12 @@
-# UI-INV2 Character Equipment Panel
+# UI-INV2 Character Equipment Panel — current split form
 
 ## Objet
 
-Ce document fixe la structure cible du panneau central personnage / equipement de `WBP_GridInventory`.
+Ce document fixe la structure du panneau personnage / équipement actuellement porté par `WBP_CharacterSheet`.
 
 La direction validee est un layout **paper doll** : le personnage selectionne est vu de pied en cap au centre, et les `SlotWidget` d'equipement sont places autour de lui. L'equipement ne doit plus etre pense comme une simple grille separee du personnage.
 
-`WBP_GridInventory` reste un widget enfant de `WBP_GrimrockMenu`. Il vit dans la surface logique 1920x1080 geree par `UGrimrockDesignSurfaceWidget` via le menu parent. Il ne doit donc jamais gerer la resolution ecran, le DPI ou le viewport.
+Depuis UI-CLEAN01, `WBP_CharacterSheet` est une fenêtre viewport indépendante. Il n'existe plus de `Page_Inventory / WBP_GridInventory` comme chemin runtime.
 
 ## Decision canonique des slots d'equipement
 
@@ -76,7 +76,7 @@ UI-INV2C aligne le modele C++ sur la cible paper doll. Les slots suivants sont d
 - `Earring1` ;
 - `Earring2`.
 
-Le Blueprint paper doll reste a implementer dans UI-INV2D. Les nouveaux slots sont disponibles en C++, mais ils ne sont visibles dans l'interface que lorsque `WBP_GridInventory` expose ou construit les widgets correspondants.
+Le paper doll manuel est désormais authoré dans `WBP_CharacterSheet`. Les 18 slots sont exposés via les `SlotWidget_*` et enregistrés côté C++.
 
 ## Structure definitive de SizeBox_SelectedCharacterPanel
 
@@ -171,7 +171,7 @@ SizeBox_SelectedCharacterPanel
 
 ## Regles de construction UMG
 
-`VerticalBox_SelectedCharacter` et `UniformGrid_EquipmentSlots` correspondent a l'ancienne structure. Ils peuvent etre conserves temporairement pendant la transition, mais ils ne sont pas la cible definitive.
+`VerticalBox_SelectedCharacter` et `UniformGrid_EquipmentSlots` décrivent l'ancienne structure historique et ne doivent plus être réintroduits.
 
 La cible definitive utilise :
 
@@ -210,13 +210,12 @@ Les champs deja exposes par `UGridInventoryWidget` doivent etre reutilises pluto
 ## Regles de scaling
 
 - Ne pas ajouter de `ScaleBox` local pour compenser la resolution.
-- Ne pas ajouter de `SizeBox_DesignSurface` local dans `WBP_GridInventory`.
 - Ne pas calculer de DPI, viewport ou scaling global dans l'inventaire.
 - La taille visuelle des slots n'est pas pilotee par le C++. Elle doit etre definie dans les WBP, via le Designer UE5, les SizeBox, les containers et les parametres de layout UMG. `UGridInventorySlotWidget` ne fait que porter la logique d'interaction et d'etat.
 - Aucun hardcode de taille de slot dans `UGridInventorySlotWidget`.
 - Aucune propriete C++ de taille logique de slot.
 - Aucun `SetWidthOverride` / `SetHeightOverride` depuis C++ pour les slots.
-- Laisser `UGrimrockDesignSurfaceWidget` gerer le centrage et la limite physique via `WBP_GrimrockMenu`.
+- Le scaling global ne doit pas être recalculé en C++ ; le layout appartient au WBP split.
 
 ## Cablage Blueprint
 
@@ -247,7 +246,7 @@ SlotWidget_OffHand    -> OffHand
 
 Tous les slots paper doll sont fonctionnels cote C++ depuis UI-INV2C. Ils doivent donc pouvoir etre enregistres via `RegisterEquipmentSlotWidget` dans UI-INV2D.
 
-Note UI-INV2D4 : les slots paper doll manuels sont enregistres cote C++ via `BindWidgetOptional` sur les widgets `SlotWidget_*`. Le layout visuel reste possede par `WBP_GridInventory`; le C++ valide uniquement la presence et le cablage des widgets. `BuildPaperDollEquipmentPanel` est conserve comme outil provisoire, mais ne doit pas remplacer automatiquement le layout manuel.
+Depuis UI-CLEAN02, les slots paper doll manuels sont enregistrés côté C++ via `BindWidgetOptional` sur les widgets `SlotWidget_*`. Le layout visuel reste possédé exclusivement par `WBP_CharacterSheet`; l'ancien `BuildPaperDollEquipmentPanel` a été supprimé.
 
 Ne pas enregistrer dans le paper doll :
 
@@ -263,8 +262,6 @@ Ne pas enregistrer dans le paper doll :
 - Les slots sont autour du personnage, pas dans une grille separee.
 - `SlotWidget_Cursor` est hors panneau paper doll.
 - Aucun `.uasset` n'est modifie comme fichier texte.
-- Aucun `ScaleBox` local n'est ajoute dans `WBP_GridInventory`.
-- Aucun `SizeBox_DesignSurface` local n'est ajoute dans `WBP_GridInventory`.
 - Aucun Blueprint ne decide de la compatibilite item/slot.
 - Tous les slots paper doll appellent `RegisterEquipmentSlotWidget`.
 - `Image_CharacterPortrait` n'est pas supprime tant que le C++ ou le Blueprint y fait reference.

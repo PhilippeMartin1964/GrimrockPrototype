@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-CLEAN01 AUTOMATION VALIDÉE ; nettoyage UMG en cours**  
+Statut : **CURRENT — UI-CLEAN02**  
 Date : **20 septembre 2026**
 
 ## Références canoniques
@@ -84,6 +84,21 @@ UGridInventoryWidget -> ResetInventoryWorkspace / états internes de panneaux
 Les boutons de fermeture appartiennent désormais aux classes spécifiques `UGridCharacterSheetWidget` et `UGridInventoryBagWidget`. L'ancien fichier `GridInventoryWidgetWorkspace.cpp` et son test de caractérisation historique sont supprimés.
 
 Référence : `docs/Design/UI_CLEAN01_REMOVE_MONOLITHIC_INVENTORY.md`.
+
+### UI-CLEAN02 — suppression du générateur paper doll
+
+Le paper doll n'a plus de chemin de construction runtime alternatif. `WBP_CharacterSheet` authorise directement les 18 `SlotWidget_*`; le C++ ne fait plus que les enregistrer et les rafraîchir.
+
+Supprimés :
+
+```text
+BuildPaperDollEquipmentPanel
+Border_EquipmentPanel
+GeneratedPaperDollSlotWidgets
+état de build paper doll runtime
+```
+
+Référence : `docs/Design/UI_CLEAN02_REMOVE_GENERATED_PAPERDOLL.md`.
 
 ### UI-NAV01 — barre inférieure persistante
 

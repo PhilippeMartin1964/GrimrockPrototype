@@ -32,7 +32,7 @@ UGridInventoryWidget expose désormais :
 HasPaperDollPresentation()
 ~~~
 
-La méthode retourne vrai uniquement si la vue possède réellement Border_EquipmentPanel ou au moins un des 18 widgets paper doll.
+Depuis UI-CLEAN02, la méthode retourne vrai uniquement si la vue possède réellement au moins un des 18 widgets `SlotWidget_*` du paper doll. L'ancien `Border_EquipmentPanel` C++ a été supprimé avec le générateur runtime.
 
 NativeConstruct devient :
 
@@ -80,3 +80,8 @@ GridInventory PaperDoll Validation OK Registered=18
 ~~~
 
 pour la feuille de personnage, sans série de 18 warnings SlotMissing provenant du sac.
+
+
+## Mise à jour UI-CLEAN02
+
+Le générateur runtime de paper doll et `Border_EquipmentPanel` ont été supprimés. La détection de rôle repose désormais uniquement sur les slots manuels réellement authorés.
