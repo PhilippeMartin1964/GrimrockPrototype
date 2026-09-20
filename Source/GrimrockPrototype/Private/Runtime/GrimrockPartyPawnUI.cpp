@@ -9,18 +9,11 @@
 #include "UI/GridCombatHudWidget.h"
 #include "UI/GridCharacterSheetWidget.h"
 #include "UI/GridInventoryBagWidget.h"
-#include "UI/GridInventoryWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/RPGCharacterCreationWidget.h"
 
 void AGrimrockPartyPawn::ToggleInventoryWidget()
 {
-	if (!IsSplitInventoryWorkspaceConfigured())
-	{
-		ToggleMenuPage(EInventoryTopTab::Inventory);
-		return;
-	}
-
 	const bool bCharacterSheetVisible =
 		CharacterSheetWidgetInstance && CharacterSheetWidgetInstance->GetVisibility() != ESlateVisibility::Collapsed &&
 		CharacterSheetWidgetInstance->GetVisibility() != ESlateVisibility::Hidden;
@@ -80,15 +73,15 @@ void AGrimrockPartyPawn::ToggleMenuPage(EInventoryTopTab TopTab)
 		return;
 	}
 
-	if (TopTab == EInventoryTopTab::Inventory && IsSplitInventoryWorkspaceConfigured())
+	if (TopTab == EInventoryTopTab::Inventory)
 	{
 		ToggleInventoryWidget();
 		return;
 	}
 
-	const bool bLegacyMenuVisible = MenuWidgetInstance && MenuWidgetInstance->GetVisibility() != ESlateVisibility::Collapsed &&
+	const bool bPageShellVisible = MenuWidgetInstance && MenuWidgetInstance->GetVisibility() != ESlateVisibility::Collapsed &&
 		MenuWidgetInstance->GetVisibility() != ESlateVisibility::Hidden;
-	if (bInventoryWidgetVisible && bLegacyMenuVisible && MenuWidgetInstance->CurrentTopTab == TopTab)
+	if (bInventoryWidgetVisible && bPageShellVisible && MenuWidgetInstance->CurrentTopTab == TopTab)
 	{
 		HideInventoryWidget();
 		return;
@@ -99,13 +92,7 @@ void AGrimrockPartyPawn::ToggleMenuPage(EInventoryTopTab TopTab)
 
 void AGrimrockPartyPawn::ShowInventoryWidget()
 {
-	if (IsSplitInventoryWorkspaceConfigured())
-	{
-		ShowInventoryWorkspace();
-		return;
-	}
-
-	ShowMenuPage(EInventoryTopTab::Inventory);
+	ShowInventoryWorkspace();
 }
 
 bool AGrimrockPartyPawn::EnsureSplitInventoryWorkspaceWidgets(APlayerController* PlayerController)
@@ -172,7 +159,7 @@ void AGrimrockPartyPawn::ShowInventoryWorkspace()
 		return;
 	}
 
-	// Inventory no longer lives inside the legacy multipage shell.
+	// Inventory owns independent viewport windows; hide any other major page shell.
 	if (MenuWidgetInstance)
 	{
 		MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
@@ -182,7 +169,6 @@ void AGrimrockPartyPawn::ShowInventoryWorkspace()
 	{
 		CharacterSheetWidgetInstance->AddToViewport(100);
 	}
-	CharacterSheetWidgetInstance->ResetInventoryWorkspace();
 	CharacterSheetWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	CharacterSheetWidgetInstance->RefreshInventory();
 
@@ -190,7 +176,6 @@ void AGrimrockPartyPawn::ShowInventoryWorkspace()
 	{
 		InventoryBagWidgetInstance->AddToViewport(101);
 	}
-	InventoryBagWidgetInstance->ResetInventoryWorkspace();
 	InventoryBagWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	InventoryBagWidgetInstance->RefreshInventory();
 
@@ -209,20 +194,7 @@ void AGrimrockPartyPawn::ShowInventoryWorkspace()
 		*GetNameSafe(CharacterSheetWidgetInstance), *GetNameSafe(InventoryBagWidgetInstance));
 }
 
-void AGrimrockPartyPawn::HideInventoryWorkspace()
-{
-	const bool bLegacyMenuVisible = MenuWidgetInstance && MenuWidgetInstance->GetVisibility() != ESlateVisibility::Collapsed &&
-		MenuWidgetInstance->GetVisibility() != ESlateVisibility::Hidden;
-	if (bLegacyMenuVisible)
-	{
-		CollapseSplitInventoryWorkspaceForLegacyPage();
-		return;
-	}
-
-	HideInventoryWidget();
-}
-
-void AGrimrockPartyPawn::CollapseSplitInventoryWorkspaceForLegacyPage()
+void AGrimrockPartyPawn::CollapseInventoryWorkspaceForMenuPage()
 {
 	if (CharacterSheetWidgetInstance)
 	{
@@ -242,7 +214,7 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 		return;
 	}
 
-	if (TopTab == EInventoryTopTab::Inventory && IsSplitInventoryWorkspaceConfigured())
+	if (TopTab == EInventoryTopTab::Inventory)
 	{
 		ShowInventoryWorkspace();
 		return;
@@ -261,7 +233,7 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 		return;
 	}
 
-	CollapseSplitInventoryWorkspaceForLegacyPage();
+	CollapseInventoryWorkspaceForMenuPage();
 
 	if (!MenuWidgetInstance)
 	{
@@ -283,14 +255,7 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 		MenuWidgetInstance->AddToViewport(100);
 	}
 	MenuWidgetInstance->SetVisibility(ESlateVisibility::Visible);
-	if (TopTab == EInventoryTopTab::Inventory)
-	{
-		MenuWidgetInstance->OpenInventoryWorkspace();
-	}
-	else
-	{
-		MenuWidgetInstance->SetActiveTopTab(TopTab);
-	}
+	MenuWidgetInstance->SetActiveTopTab(TopTab);
 	bInventoryWidgetVisible = true;
 
 	if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
@@ -389,16 +354,6 @@ void AGrimrockPartyPawn::HandleGlobalEscape()
 		InventoryBagWidgetInstance->CloseItemActionMenu(FName(TEXT("Escape")));
 		return;
 	}
-	if (MenuWidgetInstance)
-	{
-		if (UGridInventoryWidget* LegacyInventoryWidget = MenuWidgetInstance->GetInventoryWidget();
-			LegacyInventoryWidget && LegacyInventoryWidget->IsItemActionMenuOpen())
-		{
-			LegacyInventoryWidget->CloseItemActionMenu(FName(TEXT("Escape")));
-			return;
-		}
-	}
-
 	if (bInventoryWidgetVisible)
 	{
 		HideInventoryWidget();
@@ -449,8 +404,8 @@ void AGrimrockPartyPawn::HideInventoryWidget()
 
 UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget() const
 {
-	// Preserve modal/context semantics across the physical split: whichever
-	// split window owns an open item-action menu wins the accessor first.
+	// Context actions can originate from equipment on the sheet or items in
+	// the bag. Prefer the view that currently owns the modal item menu.
 	if (CharacterSheetWidgetInstance && CharacterSheetWidgetInstance->IsItemActionMenuOpen())
 	{
 		return CharacterSheetWidgetInstance;
@@ -459,11 +414,7 @@ UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget() const
 	{
 		return InventoryBagWidgetInstance;
 	}
-	if (InventoryBagWidgetInstance)
-	{
-		return InventoryBagWidgetInstance;
-	}
-	return MenuWidgetInstance ? MenuWidgetInstance->GetInventoryWidget() : nullptr;
+	return InventoryBagWidgetInstance;
 }
 
 bool AGrimrockPartyPawn::ShowCombatActionPanelWidget()

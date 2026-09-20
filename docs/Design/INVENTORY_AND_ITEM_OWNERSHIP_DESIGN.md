@@ -36,15 +36,26 @@ Un objet ne peut pas être simultanément dans le monde, dans un réceptacle, da
 
 ## Structure de l'écran Inventaire
 
-Le menu global est porté par `WBP_GrimrockMenu`. `WBP_GridInventory` est seulement le contenu de `Page_Inventory`.
+Depuis UI-CLEAN01, l'Inventaire ne passe plus par `WBP_GrimrockMenu` et il n'existe plus de `Page_Inventory` C++.
 
-`WBP_GridInventory` ne doit pas contenir le cadre global, les TopTabs, `WidgetSwitcher_MainContent`, `ScaleBox_DesignRoot`, `SizeBox_DesignSurface`, ni de logique DPI / viewport / scaling.
+La présentation est composée de deux fenêtres viewport indépendantes :
 
-L'onglet Inventaire est organisé en trois zones :
+```text
+WBP_CharacterSheet
+    -> personnages actifs
+    -> personnage sélectionné
+    -> paper doll / stats
 
-1. Colonne gauche : personnages actifs.
-2. Zone centrale : personnage sélectionné avec paper doll.
-3. Zone droite : inventaire personnel, détails ou panneaux complémentaires selon l'étape UI.
+vue 3D centrale
+    -> reste visible et interactive
+
+WBP_InventoryBag
+    -> inventaire personnel du personnage sélectionné
+    -> poids / occupation
+    -> menu contextuel
+```
+
+Les deux fenêtres lisent la même autorité `UGridPartyInventoryComponent` et le même `SelectedCharacterIndex`.
 
 ## Zone centrale : personnage sélectionné
 
@@ -242,7 +253,7 @@ Le SaveGame devra contenir l'état du donjon, l'état du groupe actif, les perso
 - applique par UI-INV2C : `Face`, `Shirt`, `Bracers`, `Earring1`, `Earring2` existent cote C++ ;
 - applique par UI-INV2C : les champs correspondants existent dans `FGridCharacterEquipmentState` ;
 - applique par UI-INV2C : les fonctions d'acces et les compatibilites `CompatibleEquipmentSlots` acceptent les nouveaux slots ;
-- a faire dans UI-INV2D : brancher les widgets paper doll manquants dans `WBP_GridInventory`.
+- appliqué dans la fenêtre `WBP_CharacterSheet` : les widgets paper doll sont branchés autour du personnage.
 
 ### Phase C — Équipement visuel dynamique
 
@@ -272,7 +283,7 @@ Déjà appliqué :
 
 Reste à faire :
 
-- implementation Blueprint UI-INV2D du paper doll dans `WBP_GridInventory.uasset` ;
-- validation runtime ;
+- poursuite du polish visuel de `WBP_CharacterSheet` et `WBP_InventoryBag` ;
+- validation runtime continue ;
 - sauvegarde complète ;
 - équipement visuel dynamique.

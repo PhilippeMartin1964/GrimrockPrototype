@@ -21,94 +21,50 @@ Un Blueprint d'inventaire ne doit pas :
 - utiliser `ExecuteInventoryContextAction(ActionType, ...)` depuis le menu visible ;
 - ajouter de logique DPI, viewport ou scaling local.
 
-## Cible actuelle UI-SPLIT01
+## Cible actuelle UI-CLEAN01
 
-L'Inventaire n'est plus construit comme une page monolithique `WBP_GridInventory` dans le shell.
-
-Créer deux widgets viewport :
+L'Inventaire est composé de deux vrais Widget Blueprints indépendants :
 
 ```text
 WBP_CharacterSheet -> parent UGridCharacterSheetWidget
 WBP_InventoryBag   -> parent UGridInventoryBagWidget
 ```
 
-Les deux classes héritent de `UGridInventoryWidget`, donc les bindings existants peuvent être déplacés sans réécrire les interactions C++.
+`WBP_CharacterSheet / WBP_InventoryBag` n'est plus une cible de migration et ne doit plus être utilisé.
 
-`WBP_GridInventory` reste un asset de migration/legacy jusqu'à validation complète des deux fenêtres, puis pourra être décommissionné.
+### WBP_CharacterSheet
 
-Référence : `docs/Design/UI_SPLIT01_INDEPENDENT_INVENTORY_WINDOWS.md`.
+Responsabilités :
 
-## WBP_GridInventory — legacy de migration
+- sélecteur de groupe `PartyMember_1..6` ;
+- personnage sélectionné ;
+- attributs / stats / résistances ;
+- paper doll et 18 slots équipement ;
+- `Button_CloseCharacterSheet`.
 
-Parent class attendu : `UGridInventoryWidget`.
+La racine viewport reste `Not Hit-Testable (Self Only)` afin que seule la fenêtre gauche capte la souris.
 
-### Sélecteur de groupe UI-CHAR01
+### WBP_InventoryBag
 
-La cible canonique comporte six instances `WBP_PartyMember` nommées exactement `PartyMember_1` à `PartyMember_6`. Elles sont enregistrées automatiquement côté C++ sur les indices `0..5`; ne pas dupliquer ce mapping dans le Graph Blueprint.
+Responsabilités :
 
-Dans `WBP_PartyMember`, `Image_Portrait` affiche le portrait du résumé autoritaire et `Border_Selected` est un overlay décoratif visible uniquement pour le personnage sélectionné.
+- une seule `InventorySlotsGridPanel` pour le personnage sélectionné ;
+- `Text_InventoryBagTitle` ;
+- `Text_InventoryBagSlotUsage` ;
+- `Text_InventoryBagWeight` ;
+- `ProgressBar_InventoryBagWeight` ;
+- presenter `WBP_ItemActionMenu` pour le clic droit ;
+- `Button_CloseInventoryBag`.
 
-Depuis UI-INV02, la racine de `WBP_PartyMember` doit rester hit-testable : elle reçoit nativement les drops d'items provenant du sac. Ne pas mettre toute la racine en `HitTestInvisible`. Les images et décorations internes peuvent l'être.
+Le menu contextuel reste une couche de présentation : les actions et leurs règles sont construites/exécutées en C++.
 
-Rôle :
+### Navigation et viewport
 
-- racine de la page inventaire ;
-- affichage de la Party ;
-- affichage du personnage sélectionné ;
-- affichage du paper doll d'equipement ;
-- affichage des inventaires et slots ;
-- réception de `OnContextActionsRequested` ;
-- création et fermeture du menu contextuel ;
-- implémentation des événements d'affichage `PresentItemExamination`, `PresentItemReading` et `OnItemActionMenuCloseRequested`.
+Les deux fenêtres sont ajoutées séparément au viewport par `AGrimrockPartyPawn`. Elles ne sont pas enfants de `WBP_GrimrockMenu`.
 
-`WBP_GridInventory` est le contenu de `Page_Inventory` dans `WBP_GrimrockMenu`. Il ne doit pas ajouter de `ScaleBox` local, de `SizeBox_DesignSurface` local, de calcul DPI ou de logique viewport. La surface 1920x1080 est portée par `UGrimrockDesignSurfaceWidget` via `WBP_GrimrockMenu`.
+La zone centrale reste visible et interactive. La barre basse persistante est fournie par `WBP_GridCombatHud`.
 
-## Structure générale recommandée
-
-Depuis UI-FOUNDATION01, `WBP_GridInventory` reste un **seul widget** mais son contenu est réparti en deux wrappers indépendants autour d'une zone centrale transparente :
-
-```text
-WBP_GridInventory
--> Overlay_InventoryWorkspace
-   -> Panel_CharacterSheet
-      -> contenu Party + personnage sélectionné + stats + paper doll existant
-   -> zone centrale transparente
-      -> aucune copie de la vue 3D ; le monde derrière le menu reste visible
-   -> Panel_InventoryBag
-      -> grille de slots + poids + futurs filtres/tri
-```
-
-Noms exacts attendus par le C++ de fondation :
-
-```text
-Panel_CharacterSheet
-Panel_InventoryBag
-Button_CloseCharacterSheet
-Button_CloseInventoryBag
-```
-
-Les quatre bindings sont optionnels pendant la transition. Le contenu actuel doit être déplacé dans ces wrappers, pas recréé avec une deuxième logique d'inventaire.
-
-La zone Party et le panneau personnage doivent continuer à suivre la structure paper doll ci-dessous.
-
-### Réservation de la barre inférieure
-
-Depuis UI-NAV01, `WBP_GridInventory` ne doit jamais occuper la bande réservée au HUD persistant. Les panneaux gauche/droite s'arrêtent au-dessus de `Panel_GlobalNavigation + Panel_Actions`. La barre inférieure n'est pas recréée dans l'inventaire et ne doit jamais être masquée par lui.
-
-### Panneau Sac UI-INV01
-
-Le panneau droit contient **une seule** grille `InventorySlotsGridPanel`. Il ne faut pas créer un sac par personnage ni empiler six grilles dans une ScrollBox.
-
-Bindings optionnels du header/footer :
-
-```text
-Text_InventoryBagTitle
-Text_InventoryBagSlotUsage
-Text_InventoryBagWeight
-ProgressBar_InventoryBagWeight
-```
-
-Changer de portrait remplace le contenu de cette même grille. Le nombre de slots est recalculé depuis la capacité du personnage sélectionné lorsque `InventorySlotCountOverride == 0`.
+Référence : `docs/Design/UI_CLEAN01_REMOVE_MONOLITHIC_INVENTORY.md`.
 
 ## Structure canonique du panneau paper doll
 
@@ -207,7 +163,7 @@ SlotWidget_OffHand    -> OffHand
 
 Les slots `Face`, `Shirt`, `Bracers`, `Earring1` et `Earring2` sont désormais également présents dans `EGridEquipmentSlot` et `FGridCharacterEquipmentState`. Ils peuvent donc être enregistrés comme les autres slots paper doll.
 
-Il n'existe plus de sous-ensemble paper doll volontairement limité côté C++ ; la différence restante est uniquement la présence effective des widgets dans `WBP_GridInventory`.
+Il n'existe plus de sous-ensemble paper doll volontairement limité côté C++ ; la différence restante est uniquement la présence effective des widgets dans `WBP_CharacterSheet`.
 
 ## Slots exclus du paper doll
 
@@ -377,7 +333,7 @@ Fermeture :
 - `Border_ClickCatcher.OnMouseButtonDown` appelle `OwnerInventoryWidget.CloseItemReadPanel("ClickOutside")` ;
 - `OnItemReadPanelCloseRequested` retire uniquement `CurrentItemReadPanel`.
 
-`RemoveFromParent` ne doit jamais viser `WBP_GridInventory`.
+`RemoveFromParent` ne doit jamais viser la fenêtre inventaire propriétaire.
 
 ## Checklist de construction
 
@@ -388,8 +344,8 @@ Fermeture :
 - Le personnage plein corps est au centre du panneau paper doll.
 - Les slots paper doll sont autour du personnage, pas dans une grille séparée.
 - `SlotWidget_Cursor` est hors paper doll.
-- Aucun `ScaleBox` local dans `WBP_GridInventory`.
-- Aucun `SizeBox_DesignSurface` local dans `WBP_GridInventory`.
+- Aucun `ScaleBox` local dans `WBP_CharacterSheet`.
+- Aucun `SizeBox_DesignSurface` local dans `WBP_CharacterSheet`.
 - Les slots fonctionnels appellent `RegisterEquipmentSlotWidget`.
 - Les slots non encore supportés par C++ restent placeholders visuels.
 - Aucun Blueprint ne décide de la compatibilité item/slot.
@@ -397,5 +353,5 @@ Fermeture :
 - `Border_MenuPanel` est positionné via `CanvasSlot`.
 - Aucun `SetPositionInViewport` sur le menu plein écran.
 - Les boutons appellent `ExecuteInventoryContextActionByIndex`.
-- `RemoveFromParent` cible uniquement le widget à fermer, jamais `WBP_GridInventory`.
+- `RemoveFromParent` cible uniquement le widget à fermer, jamais `WBP_CharacterSheet / WBP_InventoryBag`.
 - Aucun message de debug Blueprint temporaire.

@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-SPLIT03**  
+Statut : **CURRENT — UI-CLEAN01**  
 Date : **20 septembre 2026**
 
 ## Références canoniques
@@ -25,7 +25,7 @@ docs/Design/PROJECT_COMPLETION_ROADMAP.md
 
 ## Menu joueur actuel
 
-`WBP_GrimrockMenu` est un menu RPG multipage fonctionnel. Son parent natif est `UGrimrockMenuWidget`.
+`WBP_GrimrockMenu` est désormais uniquement le shell temporaire des pages non-Inventaire encore non migrées. Son parent natif est `UGrimrockMenuWidget`. L'Inventaire n'y possède plus aucun fallback C++.
 
 ### UI-FOUNDATION01 — fondation historique du workspace
 
@@ -47,7 +47,7 @@ Viewport
 
 Les deux fenêtres dérivent de la même implémentation native `UGridInventoryWidget` via deux classes sémantiques fines. Elles partagent le même composant inventaire et se resynchronisent via `OnPartyInventoryChanged`.
 
-`WBP_GrimrockMenu` reste temporairement un shell legacy pour Skills/Spellbook/Journal/Map/Recipes/Codex, mais ne porte plus l'Inventaire en mode split.
+`WBP_GrimrockMenu` reste temporairement utilisé pour Skills/Spellbook/Journal/Map/Recipes/Codex. Depuis UI-CLEAN01, il ne possède plus du tout `Page_Inventory`, même comme fallback.
 
 Référence : `docs/Design/UI_SPLIT01_INDEPENDENT_INVENTORY_WINDOWS.md`.
 
@@ -70,6 +70,21 @@ WBP_InventoryBag   -> aucun paper doll   -> aucun faux warning
 
 Référence : `docs/Design/UI_SPLIT03_ROLE_AWARE_PAPERDOLL.md`.
 
+### UI-CLEAN01 — suppression du monolithe Inventory
+
+L'architecture split devient exclusive.
+
+```text
+SUPPRIMÉ C++ :
+WBP_GrimrockMenu -> Page_Inventory
+UGridInventoryWidget -> Panel_CharacterSheet / Panel_InventoryBag
+UGridInventoryWidget -> ResetInventoryWorkspace / états internes de panneaux
+```
+
+Les boutons de fermeture appartiennent désormais aux classes spécifiques `UGridCharacterSheetWidget` et `UGridInventoryBagWidget`. L'ancien fichier `GridInventoryWidgetWorkspace.cpp` et son test de caractérisation historique sont supprimés.
+
+Référence : `docs/Design/UI_CLEAN01_REMOVE_MONOLITHIC_INVENTORY.md`.
+
 ### UI-NAV01 — barre inférieure persistante
 
 La navigation `ESC / I / K / G / M / J / H` n'est pas enfant du menu. Elle est intégrée à la surface HUD runtime persistante déjà portée par `WBP_GridCombatHud`, à côté de la hotbar MON12.
@@ -89,7 +104,7 @@ Référence : `docs/Design/UI_NAV01_PERSISTENT_BOTTOM_NAVIGATION.md`.
 
 La refonte ne crée aucun état parallèle. `UGridPartyInventoryComponent::SelectedCharacterIndex` reste l'unique autorité pour la feuille, le paper doll et le sac.
 
-`WBP_GridInventory` peut exposer six instances canoniques `PartyMember_1..6`, enregistrées nativement sur les indices `0..5`. `WBP_PartyMember` reçoit en option `Image_Portrait` et `Border_Selected` pour projeter le portrait et l'état de sélection sans logique Blueprint.
+`WBP_CharacterSheet` expose six instances canoniques `PartyMember_1..6`, enregistrées nativement sur les indices `0..5`. `WBP_PartyMember` reçoit en option `Image_Portrait` et `Border_Selected` pour projeter le portrait et l'état de sélection sans logique Blueprint.
 
 Référence : `docs/Design/UI_CHAR01_SINGLE_SELECTED_CHARACTER.md`.
 
@@ -118,7 +133,7 @@ Référence : `docs/Design/UI_CHAR02_CHARACTER_SHEET_PROJECTION.md`.
 
 ### UI-INV01 — un seul sac pour le personnage sélectionné
 
-Le panneau droit ne représente jamais simultanément les inventaires des six membres. `WBP_GridInventory` conserve une seule `InventorySlotsGridPanel`, alimentée par `SelectedCharacterIndex`.
+Le panneau droit ne représente jamais simultanément les inventaires des six membres. `WBP_InventoryBag` conserve une seule `InventorySlotsGridPanel`, alimentée par `SelectedCharacterIndex`.
 
 Le titre, l'occupation et la charge du sac sont projetés vers :
 
@@ -226,12 +241,17 @@ SourceDefinitionId = SpellId
 
 ```text
 UGrimrockMenuWidget
-    navigation / shell / ouverture du workspace Inventory
+    shell temporaire Skills / Spellbook / Journal / Map / Recipes / Codex
 
 UGridInventoryWidget
-    workspace feuille personnage + inventaire
-    visibilité indépendante des deux panneaux
-    présentation inventaire / équipement existante
+    mécanique/projection commune réellement partagée
+    sélection / slots / refresh / interactions item
+
+UGridCharacterSheetWidget
+    fenêtre gauche / party / stats / paper doll
+
+UGridInventoryBagWidget
+    fenêtre droite / grille inventaire / menu contextuel
 
 UGridCombatHudWidget
     HUD runtime persistant
@@ -318,7 +338,7 @@ UI-INV01   2/2
 UI-INV02   2/2
 ```
 
-Aucun asset WBP n'a encore été refondu dans cette séquence. La prochaine étape est la passe UMG/PIE, en commençant par `WBP_GridCombatHud`.
+`WBP_GridCombatHud`, `WBP_CharacterSheet` et `WBP_InventoryBag` ont désormais fait l'objet de la passe UMG/PIE. UI-CLEAN01 retire le chemin monolithique restant avant de poursuivre les fonctionnalités UI.
 
 
 ## Validation UMG UI-NAV01

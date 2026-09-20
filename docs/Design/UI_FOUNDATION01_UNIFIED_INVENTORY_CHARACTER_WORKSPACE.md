@@ -1,9 +1,9 @@
-> **Mise à jour UI-SPLIT01 :** conserver ce document pour les invariants de données et l'historique. Pour la structure UMG actuelle, utiliser `docs/Design/UI_SPLIT01_INDEPENDENT_INVENTORY_WINDOWS.md`.
+> **ARCHIVE — UI-CLEAN01 :** ce document décrit un jalon historique désormais supprimé du code. Ne pas implémenter les APIs/workspace décrits ci-dessous. La structure actuelle est `WBP_CharacterSheet + WBP_InventoryBag`; voir `docs/Design/UI_CLEAN01_REMOVE_MONOLITHIC_INVENTORY.md`.
 
 # UI-FOUNDATION01 — Unified Inventory / Character Workspace
 
 Date : **20 septembre 2026**  
-Statut : **FONDATION HISTORIQUE — présentation monolithique superseded par UI-SPLIT01**
+Statut : **ARCHIVE — code monolithique supprimé par UI-CLEAN01**
 
 ## Objectif
 
@@ -169,3 +169,8 @@ Ne pas déclarer UI-FOUNDATION01 validé tant que cette sortie locale et le PIE 
 ## Clarification UI-INV01
 
 Le panneau `Panel_InventoryBag` est désormais explicitement un **single-bag view** : une seule grille est affichée et son contenu suit `SelectedCharacterIndex`. Les inventaires des autres membres ne sont jamais empilés simultanément.
+
+
+## Clôture UI-CLEAN01
+
+Les APIs de workspace interne décrites dans ce document ainsi que le test `Grimrock.UI.Foundation01.WorkspaceState` ont été supprimés par UI-CLEAN01. Ce document est conservé uniquement comme historique de décision.

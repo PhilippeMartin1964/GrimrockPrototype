@@ -8,6 +8,8 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GridCombatSavePolicy.h"
 #include "Save/GrimrockPartySaveGame.h"
+#include "UI/GridCharacterSheetWidget.h"
+#include "UI/GridInventoryBagWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 
 namespace
@@ -245,9 +247,16 @@ bool AGrimrockPartyPawn::LoadCurrentGame(FText& OutError)
 	ApplyCharacterCreationInputMode(false);
 	SyncHeldVisualFromSelectedCharacterEquipment();
 
+	if (CharacterSheetWidgetInstance)
+	{
+		CharacterSheetWidgetInstance->RefreshInventory();
+	}
+	if (InventoryBagWidgetInstance)
+	{
+		InventoryBagWidgetInstance->RefreshInventory();
+	}
 	if (MenuWidgetInstance)
 	{
-		MenuWidgetInstance->RefreshInventory();
 		MenuWidgetInstance->RefreshSpellbook();
 	}
 

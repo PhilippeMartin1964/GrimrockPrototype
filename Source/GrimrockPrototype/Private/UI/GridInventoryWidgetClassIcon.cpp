@@ -10,8 +10,6 @@
 void UGridInventoryWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	BindWorkspaceButtons();
-	ApplyWorkspacePanelVisibility();
 	RegisterBoundPartyMemberWidgets();
 
 	// UI-SPLIT03: the right-side inventory bag deliberately has no paper doll.

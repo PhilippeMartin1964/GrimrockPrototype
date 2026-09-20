@@ -189,36 +189,32 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> StrafeRightAction;
 
-	/**
-	 * Legacy multipage shell. UI-SPLIT01 removes Inventory from this shell when
-	 * the two split workspace classes below are configured; Skills/Map/etc. may
-	 * keep using it during migration.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI|Legacy")
+	/** Temporary shell for non-inventory pages still awaiting independent migration. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Pages")
 	TSubclassOf<UGrimrockMenuWidget> MenuWidgetClass;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI|Legacy")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI|Pages")
 	TObjectPtr<UGrimrockMenuWidget> MenuWidgetInstance;
 
 	/** Independent left-side character/equipment window. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI|Split")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	TSubclassOf<UGridCharacterSheetWidget> CharacterSheetWidgetClass;
 
 	/** Independent right-side inventory bag window. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI|Split")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	TSubclassOf<UGridInventoryBagWidget> InventoryBagWidgetClass;
 
-	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI|Split")
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
 	TObjectPtr<UGridCharacterSheetWidget> CharacterSheetWidgetInstance;
 
-	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI|Split")
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
 	TObjectPtr<UGridInventoryBagWidget> InventoryBagWidgetInstance;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI|Split")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
 	bool bInventoryWorkspaceVisible = false;
 
-	/** Historical flag kept during migration: true while any major inventory/menu UI owns mouse input. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
+	/** True while an inventory workspace or another major gameplay page owns UI input. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 	bool bInventoryWidgetVisible = false;
 
 	/** Canonical MON12.7 combat HUD. */
@@ -372,24 +368,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	void ShowInventoryWidget();
 
-	/** UI-SPLIT01: opens/restores the two independent viewport windows. */
-	UFUNCTION(BlueprintCallable, Category = "Inventory|UI|Split")
+	/** Opens/restores the two canonical independent inventory viewport windows. */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	void ShowInventoryWorkspace();
 
-	/** UI-SPLIT01: closes only the split inventory workspace. */
-	UFUNCTION(BlueprintCallable, Category = "Inventory|UI|Split")
-	void HideInventoryWorkspace();
-
-	UFUNCTION(BlueprintPure, Category = "Inventory|UI|Split")
+	UFUNCTION(BlueprintPure, Category = "Inventory|UI")
 	bool IsInventoryWorkspaceVisible() const;
 
-	UFUNCTION(BlueprintPure, Category = "Inventory|UI|Split")
+	UFUNCTION(BlueprintPure, Category = "Inventory|UI")
 	bool IsSplitInventoryWorkspaceConfigured() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	void HideInventoryWidget();
 
-	/** Returns the split bag when configured, otherwise the legacy embedded inventory page. */
+	/** Returns the active canonical inventory view used by world/context interactions. */
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	UGridInventoryWidget* GetInventoryWidget() const;
 
@@ -644,7 +636,7 @@ private:
 	void ToggleMenuPage(EInventoryTopTab TopTab);
 	void ShowMenuPage(EInventoryTopTab TopTab);
 	bool EnsureSplitInventoryWorkspaceWidgets(APlayerController* PlayerController);
-	void CollapseSplitInventoryWorkspaceForLegacyPage();
+	void CollapseInventoryWorkspaceForMenuPage();
 	void ApplyMajorUiInputMode(bool bOpen);
 	void RefreshMajorUiVisibilityAfterSplitClose();
 

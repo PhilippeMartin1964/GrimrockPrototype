@@ -4,15 +4,20 @@
 #include "UI/GridInventoryWidget.h"
 #include "GridCharacterSheetWidget.generated.h"
 
+class UButton;
+
 /**
- * UI-SPLIT01 semantic left-side inventory window.
+ * Independent left-side character/equipment window.
  *
- * It deliberately reuses UGridInventoryWidget's optional projections and
- * interaction routing so no second character/inventory authority is created.
- * WBP_CharacterSheet should contain only party/character/paper-doll bindings.
+ * Gameplay authority remains UGridPartyInventoryComponent through the shared
+ * UGridInventoryWidget projection/interaction layer.
  */
 UCLASS(BlueprintType, Blueprintable)
 class GRIMROCKPROTOTYPE_API UGridCharacterSheetWidget : public UGridInventoryWidget
 {
 	GENERATED_BODY()
+
+public:
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|UI")
+	TObjectPtr<UButton> Button_CloseCharacterSheet;
 };

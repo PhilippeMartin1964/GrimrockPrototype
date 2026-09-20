@@ -1,20 +1,22 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Styling/SlateTypes.h"
 #include "UI/GrimrockDesignSurfaceWidget.h"
 #include "UI/GridInventoryUiTypes.h"
 #include "GrimrockMenuWidget.generated.h"
 
 class AGrimrockPartyPawn;
-class UButton;
-class UGridInventoryWidget;
 class UGridSkillsWidget;
 class UGridSpellbookWidget;
-class UTexture2D;
 class UWidget;
 class UWidgetSwitcher;
 
+/**
+ * Temporary shell for the remaining non-inventory pages.
+ *
+ * UI-CLEAN01 removes every inventory-page/top-button dependency. Inventory is
+ * exclusively WBP_CharacterSheet + WBP_InventoryBag in the viewport.
+ */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGrimrockMenuWidget : public UGrimrockDesignSurfaceWidget
 {
@@ -24,27 +26,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	void InitializeMenuWidget(AGrimrockPartyPawn* InPartyPawn);
 
-	/** Opens the canonical inventory workspace and restores both side panels. */
-	UFUNCTION(BlueprintCallable, Category = "Menu")
-	void OpenInventoryWorkspace();
-
-	UFUNCTION(BlueprintCallable, Category = "Menu")
-	void RefreshInventory();
-
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	void RefreshSkills();
 
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	void RefreshSpellbook();
 
-	UFUNCTION(BlueprintCallable, Category = "Menu|Top Tabs")
+	UFUNCTION(BlueprintCallable, Category = "Menu|Pages")
 	void SetActiveTopTab(EInventoryTopTab NewTab);
-
-	UFUNCTION(BlueprintCallable, Category = "Menu|Top Tabs")
-	void UpdateTopTabButtonStyles();
-
-	UFUNCTION(BlueprintCallable, Category = "Menu")
-	UGridInventoryWidget* GetInventoryWidget() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	UGridSkillsWidget* GetSkillsWidget() const;
@@ -55,67 +44,18 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Menu")
 	TObjectPtr<AGrimrockPartyPawn> OwningPartyPawn;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Menu|Top Tabs")
-	EInventoryTopTab CurrentTopTab = EInventoryTopTab::Inventory;
+	UPROPERTY(BlueprintReadOnly, Category = "Menu|Pages")
+	EInventoryTopTab CurrentTopTab = EInventoryTopTab::Skills;
 
 protected:
 	virtual void NativeConstruct() override;
 
 private:
 	UWidget* GetTopTabPage(EInventoryTopTab Tab) const;
-	void BindTopTabButtons();
-	void ApplyTopTabButtonStyle(UButton* Button, EInventoryTopTab Tab);
-
-	UFUNCTION()
-	void HandleInventoryTopTabClicked();
-
-	UFUNCTION()
-	void HandleSkillsTopTabClicked();
-
-	UFUNCTION()
-	void HandleJournalTopTabClicked();
-
-	UFUNCTION()
-	void HandleMapTopTabClicked();
-
-	UFUNCTION()
-	void HandleRecipesTopTabClicked();
-
-	UFUNCTION()
-	void HandleCodexTopTabClicked();
-
-	UFUNCTION()
-	void HandleSpellbookTopTabClicked();
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidgetSwitcher> WidgetSwitcher_MainContent;
 
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> Button_TabInventory;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> Button_TabSkills;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> Button_TabJournal;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> Button_TabMap;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> Button_TabRecipes;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> Button_TabCodex;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> Button_TabSpellbook;
-
-	/** UI-SPLIT01 legacy fallback only; Inventory may be removed from the shell WBP. */
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UGridInventoryWidget> Page_Inventory;
-
-	/** Kept generic until WBP_GridSkills is reparented after C++ validation. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> Page_Skills;
 
@@ -133,13 +73,4 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UWidget> Page_Spellbook;
-
-	UPROPERTY(Transient)
-	TMap<TObjectPtr<UButton>, FButtonStyle> DefaultTopTabButtonStyles;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTexture2D> SelectedTopTabTexture;
-
-	UPROPERTY(Transient)
-	bool bTopTabsInitialized = false;
 };

@@ -21,10 +21,12 @@ Main Menu
 
 ## Surfaces fonctionnelles
 
-UI-FOUNDATION01 formalise le workspace Inventaire / Personnage sans créer de nouvelle autorité : `WBP_GridInventory` reste la page unique qui réunit le panneau personnage à gauche et le sac du personnage sélectionné à droite. La zone centrale est destinée à laisser la vue 3D visible.
+Depuis UI-CLEAN01, l'Inventaire / Personnage n'est plus une page unique. `WBP_CharacterSheet` et `WBP_InventoryBag` sont deux fenêtres viewport indépendantes qui partagent la même autorité `UGridPartyInventoryComponent`; la vue 3D centrale reste visible et interactive.
 
 - `GrimrockMainMenuWidget`, LoadGame menu/slots ;
-- `GridInventoryWidget` et slots/paper doll ;
+- `GridInventoryWidget` comme mécanique/projection commune ;
+- `GridCharacterSheetWidget` pour la feuille/paper doll ;
+- `GridInventoryBagWidget` pour le sac ;
 - `GridPartyMemberWidget` ;
 - character creation wizard ;
 - recrutement Story Companion et Custom Recruit MON20 ;
@@ -66,7 +68,7 @@ MON20 a fermé le recrutement : Story Companion et Custom Recruit réutilisent l
 
 ## HUD runtime / navigation persistante
 
-UI-NAV01 fixe une barre inférieure permanente, extérieure à `WBP_GrimrockMenu` et `WBP_GridInventory`. Elle est portée par le HUD runtime existant et reste visible lorsque les panneaux sont ouverts ou fermés.
+UI-NAV01 fixe une barre inférieure permanente, extérieure à `WBP_GrimrockMenu`, `WBP_CharacterSheet` et `WBP_InventoryBag`. Elle est portée par le HUD runtime existant et reste visible lorsque les panneaux sont ouverts ou fermés.
 
 ```text
 ESC I K G M J H  ||  hotbar 1..0
@@ -86,7 +88,7 @@ Spellbook et SkillRanks sont persistés dans le SaveGame courant **v9**.
 
 ## Sélection de personnage / held visual
 
-UI-FOUNDATION01 réutilise strictement `UGridPartyInventoryComponent::SelectedCharacterIndex` pour la feuille, l'équipement et le sac. Il n'existe pas de sélection UI parallèle.
+Le workspace split réutilise strictement `UGridPartyInventoryComponent::SelectedCharacterIndex` pour la feuille, l'équipement et le sac. Il n'existe pas de sélection UI parallèle.
 
 `TD-PARTY-001` est **RÉSOLU**. `UGridPartyInventoryComponent` reste l’autorité de `SelectedCharacterIndex`. Le changement de sélection émet la notification autoritaire et `AGrimrockPartyPawn` resynchronise le held visual.
 
@@ -102,7 +104,7 @@ docs/Architecture/TECHNICAL_DEBT_REGISTER.md
 
 Points UI encore actifs ou surveillés :
 
-- `TD-UI-001` : nommage historique `Inventory` du shell global, faible priorité ;
+- `TD-UI-001` : nommage historique `EInventoryTopTab` / certaines APIs UI, faible priorité ;
 - `TD-LOG-001` : taxonomie de logs encore partiellement `LogTemp` ;
 - divergence visuelle potentielle entre surfaces UMG, à traiter par conventions/composants partagés lorsqu’une douleur concrète apparaît.
 

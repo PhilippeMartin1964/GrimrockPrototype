@@ -4,15 +4,20 @@
 #include "UI/GridInventoryWidget.h"
 #include "GridInventoryBagWidget.generated.h"
 
+class UButton;
+
 /**
- * UI-SPLIT01 semantic right-side inventory window.
+ * Independent right-side inventory bag window.
  *
- * It deliberately reuses UGridInventoryWidget's optional projections and
- * interaction routing so drag/drop, cursor state and item actions remain on
- * the existing authoritative inventory implementation.
+ * Gameplay authority remains UGridPartyInventoryComponent through the shared
+ * UGridInventoryWidget projection/interaction layer.
  */
 UCLASS(BlueprintType, Blueprintable)
 class GRIMROCKPROTOTYPE_API UGridInventoryBagWidget : public UGridInventoryWidget
 {
 	GENERATED_BODY()
+
+public:
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|UI")
+	TObjectPtr<UButton> Button_CloseInventoryBag;
 };

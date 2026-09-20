@@ -11,7 +11,6 @@
 
 class AGrimrockPartyPawn;
 class UBorder;
-class UButton;
 class UGridPartyInventoryComponent;
 class UGridInventorySlotWidget;
 class UGridPartyMemberWidget;
@@ -23,7 +22,6 @@ class URPGClassVisualAsset;
 class UTextBlock;
 class UUniformGridPanel;
 class UVerticalBox;
-class UWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGridInventoryContextActionsRequested, EGridInventoryUiSlotType, SlotType, int32, SlotIndex);
 
@@ -38,44 +36,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
-
-	/**
-	 * UI-FOUNDATION01 keeps the existing WBP_GridInventory as one workspace.
-	 * These optional wrappers make the character sheet and bag independently
-	 * closable without duplicating inventory gameplay state.
-	 */
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Workspace")
-	TObjectPtr<UWidget> Panel_CharacterSheet;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Workspace")
-	TObjectPtr<UWidget> Panel_InventoryBag;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Workspace")
-	TObjectPtr<UButton> Button_CloseCharacterSheet;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Workspace")
-	TObjectPtr<UButton> Button_CloseInventoryBag;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Workspace")
-	bool bCharacterSheetPanelVisible = true;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Workspace")
-	bool bInventoryBagPanelVisible = true;
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Workspace")
-	void ResetInventoryWorkspace();
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Workspace")
-	void SetCharacterSheetPanelVisible(bool bVisible);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Workspace")
-	void SetInventoryBagPanelVisible(bool bVisible);
-
-	UFUNCTION(BlueprintPure, Category = "Inventory|Workspace")
-	bool IsCharacterSheetPanelVisible() const { return bCharacterSheetPanelVisible; }
-
-	UFUNCTION(BlueprintPure, Category = "Inventory|Workspace")
-	bool IsInventoryBagPanelVisible() const { return bInventoryBagPanelVisible; }
 
 	/**
 	 * UI-CHAR01 canonical six portrait selectors. Optional during UMG migration;
@@ -500,20 +460,12 @@ protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 private:
-	void BindWorkspaceButtons();
-
 	UFUNCTION()
 	void HandlePartyInventoryChanged(int32 CharacterIndex);
-	void ApplyWorkspacePanelVisibility();
+
 	void RegisterBoundPartyMemberWidgets();
 	void RefreshSelectedInventoryBagPresentation();
 	void EnsureSelectedInventorySlotLayout();
-
-	UFUNCTION()
-	void HandleCloseCharacterSheetClicked();
-
-	UFUNCTION()
-	void HandleCloseInventoryBagClicked();
 
 	const URPGClassVisualAsset* FindClassVisualForClass(FName ClassId) const;
 	void RefreshSelectedCharacterClassIcon();

@@ -7,6 +7,8 @@
 #include "Engine/World.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridCombatHudWidget.h"
+#include "UI/GridCharacterSheetWidget.h"
+#include "UI/GridInventoryBagWidget.h"
 #include "UI/GridInventoryUiTypes.h"
 #include "UI/GrimrockMenuWidget.h"
 
@@ -112,9 +114,22 @@ bool FGridUINavigation01PageToggleTest::RunTest(const FString& Parameters)
 		Party->bInventoryWidgetVisible = true;
 	};
 
-	PrepareVisibleTab(EInventoryTopTab::Inventory);
+	UGridCharacterSheetWidget* Sheet = NewObject<UGridCharacterSheetWidget>(Party);
+	UGridInventoryBagWidget* Bag = NewObject<UGridInventoryBagWidget>(Party);
+	TestNotNull(TEXT("Split character sheet state object exists"), Sheet);
+	TestNotNull(TEXT("Split inventory bag state object exists"), Bag);
+	if (!Sheet || !Bag)
+	{
+		return false;
+	}
+	Sheet->SetVisibility(ESlateVisibility::Visible);
+	Bag->SetVisibility(ESlateVisibility::Visible);
+	Party->CharacterSheetWidgetInstance = Sheet;
+	Party->InventoryBagWidgetInstance = Bag;
+	Party->bInventoryWorkspaceVisible = true;
+	Party->bInventoryWidgetVisible = true;
 	Party->ToggleInventoryWidget();
-	TestFalse(TEXT("I closes Inventory when Inventory is already active"), Party->bInventoryWidgetVisible);
+	TestFalse(TEXT("I closes the canonical split inventory workspace when both windows are visible"), Party->bInventoryWidgetVisible);
 
 	PrepareVisibleTab(EInventoryTopTab::Skills);
 	Party->ToggleSkillsWidget();
@@ -136,9 +151,12 @@ bool FGridUINavigation01PageToggleTest::RunTest(const FString& Parameters)
 	Party->ToggleHelpWidget();
 	TestFalse(TEXT("H closes Help/Codex when already active"), Party->bInventoryWidgetVisible);
 
-	PrepareVisibleTab(EInventoryTopTab::Inventory);
+	Sheet->SetVisibility(ESlateVisibility::Visible);
+	Bag->SetVisibility(ESlateVisibility::Visible);
+	Party->bInventoryWorkspaceVisible = true;
+	Party->bInventoryWidgetVisible = true;
 	Party->HandleGlobalEscape();
-	TestFalse(TEXT("Global ESC closes the visible Grimrock menu before requesting the in-game main menu"), Party->bInventoryWidgetVisible);
+	TestFalse(TEXT("Global ESC closes the canonical split inventory workspace before requesting the in-game main menu"), Party->bInventoryWidgetVisible);
 
 	return true;
 }
