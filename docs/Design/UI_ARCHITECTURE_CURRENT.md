@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-INV01**  
+Statut : **CURRENT — UI-INV02**  
 Date : **20 septembre 2026**
 
 ## Références canoniques
@@ -103,6 +103,25 @@ ProgressBar_InventoryBagWeight
 `RefreshInventory()` resynchronise aussi le layout de slots afin qu'une même grille puisse suivre des capacités différentes selon le personnage.
 
 Référence : `docs/Design/UI_INV01_SELECTED_CHARACTER_SINGLE_BAG.md`.
+
+### UI-INV02 — transfert par drag vers un portrait
+
+Le drag d'un slot d'inventaire capture désormais le personnage source en plus du slot et de l'identité runtime. Les portraits `UGridPartyMemberWidget` sont des drop targets natifs.
+
+Le routage reste :
+
+```text
+slot inventaire
+-> UGridInventoryDragDropOperation
+-> portrait
+-> UGridInventoryWidget
+-> UGridItemTransferService
+-> UGridPartyInventoryComponent
+```
+
+La sélection UI ne change pas à la suite d'un transfert. Un Ctrl-drag transfère une quantité séparée avec une nouvelle identité runtime.
+
+Référence : `docs/Design/UI_INV02_PARTY_DRAG_TRANSFER.md`.
 
 ```text
 Inventaire      fonctionnel

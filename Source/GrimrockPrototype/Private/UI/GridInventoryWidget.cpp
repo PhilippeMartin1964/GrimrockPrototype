@@ -600,6 +600,7 @@ void UGridInventoryWidget::RegisterPartyMemberWidget(UGridPartyMemberWidget* Mem
 	}
 
 	MemberWidget->InitializePartyMember(CharacterIndex);
+	MemberWidget->SetOwnerInventoryWidget(this);
 	MemberWidget->OnPartyMemberClicked.RemoveDynamic(this, &UGridInventoryWidget::HandleRegisteredPartyMemberClicked);
 	MemberWidget->OnPartyMemberClicked.AddDynamic(this, &UGridInventoryWidget::HandleRegisteredPartyMemberClicked);
 	RegisteredPartyMemberWidgets.AddUnique(MemberWidget);
@@ -631,6 +632,77 @@ void UGridInventoryWidget::RefreshRegisteredPartyMemberWidgets()
 void UGridInventoryWidget::HandleRegisteredPartyMemberClicked(int32 CharacterIndex)
 {
 	SelectCharacter(CharacterIndex);
+}
+
+bool UGridInventoryWidget::HandlePartyMemberItemDrop(UGridInventoryDragDropOperation* Operation, int32 TargetCharacterIndex)
+{
+	if (!InventoryComponent || !Operation || !Operation->bHasItem || Operation->SourceSlotType != EGridInventoryUiSlotType::Inventory)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory PartyDrop Failed Reason=InvalidOperation"));
+		return false;
+	}
+
+	const int32 SourceCharacterIndex = Operation->SourceCharacterIndex;
+	if (!InventoryComponent->IsValidCharacterIndex(SourceCharacterIndex) || !InventoryComponent->IsValidCharacterIndex(TargetCharacterIndex) ||
+		SourceCharacterIndex == TargetCharacterIndex)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory PartyDrop Failed Reason=InvalidCharacters Source=%d Target=%d"), SourceCharacterIndex, TargetCharacterIndex);
+		return false;
+	}
+
+	const FGridPartyInventoryState& PartyState = InventoryComponent->PartyInventoryState;
+	if (!PartyState.ActiveCharacters.IsValidIndex(SourceCharacterIndex))
+	{
+		return false;
+	}
+
+	const FGridCharacterInventoryState& SourceCharacter = PartyState.ActiveCharacters[SourceCharacterIndex];
+	if (!SourceCharacter.InventorySlots.IsValidIndex(Operation->SourceSlotIndex) || SourceCharacter.InventorySlots[Operation->SourceSlotIndex].IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory PartyDrop Failed Reason=SourceSlotChanged Source=%d Slot=%d"),
+			SourceCharacterIndex, Operation->SourceSlotIndex);
+		return false;
+	}
+
+	const FGridItemInstance& CurrentSourceItem = SourceCharacter.InventorySlots[Operation->SourceSlotIndex].Item;
+	if (CurrentSourceItem.RuntimeObjectId != Operation->SourceRuntimeObjectId || CurrentSourceItem.ItemDefinitionId != Operation->SourceItemDefinitionId)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory PartyDrop Failed Reason=SourceIdentityChanged Source=%d Slot=%d"), SourceCharacterIndex,
+			Operation->SourceSlotIndex);
+		RefreshInventory();
+		return false;
+	}
+
+	const int32 RequestedQuantity = Operation->bSplitStack ? FMath::Max(1, Operation->RequestedQuantity) : 0;
+	const FGridItemTransferResult TransferResult = UGridItemTransferService::TransferInventorySlotToCharacter(
+		InventoryComponent, SourceCharacterIndex, Operation->SourceSlotIndex, TargetCharacterIndex, RequestedQuantity);
+
+	if (TransferResult.bSuccess)
+	{
+		UE_LOG(LogTemp, Log, TEXT("GridInventory PartyDrop Result=true Source=%d Target=%d Slot=%d Item=%s Quantity=%d Message=%s"),
+			SourceCharacterIndex, TargetCharacterIndex, Operation->SourceSlotIndex, *Operation->SourceItemDefinitionId.ToString(), RequestedQuantity,
+			*TransferResult.Message.ToString());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory PartyDrop Result=false Source=%d Target=%d Slot=%d Item=%s Quantity=%d Message=%s"),
+			SourceCharacterIndex, TargetCharacterIndex, Operation->SourceSlotIndex, *Operation->SourceItemDefinitionId.ToString(), RequestedQuantity,
+			*TransferResult.Message.ToString());
+	}
+
+	if (TransferResult.bSuccess)
+	{
+		FString OwnershipError;
+		if (!InventoryComponent->ValidateInventoryOwnership(OwnershipError))
+		{
+			UE_LOG(LogTemp, Error, TEXT("GridInventory PartyDrop Ownership Failed Error=%s"), *OwnershipError);
+		}
+	}
+
+	// Keep the current selection unchanged: dropping on a portrait transfers the
+	// item, it does not navigate to the target character.
+	RefreshInventory();
+	return TransferResult.bSuccess;
 }
 
 void UGridInventoryWidget::RefreshSelectedCharacterDetails()

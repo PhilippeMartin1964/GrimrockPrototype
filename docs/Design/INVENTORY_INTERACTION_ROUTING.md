@@ -236,3 +236,20 @@ La fermeture est idempotente : si le menu est déjà fermé, l'appel ne doit pas
 - `GridItemTransfer Success/Failed`
 
 Le flux nominal de fermeture du menu ne doit pas produire de warning `RemoveFromParent`.
+
+
+## UI-INV02 — transfert entre membres par portrait
+
+Le drag d'inventaire transporte désormais `SourceCharacterIndex` en plus du slot et du `RuntimeObjectId`.
+
+```text
+UGridInventorySlotWidget::NativeOnDragDetected
+    -> UGridInventoryDragDropOperation
+    -> UGridPartyMemberWidget::NativeOnDrop
+    -> UGridInventoryWidget::HandlePartyMemberItemDrop
+    -> UGridItemTransferService::TransferInventorySlotToCharacter
+```
+
+Le service effectue le préflight de capacité, la mutation source, l'insertion destination et le rollback source en cas d'échec.
+
+Un drag obsolète est rejeté si le `RuntimeObjectId` du slot source a changé. Un split crée une nouvelle identité pour la quantité transférée. La sélection de personnage n'est pas modifiée par le drop.

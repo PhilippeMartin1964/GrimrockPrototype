@@ -401,6 +401,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	void HandleRegisteredPartyMemberClicked(int32 CharacterIndex);
 
+	/** UI-INV02: drop one inventory drag operation on another party portrait. */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Party|Transfer")
+	bool HandlePartyMemberItemDrop(UGridInventoryDragDropOperation* Operation, int32 TargetCharacterIndex);
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slots")
 	void RegisterInventorySlotWidget(UGridInventorySlotWidget* SlotWidget, EGridInventoryUiSlotType SlotType, int32 SlotIndex);
 

@@ -31,6 +31,8 @@ La cible canonique comporte six instances `WBP_PartyMember` nommées exactement 
 
 Dans `WBP_PartyMember`, `Image_Portrait` affiche le portrait du résumé autoritaire et `Border_Selected` est un overlay décoratif visible uniquement pour le personnage sélectionné.
 
+Depuis UI-INV02, la racine de `WBP_PartyMember` doit rester hit-testable : elle reçoit nativement les drops d'items provenant du sac. Ne pas mettre toute la racine en `HitTestInvisible`. Les images et décorations internes peuvent l'être.
+
 Rôle :
 
 - racine de la page inventaire ;
@@ -325,7 +327,10 @@ Interactions :
 
 - clic gauche : relai vers `HandleRegisteredSlotClicked` ou `HandleEquipmentSlotClicked` ;
 - clic droit : `HandleItemSlotRightClicked(SlotType, InventorySlotIndex)` ;
-- drop : `HandleSlotDrop(SourceSlotType, SourceSlotIndex, SlotType, InventorySlotIndex, ...)`.
+- drop slot-à-slot : `HandleSlotDrop(SourceSlotType, SourceSlotIndex, SlotType, InventorySlotIndex, ...)` ;
+- drop d'un slot d'inventaire sur un portrait : routage natif `HandlePartyMemberItemDrop`.
+
+Le transfert entre personnages ne doit pas être reconstruit dans le Graph Blueprint.
 
 Les Blueprints ne décident jamais de la compatibilité item/slot.
 

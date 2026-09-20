@@ -6,6 +6,8 @@
 #include "GridPartyMemberWidget.generated.h"
 
 class UBorder;
+class UDragDropOperation;
+class UGridInventoryWidget;
 class UImage;
 class URPGClassVisualAsset;
 class UTextBlock;
@@ -29,6 +31,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Inventory|Party")
 	FOnGridPartyMemberClicked OnPartyMemberClicked;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Party")
+	TObjectPtr<UGridInventoryWidget> OwningInventoryWidget;
 
 	/** Full portrait used by the party selector. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
@@ -77,8 +82,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	void HandleClicked();
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
+	void SetOwnerInventoryWidget(UGridInventoryWidget* InOwnerInventoryWidget);
+
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory|Party")
 	void RefreshMemberVisual();
+
+protected:
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
 private:
 	const URPGClassVisualAsset* FindClassVisualForCachedClass() const;

@@ -60,4 +60,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid|Item Transfer")
 	static FGridItemTransferResult TransferReceptacleItemToInventory(
 		AGridReceptacleActor* Receptacle, int32 ContainedItemIndex, UGridPartyInventoryComponent* Inventory, int32 CharacterIndex);
+
+	/**
+	 * UI-INV02 atomic party-to-party transfer.
+	 * RequestedQuantity <= 0 means the whole source stack.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Grid|Item Transfer")
+	static FGridItemTransferResult TransferInventorySlotToCharacter(
+		UGridPartyInventoryComponent* Inventory, int32 SourceCharacterIndex, int32 SourceInventorySlotIndex, int32 TargetCharacterIndex,
+		int32 RequestedQuantity);
 };

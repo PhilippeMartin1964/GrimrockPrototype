@@ -279,3 +279,69 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 	Receptacle->ExecuteRemovalLinks();
 	return LogTransferSuccess(Operation, Candidate, TEXT("Receptacle item transferred to inventory."));
 }
+
+FGridItemTransferResult UGridItemTransferService::TransferInventorySlotToCharacter(
+	UGridPartyInventoryComponent* Inventory, int32 SourceCharacterIndex, int32 SourceInventorySlotIndex, int32 TargetCharacterIndex, int32 RequestedQuantity)
+{
+	static const TCHAR* Operation = TEXT("InventorySlotToCharacter");
+	if (!Inventory || !Inventory->IsValidCharacterIndex(SourceCharacterIndex))
+	{
+		return LogTransferFailure(Operation, EGridItemTransferResult::InvalidSource, TEXT("Inventory or source character is invalid."));
+	}
+	if (!Inventory->IsValidCharacterIndex(TargetCharacterIndex) || TargetCharacterIndex == SourceCharacterIndex)
+	{
+		return LogTransferFailure(Operation, EGridItemTransferResult::InvalidDestination, TEXT("Target character is invalid or identical to source."));
+	}
+
+	FGridCharacterInventoryState& SourceCharacter = Inventory->PartyInventoryState.ActiveCharacters[SourceCharacterIndex];
+	if (!SourceCharacter.InventorySlots.IsValidIndex(SourceInventorySlotIndex) || SourceCharacter.InventorySlots[SourceInventorySlotIndex].IsEmpty())
+	{
+		return LogTransferFailure(Operation, EGridItemTransferResult::InvalidSource, TEXT("Source inventory slot is invalid or empty."));
+	}
+
+	const FGridInventorySlot SourceSnapshot = SourceCharacter.InventorySlots[SourceInventorySlotIndex];
+	const int32 SourceQuantity = FMath::Max(1, SourceSnapshot.Item.Quantity);
+	const int32 QuantityToTransfer = RequestedQuantity <= 0 ? SourceQuantity : RequestedQuantity;
+	if (!SourceSnapshot.Item.IsValid() || QuantityToTransfer <= 0 || QuantityToTransfer > SourceQuantity)
+	{
+		return LogTransferFailure(Operation, EGridItemTransferResult::InvalidItem, TEXT("Requested transfer quantity is invalid."), &SourceSnapshot.Item);
+	}
+
+	FGridItemInstance Candidate = SourceSnapshot.Item;
+	Candidate.Quantity = QuantityToTransfer;
+	if (QuantityToTransfer < SourceQuantity)
+	{
+		// A split creates a distinct runtime item; the source remainder keeps the
+		// original identity so no duplicate RuntimeObjectId can exist.
+		Candidate.RuntimeObjectId = FGuid::NewGuid();
+	}
+
+	if (!Inventory->CanAddItemToCharacterInventory(TargetCharacterIndex, Candidate))
+	{
+		return LogTransferFailure(Operation, EGridItemTransferResult::InventoryFull, TEXT("Target character inventory has no capacity for the item."), &Candidate);
+	}
+
+	if (QuantityToTransfer == SourceQuantity)
+	{
+		SourceCharacter.InventorySlots[SourceInventorySlotIndex] = FGridInventorySlot();
+	}
+	else
+	{
+		SourceCharacter.InventorySlots[SourceInventorySlotIndex].Item.Quantity = SourceQuantity - QuantityToTransfer;
+	}
+
+	// AddItemToCharacterInventory performs destination stacking, ownership
+	// rewriting and its own destination notification. The source has already
+	// reached its final state before that notification is broadcast.
+	if (!Inventory->AddItemToCharacterInventory(TargetCharacterIndex, Candidate))
+	{
+		SourceCharacter.InventorySlots[SourceInventorySlotIndex] = SourceSnapshot;
+		return LogTransferFailure(Operation, EGridItemTransferResult::DestinationInsertFailed,
+			TEXT("Target insertion failed; source inventory slot was restored."), &Candidate);
+	}
+
+	Inventory->NotifyPartyInventoryChanged(SourceCharacterIndex);
+	return LogTransferSuccess(Operation, Candidate,
+		FString::Printf(TEXT("Transferred quantity %d from character %d to character %d."), QuantityToTransfer, SourceCharacterIndex, TargetCharacterIndex));
+}
+

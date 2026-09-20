@@ -18,6 +18,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Drag")
 	int32 SourceSlotIndex = INDEX_NONE;
 
+	/** Character that owned the source slot when the drag started. */
+	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Drag")
+	int32 SourceCharacterIndex = INDEX_NONE;
+
 	UPROPERTY(BlueprintReadWrite, Category = "Inventory|Drag")
 	FName SourceItemDefinitionId = NAME_None;
 

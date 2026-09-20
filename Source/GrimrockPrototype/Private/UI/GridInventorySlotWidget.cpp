@@ -273,6 +273,7 @@ UGridInventoryDragDropOperation* UGridInventorySlotWidget::CreateDragDropOperati
 	}
 
 	Operation->InitializeFromSlot(SlotType, InventorySlotIndex, CachedItem);
+	Operation->SourceCharacterIndex = OwningInventoryWidget ? OwningInventoryWidget->GetSelectedCharacterIndex() : INDEX_NONE;
 	Operation->DefaultDragVisual = nullptr;
 	Operation->Pivot = EDragPivot::MouseDown;
 	return Operation;

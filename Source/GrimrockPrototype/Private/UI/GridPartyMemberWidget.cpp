@@ -5,6 +5,8 @@
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
 #include "RPG/RPGClassVisualAsset.h"
+#include "UI/GridInventoryDragDropOperation.h"
+#include "UI/GridInventoryWidget.h"
 
 void UGridPartyMemberWidget::InitializePartyMember(int32 InCharacterIndex)
 {
@@ -61,6 +63,23 @@ bool UGridPartyMemberWidget::IsSelected() const
 void UGridPartyMemberWidget::HandleClicked()
 {
 	OnPartyMemberClicked.Broadcast(CharacterIndex);
+}
+
+void UGridPartyMemberWidget::SetOwnerInventoryWidget(UGridInventoryWidget* InOwnerInventoryWidget)
+{
+	OwningInventoryWidget = InOwnerInventoryWidget;
+}
+
+bool UGridPartyMemberWidget::NativeOnDrop(
+	const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	UGridInventoryDragDropOperation* Operation = Cast<UGridInventoryDragDropOperation>(InOperation);
+	if (!Operation || !OwningInventoryWidget)
+	{
+		return Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
+	}
+
+	return OwningInventoryWidget->HandlePartyMemberItemDrop(Operation, CharacterIndex);
 }
 
 void UGridPartyMemberWidget::RefreshMemberVisual_Implementation()

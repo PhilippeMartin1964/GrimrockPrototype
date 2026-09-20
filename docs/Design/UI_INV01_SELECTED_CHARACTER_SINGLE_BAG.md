@@ -1,7 +1,7 @@
 # UI-INV01 — Selected Character Single Bag
 
 Date : **20 septembre 2026**  
-Statut : **IMPLEMENTATION C++ + CONTRAT UMG ; validation locale UE5.5.4 à fournir**
+Statut : **AUTOMATION VALIDÉE — 20 septembre 2026 ; passe UMG/PIE visuelle encore à réaliser**
 
 ## Objectif
 
@@ -189,3 +189,19 @@ Après la passe UMG, contrôler en PIE :
 7. vérifier que le Cursor item n'est pas perdu ;
 8. vérifier que la barre UI-NAV01 reste visible ;
 9. aucun `BindWidget` critique.
+
+
+## Validation reçue
+
+Validation locale du 20 septembre 2026 :
+
+```text
+Filter                 : Grimrock.UI.Inventory01
+Succeeded              : 2
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Le contrat C++ UI-INV01 est validé. La passe UMG/PIE reste nécessaire pour la validation visuelle complète.
