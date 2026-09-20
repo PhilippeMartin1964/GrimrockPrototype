@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-INV02**  
+Statut : **CURRENT — UI-SPLIT01**  
 Date : **20 septembre 2026**
 
 ## Références canoniques
@@ -27,19 +27,29 @@ docs/Design/PROJECT_COMPLETION_ROADMAP.md
 
 `WBP_GrimrockMenu` est un menu RPG multipage fonctionnel. Son parent natif est `UGrimrockMenuWidget`.
 
-### UI-FOUNDATION01 — workspace Inventaire / Personnage
+### UI-FOUNDATION01 — fondation historique du workspace
 
-La refonte conserve le shell et les pages existants. `Page_Inventory / WBP_GridInventory` devient explicitement le workspace réunissant deux panneaux indépendants :
+UI-FOUNDATION01 a validé les deux responsabilités CharacterSheet / InventoryBag dans un même WBP. Cette disposition monolithique est désormais **superseded côté présentation par UI-SPLIT01**. Les invariants de données restent valides : un seul `SelectedCharacterIndex`, un seul `UGridPartyInventoryComponent`, aucune duplication de gameplay.
+
+Référence historique : `docs/Design/UI_FOUNDATION01_UNIFIED_INVENTORY_CHARACTER_WORKSPACE.md`.
+
+### UI-SPLIT01 — deux fenêtres viewport indépendantes
+
+L'Inventaire quitte `WBP_GrimrockMenu` lorsque les classes split sont configurées.
 
 ```text
-Panel_CharacterSheet   gauche
-zone centrale          vue 3D laissée visible
-Panel_InventoryBag     droite
+Viewport
+├── WBP_CharacterSheet       gauche, pleine hauteur utile
+├── vue 3D                   centre
+├── WBP_InventoryBag         droite, pleine hauteur utile
+└── WBP_GridCombatHud        barre basse persistante
 ```
 
-Les deux wrappers et leurs boutons de fermeture sont `BindWidgetOptional` afin de permettre une transition UMG sans casser l'asset actuel. `I` continue d'utiliser `ToggleInventoryWidget()`, mais la réouverture appelle maintenant `OpenInventoryWorkspace()`, revient sur la page Inventory et restaure les deux panneaux.
+Les deux fenêtres dérivent de la même implémentation native `UGridInventoryWidget` via deux classes sémantiques fines. Elles partagent le même composant inventaire et se resynchronisent via `OnPartyInventoryChanged`.
 
-Référence : `docs/Design/UI_FOUNDATION01_UNIFIED_INVENTORY_CHARACTER_WORKSPACE.md`.
+`WBP_GrimrockMenu` reste temporairement un shell legacy pour Skills/Spellbook/Journal/Map/Recipes/Codex, mais ne porte plus l'Inventaire en mode split.
+
+Référence : `docs/Design/UI_SPLIT01_INDEPENDENT_INVENTORY_WINDOWS.md`.
 
 ### UI-NAV01 — barre inférieure persistante
 

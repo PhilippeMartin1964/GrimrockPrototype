@@ -1,18 +1,41 @@
 #include "Runtime/GrimrockPartyPawn.h"
 
+#include "Components/Button.h"
 #include "GameFramework/PlayerController.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPlayerController.h"
 #include "UI/GridCombatHudWidget.h"
+#include "UI/GridCharacterSheetWidget.h"
+#include "UI/GridInventoryBagWidget.h"
 #include "UI/GridInventoryWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/RPGCharacterCreationWidget.h"
 
 void AGrimrockPartyPawn::ToggleInventoryWidget()
 {
-	ToggleMenuPage(EInventoryTopTab::Inventory);
+	if (!IsSplitInventoryWorkspaceConfigured())
+	{
+		ToggleMenuPage(EInventoryTopTab::Inventory);
+		return;
+	}
+
+	const bool bCharacterSheetVisible =
+		CharacterSheetWidgetInstance && CharacterSheetWidgetInstance->GetVisibility() != ESlateVisibility::Collapsed &&
+		CharacterSheetWidgetInstance->GetVisibility() != ESlateVisibility::Hidden;
+	const bool bInventoryBagVisible =
+		InventoryBagWidgetInstance && InventoryBagWidgetInstance->GetVisibility() != ESlateVisibility::Collapsed &&
+		InventoryBagWidgetInstance->GetVisibility() != ESlateVisibility::Hidden;
+
+	// Both visible: I closes the workspace. One missing/closed: I restores both.
+	if (bInventoryWorkspaceVisible && bCharacterSheetVisible && bInventoryBagVisible)
+	{
+		HideInventoryWidget();
+		return;
+	}
+
+	ShowInventoryWorkspace();
 }
 
 void AGrimrockPartyPawn::ToggleSkillsWidget()
@@ -40,6 +63,16 @@ void AGrimrockPartyPawn::ToggleHelpWidget()
 	ToggleMenuPage(EInventoryTopTab::Codex);
 }
 
+bool AGrimrockPartyPawn::IsSplitInventoryWorkspaceConfigured() const
+{
+	return CharacterSheetWidgetClass && InventoryBagWidgetClass;
+}
+
+bool AGrimrockPartyPawn::IsInventoryWorkspaceVisible() const
+{
+	return bInventoryWorkspaceVisible;
+}
+
 void AGrimrockPartyPawn::ToggleMenuPage(EInventoryTopTab TopTab)
 {
 	if (bCharacterCreationModalActive || bIsPitFalling)
@@ -47,7 +80,15 @@ void AGrimrockPartyPawn::ToggleMenuPage(EInventoryTopTab TopTab)
 		return;
 	}
 
-	if (bInventoryWidgetVisible && MenuWidgetInstance && MenuWidgetInstance->CurrentTopTab == TopTab)
+	if (TopTab == EInventoryTopTab::Inventory && IsSplitInventoryWorkspaceConfigured())
+	{
+		ToggleInventoryWidget();
+		return;
+	}
+
+	const bool bLegacyMenuVisible = MenuWidgetInstance && MenuWidgetInstance->GetVisibility() != ESlateVisibility::Collapsed &&
+		MenuWidgetInstance->GetVisibility() != ESlateVisibility::Hidden;
+	if (bInventoryWidgetVisible && bLegacyMenuVisible && MenuWidgetInstance->CurrentTopTab == TopTab)
 	{
 		HideInventoryWidget();
 		return;
@@ -58,13 +99,152 @@ void AGrimrockPartyPawn::ToggleMenuPage(EInventoryTopTab TopTab)
 
 void AGrimrockPartyPawn::ShowInventoryWidget()
 {
+	if (IsSplitInventoryWorkspaceConfigured())
+	{
+		ShowInventoryWorkspace();
+		return;
+	}
+
 	ShowMenuPage(EInventoryTopTab::Inventory);
+}
+
+bool AGrimrockPartyPawn::EnsureSplitInventoryWorkspaceWidgets(APlayerController* PlayerController)
+{
+	if (!PlayerController || !IsSplitInventoryWorkspaceConfigured())
+	{
+		return false;
+	}
+
+	if (!CharacterSheetWidgetInstance)
+	{
+		CharacterSheetWidgetInstance = CreateWidget<UGridCharacterSheetWidget>(PlayerController, CharacterSheetWidgetClass);
+		if (CharacterSheetWidgetInstance)
+		{
+			CharacterSheetWidgetInstance->InitializeInventoryWidget(this);
+			if (CharacterSheetWidgetInstance->Button_CloseCharacterSheet)
+			{
+				CharacterSheetWidgetInstance->Button_CloseCharacterSheet->OnClicked.AddUniqueDynamic(
+					this, &AGrimrockPartyPawn::HandleCharacterSheetWindowCloseClicked);
+			}
+		}
+	}
+
+	if (!InventoryBagWidgetInstance)
+	{
+		InventoryBagWidgetInstance = CreateWidget<UGridInventoryBagWidget>(PlayerController, InventoryBagWidgetClass);
+		if (InventoryBagWidgetInstance)
+		{
+			InventoryBagWidgetInstance->InitializeInventoryWidget(this);
+			if (InventoryBagWidgetInstance->Button_CloseInventoryBag)
+			{
+				InventoryBagWidgetInstance->Button_CloseInventoryBag->OnClicked.AddUniqueDynamic(
+					this, &AGrimrockPartyPawn::HandleInventoryBagWindowCloseClicked);
+			}
+		}
+	}
+
+	return CharacterSheetWidgetInstance && InventoryBagWidgetInstance;
+}
+
+void AGrimrockPartyPawn::ShowInventoryWorkspace()
+{
+	if (bCharacterCreationModalActive || bIsPitFalling)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitWorkspace Show Failed Pawn=%s Reason=NoPlayerController"), *GetName());
+		return;
+	}
+
+	if (!IsSplitInventoryWorkspaceConfigured())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitWorkspace Show Failed Pawn=%s Reason=WidgetClassesUnset"), *GetName());
+		return;
+	}
+
+	if (!EnsureSplitInventoryWorkspaceWidgets(PlayerController))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitWorkspace Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
+		return;
+	}
+
+	// Inventory no longer lives inside the legacy multipage shell.
+	if (MenuWidgetInstance)
+	{
+		MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (!CharacterSheetWidgetInstance->IsInViewport())
+	{
+		CharacterSheetWidgetInstance->AddToViewport(100);
+	}
+	CharacterSheetWidgetInstance->ResetInventoryWorkspace();
+	CharacterSheetWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	CharacterSheetWidgetInstance->RefreshInventory();
+
+	if (!InventoryBagWidgetInstance->IsInViewport())
+	{
+		InventoryBagWidgetInstance->AddToViewport(101);
+	}
+	InventoryBagWidgetInstance->ResetInventoryWorkspace();
+	InventoryBagWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	InventoryBagWidgetInstance->RefreshInventory();
+
+	bInventoryWorkspaceVisible = true;
+	bInventoryWidgetVisible = true;
+
+	if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
+	{
+		CombatHudWidgetInstance->RemoveFromParent();
+		CombatHudWidgetInstance->AddToViewport(CombatHotbarConfigurationZOrder);
+		CombatHudWidgetInstance->RefreshFromSources();
+	}
+
+	ApplyMajorUiInputMode(true);
+	UE_LOG(LogTemp, Log, TEXT("GridInventory SplitWorkspace Shown Pawn=%s Sheet=%s Bag=%s"), *GetName(),
+		*GetNameSafe(CharacterSheetWidgetInstance), *GetNameSafe(InventoryBagWidgetInstance));
+}
+
+void AGrimrockPartyPawn::HideInventoryWorkspace()
+{
+	const bool bLegacyMenuVisible = MenuWidgetInstance && MenuWidgetInstance->GetVisibility() != ESlateVisibility::Collapsed &&
+		MenuWidgetInstance->GetVisibility() != ESlateVisibility::Hidden;
+	if (bLegacyMenuVisible)
+	{
+		CollapseSplitInventoryWorkspaceForLegacyPage();
+		return;
+	}
+
+	HideInventoryWidget();
+}
+
+void AGrimrockPartyPawn::CollapseSplitInventoryWorkspaceForLegacyPage()
+{
+	if (CharacterSheetWidgetInstance)
+	{
+		CharacterSheetWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (InventoryBagWidgetInstance)
+	{
+		InventoryBagWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	bInventoryWorkspaceVisible = false;
 }
 
 void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 {
 	if (bCharacterCreationModalActive || bIsPitFalling)
 	{
+		return;
+	}
+
+	if (TopTab == EInventoryTopTab::Inventory && IsSplitInventoryWorkspaceConfigured())
+	{
+		ShowInventoryWorkspace();
 		return;
 	}
 
@@ -80,6 +260,8 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 		UE_LOG(LogTemp, Warning, TEXT("GrimrockMenu UI Show Failed Pawn=%s Reason=NoMenuWidgetClass"), *GetName());
 		return;
 	}
+
+	CollapseSplitInventoryWorkspaceForLegacyPage();
 
 	if (!MenuWidgetInstance)
 	{
@@ -111,8 +293,6 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 	}
 	bInventoryWidgetVisible = true;
 
-	// The persistent bottom bar/hotbar lives in the runtime HUD, not in the
-	// menu. Keep it above the workspace while the menu is open.
 	if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
 	{
 		CombatHudWidgetInstance->RemoveFromParent();
@@ -120,26 +300,76 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 		CombatHudWidgetInstance->RefreshFromSources();
 	}
 
-	PlayerController->bEnableClickEvents = true;
-	PlayerController->bEnableMouseOverEvents = true;
-	PlayerController->bShowMouseCursor = true;
-	PlayerController->DefaultMouseCursor = EMouseCursor::Default;
-	PlayerController->CurrentMouseCursor = EMouseCursor::Default;
+	ApplyMajorUiInputMode(true);
 	FInputModeGameAndUI InputMode;
 	InputMode.SetWidgetToFocus(MenuWidgetInstance->TakeWidget());
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	InputMode.SetHideCursorDuringCapture(false);
 	PlayerController->SetInputMode(InputMode);
+
+	UE_LOG(LogTemp, Log, TEXT("GrimrockMenu UI Shown Pawn=%s TopTab=%d"), *GetName(), static_cast<int32>(TopTab));
+}
+
+void AGrimrockPartyPawn::ApplyMajorUiInputMode(bool bOpen)
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController>(PlayerController))
+	{
+		GrimrockPlayerController->SetInventoryUiOpen(bOpen);
+	}
+
+	PlayerController->bEnableClickEvents = true;
+	PlayerController->bEnableMouseOverEvents = true;
 	PlayerController->bShowMouseCursor = true;
 	PlayerController->DefaultMouseCursor = EMouseCursor::Default;
 	PlayerController->CurrentMouseCursor = EMouseCursor::Default;
 
-	if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController>(PlayerController))
+	FInputModeGameAndUI InputMode;
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	InputMode.SetHideCursorDuringCapture(false);
+	PlayerController->SetInputMode(InputMode);
+}
+
+void AGrimrockPartyPawn::HandleCharacterSheetWindowCloseClicked()
+{
+	if (CharacterSheetWidgetInstance)
 	{
-		GrimrockPlayerController->SetInventoryUiOpen(true);
+		CharacterSheetWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	RefreshMajorUiVisibilityAfterSplitClose();
+}
+
+void AGrimrockPartyPawn::HandleInventoryBagWindowCloseClicked()
+{
+	if (InventoryBagWidgetInstance)
+	{
+		InventoryBagWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	RefreshMajorUiVisibilityAfterSplitClose();
+}
+
+void AGrimrockPartyPawn::RefreshMajorUiVisibilityAfterSplitClose()
+{
+	const bool bCharacterSheetVisible =
+		CharacterSheetWidgetInstance && CharacterSheetWidgetInstance->GetVisibility() != ESlateVisibility::Collapsed &&
+		CharacterSheetWidgetInstance->GetVisibility() != ESlateVisibility::Hidden;
+	const bool bInventoryBagVisible =
+		InventoryBagWidgetInstance && InventoryBagWidgetInstance->GetVisibility() != ESlateVisibility::Collapsed &&
+		InventoryBagWidgetInstance->GetVisibility() != ESlateVisibility::Hidden;
+
+	bInventoryWorkspaceVisible = bCharacterSheetVisible || bInventoryBagVisible;
+	if (!bInventoryWorkspaceVisible)
+	{
+		HideInventoryWidget();
+		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GrimrockMenu UI Shown Pawn=%s TopTab=%d"), *GetName(), static_cast<int32>(TopTab));
+	bInventoryWidgetVisible = true;
 }
 
 void AGrimrockPartyPawn::HandleGlobalEscape()
@@ -149,10 +379,24 @@ void AGrimrockPartyPawn::HandleGlobalEscape()
 		return;
 	}
 
-	if (UGridInventoryWidget* InventoryWidget = GetInventoryWidget(); InventoryWidget && InventoryWidget->IsItemActionMenuOpen())
+	if (CharacterSheetWidgetInstance && CharacterSheetWidgetInstance->IsItemActionMenuOpen())
 	{
-		InventoryWidget->CloseItemActionMenu(FName(TEXT("Escape")));
+		CharacterSheetWidgetInstance->CloseItemActionMenu(FName(TEXT("Escape")));
 		return;
+	}
+	if (InventoryBagWidgetInstance && InventoryBagWidgetInstance->IsItemActionMenuOpen())
+	{
+		InventoryBagWidgetInstance->CloseItemActionMenu(FName(TEXT("Escape")));
+		return;
+	}
+	if (MenuWidgetInstance)
+	{
+		if (UGridInventoryWidget* LegacyInventoryWidget = MenuWidgetInstance->GetInventoryWidget();
+			LegacyInventoryWidget && LegacyInventoryWidget->IsItemActionMenuOpen())
+		{
+			LegacyInventoryWidget->CloseItemActionMenu(FName(TEXT("Escape")));
+			return;
+		}
 	}
 
 	if (bInventoryWidgetVisible)
@@ -170,6 +414,16 @@ void AGrimrockPartyPawn::HideInventoryWidget()
 	{
 		MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
+	if (CharacterSheetWidgetInstance)
+	{
+		CharacterSheetWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (InventoryBagWidgetInstance)
+	{
+		InventoryBagWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	bInventoryWorkspaceVisible = false;
 	bInventoryWidgetVisible = false;
 
 	if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
@@ -179,19 +433,7 @@ void AGrimrockPartyPawn::HideInventoryWidget()
 		CombatHudWidgetInstance->RefreshFromSources();
 	}
 
-	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
-	{
-		if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController>(PlayerController))
-		{
-			GrimrockPlayerController->SetInventoryUiOpen(false);
-		}
-		FInputModeGameAndUI InputMode;
-		InputMode.SetHideCursorDuringCapture(false);
-		PlayerController->SetInputMode(InputMode);
-		PlayerController->bShowMouseCursor = true;
-		PlayerController->DefaultMouseCursor = EMouseCursor::Default;
-		PlayerController->CurrentMouseCursor = EMouseCursor::Default;
-	}
+	ApplyMajorUiInputMode(false);
 
 	if (bAutoSaveOnInventoryClose && PartyInventoryComponent && PartyInventoryComponent->HasCompletedInitialCharacterCreation())
 	{
@@ -202,11 +444,25 @@ void AGrimrockPartyPawn::HideInventoryWidget()
 		}
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GrimrockMenu UI Hidden Pawn=%s"), *GetName());
+	UE_LOG(LogTemp, Log, TEXT("Grimrock UI Hidden Pawn=%s"), *GetName());
 }
 
 UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget() const
 {
+	// Preserve modal/context semantics across the physical split: whichever
+	// split window owns an open item-action menu wins the accessor first.
+	if (CharacterSheetWidgetInstance && CharacterSheetWidgetInstance->IsItemActionMenuOpen())
+	{
+		return CharacterSheetWidgetInstance;
+	}
+	if (InventoryBagWidgetInstance && InventoryBagWidgetInstance->IsItemActionMenuOpen())
+	{
+		return InventoryBagWidgetInstance;
+	}
+	if (InventoryBagWidgetInstance)
+	{
+		return InventoryBagWidgetInstance;
+	}
 	return MenuWidgetInstance ? MenuWidgetInstance->GetInventoryWidget() : nullptr;
 }
 

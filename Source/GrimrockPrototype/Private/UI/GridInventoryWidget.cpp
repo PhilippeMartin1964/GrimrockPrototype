@@ -365,8 +365,25 @@ namespace
 
 void UGridInventoryWidget::InitializeInventoryWidget(AGrimrockPartyPawn* InPartyPawn)
 {
+	if (InventoryComponent)
+	{
+		InventoryComponent->OnPartyInventoryChanged.RemoveDynamic(this, &UGridInventoryWidget::HandlePartyInventoryChanged);
+	}
+
 	OwningPartyPawn = InPartyPawn;
 	InventoryComponent = InPartyPawn ? InPartyPawn->PartyInventoryComponent : nullptr;
+
+	if (InventoryComponent)
+	{
+		InventoryComponent->OnPartyInventoryChanged.AddUniqueDynamic(this, &UGridInventoryWidget::HandlePartyInventoryChanged);
+	}
+
+	RefreshInventory();
+}
+
+void UGridInventoryWidget::HandlePartyInventoryChanged(int32 CharacterIndex)
+{
+	(void)CharacterIndex;
 	RefreshInventory();
 }
 

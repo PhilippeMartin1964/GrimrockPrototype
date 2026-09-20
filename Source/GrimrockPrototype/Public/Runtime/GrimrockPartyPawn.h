@@ -21,6 +21,8 @@ class AGridThrownItemActor;
 class UGridItemDefinitionAsset;
 class UGridPartyInventoryComponent;
 class UGridInventoryWidget;
+class UGridCharacterSheetWidget;
+class UGridInventoryBagWidget;
 class UGridCombatHudWidget;
 class UGridTurnManagerComponent;
 class UGrimrockMenuWidget;
@@ -187,12 +189,35 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> StrafeRightAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
+	/**
+	 * Legacy multipage shell. UI-SPLIT01 removes Inventory from this shell when
+	 * the two split workspace classes below are configured; Skills/Map/etc. may
+	 * keep using it during migration.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI|Legacy")
 	TSubclassOf<UGrimrockMenuWidget> MenuWidgetClass;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI|Legacy")
 	TObjectPtr<UGrimrockMenuWidget> MenuWidgetInstance;
 
+	/** Independent left-side character/equipment window. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI|Split")
+	TSubclassOf<UGridCharacterSheetWidget> CharacterSheetWidgetClass;
+
+	/** Independent right-side inventory bag window. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI|Split")
+	TSubclassOf<UGridInventoryBagWidget> InventoryBagWidgetClass;
+
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI|Split")
+	TObjectPtr<UGridCharacterSheetWidget> CharacterSheetWidgetInstance;
+
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI|Split")
+	TObjectPtr<UGridInventoryBagWidget> InventoryBagWidgetInstance;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI|Split")
+	bool bInventoryWorkspaceVisible = false;
+
+	/** Historical flag kept during migration: true while any major inventory/menu UI owns mouse input. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
 	bool bInventoryWidgetVisible = false;
 
@@ -347,9 +372,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	void ShowInventoryWidget();
 
+	/** UI-SPLIT01: opens/restores the two independent viewport windows. */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI|Split")
+	void ShowInventoryWorkspace();
+
+	/** UI-SPLIT01: closes only the split inventory workspace. */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|UI|Split")
+	void HideInventoryWorkspace();
+
+	UFUNCTION(BlueprintPure, Category = "Inventory|UI|Split")
+	bool IsInventoryWorkspaceVisible() const;
+
+	UFUNCTION(BlueprintPure, Category = "Inventory|UI|Split")
+	bool IsSplitInventoryWorkspaceConfigured() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	void HideInventoryWidget();
 
+	/** Returns the split bag when configured, otherwise the legacy embedded inventory page. */
 	UFUNCTION(BlueprintCallable, Category = "Inventory|UI")
 	UGridInventoryWidget* GetInventoryWidget() const;
 
@@ -603,6 +643,17 @@ private:
 	void ApplyCharacterCreationInputMode(bool bIsActive);
 	void ToggleMenuPage(EInventoryTopTab TopTab);
 	void ShowMenuPage(EInventoryTopTab TopTab);
+	bool EnsureSplitInventoryWorkspaceWidgets(APlayerController* PlayerController);
+	void CollapseSplitInventoryWorkspaceForLegacyPage();
+	void ApplyMajorUiInputMode(bool bOpen);
+	void RefreshMajorUiVisibilityAfterSplitClose();
+
+	UFUNCTION()
+	void HandleCharacterSheetWindowCloseClicked();
+
+	UFUNCTION()
+	void HandleInventoryBagWindowCloseClicked();
+
 	bool LoadCurrentGameData(FText& OutError, bool bApplyDungeonState);
 	bool RehydrateLoadedItemDefinitions(FText& OutError);
 	void CloseCharacterCreationWidget();

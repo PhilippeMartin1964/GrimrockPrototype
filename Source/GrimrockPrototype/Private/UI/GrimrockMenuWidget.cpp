@@ -15,11 +15,17 @@ void UGrimrockMenuWidget::NativeConstruct()
 	if (!bTopTabsInitialized)
 	{
 		bTopTabsInitialized = true;
-		SetActiveTopTab(EInventoryTopTab::Inventory);
+		if (GetTopTabPage(CurrentTopTab))
+		{
+			SetActiveTopTab(CurrentTopTab);
+		}
 		return;
 	}
 
-	SetActiveTopTab(CurrentTopTab);
+	if (GetTopTabPage(CurrentTopTab))
+	{
+		SetActiveTopTab(CurrentTopTab);
+	}
 }
 
 void UGrimrockMenuWidget::InitializeMenuWidget(AGrimrockPartyPawn* InPartyPawn)

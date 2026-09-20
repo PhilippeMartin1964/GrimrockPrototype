@@ -2,7 +2,9 @@
 
 ## 1. Statut et rôle du document
 
-Ce document est la référence canonique du menu joueur multipage de GrimrockPrototype.
+Ce document reste la référence du shell joueur multipage historique de GrimrockPrototype.
+
+Depuis **UI-SPLIT01**, l'Inventaire/Feuille de personnage n'appartient plus à ce shell lorsque les deux classes split sont configurées. Le shell reste temporairement utilisé pour les autres pages pendant leur migration.
 
 État de référence : **UI01.4.3e VALIDÉ ET CLOS sous UE5.5.4**.  
 Date : **20 septembre 2026**.
@@ -67,7 +69,9 @@ flowchart TD
 
 Principes :
 
-- le menu global possède la navigation ;
+- depuis UI-NAV01, la navigation globale visible appartient au HUD bas persistant ;
+- depuis UI-SPLIT01, l'Inventaire est composé de deux fenêtres viewport indépendantes ;
+- le menu global conserve temporairement les pages non migrées ;
 - chaque page possède sa présentation spécialisée ;
 - aucune logique métier n'est dupliquée dans le Graph du shell ;
 - le Spellbook ne crée pas une deuxième hotbar ;
@@ -141,18 +145,18 @@ Pages intégrées :
 
 Le Graph de `WBP_GrimrockMenu` ne porte pas la navigation. La logique est dans `UGrimrockMenuWidget`.
 
-Bindings principaux :
+Bindings du shell après UI-SPLIT01 :
 
 ```text
 WidgetSwitcher_MainContent
-Button_TabInventory
-Button_TabSkills
-Button_TabSpellbook
-Button_TabJournal
-Button_TabMap
-Button_TabRecipes
-Button_TabCodex
-Page_Inventory
+Button_TabInventory      optionnel / legacy
+Button_TabSkills         optionnel
+Button_TabSpellbook      optionnel
+Button_TabJournal        optionnel
+Button_TabMap            optionnel
+Button_TabRecipes        optionnel
+Button_TabCodex          optionnel
+Page_Inventory           optionnel / legacy
 Page_Skills
 Page_Spellbook
 Page_Journal
@@ -160,6 +164,8 @@ Page_Map
 Page_Recipes
 Page_Codex
 ```
+
+Les anciens boutons supérieurs peuvent être masqués ou retirés pendant la migration : la barre HUD UI-NAV01 fournit la navigation globale. En configuration split, `I` ouvre directement `WBP_CharacterSheet + WBP_InventoryBag` sans afficher le shell.
 
 Le C++ sélectionne la page par widget et non par index physique du `WidgetSwitcher`.
 

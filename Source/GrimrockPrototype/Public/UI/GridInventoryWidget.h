@@ -492,10 +492,14 @@ public:
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 private:
 	void BindWorkspaceButtons();
+
+	UFUNCTION()
+	void HandlePartyInventoryChanged(int32 CharacterIndex);
 	void ApplyWorkspacePanelVisibility();
 	void RegisterBoundPartyMemberWidgets();
 	void RefreshSelectedInventoryBagPresentation();

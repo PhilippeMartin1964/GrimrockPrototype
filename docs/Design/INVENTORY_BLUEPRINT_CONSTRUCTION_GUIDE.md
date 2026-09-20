@@ -21,7 +21,24 @@ Un Blueprint d'inventaire ne doit pas :
 - utiliser `ExecuteInventoryContextAction(ActionType, ...)` depuis le menu visible ;
 - ajouter de logique DPI, viewport ou scaling local.
 
-## WBP_GridInventory
+## Cible actuelle UI-SPLIT01
+
+L'Inventaire n'est plus construit comme une page monolithique `WBP_GridInventory` dans le shell.
+
+Créer deux widgets viewport :
+
+```text
+WBP_CharacterSheet -> parent UGridCharacterSheetWidget
+WBP_InventoryBag   -> parent UGridInventoryBagWidget
+```
+
+Les deux classes héritent de `UGridInventoryWidget`, donc les bindings existants peuvent être déplacés sans réécrire les interactions C++.
+
+`WBP_GridInventory` reste un asset de migration/legacy jusqu'à validation complète des deux fenêtres, puis pourra être décommissionné.
+
+Référence : `docs/Design/UI_SPLIT01_INDEPENDENT_INVENTORY_WINDOWS.md`.
+
+## WBP_GridInventory — legacy de migration
 
 Parent class attendu : `UGridInventoryWidget`.
 

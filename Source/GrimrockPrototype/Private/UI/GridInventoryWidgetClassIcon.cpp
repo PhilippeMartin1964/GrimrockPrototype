@@ -14,8 +14,29 @@ void UGridInventoryWidget::NativeConstruct()
 	ApplyWorkspacePanelVisibility();
 	RegisterBoundPartyMemberWidgets();
 	RegisterPaperDollEquipmentSlotWidgets();
-	ValidatePaperDollEquipmentRegistration();
+
+	// UI-SPLIT01: the independent bag window intentionally contains no paper
+	// doll. Validate only views that actually expose a paper-doll surface or
+	// at least one authored equipment slot.
+	const bool bHasPaperDollPresentation = Border_EquipmentPanel || SlotWidget_Head || SlotWidget_Face || SlotWidget_Amulet || SlotWidget_Shoulders ||
+		SlotWidget_Shirt || SlotWidget_Chest || SlotWidget_Cloak || SlotWidget_Bracers || SlotWidget_Gloves || SlotWidget_Belt || SlotWidget_Legs ||
+		SlotWidget_Feet || SlotWidget_Ring1 || SlotWidget_Ring2 || SlotWidget_Earring1 || SlotWidget_Earring2 || SlotWidget_MainHand || SlotWidget_OffHand;
+	if (bHasPaperDollPresentation)
+	{
+		ValidatePaperDollEquipmentRegistration();
+	}
+
 	RefreshRegisteredSlotWidgets();
+}
+
+void UGridInventoryWidget::NativeDestruct()
+{
+	if (InventoryComponent)
+	{
+		InventoryComponent->OnPartyInventoryChanged.RemoveDynamic(this, &UGridInventoryWidget::HandlePartyInventoryChanged);
+	}
+
+	Super::NativeDestruct();
 }
 
 void UGridInventoryWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)

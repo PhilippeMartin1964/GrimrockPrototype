@@ -1,11 +1,13 @@
+> **Mise à jour UI-SPLIT01 :** conserver ce document pour les invariants de données et l'historique. Pour la structure UMG actuelle, utiliser `docs/Design/UI_SPLIT01_INDEPENDENT_INVENTORY_WINDOWS.md`.
+
 # UI-FOUNDATION01 — Unified Inventory / Character Workspace
 
 Date : **20 septembre 2026**  
-Statut : **IMPLEMENTATION C++ + CONTRAT UMG ; validation locale UE5.5.4 à fournir**
+Statut : **FONDATION HISTORIQUE — présentation monolithique superseded par UI-SPLIT01**
 
 ## Objectif
 
-UI-FOUNDATION01 pose le socle de la refonte validée de l'interface Inventaire / Feuille de personnage sans recréer les systèmes déjà fonctionnels.
+UI-FOUNDATION01 a posé le socle logique de la séparation Inventaire / Feuille de personnage sans recréer les systèmes déjà fonctionnels. Depuis UI-SPLIT01, les deux responsabilités ne sont plus deux panneaux d'un même WBP : elles deviennent deux fenêtres viewport réellement indépendantes.
 
 La décision structurante est :
 
