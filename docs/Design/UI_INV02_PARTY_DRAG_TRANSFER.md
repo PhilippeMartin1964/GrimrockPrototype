@@ -1,7 +1,7 @@
 # UI-INV02 — Drag Transfer Between Party Members
 
 Date : **20 septembre 2026**  
-Statut : **AUTOMATION FONCTIONNELLE AVEC WARNINGS — clean rerun demandé ; passe UMG non réalisée**
+Statut : **AUTOMATION VALIDÉE — 20 septembre 2026 ; passe UMG non réalisée**
 
 ## Objectif
 
@@ -176,3 +176,19 @@ Le comportement est passé, mais les deux tests ont été classés `Succeeded wi
 Le follow-up UI-INV02.1 abaisse ces rejets attendus en `Log/Verbose`. Les véritables incohérences (index invalide, rollback impossible, ownership invalide) restent `Warning/Error`.
 
 Une nouvelle exécution propre de `Grimrock.UI.Inventory02` est demandée avant clôture du contrat C++.
+
+
+## Validation propre reçue
+
+Nouvelle exécution locale du 20 septembre 2026 :
+
+```text
+Filter                 : Grimrock.UI.Inventory02
+Succeeded              : 2
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Le contrat C++ UI-INV02 est donc validé. Aucun WBP n'a encore été modifié ; la validation visuelle reste à faire séparément.

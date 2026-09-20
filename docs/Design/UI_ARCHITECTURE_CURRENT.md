@@ -277,3 +277,16 @@ TD05.9     STOP CONDITION ATTEINTE
 TD06.9     STOP CONDITION ATTEINTE
 MON21.4    PROCHAIN — Quest Persistence / Migration
 ```
+
+
+## Jalons de refonte UI validés côté Automation au 20 septembre 2026
+
+```text
+UI-NAV01   2/2
+UI-CHAR01  2/2
+UI-CHAR02  2/2
+UI-INV01   2/2
+UI-INV02   2/2
+```
+
+Aucun asset WBP n'a encore été refondu dans cette séquence. La prochaine étape est la passe UMG/PIE, en commençant par `WBP_GridCombatHud`.
