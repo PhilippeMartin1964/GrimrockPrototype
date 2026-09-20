@@ -46,7 +46,7 @@ WBP_GrimrockMenu
     │   └── vue subjective du donjon reste visible
     └── Panel_InventoryBag        droite
         ├── filtres / tri futurs
-        ├── grille du personnage sélectionné
+        ├── UNE grille du personnage sélectionné
         └── charge / poids
 ```
 
@@ -162,3 +162,8 @@ Puis PIE ciblé après la passe UMG :
 7. la vue 3D reste visible au centre.
 
 Ne pas déclarer UI-FOUNDATION01 validé tant que cette sortie locale et le PIE n'ont pas été fournis.
+
+
+## Clarification UI-INV01
+
+Le panneau `Panel_InventoryBag` est désormais explicitement un **single-bag view** : une seule grille est affichée et son contenu suit `SelectedCharacterIndex`. Les inventaires des autres membres ne sont jamais empilés simultanément.

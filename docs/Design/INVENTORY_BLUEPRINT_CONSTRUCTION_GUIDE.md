@@ -76,6 +76,21 @@ La zone Party et le panneau personnage doivent continuer à suivre la structure 
 
 Depuis UI-NAV01, `WBP_GridInventory` ne doit jamais occuper la bande réservée au HUD persistant. Les panneaux gauche/droite s'arrêtent au-dessus de `Panel_GlobalNavigation + Panel_Actions`. La barre inférieure n'est pas recréée dans l'inventaire et ne doit jamais être masquée par lui.
 
+### Panneau Sac UI-INV01
+
+Le panneau droit contient **une seule** grille `InventorySlotsGridPanel`. Il ne faut pas créer un sac par personnage ni empiler six grilles dans une ScrollBox.
+
+Bindings optionnels du header/footer :
+
+```text
+Text_InventoryBagTitle
+Text_InventoryBagSlotUsage
+Text_InventoryBagWeight
+ProgressBar_InventoryBagWeight
+```
+
+Changer de portrait remplace le contenu de cette même grille. Le nombre de slots est recalculé depuis la capacité du personnage sélectionné lorsque `InventorySlotCountOverride == 0`.
+
 ## Structure canonique du panneau paper doll
 
 ```text

@@ -1,7 +1,7 @@
 # UI-CHAR02 — Character Sheet Projection and Layout Contract
 
 Date : **20 septembre 2026**  
-Statut : **IMPLEMENTATION C++ + CONTRAT UMG ; validation locale UE5.5.4 à fournir**
+Statut : **AUTOMATION VALIDÉE — 20 septembre 2026 ; passe UMG/PIE visuelle encore à réaliser**
 
 ## Objectif
 
@@ -242,3 +242,19 @@ Après la passe UMG, contrôler en PIE :
 7. équipement/drag-drop inchangés ;
 8. barre de navigation toujours visible ;
 9. aucun `BindWidget` critique.
+
+
+## Validation reçue
+
+Validation locale du 20 septembre 2026 :
+
+```text
+Filter                 : Grimrock.UI.Character02
+Succeeded              : 2
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Le contrat C++ UI-CHAR02 est validé. La passe UMG/PIE reste nécessaire pour la validation visuelle complète.

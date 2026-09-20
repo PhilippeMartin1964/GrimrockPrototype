@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-CHAR02**  
+Statut : **CURRENT — UI-INV01**  
 Date : **20 septembre 2026**
 
 ## Références canoniques
@@ -86,6 +86,23 @@ Text_ResistancePhysical
 Les ratios sont uniquement des projections visuelles des valeurs canoniques et sont clampés dans `[0..1]`.
 
 Référence : `docs/Design/UI_CHAR02_CHARACTER_SHEET_PROJECTION.md`.
+
+### UI-INV01 — un seul sac pour le personnage sélectionné
+
+Le panneau droit ne représente jamais simultanément les inventaires des six membres. `WBP_GridInventory` conserve une seule `InventorySlotsGridPanel`, alimentée par `SelectedCharacterIndex`.
+
+Le titre, l'occupation et la charge du sac sont projetés vers :
+
+```text
+Text_InventoryBagTitle
+Text_InventoryBagSlotUsage
+Text_InventoryBagWeight
+ProgressBar_InventoryBagWeight
+```
+
+`RefreshInventory()` resynchronise aussi le layout de slots afin qu'une même grille puisse suivre des capacités différentes selon le personnage.
+
+Référence : `docs/Design/UI_INV01_SELECTED_CHARACTER_SINGLE_BAG.md`.
 
 ```text
 Inventaire      fonctionnel

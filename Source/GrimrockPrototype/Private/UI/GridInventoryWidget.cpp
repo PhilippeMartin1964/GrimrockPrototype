@@ -375,7 +375,41 @@ void UGridInventoryWidget::RefreshInventory()
 	UE_LOG(LogTemp, Verbose, TEXT("GridInventory UI Refresh Pawn=%s InventoryComponent=%s"), *GetNameSafe(OwningPartyPawn), *GetNameSafe(InventoryComponent));
 	RefreshSelectedCharacterDetails();
 	RefreshRegisteredPartyMemberWidgets();
+	RefreshSelectedInventoryBagPresentation();
+	EnsureSelectedInventorySlotLayout();
 	RefreshRegisteredSlotWidgets();
+}
+
+void UGridInventoryWidget::RefreshSelectedInventoryBagPresentation()
+{
+	FGridInventoryCharacterSummary Summary;
+	if (!InventoryComponent || !InventoryComponent->GetCharacterSummary(InventoryComponent->GetSelectedCharacterIndex(), Summary))
+	{
+		SetInventoryOptionalText(Text_InventoryBagTitle, FText::GetEmpty());
+		SetInventoryOptionalText(Text_InventoryBagSlotUsage, FText::GetEmpty());
+		SetInventoryOptionalText(Text_InventoryBagWeight, FText::GetEmpty());
+		SetInventoryOptionalProgress(ProgressBar_InventoryBagWeight, 0.0f, 0.0f);
+		return;
+	}
+
+	SetInventoryOptionalText(Text_InventoryBagTitle, Summary.DisplayName);
+	SetInventoryOptionalText(Text_InventoryBagSlotUsage, FormatInventorySlotUsage(Summary.UsedInventorySlots, Summary.MaxInventorySlots));
+	SetInventoryOptionalText(
+		Text_InventoryBagWeight, FormatWeightWithBonus(Summary.CurrentWeight, Summary.MaxWeight, Summary.EquipmentStatBonus.CarryWeightBonus));
+	SetInventoryOptionalProgress(ProgressBar_InventoryBagWeight, Summary.CurrentWeight, Summary.MaxWeight);
+}
+
+void UGridInventoryWidget::EnsureSelectedInventorySlotLayout()
+{
+	if (!InventorySlotsGridPanel || !InventorySlotWidgetClass)
+	{
+		return;
+	}
+
+	// UI-INV01 owns one grid only. RebuildInventorySlotWidgets() already skips
+	// work when count/columns/class/panel did not change, so this keeps the grid
+	// synchronized when two characters have different inventory capacities.
+	RebuildInventorySlotWidgets();
 }
 
 int32 UGridInventoryWidget::GetSelectedCharacterIndex() const

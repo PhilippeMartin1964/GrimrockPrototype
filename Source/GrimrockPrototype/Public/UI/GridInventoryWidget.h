@@ -208,6 +208,22 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Resistances")
 	TObjectPtr<UTextBlock> Text_ResistanceArcane;
 
+	/**
+	 * UI-INV01 selected-character bag presentation. The bag does not own data:
+	 * every value is projected from the same selected character summary.
+	 */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Bag")
+	TObjectPtr<UTextBlock> Text_InventoryBagTitle;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Bag")
+	TObjectPtr<UTextBlock> Text_InventoryBagSlotUsage;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Bag")
+	TObjectPtr<UTextBlock> Text_InventoryBagWeight;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Bag")
+	TObjectPtr<UProgressBar> ProgressBar_InventoryBagWeight;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots")
 	TSubclassOf<UGridInventorySlotWidget> InventorySlotWidgetClass;
 
@@ -478,6 +494,8 @@ private:
 	void BindWorkspaceButtons();
 	void ApplyWorkspacePanelVisibility();
 	void RegisterBoundPartyMemberWidgets();
+	void RefreshSelectedInventoryBagPresentation();
+	void EnsureSelectedInventorySlotLayout();
 
 	UFUNCTION()
 	void HandleCloseCharacterSheetClicked();
