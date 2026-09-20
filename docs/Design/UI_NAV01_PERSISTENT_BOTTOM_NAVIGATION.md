@@ -1,7 +1,7 @@
 # UI-NAV01 — Persistent Bottom Navigation Bar
 
 Date : **20 septembre 2026**  
-Statut : **AUTOMATION VALIDÉE — 20 septembre 2026 ; passe UMG/PIE visuelle encore à réaliser**
+Statut : **AUTOMATION + UMG/PIE VALIDÉS — 20 septembre 2026**
 
 ## Décision
 
@@ -211,3 +211,16 @@ Process exit code       : 0
 ```
 
 Le contrat C++ UI-NAV01 est donc validé. La passe visuelle UMG/PIE reste distincte.
+
+
+## Validation UMG / PIE reçue
+
+Le 20 septembre 2026, la passe manuelle de `WBP_GridCombatHud` a été validée avec :
+
+- `HorizontalBox_BottomBar` collé au bord inférieur ;
+- sept boutons de navigation visibles et dimensionnés de manière uniforme ;
+- hotbar MON12 existante conservée à droite ;
+- clics `ESC / I / K / G / M / J / H` routés par le C++ ;
+- barre persistante visible avec menu ouvert ou fermé.
+
+UI-NAV01 est donc clos côté C++, UMG et PIE.
