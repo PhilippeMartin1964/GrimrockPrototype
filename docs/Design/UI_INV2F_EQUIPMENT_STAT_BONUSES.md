@@ -119,7 +119,7 @@ Poids : 12.5 / 65.0 (+15.0)
 
 Il n'y a pas encore de `RichText`, de couleur ou de style specifique pour les bonus. L'objectif est d'abord de rendre la contribution de l'equipement visible et verifiable.
 
-L'armure est prete cote C++ via le `BindWidgetOptional` `Text_CharacterArmor`. Aucun WBP n'est modifie dans cette etape. Le travail visuel manuel UE5 consistera a ajouter `Text_CharacterArmor` dans la section des stats derivees de `WBP_GridInventory` si l'armure doit etre affichee.
+L'armure physique est projetée via le binding canonique `Text_CharacterPhysicalArmor` de `WBP_CharacterSheet`. L'ancien alias `Text_CharacterArmor` a été supprimé par UI-CLEAN03.
 
 ## Limites actuelles
 

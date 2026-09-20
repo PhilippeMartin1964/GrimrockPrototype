@@ -122,10 +122,6 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
 	TObjectPtr<UTextBlock> Text_CharacterInventorySlots;
 
-	/** Legacy physical-armor field kept during the UMG migration. */
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
-	TObjectPtr<UTextBlock> Text_CharacterArmor;
-
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Combat")
 	TObjectPtr<UTextBlock> Text_CharacterPhysicalArmor;
 

@@ -202,7 +202,7 @@ Les BindWidget de `UGridInventoryWidget` doivent être conservés et réutilisé
 
 Les champs existants `Text_CharacterName/Race/Class/Level/Experience`, les six attributs, les résistances élémentaires, `Text_CharacterHealth/Mana/CarryWeight`, `Image_CharacterPortrait`, `Image_CharacterClassIcon` et `Border_CharacterClassAccent` restent valides.
 
-`Text_CharacterArmor` est conservé comme alias de transition pour l'armure physique ; la cible nouvelle est `Text_CharacterPhysicalArmor`.
+Le binding canonique unique pour l'armure physique est `Text_CharacterPhysicalArmor`.
 
 ## Couche UI au-dessus
 

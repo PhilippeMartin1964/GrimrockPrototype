@@ -101,7 +101,7 @@ Text_CharacterEvasion
 
 Ils lisent strictement les champs canoniques déjà présents dans le résumé.
 
-`Text_CharacterArmor` est conservé temporairement comme alias legacy de l'armure physique pendant la migration UMG.
+Depuis UI-CLEAN03, l'armure physique n'a plus d'alias legacy : le binding unique est `Text_CharacterPhysicalArmor`.
 
 ### Résistances
 

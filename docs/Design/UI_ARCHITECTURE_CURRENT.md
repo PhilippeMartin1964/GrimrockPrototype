@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-CLEAN02**  
+Statut : **CURRENT — UI-CLEAN03**  
 Date : **20 septembre 2026**
 
 ## Références canoniques
@@ -99,6 +99,22 @@ GeneratedPaperDollSlotWidgets
 ```
 
 Référence : `docs/Design/UI_CLEAN02_REMOVE_GENERATED_PAPERDOLL.md`.
+
+### UI-CLEAN03 — suppression de l'alias d'armure
+
+La migration de la feuille personnage n'entretient plus deux bindings pour la même donnée.
+
+```text
+SUPPRIMÉ :
+Text_CharacterArmor
+
+CANONIQUE :
+Text_CharacterPhysicalArmor
+```
+
+La valeur continue de provenir du même résumé autoritaire ; seul le doublon de présentation est supprimé.
+
+Référence : `docs/Design/UI_CLEAN03_REMOVE_LEGACY_ARMOR_ALIAS.md`.
 
 ### UI-NAV01 — barre inférieure persistante
 

@@ -708,7 +708,6 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails()
 		SetInventoryOptionalText(Text_CharacterCarryWeight, FText::GetEmpty());
 		SetInventoryOptionalProgress(ProgressBar_CharacterCarryWeight, 0.0f, 0.0f);
 		SetInventoryOptionalText(Text_CharacterInventorySlots, FText::GetEmpty());
-		SetInventoryOptionalText(Text_CharacterArmor, FText::GetEmpty());
 		SetInventoryOptionalText(Text_CharacterPhysicalArmor, FText::GetEmpty());
 		SetInventoryOptionalText(Text_CharacterMagicalArmor, FText::GetEmpty());
 		SetInventoryOptionalText(Text_CharacterInitiative, FText::GetEmpty());
@@ -754,7 +753,6 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails()
 	SetInventoryOptionalText(Text_CharacterInventorySlots, FormatInventorySlotUsage(Summary.UsedInventorySlots, Summary.MaxInventorySlots));
 
 	const FText PhysicalArmorText = FormatIntWithBonus(Summary.Resources.CurrentPhysicalArmor, Summary.EquipmentStatBonus.ArmorBonus);
-	SetInventoryOptionalText(Text_CharacterArmor, PhysicalArmorText);
 	SetInventoryOptionalText(Text_CharacterPhysicalArmor, PhysicalArmorText);
 	SetInventoryOptionalText(Text_CharacterMagicalArmor, FText::AsNumber(Summary.Resources.CurrentMagicalArmor));
 	SetInventoryOptionalText(Text_CharacterInitiative, FText::AsNumber(Summary.DerivedStats.Initiative));
