@@ -1,7 +1,7 @@
 # UI-CLEAN02 — Remove generated paper-doll legacy
 
 Date : **20 septembre 2026**  
-Statut : **IMPLEMENTATION C++ ; validation locale UE5.5.4 à fournir**
+Statut : **AUTOMATION VALIDÉE — 20 septembre 2026**
 
 ## Objectif
 
@@ -77,3 +77,19 @@ Grimrock.UI.Clean02.NoGeneratedPaperDollLegacy
 ~~~
 
 Le test vérifie que le générateur et son state ont disparu, tout en conservant les bindings manuels `SlotWidget_Head` et `SlotWidget_OffHand`.
+
+
+## Validation Automation reçue
+
+Validation locale du 20 septembre 2026 :
+
+~~~text
+Filter                 : Grimrock.UI.Clean02
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+~~~
+
+Le générateur paper doll runtime supprimé n'est plus requis par le chemin canonique.

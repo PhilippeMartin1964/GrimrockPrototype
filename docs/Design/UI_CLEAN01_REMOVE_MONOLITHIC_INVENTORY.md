@@ -1,7 +1,7 @@
 # UI-CLEAN01 — Remove monolithic inventory legacy
 
 Date : **20 septembre 2026**  
-Statut : **AUTOMATION VALIDÉE — 20 septembre 2026 ; nettoyage UMG/.uasset à terminer**
+Statut : **VALIDÉ ET NETTOYÉ — 20 septembre 2026**
 
 ## Objectif
 
@@ -147,3 +147,25 @@ Process exit code       : 0
 ~~~
 
 Le chemin C++ monolithique est donc retiré et validé. Le travail restant de UI-CLEAN01 est exclusivement le nettoyage des assets UMG sérialisés : retrait de Page_Inventory / anciens boutons supérieurs de WBP_GrimrockMenu, puis suppression physique de WBP_GridInventory après contrôle du Reference Viewer.
+
+
+## Nettoyage UMG/.uasset terminé
+
+Commit utilisateur de synchronisation :
+
+~~~text
+0b7b3306f2676a273f11aeab6e8b73cee77f1e54
+UI refactor especially the Inventory
+~~~
+
+État confirmé sur origin/master :
+
+~~~text
+WBP_GridInventory  -> supprimé
+WBP_CharacterSheet -> présent
+WBP_InventoryBag   -> présent
+WBP_GrimrockMenu   -> sauvegardé après nettoyage
+git status --short -> vide côté poste utilisateur
+~~~
+
+UI-CLEAN01 est donc clos côté C++, Automation et assets.
