@@ -474,39 +474,6 @@ bool UGridInventoryWidget::HasCursorItem() const
 	return InventoryComponent && InventoryComponent->HasCursorItem();
 }
 
-FString UGridInventoryWidget::GetItemDisplayString(const FGridItemInstance& Item) const
-{
-	return Item.ItemDefinitionId.IsNone() ? FString(TEXT("Empty")) : Item.ItemDefinitionId.ToString();
-}
-
-FString UGridInventoryWidget::GetCursorItemDisplayText() const
-{
-	FGridItemInstance Item;
-	GetCursorItem(Item);
-	return FString::Printf(TEXT("Cursor: %s"), *GetItemDisplayString(Item));
-}
-
-FString UGridInventoryWidget::GetMainHandDisplayText() const
-{
-	FGridItemInstance Item;
-	GetMainHandItem(Item);
-	return FString::Printf(TEXT("MainHand: %s"), *GetItemDisplayString(Item));
-}
-
-FString UGridInventoryWidget::GetOffHandDisplayText() const
-{
-	FGridItemInstance Item;
-	GetOffHandItem(Item);
-	return FString::Printf(TEXT("OffHand: %s"), *GetItemDisplayString(Item));
-}
-
-FString UGridInventoryWidget::GetInventorySlotDisplayText(int32 SlotIndex) const
-{
-	FGridItemInstance Item;
-	GetInventoryItemAtSlot(SlotIndex, Item);
-	return FString::Printf(TEXT("Slot %d: %s"), SlotIndex, *GetItemDisplayString(Item));
-}
-
 int32 UGridInventoryWidget::GetActiveCharacterCount() const
 {
 	return InventoryComponent ? InventoryComponent->GetActiveCharacterCount() : 0;
@@ -529,33 +496,6 @@ bool UGridInventoryWidget::SelectCharacter(int32 CharacterIndex)
 	UE_LOG(LogTemp, Log, TEXT("GridInventory UI SelectCharacter Index=%d Result=%s"), CharacterIndex, bResult ? TEXT("true") : TEXT("false"));
 	RefreshInventory();
 	return bResult;
-}
-
-FString UGridInventoryWidget::GetCharacterDisplayText(int32 CharacterIndex) const
-{
-	FGridInventoryCharacterSummary Summary;
-	if (!GetCharacterSummary(CharacterIndex, Summary))
-	{
-		return FString::Printf(TEXT("%d Empty"), CharacterIndex);
-	}
-
-	const FString NameText = Summary.DisplayName.IsEmpty() ? FString::Printf(TEXT("Hero_%02d"), CharacterIndex + 1) : Summary.DisplayName.ToString();
-	return FString::Printf(TEXT("%d %s"), CharacterIndex, *NameText);
-}
-
-FString UGridInventoryWidget::GetSelectedCharacterDisplayText() const
-{
-	const int32 CharacterIndex = GetSelectedCharacterIndex();
-	FGridInventoryCharacterSummary Summary;
-	if (!GetCharacterSummary(CharacterIndex, Summary))
-	{
-		return TEXT("SelectedCharacter: None");
-	}
-
-	const FString NameText = Summary.DisplayName.IsEmpty() ? FString::Printf(TEXT("Hero_%02d"), CharacterIndex + 1) : Summary.DisplayName.ToString();
-	const FString ClassText = Summary.ClassDisplayName.IsEmpty() ? (Summary.ClassId.IsNone() ? FString(TEXT("Classe inconnue")) : Summary.ClassId.ToString())
-																 : Summary.ClassDisplayName.ToString();
-	return FString::Printf(TEXT("SelectedCharacter: %d %s %s Lv%d"), CharacterIndex, *NameText, *ClassText, Summary.Level);
 }
 
 void UGridInventoryWidget::RegisterBoundPartyMemberWidgets()

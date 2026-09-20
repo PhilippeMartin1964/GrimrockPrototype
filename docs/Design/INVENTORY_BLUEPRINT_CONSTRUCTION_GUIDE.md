@@ -30,7 +30,7 @@ WBP_CharacterSheet -> parent UGridCharacterSheetWidget
 WBP_InventoryBag   -> parent UGridInventoryBagWidget
 ```
 
-`WBP_CharacterSheet / WBP_InventoryBag` n'est plus une cible de migration et ne doit plus être utilisé.
+`WBP_GridInventory` n'existe plus dans l'architecture runtime et ne doit pas être recréé.
 
 ### WBP_CharacterSheet
 

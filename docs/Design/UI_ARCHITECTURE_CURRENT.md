@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-CLEAN03**  
+Statut : **CURRENT — UI-CLEAN04**  
 Date : **20 septembre 2026**
 
 ## Références canoniques
@@ -115,6 +115,25 @@ Text_CharacterPhysicalArmor
 La valeur continue de provenir du même résumé autoritaire ; seul le doublon de présentation est supprimé.
 
 Référence : `docs/Design/UI_CLEAN03_REMOVE_LEGACY_ARMOR_ALIAS.md`.
+
+### UI-CLEAN04 — suppression des helpers texte primitifs
+
+Les anciennes chaînes de diagnostic Blueprint ne font plus partie du contrat de `UGridInventoryWidget`.
+
+```text
+SUPPRIMÉS :
+GetItemDisplayString
+GetCursorItemDisplayText
+GetMainHandDisplayText
+GetOffHandDisplayText
+GetInventorySlotDisplayText
+GetCharacterDisplayText
+GetSelectedCharacterDisplayText
+```
+
+Les slots, portraits et statistiques utilisent désormais uniquement leurs projections structurées.
+
+Référence : `docs/Design/UI_CLEAN04_REMOVE_PRIMITIVE_DISPLAY_HELPERS.md`.
 
 ### UI-NAV01 — barre inférieure persistante
 
@@ -374,4 +393,4 @@ UI-INV02   2/2
 
 ## Validation UMG UI-NAV01
 
-`WBP_GridCombatHud` a été validé manuellement en PIE le 20 septembre 2026 : barre inférieure réellement collée au viewport, navigation globale fonctionnelle et hotbar MON12 conservée. La prochaine passe UMG concerne `WBP_GridInventory`.
+`WBP_GridCombatHud` a été validé manuellement en PIE le 20 septembre 2026 : barre inférieure réellement collée au viewport, navigation globale fonctionnelle et hotbar MON12 conservée. Le monolithe `WBP_GridInventory` est supprimé ; les validations UMG concernent désormais `WBP_CharacterSheet` et `WBP_InventoryBag`.

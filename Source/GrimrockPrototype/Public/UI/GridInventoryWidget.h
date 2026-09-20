@@ -35,8 +35,8 @@ public:
 	TObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
 
 	/**
-	 * UI-CHAR01 canonical six portrait selectors. Optional during UMG migration;
-	 * when present they are registered natively as indices 0..5.
+	 * UI-CHAR01 canonical six portrait selectors. They exist on CharacterSheet
+	 * and remain optional in this shared base because InventoryBag does not own them.
 	 */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
 	TObjectPtr<UGridPartyMemberWidget> PartyMember_1;
@@ -306,21 +306,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool HasCursorItem() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Display")
-	FString GetItemDisplayString(const FGridItemInstance& Item) const;
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Display")
-	FString GetCursorItemDisplayText() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Display")
-	FString GetMainHandDisplayText() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Display")
-	FString GetOffHandDisplayText() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Display")
-	FString GetInventorySlotDisplayText(int32 SlotIndex) const;
-
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	int32 GetActiveCharacterCount() const;
 
@@ -332,12 +317,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	bool SelectCharacter(int32 CharacterIndex);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
-	FString GetCharacterDisplayText(int32 CharacterIndex) const;
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
-	FString GetSelectedCharacterDisplayText() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	void RegisterPartyMemberWidget(UGridPartyMemberWidget* MemberWidget, int32 CharacterIndex);

@@ -1,5 +1,7 @@
 # CC4.1 - Nettoyage et mise en page de l'Inventaire
 
+> **ARCHIVE** — checklist historique antérieure à UI-CLEAN01/UI-CLEAN04. `WBP_GridInventory` et `GetSelectedCharacterDisplayText()` ont depuis été supprimés. Ne pas utiliser ce document comme procédure actuelle.
+
 ## 1. Objet
 
 Cette tranche consolide CC4 sans modifier les données du personnage, l'ownership ni les règles d'Inventaire.
