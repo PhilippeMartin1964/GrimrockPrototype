@@ -36,12 +36,12 @@ Aucune autorité gameplay n'est déplacée vers Blueprint.
 ## Helpers supprimés
 
 ~~~text
-GetDisplayNameText
-GetQuantityText
 GetItemTypeDisplayText
 GetCompatibleEquipmentSlotsText
 GetLightTooltipText
 ~~~
+
+`GetDisplayNameText()` et `GetQuantityText()` ne sont pas des helpers legacy de tooltip : `WBP_InventorySlot::RefreshSlotVisual` les consomme pour la présentation du slot. Leur suppression initiale par CLEAN01 était incorrecte ; ils restent l'API de présentation compacte du slot.
 
 La construction du texte des slots compatibles reste interne au fichier C++ et alimente `CompatibleSlotsText`.
 
@@ -84,3 +84,10 @@ Process exit code       : 0
 ~~~
 
 UI-ITEM01-CLEAN01 est validé avec l'ensemble du filtre UI-ITEM01.
+
+
+## Correctif post-validation — WBP_InventorySlot
+
+Après la validation automation initiale, l'ouverture de `WBP_InventorySlot` a révélé que `GetDisplayNameText()` et `GetQuantityText()` étaient encore des dépendances actives sérialisées dans `RefreshSlotVisual`.
+
+Leur suppression a donc été annulée. Le test CLEAN01 exige désormais explicitement leur présence, afin de distinguer les helpers de présentation du slot des anciens helpers spécifiques au tooltip.

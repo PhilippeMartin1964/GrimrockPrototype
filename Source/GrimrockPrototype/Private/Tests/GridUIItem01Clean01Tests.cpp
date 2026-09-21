@@ -20,8 +20,6 @@ bool FGridUIItem01Clean01NoLegacyTooltipProjectionTest::RunTest(const FString& P
 	}
 
 	const FName RemovedFunctions[] = {
-		TEXT("GetDisplayNameText"),
-		TEXT("GetQuantityText"),
 		TEXT("GetItemTypeDisplayText"),
 		TEXT("GetCompatibleEquipmentSlotsText"),
 		TEXT("GetLightTooltipText")
@@ -31,6 +29,10 @@ bool FGridUIItem01Clean01NoLegacyTooltipProjectionTest::RunTest(const FString& P
 		TestNull(*FString::Printf(TEXT("Legacy tooltip helper %s is removed"), *FunctionName.ToString()), SlotClass->FindFunctionByName(FunctionName));
 	}
 
+	TestNotNull(TEXT("Slot display-name helper remains for WBP_InventorySlot"),
+		SlotClass->FindFunctionByName(TEXT("GetDisplayNameText")));
+	TestNotNull(TEXT("Slot quantity helper remains for WBP_InventorySlot"),
+		SlotClass->FindFunctionByName(TEXT("GetQuantityText")));
 	TestNotNull(TEXT("Canonical structured tooltip projection remains"), SlotClass->FindFunctionByName(TEXT("GetTooltipView")));
 	TestNotNull(TEXT("Examine fallback text remains"), SlotClass->FindFunctionByName(TEXT("GetTooltipText")));
 

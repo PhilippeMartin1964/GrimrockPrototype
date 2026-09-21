@@ -68,6 +68,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
 	const UGridItemDefinitionAsset* GetItemDefinition() const;
 
+	/** Slot presentation helpers used by WBP_InventorySlot::RefreshSlotVisual. */
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
+	FString GetDisplayNameText() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
+	FString GetQuantityText() const;
 
 	/** UI-ITEM01 structured passive read model used by the item tooltip. */
 	UFUNCTION(BlueprintPure, Category = "Inventory|Tooltip")

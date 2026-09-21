@@ -313,6 +313,36 @@ const UGridItemDefinitionAsset* UGridInventorySlotWidget::GetItemDefinition() co
 	return InventoryComponent ? InventoryComponent->FindItemDefinition(CachedItem.ItemDefinitionId) : nullptr;
 }
 
+FString UGridInventorySlotWidget::GetDisplayNameText() const
+{
+	if (!bHasItem || CachedItem.ItemDefinitionId.IsNone())
+	{
+		return FString();
+	}
+
+	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
+	if (Definition && !Definition->DisplayName.IsEmpty())
+	{
+		return Definition->DisplayName.ToString();
+	}
+	if (!CachedItem.DisplayName.IsEmpty())
+	{
+		return CachedItem.DisplayName.ToString();
+	}
+
+	return CachedItem.ItemDefinitionId.ToString();
+}
+
+FString UGridInventorySlotWidget::GetQuantityText() const
+{
+	if (!bHasItem)
+	{
+		return FString();
+	}
+
+	return FString::Printf(TEXT("%d"), FMath::Max(1, CachedItem.Quantity));
+}
+
 FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 {
 	FGridItemTooltipView View;
