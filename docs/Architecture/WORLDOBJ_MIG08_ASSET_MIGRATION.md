@@ -1,5 +1,7 @@
 # WORLDOBJ-MIG08 — Migration des assets Unreal réels
 
+> **Document historique — constat du 21 septembre 2026 :** le lanceur `Scripts/MigrateWorldObjectAssets.ps1` est encore versionné, mais le commandlet `GridWorldObjectMIG08` est absent du code courant audité (`4b6f9743`). Les commandes ci-dessous décrivent le jalon historique et ne constituent plus une procédure applicable à un build propre de cette révision. Consulter la [référence des scripts](../SCRIPTS_REFERENCE.md#migrateworldobjectassetsps1) avant toute intervention sur les assets.
+
 Statut : **MIG08-B — migration des définitions d’objets + sauvegarde sélective**.
 
 ## 1. But

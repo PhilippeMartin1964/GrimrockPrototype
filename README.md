@@ -57,6 +57,8 @@ Contrôle des plugins/dépendances d'un environnement :
 
 ## Validation
 
+Le [guide complet des scripts PowerShell](docs/SCRIPTS_REFERENCE.md) rassemble leurs paramètres, exemples, rapports et solutions de dépannage. L’[index du dossier Scripts](Scripts/README.md) indique quel outil choisir.
+
 Editor + Automation :
 
 ```powershell

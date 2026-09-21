@@ -47,6 +47,11 @@ Ce dossier regroupe la documentation transversale du projet. `docs/Design` porte
 
 - `docs/FONT_LICENCES.md`
 
+### F. Scripts et outils de développement
+
+- [Référence complète des scripts PowerShell](SCRIPTS_REFERENCE.md) — paramètres, commandes, résultats, dépannage et statut des outils historiques.
+- [Index du dossier Scripts](../Scripts/README.md) — choix rapide du script adapté.
+
 ## Historique documentaire
 
 Git est l’historique. Les documents courants ne sont pas dupliqués avec des suffixes de date.
