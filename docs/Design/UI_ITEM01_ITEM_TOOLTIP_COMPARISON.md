@@ -1,7 +1,7 @@
 # UI-ITEM01 — Item Tooltip and Equipment Comparison
 
 Date : **21 septembre 2026**  
-Statut : **IMPLEMENTATION C++ ; validation locale UE5.5.4 à fournir**
+Statut : **AUTOMATION VALIDÉE — 21 septembre 2026 ; migration visuelle WBP_ItemTooltip à faire**
 
 ## Objectif
 
@@ -184,3 +184,21 @@ Après validation Automation, ouvrir uniquement `WBP_ItemTooltip`.
 Le ticket C++ expose déjà toutes les données nécessaires ; le WBP ne doit pas recalculer les bonus ou les deltas.
 
 La migration visuelle sera faite progressivement dans l'éditeur afin de préserver le tooltip existant.
+
+
+## Validation Automation reçue
+
+Validation locale du 21 septembre 2026 :
+
+~~~text
+Filter                 : Grimrock.UI.Item01
+Succeeded              : 2
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+~~~
+
+Le read model tooltip et la comparaison d'équipement sont donc validés côté C++.
+
+Le travail restant de UI-ITEM01 est la migration visuelle de l'asset existant `WBP_ItemTooltip` vers `GetTooltipView()`, sans recréer de seconde autorité ni de second widget.
