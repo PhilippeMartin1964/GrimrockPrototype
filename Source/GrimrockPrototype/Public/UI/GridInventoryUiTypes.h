@@ -43,9 +43,6 @@ struct FGridItemTooltipStatLine
 	float Delta = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
-	bool bIntegerValue = true;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	bool bHasComparison = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
@@ -68,9 +65,6 @@ struct FGridItemTooltipEquipmentComparison
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	FText SlotLabel;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
-	bool bCanEquipToSlot = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	bool bHasEquippedItem = false;
@@ -133,19 +127,10 @@ struct FGridItemTooltipView
 	bool bCanAssignToHotbar = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
-	FText UsageSummary;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	TArray<FGridItemTooltipStatLine> StatLines;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	TArray<FGridItemTooltipEquipmentComparison> EquipmentComparisons;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
-	FText StatSummary;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
-	FText ComparisonSummary;
 };
 
 UENUM(BlueprintType)

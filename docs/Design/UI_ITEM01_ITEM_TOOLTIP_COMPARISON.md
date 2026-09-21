@@ -68,6 +68,8 @@ FGridItemTooltipStatLine
 
 Le Blueprint peut donc choisir ses couleurs et sa typographie sans recalculer les valeurs.
 
+Depuis UI-ITEM01-CLEAN01, le read model ne transporte plus de résumés textuels parallèles (`UsageSummary`, `StatSummary`, `ComparisonSummary`). Les tableaux structurés sont l'unique projection visuelle ; `GetTooltipText()` construit son fallback textuel à la demande pour l'action Examiner.
+
 ## Statistiques projetées
 
 UI-ITEM01 utilise uniquement les autorités déjà existantes dans `UGridItemDefinitionAsset`.
@@ -148,9 +150,9 @@ Les usages dépendant d'une cible monde, par exemple clé/serrure ou gemme/réce
 
 ## Fallback texte
 
-`GetTooltipText()` utilise désormais le même `FGridItemTooltipView`.
+`GetTooltipText()` utilise le même `FGridItemTooltipView` structuré et formate à la demande les informations d'usage, les stats et les comparaisons.
 
-Il reste donc un fallback textuel cohérent même avant la finalisation visuelle de `WBP_ItemTooltip`.
+Aucun résumé textuel préformaté n'est stocké en parallèle dans le read model.
 
 ## Automation
 

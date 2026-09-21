@@ -76,6 +76,48 @@ namespace
 		return Item.ItemDefinitionId.IsNone() ? FText::GetEmpty() : FText::FromName(Item.ItemDefinitionId);
 	}
 
+	FText BuildCompatibleEquipmentSlotsText(const UGridItemDefinitionAsset* Definition)
+	{
+		if (!Definition)
+		{
+			return FText::GetEmpty();
+		}
+
+		TArray<FString> SlotLabels;
+		for (const EGridEquipmentSlot CompatibleSlot : Definition->CompatibleEquipmentSlots)
+		{
+			const FText SlotLabel = GetEquipmentSlotDisplayName(CompatibleSlot);
+			if (!SlotLabel.IsEmpty())
+			{
+				SlotLabels.Add(SlotLabel.ToString());
+			}
+		}
+
+		return SlotLabels.Num() > 0 ? FText::FromString(FString::Join(SlotLabels, TEXT(", "))) : FText::GetEmpty();
+	}
+
+	FText BuildUsageSummary(const FGridItemTooltipView& View)
+	{
+		TArray<FString> UsageParts;
+		if (View.bEquippable)
+		{
+			UsageParts.Add(TEXT("Équipable"));
+		}
+		if (View.bReadable)
+		{
+			UsageParts.Add(TEXT("Lisible"));
+		}
+		if (View.bCanAssignToHotbar)
+		{
+			UsageParts.Add(TEXT("Barre d'action"));
+		}
+		if (View.bProvidesLight)
+		{
+			UsageParts.Add(View.bLightEnabled ? TEXT("Lumière allumée") : TEXT("Lumière éteinte"));
+		}
+		return UsageParts.Num() > 0 ? FText::FromString(FString::Join(UsageParts, TEXT(" • "))) : FText::GetEmpty();
+	}
+
 	FString FormatTooltipNumber(float Value, bool bInteger)
 	{
 		if (bInteger)
@@ -98,7 +140,6 @@ namespace
 		Line.ItemValue = ItemValue;
 		Line.EquippedValue = EquippedValue;
 		Line.Delta = bHasComparison ? ItemValue - EquippedValue : 0.0f;
-		Line.bIntegerValue = bInteger;
 		Line.bHasComparison = bHasComparison;
 		if (bHasComparison && !FMath::IsNearlyZero(Line.Delta))
 		{
@@ -189,8 +230,7 @@ namespace
 		TArray<FString> Sections;
 		for (const FGridItemTooltipEquipmentComparison& Comparison : Comparisons)
 		{
-			const FString EquippedLabel = Comparison.bHasEquippedItem ? Comparison.EquippedItemName.ToString() : TEXT("vide");
-			FString Section = FString::Printf(TEXT("%s — %s"), *Comparison.SlotLabel.ToString(), *EquippedLabel);
+			FString Section = FString::Printf(TEXT("%s — %s"), *Comparison.SlotLabel.ToString(), *Comparison.EquippedItemName.ToString());
 			const FText Stats = BuildStatSummary(Comparison.StatLines, true);
 			if (!Stats.IsEmpty())
 			{
@@ -272,36 +312,6 @@ const UGridItemDefinitionAsset* UGridInventorySlotWidget::GetItemDefinition() co
 	return InventoryComponent ? InventoryComponent->FindItemDefinition(CachedItem.ItemDefinitionId) : nullptr;
 }
 
-FString UGridInventorySlotWidget::GetDisplayNameText() const
-{
-	if (!bHasItem || CachedItem.ItemDefinitionId.IsNone())
-	{
-		return FString();
-	}
-
-	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
-	if (Definition && !Definition->DisplayName.IsEmpty())
-	{
-		return Definition->DisplayName.ToString();
-	}
-	if (!CachedItem.DisplayName.IsEmpty())
-	{
-		return CachedItem.DisplayName.ToString();
-	}
-
-	return CachedItem.ItemDefinitionId.ToString();
-}
-
-FString UGridInventorySlotWidget::GetQuantityText() const
-{
-	if (!bHasItem)
-	{
-		return FString();
-	}
-
-	return FString::Printf(TEXT("%d"), FMath::Max(1, CachedItem.Quantity));
-}
-
 FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 {
 	FGridItemTooltipView View;
@@ -322,7 +332,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	View.WeightText = View.Quantity > 1
 		? FText::FromString(FString::Printf(TEXT("%.1f × %d = %.1f"), View.UnitWeight, View.Quantity, View.TotalWeight))
 		: FText::FromString(FString::Printf(TEXT("%.1f"), View.UnitWeight));
-	View.CompatibleSlotsText = GetCompatibleEquipmentSlotsText();
+	View.CompatibleSlotsText = BuildCompatibleEquipmentSlotsText(Definition);
 
 	if (!Definition)
 	{
@@ -338,30 +348,8 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	View.bCanAssignToHotbar =
 		SlotType == EGridInventoryUiSlotType::Inventory && (Definition->BuildInventoryCombatActionDefinition(InventoryAction) || Definition->IsPhysicallyThrowable());
 
-	TArray<FString> UsageParts;
-	if (View.bEquippable)
-	{
-		UsageParts.Add(TEXT("Équipable"));
-	}
-	if (View.bReadable)
-	{
-		UsageParts.Add(TEXT("Lisible"));
-	}
-	if (View.bCanAssignToHotbar)
-	{
-		UsageParts.Add(TEXT("Barre d'action"));
-	}
-	if (View.bProvidesLight)
-	{
-		UsageParts.Add(View.bLightEnabled ? TEXT("Lumière allumée") : TEXT("Lumière éteinte"));
-	}
-	if (UsageParts.Num() > 0)
-	{
-		View.UsageSummary = FText::FromString(FString::Join(UsageParts, TEXT(" • ")));
-	}
 
 	AppendDefinitionStats(Definition, nullptr, false, View.StatLines);
-	View.StatSummary = BuildStatSummary(View.StatLines, false);
 
 	const UGridInventoryWidget* InventoryWidget = OwningInventoryWidget.Get();
 	const UGridPartyInventoryComponent* InventoryComponent = InventoryWidget ? InventoryWidget->InventoryComponent : nullptr;
@@ -390,58 +378,13 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		FGridItemTooltipEquipmentComparison& Comparison = View.EquipmentComparisons.AddDefaulted_GetRef();
 		Comparison.EquipmentSlot = TargetSlot;
 		Comparison.SlotLabel = GetEquipmentSlotDisplayName(TargetSlot);
-		Comparison.bCanEquipToSlot = InventoryComponent->CanEquipItemToSlot(CharacterIndex, CachedItem, TargetSlot);
 		Comparison.bHasEquippedItem = bHasEquippedItem;
 
-		const UGridItemDefinitionAsset* EquippedDefinition = nullptr;
-		if (bHasEquippedItem)
-		{
-			EquippedDefinition = InventoryComponent->FindItemDefinition(EquippedItem.ItemDefinitionId);
-			Comparison.EquippedItemName = GetItemDisplayName(EquippedItem, EquippedDefinition);
-		}
-
+		const UGridItemDefinitionAsset* EquippedDefinition = InventoryComponent->FindItemDefinition(EquippedItem.ItemDefinitionId);
+		Comparison.EquippedItemName = GetItemDisplayName(EquippedItem, EquippedDefinition);
 		AppendDefinitionStats(Definition, EquippedDefinition, true, Comparison.StatLines);
 	}
-	View.ComparisonSummary = BuildComparisonSummary(View.EquipmentComparisons);
 	return View;
-}
-
-FText UGridInventorySlotWidget::GetItemTypeDisplayText() const
-{
-	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
-	return Definition ? GetItemTypeDisplayName(Definition->ItemType) : FText::GetEmpty();
-}
-
-FText UGridInventorySlotWidget::GetCompatibleEquipmentSlotsText() const
-{
-	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
-	if (!Definition)
-	{
-		return FText::GetEmpty();
-	}
-
-	TArray<FString> SlotLabels;
-	for (const EGridEquipmentSlot CompatibleSlot : Definition->CompatibleEquipmentSlots)
-	{
-		const FText SlotLabel = GetEquipmentSlotDisplayName(CompatibleSlot);
-		if (!SlotLabel.IsEmpty())
-		{
-			SlotLabels.Add(SlotLabel.ToString());
-		}
-	}
-
-	return SlotLabels.Num() > 0 ? FText::FromString(FString::Join(SlotLabels, TEXT(", "))) : FText::GetEmpty();
-}
-
-FText UGridInventorySlotWidget::GetLightTooltipText() const
-{
-	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
-	if (!Definition || !Definition->HasLightEmitter())
-	{
-		return FText::GetEmpty();
-	}
-	return CachedItem.bLightsEnabled ? NSLOCTEXT("GridInventoryTooltip", "LightEnabled", "Lumière : allumée")
-								 : NSLOCTEXT("GridInventoryTooltip", "LightDisabled", "Lumière : éteinte");
 }
 
 FText UGridInventorySlotWidget::GetTooltipText() const
@@ -473,21 +416,24 @@ FText UGridInventorySlotWidget::GetTooltipText() const
 	{
 		Facts.Add(FString::Printf(TEXT("Équipement : %s"), *View.CompatibleSlotsText.ToString()));
 	}
-	if (!View.UsageSummary.IsEmpty())
+	const FText UsageSummary = BuildUsageSummary(View);
+	if (!UsageSummary.IsEmpty())
 	{
-		Facts.Add(View.UsageSummary.ToString());
+		Facts.Add(UsageSummary.ToString());
 	}
 	if (Facts.Num() > 0)
 	{
 		Sections.Add(FString::Join(Facts, TEXT("\n")));
 	}
-	if (!View.StatSummary.IsEmpty())
+	const FText StatSummary = BuildStatSummary(View.StatLines, false);
+	if (!StatSummary.IsEmpty())
 	{
-		Sections.Add(View.StatSummary.ToString());
+		Sections.Add(StatSummary.ToString());
 	}
-	if (!View.ComparisonSummary.IsEmpty())
+	const FText ComparisonSummary = BuildComparisonSummary(View.EquipmentComparisons);
+	if (!ComparisonSummary.IsEmpty())
 	{
-		Sections.Add(View.ComparisonSummary.ToString());
+		Sections.Add(ComparisonSummary.ToString());
 	}
 	return FText::FromString(FString::Join(Sections, TEXT("\n\n")));
 }

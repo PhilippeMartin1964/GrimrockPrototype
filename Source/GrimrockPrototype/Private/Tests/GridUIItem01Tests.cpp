@@ -88,7 +88,6 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Tooltip total weight multiplies stack quantity"), FMath::IsNearlyEqual(View.TotalWeight, 3.0f));
 	TestTrue(TEXT("Tooltip reports equippable state"), View.bEquippable);
 	TestTrue(TEXT("Tooltip exposes the Belt compatibility"), View.CompatibleSlotsText.ToString().Contains(TEXT("Ceinture")));
-	TestTrue(TEXT("Tooltip stat summary contains Strength"), View.StatSummary.ToString().Contains(TEXT("Force")));
 	TestEqual(TEXT("Empty compatible equipment slots do not create comparisons"), View.EquipmentComparisons.Num(), 0);
 	TestTrue(TEXT("Fallback tooltip contains the authored description"),
 		SlotWidget->GetTooltipText().ToString().Contains(TEXT("Un objet de test pour le tooltip.")));
@@ -118,7 +117,6 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 	SlotWidget->SetItem(Book);
 	const FGridItemTooltipView BookView = SlotWidget->GetTooltipView();
 	TestTrue(TEXT("Readable state reaches tooltip view"), BookView.bReadable);
-	TestTrue(TEXT("Readable state reaches usage summary"), BookView.UsageSummary.ToString().Contains(TEXT("Lisible")));
 
 	return true;
 }
@@ -157,7 +155,6 @@ bool FGridUIItem01NoEmptyEquipmentComparisonTest::RunTest(const FString& Paramet
 	TestTrue(TEXT("Tooltip remains valid"), View.bValid);
 	TestTrue(TEXT("Candidate remains equippable"), View.bEquippable);
 	TestEqual(TEXT("No comparison is created when the compatible slot is empty"), View.EquipmentComparisons.Num(), 0);
-	TestTrue(TEXT("Comparison summary remains empty"), View.ComparisonSummary.IsEmpty());
 
 	return true;
 }
@@ -219,7 +216,6 @@ bool FGridUIItem01EquipmentComparisonTest::RunTest(const FString& Parameters)
 	}
 
 	const FGridItemTooltipEquipmentComparison& Comparison = View.EquipmentComparisons[0];
-	TestTrue(TEXT("Candidate can equip to compared slot"), Comparison.bCanEquipToSlot);
 	TestTrue(TEXT("Compared slot is occupied"), Comparison.bHasEquippedItem);
 	TestEqual(TEXT("Compared item name is projected"), Comparison.EquippedItemName.ToString(), FString(TEXT("Ancienne ceinture")));
 
@@ -247,8 +243,6 @@ bool FGridUIItem01EquipmentComparisonTest::RunTest(const FString& Parameters)
 		TestTrue(TEXT("Fire resistance delta is positive"), Fire->DeltaState == EGridItemTooltipDeltaState::Positive);
 	}
 
-	TestTrue(TEXT("Comparison summary names the equipped item"), View.ComparisonSummary.ToString().Contains(TEXT("Ancienne ceinture")));
-	TestTrue(TEXT("Comparison summary contains delta values"), View.ComparisonSummary.ToString().Contains(TEXT("Δ")));
 
 	return true;
 }
