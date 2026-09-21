@@ -104,7 +104,7 @@ Aucune statistique inventée n'est calculée dans l'UI.
 
 ## Comparaison d'équipement
 
-Pour chaque slot compatible :
+Pour chaque slot compatible réellement occupé par un autre objet :
 
 ~~~text
 item survolé
@@ -129,7 +129,9 @@ Un delta positif est `Positive`, un delta négatif `Negative`, zéro `Neutral`.
 
 La couleur reste du ressort du WBP.
 
-Si l'objet survolé est déjà l'objet équipé dans ce slot exact, la comparaison avec lui-même est omise.
+Un slot compatible vide ne crée aucune comparaison : le bandeau de comparaison ne doit pas confondre « emplacement compatible » et « objet réellement comparable ».
+
+Si l'objet survolé est déjà l'objet équipé dans ce slot exact, la comparaison avec lui-même est également omise.
 
 ## État d'utilisation
 
@@ -173,6 +175,7 @@ Ils vérifient :
 - état équipable ;
 - état lisible partagé ;
 - projection des stats ;
+- absence de comparaison quand le slot compatible est vide ;
 - comparaison d'un Belt avec l'objet équipé ;
 - delta positif et négatif ;
 - résumé de comparaison.

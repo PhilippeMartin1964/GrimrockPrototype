@@ -382,7 +382,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 
 		FGridItemInstance EquippedItem;
 		const bool bHasEquippedItem = InventoryComponent->GetEquippedItem(CharacterIndex, TargetSlot, EquippedItem);
-		if (bHasEquippedItem && EquippedItem.RuntimeObjectId == CachedItem.RuntimeObjectId)
+		if (!bHasEquippedItem || EquippedItem.RuntimeObjectId == CachedItem.RuntimeObjectId)
 		{
 			continue;
 		}

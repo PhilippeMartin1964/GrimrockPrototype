@@ -89,6 +89,7 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Tooltip reports equippable state"), View.bEquippable);
 	TestTrue(TEXT("Tooltip exposes the Belt compatibility"), View.CompatibleSlotsText.ToString().Contains(TEXT("Ceinture")));
 	TestTrue(TEXT("Tooltip stat summary contains Strength"), View.StatSummary.ToString().Contains(TEXT("Force")));
+	TestEqual(TEXT("Empty compatible equipment slots do not create comparisons"), View.EquipmentComparisons.Num(), 0);
 	TestTrue(TEXT("Fallback tooltip contains the authored description"),
 		SlotWidget->GetTooltipText().ToString().Contains(TEXT("Un objet de test pour le tooltip.")));
 
@@ -118,6 +119,45 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 	const FGridItemTooltipView BookView = SlotWidget->GetTooltipView();
 	TestTrue(TEXT("Readable state reaches tooltip view"), BookView.bReadable);
 	TestTrue(TEXT("Readable state reaches usage summary"), BookView.UsageSummary.ToString().Contains(TEXT("Lisible")));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIItem01NoEmptyEquipmentComparisonTest, "Grimrock.UI.Item01.NoEmptyEquipmentComparison",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIItem01NoEmptyEquipmentComparisonTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridPartyInventoryComponent* Inventory = MakeInventory();
+
+	UGridItemDefinitionAsset* CandidateDefinition = MakeBeltDefinition(TEXT("Item_EmptyCompareBelt"), TEXT("Ceinture sans référence"));
+	CandidateDefinition->EquipmentStatBonus.StrengthBonus = 2;
+	TestTrue(TEXT("Candidate definition registers"), Inventory->RegisterItemDefinition(CandidateDefinition));
+
+	UGridInventoryWidget* OwnerWidget = NewObject<UGridInventoryWidget>();
+	OwnerWidget->InventoryComponent = Inventory;
+
+	UGridInventorySlotWidget* SlotWidget = NewObject<UGridInventorySlotWidget>();
+	SlotWidget->SetOwnerInventoryWidget(OwnerWidget);
+	SlotWidget->InitializeInventorySlot(EGridInventoryUiSlotType::Inventory, 0);
+
+	FGridItemInstance Candidate;
+	Candidate.RuntimeObjectId = FGuid::NewGuid();
+	Candidate.ItemDefinitionId = CandidateDefinition->ItemDefinitionId;
+	Candidate.DisplayName = CandidateDefinition->DisplayName;
+	Candidate.Quantity = 1;
+	Candidate.Weight = CandidateDefinition->Weight;
+	Candidate.OwnerType = EGridItemOwnerType::CharacterInventory;
+	Candidate.OwnerCharacterIndex = 0;
+	SlotWidget->SetItem(Candidate);
+
+	const FGridItemTooltipView View = SlotWidget->GetTooltipView();
+	TestTrue(TEXT("Tooltip remains valid"), View.bValid);
+	TestTrue(TEXT("Candidate remains equippable"), View.bEquippable);
+	TestEqual(TEXT("No comparison is created when the compatible slot is empty"), View.EquipmentComparisons.Num(), 0);
+	TestTrue(TEXT("Comparison summary remains empty"), View.ComparisonSummary.IsEmpty());
 
 	return true;
 }
