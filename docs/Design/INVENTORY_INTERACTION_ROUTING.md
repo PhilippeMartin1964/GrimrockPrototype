@@ -116,7 +116,7 @@ Tant que ces slots ne sont pas ajoutés au modèle, les Blueprints ne doivent pa
 | Drag/drop | `NativeOnDragDetected` / `NativeOnDrop` | `HandleSlotDrop` | Inventaire vers inventaire délégué au composant (fusion ou swap) ; swap atomique pour les échanges avec l'équipement | `RefreshInventory`; sync visuel si équipement touché | `GridInventory UI Drop`, `GridInventory SwapSlots` |
 | Clic action menu | `WBP_ItemActionButton` | Action reconstruite et validée par index | `ExecuteInventoryContextActionByIndex` puis `ExecuteResolvedInventoryContextAction` | `RefreshInventory` si action exécutée | `GridItemActions ExecuteByIndex`, `Execute ...` |
 | Clic extérieur menu | `WBP_ItemActionMenu` click catcher | Blueprint vérifie que le clic est hors panneau | `CloseItemActionMenu("ClickOutside")` puis retrait du menu uniquement | Pas de refresh gameplay | `GridItemActionMenu Closed` |
-| Tooltip hover | `WBP_ItemToolTip` / slot widget | Lecture passive | Aucune mutation | Affichage tooltip uniquement | Pas de log requis |
+| Tooltip hover | `WBP_ItemTooltip` / slot widget | Lecture passive | Aucune mutation | Affichage tooltip uniquement | Pas de log requis |
 | Examiner | Menu action par index | Source et action disponibles | `PresentItemExamination` | Panneau Blueprint stable à terme | `GridItemActions Execute Examine` |
 | Lire | Menu action par index | Item lisible | `PresentItemReading` | Panneau Blueprint persistant | `GridItemActions Execute Read` |
 | Placement sur cible | Menu action par index | Cible face au groupe, acceptation réceptacle | `UGridItemTransferService` | Refresh + sync visuel si source équipée | `GridItemActions Execute PlaceOnTarget`, `GridItemTransfer` |
@@ -279,3 +279,17 @@ La prise d'un objet monde doit notifier UGridPartyInventoryComponent et rafraîc
 Le clic droit natif reste dans UGridInventorySlotWidget/UGridInventoryWidget. La création visuelle de WBP_ItemActionMenu appartenait historiquement au Graph de WBP_GridInventory.
 
 Après split, cette présentation doit vivre dans WBP_InventoryBag. Le C++ loggue désormais PresentationMissing si OnContextActionsRequested n'a aucun listener.
+
+
+## UI-ITEM01 — tooltip read model
+
+Le survol ne reconstruit aucune règle gameplay en Blueprint.
+
+~~~text
+UGridInventorySlotWidget
+-> GetTooltipView()
+-> FGridItemTooltipView
+-> WBP_ItemTooltip
+~~~
+
+Les règles de lecture réutilisent `UGridItemContextActionLibrary::IsItemReadable()`. La comparaison d'équipement lit le même `SelectedCharacterIndex` et le même `UGridPartyInventoryComponent` que la feuille et le sac.

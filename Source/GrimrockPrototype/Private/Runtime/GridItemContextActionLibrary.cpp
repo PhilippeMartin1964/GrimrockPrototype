@@ -101,14 +101,6 @@ namespace
 		return Definition && Definition->ItemTags.Contains(Tag);
 	}
 
-	bool IsReadableItem(const FGridItemInstance& Item, const UGridItemDefinitionAsset* Definition)
-	{
-		return !Item.ReadTextOverride.IsEmpty() || (Item.ReadableContentAsset && !Item.ReadableContentAsset->BodyText.IsEmpty()) ||
-			(Definition &&
-				(Definition->ItemType == EGridItemType::Book || Definition->ItemType == EGridItemType::Scroll || HasItemTag(Definition, TEXT("Readable")) ||
-					HasItemTag(Definition, TEXT("Lisible")) || !Definition->ReadText.IsEmpty()));
-	}
-
 	void AddAction(TArray<FGridItemContextAction>& Actions, EGridItemActionType ActionType, const FText& Label,
 		const FGridFacingTargetContext* Target = nullptr, EGridEquipmentSlot EquipmentSlot = EGridEquipmentSlot::None, bool bEnabled = true,
 		const FText& DisabledReason = FText::GetEmpty())
@@ -177,6 +169,14 @@ namespace
 				return FText::GetEmpty();
 		}
 	}
+}
+
+bool UGridItemContextActionLibrary::IsItemReadable(const FGridItemInstance& Item, const UGridItemDefinitionAsset* Definition)
+{
+	return !Item.ReadTextOverride.IsEmpty() || (Item.ReadableContentAsset && !Item.ReadableContentAsset->BodyText.IsEmpty()) ||
+		(Definition &&
+			(Definition->ItemType == EGridItemType::Book || Definition->ItemType == EGridItemType::Scroll || HasItemTag(Definition, TEXT("Readable")) ||
+				HasItemTag(Definition, TEXT("Lisible")) || !Definition->ReadText.IsEmpty()));
 }
 
 bool UGridItemContextActionLibrary::BuildInventorySlotContextActions(AGrimrockPartyPawn* PartyPawn, int32 CharacterIndex, int32 InventorySlotIndex,
@@ -275,7 +275,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		AddAction(OutActions, EGridItemActionType::Consume, NSLOCTEXT("GridItemActions", "Consume", "Consommer"));
 	}
 
-	if (IsReadableItem(ItemContext.Item, Definition))
+	if (UGridItemContextActionLibrary::IsItemReadable(ItemContext.Item, Definition))
 	{
 		AddAction(OutActions, EGridItemActionType::Read, NSLOCTEXT("GridItemActions", "Read", "Lire"));
 	}

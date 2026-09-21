@@ -74,6 +74,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
 	FString GetQuantityText() const;
 
+	/** UI-ITEM01 structured passive read model used by the item tooltip. */
+	UFUNCTION(BlueprintPure, Category = "Inventory|Tooltip")
+	FGridItemTooltipView GetTooltipView() const;
+
+
 	UFUNCTION(BlueprintPure, Category = "Inventory|Tooltip")
 	FText GetItemTypeDisplayText() const;
 

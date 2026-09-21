@@ -2,6 +2,7 @@
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "InputCoreTypes.h"
+#include "Runtime/GridItemContextActionLibrary.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryDragDropOperation.h"
@@ -13,52 +14,192 @@ namespace
 	{
 		switch (Slot)
 		{
-			case EGridEquipmentSlot::MainHand:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotMainHand", "Main directrice");
-			case EGridEquipmentSlot::OffHand:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotOffHand", "Main secondaire");
-			case EGridEquipmentSlot::Head:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotHead", "Tete");
-			case EGridEquipmentSlot::Chest:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotChest", "Torse");
-			case EGridEquipmentSlot::Legs:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotLegs", "Jambes");
-			case EGridEquipmentSlot::Feet:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotFeet", "Pieds");
-			case EGridEquipmentSlot::Amulet:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotAmulet", "Amulette");
-			case EGridEquipmentSlot::Ring1:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotRing1", "Anneau I");
-			case EGridEquipmentSlot::Ring2:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotRing2", "Anneau II");
-			case EGridEquipmentSlot::Shoulders:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotShoulders", "Epaules");
-			case EGridEquipmentSlot::Gloves:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotGloves", "Gants");
-			case EGridEquipmentSlot::Belt:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotBelt", "Ceinture");
-			case EGridEquipmentSlot::Cloak:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotCloak", "Cape");
-			case EGridEquipmentSlot::Talisman:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotTalisman", "Talisman");
-			case EGridEquipmentSlot::QuickSlot1:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotQuickSlot1", "Raccourci I");
-			case EGridEquipmentSlot::QuickSlot2:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotQuickSlot2", "Raccourci II");
-			case EGridEquipmentSlot::Face:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotFace", "Visage");
-			case EGridEquipmentSlot::Shirt:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotShirt", "Chemise");
-			case EGridEquipmentSlot::Bracers:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotBracers", "Brassards");
-			case EGridEquipmentSlot::Earring1:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotEarring1", "Bijou d'oreille I");
-			case EGridEquipmentSlot::Earring2:
-				return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotEarring2", "Bijou d'oreille II");
+			case EGridEquipmentSlot::MainHand: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotMainHand", "Main directrice");
+			case EGridEquipmentSlot::OffHand: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotOffHand", "Main secondaire");
+			case EGridEquipmentSlot::Head: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotHead", "Tête");
+			case EGridEquipmentSlot::Chest: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotChest", "Torse");
+			case EGridEquipmentSlot::Legs: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotLegs", "Jambes");
+			case EGridEquipmentSlot::Feet: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotFeet", "Pieds");
+			case EGridEquipmentSlot::Amulet: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotAmulet", "Amulette");
+			case EGridEquipmentSlot::Ring1: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotRing1", "Anneau I");
+			case EGridEquipmentSlot::Ring2: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotRing2", "Anneau II");
+			case EGridEquipmentSlot::Shoulders: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotShoulders", "Épaules");
+			case EGridEquipmentSlot::Gloves: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotGloves", "Gants");
+			case EGridEquipmentSlot::Belt: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotBelt", "Ceinture");
+			case EGridEquipmentSlot::Cloak: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotCloak", "Cape");
+			case EGridEquipmentSlot::Talisman: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotTalisman", "Talisman");
+			case EGridEquipmentSlot::QuickSlot1: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotQuickSlot1", "Raccourci I");
+			case EGridEquipmentSlot::QuickSlot2: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotQuickSlot2", "Raccourci II");
+			case EGridEquipmentSlot::Face: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotFace", "Visage");
+			case EGridEquipmentSlot::Shirt: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotShirt", "Chemise");
+			case EGridEquipmentSlot::Bracers: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotBracers", "Brassards");
+			case EGridEquipmentSlot::Earring1: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotEarring1", "Bijou d'oreille I");
+			case EGridEquipmentSlot::Earring2: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotEarring2", "Bijou d'oreille II");
 			case EGridEquipmentSlot::None:
-			default:
-				return FText::GetEmpty();
+			default: return FText::GetEmpty();
 		}
+	}
+
+	FText GetItemTypeDisplayName(EGridItemType ItemType)
+	{
+		switch (ItemType)
+		{
+			case EGridItemType::Torch: return NSLOCTEXT("GridInventoryTooltip", "ItemTypeTorch", "Source de lumière");
+			case EGridItemType::Weapon: return NSLOCTEXT("GridInventoryTooltip", "ItemTypeWeapon", "Arme");
+			case EGridItemType::Shield: return NSLOCTEXT("GridInventoryTooltip", "ItemTypeShield", "Bouclier");
+			case EGridItemType::Armor: return NSLOCTEXT("GridInventoryTooltip", "ItemTypeArmor", "Armure");
+			case EGridItemType::Jewelry: return NSLOCTEXT("GridInventoryTooltip", "ItemTypeJewelry", "Bijou");
+			case EGridItemType::Key: return NSLOCTEXT("GridInventoryTooltip", "ItemTypeKey", "Clé");
+			case EGridItemType::Gem: return NSLOCTEXT("GridInventoryTooltip", "ItemTypeGem", "Gemme");
+			case EGridItemType::Potion: return NSLOCTEXT("GridInventoryTooltip", "ItemTypePotion", "Potion");
+			case EGridItemType::Scroll: return NSLOCTEXT("GridInventoryTooltip", "ItemTypeScroll", "Parchemin");
+			case EGridItemType::Book: return NSLOCTEXT("GridInventoryTooltip", "ItemTypeBook", "Livre");
+			case EGridItemType::Food: return NSLOCTEXT("GridInventoryTooltip", "ItemTypeFood", "Nourriture");
+			case EGridItemType::Component: return NSLOCTEXT("GridInventoryTooltip", "ItemTypeComponent", "Composant");
+			case EGridItemType::Quest: return NSLOCTEXT("GridInventoryTooltip", "ItemTypeQuest", "Objet de quête");
+			case EGridItemType::None:
+			case EGridItemType::Misc:
+			default: return NSLOCTEXT("GridInventoryTooltip", "ItemTypeGeneric", "Objet");
+		}
+	}
+
+	FText GetItemDisplayName(const FGridItemInstance& Item, const UGridItemDefinitionAsset* Definition)
+	{
+		if (Definition && !Definition->DisplayName.IsEmpty())
+		{
+			return Definition->DisplayName;
+		}
+		if (!Item.DisplayName.IsEmpty())
+		{
+			return Item.DisplayName;
+		}
+		return Item.ItemDefinitionId.IsNone() ? FText::GetEmpty() : FText::FromName(Item.ItemDefinitionId);
+	}
+
+	FString FormatTooltipNumber(float Value, bool bInteger)
+	{
+		if (bInteger)
+		{
+			return FString::Printf(TEXT("%+.0f"), Value);
+		}
+		return FString::Printf(TEXT("%+.1f"), Value);
+	}
+
+	void AddTooltipStatLine(TArray<FGridItemTooltipStatLine>& Lines, const FText& Label, float ItemValue, float EquippedValue, bool bInteger,
+		bool bHasComparison)
+	{
+		if (FMath::IsNearlyZero(ItemValue) && (!bHasComparison || FMath::IsNearlyZero(EquippedValue)))
+		{
+			return;
+		}
+
+		FGridItemTooltipStatLine& Line = Lines.AddDefaulted_GetRef();
+		Line.Label = Label;
+		Line.ItemValue = ItemValue;
+		Line.EquippedValue = EquippedValue;
+		Line.Delta = bHasComparison ? ItemValue - EquippedValue : 0.0f;
+		Line.bIntegerValue = bInteger;
+		Line.bHasComparison = bHasComparison;
+		if (bHasComparison && !FMath::IsNearlyZero(Line.Delta))
+		{
+			Line.DeltaState = Line.Delta > 0.0f ? EGridItemTooltipDeltaState::Positive : EGridItemTooltipDeltaState::Negative;
+		}
+		Line.ValueText = FText::FromString(FormatTooltipNumber(ItemValue, bInteger));
+		if (bHasComparison)
+		{
+			Line.DeltaText = FMath::IsNearlyZero(Line.Delta)
+				? FText::FromString(TEXT("±0"))
+				: FText::FromString(FormatTooltipNumber(Line.Delta, bInteger));
+		}
+	}
+
+	void AppendDefinitionStats(
+		const UGridItemDefinitionAsset* Candidate, const UGridItemDefinitionAsset* Equipped, bool bComparison, TArray<FGridItemTooltipStatLine>& OutLines)
+	{
+		if (!Candidate)
+		{
+			return;
+		}
+
+		const FGridEquipmentStatBonus EmptyStats;
+		const FGridDamageResistanceSet EmptyResistances;
+		const FGridEquipmentStatBonus& CandidateStats = Candidate->EquipmentStatBonus;
+		const FGridEquipmentStatBonus& EquippedStats = Equipped ? Equipped->EquipmentStatBonus : EmptyStats;
+		const FGridDamageResistanceSet& CandidateRes = Candidate->EquipmentResistanceBonus;
+		const FGridDamageResistanceSet& EquippedRes = Equipped ? Equipped->EquipmentResistanceBonus : EmptyResistances;
+
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatStrength", "Force"), CandidateStats.StrengthBonus,
+			EquippedStats.StrengthBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatDexterity", "Dextérité"), CandidateStats.DexterityBonus,
+			EquippedStats.DexterityBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatConstitution", "Constitution"), CandidateStats.ConstitutionBonus,
+			EquippedStats.ConstitutionBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatIntelligence", "Intelligence"), CandidateStats.IntelligenceBonus,
+			EquippedStats.IntelligenceBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatWisdom", "Sagesse"), CandidateStats.WisdomBonus,
+			EquippedStats.WisdomBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatCharisma", "Charisme"), CandidateStats.CharismaBonus,
+			EquippedStats.CharismaBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatHealth", "PV max"), CandidateStats.MaxHealthBonus,
+			EquippedStats.MaxHealthBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatMana", "Mana max"), CandidateStats.MaxManaBonus,
+			EquippedStats.MaxManaBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatCarry", "Charge max"), CandidateStats.CarryWeightBonus,
+			EquippedStats.CarryWeightBonus, false, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatArmor", "Armure physique"), CandidateStats.ArmorBonus,
+			EquippedStats.ArmorBonus, true, bComparison);
+
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResPhysical", "Résistance physique"), CandidateRes.PhysicalResistance,
+			EquippedRes.PhysicalResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResFire", "Résistance feu"), CandidateRes.FireResistance,
+			EquippedRes.FireResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResIce", "Résistance glace"), CandidateRes.IceResistance,
+			EquippedRes.IceResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResLightning", "Résistance foudre"), CandidateRes.LightningResistance,
+			EquippedRes.LightningResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResPoison", "Résistance poison"), CandidateRes.PoisonResistance,
+			EquippedRes.PoisonResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResHoly", "Résistance sacrée"), CandidateRes.HolyResistance,
+			EquippedRes.HolyResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResNecrotic", "Résistance nécrotique"), CandidateRes.NecroticResistance,
+			EquippedRes.NecroticResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResArcane", "Résistance arcanique"), CandidateRes.ArcaneResistance,
+			EquippedRes.ArcaneResistance, true, bComparison);
+	}
+
+	FText BuildStatSummary(const TArray<FGridItemTooltipStatLine>& Lines, bool bIncludeDelta)
+	{
+		TArray<FString> Parts;
+		for (const FGridItemTooltipStatLine& Line : Lines)
+		{
+			if (bIncludeDelta && Line.bHasComparison)
+			{
+				Parts.Add(FString::Printf(TEXT("%s %s (Δ %s)"), *Line.Label.ToString(), *Line.ValueText.ToString(), *Line.DeltaText.ToString()));
+			}
+			else
+			{
+				Parts.Add(FString::Printf(TEXT("%s %s"), *Line.Label.ToString(), *Line.ValueText.ToString()));
+			}
+		}
+		return Parts.Num() > 0 ? FText::FromString(FString::Join(Parts, TEXT("\n"))) : FText::GetEmpty();
+	}
+
+	FText BuildComparisonSummary(const TArray<FGridItemTooltipEquipmentComparison>& Comparisons)
+	{
+		TArray<FString> Sections;
+		for (const FGridItemTooltipEquipmentComparison& Comparison : Comparisons)
+		{
+			const FString EquippedLabel = Comparison.bHasEquippedItem ? Comparison.EquippedItemName.ToString() : TEXT("vide");
+			FString Section = FString::Printf(TEXT("%s — %s"), *Comparison.SlotLabel.ToString(), *EquippedLabel);
+			const FText Stats = BuildStatSummary(Comparison.StatLines, true);
+			if (!Stats.IsEmpty())
+			{
+				Section += TEXT("\n");
+				Section += Stats.ToString();
+			}
+			Sections.Add(MoveTemp(Section));
+		}
+		return Sections.Num() > 0 ? FText::FromString(FString::Join(Sections, TEXT("\n\n"))) : FText::GetEmpty();
 	}
 }
 
@@ -143,6 +284,10 @@ FString UGridInventorySlotWidget::GetDisplayNameText() const
 	{
 		return Definition->DisplayName.ToString();
 	}
+	if (!CachedItem.DisplayName.IsEmpty())
+	{
+		return CachedItem.DisplayName.ToString();
+	}
 
 	return CachedItem.ItemDefinitionId.ToString();
 }
@@ -157,41 +302,114 @@ FString UGridInventorySlotWidget::GetQuantityText() const
 	return FString::Printf(TEXT("%d"), FMath::Max(1, CachedItem.Quantity));
 }
 
+FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
+{
+	FGridItemTooltipView View;
+	if (!bHasItem || !CachedItem.IsValid())
+	{
+		return View;
+	}
+
+	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
+	View.bValid = true;
+	View.ItemDefinitionId = CachedItem.ItemDefinitionId;
+	View.DisplayName = GetItemDisplayName(CachedItem, Definition);
+	View.Description = Definition ? Definition->Description : FText::GetEmpty();
+	View.ItemType = Definition ? GetItemTypeDisplayName(Definition->ItemType) : NSLOCTEXT("GridInventoryTooltip", "ItemTypeUnknown", "Objet");
+	View.Quantity = FMath::Max(1, CachedItem.Quantity);
+	View.UnitWeight = FMath::Max(0.0f, Definition ? Definition->Weight : CachedItem.Weight);
+	View.TotalWeight = View.UnitWeight * static_cast<float>(View.Quantity);
+	View.WeightText = View.Quantity > 1
+		? FText::FromString(FString::Printf(TEXT("%.1f × %d = %.1f"), View.UnitWeight, View.Quantity, View.TotalWeight))
+		: FText::FromString(FString::Printf(TEXT("%.1f"), View.UnitWeight));
+	View.CompatibleSlotsText = GetCompatibleEquipmentSlotsText();
+
+	if (!Definition)
+	{
+		return View;
+	}
+
+	View.bEquippable = Definition->CompatibleEquipmentSlots.Num() > 0;
+	View.bReadable = UGridItemContextActionLibrary::IsItemReadable(CachedItem, Definition);
+	View.bProvidesLight = Definition->HasLightEmitter();
+	View.bLightEnabled = View.bProvidesLight && CachedItem.bLightsEnabled;
+
+	FGridCombatActionDefinition InventoryAction;
+	View.bCanAssignToHotbar =
+		SlotType == EGridInventoryUiSlotType::Inventory && (Definition->BuildInventoryCombatActionDefinition(InventoryAction) || Definition->IsPhysicallyThrowable());
+
+	TArray<FString> UsageParts;
+	if (View.bEquippable)
+	{
+		UsageParts.Add(TEXT("Équipable"));
+	}
+	if (View.bReadable)
+	{
+		UsageParts.Add(TEXT("Lisible"));
+	}
+	if (View.bCanAssignToHotbar)
+	{
+		UsageParts.Add(TEXT("Barre d'action"));
+	}
+	if (View.bProvidesLight)
+	{
+		UsageParts.Add(View.bLightEnabled ? TEXT("Lumière allumée") : TEXT("Lumière éteinte"));
+	}
+	if (UsageParts.Num() > 0)
+	{
+		View.UsageSummary = FText::FromString(FString::Join(UsageParts, TEXT(" • ")));
+	}
+
+	AppendDefinitionStats(Definition, nullptr, false, View.StatLines);
+	View.StatSummary = BuildStatSummary(View.StatLines, false);
+
+	const UGridInventoryWidget* InventoryWidget = OwningInventoryWidget.Get();
+	const UGridPartyInventoryComponent* InventoryComponent = InventoryWidget ? InventoryWidget->InventoryComponent : nullptr;
+	if (!InventoryComponent)
+	{
+		return View;
+	}
+
+	const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex();
+	TSet<EGridEquipmentSlot> ComparedSlots;
+	for (const EGridEquipmentSlot TargetSlot : Definition->CompatibleEquipmentSlots)
+	{
+		if (TargetSlot == EGridEquipmentSlot::None || ComparedSlots.Contains(TargetSlot))
+		{
+			continue;
+		}
+		ComparedSlots.Add(TargetSlot);
+
+		FGridItemInstance EquippedItem;
+		const bool bHasEquippedItem = InventoryComponent->GetEquippedItem(CharacterIndex, TargetSlot, EquippedItem);
+		if (bHasEquippedItem && EquippedItem.RuntimeObjectId == CachedItem.RuntimeObjectId)
+		{
+			continue;
+		}
+
+		FGridItemTooltipEquipmentComparison& Comparison = View.EquipmentComparisons.AddDefaulted_GetRef();
+		Comparison.EquipmentSlot = TargetSlot;
+		Comparison.SlotLabel = GetEquipmentSlotDisplayName(TargetSlot);
+		Comparison.bCanEquipToSlot = InventoryComponent->CanEquipItemToSlot(CharacterIndex, CachedItem, TargetSlot);
+		Comparison.bHasEquippedItem = bHasEquippedItem;
+
+		const UGridItemDefinitionAsset* EquippedDefinition = nullptr;
+		if (bHasEquippedItem)
+		{
+			EquippedDefinition = InventoryComponent->FindItemDefinition(EquippedItem.ItemDefinitionId);
+			Comparison.EquippedItemName = GetItemDisplayName(EquippedItem, EquippedDefinition);
+		}
+
+		AppendDefinitionStats(Definition, EquippedDefinition, true, Comparison.StatLines);
+	}
+	View.ComparisonSummary = BuildComparisonSummary(View.EquipmentComparisons);
+	return View;
+}
+
 FText UGridInventorySlotWidget::GetItemTypeDisplayText() const
 {
 	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
-	if (!Definition)
-	{
-		return FText::GetEmpty();
-	}
-
-	switch (Definition->ItemType)
-	{
-		case EGridItemType::Torch:
-			return NSLOCTEXT("GridInventoryTooltip", "ItemTypeTorch", "Source de lumière");
-		case EGridItemType::Weapon:
-			return NSLOCTEXT("GridInventoryTooltip", "ItemTypeWeapon", "Arme");
-		case EGridItemType::Shield:
-			return NSLOCTEXT("GridInventoryTooltip", "ItemTypeShield", "Bouclier");
-		case EGridItemType::Armor:
-			return NSLOCTEXT("GridInventoryTooltip", "ItemTypeArmor", "Armure");
-		case EGridItemType::Key:
-			return NSLOCTEXT("GridInventoryTooltip", "ItemTypeKey", "Clé");
-		case EGridItemType::Potion:
-			return NSLOCTEXT("GridInventoryTooltip", "ItemTypePotion", "Potion");
-		case EGridItemType::Scroll:
-			return NSLOCTEXT("GridInventoryTooltip", "ItemTypeScroll", "Parchemin");
-		case EGridItemType::Book:
-			return NSLOCTEXT("GridInventoryTooltip", "ItemTypeBook", "Livre");
-		case EGridItemType::Food:
-			return NSLOCTEXT("GridInventoryTooltip", "ItemTypeFood", "Nourriture");
-		case EGridItemType::Quest:
-			return NSLOCTEXT("GridInventoryTooltip", "ItemTypeQuest", "Objet de quête");
-		case EGridItemType::None:
-		case EGridItemType::Misc:
-		default:
-			return NSLOCTEXT("GridInventoryTooltip", "ItemTypeGeneric", "Objet");
-	}
+	return Definition ? GetItemTypeDisplayName(Definition->ItemType) : FText::GetEmpty();
 }
 
 FText UGridInventorySlotWidget::GetCompatibleEquipmentSlotsText() const
@@ -218,18 +436,60 @@ FText UGridInventorySlotWidget::GetCompatibleEquipmentSlotsText() const
 FText UGridInventorySlotWidget::GetLightTooltipText() const
 {
 	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
-	return Definition && Definition->HasLightEmitter() ? NSLOCTEXT("GridInventoryTooltip", "EmitsLight", "Lumière : oui") : FText::GetEmpty();
+	if (!Definition || !Definition->HasLightEmitter())
+	{
+		return FText::GetEmpty();
+	}
+	return CachedItem.bLightsEnabled ? NSLOCTEXT("GridInventoryTooltip", "LightEnabled", "Lumière : allumée")
+								 : NSLOCTEXT("GridInventoryTooltip", "LightDisabled", "Lumière : éteinte");
 }
 
 FText UGridInventorySlotWidget::GetTooltipText() const
 {
-	if (!bHasItem)
+	const FGridItemTooltipView View = GetTooltipView();
+	if (!View.bValid)
 	{
-		return FText::FromString(TEXT("Empty"));
+		return FText::GetEmpty();
 	}
 
-	return FText::FromString(
-		FString::Printf(TEXT("%s\nQty: %d\nWeight: %.1f"), *CachedItem.ItemDefinitionId.ToString(), CachedItem.Quantity, CachedItem.Weight));
+	TArray<FString> Sections;
+	Sections.Add(View.DisplayName.ToString());
+	if (!View.ItemType.IsEmpty())
+	{
+		Sections.Add(View.ItemType.ToString());
+	}
+	if (!View.Description.IsEmpty())
+	{
+		Sections.Add(View.Description.ToString());
+	}
+
+	TArray<FString> Facts;
+	if (View.Quantity > 1)
+	{
+		Facts.Add(FString::Printf(TEXT("Quantité : %d"), View.Quantity));
+	}
+	Facts.Add(FString::Printf(TEXT("Poids : %s"), *View.WeightText.ToString()));
+	if (!View.CompatibleSlotsText.IsEmpty())
+	{
+		Facts.Add(FString::Printf(TEXT("Équipement : %s"), *View.CompatibleSlotsText.ToString()));
+	}
+	if (!View.UsageSummary.IsEmpty())
+	{
+		Facts.Add(View.UsageSummary.ToString());
+	}
+	if (Facts.Num() > 0)
+	{
+		Sections.Add(FString::Join(Facts, TEXT("\n")));
+	}
+	if (!View.StatSummary.IsEmpty())
+	{
+		Sections.Add(View.StatSummary.ToString());
+	}
+	if (!View.ComparisonSummary.IsEmpty())
+	{
+		Sections.Add(View.ComparisonSummary.ToString());
+	}
+	return FText::FromString(FString::Join(Sections, TEXT("\n\n")));
 }
 
 UTexture2D* UGridInventorySlotWidget::GetIconTexture() const

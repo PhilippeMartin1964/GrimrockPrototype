@@ -261,22 +261,25 @@ OnClicked -> OwnerMenu.ExecuteActionByIndex(ActionIndex)
 
 Ne pas exécuter par `ActionType`, car plusieurs actions peuvent partager le même type, par exemple plusieurs destinations `Equip`.
 
-## WBP_ItemToolTip
+## WBP_ItemTooltip
 
 Parent class recommandé : `UUserWidget`.
 
 Rôle : information passive au survol.
 
-Données recommandées :
+Depuis UI-ITEM01, ne pas reconstruire les données dans le Graph. Utiliser `UGridInventorySlotWidget::GetTooltipView()` et casser `FGridItemTooltipView`.
 
-- nom ;
-- type ;
-- poids ;
-- description courte ;
-- compatibilités principales ;
-- état de lumière si applicable.
+Le read model fournit :
 
-Le tooltip ne remplace pas l'action `Examiner`.
+- nom, type et description ;
+- quantité et poids ;
+- compatibilités d'équipement ;
+- capacités intrinsèques ;
+- bonus / résistances ;
+- comparaison avec l'équipement courant ;
+- deltas structurés Positive / Neutral / Negative.
+
+Le tooltip ne remplace pas l'action `Examiner` et ne mute jamais l'inventaire.
 
 ## Widgets de slots
 

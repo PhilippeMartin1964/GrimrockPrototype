@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-CLEAN04**  
+Statut : **CURRENT — UI-ITEM01**  
 Date : **20 septembre 2026**
 
 ## Références canoniques
@@ -134,6 +134,23 @@ GetSelectedCharacterDisplayText
 Les slots, portraits et statistiques utilisent désormais uniquement leurs projections structurées.
 
 Référence : `docs/Design/UI_CLEAN04_REMOVE_PRIMITIVE_DISPLAY_HELPERS.md`.
+
+### UI-ITEM01 — tooltip structuré et comparaison équipement
+
+`UGridInventorySlotWidget` expose désormais un read model unique `FGridItemTooltipView`.
+
+```text
+FGridItemInstance + UGridItemDefinitionAsset
+    -> FGridItemTooltipView
+       -> identité / description / poids
+       -> capacités
+       -> bonus / résistances
+       -> comparaison avec l'équipement du personnage sélectionné
+```
+
+Le tooltip réutilise `WBP_ItemTooltip` existant. Aucun deuxième widget tooltip n'est créé.
+
+Référence : `docs/Design/UI_ITEM01_ITEM_TOOLTIP_COMPARISON.md`.
 
 ### UI-NAV01 — barre inférieure persistante
 

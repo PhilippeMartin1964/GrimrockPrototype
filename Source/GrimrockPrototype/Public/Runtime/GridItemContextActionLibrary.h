@@ -23,4 +23,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Context Actions")
 	static bool ResolveFacingTarget(AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& CurrentItem, UGridItemDefinitionAsset* ItemDefinition,
 		FGridFacingTargetContext& OutFacingTarget, float TraceDistance = 300.f);
+
+	/** Shared passive capability query used by context actions and UI-ITEM01. */
+	static bool IsItemReadable(const FGridItemInstance& Item, const UGridItemDefinitionAsset* Definition);
 };
