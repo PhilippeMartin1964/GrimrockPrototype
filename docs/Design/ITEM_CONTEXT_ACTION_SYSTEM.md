@@ -865,7 +865,8 @@ Règle à retenir :
 > Le joueur manipule les objets par actions explicites, pas par magie d'inventaire.  
 > Le clic droit propose les actions.  
 > Le drag/drop reste un raccourci.  
-> Le tooltip est l'examen.  
+> Le tooltip reste une information rapide et passive.  
+> L'action clic droit « Examiner » ouvre à terme un écran dédié via `PresentItemExamination`.  
 > Les cibles du monde peuvent ouvrir l'inventaire en mode assisté.  
 > La torche s'allume automatiquement lorsqu'elle est équipée ou placée sur un support de torche.  
 > Lancer n'est proposé que pour les objets réellement lançables.  

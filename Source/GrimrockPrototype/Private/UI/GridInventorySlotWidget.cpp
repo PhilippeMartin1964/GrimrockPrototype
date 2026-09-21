@@ -230,7 +230,8 @@ namespace
 		TArray<FString> Sections;
 		for (const FGridItemTooltipEquipmentComparison& Comparison : Comparisons)
 		{
-			FString Section = FString::Printf(TEXT("%s — %s"), *Comparison.SlotLabel.ToString(), *Comparison.EquippedItemName.ToString());
+			const FString EquippedLabel = Comparison.bHasEquippedItem ? Comparison.EquippedItemName.ToString() : TEXT("vide");
+			FString Section = FString::Printf(TEXT("%s — %s"), *Comparison.SlotLabel.ToString(), *EquippedLabel);
 			const FText Stats = BuildStatSummary(Comparison.StatLines, true);
 			if (!Stats.IsEmpty())
 			{
@@ -370,7 +371,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 
 		FGridItemInstance EquippedItem;
 		const bool bHasEquippedItem = InventoryComponent->GetEquippedItem(CharacterIndex, TargetSlot, EquippedItem);
-		if (!bHasEquippedItem || EquippedItem.RuntimeObjectId == CachedItem.RuntimeObjectId)
+		if (bHasEquippedItem && EquippedItem.RuntimeObjectId == CachedItem.RuntimeObjectId)
 		{
 			continue;
 		}
@@ -380,8 +381,12 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		Comparison.SlotLabel = GetEquipmentSlotDisplayName(TargetSlot);
 		Comparison.bHasEquippedItem = bHasEquippedItem;
 
-		const UGridItemDefinitionAsset* EquippedDefinition = InventoryComponent->FindItemDefinition(EquippedItem.ItemDefinitionId);
-		Comparison.EquippedItemName = GetItemDisplayName(EquippedItem, EquippedDefinition);
+		const UGridItemDefinitionAsset* EquippedDefinition = nullptr;
+		if (bHasEquippedItem)
+		{
+			EquippedDefinition = InventoryComponent->FindItemDefinition(EquippedItem.ItemDefinitionId);
+			Comparison.EquippedItemName = GetItemDisplayName(EquippedItem, EquippedDefinition);
+		}
 		AppendDefinitionStats(Definition, EquippedDefinition, true, Comparison.StatLines);
 	}
 	return View;

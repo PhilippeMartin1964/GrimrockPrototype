@@ -88,7 +88,6 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Tooltip total weight multiplies stack quantity"), FMath::IsNearlyEqual(View.TotalWeight, 3.0f));
 	TestTrue(TEXT("Tooltip reports equippable state"), View.bEquippable);
 	TestTrue(TEXT("Tooltip exposes the Belt compatibility"), View.CompatibleSlotsText.ToString().Contains(TEXT("Ceinture")));
-	TestEqual(TEXT("Empty compatible equipment slots do not create comparisons"), View.EquipmentComparisons.Num(), 0);
 	TestTrue(TEXT("Fallback tooltip contains the authored description"),
 		SlotWidget->GetTooltipText().ToString().Contains(TEXT("Un objet de test pour le tooltip.")));
 
@@ -121,10 +120,10 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIItem01NoEmptyEquipmentComparisonTest, "Grimrock.UI.Item01.NoEmptyEquipmentComparison",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIItem01EmptyEquipmentComparisonTest, "Grimrock.UI.Item01.EmptyEquipmentComparison",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridUIItem01NoEmptyEquipmentComparisonTest::RunTest(const FString& Parameters)
+bool FGridUIItem01EmptyEquipmentComparisonTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
@@ -154,8 +153,26 @@ bool FGridUIItem01NoEmptyEquipmentComparisonTest::RunTest(const FString& Paramet
 	const FGridItemTooltipView View = SlotWidget->GetTooltipView();
 	TestTrue(TEXT("Tooltip remains valid"), View.bValid);
 	TestTrue(TEXT("Candidate remains equippable"), View.bEquippable);
-	TestEqual(TEXT("No comparison is created when the compatible slot is empty"), View.EquipmentComparisons.Num(), 0);
+	TestEqual(TEXT("One comparison is created for the empty compatible Belt slot"), View.EquipmentComparisons.Num(), 1);
+	if (View.EquipmentComparisons.Num() != 1)
+	{
+		return false;
+	}
 
+	const FGridItemTooltipEquipmentComparison& Comparison = View.EquipmentComparisons[0];
+	TestFalse(TEXT("Empty-slot comparison reports no equipped item"), Comparison.bHasEquippedItem);
+	TestTrue(TEXT("Empty-slot comparison keeps an empty equipped-item name"), Comparison.EquippedItemName.IsEmpty());
+	TestEqual(TEXT("Empty-slot comparison identifies the Belt slot"), Comparison.EquipmentSlot, EGridEquipmentSlot::Belt);
+
+	const FGridItemTooltipStatLine* Strength = FindLine(Comparison.StatLines, TEXT("Force"));
+	TestNotNull(TEXT("Candidate Strength is compared against zero in an empty slot"), Strength);
+	if (Strength)
+	{
+		TestTrue(TEXT("Empty-slot Strength delta is +2"), FMath::IsNearlyEqual(Strength->Delta, 2.0f));
+		TestTrue(TEXT("Empty-slot Strength delta is positive"), Strength->DeltaState == EGridItemTooltipDeltaState::Positive);
+	}
+
+	TestTrue(TEXT("Fallback tooltip labels the empty equipment reference"), SlotWidget->GetTooltipText().ToString().Contains(TEXT("vide")));
 	return true;
 }
 

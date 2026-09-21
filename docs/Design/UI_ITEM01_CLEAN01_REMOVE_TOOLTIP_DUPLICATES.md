@@ -45,11 +45,13 @@ GetLightTooltipText
 
 La construction du texte des slots compatibles reste interne au fichier C++ et alimente `CompatibleSlotsText`.
 
-## Dépendance volontairement conservée
+## État de `bHasEquippedItem`
 
-`FGridItemTooltipEquipmentComparison::bHasEquippedItem` est désormais logiquement redondant depuis que les slots vides ne créent plus de comparaison.
+`FGridItemTooltipEquipmentComparison::bHasEquippedItem` reste une donnée utile du read model.
 
-Il reste temporairement exposé parce que le WBP local `WBP_ItemTooltipComparisonRow` branche encore son affichage du nom équipé sur ce booléen. Il sera supprimé après migration/sauvegarde de ce Graph, sans conserver de shim legacy.
+UI-ITEM01 conserve volontairement les comparaisons avec un slot compatible vide : dans ce cas `bHasEquippedItem=false`, `EquippedItemName` reste vide et les bonus/résistances du candidat sont comparés à zéro. Pour un slot occupé, `bHasEquippedItem=true` et `EquippedItemName` identifie l'objet de référence.
+
+Ce booléen ne doit donc pas être supprimé par un cleanup ultérieur tant que ce contrat existe.
 
 ## Automation
 

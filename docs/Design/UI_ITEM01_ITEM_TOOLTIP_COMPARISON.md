@@ -106,7 +106,7 @@ Aucune statistique inventée n'est calculée dans l'UI.
 
 ## Comparaison d'équipement
 
-Pour chaque slot compatible réellement occupé par un autre objet :
+Pour chaque slot compatible :
 
 ~~~text
 item survolé
@@ -131,9 +131,11 @@ Un delta positif est `Positive`, un delta négatif `Negative`, zéro `Neutral`.
 
 La couleur reste du ressort du WBP.
 
-Un slot compatible vide ne crée aucune comparaison : le bandeau de comparaison ne doit pas confondre « emplacement compatible » et « objet réellement comparable ».
+Un slot compatible vide reste une référence de comparaison valide : les bonus et résistances du candidat sont alors comparés à zéro et le rendu peut afficher « vide ». Cela permet de voir immédiatement ce que l'équipement apporte dans un emplacement libre.
 
-Si l'objet survolé est déjà l'objet équipé dans ce slot exact, la comparaison avec lui-même est également omise.
+Si l'objet survolé est déjà l'objet équipé dans ce slot exact, la comparaison avec lui-même est omise.
+
+Le tooltip reste volontairement limité aux informations rapides déjà prévues par UI-ITEM01 : identité, poids, lumière, bonus/résistances et comparaison d'équipement. Il n'affiche pas de fiche de combat détaillée (dégâts, portée, coût en PA, etc.). Ces informations détaillées pourront appartenir au futur écran ouvert par l'action clic droit « Examiner » via `PresentItemExamination`.
 
 ## État d'utilisation
 
@@ -177,7 +179,7 @@ Ils vérifient :
 - état équipable ;
 - état lisible partagé ;
 - projection des stats ;
-- absence de comparaison quand le slot compatible est vide ;
+- comparaison avec zéro quand le slot compatible est vide ;
 - comparaison d'un Belt avec l'objet équipé ;
 - delta positif et négatif ;
 - résumé de comparaison.
