@@ -1,7 +1,7 @@
 # UI-ITEM01-CLEAN01 — Remove Legacy Tooltip Projection Duplication
 
 Date : **21 septembre 2026**  
-Statut : **CODE PUSHÉ — VALIDATION UE5.5.4 À FAIRE**
+Statut : **VALIDÉ UE5.5.4 — 21 septembre 2026 — 4/4 tests**
 
 ## Objectif
 
@@ -66,3 +66,19 @@ Grimrock.UI.Item01.Clean01.NoLegacyTooltipProjection
 ~~~
 
 Le test vérifie l'absence des anciens helpers et propriétés, ainsi que la présence de `GetTooltipView()`, `GetTooltipText()`, `StatLines[]` et `EquipmentComparisons[]`.
+
+
+## Validation locale
+
+Validation reçue le 21 septembre 2026 :
+
+~~~text
+Filter                 : Grimrock.UI.Item01
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+~~~
+
+UI-ITEM01-CLEAN01 est validé avec l'ensemble du filtre UI-ITEM01.
