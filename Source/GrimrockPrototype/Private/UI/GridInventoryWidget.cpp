@@ -38,7 +38,12 @@ namespace
 		ProgressBar->SetPercent(FMath::Clamp(Ratio, 0.0f, 1.0f));
 	}
 
-	FText FormatInventorySlotUsage(int32 VisibleItems, int32 UsedSlots, int32 MaximumSlots)
+	FText FormatInventorySlotUsage(int32 UsedSlots, int32 MaximumSlots)
+	{
+		return FText::FromString(FString::Printf(TEXT("%d / %d"), UsedSlots, MaximumSlots));
+	}
+
+	FText FormatInventoryProjectionUsage(int32 VisibleItems, int32 UsedSlots, int32 MaximumSlots)
 	{
 		return FText::FromString(
 			FString::Printf(TEXT("%d affichés / %d utilisés / %d cases"), VisibleItems, UsedSlots, MaximumSlots));
@@ -380,7 +385,7 @@ void UGridInventoryWidget::RefreshSelectedInventoryBagPresentation()
 	const int32 VisibleItemCount = GetVisibleInventoryItemCount();
 	SetInventoryOptionalText(Text_InventoryBagTitle, Summary.DisplayName);
 	SetInventoryOptionalText(
-		Text_InventoryBagSlotUsage, FormatInventorySlotUsage(VisibleItemCount, Summary.UsedInventorySlots, Summary.MaxInventorySlots));
+		Text_InventoryBagSlotUsage, FormatInventoryProjectionUsage(VisibleItemCount, Summary.UsedInventorySlots, Summary.MaxInventorySlots));
 	SetInventoryOptionalText(
 		Text_InventoryBagWeight, FormatWeightWithBonus(Summary.CurrentWeight, Summary.MaxWeight, Summary.EquipmentStatBonus.CarryWeightBonus));
 	if (Text_InventoryEmptyState)
