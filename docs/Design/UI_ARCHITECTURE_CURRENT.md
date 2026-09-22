@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-ASSET-CLEAN01 POST-SUPPRESSION ; SMOKE PIE RESTANT**  
+Statut : **CURRENT — UI-ASSET-CLEAN01 CLOS ; UI-ASSET-ORG01 PROCHAIN**  
 Date : **22 septembre 2026**
 
 ## Références canoniques

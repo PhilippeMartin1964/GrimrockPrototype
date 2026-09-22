@@ -1,7 +1,7 @@
 # UI-ASSET-CLEAN01 — Reference Viewer cleanup
 
 Date : **22 septembre 2026**  
-Statut : **SUPPRESSIONS VALIDÉES PAR ASSETREGISTRY — smoke PIE final restant**
+Statut : **CLOS — AssetRegistry + smoke PIE validés**
 
 ## Objectif
 
@@ -178,3 +178,16 @@ CONSERVÉS
 Les suppressions sont également présentes sur `master` dans le commit utilisateur `36c485a57994b9a310cc913ffd2dad574b7a27cb` (`Clean & update`).
 
 Il reste uniquement la smoke validation PIE prévue par le critère de clôture avant de marquer UI-ASSET-CLEAN01 définitivement clos.
+
+
+## Clôture
+
+Smoke PIE final confirmé par l'utilisateur le **22 septembre 2026** :
+
+- inventaire / tooltip : OK ;
+- barre basse / navigation : OK ;
+- HUD combat : OK ;
+- curseur monde : OK ;
+- Skills / Spellbook / Journal / Map / Recipes / Codex : OK.
+
+`UI-ASSET-CLEAN01` est donc **CLOS**.
