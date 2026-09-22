@@ -317,3 +317,23 @@ docs/Design/UI_ASSET_CLEAN01_REFERENCE_VIEWER_CLEANUP.md
 ```
 
 Aucune suppression n'est autorisée avant la sortie locale de cet audit.
+
+
+### Résultat UI-ASSET-CLEAN01 / AssetRegistry
+
+L'audit local du 22 septembre 2026 classe six assets à zéro referencer : les cinq textures `Buttons/TopTabs/*` et `Buttons/T_RootFrame`.
+
+Trois candidats initiaux sont finalement référencés et sont donc conservés :
+
+```text
+WBP_ItemTooltipComparisonRow
+  -> WBP_ItemTooltip
+
+Icons/T_BorderCharacter
+  -> Combat/WBP_GridCombatActionPanel
+
+Icons/T_Border_Character
+  -> RPG/WBP_CharacterCreationWizard
+```
+
+Aucune suppression n'est encore effectuée avant confirmation Reference Viewer des six assets à zéro referencer.

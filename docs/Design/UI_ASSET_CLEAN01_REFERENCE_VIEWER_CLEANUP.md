@@ -99,3 +99,44 @@ UI-ASSET-CLEAN01 est clos lorsque :
 - les redirectors ont été corrigés ;
 - le test read-only repasse ;
 - les smoke PIE concernés sont verts.
+
+
+## Résultat AssetRegistry reçu — 22 septembre 2026
+
+Validation locale :
+
+```text
+Filter                 : Grimrock.Editor.UIAssetClean01
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Classification issue de l'audit read-only :
+
+| Asset | Referencers | Décision avant Reference Viewer |
+|---|---:|---|
+| T_ButtonTab_Normal_480x100 | 0 | candidat suppression |
+| T_ButtonTab_Hovered_480x100 | 0 | candidat suppression |
+| T_ButtonTab_Pressed_480x100 | 0 | candidat suppression |
+| T_ButtonTab_Disabled_480x100 | 0 | candidat suppression |
+| T_ButtonTab_Selected_480x100 | 0 | candidat suppression |
+| T_RootFrame | 0 | candidat suppression |
+| WBP_ItemTooltipComparisonRow | 1: WBP_ItemTooltip | conserver |
+| T_BorderCharacter | 1: Combat/WBP_GridCombatActionPanel | conserver |
+| T_Border_Character | 1: RPG/WBP_CharacterCreationWizard | conserver |
+
+Décision : seuls les six assets à zéro referencer passent à l'étape Reference Viewer. Les trois assets référencés restent en place pendant UI-ASSET-CLEAN01.
+
+Les six candidats à confirmer dans UE5 sont donc :
+
+```text
+Buttons/TopTabs/T_ButtonTab_Normal_480x100
+Buttons/TopTabs/T_ButtonTab_Hovered_480x100
+Buttons/TopTabs/T_ButtonTab_Pressed_480x100
+Buttons/TopTabs/T_ButtonTab_Disabled_480x100
+Buttons/TopTabs/T_ButtonTab_Selected_480x100
+Buttons/T_RootFrame
+```

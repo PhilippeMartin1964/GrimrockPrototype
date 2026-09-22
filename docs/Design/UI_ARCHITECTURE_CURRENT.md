@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-ASSET-CLEAN01 ACTIF**  
+Statut : **CURRENT — UI-ASSET-CLEAN01 REFERENCE VIEWER EN COURS**  
 Date : **22 septembre 2026**
 
 ## Références canoniques
