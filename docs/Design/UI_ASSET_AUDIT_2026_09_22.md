@@ -352,3 +352,25 @@ T_Border_Character           -> RPG/WBP_CharacterCreationWizard
 ```
 
 Le nettoyage binaire est donc terminé ; seule la smoke validation PIE reste nécessaire avant clôture formelle de UI-ASSET-CLEAN01.
+
+
+## UI-ASSET-ORG01 — lancé le 22 septembre 2026
+
+Après clôture de UI-ASSET-CLEAN01, les 22 assets encore à la racine de `Blueprints/UI` sont migrés par lots vers :
+
+```text
+Inventory/
+InGameMenu/
+Interaction/
+Fonts/
+```
+
+Test de migration :
+
+```text
+Grimrock.Editor.UIAssetOrg01.MigrationAudit
+```
+
+Ce test accepte temporairement ancien ou nouveau chemin pour chaque asset, mais impose une seule localisation après `Fix Up Redirectors`.
+
+Référence : `docs/Design/UI_ASSET_ORG01_UI_FOLDER_REORGANIZATION.md`.
