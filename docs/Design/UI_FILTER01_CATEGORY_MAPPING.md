@@ -168,3 +168,17 @@ Test ajouté :
 ```text
 Grimrock.UI.Filter01.BagControlsContract
 ```
+
+
+## Validation reçue — UI-FILTER01.3 — 22 septembre 2026
+
+```text
+Filter                 : Grimrock.UI.Filter01
+Succeeded              : 3
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+UI-FILTER01.3 est validé côté C++/Automation. Le contrat natif des sept boutons et le feedback de sélection piloté par le filtre courant sont couverts. La validation visuelle PIE du style Disabled reste à confirmer dans l'asset UMG.
