@@ -1,7 +1,7 @@
 # UI-ASSET-CLEAN01 — Reference Viewer cleanup
 
 Date : **22 septembre 2026**  
-Statut : **AUDIT READ-ONLY PRÊT — validation locale requise avant toute suppression**
+Statut : **SUPPRESSIONS VALIDÉES PAR ASSETREGISTRY — smoke PIE final restant**
 
 ## Objectif
 
@@ -140,3 +140,41 @@ Buttons/TopTabs/T_ButtonTab_Disabled_480x100
 Buttons/TopTabs/T_ButtonTab_Selected_480x100
 Buttons/T_RootFrame
 ```
+
+
+## Validation post-suppression reçue — 22 septembre 2026
+
+Le build Development Editor est à jour et le filtre d'automation est vert :
+
+```text
+Filter                 : Grimrock.Editor.UIAssetClean01
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+État final observé par l'AssetRegistry :
+
+```text
+SUPPRIMÉS
+- Buttons/TopTabs/T_ButtonTab_Normal_480x100      Exists=false
+- Buttons/TopTabs/T_ButtonTab_Hovered_480x100     Exists=false
+- Buttons/TopTabs/T_ButtonTab_Pressed_480x100     Exists=false
+- Buttons/TopTabs/T_ButtonTab_Disabled_480x100    Exists=false
+- Buttons/TopTabs/T_ButtonTab_Selected_480x100    Exists=false
+- Buttons/T_RootFrame                             Exists=false
+
+CONSERVÉS
+- WBP_ItemTooltipComparisonRow
+  -> Referencer: WBP_ItemTooltip
+- Icons/T_BorderCharacter
+  -> Referencer: Combat/WBP_GridCombatActionPanel
+- Icons/T_Border_Character
+  -> Referencer: RPG/WBP_CharacterCreationWizard
+```
+
+Les suppressions sont également présentes sur `master` dans le commit utilisateur `36c485a57994b9a310cc913ffd2dad574b7a27cb` (`Clean & update`).
+
+Il reste uniquement la smoke validation PIE prévue par le critère de clôture avant de marquer UI-ASSET-CLEAN01 définitivement clos.

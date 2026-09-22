@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-ASSET-CLEAN01 REFERENCE VIEWER EN COURS**  
+Statut : **CURRENT — UI-ASSET-CLEAN01 POST-SUPPRESSION ; SMOKE PIE RESTANT**  
 Date : **22 septembre 2026**
 
 ## Références canoniques

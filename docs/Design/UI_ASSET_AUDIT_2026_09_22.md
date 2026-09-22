@@ -337,3 +337,18 @@ Icons/T_Border_Character
 ```
 
 Aucune suppression n'est encore effectuée avant confirmation Reference Viewer des six assets à zéro referencer.
+
+
+### Post-suppression confirmé
+
+Le second audit local confirme que les cinq `Buttons/TopTabs/*` et `Buttons/T_RootFrame` n'existent plus dans l'AssetRegistry (`Exists=false`).
+
+Les trois assets conservés gardent chacun leur referencer attendu :
+
+```text
+WBP_ItemTooltipComparisonRow -> WBP_ItemTooltip
+T_BorderCharacter            -> Combat/WBP_GridCombatActionPanel
+T_Border_Character           -> RPG/WBP_CharacterCreationWizard
+```
+
+Le nettoyage binaire est donc terminé ; seule la smoke validation PIE reste nécessaire avant clôture formelle de UI-ASSET-CLEAN01.
