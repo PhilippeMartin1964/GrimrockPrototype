@@ -6,6 +6,7 @@
 #include "Components/TextBlock.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
+#include "RPG/StatusEffects/GridStatusEffectPresentation.h"
 #include "Runtime/GridItemContextActionLibrary.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemTransferService.h"
@@ -561,9 +562,20 @@ void UGridInventoryWidget::RefreshRegisteredPartyMemberWidgets()
 		{
 			MemberWidget->SetVisibility(ESlateVisibility::Visible);
 			MemberWidget->SetCharacterSummary(Summary);
+
+			TArray<FGridStatusEffectPresentationView> StatusViews;
+			if (InventoryComponent &&
+				InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(MemberWidget->CharacterIndex))
+			{
+				const FGridCharacterInventoryState& Character =
+					InventoryComponent->PartyInventoryState.ActiveCharacters[MemberWidget->CharacterIndex];
+				FGridStatusEffectPresentationBuilder::Build(Character.StatusEffects, StatusViews);
+			}
+			MemberWidget->SetStatusEffects(StatusViews);
 		}
 		else
 		{
+			MemberWidget->SetStatusEffects(TArray<FGridStatusEffectPresentationView>());
 			MemberWidget->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}

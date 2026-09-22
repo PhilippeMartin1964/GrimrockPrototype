@@ -2,12 +2,14 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "RPG/StatusEffects/GridStatusEffectPresentation.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "GridPartyMemberWidget.generated.h"
 
 class UBorder;
 class UDragDropOperation;
 class UGridInventoryWidget;
+class UHorizontalBox;
 class UImage;
 class URPGClassVisualAsset;
 class UTextBlock;
@@ -25,6 +27,10 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Party")
 	FGridInventoryCharacterSummary CachedSummary;
+
+	/** UI-FEEDBACK01.2 read-only status projection; gameplay authority remains on the character state. */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Party|Status Effects")
+	TArray<FGridStatusEffectPresentationView> CachedStatusEffects;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Party|Visuals")
 	TArray<TObjectPtr<URPGClassVisualAsset>> AvailableClassVisuals;
@@ -53,6 +59,16 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
 	TObjectPtr<UImage> Image_WeightAlert;
 
+	/** UI-FEEDBACK01.2: compact, non-authoritative row of active status effects. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party|Status Effects")
+	TObjectPtr<UHorizontalBox> HorizontalBox_StatusEffects;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Party|Status Effects", meta = (ClampMin = "2", ClampMax = "8"))
+	int32 MaxStatusEffectIndicators = 4;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Party|Status Effects", meta = (ClampMin = "12.0", ClampMax = "48.0"))
+	float StatusEffectIndicatorSize = 24.0f;
+
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
 	TObjectPtr<UTextBlock> Text_Name;
 
@@ -67,6 +83,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	void SetCharacterSummary(const FGridInventoryCharacterSummary& InSummary);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Party|Status Effects")
+	void SetStatusEffects(const TArray<FGridStatusEffectPresentationView>& InStatusEffects);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	void SetAvailableClassVisuals(const TArray<URPGClassVisualAsset*>& InAvailableClassVisuals);
@@ -99,4 +118,5 @@ private:
 	const URPGClassVisualAsset* FindClassVisualForCachedClass() const;
 	void RefreshBoundMemberFields();
 	void RefreshBoundMemberVisuals();
+	void RefreshBoundStatusEffects();
 };
