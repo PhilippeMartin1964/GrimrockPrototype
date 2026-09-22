@@ -18,7 +18,106 @@ namespace
 void UGridInventoryBagWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	if (Button_FilterAll)
+	{
+		Button_FilterAll->OnClicked.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleFilterAllClicked);
+	}
+	if (Button_FilterEquipment)
+	{
+		Button_FilterEquipment->OnClicked.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleFilterEquipmentClicked);
+	}
+	if (Button_FilterConsumables)
+	{
+		Button_FilterConsumables->OnClicked.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleFilterConsumablesClicked);
+	}
+	if (Button_FilterMagic)
+	{
+		Button_FilterMagic->OnClicked.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleFilterMagicClicked);
+	}
+	if (Button_FilterIngredients)
+	{
+		Button_FilterIngredients->OnClicked.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleFilterIngredientsClicked);
+	}
+	if (Button_FilterBooksAndKeys)
+	{
+		Button_FilterBooksAndKeys->OnClicked.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleFilterBooksAndKeysClicked);
+	}
+	if (Button_FilterMisc)
+	{
+		Button_FilterMisc->OnClicked.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleFilterMiscClicked);
+	}
+
 	RefreshInventoryFilterButtonState();
+}
+
+void UGridInventoryBagWidget::NativeDestruct()
+{
+	if (Button_FilterAll)
+	{
+		Button_FilterAll->OnClicked.RemoveDynamic(this, &UGridInventoryBagWidget::HandleFilterAllClicked);
+	}
+	if (Button_FilterEquipment)
+	{
+		Button_FilterEquipment->OnClicked.RemoveDynamic(this, &UGridInventoryBagWidget::HandleFilterEquipmentClicked);
+	}
+	if (Button_FilterConsumables)
+	{
+		Button_FilterConsumables->OnClicked.RemoveDynamic(this, &UGridInventoryBagWidget::HandleFilterConsumablesClicked);
+	}
+	if (Button_FilterMagic)
+	{
+		Button_FilterMagic->OnClicked.RemoveDynamic(this, &UGridInventoryBagWidget::HandleFilterMagicClicked);
+	}
+	if (Button_FilterIngredients)
+	{
+		Button_FilterIngredients->OnClicked.RemoveDynamic(this, &UGridInventoryBagWidget::HandleFilterIngredientsClicked);
+	}
+	if (Button_FilterBooksAndKeys)
+	{
+		Button_FilterBooksAndKeys->OnClicked.RemoveDynamic(this, &UGridInventoryBagWidget::HandleFilterBooksAndKeysClicked);
+	}
+	if (Button_FilterMisc)
+	{
+		Button_FilterMisc->OnClicked.RemoveDynamic(this, &UGridInventoryBagWidget::HandleFilterMiscClicked);
+	}
+
+	Super::NativeDestruct();
+}
+
+void UGridInventoryBagWidget::HandleFilterAllClicked()
+{
+	SetInventoryFilterCategory(EGridInventoryFilterCategory::All);
+}
+
+void UGridInventoryBagWidget::HandleFilterEquipmentClicked()
+{
+	SetInventoryFilterCategory(EGridInventoryFilterCategory::Equipment);
+}
+
+void UGridInventoryBagWidget::HandleFilterConsumablesClicked()
+{
+	SetInventoryFilterCategory(EGridInventoryFilterCategory::Consumables);
+}
+
+void UGridInventoryBagWidget::HandleFilterMagicClicked()
+{
+	SetInventoryFilterCategory(EGridInventoryFilterCategory::Magic);
+}
+
+void UGridInventoryBagWidget::HandleFilterIngredientsClicked()
+{
+	SetInventoryFilterCategory(EGridInventoryFilterCategory::Ingredients);
+}
+
+void UGridInventoryBagWidget::HandleFilterBooksAndKeysClicked()
+{
+	SetInventoryFilterCategory(EGridInventoryFilterCategory::BooksAndKeys);
+}
+
+void UGridInventoryBagWidget::HandleFilterMiscClicked()
+{
+	SetInventoryFilterCategory(EGridInventoryFilterCategory::Misc);
 }
 
 void UGridInventoryBagWidget::HandleInventoryFilterCategoryChanged()

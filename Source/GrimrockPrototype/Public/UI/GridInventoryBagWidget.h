@@ -44,8 +44,30 @@ public:
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	virtual void HandleInventoryFilterCategoryChanged() override;
 
 private:
+	UFUNCTION()
+	void HandleFilterAllClicked();
+
+	UFUNCTION()
+	void HandleFilterEquipmentClicked();
+
+	UFUNCTION()
+	void HandleFilterConsumablesClicked();
+
+	UFUNCTION()
+	void HandleFilterMagicClicked();
+
+	UFUNCTION()
+	void HandleFilterIngredientsClicked();
+
+	UFUNCTION()
+	void HandleFilterBooksAndKeysClicked();
+
+	UFUNCTION()
+	void HandleFilterMiscClicked();
+
 	void RefreshInventoryFilterButtonState();
 };

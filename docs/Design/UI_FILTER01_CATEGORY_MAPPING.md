@@ -182,3 +182,20 @@ Process exit code       : 0
 ```
 
 UI-FILTER01.3 est validé côté C++/Automation. Le contrat natif des sept boutons et le feedback de sélection piloté par le filtre courant sont couverts. La validation visuelle PIE du style Disabled reste à confirmer dans l'asset UMG.
+
+
+## UI-FILTER01.3.1 — Routage natif des clics
+
+La validation PIE de UI-FILTER01.3 a montré que l'état initial fonctionnait (`Tous` désactivé) mais que les clics Blueprint des six autres boutons ne modifiaient pas la projection.
+
+Le routage des sept boutons est donc déplacé dans `UGridInventoryBagWidget::NativeConstruct()` avec `AddUniqueDynamic`.
+
+Chaque handler natif appelle uniquement :
+
+```text
+SetInventoryFilterCategory(<catégorie>)
+```
+
+Les bindings sont retirés dans `NativeDestruct()`.
+
+Conséquence : `WBP_InventoryBag` n'a plus besoin d'aucun Event Graph pour les filtres. Le Blueprint conserve uniquement les widgets et leur style.

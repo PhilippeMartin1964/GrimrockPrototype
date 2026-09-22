@@ -164,6 +164,22 @@ bool FGridUIFilter01BagControlsContractTest::RunTest(const FString& Parameters)
 			FindFProperty<FProperty>(BagClass, ButtonName));
 	}
 
+	const FName HandlerNames[] = {
+		TEXT("HandleFilterAllClicked"),
+		TEXT("HandleFilterEquipmentClicked"),
+		TEXT("HandleFilterConsumablesClicked"),
+		TEXT("HandleFilterMagicClicked"),
+		TEXT("HandleFilterIngredientsClicked"),
+		TEXT("HandleFilterBooksAndKeysClicked"),
+		TEXT("HandleFilterMiscClicked")
+	};
+
+	for (const FName HandlerName : HandlerNames)
+	{
+		TestNotNull(*FString::Printf(TEXT("%s is reflected for native button routing"), *HandlerName.ToString()),
+			BagClass->FindFunctionByName(HandlerName));
+	}
+
 	return true;
 }
 
