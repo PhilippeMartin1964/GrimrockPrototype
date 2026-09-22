@@ -401,7 +401,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-INV02 | validé côté C++ et intégré dans l'architecture split |
 | UI-ITEM01 | fonctionnel |
 | UI-WEIGHT01 | validé et clos le 22 septembre 2026 |
-| UI-FILTER01 | actif — UI-FILTER01.1 mapping catégories/types |
+| UI-FILTER01 | UI-FILTER01.1 validé ; UI-FILTER01.2 prochain |
 | UI-HOTBAR01 | réalisé |
 | UI-FEEDBACK01 | partiel, à consolider |
 | UI-SKILLS01 | fonctionnel via MON20 |

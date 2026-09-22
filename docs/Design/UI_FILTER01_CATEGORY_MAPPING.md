@@ -1,7 +1,7 @@
 # UI-FILTER01.1 — Inventory Filter Category Mapping
 
 Date : **22 septembre 2026**  
-Statut : **CONTRAT DÉFINI — validation locale requise**
+Statut : **VALIDÉ — 22 septembre 2026**
 
 ## Objectif
 
@@ -79,3 +79,17 @@ Grimrock.UI.Filter01.CategoryMapping
 ```
 
 Il couvre les quinze valeurs actuelles de `EGridItemType`, le bypass `Tous` et plusieurs rejets inter-catégories.
+
+
+## Validation reçue — 22 septembre 2026
+
+```text
+Filter                 : Grimrock.UI.Filter01
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+UI-FILTER01.1 est validé. Le mapping catégories UI -> `EGridItemType` est désormais le contrat de référence pour UI-FILTER01.2.
