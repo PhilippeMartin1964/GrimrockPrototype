@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "UI/GridInventoryWidget.h"
 
 namespace GridUIWeight01
 {
