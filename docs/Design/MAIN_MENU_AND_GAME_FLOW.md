@@ -1,5 +1,7 @@
 # MM0 - Menu principal et flux de demarrage
 
+> **DOCUMENT HISTORIQUE MM0.** Les noms d'assets proposés ici ont été raffinés pendant MM4/MM5. Les assets actuels sont notamment `WBP_CreditsMenu`, `WBP_LicenseMenu`, `WBP_OptionsMenu`, `WBP_LoadGameMenu` et `WBP_LoadGameSlotRow`. Pour l'état réalisé, préférer les documents MM4/MM5.
+
 ## 1. Objet
 
 Ce document definit le menu principal cible de GrimrockPrototype et son role dans le flux global du jeu.

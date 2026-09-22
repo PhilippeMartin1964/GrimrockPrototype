@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-FILTER01.1**  
+Statut : **CURRENT — UI-FILTER01.3.1 VALIDÉ EN PIE ; UI ASSET AUDIT ACTIF**  
 Date : **22 septembre 2026**
 
 ## Références canoniques
@@ -401,7 +401,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-INV02 | validé côté C++ et intégré dans l'architecture split |
 | UI-ITEM01 | fonctionnel |
 | UI-WEIGHT01 | validé et clos le 22 septembre 2026 |
-| UI-FILTER01 | UI-FILTER01.1/.2/.3 validés côté C++ ; UI-FILTER01.3.1 routage clics natif à valider |
+| UI-FILTER01 | UI-FILTER01.1/.2/.3 validés côté C++ ; UI-FILTER01.3.1 validé en PIE |
 | UI-HOTBAR01 | réalisé |
 | UI-FEEDBACK01 | partiel, à consolider |
 | UI-SKILLS01 | fonctionnel via MON20 |

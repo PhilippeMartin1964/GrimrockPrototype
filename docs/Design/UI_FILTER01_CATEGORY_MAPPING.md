@@ -199,3 +199,10 @@ SetInventoryFilterCategory(<catégorie>)
 Les bindings sont retirés dans `NativeDestruct()`.
 
 Conséquence : `WBP_InventoryBag` n'a plus besoin d'aucun Event Graph pour les filtres. Le Blueprint conserve uniquement les widgets et leur style.
+
+
+## Validation PIE reçue — UI-FILTER01.3.1 — 22 septembre 2026
+
+Validation utilisateur confirmée en PIE : le routage natif des sept boutons de filtre est fonctionnel. Les événements `OnClicked` Blueprint ne sont plus nécessaires pour le filtrage.
+
+Cette validation est une validation fonctionnelle PIE ; aucun nouveau résultat Automation distinct n'est ajouté ici au-delà de la validation UI-FILTER01.3 déjà enregistrée.

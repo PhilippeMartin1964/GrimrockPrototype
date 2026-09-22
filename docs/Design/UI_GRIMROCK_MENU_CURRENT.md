@@ -1,7 +1,7 @@
 # GrimrockMenu — Current Technical Reference
 
-Date : **20 septembre 2026**  
-Statut : **CURRENT — UI-CLEAN01**
+Date : **22 septembre 2026**  
+Statut : **CURRENT — UI-CLEAN01 + UI-ASSET-AUDIT01**
 
 ## Rôle actuel
 
@@ -115,3 +115,14 @@ Aucun nouveau code Inventory ne doit être ajouté à UGrimrockMenuWidget.
 Aucun nouvel onglet visuel supérieur ne doit être ajouté au shell.
 
 La barre basse persistante reste l'unique navigation globale visible.
+
+
+## Audit assets UI — 22 septembre 2026
+
+L'inventaire complet des assets sous `Content/GrimrockPrototype/Blueprints/UI`, leur statut et le plan de rangement/nettoyage sont documentés dans :
+
+```text
+docs/Design/UI_ASSET_AUDIT_2026_09_22.md
+```
+
+Le shell `WBP_GrimrockMenu` reste temporairement nécessaire. Il ne doit pas être supprimé tant que Skills, Spellbook, Journal, Map, Recipes et Codex n'ont pas tous quitté ce shell.

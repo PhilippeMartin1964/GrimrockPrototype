@@ -190,7 +190,7 @@ Item lisible
   -> ExecuteInventoryContextActionByIndex
   -> Execute Read
   -> PresentItemReading
-  -> WBP_GridInventory crée WBP_ItemReadPanel
+  -> WBP_InventoryBag crée WBP_ItemReadPanel
   -> fermeture par bouton ou clic extérieur
 ```
 
