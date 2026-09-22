@@ -28,6 +28,21 @@ namespace GridUIWeight01
 	}
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIWeight01PresentationHookTest, "Grimrock.UI.Weight01.PresentationHook",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIWeight01PresentationHookTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	UFunction* PresentationHook = UGridInventoryWidget::StaticClass()->FindFunctionByName(TEXT("PresentInventoryWeightState"));
+	TestNotNull(TEXT("Weight presentation hook is exposed to Blueprint"), PresentationHook);
+	if (PresentationHook)
+	{
+		TestTrue(TEXT("Weight presentation hook is a Blueprint event"), PresentationHook->HasAnyFunctionFlags(FUNC_BlueprintEvent));
+	}
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIWeight01DerivedPresentationStateTest, "Grimrock.UI.Weight01.DerivedPresentationState",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 

@@ -327,6 +327,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Character Details")
 	void RefreshSelectedCharacterDetails();
 
+	/** UI-WEIGHT01 presentation hook. Blueprint chooses colors; C++ owns the derived state. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory|Weight")
+	void PresentInventoryWeightState(EGridInventoryWeightState WeightState);
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	void HandleRegisteredPartyMemberClicked(int32 CharacterIndex);
 

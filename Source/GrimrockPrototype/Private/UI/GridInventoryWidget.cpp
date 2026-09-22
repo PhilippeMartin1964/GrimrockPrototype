@@ -365,6 +365,7 @@ void UGridInventoryWidget::RefreshSelectedInventoryBagPresentation()
 		SetInventoryOptionalText(Text_InventoryBagSlotUsage, FText::GetEmpty());
 		SetInventoryOptionalText(Text_InventoryBagWeight, FText::GetEmpty());
 		SetInventoryOptionalProgress(ProgressBar_InventoryBagWeight, 0.0f, 0.0f);
+		PresentInventoryWeightState(EGridInventoryWeightState::Normal);
 		return;
 	}
 
@@ -373,6 +374,7 @@ void UGridInventoryWidget::RefreshSelectedInventoryBagPresentation()
 	SetInventoryOptionalText(
 		Text_InventoryBagWeight, FormatWeightWithBonus(Summary.CurrentWeight, Summary.MaxWeight, Summary.EquipmentStatBonus.CarryWeightBonus));
 	SetInventoryOptionalProgress(ProgressBar_InventoryBagWeight, Summary.CurrentWeight, Summary.MaxWeight);
+	PresentInventoryWeightState(Summary.WeightState);
 }
 
 void UGridInventoryWidget::EnsureSelectedInventorySlotLayout()
