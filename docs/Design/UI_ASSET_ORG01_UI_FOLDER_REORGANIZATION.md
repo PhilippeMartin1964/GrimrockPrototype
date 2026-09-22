@@ -147,3 +147,36 @@ Après validation des quatre batches, mettre à jour les documents CURRENT/canon
 Commencer par **Batch A — Fonts** : seulement deux assets, faible surface fonctionnelle et validation très simple.
 
 Ne passer au batch suivant qu'après validation du batch courant.
+
+
+## Mode accéléré — validation utilisateur du Batch A
+
+Le **Batch A — Fonts** est confirmé fonctionnel par l'utilisateur le 22 septembre 2026.
+
+Pour accélérer la migration, les trois lots restants peuvent désormais être exécutés dans **une seule session UE5**, dans cet ordre :
+
+```text
+Batch B — Interaction
+Batch C — Inventory
+Batch D — InGameMenu
+```
+
+Le principe reste identique : déplacement depuis le Content Browser, Save All, puis un unique `Fix Up Redirectors in Folder` sur `Blueprints/UI` une fois les trois lots terminés.
+
+Avant cette accélération, une recherche repository confirme qu'aucun chemin de production C++ codé en dur du type :
+
+```text
+/Game/GrimrockPrototype/Blueprints/UI/WBP_...
+```
+
+ne cible les assets déplacés. Le seul chemin runtime connu dans cette zone concerne `RPG/WBP_CharacterCreationWizard`, qui n'est pas déplacé.
+
+Après le déplacement combiné, un seul passage de :
+
+```text
+Grimrock.Editor.UIAssetOrg01.MigrationAudit
+```
+
+doit montrer les 22 assets en `Location=TARGET`.
+
+La documentation canonique des chemins physiques sera normalisée après cette validation finale, afin de ne pas documenter prématurément un état non encore présent sur `master`.

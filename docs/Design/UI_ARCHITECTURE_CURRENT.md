@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-ASSET-CLEAN01 CLOS ; UI-ASSET-ORG01 ACTIF**  
+Statut : **CURRENT — UI-ASSET-CLEAN01 CLOS ; UI-ASSET-ORG01 BATCH A VALIDÉ, B-D ACCÉLÉRÉS**  
 Date : **22 septembre 2026**
 
 ## Références canoniques
