@@ -51,6 +51,15 @@ enum class EGridEquipmentSlot : uint8
 	Earring2
 };
 
+/** Derived presentation state for the selected character's carried weight. */
+UENUM(BlueprintType)
+enum class EGridInventoryWeightState : uint8
+{
+	Normal,
+	Heavy,
+	Overloaded
+};
+
 /**
  * Persistent identity stored by one configurable combat hotbar slot.
  * Runtime availability and costs are deliberately resolved from the action
@@ -523,6 +532,10 @@ struct FGridInventoryCharacterSummary
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	float BaseMaxWeight = 0.0f;
+
+	/** UI-WEIGHT01.1 derived read-model state; never persistent authority. */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	EGridInventoryWeightState WeightState = EGridInventoryWeightState::Normal;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	bool bOverloaded = false;

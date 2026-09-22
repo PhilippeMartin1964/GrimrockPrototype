@@ -27,6 +27,21 @@ namespace
 		return Item.IsValid() ? Item.Weight * FMath::Max(1, Item.Quantity) : 0.0f;
 	}
 
+	constexpr float InventoryHeavyWeightRatio = 0.8f;
+
+	EGridInventoryWeightState ResolveInventoryWeightState(float CurrentWeight, float MaxWeight)
+	{
+		if (CurrentWeight > MaxWeight)
+		{
+			return EGridInventoryWeightState::Overloaded;
+		}
+		if (MaxWeight > 0.0f && CurrentWeight >= MaxWeight * InventoryHeavyWeightRatio)
+		{
+			return EGridInventoryWeightState::Heavy;
+		}
+		return EGridInventoryWeightState::Normal;
+	}
+
 	bool HaveMatchingReadableContent(const FGridItemInstance& ExistingItem, const FGridItemInstance& IncomingItem)
 	{
 		return ExistingItem.ReadableContentAsset == IncomingItem.ReadableContentAsset && ExistingItem.ReadableContentId == IncomingItem.ReadableContentId &&
@@ -477,7 +492,8 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	OutSummary.MaxInventorySlots = CharacterState.InventorySlots.Num();
 	OutSummary.CurrentWeight = CalculateCharacterCurrentWeight(CharacterIndex);
 	OutSummary.MaxWeight = FMath::Max(0.0f, OutSummary.BaseMaxWeight + OutSummary.EquipmentStatBonus.CarryWeightBonus);
-	OutSummary.bOverloaded = OutSummary.CurrentWeight > OutSummary.MaxWeight;
+	OutSummary.WeightState = ResolveInventoryWeightState(OutSummary.CurrentWeight, OutSummary.MaxWeight);
+	OutSummary.bOverloaded = OutSummary.WeightState == EGridInventoryWeightState::Overloaded;
 	OutSummary.bIsSelected = CharacterIndex == PartyInventoryState.SelectedCharacterIndex;
 	return true;
 }
