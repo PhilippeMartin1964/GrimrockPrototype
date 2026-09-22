@@ -1,7 +1,7 @@
 # UI-FEEDBACK01.1 — Indicateur de surcharge sur les portraits
 
 Date : **22 septembre 2026**  
-Statut : **C++ PRÊT — UMG/Automation À VALIDER**
+Statut : **AUTOMATION VALIDÉE — validation visuelle PIE restante**
 
 ## Objectif
 
@@ -66,3 +66,19 @@ Le test vérifie les transitions Normal -> Heavy -> Overloaded -> Normal.
 ## Hors scope
 
 Le handicap gameplay de déplacement du groupe en surcharge reste un développement runtime séparé. UI-FEEDBACK01.1 n'ajoute aucune règle de mouvement.
+
+
+## Validation Automation reçue — 22 septembre 2026
+
+```text
+Filter                 : Grimrock.UI.Feedback01
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Le test `Grimrock.UI.Feedback01.PartyWeightAlert` valide le contrat C++ Normal / Heavy / Overloaded.
+
+La clôture de UI-FEEDBACK01.1 attend uniquement la confirmation PIE du binding `Image_WeightAlert` dans `WBP_PartyMember`.

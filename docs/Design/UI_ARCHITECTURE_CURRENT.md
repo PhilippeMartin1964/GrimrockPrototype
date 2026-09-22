@@ -403,7 +403,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-WEIGHT01 | validé et clos le 22 septembre 2026 |
 | UI-FILTER01 | UI-FILTER01.1/.2/.3 validés côté C++ ; UI-FILTER01.3.1 validé en PIE |
 | UI-HOTBAR01 | réalisé |
-| UI-FEEDBACK01 | UI-FEEDBACK01.1 indicateur surcharge portrait actif |
+| UI-FEEDBACK01 | UI-FEEDBACK01.1 Automation validée ; PIE visuel restant |
 | UI-SKILLS01 | fonctionnel via MON20 |
 | UI-CRAFT01 | shell |
 | UI-MAP01 | shell ; fonctionnalité prévue MON21.6 |
