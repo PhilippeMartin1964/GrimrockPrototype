@@ -168,4 +168,10 @@ void UGridPartyMemberWidget::RefreshBoundMemberVisuals()
 	{
 		Border_Selected->SetVisibility(CachedSummary.bIsSelected ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
+
+	if (Image_WeightAlert)
+	{
+		Image_WeightAlert->SetVisibility(
+			CachedSummary.WeightState == EGridInventoryWeightState::Overloaded ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
 }

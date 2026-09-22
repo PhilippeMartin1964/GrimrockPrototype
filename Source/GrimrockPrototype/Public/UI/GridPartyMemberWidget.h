@@ -49,6 +49,10 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
 	TObjectPtr<UBorder> Border_Selected;
 
+	/** UI-FEEDBACK01.1: presentation-only warning shown when this character is overloaded. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
+	TObjectPtr<UImage> Image_WeightAlert;
+
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
 	TObjectPtr<UTextBlock> Text_Name;
 

@@ -137,3 +137,12 @@ Process exit code       : 0
 ```
 
 UI-WEIGHT01 est clos. Le prochain gros ticket UI est UI-FILTER01.
+
+
+## UI-FEEDBACK01.1 — évolution implémentée
+
+L'évolution prévue « icône d'encombrement sur le portrait » est désormais engagée via le binding optionnel `Image_WeightAlert` de `WBP_PartyMember`.
+
+Le C++ affiche cette icône uniquement lorsque `WeightState == Overloaded`. Le seuil `Heavy` reste réservé à la jauge du sac et n'allume pas l'alerte portrait.
+
+Le handicap de déplacement lié à la surcharge reste hors scope de ce jalon UI.

@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-ASSET-CLEAN01/ORG01 CLOS ; UI-FEEDBACK01.1 PROCHAIN**  
+Statut : **CURRENT — UI-ASSET-CLEAN01/ORG01 CLOS ; UI-FEEDBACK01.1 ACTIF**  
 Date : **22 septembre 2026**
 
 ## Références canoniques
@@ -403,7 +403,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-WEIGHT01 | validé et clos le 22 septembre 2026 |
 | UI-FILTER01 | UI-FILTER01.1/.2/.3 validés côté C++ ; UI-FILTER01.3.1 validé en PIE |
 | UI-HOTBAR01 | réalisé |
-| UI-FEEDBACK01 | partiel, à consolider |
+| UI-FEEDBACK01 | UI-FEEDBACK01.1 indicateur surcharge portrait actif |
 | UI-SKILLS01 | fonctionnel via MON20 |
 | UI-CRAFT01 | shell |
 | UI-MAP01 | shell ; fonctionnalité prévue MON21.6 |
