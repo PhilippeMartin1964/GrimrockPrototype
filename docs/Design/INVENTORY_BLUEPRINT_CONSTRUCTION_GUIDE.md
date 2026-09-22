@@ -191,7 +191,6 @@ Les BindWidget de `UGridInventoryWidget` doivent être conservés et réutilisé
 
 - `ProgressBar_CharacterHealth` ;
 - `ProgressBar_CharacterMana` ;
-- `ProgressBar_CharacterCarryWeight` ;
 - `Text_CharacterInventorySlots` ;
 - `Text_CharacterPhysicalArmor` ;
 - `Text_CharacterMagicalArmor` ;
@@ -200,7 +199,9 @@ Les BindWidget de `UGridInventoryWidget` doivent être conservés et réutilisé
 - `Text_CharacterEvasion` ;
 - `Text_ResistancePhysical`.
 
-Les champs existants `Text_CharacterName/Race/Class/Level/Experience`, les six attributs, les résistances élémentaires, `Text_CharacterHealth/Mana/CarryWeight`, `Image_CharacterPortrait`, `Image_CharacterClassIcon` et `Border_CharacterClassAccent` restent valides.
+Les champs existants `Text_CharacterName/Race/Class/Level/Experience`, les six attributs, les résistances élémentaires, `Text_CharacterHealth/Mana`, `Image_CharacterPortrait`, `Image_CharacterClassIcon` et `Border_CharacterClassAccent` restent valides.
+
+Depuis UI-WEIGHT01-CLEAN01, le poids n'est plus présenté dans `WBP_CharacterSheet`. `Text_InventoryBagWeight` et `ProgressBar_InventoryBagWeight` sont les seules surfaces canoniques de poids.
 
 Le binding canonique unique pour l'armure physique est `Text_CharacterPhysicalArmor`.
 

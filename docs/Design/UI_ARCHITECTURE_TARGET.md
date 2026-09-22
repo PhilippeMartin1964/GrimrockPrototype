@@ -1,5 +1,7 @@
 # UI01.2 — Architecture UI cible détaillée
 
+> **HISTORIQUE / SUPERSEDED.** Ce document décrit l'ancienne cible monolithique `WBP_GrimrockMenu`. La référence actuelle est `docs/Design/UI_ARCHITECTURE_CURRENT.md`, avec `WBP_CharacterSheet` et `WBP_InventoryBag` indépendants et la navigation persistante dans `WBP_GridCombatHud`.
+
 ## Objectif
 
 Définir une architecture UI globale cohérente avant l'intégration du Spellbook.

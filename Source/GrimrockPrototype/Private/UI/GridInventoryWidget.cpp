@@ -365,7 +365,10 @@ void UGridInventoryWidget::RefreshSelectedInventoryBagPresentation()
 		SetInventoryOptionalText(Text_InventoryBagSlotUsage, FText::GetEmpty());
 		SetInventoryOptionalText(Text_InventoryBagWeight, FText::GetEmpty());
 		SetInventoryOptionalProgress(ProgressBar_InventoryBagWeight, 0.0f, 0.0f);
-		PresentInventoryWeightState(EGridInventoryWeightState::Normal);
+		if (Text_InventoryBagWeight || ProgressBar_InventoryBagWeight)
+		{
+			PresentInventoryWeightState(EGridInventoryWeightState::Normal);
+		}
 		return;
 	}
 
@@ -374,7 +377,10 @@ void UGridInventoryWidget::RefreshSelectedInventoryBagPresentation()
 	SetInventoryOptionalText(
 		Text_InventoryBagWeight, FormatWeightWithBonus(Summary.CurrentWeight, Summary.MaxWeight, Summary.EquipmentStatBonus.CarryWeightBonus));
 	SetInventoryOptionalProgress(ProgressBar_InventoryBagWeight, Summary.CurrentWeight, Summary.MaxWeight);
-	PresentInventoryWeightState(Summary.WeightState);
+	if (Text_InventoryBagWeight || ProgressBar_InventoryBagWeight)
+	{
+		PresentInventoryWeightState(Summary.WeightState);
+	}
 }
 
 void UGridInventoryWidget::EnsureSelectedInventorySlotLayout()
@@ -647,8 +653,6 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails()
 		SetInventoryOptionalProgress(ProgressBar_CharacterHealth, 0.0f, 0.0f);
 		SetInventoryOptionalText(Text_CharacterMana, FText::GetEmpty());
 		SetInventoryOptionalProgress(ProgressBar_CharacterMana, 0.0f, 0.0f);
-		SetInventoryOptionalText(Text_CharacterCarryWeight, FText::GetEmpty());
-		SetInventoryOptionalProgress(ProgressBar_CharacterCarryWeight, 0.0f, 0.0f);
 		SetInventoryOptionalText(Text_CharacterInventorySlots, FText::GetEmpty());
 		SetInventoryOptionalText(Text_CharacterPhysicalArmor, FText::GetEmpty());
 		SetInventoryOptionalText(Text_CharacterMagicalArmor, FText::GetEmpty());
@@ -689,9 +693,6 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails()
 		Text_CharacterMana, FormatCurrentMaxWithMaxBonus(Summary.Resources.CurrentMana, Summary.DerivedStats.MaxMana, Summary.EquipmentStatBonus.MaxManaBonus));
 	SetInventoryOptionalProgress(
 		ProgressBar_CharacterMana, static_cast<float>(Summary.Resources.CurrentMana), static_cast<float>(Summary.DerivedStats.MaxMana));
-	SetInventoryOptionalText(
-		Text_CharacterCarryWeight, FormatWeightWithBonus(Summary.CurrentWeight, Summary.MaxWeight, Summary.EquipmentStatBonus.CarryWeightBonus));
-	SetInventoryOptionalProgress(ProgressBar_CharacterCarryWeight, Summary.CurrentWeight, Summary.MaxWeight);
 	SetInventoryOptionalText(Text_CharacterInventorySlots, FormatInventorySlotUsage(Summary.UsedInventorySlots, Summary.MaxInventorySlots));
 
 	const FText PhysicalArmorText = FormatIntWithBonus(Summary.Resources.CurrentPhysicalArmor, Summary.EquipmentStatBonus.ArmorBonus);

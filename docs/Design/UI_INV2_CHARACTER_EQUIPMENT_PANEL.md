@@ -164,9 +164,6 @@ SizeBox_SelectedCharacterPanel
                      -> VerticalBox_Mana
                         -> TextLabel_Mana
                         -> Text_CharacterMana
-                     -> VerticalBox_CarryWeight
-                        -> TextLabel_CarryWeight
-                        -> Text_CharacterCarryWeight
 ```
 
 ## Regles de construction UMG
@@ -197,11 +194,11 @@ Il regroupe au minimum :
 
 - `Details` : nom, race, classe, niveau, experience ;
 - `Attributes` : FOR, DEX, CON, INT, SAG, CHA ;
-- `Vitals` : PV, mana, charge, occupation des slots ;
+- `Vitals` : PV, mana, occupation des slots ;
 - `Combat` : armure physique, armure magique, initiative, precision, esquive ;
 - `Resistances` : physique, feu, glace, foudre, poison, sacre, necrotique, arcanique.
 
-Depuis UI-CHAR02, ces champs sont directement projetes depuis `FGridInventoryCharacterSummary`. Les progress bars PV/mana/charge sont egalement disponibles.
+Depuis UI-CHAR02, ces champs sont directement projetes depuis `FGridInventoryCharacterSummary`. Les progress bars PV/mana sont disponibles. Depuis UI-WEIGHT01-CLEAN01, le poids et sa jauge appartiennent exclusivement à `WBP_InventoryBag`.
 
 Les statistiques sans autorite runtime actuelle, notamment degats et critique, ne doivent pas etre calculees localement dans l'UI. Elles seront ajoutees uniquement lorsqu'une source canonique sera disponible.
 

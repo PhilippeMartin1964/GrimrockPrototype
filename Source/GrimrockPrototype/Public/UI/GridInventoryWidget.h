@@ -114,12 +114,6 @@ public:
 	TObjectPtr<UProgressBar> ProgressBar_CharacterMana;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
-	TObjectPtr<UTextBlock> Text_CharacterCarryWeight;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
-	TObjectPtr<UProgressBar> ProgressBar_CharacterCarryWeight;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
 	TObjectPtr<UTextBlock> Text_CharacterInventorySlots;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Combat")
@@ -327,7 +321,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Character Details")
 	void RefreshSelectedCharacterDetails();
 
-	/** UI-WEIGHT01 presentation hook. Blueprint chooses colors; C++ owns the derived state. */
+	/** UI-WEIGHT01 inventory-bag presentation hook. Blueprint chooses colors; C++ owns the derived state. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory|Weight")
 	void PresentInventoryWeightState(EGridInventoryWeightState WeightState);
 

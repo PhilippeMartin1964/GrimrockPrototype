@@ -1,7 +1,7 @@
 # UI-CHAR02 — Character Sheet Projection and Layout Contract
 
-Date : **20 septembre 2026**  
-Statut : **AUTOMATION VALIDÉE — 20 septembre 2026 ; passe UMG/PIE visuelle encore à réaliser**
+Date : **22 septembre 2026**  
+Statut : **VALIDÉ — contrat corrigé par UI-WEIGHT01-CLEAN01 : le poids appartient exclusivement à l'Inventaire**
 
 ## Objectif
 
@@ -47,14 +47,13 @@ Text_CharacterCharisma
 
 Les bonus d'équipement restent affichés par le format existant `valeur finale (+bonus)`.
 
-### Ressources et charge
+### Ressources et occupation
 
-UI-CHAR02 ajoute les barres optionnelles :
+UI-CHAR02 conserve les barres optionnelles de ressources :
 
 ```text
 ProgressBar_CharacterHealth
 ProgressBar_CharacterMana
-ProgressBar_CharacterCarryWeight
 ```
 
 Elles sont alimentées depuis les valeurs déjà autoritaires :
@@ -62,7 +61,6 @@ Elles sont alimentées depuis les valeurs déjà autoritaires :
 ```text
 Resources.CurrentHealth / DerivedStats.MaxHealth
 Resources.CurrentMana   / DerivedStats.MaxMana
-CurrentWeight           / MaxWeight
 ```
 
 Le ratio est clampé dans `[0..1]`. Un maximum nul produit 0.
@@ -72,8 +70,9 @@ Le texte reste disponible en parallèle :
 ```text
 Text_CharacterHealth
 Text_CharacterMana
-Text_CharacterCarryWeight
 ```
+
+**Décision UI-WEIGHT01-CLEAN01 :** aucun poids ni jauge d'encombrement n'est affiché dans `WBP_CharacterSheet`. La charge `CurrentWeight / MaxWeight` appartient exclusivement à `WBP_InventoryBag`.
 
 Le compteur de cases d'inventaire est désormais projeté vers :
 
@@ -167,8 +166,7 @@ VerticalBox_CharacterSheet
 │       ├── Border_Identity
 │       ├── Border_Vitals
 │       │   ├── Health + ProgressBar_CharacterHealth
-│       │   ├── Mana + ProgressBar_CharacterMana
-│       │   └── Carry + ProgressBar_CharacterCarryWeight
+│       │   └── Mana + ProgressBar_CharacterMana
 │       ├── Border_Combat
 │       │   ├── armure physique
 │       │   ├── armure magique
@@ -190,7 +188,6 @@ UMG reste responsable de :
 - couleur normale ;
 - sélection ;
 - danger ;
-- surcharge ;
 - style des progress bars ;
 - typographie ;
 - icônes ;
@@ -235,7 +232,7 @@ Après la passe UMG, contrôler en PIE :
 
 1. changement de personnage ;
 2. identité et attributs synchronisés ;
-3. PV/mana/charge synchronisés ;
+3. PV/mana synchronisés ;
 4. barres cohérentes avec les textes ;
 5. statistiques combat correctes ;
 6. résistances correctes ;

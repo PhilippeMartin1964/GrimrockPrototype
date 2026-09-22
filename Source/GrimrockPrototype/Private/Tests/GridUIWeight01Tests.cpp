@@ -4,6 +4,7 @@
 
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryWidget.h"
+#include "UObject/UnrealType.h"
 
 namespace GridUIWeight01
 {
@@ -27,6 +28,26 @@ namespace GridUIWeight01
 		}
 		return Inventory;
 	}
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIWeight01InventoryOnlyContractTest, "Grimrock.UI.Weight01.InventoryOnlyContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIWeight01InventoryOnlyContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	UClass* InventoryWidgetClass = UGridInventoryWidget::StaticClass();
+	TestNotNull(TEXT("Inventory widget class exists"), InventoryWidgetClass);
+	if (!InventoryWidgetClass)
+	{
+		return false;
+	}
+
+	TestNull(TEXT("Character sheet carry text binding is removed"), FindFProperty<FProperty>(InventoryWidgetClass, TEXT("Text_CharacterCarryWeight")));
+	TestNull(TEXT("Character sheet carry progress binding is removed"), FindFProperty<FProperty>(InventoryWidgetClass, TEXT("ProgressBar_CharacterCarryWeight")));
+	TestNotNull(TEXT("Inventory bag weight text binding remains"), FindFProperty<FProperty>(InventoryWidgetClass, TEXT("Text_InventoryBagWeight")));
+	TestNotNull(TEXT("Inventory bag weight progress binding remains"), FindFProperty<FProperty>(InventoryWidgetClass, TEXT("ProgressBar_InventoryBagWeight")));
+	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIWeight01PresentationHookTest, "Grimrock.UI.Weight01.PresentationHook",

@@ -51,7 +51,6 @@ bool FGridUICharacter02SheetProjectionTest::RunTest(const FString& Parameters)
 	Widget->Text_ResistancePhysical = NewObject<UTextBlock>(Widget);
 	Widget->ProgressBar_CharacterHealth = NewObject<UProgressBar>(Widget);
 	Widget->ProgressBar_CharacterMana = NewObject<UProgressBar>(Widget);
-	Widget->ProgressBar_CharacterCarryWeight = NewObject<UProgressBar>(Widget);
 
 	Widget->RefreshSelectedCharacterDetails();
 
@@ -59,7 +58,6 @@ bool FGridUICharacter02SheetProjectionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Mana text uses current/max projection"), Widget->Text_CharacterMana->GetText().ToString(), FString(TEXT("20 / 50")));
 	TestTrue(TEXT("Health progress is 75 percent"), FMath::IsNearlyEqual(Widget->ProgressBar_CharacterHealth->GetPercent(), 0.75f));
 	TestTrue(TEXT("Mana progress is 40 percent"), FMath::IsNearlyEqual(Widget->ProgressBar_CharacterMana->GetPercent(), 0.4f));
-	TestTrue(TEXT("Empty inventory has zero carry progress"), FMath::IsNearlyEqual(Widget->ProgressBar_CharacterCarryWeight->GetPercent(), 0.0f));
 	TestEqual(TEXT("Inventory slot usage is projected"), Widget->Text_CharacterInventorySlots->GetText().ToString(), FString(TEXT("0 / 8")));
 	TestEqual(TEXT("Physical armor is projected"), Widget->Text_CharacterPhysicalArmor->GetText().ToString(), FString(TEXT("12")));
 	TestEqual(TEXT("Magical armor is projected"), Widget->Text_CharacterMagicalArmor->GetText().ToString(), FString(TEXT("7")));

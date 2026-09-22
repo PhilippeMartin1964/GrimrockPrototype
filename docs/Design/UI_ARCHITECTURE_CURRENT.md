@@ -1,7 +1,7 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-ITEM01**  
-Date : **20 septembre 2026**
+Statut : **CURRENT — UI-WEIGHT01**  
+Date : **22 septembre 2026**
 
 ## Références canoniques
 
@@ -184,7 +184,6 @@ La feuille expose désormais, en plus des champs existants :
 ```text
 ProgressBar_CharacterHealth
 ProgressBar_CharacterMana
-ProgressBar_CharacterCarryWeight
 Text_CharacterInventorySlots
 Text_CharacterPhysicalArmor
 Text_CharacterMagicalArmor
@@ -214,6 +213,23 @@ ProgressBar_InventoryBagWeight
 `RefreshInventory()` resynchronise aussi le layout de slots afin qu'une même grille puisse suivre des capacités différentes selon le personnage.
 
 Référence : `docs/Design/UI_INV01_SELECTED_CHARACTER_SINGLE_BAG.md`.
+
+### UI-WEIGHT01 — poids/encombrement dans le sac uniquement
+
+La présentation du poids appartient exclusivement à `WBP_InventoryBag` :
+
+```text
+Text_InventoryBagWeight
+ProgressBar_InventoryBagWeight
+```
+
+Le C++ expose l'état dérivé non persistant `Normal / Heavy / Overloaded`. Le seuil `Heavy` commence à 80 % de `MaxWeight`, et `Overloaded` signifie strictement `CurrentWeight > MaxWeight`.
+
+Le Blueprint ne recalcule aucun seuil ; il utilise `PresentInventoryWeightState` uniquement pour la couleur de la jauge. La feuille personnage ne possède ni texte ni progress bar de poids.
+
+Évolutions explicitement futures : icône d'encombrement sur le portrait du personnage concerné, handicap gameplay de déplacement du groupe en cas de surcharge, et polish visuel de la jauge.
+
+Référence : `docs/Design/UI_WEIGHT01_INVENTORY_WEIGHT_FEEDBACK.md`.
 
 ### UI-INV02 — transfert par drag vers un portrait
 
@@ -370,6 +386,33 @@ Dette réelle suivie dans `TECHNICAL_DEBT_REGISTER.md` :
 - sélection explicite d’un autre allié pour les sorts `Ally` : amélioration fonctionnelle/UX ;
 - icônes finales : contenu de production ;
 - Recipes : fonctionnalité future.
+
+## Roadmap UI canonique
+
+La cible visuelle de référence est : feuille de personnage à gauche, vue 3D centrale interactive, inventaire à droite, barre de navigation/hotbar persistante en bas.
+
+| Ticket | État courant |
+|---|---|
+| UI-FOUNDATION01 | réalisé, présentation historique superseded par UI-SPLIT01 |
+| UI-NAV01 | validé |
+| UI-CHAR01 | validé |
+| UI-CHAR02 | validé ; poids retiré de la feuille par UI-WEIGHT01-CLEAN01 |
+| UI-INV01 | validé |
+| UI-INV02 | validé côté C++ et intégré dans l'architecture split |
+| UI-ITEM01 | fonctionnel |
+| UI-WEIGHT01 | en clôture |
+| UI-FILTER01 | prochain gros ticket UI |
+| UI-HOTBAR01 | réalisé |
+| UI-FEEDBACK01 | partiel, à consolider |
+| UI-SKILLS01 | fonctionnel via MON20 |
+| UI-CRAFT01 | shell |
+| UI-MAP01 | shell ; fonctionnalité prévue MON21.6 |
+| UI-JOURNAL01 | shell ; fonctionnalité prévue MON21.5 |
+| UI-CODEX01 | shell ; fonctionnalité prévue MON21.7 |
+| UI-POLISH01 | futur |
+| UI-QA01 | futur |
+
+UI-FILTER01 devra regrouper logiquement les `EGridItemType` existants en catégories de présentation. Les types C++ restent l'autorité ; aucun nouveau type gameplay ne doit être inventé uniquement pour l'UI.
 
 ## Validation
 

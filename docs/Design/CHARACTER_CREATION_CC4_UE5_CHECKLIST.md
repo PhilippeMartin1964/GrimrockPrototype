@@ -1,5 +1,7 @@
 # CC4 - Intégration du personnage dans l'Inventaire
 
+> **HISTORIQUE.** Cette checklist documente l'UI monolithique validée en juin 2026. Depuis UI-SPLIT01/UI-CLEAN01 et UI-WEIGHT01-CLEAN01, ne pas réintroduire `WBP_GridInventory`, `Text_CharacterCarryWeight` ni une jauge de poids dans la feuille personnage. Le poids est présenté uniquement dans `WBP_InventoryBag`. Voir `UI_ARCHITECTURE_CURRENT.md`.
+
 ## 1. Objet
 
 **État au 22 juin 2026 : CC4 validée en UE5 et en PIE ; les onze tests Automation sont verts.**
