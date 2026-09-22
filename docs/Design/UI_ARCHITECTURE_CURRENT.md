@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-WEIGHT01**  
+Statut : **CURRENT — UI-FILTER01 NEXT**  
 Date : **22 septembre 2026**
 
 ## Références canoniques
@@ -400,7 +400,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-INV01 | validé |
 | UI-INV02 | validé côté C++ et intégré dans l'architecture split |
 | UI-ITEM01 | fonctionnel |
-| UI-WEIGHT01 | en clôture |
+| UI-WEIGHT01 | validé et clos le 22 septembre 2026 |
 | UI-FILTER01 | prochain gros ticket UI |
 | UI-HOTBAR01 | réalisé |
 | UI-FEEDBACK01 | partiel, à consolider |

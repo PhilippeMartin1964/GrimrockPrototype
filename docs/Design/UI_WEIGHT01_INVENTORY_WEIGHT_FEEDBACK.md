@@ -1,7 +1,7 @@
 # UI-WEIGHT01 — Inventory Weight Feedback
 
 Date : **22 septembre 2026**  
-Statut : **CIBLE CANONIQUE — validation locale requise après UI-WEIGHT01-CLEAN01**
+Statut : **VALIDÉ — 22 septembre 2026**
 
 ## Décision fonctionnelle
 
@@ -108,3 +108,32 @@ Le ticket doit vérifier :
 - hook de présentation Blueprint disponible.
 
 Après validation Automation, vérifier en PIE que la jauge de `WBP_InventoryBag` suit le personnage sélectionné et change correctement d'état visuel.
+
+
+## Validation reçue — 22 septembre 2026
+
+Validation locale après UI-WEIGHT01-CLEAN01 :
+
+```text
+Filter                 : Grimrock.UI.Weight01
+Succeeded              : 3
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Le build Development Editor est vert et le contrat inventory-only est validé.
+
+Validation complémentaire de non-régression de la feuille personnage :
+
+```text
+Filter                 : Grimrock.UI.Character02
+Succeeded              : 2
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+UI-WEIGHT01 est clos. Le prochain gros ticket UI est UI-FILTER01.
