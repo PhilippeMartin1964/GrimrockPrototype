@@ -298,3 +298,22 @@ Buttons/T_RootFrame
 ```
 
 Le reste possède soit une responsabilité runtime/documentée actuelle, soit une dépendance binaire UMG plausible qui interdit une suppression sans Reference Viewer.
+
+
+## UI-ASSET-CLEAN01 — lancé le 22 septembre 2026
+
+Le nettoyage passe désormais par un audit AssetRegistry read-only avant ouverture du Reference Viewer.
+
+Test :
+
+```text
+Grimrock.Editor.UIAssetClean01.ReferenceAudit
+```
+
+Référence :
+
+```text
+docs/Design/UI_ASSET_CLEAN01_REFERENCE_VIEWER_CLEANUP.md
+```
+
+Aucune suppression n'est autorisée avant la sortie locale de cet audit.

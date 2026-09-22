@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-FILTER01.3.1 VALIDÉ EN PIE ; UI ASSET AUDIT ACTIF**  
+Statut : **CURRENT — UI-ASSET-CLEAN01 ACTIF**  
 Date : **22 septembre 2026**
 
 ## Références canoniques
