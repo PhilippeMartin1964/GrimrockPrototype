@@ -141,3 +141,30 @@ Process exit code       : 0
 ```
 
 UI-FILTER01.2 est validé côté C++/Automation. Le filtrage réel de la grille et la conservation des indices physiques sources sont couverts. La passe UMG de branchement des boutons reste à réaliser.
+
+
+## UI-FILTER01.3 — Contrôles UMG et état sélectionné
+
+`WBP_InventoryBag` possède les sept boutons de filtre suivants :
+
+```text
+Button_FilterAll
+Button_FilterEquipment
+Button_FilterConsumables
+Button_FilterMagic
+Button_FilterIngredients
+Button_FilterBooksAndKeys
+Button_FilterMisc
+```
+
+Leur clic continue d'appeler `SetInventoryFilterCategory` depuis le Blueprint, avec une seule commande par bouton.
+
+Le C++ prend désormais en charge automatiquement l'état sélectionné : le bouton correspondant au filtre courant est désactivé et les six autres restent activés. L'apparence du bouton sélectionné provient donc du **Disabled style du Button UMG** ; aucune couleur n'est dupliquée dans le Graph ni codée en C++.
+
+Cette règle est rafraîchie à la construction de `WBP_InventoryBag` et après tout changement de filtre, y compris si le filtre est changé par une autre voie plus tard.
+
+Test ajouté :
+
+```text
+Grimrock.UI.Filter01.BagControlsContract
+```

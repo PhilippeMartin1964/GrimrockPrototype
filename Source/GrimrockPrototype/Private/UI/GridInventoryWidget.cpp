@@ -909,6 +909,11 @@ void UGridInventoryWidget::SetInventoryFilterCategory(EGridInventoryFilterCatego
 	{
 		RebuildInventorySlotWidgets();
 	}
+	HandleInventoryFilterCategoryChanged();
+}
+
+void UGridInventoryWidget::HandleInventoryFilterCategoryChanged()
+{
 }
 
 int32 UGridInventoryWidget::ResolveInventorySourceSlotCapacity() const

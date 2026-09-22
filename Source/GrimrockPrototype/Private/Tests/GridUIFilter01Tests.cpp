@@ -3,8 +3,10 @@
 #include "Misc/AutomationTest.h"
 
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "UI/GridInventoryBagWidget.h"
 #include "UI/GridInventoryUiTypes.h"
 #include "UI/GridInventoryWidget.h"
+#include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIFilter01CategoryMappingTest, "Grimrock.UI.Filter01.CategoryMapping",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -128,6 +130,39 @@ bool FGridUIFilter01GridProjectionTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Physical slot 3 remains empty"), Character.InventorySlots[3].IsEmpty());
 	TestEqual(TEXT("Book remains in physical slot 4"), Character.InventorySlots[4].Item.RuntimeObjectId, BookRuntimeId);
 	TestEqual(TEXT("Unresolved item remains in physical slot 5"), Character.InventorySlots[5].Item.RuntimeObjectId, MissingRuntimeId);
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIFilter01BagControlsContractTest, "Grimrock.UI.Filter01.BagControlsContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIFilter01BagControlsContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UClass* BagClass = UGridInventoryBagWidget::StaticClass();
+	if (!TestNotNull(TEXT("Inventory bag class exists"), BagClass))
+	{
+		return false;
+	}
+
+	const FName ButtonNames[] = {
+		TEXT("Button_FilterAll"),
+		TEXT("Button_FilterEquipment"),
+		TEXT("Button_FilterConsumables"),
+		TEXT("Button_FilterMagic"),
+		TEXT("Button_FilterIngredients"),
+		TEXT("Button_FilterBooksAndKeys"),
+		TEXT("Button_FilterMisc")
+	};
+
+	for (const FName ButtonName : ButtonNames)
+	{
+		TestNotNull(*FString::Printf(TEXT("%s is part of the native bag contract"), *ButtonName.ToString()),
+			FindFProperty<FProperty>(BagClass, ButtonName));
+	}
 
 	return true;
 }
