@@ -1,7 +1,7 @@
 # UI-FEEDBACK01.1 — Indicateur de surcharge sur les portraits
 
 Date : **22 septembre 2026**  
-Statut : **AUTOMATION VALIDÉE — validation visuelle PIE restante**
+Statut : **CLOS — Automation + PIE validés**
 
 ## Objectif
 
@@ -82,3 +82,12 @@ Process exit code       : 0
 Le test `Grimrock.UI.Feedback01.PartyWeightAlert` valide le contrat C++ Normal / Heavy / Overloaded.
 
 La clôture de UI-FEEDBACK01.1 attend uniquement la confirmation PIE du binding `Image_WeightAlert` dans `WBP_PartyMember`.
+
+
+## Validation PIE reçue — 22 septembre 2026
+
+Validation utilisateur confirmée : `Image_WeightAlert` apparaît bien sur le portrait lorsque le personnage est en surcharge.
+
+Le binding UMG, la projection du `WeightState` et la non-régression du portrait sont donc validés.
+
+`UI-FEEDBACK01.1` est **CLOS**.
