@@ -1,7 +1,7 @@
 # UI-INVENTORY02 — Tri et feedback de projection du sac
 
 Date : **22 septembre 2026**  
-Statut : **C++ PRÊT — UMG/Automation À VALIDER**
+Statut : **CLOS — Automation + PIE validés**
 
 ## Objectif
 
@@ -144,3 +144,34 @@ Validation locale :
 ## Hors scope
 
 Ce ticket ne réordonne pas réellement les objets du sac et ne crée pas de commande gameplay « ranger automatiquement ». Il s'agit strictement d'une projection UI.
+
+
+## Validation finale — 22 septembre 2026
+
+Validation locale fournie par l'utilisateur :
+
+```text
+Filter                 : Grimrock.UI.Inventory02
+Succeeded              : 5
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Le build Development Editor est validé et la validation PIE est confirmée pour :
+
+- cycle Ordre / Nom / Type / Poids ;
+- filtres combinés au tri ;
+- compteur de projection ;
+- état vide ;
+- maintien des interactions sur les slots physiques réels.
+
+Le WBP final a été poussé sur `master` dans :
+
+```text
+1e19e8d5183453f1fc4dd67880925250e122b897
+UI-INVENTORY02 complete inventory bag presentation
+```
+
+`UI-INVENTORY02` est **CLOS**.
