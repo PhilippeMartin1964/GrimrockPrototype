@@ -1,0 +1,81 @@
+# UI-FILTER01.1 — Inventory Filter Category Mapping
+
+Date : **22 septembre 2026**  
+Statut : **CONTRAT DÉFINI — validation locale requise**
+
+## Objectif
+
+Définir les catégories visibles de l'Inventaire sans modifier la taxonomie gameplay existante.
+
+L'autorité reste `EGridItemType` dans `UGridItemDefinitionAsset`. Le filtre est uniquement une projection UI.
+
+## Catégories visibles
+
+```text
+Tous
+Équipement
+Consommables
+Magie
+Ingrédients
+Livres et clés
+Divers
+```
+
+## Mapping canonique
+
+| Catégorie UI | EGridItemType |
+|---|---|
+| Tous | tous les types |
+| Équipement | Torch, Weapon, Shield, Armor, Jewelry |
+| Consommables | Potion, Food |
+| Magie | Scroll, Gem |
+| Ingrédients | Component |
+| Livres et clés | Key, Book |
+| Divers | Quest, Misc, None |
+
+## Justification des cas ambigus
+
+- `Torch -> Équipement` : la torche est un objet utilitaire équipable en main dans le runtime actuel.
+- `Gem -> Magie` : une gemme est un objet fantasy/spécial distinct d'un composant d'artisanat. Elle ne doit pas être assimilée à `Component` sans règle de crafting explicite.
+- `Component -> Ingrédients` : c'est le type actuellement adapté aux composants de crafting/loot, par exemple les dents de rat.
+- `Quest -> Divers` : un objet de quête peut être de nature quelconque ; il n'est pas nécessairement un livre ou une clé.
+- `None -> Divers` : fallback de présentation. Un item valide mais mal typé reste retrouvable dans une catégorie nommée au lieu de disparaître.
+
+## Contrat C++
+
+`EGridInventoryFilterCategory` est un enum de présentation `BlueprintType`.
+
+`ResolveGridInventoryFilterCategory(EGridItemType)` réalise le mapping.
+
+`DoesGridItemTypeMatchInventoryFilter(EGridItemType, EGridInventoryFilterCategory)` applique le filtre, avec `All` comme bypass.
+
+Ces helpers ne modifient jamais l'item et ne deviennent pas une autorité gameplay.
+
+## Hors périmètre de UI-FILTER01.1
+
+Ce ticket ne réalise pas encore :
+
+- boutons UMG ;
+- filtrage effectif de la grille ;
+- conservation du filtre lors d'un changement de personnage ;
+- tri par nom, poids, type ou autre critère ;
+- rangement automatique ;
+- déplacement physique des items dans les slots.
+
+Ces comportements appartiennent aux étapes suivantes de UI-FILTER01.
+
+## Validation
+
+Filtre :
+
+```text
+Grimrock.UI.Filter01
+```
+
+Test initial :
+
+```text
+Grimrock.UI.Filter01.CategoryMapping
+```
+
+Il couvre les quinze valeurs actuelles de `EGridItemType`, le bypass `Tous` et plusieurs rejets inter-catégories.

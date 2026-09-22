@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-FILTER01 NEXT**  
+Statut : **CURRENT — UI-FILTER01.1**  
 Date : **22 septembre 2026**
 
 ## Références canoniques
@@ -401,7 +401,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-INV02 | validé côté C++ et intégré dans l'architecture split |
 | UI-ITEM01 | fonctionnel |
 | UI-WEIGHT01 | validé et clos le 22 septembre 2026 |
-| UI-FILTER01 | prochain gros ticket UI |
+| UI-FILTER01 | actif — UI-FILTER01.1 mapping catégories/types |
 | UI-HOTBAR01 | réalisé |
 | UI-FEEDBACK01 | partiel, à consolider |
 | UI-SKILLS01 | fonctionnel via MON20 |
@@ -412,7 +412,21 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-POLISH01 | futur |
 | UI-QA01 | futur |
 
-UI-FILTER01 devra regrouper logiquement les `EGridItemType` existants en catégories de présentation. Les types C++ restent l'autorité ; aucun nouveau type gameplay ne doit être inventé uniquement pour l'UI.
+UI-FILTER01 regroupe les `EGridItemType` existants sans créer de seconde taxonomie gameplay. UI-FILTER01.1 fixe le mapping canonique :
+
+```text
+Tous
+Équipement     -> Torch, Weapon, Shield, Armor, Jewelry
+Consommables   -> Potion, Food
+Magie          -> Scroll, Gem
+Ingrédients    -> Component
+Livres et clés -> Key, Book
+Divers         -> Quest, Misc, None
+```
+
+`None -> Divers` est un fallback de présentation afin qu'un item mal typé ne disparaisse pas d'un filtre nommé. `Tous` accepte tous les types.
+
+Référence : `docs/Design/UI_FILTER01_CATEGORY_MAPPING.md`.
 
 ## Validation
 

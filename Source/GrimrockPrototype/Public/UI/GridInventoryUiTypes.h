@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "GridInventoryUiTypes.generated.h"
 
 UENUM(BlueprintType)
@@ -16,6 +17,61 @@ enum class EInventoryTopTab : uint8
 	Spellbook = 6
 };
 
+
+UENUM(BlueprintType)
+enum class EGridInventoryFilterCategory : uint8
+{
+	All UMETA(DisplayName = "Tous"),
+	Equipment UMETA(DisplayName = "Équipement"),
+	Consumables UMETA(DisplayName = "Consommables"),
+	Magic UMETA(DisplayName = "Magie"),
+	Ingredients UMETA(DisplayName = "Ingrédients"),
+	BooksAndKeys UMETA(DisplayName = "Livres et clés"),
+	Misc UMETA(DisplayName = "Divers")
+};
+
+/**
+ * UI-FILTER01.1 presentation-only projection of the canonical gameplay item type.
+ * This does not create a second item taxonomy or mutate item definitions.
+ */
+inline EGridInventoryFilterCategory ResolveGridInventoryFilterCategory(EGridItemType ItemType)
+{
+	switch (ItemType)
+	{
+		case EGridItemType::Torch:
+		case EGridItemType::Weapon:
+		case EGridItemType::Shield:
+		case EGridItemType::Armor:
+		case EGridItemType::Jewelry:
+			return EGridInventoryFilterCategory::Equipment;
+
+		case EGridItemType::Potion:
+		case EGridItemType::Food:
+			return EGridInventoryFilterCategory::Consumables;
+
+		case EGridItemType::Scroll:
+		case EGridItemType::Gem:
+			return EGridInventoryFilterCategory::Magic;
+
+		case EGridItemType::Component:
+			return EGridInventoryFilterCategory::Ingredients;
+
+		case EGridItemType::Key:
+		case EGridItemType::Book:
+			return EGridInventoryFilterCategory::BooksAndKeys;
+
+		case EGridItemType::Quest:
+		case EGridItemType::Misc:
+		case EGridItemType::None:
+		default:
+			return EGridInventoryFilterCategory::Misc;
+	}
+}
+
+inline bool DoesGridItemTypeMatchInventoryFilter(EGridItemType ItemType, EGridInventoryFilterCategory FilterCategory)
+{
+	return FilterCategory == EGridInventoryFilterCategory::All || ResolveGridInventoryFilterCategory(ItemType) == FilterCategory;
+}
 
 UENUM(BlueprintType)
 enum class EGridItemTooltipDeltaState : uint8
