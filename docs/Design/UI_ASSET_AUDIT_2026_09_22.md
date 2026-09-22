@@ -374,3 +374,26 @@ Grimrock.Editor.UIAssetOrg01.MigrationAudit
 Ce test accepte temporairement ancien ou nouveau chemin pour chaque asset, mais impose une seule localisation après `Fix Up Redirectors`.
 
 Référence : `docs/Design/UI_ASSET_ORG01_UI_FOLDER_REORGANIZATION.md`.
+
+
+## UI-ASSET-ORG01 — clôture
+
+La réorganisation physique est terminée sur `master`.
+
+Racine UI normalisée :
+
+```text
+Blueprints/UI/
+├── Inventory/
+├── InGameMenu/
+├── Interaction/
+├── Fonts/
+├── Buttons/
+├── Combat/
+├── Cursor/
+├── Icons/
+├── MainMenu/
+└── RPG/
+```
+
+Les 22 anciens assets racine ont tous été migrés vers leur domaine. Smoke PIE global validé par l'utilisateur le 22 septembre 2026.

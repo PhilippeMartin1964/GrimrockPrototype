@@ -1,7 +1,7 @@
 # GrimrockMenu — Current Technical Reference
 
 Date : **22 septembre 2026**  
-Statut : **CURRENT — UI-CLEAN01 + UI-ASSET-AUDIT01**
+Statut : **CURRENT — UI-CLEAN01 + UI-ASSET-ORG01**
 
 ## Rôle actuel
 

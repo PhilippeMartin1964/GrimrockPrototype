@@ -1,7 +1,7 @@
 # UI-ASSET-ORG01 — Réorganisation logique des assets UI
 
 Date : **22 septembre 2026**  
-Statut : **ACTIF — migration UE5 manuelle par lots**
+Statut : **CLOS — 22 assets migrés et smoke PIE validé**
 
 ## Objectif
 
@@ -180,3 +180,26 @@ Grimrock.Editor.UIAssetOrg01.MigrationAudit
 doit montrer les 22 assets en `Location=TARGET`.
 
 La documentation canonique des chemins physiques sera normalisée après cette validation finale, afin de ne pas documenter prématurément un état non encore présent sur `master`.
+
+
+## Clôture — 22 septembre 2026
+
+Validation utilisateur confirmée :
+
+- Batch A Fonts : OK ;
+- Batch B Interaction : OK ;
+- Batch C Inventory : OK ;
+- Batch D InGameMenu : OK ;
+- Fix Up Redirectors effectué ;
+- smoke PIE global : OK.
+
+État repository vérifié sur `master`, commit utilisateur :
+
+```text
+200cb49fd882d2d202c0d585ca008085e204cf91
+UI-ASSET-ORG01 reorganize UI assets
+```
+
+Les **22 assets** existent tous à leur destination canonique et **aucun ancien asset racine correspondant ne subsiste**.
+
+`UI-ASSET-ORG01` est donc **CLOS**.

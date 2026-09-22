@@ -27,7 +27,7 @@ Il ne possède aucune autorité gameplay et ne déplace aucun item.
 Le projet possède déjà :
 
 ~~~text
-Content/GrimrockPrototype/Blueprints/UI/WBP_ItemTooltip
+Content/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltip
 ~~~
 
 UI-ITEM01 ne crée pas un second tooltip.

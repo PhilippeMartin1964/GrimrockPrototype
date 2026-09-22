@@ -30,8 +30,8 @@ Les identités restent des `SpellId` stables (`FName`).
 Les deux assets concernés sont :
 
 ```text
-Content/GrimrockPrototype/Blueprints/UI/WBP_GridSpellbook
-Content/GrimrockPrototype/Blueprints/UI/WBP_GridSpellbookEntry
+Content/GrimrockPrototype/Blueprints/UI/InGameMenu/WBP_GridSpellbook
+Content/GrimrockPrototype/Blueprints/UI/InGameMenu/WBP_GridSpellbookEntry
 ```
 
 ### Parent classes obligatoires
