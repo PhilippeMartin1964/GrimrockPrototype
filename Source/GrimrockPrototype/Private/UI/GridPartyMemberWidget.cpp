@@ -248,9 +248,9 @@ void UGridPartyMemberWidget::RefreshBoundStatusEffects()
 			}
 		}
 
-		if (UHorizontalBoxSlot* Slot = HorizontalBox_StatusEffects->AddChildToHorizontalBox(IndicatorBox))
+		if (UHorizontalBoxSlot* IndicatorSlot = HorizontalBox_StatusEffects->AddChildToHorizontalBox(IndicatorBox))
 		{
-			Slot->SetPadding(FMargin(1.0f, 0.0f));
+			IndicatorSlot->SetPadding(FMargin(1.0f, 0.0f));
 		}
 	}
 
@@ -277,9 +277,9 @@ void UGridPartyMemberWidget::RefreshBoundStatusEffects()
 				}
 			}
 			OverflowBox->SetToolTipText(FText::Join(FText::FromString(TEXT("\n\n")), OverflowToolTips));
-			if (UHorizontalBoxSlot* Slot = HorizontalBox_StatusEffects->AddChildToHorizontalBox(OverflowBox))
+			if (UHorizontalBoxSlot* OverflowSlot = HorizontalBox_StatusEffects->AddChildToHorizontalBox(OverflowBox))
 			{
-				Slot->SetPadding(FMargin(1.0f, 0.0f));
+				OverflowSlot->SetPadding(FMargin(1.0f, 0.0f));
 			}
 		}
 	}
