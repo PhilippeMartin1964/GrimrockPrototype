@@ -171,9 +171,17 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Bag")
 	TObjectPtr<UProgressBar> ProgressBar_InventoryBagWeight;
 
+	/** Optional empty-projection feedback authored in WBP_InventoryBag. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Bag")
+	TObjectPtr<UTextBlock> Text_InventoryEmptyState;
+
 	/** UI-FILTER01 presentation state. Never persisted and never mutates inventory ownership/order. */
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Inventory|Filter")
 	EGridInventoryFilterCategory InventoryFilterCategory = EGridInventoryFilterCategory::All;
+
+	/** UI-INVENTORY02 presentation-only ordering. Never persisted and never mutates physical slots. */
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Inventory|Sort")
+	EGridInventorySortMode InventorySortMode = EGridInventorySortMode::PhysicalOrder;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots")
 	TSubclassOf<UGridInventorySlotWidget> InventorySlotWidgetClass;
@@ -355,6 +363,21 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Inventory|Filter")
 	EGridInventoryFilterCategory GetInventoryFilterCategory() const { return InventoryFilterCategory; }
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Sort")
+	void SetInventorySortMode(EGridInventorySortMode InSortMode);
+
+	UFUNCTION(BlueprintPure, Category = "Inventory|Sort")
+	EGridInventorySortMode GetInventorySortMode() const { return InventorySortMode; }
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Sort")
+	void CycleInventorySortMode();
+
+	/** Read-only physical source-slot projection used by filters/sorting. */
+	void GetInventoryProjectionSourceSlotIndices(TArray<int32>& OutSourceSlotIndices) const;
+
+	UFUNCTION(BlueprintPure, Category = "Inventory|Projection")
+	int32 GetVisibleInventoryItemCount() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory UI|Slots")
 	void RebuildInventorySlotWidgets();
 
@@ -433,6 +456,7 @@ protected:
 	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual void HandleInventoryFilterCategoryChanged();
+	virtual void HandleInventorySortModeChanged();
 
 private:
 	UFUNCTION()

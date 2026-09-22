@@ -30,6 +30,31 @@ enum class EGridInventoryFilterCategory : uint8
 	Misc UMETA(DisplayName = "Divers")
 };
 
+UENUM(BlueprintType)
+enum class EGridInventorySortMode : uint8
+{
+	PhysicalOrder UMETA(DisplayName = "Ordre"),
+	Name UMETA(DisplayName = "Nom"),
+	Type UMETA(DisplayName = "Type"),
+	Weight UMETA(DisplayName = "Poids")
+};
+
+inline FText GetGridInventorySortModeDisplayName(EGridInventorySortMode SortMode)
+{
+	switch (SortMode)
+	{
+		case EGridInventorySortMode::Name:
+			return NSLOCTEXT("GridInventorySort", "Name", "Nom");
+		case EGridInventorySortMode::Type:
+			return NSLOCTEXT("GridInventorySort", "Type", "Type");
+		case EGridInventorySortMode::Weight:
+			return NSLOCTEXT("GridInventorySort", "Weight", "Poids");
+		case EGridInventorySortMode::PhysicalOrder:
+		default:
+			return NSLOCTEXT("GridInventorySort", "PhysicalOrder", "Ordre");
+	}
+}
+
 /**
  * UI-FILTER01.1 presentation-only projection of the canonical gameplay item type.
  * This does not create a second item taxonomy or mutate item definitions.

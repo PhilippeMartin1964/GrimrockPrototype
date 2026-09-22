@@ -5,6 +5,7 @@
 #include "GridInventoryBagWidget.generated.h"
 
 class UButton;
+class UTextBlock;
 
 /**
  * Independent right-side inventory bag window.
@@ -42,10 +43,17 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Filter")
 	TObjectPtr<UButton> Button_FilterMisc;
 
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Sort")
+	TObjectPtr<UButton> Button_SortInventory;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Sort")
+	TObjectPtr<UTextBlock> Text_SortInventory;
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void HandleInventoryFilterCategoryChanged() override;
+	virtual void HandleInventorySortModeChanged() override;
 
 private:
 	UFUNCTION()
@@ -69,5 +77,9 @@ private:
 	UFUNCTION()
 	void HandleFilterMiscClicked();
 
+	UFUNCTION()
+	void HandleSortInventoryClicked();
+
 	void RefreshInventoryFilterButtonState();
+	void RefreshInventorySortPresentation();
 };

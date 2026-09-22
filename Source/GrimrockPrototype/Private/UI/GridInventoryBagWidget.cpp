@@ -1,6 +1,7 @@
 #include "UI/GridInventoryBagWidget.h"
 
 #include "Components/Button.h"
+#include "Components/TextBlock.h"
 
 namespace
 {
@@ -47,8 +48,13 @@ void UGridInventoryBagWidget::NativeConstruct()
 	{
 		Button_FilterMisc->OnClicked.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleFilterMiscClicked);
 	}
+	if (Button_SortInventory)
+	{
+		Button_SortInventory->OnClicked.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleSortInventoryClicked);
+	}
 
 	RefreshInventoryFilterButtonState();
+	RefreshInventorySortPresentation();
 }
 
 void UGridInventoryBagWidget::NativeDestruct()
@@ -80,6 +86,10 @@ void UGridInventoryBagWidget::NativeDestruct()
 	if (Button_FilterMisc)
 	{
 		Button_FilterMisc->OnClicked.RemoveDynamic(this, &UGridInventoryBagWidget::HandleFilterMiscClicked);
+	}
+	if (Button_SortInventory)
+	{
+		Button_SortInventory->OnClicked.RemoveDynamic(this, &UGridInventoryBagWidget::HandleSortInventoryClicked);
 	}
 
 	Super::NativeDestruct();
@@ -120,9 +130,19 @@ void UGridInventoryBagWidget::HandleFilterMiscClicked()
 	SetInventoryFilterCategory(EGridInventoryFilterCategory::Misc);
 }
 
+void UGridInventoryBagWidget::HandleSortInventoryClicked()
+{
+	CycleInventorySortMode();
+}
+
 void UGridInventoryBagWidget::HandleInventoryFilterCategoryChanged()
 {
 	RefreshInventoryFilterButtonState();
+}
+
+void UGridInventoryBagWidget::HandleInventorySortModeChanged()
+{
+	RefreshInventorySortPresentation();
 }
 
 void UGridInventoryBagWidget::RefreshInventoryFilterButtonState()
@@ -134,4 +154,14 @@ void UGridInventoryBagWidget::RefreshInventoryFilterButtonState()
 	SetFilterButtonSelected(Button_FilterIngredients, InventoryFilterCategory == EGridInventoryFilterCategory::Ingredients);
 	SetFilterButtonSelected(Button_FilterBooksAndKeys, InventoryFilterCategory == EGridInventoryFilterCategory::BooksAndKeys);
 	SetFilterButtonSelected(Button_FilterMisc, InventoryFilterCategory == EGridInventoryFilterCategory::Misc);
+}
+
+
+void UGridInventoryBagWidget::RefreshInventorySortPresentation()
+{
+	if (Text_SortInventory)
+	{
+		Text_SortInventory->SetText(FText::FromString(
+			FString::Printf(TEXT("Tri : %s"), *GetGridInventorySortModeDisplayName(InventorySortMode).ToString())));
+	}
 }

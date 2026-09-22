@@ -38,9 +38,10 @@ namespace
 		ProgressBar->SetPercent(FMath::Clamp(Ratio, 0.0f, 1.0f));
 	}
 
-	FText FormatInventorySlotUsage(int32 UsedSlots, int32 MaximumSlots)
+	FText FormatInventorySlotUsage(int32 VisibleItems, int32 UsedSlots, int32 MaximumSlots)
 	{
-		return FText::FromString(FString::Printf(TEXT("%d / %d"), UsedSlots, MaximumSlots));
+		return FText::FromString(
+			FString::Printf(TEXT("%d affichés / %d utilisés / %d cases"), VisibleItems, UsedSlots, MaximumSlots));
 	}
 
 	FText ResolveCharacterDisplayName(const FText& DisplayName, FName Id, const TCHAR* Fallback)
@@ -365,6 +366,10 @@ void UGridInventoryWidget::RefreshSelectedInventoryBagPresentation()
 		SetInventoryOptionalText(Text_InventoryBagSlotUsage, FText::GetEmpty());
 		SetInventoryOptionalText(Text_InventoryBagWeight, FText::GetEmpty());
 		SetInventoryOptionalProgress(ProgressBar_InventoryBagWeight, 0.0f, 0.0f);
+		if (Text_InventoryEmptyState)
+		{
+			Text_InventoryEmptyState->SetVisibility(ESlateVisibility::Collapsed);
+		}
 		if (Text_InventoryBagWeight || ProgressBar_InventoryBagWeight)
 		{
 			PresentInventoryWeightState(EGridInventoryWeightState::Normal);
@@ -372,10 +377,16 @@ void UGridInventoryWidget::RefreshSelectedInventoryBagPresentation()
 		return;
 	}
 
+	const int32 VisibleItemCount = GetVisibleInventoryItemCount();
 	SetInventoryOptionalText(Text_InventoryBagTitle, Summary.DisplayName);
-	SetInventoryOptionalText(Text_InventoryBagSlotUsage, FormatInventorySlotUsage(Summary.UsedInventorySlots, Summary.MaxInventorySlots));
+	SetInventoryOptionalText(
+		Text_InventoryBagSlotUsage, FormatInventorySlotUsage(VisibleItemCount, Summary.UsedInventorySlots, Summary.MaxInventorySlots));
 	SetInventoryOptionalText(
 		Text_InventoryBagWeight, FormatWeightWithBonus(Summary.CurrentWeight, Summary.MaxWeight, Summary.EquipmentStatBonus.CarryWeightBonus));
+	if (Text_InventoryEmptyState)
+	{
+		Text_InventoryEmptyState->SetVisibility(VisibleItemCount == 0 ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
 	SetInventoryOptionalProgress(ProgressBar_InventoryBagWeight, Summary.CurrentWeight, Summary.MaxWeight);
 	if (Text_InventoryBagWeight || ProgressBar_InventoryBagWeight)
 	{
@@ -909,10 +920,51 @@ void UGridInventoryWidget::SetInventoryFilterCategory(EGridInventoryFilterCatego
 	{
 		RebuildInventorySlotWidgets();
 	}
+	RefreshSelectedInventoryBagPresentation();
 	HandleInventoryFilterCategoryChanged();
 }
 
 void UGridInventoryWidget::HandleInventoryFilterCategoryChanged()
+{
+}
+
+void UGridInventoryWidget::SetInventorySortMode(EGridInventorySortMode InSortMode)
+{
+	if (InventorySortMode == InSortMode)
+	{
+		return;
+	}
+
+	InventorySortMode = InSortMode;
+	if (InventorySlotsGridPanel && InventorySlotWidgetClass)
+	{
+		RebuildInventorySlotWidgets();
+	}
+	RefreshSelectedInventoryBagPresentation();
+	HandleInventorySortModeChanged();
+}
+
+void UGridInventoryWidget::CycleInventorySortMode()
+{
+	switch (InventorySortMode)
+	{
+		case EGridInventorySortMode::PhysicalOrder:
+			SetInventorySortMode(EGridInventorySortMode::Name);
+			break;
+		case EGridInventorySortMode::Name:
+			SetInventorySortMode(EGridInventorySortMode::Type);
+			break;
+		case EGridInventorySortMode::Type:
+			SetInventorySortMode(EGridInventorySortMode::Weight);
+			break;
+		case EGridInventorySortMode::Weight:
+		default:
+			SetInventorySortMode(EGridInventorySortMode::PhysicalOrder);
+			break;
+	}
+}
+
+void UGridInventoryWidget::HandleInventorySortModeChanged()
 {
 }
 
@@ -940,7 +992,8 @@ void UGridInventoryWidget::BuildFilteredInventorySourceSlotIndices(TArray<int32>
 	OutSourceSlotIndices.Reset();
 	const int32 SourceSlotCapacity = FMath::Max(0, ResolveInventorySourceSlotCapacity());
 
-	if (InventoryFilterCategory == EGridInventoryFilterCategory::All)
+	// Physical order + All preserves the real bag layout, including empty slots.
+	if (InventoryFilterCategory == EGridInventoryFilterCategory::All && InventorySortMode == EGridInventorySortMode::PhysicalOrder)
 	{
 		OutSourceSlotIndices.Reserve(SourceSlotCapacity);
 		for (int32 SlotIndex = 0; SlotIndex < SourceSlotCapacity; ++SlotIndex)
@@ -970,6 +1023,125 @@ void UGridInventoryWidget::BuildFilteredInventorySourceSlotIndices(TArray<int32>
 			OutSourceSlotIndices.Add(SlotIndex);
 		}
 	}
+
+	if (InventorySortMode == EGridInventorySortMode::PhysicalOrder)
+	{
+		return;
+	}
+
+	auto ResolveDisplayName = [this](const FGridItemInstance& Item)
+	{
+		if (InventoryComponent)
+		{
+			if (const UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(Item.ItemDefinitionId))
+			{
+				if (!Definition->DisplayName.IsEmpty())
+				{
+					return Definition->DisplayName.ToString();
+				}
+			}
+		}
+		if (!Item.DisplayName.IsEmpty())
+		{
+			return Item.DisplayName.ToString();
+		}
+		return Item.ItemDefinitionId.ToString();
+	};
+
+	auto ResolveItemType = [this](const FGridItemInstance& Item)
+	{
+		if (InventoryComponent)
+		{
+			if (const UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(Item.ItemDefinitionId))
+			{
+				return Definition->ItemType;
+			}
+		}
+		return EGridItemType::None;
+	};
+
+	auto ResolveTotalWeight = [this](const FGridItemInstance& Item)
+	{
+		float UnitWeight = Item.Weight;
+		if (InventoryComponent)
+		{
+			if (const UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(Item.ItemDefinitionId))
+			{
+				UnitWeight = Definition->Weight;
+			}
+		}
+		return FMath::Max(0.0f, UnitWeight) * static_cast<float>(FMath::Max(1, Item.Quantity));
+	};
+
+	OutSourceSlotIndices.Sort(
+		[this, &ResolveDisplayName, &ResolveItemType, &ResolveTotalWeight](int32 LeftSlotIndex, int32 RightSlotIndex)
+		{
+			FGridItemInstance LeftItem;
+			FGridItemInstance RightItem;
+			if (!GetInventoryItemAtSlot(LeftSlotIndex, LeftItem) || !GetInventoryItemAtSlot(RightSlotIndex, RightItem))
+			{
+				return LeftSlotIndex < RightSlotIndex;
+			}
+
+			const FString LeftName = ResolveDisplayName(LeftItem);
+			const FString RightName = ResolveDisplayName(RightItem);
+
+			switch (InventorySortMode)
+			{
+				case EGridInventorySortMode::Name:
+				{
+					const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
+					return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
+				}
+				case EGridInventorySortMode::Type:
+				{
+					const uint8 LeftType = static_cast<uint8>(ResolveItemType(LeftItem));
+					const uint8 RightType = static_cast<uint8>(ResolveItemType(RightItem));
+					if (LeftType != RightType)
+					{
+						return LeftType < RightType;
+					}
+					const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
+					return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
+				}
+				case EGridInventorySortMode::Weight:
+				{
+					const float LeftWeight = ResolveTotalWeight(LeftItem);
+					const float RightWeight = ResolveTotalWeight(RightItem);
+					if (!FMath::IsNearlyEqual(LeftWeight, RightWeight))
+					{
+						return LeftWeight < RightWeight;
+					}
+					const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
+					return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
+				}
+				case EGridInventorySortMode::PhysicalOrder:
+				default:
+					return LeftSlotIndex < RightSlotIndex;
+			}
+		});
+}
+
+void UGridInventoryWidget::GetInventoryProjectionSourceSlotIndices(TArray<int32>& OutSourceSlotIndices) const
+{
+	BuildFilteredInventorySourceSlotIndices(OutSourceSlotIndices);
+}
+
+int32 UGridInventoryWidget::GetVisibleInventoryItemCount() const
+{
+	TArray<int32> SourceSlotIndices;
+	BuildFilteredInventorySourceSlotIndices(SourceSlotIndices);
+
+	int32 VisibleItems = 0;
+	for (const int32 SourceSlotIndex : SourceSlotIndices)
+	{
+		FGridItemInstance Item;
+		if (GetInventoryItemAtSlot(SourceSlotIndex, Item))
+		{
+			++VisibleItems;
+		}
+	}
+	return VisibleItems;
 }
 
 void UGridInventoryWidget::RebuildInventorySlotWidgets()

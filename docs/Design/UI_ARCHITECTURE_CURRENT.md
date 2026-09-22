@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-ASSET-CLEAN01/ORG01 CLOS ; UI-FEEDBACK01.1 CLOS**  
+Statut : **CURRENT — UI-INVENTORY02 ACTIF — tri + projection du sac**  
 Date : **22 septembre 2026**
 
 ## Références canoniques
@@ -402,6 +402,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-ITEM01 | fonctionnel |
 | UI-WEIGHT01 | validé et clos le 22 septembre 2026 |
 | UI-FILTER01 | UI-FILTER01.1/.2/.3 validés côté C++ ; UI-FILTER01.3.1 validé en PIE |
+| UI-INVENTORY02 | tri Ordre/Nom/Type/Poids + compteur projection + état vide, C++ prêt |
 | UI-HOTBAR01 | réalisé |
 | UI-FEEDBACK01 | UI-FEEDBACK01.1 surcharge portrait validée et close ; consolidation restante |
 | UI-SKILLS01 | fonctionnel via MON20 |
