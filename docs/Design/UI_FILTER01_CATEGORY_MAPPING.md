@@ -127,3 +127,17 @@ Test ajouté :
 ```text
 Grimrock.UI.Filter01.GridProjection
 ```
+
+
+## Validation reçue — UI-FILTER01.2 — 22 septembre 2026
+
+```text
+Filter                 : Grimrock.UI.Filter01
+Succeeded              : 2
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+UI-FILTER01.2 est validé côté C++/Automation. Le filtrage réel de la grille et la conservation des indices physiques sources sont couverts. La passe UMG de branchement des boutons reste à réaliser.
