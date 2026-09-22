@@ -93,3 +93,37 @@ Process exit code       : 0
 ```
 
 UI-FILTER01.1 est validé. Le mapping catégories UI -> `EGridItemType` est désormais le contrat de référence pour UI-FILTER01.2.
+
+
+## UI-FILTER01.2 — Application du filtre à la grille
+
+Le filtre devient un état de présentation transient de `UGridInventoryWidget`, initialisé à `All`.
+
+API Blueprint :
+
+```text
+SetInventoryFilterCategory(Category)
+GetInventoryFilterCategory()
+```
+
+La grille filtrée est une **projection compacte** des slots physiques correspondants :
+
+- `All` conserve la grille physique complète, y compris les slots vides ;
+- une catégorie nommée n'affiche que les slots occupés dont le `EGridItemType` correspond ;
+- les résultats conservent l'ordre croissant des indices physiques ;
+- chaque widget filtré conserve l'indice du slot physique source pour les clics, drag/drop et actions contextuelles ;
+- changer de filtre ne déplace, ne trie et ne réécrit aucun item ;
+- un item dont la définition n'est pas résolue utilise le fallback `None -> Divers` ;
+- zéro résultat produit une grille filtrée vide, sans faux slot inventé.
+
+Le filtre est conservé lors d'un changement de personnage tant que la même instance `WBP_InventoryBag` reste ouverte. Il n'est pas persisté dans la sauvegarde.
+
+Le cache de génération compare aussi la liste des indices physiques visibles. Ainsi, si les items changent de slots mais que le nombre de résultats reste identique, la projection est tout de même reconstruite avec les bons indices sources.
+
+Le filtrage n'implémente encore aucun tri ni rangement automatique.
+
+Test ajouté :
+
+```text
+Grimrock.UI.Filter01.GridProjection
+```

@@ -897,6 +897,76 @@ bool UGridInventoryWidget::ValidatePaperDollEquipmentRegistration() const
 	return bIsValid;
 }
 
+void UGridInventoryWidget::SetInventoryFilterCategory(EGridInventoryFilterCategory InFilterCategory)
+{
+	if (InventoryFilterCategory == InFilterCategory)
+	{
+		return;
+	}
+
+	InventoryFilterCategory = InFilterCategory;
+	if (InventorySlotsGridPanel && InventorySlotWidgetClass)
+	{
+		RebuildInventorySlotWidgets();
+	}
+}
+
+int32 UGridInventoryWidget::ResolveInventorySourceSlotCapacity() const
+{
+	if (InventorySlotCountOverride > 0)
+	{
+		return InventorySlotCountOverride;
+	}
+
+	if (InventoryComponent)
+	{
+		FGridInventoryCharacterSummary Summary;
+		if (InventoryComponent->GetCharacterSummary(InventoryComponent->GetSelectedCharacterIndex(), Summary) && Summary.MaxInventorySlots > 0)
+		{
+			return Summary.MaxInventorySlots;
+		}
+	}
+
+	return 24;
+}
+
+void UGridInventoryWidget::BuildFilteredInventorySourceSlotIndices(TArray<int32>& OutSourceSlotIndices) const
+{
+	OutSourceSlotIndices.Reset();
+	const int32 SourceSlotCapacity = FMath::Max(0, ResolveInventorySourceSlotCapacity());
+
+	if (InventoryFilterCategory == EGridInventoryFilterCategory::All)
+	{
+		OutSourceSlotIndices.Reserve(SourceSlotCapacity);
+		for (int32 SlotIndex = 0; SlotIndex < SourceSlotCapacity; ++SlotIndex)
+		{
+			OutSourceSlotIndices.Add(SlotIndex);
+		}
+		return;
+	}
+
+	if (!InventoryComponent)
+	{
+		return;
+	}
+
+	for (int32 SlotIndex = 0; SlotIndex < SourceSlotCapacity; ++SlotIndex)
+	{
+		FGridItemInstance Item;
+		if (!GetInventoryItemAtSlot(SlotIndex, Item))
+		{
+			continue;
+		}
+
+		const UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(Item.ItemDefinitionId);
+		const EGridItemType ItemType = Definition ? Definition->ItemType : EGridItemType::None;
+		if (DoesGridItemTypeMatchInventoryFilter(ItemType, InventoryFilterCategory))
+		{
+			OutSourceSlotIndices.Add(SlotIndex);
+		}
+	}
+}
+
 void UGridInventoryWidget::RebuildInventorySlotWidgets()
 {
 	if (!InventorySlotsGridPanel)
@@ -911,12 +981,14 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets()
 		return;
 	}
 
-	const int32 SlotCount = FMath::Max(1, ResolveInventorySlotWidgetCount());
+	TArray<int32> SourceSlotIndices;
+	BuildFilteredInventorySourceSlotIndices(SourceSlotIndices);
+	const int32 SlotCount = SourceSlotIndices.Num();
 	const int32 ColumnCount = FMath::Max(1, InventorySlotColumnCount);
 
-	if (bInventorySlotsBuilt && LastBuiltSlotCount == SlotCount && LastBuiltColumnCount == ColumnCount &&
-		LastBuiltSlotWidgetClass == InventorySlotWidgetClass && LastBuiltGridPanel == InventorySlotsGridPanel &&
-		GeneratedInventorySlotWidgets.Num() == SlotCount)
+	if (bInventorySlotsBuilt && LastBuiltSlotCount == SlotCount && LastBuiltInventorySourceSlotIndices == SourceSlotIndices &&
+		LastBuiltColumnCount == ColumnCount && LastBuiltSlotWidgetClass == InventorySlotWidgetClass &&
+		LastBuiltGridPanel == InventorySlotsGridPanel && GeneratedInventorySlotWidgets.Num() == SlotCount)
 	{
 		UE_LOG(LogTemp, Verbose, TEXT("GridInventory UI RebuildSlots Skipped Reason=AlreadyBuilt Count=%d Columns=%d"), SlotCount, ColumnCount);
 		return;
@@ -924,21 +996,23 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets()
 
 	ClearGeneratedInventorySlotWidgets();
 
-	for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
+	for (int32 DisplayIndex = 0; DisplayIndex < SlotCount; ++DisplayIndex)
 	{
+		const int32 SourceSlotIndex = SourceSlotIndices[DisplayIndex];
 		UGridInventorySlotWidget* NewSlot = CreateWidget<UGridInventorySlotWidget>(this, InventorySlotWidgetClass);
 		if (!NewSlot)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory UI RebuildSlots Failed Reason=CreateWidgetFailed Index=%d"), SlotIndex);
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory UI RebuildSlots Failed Reason=CreateWidgetFailed DisplayIndex=%d SourceSlot=%d"),
+				DisplayIndex, SourceSlotIndex);
 			continue;
 		}
 
 		NewSlot->SetOwnerInventoryWidget(this);
-		NewSlot->InitializeInventorySlot(EGridInventoryUiSlotType::Inventory, SlotIndex);
-		RegisterInventorySlotWidget(NewSlot, EGridInventoryUiSlotType::Inventory, SlotIndex);
+		NewSlot->InitializeInventorySlot(EGridInventoryUiSlotType::Inventory, SourceSlotIndex);
+		RegisterInventorySlotWidget(NewSlot, EGridInventoryUiSlotType::Inventory, SourceSlotIndex);
 
-		const int32 Row = SlotIndex / ColumnCount;
-		const int32 Column = SlotIndex % ColumnCount;
+		const int32 Row = DisplayIndex / ColumnCount;
+		const int32 Column = DisplayIndex % ColumnCount;
 		if (UUniformGridSlot* GridSlot = InventorySlotsGridPanel->AddChildToUniformGrid(NewSlot, Row, Column))
 		{
 			GridSlot->SetHorizontalAlignment(HAlign_Left);
@@ -951,6 +1025,7 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets()
 	RefreshRegisteredSlotWidgets();
 	bInventorySlotsBuilt = true;
 	LastBuiltSlotCount = SlotCount;
+	LastBuiltInventorySourceSlotIndices = SourceSlotIndices;
 	LastBuiltColumnCount = ColumnCount;
 	LastBuiltSlotWidgetClass = InventorySlotWidgetClass;
 	LastBuiltGridPanel = InventorySlotsGridPanel;
@@ -977,6 +1052,7 @@ void UGridInventoryWidget::ClearGeneratedInventorySlotWidgets()
 	GeneratedInventorySlotWidgets.Empty();
 	bInventorySlotsBuilt = false;
 	LastBuiltSlotCount = 0;
+	LastBuiltInventorySourceSlotIndices.Reset();
 	LastBuiltColumnCount = 0;
 	LastBuiltSlotWidgetClass = nullptr;
 	LastBuiltGridPanel = nullptr;
@@ -984,21 +1060,9 @@ void UGridInventoryWidget::ClearGeneratedInventorySlotWidgets()
 
 int32 UGridInventoryWidget::ResolveInventorySlotWidgetCount() const
 {
-	if (InventorySlotCountOverride > 0)
-	{
-		return InventorySlotCountOverride;
-	}
-
-	if (InventoryComponent)
-	{
-		FGridInventoryCharacterSummary Summary;
-		if (InventoryComponent->GetCharacterSummary(InventoryComponent->GetSelectedCharacterIndex(), Summary) && Summary.MaxInventorySlots > 0)
-		{
-			return Summary.MaxInventorySlots;
-		}
-	}
-
-	return 24;
+	TArray<int32> SourceSlotIndices;
+	BuildFilteredInventorySourceSlotIndices(SourceSlotIndices);
+	return SourceSlotIndices.Num();
 }
 
 void UGridInventoryWidget::SetInventorySlotWidgetClass(TSubclassOf<UGridInventorySlotWidget> InClass)

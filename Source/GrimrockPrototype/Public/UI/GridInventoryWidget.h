@@ -171,6 +171,10 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Bag")
 	TObjectPtr<UProgressBar> ProgressBar_InventoryBagWeight;
 
+	/** UI-FILTER01 presentation state. Never persisted and never mutates inventory ownership/order. */
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Inventory|Filter")
+	EGridInventoryFilterCategory InventoryFilterCategory = EGridInventoryFilterCategory::All;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots")
 	TSubclassOf<UGridInventorySlotWidget> InventorySlotWidgetClass;
 
@@ -345,6 +349,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|PaperDoll")
 	bool ValidatePaperDollEquipmentRegistration() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Filter")
+	void SetInventoryFilterCategory(EGridInventoryFilterCategory InFilterCategory);
+
+	UFUNCTION(BlueprintPure, Category = "Inventory|Filter")
+	EGridInventoryFilterCategory GetInventoryFilterCategory() const { return InventoryFilterCategory; }
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory UI|Slots")
 	void RebuildInventorySlotWidgets();
 
@@ -430,6 +440,8 @@ private:
 	void RegisterBoundPartyMemberWidgets();
 	void RefreshSelectedInventoryBagPresentation();
 	void EnsureSelectedInventorySlotLayout();
+	int32 ResolveInventorySourceSlotCapacity() const;
+	void BuildFilteredInventorySourceSlotIndices(TArray<int32>& OutSourceSlotIndices) const;
 
 	const URPGClassVisualAsset* FindClassVisualForClass(FName ClassId) const;
 	void RefreshSelectedCharacterClassIcon();
@@ -450,6 +462,9 @@ private:
 
 	UPROPERTY(Transient)
 	int32 LastBuiltSlotCount = 0;
+
+	UPROPERTY(Transient)
+	TArray<int32> LastBuiltInventorySourceSlotIndices;
 
 	UPROPERTY(Transient)
 	int32 LastBuiltColumnCount = 0;
