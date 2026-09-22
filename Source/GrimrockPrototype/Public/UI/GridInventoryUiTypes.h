@@ -53,6 +53,10 @@ struct FGridItemTooltipStatLine
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	FText DeltaText;
+
+	/** Stable presentation key for Blueprint icon lookup; independent of the localized Label. */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
+	FName StatId = NAME_None;
 };
 
 USTRUCT(BlueprintType)

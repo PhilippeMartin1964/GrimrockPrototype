@@ -127,8 +127,8 @@ namespace
 		return FString::Printf(TEXT("%+.1f"), Value);
 	}
 
-	void AddTooltipStatLine(TArray<FGridItemTooltipStatLine>& Lines, const FText& Label, float ItemValue, float EquippedValue, bool bInteger,
-		bool bHasComparison)
+	void AddTooltipStatLine(TArray<FGridItemTooltipStatLine>& Lines, FName StatId, const FText& Label, float ItemValue, float EquippedValue,
+		bool bInteger, bool bHasComparison)
 	{
 		if (FMath::IsNearlyZero(ItemValue) && (!bHasComparison || FMath::IsNearlyZero(EquippedValue)))
 		{
@@ -136,6 +136,7 @@ namespace
 		}
 
 		FGridItemTooltipStatLine& Line = Lines.AddDefaulted_GetRef();
+		Line.StatId = StatId;
 		Line.Label = Label;
 		Line.ItemValue = ItemValue;
 		Line.EquippedValue = EquippedValue;
@@ -169,43 +170,43 @@ namespace
 		const FGridDamageResistanceSet& CandidateRes = Candidate->EquipmentResistanceBonus;
 		const FGridDamageResistanceSet& EquippedRes = Equipped ? Equipped->EquipmentResistanceBonus : EmptyResistances;
 
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatStrength", "Force"), CandidateStats.StrengthBonus,
-			EquippedStats.StrengthBonus, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatDexterity", "Dextérité"), CandidateStats.DexterityBonus,
-			EquippedStats.DexterityBonus, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatConstitution", "Constitution"), CandidateStats.ConstitutionBonus,
-			EquippedStats.ConstitutionBonus, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatIntelligence", "Intelligence"), CandidateStats.IntelligenceBonus,
-			EquippedStats.IntelligenceBonus, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatWisdom", "Sagesse"), CandidateStats.WisdomBonus,
-			EquippedStats.WisdomBonus, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatCharisma", "Charisme"), CandidateStats.CharismaBonus,
-			EquippedStats.CharismaBonus, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatHealth", "PV max"), CandidateStats.MaxHealthBonus,
-			EquippedStats.MaxHealthBonus, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatMana", "Mana max"), CandidateStats.MaxManaBonus,
-			EquippedStats.MaxManaBonus, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatCarry", "Charge max"), CandidateStats.CarryWeightBonus,
-			EquippedStats.CarryWeightBonus, false, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "StatArmor", "Armure physique"), CandidateStats.ArmorBonus,
-			EquippedStats.ArmorBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("Strength"), NSLOCTEXT("GridInventoryTooltip", "StatStrength", "Force"),
+			CandidateStats.StrengthBonus, EquippedStats.StrengthBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("Dexterity"), NSLOCTEXT("GridInventoryTooltip", "StatDexterity", "Dextérité"),
+			CandidateStats.DexterityBonus, EquippedStats.DexterityBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("Constitution"), NSLOCTEXT("GridInventoryTooltip", "StatConstitution", "Constitution"),
+			CandidateStats.ConstitutionBonus, EquippedStats.ConstitutionBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("Intelligence"), NSLOCTEXT("GridInventoryTooltip", "StatIntelligence", "Intelligence"),
+			CandidateStats.IntelligenceBonus, EquippedStats.IntelligenceBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("Wisdom"), NSLOCTEXT("GridInventoryTooltip", "StatWisdom", "Sagesse"),
+			CandidateStats.WisdomBonus, EquippedStats.WisdomBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("Charisma"), NSLOCTEXT("GridInventoryTooltip", "StatCharisma", "Charisme"),
+			CandidateStats.CharismaBonus, EquippedStats.CharismaBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("MaxHealth"), NSLOCTEXT("GridInventoryTooltip", "StatHealth", "PV max"),
+			CandidateStats.MaxHealthBonus, EquippedStats.MaxHealthBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("MaxMana"), NSLOCTEXT("GridInventoryTooltip", "StatMana", "Mana max"),
+			CandidateStats.MaxManaBonus, EquippedStats.MaxManaBonus, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("CarryWeight"), NSLOCTEXT("GridInventoryTooltip", "StatCarry", "Charge max"),
+			CandidateStats.CarryWeightBonus, EquippedStats.CarryWeightBonus, false, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("Armor"), NSLOCTEXT("GridInventoryTooltip", "StatArmor", "Armure physique"),
+			CandidateStats.ArmorBonus, EquippedStats.ArmorBonus, true, bComparison);
 
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResPhysical", "Résistance physique"), CandidateRes.PhysicalResistance,
-			EquippedRes.PhysicalResistance, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResFire", "Résistance feu"), CandidateRes.FireResistance,
-			EquippedRes.FireResistance, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResIce", "Résistance glace"), CandidateRes.IceResistance,
-			EquippedRes.IceResistance, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResLightning", "Résistance foudre"), CandidateRes.LightningResistance,
-			EquippedRes.LightningResistance, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResPoison", "Résistance poison"), CandidateRes.PoisonResistance,
-			EquippedRes.PoisonResistance, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResHoly", "Résistance sacrée"), CandidateRes.HolyResistance,
-			EquippedRes.HolyResistance, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResNecrotic", "Résistance nécrotique"), CandidateRes.NecroticResistance,
-			EquippedRes.NecroticResistance, true, bComparison);
-		AddTooltipStatLine(OutLines, NSLOCTEXT("GridInventoryTooltip", "ResArcane", "Résistance arcanique"), CandidateRes.ArcaneResistance,
-			EquippedRes.ArcaneResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("PhysicalResistance"), NSLOCTEXT("GridInventoryTooltip", "ResPhysical", "Résistance physique"),
+			CandidateRes.PhysicalResistance, EquippedRes.PhysicalResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("FireResistance"), NSLOCTEXT("GridInventoryTooltip", "ResFire", "Résistance feu"),
+			CandidateRes.FireResistance, EquippedRes.FireResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("IceResistance"), NSLOCTEXT("GridInventoryTooltip", "ResIce", "Résistance glace"),
+			CandidateRes.IceResistance, EquippedRes.IceResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("LightningResistance"), NSLOCTEXT("GridInventoryTooltip", "ResLightning", "Résistance foudre"),
+			CandidateRes.LightningResistance, EquippedRes.LightningResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("PoisonResistance"), NSLOCTEXT("GridInventoryTooltip", "ResPoison", "Résistance poison"),
+			CandidateRes.PoisonResistance, EquippedRes.PoisonResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("HolyResistance"), NSLOCTEXT("GridInventoryTooltip", "ResHoly", "Résistance sacrée"),
+			CandidateRes.HolyResistance, EquippedRes.HolyResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("NecroticResistance"), NSLOCTEXT("GridInventoryTooltip", "ResNecrotic", "Résistance nécrotique"),
+			CandidateRes.NecroticResistance, EquippedRes.NecroticResistance, true, bComparison);
+		AddTooltipStatLine(OutLines, TEXT("ArcaneResistance"), NSLOCTEXT("GridInventoryTooltip", "ResArcane", "Résistance arcanique"),
+			CandidateRes.ArcaneResistance, EquippedRes.ArcaneResistance, true, bComparison);
 	}
 
 	FText BuildStatSummary(const TArray<FGridItemTooltipStatLine>& Lines, bool bIncludeDelta)

@@ -1,7 +1,7 @@
 # UI-ITEM01 — Item Tooltip and Equipment Comparison
 
 Date : **21 septembre 2026**  
-Statut : **AUTOMATION VALIDÉE — 21 septembre 2026 ; migration visuelle WBP_ItemTooltip à faire**
+Statut : **UI-ITEM01 fonctionnel ; polish visuel en cours. UI-ITEM01-ICON01 : validation UE locale requise.**
 
 ## Objectif
 
@@ -57,6 +57,7 @@ Les lignes de statistiques utilisent :
 
 ~~~text
 FGridItemTooltipStatLine
+├── StatId (Name stable pour les icônes)
 ├── Label
 ├── ItemValue
 ├── EquippedValue
@@ -208,4 +209,80 @@ Process exit code       : 0
 
 Le read model tooltip et la comparaison d'équipement sont donc validés côté C++.
 
-Le travail restant de UI-ITEM01 est la migration visuelle de l'asset existant `WBP_ItemTooltip` vers `GetTooltipView()`, sans recréer de seconde autorité ni de second widget.
+La migration visuelle vers `GetTooltipView()` est réalisée d’après le retour utilisateur et les captures du 22 septembre 2026. Le travail restant est le polish visuel, notamment le branchement des icônes.
+
+
+## UI-ITEM01-ICON01 — Identifiants stables des statistiques
+
+Date : **22 septembre 2026**. Validation UE de cette extension : **à exécuter localement**.
+Les validations antérieures ne valident pas cette modification.
+
+`FGridItemTooltipStatLine::StatId` est un `FName` exposé en `BlueprintReadOnly`,
+initialisé à `NAME_None`. `AddTooltipStatLine` le renseigne pour les statistiques
+simples et les comparaisons (slot vide, occupé et statistique présente seulement
+sur l'objet porté). Le filtrage des valeurs nulles et le calcul des deltas restent inchangés.
+
+| StatId exact | Statistique | Texture existante suggérée (nom d'asset) |
+|---|---|---|
+| `Strength` | Force | `T_Attribute_Strength` |
+| `Dexterity` | Dextérité | `T_Attribute_Dexterity` |
+| `Constitution` | Constitution | `T_Attribute_Constitution` |
+| `Intelligence` | Intelligence | `T_Attribute_Intelligence` |
+| `Wisdom` | Sagesse | `T_Attribute_Wisdom` |
+| `Charisma` | Charisme | `T_Attribute_Charisma` |
+| `MaxHealth` | PV max | `T_PV` |
+| `MaxMana` | Mana max | `T_Mana` |
+| `CarryWeight` | Charge max | `T_Weight` (réutilisation possible) |
+| `Armor` | Armure physique | À choisir dans Unreal |
+| `PhysicalResistance` | Résistance physique | À choisir dans Unreal |
+| `FireResistance` | Résistance feu | `T_Resistance_Fire` |
+| `IceResistance` | Résistance glace | `T_Resistance_Ice` |
+| `LightningResistance` | Résistance foudre | `T_Resistance_Lightning` |
+| `PoisonResistance` | Résistance poison | `T_Resistance_Poison` |
+| `HolyResistance` | Résistance sacrée | `T_Resistance_Holy` |
+| `NecroticResistance` | Résistance nécrotique | `T_Resistance_Necrotic` |
+| `ArcaneResistance` | Résistance arcanique | `T_Resistance_Arcane` |
+
+Les six textures d'attributs existent sous
+`Content/GrimrockPrototype/UI/Portraits/Attributes/`. Les textures PV, Mana, poids
+et résistances listées existent sous `Content/GrimrockPrototype/Blueprints/UI/Icons/`.
+Leur rendu à petite taille reste à vérifier dans Unreal.
+
+### Branchement UMG manuel après compilation et validation
+
+1. Fermer Unreal, récupérer `master`, reconstruire l'éditeur UE 5.5.4 puis rouvrir le projet.
+2. Dans `WBP_ItemTooltipStatLine`, rafraîchir le nœud `Break Grid Item Tooltip Stat Line`
+   si la sortie `Stat Id` n'apparaît pas ; vérifier les connexions existantes après rafraîchissement.
+3. Ajouter une variable Blueprint `StatIcons` de type Map : clé **Name**, valeur
+   **Texture2D Object Reference**, non exposée à l'instanciation. Renseigner les entrées
+   dans les valeurs par défaut du widget. Commencer par `Strength`.
+4. Utiliser `StatLineData.StatId` comme clé du `Find` de cette Map. Ne pas utiliser `Label`.
+5. Si la clé est trouvée et la texture valide, appeler `Set Brush from Texture`
+   sur `Image_StatIcon`, `Match Size = false`, puis afficher l'image.
+   Sinon, appliquer `Hidden` à l'image pour préserver son emplacement et éviter un rectangle blanc.
+6. Exécuter ce branchement dans le chemin commun de construction, avant le `Branch`
+   existant sur `bHasComparison` : les lignes sans delta ont aussi besoin d'une icône.
+
+Widget existant : **Image**, nom `Image_StatIcon`, `Is Variable = oui`, parent direct
+`SizeBox_StatIcon`. Chemin : `SizeBox_StatLineRoot / Border_StatLine /
+HorizontalBox_StatLine / SizeBox_StatIcon / Image_StatIcon`.
+Conserver le dimensionnement existant pendant la première vérification.
+
+Aucune texture n'est chargée par le C++ pour ces statistiques. Aucun `.uasset` n'est modifié
+par ce ticket. Toutes les propriétés et API existantes restent disponibles.
+
+### Vérification
+
+Le filtre `Grimrock.UI.Item01` inclut désormais **5 tests**, dont
+`Grimrock.UI.Item01.Icon01.StatIdentifiers` ajouté pour les 18 identifiants,
+leur association aux bonnes valeurs, la comparaison contre un slot vide et les
+pertes de statistiques présentes uniquement sur l'objet porté.
+Les recherches des lignes dans les tests existants utilisent désormais `StatId`.
+
+Commande locale (depuis le dépôt, Unreal fermé ; compilation de l'éditeur incluse) :
+
+```powershell
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.Item01"
+```
+
+Aucun succès de compilation ou d'Automation UE n'est revendiqué avant réception de la sortie locale.

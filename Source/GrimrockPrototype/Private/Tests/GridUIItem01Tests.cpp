@@ -38,12 +38,12 @@ namespace
 		return Definition;
 	}
 
-	const FGridItemTooltipStatLine* FindLine(const TArray<FGridItemTooltipStatLine>& Lines, const FString& Label)
+	const FGridItemTooltipStatLine* FindLine(const TArray<FGridItemTooltipStatLine>& Lines, FName StatId)
 	{
 		return Lines.FindByPredicate(
-			[&Label](const FGridItemTooltipStatLine& Line)
+			[StatId](const FGridItemTooltipStatLine& Line)
 			{
-				return Line.Label.ToString() == Label;
+				return Line.StatId == StatId;
 			});
 	}
 }
@@ -91,7 +91,7 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Fallback tooltip contains the authored description"),
 		SlotWidget->GetTooltipText().ToString().Contains(TEXT("Un objet de test pour le tooltip.")));
 
-	const FGridItemTooltipStatLine* Strength = FindLine(View.StatLines, TEXT("Force"));
+	const FGridItemTooltipStatLine* Strength = FindLine(View.StatLines, TEXT("Strength"));
 	TestNotNull(TEXT("Strength stat line exists"), Strength);
 	if (Strength)
 	{
@@ -164,7 +164,7 @@ bool FGridUIItem01EmptyEquipmentComparisonTest::RunTest(const FString& Parameter
 	TestTrue(TEXT("Empty-slot comparison keeps an empty equipped-item name"), Comparison.EquippedItemName.IsEmpty());
 	TestEqual(TEXT("Empty-slot comparison identifies the Belt slot"), Comparison.EquipmentSlot, EGridEquipmentSlot::Belt);
 
-	const FGridItemTooltipStatLine* Strength = FindLine(Comparison.StatLines, TEXT("Force"));
+	const FGridItemTooltipStatLine* Strength = FindLine(Comparison.StatLines, TEXT("Strength"));
 	TestNotNull(TEXT("Candidate Strength is compared against zero in an empty slot"), Strength);
 	if (Strength)
 	{
@@ -236,9 +236,9 @@ bool FGridUIItem01EquipmentComparisonTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Compared slot is occupied"), Comparison.bHasEquippedItem);
 	TestEqual(TEXT("Compared item name is projected"), Comparison.EquippedItemName.ToString(), FString(TEXT("Ancienne ceinture")));
 
-	const FGridItemTooltipStatLine* Strength = FindLine(Comparison.StatLines, TEXT("Force"));
-	const FGridItemTooltipStatLine* Armor = FindLine(Comparison.StatLines, TEXT("Armure physique"));
-	const FGridItemTooltipStatLine* Fire = FindLine(Comparison.StatLines, TEXT("Résistance feu"));
+	const FGridItemTooltipStatLine* Strength = FindLine(Comparison.StatLines, TEXT("Strength"));
+	const FGridItemTooltipStatLine* Armor = FindLine(Comparison.StatLines, TEXT("Armor"));
+	const FGridItemTooltipStatLine* Fire = FindLine(Comparison.StatLines, TEXT("FireResistance"));
 
 	TestNotNull(TEXT("Strength comparison exists"), Strength);
 	TestNotNull(TEXT("Armor comparison exists"), Armor);
@@ -261,6 +261,116 @@ bool FGridUIItem01EquipmentComparisonTest::RunTest(const FString& Parameters)
 	}
 
 
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIItem01Icon01StatIdentifiersTest, "Grimrock.UI.Item01.Icon01.StatIdentifiers",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIItem01Icon01StatIdentifiersTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridPartyInventoryComponent* Inventory = MakeInventory();
+	UGridItemDefinitionAsset* Definition = MakeBeltDefinition(TEXT("Item_AllTooltipStats"), TEXT("All stats belt"));
+	Definition->EquipmentStatBonus.StrengthBonus = 1;
+	Definition->EquipmentStatBonus.DexterityBonus = 2;
+	Definition->EquipmentStatBonus.ConstitutionBonus = 3;
+	Definition->EquipmentStatBonus.IntelligenceBonus = 4;
+	Definition->EquipmentStatBonus.WisdomBonus = 5;
+	Definition->EquipmentStatBonus.CharismaBonus = 6;
+	Definition->EquipmentStatBonus.MaxHealthBonus = 7;
+	Definition->EquipmentStatBonus.MaxManaBonus = 8;
+	Definition->EquipmentStatBonus.CarryWeightBonus = 9.5f;
+	Definition->EquipmentStatBonus.ArmorBonus = 10;
+	Definition->EquipmentResistanceBonus.PhysicalResistance = 11;
+	Definition->EquipmentResistanceBonus.FireResistance = 12;
+	Definition->EquipmentResistanceBonus.IceResistance = 13;
+	Definition->EquipmentResistanceBonus.LightningResistance = 14;
+	Definition->EquipmentResistanceBonus.PoisonResistance = 15;
+	Definition->EquipmentResistanceBonus.HolyResistance = 16;
+	Definition->EquipmentResistanceBonus.NecroticResistance = 17;
+	Definition->EquipmentResistanceBonus.ArcaneResistance = 18;
+	TestTrue(TEXT("All-stats definition registers"), Inventory->RegisterItemDefinition(Definition));
+
+	UGridInventoryWidget* OwnerWidget = NewObject<UGridInventoryWidget>();
+	OwnerWidget->InventoryComponent = Inventory;
+	UGridInventorySlotWidget* SlotWidget = NewObject<UGridInventorySlotWidget>();
+	SlotWidget->SetOwnerInventoryWidget(OwnerWidget);
+	SlotWidget->InitializeInventorySlot(EGridInventoryUiSlotType::Inventory, 0);
+
+	FGridItemInstance Item;
+	Item.RuntimeObjectId = FGuid::NewGuid();
+	Item.ItemDefinitionId = Definition->ItemDefinitionId;
+	Item.Quantity = 1;
+	Item.OwnerType = EGridItemOwnerType::CharacterInventory;
+	Item.OwnerCharacterIndex = 0;
+	SlotWidget->SetItem(Item);
+
+	const FName ExpectedIds[] = {
+		TEXT("Strength"), TEXT("Dexterity"), TEXT("Constitution"), TEXT("Intelligence"), TEXT("Wisdom"), TEXT("Charisma"),
+		TEXT("MaxHealth"), TEXT("MaxMana"), TEXT("CarryWeight"), TEXT("Armor"), TEXT("PhysicalResistance"), TEXT("FireResistance"),
+		TEXT("IceResistance"), TEXT("LightningResistance"), TEXT("PoisonResistance"), TEXT("HolyResistance"), TEXT("NecroticResistance"),
+		TEXT("ArcaneResistance")
+	};
+
+	const FGridItemTooltipView View = SlotWidget->GetTooltipView();
+	TestEqual(TEXT("All 18 item stats are projected"), View.StatLines.Num(), 18);
+	TestEqual(TEXT("Empty compatible slot has one comparison"), View.EquipmentComparisons.Num(), 1);
+	if (View.EquipmentComparisons.Num() != 1)
+	{
+		return false;
+	}
+	TestEqual(TEXT("All 18 stats also appear in the empty-slot comparison"), View.EquipmentComparisons[0].StatLines.Num(), 18);
+	for (int32 Index = 0; Index < UE_ARRAY_COUNT(ExpectedIds); ++Index)
+	{
+		const FName StatId = ExpectedIds[Index];
+		const float ExpectedValue = StatId == FName(TEXT("CarryWeight")) ? 9.5f : static_cast<float>(Index + 1);
+		const FGridItemTooltipStatLine* Stat = FindLine(View.StatLines, StatId);
+		const FGridItemTooltipStatLine* ComparedStat = FindLine(View.EquipmentComparisons[0].StatLines, StatId);
+		if (TestNotNull(*FString::Printf(TEXT("Item stat %s is addressable by stable ID"), *StatId.ToString()), Stat))
+		{
+			TestEqual(TEXT("ID selects the correct item value"), Stat->ItemValue, ExpectedValue);
+		}
+		if (TestNotNull(*FString::Printf(TEXT("Empty-slot comparison retains %s"), *StatId.ToString()), ComparedStat))
+		{
+			TestEqual(TEXT("Empty-slot ID selects the correct delta"), ComparedStat->Delta, ExpectedValue);
+		}
+	}
+
+	// An unmodified candidate still needs icons for stats lost from the equipped item.
+	Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
+	Item.EquipmentSlot = EGridEquipmentSlot::Belt;
+	Inventory->PartyInventoryState.ActiveEquipment[0].Belt = Item;
+	UGridItemDefinitionAsset* PlainDefinition = MakeBeltDefinition(TEXT("Item_PlainTooltipBelt"), TEXT("Plain belt"));
+	TestTrue(TEXT("Plain definition registers"), Inventory->RegisterItemDefinition(PlainDefinition));
+	FGridItemInstance PlainItem = Item;
+	PlainItem.RuntimeObjectId = FGuid::NewGuid();
+	PlainItem.ItemDefinitionId = PlainDefinition->ItemDefinitionId;
+	PlainItem.OwnerType = EGridItemOwnerType::CharacterInventory;
+	PlainItem.EquipmentSlot = EGridEquipmentSlot::None;
+	SlotWidget->SetItem(PlainItem);
+
+	const FGridItemTooltipView PlainView = SlotWidget->GetTooltipView();
+	TestEqual(TEXT("Zero candidate stats remain omitted"), PlainView.StatLines.Num(), 0);
+	TestEqual(TEXT("Occupied compatible slot has one comparison"), PlainView.EquipmentComparisons.Num(), 1);
+	if (PlainView.EquipmentComparisons.Num() != 1)
+	{
+		return false;
+	}
+	TestTrue(TEXT("Equipped reference remains occupied"), PlainView.EquipmentComparisons[0].bHasEquippedItem);
+	TestEqual(TEXT("All equipped-only stats retain a comparison row"), PlainView.EquipmentComparisons[0].StatLines.Num(), 18);
+	for (int32 Index = 0; Index < UE_ARRAY_COUNT(ExpectedIds); ++Index)
+	{
+		const FName StatId = ExpectedIds[Index];
+		const float ExpectedValue = StatId == FName(TEXT("CarryWeight")) ? 9.5f : static_cast<float>(Index + 1);
+		const FGridItemTooltipStatLine* Stat = FindLine(PlainView.EquipmentComparisons[0].StatLines, StatId);
+		if (TestNotNull(*FString::Printf(TEXT("Equipped-only stat retains %s for icon lookup"), *StatId.ToString()), Stat))
+		{
+			TestEqual(TEXT("Equipped-only ID selects the correct loss"), Stat->Delta, -ExpectedValue);
+			TestTrue(TEXT("Equipped-only delta remains negative"), Stat->DeltaState == EGridItemTooltipDeltaState::Negative);
+		}
+	}
 	return true;
 }
 
