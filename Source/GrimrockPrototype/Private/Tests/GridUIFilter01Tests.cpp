@@ -164,6 +164,11 @@ bool FGridUIFilter01BagControlsContractTest::RunTest(const FString& Parameters)
 			FindFProperty<FProperty>(BagClass, ButtonName));
 	}
 
+	TestNotNull(TEXT("Selected filter frame color is configurable"),
+		FindFProperty<FProperty>(BagClass, TEXT("SelectedFilterFrameColor")));
+	TestNotNull(TEXT("Selected filter frame thickness is configurable"),
+		FindFProperty<FProperty>(BagClass, TEXT("SelectedFilterFrameThickness")));
+
 	const FName HandlerNames[] = {
 		TEXT("HandleFilterAllClicked"),
 		TEXT("HandleFilterEquipmentClicked"),

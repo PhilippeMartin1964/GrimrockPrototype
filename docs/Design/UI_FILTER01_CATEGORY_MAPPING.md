@@ -323,3 +323,50 @@ Validation locale à exécuter :
 
 Ne pas considérer UI-FILTER01.3.3 comme validé tant que la sortie locale UE5 n'a pas été fournie.
 
+## UI-FILTER01.3.4 — Cadre de sélection natif, style du Button intact
+
+Date : **23 septembre 2026**  
+Statut : **IMPLÉMENTÉ — validation locale requise**
+
+Le filtre courant reçoit désormais un cadre de surbrillance persistant créé par `UGridInventoryBagWidget`.
+
+Le contrat visuel reste volontairement minimal :
+
+- le C++ ne modifie toujours pas `BackgroundColor`, `ColorAndOpacity`, les brushes `Normal/Hovered/Pressed/Disabled`, les tints ni les paddings du `Button` ;
+- le bouton reste `Enabled` ;
+- le C++ ajoute uniquement un `UImage` transparent avec contour, superposé autour du bouton sélectionné ;
+- le cadre est `HitTestInvisible` et ne gêne donc pas les clics ;
+- lorsque le filtre change, seule la visibilité des sept cadres est mise à jour.
+
+Paramètres éditables dans `WBP_InventoryBag > Class Defaults > Inventory | Filter | Selection` :
+
+```text
+SelectedFilterFrameColor
+SelectedFilterFrameThickness
+```
+
+Valeurs par défaut :
+
+```text
+Color     = (1.00, 0.65, 0.10, 1.00)
+Thickness = 3.0
+```
+
+Le cadre est construit avec un `FSlateRoundedBoxBrush` à remplissage transparent et contour coloré. Les boutons restent propriétaires de leur style UMG.
+
+Test de contrat étendu :
+
+```text
+Grimrock.UI.Filter01.BagControlsContract
+```
+
+Validation locale :
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.UI.Filter01"
+```
+
+Une validation PIE est également requise pour confirmer visuellement le cadre sur les sept boutons.
+
