@@ -370,3 +370,64 @@ Validation locale :
 
 Une validation PIE est également requise pour confirmer visuellement le cadre sur les sept boutons.
 
+## UI-FILTER01.3.5 — Cadres explicites dans le Designer UMG
+
+Date : **23 septembre 2026**  
+Statut : **IMPLÉMENTÉ — validation locale requise**
+
+UI-FILTER01.3.5 remplace la création dynamique des cadres de UI-FILTER01.3.4.
+
+La tentative de créer et de reparent-er les boutons dans des `Overlay` depuis `NativeConstruct()` est supprimée. Les cadres de sélection sont désormais des widgets `Image` explicites dans `WBP_InventoryBag`, ce qui rend leur existence, leur couleur et leur épaisseur directement visibles et éditables dans le Designer.
+
+Le C++ ne crée plus aucun widget visuel et ne définit plus aucune couleur ni épaisseur. Il fait uniquement varier la visibilité du cadre correspondant au filtre courant.
+
+Widgets attendus :
+
+```text
+Image_FilterAllSelectionFrame
+Image_FilterEquipmentSelectionFrame
+Image_FilterConsumablesSelectionFrame
+Image_FilterMagicSelectionFrame
+Image_FilterIngredientsSelectionFrame
+Image_FilterBooksAndKeysSelectionFrame
+Image_FilterMiscSelectionFrame
+```
+
+Chaque bouton doit être placé dans un `Overlay` avec son image de cadre au-dessus :
+
+```text
+Overlay_FilterConsumables
+├─ Button_FilterConsumables
+└─ Image_FilterConsumablesSelectionFrame
+```
+
+Le cadre `Image` est configuré uniquement dans UMG :
+
+- `Visibility = Collapsed` au design ;
+- `Behavior > Visibility` sera piloté par le C++ au runtime ;
+- `Hit Test = Self Hit Test Invisible / Hit Test Invisible` pour ne pas bloquer la souris ;
+- `Brush > Draw As = Rounded Box` ;
+- remplissage transparent ;
+- `Outline Settings > Color` = couleur choisie par le designer ;
+- `Outline Settings > Width` = épaisseur choisie par le designer.
+
+Le C++ conserve uniquement la relation :
+
+```text
+InventoryFilterCategory == X
+    -> Image_FilterXSelectionFrame Visible
+    -> les six autres Collapsed
+```
+
+Aucun `BackgroundColor`, `Tint`, `Pressed Padding`, brush de bouton ou état `Enabled` n'est modifié en C++.
+
+Validation locale :
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.UI.Filter01"
+```
+
+Une validation PIE est requise après ajout des sept `Image_Filter*SelectionFrame` dans `WBP_InventoryBag`.
+

@@ -164,10 +164,21 @@ bool FGridUIFilter01BagControlsContractTest::RunTest(const FString& Parameters)
 			FindFProperty<FProperty>(BagClass, ButtonName));
 	}
 
-	TestNotNull(TEXT("Selected filter frame color is configurable"),
-		FindFProperty<FProperty>(BagClass, TEXT("SelectedFilterFrameColor")));
-	TestNotNull(TEXT("Selected filter frame thickness is configurable"),
-		FindFProperty<FProperty>(BagClass, TEXT("SelectedFilterFrameThickness")));
+	const FName SelectionFrameNames[] = {
+		TEXT("Image_FilterAllSelectionFrame"),
+		TEXT("Image_FilterEquipmentSelectionFrame"),
+		TEXT("Image_FilterConsumablesSelectionFrame"),
+		TEXT("Image_FilterMagicSelectionFrame"),
+		TEXT("Image_FilterIngredientsSelectionFrame"),
+		TEXT("Image_FilterBooksAndKeysSelectionFrame"),
+		TEXT("Image_FilterMiscSelectionFrame")
+	};
+
+	for (const FName FrameName : SelectionFrameNames)
+	{
+		TestNotNull(*FString::Printf(TEXT("%s is part of the native selection-frame contract"), *FrameName.ToString()),
+			FindFProperty<FProperty>(BagClass, FrameName));
+	}
 
 	const FName HandlerNames[] = {
 		TEXT("HandleFilterAllClicked"),

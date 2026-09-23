@@ -1,12 +1,7 @@
 #include "UI/GridInventoryBagWidget.h"
 
-#include "Blueprint/WidgetTree.h"
-#include "Brushes/SlateRoundedBoxBrush.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
-#include "Components/Overlay.h"
-#include "Components/OverlaySlot.h"
-#include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 
 void UGridInventoryBagWidget::NativeConstruct()
@@ -45,20 +40,6 @@ void UGridInventoryBagWidget::NativeConstruct()
 	{
 		Button_SortInventory->OnClicked.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleSortInventoryClicked);
 	}
-
-	FilterSelectionFrameAll = CreateFilterSelectionFrame(Button_FilterAll, TEXT("Overlay_FilterAllSelection"), TEXT("Image_FilterAllSelectionFrame"));
-	FilterSelectionFrameEquipment =
-		CreateFilterSelectionFrame(Button_FilterEquipment, TEXT("Overlay_FilterEquipmentSelection"), TEXT("Image_FilterEquipmentSelectionFrame"));
-	FilterSelectionFrameConsumables =
-		CreateFilterSelectionFrame(Button_FilterConsumables, TEXT("Overlay_FilterConsumablesSelection"), TEXT("Image_FilterConsumablesSelectionFrame"));
-	FilterSelectionFrameMagic =
-		CreateFilterSelectionFrame(Button_FilterMagic, TEXT("Overlay_FilterMagicSelection"), TEXT("Image_FilterMagicSelectionFrame"));
-	FilterSelectionFrameIngredients =
-		CreateFilterSelectionFrame(Button_FilterIngredients, TEXT("Overlay_FilterIngredientsSelection"), TEXT("Image_FilterIngredientsSelectionFrame"));
-	FilterSelectionFrameBooksAndKeys =
-		CreateFilterSelectionFrame(Button_FilterBooksAndKeys, TEXT("Overlay_FilterBooksAndKeysSelection"), TEXT("Image_FilterBooksAndKeysSelectionFrame"));
-	FilterSelectionFrameMisc =
-		CreateFilterSelectionFrame(Button_FilterMisc, TEXT("Overlay_FilterMiscSelection"), TEXT("Image_FilterMiscSelectionFrame"));
 
 	RefreshInventoryFilterSelectionFrames();
 	RefreshInventorySortPresentation();
@@ -152,56 +133,6 @@ void UGridInventoryBagWidget::HandleInventorySortModeChanged()
 	RefreshInventorySortPresentation();
 }
 
-UImage* UGridInventoryBagWidget::CreateFilterSelectionFrame(UButton* Button, FName OverlayName, FName FrameName)
-{
-	if (!Button || !WidgetTree)
-	{
-		return nullptr;
-	}
-
-	if (UImage* ExistingFrame = Cast<UImage>(WidgetTree->FindWidget(FrameName)))
-	{
-		return ExistingFrame;
-	}
-
-	UPanelWidget* Parent = Button->GetParent();
-	if (!Parent)
-	{
-		return nullptr;
-	}
-
-	UOverlay* Overlay = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), OverlayName);
-	UImage* Frame = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), FrameName);
-	if (!Overlay || !Frame || !Parent->ReplaceChild(Button, Overlay))
-	{
-		return nullptr;
-	}
-
-	if (UOverlaySlot* ButtonSlot = Overlay->AddChildToOverlay(Button))
-	{
-		ButtonSlot->SetHorizontalAlignment(HAlign_Fill);
-		ButtonSlot->SetVerticalAlignment(VAlign_Fill);
-	}
-
-	const float SafeThickness = FMath::Max(0.0f, SelectedFilterFrameThickness);
-	const FSlateRoundedBoxBrush FrameBrush(
-		FLinearColor::Transparent,
-		0.0f,
-		SelectedFilterFrameColor,
-		SafeThickness,
-		FVector2D(1.0f, 1.0f));
-	Frame->SetBrush(FrameBrush);
-	Frame->SetVisibility(ESlateVisibility::Collapsed);
-
-	if (UOverlaySlot* FrameSlot = Overlay->AddChildToOverlay(Frame))
-	{
-		FrameSlot->SetHorizontalAlignment(HAlign_Fill);
-		FrameSlot->SetVerticalAlignment(VAlign_Fill);
-	}
-
-	return Frame;
-}
-
 void UGridInventoryBagWidget::RefreshInventoryFilterSelectionFrames()
 {
 	auto SetFrameSelected = [](UImage* Frame, bool bSelected)
@@ -212,13 +143,13 @@ void UGridInventoryBagWidget::RefreshInventoryFilterSelectionFrames()
 		}
 	};
 
-	SetFrameSelected(FilterSelectionFrameAll, InventoryFilterCategory == EGridInventoryFilterCategory::All);
-	SetFrameSelected(FilterSelectionFrameEquipment, InventoryFilterCategory == EGridInventoryFilterCategory::Equipment);
-	SetFrameSelected(FilterSelectionFrameConsumables, InventoryFilterCategory == EGridInventoryFilterCategory::Consumables);
-	SetFrameSelected(FilterSelectionFrameMagic, InventoryFilterCategory == EGridInventoryFilterCategory::Magic);
-	SetFrameSelected(FilterSelectionFrameIngredients, InventoryFilterCategory == EGridInventoryFilterCategory::Ingredients);
-	SetFrameSelected(FilterSelectionFrameBooksAndKeys, InventoryFilterCategory == EGridInventoryFilterCategory::BooksAndKeys);
-	SetFrameSelected(FilterSelectionFrameMisc, InventoryFilterCategory == EGridInventoryFilterCategory::Misc);
+	SetFrameSelected(Image_FilterAllSelectionFrame, InventoryFilterCategory == EGridInventoryFilterCategory::All);
+	SetFrameSelected(Image_FilterEquipmentSelectionFrame, InventoryFilterCategory == EGridInventoryFilterCategory::Equipment);
+	SetFrameSelected(Image_FilterConsumablesSelectionFrame, InventoryFilterCategory == EGridInventoryFilterCategory::Consumables);
+	SetFrameSelected(Image_FilterMagicSelectionFrame, InventoryFilterCategory == EGridInventoryFilterCategory::Magic);
+	SetFrameSelected(Image_FilterIngredientsSelectionFrame, InventoryFilterCategory == EGridInventoryFilterCategory::Ingredients);
+	SetFrameSelected(Image_FilterBooksAndKeysSelectionFrame, InventoryFilterCategory == EGridInventoryFilterCategory::BooksAndKeys);
+	SetFrameSelected(Image_FilterMiscSelectionFrame, InventoryFilterCategory == EGridInventoryFilterCategory::Misc);
 }
 
 void UGridInventoryBagWidget::RefreshInventorySortPresentation()

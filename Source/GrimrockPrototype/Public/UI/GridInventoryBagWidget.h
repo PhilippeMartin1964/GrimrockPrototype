@@ -44,13 +44,26 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Filter")
 	TObjectPtr<UButton> Button_FilterMisc;
 
-	/** Color of the persistent outline around the currently selected inventory filter. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Filter|Selection")
-	FLinearColor SelectedFilterFrameColor = FLinearColor(1.0f, 0.65f, 0.10f, 1.0f);
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Filter|Selection")
+	TObjectPtr<UImage> Image_FilterAllSelectionFrame;
 
-	/** Thickness in Slate units of the persistent selected-filter outline. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Filter|Selection", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "12.0"))
-	float SelectedFilterFrameThickness = 3.0f;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Filter|Selection")
+	TObjectPtr<UImage> Image_FilterEquipmentSelectionFrame;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Filter|Selection")
+	TObjectPtr<UImage> Image_FilterConsumablesSelectionFrame;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Filter|Selection")
+	TObjectPtr<UImage> Image_FilterMagicSelectionFrame;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Filter|Selection")
+	TObjectPtr<UImage> Image_FilterIngredientsSelectionFrame;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Filter|Selection")
+	TObjectPtr<UImage> Image_FilterBooksAndKeysSelectionFrame;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Filter|Selection")
+	TObjectPtr<UImage> Image_FilterMiscSelectionFrame;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Sort")
 	TObjectPtr<UButton> Button_SortInventory;
@@ -89,28 +102,6 @@ private:
 	UFUNCTION()
 	void HandleSortInventoryClicked();
 
-	UImage* CreateFilterSelectionFrame(UButton* Button, FName OverlayName, FName FrameName);
 	void RefreshInventoryFilterSelectionFrames();
 	void RefreshInventorySortPresentation();
-
-	UPROPERTY(Transient)
-	TObjectPtr<UImage> FilterSelectionFrameAll;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UImage> FilterSelectionFrameEquipment;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UImage> FilterSelectionFrameConsumables;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UImage> FilterSelectionFrameMagic;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UImage> FilterSelectionFrameIngredients;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UImage> FilterSelectionFrameBooksAndKeys;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UImage> FilterSelectionFrameMisc;
 };
