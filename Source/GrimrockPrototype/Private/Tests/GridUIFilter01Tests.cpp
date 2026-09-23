@@ -105,24 +105,31 @@ bool FGridUIFilter01GridProjectionTest::RunTest(const FString& Parameters)
 	Widget->InventoryComponent = Inventory;
 
 	TestEqual(TEXT("All keeps the full physical grid capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	TestEqual(TEXT("All reports four visible items"), Widget->GetVisibleInventoryItemCount(), 4);
 
 	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Equipment);
-	TestEqual(TEXT("Equipment projects only the weapon"), Widget->ResolveInventorySlotWidgetCount(), 1);
+	TestEqual(TEXT("Equipment keeps fixed grid capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	TestEqual(TEXT("Equipment projects only the weapon"), Widget->GetVisibleInventoryItemCount(), 1);
 
 	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Consumables);
-	TestEqual(TEXT("Consumables projects only the potion"), Widget->ResolveInventorySlotWidgetCount(), 1);
+	TestEqual(TEXT("Consumables keeps fixed grid capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	TestEqual(TEXT("Consumables projects only the potion"), Widget->GetVisibleInventoryItemCount(), 1);
 
 	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::BooksAndKeys);
-	TestEqual(TEXT("Books and keys projects only the book"), Widget->ResolveInventorySlotWidgetCount(), 1);
+	TestEqual(TEXT("Books and keys keeps fixed grid capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	TestEqual(TEXT("Books and keys projects only the book"), Widget->GetVisibleInventoryItemCount(), 1);
 
 	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Misc);
-	TestEqual(TEXT("Missing definition falls back to Misc"), Widget->ResolveInventorySlotWidgetCount(), 1);
+	TestEqual(TEXT("Misc keeps fixed grid capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	TestEqual(TEXT("Missing definition falls back to Misc"), Widget->GetVisibleInventoryItemCount(), 1);
 
 	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Magic);
-	TestEqual(TEXT("No magic item yields an empty filtered projection"), Widget->ResolveInventorySlotWidgetCount(), 0);
+	TestEqual(TEXT("Magic keeps fixed grid capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	TestEqual(TEXT("No magic item yields zero visible items"), Widget->GetVisibleInventoryItemCount(), 0);
 
 	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::All);
-	TestEqual(TEXT("Returning to All restores the full grid"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	TestEqual(TEXT("Returning to All keeps the full grid"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	TestEqual(TEXT("Returning to All restores all visible items"), Widget->GetVisibleInventoryItemCount(), 4);
 
 	TestEqual(TEXT("Weapon remains in physical slot 0"), Character.InventorySlots[0].Item.RuntimeObjectId, WeaponRuntimeId);
 	TestTrue(TEXT("Physical slot 1 remains empty"), Character.InventorySlots[1].IsEmpty());

@@ -431,3 +431,34 @@ Validation locale :
 
 Une validation PIE est requise après ajout des sept `Image_Filter*SelectionFrame` dans `WBP_InventoryBag`.
 
+## UI-FILTER01.3.5.1 — Test Filter01 aligné sur la grille à capacité fixe
+
+Date : **23 septembre 2026**  
+Statut : **CORRECTION DE TEST — validation locale requise**
+
+La validation `Grimrock.UI.Filter01.GridProjection` utilisait encore l'ancien contrat de UI-FILTER01.2, dans lequel un filtre réduisait le **nombre de widgets de grille** au nombre d'items correspondants.
+
+Ce contrat a été remplacé par `UI-INVENTORY02.1` :
+
+```text
+capacité du sac = capacité visuelle fixe
+filtre = contenu projeté dans cette capacité
+cases restantes = INDEX_NONE / cellules vides virtuelles
+```
+
+En conséquence :
+
+- `ResolveInventorySlotWidgetCount()` reste à la capacité physique du sac, ici 6 ;
+- `GetVisibleInventoryItemCount()` mesure le nombre d'items réellement visibles après filtrage ;
+- le test Filter01 vérifie désormais les deux dimensions séparément.
+
+Le comportement de filtrage lui-même n'a pas régressé ; c'était l'assertion historique du test qui était devenue obsolète après `UI-INVENTORY02.1`.
+
+Validation à relancer :
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.UI.Filter01"
+```
+
