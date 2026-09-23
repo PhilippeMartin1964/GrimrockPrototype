@@ -1004,12 +1004,12 @@ int32 UGridInventoryWidget::ResolveInventorySourceSlotCapacity() const
 	return 24;
 }
 
-void UGridInventoryWidget::BuildFilteredInventorySourceSlotIndices(TArray<int32>& OutSourceSlotIndices) const
+void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int32>& OutSourceSlotIndices) const
 {
 	OutSourceSlotIndices.Reset();
 	const int32 SourceSlotCapacity = FMath::Max(0, ResolveInventorySourceSlotCapacity());
 
-	// Physical order + All preserves the real bag layout, including empty slots.
+	// Canonical bag view: every physical slot keeps its own visible cell.
 	if (InventoryFilterCategory == EGridInventoryFilterCategory::All && InventorySortMode == EGridInventorySortMode::PhysicalOrder)
 	{
 		OutSourceSlotIndices.Reserve(SourceSlotCapacity);
@@ -1020,30 +1020,26 @@ void UGridInventoryWidget::BuildFilteredInventorySourceSlotIndices(TArray<int32>
 		return;
 	}
 
-	if (!InventoryComponent)
-	{
-		return;
-	}
+	TArray<int32> ProjectedItemSourceSlots;
+	ProjectedItemSourceSlots.Reserve(SourceSlotCapacity);
 
-	for (int32 SlotIndex = 0; SlotIndex < SourceSlotCapacity; ++SlotIndex)
+	if (InventoryComponent)
 	{
-		FGridItemInstance Item;
-		if (!GetInventoryItemAtSlot(SlotIndex, Item))
+		for (int32 SlotIndex = 0; SlotIndex < SourceSlotCapacity; ++SlotIndex)
 		{
-			continue;
-		}
+			FGridItemInstance Item;
+			if (!GetInventoryItemAtSlot(SlotIndex, Item))
+			{
+				continue;
+			}
 
-		const UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(Item.ItemDefinitionId);
-		const EGridItemType ItemType = Definition ? Definition->ItemType : EGridItemType::None;
-		if (DoesGridItemTypeMatchInventoryFilter(ItemType, InventoryFilterCategory))
-		{
-			OutSourceSlotIndices.Add(SlotIndex);
+			const UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(Item.ItemDefinitionId);
+			const EGridItemType ItemType = Definition ? Definition->ItemType : EGridItemType::None;
+			if (DoesGridItemTypeMatchInventoryFilter(ItemType, InventoryFilterCategory))
+			{
+				ProjectedItemSourceSlots.Add(SlotIndex);
+			}
 		}
-	}
-
-	if (InventorySortMode == EGridInventorySortMode::PhysicalOrder)
-	{
-		return;
 	}
 
 	auto ResolveDisplayName = [this](const FGridItemInstance& Item)
@@ -1090,64 +1086,76 @@ void UGridInventoryWidget::BuildFilteredInventorySourceSlotIndices(TArray<int32>
 		return FMath::Max(0.0f, UnitWeight) * static_cast<float>(FMath::Max(1, Item.Quantity));
 	};
 
-	OutSourceSlotIndices.Sort(
-		[this, &ResolveDisplayName, &ResolveItemType, &ResolveTotalWeight](int32 LeftSlotIndex, int32 RightSlotIndex)
-		{
-			FGridItemInstance LeftItem;
-			FGridItemInstance RightItem;
-			if (!GetInventoryItemAtSlot(LeftSlotIndex, LeftItem) || !GetInventoryItemAtSlot(RightSlotIndex, RightItem))
+	if (InventorySortMode != EGridInventorySortMode::PhysicalOrder)
+	{
+		ProjectedItemSourceSlots.Sort(
+			[this, &ResolveDisplayName, &ResolveItemType, &ResolveTotalWeight](int32 LeftSlotIndex, int32 RightSlotIndex)
 			{
-				return LeftSlotIndex < RightSlotIndex;
-			}
-
-			const FString LeftName = ResolveDisplayName(LeftItem);
-			const FString RightName = ResolveDisplayName(RightItem);
-
-			switch (InventorySortMode)
-			{
-				case EGridInventorySortMode::Name:
+				FGridItemInstance LeftItem;
+				FGridItemInstance RightItem;
+				if (!GetInventoryItemAtSlot(LeftSlotIndex, LeftItem) || !GetInventoryItemAtSlot(RightSlotIndex, RightItem))
 				{
-					const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
-					return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
-				}
-				case EGridInventorySortMode::Type:
-				{
-					const uint8 LeftType = static_cast<uint8>(ResolveItemType(LeftItem));
-					const uint8 RightType = static_cast<uint8>(ResolveItemType(RightItem));
-					if (LeftType != RightType)
-					{
-						return LeftType < RightType;
-					}
-					const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
-					return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
-				}
-				case EGridInventorySortMode::Weight:
-				{
-					const float LeftWeight = ResolveTotalWeight(LeftItem);
-					const float RightWeight = ResolveTotalWeight(RightItem);
-					if (!FMath::IsNearlyEqual(LeftWeight, RightWeight))
-					{
-						return LeftWeight < RightWeight;
-					}
-					const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
-					return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
-				}
-				case EGridInventorySortMode::PhysicalOrder:
-				default:
 					return LeftSlotIndex < RightSlotIndex;
-			}
-		});
+				}
+
+				const FString LeftName = ResolveDisplayName(LeftItem);
+				const FString RightName = ResolveDisplayName(RightItem);
+
+				switch (InventorySortMode)
+				{
+					case EGridInventorySortMode::Name:
+					{
+						const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
+						return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
+					}
+					case EGridInventorySortMode::Type:
+					{
+						const uint8 LeftType = static_cast<uint8>(ResolveItemType(LeftItem));
+						const uint8 RightType = static_cast<uint8>(ResolveItemType(RightItem));
+						if (LeftType != RightType)
+						{
+							return LeftType < RightType;
+						}
+						const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
+						return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
+					}
+					case EGridInventorySortMode::Weight:
+					{
+						const float LeftWeight = ResolveTotalWeight(LeftItem);
+						const float RightWeight = ResolveTotalWeight(RightItem);
+						if (!FMath::IsNearlyEqual(LeftWeight, RightWeight))
+						{
+							return LeftWeight < RightWeight;
+						}
+						const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
+						return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
+					}
+					case EGridInventorySortMode::PhysicalOrder:
+					default:
+						return LeftSlotIndex < RightSlotIndex;
+				}
+			});
+	}
+
+	// A filter/sort changes only the CONTENT projected into the grid, never the
+	// number of visible cells. Matching/sorted items occupy the first cells and
+	// the remaining cells are explicit virtual empties.
+	OutSourceSlotIndices = MoveTemp(ProjectedItemSourceSlots);
+	while (OutSourceSlotIndices.Num() < SourceSlotCapacity)
+	{
+		OutSourceSlotIndices.Add(INDEX_NONE);
+	}
 }
 
 void UGridInventoryWidget::GetInventoryProjectionSourceSlotIndices(TArray<int32>& OutSourceSlotIndices) const
 {
-	BuildFilteredInventorySourceSlotIndices(OutSourceSlotIndices);
+	BuildInventoryProjectionSourceSlotIndices(OutSourceSlotIndices);
 }
 
 int32 UGridInventoryWidget::GetVisibleInventoryItemCount() const
 {
 	TArray<int32> SourceSlotIndices;
-	BuildFilteredInventorySourceSlotIndices(SourceSlotIndices);
+	BuildInventoryProjectionSourceSlotIndices(SourceSlotIndices);
 
 	int32 VisibleItems = 0;
 	for (const int32 SourceSlotIndex : SourceSlotIndices)
@@ -1176,7 +1184,7 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets()
 	}
 
 	TArray<int32> SourceSlotIndices;
-	BuildFilteredInventorySourceSlotIndices(SourceSlotIndices);
+	BuildInventoryProjectionSourceSlotIndices(SourceSlotIndices);
 	const int32 SlotCount = SourceSlotIndices.Num();
 	const int32 ColumnCount = FMath::Max(1, InventorySlotColumnCount);
 
@@ -1255,7 +1263,7 @@ void UGridInventoryWidget::ClearGeneratedInventorySlotWidgets()
 int32 UGridInventoryWidget::ResolveInventorySlotWidgetCount() const
 {
 	TArray<int32> SourceSlotIndices;
-	BuildFilteredInventorySourceSlotIndices(SourceSlotIndices);
+	BuildInventoryProjectionSourceSlotIndices(SourceSlotIndices);
 	return SourceSlotIndices.Num();
 }
 
@@ -2174,7 +2182,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 		return false;
 	}
 
-	if (TargetType == EGridInventoryUiSlotType::Inventory)
+	if (TargetType == EGridInventoryUiSlotType::Inventory && TargetIndex != INDEX_NONE)
 	{
 		if (TargetIndex < 0 || TargetIndex >= GetInventorySlotCount())
 		{
@@ -2247,6 +2255,15 @@ bool UGridInventoryWidget::HandleSlotDrop(
 		ValidateOwnership();
 		RefreshInventory();
 		return bInventoryTargetResult;
+	}
+
+	if (TargetType == EGridInventoryUiSlotType::Inventory && TargetIndex == INDEX_NONE &&
+		SourceType == EGridInventoryUiSlotType::Inventory)
+	{
+		UE_LOG(LogTemp, Verbose,
+			TEXT("GridInventory UI Drop Ignored Reason=VirtualProjectionTargetHasNoPhysicalSlot Source=%d"), SourceIndex);
+		RefreshInventory();
+		return false;
 	}
 
 	auto HasCurrentSourceItem = [&]() -> bool

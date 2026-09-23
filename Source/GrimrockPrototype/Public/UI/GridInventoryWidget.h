@@ -466,7 +466,7 @@ private:
 	void RefreshSelectedInventoryBagPresentation();
 	void EnsureSelectedInventorySlotLayout();
 	int32 ResolveInventorySourceSlotCapacity() const;
-	void BuildFilteredInventorySourceSlotIndices(TArray<int32>& OutSourceSlotIndices) const;
+	void BuildInventoryProjectionSourceSlotIndices(TArray<int32>& OutSourceSlotIndices) const;
 
 	const URPGClassVisualAsset* FindClassVisualForClass(FName ClassId) const;
 	void RefreshSelectedCharacterClassIcon();

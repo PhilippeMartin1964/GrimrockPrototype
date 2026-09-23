@@ -84,21 +84,28 @@ bool FGridUIInventory02SortingProjectionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Physical order reports four visible items"), Widget->GetVisibleInventoryItemCount(), 4);
 
 	Widget->SetInventorySortMode(EGridInventorySortMode::Name);
-	ExpectProjection(*this, Widget, { 2, 4, 5, 0 }, TEXT("Name sort"));
+	ExpectProjection(*this, Widget, { 2, 4, 5, 0, INDEX_NONE, INDEX_NONE }, TEXT("Name sort keeps six visible cells"));
+	TestEqual(TEXT("Name sort keeps fixed widget capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
 
 	Widget->SetInventorySortMode(EGridInventorySortMode::Type);
-	ExpectProjection(*this, Widget, { 0, 4, 2, 5 }, TEXT("Type sort"));
+	ExpectProjection(*this, Widget, { 0, 4, 2, 5, INDEX_NONE, INDEX_NONE }, TEXT("Type sort keeps six visible cells"));
+	TestEqual(TEXT("Type sort keeps fixed widget capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
 
 	Widget->SetInventorySortMode(EGridInventorySortMode::Weight);
-	ExpectProjection(*this, Widget, { 5, 0, 4, 2 }, TEXT("Total weight sort"));
+	ExpectProjection(*this, Widget, { 5, 0, 4, 2, INDEX_NONE, INDEX_NONE }, TEXT("Total weight sort keeps six visible cells"));
+	TestEqual(TEXT("Weight sort keeps fixed widget capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
 
 	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Equipment);
 	Widget->SetInventorySortMode(EGridInventorySortMode::Name);
-	ExpectProjection(*this, Widget, { 4, 0 }, TEXT("Filter plus name sort"));
+	ExpectProjection(*this, Widget, { 4, 0, INDEX_NONE, INDEX_NONE, INDEX_NONE, INDEX_NONE }, TEXT("Filter plus name sort keeps six visible cells"));
 	TestEqual(TEXT("Equipment filter reports two visible items"), Widget->GetVisibleInventoryItemCount(), 2);
+	TestEqual(TEXT("Equipment filter keeps fixed widget capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
 
 	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Magic);
+	ExpectProjection(*this, Widget,
+		{ INDEX_NONE, INDEX_NONE, INDEX_NONE, INDEX_NONE, INDEX_NONE, INDEX_NONE }, TEXT("Empty filter still keeps six visible cells"));
 	TestEqual(TEXT("Empty filter reports zero visible items"), Widget->GetVisibleInventoryItemCount(), 0);
+	TestEqual(TEXT("Empty filter keeps fixed widget capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
 
 	TestEqual(TEXT("Slot 0 identity unchanged"), Character.InventorySlots[0].Item.RuntimeObjectId, Slot0Id);
 	TestTrue(TEXT("Slot 1 remains empty"), Character.InventorySlots[1].IsEmpty());
@@ -106,6 +113,57 @@ bool FGridUIInventory02SortingProjectionTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Slot 3 remains empty"), Character.InventorySlots[3].IsEmpty());
 	TestEqual(TEXT("Slot 4 identity unchanged"), Character.InventorySlots[4].Item.RuntimeObjectId, Slot4Id);
 	TestEqual(TEXT("Slot 5 identity unchanged"), Character.InventorySlots[5].Item.RuntimeObjectId, Slot5Id);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIInventory021FixedCapacityTest, "Grimrock.UI.Inventory02.FixedCapacity",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIInventory021FixedCapacityTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	UGridInventoryWidget* Widget = NewObject<UGridInventoryWidget>();
+	if (!TestNotNull(TEXT("Party inventory exists"), Inventory) || !TestNotNull(TEXT("Inventory widget exists"), Widget))
+	{
+		return false;
+	}
+
+	Inventory->PartyInventoryState.ActiveCharacters.SetNum(1);
+	Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
+	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
+	Character.InventorySlots.SetNum(40);
+
+	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Inventory);
+	Definition->ItemDefinitionId = TEXT("FixedCapacityPotion");
+	Definition->DisplayName = FText::FromString(TEXT("Potion"));
+	Definition->ItemType = EGridItemType::Potion;
+	Definition->Weight = 0.5f;
+	Inventory->RegisterItemDefinition(Definition);
+
+	Character.InventorySlots[17].bOccupied = true;
+	Character.InventorySlots[17].Item.RuntimeObjectId = FGuid::NewGuid();
+	Character.InventorySlots[17].Item.ItemDefinitionId = Definition->ItemDefinitionId;
+	Character.InventorySlots[17].Item.DisplayName = Definition->DisplayName;
+	Character.InventorySlots[17].Item.Quantity = 1;
+	Character.InventorySlots[17].Item.Weight = Definition->Weight;
+
+	Widget->InventoryComponent = Inventory;
+
+	TestEqual(TEXT("Default bag shows all forty cells"), Widget->ResolveInventorySlotWidgetCount(), 40);
+
+	Widget->SetInventorySortMode(EGridInventorySortMode::Name);
+	TestEqual(TEXT("Sorted bag still shows all forty cells"), Widget->ResolveInventorySlotWidgetCount(), 40);
+	TArray<int32> Projection;
+	Widget->GetInventoryProjectionSourceSlotIndices(Projection);
+	TestEqual(TEXT("Sorted item moves to first projected cell"), Projection[0], 17);
+	TestEqual(TEXT("Remaining projected cells are virtual empty cells"), Projection[1], INDEX_NONE);
+
+	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Equipment);
+	TestEqual(TEXT("Filtered bag still shows all forty cells"), Widget->ResolveInventorySlotWidgetCount(), 40);
+	TestEqual(TEXT("Filtered bag has no visible matching items"), Widget->GetVisibleInventoryItemCount(), 0);
 
 	return true;
 }

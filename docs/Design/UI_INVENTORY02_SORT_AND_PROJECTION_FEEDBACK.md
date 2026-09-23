@@ -1,7 +1,7 @@
 # UI-INVENTORY02 — Tri et feedback de projection du sac
 
 Date : **22 septembre 2026**  
-Statut : **CLOS — Automation + PIE validés**
+Statut : **UI-INVENTORY02.1 CORRECTION ACTIVE — grille à capacité fixe**
 
 ## Objectif
 
@@ -37,8 +37,9 @@ Les `RuntimeObjectId`, drag/drop, clic, tooltip et menu contextuel continuent do
 `EGridInventoryFilterCategory` et `EGridInventorySortMode` sont deux états de présentation transients.
 
 - `Tous + Ordre` conserve la grille physique complète, cases vides comprises ;
-- un filtre nommé compacte les seuls items correspondants ;
-- un tri autre que `Ordre` compacte les items occupés puis les ordonne ;
+- **la grille conserve toujours exactement la capacité du sac** (par exemple 40 cases) ;
+- un filtre nommé projette les seuls items correspondants dans les premières cases, puis complète avec des cases vides ;
+- un tri autre que `Ordre` projette les items triés dans les premières cases, puis complète avec des cases vides ;
 - filtre + tri s'appliquent ensemble ;
 - changer de personnage conserve le filtre et le tri tant que le widget existe.
 
@@ -175,3 +176,44 @@ UI-INVENTORY02 complete inventory bag presentation
 ```
 
 `UI-INVENTORY02` est **CLOS**.
+
+
+## UI-INVENTORY02.1 — correction de la grille à capacité fixe
+
+La première version de UI-INVENTORY02 compactait la **grille elle-même** lorsque le tri ou un filtre était actif. Ce comportement est abandonné.
+
+Contrat corrigé :
+
+```text
+Capacité du sac = 40
+=> toujours 40 cellules visibles
+
+Tous + Ordre
+=> représentation physique complète
+
+Tri Nom / Type / Poids
+=> items projetés dans l'ordre demandé
+=> cellules restantes vides jusqu'à 40
+
+Filtre Équipement / Consommables / ...
+=> items correspondants projetés en tête
+=> cellules restantes vides jusqu'à 40
+```
+
+Les cellules vides créées par la projection utilisent `INDEX_NONE` et ne prétendent pas représenter un slot physique occupé/caché.
+
+Interactions :
+
+- un item visible conserve toujours son vrai `InventorySlotIndex` source ;
+- tooltip, clic droit, drag source et actions continuent donc de viser l'objet physique réel ;
+- un clic avec item au curseur sur une cellule vide virtuelle utilise l'insertion inventaire existante ;
+- un drop depuis équipement/curseur vers une cellule vide virtuelle utilise la première capacité physique disponible ;
+- un drag inventaire -> cellule vide virtuelle n'effectue pas de réorganisation physique implicite, car cette cellule n'a volontairement pas d'identité physique.
+
+Test de régression ajouté :
+
+```text
+Grimrock.UI.Inventory02.FixedCapacity
+```
+
+La clôture précédente de UI-INVENTORY02 reste historiquement valide pour la version initiale ; UI-INVENTORY02.1 doit être revalidé par Automation + PIE avant nouvelle clôture.

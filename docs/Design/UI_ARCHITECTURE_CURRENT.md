@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-INVENTORY02 CLOS ; UI-FEEDBACK01.2 ACTIF**  
+Statut : **CURRENT — UI-INVENTORY02.1 CORRECTION ACTIVE ; UI-FEEDBACK01.2 EN PAUSE**  
 Date : **22 septembre 2026**
 
 ## Références canoniques
@@ -402,7 +402,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-ITEM01 | fonctionnel |
 | UI-WEIGHT01 | validé et clos le 22 septembre 2026 |
 | UI-FILTER01 | UI-FILTER01.1/.2/.3 validés côté C++ ; UI-FILTER01.3.1 validé en PIE |
-| UI-INVENTORY02 | tri Ordre/Nom/Type/Poids + compteur projection + état vide validés ; clos le 22 septembre 2026 |
+| UI-INVENTORY02 | UI-INVENTORY02.1 corrige la projection : capacité visuelle fixe, contenu filtré/trié uniquement |
 | UI-HOTBAR01 | réalisé |
 | UI-FEEDBACK01 | UI-FEEDBACK01.1 surcharge close ; UI-FEEDBACK01.2 effets de statut portrait actif |
 | UI-SKILLS01 | fonctionnel via MON20 |
