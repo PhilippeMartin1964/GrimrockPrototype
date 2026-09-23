@@ -266,3 +266,60 @@ Validation locale à exécuter :
 
 Ne pas considérer UI-FILTER01.3.2 comme validé tant que la sortie locale UE5 n'a pas été fournie.
 
+## UI-FILTER01.3.3 — Autorité visuelle rendue entièrement à UMG
+
+Date : **23 septembre 2026**  
+Statut : **IMPLÉMENTÉ — validation locale requise**
+
+UI-FILTER01.3.3 remplace explicitement les règles visuelles introduites par UI-FILTER01.3 et UI-FILTER01.3.2.
+
+Le C++ des boutons de filtre ne doit plus modifier **aucun paramètre visuel ou interactif du `UButton`**. En particulier, `UGridInventoryBagWidget` ne fait plus :
+
+- aucun `SetIsEnabled(...)` pour représenter la sélection ;
+- aucun `SetBackgroundColor(...)` ;
+- aucune couleur `Selected` / `Unselected` exposée par le C++ ;
+- aucun rafraîchissement de style ou de teinte lors du changement de filtre ;
+- aucune substitution de l'état `Disabled` pour simuler un état sélectionné.
+
+L'autorité du C++ est désormais limitée au **routage fonctionnel** des clics :
+
+```text
+Button_FilterAll          -> SetInventoryFilterCategory(All)
+Button_FilterEquipment    -> SetInventoryFilterCategory(Equipment)
+Button_FilterConsumables  -> SetInventoryFilterCategory(Consumables)
+Button_FilterMagic        -> SetInventoryFilterCategory(Magic)
+Button_FilterIngredients  -> SetInventoryFilterCategory(Ingredients)
+Button_FilterBooksAndKeys -> SetInventoryFilterCategory(BooksAndKeys)
+Button_FilterMisc         -> SetInventoryFilterCategory(Misc)
+```
+
+Toute l'apparence des boutons appartient à `WBP_InventoryBag` et à chaque `Button Style` UMG :
+
+```text
+Normal
+Hovered
+Pressed
+Disabled
+Normal Padding
+Pressed Padding
+Background Color
+Color and Opacity
+Brush Tint
+Draw As
+Image / Resource Object
+```
+
+Le C++ ne réécrit plus ces valeurs au runtime. Le designer peut donc décider librement des couleurs, textures, tints, paddings et autres paramètres directement dans le widget `Button`.
+
+Le test `Grimrock.UI.Filter01.BagSelectionPresentation`, devenu contraire à ce contrat, est supprimé. `Grimrock.UI.Filter01.BagControlsContract` continue de vérifier uniquement l'existence des sept boutons et de leurs handlers natifs.
+
+Validation locale à exécuter :
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.UI.Filter01"
+```
+
+Ne pas considérer UI-FILTER01.3.3 comme validé tant que la sortie locale UE5 n'a pas été fournie.
+

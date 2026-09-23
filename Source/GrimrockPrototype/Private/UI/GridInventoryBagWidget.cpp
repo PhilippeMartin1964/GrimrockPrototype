@@ -3,22 +3,6 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 
-namespace
-{
-	void SetFilterButtonSelected(UButton* Button, bool bSelected, const FLinearColor& UnselectedBackgroundColor,
-		const FLinearColor& SelectedBackgroundColor)
-	{
-		if (Button)
-		{
-			// Selection is presentation state, not disabled interaction state.
-			// Keeping the button enabled preserves Hovered/Pressed feedback and
-			// avoids Slate's disabled greying pass.
-			Button->SetIsEnabled(true);
-			Button->SetBackgroundColor(bSelected ? SelectedBackgroundColor : UnselectedBackgroundColor);
-		}
-	}
-}
-
 void UGridInventoryBagWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -56,7 +40,6 @@ void UGridInventoryBagWidget::NativeConstruct()
 		Button_SortInventory->OnClicked.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleSortInventoryClicked);
 	}
 
-	RefreshInventoryFilterButtonState();
 	RefreshInventorySortPresentation();
 }
 
@@ -138,34 +121,10 @@ void UGridInventoryBagWidget::HandleSortInventoryClicked()
 	CycleInventorySortMode();
 }
 
-void UGridInventoryBagWidget::HandleInventoryFilterCategoryChanged()
-{
-	RefreshInventoryFilterButtonState();
-}
-
 void UGridInventoryBagWidget::HandleInventorySortModeChanged()
 {
 	RefreshInventorySortPresentation();
 }
-
-void UGridInventoryBagWidget::RefreshInventoryFilterButtonState()
-{
-	SetFilterButtonSelected(Button_FilterAll, InventoryFilterCategory == EGridInventoryFilterCategory::All,
-		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
-	SetFilterButtonSelected(Button_FilterEquipment, InventoryFilterCategory == EGridInventoryFilterCategory::Equipment,
-		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
-	SetFilterButtonSelected(Button_FilterConsumables, InventoryFilterCategory == EGridInventoryFilterCategory::Consumables,
-		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
-	SetFilterButtonSelected(Button_FilterMagic, InventoryFilterCategory == EGridInventoryFilterCategory::Magic,
-		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
-	SetFilterButtonSelected(Button_FilterIngredients, InventoryFilterCategory == EGridInventoryFilterCategory::Ingredients,
-		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
-	SetFilterButtonSelected(Button_FilterBooksAndKeys, InventoryFilterCategory == EGridInventoryFilterCategory::BooksAndKeys,
-		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
-	SetFilterButtonSelected(Button_FilterMisc, InventoryFilterCategory == EGridInventoryFilterCategory::Misc,
-		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
-}
-
 
 void UGridInventoryBagWidget::RefreshInventorySortPresentation()
 {
