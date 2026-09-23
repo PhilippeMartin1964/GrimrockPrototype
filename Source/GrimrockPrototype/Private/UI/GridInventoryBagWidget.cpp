@@ -5,13 +5,16 @@
 
 namespace
 {
-	void SetFilterButtonSelected(UButton* Button, bool bSelected)
+	void SetFilterButtonSelected(UButton* Button, bool bSelected, const FLinearColor& UnselectedBackgroundColor,
+		const FLinearColor& SelectedBackgroundColor)
 	{
 		if (Button)
 		{
-			// The selected filter is intentionally not clickable. Its visual comes
-			// from the Button Disabled style authored in UMG, not from C++ colors.
-			Button->SetIsEnabled(!bSelected);
+			// Selection is presentation state, not disabled interaction state.
+			// Keeping the button enabled preserves Hovered/Pressed feedback and
+			// avoids Slate's disabled greying pass.
+			Button->SetIsEnabled(true);
+			Button->SetBackgroundColor(bSelected ? SelectedBackgroundColor : UnselectedBackgroundColor);
 		}
 	}
 }
@@ -147,13 +150,20 @@ void UGridInventoryBagWidget::HandleInventorySortModeChanged()
 
 void UGridInventoryBagWidget::RefreshInventoryFilterButtonState()
 {
-	SetFilterButtonSelected(Button_FilterAll, InventoryFilterCategory == EGridInventoryFilterCategory::All);
-	SetFilterButtonSelected(Button_FilterEquipment, InventoryFilterCategory == EGridInventoryFilterCategory::Equipment);
-	SetFilterButtonSelected(Button_FilterConsumables, InventoryFilterCategory == EGridInventoryFilterCategory::Consumables);
-	SetFilterButtonSelected(Button_FilterMagic, InventoryFilterCategory == EGridInventoryFilterCategory::Magic);
-	SetFilterButtonSelected(Button_FilterIngredients, InventoryFilterCategory == EGridInventoryFilterCategory::Ingredients);
-	SetFilterButtonSelected(Button_FilterBooksAndKeys, InventoryFilterCategory == EGridInventoryFilterCategory::BooksAndKeys);
-	SetFilterButtonSelected(Button_FilterMisc, InventoryFilterCategory == EGridInventoryFilterCategory::Misc);
+	SetFilterButtonSelected(Button_FilterAll, InventoryFilterCategory == EGridInventoryFilterCategory::All,
+		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
+	SetFilterButtonSelected(Button_FilterEquipment, InventoryFilterCategory == EGridInventoryFilterCategory::Equipment,
+		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
+	SetFilterButtonSelected(Button_FilterConsumables, InventoryFilterCategory == EGridInventoryFilterCategory::Consumables,
+		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
+	SetFilterButtonSelected(Button_FilterMagic, InventoryFilterCategory == EGridInventoryFilterCategory::Magic,
+		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
+	SetFilterButtonSelected(Button_FilterIngredients, InventoryFilterCategory == EGridInventoryFilterCategory::Ingredients,
+		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
+	SetFilterButtonSelected(Button_FilterBooksAndKeys, InventoryFilterCategory == EGridInventoryFilterCategory::BooksAndKeys,
+		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
+	SetFilterButtonSelected(Button_FilterMisc, InventoryFilterCategory == EGridInventoryFilterCategory::Misc,
+		UnselectedFilterBackgroundColor, SelectedFilterBackgroundColor);
 }
 
 

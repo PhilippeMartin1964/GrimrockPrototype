@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Components/Button.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryBagWidget.h"
 #include "UI/GridInventoryUiTypes.h"
@@ -164,6 +165,11 @@ bool FGridUIFilter01BagControlsContractTest::RunTest(const FString& Parameters)
 			FindFProperty<FProperty>(BagClass, ButtonName));
 	}
 
+	TestNotNull(TEXT("Unselected filter background color is configurable"),
+		FindFProperty<FProperty>(BagClass, TEXT("UnselectedFilterBackgroundColor")));
+	TestNotNull(TEXT("Selected filter background color is configurable"),
+		FindFProperty<FProperty>(BagClass, TEXT("SelectedFilterBackgroundColor")));
+
 	const FName HandlerNames[] = {
 		TEXT("HandleFilterAllClicked"),
 		TEXT("HandleFilterEquipmentClicked"),
@@ -179,6 +185,69 @@ bool FGridUIFilter01BagControlsContractTest::RunTest(const FString& Parameters)
 		TestNotNull(*FString::Printf(TEXT("%s is reflected for native button routing"), *HandlerName.ToString()),
 			BagClass->FindFunctionByName(HandlerName));
 	}
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIFilter01BagSelectionPresentationTest, "Grimrock.UI.Filter01.BagSelectionPresentation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIFilter01BagSelectionPresentationTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UGridInventoryBagWidget* Widget = NewObject<UGridInventoryBagWidget>();
+	if (!TestNotNull(TEXT("Inventory bag widget exists"), Widget))
+	{
+		return false;
+	}
+
+	Widget->Button_FilterAll = NewObject<UButton>(Widget);
+	Widget->Button_FilterEquipment = NewObject<UButton>(Widget);
+	Widget->Button_FilterConsumables = NewObject<UButton>(Widget);
+	Widget->Button_FilterMagic = NewObject<UButton>(Widget);
+	Widget->Button_FilterIngredients = NewObject<UButton>(Widget);
+	Widget->Button_FilterBooksAndKeys = NewObject<UButton>(Widget);
+	Widget->Button_FilterMisc = NewObject<UButton>(Widget);
+
+	const FLinearColor UnselectedColor(0.8f, 0.8f, 0.8f, 1.0f);
+	const FLinearColor SelectedColor(1.0f, 0.25f, 0.15f, 1.0f);
+	Widget->UnselectedFilterBackgroundColor = UnselectedColor;
+	Widget->SelectedFilterBackgroundColor = SelectedColor;
+
+	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Equipment);
+
+	const UButton* Buttons[] = {
+		Widget->Button_FilterAll,
+		Widget->Button_FilterEquipment,
+		Widget->Button_FilterConsumables,
+		Widget->Button_FilterMagic,
+		Widget->Button_FilterIngredients,
+		Widget->Button_FilterBooksAndKeys,
+		Widget->Button_FilterMisc
+	};
+
+	for (const UButton* Button : Buttons)
+	{
+		TestTrue(TEXT("Filter buttons remain enabled while one category is selected"), Button && Button->GetIsEnabled());
+	}
+
+	TestTrue(TEXT("Equipment receives the selected tint"),
+		Widget->Button_FilterEquipment->GetBackgroundColor().Equals(SelectedColor));
+	TestTrue(TEXT("All receives the unselected tint"),
+		Widget->Button_FilterAll->GetBackgroundColor().Equals(UnselectedColor));
+	TestTrue(TEXT("Consumables receives the unselected tint"),
+		Widget->Button_FilterConsumables->GetBackgroundColor().Equals(UnselectedColor));
+
+	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Consumables);
+
+	TestTrue(TEXT("Previous category returns to unselected tint"),
+		Widget->Button_FilterEquipment->GetBackgroundColor().Equals(UnselectedColor));
+	TestTrue(TEXT("New category receives the selected tint"),
+		Widget->Button_FilterConsumables->GetBackgroundColor().Equals(SelectedColor));
+	TestTrue(TEXT("Selected category remains enabled"),
+		Widget->Button_FilterConsumables->GetIsEnabled());
 
 	return true;
 }

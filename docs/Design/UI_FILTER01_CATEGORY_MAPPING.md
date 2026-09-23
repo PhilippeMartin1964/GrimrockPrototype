@@ -206,3 +206,63 @@ Conséquence : `WBP_InventoryBag` n'a plus besoin d'aucun Event Graph pour les f
 Validation utilisateur confirmée en PIE : le routage natif des sept boutons de filtre est fonctionnel. Les événements `OnClicked` Blueprint ne sont plus nécessaires pour le filtrage.
 
 Cette validation est une validation fonctionnelle PIE ; aucun nouveau résultat Automation distinct n'est ajouté ici au-delà de la validation UI-FILTER01.3 déjà enregistrée.
+
+## UI-FILTER01.3.2 — Sélection visuelle sans état Disabled
+
+Date : **23 septembre 2026**  
+Statut : **IMPLÉMENTÉ — validation locale requise**
+
+La règle historique de UI-FILTER01.3 `Selected -> Disabled` est remplacée.
+
+Le bouton correspondant au filtre courant reste désormais **Enabled**. La sélection est un état de présentation distinct de l'état d'interaction :
+
+- les sept boutons restent cliquables ;
+- `Hovered` et `Pressed` continuent donc à fonctionner normalement ;
+- Slate n'applique plus son rendu grisé de widget désactivé au filtre sélectionné ;
+- la sélection persistante est représentée par le multiplicateur `BackgroundColor` du `UButton`.
+
+Deux propriétés sont exposées sur `WBP_InventoryBag` :
+
+```text
+UnselectedFilterBackgroundColor
+SelectedFilterBackgroundColor
+```
+
+Valeurs C++ par défaut :
+
+```text
+Unselected = blanc
+Selected   = rouge chaud (1.00, 0.35, 0.25, 1.00)
+```
+
+Ces valeurs restent éditables dans le Blueprint. Elles multiplient le brush de l'état courant, ce qui permet de conserver une seule texture par catégorie tout en gardant les styles `Normal`, `Hovered` et `Pressed`.
+
+Le clic sur la catégorie déjà sélectionnée reste sans effet fonctionnel : `SetInventoryFilterCategory()` détecte déjà que la catégorie n'a pas changé et retourne sans reconstruire la projection.
+
+### Note sur Pressed Padding
+
+`Pressed Padding` déplace le **contenu enfant** du `Button`. Il ne déplace pas le brush `Pressed` utilisé comme fond du `Button Style`. Si l'icône complète est directement utilisée comme brush du bouton, le changement de teinte fonctionne mais le padding ne déplace pas cette image.
+
+### Test ajouté
+
+```text
+Grimrock.UI.Filter01.BagSelectionPresentation
+```
+
+Il vérifie que :
+
+- tous les boutons restent Enabled ;
+- la catégorie sélectionnée reçoit `SelectedFilterBackgroundColor` ;
+- les autres reçoivent `UnselectedFilterBackgroundColor` ;
+- la sélection visuelle se déplace correctement lorsqu'une autre catégorie est choisie.
+
+Validation locale à exécuter :
+
+```powershell
+.\Scripts\ValidateUE.ps1 `
+    -EngineRoot D:\UE_5.5 `
+    -AutomationFilter "Grimrock.UI.Filter01"
+```
+
+Ne pas considérer UI-FILTER01.3.2 comme validé tant que la sortie locale UE5 n'a pas été fournie.
+

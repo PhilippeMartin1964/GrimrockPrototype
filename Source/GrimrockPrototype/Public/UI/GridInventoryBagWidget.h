@@ -43,6 +43,12 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Filter")
 	TObjectPtr<UButton> Button_FilterMisc;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Filter|Appearance")
+	FLinearColor UnselectedFilterBackgroundColor = FLinearColor::White;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Filter|Appearance")
+	FLinearColor SelectedFilterBackgroundColor = FLinearColor(1.0f, 0.35f, 0.25f, 1.0f);
+
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Sort")
 	TObjectPtr<UButton> Button_SortInventory;
 
