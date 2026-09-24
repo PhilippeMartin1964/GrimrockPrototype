@@ -11,11 +11,10 @@ Surface canonique :
 
 ```text
 WBP_InventoryBag
-├── Text_InventoryBagWeight
-└── ProgressBar_InventoryBagWeight
+└── Text_InventoryBagWeight
 ```
 
-`WBP_CharacterSheet` ne possède aucun texte ni aucune progress bar de poids.
+`WBP_CharacterSheet` ne possède aucun affichage de poids. La progress bar d'inventaire a été supprimée par UI-INVENTORY02.3.
 
 ## Autorité
 
@@ -39,17 +38,13 @@ Cas limite : capacité nulle + poids nul = `Normal`; capacité nulle + poids pos
 
 ## Présentation UMG
 
-Le C++ renseigne le texte et le pourcentage de la jauge. Le Blueprint ne recalcule aucun seuil.
-
-`PresentInventoryWeightState` sert uniquement au feedback visuel de la jauge :
+Le C++ renseigne uniquement :
 
 ```text
-Normal      -> couleur normale
-Heavy       -> couleur d'avertissement
-Overloaded  -> couleur de surcharge
+Poids : CurrentWeight / MaxWeight
 ```
 
-Le texte peut conserver sa couleur habituelle. Il n'est pas nécessaire de dupliquer la couleur de la jauge dans un `SlateColor`.
+`WeightState` reste un état dérivé gameplay utilisé par l'alerte de surcharge du portrait. Il n'existe plus de hook Blueprint `PresentInventoryWeightState` ni de jauge à colorer.
 
 ## Évolutions futures explicites
 
@@ -57,7 +52,7 @@ Ces éléments sont voulus mais ne font pas partie du ticket actuel :
 
 1. **Icône d'encombrement sur le portrait** du personnage concerné.
 2. **Handicap gameplay de déplacement** lorsque la surcharge l'exige, par exemple davantage de temps pour passer d'une cellule à l'autre.
-3. Polish visuel de la jauge d'inventaire.
+3. Polish visuel du résumé de poids.
 
 Le handicap de déplacement devra rester une règle gameplay C++, l'icône n'étant qu'une projection de l'état.
 
@@ -107,7 +102,7 @@ Le ticket doit vérifier :
 - absence des anciens bindings de poids dans la feuille personnage ;
 - hook de présentation Blueprint disponible.
 
-Après validation Automation, vérifier en PIE que la jauge de `WBP_InventoryBag` suit le personnage sélectionné et change correctement d'état visuel.
+Après validation Automation, vérifier en PIE que le texte de poids suit le personnage sélectionné et que l'alerte de surcharge du portrait reste correcte.
 
 
 ## Validation reçue — 22 septembre 2026
@@ -143,6 +138,6 @@ UI-WEIGHT01 est clos. Le prochain gros ticket UI est UI-FILTER01.
 
 L'évolution prévue « icône d'encombrement sur le portrait » est désormais engagée via le binding optionnel `Image_WeightAlert` de `WBP_PartyMember`.
 
-Le C++ affiche cette icône uniquement lorsque `WeightState == Overloaded`. Le seuil `Heavy` reste réservé à la jauge du sac et n'allume pas l'alerte portrait.
+Le C++ affiche cette icône uniquement lorsque `WeightState == Overloaded`. Le seuil `Heavy` reste disponible dans le read model mais n'allume pas l'alerte portrait.
 
 Le handicap de déplacement lié à la surcharge reste hors scope de ce jalon UI.

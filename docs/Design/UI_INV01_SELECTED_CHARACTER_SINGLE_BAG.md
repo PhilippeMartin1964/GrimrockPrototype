@@ -40,89 +40,31 @@ RefreshRegisteredSlotWidgets()
 
 `EnsureSelectedInventorySlotLayout()` réutilise `RebuildInventorySlotWidgets()`.
 
-Cette étape est importante lorsque deux personnages ont des capacités différentes, par exemple :
-
-```text
-Ariadne : 24 slots
-Borin   : 32 slots
-```
-
-La même grille est alors reconstruite uniquement si sa configuration doit changer. Le mécanisme existant de cache dans `RebuildInventorySlotWidgets()` évite une reconstruction inutile lorsque le nombre de slots, les colonnes et la classe de widget sont inchangés.
+La capacité du sac est désormais globale au groupe : tous les personnages utilisent le même nombre de slots. La grille est reconstruite uniquement si sa projection, son nombre de colonnes ou sa classe de widget change. Le cache de `RebuildInventorySlotWidgets()` évite les reconstructions inutiles.
 
 ## Présentation du sac
 
-Bindings optionnels ajoutés :
+La présentation actuelle est compacte :
 
 ```text
-Text_InventoryBagTitle
-Text_InventoryBagSlotUsage
-Text_InventoryBagWeight
-ProgressBar_InventoryBagWeight
+Text_InventoryBagOwner   -> Sac de : <nom>
+Text_InventoryBagWeight  -> Poids : <courant> / <maximum>
 ```
 
-Ils affichent exclusivement le résumé du personnage sélectionné.
+Le compteur de slots et la barre de progression de poids ont été supprimés. L'icône de sac et l'icône de poids sont des éléments UMG statiques.
 
-`Text_InventoryBagTitle` reçoit le nom du personnage. Le libellé fixe « Sac » reste du ressort de l'UMG afin de ne pas coder du texte décoratif dans le gameplay C++.
+La grille reste unique pour le personnage sélectionné.
 
-`Text_InventoryBagSlotUsage` :
+## Configuration de grille
+
+La capacité et le nombre de colonnes se règlent au même endroit sur `PartyInventoryComponent` :
 
 ```text
-UsedInventorySlots / MaxInventorySlots
+Inventory Slots Per Character
+Inventory Columns
 ```
 
-`Text_InventoryBagWeight` :
-
-```text
-CurrentWeight / MaxWeight
-```
-
-La ProgressBar utilise le même ratio de charge, clampé dans `[0..1]`.
-
-## Contrat UMG cible
-
-Dans `Panel_InventoryBag` :
-
-```text
-Panel_InventoryBag
-└── VerticalBox_InventoryBag
-    ├── Header
-    │   ├── TextLabel_Bag             "Sac"
-    │   ├── Text_InventoryBagTitle
-    │   └── Button_CloseInventoryBag
-    ├── futurs filtres / tri
-    ├── InventorySlotsGridPanel       UNE SEULE grille
-    └── Footer
-        ├── Text_InventoryBagSlotUsage
-        ├── Text_InventoryBagWeight
-        └── ProgressBar_InventoryBagWeight
-```
-
-Il ne doit exister aucun :
-
-```text
-Bag_Character1
-Bag_Character2
-Bag_Character3
-...
-```
-
-ni aucune ScrollBox dont la fonction est de parcourir les sacs du groupe.
-
-Le changement de portrait à gauche remplace simplement le contenu de la même grille à droite.
-
-## InventorySlotCountOverride
-
-`InventorySlotCountOverride` reste disponible comme outil explicite de test/migration.
-
-Valeur de production attendue :
-
-```text
-0
-```
-
-Avec `0`, le nombre de widgets suit la capacité du personnage sélectionné.
-
-Une valeur positive force volontairement un nombre fixe de slots et court-circuite cette capacité. Elle ne doit pas être utilisée pour simuler plusieurs sacs.
+Tous les personnages partagent la même capacité. Le poids n'influence jamais le nombre de slots.
 
 ## Hors périmètre
 
@@ -141,7 +83,7 @@ Ces points appartiennent à UI-INV02, UI-FILTER01 et UI-WEIGHT01.
 
 1. Une seule grille d'inventaire visible.
 2. Cette grille lit uniquement `SelectedCharacterIndex`.
-3. Le nombre de slots suit le personnage sélectionné.
+3. Le nombre de slots est identique pour tous les personnages.
 4. Changer de personnage ne déplace aucun item.
 5. Changer de personnage ne crée aucun nouvel inventaire.
 6. Les slots existants, le Cursor item et le drag/drop sont réutilisés.

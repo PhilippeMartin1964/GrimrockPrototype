@@ -201,35 +201,22 @@ Référence : `docs/Design/UI_CHAR02_CHARACTER_SHEET_PROJECTION.md`.
 
 Le panneau droit ne représente jamais simultanément les inventaires des six membres. `WBP_InventoryBag` conserve une seule `InventorySlotsGridPanel`, alimentée par `SelectedCharacterIndex`.
 
-Le titre, l'occupation et la charge du sac sont projetés vers :
+Le résumé du sac est projeté vers :
 
 ```text
-Text_InventoryBagTitle
-Text_InventoryBagSlotUsage
+Text_InventoryBagOwner
 Text_InventoryBagWeight
-ProgressBar_InventoryBagWeight
 ```
 
-`RefreshInventory()` resynchronise aussi le layout de slots afin qu'une même grille puisse suivre des capacités différentes selon le personnage.
+La capacité et le nombre de colonnes sont globaux au groupe et configurés sur `PartyInventoryComponent`. Tous les personnages utilisent le même nombre de slots.
 
 Référence : `docs/Design/UI_INV01_SELECTED_CHARACTER_SINGLE_BAG.md`.
 
 ### UI-WEIGHT01 — poids/encombrement dans le sac uniquement
 
-La présentation du poids appartient exclusivement à `WBP_InventoryBag` :
+Le sac affiche uniquement `Text_InventoryBagWeight` sous la forme `Poids : CurrentWeight / MaxWeight`.
 
-```text
-Text_InventoryBagWeight
-ProgressBar_InventoryBagWeight
-```
-
-Le C++ expose l'état dérivé non persistant `Normal / Heavy / Overloaded`. Le seuil `Heavy` commence à 80 % de `MaxWeight`, et `Overloaded` signifie strictement `CurrentWeight > MaxWeight`.
-
-Le Blueprint ne recalcule aucun seuil ; il utilise `PresentInventoryWeightState` uniquement pour la couleur de la jauge. La feuille personnage ne possède ni texte ni progress bar de poids.
-
-Évolutions explicitement futures : icône d'encombrement sur le portrait du personnage concerné, handicap gameplay de déplacement du groupe en cas de surcharge, et polish visuel de la jauge.
-
-Référence : `docs/Design/UI_WEIGHT01_INVENTORY_WEIGHT_FEEDBACK.md`.
+La progress bar de poids et le hook Blueprint `PresentInventoryWeightState` ont été supprimés. `WeightState` reste calculé en C++ pour les usages gameplay/UI utiles, notamment l'alerte de surcharge du portrait. Le poids n'influence jamais la capacité en slots.
 
 ### UI-INV02 — transfert par drag vers un portrait
 
@@ -402,7 +389,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-ITEM01 | fonctionnel |
 | UI-WEIGHT01 | validé et clos le 22 septembre 2026 |
 | UI-FILTER01 | UI-FILTER01.1/.2/.3 validés côté C++ ; UI-FILTER01.3.1 validé en PIE |
-| UI-INVENTORY02 | UI-INVENTORY02.1 corrige la projection : capacité visuelle fixe, contenu filtré/trié uniquement |
+| UI-INVENTORY02 | UI-INVENTORY02.6 : grille fixe, résumé compact, capacité/colonnes centralisées, audit C++ en cours de validation |
 | UI-HOTBAR01 | réalisé |
 | UI-FEEDBACK01 | UI-FEEDBACK01.1 surcharge close ; UI-FEEDBACK01.2 effets de statut portrait actif |
 | UI-SKILLS01 | fonctionnel via MON20 |

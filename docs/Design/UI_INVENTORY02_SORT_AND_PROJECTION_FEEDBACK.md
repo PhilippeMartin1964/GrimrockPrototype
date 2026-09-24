@@ -1,7 +1,7 @@
 # UI-INVENTORY02 — Tri et feedback de projection du sac
 
 Date : **22 septembre 2026**  
-Statut : **UI-INVENTORY02.1 CORRECTION ACTIVE — grille à capacité fixe**
+Statut : **UI-INVENTORY02.6 ACTIF — grille fixe, configuration centralisée, audit C++**
 
 ## Objectif
 
@@ -42,16 +42,6 @@ Les `RuntimeObjectId`, drag/drop, clic, tooltip et menu contextuel continuent do
 - un tri autre que `Ordre` projette les items triés dans les premières cases, puis complète avec des cases vides ;
 - filtre + tri s'appliquent ensemble ;
 - changer de personnage conserve le filtre et le tri tant que le widget existe.
-
-## Compteur
-
-Le binding existant `Text_InventoryBagSlotUsage` devient plus informatif :
-
-```text
-3 affichés / 17 utilisés / 40 cases
-```
-
-Il distingue donc la projection visible de l'occupation physique réelle.
 
 ## État vide
 
