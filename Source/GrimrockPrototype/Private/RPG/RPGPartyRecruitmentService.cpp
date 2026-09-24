@@ -183,7 +183,7 @@ bool FRPGPartyRecruitmentService::TryRecruitFromPool(
 		return false;
 	}
 
-	const int32 ExpectedInventorySlotCount = PartyInventoryComponent->GetInventorySlotCountPerCharacter();
+	const int32 ExpectedInventorySlotCount = FMath::Max(1, PartyInventoryComponent->DefaultInventorySlotCountPerCharacter);
 	if (Candidate.InventorySlots.IsEmpty())
 	{
 		Candidate.InventorySlots.SetNum(ExpectedInventorySlotCount);

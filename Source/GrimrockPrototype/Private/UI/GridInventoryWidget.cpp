@@ -394,9 +394,8 @@ void UGridInventoryWidget::EnsureSelectedInventorySlotLayout()
 		return;
 	}
 
-	// UI-INV01 owns one grid only. RebuildInventorySlotWidgets() already skips
-	// work when count/columns/class/panel did not change, so this keeps the grid
-	// synchronized when two characters have different inventory capacities.
+	// One shared bag grid. RebuildInventorySlotWidgets() already skips work when
+	// count/columns/class/panel did not change.
 	RebuildInventorySlotWidgets();
 }
 
@@ -974,15 +973,7 @@ void UGridInventoryWidget::HandleInventorySortModeChanged()
 
 int32 UGridInventoryWidget::ResolveInventorySourceSlotCapacity() const
 {
-	if (!InventoryComponent)
-	{
-		return 0;
-	}
-
-	FGridInventoryCharacterSummary Summary;
-	return InventoryComponent->GetCharacterSummary(InventoryComponent->GetSelectedCharacterIndex(), Summary)
-		? FMath::Max(0, Summary.MaxInventorySlots)
-		: 0;
+	return GetInventorySlotCount();
 }
 
 void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int32>& OutSourceSlotIndices) const
@@ -1167,7 +1158,7 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets()
 	TArray<int32> SourceSlotIndices;
 	BuildInventoryProjectionSourceSlotIndices(SourceSlotIndices);
 	const int32 SlotCount = SourceSlotIndices.Num();
-	const int32 ColumnCount = InventoryComponent ? InventoryComponent->GetInventoryColumnCount() : 1;
+	const int32 ColumnCount = FMath::Max(1, InventoryComponent ? InventoryComponent->InventoryColumnCount : 1);
 
 	if (bInventorySlotsBuilt && LastBuiltSlotCount == SlotCount && LastBuiltInventorySourceSlotIndices == SourceSlotIndices &&
 		LastBuiltColumnCount == ColumnCount && LastBuiltSlotWidgetClass == InventorySlotWidgetClass &&

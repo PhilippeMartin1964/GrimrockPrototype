@@ -33,15 +33,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory", meta = (ClampMin = "1", UIMin = "1", DisplayName = "Inventory Columns"))
 	int32 InventoryColumnCount = 6;
 
-	UFUNCTION(BlueprintPure, Category = "Inventory")
-	int32 GetInventorySlotCountPerCharacter() const;
-
-	UFUNCTION(BlueprintPure, Category = "Inventory")
-	int32 GetInventoryColumnCount() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Diagnostics")
-	bool ValidateInventorySlotCountConsistency(UPARAM(ref) FString& OutError) const;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Party")
 	int32 DefaultMaxActiveCharacters = 6;
 
@@ -299,7 +290,6 @@ private:
 
 	void EnsureEquipmentCountMatchesActiveCharacters();
 	void InitializeCharacterDefaults(FGridCharacterInventoryState& CharacterState, int32 CharacterIndex) const;
-	bool ValidateInventorySlotCountConsistencyForState(const FGridPartyInventoryState& State, FString& OutError) const;
 	void InitializeCombatHotbarDefaults(FGridCharacterInventoryState& CharacterState) const;
 	bool ValidateCombatHotbar(const FGridCharacterInventoryState& CharacterState, FString& OutError) const;
 	float CalculateCharacterCurrentWeight(int32 CharacterIndex) const;
