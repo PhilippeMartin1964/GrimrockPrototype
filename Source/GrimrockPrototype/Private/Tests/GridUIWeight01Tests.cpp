@@ -78,6 +78,7 @@ bool FGridUIWeight01DerivedPresentationStateTest::RunTest(const FString& Paramet
 
 		TestEqual(*FString::Printf(TEXT("%s weight state"), Label), static_cast<uint8>(Summary.WeightState), static_cast<uint8>(ExpectedState));
 		TestEqual(*FString::Printf(TEXT("%s overload compatibility flag"), Label), Summary.bOverloaded, bExpectedOverloaded);
+		TestEqual(*FString::Printf(TEXT("%s inventory slot count stays independent from weight"), Label), Summary.MaxInventorySlots, 40);
 	};
 
 	CheckState(TEXT("Below 80 percent"), 10, 39.9f, EGridInventoryWeightState::Normal, false);
