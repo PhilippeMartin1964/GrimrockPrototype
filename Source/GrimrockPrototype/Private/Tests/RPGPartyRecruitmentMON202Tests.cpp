@@ -33,6 +33,7 @@ namespace GridMON202RecruitmentTests
 	UGridPartyInventoryComponent* MakeParty(int32 MaxActiveCharacters = 2)
 	{
 		UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+		Inventory->DefaultInventorySlotCountPerCharacter = 4;
 		Inventory->PartyInventoryState = FGridPartyInventoryState();
 		Inventory->PartyInventoryState.MaxActiveCharacters = MaxActiveCharacters;
 		Inventory->PartyInventoryState.bInitialCharacterCreationCompleted = true;
