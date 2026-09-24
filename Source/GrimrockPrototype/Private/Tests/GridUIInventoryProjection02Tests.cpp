@@ -80,24 +80,28 @@ bool FGridUIInventory02SortingProjectionTest::RunTest(const FString& Parameters)
 
 	Widget->InventoryComponent = Inventory;
 
-	ExpectProjection(*this, Widget, { 0, 1, 2, 3, 4, 5 }, TEXT("Physical order preserves complete bag grid"));
-	TestEqual(TEXT("Physical order reports four visible items"), Widget->GetVisibleInventoryItemCount(), 4);
+	ExpectProjection(*this, Widget, { 2, 4, 5, 0, INDEX_NONE, INDEX_NONE }, TEXT("Default name ascending keeps six visible cells"));
+	TestEqual(TEXT("Default name ascending reports four visible items"), Widget->GetVisibleInventoryItemCount(), 4);
 
-	Widget->SetInventorySortMode(EGridInventorySortMode::Name);
-	ExpectProjection(*this, Widget, { 2, 4, 5, 0, INDEX_NONE, INDEX_NONE }, TEXT("Name sort keeps six visible cells"));
-	TestEqual(TEXT("Name sort keeps fixed widget capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	Widget->SetInventorySortMode(EGridInventorySortMode::NameDescending);
+	ExpectProjection(*this, Widget, { 0, 5, 4, 2, INDEX_NONE, INDEX_NONE }, TEXT("Name descending keeps six visible cells"));
 
-	Widget->SetInventorySortMode(EGridInventorySortMode::Type);
-	ExpectProjection(*this, Widget, { 0, 4, 2, 5, INDEX_NONE, INDEX_NONE }, TEXT("Type sort keeps six visible cells"));
-	TestEqual(TEXT("Type sort keeps fixed widget capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	Widget->SetInventorySortMode(EGridInventorySortMode::TypeAscending);
+	ExpectProjection(*this, Widget, { 0, 4, 2, 5, INDEX_NONE, INDEX_NONE }, TEXT("Type ascending keeps six visible cells"));
 
-	Widget->SetInventorySortMode(EGridInventorySortMode::Weight);
-	ExpectProjection(*this, Widget, { 5, 0, 4, 2, INDEX_NONE, INDEX_NONE }, TEXT("Total weight sort keeps six visible cells"));
-	TestEqual(TEXT("Weight sort keeps fixed widget capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	Widget->SetInventorySortMode(EGridInventorySortMode::TypeDescending);
+	ExpectProjection(*this, Widget, { 5, 2, 4, 0, INDEX_NONE, INDEX_NONE }, TEXT("Type descending keeps six visible cells"));
+
+	Widget->SetInventorySortMode(EGridInventorySortMode::WeightAscending);
+	ExpectProjection(*this, Widget, { 5, 0, 4, 2, INDEX_NONE, INDEX_NONE }, TEXT("Weight ascending keeps six visible cells"));
+
+	Widget->SetInventorySortMode(EGridInventorySortMode::WeightDescending);
+	ExpectProjection(*this, Widget, { 2, 4, 0, 5, INDEX_NONE, INDEX_NONE }, TEXT("Weight descending keeps six visible cells"));
+	TestEqual(TEXT("Sorted view keeps fixed widget capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
 
 	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Equipment);
-	Widget->SetInventorySortMode(EGridInventorySortMode::Name);
-	ExpectProjection(*this, Widget, { 4, 0, INDEX_NONE, INDEX_NONE, INDEX_NONE, INDEX_NONE }, TEXT("Filter plus name sort keeps six visible cells"));
+	Widget->SetInventorySortMode(EGridInventorySortMode::NameAscending);
+	ExpectProjection(*this, Widget, { 4, 0, INDEX_NONE, INDEX_NONE, INDEX_NONE, INDEX_NONE }, TEXT("Filter plus name ascending keeps six visible cells"));
 	TestEqual(TEXT("Equipment filter reports two visible items"), Widget->GetVisibleInventoryItemCount(), 2);
 	TestEqual(TEXT("Equipment filter keeps fixed widget capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
 
@@ -154,7 +158,7 @@ bool FGridUIInventory021FixedCapacityTest::RunTest(const FString& Parameters)
 
 	TestEqual(TEXT("Default bag shows all forty cells"), Widget->ResolveInventorySlotWidgetCount(), 40);
 
-	Widget->SetInventorySortMode(EGridInventorySortMode::Name);
+	Widget->SetInventorySortMode(EGridInventorySortMode::NameAscending);
 	TestEqual(TEXT("Sorted bag still shows all forty cells"), Widget->ResolveInventorySlotWidgetCount(), 40);
 	TArray<int32> Projection;
 	Widget->GetInventoryProjectionSourceSlotIndices(Projection);
@@ -164,32 +168,6 @@ bool FGridUIInventory021FixedCapacityTest::RunTest(const FString& Parameters)
 	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Equipment);
 	TestEqual(TEXT("Filtered bag still shows all forty cells"), Widget->ResolveInventorySlotWidgetCount(), 40);
 	TestEqual(TEXT("Filtered bag has no visible matching items"), Widget->GetVisibleInventoryItemCount(), 0);
-
-	return true;
-}
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIInventory02SortCycleTest, "Grimrock.UI.Inventory02.SortCycle",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
-bool FGridUIInventory02SortCycleTest::RunTest(const FString& Parameters)
-{
-	(void)Parameters;
-
-	UGridInventoryWidget* Widget = NewObject<UGridInventoryWidget>();
-	if (!TestNotNull(TEXT("Inventory widget exists"), Widget))
-	{
-		return false;
-	}
-
-	TestEqual(TEXT("Default sort is physical order"), Widget->GetInventorySortMode(), EGridInventorySortMode::PhysicalOrder);
-	Widget->CycleInventorySortMode();
-	TestEqual(TEXT("Cycle 1 is name"), Widget->GetInventorySortMode(), EGridInventorySortMode::Name);
-	Widget->CycleInventorySortMode();
-	TestEqual(TEXT("Cycle 2 is type"), Widget->GetInventorySortMode(), EGridInventorySortMode::Type);
-	Widget->CycleInventorySortMode();
-	TestEqual(TEXT("Cycle 3 is weight"), Widget->GetInventorySortMode(), EGridInventorySortMode::Weight);
-	Widget->CycleInventorySortMode();
-	TestEqual(TEXT("Cycle wraps to physical order"), Widget->GetInventorySortMode(), EGridInventorySortMode::PhysicalOrder);
 
 	return true;
 }
@@ -208,13 +186,19 @@ bool FGridUIInventory02ControlsContractTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	TestNotNull(TEXT("Sort button binding exists"), FindFProperty<FProperty>(BagClass, TEXT("Button_SortInventory")));
-	TestNotNull(TEXT("Sort label binding exists"), FindFProperty<FProperty>(BagClass, TEXT("Text_SortInventory")));
+	TestNotNull(TEXT("Sort combo binding exists"), FindFProperty<FProperty>(BagClass, TEXT("ComboBox_SortInventory")));
+	TestNull(TEXT("Legacy sort button binding is removed"), FindFProperty<FProperty>(BagClass, TEXT("Button_SortInventory")));
+	TestNull(TEXT("Legacy sort label binding is removed"), FindFProperty<FProperty>(BagClass, TEXT("Text_SortInventory")));
 	TestNotNull(TEXT("Empty projection binding exists"), FindFProperty<FProperty>(BaseClass, TEXT("Text_InventoryEmptyState")));
-	TestNotNull(TEXT("Native sort click handler exists"), BagClass->FindFunctionByName(TEXT("HandleSortInventoryClicked")));
+	TestNotNull(TEXT("Native sort selection handler exists"), BagClass->FindFunctionByName(TEXT("HandleSortInventorySelectionChanged")));
 	TestNotNull(TEXT("Sort setter is reflected"), BaseClass->FindFunctionByName(TEXT("SetInventorySortMode")));
-	TestNotNull(TEXT("Sort cycle is reflected"), BaseClass->FindFunctionByName(TEXT("CycleInventorySortMode")));
-
+	TestNull(TEXT("Legacy sort cycle API is removed"), BaseClass->FindFunctionByName(TEXT("CycleInventorySortMode")));
+	TestEqual(TEXT("Name ascending label"), GetGridInventorySortModeDisplayName(EGridInventorySortMode::NameAscending).ToString(), FString(TEXT("Nom ordre croissant")));
+	TestEqual(TEXT("Name descending label"), GetGridInventorySortModeDisplayName(EGridInventorySortMode::NameDescending).ToString(), FString(TEXT("Nom ordre décroissant")));
+	TestEqual(TEXT("Type ascending label"), GetGridInventorySortModeDisplayName(EGridInventorySortMode::TypeAscending).ToString(), FString(TEXT("Type ordre croissant")));
+	TestEqual(TEXT("Type descending label"), GetGridInventorySortModeDisplayName(EGridInventorySortMode::TypeDescending).ToString(), FString(TEXT("Type ordre décroissant")));
+	TestEqual(TEXT("Weight ascending label"), GetGridInventorySortModeDisplayName(EGridInventorySortMode::WeightAscending).ToString(), FString(TEXT("Poids ordre croissant")));
+	TestEqual(TEXT("Weight descending label"), GetGridInventorySortModeDisplayName(EGridInventorySortMode::WeightDescending).ToString(), FString(TEXT("Poids ordre décroissant")));
 	return true;
 }
 

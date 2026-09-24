@@ -1,8 +1,8 @@
 #include "UI/GridInventoryBagWidget.h"
 
 #include "Components/Button.h"
+#include "Components/ComboBoxString.h"
 #include "Components/Image.h"
-#include "Components/TextBlock.h"
 
 void UGridInventoryBagWidget::NativeConstruct()
 {
@@ -36,9 +36,10 @@ void UGridInventoryBagWidget::NativeConstruct()
 	{
 		Button_FilterMisc->OnClicked.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleFilterMiscClicked);
 	}
-	if (Button_SortInventory)
+	InitializeInventorySortComboBox();
+	if (ComboBox_SortInventory)
 	{
-		Button_SortInventory->OnClicked.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleSortInventoryClicked);
+		ComboBox_SortInventory->OnSelectionChanged.AddUniqueDynamic(this, &UGridInventoryBagWidget::HandleSortInventorySelectionChanged);
 	}
 
 	RefreshInventoryFilterSelectionFrames();
@@ -75,9 +76,9 @@ void UGridInventoryBagWidget::NativeDestruct()
 	{
 		Button_FilterMisc->OnClicked.RemoveDynamic(this, &UGridInventoryBagWidget::HandleFilterMiscClicked);
 	}
-	if (Button_SortInventory)
+	if (ComboBox_SortInventory)
 	{
-		Button_SortInventory->OnClicked.RemoveDynamic(this, &UGridInventoryBagWidget::HandleSortInventoryClicked);
+		ComboBox_SortInventory->OnSelectionChanged.RemoveDynamic(this, &UGridInventoryBagWidget::HandleSortInventorySelectionChanged);
 	}
 
 	Super::NativeDestruct();
@@ -118,9 +119,43 @@ void UGridInventoryBagWidget::HandleFilterMiscClicked()
 	SetInventoryFilterCategory(EGridInventoryFilterCategory::Misc);
 }
 
-void UGridInventoryBagWidget::HandleSortInventoryClicked()
+void UGridInventoryBagWidget::HandleSortInventorySelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
 {
-	CycleInventorySortMode();
+	(void)SelectionType;
+
+	const EGridInventorySortMode SortModes[] = {
+		EGridInventorySortMode::NameAscending,
+		EGridInventorySortMode::NameDescending,
+		EGridInventorySortMode::TypeAscending,
+		EGridInventorySortMode::TypeDescending,
+		EGridInventorySortMode::WeightAscending,
+		EGridInventorySortMode::WeightDescending
+	};
+
+	for (const EGridInventorySortMode SortMode : SortModes)
+	{
+		if (SelectedItem == GetGridInventorySortModeDisplayName(SortMode).ToString())
+		{
+			SetInventorySortMode(SortMode);
+			return;
+		}
+	}
+}
+
+void UGridInventoryBagWidget::InitializeInventorySortComboBox()
+{
+	if (!ComboBox_SortInventory)
+	{
+		return;
+	}
+
+	ComboBox_SortInventory->ClearOptions();
+	ComboBox_SortInventory->AddOption(GetGridInventorySortModeDisplayName(EGridInventorySortMode::NameAscending).ToString());
+	ComboBox_SortInventory->AddOption(GetGridInventorySortModeDisplayName(EGridInventorySortMode::NameDescending).ToString());
+	ComboBox_SortInventory->AddOption(GetGridInventorySortModeDisplayName(EGridInventorySortMode::TypeAscending).ToString());
+	ComboBox_SortInventory->AddOption(GetGridInventorySortModeDisplayName(EGridInventorySortMode::TypeDescending).ToString());
+	ComboBox_SortInventory->AddOption(GetGridInventorySortModeDisplayName(EGridInventorySortMode::WeightAscending).ToString());
+	ComboBox_SortInventory->AddOption(GetGridInventorySortModeDisplayName(EGridInventorySortMode::WeightDescending).ToString());
 }
 
 void UGridInventoryBagWidget::HandleInventoryFilterCategoryChanged()
@@ -154,9 +189,12 @@ void UGridInventoryBagWidget::RefreshInventoryFilterSelectionFrames()
 
 void UGridInventoryBagWidget::RefreshInventorySortPresentation()
 {
-	if (Text_SortInventory)
+	if (ComboBox_SortInventory)
 	{
-		Text_SortInventory->SetText(FText::FromString(
-			FString::Printf(TEXT("Tri : %s"), *GetGridInventorySortModeDisplayName(InventorySortMode).ToString())));
+		const FString SelectedOption = GetGridInventorySortModeDisplayName(InventorySortMode).ToString();
+		if (ComboBox_SortInventory->GetSelectedOption() != SelectedOption)
+		{
+			ComboBox_SortInventory->SetSelectedOption(SelectedOption);
+		}
 	}
 }

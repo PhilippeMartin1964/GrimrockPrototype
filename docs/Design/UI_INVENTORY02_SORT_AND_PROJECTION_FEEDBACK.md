@@ -7,16 +7,18 @@ Statut : **UI-INVENTORY02.6 ACTIF — grille fixe, configuration centralisée, a
 
 Compléter UI-FILTER01 sans modifier l'ordre physique ni l'autorité de l'inventaire.
 
-Le sac propose désormais quatre tris de présentation :
+Le tri est désormais choisi dans une liste déroulante à six options :
 
 ```text
-Ordre -> ordre/cases physiques
-Nom   -> nom affiché
-Type  -> EGridItemType puis nom
-Poids -> poids total de la pile puis nom
+Nom ordre croissant
+Nom ordre décroissant
+Type ordre croissant
+Type ordre décroissant
+Poids ordre croissant
+Poids ordre décroissant
 ```
 
-Tous les tris sont ascendants et déterministes.
+Le tri reste une projection de présentation : il ne déplace jamais physiquement les items.
 
 ## Invariant principal
 
@@ -67,29 +69,15 @@ Il devient `HitTestInvisible` lorsque la projection contient zéro item.
 
 ## Contrôle de tri
 
-`WBP_InventoryBag` expose :
+`WBP_InventoryBag` expose uniquement :
 
 ```text
-Button_SortInventory
-└── Text_SortInventory
+ComboBox_SortInventory
 ```
 
-Le clic est routé nativement :
+Le C++ peuple les six options et route nativement `OnSelectionChanged` vers `SetInventorySortMode()`.
 
-```text
-Ordre -> Nom -> Type -> Poids -> Ordre
-```
-
-Le texte est mis à jour par le C++ :
-
-```text
-Tri : Ordre
-Tri : Nom
-Tri : Type
-Tri : Poids
-```
-
-Aucun Event Graph n'est requis.
+`Button_SortInventory`, `Text_SortInventory` et `CycleInventorySortMode()` sont supprimés. Aucun Event Graph n'est requis.
 
 ## Modification UMG demandée
 
@@ -99,12 +87,13 @@ Dans :
 Content/GrimrockPrototype/Blueprints/UI/Inventory/WBP_InventoryBag
 ```
 
-ajouter dans `WrapBox_InventoryFilters`, après les sept filtres :
+dans la zone de tri, remplacer l'ancien bouton par :
 
 ```text
-Button_SortInventory          Button, Is Variable = Yes
-└── Text_SortInventory        Text Block, Is Variable = Yes
+ComboBox_SortInventory        Combo Box (String), Is Variable = Yes
 ```
+
+Ne pas saisir manuellement les options : elles sont ajoutées par le C++.
 
 Puis ajouter juste avant `Border_InventoryGridFrame` :
 
@@ -120,7 +109,6 @@ Ne créer aucun événement Blueprint.
 
 ```text
 Grimrock.UI.Inventory02.SortingProjection
-Grimrock.UI.Inventory02.SortCycle
 Grimrock.UI.Inventory02.ControlsContract
 ```
 

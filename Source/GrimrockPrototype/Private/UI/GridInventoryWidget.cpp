@@ -947,25 +947,6 @@ void UGridInventoryWidget::SetInventorySortMode(EGridInventorySortMode InSortMod
 	HandleInventorySortModeChanged();
 }
 
-void UGridInventoryWidget::CycleInventorySortMode()
-{
-	switch (InventorySortMode)
-	{
-		case EGridInventorySortMode::PhysicalOrder:
-			SetInventorySortMode(EGridInventorySortMode::Name);
-			break;
-		case EGridInventorySortMode::Name:
-			SetInventorySortMode(EGridInventorySortMode::Type);
-			break;
-		case EGridInventorySortMode::Type:
-			SetInventorySortMode(EGridInventorySortMode::Weight);
-			break;
-		case EGridInventorySortMode::Weight:
-		default:
-			SetInventorySortMode(EGridInventorySortMode::PhysicalOrder);
-			break;
-	}
-}
 
 void UGridInventoryWidget::HandleInventorySortModeChanged()
 {
@@ -980,17 +961,6 @@ void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int3
 {
 	OutSourceSlotIndices.Reset();
 	const int32 SourceSlotCapacity = FMath::Max(0, ResolveInventorySourceSlotCapacity());
-
-	// Canonical bag view: every physical slot keeps its own visible cell.
-	if (InventoryFilterCategory == EGridInventoryFilterCategory::All && InventorySortMode == EGridInventorySortMode::PhysicalOrder)
-	{
-		OutSourceSlotIndices.Reserve(SourceSlotCapacity);
-		for (int32 SlotIndex = 0; SlotIndex < SourceSlotCapacity; ++SlotIndex)
-		{
-			OutSourceSlotIndices.Add(SlotIndex);
-		}
-		return;
-	}
 
 	TArray<int32> ProjectedItemSourceSlots;
 	ProjectedItemSourceSlots.Reserve(SourceSlotCapacity);
@@ -1058,56 +1028,74 @@ void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int3
 		return FMath::Max(0.0f, UnitWeight) * static_cast<float>(FMath::Max(1, Item.Quantity));
 	};
 
-	if (InventorySortMode != EGridInventorySortMode::PhysicalOrder)
-	{
-		ProjectedItemSourceSlots.Sort(
-			[this, &ResolveDisplayName, &ResolveItemType, &ResolveTotalWeight](int32 LeftSlotIndex, int32 RightSlotIndex)
+	ProjectedItemSourceSlots.Sort(
+		[this, &ResolveDisplayName, &ResolveItemType, &ResolveTotalWeight](int32 LeftSlotIndex, int32 RightSlotIndex)
+		{
+			FGridItemInstance LeftItem;
+			FGridItemInstance RightItem;
+			if (!GetInventoryItemAtSlot(LeftSlotIndex, LeftItem) || !GetInventoryItemAtSlot(RightSlotIndex, RightItem))
 			{
-				FGridItemInstance LeftItem;
-				FGridItemInstance RightItem;
-				if (!GetInventoryItemAtSlot(LeftSlotIndex, LeftItem) || !GetInventoryItemAtSlot(RightSlotIndex, RightItem))
+				return LeftSlotIndex < RightSlotIndex;
+			}
+
+			const FString LeftName = ResolveDisplayName(LeftItem);
+			const FString RightName = ResolveDisplayName(RightItem);
+			const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
+
+			switch (InventorySortMode)
+			{
+				case EGridInventorySortMode::NameDescending:
+					return NameComparison != 0 ? NameComparison > 0 : LeftSlotIndex < RightSlotIndex;
+
+				case EGridInventorySortMode::TypeAscending:
 				{
-					return LeftSlotIndex < RightSlotIndex;
+					const uint8 LeftType = static_cast<uint8>(ResolveItemType(LeftItem));
+					const uint8 RightType = static_cast<uint8>(ResolveItemType(RightItem));
+					if (LeftType != RightType)
+					{
+						return LeftType < RightType;
+					}
+					return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
 				}
 
-				const FString LeftName = ResolveDisplayName(LeftItem);
-				const FString RightName = ResolveDisplayName(RightItem);
-
-				switch (InventorySortMode)
+				case EGridInventorySortMode::TypeDescending:
 				{
-					case EGridInventorySortMode::Name:
+					const uint8 LeftType = static_cast<uint8>(ResolveItemType(LeftItem));
+					const uint8 RightType = static_cast<uint8>(ResolveItemType(RightItem));
+					if (LeftType != RightType)
 					{
-						const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
-						return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
+						return LeftType > RightType;
 					}
-					case EGridInventorySortMode::Type:
-					{
-						const uint8 LeftType = static_cast<uint8>(ResolveItemType(LeftItem));
-						const uint8 RightType = static_cast<uint8>(ResolveItemType(RightItem));
-						if (LeftType != RightType)
-						{
-							return LeftType < RightType;
-						}
-						const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
-						return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
-					}
-					case EGridInventorySortMode::Weight:
-					{
-						const float LeftWeight = ResolveTotalWeight(LeftItem);
-						const float RightWeight = ResolveTotalWeight(RightItem);
-						if (!FMath::IsNearlyEqual(LeftWeight, RightWeight))
-						{
-							return LeftWeight < RightWeight;
-						}
-						const int32 NameComparison = LeftName.Compare(RightName, ESearchCase::IgnoreCase);
-						return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
-					}
-					case EGridInventorySortMode::PhysicalOrder:
-					default:
-						return LeftSlotIndex < RightSlotIndex;
+					return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
 				}
-			});
-	}
+
+				case EGridInventorySortMode::WeightAscending:
+				{
+					const float LeftWeight = ResolveTotalWeight(LeftItem);
+					const float RightWeight = ResolveTotalWeight(RightItem);
+					if (!FMath::IsNearlyEqual(LeftWeight, RightWeight))
+					{
+						return LeftWeight < RightWeight;
+					}
+					return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
+				}
+
+				case EGridInventorySortMode::WeightDescending:
+				{
+					const float LeftWeight = ResolveTotalWeight(LeftItem);
+					const float RightWeight = ResolveTotalWeight(RightItem);
+					if (!FMath::IsNearlyEqual(LeftWeight, RightWeight))
+					{
+						return LeftWeight > RightWeight;
+					}
+					return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
+				}
+
+				case EGridInventorySortMode::NameAscending:
+				default:
+					return NameComparison != 0 ? NameComparison < 0 : LeftSlotIndex < RightSlotIndex;
+			}
+		});
 
 	// A filter/sort changes only the CONTENT projected into the grid, never the
 	// number of visible cells. Matching/sorted items occupy the first cells and

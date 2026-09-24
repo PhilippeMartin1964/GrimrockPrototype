@@ -33,25 +33,31 @@ enum class EGridInventoryFilterCategory : uint8
 UENUM(BlueprintType)
 enum class EGridInventorySortMode : uint8
 {
-	PhysicalOrder UMETA(DisplayName = "Ordre"),
-	Name UMETA(DisplayName = "Nom"),
-	Type UMETA(DisplayName = "Type"),
-	Weight UMETA(DisplayName = "Poids")
+	NameAscending UMETA(DisplayName = "Nom ordre croissant"),
+	NameDescending UMETA(DisplayName = "Nom ordre décroissant"),
+	TypeAscending UMETA(DisplayName = "Type ordre croissant"),
+	TypeDescending UMETA(DisplayName = "Type ordre décroissant"),
+	WeightAscending UMETA(DisplayName = "Poids ordre croissant"),
+	WeightDescending UMETA(DisplayName = "Poids ordre décroissant")
 };
 
 inline FText GetGridInventorySortModeDisplayName(EGridInventorySortMode SortMode)
 {
 	switch (SortMode)
 	{
-		case EGridInventorySortMode::Name:
-			return NSLOCTEXT("GridInventorySort", "Name", "Nom");
-		case EGridInventorySortMode::Type:
-			return NSLOCTEXT("GridInventorySort", "Type", "Type");
-		case EGridInventorySortMode::Weight:
-			return NSLOCTEXT("GridInventorySort", "Weight", "Poids");
-		case EGridInventorySortMode::PhysicalOrder:
+		case EGridInventorySortMode::NameDescending:
+			return NSLOCTEXT("GridInventorySort", "NameDescending", "Nom ordre décroissant");
+		case EGridInventorySortMode::TypeAscending:
+			return NSLOCTEXT("GridInventorySort", "TypeAscending", "Type ordre croissant");
+		case EGridInventorySortMode::TypeDescending:
+			return NSLOCTEXT("GridInventorySort", "TypeDescending", "Type ordre décroissant");
+		case EGridInventorySortMode::WeightAscending:
+			return NSLOCTEXT("GridInventorySort", "WeightAscending", "Poids ordre croissant");
+		case EGridInventorySortMode::WeightDescending:
+			return NSLOCTEXT("GridInventorySort", "WeightDescending", "Poids ordre décroissant");
+		case EGridInventorySortMode::NameAscending:
 		default:
-			return NSLOCTEXT("GridInventorySort", "PhysicalOrder", "Ordre");
+			return NSLOCTEXT("GridInventorySort", "NameAscending", "Nom ordre croissant");
 	}
 }
 

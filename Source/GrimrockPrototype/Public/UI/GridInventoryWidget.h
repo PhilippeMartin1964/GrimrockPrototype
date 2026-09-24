@@ -175,7 +175,7 @@ public:
 
 	/** UI-INVENTORY02 presentation-only ordering. Never persisted and never mutates physical slots. */
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Inventory|Sort")
-	EGridInventorySortMode InventorySortMode = EGridInventorySortMode::PhysicalOrder;
+	EGridInventorySortMode InventorySortMode = EGridInventorySortMode::NameAscending;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots")
 	TSubclassOf<UGridInventorySlotWidget> InventorySlotWidgetClass;
@@ -352,9 +352,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Inventory|Sort")
 	EGridInventorySortMode GetInventorySortMode() const { return InventorySortMode; }
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Sort")
-	void CycleInventorySortMode();
 
 	/** Read-only physical source-slot projection used by filters/sorting. */
 	void GetInventoryProjectionSourceSlotIndices(TArray<int32>& OutSourceSlotIndices) const;

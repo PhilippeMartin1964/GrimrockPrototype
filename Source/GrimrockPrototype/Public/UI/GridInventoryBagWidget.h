@@ -1,12 +1,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/ComboBoxString.h"
 #include "UI/GridInventoryWidget.h"
 #include "GridInventoryBagWidget.generated.h"
 
 class UButton;
 class UImage;
-class UTextBlock;
 
 /**
  * Independent right-side inventory bag window.
@@ -66,10 +66,7 @@ public:
 	TObjectPtr<UImage> Image_FilterMiscSelectionFrame;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Sort")
-	TObjectPtr<UButton> Button_SortInventory;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Sort")
-	TObjectPtr<UTextBlock> Text_SortInventory;
+	TObjectPtr<UComboBoxString> ComboBox_SortInventory;
 
 protected:
 	virtual void NativeConstruct() override;
@@ -100,8 +97,9 @@ private:
 	void HandleFilterMiscClicked();
 
 	UFUNCTION()
-	void HandleSortInventoryClicked();
+	void HandleSortInventorySelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 
+	void InitializeInventorySortComboBox();
 	void RefreshInventoryFilterSelectionFrames();
 	void RefreshInventorySortPresentation();
 };
