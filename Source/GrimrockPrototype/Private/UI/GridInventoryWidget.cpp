@@ -44,12 +44,6 @@ namespace
 		return FText::FromString(FString::Printf(TEXT("%d / %d"), UsedSlots, MaximumSlots));
 	}
 
-	FText FormatInventoryProjectionUsage(int32 VisibleItems, int32 UsedSlots, int32 MaximumSlots)
-	{
-		return FText::FromString(
-			FString::Printf(TEXT("%d affichés / %d utilisés / %d cases"), VisibleItems, UsedSlots, MaximumSlots));
-	}
-
 	FText ResolveCharacterDisplayName(const FText& DisplayName, FName Id, const TCHAR* Fallback)
 	{
 		if (!DisplayName.IsEmpty())
@@ -90,11 +84,18 @@ namespace
 		return FText::FromString(FString::Printf(TEXT("%d / %d (%+d)"), CurrentValue, FinalMaxValue, MaxBonus));
 	}
 
-	FText FormatWeightWithBonus(float CurrentWeight, float FinalMaxWeight, float MaxWeightBonus)
+	FText FormatInventoryBagOwner(const FGridInventoryCharacterSummary& Summary)
 	{
-		const FString CurrentWeightText = FString::Printf(TEXT("%.1f"), CurrentWeight);
-		const FText FinalMaxWeightText = FormatFloatWithBonus(FinalMaxWeight, MaxWeightBonus);
-		return FText::FromString(FString::Printf(TEXT("%s / %s"), *CurrentWeightText, *FinalMaxWeightText.ToString()));
+		const FText OwnerName = Summary.DisplayName.IsEmpty()
+			? FText::FromString(FString::Printf(TEXT("Hero_%02d"), Summary.CharacterIndex + 1))
+			: Summary.DisplayName;
+		return FText::Format(NSLOCTEXT("GridInventoryBag", "Owner", "Sac de : {0}"), OwnerName);
+	}
+
+	FText FormatInventoryBagWeight(float CurrentWeight, float MaximumWeight)
+	{
+		return FText::FromString(
+			FString::Printf(TEXT("Poids : %.1f / %.1f"), FMath::Max(0.0f, CurrentWeight), FMath::Max(0.0f, MaximumWeight)));
 	}
 
 	const TCHAR* GetContextActionName(EGridItemActionType ActionType)
@@ -368,35 +369,21 @@ void UGridInventoryWidget::RefreshSelectedInventoryBagPresentation()
 	FGridInventoryCharacterSummary Summary;
 	if (!InventoryComponent || !InventoryComponent->GetCharacterSummary(InventoryComponent->GetSelectedCharacterIndex(), Summary))
 	{
-		SetInventoryOptionalText(Text_InventoryBagTitle, FText::GetEmpty());
-		SetInventoryOptionalText(Text_InventoryBagSlotUsage, FText::GetEmpty());
+		SetInventoryOptionalText(Text_InventoryBagOwner, FText::GetEmpty());
 		SetInventoryOptionalText(Text_InventoryBagWeight, FText::GetEmpty());
-		SetInventoryOptionalProgress(ProgressBar_InventoryBagWeight, 0.0f, 0.0f);
 		if (Text_InventoryEmptyState)
 		{
 			Text_InventoryEmptyState->SetVisibility(ESlateVisibility::Collapsed);
-		}
-		if (Text_InventoryBagWeight || ProgressBar_InventoryBagWeight)
-		{
-			PresentInventoryWeightState(EGridInventoryWeightState::Normal);
 		}
 		return;
 	}
 
 	const int32 VisibleItemCount = GetVisibleInventoryItemCount();
-	SetInventoryOptionalText(Text_InventoryBagTitle, Summary.DisplayName);
-	SetInventoryOptionalText(
-		Text_InventoryBagSlotUsage, FormatInventoryProjectionUsage(VisibleItemCount, Summary.UsedInventorySlots, Summary.MaxInventorySlots));
-	SetInventoryOptionalText(
-		Text_InventoryBagWeight, FormatWeightWithBonus(Summary.CurrentWeight, Summary.MaxWeight, Summary.EquipmentStatBonus.CarryWeightBonus));
+	SetInventoryOptionalText(Text_InventoryBagOwner, FormatInventoryBagOwner(Summary));
+	SetInventoryOptionalText(Text_InventoryBagWeight, FormatInventoryBagWeight(Summary.CurrentWeight, Summary.MaxWeight));
 	if (Text_InventoryEmptyState)
 	{
 		Text_InventoryEmptyState->SetVisibility(VisibleItemCount == 0 ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
-	}
-	SetInventoryOptionalProgress(ProgressBar_InventoryBagWeight, Summary.CurrentWeight, Summary.MaxWeight);
-	if (Text_InventoryBagWeight || ProgressBar_InventoryBagWeight)
-	{
-		PresentInventoryWeightState(Summary.WeightState);
 	}
 }
 

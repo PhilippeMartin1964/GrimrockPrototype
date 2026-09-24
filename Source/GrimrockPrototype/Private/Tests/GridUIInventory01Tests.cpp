@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryWidget.h"
@@ -35,20 +34,20 @@ bool FGridUIInventory01SelectedBagProjectionTest::RunTest(const FString& Paramet
 	Second.InventorySlots.SetNum(5);
 
 	Widget->InventoryComponent = Inventory;
-	Widget->Text_InventoryBagTitle = NewObject<UTextBlock>(Widget);
-	Widget->Text_InventoryBagSlotUsage = NewObject<UTextBlock>(Widget);
+	Widget->Text_InventoryBagOwner = NewObject<UTextBlock>(Widget);
 	Widget->Text_InventoryBagWeight = NewObject<UTextBlock>(Widget);
-	Widget->ProgressBar_InventoryBagWeight = NewObject<UProgressBar>(Widget);
 
 	Widget->RefreshInventory();
-	TestEqual(TEXT("Bag title follows selected character 0"), Widget->Text_InventoryBagTitle->GetText().ToString(), FString(TEXT("Ariadne")));
-	TestEqual(TEXT("Bag slot usage follows character 0"), Widget->Text_InventoryBagSlotUsage->GetText().ToString(), FString(TEXT("0 / 3")));
+	TestEqual(TEXT("Bag owner follows selected character 0"), Widget->Text_InventoryBagOwner->GetText().ToString(), FString(TEXT("Sac de : Ariadne")));
+	TestTrue(TEXT("Bag weight uses compact Poids prefix for character 0"),
+		Widget->Text_InventoryBagWeight->GetText().ToString().StartsWith(TEXT("Poids : ")));
 	TestEqual(TEXT("Resolved slot count follows character 0 capacity"), Widget->ResolveInventorySlotWidgetCount(), 3);
 	TestEqual(TEXT("Inventory slot count reads character 0 only"), Widget->GetInventorySlotCount(), 3);
 
 	TestTrue(TEXT("Selecting character 1 succeeds"), Widget->SelectCharacter(1));
-	TestEqual(TEXT("Bag title switches to character 1"), Widget->Text_InventoryBagTitle->GetText().ToString(), FString(TEXT("Borin")));
-	TestEqual(TEXT("Bag slot usage switches to character 1"), Widget->Text_InventoryBagSlotUsage->GetText().ToString(), FString(TEXT("0 / 5")));
+	TestEqual(TEXT("Bag owner switches to character 1"), Widget->Text_InventoryBagOwner->GetText().ToString(), FString(TEXT("Sac de : Borin")));
+	TestTrue(TEXT("Bag weight uses compact Poids prefix for character 1"),
+		Widget->Text_InventoryBagWeight->GetText().ToString().StartsWith(TEXT("Poids : ")));
 	TestEqual(TEXT("Resolved slot count switches to character 1 capacity"), Widget->ResolveInventorySlotWidgetCount(), 5);
 	TestEqual(TEXT("Inventory slot count now reads character 1 only"), Widget->GetInventorySlotCount(), 5);
 

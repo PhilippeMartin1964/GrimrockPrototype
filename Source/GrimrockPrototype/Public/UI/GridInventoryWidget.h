@@ -156,20 +156,14 @@ public:
 	TObjectPtr<UTextBlock> Text_ResistanceArcane;
 
 	/**
-	 * UI-INV01 selected-character bag presentation. The bag does not own data:
-	 * every value is projected from the same selected character summary.
+	 * UI-INVENTORY02.3 compact selected-character bag summary.
+	 * Static bag/weight icons are authored directly in WBP_InventoryBag.
 	 */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Bag")
-	TObjectPtr<UTextBlock> Text_InventoryBagTitle;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Bag")
-	TObjectPtr<UTextBlock> Text_InventoryBagSlotUsage;
+	TObjectPtr<UTextBlock> Text_InventoryBagOwner;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Bag")
 	TObjectPtr<UTextBlock> Text_InventoryBagWeight;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Bag")
-	TObjectPtr<UProgressBar> ProgressBar_InventoryBagWeight;
 
 	/** Optional empty-projection feedback authored in WBP_InventoryBag. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Bag")
@@ -332,10 +326,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Character Details")
 	void RefreshSelectedCharacterDetails();
-
-	/** UI-WEIGHT01 inventory-bag presentation hook. Blueprint chooses colors; C++ owns the derived state. */
-	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory|Weight")
-	void PresentInventoryWeightState(EGridInventoryWeightState WeightState);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	void HandleRegisteredPartyMemberClicked(int32 CharacterIndex);

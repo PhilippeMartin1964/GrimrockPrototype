@@ -45,23 +45,12 @@ bool FGridUIWeight01InventoryOnlyContractTest::RunTest(const FString& Parameters
 
 	TestNull(TEXT("Character sheet carry text binding is removed"), FindFProperty<FProperty>(InventoryWidgetClass, TEXT("Text_CharacterCarryWeight")));
 	TestNull(TEXT("Character sheet carry progress binding is removed"), FindFProperty<FProperty>(InventoryWidgetClass, TEXT("ProgressBar_CharacterCarryWeight")));
+	TestNotNull(TEXT("Inventory bag owner text binding exists"), FindFProperty<FProperty>(InventoryWidgetClass, TEXT("Text_InventoryBagOwner")));
 	TestNotNull(TEXT("Inventory bag weight text binding remains"), FindFProperty<FProperty>(InventoryWidgetClass, TEXT("Text_InventoryBagWeight")));
-	TestNotNull(TEXT("Inventory bag weight progress binding remains"), FindFProperty<FProperty>(InventoryWidgetClass, TEXT("ProgressBar_InventoryBagWeight")));
-	return true;
-}
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIWeight01PresentationHookTest, "Grimrock.UI.Weight01.PresentationHook",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
-bool FGridUIWeight01PresentationHookTest::RunTest(const FString& Parameters)
-{
-	(void)Parameters;
-	UFunction* PresentationHook = UGridInventoryWidget::StaticClass()->FindFunctionByName(TEXT("PresentInventoryWeightState"));
-	TestNotNull(TEXT("Weight presentation hook is exposed to Blueprint"), PresentationHook);
-	if (PresentationHook)
-	{
-		TestTrue(TEXT("Weight presentation hook is a Blueprint event"), PresentationHook->HasAnyFunctionFlags(FUNC_BlueprintEvent));
-	}
+	TestNull(TEXT("Inventory bag slot usage binding is removed"), FindFProperty<FProperty>(InventoryWidgetClass, TEXT("Text_InventoryBagSlotUsage")));
+	TestNull(TEXT("Inventory bag progress binding is removed"), FindFProperty<FProperty>(InventoryWidgetClass, TEXT("ProgressBar_InventoryBagWeight")));
+	TestNull(TEXT("Obsolete Blueprint weight presentation hook is removed"),
+		UGridInventoryWidget::StaticClass()->FindFunctionByName(TEXT("PresentInventoryWeightState")));
 	return true;
 }
 

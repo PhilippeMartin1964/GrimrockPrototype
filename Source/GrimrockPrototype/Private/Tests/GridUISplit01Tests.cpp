@@ -120,19 +120,19 @@ bool FGridUISplit01SharedAuthorityTest::RunTest(const FString& Parameters)
 	}
 
 	Sheet->Text_CharacterName = NewObject<UTextBlock>(Sheet);
-	Bag->Text_InventoryBagTitle = NewObject<UTextBlock>(Bag);
+	Bag->Text_InventoryBagOwner = NewObject<UTextBlock>(Bag);
 	Sheet->InitializeInventoryWidget(Party);
 	Bag->InitializeInventoryWidget(Party);
 
 	TestTrue(TEXT("Both windows share the same inventory component"), Sheet->InventoryComponent == Bag->InventoryComponent);
 	TestTrue(TEXT("Both windows point at the canonical party inventory"), Sheet->InventoryComponent == Inventory);
 	TestEqual(TEXT("Sheet initially projects selected character 0"), Sheet->Text_CharacterName->GetText().ToString(), FString(TEXT("Ariadne")));
-	TestEqual(TEXT("Bag initially projects selected character 0"), Bag->Text_InventoryBagTitle->GetText().ToString(), FString(TEXT("Ariadne")));
+	TestEqual(TEXT("Bag initially projects selected character 0"), Bag->Text_InventoryBagOwner->GetText().ToString(), FString(TEXT("Sac de : Ariadne")));
 
 	TestTrue(TEXT("Selecting character 1 through the sheet succeeds"), Sheet->SelectCharacter(1));
 	TestEqual(TEXT("Canonical selection changes once"), Inventory->GetSelectedCharacterIndex(), 1);
 	TestEqual(TEXT("Sheet refreshes from the shared selection"), Sheet->Text_CharacterName->GetText().ToString(), FString(TEXT("Borin")));
-	TestEqual(TEXT("Bag refreshes from the same shared selection event"), Bag->Text_InventoryBagTitle->GetText().ToString(), FString(TEXT("Borin")));
+	TestEqual(TEXT("Bag refreshes from the same shared selection event"), Bag->Text_InventoryBagOwner->GetText().ToString(), FString(TEXT("Sac de : Borin")));
 
 	Party->InventoryBagWidgetInstance = Bag;
 	TestTrue(TEXT("Pawn canonical inventory UI accessor prefers the split bag"), Party->GetInventoryWidget() == Bag);
