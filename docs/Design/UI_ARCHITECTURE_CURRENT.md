@@ -469,3 +469,33 @@ UI-INV02   2/2
 ## Validation UMG UI-NAV01
 
 `WBP_GridCombatHud` a été validé manuellement en PIE le 20 septembre 2026 : barre inférieure réellement collée au viewport, navigation globale fonctionnelle et hotbar MON12 conservée. Le monolithe `WBP_GridInventory` est supprimé ; les validations UMG concernent désormais `WBP_CharacterSheet` et `WBP_InventoryBag`.
+
+
+## UI-INVENTORY02.5 — configuration de grille centralisée
+
+La capacité du sac et le nombre de colonnes se règlent désormais au même endroit :
+
+```text
+BP_GrimrockPartyPawn
+└── PartyInventoryComponent
+    ├── Inventory Slots Per Character
+    └── Inventory Columns
+```
+
+`WBP_InventoryBag` ne possède plus de propriété `InventorySlotColumnCount`.
+
+Règles :
+
+- `Inventory Slots Per Character` définit la capacité réelle et identique de tous les personnages ;
+- `Inventory Columns` définit uniquement la disposition visuelle ;
+- le nombre de lignes est dérivé automatiquement ;
+- la capacité en slots reste indépendante de la capacité de portage/du poids ;
+- aucun second réglage de capacité ou de colonnes n'existe dans le widget.
+
+Exemple 8 × 8 :
+
+```text
+Inventory Slots Per Character = 64
+Inventory Columns             = 8
+=> 8 lignes
+```

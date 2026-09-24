@@ -184,6 +184,11 @@ int32 UGridPartyInventoryComponent::GetInventorySlotCountPerCharacter() const
 	return FMath::Max(1, DefaultInventorySlotCountPerCharacter);
 }
 
+int32 UGridPartyInventoryComponent::GetInventoryColumnCount() const
+{
+	return FMath::Max(1, InventoryColumnCount);
+}
+
 bool UGridPartyInventoryComponent::ValidateInventorySlotCountConsistency(FString& OutError) const
 {
 	return ValidateInventorySlotCountConsistencyForState(PartyInventoryState, OutError);

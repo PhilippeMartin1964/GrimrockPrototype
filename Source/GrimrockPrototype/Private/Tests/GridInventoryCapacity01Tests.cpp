@@ -18,9 +18,11 @@ bool FGridInventoryCapacity01UniformPartyTest::RunTest(const FString& Parameters
 	}
 
 	Inventory->DefaultInventorySlotCountPerCharacter = 18;
+	Inventory->InventoryColumnCount = 6;
 	Inventory->InitializeDefaultPartyIfNeeded();
 
 	TestEqual(TEXT("Configured party-wide slot count is exposed"), Inventory->GetInventorySlotCountPerCharacter(), 18);
+	TestEqual(TEXT("Configured party-wide column count is exposed"), Inventory->GetInventoryColumnCount(), 6);
 	TestEqual(TEXT("Default character receives configured slot count"),
 		Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.Num(), 18);
 

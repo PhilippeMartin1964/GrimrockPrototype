@@ -180,10 +180,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots")
 	TSubclassOf<UGridInventorySlotWidget> InventorySlotWidgetClass;
 
-	/** Presentation-only column count. Does not change inventory capacity. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots", meta = (ClampMin = "1", UIMin = "1"))
-	int32 InventorySlotColumnCount = 6;
-
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory UI|Slots")
 	TArray<TObjectPtr<UGridInventorySlotWidget>> GeneratedInventorySlotWidgets;
 

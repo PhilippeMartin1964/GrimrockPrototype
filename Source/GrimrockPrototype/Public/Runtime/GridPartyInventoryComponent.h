@@ -29,8 +29,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory", meta = (ClampMin = "1", UIMin = "1", DisplayName = "Inventory Slots Per Character"))
 	int32 DefaultInventorySlotCountPerCharacter = 40;
 
+	/** Party-wide inventory grid presentation. Independent from slot capacity and carry weight. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory", meta = (ClampMin = "1", UIMin = "1", DisplayName = "Inventory Columns"))
+	int32 InventoryColumnCount = 6;
+
 	UFUNCTION(BlueprintPure, Category = "Inventory")
 	int32 GetInventorySlotCountPerCharacter() const;
+
+	UFUNCTION(BlueprintPure, Category = "Inventory")
+	int32 GetInventoryColumnCount() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Diagnostics")
 	bool ValidateInventorySlotCountConsistency(UPARAM(ref) FString& OutError) const;

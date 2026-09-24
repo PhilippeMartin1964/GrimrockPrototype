@@ -1167,7 +1167,7 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets()
 	TArray<int32> SourceSlotIndices;
 	BuildInventoryProjectionSourceSlotIndices(SourceSlotIndices);
 	const int32 SlotCount = SourceSlotIndices.Num();
-	const int32 ColumnCount = FMath::Max(1, InventorySlotColumnCount);
+	const int32 ColumnCount = InventoryComponent ? InventoryComponent->GetInventoryColumnCount() : 1;
 
 	if (bInventorySlotsBuilt && LastBuiltSlotCount == SlotCount && LastBuiltInventorySourceSlotIndices == SourceSlotIndices &&
 		LastBuiltColumnCount == ColumnCount && LastBuiltSlotWidgetClass == InventorySlotWidgetClass &&

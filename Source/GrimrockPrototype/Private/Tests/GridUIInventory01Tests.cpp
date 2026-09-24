@@ -76,10 +76,10 @@ bool FGridUIInventory01SingleBagAuthorityTest::RunTest(const FString& Parameters
 	Inventory->PartyInventoryState.ActiveCharacters[1].InventorySlots.SetNum(12);
 	Widget->InventoryComponent = Inventory;
 
-	Widget->InventorySlotColumnCount = 4;
+	Inventory->InventoryColumnCount = 4;
 	TestEqual(TEXT("Twelve slots remain authoritative with four columns"), Widget->ResolveInventorySlotWidgetCount(), 12);
 
-	Widget->InventorySlotColumnCount = 6;
+	Inventory->InventoryColumnCount = 6;
 	TestEqual(TEXT("Changing columns never changes total slot capacity"), Widget->ResolveInventorySlotWidgetCount(), 12);
 
 	TestTrue(TEXT("Authoritative selection changes"), Inventory->SetSelectedCharacterIndex(1));
