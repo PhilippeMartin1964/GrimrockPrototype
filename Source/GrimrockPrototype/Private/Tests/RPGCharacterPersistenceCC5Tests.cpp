@@ -121,8 +121,11 @@ bool FRPGPartySaveMemoryRoundTripCC5Test::RunTest(const FString& Parameters)
 	TestTrue(TEXT("The picked-up world item remains removed"), LoadedPresence && LoadedPresence->bRemovedFromInitialPlacement);
 
 	UGridPartyInventoryComponent* RestoredComponent = NewObject<UGridPartyInventoryComponent>();
+	RestoredComponent->DefaultInventorySlotCountPerCharacter = 80;
 	FText RestoreError;
 	TestTrue(TEXT("The party snapshot restores atomically"), RestoredComponent->RestorePartyInventoryState(LoadedSave->PartyInventoryState, RestoreError));
+	TestEqual(TEXT("Restore applies the currently configured inventory capacity"),
+		RestoredComponent->PartyInventoryState.ActiveCharacters[0].InventorySlots.Num(), 80);
 
 	TestTrue(TEXT("The transient definition registry is not serialized"), RestoredComponent->FindItemDefinition(TEXT("Item_Torch")) == nullptr);
 

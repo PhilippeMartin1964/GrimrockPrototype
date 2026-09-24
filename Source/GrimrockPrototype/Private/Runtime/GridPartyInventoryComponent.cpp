@@ -250,8 +250,32 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 	}
 
 	FGridPartyInventoryState RestoredState = SavedState;
-	for (FGridCharacterInventoryState& Character : RestoredState.ActiveCharacters)
+	const int32 ConfiguredInventorySlotCount = FMath::Max(1, DefaultInventorySlotCountPerCharacter);
+	auto ApplyConfiguredInventorySlotCount =
+		[ConfiguredInventorySlotCount, &OutError](FGridCharacterInventoryState& Character, const TCHAR* CharacterKind, int32 CharacterIndex)
+		{
+			for (int32 SlotIndex = ConfiguredInventorySlotCount; SlotIndex < Character.InventorySlots.Num(); ++SlotIndex)
+			{
+				if (!Character.InventorySlots[SlotIndex].IsEmpty())
+				{
+					OutError = FText::FromString(FString::Printf(
+						TEXT("%s %d utilise le slot %d, au-delà de la capacité configurée de %d slots."),
+						CharacterKind, CharacterIndex, SlotIndex, ConfiguredInventorySlotCount));
+					return false;
+				}
+			}
+
+			Character.InventorySlots.SetNum(ConfiguredInventorySlotCount);
+			return true;
+		};
+
+	for (int32 CharacterIndex = 0; CharacterIndex < RestoredState.ActiveCharacters.Num(); ++CharacterIndex)
 	{
+		FGridCharacterInventoryState& Character = RestoredState.ActiveCharacters[CharacterIndex];
+		if (!ApplyConfiguredInventorySlotCount(Character, TEXT("Personnage"), CharacterIndex))
+		{
+			return false;
+		}
 		if (!Character.CharacterId.IsValid())
 		{
 			OutError = FText::FromString(TEXT("Un personnage sauvegardé ne possède pas d'identifiant valide."));
@@ -275,8 +299,14 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 		}
 	}
 
-	for (FGridCharacterInventoryState& Character : RestoredState.CharacterPool)
+	for (int32 PoolIndex = 0; PoolIndex < RestoredState.CharacterPool.Num(); ++PoolIndex)
 	{
+		FGridCharacterInventoryState& Character = RestoredState.CharacterPool[PoolIndex];
+		if (!ApplyConfiguredInventorySlotCount(Character, TEXT("Personnage en réserve"), PoolIndex))
+		{
+			return false;
+		}
+
 		if (Character.CombatHotbarSlots.IsEmpty())
 		{
 			InitializeCombatHotbarDefaults(Character);
@@ -1122,9 +1152,10 @@ void UGridPartyInventoryComponent::InitializeCharacterDefaults(FGridCharacterInv
 	CharacterState.Attributes.Wisdom = FMath::Max(0, CharacterState.Attributes.Wisdom);
 	CharacterState.Attributes.Charisma = FMath::Max(0, CharacterState.Attributes.Charisma);
 
-	if (CharacterState.InventorySlots.Num() == 0)
+	const int32 ConfiguredInventorySlotCount = FMath::Max(1, DefaultInventorySlotCountPerCharacter);
+	if (CharacterState.InventorySlots.Num() < ConfiguredInventorySlotCount)
 	{
-		CharacterState.InventorySlots.SetNum(FMath::Max(1, DefaultInventorySlotCountPerCharacter));
+		CharacterState.InventorySlots.SetNum(ConfiguredInventorySlotCount);
 	}
 
 	InitializeCombatHotbarDefaults(CharacterState);
