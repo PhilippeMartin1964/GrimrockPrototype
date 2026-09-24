@@ -183,9 +183,17 @@ bool FRPGPartyRecruitmentService::TryRecruitFromPool(
 		return false;
 	}
 
+	const int32 ExpectedInventorySlotCount = PartyInventoryComponent->GetInventorySlotCountPerCharacter();
 	if (Candidate.InventorySlots.IsEmpty())
 	{
-		Candidate.InventorySlots.SetNum(FMath::Max(0, PartyInventoryComponent->DefaultInventorySlotCountPerCharacter));
+		Candidate.InventorySlots.SetNum(ExpectedInventorySlotCount);
+	}
+	else if (Candidate.InventorySlots.Num() != ExpectedInventorySlotCount)
+	{
+		OutResult.RejectReason = ERPGPartyRecruitmentRejectReason::InvalidCandidate;
+		OutResult.Error = FString::Printf(TEXT("Candidate inventory has %d slots; party requires %d."),
+			Candidate.InventorySlots.Num(), ExpectedInventorySlotCount);
+		return false;
 	}
 
 	if (!GridPartyRecruitmentPrivate::NormalizeCandidateHotbar(Candidate, CandidateError))

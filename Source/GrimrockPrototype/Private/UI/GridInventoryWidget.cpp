@@ -407,14 +407,7 @@ int32 UGridInventoryWidget::GetSelectedCharacterIndex() const
 
 int32 UGridInventoryWidget::GetInventorySlotCount() const
 {
-	if (!InventoryComponent)
-	{
-		return 0;
-	}
-
-	const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex();
-	const FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
-	return State.ActiveCharacters.IsValidIndex(CharacterIndex) ? State.ActiveCharacters[CharacterIndex].InventorySlots.Num() : 0;
+	return InventoryComponent ? InventoryComponent->GetInventorySlotCountPerCharacter() : 0;
 }
 
 bool UGridInventoryWidget::GetInventoryItemAtSlot(int32 SlotIndex, FGridItemInstance& OutItem) const
@@ -974,21 +967,7 @@ void UGridInventoryWidget::HandleInventorySortModeChanged()
 
 int32 UGridInventoryWidget::ResolveInventorySourceSlotCapacity() const
 {
-	if (InventorySlotCountOverride > 0)
-	{
-		return InventorySlotCountOverride;
-	}
-
-	if (InventoryComponent)
-	{
-		FGridInventoryCharacterSummary Summary;
-		if (InventoryComponent->GetCharacterSummary(InventoryComponent->GetSelectedCharacterIndex(), Summary) && Summary.MaxInventorySlots > 0)
-		{
-			return Summary.MaxInventorySlots;
-		}
-	}
-
-	return 24;
+	return InventoryComponent ? InventoryComponent->GetInventorySlotCountPerCharacter() : 0;
 }
 
 void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int32>& OutSourceSlotIndices) const

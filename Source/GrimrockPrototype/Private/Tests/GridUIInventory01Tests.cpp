@@ -22,16 +22,17 @@ bool FGridUIInventory01SelectedBagProjectionTest::RunTest(const FString& Paramet
 		return false;
 	}
 
+	Inventory->DefaultInventorySlotCountPerCharacter = 6;
 	Inventory->PartyInventoryState.ActiveCharacters.SetNum(2);
 	Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
 
 	FGridCharacterInventoryState& First = Inventory->PartyInventoryState.ActiveCharacters[0];
 	First.DisplayName = FText::FromString(TEXT("Ariadne"));
-	First.InventorySlots.SetNum(3);
+	First.InventorySlots.SetNum(6);
 
 	FGridCharacterInventoryState& Second = Inventory->PartyInventoryState.ActiveCharacters[1];
 	Second.DisplayName = FText::FromString(TEXT("Borin"));
-	Second.InventorySlots.SetNum(5);
+	Second.InventorySlots.SetNum(6);
 
 	Widget->InventoryComponent = Inventory;
 	Widget->Text_InventoryBagOwner = NewObject<UTextBlock>(Widget);
@@ -41,15 +42,15 @@ bool FGridUIInventory01SelectedBagProjectionTest::RunTest(const FString& Paramet
 	TestEqual(TEXT("Bag owner follows selected character 0"), Widget->Text_InventoryBagOwner->GetText().ToString(), FString(TEXT("Sac de : Ariadne")));
 	TestTrue(TEXT("Bag weight uses compact Poids prefix for character 0"),
 		Widget->Text_InventoryBagWeight->GetText().ToString().StartsWith(TEXT("Poids : ")));
-	TestEqual(TEXT("Resolved slot count follows character 0 capacity"), Widget->ResolveInventorySlotWidgetCount(), 3);
-	TestEqual(TEXT("Inventory slot count reads character 0 only"), Widget->GetInventorySlotCount(), 3);
+	TestEqual(TEXT("Resolved slot count follows party-wide capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	TestEqual(TEXT("Inventory slot count reads party-wide capacity"), Widget->GetInventorySlotCount(), 6);
 
 	TestTrue(TEXT("Selecting character 1 succeeds"), Widget->SelectCharacter(1));
 	TestEqual(TEXT("Bag owner switches to character 1"), Widget->Text_InventoryBagOwner->GetText().ToString(), FString(TEXT("Sac de : Borin")));
 	TestTrue(TEXT("Bag weight uses compact Poids prefix for character 1"),
 		Widget->Text_InventoryBagWeight->GetText().ToString().StartsWith(TEXT("Poids : ")));
-	TestEqual(TEXT("Resolved slot count switches to character 1 capacity"), Widget->ResolveInventorySlotWidgetCount(), 5);
-	TestEqual(TEXT("Inventory slot count now reads character 1 only"), Widget->GetInventorySlotCount(), 5);
+	TestEqual(TEXT("Resolved slot count switches to same party-wide capacity"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	TestEqual(TEXT("Inventory slot count now reads same party-wide capacity"), Widget->GetInventorySlotCount(), 6);
 
 	return true;
 }
@@ -68,20 +69,21 @@ bool FGridUIInventory01SingleBagAuthorityTest::RunTest(const FString& Parameters
 		return false;
 	}
 
+	Inventory->DefaultInventorySlotCountPerCharacter = 12;
 	Inventory->PartyInventoryState.ActiveCharacters.SetNum(2);
 	Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
-	Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.SetNum(4);
-	Inventory->PartyInventoryState.ActiveCharacters[1].InventorySlots.SetNum(9);
+	Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.SetNum(12);
+	Inventory->PartyInventoryState.ActiveCharacters[1].InventorySlots.SetNum(12);
 	Widget->InventoryComponent = Inventory;
 
-	TestEqual(TEXT("Default UI slot override is disabled"), Widget->InventorySlotCountOverride, 0);
-	TestEqual(TEXT("Single bag resolves first selected capacity"), Widget->ResolveInventorySlotWidgetCount(), 4);
+	Widget->InventorySlotColumnCount = 4;
+	TestEqual(TEXT("Twelve slots remain authoritative with four columns"), Widget->ResolveInventorySlotWidgetCount(), 12);
+
+	Widget->InventorySlotColumnCount = 6;
+	TestEqual(TEXT("Changing columns never changes total slot capacity"), Widget->ResolveInventorySlotWidgetCount(), 12);
 
 	TestTrue(TEXT("Authoritative selection changes"), Inventory->SetSelectedCharacterIndex(1));
-	TestEqual(TEXT("The same single bag resolves second selected capacity"), Widget->ResolveInventorySlotWidgetCount(), 9);
-
-	Widget->InventorySlotCountOverride = 6;
-	TestEqual(TEXT("Explicit development override remains available"), Widget->ResolveInventorySlotWidgetCount(), 6);
+	TestEqual(TEXT("Changing character never changes total slot capacity"), Widget->ResolveInventorySlotWidgetCount(), 12);
 
 	return true;
 }

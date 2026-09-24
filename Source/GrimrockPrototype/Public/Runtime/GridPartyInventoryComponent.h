@@ -21,8 +21,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Party")
 	FGridPartyInventoryState PartyInventoryState;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+	/**
+	 * Authoritative party-wide inventory capacity.
+	 * Every active/reserve character uses exactly this number of inventory slots.
+	 * This is independent from carry-weight capacity.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory", meta = (ClampMin = "1", UIMin = "1", DisplayName = "Inventory Slots Per Character"))
 	int32 DefaultInventorySlotCountPerCharacter = 40;
+
+	UFUNCTION(BlueprintPure, Category = "Inventory")
+	int32 GetInventorySlotCountPerCharacter() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Diagnostics")
+	bool ValidateInventorySlotCountConsistency(UPARAM(ref) FString& OutError) const;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Party")
 	int32 DefaultMaxActiveCharacters = 6;
@@ -281,6 +292,7 @@ private:
 
 	void EnsureEquipmentCountMatchesActiveCharacters();
 	void InitializeCharacterDefaults(FGridCharacterInventoryState& CharacterState, int32 CharacterIndex) const;
+	bool ValidateInventorySlotCountConsistencyForState(const FGridPartyInventoryState& State, FString& OutError) const;
 	void InitializeCombatHotbarDefaults(FGridCharacterInventoryState& CharacterState) const;
 	bool ValidateCombatHotbar(const FGridCharacterInventoryState& CharacterState, FString& OutError) const;
 	float CalculateCharacterCurrentWeight(int32 CharacterIndex) const;

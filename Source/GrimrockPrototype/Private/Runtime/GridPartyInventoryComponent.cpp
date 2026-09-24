@@ -179,6 +179,16 @@ void UGridPartyInventoryComponent::NotifyPartyInventoryChanged(int32 CharacterIn
 	OnPartyInventoryChanged.Broadcast(CharacterIndex);
 }
 
+int32 UGridPartyInventoryComponent::GetInventorySlotCountPerCharacter() const
+{
+	return FMath::Max(1, DefaultInventorySlotCountPerCharacter);
+}
+
+bool UGridPartyInventoryComponent::ValidateInventorySlotCountConsistency(FString& OutError) const
+{
+	return ValidateInventorySlotCountConsistencyForState(PartyInventoryState, OutError);
+}
+
 void UGridPartyInventoryComponent::InitializeDefaultPartyIfNeeded()
 {
 	PartyInventoryState.MaxActiveCharacters = FMath::Max(1, DefaultMaxActiveCharacters);
@@ -197,6 +207,10 @@ void UGridPartyInventoryComponent::InitializeDefaultPartyIfNeeded()
 
 	for (FGridCharacterInventoryState& CharacterState : PartyInventoryState.CharacterPool)
 	{
+		if (CharacterState.InventorySlots.IsEmpty())
+		{
+			CharacterState.InventorySlots.SetNum(GetInventorySlotCountPerCharacter());
+		}
 		InitializeCombatHotbarDefaults(CharacterState);
 	}
 
@@ -250,6 +264,13 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 	}
 
 	FGridPartyInventoryState RestoredState = SavedState;
+	FString InventoryCapacityError;
+	if (!ValidateInventorySlotCountConsistencyForState(RestoredState, InventoryCapacityError))
+	{
+		OutError = FText::FromString(FString::Printf(TEXT("La capacité d'inventaire sauvegardée est invalide : %s"), *InventoryCapacityError));
+		return false;
+	}
+
 	for (FGridCharacterInventoryState& Character : RestoredState.ActiveCharacters)
 	{
 		if (!Character.CharacterId.IsValid())
@@ -380,7 +401,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	NewCharacter.Portrait =
 		FRPGAuthoringIdentityResolver::ResolvePortraitVisual(NewCharacter.RaceId, NewCharacter.PortraitGender, NewCharacter.PortraitVariantId);
 	NewCharacter.ClassIcon = FRPGAuthoringIdentityResolver::ResolveClassIcon(NewCharacter.ClassId);
-	NewCharacter.InventorySlots.SetNum(FMath::Max(0, DefaultInventorySlotCountPerCharacter));
+	NewCharacter.InventorySlots.SetNum(GetInventorySlotCountPerCharacter());
 	InitializeCombatHotbarDefaults(NewCharacter);
 
 	FGridPartyInventoryState NewPartyState;
@@ -489,7 +510,7 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	OutSummary.Portrait =
 		FRPGAuthoringIdentityResolver::ResolvePortraitVisual(CharacterState.RaceId, CharacterState.PortraitGender, CharacterState.PortraitVariantId);
 	OutSummary.UsedInventorySlots = CountOccupiedSlots(CharacterState);
-	OutSummary.MaxInventorySlots = CharacterState.InventorySlots.Num();
+	OutSummary.MaxInventorySlots = GetInventorySlotCountPerCharacter();
 	OutSummary.CurrentWeight = CalculateCharacterCurrentWeight(CharacterIndex);
 	OutSummary.MaxWeight = FMath::Max(0.0f, OutSummary.BaseMaxWeight + OutSummary.EquipmentStatBonus.CarryWeightBonus);
 	OutSummary.WeightState = ResolveInventoryWeightState(OutSummary.CurrentWeight, OutSummary.MaxWeight);
@@ -1124,7 +1145,7 @@ void UGridPartyInventoryComponent::InitializeCharacterDefaults(FGridCharacterInv
 
 	if (CharacterState.InventorySlots.Num() == 0)
 	{
-		CharacterState.InventorySlots.SetNum(FMath::Max(0, DefaultInventorySlotCountPerCharacter));
+		CharacterState.InventorySlots.SetNum(GetInventorySlotCountPerCharacter());
 	}
 
 	InitializeCombatHotbarDefaults(CharacterState);
@@ -1152,6 +1173,37 @@ void UGridPartyInventoryComponent::InitializeCombatHotbarDefaults(FGridCharacter
 	}
 
 	SanitizeCombatHotbarBindings(CharacterState);
+}
+
+bool UGridPartyInventoryComponent::ValidateInventorySlotCountConsistencyForState(
+	const FGridPartyInventoryState& State, FString& OutError) const
+{
+	OutError.Empty();
+	const int32 ExpectedSlotCount = GetInventorySlotCountPerCharacter();
+
+	for (int32 CharacterIndex = 0; CharacterIndex < State.ActiveCharacters.Num(); ++CharacterIndex)
+	{
+		const int32 ActualSlotCount = State.ActiveCharacters[CharacterIndex].InventorySlots.Num();
+		if (ActualSlotCount != ExpectedSlotCount)
+		{
+			OutError = FString::Printf(
+				TEXT("ActiveCharacter=%d SlotCount=%d Expected=%d"), CharacterIndex, ActualSlotCount, ExpectedSlotCount);
+			return false;
+		}
+	}
+
+	for (int32 PoolIndex = 0; PoolIndex < State.CharacterPool.Num(); ++PoolIndex)
+	{
+		const int32 ActualSlotCount = State.CharacterPool[PoolIndex].InventorySlots.Num();
+		if (ActualSlotCount != ExpectedSlotCount)
+		{
+			OutError =
+				FString::Printf(TEXT("CharacterPool=%d SlotCount=%d Expected=%d"), PoolIndex, ActualSlotCount, ExpectedSlotCount);
+			return false;
+		}
+	}
+
+	return true;
 }
 
 bool UGridPartyInventoryComponent::ValidateCombatHotbar(const FGridCharacterInventoryState& CharacterState, FString& OutError) const
