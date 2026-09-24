@@ -510,7 +510,7 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	OutSummary.Portrait =
 		FRPGAuthoringIdentityResolver::ResolvePortraitVisual(CharacterState.RaceId, CharacterState.PortraitGender, CharacterState.PortraitVariantId);
 	OutSummary.UsedInventorySlots = CountOccupiedSlots(CharacterState);
-	OutSummary.MaxInventorySlots = GetInventorySlotCountPerCharacter();
+	OutSummary.MaxInventorySlots = CharacterState.InventorySlots.Num();
 	OutSummary.CurrentWeight = CalculateCharacterCurrentWeight(CharacterIndex);
 	OutSummary.MaxWeight = FMath::Max(0.0f, OutSummary.BaseMaxWeight + OutSummary.EquipmentStatBonus.CarryWeightBonus);
 	OutSummary.WeightState = ResolveInventoryWeightState(OutSummary.CurrentWeight, OutSummary.MaxWeight);
