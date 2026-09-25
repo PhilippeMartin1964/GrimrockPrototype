@@ -177,12 +177,10 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Context split divides an even stack"),
 		Widget->ExecuteInventoryContextAction(EGridItemActionType::SplitStack, EGridInventoryUiSlotType::Inventory, 0));
 	TestEqual(TEXT("Even split leaves half in the main stack"), Character.InventorySlots[0].Item.Quantity, 2);
-	TestTrue(TEXT("Even split puts half on the cursor"), Inventory->HasCursorItem() && Inventory->GetCursorItem().Quantity == 2);
+	TestEqual(TEXT("Even split places half directly in the first free slot"), Character.InventorySlots[1].Item.Quantity, 2);
+	TestFalse(TEXT("Even split never uses the cursor"), Inventory->HasCursorItem());
 	TestTrue(TEXT("Even split preserves the main stack identity"), Character.InventorySlots[0].Item.RuntimeObjectId == EvenSourceId);
-	TestTrue(TEXT("Even split gives the separated stack a new identity"), Inventory->GetCursorItem().RuntimeObjectId != EvenSourceId);
-	TestTrue(TEXT("Even split can be placed through a projected empty cell"), Widget->HandleInventorySlotClicked(INDEX_NONE));
-	TestFalse(TEXT("Even split placement clears the cursor"), Inventory->HasCursorItem());
-	TestEqual(TEXT("Even split creates a second stack of two"), Character.InventorySlots[1].Item.Quantity, 2);
+	TestTrue(TEXT("Even split gives the separated stack a new identity"), Character.InventorySlots[1].Item.RuntimeObjectId != EvenSourceId);
 
 	ResetInventory(Inventory, CharacterIndex);
 	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 5);
@@ -190,14 +188,25 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Context split divides an odd stack"),
 		Widget->ExecuteInventoryContextAction(EGridItemActionType::SplitStack, EGridInventoryUiSlotType::Inventory, 0));
 	TestEqual(TEXT("Odd split keeps the extra item in the main stack"), Character.InventorySlots[0].Item.Quantity, 3);
-	TestTrue(TEXT("Odd split puts the lower half on the cursor"), Inventory->HasCursorItem() && Inventory->GetCursorItem().Quantity == 2);
+	TestEqual(TEXT("Odd split places the lower half directly in the first free slot"), Character.InventorySlots[1].Item.Quantity, 2);
+	TestFalse(TEXT("Odd split never uses the cursor"), Inventory->HasCursorItem());
 	TestTrue(TEXT("Odd split preserves the main stack identity"), Character.InventorySlots[0].Item.RuntimeObjectId == OddSourceId);
-	TestTrue(TEXT("Odd split gives the separated stack a new identity"), Inventory->GetCursorItem().RuntimeObjectId != OddSourceId);
-	TestTrue(TEXT("Odd split can be placed through a projected empty cell"), Widget->HandleInventorySlotClicked(INDEX_NONE));
-	TestFalse(TEXT("Odd split placement clears the cursor"), Inventory->HasCursorItem());
-	TestEqual(TEXT("Odd split leaves three in the main stack after placement"), Character.InventorySlots[0].Item.Quantity, 3);
-	TestEqual(TEXT("Odd split creates a second stack of two"), Character.InventorySlots[1].Item.Quantity, 2);
+	TestTrue(TEXT("Odd split gives the separated stack a new identity"), Character.InventorySlots[1].Item.RuntimeObjectId != OddSourceId);
 	TestOwnership(TEXT("Ownership is valid after context-only splitting"));
+
+	ResetInventory(Inventory, CharacterIndex);
+	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 5);
+	for (int32 SlotIndex = 1; SlotIndex < Character.InventorySlots.Num(); ++SlotIndex)
+	{
+		SetInventorySlot(Inventory, CharacterIndex, SlotIndex, OtherDefinition, 1);
+	}
+	const FGuid FullInventorySourceId = Character.InventorySlots[0].Item.RuntimeObjectId;
+	TestFalse(TEXT("Context split fails atomically when no inventory slot is free"),
+		Widget->ExecuteInventoryContextAction(EGridItemActionType::SplitStack, EGridInventoryUiSlotType::Inventory, 0));
+	TestEqual(TEXT("Full-inventory split leaves the source quantity unchanged"), Character.InventorySlots[0].Item.Quantity, 5);
+	TestTrue(TEXT("Full-inventory split preserves the source identity"), Character.InventorySlots[0].Item.RuntimeObjectId == FullInventorySourceId);
+	TestFalse(TEXT("Full-inventory split never uses the cursor"), Inventory->HasCursorItem());
+	TestOwnership(TEXT("Ownership is valid after rejected full-inventory split"));
 
 	// Scenario A: normal drag/drop moves complete stacks and never splits them.
 	ResetInventory(Inventory, CharacterIndex);

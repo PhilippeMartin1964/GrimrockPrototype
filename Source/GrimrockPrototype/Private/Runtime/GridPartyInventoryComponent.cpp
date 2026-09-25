@@ -660,6 +660,68 @@ bool UGridPartyInventoryComponent::AddItemToSelectedCharacterInventory(const FGr
 	return AddItemToCharacterInventory(PartyInventoryState.SelectedCharacterIndex, Item);
 }
 
+bool UGridPartyInventoryComponent::TrySplitInventoryStackToFirstFreeSlot(int32 CharacterIndex, int32 SourceSlotIndex)
+{
+	if (!IsValidCharacterIndex(CharacterIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Reason=InvalidCharacter"), CharacterIndex, SourceSlotIndex);
+		return false;
+	}
+
+	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+	if (!CharacterState.InventorySlots.IsValidIndex(SourceSlotIndex) || CharacterState.InventorySlots[SourceSlotIndex].IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Reason=InvalidSourceSlot"), CharacterIndex, SourceSlotIndex);
+		return false;
+	}
+
+	FGridInventorySlot& SourceSlot = CharacterState.InventorySlots[SourceSlotIndex];
+	const UGridItemDefinitionAsset* Definition = FindItemDefinition(SourceSlot.Item.ItemDefinitionId);
+	if (!Definition || !Definition->bStackable || SourceSlot.Item.Quantity < 2)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Item=%s Quantity=%d Reason=NotSplittable"),
+			CharacterIndex, SourceSlotIndex, *SourceSlot.Item.ItemDefinitionId.ToString(), SourceSlot.Item.Quantity);
+		return false;
+	}
+
+	int32 TargetSlotIndex = INDEX_NONE;
+	for (int32 SlotIndex = 0; SlotIndex < CharacterState.InventorySlots.Num(); ++SlotIndex)
+	{
+		if (CharacterState.InventorySlots[SlotIndex].IsEmpty())
+		{
+			TargetSlotIndex = SlotIndex;
+			break;
+		}
+	}
+
+	if (TargetSlotIndex == INDEX_NONE)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Item=%s Quantity=%d Reason=NoFreeSlot"),
+			CharacterIndex, SourceSlotIndex, *SourceSlot.Item.ItemDefinitionId.ToString(), SourceSlot.Item.Quantity);
+		return false;
+	}
+
+	const int32 SplitQuantity = SourceSlot.Item.Quantity / 2;
+	FGridItemInstance SplitItem = SourceSlot.Item;
+	SplitItem.RuntimeObjectId = FGuid::NewGuid();
+	SplitItem.Quantity = SplitQuantity;
+	SplitItem.OwnerType = EGridItemOwnerType::CharacterInventory;
+	SplitItem.OwnerGuid = CharacterState.CharacterId;
+	SplitItem.OwnerCharacterIndex = CharacterIndex;
+	SplitItem.EquipmentSlot = EGridEquipmentSlot::None;
+
+	SourceSlot.Item.Quantity -= SplitQuantity;
+	FGridInventorySlot& TargetSlot = CharacterState.InventorySlots[TargetSlotIndex];
+	TargetSlot.bOccupied = true;
+	TargetSlot.Item = MoveTemp(SplitItem);
+
+	NotifyPartyInventoryChanged(CharacterIndex);
+	UE_LOG(LogTemp, Log,
+		TEXT("GridInventory SplitStack Character=%d SourceSlot=%d TargetSlot=%d Item=%s SourceQuantity=%d SplitQuantity=%d Result=true"),
+		CharacterIndex, SourceSlotIndex, TargetSlotIndex, *SourceSlot.Item.ItemDefinitionId.ToString(), SourceSlot.Item.Quantity, SplitQuantity);
+	return true;
+}
+
 bool UGridPartyInventoryComponent::RemoveItemFromCharacterInventoryByRuntimeId(int32 CharacterIndex, FGuid RuntimeObjectId, FGridItemInstance& OutRemovedItem)
 {
 	OutRemovedItem = FGridItemInstance();

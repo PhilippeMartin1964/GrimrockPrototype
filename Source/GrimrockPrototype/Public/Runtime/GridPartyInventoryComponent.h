@@ -130,6 +130,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
 	bool AddItemToSelectedCharacterInventory(const FGridItemInstance& Item);
 
+	/** Splits one stack in half and writes the separated half directly into the first free inventory slot. */
+	bool TrySplitInventoryStackToFirstFreeSlot(int32 CharacterIndex, int32 SourceSlotIndex);
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
 	bool RemoveItemFromCharacterInventoryByRuntimeId(int32 CharacterIndex, FGuid RuntimeObjectId, FGridItemInstance& OutRemovedItem);
 

@@ -135,10 +135,19 @@ namespace
 			case EGridItemActionType::Combine:
 				return TEXT("Combine");
 			case EGridItemActionType::SplitStack:
-				return TEXT("SplitStack");
-			case EGridItemActionType::ToggleLight:
-				return TEXT("ToggleLight");
-			case EGridItemActionType::AddToHotbar:
+		{
+			bExecuted = SourceSlotType == EGridInventoryUiSlotType::Inventory && InventoryComponent &&
+				InventoryComponent->TrySplitInventoryStackToFirstFreeSlot(CharacterIndex, SourceSlotIndex);
+			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute SplitStack Item=%s Slot=%d Result=%s"),
+				*LastContextItem.ItemDefinitionId.ToString(), SourceSlotIndex, bExecuted ? TEXT("true") : TEXT("false"));
+			if (bExecuted)
+			{
+				CloseItemActionMenu(TEXT("SplitStack"));
+			}
+			break;
+		}
+
+		case EGridItemActionType::AddToHotbar:
 				return TEXT("AddToHotbar");
 			case EGridItemActionType::None:
 			default:
