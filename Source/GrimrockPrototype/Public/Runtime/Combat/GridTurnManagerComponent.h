@@ -381,6 +381,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|Turn Manager")
 	bool StartCombatFromPerception();
 
+	/** Starts combat with living runtime monsters that belong to explicitly triggered encounter groups. */
+	bool StartCombatForEncounterGroups(const TSet<FName>& EncounterGroupIds);
+
 	UFUNCTION(BlueprintCallable, Category = "Combat|Turn Manager|Debug")
 	bool StartCombatWithAllMonsters();
 

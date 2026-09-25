@@ -81,7 +81,7 @@ Aucune logique de perception ou de décision IA n'est ajoutée au `Tick`.
 
 ## Interaction avec MON13
 
-`StartEncounter` reste une commande de rencontre et de spawn. Elle n'appelle pas `StartCombat()`.
+Depuis MON13.6, `StartEncounter` reste une transaction de spawn mais porte aussi une intention explicite de combat. Il n'appelle toujours jamais le TurnManager de manière synchrone.
 
 `UGridMonsterEncounterComponent::ActivateWave()` termine d'abord :
 
@@ -90,9 +90,13 @@ Aucune logique de perception ou de décision IA n'est ajoutée au `Tick`.
 3. les événements `MonsterSpawned` ;
 4. l'événement `EncounterWaveStarted`.
 
-Ensuite seulement, il demande une évaluation MON14.1 différée. Une vague cachée ou hors ligne de vue est donc créée normalement sans démarrer le combat. Une vague visible engage au prochain point sûr.
+Ensuite seulement, il appelle `GridAutomaticPerceptionEngagement::RequestEncounter()`. Cette demande est différée jusqu'au prochain point runtime sûr, mais elle ne dépend ni du Facing ni de la LOS des monstres : un trigger `StartEncounter` signifie désormais réellement « créer la rencontre puis entrer en combat ».
 
-Cette séparation préserve `MonsterPlacements`, `MonsterEncounters`, `CommitDeath`, les vagues atomiques et le chemin Continue.
+Les demandes de perception ordinaires restent inchangées et exigent toujours une source visuelle MON14.1. Les groupes de rencontre explicitement déclenchés sont sélectionnés par leur `EncounterGroupId`, sans attirer les monstres sans rapport. Plusieurs groupes déclenchés dans la même fenêtre différée sont coalescés sans en perdre un.
+
+Une demande de rencontre rencontrant une action ou un mouvement momentanément non sûr est replanifiée au lieu d'être abandonnée. Répéter `StartEncounter` pendant une vague active reste idempotent pour le spawn et réémet uniquement l'intention d'engagement.
+
+Cette séparation préserve `MonsterPlacements`, `MonsterEncounters`, `CommitDeath`, les vagues atomiques, le checkpoint pré-combat et le chemin Continue.
 
 ## Dormance
 
@@ -116,8 +120,10 @@ La suite `Grimrock.Monsters.MON14.1` couvre :
 - placement de vague future sans Actor ;
 - coalescence de plusieurs notifications ;
 - propagation MON7 et déduplication ;
-- `StartEncounter` sans vue ;
-- `StartEncounter` avec vue ;
+- démarrage déterministe d'un `StartEncounter` sans LOS ;
+- exclusion des monstres hors groupe de rencontre ;
+- conservation/retry d'une demande de rencontre pendant un état momentanément non sûr ;
+- coalescence de plusieurs groupes de rencontre déclenchés dans la même fenêtre ;
 - garde de restauration/Continue ;
 - requête après rebuild ;
 - maintien du démarrage manuel historique par l'ouïe.
@@ -135,8 +141,8 @@ Les scénarios `StartEncounter` chargent les vrais assets de présentation et la
 5. Refaire derrière un mur : aucun combat tant que la ligne de vue reste bloquée.
 6. Refaire derrière une porte fermée puis ouvrir la porte : le combat doit démarrer après l'ouverture si le groupe se trouve dans l'axe avant, jamais avant.
 7. Placer le groupe en diagonale dans la portée auditive seulement : vérifier l'alerte logique sans entrée automatique en combat.
-8. Déclencher une rencontre dont la vague apparaît hors vue : vérifier le spawn sans combat.
-9. Déclencher une rencontre dont au moins un membre apparaît en vue et regarde le groupe : vérifier un unique démarrage après la vague complète.
+8. Déclencher une rencontre dont la vague apparaît hors vue ou dos au groupe : vérifier que le combat démarre quand même après la vague complète.
+9. Déclencher deux groupes de rencontre depuis la même activation : vérifier un seul combat contenant les deux groupes et aucun monstre sans rapport.
 10. Tuer la première vague et vérifier que la vague suivante n'existe pas dans l'initiative avant son apparition.
 11. Sauvegarder dans un slot de test distinct de `GrimrockParty`, faire Continue et vérifier qu'aucun combat ne démarre pendant la restauration, puis qu'une perception visuelle stable peut engager ensuite.
 12. Vérifier que F5 reste utilisable comme diagnostic et n'est plus nécessaire au gameplay normal.

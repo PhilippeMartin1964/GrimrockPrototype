@@ -29,6 +29,9 @@ namespace GridAutomaticPerceptionEngagement
 
 	/** Queue one coalesced automatic-perception evaluation for this runtime. */
 	GRIMROCKPROTOTYPE_API void Request(AGridLevelRuntimeActor* RuntimeActor, FName Reason);
+
+	/** Queue one deterministic combat start for an explicitly triggered encounter group. */
+	GRIMROCKPROTOTYPE_API void RequestEncounter(AGridLevelRuntimeActor* RuntimeActor, FName EncounterGroupId, FName Reason);
 }
 
 /**
@@ -46,6 +49,7 @@ class GRIMROCKPROTOTYPE_API UGridAutomaticPerceptionEngagementSubsystem : public
 
 public:
 	void RequestEvaluation(AGridLevelRuntimeActor* RuntimeActor, FName Reason);
+	void RequestEncounterEvaluation(AGridLevelRuntimeActor* RuntimeActor, FName EncounterGroupId, FName Reason);
 
 	/** Executes the currently queued request immediately. Used by automation tests. */
 	bool ProcessPendingEvaluationNow();
@@ -69,10 +73,11 @@ public:
 
 private:
 	void HandleDeferredEvaluation();
-	void RequeueAfterUnsafeRuntime(AGridLevelRuntimeActor* RuntimeActor);
+	void RequeueAfterUnsafeRuntime(AGridLevelRuntimeActor* RuntimeActor, FName Reason, const TSet<FName>& EncounterGroupIds);
 
 	TWeakObjectPtr<AGridLevelRuntimeActor> PendingRuntimeActor;
 	FName PendingReason = NAME_None;
+	TSet<FName> PendingEncounterGroupIds;
 	bool bEvaluationQueued = false;
 	int32 QueuedRequestCount = 0;
 	int32 EffectiveEvaluationCount = 0;

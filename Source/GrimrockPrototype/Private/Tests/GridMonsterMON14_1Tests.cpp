@@ -442,42 +442,99 @@ bool FGridMonsterMON141CoalescingAggroTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON141EncounterVisibilityTest, "Grimrock.Monsters.MON14.1.EncounterVisibility",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON136DeterministicEncounterStartTest, "Grimrock.Monsters.MON13.6.DeterministicEncounterStart",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMonsterMON141EncounterVisibilityTest::RunTest(const FString& Parameters)
+bool FGridMonsterMON136DeterministicEncounterStartTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	{
-		FGridMON141Fixture Fixture;
-		if (!Fixture.Initialize())
-			return false;
-		UGridMonsterDefinitionAsset* Definition = MakeAssetBackedDefinition(*this, Fixture.Runtime, TEXT("MON14_EncounterHidden"), 6, 0);
-		if (!Definition)
-			return false;
-		const FGuid SpawnId = FGuid(14, 2, 1, 1);
-		Fixture.Level->MonsterSpawns.Add(MakeEncounterSpawn(Definition, SpawnId, FIntPoint(3, 3), TEXT("EncounterHidden"), 0));
-		TestTrue(TEXT("StartEncounter without LOS still succeeds as a spawn transaction"), Fixture.Runtime->StartMonsterEncounter(SpawnId));
-		TestNotNull(TEXT("Encounter member was spawned"), Fixture.Runtime->FindSpawnedMonsterActor(SpawnId));
-		TestFalse(TEXT("Encounter without visual LOS does not auto-start combat"), Fixture.Engagement->ProcessPendingEvaluationNow());
-		TestFalse(TEXT("Combat stays inactive after hidden encounter spawn"), Fixture.TurnManager->bCombatActive);
-	}
+	FGridMON141Fixture Fixture;
+	if (!Fixture.Initialize())
+		return false;
 
-	{
-		FGridMON141Fixture Fixture;
-		if (!Fixture.Initialize())
-			return false;
-		UGridMonsterDefinitionAsset* Definition = MakeAssetBackedDefinition(*this, Fixture.Runtime, TEXT("MON14_EncounterVisible"), 6, 0);
-		if (!Definition)
-			return false;
-		const FGuid SpawnId = FGuid(14, 2, 2, 1);
-		Fixture.Level->MonsterSpawns.Add(MakeEncounterSpawn(Definition, SpawnId, FIntPoint(1, 4), TEXT("EncounterVisible"), 0));
-		TestTrue(TEXT("StartEncounter with LOS succeeds as a spawn transaction"), Fixture.Runtime->StartMonsterEncounter(SpawnId));
-		TestNotNull(TEXT("Visible encounter member was spawned"), Fixture.Runtime->FindSpawnedMonsterActor(SpawnId));
-		TestTrue(TEXT("Visible encounter starts combat only in deferred perception evaluation"), Fixture.Engagement->ProcessPendingEvaluationNow());
-		TestTrue(TEXT("Combat is active after visible encounter evaluation"), Fixture.TurnManager->bCombatActive);
-	}
+	UGridMonsterDefinitionAsset* EncounterDefinition = MakeAssetBackedDefinition(*this, Fixture.Runtime, TEXT("MON136_EncounterHidden"), 1, 0);
+	if (!EncounterDefinition)
+		return false;
+
+	AGridMonsterActor* Unrelated = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON136_Unrelated"), 0, 0), FIntPoint(6, 6), TEXT("OtherGroup"));
+	TestNotNull(TEXT("Unrelated monster exists"), Unrelated);
+
+	const FGuid SpawnId = FGuid(13, 6, 1, 1);
+	Fixture.Level->MonsterSpawns.Add(MakeEncounterSpawn(EncounterDefinition, SpawnId, FIntPoint(3, 3), TEXT("EncounterReliable"), 0));
+	TestTrue(TEXT("StartEncounter succeeds even without LOS or useful facing"), Fixture.Runtime->StartMonsterEncounter(SpawnId));
+	AGridMonsterActor* EncounterMonster = Fixture.Runtime->FindSpawnedMonsterActor(SpawnId);
+	TestNotNull(TEXT("Encounter member was spawned"), EncounterMonster);
+	TestTrue(TEXT("Triggered encounter starts combat at the deferred safe point"), Fixture.Engagement->ProcessPendingEvaluationNow());
+	TestTrue(TEXT("Combat is active after triggered encounter evaluation"), Fixture.TurnManager->bCombatActive);
+	TestEqual(TEXT("Only the triggered encounter group participates"), Fixture.TurnManager->CombatMonsters.Num(), 1);
+	TestEqual(TEXT("Triggered encounter member participates once"), CountParticipant(Fixture.TurnManager, EncounterMonster), 1);
+	TestEqual(TEXT("Unrelated monster is not pulled into triggered encounter"), CountParticipant(Fixture.TurnManager, Unrelated), 0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON136DeferredRetryTest, "Grimrock.Monsters.MON13.6.DeferredRetry",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON136DeferredRetryTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	FGridMON141Fixture Fixture;
+	if (!Fixture.Initialize())
+		return false;
+
+	UGridMonsterDefinitionAsset* Definition = MakeAssetBackedDefinition(*this, Fixture.Runtime, TEXT("MON136_Deferred"), 1, 0);
+	if (!Definition)
+		return false;
+
+	const FGuid SpawnId = FGuid(13, 6, 2, 1);
+	Fixture.Level->MonsterSpawns.Add(MakeEncounterSpawn(Definition, SpawnId, FIntPoint(3, 3), TEXT("EncounterDeferred"), 0));
+	TestTrue(TEXT("Initial StartEncounter succeeds"), Fixture.Runtime->StartMonsterEncounter(SpawnId));
+	AGridMonsterActor* SpawnedBeforeRepeat = Fixture.Runtime->FindSpawnedMonsterActor(SpawnId);
+	TestNotNull(TEXT("Encounter member exists before repeated trigger"), SpawnedBeforeRepeat);
+
+	const int32 RequestsBeforeRepeat = Fixture.Engagement->GetQueuedRequestCount();
+	TestTrue(TEXT("Repeated StartEncounter remains idempotent"), Fixture.Runtime->StartMonsterEncounter(SpawnId));
+	TestEqual(TEXT("Repeated StartEncounter does not duplicate the actor"), Fixture.Runtime->FindSpawnedMonsterActor(SpawnId), SpawnedBeforeRepeat);
+	TestTrue(TEXT("Repeated StartEncounter reissues deterministic engagement"), Fixture.Engagement->GetQueuedRequestCount() > RequestsBeforeRepeat);
+
+	Fixture.TurnManager->bHasActiveAction = true;
+	TestFalse(TEXT("Encounter combat does not start during an unsafe action"), Fixture.Engagement->ProcessPendingEvaluationNow());
+	TestFalse(TEXT("Combat remains inactive while unsafe"), Fixture.TurnManager->bCombatActive);
+	TestTrue(TEXT("Encounter engagement is retained instead of being lost"), Fixture.Engagement->HasPendingEvaluation());
+
+	Fixture.TurnManager->bHasActiveAction = false;
+	TestTrue(TEXT("Deferred encounter starts as soon as the runtime is safe"), Fixture.Engagement->ProcessPendingEvaluationNow());
+	TestTrue(TEXT("Combat becomes active after deferred retry"), Fixture.TurnManager->bCombatActive);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON136CoalescedGroupsTest, "Grimrock.Monsters.MON13.6.CoalescedGroups",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON136CoalescedGroupsTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	FGridMON141Fixture Fixture;
+	if (!Fixture.Initialize())
+		return false;
+
+	UGridMonsterDefinitionAsset* Definition = MakeAssetBackedDefinition(*this, Fixture.Runtime, TEXT("MON136_Coalesced"), 1, 0);
+	if (!Definition)
+		return false;
+
+	const FGuid SpawnA = FGuid(13, 6, 3, 1);
+	const FGuid SpawnB = FGuid(13, 6, 3, 2);
+	Fixture.Level->MonsterSpawns.Add(MakeEncounterSpawn(Definition, SpawnA, FIntPoint(3, 3), TEXT("EncounterA"), 0));
+	Fixture.Level->MonsterSpawns.Add(MakeEncounterSpawn(Definition, SpawnB, FIntPoint(4, 4), TEXT("EncounterB"), 0));
+
+	TestTrue(TEXT("First encounter starts its spawn transaction"), Fixture.Runtime->StartMonsterEncounter(SpawnA));
+	TestTrue(TEXT("Second encounter starts in the same deferred window"), Fixture.Runtime->StartMonsterEncounter(SpawnB));
+	TestTrue(TEXT("Both coalesced encounter groups start one combat"), Fixture.Engagement->ProcessPendingEvaluationNow());
+	TestTrue(TEXT("Combat is active after coalesced encounter start"), Fixture.TurnManager->bCombatActive);
+	TestEqual(TEXT("Both explicitly triggered groups participate"), Fixture.TurnManager->CombatMonsters.Num(), 2);
+	TestEqual(TEXT("Encounter A participates once"), CountParticipant(Fixture.TurnManager, Fixture.Runtime->FindSpawnedMonsterActor(SpawnA)), 1);
+	TestEqual(TEXT("Encounter B participates once"), CountParticipant(Fixture.TurnManager, Fixture.Runtime->FindSpawnedMonsterActor(SpawnB)), 1);
 	return true;
 }
 

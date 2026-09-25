@@ -219,6 +219,34 @@ bool UGridTurnManagerComponent::StartCombatFromPerception()
 	return StartCombatInternal(Monsters);
 }
 
+bool UGridTurnManagerComponent::StartCombatForEncounterGroups(const TSet<FName>& EncounterGroupIds)
+{
+	if (EncounterGroupIds.IsEmpty())
+	{
+		UE_LOG(LogGridTurnManager, Warning, TEXT("[MON13.6] Encounter combat rejected Reason=NoEncounterGroup"));
+		return false;
+	}
+
+	TArray<AGridMonsterActor*> LivingMonsters;
+	CollectAllLivingMonsters(LivingMonsters);
+
+	TArray<AGridMonsterActor*> EncounterMonsters;
+	for (AGridMonsterActor* Monster : LivingMonsters)
+	{
+		if (!IsValid(Monster) || Monster->EncounterGroupId.IsNone() || !EncounterGroupIds.Contains(Monster->EncounterGroupId))
+		{
+			continue;
+		}
+
+		Monster->SetMonsterState(EGridMonsterState::Alert);
+		EncounterMonsters.Add(Monster);
+	}
+
+	UE_LOG(LogGridTurnManager, Log, TEXT("[MON13.6] Encounter combat candidates Groups=%d Living=%d Selected=%d"), EncounterGroupIds.Num(),
+		LivingMonsters.Num(), EncounterMonsters.Num());
+	return StartCombatInternal(EncounterMonsters);
+}
+
 bool UGridTurnManagerComponent::StartCombatWithAllMonsters()
 {
 	TArray<AGridMonsterActor*> Monsters;

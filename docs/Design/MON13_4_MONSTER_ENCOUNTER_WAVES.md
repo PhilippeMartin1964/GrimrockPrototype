@@ -67,11 +67,15 @@ Une vague réussie interrompt le combat courant, comme les mutations de
 population MON13.3, afin que l'initiative soit reconstruite depuis la
 population réelle.
 
-`StartEncounter` crée la population de la vague, mais ne force pas le début du
-combat. Dans la configuration actuelle, `NumPad 1` demande un combat avec les
-monstres qui perçoivent le groupe et `NumPad 5` constitue la commande de debug
-avec tous les monstres vivants. Le déclenchement automatique du combat lors de
-la création d'une vague serait un contrat gameplay distinct.
+Depuis MON13.6, `StartEncounter` signifie explicitement « créer la vague puis
+engager cette rencontre ». L'engagement reste différé jusqu'au prochain point
+runtime sûr et passe par le même checkpoint pré-combat que MON14. Il ne dépend
+pas de la LOS ni du Facing. Seuls les monstres vivants des `EncounterGroupId`
+explicitement déclenchés sont admis ; les monstres d'exploration sans rapport
+ne sont pas aspirés dans le combat.
+
+Le démarrage automatique ordinaire des monstres d'exploration reste distinct :
+il continue à dépendre de la perception visuelle MON14.1.
 
 ## Persistance
 

@@ -193,7 +193,7 @@ bool UGridMonsterEncounterComponent::ActivateWave(FGridRuntimeMonsterEncounterSt
 	}
 	RuntimeActor->ExecuteLinksFromRuntimeObject(State.AnchorSpawnId, EGridObjectEvent::EncounterWaveStarted);
 
-	GridAutomaticPerceptionEngagement::Request(RuntimeActor, TEXT("EncounterWaveActivated"));
+	GridAutomaticPerceptionEngagement::RequestEncounter(RuntimeActor, State.EncounterGroupId, TEXT("EncounterWaveActivated"));
 	return IsWaveDefeated(State, WaveIndex) ? AdvanceCompletedWave(State) : true;
 }
 
@@ -252,7 +252,15 @@ bool UGridMonsterEncounterComponent::StartEncounter(FGuid AnchorSpawnId)
 	}
 	if (State.bStarted)
 	{
-		return IsWaveDefeated(State, State.ActiveWaveIndex) ? AdvanceCompletedWave(State) : true;
+		if (IsWaveDefeated(State, State.ActiveWaveIndex))
+		{
+			return AdvanceCompletedWave(State);
+		}
+
+		GridAutomaticPerceptionEngagement::RequestEncounter(RuntimeActor, State.EncounterGroupId, TEXT("EncounterStartRepeated"));
+		UE_LOG(LogGridMonsterState, Log, TEXT("[GridMonsterEncounter] StartRepeated Encounter=%s Wave=%d EngagementRequeued=true"),
+			*State.EncounterGroupId.ToString(), State.ActiveWaveIndex);
+		return true;
 	}
 
 	const int32 FirstWaveIndex = FindNextWaveIndex(State, INDEX_NONE);

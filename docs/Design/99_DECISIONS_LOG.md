@@ -1162,3 +1162,17 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - `FGridObjectPaletteEntry.PaletteCategory` est l'unique autorité de groupement de palette.
 - `Stairs_Up` et `Stairs_Down` sont des Relocations de sol, classées `Navigation` dans la palette, avec une destination par défaut non configurée.
 - `bRelocationInitiallyEnabled` porte l'état initial d'une Relocation et vaut vrai par défaut.
+
+
+---
+
+## 2026-09-25 — MON13.6 : Encounter Start Reliability
+
+- `StartEncounter` conserve son spawn atomique MON13 mais porte désormais une intention explicite d'entrée en combat.
+- Une rencontre explicitement déclenchée ne dépend ni de la LOS ni du Facing ; ces règles restent celles des monstres d'exploration MON14.1.
+- L'intention d'engagement passe toujours par `UGridAutomaticPerceptionEngagementSubsystem`, le checkpoint pré-combat et un point runtime sûr.
+- Une demande de rencontre temporairement bloquée par une action ou un mouvement est replanifiée au lieu d'être perdue.
+- Répéter `StartEncounter` pendant une vague active ne respawn rien mais réémet l'engagement.
+- Plusieurs `EncounterGroupId` déclenchés dans la même fenêtre différée sont coalescés sans perte ; les monstres hors groupe restent exclus.
+- Aucun Tick IA, aucun nouvel objet de grille et aucune dépendance directe Encounter -> TurnManager n'est introduit.
+- Document : `docs/Design/MON13_6_ENCOUNTER_START_RELIABILITY.md`.

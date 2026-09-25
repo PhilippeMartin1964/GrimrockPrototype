@@ -101,6 +101,25 @@ namespace GridAutomaticPerceptionEngagement
 			Subsystem->RequestEvaluation(RuntimeActor, Reason);
 		}
 	}
+
+	void RequestEncounter(AGridLevelRuntimeActor* RuntimeActor, FName EncounterGroupId, FName Reason)
+	{
+		if (!IsValid(RuntimeActor) || EncounterGroupId.IsNone())
+		{
+			return;
+		}
+
+		UWorld* World = RuntimeActor->GetWorld();
+		if (!World || !World->IsGameWorld())
+		{
+			return;
+		}
+
+		if (UGridAutomaticPerceptionEngagementSubsystem* Subsystem = World->GetSubsystem<UGridAutomaticPerceptionEngagementSubsystem>())
+		{
+			Subsystem->RequestEncounterEvaluation(RuntimeActor, EncounterGroupId, Reason);
+		}
+	}
 }
 
 void UGridAutomaticPerceptionEngagementSubsystem::RequestEvaluation(AGridLevelRuntimeActor* RuntimeActor, FName Reason)
@@ -118,7 +137,7 @@ void UGridAutomaticPerceptionEngagementSubsystem::RequestEvaluation(AGridLevelRu
 
 	++QueuedRequestCount;
 	PendingRuntimeActor = RuntimeActor;
-	if (!Reason.IsNone())
+	if (!Reason.IsNone() && PendingEncounterGroupIds.IsEmpty())
 	{
 		PendingReason = Reason;
 	}
@@ -132,12 +151,36 @@ void UGridAutomaticPerceptionEngagementSubsystem::RequestEvaluation(AGridLevelRu
 	World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UGridAutomaticPerceptionEngagementSubsystem::HandleDeferredEvaluation));
 }
 
+void UGridAutomaticPerceptionEngagementSubsystem::RequestEncounterEvaluation(AGridLevelRuntimeActor* RuntimeActor, FName EncounterGroupId, FName Reason)
+{
+	if (EncounterGroupId.IsNone())
+	{
+		return;
+	}
+
+	RequestEvaluation(RuntimeActor, NAME_None);
+	if (!IsValid(RuntimeActor) || RuntimeActor->GetWorld() != GetWorld())
+	{
+		return;
+	}
+
+	PendingEncounterGroupIds.Add(EncounterGroupId);
+	if (!Reason.IsNone())
+	{
+		PendingReason = Reason;
+	}
+
+	UE_LOG(LogGridAutomaticEngagement, Log, TEXT("[MON13.6] Encounter engagement queued Runtime=%s Group=%s Reason=%s"),
+		*GetNameSafe(RuntimeActor), *EncounterGroupId.ToString(), *PendingReason.ToString());
+}
+
 void UGridAutomaticPerceptionEngagementSubsystem::HandleDeferredEvaluation()
 {
 	ProcessPendingEvaluationNow();
 }
 
-void UGridAutomaticPerceptionEngagementSubsystem::RequeueAfterUnsafeRuntime(AGridLevelRuntimeActor* RuntimeActor)
+void UGridAutomaticPerceptionEngagementSubsystem::RequeueAfterUnsafeRuntime(
+	AGridLevelRuntimeActor* RuntimeActor, FName Reason, const TSet<FName>& EncounterGroupIds)
 {
 	if (!IsValid(RuntimeActor) || RuntimeActor->GetWorld() != GetWorld())
 	{
@@ -151,6 +194,11 @@ void UGridAutomaticPerceptionEngagementSubsystem::RequeueAfterUnsafeRuntime(AGri
 	}
 
 	PendingRuntimeActor = RuntimeActor;
+	PendingReason = Reason;
+	for (const FName EncounterGroupId : EncounterGroupIds)
+	{
+		PendingEncounterGroupIds.Add(EncounterGroupId);
+	}
 	bEvaluationQueued = true;
 	World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UGridAutomaticPerceptionEngagementSubsystem::HandleDeferredEvaluation));
 }
@@ -159,10 +207,13 @@ bool UGridAutomaticPerceptionEngagementSubsystem::ProcessPendingEvaluationNow()
 {
 	AGridLevelRuntimeActor* RuntimeActor = PendingRuntimeActor.Get();
 	const FName Reason = PendingReason;
+	const TSet<FName> EncounterGroupIds = PendingEncounterGroupIds;
+	const bool bEncounterStartRequested = !EncounterGroupIds.IsEmpty();
 
 	bEvaluationQueued = false;
 	PendingRuntimeActor.Reset();
 	PendingReason = NAME_None;
+	PendingEncounterGroupIds.Reset();
 
 	UWorld* World = GetWorld();
 	if (!IsValid(RuntimeActor) || !World || !World->IsGameWorld() || RuntimeActor->GetWorld() != World)
@@ -172,8 +223,7 @@ bool UGridAutomaticPerceptionEngagementSubsystem::ProcessPendingEvaluationNow()
 
 	if (RuntimeActor->bIsExecutingRelocation)
 	{
-		PendingReason = Reason;
-		RequeueAfterUnsafeRuntime(RuntimeActor);
+		RequeueAfterUnsafeRuntime(RuntimeActor, Reason, EncounterGroupIds);
 		return false;
 	}
 
@@ -194,8 +244,7 @@ bool UGridAutomaticPerceptionEngagementSubsystem::ProcessPendingEvaluationNow()
 
 	if (IsPartyBetweenGridCells(RuntimeActor, TurnManager->PartyPawn))
 	{
-		PendingReason = Reason;
-		RequeueAfterUnsafeRuntime(RuntimeActor);
+		RequeueAfterUnsafeRuntime(RuntimeActor, Reason, EncounterGroupIds);
 		return false;
 	}
 
@@ -205,7 +254,7 @@ bool UGridAutomaticPerceptionEngagementSubsystem::ProcessPendingEvaluationNow()
 	// elsewhere in the same dungeon level.
 	const bool bExplorationCompatiblePhase =
 		TurnManager->CurrentPhase == EGridCombatPhase::Exploration || (!TurnManager->bCombatActive && TurnManager->CurrentPhase == EGridCombatPhase::Victory);
-	if (TurnManager->bCombatActive || !bExplorationCompatiblePhase || TurnManager->IsExecutingAction() || TurnManager->IsPartyMotionInProgress())
+	if (TurnManager->bCombatActive || !bExplorationCompatiblePhase)
 	{
 		UE_LOG(LogGridAutomaticEngagement, Verbose,
 			TEXT("[MON14.1] Evaluation skipped Runtime=%s Reason=%s Cause=UnsafeCombatState Phase=%d Active=%s Action=%s Motion=%s"),
@@ -215,59 +264,113 @@ bool UGridAutomaticPerceptionEngagementSubsystem::ProcessPendingEvaluationNow()
 		return false;
 	}
 
+	if (TurnManager->IsExecutingAction() || TurnManager->IsPartyMotionInProgress())
+	{
+		if (bEncounterStartRequested)
+		{
+			UE_LOG(LogGridAutomaticEngagement, Log,
+				TEXT("[MON13.6] Encounter engagement deferred Runtime=%s Reason=%s Cause=UnsafeActionOrMotion Action=%s Motion=%s"),
+				*GetNameSafe(RuntimeActor), *Reason.ToString(), TurnManager->IsExecutingAction() ? TEXT("true") : TEXT("false"),
+				TurnManager->IsPartyMotionInProgress() ? TEXT("true") : TEXT("false"));
+			RequeueAfterUnsafeRuntime(RuntimeActor, Reason, EncounterGroupIds);
+		}
+		else
+		{
+			UE_LOG(LogGridAutomaticEngagement, Verbose,
+				TEXT("[MON14.1] Evaluation skipped Runtime=%s Reason=%s Cause=UnsafeActionOrMotion Action=%s Motion=%s"), *GetNameSafe(RuntimeActor),
+				*Reason.ToString(), TurnManager->IsExecutingAction() ? TEXT("true") : TEXT("false"),
+				TurnManager->IsPartyMotionInProgress() ? TEXT("true") : TEXT("false"));
+		}
+		return false;
+	}
+
 	++EffectiveEvaluationCount;
 
 	bool bStartedCombat = false;
-	bool bHadVisualSource = false;
 	bool bCheckpointGateSatisfied = true;
 	bool bCheckpointSkipped = false;
-	{
-		GridAutomaticPerceptionEngagement::FScopedVisualSourceRequirement VisualOnlyScope;
 
-		// MON18.9.1 performs the same visual-only perception preflight that
-		// StartCombatFromPerception will immediately repeat. This keeps routine
-		// no-contact evaluations disk-free while ensuring the checkpoint is
-		// written before StartCombatInternal mutates initiative/combat state.
-		bHadVisualSource = HasImmediateVisualCombatSource(RuntimeActor, TurnManager);
-		if (bHadVisualSource)
+	if (bEncounterStartRequested)
+	{
+		FText CheckpointError;
+		bCheckpointGateSatisfied = FGridCombatSavePolicy::PreparePreCombatCheckpoint(TurnManager->PartyPawn, CheckpointError, bCheckpointSkipped);
+		if (!bCheckpointGateSatisfied)
 		{
-			FText CheckpointError;
-			bCheckpointGateSatisfied = FGridCombatSavePolicy::PreparePreCombatCheckpoint(TurnManager->PartyPawn, CheckpointError, bCheckpointSkipped);
-			if (!bCheckpointGateSatisfied)
-			{
-				UE_LOG(LogGridAutomaticEngagement, Warning,
-					TEXT("[MON18.9.1] Automatic combat blocked Runtime=%s Reason=%s Cause=PreCombatCheckpointFailed Error=%s"), *GetNameSafe(RuntimeActor),
-					*Reason.ToString(), *CheckpointError.ToString());
-			}
+			UE_LOG(LogGridAutomaticEngagement, Warning,
+				TEXT("[MON13.6] Encounter combat blocked Runtime=%s Reason=%s Cause=PreCombatCheckpointFailed Error=%s"), *GetNameSafe(RuntimeActor),
+				*Reason.ToString(), *CheckpointError.ToString());
+		}
+		else
+		{
+			bStartedCombat = TurnManager->StartCombatForEncounterGroups(EncounterGroupIds);
 		}
 
-		if (bCheckpointGateSatisfied)
+		if (bStartedCombat)
 		{
-			bStartedCombat = TurnManager->StartCombatFromPerception();
+			++SuccessfulStartCount;
+			UE_LOG(LogGridAutomaticEngagement, Log,
+				TEXT("[MON13.6] Encounter combat started Runtime=%s Reason=%s Groups=%d Evaluation=%d Checkpoint=%s"), *GetNameSafe(RuntimeActor),
+				*Reason.ToString(), EncounterGroupIds.Num(), EffectiveEvaluationCount, bCheckpointSkipped ? TEXT("SkippedTransient") : TEXT("Saved"));
 		}
-	}
-
-	// A synchronous second perception pass should never discover a new source
-	// that the preflight missed. Fail closed if that invariant is violated so
-	// production cannot enter an uncheckpointed combat silently.
-	if (bStartedCombat && !bHadVisualSource)
-	{
-		UE_LOG(LogGridAutomaticEngagement, Error, TEXT("[MON18.9.1] Automatic combat aborted Runtime=%s Reason=%s Cause=StartedWithoutPreCombatCheckpoint"),
-			*GetNameSafe(RuntimeActor), *Reason.ToString());
-		TurnManager->AbortCombat();
-		bStartedCombat = false;
-	}
-
-	if (bStartedCombat)
-	{
-		++SuccessfulStartCount;
-		UE_LOG(LogGridAutomaticEngagement, Log, TEXT("[MON14.1] Automatic combat started Runtime=%s Reason=%s Evaluation=%d Checkpoint=%s"),
-			*GetNameSafe(RuntimeActor), *Reason.ToString(), EffectiveEvaluationCount, bCheckpointSkipped ? TEXT("SkippedTransient") : TEXT("Saved"));
+		else if (bCheckpointGateSatisfied)
+		{
+			UE_LOG(LogGridAutomaticEngagement, Warning,
+				TEXT("[MON13.6] Encounter combat not started Runtime=%s Reason=%s Groups=%d Evaluation=%d Cause=NoCombatReadyEncounterParticipant"),
+				*GetNameSafe(RuntimeActor), *Reason.ToString(), EncounterGroupIds.Num(), EffectiveEvaluationCount);
+		}
 	}
 	else
 	{
-		UE_LOG(LogGridAutomaticEngagement, Verbose, TEXT("[MON14.1] No automatic engagement Runtime=%s Reason=%s Evaluation=%d"), *GetNameSafe(RuntimeActor),
-			*Reason.ToString(), EffectiveEvaluationCount);
+		bool bHadVisualSource = false;
+		{
+			GridAutomaticPerceptionEngagement::FScopedVisualSourceRequirement VisualOnlyScope;
+
+			// MON18.9.1 performs the same visual-only perception preflight that
+			// StartCombatFromPerception will immediately repeat. This keeps routine
+			// no-contact evaluations disk-free while ensuring the checkpoint is
+			// written before StartCombatInternal mutates initiative/combat state.
+			bHadVisualSource = HasImmediateVisualCombatSource(RuntimeActor, TurnManager);
+			if (bHadVisualSource)
+			{
+				FText CheckpointError;
+				bCheckpointGateSatisfied = FGridCombatSavePolicy::PreparePreCombatCheckpoint(TurnManager->PartyPawn, CheckpointError, bCheckpointSkipped);
+				if (!bCheckpointGateSatisfied)
+				{
+					UE_LOG(LogGridAutomaticEngagement, Warning,
+						TEXT("[MON18.9.1] Automatic combat blocked Runtime=%s Reason=%s Cause=PreCombatCheckpointFailed Error=%s"), *GetNameSafe(RuntimeActor),
+						*Reason.ToString(), *CheckpointError.ToString());
+				}
+			}
+
+			if (bCheckpointGateSatisfied)
+			{
+				bStartedCombat = TurnManager->StartCombatFromPerception();
+			}
+		}
+
+		// A synchronous second perception pass should never discover a new source
+		// that the preflight missed. Fail closed if that invariant is violated so
+		// production cannot enter an uncheckpointed combat silently.
+		if (bStartedCombat && !bHadVisualSource)
+		{
+			UE_LOG(LogGridAutomaticEngagement, Error,
+				TEXT("[MON18.9.1] Automatic combat aborted Runtime=%s Reason=%s Cause=StartedWithoutPreCombatCheckpoint"), *GetNameSafe(RuntimeActor),
+				*Reason.ToString());
+			TurnManager->AbortCombat();
+			bStartedCombat = false;
+		}
+
+		if (bStartedCombat)
+		{
+			++SuccessfulStartCount;
+			UE_LOG(LogGridAutomaticEngagement, Log, TEXT("[MON14.1] Automatic combat started Runtime=%s Reason=%s Evaluation=%d Checkpoint=%s"),
+				*GetNameSafe(RuntimeActor), *Reason.ToString(), EffectiveEvaluationCount, bCheckpointSkipped ? TEXT("SkippedTransient") : TEXT("Saved"));
+		}
+		else
+		{
+			UE_LOG(LogGridAutomaticEngagement, Verbose, TEXT("[MON14.1] No automatic engagement Runtime=%s Reason=%s Evaluation=%d"),
+				*GetNameSafe(RuntimeActor), *Reason.ToString(), EffectiveEvaluationCount);
+		}
 	}
 
 	if (UGridMonsterPatrolSubsystem* PatrolSubsystem = World->GetSubsystem<UGridMonsterPatrolSubsystem>())
