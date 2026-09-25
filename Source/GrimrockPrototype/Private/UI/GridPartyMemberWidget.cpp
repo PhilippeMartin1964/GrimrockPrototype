@@ -8,7 +8,6 @@
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
-#include "RPG/RPGClassVisualAsset.h"
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryWidget.h"
 
@@ -29,19 +28,6 @@ void UGridPartyMemberWidget::SetStatusEffects(const TArray<FGridStatusEffectPres
 {
 	CachedStatusEffects = InStatusEffects;
 	RefreshBoundStatusEffects();
-}
-
-void UGridPartyMemberWidget::SetAvailableClassVisuals(const TArray<URPGClassVisualAsset*>& InAvailableClassVisuals)
-{
-	AvailableClassVisuals.Reset();
-	for (URPGClassVisualAsset* ClassVisual : InAvailableClassVisuals)
-	{
-		if (ClassVisual)
-		{
-			AvailableClassVisuals.Add(ClassVisual);
-		}
-	}
-	RefreshBoundMemberVisuals();
 }
 
 bool UGridPartyMemberWidget::IsSelected() const
@@ -75,29 +61,8 @@ void UGridPartyMemberWidget::RefreshMemberVisual_Implementation()
 {
 }
 
-const URPGClassVisualAsset* UGridPartyMemberWidget::FindClassVisualForCachedClass() const
-{
-	if (CachedSummary.ClassId.IsNone())
-	{
-		return nullptr;
-	}
-
-	for (const URPGClassVisualAsset* ClassVisual : AvailableClassVisuals)
-	{
-		if (ClassVisual && ClassVisual->IsValidForClass(CachedSummary.ClassId))
-		{
-			return ClassVisual;
-		}
-	}
-
-	return nullptr;
-}
-
 void UGridPartyMemberWidget::RefreshBoundMemberVisuals()
 {
-	const URPGClassVisualAsset* ClassVisual = FindClassVisualForCachedClass();
-	const TSoftObjectPtr<UTexture2D> ClassIcon = ClassVisual && !ClassVisual->ClassIcon.IsNull() ? ClassVisual->ClassIcon : CachedSummary.ClassIcon;
-
 	if (Image_Portrait)
 	{
 		if (CachedSummary.Portrait.IsNull())
@@ -108,32 +73,6 @@ void UGridPartyMemberWidget::RefreshBoundMemberVisuals()
 		{
 			Image_Portrait->SetBrushFromSoftTexture(CachedSummary.Portrait, false);
 			Image_Portrait->SetVisibility(ESlateVisibility::HitTestInvisible);
-		}
-	}
-
-	if (Image_ClassIcon)
-	{
-		if (ClassIcon.IsNull())
-		{
-			Image_ClassIcon->SetVisibility(ESlateVisibility::Collapsed);
-		}
-		else
-		{
-			Image_ClassIcon->SetBrushFromSoftTexture(ClassIcon, false);
-			Image_ClassIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
-		}
-	}
-
-	if (Border_ClassAccent)
-	{
-		if (!ClassVisual)
-		{
-			Border_ClassAccent->SetVisibility(ESlateVisibility::Collapsed);
-		}
-		else
-		{
-			Border_ClassAccent->SetBrushColor(ClassVisual->AccentColor);
-			Border_ClassAccent->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
 	}
 

@@ -94,7 +94,9 @@ bool FGridUICharacter01PartyMemberCompactContractTest::RunTest(const FString& Pa
 	TestNull(TEXT("Party selector weight helper is removed"), PartyMemberClass->FindFunctionByName(TEXT("GetWeightText")));
 
 	TestNotNull(TEXT("Portrait binding remains"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Image_Portrait")));
-	TestNotNull(TEXT("Class icon binding remains"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Image_ClassIcon")));
+	TestNull(TEXT("Redundant class icon binding is removed"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Image_ClassIcon")));
+	TestNull(TEXT("Redundant class accent binding is removed"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Border_ClassAccent")));
+	TestNull(TEXT("Party-specific class visual setter is removed"), PartyMemberClass->FindFunctionByName(TEXT("SetAvailableClassVisuals")));
 	TestNotNull(TEXT("Selection border binding remains"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Border_Selected")));
 	TestNotNull(TEXT("Overload warning binding remains"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Image_WeightAlert")));
 	TestNotNull(TEXT("Status-effect row binding remains"), FindFProperty<FProperty>(PartyMemberClass, TEXT("HorizontalBox_StatusEffects")));

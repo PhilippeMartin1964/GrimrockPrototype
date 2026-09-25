@@ -11,7 +11,6 @@ class UDragDropOperation;
 class UGridInventoryWidget;
 class UHorizontalBox;
 class UImage;
-class URPGClassVisualAsset;
 class UTextBlock;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridPartyMemberClicked, int32, CharacterIndex);
@@ -32,9 +31,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Party|Status Effects")
 	TArray<FGridStatusEffectPresentationView> CachedStatusEffects;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Party|Visuals")
-	TArray<TObjectPtr<URPGClassVisualAsset>> AvailableClassVisuals;
-
 	UPROPERTY(BlueprintAssignable, Category = "Inventory|Party")
 	FOnGridPartyMemberClicked OnPartyMemberClicked;
 
@@ -44,12 +40,6 @@ public:
 	/** Full portrait used by the party selector. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
 	TObjectPtr<UImage> Image_Portrait;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
-	TObjectPtr<UImage> Image_ClassIcon;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
-	TObjectPtr<UBorder> Border_ClassAccent;
 
 	/** Decorative overlay only: visible for the authoritative selected character. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
@@ -79,9 +69,6 @@ public:
 	void SetStatusEffects(const TArray<FGridStatusEffectPresentationView>& InStatusEffects);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
-	void SetAvailableClassVisuals(const TArray<URPGClassVisualAsset*>& InAvailableClassVisuals);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	bool IsSelected() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
@@ -97,7 +84,6 @@ protected:
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
 private:
-	const URPGClassVisualAsset* FindClassVisualForCachedClass() const;
 	void RefreshBoundMemberVisuals();
 	void RefreshBoundStatusEffects();
 };

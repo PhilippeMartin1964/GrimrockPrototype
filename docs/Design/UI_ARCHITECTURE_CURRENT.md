@@ -196,7 +196,19 @@ GetWeightText()
 RefreshBoundMemberFields()
 ```
 
-Le portrait conserve uniquement les éléments utiles à la sélection et au feedback compact : portrait, icône/accent de classe, cadre de sélection, alerte de surcharge et effets de statut.
+Le portrait conserve uniquement les éléments utiles à la sélection et au feedback compact : portrait, cadre de sélection, alerte de surcharge et effets de statut.
+
+Les éléments de classe redondants ont également été supprimés du sélecteur :
+
+```text
+Image_ClassIcon
+Border_ClassAccent
+AvailableClassVisuals
+SetAvailableClassVisuals()
+FindClassVisualForCachedClass()
+```
+
+L'icône et les informations de classe restent présentées dans `WBP_CharacterSheet`, qui est leur surface détaillée canonique.
 
 ### UI-CHAR02 — projection de la feuille personnage
 
