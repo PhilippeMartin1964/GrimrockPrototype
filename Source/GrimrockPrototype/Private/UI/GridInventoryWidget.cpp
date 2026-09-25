@@ -135,19 +135,10 @@ namespace
 			case EGridItemActionType::Combine:
 				return TEXT("Combine");
 			case EGridItemActionType::SplitStack:
-		{
-			bExecuted = SourceSlotType == EGridInventoryUiSlotType::Inventory && InventoryComponent &&
-				InventoryComponent->TrySplitInventoryStackToFirstFreeSlot(CharacterIndex, SourceSlotIndex);
-			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute SplitStack Item=%s Slot=%d Result=%s"),
-				*LastContextItem.ItemDefinitionId.ToString(), SourceSlotIndex, bExecuted ? TEXT("true") : TEXT("false"));
-			if (bExecuted)
-			{
-				CloseItemActionMenu(TEXT("SplitStack"));
-			}
-			break;
-		}
-
-		case EGridItemActionType::AddToHotbar:
+				return TEXT("SplitStack");
+			case EGridItemActionType::ToggleLight:
+				return TEXT("ToggleLight");
+			case EGridItemActionType::AddToHotbar:
 				return TEXT("AddToHotbar");
 			case EGridItemActionType::None:
 			default:
@@ -1761,37 +1752,12 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			break;
 		}
 
-		case EGridItemActionType::SplitStack:
+				case EGridItemActionType::SplitStack:
 		{
-			if (SourceSlotType != EGridInventoryUiSlotType::Inventory || !InventoryComponent)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute SplitStack Failed Item=%s Reason=InvalidSource"),
-					*LastContextItem.ItemDefinitionId.ToString());
-				break;
-			}
-
-			const FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
-			if (!State.ActiveCharacters.IsValidIndex(CharacterIndex) ||
-				!State.ActiveCharacters[CharacterIndex].InventorySlots.IsValidIndex(SourceSlotIndex) ||
-				State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex].IsEmpty())
-			{
-				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute SplitStack Failed Item=%s Reason=InvalidInventorySlot"),
-					*LastContextItem.ItemDefinitionId.ToString());
-				break;
-			}
-
-			const int32 SourceQuantity = State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex].Item.Quantity;
-			const int32 SplitQuantity = SourceQuantity / 2;
-			if (SplitQuantity < 1)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute SplitStack Failed Item=%s Quantity=%d Reason=InsufficientQuantity"),
-					*LastContextItem.ItemDefinitionId.ToString(), SourceQuantity);
-				break;
-			}
-
-			bExecuted = InventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SourceSlotIndex, SplitQuantity);
-			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute SplitStack Item=%s Slot=%d SourceQuantity=%d SplitQuantity=%d Result=%s"),
-				*LastContextItem.ItemDefinitionId.ToString(), SourceSlotIndex, SourceQuantity, SplitQuantity, bExecuted ? TEXT("true") : TEXT("false"));
+			bExecuted = SourceSlotType == EGridInventoryUiSlotType::Inventory && InventoryComponent &&
+				InventoryComponent->TrySplitInventoryStackToFirstFreeSlot(CharacterIndex, SourceSlotIndex);
+			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute SplitStack Item=%s Slot=%d Result=%s"),
+				*LastContextItem.ItemDefinitionId.ToString(), SourceSlotIndex, bExecuted ? TEXT("true") : TEXT("false"));
 			if (bExecuted)
 			{
 				CloseItemActionMenu(TEXT("SplitStack"));
