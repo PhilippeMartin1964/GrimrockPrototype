@@ -2401,8 +2401,10 @@ bool UGridInventoryWidget::HandleInventorySlotClicked(int32 SlotIndex, bool bSpl
 
 	const bool bCursorBefore = InventoryComponent->HasCursorItem();
 	const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex();
-	const bool bResult = bCursorBefore ? InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, SlotIndex)
-									   : (bSplitStack ? InventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SlotIndex, 1)
+	const bool bResult = bCursorBefore
+		? (SlotIndex == INDEX_NONE ? InventoryComponent->TryPlaceCursorItemInCharacterInventory(CharacterIndex)
+								 : InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, SlotIndex))
+		: (bSplitStack ? InventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SlotIndex, 1)
 													  : InventoryComponent->TryTakeInventorySlotToCursor(CharacterIndex, SlotIndex));
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory UI SlotClicked Slot=%d CursorBefore=%s Result=%s"), SlotIndex, bCursorBefore ? TEXT("true") : TEXT("false"),
