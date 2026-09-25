@@ -189,7 +189,6 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
 	TObjectPtr<UGridInventorySlotWidget> SlotWidget_Head;
 
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
 	TObjectPtr<UGridInventorySlotWidget> SlotWidget_Amulet;
 
@@ -226,8 +225,6 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
 	TObjectPtr<UGridInventorySlotWidget> SlotWidget_Ring2;
 
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
 	TObjectPtr<UGridInventorySlotWidget> SlotWidget_MainHand;
 
