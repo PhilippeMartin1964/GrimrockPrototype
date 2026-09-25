@@ -1752,6 +1752,21 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			break;
 		}
 
+		case EGridItemActionType::SplitStack:
+		{
+			if (SourceSlotType != EGridInventoryUiSlotType::Inventory || !InventoryComponent)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute SplitStack Failed Item=%s Reason=InvalidSource"),
+					*LastContextItem.ItemDefinitionId.ToString());
+				break;
+			}
+
+			bExecuted = InventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SourceSlotIndex, 1);
+			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute SplitStack Item=%s Slot=%d Result=%s"),
+				*LastContextItem.ItemDefinitionId.ToString(), SourceSlotIndex, bExecuted ? TEXT("true") : TEXT("false"));
+			break;
+		}
+
 		case EGridItemActionType::AddToHotbar:
 		{
 			if (SourceSlotType != EGridInventoryUiSlotType::Inventory || !InventoryComponent || LastContextItem.ItemDefinitionId.IsNone())

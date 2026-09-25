@@ -140,9 +140,34 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 		return TestTrue(Context, Inventory->ValidateInventoryOwnership(OwnershipError));
 	};
 
-	// Scenario A: exercise the real UI routing for Ctrl-split followed by a normal occupied-slot drop.
-	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 2);
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
+
+	// Regression: both split entry points must take exactly one unit to the cursor.
+	ResetInventory(Inventory, CharacterIndex);
+	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 3);
+	TestTrue(TEXT("Ctrl-click split route takes one stone to the cursor"), Widget->HandleInventorySlotClicked(0, true));
+	TestEqual(TEXT("Ctrl-click split leaves two stones in the source"), Character.InventorySlots[0].Item.Quantity, 2);
+	TestTrue(TEXT("Ctrl-click split leaves exactly one stone on the cursor"),
+		Inventory->HasCursorItem() && Inventory->GetCursorItem().Quantity == 1);
+	TestTrue(TEXT("Ctrl-click split can be merged back before testing the context route"),
+		Inventory->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, 0));
+	TestFalse(TEXT("Ctrl-click merge-back clears the cursor"), Inventory->HasCursorItem());
+	TestEqual(TEXT("Ctrl-click merge-back restores three stones"), Character.InventorySlots[0].Item.Quantity, 3);
+
+	TestTrue(TEXT("Context SplitStack action takes one stone to the cursor"),
+		Widget->ExecuteInventoryContextAction(EGridItemActionType::SplitStack, EGridInventoryUiSlotType::Inventory, 0));
+	TestEqual(TEXT("Context SplitStack leaves two stones in the source"), Character.InventorySlots[0].Item.Quantity, 2);
+	TestTrue(TEXT("Context SplitStack leaves exactly one stone on the cursor"),
+		Inventory->HasCursorItem() && Inventory->GetCursorItem().Quantity == 1);
+	TestTrue(TEXT("Context SplitStack can be merged back"),
+		Inventory->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, 0));
+	TestFalse(TEXT("Context SplitStack merge-back clears the cursor"), Inventory->HasCursorItem());
+	TestEqual(TEXT("Context SplitStack merge-back restores three stones"), Character.InventorySlots[0].Item.Quantity, 3);
+	TestOwnership(TEXT("Ownership is valid after both split entry points"));
+
+	// Scenario A: exercise the real UI routing for Ctrl-split followed by a normal occupied-slot drop.
+	ResetInventory(Inventory, CharacterIndex);
+	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 2);
 	const FGuid ScenarioATargetId = Character.InventorySlots[0].Item.RuntimeObjectId;
 	TestTrue(TEXT("A Ctrl-drag splits one stone through HandleSlotDrop"),
 		Widget->HandleSlotDrop(EGridInventoryUiSlotType::Inventory, 0, EGridInventoryUiSlotType::Inventory, 1, true, 1));

@@ -1,6 +1,7 @@
 #include "UI/GridInventorySlotWidget.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Framework/Application/SlateApplication.h"
 #include "InputCoreTypes.h"
 #include "Runtime/GridItemContextActionLibrary.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -484,7 +485,9 @@ void UGridInventorySlotWidget::HandleClicked()
 {
 	if (OwningInventoryWidget && SlotType == EGridInventoryUiSlotType::Inventory)
 	{
-		OwningInventoryWidget->HandleInventorySlotClicked(InventorySlotIndex, bSplitStackRequestedByClick);
+		const bool bControlDown =
+			bSplitStackRequestedByClick || (FSlateApplication::IsInitialized() && FSlateApplication::Get().GetModifierKeys().IsControlDown());
+		OwningInventoryWidget->HandleInventorySlotClicked(InventorySlotIndex, bControlDown);
 		bSplitStackRequestedByClick = false;
 		return;
 	}
