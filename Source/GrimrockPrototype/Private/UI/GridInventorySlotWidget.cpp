@@ -484,7 +484,7 @@ void UGridInventorySlotWidget::HandleClicked()
 {
 	if (OwningInventoryWidget && SlotType == EGridInventoryUiSlotType::Inventory)
 	{
-		OwningInventoryWidget->HandleInventorySlotClicked(InventorySlotIndex);
+		OwningInventoryWidget->HandleInventorySlotClicked(InventorySlotIndex, false);
 		return;
 	}
 
@@ -531,7 +531,7 @@ void UGridInventorySlotWidget::RefreshSlotVisual_Implementation()
 {
 }
 
-FReply UGridInventorySlotWidget::NativeOnMouseButtonDownFReply UGridInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+FReply UGridInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton && bHasItem && OwningInventoryWidget)
 	{
@@ -570,5 +570,6 @@ bool UGridInventorySlotWidget::NativeOnDrop(const FGeometry& InGeometry, const F
 		return Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
 	}
 
-	return OwningInventoryWidget->HandleSlotDrop(Operation->SourceSlotType, Operation->SourceSlotIndex, SlotType, InventorySlotIndex);
+	return OwningInventoryWidget->HandleSlotDrop(
+		Operation->SourceSlotType, Operation->SourceSlotIndex, SlotType, InventorySlotIndex, Operation->bSplitStack, Operation->RequestedQuantity);
 }
