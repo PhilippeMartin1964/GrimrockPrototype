@@ -69,15 +69,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Party|Status Effects", meta = (ClampMin = "12.0", ClampMax = "48.0"))
 	float StatusEffectIndicatorSize = 24.0f;
 
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
-	TObjectPtr<UTextBlock> Text_Name;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
-	TObjectPtr<UTextBlock> Text_ClassLevel;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
-	TObjectPtr<UTextBlock> Text_Weight;
-
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	void InitializePartyMember(int32 InCharacterIndex);
 
@@ -89,15 +80,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	void SetAvailableClassVisuals(const TArray<URPGClassVisualAsset*>& InAvailableClassVisuals);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
-	FString GetDisplayNameText() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
-	FString GetClassLevelText() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
-	FString GetWeightText() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	bool IsSelected() const;
@@ -116,7 +98,6 @@ protected:
 
 private:
 	const URPGClassVisualAsset* FindClassVisualForCachedClass() const;
-	void RefreshBoundMemberFields();
 	void RefreshBoundMemberVisuals();
 	void RefreshBoundStatusEffects();
 };

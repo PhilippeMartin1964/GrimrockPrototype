@@ -4,6 +4,7 @@
 #include "Components/Border.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridPartyMemberWidget.h"
+#include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUICharacter01SelectionAuthorityTest, "Grimrock.UI.Character01.SelectionAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -68,6 +69,35 @@ bool FGridUICharacter01SelectionVisualTest::RunTest(const FString& Parameters)
 	MemberWidget->SetCharacterSummary(Summary);
 	TestFalse(TEXT("Party member exposes unselected state"), MemberWidget->IsSelected());
 	TestEqual(TEXT("Selection overlay collapses"), SelectionBorder->GetVisibility(), ESlateVisibility::Collapsed);
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUICharacter01PartyMemberCompactContractTest, "Grimrock.UI.Character01.PartyMemberCompactContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUICharacter01PartyMemberCompactContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UClass* PartyMemberClass = UGridPartyMemberWidget::StaticClass();
+	if (!TestNotNull(TEXT("Party member widget class exists"), PartyMemberClass))
+	{
+		return false;
+	}
+
+	TestNull(TEXT("Party selector no longer binds character name text"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Text_Name")));
+	TestNull(TEXT("Party selector no longer binds class/level text"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Text_ClassLevel")));
+	TestNull(TEXT("Party selector no longer binds weight text"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Text_Weight")));
+	TestNull(TEXT("Party selector display-name helper is removed"), PartyMemberClass->FindFunctionByName(TEXT("GetDisplayNameText")));
+	TestNull(TEXT("Party selector class-level helper is removed"), PartyMemberClass->FindFunctionByName(TEXT("GetClassLevelText")));
+	TestNull(TEXT("Party selector weight helper is removed"), PartyMemberClass->FindFunctionByName(TEXT("GetWeightText")));
+
+	TestNotNull(TEXT("Portrait binding remains"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Image_Portrait")));
+	TestNotNull(TEXT("Class icon binding remains"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Image_ClassIcon")));
+	TestNotNull(TEXT("Selection border binding remains"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Border_Selected")));
+	TestNotNull(TEXT("Overload warning binding remains"), FindFProperty<FProperty>(PartyMemberClass, TEXT("Image_WeightAlert")));
+	TestNotNull(TEXT("Status-effect row binding remains"), FindFProperty<FProperty>(PartyMemberClass, TEXT("HorizontalBox_StatusEffects")));
 	return true;
 }
 

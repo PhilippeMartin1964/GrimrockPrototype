@@ -175,6 +175,29 @@ La refonte ne crée aucun état parallèle. `UGridPartyInventoryComponent::Selec
 
 Référence : `docs/Design/UI_CHAR01_SINGLE_SELECTED_CHARACTER.md`.
 
+### UI-CHAR01.1 — sélecteur de groupe compact
+
+`WBP_PartyMember` est uniquement un sélecteur visuel de membre du groupe. Les informations textuelles détaillées sont déjà affichées par `WBP_CharacterSheet`.
+
+Bindings supprimés du contrat natif :
+
+```text
+Text_Name
+Text_ClassLevel
+Text_Weight
+```
+
+Helpers supprimés :
+
+```text
+GetDisplayNameText()
+GetClassLevelText()
+GetWeightText()
+RefreshBoundMemberFields()
+```
+
+Le portrait conserve uniquement les éléments utiles à la sélection et au feedback compact : portrait, icône/accent de classe, cadre de sélection, alerte de surcharge et effets de statut.
+
 ### UI-CHAR02 — projection de la feuille personnage
 
 `UGridInventoryWidget` continue de lire directement `FGridInventoryCharacterSummary`. Aucun ViewModel ou calcul gameplay UI supplémentaire n'est ajouté.
