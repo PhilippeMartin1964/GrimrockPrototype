@@ -15,6 +15,7 @@
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
+#include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterPatrolSubsystem.h"
@@ -621,14 +622,19 @@ bool FGridMonsterMON143CombatExitStateReconciliationTest::RunTest(const FString&
 		{
 			return false;
 		}
-		Monster->MonsterState = EGridMonsterState::Pursuing;
+		Monster->MonsterState = EGridMonsterState::Attacking;
 		Behavior->bCanSeeParty = false;
 		Behavior->bCanHearParty = false;
 		Behavior->bHasLastKnownPartyCell = false;
+		Behavior->LastKnownPartyCell = FIntPoint::ZeroValue;
+		if (Monster->CombatComponent)
+		{
+			Monster->CombatComponent->bAttackPresentationActive = true;
+		}
 		Fixture.TurnManager->CombatMonsters = { Monster };
 		Fixture.TurnManager->bCombatActive = true;
-		Fixture.TurnManager->AbortCombat();
-		TestEqual(TEXT("Abort reconciles orphaned Pursuing to Idle"), Monster->MonsterState, EGridMonsterState::Idle);
+		Fixture.Runtime->AbortActiveCombatAndMonsterActions();
+		TestEqual(TEXT("Runtime abort reconciles canceled attack without party knowledge to Idle"), Monster->MonsterState, EGridMonsterState::Idle);
 	}
 
 	{

@@ -1188,6 +1188,7 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Capture et Restore utilisent la même règle pure.
 - `StartCombatForEncounterGroups()` renseigne la cellule courante du groupe comme cible mémorisée avant le combat forcé.
 - Abort et Finish réconcilient les participants vivants après annulation des présentations.
+- `CancelAttackPresentation()` ne force plus `Pursuing` hors contexte : une annulation active repasse par l'invariant d'awareness du Behavior.
 - Une entrée de patrouille est remise à zéro lorsque l'Actor associé au même PersistenceId change.
 - `ApplyMonsterPlacementMetadata()` reste autoritaire pour `EncounterGroupId`, `PatrolMode` et `PatrolWaypoints`.
 - Movement, Occupancy et Pathfinder restent inchangés.

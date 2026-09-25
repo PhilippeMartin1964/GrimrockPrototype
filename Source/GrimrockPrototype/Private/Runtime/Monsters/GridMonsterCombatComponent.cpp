@@ -13,6 +13,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
+#include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "TimerManager.h"
 
@@ -387,10 +388,15 @@ void UGridMonsterCombatComponent::CancelAttackPresentation()
 		}
 	}
 
+	const bool bWasAttackPresentationActive = bAttackPresentationActive;
 	bAttackPresentationActive = false;
-	if (IsValid(OwnerMonster) && !OwnerMonster->IsDead())
+	if (bWasAttackPresentationActive && IsValid(OwnerMonster) && !OwnerMonster->IsDead() && OwnerMonster->MonsterState == EGridMonsterState::Attacking)
 	{
 		OwnerMonster->SetMonsterState(EGridMonsterState::Pursuing);
+		if (UGridMonsterBehaviorComponent* Behavior = OwnerMonster->FindComponentByClass<UGridMonsterBehaviorComponent>())
+		{
+			Behavior->ReconcileOwnerStateFromPerception();
+		}
 	}
 }
 
