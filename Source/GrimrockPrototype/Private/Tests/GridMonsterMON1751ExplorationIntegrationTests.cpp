@@ -331,7 +331,7 @@ bool FGridMonsterMON1751HearingAlarmTest::RunTest(const FString& Parameters)
 
 	TestFalse(TEXT("Source does not see party while facing away"), SourceBehavior && SourceBehavior->bCanSeeParty);
 	TestTrue(TEXT("Source hears party"), SourceBehavior && SourceBehavior->bCanHearParty);
-	TestEqual(TEXT("Dormant RangedKeeper ally wakes to Alert"), Ally->MonsterState, EGridMonsterState::Alert);
+	TestEqual(TEXT("Alarm ally advances to Pursuing while investigating last known party cell"), Ally->MonsterState, EGridMonsterState::Pursuing);
 	TestTrue(TEXT("Alarm ally receives last known party cell"), AllyBehavior && AllyBehavior->bHasLastKnownPartyCell);
 	TestTrue(TEXT("Alarm ally receives correct party cell"), AllyBehavior && AllyBehavior->LastKnownPartyCell == FIntPoint(1, 4));
 	TestEqual(TEXT("Alarm ally starts investigation"), Fixture.Patrol->GetMonsterActivity(Ally->ResolvePersistenceId()),
@@ -347,7 +347,7 @@ bool FGridMonsterMON1751VisionEngagementHandoffTest::RunTest(const FString& Para
 {
 	(void)Parameters;
 	FGridMON1751Fixture Fixture;
-	TestTrue(TEXT("Fixture initializes"), Fixture.Initialize(FIntPoint(1, 4)));
+	TestTrue(TEXT("Fixture initializes"), Fixture.Initialize(FIntPoint(8, 8)));
 	if (!Fixture.Patrol)
 	{
 		return false;
@@ -362,6 +362,15 @@ bool FGridMonsterMON1751VisionEngagementHandoffTest::RunTest(const FString& Para
 		return false;
 	}
 
+	UGridMonsterMovementComponent* Movement = Goblin->FindComponentByClass<UGridMonsterMovementComponent>();
+	Fixture.EvaluateExploration(TEXT("MON1751VisionPatrol"));
+	TestTrue(TEXT("Goblin is exploring before visual contact"), Movement && Movement->IsBusy());
+	TestEqual(TEXT("Pre-contact exploration is Patrolling"), Fixture.Patrol->GetMonsterActivity(Goblin->ResolvePersistenceId()),
+		EGridMonsterExplorationActivity::Patrolling);
+
+	Fixture.Party->CurrentCellX = 1;
+	Fixture.Party->CurrentCellY = 4;
+	Fixture.Party->SetActorLocation(Fixture.Runtime->GetCellCenterWorld(1, 4));
 	Fixture.EvaluateExploration(TEXT("MON1751Vision"));
 
 	UGridMonsterBehaviorComponent* Behavior = Goblin->FindComponentByClass<UGridMonsterBehaviorComponent>();

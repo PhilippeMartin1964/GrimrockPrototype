@@ -89,6 +89,8 @@ Une cible éligible :
 6. passe en activité `Investigating` ;
 7. planifie une étape MON14.3 au prochain court timer one-shot.
 
+Lorsque l'évaluation automatique MON14.1 traite immédiatement ce même allié dans le même cycle, l'investigation existante peut faire progresser l'état `Alert` vers `Pursuing`. L'autorité durable reste `LastKnownPartyCell` + activité `Investigating` ; `Alert` n'est donc pas garanti comme état final observable après une évaluation automatique complète.
+
 Le chemin d'investigation existant prend ensuite le relais :
 
 ```text
@@ -127,7 +129,7 @@ Une alarme auditive peut uniquement provoquer :
 ```text
 Dormant / Idle
     -> Alert
-    -> Investigating
+    -> Pursuing / Investigating
 ```
 
 Le combat automatique reste exclusivement déclenché lorsque MON14.1 obtient

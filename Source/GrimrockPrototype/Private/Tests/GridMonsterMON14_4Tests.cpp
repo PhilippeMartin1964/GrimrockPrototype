@@ -237,7 +237,7 @@ bool FGridMonsterMON144HearingAlarmPropagationTest::RunTest(const FString& Param
 
 	TestTrue(TEXT("Source hears party"), SourceBehavior && SourceBehavior->bCanHearParty);
 	TestFalse(TEXT("Source does not see party"), SourceBehavior && SourceBehavior->bCanSeeParty);
-	TestEqual(TEXT("Dormant ally wakes to Alert"), Ally->MonsterState, EGridMonsterState::Alert);
+	TestEqual(TEXT("Alerted ally advances to Pursuing while investigating"), Ally->MonsterState, EGridMonsterState::Pursuing);
 	TestTrue(TEXT("Ally receives last known party cell"), AllyBehavior && AllyBehavior->bHasLastKnownPartyCell);
 	TestTrue(TEXT("Ally receives correct party cell"), AllyBehavior && AllyBehavior->LastKnownPartyCell == FIntPoint(1, 4));
 	TestEqual(
@@ -280,7 +280,7 @@ bool FGridMonsterMON144AlarmFilteringTest::RunTest(const FString& Parameters)
 
 	Fixture.EvaluateExploration(TEXT("MON144Filtering"));
 
-	TestEqual(TEXT("Eligible same-group ally is alerted"), ValidAlly->MonsterState, EGridMonsterState::Alert);
+	TestEqual(TEXT("Eligible same-group ally advances to Pursuing investigation"), ValidAlly->MonsterState, EGridMonsterState::Pursuing);
 	TestEqual(TEXT("Out-of-range ally remains dormant"), OutOfRange->MonsterState, EGridMonsterState::Dormant);
 	TestEqual(TEXT("Other encounter group remains dormant"), OtherGroup->MonsterState, EGridMonsterState::Dormant);
 	TestEqual(TEXT("Different monster type remains dormant"), OtherType->MonsterState, EGridMonsterState::Dormant);

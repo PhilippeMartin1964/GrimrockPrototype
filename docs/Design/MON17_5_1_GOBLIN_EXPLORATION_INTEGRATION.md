@@ -64,7 +64,7 @@ same MonsterId
 + same EncounterGroupId
 + dans AggroPropagationRange
 + vivant / enabled
-=> ally Alert / Investigating
+=> ally Alert, puis Pursuing / Investigating lorsque le pipeline automatique traite immédiatement l'investigation
 ```
 
 Un réveil par alarme ne déclenche pas à lui seul le combat ; le démarrage automatique reste sous l'autorité d'une perception visuelle valide.
@@ -117,11 +117,11 @@ Facing vers le groupe : vision + ouïe. Facing hors axe : plus de vision, ouïe 
 
 ### HearingAlarm
 
-Deux Gobelins `RangedKeeper` du même `EncounterGroupId` sont utilisés. La source entend le groupe sans le voir et partage l'aggro. L'allié `Dormant` devient `Alert`, reçoit `LastKnownPartyCell`, passe en `Investigating`, sans démarrage de combat sur l'ouïe seule.
+Deux Gobelins `RangedKeeper` du même `EncounterGroupId` sont utilisés. La source entend le groupe sans le voir et partage l'aggro. L'allié `Dormant` est réveillé en `Alert`, reçoit `LastKnownPartyCell`, puis le même pipeline automatique le fait progresser en `Pursuing` tout en restant `Investigating`. Aucun combat ne démarre sur l'ouïe seule.
 
 ### VisionEngagementHandoff
 
-Un Gobelin patrouilleur voyant le groupe passe en `Alert` / `Engaging` et délègue le démarrage réel du combat à `UGridAutomaticPerceptionEngagementSubsystem`.
+Le test amorce d'abord réellement la patrouille hors perception, puis déplace le groupe dans la ligne de vue. Le Gobelin délègue alors le démarrage du combat à `UGridAutomaticPerceptionEngagementSubsystem` et son entrée d'exploration déjà existante passe en `Suspended`.
 
 ## Validation PIE de production à deux Gobelins
 
@@ -181,7 +181,7 @@ Patrouille générique MON14.3              VALIDÉE
 Vision directionnelle MON14.2             VALIDÉE
 Ouïe omnidirectionnelle                   VALIDÉE
 Alarme same MonsterId/group               VALIDÉE
-Réveil Dormant -> Alert/Investigating     VALIDÉ
+Réveil Dormant -> Alert -> Pursuing/Investigating  VALIDÉ
 Pas de combat sur ouïe seule              VALIDÉ Automation
 Engagement visuel automatique             VALIDÉ Automation + PIE
 Handoff combat vers RangedKeeper          VALIDÉ PIE
