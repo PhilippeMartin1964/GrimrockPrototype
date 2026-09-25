@@ -1,7 +1,7 @@
 # UI-INVENTORY02 — Tri et feedback de projection du sac
 
 Date : **22 septembre 2026**  
-Statut : **UI-INVENTORY02.6 ACTIF — grille fixe, configuration centralisée, audit C++**
+Statut : **UI-INVENTORY02.9 C++ PRÊT — Automation/PIE À VALIDER**
 
 ## Objectif
 
@@ -235,4 +235,15 @@ Le tri pré-calcule désormais une clé par item (nom, type, poids total) avant 
 
 L'enregistrement d'un slot ne rafraîchit plus toute la collection : seul le slot nouvellement enregistré est actualisé.
 
+Lors d'une reprojection, une cellule dont le `InventorySlotIndex` ne change pas n'est pas rafraîchie. Cela évite notamment de retraiter toutes les cases vides de fin de grille.
+
 Enfin, `SetItem()` utilise d'abord `TSoftObjectPtr::Get()` pour une icône déjà résidente avant de recourir à `LoadSynchronous()`.
+
+
+Test de non-régression ajouté :
+
+```text
+Grimrock.UI.Inventory02.InPlaceProjection
+```
+
+Il vérifie qu'un changement de tri conserve strictement les mêmes instances `GeneratedInventorySlotWidgets` et ne modifie que leur projection vers les slots physiques.

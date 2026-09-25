@@ -1163,7 +1163,13 @@ void UGridInventoryWidget::ApplyInventoryProjectionToGeneratedSlots(const TArray
 			continue;
 		}
 
-		SlotWidget->InitializeInventorySlot(EGridInventoryUiSlotType::Inventory, SourceSlotIndices[DisplayIndex]);
+		const int32 SourceSlotIndex = SourceSlotIndices[DisplayIndex];
+		if (SlotWidget->SlotType == EGridInventoryUiSlotType::Inventory && SlotWidget->InventorySlotIndex == SourceSlotIndex)
+		{
+			continue;
+		}
+
+		SlotWidget->InitializeInventorySlot(EGridInventoryUiSlotType::Inventory, SourceSlotIndex);
 		RefreshRegisteredSlotWidget(SlotWidget);
 	}
 }
@@ -1196,9 +1202,7 @@ void UGridInventoryWidget::ClearGeneratedInventorySlotWidgets()
 
 int32 UGridInventoryWidget::ResolveInventorySlotWidgetCount() const
 {
-	TArray<int32> SourceSlotIndices;
-	BuildInventoryProjectionSourceSlotIndices(SourceSlotIndices);
-	return SourceSlotIndices.Num();
+	return FMath::Max(0, ResolveInventorySourceSlotCapacity());
 }
 
 void UGridInventoryWidget::SetInventorySlotWidgetClass(TSubclassOf<UGridInventorySlotWidget> InClass)

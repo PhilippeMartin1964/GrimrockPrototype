@@ -2,14 +2,58 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Components/UniformGridPanel.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryBagWidget.h"
 #include "UI/GridInventoryUiTypes.h"
+#include "UI/GridInventorySlotWidget.h"
 #include "UI/GridInventoryWidget.h"
 #include "UObject/UnrealType.h"
 
 namespace GridUIInventoryProjection02Private
 {
+	struct FInventoryProjectionTestWorld
+	{
+		UWorld* World = nullptr;
+
+		FInventoryProjectionTestWorld()
+		{
+			const UWorld::InitializationValues Values = UWorld::InitializationValues()
+				.AllowAudioPlayback(false)
+				.RequiresHitProxies(false)
+				.CreatePhysicsScene(false)
+				.CreateNavigation(false)
+				.CreateAISystem(false)
+				.ShouldSimulatePhysics(false)
+				.SetTransactional(false);
+
+			World = UWorld::CreateWorld(EWorldType::Game, false,
+				FName(*FString::Printf(TEXT("InventoryProjection02_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
+				ERHIFeatureLevel::Num, &Values);
+			if (World && GEngine)
+			{
+				FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
+				Context.SetCurrentWorld(World);
+			}
+		}
+
+		~FInventoryProjectionTestWorld()
+		{
+			if (!World)
+			{
+				return;
+			}
+
+			World->DestroyWorld(false);
+			if (GEngine)
+			{
+				GEngine->DestroyWorldContext(World);
+			}
+		}
+	};
+
 	void ExpectProjection(FAutomationTestBase& Test, UGridInventoryWidget* Widget, const TArray<int32>& Expected, const TCHAR* Label)
 	{
 		TArray<int32> Actual;
@@ -168,6 +212,88 @@ bool FGridUIInventory021FixedCapacityTest::RunTest(const FString& Parameters)
 	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Equipment);
 	TestEqual(TEXT("Filtered bag still shows all forty cells"), Widget->ResolveInventorySlotWidgetCount(), 40);
 	TestEqual(TEXT("Filtered bag has no visible matching items"), Widget->GetVisibleInventoryItemCount(), 0);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIInventory029InPlaceProjectionTest, "Grimrock.UI.Inventory02.InPlaceProjection",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUIInventory029InPlaceProjectionTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	using namespace GridUIInventoryProjection02Private;
+
+	FInventoryProjectionTestWorld TestWorld;
+	if (!TestNotNull(TEXT("Transient world exists"), TestWorld.World))
+	{
+		return false;
+	}
+
+	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>(TestWorld.World);
+	Inventory->InventoryColumnCount = 4;
+	Inventory->PartyInventoryState.ActiveCharacters.SetNum(1);
+	Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
+	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
+	Character.InventorySlots.SetNum(8);
+
+	auto RegisterDefinition = [Inventory](FName Id, const TCHAR* DisplayName)
+	{
+		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Inventory);
+		Definition->ItemDefinitionId = Id;
+		Definition->DisplayName = FText::FromString(DisplayName);
+		Definition->ItemType = EGridItemType::Misc;
+		Definition->Weight = 1.0f;
+		Inventory->RegisterItemDefinition(Definition);
+	};
+
+	RegisterDefinition(TEXT("ProjectionAlpha"), TEXT("Alpha"));
+	RegisterDefinition(TEXT("ProjectionZulu"), TEXT("Zulu"));
+
+	Character.InventorySlots[1].bOccupied = true;
+	Character.InventorySlots[1].Item.RuntimeObjectId = FGuid::NewGuid();
+	Character.InventorySlots[1].Item.ItemDefinitionId = TEXT("ProjectionZulu");
+	Character.InventorySlots[1].Item.DisplayName = FText::FromString(TEXT("Zulu"));
+	Character.InventorySlots[1].Item.Quantity = 1;
+
+	Character.InventorySlots[6].bOccupied = true;
+	Character.InventorySlots[6].Item.RuntimeObjectId = FGuid::NewGuid();
+	Character.InventorySlots[6].Item.ItemDefinitionId = TEXT("ProjectionAlpha");
+	Character.InventorySlots[6].Item.DisplayName = FText::FromString(TEXT("Alpha"));
+	Character.InventorySlots[6].Item.Quantity = 1;
+
+	UGridInventoryWidget* Widget = CreateWidget<UGridInventoryWidget>(TestWorld.World, UGridInventoryWidget::StaticClass());
+	if (!TestNotNull(TEXT("Inventory widget exists"), Widget))
+	{
+		return false;
+	}
+
+	Widget->InventoryComponent = Inventory;
+	UUniformGridPanel* GridPanel = NewObject<UUniformGridPanel>(Widget);
+	Widget->SetInventorySlotsGridPanel(GridPanel);
+	Widget->SetInventorySlotWidgetClass(UGridInventorySlotWidget::StaticClass());
+	Widget->RebuildInventorySlotWidgets();
+
+	TestEqual(TEXT("Eight generated slot widgets exist"), Widget->GeneratedInventorySlotWidgets.Num(), 8);
+	if (Widget->GeneratedInventorySlotWidgets.Num() != 8)
+	{
+		return false;
+	}
+
+	TArray<TObjectPtr<UGridInventorySlotWidget>> OriginalWidgets = Widget->GeneratedInventorySlotWidgets;
+	TestEqual(TEXT("Name ascending projects Alpha first"), Widget->GeneratedInventorySlotWidgets[0]->InventorySlotIndex, 6);
+	TestEqual(TEXT("Name ascending projects Zulu second"), Widget->GeneratedInventorySlotWidgets[1]->InventorySlotIndex, 1);
+
+	Widget->SetInventorySortMode(EGridInventorySortMode::NameDescending);
+
+	TestEqual(TEXT("Sort keeps eight generated slot widgets"), Widget->GeneratedInventorySlotWidgets.Num(), 8);
+	for (int32 Index = 0; Index < OriginalWidgets.Num(); ++Index)
+	{
+		TestTrue(*FString::Printf(TEXT("Generated widget %d is reused"), Index),
+			Widget->GeneratedInventorySlotWidgets[Index] == OriginalWidgets[Index]);
+	}
+	TestEqual(TEXT("Name descending reprojects Zulu first"), Widget->GeneratedInventorySlotWidgets[0]->InventorySlotIndex, 1);
+	TestEqual(TEXT("Name descending reprojects Alpha second"), Widget->GeneratedInventorySlotWidgets[1]->InventorySlotIndex, 6);
 
 	return true;
 }

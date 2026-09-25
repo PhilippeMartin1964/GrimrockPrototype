@@ -424,7 +424,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-ITEM01 | fonctionnel |
 | UI-WEIGHT01 | validé et clos le 22 septembre 2026 |
 | UI-FILTER01 | UI-FILTER01.1/.2/.3 validés côté C++ ; UI-FILTER01.3.1 validé en PIE |
-| UI-INVENTORY02 | UI-INVENTORY02.8 actif : tri par ComboBox Nom/Type/Poids croissant ou décroissant ; grille fixe conservée |
+| UI-INVENTORY02 | UI-INVENTORY02.9 C++ prêt : projection triée/filtrée mise à jour en place, sans recréer les slots ; Automation/PIE à valider |
 | UI-HOTBAR01 | réalisé |
 | UI-FEEDBACK01 | UI-FEEDBACK01.1 surcharge close ; UI-FEEDBACK01.2 effets de statut portrait actif |
 | UI-SKILLS01 | fonctionnel via MON20 |
