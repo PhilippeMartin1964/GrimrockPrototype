@@ -1190,3 +1190,15 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Une cible de patrouille sans chemin reste bloquée et réessaie après 0,25 s ; elle produit désormais un diagnostic MON14.3.2 une seule fois par waypoint bloqué.
 - Le test `Grimrock.Monsters.MON14.3.RuntimeBootstrap` démarre une patrouille PingPong sans appel manuel à `ProcessMonsterNow()`.
 - `CursorRules` couvre explicitement un PingPong à quatre waypoints.
+
+
+---
+
+## 2026-09-25 — MON14.3.2 : LevelAsset autoritaire pour les routes de patrouille
+
+- `PatrolMode` et `PatrolWaypoints` sont des métadonnées authored statiques du `FGridMonsterSpawnInstance`.
+- Elles ne font pas partie de `FGridRuntimeMonsterState` et ne doivent jamais devenir une seconde autorité persistée.
+- `ApplyMonsterPlacementMetadata()` resynchronise désormais `EncounterGroupId`, `PatrolMode` et `PatrolWaypoints`.
+- Le bootstrap d'exploration resynchronise chaque Monster Actor depuis son placement avant de traiter la patrouille.
+- Le diagnostic `Authored/Active` remplace le compteur ambigu `Eligible/Processed`.
+- Régression : `Grimrock.Monsters.MON14.3.AuthoredRouteResync`.

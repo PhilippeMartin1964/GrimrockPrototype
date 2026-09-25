@@ -359,7 +359,12 @@ void AGridLevelRuntimeActor::ApplyMonsterPlacementMetadata(AGridMonsterActor* Mo
 		});
 	if (Placement)
 	{
+		// Static authored metadata always comes from the current LevelAsset.
+		// Runtime persistence owns cell/facing/state/health, but the patrol route
+		// itself is intentionally not serialized (MON14.3).
 		Monster->EncounterGroupId = Placement->EncounterGroupId;
+		Monster->PatrolMode = Placement->PatrolMode;
+		Monster->PatrolWaypoints = Placement->PatrolWaypoints;
 		if (Monster->HomeDungeonLevelId.IsNone())
 		{
 			Monster->HomeDungeonLevelId = GridLevelRuntimeMonstersResolveRuntimeStateLevelId(DungeonAsset, CurrentDungeonLevelId);

@@ -198,8 +198,8 @@ void UGridMonsterPatrolSubsystem::BootstrapRuntimeExploration(
 		return;
 	}
 
-	int32 EligiblePatrolCount = 0;
-	int32 StartedPatrolCount = 0;
+	int32 AuthoredPatrolCount = 0;
+	int32 ActivePatrolCount = 0;
 	for (TActorIterator<AGridMonsterActor> It(World); It; ++It)
 	{
 		AGridMonsterActor* Monster = *It;
@@ -208,17 +208,33 @@ void UGridMonsterPatrolSubsystem::BootstrapRuntimeExploration(
 			continue;
 		}
 
-		const bool bAuthoredPatrol =
-			Monster->MonsterState == EGridMonsterState::Idle && Monster->PatrolMode != EGridMonsterPatrolMode::None && Monster->PatrolWaypoints.Num() >= 2;
-		EligiblePatrolCount += bAuthoredPatrol ? 1 : 0;
-		if (ProcessMonsterInternal(Monster, true, Reason) && bAuthoredPatrol)
+		// The LevelAsset is the authority for static patrol data. This also repairs
+		// actors reconstructed/restored before their authored metadata was refreshed.
+		RuntimeActor->ApplyMonsterPlacementMetadata(Monster);
+
+		const bool bHasAuthoredPatrol =
+			Monster->PatrolMode != EGridMonsterPatrolMode::None && Monster->PatrolWaypoints.Num() >= 2;
+		AuthoredPatrolCount += bHasAuthoredPatrol ? 1 : 0;
+
+		if (bHasAuthoredPatrol)
 		{
-			++StartedPatrolCount;
+			UE_LOG(LogGridMonsterPatrol, Log,
+				TEXT("[MON14.3.2] Patrol candidate Monster=%s SpawnId=%s State=%s Mode=%s Waypoints=%d Cell=(%d,%d)"),
+				*GetNameSafe(Monster), *Monster->SpawnObjectId.ToString(EGuidFormats::DigitsWithHyphens),
+				*UEnum::GetValueAsString(Monster->MonsterState), *UEnum::GetValueAsString(Monster->PatrolMode), Monster->PatrolWaypoints.Num(),
+				Monster->CurrentCell.X, Monster->CurrentCell.Y);
+		}
+
+		ProcessMonsterInternal(Monster, true, Reason);
+		const EGridMonsterExplorationActivity Activity = GetMonsterActivity(Monster->ResolvePersistenceId());
+		if (bHasAuthoredPatrol && Activity != EGridMonsterExplorationActivity::Inactive && Activity != EGridMonsterExplorationActivity::Suspended)
+		{
+			++ActivePatrolCount;
 		}
 	}
 
-	UE_LOG(LogGridMonsterPatrol, Log, TEXT("[MON14.3.2] Patrol bootstrap Runtime=%s Reason=%s Eligible=%d Processed=%d"),
-		*GetNameSafe(RuntimeActor), *Reason.ToString(), EligiblePatrolCount, StartedPatrolCount);
+	UE_LOG(LogGridMonsterPatrol, Log, TEXT("[MON14.3.2] Patrol bootstrap Runtime=%s Reason=%s Authored=%d Active=%d"),
+		*GetNameSafe(RuntimeActor), *Reason.ToString(), AuthoredPatrolCount, ActivePatrolCount);
 }
 
 bool UGridMonsterPatrolSubsystem::ProcessMonsterNow(AGridMonsterActor* Monster, FName Reason)

@@ -61,7 +61,5 @@ void AGridMonsterActor::ApplySpawnPlacementConfiguration()
 		MonsterState = EGridMonsterState::Dormant;
 	}
 
-	EncounterGroupId = SpawnData->EncounterGroupId;
-	PatrolMode = SpawnData->PatrolMode;
-	PatrolWaypoints = SpawnData->PatrolWaypoints;
+	RuntimeActor->ApplyMonsterPlacementMetadata(this);
 }

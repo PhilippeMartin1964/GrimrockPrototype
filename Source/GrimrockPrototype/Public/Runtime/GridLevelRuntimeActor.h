@@ -335,7 +335,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Runtime|Interaction")
 	bool IsPartyOnCell(int32 CellX, int32 CellY) const;
 
-	/** Applies MON7 metadata to a monster initialized from a LevelAsset placement. */
+	/** Applies static authored metadata (encounter + patrol route) from the current LevelAsset placement. */
 	void ApplyMonsterPlacementMetadata(AGridMonsterActor* Monster) const;
 
 	/** Typed MON13.2 runtime contract. */

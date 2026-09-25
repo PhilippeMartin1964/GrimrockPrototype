@@ -302,6 +302,43 @@ bool FGridMonsterMON143RuntimeBootstrapTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridMonsterMON143AuthoredRouteResyncTest, "Grimrock.Monsters.MON14.3.AuthoredRouteResync",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON143AuthoredRouteResyncTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	FGridMON143Fixture Fixture;
+	TestTrue(TEXT("Fixture initializes"), Fixture.Initialize());
+	if (!Fixture.Patrol || !Fixture.Runtime)
+	{
+		return false;
+	}
+
+	const TArray<FGridMonsterPatrolWaypoint> Route = MON143MakeHorizontalRoute();
+	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_ResyncRat"), 0, 0), FIntPoint(2, 1), EGridEdge::West,
+		EGridMonsterState::Idle, EGridMonsterPatrolMode::PingPong, Route);
+	TestNotNull(TEXT("Resync patrol monster exists"), Monster);
+	if (!Monster)
+	{
+		return false;
+	}
+
+	// Simulate a reconstructed/restored actor that lost its transient copy.
+	Monster->PatrolMode = EGridMonsterPatrolMode::None;
+	Monster->PatrolWaypoints.Reset();
+
+	Fixture.Patrol->BootstrapRuntimeExploration(Fixture.Runtime, Fixture.Party, TEXT("MON143AuthoredRouteResync"));
+
+	TestEqual(TEXT("Bootstrap restores authored patrol mode from LevelAsset"), Monster->PatrolMode, EGridMonsterPatrolMode::PingPong);
+	TestEqual(TEXT("Bootstrap restores authored patrol waypoints from LevelAsset"), Monster->PatrolWaypoints.Num(), Route.Num());
+
+	UGridMonsterMovementComponent* Movement = Monster->FindComponentByClass<UGridMonsterMovementComponent>();
+	TestTrue(TEXT("Resynchronized authored route starts movement"), Movement && Movement->IsBusy());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGridMonsterMON143PatrolMovementTest, "Grimrock.Monsters.MON14.3.PatrolMovement", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridMonsterMON143PatrolMovementTest::RunTest(const FString& Parameters)

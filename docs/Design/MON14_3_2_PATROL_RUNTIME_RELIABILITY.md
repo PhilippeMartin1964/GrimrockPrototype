@@ -55,3 +55,24 @@ Grimrock.Monsters.MON14.3.CursorRules
 ```
 
 Le premier interdit un retour à un démarrage manuel via `ProcessMonsterNow()`. Le second verrouille la séquence PingPong à quatre points.
+
+
+## Correction complémentaire — autorité LevelAsset de la route
+
+Le diagnostic PIE `Patrol bootstrap ... Eligible=0` a révélé qu'un Actor runtime pouvait ne plus porter la copie de route attendue alors que le `MonsterSpawn` de l'éditeur contenait encore `PingPong` et ses waypoints.
+
+Le contrat est désormais explicite :
+
+- `FGridMonsterSpawnInstance::PatrolMode` et `PatrolWaypoints` sont l'autorité authored ;
+- ces données ne sont pas persistées dans `FGridRuntimeMonsterState` ;
+- `AGridLevelRuntimeActor::ApplyMonsterPlacementMetadata()` recopie toujours `EncounterGroupId`, `PatrolMode` et `PatrolWaypoints` depuis le LevelAsset ;
+- le bootstrap MON14.3.2 resynchronise ces métadonnées avant toute décision d'exploration.
+
+Le log de bootstrap distingue maintenant la présence d'une route de son activité runtime :
+
+```text
+[MON14.3.2] Patrol candidate Monster=... State=... Mode=PingPong Waypoints=4 Cell=(...)
+[MON14.3.2] Patrol bootstrap ... Authored=1 Active=1
+```
+
+Le test `Grimrock.Monsters.MON14.3.AuthoredRouteResync` efface volontairement la copie de route de l'Actor puis vérifie que le bootstrap la recharge depuis le LevelAsset et démarre le mouvement.
