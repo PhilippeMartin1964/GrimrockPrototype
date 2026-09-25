@@ -159,7 +159,7 @@ void UGridMonsterPatrolSubsystem::BootstrapRuntimeExploration(
 {
 	RegisterRuntime(RuntimeActor);
 	UWorld* World = GetWorld();
-	if (!IsValid(RuntimeActor) || !World || RuntimeActor->GetWorld() != World || !IsRuntimeSafeForExploration(RuntimeActor))
+	if (!IsValid(RuntimeActor) || !World || RuntimeActor->GetWorld() != World)
 	{
 		return;
 	}
@@ -181,6 +181,20 @@ void UGridMonsterPatrolSubsystem::BootstrapRuntimeExploration(
 	{
 		UE_LOG(LogGridMonsterPatrol, Verbose, TEXT("[MON14.3.2] Patrol bootstrap deferred Runtime=%s Reason=%s Cause=PartyNotReady"),
 			*GetNameSafe(RuntimeActor), *Reason.ToString());
+		return;
+	}
+
+	if (RuntimeActor->bIsExecutingRelocation)
+	{
+		UE_LOG(LogGridMonsterPatrol, Log, TEXT("[MON14.3.2] Patrol bootstrap deferred Runtime=%s Reason=%s Cause=RelocationInProgress"),
+			*GetNameSafe(RuntimeActor), *Reason.ToString());
+		World->GetTimerManager().SetTimerForNextTick(
+			FTimerDelegate::CreateUObject(this, &UGridMonsterPatrolSubsystem::BootstrapRuntimeExploration, RuntimeActor, ReadyParty, Reason));
+		return;
+	}
+
+	if (!IsRuntimeSafeForExploration(RuntimeActor))
+	{
 		return;
 	}
 
