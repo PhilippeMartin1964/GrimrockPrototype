@@ -291,7 +291,7 @@ bool FGridMonsterMON143RuntimeBootstrapTest::RunTest(const FString& Parameters)
 	UGridMonsterMovementComponent* Movement = Monster->FindComponentByClass<UGridMonsterMovementComponent>();
 	TestFalse(TEXT("Fixture does not manually start patrol movement"), Movement && Movement->IsBusy());
 
-	Fixture.Patrol->BootstrapRuntimeExploration(Fixture.Runtime, TEXT("MON143RuntimeBootstrap"));
+	Fixture.Patrol->BootstrapRuntimeExploration(Fixture.Runtime, Fixture.Party, TEXT("MON143RuntimeBootstrap"));
 
 	TestTrue(TEXT("Runtime bootstrap starts an authored Idle PingPong patrol without ProcessMonsterNow"), Movement && Movement->IsBusy());
 	TestEqual(TEXT("Runtime bootstrap marks activity Patrolling"),

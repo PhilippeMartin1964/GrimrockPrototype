@@ -154,7 +154,8 @@ void UGridMonsterPatrolSubsystem::HandlePerceptionEvaluation(AGridLevelRuntimeAc
 	bHandlingCompletedAutomaticEvaluation = false;
 }
 
-void UGridMonsterPatrolSubsystem::BootstrapRuntimeExploration(AGridLevelRuntimeActor* RuntimeActor, FName Reason)
+void UGridMonsterPatrolSubsystem::BootstrapRuntimeExploration(
+	AGridLevelRuntimeActor* RuntimeActor, AGrimrockPartyPawn* ReadyParty, FName Reason)
 {
 	RegisterRuntime(RuntimeActor);
 	UWorld* World = GetWorld();
@@ -163,14 +164,17 @@ void UGridMonsterPatrolSubsystem::BootstrapRuntimeExploration(AGridLevelRuntimeA
 		return;
 	}
 
-	AGrimrockPartyPawn* ReadyParty = nullptr;
-	for (TActorIterator<AGrimrockPartyPawn> It(World); It; ++It)
+	if (!IsValid(ReadyParty) || ReadyParty->LevelRuntimeActor != RuntimeActor)
 	{
-		AGrimrockPartyPawn* Candidate = *It;
-		if (IsValid(Candidate) && Candidate->HasActorBegunPlay() && Candidate->LevelRuntimeActor == RuntimeActor)
+		ReadyParty = nullptr;
+		for (TActorIterator<AGrimrockPartyPawn> It(World); It; ++It)
 		{
-			ReadyParty = Candidate;
-			break;
+			AGrimrockPartyPawn* Candidate = *It;
+			if (IsValid(Candidate) && Candidate->HasActorBegunPlay() && Candidate->LevelRuntimeActor == RuntimeActor)
+			{
+				ReadyParty = Candidate;
+				break;
+			}
 		}
 	}
 	if (!ReadyParty)

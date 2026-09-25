@@ -184,7 +184,7 @@ void AGrimrockPartyPawn::BeginPlay()
 		{
 			if (UGridMonsterPatrolSubsystem* PatrolSubsystem = World->GetSubsystem<UGridMonsterPatrolSubsystem>())
 			{
-				PatrolSubsystem->BootstrapRuntimeExploration(LevelRuntimeActor, TEXT("PartyBeginPlay"));
+				PatrolSubsystem->BootstrapRuntimeExploration(LevelRuntimeActor, this, TEXT("PartyBeginPlay"));
 			}
 		}
 	}

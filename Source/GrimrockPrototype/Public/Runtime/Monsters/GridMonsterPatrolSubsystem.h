@@ -9,6 +9,7 @@
 
 class AGridLevelRuntimeActor;
 class AGridMonsterActor;
+class AGrimrockPartyPawn;
 class UGridMonsterBehaviorComponent;
 class UGridMonsterMovementComponent;
 class UGridTurnManagerComponent;
@@ -63,7 +64,7 @@ public:
 	 * not a perception event: authored Idle patrols must start even while the party
 	 * remains stationary and no door/trigger/perception event occurs.
 	 */
-	void BootstrapRuntimeExploration(AGridLevelRuntimeActor* RuntimeActor, FName Reason);
+	void BootstrapRuntimeExploration(AGridLevelRuntimeActor* RuntimeActor, AGrimrockPartyPawn* ReadyParty, FName Reason);
 
 	bool ProcessMonsterNow(AGridMonsterActor* Monster, FName Reason = NAME_None);
 

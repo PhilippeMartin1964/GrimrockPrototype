@@ -347,7 +347,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		{
 			if (UGridMonsterPatrolSubsystem* PatrolSubsystem = World->GetSubsystem<UGridMonsterPatrolSubsystem>())
 			{
-				PatrolSubsystem->BootstrapRuntimeExploration(this, TEXT("RuntimeStateInitialized"));
+				PatrolSubsystem->BootstrapRuntimeExploration(this, nullptr, TEXT("RuntimeStateInitialized"));
 			}
 		}
 		return false;
@@ -693,7 +693,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 	{
 		if (UGridMonsterPatrolSubsystem* PatrolSubsystem = World->GetSubsystem<UGridMonsterPatrolSubsystem>())
 		{
-			PatrolSubsystem->BootstrapRuntimeExploration(this, TEXT("RuntimeStateRestored"));
+			PatrolSubsystem->BootstrapRuntimeExploration(this, nullptr, TEXT("RuntimeStateRestored"));
 		}
 	}
 	return true;
