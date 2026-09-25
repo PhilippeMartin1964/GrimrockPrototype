@@ -273,7 +273,11 @@ void UGridInventorySlotWidget::SetItem(const FGridItemInstance& InItem)
 	{
 		if (const UGridItemDefinitionAsset* Definition = OwningInventoryWidget->InventoryComponent->FindItemDefinition(CachedItem.ItemDefinitionId))
 		{
-			CachedIconTexture = Definition->Icon.LoadSynchronous();
+			CachedIconTexture = Definition->Icon.Get();
+			if (!CachedIconTexture && !Definition->Icon.IsNull())
+			{
+				CachedIconTexture = Definition->Icon.LoadSynchronous();
+			}
 		}
 	}
 

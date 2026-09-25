@@ -195,3 +195,44 @@ Grimrock.UI.Inventory02.FixedCapacity
 ```
 
 La clôture précédente de UI-INVENTORY02 reste historiquement valide pour la version initiale ; UI-INVENTORY02.1 doit être revalidé par Automation + PIE avant nouvelle clôture.
+
+
+## UI-INVENTORY02.9 — Fast in-place inventory projection
+
+Le tri et le filtrage ne reconstruisent plus la grille UMG lorsque sa topologie est inchangée.
+
+Avant :
+
+```text
+tri/filtre
+-> projection différente
+-> suppression des slots générés
+-> recréation de tous les WBP_InventorySlot
+-> réenregistrement des delegates
+-> rafraîchissements répétés
+```
+
+Après :
+
+```text
+tri/filtre
+-> projection recalculée
+-> mêmes widgets conservés
+-> InventorySlotIndex réaffecté par position visuelle
+-> contenu rafraîchi en place
+```
+
+Une reconstruction complète reste limitée aux vrais changements de topologie :
+
+- nombre total de slots ;
+- nombre de colonnes ;
+- classe de widget de slot ;
+- panneau de grille.
+
+Le tri pré-calcule désormais une clé par item (nom, type, poids total) avant `Sort()` au lieu de refaire les recherches de définition et conversions de texte dans le comparateur.
+
+`GetVisibleInventoryItemCount()` compte directement les items correspondant au filtre et ne reconstruit plus une projection triée.
+
+L'enregistrement d'un slot ne rafraîchit plus toute la collection : seul le slot nouvellement enregistré est actualisé.
+
+Enfin, `SetItem()` utilise d'abord `TSoftObjectPtr::Get()` pour une icône déjà résidente avant de recourir à `LoadSynchronous()`.

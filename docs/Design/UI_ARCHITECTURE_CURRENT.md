@@ -537,3 +537,10 @@ Shoulders, Gloves, Belt, Cloak,
 Shirt, Bracers
 ```
 
+
+
+## UI-INVENTORY02.9 — projection rapide en place
+
+Les changements de tri/filtre ne font plus partie de la clé de reconstruction de la grille. Les `GeneratedInventorySlotWidgets` sont conservés et réaffectés en place tant que capacité, colonnes, classe de slot et panneau restent inchangés.
+
+Le tri pré-calcule ses clés par item, le compteur d'items visibles ne retrie plus l'inventaire et l'enregistrement d'un slot ne provoque plus de rafraîchissement global de tous les slots.

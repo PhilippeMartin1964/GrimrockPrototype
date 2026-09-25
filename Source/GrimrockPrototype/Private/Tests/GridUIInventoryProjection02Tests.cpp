@@ -190,6 +190,9 @@ bool FGridUIInventory02ControlsContractTest::RunTest(const FString& Parameters)
 	TestNull(TEXT("Legacy sort button binding is removed"), FindFProperty<FProperty>(BagClass, TEXT("Button_SortInventory")));
 	TestNull(TEXT("Legacy sort label binding is removed"), FindFProperty<FProperty>(BagClass, TEXT("Text_SortInventory")));
 	TestNotNull(TEXT("Empty projection binding exists"), FindFProperty<FProperty>(BaseClass, TEXT("Text_InventoryEmptyState")));
+	TestNotNull(TEXT("Generated inventory slots remain reusable"), FindFProperty<FProperty>(BaseClass, TEXT("GeneratedInventorySlotWidgets")));
+	TestNull(TEXT("Projection is no longer stored as a topology rebuild key"),
+		FindFProperty<FProperty>(BaseClass, TEXT("LastBuiltInventorySourceSlotIndices")));
 	TestNotNull(TEXT("Native sort selection handler exists"), BagClass->FindFunctionByName(TEXT("HandleSortInventorySelectionChanged")));
 	TestNotNull(TEXT("Sort setter is reflected"), BaseClass->FindFunctionByName(TEXT("SetInventorySortMode")));
 	TestNull(TEXT("Legacy sort cycle API is removed"), BaseClass->FindFunctionByName(TEXT("CycleInventorySortMode")));

@@ -461,9 +461,6 @@ private:
 	int32 LastBuiltSlotCount = 0;
 
 	UPROPERTY(Transient)
-	TArray<int32> LastBuiltInventorySourceSlotIndices;
-
-	UPROPERTY(Transient)
 	int32 LastBuiltColumnCount = 0;
 
 	UPROPERTY(Transient)
