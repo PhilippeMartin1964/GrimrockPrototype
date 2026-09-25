@@ -44,11 +44,8 @@ enum class EGridEquipmentSlot : uint8
 	Talisman,
 	QuickSlot1,
 	QuickSlot2,
-	Face,
 	Shirt,
 	Bracers,
-	Earring1,
-	Earring2
 };
 
 /** Derived presentation state for the selected character's carried weight. */
@@ -598,19 +595,10 @@ struct FGridCharacterEquipmentState
 	FGridItemInstance QuickSlot2;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
-	FGridItemInstance Face;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
 	FGridItemInstance Shirt;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
 	FGridItemInstance Bracers;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
-	FGridItemInstance Earring1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
-	FGridItemInstance Earring2;
 
 	FGridItemInstance* GetMutableSlot(EGridEquipmentSlot Slot)
 	{
@@ -648,16 +636,10 @@ struct FGridCharacterEquipmentState
 				return &QuickSlot1;
 			case EGridEquipmentSlot::QuickSlot2:
 				return &QuickSlot2;
-			case EGridEquipmentSlot::Face:
-				return &Face;
 			case EGridEquipmentSlot::Shirt:
 				return &Shirt;
 			case EGridEquipmentSlot::Bracers:
 				return &Bracers;
-			case EGridEquipmentSlot::Earring1:
-				return &Earring1;
-			case EGridEquipmentSlot::Earring2:
-				return &Earring2;
 			default:
 				return nullptr;
 		}

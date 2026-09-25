@@ -26,9 +26,9 @@ void UGridInventoryWidget::NativeConstruct()
 
 bool UGridInventoryWidget::HasPaperDollPresentation() const
 {
-	return SlotWidget_Head || SlotWidget_Face || SlotWidget_Amulet || SlotWidget_Shoulders || SlotWidget_Shirt || SlotWidget_Chest || SlotWidget_Cloak ||
-		SlotWidget_Bracers || SlotWidget_Gloves || SlotWidget_Belt || SlotWidget_Legs || SlotWidget_Feet || SlotWidget_Ring1 || SlotWidget_Ring2 ||
-		SlotWidget_Earring1 || SlotWidget_Earring2 || SlotWidget_MainHand || SlotWidget_OffHand;
+	return SlotWidget_Head || SlotWidget_Amulet || SlotWidget_Shoulders || SlotWidget_Shirt || SlotWidget_Chest || SlotWidget_Cloak || SlotWidget_Bracers ||
+		SlotWidget_Gloves || SlotWidget_Belt || SlotWidget_Legs || SlotWidget_Feet || SlotWidget_Ring1 || SlotWidget_Ring2 || SlotWidget_MainHand ||
+		SlotWidget_OffHand;
 }
 
 void UGridInventoryWidget::NativeDestruct()

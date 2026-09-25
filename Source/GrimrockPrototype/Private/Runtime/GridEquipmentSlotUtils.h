@@ -5,7 +5,7 @@
 namespace GridEquipmentSlotUtils
 {
 	constexpr uint8 FirstSlotValue = static_cast<uint8>(EGridEquipmentSlot::MainHand);
-	constexpr uint8 LastSlotValue = static_cast<uint8>(EGridEquipmentSlot::Earring2);
+	constexpr uint8 LastSlotValue = static_cast<uint8>(EGridEquipmentSlot::Bracers);
 
 	inline bool IsSupportedSlot(EGridEquipmentSlot Slot)
 	{
@@ -22,8 +22,7 @@ namespace GridEquipmentSlotUtils
 	{
 		static const TCHAR* const Names[] = { TEXT("None"), TEXT("MainHand"), TEXT("OffHand"), TEXT("Head"), TEXT("Chest"), TEXT("Legs"),
 			TEXT("Feet"), TEXT("Amulet"), TEXT("Ring1"), TEXT("Ring2"), TEXT("Shoulders"), TEXT("Gloves"), TEXT("Belt"), TEXT("Cloak"),
-			TEXT("Talisman"), TEXT("QuickSlot1"), TEXT("QuickSlot2"), TEXT("Visage"), TEXT("Chemise"), TEXT("Brassards"),
-			TEXT("Bijou d'oreille I"), TEXT("Bijou d'oreille II") };
+			TEXT("Talisman"), TEXT("QuickSlot1"), TEXT("QuickSlot2"), TEXT("Chemise"), TEXT("Brassards") };
 		static_assert(UE_ARRAY_COUNT(Names) == LastSlotValue + 1, "Equipment slot log names must stay aligned with EGridEquipmentSlot.");
 
 		const uint8 SlotValue = static_cast<uint8>(Slot);

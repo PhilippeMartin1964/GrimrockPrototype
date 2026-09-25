@@ -154,16 +154,10 @@ namespace
 				return NSLOCTEXT("GridItemActions", "EquipmentSlotQuickSlot1", "raccourci I");
 			case EGridEquipmentSlot::QuickSlot2:
 				return NSLOCTEXT("GridItemActions", "EquipmentSlotQuickSlot2", "raccourci II");
-			case EGridEquipmentSlot::Face:
-				return NSLOCTEXT("GridItemActions", "EquipmentSlotFace", "visage");
 			case EGridEquipmentSlot::Shirt:
 				return NSLOCTEXT("GridItemActions", "EquipmentSlotShirt", "chemise");
 			case EGridEquipmentSlot::Bracers:
 				return NSLOCTEXT("GridItemActions", "EquipmentSlotBracers", "brassards");
-			case EGridEquipmentSlot::Earring1:
-				return NSLOCTEXT("GridItemActions", "EquipmentSlotEarring1", "bijou d'oreille I");
-			case EGridEquipmentSlot::Earring2:
-				return NSLOCTEXT("GridItemActions", "EquipmentSlotEarring2", "bijou d'oreille II");
 			case EGridEquipmentSlot::None:
 			default:
 				return FText::GetEmpty();

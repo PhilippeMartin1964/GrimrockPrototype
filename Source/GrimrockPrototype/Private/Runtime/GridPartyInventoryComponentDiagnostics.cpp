@@ -104,8 +104,7 @@ namespace
 
 	bool GridPartyInventoryDiagnosticsIsNewPaperDollSlot(EGridEquipmentSlot Slot)
 	{
-		return Slot == EGridEquipmentSlot::Face || Slot == EGridEquipmentSlot::Shirt || Slot == EGridEquipmentSlot::Bracers ||
-			Slot == EGridEquipmentSlot::Earring1 || Slot == EGridEquipmentSlot::Earring2;
+		return Slot == EGridEquipmentSlot::Shirt || Slot == EGridEquipmentSlot::Bracers;
 	}
 
 	bool GridPartyInventoryDiagnosticsLooksPotentiallyEquippable(const UGridItemDefinitionAsset* Definition)

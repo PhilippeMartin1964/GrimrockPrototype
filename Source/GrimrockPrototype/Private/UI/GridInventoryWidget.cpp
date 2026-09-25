@@ -196,16 +196,10 @@ namespace
 				return TEXT("QuickSlot1");
 			case EGridEquipmentSlot::QuickSlot2:
 				return TEXT("QuickSlot2");
-			case EGridEquipmentSlot::Face:
-				return TEXT("Visage");
 			case EGridEquipmentSlot::Shirt:
 				return TEXT("Chemise");
 			case EGridEquipmentSlot::Bracers:
 				return TEXT("Brassards");
-			case EGridEquipmentSlot::Earring1:
-				return TEXT("Bijou d'oreille I");
-			case EGridEquipmentSlot::Earring2:
-				return TEXT("Bijou d'oreille II");
 			case EGridEquipmentSlot::None:
 			default:
 				return TEXT("None");
@@ -248,26 +242,20 @@ namespace
 				return TEXT("QuickSlot1");
 			case EGridEquipmentSlot::QuickSlot2:
 				return TEXT("QuickSlot2");
-			case EGridEquipmentSlot::Face:
-				return TEXT("Face");
 			case EGridEquipmentSlot::Shirt:
 				return TEXT("Shirt");
 			case EGridEquipmentSlot::Bracers:
 				return TEXT("Bracers");
-			case EGridEquipmentSlot::Earring1:
-				return TEXT("Earring1");
-			case EGridEquipmentSlot::Earring2:
-				return TEXT("Earring2");
 			case EGridEquipmentSlot::None:
 			default:
 				return TEXT("None");
 		}
 	}
 
-	constexpr EGridEquipmentSlot PaperDollEquipmentSlots[] = { EGridEquipmentSlot::Head, EGridEquipmentSlot::Face, EGridEquipmentSlot::Amulet,
-		EGridEquipmentSlot::Shoulders, EGridEquipmentSlot::Shirt, EGridEquipmentSlot::Chest, EGridEquipmentSlot::Cloak, EGridEquipmentSlot::Bracers,
-		EGridEquipmentSlot::Gloves, EGridEquipmentSlot::Belt, EGridEquipmentSlot::Legs, EGridEquipmentSlot::Feet, EGridEquipmentSlot::Ring1,
-		EGridEquipmentSlot::Ring2, EGridEquipmentSlot::Earring1, EGridEquipmentSlot::Earring2, EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand };
+	constexpr EGridEquipmentSlot PaperDollEquipmentSlots[] = { EGridEquipmentSlot::Head, EGridEquipmentSlot::Amulet, EGridEquipmentSlot::Shoulders,
+		EGridEquipmentSlot::Shirt, EGridEquipmentSlot::Chest, EGridEquipmentSlot::Cloak, EGridEquipmentSlot::Bracers, EGridEquipmentSlot::Gloves,
+		EGridEquipmentSlot::Belt, EGridEquipmentSlot::Legs, EGridEquipmentSlot::Feet, EGridEquipmentSlot::Ring1, EGridEquipmentSlot::Ring2,
+		EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand };
 
 	constexpr EGridEquipmentSlot ForbiddenPaperDollEquipmentSlots[] = { EGridEquipmentSlot::Talisman, EGridEquipmentSlot::QuickSlot1,
 		EGridEquipmentSlot::QuickSlot2 };
@@ -851,7 +839,6 @@ void UGridInventoryWidget::RegisterPaperDollEquipmentSlotWidget(UGridInventorySl
 void UGridInventoryWidget::RegisterPaperDollEquipmentSlotWidgets()
 {
 	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Head, EGridEquipmentSlot::Head, TEXT("SlotWidget_Head"));
-	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Face, EGridEquipmentSlot::Face, TEXT("SlotWidget_Face"));
 	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Amulet, EGridEquipmentSlot::Amulet, TEXT("SlotWidget_Amulet"));
 	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Shoulders, EGridEquipmentSlot::Shoulders, TEXT("SlotWidget_Shoulders"));
 	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Shirt, EGridEquipmentSlot::Shirt, TEXT("SlotWidget_Shirt"));
@@ -864,8 +851,6 @@ void UGridInventoryWidget::RegisterPaperDollEquipmentSlotWidgets()
 	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Feet, EGridEquipmentSlot::Feet, TEXT("SlotWidget_Feet"));
 	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Ring1, EGridEquipmentSlot::Ring1, TEXT("SlotWidget_Ring1"));
 	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Ring2, EGridEquipmentSlot::Ring2, TEXT("SlotWidget_Ring2"));
-	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Earring1, EGridEquipmentSlot::Earring1, TEXT("SlotWidget_Earring1"));
-	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Earring2, EGridEquipmentSlot::Earring2, TEXT("SlotWidget_Earring2"));
 	RegisterPaperDollEquipmentSlotWidget(SlotWidget_MainHand, EGridEquipmentSlot::MainHand, TEXT("SlotWidget_MainHand"));
 	RegisterPaperDollEquipmentSlotWidget(SlotWidget_OffHand, EGridEquipmentSlot::OffHand, TEXT("SlotWidget_OffHand"));
 }

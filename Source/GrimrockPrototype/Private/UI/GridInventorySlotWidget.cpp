@@ -30,11 +30,8 @@ namespace
 			case EGridEquipmentSlot::Talisman: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotTalisman", "Talisman");
 			case EGridEquipmentSlot::QuickSlot1: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotQuickSlot1", "Raccourci I");
 			case EGridEquipmentSlot::QuickSlot2: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotQuickSlot2", "Raccourci II");
-			case EGridEquipmentSlot::Face: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotFace", "Visage");
 			case EGridEquipmentSlot::Shirt: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotShirt", "Chemise");
 			case EGridEquipmentSlot::Bracers: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotBracers", "Brassards");
-			case EGridEquipmentSlot::Earring1: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotEarring1", "Bijou d'oreille I");
-			case EGridEquipmentSlot::Earring2: return NSLOCTEXT("GridInventoryTooltip", "EquipmentSlotEarring2", "Bijou d'oreille II");
 			case EGridEquipmentSlot::None:
 			default: return FText::GetEmpty();
 		}
