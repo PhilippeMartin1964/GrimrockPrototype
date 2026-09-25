@@ -8,6 +8,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UI/GridInventorySlotWidget.h"
 #include "UI/GridInventoryWidget.h"
 
 namespace
@@ -149,20 +150,36 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Ctrl-click split leaves two stones in the source"), Character.InventorySlots[0].Item.Quantity, 2);
 	TestTrue(TEXT("Ctrl-click split leaves exactly one stone on the cursor"),
 		Inventory->HasCursorItem() && Inventory->GetCursorItem().Quantity == 1);
-	TestTrue(TEXT("Ctrl-click split can be merged back before testing the context route"),
-		Inventory->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, 0));
-	TestFalse(TEXT("Ctrl-click merge-back clears the cursor"), Inventory->HasCursorItem());
-	TestEqual(TEXT("Ctrl-click merge-back restores three stones"), Character.InventorySlots[0].Item.Quantity, 3);
 
+	UGridInventorySlotWidget* OccupiedTargetWidget = CreateWidget<UGridInventorySlotWidget>(TestWorld.World, UGridInventorySlotWidget::StaticClass());
+	if (!TestNotNull(TEXT("Occupied target slot widget exists"), OccupiedTargetWidget))
+	{
+		return false;
+	}
+	OccupiedTargetWidget->SetOwnerInventoryWidget(Widget);
+	OccupiedTargetWidget->InitializeInventorySlot(EGridInventoryUiSlotType::Inventory, 0);
+	OccupiedTargetWidget->SetItem(Character.InventorySlots[0].Item);
+	TestFalse(TEXT("An occupied slot cannot start a second drag while an item is already on the inventory cursor"),
+		OccupiedTargetWidget->CanStartDrag());
+
+	TestTrue(TEXT("Ctrl-click split places into the exact clicked inventory slot"), Widget->HandleInventorySlotClicked(4));
+	TestFalse(TEXT("Ctrl-click target placement clears the cursor"), Inventory->HasCursorItem());
+	TestEqual(TEXT("Ctrl-click split leaves two stones in the source after placement"), Character.InventorySlots[0].Item.Quantity, 2);
+	TestEqual(TEXT("Ctrl-click split creates one stone in clicked slot four"), Character.InventorySlots[4].Item.Quantity, 1);
+	TestTrue(TEXT("An unrelated free slot remains empty"), Character.InventorySlots[1].IsEmpty());
+
+	ResetInventory(Inventory, CharacterIndex);
+	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 3);
 	TestTrue(TEXT("Context SplitStack action takes one stone to the cursor"),
 		Widget->ExecuteInventoryContextAction(EGridItemActionType::SplitStack, EGridInventoryUiSlotType::Inventory, 0));
 	TestEqual(TEXT("Context SplitStack leaves two stones in the source"), Character.InventorySlots[0].Item.Quantity, 2);
 	TestTrue(TEXT("Context SplitStack leaves exactly one stone on the cursor"),
 		Inventory->HasCursorItem() && Inventory->GetCursorItem().Quantity == 1);
-	TestTrue(TEXT("Context SplitStack can be merged back"),
-		Inventory->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, 0));
-	TestFalse(TEXT("Context SplitStack merge-back clears the cursor"), Inventory->HasCursorItem());
-	TestEqual(TEXT("Context SplitStack merge-back restores three stones"), Character.InventorySlots[0].Item.Quantity, 3);
+	TestTrue(TEXT("Context SplitStack places into the exact clicked inventory slot"), Widget->HandleInventorySlotClicked(5));
+	TestFalse(TEXT("Context SplitStack target placement clears the cursor"), Inventory->HasCursorItem());
+	TestEqual(TEXT("Context SplitStack leaves two stones in the source after placement"), Character.InventorySlots[0].Item.Quantity, 2);
+	TestEqual(TEXT("Context SplitStack creates one stone in clicked slot five"), Character.InventorySlots[5].Item.Quantity, 1);
+	TestTrue(TEXT("Context split does not use the first unrelated free slot"), Character.InventorySlots[1].IsEmpty());
 	TestOwnership(TEXT("Ownership is valid after both split entry points"));
 
 	// Scenario A: exercise the real UI routing for Ctrl-split followed by a normal occupied-slot drop.

@@ -1,7 +1,6 @@
 #include "UI/GridInventorySlotWidget.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
-#include "Framework/Application/SlateApplication.h"
 #include "InputCoreTypes.h"
 #include "Runtime/GridItemContextActionLibrary.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -485,10 +484,7 @@ void UGridInventorySlotWidget::HandleClicked()
 {
 	if (OwningInventoryWidget && SlotType == EGridInventoryUiSlotType::Inventory)
 	{
-		const bool bControlDown =
-			bSplitStackRequestedByClick || (FSlateApplication::IsInitialized() && FSlateApplication::Get().GetModifierKeys().IsControlDown());
-		OwningInventoryWidget->HandleInventorySlotClicked(InventorySlotIndex, bControlDown);
-		bSplitStackRequestedByClick = false;
+		OwningInventoryWidget->HandleInventorySlotClicked(InventorySlotIndex, false);
 		return;
 	}
 
@@ -502,7 +498,13 @@ void UGridInventorySlotWidget::SetOwnerInventoryWidget(UGridInventoryWidget* InO
 
 bool UGridInventorySlotWidget::CanStartDrag() const
 {
-	return bDragEnabled && bHasItem && CachedItem.IsValid();
+	if (!bDragEnabled || !bHasItem || !CachedItem.IsValid())
+	{
+		return false;
+	}
+
+	FGridItemInstance CursorItem;
+	return !OwningInventoryWidget || !OwningInventoryWidget->GetCursorItem(CursorItem);
 }
 
 UGridInventoryDragDropOperation* UGridInventorySlotWidget::CreateDragDropOperation() const
@@ -529,10 +531,24 @@ void UGridInventorySlotWidget::RefreshSlotVisual_Implementation()
 {
 }
 
+FReply UGridInventorySlotWidget::NativeOnPreviewMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && InMouseEvent.IsControlDown() &&
+		SlotType == EGridInventoryUiSlotType::Inventory && bHasItem && CachedItem.Quantity > 1 && OwningInventoryWidget)
+	{
+		FGridItemInstance CursorItem;
+		if (!OwningInventoryWidget->GetCursorItem(CursorItem))
+		{
+			OwningInventoryWidget->HandleInventorySlotClicked(InventorySlotIndex, true);
+			return FReply::Handled();
+		}
+	}
+
+	return Super::NativeOnPreviewMouseButtonDown(InGeometry, InMouseEvent);
+}
+
 FReply UGridInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	bSplitStackRequestedByClick = SlotType == EGridInventoryUiSlotType::Inventory && InMouseEvent.IsControlDown();
-
 	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton && bHasItem && OwningInventoryWidget)
 	{
 		OwningInventoryWidget->HandleItemSlotRightClicked(SlotType, InventorySlotIndex);
@@ -559,7 +575,6 @@ void UGridInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 
 	Operation->bSplitStack = SlotType == EGridInventoryUiSlotType::Inventory && CachedItem.Quantity > 1 && InMouseEvent.IsControlDown();
 	Operation->RequestedQuantity = Operation->bSplitStack ? 1 : 0;
-	bSplitStackRequestedByClick = false;
 	OutOperation = Operation;
 	UE_LOG(LogTemp, Verbose, TEXT("GridInventory UI DragStarted Type=%s Slot=%d Item=%s RuntimeId=%s"), GetGridInventoryUiSlotTypeName(SlotType),
 		InventorySlotIndex, *CachedItem.ItemDefinitionId.ToString(), *CachedItem.RuntimeObjectId.ToString());

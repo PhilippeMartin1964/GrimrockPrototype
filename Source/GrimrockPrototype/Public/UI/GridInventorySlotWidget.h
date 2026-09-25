@@ -102,8 +102,7 @@ public:
 	void RefreshSlotVisual();
 
 protected:
-	UPROPERTY(Transient)
-	bool bSplitStackRequestedByClick = false;
+	virtual FReply NativeOnPreviewMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 

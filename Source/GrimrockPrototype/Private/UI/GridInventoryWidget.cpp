@@ -1764,6 +1764,10 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			bExecuted = InventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SourceSlotIndex, 1);
 			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute SplitStack Item=%s Slot=%d Result=%s"),
 				*LastContextItem.ItemDefinitionId.ToString(), SourceSlotIndex, bExecuted ? TEXT("true") : TEXT("false"));
+			if (bExecuted)
+			{
+				CloseItemActionMenu(TEXT("SplitStack"));
+			}
 			break;
 		}
 
@@ -2397,7 +2401,7 @@ bool UGridInventoryWidget::HandleInventorySlotClicked(int32 SlotIndex, bool bSpl
 
 	const bool bCursorBefore = InventoryComponent->HasCursorItem();
 	const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex();
-	const bool bResult = bCursorBefore ? InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory()
+	const bool bResult = bCursorBefore ? InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, SlotIndex)
 									   : (bSplitStack ? InventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SlotIndex, 1)
 													  : InventoryComponent->TryTakeInventorySlotToCursor(CharacterIndex, SlotIndex));
 

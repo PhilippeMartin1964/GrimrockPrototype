@@ -20,6 +20,8 @@
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
+#include "UI/GridInventoryBagWidget.h"
+#include "UI/GridCharacterSheetWidget.h"
 #include "UI/GridCombatHudWidget.h"
 #include "Sound/SoundBase.h"
 
@@ -71,6 +73,18 @@ namespace
 	bool IsHoverCursorReason(const TCHAR* Reason)
 	{
 		return Reason && FCString::Strncmp(Reason, TEXT("Hover"), 5) == 0;
+	}
+
+	bool IsInventoryWorkspaceHovered(const AGrimrockPartyPawn* PartyPawn)
+	{
+		if (!PartyPawn || !PartyPawn->IsInventoryWorkspaceVisible())
+		{
+			return false;
+		}
+
+		const UGridInventoryBagWidget* InventoryBag = PartyPawn->InventoryBagWidgetInstance.Get();
+		const UGridCharacterSheetWidget* CharacterSheet = PartyPawn->CharacterSheetWidgetInstance.Get();
+		return (IsValid(InventoryBag) && InventoryBag->IsHovered()) || (IsValid(CharacterSheet) && CharacterSheet->IsHovered());
 	}
 
 	bool CanSelectedCharacterPhysicallyThrow(const AGrimrockPartyPawn* PartyPawn, const UGridItemDefinitionAsset* Definition)
@@ -690,10 +704,17 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
 
 	const UGridInventoryWidget* InventoryWidget = Resolution.PartyPawn ? Resolution.PartyPawn->GetInventoryWidget() : nullptr;
 	Resolution.bItemActionMenuOpen = InventoryWidget && InventoryWidget->IsItemActionMenuOpen();
-	if (bInventoryUiOpen && !Resolution.bHasCursorItem && Resolution.bItemActionMenuOpen)
+	if (bInventoryUiOpen && Resolution.bItemActionMenuOpen)
 	{
 		Resolution.Intent = EGridMouseInteractionIntent::IgnoreModalUi;
 		Resolution.DiagnosticReason = TEXT("ItemActionMenuOpen");
+		return Resolution;
+	}
+
+	if (bInventoryUiOpen && IsInventoryWorkspaceHovered(Resolution.PartyPawn))
+	{
+		Resolution.Intent = EGridMouseInteractionIntent::IgnoreModalUi;
+		Resolution.DiagnosticReason = TEXT("InventoryWorkspaceHovered");
 		return Resolution;
 	}
 
@@ -969,10 +990,10 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 
 	if (MouseResolution.Intent == EGridMouseInteractionIntent::IgnoreModalUi)
 	{
-		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=ModalUI Result=Ignored Reason=ItemActionMenuOpen"));
+		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=ModalUI Result=Ignored Reason=%s"), *MouseResolution.DiagnosticReason.ToString());
 		if (bDebugMouseInteraction)
 		{
-			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction ignored: item action menu open."));
+			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction ignored by UI surface: %s."), *MouseResolution.DiagnosticReason.ToString());
 		}
 		return;
 	}
@@ -1258,6 +1279,14 @@ void AGrimrockPlayerController::UpdateHoveredInteractable()
 	const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
 	FGridItemInstance CursorItem;
 	const bool bHasCursorItem = PartyPawn && PartyPawn->GetCursorItem(CursorItem);
+	if (bInventoryUiOpen && IsInventoryWorkspaceHovered(PartyPawn))
+	{
+		if (bHasCursorItem)
+		{
+			SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverInventoryWorkspaceWithCursorItem"));
+		}
+		return;
+	}
 	if (ShouldBlockWorldInteractionForInventoryUi(PartyPawn, bHasCursorItem))
 	{
 		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverModalInventoryUiOpen"));
