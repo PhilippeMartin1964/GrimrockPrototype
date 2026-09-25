@@ -238,10 +238,66 @@ bool FGridMonsterMON143CursorRulesTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("PingPong first goes forward"), Next, 1);
 	TestEqual(TEXT("PingPong direction becomes forward"), Direction, 1);
 
+	Direction = 1;
+	const TArray<int32> FourPointArrivals = { 0, 1, 2, 3, 2, 1, 0 };
+	const TArray<int32> FourPointExpectedNext = { 1, 2, 3, 2, 1, 0, 1 };
+	for (int32 StepIndex = 0; StepIndex < FourPointArrivals.Num(); ++StepIndex)
+	{
+		Next = INDEX_NONE;
+		TestTrue(FString::Printf(TEXT("Four-point PingPong step %d advances"), StepIndex),
+			FGridMonsterPatrolCursorRules::Advance(
+				EGridMonsterPatrolMode::PingPong, 4, FourPointArrivals[StepIndex], Direction, Next));
+		TestEqual(FString::Printf(TEXT("Four-point PingPong step %d target"), StepIndex), Next, FourPointExpectedNext[StepIndex]);
+	}
+
 	Target = INDEX_NONE;
 	TestTrue(TEXT("Rejoin cursor initializes from off-route cell"),
 		FGridMonsterPatrolCursorRules::Initialize(FIntPoint(5, 2), EGridMonsterPatrolMode::Loop, Route, Target, Direction));
 	TestEqual(TEXT("Nearest waypoint chosen deterministically"), Target, 1);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridMonsterMON143RuntimeBootstrapTest, "Grimrock.Monsters.MON14.3.RuntimeBootstrap", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON143RuntimeBootstrapTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	FGridMON143Fixture Fixture;
+	TestTrue(TEXT("Fixture initializes"), Fixture.Initialize());
+	if (!Fixture.Patrol)
+	{
+		return false;
+	}
+
+	TArray<FGridMonsterPatrolWaypoint> Route = MON143MakeHorizontalRoute();
+	FGridMonsterPatrolWaypoint Third;
+	Third.Cell = FIntPoint(4, 3);
+	Third.Facing = EGridEdge::South;
+	Route.Add(Third);
+	FGridMonsterPatrolWaypoint Fourth;
+	Fourth.Cell = FIntPoint(1, 3);
+	Fourth.Facing = EGridEdge::West;
+	Route.Add(Fourth);
+
+	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_BootstrapRat"), 0, 0), FIntPoint(2, 1), EGridEdge::West,
+		EGridMonsterState::Idle, EGridMonsterPatrolMode::PingPong, Route);
+	TestNotNull(TEXT("Bootstrap patrol monster exists"), Monster);
+	if (!Monster)
+	{
+		return false;
+	}
+
+	UGridMonsterMovementComponent* Movement = Monster->FindComponentByClass<UGridMonsterMovementComponent>();
+	TestFalse(TEXT("Fixture does not manually start patrol movement"), Movement && Movement->IsBusy());
+
+	Fixture.Patrol->BootstrapRuntimeExploration(Fixture.Runtime, TEXT("MON143RuntimeBootstrap"));
+
+	TestTrue(TEXT("Runtime bootstrap starts an authored Idle PingPong patrol without ProcessMonsterNow"), Movement && Movement->IsBusy());
+	TestEqual(TEXT("Runtime bootstrap marks activity Patrolling"),
+		Fixture.Patrol->GetMonsterActivity(Monster->ResolvePersistenceId()), EGridMonsterExplorationActivity::Patrolling);
+	TestEqual(TEXT("Runtime bootstrap chooses the nearest first waypoint"),
+		Fixture.Patrol->GetMonsterTargetWaypointIndex(Monster->ResolvePersistenceId()), 0);
 	return true;
 }
 

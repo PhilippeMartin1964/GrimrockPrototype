@@ -24,6 +24,7 @@
 #include "Runtime/GrimrockPlayerController.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridThrownItemActor.h"
+#include "Runtime/Monsters/GridMonsterPatrolSubsystem.h"
 #include "Save/GridCombatSavePolicy.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "UI/GridCombatHudWidget.h"
@@ -179,6 +180,13 @@ void AGrimrockPartyPawn::BeginPlay()
 	if (LevelRuntimeActor)
 	{
 		LevelRuntimeActor->HandlePartyCellChanged(CurrentCellX, CurrentCellY, CurrentCellX, CurrentCellY);
+		if (UWorld* World = GetWorld())
+		{
+			if (UGridMonsterPatrolSubsystem* PatrolSubsystem = World->GetSubsystem<UGridMonsterPatrolSubsystem>())
+			{
+				PatrolSubsystem->BootstrapRuntimeExploration(LevelRuntimeActor, TEXT("PartyBeginPlay"));
+			}
+		}
 	}
 
 	SyncHeldVisualFromSelectedCharacterEquipment();

@@ -58,6 +58,13 @@ public:
 
 	void HandlePerceptionEvaluation(AGridLevelRuntimeActor* RuntimeActor, bool bCombatStarted, FName Reason);
 
+	/**
+	 * MON14.3.2 explicit exploration bootstrap. This is a runtime-readiness event,
+	 * not a perception event: authored Idle patrols must start even while the party
+	 * remains stationary and no door/trigger/perception event occurs.
+	 */
+	void BootstrapRuntimeExploration(AGridLevelRuntimeActor* RuntimeActor, FName Reason);
+
 	bool ProcessMonsterNow(AGridMonsterActor* Monster, FName Reason = NAME_None);
 
 	/**
@@ -90,6 +97,7 @@ private:
 		int32 TargetWaypointIndex = INDEX_NONE;
 		int32 PingPongDirection = 1;
 		int32 SearchTurnsRemaining = 0;
+		int32 LastUnreachableWaypointIndex = INDEX_NONE;
 		FTimerHandle TimerHandle;
 	};
 

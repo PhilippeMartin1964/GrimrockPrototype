@@ -16,6 +16,8 @@ Grimrock.Monsters.MON14.2
 Grimrock.Monsters.MON14.3
 ```
 
+La suite inclut `RuntimeBootstrap`, qui interdit une régression où les tests ne fonctionneraient qu'après un appel manuel à `ProcessMonsterNow()`.
+
 Puis la régression monstres :
 
 ```text
@@ -46,15 +48,36 @@ Vérifier :
 Configurer :
 
 ```text
+InitialMonsterState = Idle
+SpawnAtStart = true
 PatrolMode = PingPong
-Waypoints = A, B, C
+Waypoints = A, B, C, D
 ```
+
+Démarrer le PIE et **ne déplacer pas le groupe**.
 
 Attendu :
 
 ```text
-A -> B -> C -> B -> A -> B ...
+A -> B -> C -> D -> C -> B -> A -> B ...
 ```
+
+Le monstre doit amorcer sa patrouille sans interaction, sans ouverture de porte et sans événement de perception.
+
+Logs utiles :
+
+```text
+[MON14.3.2] Patrol bootstrap ...
+[MON14.3.2] Patrol initialized ...
+```
+
+Si le monstre reste sur place parce que la route est réellement coupée :
+
+```text
+[MON14.3.2] Patrol path unavailable ... TargetCell=(x,y) Action=Retry
+```
+
+Dans ce cas, corriger la géométrie/porte/route plutôt que contourner les règles de navigation.
 
 ## 5. Orientation et attente
 

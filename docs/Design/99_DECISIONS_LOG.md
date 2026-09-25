@@ -1176,3 +1176,17 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Plusieurs `EncounterGroupId` déclenchés dans la même fenêtre différée sont coalescés sans perte ; les monstres hors groupe restent exclus.
 - Aucun Tick IA, aucun nouvel objet de grille et aucune dépendance directe Encounter -> TurnManager n'est introduit.
 - Document : `docs/Design/MON13_6_ENCOUNTER_START_RELIABILITY.md`.
+
+
+---
+
+## 2026-09-25 — MON14.3.2 : Patrol Runtime Reliability
+
+- Une route `Idle + Loop/PingPong` ne dépend plus d'un événement de perception pour commencer.
+- `UGridMonsterPatrolSubsystem::BootstrapRuntimeExploration()` est le point d'amorçage explicite de l'exploration.
+- Le bootstrap est demandé après application de l'état runtime et à la fin du `BeginPlay` du Party Pawn afin de couvrir les deux ordres de démarrage sans polling permanent.
+- Le système reste entièrement événementiel ; aucun Tick IA permanent n'est ajouté.
+- Le mouvement, le pathfinding et l'occupation restent respectivement sous les autorités MON3/MON4 existantes.
+- Une cible de patrouille sans chemin reste bloquée et réessaie après 0,25 s ; elle produit désormais un diagnostic MON14.3.2 une seule fois par waypoint bloqué.
+- Le test `Grimrock.Monsters.MON14.3.RuntimeBootstrap` démarre une patrouille PingPong sans appel manuel à `ProcessMonsterNow()`.
+- `CursorRules` couvre explicitement un PingPong à quatre waypoints.

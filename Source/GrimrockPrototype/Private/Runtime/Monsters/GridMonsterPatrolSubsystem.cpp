@@ -5,6 +5,7 @@
 #include "EngineUtils.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
@@ -151,6 +152,55 @@ void UGridMonsterPatrolSubsystem::HandlePerceptionEvaluation(AGridLevelRuntimeAc
 		}
 	}
 	bHandlingCompletedAutomaticEvaluation = false;
+}
+
+void UGridMonsterPatrolSubsystem::BootstrapRuntimeExploration(AGridLevelRuntimeActor* RuntimeActor, FName Reason)
+{
+	RegisterRuntime(RuntimeActor);
+	UWorld* World = GetWorld();
+	if (!IsValid(RuntimeActor) || !World || RuntimeActor->GetWorld() != World || !IsRuntimeSafeForExploration(RuntimeActor))
+	{
+		return;
+	}
+
+	AGrimrockPartyPawn* ReadyParty = nullptr;
+	for (TActorIterator<AGrimrockPartyPawn> It(World); It; ++It)
+	{
+		AGrimrockPartyPawn* Candidate = *It;
+		if (IsValid(Candidate) && Candidate->HasActorBegunPlay() && Candidate->LevelRuntimeActor == RuntimeActor)
+		{
+			ReadyParty = Candidate;
+			break;
+		}
+	}
+	if (!ReadyParty)
+	{
+		UE_LOG(LogGridMonsterPatrol, Verbose, TEXT("[MON14.3.2] Patrol bootstrap deferred Runtime=%s Reason=%s Cause=PartyNotReady"),
+			*GetNameSafe(RuntimeActor), *Reason.ToString());
+		return;
+	}
+
+	int32 EligiblePatrolCount = 0;
+	int32 StartedPatrolCount = 0;
+	for (TActorIterator<AGridMonsterActor> It(World); It; ++It)
+	{
+		AGridMonsterActor* Monster = *It;
+		if (!IsMonsterOwnedByRuntime(Monster, RuntimeActor))
+		{
+			continue;
+		}
+
+		const bool bAuthoredPatrol =
+			Monster->MonsterState == EGridMonsterState::Idle && Monster->PatrolMode != EGridMonsterPatrolMode::None && Monster->PatrolWaypoints.Num() >= 2;
+		EligiblePatrolCount += bAuthoredPatrol ? 1 : 0;
+		if (ProcessMonsterInternal(Monster, true, Reason) && bAuthoredPatrol)
+		{
+			++StartedPatrolCount;
+		}
+	}
+
+	UE_LOG(LogGridMonsterPatrol, Log, TEXT("[MON14.3.2] Patrol bootstrap Runtime=%s Reason=%s Eligible=%d Processed=%d"),
+		*GetNameSafe(RuntimeActor), *Reason.ToString(), EligiblePatrolCount, StartedPatrolCount);
 }
 
 bool UGridMonsterPatrolSubsystem::ProcessMonsterNow(AGridMonsterActor* Monster, FName Reason)
@@ -351,12 +401,22 @@ bool UGridMonsterPatrolSubsystem::ProcessPatrol(FRuntimeEntry& Entry, AGridMonst
 		return false;
 	}
 
-	if (!Monster->PatrolWaypoints.IsValidIndex(Entry.TargetWaypointIndex) &&
+	const bool bNeedsCursorInitialization = !Monster->PatrolWaypoints.IsValidIndex(Entry.TargetWaypointIndex);
+	if (bNeedsCursorInitialization &&
 		!FGridMonsterPatrolCursorRules::Initialize(
 			Monster->CurrentCell, Monster->PatrolMode, Monster->PatrolWaypoints, Entry.TargetWaypointIndex, Entry.PingPongDirection))
 	{
 		Entry.Activity = EGridMonsterExplorationActivity::Inactive;
 		return false;
+	}
+
+	if (bNeedsCursorInitialization)
+	{
+		const FGridMonsterPatrolWaypoint& InitialTarget = Monster->PatrolWaypoints[Entry.TargetWaypointIndex];
+		UE_LOG(LogGridMonsterPatrol, Log,
+			TEXT("[MON14.3.2] Patrol initialized Monster=%s Mode=%s Waypoints=%d Cell=(%d,%d) TargetIndex=%d TargetCell=(%d,%d)"),
+			*GetNameSafe(Monster), *UEnum::GetValueAsString(Monster->PatrolMode), Monster->PatrolWaypoints.Num(), Monster->CurrentCell.X,
+			Monster->CurrentCell.Y, Entry.TargetWaypointIndex, InitialTarget.Cell.X, InitialTarget.Cell.Y);
 	}
 
 	const FGridMonsterPatrolWaypoint& Target = Monster->PatrolWaypoints[Entry.TargetWaypointIndex];
@@ -375,6 +435,7 @@ bool UGridMonsterPatrolSubsystem::ProcessPatrol(FRuntimeEntry& Entry, AGridMonst
 			return false;
 		}
 		Entry.TargetWaypointIndex = NextIndex;
+		Entry.LastUnreachableWaypointIndex = INDEX_NONE;
 		Entry.Activity = EGridMonsterExplorationActivity::Waiting;
 		ScheduleStep(Entry, FMath::Max(0.01f, Target.WaitSeconds));
 		return true;
@@ -382,10 +443,18 @@ bool UGridMonsterPatrolSubsystem::ProcessPatrol(FRuntimeEntry& Entry, AGridMonst
 
 	if (!Behavior->FindPathToCell(Target.Cell, false))
 	{
+		if (Entry.LastUnreachableWaypointIndex != Entry.TargetWaypointIndex)
+		{
+			UE_LOG(LogGridMonsterPatrol, Log,
+				TEXT("[MON14.3.2] Patrol path unavailable Monster=%s Cell=(%d,%d) TargetIndex=%d TargetCell=(%d,%d) Action=Retry"),
+				*GetNameSafe(Monster), Monster->CurrentCell.X, Monster->CurrentCell.Y, Entry.TargetWaypointIndex, Target.Cell.X, Target.Cell.Y);
+			Entry.LastUnreachableWaypointIndex = Entry.TargetWaypointIndex;
+		}
 		Entry.Activity = EGridMonsterExplorationActivity::Patrolling;
 		ScheduleStep(Entry, 0.25f);
 		return false;
 	}
+	Entry.LastUnreachableWaypointIndex = INDEX_NONE;
 	EGridEdge Direction = EGridEdge::None;
 	if (!Behavior->GetNextPathDirection(Direction))
 	{
