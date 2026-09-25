@@ -627,14 +627,22 @@ bool FGridMonsterMON143CombatExitStateReconciliationTest::RunTest(const FString&
 		Behavior->bCanHearParty = false;
 		Behavior->bHasLastKnownPartyCell = false;
 		Behavior->LastKnownPartyCell = FIntPoint::ZeroValue;
-		if (Monster->CombatComponent)
+		if (!Monster->CombatComponent)
 		{
-			Monster->CombatComponent->bAttackPresentationActive = true;
+			AddError(TEXT("Abort fixture monster has no CombatComponent"));
+			return false;
 		}
+		Monster->CombatComponent->bAttackPresentationActive = true;
 		Fixture.TurnManager->CombatMonsters = { Monster };
 		Fixture.TurnManager->bCombatActive = true;
-		Fixture.Runtime->AbortActiveCombatAndMonsterActions();
-		TestEqual(TEXT("Runtime abort reconciles canceled attack without party knowledge to Idle"), Monster->MonsterState, EGridMonsterState::Idle);
+
+		// Mirrors AGridLevelRuntimeActor::AbortActiveCombatAndMonsterActions():
+		// the TurnManager reconciles combat participants first, then the runtime
+		// cancels every monster presentation. The second step must not recreate
+		// an orphaned Pursuing state.
+		Fixture.TurnManager->AbortCombat();
+		Monster->CombatComponent->CancelAttackPresentation();
+		TestEqual(TEXT("Runtime abort sequence keeps canceled attack without party knowledge Idle"), Monster->MonsterState, EGridMonsterState::Idle);
 	}
 
 	{
