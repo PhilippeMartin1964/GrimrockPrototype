@@ -439,6 +439,8 @@ private:
 	void EnsureSelectedInventorySlotLayout();
 	int32 ResolveInventorySourceSlotCapacity() const;
 	void BuildInventoryProjectionSourceSlotIndices(TArray<int32>& OutSourceSlotIndices) const;
+	void ApplyInventoryProjectionToGeneratedSlots(const TArray<int32>& SourceSlotIndices);
+	void RefreshRegisteredSlotWidget(UGridInventorySlotWidget* SlotWidget);
 
 	const URPGClassVisualAsset* FindClassVisualForClass(FName ClassId) const;
 	void RefreshSelectedCharacterClassIcon();
