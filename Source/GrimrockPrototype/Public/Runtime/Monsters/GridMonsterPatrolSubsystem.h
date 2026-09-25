@@ -59,10 +59,9 @@ public:
 	void HandlePerceptionEvaluation(AGridLevelRuntimeActor* RuntimeActor, bool bCombatStarted, FName Reason);
 
 	/**
-     * MON14.4 exploration alarm entry point used by MON4 perception refresh.	/**
-     * MON14.4 exploration alarm entry point used by MON4 perception refresh.
-     * Returns the number of newly redirected allies. This never starts combat.
-     */
+	 * MON14.4 exploration alarm entry point used by MON4 perception refresh.
+	 * Returns the number of newly redirected allies. This never starts combat.
+	 */
 	int32 HandleExplorationAlert(AGridMonsterActor* SourceMonster, const FIntPoint& KnownPartyCell, FName Reason = NAME_None);
 
 	UFUNCTION(BlueprintCallable, Category = "Monster|Patrol")

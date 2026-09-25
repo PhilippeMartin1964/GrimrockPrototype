@@ -360,7 +360,6 @@ bool FGridMonsterMON143BehaviorOrphanedAwarenessNormalizationTest::RunTest(const
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridMonsterMON143PatrolMovementTestIMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGridMonsterMON143PatrolMovementTest, "Grimrock.Monsters.MON14.3.PatrolMovement", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridMonsterMON143PatrolMovementTest::RunTest(const FString& Parameters)
@@ -560,6 +559,96 @@ bool FGridMonsterMON143CombatSuspensionTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Exploration motion is cancelled atomically"), Movement && Movement->IsBusy());
 	TestEqual(TEXT("Activity is suspended"), Fixture.Patrol->GetMonsterActivity(Monster->ResolvePersistenceId()), EGridMonsterExplorationActivity::Suspended);
 	TestTrue(TEXT("Cancelled move keeps authoritative start cell"), Monster->CurrentCell == FIntPoint(2, 1));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridMonsterMON143RuntimeEntryActorReplacementTest, "Grimrock.Monsters.MON14.3.RuntimeEntryActorReplacement",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON143RuntimeEntryActorReplacementTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	FGridMON143Fixture Fixture;
+	TestTrue(TEXT("Fixture initializes"), Fixture.Initialize());
+	const FGuid StableId = FGuid::NewGuid();
+	const TArray<FGridMonsterPatrolWaypoint> Route = MON143MakeHorizontalRoute();
+
+	AGridMonsterActor* First = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_FirstActor"), 0, 0), FIntPoint(2, 1), EGridEdge::West,
+		EGridMonsterState::Idle, EGridMonsterPatrolMode::PingPong, Route, StableId);
+	if (!First)
+	{
+		return false;
+	}
+	Fixture.EvaluateExploration(TEXT("MON143FirstActor"));
+	TestEqual(TEXT("First actor receives patrol entry target"), Fixture.Patrol->GetMonsterTargetWaypointIndex(StableId), 0);
+
+	if (UGridMonsterMovementComponent* FirstMovement = First->FindComponentByClass<UGridMonsterMovementComponent>())
+	{
+		FirstMovement->CancelCurrentAction();
+		FirstMovement->ReleaseOccupancy();
+	}
+	First->Destroy();
+
+	AGridMonsterActor* Second = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_SecondActor"), 0, 0), FIntPoint(3, 1), EGridEdge::East,
+		EGridMonsterState::Idle, EGridMonsterPatrolMode::PingPong, Route, StableId);
+	if (!Second)
+	{
+		return false;
+	}
+	Fixture.EvaluateExploration(TEXT("MON143SecondActor"));
+	TestEqual(TEXT("Replacement actor receives a fresh patrol cursor"), Fixture.Patrol->GetMonsterTargetWaypointIndex(StableId), 1);
+	UGridMonsterMovementComponent* SecondMovement = Second->FindComponentByClass<UGridMonsterMovementComponent>();
+	TestTrue(TEXT("Replacement actor can start its own patrol motion"), SecondMovement && SecondMovement->IsBusy());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridMonsterMON143CombatExitStateReconciliationTest, "Grimrock.Monsters.MON14.3.CombatExitStateReconciliation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON143CombatExitStateReconciliationTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	{
+		FGridMON143Fixture Fixture;
+		TestTrue(TEXT("Abort fixture initializes"), Fixture.Initialize());
+		AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_AbortRat"), 0, 0), FIntPoint(2, 1), EGridEdge::West,
+			EGridMonsterState::Idle, EGridMonsterPatrolMode::None, {});
+		UGridMonsterBehaviorComponent* Behavior = Monster ? Monster->FindComponentByClass<UGridMonsterBehaviorComponent>() : nullptr;
+		if (!Monster || !Behavior)
+		{
+			return false;
+		}
+		Monster->MonsterState = EGridMonsterState::Pursuing;
+		Behavior->bCanSeeParty = false;
+		Behavior->bCanHearParty = false;
+		Behavior->bHasLastKnownPartyCell = false;
+		Fixture.TurnManager->CombatMonsters = { Monster };
+		Fixture.TurnManager->bCombatActive = true;
+		Fixture.TurnManager->AbortCombat();
+		TestEqual(TEXT("Abort reconciles orphaned Pursuing to Idle"), Monster->MonsterState, EGridMonsterState::Idle);
+	}
+
+	{
+		FGridMON143Fixture Fixture;
+		TestTrue(TEXT("Finish fixture initializes"), Fixture.Initialize());
+		AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_FinishRat"), 0, 0), FIntPoint(2, 1), EGridEdge::West,
+			EGridMonsterState::Idle, EGridMonsterPatrolMode::None, {});
+		UGridMonsterBehaviorComponent* Behavior = Monster ? Monster->FindComponentByClass<UGridMonsterBehaviorComponent>() : nullptr;
+		if (!Monster || !Behavior)
+		{
+			return false;
+		}
+		TestTrue(TEXT("Combat starts for Finish reconciliation"), Fixture.TurnManager->StartCombatWithAllMonsters());
+		Monster->MonsterState = EGridMonsterState::Pursuing;
+		Behavior->bCanSeeParty = false;
+		Behavior->bCanHearParty = false;
+		Behavior->bHasLastKnownPartyCell = false;
+		Fixture.TurnManager->ForceVictory();
+		TestEqual(TEXT("Finish reconciles orphaned Pursuing to Idle"), Monster->MonsterState, EGridMonsterState::Idle);
+	}
 	return true;
 }
 

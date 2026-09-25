@@ -153,7 +153,7 @@ void UGridMonsterPatrolSubsystem::HandlePerceptionEvaluation(AGridLevelRuntimeAc
 	bHandlingCompletedAutomaticEvaluation = false;
 }
 
-void UGridMonsterPatrolSubsystem::SuspendAllForCombat()void UGridMonsterPatrolSubsystem::SuspendAllForCombat()
+void UGridMonsterPatrolSubsystem::SuspendAllForCombat()
 {
 	for (TPair<FGuid, FRuntimeEntry>& Pair : RuntimeEntries)
 	{
