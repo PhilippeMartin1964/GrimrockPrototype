@@ -968,13 +968,13 @@ void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int3
 			const int32 SlotLimit = FMath::Min(SourceSlotCapacity, Character.InventorySlots.Num());
 			for (int32 SlotIndex = 0; SlotIndex < SlotLimit; ++SlotIndex)
 			{
-				const FGridInventorySlot& Slot = Character.InventorySlots[SlotIndex];
-				if (Slot.IsEmpty())
+				const FGridInventorySlot& InventorySlot = Character.InventorySlots[SlotIndex];
+				if (InventorySlot.IsEmpty())
 				{
 					continue;
 				}
 
-				const FGridItemInstance& Item = Slot.Item;
+				const FGridItemInstance& Item = InventorySlot.Item;
 				const UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(Item.ItemDefinitionId);
 				const EGridItemType ItemType = Definition ? Definition->ItemType : EGridItemType::None;
 				if (!DoesGridItemTypeMatchInventoryFilter(ItemType, InventoryFilterCategory))
@@ -1070,14 +1070,14 @@ int32 UGridInventoryWidget::GetVisibleInventoryItemCount() const
 	}
 
 	int32 VisibleItems = 0;
-	for (const FGridInventorySlot& Slot : State.ActiveCharacters[CharacterIndex].InventorySlots)
+	for (const FGridInventorySlot& InventorySlot : State.ActiveCharacters[CharacterIndex].InventorySlots)
 	{
-		if (Slot.IsEmpty())
+		if (InventorySlot.IsEmpty())
 		{
 			continue;
 		}
 
-		const UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(Slot.Item.ItemDefinitionId);
+		const UGridItemDefinitionAsset* Definition = InventoryComponent->FindItemDefinition(InventorySlot.Item.ItemDefinitionId);
 		const EGridItemType ItemType = Definition ? Definition->ItemType : EGridItemType::None;
 		if (DoesGridItemTypeMatchInventoryFilter(ItemType, InventoryFilterCategory))
 		{
