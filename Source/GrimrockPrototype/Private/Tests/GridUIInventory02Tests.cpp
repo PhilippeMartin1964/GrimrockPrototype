@@ -160,14 +160,13 @@ bool FGridUIInventory02PortraitDropRoutingTest::RunTest(const FString& Parameter
 		return false;
 	}
 	TestEqual(TEXT("Drag captures selected source character"), Operation->SourceCharacterIndex, 0);
-	Operation->bSplitStack = true;
-	Operation->RequestedQuantity = 1;
 
-	TestTrue(TEXT("Portrait drop transfers one item"), Widget->HandlePartyMemberItemDrop(Operation, 1));
+	TestTrue(TEXT("Portrait drop transfers the complete stack"), Widget->HandlePartyMemberItemDrop(Operation, 1));
 	TestEqual(TEXT("Portrait drop keeps source character selected"), Inventory->GetSelectedCharacterIndex(), 0);
-	TestEqual(TEXT("Portrait drop leaves one in source"), Source.InventorySlots[0].Item.Quantity, 1);
-	TestEqual(TEXT("Portrait drop adds one to target"), Target.InventorySlots[0].Item.Quantity, 1);
+	TestTrue(TEXT("Portrait drop clears the source stack"), Source.InventorySlots[0].IsEmpty());
+	TestEqual(TEXT("Portrait drop moves both items to target"), Target.InventorySlots[0].Item.Quantity, 2);
 
+	PutItem(Source, 0, 0, Definition, 1);
 	UGridInventoryDragDropOperation* StaleOperation = NewObject<UGridInventoryDragDropOperation>();
 	FGridItemInstance StaleItem = Source.InventorySlots[0].Item;
 	StaleOperation->InitializeFromSlot(EGridInventoryUiSlotType::Inventory, 0, StaleItem);
@@ -176,7 +175,7 @@ bool FGridUIInventory02PortraitDropRoutingTest::RunTest(const FString& Parameter
 
 	TestFalse(TEXT("Stale drag identity is rejected"), Widget->HandlePartyMemberItemDrop(StaleOperation, 1));
 	TestEqual(TEXT("Rejected stale drag leaves source unchanged"), Source.InventorySlots[0].Item.Quantity, 1);
-	TestEqual(TEXT("Rejected stale drag leaves target unchanged"), Target.InventorySlots[0].Item.Quantity, 1);
+	TestEqual(TEXT("Rejected stale drag leaves target unchanged"), Target.InventorySlots[0].Item.Quantity, 2);
 
 	TestFalse(TEXT("Dropping on the same portrait is not a transfer"), Widget->HandlePartyMemberItemDrop(Operation, 0));
 	return true;

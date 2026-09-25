@@ -338,9 +338,9 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		AddAction(OutActions, EGridItemActionType::PlaceOnTarget, Label, &OutFacingTarget);
 	}
 
-	if (Definition && Definition->bStackable && ItemContext.Item.Quantity > 1)
+	if (bIsInventorySlotSource && Definition && Definition->bStackable && ItemContext.Item.Quantity >= 2)
 	{
-		AddAction(OutActions, EGridItemActionType::SplitStack, NSLOCTEXT("GridItemActions", "SplitStack", "Scinder la pile"));
+		AddAction(OutActions, EGridItemActionType::SplitStack, NSLOCTEXT("GridItemActions", "SplitStack", "Scinder"));
 	}
 
 	if (EffectiveEquipmentSlot == EGridEquipmentSlot::MainHand)

@@ -135,10 +135,45 @@ namespace
 			case EGridItemActionType::Combine:
 				return TEXT("Combine");
 			case EGridItemActionType::SplitStack:
-				return TEXT("SplitStack");
-			case EGridItemActionType::ToggleLight:
-				return TEXT("ToggleLight");
-			case EGridItemActionType::AddToHotbar:
+		{
+			if (SourceSlotType != EGridInventoryUiSlotType::Inventory || !InventoryComponent)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute SplitStack Failed Item=%s Reason=InvalidSource"),
+					*LastContextItem.ItemDefinitionId.ToString());
+				break;
+			}
+
+			const FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
+			if (!State.ActiveCharacters.IsValidIndex(CharacterIndex) ||
+				!State.ActiveCharacters[CharacterIndex].InventorySlots.IsValidIndex(SourceSlotIndex) ||
+				State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex].IsEmpty())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute SplitStack Failed Item=%s Reason=InvalidInventorySlot"),
+					*LastContextItem.ItemDefinitionId.ToString());
+				break;
+			}
+
+			const int32 SourceQuantity = State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex].Item.Quantity;
+			const int32 SplitQuantity = SourceQuantity / 2;
+			if (SplitQuantity < 1)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute SplitStack Failed Item=%s Quantity=%d Reason=InsufficientQuantity"),
+					*LastContextItem.ItemDefinitionId.ToString(), SourceQuantity);
+				break;
+			}
+
+			bExecuted = InventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SourceSlotIndex, SplitQuantity);
+			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute SplitStack Item=%s Slot=%d SourceQuantity=%d SplitQuantity=%d Result=%s"),
+				*LastContextItem.ItemDefinitionId.ToString(), SourceSlotIndex, SourceQuantity, SplitQuantity, bExecuted ? TEXT("true") : TEXT("false"));
+			if (bExecuted)
+			{
+				CloseItemActionMenu(TEXT("SplitStack"));
+			}
+			break;
+		}
+
+		case EGridItemActionType::AddToHotbar:
+		case EGridItemActionType::AddToHotbar:
 				return TEXT("AddToHotbar");
 			case EGridItemActionType::None:
 			default:
@@ -611,20 +646,20 @@ bool UGridInventoryWidget::HandlePartyMemberItemDrop(UGridInventoryDragDropOpera
 		return false;
 	}
 
-	const int32 RequestedQuantity = Operation->bSplitStack ? FMath::Max(1, Operation->RequestedQuantity) : 0;
+	const int32 SourceQuantity = CurrentSourceItem.Quantity;
 	const FGridItemTransferResult TransferResult = UGridItemTransferService::TransferInventorySlotToCharacter(
-		InventoryComponent, SourceCharacterIndex, Operation->SourceSlotIndex, TargetCharacterIndex, RequestedQuantity);
+		InventoryComponent, SourceCharacterIndex, Operation->SourceSlotIndex, TargetCharacterIndex, 0);
 
 	if (TransferResult.bSuccess)
 	{
 		UE_LOG(LogTemp, Log, TEXT("GridInventory PartyDrop Result=true Source=%d Target=%d Slot=%d Item=%s Quantity=%d Message=%s"),
-			SourceCharacterIndex, TargetCharacterIndex, Operation->SourceSlotIndex, *Operation->SourceItemDefinitionId.ToString(), RequestedQuantity,
+			SourceCharacterIndex, TargetCharacterIndex, Operation->SourceSlotIndex, *Operation->SourceItemDefinitionId.ToString(), SourceQuantity,
 			*TransferResult.Message.ToString());
 	}
 	else
 	{
 		UE_LOG(LogTemp, Log, TEXT("GridInventory PartyDrop Result=false Source=%d Target=%d Slot=%d Item=%s Quantity=%d Message=%s"),
-			SourceCharacterIndex, TargetCharacterIndex, Operation->SourceSlotIndex, *Operation->SourceItemDefinitionId.ToString(), RequestedQuantity,
+			SourceCharacterIndex, TargetCharacterIndex, Operation->SourceSlotIndex, *Operation->SourceItemDefinitionId.ToString(), SourceQuantity,
 			*TransferResult.Message.ToString());
 	}
 
@@ -1976,7 +2011,7 @@ bool UGridInventoryWidget::DropContextItemToGround(const FGridItemContextAction&
 }
 
 bool UGridInventoryWidget::HandleSlotDrop(
-	EGridInventoryUiSlotType SourceType, int32 SourceIndex, EGridInventoryUiSlotType TargetType, int32 TargetIndex, bool bSplitStack, int32 RequestedQuantity)
+	EGridInventoryUiSlotType SourceType, int32 SourceIndex, EGridInventoryUiSlotType TargetType, int32 TargetIndex)
 {
 	UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop Source=%s SourceIndex=%d Target=%s TargetIndex=%d"), GetGridInventoryUiSlotTypeName(SourceType),
 		SourceIndex, GetGridInventoryUiSlotTypeName(TargetType), TargetIndex);
@@ -2093,7 +2128,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 	bool bSwapOccupiedSlotsAttempted = false;
 	auto TrySwapOccupiedSlots = [&]() -> bool
 	{
-		if (bSplitStack || SourceType == EGridInventoryUiSlotType::Cursor || TargetType == EGridInventoryUiSlotType::Cursor ||
+		if (SourceType == EGridInventoryUiSlotType::Cursor || TargetType == EGridInventoryUiSlotType::Cursor ||
 			(SourceType == EGridInventoryUiSlotType::Inventory && TargetType == EGridInventoryUiSlotType::Inventory))
 		{
 			return false;
@@ -2167,20 +2202,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 		switch (SourceType)
 		{
 			case EGridInventoryUiSlotType::Inventory:
-				if (bSplitStack)
-				{
-					const bool bTookSplitStack =
-						InventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SourceIndex, FMath::Max(1, RequestedQuantity));
-					bInventoryTargetResult = bTookSplitStack && InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, TargetIndex);
-					if (!bInventoryTargetResult && bTookSplitStack && InventoryComponent->HasCursorItem())
-					{
-						InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory();
-					}
-				}
-				else
-				{
-					bInventoryTargetResult = InventoryComponent->TryMoveCharacterInventorySlot(CharacterIndex, SourceIndex, TargetIndex);
-				}
+				bInventoryTargetResult = InventoryComponent->TryMoveCharacterInventorySlot(CharacterIndex, SourceIndex, TargetIndex);
 				UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop InventoryToInventory Source=%d Target=%d Result=%s"), SourceIndex, TargetIndex,
 					bInventoryTargetResult ? TEXT("true") : TEXT("false"));
 				break;
@@ -2263,8 +2285,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 		switch (SourceType)
 		{
 			case EGridInventoryUiSlotType::Inventory:
-				return bSplitStack ? InventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SourceIndex, FMath::Max(1, RequestedQuantity))
-								   : InventoryComponent->TryTakeInventorySlotToCursor(CharacterIndex, SourceIndex);
+				return InventoryComponent->TryTakeInventorySlotToCursor(CharacterIndex, SourceIndex);
 			case EGridInventoryUiSlotType::MainHand:
 				return OwningPartyPawn->TryTakeSelectedCharacterMainHandToCursor();
 			case EGridInventoryUiSlotType::OffHand:
@@ -2390,7 +2411,7 @@ UGridInventorySlotWidget* UGridInventoryWidget::FindRegisteredSlotWidget(EGridIn
 	}
 }
 
-bool UGridInventoryWidget::HandleInventorySlotClicked(int32 SlotIndex, bool bSplitStack)
+bool UGridInventoryWidget::HandleInventorySlotClicked(int32 SlotIndex)
 {
 	if (!InventoryComponent)
 	{
@@ -2404,8 +2425,7 @@ bool UGridInventoryWidget::HandleInventorySlotClicked(int32 SlotIndex, bool bSpl
 	const bool bResult = bCursorBefore
 		? (SlotIndex == INDEX_NONE ? InventoryComponent->TryPlaceCursorItemInCharacterInventory(CharacterIndex)
 								 : InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, SlotIndex))
-		: (bSplitStack ? InventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SlotIndex, 1)
-													  : InventoryComponent->TryTakeInventorySlotToCursor(CharacterIndex, SlotIndex));
+		: InventoryComponent->TryTakeInventorySlotToCursor(CharacterIndex, SlotIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory UI SlotClicked Slot=%d CursorBefore=%s Result=%s"), SlotIndex, bCursorBefore ? TEXT("true") : TEXT("false"),
 		bResult ? TEXT("true") : TEXT("false"));
@@ -2414,7 +2434,7 @@ bool UGridInventoryWidget::HandleInventorySlotClicked(int32 SlotIndex, bool bSpl
 	return bResult;
 }
 
-bool UGridInventoryWidget::HandleMainHandClicked()
+bool UGridInventoryWidget::HandleMainHandClickedbool UGridInventoryWidget::HandleMainHandClicked()
 {
 	return HandleEquipmentSlotClicked(EGridEquipmentSlot::MainHand);
 }

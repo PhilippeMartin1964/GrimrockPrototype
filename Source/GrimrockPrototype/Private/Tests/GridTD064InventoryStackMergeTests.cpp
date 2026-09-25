@@ -8,7 +8,6 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
-#include "UI/GridInventorySlotWidget.h"
 #include "UI/GridInventoryWidget.h"
 
 namespace
@@ -143,57 +142,76 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
 
-	// Regression: both split entry points must take exactly one unit to the cursor.
+	// Stack splitting is context-menu only.
 	ResetInventory(Inventory, CharacterIndex);
-	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 3);
-	TestTrue(TEXT("Ctrl-click split route takes one stone to the cursor"), Widget->HandleInventorySlotClicked(0, true));
-	TestEqual(TEXT("Ctrl-click split leaves two stones in the source"), Character.InventorySlots[0].Item.Quantity, 2);
-	TestTrue(TEXT("Ctrl-click split leaves exactly one stone on the cursor"),
-		Inventory->HasCursorItem() && Inventory->GetCursorItem().Quantity == 1);
-
-	UGridInventorySlotWidget* OccupiedTargetWidget = CreateWidget<UGridInventorySlotWidget>(TestWorld.World, UGridInventorySlotWidget::StaticClass());
-	if (!TestNotNull(TEXT("Occupied target slot widget exists"), OccupiedTargetWidget))
+	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 1);
+	FGridFacingTargetContext FacingTarget;
+	TArray<FGridItemContextAction> Actions;
+	TestTrue(TEXT("Context actions build for a single stackable item"),
+		Widget->BuildContextActionsForSlot(EGridInventoryUiSlotType::Inventory, 0, FacingTarget, Actions));
+	TestFalse(TEXT("Split action is absent for quantity one"), Actions.ContainsByPredicate([](const FGridItemContextAction& Action)
 	{
-		return false;
-	}
-	OccupiedTargetWidget->SetOwnerInventoryWidget(Widget);
-	OccupiedTargetWidget->InitializeInventorySlot(EGridInventoryUiSlotType::Inventory, 0);
-	OccupiedTargetWidget->SetItem(Character.InventorySlots[0].Item);
-	TestFalse(TEXT("An occupied slot cannot start a second drag while an item is already on the inventory cursor"),
-		OccupiedTargetWidget->CanStartDrag());
-
-	TestTrue(TEXT("Ctrl-click split can be placed through a projected empty inventory cell"), Widget->HandleInventorySlotClicked(INDEX_NONE));
-	TestFalse(TEXT("Ctrl-click projected-empty placement clears the cursor"), Inventory->HasCursorItem());
-	TestEqual(TEXT("Ctrl-click split leaves two stones in the source after placement"), Character.InventorySlots[0].Item.Quantity, 2);
-	TestEqual(TEXT("Ctrl-click projected-empty placement uses the first free physical slot"), Character.InventorySlots[1].Item.Quantity, 1);
+		return Action.ActionType == EGridItemActionType::SplitStack;
+	}));
 
 	ResetInventory(Inventory, CharacterIndex);
-	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 3);
-	TestTrue(TEXT("Context SplitStack action takes one stone to the cursor"),
-		Widget->ExecuteInventoryContextAction(EGridItemActionType::SplitStack, EGridInventoryUiSlotType::Inventory, 0));
-	TestEqual(TEXT("Context SplitStack leaves two stones in the source"), Character.InventorySlots[0].Item.Quantity, 2);
-	TestTrue(TEXT("Context SplitStack leaves exactly one stone on the cursor"),
-		Inventory->HasCursorItem() && Inventory->GetCursorItem().Quantity == 1);
-	TestTrue(TEXT("Context SplitStack can be placed through a projected empty inventory cell"), Widget->HandleInventorySlotClicked(INDEX_NONE));
-	TestFalse(TEXT("Context SplitStack projected-empty placement clears the cursor"), Inventory->HasCursorItem());
-	TestEqual(TEXT("Context SplitStack leaves two stones in the source after placement"), Character.InventorySlots[0].Item.Quantity, 2);
-	TestEqual(TEXT("Context SplitStack projected-empty placement uses the first free physical slot"), Character.InventorySlots[1].Item.Quantity, 1);
-	TestOwnership(TEXT("Ownership is valid after both split entry points"));
+	SetInventorySlot(Inventory, CharacterIndex, 0, OtherDefinition, 2);
+	Actions.Reset();
+	TestTrue(TEXT("Context actions build for a non-stackable item"),
+		Widget->BuildContextActionsForSlot(EGridInventoryUiSlotType::Inventory, 0, FacingTarget, Actions));
+	TestFalse(TEXT("Split action is absent for non-stackable items"), Actions.ContainsByPredicate([](const FGridItemContextAction& Action)
+	{
+		return Action.ActionType == EGridItemActionType::SplitStack;
+	}));
 
-	// Scenario A: exercise the real UI routing for Ctrl-split followed by a normal occupied-slot drop.
+	ResetInventory(Inventory, CharacterIndex);
+	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 4);
+	Actions.Reset();
+	TestTrue(TEXT("Context actions build for an even stack"),
+		Widget->BuildContextActionsForSlot(EGridInventoryUiSlotType::Inventory, 0, FacingTarget, Actions));
+	TestTrue(TEXT("Split action is available for quantity four"), Actions.ContainsByPredicate([](const FGridItemContextAction& Action)
+	{
+		return Action.ActionType == EGridItemActionType::SplitStack;
+	}));
+	const FGuid EvenSourceId = Character.InventorySlots[0].Item.RuntimeObjectId;
+	TestTrue(TEXT("Context split divides an even stack"),
+		Widget->ExecuteInventoryContextAction(EGridItemActionType::SplitStack, EGridInventoryUiSlotType::Inventory, 0));
+	TestEqual(TEXT("Even split leaves half in the main stack"), Character.InventorySlots[0].Item.Quantity, 2);
+	TestTrue(TEXT("Even split puts half on the cursor"), Inventory->HasCursorItem() && Inventory->GetCursorItem().Quantity == 2);
+	TestTrue(TEXT("Even split preserves the main stack identity"), Character.InventorySlots[0].Item.RuntimeObjectId == EvenSourceId);
+	TestTrue(TEXT("Even split gives the separated stack a new identity"), Inventory->GetCursorItem().RuntimeObjectId != EvenSourceId);
+	TestTrue(TEXT("Even split can be placed through a projected empty cell"), Widget->HandleInventorySlotClicked(INDEX_NONE));
+	TestFalse(TEXT("Even split placement clears the cursor"), Inventory->HasCursorItem());
+	TestEqual(TEXT("Even split creates a second stack of two"), Character.InventorySlots[1].Item.Quantity, 2);
+
+	ResetInventory(Inventory, CharacterIndex);
+	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 5);
+	const FGuid OddSourceId = Character.InventorySlots[0].Item.RuntimeObjectId;
+	TestTrue(TEXT("Context split divides an odd stack"),
+		Widget->ExecuteInventoryContextAction(EGridItemActionType::SplitStack, EGridInventoryUiSlotType::Inventory, 0));
+	TestEqual(TEXT("Odd split keeps the extra item in the main stack"), Character.InventorySlots[0].Item.Quantity, 3);
+	TestTrue(TEXT("Odd split puts the lower half on the cursor"), Inventory->HasCursorItem() && Inventory->GetCursorItem().Quantity == 2);
+	TestTrue(TEXT("Odd split preserves the main stack identity"), Character.InventorySlots[0].Item.RuntimeObjectId == OddSourceId);
+	TestTrue(TEXT("Odd split gives the separated stack a new identity"), Inventory->GetCursorItem().RuntimeObjectId != OddSourceId);
+	TestTrue(TEXT("Odd split can be placed through a projected empty cell"), Widget->HandleInventorySlotClicked(INDEX_NONE));
+	TestFalse(TEXT("Odd split placement clears the cursor"), Inventory->HasCursorItem());
+	TestEqual(TEXT("Odd split leaves three in the main stack after placement"), Character.InventorySlots[0].Item.Quantity, 3);
+	TestEqual(TEXT("Odd split creates a second stack of two"), Character.InventorySlots[1].Item.Quantity, 2);
+	TestOwnership(TEXT("Ownership is valid after context-only splitting"));
+
+	// Scenario A: normal drag/drop moves complete stacks and never splits them.
 	ResetInventory(Inventory, CharacterIndex);
 	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 2);
 	const FGuid ScenarioATargetId = Character.InventorySlots[0].Item.RuntimeObjectId;
-	TestTrue(TEXT("A Ctrl-drag splits one stone through HandleSlotDrop"),
-		Widget->HandleSlotDrop(EGridInventoryUiSlotType::Inventory, 0, EGridInventoryUiSlotType::Inventory, 1, true, 1));
-	TestEqual(TEXT("The Ctrl-split leaves one stone in the source"), Character.InventorySlots[0].Item.Quantity, 1);
-	TestEqual(TEXT("The Ctrl-split creates one stone in the target"), Character.InventorySlots[1].Item.Quantity, 1);
-	TestOwnership(TEXT("Ownership is valid after the UI Ctrl-split"));
+	TestTrue(TEXT("A normal inventory drop moves the complete stack"),
+		Widget->HandleSlotDrop(EGridInventoryUiSlotType::Inventory, 0, EGridInventoryUiSlotType::Inventory, 1));
+	TestTrue(TEXT("The normal move clears its source slot"), Character.InventorySlots[0].IsEmpty());
+	TestEqual(TEXT("The normal move keeps the complete quantity"), Character.InventorySlots[1].Item.Quantity, 2);
 	TestTrue(TEXT("A normal occupied-slot drop merges through HandleSlotDrop"),
 		Widget->HandleSlotDrop(EGridInventoryUiSlotType::Inventory, 1, EGridInventoryUiSlotType::Inventory, 0));
 	TestEqual(TEXT("The UI merge restores one stack of two"), Character.InventorySlots[0].Item.Quantity, 2);
 	TestTrue(TEXT("The UI merge clears its source slot"), Character.InventorySlots[1].IsEmpty());
-	TestTrue(TEXT("The UI merge preserves the target runtime identity"), Character.InventorySlots[0].Item.RuntimeObjectId == ScenarioATargetId);
+	TestTrue(TEXT("The UI merge preserves the stack runtime identity"), Character.InventorySlots[0].Item.RuntimeObjectId == ScenarioATargetId);
 	TestOwnership(TEXT("Ownership is valid after the UI merge"));
 
 	// Scenario B: a partial merge fills the target and leaves the source remainder in place.
