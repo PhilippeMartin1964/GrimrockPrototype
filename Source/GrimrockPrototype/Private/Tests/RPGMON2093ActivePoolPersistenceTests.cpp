@@ -119,6 +119,7 @@ bool FRPGMON2093PoolSnapshotRestoresAfterRecruitmentTest::RunTest(const FString&
 	const FGridPartyInventoryState SavedState = Inventory->PartyInventoryState;
 
 	UGridPartyInventoryComponent* Restored = NewObject<UGridPartyInventoryComponent>();
+	Restored->DefaultInventorySlotCountPerCharacter = Inventory->DefaultInventorySlotCountPerCharacter;
 	Restored->PartyInventoryState = SavedState;
 	FRPGPartyRecruitmentResult Recruitment;
 	if (!TestTrue(TEXT("Restored pooled character recruits"), FRPGPartyRecruitmentService::TryRecruitFromPool(Restored, RecruitId, Recruitment)))
