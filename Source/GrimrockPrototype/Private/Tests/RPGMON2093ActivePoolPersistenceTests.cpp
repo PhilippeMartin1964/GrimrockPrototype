@@ -37,6 +37,7 @@ namespace RPGMON2093Tests
 	UGridPartyInventoryComponent* MakeMON2093Party(int32 MaxActiveCharacters = 3)
 	{
 		UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+		Inventory->DefaultInventorySlotCountPerCharacter = 4;
 		Inventory->PartyInventoryState = FGridPartyInventoryState();
 		Inventory->PartyInventoryState.MaxActiveCharacters = MaxActiveCharacters;
 		Inventory->PartyInventoryState.bInitialCharacterCreationCompleted = true;
