@@ -742,6 +742,16 @@ void UGridTurnManagerComponent::FinishCombat(EGridCombatPhase ResultPhase)
 	{
 		CurrentCombatComponent->CancelAttackPresentation();
 	}
+	for (AGridMonsterActor* Monster : CombatMonsters)
+	{
+		if (IsValid(Monster) && !Monster->IsDead())
+		{
+			if (UGridMonsterBehaviorComponent* Behavior = Monster->FindComponentByClass<UGridMonsterBehaviorComponent>())
+			{
+				Behavior->ReconcileOwnerStateFromPerception();
+			}
+		}
+	}
 
 	UnbindCurrentMovement();
 	UnbindCurrentCombat();

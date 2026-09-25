@@ -12,6 +12,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
@@ -66,6 +67,7 @@ namespace
 		AGrimrockPartyPawn* Party = nullptr;
 		UGridTurnManagerComponent* TurnManager = nullptr;
 		UGridMonsterPatrolSubsystem* Patrol = nullptr;
+		UGridAutomaticPerceptionEngagementSubsystem* Engagement = nullptr;
 
 		bool Initialize(FIntPoint PartyCell = FIntPoint(7, 7))
 		{
@@ -124,7 +126,17 @@ namespace
 				return false;
 			}
 			Patrol->RegisterRuntime(Runtime);
-			return true;
+			Engagement = TestWorld.World->GetSubsystem<UGridAutomaticPerceptionEngagementSubsystem>();
+			return Engagement != nullptr;
+		}
+
+		void EvaluateExploration(FName Reason)
+		{
+			GridAutomaticPerceptionEngagement::Request(Runtime, Reason);
+			if (Engagement)
+			{
+				Engagement->ProcessPendingEvaluationNow();
+			}
 		}
 
 		UGridMonsterDefinitionAsset* MakeDefinition(FName MonsterId, int32 SightRange = 6, int32 HearingRange = 0)
@@ -258,46 +270,26 @@ bool FGridMonsterMON143CursorRulesTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridMonsterMON143RuntimeBootstrapTest, "Grimrock.Monsters.MON14.3.RuntimeBootstrap", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+	FGridMonsterMON143AutomaticStartupPatrolPipelineTest, "Grimrock.Monsters.MON14.3.AutomaticStartupPatrolPipeline",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMonsterMON143RuntimeBootstrapTest::RunTest(const FString& Parameters)
+bool FGridMonsterMON143AutomaticStartupPatrolPipelineTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	FGridMON143Fixture Fixture;
 	TestTrue(TEXT("Fixture initializes"), Fixture.Initialize());
-	if (!Fixture.Patrol)
-	{
-		return false;
-	}
-
-	TArray<FGridMonsterPatrolWaypoint> Route = MON143MakeHorizontalRoute();
-	FGridMonsterPatrolWaypoint Third;
-	Third.Cell = FIntPoint(4, 3);
-	Third.Facing = EGridEdge::South;
-	Route.Add(Third);
-	FGridMonsterPatrolWaypoint Fourth;
-	Fourth.Cell = FIntPoint(1, 3);
-	Fourth.Facing = EGridEdge::West;
-	Route.Add(Fourth);
-
-	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_BootstrapRat"), 0, 0), FIntPoint(2, 1), EGridEdge::West,
-		EGridMonsterState::Idle, EGridMonsterPatrolMode::PingPong, Route);
-	TestNotNull(TEXT("Bootstrap patrol monster exists"), Monster);
+	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_AutomaticPatrolRat"), 0, 0), FIntPoint(2, 1), EGridEdge::West,
+		EGridMonsterState::Idle, EGridMonsterPatrolMode::PingPong, MON143MakeHorizontalRoute());
 	if (!Monster)
 	{
 		return false;
 	}
-
 	UGridMonsterMovementComponent* Movement = Monster->FindComponentByClass<UGridMonsterMovementComponent>();
-	TestFalse(TEXT("Fixture does not manually start patrol movement"), Movement && Movement->IsBusy());
-
-	Fixture.Patrol->BootstrapRuntimeExploration(Fixture.Runtime, Fixture.Party, TEXT("MON143RuntimeBootstrap"));
-
-	TestTrue(TEXT("Runtime bootstrap starts an authored Idle PingPong patrol without ProcessMonsterNow"), Movement && Movement->IsBusy());
-	TestEqual(TEXT("Runtime bootstrap marks activity Patrolling"),
+	TestFalse(TEXT("Patrol has not been manually started"), Movement && Movement->IsBusy());
+	Fixture.EvaluateExploration(TEXT("PartyCellStable"));
+	TestTrue(TEXT("Automatic perception pipeline starts authored patrol"), Movement && Movement->IsBusy());
+	TestEqual(TEXT("Automatic pipeline marks patrol active"),
 		Fixture.Patrol->GetMonsterActivity(Monster->ResolvePersistenceId()), EGridMonsterExplorationActivity::Patrolling);
-	TestEqual(TEXT("Runtime bootstrap chooses the nearest first waypoint"),
-		Fixture.Patrol->GetMonsterTargetWaypointIndex(Monster->ResolvePersistenceId()), 0);
 	return true;
 }
 
@@ -310,81 +302,65 @@ bool FGridMonsterMON143AuthoredRouteResyncTest::RunTest(const FString& Parameter
 	(void)Parameters;
 	FGridMON143Fixture Fixture;
 	TestTrue(TEXT("Fixture initializes"), Fixture.Initialize());
-	if (!Fixture.Patrol || !Fixture.Runtime)
-	{
-		return false;
-	}
-
 	const TArray<FGridMonsterPatrolWaypoint> Route = MON143MakeHorizontalRoute();
 	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_ResyncRat"), 0, 0), FIntPoint(2, 1), EGridEdge::West,
 		EGridMonsterState::Idle, EGridMonsterPatrolMode::PingPong, Route);
-	TestNotNull(TEXT("Resync patrol monster exists"), Monster);
 	if (!Monster)
 	{
 		return false;
 	}
-
-	// Simulate a reconstructed/restored actor that lost its transient copy.
 	Monster->PatrolMode = EGridMonsterPatrolMode::None;
 	Monster->PatrolWaypoints.Reset();
-
-	Fixture.Patrol->BootstrapRuntimeExploration(Fixture.Runtime, Fixture.Party, TEXT("MON143AuthoredRouteResync"));
-
-	TestEqual(TEXT("Bootstrap restores authored patrol mode from LevelAsset"), Monster->PatrolMode, EGridMonsterPatrolMode::PingPong);
-	TestEqual(TEXT("Bootstrap restores authored patrol waypoints from LevelAsset"), Monster->PatrolWaypoints.Num(), Route.Num());
-
-	UGridMonsterMovementComponent* Movement = Monster->FindComponentByClass<UGridMonsterMovementComponent>();
-	TestTrue(TEXT("Resynchronized authored route starts movement"), Movement && Movement->IsBusy());
+	Fixture.Runtime->ApplyMonsterPlacementMetadata(Monster);
+	TestEqual(TEXT("LevelAsset restores authored patrol mode"), Monster->PatrolMode, EGridMonsterPatrolMode::PingPong);
+	TestEqual(TEXT("LevelAsset restores authored patrol waypoints"), Monster->PatrolWaypoints.Num(), Route.Num());
 	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FGridMonsterMON143OrphanedPursuitResumesPatrolTest, "Grimrock.Monsters.MON14.3.OrphanedPursuitResumesPatrol",
+	FGridMonsterMON143BehaviorOrphanedAwarenessNormalizationTest, "Grimrock.Monsters.MON14.3.BehaviorOrphanedAwarenessNormalization",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMonsterMON143OrphanedPursuitResumesPatrolTest::RunTest(const FString& Parameters)
+bool FGridMonsterMON143BehaviorOrphanedAwarenessNormalizationTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	FGridMON143Fixture Fixture;
 	TestTrue(TEXT("Fixture initializes"), Fixture.Initialize());
-	if (!Fixture.Patrol)
-	{
-		return false;
-	}
-
-	const TArray<FGridMonsterPatrolWaypoint> Route = MON143MakeHorizontalRoute();
-	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_OrphanedPursuitRat"), 0, 0), FIntPoint(2, 1), EGridEdge::West,
-		EGridMonsterState::Idle, EGridMonsterPatrolMode::PingPong, Route);
-	TestNotNull(TEXT("Orphaned pursuit patrol monster exists"), Monster);
+	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_OrphanedRat"), 0, 0), FIntPoint(2, 1), EGridEdge::West,
+		EGridMonsterState::Idle, EGridMonsterPatrolMode::PingPong, MON143MakeHorizontalRoute());
 	if (!Monster)
 	{
 		return false;
 	}
-
 	UGridMonsterBehaviorComponent* Behavior = Monster->FindComponentByClass<UGridMonsterBehaviorComponent>();
-	TestNotNull(TEXT("Behavior exists"), Behavior);
 	if (!Behavior)
 	{
 		return false;
 	}
-
+	for (const EGridMonsterState OrphanState : { EGridMonsterState::Alert, EGridMonsterState::Pursuing })
+	{
+		Monster->MonsterState = OrphanState;
+		Behavior->bCanSeeParty = false;
+		Behavior->bCanHearParty = false;
+		Behavior->bHasLastKnownPartyCell = false;
+		Behavior->ReconcileOwnerStateFromPerception();
+		TestEqual(TEXT("Awareness state without perception or memory normalizes to Idle"), Monster->MonsterState, EGridMonsterState::Idle);
+	}
 	Monster->MonsterState = EGridMonsterState::Pursuing;
-	Behavior->bCanSeeParty = false;
-	Behavior->bCanHearParty = false;
+	Behavior->bHasLastKnownPartyCell = true;
+	Behavior->LastKnownPartyCell = FIntPoint(4, 4);
+	Behavior->ReconcileOwnerStateFromPerception();
+	TestEqual(TEXT("Pursuing with remembered target remains Pursuing"), Monster->MonsterState, EGridMonsterState::Pursuing);
 	Behavior->bHasLastKnownPartyCell = false;
-	Behavior->LastKnownPartyCell = FIntPoint::ZeroValue;
-
-	Fixture.Patrol->BootstrapRuntimeExploration(Fixture.Runtime, Fixture.Party, TEXT("MON143OrphanedPursuit"));
-
-	TestEqual(TEXT("Orphaned Pursuing normalizes to Idle"), Monster->MonsterState, EGridMonsterState::Idle);
-	TestEqual(TEXT("Orphaned Pursuing resumes authored patrol"),
+	Fixture.EvaluateExploration(TEXT("PartyCellStable"));
+	TestEqual(TEXT("Real automatic pipeline leaves orphan repaired"), Monster->MonsterState, EGridMonsterState::Idle);
+	TestEqual(TEXT("Repaired monster resumes authored patrol"),
 		Fixture.Patrol->GetMonsterActivity(Monster->ResolvePersistenceId()), EGridMonsterExplorationActivity::Patrolling);
-	UGridMonsterMovementComponent* Movement = Monster->FindComponentByClass<UGridMonsterMovementComponent>();
-	TestTrue(TEXT("Resumed patrol starts movement"), Movement && Movement->IsBusy());
 	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridMonsterMON143PatrolMovementTestIMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGridMonsterMON143PatrolMovementTest, "Grimrock.Monsters.MON14.3.PatrolMovement", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridMonsterMON143PatrolMovementTest::RunTest(const FString& Parameters)
@@ -407,7 +383,7 @@ bool FGridMonsterMON143PatrolMovementTest::RunTest(const FString& Parameters)
 
 	UGridMonsterMovementComponent* Movement = Monster->FindComponentByClass<UGridMonsterMovementComponent>();
 	TestNotNull(TEXT("Movement exists"), Movement);
-	TestTrue(TEXT("Off-route patrol starts rejoin motion"), Fixture.Patrol->ProcessMonsterNow(Monster, TEXT("MON143Patrol")));
+	Fixture.EvaluateExploration(TEXT("MON143Patrol"));
 	TestEqual(TEXT("Nearest waypoint becomes target 0"), Fixture.Patrol->GetMonsterTargetWaypointIndex(Monster->ResolvePersistenceId()), 0);
 	TestTrue(TEXT("Monster movement is active"), Movement && Movement->IsBusy());
 	TestEqual(TEXT("Activity is Patrolling"), Fixture.Patrol->GetMonsterActivity(Monster->ResolvePersistenceId()), EGridMonsterExplorationActivity::Patrolling);
@@ -435,7 +411,7 @@ bool FGridMonsterMON143HearingInvestigationTest::RunTest(const FString& Paramete
 		return false;
 	}
 
-	TestTrue(TEXT("Hearing step is processed"), Fixture.Patrol->ProcessMonsterNow(Monster, TEXT("MON143Hearing")));
+	Fixture.EvaluateExploration(TEXT("MON143Hearing"));
 	UGridMonsterBehaviorComponent* Behavior = Monster->FindComponentByClass<UGridMonsterBehaviorComponent>();
 	TestTrue(TEXT("Party is heard"), Behavior && Behavior->bCanHearParty);
 	TestFalse(TEXT("Party is not seen sideways"), Behavior && Behavior->bCanSeeParty);
@@ -514,7 +490,7 @@ bool FGridMonsterMON143BlockedHearingWaitTest::RunTest(const FString& Parameters
 	TestFalse(TEXT("Closed door blocks movement"), Fixture.Runtime->CanMove(1, 1, EGridEdge::North));
 	TestTrue(TEXT("Closed normal door still carries sound"), Fixture.Runtime->CanSoundTraverse(1, 1, EGridEdge::North));
 
-	TestTrue(TEXT("Blocked hearing perception is processed"), Fixture.Patrol->ProcessMonsterNow(Monster, TEXT("MON143BlockedHearing")));
+	Fixture.EvaluateExploration(TEXT("MON143BlockedHearing"));
 	TestTrue(TEXT("Party is heard through the closed normal door"), Behavior && Behavior->bCanHearParty);
 	TestFalse(TEXT("Party is not seen"), Behavior && Behavior->bCanSeeParty);
 	TestEqual(TEXT("Unreachable audible target stays Investigating"), Fixture.Patrol->GetMonsterActivity(Monster->ResolvePersistenceId()),
@@ -522,7 +498,7 @@ bool FGridMonsterMON143BlockedHearingWaitTest::RunTest(const FString& Parameters
 	TestFalse(TEXT("Unreachable audible target does not start a search turn"), Movement && Movement->IsBusy());
 	TestFalse(TEXT("Blocked hearing does not start combat"), Fixture.TurnManager->bCombatActive);
 
-	TestTrue(TEXT("Repeated blocked hearing is processed without oscillation"), Fixture.Patrol->ProcessMonsterNow(Monster, TEXT("MON143BlockedHearingRepeat")));
+	Fixture.EvaluateExploration(TEXT("MON143BlockedHearingRepeat"));
 	TestEqual(TEXT("Repeated blocked hearing remains Investigating"), Fixture.Patrol->GetMonsterActivity(Monster->ResolvePersistenceId()),
 		EGridMonsterExplorationActivity::Investigating);
 	TestFalse(TEXT("Repeated blocked hearing still does not start a turn"), Movement && Movement->IsBusy());
@@ -532,7 +508,7 @@ bool FGridMonsterMON143BlockedHearingWaitTest::RunTest(const FString& Parameters
 	TestTrue(TEXT("Door is fully open"), Door->IsFullyOpen());
 	TestTrue(TEXT("Opening the door restores movement"), Fixture.Runtime->CanMove(1, 1, EGridEdge::North));
 
-	TestTrue(TEXT("Investigation retries after the door opens"), Fixture.Patrol->ProcessMonsterNow(Monster, TEXT("MON143BlockedHearingDoorOpened")));
+	Fixture.EvaluateExploration(TEXT("MON143BlockedHearingDoorOpened"));
 	TestTrue(TEXT("Monster starts moving once a route exists"), Movement && Movement->IsBusy());
 	return true;
 }
@@ -554,7 +530,7 @@ bool FGridMonsterMON143DormantPatrolTest::RunTest(const FString& Parameters)
 	}
 
 	UGridMonsterMovementComponent* Movement = Monster->FindComponentByClass<UGridMonsterMovementComponent>();
-	TestTrue(TEXT("Dormant state is processed"), Fixture.Patrol->ProcessMonsterNow(Monster));
+	Fixture.EvaluateExploration(TEXT("MON143Dormant"));
 	TestFalse(TEXT("Dormant monster does not patrol"), Movement && Movement->IsBusy());
 	TestEqual(TEXT("Dormant activity remains inactive"), Fixture.Patrol->GetMonsterActivity(Monster->ResolvePersistenceId()),
 		EGridMonsterExplorationActivity::Inactive);
@@ -577,7 +553,7 @@ bool FGridMonsterMON143CombatSuspensionTest::RunTest(const FString& Parameters)
 	}
 
 	UGridMonsterMovementComponent* Movement = Monster->FindComponentByClass<UGridMonsterMovementComponent>();
-	Fixture.Patrol->ProcessMonsterNow(Monster);
+	Fixture.EvaluateExploration(TEXT("MON143CombatSuspension"));
 	TestTrue(TEXT("Patrol move is active before suspension"), Movement && Movement->IsBusy());
 
 	Fixture.Patrol->SuspendAllForCombat();

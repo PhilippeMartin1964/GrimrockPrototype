@@ -104,7 +104,7 @@ bool UGridMonsterBehaviorComponent::RefreshPerception()
 		LastKnownPartyCell = PartyCell;
 	}
 
-	UpdateOwnerStateFromPerception();
+	ReconcileOwnerStateFromPerception();
 
 	// MON14.4: reuse the already validated MON7 group/range contract as a
 	// local exploration alarm. This never starts combat by itself; it only
@@ -433,7 +433,16 @@ void UGridMonsterBehaviorComponent::ClearPathResult()
 	LastVisitedCellCount = 0;
 }
 
-void UGridMonsterBehaviorComponent::UpdateOwnerStateFromPerception()
+EGridMonsterState UGridMonsterBehaviorComponent::NormalizeAwarenessState(EGridMonsterState State, bool bHasPartyKnowledge)
+{
+	if (!bHasPartyKnowledge && (State == EGridMonsterState::Alert || State == EGridMonsterState::Pursuing))
+	{
+		return EGridMonsterState::Idle;
+	}
+	return State;
+}
+
+void UGridMonsterBehaviorComponent::ReconcileOwnerStateFromPerception()
 {
 	AGridMonsterActor* Monster = GetMonsterOwner();
 	if (!IsValid(Monster) || Monster->IsDead())
@@ -441,7 +450,15 @@ void UGridMonsterBehaviorComponent::UpdateOwnerStateFromPerception()
 		return;
 	}
 
-	if (HasPartyPerception() && (Monster->MonsterState == EGridMonsterState::Dormant || Monster->MonsterState == EGridMonsterState::Idle))
+	const bool bHasPerception = HasPartyPerception();
+	const EGridMonsterState NormalizedState =
+		NormalizeAwarenessState(Monster->MonsterState, bHasPerception || bHasLastKnownPartyCell);
+	if (NormalizedState != Monster->MonsterState)
+	{
+		Monster->SetMonsterState(NormalizedState);
+	}
+
+	if (bHasPerception && (Monster->MonsterState == EGridMonsterState::Dormant || Monster->MonsterState == EGridMonsterState::Idle))
 	{
 		Monster->SetMonsterState(EGridMonsterState::Alert);
 	}

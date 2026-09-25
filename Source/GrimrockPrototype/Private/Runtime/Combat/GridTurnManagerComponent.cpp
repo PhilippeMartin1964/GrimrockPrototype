@@ -238,6 +238,18 @@ bool UGridTurnManagerComponent::StartCombatForEncounterGroups(const TSet<FName>&
 			continue;
 		}
 
+		if (UGridMonsterBehaviorComponent* Behavior = Monster->FindComponentByClass<UGridMonsterBehaviorComponent>())
+		{
+			if (!Behavior->IsInitialized())
+			{
+				Behavior->InitializeBehavior(RuntimeActor, PartyPawn);
+			}
+			if (IsValid(PartyPawn))
+			{
+				Behavior->bHasLastKnownPartyCell = true;
+				Behavior->LastKnownPartyCell = FIntPoint(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+			}
+		}
 		Monster->SetMonsterState(EGridMonsterState::Alert);
 		EncounterMonsters.Add(Monster);
 	}
@@ -294,6 +306,16 @@ void UGridTurnManagerComponent::AbortCombat()
 	if (CurrentCombatComponent)
 	{
 		CurrentCombatComponent->CancelAttackPresentation();
+	}
+	for (AGridMonsterActor* Monster : CombatMonsters)
+	{
+		if (IsValid(Monster) && !Monster->IsDead())
+		{
+			if (UGridMonsterBehaviorComponent* Behavior = Monster->FindComponentByClass<UGridMonsterBehaviorComponent>())
+			{
+				Behavior->ReconcileOwnerStateFromPerception();
+			}
+		}
 	}
 
 	UnbindCurrentMovement();

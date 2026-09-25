@@ -470,6 +470,10 @@ bool FGridMonsterMON136DeterministicEncounterStartTest::RunTest(const FString& P
 	TestEqual(TEXT("Only the triggered encounter group participates"), Fixture.TurnManager->CombatMonsters.Num(), 1);
 	TestEqual(TEXT("Triggered encounter member participates once"), CountParticipant(Fixture.TurnManager, EncounterMonster), 1);
 	TestEqual(TEXT("Unrelated monster is not pulled into triggered encounter"), CountParticipant(Fixture.TurnManager, Unrelated), 0);
+	UGridMonsterBehaviorComponent* EncounterBehavior = EncounterMonster ? EncounterMonster->FindComponentByClass<UGridMonsterBehaviorComponent>() : nullptr;
+	TestTrue(TEXT("Forced encounter gives the participant target knowledge"), EncounterBehavior && EncounterBehavior->bHasLastKnownPartyCell);
+	TestTrue(TEXT("Forced encounter stores the current party cell"),
+		EncounterBehavior && EncounterBehavior->LastKnownPartyCell == FIntPoint(Fixture.Party->CurrentCellX, Fixture.Party->CurrentCellY));
 	return true;
 }
 

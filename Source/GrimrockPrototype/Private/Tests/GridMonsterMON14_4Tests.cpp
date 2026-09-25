@@ -9,6 +9,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
@@ -63,6 +64,7 @@ namespace
 		AGrimrockPartyPawn* Party = nullptr;
 		UGridTurnManagerComponent* TurnManager = nullptr;
 		UGridMonsterPatrolSubsystem* Patrol = nullptr;
+		UGridAutomaticPerceptionEngagementSubsystem* Engagement = nullptr;
 
 		bool Initialize(FIntPoint PartyCell = FIntPoint(1, 4))
 		{
@@ -121,7 +123,17 @@ namespace
 				return false;
 			}
 			Patrol->RegisterRuntime(Runtime);
-			return true;
+			Engagement = TestWorld.World->GetSubsystem<UGridAutomaticPerceptionEngagementSubsystem>();
+			return Engagement != nullptr;
+		}
+
+		void EvaluateExploration(FName Reason)
+		{
+			GridAutomaticPerceptionEngagement::Request(Runtime, Reason);
+			if (Engagement)
+			{
+				Engagement->ProcessPendingEvaluationNow();
+			}
 		}
 
 		UGridMonsterDefinitionAsset* MakeDefinition(FName MonsterId, int32 SightRange, int32 HearingRange, bool bSharesAggro, int32 AggroRange)
@@ -218,7 +230,7 @@ bool FGridMonsterMON144HearingAlarmPropagationTest::RunTest(const FString& Param
 		return false;
 	}
 
-	TestTrue(TEXT("Source hearing is processed"), Fixture.Patrol->ProcessMonsterNow(Source, TEXT("MON144Hearing")));
+	Fixture.EvaluateExploration(TEXT("MON144Hearing"));
 
 	UGridMonsterBehaviorComponent* SourceBehavior = Source->FindComponentByClass<UGridMonsterBehaviorComponent>();
 	UGridMonsterBehaviorComponent* AllyBehavior = Ally->FindComponentByClass<UGridMonsterBehaviorComponent>();
@@ -266,7 +278,7 @@ bool FGridMonsterMON144AlarmFilteringTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	Fixture.Patrol->ProcessMonsterNow(Source, TEXT("MON144Filtering"));
+	Fixture.EvaluateExploration(TEXT("MON144Filtering"));
 
 	TestEqual(TEXT("Eligible same-group ally is alerted"), ValidAlly->MonsterState, EGridMonsterState::Alert);
 	TestEqual(TEXT("Out-of-range ally remains dormant"), OutOfRange->MonsterState, EGridMonsterState::Dormant);
@@ -299,7 +311,7 @@ bool FGridMonsterMON144SharingDisabledTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	Fixture.Patrol->ProcessMonsterNow(Source, TEXT("MON144SharingDisabled"));
+	Fixture.EvaluateExploration(TEXT("MON144SharingDisabled"));
 
 	UGridMonsterBehaviorComponent* AllyBehavior = Ally->FindComponentByClass<UGridMonsterBehaviorComponent>();
 	TestEqual(TEXT("Ally remains dormant when sharing is disabled"), Ally->MonsterState, EGridMonsterState::Dormant);

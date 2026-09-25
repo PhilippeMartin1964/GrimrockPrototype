@@ -74,12 +74,9 @@ namespace
 
 	EGridMonsterState NormalizeRestoredMonsterState(EGridMonsterState SavedState, bool bHasLastKnownPartyCell)
 	{
+		SavedState = UGridMonsterBehaviorComponent::NormalizeAwarenessState(SavedState, bHasLastKnownPartyCell);
 		switch (SavedState)
 		{
-			case EGridMonsterState::Alert:
-			case EGridMonsterState::Pursuing:
-				return bHasLastKnownPartyCell ? SavedState : EGridMonsterState::Idle;
-
 			case EGridMonsterState::Attacking:
 			case EGridMonsterState::Repositioning:
 				return bHasLastKnownPartyCell ? EGridMonsterState::Pursuing : EGridMonsterState::Idle;
@@ -346,7 +343,6 @@ bool AGridMonsterActor::CaptureRuntimeMonsterState(FGridRuntimeMonsterState& Out
 	OutState.CellX = CurrentCell.X;
 	OutState.CellY = CurrentCell.Y;
 	OutState.Facing = IsCardinalMonsterFacing(Facing) ? Facing : EGridEdge::North;
-	OutState.MonsterState = bDead ? EGridMonsterState::Dead : MonsterState;
 	OutState.CurrentHealth = bDead ? 0 : FMath::Clamp(CurrentHealth, 1, FMath::Max(1, MonsterDefinition->MaxHealth));
 	OutState.CurrentPhysicalArmor = FMath::Clamp(CurrentPhysicalArmor, 0, FMath::Max(0, MonsterDefinition->PhysicalArmor));
 	OutState.CurrentMagicalArmor = FMath::Clamp(CurrentMagicalArmor, 0, FMath::Max(0, MonsterDefinition->MagicalArmor));
@@ -354,6 +350,8 @@ bool AGridMonsterActor::CaptureRuntimeMonsterState(FGridRuntimeMonsterState& Out
 	OutState.EncounterGroupId = EncounterGroupId;
 	OutState.bHasLastKnownPartyCell = Behavior && Behavior->bHasLastKnownPartyCell;
 	OutState.LastKnownPartyCell = Behavior ? Behavior->LastKnownPartyCell : FIntPoint::ZeroValue;
+	OutState.MonsterState =
+		bDead ? EGridMonsterState::Dead : UGridMonsterBehaviorComponent::NormalizeAwarenessState(MonsterState, OutState.bHasLastKnownPartyCell);
 	OutState.bIsDead = bDead;
 
 	UE_LOG(LogGridMonsterState, Log,

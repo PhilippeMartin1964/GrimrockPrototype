@@ -9,7 +9,6 @@
 
 class AGridLevelRuntimeActor;
 class AGridMonsterActor;
-class AGrimrockPartyPawn;
 class UGridMonsterBehaviorComponent;
 class UGridMonsterMovementComponent;
 class UGridTurnManagerComponent;
@@ -60,15 +59,7 @@ public:
 	void HandlePerceptionEvaluation(AGridLevelRuntimeActor* RuntimeActor, bool bCombatStarted, FName Reason);
 
 	/**
-	 * MON14.3.2 explicit exploration bootstrap. This is a runtime-readiness event,
-	 * not a perception event: authored Idle patrols must start even while the party
-	 * remains stationary and no door/trigger/perception event occurs.
-	 */
-	void BootstrapRuntimeExploration(AGridLevelRuntimeActor* RuntimeActor, AGrimrockPartyPawn* ReadyParty, FName Reason);
-
-	bool ProcessMonsterNow(AGridMonsterActor* Monster, FName Reason = NAME_None);
-
-	/**
+     * MON14.4 exploration alarm entry point used by MON4 perception refresh.	/**
      * MON14.4 exploration alarm entry point used by MON4 perception refresh.
      * Returns the number of newly redirected allies. This never starts combat.
      */
@@ -98,7 +89,6 @@ private:
 		int32 TargetWaypointIndex = INDEX_NONE;
 		int32 PingPongDirection = 1;
 		int32 SearchTurnsRemaining = 0;
-		int32 LastUnreachableWaypointIndex = INDEX_NONE;
 		FTimerHandle TimerHandle;
 	};
 

@@ -14,7 +14,6 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
-#include "Runtime/Monsters/GridMonsterPatrolSubsystem.h"
 
 namespace
 {
@@ -343,13 +342,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 	{
 		ApplyInitialMonsterStateForCurrentLevel();
 		ApplyPendingInboundItemsForCurrentLevel();
-		if (UWorld* World = GetWorld())
-		{
-			if (UGridMonsterPatrolSubsystem* PatrolSubsystem = World->GetSubsystem<UGridMonsterPatrolSubsystem>())
-			{
-				PatrolSubsystem->BootstrapRuntimeExploration(this, nullptr, TEXT("RuntimeStateInitialized"));
-			}
-		}
 		return false;
 	}
 
@@ -689,12 +681,5 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		State->InteractiveObjects.Num(), State->Monsters.Num(), DeadMonsterCount);
 
 	ApplyPendingInboundItemsForCurrentLevel();
-	if (UWorld* World = GetWorld())
-	{
-		if (UGridMonsterPatrolSubsystem* PatrolSubsystem = World->GetSubsystem<UGridMonsterPatrolSubsystem>())
-		{
-			PatrolSubsystem->BootstrapRuntimeExploration(this, nullptr, TEXT("RuntimeStateRestored"));
-		}
-	}
 	return true;
 }

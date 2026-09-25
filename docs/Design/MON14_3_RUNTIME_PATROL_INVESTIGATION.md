@@ -291,54 +291,22 @@ cible encore audible + aucun chemin
 
 Si l'obstacle s'ouvre, la tentative suivante reprend normalement le déplacement. Si la cible n'est plus audible, le comportement historique de recherche MON14.3 reprend.
 
+## MON14.3.3 — Monster Movement Authority Cleanup
 
-## MON14.3.2 — Patrol Runtime Reliability
-
-Le runtime ne doit plus attendre un événement de perception pour démarrer une route authored.
-
-Le défaut historique était subtil : MON14.3 exécutait correctement une route une fois `ProcessMonsterInternal()` atteint, mais le premier appel de production provenait principalement de la fin d'une évaluation MON14.1. Les tests de patrouille appelaient en plus `ProcessMonsterNow()` directement, ce qui masquait cette dépendance de bootstrap.
-
-Le contrat corrigé est :
+Le pipeline événementiel préexistant reste l'unique amorçage de l'exploration :
 
 ```text
-Level runtime state ready
-        ou
-Party BeginPlay terminé
-        ↓
-BootstrapRuntimeExploration
-        ↓
-Idle + PatrolMode Loop/PingPong + >= 2 waypoints
-        ↓
-patrouille immédiatement amorcée
+PartyCellStable / MonsterBeginPlay / événement monde
+→ GridAutomaticPerceptionEngagement
+→ HandlePerceptionEvaluation
+→ ProcessMonsterInternal
+→ Patrol / Investigation / Search
 ```
 
-Le bootstrap reste événementiel : aucun Tick IA permanent n'est ajouté. Les timers one-shot MON14.3 continuent seuls la route après la première étape.
+Le bootstrap MON14.3.2 est supprimé. `UGridMonsterBehaviorComponent` porte l'invariant d'awareness : `Alert/Pursuing` sans perception ni mémoire de cible redevient `Idle`. Capture et Restore appliquent la même règle pure.
 
-Le bootstrap est appelé après initialisation/restauration de l'état runtime. Un second appel depuis `AGrimrockPartyPawn::BeginPlay()` couvre explicitement l'ordre de BeginPlay où le RuntimeActor est prêt avant le Party Pawn. Les appels sont idempotents : un mouvement ou un timer déjà actif n'est pas dupliqué.
+`ApplyMonsterPlacementMetadata()` reste l'autorité des métadonnées authored `EncounterGroupId`, `PatrolMode` et `PatrolWaypoints`.
 
-### Diagnostic de route inaccessible
+Les rencontres forcées MON13.6 donnent explicitement la cellule courante du groupe aux participants avant `StartCombatInternal()`. Les sorties Abort/Finish réconcilient l'état des participants vivants.
 
-Un waypoint temporairement inaccessible n'autorise jamais le monstre à traverser un mur ou une porte fermée. Le retry historique à 0,25 s est conservé, mais MON14.3.2 émet désormais une seule ligne par waypoint bloqué :
-
-```text
-[MON14.3.2] Patrol path unavailable Monster=... Cell=(x,y) TargetIndex=N TargetCell=(x,y) Action=Retry
-```
-
-Lorsque le chemin redevient disponible, le diagnostic est réarmé. Cela distingue immédiatement « patrouille non démarrée » de « patrouille démarrée mais route actuellement infranchissable ».
-
-Le bootstrap produit aussi :
-
-```text
-[MON14.3.2] Patrol initialized ...
-[MON14.3.2] Patrol bootstrap ... Eligible=... Processed=...
-```
-
-### Régression
-
-`Grimrock.Monsters.MON14.3.RuntimeBootstrap` vérifie qu'un monstre `Idle + PingPong` démarre via le bootstrap sans appel manuel à `ProcessMonsterNow()`.
-
-`CursorRules` vérifie désormais explicitement la séquence à quatre points :
-
-```text
-0 -> 1 -> 2 -> 3 -> 2 -> 1 -> 0 -> 1
-```
+Movement, Occupancy et Pathfinder restent inchangés.

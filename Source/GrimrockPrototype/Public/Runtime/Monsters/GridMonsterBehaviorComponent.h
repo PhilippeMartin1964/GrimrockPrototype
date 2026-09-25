@@ -86,6 +86,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster|Perception")
 	void ClearLastKnownPartyCell();
 
+	/** Pure invariant: Alert/Pursuing require current perception or remembered party knowledge. */
+	static EGridMonsterState NormalizeAwarenessState(EGridMonsterState State, bool bHasPartyKnowledge);
+
+	/** Reconciles the owner from current perception and remembered party knowledge. */
+	void ReconcileOwnerStateFromPerception();
+
 	/** Finds the shortest route to an accessible cell adjacent to the party. */
 	UFUNCTION(BlueprintCallable, Category = "Monster|Pathfinding")
 	bool FindPursuitPath();
@@ -131,5 +137,4 @@ private:
 	bool IsCellBlockedForOwner(const FIntPoint& Cell) const;
 	void StorePathResult(const FGridMonsterPathResult& Result);
 	void ClearPathResult();
-	void UpdateOwnerStateFromPerception();
 };

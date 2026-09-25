@@ -16,8 +16,6 @@ Grimrock.Monsters.MON14.2
 Grimrock.Monsters.MON14.3
 ```
 
-La suite inclut `RuntimeBootstrap`, qui interdit une régression où les tests ne fonctionneraient qu'après un appel manuel à `ProcessMonsterNow()`.
-
 Puis la régression monstres :
 
 ```text
@@ -67,8 +65,6 @@ Le monstre doit amorcer sa patrouille sans interaction, sans ouverture de porte 
 Logs utiles :
 
 ```text
-[MON14.3.2] Patrol bootstrap ...
-[MON14.3.2] Patrol initialized ...
 ```
 
 Si le monstre reste sur place parce que la route est réellement coupée :

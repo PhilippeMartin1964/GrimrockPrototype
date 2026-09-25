@@ -681,6 +681,19 @@ bool FGridMonsterMON9OrphanedPursuitRestoreTest::RunTest(const FString& Paramete
 
 	TestTrue(TEXT("Orphaned Pursuing snapshot restores"), Monster->RestoreRuntimeMonsterState(State, Runtime));
 	TestEqual(TEXT("Orphaned Pursuing snapshot normalizes to Idle"), Monster->MonsterState, EGridMonsterState::Idle);
+	UGridMonsterBehaviorComponent* Behavior = Monster->FindComponentByClass<UGridMonsterBehaviorComponent>();
+	Monster->MonsterState = EGridMonsterState::Pursuing;
+	if (Behavior)
+	{
+		Behavior->bCanSeeParty = false;
+		Behavior->bCanHearParty = false;
+		Behavior->bHasLastKnownPartyCell = false;
+		Behavior->LastKnownPartyCell = FIntPoint::ZeroValue;
+	}
+	FGridRuntimeMonsterState Captured;
+	TestTrue(TEXT("Orphaned Pursuing state captures"), Monster->CaptureRuntimeMonsterState(Captured, MON9SingleLevelId));
+	TestEqual(TEXT("Capture normalizes orphaned Pursuing to Idle"), Captured.MonsterState, EGridMonsterState::Idle);
+	TestFalse(TEXT("Capture keeps orphaned awareness memory empty"), Captured.bHasLastKnownPartyCell);
 	return true;
 }
 

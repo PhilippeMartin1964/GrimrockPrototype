@@ -9,6 +9,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
@@ -66,6 +67,7 @@ namespace
 		AGrimrockPartyPawn* Party = nullptr;
 		UGridTurnManagerComponent* TurnManager = nullptr;
 		UGridMonsterPatrolSubsystem* Patrol = nullptr;
+		UGridAutomaticPerceptionEngagementSubsystem* Engagement = nullptr;
 
 		bool Initialize(FIntPoint PartyCell = FIntPoint(8, 8))
 		{
@@ -124,7 +126,17 @@ namespace
 				return false;
 			}
 			Patrol->RegisterRuntime(Runtime);
-			return true;
+			Engagement = TestWorld.World->GetSubsystem<UGridAutomaticPerceptionEngagementSubsystem>();
+			return Engagement != nullptr;
+		}
+
+		void EvaluateExploration(FName Reason)
+		{
+			GridAutomaticPerceptionEngagement::Request(Runtime, Reason);
+			if (Engagement)
+			{
+				Engagement->ProcessPendingEvaluationNow();
+			}
 		}
 
 		UGridMonsterDefinitionAsset* MakeGoblinDefinition(int32 SightRange, int32 HearingRange, bool bSharesAggro, int32 AggroRange)
@@ -244,7 +256,7 @@ bool FGridMonsterMON1751PatrolRangedKeeperTest::RunTest(const FString& Parameter
 
 	UGridMonsterMovementComponent* Movement = Goblin->FindComponentByClass<UGridMonsterMovementComponent>();
 	TestTrue(TEXT("Definition keeps RangedKeeper profile"), Definition->HasAIProfile(EGridMonsterAIProfile::RangedKeeper));
-	TestTrue(TEXT("RangedKeeper patrol processing succeeds"), Fixture.Patrol->ProcessMonsterNow(Goblin, TEXT("MON1751Patrol")));
+	Fixture.EvaluateExploration(TEXT("MON1751Patrol"));
 	TestTrue(TEXT("RangedKeeper starts grid patrol movement"), Movement && Movement->IsBusy());
 	TestEqual(TEXT("RangedKeeper patrol activity is Patrolling"), Fixture.Patrol->GetMonsterActivity(Goblin->ResolvePersistenceId()),
 		EGridMonsterExplorationActivity::Patrolling);
@@ -312,7 +324,7 @@ bool FGridMonsterMON1751HearingAlarmTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	TestTrue(TEXT("Hearing source is processed"), Fixture.Patrol->ProcessMonsterNow(Source, TEXT("MON1751HearingAlarm")));
+	Fixture.EvaluateExploration(TEXT("MON1751HearingAlarm"));
 
 	UGridMonsterBehaviorComponent* SourceBehavior = Source->FindComponentByClass<UGridMonsterBehaviorComponent>();
 	UGridMonsterBehaviorComponent* AllyBehavior = Ally->FindComponentByClass<UGridMonsterBehaviorComponent>();
@@ -350,13 +362,13 @@ bool FGridMonsterMON1751VisionEngagementHandoffTest::RunTest(const FString& Para
 		return false;
 	}
 
-	TestTrue(TEXT("Visual RangedKeeper processing succeeds"), Fixture.Patrol->ProcessMonsterNow(Goblin, TEXT("MON1751Vision")));
+	Fixture.EvaluateExploration(TEXT("MON1751Vision"));
 
 	UGridMonsterBehaviorComponent* Behavior = Goblin->FindComponentByClass<UGridMonsterBehaviorComponent>();
 	TestTrue(TEXT("Visual source sees party"), Behavior && Behavior->bCanSeeParty);
-	TestEqual(TEXT("Visual source enters Engaging exploration activity"), Fixture.Patrol->GetMonsterActivity(Goblin->ResolvePersistenceId()),
-		EGridMonsterExplorationActivity::Engaging);
-	TestEqual(TEXT("Visual source state becomes Alert"), Goblin->MonsterState, EGridMonsterState::Alert);
+	TestTrue(TEXT("Visual source hands off to combat through automatic pipeline"), Fixture.TurnManager->bCombatActive);
+	TestEqual(TEXT("Exploration is suspended after combat handoff"), Fixture.Patrol->GetMonsterActivity(Goblin->ResolvePersistenceId()),
+		EGridMonsterExplorationActivity::Suspended);
 	return true;
 }
 
