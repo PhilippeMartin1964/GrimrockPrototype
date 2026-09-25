@@ -20,8 +20,6 @@
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
-#include "UI/GridInventoryBagWidget.h"
-#include "UI/GridCharacterSheetWidget.h"
 #include "UI/GridCombatHudWidget.h"
 #include "Sound/SoundBase.h"
 
@@ -73,18 +71,6 @@ namespace
 	bool IsHoverCursorReason(const TCHAR* Reason)
 	{
 		return Reason && FCString::Strncmp(Reason, TEXT("Hover"), 5) == 0;
-	}
-
-	bool IsInventoryWorkspaceHovered(const AGrimrockPartyPawn* PartyPawn)
-	{
-		if (!PartyPawn || !PartyPawn->IsInventoryWorkspaceVisible())
-		{
-			return false;
-		}
-
-		const UGridInventoryBagWidget* InventoryBag = PartyPawn->InventoryBagWidgetInstance.Get();
-		const UGridCharacterSheetWidget* CharacterSheet = PartyPawn->CharacterSheetWidgetInstance.Get();
-		return (IsValid(InventoryBag) && InventoryBag->IsHovered()) || (IsValid(CharacterSheet) && CharacterSheet->IsHovered());
 	}
 
 	bool CanSelectedCharacterPhysicallyThrow(const AGrimrockPartyPawn* PartyPawn, const UGridItemDefinitionAsset* Definition)
@@ -711,13 +697,6 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
 		return Resolution;
 	}
 
-	if (bInventoryUiOpen && IsInventoryWorkspaceHovered(Resolution.PartyPawn))
-	{
-		Resolution.Intent = EGridMouseInteractionIntent::IgnoreModalUi;
-		Resolution.DiagnosticReason = TEXT("InventoryWorkspaceHovered");
-		return Resolution;
-	}
-
 	if (ShouldBlockWorldInteractionForInventoryUi(Resolution.PartyPawn, Resolution.bHasCursorItem))
 	{
 		Resolution.Intent = EGridMouseInteractionIntent::IgnoreInventoryUiWithoutCursorItem;
@@ -1279,14 +1258,6 @@ void AGrimrockPlayerController::UpdateHoveredInteractable()
 	const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
 	FGridItemInstance CursorItem;
 	const bool bHasCursorItem = PartyPawn && PartyPawn->GetCursorItem(CursorItem);
-	if (bInventoryUiOpen && IsInventoryWorkspaceHovered(PartyPawn))
-	{
-		if (bHasCursorItem)
-		{
-			SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverInventoryWorkspaceWithCursorItem"));
-		}
-		return;
-	}
 	if (ShouldBlockWorldInteractionForInventoryUi(PartyPawn, bHasCursorItem))
 	{
 		SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("HoverModalInventoryUiOpen"));
