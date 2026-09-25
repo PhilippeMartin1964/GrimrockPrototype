@@ -21,6 +21,7 @@ namespace RPGMON2093Tests
 		Character.RaceDisplayName = FText::FromString(TEXT("Humain"));
 		Character.Level = 1;
 		Character.Experience = 0;
+		Character.LastAcknowledgedLevel = 1;
 		Character.Attributes = FRPGAttributes(10, 10, 10, 10, 10, 10);
 		Character.DerivedStats.MaxHealth = 10;
 		Character.Resources.CurrentHealth = 10;
@@ -94,7 +95,10 @@ bool FRPGMON2093RecruitmentPreservesPoolSkillTest::RunTest(const FString& Parame
 	AddMON2093Rank(Recruit, TEXT("Skill_Lockpicking"), 3);
 	Inventory->PartyInventoryState.CharacterPool.Add(Recruit);
 	FRPGPartyRecruitmentResult Result;
-	TestTrue(TEXT("Skilled pool candidate recruits"), FRPGPartyRecruitmentService::TryRecruitFromPool(Inventory, RecruitId, Result));
+	if (!TestTrue(TEXT("Skilled pool candidate recruits"), FRPGPartyRecruitmentService::TryRecruitFromPool(Inventory, RecruitId, Result)))
+	{
+		return false;
+	}
 	TestEqual(TEXT("Runtime Skill rank survives recruitment copy"),
 		FRPGSkillService::GetSkillRank(Inventory->PartyInventoryState.ActiveCharacters[1], TEXT("Skill_Lockpicking")), 3);
 	return true;
@@ -116,7 +120,10 @@ bool FRPGMON2093PoolSnapshotRestoresAfterRecruitmentTest::RunTest(const FString&
 	UGridPartyInventoryComponent* Restored = NewObject<UGridPartyInventoryComponent>();
 	Restored->PartyInventoryState = SavedState;
 	FRPGPartyRecruitmentResult Recruitment;
-	TestTrue(TEXT("Restored pooled character recruits"), FRPGPartyRecruitmentService::TryRecruitFromPool(Restored, RecruitId, Recruitment));
+	if (!TestTrue(TEXT("Restored pooled character recruits"), FRPGPartyRecruitmentService::TryRecruitFromPool(Restored, RecruitId, Recruitment)))
+	{
+		return false;
+	}
 	TestEqual(TEXT("Active recruit keeps durable rank from whole-party snapshot"),
 		FRPGSkillService::GetSkillRank(Restored->PartyInventoryState.ActiveCharacters[1], TEXT("Skill_Lockpicking")), 4);
 	return true;
@@ -134,7 +141,10 @@ bool FRPGMON2093ActiveSnapshotRestoresAfterReserveMoveTest::RunTest(const FStrin
 	AddMON2093Rank(Recruit, TEXT("Skill_Athletics"), 2);
 	Inventory->PartyInventoryState.CharacterPool.Add(Recruit);
 	FRPGPartyRecruitmentResult Recruitment;
-	TestTrue(TEXT("Candidate recruits"), FRPGPartyRecruitmentService::TryRecruitFromPool(Inventory, RecruitId, Recruitment));
+	if (!TestTrue(TEXT("Candidate recruits"), FRPGPartyRecruitmentService::TryRecruitFromPool(Inventory, RecruitId, Recruitment)))
+	{
+		return false;
+	}
 
 	FGridPartyInventoryState SavedState = Inventory->PartyInventoryState;
 	FGridCharacterInventoryState Moved = SavedState.ActiveCharacters[1];
@@ -180,7 +190,10 @@ bool FRPGMON2093SelectedCharacterIndependentTest::RunTest(const FString& Paramet
 	AddMON2093Rank(Recruit, TEXT("Skill_Survival"), 3);
 	Inventory->PartyInventoryState.CharacterPool.Add(Recruit);
 	FRPGPartyRecruitmentResult Recruitment;
-	TestTrue(TEXT("Second character recruits"), FRPGPartyRecruitmentService::TryRecruitFromPool(Inventory, RecruitId, Recruitment));
+	if (!TestTrue(TEXT("Second character recruits"), FRPGPartyRecruitmentService::TryRecruitFromPool(Inventory, RecruitId, Recruitment)))
+	{
+		return false;
+	}
 	Inventory->PartyInventoryState.SelectedCharacterIndex = 1;
 	const FGridPartyInventoryState SavedState = Inventory->PartyInventoryState;
 	TestEqual(TEXT("Selection is preserved independently"), SavedState.SelectedCharacterIndex, 1);
