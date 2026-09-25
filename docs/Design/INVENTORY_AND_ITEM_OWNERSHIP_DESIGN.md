@@ -73,7 +73,6 @@ La zone centrale doit afficher le personnage sélectionné selon un layout paper
 
 ```text
 Head       -> Tête
-Face       -> Visage
 Amulet     -> Amulette
 Shoulders  -> Épaules
 Shirt      -> Chemise
@@ -91,8 +90,6 @@ Legs       -> Jambes
 Feet       -> Bottes
 Ring1      -> Anneau I
 Ring2      -> Anneau II
-Earring1   -> Bijou d'oreille I
-Earring2   -> Bijou d'oreille II
 ```
 
 ### Bas
@@ -139,8 +136,6 @@ Cloak
 Face
 Shirt
 Bracers
-Earring1
-Earring2
 ```
 
 Les anciens slots `Talisman`, `QuickSlot1` et `QuickSlot2` restent conserves
@@ -229,8 +224,6 @@ Legs
 Feet
 Ring1
 Ring2
-Earring1
-Earring2
 MainHand
 OffHand
 ```
@@ -250,7 +243,6 @@ Le SaveGame devra contenir l'état du donjon, l'état du groupe actif, les perso
 
 ### Phase B — Alignement C++ des nouveaux slots
 
-- applique par UI-INV2C : `Face`, `Shirt`, `Bracers`, `Earring1`, `Earring2` existent cote C++ ;
 - applique par UI-INV2C : les champs correspondants existent dans `FGridCharacterEquipmentState` ;
 - applique par UI-INV2C : les fonctions d'acces et les compatibilites `CompatibleEquipmentSlots` acceptent les nouveaux slots ;
 - appliqué dans la fenêtre `WBP_CharacterSheet` : les widgets paper doll sont branchés autour du personnage.

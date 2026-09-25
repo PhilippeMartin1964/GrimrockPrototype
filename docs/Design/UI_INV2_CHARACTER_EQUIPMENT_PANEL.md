@@ -17,7 +17,6 @@ La liste suivante est la cible officielle du `Character Equipment Panel`.
 | Widget Blueprint cible | Libelle UI | Slot logique cible |
 |---|---|---|
 | `SlotWidget_Head` | Tete | `Head` |
-| `SlotWidget_Face` | Visage | `Face` |
 | `SlotWidget_Amulet` | Amulette | `Amulet` |
 | `SlotWidget_Shoulders` | Epaules | `Shoulders` |
 | `SlotWidget_Shirt` | Chemise | `Shirt` |
@@ -35,8 +34,6 @@ La liste suivante est la cible officielle du `Character Equipment Panel`.
 | `SlotWidget_Feet` | Bottes | `Feet` |
 | `SlotWidget_Ring1` | Anneau I | `Ring1` |
 | `SlotWidget_Ring2` | Anneau II | `Ring2` |
-| `SlotWidget_Earring1` | Bijou d'oreille I | `Earring1` |
-| `SlotWidget_Earring2` | Bijou d'oreille II | `Earring2` |
 
 ### Bas du personnage
 
@@ -70,13 +67,10 @@ UI-INV2C aligne le modele C++ sur la cible paper doll. Les slots suivants sont d
 - `Gloves` ;
 - `Belt` ;
 - `Cloak` ;
-- `Face` ;
 - `Shirt` ;
 - `Bracers` ;
-- `Earring1` ;
-- `Earring2`.
 
-Le paper doll manuel est désormais authoré dans `WBP_CharacterSheet`. Les 18 slots sont exposés via les `SlotWidget_*` et enregistrés côté C++.
+Le paper doll manuel est désormais authoré dans `WBP_CharacterSheet`. Les 15 slots sont exposés via les `SlotWidget_*` et enregistrés côté C++.
 
 ## Structure definitive de SizeBox_SelectedCharacterPanel
 
@@ -98,7 +92,6 @@ SizeBox_SelectedCharacterPanel
             -> Overlay_PaperDollArea
                -> VerticalBox_LeftEquipmentColumn
                   -> SlotWidget_Head
-                  -> SlotWidget_Face
                   -> SlotWidget_Amulet
                   -> SlotWidget_Shoulders
                   -> SlotWidget_Shirt
@@ -116,8 +109,6 @@ SizeBox_SelectedCharacterPanel
                   -> SlotWidget_Feet
                   -> SlotWidget_Ring1
                   -> SlotWidget_Ring2
-                  -> SlotWidget_Earring1
-                  -> SlotWidget_Earring2
                -> HorizontalBox_BottomHandsRow
                   -> SlotWidget_MainHand
                   -> Spacer_BottomHands
@@ -178,7 +169,6 @@ La cible definitive utilise :
 - `Overlay_PaperDollArea` pour permettre le placement libre des colonnes et de la ligne des mains autour du personnage ;
 - `Border_CharacterStatsPanel` pour isoler les details, attributs et statistiques derivees.
 
-Les slots sont des instances d'un widget de slot existant, par exemple `WBP_InventorySlot` ou tout widget derive de `UGridInventorySlotWidget`. `SlotWidget_Head`, `SlotWidget_Face`, etc. sont donc des **noms d'instances**, pas de nouveaux assets a chercher dans le Content Browser.
 
 ## Image du personnage
 
@@ -222,7 +212,6 @@ Mapping fonctionnel definitif :
 
 ```text
 SlotWidget_Head       -> Head
-SlotWidget_Face       -> Face
 SlotWidget_Amulet     -> Amulet
 SlotWidget_Shoulders  -> Shoulders
 SlotWidget_Shirt      -> Shirt
@@ -235,8 +224,6 @@ SlotWidget_Legs       -> Legs
 SlotWidget_Feet       -> Feet
 SlotWidget_Ring1      -> Ring1
 SlotWidget_Ring2      -> Ring2
-SlotWidget_Earring1   -> Earring1
-SlotWidget_Earring2   -> Earring2
 SlotWidget_MainHand   -> MainHand
 SlotWidget_OffHand    -> OffHand
 ```

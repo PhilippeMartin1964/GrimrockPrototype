@@ -29,7 +29,6 @@ Les bonus de statistiques d'equipement sont documentes separement dans `docs/Des
 | Pantalon / jambieres | `Legs` |
 | Bottes | `Feet` |
 | Anneau | `Ring1`, `Ring2` |
-| Bijou d'oreille | `Earring1`, `Earring2` |
 
 Les armes deux mains sont documentees comme compatibles avec `MainHand`, mais la regle de blocage ou de liberation de `OffHand` reste a implementer dans un systeme ulterieur. Tant que cette logique n'existe pas, `CompatibleEquipmentSlots` ne suffit pas a exprimer la contrainte complete.
 
@@ -43,7 +42,6 @@ Les armes deux mains sont documentees comme compatibles avec `MainHand`, mais la
 
 - Un item compatible avec deux slots equivalents peut aller dans l'un ou l'autre.
 - `Ring1` et `Ring2` sont equivalents pour les anneaux.
-- `Earring1` et `Earring2` sont equivalents pour les bijoux d'oreille.
 - `MainHand` et `OffHand` peuvent partager certains items, par exemple les torches.
 - Les armes deux mains sont documentees, mais elles ne sont pas pleinement implementees tant qu'aucune logique ne bloque ou ne libere `OffHand`.
 - Les compatibilites sont des autorisations de placement, pas des regles visuelles. Le layout reste porte par `WBP_GridInventory`.
@@ -73,6 +71,5 @@ Ce diagnostic parcourt les definitions d'items enregistrees au runtime dans `Run
 - les items potentiellement equipeables dont `CompatibleEquipmentSlots` est vide ;
 - les items lumineux sans compatibilite `MainHand` ou `OffHand` ;
 - les items compatibles avec `Talisman`, `QuickSlot1` ou `QuickSlot2`, en warning informatif pour le contexte paper doll ;
-- les items compatibles avec les nouveaux slots `Face`, `Shirt`, `Bracers`, `Earring1` ou `Earring2`, en log informatif.
 
 Le diagnostic ne modifie aucun DataAsset et ne tente aucune auto-correction. Les corrections restent manuelles dans UE5.

@@ -39,7 +39,7 @@ Responsabilités :
 - sélecteur de groupe `PartyMember_1..6` ;
 - personnage sélectionné ;
 - attributs / stats / résistances ;
-- paper doll et 18 slots équipement ;
+- paper doll et 15 slots équipement ;
 - `Button_CloseCharacterSheet`.
 
 La racine viewport reste `Not Hit-Testable (Self Only)` afin que seule la fenêtre gauche capte la souris.
@@ -76,7 +76,6 @@ SizeBox_SelectedCharacterPanel
       -> Overlay_PaperDollArea
          -> VerticalBox_LeftEquipmentColumn
             -> SlotWidget_Head
-            -> SlotWidget_Face
             -> SlotWidget_Amulet
             -> SlotWidget_Shoulders
             -> SlotWidget_Shirt
@@ -94,8 +93,6 @@ SizeBox_SelectedCharacterPanel
             -> SlotWidget_Feet
             -> SlotWidget_Ring1
             -> SlotWidget_Ring2
-            -> SlotWidget_Earring1
-            -> SlotWidget_Earring2
          -> HorizontalBox_BottomHandsRow
             -> SlotWidget_MainHand
             -> Spacer_BottomHands
@@ -113,7 +110,6 @@ Le personnage doit être visible de pied en cap. L'image centrale doit être un 
 | Widget | Libellé UI | Slot logique |
 |---|---|---|
 | `SlotWidget_Head` | Tête | `Head` |
-| `SlotWidget_Face` | Visage | `Face` |
 | `SlotWidget_Amulet` | Amulette | `Amulet` |
 | `SlotWidget_Shoulders` | Épaules | `Shoulders` |
 | `SlotWidget_Shirt` | Chemise | `Shirt` |
@@ -131,8 +127,6 @@ Le personnage doit être visible de pied en cap. L'image centrale doit être un 
 | `SlotWidget_Feet` | Bottes | `Feet` |
 | `SlotWidget_Ring1` | Anneau I | `Ring1` |
 | `SlotWidget_Ring2` | Anneau II | `Ring2` |
-| `SlotWidget_Earring1` | Bijou d'oreille I | `Earring1` |
-| `SlotWidget_Earring2` | Bijou d'oreille II | `Earring2` |
 
 ### Bas
 
@@ -161,7 +155,6 @@ SlotWidget_MainHand   -> MainHand
 SlotWidget_OffHand    -> OffHand
 ```
 
-Les slots `Face`, `Shirt`, `Bracers`, `Earring1` et `Earring2` sont désormais également présents dans `EGridEquipmentSlot` et `FGridCharacterEquipmentState`. Ils peuvent donc être enregistrés comme les autres slots paper doll.
 
 Il n'existe plus de sous-ensemble paper doll volontairement limité côté C++ ; la différence restante est uniquement la présence effective des widgets dans `WBP_CharacterSheet`.
 

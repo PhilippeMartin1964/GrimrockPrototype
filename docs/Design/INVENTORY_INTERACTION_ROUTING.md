@@ -60,7 +60,6 @@ Colonne gauche :
 
 ```text
 Head       -> Tête
-Face       -> Visage
 Amulet     -> Amulette
 Shoulders  -> Épaules
 Shirt      -> Chemise
@@ -78,8 +77,6 @@ Legs       -> Jambes
 Feet       -> Bottes
 Ring1      -> Anneau I
 Ring2      -> Anneau II
-Earring1   -> Bijou d'oreille I
-Earring2   -> Bijou d'oreille II
 ```
 
 Bas :
@@ -99,8 +96,6 @@ Le C++ actuel peut router les slots déjà existants dans `EGridEquipmentSlot`. 
 Face
 Shirt
 Bracers
-Earring1
-Earring2
 ```
 
 Tant que ces slots ne sont pas ajoutés au modèle, les Blueprints ne doivent pas tenter d'exécuter une mutation fonctionnelle sur eux.
@@ -142,7 +137,6 @@ UGridInventorySlotWidget
 
 Si le joueur tient un `CursorItem`, le système tente d'équiper l'item dans le slot cible. Si le joueur ne tient rien et que le slot est occupé, le système tente de prendre l'item au cursor.
 
-Les slots placeholders (`Face`, `Shirt`, `Bracers`, `Earring1`, `Earring2`) ne doivent pas appeler ce flux tant que le C++ n'est pas aligné.
 
 ## Flux clic droit
 

@@ -52,8 +52,6 @@ La cible visuelle officielle est :
 - Bottes / `Feet` ;
 - Anneau I / `Ring1` ;
 - Anneau II / `Ring2` ;
-- Bijou d'oreille I / `Earring1` ;
-- Bijou d'oreille II / `Earring2`.
 
 ### Bas
 
@@ -86,11 +84,8 @@ Slots fonctionnels attendus maintenant :
 
 Slots placeholders jusqu'à alignement C++ :
 
-- `Face` ;
 - `Shirt` ;
 - `Bracers` ;
-- `Earring1` ;
-- `Earring2`.
 
 Les placeholders ne doivent pas provoquer d'appel fonctionnel à un slot C++ inexistant.
 
@@ -175,7 +170,6 @@ Il ne doit pas appeler l'ancienne API par `ActionType`.
 | B2.3 | Clic droit slot fonctionnel occupé | Menu contextuel si actions supportées. |
 | B2.4 | Drop inventaire -> slot fonctionnel compatible | Succès, aucun item perdu, refresh après mutation. |
 | B2.5 | Drop inventaire -> slot fonctionnel incompatible | Refus propre, aucun item perdu. |
-| B2.6 | Placeholder `Face`, `Shirt`, `Bracers`, `Earring1`, `Earring2` | Aucun crash, aucune mutation tant que C++ n'est pas aligné. |
 | B2.7 | `MainHand` / `OffHand` | Fonctionnement conservé dans le paper doll. |
 
 ### Bloc C — Enlever
@@ -243,7 +237,6 @@ GridInventory SwapSlots Failed Reason=IncompatibleTargetToSource
 
 ## Limitations connues
 
-- Les placeholders `Face`, `Shirt`, `Bracers`, `Earring1`, `Earring2` attendent l'alignement C++.
 - `Consume`, `SplitStack`, `Throw`, combat et panneaux complexes `Inspect` / `Read` ne sont pas inclus dans ce MVP.
 - `Examiner` peut encore réutiliser le contenu du tooltip ; état transitoire.
 - La fermeture visuelle du menu dépend du câblage Blueprint de `OnItemActionMenuCloseRequested`.

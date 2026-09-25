@@ -37,7 +37,6 @@ Le paper doll est désormais exclusivement :
 ~~~text
 WBP_CharacterSheet
 -> SlotWidget_Head
--> SlotWidget_Face
 -> ...
 -> SlotWidget_MainHand
 -> SlotWidget_OffHand

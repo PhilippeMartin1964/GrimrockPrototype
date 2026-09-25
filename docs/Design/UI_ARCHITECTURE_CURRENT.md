@@ -521,3 +521,20 @@ Inventory Slots Per Character = 64
 Inventory Columns             = 8
 => 8 lignes
 ```
+
+
+## UI-INV2F — slots d'équipement supprimés
+
+Les slots `Face`, `Earring1` et `Earring2` sont abandonnés et supprimés du modèle runtime, du stockage d'équipement, du paper doll, des tooltips, des actions contextuelles et des diagnostics.
+
+Le paper doll canonique comporte désormais 15 slots :
+
+```text
+MainHand, OffHand,
+Head, Chest, Legs, Feet,
+Amulet, Ring1, Ring2,
+Shoulders, Gloves, Belt, Cloak,
+Shirt, Bracers
+```
+
+`WBP_CharacterSheet` ne doit plus contenir `SlotWidget_Face`, `SlotWidget_Earring1` ni `SlotWidget_Earring2`.
