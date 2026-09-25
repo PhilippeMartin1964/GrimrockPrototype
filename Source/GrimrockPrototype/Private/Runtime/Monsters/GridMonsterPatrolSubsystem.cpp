@@ -216,13 +216,23 @@ void UGridMonsterPatrolSubsystem::BootstrapRuntimeExploration(
 			Monster->PatrolMode != EGridMonsterPatrolMode::None && Monster->PatrolWaypoints.Num() >= 2;
 		AuthoredPatrolCount += bHasAuthoredPatrol ? 1 : 0;
 
+		UGridMonsterBehaviorComponent* Behavior = Monster->FindComponentByClass<UGridMonsterBehaviorComponent>();
+		if (Behavior && !Behavior->IsInitialized())
+		{
+			Behavior->InitializeBehavior(RuntimeActor, ReadyParty);
+		}
+
 		if (bHasAuthoredPatrol)
 		{
 			UE_LOG(LogGridMonsterPatrol, Log,
-				TEXT("[MON14.3.2] Patrol candidate Monster=%s SpawnId=%s State=%s Mode=%s Waypoints=%d Cell=(%d,%d)"),
+				TEXT("[MON14.3.2] Patrol candidate Monster=%s SpawnId=%s State=%s Mode=%s Waypoints=%d Cell=(%d,%d) BehaviorInit=%s See=%s Hear=%s LastKnown=%s(%d,%d) Enabled=%s RuntimeActive=%s"),
 				*GetNameSafe(Monster), *Monster->SpawnObjectId.ToString(EGuidFormats::DigitsWithHyphens),
 				*UEnum::GetValueAsString(Monster->MonsterState), *UEnum::GetValueAsString(Monster->PatrolMode), Monster->PatrolWaypoints.Num(),
-				Monster->CurrentCell.X, Monster->CurrentCell.Y);
+				Monster->CurrentCell.X, Monster->CurrentCell.Y, Behavior && Behavior->IsInitialized() ? TEXT("true") : TEXT("false"),
+				Behavior && Behavior->bCanSeeParty ? TEXT("true") : TEXT("false"), Behavior && Behavior->bCanHearParty ? TEXT("true") : TEXT("false"),
+				Behavior && Behavior->bHasLastKnownPartyCell ? TEXT("true") : TEXT("false"),
+				Behavior ? Behavior->LastKnownPartyCell.X : INDEX_NONE, Behavior ? Behavior->LastKnownPartyCell.Y : INDEX_NONE,
+				Monster->bMonsterEnabled ? TEXT("true") : TEXT("false"), Monster->IsRuntimeLevelActive() ? TEXT("true") : TEXT("false"));
 		}
 
 		ProcessMonsterInternal(Monster, true, Reason);
@@ -397,6 +407,19 @@ bool UGridMonsterPatrolSubsystem::ProcessMonsterInternal(AGridMonsterActor* Mons
 		}
 		Entry->Activity = EGridMonsterExplorationActivity::Investigating;
 		return ProcessInvestigation(*Entry, Monster);
+	}
+
+	const bool bOrphanedAwarenessState =
+		(Monster->MonsterState == EGridMonsterState::Alert || Monster->MonsterState == EGridMonsterState::Pursuing) &&
+		!Behavior->bCanSeeParty && !Behavior->bCanHearParty && !Behavior->bHasLastKnownPartyCell;
+	if (bOrphanedAwarenessState)
+	{
+		UE_LOG(LogGridMonsterPatrol, Log,
+			TEXT("[MON14.3.2] Patrol state normalized Monster=%s From=%s To=Idle Reason=NoPerceptionOrLastKnownPartyCell"),
+			*GetNameSafe(Monster), *UEnum::GetValueAsString(Monster->MonsterState));
+		Monster->SetMonsterState(EGridMonsterState::Idle);
+		Entry->Activity = EGridMonsterExplorationActivity::Inactive;
+		Entry->SearchTurnsRemaining = 0;
 	}
 
 	// A fresh world event may re-evaluate perception while a guard is honoring

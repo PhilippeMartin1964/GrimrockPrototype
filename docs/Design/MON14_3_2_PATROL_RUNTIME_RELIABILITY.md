@@ -76,3 +76,35 @@ Le log de bootstrap distingue maintenant la présence d'une route de son activit
 ```
 
 Le test `Grimrock.Monsters.MON14.3.AuthoredRouteResync` efface volontairement la copie de route de l'Actor puis vérifie que le bootstrap la recharge depuis le LevelAsset et démarre le mouvement.
+
+
+## Correction complémentaire — état Pursuing orphelin
+
+Un log PIE a montré le cas suivant :
+
+```text
+State=Pursuing
+Mode=PingPong
+Waypoints=4
+Authored=1
+Active=0
+```
+
+Une route valide pouvait donc être figée par un état d'exploration actif ne portant plus aucune cible.
+
+Le contrat est maintenant :
+
+- `Alert/Pursuing + perception actuelle` : comportement d'alerte normal ;
+- `Alert/Pursuing + LastKnownPartyCell` : investigation/recherche normale ;
+- `Alert/Pursuing + aucune perception + aucune LastKnownPartyCell` : état incohérent normalisé en `Idle`, puis reprise de la patrouille authored.
+
+La même règle est appliquée lors de la restauration : un snapshot `Alert/Pursuing` sans mémoire de cible est restauré en `Idle`.
+
+Le bootstrap lie aussi explicitement un `UGridMonsterBehaviorComponent` non initialisé au Party Pawn déjà prêt avant de traiter la patrouille.
+
+Régressions :
+
+```text
+Grimrock.Monsters.MON14.3.OrphanedPursuitResumesPatrol
+Grimrock.Monsters.MON9.OrphanedPursuitRestore
+```

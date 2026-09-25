@@ -76,9 +76,13 @@ namespace
 	{
 		switch (SavedState)
 		{
+			case EGridMonsterState::Alert:
+			case EGridMonsterState::Pursuing:
+				return bHasLastKnownPartyCell ? SavedState : EGridMonsterState::Idle;
+
 			case EGridMonsterState::Attacking:
 			case EGridMonsterState::Repositioning:
-				return bHasLastKnownPartyCell ? EGridMonsterState::Pursuing : EGridMonsterState::Alert;
+				return bHasLastKnownPartyCell ? EGridMonsterState::Pursuing : EGridMonsterState::Idle;
 
 			case EGridMonsterState::Hurt:
 				return bHasLastKnownPartyCell ? EGridMonsterState::Alert : EGridMonsterState::Idle;

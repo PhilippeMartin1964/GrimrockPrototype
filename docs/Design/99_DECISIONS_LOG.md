@@ -1202,3 +1202,15 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le bootstrap d'exploration resynchronise chaque Monster Actor depuis son placement avant de traiter la patrouille.
 - Le diagnostic `Authored/Active` remplace le compteur ambigu `Eligible/Processed`.
 - Régression : `Grimrock.Monsters.MON14.3.AuthoredRouteResync`.
+
+
+---
+
+## 2026-09-25 — MON14.3.2 : normalisation des états d'exploration orphelins
+
+- `Alert` et `Pursuing` exigent soit une perception actuelle, soit une `LastKnownPartyCell`.
+- Sans ces deux sources, ces états sont transitoires incohérents et sont normalisés vers `Idle`.
+- La normalisation s'applique à la restauration MON9 et au traitement d'exploration MON14.3.
+- Une route authored Loop/PingPong reprend alors normalement.
+- Le bootstrap initialise explicitement un Behavior non initialisé avec le Party Pawn déjà prêt.
+- Régressions : `MON14.3.OrphanedPursuitResumesPatrol` et `MON9.OrphanedPursuitRestore`.

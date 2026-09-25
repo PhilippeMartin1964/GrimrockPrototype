@@ -339,6 +339,52 @@ bool FGridMonsterMON143AuthoredRouteResyncTest::RunTest(const FString& Parameter
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridMonsterMON143OrphanedPursuitResumesPatrolTest, "Grimrock.Monsters.MON14.3.OrphanedPursuitResumesPatrol",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON143OrphanedPursuitResumesPatrolTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	FGridMON143Fixture Fixture;
+	TestTrue(TEXT("Fixture initializes"), Fixture.Initialize());
+	if (!Fixture.Patrol)
+	{
+		return false;
+	}
+
+	const TArray<FGridMonsterPatrolWaypoint> Route = MON143MakeHorizontalRoute();
+	AGridMonsterActor* Monster = Fixture.AddMonster(Fixture.MakeDefinition(TEXT("MON14_3_OrphanedPursuitRat"), 0, 0), FIntPoint(2, 1), EGridEdge::West,
+		EGridMonsterState::Idle, EGridMonsterPatrolMode::PingPong, Route);
+	TestNotNull(TEXT("Orphaned pursuit patrol monster exists"), Monster);
+	if (!Monster)
+	{
+		return false;
+	}
+
+	UGridMonsterBehaviorComponent* Behavior = Monster->FindComponentByClass<UGridMonsterBehaviorComponent>();
+	TestNotNull(TEXT("Behavior exists"), Behavior);
+	if (!Behavior)
+	{
+		return false;
+	}
+
+	Monster->MonsterState = EGridMonsterState::Pursuing;
+	Behavior->bCanSeeParty = false;
+	Behavior->bCanHearParty = false;
+	Behavior->bHasLastKnownPartyCell = false;
+	Behavior->LastKnownPartyCell = FIntPoint::ZeroValue;
+
+	Fixture.Patrol->BootstrapRuntimeExploration(Fixture.Runtime, Fixture.Party, TEXT("MON143OrphanedPursuit"));
+
+	TestEqual(TEXT("Orphaned Pursuing normalizes to Idle"), Monster->MonsterState, EGridMonsterState::Idle);
+	TestEqual(TEXT("Orphaned Pursuing resumes authored patrol"),
+		Fixture.Patrol->GetMonsterActivity(Monster->ResolvePersistenceId()), EGridMonsterExplorationActivity::Patrolling);
+	UGridMonsterMovementComponent* Movement = Monster->FindComponentByClass<UGridMonsterMovementComponent>();
+	TestTrue(TEXT("Resumed patrol starts movement"), Movement && Movement->IsBusy());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGridMonsterMON143PatrolMovementTest, "Grimrock.Monsters.MON14.3.PatrolMovement", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridMonsterMON143PatrolMovementTest::RunTest(const FString& Parameters)

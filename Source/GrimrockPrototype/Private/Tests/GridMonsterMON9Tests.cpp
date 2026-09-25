@@ -643,6 +643,48 @@ bool FGridMonsterMON9StateRoundTripTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridMonsterMON9OrphanedPursuitRestoreTest, "Grimrock.Monsters.MON9.OrphanedPursuitRestore",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON9OrphanedPursuitRestoreTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	FGridMON9TestWorld TestWorld;
+	if (!TestWorld.World)
+	{
+		return false;
+	}
+
+	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
+	Runtime->LevelAsset = MakeMON9Floor(Runtime);
+	SpawnMON9Party(TestWorld.World, Runtime);
+	UGridMonsterDefinitionAsset* Definition = MakeMON9Definition(Runtime, TEXT("MON9_OrphanedPursuitRat"));
+	const FGuid PersistenceId(98, 9, 1, 1);
+	AGridMonsterActor* Monster = SpawnMON9Monster(
+		TestWorld.World, Definition, PersistenceId, MON9SingleLevelId, FIntPoint(2, 2), TEXT("MON9_OrphanedPursuitRat"));
+	if (!Monster)
+	{
+		return false;
+	}
+
+	FGridRuntimeMonsterState State;
+	State.PersistenceId = PersistenceId;
+	State.MonsterDefinitionId = Definition->MonsterId;
+	State.DungeonLevelId = MON9SingleLevelId;
+	State.CellX = 2;
+	State.CellY = 2;
+	State.Facing = EGridEdge::North;
+	State.MonsterState = EGridMonsterState::Pursuing;
+	State.CurrentHealth = Definition->MaxHealth;
+	State.bMonsterEnabled = true;
+	State.bHasLastKnownPartyCell = false;
+
+	TestTrue(TEXT("Orphaned Pursuing snapshot restores"), Monster->RestoreRuntimeMonsterState(State, Runtime));
+	TestEqual(TEXT("Orphaned Pursuing snapshot normalizes to Idle"), Monster->MonsterState, EGridMonsterState::Idle);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGridMonsterMON9DeadRoundTripTest, "Grimrock.Monsters.MON9.DeadRoundTrip", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridMonsterMON9DeadRoundTripTest::RunTest(const FString& Parameters)
