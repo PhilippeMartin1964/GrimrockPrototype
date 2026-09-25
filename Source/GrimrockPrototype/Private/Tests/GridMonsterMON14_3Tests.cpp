@@ -627,9 +627,9 @@ bool FGridMonsterMON143CombatExitStateReconciliationTest::RunTest(const FString&
 		Behavior->bCanHearParty = false;
 		Behavior->bHasLastKnownPartyCell = false;
 		Behavior->LastKnownPartyCell = FIntPoint::ZeroValue;
-		if (!Monster->CombatComponent)
+		if (!Monster->CombatComponent || !Monster->CombatComponent->InitializeCombat(Fixture.Party))
 		{
-			AddError(TEXT("Abort fixture monster has no CombatComponent"));
+			AddError(TEXT("Abort fixture monster CombatComponent failed to initialize"));
 			return false;
 		}
 		Monster->CombatComponent->bAttackPresentationActive = true;
