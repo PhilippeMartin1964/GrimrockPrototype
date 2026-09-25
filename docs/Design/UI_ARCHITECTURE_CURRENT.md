@@ -61,7 +61,7 @@ Référence : `docs/Design/UI_SPLIT02_WORLD_INTERACTION_AND_CONTEXT_MENU.md`.
 
 ### UI-SPLIT03 — paper doll dépendant du rôle
 
-UGridInventoryWidget n'enregistre plus automatiquement les 18 slots paper doll dans toutes ses sous-vues.
+UGridInventoryWidget n'enregistre plus automatiquement les 15 slots paper doll dans toutes ses sous-vues.
 
 ```text
 WBP_CharacterSheet -> paper doll présent -> enregistrement + validation
@@ -537,4 +537,3 @@ Shoulders, Gloves, Belt, Cloak,
 Shirt, Bracers
 ```
 
-`WBP_CharacterSheet` ne doit plus contenir `SlotWidget_Face`, `SlotWidget_Earring1` ni `SlotWidget_Earring2`.

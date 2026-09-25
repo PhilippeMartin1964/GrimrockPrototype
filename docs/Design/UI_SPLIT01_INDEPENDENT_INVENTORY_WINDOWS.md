@@ -116,7 +116,7 @@ Panel_CharacterSheet
 ├── stats dérivées
 ├── résistances
 ├── paper doll
-├── 18 slots équipement
+├── 15 slots équipement
 └── Button_CloseCharacterSheet
 ~~~
 
@@ -189,7 +189,7 @@ Le portrait cible délègue toujours vers le même UGridItemTransferService.
 
 Le sac indépendant ne contient volontairement aucun paper doll.
 
-La validation native des 18 slots n'est exécutée que si un widget expose effectivement un conteneur ou au moins un slot paper doll. L'absence du paper doll dans WBP_InventoryBag n'est donc pas un warning.
+La validation native des 15 slots n'est exécutée que si un widget expose effectivement un conteneur ou au moins un slot paper doll. L'absence du paper doll dans WBP_InventoryBag n'est donc pas un warning.
 
 ## Migration UMG
 

@@ -50,7 +50,7 @@ RefreshRegisteredSlotWidgets()
 
 Ainsi :
 
-- WBP_CharacterSheet conserve l'enregistrement et la validation des 18 slots ;
+- WBP_CharacterSheet conserve l'enregistrement et la validation des 15 slots ;
 - WBP_InventoryBag ne tente plus d'enregistrer des slots qu'il ne doit pas posséder ;
 - les vrais warnings d'un CharacterSheet incomplet restent visibles ;
 - aucun warning n'est simplement masqué globalement.
