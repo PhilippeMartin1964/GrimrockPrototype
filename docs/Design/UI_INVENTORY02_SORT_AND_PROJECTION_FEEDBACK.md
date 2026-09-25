@@ -38,10 +38,9 @@ Les `RuntimeObjectId`, drag/drop, clic, tooltip et menu contextuel continuent do
 
 `EGridInventoryFilterCategory` et `EGridInventorySortMode` sont deux états de présentation transients.
 
-- `Tous + Ordre` conserve la grille physique complète, cases vides comprises ;
 - **la grille conserve toujours exactement la capacité du sac** (par exemple 40 cases) ;
-- un filtre nommé projette les seuls items correspondants dans les premières cases, puis complète avec des cases vides ;
-- un tri autre que `Ordre` projette les items triés dans les premières cases, puis complète avec des cases vides ;
+- quel que soit le mode de tri, les items visibles sont projetés dans les premières cases selon l'ordre choisi, puis les cases restantes sont virtuellement vides ;
+- un filtre nommé projette uniquement les items correspondants, toujours selon le tri actif, puis complète avec des cases vides ;
 - filtre + tri s'appliquent ensemble ;
 - changer de personnage conserve le filtre et le tri tant que le widget existe.
 
@@ -166,10 +165,7 @@ Contrat corrigé :
 Capacité du sac = 40
 => toujours 40 cellules visibles
 
-Tous + Ordre
-=> représentation physique complète
-
-Tri Nom / Type / Poids
+Tous + tri actif
 => items projetés dans l'ordre demandé
 => cellules restantes vides jusqu'à 40
 
@@ -247,3 +243,20 @@ Grimrock.UI.Inventory02.InPlaceProjection
 ```
 
 Il vérifie qu'un changement de tri conserve strictement les mêmes instances `GeneratedInventorySlotWidgets` et ne modifie que leur projection vers les slots physiques.
+
+
+## UI-INVENTORY02.10 — Inventory interaction cleanup
+
+Nettoyage de stabilisation après les essais de scission au clavier :
+
+- suppression de `bSplitStack` et `RequestedQuantity` du drag UI ;
+- `HandleSlotDrop` ne transporte plus que source et destination ;
+- `HandleInventorySlotClicked` n'expose plus de paramètre de scission ;
+- la scission reste exclusivement l'action contextuelle `Scinder` ;
+- `Scinder` écrit directement la moitié séparée dans la première case physique libre, sans `CursorItem` ;
+- le drag vers un portrait transfère toujours la pile complète et loggue sa quantité réelle ;
+- les notifications de `UGridPartyInventoryComponent` sont l'autorité de rafraîchissement après mutation ;
+- le workspace inventaire revient au curseur système normal ; le curseur custom reste réservé aux interactions monde ;
+- les tests verrouillent l'absence de plomberie de split dans le drag UI et le choix de la première case libre.
+
+Ce ticket ne modifie aucun asset `.uasset`.

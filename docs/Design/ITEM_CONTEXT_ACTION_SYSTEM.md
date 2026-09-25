@@ -169,7 +169,7 @@ Placer sur la cible
 Déposer au sol
 Lancer
 Combiner
-Scinder la pile
+Scinder
 Allumer / Éteindre, si applicable plus tard
 Examiner, si l'on veut forcer l'affichage du tooltip
 ```
@@ -454,7 +454,7 @@ Actions typiques :
 
 ```text
 Consommer
-Scinder la pile, si quantité > 1
+Scinder, si quantité > 1
 Déposer au sol
 Combiner, si recette applicable
 Examiner / tooltip
@@ -500,7 +500,7 @@ Actions typiques :
 
 ```text
 Combiner
-Scinder la pile
+Scinder
 Déposer au sol
 Examiner / tooltip
 ```
@@ -806,7 +806,7 @@ Déposer au sol
 Lire
 Consommer
 Insérer / Placer sur cible
-Scinder la pile
+Scinder
 ```
 
 ### Étape 3 — Action service

@@ -152,9 +152,9 @@ Le clic droit d'inventaire ne déplace pas l'item et ne démarre pas une interac
 
 ## Flux drag/drop
 
-1. `UGridInventorySlotWidget` crée un `UGridInventoryDragDropOperation` avec source, index, item et split éventuel.
-2. Le slot cible appelle `HandleSlotDrop(SourceType, SourceIndex, TargetType, TargetIndex, bSplitStack, RequestedQuantity)`.
-3. Un transfert Inventory vers Inventory est toujours délégué à `UGridPartyInventoryComponent::TryMoveCharacterInventorySlot`, qui décide de fusionner deux piles compatibles ou d'échanger deux items différents.
+1. `UGridInventorySlotWidget` crée un `UGridInventoryDragDropOperation` avec source, index et identité de l'item.
+2. Le slot cible appelle `HandleSlotDrop(SourceType, SourceIndex, TargetType, TargetIndex)`.
+3. Un transfert Inventory vers Inventory est toujours délégué à `UGridPartyInventoryComponent::TryMoveCharacterInventorySlot`, qui décide de fusionner deux piles compatibles ou d'échanger deux items différents. Le drag UI ne scinde jamais une pile.
 4. Pour les échanges impliquant l'équipement, `HandleSlotDrop` peut tenter un swap atomique entre deux slots occupés.
 5. Le swap valide chaque item contre son slot de destination avant mutation.
 6. Si le swap est impossible, rien n'est déplacé.
@@ -246,7 +246,7 @@ UGridInventorySlotWidget::NativeOnDragDetected
 
 Le service effectue le préflight de capacité, la mutation source, l'insertion destination et le rollback source en cas d'échec.
 
-Un drag obsolète est rejeté si le `RuntimeObjectId` du slot source a changé. Un split crée une nouvelle identité pour la quantité transférée. La sélection de personnage n'est pas modifiée par le drop.
+Un drag obsolète est rejeté si le `RuntimeObjectId` du slot source a changé. Le drag portrait transfère toujours la pile complète ; la sélection de personnage n'est pas modifiée par le drop.
 
 
 ## UI-SPLIT02 — monde interactif pendant l'inventaire

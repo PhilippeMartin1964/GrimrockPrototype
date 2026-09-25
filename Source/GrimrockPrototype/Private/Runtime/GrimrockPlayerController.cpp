@@ -648,21 +648,12 @@ void AGrimrockPlayerController::SetInventoryUiOpen(bool bOpen)
 			PartyPawn->CombatHudWidgetInstance->CancelCombatActionTargeting();
 		}
 	}
-	const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
-	const bool bUseCustomCursor = CustomCursorWidget && (!bOpen || (PartyPawn && PartyPawn->IsInventoryWorkspaceVisible()));
-	if (bUseCustomCursor)
+	DefaultMouseCursor = EMouseCursor::Default;
+	CurrentMouseCursor = EMouseCursor::Default;
+	bShowMouseCursor = true;
+	if (CustomCursorWidget)
 	{
-		SetGridInteractionCursor(EGridInteractionCursor::Default, bOpen ? TEXT("InventoryWorkspaceOpen") : TEXT("InventoryUiClosed"));
-	}
-	else
-	{
-		DefaultMouseCursor = EMouseCursor::Default;
-		CurrentMouseCursor = EMouseCursor::Default;
-		bShowMouseCursor = true;
-		if (CustomCursorWidget)
-		{
-			CustomCursorWidget->SetVisibility(ESlateVisibility::Collapsed);
-		}
+		CustomCursorWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	UE_LOG(LogTemp, Log, TEXT("GridInventory UI State Open=%s"), bInventoryUiOpen ? TEXT("true") : TEXT("false"));
 	UE_LOG(LogTemp, Log, TEXT("GridInventory UI CustomCursor Widget=%s Visibility=%s Enabled=%s"), *GetNameSafe(CustomCursorWidget),

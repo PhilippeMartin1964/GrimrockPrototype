@@ -5,8 +5,11 @@
 #include "Blueprint/UserWidget.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Runtime/GridItemContextActionLibrary.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "UI/GridInventoryDragDropOperation.h"
+#include "UObject/UnrealType.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
 
@@ -169,29 +172,55 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 	Actions.Reset();
 	TestTrue(TEXT("Context actions build for an even stack"),
 		Widget->BuildContextActionsForSlot(EGridInventoryUiSlotType::Inventory, 0, FacingTarget, Actions));
-	TestTrue(TEXT("Split action is available for quantity four"), Actions.ContainsByPredicate([](const FGridItemContextAction& Action)
+	const FGridItemContextAction* SplitAction = Actions.FindByPredicate([](const FGridItemContextAction& Action)
+	{
+		return Action.ActionType == EGridItemActionType::SplitStack;
+	});
+	TestNotNull(TEXT("Split action is available for quantity four"), SplitAction);
+	if (SplitAction)
+	{
+		TestEqual(TEXT("Split action uses the canonical label"), SplitAction->Label.ToString(), FString(TEXT("Scinder")));
+	}
+
+	FGridItemActionContext EquipmentContext;
+	EquipmentContext.PartyPawn = Party;
+	EquipmentContext.CharacterIndex = CharacterIndex;
+	EquipmentContext.InventorySlotIndex = INDEX_NONE;
+	EquipmentContext.EquipmentSlot = EGridEquipmentSlot::MainHand;
+	EquipmentContext.Item = Character.InventorySlots[0].Item;
+	EquipmentContext.ItemDefinition = StoneDefinition;
+	FGridFacingTargetContext EquipmentFacingTarget;
+	TArray<FGridItemContextAction> EquipmentActions;
+	TestTrue(TEXT("Equipment context actions build"),
+		UGridItemContextActionLibrary::BuildItemContextActions(EquipmentContext, EquipmentFacingTarget, EquipmentActions));
+	TestFalse(TEXT("Split action is absent outside inventory slots"), EquipmentActions.ContainsByPredicate([](const FGridItemContextAction& Action)
 	{
 		return Action.ActionType == EGridItemActionType::SplitStack;
 	}));
+
+	SetInventorySlot(Inventory, CharacterIndex, 1, OtherDefinition, 1);
 	const FGuid EvenSourceId = Character.InventorySlots[0].Item.RuntimeObjectId;
 	TestTrue(TEXT("Context split divides an even stack"),
 		Widget->ExecuteInventoryContextAction(EGridItemActionType::SplitStack, EGridInventoryUiSlotType::Inventory, 0));
 	TestEqual(TEXT("Even split leaves half in the main stack"), Character.InventorySlots[0].Item.Quantity, 2);
-	TestEqual(TEXT("Even split places half directly in the first free slot"), Character.InventorySlots[1].Item.Quantity, 2);
+	TestEqual(TEXT("Even split preserves the occupied slot before the first gap"), Character.InventorySlots[1].Item.ItemDefinitionId, OtherDefinition->ItemDefinitionId);
+	TestEqual(TEXT("Even split places half directly in the first free slot"), Character.InventorySlots[2].Item.Quantity, 2);
 	TestFalse(TEXT("Even split never uses the cursor"), Inventory->HasCursorItem());
 	TestTrue(TEXT("Even split preserves the main stack identity"), Character.InventorySlots[0].Item.RuntimeObjectId == EvenSourceId);
-	TestTrue(TEXT("Even split gives the separated stack a new identity"), Character.InventorySlots[1].Item.RuntimeObjectId != EvenSourceId);
+	TestTrue(TEXT("Even split gives the separated stack a new identity"), Character.InventorySlots[2].Item.RuntimeObjectId != EvenSourceId);
 
 	ResetInventory(Inventory, CharacterIndex);
 	SetInventorySlot(Inventory, CharacterIndex, 0, StoneDefinition, 5);
+	SetInventorySlot(Inventory, CharacterIndex, 1, OtherDefinition, 1);
 	const FGuid OddSourceId = Character.InventorySlots[0].Item.RuntimeObjectId;
 	TestTrue(TEXT("Context split divides an odd stack"),
 		Widget->ExecuteInventoryContextAction(EGridItemActionType::SplitStack, EGridInventoryUiSlotType::Inventory, 0));
 	TestEqual(TEXT("Odd split keeps the extra item in the main stack"), Character.InventorySlots[0].Item.Quantity, 3);
-	TestEqual(TEXT("Odd split places the lower half directly in the first free slot"), Character.InventorySlots[1].Item.Quantity, 2);
+	TestEqual(TEXT("Odd split preserves the occupied slot before the first gap"), Character.InventorySlots[1].Item.ItemDefinitionId, OtherDefinition->ItemDefinitionId);
+	TestEqual(TEXT("Odd split places the lower half directly in the first free slot"), Character.InventorySlots[2].Item.Quantity, 2);
 	TestFalse(TEXT("Odd split never uses the cursor"), Inventory->HasCursorItem());
 	TestTrue(TEXT("Odd split preserves the main stack identity"), Character.InventorySlots[0].Item.RuntimeObjectId == OddSourceId);
-	TestTrue(TEXT("Odd split gives the separated stack a new identity"), Character.InventorySlots[1].Item.RuntimeObjectId != OddSourceId);
+	TestTrue(TEXT("Odd split gives the separated stack a new identity"), Character.InventorySlots[2].Item.RuntimeObjectId != OddSourceId);
 	TestOwnership(TEXT("Ownership is valid after context-only splitting"));
 
 	ResetInventory(Inventory, CharacterIndex);
@@ -207,6 +236,20 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Full-inventory split preserves the source identity"), Character.InventorySlots[0].Item.RuntimeObjectId == FullInventorySourceId);
 	TestFalse(TEXT("Full-inventory split never uses the cursor"), Inventory->HasCursorItem());
 	TestOwnership(TEXT("Ownership is valid after rejected full-inventory split"));
+
+	UClass* DragOperationClass = UGridInventoryDragDropOperation::StaticClass();
+	TestNull(TEXT("Drag operation no longer stores split quantity"), FindFProperty<FProperty>(DragOperationClass, TEXT("RequestedQuantity")));
+	TestNull(TEXT("Drag operation no longer stores split state"), FindFProperty<FProperty>(DragOperationClass, TEXT("bSplitStack")));
+	UClass* InventoryWidgetClass = UGridInventoryWidget::StaticClass();
+	if (UFunction* DropFunction = InventoryWidgetClass->FindFunctionByName(TEXT("HandleSlotDrop")))
+	{
+		TestNull(TEXT("HandleSlotDrop no longer exposes split state"), FindFProperty<FProperty>(DropFunction, TEXT("bSplitStack")));
+		TestNull(TEXT("HandleSlotDrop no longer exposes requested quantity"), FindFProperty<FProperty>(DropFunction, TEXT("RequestedQuantity")));
+	}
+	if (UFunction* ClickFunction = InventoryWidgetClass->FindFunctionByName(TEXT("HandleInventorySlotClicked")))
+	{
+		TestNull(TEXT("HandleInventorySlotClicked no longer exposes split state"), FindFProperty<FProperty>(ClickFunction, TEXT("bSplitStack")));
+	}
 
 	// Scenario A: normal drag/drop moves complete stacks and never splits them.
 	ResetInventory(Inventory, CharacterIndex);

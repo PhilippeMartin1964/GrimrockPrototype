@@ -7,6 +7,7 @@
 #include "Engine/World.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryBagWidget.h"
+#include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryUiTypes.h"
 #include "UI/GridInventorySlotWidget.h"
 #include "UI/GridInventoryWidget.h"
@@ -322,6 +323,8 @@ bool FGridUIInventory02ControlsContractTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("Native sort selection handler exists"), BagClass->FindFunctionByName(TEXT("HandleSortInventorySelectionChanged")));
 	TestNotNull(TEXT("Sort setter is reflected"), BaseClass->FindFunctionByName(TEXT("SetInventorySortMode")));
 	TestNull(TEXT("Legacy sort cycle API is removed"), BaseClass->FindFunctionByName(TEXT("CycleInventorySortMode")));
+	TestNull(TEXT("Drag operation has no legacy split quantity"), FindFProperty<FProperty>(UGridInventoryDragDropOperation::StaticClass(), TEXT("RequestedQuantity")));
+	TestNull(TEXT("Drag operation has no legacy split flag"), FindFProperty<FProperty>(UGridInventoryDragDropOperation::StaticClass(), TEXT("bSplitStack")));
 	TestEqual(TEXT("Name ascending label"), GetGridInventorySortModeDisplayName(EGridInventorySortMode::NameAscending).ToString(), FString(TEXT("Nom ordre croissant")));
 	TestEqual(TEXT("Name descending label"), GetGridInventorySortModeDisplayName(EGridInventorySortMode::NameDescending).ToString(), FString(TEXT("Nom ordre décroissant")));
 	TestEqual(TEXT("Type ascending label"), GetGridInventorySortModeDisplayName(EGridInventorySortMode::TypeAscending).ToString(), FString(TEXT("Type ordre croissant")));

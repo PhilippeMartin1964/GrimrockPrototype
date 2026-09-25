@@ -484,7 +484,7 @@ void UGridInventorySlotWidget::HandleClicked()
 {
 	if (OwningInventoryWidget && SlotType == EGridInventoryUiSlotType::Inventory)
 	{
-		OwningInventoryWidget->HandleInventorySlotClicked(InventorySlotIndex, false);
+		OwningInventoryWidget->HandleInventorySlotClicked(InventorySlotIndex);
 		return;
 	}
 
@@ -503,8 +503,7 @@ bool UGridInventorySlotWidget::CanStartDrag() const
 		return false;
 	}
 
-	FGridItemInstance CursorItem;
-	return !OwningInventoryWidget || !OwningInventoryWidget->GetCursorItem(CursorItem);
+	return !OwningInventoryWidget || !OwningInventoryWidget->HasCursorItem();
 }
 
 UGridInventoryDragDropOperation* UGridInventorySlotWidget::CreateDragDropOperation() const
@@ -570,6 +569,5 @@ bool UGridInventorySlotWidget::NativeOnDrop(const FGeometry& InGeometry, const F
 		return Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
 	}
 
-	return OwningInventoryWidget->HandleSlotDrop(
-		Operation->SourceSlotType, Operation->SourceSlotIndex, SlotType, InventorySlotIndex, Operation->bSplitStack, Operation->RequestedQuantity);
+	return OwningInventoryWidget->HandleSlotDrop(Operation->SourceSlotType, Operation->SourceSlotIndex, SlotType, InventorySlotIndex);
 }

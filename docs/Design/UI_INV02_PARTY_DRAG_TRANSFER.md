@@ -43,7 +43,7 @@ SourceRuntimeObjectId
 
 Au drop, le slot source est relu. Si son `RuntimeObjectId` ou sa définition ne correspondent plus au drag initial, le transfert est refusé.
 
-Un stack complet conserve son identité runtime lorsqu'il devient une stack distincte dans la destination. Un Ctrl-drag crée une nouvelle identité pour la quantité séparée et laisse l'identité originale au reliquat source.
+Un drag vers un portrait transfère toujours le stack complet et conserve son identité runtime lorsqu'il devient une stack distincte dans la destination. La capacité de transfert partiel du service reste interne et n'est pas exposée par le drag UI.
 
 ## Ownership destination
 
@@ -106,7 +106,7 @@ UI-INV02 ne réalise pas :
 3. Le transfert passe par `UGridItemTransferService`.
 4. Aucun item n'est dupliqué.
 5. Une destination pleine ne consomme pas la source.
-6. Un split reçoit une nouvelle identité runtime.
+6. Le drag UI ne scinde jamais une pile.
 7. Le personnage sélectionné ne change pas lors du transfert.
 8. Aucun Blueprint ne modifie directement les tableaux d'inventaire.
 
@@ -130,7 +130,7 @@ Couverture :
 - transfert de stack complet ;
 - ownership destination ;
 - conservation d'identité du stack complet ;
-- split avec nouvelle identité ;
+- transfert partiel du service avec nouvelle identité ;
 - rejet si destination pleine ;
 - drop portrait ;
 - conservation de la sélection ;
@@ -152,7 +152,7 @@ Après la passe UMG, contrôler en PIE :
 3. constater sa disparition de A ;
 4. sélectionner B et constater sa présence ;
 5. revenir à A et vérifier que la sélection n'avait pas changé pendant le drop ;
-6. Ctrl-drag d'un stack > 1 et vérifier le split ;
+6. drag d'un stack > 1 et vérifier que la pile complète est transférée ;
 7. remplir B puis vérifier le rejet sans perte ;
 8. vérifier les drops slot-à-slot existants ;
 9. aucun `BindWidget` critique.

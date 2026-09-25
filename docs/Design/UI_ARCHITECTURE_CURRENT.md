@@ -268,7 +268,7 @@ slot inventaire
 -> UGridPartyInventoryComponent
 ```
 
-La sélection UI ne change pas à la suite d'un transfert. Un Ctrl-drag transfère une quantité séparée avec une nouvelle identité runtime.
+La sélection UI ne change pas à la suite d'un transfert. Le drag UI transfère toujours la pile complète ; la scission est exclusivement une action contextuelle de l'inventaire.
 
 Référence : `docs/Design/UI_INV02_PARTY_DRAG_TRANSFER.md`.
 

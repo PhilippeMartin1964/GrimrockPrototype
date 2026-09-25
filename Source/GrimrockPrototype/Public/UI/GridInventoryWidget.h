@@ -405,11 +405,10 @@ public:
 	void PresentItemReading(const FGridItemInstance& Item, const FText& Title, const FText& ReadText);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Drag")
-	bool HandleSlotDrop(EGridInventoryUiSlotType SourceType, int32 SourceIndex, EGridInventoryUiSlotType TargetType, int32 TargetIndex,
-		bool bSplitStack = false, int32 RequestedQuantity = 0);
+	bool HandleSlotDrop(EGridInventoryUiSlotType SourceType, int32 SourceIndex, EGridInventoryUiSlotType TargetType, int32 TargetIndex);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Actions")
-	bool HandleInventorySlotClicked(int32 SlotIndex, bool bSplitStack = false);
+	bool HandleInventorySlotClicked(int32 SlotIndex);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Actions")
 	bool HandleEquipmentSlotClicked(EGridEquipmentSlot EquipmentSlot);
