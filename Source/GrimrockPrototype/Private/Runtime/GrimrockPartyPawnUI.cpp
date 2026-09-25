@@ -283,16 +283,20 @@ void AGrimrockPartyPawn::ApplyMajorUiInputMode(bool bOpen)
 		return;
 	}
 
-	if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController>(PlayerController))
+	AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController>(PlayerController);
+	if (GrimrockPlayerController)
 	{
 		GrimrockPlayerController->SetInventoryUiOpen(bOpen);
 	}
 
 	PlayerController->bEnableClickEvents = true;
 	PlayerController->bEnableMouseOverEvents = true;
-	PlayerController->bShowMouseCursor = true;
-	PlayerController->DefaultMouseCursor = EMouseCursor::Default;
-	PlayerController->CurrentMouseCursor = EMouseCursor::Default;
+	if (!GrimrockPlayerController)
+	{
+		PlayerController->bShowMouseCursor = true;
+		PlayerController->DefaultMouseCursor = EMouseCursor::Default;
+		PlayerController->CurrentMouseCursor = EMouseCursor::Default;
+	}
 
 	FInputModeGameAndUI InputMode;
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
