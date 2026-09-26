@@ -366,7 +366,7 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest(const FString& Parameters)
 
 	TArray<FGridAvailableCombatAction> Catalog;
 	TArray<FGridCombatHotbarBinding> Bindings;
-	Bindings.SetNum(FGridCombatHotbarBinding::SlotCount);
+	Bindings.SetNum(FGridCombatHotbarBinding::MinimumSlotCount + 1);
 	for (int32 SlotIndex = 0; SlotIndex < Bindings.Num(); ++SlotIndex)
 	{
 		Bindings[SlotIndex].Reset(SlotIndex);
@@ -384,7 +384,7 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest(const FString& Parameters)
 	}
 	TArray<FGridCombatHudActionView> Actions;
 	FGridCombatHudViewModelBuilder::BuildHotbarActions(Bindings, Catalog, Actions);
-	TestEqual(TEXT("The view exposes the full persistent action bar"), Actions.Num(), FGridCombatHotbarBinding::SlotCount);
+	TestEqual(TEXT("The view preserves the supplied dynamic action-bar width"), Actions.Num(), FGridCombatHotbarBinding::MinimumSlotCount + 1);
 	TestEqual(TEXT("The first slot displays key 1"), Actions[0].ShortcutText.ToString(), FString(TEXT("1")));
 	TestEqual(TEXT("Slot 10 displays key 0"), Actions[9].ShortcutText.ToString(), FString(TEXT("0")));
 	TestEqual(TEXT("Slot 11 displays apostrophe"), Actions[10].ShortcutText.ToString(), FString(TEXT("'")));

@@ -33,6 +33,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Persistent|Actions")
 	TSubclassOf<UGridCombatHudActionWidget> ActionWidgetClass;
 
+	/** Used only until the first action widget can report its authored desired width. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Persistent|Actions", meta = (ClampMin = "1.0"))
+	float FallbackActionSlotWidth = 50.0f;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Persistent|Actions")
+	int32 VisibleActionSlotCount = 12;
+
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Persistent|Actions")
 	TArray<TObjectPtr<UGridCombatHudActionWidget>> ActionWidgets;
 
@@ -94,11 +101,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent")
 	void RefreshFromSources();
 
+	/** Pure layout rule: fixed-width adjacent slots, with any remainder left empty at the right edge. */
+	static int32 CalculateVisibleActionSlotCount(float ViewportWidth, float NavigationWidth, float ActionSlotWidth);
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 private:
+	float LastSynchronizedViewportWidth = -1.0f;
+	float LastSynchronizedNavigationWidth = -1.0f;
+	float LastSynchronizedActionSlotWidth = -1.0f;
+	int32 LastSynchronizedCharacterIndex = INDEX_NONE;
+	int32 LastSynchronizedUsedSlotCount = INDEX_NONE;
+
+	int32 ResolveActionBarCharacterIndex() const;
+	float ResolveActionSlotWidth() const;
+	void SynchronizeActionBarToViewport();
 	void BindNavigationButtons();
 	void UnbindNavigationButtons();
 	void RefreshNavigationSelection();

@@ -138,8 +138,23 @@ bool FGridUIGlobalHud01CombatChromeSplitTest::RunTest(const FString& Parameters)
 		CombatHud->Panel_GlobalNavigation->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Legacy embedded action bar is collapsed when the persistent HUD owns global chrome"),
 		CombatHud->Panel_Actions->GetVisibility(), ESlateVisibility::Collapsed);
-	TestEqual(TEXT("Canonical action bar contains sixteen persistent slots"), FGridCombatHotbarBinding::SlotCount, 16);
+	TestEqual(TEXT("The persistent action bar keeps twelve minimum keyboard-addressable slots"), FGridCombatHotbarBinding::MinimumSlotCount, 12);
 	TestEqual(TEXT("Twelve action slots have keyboard shortcuts"), FGridCombatHotbarBinding::KeyboardShortcutSlotCount, 12);
+	TestEqual(TEXT("A 1600-wide viewport fits twenty-seven 50px slots after 210px navigation"),
+		UGridPersistentHudWidget::CalculateVisibleActionSlotCount(1600.0f, 210.0f, 50.0f), 27);
+	TestEqual(TEXT("A narrow viewport never drops below the twelve keyboard slots"),
+		UGridPersistentHudWidget::CalculateVisibleActionSlotCount(640.0f, 210.0f, 50.0f), 12);
+
+	Party->PartyInventoryComponent->InitializeDefaultPartyIfNeeded();
+	const int32 CharacterIndex = Party->PartyInventoryComponent->GetSelectedCharacterIndex();
+	TestTrue(TEXT("Dynamic storage can grow to the fitted slot count"),
+		Party->PartyInventoryComponent->EnsureCharacterCombatHotbarCapacity(CharacterIndex, 27));
+	TestEqual(TEXT("Dynamic storage grows without inventing a fixed upper presentation count"),
+		Party->PartyInventoryComponent->GetCharacterCombatHotbarSlotCount(CharacterIndex), 27);
+	TestTrue(TEXT("A smaller later requirement is accepted without truncating storage"),
+		Party->PartyInventoryComponent->EnsureCharacterCombatHotbarCapacity(CharacterIndex, 18));
+	TestEqual(TEXT("Dynamic storage never shrinks implicitly"),
+		Party->PartyInventoryComponent->GetCharacterCombatHotbarSlotCount(CharacterIndex), 27);
 
 	return true;
 }

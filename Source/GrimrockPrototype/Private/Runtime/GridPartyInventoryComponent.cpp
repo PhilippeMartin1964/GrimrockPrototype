@@ -97,7 +97,7 @@ namespace
 
 	void EnsurePrimaryAttackHotbarBinding(FGridCharacterInventoryState& CharacterState)
 	{
-		if (CharacterState.CombatHotbarSlots.Num() != FGridCombatHotbarBinding::SlotCount)
+		if (CharacterState.CombatHotbarSlots.Num() < FGridCombatHotbarBinding::MinimumSlotCount)
 		{
 			return;
 		}
@@ -282,7 +282,7 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 			return false;
 		}
 
-		// UI-GLOBALHUD01: normalize legacy 10-slot saves to the current persistent action-bar size while preserving existing bindings.
+		// UI-GLOBALHUD01: normalize legacy saves to at least the persistent action-bar minimum while preserving any wider existing binding array.
 		InitializeCombatHotbarDefaults(Character);
 
 		FString HotbarError;
@@ -301,7 +301,7 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 			return false;
 		}
 
-		// UI-GLOBALHUD01: normalize legacy 10-slot saves to the current persistent action-bar size while preserving existing bindings.
+		// UI-GLOBALHUD01: normalize legacy saves to at least the persistent action-bar minimum while preserving any wider existing binding array.
 		InitializeCombatHotbarDefaults(Character);
 
 		FString HotbarError;
@@ -1229,9 +1229,10 @@ void UGridPartyInventoryComponent::InitializeCharacterDefaults(FGridCharacterInv
 void UGridPartyInventoryComponent::InitializeCombatHotbarDefaults(FGridCharacterInventoryState& CharacterState) const
 {
 	TArray<FGridCombatHotbarBinding> PreviousBindings = MoveTemp(CharacterState.CombatHotbarSlots);
-	CharacterState.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
+	const int32 TargetSlotCount = FMath::Max(FGridCombatHotbarBinding::MinimumSlotCount, PreviousBindings.Num());
+	CharacterState.CombatHotbarSlots.SetNum(TargetSlotCount);
 
-	for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
+	for (int32 SlotIndex = 0; SlotIndex < TargetSlotCount; ++SlotIndex)
 	{
 		FGridCombatHotbarBinding& Binding = CharacterState.CombatHotbarSlots[SlotIndex];
 		Binding.Reset(SlotIndex);
@@ -1253,9 +1254,9 @@ void UGridPartyInventoryComponent::InitializeCombatHotbarDefaults(FGridCharacter
 bool UGridPartyInventoryComponent::ValidateCombatHotbar(const FGridCharacterInventoryState& CharacterState, FString& OutError) const
 {
 	OutError.Empty();
-	if (CharacterState.CombatHotbarSlots.Num() != FGridCombatHotbarBinding::SlotCount)
+	if (CharacterState.CombatHotbarSlots.Num() < FGridCombatHotbarBinding::MinimumSlotCount)
 	{
-		OutError = FString::Printf(TEXT("SlotCount=%d Expected=%d"), CharacterState.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::SlotCount);
+		OutError = FString::Printf(TEXT("SlotCount=%d Minimum=%d"), CharacterState.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::MinimumSlotCount);
 		return false;
 	}
 

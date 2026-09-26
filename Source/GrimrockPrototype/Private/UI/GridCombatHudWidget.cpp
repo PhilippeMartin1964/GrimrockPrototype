@@ -285,8 +285,8 @@ void FGridCombatHudViewModelBuilder::BuildPartyMembers(
 void FGridCombatHudViewModelBuilder::BuildHotbarActions(
 	const TArray<FGridCombatHotbarBinding>& Bindings, const TArray<FGridAvailableCombatAction>& AvailableActions, TArray<FGridCombatHudActionView>& OutActions)
 {
-	OutActions.Reset(FGridCombatHotbarBinding::SlotCount);
-	for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
+	OutActions.Reset(Bindings.Num());
+	for (int32 SlotIndex = 0; SlotIndex < Bindings.Num(); ++SlotIndex)
 	{
 		FGridCombatHudActionView& ActionView = OutActions.AddDefaulted_GetRef();
 		ActionView.HotbarSlotIndex = SlotIndex;
@@ -738,8 +738,9 @@ void UGridCombatHudWidget::RefreshFromSources()
 		}
 		if (IsValid(InventoryComponent))
 		{
-			HotbarBindings.SetNum(FGridCombatHotbarBinding::SlotCount);
-			for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
+			const int32 HotbarSlotCount = InventoryComponent->GetCharacterCombatHotbarSlotCount(View.ActiveCharacterIndex);
+			HotbarBindings.SetNum(HotbarSlotCount);
+			for (int32 SlotIndex = 0; SlotIndex < HotbarSlotCount; ++SlotIndex)
 			{
 				HotbarBindings[SlotIndex].Reset(SlotIndex);
 				InventoryComponent->GetCharacterCombatHotbarBinding(View.ActiveCharacterIndex, SlotIndex, HotbarBindings[SlotIndex]);
@@ -831,7 +832,7 @@ bool UGridCombatHudWidget::RequestCombatAction(const FGridCombatHudActionView& A
 bool UGridCombatHudWidget::RequestHotbarSlot(int32 SlotIndex, FGridCombatActionRequestResult& OutResult)
 {
 	OutResult = FGridCombatActionRequestResult();
-	if ((IsValid(PartyPawn) && PartyPawn->IsCombatHotbarExecutionBlocked()) || SlotIndex < 0 || SlotIndex >= FGridCombatHotbarBinding::SlotCount)
+	if ((IsValid(PartyPawn) && PartyPawn->IsCombatHotbarExecutionBlocked()) || SlotIndex < 0)
 	{
 		return false;
 	}
@@ -955,7 +956,7 @@ bool UGridCombatHudWidget::RequestEndTurn()
 bool UGridCombatHudWidget::HandleHotbarDrop(int32 TargetSlotIndex, UDragDropOperation* DragOperation)
 {
 	if (!IsValid(InventoryComponent) || View.ActiveCharacterIndex == INDEX_NONE || TargetSlotIndex < 0 ||
-		TargetSlotIndex >= FGridCombatHotbarBinding::SlotCount || !IsValid(DragOperation))
+		TargetSlotIndex >= InventoryComponent->GetCharacterCombatHotbarSlotCount(View.ActiveCharacterIndex) || !IsValid(DragOperation))
 	{
 		return false;
 	}
@@ -1012,7 +1013,8 @@ bool UGridCombatHudWidget::HandleHotbarDrop(int32 TargetSlotIndex, UDragDropOper
 bool UGridCombatHudWidget::AssignCombatActionToHotbarSlot(int32 TargetSlotIndex, const FGridAvailableCombatAction& Action)
 {
 	if (!IsValid(InventoryComponent) || View.ActiveCharacterIndex == INDEX_NONE || Action.CharacterIndex != View.ActiveCharacterIndex || TargetSlotIndex < 0 ||
-		TargetSlotIndex >= FGridCombatHotbarBinding::SlotCount || !IsDirectHotbarActionSource(Action.Definition.SourcePolicy))
+		TargetSlotIndex >= InventoryComponent->GetCharacterCombatHotbarSlotCount(View.ActiveCharacterIndex) ||
+		!IsDirectHotbarActionSource(Action.Definition.SourcePolicy))
 	{
 		return false;
 	}
@@ -1232,8 +1234,8 @@ void UGridCombatHudWidget::EnsureActionWidgets()
 		}
 	}
 
-	bool bPoolValid = IsValid(HotbarRow) && HotbarActionWidgets.Num() == FGridCombatHotbarBinding::SlotCount &&
-		HotbarRow->GetChildrenCount() == FGridCombatHotbarBinding::SlotCount;
+	const int32 SlotCount = View.Actions.Num();
+	bool bPoolValid = IsValid(HotbarRow) && HotbarActionWidgets.Num() == SlotCount && HotbarRow->GetChildrenCount() == SlotCount;
 	for (const UGridCombatHudActionWidget* ActionWidget : HotbarActionWidgets)
 	{
 		bPoolValid = bPoolValid && IsValid(ActionWidget) && ActionWidget->GetParent() == HotbarRow;
@@ -1244,8 +1246,8 @@ void UGridCombatHudWidget::EnsureActionWidgets()
 	}
 
 	HotbarRow->ClearChildren();
-	HotbarActionWidgets.Reset(FGridCombatHotbarBinding::SlotCount);
-	for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
+	HotbarActionWidgets.Reset(SlotCount);
+	for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
 	{
 		UGridCombatHudActionWidget* ActionWidget = CreateWidget<UGridCombatHudActionWidget>(this, ActionWidgetClass);
 		if (ActionWidget)
@@ -1253,10 +1255,10 @@ void UGridCombatHudWidget::EnsureActionWidgets()
 			UHorizontalBoxSlot* HotbarSlot = HotbarRow->AddChildToHorizontalBox(ActionWidget);
 			if (HotbarSlot)
 			{
-				HotbarSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+				HotbarSlot->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
 				const float HalfSpacing = FMath::Max(0.0f, HotbarSlotSpacing) * 0.5f;
 				HotbarSlot->SetPadding(FMargin(HalfSpacing, 0.0f, HalfSpacing, 0.0f));
-				HotbarSlot->SetHorizontalAlignment(HAlign_Fill);
+				HotbarSlot->SetHorizontalAlignment(HAlign_Left);
 				HotbarSlot->SetVerticalAlignment(VAlign_Fill);
 			}
 			HotbarActionWidgets.Add(ActionWidget);

@@ -40,6 +40,11 @@ Une attaque de combat de jet et un lancer physique utilitaire restent deux conce
 
 La barre d'action générale est désormais une surface permanente de `WBP_GridPersistentHud`, et non un enfant conceptuel de `WBP_GridCombatHud`. Le stockage historique `CombatHotbarSlots` reste temporairement l'autorité unique afin d'éviter une migration de données parallèle.
 
-Le nombre canonique est porté à 16 slots : les 12 premiers affichent `1 2 3 4 5 6 7 8 9 0 ' ^` pour le profil clavier suisse ; les quatre suivants sont utilisables à la souris sans label clavier. Les slots sont jointifs et partagent la largeur disponible avec une règle `Fill`.
+Le nombre visible n'est plus fixe. Les 12 premiers slots affichent `1 2 3 4 5 6 7 8 9 0 ' ^` pour le profil clavier suisse ; tous les slots suivants sont utilisables à la souris sans label clavier. UI-GLOBALHUD01.1 calcule combien de slots de largeur fixe peuvent tenir dans la largeur restante. Ils sont jointifs en `Auto`, sans `Fill`; un éventuel reliquat reste vide à droite.
 
 Référence : `docs/Design/UI_GLOBALHUD01_PERSISTENT_NAV_ACTION_BAR.md`.
+
+
+## UI-GLOBALHUD01.1 — capacité dynamique
+
+Le tableau persistant n'est plus ramené à une taille visuelle fixe. Il garantit au moins 12 slots, peut croître selon la largeur du viewport et n'est jamais réduit implicitement. Le nombre de slots affichés est calculé par la surface `UGridPersistentHudWidget`, pas par le système de combat.

@@ -1780,7 +1780,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 
 			int32 TargetHotbarSlotIndex = INDEX_NONE;
 			bool bAlreadyBound = false;
-			for (int32 HotbarSlotIndex = 0; HotbarSlotIndex < FGridCombatHotbarBinding::SlotCount; ++HotbarSlotIndex)
+			for (int32 HotbarSlotIndex = 0; HotbarSlotIndex < InventoryComponent->GetCharacterCombatHotbarSlotCount(CharacterIndex); ++HotbarSlotIndex)
 			{
 				if (HotbarSlotIndex == FGridCombatHotbarBinding::PrimaryAttackSlotIndex)
 				{

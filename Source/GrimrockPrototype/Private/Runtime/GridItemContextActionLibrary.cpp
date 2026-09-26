@@ -288,7 +288,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 			UGridPartyInventoryComponent* InventoryComponent = ItemContext.PartyPawn->PartyInventoryComponent;
 			bool bAlreadyBound = false;
 			bool bHasFreeSlot = false;
-			for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
+			for (int32 SlotIndex = 0; SlotIndex < InventoryComponent->GetCharacterCombatHotbarSlotCount(ItemContext.CharacterIndex); ++SlotIndex)
 			{
 				if (SlotIndex == FGridCombatHotbarBinding::PrimaryAttackSlotIndex)
 				{

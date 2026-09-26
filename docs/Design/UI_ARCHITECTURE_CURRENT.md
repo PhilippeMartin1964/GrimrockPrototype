@@ -160,7 +160,7 @@ La navigation `ESC / I / K / G / M / J / H` n'est pas enfant du menu ni du HUD d
 WBP_GridPersistentHud
 └── HorizontalBox_BottomBar (ancrée en bas)
     ├── Panel_GlobalNavigation    toujours visible
-    └── Panel_ActionBar           16 slots d'action persistants
+    └── Panel_ActionBar           N slots d'action jointifs, calculés selon le viewport
 ```
 
 Le menu peut être ouvert, fermé ou changer de page sans modifier la visibilité de `Panel_GlobalNavigation`. Les boutons et les touches passent par les mêmes commandes C++.
@@ -169,7 +169,7 @@ Référence : `docs/Design/UI_NAV01_PERSISTENT_BOTTOM_NAVIGATION.md`.
 
 ### UI-GLOBALHUD01 — séparation Persistent HUD / Combat HUD
 
-La barre basse permanente quitte `WBP_GridCombatHud`. `UGridPersistentHudWidget` devient l'unique propriétaire de la navigation globale et de la barre générale d'actions. Le Combat HUD est désormais masqué hors combat et ne doit plus contenir conceptuellement ces surfaces. La barre d'actions comporte 16 slots : 12 raccourcis suisses `1..0, ', ^` puis 4 slots souris. Les slots utilisent `Fill` sans padding.
+La barre basse permanente quitte `WBP_GridCombatHud`. `UGridPersistentHudWidget` devient l'unique propriétaire de la navigation globale et de la barre générale d'actions. Le Combat HUD est désormais masqué hors combat et ne doit plus contenir conceptuellement ces surfaces. La barre d'actions comporte au minimum 12 raccourcis suisses `1..0, ', ^`, puis autant de slots souris que la largeur le permet. Les slots utilisent `Auto` et `Padding=0`; le reliquat reste vide à droite.
 
 Référence : `docs/Design/UI_GLOBALHUD01_PERSISTENT_NAV_ACTION_BAR.md`.
 
@@ -381,7 +381,7 @@ UGridInventoryBagWidget
 UGridPersistentHudWidget
     HUD gameplay persistant
     navigation globale ESC/I/K/G/M/J/H
-    barre générale d'actions 16 slots
+    barre générale d'actions à nombre dynamique de slots
 
 UGridCombatHudWidget
     présentation combat uniquement
@@ -567,3 +567,7 @@ Shirt, Bracers
 Les changements de tri/filtre ne font plus partie de la clé de reconstruction de la grille. Les `GeneratedInventorySlotWidgets` sont conservés et réaffectés en place tant que capacité, colonnes, classe de slot et panneau restent inchangés.
 
 Le tri pré-calcule ses clés par item, le compteur d'items visibles ne retrie plus l'inventaire et l'enregistrement d'un slot ne provoque plus de rafraîchissement global de tous les slots.
+
+### UI-GLOBALHUD01.1 — largeur dynamique sans étirement
+
+Le Persistent HUD calcule `floor((ViewportWidth - NavigationWidth) / ActionSlotWidth)`. Les boutons gardent leur largeur UMG réelle et restent jointifs. Le stockage d'un personnage grandit si nécessaire mais n'est jamais réduit automatiquement. Aucun `Fill` n'est utilisé pour répartir ou espacer les slots.

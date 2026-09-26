@@ -1,6 +1,7 @@
 #include "UI/GridPersistentHudWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Button.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
@@ -29,6 +30,17 @@ namespace
 	}
 }
 
+int32 UGridPersistentHudWidget::CalculateVisibleActionSlotCount(float ViewportWidth, float NavigationWidth, float ActionSlotWidth)
+{
+	if (ActionSlotWidth <= KINDA_SMALL_NUMBER)
+	{
+		return FGridCombatHotbarBinding::MinimumSlotCount;
+	}
+
+	const float AvailableWidth = FMath::Max(0.0f, ViewportWidth - FMath::Max(0.0f, NavigationWidth));
+	return FMath::Max(FGridCombatHotbarBinding::MinimumSlotCount, FMath::FloorToInt(AvailableWidth / ActionSlotWidth));
+}
+
 void UGridPersistentHudWidget::InitializePersistentHud(AGrimrockPartyPawn* InPartyPawn)
 {
 	PartyPawn = InPartyPawn;
@@ -40,9 +52,16 @@ void UGridPersistentHudWidget::InitializePersistentHud(AGrimrockPartyPawn* InPar
 void UGridPersistentHudWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+	VisibleActionSlotCount = FGridCombatHotbarBinding::MinimumSlotCount;
 	BindNavigationButtons();
 	EnsureActionWidgets();
 	RefreshFromSources();
+}
+
+void UGridPersistentHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	SynchronizeActionBarToViewport();
 }
 
 void UGridPersistentHudWidget::NativeDestruct()
@@ -50,6 +69,11 @@ void UGridPersistentHudWidget::NativeDestruct()
 	UnbindNavigationButtons();
 	ActionWidgets.Reset();
 	ActionBarRow = nullptr;
+	LastSynchronizedViewportWidth = -1.0f;
+	LastSynchronizedNavigationWidth = -1.0f;
+	LastSynchronizedActionSlotWidth = -1.0f;
+	LastSynchronizedCharacterIndex = INDEX_NONE;
+	LastSynchronizedUsedSlotCount = INDEX_NONE;
 	InventoryComponent = nullptr;
 	PartyPawn = nullptr;
 	Super::NativeDestruct();
@@ -184,6 +208,88 @@ void UGridPersistentHudWidget::RefreshNavigationSelection()
 	SetSelectionFrame(Image_NavHelpSelectionFrame, bHelp);
 }
 
+int32 UGridPersistentHudWidget::ResolveActionBarCharacterIndex() const
+{
+	if (!IsValid(InventoryComponent))
+	{
+		return INDEX_NONE;
+	}
+	if (IsValid(PartyPawn) && IsValid(PartyPawn->CombatHudWidgetInstance) &&
+		PartyPawn->CombatHudWidgetInstance->View.ActiveCharacterIndex != INDEX_NONE)
+	{
+		return PartyPawn->CombatHudWidgetInstance->View.ActiveCharacterIndex;
+	}
+	return InventoryComponent->GetSelectedCharacterIndex();
+}
+
+float UGridPersistentHudWidget::ResolveActionSlotWidth() const
+{
+	if (!ActionWidgets.IsEmpty() && IsValid(ActionWidgets[0]))
+	{
+		const float DesiredWidth = ActionWidgets[0]->GetDesiredSize().X;
+		if (DesiredWidth > KINDA_SMALL_NUMBER)
+		{
+			return DesiredWidth;
+		}
+	}
+	return FMath::Max(1.0f, FallbackActionSlotWidth);
+}
+
+void UGridPersistentHudWidget::SynchronizeActionBarToViewport()
+{
+	if (!IsValid(InventoryComponent) || !Panel_ActionBar)
+	{
+		return;
+	}
+
+	const FVector2D ViewportPixels = UWidgetLayoutLibrary::GetViewportSize(this);
+	const float ViewportScale = FMath::Max(KINDA_SMALL_NUMBER, UWidgetLayoutLibrary::GetViewportScale(this));
+	const float ViewportWidth = ViewportPixels.X / ViewportScale;
+	if (ViewportWidth <= KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	const float NavigationWidth = Panel_GlobalNavigation ? Panel_GlobalNavigation->GetDesiredSize().X : 0.0f;
+	const float ActionSlotWidth = ResolveActionSlotWidth();
+	const int32 CharacterIndex = ResolveActionBarCharacterIndex();
+	if (!InventoryComponent->IsValidCharacterIndex(CharacterIndex))
+	{
+		return;
+	}
+	const int32 UsedSlotCount = InventoryComponent->GetCharacterCombatHotbarUsedSlotCount(CharacterIndex);
+
+	if (FMath::IsNearlyEqual(ViewportWidth, LastSynchronizedViewportWidth, 0.5f) &&
+		FMath::IsNearlyEqual(NavigationWidth, LastSynchronizedNavigationWidth, 0.5f) &&
+		FMath::IsNearlyEqual(ActionSlotWidth, LastSynchronizedActionSlotWidth, 0.5f) &&
+		CharacterIndex == LastSynchronizedCharacterIndex && UsedSlotCount == LastSynchronizedUsedSlotCount)
+	{
+		return;
+	}
+
+	LastSynchronizedViewportWidth = ViewportWidth;
+	LastSynchronizedNavigationWidth = NavigationWidth;
+	LastSynchronizedActionSlotWidth = ActionSlotWidth;
+	LastSynchronizedCharacterIndex = CharacterIndex;
+	LastSynchronizedUsedSlotCount = UsedSlotCount;
+
+	const int32 FittedSlotCount = CalculateVisibleActionSlotCount(ViewportWidth, NavigationWidth, ActionSlotWidth);
+	const int32 TargetVisibleSlotCount = FMath::Max(FittedSlotCount, UsedSlotCount);
+	const bool bVisibleCountChanged = VisibleActionSlotCount != TargetVisibleSlotCount;
+	VisibleActionSlotCount = TargetVisibleSlotCount;
+
+	if (InventoryComponent->GetCharacterCombatHotbarSlotCount(CharacterIndex) < VisibleActionSlotCount)
+	{
+		InventoryComponent->EnsureCharacterCombatHotbarCapacity(CharacterIndex, VisibleActionSlotCount);
+	}
+
+	if (bVisibleCountChanged)
+	{
+		EnsureActionWidgets();
+		RefreshActionWidgets();
+	}
+}
+
 void UGridPersistentHudWidget::EnsureActionWidgets()
 {
 	if (!Panel_ActionBar || !IsValid(PartyPawn))
@@ -217,14 +323,10 @@ void UGridPersistentHudWidget::EnsureActionWidgets()
 		{
 			return;
 		}
-		UPanelSlot* ContainerSlot = Panel_ActionBar->AddChild(ActionBarRow);
-		if (UWrapBoxSlot* WrapSlot = Cast<UWrapBoxSlot>(ContainerSlot))
-		{
-			WrapSlot->SetFillEmptySpace(true);
-		}
+		Panel_ActionBar->AddChild(ActionBarRow);
 	}
 
-	const int32 SlotCount = IsValid(InventoryComponent) ? InventoryComponent->GetCombatHotbarSlotCount() : FGridCombatHotbarBinding::SlotCount;
+	const int32 SlotCount = FMath::Max(FGridCombatHotbarBinding::MinimumSlotCount, VisibleActionSlotCount);
 	bool bPoolValid = IsValid(ActionBarRow) && ActionWidgets.Num() == SlotCount && ActionBarRow->GetChildrenCount() == SlotCount;
 	for (const UGridCombatHudActionWidget* ActionWidget : ActionWidgets)
 	{
@@ -248,9 +350,9 @@ void UGridPersistentHudWidget::EnsureActionWidgets()
 		UHorizontalBoxSlot* ActionSlot = ActionBarRow->AddChildToHorizontalBox(ActionWidget);
 		if (ActionSlot)
 		{
-			ActionSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			ActionSlot->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
 			ActionSlot->SetPadding(FMargin(0.0f));
-			ActionSlot->SetHorizontalAlignment(HAlign_Fill);
+			ActionSlot->SetHorizontalAlignment(HAlign_Left);
 			ActionSlot->SetVerticalAlignment(VAlign_Fill);
 		}
 		ActionWidgets.Add(ActionWidget);

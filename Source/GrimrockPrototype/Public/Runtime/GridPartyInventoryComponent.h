@@ -93,6 +93,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Combat|Hotbar")
 	int32 GetCombatHotbarSlotCount() const;
 
+	/** Runtime capacity for one character. This can grow with the persistent action-bar width and is never shrunk implicitly. */
+	int32 GetCharacterCombatHotbarSlotCount(int32 CharacterIndex) const;
+
+	/** Number of slots that must remain visible to preserve every currently assigned binding. */
+	int32 GetCharacterCombatHotbarUsedSlotCount(int32 CharacterIndex) const;
+
+	/** Grows one character's persistent action-bar storage while preserving all existing bindings. Never shrinks. */
+	bool EnsureCharacterCombatHotbarCapacity(int32 CharacterIndex, int32 RequiredSlotCount);
+
 	UFUNCTION(BlueprintCallable, Category = "Combat|Hotbar")
 	bool GetCharacterCombatHotbarBinding(int32 CharacterIndex, int32 SlotIndex, FGridCombatHotbarBinding& OutBinding) const;
 

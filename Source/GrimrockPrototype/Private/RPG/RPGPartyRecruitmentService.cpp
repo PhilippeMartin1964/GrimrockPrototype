@@ -43,18 +43,18 @@ namespace GridPartyRecruitmentPrivate
 
 		if (Candidate.CombatHotbarSlots.IsEmpty())
 		{
-			Candidate.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
-			for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
+			Candidate.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
+			for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::MinimumSlotCount; ++SlotIndex)
 			{
 				Candidate.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);
 			}
 			return true;
 		}
 
-		if (Candidate.CombatHotbarSlots.Num() != FGridCombatHotbarBinding::SlotCount)
+		if (Candidate.CombatHotbarSlots.Num() < FGridCombatHotbarBinding::MinimumSlotCount)
 		{
-			OutError =
-				FString::Printf(TEXT("Candidate hotbar has %d slots; expected %d."), Candidate.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::SlotCount);
+			OutError = FString::Printf(
+				TEXT("Candidate hotbar has %d slots; minimum is %d."), Candidate.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::MinimumSlotCount);
 			return false;
 		}
 

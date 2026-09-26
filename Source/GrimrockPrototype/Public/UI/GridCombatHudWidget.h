@@ -343,8 +343,8 @@ public:
 	TArray<TObjectPtr<UGridCombatHudActionWidget>> HotbarActionWidgets;
 
 	/**
-     * Single runtime row that owns all ten hotbar widgets. When the designer
-     * panel is already a HorizontalBox, this points directly to it.
+     * Legacy runtime row used only while the persistent HUD is not configured.
+     * Its widget count follows the current character's dynamic action-bar capacity.
      */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UHorizontalBox> HotbarRow;

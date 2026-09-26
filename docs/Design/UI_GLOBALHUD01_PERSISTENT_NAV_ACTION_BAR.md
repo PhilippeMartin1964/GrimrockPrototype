@@ -24,7 +24,7 @@ Viewport
 │       ├── Panel_GlobalNavigation
 │       │   └── ESC / I / K / G / M / J / H
 │       └── Panel_ActionBar
-│           └── 16 slots Fill, sans espacement
+│           └── N slots de largeur fixe, jointifs, calculés selon le viewport
 │
 └── WBP_GridCombatHud
     └── présentation combat uniquement
@@ -73,7 +73,7 @@ Chaque image est :
 
 ## Barre générale d'actions
 
-La barre persistante contient désormais **16 slots**.
+La barre persistante contient désormais **un nombre dynamique de slots**. Elle conserve un minimum de **12 slots clavier** et ajoute autant de slots souris que la largeur réellement disponible permet d'en afficher.
 
 Les douze premiers reçoivent le profil clavier suisse demandé :
 
@@ -90,10 +90,7 @@ slot  9 -> 9
 slot 10 -> 0
 slot 11 -> '
 slot 12 -> ^
-slot 13 -> souris uniquement
-slot 14 -> souris uniquement
-slot 15 -> souris uniquement
-slot 16 -> souris uniquement
+slot 13 et suivants -> souris uniquement
 ```
 
 Le choix de layout clavier est volontairement isolé pour une évolution ultérieure ; le jalon actuel implémente le profil suisse.
@@ -101,11 +98,19 @@ Le choix de layout clavier est volontairement isolé pour une évolution ultéri
 Les slots sont placés dans un `HorizontalBox` avec :
 
 ```text
-Size rule = Fill
+Size rule = Auto
 Padding   = 0
 ```
 
-Ils sont donc collés les uns aux autres et se partagent toute la largeur laissée disponible après la navigation globale.
+Ils gardent donc leur largeur réelle, restent collés les uns aux autres et ne sont jamais écartés par un `Fill`.
+
+Le nombre visible est calculé en C++ :
+
+```text
+floor((ViewportWidth - NavigationWidth) / ActionSlotWidth)
+```
+
+avec un minimum de 12. Le reliquat inférieur à la largeur d'un slot reste volontairement **vide à droite** ; il n'est ni redistribué entre les slots ni transformé en espacement.
 
 Le raccourci clavier est affiché en bas à droite. Le badge de quantité natif est déplacé en haut à droite pour éviter tout chevauchement.
 
@@ -113,15 +118,18 @@ Le raccourci clavier est affiché en bas à droite. Le badge de quantité natif 
 
 Le stockage historique s'appelle encore `FGridCombatHotbarBinding` / `CombatHotbarSlots`. Ce nom est désormais historique, mais il reste l'unique autorité de binding afin de ne pas créer une seconde barre.
 
-Le nombre canonique passe de 10 à 16 slots. Lors du chargement, `InitializeCombatHotbarDefaults()` normalise systématiquement les anciennes sauvegardes :
+Le stockage n'a plus de taille visuelle canonique fixe. `FGridCombatHotbarBinding::MinimumSlotCount = 12` garantit seulement les douze raccourcis clavier.
+
+Lors du chargement, `InitializeCombatHotbarDefaults()` :
 
 ```text
-ancienne sauvegarde 10 slots
-    -> conservation des slots 1..10
-    -> ajout des slots 11..16 vides
+ancienne sauvegarde N slots
+    -> conserve tous les bindings existants
+    -> garantit au moins 12 slots
+    -> ne réduit jamais un tableau plus large
 ```
 
-Aucune migration de schéma SaveGame distincte n'est nécessaire pour ce `TArray`.
+Lorsque le Persistent HUD détermine qu'une largeur donnée peut afficher davantage de slots, `EnsureCharacterCombatHotbarCapacity()` agrandit uniquement le personnage concerné. Le stockage n'est jamais réduit implicitement. Aucune migration de schéma SaveGame distincte n'est nécessaire pour ce `TArray`.
 
 Le renommage complet des types historiques `CombatHotbar*` pourra être réalisé dans un ticket de nettoyage après migration UMG ; il ne doit pas créer de seconde autorité.
 
@@ -149,12 +157,12 @@ CanvasPanel_Root
     │   ├── M
     │   ├── J
     │   └── H
-    └── Panel_ActionBar         Fill
+    └── Panel_ActionBar         contenu dynamique, largeur pilotée par les slots
 ```
 
 Chaque bouton navigation est idéalement un `Overlay` contenant le bouton et son `Image_*SelectionFrame`.
 
-`Panel_ActionBar` doit être un `HorizontalBox` extensible. Les enfants sont générés/réutilisés par le C++.
+`Panel_ActionBar` doit être un `HorizontalBox`. Les enfants sont générés/réutilisés par le C++. **Ne pas forcer les slots en Fill et ne pas désactiver un Size To Content qui est nécessaire au WBP existant.** Le C++ calcule le nombre de slots à créer à partir de la largeur du viewport.
 
 Dans `BP_GrimrockPartyPawn` :
 
@@ -185,7 +193,15 @@ PIE après migration UMG :
 2. PAM/initiative restent absents hors combat ;
 3. le cadre doré suit I/K/G/M/J/H ;
 4. la navigation reste fonctionnelle au clavier et à la souris ;
-5. les 16 slots sont jointifs et remplissent la largeur disponible ;
+5. les slots sont jointifs, gardent leur largeur et se répètent jusqu'au dernier slot entier pouvant tenir avant le bord droit ;
 6. les labels sont `1 2 3 4 5 6 7 8 9 0 ' ^`, puis vides ;
-7. les slots 13..16 restent cliquables à la souris ;
+7. les slots 13 et suivants restent cliquables à la souris ;
 8. en combat, le HUD combat apparaît sans dupliquer navigation ou barre d'actions.
+
+## UI-GLOBALHUD01.1 — Dynamic Full-Width Action Bar
+
+La correction UI-GLOBALHUD01.1 supprime l'hypothèse arbitraire de 16 slots et l'usage de `Fill` sur les enfants. Le Persistent HUD mesure la largeur logique du viewport, la largeur désirée de la navigation et la largeur désirée d'un slot d'action. Il affiche ensuite uniquement un nombre entier de slots adjacents. Tout reliquat de quelques pixels reste vide à droite.
+
+Le recalcul n'altère pas les bindings existants : le stockage peut croître mais n'est jamais tronqué. Si une réduction de fenêtre rend un slot assigné plus éloigné que la capacité normalement visible, le nombre visible reste au moins suffisant pour conserver l'accès à ce binding.
+
+Référence détaillée UI-GLOBALHUD01.1 : `docs/Design/UI_GLOBALHUD01_1_DYNAMIC_FULL_WIDTH_ACTION_BAR.md`.
