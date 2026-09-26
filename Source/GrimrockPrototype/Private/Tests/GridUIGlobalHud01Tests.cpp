@@ -6,6 +6,7 @@
 #include "Components/Image.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridCombatHudWidget.h"
 #include "UI/GridPersistentHudWidget.h"
