@@ -2,8 +2,10 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Components/Button.h"
 #include "Components/HorizontalBox.h"
 #include "Components/Image.h"
+#include "Components/TextBlock.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -133,12 +135,29 @@ bool FGridUIGlobalHud01CombatChromeSplitTest::RunTest(const FString& Parameters)
 	Party->CombatHudWidgetInstance = CombatHud;
 	CombatHud->Panel_GlobalNavigation = NewObject<UHorizontalBox>(CombatHud);
 	CombatHud->Panel_Actions = NewObject<UHorizontalBox>(CombatHud);
+	CombatHud->Text_MobilityActionPoints = NewObject<UTextBlock>(CombatHud);
+	CombatHud->Button_EndTurn = NewObject<UButton>(CombatHud);
+	CombatHud->Text_EndTurnDisabledReason = NewObject<UTextBlock>(CombatHud);
 	CombatHud->InitializeCombatHud(Party, nullptr);
 
 	TestEqual(TEXT("Legacy navigation is collapsed when the persistent HUD owns global chrome"),
 		CombatHud->Panel_GlobalNavigation->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Legacy embedded action bar is collapsed when the persistent HUD owns global chrome"),
 		CombatHud->Panel_Actions->GetVisibility(), ESlateVisibility::Collapsed);
+	TestEqual(TEXT("PAM is raised above the persistent bottom HUD"),
+		CombatHud->Text_MobilityActionPoints->GetRenderTransform().Translation.Y, -56.0f);
+	TestEqual(TEXT("End turn is raised above the persistent bottom HUD"),
+		CombatHud->Button_EndTurn->GetRenderTransform().Translation.Y, -56.0f);
+	TestEqual(TEXT("Disabled end-turn feedback follows the combat controls"),
+		CombatHud->Text_EndTurnDisabledReason->GetRenderTransform().Translation.Y, -56.0f);
+
+	Party->PersistentHudWidgetInstance = nullptr;
+	CombatHud->RefreshFromSources();
+	TestEqual(TEXT("Combat controls return to their authored baseline without a persistent HUD"),
+		CombatHud->Text_MobilityActionPoints->GetRenderTransform().Translation.Y, 0.0f);
+	Party->PersistentHudWidgetInstance = PersistentHud;
+	CombatHud->RefreshFromSources();
+
 	TestEqual(TEXT("The persistent action bar keeps twelve minimum keyboard-addressable slots"), FGridCombatHotbarBinding::MinimumSlotCount, 12);
 	TestEqual(TEXT("Twelve action slots have keyboard shortcuts"), FGridCombatHotbarBinding::KeyboardShortcutSlotCount, 12);
 	TestEqual(TEXT("A 1600-wide viewport fits twenty-seven 50px slots after 210px navigation"),

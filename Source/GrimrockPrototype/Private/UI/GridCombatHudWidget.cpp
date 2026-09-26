@@ -1082,6 +1082,7 @@ void UGridCombatHudWidget::NativeDestruct()
 	InitiativeSlotWidgets.Reset();
 	InitiativeRoundSeparatorWidgets.Reset();
 	InitiativeRoundSeparatorTexts.Reset();
+	CombatBottomBaseTranslations.Reset();
 	Super::NativeDestruct();
 }
 
@@ -1541,8 +1542,42 @@ void UGridCombatHudWidget::HandleNavHelpClicked()
 	}
 }
 
+void UGridCombatHudWidget::ApplyBottomClearanceToWidget(UWidget* Widget, float Clearance)
+{
+	if (!IsValid(Widget))
+	{
+		return;
+	}
+
+	const TWeakObjectPtr<UWidget> WidgetKey(Widget);
+	FVector2D* BaseTranslation = CombatBottomBaseTranslations.Find(WidgetKey);
+	if (!BaseTranslation)
+	{
+		BaseTranslation = &CombatBottomBaseTranslations.Add(WidgetKey, Widget->GetRenderTransform().Translation);
+	}
+
+	Widget->SetRenderTranslation(*BaseTranslation + FVector2D(0.0f, -Clearance));
+}
+
+void UGridCombatHudWidget::ApplyPersistentHudBottomClearance()
+{
+	const bool bPersistentHudOwnsGlobalChrome = IsValid(PartyPawn) && IsValid(PartyPawn->PersistentHudWidgetInstance);
+	const float Clearance = bPersistentHudOwnsGlobalChrome ? FMath::Max(56.0f, PersistentHudBottomClearance) : 0.0f;
+
+	if (IsValid(Panel_CombatBottomRight))
+	{
+		ApplyBottomClearanceToWidget(Panel_CombatBottomRight, Clearance);
+		return;
+	}
+
+	ApplyBottomClearanceToWidget(Text_MobilityActionPoints, Clearance);
+	ApplyBottomClearanceToWidget(Button_EndTurn, Clearance);
+	ApplyBottomClearanceToWidget(Text_EndTurnDisabledReason, Clearance);
+}
+
 void UGridCombatHudWidget::RefreshBoundWidgets()
 {
+	ApplyPersistentHudBottomClearance();
 	const bool bPersistentHudOwnsGlobalChrome = IsValid(PartyPawn) && IsValid(PartyPawn->PersistentHudWidgetInstance);
 	if (Panel_GlobalNavigation)
 	{

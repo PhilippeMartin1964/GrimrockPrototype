@@ -571,3 +571,8 @@ Le tri pré-calcule ses clés par item, le compteur d'items visibles ne retrie p
 ### UI-GLOBALHUD01.1 — largeur dynamique sans étirement
 
 Le Persistent HUD calcule `floor((ViewportWidth - NavigationWidth) / ActionSlotWidth)`. Les boutons gardent leur largeur UMG réelle et restent jointifs. Le stockage d'un personnage grandit si nécessaire mais n'est jamais réduit automatiquement. Aucun `Fill` n'est utilisé pour répartir ou espacer les slots.
+
+
+### UI-GLOBALHUD01.2 — séparation verticale des contrôles combat
+
+Le HUD combat conserve PAM et Fin du tour, mais réserve 56 px au-dessus de la barre persistante. `UGridCombatHudWidget` applique cette clearance au conteneur optionnel `Panel_CombatBottomRight`, ou en fallback à `Text_MobilityActionPoints`, `Button_EndTurn` et `Text_EndTurnDisabledReason`. La translation UMG d'origine est conservée comme baseline.

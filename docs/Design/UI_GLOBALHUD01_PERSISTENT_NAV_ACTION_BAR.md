@@ -205,3 +205,30 @@ La correction UI-GLOBALHUD01.1 supprime l'hypothèse arbitraire de 16 slots et l
 Le recalcul n'altère pas les bindings existants : le stockage peut croître mais n'est jamais tronqué. Si une réduction de fenêtre rend un slot assigné plus éloigné que la capacité normalement visible, le nombre visible reste au moins suffisant pour conserver l'accès à ce binding.
 
 Référence détaillée UI-GLOBALHUD01.1 : `docs/Design/UI_GLOBALHUD01_1_DYNAMIC_FULL_WIDTH_ACTION_BAR.md`.
+
+
+## UI-GLOBALHUD01.2 — Combat controls above the persistent bar
+
+Le bloc combat bas-droite reste la responsabilité de `UGridCombatHudWidget`, mais il ne doit plus partager la ligne verticale de la barre permanente.
+
+Le C++ réserve par défaut :
+
+```text
+PersistentHudBottomClearance = 56 px
+```
+
+quand `UGridPersistentHudWidget` existe.
+
+Contrat de migration UMG :
+
+```text
+option recommandée à terme:
+Panel_CombatBottomRight
+├── Text_MobilityActionPoints
+├── Button_EndTurn
+└── Text_EndTurnDisabledReason
+```
+
+Si `Panel_CombatBottomRight` existe, le déplacement vertical est appliqué une seule fois au conteneur. Tant qu'il n'existe pas dans le WBP, le runtime applique exactement le même déplacement aux trois widgets historiques individuellement.
+
+Le déplacement est relatif à leur translation UMG d'origine et est réversible : sans Persistent HUD, les widgets reviennent à leur baseline. Aucun offset Canvas absolu n'est imposé par le C++.

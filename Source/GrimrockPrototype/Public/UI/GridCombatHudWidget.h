@@ -397,6 +397,17 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UPanelWidget> Panel_Initiative;
 
+	/**
+	 * Optional common container for the bottom-right combat controls (PAM / end turn / rejection text).
+	 * When absent, UI-GLOBALHUD01.2 applies the same clearance to the three legacy widgets individually.
+	 */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Layout")
+	TObjectPtr<UWidget> Panel_CombatBottomRight;
+
+	/** Vertical clearance reserved above the persistent bottom HUD. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Layout", meta = (ClampMin = "56.0"))
+	float PersistentHudBottomClearance = 56.0f;
+
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UTextBlock> Text_MobilityActionPoints;
 
@@ -427,7 +438,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|HUD")
 	bool RequestCombatAction(const FGridCombatHudActionView& ActionView, FGridCombatActionRequestResult& OutResult);
 
-	/** Rebuilds and executes one of the ten fixed slots by its internal index. */
+	/** Rebuilds and executes one action-bar slot by its runtime index. */
 	UFUNCTION(BlueprintCallable, Category = "Combat|HUD|Hotbar")
 	bool RequestHotbarSlot(int32 SlotIndex, FGridCombatActionRequestResult& OutResult);
 
@@ -476,6 +487,7 @@ private:
 	bool bSourcesBound = false;
 
 	FGridCombatHudActionView PendingTargetingActionView;
+	TMap<TWeakObjectPtr<UWidget>, FVector2D> CombatBottomBaseTranslations;
 
 	void BindToSources();
 	void UnbindFromSources();
@@ -486,6 +498,8 @@ private:
 	void EnsureInitiativeWidgets();
 	void RefreshInitiativeWidgets();
 	void RefreshBoundWidgets();
+	void ApplyPersistentHudBottomClearance();
+	void ApplyBottomClearanceToWidget(UWidget* Widget, float Clearance);
 	void BindGlobalNavigationButtons();
 	void UnbindGlobalNavigationButtons();
 
