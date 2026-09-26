@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
 
