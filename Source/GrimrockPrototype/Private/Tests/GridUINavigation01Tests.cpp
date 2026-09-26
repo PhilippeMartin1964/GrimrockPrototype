@@ -6,7 +6,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GrimrockPartyPawn.h"
-#include "UI/GridCombatHudWidget.h"
+#include "UI/GridPersistentHudWidget.h"
 #include "UI/GridCharacterSheetWidget.h"
 #include "UI/GridInventoryBagWidget.h"
 #include "UI/GridInventoryUiTypes.h"
@@ -62,7 +62,7 @@ bool FGridUINavigation01PersistentBarTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridCombatHudWidget* Hud = NewObject<UGridCombatHudWidget>();
+	UGridPersistentHudWidget* Hud = NewObject<UGridPersistentHudWidget>();
 	UHorizontalBox* NavigationPanel = NewObject<UHorizontalBox>(Hud);
 	TestNotNull(TEXT("HUD can be created"), Hud);
 	TestNotNull(TEXT("Navigation panel can be created"), NavigationPanel);
@@ -74,7 +74,7 @@ bool FGridUINavigation01PersistentBarTest::RunTest(const FString& Parameters)
 	NavigationPanel->SetVisibility(ESlateVisibility::Collapsed);
 	Hud->Panel_GlobalNavigation = NavigationPanel;
 	Hud->RefreshFromSources();
-	TestEqual(TEXT("Global navigation is visible even with combat inactive"), NavigationPanel->GetVisibility(), ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("Persistent HUD owns global navigation independently from combat state"), NavigationPanel->GetVisibility(), ESlateVisibility::SelfHitTestInvisible);
 
 	return true;
 }
