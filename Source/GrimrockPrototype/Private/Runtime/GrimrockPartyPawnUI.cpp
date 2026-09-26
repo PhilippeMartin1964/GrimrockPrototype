@@ -466,45 +466,8 @@ void AGrimrockPartyPawn::CloseNonCombatUiForCombat()
 
 bool AGrimrockPartyPawn::IsNonCombatUiBlockedByCombat() const
 {
-	const UGridTurnManagerComponent* TurnManager = CombatUiTurnManager.IsValid() ? CombatUiTurnManager.Get() : FindTurnManager();
+	const UGridTurnManagerComponent* TurnManager = FindTurnManager();
 	return IsValid(TurnManager) && TurnManager->bCombatActive;
-}
-
-void AGrimrockPartyPawn::BindCombatUiLifecycle(UGridTurnManagerComponent* TurnManager)
-{
-	if (!IsValid(TurnManager))
-	{
-		return;
-	}
-	if (CombatUiTurnManager.Get() == TurnManager)
-	{
-		TurnManager->OnPhaseChanged.AddUniqueDynamic(this, &AGrimrockPartyPawn::HandleCombatPhaseChangedForUi);
-		return;
-	}
-
-	UnbindCombatUiLifecycle();
-	CombatUiTurnManager = TurnManager;
-	TurnManager->OnPhaseChanged.AddUniqueDynamic(this, &AGrimrockPartyPawn::HandleCombatPhaseChangedForUi);
-}
-
-void AGrimrockPartyPawn::UnbindCombatUiLifecycle()
-{
-	if (UGridTurnManagerComponent* TurnManager = CombatUiTurnManager.Get())
-	{
-		TurnManager->OnPhaseChanged.RemoveDynamic(this, &AGrimrockPartyPawn::HandleCombatPhaseChangedForUi);
-	}
-	CombatUiTurnManager.Reset();
-}
-
-void AGrimrockPartyPawn::HandleCombatPhaseChangedForUi(EGridCombatPhase NewPhase)
-{
-	const UGridTurnManagerComponent* TurnManager = CombatUiTurnManager.Get();
-	if (NewPhase == EGridCombatPhase::Exploration || !IsValid(TurnManager) || !TurnManager->bCombatActive)
-	{
-		return;
-	}
-
-	CloseNonCombatUiForCombat();
 }
 
 UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget() const
@@ -525,7 +488,6 @@ UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget() const
 bool AGrimrockPartyPawn::ShowCombatActionPanelWidget()
 {
 	UGridTurnManagerComponent* TurnManager = FindTurnManager();
-	BindCombatUiLifecycle(TurnManager);
 
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (!PlayerController)

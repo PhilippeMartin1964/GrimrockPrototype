@@ -6,7 +6,6 @@
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridObjectBehavior.h"
 #include "Runtime/GridInventoryTypes.h"
-#include "Runtime/Combat/GridCombatTypes.h"
 #include "GrimrockPartyPawn.generated.h"
 
 class UCameraComponent;
@@ -648,12 +647,6 @@ private:
 	void CollapseInventoryWorkspaceForMenuPage();
 	void ApplyMajorUiInputMode(bool bOpen);
 	void RefreshMajorUiVisibilityAfterSplitClose();
-	void BindCombatUiLifecycle(UGridTurnManagerComponent* TurnManager);
-	void UnbindCombatUiLifecycle();
-
-	UFUNCTION()
-	void HandleCombatPhaseChangedForUi(EGridCombatPhase NewPhase);
-
 	UFUNCTION()
 	void HandleCharacterSheetWindowCloseClicked();
 
@@ -680,8 +673,6 @@ private:
 	UGridTurnManagerComponent* FindTurnManager() const;
 
 private:
-	TWeakObjectPtr<UGridTurnManagerComponent> CombatUiTurnManager;
-
 	FVector MoveStartLocation = FVector::ZeroVector;
 	FVector MoveTargetLocation = FVector::ZeroVector;
 	float MoveElapsed = 0.f;
@@ -739,7 +730,6 @@ private:
 	int32 MoveStartCellX = 0;
 	int32 MoveStartCellY = 0;
 
-	friend class FGridUICombat01CombatLifecycleTest;
 	friend class FGridMonsterMON12PartyMobilityLifecycleTest;
 	friend class FGridPartyBlockedMovementFeedbackTest;
 	friend class FGridPartyMovementAudioFeedbackTest;

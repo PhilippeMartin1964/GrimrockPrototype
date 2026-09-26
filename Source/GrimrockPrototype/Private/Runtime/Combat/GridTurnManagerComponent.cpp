@@ -604,6 +604,10 @@ bool UGridTurnManagerComponent::StartCombatInternal(const TArray<AGridMonsterAct
 	ActionPointBudget.Reset(0);
 	ResetActiveAttackState();
 	bCombatActive = true;
+	if (IsValid(PartyPawn))
+	{
+		PartyPawn->CloseNonCombatUiForCombat();
+	}
 	BuildGlobalInitiativeOrder();
 	BindCombatMonsterDeaths();
 	for (AGridMonsterActor* Monster : CombatMonsters)

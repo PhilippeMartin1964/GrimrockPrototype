@@ -22,12 +22,15 @@ La barre inférieure persistante portée par `WBP_GridCombatHud` n'est pas suppr
 
 `UGridTurnManagerComponent` reste l'unique autorité du combat.
 
-`AGrimrockPartyPawn` s'abonne explicitement à `OnPhaseChanged` dans son cycle de vie (`BeginPlay`/`EndPlay`). Le TurnManager lié est conservé comme référence runtime faible afin que le handler lise exactement la même autorité qui a émis l'événement. Lorsque la phase quitte `Exploration` et que `bCombatActive=true`, il exécute :
+`UGridTurnManagerComponent::StartCombatInternal()` est l'unique point où le combat devient autoritaire. Immédiatement après `bCombatActive = true`, il ordonne au PartyPawn de fermer les surfaces non-combat :
 
 ```text
-TurnManager.OnPhaseChanged
+TurnManager.StartCombatInternal
+    -> bCombatActive = true
     -> PartyPawn.CloseNonCombatUiForCombat()
 ```
+
+Aucun abonnement UI, état parallèle ou dépendance au cycle de création du HUD n'est nécessaire.
 
 Aucun Monster, système de perception ou appel `StartCombat...` ne connaît les widgets.
 
