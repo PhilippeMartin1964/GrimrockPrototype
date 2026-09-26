@@ -9,6 +9,7 @@
 #include "UI/GridCombatHudWidget.h"
 #include "UI/GridCharacterSheetWidget.h"
 #include "UI/GridInventoryBagWidget.h"
+#include "UI/GridPersistentHudWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/RPGCharacterCreationWidget.h"
 
@@ -197,8 +198,13 @@ void AGrimrockPartyPawn::ShowInventoryWorkspace()
 	bInventoryWorkspaceVisible = true;
 	bInventoryWidgetVisible = true;
 
-	if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
+	if (PersistentHudWidgetInstance)
 	{
+		RefreshPersistentHudWidget();
+	}
+	else if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
+	{
+		// UI-GLOBALHUD01 migration fallback while WBP_GridPersistentHud is not configured yet.
 		CombatHudWidgetInstance->RemoveFromParent();
 		CombatHudWidgetInstance->AddToViewport(CombatHotbarConfigurationZOrder);
 		CombatHudWidgetInstance->RefreshFromSources();
@@ -278,8 +284,13 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 	MenuWidgetInstance->SetActiveTopTab(TopTab);
 	bInventoryWidgetVisible = true;
 
-	if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
+	if (PersistentHudWidgetInstance)
 	{
+		RefreshPersistentHudWidget();
+	}
+	else if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
+	{
+		// UI-GLOBALHUD01 migration fallback while WBP_GridPersistentHud is not configured yet.
 		CombatHudWidgetInstance->RemoveFromParent();
 		CombatHudWidgetInstance->AddToViewport(CombatHotbarConfigurationZOrder);
 		CombatHudWidgetInstance->RefreshFromSources();
@@ -355,6 +366,7 @@ void AGrimrockPartyPawn::RefreshMajorUiVisibilityAfterSplitClose()
 	}
 
 	bInventoryWidgetVisible = true;
+	RefreshPersistentHudWidget();
 }
 
 void AGrimrockPartyPawn::HandleGlobalEscape()
@@ -401,7 +413,11 @@ void AGrimrockPartyPawn::CollapseMajorGameplayUi()
 	bInventoryWorkspaceVisible = false;
 	bInventoryWidgetVisible = false;
 
-	if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
+	if (PersistentHudWidgetInstance)
+	{
+		RefreshPersistentHudWidget();
+	}
+	else if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
 	{
 		CombatHudWidgetInstance->RemoveFromParent();
 		CombatHudWidgetInstance->AddToViewport(CombatActionPanelZOrder);
@@ -525,6 +541,55 @@ void AGrimrockPartyPawn::RefreshCombatActionPanelWidget()
 	}
 }
 
+bool AGrimrockPartyPawn::ShowPersistentHudWidget()
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController || !PersistentHudWidgetClass)
+	{
+		return false;
+	}
+
+	if (!PersistentHudWidgetInstance)
+	{
+		PersistentHudWidgetInstance = CreateWidget<UGridPersistentHudWidget>(PlayerController, PersistentHudWidgetClass);
+	}
+	if (!PersistentHudWidgetInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridPersistentHud Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
+		return false;
+	}
+
+	PersistentHudWidgetInstance->InitializePersistentHud(this);
+	if (!PersistentHudWidgetInstance->IsInViewport())
+	{
+		PersistentHudWidgetInstance->AddToViewport(PersistentHudZOrder);
+	}
+	PersistentHudWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+	if (CombatHudWidgetInstance)
+	{
+		CombatHudWidgetInstance->RefreshFromSources();
+	}
+	return true;
+}
+
+void AGrimrockPartyPawn::HidePersistentHudWidget()
+{
+	if (PersistentHudWidgetInstance)
+	{
+		PersistentHudWidgetInstance->RemoveFromParent();
+		PersistentHudWidgetInstance = nullptr;
+	}
+}
+
+void AGrimrockPartyPawn::RefreshPersistentHudWidget()
+{
+	if (PersistentHudWidgetInstance)
+	{
+		PersistentHudWidgetInstance->RefreshFromSources();
+	}
+}
+
 bool AGrimrockPartyPawn::BeginSelectedCharacterMainHandThrowAiming()
 {
 	AGrimrockPlayerController* PlayerController = Cast<AGrimrockPlayerController>(GetController());
@@ -557,7 +622,7 @@ bool AGrimrockPartyPawn::BeginSelectedCharacterInventoryItemThrowAiming(FName It
 
 bool AGrimrockPartyPawn::TryExecuteCombatHotbarSlot(int32 SlotIndex)
 {
-	if (IsCombatHotbarExecutionBlocked() || SlotIndex < 0 || SlotIndex >= FGridCombatHotbarBinding::SlotCount)
+	if (IsCombatHotbarExecutionBlocked() || !PartyInventoryComponent || SlotIndex < 0 || SlotIndex >= PartyInventoryComponent->GetCombatHotbarSlotCount())
 	{
 		return false;
 	}

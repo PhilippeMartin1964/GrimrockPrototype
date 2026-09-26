@@ -67,7 +67,8 @@ struct FGridCombatHotbarBinding
 {
 	GENERATED_BODY()
 
-	static constexpr int32 SlotCount = 10;
+	static constexpr int32 SlotCount = 16;
+	static constexpr int32 KeyboardShortcutSlotCount = 12;
 	static constexpr int32 PrimaryAttackSlotIndex = 0;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Hotbar")
@@ -441,7 +442,7 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	TArray<FGridInventorySlot> InventorySlots;
 
-	/** Ten player-configured combat shortcuts. New characters start empty. */
+	/** Persistent general action-bar bindings. Slots 1..12 have Swiss-keyboard shortcuts; later slots remain mouse-accessible. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Hotbar")
 	TArray<FGridCombatHotbarBinding> CombatHotbarSlots;
 };

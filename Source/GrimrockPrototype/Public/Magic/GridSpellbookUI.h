@@ -76,7 +76,7 @@ enum class EGridSpellHotbarAssignmentResult : uint8
 
 /**
  * MON18.7a native UI bridge. It projects spell knowledge into UI-ready rows and
- * reuses the persistent MON12 ten-slot hotbar instead of creating a second bar.
+ * reuses the persistent MON12 persistent action-bar hotbar instead of creating a second bar.
  */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGridSpellbookUILibrary : public UBlueprintFunctionLibrary

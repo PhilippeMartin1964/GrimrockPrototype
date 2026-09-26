@@ -157,15 +157,21 @@ Référence : `docs/Design/UI_ITEM01_ITEM_TOOLTIP_COMPARISON.md`.
 La navigation `ESC / I / K / G / M / J / H` n'est pas enfant du menu. Elle est intégrée à la surface HUD runtime persistante déjà portée par `WBP_GridCombatHud`, à côté de la hotbar MON12.
 
 ```text
-WBP_GridCombatHud
-└── BottomBar (ancrée en bas)
+WBP_GridPersistentHud
+└── HorizontalBox_BottomBar (ancrée en bas)
     ├── Panel_GlobalNavigation    toujours visible
-    └── Panel_Actions             hotbar 1..0 existante
+    └── Panel_ActionBar           16 slots d'action persistants
 ```
 
 Le menu peut être ouvert, fermé ou changer de page sans modifier la visibilité de `Panel_GlobalNavigation`. Les boutons et les touches passent par les mêmes commandes C++.
 
 Référence : `docs/Design/UI_NAV01_PERSISTENT_BOTTOM_NAVIGATION.md`.
+
+### UI-GLOBALHUD01 — séparation Persistent HUD / Combat HUD
+
+La barre basse permanente quitte `WBP_GridCombatHud`. `UGridPersistentHudWidget` devient l'unique propriétaire de la navigation globale et de la barre générale d'actions. Le Combat HUD est désormais masqué hors combat et ne doit plus contenir conceptuellement ces surfaces. La barre d'actions comporte 16 slots : 12 raccourcis suisses `1..0, ', ^` puis 4 slots souris. Les slots utilisent `Fill` sans padding.
+
+Référence : `docs/Design/UI_GLOBALHUD01_PERSISTENT_NAV_ACTION_BAR.md`.
 
 ### UI-COMBAT01 — combat modal pour les grands panneaux
 
@@ -372,11 +378,14 @@ UGridCharacterSheetWidget
 UGridInventoryBagWidget
     fenêtre droite / grille inventaire / menu contextuel
 
-UGridCombatHudWidget
-    HUD runtime persistant
+UGridPersistentHudWidget
+    HUD gameplay persistant
     navigation globale ESC/I/K/G/M/J/H
-    hotbar MON12 1..0
-    éléments combat conditionnels
+    barre générale d'actions 16 slots
+
+UGridCombatHudWidget
+    présentation combat uniquement
+    PAM / initiative / round / fin de tour / ciblage
 
 UGridSkillsWidget
     projection Skills / Talents

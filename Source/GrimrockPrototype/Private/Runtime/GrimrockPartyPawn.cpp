@@ -198,6 +198,7 @@ void AGrimrockPartyPawn::BeginPlay()
 	}
 	ApplyCameraLocalViewOffset();
 	ShowCombatActionPanelWidget();
+	ShowPersistentHudWidget();
 
 	if (bLoadedSavedGame && PartyInventoryComponent)
 	{
@@ -246,6 +247,7 @@ void AGrimrockPartyPawn::BeginPlay()
 
 void AGrimrockPartyPawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	HidePersistentHudWidget();
 	HideCombatActionPanelWidget();
 
 	const bool bFreshDungeonPlaytest = GridPIEPlaytestRequest::Matches(LevelRuntimeActor);
@@ -379,6 +381,8 @@ void AGrimrockPartyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	ConfigureHotbarBinding(PlayerInputComponent->BindKey(EKeys::Eight, IE_Pressed, this, &AGrimrockPartyPawn::HandleCombatHotbarSlotEight));
 	ConfigureHotbarBinding(PlayerInputComponent->BindKey(EKeys::Nine, IE_Pressed, this, &AGrimrockPartyPawn::HandleCombatHotbarSlotNine));
 	ConfigureHotbarBinding(PlayerInputComponent->BindKey(EKeys::Zero, IE_Pressed, this, &AGrimrockPartyPawn::HandleCombatHotbarSlotZero));
+	ConfigureHotbarBinding(PlayerInputComponent->BindKey(EKeys::Apostrophe, IE_Pressed, this, &AGrimrockPartyPawn::HandleCombatHotbarSlotApostrophe));
+	ConfigureHotbarBinding(PlayerInputComponent->BindKey(EKeys::Caret, IE_Pressed, this, &AGrimrockPartyPawn::HandleCombatHotbarSlotCaret));
 }
 
 void AGrimrockPartyPawn::HandleCombatHotbarSlotOne()
@@ -429,6 +433,16 @@ void AGrimrockPartyPawn::HandleCombatHotbarSlotNine()
 void AGrimrockPartyPawn::HandleCombatHotbarSlotZero()
 {
 	TryExecuteCombatHotbarSlot(9);
+}
+
+void AGrimrockPartyPawn::HandleCombatHotbarSlotApostrophe()
+{
+	TryExecuteCombatHotbarSlot(10);
+}
+
+void AGrimrockPartyPawn::HandleCombatHotbarSlotCaret()
+{
+	TryExecuteCombatHotbarSlot(11);
 }
 
 void AGrimrockPartyPawn::ApplyCameraLocalViewOffset()

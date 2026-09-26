@@ -39,7 +39,21 @@ namespace
 
 	FText GetHotbarShortcutText(int32 SlotIndex)
 	{
-		return FText::AsNumber(SlotIndex == FGridCombatHotbarBinding::SlotCount - 1 ? 0 : SlotIndex + 1);
+		if (SlotIndex >= 0 && SlotIndex <= 8)
+		{
+			return FText::AsNumber(SlotIndex + 1);
+		}
+		switch (SlotIndex)
+		{
+			case 9:
+				return FText::FromString(TEXT("0"));
+			case 10:
+				return FText::FromString(TEXT("'"));
+			case 11:
+				return FText::FromString(TEXT("^"));
+			default:
+				return FText::GetEmpty();
+		}
 	}
 
 	bool DoesHotbarBindingMatchAction(const FGridCombatHotbarBinding& Binding, const FGridAvailableCombatAction& Action)
@@ -427,8 +441,8 @@ void UGridCombatHudActionWidget::EnsureQuantityBadge()
 	if (QuantitySlot)
 	{
 		QuantitySlot->SetHorizontalAlignment(HAlign_Right);
-		QuantitySlot->SetVerticalAlignment(VAlign_Bottom);
-		QuantitySlot->SetPadding(FMargin(0.0f, 0.0f, 5.0f, 5.0f));
+		QuantitySlot->SetVerticalAlignment(VAlign_Top);
+		QuantitySlot->SetPadding(FMargin(0.0f, 5.0f, 5.0f, 0.0f));
 	}
 
 	Text_Quantity = QuantityText;
@@ -466,7 +480,13 @@ void UGridCombatHudActionWidget::RefreshWidgets()
 	if (Text_ShortcutNumber)
 	{
 		Text_ShortcutNumber->SetText(View.ShortcutText);
-		Text_ShortcutNumber->SetVisibility(ESlateVisibility::HitTestInvisible);
+		Text_ShortcutNumber->SetVisibility(View.ShortcutText.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+		if (UOverlaySlot* ShortcutSlot = Cast<UOverlaySlot>(Text_ShortcutNumber->Slot))
+		{
+			ShortcutSlot->SetHorizontalAlignment(HAlign_Right);
+			ShortcutSlot->SetVerticalAlignment(VAlign_Bottom);
+			ShortcutSlot->SetPadding(FMargin(0.0f, 0.0f, 5.0f, 5.0f));
+		}
 	}
 	if (Text_Quantity)
 	{
@@ -786,6 +806,10 @@ void UGridCombatHudWidget::RefreshFromSources()
 	RefreshInitiativeWidgets();
 	RefreshBoundWidgets();
 	RefreshTargetingWidgets();
+	if (IsValid(PartyPawn))
+	{
+		PartyPawn->RefreshPersistentHudWidget();
+	}
 }
 
 bool UGridCombatHudWidget::RequestCombatAction(const FGridCombatHudActionView& ActionView, FGridCombatActionRequestResult& OutResult)
@@ -1516,20 +1540,24 @@ void UGridCombatHudWidget::HandleNavHelpClicked()
 
 void UGridCombatHudWidget::RefreshBoundWidgets()
 {
+	const bool bPersistentHudOwnsGlobalChrome = IsValid(PartyPawn) && IsValid(PartyPawn->PersistentHudWidgetInstance);
 	if (Panel_GlobalNavigation)
 	{
-		Panel_GlobalNavigation->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		Panel_GlobalNavigation->SetVisibility(
+			bPersistentHudOwnsGlobalChrome ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
 	}
 
 	const bool bConfiguringHotbar = IsValid(PartyPawn) && PartyPawn->bInventoryWidgetVisible;
 	const bool bShowCombatOnly = View.bCombatActive && !bConfiguringHotbar;
 	if (Panel_CombatHud)
 	{
-		Panel_CombatHud->SetVisibility(View.ActiveCharacterIndex != INDEX_NONE ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+		Panel_CombatHud->SetVisibility(bShowCombatOnly ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 	}
 	if (Panel_Actions)
 	{
-		Panel_Actions->SetVisibility(View.ActiveCharacterIndex != INDEX_NONE ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+		Panel_Actions->SetVisibility(
+			bPersistentHudOwnsGlobalChrome ? ESlateVisibility::Collapsed
+									 : (View.ActiveCharacterIndex != INDEX_NONE ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed));
 	}
 	if (Panel_Initiative)
 	{

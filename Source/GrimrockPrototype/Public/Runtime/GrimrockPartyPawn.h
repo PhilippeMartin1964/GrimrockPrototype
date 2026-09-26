@@ -20,6 +20,7 @@ class AGridReceptacleActor;
 class AGridThrownItemActor;
 class UGridItemDefinitionAsset;
 class UGridPartyInventoryComponent;
+class UGridPersistentHudWidget;
 class UGridInventoryWidget;
 class UGridCharacterSheetWidget;
 class UGridInventoryBagWidget;
@@ -224,6 +225,16 @@ public:
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Combat|UI")
 	TObjectPtr<UGridCombatHudWidget> CombatHudWidgetInstance;
 
+	/** UI-GLOBALHUD01 permanent global navigation + general action bar. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Persistent HUD")
+	TSubclassOf<UGridPersistentHudWidget> PersistentHudWidgetClass;
+
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "UI|Persistent HUD")
+	TObjectPtr<UGridPersistentHudWidget> PersistentHudWidgetInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|Persistent HUD", meta = (ClampMin = "0"))
+	int32 PersistentHudZOrder = 200;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|UI", meta = (ClampMin = "0"))
 	int32 CombatActionPanelZOrder = 50;
 
@@ -393,6 +404,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Combat|UI")
 	void RefreshCombatActionPanelWidget();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Persistent HUD")
+	bool ShowPersistentHudWidget();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Persistent HUD")
+	void HidePersistentHudWidget();
+
+	UFUNCTION(BlueprintCallable, Category = "UI|Persistent HUD")
+	void RefreshPersistentHudWidget();
 
 	/** UI-COMBAT01: authoritative combat-start transition invoked by the TurnManager after bCombatActive becomes true. */
 	void HandleCombatStarted();
@@ -589,6 +609,8 @@ protected:
 	void HandleCombatHotbarSlotEight();
 	void HandleCombatHotbarSlotNine();
 	void HandleCombatHotbarSlotZero();
+	void HandleCombatHotbarSlotApostrophe();
+	void HandleCombatHotbarSlotCaret();
 	bool TryStartMove(EGridEdge MoveDirection);
 	bool TryStartTurn(bool bTurnRight);
 

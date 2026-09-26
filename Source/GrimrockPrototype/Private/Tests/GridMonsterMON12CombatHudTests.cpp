@@ -384,9 +384,12 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest(const FString& Parameters)
 	}
 	TArray<FGridCombatHudActionView> Actions;
 	FGridCombatHudViewModelBuilder::BuildHotbarActions(Bindings, Catalog, Actions);
-	TestEqual(TEXT("The view always exposes ten hotbar slots"), Actions.Num(), 10);
+	TestEqual(TEXT("The view exposes the full persistent action bar"), Actions.Num(), FGridCombatHotbarBinding::SlotCount);
 	TestEqual(TEXT("The first slot displays key 1"), Actions[0].ShortcutText.ToString(), FString(TEXT("1")));
-	TestEqual(TEXT("The last slot displays key 0"), Actions[9].ShortcutText.ToString(), FString(TEXT("0")));
+	TestEqual(TEXT("Slot 10 displays key 0"), Actions[9].ShortcutText.ToString(), FString(TEXT("0")));
+	TestEqual(TEXT("Slot 11 displays apostrophe"), Actions[10].ShortcutText.ToString(), FString(TEXT("'")));
+	TestEqual(TEXT("Slot 12 displays caret"), Actions[11].ShortcutText.ToString(), FString(TEXT("^")));
+	TestTrue(TEXT("Mouse-only slots have no keyboard label"), Actions[12].ShortcutText.IsEmpty());
 	TestTrue(TEXT("An assigned action is resolved from the catalog"), Actions[0].bResolved);
 	TestFalse(TEXT("An unassigned slot stays empty"), Actions[9].bHasBinding);
 	TestEqual(TEXT("A disabled action keeps its reason"), Actions[2].DisabledReason.ToString(), FString(TEXT("PA insuffisants")));

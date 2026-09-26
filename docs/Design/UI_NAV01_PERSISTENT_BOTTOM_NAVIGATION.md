@@ -224,3 +224,10 @@ Le 20 septembre 2026, la passe manuelle de `WBP_GridCombatHud` a été validée 
 - barre persistante visible avec menu ouvert ou fermé.
 
 UI-NAV01 est donc clos côté C++, UMG et PIE.
+
+
+## UI-GLOBALHUD01 — ownership corrigé
+
+Depuis UI-GLOBALHUD01, la navigation globale n'appartient plus au HUD de combat. `UGridPersistentHudWidget` / `WBP_GridPersistentHud` en sont l'unique surface persistante. `WBP_GridCombatHud` ne conserve que les éléments strictement combat. Les anciens bindings optionnels dans le Combat HUD ne servent que de fallback de migration tant que le nouveau WBP n'est pas configuré.
+
+Référence : `docs/Design/UI_GLOBALHUD01_PERSISTENT_NAV_ACTION_BAR.md`.

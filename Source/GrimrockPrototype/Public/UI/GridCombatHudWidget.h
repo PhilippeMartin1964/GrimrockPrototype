@@ -333,12 +333,12 @@ public:
 	int32 VisibleInitiativeSlotCount = 8;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Hotbar", meta = (ClampMin = "0.0", ClampMax = "16.0", UIMin = "0.0", UIMax = "16.0"))
-	float HotbarSlotSpacing = 4.0f;
+	float HotbarSlotSpacing = 0.0f;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Combat|HUD")
 	TArray<TObjectPtr<UGridCombatActionPanelWidget>> PartyMemberPanels;
 
-	/** Fixed ten-slot pool; entries are refreshed instead of recreated. */
+	/** Legacy embedded action-bar pool. Hidden when UGridPersistentHudWidget owns persistent chrome. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Combat|HUD")
 	TArray<TObjectPtr<UGridCombatHudActionWidget>> HotbarActionWidgets;
 

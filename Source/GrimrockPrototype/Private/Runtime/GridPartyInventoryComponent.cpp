@@ -282,14 +282,8 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 			return false;
 		}
 
-		if (Character.CombatHotbarSlots.IsEmpty())
-		{
-			InitializeCombatHotbarDefaults(Character);
-		}
-		else
-		{
-			SanitizeCombatHotbarBindings(Character);
-		}
+		// UI-GLOBALHUD01: normalize legacy 10-slot saves to the current persistent action-bar size while preserving existing bindings.
+		InitializeCombatHotbarDefaults(Character);
 
 		FString HotbarError;
 		if (!ValidateCombatHotbar(Character, HotbarError))
@@ -307,14 +301,8 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 			return false;
 		}
 
-		if (Character.CombatHotbarSlots.IsEmpty())
-		{
-			InitializeCombatHotbarDefaults(Character);
-		}
-		else
-		{
-			SanitizeCombatHotbarBindings(Character);
-		}
+		// UI-GLOBALHUD01: normalize legacy 10-slot saves to the current persistent action-bar size while preserving existing bindings.
+		InitializeCombatHotbarDefaults(Character);
 
 		FString HotbarError;
 		if (!ValidateCombatHotbar(Character, HotbarError))

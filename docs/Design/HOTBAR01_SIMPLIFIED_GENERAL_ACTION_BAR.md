@@ -34,3 +34,12 @@ Quand la quantité tombe à zéro, le raccourci est supprimé automatiquement de
 Aucune compatibilité arrière de sauvegarde n'est maintenue pour les anciens bindings de hotbar supprimés pendant la phase prototype. HOTBAR01.2.1 retire l'ancien binding synthétique de lancer MainHand.
 
 Une attaque de combat de jet et un lancer physique utilitaire restent deux concepts distincts. Les raccourcis physiques actuels utilisent exclusivement `ThrowItem_<ItemDefinitionId>`.
+
+
+## UI-GLOBALHUD01 — séparation du HUD de combat
+
+La barre d'action générale est désormais une surface permanente de `WBP_GridPersistentHud`, et non un enfant conceptuel de `WBP_GridCombatHud`. Le stockage historique `CombatHotbarSlots` reste temporairement l'autorité unique afin d'éviter une migration de données parallèle.
+
+Le nombre canonique est porté à 16 slots : les 12 premiers affichent `1 2 3 4 5 6 7 8 9 0 ' ^` pour le profil clavier suisse ; les quatre suivants sont utilisables à la souris sans label clavier. Les slots sont jointifs et partagent la largeur disponible avec une règle `Fill`.
+
+Référence : `docs/Design/UI_GLOBALHUD01_PERSISTENT_NAV_ACTION_BAR.md`.
