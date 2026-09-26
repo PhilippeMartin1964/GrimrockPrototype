@@ -1,7 +1,7 @@
 # PARTY-WEIGHT01 — Overloaded Party Movement Lock
 
 Date : **26 septembre 2026**  
-Statut : **C++ prêt pour validation UE5.5.4**
+Statut : **PARTY-WEIGHT01.1 C++ prêt pour validation UE5.5.4**
 
 ## Décision gameplay
 
@@ -56,7 +56,7 @@ Conséquences :
 
 - même règle en exploration et en combat ;
 - aucune dépense de translation/AP combat lorsque la surcharge refuse le mouvement ;
-- aucun faux `BlockedMoveFeedback` de collision murale ;
+- le refus réutilise volontairement le `BlockedMoveFeedback` canonique : petit mouvement d'impact dans la direction tentée, retour à la cellule et son `BlockedMoveSounds` ;
 - les rotations ne sont pas affectées ;
 - les pits, téléporteurs et autres relocations forcées ne passent pas par ce verrou joueur.
 
@@ -80,6 +80,8 @@ Le test vérifie :
 - `CurrentWeight > MaxWeight` bloque ;
 - les quatre translations sont refusées ;
 - la cellule et la position ne changent pas ;
-- aucun feedback spatial n'est démarré ;
+- le feedback d'obstacle démarre pour les quatre directions ;
+- le son d'impact est demandé une fois au point d'impact ;
+- le Pawn revient exactement au centre de sa cellule ;
 - la rotation reste autorisée ;
 - le mouvement redevient immédiatement possible après retrait du poids excédentaire.

@@ -263,7 +263,7 @@ La progress bar de poids et le hook Blueprint `PresentInventoryWeightState` ont 
 
 `UGridPartyInventoryComponent` expose la requête gameplay `IsAnyActiveCharacterOverloaded()`, fondée sur le même calcul canonique que `WeightState`. `AGrimrockPartyPawn::TryStartMove()` refuse toute translation avant les règles spatiales ou le TurnManager lorsqu'au moins un personnage actif dépasse strictement sa capacité de portage.
 
-La surcharge bloque donc Forward / Backward / Strafe en exploration comme en combat, sans déclencher le feedback de collision murale et sans consommer une translation de combat. La rotation sur place, les pits et les relocations forcées restent autorisés.
+La surcharge bloque donc Forward / Backward / Strafe en exploration comme en combat et réutilise le feedback d'obstacle existant : petit mouvement d'impact, retour à la cellule et son `BlockedMoveSounds`. Le refus survient avant la translation combat, donc aucune translation/AP n'est consommée. La rotation sur place, les pits et les relocations forcées restent autorisés.
 
 Référence : `docs/Design/PARTY_WEIGHT01_OVERLOAD_MOVEMENT_LOCK.md`.
 
