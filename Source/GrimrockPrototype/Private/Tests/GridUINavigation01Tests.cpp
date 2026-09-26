@@ -111,6 +111,7 @@ bool FGridUINavigation01PageToggleTest::RunTest(const FString& Parameters)
 	auto PrepareVisibleTab = [Party, Menu](EInventoryTopTab Tab)
 	{
 		Menu->CurrentTopTab = Tab;
+		Menu->SetVisibility(ESlateVisibility::Visible);
 		Party->bInventoryWidgetVisible = true;
 	};
 
