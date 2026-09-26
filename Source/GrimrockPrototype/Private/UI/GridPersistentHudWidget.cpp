@@ -245,13 +245,13 @@ void UGridPersistentHudWidget::EnsureActionWidgets()
 			continue;
 		}
 
-		UHorizontalBoxSlot* Slot = ActionBarRow->AddChildToHorizontalBox(ActionWidget);
-		if (Slot)
+		UHorizontalBoxSlot* ActionSlot = ActionBarRow->AddChildToHorizontalBox(ActionWidget);
+		if (ActionSlot)
 		{
-			Slot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-			Slot->SetPadding(FMargin(0.0f));
-			Slot->SetHorizontalAlignment(HAlign_Fill);
-			Slot->SetVerticalAlignment(VAlign_Fill);
+			ActionSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			ActionSlot->SetPadding(FMargin(0.0f));
+			ActionSlot->SetHorizontalAlignment(HAlign_Fill);
+			ActionSlot->SetVerticalAlignment(VAlign_Fill);
 		}
 		ActionWidgets.Add(ActionWidget);
 	}
