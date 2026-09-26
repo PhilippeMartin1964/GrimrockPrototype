@@ -30,6 +30,7 @@
 #include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridCombatHotbarDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
+#include "UI/GridPersistentHudWidget.h"
 
 namespace
 {

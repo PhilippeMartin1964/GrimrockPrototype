@@ -154,7 +154,7 @@ Référence : `docs/Design/UI_ITEM01_ITEM_TOOLTIP_COMPARISON.md`.
 
 ### UI-NAV01 — barre inférieure persistante
 
-La navigation `ESC / I / K / G / M / J / H` n'est pas enfant du menu. Elle est intégrée à la surface HUD runtime persistante déjà portée par `WBP_GridCombatHud`, à côté de la hotbar MON12.
+La navigation `ESC / I / K / G / M / J / H` n'est pas enfant du menu ni du HUD de combat. Depuis UI-GLOBALHUD01, elle appartient à la surface runtime permanente `WBP_GridPersistentHud`, à côté de la barre générale d'actions.
 
 ```text
 WBP_GridPersistentHud

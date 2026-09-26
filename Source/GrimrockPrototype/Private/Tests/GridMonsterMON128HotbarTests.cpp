@@ -64,9 +64,9 @@ bool FGridMON128DefaultHotbarTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	TestEqual(TEXT("The component exposes ten hotbar slots"), Component->GetCombatHotbarSlotCount(), FGridCombatHotbarBinding::SlotCount);
+	TestEqual(TEXT("The component exposes the canonical action-bar slot count"), Component->GetCombatHotbarSlotCount(), FGridCombatHotbarBinding::SlotCount);
 	const FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
-	TestEqual(TEXT("A new character owns ten hotbar slots"), Character.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::SlotCount);
+	TestEqual(TEXT("A new character owns the canonical action-bar slots"), Character.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::SlotCount);
 	for (int32 SlotIndex = 0; SlotIndex < Character.CombatHotbarSlots.Num(); ++SlotIndex)
 	{
 		const FGridCombatHotbarBinding& Binding = Character.CombatHotbarSlots[SlotIndex];
