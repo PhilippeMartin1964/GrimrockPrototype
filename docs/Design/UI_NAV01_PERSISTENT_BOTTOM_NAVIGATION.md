@@ -228,6 +228,6 @@ UI-NAV01 est donc clos côté C++, UMG et PIE.
 
 ## UI-GLOBALHUD01 — ownership corrigé
 
-Depuis UI-GLOBALHUD01, la navigation globale n'appartient plus au HUD de combat. `UGridPersistentHudWidget` / `WBP_GridPersistentHud` en sont l'unique surface persistante. `WBP_GridCombatHud` ne conserve que les éléments strictement combat. Les anciens bindings optionnels dans le Combat HUD ne servent que de fallback de migration tant que le nouveau WBP n'est pas configuré.
+Depuis UI-GLOBALHUD01.3, la navigation globale n'appartient plus au HUD de combat, y compris comme fallback. `UGridPersistentHudWidget` / `WBP_GridPersistentHud` en sont l'unique surface persistante. Les anciens `Panel_GlobalNavigation`, boutons `Button_Nav*`, `Panel_Actions` et leurs bindings C++ ont été supprimés du contrat du Combat HUD.
 
 Référence : `docs/Design/UI_GLOBALHUD01_PERSISTENT_NAV_ACTION_BAR.md`.

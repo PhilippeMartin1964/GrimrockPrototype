@@ -1,5 +1,8 @@
 # HOTBAR01.2 — Remove Legacy Action Palette
 
+> **Mise à jour UI-GLOBALHUD01.3 (26.09.2026)** — La barre d'actions a quitté définitivement `WBP_GridCombatHud`. La section historique de migration UMG ci-dessous ne doit plus être appliquée : `VerticalBox_ActionArea`, `Panel_Actions` et tout le chrome bas du Combat HUD doivent être supprimés. La barre appartient à `WBP_GridPersistentHud`.
+
+
 Date : 01.09.2026
 
 ## Décision

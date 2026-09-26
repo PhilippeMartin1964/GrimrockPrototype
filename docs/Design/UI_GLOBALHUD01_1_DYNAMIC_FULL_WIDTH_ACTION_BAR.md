@@ -64,13 +64,11 @@ Le nombre visible peut donc diminuer lorsqu'une fenêtre devient plus petite san
 
 Si un binding existant se trouve au-delà de la capacité normalement calculée pour la largeur actuelle, le Persistent HUD conserve suffisamment de slots visibles pour que ce binding reste accessible.
 
-## Compatibilité
+## Politique prototype
 
-Le symbole historique `FGridCombatHotbarBinding::SlotCount` reste temporairement un alias de `MinimumSlotCount` pour limiter le bruit de migration. Il ne représente plus la largeur runtime de la barre.
+`FGridCombatHotbarBinding::SlotCount` a été supprimé par UI-GLOBALHUD01.3. Le seul seuil statique restant est `MinimumSlotCount = 12`; les méthodes runtime utilisent la longueur réelle du tableau du personnage.
 
-Les méthodes de binding utilisent désormais la longueur réelle du tableau du personnage.
-
-Lors du restore, une ancienne hotbar courte est étendue sans réécrire ses bindings existants avant validation. Les erreurs structurelles réelles (index stocké incohérent, binding invalide, etc.) restent donc rejetées atomiquement au lieu d'être silencieusement effacées.
+Aucune hotbar d'ancien schéma n'est migrée au restore. Une sauvegarde avec moins de 12 slots, sans hotbar ou avec des bindings structurellement invalides est rejetée. Les anciennes sauvegardes de prototype peuvent être supprimées.
 
 ## UMG
 

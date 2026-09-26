@@ -238,9 +238,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|UI", meta = (ClampMin = "0"))
 	int32 CombatActionPanelZOrder = 50;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|UI", meta = (ClampMin = "0"))
-	int32 CombatHotbarConfigurationZOrder = 150;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
 	TSubclassOf<URPGCharacterCreationWidget> CharacterCreationWidgetClass;
 

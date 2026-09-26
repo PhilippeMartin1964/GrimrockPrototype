@@ -13,7 +13,6 @@ class UGridCombatActionPanelWidget;
 class UGridCombatHotbarDragDropOperation;
 class UGridPartyInventoryComponent;
 class UGridTurnManagerComponent;
-class UHorizontalBox;
 class UImage;
 class UPanelWidget;
 class UProgressBar;
@@ -324,30 +323,13 @@ public:
 	TSubclassOf<UGridCombatActionPanelWidget> PartyMemberPanelWidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Classes")
-	TSubclassOf<UGridCombatHudActionWidget> ActionWidgetClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Classes")
 	TSubclassOf<UGridCombatHudInitiativeSlotWidget> InitiativeSlotWidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Initiative", meta = (ClampMin = "7", ClampMax = "10", UIMin = "7", UIMax = "10"))
 	int32 VisibleInitiativeSlotCount = 8;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Hotbar", meta = (ClampMin = "0.0", ClampMax = "16.0", UIMin = "0.0", UIMax = "16.0"))
-	float HotbarSlotSpacing = 0.0f;
-
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Combat|HUD")
 	TArray<TObjectPtr<UGridCombatActionPanelWidget>> PartyMemberPanels;
-
-	/** Legacy embedded action-bar pool. Hidden when UGridPersistentHudWidget owns persistent chrome. */
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "Combat|HUD")
-	TArray<TObjectPtr<UGridCombatHudActionWidget>> HotbarActionWidgets;
-
-	/**
-     * Legacy runtime row used only while the persistent HUD is not configured.
-     * Its widget count follows the current character's dynamic action-bar capacity.
-     */
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "Combat|HUD")
-	TObjectPtr<UHorizontalBox> HotbarRow;
 
 	/** Fixed widget pool; entries are updated instead of recreated. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Combat|HUD")
@@ -362,37 +344,6 @@ public:
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UPanelWidget> Panel_PartyMembers;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
-	TObjectPtr<UPanelWidget> Panel_Actions;
-
-	/**
-	 * UI-NAV01 persistent bottom navigation chrome. This panel is never tied to
-	 * combat state or GrimrockMenu visibility.
-	 */
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
-	TObjectPtr<UPanelWidget> Panel_GlobalNavigation;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
-	TObjectPtr<UButton> Button_NavEscape;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
-	TObjectPtr<UButton> Button_NavInventory;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
-	TObjectPtr<UButton> Button_NavSkills;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
-	TObjectPtr<UButton> Button_NavCrafting;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
-	TObjectPtr<UButton> Button_NavMap;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
-	TObjectPtr<UButton> Button_NavJournal;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Navigation")
-	TObjectPtr<UButton> Button_NavHelp;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UPanelWidget> Panel_Initiative;
@@ -492,37 +443,12 @@ private:
 	void BindToSources();
 	void UnbindFromSources();
 	void EnsurePartyMemberPanels();
-	void EnsureActionWidgets();
-	void RefreshActionWidgets();
 	void ApplyHotbarPresentationFallbacks();
 	void EnsureInitiativeWidgets();
 	void RefreshInitiativeWidgets();
 	void RefreshBoundWidgets();
 	void ApplyPersistentHudBottomClearance();
 	void ApplyBottomClearanceToWidget(UWidget* Widget, float Clearance);
-	void BindGlobalNavigationButtons();
-	void UnbindGlobalNavigationButtons();
-
-	UFUNCTION()
-	void HandleNavEscapeClicked();
-
-	UFUNCTION()
-	void HandleNavInventoryClicked();
-
-	UFUNCTION()
-	void HandleNavSkillsClicked();
-
-	UFUNCTION()
-	void HandleNavCraftingClicked();
-
-	UFUNCTION()
-	void HandleNavMapClicked();
-
-	UFUNCTION()
-	void HandleNavJournalClicked();
-
-	UFUNCTION()
-	void HandleNavHelpClicked();
 
 	void ValidateCombatActionTargetingState();
 	void RefreshTargetingWidgets();

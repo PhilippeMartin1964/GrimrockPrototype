@@ -29,7 +29,7 @@ public:
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "HUD|Persistent")
 	TObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
 
-	/** Optional override. Falls back to the action widget class configured on the combat HUD backend. */
+	/** Required visual class for persistent action-bar slots. The combat HUD no longer provides a fallback. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "HUD|Persistent|Actions")
 	TSubclassOf<UGridCombatHudActionWidget> ActionWidgetClass;
 

@@ -6,8 +6,6 @@
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
-#include "Components/HorizontalBox.h"
-#include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
@@ -18,7 +16,6 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/Widget.h"
-#include "Components/WrapBoxSlot.h"
 #include "InputCoreTypes.h"
 #include "Magic/GridPartySpellbookComponent.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
@@ -26,7 +23,6 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
-#include "Runtime/GrimrockPlayerController.h"
 #include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridCombatHotbarDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
@@ -802,8 +798,6 @@ void UGridCombatHudWidget::RefreshFromSources()
 			Panel->RefreshFromSources();
 		}
 	}
-	EnsureActionWidgets();
-	RefreshActionWidgets();
 	EnsureInitiativeWidgets();
 	RefreshInitiativeWidgets();
 	RefreshBoundWidgets();
@@ -1057,7 +1051,6 @@ bool UGridCombatHudWidget::ClearHotbarSlot(int32 SlotIndex)
 void UGridCombatHudWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	BindGlobalNavigationButtons();
 	if (Button_EndTurn)
 	{
 		Button_EndTurn->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleEndTurnClicked);
@@ -1070,15 +1063,12 @@ void UGridCombatHudWidget::NativeConstruct()
 void UGridCombatHudWidget::NativeDestruct()
 {
 	CancelCombatActionTargeting();
-	UnbindGlobalNavigationButtons();
 	if (Button_EndTurn)
 	{
 		Button_EndTurn->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleEndTurnClicked);
 	}
 	UnbindFromSources();
 	PartyMemberPanels.Reset();
-	HotbarActionWidgets.Reset();
-	HotbarRow = nullptr;
 	InitiativeSlotWidgets.Reset();
 	InitiativeRoundSeparatorWidgets.Reset();
 	InitiativeRoundSeparatorTexts.Reset();
@@ -1203,81 +1193,6 @@ void UGridCombatHudWidget::ApplyHotbarPresentationFallbacks()
 				ActionView.DisabledReason = FText::FromString(TEXT("Cette action n’est pas disponible actuellement."));
 				break;
 		}
-	}
-}
-
-void UGridCombatHudWidget::EnsureActionWidgets()
-{
-	if (!Panel_Actions || !ActionWidgetClass)
-	{
-		return;
-	}
-
-	if (UHorizontalBox* DesignerRow = Cast<UHorizontalBox>(Panel_Actions))
-	{
-		HotbarRow = DesignerRow;
-	}
-	else if (!IsValid(HotbarRow) || HotbarRow->GetParent() != Panel_Actions)
-	{
-		Panel_Actions->ClearChildren();
-		HotbarRow = WidgetTree
-			? WidgetTree->ConstructWidget<UHorizontalBox>(
-				  UHorizontalBox::StaticClass(), MakeUniqueObjectName(WidgetTree, UHorizontalBox::StaticClass(), TEXT("HorizontalBox_Hotbar_Runtime")))
-			: NewObject<UHorizontalBox>(this, MakeUniqueObjectName(this, UHorizontalBox::StaticClass(), TEXT("HorizontalBox_Hotbar_Runtime")));
-		if (!HotbarRow)
-		{
-			return;
-		}
-		UPanelSlot* ContainerSlot = Panel_Actions->AddChild(HotbarRow);
-		if (UWrapBoxSlot* WrapSlot = Cast<UWrapBoxSlot>(ContainerSlot))
-		{
-			WrapSlot->SetFillEmptySpace(true);
-		}
-	}
-
-	const int32 SlotCount = View.Actions.Num();
-	bool bPoolValid = IsValid(HotbarRow) && HotbarActionWidgets.Num() == SlotCount && HotbarRow->GetChildrenCount() == SlotCount;
-	for (const UGridCombatHudActionWidget* ActionWidget : HotbarActionWidgets)
-	{
-		bPoolValid = bPoolValid && IsValid(ActionWidget) && ActionWidget->GetParent() == HotbarRow;
-	}
-	if (bPoolValid)
-	{
-		return;
-	}
-
-	HotbarRow->ClearChildren();
-	HotbarActionWidgets.Reset(SlotCount);
-	for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
-	{
-		UGridCombatHudActionWidget* ActionWidget = CreateWidget<UGridCombatHudActionWidget>(this, ActionWidgetClass);
-		if (ActionWidget)
-		{
-			UHorizontalBoxSlot* HotbarSlot = HotbarRow->AddChildToHorizontalBox(ActionWidget);
-			if (HotbarSlot)
-			{
-				HotbarSlot->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
-				const float HalfSpacing = FMath::Max(0.0f, HotbarSlotSpacing) * 0.5f;
-				HotbarSlot->SetPadding(FMargin(HalfSpacing, 0.0f, HalfSpacing, 0.0f));
-				HotbarSlot->SetHorizontalAlignment(HAlign_Left);
-				HotbarSlot->SetVerticalAlignment(VAlign_Fill);
-			}
-			HotbarActionWidgets.Add(ActionWidget);
-		}
-	}
-}
-
-void UGridCombatHudWidget::RefreshActionWidgets()
-{
-	for (int32 SlotIndex = 0; SlotIndex < HotbarActionWidgets.Num(); ++SlotIndex)
-	{
-		UGridCombatHudActionWidget* ActionWidget = HotbarActionWidgets[SlotIndex];
-		if (!IsValid(ActionWidget) || !View.Actions.IsValidIndex(SlotIndex))
-		{
-			continue;
-		}
-		ActionWidget->InitializeAction(this, View.Actions[SlotIndex]);
-		ActionWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 
@@ -1414,134 +1329,6 @@ void UGridCombatHudWidget::RefreshInitiativeWidgets()
 	}
 }
 
-void UGridCombatHudWidget::BindGlobalNavigationButtons()
-{
-	if (Button_NavEscape)
-	{
-		Button_NavEscape->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavEscapeClicked);
-	}
-	if (Button_NavInventory)
-	{
-		Button_NavInventory->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavInventoryClicked);
-	}
-	if (Button_NavSkills)
-	{
-		Button_NavSkills->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavSkillsClicked);
-	}
-	if (Button_NavCrafting)
-	{
-		Button_NavCrafting->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavCraftingClicked);
-	}
-	if (Button_NavMap)
-	{
-		Button_NavMap->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavMapClicked);
-	}
-	if (Button_NavJournal)
-	{
-		Button_NavJournal->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavJournalClicked);
-	}
-	if (Button_NavHelp)
-	{
-		Button_NavHelp->OnClicked.AddUniqueDynamic(this, &UGridCombatHudWidget::HandleNavHelpClicked);
-	}
-}
-
-void UGridCombatHudWidget::UnbindGlobalNavigationButtons()
-{
-	if (Button_NavEscape)
-	{
-		Button_NavEscape->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavEscapeClicked);
-	}
-	if (Button_NavInventory)
-	{
-		Button_NavInventory->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavInventoryClicked);
-	}
-	if (Button_NavSkills)
-	{
-		Button_NavSkills->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavSkillsClicked);
-	}
-	if (Button_NavCrafting)
-	{
-		Button_NavCrafting->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavCraftingClicked);
-	}
-	if (Button_NavMap)
-	{
-		Button_NavMap->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavMapClicked);
-	}
-	if (Button_NavJournal)
-	{
-		Button_NavJournal->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavJournalClicked);
-	}
-	if (Button_NavHelp)
-	{
-		Button_NavHelp->OnClicked.RemoveDynamic(this, &UGridCombatHudWidget::HandleNavHelpClicked);
-	}
-}
-
-void UGridCombatHudWidget::HandleNavEscapeClicked()
-{
-	if (!IsValid(PartyPawn))
-	{
-		return;
-	}
-
-	if (AGrimrockPlayerController* PlayerController = Cast<AGrimrockPlayerController>(PartyPawn->GetController()))
-	{
-		PlayerController->RequestGlobalEscape();
-		return;
-	}
-
-	PartyPawn->HandleGlobalEscape();
-}
-
-void UGridCombatHudWidget::HandleNavInventoryClicked()
-{
-	if (IsValid(PartyPawn))
-	{
-		PartyPawn->ToggleInventoryWidget();
-	}
-}
-
-void UGridCombatHudWidget::HandleNavSkillsClicked()
-{
-	if (IsValid(PartyPawn))
-	{
-		PartyPawn->ToggleSkillsWidget();
-	}
-}
-
-void UGridCombatHudWidget::HandleNavCraftingClicked()
-{
-	if (IsValid(PartyPawn))
-	{
-		PartyPawn->ToggleCraftingWidget();
-	}
-}
-
-void UGridCombatHudWidget::HandleNavMapClicked()
-{
-	if (IsValid(PartyPawn))
-	{
-		PartyPawn->ToggleMapWidget();
-	}
-}
-
-void UGridCombatHudWidget::HandleNavJournalClicked()
-{
-	if (IsValid(PartyPawn))
-	{
-		PartyPawn->ToggleJournalWidget();
-	}
-}
-
-void UGridCombatHudWidget::HandleNavHelpClicked()
-{
-	if (IsValid(PartyPawn))
-	{
-		PartyPawn->ToggleHelpWidget();
-	}
-}
-
 void UGridCombatHudWidget::ApplyBottomClearanceToWidget(UWidget* Widget, float Clearance)
 {
 	if (!IsValid(Widget))
@@ -1578,24 +1365,12 @@ void UGridCombatHudWidget::ApplyPersistentHudBottomClearance()
 void UGridCombatHudWidget::RefreshBoundWidgets()
 {
 	ApplyPersistentHudBottomClearance();
-	const bool bPersistentHudOwnsGlobalChrome = IsValid(PartyPawn) && IsValid(PartyPawn->PersistentHudWidgetInstance);
-	if (Panel_GlobalNavigation)
-	{
-		Panel_GlobalNavigation->SetVisibility(
-			bPersistentHudOwnsGlobalChrome ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
-	}
 
 	const bool bConfiguringHotbar = IsValid(PartyPawn) && PartyPawn->bInventoryWidgetVisible;
 	const bool bShowCombatOnly = View.bCombatActive && !bConfiguringHotbar;
 	if (Panel_CombatHud)
 	{
 		Panel_CombatHud->SetVisibility(bShowCombatOnly ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
-	}
-	if (Panel_Actions)
-	{
-		Panel_Actions->SetVisibility(
-			bPersistentHudOwnsGlobalChrome ? ESlateVisibility::Collapsed
-									 : (View.ActiveCharacterIndex != INDEX_NONE ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed));
 	}
 	if (Panel_Initiative)
 	{

@@ -114,24 +114,13 @@ avec un minimum de 12. Le reliquat inférieur à la largeur d'un slot reste volo
 
 Le raccourci clavier est affiché en bas à droite. Le badge de quantité natif est déplacé en haut à droite pour éviter tout chevauchement.
 
-## Persistance / sauvegardes existantes
+## Persistance / politique prototype
 
-Le stockage historique s'appelle encore `FGridCombatHotbarBinding` / `CombatHotbarSlots`. Ce nom est désormais historique, mais il reste l'unique autorité de binding afin de ne pas créer une seconde barre.
+`FGridCombatHotbarBinding` / `CombatHotbarSlots` reste l'unique autorité de binding. `MinimumSlotCount = 12` garantit les douze raccourcis clavier, tandis que la capacité runtime peut croître avec la largeur du viewport.
 
-Le stockage n'a plus de taille visuelle canonique fixe. `FGridCombatHotbarBinding::MinimumSlotCount = 12` garantit seulement les douze raccourcis clavier.
+UI-GLOBALHUD01.3 applique la politique prototype existante : **aucune migration arrière de hotbar n'est maintenue**. Une sauvegarde vide, à 10 slots ou utilisant un ancien schéma est rejetée par la validation courante et peut être supprimée.
 
-Lors du chargement, `InitializeCombatHotbarDefaults()` :
-
-```text
-ancienne sauvegarde N slots
-    -> conserve tous les bindings existants
-    -> garantit au moins 12 slots
-    -> ne réduit jamais un tableau plus large
-```
-
-Lorsque le Persistent HUD détermine qu'une largeur donnée peut afficher davantage de slots, `EnsureCharacterCombatHotbarCapacity()` agrandit uniquement le personnage concerné. Le stockage n'est jamais réduit implicitement. Aucune migration de schéma SaveGame distincte n'est nécessaire pour ce `TArray`.
-
-Le renommage complet des types historiques `CombatHotbar*` pourra être réalisé dans un ticket de nettoyage après migration UMG ; il ne doit pas créer de seconde autorité.
+`EnsureCharacterCombatHotbarCapacity()` sert uniquement à agrandir une hotbar **courante** lorsque le Persistent HUD peut afficher davantage de slots. Il ne constitue pas un mécanisme de migration SaveGame.
 
 ## Migration UMG requise
 
@@ -170,11 +159,15 @@ Dans `BP_GrimrockPartyPawn` :
 Persistent Hud Widget Class = WBP_GridPersistentHud
 ```
 
-Pendant la migration, `WBP_GridCombatHud` peut encore contenir ses anciens `Panel_GlobalNavigation` et `Panel_Actions` : le C++ les collapse automatiquement dès que le Persistent HUD existe. Ils pourront ensuite être supprimés du Designer.
+Depuis UI-GLOBALHUD01.3, `WBP_GridCombatHud` ne possède plus de fallback navigation/hotbar. Les anciens `HorizontalBox_BottomBar`, `Panel_GlobalNavigation`, boutons ESC/I/K/G/M/J/H et `Panel_Actions` doivent être supprimés du Designer.
 
-## Compatibilité de migration
+`WBP_GridPersistentHud` doit renseigner explicitement :
 
-Si `PersistentHudWidgetClass` n'est pas encore configuré, le vieux chrome intégré à `WBP_GridCombatHud` reste visible. Cela permet de compiler et valider le C++ avant la modification UMG, sans écran cassé.
+```text
+Action Widget Class = WBP_GridCombatHudAction
+```
+
+Le Combat HUD ne fournit plus cette classe en fallback.
 
 ## Validation
 

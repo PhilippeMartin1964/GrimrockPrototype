@@ -26,8 +26,8 @@ namespace RPGCustomRecruitMON205Tests
 		Character.DerivedStats.MaxHealth = 10;
 		Character.Resources.CurrentHealth = 10;
 		Character.InventorySlots.SetNum(4);
-		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
-		for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
+		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
+		for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::MinimumSlotCount; ++SlotIndex)
 		{
 			Character.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);
 		}
@@ -142,7 +142,7 @@ bool FRPGMON205ValidCreateAndRecruitTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Recruit starts at level one"), Recruit.Level, 1);
 	TestEqual(TEXT("Recruit starts without XP"), Recruit.Experience, 0);
 	TestEqual(TEXT("Recruit inventory size uses component default"), Recruit.InventorySlots.Num(), 6);
-	TestEqual(TEXT("Recruit hotbar is structurally initialized"), Recruit.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::SlotCount);
+	TestEqual(TEXT("Recruit hotbar is structurally initialized"), Recruit.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::MinimumSlotCount);
 
 	FString OwnershipError;
 	TestTrue(TEXT("Committed party ownership remains valid"), Inventory->ValidateInventoryOwnership(OwnershipError));

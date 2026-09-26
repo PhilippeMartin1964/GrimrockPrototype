@@ -64,9 +64,9 @@ bool FGridMON128DefaultHotbarTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	TestEqual(TEXT("The component exposes the canonical action-bar slot count"), Component->GetCombatHotbarSlotCount(), FGridCombatHotbarBinding::SlotCount);
+	TestEqual(TEXT("The component exposes the canonical action-bar slot count"), Component->GetCombatHotbarSlotCount(), FGridCombatHotbarBinding::MinimumSlotCount);
 	const FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
-	TestEqual(TEXT("A new character owns the canonical action-bar slots"), Character.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::SlotCount);
+	TestEqual(TEXT("A new character owns the canonical action-bar slots"), Character.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::MinimumSlotCount);
 	for (int32 SlotIndex = 0; SlotIndex < Character.CombatHotbarSlots.Num(); ++SlotIndex)
 	{
 		const FGridCombatHotbarBinding& Binding = Character.CombatHotbarSlots[SlotIndex];
@@ -168,10 +168,10 @@ bool FGridMON128HotbarSaveRoundTripTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON128LegacySaveMigrationTest, "Grimrock.Monsters.MON12.8.1.LegacySaveGetsEmptyHotbar",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON128RejectLegacySaveWithoutHotbarTest, "Grimrock.Monsters.MON12.8.1.RejectLegacySaveWithoutHotbar",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMON128LegacySaveMigrationTest::RunTest(const FString& Parameters)
+bool FGridMON128RejectLegacySaveWithoutHotbarTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	UGridPartyInventoryComponent* SourceComponent = CreateMON128Inventory();
@@ -186,16 +186,10 @@ bool FGridMON128LegacySaveMigrationTest::RunTest(const FString& Parameters)
 
 	UGridPartyInventoryComponent* RestoredComponent = NewObject<UGridPartyInventoryComponent>();
 	FText RestoreError;
-	TestTrue(TEXT("A legacy snapshot without hotbar data is accepted"), RestoredComponent->RestorePartyInventoryState(LegacyState, RestoreError));
-	const TArray<FGridCombatHotbarBinding>& MigratedSlots = RestoredComponent->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots;
-	TestEqual(TEXT("The legacy character receives the minimum persistent action-bar capacity"), MigratedSlots.Num(), FGridCombatHotbarBinding::MinimumSlotCount);
-	TestTrue(TEXT("Legacy migration installs PrimaryAttack in slot 1"), MigratedSlots[0].IsPrimaryAttackBinding());
-	TestFalse(TEXT("Legacy migration creates no other shortcuts"),
-		MigratedSlots.ContainsByPredicate(
-			[](const FGridCombatHotbarBinding& Binding)
-			{
-				return Binding.SlotIndex > 0 && !Binding.IsEmpty();
-			}));
+	TestFalse(TEXT("A prototype-era snapshot without the current hotbar schema is rejected"),
+		RestoredComponent->RestorePartyInventoryState(LegacyState, RestoreError));
+	TestTrue(TEXT("Rejected obsolete hotbar data reports a validation error"), !RestoreError.IsEmpty());
+	TestTrue(TEXT("Rejected obsolete data does not fabricate a migrated party"), RestoredComponent->PartyInventoryState.ActiveCharacters.IsEmpty());
 	return true;
 }
 

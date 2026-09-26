@@ -1,5 +1,8 @@
 # MON12.7 — HUD de combat orienté actions
 
+> **Mise à jour UI-GLOBALHUD01.3 (26.09.2026)** — `WBP_GridCombatHud` est désormais strictement combat. Les instructions historiques ci-dessous concernant une hotbar ou une navigation globale intégrée au Combat HUD sont obsolètes ; ces surfaces appartiennent exclusivement à `WBP_GridPersistentHud`.
+
+
 > Mise à jour MON12.8.2 : la liste automatique documentée ci-dessous a été
 > remplacée par dix raccourcis fixes et configurables. Voir
 > `docs/Design/MON12_8_2_FIXED_COMBAT_HOTBAR_DRAG_DROP.md` pour l'état actuel

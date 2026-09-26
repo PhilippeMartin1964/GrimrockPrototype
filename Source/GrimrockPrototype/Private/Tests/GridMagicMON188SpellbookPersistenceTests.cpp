@@ -27,7 +27,7 @@ namespace GridMON188Tests
 		Character.CharacterId = CharacterId;
 		Character.Experience = 0;
 		Character.Level = 1;
-		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
+		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
 		for (int32 SlotIndex = 0; SlotIndex < Character.CombatHotbarSlots.Num(); ++SlotIndex)
 		{
 			Character.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);

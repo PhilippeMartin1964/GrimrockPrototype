@@ -39,7 +39,7 @@ namespace GridTD07333Characterization
 		Character.DerivedStats.Accuracy = 1;
 		Character.DerivedStats.Evasion = 1;
 		Character.InventorySlots.SetNum(4);
-		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
+		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
 		for (int32 SlotIndex = 0; SlotIndex < Character.CombatHotbarSlots.Num(); ++SlotIndex)
 		{
 			Character.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);

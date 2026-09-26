@@ -69,8 +69,6 @@ struct FGridCombatHotbarBinding
 
 	static constexpr int32 MinimumSlotCount = 12;
 	static constexpr int32 KeyboardShortcutSlotCount = 12;
-	/** Legacy compile-time alias: this is the minimum/default count, not the runtime visible capacity. */
-	static constexpr int32 SlotCount = MinimumSlotCount;
 	static constexpr int32 PrimaryAttackSlotIndex = 0;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Hotbar")

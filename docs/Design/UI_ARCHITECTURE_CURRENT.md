@@ -576,3 +576,14 @@ Le Persistent HUD calcule `floor((ViewportWidth - NavigationWidth) / ActionSlotW
 ### UI-GLOBALHUD01.2 — séparation verticale des contrôles combat
 
 Le HUD combat conserve PAM et Fin du tour, mais réserve 56 px au-dessus de la barre persistante. `UGridCombatHudWidget` applique cette clearance au conteneur optionnel `Panel_CombatBottomRight`, ou en fallback à `Text_MobilityActionPoints`, `Button_EndTurn` et `Text_EndTurnDisabledReason`. La translation UMG d'origine est conservée comme baseline.
+
+
+### UI-GLOBALHUD01.3 — suppression du chrome legacy du Combat HUD
+
+`UGridCombatHudWidget` ne possède plus de navigation globale ni de barre d'actions visuelle. Ont été supprimés du contrat natif : `Panel_GlobalNavigation`, `Button_Nav*`, `Panel_Actions`, `ActionWidgetClass`, `HotbarActionWidgets`, `HotbarRow`, `HotbarSlotSpacing` et les handlers navigation associés.
+
+`UGridPersistentHudWidget` est l'unique propriétaire de `ESC/I/K/G/M/J/H` et des widgets de slots. `ActionWidgetClass` doit y être configuré explicitement.
+
+Le Combat HUD conserve uniquement : initiative, panneaux des combattants, PAM, fin de tour, ciblage et le backend d'exécution des actions.
+
+La politique SaveGame du prototype est stricte : aucune migration des anciennes hotbars à 10 slots ou absentes. `FGridCombatHotbarBinding::SlotCount` est supprimé ; `MinimumSlotCount = 12` décrit uniquement le minimum du schéma courant.

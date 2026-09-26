@@ -297,13 +297,7 @@ void UGridPersistentHudWidget::EnsureActionWidgets()
 		return;
 	}
 
-	UGridCombatHudWidget* CombatHud = PartyPawn->CombatHudWidgetInstance;
-	TSubclassOf<UGridCombatHudActionWidget> EffectiveActionWidgetClass = ActionWidgetClass;
-	if (!EffectiveActionWidgetClass && IsValid(CombatHud))
-	{
-		EffectiveActionWidgetClass = CombatHud->ActionWidgetClass;
-	}
-	if (!EffectiveActionWidgetClass)
+	if (!ActionWidgetClass)
 	{
 		return;
 	}
@@ -341,7 +335,7 @@ void UGridPersistentHudWidget::EnsureActionWidgets()
 	ActionWidgets.Reset(SlotCount);
 	for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
 	{
-		UGridCombatHudActionWidget* ActionWidget = CreateWidget<UGridCombatHudActionWidget>(this, EffectiveActionWidgetClass);
+		UGridCombatHudActionWidget* ActionWidget = CreateWidget<UGridCombatHudActionWidget>(this, ActionWidgetClass);
 		if (!ActionWidget)
 		{
 			continue;

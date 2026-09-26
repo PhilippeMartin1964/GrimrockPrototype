@@ -65,8 +65,8 @@ namespace GridMON204RecruitmentUITests
 		Character.DerivedStats.MaxHealth = 10;
 		Character.Resources.CurrentHealth = 10;
 		Character.InventorySlots.SetNum(4);
-		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
-		for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
+		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
+		for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::MinimumSlotCount; ++SlotIndex)
 		{
 			Character.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);
 		}

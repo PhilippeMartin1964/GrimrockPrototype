@@ -198,17 +198,7 @@ void AGrimrockPartyPawn::ShowInventoryWorkspace()
 	bInventoryWorkspaceVisible = true;
 	bInventoryWidgetVisible = true;
 
-	if (PersistentHudWidgetInstance)
-	{
-		RefreshPersistentHudWidget();
-	}
-	else if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
-	{
-		// UI-GLOBALHUD01 migration fallback while WBP_GridPersistentHud is not configured yet.
-		CombatHudWidgetInstance->RemoveFromParent();
-		CombatHudWidgetInstance->AddToViewport(CombatHotbarConfigurationZOrder);
-		CombatHudWidgetInstance->RefreshFromSources();
-	}
+	RefreshPersistentHudWidget();
 
 	ApplyMajorUiInputMode(true);
 	UE_LOG(LogTemp, Log, TEXT("GridInventory SplitWorkspace Shown Pawn=%s Sheet=%s Bag=%s"), *GetName(),
@@ -284,17 +274,7 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 	MenuWidgetInstance->SetActiveTopTab(TopTab);
 	bInventoryWidgetVisible = true;
 
-	if (PersistentHudWidgetInstance)
-	{
-		RefreshPersistentHudWidget();
-	}
-	else if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
-	{
-		// UI-GLOBALHUD01 migration fallback while WBP_GridPersistentHud is not configured yet.
-		CombatHudWidgetInstance->RemoveFromParent();
-		CombatHudWidgetInstance->AddToViewport(CombatHotbarConfigurationZOrder);
-		CombatHudWidgetInstance->RefreshFromSources();
-	}
+	RefreshPersistentHudWidget();
 
 	ApplyMajorUiInputMode(true);
 	FInputModeGameAndUI InputMode;

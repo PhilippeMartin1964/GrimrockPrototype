@@ -5,13 +5,11 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
-#include "Components/CanvasPanelSlot.h"
 #include "Components/HorizontalBox.h"
 #include "Components/InputComponent.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
-#include "Components/WrapBox.h"
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
@@ -543,30 +541,10 @@ bool FGridMonsterMON12CombatHudLifecycleTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("The live HUD exposes four party panels"), Fixture.Hud->View.PartyMembers.Num(), 4);
 	TestEqual(TEXT("The first runtime combatant is active"), Fixture.Hud->View.ActiveCharacterIndex, 0);
 	TestEqual(TEXT("The HUD reads the shared PAM authority"), Fixture.Hud->View.Mobility.RemainingMobilityActionPoints, 2);
-	TestEqual(TEXT("The HUD exposes the canonical action-bar slot count"), Fixture.Hud->View.Actions.Num(), FGridCombatHotbarBinding::SlotCount);
+	TestEqual(TEXT("The HUD exposes the canonical action-bar slot count"), Fixture.Hud->View.Actions.Num(), FGridCombatHotbarBinding::MinimumSlotCount);
 	TestTrue(TEXT("Slot 1 is the protected PrimaryAttack binding"), Fixture.Hud->View.Actions[0].Binding.IsPrimaryAttackBinding());
 	TestTrue(TEXT("PrimaryAttack resolves automatically"), Fixture.Hud->View.Actions[0].bResolved);
 	TestEqual(TEXT("PrimaryAttack follows the equipped sword"), Fixture.Hud->View.Actions[0].Action.SourceDefinitionId, FName(TEXT("MON12_7_Sword")));
-
-	UWrapBox* LegacyWrapPanel = NewObject<UWrapBox>(Fixture.Hud, TEXT("Panel_Actions_Test"));
-	Fixture.Hud->Panel_Actions = LegacyWrapPanel;
-	Fixture.Hud->ActionWidgetClass = UGridCombatHudActionWidget::StaticClass();
-	Fixture.Hud->RefreshFromSources();
-	TestNotNull(TEXT("A horizontal hotbar row is created"), Fixture.Hud->HotbarRow.Get());
-	TestEqual(TEXT("The legacy wrap panel owns one row only"), LegacyWrapPanel->GetChildrenCount(), 1);
-	if (Fixture.Hud->HotbarRow)
-	{
-		TestEqual(TEXT("The legacy HUD fallback owns the canonical runtime shortcut widget count"), Fixture.Hud->HotbarActionWidgets.Num(), FGridCombatHotbarBinding::SlotCount);
-		TestEqual(TEXT("All fallback shortcuts share the same row"), Fixture.Hud->HotbarRow->GetChildrenCount(), FGridCombatHotbarBinding::SlotCount);
-		if (Fixture.Hud->HotbarActionWidgets.IsValidIndex(0))
-		{
-			TestEqual(TEXT("PrimaryAttack is rendered as an active shortcut"), Fixture.Hud->HotbarActionWidgets[0]->GetRenderOpacity(), 1.0f);
-		}
-		for (const UGridCombatHudActionWidget* ActionWidget : Fixture.Hud->HotbarActionWidgets)
-		{
-			TestTrue(TEXT("Each shortcut belongs to the horizontal row"), IsValid(ActionWidget) && ActionWidget->GetParent() == Fixture.Hud->HotbarRow);
-		}
-	}
 
 	FGridItemInstance EquippedSword;
 	TestTrue(TEXT("The fixture exposes the equipped sword"),
@@ -656,16 +634,15 @@ bool FGridMonsterMON1283HotbarClickExecutionTest::RunTest(const FString& Paramet
 	TestTrue(TEXT("Slot 1 keeps the protected PrimaryAttack alias"),
 		Fixture.Party->PartyInventoryComponent->GetCharacterCombatHotbarBinding(0, 0, PrimaryBinding) && PrimaryBinding.IsPrimaryAttackBinding());
 
-	UWrapBox* LegacyWrapPanel = NewObject<UWrapBox>(Fixture.Hud, TEXT("Panel_Actions_1283_Click"));
-	Fixture.Hud->Panel_Actions = LegacyWrapPanel;
-	Fixture.Hud->ActionWidgetClass = UGridCombatHudActionWidget::StaticClass();
 	Fixture.Hud->RefreshFromSources();
-	if (!TestTrue(TEXT("The first clickable slot exists"), Fixture.Hud->HotbarActionWidgets.IsValidIndex(0)))
+	UGridCombatHudActionWidget* ActionWidget = NewObject<UGridCombatHudActionWidget>(Fixture.Hud);
+	if (!TestNotNull(TEXT("A persistent action widget can bind to the combat execution backend"), ActionWidget))
 	{
 		return false;
 	}
+	ActionWidget->InitializeAction(Fixture.Hud, Fixture.Hud->View.Actions[0]);
 
-	TestTrue(TEXT("A short click executes the configured attack"), Fixture.Hud->HotbarActionWidgets[0]->TryExecuteAction());
+	TestTrue(TEXT("A short click executes the configured attack"), ActionWidget->TryExecuteAction());
 	TestEqual(TEXT("The click pays exactly two action points"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
 
 	FGridCombatActionRequestResult EmptyResult;
@@ -938,7 +915,6 @@ bool FGridMonsterMON1285ActionPaletteBindingTest::RunTest(const FString& Paramet
 	FGridCharacterInventoryState& Character = Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0];
 	Character.ClassId = MageClass->ClassId;
 	Character.ClassDefinition = MageClass;
-	Fixture.Hud->ActionWidgetClass = UGridCombatHudActionWidget::StaticClass();
 	Fixture.Hud->RefreshFromSources();
 
 	FGridAvailableCombatAction SpellAction;
@@ -1220,17 +1196,9 @@ bool FGridMonsterMON1287PersistentHotbarTest::RunTest(const FString& Parameters)
 	}
 
 	UCanvasPanel* RootPanel = NewObject<UCanvasPanel>(Fixture.Hud, TEXT("Panel_CombatHud_1287"));
-	UHorizontalBox* HotbarPanel = NewObject<UHorizontalBox>(Fixture.Hud, TEXT("Panel_Actions_1287"));
-	UCanvasPanelSlot* HotbarCanvasSlot = RootPanel->AddChildToCanvas(HotbarPanel);
-	HotbarCanvasSlot->SetAnchors(FAnchors(0.5f, 1.0f));
-	HotbarCanvasSlot->SetAlignment(FVector2D(0.5f, 1.0f));
-	HotbarCanvasSlot->SetPosition(FVector2D(0.0f, -24.0f));
-	HotbarCanvasSlot->SetSize(FVector2D(700.0f, 180.0f));
 	Fixture.Hud->Panel_CombatHud = RootPanel;
-	Fixture.Hud->Panel_Actions = HotbarPanel;
 	Fixture.Hud->Panel_Initiative = NewObject<UHorizontalBox>(Fixture.Hud, TEXT("Panel_Initiative_1287"));
 	Fixture.Hud->Button_EndTurn = NewObject<UButton>(Fixture.Hud, TEXT("Button_EndTurn_1287"));
-	Fixture.Hud->ActionWidgetClass = UGridCombatHudActionWidget::StaticClass();
 
 	Fixture.TurnManager->bCombatActive = false;
 	Fixture.TurnManager->CurrentPhase = EGridCombatPhase::Exploration;
@@ -1239,9 +1207,8 @@ bool FGridMonsterMON1287PersistentHotbarTest::RunTest(const FString& Parameters)
 
 	TestFalse(TEXT("The encounter is inactive"), Fixture.Hud->View.bCombatActive);
 	TestEqual(TEXT("The selected character owns the out-of-combat bar"), Fixture.Hud->View.ActiveCharacterIndex, 2);
-	TestEqual(TEXT("All ten slots remain projected out of combat"), Fixture.Hud->View.Actions.Num(), FGridCombatHotbarBinding::SlotCount);
-	TestEqual(TEXT("The HUD root remains visible out of combat"), RootPanel->GetVisibility(), ESlateVisibility::SelfHitTestInvisible);
-	TestEqual(TEXT("The fixed hotbar remains visible out of combat"), HotbarPanel->GetVisibility(), ESlateVisibility::SelfHitTestInvisible);
+	TestEqual(TEXT("The minimum persistent action-bar slots remain projected out of combat"), Fixture.Hud->View.Actions.Num(), FGridCombatHotbarBinding::MinimumSlotCount);
+	TestEqual(TEXT("Combat-only chrome is hidden out of combat"), RootPanel->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Combat-only initiative is hidden out of combat"), Fixture.Hud->Panel_Initiative->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Combat-only end turn is hidden out of combat"), Fixture.Hud->Button_EndTurn->GetVisibility(), ESlateVisibility::Collapsed);
 	TestTrue(TEXT("Out-of-combat slot 1 remains PrimaryAttack"), Fixture.Hud->View.Actions[0].Binding.IsPrimaryAttackBinding());

@@ -61,8 +61,8 @@ namespace GridMON203StoryCompanionTests
 		Character.DerivedStats.MaxHealth = 10;
 		Character.Resources.CurrentHealth = 10;
 		Character.InventorySlots.SetNum(4);
-		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
-		for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
+		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
+		for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::MinimumSlotCount; ++SlotIndex)
 		{
 			Character.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);
 		}
@@ -128,7 +128,7 @@ bool FGridMON203RegisterCandidateTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Level is copied"), Candidate.Level, 3);
 	TestEqual(TEXT("Level-three XP floor is derived"), Candidate.Experience, 3000);
 	TestEqual(TEXT("Inventory slots use party default"), Candidate.InventorySlots.Num(), Inventory->DefaultInventorySlotCountPerCharacter);
-	TestEqual(TEXT("Hotbar contains ten empty bindings"), Candidate.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::SlotCount);
+	TestEqual(TEXT("Hotbar contains ten empty bindings"), Candidate.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::MinimumSlotCount);
 	TestEqual(TEXT("Candidate uses current Attributes authority"), Candidate.Attributes.Strength, ClassDefinition->BaseAttributes.Strength);
 	return true;
 }

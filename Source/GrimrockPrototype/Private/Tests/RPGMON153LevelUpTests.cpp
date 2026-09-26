@@ -40,7 +40,7 @@ namespace
 		Character.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, Level);
 		Character.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Character.DerivedStats, ClassDefinition);
 		Character.InventorySlots.SetNum(1);
-		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
+		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
 		for (int32 SlotIndex = 0; SlotIndex < Character.CombatHotbarSlots.Num(); ++SlotIndex)
 		{
 			Character.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);
@@ -216,7 +216,7 @@ bool FRPGMON153ExperienceIntegrationTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Exactly one level-up event is emitted"), LevelEventCount, 1);
 	TestTrue(TEXT("Inventory runtime identity is preserved"), Character.InventorySlots[0].Item.RuntimeObjectId == SentinelRuntimeId);
 	TestEqual(TEXT("Inventory quantity is preserved"), Character.InventorySlots[0].Item.Quantity, 2);
-	TestTrue(TEXT("Hotbar remains present"), Character.CombatHotbarSlots.Num() == FGridCombatHotbarBinding::SlotCount);
+	TestTrue(TEXT("Hotbar remains present"), Character.CombatHotbarSlots.Num() == FGridCombatHotbarBinding::MinimumSlotCount);
 	return true;
 }
 

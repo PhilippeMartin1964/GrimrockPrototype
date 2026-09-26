@@ -15,7 +15,7 @@ Sa présentation et son exécution sont résolues dynamiquement :
 1. si la MainHand fournit une attaque d'équipement, cette attaque et l'icône de l'arme sont utilisées ;
 2. sinon, le slot retombe automatiquement sur `Attack_Unarmed` et son icône de poing.
 
-La sauvegarde persiste donc l'intention `PrimaryAttack`, pas l'identité runtime d'une arme particulière. Lors du chargement d'une ancienne sauvegarde, un ancien raccourci occupant le slot 1 est déplacé vers le premier slot libre parmi `2–9,0` lorsque c'est possible.
+La sauvegarde courante persiste l'intention `PrimaryAttack`, pas l'identité runtime d'une arme particulière. Aucune migration arrière des anciens schémas de hotbar n'est assurée pendant le prototype ; une sauvegarde obsolète doit être supprimée.
 
 ## Slots 2–9,0 : configuration directe
 

@@ -23,7 +23,7 @@ namespace GridTD07332Tests
 		Character.DerivedStats.MaxHealth = 10;
 		Character.Resources.CurrentHealth = 10;
 		Character.InventorySlots.SetNum(4);
-		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
+		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
 		for (int32 SlotIndex = 0; SlotIndex < Character.CombatHotbarSlots.Num(); ++SlotIndex)
 		{
 			Character.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);

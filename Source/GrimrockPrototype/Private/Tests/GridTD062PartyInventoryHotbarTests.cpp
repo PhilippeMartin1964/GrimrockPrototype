@@ -67,10 +67,10 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 			FString::Printf(TEXT("%s remains BlueprintCallable"), *FunctionName.ToString()), Function && Function->HasAnyFunctionFlags(FUNC_BlueprintCallable));
 	}
 
-	TestEqual(TEXT("The public hotbar contract exposes exactly ten slots"), Component->GetCombatHotbarSlotCount(), FGridCombatHotbarBinding::SlotCount);
-	TestEqual(TEXT("The default character owns exactly ten hotbar slots"), Component->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots.Num(),
-		FGridCombatHotbarBinding::SlotCount);
-	for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
+	TestEqual(TEXT("The public hotbar contract exposes the default minimum slot count"), Component->GetCombatHotbarSlotCount(), FGridCombatHotbarBinding::MinimumSlotCount);
+	TestEqual(TEXT("The default character owns the minimum hotbar capacity"), Component->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots.Num(),
+		FGridCombatHotbarBinding::MinimumSlotCount);
+	for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::MinimumSlotCount; ++SlotIndex)
 	{
 		const FGridCombatHotbarBinding& Binding = Component->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[SlotIndex];
 		TestEqual(FString::Printf(TEXT("Default slot %d keeps its normalized index"), SlotIndex), Binding.SlotIndex, SlotIndex);
@@ -89,8 +89,8 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 	UniversalBinding.SlotIndex = 9;
 	TestFalse(TEXT("A negative character index is rejected"), Component->SetCharacterCombatHotbarBinding(-1, 0, UniversalBinding));
 	TestFalse(TEXT("A negative hotbar slot is rejected"), Component->SetCharacterCombatHotbarBinding(0, -1, UniversalBinding));
-	TestFalse(TEXT("A slot past the fixed hotbar size is rejected"),
-		Component->SetCharacterCombatHotbarBinding(0, FGridCombatHotbarBinding::SlotCount, UniversalBinding));
+	TestFalse(TEXT("A slot past the character's current hotbar capacity is rejected"),
+		Component->SetCharacterCombatHotbarBinding(0, FGridCombatHotbarBinding::MinimumSlotCount, UniversalBinding));
 	TestTrue(TEXT("A valid universal action can be assigned"), Component->SetCharacterCombatHotbarBinding(0, 3, UniversalBinding));
 
 	FGridCombatHotbarBinding ReadBinding;
@@ -189,38 +189,38 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 	TestTrue(TEXT("The exhausted physical-throw shortcut is removed"), StoneBinding.IsEmpty());
 
 
-	UGridPartyInventoryComponent* LegacySource = GridTD062CreateInventory();
-	if (!TestNotNull(TEXT("The legacy hotbar source component is created"), LegacySource))
+	UGridPartyInventoryComponent* RecoverableSource = GridTD062CreateInventory();
+	if (!TestNotNull(TEXT("The recoverable hotbar source component is created"), RecoverableSource))
 	{
 		return false;
 	}
-	FGridPartyInventoryState LegacyState = LegacySource->PartyInventoryState;
-	LegacyState.bInitialCharacterCreationCompleted = true;
-	FGridCharacterInventoryState& LegacyCharacter = LegacyState.ActiveCharacters[0];
+	FGridPartyInventoryState RecoverableState = RecoverableSource->PartyInventoryState;
+	RecoverableState.bInitialCharacterCreationCompleted = true;
+	FGridCharacterInventoryState& RecoverableCharacter = RecoverableState.ActiveCharacters[0];
 
 	const FGuid DuplicateRuntimeId = FGuid::NewGuid();
-	FGridCombatHotbarBinding FirstLegacyEquipment = GridTD062MakeEquipmentBinding(DuplicateRuntimeId);
-	FirstLegacyEquipment.SlotIndex = 1;
-	LegacyCharacter.CombatHotbarSlots[1] = FirstLegacyEquipment;
-	FGridCombatHotbarBinding DuplicateLegacyEquipment = FirstLegacyEquipment;
-	DuplicateLegacyEquipment.SlotIndex = 7;
-	LegacyCharacter.CombatHotbarSlots[7] = DuplicateLegacyEquipment;
+	FGridCombatHotbarBinding FirstEquipment = GridTD062MakeEquipmentBinding(DuplicateRuntimeId);
+	FirstEquipment.SlotIndex = 1;
+	RecoverableCharacter.CombatHotbarSlots[1] = FirstEquipment;
+	FGridCombatHotbarBinding DuplicateEquipment = FirstEquipment;
+	DuplicateEquipment.SlotIndex = 7;
+	RecoverableCharacter.CombatHotbarSlots[7] = DuplicateEquipment;
 	FGridCombatHotbarBinding MissingQuickItem = GridTD062MakeQuickItemBinding(TEXT("Potion_TD062_Missing"));
 	MissingQuickItem.SlotIndex = 4;
-	LegacyCharacter.CombatHotbarSlots[4] = MissingQuickItem;
+	RecoverableCharacter.CombatHotbarSlots[4] = MissingQuickItem;
 
 	UGridPartyInventoryComponent* RestoredComponent = NewObject<UGridPartyInventoryComponent>();
 	FText RestoreError;
-	TestTrue(TEXT("A structurally recoverable legacy hotbar restores successfully"), RestoredComponent->RestorePartyInventoryState(LegacyState, RestoreError));
+	TestTrue(TEXT("A structurally recoverable current-schema hotbar restores successfully"), RestoredComponent->RestorePartyInventoryState(RecoverableState, RestoreError));
 
-	FGridCombatHotbarBinding PreservedLegacyEquipment;
-	FGridCombatHotbarBinding ClearedLegacyDuplicate;
+	FGridCombatHotbarBinding PreservedEquipment;
+	FGridCombatHotbarBinding ClearedDuplicate;
 	FGridCombatHotbarBinding ClearedMissingQuickItem;
-	RestoredComponent->GetCharacterCombatHotbarBinding(0, 1, PreservedLegacyEquipment);
-	RestoredComponent->GetCharacterCombatHotbarBinding(0, 7, ClearedLegacyDuplicate);
+	RestoredComponent->GetCharacterCombatHotbarBinding(0, 1, PreservedEquipment);
+	RestoredComponent->GetCharacterCombatHotbarBinding(0, 7, ClearedDuplicate);
 	RestoredComponent->GetCharacterCombatHotbarBinding(0, 4, ClearedMissingQuickItem);
-	TestTrue(TEXT("Restore preserves the first equipment shortcut"), PreservedLegacyEquipment.PreferredSourceRuntimeId == DuplicateRuntimeId);
-	TestTrue(TEXT("Restore sanitizes duplicate equipment shortcuts"), ClearedLegacyDuplicate.IsEmpty());
+	TestTrue(TEXT("Restore preserves the first equipment shortcut"), PreservedEquipment.PreferredSourceRuntimeId == DuplicateRuntimeId);
+	TestTrue(TEXT("Restore sanitizes duplicate equipment shortcuts"), ClearedDuplicate.IsEmpty());
 	TestTrue(TEXT("Restore sanitizes quick-item shortcuts whose source no longer exists"), ClearedMissingQuickItem.IsEmpty());
 
 	UGridPartyInventoryComponent* AtomicRestoreComponent = GridTD062CreateInventory();

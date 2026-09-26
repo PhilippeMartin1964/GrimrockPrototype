@@ -26,7 +26,7 @@ namespace
 	TArray<FGridCombatHotbarBinding> ReadMON187Hotbar(UGridPartyInventoryComponent& Inventory)
 	{
 		TArray<FGridCombatHotbarBinding> Bindings;
-		Bindings.SetNum(FGridCombatHotbarBinding::SlotCount);
+		Bindings.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
 		for (int32 SlotIndex = 0; SlotIndex < Bindings.Num(); ++SlotIndex)
 		{
 			Bindings[SlotIndex].Reset(SlotIndex);

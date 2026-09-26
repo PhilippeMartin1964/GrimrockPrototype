@@ -154,7 +154,7 @@ bool FGridHotbarContext01InventoryActionTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("The already-assigned state exposes a reason"), !AddAction->DisabledReason.IsEmpty());
 
 	TestTrue(TEXT("The stone shortcut can be cleared for the full-bar scenario"), Inventory->ClearCharacterCombatHotbarBinding(CharacterIndex, 1));
-	for (int32 SlotIndex = 1; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
+	for (int32 SlotIndex = 1; SlotIndex < FGridCombatHotbarBinding::MinimumSlotCount; ++SlotIndex)
 	{
 		FGridCombatHotbarBinding OccupiedBinding;
 		OccupiedBinding.ActionId = FName(*FString::Printf(TEXT("HOTBAR_CONTEXT01_Universal_%d"), SlotIndex));

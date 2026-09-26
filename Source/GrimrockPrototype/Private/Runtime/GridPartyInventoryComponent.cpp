@@ -123,21 +123,6 @@ namespace
 		PrimarySlot.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
 	}
 
-	void EnsureMinimumCombatHotbarCapacityPreservingBindings(FGridCharacterInventoryState& CharacterState)
-	{
-		const int32 PreviousCount = CharacterState.CombatHotbarSlots.Num();
-		if (PreviousCount >= FGridCombatHotbarBinding::MinimumSlotCount)
-		{
-			return;
-		}
-
-		CharacterState.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
-		for (int32 SlotIndex = PreviousCount; SlotIndex < CharacterState.CombatHotbarSlots.Num(); ++SlotIndex)
-		{
-			CharacterState.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);
-		}
-	}
-
 	void SanitizeCombatHotbarBindings(FGridCharacterInventoryState& CharacterState)
 	{
 		EnsurePrimaryAttackHotbarBinding(CharacterState);
@@ -297,16 +282,7 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 			return false;
 		}
 
-		if (Character.CombatHotbarSlots.IsEmpty())
-		{
-			InitializeCombatHotbarDefaults(Character);
-		}
-		else
-		{
-			// UI-GLOBALHUD01.1: grow legacy short arrays without rewriting malformed existing bindings before validation.
-			EnsureMinimumCombatHotbarCapacityPreservingBindings(Character);
-			SanitizeCombatHotbarBindings(Character);
-		}
+		SanitizeCombatHotbarBindings(Character);
 
 		FString HotbarError;
 		if (!ValidateCombatHotbar(Character, HotbarError))
@@ -324,16 +300,7 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 			return false;
 		}
 
-		if (Character.CombatHotbarSlots.IsEmpty())
-		{
-			InitializeCombatHotbarDefaults(Character);
-		}
-		else
-		{
-			// UI-GLOBALHUD01.1: grow legacy short arrays without rewriting malformed existing bindings before validation.
-			EnsureMinimumCombatHotbarCapacityPreservingBindings(Character);
-			SanitizeCombatHotbarBindings(Character);
-		}
+		SanitizeCombatHotbarBindings(Character);
 
 		FString HotbarError;
 		if (!ValidateCombatHotbar(Character, HotbarError))

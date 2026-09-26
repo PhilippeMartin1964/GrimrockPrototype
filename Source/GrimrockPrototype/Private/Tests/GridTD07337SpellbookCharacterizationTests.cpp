@@ -20,8 +20,8 @@ namespace GridTD07337Characterization
 		Character.CharacterId = CharacterId;
 		Character.Experience = 0;
 		Character.Level = 1;
-		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
-		for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
+		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
+		for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::MinimumSlotCount; ++SlotIndex)
 		{
 			Character.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);
 		}

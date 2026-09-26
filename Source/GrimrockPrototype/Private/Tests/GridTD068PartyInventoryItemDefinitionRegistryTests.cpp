@@ -164,9 +164,9 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 	SourcesComponent->PartyInventoryState.bHasCursorItem = true;
 
 	FGridCharacterInventoryState& ActiveCharacter = SourcesComponent->PartyInventoryState.ActiveCharacters[0];
-	if (ActiveCharacter.CombatHotbarSlots.Num() != FGridCombatHotbarBinding::SlotCount)
+	if (ActiveCharacter.CombatHotbarSlots.Num() != FGridCombatHotbarBinding::MinimumSlotCount)
 	{
-		AddError(TEXT("Default hotbar must contain exactly ten slots for TD06.8"));
+		AddError(TEXT("Default hotbar must contain the current minimum slot capacity for TD06.8"));
 		return false;
 	}
 	ActiveCharacter.CombatHotbarSlots[0] = GridTD068MakeBinding(0, EGridCombatActionSourcePolicy::Equipment, HotbarEquipmentId);
