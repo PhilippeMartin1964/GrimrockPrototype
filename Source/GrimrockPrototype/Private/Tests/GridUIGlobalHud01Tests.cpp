@@ -145,16 +145,16 @@ bool FGridUIGlobalHud01CombatChromeSplitTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Legacy embedded action bar is collapsed when the persistent HUD owns global chrome"),
 		CombatHud->Panel_Actions->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("PAM is raised above the persistent bottom HUD"),
-		CombatHud->Text_MobilityActionPoints->GetRenderTransform().Translation.Y, -56.0f);
+		CombatHud->Text_MobilityActionPoints->GetRenderTransform().Translation.Y, -56.0);
 	TestEqual(TEXT("End turn is raised above the persistent bottom HUD"),
-		CombatHud->Button_EndTurn->GetRenderTransform().Translation.Y, -56.0f);
+		CombatHud->Button_EndTurn->GetRenderTransform().Translation.Y, -56.0);
 	TestEqual(TEXT("Disabled end-turn feedback follows the combat controls"),
-		CombatHud->Text_EndTurnDisabledReason->GetRenderTransform().Translation.Y, -56.0f);
+		CombatHud->Text_EndTurnDisabledReason->GetRenderTransform().Translation.Y, -56.0);
 
 	Party->PersistentHudWidgetInstance = nullptr;
 	CombatHud->RefreshFromSources();
 	TestEqual(TEXT("Combat controls return to their authored baseline without a persistent HUD"),
-		CombatHud->Text_MobilityActionPoints->GetRenderTransform().Translation.Y, 0.0f);
+		CombatHud->Text_MobilityActionPoints->GetRenderTransform().Translation.Y, 0.0);
 	Party->PersistentHudWidgetInstance = PersistentHud;
 	CombatHud->RefreshFromSources();
 
