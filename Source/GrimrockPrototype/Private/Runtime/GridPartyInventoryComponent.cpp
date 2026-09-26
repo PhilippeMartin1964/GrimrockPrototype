@@ -123,6 +123,21 @@ namespace
 		PrimarySlot.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
 	}
 
+	void EnsureMinimumCombatHotbarCapacityPreservingBindings(FGridCharacterInventoryState& CharacterState)
+	{
+		const int32 PreviousCount = CharacterState.CombatHotbarSlots.Num();
+		if (PreviousCount >= FGridCombatHotbarBinding::MinimumSlotCount)
+		{
+			return;
+		}
+
+		CharacterState.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
+		for (int32 SlotIndex = PreviousCount; SlotIndex < CharacterState.CombatHotbarSlots.Num(); ++SlotIndex)
+		{
+			CharacterState.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);
+		}
+	}
+
 	void SanitizeCombatHotbarBindings(FGridCharacterInventoryState& CharacterState)
 	{
 		EnsurePrimaryAttackHotbarBinding(CharacterState);
@@ -282,8 +297,16 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 			return false;
 		}
 
-		// UI-GLOBALHUD01: normalize legacy saves to at least the persistent action-bar minimum while preserving any wider existing binding array.
-		InitializeCombatHotbarDefaults(Character);
+		if (Character.CombatHotbarSlots.IsEmpty())
+		{
+			InitializeCombatHotbarDefaults(Character);
+		}
+		else
+		{
+			// UI-GLOBALHUD01.1: grow legacy short arrays without rewriting malformed existing bindings before validation.
+			EnsureMinimumCombatHotbarCapacityPreservingBindings(Character);
+			SanitizeCombatHotbarBindings(Character);
+		}
 
 		FString HotbarError;
 		if (!ValidateCombatHotbar(Character, HotbarError))
@@ -301,8 +324,16 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 			return false;
 		}
 
-		// UI-GLOBALHUD01: normalize legacy saves to at least the persistent action-bar minimum while preserving any wider existing binding array.
-		InitializeCombatHotbarDefaults(Character);
+		if (Character.CombatHotbarSlots.IsEmpty())
+		{
+			InitializeCombatHotbarDefaults(Character);
+		}
+		else
+		{
+			// UI-GLOBALHUD01.1: grow legacy short arrays without rewriting malformed existing bindings before validation.
+			EnsureMinimumCombatHotbarCapacityPreservingBindings(Character);
+			SanitizeCombatHotbarBindings(Character);
+		}
 
 		FString HotbarError;
 		if (!ValidateCombatHotbar(Character, HotbarError))

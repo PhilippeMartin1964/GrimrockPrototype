@@ -188,7 +188,7 @@ bool FGridMON128LegacySaveMigrationTest::RunTest(const FString& Parameters)
 	FText RestoreError;
 	TestTrue(TEXT("A legacy snapshot without hotbar data is accepted"), RestoredComponent->RestorePartyInventoryState(LegacyState, RestoreError));
 	const TArray<FGridCombatHotbarBinding>& MigratedSlots = RestoredComponent->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots;
-	TestEqual(TEXT("The legacy character receives ten slots"), MigratedSlots.Num(), 10);
+	TestEqual(TEXT("The legacy character receives the minimum persistent action-bar capacity"), MigratedSlots.Num(), FGridCombatHotbarBinding::MinimumSlotCount);
 	TestTrue(TEXT("Legacy migration installs PrimaryAttack in slot 1"), MigratedSlots[0].IsPrimaryAttackBinding());
 	TestFalse(TEXT("Legacy migration creates no other shortcuts"),
 		MigratedSlots.ContainsByPredicate(
@@ -315,7 +315,7 @@ bool FGridMON128StableEquipmentResolutionTest::RunTest(const FString& Parameters
 	FGridCombatHotbarBinding Binding = MakeMON128EquipmentBinding(WeaponRuntimeId);
 	Binding.SlotIndex = 0;
 	TArray<FGridCombatHotbarBinding> Bindings;
-	Bindings.SetNum(FGridCombatHotbarBinding::SlotCount);
+	Bindings.SetNum(FGridCombatHotbarBinding::MinimumSlotCount + 3);
 	for (int32 SlotIndex = 0; SlotIndex < Bindings.Num(); ++SlotIndex)
 	{
 		Bindings[SlotIndex].Reset(SlotIndex);
@@ -333,7 +333,7 @@ bool FGridMON128StableEquipmentResolutionTest::RunTest(const FString& Parameters
 	TArray<FGridCombatHudActionView> Views;
 	FGridCombatHudViewModelBuilder::BuildHotbarActions(Bindings, AvailableActions, Views);
 
-	TestEqual(TEXT("The projection still contains ten fixed slots"), Views.Num(), 10);
+	TestEqual(TEXT("The projection preserves the supplied dynamic slot count"), Views.Num(), Bindings.Num());
 	TestTrue(TEXT("The same runtime weapon resolves after changing hand"), Views[0].bResolved);
 	TestTrue(TEXT("The resolved action uses its current hand"), Views[0].Action.SourceEquipmentSlot == EGridEquipmentSlot::OffHand);
 	return true;

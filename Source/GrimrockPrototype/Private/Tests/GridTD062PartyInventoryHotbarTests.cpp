@@ -231,15 +231,15 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 	const FGuid OriginalCharacterId = AtomicRestoreComponent->PartyInventoryState.ActiveCharacters[0].CharacterId;
 	FGridPartyInventoryState InvalidState = AtomicRestoreComponent->PartyInventoryState;
 	InvalidState.bInitialCharacterCreationCompleted = true;
-	InvalidState.ActiveCharacters[0].CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount - 1);
+	InvalidState.ActiveCharacters[0].CombatHotbarSlots[3].SlotIndex = 99;
 	FText InvalidRestoreError;
-	TestFalse(TEXT("Restore rejects a hotbar with the wrong fixed slot count"),
+	TestFalse(TEXT("Restore rejects a structurally malformed hotbar"),
 		AtomicRestoreComponent->RestorePartyInventoryState(InvalidState, InvalidRestoreError));
 	TestTrue(TEXT("Rejected restore reports a hotbar error"), !InvalidRestoreError.IsEmpty());
 	TestTrue(TEXT("Rejected restore preserves the previous authoritative character"),
 		AtomicRestoreComponent->PartyInventoryState.ActiveCharacters[0].CharacterId == OriginalCharacterId);
-	TestEqual(TEXT("Rejected restore preserves the previous valid hotbar"),
-		AtomicRestoreComponent->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots.Num(), FGridCombatHotbarBinding::SlotCount);
+	TestEqual(TEXT("Rejected restore preserves the previous valid hotbar capacity"),
+		AtomicRestoreComponent->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots.Num(), FGridCombatHotbarBinding::MinimumSlotCount);
 
 	return true;
 }

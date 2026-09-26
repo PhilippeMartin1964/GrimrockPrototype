@@ -70,6 +70,8 @@ Le symbole historique `FGridCombatHotbarBinding::SlotCount` reste temporairement
 
 Les méthodes de binding utilisent désormais la longueur réelle du tableau du personnage.
 
+Lors du restore, une ancienne hotbar courte est étendue sans réécrire ses bindings existants avant validation. Les erreurs structurelles réelles (index stocké incohérent, binding invalide, etc.) restent donc rejetées atomiquement au lieu d'être silencieusement effacées.
+
 ## UMG
 
 Aucun nouveau réglage destructif n'est demandé dans `WBP_GridPersistentHud`.
