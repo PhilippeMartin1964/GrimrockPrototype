@@ -51,12 +51,10 @@ Poids : CurrentWeight / MaxWeight
 Ces éléments sont voulus mais ne font pas partie du ticket actuel :
 
 1. **Icône d'encombrement sur le portrait** du personnage concerné.
-2. **Handicap gameplay de déplacement** lorsque la surcharge l'exige, par exemple davantage de temps pour passer d'une cellule à l'autre.
+2. **Implémenté par PARTY-WEIGHT01** : dès qu'un personnage actif est `Overloaded`, toute translation du groupe est interdite jusqu'à ce que sa charge redevienne `<= MaxWeight`. La rotation sur place reste autorisée.
 3. Polish visuel du résumé de poids.
 
-Le handicap de déplacement devra rester une règle gameplay C++, l'icône n'étant qu'une projection de l'état.
-
-Le seuil exact et la sévérité du handicap ne sont pas encore décidés et ne doivent pas être inventés dans l'UI.
+La règle de déplacement est désormais portée exclusivement par le C++ gameplay via `UGridPartyInventoryComponent::IsAnyActiveCharacterOverloaded()` et `AGrimrockPartyPawn::TryStartMove()`. L'icône reste une simple projection. Le seuil canonique reste strict : `CurrentWeight > MaxWeight`.
 
 ## UI-FILTER01
 
@@ -140,4 +138,4 @@ L'évolution prévue « icône d'encombrement sur le portrait » est désormais 
 
 Le C++ affiche cette icône uniquement lorsque `WeightState == Overloaded`. Le seuil `Heavy` reste disponible dans le read model mais n'allume pas l'alerte portrait.
 
-Le handicap de déplacement lié à la surcharge reste hors scope de ce jalon UI.
+Le verrou de déplacement lié à la surcharge est désormais implémenté par `PARTY-WEIGHT01`; UI-FEEDBACK01.1 reste uniquement responsable de son indication visuelle.

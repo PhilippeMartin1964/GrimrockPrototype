@@ -259,6 +259,14 @@ Le sac affiche uniquement `Text_InventoryBagWeight` sous la forme `Poids : Curre
 
 La progress bar de poids et le hook Blueprint `PresentInventoryWeightState` ont été supprimés. `WeightState` reste calculé en C++ pour les usages gameplay/UI utiles, notamment l'alerte de surcharge du portrait. Le poids n'influence jamais la capacité en slots.
 
+### PARTY-WEIGHT01 — surcharge bloquante pour le déplacement
+
+`UGridPartyInventoryComponent` expose la requête gameplay `IsAnyActiveCharacterOverloaded()`, fondée sur le même calcul canonique que `WeightState`. `AGrimrockPartyPawn::TryStartMove()` refuse toute translation avant les règles spatiales ou le TurnManager lorsqu'au moins un personnage actif dépasse strictement sa capacité de portage.
+
+La surcharge bloque donc Forward / Backward / Strafe en exploration comme en combat, sans déclencher le feedback de collision murale et sans consommer une translation de combat. La rotation sur place, les pits et les relocations forcées restent autorisés.
+
+Référence : `docs/Design/PARTY_WEIGHT01_OVERLOAD_MOVEMENT_LOCK.md`.
+
 ### UI-INV02 — transfert par drag vers un portrait
 
 Le drag d'un slot d'inventaire capture désormais le personnage source en plus du slot et de l'identité runtime. Les portraits `UGridPartyMemberWidget` sont des drop targets natifs.

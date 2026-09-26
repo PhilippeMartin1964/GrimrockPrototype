@@ -87,6 +87,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	bool GetCharacterSummary(int32 CharacterIndex, FGridInventoryCharacterSummary& OutSummary) const;
 
+	/** Gameplay query: true when at least one active party member exceeds their current carry capacity. */
+	bool IsAnyActiveCharacterOverloaded() const;
+
 	UFUNCTION(BlueprintPure, Category = "Combat|Hotbar")
 	int32 GetCombatHotbarSlotCount() const;
 

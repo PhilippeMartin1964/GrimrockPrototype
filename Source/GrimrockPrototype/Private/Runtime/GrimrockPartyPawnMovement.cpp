@@ -290,6 +290,12 @@ bool AGrimrockPartyPawn::TryStartMove(EGridEdge MoveDirection)
 		return false;
 	}
 
+	if (PartyInventoryComponent && PartyInventoryComponent->IsAnyActiveCharacterOverloaded())
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("Party movement rejected: at least one active character is overloaded."));
+		return false;
+	}
+
 	int32 NextX = CurrentCellX;
 	int32 NextY = CurrentCellY;
 

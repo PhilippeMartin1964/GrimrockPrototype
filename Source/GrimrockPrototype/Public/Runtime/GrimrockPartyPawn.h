@@ -730,6 +730,7 @@ private:
 	friend class FGridMonsterMON12PartyMobilityLifecycleTest;
 	friend class FGridPartyBlockedMovementFeedbackTest;
 	friend class FGridPartyMovementAudioFeedbackTest;
+	friend class FGridPartyWeightMovementLockTest;
 	friend class FGridPIT01FallLifecycleTest;
 	friend class FGridRELOC01RuntimeTest;
 };

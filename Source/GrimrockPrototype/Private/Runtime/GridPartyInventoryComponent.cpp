@@ -528,6 +528,21 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	return true;
 }
 
+bool UGridPartyInventoryComponent::IsAnyActiveCharacterOverloaded() const
+{
+	for (int32 CharacterIndex = 0; CharacterIndex < PartyInventoryState.ActiveCharacters.Num(); ++CharacterIndex)
+	{
+		const float CurrentWeight = CalculateCharacterCurrentWeight(CharacterIndex);
+		const float MaxWeight = FMath::Max(
+			0.0f, CalculateCharacterBaseMaxWeight(CharacterIndex) + ComputeCharacterEquipmentStatBonus(CharacterIndex).CarryWeightBonus);
+		if (ResolveInventoryWeightState(CurrentWeight, MaxWeight) == EGridInventoryWeightState::Overloaded)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 bool UGridPartyInventoryComponent::IsValidCharacterIndex(int32 Index) const
 {
 	return PartyInventoryState.IsValidActiveCharacterIndex(Index);
