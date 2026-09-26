@@ -167,6 +167,12 @@ Le menu peut être ouvert, fermé ou changer de page sans modifier la visibilit�
 
 Référence : `docs/Design/UI_NAV01_PERSISTENT_BOTTOM_NAVIGATION.md`.
 
+### UI-COMBAT01 — combat modal pour les grands panneaux
+
+Quand `UGridTurnManagerComponent::bCombatActive` devient vrai, `AGrimrockPartyPawn` replie les surfaces gameplay non-combat (Character Sheet, Inventory Bag et shell Skills/Recipes/Map/Journal/Codex) sans déclencher l'autosave de fermeture d'inventaire. Les mêmes surfaces ne peuvent pas être rouvertes tant que le combat reste actif. La barre inférieure persistante et la hotbar restent visibles.
+
+Référence : `docs/Design/UI_COMBAT01_CLOSE_NON_COMBAT_UI_ON_COMBAT_START.md`.
+
 ### UI-CHAR01 — personnage sélectionné unique
 
 La refonte ne crée aucun état parallèle. `UGridPartyInventoryComponent::SelectedCharacterIndex` reste l'unique autorité pour la feuille, le paper doll et le sac.

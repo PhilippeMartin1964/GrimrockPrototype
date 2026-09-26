@@ -14,6 +14,12 @@
 
 void AGrimrockPartyPawn::ToggleInventoryWidget()
 {
+	if (IsNonCombatUiBlockedByCombat())
+	{
+		CloseNonCombatUiForCombat();
+		return;
+	}
+
 	const bool bCharacterSheetVisible =
 		CharacterSheetWidgetInstance && CharacterSheetWidgetInstance->GetVisibility() != ESlateVisibility::Collapsed &&
 		CharacterSheetWidgetInstance->GetVisibility() != ESlateVisibility::Hidden;
@@ -68,6 +74,12 @@ bool AGrimrockPartyPawn::IsInventoryWorkspaceVisible() const
 
 void AGrimrockPartyPawn::ToggleMenuPage(EInventoryTopTab TopTab)
 {
+	if (IsNonCombatUiBlockedByCombat())
+	{
+		CloseNonCombatUiForCombat();
+		return;
+	}
+
 	if (bCharacterCreationModalActive || bIsPitFalling)
 	{
 		return;
@@ -135,6 +147,11 @@ bool AGrimrockPartyPawn::EnsureSplitInventoryWorkspaceWidgets(APlayerController*
 
 void AGrimrockPartyPawn::ShowInventoryWorkspace()
 {
+	if (IsNonCombatUiBlockedByCombat())
+	{
+		return;
+	}
+
 	if (bCharacterCreationModalActive || bIsPitFalling)
 	{
 		return;
@@ -209,6 +226,11 @@ void AGrimrockPartyPawn::CollapseInventoryWorkspaceForMenuPage()
 
 void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 {
+	if (IsNonCombatUiBlockedByCombat())
+	{
+		return;
+	}
+
 	if (bCharacterCreationModalActive || bIsPitFalling)
 	{
 		return;
@@ -402,6 +424,62 @@ void AGrimrockPartyPawn::HideInventoryWidget()
 	UE_LOG(LogTemp, Log, TEXT("Grimrock UI Hidden Pawn=%s"), *GetName());
 }
 
+void AGrimrockPartyPawn::CloseNonCombatUiForCombat()
+{
+	if (CharacterSheetWidgetInstance && CharacterSheetWidgetInstance->IsItemActionMenuOpen())
+	{
+		CharacterSheetWidgetInstance->CloseItemActionMenu(FName(TEXT("CombatStarted")));
+	}
+	if (InventoryBagWidgetInstance && InventoryBagWidgetInstance->IsItemActionMenuOpen())
+	{
+		InventoryBagWidgetInstance->CloseItemActionMenu(FName(TEXT("CombatStarted")));
+	}
+
+	if (MenuWidgetInstance)
+	{
+		MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (CharacterSheetWidgetInstance)
+	{
+		CharacterSheetWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (InventoryBagWidgetInstance)
+	{
+		InventoryBagWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	DismissReadableMessageIfVisible();
+
+	bInventoryWorkspaceVisible = false;
+	bInventoryWidgetVisible = false;
+
+	if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
+	{
+		CombatHudWidgetInstance->RemoveFromParent();
+		CombatHudWidgetInstance->AddToViewport(CombatActionPanelZOrder);
+		CombatHudWidgetInstance->RefreshFromSources();
+	}
+
+	ApplyMajorUiInputMode(false);
+	UE_LOG(LogTemp, Log, TEXT("UI-COMBAT01 NonCombatUiClosed Pawn=%s"), *GetName());
+}
+
+bool AGrimrockPartyPawn::IsNonCombatUiBlockedByCombat() const
+{
+	const UGridTurnManagerComponent* TurnManager = FindTurnManager();
+	return IsValid(TurnManager) && TurnManager->bCombatActive;
+}
+
+void AGrimrockPartyPawn::HandleCombatPhaseChangedForUi(EGridCombatPhase NewPhase)
+{
+	if (NewPhase == EGridCombatPhase::Exploration || !IsNonCombatUiBlockedByCombat())
+	{
+		return;
+	}
+
+	CloseNonCombatUiForCombat();
+}
+
 UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget() const
 {
 	// Context actions can originate from equipment on the sheet or items in
@@ -419,6 +497,12 @@ UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget() const
 
 bool AGrimrockPartyPawn::ShowCombatActionPanelWidget()
 {
+	UGridTurnManagerComponent* TurnManager = FindTurnManager();
+	if (TurnManager)
+	{
+		TurnManager->OnPhaseChanged.AddUniqueDynamic(this, &AGrimrockPartyPawn::HandleCombatPhaseChangedForUi);
+	}
+
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (!PlayerController)
 	{
@@ -426,7 +510,6 @@ bool AGrimrockPartyPawn::ShowCombatActionPanelWidget()
 		return false;
 	}
 
-	UGridTurnManagerComponent* TurnManager = IsValid(LevelRuntimeActor) ? LevelRuntimeActor->FindComponentByClass<UGridTurnManagerComponent>() : nullptr;
 	if (!CombatHudWidgetClass)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridCombatHud Show Failed Pawn=%s Reason=WidgetClassUnset"), *GetName());
@@ -453,6 +536,11 @@ bool AGrimrockPartyPawn::ShowCombatActionPanelWidget()
 
 void AGrimrockPartyPawn::HideCombatActionPanelWidget()
 {
+	if (UGridTurnManagerComponent* TurnManager = FindTurnManager())
+	{
+		TurnManager->OnPhaseChanged.RemoveDynamic(this, &AGrimrockPartyPawn::HandleCombatPhaseChangedForUi);
+	}
+
 	if (CombatHudWidgetInstance)
 	{
 		CombatHudWidgetInstance->RemoveFromParent();

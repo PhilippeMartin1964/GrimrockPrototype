@@ -6,6 +6,7 @@
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridObjectBehavior.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "Runtime/Combat/GridCombatTypes.h"
 #include "GrimrockPartyPawn.generated.h"
 
 class UCameraComponent;
@@ -394,6 +395,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|UI")
 	void RefreshCombatActionPanelWidget();
 
+	/** UI-COMBAT01: closes major non-combat gameplay surfaces without triggering inventory-close autosave. */
+	UFUNCTION(BlueprintCallable, Category = "Combat|UI")
+	void CloseNonCombatUiForCombat();
+
+	/** True while the authoritative TurnManager owns an active combat. */
+	UFUNCTION(BlueprintPure, Category = "Combat|UI")
+	bool IsNonCombatUiBlockedByCombat() const;
+
 	/** Executes a configured hotbar slot unless a modal UI owns input. */
 	UFUNCTION(BlueprintCallable, Category = "Combat|UI")
 	bool TryExecuteCombatHotbarSlot(int32 SlotIndex);
@@ -639,6 +648,9 @@ private:
 	void CollapseInventoryWorkspaceForMenuPage();
 	void ApplyMajorUiInputMode(bool bOpen);
 	void RefreshMajorUiVisibilityAfterSplitClose();
+
+	UFUNCTION()
+	void HandleCombatPhaseChangedForUi(EGridCombatPhase NewPhase);
 
 	UFUNCTION()
 	void HandleCharacterSheetWindowCloseClicked();
