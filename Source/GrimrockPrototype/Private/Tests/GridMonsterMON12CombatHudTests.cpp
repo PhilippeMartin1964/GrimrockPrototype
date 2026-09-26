@@ -543,7 +543,7 @@ bool FGridMonsterMON12CombatHudLifecycleTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("The live HUD exposes four party panels"), Fixture.Hud->View.PartyMembers.Num(), 4);
 	TestEqual(TEXT("The first runtime combatant is active"), Fixture.Hud->View.ActiveCharacterIndex, 0);
 	TestEqual(TEXT("The HUD reads the shared PAM authority"), Fixture.Hud->View.Mobility.RemainingMobilityActionPoints, 2);
-	TestEqual(TEXT("The HUD exposes ten fixed hotbar slots"), Fixture.Hud->View.Actions.Num(), 10);
+	TestEqual(TEXT("The HUD exposes the canonical action-bar slot count"), Fixture.Hud->View.Actions.Num(), FGridCombatHotbarBinding::SlotCount);
 	TestTrue(TEXT("Slot 1 is the protected PrimaryAttack binding"), Fixture.Hud->View.Actions[0].Binding.IsPrimaryAttackBinding());
 	TestTrue(TEXT("PrimaryAttack resolves automatically"), Fixture.Hud->View.Actions[0].bResolved);
 	TestEqual(TEXT("PrimaryAttack follows the equipped sword"), Fixture.Hud->View.Actions[0].Action.SourceDefinitionId, FName(TEXT("MON12_7_Sword")));
@@ -556,8 +556,8 @@ bool FGridMonsterMON12CombatHudLifecycleTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("The legacy wrap panel owns one row only"), LegacyWrapPanel->GetChildrenCount(), 1);
 	if (Fixture.Hud->HotbarRow)
 	{
-		TestEqual(TEXT("The HUD owns ten runtime shortcut widgets"), Fixture.Hud->HotbarActionWidgets.Num(), 10);
-		TestEqual(TEXT("All ten shortcuts share the same row"), Fixture.Hud->HotbarRow->GetChildrenCount(), 10);
+		TestEqual(TEXT("The legacy HUD fallback owns the canonical runtime shortcut widget count"), Fixture.Hud->HotbarActionWidgets.Num(), FGridCombatHotbarBinding::SlotCount);
+		TestEqual(TEXT("All fallback shortcuts share the same row"), Fixture.Hud->HotbarRow->GetChildrenCount(), FGridCombatHotbarBinding::SlotCount);
 		if (Fixture.Hud->HotbarActionWidgets.IsValidIndex(0))
 		{
 			TestEqual(TEXT("PrimaryAttack is rendered as an active shortcut"), Fixture.Hud->HotbarActionWidgets[0]->GetRenderOpacity(), 1.0f);
