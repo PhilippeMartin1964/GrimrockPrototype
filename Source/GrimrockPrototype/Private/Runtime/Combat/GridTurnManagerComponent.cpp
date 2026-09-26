@@ -606,7 +606,7 @@ bool UGridTurnManagerComponent::StartCombatInternal(const TArray<AGridMonsterAct
 	bCombatActive = true;
 	if (IsValid(PartyPawn))
 	{
-		PartyPawn->CloseNonCombatUiForCombat();
+		PartyPawn->HandleCombatStarted();
 	}
 	BuildGlobalInitiativeOrder();
 	BindCombatMonsterDeaths();

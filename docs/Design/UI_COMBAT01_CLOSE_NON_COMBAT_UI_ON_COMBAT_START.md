@@ -2,7 +2,7 @@
 
 ## Statut
 
-Implémentation C++ prête pour validation UE5.5.4.
+UI-COMBAT01 validé côté Automation. UI-COMBAT01-CLEAN01 consolide la transition avant la validation de régression finale.
 
 ## Objectif
 
@@ -27,7 +27,9 @@ La barre inférieure persistante portée par `WBP_GridCombatHud` n'est pas suppr
 ```text
 TurnManager.StartCombatInternal
     -> bCombatActive = true
-    -> PartyPawn.CloseNonCombatUiForCombat()
+    -> PartyPawn.HandleCombatStarted()
+        -> fermeture des modales gameplay incompatibles
+        -> CollapseMajorGameplayUi()
 ```
 
 Aucun abonnement UI, état parallèle ou dépendance au cycle de création du HUD n'est nécessaire.
@@ -38,26 +40,30 @@ Aucun Monster, système de perception ou appel `StartCombat...` ne connaît les 
 
 `HideInventoryWidget()` conserve son contrat utilisateur historique : une fermeture manuelle peut déclencher l'autosave configuré.
 
-La fermeture imposée par le combat utilise une route distincte :
+La mécanique de repli est unique :
 
 ```cpp
-CloseNonCombatUiForCombat()
+CollapseMajorGameplayUi()
 ```
 
-Elle replie les widgets et rend l'input au HUD sans appeler `SaveCurrentGame()`.
+Ce helper privé replie le shell, Character Sheet et Inventory Bag, remet les flags UI à zéro, restaure le Z-order normal du HUD et rend l'input gameplay.
 
-Cela évite de créer une seconde sauvegarde au moment où MON18.9.1 possède déjà l'autorité du checkpoint pré-combat.
+`HideInventoryWidget()` l'utilise puis applique son autosave historique. `HandleCombatStarted()` l'utilise sans autosave, après avoir fermé les menus contextuels, le message lisible et les modales de recrutement déjà ouvertes.
+
+Cela évite toute duplication de fermeture et conserve MON18.9.1 comme seule autorité du checkpoint pré-combat.
 
 ## Réouverture pendant le combat
 
 Tant que `TurnManager->bCombatActive` est vrai :
 
-- `ToggleInventoryWidget()` ne rouvre pas l'inventaire ;
-- `ToggleMenuPage()` ne rouvre aucune page ;
+- `ToggleInventoryWidget()` retourne immédiatement ;
+- `ToggleMenuPage()` retourne immédiatement ;
 - `ShowInventoryWorkspace()` refuse une ouverture directe ;
-- `ShowMenuPage()` refuse une ouverture directe.
+- `ShowMenuPage()` refuse une ouverture directe ;
+- le recrutement compagnon et le recrutement custom ne peuvent pas rester ouverts au démarrage du combat ;
+- le recrutement compagnon ne peut pas être ouvert pendant un combat.
 
-Les touches/boutons `I/K/G/M/J/H` restent donc visibles via UI-NAV01 mais sont sans effet sur les grands panneaux pendant le combat.
+Les touches/boutons `I/K/G/M/J/H` restent donc visibles via UI-NAV01 mais sont sans effet pendant le combat. Elles ne rejouent plus la fermeture ni ses effets de bord.
 
 À la fin du combat, `bCombatActive=false` lève automatiquement ce verrou ; aucun état UI combat séparé n'est persisté.
 

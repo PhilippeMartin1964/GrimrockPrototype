@@ -14,9 +14,8 @@
 
 void AGrimrockPartyPawn::ToggleInventoryWidget()
 {
-	if (IsNonCombatUiBlockedByCombat())
+	if (IsMajorGameplayUiBlockedByCombat())
 	{
-		CloseNonCombatUiForCombat();
 		return;
 	}
 
@@ -74,9 +73,8 @@ bool AGrimrockPartyPawn::IsInventoryWorkspaceVisible() const
 
 void AGrimrockPartyPawn::ToggleMenuPage(EInventoryTopTab TopTab)
 {
-	if (IsNonCombatUiBlockedByCombat())
+	if (IsMajorGameplayUiBlockedByCombat())
 	{
-		CloseNonCombatUiForCombat();
 		return;
 	}
 
@@ -147,7 +145,7 @@ bool AGrimrockPartyPawn::EnsureSplitInventoryWorkspaceWidgets(APlayerController*
 
 void AGrimrockPartyPawn::ShowInventoryWorkspace()
 {
-	if (IsNonCombatUiBlockedByCombat())
+	if (IsMajorGameplayUiBlockedByCombat())
 	{
 		return;
 	}
@@ -226,7 +224,7 @@ void AGrimrockPartyPawn::CollapseInventoryWorkspaceForMenuPage()
 
 void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 {
-	if (IsNonCombatUiBlockedByCombat())
+	if (IsMajorGameplayUiBlockedByCombat())
 	{
 		return;
 	}
@@ -385,7 +383,7 @@ void AGrimrockPartyPawn::HandleGlobalEscape()
 	OnInGameMainMenuRequested();
 }
 
-void AGrimrockPartyPawn::HideInventoryWidget()
+void AGrimrockPartyPawn::CollapseMajorGameplayUi()
 {
 	if (MenuWidgetInstance)
 	{
@@ -411,6 +409,11 @@ void AGrimrockPartyPawn::HideInventoryWidget()
 	}
 
 	ApplyMajorUiInputMode(false);
+}
+
+void AGrimrockPartyPawn::HideInventoryWidget()
+{
+	CollapseMajorGameplayUi();
 
 	if (bAutoSaveOnInventoryClose && PartyInventoryComponent && PartyInventoryComponent->HasCompletedInitialCharacterCreation())
 	{
@@ -424,7 +427,7 @@ void AGrimrockPartyPawn::HideInventoryWidget()
 	UE_LOG(LogTemp, Log, TEXT("Grimrock UI Hidden Pawn=%s"), *GetName());
 }
 
-void AGrimrockPartyPawn::CloseNonCombatUiForCombat()
+void AGrimrockPartyPawn::HandleCombatStarted()
 {
 	if (CharacterSheetWidgetInstance && CharacterSheetWidgetInstance->IsItemActionMenuOpen())
 	{
@@ -435,36 +438,21 @@ void AGrimrockPartyPawn::CloseNonCombatUiForCombat()
 		InventoryBagWidgetInstance->CloseItemActionMenu(FName(TEXT("CombatStarted")));
 	}
 
-	if (MenuWidgetInstance)
+	if (IsCustomRecruitCharacterCreationModalActive())
 	{
-		MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		CloseCustomRecruitCharacterCreationWidget();
 	}
-	if (CharacterSheetWidgetInstance)
+	if (IsStoryCompanionRecruitmentModalActive())
 	{
-		CharacterSheetWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
-	}
-	if (InventoryBagWidgetInstance)
-	{
-		InventoryBagWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		CloseStoryCompanionRecruitmentWidget();
 	}
 
 	DismissReadableMessageIfVisible();
-
-	bInventoryWorkspaceVisible = false;
-	bInventoryWidgetVisible = false;
-
-	if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
-	{
-		CombatHudWidgetInstance->RemoveFromParent();
-		CombatHudWidgetInstance->AddToViewport(CombatActionPanelZOrder);
-		CombatHudWidgetInstance->RefreshFromSources();
-	}
-
-	ApplyMajorUiInputMode(false);
-	UE_LOG(LogTemp, Log, TEXT("UI-COMBAT01 NonCombatUiClosed Pawn=%s"), *GetName());
+	CollapseMajorGameplayUi();
+	UE_LOG(LogTemp, Log, TEXT("UI-COMBAT01 CombatUiTransition Pawn=%s"), *GetName());
 }
 
-bool AGrimrockPartyPawn::IsNonCombatUiBlockedByCombat() const
+bool AGrimrockPartyPawn::IsMajorGameplayUiBlockedByCombat() const
 {
 	const UGridTurnManagerComponent* TurnManager = FindTurnManager();
 	return IsValid(TurnManager) && TurnManager->bCombatActive;

@@ -394,13 +394,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|UI")
 	void RefreshCombatActionPanelWidget();
 
-	/** UI-COMBAT01: closes major non-combat gameplay surfaces without triggering inventory-close autosave. */
-	UFUNCTION(BlueprintCallable, Category = "Combat|UI")
-	void CloseNonCombatUiForCombat();
-
-	/** True while the authoritative TurnManager owns an active combat. */
-	UFUNCTION(BlueprintPure, Category = "Combat|UI")
-	bool IsNonCombatUiBlockedByCombat() const;
+	/** UI-COMBAT01: authoritative combat-start transition invoked by the TurnManager after bCombatActive becomes true. */
+	void HandleCombatStarted();
 
 	/** Executes a configured hotbar slot unless a modal UI owns input. */
 	UFUNCTION(BlueprintCallable, Category = "Combat|UI")
@@ -645,6 +640,8 @@ private:
 	void ShowMenuPage(EInventoryTopTab TopTab);
 	bool EnsureSplitInventoryWorkspaceWidgets(APlayerController* PlayerController);
 	void CollapseInventoryWorkspaceForMenuPage();
+	void CollapseMajorGameplayUi();
+	bool IsMajorGameplayUiBlockedByCombat() const;
 	void ApplyMajorUiInputMode(bool bOpen);
 	void RefreshMajorUiVisibilityAfterSplitClose();
 	UFUNCTION()

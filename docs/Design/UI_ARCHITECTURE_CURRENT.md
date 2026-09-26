@@ -169,7 +169,7 @@ Référence : `docs/Design/UI_NAV01_PERSISTENT_BOTTOM_NAVIGATION.md`.
 
 ### UI-COMBAT01 — combat modal pour les grands panneaux
 
-Quand `UGridTurnManagerComponent::bCombatActive` devient vrai, `AGrimrockPartyPawn` replie les surfaces gameplay non-combat (Character Sheet, Inventory Bag et shell Skills/Recipes/Map/Journal/Codex) sans déclencher l'autosave de fermeture d'inventaire. Les mêmes surfaces ne peuvent pas être rouvertes tant que le combat reste actif. La barre inférieure persistante et la hotbar restent visibles.
+Quand `UGridTurnManagerComponent::bCombatActive` devient vrai, il appelle une unique transition C++ `AGrimrockPartyPawn::HandleCombatStarted()`. Le Pawn ferme les surfaces gameplay incompatibles puis réutilise le helper privé `CollapseMajorGameplayUi()`, également utilisé par la fermeture utilisateur de l'inventaire. L'autosave reste uniquement dans `HideInventoryWidget()`. Les grands panneaux ne peuvent pas être rouverts tant que le combat reste actif ; la barre inférieure persistante et la hotbar restent visibles.
 
 Référence : `docs/Design/UI_COMBAT01_CLOSE_NON_COMBAT_UI_ON_COMBAT_START.md`.
 

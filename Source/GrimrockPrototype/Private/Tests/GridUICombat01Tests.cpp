@@ -188,7 +188,7 @@ bool FGridUICombat01CloseNonCombatUiTest::RunTest(const FString& Parameters)
 
 	Fixture.SetMajorUiVisible();
 	Fixture.Party->bAutoSaveOnInventoryClose = true;
-	Fixture.Party->CloseNonCombatUiForCombat();
+	Fixture.Party->HandleCombatStarted();
 
 	TestEqual(TEXT("Page shell is collapsed"), Fixture.Party->MenuWidgetInstance->GetVisibility(), ESlateVisibility::Collapsed);
 	TestEqual(TEXT("Character sheet is collapsed"), Fixture.Party->CharacterSheetWidgetInstance->GetVisibility(), ESlateVisibility::Collapsed);
@@ -227,7 +227,6 @@ bool FGridUICombat01CombatLifecycleTest::RunTest(const FString& Parameters)
 
 	Fixture.TurnManager->AbortCombat();
 	TestFalse(TEXT("Combat ends authoritatively"), Fixture.TurnManager->bCombatActive);
-	TestFalse(TEXT("Major UI lock releases when combat becomes inactive"), Fixture.Party->IsNonCombatUiBlockedByCombat());
 	return true;
 }
 

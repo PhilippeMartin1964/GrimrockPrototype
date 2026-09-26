@@ -2,6 +2,7 @@
 
 #include "GameFramework/PlayerController.h"
 #include "RPG/RPGStoryCompanionAsset.h"
+#include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/RPGStoryCompanionRecruitmentWidget.h"
 
@@ -19,6 +20,13 @@ bool AGrimrockPartyPawn::ShowStoryCompanionRecruitmentWidget(URPGStoryCompanionA
 	{
 		UE_LOG(LogGridRecruitmentRuntime, Warning, TEXT("[GridRecruitmentRuntime] Show Failed Pawn=%s Companion=%s Reason=InvalidDefinition"), *GetName(),
 			*GetNameSafe(CompanionDefinition));
+		return false;
+	}
+
+	if (const UGridTurnManagerComponent* TurnManager = FindTurnManager(); IsValid(TurnManager) && TurnManager->bCombatActive)
+	{
+		UE_LOG(LogGridRecruitmentRuntime, Log, TEXT("[GridRecruitmentRuntime] Show Rejected Pawn=%s Companion=%s Reason=CombatActive Phase=%d Round=%d"),
+			*GetName(), *CompanionDefinition->CompanionId.ToString(), static_cast<int32>(TurnManager->CurrentPhase), TurnManager->RoundNumber);
 		return false;
 	}
 
