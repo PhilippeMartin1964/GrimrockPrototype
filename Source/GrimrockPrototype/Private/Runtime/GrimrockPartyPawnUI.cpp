@@ -466,13 +466,40 @@ void AGrimrockPartyPawn::CloseNonCombatUiForCombat()
 
 bool AGrimrockPartyPawn::IsNonCombatUiBlockedByCombat() const
 {
-	const UGridTurnManagerComponent* TurnManager = FindTurnManager();
+	const UGridTurnManagerComponent* TurnManager = CombatUiTurnManager.IsValid() ? CombatUiTurnManager.Get() : FindTurnManager();
 	return IsValid(TurnManager) && TurnManager->bCombatActive;
+}
+
+void AGrimrockPartyPawn::BindCombatUiLifecycle(UGridTurnManagerComponent* TurnManager)
+{
+	if (!IsValid(TurnManager))
+	{
+		return;
+	}
+	if (CombatUiTurnManager.Get() == TurnManager)
+	{
+		TurnManager->OnPhaseChanged.AddUniqueDynamic(this, &AGrimrockPartyPawn::HandleCombatPhaseChangedForUi);
+		return;
+	}
+
+	UnbindCombatUiLifecycle();
+	CombatUiTurnManager = TurnManager;
+	TurnManager->OnPhaseChanged.AddUniqueDynamic(this, &AGrimrockPartyPawn::HandleCombatPhaseChangedForUi);
+}
+
+void AGrimrockPartyPawn::UnbindCombatUiLifecycle()
+{
+	if (UGridTurnManagerComponent* TurnManager = CombatUiTurnManager.Get())
+	{
+		TurnManager->OnPhaseChanged.RemoveDynamic(this, &AGrimrockPartyPawn::HandleCombatPhaseChangedForUi);
+	}
+	CombatUiTurnManager.Reset();
 }
 
 void AGrimrockPartyPawn::HandleCombatPhaseChangedForUi(EGridCombatPhase NewPhase)
 {
-	if (NewPhase == EGridCombatPhase::Exploration || !IsNonCombatUiBlockedByCombat())
+	const UGridTurnManagerComponent* TurnManager = CombatUiTurnManager.Get();
+	if (NewPhase == EGridCombatPhase::Exploration || !IsValid(TurnManager) || !TurnManager->bCombatActive)
 	{
 		return;
 	}
@@ -498,10 +525,7 @@ UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget() const
 bool AGrimrockPartyPawn::ShowCombatActionPanelWidget()
 {
 	UGridTurnManagerComponent* TurnManager = FindTurnManager();
-	if (TurnManager)
-	{
-		TurnManager->OnPhaseChanged.AddUniqueDynamic(this, &AGrimrockPartyPawn::HandleCombatPhaseChangedForUi);
-	}
+	BindCombatUiLifecycle(TurnManager);
 
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (!PlayerController)
@@ -536,11 +560,6 @@ bool AGrimrockPartyPawn::ShowCombatActionPanelWidget()
 
 void AGrimrockPartyPawn::HideCombatActionPanelWidget()
 {
-	if (UGridTurnManagerComponent* TurnManager = FindTurnManager())
-	{
-		TurnManager->OnPhaseChanged.RemoveDynamic(this, &AGrimrockPartyPawn::HandleCombatPhaseChangedForUi);
-	}
-
 	if (CombatHudWidgetInstance)
 	{
 		CombatHudWidgetInstance->RemoveFromParent();

@@ -22,7 +22,7 @@ La barre inférieure persistante portée par `WBP_GridCombatHud` n'est pas suppr
 
 `UGridTurnManagerComponent` reste l'unique autorité du combat.
 
-`AGrimrockPartyPawn` écoute `OnPhaseChanged`. Lorsque la phase quitte `Exploration` et que `bCombatActive=true`, il exécute :
+`AGrimrockPartyPawn` s'abonne explicitement à `OnPhaseChanged` dans son cycle de vie (`BeginPlay`/`EndPlay`). Le TurnManager lié est conservé comme référence runtime faible afin que le handler lise exactement la même autorité qui a émis l'événement. Lorsque la phase quitte `Exploration` et que `bCombatActive=true`, il exécute :
 
 ```text
 TurnManager.OnPhaseChanged

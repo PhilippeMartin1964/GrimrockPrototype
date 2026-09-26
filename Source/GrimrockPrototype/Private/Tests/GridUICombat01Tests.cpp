@@ -133,9 +133,7 @@ bool FGridUICombat01CombatLifecycleTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	// ShowCombatActionPanelWidget binds the UI lifecycle before it attempts HUD creation,
-	// so this transient test does not require a PlayerController or UMG class.
-	Fixture.Party->ShowCombatActionPanelWidget();
+	Fixture.Party->BindCombatUiLifecycle(Fixture.TurnManager);
 	Fixture.SetMajorUiVisible();
 	Fixture.TurnManager->bCombatActive = true;
 

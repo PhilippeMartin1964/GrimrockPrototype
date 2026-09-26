@@ -107,6 +107,8 @@ void AGrimrockPartyPawn::BeginPlay()
 		UE_LOG(LogTemp, Warning, TEXT("GrimrockPartyPawn: LevelRuntimeActor has no LevelAsset, keeping configured pawn start."));
 	}
 
+	BindCombatUiLifecycle(FindTurnManager());
+
 	const bool bFreshDungeonPlaytest = GridPIEPlaytestRequest::Matches(LevelRuntimeActor);
 	bool bLoadedSavedGame = false;
 	if (PartyInventoryComponent)
@@ -246,6 +248,7 @@ void AGrimrockPartyPawn::BeginPlay()
 
 void AGrimrockPartyPawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	UnbindCombatUiLifecycle();
 	HideCombatActionPanelWidget();
 
 	const bool bFreshDungeonPlaytest = GridPIEPlaytestRequest::Matches(LevelRuntimeActor);
