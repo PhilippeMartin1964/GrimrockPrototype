@@ -4,6 +4,7 @@
 
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Core/GridLevelAsset.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -61,6 +62,7 @@ namespace
 	{
 		FGridUICombat01TestWorld TestWorld;
 		AGridLevelRuntimeActor* Runtime = nullptr;
+		UGridLevelAsset* Level = nullptr;
 		AGrimrockPartyPawn* Party = nullptr;
 		UGridTurnManagerComponent* TurnManager = nullptr;
 		AGridMonsterActor* Monster = nullptr;
@@ -78,7 +80,26 @@ namespace
 			{
 				return false;
 			}
+			Runtime->bApplyLevelStartOnBeginPlay = false;
+			Level = NewObject<UGridLevelAsset>(Runtime);
+			Level->Width = 8;
+			Level->Height = 8;
+			Level->EnsureCellCount();
+			for (FGridLevelCellData& Cell : Level->Cells)
+			{
+				Cell.CellType = EGridCellType::Floor;
+				Cell.bBlocksOccupancy = false;
+				Cell.NorthWall = EGridWallType::None;
+				Cell.EastWall = EGridWallType::None;
+				Cell.SouthWall = EGridWallType::None;
+				Cell.WestWall = EGridWallType::None;
+			}
+			Runtime->LevelAsset = Level;
+
 			Party->LevelRuntimeActor = Runtime;
+			Party->CurrentCellX = 1;
+			Party->CurrentCellY = 1;
+			Party->SetActorLocation(Runtime->GetCellCenterWorld(1, 1));
 
 			FGridCharacterInventoryState Character;
 			Character.CharacterId = FGuid::NewGuid();
