@@ -12,6 +12,8 @@
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockParty, Log, All);
+
 namespace
 {
 	constexpr float GridRelocationFadeOutDuration = 0.35f;
@@ -293,7 +295,7 @@ bool AGrimrockPartyPawn::TryStartMove(EGridEdge MoveDirection)
 
 	if (PartyInventoryComponent && PartyInventoryComponent->IsAnyActiveCharacterOverloaded())
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("Party movement rejected: at least one active character is overloaded."));
+		UE_LOG(LogGrimrockParty, Verbose, TEXT("Party movement rejected: at least one active character is overloaded."));
 		TryStartBlockedMoveFeedback(MoveDirection);
 		return false;
 	}

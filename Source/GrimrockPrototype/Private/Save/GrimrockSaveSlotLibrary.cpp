@@ -2,6 +2,8 @@
 
 #include "Runtime/GrimrockPartyPawn.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockPartySave, Log, All);
+
 bool UGrimrockSaveSlotLibrary::SetPartySaveSlot(AGrimrockPartyPawn* PartyPawn, const FString& SlotName, int32 UserIndex, FText& OutError)
 {
 	OutError = FText::GetEmpty();
@@ -27,7 +29,7 @@ bool UGrimrockSaveSlotLibrary::SetPartySaveSlot(AGrimrockPartyPawn* PartyPawn, c
 	PartyPawn->PartySaveSlotName = SlotName;
 	PartyPawn->PartySaveUserIndex = UserIndex;
 
-	UE_LOG(LogTemp, Log, TEXT("PartySave ActiveSlot Set Pawn=%s Slot=%s UserIndex=%d"), *GetNameSafe(PartyPawn), *PartyPawn->PartySaveSlotName,
+	UE_LOG(LogGrimrockPartySave, Verbose, TEXT("PartySave ActiveSlot Set Pawn=%s Slot=%s UserIndex=%d"), *GetNameSafe(PartyPawn), *PartyPawn->PartySaveSlotName,
 		PartyPawn->PartySaveUserIndex);
 
 	return true;
@@ -45,7 +47,7 @@ bool UGrimrockSaveSlotLibrary::SavePartyGameToSlot(AGrimrockPartyPawn* PartyPawn
 		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("PartySave SavedToSlot Pawn=%s Slot=%s UserIndex=%d KeepActive=true"), *GetNameSafe(PartyPawn), *SlotName, UserIndex);
+	UE_LOG(LogGrimrockPartySave, Verbose, TEXT("PartySave SavedToSlot Pawn=%s Slot=%s UserIndex=%d KeepActive=true"), *GetNameSafe(PartyPawn), *SlotName, UserIndex);
 
 	return true;
 }
@@ -73,7 +75,7 @@ bool UGrimrockSaveSlotLibrary::SavePartyGameCopyToSlot(AGrimrockPartyPawn* Party
 	PartyPawn->PartySaveSlotName = PreviousSlotName;
 	PartyPawn->PartySaveUserIndex = PreviousUserIndex;
 
-	UE_LOG(LogTemp, Log, TEXT("PartySave CopyToSlot Pawn=%s Slot=%s UserIndex=%d RestoredActiveSlot=%s RestoredUserIndex=%d Result=%s"),
+	UE_LOG(LogGrimrockPartySave, Verbose, TEXT("PartySave CopyToSlot Pawn=%s Slot=%s UserIndex=%d RestoredActiveSlot=%s RestoredUserIndex=%d Result=%s"),
 		*GetNameSafe(PartyPawn), *SlotName, UserIndex, *PartyPawn->PartySaveSlotName, PartyPawn->PartySaveUserIndex, bSaved ? TEXT("true") : TEXT("false"));
 
 	return bSaved;

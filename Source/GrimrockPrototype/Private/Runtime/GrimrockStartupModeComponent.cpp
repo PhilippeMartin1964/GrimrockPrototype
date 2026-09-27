@@ -155,11 +155,11 @@ void UGrimrockStartupModeComponent::TryAdvanceNewGameRuntimeBuild()
 		FText SaveError;
 		if (!PartyPawn->SaveCurrentGame(SaveError))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("PartySave InitialFrontendCharacter Failed Slot=%s Reason=%s"), *PartyPawn->PartySaveSlotName, *SaveError.ToString());
+			UE_LOG(LogGrimrockStartupMode, Warning, TEXT("PartySave InitialFrontendCharacter Failed Slot=%s Reason=%s"), *PartyPawn->PartySaveSlotName, *SaveError.ToString());
 		}
 		else
 		{
-			UE_LOG(LogTemp, Log, TEXT("PartySave InitialFrontendCharacter Saved Slot=%s"), *PartyPawn->PartySaveSlotName);
+			UE_LOG(LogGrimrockStartupMode, Verbose, TEXT("PartySave InitialFrontendCharacter Saved Slot=%s"), *PartyPawn->PartySaveSlotName);
 		}
 
 		GameInstance->CompletePendingNewGameDungeonBuild();

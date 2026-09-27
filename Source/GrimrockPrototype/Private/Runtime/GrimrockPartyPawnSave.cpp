@@ -12,6 +12,8 @@
 #include "UI/GridInventoryBagWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockPartySave, Log, All);
+
 namespace
 {
 	UGridPartySpellbookComponent* GridPartyPawnSaveGetSpellbookComponent(AGrimrockPartyPawn* PartyPawn)
@@ -61,7 +63,7 @@ bool AGrimrockPartyPawn::SaveCurrentGame(FText& OutError)
 	if (FGridCombatSavePolicy::IsSaveBlockedByCombatState(FindTurnManager()))
 	{
 		OutError = FText::FromString(TEXT("La sauvegarde est interdite pendant un combat ou après une défaite."));
-		UE_LOG(LogTemp, Log, TEXT("PartySave SaveRejected Slot=%s Reason=CombatStateNotSaveable"), *PartySaveSlotName);
+		UE_LOG(LogGrimrockPartySave, Verbose, TEXT("PartySave SaveRejected Slot=%s Reason=CombatStateNotSaveable"), *PartySaveSlotName);
 		return false;
 	}
 
@@ -99,7 +101,7 @@ bool AGrimrockPartyPawn::SaveCurrentGame(FText& OutError)
 		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("PartySave Saved Slot=%s Version=%d Characters=%d KnownSpellCharacters=%d Cell=(%d,%d) Facing=%d"), *PartySaveSlotName,
+	UE_LOG(LogGrimrockPartySave, Verbose, TEXT("PartySave Saved Slot=%s Version=%d Characters=%d KnownSpellCharacters=%d Cell=(%d,%d) Facing=%d"), *PartySaveSlotName,
 		SaveGame->SaveVersion, SaveGame->PartyInventoryState.ActiveCharacters.Num(), GridPartyPawnSaveCountKnownSpellCharacters(SaveGame->PartyInventoryState),
 		CurrentCellX, CurrentCellY, static_cast<int32>(Facing));
 	return true;
@@ -271,7 +273,7 @@ bool AGrimrockPartyPawn::LoadCurrentGame(FText& OutError)
 		}
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("PartySave Loaded Slot=%s"), *PartySaveSlotName);
+	UE_LOG(LogGrimrockPartySave, Verbose, TEXT("PartySave Loaded Slot=%s"), *PartySaveSlotName);
 	return true;
 }
 
@@ -318,6 +320,6 @@ bool AGrimrockPartyPawn::StartNewGame(FText& OutError)
 	}
 
 	ShowInitialCharacterCreationWidget();
-	UE_LOG(LogTemp, Log, TEXT("PartySave NewGame Slot=%s"), *PartySaveSlotName);
+	UE_LOG(LogGrimrockPartySave, Verbose, TEXT("PartySave NewGame Slot=%s"), *PartySaveSlotName);
 	return true;
 }

@@ -13,6 +13,8 @@
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/RPGCharacterCreationWidget.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockPartyUI, Log, All);
+
 void AGrimrockPartyPawn::ToggleInventoryWidget()
 {
 	if (IsMajorGameplayUiBlockedByCombat())
@@ -159,19 +161,19 @@ void AGrimrockPartyPawn::ShowInventoryWorkspace()
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (!PlayerController)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitWorkspace Show Failed Pawn=%s Reason=NoPlayerController"), *GetName());
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridInventory SplitWorkspace Show Failed Pawn=%s Reason=NoPlayerController"), *GetName());
 		return;
 	}
 
 	if (!IsSplitInventoryWorkspaceConfigured())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitWorkspace Show Failed Pawn=%s Reason=WidgetClassesUnset"), *GetName());
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridInventory SplitWorkspace Show Failed Pawn=%s Reason=WidgetClassesUnset"), *GetName());
 		return;
 	}
 
 	if (!EnsureSplitInventoryWorkspaceWidgets(PlayerController))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitWorkspace Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridInventory SplitWorkspace Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
 		return;
 	}
 
@@ -201,7 +203,7 @@ void AGrimrockPartyPawn::ShowInventoryWorkspace()
 	RefreshPersistentHudWidget();
 
 	ApplyMajorUiInputMode(true);
-	UE_LOG(LogTemp, Log, TEXT("GridInventory SplitWorkspace Shown Pawn=%s Sheet=%s Bag=%s"), *GetName(),
+	UE_LOG(LogGrimrockPartyUI, Verbose, TEXT("GridInventory SplitWorkspace Shown Pawn=%s Sheet=%s Bag=%s"), *GetName(),
 		*GetNameSafe(CharacterSheetWidgetInstance), *GetNameSafe(InventoryBagWidgetInstance));
 }
 
@@ -239,13 +241,13 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (!PlayerController)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GrimrockMenu UI Show Failed Pawn=%s Reason=NoPlayerController"), *GetName());
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GrimrockMenu UI Show Failed Pawn=%s Reason=NoPlayerController"), *GetName());
 		return;
 	}
 
 	if (!MenuWidgetClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GrimrockMenu UI Show Failed Pawn=%s Reason=NoMenuWidgetClass"), *GetName());
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GrimrockMenu UI Show Failed Pawn=%s Reason=NoMenuWidgetClass"), *GetName());
 		return;
 	}
 
@@ -262,7 +264,7 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 
 	if (!MenuWidgetInstance)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GrimrockMenu UI Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GrimrockMenu UI Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
 		return;
 	}
 
@@ -283,7 +285,7 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 	InputMode.SetHideCursorDuringCapture(false);
 	PlayerController->SetInputMode(InputMode);
 
-	UE_LOG(LogTemp, Log, TEXT("GrimrockMenu UI Shown Pawn=%s TopTab=%d"), *GetName(), static_cast<int32>(TopTab));
+	UE_LOG(LogGrimrockPartyUI, Verbose, TEXT("GrimrockMenu UI Shown Pawn=%s TopTab=%d"), *GetName(), static_cast<int32>(TopTab));
 }
 
 void AGrimrockPartyPawn::ApplyMajorUiInputMode(bool bOpen)
@@ -407,11 +409,11 @@ void AGrimrockPartyPawn::HideInventoryWidget()
 		FText SaveError;
 		if (!SaveCurrentGame(SaveError))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("PartySave InventoryClose Failed Slot=%s Reason=%s"), *PartySaveSlotName, *SaveError.ToString());
+			UE_LOG(LogGrimrockPartyUI, Warning, TEXT("PartySave InventoryClose Failed Slot=%s Reason=%s"), *PartySaveSlotName, *SaveError.ToString());
 		}
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Grimrock UI Hidden Pawn=%s"), *GetName());
+	UE_LOG(LogGrimrockPartyUI, Verbose, TEXT("Grimrock UI Hidden Pawn=%s"), *GetName());
 }
 
 void AGrimrockPartyPawn::HandleCombatStarted()
@@ -436,7 +438,7 @@ void AGrimrockPartyPawn::HandleCombatStarted()
 
 	DismissReadableMessageIfVisible();
 	CollapseMajorGameplayUi();
-	UE_LOG(LogTemp, Log, TEXT("UI-COMBAT01 CombatUiTransition Pawn=%s"), *GetName());
+	UE_LOG(LogGrimrockPartyUI, Verbose, TEXT("UI-COMBAT01 CombatUiTransition Pawn=%s"), *GetName());
 }
 
 bool AGrimrockPartyPawn::IsMajorGameplayUiBlockedByCombat() const
@@ -467,13 +469,13 @@ bool AGrimrockPartyPawn::ShowCombatActionPanelWidget()
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (!PlayerController)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridCombatHud Show Failed Pawn=%s Reason=NoPlayerController"), *GetName());
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridCombatHud Show Failed Pawn=%s Reason=NoPlayerController"), *GetName());
 		return false;
 	}
 
 	if (!CombatHudWidgetClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridCombatHud Show Failed Pawn=%s Reason=WidgetClassUnset"), *GetName());
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridCombatHud Show Failed Pawn=%s Reason=WidgetClassUnset"), *GetName());
 		return false;
 	}
 
@@ -483,7 +485,7 @@ bool AGrimrockPartyPawn::ShowCombatActionPanelWidget()
 	}
 	if (!CombatHudWidgetInstance)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridCombatHud Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridCombatHud Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
 		return false;
 	}
 
@@ -526,7 +528,7 @@ bool AGrimrockPartyPawn::ShowPersistentHudWidget()
 	}
 	if (!PersistentHudWidgetInstance)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridPersistentHud Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridPersistentHud Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
 		return false;
 	}
 
@@ -679,7 +681,7 @@ void AGrimrockPartyPawn::ShowInitialCharacterCreationWidget()
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (!PlayerController)
 	{
-		UE_LOG(LogTemp, Error, TEXT("CharacterCreation UI Show Failed Pawn=%s Reason=NoPlayerController"), *GetName());
+		UE_LOG(LogGrimrockPartyUI, Error, TEXT("CharacterCreation UI Show Failed Pawn=%s Reason=NoPlayerController"), *GetName());
 		return;
 	}
 
@@ -687,7 +689,7 @@ void AGrimrockPartyPawn::ShowInitialCharacterCreationWidget()
 
 	if (!CharacterCreationWidgetClass)
 	{
-		UE_LOG(LogTemp, Error, TEXT("CharacterCreation UI Show Failed Pawn=%s Reason=NoWidgetClass"), *GetName());
+		UE_LOG(LogGrimrockPartyUI, Error, TEXT("CharacterCreation UI Show Failed Pawn=%s Reason=NoWidgetClass"), *GetName());
 		return;
 	}
 
@@ -698,7 +700,7 @@ void AGrimrockPartyPawn::ShowInitialCharacterCreationWidget()
 
 	if (!CharacterCreationWidgetInstance)
 	{
-		UE_LOG(LogTemp, Error, TEXT("CharacterCreation UI Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
+		UE_LOG(LogGrimrockPartyUI, Error, TEXT("CharacterCreation UI Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
 		return;
 	}
 
@@ -710,7 +712,7 @@ void AGrimrockPartyPawn::ShowInitialCharacterCreationWidget()
 	CharacterCreationWidgetInstance->SetVisibility(ESlateVisibility::Visible);
 	CharacterCreationWidgetInstance->FocusNameInput();
 
-	UE_LOG(LogTemp, Log, TEXT("CharacterCreation UI Shown Pawn=%s"), *GetName());
+	UE_LOG(LogGrimrockPartyUI, Verbose, TEXT("CharacterCreation UI Shown Pawn=%s"), *GetName());
 }
 
 void AGrimrockPartyPawn::HandleInitialCharacterCreated()
@@ -731,10 +733,10 @@ void AGrimrockPartyPawn::HandleInitialCharacterCreated()
 	FText SaveError;
 	if (!SaveCurrentGame(SaveError))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("PartySave InitialCharacter Failed Slot=%s Reason=%s"), *PartySaveSlotName, *SaveError.ToString());
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("PartySave InitialCharacter Failed Slot=%s Reason=%s"), *PartySaveSlotName, *SaveError.ToString());
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("CharacterCreation Completed Pawn=%s"), *GetName());
+	UE_LOG(LogGrimrockPartyUI, Verbose, TEXT("CharacterCreation Completed Pawn=%s"), *GetName());
 }
 
 bool AGrimrockPartyPawn::IsCharacterCreationModalActive() const

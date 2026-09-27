@@ -653,8 +653,8 @@ void AGrimrockPlayerController::SetInventoryUiOpen(bool bOpen)
 	{
 		CustomCursorWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
-	UE_LOG(LogTemp, Log, TEXT("GridInventory UI State Open=%s"), bInventoryUiOpen ? TEXT("true") : TEXT("false"));
-	UE_LOG(LogTemp, Log, TEXT("GridInventory UI CustomCursor Widget=%s Visibility=%s Enabled=%s"), *GetNameSafe(CustomCursorWidget),
+	UE_LOG(LogGridMouse, Verbose, TEXT("GridInventory UI State Open=%s"), bInventoryUiOpen ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogGridMouse, Verbose, TEXT("GridInventory UI CustomCursor Widget=%s Visibility=%s Enabled=%s"), *GetNameSafe(CustomCursorWidget),
 		CustomCursorWidget && CustomCursorWidget->GetVisibility() == ESlateVisibility::HitTestInvisible ? TEXT("HitTestInvisible") : TEXT("Other"),
 		CustomCursorWidget && CustomCursorWidget->GetIsEnabled() ? TEXT("true") : TEXT("false"));
 }
@@ -970,7 +970,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=ModalUI Result=Ignored Reason=%s"), *MouseResolution.DiagnosticReason.ToString());
 		if (bDebugMouseInteraction)
 		{
-			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction ignored by UI surface: %s."), *MouseResolution.DiagnosticReason.ToString());
+			UE_LOG(LogGridMouse, Verbose, TEXT("Mouse interaction ignored by UI surface: %s."), *MouseResolution.DiagnosticReason.ToString());
 		}
 		return;
 	}
@@ -980,7 +980,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=InventoryUI Result=Ignored Reason=OpenWithoutCursorItem"));
 		if (bDebugMouseInteraction)
 		{
-			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction ignored: inventory UI open."));
+			UE_LOG(LogGridMouse, Verbose, TEXT("Mouse interaction ignored: inventory UI open."));
 		}
 		return;
 	}
@@ -994,7 +994,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 		if (MouseResolution.Intent == EGridMouseInteractionIntent::CursorItemNoWorldHit)
 		{
 			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=WorldHit Result=NoTarget"));
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory WorldDrop Failed Reason=NoTarget"));
+			UE_LOG(LogGridMouse, Warning, TEXT("GridInventory WorldDrop Failed Reason=NoTarget"));
 			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("ClickCursorNoWorldHit"));
 			return;
 		}
@@ -1029,7 +1029,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 						TEXT("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=Attempt AcceptedKey=%s AlreadyUnlocked=%s"),
 						*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(WallLockActor), bAcceptedKey ? TEXT("true") : TEXT("false"),
 						bWasUnlocked ? TEXT("true") : TEXT("false"));
-					UE_LOG(LogTemp, Log, TEXT("GridInventory WorldDrop RoutedToWallLock Item=%s Target=%s"), *CursorItem.ItemDefinitionId.ToString(),
+					UE_LOG(LogGridMouse, Verbose, TEXT("GridInventory WorldDrop RoutedToWallLock Item=%s Target=%s"), *CursorItem.ItemDefinitionId.ToString(),
 						*GetNameSafe(WallLockActor));
 					if (bWasUnlocked || !bAcceptedKey)
 					{
@@ -1079,14 +1079,14 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 					return;
 				}
 
-				UE_LOG(LogTemp, Log, TEXT("GridInventory WorldDrop Attempt Item=%s Target=%s"), *CursorItem.ItemDefinitionId.ToString(),
+				UE_LOG(LogGridMouse, Verbose, TEXT("GridInventory WorldDrop Attempt Item=%s Target=%s"), *CursorItem.ItemDefinitionId.ToString(),
 					*GetNameSafe(ReceptacleActor));
 
 				const bool bPlaced = ReceptacleActor->TryPlaceCursorItemFromHit(PartyPawn, WorldHitResult);
 				UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ReceptacleAttempt Item=%s Target=%s Result=%s%s"),
 					*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(ReceptacleActor), bPlaced ? TEXT("Placed") : TEXT("Rejected"),
 					bPlaced ? TEXT("") : TEXT(" Reason=PlaceFailed"));
-				UE_LOG(LogTemp, Log, TEXT("GridInventory WorldDrop Result=%s"), bPlaced ? TEXT("true") : TEXT("false"));
+				UE_LOG(LogGridMouse, Verbose, TEXT("GridInventory WorldDrop Result=%s"), bPlaced ? TEXT("true") : TEXT("false"));
 
 				if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget())
 				{
@@ -1192,7 +1192,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=WorldInteractable Result=None Fallback=NoInteractable"));
 		if (bDebugMouseInteraction)
 		{
-			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction: no interactable under cursor."));
+			UE_LOG(LogGridMouse, Verbose, TEXT("Mouse interaction: no interactable under cursor."));
 		}
 		return;
 	}
@@ -1202,7 +1202,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=WorldInteractable Actor=%s Result=OutOfRange"), *GetNameSafe(InteractableActor));
 		if (bDebugMouseInteraction)
 		{
-			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction: %s is outside interaction distance."), *GetNameSafe(InteractableActor));
+			UE_LOG(LogGridMouse, Verbose, TEXT("Mouse interaction: %s is outside interaction distance."), *GetNameSafe(InteractableActor));
 		}
 		return;
 	}
@@ -1215,7 +1215,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 			*GetNameSafe(InteractableActor), *GetNameSafe(HitComponent));
 		if (bDebugMouseInteraction)
 		{
-			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction: invalid pawn or hit component for %s."), *GetNameSafe(InteractableActor));
+			UE_LOG(LogGridMouse, Verbose, TEXT("Mouse interaction: invalid pawn or hit component for %s."), *GetNameSafe(InteractableActor));
 		}
 		return;
 	}
@@ -1226,7 +1226,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 			*GetNameSafe(InteractableActor), *GetNameSafe(HitComponent));
 		if (bDebugMouseInteraction)
 		{
-			UE_LOG(LogTemp, Verbose, TEXT("Mouse interaction: CanInteract rejected %s on component %s."), *GetNameSafe(InteractableActor),
+			UE_LOG(LogGridMouse, Verbose, TEXT("Mouse interaction: CanInteract rejected %s on component %s."), *GetNameSafe(InteractableActor),
 				*GetNameSafe(HitComponent));
 		}
 		return;
@@ -1236,7 +1236,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 		*GetNameSafe(HitComponent));
 	if (bDebugMouseInteraction)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Mouse interaction: Interact %s on component %s."), *GetNameSafe(InteractableActor), *GetNameSafe(HitComponent));
+		UE_LOG(LogGridMouse, Verbose, TEXT("Mouse interaction: Interact %s on component %s."), *GetNameSafe(InteractableActor), *GetNameSafe(HitComponent));
 	}
 
 	IGridInteractableInterface::Execute_InteractWithHit(InteractableActor, ControlledPawn, HitComponent, MouseResolution.HitResult);

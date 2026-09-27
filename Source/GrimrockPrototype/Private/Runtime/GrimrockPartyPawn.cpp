@@ -31,6 +31,8 @@
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/RPGCharacterCreationWidget.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockParty, Log, All);
+
 AGrimrockPartyPawn::AGrimrockPartyPawn()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -82,7 +84,7 @@ void AGrimrockPartyPawn::BeginPlay()
 
 	if (!LevelRuntimeActor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GrimrockPartyPawn: no AGridLevelRuntimeActor found."));
+		UE_LOG(LogGrimrockParty, Warning, TEXT("GrimrockPartyPawn: no AGridLevelRuntimeActor found."));
 	}
 	else if (LevelRuntimeActor->bApplyLevelStartOnBeginPlay && LevelRuntimeActor->LevelAsset)
 	{
@@ -94,17 +96,17 @@ void AGrimrockPartyPawn::BeginPlay()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GrimrockPartyPawn: LevelAsset start cell is invalid, keeping configured pawn cell (%d,%d)."), CurrentCellX,
+			UE_LOG(LogGrimrockParty, Warning, TEXT("GrimrockPartyPawn: LevelAsset start cell is invalid, keeping configured pawn cell (%d,%d)."), CurrentCellX,
 				CurrentCellY);
 		}
 	}
 	else if (!LevelRuntimeActor->bApplyLevelStartOnBeginPlay)
 	{
-		UE_LOG(LogTemp, Log, TEXT("GrimrockPartyPawn: LevelAsset start application is disabled, keeping configured pawn start."));
+		UE_LOG(LogGrimrockParty, Verbose, TEXT("GrimrockPartyPawn: LevelAsset start application is disabled, keeping configured pawn start."));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GrimrockPartyPawn: LevelRuntimeActor has no LevelAsset, keeping configured pawn start."));
+		UE_LOG(LogGrimrockParty, Warning, TEXT("GrimrockPartyPawn: LevelRuntimeActor has no LevelAsset, keeping configured pawn start."));
 	}
 
 	const bool bFreshDungeonPlaytest = GridPIEPlaytestRequest::Matches(LevelRuntimeActor);
@@ -119,7 +121,7 @@ void AGrimrockPartyPawn::BeginPlay()
 				bLoadedSavedGame = LoadCurrentGameData(LoadError, false);
 				if (!bLoadedSavedGame)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("PartySave PlaytestProfileLoad Failed Slot=%s Reason=%s"), *PartySaveSlotName, *LoadError.ToString());
+					UE_LOG(LogGrimrockParty, Warning, TEXT("PartySave PlaytestProfileLoad Failed Slot=%s Reason=%s"), *PartySaveSlotName, *LoadError.ToString());
 					PartyInventoryComponent->ResetPartyForNewGame();
 				}
 			}
@@ -136,7 +138,7 @@ void AGrimrockPartyPawn::BeginPlay()
 			}
 			if (!PartyInventoryComponent->HasCompletedInitialCharacterCreation())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("PartySave NewGame MissingPreparedParty Pawn=%s"), *GetName());
+				UE_LOG(LogGrimrockParty, Warning, TEXT("PartySave NewGame MissingPreparedParty Pawn=%s"), *GetName());
 				PartyInventoryComponent->ResetPartyForNewGame();
 			}
 		}
@@ -147,7 +149,7 @@ void AGrimrockPartyPawn::BeginPlay()
 			if (!bLoadedSavedGame)
 			{
 				const FString FailedLoadSlotName = PartySaveSlotName;
-				UE_LOG(LogTemp, Warning, TEXT("PartySave Load Failed Slot=%s Reason=%s"), *FailedLoadSlotName, *LoadError.ToString());
+				UE_LOG(LogGrimrockParty, Warning, TEXT("PartySave Load Failed Slot=%s Reason=%s"), *FailedLoadSlotName, *LoadError.ToString());
 
 				// A failed Continue is not a New Game. Preserve the save and the
 				// rolled-back runtime party, disarm EndPlay autosave for this
@@ -156,13 +158,13 @@ void AGrimrockPartyPawn::BeginPlay()
 				PartySaveSlotName.Empty();
 				if (UGrimrockGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr)
 				{
-					UE_LOG(LogTemp, Error, TEXT("PartySave ContinueAborted Slot=%s Reason=%s Action=ReturnToMainMenu"), *FailedLoadSlotName,
+					UE_LOG(LogGrimrockParty, Error, TEXT("PartySave ContinueAborted Slot=%s Reason=%s Action=ReturnToMainMenu"), *FailedLoadSlotName,
 						*LoadError.ToString());
 					GameInstance->RequestReturnToMainMenu(this);
 				}
 				else
 				{
-					UE_LOG(LogTemp, Error, TEXT("PartySave ContinueAborted Slot=%s Reason=%s Action=None Error=NoGrimrockGameInstance"), *FailedLoadSlotName,
+					UE_LOG(LogGrimrockParty, Error, TEXT("PartySave ContinueAborted Slot=%s Reason=%s Action=None Error=NoGrimrockGameInstance"), *FailedLoadSlotName,
 						*LoadError.ToString());
 				}
 				return;
@@ -213,12 +215,12 @@ void AGrimrockPartyPawn::BeginPlay()
 
 	if (bLoadedSavedGame && bFreshDungeonPlaytest)
 	{
-		UE_LOG(LogTemp, Log, TEXT("PartySave PlaytestProfileLoaded Slot=%s CharacterCount=%d DungeonState=Fresh"), *PartySaveSlotName,
+		UE_LOG(LogGrimrockParty, Verbose, TEXT("PartySave PlaytestProfileLoaded Slot=%s CharacterCount=%d DungeonState=Fresh"), *PartySaveSlotName,
 			PartyInventoryComponent ? PartyInventoryComponent->GetActiveCharacterCount() : 0);
 	}
 	else if (bLoadedSavedGame)
 	{
-		UE_LOG(LogTemp, Log, TEXT("PartySave Continued Slot=%s CharacterCount=%d"), *PartySaveSlotName,
+		UE_LOG(LogGrimrockParty, Verbose, TEXT("PartySave Continued Slot=%s CharacterCount=%d"), *PartySaveSlotName,
 			PartyInventoryComponent ? PartyInventoryComponent->GetActiveCharacterCount() : 0);
 	}
 
@@ -231,11 +233,11 @@ void AGrimrockPartyPawn::BeginPlay()
 		FText SaveError;
 		if (!SaveCurrentGame(SaveError))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("PartySave InitialFrontendCharacter Failed Slot=%s Reason=%s"), *PartySaveSlotName, *SaveError.ToString());
+			UE_LOG(LogGrimrockParty, Warning, TEXT("PartySave InitialFrontendCharacter Failed Slot=%s Reason=%s"), *PartySaveSlotName, *SaveError.ToString());
 		}
 		else
 		{
-			UE_LOG(LogTemp, Log, TEXT("PartySave InitialFrontendCharacter Saved Slot=%s"), *PartySaveSlotName);
+			UE_LOG(LogGrimrockParty, Verbose, TEXT("PartySave InitialFrontendCharacter Saved Slot=%s"), *PartySaveSlotName);
 		}
 	}
 
@@ -253,14 +255,14 @@ void AGrimrockPartyPawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	const bool bFreshDungeonPlaytest = GridPIEPlaytestRequest::Matches(LevelRuntimeActor);
 	if (bFreshDungeonPlaytest)
 	{
-		UE_LOG(LogTemp, Log, TEXT("PartySave PlaytestAutoSaveSkipped Slot=%s Reason=FreshPIERequest"), *PartySaveSlotName);
+		UE_LOG(LogGrimrockParty, Verbose, TEXT("PartySave PlaytestAutoSaveSkipped Slot=%s Reason=FreshPIERequest"), *PartySaveSlotName);
 	}
 	else if (!PartySaveSlotName.IsEmpty() && PartyInventoryComponent && PartyInventoryComponent->HasCompletedInitialCharacterCreation())
 	{
 		FText SaveError;
 		if (!SaveCurrentGame(SaveError))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("PartySave EndPlay Failed Slot=%s Reason=%s"), *PartySaveSlotName, *SaveError.ToString());
+			UE_LOG(LogGrimrockParty, Warning, TEXT("PartySave EndPlay Failed Slot=%s Reason=%s"), *PartySaveSlotName, *SaveError.ToString());
 		}
 	}
 
@@ -659,7 +661,7 @@ bool AGrimrockPartyPawn::AddItemInstanceToSelectedCharacterInventory(const FGrid
 {
 	if (!PartyInventoryComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Pickup Failed NoPartyInventoryComponent Item=%s RuntimeId=%s"), *ItemInstance.ItemDefinitionId.ToString(),
+		UE_LOG(LogGrimrockParty, Warning, TEXT("GridInventory Pickup Failed NoPartyInventoryComponent Item=%s RuntimeId=%s"), *ItemInstance.ItemDefinitionId.ToString(),
 			*ItemInstance.RuntimeObjectId.ToString());
 		return false;
 	}
@@ -681,13 +683,13 @@ bool AGrimrockPartyPawn::AddItemInstanceToSelectedCharacterInventory(const FGrid
 	InventoryItem.EquipmentSlot = EGridEquipmentSlot::None;
 
 	const bool bAdded = PartyInventoryComponent->AddItemToSelectedCharacterInventory(InventoryItem);
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Pickup AddedToSelectedCharacter Item=%s RuntimeId=%s CharacterIndex=%d Result=%s"),
+	UE_LOG(LogGrimrockParty, Verbose, TEXT("GridInventory Pickup AddedToSelectedCharacter Item=%s RuntimeId=%s CharacterIndex=%d Result=%s"),
 		*InventoryItem.ItemDefinitionId.ToString(), *InventoryItem.RuntimeObjectId.ToString(), PartyInventoryComponent->GetSelectedCharacterIndex(),
 		bAdded ? TEXT("true") : TEXT("false"));
 
 	if (!bAdded)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"), *InventoryItem.ItemDefinitionId.ToString(),
+		UE_LOG(LogGrimrockParty, Warning, TEXT("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"), *InventoryItem.ItemDefinitionId.ToString(),
 			*InventoryItem.RuntimeObjectId.ToString());
 		return false;
 	}
@@ -715,7 +717,7 @@ void AGrimrockPartyPawn::LogPartyInventoryDiagnostics() const
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("PartyInventoryComponent is null on %s"), *GetName());
+	UE_LOG(LogGrimrockParty, Warning, TEXT("PartyInventoryComponent is null on %s"), *GetName());
 }
 
 void AGrimrockPartyPawn::LogItemDefinitionDiagnostics() const
@@ -726,5 +728,5 @@ void AGrimrockPartyPawn::LogItemDefinitionDiagnostics() const
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("PartyInventoryComponent is null on %s"), *GetName());
+	UE_LOG(LogGrimrockParty, Warning, TEXT("PartyInventoryComponent is null on %s"), *GetName());
 }
