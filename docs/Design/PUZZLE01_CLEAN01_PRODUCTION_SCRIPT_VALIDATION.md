@@ -40,7 +40,7 @@ CLEAN01 ne retire donc pas cette primitive générique du moteur.
 
 ## EGridReceptacleRejectReason
 
-`ExplicitlyRejected` n'avait plus de producteur dans le runtime courant. Sa valeur numérique a été conservée pour éviter de renuméroter l'`UENUM`, mais elle a été masquée de l'authoring Blueprint.
+`ExplicitlyRejected` n'avait plus de producteur dans le runtime courant. CLEAN01 avait conservé temporairement sa valeur numérique afin de ne pas modifier le contrat pendant ce ticket. **CPP-CLEAN03 (27 septembre 2026) l'a ensuite supprimée**, tandis que les valeurs actives `NoMatchingAcceptanceRule=4` et `InsertionDisabled=5` conservent leurs numéros explicites.
 
 Les raisons actives restent :
 

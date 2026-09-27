@@ -98,8 +98,6 @@ namespace
 				return TEXT("invalid item");
 			case EGridReceptacleRejectReason::Full:
 				return TEXT("receptacle full");
-			case EGridReceptacleRejectReason::ExplicitlyRejected:
-				return TEXT("rejected explicitly");
 			case EGridReceptacleRejectReason::NoMatchingAcceptanceRule:
 				return TEXT("rejected because no rule matched");
 			case EGridReceptacleRejectReason::InsertionDisabled:

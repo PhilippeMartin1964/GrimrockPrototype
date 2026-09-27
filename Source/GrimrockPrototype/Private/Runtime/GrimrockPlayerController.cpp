@@ -56,8 +56,6 @@ namespace
 				return TEXT("InvalidItem");
 			case EGridReceptacleRejectReason::Full:
 				return TEXT("Full");
-			case EGridReceptacleRejectReason::ExplicitlyRejected:
-				return TEXT("ExplicitlyRejected");
 			case EGridReceptacleRejectReason::NoMatchingAcceptanceRule:
 				return TEXT("NoMatchingAcceptanceRule");
 			case EGridReceptacleRejectReason::InsertionDisabled:

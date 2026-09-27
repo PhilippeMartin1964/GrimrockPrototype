@@ -163,8 +163,14 @@ bool FGridMonsterMON4PerceptionTest::RunTest(const FString& Parameters)
 		TEXT("MON4 sight does not see around a corner"), FGridMonsterPerception::HasStraightLineOfSight(FIntPoint(1, 1), FIntPoint(3, 2), 5, CanTraverse));
 	TestFalse(TEXT("Sight range is enforced"), FGridMonsterPerception::HasStraightLineOfSight(FIntPoint(1, 1), FIntPoint(1, 7), 5, CanTraverse));
 
-	TestTrue(TEXT("Hearing works around a corner within Manhattan range"), FGridMonsterPerception::CanHear(FIntPoint(1, 1), FIntPoint(3, 2), 3));
-	TestFalse(TEXT("Hearing range is enforced"), FGridMonsterPerception::CanHear(FIntPoint(1, 1), FIntPoint(4, 2), 3));
+	const auto CanSoundTraverse = [](const FIntPoint&, const FIntPoint&)
+	{
+		return true;
+	};
+	TestTrue(TEXT("Canonical hearing reaches around a corner through open grid transitions"),
+		FGridMonsterPerception::CanHearThroughGrid(FIntPoint(1, 1), FIntPoint(3, 2), 3, CanSoundTraverse));
+	TestFalse(TEXT("Canonical hearing range is enforced"),
+		FGridMonsterPerception::CanHearThroughGrid(FIntPoint(1, 1), FIntPoint(4, 2), 3, CanSoundTraverse));
 
 	return true;
 }

@@ -11,8 +11,6 @@ enum class EGridReceptacleRejectReason : uint8
 	None = 0,
 	InvalidItem = 1,
 	Full = 2,
-	// Legacy compatibility value. No runtime acceptance path produces it anymore.
-	ExplicitlyRejected = 3 UMETA(Hidden),
 	NoMatchingAcceptanceRule = 4,
 	InsertionDisabled = 5
 };

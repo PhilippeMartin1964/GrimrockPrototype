@@ -244,11 +244,6 @@ bool FGridMonsterPerception::HasDirectionalLineOfSight(const FIntPoint& Observer
 	return IsTargetInFacingDirection(ObserverCell, Facing, TargetCell) && HasStraightLineOfSight(ObserverCell, TargetCell, SightRangeCells, CanTraverse);
 }
 
-bool FGridMonsterPerception::CanHear(const FIntPoint& ObserverCell, const FIntPoint& TargetCell, int32 HearingRangeCells)
-{
-	return HearingRangeCells >= 0 && FGridMonsterPathfinder::ManhattanDistance(ObserverCell, TargetCell) <= HearingRangeCells;
-}
-
 bool FGridMonsterPerception::CanHearThroughGrid(const FIntPoint& ObserverCell, const FIntPoint& TargetCell, int32 HearingRangeCells,
 	const TFunction<bool(const FIntPoint&, const FIntPoint&)>& CanSoundTraverse)
 {

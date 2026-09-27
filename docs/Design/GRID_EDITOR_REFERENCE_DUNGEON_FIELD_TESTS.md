@@ -590,7 +590,7 @@ FGridMonsterPerception::CanHearThroughGrid(...)
 
 `UGridMonsterBehaviorComponent::RefreshPerception()` utilise désormais `CanHearThroughGrid()`.
 
-Le helper historique `CanHear()` reste disponible comme calcul géométrique brut, mais il n'est plus l'autorité de l'ouïe runtime.
+Depuis **CPP-CLEAN03**, le helper historique `CanHear()` a été supprimé. `CanHearThroughGrid()` est désormais l'unique contrat d'ouïe de `FGridMonsterPerception`, y compris dans les tests.
 
 La fin réelle d'une animation de porte redemande également une évaluation de perception. Une porte secrète ne devient donc acoustiquement ouverte qu'une fois complètement ouverte.
 

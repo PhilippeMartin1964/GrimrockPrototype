@@ -16,6 +16,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridReadableContentAsset.h"
+#include "Runtime/GridReceptacleTypes.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Save/GrimrockPartySaveGame.h"
@@ -228,6 +229,18 @@ bool FGridTD0738LegacySymbolsAbsentTest::RunTest(const FString& Parameters)
 	if (RebuildEnum)
 	{
 		TestTrue(TEXT("ObjectsOnly is absent"), RebuildEnum->GetValueByNameString(TEXT("ObjectsOnly")) == INDEX_NONE);
+	}
+
+	const UEnum* ReceptacleRejectEnum = StaticEnum<EGridReceptacleRejectReason>();
+	TestNotNull(TEXT("Receptacle reject enum exists"), ReceptacleRejectEnum);
+	if (ReceptacleRejectEnum)
+	{
+		TestTrue(TEXT("Legacy ExplicitlyRejected reason is absent"),
+			ReceptacleRejectEnum->GetValueByNameString(TEXT("ExplicitlyRejected")) == INDEX_NONE);
+		TestEqual(TEXT("NoMatchingAcceptanceRule keeps stable value 4"),
+			ReceptacleRejectEnum->GetValueByNameString(TEXT("NoMatchingAcceptanceRule")), static_cast<int64>(4));
+		TestEqual(TEXT("InsertionDisabled keeps stable value 5"),
+			ReceptacleRejectEnum->GetValueByNameString(TEXT("InsertionDisabled")), static_cast<int64>(5));
 	}
 
 	UScriptStruct* MonsterAttack = FGridMonsterAttackDefinition::StaticStruct();
