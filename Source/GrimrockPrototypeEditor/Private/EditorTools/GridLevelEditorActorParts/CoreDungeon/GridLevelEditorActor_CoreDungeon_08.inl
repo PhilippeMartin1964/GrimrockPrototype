@@ -2,33 +2,33 @@ bool AGridLevelEditorActor::ApplyCurrentDungeonLevel()
 {
 	if (!DungeonAsset)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ApplyCurrentDungeonLevel failed: DungeonAsset is null."));
+		UE_LOG(LogGridEditor, Warning, TEXT("ApplyCurrentDungeonLevel failed: DungeonAsset is null."));
 		return false;
 	}
 
 	const FName RequestedLevelId = CurrentDungeonLevelId.IsNone() ? DungeonAsset->DefaultLevelId : CurrentDungeonLevelId;
 	if (RequestedLevelId.IsNone())
 	{
-		UE_LOG(LogTemp, Error, TEXT("ApplyCurrentDungeonLevel failed: CurrentDungeonLevelId and DefaultLevelId are both None."));
+		UE_LOG(LogGridEditor, Error, TEXT("ApplyCurrentDungeonLevel failed: CurrentDungeonLevelId and DefaultLevelId are both None."));
 		return false;
 	}
 
 	const FGridDungeonLevelEntry* Entry = DungeonAsset->FindLevelEntry(RequestedLevelId);
 	if (!Entry)
 	{
-		UE_LOG(LogTemp, Error, TEXT("ApplyCurrentDungeonLevel failed: LevelId %s was not found."), *RequestedLevelId.ToString());
+		UE_LOG(LogGridEditor, Error, TEXT("ApplyCurrentDungeonLevel failed: LevelId %s was not found."), *RequestedLevelId.ToString());
 		return false;
 	}
 
 	if (!Entry->bEnabled)
 	{
-		UE_LOG(LogTemp, Error, TEXT("ApplyCurrentDungeonLevel failed: LevelId %s is disabled."), *RequestedLevelId.ToString());
+		UE_LOG(LogGridEditor, Error, TEXT("ApplyCurrentDungeonLevel failed: LevelId %s is disabled."), *RequestedLevelId.ToString());
 		return false;
 	}
 
 	if (!Entry->LevelAsset)
 	{
-		UE_LOG(LogTemp, Error, TEXT("ApplyCurrentDungeonLevel failed: LevelId %s has no LevelAsset."), *RequestedLevelId.ToString());
+		UE_LOG(LogGridEditor, Error, TEXT("ApplyCurrentDungeonLevel failed: LevelId %s has no LevelAsset."), *RequestedLevelId.ToString());
 		return false;
 	}
 
@@ -41,7 +41,7 @@ bool AGridLevelEditorActor::ApplyCurrentDungeonLevel()
 
 	SyncPreviewRuntimeLevelAsset();
 
-	UE_LOG(LogTemp, Log, TEXT("ApplyCurrentDungeonLevel OK: LevelId=%s LevelAsset=%s."), *CurrentDungeonLevelId.ToString(), *GetNameSafe(LevelAsset));
+	UE_LOG(LogGridEditor, Verbose, TEXT("ApplyCurrentDungeonLevel OK: LevelId=%s LevelAsset=%s."), *CurrentDungeonLevelId.ToString(), *GetNameSafe(LevelAsset));
 	return true;
 }
 
@@ -54,7 +54,7 @@ void AGridLevelEditorActor::LoadDefaultDungeonLevelInEditor()
 {
 	if (!DungeonAsset)
 	{
-		UE_LOG(LogTemp, Error, TEXT("LoadDefaultDungeonLevel failed: DungeonAsset is null."));
+		UE_LOG(LogGridEditor, Error, TEXT("LoadDefaultDungeonLevel failed: DungeonAsset is null."));
 		return;
 	}
 

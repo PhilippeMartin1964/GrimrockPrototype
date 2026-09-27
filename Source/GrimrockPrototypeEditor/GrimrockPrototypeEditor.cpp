@@ -15,6 +15,8 @@
 #include "ToolMenus.h"
 #include "Widgets/Docking/SDockTab.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridEditor, Log, All);
+
 namespace GridEditorUndoBridge
 {
 	void Startup();
@@ -196,17 +198,17 @@ private:
 			return;
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("Auto PIE preparation started for %s."), *EditorActor->GetName());
+		UE_LOG(LogGridEditor, Verbose, TEXT("Auto PIE preparation started for %s."), *EditorActor->GetName());
 
 		FString Error;
 		if (!EditorActor->PreparePIETestFromStartInternal(Error))
 		{
-			UE_LOG(LogTemp, Error, TEXT("Auto PIE preparation failed: %s"), *Error);
+			UE_LOG(LogGridEditor, Error, TEXT("Auto PIE preparation failed: %s"), *Error);
 
 			if (EditorActor->bAbortPIEOnPreparationError)
 			{
 				bRequestStopPIEAfterBegin = true;
-				UE_LOG(LogTemp, Error, TEXT("PIE aborted because bAbortPIEOnPreparationError is true."));
+				UE_LOG(LogGridEditor, Error, TEXT("PIE aborted because bAbortPIEOnPreparationError is true."));
 			}
 			GridPIEPlaytestRequest::Clear(TEXT("PIEPreparationFailed"));
 			return;
@@ -215,7 +217,7 @@ private:
 		GridPIEPlaytestRequest::BeginFreshPlaytest(EditorActor->PreviewRuntimeActor.Get());
 
 		const UGridLevelAsset* LevelAsset = EditorActor->LevelAsset;
-		UE_LOG(LogTemp, Log, TEXT("Auto PIE preparation OK. LevelAsset=%s, DungeonAsset=%s, CurrentDungeonLevelId=%s, StartCell=(%d,%d), Facing=%s."),
+		UE_LOG(LogGridEditor, Verbose, TEXT("Auto PIE preparation OK. LevelAsset=%s, DungeonAsset=%s, CurrentDungeonLevelId=%s, StartCell=(%d,%d), Facing=%s."),
 			LevelAsset ? *LevelAsset->GetPathName() : TEXT("None"), EditorActor->DungeonAsset ? *EditorActor->DungeonAsset->GetPathName() : TEXT("None"),
 			*EditorActor->CurrentDungeonLevelId.ToString(), LevelAsset ? LevelAsset->StartCellX : INDEX_NONE, LevelAsset ? LevelAsset->StartCellY : INDEX_NONE,
 			LevelAsset ? *StaticEnum<EGridEdge>()->GetNameStringByValue(static_cast<int64>(LevelAsset->StartFacing)) : TEXT("None"));

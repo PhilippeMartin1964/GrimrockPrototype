@@ -16,6 +16,8 @@
 #include "Widgets/SWindow.h"
 #include "Widgets/Text/STextBlock.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridEditor, Log, All);
+
 void SGridEditorDungeonLevelsPanel::Construct(const FArguments& InArgs)
 {
 	EditorActor = InArgs._EditorActor;
@@ -270,14 +272,14 @@ FReply SGridEditorDungeonLevelsPanel::HandleCreateDungeonLevelClicked()
 	AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
 	if (!CurrentEditorActor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("New Level failed: no GridLevelEditorActor found."));
+		UE_LOG(LogGridEditor, Warning, TEXT("New Level failed: no GridLevelEditorActor found."));
 		return FReply::Handled();
 	}
 
 	UGridDungeonAsset* DungeonAsset = CurrentEditorActor->DungeonAsset.Get();
 	if (!DungeonAsset)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("New Level failed: DungeonAsset is null."));
+		UE_LOG(LogGridEditor, Warning, TEXT("New Level failed: DungeonAsset is null."));
 		return FReply::Handled();
 	}
 

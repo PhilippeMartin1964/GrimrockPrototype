@@ -33,7 +33,7 @@ bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection()
 	const FGuid SelectedObjectId = FindObjectIdAtSelection();
 	if (!SelectedObjectId.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: no object at selection for link mode."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: no object at selection for link mode."));
 		return false;
 	}
 
@@ -43,14 +43,14 @@ bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection()
 		bHasPendingLinkSource = true;
 		LastSelectedObjectId = SelectedObjectId;
 
-		UE_LOG(LogTemp, Log, TEXT("GridLevelEditorActor: link source set to %s"), *SelectedObjectId.ToString());
+		UE_LOG(LogGridEditor, Verbose, TEXT("GridLevelEditorActor: link source set to %s"), *SelectedObjectId.ToString());
 
 		return true;
 	}
 
 	if (PendingLinkSourceObjectId == SelectedObjectId)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: source and target are identical."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: source and target are identical."));
 		return false;
 	}
 
@@ -64,13 +64,13 @@ bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection()
 	const bool bAlreadyExists = GridEditorLinkService::ContainsExactLink(LevelAsset->Links, NewLink);
 	if (!bAlreadyExists && !GridEditorLinkService::CreateLink(*this, NewLink))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: link creation rejected by the connector policy."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: link creation rejected by the connector policy."));
 		return false;
 	}
 
 	if (!bAlreadyExists)
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridLevelEditorActor: link created %s -> %s"), *PendingLinkSourceObjectId.ToString(), *SelectedObjectId.ToString());
+		UE_LOG(LogGridEditor, Verbose, TEXT("GridLevelEditorActor: link created %s -> %s"), *PendingLinkSourceObjectId.ToString(), *SelectedObjectId.ToString());
 	}
 
 	LastSelectedObjectId = SelectedObjectId;

@@ -64,7 +64,7 @@ bool AGridLevelEditorActor::MoveSelectedObjectToCurrentSelection()
 		EGridEdge Edge;
 		if (LevelAsset->TryGetTypedPlacementLocation(ObjectId, CellX, CellY, Edge) && (!bRequiresEdge || Edge == DestinationEdge))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: cannot move selected object, destination already contains an object of the same type."));
+			UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: cannot move selected object, destination already contains an object of the same type."));
 			return false;
 		}
 	}

@@ -16,7 +16,7 @@ bool AGridLevelEditorActor::EnsureStairsRelocationDefinitions(FString& OutError)
 	{
 		OutError = FString::Printf(TEXT("Missing stair mesh asset(s): SM_Stairs_Up_01=%s SM_Stairs_Down_01=%s."), StairsUpMesh ? TEXT("OK") : TEXT("Missing"),
 			StairsDownMesh ? TEXT("OK") : TEXT("Missing"));
-		UE_LOG(LogTemp, Error, TEXT("%s"), *OutError);
+		UE_LOG(LogGridEditor, Error, TEXT("%s"), *OutError);
 		return false;
 	}
 
@@ -98,7 +98,7 @@ bool AGridLevelEditorActor::EnsureStairsRelocationDefinitions(FString& OutError)
 	PackagesToSave.AddUnique(ObjectPalette->GetOutermost());
 	UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
 
-	UE_LOG(LogTemp, Log, TEXT("Stairs relocation definitions ensured from target visual composition: Stairs_Up=%s Stairs_Down=%s Palette=%s CreatedUp=%s CreatedDown=%s."),
+	UE_LOG(LogGridEditor, Verbose, TEXT("Stairs relocation definitions ensured from target visual composition: Stairs_Up=%s Stairs_Down=%s Palette=%s CreatedUp=%s CreatedDown=%s."),
 		*StairsUpDefinition->GetPathName(), *StairsDownDefinition->GetPathName(), *ObjectPalette->GetPathName(), bCreatedUp ? TEXT("true") : TEXT("false"),
 		bCreatedDown ? TEXT("true") : TEXT("false"));
 
@@ -123,7 +123,7 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 	if (!PitMesh)
 	{
 		OutError = TEXT("Missing pit mesh asset: SM_Pit_Stone_01.");
-		UE_LOG(LogTemp, Error, TEXT("%s"), *OutError);
+		UE_LOG(LogGridEditor, Error, TEXT("%s"), *OutError);
 		return false;
 	}
 
@@ -165,7 +165,7 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 	if (PitDefinition->GetDefinedMovingPartCount() == 1)
 	{
 		PitDefinition->MovingParts.Reset();
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGridEditor, Warning,
 			TEXT("WORLDOBJ-MIG04: incomplete Pit MovingParts reset for %s; a Pit requires either zero or two moving parts."),
 			*PitDefinition->GetPathName());
 	}
@@ -214,7 +214,7 @@ bool AGridLevelEditorActor::EnsurePitTrapdoorDefinition(FString& OutError)
 	PackagesToSave.AddUnique(ObjectPalette->GetOutermost());
 	UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
 
-	UE_LOG(LogTemp, Log, TEXT("Pit trapdoor definition ensured from generic Motion: Pit=%s Palette=%s Created=%s MovingParts=%d."),
+	UE_LOG(LogGridEditor, Verbose, TEXT("Pit trapdoor definition ensured from generic Motion: Pit=%s Palette=%s Created=%s MovingParts=%d."),
 		*PitDefinition->GetPathName(), *ObjectPalette->GetPathName(), bCreated ? TEXT("true") : TEXT("false"), PitDefinition->GetDefinedMovingPartCount());
 	return true;
 #else

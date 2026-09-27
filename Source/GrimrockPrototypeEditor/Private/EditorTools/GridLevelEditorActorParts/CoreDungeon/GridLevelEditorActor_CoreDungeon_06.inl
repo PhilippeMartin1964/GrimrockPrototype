@@ -78,7 +78,7 @@ if (!ApplyCurrentDungeonLevel())
 	NewLevelAsset->ClearFlags(RF_Public | RF_Standalone);
 
 	OutError = FString::Printf(TEXT("Level '%s' was created but could not be applied to the editor actor."), *NewLevelId.ToString());
-	UE_LOG(LogTemp, Error, TEXT("%s"), *OutError);
+	UE_LOG(LogGridEditor, Error, TEXT("%s"), *OutError);
 	return false;
 }
 
@@ -91,7 +91,7 @@ PackagesToSave.Add(Package);
 PackagesToSave.Add(DungeonAsset->GetOutermost());
 UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
 
-UE_LOG(LogTemp, Log, TEXT("Created dungeon level %s at LogicalPosition=(%d,%d,%d), Asset=%s."), *NewLevelId.ToString(), LogicalPosition.X, LogicalPosition.Y,
+UE_LOG(LogGridEditor, Verbose, TEXT("Created dungeon level %s at LogicalPosition=(%d,%d,%d), Asset=%s."), *NewLevelId.ToString(), LogicalPosition.X, LogicalPosition.Y,
 	LogicalPosition.Z, *NewLevelAsset->GetPathName());
 
 return true;

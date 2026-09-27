@@ -4,12 +4,12 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 {
 	if (!HasValidLevelAsset() || !IsValidSelectedCell())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: invalid LevelAsset or selected cell."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: invalid LevelAsset or selected cell."));
 		return;
 	}
 	if (PaintObjectType == EGridLevelObjectType::None)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: PaintObjectType is None."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: PaintObjectType is None."));
 		return;
 	}
 	const UGridWorldObjectDefinitionAsset* WorldObjectDefinition = FindWorldObjectDefinitionById(WorldObjectDefinitionId);
@@ -19,7 +19,7 @@ void AGridLevelEditorActor::PlaceSelectedObject()
 											 : IsEdgePlacedObject(PaintObjectType, WorldObjectDefinitionId);
 	if (bPlaceObjectOnEdge && SelectedEdge == EGridEdge::None)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: this object type requires a valid edge."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: this object type requires a valid edge."));
 		return;
 	}
 	if (WorldObjectDefinition)
@@ -124,7 +124,7 @@ void AGridLevelEditorActor::RemoveObjectsAtSelection()
 {
 	if (!HasValidLevelAsset() || !IsValidSelectedCell())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: invalid LevelAsset or selected cell."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: invalid LevelAsset or selected cell."));
 		return;
 	}
 
@@ -139,7 +139,7 @@ void AGridLevelEditorActor::SelectObjectAtSelection()
 
 	if (!HasValidLevelAsset() || !IsValidSelectedCell())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: invalid LevelAsset or selected cell."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: invalid LevelAsset or selected cell."));
 		return;
 	}
 
@@ -147,7 +147,7 @@ void AGridLevelEditorActor::SelectObjectAtSelection()
 	if (ObjectId.IsValid() && SelectObjectById(ObjectId)) return;
 
 	ClearSelectedObjectState();
-	UE_LOG(LogTemp, Log, TEXT("GridLevelEditorActor: no object found at current selection."));
+	UE_LOG(LogGridEditor, Verbose, TEXT("GridLevelEditorActor: no object found at current selection."));
 }
 
 bool AGridLevelEditorActor::TryConvertWorldHitToSelection(const FVector& WorldHitLocation, const FVector& /*HitNormal*/)
@@ -169,5 +169,5 @@ bool AGridLevelEditorActor::SelectCellFromOverview(int32 CellX, int32 CellY)
 {
 	if (!HasValidLevelAsset() || !LevelAsset->IsValidCoord(CellX, CellY))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: overview cell selection is outside grid bounds X=%d Y=%d."), CellX, CellY);
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: overview cell selection is outside grid bounds X=%d Y=%d."), CellX, CellY);
 		return false;

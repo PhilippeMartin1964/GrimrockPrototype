@@ -415,6 +415,8 @@ bool AGridLevelEditorActor::FocusSelectedCellInEditorViewport()
 // exactement la visibilité des helpers privés, les blocs WITH_EDITOR et
 // l'ordre historique des définitions. Les fichiers .inl ne sont jamais
 // compilés séparément par UnrealBuildTool.
+DEFINE_LOG_CATEGORY_STATIC(LogGridEditor, Log, All);
+
 #include "GridLevelEditorActorParts/GridLevelEditorActor_CoreDungeon.inl"
 #include "GridLevelEditorActorParts/GridLevelEditorActor_EditingObjectsLinks.inl"
 #include "GridLevelEditorActorParts/GridLevelEditorActor_Validation.inl"

@@ -1,5 +1,5 @@
 CurrentDungeonLevelId = DungeonAsset->DefaultLevelId;
-UE_LOG(LogTemp, Log, TEXT("LoadDefaultDungeonLevel: loading DefaultLevelId %s."), *CurrentDungeonLevelId.ToString());
+UE_LOG(LogGridEditor, Verbose, TEXT("LoadDefaultDungeonLevel: loading DefaultLevelId %s."), *CurrentDungeonLevelId.ToString());
 ApplyCurrentDungeonLevel();
 return;
 }
@@ -12,14 +12,14 @@ for (const FGridDungeonLevelEntry& Entry : DungeonAsset->Levels)
 		Modify();
 #endif
 		CurrentDungeonLevelId = Entry.LevelId;
-		UE_LOG(LogTemp, Warning, TEXT("LoadDefaultDungeonLevel: DefaultLevelId %s is not valid; loading first enabled level %s."),
+		UE_LOG(LogGridEditor, Warning, TEXT("LoadDefaultDungeonLevel: DefaultLevelId %s is not valid; loading first enabled level %s."),
 			*DungeonAsset->DefaultLevelId.ToString(), *CurrentDungeonLevelId.ToString());
 		ApplyCurrentDungeonLevel();
 		return;
 	}
 }
 
-UE_LOG(LogTemp, Error, TEXT("LoadDefaultDungeonLevel failed: DungeonAsset %s has no enabled level with a LevelAsset."), *DungeonAsset->GetPathName());
+UE_LOG(LogGridEditor, Error, TEXT("LoadDefaultDungeonLevel failed: DungeonAsset %s has no enabled level with a LevelAsset."), *DungeonAsset->GetPathName());
 }
 
 void AGridLevelEditorActor::SyncPreviewRuntimeLevelAsset()
@@ -28,13 +28,13 @@ void AGridLevelEditorActor::SyncPreviewRuntimeLevelAsset()
 
 	if (!LevelAsset)
 	{
-		UE_LOG(LogTemp, Error, TEXT("GridLevelEditorActor: cannot sync PreviewRuntimeActor because LevelAsset is null."));
+		UE_LOG(LogGridEditor, Error, TEXT("GridLevelEditorActor: cannot sync PreviewRuntimeActor because LevelAsset is null."));
 		return;
 	}
 
 	if (!PreviewRuntimeActor)
 	{
-		UE_LOG(LogTemp, Error, TEXT("GridLevelEditorActor: cannot sync LevelAsset because PreviewRuntimeActor is null."));
+		UE_LOG(LogGridEditor, Error, TEXT("GridLevelEditorActor: cannot sync LevelAsset because PreviewRuntimeActor is null."));
 		return;
 	}
 
@@ -55,7 +55,7 @@ void AGridLevelEditorActor::PreparePIETestFromStart()
 	FString Error;
 	if (!PreparePIETestFromStartInternal(Error))
 	{
-		UE_LOG(LogTemp, Error, TEXT("PreparePIETestFromStart failed: %s"), *Error);
+		UE_LOG(LogGridEditor, Error, TEXT("PreparePIETestFromStart failed: %s"), *Error);
 	}
 }
 
@@ -120,7 +120,7 @@ bool AGridLevelEditorActor::PreparePIETestFromStartInternal(FString& OutError)
 	PreviewRuntimeActor->RebuildLevel();
 	PreviewRuntimeActor->LogPIEReadinessDiagnostics();
 
-	UE_LOG(LogTemp, Log, TEXT("PreparePIETestFromStart OK: %s is ready to test LevelAsset %s from StartCell X=%d Y=%d Facing=%s."),
+	UE_LOG(LogGridEditor, Verbose, TEXT("PreparePIETestFromStart OK: %s is ready to test LevelAsset %s from StartCell X=%d Y=%d Facing=%s."),
 		*GetNameSafe(PreviewRuntimeActor), *GetNameSafe(LevelAsset), LevelAsset->StartCellX, LevelAsset->StartCellY, *GetGridEdgeText(LevelAsset->StartFacing));
 
 	return true;
@@ -130,20 +130,20 @@ void AGridLevelEditorActor::SetStartFromSelection()
 {
 	if (!LevelAsset)
 	{
-		UE_LOG(LogTemp, Error, TEXT("GridLevelEditorActor: cannot set start from selection because LevelAsset is null."));
+		UE_LOG(LogGridEditor, Error, TEXT("GridLevelEditorActor: cannot set start from selection because LevelAsset is null."));
 		return;
 	}
 
 	if (!LevelAsset->IsValidCoord(SelectedCellX, SelectedCellY))
 	{
-		UE_LOG(LogTemp, Error, TEXT("GridLevelEditorActor: cannot set start from invalid selection X=%d Y=%d."), SelectedCellX, SelectedCellY);
+		UE_LOG(LogGridEditor, Error, TEXT("GridLevelEditorActor: cannot set start from invalid selection X=%d Y=%d."), SelectedCellX, SelectedCellY);
 		return;
 	}
 
 	const FGridLevelCellData& SelectedCell = LevelAsset->GetCell(SelectedCellX, SelectedCellY);
 	if (SelectedCell.CellType == EGridCellType::Empty || SelectedCell.bBlocksOccupancy)
 	{
-		UE_LOG(LogTemp, Error, TEXT("GridLevelEditorActor: cannot set start from non-walkable selection X=%d Y=%d."), SelectedCellX, SelectedCellY);
+		UE_LOG(LogGridEditor, Error, TEXT("GridLevelEditorActor: cannot set start from non-walkable selection X=%d Y=%d."), SelectedCellX, SelectedCellY);
 		return;
 	}
 
@@ -159,7 +159,7 @@ void AGridLevelEditorActor::SetStartFromSelection()
 	LevelAsset->MarkPackageDirty();
 #endif
 
-	UE_LOG(LogTemp, Log, TEXT("GridLevelEditorActor: level start set to X=%d Y=%d Facing=%s."), LevelAsset->StartCellX, LevelAsset->StartCellY,
+	UE_LOG(LogGridEditor, Verbose, TEXT("GridLevelEditorActor: level start set to X=%d Y=%d Facing=%s."), LevelAsset->StartCellX, LevelAsset->StartCellY,
 		*GetGridEdgeText(LevelAsset->StartFacing));
 
 	LogEditorRuntimeAssetConsistency();

@@ -29,6 +29,8 @@
 #include "Widgets/SOverlay.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridEditor, Log, All);
+
 namespace
 {
 	const TCHAR* PaletteUserConfigSection = TEXT("Grimrock.GridEditor.Palette");
@@ -394,7 +396,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 		FString Error;
 		if (!CurrentEditorActor->EnsureStairsRelocationDefinitions(Error))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Stairs relocation palette provisioning failed: %s"), *Error);
+			UE_LOG(LogGridEditor, Warning, TEXT("Stairs relocation palette provisioning failed: %s"), *Error);
 		}
 	}
 
@@ -406,7 +408,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection()
 		FString Error;
 		if (!CurrentEditorActor->EnsurePitTrapdoorDefinition(Error))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Pit trapdoor palette provisioning failed: %s"), *Error);
+			UE_LOG(LogGridEditor, Warning, TEXT("Pit trapdoor palette provisioning failed: %s"), *Error);
 		}
 	}
 

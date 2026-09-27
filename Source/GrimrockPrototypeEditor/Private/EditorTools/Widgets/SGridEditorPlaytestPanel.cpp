@@ -12,6 +12,8 @@
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridEditor, Log, All);
+
 void SGridEditorPlaytestPanel::Construct(const FArguments& InArgs)
 {
 	EditorActor = InArgs._EditorActor;
@@ -192,7 +194,7 @@ TSharedRef<SWidget> SGridEditorPlaytestPanel::BuildPanel()
 						}
 						else
 						{
-							UE_LOG(LogTemp, Warning, TEXT("Log PIE Readiness failed: PreviewRuntimeActor is null."));
+							UE_LOG(LogGridEditor, Warning, TEXT("Log PIE Readiness failed: PreviewRuntimeActor is null."));
 						}
 					}
 					return FReply::Handled();

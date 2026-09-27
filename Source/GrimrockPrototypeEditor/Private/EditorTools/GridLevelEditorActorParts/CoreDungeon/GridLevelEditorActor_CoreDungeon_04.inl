@@ -129,7 +129,7 @@ bool AGridLevelEditorActor::SetSelectedObjectOrientation(EGridEdge Orientation)
 			if (ObjectId != LastSelectedObjectId && LevelAsset->GetTypedPlacementType(ObjectId) == ObjectType &&
 				LevelAsset->TryGetTypedPlacementLocation(ObjectId, OtherCellX, OtherCellY, OtherEdge) && OtherEdge == Orientation)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: cannot orient selected object, destination edge is occupied."));
+				UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: cannot orient selected object, destination edge is occupied."));
 				return false;
 			}
 		}

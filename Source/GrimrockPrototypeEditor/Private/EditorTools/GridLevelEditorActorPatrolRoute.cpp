@@ -5,6 +5,8 @@
 #include "Editor.h"
 #include "ScopedTransaction.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridEditor, Log, All);
+
 namespace
 {
 	bool IsPatrolFacingValid(EGridEdge Facing)
@@ -107,7 +109,7 @@ void AGridLevelEditorActor::ToggleSelectedMonsterPatrolRouteEditing()
 	{
 		bPatrolRouteEditMode = false;
 		SelectedPatrolWaypointIndex = INDEX_NONE;
-		UE_LOG(LogTemp, Warning, TEXT("[MON14.3.1] Patrol route edit requires a selected MonsterSpawn."));
+		UE_LOG(LogGridEditor, Warning, TEXT("[MON14.3.1] Patrol route edit requires a selected MonsterSpawn."));
 		RedrawGridEditorViewports();
 		return;
 	}
@@ -126,7 +128,7 @@ bool AGridLevelEditorActor::SetSelectedMonsterPatrolMode(EGridMonsterPatrolMode 
 	}
 	if (NewMode != EGridMonsterPatrolMode::None && Spawn->PatrolWaypoints.Num() < 2)
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("[MON14.3.1] Patrol mode requires at least two waypoints. SpawnId=%s"), *Spawn->SpawnId.ToString());
+		UE_LOG(LogGridEditor, Verbose, TEXT("[MON14.3.1] Patrol mode requires at least two waypoints. SpawnId=%s"), *Spawn->SpawnId.ToString());
 		return false;
 	}
 	if (Spawn->PatrolMode == NewMode)

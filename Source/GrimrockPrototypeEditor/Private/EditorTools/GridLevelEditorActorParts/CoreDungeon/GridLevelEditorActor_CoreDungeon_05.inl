@@ -29,7 +29,7 @@ return Result;
 
 void AGridLevelEditorActor::LogEditorRuntimeAssetConsistency() const
 {
-	UE_LOG(LogTemp, Log, TEXT("%s"), *GetEditorRuntimeAssetConsistencyDiagnostics());
+	UE_LOG(LogGridEditor, Log, TEXT("%s"), *GetEditorRuntimeAssetConsistencyDiagnostics());
 }
 
 FString AGridLevelEditorActor::GetItemWorkflowDiagnostics() const
@@ -60,7 +60,7 @@ FString AGridLevelEditorActor::GetItemWorkflowDiagnostics() const
 
 void AGridLevelEditorActor::LogItemWorkflowDiagnostics() const
 {
-	UE_LOG(LogTemp, Log, TEXT("%s"), *GetItemWorkflowDiagnostics());
+	UE_LOG(LogGridEditor, Log, TEXT("%s"), *GetItemWorkflowDiagnostics());
 }
 
 FString AGridLevelEditorActor::GetDungeonDiagnostics() const
@@ -103,18 +103,18 @@ FString AGridLevelEditorActor::GetDungeonDiagnostics() const
 
 void AGridLevelEditorActor::LogDungeonDiagnostics() const
 {
-	UE_LOG(LogTemp, Log, TEXT("%s"), *GetDungeonDiagnostics());
+	UE_LOG(LogGridEditor, Log, TEXT("%s"), *GetDungeonDiagnostics());
 }
 
 void AGridLevelEditorActor::LogDungeonRelocationDiagnostics() const
 {
 	if (!DungeonAsset)
 	{
-		UE_LOG(LogTemp, Error, TEXT("LogDungeonRelocationDiagnostics failed: DungeonAsset is null."));
+		UE_LOG(LogGridEditor, Error, TEXT("LogDungeonRelocationDiagnostics failed: DungeonAsset is null."));
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("%s"), *DungeonAsset->GetRelocationDiagnostics());
+	UE_LOG(LogGridEditor, Log, TEXT("%s"), *DungeonAsset->GetRelocationDiagnostics());
 }
 
 bool AGridLevelEditorActor::CreateAndAddDungeonLevel(FName NewLevelId, FText DisplayName, FIntVector LogicalPosition, FString& OutError)

@@ -21,6 +21,8 @@
 #include "UObject/StrongObjectPtr.h"
 #include "EditorTools/GridLevelEditorActor.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridEditorTest, Log, All);
+
 namespace
 {
 	const FString MON135MapPath = TEXT("/Game/GrimrockPrototype/Maps/L_Dungeon");
@@ -183,7 +185,7 @@ namespace
 		EditorActor->PreviewRuntimeActor->DungeonAsset = FixtureDungeon;
 		EditorActor->PreviewRuntimeActor->CurrentDungeonLevelId = EditorActor->CurrentDungeonLevelId;
 
-		UE_LOG(LogTemp, Log,
+		UE_LOG(LogGridEditorTest, Log,
 			TEXT("[MON135PIE] Phase=TransientFixtureInstalled Level=%s Dungeon=%s ProductionRat=%s StartCell=(%d,%d) TriggerCell=(%d,%d)"),
 			*GetNameSafe(FixtureLevel), *GetNameSafe(FixtureDungeon), *GetNameSafe(RatDefinition), MON135StartCell.X, MON135StartCell.Y, MON135TriggerCell.X,
 			MON135TriggerCell.Y);
@@ -428,13 +430,13 @@ namespace
 					{
 						GameInstance->SetPendingLoadSlot(State->TemporarySaveSlot, 0);
 						GameInstance->SetPendingStartupMode(EGrimrockPartyStartupMode::Continue);
-						UE_LOG(LogTemp, Log, TEXT("[MON135PIE] Phase=IntegrationPIEWorldInitialized WorldType=%d WorldName=%s SaveSlot=%s"),
+						UE_LOG(LogGridEditorTest, Log, TEXT("[MON135PIE] Phase=IntegrationPIEWorldInitialized WorldType=%d WorldName=%s SaveSlot=%s"),
 							static_cast<int32>(World->WorldType), *World->GetName(), *State->TemporarySaveSlot);
 					}
 				});
 			State->bSetupSucceeded = State->PIEWorldInitializationHandle.IsValid();
 			Test->TestTrue(TEXT("The PIE startup injection is registered"), State->bSetupSucceeded);
-			UE_LOG(LogTemp, Log,
+			UE_LOG(LogGridEditorTest, Log,
 				TEXT(
 					"[MON135PIE] Phase=IntegrationSetup SaveSlot=%s AnchorSpawnId=%s Encounter=Encounter_Rats_01 Wave0=2 Wave1=1 bSpawnAtStart=false StartCell=(%d,%d) TriggerCell=(27,24)"),
 				*State->TemporarySaveSlot, *MON135RatSpawnId.ToString(), State->StartCell.X, State->StartCell.Y);
@@ -508,8 +510,7 @@ namespace
 			}
 
 			const int32 IsolatedCount = IsolateMON135EncounterFromUnrelatedMonsters(World);
-			UE_LOG(
-				LogTemp, Log, TEXT("[MON135PIE] Phase=IntegrationIsolation UnrelatedMonsters=%d Encounter=%s"), IsolatedCount, *MON135EncounterId.ToString());
+			UE_LOG(LogGridEditorTest, Log, TEXT("[MON135PIE] Phase=IntegrationIsolation UnrelatedMonsters=%d Encounter=%s"), IsolatedCount, *MON135EncounterId.ToString());
 			return true;
 		}
 
@@ -564,8 +565,7 @@ namespace
 			for (TActorIterator<AGridLevelRuntimeActor> It(World); It; ++It)
 			{
 				Runtimes.Add(*It);
-				UE_LOG(
-					LogTemp, Log, TEXT("[MON135PIE] Phase=IntegrationFreshCheck RuntimeActorName=%s RuntimeActorPath=%s"), *It->GetName(), *It->GetPathName());
+				UE_LOG(LogGridEditorTest, Log, TEXT("[MON135PIE] Phase=IntegrationFreshCheck RuntimeActorName=%s RuntimeActorPath=%s"), *It->GetName(), *It->GetPathName());
 			}
 			Test->TestEqual(TEXT("The PIE world has exactly one grid runtime actor"), Runtimes.Num(), 1);
 
@@ -753,7 +753,7 @@ namespace
 				Test->TestNull(TEXT("Continue keeps the future wave absent"), Runtime->FindSpawnedMonsterActor(MON135Wave1SpawnId));
 				Test->TestEqual(TEXT("Continue restores active encounter wave zero"), Runtime->GetMonsterEncounterActiveWave(MON135EncounterId), 0);
 			}
-			UE_LOG(LogTemp, Log, TEXT("[MON135PIE] Phase=IntegrationContinueCheck SaveSlot=%s EncounterActorCount=%d ActiveWave=%d"), *State->TemporarySaveSlot,
+			UE_LOG(LogGridEditorTest, Log, TEXT("[MON135PIE] Phase=IntegrationContinueCheck SaveSlot=%s EncounterActorCount=%d ActiveWave=%d"), *State->TemporarySaveSlot,
 				CountMON135EncounterActors(World), Runtime ? Runtime->GetMonsterEncounterActiveWave(MON135EncounterId) : INDEX_NONE);
 			return true;
 		}

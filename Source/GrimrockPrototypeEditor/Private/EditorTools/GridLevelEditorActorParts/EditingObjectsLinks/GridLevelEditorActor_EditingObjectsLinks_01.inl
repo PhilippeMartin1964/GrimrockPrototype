@@ -15,7 +15,7 @@ void AGridLevelEditorActor::EnsureLevelReady()
 {
 	if (!HasValidLevelAsset())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: LevelAsset is null."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: LevelAsset is null."));
 		return;
 	}
 
@@ -92,7 +92,7 @@ void AGridLevelEditorActor::ClearSelectedCell()
 	FGridLevelCellData* CellData = GetSelectedCellMutable();
 	if (!CellData)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: invalid selected cell."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: invalid selected cell."));
 		return;
 	}
 #if WITH_EDITOR
@@ -111,18 +111,18 @@ void AGridLevelEditorActor::PaintSelectedWall()
 	FGridLevelCellData* CellData = GetSelectedCellMutable();
 	if (!CellData)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: invalid selected cell."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: invalid selected cell."));
 		return;
 	}
 	if (CellData->CellType == EGridCellType::Empty)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: cannot paint wall on empty cell."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: cannot paint wall on empty cell."));
 		return;
 	}
 	EGridWallType* WallPtr = GetSelectedWallMutable(*CellData);
 	if (!WallPtr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: SelectedEdge must be North/East/South/West."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: SelectedEdge must be North/East/South/West."));
 		return;
 	}
 #if WITH_EDITOR
@@ -145,14 +145,14 @@ void AGridLevelEditorActor::ClearSelectedWall()
 	FGridLevelCellData* CellData = GetSelectedCellMutable();
 	if (!CellData)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: invalid selected cell."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: invalid selected cell."));
 		return;
 	}
 
 	EGridWallType* WallPtr = GetSelectedWallMutable(*CellData);
 	if (!WallPtr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridLevelEditorActor: SelectedEdge must be North/East/South/West."));
+		UE_LOG(LogGridEditor, Warning, TEXT("GridLevelEditorActor: SelectedEdge must be North/East/South/West."));
 		return;
 	}
 
