@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UObject/UObjectGlobals.h"
 
@@ -130,6 +131,11 @@ bool FGridPartyInventoryExclusiveOwnershipTest::RunTest(const FString& Parameter
 		AddError(TEXT("Failed to create the inventory component."));
 		return false;
 	}
+
+	UGridItemDefinitionAsset* WeaponDefinition = NewObject<UGridItemDefinitionAsset>(Component);
+	WeaponDefinition->ItemDefinitionId = TEXT("CC0_TestWeapon");
+	WeaponDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+	TestTrue(TEXT("The ownership fixture registers its weapon definition"), Component->RegisterItemDefinition(WeaponDefinition));
 
 	const FGridItemInstance Item = CreateTestItem(TEXT("CC0_TestWeapon"), 3.0f);
 	const FGuid RuntimeObjectId = Item.RuntimeObjectId;
