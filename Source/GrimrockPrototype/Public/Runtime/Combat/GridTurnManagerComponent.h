@@ -751,7 +751,6 @@ private:
 	friend class FGridMonsterMON10OptimizationMetricsLifecycleTest;
 	friend class FGridMonsterMON10OptimizationMetricsNoGameplayInfluenceTest;
 	friend class FGridMonsterMON11TargetingTest;
-	friend class FGridMonsterMON11RequestValidationTest;
 	friend class FGridMonsterMON11RequestAcceptedAndResolvedTest;
 	friend class FGridMonsterMON11PerCharacterActionGateTest;
 	friend class FGridMonsterMON11PlayerResolutionMappingTest;
@@ -773,7 +772,6 @@ private:
 	friend class FGridMonsterMON12InvalidDefinitionAdmissionTest;
 	friend class FGridMonsterMON12UninitializedInitiativeStateTest;
 	friend class FGridMonsterMON12InitializedPersistenceCaptureTest;
-	friend class FGridMonsterMON1271InitiativePreviewTest;
 	friend class FGridMonsterMON1271DynamicInitiativeTest;
 	friend class FGridMonsterMON1211HotbarValidationTest;
 	friend class FGridMonsterMON12ActionTransactionTest;
