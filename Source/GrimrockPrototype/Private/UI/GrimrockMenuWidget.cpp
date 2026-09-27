@@ -4,6 +4,8 @@
 #include "UI/GridSkillsWidget.h"
 #include "UI/GridSpellbookWidget.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockInGameUI, Log, All);
+
 void UGrimrockMenuWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -81,7 +83,7 @@ void UGrimrockMenuWidget::SetActiveTopTab(EInventoryTopTab NewTab)
 	UWidget* TargetPage = GetTopTabPage(NewTab);
 	if (!WidgetSwitcher_MainContent || !TargetPage)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GrimrockMenu cannot activate Page=%d"), static_cast<int32>(NewTab));
+		UE_LOG(LogGrimrockInGameUI, Warning, TEXT("GrimrockMenu cannot activate Page=%d"), static_cast<int32>(NewTab));
 		return;
 	}
 
@@ -97,5 +99,5 @@ void UGrimrockMenuWidget::SetActiveTopTab(EInventoryTopTab NewTab)
 		RefreshSpellbook();
 	}
 
-	UE_LOG(LogTemp, VeryVerbose, TEXT("GrimrockMenu active Page=%d Widget=%s"), static_cast<int32>(NewTab), *GetNameSafe(TargetPage));
+	UE_LOG(LogGrimrockInGameUI, VeryVerbose, TEXT("GrimrockMenu active Page=%d Widget=%s"), static_cast<int32>(NewTab), *GetNameSafe(TargetPage));
 }

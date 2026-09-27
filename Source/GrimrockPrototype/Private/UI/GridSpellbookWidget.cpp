@@ -11,6 +11,8 @@
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Magic/GridProductionSpellLibrary.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockInGameUI, Log, All);
 #endif
 
 namespace
@@ -20,14 +22,14 @@ namespace
 	{
 		if (!World)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Grimrock.Spellbook.SeedProduction failed: no world."));
+			UE_LOG(LogGrimrockInGameUI, Warning, TEXT("Grimrock.Spellbook.SeedProduction failed: no world."));
 			return;
 		}
 
 		AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(UGameplayStatics::GetPlayerPawn(World, 0));
 		if (!PartyPawn || !PartyPawn->PartyInventoryComponent)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Grimrock.Spellbook.SeedProduction failed: party pawn or inventory component unavailable."));
+			UE_LOG(LogGrimrockInGameUI, Warning, TEXT("Grimrock.Spellbook.SeedProduction failed: party pawn or inventory component unavailable."));
 			return;
 		}
 
@@ -35,14 +37,14 @@ namespace
 		const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex();
 		if (!InventoryComponent->IsValidCharacterIndex(CharacterIndex))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Grimrock.Spellbook.SeedProduction failed: invalid selected character index %d."), CharacterIndex);
+			UE_LOG(LogGrimrockInGameUI, Warning, TEXT("Grimrock.Spellbook.SeedProduction failed: invalid selected character index %d."), CharacterIndex);
 			return;
 		}
 
 		const FGuid CharacterId = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
 		if (!CharacterId.IsValid())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Grimrock.Spellbook.SeedProduction failed: selected character has no valid CharacterId."));
+			UE_LOG(LogGrimrockInGameUI, Warning, TEXT("Grimrock.Spellbook.SeedProduction failed: selected character has no valid CharacterId."));
 			return;
 		}
 
@@ -53,7 +55,7 @@ namespace
 				NewObject<UGridPartySpellbookComponent>(PartyPawn, UGridPartySpellbookComponent::StaticClass(), TEXT("PartySpellbookComponent"));
 			if (!SpellbookComponent)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Grimrock.Spellbook.SeedProduction failed: could not create PartySpellbookComponent."));
+				UE_LOG(LogGrimrockInGameUI, Warning, TEXT("Grimrock.Spellbook.SeedProduction failed: could not create PartySpellbookComponent."));
 				return;
 			}
 
@@ -63,7 +65,7 @@ namespace
 
 		if (!SpellbookComponent->EnsureCharacterSpellbook(CharacterId))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Grimrock.Spellbook.SeedProduction failed: could not ensure character spellbook."));
+			UE_LOG(LogGrimrockInGameUI, Warning, TEXT("Grimrock.Spellbook.SeedProduction failed: could not ensure character spellbook."));
 			return;
 		}
 
@@ -85,7 +87,7 @@ namespace
 			}
 		}
 
-		UE_LOG(LogTemp, Display,
+		UE_LOG(LogGrimrockInGameUI, Display,
 			TEXT(
 				"Grimrock.Spellbook.SeedProduction: CharacterIndex=%d Added=%d AlreadyKnown=%d TotalProduction=%d. MON18.8 persists these learned spells on the next successful save."),
 			CharacterIndex, AddedCount, AlreadyKnownCount, ProductionSpells.Num());
@@ -171,7 +173,7 @@ UGridPartySpellbookComponent* UGridSpellbookWidget::ResolveOrCreateSpellbookComp
 		NewObject<UGridPartySpellbookComponent>(PartyPawn, UGridPartySpellbookComponent::StaticClass(), TEXT("PartySpellbookComponent"));
 	if (!Created)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridSpellbookWidget failed to create PartySpellbookComponent."));
+		UE_LOG(LogGrimrockInGameUI, Warning, TEXT("GridSpellbookWidget failed to create PartySpellbookComponent."));
 		return nullptr;
 	}
 
@@ -179,7 +181,7 @@ UGridPartySpellbookComponent* UGridSpellbookWidget::ResolveOrCreateSpellbookComp
 	Created->InitializeSpellbookComponent(PartyPawn->PartyInventoryComponent);
 	Created->RegisterComponent();
 
-	UE_LOG(LogTemp, VeryVerbose, TEXT("GridSpellbookWidget created runtime PartySpellbookComponent for %s."), *GetNameSafe(PartyPawn));
+	UE_LOG(LogGrimrockInGameUI, VeryVerbose, TEXT("GridSpellbookWidget created runtime PartySpellbookComponent for %s."), *GetNameSafe(PartyPawn));
 
 	return Created;
 }
@@ -262,7 +264,7 @@ void UGridSpellbookWidget::RebuildSpellEntryWidgets()
 		UGridSpellbookEntryWidget* EntryWidget = CreateWidget<UGridSpellbookEntryWidget>(GetOwningPlayer(), SpellEntryWidgetClass);
 		if (!EntryWidget)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridSpellbookWidget failed to create spell row for %s."), *Entry.SpellId.ToString());
+			UE_LOG(LogGrimrockInGameUI, Warning, TEXT("GridSpellbookWidget failed to create spell row for %s."), *Entry.SpellId.ToString());
 			continue;
 		}
 

@@ -19,6 +19,8 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/RPGCharacterCreationAttributesStepWidget.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockFrontendUI, Log, All);
+
 namespace
 {
 	constexpr int32 CharacterCreationWizardStepCount = 5;
@@ -351,7 +353,7 @@ void URPGCharacterCreationWizardWidget::NativeConstruct()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("CharacterCreationWizard MissingRequiredWidget Widget=%s Expected=Widget_StepAttributes"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("CharacterCreationWizard MissingRequiredWidget Widget=%s Expected=Widget_StepAttributes"), *GetName());
 	}
 	ApplyWizardStepToSwitcher();
 	RefreshWizardShell();
@@ -421,7 +423,7 @@ bool URPGCharacterCreationWizardWidget::GoToPreviousWizardStep()
 
 void URPGCharacterCreationWizardWidget::CancelWizard()
 {
-	UE_LOG(LogTemp, Log, TEXT("CharacterCreationWizard Cancelled Widget=%s Context=%d"), *GetName(), static_cast<int32>(CreationContext));
+	UE_LOG(LogGrimrockFrontendUI, Verbose, TEXT("CharacterCreationWizard Cancelled Widget=%s Context=%d"), *GetName(), static_cast<int32>(CreationContext));
 
 	if (CreationContext == ERPGCharacterCreationContext::CustomRecruit)
 	{
@@ -447,7 +449,7 @@ void URPGCharacterCreationWizardWidget::CancelWizard()
 		return;
 	}
 
-	UE_LOG(LogTemp, Error, TEXT("CharacterCreationWizard Cancel Failed Widget=%s Reason=NoGrimrockGameInstance"), *GetName());
+	UE_LOG(LogGrimrockFrontendUI, Error, TEXT("CharacterCreationWizard Cancel Failed Widget=%s Reason=NoGrimrockGameInstance"), *GetName());
 }
 
 bool URPGCharacterCreationWizardWidget::CanGoToNextWizardStep() const
@@ -548,7 +550,7 @@ void URPGCharacterCreationWizardWidget::RefreshWizardShell()
 	}
 	RefreshWizardValidationMessage(this);
 	RefreshSummaryStep();
-	UE_LOG(LogTemp, Verbose, TEXT("CharacterCreationWizard Refreshed Widget=%s Step=%d StepName=%s"), *GetName(), GetCurrentWizardStepIndex(),
+	UE_LOG(LogGrimrockFrontendUI, Verbose, TEXT("CharacterCreationWizard Refreshed Widget=%s Step=%d StepName=%s"), *GetName(), GetCurrentWizardStepIndex(),
 		*GetCurrentWizardStepTitle().ToString());
 }
 
@@ -876,7 +878,7 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation()
 			return false;
 		}
 
-		UE_LOG(LogTemp, Log,
+		UE_LOG(LogGrimrockFrontendUI, Verbose,
 			TEXT("CharacterCreationWizard RecruitedCustomCharacter Name=%s Race=%s Class=%s CharacterIndex=%d ClassAttributes=%d/%d/%d/%d/%d/%d"),
 			*NormalizedName, RaceDefinition ? *RaceDefinition->RaceId.ToString() : TEXT("None"),
 			ClassDefinition ? *ClassDefinition->ClassId.ToString() : TEXT("None"), RecruitResult.CharacterIndex, CreatedAttributes.Strength,
@@ -896,7 +898,7 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation()
 	}
 
 	InventoryComponent->SetCharacterVisualSelection(0, Request.PortraitGender, Request.PortraitVariantId, Request.Portrait, Request.ClassIcon);
-	UE_LOG(LogTemp, Log, TEXT("CharacterCreationWizard CreatedCharacter Name=%s Race=%s Class=%s ClassAttributes=%d/%d/%d/%d/%d/%d"), *NormalizedName,
+	UE_LOG(LogGrimrockFrontendUI, Verbose, TEXT("CharacterCreationWizard CreatedCharacter Name=%s Race=%s Class=%s ClassAttributes=%d/%d/%d/%d/%d/%d"), *NormalizedName,
 		RaceDefinition ? *RaceDefinition->RaceId.ToString() : TEXT("None"), ClassDefinition ? *ClassDefinition->ClassId.ToString() : TEXT("None"),
 		CreatedAttributes.Strength, CreatedAttributes.Dexterity, CreatedAttributes.Constitution, CreatedAttributes.Intelligence, CreatedAttributes.Wisdom,
 		CreatedAttributes.Charisma);

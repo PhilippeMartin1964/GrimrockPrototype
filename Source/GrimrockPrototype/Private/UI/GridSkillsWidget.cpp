@@ -11,6 +11,8 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridSkillsPageService.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockInGameUI, Log, All);
+
 namespace GridSkillsWidgetPrivate
 {
 	FText GetAttributeLabel(ERPGSkillGoverningAttribute Attribute)
@@ -138,7 +140,7 @@ void UGridSkillsWidget::RebuildPresentation()
 	UBorder* RootBorder = Cast<UBorder>(WidgetTree->RootWidget);
 	if (!RootBorder)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridSkillsWidget native presentation requires WBP_GridSkills root widget to remain a Border."));
+		UE_LOG(LogGrimrockInGameUI, Warning, TEXT("GridSkillsWidget native presentation requires WBP_GridSkills root widget to remain a Border."));
 		return;
 	}
 
@@ -148,7 +150,7 @@ void UGridSkillsWidget::RebuildPresentation()
 		NativeContentBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("NativeSkillsContent"));
 		if (!NativeScrollBox || !NativeContentBox)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridSkillsWidget failed to construct native presentation widgets."));
+			UE_LOG(LogGrimrockInGameUI, Warning, TEXT("GridSkillsWidget failed to construct native presentation widgets."));
 			return;
 		}
 

@@ -9,6 +9,8 @@
 #include "UI/RPGCharacterCreationWidget.h"
 #include "UObject/UObjectGlobals.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockFrontendUI, Log, All);
+
 void UGrimrockMainMenuWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -66,7 +68,7 @@ void UGrimrockMainMenuWidget::QuitMainMenu()
 		PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("MainMenu Quit Requested Widget=%s"), *GetName());
+	UE_LOG(LogGrimrockFrontendUI, Verbose, TEXT("MainMenu Quit Requested Widget=%s"), *GetName());
 	UKismetSystemLibrary::QuitGame(this, PlayerController, EQuitPreference::Quit, false);
 }
 
@@ -134,7 +136,7 @@ bool UGrimrockMainMenuWidget::OpenMainMenuModal(TSubclassOf<UUserWidget> WidgetC
 {
 	if (!WidgetClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=%s"), *GetName(), MissingClassReason);
+		UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=%s"), *GetName(), MissingClassReason);
 		return false;
 	}
 
@@ -146,21 +148,21 @@ bool UGrimrockMainMenuWidget::OpenMainMenuModal(TSubclassOf<UUserWidget> WidgetC
 
 	if (!PlayerController)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=NoPlayerController"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=NoPlayerController"), *GetName());
 		return false;
 	}
 
 	UUserWidget* ModalWidget = CreateWidget<UUserWidget>(PlayerController, WidgetClass);
 	if (!ModalWidget)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=CreateWidgetFailed Class=%s"), *GetName(), *GetNameSafe(WidgetClass));
+		UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=CreateWidgetFailed Class=%s"), *GetName(), *GetNameSafe(WidgetClass));
 		return false;
 	}
 
 	ModalWidget->AddToViewport(ModalZOrder);
 	ModalWidget->SetVisibility(ESlateVisibility::Visible);
 
-	UE_LOG(LogTemp, Log, TEXT("MainMenu Modal Opened Widget=%s Class=%s ZOrder=%d"), *GetName(), *GetNameSafe(WidgetClass), ModalZOrder);
+	UE_LOG(LogGrimrockFrontendUI, Verbose, TEXT("MainMenu Modal Opened Widget=%s Class=%s ZOrder=%d"), *GetName(), *GetNameSafe(WidgetClass), ModalZOrder);
 	return true;
 }
 
@@ -174,7 +176,7 @@ void UGrimrockMainMenuWidget::HandleContinueClicked()
 	UGrimrockGameInstance* GrimrockGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr;
 	if (!GrimrockGameInstance || !GrimrockGameInstance->RequestContinueDefaultPartySaveSlot() || !GrimrockGameInstance->OpenDungeonLevel(this))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("MainMenu Continue Failed Widget=%s"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("MainMenu Continue Failed Widget=%s"), *GetName());
 	}
 }
 
@@ -182,7 +184,7 @@ void UGrimrockMainMenuWidget::HandleNewGameClicked()
 {
 	if (!OpenNewGameCharacterCreation())
 	{
-		UE_LOG(LogTemp, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=CharacterCreationUnavailable"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=CharacterCreationUnavailable"), *GetName());
 	}
 }
 
@@ -195,21 +197,21 @@ bool UGrimrockMainMenuWidget::OpenNewGameCharacterCreation()
 	}
 	if (!PlayerController)
 	{
-		UE_LOG(LogTemp, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=NoPlayerController"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=NoPlayerController"), *GetName());
 		return false;
 	}
 
 	TSubclassOf<URPGCharacterCreationWidget> WidgetClass = CharacterCreationWidgetClass;
 	if (!WidgetClass)
 	{
-		UE_LOG(LogTemp, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=NoCharacterCreationWidgetClass"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=NoCharacterCreationWidgetClass"), *GetName());
 		return false;
 	}
 
 	NewGamePartyInventory = NewObject<UGridPartyInventoryComponent>(this);
 	if (!NewGamePartyInventory)
 	{
-		UE_LOG(LogTemp, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=NoFrontendPartyInventory"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=NoFrontendPartyInventory"), *GetName());
 		return false;
 	}
 	NewGamePartyInventory->ResetPartyForNewGame();
@@ -218,7 +220,7 @@ bool UGrimrockMainMenuWidget::OpenNewGameCharacterCreation()
 	if (!NewGameCharacterCreationWidget)
 	{
 		NewGamePartyInventory = nullptr;
-		UE_LOG(LogTemp, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=CreateCharacterCreationWidgetFailed"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=CreateCharacterCreationWidgetFailed"), *GetName());
 		return false;
 	}
 
@@ -238,7 +240,7 @@ bool UGrimrockMainMenuWidget::OpenNewGameCharacterCreation()
 	PlayerController->SetInputMode(InputMode);
 	PlayerController->bShowMouseCursor = true;
 
-	UE_LOG(LogTemp, Log, TEXT("MainMenu NewGame CharacterCreationShown Widget=%s Class=%s"), *GetName(), *GetNameSafe(WidgetClass));
+	UE_LOG(LogGrimrockFrontendUI, Verbose, TEXT("MainMenu NewGame CharacterCreationShown Widget=%s Class=%s"), *GetName(), *GetNameSafe(WidgetClass));
 	return true;
 }
 
@@ -283,14 +285,14 @@ void UGrimrockMainMenuWidget::HandleInitialCharacterCreationCommitted(URPGCharac
 	if (SourceWidget != NewGameCharacterCreationWidget.Get() || !NewGamePartyInventory ||
 		!NewGamePartyInventory->HasCompletedInitialCharacterCreation())
 	{
-		UE_LOG(LogTemp, Error, TEXT("MainMenu NewGame Commit Rejected Widget=%s Reason=InvalidFrontendPartyState"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("MainMenu NewGame Commit Rejected Widget=%s Reason=InvalidFrontendPartyState"), *GetName());
 		return;
 	}
 
 	UGrimrockGameInstance* GrimrockGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr;
 	if (!GrimrockGameInstance || !GrimrockGameInstance->SetPendingNewPartyState(NewGamePartyInventory->PartyInventoryState))
 	{
-		UE_LOG(LogTemp, Error, TEXT("MainMenu NewGame Commit Failed Widget=%s Reason=PendingPartyRejected"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("MainMenu NewGame Commit Failed Widget=%s Reason=PendingPartyRejected"), *GetName());
 		CloseNewGameCharacterCreation(true);
 		return;
 	}
@@ -304,11 +306,11 @@ void UGrimrockMainMenuWidget::HandleInitialCharacterCreationCommitted(URPGCharac
 		GrimrockGameInstance->ClearPendingStartupMode();
 		SetVisibility(ESlateVisibility::Visible);
 		RestoreMainMenuInput();
-		UE_LOG(LogTemp, Error, TEXT("MainMenu NewGame Commit Failed Widget=%s Reason=OpenDungeonFailed"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("MainMenu NewGame Commit Failed Widget=%s Reason=OpenDungeonFailed"), *GetName());
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("MainMenu NewGame CharacterCreationCommitted Widget=%s"), *GetName());
+	UE_LOG(LogGrimrockFrontendUI, Verbose, TEXT("MainMenu NewGame CharacterCreationCommitted Widget=%s"), *GetName());
 }
 
 void UGrimrockMainMenuWidget::HandleInitialCharacterCreationCancelled(URPGCharacterCreationWidget* SourceWidget)
@@ -318,7 +320,7 @@ void UGrimrockMainMenuWidget::HandleInitialCharacterCreationCancelled(URPGCharac
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("MainMenu NewGame CharacterCreationCancelled Widget=%s"), *GetName());
+	UE_LOG(LogGrimrockFrontendUI, Verbose, TEXT("MainMenu NewGame CharacterCreationCancelled Widget=%s"), *GetName());
 	CloseNewGameCharacterCreation(true);
 }
 

@@ -6,6 +6,8 @@
 #include "Runtime/GrimrockGameInstance.h"
 #include "UI/GrimrockLoadGameSlotWidget.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockFrontendUI, Log, All);
+
 void UGrimrockLoadGameMenuWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -18,7 +20,7 @@ void UGrimrockLoadGameMenuWidget::RefreshSaveSlots()
 {
 	if (!VerticalBox_SaveSlots)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("LoadGameMenu Refresh Failed Widget=%s Reason=NoVerticalBox_SaveSlots"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("LoadGameMenu Refresh Failed Widget=%s Reason=NoVerticalBox_SaveSlots"), *GetName());
 		SetEmptyStateVisible(true);
 		return;
 	}
@@ -27,7 +29,7 @@ void UGrimrockLoadGameMenuWidget::RefreshSaveSlots()
 
 	if (!SaveSlotEntryWidgetClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("LoadGameMenu Refresh Failed Widget=%s Reason=NoSaveSlotEntryWidgetClass"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("LoadGameMenu Refresh Failed Widget=%s Reason=NoSaveSlotEntryWidgetClass"), *GetName());
 		SetEmptyStateVisible(true);
 		return;
 	}
@@ -36,7 +38,7 @@ void UGrimrockLoadGameMenuWidget::RefreshSaveSlots()
 
 	if (!GrimrockGameInstance)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("LoadGameMenu Refresh Failed Widget=%s Reason=NoGrimrockGameInstance"), *GetName());
+		UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("LoadGameMenu Refresh Failed Widget=%s Reason=NoGrimrockGameInstance"), *GetName());
 		SetEmptyStateVisible(true);
 		return;
 	}
@@ -50,7 +52,7 @@ void UGrimrockLoadGameMenuWidget::RefreshSaveSlots()
 
 		if (!SlotWidget)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("LoadGameMenu Slot Create Failed Slot=%s"), *SlotInfo.SlotName);
+			UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("LoadGameMenu Slot Create Failed Slot=%s"), *SlotInfo.SlotName);
 			continue;
 		}
 
@@ -60,7 +62,7 @@ void UGrimrockLoadGameMenuWidget::RefreshSaveSlots()
 		VerticalBox_SaveSlots->AddChildToVerticalBox(SlotWidget);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("LoadGameMenu Refreshed Widget=%s ExistingSlots=%d"), *GetName(), ExistingSlots.Num());
+	UE_LOG(LogGrimrockFrontendUI, Verbose, TEXT("LoadGameMenu Refreshed Widget=%s ExistingSlots=%d"), *GetName(), ExistingSlots.Num());
 }
 
 void UGrimrockLoadGameMenuWidget::BindButtons()
@@ -93,7 +95,7 @@ void UGrimrockLoadGameMenuWidget::HandleSaveSlotSelected(const FString& SlotName
 
 	if (!GrimrockGameInstance)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("LoadGameMenu Load Failed Slot=%s UserIndex=%d Reason=NoGrimrockGameInstance"), *SlotName, UserIndex);
+		UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("LoadGameMenu Load Failed Slot=%s UserIndex=%d Reason=NoGrimrockGameInstance"), *SlotName, UserIndex);
 		OnLoadSlotRequestFailed(SlotName, UserIndex);
 		return;
 	}
@@ -107,7 +109,7 @@ void UGrimrockLoadGameMenuWidget::HandleSaveSlotSelected(const FString& SlotName
 
 	if (!GrimrockGameInstance->OpenDungeonLevel(this))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("LoadGameMenu Load Failed Slot=%s UserIndex=%d Reason=OpenDungeonFailed"), *SlotName, UserIndex);
+		UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("LoadGameMenu Load Failed Slot=%s UserIndex=%d Reason=OpenDungeonFailed"), *SlotName, UserIndex);
 		OnLoadSlotRequestFailed(SlotName, UserIndex);
 	}
 }

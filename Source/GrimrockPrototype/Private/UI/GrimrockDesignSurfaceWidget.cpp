@@ -7,6 +7,8 @@
 #include "Components/ScaleBox.h"
 #include "Components/SizeBox.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockInGameUI, Log, All);
+
 void UGrimrockDesignSurfaceWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -44,7 +46,7 @@ void UGrimrockDesignSurfaceWidget::ApplyDesignSurfaceViewportLimit()
 
 	if (!RootCanvasPanel || !DesignRootScaleBox || !DesignSurfaceSizeBox)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s design surface scaling failed: expected CanvasPanel_Root, ScaleBox_DesignRoot, and SizeBox_DesignSurface."),
+		UE_LOG(LogGrimrockInGameUI, Error, TEXT("%s design surface scaling failed: expected CanvasPanel_Root, ScaleBox_DesignRoot, and SizeBox_DesignSurface."),
 			*GetNameSafe(this));
 		LastAppliedViewportPx = ViewportPx;
 		LastAppliedViewportScale = ViewportScale;
@@ -74,7 +76,7 @@ void UGrimrockDesignSurfaceWidget::ApplyDesignSurfaceViewportLimit()
 
 	if (DesignRootScaleBox->GetParent() != RootCanvasPanel)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s design surface scaling failed: %s is not directly under CanvasPanel_Root."), *GetNameSafe(this),
+		UE_LOG(LogGrimrockInGameUI, Error, TEXT("%s design surface scaling failed: %s is not directly under CanvasPanel_Root."), *GetNameSafe(this),
 			*GetNameSafe(DesignRootScaleBox));
 		LastAppliedViewportPx = ViewportPx;
 		LastAppliedViewportScale = ViewportScale;
@@ -84,7 +86,7 @@ void UGrimrockDesignSurfaceWidget::ApplyDesignSurfaceViewportLimit()
 	UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(DesignRootScaleBox->Slot);
 	if (!CanvasSlot)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s design surface scaling failed: %s has no CanvasPanelSlot."), *GetNameSafe(this), *GetNameSafe(DesignRootScaleBox));
+		UE_LOG(LogGrimrockInGameUI, Error, TEXT("%s design surface scaling failed: %s has no CanvasPanelSlot."), *GetNameSafe(this), *GetNameSafe(DesignRootScaleBox));
 		LastAppliedViewportPx = ViewportPx;
 		LastAppliedViewportScale = ViewportScale;
 		return;
@@ -99,7 +101,7 @@ void UGrimrockDesignSurfaceWidget::ApplyDesignSurfaceViewportLimit()
 	LastAppliedViewportPx = ViewportPx;
 	LastAppliedViewportScale = ViewportScale;
 
-	UE_LOG(LogTemp, Log, TEXT("%s DesignSurface ViewportPx=%.0fx%.0f Dpi=%.2f Fit=%.3f Design=%.0fx%.0f SlotSlate=%.1fx%.1f FinalPhysical=%.0fx%.0f"),
+	UE_LOG(LogGrimrockInGameUI, Verbose, TEXT("%s DesignSurface ViewportPx=%.0fx%.0f Dpi=%.2f Fit=%.3f Design=%.0fx%.0f SlotSlate=%.1fx%.1f FinalPhysical=%.0fx%.0f"),
 		*GetNameSafe(this), ViewportPx.X, ViewportPx.Y, ViewportScale, PhysicalFitScale, ClampedDesignWidth, ClampedDesignHeight, FinalSlateSlotSize.X,
 		FinalSlateSlotSize.Y, FinalPhysicalSize.X, FinalPhysicalSize.Y);
 }
