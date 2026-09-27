@@ -319,6 +319,8 @@ bool FGridMON195InvalidCurrentSourceDropsVmTest::RunTest(const FString& Paramete
 	TestTrue(TEXT("Gate can be reset before invalid authoritative rebuild"), GridLevelVariableStore::SetBool(*Level, *State, TEXT("Gate"), false, Error));
 
 	Level->LuaScripts[0].Source = TEXT("function on_trigger(\n");
+	AddExpectedError(TEXT("Grid Lua runtime initialization failed"), EAutomationExpectedErrorFlags::Contains, 1);
+	AddExpectedError(TEXT("Grid Lua callback rejected"), EAutomationExpectedErrorFlags::Contains, 1);
 	Runtime->RebuildLevel();
 
 	TestFalse(TEXT("Invalid current source cannot execute stale pre-rebuild callback"), Execute195(Runtime));

@@ -325,6 +325,7 @@ bool FGridMON1923EventCommandChainTest::RunTest(const FString& Parameters)
 	Activation->Initialize(Runtime);
 	Activation->RebuildIndexes();
 
+	AddExpectedError(TEXT("Reason=cyclic logic target dispatch"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestTrue(TEXT("Source event executes data-only logic chain"), Runtime->ExecuteLinksFromRuntimeObject(SourceId, EGridObjectEvent::Activated));
 
 	FGridLevelRuntimeState* State = Runtime->GetOrCreateRuntimeStateForCurrentLevel();

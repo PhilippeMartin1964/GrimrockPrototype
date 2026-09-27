@@ -8,6 +8,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterIdleVariationComponent.h"
@@ -290,6 +291,12 @@ bool FGridMonsterMON10IdleVariationSchedulingLifecycleTest::RunTest(const FStrin
 	FGridMON10IdleTestWorld TestWorld;
 	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 	ConfigureMON10IdleFloor(Runtime);
+	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
+	if (!Runtime || !Party)
+	{
+		return false;
+	}
+	Party->SetGridStart(Runtime, 0, 0, EGridEdge::North);
 	UGridMonsterDefinitionAsset* Definition = MakeMON10IdleDefinition(Runtime);
 	AGridMonsterActor* Monster =
 		SpawnMON10IdleMonster(TestWorld.World, Runtime, Definition, FGuid(10, 4, 1, 1), FIntPoint(2, 2), TEXT("MON10IdleLifecycleRat"), true);

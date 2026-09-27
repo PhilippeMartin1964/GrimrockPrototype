@@ -358,6 +358,8 @@ bool FGridMON194SharedActionBudgetTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	AddExpectedError(TEXT("Reason=shared Event/Command/Lua budget exhausted"), EAutomationExpectedErrorFlags::Contains, 1);
+	AddExpectedError(TEXT("Reason=shared runtime action budget exhausted"), EAutomationExpectedErrorFlags::Contains, 1);
 	Fixture.Activation->ExecuteLinksFromObjectForEvent(SourceId, EGridObjectEvent::Activated);
 
 	FGridLevelRuntimeState* State = Fixture.Runtime->GetOrCreateRuntimeStateForCurrentLevel();

@@ -7,8 +7,10 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
 namespace
@@ -186,6 +188,10 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 	PitDefinition->DefinitionId = TEXT("Pit_Stone_01");
 	PitDefinition->SupportedType = EGridLevelObjectType::Pit;
 	PitDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
+	PitDefinition->StaticPart.Mesh = NewObject<UStaticMesh>(Runtime);
+	PitDefinition->RuntimeActorClass = AGridRuntimeObjectActor::StaticClass();
+	PitDefinition->bHideCellFloor = true;
+	PitDefinition->DefaultBehavior.Pit.bInitiallyOpen = true;
 	Runtime->WorldObjectDefinitions.Add(PitDefinition);
 
 	Runtime->DungeonAsset = Dungeon;
@@ -220,6 +226,7 @@ bool FGridPIT01FallLifecycleTest::RunTest(const FString& Parameters)
 
 	// Real player path: start next to the Pit, move one grid cell onto it, and let movement completion
 	// invoke TryBeginPitFallAtCell automatically.
+	AddExpectedError(TEXT("GridPit landing fallback"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestTrue(TEXT("Party can start a normal move onto the Pit"), Party->TryStartMove(EGridEdge::East));
 	Party->UpdateMove(10.0f);
 	TestEqual(TEXT("Party logical X reaches Pit cell"), Party->CurrentCellX, 2);

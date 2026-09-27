@@ -230,6 +230,7 @@ bool FGridTD064InventoryStackMergeTest::RunTest(const FString& Parameters)
 		SetInventorySlot(Inventory, CharacterIndex, SlotIndex, OtherDefinition, 1);
 	}
 	const FGuid FullInventorySourceId = Character.InventorySlots[0].Item.RuntimeObjectId;
+	AddExpectedError(TEXT("Reason=NoFreeSlot"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestFalse(TEXT("Context split fails atomically when no inventory slot is free"),
 		Widget->ExecuteInventoryContextAction(EGridItemActionType::SplitStack, EGridInventoryUiSlotType::Inventory, 0));
 	TestEqual(TEXT("Full-inventory split leaves the source quantity unchanged"), Character.InventorySlots[0].Item.Quantity, 5);

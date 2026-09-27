@@ -146,6 +146,7 @@ bool FGridPIT02WorldItemsTest::RunTest(const FString& Parameters)
 	Stone.bLightsEnabled = false;
 
 	const FVector SourceLocalOffset(24.0f, -16.0f, 0.0f);
+	AddExpectedError(TEXT("GridPit ItemTransfer landing fallback"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestTrue(TEXT("Dropping a normal World Item on an open pit routes it away from the source level"),
 		Runtime->TryDropItemInstanceAtCell(Stone, StoneDefinition, 2, 2, EGridEdge::None, SourceLocalOffset));
 	TestEqual(TEXT("No World Item remains on the upper pit cell"), Runtime->GetWorldItemWeightAtCell(2, 2, false), 0.0f);

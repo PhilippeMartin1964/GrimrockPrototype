@@ -9,6 +9,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Sound/SoundWave.h"
 
 namespace
@@ -193,6 +194,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON114TargetReactionExclusivityTest, "Grim
 bool FGridMON114TargetReactionExclusivityTest::RunTest(const FString& Parameters)
 {
 	AGridMonsterActor* Monster = NewObject<AGridMonsterActor>();
+	UGridMonsterMovementComponent* Movement = NewObject<UGridMonsterMovementComponent>(Monster, TEXT("MON114PresentationMovement"));
+	Movement->bAutoInitialize = false;
+	Monster->AddInstanceComponent(Movement);
 	Monster->CurrentHealth = 8;
 	Monster->CurrentPhysicalArmor = 0;
 	Monster->CurrentMagicalArmor = 0;

@@ -14,6 +14,7 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDeathComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 
 namespace
@@ -141,10 +142,12 @@ namespace
 			Monster->InitializeMonster(MonsterDefinition, MonsterId, FIntPoint(1, 2), EGridEdge::South);
 
 			Occupancy = TestWorld.World->GetSubsystem<UGridMonsterOccupancySubsystem>();
-			if (Occupancy)
-			{
-				Occupancy->RegisterMonster(Monster, Monster->CurrentCell);
-			}
+			UGridMonsterMovementComponent* Movement = NewObject<UGridMonsterMovementComponent>(Monster, TEXT("MON11ResolutionMovement"));
+			Movement->bAutoInitialize = false;
+			Movement->bInferCellFromActorLocation = false;
+			Monster->AddInstanceComponent(Movement);
+			Movement->RegisterComponent();
+			Movement->InitializeMovement(Runtime);
 
 			TurnManager = NewObject<UGridTurnManagerComponent>(Runtime, TEXT("MON11ResolutionTurnManager"));
 			TurnManager->bAutoInitialize = false;

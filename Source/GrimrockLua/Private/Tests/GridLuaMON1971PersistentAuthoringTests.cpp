@@ -159,26 +159,26 @@ bool FGridMON1971PersistentValidationTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON1971LegacyGridVarsCompatibilityTest, "Grimrock.MON19.7.1.LuaAuthoring.LegacyGridVarsCompatibility",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON1971GridVarsCompatibilityTest, "Grimrock.MON19.7.1.LuaAuthoring.GridVarsCompatibility",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMON1971LegacyGridVarsCompatibilityTest::RunTest(const FString& Parameters)
+bool FGridMON1971GridVarsCompatibilityTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	const FGridLuaScriptSource Script = MakeMON1971Script(TEXT("Legacy"),
+	const FGridLuaScriptSource Script = MakeMON1971Script(TEXT("GridVars"),
 		TEXT("persistent = { GateOpen = false }\n") TEXT("function on_trigger(event)\n") TEXT("  local ok, err = grid.vars.set_bool('GateOpen', true)\n")
 			TEXT("  assert(ok, err)\n") TEXT("end\n"));
 
 	FGridLuaVm Vm;
 	FString Error;
-	TestTrue(TEXT("Legacy compatibility VM loads"), Vm.Reload({ Script }, FGridLuaVmConfig(), Error));
+	TestTrue(TEXT("Grid-vars compatibility VM loads"), Vm.Reload({ Script }, FGridLuaVmConfig(), Error));
 
 	TMap<FName, bool> BoolValues;
 	BoolValues.Add(TEXT("GateOpen"), false);
 	TMap<FName, int32> IntValues;
 	const FGridLuaHostApi Host = MakeMON1971Host(BoolValues, IntValues);
-	TestTrue(TEXT("Legacy grid.vars callback succeeds"), Vm.CallEventFunction(TEXT("Legacy"), TEXT("on_trigger"), MakeMON1971Event(), Host, Error));
+	TestTrue(TEXT("Legacy grid.vars callback succeeds"), Vm.CallEventFunction(TEXT("GridVars"), TEXT("on_trigger"), MakeMON1971Event(), Host, Error));
 	TestTrue(TEXT("Unchanged persistent table does not overwrite direct grid.vars mutation"), BoolValues.FindRef(TEXT("GateOpen")));
 	return true;
 }

@@ -180,14 +180,14 @@ bool FGridMON128RejectLegacySaveWithoutHotbarTest::RunTest(const FString& Parame
 		return false;
 	}
 
-	FGridPartyInventoryState LegacyState = SourceComponent->PartyInventoryState;
-	LegacyState.bInitialCharacterCreationCompleted = true;
-	LegacyState.ActiveCharacters[0].CombatHotbarSlots.Reset();
+	FGridPartyInventoryState StateToNormalize = SourceComponent->PartyInventoryState;
+	StateToNormalize.bInitialCharacterCreationCompleted = true;
+	StateToNormalize.ActiveCharacters[0].CombatHotbarSlots.Reset();
 
 	UGridPartyInventoryComponent* RestoredComponent = NewObject<UGridPartyInventoryComponent>();
 	FText RestoreError;
 	TestFalse(TEXT("A prototype-era snapshot without the current hotbar schema is rejected"),
-		RestoredComponent->RestorePartyInventoryState(LegacyState, RestoreError));
+		RestoredComponent->RestorePartyInventoryState(StateToNormalize, RestoreError));
 	TestTrue(TEXT("Rejected obsolete hotbar data reports a validation error"), !RestoreError.IsEmpty());
 	TestTrue(TEXT("Rejected obsolete data does not fabricate a migrated party"), RestoredComponent->PartyInventoryState.ActiveCharacters.IsEmpty());
 	return true;
@@ -464,10 +464,10 @@ bool FGridMON1289QuickItemBindingLifetimeTest::RunTest(const FString& Parameters
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON1289LegacyBindingSanitizationTest, "Grimrock.Monsters.MON12.8.9.LegacyBindingsAreSanitized",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON1289BindingSanitizationTest, "Grimrock.Monsters.MON12.8.9.InvalidBindingsAreSanitized",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMON1289LegacyBindingSanitizationTest::RunTest(const FString& Parameters)
+bool FGridMON1289BindingSanitizationTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	UGridPartyInventoryComponent* SourceComponent = CreateMON128Inventory();
@@ -476,28 +476,28 @@ bool FGridMON1289LegacyBindingSanitizationTest::RunTest(const FString& Parameter
 		return false;
 	}
 
-	FGridPartyInventoryState LegacyState = SourceComponent->PartyInventoryState;
-	LegacyState.bInitialCharacterCreationCompleted = true;
-	FGridCharacterInventoryState& LegacyCharacter = LegacyState.ActiveCharacters[0];
+	FGridPartyInventoryState StateToNormalize = SourceComponent->PartyInventoryState;
+	StateToNormalize.bInitialCharacterCreationCompleted = true;
+	FGridCharacterInventoryState& CharacterToNormalize = StateToNormalize.ActiveCharacters[0];
 
 	const FGuid DuplicateWeaponRuntimeId = FGuid::NewGuid();
 	FGridCombatHotbarBinding FirstWeaponBinding = MakeMON128EquipmentBinding(DuplicateWeaponRuntimeId);
 	FirstWeaponBinding.SlotIndex = 1;
-	LegacyCharacter.CombatHotbarSlots[1] = FirstWeaponBinding;
+	CharacterToNormalize.CombatHotbarSlots[1] = FirstWeaponBinding;
 	FGridCombatHotbarBinding DuplicateWeaponBinding = FirstWeaponBinding;
 	DuplicateWeaponBinding.SlotIndex = 7;
-	LegacyCharacter.CombatHotbarSlots[7] = DuplicateWeaponBinding;
+	CharacterToNormalize.CombatHotbarSlots[7] = DuplicateWeaponBinding;
 
 	FGridCombatHotbarBinding ExhaustedPotionBinding;
 	ExhaustedPotionBinding.SlotIndex = 4;
-	ExhaustedPotionBinding.ActionId = FGridCombatHotbarBinding::MakeQuickItemActionId(TEXT("Potion_MON1289_Legacy"));
+	ExhaustedPotionBinding.ActionId = FGridCombatHotbarBinding::MakeQuickItemActionId(TEXT("Potion_MON1289_Stale"));
 	ExhaustedPotionBinding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
-	ExhaustedPotionBinding.SourceDefinitionId = TEXT("Potion_MON1289_Legacy");
-	LegacyCharacter.CombatHotbarSlots[4] = ExhaustedPotionBinding;
+	ExhaustedPotionBinding.SourceDefinitionId = TEXT("Potion_MON1289_Stale");
+	CharacterToNormalize.CombatHotbarSlots[4] = ExhaustedPotionBinding;
 
 	UGridPartyInventoryComponent* RestoredComponent = NewObject<UGridPartyInventoryComponent>();
 	FText RestoreError;
-	TestTrue(TEXT("The legacy state is restored and normalized"), RestoredComponent->RestorePartyInventoryState(LegacyState, RestoreError));
+	TestTrue(TEXT("Current-schema stale bindings are restored and normalized"), RestoredComponent->RestorePartyInventoryState(StateToNormalize, RestoreError));
 
 	FGridCombatHotbarBinding PreservedWeapon;
 	FGridCombatHotbarBinding ClearedDuplicate;

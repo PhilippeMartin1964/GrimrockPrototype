@@ -18,6 +18,7 @@
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLeverActor.h"
+#include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
@@ -530,6 +531,12 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest(const FString& Parameters
 	{
 		return false;
 	}
+	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
+	if (!TestNotNull(TEXT("Deferred-spawn party exists"), Party))
+	{
+		return false;
+	}
+	Party->SetGridStart(Runtime, 0, 0, EGridEdge::North);
 	Level->StartCellX = 0;
 	Level->StartCellY = 0;
 	Level->StartFacing = EGridEdge::North;
@@ -687,6 +694,12 @@ bool FGridMonsterMON133LifecyclePersistenceTest::RunTest(const FString& Paramete
 	UGridLevelAsset* Level = MakeMON13Level(Runtime);
 	Runtime->LevelAsset = Level;
 	UGridMonsterDefinitionAsset* Definition = MakeMON13RuntimeDefinition(*this, Runtime, TEXT("MON133_PersistentRat"));
+	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
+	if (!TestNotNull(TEXT("Lifecycle-persistence party exists"), Party))
+	{
+		return false;
+	}
+	Party->SetGridStart(Runtime, 3, 3, EGridEdge::North);
 	if (!Definition)
 	{
 		return false;
@@ -828,6 +841,13 @@ bool FGridMonsterMON134EncounterWavesTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
+
+	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
+	if (!TestNotNull(TEXT("Encounter-waves party exists"), Party))
+	{
+		return false;
+	}
+	Party->SetGridStart(Runtime, 3, 2, EGridEdge::North);
 
 	UGridMonsterDefinitionAsset* Definition = MakeMON13RuntimeDefinition(*this, Runtime, TEXT("MON134_WaveRat"));
 	if (!Definition)

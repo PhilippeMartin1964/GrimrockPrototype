@@ -123,6 +123,7 @@ bool FGridCeilingOverride01Test::RunTest(const FString& Parameters)
 	Definition->DefinitionId = TEXT("Ceiling_Shaft_Test");
 	Definition->SupportedType = EGridLevelObjectType::Decoration;
 	Definition->PlacementSurface = EGridObjectPlacementKind::Ceiling;
+	Definition->StaticPart.Mesh = NewObject<UStaticMesh>(Runtime);
 	Runtime->WorldObjectDefinitions.Add(Definition);
 
 	FGridWorldObjectInstance Shaft;

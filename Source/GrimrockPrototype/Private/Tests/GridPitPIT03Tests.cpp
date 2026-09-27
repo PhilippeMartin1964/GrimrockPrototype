@@ -161,6 +161,8 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	PitDefinition->DefinitionId = TEXT("Pit_Stone_01");
 	PitDefinition->SupportedType = EGridLevelObjectType::Pit;
 	PitDefinition->PlacementSurface = EGridObjectPlacementKind::Floor;
+	PitDefinition->StaticPart.Mesh = NewObject<UStaticMesh>(Runtime);
+	PitDefinition->bHideCellFloor = true;
 	PitDefinition->MovingParts.SetNum(2);
 	PitDefinition->MovingParts[0].Mesh = NewObject<UStaticMesh>(Runtime);
 	PitDefinition->MovingParts[1].Mesh = NewObject<UStaticMesh>(Runtime);
