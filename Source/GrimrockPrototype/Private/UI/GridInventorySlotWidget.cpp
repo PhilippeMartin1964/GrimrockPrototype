@@ -8,6 +8,8 @@
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryWidget.h"
 
+
+DEFINE_LOG_CATEGORY_STATIC(LogGridInventoryUI, Log, All);
 namespace
 {
 	FText GetEquipmentSlotDisplayName(EGridEquipmentSlot Slot)
@@ -557,7 +559,7 @@ void UGridInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	}
 
 	OutOperation = Operation;
-	UE_LOG(LogTemp, Verbose, TEXT("GridInventory UI DragStarted Type=%s Slot=%d Item=%s RuntimeId=%s"), GetGridInventoryUiSlotTypeName(SlotType),
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI DragStarted Type=%s Slot=%d Item=%s RuntimeId=%s"), GetGridInventoryUiSlotTypeName(SlotType),
 		InventorySlotIndex, *CachedItem.ItemDefinitionId.ToString(), *CachedItem.RuntimeObjectId.ToString());
 }
 

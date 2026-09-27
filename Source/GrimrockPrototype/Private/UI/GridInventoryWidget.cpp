@@ -18,6 +18,8 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UObject/UnrealType.h"
 
+
+DEFINE_LOG_CATEGORY_STATIC(LogGridInventoryUI, Log, All);
 namespace
 {
 	struct FGridInventoryProjectionEntry
@@ -357,7 +359,7 @@ void UGridInventoryWidget::HandlePartyInventoryChanged(int32 CharacterIndex)
 
 void UGridInventoryWidget::RefreshInventory()
 {
-	UE_LOG(LogTemp, Verbose, TEXT("GridInventory UI Refresh Pawn=%s InventoryComponent=%s"), *GetNameSafe(OwningPartyPawn), *GetNameSafe(InventoryComponent));
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Refresh Pawn=%s InventoryComponent=%s"), *GetNameSafe(OwningPartyPawn), *GetNameSafe(InventoryComponent));
 	RefreshSelectedCharacterDetails();
 	RefreshRegisteredPartyMemberWidgets();
 	RefreshSelectedInventoryBagPresentation();
@@ -505,7 +507,7 @@ bool UGridInventoryWidget::GetCharacterSummary(int32 CharacterIndex, FGridInvent
 bool UGridInventoryWidget::SelectCharacter(int32 CharacterIndex)
 {
 	const bool bResult = InventoryComponent && InventoryComponent->SetSelectedCharacterIndex(CharacterIndex);
-	UE_LOG(LogTemp, Log, TEXT("GridInventory UI SelectCharacter Index=%d Result=%s"), CharacterIndex, bResult ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI SelectCharacter Index=%d Result=%s"), CharacterIndex, bResult ? TEXT("true") : TEXT("false"));
 	return bResult;
 }
 
@@ -576,19 +578,19 @@ bool UGridInventoryWidget::HandlePartyMemberItemDrop(UGridInventoryDragDropOpera
 {
 	if (!InventoryComponent || !Operation || !Operation->bHasItem || Operation->SourceSlotType != EGridInventoryUiSlotType::Inventory)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory PartyDrop Failed Reason=InvalidOperation"));
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory PartyDrop Failed Reason=InvalidOperation"));
 		return false;
 	}
 
 	const int32 SourceCharacterIndex = Operation->SourceCharacterIndex;
 	if (!InventoryComponent->IsValidCharacterIndex(SourceCharacterIndex) || !InventoryComponent->IsValidCharacterIndex(TargetCharacterIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory PartyDrop Failed Reason=InvalidCharacters Source=%d Target=%d"), SourceCharacterIndex, TargetCharacterIndex);
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory PartyDrop Failed Reason=InvalidCharacters Source=%d Target=%d"), SourceCharacterIndex, TargetCharacterIndex);
 		return false;
 	}
 	if (SourceCharacterIndex == TargetCharacterIndex)
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("GridInventory PartyDrop Ignored Reason=SameCharacter Character=%d"), SourceCharacterIndex);
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory PartyDrop Ignored Reason=SameCharacter Character=%d"), SourceCharacterIndex);
 		return false;
 	}
 
@@ -601,7 +603,7 @@ bool UGridInventoryWidget::HandlePartyMemberItemDrop(UGridInventoryDragDropOpera
 	const FGridCharacterInventoryState& SourceCharacter = PartyState.ActiveCharacters[SourceCharacterIndex];
 	if (!SourceCharacter.InventorySlots.IsValidIndex(Operation->SourceSlotIndex) || SourceCharacter.InventorySlots[Operation->SourceSlotIndex].IsEmpty())
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("GridInventory PartyDrop Rejected Reason=SourceSlotChanged Source=%d Slot=%d"),
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory PartyDrop Rejected Reason=SourceSlotChanged Source=%d Slot=%d"),
 			SourceCharacterIndex, Operation->SourceSlotIndex);
 		return false;
 	}
@@ -609,7 +611,7 @@ bool UGridInventoryWidget::HandlePartyMemberItemDrop(UGridInventoryDragDropOpera
 	const FGridItemInstance& CurrentSourceItem = SourceCharacter.InventorySlots[Operation->SourceSlotIndex].Item;
 	if (CurrentSourceItem.RuntimeObjectId != Operation->SourceRuntimeObjectId || CurrentSourceItem.ItemDefinitionId != Operation->SourceItemDefinitionId)
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("GridInventory PartyDrop Rejected Reason=SourceIdentityChanged Source=%d Slot=%d"), SourceCharacterIndex,
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory PartyDrop Rejected Reason=SourceIdentityChanged Source=%d Slot=%d"), SourceCharacterIndex,
 			Operation->SourceSlotIndex);
 		return false;
 	}
@@ -620,13 +622,13 @@ bool UGridInventoryWidget::HandlePartyMemberItemDrop(UGridInventoryDragDropOpera
 
 	if (TransferResult.bSuccess)
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridInventory PartyDrop Result=true Source=%d Target=%d Slot=%d Item=%s Quantity=%d Message=%s"),
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory PartyDrop Result=true Source=%d Target=%d Slot=%d Item=%s Quantity=%d Message=%s"),
 			SourceCharacterIndex, TargetCharacterIndex, Operation->SourceSlotIndex, *Operation->SourceItemDefinitionId.ToString(), TransferQuantity,
 			*TransferResult.Message.ToString());
 	}
 	else
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridInventory PartyDrop Result=false Source=%d Target=%d Slot=%d Item=%s Quantity=%d Message=%s"),
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory PartyDrop Result=false Source=%d Target=%d Slot=%d Item=%s Quantity=%d Message=%s"),
 			SourceCharacterIndex, TargetCharacterIndex, Operation->SourceSlotIndex, *Operation->SourceItemDefinitionId.ToString(), TransferQuantity,
 			*TransferResult.Message.ToString());
 	}
@@ -636,7 +638,7 @@ bool UGridInventoryWidget::HandlePartyMemberItemDrop(UGridInventoryDragDropOpera
 		FString OwnershipError;
 		if (!InventoryComponent->ValidateInventoryOwnership(OwnershipError))
 		{
-			UE_LOG(LogTemp, Error, TEXT("GridInventory PartyDrop Ownership Failed Error=%s"), *OwnershipError);
+			UE_LOG(LogGridInventoryUI, Error, TEXT("GridInventory PartyDrop Ownership Failed Error=%s"), *OwnershipError);
 		}
 	}
 
@@ -819,8 +821,7 @@ void UGridInventoryWidget::RegisterPaperDollEquipmentSlotWidget(UGridInventorySl
 {
 	if (!SlotWidget)
 	{
-		UE_LOG(
-			LogTemp, Warning, TEXT("GridInventory PaperDoll SlotMissing Widget=%s EquipmentSlot=%s"), WidgetName, GetPaperDollEquipmentSlotName(EquipmentSlot));
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory PaperDoll SlotMissing Widget=%s EquipmentSlot=%s"), WidgetName, GetPaperDollEquipmentSlotName(EquipmentSlot));
 		return;
 	}
 
@@ -842,7 +843,7 @@ void UGridInventoryWidget::RegisterPaperDollEquipmentSlotWidget(UGridInventorySl
 
 	if (!bValidRegistration)
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGridInventoryUI, Warning,
 			TEXT("GridInventory PaperDoll SlotInvalid Widget=%s EquipmentSlot=%s SlotType=%s WidgetEquipmentSlot=%s SlotIndex=%d ExpectedSlotIndex=%d"),
 			WidgetName, GetPaperDollEquipmentSlotName(EquipmentSlot), GetGridInventoryUiSlotTypeName(SlotWidget->SlotType),
 			GetPaperDollEquipmentSlotName(SlotWidget->EquipmentSlot), SlotWidget->InventorySlotIndex, static_cast<int32>(EquipmentSlot));
@@ -879,14 +880,14 @@ bool UGridInventoryWidget::ValidatePaperDollEquipmentRegistration() const
 		if (!SlotWidgetPtr)
 		{
 			bIsValid = false;
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory PaperDoll Validation Missing EquipmentSlot=%s"), GetPaperDollEquipmentSlotName(EquipmentSlot));
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory PaperDoll Validation Missing EquipmentSlot=%s"), GetPaperDollEquipmentSlotName(EquipmentSlot));
 			continue;
 		}
 
 		if (!SlotWidgetPtr->Get())
 		{
 			bIsValid = false;
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory PaperDoll Validation NullWidget EquipmentSlot=%s"), GetPaperDollEquipmentSlotName(EquipmentSlot));
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory PaperDoll Validation NullWidget EquipmentSlot=%s"), GetPaperDollEquipmentSlotName(EquipmentSlot));
 			continue;
 		}
 
@@ -897,13 +898,13 @@ bool UGridInventoryWidget::ValidatePaperDollEquipmentRegistration() const
 	{
 		if (RegisteredEquipmentSlotWidgets.Contains(EquipmentSlot))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory PaperDoll Validation Forbidden EquipmentSlot=%s"), GetPaperDollEquipmentSlotName(EquipmentSlot));
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory PaperDoll Validation Forbidden EquipmentSlot=%s"), GetPaperDollEquipmentSlotName(EquipmentSlot));
 		}
 	}
 
 	if (bIsValid)
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridInventory PaperDoll Validation OK Registered=%d"), RegisteredPaperDollSlotCount);
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory PaperDoll Validation OK Registered=%d"), RegisteredPaperDollSlotCount);
 	}
 
 	return bIsValid;
@@ -1096,13 +1097,13 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets()
 {
 	if (!InventorySlotsGridPanel)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI RebuildSlots Failed Reason=NoGridPanel"));
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory UI RebuildSlots Failed Reason=NoGridPanel"));
 		return;
 	}
 
 	if (!InventorySlotWidgetClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI RebuildSlots Failed Reason=NoSlotWidgetClass"));
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory UI RebuildSlots Failed Reason=NoSlotWidgetClass"));
 		return;
 	}
 
@@ -1118,7 +1119,7 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets()
 	if (bTopologyMatches)
 	{
 		ApplyInventoryProjectionToGeneratedSlots(SourceSlotIndices);
-		UE_LOG(LogTemp, Verbose, TEXT("GridInventory UI Projection UpdatedInPlace Count=%d Columns=%d"), SlotCount, ColumnCount);
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Projection UpdatedInPlace Count=%d Columns=%d"), SlotCount, ColumnCount);
 		return;
 	}
 
@@ -1130,7 +1131,7 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets()
 		UGridInventorySlotWidget* NewSlot = CreateWidget<UGridInventorySlotWidget>(this, InventorySlotWidgetClass);
 		if (!NewSlot)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory UI RebuildSlots Failed Reason=CreateWidgetFailed DisplayIndex=%d SourceSlot=%d"),
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory UI RebuildSlots Failed Reason=CreateWidgetFailed DisplayIndex=%d SourceSlot=%d"),
 				DisplayIndex, SourceSlotIndex);
 			continue;
 		}
@@ -1154,7 +1155,7 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets()
 	LastBuiltColumnCount = ColumnCount;
 	LastBuiltSlotWidgetClass = InventorySlotWidgetClass;
 	LastBuiltGridPanel = InventorySlotsGridPanel;
-	UE_LOG(LogTemp, Log, TEXT("GridInventory UI RebuildSlots Count=%d Columns=%d"), SlotCount, ColumnCount);
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI RebuildSlots Count=%d Columns=%d"), SlotCount, ColumnCount);
 }
 
 void UGridInventoryWidget::ApplyInventoryProjectionToGeneratedSlots(const TArray<int32>& SourceSlotIndices)
@@ -1362,7 +1363,7 @@ bool UGridInventoryWidget::HandleItemSlotRightClicked(EGridInventoryUiSlotType S
 
 	const bool bBuilt = BuildContextActionsForSlot(SlotType, SlotIndex, LastFacingTargetContext, LastContextActions);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory RightClick Slot=%d Item=%s Actions=%d Result=%s"), SlotIndex,
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory RightClick Slot=%d Item=%s Actions=%d Result=%s"), SlotIndex,
 		LastContextItem.ItemDefinitionId.IsNone() ? TEXT("None") : *LastContextItem.ItemDefinitionId.ToString(), LastContextActions.Num(),
 		bBuilt ? TEXT("true") : TEXT("false"));
 
@@ -1373,7 +1374,7 @@ bool UGridInventoryWidget::HandleItemSlotRightClicked(EGridInventoryUiSlotType S
 		OnContextActionsRequested.Broadcast(SlotType, SlotIndex);
 		if (!bHasContextMenuPresenter)
 		{
-			UE_LOG(LogTemp, Warning,
+			UE_LOG(LogGridInventoryUI, Warning,
 				TEXT("GridInventory RightClick PresentationMissing Widget=%s Reason=OnContextActionsRequestedUnbound Slot=%s:%d"),
 				*GetNameSafe(this), GetGridInventoryUiSlotTypeName(SlotType), SlotIndex);
 		}
@@ -1455,7 +1456,7 @@ bool UGridInventoryWidget::ExecuteInventoryContextAction(EGridItemActionType Act
 	TArray<FGridItemContextAction> AvailableActions;
 	if (!BuildContextActionsForSlot(SourceSlotType, SourceSlotIndex, FacingTarget, AvailableActions))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Failed Action=%s Reason=InvalidSource"), GetContextActionName(ActionType));
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Failed Action=%s Reason=InvalidSource"), GetContextActionName(ActionType));
 		return false;
 	}
 
@@ -1468,7 +1469,7 @@ bool UGridInventoryWidget::ExecuteInventoryContextAction(EGridItemActionType Act
 										  .Num();
 	if (MatchingActionCount > 1)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Failed Action=%s Reason=AmbiguousActionType"), GetContextActionName(ActionType));
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Failed Action=%s Reason=AmbiguousActionType"), GetContextActionName(ActionType));
 		return false;
 	}
 
@@ -1479,7 +1480,7 @@ bool UGridInventoryWidget::ExecuteInventoryContextAction(EGridItemActionType Act
 		});
 	if (!SelectedAction || !SelectedAction->bEnabled)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Failed Action=%s Item=%s Reason=%s"), GetContextActionName(ActionType),
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Failed Action=%s Item=%s Reason=%s"), GetContextActionName(ActionType),
 			*LastContextItem.ItemDefinitionId.ToString(), SelectedAction ? TEXT("ActionDisabled") : TEXT("ActionUnavailable"));
 		return false;
 	}
@@ -1493,26 +1494,26 @@ bool UGridInventoryWidget::ExecuteInventoryContextActionByIndex(EGridInventoryUi
 	TArray<FGridItemContextAction> AvailableActions;
 	if (!BuildContextActionsForSlot(SourceSlotType, SourceSlotIndex, FacingTarget, AvailableActions))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridItemActions ExecuteByIndex Failed Reason=InvalidSource Slot=%s:%d ActionIndex=%d"),
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions ExecuteByIndex Failed Reason=InvalidSource Slot=%s:%d ActionIndex=%d"),
 			GetGridInventoryUiSlotTypeName(SourceSlotType), SourceSlotIndex, ActionIndex);
 		return false;
 	}
 
 	if (!AvailableActions.IsValidIndex(ActionIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridItemActions ExecuteByIndex Failed Reason=InvalidActionIndex Slot=%s:%d ActionIndex=%d ActionCount=%d"),
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions ExecuteByIndex Failed Reason=InvalidActionIndex Slot=%s:%d ActionIndex=%d ActionCount=%d"),
 			GetGridInventoryUiSlotTypeName(SourceSlotType), SourceSlotIndex, ActionIndex, AvailableActions.Num());
 		return false;
 	}
 
 	const FGridItemContextAction& SelectedAction = AvailableActions[ActionIndex];
-	UE_LOG(LogTemp, Log, TEXT("GridItemActions ExecuteByIndex Slot=%s:%d ActionIndex=%d Action=%s Label=\"%s\" EquipmentSlot=%s TargetType=%s"),
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions ExecuteByIndex Slot=%s:%d ActionIndex=%d Action=%s Label=\"%s\" EquipmentSlot=%s TargetType=%s"),
 		GetGridInventoryUiSlotTypeName(SourceSlotType), SourceSlotIndex, ActionIndex, GetContextActionName(SelectedAction.ActionType),
 		*SelectedAction.Label.ToString(), GetContextEquipmentSlotName(SelectedAction.EquipmentSlot), GetContextTargetTypeName(FacingTarget.TargetType));
 
 	if (!SelectedAction.bEnabled)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridItemActions ExecuteByIndex Failed Reason=ActionDisabled Slot=%s:%d ActionIndex=%d Action=%s"),
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions ExecuteByIndex Failed Reason=ActionDisabled Slot=%s:%d ActionIndex=%d Action=%s"),
 			GetGridInventoryUiSlotTypeName(SourceSlotType), SourceSlotIndex, ActionIndex, GetContextActionName(SelectedAction.ActionType));
 		return false;
 	}
@@ -1524,23 +1525,23 @@ void UGridInventoryWidget::CloseItemActionMenu(FName Reason)
 {
 	const FString ReasonString = Reason.IsNone() ? TEXT("Unspecified") : Reason.ToString();
 
-	UE_LOG(LogTemp, Log, TEXT("GridItemActionMenu Close Requested Reason=%s"), *ReasonString);
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActionMenu Close Requested Reason=%s"), *ReasonString);
 
 	if (bItemActionMenuCloseRequested)
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("GridItemActionMenu Close Skipped Reason=AlreadyDetached RequestedReason=%s"), *ReasonString);
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActionMenu Close Skipped Reason=AlreadyDetached RequestedReason=%s"), *ReasonString);
 		return;
 	}
 
 	bItemActionMenuCloseRequested = true;
 	if (UUserWidget* CurrentItemActionMenu = GetCurrentItemActionMenuWidget(this); IsItemActionMenuDetached(CurrentItemActionMenu))
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("GridItemActionMenu Close Skipped Reason=AlreadyDetached RequestedReason=%s"), *ReasonString);
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActionMenu Close Skipped Reason=AlreadyDetached RequestedReason=%s"), *ReasonString);
 		ClearCurrentItemActionMenuWidget(this);
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridItemActionMenu Closed Reason=%s"), *ReasonString);
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActionMenu Closed Reason=%s"), *ReasonString);
 	OnItemActionMenuCloseRequested(Reason);
 
 	if (UUserWidget* CurrentItemActionMenu = GetCurrentItemActionMenuWidget(this); IsItemActionMenuDetached(CurrentItemActionMenu))
@@ -1557,7 +1558,7 @@ bool UGridInventoryWidget::IsItemActionMenuOpen() const
 
 void UGridInventoryWidget::CloseItemReadPanel(FName Reason)
 {
-	UE_LOG(LogTemp, Log, TEXT("GridItemReadPanel Closed Reason=%s"), Reason.IsNone() ? TEXT("Unspecified") : *Reason.ToString());
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemReadPanel Closed Reason=%s"), Reason.IsNone() ? TEXT("Unspecified") : *Reason.ToString());
 	OnItemReadPanelCloseRequested(Reason);
 }
 
@@ -1572,7 +1573,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 		{
 			UGridInventorySlotWidget* SourceWidget = FindRegisteredSlotWidget(SourceSlotType, SourceSlotIndex);
 			const FText TooltipText = SourceWidget ? SourceWidget->GetTooltipText() : LastContextItem.DisplayName;
-			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute Examine Item=%s"), *LastContextItem.ItemDefinitionId.ToString());
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute Examine Item=%s"), *LastContextItem.ItemDefinitionId.ToString());
 			PresentItemExamination(LastContextItem, TooltipText);
 			bExecuted = true;
 			break;
@@ -1623,9 +1624,9 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 				ReadSource = TEXT("EmptyFallback");
 			}
 
-			UE_LOG(LogTemp, Log, TEXT("GridItemReading Resolve Item=%s Source=%s Content=%s"), *LastContextItem.ItemDefinitionId.ToString(), ReadSource,
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemReading Resolve Item=%s Source=%s Content=%s"), *LastContextItem.ItemDefinitionId.ToString(), ReadSource,
 				ResolvedContentId.IsNone() ? TEXT("None") : *ResolvedContentId.ToString());
-			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute Read Item=%s"), *LastContextItem.ItemDefinitionId.ToString());
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute Read Item=%s"), *LastContextItem.ItemDefinitionId.ToString());
 			PresentItemReading(LastContextItem, Title, ReadText);
 			bExecuted = true;
 			break;
@@ -1633,7 +1634,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 
 		case EGridItemActionType::Equip:
 		{
-			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute Equip Item=%s EquipmentSlot=%s"), *LastContextItem.ItemDefinitionId.ToString(),
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute Equip Item=%s EquipmentSlot=%s"), *LastContextItem.ItemDefinitionId.ToString(),
 				GetContextEquipmentSlotName(Action.EquipmentSlot));
 			if (SourceSlotType == EGridInventoryUiSlotType::Inventory && InventoryComponent && OwningPartyPawn &&
 				Action.EquipmentSlot != EGridEquipmentSlot::None)
@@ -1641,14 +1642,14 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 				const UGridItemDefinitionAsset* ItemDefinition = InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId);
 				if (!ItemDefinition || !ItemDefinition->CanEquipToSlot(Action.EquipmentSlot))
 				{
-					UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Equip Failed Item=%s EquipmentSlot=%s Reason=IncompatibleSlot"),
+					UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Equip Failed Item=%s EquipmentSlot=%s Reason=IncompatibleSlot"),
 						*LastContextItem.ItemDefinitionId.ToString(), GetContextEquipmentSlotName(Action.EquipmentSlot));
 					break;
 				}
 
 				if (!InventoryComponent->CanEquipItemToSlot(CharacterIndex, LastContextItem, Action.EquipmentSlot))
 				{
-					UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Equip Failed Item=%s EquipmentSlot=%s Reason=IncompatibleSlot"),
+					UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Equip Failed Item=%s EquipmentSlot=%s Reason=IncompatibleSlot"),
 						*LastContextItem.ItemDefinitionId.ToString(), GetContextEquipmentSlotName(Action.EquipmentSlot));
 					break;
 				}
@@ -1665,13 +1666,13 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 		case EGridItemActionType::Unequip:
 		{
 			const EGridEquipmentSlot SourceEquipmentSlot = ResolveSourceEquipmentSlot(Action, SourceSlotType);
-			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute Unequip Item=%s EquipmentSlot=%s"), *LastContextItem.ItemDefinitionId.ToString(),
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute Unequip Item=%s EquipmentSlot=%s"), *LastContextItem.ItemDefinitionId.ToString(),
 				GetContextEquipmentSlotName(SourceEquipmentSlot));
 			if (InventoryComponent && OwningPartyPawn && SourceEquipmentSlot != EGridEquipmentSlot::None)
 			{
 				if (!InventoryComponent->CanAddItemToCharacterInventory(CharacterIndex, LastContextItem))
 				{
-					UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Unequip Failed Item=%s Reason=NoFreeInventorySlot"),
+					UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Unequip Failed Item=%s Reason=NoFreeInventorySlot"),
 						*LastContextItem.ItemDefinitionId.ToString());
 					break;
 				}
@@ -1683,7 +1684,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 				}
 				else
 				{
-					UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Unequip Failed Item=%s Reason=NoFreeInventorySlot"),
+					UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Unequip Failed Item=%s Reason=NoFreeInventorySlot"),
 						*LastContextItem.ItemDefinitionId.ToString());
 				}
 			}
@@ -1693,7 +1694,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 		case EGridItemActionType::InsertIntoTarget:
 		{
 			AGridWallLockActor* WallLock = Cast<AGridWallLockActor>(FacingTarget.TargetActor);
-			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute InsertIntoTarget Item=%s Target=%s"), *LastContextItem.ItemDefinitionId.ToString(),
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute InsertIntoTarget Item=%s Target=%s"), *LastContextItem.ItemDefinitionId.ToString(),
 				WallLock ? TEXT("WallLock") : TEXT("None"));
 			if (SourceSlotType == EGridInventoryUiSlotType::Inventory && WallLock && InventoryComponent && OwningPartyPawn)
 			{
@@ -1710,12 +1711,12 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			const bool bIsTorchHolder = FacingTarget.TargetType == EGridFacingTargetType::TorchHolder;
 			const bool bIsReceptacleTarget =
 				FacingTarget.TargetType == EGridFacingTargetType::Receptacle || FacingTarget.TargetType == EGridFacingTargetType::TorchHolder;
-			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute PlaceOnTarget Item=%s Source=%s Target=%s"), *LastContextItem.ItemDefinitionId.ToString(),
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute PlaceOnTarget Item=%s Source=%s Target=%s"), *LastContextItem.ItemDefinitionId.ToString(),
 				GetGridInventoryUiSlotTypeName(SourceSlotType),
 				bIsTorchHolder ? TEXT("TorchHolder") : (bIsReceptacleTarget ? TEXT("Receptacle") : TEXT("None")));
 			if (!Receptacle || !InventoryComponent || !bIsReceptacleTarget)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=TargetRejected"),
+				UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=TargetRejected"),
 					*LastContextItem.ItemDefinitionId.ToString(), GetGridInventoryUiSlotTypeName(SourceSlotType));
 				break;
 			}
@@ -1734,7 +1735,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=InvalidSource"),
+				UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=InvalidSource"),
 					*LastContextItem.ItemDefinitionId.ToString(), GetGridInventoryUiSlotTypeName(SourceSlotType));
 				break;
 			}
@@ -1743,7 +1744,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			if (!bExecuted)
 			{
 				const TCHAR* Reason = TransferResult.Result == EGridItemTransferResult::InvalidSource ? TEXT("InvalidSource") : TEXT("TargetRejected");
-				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=%s"),
+				UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=%s"),
 					*LastContextItem.ItemDefinitionId.ToString(), GetGridInventoryUiSlotTypeName(SourceSlotType), Reason);
 				break;
 			}
@@ -1752,7 +1753,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			{
 				const int32 InsertedItemIndex = Receptacle->GetContainedItemCount() - 1;
 				const bool bTorchLightEnabled = Receptacle->SetContainedItemLightsEnabled(InsertedItemIndex, true);
-				UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute PlaceOnTarget TorchLightEnabled=%s"), bTorchLightEnabled ? TEXT("true") : TEXT("false"));
+				UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute PlaceOnTarget TorchLightEnabled=%s"), bTorchLightEnabled ? TEXT("true") : TEXT("false"));
 			}
 			break;
 		}
@@ -1761,7 +1762,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 		{
 			bExecuted = SourceSlotType == EGridInventoryUiSlotType::Inventory && InventoryComponent &&
 				InventoryComponent->TrySplitInventoryStackToFirstFreeSlot(CharacterIndex, SourceSlotIndex);
-			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute SplitStack Item=%s Slot=%d Result=%s"),
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute SplitStack Item=%s Slot=%d Result=%s"),
 				*LastContextItem.ItemDefinitionId.ToString(), SourceSlotIndex, bExecuted ? TEXT("true") : TEXT("false"));
 			if (bExecuted)
 			{
@@ -1775,7 +1776,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 		{
 			if (SourceSlotType != EGridInventoryUiSlotType::Inventory || !InventoryComponent || LastContextItem.ItemDefinitionId.IsNone())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute AddToHotbar Failed Item=%s Reason=InvalidSource"),
+				UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute AddToHotbar Failed Item=%s Reason=InvalidSource"),
 					*LastContextItem.ItemDefinitionId.ToString());
 				break;
 			}
@@ -1809,20 +1810,20 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 
 			if (bAlreadyBound)
 			{
-				UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute AddToHotbar Skipped Item=%s Reason=AlreadyBound"),
+				UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute AddToHotbar Skipped Item=%s Reason=AlreadyBound"),
 					*LastContextItem.ItemDefinitionId.ToString());
 				break;
 			}
 			if (TargetHotbarSlotIndex == INDEX_NONE)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute AddToHotbar Failed Item=%s Reason=HotbarFull"),
+				UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute AddToHotbar Failed Item=%s Reason=HotbarFull"),
 					*LastContextItem.ItemDefinitionId.ToString());
 				break;
 			}
 
 			bExecuted = InventoryComponent->SetCharacterCombatHotbarBindingFromItem(
 				CharacterIndex, TargetHotbarSlotIndex, LastContextItem, EGridEquipmentSlot::None);
-			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute AddToHotbar Item=%s Slot=%d Result=%s"),
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute AddToHotbar Item=%s Slot=%d Result=%s"),
 				*LastContextItem.ItemDefinitionId.ToString(), TargetHotbarSlotIndex, bExecuted ? TEXT("true") : TEXT("false"));
 			break;
 		}
@@ -1842,7 +1843,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			break;
 
 		default:
-			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute NotImplemented Action=%s Item=%s"), GetContextActionName(Action.ActionType),
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute NotImplemented Action=%s Item=%s"), GetContextActionName(Action.ActionType),
 				*LastContextItem.ItemDefinitionId.ToString());
 			break;
 	}
@@ -1876,8 +1877,7 @@ bool UGridInventoryWidget::DropContextItemToGround(const FGridItemContextAction&
 {
 	if (!InventoryComponent || !OwningPartyPawn || !OwningPartyPawn->LevelRuntimeActor)
 	{
-		UE_LOG(
-			LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=MissingRuntime"), *LastContextItem.ItemDefinitionId.ToString());
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=MissingRuntime"), *LastContextItem.ItemDefinitionId.ToString());
 		return false;
 	}
 
@@ -1888,7 +1888,7 @@ bool UGridInventoryWidget::DropContextItemToGround(const FGridItemContextAction&
 		if (!State.ActiveCharacters.IsValidIndex(CharacterIndex) || !State.ActiveCharacters[CharacterIndex].InventorySlots.IsValidIndex(SourceSlotIndex) ||
 			State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex].IsEmpty())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidInventorySlot"),
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidInventorySlot"),
 				*LastContextItem.ItemDefinitionId.ToString());
 			return false;
 		}
@@ -1899,7 +1899,7 @@ bool UGridInventoryWidget::DropContextItemToGround(const FGridItemContextAction&
 		const EGridEquipmentSlot SourceEquipmentSlot = ResolveSourceEquipmentSlot(Action, SourceSlotType);
 		if (!InventoryComponent->PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentState"),
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentState"),
 				*LastContextItem.ItemDefinitionId.ToString());
 			return false;
 		}
@@ -1908,14 +1908,14 @@ bool UGridInventoryWidget::DropContextItemToGround(const FGridItemContextAction&
 		const FGridItemInstance* EquippedItem = EquipmentState.GetSlot(SourceEquipmentSlot);
 		if (!EquippedItem || !EquippedItem->IsValid())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentSlot"),
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentSlot"),
 				*LastContextItem.ItemDefinitionId.ToString());
 			return false;
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=UnsupportedSource"),
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=UnsupportedSource"),
 			*LastContextItem.ItemDefinitionId.ToString());
 		return false;
 	}
@@ -1929,19 +1929,18 @@ bool UGridInventoryWidget::DropContextItemToGround(const FGridItemContextAction&
 	if (!OwningPartyPawn->LevelRuntimeActor->TryDropItemInstanceAtCell(
 			ItemToDrop, OwningPartyPawn->CurrentCellX, OwningPartyPawn->CurrentCellY, EGridEdge::None, FVector::ZeroVector))
 	{
-		UE_LOG(
-			LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=WorldDropFailed"), *LastContextItem.ItemDefinitionId.ToString());
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=WorldDropFailed"), *LastContextItem.ItemDefinitionId.ToString());
 		return false;
 	}
 
 	if (SourceSlotType == EGridInventoryUiSlotType::Inventory)
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute DropToGround Item=%s Source=Inventory Slot=%d"), *LastContextItem.ItemDefinitionId.ToString(),
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute DropToGround Item=%s Source=Inventory Slot=%d"), *LastContextItem.ItemDefinitionId.ToString(),
 			SourceSlotIndex);
 		FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
 		if (!State.ActiveCharacters.IsValidIndex(CharacterIndex) || !State.ActiveCharacters[CharacterIndex].InventorySlots.IsValidIndex(SourceSlotIndex))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidInventorySlotAfterDrop"),
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidInventorySlotAfterDrop"),
 				*LastContextItem.ItemDefinitionId.ToString());
 			return false;
 		}
@@ -1952,11 +1951,11 @@ bool UGridInventoryWidget::DropContextItemToGround(const FGridItemContextAction&
 	}
 
 	const EGridEquipmentSlot SourceEquipmentSlot = ResolveSourceEquipmentSlot(Action, SourceSlotType);
-	UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute DropToGround Item=%s Source=%s"), *LastContextItem.ItemDefinitionId.ToString(),
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute DropToGround Item=%s Source=%s"), *LastContextItem.ItemDefinitionId.ToString(),
 		GetContextEquipmentSlotName(SourceEquipmentSlot));
 	if (!InventoryComponent->PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentStateAfterDrop"),
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentStateAfterDrop"),
 			*LastContextItem.ItemDefinitionId.ToString());
 		return false;
 	}
@@ -1970,7 +1969,7 @@ bool UGridInventoryWidget::DropContextItemToGround(const FGridItemContextAction&
 		return true;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentSlot"),
+	UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentSlot"),
 		*LastContextItem.ItemDefinitionId.ToString());
 	return false;
 }
@@ -1978,19 +1977,19 @@ bool UGridInventoryWidget::DropContextItemToGround(const FGridItemContextAction&
 bool UGridInventoryWidget::HandleSlotDrop(
 	EGridInventoryUiSlotType SourceType, int32 SourceIndex, EGridInventoryUiSlotType TargetType, int32 TargetIndex)
 {
-	UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop Source=%s SourceIndex=%d Target=%s TargetIndex=%d"), GetGridInventoryUiSlotTypeName(SourceType),
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Drop Source=%s SourceIndex=%d Target=%s TargetIndex=%d"), GetGridInventoryUiSlotTypeName(SourceType),
 		SourceIndex, GetGridInventoryUiSlotTypeName(TargetType), TargetIndex);
 
 	if (!InventoryComponent || !OwningPartyPawn)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Failed Reason=MissingPawnOrInventoryComponent"));
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory UI Drop Failed Reason=MissingPawnOrInventoryComponent"));
 		RefreshInventory();
 		return false;
 	}
 
 	if (SourceType == TargetType && SourceIndex == TargetIndex)
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop Result=true Reason=SameSlot"));
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Drop Result=true Reason=SameSlot"));
 		RefreshInventory();
 		return true;
 	}
@@ -2001,11 +2000,11 @@ bool UGridInventoryWidget::HandleSlotDrop(
 		FString OwnershipError;
 		if (!InventoryComponent->ValidateInventoryOwnership(OwnershipError))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Ownership Failed Error=%s"), *OwnershipError);
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory UI Drop Ownership Failed Error=%s"), *OwnershipError);
 		}
 		else
 		{
-			UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop Ownership OK"));
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Drop Ownership OK"));
 		}
 	};
 
@@ -2014,7 +2013,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 		if (OwningPartyPawn && IsGridInventoryHandEquipmentSlot(EquipmentSlot))
 		{
 			OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment();
-			UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop SyncHeldVisual Slot=%s Reason=%s"), GetContextEquipmentSlotName(EquipmentSlot), Reason);
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Drop SyncHeldVisual Slot=%s Reason=%s"), GetContextEquipmentSlotName(EquipmentSlot), Reason);
 		}
 	};
 
@@ -2092,20 +2091,20 @@ bool UGridInventoryWidget::HandleSlotDrop(
 		}
 		bSwapOccupiedSlotsAttempted = true;
 
-		UE_LOG(LogTemp, Log, TEXT("GridInventory SwapSlots Source=%s SourceIndex=%d Target=%s TargetIndex=%d"), GetGridInventoryUiSlotTypeName(SourceType),
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory SwapSlots Source=%s SourceIndex=%d Target=%s TargetIndex=%d"), GetGridInventoryUiSlotTypeName(SourceType),
 			SourceIndex, GetGridInventoryUiSlotTypeName(TargetType), TargetIndex);
 
 		FGridItemInstance SourceItem = *SourceItemPtr;
 		FGridItemInstance TargetItem = *TargetItemPtr;
 		if (!CanPlaceItemInSlot(SourceItem, TargetType, TargetIndex))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory SwapSlots Failed Reason=IncompatibleSourceToTarget Item=%s"), *SourceItem.ItemDefinitionId.ToString());
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory SwapSlots Failed Reason=IncompatibleSourceToTarget Item=%s"), *SourceItem.ItemDefinitionId.ToString());
 			return false;
 		}
 
 		if (!CanPlaceItemInSlot(TargetItem, SourceType, SourceIndex))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory SwapSlots Failed Reason=IncompatibleTargetToSource Item=%s"), *TargetItem.ItemDefinitionId.ToString());
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory SwapSlots Failed Reason=IncompatibleTargetToSource Item=%s"), *TargetItem.ItemDefinitionId.ToString());
 			return false;
 		}
 
@@ -2121,7 +2120,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 			OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment();
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("GridInventory SwapSlots Success ItemA=%s ItemB=%s"), *SourceItem.ItemDefinitionId.ToString(),
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory SwapSlots Success ItemA=%s ItemB=%s"), *SourceItem.ItemDefinitionId.ToString(),
 			*TargetItem.ItemDefinitionId.ToString());
 		return true;
 	};
@@ -2143,7 +2142,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 	{
 		if (TargetIndex < 0 || TargetIndex >= GetInventorySlotCount())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Failed Reason=InvalidTargetIndex Target=%d"), TargetIndex);
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory UI Drop Failed Reason=InvalidTargetIndex Target=%d"), TargetIndex);
 			RefreshInventory();
 			return false;
 		}
@@ -2153,27 +2152,27 @@ bool UGridInventoryWidget::HandleSlotDrop(
 		{
 			case EGridInventoryUiSlotType::Inventory:
 				bInventoryTargetResult = InventoryComponent->TryMoveCharacterInventorySlot(CharacterIndex, SourceIndex, TargetIndex);
-				UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop InventoryToInventory Source=%d Target=%d Result=%s"), SourceIndex, TargetIndex,
+				UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Drop InventoryToInventory Source=%d Target=%d Result=%s"), SourceIndex, TargetIndex,
 					bInventoryTargetResult ? TEXT("true") : TEXT("false"));
 				break;
 
 			case EGridInventoryUiSlotType::Cursor:
 				bInventoryTargetResult = InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, TargetIndex);
-				UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop CursorToInventory Target=%d Result=%s"), TargetIndex,
+				UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Drop CursorToInventory Target=%d Result=%s"), TargetIndex,
 					bInventoryTargetResult ? TEXT("true") : TEXT("false"));
 				break;
 
 			case EGridInventoryUiSlotType::MainHand:
 				bInventoryTargetResult = OwningPartyPawn->TryTakeSelectedCharacterMainHandToCursor() &&
 					InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, TargetIndex);
-				UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop MainHandToInventory Target=%d Result=%s"), TargetIndex,
+				UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Drop MainHandToInventory Target=%d Result=%s"), TargetIndex,
 					bInventoryTargetResult ? TEXT("true") : TEXT("false"));
 				break;
 
 			case EGridInventoryUiSlotType::OffHand:
 				bInventoryTargetResult = OwningPartyPawn->TryTakeSelectedCharacterOffHandToCursor() &&
 					InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, TargetIndex);
-				UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop OffHandToInventory Target=%d Result=%s"), TargetIndex,
+				UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Drop OffHandToInventory Target=%d Result=%s"), TargetIndex,
 					bInventoryTargetResult ? TEXT("true") : TEXT("false"));
 				break;
 
@@ -2183,7 +2182,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 				bInventoryTargetResult = SourceEquipmentSlot != EGridEquipmentSlot::None &&
 					InventoryComponent->TryTakeEquipmentSlotToCursor(CharacterIndex, SourceEquipmentSlot) &&
 					InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, TargetIndex);
-				UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop EquipmentToInventory Slot=%s Target=%d Result=%s"),
+				UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Drop EquipmentToInventory Slot=%s Target=%d Result=%s"),
 					GetContextEquipmentSlotName(SourceEquipmentSlot), TargetIndex, bInventoryTargetResult ? TEXT("true") : TEXT("false"));
 				if (bInventoryTargetResult)
 				{
@@ -2204,7 +2203,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 	if (TargetType == EGridInventoryUiSlotType::Inventory && TargetIndex == INDEX_NONE &&
 		SourceType == EGridInventoryUiSlotType::Inventory)
 	{
-		UE_LOG(LogTemp, Verbose,
+		UE_LOG(LogGridInventoryUI, Verbose,
 			TEXT("GridInventory UI Drop Ignored Reason=VirtualProjectionTargetHasNoPhysicalSlot Source=%d"), SourceIndex);
 		RefreshInventory();
 		return false;
@@ -2262,7 +2261,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 		switch (TargetType)
 		{
 			case EGridInventoryUiSlotType::Inventory:
-				UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop InventoryTargetIndex Informative TargetIndex=%d"), TargetIndex);
+				UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Drop InventoryTargetIndex Informative TargetIndex=%d"), TargetIndex);
 				return InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory();
 			case EGridInventoryUiSlotType::MainHand:
 				return OwningPartyPawn->TryEquipCursorItemToSelectedCharacterMainHand();
@@ -2287,7 +2286,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 
 	if (!HasCurrentSourceItem())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Failed Reason=SourceEmpty"));
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory UI Drop Failed Reason=SourceEmpty"));
 		RefreshInventory();
 		return false;
 	}
@@ -2303,7 +2302,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 	{
 		if (InventoryComponent->HasCursorItem())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Failed Reason=CursorOccupied"));
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory UI Drop Failed Reason=CursorOccupied"));
 			RefreshInventory();
 			return false;
 		}
@@ -2311,7 +2310,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 		bTookSourceToCursor = TakeSourceToCursor();
 		if (!bTookSourceToCursor)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Failed Reason=TakeSourceFailed"));
+			UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory UI Drop Failed Reason=TakeSourceFailed"));
 			RefreshInventory();
 			return false;
 		}
@@ -2322,10 +2321,10 @@ bool UGridInventoryWidget::HandleSlotDrop(
 	if (!bResult && bTookSourceToCursor && InventoryComponent->HasCursorItem())
 	{
 		const bool bRecoveryResult = InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory();
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Recovery Result=%s"), bRecoveryResult ? TEXT("true") : TEXT("false"));
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory UI Drop Recovery Result=%s"), bRecoveryResult ? TEXT("true") : TEXT("false"));
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop Result=%s"), bResult ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Drop Result=%s"), bResult ? TEXT("true") : TEXT("false"));
 	ValidateOwnership();
 	RefreshInventory();
 	return bResult;
@@ -2365,7 +2364,7 @@ bool UGridInventoryWidget::HandleInventorySlotClicked(int32 SlotIndex)
 {
 	if (!InventoryComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI SlotClicked Slot=%d CursorBefore=false Result=false Reason=NoInventoryComponent"), SlotIndex);
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory UI SlotClicked Slot=%d CursorBefore=false Result=false Reason=NoInventoryComponent"), SlotIndex);
 		return false;
 	}
 
@@ -2376,7 +2375,7 @@ bool UGridInventoryWidget::HandleInventorySlotClicked(int32 SlotIndex)
 								 : InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, SlotIndex))
 		: InventoryComponent->TryTakeInventorySlotToCursor(CharacterIndex, SlotIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory UI SlotClicked Slot=%d CursorBefore=%s Result=%s"), SlotIndex, bCursorBefore ? TEXT("true") : TEXT("false"),
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI SlotClicked Slot=%d CursorBefore=%s Result=%s"), SlotIndex, bCursorBefore ? TEXT("true") : TEXT("false"),
 		bResult ? TEXT("true") : TEXT("false"));
 	return bResult;
 }
@@ -2395,7 +2394,7 @@ bool UGridInventoryWidget::HandleEquipmentSlotClicked(EGridEquipmentSlot Equipme
 {
 	if (!InventoryComponent || EquipmentSlot == EGridEquipmentSlot::None)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI EquipmentClicked Slot=%s CursorBefore=false Result=false Reason=MissingInventoryOrInvalidSlot"),
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory UI EquipmentClicked Slot=%s CursorBefore=false Result=false Reason=MissingInventoryOrInvalidSlot"),
 			GetContextEquipmentSlotName(EquipmentSlot));
 		RefreshInventory();
 		return false;
@@ -2406,7 +2405,7 @@ bool UGridInventoryWidget::HandleEquipmentSlotClicked(EGridEquipmentSlot Equipme
 	const bool bResult = bCursorBefore ? InventoryComponent->TryEquipCursorItemToCharacterSlot(CharacterIndex, EquipmentSlot)
 									   : InventoryComponent->TryTakeEquipmentSlotToCursor(CharacterIndex, EquipmentSlot);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory UI EquipmentClicked Slot=%s CursorBefore=%s Result=%s"), GetContextEquipmentSlotName(EquipmentSlot),
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI EquipmentClicked Slot=%s CursorBefore=%s Result=%s"), GetContextEquipmentSlotName(EquipmentSlot),
 		bCursorBefore ? TEXT("true") : TEXT("false"), bResult ? TEXT("true") : TEXT("false"));
 
 	if (bResult)
@@ -2414,7 +2413,7 @@ bool UGridInventoryWidget::HandleEquipmentSlotClicked(EGridEquipmentSlot Equipme
 		if (OwningPartyPawn && IsGridInventoryHandEquipmentSlot(EquipmentSlot))
 		{
 			OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment();
-			UE_LOG(LogTemp, Log, TEXT("GridInventory UI EquipmentClicked SyncHeldVisual Slot=%s"), GetContextEquipmentSlotName(EquipmentSlot));
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI EquipmentClicked SyncHeldVisual Slot=%s"), GetContextEquipmentSlotName(EquipmentSlot));
 		}
 		RefreshInventory();
 	}
@@ -2425,7 +2424,7 @@ bool UGridInventoryWidget::HandleCursorReturnToInventoryClicked()
 {
 	if (!OwningPartyPawn || !InventoryComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI CursorReturnToInventory CursorBefore=false Result=false Reason=MissingPawnOrInventoryComponent"));
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridInventory UI CursorReturnToInventory CursorBefore=false Result=false Reason=MissingPawnOrInventoryComponent"));
 		RefreshInventory();
 		return false;
 	}
@@ -2433,13 +2432,13 @@ bool UGridInventoryWidget::HandleCursorReturnToInventoryClicked()
 	const bool bCursorBefore = InventoryComponent->HasCursorItem();
 	if (!bCursorBefore)
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridInventory UI CursorReturnToInventory CursorBefore=false Result=false"));
+		UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI CursorReturnToInventory CursorBefore=false Result=false"));
 		RefreshInventory();
 		return false;
 	}
 
 	const bool bResult = OwningPartyPawn->DebugPlaceCursorItemInSelectedInventory();
-	UE_LOG(LogTemp, Log, TEXT("GridInventory UI CursorReturnToInventory CursorBefore=true Result=%s"), bResult ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI CursorReturnToInventory CursorBefore=true Result=%s"), bResult ? TEXT("true") : TEXT("false"));
 
 	RefreshInventory();
 	return bResult;
