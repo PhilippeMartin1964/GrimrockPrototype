@@ -39,6 +39,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "Kismet/GameplayStatics.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridLevelRuntime, Log, All);
+
 namespace
 {
 	const FName SingleLevelRuntimeStateId(TEXT("SingleLevel"));
@@ -114,7 +116,7 @@ bool AGridLevelRuntimeActor::IsSafeRuntimeRenderTransform(const FTransform& Tran
 void AGridLevelRuntimeActor::LogUnsafeInstanceTransform(
 	const TCHAR* FunctionName, const UInstancedStaticMeshComponent* Component, int32 X, int32 Y, EGridEdge Edge, const FTransform& Transform) const
 {
-	UE_LOG(LogTemp, Error,
+	UE_LOG(LogGridLevelRuntime, Error,
 		TEXT("Unsafe runtime render transform skipped: Function=%s Component=%s StaticMesh=%s Cell=(%d,%d) Edge=%d Location=%s Rotation=%s Scale=%s"),
 		FunctionName, *GetNameSafe(Component), *GetNameSafe(Component ? Component->GetStaticMesh() : nullptr), X, Y, static_cast<int32>(Edge),
 		*Transform.GetLocation().ToCompactString(), *Transform.GetRotation().ToString(), *Transform.GetScale3D().ToCompactString());
@@ -123,7 +125,7 @@ void AGridLevelRuntimeActor::LogUnsafeInstanceTransform(
 void AGridLevelRuntimeActor::LogUnsafeObjectTransform(
 	const TCHAR* FunctionName, const FGridWorldObjectInstance& ObjectData, const UStaticMesh* StaticMesh, const FTransform& Transform) const
 {
-	UE_LOG(LogTemp, Error,
+	UE_LOG(LogGridLevelRuntime, Error,
 		TEXT(
 			"Unsafe runtime render transform skipped: Function=%s ObjectId=%s WorldObjectDefinitionId=%s Tag=%s Cell=(%d,%d) Edge=%d StaticMesh=%s Location=%s Rotation=%s Scale=%s"),
 		FunctionName, *ObjectData.InstanceId.ToString(), *ObjectData.WorldObjectDefinitionId.ToString(), *ObjectData.Tag.ToString(), ObjectData.CellX, ObjectData.CellY,
@@ -134,7 +136,7 @@ void AGridLevelRuntimeActor::LogUnsafeObjectTransform(
 void AGridLevelRuntimeActor::LogUnsafeItemTransform(const TCHAR* FunctionName, FName WorldObjectDefinitionId, const AActor* OwnerActor, const USceneComponent* AttachParent,
 	const UStaticMesh* StaticMesh, const FTransform& Transform) const
 {
-	UE_LOG(LogTemp, Error,
+	UE_LOG(LogGridLevelRuntime, Error,
 		TEXT("Unsafe runtime item transform skipped: Function=%s WorldObjectDefinitionId=%s Owner=%s AttachParent=%s StaticMesh=%s Location=%s Rotation=%s Scale=%s"),
 		FunctionName, *WorldObjectDefinitionId.ToString(), *GetNameSafe(OwnerActor), *GetNameSafe(AttachParent), *GetNameSafe(StaticMesh),
 		*Transform.GetLocation().ToCompactString(), *Transform.GetRotation().ToString(), *Transform.GetScale3D().ToCompactString());
@@ -189,7 +191,7 @@ void AGridLevelRuntimeActor::BeginPlay()
 	if (GridPIEPlaytestRequest::Matches(this))
 	{
 		DungeonRuntimeState = FGridDungeonRuntimeState();
-		UE_LOG(LogTemp, Log, TEXT("GridLevelRuntimeActor: fresh PIE dungeon state initialized without modifying save data."));
+		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridLevelRuntimeActor: fresh PIE dungeon state initialized without modifying save data."));
 	}
 
 	if (DungeonAsset)
@@ -202,7 +204,7 @@ void AGridLevelRuntimeActor::BeginPlay()
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning,
+				UE_LOG(LogGridLevelRuntime, Warning,
 					TEXT("GridLevelRuntimeActor: CurrentDungeonLevelId %s is not valid in DungeonAsset %s; keeping configured LevelAsset."),
 					*CurrentDungeonLevelId.ToString(), *DungeonAsset->GetPathName());
 			}
@@ -225,11 +227,11 @@ void AGridLevelRuntimeActor::BeginPlay()
 				{
 					CurrentDungeonLevelId = DungeonAsset->DefaultLevelId;
 					LevelAsset = DungeonAsset->GetLevelAssetById(DungeonAsset->DefaultLevelId);
-					UE_LOG(LogTemp, Log, TEXT("GridLevelRuntimeActor: using DungeonAsset DefaultLevelId %s at BeginPlay."), *CurrentDungeonLevelId.ToString());
+					UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridLevelRuntimeActor: using DungeonAsset DefaultLevelId %s at BeginPlay."), *CurrentDungeonLevelId.ToString());
 				}
 				else
 				{
-					UE_LOG(LogTemp, Warning,
+					UE_LOG(LogGridLevelRuntime, Warning,
 						TEXT("GridLevelRuntimeActor: could not resolve CurrentDungeonLevelId from DungeonAsset %s; keeping configured LevelAsset %s."),
 						*DungeonAsset->GetPathName(), LevelAsset ? *LevelAsset->GetPathName() : TEXT("None"));
 				}
@@ -254,7 +256,7 @@ void AGridLevelRuntimeActor::BeginPlay()
 	if (const UGrimrockGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr;
 		GameInstance && GameInstance->IsNewGameDungeonBuildPending())
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridLevelRuntimeActor: initial runtime build deferred for frontend New Game."));
+		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridLevelRuntimeActor: initial runtime build deferred for frontend New Game."));
 		return;
 	}
 
@@ -491,7 +493,7 @@ void AGridLevelRuntimeActor::RebuildLevel(EGridRuntimeRebuildMode RebuildMode)
 
 		if (bHasWarningOrError)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("%s"), *Definition->GetValidationSummary());
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("%s"), *Definition->GetValidationSummary());
 		}
 	}
 #endif
@@ -841,7 +843,7 @@ bool AGridLevelRuntimeActor::ToggleDoorOnEdge(int32 X, int32 Y, EGridEdge Edge)
 	{
 		if (bResolvedOpposite)
 		{
-			UE_LOG(LogTemp, Log, TEXT("Grid Use: toggled door on opposite edge (%d,%d,%d)."), ResolvedX, ResolvedY, static_cast<int32>(ResolvedEdge));
+			UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Grid Use: toggled door on opposite edge (%d,%d,%d)."), ResolvedX, ResolvedY, static_cast<int32>(ResolvedEdge));
 		}
 		return true;
 	}
@@ -859,7 +861,7 @@ bool AGridLevelRuntimeActor::OpenDoorOnEdge(int32 X, int32 Y, EGridEdge Edge)
 	{
 		if (bResolvedOpposite)
 		{
-			UE_LOG(LogTemp, Log, TEXT("Grid Use: opened door on opposite edge (%d,%d,%d)."), ResolvedX, ResolvedY, static_cast<int32>(ResolvedEdge));
+			UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Grid Use: opened door on opposite edge (%d,%d,%d)."), ResolvedX, ResolvedY, static_cast<int32>(ResolvedEdge));
 		}
 		return true;
 	}
@@ -877,7 +879,7 @@ bool AGridLevelRuntimeActor::CloseDoorOnEdge(int32 X, int32 Y, EGridEdge Edge)
 	{
 		if (bResolvedOpposite)
 		{
-			UE_LOG(LogTemp, Log, TEXT("Grid Use: closed door on opposite edge (%d,%d,%d)."), ResolvedX, ResolvedY, static_cast<int32>(ResolvedEdge));
+			UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Grid Use: closed door on opposite edge (%d,%d,%d)."), ResolvedX, ResolvedY, static_cast<int32>(ResolvedEdge));
 		}
 		return true;
 	}
@@ -900,7 +902,7 @@ bool AGridLevelRuntimeActor::TryInteractAtEdge(int32 FromCellX, int32 FromCellY,
 	if (TryGetOppositeEdge(FromCellX, FromCellY, Edge, OppositeX, OppositeY, OppositeEdge) &&
 		ActivationComponent->TryInteractAtEdge(OppositeX, OppositeY, OppositeEdge, PartyPawn))
 	{
-		UE_LOG(LogTemp, Log, TEXT("Grid Use: interacted with object on opposite edge (%d,%d,%d)."), OppositeX, OppositeY, static_cast<int32>(OppositeEdge));
+		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Grid Use: interacted with object on opposite edge (%d,%d,%d)."), OppositeX, OppositeY, static_cast<int32>(OppositeEdge));
 		return true;
 	}
 	return false;
@@ -911,7 +913,7 @@ bool AGridLevelRuntimeActor::CanPartyInteractWithEdgeObject(
 {
 	if (!PartyPawn || PartyPawn->LevelRuntimeActor != this || ObjectEdge == EGridEdge::None || PartyPawn->Facing == EGridEdge::None)
 	{
-		UE_LOG(LogTemp, Verbose,
+		UE_LOG(LogGridLevelRuntime, Verbose,
 			TEXT("Grid edge interaction refused Reason=EdgeNotFacingParty PartyCell=(%d,%d) PartyFacing=%s ObjectCell=(%d,%d) ObjectEdge=%s"),
 			PartyPawn ? PartyPawn->CurrentCellX : INDEX_NONE, PartyPawn ? PartyPawn->CurrentCellY : INDEX_NONE,
 			*GetRuntimeEdgeText(PartyPawn ? PartyPawn->Facing : EGridEdge::None), ObjectCellX, ObjectCellY, *GetRuntimeEdgeText(ObjectEdge));
@@ -933,7 +935,7 @@ bool AGridLevelRuntimeActor::CanPartyInteractWithEdgeObject(
 		return true;
 	}
 
-	UE_LOG(LogTemp, Verbose, TEXT("Grid edge interaction refused Reason=EdgeNotFacingParty PartyCell=(%d,%d) PartyFacing=%s ObjectCell=(%d,%d) ObjectEdge=%s"),
+	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Grid edge interaction refused Reason=EdgeNotFacingParty PartyCell=(%d,%d) PartyFacing=%s ObjectCell=(%d,%d) ObjectEdge=%s"),
 		PartyCell.X, PartyCell.Y, *GetRuntimeEdgeText(PartyPawn->Facing), ObjectCellX, ObjectCellY, *GetRuntimeEdgeText(ObjectEdge));
 	return false;
 }
@@ -1028,7 +1030,7 @@ bool AGridLevelRuntimeActor::FindRelocationAtCell(int32 CellX, int32 CellY, FGri
 {
 	if (!LevelAsset)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Relocation lookup failed: LevelAsset is null."));
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("Relocation lookup failed: LevelAsset is null."));
 		return false;
 	}
 
@@ -1056,15 +1058,14 @@ bool AGridLevelRuntimeActor::FindRelocationAtCell(int32 CellX, int32 CellY, FGri
 		{
 			OutRelocation = Relocation;
 			bFoundUsableRelocation = true;
-			UE_LOG(LogTemp, Log, TEXT("Relocation found at Cell=(%d,%d): TargetLevelId=%s TargetCell=(%d,%d) Facing=%s."), CellX, CellY,
+			UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Relocation found at Cell=(%d,%d): TargetLevelId=%s TargetCell=(%d,%d) Facing=%s."), CellX, CellY,
 				*Relocation.TargetLevelId.ToString(), Relocation.TargetCellX, Relocation.TargetCellY, *GetRuntimeEdgeText(Relocation.TargetFacing));
 		}
 	}
 
 	if (RelocationCountAtCell > 1)
 	{
-		UE_LOG(
-			LogTemp, Warning, TEXT("Relocation: multiple relocation objects found at Cell=(%d,%d); using the first valid relocation."), CellX, CellY);
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("Relocation: multiple relocation objects found at Cell=(%d,%d); using the first valid relocation."), CellX, CellY);
 	}
 
 	return bFoundUsableRelocation;
@@ -1226,7 +1227,7 @@ bool AGridLevelRuntimeActor::SetPitOpen(FGuid PitObjectId, bool bOpen, bool bEmi
 	const UGridWorldObjectDefinitionAsset* PitDefinition = FindWorldObjectDefinition(PitObject->WorldObjectDefinitionId);
 	if (!bOpen && PitDefinition && !PitDefinition->HasCompletePitTrapdoorCover())
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGridLevelRuntime, Warning,
 			TEXT("GridPit Close ignored ObjectId=%s Cell=(%d,%d): definition %s does not define both trapdoor leaves; static Pit remains Open."),
 			*PitObjectId.ToString(), PitObject->CellX, PitObject->CellY, *PitObject->WorldObjectDefinitionId.ToString());
 		return false;
@@ -1295,7 +1296,7 @@ void AGridLevelRuntimeActor::HandlePitTrapdoorAnimationFinished(FGuid PitObjectI
 	const FGridRuntimePitState* PitState = State ? State->Pits.Find(PitObjectId) : nullptr;
 	if (!PitState || PitState->bIsOpen != bIsOpen)
 	{
-		UE_LOG(LogTemp, Verbose,
+		UE_LOG(LogGridLevelRuntime, Verbose,
 			TEXT("GridPit animation completion ignored ObjectId=%s Settled=%s Reason=target changed"),
 			*PitObjectId.ToString(), bIsOpen ? TEXT("Open") : TEXT("Closed"));
 		return;
@@ -1304,7 +1305,7 @@ void AGridLevelRuntimeActor::HandlePitTrapdoorAnimationFinished(FGuid PitObjectI
 	if (bIsOpen)
 	{
 		PendingPitEmitEvents.Remove(PitObjectId);
-		UE_LOG(LogTemp, Verbose, TEXT("GridPit opening visual endpoint reached ObjectId=%s; gameplay was already Open."),
+		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridPit opening visual endpoint reached ObjectId=%s; gameplay was already Open."),
 			*PitObjectId.ToString());
 		return;
 	}
@@ -1331,7 +1332,7 @@ void AGridLevelRuntimeActor::FinalizePitGameplayStateChange(FGuid PitObjectId, b
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridPit gameplay state settled ObjectId=%s Cell=(%d,%d) Previous=%s New=%s"), *PitObjectId.ToString(),
+	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridPit gameplay state settled ObjectId=%s Cell=(%d,%d) Previous=%s New=%s"), *PitObjectId.ToString(),
 		PitObject->CellX, PitObject->CellY, bWasOpen ? TEXT("Open") : TEXT("Closed"), bIsOpen ? TEXT("Open") : TEXT("Closed"));
 
 	if (bIsOpen)
@@ -1370,13 +1371,13 @@ bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridRe
 		const bool bPitOpen = Obj.InstanceId.IsValid() ? IsPitOpen(Obj.InstanceId) : IsPitOpenForLevel(CurrentDungeonLevelId, Obj);
 		if (!bPitOpen)
 		{
-			UE_LOG(LogTemp, Verbose,
+			UE_LOG(LogGridLevelRuntime, Verbose,
 				TEXT("GridPit cell detected but closed Cell=(%d,%d) ObjectId=%s WorldObjectDefinitionId=%s StoredType=%d."),
 				CellX, CellY, *Obj.InstanceId.ToString(), *Obj.WorldObjectDefinitionId.ToString(), static_cast<int32>(Obj.Type));
 			continue;
 		}
 
-		UE_LOG(LogTemp, Log,
+		UE_LOG(LogGridLevelRuntime, Verbose,
 			TEXT("GridPit OPEN cell entered Cell=(%d,%d) ObjectId=%s WorldObjectDefinitionId=%s StoredType=%d CurrentLevel=%s."),
 			CellX, CellY, *Obj.InstanceId.ToString(), *Obj.WorldObjectDefinitionId.ToString(), static_cast<int32>(Obj.Type), *CurrentDungeonLevelId.ToString());
 
@@ -1388,7 +1389,7 @@ bool AGridLevelRuntimeActor::FindOpenPitAtCell(int32 CellX, int32 CellY, FGridRe
 			{
 				if (!OutRelocation.TargetLevelId.IsNone())
 				{
-					UE_LOG(LogTemp, Warning,
+					UE_LOG(LogGridLevelRuntime, Warning,
 						TEXT("Pit at Cell=(%d,%d) explicit TargetLevelId=%s is unavailable; falling to automatic lower level %s."),
 						CellX, CellY, *OutRelocation.TargetLevelId.ToString(), *LowerLevel->LevelId.ToString());
 				}
@@ -1424,20 +1425,20 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 			});
 		if (bAnyPitAtCell)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridPit fall not started at Cell=(%d,%d): Pit exists but is Closed."), CellX, CellY);
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridPit fall not started at Cell=(%d,%d): Pit exists but is Closed."), CellX, CellY);
 		}
 		return false;
 	}
 
 	if (!DungeonAsset)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Pit fall failed at Cell=(%d,%d): DungeonAsset is null."), CellX, CellY);
+		UE_LOG(LogGridLevelRuntime, Error, TEXT("Pit fall failed at Cell=(%d,%d): DungeonAsset is null."), CellX, CellY);
 		return false;
 	}
 
 	if (Relocation.TargetLevelId.IsNone())
 	{
-		UE_LOG(LogTemp, Error,
+		UE_LOG(LogGridLevelRuntime, Error,
 			TEXT("Pit fall failed at Cell=(%d,%d) on level %s: no enabled lower dungeon level could be resolved."),
 			CellX, CellY, *CurrentDungeonLevelId.ToString());
 		return false;
@@ -1451,7 +1452,7 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 	const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry(Relocation.TargetLevelId);
 	if (!TargetEntry || !TargetEntry->bEnabled || !TargetEntry->LevelAsset)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Pit fall rejected at Cell=(%d,%d): target level %s is unavailable."), CellX, CellY,
+		UE_LOG(LogGridLevelRuntime, Error, TEXT("Pit fall rejected at Cell=(%d,%d): target level %s is unavailable."), CellX, CellY,
 			*Relocation.TargetLevelId.ToString());
 		return false;
 	}
@@ -1471,7 +1472,7 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 		});
 	if (bPreferredContainsOpenPit)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Pit fall rejected: destination (%d,%d) on level %s contains another open pit."),
+		UE_LOG(LogGridLevelRuntime, Error, TEXT("Pit fall rejected: destination (%d,%d) on level %s contains another open pit."),
 			PreferredTargetX, PreferredTargetY, *Relocation.TargetLevelId.ToString());
 		return false;
 	}
@@ -1480,7 +1481,7 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 	int32 LandingCellY = INDEX_NONE;
 	if (!ResolvePitLandingCell(Relocation.TargetLevelId, PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY))
 	{
-		UE_LOG(LogTemp, Error,
+		UE_LOG(LogGridLevelRuntime, Error,
 			TEXT("Pit fall failed at Cell=(%d,%d): target level %s contains no usable landing cell near requested (%d,%d)."),
 			CellX, CellY, *Relocation.TargetLevelId.ToString(), PreferredTargetX, PreferredTargetY);
 		return false;
@@ -1488,7 +1489,7 @@ bool AGridLevelRuntimeActor::TryBeginPitFallAtCell(int32 CellX, int32 CellY, AGr
 
 	if (LandingCellX != PreferredTargetX || LandingCellY != PreferredTargetY)
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGridLevelRuntime, Warning,
 			TEXT("GridPit landing fallback Source=(%d,%d) TargetLevel=%s Requested=(%d,%d) Resolved=(%d,%d)."),
 			CellX, CellY, *Relocation.TargetLevelId.ToString(), PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY);
 		Relocation.TargetCellX = LandingCellX;
@@ -1545,7 +1546,7 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 {
 	if (bIsExecutingRelocation)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Dungeon travel ignored: another relocation is already executing."));
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("Dungeon travel ignored: another relocation is already executing."));
 		return false;
 	}
 
@@ -1569,41 +1570,41 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 
 	if (!DungeonAsset)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: DungeonAsset is null."));
+		UE_LOG(LogGridLevelRuntime, Error, TEXT("Dungeon travel failed: DungeonAsset is null."));
 		return false;
 	}
 
 	if (TargetLevelId.IsNone())
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: TargetLevelId is None."));
+		UE_LOG(LogGridLevelRuntime, Error, TEXT("Dungeon travel failed: TargetLevelId is None."));
 		return false;
 	}
 
 	const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry(TargetLevelId);
 	if (!TargetEntry)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: TargetLevelId %s was not found in DungeonAsset %s."), *TargetLevelId.ToString(),
+		UE_LOG(LogGridLevelRuntime, Error, TEXT("Dungeon travel failed: TargetLevelId %s was not found in DungeonAsset %s."), *TargetLevelId.ToString(),
 			*DungeonAsset->GetPathName());
 		return false;
 	}
 
 	if (!TargetEntry->bEnabled)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: TargetLevelId %s is disabled."), *TargetLevelId.ToString());
+		UE_LOG(LogGridLevelRuntime, Error, TEXT("Dungeon travel failed: TargetLevelId %s is disabled."), *TargetLevelId.ToString());
 		return false;
 	}
 
 	UGridLevelAsset* TargetLevelAsset = TargetEntry->LevelAsset.Get();
 	if (!TargetLevelAsset)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: TargetLevelId %s has no LevelAsset."), *TargetLevelId.ToString());
+		UE_LOG(LogGridLevelRuntime, Error, TEXT("Dungeon travel failed: TargetLevelId %s has no LevelAsset."), *TargetLevelId.ToString());
 		return false;
 	}
 
 	if (!TargetLevelAsset->IsValidCoord(TargetCellX, TargetCellY) ||
 		!TargetLevelAsset->Cells.IsValidIndex(TargetLevelAsset->GetIndex(TargetCellX, TargetCellY)))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: Target cell (%d,%d) is outside LevelAsset %s."), TargetCellX, TargetCellY,
+		UE_LOG(LogGridLevelRuntime, Error, TEXT("Dungeon travel failed: Target cell (%d,%d) is outside LevelAsset %s."), TargetCellX, TargetCellY,
 			*TargetLevelAsset->GetPathName());
 		return false;
 	}
@@ -1611,24 +1612,24 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 	const FGridLevelCellData& TargetCell = TargetLevelAsset->GetCell(TargetCellX, TargetCellY);
 	if (TargetCell.CellType == EGridCellType::Empty || TargetCell.bBlocksOccupancy)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: Target cell (%d,%d) is not walkable in LevelAsset %s. CellType=%d BlocksOccupancy=%s."),
+		UE_LOG(LogGridLevelRuntime, Error, TEXT("Dungeon travel failed: Target cell (%d,%d) is not walkable in LevelAsset %s. CellType=%d BlocksOccupancy=%s."),
 			TargetCellX, TargetCellY, *TargetLevelAsset->GetPathName(), static_cast<int32>(TargetCell.CellType), *GetRuntimeBoolText(TargetCell.bBlocksOccupancy));
 		return false;
 	}
 
 	if (TargetFacing == EGridEdge::None)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: TargetFacing is None."));
+		UE_LOG(LogGridLevelRuntime, Error, TEXT("Dungeon travel failed: TargetFacing is None."));
 		return false;
 	}
 
 	if (!PartyPawn)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Dungeon travel failed: PartyPawn is null."));
+		UE_LOG(LogGridLevelRuntime, Error, TEXT("Dungeon travel failed: PartyPawn is null."));
 		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Dungeon travel: %s -> %s, Cell=(%d,%d), Facing=%s."), *CurrentDungeonLevelId.ToString(), *TargetLevelId.ToString(),
+	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Dungeon travel: %s -> %s, Cell=(%d,%d), Facing=%s."), *CurrentDungeonLevelId.ToString(), *TargetLevelId.ToString(),
 		TargetCellX, TargetCellY, *GetRuntimeEdgeText(TargetFacing));
 
 	AbortActiveCombatAndMonsterActions();
@@ -1637,7 +1638,7 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 	CaptureCurrentLevelRuntimeState();
 	if (const FGridLevelRuntimeState* StoredState = DungeonRuntimeState.LevelStates.Find(OldLevelId))
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridRuntimeState Stored Level=%s Receptacles=%d Items=%d Doors=%d Monsters=%d"), *OldLevelId.ToString(),
+		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridRuntimeState Stored Level=%s Receptacles=%d Items=%d Doors=%d Monsters=%d"), *OldLevelId.ToString(),
 			StoredState->Receptacles.Num(), StoredState->Items.Num(), StoredState->Doors.Num(), StoredState->Monsters.Num());
 	}
 
@@ -1662,7 +1663,7 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 		ActivationComponent->RefreshAllPressurePlates();
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Dungeon travel complete: CurrentDungeonLevelId=%s LevelAsset=%s PartyCell=(%d,%d) Facing=%s."),
+	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Dungeon travel complete: CurrentDungeonLevelId=%s LevelAsset=%s PartyCell=(%d,%d) Facing=%s."),
 		*CurrentDungeonLevelId.ToString(), LevelAsset ? *LevelAsset->GetPathName() : TEXT("None"), TargetCellX, TargetCellY, *GetRuntimeEdgeText(TargetFacing));
 	return true;
 }
@@ -1772,7 +1773,7 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDef
 	ItemDefinitionId = ItemDefinition && !ItemDefinition->ItemDefinitionId.IsNone() ? ItemDefinition->ItemDefinitionId : ItemDefinitionId;
 	if (!ItemDefinition && ItemDefinitionId.IsNone())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid item spawn failed: missing ItemDefinition and ItemDefinitionId."));
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("Grid item spawn failed: missing ItemDefinition and ItemDefinitionId."));
 		return nullptr;
 	}
 	UWorld* World = GetWorld();
@@ -1784,7 +1785,7 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDef
 		AttachParent ? AttachParent->GetComponentLocation() : GetActorLocation(), FVector::OneVector);
 	if (!IsSafeRuntimeRenderTransform(SpawnTransform))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Grid item spawn failed: unsafe transform Item=%s Owner=%s AttachParent=%s."), *ItemDefinitionId.ToString(),
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("Grid item spawn failed: unsafe transform Item=%s Owner=%s AttachParent=%s."), *ItemDefinitionId.ToString(),
 			OwnerActor ? *OwnerActor->GetName() : TEXT("None"), AttachParent ? *AttachParent->GetName() : TEXT("None"));
 		return nullptr;
 	}
@@ -1891,7 +1892,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	FTransform Transform;
 	if (!GridPlacementTransformResolver::ResolveLooseItem(*this, ObjectData, Transform))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Placed item skipped: could not compute placement transform for object %s."), *ObjectData.InstanceId.ToString());
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("Placed item skipped: could not compute placement transform for object %s."), *ObjectData.InstanceId.ToString());
 		return;
 	}
 	if (!IsSafeRuntimeRenderTransform(Transform))
@@ -1903,14 +1904,14 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	UGridItemDefinitionAsset* ItemDefinition = ObjectData.ItemDefinition.Get();
 	if (!IsValid(ItemDefinition))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Placed item skipped: definition missing for instance %s."), *ObjectData.InstanceId.ToString());
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("Placed item skipped: definition missing for instance %s."), *ObjectData.InstanceId.ToString());
 		return;
 	}
 	const FName ItemDefinitionId = ItemDefinition->ItemDefinitionId;
 	AGridItemActor* ItemActor = SpawnItemActorForDefinition(ItemDefinition, ItemDefinitionId, this, nullptr);
 	if (!ItemActor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Placed item skipped: failed to spawn item definition %s."), *ItemDefinitionId.ToString());
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("Placed item skipped: failed to spawn item definition %s."), *ItemDefinitionId.ToString());
 		return;
 	}
 
@@ -1940,7 +1941,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	Entry.ItemDefinitionId = ItemDefinitionId;
 	Entry.Quantity = FMath::Max(1, ObjectData.Quantity);
 	SpawnedItemEntries.Add(Entry);
-	UE_LOG(LogTemp, Log, TEXT("Placed item spawned: %s at object %s. Runtime=%s RebuildGeneration=%d ActiveItemCount=%d"), *ItemDefinitionId.ToString(),
+	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Placed item spawned: %s at object %s. Runtime=%s RebuildGeneration=%d ActiveItemCount=%d"), *ItemDefinitionId.ToString(),
 		*ObjectData.InstanceId.ToString(), *GetName(), RuntimeObjectRebuildGeneration, SpawnedItemEntries.Num());
 }
 
@@ -1950,7 +1951,7 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor(const FGridWorldObjectInstanc
 	FTransform Transform;
 	const TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass = GetObjectRuntimeActorClass(ObjectData);
 	AGridRuntimeObjectActor* Actor = SpawnRuntimeObjectActor<AGridRuntimeObjectActor>(ObjectData, Mesh, Transform);
-	UE_LOG(LogTemp, VeryVerbose,
+	UE_LOG(LogGridLevelRuntime, VeryVerbose,
 		TEXT("GridRuntime Diagnostic AddRuntimeObjectActor ObjectId=%s WorldObjectDefinitionId=%s ObjectData.Type=%s RuntimeActorClass=%s ActorClass=%s Mesh=%s Transform=%s"),
 		*ObjectData.InstanceId.ToString(), *ObjectData.WorldObjectDefinitionId.ToString(), *UEnum::GetValueAsString(ObjectData.Type),
 		RuntimeActorClass ? *RuntimeActorClass->GetPathName() : TEXT("None"), Actor ? *Actor->GetClass()->GetPathName() : TEXT("None"),
@@ -2009,7 +2010,7 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects()
 			const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinition(Instance.WorldObjectDefinitionId);
 			if (Definition && !Definition->RuntimeActorClass)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Runtime object skipped: definition %s has no RuntimeActorClass."), *Instance.WorldObjectDefinitionId.ToString());
+				UE_LOG(LogGridLevelRuntime, Warning, TEXT("Runtime object skipped: definition %s has no RuntimeActorClass."), *Instance.WorldObjectDefinitionId.ToString());
 			}
 			continue;
 		}

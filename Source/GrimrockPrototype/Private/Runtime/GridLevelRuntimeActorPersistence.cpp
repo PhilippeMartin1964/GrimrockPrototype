@@ -15,6 +15,8 @@
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridLevelRuntime, Log, All);
+
 namespace
 {
 	FName PersistenceResolvePickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackItemDefinitionId)
@@ -206,7 +208,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 
 		if (ItemState.ItemDefinitionId.IsNone())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridRuntimeState Capture skipped item: ObjectId=%s Actor=%s no ItemDefinitionId resolved."),
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridRuntimeState Capture skipped item: ObjectId=%s Actor=%s no ItemDefinitionId resolved."),
 				*Entry.ObjectId.ToString(), *GetNameSafe(ItemActor));
 			continue;
 		}
@@ -321,7 +323,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		DeadMonsterCount += Pair.Value.bIsDead ? 1 : 0;
 	}
 
-	UE_LOG(LogTemp, Log,
+	UE_LOG(LogGridLevelRuntime, Verbose,
 		TEXT(
 			"GridRuntimeState Capture Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d Monsters=%d MonsterPlacements=%d DeadMonsters=%d"),
 		*State->LevelId.ToString(), State->Doors.Num(), PersistenceCountRemovedRuntimeObjects(State), State->Items.Num(), State->Receptacles.Num(),
@@ -380,7 +382,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		AGridRuntimeObjectActor* RuntimeObject = FindRuntimeObjectActor<AGridRuntimeObjectActor>(Pair.Key);
 		if (!RuntimeObject)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridRuntimeState Apply visual skipped: ObjectId=%s Reason=runtime actor not found."), *Pair.Key.ToString());
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridRuntimeState Apply visual skipped: ObjectId=%s Reason=runtime actor not found."), *Pair.Key.ToString());
 			continue;
 		}
 
@@ -389,7 +391,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			FString Error;
 			if (!RuntimeObject->SetRuntimeMaterialAlias(MaterialOverride.Key, MaterialOverride.Value, false, Error))
 			{
-				UE_LOG(LogTemp, Warning,
+				UE_LOG(LogGridLevelRuntime, Warning,
 					TEXT("GridRuntimeState Apply visual skipped: ObjectId=%s Slot=%s Alias=%s Reason=%s"), *Pair.Key.ToString(),
 					*MaterialOverride.Key.ToString(), *MaterialOverride.Value.ToString(), *Error);
 			}
@@ -451,7 +453,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			continue;
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("GridRuntimeState Apply RemovedInitialObject ObjectId=%s"), *PresenceState.ObjectId.ToString());
+		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridRuntimeState Apply RemovedInitialObject ObjectId=%s"), *PresenceState.ObjectId.ToString());
 
 		for (int32 EntryIndex = SpawnedItemEntries.Num() - 1; EntryIndex >= 0; --EntryIndex)
 		{
@@ -543,7 +545,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			const FName RuntimeItemDefinitionId = ItemState.ItemDefinitionId;
 			if (RuntimeItemDefinitionId.IsNone())
 			{
-				UE_LOG(LogTemp, Warning,
+				UE_LOG(LogGridLevelRuntime, Warning,
 					TEXT("GridRuntimeState Apply skipped receptacle item: ReceptacleId=%s RuntimeId=%s no ItemDefinitionId resolved."),
 					*Pair.Key.ToString(), *ItemState.ObjectId.ToString());
 				continue;
@@ -569,7 +571,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			ResolvedItemState.ItemDefinitionId = RuntimeItemDefinitionId;
 			ReceptacleActor->RestoreRuntimeContainedItem(ResolvedItemState, ItemActor);
 		}
-		UE_LOG(LogTemp, Verbose, TEXT("GridRuntimeState Apply Receptacle Final ObjectId=%s HasItem=%s Count=%d"), *Pair.Key.ToString(),
+		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridRuntimeState Apply Receptacle Final ObjectId=%s HasItem=%s Count=%d"), *Pair.Key.ToString(),
 			ReceptacleActor->HasItem() ? TEXT("true") : TEXT("false"), ReceptacleActor->GetContainedItemCount());
 	}
 
@@ -676,7 +678,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		DeadMonsterCount += Pair.Value.bIsDead ? 1 : 0;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridRuntimeState Apply Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d Monsters=%d DeadMonsters=%d"),
+	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridRuntimeState Apply Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d Monsters=%d DeadMonsters=%d"),
 		*State->LevelId.ToString(), State->Doors.Num(), PersistenceCountRemovedRuntimeObjects(State), State->Items.Num(), State->Receptacles.Num(),
 		State->InteractiveObjects.Num(), State->Monsters.Num(), DeadMonsterCount);
 

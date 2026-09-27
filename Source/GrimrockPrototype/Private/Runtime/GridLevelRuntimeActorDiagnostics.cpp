@@ -10,6 +10,8 @@
 #include "Runtime/GrimrockGameMode.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridLevelRuntime, Log, All);
+
 namespace
 {
 	const FName GridLevelRuntimeDiagnosticsSingleLevelRuntimeStateId(TEXT("SingleLevel"));
@@ -180,7 +182,7 @@ FString AGridLevelRuntimeActor::GetRuntimeDebugSummary() const
 void AGridLevelRuntimeActor::LogRuntimeDebugSummary() const
 {
 	const FString Summary = GetRuntimeDebugSummary();
-	UE_LOG(LogTemp, Log, TEXT("%s"), *Summary);
+	UE_LOG(LogGridLevelRuntime, Log, TEXT("%s"), *Summary);
 	if (ActivationComponent)
 	{
 		ActivationComponent->LogDebugSummary();
@@ -352,7 +354,7 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics() const
 void AGridLevelRuntimeActor::LogLevelAssetDiagnostics() const
 {
 	const FString Diagnostics = GetLevelAssetDiagnostics();
-	UE_LOG(LogTemp, Log, TEXT("%s"), *Diagnostics);
+	UE_LOG(LogGridLevelRuntime, Log, TEXT("%s"), *Diagnostics);
 }
 
 FString AGridLevelRuntimeActor::GetPIEReadinessDiagnostics() const
@@ -469,7 +471,7 @@ FString AGridLevelRuntimeActor::GetPIEReadinessDiagnostics() const
 
 void AGridLevelRuntimeActor::LogPIEReadinessDiagnostics() const
 {
-	UE_LOG(LogTemp, Log, TEXT("%s"), *GetPIEReadinessDiagnostics());
+	UE_LOG(LogGridLevelRuntime, Log, TEXT("%s"), *GetPIEReadinessDiagnostics());
 }
 
 void AGridLevelRuntimeActor::ShowRuntimeDebugSummary(float Duration) const

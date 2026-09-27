@@ -3,6 +3,8 @@
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/PlayerController.h"
 #include "UI/ReadableMessageWidget.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogGridLevelRuntime, Log, All);
 void AGridLevelRuntimeActor::ShowReadableMessage(const FText& MessageText)
 {
 	if (MessageText.IsEmpty())
@@ -12,13 +14,13 @@ void AGridLevelRuntimeActor::ShowReadableMessage(const FText& MessageText)
 	UWorld* World = GetWorld();
 	if (!World || !ReadableMessageWidgetClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ShowReadableMessage failed: missing world or widget class."));
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("ShowReadableMessage failed: missing world or widget class."));
 		return;
 	}
 	APlayerController* PlayerController = World->GetFirstPlayerController();
 	if (!PlayerController)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ShowReadableMessage failed: missing player controller."));
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("ShowReadableMessage failed: missing player controller."));
 		return;
 	}
 	if (!ActiveReadableMessageWidget)
@@ -27,7 +29,7 @@ void AGridLevelRuntimeActor::ShowReadableMessage(const FText& MessageText)
 
 		if (!ActiveReadableMessageWidget)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("ShowReadableMessage failed: widget creation failed."));
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("ShowReadableMessage failed: widget creation failed."));
 			return;
 		}
 		ActiveReadableMessageWidget->AddToViewport(50);
@@ -82,7 +84,7 @@ void AGridLevelRuntimeActor::ShowInteractionFeedback(const FText& MessageText, f
 	const TSubclassOf<UReadableMessageWidget> WidgetClass = InteractionFeedbackWidgetClass ? InteractionFeedbackWidgetClass : ReadableMessageWidgetClass;
 	if (!World || !WidgetClass)
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("ShowInteractionFeedback skipped: missing world or widget class."));
+		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("ShowInteractionFeedback skipped: missing world or widget class."));
 		return;
 	}
 
@@ -135,7 +137,7 @@ void AGridLevelRuntimeActor::ShowCombatFeedback(const FGridPlayerAttackFeedbackR
 																					  : ReadableMessageWidgetClass;
 	if (!World || !WidgetClass)
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("ShowCombatFeedback skipped: missing world or widget class."));
+		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("ShowCombatFeedback skipped: missing world or widget class."));
 		return;
 	}
 	APlayerController* PlayerController = World->GetFirstPlayerController();

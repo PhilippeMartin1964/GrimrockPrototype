@@ -10,6 +10,8 @@
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridLevelRuntime, Log, All);
+
 namespace
 {
 	FString GetWorldItemEdgeText(EGridEdge Edge)
@@ -81,7 +83,7 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 	{
 		if (bLogRejection)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Grid item pickup rejected: missing party pawn."));
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Grid item pickup rejected: missing party pawn."));
 		}
 		return false;
 	}
@@ -90,7 +92,7 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 	{
 		if (bLogRejection)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Grid item pickup rejected: party runtime actor does not match item runtime actor. ItemCell=(%d,%d)."), Entry.Cell.X,
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Grid item pickup rejected: party runtime actor does not match item runtime actor. ItemCell=(%d,%d)."), Entry.Cell.X,
 				Entry.Cell.Y);
 		}
 		return false;
@@ -107,7 +109,7 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 		{
 			if (bLogRejection)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Grid item pickup rejected: free pickup actor is missing. ItemCell=(%d,%d)."), Entry.Cell.X, Entry.Cell.Y);
+				UE_LOG(LogGridLevelRuntime, Warning, TEXT("Grid item pickup rejected: free pickup actor is missing. ItemCell=(%d,%d)."), Entry.Cell.X, Entry.Cell.Y);
 			}
 			return false;
 		}
@@ -118,7 +120,7 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 		{
 			if (bLogRejection)
 			{
-				UE_LOG(LogTemp, Warning,
+				UE_LOG(LogGridLevelRuntime, Warning,
 					TEXT("Grid item pickup rejected: free pickup is out of reach. PartyCell=(%d,%d) ItemCell=(%d,%d) Distance=%.1f Reach=%.1f."),
 					PartyCell.X, PartyCell.Y, Entry.Cell.X, Entry.Cell.Y, FMath::Sqrt(DistanceSquared), PickupReach);
 			}
@@ -133,7 +135,7 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 		const bool bFacesItemEdge = PartyPawn->Facing != EGridEdge::None && Entry.Edge == PartyPawn->Facing;
 		if (!bFacesItemEdge && bLogRejection)
 		{
-			UE_LOG(LogTemp, Warning,
+			UE_LOG(LogGridLevelRuntime, Warning,
 				TEXT("Grid item pickup rejected: item in party cell is not on the edge currently faced by the party. PartyCell=(%d,%d) Facing=%s ItemEdge=%s."),
 				PartyCell.X, PartyCell.Y, *GetWorldItemEdgeText(PartyPawn->Facing), *GetWorldItemEdgeText(Entry.Edge));
 		}
@@ -144,7 +146,7 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 	{
 		if (bLogRejection)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Grid item pickup rejected: party facing is None. PartyCell=(%d,%d) ItemCell=(%d,%d) ItemEdge=%s."), PartyCell.X,
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Grid item pickup rejected: party facing is None. PartyCell=(%d,%d) ItemCell=(%d,%d) ItemEdge=%s."), PartyCell.X,
 				PartyCell.Y, Entry.Cell.X, Entry.Cell.Y, *GetWorldItemEdgeText(Entry.Edge));
 		}
 		return false;
@@ -156,7 +158,7 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 	{
 		if (bLogRejection)
 		{
-			UE_LOG(LogTemp, Warning,
+			UE_LOG(LogGridLevelRuntime, Warning,
 				TEXT(
 					"Grid item pickup rejected: item is not in the party cell or the cell directly ahead. PartyCell=(%d,%d) Facing=%s ItemCell=(%d,%d) ItemEdge=%s."),
 				PartyCell.X, PartyCell.Y, *GetWorldItemEdgeText(PartyPawn->Facing), Entry.Cell.X, Entry.Cell.Y, *GetWorldItemEdgeText(Entry.Edge));
@@ -169,7 +171,7 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry(const FGridSpawnedItemRunti
 	{
 		if (bLogRejection)
 		{
-			UE_LOG(LogTemp, Warning,
+			UE_LOG(LogGridLevelRuntime, Warning,
 				TEXT(
 					"Grid item pickup rejected: item in front cell is not on the edge facing the party. PartyCell=(%d,%d) Facing=%s ItemCell=(%d,%d) ItemEdge=%s RequiredEdge=%s."),
 				PartyCell.X, PartyCell.Y, *GetWorldItemEdgeText(PartyPawn->Facing), Entry.Cell.X, Entry.Cell.Y, *GetWorldItemEdgeText(Entry.Edge),
@@ -240,7 +242,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrim
 		const FName ItemDefinitionId = ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId);
 		if (ItemDefinitionId.IsNone())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Item pickup failed at cell %d,%d: missing item definition id."), CellX, CellY);
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Item pickup failed at cell %d,%d: missing item definition id."), CellX, CellY);
 			return false;
 		}
 
@@ -262,7 +264,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrim
 
 		if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory(ItemInstance))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"), *ItemDefinitionId.ToString(),
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"), *ItemDefinitionId.ToString(),
 				*ItemInstance.RuntimeObjectId.ToString());
 			return false;
 		}
@@ -285,7 +287,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrim
 			ActivationComponent->RefreshPressurePlatesAtCell(PickedCell.X, PickedCell.Y);
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("Picked up item %s from cell %d,%d."), *ItemDefinitionId.ToString(), CellX, CellY);
+		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Picked up item %s from cell %d,%d."), *ItemDefinitionId.ToString(), CellX, CellY);
 		return true;
 	}
 
@@ -315,7 +317,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrim
 		const FName ItemDefinitionId = ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId);
 		if (ItemDefinitionId.IsNone())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Item pickup failed for actor %s: missing item definition id."), *ItemActor->GetName());
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("Item pickup failed for actor %s: missing item definition id."), *ItemActor->GetName());
 			return false;
 		}
 
@@ -337,7 +339,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrim
 
 		if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory(ItemInstance))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"), *ItemDefinitionId.ToString(),
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"), *ItemDefinitionId.ToString(),
 				*ItemInstance.RuntimeObjectId.ToString());
 			return false;
 		}
@@ -358,7 +360,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrim
 			ActivationComponent->RefreshPressurePlatesAtCell(PickedCell.X, PickedCell.Y);
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("Picked up item %s from clicked actor at cell %d,%d."), *ItemDefinitionId.ToString(), PickedCell.X, PickedCell.Y);
+		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("Picked up item %s from clicked actor at cell %d,%d."), *ItemDefinitionId.ToString(), PickedCell.X, PickedCell.Y);
 		return true;
 	}
 
@@ -376,7 +378,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 
 	if (Relocation.TargetLevelId.IsNone() || Relocation.TargetLevelId == CurrentDungeonLevelId)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Source=(%d,%d) Reason=InvalidTargetLevel Target=%s"),
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Source=(%d,%d) Reason=InvalidTargetLevel Target=%s"),
 			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), CellX, CellY, *Relocation.TargetLevelId.ToString());
 		return false;
 	}
@@ -385,7 +387,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	UGridLevelAsset* TargetLevelAsset = TargetEntry && TargetEntry->bEnabled ? TargetEntry->LevelAsset.Get() : nullptr;
 	if (!TargetLevelAsset)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Source=(%d,%d) Reason=InvalidTargetLevelAsset TargetLevel=%s"),
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Source=(%d,%d) Reason=InvalidTargetLevelAsset TargetLevel=%s"),
 			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), CellX, CellY, *Relocation.TargetLevelId.ToString());
 		return false;
 	}
@@ -403,7 +405,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 		});
 	if (bPreferredContainsOpenPit)
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGridLevelRuntime, Warning,
 			TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Reason=ChainedPitNotSupported TargetLevel=%s Target=(%d,%d)"),
 			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), *Relocation.TargetLevelId.ToString(),
 			PreferredTargetX, PreferredTargetY);
@@ -414,7 +416,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	int32 LandingCellY = INDEX_NONE;
 	if (!ResolvePitLandingCell(Relocation.TargetLevelId, PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY))
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGridLevelRuntime, Warning,
 			TEXT("GridPit ItemTransfer rejected Item=%s RuntimeId=%s Reason=NoUsableLandingCell TargetLevel=%s Requested=(%d,%d)"),
 			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), *Relocation.TargetLevelId.ToString(),
 			PreferredTargetX, PreferredTargetY);
@@ -423,7 +425,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 
 	if (LandingCellX != PreferredTargetX || LandingCellY != PreferredTargetY)
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGridLevelRuntime, Warning,
 			TEXT("GridPit ItemTransfer landing fallback Item=%s RuntimeId=%s TargetLevel=%s Requested=(%d,%d) Resolved=(%d,%d)"),
 			*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), *Relocation.TargetLevelId.ToString(),
 			PreferredTargetX, PreferredTargetY, LandingCellX, LandingCellY);
@@ -464,7 +466,7 @@ bool AGridLevelRuntimeActor::TryRouteWorldItemThroughOpenPit(
 	TargetState.LevelId = Relocation.TargetLevelId;
 	TargetState.PendingInboundItems.Add(ItemState.ObjectId, PendingState);
 
-	UE_LOG(LogTemp, Log,
+	UE_LOG(LogGridLevelRuntime, Verbose,
 		TEXT("GridPit ItemTransfer queued Item=%s RuntimeId=%s SourceLevel=%s Source=(%d,%d) TargetLevel=%s Target=(%d,%d) Offset=%s"),
 		*ItemState.ItemDefinitionId.ToString(), *ItemState.ObjectId.ToString(), *CurrentDungeonLevelId.ToString(), CellX, CellY,
 		*Relocation.TargetLevelId.ToString(), Relocation.TargetCellX, Relocation.TargetCellY, *ClampedOffset.ToCompactString());
@@ -502,7 +504,7 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 		const FGridRuntimeItemState& ItemState = PendingCopy.ItemState;
 		if (!LevelAsset->IsValidCoord(ItemState.CellX, ItemState.CellY))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridPit PendingItem apply skipped RuntimeId=%s Reason=InvalidCell Cell=(%d,%d)"),
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridPit PendingItem apply skipped RuntimeId=%s Reason=InvalidCell Cell=(%d,%d)"),
 				*RuntimeObjectId.ToString(), ItemState.CellX, ItemState.CellY);
 			continue;
 		}
@@ -530,7 +532,7 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 
 		if (!TryDropItemInstanceAtCell(ItemInstance, Definition, ItemState.CellX, ItemState.CellY, EGridEdge::None, LocalOffset))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridPit PendingItem apply failed RuntimeId=%s Item=%s Level=%s Cell=(%d,%d)"),
+			UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridPit PendingItem apply failed RuntimeId=%s Item=%s Level=%s Cell=(%d,%d)"),
 				*RuntimeObjectId.ToString(), *ItemState.ItemDefinitionId.ToString(), *RuntimeLevelId.ToString(), ItemState.CellX, ItemState.CellY);
 			continue;
 		}
@@ -544,7 +546,7 @@ int32 AGridLevelRuntimeActor::ApplyPendingInboundItemsForCurrentLevel()
 
 	if (AppliedCount > 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridPit PendingItem apply Level=%s Applied=%d"), *RuntimeLevelId.ToString(), AppliedCount);
+		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridPit PendingItem apply Level=%s Applied=%d"), *RuntimeLevelId.ToString(), AppliedCount);
 	}
 	return AppliedCount;
 }
@@ -627,7 +629,7 @@ int32 AGridLevelRuntimeActor::DropWorldItemsThroughOpenPitAtCell(int32 CellX, in
 		ActivationComponent->RefreshPressurePlatesAtCell(CellX, CellY);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridPit opened under WorldItems Cell=(%d,%d) Dropped=%d"), CellX, CellY, DroppedCount);
+	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridPit opened under WorldItems Cell=(%d,%d) Dropped=%d"), CellX, CellY, DroppedCount);
 	return DroppedCount;
 }
 
@@ -656,7 +658,7 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 		const AGrimrockPartyPawn* PartyPawn = ResolveWorldItemInteractionParty(this);
 		if (!IsWithinWorldItemHandReach(this, PartyPawn, CellX, CellY, LocalOffset))
 		{
-			UE_LOG(LogTemp, Log,
+			UE_LOG(LogGridLevelRuntime, Verbose,
 				TEXT("GridInventory WorldDrop Rejected Item=%s Reason=BeyondHandReach PartyCell=(%d,%d) TargetCell=(%d,%d) Reach=%.1f"),
 				*ItemInstance.ItemDefinitionId.ToString(), PartyPawn ? PartyPawn->CurrentCellX : INDEX_NONE, PartyPawn ? PartyPawn->CurrentCellY : INDEX_NONE,
 				CellX, CellY, FMath::Max(0.0f, WorldItemPickupReach));
@@ -667,7 +669,7 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	UGridItemDefinitionAsset* ItemDefinition = IsValid(ItemDefinitionAsset) ? ItemDefinitionAsset : ResolveRuntimeItemDefinition(ItemInstance.ItemDefinitionId);
 	if (!ItemDefinition)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory WorldDrop Failed Item=%s Reason=DefinitionNotResolved"), *ItemInstance.ItemDefinitionId.ToString());
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("GridInventory WorldDrop Failed Item=%s Reason=DefinitionNotResolved"), *ItemInstance.ItemDefinitionId.ToString());
 		return false;
 	}
 
@@ -737,7 +739,7 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 		ActivationComponent->RefreshPressurePlatesAtCell(CellX, CellY);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory WorldDrop Item=%s RuntimeId=%s Quantity=%d Cell=(%d,%d) Edge=%d Result=true"), *Entry.ItemDefinitionId.ToString(),
+	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridInventory WorldDrop Item=%s RuntimeId=%s Quantity=%d Cell=(%d,%d) Edge=%d Result=true"), *Entry.ItemDefinitionId.ToString(),
 		*Entry.ObjectId.ToString(), Entry.Quantity, CellX, CellY, static_cast<int32>(Edge));
 	return true;
 }
@@ -781,7 +783,7 @@ AGridThrownItemActor* AGridLevelRuntimeActor::SpawnThrownItemProjectile(const FG
 
 	ThrownActor->InitializeThrownItem(this, ItemInstance, ItemDefinition, LaunchVelocity, SourceCellX, SourceCellY);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Throw Spawn Item=%s RuntimeId=%s SourceCell=(%d,%d) Speed=%.2f Result=true"),
+	UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridInventory Throw Spawn Item=%s RuntimeId=%s SourceCell=(%d,%d) Speed=%.2f Result=true"),
 		*ItemInstance.ItemDefinitionId.ToString(), *ItemInstance.RuntimeObjectId.ToString(), SourceCellX, SourceCellY, LaunchVelocity.Size());
 	return ThrownActor;
 }
@@ -837,7 +839,7 @@ float AGridLevelRuntimeActor::GetWorldItemWeightAtCell(int32 CellX, int32 CellY,
 		const int32 Quantity = FMath::Max(1, Entry.Quantity);
 		const float Contribution = ItemDefinition->Weight * Quantity;
 		TotalWeight += Contribution;
-		UE_LOG(LogTemp, Verbose, TEXT("GridPressurePlate WeightScan Cell=(%d,%d) Item=%s Quantity=%d UnitWeight=%.2f TotalContribution=%.2f"), CellX, CellY,
+		UE_LOG(LogGridLevelRuntime, Verbose, TEXT("GridPressurePlate WeightScan Cell=(%d,%d) Item=%s Quantity=%d UnitWeight=%.2f TotalContribution=%.2f"), CellX, CellY,
 			*ItemDefinition->ItemDefinitionId.ToString(), Quantity, ItemDefinition->Weight, Contribution);
 	}
 
