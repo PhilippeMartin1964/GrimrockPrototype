@@ -9,6 +9,8 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridRuntimeObject, Log, All);
+
 AGridDoorActor::AGridDoorActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -104,7 +106,7 @@ void AGridDoorActor::SetDoorOpenState(bool bOpen)
 	bIsAnimating = true;
 	PlayDoorMotionSound(bOpen, AudioStartTime);
 
-	UE_LOG(LogTemp, Log,
+	UE_LOG(LogGridRuntimeObject, Verbose,
 		TEXT("Grid door generic-motion start: ObjectId=%s Cell=(%d,%d) Edge=%d Direction=%s StartAlpha=%.3f TargetAlpha=%.3f Duration=%.3f EffectiveDuration=%.3f"),
 		*ObjectId.ToString(), CellX, CellY, static_cast<int32>(Edge), bOpen ? TEXT("Open") : TEXT("Close"), MoveStartMotionAlpha,
 		MoveTargetMotionAlpha, DirectionDuration, CurrentMoveDuration);
@@ -189,7 +191,7 @@ void AGridDoorActor::CompleteDoorMotionSound(float CompletedMoveDuration)
 		return;
 	}
 
-	UE_LOG(LogTemp, Log,
+	UE_LOG(LogGridRuntimeObject, Verbose,
 		TEXT("Grid door audio completion: ObjectId=%s Mode=NaturalTail CompletedMoveDuration=%.3f AudioExpectedDuration=%.3f"),
 		*ObjectId.ToString(), CompletedMoveDuration, ActiveDoorAudioExpectedDuration);
 
@@ -344,13 +346,13 @@ void AGridDoorActor::UpdateChainAnimation(float DeltaSeconds)
 		{
 			if (!RuntimeActor->ToggleDoorOnEdge(CellX, CellY, Edge))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Grid door chain failed: ObjectId=%s Cell=(%d,%d) Edge=%d Reason=central toggle rejected"), *ObjectId.ToString(),
+				UE_LOG(LogGridRuntimeObject, Warning, TEXT("Grid door chain failed: ObjectId=%s Cell=(%d,%d) Edge=%d Reason=central toggle rejected"), *ObjectId.ToString(),
 					CellX, CellY, static_cast<int32>(Edge));
 			}
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Grid door chain failed: ObjectId=%s Cell=(%d,%d) Edge=%d Reason=runtime actor not found"), *ObjectId.ToString(),
+			UE_LOG(LogGridRuntimeObject, Warning, TEXT("Grid door chain failed: ObjectId=%s Cell=(%d,%d) Edge=%d Reason=runtime actor not found"), *ObjectId.ToString(),
 				CellX, CellY, static_cast<int32>(Edge));
 		}
 		bIsChainSwinging = true;

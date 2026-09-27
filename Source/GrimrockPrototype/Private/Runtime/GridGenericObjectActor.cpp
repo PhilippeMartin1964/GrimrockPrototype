@@ -8,6 +8,8 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridRuntimeObject, Log, All);
+
 AGridGenericObjectActor::AGridGenericObjectActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -96,7 +98,7 @@ void AGridGenericObjectActor::SetRuntimeActivePresentation(bool bActive)
 	FString Error;
 	if (!SetRuntimeMaterialAlias(StaticPart.StateMaterialSlot, MaterialAlias, false, Error))
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGridRuntimeObject, Warning,
 			TEXT("Grid active-state material presentation skipped: ObjectId=%s Slot=%s Alias=%s Active=%s Reason=%s"),
 			*ObjectId.ToString(), *StaticPart.StateMaterialSlot.ToString(), *MaterialAlias.ToString(), bActive ? TEXT("true") : TEXT("false"), *Error);
 	}

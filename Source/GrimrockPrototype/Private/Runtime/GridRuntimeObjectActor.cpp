@@ -10,6 +10,8 @@
 #include "Sound/SoundAttenuation.h"
 #include "Sound/SoundBase.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridRuntimeObject, Log, All);
+
 AGridRuntimeObjectActor::AGridRuntimeObjectActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -252,7 +254,7 @@ void AGridRuntimeObjectActor::ApplyPersistedRuntimeMaterialAliases()
 		FString Error;
 		if (!SetRuntimeMaterialAlias(Pair.Key, Pair.Value, false, Error))
 		{
-			UE_LOG(LogTemp, Warning,
+			UE_LOG(LogGridRuntimeObject, Warning,
 				TEXT("GridRuntimeObject persisted material override skipped: ObjectId=%s Slot=%s Alias=%s Reason=%s"),
 				*ObjectId.ToString(), *Pair.Key.ToString(), *Pair.Value.ToString(), *Error);
 		}

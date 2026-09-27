@@ -10,6 +10,8 @@
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "EngineUtils.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridRuntimeObject, Log, All);
+
 UGridEditorPreviewComponent::UGridEditorPreviewComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -177,13 +179,13 @@ void UGridEditorPreviewComponent::AddMonsterPreviewObject(const FGridMonsterSpaw
 	if (!RuntimeActor->ResolveMonsterSpawn(SpawnData, MonsterDefinition, MonsterActorClass, MonsterSpawnError) ||
 		!RuntimeActor->GetMonsterSpawnTransform(SpawnData, PlacementTransform))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[GridMonsterSpawn] Preview skipped SpawnId=%s Reason=%s"), *SpawnData.SpawnId.ToString(),
+		UE_LOG(LogGridRuntimeObject, Warning, TEXT("[GridMonsterSpawn] Preview skipped SpawnId=%s Reason=%s"), *SpawnData.SpawnId.ToString(),
 			MonsterSpawnError.IsEmpty() ? TEXT("InvalidTransform") : *MonsterSpawnError);
 		return;
 	}
 	if (!MonsterDefinition || MonsterDefinition->SkeletalMesh.IsNull())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[GridMonsterSpawn] Preview skipped SpawnId=%s Definition=%s Reason=MissingSkeletalMesh"),
+		UE_LOG(LogGridRuntimeObject, Warning, TEXT("[GridMonsterSpawn] Preview skipped SpawnId=%s Definition=%s Reason=MissingSkeletalMesh"),
 			*SpawnData.SpawnId.ToString(), MonsterDefinition ? *MonsterDefinition->MonsterId.ToString() : TEXT("None"));
 		return;
 	}

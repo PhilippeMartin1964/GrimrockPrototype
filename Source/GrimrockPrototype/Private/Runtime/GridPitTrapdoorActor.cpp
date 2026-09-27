@@ -3,6 +3,8 @@
 #include "Components/AudioComponent.h"
 #include "Components/StaticMeshComponent.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridRuntimeObject, Log, All);
+
 AGridPitTrapdoorActor::AGridPitTrapdoorActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -58,7 +60,7 @@ void AGridPitTrapdoorActor::InitializeRuntimeMechanismVisuals(
 	const bool bHasSecondary = RightLeafMeshComponent && RightLeafMeshComponent->GetStaticMesh() != nullptr;
 	if (bHasPrimary != bHasSecondary)
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGridRuntimeObject, Warning,
 			TEXT("GridPit dual-leaf cover incomplete ObjectId=%s Cell=(%d,%d): MovingPart[0] and MovingPart[1] are both required; Pit stays Open."),
 			*ObjectId.ToString(), CellX, CellY);
 	}
@@ -156,7 +158,7 @@ void AGridPitTrapdoorActor::SetPitOpenVisualState(bool bOpen, bool bPlayAudio)
 	RefreshTrapdoorCollision();
 	RefreshTickEnabled();
 
-	UE_LOG(LogTemp, Log,
+	UE_LOG(LogGridRuntimeObject, Verbose,
 		TEXT("GridPit generic-motion start ObjectId=%s Cell=(%d,%d) Direction=%s StartAlpha=%.3f TargetAlpha=%.3f Duration=%.3f EffectiveDuration=%.3f"),
 		*ObjectId.ToString(), CellX, CellY, bOpen ? TEXT("Open") : TEXT("Close"), MoveStartAlpha, MoveTargetAlpha,
 		DirectionDuration, CurrentMoveDuration);
@@ -218,7 +220,7 @@ void AGridPitTrapdoorActor::UpdateAnimation(float DeltaSeconds)
 	RefreshTrapdoorCollision();
 	RefreshTickEnabled();
 
-	UE_LOG(LogTemp, Log, TEXT("GridPit generic-motion complete ObjectId=%s Cell=(%d,%d) State=%s"),
+	UE_LOG(LogGridRuntimeObject, Verbose, TEXT("GridPit generic-motion complete ObjectId=%s Cell=(%d,%d) State=%s"),
 		*ObjectId.ToString(), CellX, CellY, bIsOpen ? TEXT("Open") : TEXT("Closed"));
 
 	OnPitAnimationFinished.Broadcast(ObjectId, bWasOpen, bIsOpen);
