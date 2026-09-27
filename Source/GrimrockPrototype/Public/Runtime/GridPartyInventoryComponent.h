@@ -183,6 +183,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
 	bool ApplyItemDefinitionToInstance(FGridItemInstance& ItemInstance) const;
 
+	/**
+	 * Equipment compatibility is definition-authoritative.
+	 * A valid runtime item whose ItemDefinitionId is not registered is not equippable.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Equipment")
 	bool CanEquipItemToSlot(int32 CharacterIndex, const FGridItemInstance& Item, EGridEquipmentSlot TargetSlot) const;
 

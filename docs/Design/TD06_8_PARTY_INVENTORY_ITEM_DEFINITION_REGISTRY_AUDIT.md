@@ -77,7 +77,7 @@ Grimrock.TechnicalDebt.TD06_8.PartyInventoryItemDefinitionRegistry.Contract
 ### Invariants ajoutés
 
 1. `RegisterItemDefinition(nullptr)` et un ID `None` sont refusés.
-2. Réenregistrer un même ID retourne `true` mais **ne remplace pas** le premier asset enregistré.
+2. Depuis **CPP-CLEAN02 (27 septembre 2026)**, réenregistrer **le même asset** avec le même ID reste idempotent, mais un **autre asset** portant un `ItemDefinitionId` déjà enregistré est rejeté explicitement. Le premier asset reste autoritaire.
 3. `FindItemDefinition(NAME_None)` retourne `nullptr`.
 4. `ApplyItemDefinitionToInstance()` :
    - copie le poids ;

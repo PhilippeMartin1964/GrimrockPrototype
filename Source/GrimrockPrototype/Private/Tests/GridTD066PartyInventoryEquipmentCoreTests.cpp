@@ -81,11 +81,28 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 		Component->CanEquipItemToSlot(INDEX_NONE, GridTD066CreateItem(TEXT("InvalidCharacter_TD066")), EGridEquipmentSlot::MainHand));
 	TestFalse(TEXT("An invalid runtime item cannot equip"), Component->CanEquipItemToSlot(0, FGridItemInstance(), EGridEquipmentSlot::MainHand));
 
-	const FGridItemInstance FallbackItem = GridTD066CreateItem(TEXT("UnregisteredFallback_TD066"));
-	TestTrue(TEXT("The historical no-definition fallback accepts a valid item in a supported slot"),
-		Component->CanEquipItemToSlot(0, FallbackItem, EGridEquipmentSlot::MainHand));
-	TestFalse(TEXT("The historical no-definition fallback still rejects the None equipment slot"),
-		Component->CanEquipItemToSlot(0, FallbackItem, EGridEquipmentSlot::None));
+	const FGridItemInstance UnregisteredItem = GridTD066CreateItem(TEXT("Unregistered_TD066"));
+	TestFalse(TEXT("An item without a registered definition cannot equip even to a supported slot"),
+		Component->CanEquipItemToSlot(0, UnregisteredItem, EGridEquipmentSlot::MainHand));
+	TestFalse(TEXT("An item without a registered definition also rejects the None equipment slot"),
+		Component->CanEquipItemToSlot(0, UnregisteredItem, EGridEquipmentSlot::None));
+
+	UGridPartyInventoryComponent* MissingDefinitionComponent = GridTD066CreateInventory();
+	if (!TestNotNull(TEXT("Missing-definition equipment component is created"), MissingDefinitionComponent))
+	{
+		return false;
+	}
+	TestTrue(TEXT("An unresolved item can still exist in inventory before definition rehydration"),
+		MissingDefinitionComponent->AddItemToCharacterInventory(0, UnregisteredItem));
+	AddExpectedError(TEXT("GridInventory Equip Failed Character=0 Slot=MainHand Reason=MissingDefinition Item=Unregistered_TD066"),
+		EAutomationExpectedErrorFlags::Contains, 1);
+	TestFalse(TEXT("EquipItemFromInventorySlot rejects an unresolved item atomically"),
+		MissingDefinitionComponent->EquipItemFromInventorySlot(0, 0, EGridEquipmentSlot::MainHand));
+	TestTrue(TEXT("Rejected unresolved equip preserves the inventory source"),
+		!MissingDefinitionComponent->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].IsEmpty() &&
+		MissingDefinitionComponent->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.RuntimeObjectId == UnregisteredItem.RuntimeObjectId);
+	TestFalse(TEXT("Rejected unresolved equip leaves MainHand empty"),
+		MissingDefinitionComponent->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::MainHand));
 
 	UGridItemDefinitionAsset* SwordDefinition =
 		GridTD066CreateItemDefinition(Component, TEXT("Sword_TD066"), EGridItemType::Weapon, EGridEquipmentSlot::MainHand, 2.0f);

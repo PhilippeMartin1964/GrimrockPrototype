@@ -877,9 +877,17 @@ bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAss
 		return false;
 	}
 
-	if (RuntimeItemDefinitionsById.Contains(Definition->ItemDefinitionId))
+	if (const TObjectPtr<UGridItemDefinitionAsset>* ExistingDefinition = RuntimeItemDefinitionsById.Find(Definition->ItemDefinitionId))
 	{
-		return true;
+		if (ExistingDefinition->Get() == Definition)
+		{
+			return true;
+		}
+
+		UE_LOG(LogTemp, Warning,
+			TEXT("GridInventory ItemDefinition Registration Failed ItemDefinitionId=%s Existing=%s Incoming=%s Reason=DuplicateId"),
+			*Definition->ItemDefinitionId.ToString(), *GetPathNameSafe(ExistingDefinition->Get()), *GetPathNameSafe(Definition));
+		return false;
 	}
 
 	RuntimeItemDefinitionsById.Add(Definition->ItemDefinitionId, Definition);

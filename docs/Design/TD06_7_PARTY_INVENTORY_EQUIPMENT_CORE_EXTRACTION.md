@@ -77,7 +77,7 @@ TD06.7 ne modifie pas :
 - `FGridPartyInventoryState` ;
 - le SaveGame ;
 - la compatibilité `CompatibleEquipmentSlots` ;
-- le fallback historique de compatibilité sans Item Definition ;
+- le fallback historique de compatibilité sans Item Definition (préservé lors de TD06.7, puis supprimé explicitement par **CPP-CLEAN02** le 27 septembre 2026) ;
 - les swaps atomiques Inventory <-> Equipment ;
 - les `RuntimeObjectId` ;
 - l'ownership ;

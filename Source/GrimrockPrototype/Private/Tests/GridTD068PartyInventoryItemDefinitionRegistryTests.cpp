@@ -92,9 +92,13 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 	UGridItemDefinitionAsset* FirstDuplicateDefinition = GridTD068CreateDefinition(Component, TEXT("Duplicate_TD068"), 1.0f);
 	UGridItemDefinitionAsset* SecondDuplicateDefinition = GridTD068CreateDefinition(Component, TEXT("Duplicate_TD068"), 9.0f);
 	TestTrue(TEXT("The first definition registers"), Component->RegisterItemDefinition(FirstDuplicateDefinition));
-	TestTrue(TEXT("Registering the same ID again remains successful"), Component->RegisterItemDefinition(SecondDuplicateDefinition));
+	TestTrue(TEXT("Re-registering the same asset remains idempotent"), Component->RegisterItemDefinition(FirstDuplicateDefinition));
+	AddExpectedError(TEXT("GridInventory ItemDefinition Registration Failed ItemDefinitionId=Duplicate_TD068"),
+		EAutomationExpectedErrorFlags::Contains, 1);
+	TestFalse(TEXT("A different asset cannot claim an already registered ItemDefinitionId"),
+		Component->RegisterItemDefinition(SecondDuplicateDefinition));
 	TestTrue(
-		TEXT("Duplicate registration keeps the first registered asset"), Component->FindItemDefinition(TEXT("Duplicate_TD068")) == FirstDuplicateDefinition);
+		TEXT("Rejected duplicate ID preserves the original authoritative asset"), Component->FindItemDefinition(TEXT("Duplicate_TD068")) == FirstDuplicateDefinition);
 	TestTrue(TEXT("FindItemDefinition rejects NAME_None"), Component->FindItemDefinition(NAME_None) == nullptr);
 
 	UGridItemDefinitionAsset* StackDefinition = GridTD068CreateDefinition(Component, TEXT("StackApply_TD068"), 2.5f, true, 3);

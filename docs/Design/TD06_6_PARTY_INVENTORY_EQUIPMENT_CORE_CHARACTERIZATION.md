@@ -69,16 +69,25 @@ Lorsqu'une `UGridItemDefinitionAsset` est enregistrée, `CanEquipItemToSlot()` r
 
 Un slot déclaré compatible est accepté ; un slot non déclaré est refusé.
 
-### 3. Fallback historique sans Item Definition
+### 3. Item Definition absente
 
-Le comportement existant est explicitement caractérisé :
+Le contrat historique TD06.6 autorisait temporairement :
 
 ```text
 item runtime valide + définition absente + slot supporté -> true
-item runtime valide + définition absente + None          -> false
 ```
 
-Ce fallback n'est pas déclaré souhaitable à long terme ; TD06.6 le protège uniquement contre une modification accidentelle pendant l'extraction structurelle TD06.7. Toute suppression future doit être un changement fonctionnel séparé et explicite.
+Ce comportement n'était protégé que pour sécuriser l'extraction TD06.7.
+
+**CPP-CLEAN02 (27 septembre 2026) le supprime explicitement.** Le contrat courant est désormais :
+
+```text
+définition enregistrée + slot déclaré compatible -> true
+définition enregistrée + slot non compatible      -> false
+définition absente                                 -> false
+```
+
+`UGridItemDefinitionAsset` est l'autorité unique de compatibilité Equipment.
 
 ### 4. Equip vers slot vide
 

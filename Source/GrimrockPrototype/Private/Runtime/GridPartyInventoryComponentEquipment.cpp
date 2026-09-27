@@ -45,20 +45,13 @@ bool UGridPartyInventoryComponent::CanEquipItemToSlot(int32 CharacterIndex, cons
 		return false;
 	}
 
-	if (const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId))
-	{
-		return Definition->CanEquipToSlot(TargetSlot);
-	}
-
 	if (!GridEquipmentSlotUtils::IsSupportedSlot(TargetSlot))
 	{
 		return false;
 	}
 
-	UE_LOG(LogTemp, Verbose, TEXT("GridInventory Equip Compatibility Fallback Item=%s Slot=%s"), *Item.ItemDefinitionId.ToString(),
-		GridEquipmentSlotUtils::GetLogName(TargetSlot));
-
-	return true;
+	const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
+	return Definition && Definition->CanEquipToSlot(TargetSlot);
 }
 
 bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterIndex, int32 InventorySlotIndex, EGridEquipmentSlot TargetSlot)
@@ -82,6 +75,12 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 
 	FGridInventorySlot& InventorySlot = CharacterState.InventorySlots[InventorySlotIndex];
 	FGridItemInstance ItemToEquip = InventorySlot.Item;
+	if (!FindItemDefinition(ItemToEquip.ItemDefinitionId))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=MissingDefinition Item=%s"), CharacterIndex,
+			GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString());
+		return false;
+	}
 	if (!CanEquipItemToSlot(CharacterIndex, ItemToEquip, TargetSlot))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=UnsupportedSlot Item=%s"), CharacterIndex,
