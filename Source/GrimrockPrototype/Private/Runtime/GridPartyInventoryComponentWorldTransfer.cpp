@@ -2,6 +2,8 @@
 
 #include "GridEquipmentSlotUtils.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
+
 bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 	int32 CharacterIndex, EGridEquipmentSlot SourceSlot, FName ExpectedItemDefinitionId, FGridItemInstance& OutWorldItem)
 {
@@ -38,7 +40,7 @@ bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 	}
 	NotifyPartyInventoryChanged(CharacterIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory EquipmentWorldTransfer Extract Character=%d Slot=%s Item=%s RuntimeId=%s Quantity=%d->%d Result=true"),
+	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory EquipmentWorldTransfer Extract Character=%d Slot=%s Item=%s RuntimeId=%s Quantity=%d->%d Result=true"),
 		CharacterIndex, GridEquipmentSlotUtils::GetLogName(SourceSlot), *OutWorldItem.ItemDefinitionId.ToString(),
 		*OutWorldItem.RuntimeObjectId.ToString(), QuantityBefore, QuantityBefore - 1);
 	return true;
@@ -78,7 +80,7 @@ bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(int32 Char
 	}
 	NotifyPartyInventoryChanged(CharacterIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory EquipmentWorldTransfer Restored Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
+	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory EquipmentWorldTransfer Restored Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
 		GridEquipmentSlotUtils::GetLogName(TargetSlot), *WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString());
 	return true;
 }

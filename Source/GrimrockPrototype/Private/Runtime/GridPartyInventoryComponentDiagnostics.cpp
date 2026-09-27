@@ -3,6 +3,8 @@
 #include "GridEquipmentSlotUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
+
 namespace
 {
 	int32 GridPartyInventoryDiagnosticsCountOccupiedSlots(const FGridCharacterInventoryState& CharacterState)
@@ -210,7 +212,7 @@ FString UGridPartyInventoryComponent::GetPartyInventoryDiagnostics() const
 
 void UGridPartyInventoryComponent::LogPartyInventoryDiagnostics() const
 {
-	UE_LOG(LogTemp, Log, TEXT("%s"), *GetPartyInventoryDiagnostics());
+	UE_LOG(LogGridInventory, Log, TEXT("%s"), *GetPartyInventoryDiagnostics());
 }
 
 FString UGridPartyInventoryComponent::GetItemDefinitionDiagnostics() const
@@ -243,12 +245,12 @@ FString UGridPartyInventoryComponent::GetItemDefinitionDiagnostics() const
 
 void UGridPartyInventoryComponent::LogItemDefinitionDiagnostics() const
 {
-	UE_LOG(LogTemp, Log, TEXT("%s"), *GetItemDefinitionDiagnostics());
+	UE_LOG(LogGridInventory, Log, TEXT("%s"), *GetItemDefinitionDiagnostics());
 }
 
 void UGridPartyInventoryComponent::LogEquipmentCompatibilityDiagnostics() const
 {
-	UE_LOG(LogTemp, Log, TEXT("GridEquipmentCompatibility Diagnostics RuntimeDefinitions=%d"), RuntimeItemDefinitionsById.Num());
+	UE_LOG(LogGridInventory, Log, TEXT("GridEquipmentCompatibility Diagnostics RuntimeDefinitions=%d"), RuntimeItemDefinitionsById.Num());
 
 	TArray<FName> DefinitionIds;
 	RuntimeItemDefinitionsById.GetKeys(DefinitionIds);
@@ -265,7 +267,7 @@ void UGridPartyInventoryComponent::LogEquipmentCompatibilityDiagnostics() const
 		const UGridItemDefinitionAsset* Definition = DefinitionEntry ? DefinitionEntry->Get() : nullptr;
 		if (!Definition)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=NullDefinition"), *DefinitionId.ToString());
+			UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=NullDefinition"), *DefinitionId.ToString());
 			continue;
 		}
 
@@ -273,7 +275,7 @@ void UGridPartyInventoryComponent::LogEquipmentCompatibilityDiagnostics() const
 		if (Definition->CompatibleEquipmentSlots.Num() == 0 && GridPartyInventoryDiagnosticsLooksPotentiallyEquippable(Definition))
 		{
 			++PotentiallyEquippableWithoutSlotsCount;
-			UE_LOG(LogTemp, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=PotentiallyEquippableWithoutSlots Type=%s Slots=%s"),
+			UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=PotentiallyEquippableWithoutSlots Type=%s Slots=%s"),
 				*Definition->ItemDefinitionId.ToString(), GridPartyInventoryDiagnosticsGetItemTypeName(Definition->ItemType), *SlotsText);
 		}
 
@@ -292,7 +294,7 @@ void UGridPartyInventoryComponent::LogEquipmentCompatibilityDiagnostics() const
 			if (!bHasHandSlot)
 			{
 				++LightWithoutHandSlotCount;
-				UE_LOG(LogTemp, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=LightWithoutMainHandOrOffHand Slots=%s"),
+				UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=LightWithoutMainHandOrOffHand Slots=%s"),
 					*Definition->ItemDefinitionId.ToString(), *SlotsText);
 			}
 		}
@@ -302,19 +304,19 @@ void UGridPartyInventoryComponent::LogEquipmentCompatibilityDiagnostics() const
 			if (GridPartyInventoryDiagnosticsIsExcludedPaperDollSlot(Slot))
 			{
 				++ExcludedPaperDollSlotCount;
-				UE_LOG(LogTemp, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=PaperDollExcludedSlot Slot=%s Slots=%s"),
+				UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentCompatibility Item=%s Warning=PaperDollExcludedSlot Slot=%s Slots=%s"),
 					*Definition->ItemDefinitionId.ToString(), GridEquipmentSlotUtils::GetLogName(Slot), *SlotsText);
 			}
 			else if (GridPartyInventoryDiagnosticsIsNewPaperDollSlot(Slot))
 			{
 				++NewPaperDollSlotUsageCount;
-				UE_LOG(LogTemp, Log, TEXT("GridEquipmentCompatibility Item=%s UsesNewPaperDollSlot=%s Slots=%s"), *Definition->ItemDefinitionId.ToString(),
+				UE_LOG(LogGridInventory, Log, TEXT("GridEquipmentCompatibility Item=%s UsesNewPaperDollSlot=%s Slots=%s"), *Definition->ItemDefinitionId.ToString(),
 					GridEquipmentSlotUtils::GetLogName(Slot), *SlotsText);
 			}
 		}
 	}
 
-	UE_LOG(LogTemp, Log,
+	UE_LOG(LogGridInventory, Log,
 		TEXT(
 			"GridEquipmentCompatibility Summary PotentiallyEquippableWithoutSlots=%d LightWithoutHandSlot=%d ExcludedPaperDollSlots=%d NewPaperDollSlotUses=%d"),
 		PotentiallyEquippableWithoutSlotsCount, LightWithoutHandSlotCount, ExcludedPaperDollSlotCount, NewPaperDollSlotUsageCount);
@@ -325,12 +327,12 @@ void UGridPartyInventoryComponent::LogSelectedCharacterEquipmentStatBonusDiagnos
 	const int32 CharacterIndex = PartyInventoryState.SelectedCharacterIndex;
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridEquipmentStatBonus Diagnostics Character=%d Result=false Reason=InvalidCharacterOrEquipment"), CharacterIndex);
+		UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentStatBonus Diagnostics Character=%d Result=false Reason=InvalidCharacterOrEquipment"), CharacterIndex);
 		return;
 	}
 
 	const FGridEquipmentStatBonus TotalBonus = ComputeCharacterEquipmentStatBonus(CharacterIndex);
-	UE_LOG(LogTemp, Log, TEXT("GridEquipmentStatBonus Diagnostics Character=%d Total=%s"), CharacterIndex,
+	UE_LOG(LogGridInventory, Log, TEXT("GridEquipmentStatBonus Diagnostics Character=%d Total=%s"), CharacterIndex,
 		*GridPartyInventoryDiagnosticsGetEquipmentStatBonusText(TotalBonus));
 
 	GridEquipmentSlotUtils::ForEachEquipmentItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
@@ -344,7 +346,7 @@ void UGridPartyInventoryComponent::LogSelectedCharacterEquipmentStatBonusDiagnos
 			const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
 			if (!Definition)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("GridEquipmentStatBonus Item=%s Slot=%s Warning=MissingDefinition"), *Item.ItemDefinitionId.ToString(),
+				UE_LOG(LogGridInventory, Warning, TEXT("GridEquipmentStatBonus Item=%s Slot=%s Warning=MissingDefinition"), *Item.ItemDefinitionId.ToString(),
 					GridEquipmentSlotUtils::GetLogName(Slot));
 				return;
 			}
@@ -354,7 +356,7 @@ void UGridPartyInventoryComponent::LogSelectedCharacterEquipmentStatBonusDiagnos
 				return;
 			}
 
-			UE_LOG(LogTemp, Log, TEXT("GridEquipmentStatBonus Item=%s Slot=%s Bonus=%s"), *Definition->ItemDefinitionId.ToString(),
+			UE_LOG(LogGridInventory, Log, TEXT("GridEquipmentStatBonus Item=%s Slot=%s Bonus=%s"), *Definition->ItemDefinitionId.ToString(),
 				GridEquipmentSlotUtils::GetLogName(Slot), *GridPartyInventoryDiagnosticsGetEquipmentStatBonusText(Definition->EquipmentStatBonus));
 		});
 }
@@ -364,12 +366,12 @@ void UGridPartyInventoryComponent::LogSelectedCharacterResistanceDiagnostics() c
 	const int32 CharacterIndex = PartyInventoryState.SelectedCharacterIndex;
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridDamageResistance Diagnostics Character=%d Result=false Reason=InvalidCharacterOrEquipment"), CharacterIndex);
+		UE_LOG(LogGridInventory, Warning, TEXT("GridDamageResistance Diagnostics Character=%d Result=false Reason=InvalidCharacterOrEquipment"), CharacterIndex);
 		return;
 	}
 
 	const FGridDamageResistanceSet TotalResistances = ComputeCharacterEquipmentResistances(CharacterIndex);
-	UE_LOG(LogTemp, Log, TEXT("GridDamageResistance Diagnostics Character=%d Total=%s"), CharacterIndex,
+	UE_LOG(LogGridInventory, Log, TEXT("GridDamageResistance Diagnostics Character=%d Total=%s"), CharacterIndex,
 		*GridPartyInventoryDiagnosticsGetDamageResistanceSetText(TotalResistances));
 
 	GridEquipmentSlotUtils::ForEachEquipmentItem(PartyInventoryState.ActiveEquipment[CharacterIndex],
@@ -383,7 +385,7 @@ void UGridPartyInventoryComponent::LogSelectedCharacterResistanceDiagnostics() c
 			const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
 			if (!Definition)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("GridDamageResistance Item=%s Slot=%s Warning=MissingDefinition"), *Item.ItemDefinitionId.ToString(),
+				UE_LOG(LogGridInventory, Warning, TEXT("GridDamageResistance Item=%s Slot=%s Warning=MissingDefinition"), *Item.ItemDefinitionId.ToString(),
 					GridEquipmentSlotUtils::GetLogName(Slot));
 				return;
 			}
@@ -393,7 +395,7 @@ void UGridPartyInventoryComponent::LogSelectedCharacterResistanceDiagnostics() c
 				return;
 			}
 
-			UE_LOG(LogTemp, Log, TEXT("GridDamageResistance Item=%s Slot=%s Resistances=%s"), *Definition->ItemDefinitionId.ToString(),
+			UE_LOG(LogGridInventory, Log, TEXT("GridDamageResistance Item=%s Slot=%s Resistances=%s"), *Definition->ItemDefinitionId.ToString(),
 				GridEquipmentSlotUtils::GetLogName(Slot), *GridPartyInventoryDiagnosticsGetDamageResistanceSetText(Definition->EquipmentResistanceBonus));
 		});
 }
@@ -403,9 +405,9 @@ void UGridPartyInventoryComponent::LogInventoryOwnershipDiagnostics() const
 	FString Error;
 	if (ValidateInventoryOwnership(Error))
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridInventory Ownership OK"));
+		UE_LOG(LogGridInventory, Log, TEXT("GridInventory Ownership OK"));
 		return;
 	}
 
-	UE_LOG(LogTemp, Error, TEXT("GridInventory Ownership ERROR %s"), *Error);
+	UE_LOG(LogGridInventory, Error, TEXT("GridInventory Ownership ERROR %s"), *Error);
 }

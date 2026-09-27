@@ -3,6 +3,8 @@
 #include "GridEquipmentSlotUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
+
 namespace
 {
 	int32 GridPartyInventoryCursorTransferFindFreeInventorySlotIndex(const FGridCharacterInventoryState& CharacterState)
@@ -25,21 +27,21 @@ bool UGridPartyInventoryComponent::TryTakeEquipmentSlotToCursor(int32 CharacterI
 
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=InvalidCharacter"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=InvalidCharacter"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
 	if (SourceSlot == EGridEquipmentSlot::None)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=InvalidSlot"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=InvalidSlot"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
 	if (HasCursorItem())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=CursorOccupied"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=CursorOccupied"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
@@ -48,14 +50,14 @@ bool UGridPartyInventoryComponent::TryTakeEquipmentSlotToCursor(int32 CharacterI
 	FGridItemInstance* EquippedItem = EquipmentState.GetMutableSlot(SourceSlot);
 	if (!EquippedItem)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=InvalidSlot"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=InvalidSlot"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
 	if (!EquippedItem->IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=EmptySlot"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Take FromEquipment Failed Character=%d Slot=%s Reason=EmptySlot"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
@@ -71,7 +73,7 @@ bool UGridPartyInventoryComponent::TryTakeEquipmentSlotToCursor(int32 CharacterI
 	PartyInventoryState.bHasCursorItem = true;
 	NotifyPartyInventoryChanged(CharacterIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Take FromEquipment Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
+	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Cursor Take FromEquipment Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
 		GridEquipmentSlotUtils::GetLogName(SourceSlot), *ItemToCursor.ItemDefinitionId.ToString(), *ItemToCursor.RuntimeObjectId.ToString());
 	return true;
 }
@@ -128,19 +130,19 @@ bool UGridPartyInventoryComponent::TryTakeInventorySlotQuantityToCursor(int32 Ch
 {
 	if (HasCursorItem())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=CursorOccupied"), CharacterIndex, InventorySlotIndex);
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=CursorOccupied"), CharacterIndex, InventorySlotIndex);
 		return false;
 	}
 
 	if (!IsValidCharacterIndex(CharacterIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=InvalidCharacter"), CharacterIndex, InventorySlotIndex);
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=InvalidCharacter"), CharacterIndex, InventorySlotIndex);
 		return false;
 	}
 
 	if (Quantity <= 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=InvalidQuantity Quantity=%d"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=InvalidQuantity Quantity=%d"), CharacterIndex,
 			InventorySlotIndex, Quantity);
 		return false;
 	}
@@ -148,7 +150,7 @@ bool UGridPartyInventoryComponent::TryTakeInventorySlotQuantityToCursor(int32 Ch
 	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	if (!CharacterState.InventorySlots.IsValidIndex(InventorySlotIndex) || CharacterState.InventorySlots[InventorySlotIndex].IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=InvalidInventorySlot"), CharacterIndex, InventorySlotIndex);
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=InvalidInventorySlot"), CharacterIndex, InventorySlotIndex);
 		return false;
 	}
 
@@ -177,7 +179,7 @@ bool UGridPartyInventoryComponent::TryTakeInventorySlotQuantityToCursor(int32 Ch
 	PartyInventoryState.bHasCursorItem = true;
 	NotifyPartyInventoryChanged(CharacterIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Take FromInventory Character=%d Slot=%d Item=%s RuntimeId=%s Quantity=%d Split=%s"), CharacterIndex,
+	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Cursor Take FromInventory Character=%d Slot=%d Item=%s RuntimeId=%s Quantity=%d Split=%s"), CharacterIndex,
 		InventorySlotIndex, *ItemToCursor.ItemDefinitionId.ToString(), *ItemToCursor.RuntimeObjectId.ToString(), ItemToCursor.Quantity,
 		bCanSplitStack ? TEXT("true") : TEXT("false"));
 	return true;
@@ -187,14 +189,14 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(in
 {
 	if (!HasCursorItem())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Place ToInventorySlot Failed Character=%d Slot=%d Reason=NoCursorItem"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Place ToInventorySlot Failed Character=%d Slot=%d Reason=NoCursorItem"), CharacterIndex,
 			TargetSlotIndex);
 		return false;
 	}
 
 	if (!IsValidCharacterIndex(CharacterIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Place ToInventorySlot Failed Character=%d Slot=%d Reason=InvalidCharacter"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Place ToInventorySlot Failed Character=%d Slot=%d Reason=InvalidCharacter"), CharacterIndex,
 			TargetSlotIndex);
 		return false;
 	}
@@ -202,7 +204,7 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(in
 	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	if (!CharacterState.InventorySlots.IsValidIndex(TargetSlotIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Place ToInventorySlot Failed Character=%d Slot=%d Reason=InvalidTargetSlot"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Place ToInventorySlot Failed Character=%d Slot=%d Reason=InvalidTargetSlot"), CharacterIndex,
 			TargetSlotIndex);
 		return false;
 	}
@@ -223,7 +225,7 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(in
 		PartyInventoryState.bHasCursorItem = false;
 		NotifyPartyInventoryChanged(CharacterIndex);
 
-		UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Place ToInventorySlot Character=%d Slot=%d Item=%s Result=true"), CharacterIndex, TargetSlotIndex,
+		UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Cursor Place ToInventorySlot Character=%d Slot=%d Item=%s Result=true"), CharacterIndex, TargetSlotIndex,
 			*CursorItem.ItemDefinitionId.ToString());
 		return true;
 	}
@@ -235,7 +237,7 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(in
 		const int32 AvailableSpace = FMath::Max(0, MaxStackSize - TargetSlot.Item.Quantity);
 		if (AvailableSpace <= 0)
 		{
-			UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Merge InventoryStack Character=%d Slot=%d Item=%s Result=false Reason=TargetFull"),
+			UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Cursor Merge InventoryStack Character=%d Slot=%d Item=%s Result=false Reason=TargetFull"),
 				CharacterIndex, TargetSlotIndex, *CursorItem.ItemDefinitionId.ToString());
 			return false;
 		}
@@ -250,7 +252,7 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(in
 		}
 		NotifyPartyInventoryChanged(CharacterIndex);
 
-		UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Merge InventoryStack Character=%d Slot=%d Item=%s Transferred=%d TargetQuantity=%d CursorQuantity=%d Result=true"),
+		UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Cursor Merge InventoryStack Character=%d Slot=%d Item=%s Transferred=%d TargetQuantity=%d CursorQuantity=%d Result=true"),
 			CharacterIndex, TargetSlotIndex, *CursorItem.ItemDefinitionId.ToString(), TransferQuantity, TargetSlot.Item.Quantity,
 			PartyInventoryState.bHasCursorItem ? PartyInventoryState.CursorItem.Quantity : 0);
 		return true;
@@ -268,7 +270,7 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(in
 	PartyInventoryState.bHasCursorItem = true;
 	NotifyPartyInventoryChanged(CharacterIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Swap WithInventorySlot Character=%d Slot=%d CursorItem=%s SlotItem=%s Result=true"), CharacterIndex,
+	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Cursor Swap WithInventorySlot Character=%d Slot=%d CursorItem=%s SlotItem=%s Result=true"), CharacterIndex,
 		TargetSlotIndex, *CursorItem.ItemDefinitionId.ToString(), *SlotItem.ItemDefinitionId.ToString());
 	return true;
 }
@@ -277,7 +279,7 @@ bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 Character
 {
 	if (!IsValidCharacterIndex(CharacterIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Move InventorySlot Failed Character=%d Source=%d Target=%d Reason=InvalidCharacter"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Move InventorySlot Failed Character=%d Source=%d Target=%d Reason=InvalidCharacter"), CharacterIndex,
 			SourceSlotIndex, TargetSlotIndex);
 		return false;
 	}
@@ -285,21 +287,21 @@ bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 Character
 	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	if (!CharacterState.InventorySlots.IsValidIndex(SourceSlotIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Move InventorySlot Failed Character=%d Source=%d Target=%d Reason=InvalidSourceSlot"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Move InventorySlot Failed Character=%d Source=%d Target=%d Reason=InvalidSourceSlot"), CharacterIndex,
 			SourceSlotIndex, TargetSlotIndex);
 		return false;
 	}
 
 	if (!CharacterState.InventorySlots.IsValidIndex(TargetSlotIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Move InventorySlot Failed Character=%d Source=%d Target=%d Reason=InvalidTargetSlot"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Move InventorySlot Failed Character=%d Source=%d Target=%d Reason=InvalidTargetSlot"), CharacterIndex,
 			SourceSlotIndex, TargetSlotIndex);
 		return false;
 	}
 
 	if (SourceSlotIndex == TargetSlotIndex)
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridInventory Move InventorySlot Character=%d Source=%d Target=%d Result=true Reason=SameSlot"), CharacterIndex,
+		UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Move InventorySlot Character=%d Source=%d Target=%d Result=true Reason=SameSlot"), CharacterIndex,
 			SourceSlotIndex, TargetSlotIndex);
 		return true;
 	}
@@ -308,7 +310,7 @@ bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 Character
 	FGridInventorySlot& TargetSlot = CharacterState.InventorySlots[TargetSlotIndex];
 	if (SourceSlot.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Move InventorySlot Failed Character=%d Source=%d Target=%d Reason=SourceEmpty"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Move InventorySlot Failed Character=%d Source=%d Target=%d Reason=SourceEmpty"), CharacterIndex,
 			SourceSlotIndex, TargetSlotIndex);
 		return false;
 	}
@@ -326,7 +328,7 @@ bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 Character
 		SourceSlot = FGridInventorySlot();
 		NotifyPartyInventoryChanged(CharacterIndex);
 
-		UE_LOG(LogTemp, Log, TEXT("GridInventory Move InventorySlot Character=%d Source=%d Target=%d Item=%s Result=true"), CharacterIndex, SourceSlotIndex,
+		UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Move InventorySlot Character=%d Source=%d Target=%d Item=%s Result=true"), CharacterIndex, SourceSlotIndex,
 			TargetSlotIndex, *SourceItem.ItemDefinitionId.ToString());
 		return true;
 	}
@@ -338,7 +340,7 @@ bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 Character
 		const int32 AvailableSpace = FMath::Max(0, MaxStackSize - TargetSlot.Item.Quantity);
 		if (AvailableSpace <= 0)
 		{
-			UE_LOG(LogTemp, Log, TEXT("GridInventory Merge InventoryStacks Character=%d Source=%d Target=%d Item=%s Result=false Reason=TargetFull"),
+			UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Merge InventoryStacks Character=%d Source=%d Target=%d Item=%s Result=false Reason=TargetFull"),
 				CharacterIndex, SourceSlotIndex, TargetSlotIndex, *SourceItem.ItemDefinitionId.ToString());
 			return false;
 		}
@@ -352,7 +354,7 @@ bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 Character
 		}
 		NotifyPartyInventoryChanged(CharacterIndex);
 
-		UE_LOG(LogTemp, Log, TEXT("GridInventory Merge InventoryStacks Character=%d Source=%d Target=%d Item=%s Transferred=%d TargetQuantity=%d SourceQuantity=%d Result=true"),
+		UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Merge InventoryStacks Character=%d Source=%d Target=%d Item=%s Transferred=%d TargetQuantity=%d SourceQuantity=%d Result=true"),
 			CharacterIndex, SourceSlotIndex, TargetSlotIndex, *SourceItem.ItemDefinitionId.ToString(), TransferQuantity, TargetSlot.Item.Quantity,
 			SourceSlot.IsEmpty() ? 0 : SourceSlot.Item.Quantity);
 		return true;
@@ -370,7 +372,7 @@ bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 Character
 	TargetSlot.Item = SourceItem;
 	NotifyPartyInventoryChanged(CharacterIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Swap InventorySlots Character=%d A=%d B=%d ItemA=%s ItemB=%s Result=true"), CharacterIndex, SourceSlotIndex,
+	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Swap InventorySlots Character=%d A=%d B=%d ItemA=%s ItemB=%s Result=true"), CharacterIndex, SourceSlotIndex,
 		TargetSlotIndex, *SourceItem.ItemDefinitionId.ToString(), *TargetItem.ItemDefinitionId.ToString());
 	return true;
 }
@@ -379,13 +381,13 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventory(int32 
 {
 	if (!HasCursorItem())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Place Failed Character=%d Reason=NoCursorItem"), CharacterIndex);
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Place Failed Character=%d Reason=NoCursorItem"), CharacterIndex);
 		return false;
 	}
 
 	if (!IsValidCharacterIndex(CharacterIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Place Failed Character=%d Reason=InvalidCharacter"), CharacterIndex);
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Place Failed Character=%d Reason=InvalidCharacter"), CharacterIndex);
 		return false;
 	}
 
@@ -393,7 +395,7 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventory(int32 
 	const int32 FreeSlotIndex = GridPartyInventoryCursorTransferFindFreeInventorySlotIndex(CharacterState);
 	if (FreeSlotIndex == INDEX_NONE)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Place Failed Character=%d Item=%s RuntimeId=%s Reason=InventoryFull"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Place Failed Character=%d Item=%s RuntimeId=%s Reason=InventoryFull"), CharacterIndex,
 			*PartyInventoryState.CursorItem.ItemDefinitionId.ToString(), *PartyInventoryState.CursorItem.RuntimeObjectId.ToString());
 		return false;
 	}
@@ -411,7 +413,7 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventory(int32 
 	PartyInventoryState.bHasCursorItem = false;
 	NotifyPartyInventoryChanged(CharacterIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Place ToInventory Character=%d Slot=%d Item=%s RuntimeId=%s"), CharacterIndex, FreeSlotIndex,
+	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Cursor Place ToInventory Character=%d Slot=%d Item=%s RuntimeId=%s"), CharacterIndex, FreeSlotIndex,
 		*ItemToInventory.ItemDefinitionId.ToString(), *ItemToInventory.RuntimeObjectId.ToString());
 	return true;
 }
@@ -430,11 +432,11 @@ bool UGridPartyInventoryComponent::TryDropCursorItem()
 {
 	if (!HasCursorItem())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Drop Failed Reason=NoCursorItem"));
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Drop Failed Reason=NoCursorItem"));
 		return false;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Drop Failed Item=%s RuntimeId=%s Reason=NotImplemented"),
+	UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Drop Failed Item=%s RuntimeId=%s Reason=NotImplemented"),
 		*PartyInventoryState.CursorItem.ItemDefinitionId.ToString(), *PartyInventoryState.CursorItem.RuntimeObjectId.ToString());
 	return false;
 }
@@ -455,7 +457,7 @@ bool UGridPartyInventoryComponent::TryEquipCursorItemToCharacterSlot(int32 Chara
 
 	if (!CanEquipCursorItemToCharacterSlot(CharacterIndex, TargetSlot) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Equip Failed Character=%d Slot=%s Reason=InvalidOrIncompatible"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Equip Failed Character=%d Slot=%s Reason=InvalidOrIncompatible"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
@@ -465,7 +467,7 @@ bool UGridPartyInventoryComponent::TryEquipCursorItemToCharacterSlot(int32 Chara
 	FGridItemInstance* TargetItem = EquipmentState.GetMutableSlot(TargetSlot);
 	if (!TargetItem)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Equip Failed Character=%d Slot=%s Reason=InvalidEquipmentSlot"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Equip Failed Character=%d Slot=%s Reason=InvalidEquipmentSlot"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
@@ -497,12 +499,12 @@ bool UGridPartyInventoryComponent::TryEquipCursorItemToCharacterSlot(int32 Chara
 
 	if (bWasOccupied)
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Equip Swap Character=%d Slot=%s NewItem=%s OldItem=%s Result=true"), CharacterIndex,
+		UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Cursor Equip Swap Character=%d Slot=%s NewItem=%s OldItem=%s Result=true"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(), *PreviouslyEquippedItem.ItemDefinitionId.ToString());
 	}
 	else
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Equip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
+		UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Cursor Equip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(), *ItemToEquip.RuntimeObjectId.ToString());
 	}
 

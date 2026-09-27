@@ -3,6 +3,8 @@
 #include "GridEquipmentSlotUtils.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
+
 namespace
 {
 	int32 GridPartyInventoryEquipmentFindFreeInventorySlotIndex(const FGridCharacterInventoryState& CharacterState)
@@ -60,7 +62,7 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=InvalidCharacter"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=InvalidCharacter"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
@@ -68,7 +70,7 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	if (!CharacterState.InventorySlots.IsValidIndex(InventorySlotIndex) || CharacterState.InventorySlots[InventorySlotIndex].IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=InvalidInventorySlot"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=InvalidInventorySlot"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
@@ -77,13 +79,13 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 	FGridItemInstance ItemToEquip = InventorySlot.Item;
 	if (!FindItemDefinition(ItemToEquip.ItemDefinitionId))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=MissingDefinition Item=%s"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=MissingDefinition Item=%s"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString());
 		return false;
 	}
 	if (!CanEquipItemToSlot(CharacterIndex, ItemToEquip, TargetSlot))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=UnsupportedSlot Item=%s"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Equip Failed Character=%d Slot=%s Reason=UnsupportedSlot Item=%s"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString());
 		return false;
 	}
@@ -118,7 +120,7 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 	*TargetItem = ItemToEquip;
 	NotifyPartyInventoryChanged(CharacterIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Equip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
+	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Equip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
 		GridEquipmentSlotUtils::GetLogName(TargetSlot), *ItemToEquip.ItemDefinitionId.ToString(), *ItemToEquip.RuntimeObjectId.ToString());
 	return true;
 }
@@ -129,14 +131,14 @@ bool UGridPartyInventoryComponent::UnequipItemToInventory(int32 CharacterIndex, 
 
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Unequip Failed Character=%d Slot=%s Reason=InvalidCharacter"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Unequip Failed Character=%d Slot=%s Reason=InvalidCharacter"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
 	if (!GridEquipmentSlotUtils::IsSupportedSlot(SourceSlot))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Unequip Failed Character=%d Slot=%s Reason=UnsupportedSlot"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Unequip Failed Character=%d Slot=%s Reason=UnsupportedSlot"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
@@ -145,7 +147,7 @@ bool UGridPartyInventoryComponent::UnequipItemToInventory(int32 CharacterIndex, 
 	FGridItemInstance* EquippedItem = EquipmentState.GetMutableSlot(SourceSlot);
 	if (!EquippedItem || !EquippedItem->IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Unequip Failed Character=%d Slot=%s Reason=EmptySlot"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Unequip Failed Character=%d Slot=%s Reason=EmptySlot"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
@@ -154,7 +156,7 @@ bool UGridPartyInventoryComponent::UnequipItemToInventory(int32 CharacterIndex, 
 	const int32 FreeSlotIndex = GridPartyInventoryEquipmentFindFreeInventorySlotIndex(CharacterState);
 	if (FreeSlotIndex == INDEX_NONE)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Unequip Failed Character=%d Slot=%s Reason=InventoryFull"), CharacterIndex,
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Unequip Failed Character=%d Slot=%s Reason=InventoryFull"), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
@@ -170,7 +172,7 @@ bool UGridPartyInventoryComponent::UnequipItemToInventory(int32 CharacterIndex, 
 	*EquippedItem = FGridItemInstance();
 	NotifyPartyInventoryChanged(CharacterIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Unequip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
+	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Unequip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
 		GridEquipmentSlotUtils::GetLogName(SourceSlot), *ItemToInventory.ItemDefinitionId.ToString(), *ItemToInventory.RuntimeObjectId.ToString());
 	return true;
 }

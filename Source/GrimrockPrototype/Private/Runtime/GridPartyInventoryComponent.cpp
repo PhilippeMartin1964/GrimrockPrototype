@@ -7,6 +7,8 @@
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
+
 namespace
 {
 	int32 CountOccupiedSlots(const FGridCharacterInventoryState& CharacterState)
@@ -449,7 +451,7 @@ bool UGridPartyInventoryComponent::SetSelectedCharacterIndex(int32 NewIndex)
 	const int32 OldIndex = PartyInventoryState.SelectedCharacterIndex;
 	if (!IsValidCharacterIndex(NewIndex))
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridInventory SelectedCharacter Changed Old=%d New=%d Result=false"), OldIndex, NewIndex);
+		UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory SelectedCharacter Changed Old=%d New=%d Result=false"), OldIndex, NewIndex);
 		return false;
 	}
 
@@ -458,7 +460,7 @@ bool UGridPartyInventoryComponent::SetSelectedCharacterIndex(int32 NewIndex)
 	{
 		NotifyPartyInventoryChanged(INDEX_NONE);
 	}
-	UE_LOG(LogTemp, Log, TEXT("GridInventory SelectedCharacter Changed Old=%d New=%d Result=true"), OldIndex, NewIndex);
+	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory SelectedCharacter Changed Old=%d New=%d Result=true"), OldIndex, NewIndex);
 	return true;
 }
 
@@ -665,14 +667,14 @@ bool UGridPartyInventoryComponent::TrySplitInventoryStackToFirstFreeSlot(int32 C
 {
 	if (!IsValidCharacterIndex(CharacterIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Reason=InvalidCharacter"), CharacterIndex, SourceSlotIndex);
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Reason=InvalidCharacter"), CharacterIndex, SourceSlotIndex);
 		return false;
 	}
 
 	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	if (!CharacterState.InventorySlots.IsValidIndex(SourceSlotIndex) || CharacterState.InventorySlots[SourceSlotIndex].IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Reason=InvalidSourceSlot"), CharacterIndex, SourceSlotIndex);
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Reason=InvalidSourceSlot"), CharacterIndex, SourceSlotIndex);
 		return false;
 	}
 
@@ -680,7 +682,7 @@ bool UGridPartyInventoryComponent::TrySplitInventoryStackToFirstFreeSlot(int32 C
 	const UGridItemDefinitionAsset* Definition = FindItemDefinition(SourceSlot.Item.ItemDefinitionId);
 	if (!Definition || !Definition->bStackable || SourceSlot.Item.Quantity < 2)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Item=%s Quantity=%d Reason=NotSplittable"),
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Item=%s Quantity=%d Reason=NotSplittable"),
 			CharacterIndex, SourceSlotIndex, *SourceSlot.Item.ItemDefinitionId.ToString(), SourceSlot.Item.Quantity);
 		return false;
 	}
@@ -697,7 +699,7 @@ bool UGridPartyInventoryComponent::TrySplitInventoryStackToFirstFreeSlot(int32 C
 
 	if (TargetSlotIndex == INDEX_NONE)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Item=%s Quantity=%d Reason=NoFreeSlot"),
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Item=%s Quantity=%d Reason=NoFreeSlot"),
 			CharacterIndex, SourceSlotIndex, *SourceSlot.Item.ItemDefinitionId.ToString(), SourceSlot.Item.Quantity);
 		return false;
 	}
@@ -717,7 +719,7 @@ bool UGridPartyInventoryComponent::TrySplitInventoryStackToFirstFreeSlot(int32 C
 	TargetSlot.Item = MoveTemp(SplitItem);
 
 	NotifyPartyInventoryChanged(CharacterIndex);
-	UE_LOG(LogTemp, Log,
+	UE_LOG(LogGridInventory, Verbose,
 		TEXT("GridInventory SplitStack Character=%d SourceSlot=%d TargetSlot=%d Item=%s SourceQuantity=%d SplitQuantity=%d Result=true"),
 		CharacterIndex, SourceSlotIndex, TargetSlotIndex, *SourceSlot.Item.ItemDefinitionId.ToString(), SourceSlot.Item.Quantity, SplitQuantity);
 	return true;
@@ -884,7 +886,7 @@ bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAss
 			return true;
 		}
 
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGridInventory, Warning,
 			TEXT("GridInventory ItemDefinition Registration Failed ItemDefinitionId=%s Existing=%s Incoming=%s Reason=DuplicateId"),
 			*Definition->ItemDefinitionId.ToString(), *GetPathNameSafe(ExistingDefinition->Get()), *GetPathNameSafe(Definition));
 		return false;
@@ -893,7 +895,7 @@ bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAss
 	RuntimeItemDefinitionsById.Add(Definition->ItemDefinitionId, Definition);
 	NotifyPartyInventoryChanged(INDEX_NONE);
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Registered ItemDefinition=%s Asset=%s"), *Definition->ItemDefinitionId.ToString(), *Definition->GetPathName());
+	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Registered ItemDefinition=%s Asset=%s"), *Definition->ItemDefinitionId.ToString(), *Definition->GetPathName());
 
 	return true;
 }
@@ -989,7 +991,7 @@ bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstan
 	UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemInstance.ItemDefinitionId);
 	if (!Definition)
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("GridInventory ItemDefinition Missing ItemDefinitionId=%s"), *ItemInstance.ItemDefinitionId.ToString());
+		UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory ItemDefinition Missing ItemDefinitionId=%s"), *ItemInstance.ItemDefinitionId.ToString());
 		return false;
 	}
 
@@ -1009,7 +1011,7 @@ bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstan
 		ItemInstance.Quantity = FMath::Clamp(ItemInstance.Quantity, 1, FMath::Max(1, Definition->MaxStackSize));
 	}
 
-	UE_LOG(LogTemp, Verbose, TEXT("GridInventory ItemDefinition Applied Item=%s Weight=%.2f Type=%d"), *ItemInstance.ItemDefinitionId.ToString(),
+	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory ItemDefinition Applied Item=%s Weight=%.2f Type=%d"), *ItemInstance.ItemDefinitionId.ToString(),
 		ItemInstance.Weight, static_cast<int32>(Definition->ItemType));
 	return true;
 }
