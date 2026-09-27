@@ -132,6 +132,43 @@ bool FGridUIGlobalHud01CombatChromeSplitTest::RunTest(const FString& Parameters)
 
 	Party->PersistentHudWidgetInstance = PersistentHud;
 	Party->CombatHudWidgetInstance = CombatHud;
+
+	const UClass* CombatHudClass = UGridCombatHudWidget::StaticClass();
+	const UClass* PersistentHudClass = UGridPersistentHudWidget::StaticClass();
+	TestTrue(TEXT("Combat HUD exposes no legacy global navigation panel"),
+		CombatHudClass->FindPropertyByName(TEXT("Panel_GlobalNavigation")) == nullptr);
+	TestTrue(TEXT("Combat HUD exposes no legacy action-bar panel"),
+		CombatHudClass->FindPropertyByName(TEXT("Panel_Actions")) == nullptr);
+	TestTrue(TEXT("Combat HUD exposes no action-widget class authority"),
+		CombatHudClass->FindPropertyByName(TEXT("ActionWidgetClass")) == nullptr);
+	TestTrue(TEXT("Persistent HUD owns global navigation"),
+		PersistentHudClass->FindPropertyByName(TEXT("Panel_GlobalNavigation")) != nullptr);
+	TestTrue(TEXT("Persistent HUD owns the action bar"),
+		PersistentHudClass->FindPropertyByName(TEXT("Panel_ActionBar")) != nullptr);
+	TestTrue(TEXT("Persistent HUD owns the action-widget class"),
+		PersistentHudClass->FindPropertyByName(TEXT("ActionWidgetClass")) != nullptr);
+
+	const FName NavigationButtonProperties[] = {
+		TEXT("Button_NavEscape"), TEXT("Button_NavInventory"), TEXT("Button_NavSkills"), TEXT("Button_NavCrafting"),
+		TEXT("Button_NavMap"), TEXT("Button_NavJournal"), TEXT("Button_NavHelp")
+	};
+	for (const FName PropertyName : NavigationButtonProperties)
+	{
+		TestTrue(FString::Printf(TEXT("Combat HUD exposes no legacy %s"), *PropertyName.ToString()),
+			CombatHudClass->FindPropertyByName(PropertyName) == nullptr);
+		TestTrue(FString::Printf(TEXT("Persistent HUD owns %s"), *PropertyName.ToString()),
+			PersistentHudClass->FindPropertyByName(PropertyName) != nullptr);
+	}
+
+	const FName CombatProperties[] = {
+		TEXT("Panel_CombatHud"), TEXT("Panel_PartyMembers"), TEXT("Panel_Initiative"), TEXT("Panel_CombatBottomRight"),
+		TEXT("Text_MobilityActionPoints"), TEXT("Button_EndTurn"), TEXT("Text_EndTurnDisabledReason"), TEXT("Panel_Targeting")
+	};
+	for (const FName PropertyName : CombatProperties)
+	{
+		TestTrue(FString::Printf(TEXT("Combat HUD retains %s"), *PropertyName.ToString()),
+			CombatHudClass->FindPropertyByName(PropertyName) != nullptr);
+	}
 	CombatHud->Text_MobilityActionPoints = NewObject<UTextBlock>(CombatHud);
 	CombatHud->Button_EndTurn = NewObject<UButton>(CombatHud);
 	CombatHud->Text_EndTurnDisabledReason = NewObject<UTextBlock>(CombatHud);
