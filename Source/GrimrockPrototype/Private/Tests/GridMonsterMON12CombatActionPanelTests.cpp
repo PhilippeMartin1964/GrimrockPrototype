@@ -22,6 +22,7 @@
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "UI/GridCombatActionPanelWidget.h"
+#include "UI/GridCombatHudWidget.h"
 
 namespace
 {
@@ -147,6 +148,7 @@ namespace
 		AGridMonsterActor* Monster = nullptr;
 		UGridMonsterOccupancySubsystem* Occupancy = nullptr;
 		UGridTurnManagerComponent* TurnManager = nullptr;
+		UGridCombatHudWidget* Hud = nullptr;
 		UGridCombatActionPanelWidget* Panel = nullptr;
 		UTexture2D* EliasPortrait = nullptr;
 		UTexture2D* MinaPortrait = nullptr;
@@ -237,14 +239,32 @@ namespace
 				TurnManager->CombatMonsters = { Monster };
 			}
 
+			Hud = NewObject<UGridCombatHudWidget>(Party);
 			Panel = NewObject<UGridCombatActionPanelWidget>(Party);
+			if (Hud)
+			{
+				Hud->InitializeCombatHud(Party, TurnManager);
+			}
+		}
+
+		void RefreshPanel(int32 CharacterIndex)
+		{
+			if (!Hud || !Panel)
+			{
+				return;
+			}
+			Hud->RefreshFromSources();
+			if (Hud->View.PartyMembers.IsValidIndex(CharacterIndex))
+			{
+				Panel->SetView(Hud->View.PartyMembers[CharacterIndex]);
+			}
 		}
 
 		bool IsReady() const
 		{
 			return TestWorld.World && Runtime && LevelAsset && Party && Party->PartyInventoryComponent && MonsterDefinition && Monster &&
 				Monster->FindComponentByClass<UGridMonsterMovementComponent>() && Monster->FindComponentByClass<UGridMonsterBehaviorComponent>() && Occupancy &&
-				TurnManager && Panel && EliasPortrait && MinaPortrait;
+				TurnManager && Hud && Panel && EliasPortrait && MinaPortrait;
 		}
 	};
 }
@@ -261,16 +281,16 @@ bool FGridMonsterMON12CombatActionPanelLiveDataTest::RunTest(const FString& Para
 		return false;
 	}
 
-	Fixture.Panel->InitializeCombatActionPanel(Fixture.Party, 0, Fixture.TurnManager);
+	Fixture.RefreshPanel(0);
 
-	const FGridCombatActionPanelView& View = Fixture.Panel->View;
-	TestTrue(TEXT("The panel resolves its assigned character"), View.bHasValidCharacter);
+	const FGridCombatHudPartyMemberView& View = Fixture.Panel->View;
+	TestTrue(TEXT("The panel resolves its assigned character"), View.bPresent);
 	TestEqual(TEXT("The panel keeps the assigned member index"), View.CharacterIndex, 0);
 	TestEqual(TEXT("The panel reads the real character name"), View.DisplayName.ToString(), FString(TEXT("Elias")));
 	TestEqual(TEXT("The panel reads current health"), View.CurrentHealth, 18);
-	TestEqual(TEXT("The panel reads maximum health"), View.MaxHealth, 24);
+	TestEqual(TEXT("The panel reads maximum health"), View.MaximumHealth, 24);
 	TestEqual(TEXT("The panel reads current mana"), View.CurrentMana, 7);
-	TestEqual(TEXT("The panel reads maximum mana"), View.MaxMana, 12);
+	TestEqual(TEXT("The panel reads maximum mana"), View.MaximumMana, 12);
 	TestTrue(TEXT("The panel reads the real portrait"), View.Portrait.Get() == Fixture.EliasPortrait);
 	TestEqual(TEXT("The initial turn state is Active"), View.TurnState, EGridCombatantTurnState::Active);
 	TestEqual(TEXT("The initial action-point budget is full"), View.RemainingActionPoints, 4);
@@ -291,19 +311,19 @@ bool FGridMonsterMON12CombatActionPanelTurnAuthorityTest::RunTest(const FString&
 		return false;
 	}
 
-	Fixture.Panel->InitializeCombatActionPanel(Fixture.Party, 1, Fixture.TurnManager);
+	Fixture.RefreshPanel(1);
 	TestEqual(TEXT("The panel keeps its assigned member index"), Fixture.Panel->View.CharacterIndex, 1);
 	TestEqual(TEXT("The assigned panel reads Mina"), Fixture.Panel->View.DisplayName.ToString(), FString(TEXT("Mina")));
 	TestTrue(TEXT("The second living member is initially actionable"), Fixture.Panel->View.bCanAct);
 
 	Fixture.TurnManager->CurrentPhase = EGridCombatPhase::EnemyPhase;
 	Fixture.TurnManager->OnPhaseChanged.Broadcast(EGridCombatPhase::EnemyPhase);
-	Fixture.Panel->RefreshFromSources();
+	Fixture.RefreshPanel(Fixture.Panel->View.CharacterIndex);
 	TestFalse(TEXT("The status panel reflects the enemy phase"), Fixture.Panel->View.bCanAct);
 
 	Fixture.TurnManager->CurrentPhase = EGridCombatPhase::PlayerPhase;
 	Fixture.TurnManager->OnPhaseChanged.Broadcast(EGridCombatPhase::PlayerPhase);
-	Fixture.Panel->RefreshFromSources();
+	Fixture.RefreshPanel(Fixture.Panel->View.CharacterIndex);
 	TestTrue(TEXT("The status panel reflects the player phase"), Fixture.Panel->View.bCanAct);
 
 	FGridPlayerCharacterTurnState CompletedState;
@@ -314,7 +334,7 @@ bool FGridMonsterMON12CombatActionPanelTurnAuthorityTest::RunTest(const FString&
 	CompletedState.RemainingActionPoints = 0;
 	Fixture.TurnManager->PlayerCharacterTurnStates = { CompletedState };
 	Fixture.TurnManager->OnPlayerCharacterTurnStateChanged.Broadcast(CompletedState);
-	Fixture.Panel->RefreshFromSources();
+	Fixture.RefreshPanel(Fixture.Panel->View.CharacterIndex);
 
 	TestEqual(TEXT("The status panel reflects Completed"), Fixture.Panel->View.TurnState, EGridCombatantTurnState::Completed);
 	TestFalse(TEXT("Completed disables the panel"), Fixture.Panel->View.bCanAct);
@@ -322,7 +342,7 @@ bool FGridMonsterMON12CombatActionPanelTurnAuthorityTest::RunTest(const FString&
 	Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[1].Resources.CurrentHealth = 9;
 	FGridAttackResult Result;
 	Fixture.TurnManager->OnAttackResolved.Broadcast(nullptr, 1, Result);
-	Fixture.Panel->RefreshFromSources();
+	Fixture.RefreshPanel(Fixture.Panel->View.CharacterIndex);
 	TestEqual(TEXT("The status panel refreshes current health"), Fixture.Panel->View.CurrentHealth, 9);
 	return true;
 }
@@ -339,9 +359,9 @@ bool FGridMonsterMON12CharacterActionPointLifecycleTest::RunTest(const FString& 
 		return false;
 	}
 
-	Fixture.Panel->InitializeCombatActionPanel(Fixture.Party, 0, Fixture.TurnManager);
+	Fixture.RefreshPanel(0);
 	Fixture.TurnManager->BeginPlayerCharacterPhase();
-	Fixture.Panel->RefreshFromSources();
+	Fixture.RefreshPanel(Fixture.Panel->View.CharacterIndex);
 
 	FGridPlayerCharacterTurnState EliasTurn;
 	FGridPlayerCharacterTurnState MinaTurn;
@@ -355,14 +375,14 @@ bool FGridMonsterMON12CharacterActionPointLifecycleTest::RunTest(const FString& 
 	FGridAttackResult Result;
 	EGridPlayerAttackRejectReason RejectReason = EGridPlayerAttackRejectReason::None;
 	TestTrue(TEXT("Elias can make a first two-AP attack"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
-	Fixture.Panel->RefreshFromSources();
+	Fixture.RefreshPanel(Fixture.Panel->View.CharacterIndex);
 	TestEqual(TEXT("The request records its authoritative AP cost"), Request.ActionPointCost, 2);
 	TestEqual(TEXT("The status panel projects two remaining AP"), Fixture.Panel->View.RemainingActionPoints, 2);
 	TestEqual(TEXT("Elias remains Active after the first attack"), Fixture.Panel->View.TurnState, EGridCombatantTurnState::Active);
 	TestTrue(TEXT("Elias can still afford a second attack"), Fixture.TurnManager->CanCharacterSpendActionPoints(0, 2));
 
 	TestTrue(TEXT("Elias can make a second two-AP attack"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
-	Fixture.Panel->RefreshFromSources();
+	Fixture.RefreshPanel(Fixture.Panel->View.CharacterIndex);
 	TestEqual(TEXT("The second attack exhausts Elias action points"), Fixture.Panel->View.RemainingActionPoints, 0);
 	TestEqual(TEXT("An exhausted character becomes Completed"), Fixture.Panel->View.TurnState, EGridCombatantTurnState::Completed);
 	TestFalse(TEXT("A Completed character cannot act"), Fixture.Panel->View.bCanAct);

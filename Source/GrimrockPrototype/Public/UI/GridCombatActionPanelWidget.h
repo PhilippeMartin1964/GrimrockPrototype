@@ -2,80 +2,18 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "RPG/StatusEffects/GridStatusEffectPresentation.h"
-#include "Runtime/Combat/GridCombatTypes.h"
+#include "UI/GridCombatHudWidget.h"
 #include "GridCombatActionPanelWidget.generated.h"
 
-class AGrimrockPartyPawn;
 class UBorder;
-class UGridPartyInventoryComponent;
-class UGridTurnManagerComponent;
 class UImage;
 class UTextBlock;
-class UTexture2D;
 class UWidget;
 
 /**
- * Transient rendering snapshot. It is rebuilt from the live character,
- * inventory and turn manager whenever one of those sources emits an event.
- */
-USTRUCT(BlueprintType)
-struct FGridCombatActionPanelView
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	bool bHasValidCharacter = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	int32 CharacterIndex = INDEX_NONE;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	FText DisplayName;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	TSoftObjectPtr<UTexture2D> Portrait;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	int32 CurrentHealth = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	int32 MaxHealth = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	int32 CurrentMana = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	int32 MaxMana = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	EGridCombatantTurnState TurnState = EGridCombatantTurnState::Waiting;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	int32 RemainingActionPoints = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	int32 MaximumActionPoints = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	bool bCanAct = false;
-
-	/** MON16.6 read-only projection of the authoritative runtime collection. */
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI|Status Effects")
-	TArray<FGridStatusEffectPresentationView> StatusEffects;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI|Status Effects")
-	FText StatusSummary;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI|Status Effects")
-	FText LatestStatusFeedback;
-};
-
-/**
- * MON12 combat action panel for one party member.
- * MON16.6 adds a native status summary/feedback fallback without requiring a
- * WBP change. Designer widgets named Text_StatusEffects/Text_StatusFeedback
- * are optional and take precedence when present.
+ * Pure presentation widget for one party member inside the combat HUD.
+ * UGridCombatHudWidget owns all runtime reads and provides the canonical
+ * FGridCombatHudPartyMemberView snapshot.
  */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGridCombatActionPanelWidget : public UUserWidget
@@ -84,19 +22,7 @@ class GRIMROCKPROTOTYPE_API UGridCombatActionPanelWidget : public UUserWidget
 
 public:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	int32 ConfiguredCharacterIndex = INDEX_NONE;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
-	FGridCombatActionPanelView View;
-
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "Combat|UI")
-	TObjectPtr<AGrimrockPartyPawn> PartyPawn = nullptr;
-
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "Combat|UI")
-	TObjectPtr<UGridPartyInventoryComponent> InventoryComponent = nullptr;
-
-	UPROPERTY(Transient, BlueprintReadOnly, Category = "Combat|UI")
-	TObjectPtr<UGridTurnManagerComponent> TurnManagerComponent = nullptr;
+	FGridCombatHudPartyMemberView View;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float DisabledOpacity = 0.45f;
@@ -146,11 +72,8 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI|Status Effects")
 	TObjectPtr<UTextBlock> Text_StatusFeedback;
 
-	UFUNCTION(BlueprintCallable, Category = "Combat|UI")
-	void InitializeCombatActionPanel(AGrimrockPartyPawn* InPartyPawn, int32 InCharacterIndex, UGridTurnManagerComponent* InTurnManager = nullptr);
-
-	UFUNCTION(BlueprintCallable, Category = "Combat|UI")
-	void RefreshFromSources();
+	/** Applies one already-built combat HUD party-member snapshot. */
+	void SetView(const FGridCombatHudPartyMemberView& InView);
 
 private:
 	FText GetActionStateText() const;

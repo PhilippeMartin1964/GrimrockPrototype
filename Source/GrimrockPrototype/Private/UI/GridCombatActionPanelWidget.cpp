@@ -8,12 +8,6 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Components/Widget.h"
 #include "Fonts/SlateFontInfo.h"
-#include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
-#include "RPG/StatusEffects/GridStatusEffectPresentation.h"
-#include "Runtime/Combat/GridTurnManagerComponent.h"
-#include "Runtime/GridLevelRuntimeActor.h"
-#include "Runtime/GridPartyInventoryComponent.h"
-#include "Runtime/GrimrockPartyPawn.h"
 
 namespace
 {
@@ -25,17 +19,6 @@ namespace
 	FText FormatActionPoints(int32 CurrentValue, int32 MaximumValue)
 	{
 		return FText::FromString(FString::Printf(TEXT("PA %d / %d"), FMath::Max(0, CurrentValue), FMath::Max(0, MaximumValue)));
-	}
-
-	FText ResolveCharacterName(const FGridInventoryCharacterSummary& Summary)
-	{
-		return Summary.DisplayName.IsEmpty() ? FText::FromString(FString::Printf(TEXT("Hero_%02d"), Summary.CharacterIndex + 1)) : Summary.DisplayName;
-	}
-
-	bool IsStatusFeedbackType(EGridCombatLogEntryType Type)
-	{
-		return Type == EGridCombatLogEntryType::StatusApplied || Type == EGridCombatLogEntryType::StatusRefreshed ||
-			Type == EGridCombatLogEntryType::StatusTicked || Type == EGridCombatLogEntryType::StatusExpired;
 	}
 
 	FText BuildStatusToolTip(const TArray<FGridStatusEffectPresentationView>& StatusEffects)
@@ -52,72 +35,9 @@ namespace
 	}
 }
 
-void UGridCombatActionPanelWidget::InitializeCombatActionPanel(
-	AGrimrockPartyPawn* InPartyPawn, int32 InCharacterIndex, UGridTurnManagerComponent* InTurnManager)
+void UGridCombatActionPanelWidget::SetView(const FGridCombatHudPartyMemberView& InView)
 {
-	PartyPawn = InPartyPawn;
-	InventoryComponent = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent : nullptr;
-	TurnManagerComponent = InTurnManager;
-	if (!IsValid(TurnManagerComponent) && IsValid(PartyPawn) && IsValid(PartyPawn->LevelRuntimeActor))
-	{
-		TurnManagerComponent = PartyPawn->LevelRuntimeActor->FindComponentByClass<UGridTurnManagerComponent>();
-	}
-
-	ConfiguredCharacterIndex = InCharacterIndex;
-	RefreshFromSources();
-}
-
-void UGridCombatActionPanelWidget::RefreshFromSources()
-{
-	View = FGridCombatActionPanelView();
-	View.CharacterIndex = ConfiguredCharacterIndex;
-
-	FGridInventoryCharacterSummary Summary;
-	if (!IsValid(InventoryComponent) || !InventoryComponent->GetCharacterSummary(View.CharacterIndex, Summary))
-	{
-		RefreshBoundWidgets();
-		return;
-	}
-
-	View.bHasValidCharacter = true;
-	View.DisplayName = ResolveCharacterName(Summary);
-	View.Portrait = Summary.Portrait;
-	View.CurrentHealth = Summary.Resources.CurrentHealth;
-	View.MaxHealth = Summary.DerivedStats.MaxHealth;
-	View.CurrentMana = Summary.Resources.CurrentMana;
-	View.MaxMana = Summary.DerivedStats.MaxMana;
-
-	if (InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(View.CharacterIndex))
-	{
-		const FGridCharacterInventoryState& Character = InventoryComponent->PartyInventoryState.ActiveCharacters[View.CharacterIndex];
-		FGridStatusEffectPresentationBuilder::Build(Character.StatusEffects, View.StatusEffects);
-		View.StatusSummary = FGridStatusEffectPresentationBuilder::BuildSummary(View.StatusEffects);
-	}
-
-	if (IsValid(PartyPawn))
-	{
-		if (UWorld* World = PartyPawn->GetWorld())
-		{
-			if (UGridStatusEffectLifecycleSubsystem* Lifecycle = World->GetSubsystem<UGridStatusEffectLifecycleSubsystem>())
-			{
-				const FGridCombatLogEntry& Feedback = Lifecycle->LastStatusEffectFeedback;
-				if (Feedback.TargetCharacterIndex == View.CharacterIndex && IsStatusFeedbackType(Feedback.Type))
-				{
-					View.LatestStatusFeedback = Feedback.Message;
-				}
-			}
-		}
-	}
-
-	FGridPlayerCharacterTurnState TurnState;
-	if (IsValid(TurnManagerComponent) && TurnManagerComponent->GetPlayerCharacterTurnState(View.CharacterIndex, TurnState))
-	{
-		View.TurnState = TurnState.State;
-		View.RemainingActionPoints = TurnState.RemainingActionPoints;
-		View.MaximumActionPoints = TurnState.MaximumActionPoints;
-		View.bCanAct = TurnManagerComponent->CanCharacterAct(View.CharacterIndex);
-	}
-
+	View = InView;
 	RefreshBoundWidgets();
 }
 
@@ -192,8 +112,7 @@ void UGridCombatActionPanelWidget::RefreshBoundWidgets()
 {
 	EnsureStatusWidgets();
 
-	// The owning combat HUD decides whether status panels are combat-only.
-	SetVisibility(View.bHasValidCharacter ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	SetVisibility(View.bPresent ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 
 	if (Image_Portrait)
 	{
@@ -215,11 +134,11 @@ void UGridCombatActionPanelWidget::RefreshBoundWidgets()
 	}
 	if (Text_Health)
 	{
-		Text_Health->SetText(FormatCurrentAndMaximum(View.CurrentHealth, View.MaxHealth));
+		Text_Health->SetText(FormatCurrentAndMaximum(View.CurrentHealth, View.MaximumHealth));
 	}
 	if (Text_Mana)
 	{
-		Text_Mana->SetText(FormatCurrentAndMaximum(View.CurrentMana, View.MaxMana));
+		Text_Mana->SetText(FormatCurrentAndMaximum(View.CurrentMana, View.MaximumMana));
 	}
 	if (Text_ActionPoints)
 	{

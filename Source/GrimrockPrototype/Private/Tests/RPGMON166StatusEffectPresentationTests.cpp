@@ -18,6 +18,7 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "UI/GridCombatActionPanelWidget.h"
+#include "UI/GridCombatHudWidget.h"
 
 namespace
 {
@@ -409,8 +410,15 @@ bool FRPGMON166PartyPanelProjectionTest::RunTest(const FString& Parameters)
 	FString Error;
 	TestTrue(TEXT("Panel status applies"), Fixture.Lifecycle->TryApplyStatusEffectToPartyCharacter(0, Definition, FGuid::NewGuid(), Result, Error));
 
+	UGridCombatHudWidget* Hud = NewObject<UGridCombatHudWidget>(Fixture.Party);
 	UGridCombatActionPanelWidget* Panel = NewObject<UGridCombatActionPanelWidget>(Fixture.Party);
-	Panel->InitializeCombatActionPanel(Fixture.Party, 0, Fixture.TurnManager);
+	Hud->InitializeCombatHud(Fixture.Party, Fixture.TurnManager);
+	TestTrue(TEXT("HUD exposes the party-member view"), Hud->View.PartyMembers.IsValidIndex(0));
+	if (!Hud->View.PartyMembers.IsValidIndex(0))
+	{
+		return false;
+	}
+	Panel->SetView(Hud->View.PartyMembers[0]);
 	TestEqual(TEXT("Panel exposes one status"), Panel->View.StatusEffects.Num(), 1);
 	TestTrue(TEXT("Panel status summary is visible data"), Panel->View.StatusSummary.ToString().Contains(TEXT("Immobilisé")));
 	return true;
@@ -429,7 +437,7 @@ bool FRPGMON166NoParallelSystemTest::RunTest(const FString& Parameters)
 	const FExpectation Expectations[] = { { TEXT("Source/GrimrockPrototype/Private/RPG/StatusEffects/GridStatusEffectPresentation.cpp"),
 											  TEXT("DefinitionAsset") },
 		{ TEXT("Source/GrimrockPrototype/Private/RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.cpp"), TEXT("OnStatusEffectFeedback.Broadcast") },
-		{ TEXT("Source/GrimrockPrototype/Private/UI/GridCombatActionPanelWidget.cpp"), TEXT("BuildSummary") } };
+		{ TEXT("Source/GrimrockPrototype/Private/UI/GridCombatHudWidget.cpp"), TEXT("BuildSummary") } };
 
 	for (const FExpectation& Expectation : Expectations)
 	{
@@ -440,6 +448,13 @@ bool FRPGMON166NoParallelSystemTest::RunTest(const FString& Parameters)
 		TestFalse(TEXT("No WBP dependency introduced"), Text.Contains(TEXT("WBP_")));
 		TestFalse(TEXT("No hard-coded status identity branch introduced"), Text.Contains(TEXT("EffectId == TEXT")) || Text.Contains(TEXT("EffectId != TEXT")));
 	}
+
+	FString PanelSource;
+	const FString PanelPath = FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/GrimrockPrototype/Private/UI/GridCombatActionPanelWidget.cpp"));
+	TestTrue(TEXT("Party-member panel source loads"), FFileHelper::LoadFileToString(PanelSource, *PanelPath));
+	TestFalse(TEXT("Leaf party-member panel no longer reads inventory"), PanelSource.Contains(TEXT("InventoryComponent")));
+	TestFalse(TEXT("Leaf party-member panel no longer reads turn manager"), PanelSource.Contains(TEXT("TurnManagerComponent")));
+	TestFalse(TEXT("Leaf party-member panel no longer reads party pawn"), PanelSource.Contains(TEXT("PartyPawn")));
 	return true;
 }
 

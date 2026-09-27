@@ -18,6 +18,7 @@
 #include "Components/Widget.h"
 #include "InputCoreTypes.h"
 #include "Magic/GridPartySpellbookComponent.h"
+#include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -76,6 +77,12 @@ namespace
 	{
 		return Left.ActionId == Right.ActionId && Left.SourcePolicy == Right.SourcePolicy && Left.SourceDefinitionId == Right.SourceDefinitionId &&
 			Left.PreferredSourceRuntimeId == Right.PreferredSourceRuntimeId && Left.PreferredEquipmentSlot == Right.PreferredEquipmentSlot;
+	}
+
+	bool IsPartyStatusFeedbackType(EGridCombatLogEntryType Type)
+	{
+		return Type == EGridCombatLogEntryType::StatusApplied || Type == EGridCombatLogEntryType::StatusRefreshed ||
+			Type == EGridCombatLogEntryType::StatusTicked || Type == EGridCombatLogEntryType::StatusExpired;
 	}
 
 	bool IsDirectHotbarActionSource(EGridCombatActionSourcePolicy SourcePolicy)
@@ -695,19 +702,54 @@ void UGridCombatHudWidget::RefreshFromSources()
 	}
 	FGridCombatHudViewModelBuilder::BuildPartyMembers(ActiveCharacterCount, TurnStates, View.PartyMembers);
 
+	UGridStatusEffectLifecycleSubsystem* StatusLifecycle = nullptr;
+	if (IsValid(PartyPawn))
+	{
+		if (UWorld* World = PartyPawn->GetWorld())
+		{
+			StatusLifecycle = World->GetSubsystem<UGridStatusEffectLifecycleSubsystem>();
+		}
+	}
+
 	for (FGridCombatHudPartyMemberView& Member : View.PartyMembers)
 	{
-		FGridInventoryCharacterSummary Summary;
-		if (!Member.bPresent || !IsValid(InventoryComponent) || !InventoryComponent->GetCharacterSummary(Member.CharacterIndex, Summary))
+		if (!Member.bPresent)
 		{
 			continue;
 		}
-		Member.DisplayName = Summary.DisplayName;
+
+		Member.bCanAct = IsValid(TurnManagerComponent) && TurnManagerComponent->CanCharacterAct(Member.CharacterIndex);
+
+		FGridInventoryCharacterSummary Summary;
+		if (!IsValid(InventoryComponent) || !InventoryComponent->GetCharacterSummary(Member.CharacterIndex, Summary))
+		{
+			continue;
+		}
+
+		Member.DisplayName = Summary.DisplayName.IsEmpty()
+			? FText::FromString(FString::Printf(TEXT("Hero_%02d"), Member.CharacterIndex + 1))
+			: Summary.DisplayName;
 		Member.Portrait = Summary.Portrait;
 		Member.CurrentHealth = Summary.Resources.CurrentHealth;
 		Member.MaximumHealth = Summary.DerivedStats.MaxHealth;
 		Member.CurrentMana = Summary.Resources.CurrentMana;
 		Member.MaximumMana = Summary.DerivedStats.MaxMana;
+
+		if (InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(Member.CharacterIndex))
+		{
+			const FGridCharacterInventoryState& Character = InventoryComponent->PartyInventoryState.ActiveCharacters[Member.CharacterIndex];
+			FGridStatusEffectPresentationBuilder::Build(Character.StatusEffects, Member.StatusEffects);
+			Member.StatusSummary = FGridStatusEffectPresentationBuilder::BuildSummary(Member.StatusEffects);
+		}
+
+		if (IsValid(StatusLifecycle))
+		{
+			const FGridCombatLogEntry& Feedback = StatusLifecycle->LastStatusEffectFeedback;
+			if (Feedback.TargetCharacterIndex == Member.CharacterIndex && IsPartyStatusFeedbackType(Feedback.Type))
+			{
+				Member.LatestStatusFeedback = Feedback.Message;
+			}
+		}
 	}
 
 	FGridCombatantInitiativeEntry ActiveCombatant;
@@ -791,11 +833,11 @@ void UGridCombatHudWidget::RefreshFromSources()
 		}
 	}
 
-	for (UGridCombatActionPanelWidget* Panel : PartyMemberPanels)
+	for (int32 Index = 0; Index < PartyMemberPanels.Num(); ++Index)
 	{
-		if (IsValid(Panel))
+		if (IsValid(PartyMemberPanels[Index]) && View.PartyMembers.IsValidIndex(Index))
 		{
-			Panel->RefreshFromSources();
+			PartyMemberPanels[Index]->SetView(View.PartyMembers[Index]);
 		}
 	}
 	EnsureInitiativeWidgets();
@@ -1141,7 +1183,6 @@ void UGridCombatHudWidget::EnsurePartyMemberPanels()
 		{
 			continue;
 		}
-		Panel->InitializeCombatActionPanel(PartyPawn, CharacterIndex, TurnManagerComponent);
 		Panel_PartyMembers->AddChild(Panel);
 		PartyMemberPanels.Add(Panel);
 	}

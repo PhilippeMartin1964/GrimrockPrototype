@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "RPG/StatusEffects/GridStatusEffectPresentation.h"
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "GridCombatHudWidget.generated.h"
 
@@ -60,6 +61,18 @@ struct FGridCombatHudPartyMemberView
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD")
 	int32 MaximumActionPoints = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD")
+	bool bCanAct = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD|Status Effects")
+	TArray<FGridStatusEffectPresentationView> StatusEffects;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD|Status Effects")
+	FText StatusSummary;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|HUD|Status Effects")
+	FText LatestStatusFeedback;
 };
 
 USTRUCT(BlueprintType)
