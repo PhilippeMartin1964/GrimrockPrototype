@@ -9,6 +9,8 @@
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridThrownItemActor.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridItemTransfer, Log, All);
+
 namespace
 {
 	bool GridPartyPawnResolveThrowProfile(
@@ -37,7 +39,7 @@ bool AGrimrockPartyPawn::EquipSelectedCharacterItemFromInventorySlot(int32 Inven
 {
 	if (!PartyInventoryComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Equip Failed Pawn=%s Reason=NoPartyInventoryComponent"), *GetName());
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Equip Failed Pawn=%s Reason=NoPartyInventoryComponent"), *GetName());
 		return false;
 	}
 
@@ -50,7 +52,7 @@ bool AGrimrockPartyPawn::UnequipSelectedCharacterItemToInventory(EGridEquipmentS
 {
 	if (!PartyInventoryComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Unequip Failed Pawn=%s Reason=NoPartyInventoryComponent"), *GetName());
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Unequip Failed Pawn=%s Reason=NoPartyInventoryComponent"), *GetName());
 		return false;
 	}
 
@@ -61,13 +63,13 @@ bool AGrimrockPartyPawn::TryTakeSelectedCharacterEquipmentSlotToCursor(EGridEqui
 {
 	if (!PartyInventoryComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take Equipment Relay Failed Pawn=%s Slot=%s Reason=NoPartyInventoryComponent"), *GetName(),
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Cursor Take Equipment Relay Failed Pawn=%s Slot=%s Reason=NoPartyInventoryComponent"), *GetName(),
 			GridEquipmentSlotUtils::GetLogName(SourceSlot));
 		return false;
 	}
 
 	const bool bTaken = PartyInventoryComponent->TryTakeSelectedCharacterEquipmentSlotToCursor(SourceSlot);
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Take Equipment Relay Pawn=%s Slot=%s Result=%s"), *GetName(),
+	UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridInventory Cursor Take Equipment Relay Pawn=%s Slot=%s Result=%s"), *GetName(),
 		GridEquipmentSlotUtils::GetLogName(SourceSlot), bTaken ? TEXT("true") : TEXT("false"));
 	return bTaken;
 }
@@ -86,13 +88,13 @@ bool AGrimrockPartyPawn::TryEquipCursorItemToSelectedCharacterSlot(EGridEquipmen
 {
 	if (!PartyInventoryComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Equip Failed Pawn=%s Slot=%s Reason=NoPartyInventoryComponent"), *GetName(),
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Cursor Equip Failed Pawn=%s Slot=%s Reason=NoPartyInventoryComponent"), *GetName(),
 			GridEquipmentSlotUtils::GetLogName(TargetSlot));
 		return false;
 	}
 
 	const bool bEquipped = PartyInventoryComponent->TryEquipCursorItemToSelectedCharacterSlot(TargetSlot);
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Equip Relay Pawn=%s Slot=%s Result=%s"), *GetName(),
+	UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridInventory Cursor Equip Relay Pawn=%s Slot=%s Result=%s"), *GetName(),
 		GridEquipmentSlotUtils::GetLogName(TargetSlot), bEquipped ? TEXT("true") : TEXT("false"));
 	return bEquipped;
 }
@@ -128,12 +130,12 @@ bool AGrimrockPartyPawn::DebugTakeInventorySlotToCursor(int32 CharacterIndex, in
 {
 	if (!PartyInventoryComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take Relay Failed Pawn=%s Reason=NoPartyInventoryComponent"), *GetName());
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Cursor Take Relay Failed Pawn=%s Reason=NoPartyInventoryComponent"), *GetName());
 		return false;
 	}
 
 	const bool bTaken = PartyInventoryComponent->TryTakeInventorySlotToCursor(CharacterIndex, InventorySlotIndex);
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Take Relay Pawn=%s Character=%d Slot=%d Result=%s"), *GetName(), CharacterIndex, InventorySlotIndex,
+	UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridInventory Cursor Take Relay Pawn=%s Character=%d Slot=%d Result=%s"), *GetName(), CharacterIndex, InventorySlotIndex,
 		bTaken ? TEXT("true") : TEXT("false"));
 	return bTaken;
 }
@@ -142,12 +144,12 @@ bool AGrimrockPartyPawn::DebugPlaceCursorItemInSelectedInventory()
 {
 	if (!PartyInventoryComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Place Relay Failed Pawn=%s Reason=NoPartyInventoryComponent"), *GetName());
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Cursor Place Relay Failed Pawn=%s Reason=NoPartyInventoryComponent"), *GetName());
 		return false;
 	}
 
 	const bool bPlaced = PartyInventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory();
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Place Relay Pawn=%s Result=%s"), *GetName(), bPlaced ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridInventory Cursor Place Relay Pawn=%s Result=%s"), *GetName(), bPlaced ? TEXT("true") : TEXT("false"));
 	return bPlaced;
 }
 
@@ -155,28 +157,27 @@ bool AGrimrockPartyPawn::TryPlaceCursorItemInReceptacle(AGridReceptacleActor* Re
 {
 	if (!PartyInventoryComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Place ToReceptacle Failed Item=None Receptacle=%s Reason=NoPartyInventoryComponent"),
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Cursor Place ToReceptacle Failed Item=None Receptacle=%s Reason=NoPartyInventoryComponent"),
 			ReceptacleActor ? *ReceptacleActor->GetName() : TEXT("None"));
 		return false;
 	}
 
 	if (!ReceptacleActor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Place ToReceptacle Failed Item=%s Receptacle=None Reason=NoReceptacle"),
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Cursor Place ToReceptacle Failed Item=%s Receptacle=None Reason=NoReceptacle"),
 			PartyInventoryComponent->HasCursorItem() ? *PartyInventoryComponent->GetCursorItem().ItemDefinitionId.ToString() : TEXT("None"));
 		return false;
 	}
 
 	if (!PartyInventoryComponent->HasCursorItem())
 	{
-		UE_LOG(
-			LogTemp, Warning, TEXT("GridInventory Cursor Place ToReceptacle Failed Item=None Receptacle=%s Reason=NoCursorItem"), *ReceptacleActor->GetName());
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Cursor Place ToReceptacle Failed Item=None Receptacle=%s Reason=NoCursorItem"), *ReceptacleActor->GetName());
 		return false;
 	}
 
 	if (!LevelRuntimeActor || !LevelRuntimeActor->CanPartyInteractWithEdgeObject(ReceptacleActor->CellX, ReceptacleActor->CellY, ReceptacleActor->Edge, this))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Place ToReceptacle Failed Item=%s Receptacle=%s Reason=EdgeNotFacingParty"),
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Cursor Place ToReceptacle Failed Item=%s Receptacle=%s Reason=EdgeNotFacingParty"),
 			*PartyInventoryComponent->GetCursorItem().ItemDefinitionId.ToString(), *ReceptacleActor->GetName());
 		return false;
 	}
@@ -191,17 +192,17 @@ bool AGrimrockPartyPawn::TryPlaceCursorItemInReceptacle(AGridReceptacleActor* Re
 	FGridItemInstance AcceptedItem;
 	if (!ReceptacleActor->TryInsertItemInstanceFromCursor(SingleItem, AcceptedItem))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Place ToReceptacle Failed Item=%s RuntimeId=%s Receptacle=%s Reason=ReceptacleRejected"),
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Cursor Place ToReceptacle Failed Item=%s RuntimeId=%s Receptacle=%s Reason=ReceptacleRejected"),
 			*CursorItem.ItemDefinitionId.ToString(), *CursorItem.RuntimeObjectId.ToString(), *ReceptacleActor->GetName());
 		return false;
 	}
 
 	ConsumeOneCursorItemAfterSuccessfulAction();
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor ConsumedOne AfterReceptacle Item=%s RuntimeId=%s Receptacle=%s"), *AcceptedItem.ItemDefinitionId.ToString(),
+	UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridInventory Cursor ConsumedOne AfterReceptacle Item=%s RuntimeId=%s Receptacle=%s"), *AcceptedItem.ItemDefinitionId.ToString(),
 		*AcceptedItem.RuntimeObjectId.ToString(), *ReceptacleActor->GetName());
 	PartyInventoryComponent->LogInventoryOwnershipDiagnostics();
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Place ToReceptacle Item=%s RuntimeId=%s Receptacle=%s Result=true"),
+	UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridInventory Cursor Place ToReceptacle Item=%s RuntimeId=%s Receptacle=%s Result=true"),
 		*AcceptedItem.ItemDefinitionId.ToString(), *AcceptedItem.RuntimeObjectId.ToString(), *ReceptacleActor->GetName());
 	return true;
 }
@@ -264,14 +265,14 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection)
 	const FVector LaunchVelocity = ThrowDirection * FMath::Max(0.0f, ItemDefinition->ThrowSpeed) * StrengthSpeedScale;
 	if (!LevelRuntimeActor->TrySpawnThrownItemProjectile(ThrownItem, StartLocation, LaunchVelocity, CurrentCellX, CurrentCellY))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Throw Failed Item=%s Quantity=%d Reason=ProjectileSpawnFailed"), *CursorItem.ItemDefinitionId.ToString(),
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Throw Failed Item=%s Quantity=%d Reason=ProjectileSpawnFailed"), *CursorItem.ItemDefinitionId.ToString(),
 			CursorItem.Quantity);
 		return false;
 	}
 
 	ConsumeOneCursorItemAfterSuccessfulAction();
 
-	UE_LOG(LogTemp, Log,
+	UE_LOG(LogGridItemTransfer, Verbose,
 		TEXT("GridInventory Throw Item=%s RuntimeId=%s Strength=%d Weight=%.2f SpeedScale=%.3f CursorQuantityBefore=%d CursorQuantityAfter=%d Result=true"),
 		*ThrownItem.ItemDefinitionId.ToString(), *ThrownItem.RuntimeObjectId.ToString(), Strength, ItemDefinition->Weight, StrengthSpeedScale, CursorItem.Quantity,
 		FMath::Max(0, CursorItem.Quantity - 1));
@@ -333,7 +334,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory MainHandThrow Item=%s Character=%d Strength=%d Weight=%.2f SpeedScale=%.3f Result=true"),
+	UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridInventory MainHandThrow Item=%s Character=%d Strength=%d Weight=%.2f SpeedScale=%.3f Result=true"),
 		*WorldItem.ItemDefinitionId.ToString(), CharacterIndex, Strength, ItemDefinition->Weight, StrengthSpeedScale);
 	return true;
 }
@@ -445,7 +446,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterInventoryItem(FName ItemDefini
 		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory InventoryPhysicalThrow Item=%s Character=%d Strength=%d Weight=%.2f SpeedScale=%.3f Result=true"),
+	UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridInventory InventoryPhysicalThrow Item=%s Character=%d Strength=%d Weight=%.2f SpeedScale=%.3f Result=true"),
 		*ItemDefinitionId.ToString(), CharacterIndex, Strength, ItemDefinition->Weight, StrengthSpeedScale);
 	return true;
 }
@@ -497,12 +498,12 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	if (!ThrownActor)
 	{
 		const bool bRestored = PartyInventoryComponent->TryRestoreExtractedItemToEquipment(CharacterIndex, SourceSlot, WorldItem);
-		UE_LOG(LogTemp, Error, TEXT("GridPlayerAttack Throw Failed Item=%s Character=%d Slot=%s Restored=%s"), *ExpectedItemDefinitionId.ToString(), CharacterIndex,
+		UE_LOG(LogGridItemTransfer, Error, TEXT("GridPlayerAttack Throw Failed Item=%s Character=%d Slot=%s Restored=%s"), *ExpectedItemDefinitionId.ToString(), CharacterIndex,
 			GridEquipmentSlotUtils::GetLogName(SourceSlot), bRestored ? TEXT("true") : TEXT("false"));
 		return nullptr;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridPlayerAttack Throw Launched Item=%s RuntimeId=%s Character=%d Slot=%s Target=(%.2f,%.2f,%.2f) Result=true"),
+	UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridPlayerAttack Throw Launched Item=%s RuntimeId=%s Character=%d Slot=%s Target=(%.2f,%.2f,%.2f) Result=true"),
 		*WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString(), CharacterIndex, GridEquipmentSlotUtils::GetLogName(SourceSlot),
 		TargetWorldLocation.X, TargetWorldLocation.Y, TargetWorldLocation.Z);
 	return ThrownActor;
@@ -555,7 +556,7 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchInventoryItemForAttack(
 		WorldItem, ItemDefinition, StartLocation, ThrowDirection * FMath::Max(0.0f, ItemDefinition->ThrowSpeed) * StrengthSpeedScale, SourceCell.X, SourceCell.Y);
 	if (ThrownActor)
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridPlayerAttack InventoryThrow VisualLaunched Item=%s RuntimeId=%s Character=%d"), *WorldItem.ItemDefinitionId.ToString(),
+		UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridPlayerAttack InventoryThrow VisualLaunched Item=%s RuntimeId=%s Character=%d"), *WorldItem.ItemDefinitionId.ToString(),
 			*WorldItem.RuntimeObjectId.ToString(), CharacterIndex);
 	}
 	return ThrownActor;
@@ -604,7 +605,7 @@ bool AGrimrockPartyPawn::DebugPlaceCursorItemInFrontReceptacle()
 {
 	if (!PartyInventoryComponent)
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGridItemTransfer, Warning,
 			TEXT("GridInventory Cursor DebugPlaceInFront Failed Cell=(%d,%d) Edge=%d Item=None Receptacle=None Reason=NoPartyInventoryComponent"), CurrentCellX,
 			CurrentCellY, static_cast<int32>(Facing));
 		return false;
@@ -620,13 +621,13 @@ bool AGrimrockPartyPawn::DebugPlaceCursorItemInFrontReceptacle()
 
 	if (!LevelRuntimeActor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor DebugPlaceInFront Failed Cell=(%d,%d) Edge=%d Item=%s Receptacle=None Reason=NoLevelRuntimeActor"),
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Cursor DebugPlaceInFront Failed Cell=(%d,%d) Edge=%d Item=%s Receptacle=None Reason=NoLevelRuntimeActor"),
 			CurrentCellX, CurrentCellY, static_cast<int32>(Facing), *CursorItemText);
 		return false;
 	}
 
 	AGridReceptacleActor* ReceptacleActor = LevelRuntimeActor->FindReceptacleAtEdge(CurrentCellX, CurrentCellY, Facing);
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor DebugPlaceInFront Cell=(%d,%d) Edge=%d Item=%s Receptacle=%s"), CurrentCellX, CurrentCellY,
+	UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridInventory Cursor DebugPlaceInFront Cell=(%d,%d) Edge=%d Item=%s Receptacle=%s"), CurrentCellX, CurrentCellY,
 		static_cast<int32>(Facing), *CursorItemText, *GetNameSafe(ReceptacleActor));
 
 	if (!ReceptacleActor)

@@ -11,6 +11,8 @@
 #include "Runtime/GridPartyIlluminationComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridItemTransfer, Log, All);
+
 bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 {
 	if (ItemDefinitionId.IsNone())
@@ -30,7 +32,7 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 	}
 	if (!ItemDefinition)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Held item equip failed: item definition %s could not be resolved."), *ItemDefinitionId.ToString());
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("Held item equip failed: item definition %s could not be resolved."), *ItemDefinitionId.ToString());
 		return false;
 	}
 
@@ -56,7 +58,7 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 
 	if (!HeldItemActor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Held item equip failed: could not spawn item definition %s."), *ItemDefinitionId.ToString());
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("Held item equip failed: could not spawn item definition %s."), *ItemDefinitionId.ToString());
 		return false;
 	}
 
@@ -78,7 +80,7 @@ bool AGrimrockPartyPawn::EquipHeldItem(FName ItemDefinitionId)
 	HeldItemActor->OnPlacedInWorld();
 	HeldItemDefinitionId = ItemDefinitionId;
 
-	UE_LOG(LogTemp, Log, TEXT("Held item equipped: %s Mesh=%s"), *ItemDefinitionId.ToString(),
+	UE_LOG(LogGridItemTransfer, Verbose, TEXT("Held item equipped: %s Mesh=%s"), *ItemDefinitionId.ToString(),
 		HeldItemActor->MeshComponent ? *GetNameSafe(HeldItemActor->MeshComponent->GetStaticMesh()) : TEXT("None"));
 	return true;
 }
@@ -168,7 +170,7 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 	if (!VisualItem || VisualSlot == EGridEquipmentSlot::None)
 	{
 		ClearHeldItem();
-		UE_LOG(LogTemp, Verbose, TEXT("GridInventory HeldVisual Sync None Character=%d MainHand=%s MainLight=%s OffHand=%s OffLight=%s Reason=NoEquippedLight"),
+		UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridInventory HeldVisual Sync None Character=%d MainHand=%s MainLight=%s OffHand=%s OffLight=%s Reason=NoEquippedLight"),
 			CharacterIndex, bHasMainHandItem ? *MainHandItem.ItemDefinitionId.ToString() : TEXT("None"), bMainLight ? TEXT("true") : TEXT("false"),
 			bHasOffHandItem ? *OffHandItem.ItemDefinitionId.ToString() : TEXT("None"), bOffLight ? TEXT("true") : TEXT("false"));
 		return;
@@ -184,6 +186,6 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 		HeldItemActor->SetItemLightsEnabled(bAnyEquippedLight);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory HeldVisual Sync Equipped Character=%d Slot=%s Item=%s"), CharacterIndex,
+	UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridInventory HeldVisual Sync Equipped Character=%d Slot=%s Item=%s"), CharacterIndex,
 		GridEquipmentSlotUtils::GetLogName(VisualSlot), *VisualItem->ItemDefinitionId.ToString());
 }

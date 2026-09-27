@@ -6,6 +6,8 @@
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridItemTransfer, Log, All);
+
 namespace
 {
 	FGridItemTransferResult MakeTransferResult(EGridItemTransferResult Result, const FString& Message)
@@ -20,7 +22,7 @@ namespace
 	FGridItemTransferResult LogTransferFailure(
 		const TCHAR* Operation, EGridItemTransferResult Result, const FString& Message, const FGridItemInstance* Item = nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridItemTransfer Failed Operation=%s Result=%s Item=%s RuntimeId=%s Message=%s"), Operation,
+		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridItemTransfer Failed Operation=%s Result=%s Item=%s RuntimeId=%s Message=%s"), Operation,
 			*UEnum::GetValueAsString(Result), Item ? *Item->ItemDefinitionId.ToString() : TEXT("None"), Item ? *Item->RuntimeObjectId.ToString() : TEXT("None"),
 			*Message);
 		return MakeTransferResult(Result, Message);
@@ -28,7 +30,7 @@ namespace
 
 	FGridItemTransferResult LogTransferSuccess(const TCHAR* Operation, const FGridItemInstance& Item, const FString& Message)
 	{
-		UE_LOG(LogTemp, Log, TEXT("GridItemTransfer Success Operation=%s Item=%s RuntimeId=%s Message=%s"), Operation, *Item.ItemDefinitionId.ToString(),
+		UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridItemTransfer Success Operation=%s Item=%s RuntimeId=%s Message=%s"), Operation, *Item.ItemDefinitionId.ToString(),
 			*Item.RuntimeObjectId.ToString(), *Message);
 		return MakeTransferResult(EGridItemTransferResult::Success, Message);
 	}
@@ -319,7 +321,7 @@ FGridItemTransferResult UGridItemTransferService::TransferInventorySlotToCharact
 	if (!Inventory->CanAddItemToCharacterInventory(TargetCharacterIndex, Candidate))
 	{
 		const FString Message = TEXT("Target character inventory has no capacity for the item.");
-		UE_LOG(LogTemp, Verbose, TEXT("GridItemTransfer Rejected Operation=%s Result=%s Item=%s RuntimeId=%s Message=%s"), Operation,
+		UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridItemTransfer Rejected Operation=%s Result=%s Item=%s RuntimeId=%s Message=%s"), Operation,
 			*UEnum::GetValueAsString(EGridItemTransferResult::InventoryFull), *Candidate.ItemDefinitionId.ToString(), *Candidate.RuntimeObjectId.ToString(),
 			*Message);
 		return MakeTransferResult(EGridItemTransferResult::InventoryFull, Message);
