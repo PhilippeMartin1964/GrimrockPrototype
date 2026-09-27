@@ -9,6 +9,7 @@
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Sound/SoundAttenuation.h"
 #include "Sound/SoundWave.h"
+#include "UObject/UnrealType.h"
 
 namespace
 {
@@ -118,26 +119,41 @@ bool FGridObjectGenericAudioContractTest::RunTest(const FString& Parameters)
 	const FGridObjectAudioPlaybackResult AfterTrigger = ButtonActor->PlayObjectAudioEventDetailed(TEXT("Activated"), false);
 	TestTrue(TEXT("TriggerPress consumes the first Activated audio variant"), AfterTrigger.Sound == ActivatedSoundB);
 
-	// Backward compatibility: already-saved door definitions using the historical
-	// fields still resolve as generic Open/Close until they are resaved/migrated.
-	UGridWorldObjectDefinitionAsset* LegacyDoor = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
-	LegacyDoor->SupportedType = EGridLevelObjectType::Door;
-	USoundWave* LegacyOpen = NewObject<USoundWave>(LegacyDoor);
-	LegacyDoor->DoorOpenSounds.Add(LegacyOpen);
-	LegacyDoor->DoorAudioVolume = 0.75f;
+	// CPP-CLEAN01: Door audio uses the same canonical generic contract as every
+	// other runtime object. No historical Door-specific property may remain.
+	UClass* DefinitionClass = UGridWorldObjectDefinitionAsset::StaticClass();
+	TestNull(TEXT("DoorOpenSounds legacy property is removed"), DefinitionClass->FindPropertyByName(TEXT("DoorOpenSounds")));
+	TestNull(TEXT("DoorCloseSounds legacy property is removed"), DefinitionClass->FindPropertyByName(TEXT("DoorCloseSounds")));
+	TestNull(TEXT("DoorAudioVolume legacy property is removed"), DefinitionClass->FindPropertyByName(TEXT("DoorAudioVolume")));
+	TestNull(TEXT("DoorAudioPitchVariation legacy property is removed"), DefinitionClass->FindPropertyByName(TEXT("DoorAudioPitchVariation")));
+	TestNull(TEXT("DoorAudioAttenuation legacy property is removed"), DefinitionClass->FindPropertyByName(TEXT("DoorAudioAttenuation")));
 
-	AGridRuntimeObjectActor* LegacyRuntimeObject = TestWorld.World->SpawnActor<AGridRuntimeObjectActor>();
-	TestNotNull(TEXT("The legacy compatibility runtime object exists"), LegacyRuntimeObject);
-	if (!LegacyRuntimeObject)
+	UGridWorldObjectDefinitionAsset* DoorDefinition = NewObject<UGridWorldObjectDefinitionAsset>(TestWorld.World);
+	DoorDefinition->DefinitionId = TEXT("Door_GenericAudio_Test");
+	DoorDefinition->SupportedType = EGridLevelObjectType::Door;
+	USoundAttenuation* DoorAttenuation = NewObject<USoundAttenuation>(DoorDefinition);
+	DoorDefinition->DefaultAudioAttenuation = DoorAttenuation;
+	USoundWave* OpenSound = NewObject<USoundWave>(DoorDefinition);
+	FGridObjectAudioEvent OpenEvent;
+	OpenEvent.Volume = 0.75f;
+	OpenEvent.PitchVariation = 0.0f;
+	OpenEvent.Sounds.Add(OpenSound);
+	DoorDefinition->AudioEvents.Add(TEXT("Open"), OpenEvent);
+
+	AGridRuntimeObjectActor* DoorRuntimeObject = TestWorld.World->SpawnActor<AGridRuntimeObjectActor>();
+	TestNotNull(TEXT("The canonical Door runtime object exists"), DoorRuntimeObject);
+	if (!DoorRuntimeObject)
 	{
 		return false;
 	}
-	LegacyRuntimeObject->ConfigureObjectAudio(LegacyDoor);
-	TestTrue(TEXT("Legacy door Open data transparently resolves through generic audio"), LegacyRuntimeObject->HasObjectAudioEvent(TEXT("Open")));
+	DoorRuntimeObject->ConfigureObjectAudio(DoorDefinition);
+	TestTrue(TEXT("Door uses the same single configured attenuation"), DoorRuntimeObject->DefaultObjectAudioAttenuation == DoorAttenuation);
+	TestTrue(TEXT("Door exposes its canonical generic Open event"), DoorRuntimeObject->HasObjectAudioEvent(TEXT("Open")));
+	TestFalse(TEXT("Door does not invent an undeclared Close event"), DoorRuntimeObject->HasObjectAudioEvent(TEXT("Close")));
 
-	const FGridObjectAudioPlaybackResult LegacyPlayback = LegacyRuntimeObject->PlayObjectAudioEventDetailed(TEXT("Open"), false);
-	TestTrue(TEXT("Legacy door playback request survives migration"), LegacyPlayback.bRequested);
-	TestTrue(TEXT("Legacy door sound survives migration"), LegacyPlayback.Sound == LegacyOpen);
+	const FGridObjectAudioPlaybackResult DoorPlayback = DoorRuntimeObject->PlayObjectAudioEventDetailed(TEXT("Open"), false);
+	TestTrue(TEXT("Canonical Door Open playback resolves"), DoorPlayback.bRequested);
+	TestTrue(TEXT("Canonical Door Open uses the configured sound"), DoorPlayback.Sound == OpenSound);
 
 	return true;
 }

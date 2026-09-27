@@ -11,7 +11,6 @@
 
 class AGridRuntimeObjectActor;
 class UMaterialInterface;
-class USoundBase;
 class USoundAttenuation;
 
 UENUM(BlueprintType)
@@ -107,21 +106,6 @@ public:
 			ToolTip = "Data-driven audio events for this definition. Prefer existing gameplay semantics when available (for example Activated/Deactivated, Open/Close); custom names remain supported."))
 	TMap<FName, FGridObjectAudioEvent> AudioEvents;
 
-	// Existing audio migration is intentionally untouched by WORLDOBJ-MIG03.
-	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use AudioEvents[Open].Sounds."))
-	TArray<TObjectPtr<USoundBase>> DoorOpenSounds;
-
-	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use AudioEvents[Close].Sounds."))
-	TArray<TObjectPtr<USoundBase>> DoorCloseSounds;
-
-	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use AudioEvents event Volume."))
-	float DoorAudioVolume = 1.0f;
-
-	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use AudioEvents event PitchVariation."))
-	float DoorAudioPitchVariation = 0.0f;
-
-	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use the definition Audio > Attenuation field."))
-	TObjectPtr<USoundAttenuation> DoorAudioAttenuation = nullptr;
 
 	/**
 	 * WORLDOBJ-MIG01 placement authority.
@@ -281,10 +265,6 @@ public:
 		return MovingParts.ContainsByPredicate([](const FGridWorldObjectMovingPart& Part) { return Part.IsDefined(); });
 	}
 
-	virtual void PostLoad() override;
-
-	/** Resolves a generic event, including the pre-existing audio migration path. */
-	bool ResolveAudioEvent(FName EventName, FGridObjectAudioEvent& OutEvent) const;
 
 	bool ValidateDefinition(TArray<FGridWorldObjectDefinitionValidationMessage>& OutMessages) const;
 	bool IsValidDefinition() const;

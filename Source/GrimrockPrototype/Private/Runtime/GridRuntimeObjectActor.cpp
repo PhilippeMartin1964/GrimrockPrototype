@@ -87,26 +87,7 @@ void AGridRuntimeObjectActor::ConfigureObjectAudio(const UGridWorldObjectDefinit
 	}
 
 	ObjectAudioEvents = Definition->AudioEvents;
-	// One object = one attenuation profile. Legacy Door attenuation is only a
-	// compatibility fallback for assets that have not yet been resaved.
-	DefaultObjectAudioAttenuation = Definition->DefaultAudioAttenuation
-		? Definition->DefaultAudioAttenuation
-		: (Definition->SupportedType == EGridLevelObjectType::Door ? Definition->DoorAudioAttenuation : nullptr);
-
-	// Preserve already-authored door assets that still contain the legacy fields.
-	for (const FName EventName : { FName(TEXT("Open")), FName(TEXT("Close")) })
-	{
-		if (ObjectAudioEvents.Contains(EventName))
-		{
-			continue;
-		}
-
-		FGridObjectAudioEvent LegacyResolvedEvent;
-		if (Definition->ResolveAudioEvent(EventName, LegacyResolvedEvent))
-		{
-			ObjectAudioEvents.Add(EventName, MoveTemp(LegacyResolvedEvent));
-		}
-	}
+	DefaultObjectAudioAttenuation = Definition->DefaultAudioAttenuation;
 }
 
 bool AGridRuntimeObjectActor::HasObjectAudioEvent(FName EventName) const

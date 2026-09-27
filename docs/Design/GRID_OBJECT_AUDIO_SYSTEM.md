@@ -86,22 +86,19 @@ Actor spécialisé
     = politique d'interruption éventuelle
 ~~~
 
-## Compatibilité historique Door
+## Autorité unique — CPP-CLEAN01
 
-Les anciens champs Door audio restent uniquement pour désérialiser les DataAssets existants.
+Depuis **CPP-CLEAN01**, il n'existe plus de schéma audio spécifique aux portes ni de migration runtime.
 
 ~~~text
-DoorAudioAttenuation
-    -> Audio > Attenuation
-
-DoorOpenSounds
-    -> AudioEvents["Open"]
-
-DoorCloseSounds
-    -> AudioEvents["Close"]
+Audio > Attenuation
+AudioEvents["Open"]
+AudioEvents["Close"]
 ~~~
 
-Ils sont cachés et dépréciés pour le nouvel authoring.
+sont les seules données audio de porte reconnues. Les anciens champs `DoorOpenSounds`, `DoorCloseSounds`, `DoorAudioVolume`, `DoorAudioPitchVariation` et `DoorAudioAttenuation` ont été supprimés, tout comme le `PostLoad()` de migration et les fallbacks runtime associés.
+
+Le prototype suit donc sa politique de schéma courant : un asset non conforme doit être corrigé dans l'éditeur plutôt que maintenu par une seconde autorité de compatibilité C++.
 
 ## Validation
 

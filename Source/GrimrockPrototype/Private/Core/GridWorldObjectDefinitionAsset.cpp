@@ -74,67 +74,6 @@ namespace
 	}
 }
 
-void UGridWorldObjectDefinitionAsset::PostLoad()
-{
-	Super::PostLoad();
-
-	if (SupportedType != EGridLevelObjectType::Door)
-	{
-		return;
-	}
-
-	if (!DefaultAudioAttenuation && DoorAudioAttenuation)
-	{
-		DefaultAudioAttenuation = DoorAudioAttenuation;
-	}
-
-	auto MigrateLegacyEvent = [this](FName EventName, const TArray<TObjectPtr<USoundBase>>& LegacySounds)
-	{
-		if (AudioEvents.Contains(EventName) || LegacySounds.IsEmpty())
-		{
-			return;
-		}
-		FGridObjectAudioEvent Event;
-		Event.Sounds = LegacySounds;
-		Event.Volume = DoorAudioVolume;
-		Event.PitchVariation = DoorAudioPitchVariation;
-		AudioEvents.Add(EventName, MoveTemp(Event));
-	};
-
-	MigrateLegacyEvent(TEXT("Open"), DoorOpenSounds);
-	MigrateLegacyEvent(TEXT("Close"), DoorCloseSounds);
-}
-
-bool UGridWorldObjectDefinitionAsset::ResolveAudioEvent(FName EventName, FGridObjectAudioEvent& OutEvent) const
-{
-	if (const FGridObjectAudioEvent* Event = AudioEvents.Find(EventName))
-	{
-		OutEvent = *Event;
-		return true;
-	}
-
-	if (SupportedType == EGridLevelObjectType::Door)
-	{
-		const TArray<TObjectPtr<USoundBase>>* LegacySounds = nullptr;
-		if (EventName == FName(TEXT("Open")))
-		{
-			LegacySounds = &DoorOpenSounds;
-		}
-		else if (EventName == FName(TEXT("Close")))
-		{
-			LegacySounds = &DoorCloseSounds;
-		}
-		if (LegacySounds && !LegacySounds->IsEmpty())
-		{
-			OutEvent.Sounds = *LegacySounds;
-			OutEvent.Volume = DoorAudioVolume;
-			OutEvent.PitchVariation = DoorAudioPitchVariation;
-			return true;
-		}
-	}
-	return false;
-}
-
 bool UGridWorldObjectDefinitionAsset::ValidateDefinition(TArray<FGridWorldObjectDefinitionValidationMessage>& OutMessages) const
 {
 	OutMessages.Reset();
