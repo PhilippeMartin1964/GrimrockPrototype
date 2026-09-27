@@ -81,9 +81,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Door|Chain")
 	TObjectPtr<UBoxComponent> ChainInteractionBox;
 
+	/** Presentation default authored by the runtime actor class (BP_GridDoorActor); no native asset-path fallback. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door|Chain")
 	TObjectPtr<UStaticMesh> ChainSupportMesh;
 
+	/** Presentation default authored by the runtime actor class (BP_GridDoorActor); no native asset-path fallback. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door|Chain")
 	TObjectPtr<UStaticMesh> ChainMovingMesh;
 

@@ -199,7 +199,7 @@ bool UGrimrockMainMenuWidget::OpenNewGameCharacterCreation()
 		return false;
 	}
 
-	TSubclassOf<URPGCharacterCreationWidget> WidgetClass = ResolveCharacterCreationWidgetClass();
+	TSubclassOf<URPGCharacterCreationWidget> WidgetClass = CharacterCreationWidgetClass;
 	if (!WidgetClass)
 	{
 		UE_LOG(LogTemp, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=NoCharacterCreationWidgetClass"), *GetName());
@@ -278,19 +278,6 @@ void UGrimrockMainMenuWidget::RestoreMainMenuInput()
 	PlayerController->SetInputMode(InputMode);
 	PlayerController->bShowMouseCursor = true;
 }
-
-TSubclassOf<URPGCharacterCreationWidget> UGrimrockMainMenuWidget::ResolveCharacterCreationWidgetClass() const
-{
-	if (CharacterCreationWidgetClass)
-	{
-		return CharacterCreationWidgetClass;
-	}
-
-	return LoadClass<URPGCharacterCreationWidget>(
-		nullptr,
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C"));
-}
-
 void UGrimrockMainMenuWidget::HandleInitialCharacterCreationCommitted(URPGCharacterCreationWidget* SourceWidget)
 {
 	if (SourceWidget != NewGameCharacterCreationWidget.Get() || !NewGamePartyInventory ||

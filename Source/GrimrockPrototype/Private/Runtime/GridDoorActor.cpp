@@ -8,7 +8,6 @@
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
-#include "UObject/ConstructorHelpers.h"
 
 AGridDoorActor::AGridDoorActor()
 {
@@ -34,20 +33,6 @@ AGridDoorActor::AGridDoorActor()
 	ChainInteractionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ChainInteractionBox->SetCollisionResponseToAllChannels(ECR_Ignore);
 	ChainInteractionBox->SetGenerateOverlapEvents(false);
-
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> DefaultChainSupportMesh(
-		TEXT("/Game/GrimrockPrototype/Meshes/Door/SM_Door_Chain_Support_01.SM_Door_Chain_Support_01"));
-	if (DefaultChainSupportMesh.Succeeded())
-	{
-		ChainSupportMesh = DefaultChainSupportMesh.Object;
-	}
-
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> DefaultChainMovingMesh(
-		TEXT("/Game/GrimrockPrototype/Meshes/Door/SM_Door_Chain_Moving_01.SM_Door_Chain_Moving_01"));
-	if (DefaultChainMovingMesh.Succeeded())
-	{
-		ChainMovingMesh = DefaultChainMovingMesh.Object;
-	}
 }
 
 void AGridDoorActor::Tick(float DeltaSeconds)

@@ -73,7 +73,6 @@ private:
 	bool OpenNewGameCharacterCreation();
 	void CloseNewGameCharacterCreation(bool bRestoreMainMenu);
 	void RestoreMainMenuInput();
-	TSubclassOf<URPGCharacterCreationWidget> ResolveCharacterCreationWidgetClass() const;
 	void HandleInitialCharacterCreationCommitted(URPGCharacterCreationWidget* SourceWidget);
 	void HandleInitialCharacterCreationCancelled(URPGCharacterCreationWidget* SourceWidget);
 
@@ -116,6 +115,7 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu|Modal", meta = (AllowPrivateAccess = "true", ClampMin = "0"))
 	int32 ModalZOrder = 200;
 
+	/** Required frontend wizard class. WBP_MainMenu owns this configuration; there is no native hard-coded fallback. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu|New Game", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<URPGCharacterCreationWidget> CharacterCreationWidgetClass;
 
