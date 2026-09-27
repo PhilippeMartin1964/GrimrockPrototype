@@ -37,7 +37,7 @@ bool FGridEditorCppClean04AssetConfigurationTest::RunTest(const FString& Paramet
 		nullptr,
 		TEXT("/Game/GrimrockPrototype/Blueprints/Runtime/BP_GridDoorActor.BP_GridDoorActor"));
 	if (!TestNotNull(TEXT("Canonical BP_GridDoorActor loads"), DoorBlueprint) ||
-		!TestNotNull(TEXT("Canonical BP_GridDoorActor has a generated class"), DoorBlueprint ? DoorBlueprint->GeneratedClass : nullptr))
+		!TestTrue(TEXT("Canonical BP_GridDoorActor has a generated class"), DoorBlueprint && DoorBlueprint->GeneratedClass != nullptr))
 	{
 		return false;
 	}
@@ -47,8 +47,8 @@ bool FGridEditorCppClean04AssetConfigurationTest::RunTest(const FString& Paramet
 	{
 		return false;
 	}
-	TestNotNull(TEXT("BP_GridDoorActor authors the chain support mesh"), BlueprintDoorCDO->ChainSupportMesh);
-	TestNotNull(TEXT("BP_GridDoorActor authors the chain moving mesh"), BlueprintDoorCDO->ChainMovingMesh);
+	TestNotNull(TEXT("BP_GridDoorActor authors the chain support mesh"), BlueprintDoorCDO->ChainSupportMesh.Get());
+	TestNotNull(TEXT("BP_GridDoorActor authors the chain moving mesh"), BlueprintDoorCDO->ChainMovingMesh.Get());
 
 	// Every current definition that enables a chain must resolve to an actor class
 	// whose CDO provides the required presentation assets.
@@ -91,10 +91,10 @@ bool FGridEditorCppClean04AssetConfigurationTest::RunTest(const FString& Paramet
 
 		TestNotNull(
 			*FString::Printf(TEXT("%s runtime class provides ChainSupportMesh"), *AssetData.PackageName.ToString()),
-			DefinitionDoorCDO->ChainSupportMesh);
+			DefinitionDoorCDO->ChainSupportMesh.Get());
 		TestNotNull(
 			*FString::Printf(TEXT("%s runtime class provides ChainMovingMesh"), *AssetData.PackageName.ToString()),
-			DefinitionDoorCDO->ChainMovingMesh);
+			DefinitionDoorCDO->ChainMovingMesh.Get());
 	}
 	TestTrue(TEXT("At least one production Door definition exercises chain presentation"), ChainEnabledDefinitionCount > 0);
 
@@ -103,7 +103,7 @@ bool FGridEditorCppClean04AssetConfigurationTest::RunTest(const FString& Paramet
 		nullptr,
 		TEXT("/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_MainMenu.WBP_MainMenu"));
 	if (!TestNotNull(TEXT("Canonical WBP_MainMenu loads"), MainMenuBlueprint) ||
-		!TestNotNull(TEXT("Canonical WBP_MainMenu has a generated class"), MainMenuBlueprint ? MainMenuBlueprint->GeneratedClass : nullptr))
+		!TestTrue(TEXT("Canonical WBP_MainMenu has a generated class"), MainMenuBlueprint && MainMenuBlueprint->GeneratedClass != nullptr))
 	{
 		return false;
 	}
