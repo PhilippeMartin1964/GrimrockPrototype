@@ -367,6 +367,15 @@ namespace
 			FGridCharacterInventoryState Character;
 			Character.CharacterId = FGuid::NewGuid();
 			Character.DisplayName = FText::FromString(TEXT("MON13.5 PIE Test"));
+			Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
+			for (int32 SlotIndex = 0; SlotIndex < Character.CombatHotbarSlots.Num(); ++SlotIndex)
+			{
+				Character.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);
+			}
+			FGridCombatHotbarBinding& PrimaryAttack =
+				Character.CombatHotbarSlots[FGridCombatHotbarBinding::PrimaryAttackSlotIndex];
+			PrimaryAttack.ActionId = FGridCombatHotbarBinding::MakePrimaryAttackActionId();
+			PrimaryAttack.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
 			Save->PartyInventoryState.ActiveCharacters.Add(Character);
 			Save->PartyInventoryState.ActiveEquipment.AddDefaulted();
 			Save->CurrentDungeonLevelId = EditorActor->CurrentDungeonLevelId;

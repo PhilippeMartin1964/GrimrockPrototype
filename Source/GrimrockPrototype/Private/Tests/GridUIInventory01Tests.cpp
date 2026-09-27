@@ -3,8 +3,52 @@
 #include "Misc/AutomationTest.h"
 
 #include "Components/TextBlock.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
+
+namespace
+{
+	struct FGridUIInventory01TestWorld
+	{
+		UWorld* World = nullptr;
+
+		FGridUIInventory01TestWorld()
+		{
+			const UWorld::InitializationValues Values = UWorld::InitializationValues()
+				.AllowAudioPlayback(false)
+				.RequiresHitProxies(false)
+				.CreatePhysicsScene(false)
+				.CreateNavigation(false)
+				.CreateAISystem(false)
+				.ShouldSimulatePhysics(false)
+				.SetTransactional(false);
+			World = UWorld::CreateWorld(EWorldType::Game, false,
+				FName(*FString::Printf(TEXT("UIInventory01World_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
+				ERHIFeatureLevel::Num, &Values);
+			if (World && GEngine)
+			{
+				FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
+				Context.SetCurrentWorld(World);
+			}
+		}
+
+		~FGridUIInventory01TestWorld()
+		{
+			if (!World)
+			{
+				return;
+			}
+			World->DestroyWorld(false);
+			if (GEngine)
+			{
+				GEngine->DestroyWorldContext(World);
+			}
+		}
+	};
+}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIInventory01SelectedBagProjectionTest, "Grimrock.UI.Inventory01.SelectedBagProjection",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -13,32 +57,36 @@ bool FGridUIInventory01SelectedBagProjectionTest::RunTest(const FString& Paramet
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	FGridUIInventory01TestWorld TestWorld;
+	AGrimrockPartyPawn* Party = TestWorld.World ? TestWorld.World->SpawnActor<AGrimrockPartyPawn>() : nullptr;
+	UGridPartyInventoryComponent* Inventory = Party ? Party->PartyInventoryComponent.Get() : nullptr;
 	UGridInventoryWidget* Widget = NewObject<UGridInventoryWidget>();
+	TestNotNull(TEXT("Party pawn exists"), Party);
 	TestNotNull(TEXT("Party inventory exists"), Inventory);
 	TestNotNull(TEXT("Inventory widget exists"), Widget);
-	if (!Inventory || !Widget)
+	if (!Party || !Inventory || !Widget)
 	{
 		return false;
 	}
 
 	Inventory->DefaultInventorySlotCountPerCharacter = 6;
 	Inventory->PartyInventoryState.ActiveCharacters.SetNum(2);
+	Inventory->PartyInventoryState.ActiveEquipment.SetNum(2);
 	Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
 
 	FGridCharacterInventoryState& First = Inventory->PartyInventoryState.ActiveCharacters[0];
+	First.CharacterId = FGuid::NewGuid();
 	First.DisplayName = FText::FromString(TEXT("Ariadne"));
 	First.InventorySlots.SetNum(6);
 
 	FGridCharacterInventoryState& Second = Inventory->PartyInventoryState.ActiveCharacters[1];
+	Second.CharacterId = FGuid::NewGuid();
 	Second.DisplayName = FText::FromString(TEXT("Borin"));
 	Second.InventorySlots.SetNum(6);
 
-	Widget->InventoryComponent = Inventory;
 	Widget->Text_InventoryBagOwner = NewObject<UTextBlock>(Widget);
 	Widget->Text_InventoryBagWeight = NewObject<UTextBlock>(Widget);
-
-	Widget->RefreshInventory();
+	Widget->InitializeInventoryWidget(Party);
 	TestEqual(TEXT("Bag owner follows selected character 0"), Widget->Text_InventoryBagOwner->GetText().ToString(), FString(TEXT("Sac de : Ariadne")));
 	TestTrue(TEXT("Bag weight uses compact Poids prefix for character 0"),
 		Widget->Text_InventoryBagWeight->GetText().ToString().StartsWith(TEXT("Poids : ")));

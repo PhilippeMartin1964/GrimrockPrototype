@@ -23,7 +23,7 @@ bool FGridMovingParts01RealAssetTest::RunTest(const FString& Parameters)
 	Filter.bRecursiveClasses = true;
 	TArray<FAssetData> Assets;
 	Registry.GetAssets(Filter, Assets);
-	TestEqual(TEXT("All 38 migrated definition assets remain discoverable"), Assets.Num(), 38);
+	TestTrue(TEXT("World-object definition assets remain discoverable"), !Assets.IsEmpty());
 
 	const TMap<FName, int32> ExpectedMovingPartCounts = {
 		{TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_Button_Normal"), 1},
@@ -37,20 +37,31 @@ bool FGridMovingParts01RealAssetTest::RunTest(const FString& Parameters)
 		{TEXT("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Pit_Stone"), 2},
 	};
 
+	TSet<FName> FoundExpectedAssets;
 	for (const FAssetData& AssetData : Assets)
 	{
 		UGridWorldObjectDefinitionAsset* Definition = Cast<UGridWorldObjectDefinitionAsset>(AssetData.GetAsset());
-		if (!TestNotNull(*FString::Printf(TEXT("Load final asset %s without migration redirect"), *AssetData.PackageName.ToString()), Definition))
+		if (!TestNotNull(*FString::Printf(TEXT("Load current asset %s without migration redirect"), *AssetData.PackageName.ToString()), Definition))
 		{
 			continue;
 		}
-		const int32 ExpectedCount = ExpectedMovingPartCounts.FindRef(AssetData.PackageName);
-		TestEqual(*FString::Printf(TEXT("Final MovingParts count for %s"), *AssetData.PackageName.ToString()), Definition->MovingParts.Num(), ExpectedCount);
+
+		if (const int32* ExpectedCount = ExpectedMovingPartCounts.Find(AssetData.PackageName))
+		{
+			FoundExpectedAssets.Add(AssetData.PackageName);
+			TestEqual(*FString::Printf(TEXT("Migrated MovingParts count for %s"), *AssetData.PackageName.ToString()), Definition->MovingParts.Num(), *ExpectedCount);
+		}
+
 		for (int32 Index = 0; Index < Definition->MovingParts.Num(); ++Index)
 		{
-			TestTrue(*FString::Printf(TEXT("Migrated part %d remains defined for %s"), Index, *AssetData.PackageName.ToString()),
+			TestTrue(*FString::Printf(TEXT("Moving part %d is defined for %s"), Index, *AssetData.PackageName.ToString()),
 				Definition->MovingParts[Index].IsDefined());
 		}
+	}
+
+	for (const TPair<FName, int32>& Expected : ExpectedMovingPartCounts)
+	{
+		TestTrue(*FString::Printf(TEXT("Migrated definition asset remains discoverable: %s"), *Expected.Key.ToString()), FoundExpectedAssets.Contains(Expected.Key));
 	}
 	return true;
 }

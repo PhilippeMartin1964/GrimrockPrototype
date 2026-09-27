@@ -135,11 +135,12 @@ bool FGridTD0132StateOnlyRuntimeRejectionTest::RunTest(const FString& Parameters
 	Activation->Initialize(Runtime);
 	Activation->RebuildIndexes();
 
-	AddExpectedError(TEXT("Grid link failed:"), EAutomationExpectedErrorFlags::Contains, 6);
-	TestFalse(TEXT("StateOnly Activate links are rejected at runtime"), Activation->ExecuteLinksFromObjectForEvent(SourceId, EGridObjectEvent::Activated));
-	TestFalse(TEXT("Relocation was not activated by a rejected link"), Activation->GetActiveObjectIds().Contains(RelocationId));
-	TestFalse(TEXT("ItemSpawn was not activated by a rejected link"), Activation->GetActiveObjectIds().Contains(ItemSpawnId));
-	TestFalse(TEXT("Light was not activated by a rejected link"), Activation->GetActiveObjectIds().Contains(LightId));
+	AddExpectedError(TEXT("Grid link failed:"), EAutomationExpectedErrorFlags::Contains, 4);
+	TestTrue(TEXT("Supported Relocation Activate still succeeds beside rejected StateOnly links"),
+		Activation->ExecuteLinksFromObjectForEvent(SourceId, EGridObjectEvent::Activated));
+	TestTrue(TEXT("Relocation is activated by its gameplay command"), Activation->GetActiveObjectIds().Contains(RelocationId));
+	TestFalse(TEXT("ItemSpawn StateOnly activation is rejected"), Activation->GetActiveObjectIds().Contains(ItemSpawnId));
+	TestFalse(TEXT("Light StateOnly activation is rejected"), Activation->GetActiveObjectIds().Contains(LightId));
 
 	TSet<FGuid> PreexistingActiveIds;
 	PreexistingActiveIds.Add(RelocationId);
@@ -147,8 +148,9 @@ bool FGridTD0132StateOnlyRuntimeRejectionTest::RunTest(const FString& Parameters
 	PreexistingActiveIds.Add(LightId);
 	Activation->SetActiveObjectIds(PreexistingActiveIds);
 
-	TestFalse(TEXT("StateOnly Deactivate links are rejected at runtime"), Activation->ExecuteLinksFromObjectForEvent(SourceId, EGridObjectEvent::Deactivated));
-	TestTrue(TEXT("Rejected Relocation deactivation preserves preexisting state"), Activation->GetActiveObjectIds().Contains(RelocationId));
+	TestTrue(TEXT("Supported Relocation Deactivate still succeeds beside rejected StateOnly links"),
+		Activation->ExecuteLinksFromObjectForEvent(SourceId, EGridObjectEvent::Deactivated));
+	TestFalse(TEXT("Relocation gameplay deactivation clears active state"), Activation->GetActiveObjectIds().Contains(RelocationId));
 	TestTrue(TEXT("Rejected ItemSpawn deactivation preserves preexisting state"), Activation->GetActiveObjectIds().Contains(ItemSpawnId));
 	TestTrue(TEXT("Rejected Light deactivation preserves preexisting state"), Activation->GetActiveObjectIds().Contains(LightId));
 

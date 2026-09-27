@@ -34,6 +34,7 @@ namespace GridTD07332Tests
 	UGridPartyInventoryComponent* MakeCurrentParty(int32 MaxActiveCharacters = 2)
 	{
 		UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+		Inventory->DefaultInventorySlotCountPerCharacter = 4;
 		Inventory->PartyInventoryState = FGridPartyInventoryState();
 		Inventory->PartyInventoryState.MaxActiveCharacters = MaxActiveCharacters;
 		Inventory->PartyInventoryState.bInitialCharacterCreationCompleted = true;
@@ -79,9 +80,16 @@ bool FGridTD07332RecruitmentUsesCurrentAttributesTest::RunTest(const FString& Pa
 	Inventory->PartyInventoryState.CharacterPool.Add(MakeCurrentCharacter(RecruitId, TEXT("CurrentRecruit"), 14));
 
 	FRPGPartyRecruitmentResult Result;
-	TestTrue(TEXT("Current-schema candidate recruits without a legacy initialization marker"),
-		FRPGPartyRecruitmentService::TryRecruitFromPool(Inventory, RecruitId, Result));
+	const bool bRecruited = FRPGPartyRecruitmentService::TryRecruitFromPool(Inventory, RecruitId, Result);
+	if (!TestTrue(*FString::Printf(TEXT("Current-schema candidate recruits without a legacy initialization marker: %s"), *Result.Error), bRecruited))
+	{
+		return false;
+	}
 	TestTrue(TEXT("Recruitment commits"), Result.bCommitted);
+	if (!TestTrue(TEXT("Recruitment appends the current-schema candidate"), Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(1)))
+	{
+		return false;
+	}
 	TestEqual(TEXT("Current Attributes survive recruitment"), Inventory->PartyInventoryState.ActiveCharacters[1].Attributes.Strength, 14);
 	return true;
 }

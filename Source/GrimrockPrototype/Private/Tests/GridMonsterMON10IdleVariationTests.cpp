@@ -422,7 +422,14 @@ bool FGridMonsterMON10IdleVariationRestoreSilentTest::RunTest(const FString& Par
 		Component->PlayIdleVariationNow();
 		TestEqual(TEXT("Fixture has transient history"), Component->PlaybackRequestCount, 1);
 
-		const FGridRuntimeMonsterState Saved = MakeMON10IdleSavedState(Monster, Case.State, Case.bDead);
+		FGridRuntimeMonsterState Saved = MakeMON10IdleSavedState(Monster, Case.State, Case.bDead);
+		if (Case.State == EGridMonsterState::Alert && !Case.bDead)
+		{
+			// Alert is only a valid durable awareness state when party knowledge is
+			// restored with it. Otherwise MON14.3 intentionally normalizes it to Idle.
+			Saved.bHasLastKnownPartyCell = true;
+			Saved.LastKnownPartyCell = FIntPoint(0, 0);
+		}
 		TestTrue(TEXT("The MON9 state restores"), Monster->RestoreRuntimeMonsterState(Saved, Runtime));
 		TestEqual(TEXT("Restore replays no request"), Component->PlaybackRequestCount, 0);
 		TestEqual(TEXT("Restore replays no delegate"), Component->PlaybackRequestBroadcastCount, 0);
