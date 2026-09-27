@@ -6,6 +6,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/RPGClassAsset.h"
 #include "RPG/RPGExperienceRewardService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -56,18 +57,52 @@ namespace
 		}
 	};
 
-	FGridCharacterInventoryState MakeMON152Character(int32 Seed, int32 Level = 1, int32 Experience = 0)
+	URPGClassAsset* MakeMON152Class(UObject* Outer)
+	{
+		URPGClassAsset* ClassDefinition = NewObject<URPGClassAsset>(Outer);
+		ClassDefinition->ClassId = TEXT("MON152_Fighter");
+		ClassDefinition->DisplayName = FText::FromString(TEXT("MON15.2 Fighter"));
+		ClassDefinition->BaseAttributes = FRPGAttributes{ 12, 11, 10, 9, 8, 7 };
+		ClassDefinition->HealthAtLevelOne = 20;
+		ClassDefinition->HealthPerLevel = 5;
+		ClassDefinition->ManaAtLevelOne = 5;
+		ClassDefinition->ManaPerLevel = 2;
+		return ClassDefinition;
+	}
+
+	FGridCharacterInventoryState MakeMON152Character(int32 Seed, int32 Level = 1, int32 Experience = 0, URPGClassAsset* ClassDefinition = nullptr)
 	{
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = FGuid(152, Seed, 0, 1);
 		Character.DisplayName = FText::FromString(FString::Printf(TEXT("MON15.2 Hero %d"), Seed));
+		Character.ClassId = ClassDefinition ? ClassDefinition->ClassId : NAME_None;
+		Character.ClassDisplayName = ClassDefinition ? ClassDefinition->DisplayName : FText::GetEmpty();
+		Character.ClassDefinition = ClassDefinition;
 		Character.Level = Level;
+		Character.LastAcknowledgedLevel = Level;
 		Character.Experience = Experience;
 		Character.Attributes = FRPGAttributes{ 12, 11, 10, 9, 8, 7 };
-		Character.DerivedStats.MaxHealth = 20 + Seed;
-		Character.Resources.CurrentHealth = 10 + Seed;
-		Character.DerivedStats.MaxMana = 5;
-		Character.Resources.CurrentMana = 3;
+
+		if (ClassDefinition)
+		{
+			Character.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, Level);
+			Character.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Character.DerivedStats, ClassDefinition);
+		}
+		else
+		{
+			Character.DerivedStats.MaxHealth = 20 + Seed;
+			Character.Resources.CurrentHealth = 10 + Seed;
+			Character.DerivedStats.MaxMana = 5;
+			Character.Resources.CurrentMana = 3;
+		}
+
+		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
+		for (int32 SlotIndex = 0; SlotIndex < Character.CombatHotbarSlots.Num(); ++SlotIndex)
+		{
+			Character.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);
+		}
+		Character.CombatHotbarSlots[FGridCombatHotbarBinding::PrimaryAttackSlotIndex].ActionId = FGridCombatHotbarBinding::MakePrimaryAttackActionId();
+		Character.CombatHotbarSlots[FGridCombatHotbarBinding::PrimaryAttackSlotIndex].SourcePolicy = EGridCombatActionSourcePolicy::Universal;
 		return Character;
 	}
 
@@ -157,7 +192,7 @@ bool FRPGMON152ActivePartyDistributionTest::RunTest(const FString& Parameters)
 
 	for (const FGridCharacterInventoryState& Character : Component->PartyInventoryState.ActiveCharacters)
 	{
-		TestEqual(TEXT("MON15.2 never changes stored Level"), Character.Level, 1);
+		TestEqual(TEXT("Sub-threshold XP does not change stored Level"), Character.Level, 1);
 	}
 
 	const int32 XPBeforeNoOp = Component->PartyInventoryState.ActiveCharacters[0].Experience;
@@ -174,36 +209,27 @@ bool FRPGMON152ProgressionBoundariesTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
-	Component->PartyInventoryState.ActiveCharacters = { MakeMON152Character(1, 1, 999), MakeMON152Character(2, 19, 189999) };
+	URPGClassAsset* ClassDefinition = MakeMON152Class(Component);
+	Component->PartyInventoryState.ActiveCharacters = {
+		MakeMON152Character(1, 1, 999, ClassDefinition),
+		MakeMON152Character(2, 19, 189999, ClassDefinition)
+	};
 
-	const FRPGDerivedStats FirstStatsBefore = Component->PartyInventoryState.ActiveCharacters[0].DerivedStats;
-	const FRPGDerivedStats SecondStatsBefore = Component->PartyInventoryState.ActiveCharacters[1].DerivedStats;
-	const FRPGCharacterResources FirstResourcesBefore = Component->PartyInventoryState.ActiveCharacters[0].Resources;
-	const FRPGCharacterResources SecondResourcesBefore = Component->PartyInventoryState.ActiveCharacters[1].Resources;
-
-	AddExpectedError(TEXT("Reason=InvalidClassDefinition"), EAutomationExpectedErrorFlags::Contains, 3);
 	TestEqual(TEXT("Three XP are fully shared at the boundary"), FRPGExperienceRewardService::AwardToActiveParty(Component, 3), 3);
 	TestEqual(TEXT("The first character crosses the level-two XP threshold"), Component->PartyInventoryState.ActiveCharacters[0].Experience, 1001);
 	TestEqual(TEXT("The second character reaches the maximum XP threshold"), Component->PartyInventoryState.ActiveCharacters[1].Experience, 190000);
-	TestEqual(TEXT("The first stored Level remains pending for MON15.3"), Component->PartyInventoryState.ActiveCharacters[0].Level, 1);
-	TestEqual(TEXT("The second stored Level remains unchanged"), Component->PartyInventoryState.ActiveCharacters[1].Level, 19);
-	TestEqual(TEXT("The first expected level can still be reconstructed"),
+	TestEqual(TEXT("The integrated XP transaction applies level two"), Component->PartyInventoryState.ActiveCharacters[0].Level, 2);
+	TestEqual(TEXT("The integrated XP transaction applies maximum level"), Component->PartyInventoryState.ActiveCharacters[1].Level, 20);
+	TestEqual(TEXT("The first expected level is reconstructible"),
 		URPGCharacterRulesLibrary::GetLevelForExperience(Component->PartyInventoryState.ActiveCharacters[0].Experience), 2);
-	TestEqual(TEXT("The second expected level can still be reconstructed"),
+	TestEqual(TEXT("The second expected level is reconstructible"),
 		URPGCharacterRulesLibrary::GetLevelForExperience(Component->PartyInventoryState.ActiveCharacters[1].Experience), 20);
 
 	TestEqual(TEXT("A capped character is excluded from later sharing"), FRPGExperienceRewardService::AwardToActiveParty(Component, 5), 5);
 	TestEqual(TEXT("All later XP goes to the remaining eligible active character"), Component->PartyInventoryState.ActiveCharacters[0].Experience, 1006);
 	TestEqual(TEXT("The capped character remains capped"), Component->PartyInventoryState.ActiveCharacters[1].Experience, 190000);
-
-	TestEqual(
-		TEXT("First MaxHealth is not recalculated"), Component->PartyInventoryState.ActiveCharacters[0].DerivedStats.MaxHealth, FirstStatsBefore.MaxHealth);
-	TestEqual(TEXT("First CurrentHealth is not recalculated"), Component->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth,
-		FirstResourcesBefore.CurrentHealth);
-	TestEqual(
-		TEXT("Second MaxHealth is not recalculated"), Component->PartyInventoryState.ActiveCharacters[1].DerivedStats.MaxHealth, SecondStatsBefore.MaxHealth);
-	TestEqual(TEXT("Second CurrentHealth is not recalculated"), Component->PartyInventoryState.ActiveCharacters[1].Resources.CurrentHealth,
-		SecondResourcesBefore.CurrentHealth);
+	TestEqual(TEXT("The first character remains level two below the next threshold"), Component->PartyInventoryState.ActiveCharacters[0].Level, 2);
+	TestEqual(TEXT("The capped character remains at maximum level"), Component->PartyInventoryState.ActiveCharacters[1].Level, 20);
 	return true;
 }
 
@@ -301,16 +327,16 @@ bool FRPGMON152PersistenceStateTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	UGridPartyInventoryComponent* SourceComponent = NewObject<UGridPartyInventoryComponent>();
-	SourceComponent->PartyInventoryState.ActiveCharacters = { MakeMON152Character(1, 1, 0) };
+	URPGClassAsset* ClassDefinition = MakeMON152Class(SourceComponent);
+	SourceComponent->PartyInventoryState.ActiveCharacters = { MakeMON152Character(1, 1, 0, ClassDefinition) };
 	SourceComponent->PartyInventoryState.ActiveEquipment.SetNum(1);
 	SourceComponent->PartyInventoryState.SelectedCharacterIndex = 0;
 	SourceComponent->PartyInventoryState.MaxActiveCharacters = 6;
 	SourceComponent->PartyInventoryState.bInitialCharacterCreationCompleted = true;
 
-	AddExpectedError(TEXT("Reason=InvalidClassDefinition"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestEqual(TEXT("The source party receives exactly 1000 cumulative XP"), FRPGExperienceRewardService::AwardToActiveParty(SourceComponent, 1000), 1000);
 	TestEqual(TEXT("The source character XP is persisted in the existing field"), SourceComponent->PartyInventoryState.ActiveCharacters[0].Experience, 1000);
-	TestEqual(TEXT("MON15.2 leaves the source Level unchanged"), SourceComponent->PartyInventoryState.ActiveCharacters[0].Level, 1);
+	TestEqual(TEXT("The integrated XP transaction applies level two"), SourceComponent->PartyInventoryState.ActiveCharacters[0].Level, 2);
 
 	UGrimrockPartySaveGame* SaveGame = NewObject<UGrimrockPartySaveGame>();
 	SaveGame->PartyInventoryState = SourceComponent->PartyInventoryState;
@@ -318,11 +344,22 @@ bool FRPGMON152PersistenceStateTest::RunTest(const FString& Parameters)
 
 	UGridPartyInventoryComponent* RestoredComponent = NewObject<UGridPartyInventoryComponent>();
 	FText RestoreError;
-	TestTrue(TEXT("The existing party save state restores"), RestoredComponent->RestorePartyInventoryState(SaveGame->PartyInventoryState, RestoreError));
+	const bool bRestored = RestoredComponent->RestorePartyInventoryState(SaveGame->PartyInventoryState, RestoreError);
+	if (!TestTrue(*FString::Printf(TEXT("The current party save state restores: %s"), *RestoreError.ToString()), bRestored))
+	{
+		return false;
+	}
 	TestTrue(TEXT("No restore error is produced"), RestoreError.IsEmpty());
+	TestTrue(TEXT("The restored party still contains its active character"), RestoredComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(0));
+	if (!RestoredComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(0))
+	{
+		return false;
+	}
 	TestEqual(TEXT("Restored cumulative XP is exact"), RestoredComponent->PartyInventoryState.ActiveCharacters[0].Experience, 1000);
-	TestEqual(TEXT("Restored Level remains the stored pre-MON15.3 value"), RestoredComponent->PartyInventoryState.ActiveCharacters[0].Level, 1);
-	TestEqual(TEXT("The expected pending level remains reconstructible"),
+	TestEqual(TEXT("Restored Level is exact"), RestoredComponent->PartyInventoryState.ActiveCharacters[0].Level, 2);
+	TestEqual(TEXT("Restored hotbar satisfies the current minimum slot contract"),
+		RestoredComponent->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots.Num(), FGridCombatHotbarBinding::MinimumSlotCount);
+	TestEqual(TEXT("The restored level remains reconstructible from cumulative XP"),
 		URPGCharacterRulesLibrary::GetLevelForExperience(RestoredComponent->PartyInventoryState.ActiveCharacters[0].Experience), 2);
 	return true;
 }
