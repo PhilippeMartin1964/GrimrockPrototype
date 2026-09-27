@@ -32,7 +32,7 @@ Référence : docs/Design/UI_CLEAN01_REMOVE_MONOLITHIC_INVENTORY.md.
 
 ## Navigation
 
-La navigation visible appartient à WBP_GridCombatHud :
+La navigation visible appartient à WBP_GridPersistentHud :
 
 ~~~text
 ESC / I / K / G / M / J / H

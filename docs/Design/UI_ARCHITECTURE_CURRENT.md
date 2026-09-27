@@ -42,7 +42,8 @@ Viewport
 ├── WBP_CharacterSheet       gauche, pleine hauteur utile
 ├── vue 3D                   centre
 ├── WBP_InventoryBag         droite, pleine hauteur utile
-└── WBP_GridCombatHud        barre basse persistante
+├── WBP_GridCombatHud        overlay combat uniquement
+└── WBP_GridPersistentHud    barre basse persistante
 ```
 
 Les deux fenêtres dérivent de la même implémentation native `UGridInventoryWidget` via deux classes sémantiques fines. Elles partagent le même composant inventaire et se resynchronisent via `OnPartyInventoryChanged`.
@@ -575,7 +576,7 @@ Le Persistent HUD calcule `floor((ViewportWidth - NavigationWidth) / ActionSlotW
 
 ### UI-GLOBALHUD01.2 — séparation verticale des contrôles combat
 
-Le HUD combat conserve PAM et Fin du tour, mais réserve 56 px au-dessus de la barre persistante. `UGridCombatHudWidget` applique cette clearance au conteneur optionnel `Panel_CombatBottomRight`, ou en fallback à `Text_MobilityActionPoints`, `Button_EndTurn` et `Text_EndTurnDisabledReason`. La translation UMG d'origine est conservée comme baseline.
+Le HUD combat conserve PAM et Fin du tour, mais réserve 56 px au-dessus de la barre persistante. `Panel_CombatBottomRight` est désormais le conteneur canonique de ces contrôles ; `UGridCombatHudWidget` applique la clearance à ce conteneur unique et conserve sa translation UMG d'origine comme baseline. Le fallback historique qui déplaçait séparément PAM, Fin du tour et le texte de refus a été supprimé par UI-CODE-AUDIT01.
 
 
 ### UI-GLOBALHUD01.3 — suppression du chrome legacy du Combat HUD
@@ -584,6 +585,6 @@ Le HUD combat conserve PAM et Fin du tour, mais réserve 56 px au-dessus de la b
 
 `UGridPersistentHudWidget` est l'unique propriétaire de `ESC/I/K/G/M/J/H` et des widgets de slots. `ActionWidgetClass` doit y être configuré explicitement.
 
-Le Combat HUD conserve uniquement : initiative, panneaux des combattants, PAM, fin de tour, ciblage et le backend d'exécution des actions.
+Le Combat HUD conserve uniquement : initiative, panneaux des combattants, PAM, fin de tour et le backend d'exécution/ciblage des actions. Le ciblage `Cell/Area` reste autoritaire en C++ via `TargetingPreview` et les méthodes Begin/Update/Confirm/Cancel ; l'ancien panneau texte optionnel `Panel_Targeting` n'existe plus dans le WBP courant et son fallback C++ a été supprimé par UI-CODE-AUDIT01.
 
 La politique SaveGame du prototype est stricte : aucune migration des anciennes hotbars à 10 slots ou absentes. `FGridCombatHotbarBinding::SlotCount` est supprimé ; `MinimumSlotCount = 12` décrit uniquement le minimum du schéma courant.

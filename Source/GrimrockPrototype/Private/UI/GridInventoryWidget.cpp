@@ -648,6 +648,8 @@ bool UGridInventoryWidget::HandlePartyMemberItemDrop(UGridInventoryDragDropOpera
 
 void UGridInventoryWidget::RefreshSelectedCharacterDetails()
 {
+	RefreshSelectedCharacterClassIcon();
+
 	FGridInventoryCharacterSummary Summary;
 	if (!GetCharacterSummary(GetSelectedCharacterIndex(), Summary))
 	{
@@ -2007,21 +2009,6 @@ bool UGridInventoryWidget::HandleSlotDrop(
 		}
 	};
 
-	auto ResolveEquipmentSlot = [](EGridInventoryUiSlotType SlotType, int32 SlotIndex) -> EGridEquipmentSlot
-	{
-		switch (SlotType)
-		{
-			case EGridInventoryUiSlotType::Equipment:
-				return static_cast<EGridEquipmentSlot>(SlotIndex);
-			case EGridInventoryUiSlotType::MainHand:
-				return EGridEquipmentSlot::MainHand;
-			case EGridInventoryUiSlotType::OffHand:
-				return EGridEquipmentSlot::OffHand;
-			default:
-				return EGridEquipmentSlot::None;
-		}
-	};
-
 	auto SyncHeldVisualIfHandEquipmentSlot = [&](EGridEquipmentSlot EquipmentSlot, const TCHAR* Reason)
 	{
 		if (OwningPartyPawn && IsGridInventoryHandEquipmentSlot(EquipmentSlot))
@@ -2049,7 +2036,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 			return &CharacterState.InventorySlots[SlotIndex].Item;
 		}
 
-		if (const EGridEquipmentSlot EquipmentSlot = ResolveEquipmentSlot(SlotType, SlotIndex); EquipmentSlot != EGridEquipmentSlot::None)
+		if (const EGridEquipmentSlot EquipmentSlot = ResolveUiEquipmentSlot(SlotType, SlotIndex); EquipmentSlot != EGridEquipmentSlot::None)
 		{
 			FGridCharacterEquipmentState& EquipmentState = InventoryComponent->PartyInventoryState.ActiveEquipment[CharacterIndex];
 			FGridItemInstance* Item = EquipmentState.GetMutableSlot(EquipmentSlot);
@@ -2066,7 +2053,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 			return Item.IsValid();
 		}
 
-		const EGridEquipmentSlot EquipmentSlot = ResolveEquipmentSlot(SlotType, SlotIndex);
+		const EGridEquipmentSlot EquipmentSlot = ResolveUiEquipmentSlot(SlotType, SlotIndex);
 		return EquipmentSlot != EGridEquipmentSlot::None && InventoryComponent->CanEquipItemToSlot(CharacterIndex, Item, EquipmentSlot);
 	};
 
@@ -2081,7 +2068,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 			return;
 		}
 
-		const EGridEquipmentSlot EquipmentSlot = ResolveEquipmentSlot(SlotType, SlotIndex);
+		const EGridEquipmentSlot EquipmentSlot = ResolveUiEquipmentSlot(SlotType, SlotIndex);
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
 		Item.OwnerGuid = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
 		Item.OwnerCharacterIndex = CharacterIndex;
@@ -2192,7 +2179,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 
 			case EGridInventoryUiSlotType::Equipment:
 			{
-				const EGridEquipmentSlot SourceEquipmentSlot = ResolveEquipmentSlot(SourceType, SourceIndex);
+				const EGridEquipmentSlot SourceEquipmentSlot = ResolveUiEquipmentSlot(SourceType, SourceIndex);
 				bInventoryTargetResult = SourceEquipmentSlot != EGridEquipmentSlot::None &&
 					InventoryComponent->TryTakeEquipmentSlotToCursor(CharacterIndex, SourceEquipmentSlot) &&
 					InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, TargetIndex);
@@ -2235,7 +2222,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 			case EGridInventoryUiSlotType::OffHand:
 				return GetOffHandItem(Item);
 			case EGridInventoryUiSlotType::Equipment:
-				return GetEquipmentItem(ResolveEquipmentSlot(SourceType, SourceIndex), Item);
+				return GetEquipmentItem(ResolveUiEquipmentSlot(SourceType, SourceIndex), Item);
 			case EGridInventoryUiSlotType::Cursor:
 				return GetCursorItem(Item);
 			default:
@@ -2255,7 +2242,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 				return OwningPartyPawn->TryTakeSelectedCharacterOffHandToCursor();
 			case EGridInventoryUiSlotType::Equipment:
 			{
-				const EGridEquipmentSlot SourceEquipmentSlot = ResolveEquipmentSlot(SourceType, SourceIndex);
+				const EGridEquipmentSlot SourceEquipmentSlot = ResolveUiEquipmentSlot(SourceType, SourceIndex);
 				const bool bTaken = InventoryComponent->TryTakeEquipmentSlotToCursor(CharacterIndex, SourceEquipmentSlot);
 				if (bTaken)
 				{
@@ -2283,7 +2270,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 				return OwningPartyPawn->TryEquipCursorItemToSelectedCharacterOffHand();
 			case EGridInventoryUiSlotType::Equipment:
 			{
-				const EGridEquipmentSlot TargetEquipmentSlot = ResolveEquipmentSlot(TargetType, TargetIndex);
+				const EGridEquipmentSlot TargetEquipmentSlot = ResolveUiEquipmentSlot(TargetType, TargetIndex);
 				const bool bEquipped = InventoryComponent->TryEquipCursorItemToCharacterSlot(CharacterIndex, TargetEquipmentSlot);
 				if (bEquipped)
 				{

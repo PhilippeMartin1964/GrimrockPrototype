@@ -798,7 +798,7 @@ void UGridCombatHudWidget::RefreshFromSources()
 	{
 		ActionView.Action.CharacterIndex = View.ActiveCharacterIndex;
 	}
-	ApplyHotbarPresentationFallbacks();
+	EnrichHotbarActionPresentation();
 	ValidateCombatActionTargetingState();
 
 	View.Mobility = FGridCombatHudViewModelBuilder::BuildMobility(
@@ -843,7 +843,6 @@ void UGridCombatHudWidget::RefreshFromSources()
 	EnsureInitiativeWidgets();
 	RefreshInitiativeWidgets();
 	RefreshBoundWidgets();
-	RefreshTargetingWidgets();
 	if (IsValid(PartyPawn))
 	{
 		PartyPawn->RefreshPersistentHudWidget();
@@ -917,7 +916,6 @@ bool UGridCombatHudWidget::BeginCombatActionTargeting(const FGridCombatHudAction
 	PendingTargetingActionView = ActionView;
 	TargetingPreview = FGridCombatActionTargetingPreview();
 	TargetingPreview.Action = ActionView.Action;
-	RefreshTargetingWidgets();
 	return true;
 }
 
@@ -931,7 +929,6 @@ bool UGridCombatHudWidget::UpdateCombatActionTargetingPreview(FIntPoint TargetCe
 	const FGridAvailableCombatAction& Action = PendingTargetingActionView.Action;
 	const bool bValid = TurnManagerComponent->BuildCombatActionTargetingPreview(Action.CharacterIndex, Action.Definition.ActionId,
 		Action.Definition.SourcePolicy, Action.SourceDefinitionId, Action.SourceEquipmentSlot, TargetCell, TargetingPreview);
-	RefreshTargetingWidgets();
 	return bValid;
 }
 
@@ -966,7 +963,6 @@ void UGridCombatHudWidget::ClearCombatActionTargetingPreview()
 	}
 	TargetingPreview = FGridCombatActionTargetingPreview();
 	TargetingPreview.Action = PendingTargetingActionView.Action;
-	RefreshTargetingWidgets();
 }
 
 void UGridCombatHudWidget::CancelCombatActionTargeting()
@@ -974,7 +970,6 @@ void UGridCombatHudWidget::CancelCombatActionTargeting()
 	bCombatActionTargetingActive = false;
 	PendingTargetingActionView = FGridCombatHudActionView();
 	TargetingPreview = FGridCombatActionTargetingPreview();
-	RefreshTargetingWidgets();
 }
 
 bool UGridCombatHudWidget::RequestEndTurn()
@@ -1114,7 +1109,8 @@ void UGridCombatHudWidget::NativeDestruct()
 	InitiativeSlotWidgets.Reset();
 	InitiativeRoundSeparatorWidgets.Reset();
 	InitiativeRoundSeparatorTexts.Reset();
-	CombatBottomBaseTranslations.Reset();
+	bCombatBottomBaseTranslationCaptured = false;
+	CombatBottomBaseTranslation = FVector2D::ZeroVector;
 	Super::NativeDestruct();
 }
 
@@ -1188,7 +1184,7 @@ void UGridCombatHudWidget::EnsurePartyMemberPanels()
 	}
 }
 
-void UGridCombatHudWidget::ApplyHotbarPresentationFallbacks()
+void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 {
 	for (FGridCombatHudActionView& ActionView : View.Actions)
 	{
@@ -1370,37 +1366,22 @@ void UGridCombatHudWidget::RefreshInitiativeWidgets()
 	}
 }
 
-void UGridCombatHudWidget::ApplyBottomClearanceToWidget(UWidget* Widget, float Clearance)
-{
-	if (!IsValid(Widget))
-	{
-		return;
-	}
-
-	const TWeakObjectPtr<UWidget> WidgetKey(Widget);
-	FVector2D* BaseTranslation = CombatBottomBaseTranslations.Find(WidgetKey);
-	if (!BaseTranslation)
-	{
-		BaseTranslation = &CombatBottomBaseTranslations.Add(WidgetKey, Widget->GetRenderTransform().Translation);
-	}
-
-	Widget->SetRenderTranslation(*BaseTranslation + FVector2D(0.0f, -Clearance));
-}
-
 void UGridCombatHudWidget::ApplyPersistentHudBottomClearance()
 {
-	const bool bPersistentHudOwnsGlobalChrome = IsValid(PartyPawn) && IsValid(PartyPawn->PersistentHudWidgetInstance);
-	const float Clearance = bPersistentHudOwnsGlobalChrome ? FMath::Max(56.0f, PersistentHudBottomClearance) : 0.0f;
-
-	if (IsValid(Panel_CombatBottomRight))
+	if (!IsValid(Panel_CombatBottomRight))
 	{
-		ApplyBottomClearanceToWidget(Panel_CombatBottomRight, Clearance);
 		return;
 	}
 
-	ApplyBottomClearanceToWidget(Text_MobilityActionPoints, Clearance);
-	ApplyBottomClearanceToWidget(Button_EndTurn, Clearance);
-	ApplyBottomClearanceToWidget(Text_EndTurnDisabledReason, Clearance);
+	if (!bCombatBottomBaseTranslationCaptured)
+	{
+		CombatBottomBaseTranslation = Panel_CombatBottomRight->GetRenderTransform().Translation;
+		bCombatBottomBaseTranslationCaptured = true;
+	}
+
+	const bool bPersistentHudOwnsGlobalChrome = IsValid(PartyPawn) && IsValid(PartyPawn->PersistentHudWidgetInstance);
+	const float Clearance = bPersistentHudOwnsGlobalChrome ? FMath::Max(56.0f, PersistentHudBottomClearance) : 0.0f;
+	Panel_CombatBottomRight->SetRenderTranslation(CombatBottomBaseTranslation + FVector2D(0.0f, -Clearance));
 }
 
 void UGridCombatHudWidget::RefreshBoundWidgets()
@@ -1469,46 +1450,6 @@ void UGridCombatHudWidget::ValidateCombatActionTargetingState()
 
 	PendingTargetingActionView = *CurrentActionView;
 	TargetingPreview.Action = CurrentActionView->Action;
-}
-
-void UGridCombatHudWidget::RefreshTargetingWidgets()
-{
-	if (Panel_Targeting)
-	{
-		Panel_Targeting->SetVisibility(bCombatActionTargetingActive ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
-	}
-	if (Text_TargetingInstructions)
-	{
-		const FText ActionName = PendingTargetingActionView.Action.Definition.DisplayName.IsEmpty()
-			? FText::FromName(PendingTargetingActionView.Action.Definition.ActionId)
-			: PendingTargetingActionView.Action.Definition.DisplayName;
-		Text_TargetingInstructions->SetText(bCombatActionTargetingActive
-				? FText::FromString(FString::Printf(TEXT("%s — choisissez une cellule\nÉchap : annuler"), *ActionName.ToString()))
-				: FText::GetEmpty());
-	}
-	if (Text_TargetingCell)
-	{
-		FText Status = FText::GetEmpty();
-		if (bCombatActionTargetingActive)
-		{
-			if (TargetingPreview.TargetCell.X == INDEX_NONE || TargetingPreview.TargetCell.Y == INDEX_NONE)
-			{
-				Status = FText::FromString(TEXT("Survolez une cellule du donjon."));
-			}
-			else if (TargetingPreview.bValid)
-			{
-				const int32 TargetCount = TargetingPreview.TargetMonsterIds.Num();
-				Status = TargetCount == 1 ? FText::FromString(TEXT("Cible valide — 1 ennemi"))
-										  : FText::FromString(FString::Printf(TEXT("Cible valide — %d ennemis"), TargetCount));
-			}
-			else
-			{
-				Status = TargetingPreview.InvalidReason;
-			}
-		}
-		Text_TargetingCell->SetText(Status);
-		Text_TargetingCell->SetVisibility(bCombatActionTargetingActive ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
-	}
 }
 
 void UGridCombatHudWidget::HandleEndTurnClicked()

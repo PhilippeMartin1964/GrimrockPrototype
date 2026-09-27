@@ -393,16 +393,7 @@ void AGrimrockPartyPawn::CollapseMajorGameplayUi()
 	bInventoryWorkspaceVisible = false;
 	bInventoryWidgetVisible = false;
 
-	if (PersistentHudWidgetInstance)
-	{
-		RefreshPersistentHudWidget();
-	}
-	else if (CombatHudWidgetInstance && CombatHudWidgetInstance->IsInViewport())
-	{
-		CombatHudWidgetInstance->RemoveFromParent();
-		CombatHudWidgetInstance->AddToViewport(CombatActionPanelZOrder);
-		CombatHudWidgetInstance->RefreshFromSources();
-	}
+	RefreshPersistentHudWidget();
 
 	ApplyMajorUiInputMode(false);
 }

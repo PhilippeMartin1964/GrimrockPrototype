@@ -9,7 +9,6 @@
 #include "Components/InputComponent.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
-#include "Components/VerticalBox.h"
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
@@ -1410,10 +1409,10 @@ bool FGridMonsterMON129ActionRolloverTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON1210ActionPaletteTargetingTest, "Grimrock.Monsters.MON12.10.ActionPaletteTargeting",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON1210HotbarTargetingTest, "Grimrock.Monsters.MON12.10.HotbarTargeting",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMonsterMON1210ActionPaletteTargetingTest::RunTest(const FString& Parameters)
+bool FGridMonsterMON1210HotbarTargetingTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	FGridCombatHudFixture Fixture;
@@ -1421,10 +1420,6 @@ bool FGridMonsterMON1210ActionPaletteTargetingTest::RunTest(const FString& Param
 	{
 		return false;
 	}
-
-	Fixture.Hud->Panel_Targeting = NewObject<UVerticalBox>(Fixture.Hud);
-	Fixture.Hud->Text_TargetingInstructions = NewObject<UTextBlock>(Fixture.Hud);
-	Fixture.Hud->Text_TargetingCell = NewObject<UTextBlock>(Fixture.Hud);
 
 	URPGClassAsset* MageClass = NewObject<URPGClassAsset>(Fixture.Party);
 	MageClass->ClassId = TEXT("Mage_MON1210");
@@ -1442,26 +1437,22 @@ bool FGridMonsterMON1210ActionPaletteTargetingTest::RunTest(const FString& Param
 		return false;
 	}
 	TestTrue(TEXT("The area spell configures shortcut seven"), Fixture.Hud->AssignCombatActionToHotbarSlot(6, AreaSpell));
-	TestEqual(TEXT("The targeting panel is initially hidden"), Fixture.Hud->Panel_Targeting->GetVisibility(), ESlateVisibility::Collapsed);
+	TestFalse(TEXT("Targeting starts inactive"), Fixture.Hud->IsCombatActionTargetingActive());
 
 	FGridCombatActionRequestResult Pending;
 	TestTrue(TEXT("The shortcut opens area targeting"), Fixture.Hud->RequestHotbarSlot(6, Pending));
-	TestEqual(TEXT("The targeting panel is visible"), Fixture.Hud->Panel_Targeting->GetVisibility(), ESlateVisibility::SelfHitTestInvisible);
-	const FString Instructions = Fixture.Hud->Text_TargetingInstructions->GetText().ToString();
-	TestTrue(TEXT("The instructions name the action"), Instructions.Contains(TEXT("Explosion arcanique")));
-	TestTrue(TEXT("The instructions explain cancellation"), Instructions.Contains(TEXT("Échap : annuler")));
+	TestTrue(TEXT("Targeting backend is active"), Fixture.Hud->IsCombatActionTargetingActive());
+	TestEqual(TEXT("The pending preview keeps the selected action"), Fixture.Hud->TargetingPreview.Action.Definition.ActionId,
+		FName(TEXT("Spell_MON1286_AreaBurst")));
 
 	TestFalse(TEXT("An empty area is invalid"), Fixture.Hud->UpdateCombatActionTargetingPreview(FIntPoint(0, 0)));
-	const FString InvalidStatus = Fixture.Hud->Text_TargetingCell->GetText().ToString();
-	TestFalse(TEXT("Invalid feedback exposes no cell coordinates"), InvalidStatus.Contains(TEXT("(0,0)")));
+	TestTrue(TEXT("Invalid preview keeps targeting active"), Fixture.Hud->IsCombatActionTargetingActive());
 
 	TestTrue(TEXT("The monster area previews as valid"), Fixture.Hud->UpdateCombatActionTargetingPreview(FIntPoint(1, 2)));
-	const FString ValidStatus = Fixture.Hud->Text_TargetingCell->GetText().ToString();
-	TestTrue(TEXT("Valid feedback reports affected enemies"), ValidStatus.Contains(TEXT("Cible valide")));
-	TestFalse(TEXT("Valid feedback exposes no cell coordinates"), ValidStatus.Contains(TEXT("(1,2)")));
+	TestTrue(TEXT("Valid preview contains at least one monster"), Fixture.Hud->TargetingPreview.TargetMonsterIds.Num() > 0);
 
 	Fixture.Hud->CancelCombatActionTargeting();
-	TestEqual(TEXT("Cancellation hides the targeting panel"), Fixture.Hud->Panel_Targeting->GetVisibility(), ESlateVisibility::Collapsed);
+	TestFalse(TEXT("Cancellation closes targeting"), Fixture.Hud->IsCombatActionTargetingActive());
 	return true;
 }
 

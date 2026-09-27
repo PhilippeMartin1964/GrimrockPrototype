@@ -41,12 +41,6 @@ void UGridInventoryWidget::NativeDestruct()
 	Super::NativeDestruct();
 }
 
-void UGridInventoryWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
-{
-	Super::NativeTick(MyGeometry, InDeltaTime);
-	RefreshSelectedCharacterClassIcon();
-}
-
 const URPGClassVisualAsset* UGridInventoryWidget::FindClassVisualForClass(FName ClassId) const
 {
 	if (ClassId.IsNone())

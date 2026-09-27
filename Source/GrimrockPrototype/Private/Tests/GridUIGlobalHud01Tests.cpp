@@ -5,6 +5,7 @@
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -141,6 +142,12 @@ bool FGridUIGlobalHud01CombatChromeSplitTest::RunTest(const FString& Parameters)
 		CombatHudClass->FindPropertyByName(TEXT("Panel_Actions")) == nullptr);
 	TestTrue(TEXT("Combat HUD exposes no action-widget class authority"),
 		CombatHudClass->FindPropertyByName(TEXT("ActionWidgetClass")) == nullptr);
+	TestTrue(TEXT("Combat HUD exposes no obsolete targeting presentation panel"),
+		CombatHudClass->FindPropertyByName(TEXT("Panel_Targeting")) == nullptr);
+	TestTrue(TEXT("Combat HUD exposes no obsolete targeting instructions text"),
+		CombatHudClass->FindPropertyByName(TEXT("Text_TargetingInstructions")) == nullptr);
+	TestTrue(TEXT("Combat HUD exposes no obsolete targeting cell text"),
+		CombatHudClass->FindPropertyByName(TEXT("Text_TargetingCell")) == nullptr);
 	TestTrue(TEXT("Persistent HUD owns global navigation"),
 		PersistentHudClass->FindPropertyByName(TEXT("Panel_GlobalNavigation")) != nullptr);
 	TestTrue(TEXT("Persistent HUD owns the action bar"),
@@ -162,29 +169,26 @@ bool FGridUIGlobalHud01CombatChromeSplitTest::RunTest(const FString& Parameters)
 
 	const FName CombatProperties[] = {
 		TEXT("Panel_CombatHud"), TEXT("Panel_PartyMembers"), TEXT("Panel_Initiative"), TEXT("Panel_CombatBottomRight"),
-		TEXT("Text_MobilityActionPoints"), TEXT("Button_EndTurn"), TEXT("Text_EndTurnDisabledReason"), TEXT("Panel_Targeting")
+		TEXT("Text_MobilityActionPoints"), TEXT("Button_EndTurn"), TEXT("Text_EndTurnDisabledReason")
 	};
 	for (const FName PropertyName : CombatProperties)
 	{
 		TestTrue(FString::Printf(TEXT("Combat HUD retains %s"), *PropertyName.ToString()),
 			CombatHudClass->FindPropertyByName(PropertyName) != nullptr);
 	}
+	CombatHud->Panel_CombatBottomRight = NewObject<UVerticalBox>(CombatHud);
 	CombatHud->Text_MobilityActionPoints = NewObject<UTextBlock>(CombatHud);
 	CombatHud->Button_EndTurn = NewObject<UButton>(CombatHud);
 	CombatHud->Text_EndTurnDisabledReason = NewObject<UTextBlock>(CombatHud);
 	CombatHud->InitializeCombatHud(Party, nullptr);
 
-	TestEqual(TEXT("PAM is raised above the persistent bottom HUD"),
-		CombatHud->Text_MobilityActionPoints->GetRenderTransform().Translation.Y, -56.0);
-	TestEqual(TEXT("End turn is raised above the persistent bottom HUD"),
-		CombatHud->Button_EndTurn->GetRenderTransform().Translation.Y, -56.0);
-	TestEqual(TEXT("Disabled end-turn feedback follows the combat controls"),
-		CombatHud->Text_EndTurnDisabledReason->GetRenderTransform().Translation.Y, -56.0);
+	TestEqual(TEXT("The canonical combat-bottom container is raised above the persistent HUD"),
+		CombatHud->Panel_CombatBottomRight->GetRenderTransform().Translation.Y, -56.0);
 
 	Party->PersistentHudWidgetInstance = nullptr;
 	CombatHud->RefreshFromSources();
-	TestEqual(TEXT("Combat controls return to their authored baseline without a persistent HUD"),
-		CombatHud->Text_MobilityActionPoints->GetRenderTransform().Translation.Y, 0.0);
+	TestEqual(TEXT("The canonical combat-bottom container returns to its authored baseline without a persistent HUD"),
+		CombatHud->Panel_CombatBottomRight->GetRenderTransform().Translation.Y, 0.0);
 	Party->PersistentHudWidgetInstance = PersistentHud;
 	CombatHud->RefreshFromSources();
 

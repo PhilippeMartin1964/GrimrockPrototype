@@ -361,10 +361,7 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UPanelWidget> Panel_Initiative;
 
-	/**
-	 * Optional common container for the bottom-right combat controls (PAM / end turn / rejection text).
-	 * When absent, UI-GLOBALHUD01.2 applies the same clearance to the three legacy widgets individually.
-	 */
+	/** Canonical container for the bottom-right combat controls (PAM / end turn / rejection text). */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Layout")
 	TObjectPtr<UWidget> Panel_CombatBottomRight;
 
@@ -384,14 +381,6 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UWidget> Panel_CombatHud;
 
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Targeting")
-	TObjectPtr<UWidget> Panel_Targeting;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Targeting")
-	TObjectPtr<UTextBlock> Text_TargetingInstructions;
-
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Targeting")
-	TObjectPtr<UTextBlock> Text_TargetingCell;
 
 	UFUNCTION(BlueprintCallable, Category = "Combat|HUD")
 	void InitializeCombatHud(AGrimrockPartyPawn* InPartyPawn, UGridTurnManagerComponent* InTurnManager = nullptr);
@@ -451,20 +440,19 @@ private:
 	bool bSourcesBound = false;
 
 	FGridCombatHudActionView PendingTargetingActionView;
-	TMap<TWeakObjectPtr<UWidget>, FVector2D> CombatBottomBaseTranslations;
+	FVector2D CombatBottomBaseTranslation = FVector2D::ZeroVector;
+	bool bCombatBottomBaseTranslationCaptured = false;
 
 	void BindToSources();
 	void UnbindFromSources();
 	void EnsurePartyMemberPanels();
-	void ApplyHotbarPresentationFallbacks();
+	void EnrichHotbarActionPresentation();
 	void EnsureInitiativeWidgets();
 	void RefreshInitiativeWidgets();
 	void RefreshBoundWidgets();
 	void ApplyPersistentHudBottomClearance();
-	void ApplyBottomClearanceToWidget(UWidget* Widget, float Clearance);
 
 	void ValidateCombatActionTargetingState();
-	void RefreshTargetingWidgets();
 
 	UFUNCTION()
 	void HandleEndTurnClicked();
