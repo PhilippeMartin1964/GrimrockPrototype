@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.6 IMPLÉMENTÉ / À VALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.7 IMPLÉMENTÉ / À VALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -219,7 +219,7 @@ MON21.6.5 est **VALIDÉ** :
 - validation structurelle Map intégrée à `ValidateCurrentState()` ;
 - validation locale `Grimrock.Map.MON21_6_5` : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-090055`.
 
-MON21.6.6 est maintenant implémenté :
+MON21.6.6 est **VALIDÉ** :
 
 - `FGridMapTileView` expose uniquement cellules explorées + frontières connues ;
 - frontière = `Wall | Door | SecretDoor` ;
@@ -227,12 +227,22 @@ MON21.6.6 est maintenant implémenté :
 - secret non découvert normalisé en `Wall` ;
 - variante de porte résolue depuis `RuntimeActorClass`, sans hard-code `Door_Secret` ;
 - état de porte vivant prioritaire, fallback runtime persistant puis authored ;
-- read model transitoire, SaveGame v23 inchangé ;
-- Automation ajoutée sous `Grimrock.Map.MON21_6_6`.
+- validation locale `Grimrock.Map.MON21_6_6` : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-091315`.
 
-Statut MON21.6.6 : **implémenté, validation locale utilisateur requise**.
+MON21.6.7 est maintenant implémenté :
 
-Prochaine tranche après validation : **MON21.6.7 — Multi-Tile / Floor Projection**.
+- `FGridMapFloorView` compose les `FGridMapTileView` d’un même `LogicalPosition.Z` ;
+- coordonnées globales stride 32, coordonnées négatives conservées ;
+- valeurs Z disponibles triées et distinctes ;
+- aucune couture dessinée entre LevelAssets adjacents sans vraie frontière ;
+- frontières physiques partagées dédupliquées globalement ;
+- marqueur du groupe seulement sur l’étage courant ;
+- read model toujours transitoire, SaveGame v23 inchangé ;
+- Automation ajoutée sous `Grimrock.Map.MON21_6_7`.
+
+Statut MON21.6.7 : **implémenté, validation locale utilisateur requise**.
+
+Prochaine tranche après validation : **MON21.6.8 — Existing WBP + Native Map Rendering**.
 
 ## MON21.5–MON21.8
 
@@ -349,8 +359,8 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON21.6.6 — Map Read Model : IMPLÉMENTÉ / À VALIDER
-MON21.6.7 — Multi-Tile / Floor Projection : prochaine tranche après validation
+MON21.6.7 — Multi-Tile / Floor Projection : IMPLÉMENTÉ / À VALIDER
+MON21.6.8 — Existing WBP + Native Map Rendering : prochaine tranche après validation
 ```
 
 TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.

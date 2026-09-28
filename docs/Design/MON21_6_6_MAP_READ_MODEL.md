@@ -1,7 +1,7 @@
 # MON21.6.6 — Map Read Model
 
 Date : **28 septembre 2026**  
-Statut : **IMPLÉMENTÉ — VALIDATION LOCALE UTILISATEUR REQUISE**
+Statut : **VALIDÉ**
 
 ## 1. Objectif
 
@@ -114,7 +114,19 @@ ReadModel.TransientContract
 
 Les tests couvrent notamment la frontière connue depuis un côté exploré, l’absence de cellule inconnue dans la vue, le secret indistinguable d’un mur, l’absence de métadonnée secrète et la priorité de l’état de porte vivant.
 
-Aucun résultat MON21.6.6 n’est déclaré avant retour du harness UE5.5.4 local.
+Validation locale utilisateur du 28 septembre 2026 :
+
+```text
+Filter                  : Grimrock.Map.MON21_6_6
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code       : 0
+Report                  : TD04-20260928-091315
+```
+
+MON21.6.6 est **VALIDÉ**.
 
 ## 9. Hors périmètre
 
@@ -124,4 +136,4 @@ Aucun résultat MON21.6.6 n’est déclaré avant retour du harness UE5.5.4 loca
 - zoom/pan/recentrage : MON21.6.10 ;
 - symboles supplémentaires : MON21.6.12.
 
-Prochaine tranche après validation : **MON21.6.7 — Multi-Tile / Floor Projection**.
+Tranche suivante : **MON21.6.7 — Multi-Tile / Floor Projection**.

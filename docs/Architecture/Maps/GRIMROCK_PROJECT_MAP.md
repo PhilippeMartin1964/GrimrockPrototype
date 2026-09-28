@@ -1137,13 +1137,20 @@ MON21.2–21.3 :
 - 🟢 `ExploredCells` + `DiscoveredSecretObjectIds` sont désormais persistants par `LevelId` ;
 - ✅ MON21.6.5 Exploration Persistence / Save Schema validé : 4/4, 0 warning, 0 échec (`TD04-20260928-090055`) ;
 - 🟢 validation structurelle fail-closed avant application runtime ;
-- 🟡 MON21.6.6 Map Read Model implémenté, validation locale à fournir ;
+- ✅ MON21.6.6 Map Read Model validé : 4/4, 0 warning, 0 échec (`TD04-20260928-091315`) ;
 - 🟢 `FGridMapTileView` ne contient que cellules explorées et frontières connues ;
 - 🟢 secret non découvert projeté uniquement comme `Wall`, sans identité ni métadonnée secrète ;
 - 🟢 `Door` / `SecretDoor` seulement lorsque la connaissance l’autorise ;
 - 🟢 état de porte live prioritaire, fallback `FGridLevelRuntimeState::Doors` puis authored ;
 - 🟢 read model transient, SaveGame v23 inchangé ;
-- ⬜ MON21.6.7+ : projection multi-dalles, UI/navigation et rendu parchemin.
+- 🟡 MON21.6.7 Multi-Tile / Floor Projection implémenté, validation locale à fournir ;
+- 🟢 `FGridMapFloorView` compose toutes les dalles activées du même Z ;
+- 🟢 `MapX = TileX*32+LocalX`, `MapY = TileY*32+LocalY`, coordonnées négatives supportées ;
+- 🟢 aucune couture technique entre dalles adjacentes ;
+- 🟢 frontières communes connues dédupliquées par segment global ;
+- 🟢 étages disponibles = Z distincts activés, triés ;
+- 🟢 marqueur groupe uniquement sur l’étage courant ;
+- ⬜ MON21.6.8+ : rendu WBP natif, navigation puis finition parchemin.
 
 ## 16.5 — Codex
 

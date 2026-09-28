@@ -1,6 +1,7 @@
 #include "Runtime/Map/GridMapReadModel.h"
 
 #include "Core/GridDirectionUtils.h"
+#include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
@@ -181,6 +182,88 @@ namespace GridMapReadModelPrivate
 		const EGridEdge Opposite = GridDirectionUtils::GetOpposite(Edge);
 		return Opposite != EGridEdge::None && GetWall(LevelAsset, Neighbour, Opposite) == EGridWallType::Solid;
 	}
+
+	struct FGlobalBoundaryKey
+	{
+		int32 Orientation = 0;
+		int32 Line = 0;
+		int32 Segment = 0;
+
+		bool operator==(const FGlobalBoundaryKey& Other) const
+		{
+			return Orientation == Other.Orientation && Line == Other.Line && Segment == Other.Segment;
+		}
+
+		friend uint32 GetTypeHash(const FGlobalBoundaryKey& Key)
+		{
+			return HashCombine(HashCombine(::GetTypeHash(Key.Orientation), ::GetTypeHash(Key.Line)), ::GetTypeHash(Key.Segment));
+		}
+	};
+
+	bool TryMakeGlobalBoundaryKey(const FIntPoint& MapCell, EGridEdge Edge, FGlobalBoundaryKey& OutKey)
+	{
+		switch (Edge)
+		{
+			case EGridEdge::North:
+				OutKey = { 0, MapCell.Y + 1, MapCell.X };
+				return true;
+			case EGridEdge::South:
+				OutKey = { 0, MapCell.Y, MapCell.X };
+				return true;
+			case EGridEdge::East:
+				OutKey = { 1, MapCell.X + 1, MapCell.Y };
+				return true;
+			case EGridEdge::West:
+				OutKey = { 1, MapCell.X, MapCell.Y };
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	FIntPoint ToGlobalMapCell(const FIntVector& LogicalPosition, const FIntPoint& LocalCell)
+	{
+		return FIntPoint(
+			LogicalPosition.X * FGridMapExplorationState::GridSize + LocalCell.X,
+			LogicalPosition.Y * FGridMapExplorationState::GridSize + LocalCell.Y);
+	}
+
+	void MergeFloorBoundary(
+		const FGridMapFloorBoundaryView& Incoming,
+		TMap<FGlobalBoundaryKey, int32>& BoundaryIndexByKey,
+		FGridMapFloorView& OutView)
+	{
+		FGlobalBoundaryKey Key;
+		if (!TryMakeGlobalBoundaryKey(Incoming.MapCell, Incoming.Edge, Key))
+		{
+			return;
+		}
+
+		if (const int32* ExistingIndex = BoundaryIndexByKey.Find(Key))
+		{
+			if (!OutView.Boundaries.IsValidIndex(*ExistingIndex))
+			{
+				return;
+			}
+
+			FGridMapFloorBoundaryView& Existing = OutView.Boundaries[*ExistingIndex];
+			if (Existing.Kind != Incoming.Kind)
+			{
+				// Contradictory authored data on a shared technical seam fails closed.
+				Existing.Kind = EGridMapBoundaryKind::Wall;
+				Existing.bDoorOpen = false;
+			}
+			else if (Existing.Kind != EGridMapBoundaryKind::Wall)
+			{
+				// If duplicate door metadata disagrees, closed is the conservative projection.
+				Existing.bDoorOpen = Existing.bDoorOpen && Incoming.bDoorOpen;
+			}
+			return;
+		}
+
+		const int32 NewIndex = OutView.Boundaries.Add(Incoming);
+		BoundaryIndexByKey.Add(Key, NewIndex);
+	}
 }
 
 bool FGridMapReadModelBuilder::BuildTileView(
@@ -301,5 +384,123 @@ bool FGridMapReadModelBuilder::BuildTileView(
 		}
 	}
 
+	return true;
+}
+
+
+void FGridMapReadModelBuilder::GetAvailableFloorZs(const UGridDungeonAsset& DungeonAsset, TArray<int32>& OutFloorZs)
+{
+	OutFloorZs.Reset();
+	for (const FGridDungeonLevelEntry& Entry : DungeonAsset.Levels)
+	{
+		if (!Entry.bEnabled || Entry.LevelId.IsNone() || !Entry.LevelAsset)
+		{
+			continue;
+		}
+		OutFloorZs.AddUnique(Entry.LogicalPosition.Z);
+	}
+	OutFloorZs.Sort();
+}
+
+bool FGridMapReadModelBuilder::BuildFloorView(
+	const UGridDungeonAsset& DungeonAsset,
+	const FGridDungeonRuntimeState& DungeonState,
+	const TArray<TObjectPtr<UGridWorldObjectDefinitionAsset>>& WorldObjectDefinitions,
+	FName ActiveLevelId,
+	const FIntPoint& ActivePartyCell,
+	EGridEdge ActivePartyFacing,
+	int32 SelectedFloorZ,
+	const UGridDoorSystemComponent* ActiveDoorSystem,
+	FGridMapFloorView& OutView)
+{
+	using namespace GridMapReadModelPrivate;
+
+	OutView.Reset();
+
+	TArray<int32> AvailableFloorZs;
+	GetAvailableFloorZs(DungeonAsset, AvailableFloorZs);
+	if (!AvailableFloorZs.Contains(SelectedFloorZ))
+	{
+		return false;
+	}
+
+	TArray<int32> SelectedEntryIndices;
+	for (int32 Index = 0; Index < DungeonAsset.Levels.Num(); ++Index)
+	{
+		const FGridDungeonLevelEntry& Entry = DungeonAsset.Levels[Index];
+		if (Entry.bEnabled && !Entry.LevelId.IsNone() && Entry.LevelAsset && Entry.LogicalPosition.Z == SelectedFloorZ)
+		{
+			SelectedEntryIndices.Add(Index);
+		}
+	}
+
+	SelectedEntryIndices.Sort(
+		[&DungeonAsset](int32 LeftIndex, int32 RightIndex)
+		{
+			const FGridDungeonLevelEntry& Left = DungeonAsset.Levels[LeftIndex];
+			const FGridDungeonLevelEntry& Right = DungeonAsset.Levels[RightIndex];
+			if (Left.LogicalPosition.X != Right.LogicalPosition.X)
+			{
+				return Left.LogicalPosition.X < Right.LogicalPosition.X;
+			}
+			if (Left.LogicalPosition.Y != Right.LogicalPosition.Y)
+			{
+				return Left.LogicalPosition.Y < Right.LogicalPosition.Y;
+			}
+			return Left.LevelId.LexicalLess(Right.LevelId);
+		});
+
+	FGridMapFloorView Result;
+	Result.SelectedFloorZ = SelectedFloorZ;
+	Result.AvailableFloorZs = AvailableFloorZs;
+	TMap<FGlobalBoundaryKey, int32> BoundaryIndexByKey;
+
+	for (const int32 EntryIndex : SelectedEntryIndices)
+	{
+		const FGridDungeonLevelEntry& Entry = DungeonAsset.Levels[EntryIndex];
+
+		FGridLevelRuntimeState EmptyState;
+		EmptyState.LevelId = Entry.LevelId;
+		const FGridLevelRuntimeState* LevelState = DungeonState.LevelStates.Find(Entry.LevelId);
+		if (!LevelState)
+		{
+			LevelState = &EmptyState;
+		}
+
+		FGridMapTileView TileView;
+		const UGridDoorSystemComponent* LiveDoorSystem = Entry.LevelId == ActiveLevelId ? ActiveDoorSystem : nullptr;
+		if (!BuildTileView(Entry.LevelId, *Entry.LevelAsset, *LevelState, WorldObjectDefinitions, LiveDoorSystem, TileView))
+		{
+			return false;
+		}
+
+		for (const FGridMapCellView& TileCell : TileView.Cells)
+		{
+			FGridMapFloorCellView& FloorCell = Result.Cells.AddDefaulted_GetRef();
+			FloorCell.MapCell = ToGlobalMapCell(Entry.LogicalPosition, TileCell.LocalCell);
+			FloorCell.CellType = TileCell.CellType;
+		}
+
+		for (const FGridMapBoundaryView& TileBoundary : TileView.Boundaries)
+		{
+			FGridMapFloorBoundaryView FloorBoundary;
+			FloorBoundary.MapCell = ToGlobalMapCell(Entry.LogicalPosition, TileBoundary.LocalCell);
+			FloorBoundary.Edge = TileBoundary.Edge;
+			FloorBoundary.Kind = TileBoundary.Kind;
+			FloorBoundary.bDoorOpen = TileBoundary.bDoorOpen;
+			MergeFloorBoundary(FloorBoundary, BoundaryIndexByKey, Result);
+		}
+	}
+
+	const FGridDungeonLevelEntry* ActiveEntry = DungeonAsset.FindLevelEntry(ActiveLevelId);
+	if (ActiveEntry && ActiveEntry->bEnabled && ActiveEntry->LevelAsset && ActiveEntry->LogicalPosition.Z == SelectedFloorZ &&
+		FGridMapExplorationState::IsValidCell(ActivePartyCell))
+	{
+		Result.bHasPartyMarker = true;
+		Result.PartyMapCell = ToGlobalMapCell(ActiveEntry->LogicalPosition, ActivePartyCell);
+		Result.PartyFacing = ActivePartyFacing;
+	}
+
+	OutView = MoveTemp(Result);
 	return true;
 }
