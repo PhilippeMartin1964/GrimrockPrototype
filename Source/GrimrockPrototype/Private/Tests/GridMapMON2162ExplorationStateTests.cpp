@@ -76,15 +76,22 @@ bool FGridMapMON2162PerLevelAuthorityTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 
 	FGridDungeonRuntimeState DungeonState;
-	FGridLevelRuntimeState& FirstLevel = DungeonState.LevelStates.Add(TEXT("MapTile_A"));
-	FirstLevel.LevelId = TEXT("MapTile_A");
-	FGridLevelRuntimeState& SecondLevel = DungeonState.LevelStates.Add(TEXT("MapTile_B"));
-	SecondLevel.LevelId = TEXT("MapTile_B");
+	DungeonState.LevelStates.Add(TEXT("MapTile_A")).LevelId = TEXT("MapTile_A");
+	DungeonState.LevelStates.Add(TEXT("MapTile_B")).LevelId = TEXT("MapTile_B");
+
+	FGridLevelRuntimeState* FirstLevel = DungeonState.LevelStates.Find(TEXT("MapTile_A"));
+	FGridLevelRuntimeState* SecondLevel = DungeonState.LevelStates.Find(TEXT("MapTile_B"));
+	TestNotNull(TEXT("Level A runtime state exists"), FirstLevel);
+	TestNotNull(TEXT("Level B runtime state exists"), SecondLevel);
+	if (!FirstLevel || !SecondLevel)
+	{
+		return false;
+	}
 
 	bool bNewlyExplored = false;
-	TestTrue(TEXT("Level A discovery succeeds"), FirstLevel.MapExploration.TryMarkExplored(FIntPoint(4, 7), bNewlyExplored));
-	TestTrue(TEXT("Level A cell is explored"), FirstLevel.MapExploration.IsExplored(FIntPoint(4, 7)));
-	TestFalse(TEXT("Level B keeps an independent exploration authority"), SecondLevel.MapExploration.IsExplored(FIntPoint(4, 7)));
+	TestTrue(TEXT("Level A discovery succeeds"), FirstLevel->MapExploration.TryMarkExplored(FIntPoint(4, 7), bNewlyExplored));
+	TestTrue(TEXT("Level A cell is explored"), FirstLevel->MapExploration.IsExplored(FIntPoint(4, 7)));
+	TestFalse(TEXT("Level B keeps an independent exploration authority"), SecondLevel->MapExploration.IsExplored(FIntPoint(4, 7)));
 
 	const FGridDungeonRuntimeState SessionCopy = DungeonState;
 	const FGridLevelRuntimeState* CopiedFirst = SessionCopy.LevelStates.Find(TEXT("MapTile_A"));
