@@ -1,5 +1,6 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 
+#include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/Map/GridMapExplorationState.h"
 #include "Runtime/Map/GridMapRevealService.h"
 
