@@ -325,7 +325,7 @@ MON21.6.3 — Topology-Aware Reveal : IMPLÉMENTÉ / À VALIDER
 MON21.6.4 — Secret Discovery : prochaine tranche après validation
 ```
 
-TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.airement en attente du feu vert explicite de l'utilisateur.
+TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.
 
 
 TD07.3.3.9 ouvre **v19 exact-match** : `LastAcknowledgedLevel` devient l'état durable minimal de notification Level-Up et les queues persistantes MON15.6 sont supprimées.
