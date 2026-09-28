@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.3 IMPLÉMENTÉ / À VALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.4 IMPLÉMENTÉ / À VALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -192,7 +192,7 @@ MON21.6.2 est **VALIDÉ** :
 - aucun flag `SaveGame` et aucune nouvelle version avant MON21.6.5 ;
 - validation locale `Grimrock.Map.MON21_6_2` : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-082142`.
 
-MON21.6.3 est maintenant implémenté :
+MON21.6.3 est **VALIDÉ** :
 
 - `FGridMapRevealService::RevealRadiusCells = 1.25` ;
 - cellule courante + quatre cardinales, diagonales exclues ;
@@ -200,11 +200,21 @@ MON21.6.3 est maintenant implémenté :
 - porte fermée/bloquante = pas de reveal ; porte ouverte = reveal ;
 - `bBlocksOccupancy` n’empêche pas la visibilité ;
 - reveal initial et après mouvement via `HandlePartyCellChanged()` ;
-- Automation ajoutée sous `Grimrock.Map.MON21_6_3`.
+- validation locale `Grimrock.Map.MON21_6_3` : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-083313`.
 
-Statut MON21.6.3 : **implémenté, validation locale utilisateur requise**.
+MON21.6.4 est maintenant implémenté :
 
-Prochaine tranche après validation : **MON21.6.4 — Secret Discovery**.
+- `DiscoveredSecretObjectIds : TSet<FGuid>` dans `FGridMapExplorationState` ;
+- découverte uniquement pour une vraie porte secrète ;
+- découverte à l’exposition effective `fully open` ;
+- secret initialement ouvert = déjà connu ;
+- secret découvert puis refermé = reste connu ;
+- état toujours session-only, SaveGame v22 inchangé ;
+- Automation ajoutée sous `Grimrock.Map.MON21_6_4`.
+
+Statut MON21.6.4 : **implémenté, validation locale utilisateur requise**.
+
+Prochaine tranche après validation : **MON21.6.5 — Exploration Persistence / Save Schema**.
 
 ## MON21.5–MON21.8
 
@@ -321,8 +331,8 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON21.6.3 — Topology-Aware Reveal : IMPLÉMENTÉ / À VALIDER
-MON21.6.4 — Secret Discovery : prochaine tranche après validation
+MON21.6.4 — Secret Discovery : IMPLÉMENTÉ / À VALIDER
+MON21.6.5 — Exploration Persistence / Save Schema : prochaine tranche après validation
 ```
 
 TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.

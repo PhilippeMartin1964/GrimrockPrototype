@@ -1,7 +1,7 @@
 # MON21.6.3 — Topology-Aware Reveal
 
 Date : **28 septembre 2026**  
-Statut : **IMPLÉMENTÉ — VALIDATION LOCALE UTILISATEUR REQUISE**
+Statut : **VALIDÉ**
 
 ## 1. Objectif
 
@@ -69,10 +69,22 @@ Reveal.DoorTopology
 Reveal.RuntimeCellChangeHook
 ```
 
-Aucun résultat MON21.6.3 n’est déclaré avant retour du harness local UE5.5.4.
+Validation locale utilisateur du 28 septembre 2026 :
+
+```text
+Filter                  : Grimrock.Map.MON21_6_3
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code       : 0
+Report                  : TD04-20260928-083313
+```
+
+MON21.6.3 est **VALIDÉ**.
 
 ## 8. Stop condition
 
 MON21.6.3 est implémenté lorsque la révélation initiale et après mouvement utilise le rayon 1.25, respecte murs/portes, ignore les blockers d’occupation et reste cumulative/idempotente.
 
-Prochaine tranche après validation : **MON21.6.4 — Secret Discovery**.
+Tranche suivante : **MON21.6.4 — Secret Discovery**.

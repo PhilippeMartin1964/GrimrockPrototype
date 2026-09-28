@@ -390,6 +390,8 @@ public:
 	/** MON21.6.3 reveals the current map cell and topology-visible cardinal neighbours. */
 	int32 RevealMapAroundCell(int32 CellX, int32 CellY);
 
+	/** MON21.6.4 records durable-in-session knowledge of one actual secret door object. */
+	bool TryDiscoverMapSecretDoor(FGuid ObjectId, bool& bOutNewlyDiscovered);
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction")
 	void NotifyPawnEnteredCell(int32 CellX, int32 CellY);
 

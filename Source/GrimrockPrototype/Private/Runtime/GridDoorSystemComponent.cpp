@@ -56,6 +56,12 @@ void UGridDoorSystemComponent::RegisterDoorObject(const FGridRuntimeWorldObjectD
 		DoorActor->OnDoorAnimationFinished.AddDynamic(this, &UGridDoorSystemComponent::HandleDoorAnimationFinished);
 	}
 	SetDoorPassageBlocked(ObjectData.CellX, ObjectData.CellY, ObjectData.Edge, !ObjectData.bDoorInitiallyOpen);
+
+	if (ObjectData.bDoorInitiallyOpen && RuntimeActor && IsSecretDoorOnEdge(ObjectData.CellX, ObjectData.CellY, ObjectData.Edge))
+	{
+		bool bNewlyDiscovered = false;
+		RuntimeActor->TryDiscoverMapSecretDoor(ObjectData.ObjectId, bNewlyDiscovered);
+	}
 }
 
 bool UGridDoorSystemComponent::HasDoorOnEdge(int32 X, int32 Y, EGridEdge Edge) const
@@ -213,6 +219,11 @@ bool UGridDoorSystemComponent::ApplyDoorState(FGuid ObjectId, bool bOpen, bool b
 			DoorActor->SnapDoorOpenState(bOpen);
 		}
 		SetDoorPassageBlocked(Instance.CellX, Instance.CellY, Instance.WallSide, bBlocked);
+		if (bOpen && !bBlocked && IsSecretDoorOnEdge(Instance.CellX, Instance.CellY, Instance.WallSide))
+		{
+			bool bNewlyDiscovered = false;
+			RuntimeActor->TryDiscoverMapSecretDoor(Instance.InstanceId, bNewlyDiscovered);
+		}
 		return true;
 	}
 	return false;
@@ -226,6 +237,14 @@ void UGridDoorSystemComponent::HandleDoorAnimationFinished(int32 X, int32 Y, EGr
 		return;
 	}
 	SetDoorPassageBlocked(X, Y, Edge, !DoorActor->IsFullyOpen());
+	if (DoorActor->IsFullyOpen() && RuntimeActor && IsSecretDoorOnEdge(X, Y, Edge))
+	{
+		if (const FGridWorldObjectInstance* Instance = FindDoorInstanceAtEdge(X, Y, Edge))
+		{
+			bool bNewlyDiscovered = false;
+			RuntimeActor->TryDiscoverMapSecretDoor(Instance->InstanceId, bNewlyDiscovered);
+		}
+	}
 	UE_LOG(LogGridDoorSystem, Log, TEXT("Grid door animation finished: Cell=(%d,%d) Edge=%d FullyOpen=%s Blocked=%s"), X, Y, static_cast<int32>(Edge),
 		DoorActor->IsFullyOpen() ? TEXT("true") : TEXT("false"), IsDoorPassageBlocked(X, Y, Edge) ? TEXT("true") : TEXT("false"));
 	GridAutomaticPerceptionEngagement::Request(RuntimeActor, DoorActor->IsFullyOpen() ? TEXT("DoorFullyOpened") : TEXT("DoorFullyClosed"));

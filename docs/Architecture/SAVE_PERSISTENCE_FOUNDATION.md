@@ -85,7 +85,11 @@ TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poid
 
 `FGridLevelRuntimeState::MapExploration` porte la connaissance `Unknown/Explored` d’une dalle 32×32 pendant la session de donjon.
 
-MON21.6.2 ne modifie volontairement pas la frontière disque : `MapExploration` et son tableau interne ne portent pas `SaveGame`, et `CurrentSaveVersion` reste **22**. MON21.6.5 sera responsable de l’ouverture de cette donnée à la persistance disque, de sa validation et de l’incrément exact-match associé.
+MON21.6.2 ne modifie volontairement pas la frontière disque : `MapExploration` et son tableau interne ne portent pas `SaveGame`, et `CurrentSaveVersion` reste **22**.
+
+MON21.6.4 étend cette même autorité avec `DiscoveredSecretObjectIds`, également sans flag `SaveGame`. Les cellules explorées et les secrets découverts restent donc session-only jusqu’à MON21.6.5.
+
+MON21.6.5 sera responsable de l’ouverture simultanée de ces données à la persistance disque, de leur validation et de l’incrément exact-match associé.
 
 ## RPG state
 

@@ -83,20 +83,50 @@ struct FGridMapExplorationState
 		return ExploredCells.Num();
 	}
 
-	bool IsStructurallyValid() const
+	bool IsSecretDiscovered(const FGuid& ObjectId) const
 	{
-		if (ExploredCells.IsEmpty())
-		{
-			return true;
-		}
-		if (ExploredCells.Num() != CellCount)
+		return ObjectId.IsValid() && DiscoveredSecretObjectIds.Contains(ObjectId);
+	}
+
+	bool TryMarkSecretDiscovered(const FGuid& ObjectId, bool& bOutNewlyDiscovered)
+	{
+		bOutNewlyDiscovered = false;
+		if (!ObjectId.IsValid())
 		{
 			return false;
 		}
 
-		for (const uint8 CellState : ExploredCells)
+		const int32 PreviousCount = DiscoveredSecretObjectIds.Num();
+		DiscoveredSecretObjectIds.Add(ObjectId);
+		bOutNewlyDiscovered = DiscoveredSecretObjectIds.Num() != PreviousCount;
+		return true;
+	}
+
+	int32 GetDiscoveredSecretCount() const
+	{
+		return DiscoveredSecretObjectIds.Num();
+	}
+	bool IsStructurallyValid() const
+	{
+		if (!ExploredCells.IsEmpty())
 		{
-			if (CellState > 1)
+			if (ExploredCells.Num() != CellCount)
+			{
+				return false;
+			}
+
+			for (const uint8 CellState : ExploredCells)
+			{
+				if (CellState > 1)
+				{
+					return false;
+				}
+			}
+		}
+
+		for (const FGuid& ObjectId : DiscoveredSecretObjectIds)
+		{
+			if (!ObjectId.IsValid())
 			{
 				return false;
 			}
@@ -107,6 +137,7 @@ struct FGridMapExplorationState
 	void Reset()
 	{
 		ExploredCells.Reset();
+		DiscoveredSecretObjectIds.Reset();
 	}
 
 private:
@@ -118,4 +149,8 @@ private:
 	// MON21.6.2: reflected for normal struct copying, deliberately not marked SaveGame before MON21.6.5.
 	UPROPERTY()
 	TArray<uint8> ExploredCells;
+
+	// MON21.6.4: session-local knowledge of secret world objects revealed to the player.
+	UPROPERTY()
+	TSet<FGuid> DiscoveredSecretObjectIds;
 };

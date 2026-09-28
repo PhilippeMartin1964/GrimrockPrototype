@@ -18,3 +18,22 @@ int32 AGridLevelRuntimeActor::RevealMapAroundCell(int32 CellX, int32 CellY)
 
 	return FGridMapRevealService::RevealAroundCell(*LevelAsset, DoorSystemComponent, FIntPoint(CellX, CellY), RuntimeState->MapExploration);
 }
+
+bool AGridLevelRuntimeActor::TryDiscoverMapSecretDoor(FGuid ObjectId, bool& bOutNewlyDiscovered)
+{
+	bOutNewlyDiscovered = false;
+	if (!LevelAsset || !DoorSystemComponent || !ObjectId.IsValid())
+	{
+		return false;
+	}
+
+	const FGridWorldObjectInstance* Instance = LevelAsset->FindWorldObjectInstanceById(ObjectId);
+	if (!Instance || Instance->Type != EGridLevelObjectType::Door ||
+		!DoorSystemComponent->IsSecretDoorOnEdge(Instance->CellX, Instance->CellY, Instance->WallSide))
+	{
+		return false;
+	}
+
+	FGridLevelRuntimeState* RuntimeState = GetOrCreateRuntimeStateForCurrentLevel();
+	return RuntimeState && RuntimeState->MapExploration.TryMarkSecretDiscovered(ObjectId, bOutNewlyDiscovered);
+}
