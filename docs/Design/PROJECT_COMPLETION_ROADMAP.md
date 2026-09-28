@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.9 C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.9 UI CONFIRMÉE / DisplayName À REVALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -274,7 +274,13 @@ MON21.6.9 — Floor Navigation est maintenant implémenté côté C++ :
 - aucune persistance supplémentaire, SaveGame v23 inchangé ;
 - Automation ajoutée sous `Grimrock.Map.MON21_6_9`.
 
-Statut MON21.6.9 : **C++ implémenté ; validation Automation puis intégration UMG/PIE requises**.
+Validation initiale MON21.6.9 : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-102621`.
+
+Le smoke PIE utilisateur confirme que Level Up/Down change correctement d’étage.
+
+Affinage demandé ensuite : `Text_FloorLabel` affiche le `DisplayName` lorsque le nom d’étage est non ambigu ; fallback `Étage <Z>` pour un étage multi-dalles portant plusieurs noms.
+
+Statut MON21.6.9 : **fonction navigation confirmée ; raffinement DisplayName à revalider par Automation/PIE**.
 
 Prochaine tranche après validation : **MON21.6.10 — Zoom / Pan / Recenter**.
 
@@ -395,7 +401,7 @@ MON30 — Full Campaign
 
 ```text
 MON21.6.8 — Existing WBP + Native Map Rendering : VALIDÉ
-MON21.6.9 — Floor Navigation : C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
+MON21.6.9 — Floor Navigation : UI CONFIRMÉE / DisplayName À REVALIDER
 MON21.6.10 — Zoom / Pan / Recenter : prochaine tranche après validation
 ```
 
