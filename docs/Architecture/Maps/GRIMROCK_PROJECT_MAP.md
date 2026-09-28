@@ -1150,13 +1150,14 @@ MON21.2–21.3 :
 - 🟢 frontières communes connues dédupliquées par segment global ;
 - 🟢 étages disponibles = Z distincts activés, triés ;
 - 🟢 marqueur groupe uniquement sur l’étage courant ;
-- 🟡 MON21.6.8 Existing WBP + Native Map Rendering : Automation 4/4 + intégration UMG/PIE confirmées, correctif Est/Ouest à revalider ;
+- ✅ MON21.6.8 Existing WBP + Native Map Rendering validé : 4/4, 0 warning, 0 échec (`TD04-20260928-095036`) ;
 - 🟢 `UGridMapWidget` reconstruit un `FGridMapFloorView` transitoire à l’ouverture ;
 - 🟢 rendu Slate natif sans widget par cellule ;
 - 🟢 cellules explorées + murs + portes + secrets découverts + marqueur groupe ;
 - 🟢 `WBP_GridMap` conservé et à reparent manuellement vers `UGridMapWidget` ;
 - 🟢 `Page_Map` reste le binding existant du shell ;
 - 🟢 convention écran alignée sur l’Overview Map éditeur : North=haut, East=gauche, sans modifier les coordonnées canoniques X+/Y+ ;
+- 🟠 convention visuelle X miroir à clarifier ultérieurement, sans impact sur l’autorité runtime ;
 - ⬜ MON21.6.9+ : navigation d’étage, zoom/pan/recenter, finition parchemin.
 
 ## 16.5 — Codex

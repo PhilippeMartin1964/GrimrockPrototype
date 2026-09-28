@@ -1,7 +1,7 @@
 # MON21.6.8 — Existing WBP + Native Map Rendering
 
 Date : **28 septembre 2026**  
-Statut : **AUTOMATION 4/4 VALIDÉE — INTÉGRATION UMG/PIE CONFIRMÉE — CORRECTIF ORIENTATION E/O À REVALIDER EN PIE**
+Statut : **VALIDÉ**
 
 ## 1. Objectif
 
@@ -183,7 +183,7 @@ NativeRendering.RefreshFailsClosed
 NativeRendering.ExistingShellHook
 ```
 
-Validation utilisateur du 28 septembre 2026 :
+Première validation utilisateur du 28 septembre 2026 :
 
 ```text
 Filter                  : Grimrock.Map.MON21_6_8
@@ -195,11 +195,23 @@ Process exit code       : 0
 Report                  : TD04-20260928-093526
 ```
 
-L’intégration UMG et l’ouverture PIE par `M` sont également confirmées par capture.
+Cette première passe PIE a révélé une inversion Est/Ouest du renderer.
 
-Le smoke PIE a toutefois révélé une inversion Est/Ouest du premier renderer. Le correctif conserve les coordonnées Map canoniques et inverse uniquement la projection écran X, ainsi que les bords East/West et l’orientation visuelle du marqueur.
+Après correction de la projection écran X, seconde validation utilisateur :
 
-Les tests Automation ne remplacent donc toujours pas la revalidation visuelle de cette correction.
+```text
+Filter                  : Grimrock.Map.MON21_6_8
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code       : 0
+Report                  : TD04-20260928-095036
+```
+
+Le contrôle PIE utilisateur confirme ensuite explicitement que l’orientation Est/Ouest est correcte.
+
+MON21.6.8 est **VALIDÉ**.
 
 ## 9. Modification UMG manuelle obligatoire
 
@@ -243,12 +255,28 @@ Si le contenu placeholder historique du WBP masque ou chevauche le dessin, il se
 
 ## 11. Stop condition
 
-MON21.6.8 ne sera déclaré **VALIDÉ** qu’après :
+MON21.6.8 est **VALIDÉ** :
 
-1. build + Automation `Grimrock.Map.MON21_6_8` verts — **acquis 4/4** ;
-2. reparent de `WBP_GridMap` dans UE — **effectué** ;
-3. compilation des deux WBP — **effectuée** ;
-4. smoke PIE `M` — **effectué** ;
-5. revalidation visuelle après correctif Est/Ouest — **requise**.
+1. build + Automation `Grimrock.Map.MON21_6_8` : **4/4** ;
+2. `WBP_GridMap` reparenté vers `UGridMapWidget` ;
+3. compilation UMG effectuée ;
+4. smoke PIE `M` effectué ;
+5. correctif Est/Ouest revalidé en PIE ;
+6. validation finale Automation : rapport `TD04-20260928-095036`.
 
-Prochaine tranche après validation : **MON21.6.9 — Floor Navigation**.
+### Point différé — convention visuelle de l’axe X
+
+La convention de présentation écran actuellement retenue est cohérente avec l’Overview Map de l’éditeur : `East / X+` est affiché vers la gauche écran.
+
+Ce choix est **purement visuel** et ne remet pas en cause les conventions canoniques runtime :
+
+```text
+North = Y+
+East  = X+
+South = Y-
+West  = X-
+```
+
+Le bien-fondé et l’uniformisation future de cette convention visuelle seront étudiés dans un chantier ultérieur, sans rouvrir MON21.6.8.
+
+Prochaine tranche : **MON21.6.9 — Floor Navigation**.

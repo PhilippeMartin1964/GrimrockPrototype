@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.8 AUTOMATION OK / FIX E-O PIE À VALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.8 VALIDÉ / MON21.6.9 SUIVANT
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -256,7 +256,11 @@ Validation MON21.6.8 reçue : **4/4, 0 warning, 0 échec**, rapport `TD04-202609
 
 Correctif appliqué uniquement dans la projection écran : coordonnées Map/read model inchangées ; X écran, frontières East/West et flèche East/West sont miroir.
 
-Statut MON21.6.8 : **Automation validée ; correctif Est/Ouest à revalider visuellement en PIE**.
+Seconde validation MON21.6.8 après correctif Est/Ouest : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-095036`.
+
+Le contrôle PIE utilisateur confirme que l’orientation Est/Ouest est correcte.
+
+MON21.6.8 est **VALIDÉ**. La convention visuelle X miroir reste un point différé à clarifier ultérieurement ; les conventions canoniques runtime `East=X+ / West=X-` restent inchangées.
 
 Prochaine tranche après validation complète : **MON21.6.9 — Floor Navigation**.
 
@@ -375,8 +379,8 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON21.6.8 — Existing WBP + Native Map Rendering : AUTOMATION OK / FIX E-O PIE À VALIDER
-MON21.6.9 — Floor Navigation : prochaine tranche après validation complète
+MON21.6.8 — Existing WBP + Native Map Rendering : VALIDÉ
+MON21.6.9 — Floor Navigation : prochaine tranche
 ```
 
 TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.

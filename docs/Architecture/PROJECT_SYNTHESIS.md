@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 septembre 2026, TD07 validé/clos ; MON21.6 repris ; MON21.6.7 validé ; MON21.6.8 Native Map Rendering C++ implémenté, UMG/PIE requis.**
+> État : **28 septembre 2026, TD07 validé/clos ; MON21.6 repris ; MON21.6.8 Native Map Rendering validé.**
 
 ## 1. Référence
 
@@ -16,7 +16,7 @@
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
 | Dernière tranche validée | `TD07.8 — Future-proofing re-audit / stop condition` |
-| Tranche active | `MON21.6 — Map ; MON21.6.8 C++ implémenté / UMG+PIE à valider` |
+| Tranche active | `MON21.6 — Map ; MON21.6.8 validé / MON21.6.9 suivant` |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`. La baseline quantitative de clôture TD07 pour les audits futurs est `docs/Architecture/TD07_FINAL_QUANTITATIVE_AUDIT_BASELINE.md`.
 
@@ -77,7 +77,7 @@ Le module Editor dépend aussi de `GrimrockLua`. Le Runtime ne dépend pas du mo
 | Save | ✅ v15 exact-match ; aucune migration arrière |
 | Quêtes runtime | ✅ MON21.2–MON21.3 |
 | Journal | ⬜ WBP existant ; read model prévu MON21.5 |
-| Map | 🟡 6.2–6.7 validés ; renderer natif 6.8 C++ implémenté, reparent WBP/PIE à valider |
+| Map | 🟡 6.2–6.8 validés ; prochaine tranche : Floor Navigation 6.9 |
 | Codex | ⬜ WBP existant ; discovery prévu MON21.7 |
 
 ## 6. Donjon, grille et éditeur
@@ -210,7 +210,7 @@ TD07.3.3.9   Normalize Level-Up Notification State                    VALIDÉ �
 TD07.3.3.10  Current Save Schema / Regressions / Closure              VALIDÉ — CLOS
 MON21.4      Quest Persistence                          EN ATTENTE
 MON21.5      Journal Read Model / WBP                     À FAIRE
-MON21.6      Map Geometry / Exploration                   ACTIF — 6.8 C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
+MON21.6      Map Geometry / Exploration                   ACTIF — 6.8 VALIDÉ / 6.9 SUIVANT
 MON21.7      Codex Discovery / Projection                 À FAIRE
 MON21.8      Cross-System Regression / PIE / Closure      À FAIRE
 MON22        vertical slice 45–90 minutes                 À FAIRE
