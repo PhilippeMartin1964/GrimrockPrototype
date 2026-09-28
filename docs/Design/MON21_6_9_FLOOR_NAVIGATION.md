@@ -1,7 +1,7 @@
 # MON21.6.9 — Floor Navigation
 
 Date : **28 septembre 2026**  
-Statut : **AUTOMATION 4/4 + UMG/PIE CONFIRMÉS — AFFICHAGE DisplayName À REVALIDER**
+Statut : **AUTOMATION 4/4 + UMG/PIE CONFIRMÉS — LIBELLÉ `Niveau <Z>` À REVALIDER**
 
 ## 1. Objectif
 
@@ -149,8 +149,7 @@ Le C++ :
 - bind les deux `OnClicked` dans `NativeConstruct()` ;
 - retire les bindings dans `NativeDestruct()` ;
 - désactive automatiquement les boutons lorsqu’aucun étage n’existe dans leur direction ;
-- affiche le `DisplayName` du niveau lorsque le nom de l’étage sélectionné est non ambigu ;
-- fallback `Étage <Z>` si aucun `DisplayName` n’est défini ou si plusieurs dalles du même Z portent des noms différents.
+- affiche systématiquement `Niveau <SelectedFloorZ>` dans `Text_FloorLabel`.
 
 Aucun Graph Blueprint n’est nécessaire.
 
@@ -190,7 +189,7 @@ Tests :
 FloorNavigation.SkipsMissingZAndStopsAtBounds
 FloorNavigation.OtherFloorProjectionHidesParty
 FloorNavigation.RefreshPreservesSelectionOpenResetsToParty
-FloorNavigation.DisplayNameLabel
+FloorNavigation.LogicalZLabel
 FloorNavigation.OptionalUMGAndTransientState
 ```
 
@@ -208,7 +207,17 @@ Report                  : TD04-20260928-102621
 
 Le smoke PIE utilisateur confirme que les boutons Up/Down changent correctement d’étage.
 
-À la suite de cette validation, `Text_FloorLabel` est affiné pour afficher le `DisplayName` plutôt que le Z technique lorsque ce nom est non ambigu. Le filtre MON21.6.9 contient désormais un cinquième test `DisplayNameLabel` et doit être relancé avant clôture définitive.
+Après discussion, la tentative d’utiliser `DisplayName` est abandonnée : un même étage peut être constitué de plusieurs dalles portant des noms différents.
+
+Le contrat final du libellé est donc volontairement indépendant des dalles :
+
+```text
+Text_FloorLabel = "Niveau " + SelectedFloorZ
+```
+
+Exemples : `Niveau -3`, `Niveau 0`, `Niveau 2`.
+
+`DisplayName` conserve sa sémantique de nom d’entrée/dalle et n’est pas agrégé pour nommer un étage. Le filtre MON21.6.9 contient un cinquième test `LogicalZLabel` et doit être relancé avant clôture définitive.
 
 ## 9. Modification UMG après validation C++
 

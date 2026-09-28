@@ -85,12 +85,10 @@ namespace GridMapMON2169Tests
 		UGridLevelAsset* Level,
 		int32 FloorZ,
 		const FIntPoint& TileXY = FIntPoint::ZeroValue,
-		bool bEnabled = true,
-		const FText& DisplayName = FText::GetEmpty())
+		bool bEnabled = true)
 	{
 		FGridDungeonLevelEntry Entry;
 		Entry.LevelId = LevelId;
-		Entry.DisplayName = DisplayName;
 		Entry.LevelAsset = Level;
 		Entry.LogicalPosition = FIntVector(TileXY.X, TileXY.Y, FloorZ);
 		Entry.bEnabled = bEnabled;
@@ -133,10 +131,10 @@ namespace GridMapMON2169Tests
 			UGridLevelAsset* Upper = MakeOpenLevel(Dungeon);
 			UGridLevelAsset* Disabled = MakeOpenLevel(Dungeon);
 
-			AddEntry(Dungeon, TEXT("Lower"), Lower, -3, FIntPoint::ZeroValue, true, FText::FromString(TEXT("Lower Crypts")));
-			AddEntry(Dungeon, TEXT("Current"), Current, 0, FIntPoint::ZeroValue, true, FText::FromString(TEXT("Old Tunnels")));
-			AddEntry(Dungeon, TEXT("Upper"), Upper, 2, FIntPoint(1, 0), true, FText::FromString(TEXT("Upper Halls")));
-			AddEntry(Dungeon, TEXT("Disabled"), Disabled, 9, FIntPoint::ZeroValue, false, FText::FromString(TEXT("Disabled Floor")));
+			AddEntry(Dungeon, TEXT("Lower"), Lower, -3);
+			AddEntry(Dungeon, TEXT("Current"), Current, 0);
+			AddEntry(Dungeon, TEXT("Upper"), Upper, 2, FIntPoint(1, 0));
+			AddEntry(Dungeon, TEXT("Disabled"), Disabled, 9, FIntPoint::ZeroValue, false);
 
 			AddExploredCell(Runtime->DungeonRuntimeState, TEXT("Lower"), FIntPoint(3, 3));
 			AddExploredCell(Runtime->DungeonRuntimeState, TEXT("Current"), FIntPoint(10, 10));
@@ -247,10 +245,10 @@ bool FGridMapMON2169RefreshContractTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMapMON2169DisplayNameTest, "Grimrock.Map.MON21_6_9.FloorNavigation.DisplayNameLabel",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMapMON2169LevelLabelTest, "Grimrock.Map.MON21_6_9.FloorNavigation.LogicalZLabel",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMapMON2169DisplayNameTest::RunTest(const FString& Parameters)
+bool FGridMapMON2169LevelLabelTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	using namespace GridMapMON2169Tests;
@@ -263,27 +261,16 @@ bool FGridMapMON2169DisplayNameTest::RunTest(const FString& Parameters)
 
 	Fixture.Widget->Text_FloorLabel = NewObject<UTextBlock>(Fixture.Widget);
 	TestTrue(TEXT("Selecting party floor refreshes the label"), Fixture.Widget->SelectPartyFloor());
-	TestEqual(TEXT("Current floor label uses active entry DisplayName"),
-		Fixture.Widget->Text_FloorLabel->GetText().ToString(), FString(TEXT("Old Tunnels")));
+	TestEqual(TEXT("Current floor label uses canonical logical Z"),
+		Fixture.Widget->Text_FloorLabel->GetText().ToString(), FString(TEXT("Niveau 0")));
 
 	TestTrue(TEXT("Navigate to upper floor"), Fixture.Widget->NavigateFloorUp());
-	TestEqual(TEXT("Single-entry browsed floor label uses its DisplayName"),
-		Fixture.Widget->Text_FloorLabel->GetText().ToString(), FString(TEXT("Upper Halls")));
+	TestEqual(TEXT("Upper floor label uses its logical Z, independent of tile names"),
+		Fixture.Widget->Text_FloorLabel->GetText().ToString(), FString(TEXT("Niveau 2")));
 
-	UGridLevelAsset* UpperSecondTile = MakeOpenLevel(Fixture.Dungeon);
-	AddEntry(
-		Fixture.Dungeon,
-		TEXT("UpperSecond"),
-		UpperSecondTile,
-		2,
-		FIntPoint(2, 0),
-		true,
-		FText::FromString(TEXT("Upper Annex")));
-	AddExploredCell(Fixture.Runtime->DungeonRuntimeState, TEXT("UpperSecond"), FIntPoint(1, 1));
-
-	TestTrue(TEXT("Refresh succeeds with two differently named tiles on same Z"), Fixture.Widget->RefreshMap());
-	TestEqual(TEXT("Ambiguous same-Z DisplayNames fall back to technical floor label"),
-		Fixture.Widget->Text_FloorLabel->GetText().ToString(), FString(TEXT("Étage 2")));
+	TestTrue(TEXT("Navigate down twice to lower floor"), Fixture.Widget->NavigateFloorDown() && Fixture.Widget->NavigateFloorDown());
+	TestEqual(TEXT("Negative logical Z is displayed directly"),
+		Fixture.Widget->Text_FloorLabel->GetText().ToString(), FString(TEXT("Niveau -3")));
 	return true;
 }
 

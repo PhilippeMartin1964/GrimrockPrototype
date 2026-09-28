@@ -123,7 +123,6 @@ private:
 	bool BuildSelectedFloorView();
 	bool ResolvePartyFloorZ(int32& OutFloorZ) const;
 	bool FindAdjacentFloorZ(bool bUp, int32& OutFloorZ) const;
-	FText ResolveSelectedFloorLabel() const;
 	void RefreshFloorNavigationControls();
 
 	UFUNCTION()

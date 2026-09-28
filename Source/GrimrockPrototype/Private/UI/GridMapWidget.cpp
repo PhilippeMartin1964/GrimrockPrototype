@@ -456,59 +456,6 @@ bool UGridMapWidget::FindAdjacentFloorZ(bool bUp, int32& OutFloorZ) const
 	return false;
 }
 
-FText UGridMapWidget::ResolveSelectedFloorLabel() const
-{
-	if (!bHasFloorSelection || !OwningPartyPawn || !OwningPartyPawn->LevelRuntimeActor)
-	{
-		return FText::GetEmpty();
-	}
-
-	const AGridLevelRuntimeActor* Runtime = OwningPartyPawn->LevelRuntimeActor;
-	const UGridDungeonAsset* Dungeon = Runtime->DungeonAsset;
-	if (!Dungeon)
-	{
-		return FText::GetEmpty();
-	}
-
-	if (const FGridDungeonLevelEntry* ActiveEntry = Dungeon->FindLevelEntry(Runtime->CurrentDungeonLevelId))
-	{
-		if (ActiveEntry->bEnabled && ActiveEntry->LevelAsset && ActiveEntry->LogicalPosition.Z == SelectedFloorZ &&
-			!ActiveEntry->DisplayName.IsEmpty())
-		{
-			return ActiveEntry->DisplayName;
-		}
-	}
-
-	FText UniqueDisplayName;
-	bool bHasDisplayName = false;
-	for (const FGridDungeonLevelEntry& Entry : Dungeon->Levels)
-	{
-		if (!Entry.bEnabled || !Entry.LevelAsset || Entry.LogicalPosition.Z != SelectedFloorZ || Entry.DisplayName.IsEmpty())
-		{
-			continue;
-		}
-
-		if (!bHasDisplayName)
-		{
-			UniqueDisplayName = Entry.DisplayName;
-			bHasDisplayName = true;
-			continue;
-		}
-
-		if (!UniqueDisplayName.EqualTo(Entry.DisplayName))
-		{
-			return FText::Format(NSLOCTEXT("GridMap", "FloorFallbackLabel", "Étage {0}"), FText::AsNumber(SelectedFloorZ));
-		}
-	}
-
-	if (bHasDisplayName)
-	{
-		return UniqueDisplayName;
-	}
-
-	return FText::Format(NSLOCTEXT("GridMap", "FloorFallbackLabel", "Étage {0}"), FText::AsNumber(SelectedFloorZ));
-}
-
 void UGridMapWidget::RefreshFloorNavigationControls()
 {
 	if (Button_LevelUp)
@@ -521,7 +468,10 @@ void UGridMapWidget::RefreshFloorNavigationControls()
 	}
 	if (Text_FloorLabel)
 	{
-		Text_FloorLabel->SetText(ResolveSelectedFloorLabel());
+		Text_FloorLabel->SetText(
+			bHasFloorSelection
+				? FText::Format(NSLOCTEXT("GridMap", "FloorLabel", "Niveau {0}"), FText::AsNumber(SelectedFloorZ))
+				: FText::GetEmpty());
 	}
 }
 
