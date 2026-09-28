@@ -1659,6 +1659,11 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 	RebuildLevel();
 	ApplyCurrentLevelRuntimeState();
 	PartyPawn->SetGridStart(this, TargetCellX, TargetCellY, TargetFacing);
+
+	// Map exploration follows the party's actual arrival, not only subsequent translated movement.
+	// Keep this Map-only: HandlePartyCellChanged() would also emit gameplay enter/pressure-plate semantics.
+	RevealMapAroundCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+
 	if (ActivationComponent)
 	{
 		ActivationComponent->RefreshAllPressurePlates();

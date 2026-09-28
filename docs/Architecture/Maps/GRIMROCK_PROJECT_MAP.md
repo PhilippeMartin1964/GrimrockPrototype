@@ -1178,12 +1178,14 @@ MON21.2–21.3 :
 - 🟢 feather visuel aux frontières d’exploration ;
 - 🟢 aucune texture Map dédiée requise ;
 - 🟠 polish final/fit canvas de 6.11 explicitement différé à 6.13 ;
-- 🟡 MON21.6.12 Map Symbols : C++ implémenté, DataAssets/PIE à valider ;
+- 🟡 MON21.6.12 Map Symbols : Automation 4/4 + symbols PIE confirmés ; arrival reveal inter-level corrigé, revalidation à faire ;
 - 🟢 opt-in `MapSymbolStyle` sur World Object Definition, sans nouveau Gameplay Type ;
 - 🟢 symboles : StairsUp, StairsDown, Relocation, Pit, PointOfInterest ;
 - 🟢 symboles uniquement sur cellules explorées, sans identité authored exposée ;
 - 🟢 Pit objet monde affiché seulement ouvert ; objets retirés via `ObjectPresence` exclus ;
 - 🟢 glyphes manuscrits déterministes ;
+- 🟢 `TravelToDungeonLevel()` révèle désormais immédiatement la cellule d’arrivée et ses cardinales visibles via `RevealMapAroundCell()` ;
+- 🟢 aucun second `HandlePartyCellChanged()` : le correctif n’émet pas de gameplay enter supplémentaire ;
 - ⬜ MON21.6.13 : polish final + regression/closure.
 
 ## 16.5 — Codex

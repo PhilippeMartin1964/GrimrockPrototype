@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.12 C++ IMPLÉMENTÉ / DATAASSET+PIE À VALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.12 SYMBOLS VALIDÉS / ARRIVAL REVEAL À REVALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -332,7 +332,16 @@ MON21.6.12 — Map Symbols est maintenant implémenté côté C++ :
 - SaveGame v23 inchangé ;
 - aucune modification `.uasset` à l’aveugle.
 
-Statut MON21.6.12 : **C++ implémenté ; validation Automation puis configuration DataAssets/PIE requises**.
+MON21.6.12 — Map Symbols :
+
+- validation initiale `Grimrock.Map.MON21_6_12` : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-124412` ;
+- symboles configurés confirmés en PIE ;
+- le cas `Stairs_Up` a révélé un défaut de reveal d’arrivée inter-level, pas un défaut de symbole ;
+- correctif : `TravelToDungeonLevel()` appelle `RevealMapAroundCell()` juste après `SetGridStart()` ;
+- aucun `HandlePartyCellChanged()` supplémentaire, donc pas de double trigger/pressure plate ;
+- cinquième test `ArrivalReveal.CrossLevelTravelRevealsDestination` ajouté.
+
+Statut MON21.6.12 : **symboles validés ; correctif arrival reveal à revalider avec 5 tests avant 6.13**.
 
 Prochaine tranche après validation : **MON21.6.13 — Automation / Regression / Closure**, incluant la passe finale fit/polish Map.
 
@@ -459,7 +468,7 @@ MON21.6.8 — Existing WBP + Native Map Rendering : VALIDÉ
 MON21.6.9 — Floor Navigation : VALIDÉ
 MON21.6.10 — Zoom / Pan / Recenter : VALIDÉ
 MON21.6.11 — Hand-Drawn Parchment Artistic Pass : VALIDÉ — POLISH FINAL DIFFÉRÉ
-MON21.6.12 — Map Symbols : C++ IMPLÉMENTÉ / DATAASSET+PIE À VALIDER
+MON21.6.12 — Map Symbols : SYMBOLS VALIDÉS / ARRIVAL REVEAL À REVALIDER
 MON21.6.13 — Automation / Regression / Closure : prochaine tranche après validation
 ```
 

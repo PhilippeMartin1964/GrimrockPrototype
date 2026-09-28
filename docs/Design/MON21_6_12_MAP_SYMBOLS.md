@@ -1,7 +1,7 @@
 # MON21.6.12 — Map Symbols
 
 Date : **28 septembre 2026**  
-Statut : **C++ IMPLÉMENTÉ — VALIDATION AUTOMATION + CONFIGURATION DATAASSET/PIE UTILISATEUR REQUISES**
+Statut : **AUTOMATION 4/4 + SYMBOLS PIE CONFIRMÉS — CORRECTIF ARRIVAL REVEAL À REVALIDER**
 
 ## 1. Objectif
 
@@ -195,7 +195,7 @@ Filtre :
 Grimrock.Map.MON21_6_12
 ```
 
-Tests :
+Tests initiaux :
 
 ```text
 Symbols.ExploredOnlyAndNoIdentityLeak
@@ -204,18 +204,50 @@ Symbols.MultiTileGlobalProjection
 Symbols.PresentationContract
 ```
 
-Aucun résultat MON21.6.12 n’est déclaré avant retour du harness UE5.5.4 local.
+Validation utilisateur du 28 septembre 2026 :
 
-## 12. Validation PIE attendue
+```text
+Filter                  : Grimrock.Map.MON21_6_12
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code       : 0
+Report                  : TD04-20260928-124412
+```
 
-Après configuration des DataAssets concernés :
+La configuration PIE confirme les symboles définis. Le cas `Stairs_Up` a mis en évidence non pas un défaut de symbole mais un défaut de reveal : après une relocation inter-level, la cellule d’arrivée n’était révélée qu’au prochain déplacement du groupe.
 
-- les symboles ne doivent apparaître que dans les cellules explorées ;
-- escaliers montants/descendants doivent être distincts ;
-- relocation doit être clairement différente des escaliers ;
-- pit fermé ne doit pas être affiché comme trou ;
-- pit ouvert doit être visible ;
-- le marqueur du groupe doit rester au-dessus ;
+Correctif pré-clôture ajouté :
+
+```text
+TravelToDungeonLevel()
+    -> SetGridStart(...)
+    -> RevealMapAroundCell(arrival)
+```
+
+Le correctif est volontairement Map-only : il n’appelle pas `HandlePartyCellChanged()`, afin de ne pas émettre une seconde fois les triggers/pressure plates d’entrée.
+
+Nouveau cinquième test :
+
+```text
+ArrivalReveal.CrossLevelTravelRevealsDestination
+```
+
+Le filtre `Grimrock.Map.MON21_6_12` doit donc être relancé et contenir **5 tests** avant clôture définitive.
+
+## 12. Validation PIE
+
+Après configuration des DataAssets concernés, l’utilisateur confirme que les symboles définis sont présents.
+
+Le cas `Stairs_Up` a été compris : avant correctif, il fallait avancer puis reculer après `Stairs_Down` pour déclencher le reveal de la cellule d’arrivée. Ce comportement est corrigé par le hook Map-only ajouté dans `TravelToDungeonLevel()`.
+
+Après revalidation du code, smoke PIE attendu :
+
+- descendre par `Stairs_Down` ;
+- ouvrir immédiatement la Map sans faire un pas supplémentaire ;
+- la cellule d’arrivée doit déjà être explorée ;
+- le symbole `Stairs Up` doit être visible immédiatement ;
 - zoom/pan/recenter doivent rester fonctionnels.
 
 ## 13. Polish final différé
