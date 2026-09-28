@@ -7,8 +7,8 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 28 septembre 2026, TD07 validé/clos ; MON21.6 repris. MON21.6.1 Map Architecture Contract validé.**  
-Phase active : **MON21.6 — Map Geometry + Exploration State + Existing WBP** ; prochaine tranche `MON21.6.2 — Exploration State`.
+**Référence courante : 28 septembre 2026, TD07 validé/clos ; MON21.6 repris. MON21.6.2 Exploration State implémenté, validation locale à fournir.**  
+Phase active : **MON21.6 — Map Geometry + Exploration State + Existing WBP** ; prochaine tranche après validation `MON21.6.3 — Topology-Aware Reveal`.
 
 ## Ordre de lecture recommandé
 
@@ -123,7 +123,7 @@ MON21.2  Quest Definition + Campaign Runtime State      VALIDÉ
 MON21.3  Quest Event -> Command Integration             VALIDÉ
 MON21.4  Quest Persistence                            EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5  Journal Read Model + Existing WBP Integration  À FAIRE
-MON21.6  Map Geometry + Exploration State + Existing WBP ACTIF — 6.1 CONTRAT VALIDÉ
+MON21.6  Map Geometry + Exploration State + Existing WBP ACTIF — 6.2 IMPLÉMENTÉ / À VALIDER
 MON21.7  Codex Discovery + Definition Projection        À FAIRE
 MON21.8  Cross-System Regression / PIE / Closure        À FAIRE
 ```

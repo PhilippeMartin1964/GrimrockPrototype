@@ -81,6 +81,12 @@ TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poid
 
 `bLevelVariablesInitialized` reste temporairement présent car il participe encore au lifecycle runtime courant. Il n'est pas supprimé opportunistement par TD07.3.2.
 
+### MON21.6.2 — Exploration State, frontière session uniquement
+
+`FGridLevelRuntimeState::MapExploration` porte la connaissance `Unknown/Explored` d’une dalle 32×32 pendant la session de donjon.
+
+MON21.6.2 ne modifie volontairement pas la frontière disque : `MapExploration` et son tableau interne ne portent pas `SaveGame`, et `CurrentSaveVersion` reste **22**. MON21.6.5 sera responsable de l’ouverture de cette donnée à la persistance disque, de sa validation et de l’incrément exact-match associé.
+
 ## RPG state
 
 `FGridPartyInventoryState` reste l'autorité du groupe et du CharacterPool.

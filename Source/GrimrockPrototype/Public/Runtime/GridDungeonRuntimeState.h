@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Core/GridTypes.h"
 #include "RPG/StatusEffects/GridStatusEffectTypes.h"
+#include "Runtime/Map/GridMapExplorationState.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
 #include "GridDungeonRuntimeState.generated.h"
 
@@ -305,6 +306,10 @@ struct FGridLevelRuntimeState
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	bool bHasBeenVisited = false;
+
+	/** MON21.6.2 authoritative exploration state for this 32x32 tile during the current dungeon session. */
+	UPROPERTY()
+	FGridMapExplorationState MapExploration;
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TMap<FGuid, FGridRuntimeMonsterState> Monsters;

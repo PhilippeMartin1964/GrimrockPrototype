@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.1 CONTRAT VALIDÉ
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.2 IMPLÉMENTÉ / À VALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -184,7 +184,18 @@ Il fige notamment :
 
 MON21.6.1 est documentaire : il ne change ni C++, ni assets binaires, ni `CurrentSaveVersion`.
 
-Prochaine tranche : **MON21.6.2 — Exploration State**.
+MON21.6.2 est maintenant implémenté :
+
+- `FGridMapExplorationState` = autorité Unknown/Explored sur 1024 cellules ;
+- stockage paresseux `TArray<uint8>` ;
+- `FGridLevelRuntimeState::MapExploration` isole l’état par `LevelId` ;
+- aucun reveal automatique avant MON21.6.3 ;
+- aucun flag `SaveGame` et aucune nouvelle version avant MON21.6.5 ;
+- Automation ajoutée sous `Grimrock.Map.MON21_6_2`.
+
+Statut : **implémenté, validation locale utilisateur requise**.
+
+Prochaine tranche après validation : **MON21.6.3 — Topology-Aware Reveal**.
 
 ## MON21.5–MON21.8
 
