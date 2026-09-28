@@ -278,7 +278,6 @@ Statut MON21.6.9 : **C++ implémenté ; validation Automation puis intégration 
 
 Prochaine tranche après validation : **MON21.6.10 — Zoom / Pan / Recenter**.
 
-Prochaine tranche après validation complète : **MON21.6.9 — Floor Navigation**.
 
 ## MON21.5–MON21.8
 
