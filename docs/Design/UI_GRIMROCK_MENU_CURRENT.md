@@ -73,7 +73,7 @@ WidgetSwitcher_MainContent
 Page_Skills
 Page_Spellbook
 Page_Journal
-Page_Map
+Page_Map        -> WBP_GridMap (MON21.6.8 : reparent cible UGridMapWidget)
 Page_Recipes
 Page_Codex
 ~~~
@@ -126,3 +126,24 @@ docs/Design/UI_ASSET_AUDIT_2026_09_22.md
 ```
 
 Le shell `WBP_GrimrockMenu` reste temporairement nécessaire. Il ne doit pas être supprimé tant que Skills, Spellbook, Journal, Map, Recipes et Codex n'ont pas tous quitté ce shell.
+
+## MON21.6.8 — Map native rendering
+
+`WBP_GridMap` reste la surface Map existante du shell. La migration MON21.6.8 ne crée pas de second écran.
+
+Cible native :
+
+```text
+WBP_GridMap
+    Parent Class -> UGridMapWidget
+```
+
+Le binding du shell reste volontairement :
+
+```cpp
+TObjectPtr<UWidget> Page_Map;
+```
+
+Le shell effectue un cast via `GetMapWidget()`, initialise la page avec le Party Pawn et appelle `RefreshMap()` à chaque activation de l’onglet Map.
+
+Le reparent de l’asset doit être effectué manuellement dans Unreal Editor. Aucun `.uasset` n’est modifié à l’aveugle.

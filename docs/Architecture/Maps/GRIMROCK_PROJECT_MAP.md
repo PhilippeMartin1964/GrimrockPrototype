@@ -1143,14 +1143,20 @@ MON21.2–21.3 :
 - 🟢 `Door` / `SecretDoor` seulement lorsque la connaissance l’autorise ;
 - 🟢 état de porte live prioritaire, fallback `FGridLevelRuntimeState::Doors` puis authored ;
 - 🟢 read model transient, SaveGame v23 inchangé ;
-- 🟡 MON21.6.7 Multi-Tile / Floor Projection implémenté, validation locale à fournir ;
+- ✅ MON21.6.7 Multi-Tile / Floor Projection validé : 4/4, 0 warning, 0 échec (`TD04-20260928-092245`) ;
 - 🟢 `FGridMapFloorView` compose toutes les dalles activées du même Z ;
 - 🟢 `MapX = TileX*32+LocalX`, `MapY = TileY*32+LocalY`, coordonnées négatives supportées ;
 - 🟢 aucune couture technique entre dalles adjacentes ;
 - 🟢 frontières communes connues dédupliquées par segment global ;
 - 🟢 étages disponibles = Z distincts activés, triés ;
 - 🟢 marqueur groupe uniquement sur l’étage courant ;
-- ⬜ MON21.6.8+ : rendu WBP natif, navigation puis finition parchemin.
+- 🟡 MON21.6.8 Existing WBP + Native Map Rendering : C++ implémenté, reparent UMG + PIE à valider ;
+- 🟢 `UGridMapWidget` reconstruit un `FGridMapFloorView` transitoire à l’ouverture ;
+- 🟢 rendu Slate natif sans widget par cellule ;
+- 🟢 cellules explorées + murs + portes + secrets découverts + marqueur groupe ;
+- 🟢 `WBP_GridMap` conservé et à reparent manuellement vers `UGridMapWidget` ;
+- 🟢 `Page_Map` reste le binding existant du shell ;
+- ⬜ MON21.6.9+ : navigation d’étage, zoom/pan/recenter, finition parchemin.
 
 ## 16.5 — Codex
 

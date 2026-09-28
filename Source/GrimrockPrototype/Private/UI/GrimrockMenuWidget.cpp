@@ -1,6 +1,7 @@
 #include "UI/GrimrockMenuWidget.h"
 
 #include "Components/WidgetSwitcher.h"
+#include "UI/GridMapWidget.h"
 #include "UI/GridSkillsWidget.h"
 #include "UI/GridSpellbookWidget.h"
 
@@ -28,6 +29,10 @@ void UGrimrockMenuWidget::InitializeMenuWidget(AGrimrockPartyPawn* InPartyPawn)
 	{
 		SpellbookWidget->InitializeSpellbookWidget(InPartyPawn);
 	}
+	if (UGridMapWidget* MapWidget = GetMapWidget())
+	{
+		MapWidget->InitializeMapWidget(InPartyPawn);
+	}
 }
 
 void UGrimrockMenuWidget::RefreshSkills()
@@ -46,6 +51,14 @@ void UGrimrockMenuWidget::RefreshSpellbook()
 	}
 }
 
+void UGrimrockMenuWidget::RefreshMap()
+{
+	if (UGridMapWidget* MapWidget = GetMapWidget())
+	{
+		MapWidget->RefreshMap();
+	}
+}
+
 UGridSkillsWidget* UGrimrockMenuWidget::GetSkillsWidget() const
 {
 	return Cast<UGridSkillsWidget>(Page_Skills);
@@ -54,6 +67,11 @@ UGridSkillsWidget* UGrimrockMenuWidget::GetSkillsWidget() const
 UGridSpellbookWidget* UGrimrockMenuWidget::GetSpellbookWidget() const
 {
 	return Cast<UGridSpellbookWidget>(Page_Spellbook);
+}
+
+UGridMapWidget* UGrimrockMenuWidget::GetMapWidget() const
+{
+	return Cast<UGridMapWidget>(Page_Map);
 }
 
 UWidget* UGrimrockMenuWidget::GetTopTabPage(EInventoryTopTab Tab) const
@@ -97,6 +115,10 @@ void UGrimrockMenuWidget::SetActiveTopTab(EInventoryTopTab NewTab)
 	else if (NewTab == EInventoryTopTab::Spellbook)
 	{
 		RefreshSpellbook();
+	}
+	else if (NewTab == EInventoryTopTab::Map)
+	{
+		RefreshMap();
 	}
 
 	UE_LOG(LogGrimrockInGameUI, VeryVerbose, TEXT("GrimrockMenu active Page=%d Widget=%s"), static_cast<int32>(NewTab), *GetNameSafe(TargetPage));

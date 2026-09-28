@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.7 IMPLÉMENTÉ / À VALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.8 C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -229,7 +229,7 @@ MON21.6.6 est **VALIDÉ** :
 - état de porte vivant prioritaire, fallback runtime persistant puis authored ;
 - validation locale `Grimrock.Map.MON21_6_6` : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-091315`.
 
-MON21.6.7 est maintenant implémenté :
+MON21.6.7 est **VALIDÉ** :
 
 - `FGridMapFloorView` compose les `FGridMapTileView` d’un même `LogicalPosition.Z` ;
 - coordonnées globales stride 32, coordonnées négatives conservées ;
@@ -237,12 +237,22 @@ MON21.6.7 est maintenant implémenté :
 - aucune couture dessinée entre LevelAssets adjacents sans vraie frontière ;
 - frontières physiques partagées dédupliquées globalement ;
 - marqueur du groupe seulement sur l’étage courant ;
-- read model toujours transitoire, SaveGame v23 inchangé ;
-- Automation ajoutée sous `Grimrock.Map.MON21_6_7`.
+- validation locale `Grimrock.Map.MON21_6_7` : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-092245`.
 
-Statut MON21.6.7 : **implémenté, validation locale utilisateur requise**.
+MON21.6.8 — C++ implémenté, intégration UMG/PIE à valider :
 
-Prochaine tranche après validation : **MON21.6.8 — Existing WBP + Native Map Rendering**.
+- nouvelle classe `UGridMapWidget : UGrimrockDesignSurfaceWidget` ;
+- `RefreshMap()` reconstruit `FGridMapFloorView` depuis les autorités runtime ;
+- rendu natif `NativePaint()` : cellules explorées, murs, portes, secrets découverts, marqueur groupe ;
+- aucun widget par cellule, aucun Actor Map, aucun refresh Map par Tick ;
+- `UGrimrockMenuWidget` initialise et rafraîchit la Map à l’activation ;
+- `Page_Map` reste générique `UWidget` pour ne pas casser le WBP avant reparent ;
+- reparent manuel de `WBP_GridMap` vers `UGridMapWidget` requis dans UE ;
+- Automation C++ ajoutée sous `Grimrock.Map.MON21_6_8`.
+
+Statut MON21.6.8 : **C++ implémenté ; build/Automation + UMG + smoke PIE + validation visuelle requis**.
+
+Prochaine tranche après validation complète : **MON21.6.9 — Floor Navigation**.
 
 ## MON21.5–MON21.8
 
@@ -359,8 +369,8 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON21.6.7 — Multi-Tile / Floor Projection : IMPLÉMENTÉ / À VALIDER
-MON21.6.8 — Existing WBP + Native Map Rendering : prochaine tranche après validation
+MON21.6.8 — Existing WBP + Native Map Rendering : C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
+MON21.6.9 — Floor Navigation : prochaine tranche après validation complète
 ```
 
 TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.

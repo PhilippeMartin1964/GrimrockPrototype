@@ -6,6 +6,7 @@
 #include "GrimrockMenuWidget.generated.h"
 
 class AGrimrockPartyPawn;
+class UGridMapWidget;
 class UGridSkillsWidget;
 class UGridSpellbookWidget;
 class UWidget;
@@ -32,6 +33,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	void RefreshSpellbook();
 
+	UFUNCTION(BlueprintCallable, Category = "Menu")
+	void RefreshMap();
+
 	UFUNCTION(BlueprintCallable, Category = "Menu|Pages")
 	void SetActiveTopTab(EInventoryTopTab NewTab);
 
@@ -40,6 +44,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	UGridSpellbookWidget* GetSpellbookWidget() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Menu")
+	UGridMapWidget* GetMapWidget() const;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Menu")
 	TObjectPtr<AGrimrockPartyPawn> OwningPartyPawn;

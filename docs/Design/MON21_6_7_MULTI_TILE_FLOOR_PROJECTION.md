@@ -1,7 +1,7 @@
 # MON21.6.7 — Multi-Tile / Floor Projection
 
 Date : **28 septembre 2026**  
-Statut : **IMPLÉMENTÉ — VALIDATION LOCALE UTILISATEUR REQUISE**
+Statut : **VALIDÉ**
 
 ## 1. Objectif
 
@@ -161,7 +161,19 @@ FloorProjection.TechnicalSeamAndBoundaryDedup
 FloorProjection.TransientAndInvalidSelection
 ```
 
-Aucun résultat MON21.6.7 n’est déclaré avant retour du harness UE5.5.4 local.
+Validation locale utilisateur du 28 septembre 2026 :
+
+```text
+Filter                  : Grimrock.Map.MON21_6_7
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code       : 0
+Report                  : TD04-20260928-092245
+```
+
+MON21.6.7 est **VALIDÉ**.
 
 ## 11. Hors périmètre
 
@@ -171,4 +183,4 @@ Aucun résultat MON21.6.7 n’est déclaré avant retour du harness UE5.5.4 loca
 - style parchemin : MON21.6.11 ;
 - symboles supplémentaires : MON21.6.12.
 
-Prochaine tranche après validation : **MON21.6.8 — Existing WBP + Native Map Rendering**.
+Tranche suivante : **MON21.6.8 — Existing WBP + Native Map Rendering**.
