@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.2 IMPLÉMENTÉ / À VALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.3 IMPLÉMENTÉ / À VALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -184,18 +184,27 @@ Il fige notamment :
 
 MON21.6.1 est documentaire : il ne change ni C++, ni assets binaires, ni `CurrentSaveVersion`.
 
-MON21.6.2 est maintenant implémenté :
+MON21.6.2 est **VALIDÉ** :
 
 - `FGridMapExplorationState` = autorité Unknown/Explored sur 1024 cellules ;
 - stockage paresseux `TArray<uint8>` ;
 - `FGridLevelRuntimeState::MapExploration` isole l’état par `LevelId` ;
-- aucun reveal automatique avant MON21.6.3 ;
 - aucun flag `SaveGame` et aucune nouvelle version avant MON21.6.5 ;
-- Automation ajoutée sous `Grimrock.Map.MON21_6_2`.
+- validation locale `Grimrock.Map.MON21_6_2` : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-082142`.
 
-Statut : **implémenté, validation locale utilisateur requise**.
+MON21.6.3 est maintenant implémenté :
 
-Prochaine tranche après validation : **MON21.6.3 — Topology-Aware Reveal**.
+- `FGridMapRevealService::RevealRadiusCells = 1.25` ;
+- cellule courante + quatre cardinales, diagonales exclues ;
+- murs `Solid` vérifiés sur les deux côtés de l’arête ;
+- porte fermée/bloquante = pas de reveal ; porte ouverte = reveal ;
+- `bBlocksOccupancy` n’empêche pas la visibilité ;
+- reveal initial et après mouvement via `HandlePartyCellChanged()` ;
+- Automation ajoutée sous `Grimrock.Map.MON21_6_3`.
+
+Statut MON21.6.3 : **implémenté, validation locale utilisateur requise**.
+
+Prochaine tranche après validation : **MON21.6.4 — Secret Discovery**.
 
 ## MON21.5–MON21.8
 
@@ -312,11 +321,11 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-Aucun développement fonctionnel actif.
-MON21.4 — Quest Persistence : en attente du feu vert utilisateur.
+MON21.6.3 — Topology-Aware Reveal : IMPLÉMENTÉ / À VALIDER
+MON21.6.4 — Secret Discovery : prochaine tranche après validation
 ```
 
-TD07 est validé et clos. MON21.4 est la prochaine tranche fonctionnelle prévue, mais reste volontairement en attente du feu vert explicite de l'utilisateur.
+TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.airement en attente du feu vert explicite de l'utilisateur.
 
 
 TD07.3.3.9 ouvre **v19 exact-match** : `LastAcknowledgedLevel` devient l'état durable minimal de notification Level-Up et les queues persistantes MON15.6 sont supprimées.

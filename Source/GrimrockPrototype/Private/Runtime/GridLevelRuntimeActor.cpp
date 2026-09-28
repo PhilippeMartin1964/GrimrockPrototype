@@ -1008,6 +1008,7 @@ void AGridLevelRuntimeActor::HandlePartyCellChanged(int32 OldCellX, int32 OldCel
 	{
 		ActivationComponent->HandlePartyCellChanged(OldCellX, OldCellY, NewCellX, NewCellY);
 	}
+	RevealMapAroundCell(NewCellX, NewCellY);
 }
 
 void AGridLevelRuntimeActor::NotifyPawnEnteredCell(int32 CellX, int32 CellY)

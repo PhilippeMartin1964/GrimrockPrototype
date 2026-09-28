@@ -1,7 +1,7 @@
 # MON21.6.2 — Exploration State
 
 Date : **28 septembre 2026**  
-Statut : **IMPLÉMENTÉ — VALIDATION LOCALE UTILISATEUR REQUISE**  
+Statut : **VALIDÉ**  
 Baseline : `77c9773a1a6cd22997f77b8ea136d5fdc2a251a0`
 
 ## 1. Objectif
@@ -56,10 +56,22 @@ ExplorationState.PerLevelAuthority
 ExplorationState.SaveBoundary
 ```
 
-Aucun résultat n’est déclaré tant que la sortie locale Unreal n’a pas été fournie par l’utilisateur.
+Validation locale utilisateur du 28 septembre 2026 :
+
+```text
+Filter                  : Grimrock.Map.MON21_6_2
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code       : 0
+Report                  : TD04-20260928-082142
+```
+
+MON21.6.2 est **VALIDÉ**.
 
 ## 8. Stop condition
 
 L’état Unknown/Explored est unique par LevelId, paresseux, idempotent, borné à 32×32 et sans persistance disque prématurée.
 
-Prochaine tranche après validation : **MON21.6.3 — Topology-Aware Reveal**.
+Tranche suivante : **MON21.6.3 — Topology-Aware Reveal**.

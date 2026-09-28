@@ -387,6 +387,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction")
 	void HandlePartyCellChanged(int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
 
+	/** MON21.6.3 reveals the current map cell and topology-visible cardinal neighbours. */
+	int32 RevealMapAroundCell(int32 CellX, int32 CellY);
+
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction")
 	void NotifyPawnEnteredCell(int32 CellX, int32 CellY);
 

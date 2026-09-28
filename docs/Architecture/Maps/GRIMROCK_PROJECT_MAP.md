@@ -1119,11 +1119,17 @@ MON21.2–21.3 :
 - 🟢 secret caché = mur normal ; découverte durable indépendante de l’état ouvert/fermé ;
 - 🟢 le read model Map ne transmet jamais de géométrie inconnue au WBP ;
 - 🟢 aucun `MapActor`, aucun Tick permanent, aucune seconde grille/autorité ;
-- 🟡 MON21.6.2 Exploration State implémenté, validation locale à fournir ;
+- ✅ MON21.6.2 Exploration State validé : 4/4, 0 warning, 0 échec (`TD04-20260928-082142`) ;
 - 🟢 `FGridMapExplorationState` porte Unknown/Explored sur 32×32, avec allocation paresseuse ;
 - 🟢 `FGridLevelRuntimeState::MapExploration` isole l’exploration par `LevelId` et la conserve pendant la session ;
 - 🟢 SaveGame volontairement inchangé en v22 : persistance disque réservée à MON21.6.5 ;
-- ⬜ MON21.6.3+ : reveal topologique, secrets, persistence, read model, projection multi-dalles, UI/navigation et rendu parchemin.
+- 🟡 MON21.6.3 Topology-Aware Reveal implémenté, validation locale à fournir ;
+- 🟢 rayon 1.25 : cellule courante + cardinales, diagonales exclues ;
+- 🟢 murs vérifiés sur les deux côtés de la frontière ;
+- 🟢 portes bloquantes arrêtent le reveal, portes ouvertes laissent voir la cellule voisine ;
+- 🟢 `bBlocksOccupancy` n’est pas une occlusion Map ;
+- 🟢 reveal déclenché au démarrage et après déplacement via `HandlePartyCellChanged()` ;
+- ⬜ MON21.6.4+ : secrets, persistence, read model, projection multi-dalles, UI/navigation et rendu parchemin.
 
 ## 16.5 — Codex
 
