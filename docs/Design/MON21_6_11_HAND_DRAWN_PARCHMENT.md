@@ -1,7 +1,7 @@
 # MON21.6.11 — Hand-Drawn Parchment Artistic Pass
 
 Date : **28 septembre 2026**  
-Statut : **C++ IMPLÉMENTÉ — VALIDATION AUTOMATION + PIE VISUELLE UTILISATEUR REQUISES**
+Statut : **VALIDÉ — FONDATION ARTISTIQUE ; POLISH FINAL DIFFÉRÉ À MON21.6.13**
 
 ## 1. Objectif
 
@@ -165,7 +165,21 @@ ArtStyle.PresentationOnlyContract
 ArtStyle.HiddenSecretStillNormalWall
 ```
 
-Aucun résultat MON21.6.11 n’est déclaré avant retour du harness UE5.5.4 local.
+Validation utilisateur du 28 septembre 2026 :
+
+```text
+Filter                  : Grimrock.Map.MON21_6_11
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code       : 0
+Report                  : TD04-20260928-120834
+```
+
+Le contrôle PIE confirme une base parchemin fonctionnelle et lisible. Le feedback utilisateur demande cependant de reporter le polish graphique final et l’adaptation exacte au canvas `WBP_GridMap` après l’arrivée des symboles.
+
+MON21.6.11 est donc **VALIDÉ comme fondation artistique** ; le polish final est explicitement transféré à MON21.6.13.
 
 ## 12. Validation PIE attendue
 
@@ -192,4 +206,4 @@ Si les anciens coloris sont conservés parce qu’ils ont été explicitement su
 - vraie texture papier dédiée : amélioration artistique optionnelle future ;
 - regression/closure globale de la Map : MON21.6.13.
 
-Prochaine tranche après validation : **MON21.6.12 — Map Symbols**.
+Tranche suivante : **MON21.6.12 — Map Symbols**.

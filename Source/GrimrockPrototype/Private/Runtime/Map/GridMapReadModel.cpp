@@ -167,6 +167,87 @@ namespace GridMapReadModelPrivate
 		return Door.InstanceConfig.bDoorInitiallyOpen;
 	}
 
+	EGridLevelObjectType ResolveGameplayType(
+		const FGridWorldObjectInstance& Instance,
+		const TMap<FName, const UGridWorldObjectDefinitionAsset*>& DefinitionById)
+	{
+		if (const UGridWorldObjectDefinitionAsset* const* DefinitionPtr = DefinitionById.Find(Instance.WorldObjectDefinitionId))
+		{
+			if (const UGridWorldObjectDefinitionAsset* Definition = *DefinitionPtr)
+			{
+				if (Definition->SupportedType != EGridLevelObjectType::None)
+				{
+					return Definition->SupportedType;
+				}
+			}
+		}
+		return Instance.Type;
+	}
+
+	bool TryResolveExplicitMapSymbol(
+		const FGridWorldObjectInstance& Instance,
+		const TMap<FName, const UGridWorldObjectDefinitionAsset*>& DefinitionById,
+		EGridMapSymbolKind& OutKind)
+	{
+		const UGridWorldObjectDefinitionAsset* const* DefinitionPtr = DefinitionById.Find(Instance.WorldObjectDefinitionId);
+		const UGridWorldObjectDefinitionAsset* Definition = DefinitionPtr ? *DefinitionPtr : nullptr;
+		if (!Definition)
+		{
+			return false;
+		}
+
+		switch (Definition->MapSymbolStyle)
+		{
+			case EGridMapSymbolStyle::StairsUp:
+				OutKind = EGridMapSymbolKind::StairsUp;
+				return true;
+			case EGridMapSymbolStyle::StairsDown:
+				OutKind = EGridMapSymbolKind::StairsDown;
+				return true;
+			case EGridMapSymbolStyle::Relocation:
+				OutKind = EGridMapSymbolKind::Relocation;
+				return true;
+			case EGridMapSymbolStyle::Pit:
+				OutKind = EGridMapSymbolKind::Pit;
+				return true;
+			case EGridMapSymbolStyle::PointOfInterest:
+				OutKind = EGridMapSymbolKind::PointOfInterest;
+				return true;
+			case EGridMapSymbolStyle::None:
+			default:
+				return false;
+		}
+	}
+
+	bool IsPitOpenForMap(const FGridWorldObjectInstance& Instance, const FGridLevelRuntimeState& LevelState)
+	{
+		if (const FGridRuntimePitState* RuntimeState = LevelState.Pits.Find(Instance.InstanceId))
+		{
+			return RuntimeState->bIsOpen;
+		}
+		return Instance.InstanceConfig.Pit.bInitiallyOpen;
+	}
+
+	bool HasSymbol(const TArray<FGridMapSymbolView>& Symbols, const FIntPoint& Cell, EGridMapSymbolKind Kind)
+	{
+		return Symbols.ContainsByPredicate(
+			[Cell, Kind](const FGridMapSymbolView& Symbol)
+			{
+				return Symbol.LocalCell == Cell && Symbol.Kind == Kind;
+			});
+	}
+
+	void AddSymbolUnique(TArray<FGridMapSymbolView>& Symbols, const FIntPoint& Cell, EGridMapSymbolKind Kind)
+	{
+		if (HasSymbol(Symbols, Cell, Kind))
+		{
+			return;
+		}
+		FGridMapSymbolView& Symbol = Symbols.AddDefaulted_GetRef();
+		Symbol.LocalCell = Cell;
+		Symbol.Kind = Kind;
+	}
+
 	bool IsSolidBoundary(const UGridLevelAsset& LevelAsset, const FIntPoint& Cell, EGridEdge Edge)
 	{
 		if (GetWall(LevelAsset, Cell, Edge) == EGridWallType::Solid)
@@ -325,6 +406,21 @@ bool FGridMapReadModelBuilder::BuildTileView(
 			CellView.LocalCell = Cell;
 			CellView.CellType = CellData.CellType;
 
+			switch (CellData.CellType)
+			{
+				case EGridCellType::StairsUp:
+					AddSymbolUnique(OutView.Symbols, Cell, EGridMapSymbolKind::StairsUp);
+					break;
+				case EGridCellType::StairsDown:
+					AddSymbolUnique(OutView.Symbols, Cell, EGridMapSymbolKind::StairsDown);
+					break;
+				case EGridCellType::Pit:
+					AddSymbolUnique(OutView.Symbols, Cell, EGridMapSymbolKind::Pit);
+					break;
+				default:
+					break;
+			}
+
 			for (const EGridEdge Edge : Directions)
 			{
 				const uint32 BoundaryKey = MakePhysicalBoundaryKey(Cell, Edge);
@@ -382,6 +478,53 @@ bool FGridMapReadModelBuilder::BuildTileView(
 				}
 			}
 		}
+	}
+
+	for (const FGridWorldObjectInstance& Instance : LevelAsset.WorldObjectInstances)
+	{
+		if (const FGridRuntimeObjectPresenceState* Presence = LevelState.ObjectPresence.Find(Instance.InstanceId);
+			Presence && Presence->bRemovedFromInitialPlacement)
+		{
+			continue;
+		}
+
+		const FIntPoint Cell(Instance.CellX, Instance.CellY);
+		if (!LevelAsset.IsValidCoord(Cell.X, Cell.Y) || !LevelState.MapExploration.IsExplored(Cell))
+		{
+			continue;
+		}
+
+		const FGridLevelCellData& CellData = LevelAsset.GetCell(Cell.X, Cell.Y);
+		if (CellData.CellType == EGridCellType::Empty)
+		{
+			continue;
+		}
+
+		EGridMapSymbolKind ExplicitKind = EGridMapSymbolKind::Relocation;
+		if (!TryResolveExplicitMapSymbol(Instance, DefinitionById, ExplicitKind))
+		{
+			continue;
+		}
+
+		const bool bCellOwnsNavigationSymbol =
+			(CellData.CellType == EGridCellType::StairsUp || CellData.CellType == EGridCellType::StairsDown) &&
+			(ExplicitKind == EGridMapSymbolKind::StairsUp || ExplicitKind == EGridMapSymbolKind::StairsDown ||
+				ExplicitKind == EGridMapSymbolKind::Relocation);
+		if (bCellOwnsNavigationSymbol || (CellData.CellType == EGridCellType::Pit && ExplicitKind == EGridMapSymbolKind::Pit))
+		{
+			continue;
+		}
+
+		if (ExplicitKind == EGridMapSymbolKind::Pit)
+		{
+			if (ResolveGameplayType(Instance, DefinitionById) == EGridLevelObjectType::Pit && IsPitOpenForMap(Instance, LevelState))
+			{
+				AddSymbolUnique(OutView.Symbols, Cell, EGridMapSymbolKind::Pit);
+			}
+			continue;
+		}
+
+		AddSymbolUnique(OutView.Symbols, Cell, ExplicitKind);
 	}
 
 	return true;
@@ -489,6 +632,13 @@ bool FGridMapReadModelBuilder::BuildFloorView(
 			FloorBoundary.Kind = TileBoundary.Kind;
 			FloorBoundary.bDoorOpen = TileBoundary.bDoorOpen;
 			MergeFloorBoundary(FloorBoundary, BoundaryIndexByKey, Result);
+		}
+
+		for (const FGridMapSymbolView& TileSymbol : TileView.Symbols)
+		{
+			FGridMapFloorSymbolView& FloorSymbol = Result.Symbols.AddDefaulted_GetRef();
+			FloorSymbol.MapCell = ToGlobalMapCell(Entry.LogicalPosition, TileSymbol.LocalCell);
+			FloorSymbol.Kind = TileSymbol.Kind;
 		}
 	}
 

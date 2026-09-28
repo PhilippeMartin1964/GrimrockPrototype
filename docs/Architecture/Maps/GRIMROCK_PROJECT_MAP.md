@@ -1171,13 +1171,20 @@ MON21.2–21.3 :
 - 🟢 Recentrer = retour au Z du groupe + cellule du groupe centrée ;
 - 🟢 Up/Down conserve le zoom mais remet le pan à zéro ;
 - 🟢 `Button_Recenter` optionnel, aucun Graph Blueprint requis ;
-- 🟡 MON21.6.11 Hand-Drawn Parchment Artistic Pass : C++ implémenté, PIE visuelle à valider ;
+- ✅ MON21.6.11 Hand-Drawn Parchment Artistic Pass validé comme fondation : 4/4, 0 warning, 0 échec (`TD04-20260928-120834`) ;
 - 🟢 fond parchemin procédural + grain discret ;
 - 🟢 lavis/hachures uniquement pour les cellules connues ;
 - 🟢 traits manuscrits déterministes pour murs, portes et marqueur ;
 - 🟢 feather visuel aux frontières d’exploration ;
 - 🟢 aucune texture Map dédiée requise ;
-- ⬜ MON21.6.12+ : symboles puis regression/closure.
+- 🟠 polish final/fit canvas de 6.11 explicitement différé à 6.13 ;
+- 🟡 MON21.6.12 Map Symbols : C++ implémenté, DataAssets/PIE à valider ;
+- 🟢 opt-in `MapSymbolStyle` sur World Object Definition, sans nouveau Gameplay Type ;
+- 🟢 symboles : StairsUp, StairsDown, Relocation, Pit, PointOfInterest ;
+- 🟢 symboles uniquement sur cellules explorées, sans identité authored exposée ;
+- 🟢 Pit objet monde affiché seulement ouvert ; objets retirés via `ObjectPresence` exclus ;
+- 🟢 glyphes manuscrits déterministes ;
+- ⬜ MON21.6.13 : polish final + regression/closure.
 
 ## 16.5 — Codex
 

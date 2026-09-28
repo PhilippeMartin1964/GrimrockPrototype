@@ -160,6 +160,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "0", ClampMax = "8"))
 	int32 CellHatchLineCount = 3;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Symbols")
+	FLinearColor NavigationSymbolColor = FLinearColor(0.14f, 0.075f, 0.025f, 0.98f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Symbols")
+	FLinearColor HazardSymbolColor = FLinearColor(0.48f, 0.075f, 0.025f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Symbols", meta = (ClampMin = "0.5", ClampMax = "8.0"))
+	float SymbolStrokeThickness = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Symbols", meta = (ClampMin = "0.4", ClampMax = "1.0"))
+	float SymbolScale = 0.72f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Symbols", meta = (ClampMin = "4.0", ClampMax = "64.0"))
+	float SymbolMinCellPixels = 12.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|View", meta = (ClampMin = "0.10", ClampMax = "4.0"))
 	float MinZoomScale = 0.50f;
 

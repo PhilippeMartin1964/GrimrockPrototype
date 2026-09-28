@@ -221,3 +221,29 @@ CellHatchLineCount
 ```
 
 Si `WBP_GridMap` avait explicitement surchargé les anciennes couleurs `Map|Rendering`, utiliser `Reset to Default` pour récupérer la nouvelle palette C++.
+
+## MON21.6.12 — Map Symbols
+
+`UGridWorldObjectDefinitionAsset` expose un opt-in de présentation :
+
+```text
+MapSymbolStyle = None | StairsUp | StairsDown | Relocation | Pit | PointOfInterest
+```
+
+Cette valeur ne change jamais le `SupportedType` gameplay.
+
+Le read model expose uniquement `Cell + Kind` lorsque la cellule est explorée ; aucune identité d’objet n’atteint le WBP.
+
+`UGridMapWidget::NativePaint()` dessine les glyphes directement. Aucun nouveau widget UMG n’est requis.
+
+Réglages dans `Map|Symbols` :
+
+```text
+NavigationSymbolColor
+HazardSymbolColor
+SymbolStrokeThickness
+SymbolScale
+SymbolMinCellPixels
+```
+
+Les DataAssets concernés doivent être configurés manuellement dans UE après validation C++.

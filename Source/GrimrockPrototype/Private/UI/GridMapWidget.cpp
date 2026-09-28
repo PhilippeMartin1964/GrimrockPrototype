@@ -389,6 +389,122 @@ namespace GridMapWidgetPrivate
 		}
 	}
 
+	void DrawMapSymbol(
+		FSlateWindowElementList& OutDrawElements,
+		int32 Layer,
+		const FPaintGeometry& PaintGeometry,
+		const FRenderMetrics& Metrics,
+		const FGridMapFloorSymbolView& Symbol,
+		const FLinearColor& NavigationColor,
+		const FLinearColor& HazardColor,
+		float StrokeThickness,
+		float SymbolScale,
+		float MinCellPixels,
+		float JitterPixels,
+		float SecondaryAlpha)
+	{
+		if (Metrics.CellSize < MinCellPixels)
+		{
+			return;
+		}
+
+		const FVector2f Center = Metrics.CellCenter(Symbol.MapCell);
+		const float R = Metrics.CellSize * 0.30f * FMath::Clamp(SymbolScale, 0.4f, 1.0f);
+		const float T = FMath::Max(0.75f, StrokeThickness);
+		const FLinearColor& Color = Symbol.Kind == EGridMapSymbolKind::Pit ? HazardColor : NavigationColor;
+
+		auto Ink = [&](const FVector2f& A, const FVector2f& B, int32 Salt, float ThicknessScale = 1.0f)
+		{
+			DrawHandDrawnLine(
+				OutDrawElements,
+				Layer,
+				PaintGeometry,
+				A,
+				B,
+				Color,
+				T * ThicknessScale,
+				Symbol.MapCell,
+				EGridEdge::None,
+				Salt,
+				JitterPixels * 0.45f,
+				SecondaryAlpha * 0.65f);
+		};
+
+		switch (Symbol.Kind)
+		{
+			case EGridMapSymbolKind::StairsUp:
+			case EGridMapSymbolKind::StairsDown:
+			{
+				const float Direction = Symbol.Kind == EGridMapSymbolKind::StairsUp ? -1.0f : 1.0f;
+				const float Step = R * 0.52f;
+				for (int32 Index = 0; Index < 3; ++Index)
+				{
+					const float Y = Center.Y + Direction * (static_cast<float>(Index) - 1.0f) * Step;
+					const float HalfWidth = R * (0.46f + 0.20f * static_cast<float>(Index));
+					Ink(
+						FVector2f(Center.X - HalfWidth, Y),
+						FVector2f(Center.X + HalfWidth, Y),
+						510 + Index * 11);
+				}
+
+				const FVector2f ArrowBase(Center.X, Center.Y - Direction * R * 0.15f);
+				const FVector2f ArrowTip(Center.X, Center.Y + Direction * R * 1.05f);
+				Ink(ArrowBase, ArrowTip, 550, 0.85f);
+				Ink(ArrowTip, ArrowTip + FVector2f(-R * 0.26f, -Direction * R * 0.28f), 551, 0.85f);
+				Ink(ArrowTip, ArrowTip + FVector2f(R * 0.26f, -Direction * R * 0.28f), 552, 0.85f);
+				break;
+			}
+
+			case EGridMapSymbolKind::Relocation:
+			{
+				const FVector2f Top = Center + FVector2f(0.0f, -R);
+				const FVector2f Right = Center + FVector2f(R, 0.0f);
+				const FVector2f Bottom = Center + FVector2f(0.0f, R);
+				const FVector2f Left = Center + FVector2f(-R, 0.0f);
+				Ink(Top, Right, 610);
+				Ink(Right, Bottom, 611);
+				Ink(Bottom, Left, 612);
+				Ink(Left, Top, 613);
+
+				const float Inner = R * 0.48f;
+				Ink(Center + FVector2f(0.0f, -Inner), Center + FVector2f(Inner, 0.0f), 620, 0.80f);
+				Ink(Center + FVector2f(Inner, 0.0f), Center + FVector2f(0.0f, Inner), 621, 0.80f);
+				Ink(Center + FVector2f(0.0f, Inner), Center + FVector2f(-Inner, 0.0f), 622, 0.80f);
+				Ink(Center + FVector2f(-Inner, 0.0f), Center + FVector2f(0.0f, -Inner), 623, 0.80f);
+				break;
+			}
+
+			case EGridMapSymbolKind::Pit:
+			{
+				const float Half = R * 0.88f;
+				const FVector2f TL = Center + FVector2f(-Half, -Half);
+				const FVector2f TR = Center + FVector2f(Half, -Half);
+				const FVector2f BR = Center + FVector2f(Half, Half);
+				const FVector2f BL = Center + FVector2f(-Half, Half);
+				Ink(TL, TR, 710);
+				Ink(TR, BR, 711);
+				Ink(BR, BL, 712);
+				Ink(BL, TL, 713);
+				Ink(TL + FVector2f(R * 0.18f, R * 0.18f), BR - FVector2f(R * 0.18f, R * 0.18f), 720, 0.85f);
+				Ink(TR + FVector2f(-R * 0.18f, R * 0.18f), BL + FVector2f(R * 0.18f, -R * 0.18f), 721, 0.85f);
+				break;
+			}
+
+			case EGridMapSymbolKind::PointOfInterest:
+			{
+				const float Inner = R * 0.42f;
+				Ink(Center + FVector2f(0.0f, -R), Center + FVector2f(0.0f, R), 810, 0.90f);
+				Ink(Center + FVector2f(-R, 0.0f), Center + FVector2f(R, 0.0f), 811, 0.90f);
+				Ink(Center + FVector2f(-Inner, -Inner), Center + FVector2f(Inner, Inner), 812, 0.75f);
+				Ink(Center + FVector2f(Inner, -Inner), Center + FVector2f(-Inner, Inner), 813, 0.75f);
+				break;
+			}
+
+			default:
+				break;
+		}
+	}
+
 	void DrawPartyMarker(
 		FSlateWindowElementList& OutDrawElements,
 		int32 Layer,
@@ -841,7 +957,8 @@ int32 UGridMapWidget::NativePaint(
 	const int32 HatchLayer = CellLayer + 1;
 	const int32 FeatherLayer = HatchLayer + 1;
 	const int32 BoundaryLayer = FeatherLayer + 1;
-	const int32 MarkerLayer = BoundaryLayer + 2;
+	const int32 SymbolLayer = BoundaryLayer + 2;
+	const int32 MarkerLayer = SymbolLayer + 2;
 
 	if (bEnableParchmentStyle)
 	{
@@ -984,6 +1101,23 @@ int32 UGridMapWidget::NativePaint(
 			default:
 				break;
 		}
+	}
+
+	for (const FGridMapFloorSymbolView& Symbol : FloorView.Symbols)
+	{
+		DrawMapSymbol(
+			OutDrawElements,
+			SymbolLayer,
+			PaintGeometry,
+			Metrics,
+			Symbol,
+			NavigationSymbolColor,
+			HazardSymbolColor,
+			SymbolStrokeThickness,
+			SymbolScale,
+			SymbolMinCellPixels,
+			bEnableParchmentStyle ? HandDrawnJitterPixels : 0.0f,
+			bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f);
 	}
 
 	if (bEnableParchmentStyle)

@@ -4,7 +4,7 @@ Statut : **contrat actif après WORLDOBJ-CLASS01**, 2026-09-14.
 
 ## 1. Autorités
 
-Une `UGridWorldObjectDefinitionAsset` définit un concept permanent. Son `DefinitionId` est résolu depuis le `WorldObjectDefinitionId` d'un placement. La définition porte les visuels, la motion, le placement par défaut, l'audio, la classe runtime et les règles comportementales partagées.
+Une `UGridWorldObjectDefinitionAsset` définit un concept permanent. Son `DefinitionId` est résolu depuis le `WorldObjectDefinitionId` d'un placement. La définition porte les visuels, la motion, le placement par défaut, l'audio, la classe runtime, les règles comportementales partagées et, depuis MON21.6.12, l’opt-in de présentation cartographique `MapSymbolStyle`.
 
 Le niveau conserve uniquement les collections de placements typées :
 
@@ -51,6 +51,8 @@ La définition reste l'autorité de la géométrie et de la motion partagées. U
 ## 3. Palette et édition
 
 `UGridObjectPaletteAsset::Entries` expose des `FGridObjectPaletteEntry`. Une entrée world-object référence `DefaultWorldObjectDefinition` ; une entrée collectible référence directement `DefaultItemDefinition`. `PaletteCategory` est l'unique autorité de groupement de palette. La définition porte seulement son Gameplay Type et ne connaît pas son groupement éditeur.
+
+`MapSymbolStyle` est une métadonnée **de présentation uniquement** : `None` par défaut, puis `StairsUp`, `StairsDown`, `Relocation`, `Pit` ou `PointOfInterest`. Elle autorise un symbole dans le read model Map uniquement après exploration de la cellule ; elle ne modifie jamais `SupportedType`, ne crée aucune classification gameplay parallèle et n’est pas persistée comme état runtime.
 
 `AGridLevelEditorActor::FindWorldObjectDefinitionById()` résout une définition depuis la palette. `FGridObjectPaletteEntry::GetEffectiveWorldObjectDefinitionId()` fournit l'identifiant effectif d'une entrée world-object. `PaletteEntryId` conserve une provenance d'authoring, sans remplacer l'identité de placement ni la référence de définition.
 

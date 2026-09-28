@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.11 C++ IMPLÉMENTÉ / PIE VISUELLE À VALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.12 C++ IMPLÉMENTÉ / DATAASSET+PIE À VALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -313,9 +313,29 @@ MON21.6.11 — Hand-Drawn Parchment Artistic Pass est maintenant implémenté c�
 - SaveGame v23 inchangé ;
 - Automation ajoutée sous `Grimrock.Map.MON21_6_11`.
 
-Statut MON21.6.11 : **C++ implémenté ; validation Automation + PIE visuelle requises**.
+MON21.6.11 est **VALIDÉ comme fondation artistique** :
 
-Prochaine tranche après validation : **MON21.6.12 — Map Symbols**.
+- `Grimrock.Map.MON21_6_11` : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-120834` ;
+- contrôle PIE accepté ;
+- polish graphique final + fit exact au canvas différés à MON21.6.13.
+
+MON21.6.12 — Map Symbols est maintenant implémenté côté C++ :
+
+- `MapSymbolStyle` presentation-only sur `UGridWorldObjectDefinitionAsset` ;
+- opt-in explicite `None | StairsUp | StairsDown | Relocation | Pit | PointOfInterest` ;
+- symboles filtrés uniquement sur cellules explorées ;
+- aucune identité ObjectId/DefinitionId/LogicId exposée au read model ;
+- `ObjectPresence` respecté ;
+- Pit objet monde affiché uniquement lorsqu’il est ouvert ;
+- projection multi-dalles stride 32 ;
+- glyphes manuscrits déterministes dans `UGridMapWidget` ;
+- SaveGame v23 inchangé ;
+- aucune modification `.uasset` à l’aveugle.
+
+Statut MON21.6.12 : **C++ implémenté ; validation Automation puis configuration DataAssets/PIE requises**.
+
+Prochaine tranche après validation : **MON21.6.13 — Automation / Regression / Closure**, incluant la passe finale fit/polish Map.
+
 
 
 
@@ -438,8 +458,9 @@ MON30 — Full Campaign
 MON21.6.8 — Existing WBP + Native Map Rendering : VALIDÉ
 MON21.6.9 — Floor Navigation : VALIDÉ
 MON21.6.10 — Zoom / Pan / Recenter : VALIDÉ
-MON21.6.11 — Hand-Drawn Parchment Artistic Pass : C++ IMPLÉMENTÉ / PIE VISUELLE À VALIDER
-MON21.6.12 — Map Symbols : prochaine tranche après validation
+MON21.6.11 — Hand-Drawn Parchment Artistic Pass : VALIDÉ — POLISH FINAL DIFFÉRÉ
+MON21.6.12 — Map Symbols : C++ IMPLÉMENTÉ / DATAASSET+PIE À VALIDER
+MON21.6.13 — Automation / Regression / Closure : prochaine tranche après validation
 ```
 
 TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.

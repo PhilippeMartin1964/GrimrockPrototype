@@ -21,6 +21,18 @@ enum class EGridWorldObjectDefinitionValidationSeverity : uint8
 	Error UMETA(DisplayName = "Error")
 };
 
+/** Presentation-only opt-in for symbols exposed by the filtered dungeon Map read model. */
+UENUM(BlueprintType)
+enum class EGridMapSymbolStyle : uint8
+{
+	None UMETA(DisplayName = "None"),
+	StairsUp UMETA(DisplayName = "Stairs Up"),
+	StairsDown UMETA(DisplayName = "Stairs Down"),
+	Relocation UMETA(DisplayName = "Relocation"),
+	Pit UMETA(DisplayName = "Pit"),
+	PointOfInterest UMETA(DisplayName = "Point of Interest")
+};
+
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridSurfaceLocalPosition
 {
@@ -89,6 +101,11 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Definition")
 	FText Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Map",
+		meta = (DisplayName = "Map Symbol",
+			ToolTip = "Optional presentation-only symbol exposed on the dungeon Map after the containing cell is explored. This never changes Gameplay Type."))
+	EGridMapSymbolStyle MapSymbolStyle = EGridMapSymbolStyle::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Defaults",
 		meta = (ToolTip = "Shared behavior defaults for placed object instances. Puzzle-local initial state belongs to the placed instance."))

@@ -17,9 +17,12 @@ Les collectibles utilisent directement `UGridItemDefinitionAsset`, et les monstr
 | `DefinitionId` | Identifiant stable de la définition, distinct de l'identité du placement. |
 | `DisplayName`, `Description` | Présentation du concept. |
 | `SupportedType` / Gameplay Type | Unique classification fonctionnelle principale de l'objet. `Relocation` couvre escaliers, portails et passages automatiques. |
+| `MapSymbolStyle` | Opt-in de présentation pour la Map (`None`, `StairsUp`, `StairsDown`, `Relocation`, `Pit`, `PointOfInterest`). N’altère jamais le Gameplay Type. |
 
 La définition ne porte aucune catégorie fonctionnelle ni catégorie de palette. Le groupement
 éditeur appartient exclusivement à `FGridObjectPaletteEntry.PaletteCategory`.
+
+`MapSymbolStyle` ne constitue pas une catégorie fonctionnelle : c’est une permission de présentation cartographique. `None` est la valeur par défaut. Le read model Map n’expose ensuite que le type de symbole et la cellule autorisée ; il ne transmet ni `ObjectId`, ni `WorldObjectDefinitionId`, ni `LogicId` au widget.
 
 ## 3. Defaults et overrides
 

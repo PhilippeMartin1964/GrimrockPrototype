@@ -17,6 +17,16 @@ enum class EGridMapBoundaryKind : uint8
 	SecretDoor UMETA(DisplayName = "Secret Door")
 };
 
+UENUM(BlueprintType)
+enum class EGridMapSymbolKind : uint8
+{
+	StairsUp UMETA(DisplayName = "Stairs Up"),
+	StairsDown UMETA(DisplayName = "Stairs Down"),
+	Relocation UMETA(DisplayName = "Relocation"),
+	Pit UMETA(DisplayName = "Pit"),
+	PointOfInterest UMETA(DisplayName = "Point of Interest")
+};
+
 /** One explored cell intentionally exposed to the Map presentation layer. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridMapCellView
@@ -54,6 +64,18 @@ struct GRIMROCKPROTOTYPE_API FGridMapBoundaryView
 	bool bDoorOpen = false;
 };
 
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridMapSymbolView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Map")
+	FIntPoint LocalCell = FIntPoint::ZeroValue;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Map")
+	EGridMapSymbolKind Kind = EGridMapSymbolKind::Relocation;
+};
+
 /** MON21.6.6 filtered, transient projection for exactly one canonical 32x32 LevelAsset tile. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridMapTileView
@@ -69,11 +91,15 @@ struct GRIMROCKPROTOTYPE_API FGridMapTileView
 	UPROPERTY(BlueprintReadOnly, Category = "Map")
 	TArray<FGridMapBoundaryView> Boundaries;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Map")
+	TArray<FGridMapSymbolView> Symbols;
+
 	void Reset()
 	{
 		LevelId = NAME_None;
 		Cells.Reset();
 		Boundaries.Reset();
+		Symbols.Reset();
 	}
 };
 
@@ -107,6 +133,18 @@ struct GRIMROCKPROTOTYPE_API FGridMapFloorBoundaryView
 	bool bDoorOpen = false;
 };
 
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridMapFloorSymbolView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Map")
+	FIntPoint MapCell = FIntPoint::ZeroValue;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Map")
+	EGridMapSymbolKind Kind = EGridMapSymbolKind::Relocation;
+};
+
 /** MON21.6.7 seamless projection of all enabled 32x32 tiles sharing one logical Z floor. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridMapFloorView
@@ -126,6 +164,9 @@ struct GRIMROCKPROTOTYPE_API FGridMapFloorView
 	TArray<FGridMapFloorBoundaryView> Boundaries;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Map")
+	TArray<FGridMapFloorSymbolView> Symbols;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Map")
 	bool bHasPartyMarker = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Map")
@@ -140,6 +181,7 @@ struct GRIMROCKPROTOTYPE_API FGridMapFloorView
 		AvailableFloorZs.Reset();
 		Cells.Reset();
 		Boundaries.Reset();
+		Symbols.Reset();
 		bHasPartyMarker = false;
 		PartyMapCell = FIntPoint::ZeroValue;
 		PartyFacing = EGridEdge::North;
