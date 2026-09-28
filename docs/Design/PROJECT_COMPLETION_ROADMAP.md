@@ -63,7 +63,7 @@ Le SaveGame était v8 à la clôture MON20, puis v9 via TD01.1. TD07.3.2 a ouver
 
 ---
 
-# 3. MON21 — Quests / Journal / Map / Codex — SUSPENDU PENDANT TD07.3
+# 3. MON21 — Quests / Journal / Map / Codex — REPRIS AVEC MON21.6
 
 ## Objectif
 
@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       À FAIRE
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.1 CONTRAT VALIDÉ
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -163,6 +163,29 @@ Sa persistance suivra alors le contrat prototype courant :
 - Event -> Command inchangé ;
 - aucune persistance de `UGridQuestDefinitionAsset*` comme source de vérité.
 
+## MON21.6.1 — Map Architecture Contract — VALIDÉ
+
+Le contrat courant est :
+
+```text
+docs/Design/MON21_6_1_MAP_ARCHITECTURE_CONTRACT.md
+```
+
+Il fige notamment :
+
+- `UGridLevelAsset` = dalle cartographique canonique 32×32 ;
+- même `LogicalPosition.Z` = même étage ;
+- `LogicalPosition.X/Y` = composition des dalles adjacentes ;
+- révélation par cellule, rayon de design 1.25, filtrée par la topologie ;
+- secret non découvert = mur normal, sans métadonnée UI révélatrice ;
+- exploration durable dans l’état runtime par `LevelId` ;
+- Map = read model filtré + `WBP_GridMap`, jamais seconde autorité ;
+- aucun `MapActor`, aucun Tick Map permanent, aucune grille UMG de 1024 widgets.
+
+MON21.6.1 est documentaire : il ne change ni C++, ni assets binaires, ni `CurrentSaveVersion`.
+
+Prochaine tranche : **MON21.6.2 — Exploration State**.
+
 ## MON21.5–MON21.8
 
 ```text
@@ -171,9 +194,13 @@ MON21.5 — Journal
     intégration au WBP existant
 
 MON21.6 — Map
+    MON21.6.1 contrat architecture VALIDÉ
     géométrie depuis DataAssets
-    exploration / annotations autoritaires
+    exploration autoritaire par LevelId
+    projection multi-dalles par LogicalPosition X/Y/Z
+    secret caché normalisé en mur
     intégration au WBP existant
+    annotations joueur hors première tranche
 
 MON21.7 — Codex
     discovery state

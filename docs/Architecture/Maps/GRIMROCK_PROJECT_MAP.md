@@ -2,9 +2,9 @@
 
 > Carte d’architecture textuelle, diffable et autoritaire du projet.
 >
-> **État courant : 27 septembre 2026 — après CPP-AUDIT01 / CPP-CLEAN01…06, refonte UI avancée, WORLDOBJ-MIG10 clos.**
+> **État courant : 28 septembre 2026 — MON21.6 repris ; MON21.6.1 Map Architecture Contract validé.**
 >
-> HEAD audité : `85951ce0ffaa3ad79c4e767db729b92922e2d501`.
+> HEAD audité pour MON21.6.1 : `7750ede9220eb94341ff02c618d9e7fa4c8050be`.
 >
 > Dernière validation globale fournie par l’utilisateur après `CPP-CLEAN06.1` : **964 tests réussis / 0 warning / 0 échec / 0 non exécuté**. Le HEAD courant ajoute ensuite uniquement deux modifications d’assets `.uasset` (Door/Main Menu), sans modification C++.
 
@@ -1108,10 +1108,19 @@ MON21.2–21.3 :
 
 ## 16.4 — Map
 
-- 🟠 page/shell présente ;
-- ✅ géométrie et structure de donjon existent déjà ;
-- ⬜ état d’exploration/Fog-of-war à définir ;
-- ⬜ projection map et navigation.
+- 🟠 `WBP_GridMap` / shell présents ;
+- ✅ **MON21.6.1 Map Architecture Contract validé** ;
+- 🟢 `UGridLevelAsset` reste l’autorité de géométrie d’une dalle 32×32 ;
+- 🟢 un étage = toutes les entrées activées partageant `LogicalPosition.Z` ;
+- 🟢 `LogicalPosition.X/Y` compose les dalles adjacentes sans couture visible ;
+- 🟢 coordonnées carte : `MapX = TileX * 32 + LocalX`, `MapY = TileY * 32 + LocalY` ;
+- 🟢 fog-of-war : connaissance durable par cellule, rayon de design 1.25, topologie bloquée par murs/portes fermées ;
+- 🟢 feather visuel ~0.25 cellule sans révélation de géométrie supplémentaire ;
+- 🟢 secret caché = mur normal ; découverte durable indépendante de l’état ouvert/fermé ;
+- 🟢 le read model Map ne transmet jamais de géométrie inconnue au WBP ;
+- 🟢 aucun `MapActor`, aucun Tick permanent, aucune seconde grille/autorité ;
+- ⬜ MON21.6.2 : Exploration State ;
+- ⬜ MON21.6.3+ : reveal topologique, secrets, persistence, read model, projection multi-dalles, UI/navigation et rendu parchemin.
 
 ## 16.5 — Codex
 

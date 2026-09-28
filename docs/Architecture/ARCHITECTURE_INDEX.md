@@ -7,8 +7,8 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 28 août 2026, TD07 validé/clos ; stop condition future-proofing atteinte ; MON21.4 en attente du feu vert utilisateur.**  
-Phase active : **aucune**. TD07 est validé et clos ; MON21.4 reste en attente du feu vert explicite de l'utilisateur.
+**Référence courante : 28 septembre 2026, TD07 validé/clos ; MON21.6 repris. MON21.6.1 Map Architecture Contract validé.**  
+Phase active : **MON21.6 — Map Geometry + Exploration State + Existing WBP** ; prochaine tranche `MON21.6.2 — Exploration State`.
 
 ## Ordre de lecture recommandé
 
@@ -26,6 +26,8 @@ Phase active : **aucune**. TD07 est validé et clos ; MON21.4 reste en attente d
 12. [Tests et validation](TEST_AUTOMATION_FOUNDATION.md)
 
 `TECHNICAL_DEBT_DOCUMENTATION_AUDIT.md`, `ARCHITECTURE_CONSISTENCY_AUDIT.md` et `Maps/GRIMROCK_PROJECT_MAP.md` sont des snapshots historiques. Ils restent utiles comme références datées, mais ne sont pas l’autorité du statut courant.
+
+Contrat Map courant : [MON21.6.1 — Map Architecture Contract](../Design/MON21_6_1_MAP_ARCHITECTURE_CONTRACT.md).
 
 ## Fondations courantes
 
@@ -113,7 +115,7 @@ TD07.3.7 Current Asset Repair / Recreation                      VALIDÉ — CLOS
 TD07.3.8 Strict Current-Schema Validation / stop condition      VALIDÉ — STOP CONDITION ATTEINTE
 ```
 
-## Phase fonctionnelle suspendue
+## Phase fonctionnelle reprise — MON21.6
 
 ```text
 MON21.1  Audit & Architecture Contract                  CLOS
@@ -121,7 +123,7 @@ MON21.2  Quest Definition + Campaign Runtime State      VALIDÉ
 MON21.3  Quest Event -> Command Integration             VALIDÉ
 MON21.4  Quest Persistence                            EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5  Journal Read Model + Existing WBP Integration  À FAIRE
-MON21.6  Map Geometry + Exploration State + Existing WBP À FAIRE
+MON21.6  Map Geometry + Exploration State + Existing WBP ACTIF — 6.1 CONTRAT VALIDÉ
 MON21.7  Codex Discovery + Definition Projection        À FAIRE
 MON21.8  Cross-System Regression / PIE / Closure        À FAIRE
 ```

@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07 validé/clos ; stop condition future-proofing atteinte ; MON21.4 en attente du feu vert utilisateur.**
+> État : **28 septembre 2026, TD07 validé/clos ; MON21.6 repris ; MON21.6.1 Map Architecture Contract validé.**
 
 ## 1. Référence
 
@@ -16,7 +16,7 @@
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
 | Dernière tranche validée | `TD07.8 — Future-proofing re-audit / stop condition` |
-| Tranche active | `Aucune — MON21.4 en attente du feu vert utilisateur` |
+| Tranche active | `MON21.6 — Map ; prochaine tranche MON21.6.2 Exploration State` |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`. La baseline quantitative de clôture TD07 pour les audits futurs est `docs/Architecture/TD07_FINAL_QUANTITATIVE_AUDIT_BASELINE.md`.
 
@@ -77,7 +77,7 @@ Le module Editor dépend aussi de `GrimrockLua`. Le Runtime ne dépend pas du mo
 | Save | ✅ v15 exact-match ; aucune migration arrière |
 | Quêtes runtime | ✅ MON21.2–MON21.3 |
 | Journal | ⬜ WBP existant ; read model prévu MON21.5 |
-| Map | ⬜ WBP existant ; exploration prévue MON21.6 |
+| Map | 🟡 WBP existant ; contrat MON21.6.1 figé ; exploration pas encore implémentée |
 | Codex | ⬜ WBP existant ; discovery prévu MON21.7 |
 
 ## 6. Donjon, grille et éditeur
@@ -158,7 +158,7 @@ TD07.3.2 supprime la chaîne de migration v1-v9. TD07.3.3.2 supprime le bridge l
 
 Surfaces fonctionnelles : menu principal/Continue/Load, inventaire/paper doll, sélection du groupe, création/recrutement, Level Up, combat, Spellbook, Skills/Talents.
 
-Journal, Map et Codex existent déjà dans le menu, mais restent des projections futures. Ils ne doivent jamais devenir des autorités gameplay.
+Journal et Codex existent déjà dans le menu et restent des projections futures. Pour Map, MON21.6.1 a figé le contrat : géométrie issue des LevelAssets, exploration durable par LevelId, composition par `LogicalPosition`, projection filtrée vers le WBP existant. Map ne devient jamais une autorité gameplay.
 
 ## 13. Validation et packaging
 
@@ -210,7 +210,7 @@ TD07.3.3.9   Normalize Level-Up Notification State                    VALIDÉ �
 TD07.3.3.10  Current Save Schema / Regressions / Closure              VALIDÉ — CLOS
 MON21.4      Quest Persistence                          EN ATTENTE
 MON21.5      Journal Read Model / WBP                     À FAIRE
-MON21.6      Map Geometry / Exploration                   À FAIRE
+MON21.6      Map Geometry / Exploration                   ACTIF — 6.1 CONTRAT VALIDÉ
 MON21.7      Codex Discovery / Projection                 À FAIRE
 MON21.8      Cross-System Regression / PIE / Closure      À FAIRE
 MON22        vertical slice 45–90 minutes                 À FAIRE
