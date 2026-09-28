@@ -20,8 +20,10 @@ namespace GridMapWidgetPrivate
 
 		FVector2f CellTopLeft(const FIntPoint& MapCell) const
 		{
+			// Match the established editor overview convention: canonical X+ (East)
+			// is displayed toward screen-left, while canonical Y+ (North) is screen-up.
 			return FVector2f(
-				Origin.X + static_cast<float>(MapCell.X - MinX) * CellSize,
+				Origin.X + static_cast<float>(MaxX - MapCell.X) * CellSize,
 				Origin.Y + static_cast<float>(MaxY - MapCell.Y) * CellSize);
 		}
 
@@ -127,16 +129,17 @@ namespace GridMapWidgetPrivate
 				OutB = TopLeft + FVector2f(S, 0.0f);
 				break;
 			case EGridEdge::East:
-				OutA = TopLeft + FVector2f(S, 0.0f);
-				OutB = TopLeft + FVector2f(S, S);
+				// X+ is screen-left in the established overview/map presentation.
+				OutA = TopLeft;
+				OutB = TopLeft + FVector2f(0.0f, S);
 				break;
 			case EGridEdge::South:
 				OutA = TopLeft + FVector2f(0.0f, S);
 				OutB = TopLeft + FVector2f(S, S);
 				break;
 			case EGridEdge::West:
-				OutA = TopLeft;
-				OutB = TopLeft + FVector2f(0.0f, S);
+				OutA = TopLeft + FVector2f(S, 0.0f);
+				OutB = TopLeft + FVector2f(S, S);
 				break;
 			default:
 				OutA = TopLeft;
@@ -205,13 +208,13 @@ namespace GridMapWidgetPrivate
 				Forward = FVector2f(0.0f, -1.0f);
 				break;
 			case EGridEdge::East:
-				Forward = FVector2f(1.0f, 0.0f);
+				Forward = FVector2f(-1.0f, 0.0f);
 				break;
 			case EGridEdge::South:
 				Forward = FVector2f(0.0f, 1.0f);
 				break;
 			case EGridEdge::West:
-				Forward = FVector2f(-1.0f, 0.0f);
+				Forward = FVector2f(1.0f, 0.0f);
 				break;
 			default:
 				break;

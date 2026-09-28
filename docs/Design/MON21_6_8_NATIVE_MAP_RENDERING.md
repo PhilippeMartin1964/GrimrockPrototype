@@ -1,7 +1,7 @@
 # MON21.6.8 — Existing WBP + Native Map Rendering
 
 Date : **28 septembre 2026**  
-Statut : **C++ IMPLÉMENTÉ — RE-PARENT UMG + VALIDATION PIE UTILISATEUR REQUIS**
+Statut : **AUTOMATION 4/4 VALIDÉE — INTÉGRATION UMG/PIE CONFIRMÉE — CORRECTIF ORIENTATION E/O À REVALIDER EN PIE**
 
 ## 1. Objectif
 
@@ -115,12 +115,19 @@ Le groupe est rendu comme une flèche/triangle orienté :
 
 ```text
 North -> haut écran
-East  -> droite
+East  -> gauche
 South -> bas
-West  -> gauche
+West  -> droite
 ```
 
-Le Y Map positif est donc inversé uniquement au moment de la projection écran.
+La projection écran suit la convention visuelle déjà utilisée par l’Overview Map de l’éditeur :
+
+```text
+Y+ / North -> haut écran
+X+ / East  -> gauche écran
+```
+
+Les coordonnées autoritaires restent inchangées (`East = X+`, `West = X-`). Seule la présentation écran est miroir sur X.
 
 ## 5. Fit automatique
 
@@ -176,7 +183,23 @@ NativeRendering.RefreshFailsClosed
 NativeRendering.ExistingShellHook
 ```
 
-Ces tests ne remplacent pas la validation visuelle UMG/PIE.
+Validation utilisateur du 28 septembre 2026 :
+
+```text
+Filter                  : Grimrock.Map.MON21_6_8
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code       : 0
+Report                  : TD04-20260928-093526
+```
+
+L’intégration UMG et l’ouverture PIE par `M` sont également confirmées par capture.
+
+Le smoke PIE a toutefois révélé une inversion Est/Ouest du premier renderer. Le correctif conserve les coordonnées Map canoniques et inverse uniquement la projection écran X, ainsi que les bords East/West et l’orientation visuelle du marqueur.
+
+Les tests Automation ne remplacent donc toujours pas la revalidation visuelle de cette correction.
 
 ## 9. Modification UMG manuelle obligatoire
 
@@ -222,10 +245,10 @@ Si le contenu placeholder historique du WBP masque ou chevauche le dessin, il se
 
 MON21.6.8 ne sera déclaré **VALIDÉ** qu’après :
 
-1. build + Automation `Grimrock.Map.MON21_6_8` verts ;
-2. reparent de `WBP_GridMap` dans UE ;
-3. compilation des deux WBP ;
-4. smoke PIE `M` ;
-5. validation visuelle utilisateur.
+1. build + Automation `Grimrock.Map.MON21_6_8` verts — **acquis 4/4** ;
+2. reparent de `WBP_GridMap` dans UE — **effectué** ;
+3. compilation des deux WBP — **effectuée** ;
+4. smoke PIE `M` — **effectué** ;
+5. revalidation visuelle après correctif Est/Ouest — **requise**.
 
 Prochaine tranche après validation : **MON21.6.9 — Floor Navigation**.

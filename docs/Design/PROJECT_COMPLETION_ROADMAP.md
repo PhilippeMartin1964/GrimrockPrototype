@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.8 C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.8 AUTOMATION OK / FIX E-O PIE À VALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -250,7 +250,13 @@ MON21.6.8 — C++ implémenté, intégration UMG/PIE à valider :
 - reparent manuel de `WBP_GridMap` vers `UGridMapWidget` requis dans UE ;
 - Automation C++ ajoutée sous `Grimrock.Map.MON21_6_8`.
 
-Statut MON21.6.8 : **C++ implémenté ; build/Automation + UMG + smoke PIE + validation visuelle requis**.
+Validation MON21.6.8 reçue : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-093526`.
+
+`WBP_GridMap` est reparenté et le smoke PIE par `M` affiche bien la carte. La première validation visuelle a identifié un défaut de projection Est/Ouest : le renderer n’appliquait pas le miroir X déjà utilisé par l’Overview Map de l’éditeur.
+
+Correctif appliqué uniquement dans la projection écran : coordonnées Map/read model inchangées ; X écran, frontières East/West et flèche East/West sont miroir.
+
+Statut MON21.6.8 : **Automation validée ; correctif Est/Ouest à revalider visuellement en PIE**.
 
 Prochaine tranche après validation complète : **MON21.6.9 — Floor Navigation**.
 
@@ -369,7 +375,7 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON21.6.8 — Existing WBP + Native Map Rendering : C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
+MON21.6.8 — Existing WBP + Native Map Rendering : AUTOMATION OK / FIX E-O PIE À VALIDER
 MON21.6.9 — Floor Navigation : prochaine tranche après validation complète
 ```
 
