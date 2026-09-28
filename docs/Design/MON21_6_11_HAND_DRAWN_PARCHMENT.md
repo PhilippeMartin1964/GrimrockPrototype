@@ -1,7 +1,7 @@
 # MON21.6.11 — Hand-Drawn Parchment Artistic Pass
 
 Date : **28 septembre 2026**  
-Statut : **VALIDÉ — FONDATION ARTISTIQUE ; POLISH FINAL DIFFÉRÉ À MON21.6.13**
+Statut : **VALIDÉ — FONDATION ARTISTIQUE ; POLISH FINAL REPRIS DANS MON21.6.13**
 
 ## 1. Objectif
 
@@ -179,7 +179,7 @@ Report                  : TD04-20260928-120834
 
 Le contrôle PIE confirme une base parchemin fonctionnelle et lisible. Le feedback utilisateur demande cependant de reporter le polish graphique final et l’adaptation exacte au canvas `WBP_GridMap` après l’arrivée des symboles.
 
-MON21.6.11 est donc **VALIDÉ comme fondation artistique** ; le polish final est explicitement transféré à MON21.6.13.
+MON21.6.11 est donc **VALIDÉ comme fondation artistique** ; le polish final transféré à MON21.6.13 est maintenant implémenté côté C++ et attend la validation de clôture.
 
 ## 12. Validation PIE attendue
 

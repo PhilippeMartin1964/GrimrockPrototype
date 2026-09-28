@@ -1,7 +1,7 @@
 # MON21.6.12 — Map Symbols
 
 Date : **28 septembre 2026**  
-Statut : **AUTOMATION 4/4 + SYMBOLS PIE CONFIRMÉS — CORRECTIF ARRIVAL REVEAL À REVALIDER**
+Statut : **VALIDÉ**
 
 ## 1. Objectif
 
@@ -234,7 +234,9 @@ Nouveau cinquième test :
 ArrivalReveal.CrossLevelTravelRevealsDestination
 ```
 
-Le filtre `Grimrock.Map.MON21_6_12` doit donc être relancé et contenir **5 tests** avant clôture définitive.
+Le correctif a ensuite été **validé par l’utilisateur** en Automation et en PIE. La sortie détaillée du second run à cinq tests n’a pas été recopiée dans le thread ; aucun compteur ou identifiant de rapport supplémentaire n’est inventé ici.
+
+MON21.6.12 est **VALIDÉ**.
 
 ## 12. Validation PIE
 
@@ -242,7 +244,7 @@ Après configuration des DataAssets concernés, l’utilisateur confirme que les
 
 Le cas `Stairs_Up` a été compris : avant correctif, il fallait avancer puis reculer après `Stairs_Down` pour déclencher le reveal de la cellule d’arrivée. Ce comportement est corrigé par le hook Map-only ajouté dans `TravelToDungeonLevel()`.
 
-Après revalidation du code, smoke PIE attendu :
+Smoke PIE final confirmé par l’utilisateur :
 
 - descendre par `Stairs_Down` ;
 - ouvrir immédiatement la Map sans faire un pas supplémentaire ;
@@ -259,6 +261,6 @@ Le feedback visuel de MON21.6.11 est conservé pour MON21.6.13 :
 - raffiner l’épaisseur/graphisme des murs et portes ;
 - harmoniser symboles, géométrie, hachures et marqueur du groupe.
 
-Cette passe se fera lorsque tous les éléments de Map seront présents, juste avant la régression/closure.
+Cette passe est désormais implémentée côté C++ dans MON21.6.13 et attend la validation finale ciblée + globale.
 
-Prochaine tranche après validation : **MON21.6.13 — Automation / Regression / Closure**.
+Tranche suivante : **MON21.6.13 — Automation / Regression / Closure + fit/polish final**.

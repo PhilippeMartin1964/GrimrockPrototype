@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.12 SYMBOLS VALIDÉS / ARRIVAL REVEAL À REVALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.13 C++ IMPLÉMENTÉ / CLOSURE À VALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -341,9 +341,25 @@ MON21.6.12 — Map Symbols :
 - aucun `HandlePartyCellChanged()` supplémentaire, donc pas de double trigger/pressure plate ;
 - cinquième test `ArrivalReveal.CrossLevelTravelRevealsDestination` ajouté.
 
-Statut MON21.6.12 : **symboles validés ; correctif arrival reveal à revalider avec 5 tests avant 6.13**.
+MON21.6.12 est **VALIDÉ** par confirmation utilisateur après le correctif arrival reveal inter-level. Le second rapport détaillé à cinq tests n’a pas été recopié dans le thread.
 
-Prochaine tranche après validation : **MON21.6.13 — Automation / Regression / Closure**, incluant la passe finale fit/polish Map.
+MON21.6.13 — Automation / Regression / Closure + fit/polish final est maintenant implémenté côté C++ :
+
+- auto-fit calculé depuis l’`AllottedGeometry` réel de `WBP_GridMap` ;
+- suppression du plafond historique 64 px par défaut : `MaxCellPixels=0` ;
+- `AutoFitMarginCells=0.75` pour conserver une respiration autour du contenu ;
+- `MapDrawPadding` réduit à `48/72/48/96` ;
+- clipping Slate strict de la zone Map pour zoom/pan ;
+- cadre parchemin manuscrit ;
+- murs = underlay large + encre sombre ;
+- portes = jambages cartographiques explicites ;
+- hachures/jitter légèrement allégés ;
+- marqueur groupe réduit à `PartyMarkerScale=0.78` ;
+- aucun nouvel asset, aucun nouveau widget, SaveGame v23 inchangé ;
+- 4 tests ciblés sous `Grimrock.Map.MON21_6_13` ;
+- famille Map complète = **50 tests** sous le préfixe `Grimrock.Map.MON21_6`.
+
+Statut MON21.6.13 : **C++ implémenté ; validation ciblée + régression globale + smoke PIE final requis avant clôture MON21.6**.
 
 
 
@@ -468,8 +484,8 @@ MON21.6.8 — Existing WBP + Native Map Rendering : VALIDÉ
 MON21.6.9 — Floor Navigation : VALIDÉ
 MON21.6.10 — Zoom / Pan / Recenter : VALIDÉ
 MON21.6.11 — Hand-Drawn Parchment Artistic Pass : VALIDÉ — POLISH FINAL DIFFÉRÉ
-MON21.6.12 — Map Symbols : SYMBOLS VALIDÉS / ARRIVAL REVEAL À REVALIDER
-MON21.6.13 — Automation / Regression / Closure : prochaine tranche après validation
+MON21.6.12 — Map Symbols : VALIDÉ
+MON21.6.13 — Automation / Regression / Closure + fit/polish : C++ IMPLÉMENTÉ / CLOSURE À VALIDER
 ```
 
 TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.

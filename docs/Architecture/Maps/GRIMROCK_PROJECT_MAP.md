@@ -1177,8 +1177,8 @@ MON21.2–21.3 :
 - 🟢 traits manuscrits déterministes pour murs, portes et marqueur ;
 - 🟢 feather visuel aux frontières d’exploration ;
 - 🟢 aucune texture Map dédiée requise ;
-- 🟠 polish final/fit canvas de 6.11 explicitement différé à 6.13 ;
-- 🟡 MON21.6.12 Map Symbols : Automation 4/4 + symbols PIE confirmés ; arrival reveal inter-level corrigé, revalidation à faire ;
+- ✅ polish final/fit canvas de 6.11 repris dans 6.13 côté C++ ;
+- ✅ MON21.6.12 Map Symbols validé ; arrival reveal inter-level corrigé et confirmé par l’utilisateur ;
 - 🟢 opt-in `MapSymbolStyle` sur World Object Definition, sans nouveau Gameplay Type ;
 - 🟢 symboles : StairsUp, StairsDown, Relocation, Pit, PointOfInterest ;
 - 🟢 symboles uniquement sur cellules explorées, sans identité authored exposée ;
@@ -1186,7 +1186,12 @@ MON21.2–21.3 :
 - 🟢 glyphes manuscrits déterministes ;
 - 🟢 `TravelToDungeonLevel()` révèle désormais immédiatement la cellule d’arrivée et ses cardinales visibles via `RevealMapAroundCell()` ;
 - 🟢 aucun second `HandlePartyCellChanged()` : le correctif n’émet pas de gameplay enter supplémentaire ;
-- ⬜ MON21.6.13 : polish final + regression/closure.
+- 🟡 MON21.6.13 Closure : C++ implémenté, validation finale requise ;
+- 🟢 auto-fit canvas sans plafond 64 px par défaut, marge de 0.75 cellule ;
+- 🟢 clipping strict du zoom/pan dans la zone Map ;
+- 🟢 cadre parchemin, murs à underlay, portes avec jambages, marqueur groupe réduit ;
+- 🟢 aucun nouvel asset/UMG, SaveGame v23 inchangé ;
+- 🧪 4 tests ciblés 6.13 + **50 tests** Map MON21.6 pour la régression globale.
 
 ## 16.5 — Codex
 

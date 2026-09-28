@@ -83,6 +83,16 @@ public:
 		return FloorView;
 	}
 
+	/** MON21.6.13 canvas-aware auto-fit. MaxCellPixels <= 0 means no legacy hard cap. */
+	static float ComputeAutoFitCellSize(
+		const FVector2D& LocalSize,
+		const FMargin& Padding,
+		int32 CellCountX,
+		int32 CellCountY,
+		float AutoFitMarginCells,
+		float MaxCellPixels,
+		float ZoomScale = 1.0f);
+
 	/** MON21.6.11 stable presentation noise: same grid primitive + salt always yields the same [-1,1] value. */
 	static float ComputeDeterministicArtNoise(const FIntPoint& MapCell, EGridEdge Edge, int32 Salt);
 
@@ -105,15 +115,20 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|View")
 	TObjectPtr<UButton> Button_Recenter;
 
-	/** Functional MON21.6.8 drawing inset. Artistic framing is deferred to MON21.6.11. */
+	/** Safe inset inside the actual WBP_GridMap allotted canvas. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering")
-	FMargin MapDrawPadding = FMargin(96.0f, 120.0f, 96.0f, 160.0f);
+	FMargin MapDrawPadding = FMargin(48.0f, 72.0f, 48.0f, 96.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering", meta = (ClampMin = "4.0", ClampMax = "128.0"))
-	float MaxCellPixels = 64.0f;
+	/** Extra breathing room expressed in virtual cells around the known bounds before auto-fit. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering", meta = (ClampMin = "0.0", ClampMax = "4.0"))
+	float AutoFitMarginCells = 0.75f;
+
+	/** Optional designer cap. Zero means use the canvas-driven fit with no legacy fixed pixel ceiling. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering", meta = (ClampMin = "0.0", ClampMax = "256.0"))
+	float MaxCellPixels = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering", meta = (ClampMin = "0.5", ClampMax = "12.0"))
-	float WallThickness = 3.0f;
+	float WallThickness = 3.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering", meta = (ClampMin = "0.5", ClampMax = "12.0"))
 	float DoorThickness = 4.0f;
@@ -140,25 +155,43 @@ public:
 	FLinearColor ParchmentColor = FLinearColor(0.55f, 0.37f, 0.20f, 0.94f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art")
-	FLinearColor ParchmentGrainColor = FLinearColor(0.12f, 0.065f, 0.025f, 0.10f);
+	FLinearColor ParchmentGrainColor = FLinearColor(0.12f, 0.065f, 0.025f, 0.09f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art")
-	FLinearColor CellHatchColor = FLinearColor(0.14f, 0.075f, 0.025f, 0.20f);
+	FLinearColor ParchmentEdgeColor = FLinearColor(0.14f, 0.075f, 0.025f, 0.58f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "0.5", ClampMax = "8.0"))
+	float ParchmentEdgeThickness = 2.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art")
-	FLinearColor FogFeatherColor = FLinearColor(0.16f, 0.085f, 0.03f, 0.14f);
+	FLinearColor CellHatchColor = FLinearColor(0.14f, 0.075f, 0.025f, 0.14f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art")
+	FLinearColor FogFeatherColor = FLinearColor(0.16f, 0.085f, 0.03f, 0.12f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art")
+	FLinearColor WallUnderlayColor = FLinearColor(0.36f, 0.22f, 0.09f, 0.34f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "1.0", ClampMax = "5.0"))
+	float WallUnderlayThicknessScale = 2.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "1.0", ClampMax = "5.0"))
+	float DoorJambLengthScale = 2.15f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "0.0", ClampMax = "6.0"))
-	float HandDrawnJitterPixels = 1.35f;
+	float HandDrawnJitterPixels = 1.10f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "0.0", ClampMax = "1.0"))
-	float SecondaryStrokeAlpha = 0.32f;
+	float SecondaryStrokeAlpha = 0.24f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "0", ClampMax = "96"))
-	int32 ParchmentGrainLineCount = 28;
+	int32 ParchmentGrainLineCount = 32;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "0", ClampMax = "8"))
-	int32 CellHatchLineCount = 3;
+	int32 CellHatchLineCount = 2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "0.4", ClampMax = "1.0"))
+	float PartyMarkerScale = 0.78f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Symbols")
 	FLinearColor NavigationSymbolColor = FLinearColor(0.14f, 0.075f, 0.025f, 0.98f);

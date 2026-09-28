@@ -4,11 +4,41 @@
 #include "Components/TextBlock.h"
 #include "Core/GridDungeonAsset.h"
 #include "InputCoreTypes.h"
+#include "Layout/Clipping.h"
 #include "Rendering/DrawElementTypes.h"
 #include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Styling/CoreStyle.h"
+
+float UGridMapWidget::ComputeAutoFitCellSize(
+	const FVector2D& LocalSize,
+	const FMargin& Padding,
+	int32 CellCountX,
+	int32 CellCountY,
+	float AutoFitMarginCells,
+	float MaxCellPixels,
+	float ZoomScale)
+{
+	const float AvailableWidth = FMath::Max(0.0f, static_cast<float>(LocalSize.X) - Padding.Left - Padding.Right);
+	const float AvailableHeight = FMath::Max(0.0f, static_cast<float>(LocalSize.Y) - Padding.Top - Padding.Bottom);
+	if (AvailableWidth <= 0.0f || AvailableHeight <= 0.0f || CellCountX <= 0 || CellCountY <= 0)
+	{
+		return 0.0f;
+	}
+
+	const float SafeMarginCells = FMath::Max(0.0f, AutoFitMarginCells);
+	const float FitSpanX = static_cast<float>(CellCountX) + SafeMarginCells * 2.0f;
+	const float FitSpanY = static_cast<float>(CellCountY) + SafeMarginCells * 2.0f;
+	float FitCellSize = FMath::Min(AvailableWidth / FitSpanX, AvailableHeight / FitSpanY);
+
+	if (MaxCellPixels > 0.0f)
+	{
+		FitCellSize = FMath::Min(FitCellSize, MaxCellPixels);
+	}
+
+	return FMath::Max(0.0f, FitCellSize * FMath::Max(0.01f, ZoomScale));
+}
 
 float UGridMapWidget::ComputeDeterministicArtNoise(const FIntPoint& MapCell, EGridEdge Edge, int32 Salt)
 {
@@ -22,6 +52,17 @@ float UGridMapWidget::ComputeDeterministicArtNoise(const FIntPoint& MapCell, EGr
 
 namespace GridMapWidgetPrivate
 {
+	bool IsInsideMapViewport(const FVector2D& LocalPoint, const FVector2D& LocalSize, const FMargin& Padding)
+	{
+		const float Left = Padding.Left;
+		const float Top = Padding.Top;
+		const float Right = static_cast<float>(LocalSize.X) - Padding.Right;
+		const float Bottom = static_cast<float>(LocalSize.Y) - Padding.Bottom;
+		return Right > Left && Bottom > Top &&
+			LocalPoint.X >= Left && LocalPoint.X <= Right &&
+			LocalPoint.Y >= Top && LocalPoint.Y <= Bottom;
+	}
+
 	struct FRenderMetrics
 	{
 		int32 MinX = 0;
@@ -50,6 +91,7 @@ namespace GridMapWidgetPrivate
 		const FGridMapFloorView& View,
 		const FGeometry& Geometry,
 		const FMargin& Padding,
+		float AutoFitMarginCells,
 		float MaxCellPixels,
 		float ZoomScale,
 		const FVector2D& PanOffsetPixels,
@@ -85,15 +127,15 @@ namespace GridMapWidgetPrivate
 		const float AvailableHeight = FMath::Max(0.0f, static_cast<float>(LocalSize.Y) - Padding.Top - Padding.Bottom);
 		const int32 CellCountX = OutMetrics.MaxX - OutMetrics.MinX + 1;
 		const int32 CellCountY = OutMetrics.MaxY - OutMetrics.MinY + 1;
-		if (AvailableWidth <= 0.0f || AvailableHeight <= 0.0f || CellCountX <= 0 || CellCountY <= 0)
-		{
-			return false;
-		}
 
-		const float FitCellSize = FMath::Min(
-			FMath::Min(AvailableWidth / static_cast<float>(CellCountX), AvailableHeight / static_cast<float>(CellCountY)),
-			FMath::Max(4.0f, MaxCellPixels));
-		OutMetrics.CellSize = FitCellSize * FMath::Max(0.01f, ZoomScale);
+		OutMetrics.CellSize = UGridMapWidget::ComputeAutoFitCellSize(
+			LocalSize,
+			Padding,
+			CellCountX,
+			CellCountY,
+			AutoFitMarginCells,
+			MaxCellPixels,
+			ZoomScale);
 		if (OutMetrics.CellSize <= 0.0f)
 		{
 			return false;
@@ -222,6 +264,8 @@ namespace GridMapWidgetPrivate
 		const FSlateBrush* WhiteBrush,
 		const FLinearColor& ParchmentColor,
 		const FLinearColor& GrainColor,
+		const FLinearColor& EdgeColor,
+		float EdgeThickness,
 		int32 GrainLineCount)
 	{
 		const FVector2D LocalSize = Geometry.GetLocalSize();
@@ -258,6 +302,16 @@ namespace GridMapWidgetPrivate
 				FMath::Clamp(Start.Y + Slope, Padding.Top, Padding.Top + Height));
 			DrawLine(OutDrawElements, Layer + 1, PaintGeometry, Start, End, GrainColor, 1.0f);
 		}
+
+		const float Left = Padding.Left;
+		const float Top = Padding.Top;
+		const float Right = Padding.Left + Width;
+		const float Bottom = Padding.Top + Height;
+		const FIntPoint FrameSeed(0, 0);
+		DrawHandDrawnLine(OutDrawElements, Layer + 2, PaintGeometry, FVector2f(Left, Top), FVector2f(Right, Top), EdgeColor, EdgeThickness, FrameSeed, EGridEdge::North, 900, 0.75f, 0.18f);
+		DrawHandDrawnLine(OutDrawElements, Layer + 2, PaintGeometry, FVector2f(Right, Top), FVector2f(Right, Bottom), EdgeColor, EdgeThickness, FrameSeed, EGridEdge::West, 910, 0.75f, 0.18f);
+		DrawHandDrawnLine(OutDrawElements, Layer + 2, PaintGeometry, FVector2f(Right, Bottom), FVector2f(Left, Bottom), EdgeColor, EdgeThickness, FrameSeed, EGridEdge::South, 920, 0.75f, 0.18f);
+		DrawHandDrawnLine(OutDrawElements, Layer + 2, PaintGeometry, FVector2f(Left, Bottom), FVector2f(Left, Top), EdgeColor, EdgeThickness, FrameSeed, EGridEdge::East, 930, 0.75f, 0.18f);
 	}
 
 	void DrawCellHatching(
@@ -335,6 +389,50 @@ namespace GridMapWidgetPrivate
 		}
 	}
 
+	void DrawWallBoundary(
+		FSlateWindowElementList& OutDrawElements,
+		int32 Layer,
+		const FPaintGeometry& PaintGeometry,
+		const FVector2f& A,
+		const FVector2f& B,
+		const FLinearColor& UnderlayColor,
+		const FLinearColor& InkColor,
+		float Thickness,
+		float UnderlayThicknessScale,
+		const FIntPoint& SeedCell,
+		EGridEdge SeedEdge,
+		float JitterPixels,
+		float SecondaryAlpha)
+	{
+		DrawHandDrawnLine(
+			OutDrawElements,
+			Layer,
+			PaintGeometry,
+			A,
+			B,
+			UnderlayColor,
+			Thickness * FMath::Max(1.0f, UnderlayThicknessScale),
+			SeedCell,
+			SeedEdge,
+			280,
+			JitterPixels * 0.55f,
+			SecondaryAlpha * 0.45f);
+
+		DrawHandDrawnLine(
+			OutDrawElements,
+			Layer + 1,
+			PaintGeometry,
+			A,
+			B,
+			InkColor,
+			Thickness,
+			SeedCell,
+			SeedEdge,
+			300,
+			JitterPixels,
+			SecondaryAlpha);
+	}
+
 	void DrawDoorBoundary(
 		FSlateWindowElementList& OutDrawElements,
 		int32 Layer,
@@ -348,7 +446,8 @@ namespace GridMapWidgetPrivate
 		const FIntPoint& SeedCell,
 		EGridEdge SeedEdge,
 		float JitterPixels,
-		float SecondaryAlpha)
+		float SecondaryAlpha,
+		float JambLengthScale)
 	{
 		const FVector2f Delta = B - A;
 		const FVector2f P0 = A;
@@ -358,6 +457,15 @@ namespace GridMapWidgetPrivate
 
 		DrawHandDrawnLine(OutDrawElements, Layer, PaintGeometry, P0, P1, Color, Thickness, SeedCell, SeedEdge, 310, JitterPixels, SecondaryAlpha);
 		DrawHandDrawnLine(OutDrawElements, Layer, PaintGeometry, P2, P3, Color, Thickness, SeedCell, SeedEdge, 320, JitterPixels, SecondaryAlpha);
+
+		FVector2f JambAxis(-Delta.Y, Delta.X);
+		if (JambAxis.SizeSquared() > KINDA_SMALL_NUMBER)
+		{
+			JambAxis.Normalize();
+			JambAxis *= FMath::Max(2.0f, Thickness * FMath::Max(1.0f, JambLengthScale));
+			DrawHandDrawnLine(OutDrawElements, Layer + 1, PaintGeometry, P1 - JambAxis, P1 + JambAxis, Color, Thickness * 0.85f, SeedCell, SeedEdge, 325, JitterPixels * 0.6f, SecondaryAlpha);
+			DrawHandDrawnLine(OutDrawElements, Layer + 1, PaintGeometry, P2 - JambAxis, P2 + JambAxis, Color, Thickness * 0.85f, SeedCell, SeedEdge, 326, JitterPixels * 0.6f, SecondaryAlpha);
+		}
 
 		if (!bOpen)
 		{
@@ -513,7 +621,8 @@ namespace GridMapWidgetPrivate
 		const FGridMapFloorView& View,
 		const FLinearColor& Color,
 		float JitterPixels,
-		float SecondaryAlpha)
+		float SecondaryAlpha,
+		float MarkerScale)
 	{
 		if (!View.bHasPartyMarker)
 		{
@@ -521,7 +630,7 @@ namespace GridMapWidgetPrivate
 		}
 
 		const FVector2f Center = Metrics.CellCenter(View.PartyMapCell);
-		const float Radius = Metrics.CellSize * 0.28f;
+		const float Radius = Metrics.CellSize * 0.28f * FMath::Clamp(MarkerScale, 0.4f, 1.0f);
 		FVector2f Forward(0.0f, -1.0f);
 		switch (View.PartyFacing)
 		{
@@ -864,7 +973,10 @@ void UGridMapWidget::HandleRecenterClicked()
 
 FReply UGridMapWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (bHasRenderableMap && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	const FVector2D LocalMouse = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+	if (bHasRenderableMap &&
+		InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton &&
+		GridMapWidgetPrivate::IsInsideMapViewport(LocalMouse, InGeometry.GetLocalSize(), MapDrawPadding))
 	{
 		bIsPanning = true;
 		FReply Reply = FReply::Handled();
@@ -904,7 +1016,10 @@ FReply UGridMapWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPoi
 
 FReply UGridMapWidget::NativeOnMouseWheel(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (bHasRenderableMap && !FMath::IsNearlyZero(InMouseEvent.GetWheelDelta()))
+	const FVector2D LocalMouse = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+	if (bHasRenderableMap &&
+		!FMath::IsNearlyZero(InMouseEvent.GetWheelDelta()) &&
+		GridMapWidgetPrivate::IsInsideMapViewport(LocalMouse, InGeometry.GetLocalSize(), MapDrawPadding))
 	{
 		AdjustZoom(InMouseEvent.GetWheelDelta());
 		return FReply::Handled();
@@ -941,6 +1056,7 @@ int32 UGridMapWidget::NativePaint(
 		FloorView,
 		AllottedGeometry,
 		MapDrawPadding,
+		AutoFitMarginCells,
 		MaxCellPixels,
 		ZoomScale,
 		PanOffsetPixels,
@@ -960,6 +1076,15 @@ int32 UGridMapWidget::NativePaint(
 	const int32 SymbolLayer = BoundaryLayer + 2;
 	const int32 MarkerLayer = SymbolLayer + 2;
 
+	const FVector2D LocalSize = AllottedGeometry.GetLocalSize();
+	const FVector2D MapViewportSize(
+		FMath::Max(0.0f, static_cast<float>(LocalSize.X) - MapDrawPadding.Left - MapDrawPadding.Right),
+		FMath::Max(0.0f, static_cast<float>(LocalSize.Y) - MapDrawPadding.Top - MapDrawPadding.Bottom));
+	const FPaintGeometry MapViewportPaintGeometry = AllottedGeometry.ToPaintGeometry(
+		MapViewportSize,
+		FSlateLayoutTransform(FVector2D(MapDrawPadding.Left, MapDrawPadding.Top)));
+	OutDrawElements.PushClip(FSlateClippingZone(MapViewportPaintGeometry));
+
 	if (bEnableParchmentStyle)
 	{
 		DrawParchmentBackground(
@@ -971,6 +1096,8 @@ int32 UGridMapWidget::NativePaint(
 			WhiteBrush,
 			ParchmentColor,
 			ParchmentGrainColor,
+			ParchmentEdgeColor,
+			ParchmentEdgeThickness,
 			ParchmentGrainLineCount);
 	}
 
@@ -1044,17 +1171,18 @@ int32 UGridMapWidget::NativePaint(
 			case EGridMapBoundaryKind::Wall:
 				if (bEnableParchmentStyle)
 				{
-					DrawHandDrawnLine(
+					DrawWallBoundary(
 						OutDrawElements,
 						BoundaryLayer,
 						PaintGeometry,
 						A,
 						B,
+						WallUnderlayColor,
 						WallColor,
 						WallThickness,
+						WallUnderlayThicknessScale,
 						Boundary.MapCell,
 						Boundary.Edge,
-						300,
 						HandDrawnJitterPixels,
 						SecondaryStrokeAlpha);
 				}
@@ -1078,7 +1206,8 @@ int32 UGridMapWidget::NativePaint(
 					Boundary.MapCell,
 					Boundary.Edge,
 					bEnableParchmentStyle ? HandDrawnJitterPixels : 0.0f,
-					bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f);
+					bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f,
+					DoorJambLengthScale);
 				break;
 
 			case EGridMapBoundaryKind::SecretDoor:
@@ -1095,7 +1224,8 @@ int32 UGridMapWidget::NativePaint(
 					Boundary.MapCell,
 					Boundary.Edge,
 					bEnableParchmentStyle ? HandDrawnJitterPixels : 0.0f,
-					bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f);
+					bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f,
+					DoorJambLengthScale);
 				break;
 
 			default:
@@ -1130,7 +1260,8 @@ int32 UGridMapWidget::NativePaint(
 			FloorView,
 			PartyMarkerColor,
 			HandDrawnJitterPixels,
-			SecondaryStrokeAlpha);
+			SecondaryStrokeAlpha,
+			PartyMarkerScale);
 	}
 	else
 	{
@@ -1142,7 +1273,10 @@ int32 UGridMapWidget::NativePaint(
 			FloorView,
 			PartyMarkerColor,
 			0.0f,
-			0.0f);
+			0.0f,
+			PartyMarkerScale);
 	}
+
+	OutDrawElements.PopClip();
 	return MarkerLayer;
 }

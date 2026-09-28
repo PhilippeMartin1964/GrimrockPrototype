@@ -247,3 +247,27 @@ SymbolMinCellPixels
 ```
 
 Les DataAssets concernés doivent être configurés manuellement dans UE après validation C++.
+
+## MON21.6.13 — Final Fit / Polish / Closure
+
+`UGridMapWidget` adapte maintenant automatiquement la carte à l’`AllottedGeometry` réel du WBP.
+
+```text
+MapDrawPadding      = 48 / 72 / 48 / 96
+AutoFitMarginCells = 0.75
+MaxCellPixels      = 0  // aucun plafond fixe par défaut
+```
+
+Le zoom est appliqué après le fit et le dessin est clippé à la surface parchemin : le pan/zoom ne peut plus recouvrir les contrôles du WBP. La molette et le démarrage du clic-glisser sont eux aussi limités à cette zone.
+
+Polish final :
+
+```text
+ParchmentEdgeColor / Thickness
+WallUnderlayColor / ThicknessScale
+DoorJambLengthScale
+PartyMarkerScale
+hachures et jitter allégés
+```
+
+Aucun nouveau widget UMG n’est requis. Si le Blueprint conserve une ancienne surcharge héritée (notamment `MaxCellPixels=64`), utiliser `Reset to Default` sur la propriété concernée.
