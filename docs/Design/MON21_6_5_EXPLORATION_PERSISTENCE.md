@@ -1,7 +1,7 @@
 # MON21.6.5 — Exploration Persistence / Save Schema
 
 Date : **28 septembre 2026**  
-Statut : **IMPLÉMENTÉ — VALIDATION LOCALE UTILISATEUR REQUISE**
+Statut : **VALIDÉ**
 
 ## 1. Objectif
 
@@ -92,7 +92,19 @@ Persistence.ExactMatchVersion23
 
 Le round-trip vérifie simultanément l’isolation par `LevelId`, les cellules explorées et les secrets découverts.
 
-Aucun résultat MON21.6.5 n’est déclaré avant retour du harness UE5.5.4 local.
+Validation locale utilisateur du 28 septembre 2026 :
+
+```text
+Filter                  : Grimrock.Map.MON21_6_5
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code       : 0
+Report                  : TD04-20260928-090055
+```
+
+MON21.6.5 est **VALIDÉ**.
 
 ## 8. Hors périmètre
 
@@ -100,4 +112,4 @@ Aucun résultat MON21.6.5 n’est déclaré avant retour du harness UE5.5.4 loca
 - projection multi-dalles / étages : MON21.6.7 ;
 - rendu WBP natif : MON21.6.8.
 
-Prochaine tranche après validation : **MON21.6.6 — Map Read Model**.
+Tranche suivante : **MON21.6.6 — Map Read Model**.

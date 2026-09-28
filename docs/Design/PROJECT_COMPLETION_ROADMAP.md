@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.5 IMPLÉMENTÉ / À VALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.6 IMPLÉMENTÉ / À VALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -211,18 +211,28 @@ MON21.6.4 est **VALIDÉ** :
 - secret découvert puis refermé = reste connu ;
 - validation locale `Grimrock.Map.MON21_6_4` : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-084526`.
 
-MON21.6.5 est maintenant implémenté :
+MON21.6.5 est **VALIDÉ** :
 
 - `MapExploration`, `ExploredCells` et `DiscoveredSecretObjectIds` portent `SaveGame` ;
-- `CurrentSaveVersion` passe de v22 à **v23 exact-match** ;
+- `CurrentSaveVersion` est **v23 exact-match** ;
 - aucune migration v22 -> v23 ;
 - validation structurelle Map intégrée à `ValidateCurrentState()` ;
-- round-trip multi-LevelId couvert par Automation ;
-- snapshot invalide rejeté avant application runtime.
+- validation locale `Grimrock.Map.MON21_6_5` : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-090055`.
 
-Statut MON21.6.5 : **implémenté, validation locale utilisateur requise**.
+MON21.6.6 est maintenant implémenté :
 
-Prochaine tranche après validation : **MON21.6.6 — Map Read Model**.
+- `FGridMapTileView` expose uniquement cellules explorées + frontières connues ;
+- frontière = `Wall | Door | SecretDoor` ;
+- aucun `ObjectId`/`DefinitionId` secret n’est exposé à la présentation ;
+- secret non découvert normalisé en `Wall` ;
+- variante de porte résolue depuis `RuntimeActorClass`, sans hard-code `Door_Secret` ;
+- état de porte vivant prioritaire, fallback runtime persistant puis authored ;
+- read model transitoire, SaveGame v23 inchangé ;
+- Automation ajoutée sous `Grimrock.Map.MON21_6_6`.
+
+Statut MON21.6.6 : **implémenté, validation locale utilisateur requise**.
+
+Prochaine tranche après validation : **MON21.6.7 — Multi-Tile / Floor Projection**.
 
 ## MON21.5–MON21.8
 
@@ -339,8 +349,8 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON21.6.5 — Exploration Persistence / Save Schema : IMPLÉMENTÉ / À VALIDER
-MON21.6.6 — Map Read Model : prochaine tranche après validation
+MON21.6.6 — Map Read Model : IMPLÉMENTÉ / À VALIDER
+MON21.6.7 — Multi-Tile / Floor Projection : prochaine tranche après validation
 ```
 
 TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.
