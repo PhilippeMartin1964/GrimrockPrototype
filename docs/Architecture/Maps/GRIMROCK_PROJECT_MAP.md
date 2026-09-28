@@ -1158,14 +1158,20 @@ MON21.2–21.3 :
 - 🟢 `Page_Map` reste le binding existant du shell ;
 - 🟢 convention écran alignée sur l’Overview Map éditeur : North=haut, East=gauche, sans modifier les coordonnées canoniques X+/Y+ ;
 - 🟠 convention visuelle X miroir à clarifier ultérieurement, sans impact sur l’autorité runtime ;
-- 🟡 MON21.6.9 Floor Navigation : navigation UMG/PIE confirmée, libellé `Niveau <Z>` à revalider ;
+- ✅ MON21.6.9 Floor Navigation validé par confirmation utilisateur après le correctif `Niveau <Z>` ;
 - 🟢 sélection d’étage transient dans `UGridMapWidget` ;
 - 🟢 Level Up/Down saute directement entre les Z activés disponibles ;
 - 🟢 boutons désactivables aux bornes via `CanNavigateFloorUp/Down()` ;
 - 🟢 ouverture Map -> étage courant du groupe ; refresh événementiel -> étage consulté conservé ;
 - 🟢 contrôles UMG optionnels `Button_LevelUp`, `Button_LevelDown`, `Text_FloorLabel` ;
 - 🟢 `Text_FloorLabel` affiche systématiquement le Z logique canonique sous la forme `Niveau <Z>` ; `DisplayName` reste propre aux dalles/entrées ;
-- ⬜ MON21.6.10+ : zoom/pan/recenter, finition parchemin, symboles.
+- 🟡 MON21.6.10 Zoom / Pan / Recenter : C++ implémenté, UMG/PIE à valider ;
+- 🟢 zoom molette borné, Paint-only ;
+- 🟢 pan clic-glisser en pixels UI, Paint-only ;
+- 🟢 Recentrer = retour au Z du groupe + cellule du groupe centrée ;
+- 🟢 Up/Down conserve le zoom mais remet le pan à zéro ;
+- 🟢 `Button_Recenter` optionnel, aucun Graph Blueprint requis ;
+- ⬜ MON21.6.11+ : finition parchemin, symboles, regression/closure.
 
 ## 16.5 — Codex
 

@@ -7,8 +7,8 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 28 septembre 2026, TD07 validé/clos ; MON21.6 repris. MON21.6.8 validé ; MON21.6.9 Floor Navigation C++ implémenté, UMG/PIE à valider.**  
-Phase active : **MON21.6 — Map Geometry + Exploration State + Existing WBP** ; prochaine tranche après validation `MON21.6.10 — Zoom / Pan / Recenter`.
+**Référence courante : 28 septembre 2026, TD07 validé/clos ; MON21.6 repris. MON21.6.9 validé ; MON21.6.10 Zoom / Pan / Recenter C++ implémenté, UMG/PIE à valider.**  
+Phase active : **MON21.6 — Map Geometry + Exploration State + Existing WBP** ; prochaine tranche après validation `MON21.6.11 — Hand-Drawn Parchment Artistic Pass`.
 
 ## Ordre de lecture recommandé
 
@@ -123,7 +123,7 @@ MON21.2  Quest Definition + Campaign Runtime State      VALIDÉ
 MON21.3  Quest Event -> Command Integration             VALIDÉ
 MON21.4  Quest Persistence                            EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5  Journal Read Model + Existing WBP Integration  À FAIRE
-MON21.6  Map Geometry + Exploration State + Existing WBP ACTIF — 6.9 C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
+MON21.6  Map Geometry + Exploration State + Existing WBP ACTIF — 6.10 C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
 MON21.7  Codex Discovery + Definition Projection        À FAIRE
 MON21.8  Cross-System Regression / PIE / Closure        À FAIRE
 ```

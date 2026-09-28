@@ -169,3 +169,25 @@ Text_FloorLabel  : TextBlock
 ```
 
 Le C++ gère les clics et l’état Enabled. Aucun Graph Blueprint n’est requis.
+
+## MON21.6.10 — Zoom / Pan / Recenter
+
+`UGridMapWidget` porte une caméra de présentation transitoire :
+
+```text
+ZoomScale
+PanOffsetPixels
+bCenterViewOnParty
+```
+
+Interactions natives :
+
+```text
+molette              -> AdjustZoom()
+clic gauche + drag   -> PanMapByPixels()
+Button_Recenter      -> RecenterMap()
+```
+
+`Button_Recenter` est un `BindWidgetOptional` à ajouter manuellement dans `WBP_GridMap` après validation C++.
+
+Zoom et pan n’entraînent aucune reconstruction du `FGridMapFloorView` ; ils invalident uniquement le Paint.

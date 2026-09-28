@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.9 UI CONFIRMÉE / LIBELLÉ Z À REVALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.10 C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -282,7 +282,22 @@ Le raffinement `DisplayName` est finalement abandonné : un étage peut contenir
 
 `Text_FloorLabel` affiche désormais uniquement le Z logique canonique sous la forme `Niveau <Z>`.
 
-Statut MON21.6.9 : **fonction navigation confirmée ; libellé `Niveau <Z>` à revalider par Automation/PIE**.
+MON21.6.9 est **VALIDÉ** par confirmation utilisateur après le correctif final `Niveau <Z>`.
+
+MON21.6.10 — Zoom / Pan / Recenter est maintenant implémenté côté C++ :
+
+- caméra UI transitoire `ZoomScale` + `PanOffsetPixels` ;
+- molette -> zoom borné sans reconstruction du read model ;
+- clic gauche + glisser -> pan en pixels UI ;
+- `RecenterMap()` revient à l’étage du groupe et centre sa cellule ;
+- Up/Down conserve le zoom mais remet le pan à zéro ;
+- `Button_Recenter` optionnel, sans Graph Blueprint ;
+- aucun nouvel état SaveGame, v23 inchangé ;
+- Automation ajoutée sous `Grimrock.Map.MON21_6_10`.
+
+Statut MON21.6.10 : **C++ implémenté ; validation Automation puis UMG/PIE requises**.
+
+Prochaine tranche après validation : **MON21.6.11 — Hand-Drawn Parchment Artistic Pass**.
 
 Prochaine tranche après validation : **MON21.6.10 — Zoom / Pan / Recenter**.
 
@@ -403,8 +418,9 @@ MON30 — Full Campaign
 
 ```text
 MON21.6.8 — Existing WBP + Native Map Rendering : VALIDÉ
-MON21.6.9 — Floor Navigation : UI CONFIRMÉE / LIBELLÉ Z À REVALIDER
-MON21.6.10 — Zoom / Pan / Recenter : prochaine tranche après validation
+MON21.6.9 — Floor Navigation : VALIDÉ
+MON21.6.10 — Zoom / Pan / Recenter : C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
+MON21.6.11 — Hand-Drawn Parchment Artistic Pass : prochaine tranche après validation
 ```
 
 TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.

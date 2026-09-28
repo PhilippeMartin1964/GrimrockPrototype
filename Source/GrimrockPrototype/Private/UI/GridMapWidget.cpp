@@ -3,6 +3,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Core/GridDungeonAsset.h"
+#include "InputCoreTypes.h"
 #include "Rendering/DrawElementTypes.h"
 #include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -40,6 +41,9 @@ namespace GridMapWidgetPrivate
 		const FGeometry& Geometry,
 		const FMargin& Padding,
 		float MaxCellPixels,
+		float ZoomScale,
+		const FVector2D& PanOffsetPixels,
+		bool bCenterOnParty,
 		FRenderMetrics& OutMetrics)
 	{
 		if (View.Cells.IsEmpty())
@@ -76,9 +80,10 @@ namespace GridMapWidgetPrivate
 			return false;
 		}
 
-		OutMetrics.CellSize = FMath::Min(
+		const float FitCellSize = FMath::Min(
 			FMath::Min(AvailableWidth / static_cast<float>(CellCountX), AvailableHeight / static_cast<float>(CellCountY)),
 			FMath::Max(4.0f, MaxCellPixels));
+		OutMetrics.CellSize = FitCellSize * FMath::Max(0.01f, ZoomScale);
 		if (OutMetrics.CellSize <= 0.0f)
 		{
 			return false;
@@ -89,6 +94,19 @@ namespace GridMapWidgetPrivate
 		OutMetrics.Origin = FVector2f(
 			Padding.Left + (AvailableWidth - MapWidth) * 0.5f,
 			Padding.Top + (AvailableHeight - MapHeight) * 0.5f);
+
+		if (bCenterOnParty && View.bHasPartyMarker)
+		{
+			const FVector2f ViewportCenter(
+				Padding.Left + AvailableWidth * 0.5f,
+				Padding.Top + AvailableHeight * 0.5f);
+			const FVector2f PartyCenterFromOrigin(
+				(static_cast<float>(OutMetrics.MaxX - View.PartyMapCell.X) + 0.5f) * OutMetrics.CellSize,
+				(static_cast<float>(OutMetrics.MaxY - View.PartyMapCell.Y) + 0.5f) * OutMetrics.CellSize);
+			OutMetrics.Origin = ViewportCenter - PartyCenterFromOrigin;
+		}
+
+		OutMetrics.Origin += FVector2f(static_cast<float>(PanOffsetPixels.X), static_cast<float>(PanOffsetPixels.Y));
 		return true;
 	}
 
@@ -251,6 +269,10 @@ void UGridMapWidget::NativeConstruct()
 	{
 		Button_LevelDown->OnClicked.AddUniqueDynamic(this, &UGridMapWidget::HandleLevelDownClicked);
 	}
+	if (Button_Recenter)
+	{
+		Button_Recenter->OnClicked.AddUniqueDynamic(this, &UGridMapWidget::HandleRecenterClicked);
+	}
 
 	RefreshFloorNavigationControls();
 }
@@ -265,6 +287,10 @@ void UGridMapWidget::NativeDestruct()
 	{
 		Button_LevelDown->OnClicked.RemoveDynamic(this, &UGridMapWidget::HandleLevelDownClicked);
 	}
+	if (Button_Recenter)
+	{
+		Button_Recenter->OnClicked.RemoveDynamic(this, &UGridMapWidget::HandleRecenterClicked);
+	}
 
 	Super::NativeDestruct();
 }
@@ -273,6 +299,8 @@ void UGridMapWidget::InitializeMapWidget(AGrimrockPartyPawn* InPartyPawn)
 {
 	OwningPartyPawn = InPartyPawn;
 	bHasFloorSelection = false;
+	ZoomScale = 1.0f;
+	ResetViewTransform(false);
 	SelectPartyFloor();
 }
 
@@ -300,6 +328,7 @@ bool UGridMapWidget::SelectPartyFloor()
 
 	SelectedFloorZ = PartyFloorZ;
 	bHasFloorSelection = true;
+	ResetViewTransform(false);
 	return BuildSelectedFloorView();
 }
 
@@ -320,6 +349,8 @@ bool UGridMapWidget::NavigateFloorUp()
 		BuildSelectedFloorView();
 		return false;
 	}
+	ResetViewTransform(false);
+	Invalidate(EInvalidateWidgetReason::Paint);
 	return true;
 }
 
@@ -340,7 +371,54 @@ bool UGridMapWidget::NavigateFloorDown()
 		BuildSelectedFloorView();
 		return false;
 	}
+	ResetViewTransform(false);
+	Invalidate(EInvalidateWidgetReason::Paint);
 	return true;
+}
+
+bool UGridMapWidget::RecenterMap()
+{
+	int32 PartyFloorZ = 0;
+	if (!ResolvePartyFloorZ(PartyFloorZ))
+	{
+		return false;
+	}
+
+	SelectedFloorZ = PartyFloorZ;
+	bHasFloorSelection = true;
+	ResetViewTransform(true);
+	return BuildSelectedFloorView();
+}
+
+bool UGridMapWidget::AdjustZoom(float WheelDelta)
+{
+	if (!bHasRenderableMap || FMath::IsNearlyZero(WheelDelta))
+	{
+		return false;
+	}
+
+	const float SafeMin = FMath::Min(MinZoomScale, MaxZoomScale);
+	const float SafeMax = FMath::Max(MinZoomScale, MaxZoomScale);
+	const float PreviousZoom = ZoomScale;
+	ZoomScale = FMath::Clamp(ZoomScale + WheelDelta * ZoomStep, SafeMin, SafeMax);
+	if (FMath::IsNearlyEqual(ZoomScale, PreviousZoom))
+	{
+		return false;
+	}
+
+	Invalidate(EInvalidateWidgetReason::Paint);
+	return true;
+}
+
+void UGridMapWidget::PanMapByPixels(const FVector2D& DeltaPixels)
+{
+	if (!bHasRenderableMap || DeltaPixels.IsNearlyZero())
+	{
+		return;
+	}
+
+	PanOffsetPixels += DeltaPixels;
+	Invalidate(EInvalidateWidgetReason::Paint);
 }
 
 bool UGridMapWidget::CanNavigateFloorUp() const
@@ -456,6 +534,13 @@ bool UGridMapWidget::FindAdjacentFloorZ(bool bUp, int32& OutFloorZ) const
 	return false;
 }
 
+void UGridMapWidget::ResetViewTransform(bool bCenterOnParty)
+{
+	PanOffsetPixels = FVector2D::ZeroVector;
+	bCenterViewOnParty = bCenterOnParty;
+	bIsPanning = false;
+}
+
 void UGridMapWidget::RefreshFloorNavigationControls()
 {
 	if (Button_LevelUp)
@@ -485,6 +570,68 @@ void UGridMapWidget::HandleLevelDownClicked()
 	NavigateFloorDown();
 }
 
+void UGridMapWidget::HandleRecenterClicked()
+{
+	RecenterMap();
+}
+
+FReply UGridMapWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (bHasRenderableMap && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		bIsPanning = true;
+		FReply Reply = FReply::Handled();
+		if (const TSharedPtr<SWidget> CachedWidget = GetCachedWidget())
+		{
+			Reply.CaptureMouse(CachedWidget.ToSharedRef());
+		}
+		return Reply;
+	}
+
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
+
+FReply UGridMapWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (bIsPanning && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		bIsPanning = false;
+		return FReply::Handled().ReleaseMouseCapture();
+	}
+
+	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
+}
+
+FReply UGridMapWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (bIsPanning)
+	{
+		const FVector2D CurrentLocal = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+		const FVector2D PreviousLocal = InGeometry.AbsoluteToLocal(InMouseEvent.GetLastScreenSpacePosition());
+		PanMapByPixels(CurrentLocal - PreviousLocal);
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnMouseMove(InGeometry, InMouseEvent);
+}
+
+FReply UGridMapWidget::NativeOnMouseWheel(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (bHasRenderableMap && !FMath::IsNearlyZero(InMouseEvent.GetWheelDelta()))
+	{
+		AdjustZoom(InMouseEvent.GetWheelDelta());
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnMouseWheel(InGeometry, InMouseEvent);
+}
+
+void UGridMapWidget::NativeOnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent)
+{
+	bIsPanning = false;
+	Super::NativeOnMouseCaptureLost(CaptureLostEvent);
+}
+
 int32 UGridMapWidget::NativePaint(
 	const FPaintArgs& Args,
 	const FGeometry& AllottedGeometry,
@@ -503,7 +650,15 @@ int32 UGridMapWidget::NativePaint(
 
 	using namespace GridMapWidgetPrivate;
 	FRenderMetrics Metrics;
-	if (!BuildRenderMetrics(FloorView, AllottedGeometry, MapDrawPadding, MaxCellPixels, Metrics))
+	if (!BuildRenderMetrics(
+		FloorView,
+		AllottedGeometry,
+		MapDrawPadding,
+		MaxCellPixels,
+		ZoomScale,
+		PanOffsetPixels,
+		bCenterViewOnParty,
+		Metrics))
 	{
 		return BaseLayer;
 	}

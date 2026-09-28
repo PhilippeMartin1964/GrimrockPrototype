@@ -1,7 +1,7 @@
 # MON21.6.9 — Floor Navigation
 
 Date : **28 septembre 2026**  
-Statut : **AUTOMATION 4/4 + UMG/PIE CONFIRMÉS — LIBELLÉ `Niveau <Z>` À REVALIDER**
+Statut : **VALIDÉ**
 
 ## 1. Objectif
 
@@ -217,7 +217,11 @@ Text_FloorLabel = "Niveau " + SelectedFloorZ
 
 Exemples : `Niveau -3`, `Niveau 0`, `Niveau 2`.
 
-`DisplayName` conserve sa sémantique de nom d’entrée/dalle et n’est pas agrégé pour nommer un étage. Le filtre MON21.6.9 contient un cinquième test `LogicalZLabel` et doit être relancé avant clôture définitive.
+`DisplayName` conserve sa sémantique de nom d’entrée/dalle et n’est pas agrégé pour nommer un étage.
+
+Validation finale : **confirmée par l’utilisateur** après le correctif `LogicalZLabel`. La sortie détaillée du dernier run à cinq tests n’a pas été recopiée dans le thread ; aucun compteur supplémentaire n’est donc inventé ici.
+
+MON21.6.9 est **VALIDÉ**.
 
 ## 9. Modification UMG après validation C++
 
@@ -241,4 +245,4 @@ Le placement visuel et le style peuvent rester fonctionnels à ce stade ; le pol
 - style parchemin / manuscrit : MON21.6.11 ;
 - symboles supplémentaires : MON21.6.12.
 
-Prochaine tranche après validation : **MON21.6.10 — Zoom / Pan / Recenter**.
+Tranche suivante : **MON21.6.10 — Zoom / Pan / Recenter**.
