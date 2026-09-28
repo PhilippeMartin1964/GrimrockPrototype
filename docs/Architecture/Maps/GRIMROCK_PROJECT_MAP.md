@@ -1014,7 +1014,7 @@ Le projet possède une bibliothèque de production/tests couvrant notamment :
 
 ## 15.1 — Contrat actuel
 
-`UGrimrockPartySaveGame::CurrentSaveVersion = 22`.
+`UGrimrockPartySaveGame::CurrentSaveVersion = 23`.
 
 - ✅ exact-match ;
 - ✅ ancienne version = rejet ;
@@ -1122,20 +1122,22 @@ MON21.2–21.3 :
 - ✅ MON21.6.2 Exploration State validé : 4/4, 0 warning, 0 échec (`TD04-20260928-082142`) ;
 - 🟢 `FGridMapExplorationState` porte Unknown/Explored sur 32×32, avec allocation paresseuse ;
 - 🟢 `FGridLevelRuntimeState::MapExploration` isole l’exploration par `LevelId` et la conserve pendant la session ;
-- 🟢 SaveGame volontairement inchangé en v22 : persistance disque réservée à MON21.6.5 ;
+- ✅ MON21.6.5 ouvre la persistance Map en SaveGame v23 exact-match ;
 - ✅ MON21.6.3 Topology-Aware Reveal validé : 4/4, 0 warning, 0 échec (`TD04-20260928-083313`) ;
 - 🟢 rayon 1.25 : cellule courante + cardinales, diagonales exclues ;
 - 🟢 murs vérifiés sur les deux côtés de la frontière ;
 - 🟢 portes bloquantes arrêtent le reveal, portes ouvertes laissent voir la cellule voisine ;
 - 🟢 `bBlocksOccupancy` n’est pas une occlusion Map ;
 - 🟢 reveal déclenché au démarrage et après déplacement via `HandlePartyCellChanged()` ;
-- 🟡 MON21.6.4 Secret Discovery implémenté, validation locale à fournir ;
+- ✅ MON21.6.4 Secret Discovery validé : 4/4, 0 warning, 0 échec (`TD04-20260928-084526`) ;
 - 🟢 secrets connus par `ObjectId` dans `FGridMapExplorationState` ;
 - 🟢 découverte lorsque la porte secrète est réellement fully open ;
 - 🟢 connaissance conservée après fermeture ;
 - 🟢 secret initialement ouvert considéré découvert ;
-- 🟢 état secret encore session-only, SaveGame v22 inchangé ;
-- ⬜ MON21.6.5+ : persistence, read model, projection multi-dalles, UI/navigation et rendu parchemin.
+- 🟢 `ExploredCells` + `DiscoveredSecretObjectIds` sont désormais persistants par `LevelId` ;
+- 🟡 MON21.6.5 Exploration Persistence / Save Schema implémenté, validation locale à fournir ;
+- 🟢 validation structurelle fail-closed avant application runtime ;
+- ⬜ MON21.6.6+ : read model, projection multi-dalles, UI/navigation et rendu parchemin.
 
 ## 16.5 — Codex
 

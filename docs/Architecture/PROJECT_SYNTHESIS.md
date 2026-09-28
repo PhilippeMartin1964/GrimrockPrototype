@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 septembre 2026, TD07 validé/clos ; MON21.6 repris ; MON21.6.3 validé ; MON21.6.4 Secret Discovery implémenté, validation locale requise.**
+> État : **28 septembre 2026, TD07 validé/clos ; MON21.6 repris ; MON21.6.4 validé ; MON21.6.5 Exploration Persistence / Save Schema implémenté, validation locale requise.**
 
 ## 1. Référence
 
@@ -11,12 +11,12 @@
 | Moteur | Unreal Engine 5.5.4 |
 | Branche | `master` |
 | Modules C++ | `GrimrockPrototype`, `GrimrockPrototypeEditor`, `GrimrockLua` |
-| SaveGame | **v22 exact-match** ; aucune compatibilité arrière ni migration |
+| SaveGame | **v23 exact-match** ; aucune compatibilité arrière ni migration |
 | Dernier jalon fonctionnel | `MON21.3 — Quest Event -> Command Integration` |
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
 | Dernière tranche validée | `TD07.8 — Future-proofing re-audit / stop condition` |
-| Tranche active | `MON21.6 — Map ; MON21.6.4 implémenté / à valider` |
+| Tranche active | `MON21.6 — Map ; MON21.6.5 implémenté / à valider` |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`. La baseline quantitative de clôture TD07 pour les audits futurs est `docs/Architecture/TD07_FINAL_QUANTITATIVE_AUDIT_BASELINE.md`.
 
@@ -77,7 +77,7 @@ Le module Editor dépend aussi de `GrimrockLua`. Le Runtime ne dépend pas du mo
 | Save | ✅ v15 exact-match ; aucune migration arrière |
 | Quêtes runtime | ✅ MON21.2–MON21.3 |
 | Journal | ⬜ WBP existant ; read model prévu MON21.5 |
-| Map | 🟡 contrat 6.1 ; Exploration 6.2 + reveal 6.3 validés ; Secret Discovery 6.4 implémenté, WBP pas encore branché |
+| Map | 🟡 6.2–6.4 validés ; persistance v23 6.5 implémentée, WBP pas encore branché |
 | Codex | ⬜ WBP existant ; discovery prévu MON21.7 |
 
 ## 6. Donjon, grille et éditeur
@@ -158,7 +158,7 @@ TD07.3.2 supprime la chaîne de migration v1-v9. TD07.3.3.2 supprime le bridge l
 
 Surfaces fonctionnelles : menu principal/Continue/Load, inventaire/paper doll, sélection du groupe, création/recrutement, Level Up, combat, Spellbook, Skills/Talents.
 
-Journal et Codex existent déjà dans le menu et restent des projections futures. Pour Map, MON21.6.1 a figé le contrat, MON21.6.2 fournit l’autorité d’exploration et MON21.6.3, validé 4/4, fournit le reveal topologique rayon 1.25. MON21.6.4 ajoute la connaissance des secrets par `ObjectId` : une porte secrète n’est découverte qu’une fois réellement exposée, puis reste connue après fermeture. Le branchement UI et la persistance disque restent futurs ; Map ne devient jamais une autorité gameplay.
+Journal et Codex existent déjà dans le menu et restent des projections futures. Pour Map, MON21.6.1 a figé le contrat ; MON21.6.2–6.4 sont validés et fournissent exploration, reveal topologique et connaissance des secrets. MON21.6.5 rend `ExploredCells` et `DiscoveredSecretObjectIds` persistants directement dans `FGridLevelRuntimeState::MapExploration`, avec SaveGame v23 exact-match et validation fail-closed. Le branchement UI reste futur ; Map ne devient jamais une autorité gameplay.
 
 ## 13. Validation et packaging
 
@@ -210,7 +210,7 @@ TD07.3.3.9   Normalize Level-Up Notification State                    VALIDÉ �
 TD07.3.3.10  Current Save Schema / Regressions / Closure              VALIDÉ — CLOS
 MON21.4      Quest Persistence                          EN ATTENTE
 MON21.5      Journal Read Model / WBP                     À FAIRE
-MON21.6      Map Geometry / Exploration                   ACTIF — 6.4 IMPLÉMENTÉ / À VALIDER
+MON21.6      Map Geometry / Exploration                   ACTIF — 6.5 IMPLÉMENTÉ / À VALIDER
 MON21.7      Codex Discovery / Projection                 À FAIRE
 MON21.8      Cross-System Regression / PIE / Closure      À FAIRE
 MON22        vertical slice 45–90 minutes                 À FAIRE

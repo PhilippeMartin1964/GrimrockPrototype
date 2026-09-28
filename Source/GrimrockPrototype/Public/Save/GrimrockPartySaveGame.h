@@ -12,8 +12,8 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	/** TD07.3.4.4: all character identity/presentation caches are transient and rebuilt from durable IDs. */
-	static constexpr int32 CurrentSaveVersion = 22;
+	/** MON21.6.5: map exploration cells + discovered secret identities are durable. */
+	static constexpr int32 CurrentSaveVersion = 23;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	int32 SaveVersion = CurrentSaveVersion;

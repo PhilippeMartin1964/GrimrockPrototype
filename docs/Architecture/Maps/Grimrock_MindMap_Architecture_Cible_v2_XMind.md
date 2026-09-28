@@ -713,7 +713,7 @@
       - Codex
   - **Save**
     - UGrimrockPartySaveGame
-      - CurrentSaveVersion = 22
+      - CurrentSaveVersion = 23
       - exact-match
       - no backward migration
       - Party state
@@ -732,6 +732,9 @@
         - Monsters
         - MonsterPlacements
         - MonsterEncounters
+        - MapExploration
+          - ExploredCells
+          - DiscoveredSecretObjectIds
         - BoolVariables
         - IntVariables
     - gap
@@ -894,7 +897,7 @@
       - stop condition
     - TD07
       - current-schema reset
-      - v22 current result
+      - v23 current result
       - stop condition
     - CPP-AUDIT01
       - CLEAN01 legacy door audio

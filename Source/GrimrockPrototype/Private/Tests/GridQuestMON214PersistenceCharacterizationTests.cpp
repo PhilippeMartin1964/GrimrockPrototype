@@ -43,10 +43,10 @@ bool FGridQuestMON214SaveEnvelopeCharacterizationTest::RunTest(const FString& Pa
 {
 	(void)Parameters;
 
-	TestEqual(TEXT("MON21.4 starts from exact-match SaveGame v22"), UGrimrockPartySaveGame::CurrentSaveVersion, 22);
+	TestTrue(TEXT("MON21.4 characterization remains valid on schemas at or beyond v22"), UGrimrockPartySaveGame::CurrentSaveVersion >= 22);
 
 	UClass* SaveClass = UGrimrockPartySaveGame::StaticClass();
-	TestNull(TEXT("Current v22 SaveGame has no CampaignQuestState snapshot yet"), SaveClass->FindPropertyByName(TEXT("CampaignQuestState")));
+	TestNull(TEXT("Current SaveGame still has no CampaignQuestState snapshot yet"), SaveClass->FindPropertyByName(TEXT("CampaignQuestState")));
 	TestNull(TEXT("Current v22 SaveGame has no QuestRuntimeState mirror"), SaveClass->FindPropertyByName(TEXT("QuestRuntimeState")));
 	return true;
 }

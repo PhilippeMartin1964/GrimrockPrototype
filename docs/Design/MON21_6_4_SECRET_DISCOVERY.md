@@ -1,7 +1,7 @@
 # MON21.6.4 — Secret Discovery
 
 Date : **28 septembre 2026**  
-Statut : **IMPLÉMENTÉ — VALIDATION LOCALE UTILISATEUR REQUISE**
+Statut : **VALIDÉ**
 
 ## 1. Objectif
 
@@ -73,7 +73,19 @@ SecretDiscovery.InitiallyOpenIsKnown
 SecretDiscovery.NormalDoorAndSaveBoundary
 ```
 
-Aucun résultat MON21.6.4 n’est déclaré avant retour du harness UE5.5.4 local.
+Validation locale utilisateur du 28 septembre 2026 :
+
+```text
+Filter                  : Grimrock.Map.MON21_6_4
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code       : 0
+Report                  : TD04-20260928-084526
+```
+
+MON21.6.4 est **VALIDÉ**.
 
 ## 8. Hors périmètre
 
@@ -81,4 +93,4 @@ Aucun résultat MON21.6.4 n’est déclaré avant retour du harness UE5.5.4 loca
 - persistance disque : MON21.6.5 ;
 - projection multi-dalles : MON21.6.7.
 
-Prochaine tranche après validation : **MON21.6.5 — Exploration Persistence / Save Schema**.
+Tranche suivante : **MON21.6.5 — Exploration Persistence / Save Schema**.

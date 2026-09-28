@@ -113,16 +113,16 @@ bool FGridMapMON2162SaveBoundaryTest::RunTest(const FString& Parameters)
 	UScriptStruct* LevelStateStruct = FGridLevelRuntimeState::StaticStruct();
 	const FProperty* ExplorationProperty = LevelStateStruct ? LevelStateStruct->FindPropertyByName(TEXT("MapExploration")) : nullptr;
 	TestNotNull(TEXT("FGridLevelRuntimeState owns MapExploration"), ExplorationProperty);
-	TestTrue(TEXT("MON21.6.2 exploration is not yet a SaveGame field"),
-		ExplorationProperty && !ExplorationProperty->HasAnyPropertyFlags(CPF_SaveGame));
+	TestTrue(TEXT("MapExploration remains the same authority and is SaveGame-persistent from MON21.6.5"),
+		ExplorationProperty && ExplorationProperty->HasAnyPropertyFlags(CPF_SaveGame));
 
 	UScriptStruct* ExplorationStruct = FGridMapExplorationState::StaticStruct();
 	const FProperty* CellsProperty = ExplorationStruct ? ExplorationStruct->FindPropertyByName(TEXT("ExploredCells")) : nullptr;
 	TestNotNull(TEXT("Exploration state owns one cell-state array"), CellsProperty);
-	TestTrue(TEXT("Cell-state array is not SaveGame-persistent before MON21.6.5"),
-		CellsProperty && !CellsProperty->HasAnyPropertyFlags(CPF_SaveGame));
+	TestTrue(TEXT("Cell-state array is SaveGame-persistent from MON21.6.5"),
+		CellsProperty && CellsProperty->HasAnyPropertyFlags(CPF_SaveGame));
 
-	TestEqual(TEXT("MON21.6.2 deliberately keeps the current exact-match SaveGame generation"), UGrimrockPartySaveGame::CurrentSaveVersion, 22);
+	TestTrue(TEXT("Current exact-match schema is at or beyond the MON21.6.2 v22 baseline"), UGrimrockPartySaveGame::CurrentSaveVersion >= 22);
 	return true;
 }
 

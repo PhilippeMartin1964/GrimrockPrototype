@@ -307,8 +307,8 @@ struct FGridLevelRuntimeState
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	bool bHasBeenVisited = false;
 
-	/** MON21.6.2 authoritative exploration state for this 32x32 tile during the current dungeon session. */
-	UPROPERTY()
+	/** MON21.6.5 authoritative and SaveGame-persistent exploration state for this canonical 32x32 tile. */
+	UPROPERTY(SaveGame)
 	FGridMapExplorationState MapExploration;
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)

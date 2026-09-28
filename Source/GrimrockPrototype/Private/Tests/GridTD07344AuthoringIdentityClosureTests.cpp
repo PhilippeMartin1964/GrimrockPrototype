@@ -114,7 +114,7 @@ bool FGridTD07344SchemaAuthorityTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("RaceDisplayName is transient"), IsTransient(TEXT("RaceDisplayName")));
 	TestTrue(TEXT("Portrait is transient"), IsTransient(TEXT("Portrait")));
 	TestTrue(TEXT("ClassIcon is transient"), IsTransient(TEXT("ClassIcon")));
-	TestEqual(TEXT("TD07.3.4.4 opens SaveGame v22"), UGrimrockPartySaveGame::CurrentSaveVersion, 22);
+	TestTrue(TEXT("Current schema remains at or beyond the TD07.3.4.4 v22 baseline"), UGrimrockPartySaveGame::CurrentSaveVersion >= 22);
 	return true;
 }
 

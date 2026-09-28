@@ -230,7 +230,7 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    PARTY[FGridPartyInventoryState] --> SG[UGrimrockPartySaveGame v22]
+    PARTY[FGridPartyInventoryState] --> SG[UGrimrockPartySaveGame v23]
     DUN[FGridDungeonRuntimeState] --> SG
     LEVEL[FGridLevelRuntimeState] --> DUN
 
@@ -242,7 +242,7 @@ flowchart LR
     LEVEL --> ENCS[Encounters]
     LEVEL --> VARS[Bool/Int Vars]
 
-    SG --> CHECK{SaveVersion == 22}
+    SG --> CHECK{SaveVersion == 23}
     CHECK -- yes --> LOAD[Restore]
     CHECK -- no --> REJECT[Reject]
     QUEST[Campaign Quest State] -. not persisted yet .-> SG

@@ -6,9 +6,9 @@
 /**
  * MON21.6.2 authoritative per-cell exploration state for one canonical 32x32 map tile.
  *
- * This state lives inside FGridLevelRuntimeState, so it survives runtime level transitions
- * while the dungeon session remains alive. It is intentionally NOT SaveGame-persistent
- * until MON21.6.5 changes the persistence boundary and SaveGame schema.
+ * This state lives inside FGridLevelRuntimeState, so it survives runtime level transitions.
+ * MON21.6.5 promotes both explored cells and discovered secret identities to the exact-match
+ * SaveGame schema; no separate persistence mirror exists.
  *
  * Storage is lazy: an untouched tile allocates nothing; the first successful discovery
  * materializes exactly one byte per canonical cell (1024 bytes).
@@ -146,11 +146,11 @@ private:
 		return Cell.Y * GridSize + Cell.X;
 	}
 
-	// MON21.6.2: reflected for normal struct copying, deliberately not marked SaveGame before MON21.6.5.
-	UPROPERTY()
+	// MON21.6.5: durable fog-of-war cell knowledge.
+	UPROPERTY(SaveGame)
 	TArray<uint8> ExploredCells;
 
-	// MON21.6.4: session-local knowledge of secret world objects revealed to the player.
-	UPROPERTY()
+	// MON21.6.5: durable knowledge of secret world objects revealed to the player.
+	UPROPERTY(SaveGame)
 	TSet<FGuid> DiscoveredSecretObjectIds;
 };

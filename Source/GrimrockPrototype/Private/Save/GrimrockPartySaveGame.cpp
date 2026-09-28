@@ -210,6 +210,19 @@ namespace GridPartySaveValidationPrivate
 		OutError = FText::FromString(VariableError);
 		return false;
 	}
+	bool ValidateMapExploration(const UGrimrockPartySaveGame& SaveGame, FText& OutError)
+	{
+		for (const TPair<FName, FGridLevelRuntimeState>& Pair : SaveGame.DungeonRuntimeState.LevelStates)
+		{
+			if (!Pair.Value.MapExploration.IsStructurallyValid())
+			{
+				OutError = FText::FromString(FString::Printf(
+					TEXT("L'état d'exploration Map du niveau '%s' est structurellement invalide."), *Pair.Key.ToString()));
+				return false;
+			}
+		}
+		return true;
+	}
 
 	int32 CountSelectedClassChoices(const FGridPartyInventoryState& PartyState)
 	{
@@ -266,7 +279,7 @@ bool UGrimrockPartySaveGame::ValidateCurrentState(FText& OutError) const
 		return false;
 	}
 	if (!ValidateProgressionState(PartyInventoryState, OutError) || !ValidateSpellbooks(*this, OutError) || !ValidateSkills(*this, OutError) ||
-		!ValidateStatusEffects(*this, OutError) || !ValidateLevelVariables(*this, OutError))
+		!ValidateStatusEffects(*this, OutError) || !ValidateLevelVariables(*this, OutError) || !ValidateMapExploration(*this, OutError))
 	{
 		return false;
 	}

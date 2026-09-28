@@ -11,13 +11,13 @@ Git conserve l'historique du code et du contenu. Une sauvegarde créée avec un 
 ## Contrat courant
 
 ```text
-UGrimrockPartySaveGame::CurrentSaveVersion = 22
+UGrimrockPartySaveGame::CurrentSaveVersion = 23
 
-SaveVersion == 22
+SaveVersion == 23
     -> validation du schéma courant
     -> restore
 
-SaveVersion != 22
+SaveVersion != 23
     -> rejet
     -> aucune migration
 ```
@@ -73,7 +73,7 @@ Ne doivent pas être persistés comme autorités :
 - duplications runtime/save de la même structure sans nécessité ;
 - marqueurs servant uniquement à distinguer un ancien snapshot.
 
-TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 a normalisé Level et la progression de classe. TD07.3.3.6 rend `SkillRanks` durable et supprime `CharacterSkillStates`. Le schéma courant est v22 exact-match.
+TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 a normalisé Level et la progression de classe. TD07.3.3.6 rend `SkillRanks` durable et supprime `CharacterSkillStates`. Le schéma courant est v23 exact-match.
 
 ## Dungeon state
 
@@ -85,11 +85,11 @@ TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poid
 
 `FGridLevelRuntimeState::MapExploration` porte la connaissance `Unknown/Explored` d’une dalle 32×32 pendant la session de donjon.
 
-MON21.6.2 ne modifie volontairement pas la frontière disque : `MapExploration` et son tableau interne ne portent pas `SaveGame`, et `CurrentSaveVersion` reste **22**.
+MON21.6.2–6.4 ont construit l’autorité `MapExploration` en session : cellules explorées puis secrets découverts.
 
-MON21.6.4 étend cette même autorité avec `DiscoveredSecretObjectIds`, également sans flag `SaveGame`. Les cellules explorées et les secrets découverts restent donc session-only jusqu’à MON21.6.5.
+MON21.6.5 ouvre cette même autorité à la persistance disque, sans snapshot parallèle : `FGridLevelRuntimeState::MapExploration`, `ExploredCells` et `DiscoveredSecretObjectIds` portent `SaveGame`.
 
-MON21.6.5 sera responsable de l’ouverture simultanée de ces données à la persistance disque, de leur validation et de l’incrément exact-match associé.
+Le schéma passe à **v23 exact-match**. v22 et toutes les générations antérieures sont rejetées, sans migration. `ValidateCurrentState()` vérifie la structure de chaque exploration avant toute application au runtime.
 
 ## RPG state
 

@@ -269,8 +269,8 @@ bool FGridMapMON2164NormalDoorAndSaveBoundaryTest::RunTest(const FString& Parame
 	UScriptStruct* ExplorationStruct = FGridMapExplorationState::StaticStruct();
 	const FProperty* SecretProperty = ExplorationStruct ? ExplorationStruct->FindPropertyByName(TEXT("DiscoveredSecretObjectIds")) : nullptr;
 	TestNotNull(TEXT("Exploration state owns discovered secret identities"), SecretProperty);
-	TestTrue(TEXT("Secret knowledge remains session-only before MON21.6.5"),
-		SecretProperty && !SecretProperty->HasAnyPropertyFlags(CPF_SaveGame));
+	TestTrue(TEXT("Secret knowledge is SaveGame-persistent from MON21.6.5"),
+		SecretProperty && SecretProperty->HasAnyPropertyFlags(CPF_SaveGame));
 	return true;
 }
 
