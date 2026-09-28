@@ -39,21 +39,27 @@ bool FGridMapMON2165RoundTripTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 
 	UGrimrockPartySaveGame* Source = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
-	FGridLevelRuntimeState& LevelA = Source->DungeonRuntimeState.LevelStates.Add(TEXT("MapTile_A"));
-	LevelA.LevelId = TEXT("MapTile_A");
-	FGridLevelRuntimeState& LevelB = Source->DungeonRuntimeState.LevelStates.Add(TEXT("MapTile_B"));
-	LevelB.LevelId = TEXT("MapTile_B");
+	Source->DungeonRuntimeState.LevelStates.Add(TEXT("MapTile_A")).LevelId = TEXT("MapTile_A");
+	Source->DungeonRuntimeState.LevelStates.Add(TEXT("MapTile_B")).LevelId = TEXT("MapTile_B");
+	FGridLevelRuntimeState* LevelA = Source->DungeonRuntimeState.LevelStates.Find(TEXT("MapTile_A"));
+	FGridLevelRuntimeState* LevelB = Source->DungeonRuntimeState.LevelStates.Find(TEXT("MapTile_B"));
+	TestNotNull(TEXT("Source Level A exists"), LevelA);
+	TestNotNull(TEXT("Source Level B exists"), LevelB);
+	if (!LevelA || !LevelB)
+	{
+		return false;
+	}
 
 	bool bNewlyExplored = false;
-	TestTrue(TEXT("Level A first explored cell is accepted"), LevelA.MapExploration.TryMarkExplored(FIntPoint(4, 7), bNewlyExplored));
-	TestTrue(TEXT("Level A second explored cell is accepted"), LevelA.MapExploration.TryMarkExplored(FIntPoint(5, 7), bNewlyExplored));
+	TestTrue(TEXT("Level A first explored cell is accepted"), LevelA->MapExploration.TryMarkExplored(FIntPoint(4, 7), bNewlyExplored));
+	TestTrue(TEXT("Level A second explored cell is accepted"), LevelA->MapExploration.TryMarkExplored(FIntPoint(5, 7), bNewlyExplored));
 	const FGuid SecretA = FGuid::NewGuid();
 	bool bNewlyDiscovered = false;
-	TestTrue(TEXT("Level A secret discovery is accepted"), LevelA.MapExploration.TryMarkSecretDiscovered(SecretA, bNewlyDiscovered));
+	TestTrue(TEXT("Level A secret discovery is accepted"), LevelA->MapExploration.TryMarkSecretDiscovered(SecretA, bNewlyDiscovered));
 
-	TestTrue(TEXT("Level B explored cell is accepted"), LevelB.MapExploration.TryMarkExplored(FIntPoint(20, 21), bNewlyExplored));
+	TestTrue(TEXT("Level B explored cell is accepted"), LevelB->MapExploration.TryMarkExplored(FIntPoint(20, 21), bNewlyExplored));
 	const FGuid SecretB = FGuid::NewGuid();
-	TestTrue(TEXT("Level B secret discovery is accepted"), LevelB.MapExploration.TryMarkSecretDiscovered(SecretB, bNewlyDiscovered));
+	TestTrue(TEXT("Level B secret discovery is accepted"), LevelB->MapExploration.TryMarkSecretDiscovered(SecretB, bNewlyDiscovered));
 
 	TArray<uint8> SaveBytes;
 	TestTrue(TEXT("Current v23 SaveGame serializes map exploration"), UGameplayStatics::SaveGameToMemory(Source, SaveBytes));
