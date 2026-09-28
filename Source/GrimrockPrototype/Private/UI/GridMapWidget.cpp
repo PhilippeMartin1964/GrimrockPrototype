@@ -1,5 +1,7 @@
 #include "UI/GridMapWidget.h"
 
+#include "Components/Button.h"
+#include "Components/TextBlock.h"
 #include "Core/GridDungeonAsset.h"
 #include "Rendering/DrawElementTypes.h"
 #include "Runtime/GridDoorSystemComponent.h"
@@ -237,19 +239,130 @@ namespace GridMapWidgetPrivate
 	}
 }
 
+void UGridMapWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (Button_LevelUp)
+	{
+		Button_LevelUp->OnClicked.AddUniqueDynamic(this, &UGridMapWidget::HandleLevelUpClicked);
+	}
+	if (Button_LevelDown)
+	{
+		Button_LevelDown->OnClicked.AddUniqueDynamic(this, &UGridMapWidget::HandleLevelDownClicked);
+	}
+
+	RefreshFloorNavigationControls();
+}
+
+void UGridMapWidget::NativeDestruct()
+{
+	if (Button_LevelUp)
+	{
+		Button_LevelUp->OnClicked.RemoveDynamic(this, &UGridMapWidget::HandleLevelUpClicked);
+	}
+	if (Button_LevelDown)
+	{
+		Button_LevelDown->OnClicked.RemoveDynamic(this, &UGridMapWidget::HandleLevelDownClicked);
+	}
+
+	Super::NativeDestruct();
+}
+
 void UGridMapWidget::InitializeMapWidget(AGrimrockPartyPawn* InPartyPawn)
 {
 	OwningPartyPawn = InPartyPawn;
-	RefreshMap();
+	bHasFloorSelection = false;
+	SelectPartyFloor();
 }
 
 bool UGridMapWidget::RefreshMap()
 {
+	if (!bHasFloorSelection)
+	{
+		return SelectPartyFloor();
+	}
+	return BuildSelectedFloorView();
+}
+
+bool UGridMapWidget::SelectPartyFloor()
+{
+	int32 PartyFloorZ = 0;
+	if (!ResolvePartyFloorZ(PartyFloorZ))
+	{
+		bHasFloorSelection = false;
+		FloorView.Reset();
+		bHasRenderableMap = false;
+		RefreshFloorNavigationControls();
+		Invalidate(EInvalidateWidgetReason::Paint);
+		return false;
+	}
+
+	SelectedFloorZ = PartyFloorZ;
+	bHasFloorSelection = true;
+	return BuildSelectedFloorView();
+}
+
+bool UGridMapWidget::NavigateFloorUp()
+{
+	int32 TargetFloorZ = 0;
+	if (!FindAdjacentFloorZ(true, TargetFloorZ))
+	{
+		RefreshFloorNavigationControls();
+		return false;
+	}
+
+	const int32 PreviousFloorZ = SelectedFloorZ;
+	SelectedFloorZ = TargetFloorZ;
+	if (!BuildSelectedFloorView())
+	{
+		SelectedFloorZ = PreviousFloorZ;
+		BuildSelectedFloorView();
+		return false;
+	}
+	return true;
+}
+
+bool UGridMapWidget::NavigateFloorDown()
+{
+	int32 TargetFloorZ = 0;
+	if (!FindAdjacentFloorZ(false, TargetFloorZ))
+	{
+		RefreshFloorNavigationControls();
+		return false;
+	}
+
+	const int32 PreviousFloorZ = SelectedFloorZ;
+	SelectedFloorZ = TargetFloorZ;
+	if (!BuildSelectedFloorView())
+	{
+		SelectedFloorZ = PreviousFloorZ;
+		BuildSelectedFloorView();
+		return false;
+	}
+	return true;
+}
+
+bool UGridMapWidget::CanNavigateFloorUp() const
+{
+	int32 IgnoredFloorZ = 0;
+	return FindAdjacentFloorZ(true, IgnoredFloorZ);
+}
+
+bool UGridMapWidget::CanNavigateFloorDown() const
+{
+	int32 IgnoredFloorZ = 0;
+	return FindAdjacentFloorZ(false, IgnoredFloorZ);
+}
+
+bool UGridMapWidget::BuildSelectedFloorView()
+{
 	FloorView.Reset();
 	bHasRenderableMap = false;
 
-	if (!OwningPartyPawn || !OwningPartyPawn->LevelRuntimeActor)
+	if (!bHasFloorSelection || !OwningPartyPawn || !OwningPartyPawn->LevelRuntimeActor)
 	{
+		RefreshFloorNavigationControls();
 		Invalidate(EInvalidateWidgetReason::Paint);
 		return false;
 	}
@@ -257,13 +370,7 @@ bool UGridMapWidget::RefreshMap()
 	AGridLevelRuntimeActor* Runtime = OwningPartyPawn->LevelRuntimeActor;
 	if (!Runtime->DungeonAsset)
 	{
-		Invalidate(EInvalidateWidgetReason::Paint);
-		return false;
-	}
-
-	const FGridDungeonLevelEntry* ActiveEntry = Runtime->DungeonAsset->FindLevelEntry(Runtime->CurrentDungeonLevelId);
-	if (!ActiveEntry || !ActiveEntry->bEnabled || !ActiveEntry->LevelAsset)
-	{
+		RefreshFloorNavigationControls();
 		Invalidate(EInvalidateWidgetReason::Paint);
 		return false;
 	}
@@ -276,12 +383,106 @@ bool UGridMapWidget::RefreshMap()
 		Runtime->CurrentDungeonLevelId,
 		FIntPoint(OwningPartyPawn->CurrentCellX, OwningPartyPawn->CurrentCellY),
 		OwningPartyPawn->Facing,
-		ActiveEntry->LogicalPosition.Z,
+		SelectedFloorZ,
 		DoorSystem,
 		FloorView);
 
+	RefreshFloorNavigationControls();
 	Invalidate(EInvalidateWidgetReason::Paint);
 	return bHasRenderableMap;
+}
+
+bool UGridMapWidget::ResolvePartyFloorZ(int32& OutFloorZ) const
+{
+	OutFloorZ = 0;
+	if (!OwningPartyPawn || !OwningPartyPawn->LevelRuntimeActor)
+	{
+		return false;
+	}
+
+	const AGridLevelRuntimeActor* Runtime = OwningPartyPawn->LevelRuntimeActor;
+	if (!Runtime->DungeonAsset)
+	{
+		return false;
+	}
+
+	const FGridDungeonLevelEntry* ActiveEntry = Runtime->DungeonAsset->FindLevelEntry(Runtime->CurrentDungeonLevelId);
+	if (!ActiveEntry || !ActiveEntry->bEnabled || !ActiveEntry->LevelAsset)
+	{
+		return false;
+	}
+
+	OutFloorZ = ActiveEntry->LogicalPosition.Z;
+	return true;
+}
+
+bool UGridMapWidget::FindAdjacentFloorZ(bool bUp, int32& OutFloorZ) const
+{
+	OutFloorZ = 0;
+	if (!bHasFloorSelection || !OwningPartyPawn || !OwningPartyPawn->LevelRuntimeActor)
+	{
+		return false;
+	}
+
+	const AGridLevelRuntimeActor* Runtime = OwningPartyPawn->LevelRuntimeActor;
+	if (!Runtime->DungeonAsset)
+	{
+		return false;
+	}
+
+	TArray<int32> AvailableFloorZs;
+	FGridMapReadModelBuilder::GetAvailableFloorZs(*Runtime->DungeonAsset, AvailableFloorZs);
+	if (bUp)
+	{
+		for (const int32 FloorZ : AvailableFloorZs)
+		{
+			if (FloorZ > SelectedFloorZ)
+			{
+				OutFloorZ = FloorZ;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	for (int32 Index = AvailableFloorZs.Num() - 1; Index >= 0; --Index)
+	{
+		if (AvailableFloorZs[Index] < SelectedFloorZ)
+		{
+			OutFloorZ = AvailableFloorZs[Index];
+			return true;
+		}
+	}
+	return false;
+}
+
+void UGridMapWidget::RefreshFloorNavigationControls()
+{
+	if (Button_LevelUp)
+	{
+		Button_LevelUp->SetIsEnabled(CanNavigateFloorUp());
+	}
+	if (Button_LevelDown)
+	{
+		Button_LevelDown->SetIsEnabled(CanNavigateFloorDown());
+	}
+	if (Text_FloorLabel)
+	{
+		Text_FloorLabel->SetText(
+			bHasFloorSelection
+				? FText::Format(NSLOCTEXT("GridMap", "FloorLabel", "Étage {0}"), FText::AsNumber(SelectedFloorZ))
+				: FText::GetEmpty());
+	}
+}
+
+void UGridMapWidget::HandleLevelUpClicked()
+{
+	NavigateFloorUp();
+}
+
+void UGridMapWidget::HandleLevelDownClicked()
+{
+	NavigateFloorDown();
 }
 
 int32 UGridMapWidget::NativePaint(

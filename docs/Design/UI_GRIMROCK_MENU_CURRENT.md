@@ -144,6 +144,28 @@ Le binding du shell reste volontairement :
 TObjectPtr<UWidget> Page_Map;
 ```
 
-Le shell effectue un cast via `GetMapWidget()`, initialise la page avec le Party Pawn et appelle `RefreshMap()` à chaque activation de l’onglet Map.
+Le shell effectue un cast via `GetMapWidget()`, initialise la page avec le Party Pawn et, depuis MON21.6.9, appelle `SelectPartyFloor()` à chaque activation de l’onglet Map afin de respecter le contrat d’ouverture sur l’étage courant.
 
 Le reparent de l’asset doit être effectué manuellement dans Unreal Editor. Aucun `.uasset` n’est modifié à l’aveugle.
+
+## MON21.6.9 — Floor Navigation
+
+`UGridMapWidget` porte une sélection d’étage transient et expose :
+
+```text
+NavigateFloorUp()
+NavigateFloorDown()
+CanNavigateFloorUp()
+CanNavigateFloorDown()
+SelectPartyFloor()
+```
+
+Bindings UMG optionnels à ajouter manuellement dans `WBP_GridMap` après validation C++ :
+
+```text
+Button_LevelUp   : Button
+Button_LevelDown : Button
+Text_FloorLabel  : TextBlock
+```
+
+Le C++ gère les clics et l’état Enabled. Aucun Graph Blueprint n’est requis.

@@ -6,6 +6,8 @@
 #include "GridMapWidget.generated.h"
 
 class AGrimrockPartyPawn;
+class UButton;
+class UTextBlock;
 
 /**
  * MON21.6.8 native presentation surface for the existing WBP_GridMap.
@@ -23,8 +25,31 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Map")
 	void InitializeMapWidget(AGrimrockPartyPawn* InPartyPawn);
 
+	/** Rebuild the currently selected floor. Falls back to the party floor if no selection exists yet. */
 	UFUNCTION(BlueprintCallable, Category = "Map")
 	bool RefreshMap();
+
+	/** Select the party's current logical floor and rebuild the transient view. */
+	UFUNCTION(BlueprintCallable, Category = "Map|Navigation")
+	bool SelectPartyFloor();
+
+	UFUNCTION(BlueprintCallable, Category = "Map|Navigation")
+	bool NavigateFloorUp();
+
+	UFUNCTION(BlueprintCallable, Category = "Map|Navigation")
+	bool NavigateFloorDown();
+
+	UFUNCTION(BlueprintPure, Category = "Map|Navigation")
+	bool CanNavigateFloorUp() const;
+
+	UFUNCTION(BlueprintPure, Category = "Map|Navigation")
+	bool CanNavigateFloorDown() const;
+
+	UFUNCTION(BlueprintPure, Category = "Map|Navigation")
+	int32 GetSelectedFloorZ() const
+	{
+		return SelectedFloorZ;
+	}
 
 	UFUNCTION(BlueprintPure, Category = "Map")
 	bool HasRenderableMap() const
@@ -42,6 +67,16 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Map")
 	FGridMapFloorView FloorView;
+
+	/** Optional MON21.6.9 UMG controls. Exact widget names are intentional. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Navigation")
+	TObjectPtr<UButton> Button_LevelUp;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Navigation")
+	TObjectPtr<UButton> Button_LevelDown;
+
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Navigation")
+	TObjectPtr<UTextBlock> Text_FloorLabel;
 
 	/** Functional MON21.6.8 drawing inset. Artistic framing is deferred to MON21.6.11. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering")
@@ -72,6 +107,9 @@ public:
 	FLinearColor PartyMarkerColor = FLinearColor(0.90f, 0.30f, 0.22f, 1.0f);
 
 protected:
+	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
+
 	virtual int32 NativePaint(
 		const FPaintArgs& Args,
 		const FGeometry& AllottedGeometry,
@@ -82,6 +120,23 @@ protected:
 		bool bParentEnabled) const override;
 
 private:
+	bool BuildSelectedFloorView();
+	bool ResolvePartyFloorZ(int32& OutFloorZ) const;
+	bool FindAdjacentFloorZ(bool bUp, int32& OutFloorZ) const;
+	void RefreshFloorNavigationControls();
+
+	UFUNCTION()
+	void HandleLevelUpClicked();
+
+	UFUNCTION()
+	void HandleLevelDownClicked();
+
 	UPROPERTY(Transient)
 	bool bHasRenderableMap = false;
+
+	UPROPERTY(Transient)
+	bool bHasFloorSelection = false;
+
+	UPROPERTY(Transient)
+	int32 SelectedFloorZ = 0;
 };

@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.8 VALIDÉ / MON21.6.9 SUIVANT
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.9 C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -262,6 +262,22 @@ Le contrôle PIE utilisateur confirme que l’orientation Est/Ouest est correcte
 
 MON21.6.8 est **VALIDÉ**. La convention visuelle X miroir reste un point différé à clarifier ultérieurement ; les conventions canoniques runtime `East=X+ / West=X-` restent inchangées.
 
+MON21.6.9 — Floor Navigation est maintenant implémenté côté C++ :
+
+- `SelectedFloorZ` transient dans `UGridMapWidget` ;
+- `NavigateFloorUp/Down()` parcourt les Z activés disponibles sans supposer `Z±1` ;
+- `CanNavigateFloorUp/Down()` fournit l’état Enabled aux contrôles ;
+- `RefreshMap()` conserve l’étage consulté ;
+- l’ouverture via le shell appelle `SelectPartyFloor()` et revient donc à l’étage courant du groupe ;
+- un autre étage conserve le contrat `bHasPartyMarker=false` ;
+- bindings UMG optionnels : `Button_LevelUp`, `Button_LevelDown`, `Text_FloorLabel` ;
+- aucune persistance supplémentaire, SaveGame v23 inchangé ;
+- Automation ajoutée sous `Grimrock.Map.MON21_6_9`.
+
+Statut MON21.6.9 : **C++ implémenté ; validation Automation puis intégration UMG/PIE requises**.
+
+Prochaine tranche après validation : **MON21.6.10 — Zoom / Pan / Recenter**.
+
 Prochaine tranche après validation complète : **MON21.6.9 — Floor Navigation**.
 
 ## MON21.5–MON21.8
@@ -380,7 +396,8 @@ MON30 — Full Campaign
 
 ```text
 MON21.6.8 — Existing WBP + Native Map Rendering : VALIDÉ
-MON21.6.9 — Floor Navigation : prochaine tranche
+MON21.6.9 — Floor Navigation : C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
+MON21.6.10 — Zoom / Pan / Recenter : prochaine tranche après validation
 ```
 
 TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.

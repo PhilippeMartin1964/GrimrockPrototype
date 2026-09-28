@@ -55,7 +55,8 @@ void UGrimrockMenuWidget::RefreshMap()
 {
 	if (UGridMapWidget* MapWidget = GetMapWidget())
 	{
-		MapWidget->RefreshMap();
+		// Opening the Map always returns to the party's current floor (MON21.6.1 contract).
+		MapWidget->SelectPartyFloor();
 	}
 }
 
