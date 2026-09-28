@@ -299,7 +299,6 @@ Statut MON21.6.10 : **C++ implémenté ; validation Automation puis UMG/PIE requ
 
 Prochaine tranche après validation : **MON21.6.11 — Hand-Drawn Parchment Artistic Pass**.
 
-Prochaine tranche après validation : **MON21.6.10 — Zoom / Pan / Recenter**.
 
 
 ## MON21.5–MON21.8
