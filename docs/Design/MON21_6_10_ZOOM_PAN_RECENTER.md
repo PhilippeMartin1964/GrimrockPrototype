@@ -1,7 +1,7 @@
 # MON21.6.10 — Zoom / Pan / Recenter
 
 Date : **28 septembre 2026**  
-Statut : **C++ IMPLÉMENTÉ — VALIDATION AUTOMATION + UMG/PIE UTILISATEUR REQUISES**
+Statut : **VALIDÉ**
 
 ## 1. Objectif
 
@@ -145,7 +145,21 @@ View.OptionalUMGAndTransientContract
 
 Les tests vérifient notamment que zoom et pan ne réallouent pas le buffer `FloorView.Cells`.
 
-Aucun résultat MON21.6.10 n’est déclaré avant retour du harness UE5.5.4 local.
+Validation utilisateur du 28 septembre 2026 :
+
+```text
+Filter                  : Grimrock.Map.MON21_6_10
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code       : 0
+Report                  : TD04-20260928-115317
+```
+
+Le smoke PIE est également confirmé **VALIDÉ**.
+
+MON21.6.10 est **VALIDÉ**.
 
 ## 11. Modification UMG après validation C++
 
@@ -175,4 +189,4 @@ Le placement et le style restent fonctionnels à ce stade. Le polish artistique 
 - symboles supplémentaires : MON21.6.12 ;
 - passe de régression/closure Map : MON21.6.13.
 
-Prochaine tranche après validation : **MON21.6.11 — Hand-Drawn Parchment Artistic Pass**.
+Tranche suivante : **MON21.6.11 — Hand-Drawn Parchment Artistic Pass**.

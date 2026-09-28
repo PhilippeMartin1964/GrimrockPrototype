@@ -83,6 +83,9 @@ public:
 		return FloorView;
 	}
 
+	/** MON21.6.11 stable presentation noise: same grid primitive + salt always yields the same [-1,1] value. */
+	static float ComputeDeterministicArtNoise(const FIntPoint& MapCell, EGridEdge Edge, int32 Salt);
+
 	UPROPERTY(BlueprintReadOnly, Category = "Map")
 	TObjectPtr<AGrimrockPartyPawn> OwningPartyPawn;
 
@@ -116,19 +119,46 @@ public:
 	float DoorThickness = 4.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering")
-	FLinearColor ExploredCellColor = FLinearColor(0.28f, 0.24f, 0.18f, 0.34f);
+	FLinearColor ExploredCellColor = FLinearColor(0.24f, 0.14f, 0.06f, 0.16f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering")
-	FLinearColor WallColor = FLinearColor(0.78f, 0.72f, 0.58f, 0.95f);
+	FLinearColor WallColor = FLinearColor(0.16f, 0.09f, 0.035f, 0.96f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering")
-	FLinearColor DoorColor = FLinearColor(0.52f, 0.72f, 0.78f, 1.0f);
+	FLinearColor DoorColor = FLinearColor(0.20f, 0.11f, 0.04f, 0.98f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering")
-	FLinearColor SecretDoorColor = FLinearColor(0.78f, 0.62f, 0.34f, 1.0f);
+	FLinearColor SecretDoorColor = FLinearColor(0.34f, 0.17f, 0.055f, 0.98f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering")
-	FLinearColor PartyMarkerColor = FLinearColor(0.90f, 0.30f, 0.22f, 1.0f);
+	FLinearColor PartyMarkerColor = FLinearColor(0.55f, 0.055f, 0.025f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art")
+	bool bEnableParchmentStyle = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art")
+	FLinearColor ParchmentColor = FLinearColor(0.55f, 0.37f, 0.20f, 0.94f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art")
+	FLinearColor ParchmentGrainColor = FLinearColor(0.12f, 0.065f, 0.025f, 0.10f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art")
+	FLinearColor CellHatchColor = FLinearColor(0.14f, 0.075f, 0.025f, 0.20f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art")
+	FLinearColor FogFeatherColor = FLinearColor(0.16f, 0.085f, 0.03f, 0.14f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "0.0", ClampMax = "6.0"))
+	float HandDrawnJitterPixels = 1.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float SecondaryStrokeAlpha = 0.32f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "0", ClampMax = "96"))
+	int32 ParchmentGrainLineCount = 28;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "0", ClampMax = "8"))
+	int32 CellHatchLineCount = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|View", meta = (ClampMin = "0.10", ClampMax = "4.0"))
 	float MinZoomScale = 0.50f;

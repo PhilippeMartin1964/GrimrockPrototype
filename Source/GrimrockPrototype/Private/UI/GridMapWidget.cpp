@@ -10,6 +10,16 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Styling/CoreStyle.h"
 
+float UGridMapWidget::ComputeDeterministicArtNoise(const FIntPoint& MapCell, EGridEdge Edge, int32 Salt)
+{
+	uint32 Hash = ::GetTypeHash(MapCell.X);
+	Hash = HashCombine(Hash, ::GetTypeHash(MapCell.Y));
+	Hash = HashCombine(Hash, ::GetTypeHash(static_cast<uint8>(Edge)));
+	Hash = HashCombine(Hash, ::GetTypeHash(Salt));
+	const float Unit = static_cast<float>(Hash & 0x00FFFFFFu) / 16777215.0f;
+	return Unit * 2.0f - 1.0f;
+}
+
 namespace GridMapWidgetPrivate
 {
 	struct FRenderMetrics
@@ -134,6 +144,163 @@ namespace GridMapWidgetPrivate
 			Thickness);
 	}
 
+	void DrawHandDrawnLine(
+		FSlateWindowElementList& OutDrawElements,
+		int32 Layer,
+		const FPaintGeometry& PaintGeometry,
+		const FVector2f& Start,
+		const FVector2f& End,
+		const FLinearColor& Color,
+		float Thickness,
+		const FIntPoint& SeedCell,
+		EGridEdge SeedEdge,
+		int32 Salt,
+		float JitterPixels,
+		float SecondaryAlpha)
+	{
+		const FVector2f Delta = End - Start;
+		if (Delta.SizeSquared() <= KINDA_SMALL_NUMBER)
+		{
+			return;
+		}
+
+		FVector2f Perpendicular(-Delta.Y, Delta.X);
+		Perpendicular.Normalize();
+
+		auto DrawStroke = [&](int32 StrokeIndex, float AlphaScale, float ThicknessScale)
+		{
+			const int32 StrokeSalt = Salt + StrokeIndex * 17;
+			const float StartJitter = UGridMapWidget::ComputeDeterministicArtNoise(SeedCell, SeedEdge, StrokeSalt + 1) * JitterPixels;
+			const float MidJitter = UGridMapWidget::ComputeDeterministicArtNoise(SeedCell, SeedEdge, StrokeSalt + 2) * JitterPixels;
+			const float EndJitter = UGridMapWidget::ComputeDeterministicArtNoise(SeedCell, SeedEdge, StrokeSalt + 3) * JitterPixels;
+			const FVector2f Mid = (Start + End) * 0.5f;
+
+			TArray<FVector2f> Points;
+			Points.Reserve(3);
+			Points.Add(Start + Perpendicular * StartJitter);
+			Points.Add(Mid + Perpendicular * MidJitter);
+			Points.Add(End + Perpendicular * EndJitter);
+
+			FLinearColor StrokeColor = Color;
+			StrokeColor.A *= AlphaScale;
+			FSlateDrawElement::MakeLines(
+				OutDrawElements,
+				static_cast<uint32>(Layer),
+				PaintGeometry,
+				MoveTemp(Points),
+				ESlateDrawEffect::None,
+				StrokeColor,
+				true,
+				FMath::Max(0.5f, Thickness * ThicknessScale));
+		};
+
+		DrawStroke(0, 1.0f, 1.0f);
+		if (SecondaryAlpha > 0.0f)
+		{
+			DrawStroke(1, FMath::Clamp(SecondaryAlpha, 0.0f, 1.0f), 0.72f);
+		}
+	}
+
+	FIntPoint GetNeighbourCell(const FIntPoint& Cell, EGridEdge Edge)
+	{
+		switch (Edge)
+		{
+			case EGridEdge::North: return Cell + FIntPoint(0, 1);
+			case EGridEdge::East:  return Cell + FIntPoint(1, 0);
+			case EGridEdge::South: return Cell + FIntPoint(0, -1);
+			case EGridEdge::West:  return Cell + FIntPoint(-1, 0);
+			default:               return Cell;
+		}
+	}
+
+	void DrawParchmentBackground(
+		FSlateWindowElementList& OutDrawElements,
+		int32 Layer,
+		const FGeometry& Geometry,
+		const FPaintGeometry& PaintGeometry,
+		const FMargin& Padding,
+		const FSlateBrush* WhiteBrush,
+		const FLinearColor& ParchmentColor,
+		const FLinearColor& GrainColor,
+		int32 GrainLineCount)
+	{
+		const FVector2D LocalSize = Geometry.GetLocalSize();
+		const float Width = FMath::Max(0.0f, static_cast<float>(LocalSize.X) - Padding.Left - Padding.Right);
+		const float Height = FMath::Max(0.0f, static_cast<float>(LocalSize.Y) - Padding.Top - Padding.Bottom);
+		if (Width <= 0.0f || Height <= 0.0f)
+		{
+			return;
+		}
+
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			static_cast<uint32>(Layer),
+			Geometry.ToPaintGeometry(
+				FVector2D(Width, Height),
+				FSlateLayoutTransform(FVector2D(Padding.Left, Padding.Top))),
+			WhiteBrush,
+			ESlateDrawEffect::None,
+			ParchmentColor);
+
+		const int32 SafeCount = FMath::Clamp(GrainLineCount, 0, 96);
+		for (int32 Index = 0; Index < SafeCount; ++Index)
+		{
+			const FIntPoint SeedCell(Index, 0);
+			const float U = (UGridMapWidget::ComputeDeterministicArtNoise(SeedCell, EGridEdge::None, 101) + 1.0f) * 0.5f;
+			const float V = (UGridMapWidget::ComputeDeterministicArtNoise(SeedCell, EGridEdge::None, 102) + 1.0f) * 0.5f;
+			const float LengthFactor = 0.05f + 0.14f * ((UGridMapWidget::ComputeDeterministicArtNoise(SeedCell, EGridEdge::None, 103) + 1.0f) * 0.5f);
+			const float Slope = UGridMapWidget::ComputeDeterministicArtNoise(SeedCell, EGridEdge::None, 104) * 5.0f;
+			const FVector2f Start(
+				Padding.Left + U * Width,
+				Padding.Top + V * Height);
+			const FVector2f End(
+				FMath::Clamp(Start.X + Width * LengthFactor, Padding.Left, Padding.Left + Width),
+				FMath::Clamp(Start.Y + Slope, Padding.Top, Padding.Top + Height));
+			DrawLine(OutDrawElements, Layer + 1, PaintGeometry, Start, End, GrainColor, 1.0f);
+		}
+	}
+
+	void DrawCellHatching(
+		FSlateWindowElementList& OutDrawElements,
+		int32 Layer,
+		const FPaintGeometry& PaintGeometry,
+		const FRenderMetrics& Metrics,
+		const FIntPoint& MapCell,
+		const FLinearColor& HatchColor,
+		int32 HatchCount,
+		float JitterPixels,
+		float SecondaryAlpha)
+	{
+		if (Metrics.CellSize < 12.0f)
+		{
+			return;
+		}
+
+		const int32 SafeCount = FMath::Clamp(HatchCount, 0, 8);
+		const FVector2f TopLeft = Metrics.CellTopLeft(MapCell);
+		for (int32 Index = 0; Index < SafeCount; ++Index)
+		{
+			const float T = static_cast<float>(Index + 1) / static_cast<float>(SafeCount + 1);
+			const float OffsetNoise = UGridMapWidget::ComputeDeterministicArtNoise(MapCell, EGridEdge::None, 200 + Index) * 0.07f;
+			const float Y = FMath::Clamp(0.20f + T * 0.58f + OffsetNoise, 0.14f, 0.86f) * Metrics.CellSize;
+			const FVector2f Start = TopLeft + FVector2f(Metrics.CellSize * 0.18f, Y);
+			const FVector2f End = TopLeft + FVector2f(Metrics.CellSize * 0.78f, Y - Metrics.CellSize * 0.20f);
+			DrawHandDrawnLine(
+				OutDrawElements,
+				Layer,
+				PaintGeometry,
+				Start,
+				End,
+				HatchColor,
+				1.0f,
+				MapCell,
+				EGridEdge::None,
+				220 + Index,
+				JitterPixels * 0.35f,
+				SecondaryAlpha * 0.35f);
+		}
+	}
+
 	void GetBoundaryEndpoints(
 		const FRenderMetrics& Metrics,
 		const FGridMapFloorBoundaryView& Boundary,
@@ -177,7 +344,11 @@ namespace GridMapWidgetPrivate
 		const FLinearColor& Color,
 		float Thickness,
 		bool bOpen,
-		bool bSecret)
+		bool bSecret,
+		const FIntPoint& SeedCell,
+		EGridEdge SeedEdge,
+		float JitterPixels,
+		float SecondaryAlpha)
 	{
 		const FVector2f Delta = B - A;
 		const FVector2f P0 = A;
@@ -185,12 +356,12 @@ namespace GridMapWidgetPrivate
 		const FVector2f P2 = A + Delta * 0.68f;
 		const FVector2f P3 = B;
 
-		DrawLine(OutDrawElements, Layer, PaintGeometry, P0, P1, Color, Thickness);
-		DrawLine(OutDrawElements, Layer, PaintGeometry, P2, P3, Color, Thickness);
+		DrawHandDrawnLine(OutDrawElements, Layer, PaintGeometry, P0, P1, Color, Thickness, SeedCell, SeedEdge, 310, JitterPixels, SecondaryAlpha);
+		DrawHandDrawnLine(OutDrawElements, Layer, PaintGeometry, P2, P3, Color, Thickness, SeedCell, SeedEdge, 320, JitterPixels, SecondaryAlpha);
 
 		if (!bOpen)
 		{
-			DrawLine(OutDrawElements, Layer, PaintGeometry, P1, P2, Color, Thickness * 0.75f);
+			DrawHandDrawnLine(OutDrawElements, Layer, PaintGeometry, P1, P2, Color, Thickness * 0.75f, SeedCell, SeedEdge, 330, JitterPixels, SecondaryAlpha);
 		}
 
 		if (bSecret)
@@ -201,7 +372,19 @@ namespace GridMapWidgetPrivate
 			{
 				Perpendicular.Normalize();
 				Perpendicular *= FMath::Max(2.0f, Thickness * 1.5f);
-				DrawLine(OutDrawElements, Layer + 1, PaintGeometry, Center - Perpendicular, Center + Perpendicular, Color, Thickness * 0.75f);
+				DrawHandDrawnLine(
+					OutDrawElements,
+					Layer + 1,
+					PaintGeometry,
+					Center - Perpendicular,
+					Center + Perpendicular,
+					Color,
+					Thickness * 0.75f,
+					SeedCell,
+					SeedEdge,
+					340,
+					JitterPixels * 0.7f,
+					SecondaryAlpha);
 			}
 		}
 	}
@@ -212,7 +395,9 @@ namespace GridMapWidgetPrivate
 		const FPaintGeometry& PaintGeometry,
 		const FRenderMetrics& Metrics,
 		const FGridMapFloorView& View,
-		const FLinearColor& Color)
+		const FLinearColor& Color,
+		float JitterPixels,
+		float SecondaryAlpha)
 	{
 		if (!View.bHasPartyMarker)
 		{
@@ -224,36 +409,22 @@ namespace GridMapWidgetPrivate
 		FVector2f Forward(0.0f, -1.0f);
 		switch (View.PartyFacing)
 		{
-			case EGridEdge::North:
-				Forward = FVector2f(0.0f, -1.0f);
-				break;
-			case EGridEdge::East:
-				Forward = FVector2f(-1.0f, 0.0f);
-				break;
-			case EGridEdge::South:
-				Forward = FVector2f(0.0f, 1.0f);
-				break;
-			case EGridEdge::West:
-				Forward = FVector2f(1.0f, 0.0f);
-				break;
-			default:
-				break;
+			case EGridEdge::North: Forward = FVector2f(0.0f, -1.0f); break;
+			case EGridEdge::East:  Forward = FVector2f(-1.0f, 0.0f); break;
+			case EGridEdge::South: Forward = FVector2f(0.0f, 1.0f); break;
+			case EGridEdge::West:  Forward = FVector2f(1.0f, 0.0f); break;
+			default: break;
 		}
+
 		const FVector2f Right(-Forward.Y, Forward.X);
 		const FVector2f Tip = Center + Forward * Radius;
 		const FVector2f Left = Center - Forward * Radius * 0.65f - Right * Radius * 0.70f;
 		const FVector2f RightPoint = Center - Forward * Radius * 0.65f + Right * Radius * 0.70f;
+		const float MarkerThickness = FMath::Max(2.0f, Metrics.CellSize * 0.08f);
 
-		TArray<FVector2f> Triangle = { Tip, Left, RightPoint, Tip };
-		FSlateDrawElement::MakeLines(
-			OutDrawElements,
-			static_cast<uint32>(Layer),
-			PaintGeometry,
-			MoveTemp(Triangle),
-			ESlateDrawEffect::None,
-			Color,
-			true,
-			FMath::Max(2.0f, Metrics.CellSize * 0.08f));
+		DrawHandDrawnLine(OutDrawElements, Layer, PaintGeometry, Tip, Left, Color, MarkerThickness, View.PartyMapCell, View.PartyFacing, 410, JitterPixels * 0.55f, SecondaryAlpha);
+		DrawHandDrawnLine(OutDrawElements, Layer, PaintGeometry, Left, RightPoint, Color, MarkerThickness, View.PartyMapCell, View.PartyFacing, 420, JitterPixels * 0.55f, SecondaryAlpha);
+		DrawHandDrawnLine(OutDrawElements, Layer, PaintGeometry, RightPoint, Tip, Color, MarkerThickness, View.PartyMapCell, View.PartyFacing, 430, JitterPixels * 0.55f, SecondaryAlpha);
 	}
 }
 
@@ -665,12 +836,32 @@ int32 UGridMapWidget::NativePaint(
 
 	const FPaintGeometry PaintGeometry = AllottedGeometry.ToPaintGeometry();
 	const FSlateBrush* WhiteBrush = FCoreStyle::Get().GetBrush(TEXT("WhiteBrush"));
-	const int32 CellLayer = BaseLayer + 1;
-	const int32 BoundaryLayer = CellLayer + 1;
+	const int32 ParchmentLayer = BaseLayer + 1;
+	const int32 CellLayer = ParchmentLayer + 2;
+	const int32 HatchLayer = CellLayer + 1;
+	const int32 FeatherLayer = HatchLayer + 1;
+	const int32 BoundaryLayer = FeatherLayer + 1;
 	const int32 MarkerLayer = BoundaryLayer + 2;
 
+	if (bEnableParchmentStyle)
+	{
+		DrawParchmentBackground(
+			OutDrawElements,
+			ParchmentLayer,
+			AllottedGeometry,
+			PaintGeometry,
+			MapDrawPadding,
+			WhiteBrush,
+			ParchmentColor,
+			ParchmentGrainColor,
+			ParchmentGrainLineCount);
+	}
+
+	TSet<FIntPoint> VisibleCells;
+	VisibleCells.Reserve(FloorView.Cells.Num());
 	for (const FGridMapFloorCellView& Cell : FloorView.Cells)
 	{
+		VisibleCells.Add(Cell.MapCell);
 		const FVector2f TopLeft = Metrics.CellTopLeft(Cell.MapCell);
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
@@ -681,6 +872,49 @@ int32 UGridMapWidget::NativePaint(
 			WhiteBrush,
 			ESlateDrawEffect::None,
 			ExploredCellColor);
+
+		if (bEnableParchmentStyle)
+		{
+			DrawCellHatching(
+				OutDrawElements,
+				HatchLayer,
+				PaintGeometry,
+				Metrics,
+				Cell.MapCell,
+				CellHatchColor,
+				CellHatchLineCount,
+				HandDrawnJitterPixels,
+				SecondaryStrokeAlpha);
+		}
+	}
+
+	if (bEnableParchmentStyle && Metrics.CellSize >= 8.0f)
+	{
+		for (const FGridMapFloorCellView& Cell : FloorView.Cells)
+		{
+			for (const EGridEdge Edge : { EGridEdge::North, EGridEdge::East, EGridEdge::South, EGridEdge::West })
+			{
+				if (VisibleCells.Contains(GetNeighbourCell(Cell.MapCell, Edge)))
+				{
+					continue;
+				}
+
+				FGridMapFloorBoundaryView FeatherBoundary;
+				FeatherBoundary.MapCell = Cell.MapCell;
+				FeatherBoundary.Edge = Edge;
+				FVector2f A;
+				FVector2f B;
+				GetBoundaryEndpoints(Metrics, FeatherBoundary, A, B);
+				DrawLine(
+					OutDrawElements,
+					FeatherLayer,
+					PaintGeometry,
+					A,
+					B,
+					FogFeatherColor,
+					FMath::Max(1.5f, Metrics.CellSize * 0.07f));
+			}
+		}
 	}
 
 	for (const FGridMapFloorBoundaryView& Boundary : FloorView.Boundaries)
@@ -691,21 +925,90 @@ int32 UGridMapWidget::NativePaint(
 		switch (Boundary.Kind)
 		{
 			case EGridMapBoundaryKind::Wall:
-				DrawLine(OutDrawElements, BoundaryLayer, PaintGeometry, A, B, WallColor, WallThickness);
+				if (bEnableParchmentStyle)
+				{
+					DrawHandDrawnLine(
+						OutDrawElements,
+						BoundaryLayer,
+						PaintGeometry,
+						A,
+						B,
+						WallColor,
+						WallThickness,
+						Boundary.MapCell,
+						Boundary.Edge,
+						300,
+						HandDrawnJitterPixels,
+						SecondaryStrokeAlpha);
+				}
+				else
+				{
+					DrawLine(OutDrawElements, BoundaryLayer, PaintGeometry, A, B, WallColor, WallThickness);
+				}
 				break;
+
 			case EGridMapBoundaryKind::Door:
 				DrawDoorBoundary(
-					OutDrawElements, BoundaryLayer, PaintGeometry, A, B, DoorColor, DoorThickness, Boundary.bDoorOpen, false);
+					OutDrawElements,
+					BoundaryLayer,
+					PaintGeometry,
+					A,
+					B,
+					DoorColor,
+					DoorThickness,
+					Boundary.bDoorOpen,
+					false,
+					Boundary.MapCell,
+					Boundary.Edge,
+					bEnableParchmentStyle ? HandDrawnJitterPixels : 0.0f,
+					bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f);
 				break;
+
 			case EGridMapBoundaryKind::SecretDoor:
 				DrawDoorBoundary(
-					OutDrawElements, BoundaryLayer, PaintGeometry, A, B, SecretDoorColor, DoorThickness, Boundary.bDoorOpen, true);
+					OutDrawElements,
+					BoundaryLayer,
+					PaintGeometry,
+					A,
+					B,
+					SecretDoorColor,
+					DoorThickness,
+					Boundary.bDoorOpen,
+					true,
+					Boundary.MapCell,
+					Boundary.Edge,
+					bEnableParchmentStyle ? HandDrawnJitterPixels : 0.0f,
+					bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f);
 				break;
+
 			default:
 				break;
 		}
 	}
 
-	DrawPartyMarker(OutDrawElements, MarkerLayer, PaintGeometry, Metrics, FloorView, PartyMarkerColor);
+	if (bEnableParchmentStyle)
+	{
+		DrawPartyMarker(
+			OutDrawElements,
+			MarkerLayer,
+			PaintGeometry,
+			Metrics,
+			FloorView,
+			PartyMarkerColor,
+			HandDrawnJitterPixels,
+			SecondaryStrokeAlpha);
+	}
+	else
+	{
+		DrawPartyMarker(
+			OutDrawElements,
+			MarkerLayer,
+			PaintGeometry,
+			Metrics,
+			FloorView,
+			PartyMarkerColor,
+			0.0f,
+			0.0f);
+	}
 	return MarkerLayer;
 }

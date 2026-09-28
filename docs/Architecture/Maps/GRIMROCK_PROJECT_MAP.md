@@ -1165,13 +1165,19 @@ MON21.2–21.3 :
 - 🟢 ouverture Map -> étage courant du groupe ; refresh événementiel -> étage consulté conservé ;
 - 🟢 contrôles UMG optionnels `Button_LevelUp`, `Button_LevelDown`, `Text_FloorLabel` ;
 - 🟢 `Text_FloorLabel` affiche systématiquement le Z logique canonique sous la forme `Niveau <Z>` ; `DisplayName` reste propre aux dalles/entrées ;
-- 🟡 MON21.6.10 Zoom / Pan / Recenter : C++ implémenté, UMG/PIE à valider ;
+- ✅ MON21.6.10 Zoom / Pan / Recenter validé : 4/4, 0 warning, 0 échec (`TD04-20260928-115317`) + PIE validé ;
 - 🟢 zoom molette borné, Paint-only ;
 - 🟢 pan clic-glisser en pixels UI, Paint-only ;
 - 🟢 Recentrer = retour au Z du groupe + cellule du groupe centrée ;
 - 🟢 Up/Down conserve le zoom mais remet le pan à zéro ;
 - 🟢 `Button_Recenter` optionnel, aucun Graph Blueprint requis ;
-- ⬜ MON21.6.11+ : finition parchemin, symboles, regression/closure.
+- 🟡 MON21.6.11 Hand-Drawn Parchment Artistic Pass : C++ implémenté, PIE visuelle à valider ;
+- 🟢 fond parchemin procédural + grain discret ;
+- 🟢 lavis/hachures uniquement pour les cellules connues ;
+- 🟢 traits manuscrits déterministes pour murs, portes et marqueur ;
+- 🟢 feather visuel aux frontières d’exploration ;
+- 🟢 aucune texture Map dédiée requise ;
+- ⬜ MON21.6.12+ : symboles puis regression/closure.
 
 ## 16.5 — Codex
 

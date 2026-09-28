@@ -85,7 +85,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.10 C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.11 C++ IMPLÉMENTÉ / PIE VISUELLE À VALIDER
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -295,9 +295,28 @@ MON21.6.10 — Zoom / Pan / Recenter est maintenant implémenté côté C++ :
 - aucun nouvel état SaveGame, v23 inchangé ;
 - Automation ajoutée sous `Grimrock.Map.MON21_6_10`.
 
-Statut MON21.6.10 : **C++ implémenté ; validation Automation puis UMG/PIE requises**.
+MON21.6.10 est **VALIDÉ** :
 
-Prochaine tranche après validation : **MON21.6.11 — Hand-Drawn Parchment Artistic Pass**.
+- `Grimrock.Map.MON21_6_10` : **4/4, 0 warning, 0 échec**, rapport `TD04-20260928-115317` ;
+- smoke PIE validé par l’utilisateur.
+
+MON21.6.11 — Hand-Drawn Parchment Artistic Pass est maintenant implémenté côté C++ :
+
+- fond parchemin procédural dans la zone Map ;
+- grain discret déterministe, aucun random par frame ;
+- lavis + hachures des cellules explorées ;
+- feather léger aux frontières d’exploration ;
+- murs/portes/marqueur en doubles traits manuscrits déterministes ;
+- secret caché toujours normalisé en `Wall` avant rendu ;
+- palette encre/parchemin éditable ;
+- aucun asset Map/parchemin supplémentaire requis ;
+- SaveGame v23 inchangé ;
+- Automation ajoutée sous `Grimrock.Map.MON21_6_11`.
+
+Statut MON21.6.11 : **C++ implémenté ; validation Automation + PIE visuelle requises**.
+
+Prochaine tranche après validation : **MON21.6.12 — Map Symbols**.
+
 
 
 
@@ -418,8 +437,9 @@ MON30 — Full Campaign
 ```text
 MON21.6.8 — Existing WBP + Native Map Rendering : VALIDÉ
 MON21.6.9 — Floor Navigation : VALIDÉ
-MON21.6.10 — Zoom / Pan / Recenter : C++ IMPLÉMENTÉ / UMG+PIE À VALIDER
-MON21.6.11 — Hand-Drawn Parchment Artistic Pass : prochaine tranche après validation
+MON21.6.10 — Zoom / Pan / Recenter : VALIDÉ
+MON21.6.11 — Hand-Drawn Parchment Artistic Pass : C++ IMPLÉMENTÉ / PIE VISUELLE À VALIDER
+MON21.6.12 — Map Symbols : prochaine tranche après validation
 ```
 
 TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.

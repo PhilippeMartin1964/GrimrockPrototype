@@ -191,3 +191,33 @@ Button_Recenter      -> RecenterMap()
 `Button_Recenter` est un `BindWidgetOptional` à ajouter manuellement dans `WBP_GridMap` après validation C++.
 
 Zoom et pan n’entraînent aucune reconstruction du `FGridMapFloorView` ; ils invalident uniquement le Paint.
+
+## MON21.6.11 — Hand-Drawn Parchment Artistic Pass
+
+Aucun nouveau widget UMG n’est requis.
+
+`UGridMapWidget::NativePaint()` applique directement :
+
+```text
+fond parchemin procédural
+grain déterministe
+lavis + hachures des cellules explorées
+feather léger aux frontières d’exploration
+double trait manuscrit déterministe
+```
+
+Réglages exposés dans `Map|Art` :
+
+```text
+bEnableParchmentStyle
+ParchmentColor
+ParchmentGrainColor
+CellHatchColor
+FogFeatherColor
+HandDrawnJitterPixels
+SecondaryStrokeAlpha
+ParchmentGrainLineCount
+CellHatchLineCount
+```
+
+Si `WBP_GridMap` avait explicitement surchargé les anciennes couleurs `Map|Rendering`, utiliser `Reset to Default` pour récupérer la nouvelle palette C++.
