@@ -9,6 +9,7 @@
 #include "UI/GridCombatHudWidget.h"
 #include "UI/GridCharacterSheetWidget.h"
 #include "UI/GridInventoryBagWidget.h"
+#include "UI/GridMapWidget.h"
 #include "UI/GridPersistentHudWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/RPGCharacterCreationWidget.h"
@@ -51,7 +52,87 @@ void AGrimrockPartyPawn::ToggleCraftingWidget()
 
 void AGrimrockPartyPawn::ToggleMapWidget()
 {
-	ToggleMenuPage(EInventoryTopTab::Map);
+	if (IsMajorGameplayUiBlockedByCombat() || bCharacterCreationModalActive || bIsPitFalling)
+	{
+		return;
+	}
+
+	if (IsMapWidgetVisible())
+	{
+		HideInventoryWidget();
+		return;
+	}
+
+	ShowMapWidget();
+}
+
+bool AGrimrockPartyPawn::IsMapWidgetVisible() const
+{
+	return IsValid(MapWidgetInstance) &&
+		MapWidgetInstance->GetVisibility() != ESlateVisibility::Collapsed &&
+		MapWidgetInstance->GetVisibility() != ESlateVisibility::Hidden;
+}
+
+void AGrimrockPartyPawn::ShowMapWidget()
+{
+	if (IsMajorGameplayUiBlockedByCombat() || bCharacterCreationModalActive || bIsPitFalling)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController)
+	{
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridMap Standalone Show Failed Pawn=%s Reason=NoPlayerController"), *GetName());
+		return;
+	}
+
+	if (!MapWidgetClass)
+	{
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridMap Standalone Show Failed Pawn=%s Reason=WidgetClassUnset"), *GetName());
+		return;
+	}
+
+	CollapseInventoryWorkspaceForMenuPage();
+	if (MenuWidgetInstance)
+	{
+		MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (!MapWidgetInstance)
+	{
+		MapWidgetInstance = CreateWidget<UGridMapWidget>(PlayerController, MapWidgetClass);
+		if (MapWidgetInstance)
+		{
+			MapWidgetInstance->InitializeMapWidget(this);
+		}
+	}
+
+	if (!MapWidgetInstance)
+	{
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridMap Standalone Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
+		return;
+	}
+
+	if (!MapWidgetInstance->IsInViewport())
+	{
+		MapWidgetInstance->AddToViewport(100);
+	}
+	MapWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+	MapWidgetInstance->SelectPartyFloor();
+
+	bInventoryWorkspaceVisible = false;
+	bInventoryWidgetVisible = true;
+	RefreshPersistentHudWidget();
+	ApplyMajorUiInputMode(true);
+
+	FInputModeGameAndUI InputMode;
+	InputMode.SetWidgetToFocus(MapWidgetInstance->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	InputMode.SetHideCursorDuringCapture(false);
+	PlayerController->SetInputMode(InputMode);
+
+	UE_LOG(LogGrimrockPartyUI, Verbose, TEXT("GridMap Standalone Shown Pawn=%s Widget=%s"), *GetName(), *GetNameSafe(MapWidgetInstance));
 }
 
 void AGrimrockPartyPawn::ToggleJournalWidget()
@@ -89,6 +170,11 @@ void AGrimrockPartyPawn::ToggleMenuPage(EInventoryTopTab TopTab)
 	if (TopTab == EInventoryTopTab::Inventory)
 	{
 		ToggleInventoryWidget();
+		return;
+	}
+	if (TopTab == EInventoryTopTab::Map)
+	{
+		ToggleMapWidget();
 		return;
 	}
 
@@ -177,10 +263,14 @@ void AGrimrockPartyPawn::ShowInventoryWorkspace()
 		return;
 	}
 
-	// Inventory owns independent viewport windows; hide any other major page shell.
+	// Inventory owns independent viewport windows; hide any other major page surface.
 	if (MenuWidgetInstance)
 	{
 		MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (MapWidgetInstance)
+	{
+		MapWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
 	if (!CharacterSheetWidgetInstance->IsInViewport())
@@ -237,6 +327,11 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 		ShowInventoryWorkspace();
 		return;
 	}
+	if (TopTab == EInventoryTopTab::Map)
+	{
+		ShowMapWidget();
+		return;
+	}
 
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (!PlayerController)
@@ -252,6 +347,10 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 	}
 
 	CollapseInventoryWorkspaceForMenuPage();
+	if (MapWidgetInstance)
+	{
+		MapWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
 
 	if (!MenuWidgetInstance)
 	{
@@ -382,6 +481,10 @@ void AGrimrockPartyPawn::CollapseMajorGameplayUi()
 	if (MenuWidgetInstance)
 	{
 		MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (MapWidgetInstance)
+	{
+		MapWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	if (CharacterSheetWidgetInstance)
 	{

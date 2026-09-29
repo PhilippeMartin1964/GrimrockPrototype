@@ -24,6 +24,7 @@ class UGridPersistentHudWidget;
 class UGridInventoryWidget;
 class UGridCharacterSheetWidget;
 class UGridInventoryBagWidget;
+class UGridMapWidget;
 class UGridCombatHudWidget;
 class UGridTurnManagerComponent;
 class UGrimrockMenuWidget;
@@ -197,6 +198,13 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI|Pages")
 	TObjectPtr<UGrimrockMenuWidget> MenuWidgetInstance;
 
+	/** Standalone map window opened directly by M. Presentation only; map authority remains in runtime/read-model state. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|UI")
+	TSubclassOf<UGridMapWidget> MapWidgetClass;
+
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Map|UI")
+	TObjectPtr<UGridMapWidget> MapWidgetInstance;
+
 	/** Independent left-side character/equipment window. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	TSubclassOf<UGridCharacterSheetWidget> CharacterSheetWidgetClass;
@@ -358,6 +366,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "UI|Navigation")
 	void ToggleMapWidget();
+
+	UFUNCTION(BlueprintCallable, Category = "Map|UI")
+	void ShowMapWidget();
+
+	UFUNCTION(BlueprintPure, Category = "Map|UI")
+	bool IsMapWidgetVisible() const;
 
 	UFUNCTION(BlueprintCallable, Category = "UI|Navigation")
 	void ToggleJournalWidget();

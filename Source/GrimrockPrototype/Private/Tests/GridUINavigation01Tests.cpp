@@ -10,6 +10,7 @@
 #include "UI/GridCharacterSheetWidget.h"
 #include "UI/GridInventoryBagWidget.h"
 #include "UI/GridInventoryUiTypes.h"
+#include "UI/GridMapWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 
 namespace
@@ -140,9 +141,19 @@ bool FGridUINavigation01PageToggleTest::RunTest(const FString& Parameters)
 	Party->ToggleCraftingWidget();
 	TestFalse(TEXT("G closes Crafting/Recipes when already active"), Party->bInventoryWidgetVisible);
 
-	PrepareVisibleTab(EInventoryTopTab::Map);
+	Menu->SetVisibility(ESlateVisibility::Collapsed);
+	UGridMapWidget* Map = NewObject<UGridMapWidget>(Party);
+	TestNotNull(TEXT("Standalone Map state object exists"), Map);
+	if (!Map)
+	{
+		return false;
+	}
+	Party->MapWidgetInstance = Map;
+	Map->SetVisibility(ESlateVisibility::Visible);
+	Party->bInventoryWidgetVisible = true;
 	Party->ToggleMapWidget();
-	TestFalse(TEXT("M closes Map when Map is already active"), Party->bInventoryWidgetVisible);
+	TestFalse(TEXT("M closes the standalone Map when it is already active"), Party->bInventoryWidgetVisible);
+	TestFalse(TEXT("Standalone Map presentation is collapsed by M"), Party->IsMapWidgetVisible());
 
 	PrepareVisibleTab(EInventoryTopTab::Journal);
 	Party->ToggleJournalWidget();

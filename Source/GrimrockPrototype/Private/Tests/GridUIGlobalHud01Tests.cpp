@@ -11,6 +11,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridCombatHudWidget.h"
+#include "UI/GridMapWidget.h"
 #include "UI/GridPersistentHudWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 
@@ -103,9 +104,12 @@ bool FGridUIGlobalHud01NavigationSelectionTest::RunTest(const FString& Parameter
 	TestTrue(TEXT("Skills navigation frame follows the active menu page"), IsSelectionVisible(Hud->Image_NavSkillsSelectionFrame));
 	TestFalse(TEXT("Inventory frame clears when the inventory workspace closes"), IsSelectionVisible(Hud->Image_NavInventorySelectionFrame));
 
-	Party->MenuWidgetInstance->CurrentTopTab = EInventoryTopTab::Map;
+	Party->MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	Party->MapWidgetInstance = NewObject<UGridMapWidget>(Party);
+	Party->MapWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+	Party->bInventoryWidgetVisible = true;
 	Hud->RefreshFromSources();
-	TestTrue(TEXT("Map navigation frame follows the active menu page"), IsSelectionVisible(Hud->Image_NavMapSelectionFrame));
+	TestTrue(TEXT("Map navigation frame follows the standalone Map window"), IsSelectionVisible(Hud->Image_NavMapSelectionFrame));
 	TestFalse(TEXT("Previous navigation selection is cleared"), IsSelectionVisible(Hud->Image_NavSkillsSelectionFrame));
 
 	return true;

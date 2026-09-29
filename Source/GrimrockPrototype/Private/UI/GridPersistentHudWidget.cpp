@@ -171,7 +171,8 @@ void UGridPersistentHudWidget::RefreshNavigationSelection()
 	if (IsValid(PartyPawn))
 	{
 		bInventory = PartyPawn->IsInventoryWorkspaceVisible();
-		const bool bMenuVisible = PartyPawn->bInventoryWidgetVisible && IsWidgetPresentationVisible(PartyPawn->MenuWidgetInstance);
+		bMap = PartyPawn->IsMapWidgetVisible();
+		const bool bMenuVisible = !bMap && PartyPawn->bInventoryWidgetVisible && IsWidgetPresentationVisible(PartyPawn->MenuWidgetInstance);
 		if (bMenuVisible)
 		{
 			switch (PartyPawn->MenuWidgetInstance->CurrentTopTab)
@@ -181,9 +182,6 @@ void UGridPersistentHudWidget::RefreshNavigationSelection()
 					break;
 				case EInventoryTopTab::Recipes:
 					bCrafting = true;
-					break;
-				case EInventoryTopTab::Map:
-					bMap = true;
 					break;
 				case EInventoryTopTab::Journal:
 					bJournal = true;

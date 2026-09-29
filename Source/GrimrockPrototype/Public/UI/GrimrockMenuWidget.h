@@ -6,17 +6,16 @@
 #include "GrimrockMenuWidget.generated.h"
 
 class AGrimrockPartyPawn;
-class UGridMapWidget;
 class UGridSkillsWidget;
 class UGridSpellbookWidget;
 class UWidget;
 class UWidgetSwitcher;
 
 /**
- * Temporary shell for the remaining non-inventory pages.
+ * Temporary shell for the remaining shared pages.
  *
- * UI-CLEAN01 removes every inventory-page/top-button dependency. Inventory is
- * exclusively WBP_CharacterSheet + WBP_InventoryBag in the viewport.
+ * Inventory and Map are independent viewport surfaces. This shell now keeps
+ * Skills / Journal / Recipes / Codex / Spellbook only.
  */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGrimrockMenuWidget : public UGrimrockDesignSurfaceWidget
@@ -33,8 +32,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	void RefreshSpellbook();
 
-	UFUNCTION(BlueprintCallable, Category = "Menu")
-	void RefreshMap();
 
 	UFUNCTION(BlueprintCallable, Category = "Menu|Pages")
 	void SetActiveTopTab(EInventoryTopTab NewTab);
@@ -45,8 +42,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	UGridSpellbookWidget* GetSpellbookWidget() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Menu")
-	UGridMapWidget* GetMapWidget() const;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Menu")
 	TObjectPtr<AGrimrockPartyPawn> OwningPartyPawn;
@@ -69,8 +64,6 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> Page_Journal;
 
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWidget> Page_Map;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> Page_Recipes;
