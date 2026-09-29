@@ -154,3 +154,27 @@ MAP-UI03 est validé après :
 3. `Grimrock.Map.MON21_6_9` vert ;
 4. UMG reconfiguré avec les contrôles existants dans `Panel_FloorNavigationOverlay` ;
 5. smoke PIE confirmé par l'utilisateur.
+
+
+## MAP-UI03-FIX01 — Full-screen surface + UMG above NativePaint
+
+Validation visuelle du 29 septembre 2026 : la capture PIE a mis en évidence deux défauts :
+
+1. les contrôles `Button_LevelUp` / `Button_LevelDown` étaient peints derrière la carte ;
+2. le parchemin conservait l'ancien inset fonctionnel `48 / 72 / 48 / 96` et n'occupait donc pas toute la surface de `WBP_GridMap`.
+
+Cause du premier défaut : `UGridMapWidget::NativePaint()` appelait `Super::NativePaint()` avant le rendu procédural, puis dessinait la Map sur des layers supérieurs. Les enfants UMG étaient donc recouverts.
+
+Correction :
+
+- la Map procédurale est peinte en premier ;
+- `Super::NativePaint()` est appelé en dernier à `MarkerLayer + 1` ;
+- le bandeau MAP-UI02, `Panel_FloorNavigationOverlay` et `Button_Recenter` restent ainsi au-dessus du parchemin ;
+- `MapDrawPadding` vaut désormais `FMargin(0)` par défaut ;
+- `AutoFitMarginCells` conserve l'espace visuel autour de la géométrie connue sans réduire la surface du parchemin.
+
+Aucune donnée Map, exploration, SaveGame ou navigation d'étage n'est modifiée.
+
+### Blueprint existant
+
+Si `WBP_GridMap` possède un override sérialisé de l'ancienne valeur `MapDrawPadding = 48 / 72 / 48 / 96`, sélectionner la propriété dans les Class Defaults puis utiliser **Reset to Default**. La valeur attendue est désormais `0 / 0 / 0 / 0`.

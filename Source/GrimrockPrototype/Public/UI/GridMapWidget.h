@@ -130,9 +130,9 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|View")
 	TObjectPtr<UButton> Button_Recenter;
 
-	/** Safe inset inside the actual WBP_GridMap allotted canvas. */
+	/** Optional designer inset. Standalone Map defaults to the full allotted surface; UMG chrome overlays it. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering")
-	FMargin MapDrawPadding = FMargin(48.0f, 72.0f, 48.0f, 96.0f);
+	FMargin MapDrawPadding = FMargin(0.0f);
 
 	/** Extra breathing room expressed in virtual cells around the known bounds before auto-fit. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering", meta = (ClampMin = "0.0", ClampMax = "4.0"))

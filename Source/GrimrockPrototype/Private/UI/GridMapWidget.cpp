@@ -1274,11 +1274,13 @@ int32 UGridMapWidget::NativePaint(
 	const FWidgetStyle& InWidgetStyle,
 	bool bParentEnabled) const
 {
-	const int32 BaseLayer = Super::NativePaint(
-		Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	// MAP-UI03-FIX01: the procedural map is the background of the standalone window.
+	// Paint it first, then let the UMG hierarchy paint above it so title/floor controls
+	// are never hidden behind parchment/native map strokes.
 	if (!bHasRenderableMap || FloorView.Cells.IsEmpty())
 	{
-		return BaseLayer;
+		return Super::NativePaint(
+			Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	}
 
 	using namespace GridMapWidgetPrivate;
@@ -1294,12 +1296,13 @@ int32 UGridMapWidget::NativePaint(
 		bCenterViewOnParty,
 		Metrics))
 	{
-		return BaseLayer;
+		return Super::NativePaint(
+			Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	}
 
 	const FPaintGeometry PaintGeometry = AllottedGeometry.ToPaintGeometry();
 	const FSlateBrush* WhiteBrush = FCoreStyle::Get().GetBrush(TEXT("WhiteBrush"));
-	const int32 ParchmentLayer = BaseLayer + 1;
+	const int32 ParchmentLayer = LayerId;
 	const int32 CellLayer = ParchmentLayer + 2;
 	const int32 HatchLayer = CellLayer + 1;
 	const int32 FeatherLayer = HatchLayer + 1;
@@ -1515,5 +1518,15 @@ int32 UGridMapWidget::NativePaint(
 	}
 
 	OutDrawElements.PopClip();
-	return MarkerLayer;
+
+	// Paint all UMG children last and above the native map. This includes the MAP-UI02
+	// title bar and MAP-UI03 floor-navigation overlay.
+	return Super::NativePaint(
+		Args,
+		AllottedGeometry,
+		MyCullingRect,
+		OutDrawElements,
+		MarkerLayer + 1,
+		InWidgetStyle,
+		bParentEnabled);
 }

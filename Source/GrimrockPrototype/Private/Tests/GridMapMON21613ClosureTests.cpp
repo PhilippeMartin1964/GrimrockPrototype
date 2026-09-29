@@ -113,7 +113,11 @@ bool FGridMapMON21613PolishDefaultsTest::RunTest(const FString& Parameters)
 
 	TestEqual(TEXT("Legacy fixed cell ceiling is disabled by default"), Widget->MaxCellPixels, 0.0f);
 	TestTrue(TEXT("Auto-fit leaves breathing room around known geometry"), Widget->AutoFitMarginCells > 0.0f);
-	TestTrue(TEXT("Horizontal canvas inset is reduced from the functional prototype"), Widget->MapDrawPadding.Left <= 64.0f && Widget->MapDrawPadding.Right <= 64.0f);
+	TestTrue(TEXT("Standalone map uses the full allotted surface by default"),
+		FMath::IsNearlyZero(Widget->MapDrawPadding.Left) &&
+		FMath::IsNearlyZero(Widget->MapDrawPadding.Top) &&
+		FMath::IsNearlyZero(Widget->MapDrawPadding.Right) &&
+		FMath::IsNearlyZero(Widget->MapDrawPadding.Bottom));
 	TestTrue(TEXT("Parchment frame is visible"), Widget->ParchmentEdgeColor.A > 0.0f && Widget->ParchmentEdgeThickness > 0.0f);
 	TestTrue(TEXT("Walls have a visible broad underlay"), Widget->WallUnderlayColor.A > 0.0f && Widget->WallUnderlayThicknessScale > 1.0f);
 	TestTrue(TEXT("Doors receive graphical jambs"), Widget->DoorJambLengthScale > 1.0f);
