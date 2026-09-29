@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "Components/Widget.h"
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
@@ -177,21 +176,45 @@ bool FGridMapMON2168FailClosedTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMapMON2168ShellHookTest, "Grimrock.Map.MON21_6_8.NativeRendering.ExistingShellHook",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMapMON2168StandaloneHookTest, "Grimrock.Map.MON21_6_8.NativeRendering.StandaloneWindowHook",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMapMON2168ShellHookTest::RunTest(const FString& Parameters)
+bool FGridMapMON2168StandaloneHookTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
+	UClass* PartyClass = AGrimrockPartyPawn::StaticClass();
 	UClass* MenuClass = UGrimrockMenuWidget::StaticClass();
-	TestNotNull(TEXT("Existing menu shell exposes GetMapWidget"), MenuClass->FindFunctionByName(TEXT("GetMapWidget")));
-	TestNotNull(TEXT("Existing menu shell exposes RefreshMap"), MenuClass->FindFunctionByName(TEXT("RefreshMap")));
+	if (!TestNotNull(TEXT("Party class exists"), PartyClass) || !TestNotNull(TEXT("Legacy menu class exists"), MenuClass))
+	{
+		return false;
+	}
 
-	const FObjectPropertyBase* PageMapProperty = CastField<FObjectPropertyBase>(MenuClass->FindPropertyByName(TEXT("Page_Map")));
-	TestNotNull(TEXT("Existing Page_Map binding remains present"), PageMapProperty);
-	TestTrue(TEXT("Page_Map deliberately remains generic UWidget before binary WBP reparent"),
-		PageMapProperty && PageMapProperty->PropertyClass == UWidget::StaticClass());
+	const FObjectPropertyBase* MapClassProperty =
+		CastField<FObjectPropertyBase>(PartyClass->FindPropertyByName(TEXT("MapWidgetClass")));
+	const FObjectPropertyBase* MapInstanceProperty =
+		CastField<FObjectPropertyBase>(PartyClass->FindPropertyByName(TEXT("MapWidgetInstance")));
+
+	TestNotNull(TEXT("Standalone map class hook exists on the party"), MapClassProperty);
+	TestTrue(TEXT("Standalone map class hook targets UGridMapWidget"),
+		MapClassProperty && MapClassProperty->PropertyClass == UGridMapWidget::StaticClass());
+	TestNotNull(TEXT("Standalone map instance hook exists on the party"), MapInstanceProperty);
+	TestTrue(TEXT("Standalone map instance hook targets UGridMapWidget"),
+		MapInstanceProperty && MapInstanceProperty->PropertyClass == UGridMapWidget::StaticClass());
+
+	TestNotNull(TEXT("Party exposes standalone ShowMapWidget"),
+		PartyClass->FindFunctionByName(TEXT("ShowMapWidget")));
+	TestNotNull(TEXT("Party exposes standalone HideMapWidget"),
+		PartyClass->FindFunctionByName(TEXT("HideMapWidget")));
+	TestNotNull(TEXT("Party exposes standalone map visibility query"),
+		PartyClass->FindFunctionByName(TEXT("IsMapWidgetVisible")));
+
+	TestNull(TEXT("Legacy menu no longer exposes GetMapWidget"),
+		MenuClass->FindFunctionByName(TEXT("GetMapWidget")));
+	TestNull(TEXT("Legacy menu no longer exposes RefreshMap"),
+		MenuClass->FindFunctionByName(TEXT("RefreshMap")));
+	TestNull(TEXT("Legacy menu no longer binds Page_Map"),
+		MenuClass->FindPropertyByName(TEXT("Page_Map")));
 	return true;
 }
 
