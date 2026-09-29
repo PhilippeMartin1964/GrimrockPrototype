@@ -97,6 +97,12 @@ public:
 	/** MON21.6.11 stable presentation noise: same grid primitive + salt always yields the same [-1,1] value. */
 	static float ComputeDeterministicArtNoise(const FIntPoint& MapCell, EGridEdge Edge, int32 Salt);
 
+	/** MAP-ART01 stable glyph variant. Presentation-only and derived from cell + symbol kind. */
+	static int32 ComputeDeterministicSymbolVariant(
+		const FIntPoint& MapCell,
+		EGridMapSymbolKind SymbolKind,
+		int32 VariantCount);
+
 	UPROPERTY(BlueprintReadOnly, Category = "Map")
 	TObjectPtr<AGrimrockPartyPawn> OwningPartyPawn;
 
@@ -187,6 +193,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "1.0", ClampMax = "5.0"))
 	float DoorJambLengthScale = 2.15f;
 
+	/** MAP-ART01 short irregular joints painted across wall strokes to suggest hand-drawn stonework. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art|Detail", meta = (ClampMin = "0", ClampMax = "8"))
+	int32 WallStoneMarkCount = 3;
+
+	/** MAP-ART01 secondary strokes/braces inside a closed door leaf. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art|Detail", meta = (ClampMin = "0", ClampMax = "6"))
+	int32 DoorPanelLineCount = 2;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Art", meta = (ClampMin = "0.0", ClampMax = "6.0"))
 	float HandDrawnJitterPixels = 1.10f;
 
@@ -216,6 +230,18 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Symbols", meta = (ClampMin = "4.0", ClampMax = "64.0"))
 	float SymbolMinCellPixels = 12.0f;
+
+	/** MAP-ART01 number of staircase treads used by the procedural stair glyph. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Symbols|Detail", meta = (ClampMin = "3", ClampMax = "7"))
+	int32 StairStepCount = 4;
+
+	/** MAP-ART01 number of interior depth strokes used by the pit glyph. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Symbols|Detail", meta = (ClampMin = "1", ClampMax = "6"))
+	int32 PitDepthLineCount = 3;
+
+	/** MAP-ART01 deterministic visual alternatives per symbol kind; no gameplay identity is introduced. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Symbols|Detail", meta = (ClampMin = "1", ClampMax = "5"))
+	int32 SymbolVariantCount = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|View", meta = (ClampMin = "0.10", ClampMax = "4.0"))
 	float MinZoomScale = 0.50f;

@@ -51,6 +51,19 @@ float UGridMapWidget::ComputeDeterministicArtNoise(const FIntPoint& MapCell, EGr
 	return Unit * 2.0f - 1.0f;
 }
 
+int32 UGridMapWidget::ComputeDeterministicSymbolVariant(
+	const FIntPoint& MapCell,
+	EGridMapSymbolKind SymbolKind,
+	int32 VariantCount)
+{
+	const int32 SafeCount = FMath::Clamp(VariantCount, 1, 5);
+	uint32 Hash = ::GetTypeHash(MapCell.X);
+	Hash = HashCombine(Hash, ::GetTypeHash(MapCell.Y));
+	Hash = HashCombine(Hash, ::GetTypeHash(static_cast<uint8>(SymbolKind)));
+	Hash = HashCombine(Hash, ::GetTypeHash(0x4D415001u));
+	return static_cast<int32>(Hash % static_cast<uint32>(SafeCount));
+}
+
 namespace GridMapWidgetPrivate
 {
 	bool IsInsideMapViewport(const FVector2D& LocalPoint, const FVector2D& LocalSize, const FMargin& Padding)
@@ -403,7 +416,8 @@ namespace GridMapWidgetPrivate
 		const FIntPoint& SeedCell,
 		EGridEdge SeedEdge,
 		float JitterPixels,
-		float SecondaryAlpha)
+		float SecondaryAlpha,
+		int32 StoneMarkCount)
 	{
 		DrawHandDrawnLine(
 			OutDrawElements,
@@ -432,6 +446,42 @@ namespace GridMapWidgetPrivate
 			300,
 			JitterPixels,
 			SecondaryAlpha);
+
+		const FVector2f Delta = B - A;
+		const float Length = Delta.Size();
+		const int32 SafeMarkCount = FMath::Clamp(StoneMarkCount, 0, 8);
+		if (Length <= KINDA_SMALL_NUMBER || SafeMarkCount <= 0)
+		{
+			return;
+		}
+
+		const FVector2f Tangent = Delta / Length;
+		const FVector2f Normal(-Tangent.Y, Tangent.X);
+		for (int32 Index = 0; Index < SafeMarkCount; ++Index)
+		{
+			const float BaseT = static_cast<float>(Index + 1) / static_cast<float>(SafeMarkCount + 1);
+			const float TJitter = UGridMapWidget::ComputeDeterministicArtNoise(SeedCell, SeedEdge, 350 + Index * 7) * 0.055f;
+			const float Along = FMath::Clamp(BaseT + TJitter, 0.10f, 0.90f);
+			const FVector2f Center = A + Delta * Along;
+			const float LengthNoise = UGridMapWidget::ComputeDeterministicArtNoise(SeedCell, SeedEdge, 351 + Index * 7);
+			const float HalfMark = FMath::Max(1.5f, Thickness * (0.85f + LengthNoise * 0.16f));
+
+			FLinearColor MarkColor = InkColor;
+			MarkColor.A *= 0.62f;
+			DrawHandDrawnLine(
+				OutDrawElements,
+				Layer + 2,
+				PaintGeometry,
+				Center - Normal * HalfMark,
+				Center + Normal * HalfMark,
+				MarkColor,
+				FMath::Max(0.75f, Thickness * 0.42f),
+				SeedCell,
+				SeedEdge,
+				360 + Index * 13,
+				JitterPixels * 0.48f,
+				SecondaryAlpha * 0.45f);
+		}
 	}
 
 	void DrawDoorBoundary(
@@ -448,7 +498,8 @@ namespace GridMapWidgetPrivate
 		EGridEdge SeedEdge,
 		float JitterPixels,
 		float SecondaryAlpha,
-		float JambLengthScale)
+		float JambLengthScale,
+		int32 PanelLineCount)
 	{
 		const FVector2f Delta = B - A;
 		const FVector2f P0 = A;
@@ -459,18 +510,85 @@ namespace GridMapWidgetPrivate
 		DrawHandDrawnLine(OutDrawElements, Layer, PaintGeometry, P0, P1, Color, Thickness, SeedCell, SeedEdge, 310, JitterPixels, SecondaryAlpha);
 		DrawHandDrawnLine(OutDrawElements, Layer, PaintGeometry, P2, P3, Color, Thickness, SeedCell, SeedEdge, 320, JitterPixels, SecondaryAlpha);
 
-		FVector2f JambAxis(-Delta.Y, Delta.X);
-		if (JambAxis.SizeSquared() > KINDA_SMALL_NUMBER)
+		FVector2f Normal(-Delta.Y, Delta.X);
+		if (Normal.SizeSquared() > KINDA_SMALL_NUMBER)
 		{
-			JambAxis.Normalize();
-			JambAxis *= FMath::Max(2.0f, Thickness * FMath::Max(1.0f, JambLengthScale));
+			Normal.Normalize();
+			const FVector2f JambAxis = Normal * FMath::Max(2.0f, Thickness * FMath::Max(1.0f, JambLengthScale));
 			DrawHandDrawnLine(OutDrawElements, Layer + 1, PaintGeometry, P1 - JambAxis, P1 + JambAxis, Color, Thickness * 0.85f, SeedCell, SeedEdge, 325, JitterPixels * 0.6f, SecondaryAlpha);
 			DrawHandDrawnLine(OutDrawElements, Layer + 1, PaintGeometry, P2 - JambAxis, P2 + JambAxis, Color, Thickness * 0.85f, SeedCell, SeedEdge, 326, JitterPixels * 0.6f, SecondaryAlpha);
-		}
 
-		if (!bOpen)
-		{
-			DrawHandDrawnLine(OutDrawElements, Layer, PaintGeometry, P1, P2, Color, Thickness * 0.75f, SeedCell, SeedEdge, 330, JitterPixels, SecondaryAlpha);
+			if (!bOpen)
+			{
+				DrawHandDrawnLine(OutDrawElements, Layer, PaintGeometry, P1, P2, Color, Thickness * 0.78f, SeedCell, SeedEdge, 330, JitterPixels, SecondaryAlpha);
+
+				const int32 SafePanelCount = FMath::Clamp(PanelLineCount, 0, 6);
+				for (int32 Index = 0; Index < SafePanelCount; ++Index)
+				{
+					const float Side = (Index % 2 == 0) ? -1.0f : 1.0f;
+					const float Band = 1.0f + static_cast<float>(Index / 2) * 0.45f;
+					const FVector2f Offset = Normal * Side * Thickness * (0.72f * Band);
+					FLinearColor PanelColor = Color;
+					PanelColor.A *= 0.56f;
+					DrawHandDrawnLine(
+						OutDrawElements,
+						Layer + 1,
+						PaintGeometry,
+						P1 + Offset,
+						P2 + Offset,
+						PanelColor,
+						FMath::Max(0.65f, Thickness * 0.32f),
+						SeedCell,
+						SeedEdge,
+						335 + Index * 9,
+						JitterPixels * 0.45f,
+						SecondaryAlpha * 0.45f);
+				}
+
+				if (SafePanelCount > 0)
+				{
+					const float Brace = FMath::Max(1.5f, Thickness * 1.05f);
+					FLinearColor BraceColor = Color;
+					BraceColor.A *= 0.66f;
+					DrawHandDrawnLine(
+						OutDrawElements,
+						Layer + 2,
+						PaintGeometry,
+						P1 - Normal * Brace,
+						P2 + Normal * Brace,
+						BraceColor,
+						FMath::Max(0.7f, Thickness * 0.36f),
+						SeedCell,
+						SeedEdge,
+						346,
+						JitterPixels * 0.55f,
+						SecondaryAlpha * 0.50f);
+				}
+			}
+			else
+			{
+				FVector2f Tangent = Delta;
+				if (Tangent.SizeSquared() > KINDA_SMALL_NUMBER)
+				{
+					Tangent.Normalize();
+					const float LeafLength = (P2 - P1).Size() * 0.78f;
+					FLinearColor LeafColor = Color;
+					LeafColor.A *= 0.72f;
+					DrawHandDrawnLine(
+						OutDrawElements,
+						Layer + 1,
+						PaintGeometry,
+						P1,
+						P1 + Tangent * LeafLength * 0.48f + Normal * LeafLength * 0.52f,
+						LeafColor,
+						FMath::Max(0.8f, Thickness * 0.48f),
+						SeedCell,
+						SeedEdge,
+						348,
+						JitterPixels * 0.60f,
+						SecondaryAlpha * 0.55f);
+				}
+			}
 		}
 
 		if (bSecret)
@@ -480,20 +598,34 @@ namespace GridMapWidgetPrivate
 			if (Perpendicular.SizeSquared() > KINDA_SMALL_NUMBER)
 			{
 				Perpendicular.Normalize();
-				Perpendicular *= FMath::Max(2.0f, Thickness * 1.5f);
+				const float RuneHalf = FMath::Max(2.0f, Thickness * 1.5f);
+				const FVector2f RuneAxis = Perpendicular * RuneHalf;
 				DrawHandDrawnLine(
 					OutDrawElements,
-					Layer + 1,
+					Layer + 2,
 					PaintGeometry,
-					Center - Perpendicular,
-					Center + Perpendicular,
+					Center - RuneAxis,
+					Center + RuneAxis,
 					Color,
-					Thickness * 0.75f,
+					Thickness * 0.72f,
 					SeedCell,
 					SeedEdge,
 					340,
 					JitterPixels * 0.7f,
 					SecondaryAlpha);
+				DrawHandDrawnLine(
+					OutDrawElements,
+					Layer + 2,
+					PaintGeometry,
+					Center - RuneAxis * 0.45f - Delta * 0.06f,
+					Center + RuneAxis * 0.45f + Delta * 0.06f,
+					Color,
+					Thickness * 0.48f,
+					SeedCell,
+					SeedEdge,
+					342,
+					JitterPixels * 0.55f,
+					SecondaryAlpha * 0.65f);
 			}
 		}
 	}
@@ -510,7 +642,10 @@ namespace GridMapWidgetPrivate
 		float SymbolScale,
 		float MinCellPixels,
 		float JitterPixels,
-		float SecondaryAlpha)
+		float SecondaryAlpha,
+		int32 StairStepCount,
+		int32 PitDepthLineCount,
+		int32 SymbolVariantCount)
 	{
 		if (Metrics.CellSize < MinCellPixels)
 		{
@@ -521,22 +656,29 @@ namespace GridMapWidgetPrivate
 		const float R = Metrics.CellSize * 0.30f * FMath::Clamp(SymbolScale, 0.4f, 1.0f);
 		const float T = FMath::Max(0.75f, StrokeThickness);
 		const FLinearColor& Color = Symbol.Kind == EGridMapSymbolKind::Pit ? HazardColor : NavigationColor;
+		const int32 SafeVariantCount = FMath::Clamp(SymbolVariantCount, 1, 5);
+		const int32 Variant = UGridMapWidget::ComputeDeterministicSymbolVariant(Symbol.MapCell, Symbol.Kind, SafeVariantCount);
+		const float VariantBias = SafeVariantCount > 1
+			? (2.0f * static_cast<float>(Variant) / static_cast<float>(SafeVariantCount - 1)) - 1.0f
+			: 0.0f;
 
-		auto Ink = [&](const FVector2f& A, const FVector2f& B, int32 Salt, float ThicknessScale = 1.0f)
+		auto Ink = [&](const FVector2f& A, const FVector2f& B, int32 Salt, float ThicknessScale = 1.0f, float AlphaScale = 1.0f)
 		{
+			FLinearColor InkColor = Color;
+			InkColor.A *= AlphaScale;
 			DrawHandDrawnLine(
 				OutDrawElements,
 				Layer,
 				PaintGeometry,
 				A,
 				B,
-				Color,
+				InkColor,
 				T * ThicknessScale,
 				Symbol.MapCell,
 				EGridEdge::None,
-				Salt,
-				JitterPixels * 0.45f,
-				SecondaryAlpha * 0.65f);
+				Salt + Variant * 101,
+				JitterPixels * 0.52f,
+				SecondaryAlpha * 0.70f);
 		};
 
 		switch (Symbol.Kind)
@@ -545,67 +687,149 @@ namespace GridMapWidgetPrivate
 			case EGridMapSymbolKind::StairsDown:
 			{
 				const float Direction = Symbol.Kind == EGridMapSymbolKind::StairsUp ? -1.0f : 1.0f;
-				const float Step = R * 0.52f;
-				for (int32 Index = 0; Index < 3; ++Index)
+				const int32 SafeStepCount = FMath::Clamp(StairStepCount, 3, 7);
+				const float Span = R * 1.45f;
+				for (int32 Index = 0; Index < SafeStepCount; ++Index)
 				{
-					const float Y = Center.Y + Direction * (static_cast<float>(Index) - 1.0f) * Step;
-					const float HalfWidth = R * (0.46f + 0.20f * static_cast<float>(Index));
+					const float StepT = SafeStepCount > 1
+						? static_cast<float>(Index) / static_cast<float>(SafeStepCount - 1)
+						: 0.5f;
+					const float Y = Center.Y + Direction * (StepT - 0.5f) * Span;
+					const float HalfWidth = R * (0.36f + 0.52f * StepT);
+					const float Skew = VariantBias * R * 0.08f * (StepT - 0.5f);
 					Ink(
-						FVector2f(Center.X - HalfWidth, Y),
-						FVector2f(Center.X + HalfWidth, Y),
+						FVector2f(Center.X - HalfWidth + Skew, Y),
+						FVector2f(Center.X + HalfWidth + Skew, Y + VariantBias * R * 0.025f),
 						510 + Index * 11);
 				}
 
-				const FVector2f ArrowBase(Center.X, Center.Y - Direction * R * 0.15f);
-				const FVector2f ArrowTip(Center.X, Center.Y + Direction * R * 1.05f);
-				Ink(ArrowBase, ArrowTip, 550, 0.85f);
-				Ink(ArrowTip, ArrowTip + FVector2f(-R * 0.26f, -Direction * R * 0.28f), 551, 0.85f);
-				Ink(ArrowTip, ArrowTip + FVector2f(R * 0.26f, -Direction * R * 0.28f), 552, 0.85f);
+				const float FirstY = Center.Y + Direction * -0.5f * Span;
+				const float LastY = Center.Y + Direction * 0.5f * Span;
+				Ink(
+					FVector2f(Center.X - R * 0.36f, FirstY),
+					FVector2f(Center.X - R * 0.88f + VariantBias * R * 0.06f, LastY),
+					545,
+					0.62f,
+					0.68f);
+				Ink(
+					FVector2f(Center.X + R * 0.36f, FirstY),
+					FVector2f(Center.X + R * 0.88f + VariantBias * R * 0.06f, LastY),
+					546,
+					0.62f,
+					0.68f);
+
+				const FVector2f ArrowBase(Center.X + VariantBias * R * 0.06f, Center.Y - Direction * R * 0.12f);
+				const FVector2f ArrowTip(Center.X + VariantBias * R * 0.06f, Center.Y + Direction * R * 1.02f);
+				Ink(ArrowBase, ArrowTip, 550, 0.88f);
+				Ink(ArrowTip, ArrowTip + FVector2f(-R * 0.27f, -Direction * R * 0.30f), 551, 0.88f);
+				Ink(ArrowTip, ArrowTip + FVector2f(R * 0.27f, -Direction * R * 0.30f), 552, 0.88f);
 				break;
 			}
 
 			case EGridMapSymbolKind::Relocation:
 			{
-				const FVector2f Top = Center + FVector2f(0.0f, -R);
-				const FVector2f Right = Center + FVector2f(R, 0.0f);
-				const FVector2f Bottom = Center + FVector2f(0.0f, R);
-				const FVector2f Left = Center + FVector2f(-R, 0.0f);
+				const float Warp = VariantBias * R * 0.08f;
+				const FVector2f Top = Center + FVector2f(Warp, -R);
+				const FVector2f Right = Center + FVector2f(R, -Warp);
+				const FVector2f Bottom = Center + FVector2f(-Warp, R);
+				const FVector2f Left = Center + FVector2f(-R, Warp);
 				Ink(Top, Right, 610);
 				Ink(Right, Bottom, 611);
 				Ink(Bottom, Left, 612);
 				Ink(Left, Top, 613);
 
-				const float Inner = R * 0.48f;
-				Ink(Center + FVector2f(0.0f, -Inner), Center + FVector2f(Inner, 0.0f), 620, 0.80f);
-				Ink(Center + FVector2f(Inner, 0.0f), Center + FVector2f(0.0f, Inner), 621, 0.80f);
-				Ink(Center + FVector2f(0.0f, Inner), Center + FVector2f(-Inner, 0.0f), 622, 0.80f);
-				Ink(Center + FVector2f(-Inner, 0.0f), Center + FVector2f(0.0f, -Inner), 623, 0.80f);
+				const float Inner = R * (0.43f + 0.04f * VariantBias);
+				const FVector2f ITop = Center + FVector2f(-Warp * 0.35f, -Inner);
+				const FVector2f IRight = Center + FVector2f(Inner, Warp * 0.35f);
+				const FVector2f IBottom = Center + FVector2f(Warp * 0.35f, Inner);
+				const FVector2f ILeft = Center + FVector2f(-Inner, -Warp * 0.35f);
+				Ink(ITop, IRight, 620, 0.82f);
+				Ink(IRight, IBottom, 621, 0.82f);
+				Ink(IBottom, ILeft, 622, 0.82f);
+				Ink(ILeft, ITop, 623, 0.82f);
+
+				Ink(ITop, Top, 630, 0.55f, 0.72f);
+				Ink(IRight, Right, 631, 0.55f, 0.72f);
+				Ink(IBottom, Bottom, 632, 0.55f, 0.72f);
+				Ink(ILeft, Left, 633, 0.55f, 0.72f);
+				Ink(
+					Center + FVector2f(-R * 0.18f, R * 0.04f),
+					Center + FVector2f(R * 0.18f, -R * 0.04f),
+					640,
+					0.62f,
+					0.78f);
 				break;
 			}
 
 			case EGridMapSymbolKind::Pit:
 			{
-				const float Half = R * 0.88f;
-				const FVector2f TL = Center + FVector2f(-Half, -Half);
-				const FVector2f TR = Center + FVector2f(Half, -Half);
-				const FVector2f BR = Center + FVector2f(Half, Half);
-				const FVector2f BL = Center + FVector2f(-Half, Half);
+				const float Half = R * 0.92f;
+				const float CornerJitter = R * 0.08f;
+				auto CornerNoise = [&](int32 SaltX, int32 SaltY)
+				{
+					return FVector2f(
+						UGridMapWidget::ComputeDeterministicArtNoise(Symbol.MapCell, EGridEdge::None, SaltX + Variant * 17) * CornerJitter,
+						UGridMapWidget::ComputeDeterministicArtNoise(Symbol.MapCell, EGridEdge::None, SaltY + Variant * 17) * CornerJitter);
+				};
+
+				const FVector2f TL = Center + FVector2f(-Half, -Half) + CornerNoise(701, 702);
+				const FVector2f TR = Center + FVector2f(Half, -Half) + CornerNoise(703, 704);
+				const FVector2f BR = Center + FVector2f(Half, Half) + CornerNoise(705, 706);
+				const FVector2f BL = Center + FVector2f(-Half, Half) + CornerNoise(707, 708);
 				Ink(TL, TR, 710);
 				Ink(TR, BR, 711);
 				Ink(BR, BL, 712);
 				Ink(BL, TL, 713);
-				Ink(TL + FVector2f(R * 0.18f, R * 0.18f), BR - FVector2f(R * 0.18f, R * 0.18f), 720, 0.85f);
-				Ink(TR + FVector2f(-R * 0.18f, R * 0.18f), BL + FVector2f(R * 0.18f, -R * 0.18f), 721, 0.85f);
+
+				const float InnerHalf = Half * 0.52f;
+				const FVector2f InnerOffset(VariantBias * R * 0.05f, -VariantBias * R * 0.035f);
+				const FVector2f ITL = Center + InnerOffset + FVector2f(-InnerHalf, -InnerHalf);
+				const FVector2f ITR = Center + InnerOffset + FVector2f(InnerHalf, -InnerHalf);
+				const FVector2f IBR = Center + InnerOffset + FVector2f(InnerHalf, InnerHalf);
+				const FVector2f IBL = Center + InnerOffset + FVector2f(-InnerHalf, InnerHalf);
+				Ink(ITL, ITR, 720, 0.78f);
+				Ink(ITR, IBR, 721, 0.78f);
+				Ink(IBR, IBL, 722, 0.78f);
+				Ink(IBL, ITL, 723, 0.78f);
+
+				Ink(TL, ITL, 730, 0.54f, 0.72f);
+				Ink(TR, ITR, 731, 0.54f, 0.72f);
+				Ink(BR, IBR, 732, 0.54f, 0.72f);
+				Ink(BL, IBL, 733, 0.54f, 0.72f);
+
+				const int32 SafeDepthCount = FMath::Clamp(PitDepthLineCount, 1, 6);
+				for (int32 Index = 0; Index < SafeDepthCount; ++Index)
+				{
+					const float DepthT = static_cast<float>(Index + 1) / static_cast<float>(SafeDepthCount + 1);
+					const FVector2f Start = FMath::Lerp(ITL, IBL, DepthT);
+					const FVector2f End = FMath::Lerp(ITR, IBR, FMath::Clamp(DepthT + VariantBias * 0.10f, 0.0f, 1.0f));
+					Ink(Start, End, 740 + Index * 7, 0.42f, 0.48f);
+				}
 				break;
 			}
 
 			case EGridMapSymbolKind::PointOfInterest:
 			{
-				const float Inner = R * 0.42f;
-				Ink(Center + FVector2f(0.0f, -R), Center + FVector2f(0.0f, R), 810, 0.90f);
-				Ink(Center + FVector2f(-R, 0.0f), Center + FVector2f(R, 0.0f), 811, 0.90f);
-				Ink(Center + FVector2f(-Inner, -Inner), Center + FVector2f(Inner, Inner), 812, 0.75f);
-				Ink(Center + FVector2f(Inner, -Inner), Center + FVector2f(-Inner, Inner), 813, 0.75f);
+				const float LongRay = R * (1.0f + VariantBias * 0.05f);
+				const float ShortRay = R * (0.46f - VariantBias * 0.04f);
+				const float Skew = VariantBias * R * 0.09f;
+				Ink(Center + FVector2f(Skew, -LongRay), Center + FVector2f(-Skew, LongRay), 810, 0.92f);
+				Ink(Center + FVector2f(-LongRay, -Skew), Center + FVector2f(LongRay, Skew), 811, 0.92f);
+				Ink(Center + FVector2f(-ShortRay, -ShortRay), Center + FVector2f(ShortRay, ShortRay), 812, 0.72f);
+				Ink(Center + FVector2f(ShortRay, -ShortRay), Center + FVector2f(-ShortRay, ShortRay), 813, 0.72f);
+
+				const float Diamond = R * 0.62f;
+				Ink(Center + FVector2f(0.0f, -Diamond), Center + FVector2f(Diamond, 0.0f), 820, 0.52f, 0.70f);
+				Ink(Center + FVector2f(Diamond, 0.0f), Center + FVector2f(0.0f, Diamond), 821, 0.52f, 0.70f);
+				Ink(Center + FVector2f(0.0f, Diamond), Center + FVector2f(-Diamond, 0.0f), 822, 0.52f, 0.70f);
+				Ink(Center + FVector2f(-Diamond, 0.0f), Center + FVector2f(0.0f, -Diamond), 823, 0.52f, 0.70f);
+
+				Ink(
+					Center + FVector2f(-R * 0.14f, R * 0.05f),
+					Center + FVector2f(R * 0.14f, -R * 0.05f),
+					830,
+					1.15f,
+					0.92f);
 				break;
 			}
 
@@ -1191,7 +1415,8 @@ int32 UGridMapWidget::NativePaint(
 						Boundary.MapCell,
 						Boundary.Edge,
 						HandDrawnJitterPixels,
-						SecondaryStrokeAlpha);
+						SecondaryStrokeAlpha,
+						WallStoneMarkCount);
 				}
 				else
 				{
@@ -1214,7 +1439,8 @@ int32 UGridMapWidget::NativePaint(
 					Boundary.Edge,
 					bEnableParchmentStyle ? HandDrawnJitterPixels : 0.0f,
 					bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f,
-					DoorJambLengthScale);
+					DoorJambLengthScale,
+					bEnableParchmentStyle ? DoorPanelLineCount : 0);
 				break;
 
 			case EGridMapBoundaryKind::SecretDoor:
@@ -1232,7 +1458,8 @@ int32 UGridMapWidget::NativePaint(
 					Boundary.Edge,
 					bEnableParchmentStyle ? HandDrawnJitterPixels : 0.0f,
 					bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f,
-					DoorJambLengthScale);
+					DoorJambLengthScale,
+					bEnableParchmentStyle ? DoorPanelLineCount : 0);
 				break;
 
 			default:
@@ -1254,7 +1481,10 @@ int32 UGridMapWidget::NativePaint(
 			SymbolScale,
 			SymbolMinCellPixels,
 			bEnableParchmentStyle ? HandDrawnJitterPixels : 0.0f,
-			bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f);
+			bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f,
+			StairStepCount,
+			PitDepthLineCount,
+			SymbolVariantCount);
 	}
 
 	if (bEnableParchmentStyle)
