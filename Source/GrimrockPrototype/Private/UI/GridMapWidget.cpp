@@ -1,10 +1,12 @@
 #include "UI/GridMapWidget.h"
 #include "UI/GridMapSurfaceWidget.h"
+#include "UI/GridMapVisualThemeAsset.h"
 
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Core/GridDungeonAsset.h"
+#include "Engine/Texture2D.h"
 #include "InputCoreTypes.h"
 #include "Layout/Clipping.h"
 #include "Rendering/DrawElementTypes.h"
@@ -12,6 +14,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Styling/CoreStyle.h"
+#include "Styling/SlateBrush.h"
 
 float UGridMapWidget::ComputeAutoFitCellSize(
 	const FVector2D& LocalSize,
@@ -101,6 +104,169 @@ namespace GridMapWidgetPrivate
 			return CellTopLeft(MapCell) + FVector2f(CellSize * 0.5f, CellSize * 0.5f);
 		}
 	};
+
+	void ConfigureTextureBrush(FSlateBrush& OutBrush, UTexture2D* Texture)
+	{
+		if (!Texture)
+		{
+			return;
+		}
+
+		OutBrush.DrawAs = ESlateBrushDrawType::Image;
+		OutBrush.SetResourceObject(Texture);
+		OutBrush.ImageSize = FVector2D(
+			static_cast<double>(Texture->GetSizeX()),
+			static_cast<double>(Texture->GetSizeY()));
+	}
+
+	struct FThemeBrushSet
+	{
+		FSlateBrush Parchment;
+		FSlateBrush Wall;
+		FSlateBrush Door;
+		FSlateBrush SecretDoor;
+		FSlateBrush StairsUp;
+		FSlateBrush StairsDown;
+		FSlateBrush Relocation;
+		FSlateBrush Pit;
+		FSlateBrush PointOfInterest;
+		FSlateBrush PartyMarker;
+
+		explicit FThemeBrushSet(const UGridMapVisualThemeAsset& Theme)
+		{
+			ConfigureTextureBrush(Parchment, Theme.ParchmentTexture);
+			ConfigureTextureBrush(Wall, Theme.WallTexture);
+			ConfigureTextureBrush(Door, Theme.DoorTexture);
+			ConfigureTextureBrush(SecretDoor, Theme.SecretDoorTexture);
+			ConfigureTextureBrush(StairsUp, Theme.StairsUpTexture);
+			ConfigureTextureBrush(StairsDown, Theme.StairsDownTexture);
+			ConfigureTextureBrush(Relocation, Theme.RelocationTexture);
+			ConfigureTextureBrush(Pit, Theme.PitTexture);
+			ConfigureTextureBrush(PointOfInterest, Theme.PointOfInterestTexture);
+			ConfigureTextureBrush(PartyMarker, Theme.PartyMarkerTexture);
+		}
+	};
+
+	const FSlateBrush* GetSymbolBrush(
+		const UGridMapVisualThemeAsset& Theme,
+		const FThemeBrushSet& Brushes,
+		EGridMapSymbolKind Kind)
+	{
+		switch (Kind)
+		{
+			case EGridMapSymbolKind::StairsUp:
+				return Theme.StairsUpTexture ? &Brushes.StairsUp : nullptr;
+			case EGridMapSymbolKind::StairsDown:
+				return Theme.StairsDownTexture ? &Brushes.StairsDown : nullptr;
+			case EGridMapSymbolKind::Relocation:
+				return Theme.RelocationTexture ? &Brushes.Relocation : nullptr;
+			case EGridMapSymbolKind::Pit:
+				return Theme.PitTexture ? &Brushes.Pit : nullptr;
+			case EGridMapSymbolKind::PointOfInterest:
+				return Theme.PointOfInterestTexture ? &Brushes.PointOfInterest : nullptr;
+			default:
+				return nullptr;
+		}
+	}
+
+	void DrawTexturedSegment(
+		FSlateWindowElementList& OutDrawElements,
+		int32 Layer,
+		const FGeometry& Geometry,
+		const FVector2f& A,
+		const FVector2f& B,
+		const FSlateBrush* Brush,
+		float Thickness,
+		float ExtraRotationRadians = 0.0f)
+	{
+		if (!Brush)
+		{
+			return;
+		}
+
+		const FVector2f Delta = B - A;
+		const float Length = Delta.Size();
+		if (Length <= KINDA_SMALL_NUMBER || Thickness <= KINDA_SMALL_NUMBER)
+		{
+			return;
+		}
+
+		const FVector2f Center = (A + B) * 0.5f;
+		const FVector2D Size(static_cast<double>(Length), static_cast<double>(Thickness));
+		const FVector2D TopLeft(
+			static_cast<double>(Center.X - Length * 0.5f),
+			static_cast<double>(Center.Y - Thickness * 0.5f));
+		const float Angle = FMath::Atan2(Delta.Y, Delta.X) + ExtraRotationRadians;
+
+		FSlateDrawElement::MakeRotatedBox(
+			OutDrawElements,
+			static_cast<uint32>(Layer),
+			Geometry.ToPaintGeometry(Size, FSlateLayoutTransform(TopLeft)),
+			Brush,
+			ESlateDrawEffect::None,
+			Angle,
+			TOptional<FVector2f>(FVector2f(Length * 0.5f, Thickness * 0.5f)),
+			FSlateDrawElement::RelativeToElement,
+			FLinearColor::White);
+	}
+
+	void DrawTexturedSquare(
+		FSlateWindowElementList& OutDrawElements,
+		int32 Layer,
+		const FGeometry& Geometry,
+		const FVector2f& Center,
+		float Size,
+		const FSlateBrush* Brush,
+		float AngleRadians = 0.0f)
+	{
+		if (!Brush || Size <= KINDA_SMALL_NUMBER)
+		{
+			return;
+		}
+
+		const FVector2D DrawSize(static_cast<double>(Size), static_cast<double>(Size));
+		const FVector2D TopLeft(
+			static_cast<double>(Center.X - Size * 0.5f),
+			static_cast<double>(Center.Y - Size * 0.5f));
+		const FPaintGeometry GeometryForTexture =
+			Geometry.ToPaintGeometry(DrawSize, FSlateLayoutTransform(TopLeft));
+
+		if (FMath::IsNearlyZero(AngleRadians))
+		{
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				static_cast<uint32>(Layer),
+				GeometryForTexture,
+				Brush,
+				ESlateDrawEffect::None,
+				FLinearColor::White);
+			return;
+		}
+
+		FSlateDrawElement::MakeRotatedBox(
+			OutDrawElements,
+			static_cast<uint32>(Layer),
+			GeometryForTexture,
+			Brush,
+			ESlateDrawEffect::None,
+			AngleRadians,
+			TOptional<FVector2f>(FVector2f(Size * 0.5f, Size * 0.5f)),
+			FSlateDrawElement::RelativeToElement,
+			FLinearColor::White);
+	}
+
+	float GetPartyMarkerAngle(EGridEdge Facing)
+	{
+		// T_Map_PartyMarker is authored pointing to screen-up / canonical North.
+		switch (Facing)
+		{
+			case EGridEdge::North: return 0.0f;
+			case EGridEdge::East:  return -(PI * 0.5f);
+			case EGridEdge::South: return PI;
+			case EGridEdge::West:  return (PI * 0.5f);
+			default:               return 0.0f;
+		}
+	}
 
 	bool BuildRenderMetrics(
 		const FGridMapFloorView& View,
@@ -1336,6 +1502,13 @@ int32 UGridMapWidget::PaintMapSurface(
 
 	const FPaintGeometry PaintGeometry = AllottedGeometry.ToPaintGeometry();
 	const FSlateBrush* WhiteBrush = FCoreStyle::Get().GetBrush(TEXT("WhiteBrush"));
+	const bool bUseTexturedTheme = IsValid(VisualTheme);
+	TOptional<FThemeBrushSet> ThemeBrushes;
+	if (bUseTexturedTheme)
+	{
+		ThemeBrushes.Emplace(*VisualTheme);
+	}
+
 	const int32 ParchmentLayer = LayerId;
 	const int32 CellLayer = ParchmentLayer + 2;
 	const int32 HatchLayer = CellLayer + 1;
@@ -1353,7 +1526,17 @@ int32 UGridMapWidget::PaintMapSurface(
 		FSlateLayoutTransform(FVector2D(MapDrawPadding.Left, MapDrawPadding.Top)));
 	OutDrawElements.PushClip(FSlateClippingZone(MapViewportPaintGeometry));
 
-	if (bEnableParchmentStyle)
+	if (bUseTexturedTheme && VisualTheme->ParchmentTexture)
+	{
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			static_cast<uint32>(ParchmentLayer),
+			MapViewportPaintGeometry,
+			&ThemeBrushes->Parchment,
+			ESlateDrawEffect::None,
+			FLinearColor::White);
+	}
+	else if (bEnableParchmentStyle)
 	{
 		DrawParchmentBackground(
 			OutDrawElements,
@@ -1385,7 +1568,7 @@ int32 UGridMapWidget::PaintMapSurface(
 			ESlateDrawEffect::None,
 			ExploredCellColor);
 
-		if (bEnableParchmentStyle)
+		if (!bUseTexturedTheme && bEnableParchmentStyle)
 		{
 			DrawCellHatching(
 				OutDrawElements,
@@ -1400,7 +1583,7 @@ int32 UGridMapWidget::PaintMapSurface(
 		}
 	}
 
-	if (bEnableParchmentStyle && Metrics.CellSize >= 8.0f)
+	if (!bUseTexturedTheme && bEnableParchmentStyle && Metrics.CellSize >= 8.0f)
 	{
 		for (const FGridMapFloorCellView& Cell : FloorView.Cells)
 		{
@@ -1434,10 +1617,48 @@ int32 UGridMapWidget::PaintMapSurface(
 		FVector2f A;
 		FVector2f B;
 		GetBoundaryEndpoints(Metrics, Boundary, A, B);
+
+		if (bUseTexturedTheme)
+		{
+			const float TextureThickness =
+				FMath::Max(1.0f, Metrics.CellSize * FMath::Clamp(VisualTheme->BoundaryThicknessRatio, 0.03f, 0.50f));
+			const FSlateBrush* BoundaryBrush = nullptr;
+			switch (Boundary.Kind)
+			{
+				case EGridMapBoundaryKind::Wall:
+					BoundaryBrush = VisualTheme->WallTexture ? &ThemeBrushes->Wall : nullptr;
+					break;
+				case EGridMapBoundaryKind::Door:
+					BoundaryBrush = VisualTheme->DoorTexture ? &ThemeBrushes->Door : nullptr;
+					break;
+				case EGridMapBoundaryKind::SecretDoor:
+					BoundaryBrush = VisualTheme->SecretDoorTexture ? &ThemeBrushes->SecretDoor : nullptr;
+					break;
+				default:
+					break;
+			}
+
+			if (BoundaryBrush)
+			{
+				const bool bOpenDoor =
+					Boundary.Kind != EGridMapBoundaryKind::Wall && Boundary.bDoorOpen;
+				DrawTexturedSegment(
+					OutDrawElements,
+					BoundaryLayer,
+					AllottedGeometry,
+					A,
+					B,
+					BoundaryBrush,
+					TextureThickness,
+					bOpenDoor ? (PI * 0.5f) : 0.0f);
+				continue;
+			}
+		}
+
 		switch (Boundary.Kind)
 		{
 			case EGridMapBoundaryKind::Wall:
-				if (bEnableParchmentStyle)
+				if (!bUseTexturedTheme && bEnableParchmentStyle)
 				{
 					DrawWallBoundary(
 						OutDrawElements,
@@ -1462,24 +1683,6 @@ int32 UGridMapWidget::PaintMapSurface(
 				break;
 
 			case EGridMapBoundaryKind::Door:
-				DrawDoorBoundary(
-					OutDrawElements,
-					BoundaryLayer,
-					PaintGeometry,
-					A,
-					B,
-					DoorColor,
-					DoorThickness,
-					Boundary.bDoorOpen,
-					false,
-					Boundary.MapCell,
-					Boundary.Edge,
-					bEnableParchmentStyle ? HandDrawnJitterPixels : 0.0f,
-					bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f,
-					DoorJambLengthScale,
-					bEnableParchmentStyle ? DoorPanelLineCount : 0);
-				break;
-
 			case EGridMapBoundaryKind::SecretDoor:
 				DrawDoorBoundary(
 					OutDrawElements,
@@ -1487,16 +1690,16 @@ int32 UGridMapWidget::PaintMapSurface(
 					PaintGeometry,
 					A,
 					B,
-					SecretDoorColor,
+					Boundary.Kind == EGridMapBoundaryKind::SecretDoor ? SecretDoorColor : DoorColor,
 					DoorThickness,
 					Boundary.bDoorOpen,
-					true,
+					Boundary.Kind == EGridMapBoundaryKind::SecretDoor,
 					Boundary.MapCell,
 					Boundary.Edge,
-					bEnableParchmentStyle ? HandDrawnJitterPixels : 0.0f,
-					bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f,
+					!bUseTexturedTheme && bEnableParchmentStyle ? HandDrawnJitterPixels : 0.0f,
+					!bUseTexturedTheme && bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f,
 					DoorJambLengthScale,
-					bEnableParchmentStyle ? DoorPanelLineCount : 0);
+					!bUseTexturedTheme && bEnableParchmentStyle ? DoorPanelLineCount : 0);
 				break;
 
 			default:
@@ -1506,6 +1709,25 @@ int32 UGridMapWidget::PaintMapSurface(
 
 	for (const FGridMapFloorSymbolView& Symbol : FloorView.Symbols)
 	{
+		const FSlateBrush* TexturedSymbolBrush =
+			bUseTexturedTheme ? GetSymbolBrush(*VisualTheme, *ThemeBrushes, Symbol.Kind) : nullptr;
+		if (TexturedSymbolBrush)
+		{
+			if (Metrics.CellSize >= FMath::Clamp(VisualTheme->SymbolMinCellPixels, 4.0f, 64.0f))
+			{
+				const float TextureSize =
+					Metrics.CellSize * FMath::Clamp(VisualTheme->SymbolScale, 0.20f, 1.00f);
+				DrawTexturedSquare(
+					OutDrawElements,
+					SymbolLayer,
+					AllottedGeometry,
+					Metrics.CellCenter(Symbol.MapCell),
+					TextureSize,
+					TexturedSymbolBrush);
+			}
+			continue;
+		}
+
 		DrawMapSymbol(
 			OutDrawElements,
 			SymbolLayer,
@@ -1517,14 +1739,27 @@ int32 UGridMapWidget::PaintMapSurface(
 			SymbolStrokeThickness,
 			SymbolScale,
 			SymbolMinCellPixels,
-			bEnableParchmentStyle ? HandDrawnJitterPixels : 0.0f,
-			bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f,
+			!bUseTexturedTheme && bEnableParchmentStyle ? HandDrawnJitterPixels : 0.0f,
+			!bUseTexturedTheme && bEnableParchmentStyle ? SecondaryStrokeAlpha : 0.0f,
 			StairStepCount,
 			PitDepthLineCount,
 			SymbolVariantCount);
 	}
 
-	if (bEnableParchmentStyle)
+	if (bUseTexturedTheme && VisualTheme->PartyMarkerTexture && FloorView.bHasPartyMarker)
+	{
+		const float TextureSize =
+			Metrics.CellSize * FMath::Clamp(VisualTheme->PartyMarkerScale, 0.20f, 1.00f);
+		DrawTexturedSquare(
+			OutDrawElements,
+			MarkerLayer,
+			AllottedGeometry,
+			Metrics.CellCenter(FloorView.PartyMapCell),
+			TextureSize,
+			&ThemeBrushes->PartyMarker,
+			GetPartyMarkerAngle(FloorView.PartyFacing));
+	}
+	else if (!bUseTexturedTheme && bEnableParchmentStyle)
 	{
 		DrawPartyMarker(
 			OutDrawElements,

@@ -9,6 +9,7 @@ class AGrimrockPartyPawn;
 class UBorder;
 class UButton;
 class UGridMapSurfaceWidget;
+class UGridMapVisualThemeAsset;
 class UTextBlock;
 
 /**
@@ -133,6 +134,10 @@ public:
 
 	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "Map|View")
 	TObjectPtr<UButton> Button_Recenter;
+
+	/** MAP-THEME01 optional data-driven texture theme. Null preserves the validated procedural renderer. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Theme")
+	TObjectPtr<UGridMapVisualThemeAsset> VisualTheme;
 
 	/** Optional designer inset. Standalone Map defaults to the full allotted surface; UMG chrome overlays it. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Rendering")
