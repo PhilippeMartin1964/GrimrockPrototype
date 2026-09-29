@@ -102,6 +102,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Map")
 	FGridMapFloorView FloorView;
 
+	/** MAP-UI02 optional title-bar close button. The pawn owns the close transition/input mode. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Window")
+	TObjectPtr<UButton> Button_CloseMap;
+
 	/** Optional MON21.6.9 UMG controls. Exact widget names are intentional. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Navigation")
 	TObjectPtr<UButton> Button_LevelUp;

@@ -59,7 +59,7 @@ void AGrimrockPartyPawn::ToggleMapWidget()
 
 	if (IsMapWidgetVisible())
 	{
-		HideInventoryWidget();
+		HideMapWidget();
 		return;
 	}
 
@@ -105,6 +105,11 @@ void AGrimrockPartyPawn::ShowMapWidget()
 		if (MapWidgetInstance)
 		{
 			MapWidgetInstance->InitializeMapWidget(this);
+			if (MapWidgetInstance->Button_CloseMap)
+			{
+				MapWidgetInstance->Button_CloseMap->OnClicked.AddUniqueDynamic(
+					this, &AGrimrockPartyPawn::HandleMapWindowCloseClicked);
+			}
 		}
 	}
 
@@ -412,6 +417,17 @@ void AGrimrockPartyPawn::ApplyMajorUiInputMode(bool bOpen)
 	PlayerController->SetInputMode(InputMode);
 }
 
+void AGrimrockPartyPawn::HideMapWidget()
+{
+	CollapseMajorGameplayUi();
+	UE_LOG(LogGrimrockPartyUI, Verbose, TEXT("GridMap Standalone Hidden Pawn=%s"), *GetName());
+}
+
+void AGrimrockPartyPawn::HandleMapWindowCloseClicked()
+{
+	HideMapWidget();
+}
+
 void AGrimrockPartyPawn::HandleCharacterSheetWindowCloseClicked()
 {
 	if (CharacterSheetWidgetInstance)
@@ -465,6 +481,11 @@ void AGrimrockPartyPawn::HandleGlobalEscape()
 	if (InventoryBagWidgetInstance && InventoryBagWidgetInstance->IsItemActionMenuOpen())
 	{
 		InventoryBagWidgetInstance->CloseItemActionMenu(FName(TEXT("Escape")));
+		return;
+	}
+	if (IsMapWidgetVisible())
+	{
+		HideMapWidget();
 		return;
 	}
 	if (bInventoryWidgetVisible)

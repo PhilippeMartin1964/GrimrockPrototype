@@ -677,6 +677,11 @@ private:
 	bool IsMajorGameplayUiBlockedByCombat() const;
 	void ApplyMajorUiInputMode(bool bOpen);
 	void RefreshMajorUiVisibilityAfterSplitClose();
+	void HideMapWidget();
+
+	UFUNCTION()
+	void HandleMapWindowCloseClicked();
+
 	UFUNCTION()
 	void HandleCharacterSheetWindowCloseClicked();
 
