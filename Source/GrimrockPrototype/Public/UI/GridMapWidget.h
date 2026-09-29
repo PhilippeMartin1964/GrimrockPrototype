@@ -7,6 +7,7 @@
 
 class AGrimrockPartyPawn;
 class UButton;
+class UGridMapSurfaceWidget;
 class UPanelWidget;
 class UTextBlock;
 
@@ -14,8 +15,8 @@ class UTextBlock;
  * MON21.6.8 native presentation surface for the existing WBP_GridMap.
  *
  * This widget owns no gameplay/map authority. RefreshMap() rebuilds one transient
- * FGridMapFloorView from the party/runtime sources and NativePaint renders it
- * directly through Slate draw elements (no per-cell UWidget allocation).
+ * FGridMapFloorView from the party/runtime sources. MAP-UI03-FIX02 delegates native
+ * drawing/input to the dedicated MapSurface child so UMG chrome remains independent.
  */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGridMapWidget : public UGrimrockDesignSurfaceWidget
@@ -108,6 +109,10 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Map")
 	FGridMapFloorView FloorView;
+
+	/** MAP-UI03-FIX02 dedicated child surface that owns native map painting and interaction. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Rendering")
+	TObjectPtr<UGridMapSurfaceWidget> MapSurface;
 
 	/** MAP-UI02 optional title-bar close button. The pawn owns the close transition/input mode. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Window")
@@ -256,22 +261,15 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnMouseWheel(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual void NativeOnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent) override;
-
-	virtual int32 NativePaint(
-		const FPaintArgs& Args,
-		const FGeometry& AllottedGeometry,
-		const FSlateRect& MyCullingRect,
-		FSlateWindowElementList& OutDrawElements,
-		int32 LayerId,
-		const FWidgetStyle& InWidgetStyle,
-		bool bParentEnabled) const override;
-
 private:
+	friend class UGridMapSurfaceWidget;
+
+	int32 PaintMapSurface(
+		const FGeometry& AllottedGeometry,
+		FSlateWindowElementList& OutDrawElements,
+		int32 LayerId) const;
+
+	void InvalidateMapSurface();
 	bool BuildSelectedFloorView();
 	bool ResolvePartyFloorZ(int32& OutFloorZ) const;
 	bool FindAdjacentFloorZ(bool bUp, int32& OutFloorZ) const;

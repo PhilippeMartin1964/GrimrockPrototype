@@ -1,4 +1,5 @@
 #include "UI/GridMapWidget.h"
+#include "UI/GridMapSurfaceWidget.h"
 
 #include "Components/Button.h"
 #include "Components/PanelWidget.h"
@@ -882,6 +883,11 @@ void UGridMapWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	if (MapSurface)
+	{
+		MapSurface->InitializeMapSurface(this);
+	}
+
 	if (Button_LevelUp)
 	{
 		Button_LevelUp->OnClicked.AddUniqueDynamic(this, &UGridMapWidget::HandleLevelUpClicked);
@@ -900,6 +906,11 @@ void UGridMapWidget::NativeConstruct()
 
 void UGridMapWidget::NativeDestruct()
 {
+	if (MapSurface)
+	{
+		MapSurface->InitializeMapSurface(nullptr);
+	}
+
 	if (Button_LevelUp)
 	{
 		Button_LevelUp->OnClicked.RemoveDynamic(this, &UGridMapWidget::HandleLevelUpClicked);
@@ -943,7 +954,7 @@ bool UGridMapWidget::SelectPartyFloor()
 		FloorView.Reset();
 		bHasRenderableMap = false;
 		RefreshFloorNavigationControls();
-		Invalidate(EInvalidateWidgetReason::Paint);
+		InvalidateMapSurface();
 		return false;
 	}
 
@@ -971,7 +982,7 @@ bool UGridMapWidget::NavigateFloorUp()
 		return false;
 	}
 	ResetViewTransform(false);
-	Invalidate(EInvalidateWidgetReason::Paint);
+	InvalidateMapSurface();
 	return true;
 }
 
@@ -993,7 +1004,7 @@ bool UGridMapWidget::NavigateFloorDown()
 		return false;
 	}
 	ResetViewTransform(false);
-	Invalidate(EInvalidateWidgetReason::Paint);
+	InvalidateMapSurface();
 	return true;
 }
 
@@ -1027,7 +1038,7 @@ bool UGridMapWidget::AdjustZoom(float WheelDelta)
 		return false;
 	}
 
-	Invalidate(EInvalidateWidgetReason::Paint);
+	InvalidateMapSurface();
 	return true;
 }
 
@@ -1039,7 +1050,7 @@ void UGridMapWidget::PanMapByPixels(const FVector2D& DeltaPixels)
 	}
 
 	PanOffsetPixels += DeltaPixels;
-	Invalidate(EInvalidateWidgetReason::Paint);
+	InvalidateMapSurface();
 }
 
 bool UGridMapWidget::CanNavigateFloorUp() const
@@ -1062,7 +1073,7 @@ bool UGridMapWidget::BuildSelectedFloorView()
 	if (!bHasFloorSelection || !OwningPartyPawn || !OwningPartyPawn->LevelRuntimeActor)
 	{
 		RefreshFloorNavigationControls();
-		Invalidate(EInvalidateWidgetReason::Paint);
+		InvalidateMapSurface();
 		return false;
 	}
 
@@ -1070,7 +1081,7 @@ bool UGridMapWidget::BuildSelectedFloorView()
 	if (!Runtime->DungeonAsset)
 	{
 		RefreshFloorNavigationControls();
-		Invalidate(EInvalidateWidgetReason::Paint);
+		InvalidateMapSurface();
 		return false;
 	}
 
@@ -1087,7 +1098,7 @@ bool UGridMapWidget::BuildSelectedFloorView()
 		FloorView);
 
 	RefreshFloorNavigationControls();
-	Invalidate(EInvalidateWidgetReason::Paint);
+	InvalidateMapSurface();
 	return bHasRenderableMap;
 }
 
@@ -1162,6 +1173,17 @@ void UGridMapWidget::ResetViewTransform(bool bCenterOnParty)
 	bIsPanning = false;
 }
 
+void UGridMapWidget::InvalidateMapSurface()
+{
+	if (MapSurface)
+	{
+		MapSurface->Invalidate(EInvalidateWidgetReason::Paint);
+		return;
+	}
+
+	Invalidate(EInvalidateWidgetReason::Paint);
+}
+
 void UGridMapWidget::RefreshFloorNavigationControls()
 {
 	if (Panel_FloorNavigationOverlay)
@@ -1202,70 +1224,87 @@ void UGridMapWidget::HandleRecenterClicked()
 	RecenterMap();
 }
 
-FReply UGridMapWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+void UGridMapSurfaceWidget::InitializeMapSurface(UGridMapWidget* InOwnerMapWidget)
 {
-	const FVector2D LocalMouse = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
-	if (bHasRenderableMap &&
-		InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton &&
-		GridMapWidgetPrivate::IsInsideMapViewport(LocalMouse, InGeometry.GetLocalSize(), MapDrawPadding))
+	OwnerMapWidget = InOwnerMapWidget;
+}
+
+FReply UGridMapSurfaceWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (OwnerMapWidget)
 	{
-		bIsPanning = true;
-		FReply Reply = FReply::Handled();
-		if (const TSharedPtr<SWidget> CachedWidget = GetCachedWidget())
+		const FVector2D LocalMouse = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+		if (OwnerMapWidget->bHasRenderableMap &&
+			InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton &&
+			GridMapWidgetPrivate::IsInsideMapViewport(LocalMouse, InGeometry.GetLocalSize(), OwnerMapWidget->MapDrawPadding))
 		{
-			Reply.CaptureMouse(CachedWidget.ToSharedRef());
+			OwnerMapWidget->bIsPanning = true;
+			FReply Reply = FReply::Handled();
+			if (const TSharedPtr<SWidget> CachedWidget = GetCachedWidget())
+			{
+				Reply.CaptureMouse(CachedWidget.ToSharedRef());
+			}
+			return Reply;
 		}
-		return Reply;
 	}
 
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
-FReply UGridMapWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+FReply UGridMapSurfaceWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (bIsPanning && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	if (OwnerMapWidget &&
+		OwnerMapWidget->bIsPanning &&
+		InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		bIsPanning = false;
+		OwnerMapWidget->bIsPanning = false;
 		return FReply::Handled().ReleaseMouseCapture();
 	}
 
 	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
 }
 
-FReply UGridMapWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+FReply UGridMapSurfaceWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (bIsPanning)
+	if (OwnerMapWidget && OwnerMapWidget->bIsPanning)
 	{
 		const FVector2D CurrentLocal = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
 		const FVector2D PreviousLocal = InGeometry.AbsoluteToLocal(InMouseEvent.GetLastScreenSpacePosition());
-		PanMapByPixels(CurrentLocal - PreviousLocal);
+		OwnerMapWidget->PanMapByPixels(CurrentLocal - PreviousLocal);
 		return FReply::Handled();
 	}
 
 	return Super::NativeOnMouseMove(InGeometry, InMouseEvent);
 }
 
-FReply UGridMapWidget::NativeOnMouseWheel(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+FReply UGridMapSurfaceWidget::NativeOnMouseWheel(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	const FVector2D LocalMouse = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
-	if (bHasRenderableMap &&
-		!FMath::IsNearlyZero(InMouseEvent.GetWheelDelta()) &&
-		GridMapWidgetPrivate::IsInsideMapViewport(LocalMouse, InGeometry.GetLocalSize(), MapDrawPadding))
+	if (OwnerMapWidget)
 	{
-		AdjustZoom(InMouseEvent.GetWheelDelta());
-		return FReply::Handled();
+		const FVector2D LocalMouse = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+		if (OwnerMapWidget->bHasRenderableMap &&
+			!FMath::IsNearlyZero(InMouseEvent.GetWheelDelta()) &&
+			GridMapWidgetPrivate::IsInsideMapViewport(LocalMouse, InGeometry.GetLocalSize(), OwnerMapWidget->MapDrawPadding))
+		{
+			OwnerMapWidget->AdjustZoom(InMouseEvent.GetWheelDelta());
+			return FReply::Handled();
+		}
 	}
 
 	return Super::NativeOnMouseWheel(InGeometry, InMouseEvent);
 }
 
-void UGridMapWidget::NativeOnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent)
+void UGridMapSurfaceWidget::NativeOnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent)
 {
-	bIsPanning = false;
+	if (OwnerMapWidget)
+	{
+		OwnerMapWidget->bIsPanning = false;
+	}
+
 	Super::NativeOnMouseCaptureLost(CaptureLostEvent);
 }
 
-int32 UGridMapWidget::NativePaint(
+int32 UGridMapSurfaceWidget::NativePaint(
 	const FPaintArgs& Args,
 	const FGeometry& AllottedGeometry,
 	const FSlateRect& MyCullingRect,
@@ -1274,13 +1313,22 @@ int32 UGridMapWidget::NativePaint(
 	const FWidgetStyle& InWidgetStyle,
 	bool bParentEnabled) const
 {
-	// MAP-UI03-FIX01: the procedural map is the background of the standalone window.
-	// Paint it first, then let the UMG hierarchy paint above it so title/floor controls
-	// are never hidden behind parchment/native map strokes.
+	const int32 BaseLayer = Super::NativePaint(
+		Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	return OwnerMapWidget
+		? OwnerMapWidget->PaintMapSurface(AllottedGeometry, OutDrawElements, BaseLayer + 1)
+		: BaseLayer;
+}
+
+int32 UGridMapWidget::PaintMapSurface(
+	const FGeometry& AllottedGeometry,
+	FSlateWindowElementList& OutDrawElements,
+	int32 LayerId) const
+{
 	if (!bHasRenderableMap || FloorView.Cells.IsEmpty())
 	{
-		return Super::NativePaint(
-			Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+		return LayerId;
 	}
 
 	using namespace GridMapWidgetPrivate;
@@ -1296,8 +1344,7 @@ int32 UGridMapWidget::NativePaint(
 		bCenterViewOnParty,
 		Metrics))
 	{
-		return Super::NativePaint(
-			Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+		return LayerId;
 	}
 
 	const FPaintGeometry PaintGeometry = AllottedGeometry.ToPaintGeometry();
@@ -1518,15 +1565,5 @@ int32 UGridMapWidget::NativePaint(
 	}
 
 	OutDrawElements.PopClip();
-
-	// Paint all UMG children last and above the native map. This includes the MAP-UI02
-	// title bar and MAP-UI03 floor-navigation overlay.
-	return Super::NativePaint(
-		Args,
-		AllottedGeometry,
-		MyCullingRect,
-		OutDrawElements,
-		MarkerLayer + 1,
-		InWidgetStyle,
-		bParentEnabled);
+	return MarkerLayer;
 }

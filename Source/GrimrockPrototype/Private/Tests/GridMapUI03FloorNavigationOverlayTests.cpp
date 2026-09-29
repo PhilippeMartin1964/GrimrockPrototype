@@ -8,6 +8,7 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "UI/GridMapWidget.h"
+#include "UI/GridMapSurfaceWidget.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMapUI03OverlayContractTest, "Grimrock.UI.MapUI03.OverlayContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -22,6 +23,8 @@ bool FGridMapUI03OverlayContractTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	const FObjectPropertyBase* SurfaceProperty =
+		CastField<FObjectPropertyBase>(MapClass->FindPropertyByName(TEXT("MapSurface")));
 	const FObjectPropertyBase* OverlayProperty =
 		CastField<FObjectPropertyBase>(MapClass->FindPropertyByName(TEXT("Panel_FloorNavigationOverlay")));
 	const FObjectPropertyBase* UpProperty =
@@ -31,6 +34,8 @@ bool FGridMapUI03OverlayContractTest::RunTest(const FString& Parameters)
 	const FObjectPropertyBase* LabelProperty =
 		CastField<FObjectPropertyBase>(MapClass->FindPropertyByName(TEXT("Text_FloorLabel")));
 
+	TestTrue(TEXT("Dedicated map surface binding is a UGridMapSurfaceWidget"),
+		SurfaceProperty && SurfaceProperty->PropertyClass == UGridMapSurfaceWidget::StaticClass());
 	TestTrue(TEXT("Floor-navigation overlay binding is a UPanelWidget"),
 		OverlayProperty && OverlayProperty->PropertyClass->IsChildOf(UPanelWidget::StaticClass()));
 	TestTrue(TEXT("Existing Level Up binding remains a UButton"),

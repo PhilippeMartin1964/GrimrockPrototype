@@ -178,3 +178,76 @@ Aucune donnée Map, exploration, SaveGame ou navigation d'étage n'est modifiée
 ### Blueprint existant
 
 Si `WBP_GridMap` possède un override sérialisé de l'ancienne valeur `MapDrawPadding = 48 / 72 / 48 / 96`, sélectionner la propriété dans les Class Defaults puis utiliser **Reset to Default**. La valeur attendue est désormais `0 / 0 / 0 / 0`.
+
+
+## MAP-UI03-FIX02 — Dedicated MapSurface child
+
+La correction de layers de FIX01 reste insuffisante architecturalement : le renderer ne doit pas appartenir au widget fenêtre racine.
+
+MAP-UI03-FIX02 sépare désormais :
+
+```text
+UGridMapWidget
+  = contrôleur/read-model + boutons/navigation
+
+UGridMapSurfaceWidget
+  = rendu Slate + pan/zoom
+```
+
+Le rendu est dimensionné par **la géométrie du child `MapSurface`**, pas par la géométrie globale de la fenêtre.
+
+### WBP requis
+
+Créer un Widget Blueprint :
+
+```text
+WBP_GridMapSurface
+Parent Class = GridMapSurfaceWidget
+```
+
+Il peut contenir un simple `Canvas Panel` vide et transparent.
+
+Dans `WBP_GridMap`, l'insérer comme premier child de l'Overlay/Canvas racine et le nommer exactement :
+
+```text
+MapSurface
+```
+
+Disposition recommandée :
+
+```text
+WBP_GridMap
+└── Overlay_Root / CanvasPanel_Root
+    ├── MapSurface                         ZOrder 0
+    ├── Border_TitleBar                    ZOrder 20
+    │   └── ... Button_CloseMap
+    └── Panel_FloorNavigationOverlay       ZOrder 30
+        └── ... LevelUp / Niveau / LevelDown
+```
+
+Pour `MapSurface` :
+
+- anchors : plein écran (0,0 -> 1,1) ;
+- offsets : 0 / 0 / 0 / 0 ;
+- alignment : 0 / 0 ;
+- ZOrder : 0 ;
+- aucune couleur de fond UMG ;
+- aucune logique Blueprint ;
+- `MapDrawPadding` du parent : 0 / 0 / 0 / 0.
+
+Le bandeau et les contrôles deviennent des siblings UMG placés **après/au-dessus** de MapSurface. Ils ne peuvent donc plus être recouverts par les strokes Slate du plan.
+
+### Runtime
+
+`UGridMapWidget::NativeConstruct()` relie automatiquement le child `MapSurface` à son contrôleur.
+
+Le child prend en charge :
+
+- `NativePaint()` ;
+- clic-glissé de pan ;
+- molette de zoom ;
+- capture souris.
+
+Les invalidations de vue ciblent désormais `MapSurface`.
+
+Aucun changement de read model, Dungeon, exploration, secrets ou SaveGame.
