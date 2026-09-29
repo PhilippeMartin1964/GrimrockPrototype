@@ -190,14 +190,14 @@ bool FGridMapMON2168StandaloneHookTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	const FObjectPropertyBase* MapClassProperty =
-		CastField<FObjectPropertyBase>(PartyClass->FindPropertyByName(TEXT("MapWidgetClass")));
+	const FClassProperty* MapClassProperty =
+		CastField<FClassProperty>(PartyClass->FindPropertyByName(TEXT("MapWidgetClass")));
 	const FObjectPropertyBase* MapInstanceProperty =
 		CastField<FObjectPropertyBase>(PartyClass->FindPropertyByName(TEXT("MapWidgetInstance")));
 
 	TestNotNull(TEXT("Standalone map class hook exists on the party"), MapClassProperty);
-	TestTrue(TEXT("Standalone map class hook targets UGridMapWidget"),
-		MapClassProperty && MapClassProperty->PropertyClass == UGridMapWidget::StaticClass());
+	TestTrue(TEXT("Standalone map class hook is constrained to UGridMapWidget subclasses"),
+		MapClassProperty && MapClassProperty->MetaClass == UGridMapWidget::StaticClass());
 	TestNotNull(TEXT("Standalone map instance hook exists on the party"), MapInstanceProperty);
 	TestTrue(TEXT("Standalone map instance hook targets UGridMapWidget"),
 		MapInstanceProperty && MapInstanceProperty->PropertyClass == UGridMapWidget::StaticClass());
