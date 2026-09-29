@@ -168,7 +168,7 @@ void AGrimrockPartyPawn::HandleMoveForward(const FInputActionValue& Value)
 {
 	(void)Value;
 
-	if (bCharacterCreationModalActive)
+	if (bCharacterCreationModalActive || IsMapWidgetVisible())
 	{
 		return;
 	}
@@ -189,7 +189,7 @@ void AGrimrockPartyPawn::HandleMoveBackward(const FInputActionValue& Value)
 {
 	(void)Value;
 
-	if (bCharacterCreationModalActive)
+	if (bCharacterCreationModalActive || IsMapWidgetVisible())
 	{
 		return;
 	}
@@ -210,7 +210,7 @@ void AGrimrockPartyPawn::HandleTurnLeft(const FInputActionValue& Value)
 {
 	(void)Value;
 
-	if (bCharacterCreationModalActive)
+	if (bCharacterCreationModalActive || IsMapWidgetVisible())
 	{
 		return;
 	}
@@ -229,7 +229,7 @@ void AGrimrockPartyPawn::HandleTurnRight(const FInputActionValue& Value)
 {
 	(void)Value;
 
-	if (bCharacterCreationModalActive)
+	if (bCharacterCreationModalActive || IsMapWidgetVisible())
 	{
 		return;
 	}
@@ -248,7 +248,7 @@ void AGrimrockPartyPawn::HandleStrafeLeft(const FInputActionValue& Value)
 {
 	(void)Value;
 
-	if (bCharacterCreationModalActive)
+	if (bCharacterCreationModalActive || IsMapWidgetVisible())
 	{
 		return;
 	}
@@ -269,7 +269,7 @@ void AGrimrockPartyPawn::HandleStrafeRight(const FInputActionValue& Value)
 {
 	(void)Value;
 
-	if (bCharacterCreationModalActive)
+	if (bCharacterCreationModalActive || IsMapWidgetVisible())
 	{
 		return;
 	}

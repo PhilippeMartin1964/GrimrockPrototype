@@ -769,6 +769,7 @@ private:
 	int32 MoveStartCellY = 0;
 
 	friend class FGridMonsterMON12PartyMobilityLifecycleTest;
+	friend class FGridMapInput01MovementLockTest;
 	friend class FGridPartyBlockedMovementFeedbackTest;
 	friend class FGridPartyMovementAudioFeedbackTest;
 	friend class FGridPartyWeightMovementLockTest;

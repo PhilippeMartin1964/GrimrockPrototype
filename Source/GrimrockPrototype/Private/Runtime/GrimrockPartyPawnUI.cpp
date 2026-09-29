@@ -93,6 +93,9 @@ void AGrimrockPartyPawn::ShowMapWidget()
 		return;
 	}
 
+	// Map input is mouse/UI only: discard any keyboard move/turn queued before opening it.
+	ClearBufferedCommand();
+
 	CollapseInventoryWorkspaceForMenuPage();
 	if (MenuWidgetInstance)
 	{
