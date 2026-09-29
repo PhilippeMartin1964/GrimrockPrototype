@@ -26,8 +26,8 @@ MAP-THEME01 changes only the final presentation step.
 Textures
   ParchmentTexture
   WallTexture
-  DoorTexture
-  SecretDoorTexture
+  DoorClosedTexture
+  DoorOpenTexture
 
 Symbols
   StairsUpTexture
@@ -75,15 +75,23 @@ There is no duplicated map/read-model state.
 
 ### Doors
 
-`DoorTexture` and `SecretDoorTexture` are authored as horizontal closed-door strips.
+Standard doors use two separate textures, both authored for a horizontal boundary:
 
-The renderer:
+```text
+closed -> DoorClosedTexture
+open   -> DoorOpenTexture
+```
 
-- rotates them to match N/E/S/W boundaries;
-- adds 90 degrees for an open door;
-- never receives an undiscovered secret as `SecretDoor`.
+Slate rotates the selected texture only to match the N/E/S/W boundary orientation. It never rotates the closed-door texture by an additional 90 degrees to fake the open state.
 
-The last point is guaranteed by the read model: an undiscovered secret continues to project as `EGridMapBoundaryKind::Wall`, therefore `WallTexture` is used.
+Secret doors have no dedicated texture:
+
+```text
+secret closed -> WallTexture
+secret open   -> no boundary drawing (normal passage)
+```
+
+The discovery state remains persistent. If a discovered secret door closes again, it is drawn as a standard wall again. An undiscovered secret is already projected by the read model as `EGridMapBoundaryKind::Wall`, so it also uses `WallTexture`.
 
 ### Cell symbols
 
@@ -123,8 +131,8 @@ Content/Grimrock/UI/Map/
 ├── Textures/
 │   ├── T_Map_Parchment
 │   ├── T_Map_Wall
-│   ├── T_Map_Door
-│   └── T_Map_SecretDoor
+│   ├── T_Map_DoorClosed
+│   └── T_Map_DoorOpen
 └── Symbols/
     ├── T_Map_StairsUp
     ├── T_Map_StairsDown

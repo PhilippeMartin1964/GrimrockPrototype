@@ -123,8 +123,8 @@ namespace GridMapWidgetPrivate
 	{
 		FSlateBrush Parchment;
 		FSlateBrush Wall;
-		FSlateBrush Door;
-		FSlateBrush SecretDoor;
+		FSlateBrush DoorClosed;
+		FSlateBrush DoorOpen;
 		FSlateBrush StairsUp;
 		FSlateBrush StairsDown;
 		FSlateBrush Relocation;
@@ -136,8 +136,8 @@ namespace GridMapWidgetPrivate
 		{
 			ConfigureTextureBrush(Parchment, Theme.ParchmentTexture);
 			ConfigureTextureBrush(Wall, Theme.WallTexture);
-			ConfigureTextureBrush(Door, Theme.DoorTexture);
-			ConfigureTextureBrush(SecretDoor, Theme.SecretDoorTexture);
+			ConfigureTextureBrush(DoorClosed, Theme.DoorClosedTexture);
+			ConfigureTextureBrush(DoorOpen, Theme.DoorOpenTexture);
 			ConfigureTextureBrush(StairsUp, Theme.StairsUpTexture);
 			ConfigureTextureBrush(StairsDown, Theme.StairsDownTexture);
 			ConfigureTextureBrush(Relocation, Theme.RelocationTexture);
@@ -176,8 +176,7 @@ namespace GridMapWidgetPrivate
 		const FVector2f& A,
 		const FVector2f& B,
 		const FSlateBrush* Brush,
-		float Thickness,
-		float ExtraRotationRadians = 0.0f)
+		float Thickness)
 	{
 		if (!Brush)
 		{
@@ -196,7 +195,7 @@ namespace GridMapWidgetPrivate
 		const FVector2D TopLeft(
 			static_cast<double>(Center.X - Length * 0.5f),
 			static_cast<double>(Center.Y - Thickness * 0.5f));
-		const float Angle = FMath::Atan2(Delta.Y, Delta.X) + ExtraRotationRadians;
+		const float Angle = FMath::Atan2(Delta.Y, Delta.X);
 
 		FSlateDrawElement::MakeRotatedBox(
 			OutDrawElements,
@@ -1624,26 +1623,53 @@ int32 UGridMapWidget::PaintMapSurface(
 		{
 			const float TextureThickness =
 				FMath::Max(1.0f, Metrics.CellSize * FMath::Clamp(VisualTheme->BoundaryThicknessRatio, 0.03f, 0.50f));
+
+			if (Boundary.Kind == EGridMapBoundaryKind::SecretDoor)
+			{
+				// A discovered secret has no dedicated map glyph:
+				// closed = ordinary wall, open = ordinary passage.
+				if (Boundary.bDoorOpen)
+				{
+					continue;
+				}
+
+				if (VisualTheme->WallTexture)
+				{
+					DrawTexturedSegment(
+						OutDrawElements,
+						BoundaryLayer,
+						AllottedGeometry,
+						A,
+						B,
+						&ThemeBrushes->Wall,
+						TextureThickness);
+				}
+				else
+				{
+					DrawLine(OutDrawElements, BoundaryLayer, PaintGeometry, A, B, WallColor, WallThickness);
+				}
+				continue;
+			}
+
 			const FSlateBrush* BoundaryBrush = nullptr;
 			switch (Boundary.Kind)
 			{
 				case EGridMapBoundaryKind::Wall:
 					BoundaryBrush = VisualTheme->WallTexture ? &ThemeBrushes->Wall : nullptr;
 					break;
+
 				case EGridMapBoundaryKind::Door:
-					BoundaryBrush = VisualTheme->DoorTexture ? &ThemeBrushes->Door : nullptr;
+					BoundaryBrush = Boundary.bDoorOpen
+						? (VisualTheme->DoorOpenTexture ? &ThemeBrushes->DoorOpen : nullptr)
+						: (VisualTheme->DoorClosedTexture ? &ThemeBrushes->DoorClosed : nullptr);
 					break;
-				case EGridMapBoundaryKind::SecretDoor:
-					BoundaryBrush = VisualTheme->SecretDoorTexture ? &ThemeBrushes->SecretDoor : nullptr;
-					break;
+
 				default:
 					break;
 			}
 
 			if (BoundaryBrush)
 			{
-				const bool bOpenDoor =
-					Boundary.Kind != EGridMapBoundaryKind::Wall && Boundary.bDoorOpen;
 				DrawTexturedSegment(
 					OutDrawElements,
 					BoundaryLayer,
@@ -1651,8 +1677,7 @@ int32 UGridMapWidget::PaintMapSurface(
 					A,
 					B,
 					BoundaryBrush,
-					TextureThickness,
-					bOpenDoor ? (PI * 0.5f) : 0.0f);
+					TextureThickness);
 				continue;
 			}
 		}

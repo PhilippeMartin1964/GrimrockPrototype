@@ -30,10 +30,10 @@ public:
 	TObjectPtr<UTexture2D> WallTexture;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Textures")
-	TObjectPtr<UTexture2D> DoorTexture;
+	TObjectPtr<UTexture2D> DoorClosedTexture;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Textures")
-	TObjectPtr<UTexture2D> SecretDoorTexture;
+	TObjectPtr<UTexture2D> DoorOpenTexture;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Symbols")
 	TObjectPtr<UTexture2D> StairsUpTexture;

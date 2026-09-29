@@ -26,8 +26,8 @@ bool FGridMapTHEME01AssetContractTest::RunTest(const FString& Parameters)
 	for (const TCHAR* PropertyName : {
 		TEXT("ParchmentTexture"),
 		TEXT("WallTexture"),
-		TEXT("DoorTexture"),
-		TEXT("SecretDoorTexture"),
+		TEXT("DoorClosedTexture"),
+		TEXT("DoorOpenTexture"),
 		TEXT("StairsUpTexture"),
 		TEXT("StairsDownTexture"),
 		TEXT("RelocationTexture"),
@@ -44,6 +44,11 @@ bool FGridMapTHEME01AssetContractTest::RunTest(const FString& Parameters)
 			*FString::Printf(TEXT("%s is presentation-only, never SaveGame"), PropertyName),
 			Property && Property->HasAnyPropertyFlags(CPF_SaveGame));
 	}
+
+	TestNull(TEXT("Theme exposes no dedicated secret-door texture"),
+		ThemeClass->FindPropertyByName(TEXT("SecretDoorTexture")));
+	TestNull(TEXT("Legacy single DoorTexture property is removed"),
+		ThemeClass->FindPropertyByName(TEXT("DoorTexture")));
 
 	const FObjectPropertyBase* ThemeProperty =
 		CastField<FObjectPropertyBase>(WidgetClass->FindPropertyByName(TEXT("VisualTheme")));
