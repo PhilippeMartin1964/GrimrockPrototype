@@ -1,8 +1,8 @@
 #include "UI/GridMapWidget.h"
 #include "UI/GridMapSurfaceWidget.h"
 
+#include "Components/Border.h"
 #include "Components/Button.h"
-#include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "Core/GridDungeonAsset.h"
 #include "InputCoreTypes.h"
@@ -1186,9 +1186,9 @@ void UGridMapWidget::InvalidateMapSurface()
 
 void UGridMapWidget::RefreshFloorNavigationControls()
 {
-	if (Panel_FloorNavigationOverlay)
+	if (Border_FloorNavigation)
 	{
-		Panel_FloorNavigationOverlay->SetVisibility(
+		Border_FloorNavigation->SetVisibility(
 			bHasFloorSelection ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 	}
 

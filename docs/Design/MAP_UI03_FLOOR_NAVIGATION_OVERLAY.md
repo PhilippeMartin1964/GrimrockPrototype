@@ -251,3 +251,44 @@ Le child prend en charge :
 Les invalidations de vue ciblent désormais `MapSurface`.
 
 Aucun changement de read model, Dungeon, exploration, secrets ou SaveGame.
+
+
+## MAP-UI03-FIX04 — Canonical WBP_GridMap hierarchy
+
+The previous hierarchy incorrectly stacked the floor navigation and map surface inside a vertical box. The canonical hierarchy is now:
+
+```text
+WBP_GridMap
+└── CanvasPanel_Root
+    └── Border_MapWindow
+        └── Vertical_MapLayout
+            ├── Horizontal_TitleBar
+            │   ├── Image_MapIcon
+            │   ├── Border_MapTitle
+            │   │   └── Text_MapTitle
+            │   └── Button_CloseMap
+            └── Overlay_MapContent
+                ├── MapSurface
+                └── Border_FloorNavigation
+                    └── Vertical_FloorNavigation
+                        ├── Button_LevelUp
+                        │   └── Text_LevelUpGlyph
+                        ├── Text_FloorLabel
+                        ├── Button_LevelDown
+                        │   └── Text_LevelDownGlyph
+                        └── Button_Recenter
+                            └── Text_RecenterLabel
+```
+
+Rules:
+
+- `Horizontal_TitleBar` remains unchanged.
+- `CanvasPanel_Root` remains unchanged because it belongs to the shared `UGrimrockDesignSurfaceWidget` contract.
+- `MapSurface` and `Border_FloorNavigation` are siblings inside `Overlay_MapContent`.
+- `MapSurface` is the first child / background and must Fill horizontally and vertically.
+- `Border_FloorNavigation` is aligned Top Right and painted over the map.
+- the obsolete `Panel_FloorNavigationOverlay` wrapper is removed.
+- generic “Box” suffixes are replaced by semantic names: `Border_MapWindow`, `Vertical_MapLayout`.
+- visual widget prefixes describe the actual widget class: `Image_`, `Border_`, `Vertical_`, `Horizontal_`, `Overlay_`, `Button_`, `Text_`.
+
+C++ now binds `Border_FloorNavigation` directly and uses it as the show/hide container for floor navigation.

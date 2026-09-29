@@ -3,8 +3,8 @@
 #include "Misc/AutomationTest.h"
 #include "UObject/UnrealType.h"
 
+#include "Components/Border.h"
 #include "Components/Button.h"
-#include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "UI/GridMapWidget.h"
@@ -25,8 +25,8 @@ bool FGridMapUI03OverlayContractTest::RunTest(const FString& Parameters)
 
 	const FObjectPropertyBase* SurfaceProperty =
 		CastField<FObjectPropertyBase>(MapClass->FindPropertyByName(TEXT("MapSurface")));
-	const FObjectPropertyBase* OverlayProperty =
-		CastField<FObjectPropertyBase>(MapClass->FindPropertyByName(TEXT("Panel_FloorNavigationOverlay")));
+	const FObjectPropertyBase* FloorNavigationBorderProperty =
+		CastField<FObjectPropertyBase>(MapClass->FindPropertyByName(TEXT("Border_FloorNavigation")));
 	const FObjectPropertyBase* UpProperty =
 		CastField<FObjectPropertyBase>(MapClass->FindPropertyByName(TEXT("Button_LevelUp")));
 	const FObjectPropertyBase* DownProperty =
@@ -36,8 +36,8 @@ bool FGridMapUI03OverlayContractTest::RunTest(const FString& Parameters)
 
 	TestTrue(TEXT("Dedicated map surface binding is a UGridMapSurfaceWidget"),
 		SurfaceProperty && SurfaceProperty->PropertyClass == UGridMapSurfaceWidget::StaticClass());
-	TestTrue(TEXT("Floor-navigation overlay binding is a UPanelWidget"),
-		OverlayProperty && OverlayProperty->PropertyClass->IsChildOf(UPanelWidget::StaticClass()));
+	TestTrue(TEXT("Canonical floor-navigation container binding is a UBorder"),
+		FloorNavigationBorderProperty && FloorNavigationBorderProperty->PropertyClass == UBorder::StaticClass());
 	TestTrue(TEXT("Existing Level Up binding remains a UButton"),
 		UpProperty && UpProperty->PropertyClass == UButton::StaticClass());
 	TestTrue(TEXT("Existing Level Down binding remains a UButton"),

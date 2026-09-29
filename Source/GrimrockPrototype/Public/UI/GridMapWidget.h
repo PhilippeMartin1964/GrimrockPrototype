@@ -6,9 +6,9 @@
 #include "GridMapWidget.generated.h"
 
 class AGrimrockPartyPawn;
+class UBorder;
 class UButton;
 class UGridMapSurfaceWidget;
-class UPanelWidget;
 class UTextBlock;
 
 /**
@@ -118,9 +118,9 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Window")
 	TObjectPtr<UButton> Button_CloseMap;
 
-	/** MAP-UI03 presentation-only container placed over the map canvas. */
+	/** MAP-UI03-FIX04 canonical floor-navigation container, overlaid directly on MapSurface. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Navigation")
-	TObjectPtr<UPanelWidget> Panel_FloorNavigationOverlay;
+	TObjectPtr<UBorder> Border_FloorNavigation;
 
 	/** Optional MON21.6.9 UMG controls. Exact widget names are intentional. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Navigation")
