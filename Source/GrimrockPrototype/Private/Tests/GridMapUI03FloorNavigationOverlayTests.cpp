@@ -6,7 +6,6 @@
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
-#include "Components/VerticalBox.h"
 #include "UI/GridMapWidget.h"
 #include "UI/GridMapSurfaceWidget.h"
 
@@ -61,20 +60,21 @@ bool FGridMapUI03NoFloorVisibilityTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 
 	UGridMapWidget* Widget = NewObject<UGridMapWidget>();
-	UVerticalBox* Overlay = NewObject<UVerticalBox>(Widget);
-	if (!TestNotNull(TEXT("Map widget exists"), Widget) || !TestNotNull(TEXT("Overlay panel exists"), Overlay))
+	UBorder* FloorNavigationBorder = NewObject<UBorder>(Widget);
+	if (!TestNotNull(TEXT("Map widget exists"), Widget) ||
+		!TestNotNull(TEXT("Floor navigation border exists"), FloorNavigationBorder))
 	{
 		return false;
 	}
 
-	Widget->Panel_FloorNavigationOverlay = Overlay;
-	Overlay->SetVisibility(ESlateVisibility::Visible);
+	Widget->Border_FloorNavigation = FloorNavigationBorder;
+	FloorNavigationBorder->SetVisibility(ESlateVisibility::Visible);
 
 	// No party/runtime source means there is no selected floor.
 	Widget->InitializeMapWidget(nullptr);
 
-	TestEqual(TEXT("Overlay is hidden when no logical floor can be selected"),
-		Overlay->GetVisibility(), ESlateVisibility::Collapsed);
+	TestEqual(TEXT("Floor navigation is hidden when no logical floor can be selected"),
+		FloorNavigationBorder->GetVisibility(), ESlateVisibility::Collapsed);
 
 	return true;
 }
