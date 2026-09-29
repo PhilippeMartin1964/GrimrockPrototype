@@ -70,6 +70,9 @@ bool FGridMapTHEME01DefaultsTest::RunTest(const FString& Parameters)
 	}
 
 	TestNull(TEXT("Textured theme is opt-in so the validated renderer remains the fallback"), Widget->VisualTheme.Get());
+	TestEqual(TEXT("Parchment is fully opaque by default"), Theme->ParchmentOpacity, 1.0f);
+	TestTrue(TEXT("Parchment opacity default is within the supported range"),
+		Theme->ParchmentOpacity >= 0.0f && Theme->ParchmentOpacity <= 1.0f);
 	TestTrue(TEXT("Boundary texture thickness has a usable default"),
 		Theme->BoundaryThicknessRatio >= 0.03f && Theme->BoundaryThicknessRatio <= 0.50f);
 	TestTrue(TEXT("Symbol texture scale has a usable default"),

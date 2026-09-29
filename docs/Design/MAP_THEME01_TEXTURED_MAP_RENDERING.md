@@ -38,6 +38,14 @@ Symbols
   PartyMarkerTexture
 ```
 
+Texture presentation:
+
+```text
+ParchmentOpacity        = 1.00
+```
+
+`ParchmentOpacity` affects only `ParchmentTexture`; walls, doors, symbols and the party marker keep their own opacity.
+
 Layout values:
 
 ```text

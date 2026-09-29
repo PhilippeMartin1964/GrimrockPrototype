@@ -22,6 +22,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Textures")
 	TObjectPtr<UTexture2D> ParchmentTexture;
 
+	/** Opacity applied only to the parchment background texture. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Textures", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float ParchmentOpacity = 1.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Textures")
 	TObjectPtr<UTexture2D> WallTexture;
 

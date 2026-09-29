@@ -1528,13 +1528,15 @@ int32 UGridMapWidget::PaintMapSurface(
 
 	if (bUseTexturedTheme && VisualTheme->ParchmentTexture)
 	{
+		FLinearColor ParchmentTint = FLinearColor::White;
+		ParchmentTint.A = FMath::Clamp(VisualTheme->ParchmentOpacity, 0.0f, 1.0f);
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			static_cast<uint32>(ParchmentLayer),
 			MapViewportPaintGeometry,
 			&ThemeBrushes->Parchment,
 			ESlateDrawEffect::None,
-			FLinearColor::White);
+			ParchmentTint);
 	}
 	else if (bEnableParchmentStyle)
 	{
