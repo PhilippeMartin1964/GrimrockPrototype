@@ -104,6 +104,7 @@ void AGrimrockPartyPawn::ShowMapWidget()
 		MapWidgetInstance = CreateWidget<UGridMapWidget>(PlayerController, MapWidgetClass);
 		if (MapWidgetInstance)
 		{
+			// InitializeMapWidget already selects/builds the party floor once.
 			MapWidgetInstance->InitializeMapWidget(this);
 			if (MapWidgetInstance->Button_CloseMap)
 			{
@@ -111,6 +112,11 @@ void AGrimrockPartyPawn::ShowMapWidget()
 					this, &AGrimrockPartyPawn::HandleMapWindowCloseClicked);
 			}
 		}
+	}
+	else
+	{
+		// Reopening an existing map deliberately returns to the party's current floor.
+		MapWidgetInstance->SelectPartyFloor();
 	}
 
 	if (!MapWidgetInstance)
@@ -124,7 +130,6 @@ void AGrimrockPartyPawn::ShowMapWidget()
 		MapWidgetInstance->AddToViewport(100);
 	}
 	MapWidgetInstance->SetVisibility(ESlateVisibility::Visible);
-	MapWidgetInstance->SelectPartyFloor();
 
 	bInventoryWorkspaceVisible = false;
 	bInventoryWidgetVisible = true;

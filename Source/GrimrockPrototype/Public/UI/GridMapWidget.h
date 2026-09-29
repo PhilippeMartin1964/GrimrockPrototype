@@ -15,8 +15,8 @@ class UTextBlock;
  * MON21.6.8 native presentation surface for the existing WBP_GridMap.
  *
  * This widget owns no gameplay/map authority. RefreshMap() rebuilds one transient
- * FGridMapFloorView from the party/runtime sources. MAP-UI03-FIX02 delegates native
- * drawing/input to the dedicated MapSurface child so UMG chrome remains independent.
+ * FGridMapFloorView from the party/runtime sources. Native drawing is delegated to
+ * the dedicated MapSurface child; this controller keeps navigation and mouse input.
  */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGridMapWidget : public UGrimrockDesignSurfaceWidget
@@ -110,29 +110,28 @@ public:
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Map")
 	FGridMapFloorView FloorView;
 
-	/** MAP-UI03-FIX02 dedicated child surface that owns native map painting and interaction. */
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Rendering")
+	/** Canonical paint-only child surface. Required by WBP_GridMap. */
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "Map|Rendering")
 	TObjectPtr<UGridMapSurfaceWidget> MapSurface;
 
-	/** MAP-UI02 optional title-bar close button. The pawn owns the close transition/input mode. */
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Window")
+	/** Canonical title-bar close button. The pawn owns the close transition/input mode. */
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "Map|Window")
 	TObjectPtr<UButton> Button_CloseMap;
 
-	/** MAP-UI03-FIX04 canonical floor-navigation container, overlaid directly on MapSurface. */
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Navigation")
+	/** Canonical floor-navigation container, overlaid directly on MapSurface. */
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "Map|Navigation")
 	TObjectPtr<UBorder> Border_FloorNavigation;
 
-	/** Optional MON21.6.9 UMG controls. Exact widget names are intentional. */
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Navigation")
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "Map|Navigation")
 	TObjectPtr<UButton> Button_LevelUp;
 
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Navigation")
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "Map|Navigation")
 	TObjectPtr<UButton> Button_LevelDown;
 
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Navigation")
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "Map|Navigation")
 	TObjectPtr<UTextBlock> Text_FloorLabel;
 
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|View")
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "Map|View")
 	TObjectPtr<UButton> Button_Recenter;
 
 	/** Optional designer inset. Standalone Map defaults to the full allotted surface; UMG chrome overlays it. */

@@ -4,6 +4,7 @@
 
 #include "GridDoorTestUtils.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridDoorActor.h"
@@ -73,11 +74,12 @@ namespace GridMapMON2164Tests
 		return Level;
 	}
 
-	FGridWorldObjectInstance AddDoor(UGridLevelAsset* Level, bool bInitiallyOpen)
+	FGridWorldObjectInstance AddDoor(UGridLevelAsset* Level, bool bInitiallyOpen, FName DefinitionId = NAME_None)
 	{
 		FGridWorldObjectInstance Door;
 		Door.InstanceId = FGuid::NewGuid();
 		Door.Type = EGridLevelObjectType::Door;
+		Door.WorldObjectDefinitionId = DefinitionId;
 		Door.CellX = 10;
 		Door.CellY = 10;
 		Door.WallSide = EGridEdge::North;
@@ -210,19 +212,29 @@ bool FGridMapMON2164InitialOpenTest::RunTest(const FString& Parameters)
 	}
 
 	UGridLevelAsset* Level = MakeLevel(Runtime);
-	const FGridWorldObjectInstance DoorData = AddDoor(Level, true);
+	const FName DefinitionId(TEXT("MON2164_CustomSecretDoor"));
+	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(Runtime);
+	Definition->DefinitionId = DefinitionId;
+	Definition->SupportedType = EGridLevelObjectType::Door;
+	Definition->RuntimeActorClass = AGridSecretDoorActor::StaticClass();
+	Runtime->WorldObjectDefinitions.Add(Definition);
+
+	const FGridWorldObjectInstance DoorData = AddDoor(Level, true, DefinitionId);
 	UGridDoorSystemComponent* DoorSystem = PrepareDoorSystem(Runtime);
-	AGridSecretDoorActor* Door = TestWorld.World->SpawnActor<AGridSecretDoorActor>();
-	if (!DoorSystem || !Door)
+	if (!DoorSystem)
 	{
 		AddError(TEXT("Secret door fixture is incomplete"));
 		return false;
 	}
-	GridDoorTestUtils::InitializeDoorFromMotion(Door, DoorData, TestWorld.World, 1.0f);
-	DoorSystem->RegisterDoorObject(FGridRuntimeWorldObjectData(DoorData), Door);
+
+	TestTrue(TEXT("Custom definition is classified as a secret door without relying on its DefinitionId"),
+		DoorSystem->IsSecretDoorOnEdge(10, 10, EGridEdge::North));
+
+	// No live actor is registered: discovery must also use the same data-driven definition.
+	DoorSystem->RegisterDoorObject(FGridRuntimeWorldObjectData(DoorData), nullptr);
 
 	const FGridLevelRuntimeState* State = Runtime->FindRuntimeStateForCurrentLevel();
-	TestTrue(TEXT("An initially open secret is already exposed and therefore known"),
+	TestTrue(TEXT("An initially open secret is discovered from its runtime actor definition"),
 		State && State->MapExploration.IsSecretDiscovered(DoorData.InstanceId));
 	return true;
 }

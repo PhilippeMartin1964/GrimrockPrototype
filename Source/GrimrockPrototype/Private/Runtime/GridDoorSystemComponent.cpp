@@ -1,6 +1,7 @@
 #include "Runtime/GridDoorSystemComponent.h"
 
 #include "Core/GridLevelAsset.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GridDoorActor.h"
 #include "Runtime/GridSecretDoorActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -86,7 +87,17 @@ bool UGridDoorSystemComponent::IsSecretDoorOnEdge(int32 X, int32 Y, EGridEdge Ed
 	}
 
 	const FGridWorldObjectInstance* Instance = FindDoorInstanceAtEdge(X, Y, Edge);
-	return Instance && Instance->WorldObjectDefinitionId == FName(TEXT("Door_Secret"));
+	if (!Instance || !RuntimeActor)
+	{
+		return false;
+	}
+
+	const UGridWorldObjectDefinitionAsset* Definition = RuntimeActor->FindWorldObjectDefinition(Instance->WorldObjectDefinitionId);
+	UClass* RuntimeClass = Definition ? Definition->RuntimeActorClass.Get() : nullptr;
+	return Definition &&
+		Definition->SupportedType == EGridLevelObjectType::Door &&
+		RuntimeClass &&
+		RuntimeClass->IsChildOf(AGridSecretDoorActor::StaticClass());
 }
 
 bool UGridDoorSystemComponent::IsDoorFullyOpenOnEdge(int32 X, int32 Y, EGridEdge Edge) const

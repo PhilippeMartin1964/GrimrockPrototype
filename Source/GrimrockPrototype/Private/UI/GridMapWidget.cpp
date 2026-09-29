@@ -982,7 +982,6 @@ bool UGridMapWidget::NavigateFloorUp()
 		return false;
 	}
 	ResetViewTransform(false);
-	InvalidateMapSurface();
 	return true;
 }
 
@@ -1004,7 +1003,6 @@ bool UGridMapWidget::NavigateFloorDown()
 		return false;
 	}
 	ResetViewTransform(false);
-	InvalidateMapSurface();
 	return true;
 }
 
@@ -1070,15 +1068,8 @@ bool UGridMapWidget::BuildSelectedFloorView()
 	FloorView.Reset();
 	bHasRenderableMap = false;
 
-	if (!bHasFloorSelection || !OwningPartyPawn || !OwningPartyPawn->LevelRuntimeActor)
-	{
-		RefreshFloorNavigationControls();
-		InvalidateMapSurface();
-		return false;
-	}
-
-	AGridLevelRuntimeActor* Runtime = OwningPartyPawn->LevelRuntimeActor;
-	if (!Runtime->DungeonAsset)
+	AGridLevelRuntimeActor* Runtime = OwningPartyPawn ? OwningPartyPawn->LevelRuntimeActor.Get() : nullptr;
+	if (!bHasFloorSelection || !Runtime || !Runtime->DungeonAsset)
 	{
 		RefreshFloorNavigationControls();
 		InvalidateMapSurface();
@@ -1105,13 +1096,8 @@ bool UGridMapWidget::BuildSelectedFloorView()
 bool UGridMapWidget::ResolvePartyFloorZ(int32& OutFloorZ) const
 {
 	OutFloorZ = 0;
-	if (!OwningPartyPawn || !OwningPartyPawn->LevelRuntimeActor)
-	{
-		return false;
-	}
-
-	const AGridLevelRuntimeActor* Runtime = OwningPartyPawn->LevelRuntimeActor;
-	if (!Runtime->DungeonAsset)
+	const AGridLevelRuntimeActor* Runtime = OwningPartyPawn ? OwningPartyPawn->LevelRuntimeActor.Get() : nullptr;
+	if (!Runtime || !Runtime->DungeonAsset)
 	{
 		return false;
 	}
@@ -1129,19 +1115,12 @@ bool UGridMapWidget::ResolvePartyFloorZ(int32& OutFloorZ) const
 bool UGridMapWidget::FindAdjacentFloorZ(bool bUp, int32& OutFloorZ) const
 {
 	OutFloorZ = 0;
-	if (!bHasFloorSelection || !OwningPartyPawn || !OwningPartyPawn->LevelRuntimeActor)
+	if (!bHasFloorSelection)
 	{
 		return false;
 	}
 
-	const AGridLevelRuntimeActor* Runtime = OwningPartyPawn->LevelRuntimeActor;
-	if (!Runtime->DungeonAsset)
-	{
-		return false;
-	}
-
-	TArray<int32> AvailableFloorZs;
-	FGridMapReadModelBuilder::GetAvailableFloorZs(*Runtime->DungeonAsset, AvailableFloorZs);
+	const TArray<int32>& AvailableFloorZs = FloorView.AvailableFloorZs;
 	if (bUp)
 	{
 		for (const int32 FloorZ : AvailableFloorZs)
@@ -1178,10 +1157,7 @@ void UGridMapWidget::InvalidateMapSurface()
 	if (MapSurface)
 	{
 		MapSurface->RequestRepaint();
-		return;
 	}
-
-	Invalidate(EInvalidateWidgetReason::Paint);
 }
 
 void UGridMapWidget::RefreshFloorNavigationControls()

@@ -71,7 +71,7 @@ bool FGridMapUI02CloseButtonContractTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	TestNotNull(TEXT("Map exposes optional Button_CloseMap binding"),
+	TestNotNull(TEXT("Map exposes canonical Button_CloseMap binding"),
 		FindFProperty<FProperty>(MapClass, FName(TEXT("Button_CloseMap"))));
 	TestNotNull(TEXT("Party exposes public canonical Map close path"),
 		PartyClass->FindFunctionByName(FName(TEXT("HideMapWidget"))));

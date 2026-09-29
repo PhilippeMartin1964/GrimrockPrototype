@@ -242,7 +242,7 @@ bool FGridMapMON21610RecenterTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMapMON21610ContractTest, "Grimrock.Map.MON21_6_10.View.OptionalUMGAndTransientContract",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMapMON21610ContractTest, "Grimrock.Map.MON21_6_10.View.CanonicalUMGAndTransientContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridMapMON21610ContractTest::RunTest(const FString& Parameters)
@@ -255,7 +255,7 @@ bool FGridMapMON21610ContractTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("PanMapByPixels callable exists"), MapClass->FindFunctionByName(TEXT("PanMapByPixels")));
 
 	const FObjectPropertyBase* RecenterProperty = CastField<FObjectPropertyBase>(MapClass->FindPropertyByName(TEXT("Button_Recenter")));
-	TestTrue(TEXT("Optional recenter binding is a UButton"), RecenterProperty && RecenterProperty->PropertyClass == UButton::StaticClass());
+	TestTrue(TEXT("Canonical recenter binding is a UButton"), RecenterProperty && RecenterProperty->PropertyClass == UButton::StaticClass());
 
 	for (const TCHAR* PropertyName : { TEXT("ZoomScale"), TEXT("PanOffsetPixels"), TEXT("bCenterViewOnParty"), TEXT("bIsPanning") })
 	{

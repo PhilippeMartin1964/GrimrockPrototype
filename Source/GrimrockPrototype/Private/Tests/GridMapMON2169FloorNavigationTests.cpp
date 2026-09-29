@@ -274,7 +274,7 @@ bool FGridMapMON2169LevelLabelTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMapMON2169UIContractTest, "Grimrock.Map.MON21_6_9.FloorNavigation.OptionalUMGAndTransientState",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMapMON2169UIContractTest, "Grimrock.Map.MON21_6_9.FloorNavigation.CanonicalUMGAndTransientState",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridMapMON2169UIContractTest::RunTest(const FString& Parameters)
@@ -291,9 +291,9 @@ bool FGridMapMON2169UIContractTest::RunTest(const FString& Parameters)
 	const FObjectPropertyBase* UpProperty = CastField<FObjectPropertyBase>(MapClass->FindPropertyByName(TEXT("Button_LevelUp")));
 	const FObjectPropertyBase* DownProperty = CastField<FObjectPropertyBase>(MapClass->FindPropertyByName(TEXT("Button_LevelDown")));
 	const FObjectPropertyBase* LabelProperty = CastField<FObjectPropertyBase>(MapClass->FindPropertyByName(TEXT("Text_FloorLabel")));
-	TestTrue(TEXT("Optional Level Up binding is a UButton"), UpProperty && UpProperty->PropertyClass == UButton::StaticClass());
-	TestTrue(TEXT("Optional Level Down binding is a UButton"), DownProperty && DownProperty->PropertyClass == UButton::StaticClass());
-	TestTrue(TEXT("Optional floor label binding is a UTextBlock"), LabelProperty && LabelProperty->PropertyClass == UTextBlock::StaticClass());
+	TestTrue(TEXT("Canonical Level Up binding is a UButton"), UpProperty && UpProperty->PropertyClass == UButton::StaticClass());
+	TestTrue(TEXT("Canonical Level Down binding is a UButton"), DownProperty && DownProperty->PropertyClass == UButton::StaticClass());
+	TestTrue(TEXT("Canonical floor label binding is a UTextBlock"), LabelProperty && LabelProperty->PropertyClass == UTextBlock::StaticClass());
 
 	const FProperty* SelectedFloorProperty = MapClass->FindPropertyByName(TEXT("SelectedFloorZ"));
 	TestNotNull(TEXT("SelectedFloorZ exists as widget-only state"), SelectedFloorProperty);
