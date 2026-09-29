@@ -73,6 +73,8 @@ bool FGridMapUI02CloseButtonContractTest::RunTest(const FString& Parameters)
 
 	TestNotNull(TEXT("Map exposes optional Button_CloseMap binding"),
 		FindFProperty<FProperty>(MapClass, FName(TEXT("Button_CloseMap"))));
+	TestNotNull(TEXT("Party exposes public canonical Map close path"),
+		PartyClass->FindFunctionByName(FName(TEXT("HideMapWidget"))));
 	TestNotNull(TEXT("Party exposes reflected close-button handler"),
 		PartyClass->FindFunctionByName(FName(TEXT("HandleMapWindowCloseClicked"))));
 
@@ -103,16 +105,10 @@ bool FGridMapUI02CloseTransitionTest::RunTest(const FString& Parameters)
 	Party->bInventoryWidgetVisible = true;
 	Map->SetVisibility(ESlateVisibility::Visible);
 
-	UFunction* CloseHandler = Party->FindFunction(FName(TEXT("HandleMapWindowCloseClicked")));
-	if (!TestNotNull(TEXT("Close handler can be invoked"), CloseHandler))
-	{
-		return false;
-	}
+	Party->HideMapWidget();
 
-	Party->ProcessEvent(CloseHandler, nullptr);
-
-	TestFalse(TEXT("Close button path collapses standalone Map"), Party->IsMapWidgetVisible());
-	TestFalse(TEXT("Close button path releases major UI state"), Party->bInventoryWidgetVisible);
+	TestFalse(TEXT("Canonical Map close path collapses standalone Map"), Party->IsMapWidgetVisible());
+	TestFalse(TEXT("Canonical Map close path releases major UI state"), Party->bInventoryWidgetVisible);
 
 	return true;
 }

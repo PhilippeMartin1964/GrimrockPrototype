@@ -370,6 +370,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Map|UI")
 	void ShowMapWidget();
 
+	/** Canonical standalone Map close path used by M, ESC and the title-bar close button. */
+	UFUNCTION(BlueprintCallable, Category = "Map|UI")
+	void HideMapWidget();
+
 	UFUNCTION(BlueprintPure, Category = "Map|UI")
 	bool IsMapWidgetVisible() const;
 
@@ -677,7 +681,6 @@ private:
 	bool IsMajorGameplayUiBlockedByCombat() const;
 	void ApplyMajorUiInputMode(bool bOpen);
 	void RefreshMajorUiVisibilityAfterSplitClose();
-	void HideMapWidget();
 
 	UFUNCTION()
 	void HandleMapWindowCloseClicked();

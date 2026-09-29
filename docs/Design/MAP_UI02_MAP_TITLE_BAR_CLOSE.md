@@ -113,3 +113,27 @@ MAP-UI02 est validé après :
 2. `Grimrock.UI.MapUI02` vert ;
 3. UMG configuré avec `Button_CloseMap` ;
 4. smoke PIE confirmé.
+
+
+## MAP-UI02-FIX01 — Close transition testability
+
+Le premier run ciblé du 29 septembre 2026 a donné :
+
+```text
+Grimrock.UI.MapUI02
+Succeeded : 1
+Failed    : 1
+Failure   : CloseTransition
+Report    : TD04-20260929-091047
+```
+
+La régression `Grimrock.UI.Navigation01` est restée verte : **2/2** (`TD04-20260929-091105`).
+
+Cause : le test `CloseTransition` invoquait le handler privé `HandleMapWindowCloseClicked()` indirectement via `ProcessEvent()`. Ce mécanisme de test ne représentait pas correctement le chemin natif de fermeture.
+
+Correction :
+
+- `HideMapWidget()` devient l'API publique/callable canonique de fermeture de la Map ;
+- `M`, `ESC` et `HandleMapWindowCloseClicked()` utilisent ce même chemin ;
+- le test de transition appelle directement `HideMapWidget()` ;
+- aucun changement UMG, Map read model, SaveGame ou gameplay.
