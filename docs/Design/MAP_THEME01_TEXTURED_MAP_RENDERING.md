@@ -26,6 +26,7 @@ MAP-THEME01 changes only the final presentation step.
 Textures
   ParchmentTexture
   WallTexture
+  WallPillarTexture
   DoorClosedTexture
   DoorOpenTexture
 
@@ -50,6 +51,7 @@ Layout values:
 
 ```text
 BoundaryThicknessRatio = 0.16
+WallPillarScale         = 0.24
 SymbolScale             = 0.72
 PartyMarkerScale         = 0.78
 SymbolMinCellPixels      = 12
@@ -72,6 +74,17 @@ There is no duplicated map/read-model state.
 ### Walls
 
 `WallTexture` is authored as a horizontal strip. Slate rotates the strip to match the projected boundary.
+
+`WallPillarTexture` is a square RGBA top-view pillar drawn above wall strips. It follows the same modular convention as `SM_Wall_Stone_05`: when facing a wall from its owning cell, the pillar is at the left end.
+
+```text
+North -> West end
+East  -> North end
+South -> East end
+West  -> South end
+```
+
+Pillars sharing the same grid vertex are deduplicated. They are emitted only for boundaries that are visually solid walls: ordinary walls and closed secret doors. Open secret doors and standard doors do not add wall pillars.
 
 ### Doors
 
@@ -131,6 +144,7 @@ Content/Grimrock/UI/Map/
 ├── Textures/
 │   ├── T_Map_Parchment
 │   ├── T_Map_Wall
+│   ├── T_Map_WallPillar
 │   ├── T_Map_DoorClosed
 │   └── T_Map_DoorOpen
 └── Symbols/

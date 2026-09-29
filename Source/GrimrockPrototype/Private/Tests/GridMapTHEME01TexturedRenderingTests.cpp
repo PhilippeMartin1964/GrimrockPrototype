@@ -26,6 +26,7 @@ bool FGridMapTHEME01AssetContractTest::RunTest(const FString& Parameters)
 	for (const TCHAR* PropertyName : {
 		TEXT("ParchmentTexture"),
 		TEXT("WallTexture"),
+		TEXT("WallPillarTexture"),
 		TEXT("DoorClosedTexture"),
 		TEXT("DoorOpenTexture"),
 		TEXT("StairsUpTexture"),
@@ -80,6 +81,8 @@ bool FGridMapTHEME01DefaultsTest::RunTest(const FString& Parameters)
 		Theme->ParchmentOpacity >= 0.0f && Theme->ParchmentOpacity <= 1.0f);
 	TestTrue(TEXT("Boundary texture thickness has a usable default"),
 		Theme->BoundaryThicknessRatio >= 0.03f && Theme->BoundaryThicknessRatio <= 0.50f);
+	TestTrue(TEXT("Wall pillar scale has a usable default"),
+		Theme->WallPillarScale >= 0.05f && Theme->WallPillarScale <= 0.50f);
 	TestTrue(TEXT("Symbol texture scale has a usable default"),
 		Theme->SymbolScale >= 0.20f && Theme->SymbolScale <= 1.00f);
 	TestTrue(TEXT("Party marker texture scale has a usable default"),

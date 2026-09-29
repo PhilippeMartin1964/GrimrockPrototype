@@ -123,6 +123,7 @@ namespace GridMapWidgetPrivate
 	{
 		FSlateBrush Parchment;
 		FSlateBrush Wall;
+		FSlateBrush WallPillar;
 		FSlateBrush DoorClosed;
 		FSlateBrush DoorOpen;
 		FSlateBrush StairsUp;
@@ -136,6 +137,7 @@ namespace GridMapWidgetPrivate
 		{
 			ConfigureTextureBrush(Parchment, Theme.ParchmentTexture);
 			ConfigureTextureBrush(Wall, Theme.WallTexture);
+			ConfigureTextureBrush(WallPillar, Theme.WallPillarTexture);
 			ConfigureTextureBrush(DoorClosed, Theme.DoorClosedTexture);
 			ConfigureTextureBrush(DoorOpen, Theme.DoorOpenTexture);
 			ConfigureTextureBrush(StairsUp, Theme.StairsUpTexture);
@@ -566,6 +568,42 @@ namespace GridMapWidgetPrivate
 				OutA = TopLeft;
 				OutB = TopLeft;
 				break;
+		}
+	}
+
+	bool GetWallLeftPillarPlacement(
+		const FGridMapFloorBoundaryView& Boundary,
+		const FVector2f& A,
+		const FVector2f& B,
+		FIntPoint& OutVertex,
+		FVector2f& OutCenter)
+	{
+		// Match the modular wall convention used by SM_Wall_Stone_05:
+		// when facing the wall from its owning cell, the pillar sits on the left end.
+		switch (Boundary.Edge)
+		{
+			case EGridEdge::North:
+				OutVertex = FIntPoint(Boundary.MapCell.X, Boundary.MapCell.Y + 1);
+				OutCenter = B; // West end.
+				return true;
+
+			case EGridEdge::East:
+				OutVertex = FIntPoint(Boundary.MapCell.X + 1, Boundary.MapCell.Y + 1);
+				OutCenter = A; // North end.
+				return true;
+
+			case EGridEdge::South:
+				OutVertex = FIntPoint(Boundary.MapCell.X + 1, Boundary.MapCell.Y);
+				OutCenter = A; // East end.
+				return true;
+
+			case EGridEdge::West:
+				OutVertex = FIntPoint(Boundary.MapCell.X, Boundary.MapCell.Y);
+				OutCenter = B; // South end.
+				return true;
+
+			default:
+				return false;
 		}
 	}
 
@@ -1513,7 +1551,8 @@ int32 UGridMapWidget::PaintMapSurface(
 	const int32 HatchLayer = CellLayer + 1;
 	const int32 FeatherLayer = HatchLayer + 1;
 	const int32 BoundaryLayer = FeatherLayer + 1;
-	const int32 SymbolLayer = BoundaryLayer + 2;
+	const int32 PillarLayer = BoundaryLayer + 1;
+	const int32 SymbolLayer = PillarLayer + 1;
 	const int32 MarkerLayer = SymbolLayer + 2;
 
 	const FVector2D LocalSize = AllottedGeometry.GetLocalSize();
@@ -1613,11 +1652,25 @@ int32 UGridMapWidget::PaintMapSurface(
 		}
 	}
 
+	TMap<FIntPoint, FVector2f> WallPillarCenters;
 	for (const FGridMapFloorBoundaryView& Boundary : FloorView.Boundaries)
 	{
 		FVector2f A;
 		FVector2f B;
 		GetBoundaryEndpoints(Metrics, Boundary, A, B);
+
+		const bool bVisuallySolidWall =
+			Boundary.Kind == EGridMapBoundaryKind::Wall ||
+			(Boundary.Kind == EGridMapBoundaryKind::SecretDoor && !Boundary.bDoorOpen);
+		if (bUseTexturedTheme && VisualTheme->WallPillarTexture && bVisuallySolidWall)
+		{
+			FIntPoint PillarVertex;
+			FVector2f PillarCenter;
+			if (GetWallLeftPillarPlacement(Boundary, A, B, PillarVertex, PillarCenter))
+			{
+				WallPillarCenters.FindOrAdd(PillarVertex, PillarCenter);
+			}
+		}
 
 		if (bUseTexturedTheme)
 		{
@@ -1731,6 +1784,22 @@ int32 UGridMapWidget::PaintMapSurface(
 
 			default:
 				break;
+		}
+	}
+
+	if (bUseTexturedTheme && VisualTheme->WallPillarTexture)
+	{
+		const float PillarSize =
+			Metrics.CellSize * FMath::Clamp(VisualTheme->WallPillarScale, 0.05f, 0.50f);
+		for (const TPair<FIntPoint, FVector2f>& Pillar : WallPillarCenters)
+		{
+			DrawTexturedSquare(
+				OutDrawElements,
+				PillarLayer,
+				AllottedGeometry,
+				Pillar.Value,
+				PillarSize,
+				&ThemeBrushes->WallPillar);
 		}
 	}
 

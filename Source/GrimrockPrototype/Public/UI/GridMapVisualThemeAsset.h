@@ -29,6 +29,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Textures")
 	TObjectPtr<UTexture2D> WallTexture;
 
+	/** Square top-view pillar placed at the left end of each visually solid wall segment. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Textures")
+	TObjectPtr<UTexture2D> WallPillarTexture;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Textures")
 	TObjectPtr<UTexture2D> DoorClosedTexture;
 
@@ -56,6 +60,10 @@ public:
 	/** Boundary strip thickness as a fraction of the current rendered cell size. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Layout", meta = (ClampMin = "0.03", ClampMax = "0.50"))
 	float BoundaryThicknessRatio = 0.16f;
+
+	/** Square pillar size as a fraction of the current rendered cell size. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Layout", meta = (ClampMin = "0.05", ClampMax = "0.50"))
+	float WallPillarScale = 0.24f;
 
 	/** Square symbol size as a fraction of the current rendered cell size. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Layout", meta = (ClampMin = "0.20", ClampMax = "1.00"))
