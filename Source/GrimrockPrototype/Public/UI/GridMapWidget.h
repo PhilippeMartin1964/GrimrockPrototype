@@ -261,6 +261,12 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseWheel(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent) override;
+
 private:
 	friend class UGridMapSurfaceWidget;
 
@@ -270,6 +276,7 @@ private:
 		int32 LayerId) const;
 
 	void InvalidateMapSurface();
+	bool IsScreenPositionInsideMapSurface(const FVector2D& ScreenPosition) const;
 	bool BuildSelectedFloorView();
 	bool ResolvePartyFloorZ(int32& OutFloorZ) const;
 	bool FindAdjacentFloorZ(bool bUp, int32& OutFloorZ) const;

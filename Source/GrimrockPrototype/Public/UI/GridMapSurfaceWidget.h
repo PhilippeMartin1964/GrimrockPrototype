@@ -9,7 +9,7 @@ class UGridMapWidget;
 /**
  * Presentation-only native surface for WBP_GridMap.
  *
- * This widget owns no map/gameplay state. It renders and interacts with the transient
+ * This widget owns no map/gameplay state. It only renders the transient
  * FGridMapFloorView owned by its UGridMapWidget parent/controller.
  */
 UCLASS(Blueprintable)
@@ -33,11 +33,6 @@ protected:
 		const FWidgetStyle& InWidgetStyle,
 		bool bParentEnabled) const override;
 
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual FReply NativeOnMouseWheel(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual void NativeOnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent) override;
 
 private:
 	UPROPERTY(Transient)

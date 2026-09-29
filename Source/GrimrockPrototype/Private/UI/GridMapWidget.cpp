@@ -1209,6 +1209,86 @@ void UGridMapWidget::RefreshFloorNavigationControls()
 	}
 }
 
+bool UGridMapWidget::IsScreenPositionInsideMapSurface(const FVector2D& ScreenPosition) const
+{
+	if (!MapSurface)
+	{
+		return false;
+	}
+
+	const FGeometry& SurfaceGeometry = MapSurface->GetCachedGeometry();
+	const FVector2D SurfaceSize = SurfaceGeometry.GetLocalSize();
+	if (SurfaceSize.X <= 0.0 || SurfaceSize.Y <= 0.0)
+	{
+		return false;
+	}
+
+	const FVector2D LocalPosition = SurfaceGeometry.AbsoluteToLocal(ScreenPosition);
+	return GridMapWidgetPrivate::IsInsideMapViewport(LocalPosition, SurfaceSize, MapDrawPadding);
+}
+
+FReply UGridMapWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (bHasRenderableMap &&
+		InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton &&
+		IsScreenPositionInsideMapSurface(InMouseEvent.GetScreenSpacePosition()))
+	{
+		bIsPanning = true;
+		FReply Reply = FReply::Handled();
+		if (const TSharedPtr<SWidget> CachedWidget = GetCachedWidget())
+		{
+			Reply.CaptureMouse(CachedWidget.ToSharedRef());
+		}
+		return Reply;
+	}
+
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
+
+FReply UGridMapWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (bIsPanning && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		bIsPanning = false;
+		return FReply::Handled().ReleaseMouseCapture();
+	}
+
+	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
+}
+
+FReply UGridMapWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (bIsPanning && MapSurface)
+	{
+		const FGeometry& SurfaceGeometry = MapSurface->GetCachedGeometry();
+		const FVector2D CurrentLocal = SurfaceGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+		const FVector2D PreviousLocal = SurfaceGeometry.AbsoluteToLocal(InMouseEvent.GetLastScreenSpacePosition());
+		PanMapByPixels(CurrentLocal - PreviousLocal);
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnMouseMove(InGeometry, InMouseEvent);
+}
+
+FReply UGridMapWidget::NativeOnMouseWheel(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (bHasRenderableMap &&
+		!FMath::IsNearlyZero(InMouseEvent.GetWheelDelta()) &&
+		IsScreenPositionInsideMapSurface(InMouseEvent.GetScreenSpacePosition()))
+	{
+		AdjustZoom(InMouseEvent.GetWheelDelta());
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnMouseWheel(InGeometry, InMouseEvent);
+}
+
+void UGridMapWidget::NativeOnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent)
+{
+	bIsPanning = false;
+	Super::NativeOnMouseCaptureLost(CaptureLostEvent);
+}
+
 void UGridMapWidget::HandleLevelUpClicked()
 {
 	NavigateFloorUp();
@@ -1227,86 +1307,12 @@ void UGridMapWidget::HandleRecenterClicked()
 void UGridMapSurfaceWidget::InitializeMapSurface(UGridMapWidget* InOwnerMapWidget)
 {
 	OwnerMapWidget = InOwnerMapWidget;
+	SetVisibility(ESlateVisibility::HitTestInvisible);
 }
 
 void UGridMapSurfaceWidget::RequestRepaint()
 {
 	Invalidate(EInvalidateWidgetReason::Paint);
-}
-
-FReply UGridMapSurfaceWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
-{
-	if (OwnerMapWidget)
-	{
-		const FVector2D LocalMouse = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
-		if (OwnerMapWidget->bHasRenderableMap &&
-			InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton &&
-			GridMapWidgetPrivate::IsInsideMapViewport(LocalMouse, InGeometry.GetLocalSize(), OwnerMapWidget->MapDrawPadding))
-		{
-			OwnerMapWidget->bIsPanning = true;
-			FReply Reply = FReply::Handled();
-			if (const TSharedPtr<SWidget> CachedWidget = GetCachedWidget())
-			{
-				Reply.CaptureMouse(CachedWidget.ToSharedRef());
-			}
-			return Reply;
-		}
-	}
-
-	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
-}
-
-FReply UGridMapSurfaceWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
-{
-	if (OwnerMapWidget &&
-		OwnerMapWidget->bIsPanning &&
-		InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
-	{
-		OwnerMapWidget->bIsPanning = false;
-		return FReply::Handled().ReleaseMouseCapture();
-	}
-
-	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
-}
-
-FReply UGridMapSurfaceWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
-{
-	if (OwnerMapWidget && OwnerMapWidget->bIsPanning)
-	{
-		const FVector2D CurrentLocal = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
-		const FVector2D PreviousLocal = InGeometry.AbsoluteToLocal(InMouseEvent.GetLastScreenSpacePosition());
-		OwnerMapWidget->PanMapByPixels(CurrentLocal - PreviousLocal);
-		return FReply::Handled();
-	}
-
-	return Super::NativeOnMouseMove(InGeometry, InMouseEvent);
-}
-
-FReply UGridMapSurfaceWidget::NativeOnMouseWheel(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
-{
-	if (OwnerMapWidget)
-	{
-		const FVector2D LocalMouse = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
-		if (OwnerMapWidget->bHasRenderableMap &&
-			!FMath::IsNearlyZero(InMouseEvent.GetWheelDelta()) &&
-			GridMapWidgetPrivate::IsInsideMapViewport(LocalMouse, InGeometry.GetLocalSize(), OwnerMapWidget->MapDrawPadding))
-		{
-			OwnerMapWidget->AdjustZoom(InMouseEvent.GetWheelDelta());
-			return FReply::Handled();
-		}
-	}
-
-	return Super::NativeOnMouseWheel(InGeometry, InMouseEvent);
-}
-
-void UGridMapSurfaceWidget::NativeOnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent)
-{
-	if (OwnerMapWidget)
-	{
-		OwnerMapWidget->bIsPanning = false;
-	}
-
-	Super::NativeOnMouseCaptureLost(CaptureLostEvent);
 }
 
 int32 UGridMapSurfaceWidget::NativePaint(
