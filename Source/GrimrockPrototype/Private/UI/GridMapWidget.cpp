@@ -1177,7 +1177,7 @@ void UGridMapWidget::InvalidateMapSurface()
 {
 	if (MapSurface)
 	{
-		MapSurface->Invalidate(EInvalidateWidgetReason::Paint);
+		MapSurface->RequestRepaint();
 		return;
 	}
 
@@ -1227,6 +1227,11 @@ void UGridMapWidget::HandleRecenterClicked()
 void UGridMapSurfaceWidget::InitializeMapSurface(UGridMapWidget* InOwnerMapWidget)
 {
 	OwnerMapWidget = InOwnerMapWidget;
+}
+
+void UGridMapSurfaceWidget::RequestRepaint()
+{
+	Invalidate(EInvalidateWidgetReason::Paint);
 }
 
 FReply UGridMapSurfaceWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)

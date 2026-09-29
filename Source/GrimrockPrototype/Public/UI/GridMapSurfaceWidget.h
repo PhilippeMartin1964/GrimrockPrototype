@@ -20,6 +20,9 @@ class GRIMROCKPROTOTYPE_API UGridMapSurfaceWidget : public UUserWidget
 public:
 	void InitializeMapSurface(UGridMapWidget* InOwnerMapWidget);
 
+	/** Request a paint invalidation from outside the UUserWidget protected API boundary. */
+	void RequestRepaint();
+
 protected:
 	virtual int32 NativePaint(
 		const FPaintArgs& Args,
