@@ -7,6 +7,7 @@
 
 class AGrimrockPartyPawn;
 class UButton;
+class UPanelWidget;
 class UTextBlock;
 
 /**
@@ -105,6 +106,10 @@ public:
 	/** MAP-UI02 optional title-bar close button. The pawn owns the close transition/input mode. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Window")
 	TObjectPtr<UButton> Button_CloseMap;
+
+	/** MAP-UI03 presentation-only container placed over the map canvas. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Navigation")
+	TObjectPtr<UPanelWidget> Panel_FloorNavigationOverlay;
 
 	/** Optional MON21.6.9 UMG controls. Exact widget names are intentional. */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Map|Navigation")

@@ -1,6 +1,7 @@
 #include "UI/GridMapWidget.h"
 
 #include "Components/Button.h"
+#include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "Core/GridDungeonAsset.h"
 #include "InputCoreTypes.h"
@@ -939,6 +940,12 @@ void UGridMapWidget::ResetViewTransform(bool bCenterOnParty)
 
 void UGridMapWidget::RefreshFloorNavigationControls()
 {
+	if (Panel_FloorNavigationOverlay)
+	{
+		Panel_FloorNavigationOverlay->SetVisibility(
+			bHasFloorSelection ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	}
+
 	if (Button_LevelUp)
 	{
 		Button_LevelUp->SetIsEnabled(CanNavigateFloorUp());
