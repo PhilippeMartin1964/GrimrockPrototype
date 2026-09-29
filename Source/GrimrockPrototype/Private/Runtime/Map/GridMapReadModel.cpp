@@ -219,15 +219,6 @@ namespace GridMapReadModelPrivate
 		}
 	}
 
-	bool IsPitOpenForMap(const FGridWorldObjectInstance& Instance, const FGridLevelRuntimeState& LevelState)
-	{
-		if (const FGridRuntimePitState* RuntimeState = LevelState.Pits.Find(Instance.InstanceId))
-		{
-			return RuntimeState->bIsOpen;
-		}
-		return Instance.InstanceConfig.Pit.bInitiallyOpen;
-	}
-
 	bool HasSymbol(const TArray<FGridMapSymbolView>& Symbols, const FIntPoint& Cell, EGridMapSymbolKind Kind)
 	{
 		return Symbols.ContainsByPredicate(
@@ -517,7 +508,7 @@ bool FGridMapReadModelBuilder::BuildTileView(
 
 		if (ExplicitKind == EGridMapSymbolKind::Pit)
 		{
-			if (ResolveGameplayType(Instance, DefinitionById) == EGridLevelObjectType::Pit && IsPitOpenForMap(Instance, LevelState))
+			if (ResolveGameplayType(Instance, DefinitionById) == EGridLevelObjectType::Pit)
 			{
 				AddSymbolUnique(OutView.Symbols, Cell, EGridMapSymbolKind::Pit);
 			}

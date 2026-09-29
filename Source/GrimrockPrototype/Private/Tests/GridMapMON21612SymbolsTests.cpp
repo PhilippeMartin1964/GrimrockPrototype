@@ -167,7 +167,7 @@ bool FGridMapMON21612FilteringTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMapMON21612PitTest, "Grimrock.Map.MON21_6_12.Symbols.PitRequiresOpenState",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMapMON21612PitTest, "Grimrock.Map.MON21_6_12.Symbols.MAP_PIT01.PitPersistsAcrossState",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridMapMON21612PitTest::RunTest(const FString& Parameters)
@@ -194,7 +194,7 @@ bool FGridMapMON21612PitTest::RunTest(const FString& Parameters)
 	FGridMapTileView ClosedView;
 	TestTrue(TEXT("Closed pit tile view builds"),
 		FGridMapReadModelBuilder::BuildTileView(State.LevelId, *Level, State, Definitions, nullptr, ClosedView));
-	TestFalse(TEXT("Closed trapdoor does not leak a Pit symbol"),
+	TestTrue(TEXT("Explored closed pit keeps its Pit symbol"),
 		HasTileSymbol(ClosedView, FIntPoint(8, 8), EGridMapSymbolKind::Pit));
 
 	FGridRuntimePitState& RuntimePit = State.Pits.Add(Pit.InstanceId);
@@ -204,14 +204,14 @@ bool FGridMapMON21612PitTest::RunTest(const FString& Parameters)
 	FGridMapTileView OpenView;
 	TestTrue(TEXT("Open pit tile view builds"),
 		FGridMapReadModelBuilder::BuildTileView(State.LevelId, *Level, State, Definitions, nullptr, OpenView));
-	TestTrue(TEXT("Runtime-open pit exposes a Pit symbol"),
+	TestTrue(TEXT("Runtime-open pit keeps its Pit symbol"),
 		HasTileSymbol(OpenView, FIntPoint(8, 8), EGridMapSymbolKind::Pit));
 
 	RuntimePit.bIsOpen = false;
 	FGridMapTileView ReclosedView;
 	TestTrue(TEXT("Reclosed pit tile view builds"),
 		FGridMapReadModelBuilder::BuildTileView(State.LevelId, *Level, State, Definitions, nullptr, ReclosedView));
-	TestFalse(TEXT("Runtime-closed pit removes the hazard symbol"),
+	TestTrue(TEXT("Reclosed pit still keeps its known Pit symbol"),
 		HasTileSymbol(ReclosedView, FIntPoint(8, 8), EGridMapSymbolKind::Pit));
 	return true;
 }
