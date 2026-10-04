@@ -74,6 +74,10 @@ struct GRIMROCKPROTOTYPE_API FGridMapSymbolView
 
 	UPROPERTY(BlueprintReadOnly, Category = "Map")
 	EGridMapSymbolKind Kind = EGridMapSymbolKind::Relocation;
+
+	/** Directional presentation for stairs. North matches the authored texture default (South -> North). */
+	UPROPERTY(BlueprintReadOnly, Category = "Map")
+	EGridEdge Facing = EGridEdge::North;
 };
 
 /** MON21.6.6 filtered, transient projection for exactly one canonical 32x32 LevelAsset tile. */
@@ -143,6 +147,10 @@ struct GRIMROCKPROTOTYPE_API FGridMapFloorSymbolView
 
 	UPROPERTY(BlueprintReadOnly, Category = "Map")
 	EGridMapSymbolKind Kind = EGridMapSymbolKind::Relocation;
+
+	/** Directional presentation for stairs. North matches the authored texture default (South -> North). */
+	UPROPERTY(BlueprintReadOnly, Category = "Map")
+	EGridEdge Facing = EGridEdge::North;
 };
 
 /** MON21.6.7 seamless projection of all enabled 32x32 tiles sharing one logical Z floor. */
