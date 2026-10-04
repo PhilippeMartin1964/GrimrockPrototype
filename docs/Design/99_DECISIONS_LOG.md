@@ -1193,3 +1193,19 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - `ApplyMonsterPlacementMetadata()` reste autoritaire pour `EncounterGroupId`, `PatrolMode` et `PatrolWaypoints`.
 - Movement, Occupancy et Pathfinder restent inchangés.
 - Les tests de patrouille/alarme utilisent le pipeline automatique de production au lieu de `ProcessMonsterNow()`.
+
+## 2026-10-04 — DOC-CLOSURE01 / rebaseline documentaire
+
+### Décisions validées
+
+- La baseline runtime/content canonique clôturée est `9045ef2db75c09997db4fc65dbf99d4598f4df5c`.
+- `master == origin/master` a été confirmé avant la validation finale.
+- Régression globale : **1026/1026**, 0 warning, 0 échec, 0 non exécuté.
+- Win64 Shipping : Build/Cook/Stage/Package/Pak/Archive validés ; cook 0 error / 0 warning ; AutomationTool ExitCode=0.
+- MON21.6 est **VALIDÉ / CLOS**.
+- MAP-THEME01 est **VALIDÉ / CLOS**.
+- CPP-CLEAN01 est **VALIDÉ / CLOS**.
+- RUNTIME-TRANSFORM-DIAG01 est **VALIDÉ / CLOS**.
+- Les anciennes remarques Weekly correspondantes sont historiques et ne doivent pas redevenir des jalons actifs sans nouvelle régression.
+- DOC-CLOSURE01 est un commit **documentation-only** : il avance le HEAD Git sans modifier la baseline runtime/content validée et ne nécessite pas de rerun UE à lui seul.
+- Les documents historiques datés restent valides pour leur époque ; les documents de synthèse rebaselinés au 4 octobre 2026 priment pour l’état courant.

@@ -1,5 +1,9 @@
 # MAP-THEME01 — Textured Map Rendering
 
+Date de clôture : **4 octobre 2026**  
+Statut : **VALIDÉ — MERGED / CLOS**  
+Baseline runtime/content validée : `9045ef2db75c09997db4fc65dbf99d4598f4df5c`
+
 ## Goal
 
 Replace the procedural hand-drawn presentation of the dungeon map with data-driven UI textures while preserving the validated MON21.6 exploration, topology, secret-discovery, floor-navigation, zoom/pan and SaveGame behavior.
@@ -131,21 +135,21 @@ South = 180 degrees
 West  =  90 degrees
 ```
 
-## UE5 content to create manually
+## UE5 content créé et validé sur master
 
 Do not generate or edit these binary assets outside Unreal Editor.
 
 Recommended content structure:
 
 ```text
-Content/Grimrock/UI/Map/
+Content/GrimrockPrototype/UI/Map/
 ├── Themes/
 │   └── DA_MapVisualTheme_Default
 ├── Textures/
 │   ├── T_Map_Parchment
 │   ├── T_Map_Wall
 │   ├── T_Map_WallPillar
-│   ├── T_Map_DoorClosed
+│   ├── T_Map_Door
 │   └── T_Map_DoorOpen
 └── Symbols/
     ├── T_Map_StairsUp
@@ -181,3 +185,44 @@ Grimrock.UI.MapTheme01
 ```
 
 MAP-THEME01 must not change the exact-match SaveGame version.
+
+## Final validation
+
+Le thème final et ses assets ont été fusionnés par fast-forward dans `master`. La branche locale de travail `MAP-THEME01` a ensuite été supprimée.
+
+Assets présents sous `Content/GrimrockPrototype/UI/Map/` :
+
+```text
+Themes/
+  DA_MapVisualTheme_Default
+
+Textures/
+  T_Map_Parchment
+  T_Map_Wall
+  T_Map_WallPillar
+  T_Map_Door
+  T_Map_DoorOpen
+  T_Map_Relocation
+
+Symbols/
+  T_Map_PartyMarker
+  T_Map_Pit
+  T_Map_StairsDown
+  T_Map_StairsUp
+```
+
+`PointOfInterestTexture` reste optionnelle : le renderer conserve son fallback de primitive lorsque cette texture n’est pas assignée.
+
+Validation finale sur la baseline runtime/content `9045ef2d` :
+
+```text
+Grimrock global
+1026 succeeded / 0 warnings / 0 failed / 0 not run
+
+Win64 Shipping
+Build + Cook + Stage + Package + Pak + Archive : OK
+Cook : 0 error / 0 warning
+AutomationTool ExitCode = 0
+```
+
+**Décision : MAP-THEME01 est VALIDÉ et CLOS.**

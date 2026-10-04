@@ -2,11 +2,11 @@
 
 > Carte d’architecture textuelle, diffable et autoritaire du projet.
 >
-> **État courant : 28 septembre 2026 — MON21.6 repris ; MON21.6.1 Map Architecture Contract validé.**
+> **État courant : 4 octobre 2026 — MON21.6 + MAP-THEME01 validés/clos ; FINAL-MASTER-CLOSURE validé.**
 >
-> HEAD audité pour MON21.6.1 : `7750ede9220eb94341ff02c618d9e7fa4c8050be`.
+> Baseline runtime/content canonique validée : `9045ef2db75c09997db4fc65dbf99d4598f4df5c`.
 >
-> Dernière validation globale fournie par l’utilisateur après `CPP-CLEAN06.1` : **964 tests réussis / 0 warning / 0 échec / 0 non exécuté**. Le HEAD courant ajoute ensuite uniquement deux modifications d’assets `.uasset` (Door/Main Menu), sans modification C++.
+> Dernière validation globale fournie par l’utilisateur : **1026 tests réussis / 0 warning / 0 échec / 0 non exécuté**. Win64 Shipping Build/Cook/Stage/Package/Pak/Archive validé ; cook **0 error / 0 warning** ; `ExitCode=0`.
 
 ## Légende
 
@@ -54,14 +54,15 @@
 7. Fondations et tickets historiques.
 8. Anciennes roadmaps / checklists uniquement comme historique.
 
-## 00.3 — Dérives documentaires identifiées lors de cette mise à jour
+## 00.3 — Rebaseline documentaire DOC-CLOSURE01
 
-- ⚠️ `docs/Design/00_PROJECT_OVERVIEW.md` reste daté du 23 août et s’arrête à MON20.3.
-- ⚠️ `docs/Design/README.md` présente encore MON20.4 comme prochain jalon.
-- ⚠️ l’en-tête de `UI_ARCHITECTURE_CURRENT.md` est plus ancien que plusieurs sections ajoutées ensuite.
-- ⚠️ `TECHNICAL_DEBT_REGISTER.md` mentionne encore une dette `TD-LOG-001` alors que CPP-CLEAN05 a supprimé les **502 appels réels à `LogTemp`**.
-- ⚠️ les anciennes cartes sous `docs/Architecture/Maps/` étaient des snapshots d’août 2026 ; elles sont remplacées par la présente génération.
-- ✅ Les documents historiques ne sont pas réécrits rétroactivement : Git reste l’historique, les cartes courantes explicitent ce qui est superseded.
+- ✅ `docs/Design/00_PROJECT_OVERVIEW.md` rebaseliné au 4 octobre 2026.
+- ✅ `docs/Design/README.md` rebaseliné.
+- ✅ `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md`, présente carte et vue Mermaid alignés sur la baseline finale.
+- ✅ MON21.6, CPP-CLEAN01 et MAP-THEME01 portent maintenant leur statut final de clôture.
+- ✅ Baseline globale courante : **1026/1026**, Shipping Win64 validé.
+- ⚠️ Les tickets datés non autoritaires restent historiques et ne sont pas réécrits rétroactivement.
+- ⚠️ `TECHNICAL_DEBT_REGISTER.md` conserve notamment la surveillance toolchain MSVC non-preferred ; ce warning reste non bloquant tant que les harness Editor et Shipping restent verts.
 
 ---
 
@@ -1514,19 +1515,27 @@ Pipeline :
 
 ## 21.3 — Baseline actuelle connue
 
-Après CPP-CLEAN06.1 :
+Baseline runtime/content canonique validée : `9045ef2db75c09997db4fc65dbf99d4598f4df5c`.
 
 ```text
 Grimrock
-Succeeded               : 964
+Succeeded               : 1026
 Succeeded with warnings : 0
 Failed                  : 0
 Not run                 : 0
 Process exit code        : 0
 ```
 
+Shipping Win64 :
+
+```text
+Build + Cook + Stage + Package + Pak + Archive : OK
+Cook                                          : 0 error / 0 warning
+AutomationTool                                : ExitCode=0
+```
+
 - ✅ `rg 'UE_LOG(LogTemp' Source` ne retourne aucun appel réel.
-- ⚠️ Le HEAD `85951ce0ffaa3ad79c4e767db729b92922e2d501` ajoute ensuite uniquement deux assets binaires ; aucune nouvelle validation globale n’est documentée pour ces deux changements.
+- ✅ DOC-CLOSURE01 qui suit cette baseline est documentation-only.
 
 ## 21.4 — Politique projet
 
@@ -1647,12 +1656,13 @@ Des chemins de présentation utilisent encore `LoadSynchronous()` :
 - ✅ CPP-AUDIT01 + CLEAN01…06.
 - ✅ grande majorité de la refonte Inventory/Character/Persistent HUD.
 
-## 24.2 — Volontairement reporté
+## 24.2 — Volontairement reporté / à prioriser
 
 - ⏸️ MON21.4 Quest Persistence.
-- ⏸️ Journal métier.
-- ⏸️ Map métier.
-- ⏸️ Codex métier.
+- ⬜ MON21.5 Journal métier.
+- ✅ MON21.6 Map — **VALIDÉ / CLOS**.
+- ✅ MAP-THEME01 — rendu texturé data-driven **VALIDÉ / CLOS**.
+- ⬜ MON21.7 Codex métier.
 - ⏸️ Craft/Recipes métier.
 
 ## 24.3 — UI à terminer avant clôture de la refonte
@@ -1667,7 +1677,7 @@ Ordre recommandé :
 ## 24.4 — Ensuite
 
 - contenu : bestiaire, équipements, sorts, environnements ;
-- fonctionnalités différées : Quest/Journal/Map/Codex/Craft ;
+- fonctionnalités restantes/différées : Quest Persistence, Journal, Codex, Craft ;
 - MON22 : vertical slice 45–90 minutes ;
 - performance/packaging final ;
 - éditeur standalone / publication de niveaux joueurs.
@@ -1714,6 +1724,9 @@ Ordre recommandé :
 - `docs/Design/COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md`
 - `docs/Design/MONSTERS_AI_ANIMATIONS_TURN_BASED_COMBAT_RAT_GIANT.md`
 - `docs/Design/MON21_1_QUESTS_JOURNAL_MAP_CODEX_ARCHITECTURE_AUDIT.md`
+- `docs/Design/MON21_6_13_MAP_CLOSURE.md`
+- `docs/Design/MAP_THEME01_TEXTURED_MAP_RENDERING.md`
+- `docs/Design/DOC_CLOSURE01_REBASELINE_DOCUMENTATION.md`
 
 ## Validation
 

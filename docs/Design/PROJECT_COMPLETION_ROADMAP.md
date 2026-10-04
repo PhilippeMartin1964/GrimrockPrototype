@@ -1,9 +1,11 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07 VALIDÉ/CLOS — MON21.4 EN ATTENTE DU FEU VERT UTILISATEUR**  
-Date de référence : **28 août 2026**
+Statut : **TD07 VALIDÉ/CLOS — MON21.6 + MAP-THEME01 VALIDÉS/CLOS — SUITE MON21 À PRIORISER**  
+Date de référence : **4 octobre 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
+
+Baseline de clôture du 4 octobre 2026 : `9045ef2d`, **1026/1026**, 0 warning, 0 échec, Shipping Win64 validé. Le commit DOC-CLOSURE01 est documentation-only.
 
 ---
 
@@ -85,7 +87,7 @@ MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
 MON21.4 — Quest Persistence                                   EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
-MON21.6 — Map Geometry + Exploration State + Existing WBP       ACTIF — MON21.6.13 C++ IMPLÉMENTÉ / CLOSURE À VALIDER
+MON21.6 — Map Geometry + Exploration State + Existing WBP       VALIDÉ — CLOS
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
 MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
@@ -359,7 +361,7 @@ MON21.6.13 — Automation / Regression / Closure + fit/polish final est maintena
 - 4 tests ciblés sous `Grimrock.Map.MON21_6_13` ;
 - famille Map complète = **50 tests** sous le préfixe `Grimrock.Map.MON21_6`.
 
-Statut MON21.6.13 : **C++ implémenté ; validation ciblée + régression globale + smoke PIE final requis avant clôture MON21.6**.
+Statut MON21.6.13 : **VALIDÉ — CLOS** le 4 octobre 2026 : filtre 6.13 **4/4**, famille MON21.6 **50/50**, smoke PIE final **OK**. MAP-THEME01 a ensuite finalisé le rendu texturé data-driven et est également **VALIDÉ — CLOS**.
 
 
 
@@ -395,7 +397,7 @@ MON21.8 — Closure
 
 ---
 
-# 4. Dette technique — TD07.3 actif
+# 4. Dette technique — TD07 clos
 
 ```text
 TD01–TD04  stabilisation / outillage                         RÉALISÉ
@@ -405,7 +407,7 @@ TD07.1     Build / dependency reproducibility                VALIDÉ
 TD07.2     UE compatibility warnings                         VALIDÉ
 TD07.3.1   Prototype Data Model Policy + Asset Audit         VALIDÉ
 TD07.3.2   SaveGame Reset / no backward migration            VALIDÉ
-TD07.3.3   Character State Normalization                      ACTIF
+TD07.3.3   Character State Normalization                      VALIDÉ — CLOS
 TD07.3.3.1 Character State Authority Audit                    VALIDÉ
 TD07.3.3.2 Remove Legacy Attribute Bridge                     VALIDÉ
 TD07.3.3.3 Normalize Derived Stats / Mutable Resources         VALIDÉ
@@ -420,7 +422,7 @@ TD07.3.4 Authoring Identity Normalization                     VALIDÉ — CLOS
 TD07.3.5 Combat Data Schema Reset                           VALIDÉ — CLOS
 TD07.3.6 Remaining Legacy API/Data Purge                    VALIDÉ — CLOS
 TD07.3.7 Current Asset Repair / Recreation                    VALIDÉ — CLOS
-TD07.3.8 Strict Current-Schema Validation / stop condition    À FAIRE
+TD07.3.8 Strict Current-Schema Validation / stop condition    VALIDÉ — STOP CONDITION ATTEINTE
 ```
 
 Politique autoritaire pendant le prototype : **aucune compatibilité arrière Save/DataAsset/Blueprint n'est requise**. Les données incompatibles peuvent être recréées ; Git conserve l'historique.
@@ -479,16 +481,19 @@ MON30 — Full Campaign
 
 ## Prochain travail autoritaire
 
+MON21.6 et MAP-THEME01 sont clos. Aucun chantier de clôture Map n’est encore actif.
+
+Les jalons fonctionnels restants à prioriser sont :
+
 ```text
-MON21.6.8 — Existing WBP + Native Map Rendering : VALIDÉ
-MON21.6.9 — Floor Navigation : VALIDÉ
-MON21.6.10 — Zoom / Pan / Recenter : VALIDÉ
-MON21.6.11 — Hand-Drawn Parchment Artistic Pass : VALIDÉ — POLISH FINAL DIFFÉRÉ
-MON21.6.12 — Map Symbols : VALIDÉ
-MON21.6.13 — Automation / Regression / Closure + fit/polish : C++ IMPLÉMENTÉ / CLOSURE À VALIDER
+MON21.4 — Quest Persistence                         EN ATTENTE
+MON21.5 — Journal Read Model + Existing WBP         À FAIRE
+MON21.7 — Codex Discovery + Projection              À FAIRE
+MON21.8 — Cross-System Regression / PIE / Closure   À FAIRE
+MON22   — 45–90 Minute Vertical Slice               À FAIRE
 ```
 
-TD07 est validé et clos. MON21.4 reste en attente ; le chantier fonctionnel actif est MON21.6 Map.
+La prochaine priorité produit doit être choisie explicitement ; la documentation ne réactive pas automatiquement MON21.4.
 
 
 TD07.3.3.9 ouvre **v19 exact-match** : `LastAcknowledgedLevel` devient l'état durable minimal de notification Level-Up et les queues persistantes MON15.6 sont supprimées.

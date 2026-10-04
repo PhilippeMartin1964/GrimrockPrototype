@@ -7,8 +7,8 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 28 septembre 2026, TD07 validé/clos ; MON21.6.12 validé ; MON21.6.13 fit/polish + closure C++ implémenté, validation finale requise.**  
-Phase active : **MON21.6 — Map Geometry + Exploration State + Existing WBP** ; clôture après filtre 6.13, régression complète Map et smoke PIE.
+**Référence courante : 4 octobre 2026 — baseline runtime/content `9045ef2d`, MON21.6 + MAP-THEME01 validés/clos, régression globale 1026/1026, Shipping validé.**  
+Phase active : **aucune clôture Map active ; prochaine priorité produit à choisir explicitement**.
 
 ## Ordre de lecture recommandé
 
@@ -25,9 +25,9 @@ Phase active : **MON21.6 — Map Geometry + Exploration State + Existing WBP** ;
 11. [UI et flux de jeu](UI_GAME_FLOW_FOUNDATION.md)
 12. [Tests et validation](TEST_AUTOMATION_FOUNDATION.md)
 
-`TECHNICAL_DEBT_DOCUMENTATION_AUDIT.md`, `ARCHITECTURE_CONSISTENCY_AUDIT.md` et `Maps/GRIMROCK_PROJECT_MAP.md` sont des snapshots historiques. Ils restent utiles comme références datées, mais ne sont pas l’autorité du statut courant.
+`TECHNICAL_DEBT_DOCUMENTATION_AUDIT.md` et `ARCHITECTURE_CONSISTENCY_AUDIT.md` sont des snapshots historiques. `Maps/GRIMROCK_PROJECT_MAP.md` et sa vue Mermaid ont été rebaselinés le 4 octobre 2026 et complètent désormais la synthèse courante.
 
-Contrat Map courant : [MON21.6.1 — Map Architecture Contract](../Design/MON21_6_1_MAP_ARCHITECTURE_CONTRACT.md).
+Contrat Map : [MON21.6.1 — Map Architecture Contract](../Design/MON21_6_1_MAP_ARCHITECTURE_CONTRACT.md). Clôture : [MON21.6.13](../Design/MON21_6_13_MAP_CLOSURE.md). Présentation finale : [MAP-THEME01](../Design/MAP_THEME01_TEXTURED_MAP_RENDERING.md).
 
 ## Fondations courantes
 
@@ -90,7 +90,7 @@ docs/Architecture/TECHNICAL_DEBT_REGISTER.md
 
 ## Phase courante
 
-Les fonctionnalités sont volontairement suspendues pendant le nettoyage du modèle de données.
+TD07 et MON21.6 sont clos. Aucun nettoyage structurel n’est actif par défaut ; la prochaine priorité fonctionnelle doit être choisie explicitement.
 
 ```text
 TD07.1    Build / dependency reproducibility             VALIDÉ
@@ -115,7 +115,7 @@ TD07.3.7 Current Asset Repair / Recreation                      VALIDÉ — CLOS
 TD07.3.8 Strict Current-Schema Validation / stop condition      VALIDÉ — STOP CONDITION ATTEINTE
 ```
 
-## Phase fonctionnelle reprise — MON21.6
+## État fonctionnel MON21
 
 ```text
 MON21.1  Audit & Architecture Contract                  CLOS
@@ -123,7 +123,7 @@ MON21.2  Quest Definition + Campaign Runtime State      VALIDÉ
 MON21.3  Quest Event -> Command Integration             VALIDÉ
 MON21.4  Quest Persistence                            EN ATTENTE — CHARACTERIZATION VALIDÉE
 MON21.5  Journal Read Model + Existing WBP Integration  À FAIRE
-MON21.6  Map Geometry + Exploration State + Existing WBP ACTIF — 6.13 C++ IMPLÉMENTÉ / CLOSURE À VALIDER
+MON21.6  Map Geometry + Exploration State + Existing WBP VALIDÉ — CLOS
 MON21.7  Codex Discovery + Definition Projection        À FAIRE
 MON21.8  Cross-System Regression / PIE / Closure        À FAIRE
 ```

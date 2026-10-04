@@ -1,7 +1,7 @@
 # MON21.6.13 — Map Regression / Closure + Final Fit / Polish
 
 Date : **28 septembre 2026**  
-Statut : **C++ IMPLÉMENTÉ — VALIDATION CIBLÉE + RÉGRESSION GLOBALE + PIE FINALE REQUISES**
+Statut : **VALIDÉ — CLOS (4 octobre 2026)**
 
 ## 1. Objectif
 
@@ -254,10 +254,45 @@ Checklist :
 
 ## 11. Stop condition
 
-MON21.6 sera **CLOS** uniquement après :
+La stop condition MON21.6 est atteinte depuis le **4 octobre 2026**, après :
 
 1. `Grimrock.Map.MON21_6_13` vert ;
 2. `Grimrock.Map.MON21_6` vert ;
 3. smoke PIE final confirmé par l’utilisateur.
 
-Après clôture, la roadmap produit reprend les autres tranches MON21 sans nouvelle couche Map.
+La roadmap produit peut reprendre les autres tranches MON21 sans nouvelle couche Map.
+
+## 12. Validation finale — 4 octobre 2026
+
+Validation fournie depuis le harness local UE5.5.4 :
+
+```text
+Grimrock.Map.MON21_6_13
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+```
+
+```text
+Grimrock.Map.MON21_6
+Succeeded               : 50
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+```
+
+Le smoke PIE final a été confirmé **OK** par l’utilisateur.
+
+La régression globale finale sur la baseline runtime/content canonique `9045ef2db75c09997db4fc65dbf99d4598f4df5c` a ensuite confirmé :
+
+```text
+Grimrock
+Succeeded               : 1026
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code        : 0
+```
+
+**Décision : MON21.6 est VALIDÉ et CLOS.**

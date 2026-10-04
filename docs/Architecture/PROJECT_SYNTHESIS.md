@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 septembre 2026, TD07 validé/clos ; MON21.6.12 validé ; MON21.6.13 fit/polish + closure C++ implémenté, validation finale requise.**
+> État : **4 octobre 2026 — TD07 clos ; MON21.6 + MAP-THEME01 validés/clos ; FINAL-MASTER-CLOSURE validé.**
 
 ## 1. Référence
 
@@ -12,11 +12,11 @@
 | Branche | `master` |
 | Modules C++ | `GrimrockPrototype`, `GrimrockPrototypeEditor`, `GrimrockLua` |
 | SaveGame | **v23 exact-match** ; aucune compatibilité arrière ni migration |
-| Dernier jalon fonctionnel | `MON21.3 — Quest Event -> Command Integration` |
+| Dernier jalon fonctionnel clos | `MON21.6 — Map` + `MAP-THEME01 — Textured Map Rendering` |
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
-| Dernière tranche validée | `TD07.8 — Future-proofing re-audit / stop condition` |
-| Tranche active | `MON21.6 — Map ; MON21.6.13 C++ implémenté / closure à valider` |
+| Dernière clôture validée | `FINAL-MASTER-CLOSURE — 1026/1026 + Shipping Win64` |
+| Tranche active | **Aucune clôture Map active ; prochaine priorité produit à choisir explicitement** |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`. La baseline quantitative de clôture TD07 pour les audits futurs est `docs/Architecture/TD07_FINAL_QUANTITATIVE_AUDIT_BASELINE.md`.
 
@@ -74,10 +74,10 @@ Le module Editor dépend aussi de `GrimrockLua`. Le Runtime ne dépend pas du mo
 | Magic / Spellbook | ✅ MON18 |
 | Recrutement / réserve | ✅ MON20 |
 | Skills / Talents | ✅ MON20 |
-| Save | ✅ v15 exact-match ; aucune migration arrière |
+| Save | ✅ v23 exact-match ; aucune migration arrière |
 | Quêtes runtime | ✅ MON21.2–MON21.3 |
 | Journal | ⬜ WBP existant ; read model prévu MON21.5 |
-| Map | 🟡 6.2–6.12 validés ; 6.13 fit/polish + closure C++ implémenté, validation finale requise |
+| Map | ✅ MON21.6 validé/clos ; MAP-THEME01 texturé data-driven validé/clos |
 | Codex | ⬜ WBP existant ; discovery prévu MON21.7 |
 
 ## 6. Donjon, grille et éditeur
@@ -140,7 +140,7 @@ L’état Quest reste transient. La characterization MON21.4 est validée et TD0
 
 ## 11. Persistance
 
-`UGrimrockPartySaveGame` utilise désormais la génération prototype **v22 exact-match**. Toute autre génération est rejetée ; aucune migration arrière n'est exécutée.
+`UGrimrockPartySaveGame` utilise désormais la génération prototype **v23 exact-match**. Toute autre génération est rejetée ; aucune migration arrière n'est exécutée.
 
 TD07.3 impose désormais :
 
@@ -158,7 +158,7 @@ TD07.3.2 supprime la chaîne de migration v1-v9. TD07.3.3.2 supprime le bridge l
 
 Surfaces fonctionnelles : menu principal/Continue/Load, inventaire/paper doll, sélection du groupe, création/recrutement, Level Up, combat, Spellbook, Skills/Talents.
 
-Journal et Codex existent déjà dans le menu et restent des projections futures. Pour Map, MON21.6.1 a figé le contrat ; MON21.6.2–6.7 sont validés jusqu’à la projection multi-dalles. MON21.6.8 ajoute `UGridMapWidget`, qui reconstruit un `FGridMapFloorView` transitoire puis le dessine nativement via Slate sans widget par cellule. `WBP_GridMap` est conservé mais doit être reparenté manuellement dans UE avant smoke PIE ; Map ne devient jamais une autorité gameplay.
+Journal et Codex existent déjà dans le menu et restent des projections futures. La Map est désormais close : exploration persistante, secrets filtrés, projection multi-dalles/multi-étages, symboles, navigation, zoom/pan/recenter et rendu texturé data-driven via `UGridMapVisualThemeAsset`. `UGridMapWidget` reconstruit toujours un `FGridMapFloorView` transitoire ; Map ne devient jamais une autorité gameplay.
 
 ## 13. Validation et packaging
 
@@ -173,6 +173,8 @@ Scripts/ValidatePackage.ps1
 ```
 
 Validation TD07.3.2 du 27 août 2026 : 6/6 sur le contrat TD07.3.2, 2/2 MON19.2 Save, 7/7 MON20.9 Skills, 10/10 MON16.7, 11/11 MON18.8 ; TD01.1 termine avec 2 tests `Succeeded with warnings` et 0 échec à cause de warnings du fixture transient. Le Shipping Win64 est validé.
+
+Validation finale du 4 octobre 2026 sur la baseline runtime/content `9045ef2d` : **1026/1026**, 0 warning, 0 échec, 0 non exécuté. Le Shipping Win64 Build/Cook/Stage/Package/Pak/Archive est validé avec cook **0 error / 0 warning** et `ExitCode=0`.
 
 La CI distante UE reste différée tant qu’aucun vrai runner UE5.5.4 n’est provisionné.
 
@@ -210,7 +212,7 @@ TD07.3.3.9   Normalize Level-Up Notification State                    VALIDÉ �
 TD07.3.3.10  Current Save Schema / Regressions / Closure              VALIDÉ — CLOS
 MON21.4      Quest Persistence                          EN ATTENTE
 MON21.5      Journal Read Model / WBP                     À FAIRE
-MON21.6      Map Geometry / Exploration                   ACTIF — 6.13 C++ IMPLÉMENTÉ / CLOSURE À VALIDER
+MON21.6      Map Geometry / Exploration                   VALIDÉ — CLOS
 MON21.7      Codex Discovery / Projection                 À FAIRE
 MON21.8      Cross-System Regression / PIE / Closure      À FAIRE
 MON22        vertical slice 45–90 minutes                 À FAIRE
@@ -219,4 +221,4 @@ MON22        vertical slice 45–90 minutes                 À FAIRE
 ## 16. Cartographie
 
 - statut courant : présent document, `TECHNICAL_DEBT_REGISTER.md` et `PROJECT_COMPLETION_ROADMAP.md` ;
-- cartes détaillées sous `docs/Architecture/Maps/` : snapshots historiques jusqu’à rafraîchissement global explicite.
+- `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.md` et sa vue Mermaid ont été rebaselinés par DOC-CLOSURE01 ; les anciens commits Git restent les snapshots historiques.

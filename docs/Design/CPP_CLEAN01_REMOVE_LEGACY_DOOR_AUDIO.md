@@ -1,7 +1,8 @@
 # CPP-CLEAN01 — Remove Legacy Door Audio Migration
 
 Date : **27 septembre 2026**  
-Parent : **CPP-AUDIT01 — Audit général du code C++**
+Parent : **CPP-AUDIT01 — Audit général du code C++**  
+Statut : **VALIDÉ — CLOS (4 octobre 2026)**
 
 ## Objectif
 
@@ -104,7 +105,7 @@ Audio Events > Close
 
 Un asset qui ne contient encore que les anciennes propriétés n'est plus supporté par le runtime et doit être corrigé dans Unreal Editor.
 
-## Validation demandée
+## Validation finale
 
 Validation ciblée :
 
@@ -131,3 +132,25 @@ Enfin, en PIE :
 5. vérifier la reprise partielle de la timeline audio.
 
 Le ticket n'est déclaré validé qu'après fourniture des sorties UE locales et validation PIE.
+
+### Résultat final — 4 octobre 2026
+
+```text
+Grimrock.Runtime.Objects.GenericAudioContract
+Succeeded               : 1
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code        : 0
+
+Grimrock.Runtime.Doors
+Succeeded               : 6
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code        : 0
+```
+
+Le smoke PIE porte normale + porte secrète, incluant l’audio et les transitions, a été confirmé **OK** par l’utilisateur.
+
+**Décision : CPP-CLEAN01 est VALIDÉ et CLOS.**

@@ -2,7 +2,7 @@
 
 > Vues visuelles complémentaires de la carte textuelle.
 >
-> État : **27 septembre 2026** — HEAD `85951ce0ffaa3ad79c4e767db729b92922e2d501`.
+> État : **4 octobre 2026** — baseline runtime/content validée `9045ef2db75c09997db4fc65dbf99d4598f4df5c` ; MON21.6 + MAP-THEME01 clos ; global **1026/1026** ; Shipping validé.
 
 ## 1 — Vue système globale
 
@@ -15,7 +15,7 @@ flowchart LR
     ED --> LVL[UGridLevelAsset]
     LVL --> RT
     RT --> STATE[Runtime State]
-    STATE --> SAVE[UGrimrockPartySaveGame v22]
+    STATE --> SAVE[UGrimrockPartySaveGame v23]
     SAVE --> RT
     RT --> UI[UMG Runtime]
     RT --> AUDIO[Audio / VFX / Light]
@@ -405,3 +405,20 @@ flowchart TB
     INV --> I11[Domain log categories]
     INV --> I12[Refactor only on proof + characterization]
 ```
+
+## Rebaseline DOC-CLOSURE01
+
+Cette vue est complémentaire de `GRIMROCK_PROJECT_MAP.md`. Les changements du 4 octobre 2026 sont documentaires : la baseline runtime/content reste `9045ef2d`.
+
+Map runtime :
+
+```mermaid
+flowchart LR
+    STATE[FGridLevelRuntimeState::MapExploration] --> READ[FGridMapReadModelBuilder]
+    READ --> VIEW[FGridMapFloorView]
+    VIEW --> W[UGridMapWidget / UGridMapSurfaceWidget]
+    THEME[UGridMapVisualThemeAsset] --> W
+    W --> PAINT[Slate NativePaint]
+```
+
+Le thème est presentation-only ; il ne porte ni exploration, ni topologie, ni SaveGame.

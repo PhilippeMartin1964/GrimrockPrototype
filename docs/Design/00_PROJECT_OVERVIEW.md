@@ -2,36 +2,54 @@
 
 ## Objectif
 
-GrimrockPrototype est un dungeon crawler Unreal Engine 5.5.4 en C++ inspiré de *Legend of Grimrock 2* : vue subjective case par case, Grid Editor, mécanismes data-driven, IA de monstres, combat tactique, groupe RPG, progression, magie et, à terme, création de niveaux par les joueurs.
+GrimrockPrototype est un dungeon crawler Unreal Engine 5.5.4 en C++ inspiré de *Legend of Grimrock 2* : vue subjective case par case, Grid Editor, mécanismes data-driven, Logic/Lua, IA de monstres, combat tactique, groupe RPG, progression, magie et, à terme, création de niveaux par les joueurs.
 
-## État actuel — 23 août 2026
+## État courant — 4 octobre 2026
 
-```text
-MON13 — Monster Spawn / Encounter / Persistence                 CLOS
-MON14 — Automatic Engagement / Patrol / Investigation / Alarm  CLOS
-MON15 — XP & Level Progression                                  CLOS
-MON16 — Status Effects                                          CLOS
-MON17 — Gobelin lanceur / ranged combat                         CLOS
-MON18 — Magic & Spellbook                                       CLOS
-MON19 — Advanced Dungeon Logic / Scripting                      CLOS
-MON20.1 — Audit & Architecture Contract                         TERMINÉ
-MON20.2 — Active Party Recruitment Foundation                  VALIDÉ — 6/6
-MON20.3 — Story Companion Definition / Pool                    VALIDÉ — 6/6
-MON20.4 — Story Companion Recruitment UI                       PROCHAIN
-```
-
-## Bilan architectural de référence
+Baseline runtime/content canonique validée :
 
 ```text
-docs/Architecture/PROJECT_SYNTHESIS.md
-docs/Architecture/ARCHITECTURE_INDEX.md
-docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.md
-docs/Architecture/Maps/GRIMROCK_PROJECT_MAP_MERMAID.md
+master == origin/master
+9045ef2db75c09997db4fc65dbf99d4598f4df5c
 ```
 
-La carte détaillée courante est maintenue en Markdown et les vues visuelles en Mermaid. Git conserve les versions historiques.
+Validation finale :
 
-## Architecture
+```text
+Grimrock
+Succeeded               : 1026
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code        : 0
+
+Win64 Shipping
+Build + Cook + Stage + Package + Pak + Archive : OK
+Cook : 0 error / 0 warning
+AutomationTool ExitCode : 0
+```
+
+Le commit `DOC-CLOSURE01` qui suit cette baseline est **documentation-only** : il ne modifie ni C++, ni Blueprint, ni DataAsset, ni map, ni contenu runtime.
+
+## Jalons majeurs
+
+```text
+MON13–MON20                    CLOS / VALIDÉS
+MON21.1                        CLOS
+MON21.2 Quest Runtime          VALIDÉ
+MON21.3 Quest Event->Command   VALIDÉ
+MON21.4 Quest Persistence      EN ATTENTE
+MON21.5 Journal                À FAIRE
+MON21.6 Map                    VALIDÉ — CLOS
+MAP-THEME01                    VALIDÉ — CLOS
+MON21.7 Codex                  À FAIRE
+MON21.8 Cross-System Closure   À FAIRE
+MON22 Vertical Slice           À FAIRE
+```
+
+Les clôtures techniques récentes sont également acquises : `CPP-CLEAN01`, `RUNTIME-TRANSFORM-DIAG01` et `FINAL-MASTER-CLOSURE`.
+
+## Architecture de référence
 
 ```text
 GrimrockLua
@@ -41,30 +59,43 @@ GrimrockPrototype
 GrimrockPrototypeEditor
 ```
 
-DataAssets et grille restent les autorités logiques. Actors, animations, VFX et widgets sont runtime/présentation. Event → Command reste le bus gameplay ; Logic et Lua orchestrent sans créer une voie parallèle.
+Principes :
 
-## Systèmes fermés récemment
+- DataAssets et grille = autorités de conception/logique ;
+- Actors runtime = reconstruction transitoire ;
+- Event -> Command = bus gameplay ;
+- Logic et Lua orchestrent sans créer une voie parallèle ;
+- C++ porte logique, calculs, invariants et read models ;
+- Blueprint/UMG porte composition, configuration et présentation ;
+- aucune compatibilité arrière Save/DataAsset/Blueprint exigée pendant le prototype ;
+- SaveGame courant : **v23 exact-match**.
 
-- MON15 : XP, niveaux, progression de classe, Level Up et persistance.
-- MON16 : Status Effects groupe/monstres, durée, stacking, DoT, initiative, contrôle, save/restore.
-- MON17 : Gobelin lanceur, projectiles et `RangedKeeper`.
-- MON18 : Spellbook, cast pipeline et quatre sorts de production.
-- MON19 : variables Bool/Int32, Logic nodes, Lua sandboxé, `persistent`, `LogicId`, authoring Editor.
-- MON20.2/20.3 : recrutement atomique depuis `CharacterPool` et compagnon scénarisé data-driven.
+## Map
 
-## Persistance
+MON21.6 est clos. La Map possède exploration persistante, secrets filtrés, projection multi-dalles/multi-étages, symboles, navigation étage, zoom/pan/recenter et rendu final texturé data-driven via `UGridMapVisualThemeAsset`, avec fallback procédural sans seconde autorité.
 
-`UGrimrockPartySaveGame` est au contrat v7. Le recrutement MON20.3 réutilise le `CharacterId` stable et ne nécessite ni SaveGame v8 ni `PartyMemberKind` prématuré.
+Références : `MON21_6_13_MAP_CLOSURE.md` et `MAP_THEME01_TEXTURED_MAP_RENDERING.md`.
 
-## Prochaine phase
+## Documentation courante
 
-```text
-MON20.4 — Story Companion Recruitment UI
-...     — Custom Recruit / Skills / Talents / Reserve / Regression
-MON21   — Quests / Journal / Map / Codex
-MON22   — 45–90 Minute Vertical Slice
-```
+Ordre recommandé :
+
+1. `docs/Design/00_PROJECT_OVERVIEW.md`
+2. `docs/Design/PROJECT_COMPLETION_ROADMAP.md`
+3. `docs/Architecture/PROJECT_SYNTHESIS.md`
+4. `docs/Architecture/ARCHITECTURE_INDEX.md`
+5. `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.md`
+6. `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP_MERMAID.md`
+7. `docs/Design/99_DECISIONS_LOG.md`
+8. `docs/Design/DOC_CLOSURE01_REBASELINE_DOCUMENTATION.md`
+
+Les tickets datés plus anciens restent historiques et ne priment pas sur cette baseline lorsqu’un statut a évolué.
 
 ## Règle de travail
 
-Chaque sous-jalon : audit ciblé, contrat, modification minimale, compilation/tests UE5.5.4 fournis par l’utilisateur, validation PIE si nécessaire, **un commit logique**, puis mise à jour de la documentation durable.
+- travail sur `master` ;
+- un ticket = un commit atomique ;
+- pas de force-push ;
+- tests déclarés verts uniquement avec sortie UE fournie par l’utilisateur ;
+- assets binaires modifiés uniquement via Unreal Editor ;
+- mise à jour documentaire durable à la clôture d’un jalon.
