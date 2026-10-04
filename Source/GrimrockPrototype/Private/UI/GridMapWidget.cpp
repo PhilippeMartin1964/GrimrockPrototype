@@ -258,9 +258,9 @@ namespace GridMapWidgetPrivate
 			FLinearColor::White);
 	}
 
-	float GetMapFacingAngle(EGridEdge Facing)
+	float GetPartyMarkerAngle(EGridEdge Facing)
 	{
-		// Directional map artwork is authored pointing to screen-up / canonical North.
+		// T_Map_PartyMarker is authored pointing to screen-up / canonical North.
 		switch (Facing)
 		{
 			case EGridEdge::North: return 0.0f;
@@ -861,22 +861,6 @@ namespace GridMapWidgetPrivate
 		const FVector2f Center = Metrics.CellCenter(Symbol.MapCell);
 		const float R = Metrics.CellSize * 0.30f * FMath::Clamp(SymbolScale, 0.4f, 1.0f);
 		const float T = FMath::Max(0.75f, StrokeThickness);
-		const bool bDirectionalStairs =
-			Symbol.Kind == EGridMapSymbolKind::StairsUp || Symbol.Kind == EGridMapSymbolKind::StairsDown;
-		const float SymbolAngle = bDirectionalStairs ? GetMapFacingAngle(Symbol.Facing) : 0.0f;
-		const float SymbolCos = FMath::Cos(SymbolAngle);
-		const float SymbolSin = FMath::Sin(SymbolAngle);
-		auto RotateSymbolPoint = [&](const FVector2f& Point)
-		{
-			if (FMath::IsNearlyZero(SymbolAngle))
-			{
-				return Point;
-			}
-			const FVector2f Offset = Point - Center;
-			return Center + FVector2f(
-				Offset.X * SymbolCos - Offset.Y * SymbolSin,
-				Offset.X * SymbolSin + Offset.Y * SymbolCos);
-		};
 		const FLinearColor& Color = Symbol.Kind == EGridMapSymbolKind::Pit ? HazardColor : NavigationColor;
 		const int32 SafeVariantCount = FMath::Clamp(SymbolVariantCount, 1, 5);
 		const int32 Variant = UGridMapWidget::ComputeDeterministicSymbolVariant(Symbol.MapCell, Symbol.Kind, SafeVariantCount);
@@ -892,8 +876,8 @@ namespace GridMapWidgetPrivate
 				OutDrawElements,
 				Layer,
 				PaintGeometry,
-				RotateSymbolPoint(A),
-				RotateSymbolPoint(B),
+				A,
+				B,
 				InkColor,
 				T * ThicknessScale,
 				Symbol.MapCell,
@@ -1848,16 +1832,13 @@ int32 UGridMapWidget::PaintMapSurface(
 			{
 				const float TextureSize =
 					Metrics.CellSize * FMath::Clamp(VisualTheme->SymbolScale, 0.20f, 1.00f);
-				const bool bDirectionalStairs =
-					Symbol.Kind == EGridMapSymbolKind::StairsUp || Symbol.Kind == EGridMapSymbolKind::StairsDown;
 				DrawTexturedSquare(
 					OutDrawElements,
 					SymbolLayer,
 					AllottedGeometry,
 					Metrics.CellCenter(Symbol.MapCell),
 					TextureSize,
-					TexturedSymbolBrush,
-					bDirectionalStairs ? GetMapFacingAngle(Symbol.Facing) : 0.0f);
+					TexturedSymbolBrush);
 			}
 			continue;
 		}
@@ -1891,7 +1872,7 @@ int32 UGridMapWidget::PaintMapSurface(
 			Metrics.CellCenter(FloorView.PartyMapCell),
 			TextureSize,
 			&ThemeBrushes->PartyMarker,
-			GetMapFacingAngle(FloorView.PartyFacing));
+			GetPartyMarkerAngle(FloorView.PartyFacing));
 	}
 	else if (!bUseTexturedTheme && bEnableParchmentStyle)
 	{

@@ -219,15 +219,6 @@ namespace GridMapReadModelPrivate
 		}
 	}
 
-	FGridMapSymbolView* FindSymbol(TArray<FGridMapSymbolView>& Symbols, const FIntPoint& Cell, EGridMapSymbolKind Kind)
-	{
-		return Symbols.FindByPredicate(
-			[Cell, Kind](const FGridMapSymbolView& Symbol)
-			{
-				return Symbol.LocalCell == Cell && Symbol.Kind == Kind;
-			});
-	}
-
 	bool HasSymbol(const TArray<FGridMapSymbolView>& Symbols, const FIntPoint& Cell, EGridMapSymbolKind Kind)
 	{
 		return Symbols.ContainsByPredicate(
@@ -237,11 +228,7 @@ namespace GridMapReadModelPrivate
 			});
 	}
 
-	void AddSymbolUnique(
-		TArray<FGridMapSymbolView>& Symbols,
-		const FIntPoint& Cell,
-		EGridMapSymbolKind Kind,
-		EGridEdge Facing = EGridEdge::North)
+	void AddSymbolUnique(TArray<FGridMapSymbolView>& Symbols, const FIntPoint& Cell, EGridMapSymbolKind Kind)
 	{
 		if (HasSymbol(Symbols, Cell, Kind))
 		{
@@ -250,33 +237,6 @@ namespace GridMapReadModelPrivate
 		FGridMapSymbolView& Symbol = Symbols.AddDefaulted_GetRef();
 		Symbol.LocalCell = Cell;
 		Symbol.Kind = Kind;
-		Symbol.Facing = Facing;
-	}
-
-	EGridEdge ResolveFloorObjectFacing(const FGridWorldObjectInstance& Instance)
-	{
-		if (!Instance.bHasLocalTransformOverride)
-		{
-			return EGridEdge::North;
-		}
-
-		// Must match the Grid Editor floor-object orientation contract:
-		// North=0, East=90, South=180, West=270.
-		const float NormalizedYaw = FRotator::NormalizeAxis(Instance.LocalTransformOverride.Rotator().Yaw);
-		const int32 QuarterTurns = FMath::RoundToInt(NormalizedYaw / 90.0f);
-		switch ((QuarterTurns % 4 + 4) % 4)
-		{
-			case 0: return EGridEdge::North;
-			case 1: return EGridEdge::East;
-			case 2: return EGridEdge::South;
-			case 3: return EGridEdge::West;
-			default: return EGridEdge::North;
-		}
-	}
-
-	bool IsDirectionalStairSymbol(EGridMapSymbolKind Kind)
-	{
-		return Kind == EGridMapSymbolKind::StairsUp || Kind == EGridMapSymbolKind::StairsDown;
 	}
 
 	bool IsSolidBoundary(const UGridLevelAsset& LevelAsset, const FIntPoint& Cell, EGridEdge Edge)
@@ -541,20 +501,7 @@ bool FGridMapReadModelBuilder::BuildTileView(
 			(CellData.CellType == EGridCellType::StairsUp || CellData.CellType == EGridCellType::StairsDown) &&
 			(ExplicitKind == EGridMapSymbolKind::StairsUp || ExplicitKind == EGridMapSymbolKind::StairsDown ||
 				ExplicitKind == EGridMapSymbolKind::Relocation);
-		if (bCellOwnsNavigationSymbol)
-		{
-			const EGridMapSymbolKind CellStairKind =
-				CellData.CellType == EGridCellType::StairsUp ? EGridMapSymbolKind::StairsUp : EGridMapSymbolKind::StairsDown;
-			if (ExplicitKind == CellStairKind)
-			{
-				if (FGridMapSymbolView* ExistingStair = FindSymbol(OutView.Symbols, Cell, CellStairKind))
-				{
-					ExistingStair->Facing = ResolveFloorObjectFacing(Instance);
-				}
-			}
-			continue;
-		}
-		if (CellData.CellType == EGridCellType::Pit && ExplicitKind == EGridMapSymbolKind::Pit)
+		if (bCellOwnsNavigationSymbol || (CellData.CellType == EGridCellType::Pit && ExplicitKind == EGridMapSymbolKind::Pit))
 		{
 			continue;
 		}
@@ -568,11 +515,7 @@ bool FGridMapReadModelBuilder::BuildTileView(
 			continue;
 		}
 
-		AddSymbolUnique(
-			OutView.Symbols,
-			Cell,
-			ExplicitKind,
-			IsDirectionalStairSymbol(ExplicitKind) ? ResolveFloorObjectFacing(Instance) : EGridEdge::North);
+		AddSymbolUnique(OutView.Symbols, Cell, ExplicitKind);
 	}
 
 	return true;
@@ -687,7 +630,6 @@ bool FGridMapReadModelBuilder::BuildFloorView(
 			FGridMapFloorSymbolView& FloorSymbol = Result.Symbols.AddDefaulted_GetRef();
 			FloorSymbol.MapCell = ToGlobalMapCell(Entry.LogicalPosition, TileSymbol.LocalCell);
 			FloorSymbol.Kind = TileSymbol.Kind;
-			FloorSymbol.Facing = TileSymbol.Facing;
 		}
 	}
 
