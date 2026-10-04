@@ -26,6 +26,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Textures", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float ParchmentOpacity = 1.0f;
 
+	/** Optional texture drawn once per explored floor cell. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Textures")
+	TObjectPtr<UTexture2D> FloorTexture;
+
+	/** Opacity applied only to FloorTexture. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Textures", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float FloorOpacity = 0.35f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Map Theme|Textures")
 	TObjectPtr<UTexture2D> WallTexture;
 

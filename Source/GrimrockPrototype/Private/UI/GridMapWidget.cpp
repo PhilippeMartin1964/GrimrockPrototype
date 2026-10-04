@@ -122,6 +122,7 @@ namespace GridMapWidgetPrivate
 	struct FThemeBrushSet
 	{
 		FSlateBrush Parchment;
+		FSlateBrush Floor;
 		FSlateBrush Wall;
 		FSlateBrush WallPillar;
 		FSlateBrush DoorClosed;
@@ -136,6 +137,7 @@ namespace GridMapWidgetPrivate
 		explicit FThemeBrushSet(const UGridMapVisualThemeAsset& Theme)
 		{
 			ConfigureTextureBrush(Parchment, Theme.ParchmentTexture);
+			ConfigureTextureBrush(Floor, Theme.FloorTexture);
 			ConfigureTextureBrush(Wall, Theme.WallTexture);
 			ConfigureTextureBrush(WallPillar, Theme.WallPillarTexture);
 			ConfigureTextureBrush(DoorClosed, Theme.DoorClosedTexture);
@@ -1598,15 +1600,32 @@ int32 UGridMapWidget::PaintMapSurface(
 	{
 		VisibleCells.Add(Cell.MapCell);
 		const FVector2f TopLeft = Metrics.CellTopLeft(Cell.MapCell);
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			static_cast<uint32>(CellLayer),
-			AllottedGeometry.ToPaintGeometry(
-				FVector2D(Metrics.CellSize, Metrics.CellSize),
-				FSlateLayoutTransform(FVector2D(TopLeft.X, TopLeft.Y))),
-			WhiteBrush,
-			ESlateDrawEffect::None,
-			ExploredCellColor);
+		const FPaintGeometry CellPaintGeometry = AllottedGeometry.ToPaintGeometry(
+			FVector2D(Metrics.CellSize, Metrics.CellSize),
+			FSlateLayoutTransform(FVector2D(TopLeft.X, TopLeft.Y)));
+
+		if (bUseTexturedTheme && VisualTheme->FloorTexture)
+		{
+			FLinearColor FloorTint = FLinearColor::White;
+			FloorTint.A = FMath::Clamp(VisualTheme->FloorOpacity, 0.0f, 1.0f);
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				static_cast<uint32>(CellLayer),
+				CellPaintGeometry,
+				&ThemeBrushes->Floor,
+				ESlateDrawEffect::None,
+				FloorTint);
+		}
+		else
+		{
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				static_cast<uint32>(CellLayer),
+				CellPaintGeometry,
+				WhiteBrush,
+				ESlateDrawEffect::None,
+				ExploredCellColor);
+		}
 
 		if (!bUseTexturedTheme && bEnableParchmentStyle)
 		{
