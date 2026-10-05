@@ -1110,10 +1110,6 @@ void UGridCombatHudWidget::NativeDestruct()
 	InitiativeSlotWidgets.Reset();
 	InitiativeRoundSeparatorWidgets.Reset();
 	InitiativeRoundSeparatorTexts.Reset();
-	bPartyMembersBaseTranslationCaptured = false;
-	PartyMembersBaseTranslation = FVector2D::ZeroVector;
-	bCombatBottomBaseTranslationCaptured = false;
-	CombatBottomBaseTranslation = FVector2D::ZeroVector;
 	Super::NativeDestruct();
 }
 
@@ -1375,37 +1371,8 @@ void UGridCombatHudWidget::RefreshInitiativeWidgets()
 	}
 }
 
-void UGridCombatHudWidget::ApplyBottomCombatLayout()
-{
-	const bool bPersistentHudOwnsGlobalChrome = IsValid(PartyPawn) && IsValid(PartyPawn->PersistentHudWidgetInstance);
-	const float Clearance = bPersistentHudOwnsGlobalChrome ? FMath::Max(0.0f, PersistentHudBottomClearance) : 0.0f;
-	const FVector2D ClearanceOffset(0.0f, -Clearance);
-
-	if (IsValid(Panel_PartyMembers))
-	{
-		if (!bPartyMembersBaseTranslationCaptured)
-		{
-			PartyMembersBaseTranslation = Panel_PartyMembers->GetRenderTransform().Translation;
-			bPartyMembersBaseTranslationCaptured = true;
-		}
-		Panel_PartyMembers->SetRenderTranslation(PartyMembersBaseTranslation + PartyMembersPositionOffset + ClearanceOffset);
-	}
-
-	if (IsValid(Panel_CombatBottomRight))
-	{
-		if (!bCombatBottomBaseTranslationCaptured)
-		{
-			CombatBottomBaseTranslation = Panel_CombatBottomRight->GetRenderTransform().Translation;
-			bCombatBottomBaseTranslationCaptured = true;
-		}
-		Panel_CombatBottomRight->SetRenderTranslation(CombatBottomBaseTranslation + CombatControlsPositionOffset + ClearanceOffset);
-	}
-}
-
 void UGridCombatHudWidget::RefreshBoundWidgets()
 {
-	ApplyBottomCombatLayout();
-
 	const bool bConfiguringHotbar = IsValid(PartyPawn) && PartyPawn->bInventoryWidgetVisible;
 	const bool bShowCombatOnly = View.bCombatActive && !bConfiguringHotbar;
 	if (Panel_CombatHud)

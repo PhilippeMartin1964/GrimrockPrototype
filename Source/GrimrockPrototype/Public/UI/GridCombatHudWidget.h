@@ -362,24 +362,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Layout", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float PartyMemberPanelSpacing = 0.0f;
 
-	/** Additional translation for the complete party-member block after its authored UMG baseline. X+: right, Y+: down. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Layout")
-	FVector2D PartyMembersPositionOffset = FVector2D::ZeroVector;
-
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UPanelWidget> Panel_Initiative;
 
 	/** Canonical container for the bottom-right combat controls (PAM / end turn / rejection text). */
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI|Layout")
 	TObjectPtr<UWidget> Panel_CombatBottomRight;
-
-	/** Additional translation for PAM / end-turn controls after their authored UMG baseline. X+: right, Y+: down. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Layout")
-	FVector2D CombatControlsPositionOffset = FVector2D::ZeroVector;
-
-	/** Shared vertical clearance applied to both bottom combat groups while the persistent HUD is present. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Layout", meta = (ClampMin = "0.0", UIMin = "0.0"))
-	float PersistentHudBottomClearance = 56.0f;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UTextBlock> Text_MobilityActionPoints;
@@ -452,10 +440,6 @@ private:
 	bool bSourcesBound = false;
 
 	FGridCombatHudActionView PendingTargetingActionView;
-	FVector2D PartyMembersBaseTranslation = FVector2D::ZeroVector;
-	bool bPartyMembersBaseTranslationCaptured = false;
-	FVector2D CombatBottomBaseTranslation = FVector2D::ZeroVector;
-	bool bCombatBottomBaseTranslationCaptured = false;
 
 	void BindToSources();
 	void UnbindFromSources();
@@ -464,7 +448,6 @@ private:
 	void EnsureInitiativeWidgets();
 	void RefreshInitiativeWidgets();
 	void RefreshBoundWidgets();
-	void ApplyBottomCombatLayout();
 
 	void ValidateCombatActionTargetingState();
 

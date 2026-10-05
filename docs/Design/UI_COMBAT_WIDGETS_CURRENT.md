@@ -145,12 +145,13 @@ Parent : `GridCombatHudWidget`.
 
 ```text
 WBP_GridCombatHud
-└── Canvas_Root
-    └── Panel_CombatHud
-        ├── HorizontalBox_InitiativeArea
-        │   └── Panel_Initiative
-        ├── Panel_PartyMembers
-        └── Panel_CombatBottomRight
+└── Panel_CombatHud                         (Overlay, RACINE UNIQUE plein écran)
+    ├── HorizontalBox_InitiativeArea        (Top / Center)
+    │   └── Panel_Initiative
+    └── HorizontalBox_CombatBottomBar       (Fill horizontal / Bottom)
+        ├── Panel_PartyMembers              (Auto, Vertical Alignment = Bottom)
+        ├── Spacer_CombatBottomFill         (Fill = 1)
+        └── Panel_CombatBottomRight         (Auto, Vertical Alignment = Bottom)
             ├── Text_MobilityActionPoints
             ├── Button_EndTurn
             │   └── Text ("Fin du tour")
@@ -159,6 +160,13 @@ WBP_GridCombatHud
 
 `Panel_PartyMembers` et `Panel_Initiative` doivent être vides dans le Designer.
 Le C++ crée leurs enfants.
+
+Il ne doit exister **aucun Canvas Panel imbriqué** dans ce HUD. Le double
+`Canvas_Root -> Panel_CombatHud` observé dans l'asset est une dérive
+historique : MON12.7 demandait à l'origine que `Panel_CombatHud` soit lui-même
+la racine. UI-COMBAT-UNIFY02 remplace cette racine par un `Overlay`, mieux
+adapté aux deux seules zones de layout actuelles : initiative en haut et barre
+combat en bas.
 
 Ne pas réintroduire :
 
@@ -186,40 +194,44 @@ Combat | UI | Initiative
     Visible Initiative Slot Count   = 8
 
 Combat | UI | Layout
-    Party Member Panel Spacing       = 0
-    Party Members Position Offset    = (0, 0)
-    Combat Controls Position Offset  = (0, 0)
-    Persistent Hud Bottom Clearance  = 56
+    Party Member Panel Spacing = 0
 ```
 
 `Party Member Panel Spacing` ajoute un padding droit entre les panneaux générés
 lorsque `Panel_PartyMembers` est un `HorizontalBox`. Le dernier panneau ne reçoit
 pas de padding droit.
 
-UI-COMBAT-LAYOUT01 applique désormais `Persistent Hud Bottom Clearance` aux
-**deux** groupes du bas : `Panel_PartyMembers` et `Panel_CombatBottomRight`.
-La valeur par défaut reste 56 px mais peut être réglée de 0 vers le haut.
+Le **positionnement écran n'est plus une autorité C++**. Il n'existe plus de
+`PartyMembersPositionOffset`, `CombatControlsPositionOffset` ni
+`PersistentHudBottomClearance`.
 
-Les deux groupes gardent leur position authored dans le Designer, puis reçoivent
-leur offset indépendant :
+Les deux surfaces basses sont des enfants du même
+`HorizontalBox_CombatBottomBar`. Leur hauteur écran commune est donc définie
+une seule fois dans le Designer par le slot de ce parent dans `Panel_CombatHud`.
 
-```text
-Party Members Position Offset
-Combat Controls Position Offset
-```
-
-Convention : X positif = droite, X négatif = gauche, Y positif = bas, Y négatif = haut.
-Le déplacement final est donc :
+Réglage recommandé du slot Overlay de `HorizontalBox_CombatBottomBar` :
 
 ```text
-Authored UMG position
-+ group Position Offset
-+ (0, -Persistent Hud Bottom Clearance) lorsque le Persistent HUD existe
+Horizontal Alignment = Fill
+Vertical Alignment   = Bottom
+Padding Left         = 24
+Padding Right        = 24
+Padding Bottom       = 56   (à régler librement selon la barre persistante)
 ```
 
-Le panneau enfant `WBP_GridCombatActionPanel` n'a volontairement pas de position
-viewport propre : ses quatre instances sont positionnées ensemble via
-`Panel_PartyMembers` dans `WBP_GridCombatHud`.
+Dans `HorizontalBox_CombatBottomBar`, les slots de `Panel_PartyMembers` et
+`Panel_CombatBottomRight` utilisent tous deux :
+
+```text
+Size = Auto
+Vertical Alignment = Bottom
+```
+
+Le Spacer central utilise `Size = Fill (1.0)`.
+
+Cette structure garantit une **même ligne de base verticale**. Il n'est plus
+possible qu'un Canvas Slot indépendant ou une translation C++ différente
+décale l'un des deux blocs.
 
 ## Migration manuelle UE 5.5.4
 
@@ -239,21 +251,47 @@ viewport propre : ses quatre instances sont positionnées ensemble via
 ### B. WBP_GridCombatHud
 
 1. Vérifier `Parent Class = GridCombatHudWidget`.
-2. Conserver `Canvas_Root` plein écran.
-3. Vérifier le nom `HorizontalBox_InitiativeArea`.
-4. Laisser `Panel_Initiative` vide.
-5. Laisser `Panel_PartyMembers` vide et de type `HorizontalBox`.
-6. Vérifier `Panel_CombatBottomRight`.
-7. Supprimer tout reste de barre d'actions, navigation globale ou panneau texte de ciblage.
-8. Régler les variables héritées :
-   - `Party Member Panel Widget Class = WBP_GridCombatActionPanel` ;
-   - `Initiative Slot Widget Class = WBP_GridCombatHudInitiativeSlot` ;
-   - `Visible Initiative Slot Count = 8` ;
-   - `Party Member Panel Spacing` selon le rendu souhaité ;
-   - `Party Members Position Offset` pour déplacer le bloc des personnages ;
-   - `Combat Controls Position Offset` pour déplacer PAM / Fin du tour ;
-   - `Persistent Hud Bottom Clearance = 56` comme marge commune au-dessus de la barre persistante.
-9. Compiler et sauvegarder.
+2. Supprimer le `Canvas_Root` externe et supprimer l'ancien Canvas
+   `Panel_CombatHud` après avoir déplacé ses enfants : **aucun double Canvas
+   ne doit rester**.
+3. Créer un `Overlay` comme racine unique et le nommer exactement
+   `Panel_CombatHud`. Cocher `Is Variable`.
+4. Déplacer `HorizontalBox_InitiativeArea` dans cet Overlay :
+   - Horizontal Alignment = Center ;
+   - Vertical Alignment = Top ;
+   - Padding Top = 24.
+5. Laisser `Panel_Initiative` vide.
+6. Ajouter un `Horizontal Box` nommé `HorizontalBox_CombatBottomBar` comme
+   deuxième enfant de `Panel_CombatHud` :
+   - Horizontal Alignment = Fill ;
+   - Vertical Alignment = Bottom ;
+   - Padding Left = 24 ;
+   - Padding Right = 24 ;
+   - Padding Bottom = 56 au départ.
+7. Déplacer `Panel_PartyMembers` dans `HorizontalBox_CombatBottomBar` :
+   - Size = Auto ;
+   - Vertical Alignment = Bottom ;
+   - le laisser vide.
+8. Ajouter après lui un `Spacer` nommé `Spacer_CombatBottomFill` :
+   - Size = Fill ;
+   - Fill = 1.0.
+9. Déplacer `Panel_CombatBottomRight` après le Spacer :
+   - Size = Auto ;
+   - Vertical Alignment = Bottom.
+10. Vérifier `Panel_CombatBottomRight` avec PAM, bouton Fin du tour et texte
+    de refus.
+11. Supprimer tout reste de barre d'actions, navigation globale ou panneau texte
+    de ciblage.
+12. Dans les variables héritées, ne régler que :
+    - `Party Member Panel Widget Class = WBP_GridCombatActionPanel` ;
+    - `Initiative Slot Widget Class = WBP_GridCombatHudInitiativeSlot` ;
+    - `Visible Initiative Slot Count = 8` ;
+    - `Party Member Panel Spacing` selon le rendu souhaité.
+13. Compiler et sauvegarder.
+
+**Pour déplacer les deux blocs du bas**, modifier uniquement le `Padding
+Bottom` du slot Overlay de `HorizontalBox_CombatBottomBar`. Il s'agit d'une
+seule autorité UMG commune aux deux surfaces.
 
 ## Validation attendue
 
@@ -261,7 +299,6 @@ Ne pas considérer le ticket comme validé avant retour des logs UE locaux.
 
 ```powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.CombatUnify01"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.CombatLayout01"
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Monsters.MON12.CombatActionPanel"
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Monsters.MON12.CombatHUD"
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.MON16.6"
@@ -279,21 +316,41 @@ PIE :
 - aucune barre/navigation dupliquée dans le Combat HUD ;
 - ciblage souris toujours fonctionnel via le backend existant.
 
-## UI-COMBAT-LAYOUT01 — positionnement uniforme des blocs bas
+## UI-COMBAT-UNIFY02 — Single Bottom Layout Authority
 
-Le réglage de position est volontairement porté par `WBP_GridCombatHud`, car
-`WBP_GridCombatActionPanel` est instancié quatre fois comme enfant et ne doit
-pas connaître le viewport.
+Investigation du 5 octobre 2026 :
 
-Les deux surfaces basses suivent désormais le même contrat :
+- le document MON12.7 d'origine demandait un seul Canvas racine nommé
+  `Panel_CombatHud` ;
+- l'asset actuel a dérivé vers `Canvas_Root -> Panel_CombatHud`, soit deux
+  Canvas imbriqués sans bénéfice ;
+- `Panel_PartyMembers` et le bloc Fin du tour provenaient historiquement de
+  Canvas Slots distincts, chacun avec sa propre position ;
+- UI-GLOBALHUD01.2 a ensuite ajouté une translation C++ uniquement au bloc de
+  droite, puis UI-COMBAT-LAYOUT01 a tenté de compenser avec des offsets ;
+- cette accumulation crée plusieurs autorités de position et explique qu'il
+  soit difficile de comprendre pourquoi les deux blocs ne tombent pas sur la
+  même hauteur.
+
+Décision UI-COMBAT-UNIFY02 :
 
 ```text
-Panel_PartyMembers
-Panel_CombatBottomRight
-    -> baseline Designer conservée
-    -> offset X/Y indépendant
-    -> même Persistent Hud Bottom Clearance
+WBP_GridCombatActionPanel
+└── SizeBox_ActionPanel
+    -> taille intrinsèque uniquement
+    -> aucune position viewport
+
+WBP_GridCombatHud
+└── Panel_CombatHud (Overlay root unique)
+    └── HorizontalBox_CombatBottomBar
+        ├── Panel_PartyMembers
+        ├── Spacer Fill
+        └── Panel_CombatBottomRight
 ```
 
-Cela permet de déplacer librement le groupe de personnages et les contrôles de
-combat sans créer de double autorité de layout.
+Le `SizeBox_ActionPanel` et l'`Overlay` du HUD n'ont pas le même rôle et ne
+doivent donc pas être artificiellement du même type. L'un définit la taille
+intrinsèque d'une carte répétée ; l'autre distribue des surfaces plein écran.
+L'uniformisation porte sur **l'unique autorité de layout** : les deux surfaces
+du bas partagent désormais le même parent, le même alignement Bottom et le même
+Padding Bottom.

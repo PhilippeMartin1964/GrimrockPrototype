@@ -601,15 +601,18 @@ Les paramètres éditables des deux classes utilisent désormais la même conven
 Référence canonique : `docs/Design/UI_COMBAT_WIDGETS_CURRENT.md`.
 
 
-### UI-COMBAT-LAYOUT01 — positionnement des surfaces basses
+### UI-COMBAT-UNIFY02 — autorité de layout unique
 
-`PersistentHudBottomClearance` devient une marge commune appliquée à
-`Panel_PartyMembers` et `Panel_CombatBottomRight`. Sa valeur par défaut reste
-56 px, mais elle accepte désormais 0 ou davantage. Chaque groupe dispose en plus
-d'un offset X/Y indépendant : `PartyMembersPositionOffset` et
-`CombatControlsPositionOffset`.
+Le positionnement runtime ajouté par UI-COMBAT-LAYOUT01 est supprimé :
+`PartyMembersPositionOffset`, `CombatControlsPositionOffset`,
+`PersistentHudBottomClearance` et `ApplyBottomCombatLayout()` n'existent plus.
 
-La position authored dans le Designer reste la baseline. Le runtime ajoute
-uniquement l'offset configuré et, lorsque le Persistent HUD existe, la marge
-commune verticale. `WBP_GridCombatActionPanel` reste sans position viewport
-propre puisque ses quatre instances appartiennent à `Panel_PartyMembers`.
+`WBP_GridCombatHud` doit utiliser une racine unique `Panel_CombatHud` de type
+`Overlay`, sans `Canvas_Root` externe. Les deux surfaces basses sont placées
+dans un même `HorizontalBox_CombatBottomBar`, aligné Bottom, avec un seul
+Padding Bottom authored dans UMG. `Panel_PartyMembers` et
+`Panel_CombatBottomRight` utilisent tous deux Vertical Alignment = Bottom.
+
+`WBP_GridCombatActionPanel` conserve `SizeBox_ActionPanel` comme racine car il
+s'agit d'un composant répétable à taille intrinsèque, et non d'un HUD plein
+écran. Il ne porte aucune position viewport.

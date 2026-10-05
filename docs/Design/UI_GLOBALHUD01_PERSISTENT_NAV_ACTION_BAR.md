@@ -202,15 +202,14 @@ Référence détaillée UI-GLOBALHUD01.1 : `docs/Design/UI_GLOBALHUD01_1_DYNAMIC
 
 ## UI-GLOBALHUD01.2 — Combat controls above the persistent bar
 
-Le bloc combat bas-droite reste la responsabilité de `UGridCombatHudWidget`, mais il ne doit plus partager la ligne verticale de la barre permanente.
+> **SUPERSEDED côté layout par UI-COMBAT-UNIFY02 (05.10.2026).**
+> Le principe de réserver l'espace au-dessus de la barre persistante reste
+> valide, mais `PersistentHudBottomClearance` n'est plus une propriété C++.
+> La marge basse est désormais authored une seule fois dans le slot UMG de
+> `HorizontalBox_CombatBottomBar`.
 
-Le C++ réserve par défaut :
-
-```text
-PersistentHudBottomClearance = 56 px
-```
-
-quand `UGridPersistentHudWidget` existe.
+Le bloc combat bas-droite reste la responsabilité de `UGridCombatHudWidget`,
+mais son positionnement n'est plus corrigé par une translation runtime.
 
 Contrat de migration UMG :
 

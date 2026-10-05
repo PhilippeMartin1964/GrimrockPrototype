@@ -1225,7 +1225,7 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Validation locale requise avant clôture : `Grimrock.UI.CombatUnify01`, `Grimrock.Monsters.MON12.CombatActionPanel`, `Grimrock.Monsters.MON12.CombatHUD`, `Grimrock.RPG.MON16.6` et `Grimrock.UI.GlobalHud01`.
 
 
-## 2026-10-05 — UI-COMBAT-LAYOUT01 : Adjustable Bottom Combat Layout
+## 2026-10-05 — UI-COMBAT-LAYOUT01 : Adjustable Bottom Combat Layout [SUPERSEDED par UI-COMBAT-UNIFY02]
 
 ### Décisions validées
 
@@ -1237,3 +1237,25 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Convention des offsets : X positif vers la droite, Y positif vers le bas.
 - `WBP_GridCombatActionPanel` ne reçoit aucune propriété de position viewport : il reste un enfant réutilisable, positionné par le HUD parent.
 - Filtre Automation dédié : `Grimrock.UI.CombatLayout01`.
+
+
+## 2026-10-05 — UI-COMBAT-UNIFY02 : Single Bottom Layout Authority
+
+### Décisions validées
+
+- UI-COMBAT-LAYOUT01 est annulé : `PartyMembersPositionOffset`,
+  `CombatControlsPositionOffset` et `PersistentHudBottomClearance` sont
+  supprimés du C++.
+- Le runtime ne translate plus les surfaces basses du Combat HUD.
+- Le double Canvas `Canvas_Root -> Panel_CombatHud` est considéré comme une
+  dérive de la hiérarchie historique et doit être supprimé manuellement.
+- `Panel_CombatHud` devient la racine unique du WBP et doit être un `Overlay`.
+- `Panel_PartyMembers` et `Panel_CombatBottomRight` deviennent frères dans
+  un unique `HorizontalBox_CombatBottomBar`.
+- Les deux slots utilisent `Vertical Alignment = Bottom` ; un Spacer Fill les
+  sépare horizontalement.
+- La marge au-dessus de la barre persistante est authored une seule fois via le
+  `Padding Bottom` du slot Overlay de `HorizontalBox_CombatBottomBar`.
+- `WBP_GridCombatActionPanel` conserve `SizeBox_ActionPanel` comme racine :
+  ce SizeBox définit une taille intrinsèque, pas une position écran.
+- Aucune nouvelle couche ni aucun fallback legacy de positionnement n'est ajouté.
