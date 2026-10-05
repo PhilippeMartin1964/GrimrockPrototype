@@ -126,6 +126,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Combat")
 	TArray<FGridCombatModifierProfile> CombatModifiers;
 
+	/** RPG03.4: reactions projected while this status is active. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Combat")
+	TArray<FGridCombatReactionProfile> CombatReactions;
+
 	UFUNCTION(BlueprintPure, Category = "RPG|Status Effects|Validation")
 	bool IsValidDefinition() const;
 

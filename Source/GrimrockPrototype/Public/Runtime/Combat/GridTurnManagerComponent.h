@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "Runtime/Combat/GridCombatDiagnostics.h"
 #include "Runtime/Combat/GridCombatLog.h"
+#include "Runtime/Combat/GridCombatReactionResolver.h"
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
 #include "GridTurnManagerComponent.generated.h"
@@ -131,6 +132,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
 	FGridPlayerAttackResolvedSignature, FGridPlayerAttackRequest, Request, AGridMonsterActor*, TargetMonster, FGridAttackResult, Result);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGridPlayerAttackRejectedSignature, int32, AttackerCharacterIndex, EGridPlayerAttackRejectReason, RejectReason);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridCombatReactionTriggeredSignature, FGridCombatReactionMatch, Match);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridPlayerCharacterTurnStateChangedSignature, FGridPlayerCharacterTurnState, TurnState);
 
@@ -278,6 +281,7 @@ public:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Turn Manager|Attack")
 	bool bActiveAttackImpactCommitted = false;
+	FGuid ActiveCombatActionInstanceId;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
 	FGridPlayerAttackRequest LastPlayerAttackRequest;
@@ -347,6 +351,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Combat|Player Attack")
 	FGridPlayerAttackRejectedSignature OnPlayerAttackRejected;
+
+	UPROPERTY(BlueprintAssignable, Category = "Combat|Reaction")
+	FGridCombatReactionTriggeredSignature OnCombatReactionTriggered;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Player Attack|Visuals")
 	TSoftObjectPtr<UTexture2D> UnarmedAttackIcon;
@@ -614,6 +621,7 @@ private:
 	int32 PlayerAttackResolvedBroadcastCount = 0;
 	bool bPlayerAttackResolutionInProgress = false;
 	bool bPendingVictoryAfterPlayerAttack = false;
+	FGridCombatReactionLedger CombatReactionLedger;
 	TSet<FGuid> LoggedDefeatedMonsterIds;
 	TMap<FGridCombatActionCooldownKey, int32> CombatActionCooldownAvailableRounds;
 	EGridPendingPartyMotionType PendingPartyMotionType = EGridPendingPartyMotionType::None;
@@ -701,6 +709,14 @@ private:
 	void FinishCurrentMonsterTurn();
 	void FinishEnemyPhase();
 	void FinishCombat(EGridCombatPhase ResultPhase);
+
+	void ProcessPartyCharacterReactionEvent(int32 CharacterIndex, const FGridCombatReactionEvent& Event);
+	void EmitPlayerAttackReactionEvents(
+		int32 CharacterIndex, const FGridPlayerAttackRequest& Request, const FGridAttackResult& Result, EGridCombatActionSourcePolicy SourcePolicy,
+		EGridCombatActionType ActionType, const FGuid& ActionInstanceId, bool bReactionGenerated = false, bool bEmitActionResolved = true);
+	void EmitMonsterAttackReactionEvents(int32 TargetCharacterIndex, const FGridMonsterAttackDefinition& Attack, const FGridAttackResult& Result,
+		const FGuid& ActionInstanceId);
+	void EmitCharacterActionResolvedReaction(int32 CharacterIndex, const FGridAvailableCombatAction& Action, const FGuid& ActionInstanceId);
 
 	void ResetActiveAttackState();
 	void SetPhase(EGridCombatPhase NewPhase);

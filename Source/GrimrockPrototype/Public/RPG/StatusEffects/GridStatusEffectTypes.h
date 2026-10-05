@@ -242,6 +242,8 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectCollection
 		return TryApply(Definition, SourceId, 1, INDEX_NONE, INDEX_NONE, OutResult, OutError);
 	}
 
+	bool RemoveByEffectId(FName EffectId, FGridStatusEffectRuntimeState& OutRemovedState);
+
 	void AdvanceDuration(EGridStatusEffectDurationUnit DurationUnit, FGridStatusEffectAdvanceResult& OutResult);
 
 private:

@@ -134,6 +134,27 @@ bool FGridStatusEffectCollection::TryApply(const UGridStatusEffectDefinitionAsse
 	return true;
 }
 
+bool FGridStatusEffectCollection::RemoveByEffectId(FName EffectId, FGridStatusEffectRuntimeState& OutRemovedState)
+{
+	OutRemovedState = FGridStatusEffectRuntimeState();
+	if (EffectId.IsNone())
+	{
+		return false;
+	}
+	const int32 Index = ActiveEffects.IndexOfByPredicate(
+		[EffectId](const FGridStatusEffectRuntimeState& State)
+		{
+			return State.EffectId == EffectId;
+		});
+	if (Index == INDEX_NONE)
+	{
+		return false;
+	}
+	OutRemovedState = ActiveEffects[Index];
+	ActiveEffects.RemoveAt(Index);
+	return true;
+}
+
 void FGridStatusEffectCollection::AdvanceDuration(EGridStatusEffectDurationUnit DurationUnit, FGridStatusEffectAdvanceResult& OutResult)
 {
 	OutResult.Reset(DurationUnit);

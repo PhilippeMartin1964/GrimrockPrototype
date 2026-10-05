@@ -600,6 +600,12 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 			OnCombatantStateChanged.Broadcast(*TargetEntry);
 		}
 	}
+	const EGridCombatActionSourcePolicy ReactionSourcePolicy = CombatActionOverride ? CombatActionOverride->Definition.SourcePolicy
+		: OffensiveEquipmentSlot != EGridEquipmentSlot::None ? EGridCombatActionSourcePolicy::Equipment : EGridCombatActionSourcePolicy::Universal;
+	const EGridCombatActionType ReactionActionType = CombatActionOverride ? CombatActionOverride->Definition.ActionType
+		: OffensiveProfile.RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
+	EmitPlayerAttackReactionEvents(
+		AttackerCharacterIndex, Request, Result, ReactionSourcePolicy, ReactionActionType, Request.RequestId, false, true);
 	++PlayerAttackResolvedBroadcastCount;
 	bPlayerAttackResolutionInProgress = false;
 	OnPlayerAttackResolved.Broadcast(Request, TargetMonster, Result);

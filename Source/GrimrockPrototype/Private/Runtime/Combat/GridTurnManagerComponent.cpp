@@ -298,6 +298,7 @@ void UGridTurnManagerComponent::AbortCombat()
 	ClearInitiativeState(true);
 	bPlayerAttackResolutionInProgress = false;
 	bPendingVictoryAfterPlayerAttack = false;
+	CombatReactionLedger.Reset();
 
 	if (CurrentMovementComponent && CurrentMovementComponent->IsBusy())
 	{

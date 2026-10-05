@@ -76,6 +76,14 @@ bool UGridStatusEffectDefinitionAsset::ValidateDefinition(FString& OutError) con
 			break;
 		}
 	}
+	for (const FGridCombatReactionProfile& Reaction : CombatReactions)
+	{
+		if (!Reaction.IsValid())
+		{
+			Errors.Add(TEXT("CombatReactions contains an invalid RPG03.4 profile."));
+			break;
+		}
+	}
 
 	OutError = FString::Join(Errors, TEXT("\n"));
 	return Errors.IsEmpty();

@@ -183,6 +183,46 @@ bool UGridStatusEffectLifecycleSubsystem::TryApplyStatusEffectToMonster(AGridMon
 	return bApplied;
 }
 
+bool UGridStatusEffectLifecycleSubsystem::ConsumeStatusEffectFromPartyCharacter(int32 CharacterIndex, FName EffectId)
+{
+	UGridTurnManagerComponent* TurnManager = BoundTurnManager.Get();
+	if (!IsValid(TurnManager) || !IsValid(TurnManager->PartyPawn) || !IsValid(TurnManager->PartyPawn->PartyInventoryComponent))
+	{
+		return false;
+	}
+	TArray<FGridCharacterInventoryState>& Characters = TurnManager->PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters;
+	if (!Characters.IsValidIndex(CharacterIndex))
+	{
+		return false;
+	}
+
+	FGridStatusEffectRuntimeState Removed;
+	if (!Characters[CharacterIndex].StatusEffects.RemoveByEffectId(EffectId, Removed))
+	{
+		return false;
+	}
+	RefreshInitiativeModifierForPartyCharacter(CharacterIndex);
+	EmitStatusFeedback(EGridCombatLogEntryType::StatusExpired, Removed, CharacterIndex, nullptr);
+	NotifyPartyStatusPresentationChanged(CharacterIndex);
+	return true;
+}
+
+bool UGridStatusEffectLifecycleSubsystem::ConsumeStatusEffectFromMonster(AGridMonsterActor* Monster, FName EffectId)
+{
+	if (!IsValid(Monster))
+	{
+		return false;
+	}
+	FGridStatusEffectRuntimeState Removed;
+	if (!Monster->StatusEffects.RemoveByEffectId(EffectId, Removed))
+	{
+		return false;
+	}
+	RefreshInitiativeModifierForMonster(Monster);
+	EmitStatusFeedback(EGridCombatLogEntryType::StatusExpired, Removed, INDEX_NONE, Monster);
+	return true;
+}
+
 int32 UGridStatusEffectLifecycleSubsystem::ApplyCombatStatusApplicationsToPartyCharacter(int32 CharacterIndex,
 	const TArray<FGridCombatStatusApplicationProfile>& Profiles, const FGuid& SourceId, const FGridAttackTargetStats& TargetBefore,
 	const FGridAttackResult* AttackResult)

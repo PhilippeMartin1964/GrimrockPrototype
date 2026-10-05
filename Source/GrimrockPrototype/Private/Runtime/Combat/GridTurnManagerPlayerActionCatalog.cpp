@@ -573,6 +573,7 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 		}
 	}
 	StartCombatActionCooldown(Action);
+	EmitCharacterActionResolvedReaction(Action.CharacterIndex, Action, FGuid::NewGuid());
 	Inventory->NotifyPartyInventoryChanged(Action.CharacterIndex);
 	if (FGridCombatantInitiativeEntry* Entry = FindInitiativeEntry(EGridCombatantSide::Party, Character.CharacterId))
 	{
@@ -680,6 +681,7 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 		}
 	}
 	StartCombatActionCooldown(Action);
+	EmitCharacterActionResolvedReaction(Action.CharacterIndex, Action, FGuid::NewGuid());
 	Inventory->NotifyPartyInventoryChanged(Action.CharacterIndex);
 	if (FGridCombatantInitiativeEntry* Entry = FindInitiativeEntry(EGridCombatantSide::Party, Character.CharacterId))
 	{
@@ -970,6 +972,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	}
 
 	const FIntPoint PartyCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+	const FGuid ReactionActionInstanceId = FGuid::NewGuid();
 	bPlayerAttackResolutionInProgress = true;
 	for (int32 Index = 0; Index < TargetMonsters.Num(); ++Index)
 	{
@@ -1063,6 +1066,8 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				OnCombatantStateChanged.Broadcast(*TargetEntry);
 			}
 		}
+		EmitPlayerAttackReactionEvents(Action.CharacterIndex, Request, AttackResult, Action.Definition.SourcePolicy,
+			Action.Definition.ActionType, ReactionActionInstanceId, false, false);
 		++PlayerAttackResolvedBroadcastCount;
 		OnPlayerAttackResolved.Broadcast(Request, TargetMonster, AttackResult);
 		if (bCollectRuntimeMetrics)
@@ -1071,6 +1076,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 		}
 	}
 	bPlayerAttackResolutionInProgress = false;
+	EmitCharacterActionResolvedReaction(Action.CharacterIndex, Action, ReactionActionInstanceId);
 
 	if (bPendingVictoryAfterPlayerAttack)
 	{
@@ -1306,6 +1312,7 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 		}
 
 		StartCombatActionCooldown(*Action);
+		EmitCharacterActionResolvedReaction(CharacterIndex, *Action, FGuid::NewGuid());
 		SpellInventory->NotifyPartyInventoryChanged(CharacterIndex);
 		if (FGridCombatantInitiativeEntry* Entry = FindInitiativeEntry(EGridCombatantSide::Party, MutableCharacter.CharacterId))
 		{

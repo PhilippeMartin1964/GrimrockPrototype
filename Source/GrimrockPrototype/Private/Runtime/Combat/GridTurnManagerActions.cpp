@@ -232,6 +232,7 @@ bool UGridTurnManagerComponent::StartActiveMeleeAttack()
 	}
 
 	ActiveAction.TargetCharacterIndex = TargetCharacterIndex;
+	ActiveCombatActionInstanceId = FGuid::NewGuid();
 	ActiveAttackDefinition = *Attack;
 	LastTargetCharacterIndex = TargetCharacterIndex;
 	bActiveAttackImpactCommitted = false;
@@ -363,6 +364,7 @@ void UGridTurnManagerComponent::CommitActiveAttackImpact()
 		++RuntimeMetrics.AttacksResolved;
 	}
 	RefreshPlayerCharacterVitalState(TargetCharacterIndex);
+	EmitMonsterAttackReactionEvents(TargetCharacterIndex, ActiveAttackDefinition, Result, ActiveCombatActionInstanceId);
 	OnAttackResolved.Broadcast(CurrentMonster, TargetCharacterIndex, Result);
 }
 
@@ -475,6 +477,7 @@ void UGridTurnManagerComponent::ResetActiveAttackState()
 	ActiveAttackImpactTimeRemaining = 0.0f;
 	ActiveAttackCompleteTimeRemaining = 0.0f;
 	bActiveAttackImpactCommitted = false;
+	ActiveCombatActionInstanceId.Invalidate();
 }
 
 void UGridTurnManagerComponent::RefreshTickEnabled()

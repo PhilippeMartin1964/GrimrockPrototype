@@ -58,6 +58,11 @@ public:
 	int32 ApplyCombatStatusApplicationsToMonster(AGridMonsterActor* Monster, const TArray<FGridCombatStatusApplicationProfile>& Profiles,
 		const FGuid& SourceId, const FGridAttackTargetStats& TargetBefore, const FGridAttackResult* AttackResult = nullptr);
 
+	/** C4 deterministic status consumption used by matching reaction profiles. */
+	bool ConsumeStatusEffectFromPartyCharacter(int32 CharacterIndex, FName EffectId);
+
+	bool ConsumeStatusEffectFromMonster(AGridMonsterActor* Monster, FName EffectId);
+
 	/** Reprojects every authoritative status collection into InitiativeModifier. */
 	void RefreshAllInitiativeModifiers();
 

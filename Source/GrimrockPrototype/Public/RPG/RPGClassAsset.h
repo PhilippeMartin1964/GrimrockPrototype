@@ -56,6 +56,10 @@ struct FRPGClassProgressionChoiceDefinition
 	/** Optional C2 profiles projected while this durable choice is selected. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|Combat")
 	TArray<FGridCombatModifierProfile> CombatModifiers;
+
+	/** Optional C4 reactions projected while this durable choice is selected. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|Combat")
+	TArray<FGridCombatReactionProfile> CombatReactions;
 };
 
 UCLASS(BlueprintType)

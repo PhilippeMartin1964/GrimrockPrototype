@@ -486,6 +486,162 @@ struct FGridOffensiveEquipmentProfile
 };
 
 UENUM(BlueprintType)
+enum class EGridCombatReactionTrigger : uint8
+{
+	None UMETA(DisplayName = "None"),
+	ActionResolved UMETA(DisplayName = "Action Resolved"),
+	AttackHit UMETA(DisplayName = "Attack Hit"),
+	AttackMiss UMETA(DisplayName = "Attack Miss"),
+	TargetDefeated UMETA(DisplayName = "Target Defeated"),
+	DirectDamageReceived UMETA(DisplayName = "Direct Damage Received"),
+	SurfaceReaction UMETA(DisplayName = "Surface Reaction")
+};
+
+UENUM(BlueprintType)
+enum class EGridCombatReactionLimit : uint8
+{
+	Unlimited UMETA(DisplayName = "Unlimited"),
+	OncePerRound UMETA(DisplayName = "Once Per Round"),
+	OncePerAction UMETA(DisplayName = "Once Per Action")
+};
+
+/**
+ * Generic C4 trigger authored by Talents or Status Effects.
+ * Runtime consumers react to the emitted match; production never switches on ReactionId.
+ */
+USTRUCT(BlueprintType)
+struct FGridCombatReactionProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction")
+	FName ReactionId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction")
+	EGridCombatReactionTrigger Trigger = EGridCombatReactionTrigger::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction")
+	EGridCombatReactionLimit Limit = EGridCombatReactionLimit::Unlimited;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
+	TArray<FName> ActionIds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
+	TArray<EGridCombatActionSourcePolicy> SourcePolicies;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
+	TArray<EGridCombatActionType> ActionTypes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
+	TArray<EGridDamageType> DamageTypes;
+
+	/** Reaction-generated events are ignored by default to prevent recursive chains. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction")
+	bool bAllowReactionGeneratedEvents = false;
+
+	/** When authored on a Status Effect, consume that status after a matching event. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction")
+	bool bConsumeOwningStatus = false;
+
+	bool IsValid() const
+	{
+		if (ReactionId.IsNone() || Trigger == EGridCombatReactionTrigger::None)
+		{
+			return false;
+		}
+		for (const FName Id : ActionIds)
+		{
+			if (Id.IsNone())
+			{
+				return false;
+			}
+		}
+		for (const EGridCombatActionSourcePolicy Policy : SourcePolicies)
+		{
+			if (Policy == EGridCombatActionSourcePolicy::None)
+			{
+				return false;
+			}
+		}
+		for (const EGridCombatActionType Type : ActionTypes)
+		{
+			if (Type == EGridCombatActionType::None)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FGridCombatReactionEvent
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FGuid EventId;
+
+	/** Stable identity shared by every event emitted by one resolved action. */
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FGuid ActionInstanceId;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	int32 RoundNumber = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	EGridCombatReactionTrigger Trigger = EGridCombatReactionTrigger::None;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FGuid SourceCombatantId;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FGuid TargetCombatantId;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FName ActionId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	EGridCombatActionSourcePolicy SourcePolicy = EGridCombatActionSourcePolicy::Universal;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	EGridCombatActionType ActionType = EGridCombatActionType::Ability;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	EGridDamageType DamageType = EGridDamageType::Physical;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	bool bReactionGenerated = false;
+
+	bool IsValid() const
+	{
+		return EventId.IsValid() && ActionInstanceId.IsValid() && RoundNumber >= 1 && Trigger != EGridCombatReactionTrigger::None &&
+			SourceCombatantId.IsValid() && TargetCombatantId.IsValid();
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FGridCombatReactionMatch
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FName ReactionId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FGuid OwnerCombatantId;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FName OwningStatusEffectId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	bool bConsumeOwningStatus = false;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FGridCombatReactionEvent Event;
+};
+
+UENUM(BlueprintType)
 enum class EGridCombatStatusApplicationTrigger : uint8
 {
 	None UMETA(DisplayName = "None"),
