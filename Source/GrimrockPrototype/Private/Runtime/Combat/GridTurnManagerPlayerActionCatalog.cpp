@@ -9,6 +9,7 @@
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGSkillRequirementProjectionService.h"
 #include "RPG/RPGSkillCheckService.h"
+#include "RPG/RPGSkillAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
 #include "RPG/StatusEffects/GridCombatStatusApplicationResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
@@ -53,6 +54,26 @@ namespace
 	bool IsMON1285ClassActionSource(EGridCombatActionSourcePolicy SourcePolicy)
 	{
 		return SourcePolicy == EGridCombatActionSourcePolicy::Ability || SourcePolicy == EGridCombatActionSourcePolicy::Spell;
+	}
+
+	bool ResolveEquippedAttackProfile(const UGridItemDefinitionAsset* Definition, FGridOffensiveEquipmentProfile& OutProfile)
+	{
+		OutProfile = FGridOffensiveEquipmentProfile();
+		if (!IsValid(Definition))
+		{
+			return false;
+		}
+
+		for (const FGridCombatActionDefinition& Action : Definition->CombatActions)
+		{
+			if (Action.IsValid() && Action.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+				Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
+			{
+				OutProfile = Action.OffensiveProfile;
+				return true;
+			}
+		}
+		return false;
 	}
 
 	int32 ResolveRPG038AttributeValue(const FRPGAttributes& Attributes, EGridAttackScalingAttribute Attribute)
@@ -408,7 +429,7 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 			{
 				Context.EquippedOffensiveSourceTagSets.Add(Definition->ItemTags);
 				FGridOffensiveEquipmentProfile EquippedProfile;
-				if (ResolveMON12ItemAttackProfile(Definition, EquippedProfile) && EquippedProfile.IsValid())
+				if (ResolveEquippedAttackProfile(Definition, EquippedProfile) && EquippedProfile.IsValid())
 				{
 					Context.EquippedOffensivePhysicalSubtypes.Add(
 						EquippedProfile.AttackDefinition.DamageType == EGridDamageType::Physical
