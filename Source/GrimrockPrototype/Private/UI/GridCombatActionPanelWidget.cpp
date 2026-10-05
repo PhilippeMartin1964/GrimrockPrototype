@@ -1,13 +1,9 @@
 #include "UI/GridCombatActionPanelWidget.h"
 
-#include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-#include "Components/VerticalBox.h"
-#include "Components/VerticalBoxSlot.h"
 #include "Components/Widget.h"
-#include "Fonts/SlateFontInfo.h"
 
 namespace
 {
@@ -59,59 +55,8 @@ FText UGridCombatActionPanelWidget::GetActionStateText() const
 	}
 }
 
-void UGridCombatActionPanelWidget::EnsureStatusWidgets()
-{
-	if ((Text_StatusEffects && Text_StatusFeedback) || !WidgetTree)
-	{
-		return;
-	}
-
-	UWidget* AnchorWidget = Text_ActionState ? static_cast<UWidget*>(Text_ActionState) : static_cast<UWidget*>(Text_ActionPoints);
-	UVerticalBox* Parent = AnchorWidget ? Cast<UVerticalBox>(AnchorWidget->GetParent()) : nullptr;
-	if (!Parent)
-	{
-		return;
-	}
-
-	if (!Text_StatusEffects)
-	{
-		Text_StatusEffects = WidgetTree->ConstructWidget<UTextBlock>(
-			UTextBlock::StaticClass(), MakeUniqueObjectName(WidgetTree, UTextBlock::StaticClass(), TEXT("Text_StatusEffects_Runtime")));
-		if (Text_StatusEffects)
-		{
-			FSlateFontInfo Font = Text_StatusEffects->GetFont();
-			Font.Size = 10;
-			Text_StatusEffects->SetFont(Font);
-			Text_StatusEffects->SetAutoWrapText(true);
-			if (UVerticalBoxSlot* StatusSlot = Parent->AddChildToVerticalBox(Text_StatusEffects))
-			{
-				StatusSlot->SetPadding(FMargin(0.0f, 2.0f, 0.0f, 0.0f));
-			}
-		}
-	}
-
-	if (!Text_StatusFeedback)
-	{
-		Text_StatusFeedback = WidgetTree->ConstructWidget<UTextBlock>(
-			UTextBlock::StaticClass(), MakeUniqueObjectName(WidgetTree, UTextBlock::StaticClass(), TEXT("Text_StatusFeedback_Runtime")));
-		if (Text_StatusFeedback)
-		{
-			FSlateFontInfo Font = Text_StatusFeedback->GetFont();
-			Font.Size = 9;
-			Text_StatusFeedback->SetFont(Font);
-			Text_StatusFeedback->SetAutoWrapText(true);
-			if (UVerticalBoxSlot* FeedbackSlot = Parent->AddChildToVerticalBox(Text_StatusFeedback))
-			{
-				FeedbackSlot->SetPadding(FMargin(0.0f, 1.0f, 0.0f, 0.0f));
-			}
-		}
-	}
-}
-
 void UGridCombatActionPanelWidget::RefreshBoundWidgets()
 {
-	EnsureStatusWidgets();
-
 	SetVisibility(View.bPresent ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 
 	if (Image_Portrait)

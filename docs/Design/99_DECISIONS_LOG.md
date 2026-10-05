@@ -1209,3 +1209,17 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Les anciennes remarques Weekly correspondantes sont historiques et ne doivent pas redevenir des jalons actifs sans nouvelle régression.
 - DOC-CLOSURE01 est un commit **documentation-only** : il avance le HEAD Git sans modifier la baseline runtime/content validée et ne nécessite pas de rerun UE à lui seul.
 - Les documents historiques datés restent valides pour leur époque ; les documents de synthèse rebaselinés au 4 octobre 2026 priment pour l’état courant.
+
+
+## 2026-10-05 — UI-COMBAT-UNIFY01 : Normalize Combat HUD Widget Contracts
+
+### Décisions validées
+
+- `WBP_GridCombatActionPanel` reste un composant de présentation réutilisable ; il ne possède plus de responsabilité viewport.
+- `WBP_GridCombatHud` reste l'unique propriétaire de la présentation combat plein écran et crée les quatre panneaux de membres.
+- Le fallback natif `EnsureStatusWidgets()` est supprimé : `Text_StatusEffects` et `Text_StatusFeedback` appartiennent au Widget Blueprint.
+- Les paramètres éditables des deux contrats passent par `EditDefaultsOnly` et les catégories `Combat|UI|...` afin d'être réglés de manière cohérente dans les defaults des WBP.
+- `PartyMemberPanelSpacing` devient le réglage unique de l'espacement horizontal des panneaux générés dans `Panel_PartyMembers`.
+- Aucun `.uasset` n'est modifié à l'aveugle ; la migration du Widget Tree reste manuelle dans UE 5.5.4.
+- La référence d'authoring courante devient `docs/Design/UI_COMBAT_WIDGETS_CURRENT.md` ; MON12.1, MON12.7, UI-GLOBALHUD01.3 et UI-COMBAT-CLEAN01 restent historiques.
+- Validation locale requise avant clôture : `Grimrock.UI.CombatUnify01`, `Grimrock.Monsters.MON12.CombatActionPanel`, `Grimrock.Monsters.MON12.CombatHUD`, `Grimrock.RPG.MON16.6` et `Grimrock.UI.GlobalHud01`.

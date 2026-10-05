@@ -332,13 +332,13 @@ public:
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UGridTurnManagerComponent> TurnManagerComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Classes")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Classes")
 	TSubclassOf<UGridCombatActionPanelWidget> PartyMemberPanelWidgetClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Classes")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Classes")
 	TSubclassOf<UGridCombatHudInitiativeSlotWidget> InitiativeSlotWidgetClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Initiative", meta = (ClampMin = "7", ClampMax = "10", UIMin = "7", UIMax = "10"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Initiative", meta = (ClampMin = "7", ClampMax = "10", UIMin = "7", UIMax = "10"))
 	int32 VisibleInitiativeSlotCount = 8;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Combat|HUD")
@@ -355,18 +355,22 @@ public:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UTextBlock>> InitiativeRoundSeparatorTexts;
 
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI|Layout")
 	TObjectPtr<UPanelWidget> Panel_PartyMembers;
+
+	/** Horizontal spacing inserted between generated party-member panels. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Layout", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float PartyMemberPanelSpacing = 0.0f;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
 	TObjectPtr<UPanelWidget> Panel_Initiative;
 
 	/** Canonical container for the bottom-right combat controls (PAM / end turn / rejection text). */
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Layout")
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI|Layout")
 	TObjectPtr<UWidget> Panel_CombatBottomRight;
 
 	/** Vertical clearance reserved above the persistent bottom HUD. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Layout", meta = (ClampMin = "56.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Layout", meta = (ClampMin = "56.0"))
 	float PersistentHudBottomClearance = 56.0f;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")

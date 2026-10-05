@@ -24,22 +24,22 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|UI")
 	FGridCombatHudPartyMemberView View;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Appearance", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float DisabledOpacity = 0.45f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Appearance")
 	FLinearColor ReadyColor = FLinearColor(0.20f, 0.80f, 0.25f, 1.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Appearance")
 	FLinearColor WaitingColor = FLinearColor(0.75f, 0.60f, 0.15f, 1.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Appearance")
 	FLinearColor AlreadyActedColor = FLinearColor(0.32f, 0.32f, 0.32f, 1.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Appearance")
 	FLinearColor IncapacitatedColor = FLinearColor(0.80f, 0.35f, 0.10f, 1.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|UI|Appearance")
 	FLinearColor DefeatedColor = FLinearColor(0.65f, 0.08f, 0.08f, 1.0f);
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI")
@@ -77,6 +77,5 @@ public:
 
 private:
 	FText GetActionStateText() const;
-	void EnsureStatusWidgets();
 	void RefreshBoundWidgets();
 };

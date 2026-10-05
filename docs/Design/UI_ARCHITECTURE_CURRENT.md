@@ -1,7 +1,7 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-INVENTORY02.1 CORRECTION ACTIVE ; UI-FEEDBACK01.2 EN PAUSE**  
-Date : **22 septembre 2026**
+Statut : **CURRENT — UI-COMBAT-UNIFY01 CONTRACT NORMALIZED ; VALIDATION UE EN ATTENTE**  
+Date : **5 octobre 2026**
 
 ## Références canoniques
 
@@ -588,3 +588,14 @@ Le HUD combat conserve PAM et Fin du tour, mais réserve 56 px au-dessus de la b
 Le Combat HUD conserve uniquement : initiative, panneaux des combattants, PAM, fin de tour et le backend d'exécution/ciblage des actions. Le ciblage `Cell/Area` reste autoritaire en C++ via `TargetingPreview` et les méthodes Begin/Update/Confirm/Cancel ; l'ancien panneau texte optionnel `Panel_Targeting` n'existe plus dans le WBP courant et son fallback C++ a été supprimé par UI-CODE-AUDIT01.
 
 La politique SaveGame du prototype est stricte : aucune migration des anciennes hotbars à 10 slots ou absentes. `FGridCombatHotbarBinding::SlotCount` est supprimé ; `MinimumSlotCount = 12` décrit uniquement le minimum du schéma courant.
+
+
+### UI-COMBAT-UNIFY01 — contrats UMG du Combat HUD
+
+`WBP_GridCombatActionPanel` reste un renderer réutilisable d'un seul membre du groupe. Il ne porte plus de racine viewport ni de position absolue : sa racine cible est `SizeBox_ActionPanel`. Les deux sorties de statut `Text_StatusEffects` et `Text_StatusFeedback` sont authored explicitement dans le WBP ; le fallback C++ qui tentait de fabriquer des `TextBlock` à l'exécution est supprimé.
+
+`WBP_GridCombatHud` reste le propriétaire plein écran du combat et génère les quatre panneaux dans `Panel_PartyMembers`. L'espacement horizontal entre ces panneaux est réglable par `PartyMemberPanelSpacing` ; aucune seconde autorité de layout n'est créée.
+
+Les paramètres éditables des deux classes utilisent désormais la même convention `EditDefaultsOnly` et les catégories `Combat|UI|Appearance`, `Combat|UI|Classes`, `Combat|UI|Initiative` et `Combat|UI|Layout`. Ils se règlent dans un Widget Blueprint via `Graph > My Blueprint > Show Inherited Variables > Default Value`.
+
+Référence canonique : `docs/Design/UI_COMBAT_WIDGETS_CURRENT.md`.

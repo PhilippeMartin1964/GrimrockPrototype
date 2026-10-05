@@ -10,10 +10,12 @@
 #include "Engine/World.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridCombatHudWidget.h"
 #include "UI/GridMapWidget.h"
 #include "UI/GridPersistentHudWidget.h"
 #include "UI/GrimrockMenuWidget.h"
+#include "UObject/UnrealType.h"
 
 namespace
 {
@@ -60,6 +62,61 @@ namespace
 	{
 		return IsValid(Image) && Image->GetVisibility() == ESlateVisibility::HitTestInvisible;
 	}
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUICombatUnify01ContractsTest, "Grimrock.UI.CombatUnify01.Contracts",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUICombatUnify01ContractsTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	const UGridCombatActionPanelWidget* PanelDefaults = GetDefault<UGridCombatActionPanelWidget>();
+	const UGridCombatHudWidget* HudDefaults = GetDefault<UGridCombatHudWidget>();
+	if (!TestNotNull(TEXT("Combat action panel defaults exist"), PanelDefaults) || !TestNotNull(TEXT("Combat HUD defaults exist"), HudDefaults))
+	{
+		return false;
+	}
+
+	TestEqual(TEXT("Disabled panel opacity keeps the canonical default"), PanelDefaults->DisabledOpacity, 0.45f);
+	TestEqual(TEXT("Party-panel spacing defaults to no artificial gap"), HudDefaults->PartyMemberPanelSpacing, 0.0f);
+	TestEqual(TEXT("Persistent-HUD clearance keeps the canonical height"), HudDefaults->PersistentHudBottomClearance, 56.0f);
+	TestEqual(TEXT("Initiative keeps eight visible slots by default"), HudDefaults->VisibleInitiativeSlotCount, 8);
+
+	const UClass* PanelClass = UGridCombatActionPanelWidget::StaticClass();
+	const UClass* HudClass = UGridCombatHudWidget::StaticClass();
+	const FName RequiredPanelBindings[] = { TEXT("Text_StatusEffects"), TEXT("Text_StatusFeedback") };
+	for (const FName PropertyName : RequiredPanelBindings)
+	{
+		TestTrue(FString::Printf(TEXT("Combat action panel exposes %s for authored UMG presentation"), *PropertyName.ToString()),
+			PanelClass->FindPropertyByName(PropertyName) != nullptr);
+	}
+
+	const FName DefaultsOnlyProperties[] = {
+		TEXT("PartyMemberPanelWidgetClass"), TEXT("InitiativeSlotWidgetClass"), TEXT("VisibleInitiativeSlotCount"),
+		TEXT("PartyMemberPanelSpacing"), TEXT("PersistentHudBottomClearance")
+	};
+	for (const FName PropertyName : DefaultsOnlyProperties)
+	{
+		const FProperty* Property = HudClass->FindPropertyByName(PropertyName);
+		TestNotNull(FString::Printf(TEXT("Combat HUD exposes configurable %s"), *PropertyName.ToString()), Property);
+		if (Property)
+		{
+			TestTrue(FString::Printf(TEXT("%s is editable on widget defaults"), *PropertyName.ToString()), Property->HasAnyPropertyFlags(CPF_Edit));
+			TestTrue(FString::Printf(TEXT("%s is not a per-instance authority"), *PropertyName.ToString()),
+				Property->HasAnyPropertyFlags(CPF_DisableEditOnInstance));
+		}
+	}
+
+	const FProperty* DisabledOpacityProperty = PanelClass->FindPropertyByName(TEXT("DisabledOpacity"));
+	TestNotNull(TEXT("Combat action panel exposes DisabledOpacity"), DisabledOpacityProperty);
+	if (DisabledOpacityProperty)
+	{
+		TestTrue(TEXT("DisabledOpacity is editable on widget defaults"), DisabledOpacityProperty->HasAnyPropertyFlags(CPF_Edit));
+		TestTrue(TEXT("DisabledOpacity is not a per-instance authority"), DisabledOpacityProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance));
+	}
+
+	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUIGlobalHud01NavigationSelectionTest, "Grimrock.UI.GlobalHud01.NavigationSelection",

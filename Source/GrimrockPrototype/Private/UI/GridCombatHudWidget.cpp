@@ -6,6 +6,7 @@
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
@@ -1179,7 +1180,13 @@ void UGridCombatHudWidget::EnsurePartyMemberPanels()
 		{
 			continue;
 		}
-		Panel_PartyMembers->AddChild(Panel);
+		if (UHorizontalBoxSlot* PartySlot = Cast<UHorizontalBoxSlot>(Panel_PartyMembers->AddChild(Panel)))
+		{
+			const float RightPadding = CharacterIndex < FGridCombatHudViewModelBuilder::PartyPanelCount - 1
+				? FMath::Max(0.0f, PartyMemberPanelSpacing)
+				: 0.0f;
+			PartySlot->SetPadding(FMargin(0.0f, 0.0f, RightPadding, 0.0f));
+		}
 		PartyMemberPanels.Add(Panel);
 	}
 }

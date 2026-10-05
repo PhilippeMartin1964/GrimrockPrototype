@@ -1,5 +1,8 @@
 # UI-COMBAT-CLEAN01 — Simplify Party Member Combat Panels
 
+> **ARCHITECTURE CONSERVÉE, AUTHORING UMG SUPERSEDED PAR UI-COMBAT-UNIFY01 (05.10.2026).**  
+> La séparation HUD propriétaire / panneaux de présentation reste valide. Les noms, hiérarchies et réglages manuels actuels sont désormais centralisés dans `docs/Design/UI_COMBAT_WIDGETS_CURRENT.md`.
+
 Date : **27 septembre 2026**
 
 ## Objectif

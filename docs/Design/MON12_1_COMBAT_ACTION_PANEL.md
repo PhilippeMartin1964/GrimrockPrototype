@@ -1,5 +1,8 @@
 # MON12.1 — Premier panneau d’actions de combat
 
+> **SUPERSEDED POUR L’AUTHORING UMG COURANT — UI-COMBAT-UNIFY01 (05.10.2026).**  
+> Ce document reste historique. Ne plus appliquer sa hiérarchie `Canvas_Root`, ses positions viewport, ni ses anciennes branches `MainHand / OffHand`. La référence actuelle pour `WBP_GridCombatActionPanel` et `WBP_GridCombatHud` est `docs/Design/UI_COMBAT_WIDGETS_CURRENT.md`.
+
 > **Statut historique.** MON12.7 conserve ce Widget Blueprint comme panneau de
 > statut d'un personnage, mais ses vues et widgets `MainHand / OffHand` ont été
 > supprimés. Les actions actuelles proviennent exclusivement du catalogue

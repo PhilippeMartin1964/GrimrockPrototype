@@ -1,5 +1,8 @@
 # MON12.7 — HUD de combat orienté actions
 
+> **SUPERSEDED POUR L’AUTHORING UMG COURANT — UI-COMBAT-UNIFY01 (05.10.2026).**  
+> Ce document reste l’historique de MON12.7, mais ses procédures manuelles concernant `Panel_Actions`, `ActionWidgetClass` dans le Combat HUD et l’ancienne construction des panneaux ne doivent plus être suivies. La référence actuelle est `docs/Design/UI_COMBAT_WIDGETS_CURRENT.md`.
+
 > **Mise à jour UI-GLOBALHUD01.3 (26.09.2026)** — `WBP_GridCombatHud` est désormais strictement combat. Les instructions historiques ci-dessous concernant une hotbar ou une navigation globale intégrée au Combat HUD sont obsolètes ; ces surfaces appartiennent exclusivement à `WBP_GridPersistentHud`.
 
 

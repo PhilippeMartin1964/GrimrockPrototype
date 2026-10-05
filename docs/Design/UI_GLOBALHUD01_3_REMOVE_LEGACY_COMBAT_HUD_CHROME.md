@@ -1,5 +1,8 @@
 # UI-GLOBALHUD01.3 — Remove Legacy Combat HUD Chrome
 
+> **HISTORIQUE — la hiérarchie UMG courante est définie par UI-COMBAT-UNIFY01 (05.10.2026).**  
+> En particulier, `Panel_Targeting` / `Text_TargetingInstructions` / `Text_TargetingCell` ont ensuite été supprimés par UI-CODE-AUDIT01. Pour toute modification actuelle de `WBP_GridCombatHud`, utiliser `docs/Design/UI_COMBAT_WIDGETS_CURRENT.md`.
+
 Date : **26 septembre 2026**  
 Statut : **C++ prêt pour validation UE5.5.4 + nettoyage WBP requis**
 
