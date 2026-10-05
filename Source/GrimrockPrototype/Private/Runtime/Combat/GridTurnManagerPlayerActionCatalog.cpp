@@ -12,6 +12,7 @@
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
+#include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -85,6 +86,54 @@ namespace
 			return false;
 		}
 		OutDefinition = *Found;
+		return true;
+	}
+
+	bool BuildRPG033PartyArmorSnapshot(
+		const UGridPartyInventoryComponent* Inventory, int32 CharacterIndex, FGridCombatArmorPoolSnapshot& OutSnapshot)
+	{
+		OutSnapshot = FGridCombatArmorPoolSnapshot();
+		if (!IsValid(Inventory) || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
+		{
+			return false;
+		}
+
+		const FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
+		const URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
+		if (!FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(Character.ClassId, ClassDefinition))
+		{
+			ClassDefinition = FRPGAuthoringIdentityResolver::ResolveClassById(Character.ClassId);
+		}
+		if (!IsValid(ClassDefinition) || !ClassDefinition->IsValidDefinition())
+		{
+			return false;
+		}
+
+		FGridInventoryCharacterSummary Summary;
+		if (!Inventory->GetCharacterSummary(CharacterIndex, Summary))
+		{
+			return false;
+		}
+
+		OutSnapshot.CurrentPhysicalArmor = FMath::Max(0, Summary.Resources.CurrentPhysicalArmor);
+		OutSnapshot.CurrentMagicalArmor = FMath::Max(0, Summary.Resources.CurrentMagicalArmor);
+		OutSnapshot.ReferencePhysicalArmor =
+			FMath::Max(0, ClassDefinition->BasePhysicalArmor + Summary.EquipmentStatBonus.ArmorBonus);
+		OutSnapshot.ReferenceMagicalArmor = FMath::Max(0, ClassDefinition->BaseMagicalArmor);
+		return true;
+	}
+
+	bool ResolveRPG033CharacterArmorModifiers(const FGridCharacterInventoryState& Character, const FGridAvailableCombatAction& Action,
+		FGridResolvedCombatModifiers& OutModifiers)
+	{
+		TArray<FGridCombatModifierProfile> Profiles;
+		if (!FGridCombatModifierResolver::CollectCharacterModifiers(Character, Profiles))
+		{
+			OutModifiers.Reset();
+			return false;
+		}
+		FGridCombatModifierResolver::Resolve(
+			Profiles, FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId), OutModifiers);
 		return true;
 	}
 }
@@ -258,7 +307,14 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 		Context.MaximumMana = FMath::Max(0, CharacterSummary.DerivedStats.MaxMana);
 		Context.CurrentPhysicalArmor = FMath::Max(0, CharacterSummary.Resources.CurrentPhysicalArmor);
 		Context.CurrentMagicalArmor = FMath::Max(0, CharacterSummary.Resources.CurrentMagicalArmor);
+		FGridCombatArmorPoolSnapshot ArmorSnapshot;
+		if (BuildRPG033PartyArmorSnapshot(Inventory, CharacterIndex, ArmorSnapshot))
+		{
+			Context.ReferencePhysicalArmor = ArmorSnapshot.ReferencePhysicalArmor;
+			Context.ReferenceMagicalArmor = ArmorSnapshot.ReferenceMagicalArmor;
+		}
 		Context.CurrentStatusEffects = Character.StatusEffects;
+		Context.ArmorEffectSource = FGridCombatArmorEffectResolver::MakeSourceContext(Character, CharacterSummary.Attributes);
 	}
 	Context.bEnableQuickItemExecutors = true;
 	Context.bEnableClassActionExecutors = true;
@@ -411,7 +467,8 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 	if (!IsValid(Inventory) || !Action.bEnabled || Action.Definition.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem ||
 		Action.Definition.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
 		Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
-		(!Action.Definition.EffectProfile.IsValid() && Action.Definition.StatusApplications.IsEmpty()) || Action.SourceDefinitionId.IsNone() || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
+		(!Action.Definition.EffectProfile.IsValid() && Action.Definition.StatusApplications.IsEmpty() && Action.Definition.ArmorEffects.IsEmpty()) ||
+		Action.SourceDefinitionId.IsNone() || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
 	{
 		return false;
 	}
@@ -439,13 +496,29 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 		FMath::Clamp(OutResult.HealthBefore + Action.Definition.EffectProfile.RestoreHealth, 0, FMath::Max(0, Summary.DerivedStats.MaxHealth));
 	OutResult.ManaAfter =
 		FMath::Clamp(OutResult.ManaBefore - ManaCost + Action.Definition.EffectProfile.RestoreMana, 0, FMath::Max(0, Summary.DerivedStats.MaxMana));
+	FGridCombatArmorPoolSnapshot ArmorSnapshot;
+	FGridResolvedCombatModifiers ArmorModifiers;
+	const FGridCombatArmorEffectSourceContext ArmorSourceContext =
+		FGridCombatArmorEffectResolver::MakeSourceContext(Character, Summary.Attributes);
+	const bool bHasArmorSnapshot = BuildRPG033PartyArmorSnapshot(Inventory, Action.CharacterIndex, ArmorSnapshot);
+	if (bHasArmorSnapshot)
+	{
+		ResolveRPG033CharacterArmorModifiers(Character, Action, ArmorModifiers);
+		FGridCombatArmorEffectResolver::ApplyReferenceModifiers(ArmorSnapshot, ArmorModifiers);
+		OutResult.PhysicalArmorBefore = ArmorSnapshot.CurrentPhysicalArmor;
+		OutResult.PhysicalArmorAfter = ArmorSnapshot.CurrentPhysicalArmor;
+		OutResult.MagicalArmorBefore = ArmorSnapshot.CurrentMagicalArmor;
+		OutResult.MagicalArmorAfter = ArmorSnapshot.CurrentMagicalArmor;
+	}
 	FGridAttackTargetStats SelfTargetBefore;
 	SelfTargetBefore.CurrentHealth = OutResult.HealthBefore;
-	SelfTargetBefore.PhysicalArmor = Character.Resources.CurrentPhysicalArmor;
-	SelfTargetBefore.MagicalArmor = Character.Resources.CurrentMagicalArmor;
+	SelfTargetBefore.PhysicalArmor = bHasArmorSnapshot ? ArmorSnapshot.CurrentPhysicalArmor : Character.Resources.CurrentPhysicalArmor;
+	SelfTargetBefore.MagicalArmor = bHasArmorSnapshot ? ArmorSnapshot.CurrentMagicalArmor : Character.Resources.CurrentMagicalArmor;
 	const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
 		Action.Definition.StatusApplications, Character.CharacterId, SelfTargetBefore, nullptr, Character.StatusEffects);
-	if (OutResult.HealthAfter <= OutResult.HealthBefore && OutResult.ManaAfter <= OutResult.ManaBefore && !bStatusWouldMutate)
+	const bool bArmorWouldMutate =
+		bHasArmorSnapshot && FGridCombatArmorEffectResolver::WouldAnyRestore(Action.Definition.ArmorEffects, ArmorSnapshot, ArmorModifiers, &ArmorSourceContext);
+	if (OutResult.HealthAfter <= OutResult.HealthBefore && OutResult.ManaAfter <= OutResult.ManaBefore && !bStatusWouldMutate && !bArmorWouldMutate)
 	{
 		return false;
 	}
@@ -473,6 +546,20 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 	}
 
 	OutResult.SourceQuantityAfter = Inventory->CountItemDefinitionInCharacterInventory(Action.CharacterIndex, Action.SourceDefinitionId);
+	if (bHasArmorSnapshot && !Action.Definition.ArmorEffects.IsEmpty())
+	{
+		const int32 PhysicalBefore = ArmorSnapshot.CurrentPhysicalArmor;
+		const int32 MagicalBefore = ArmorSnapshot.CurrentMagicalArmor;
+		FGridCombatArmorEffectResolver::ApplyRestoreEffects(Action.Definition.ArmorEffects, ArmorSnapshot, ArmorModifiers, &ArmorSourceContext);
+		const int32 PhysicalRestored = FMath::Max(0, ArmorSnapshot.CurrentPhysicalArmor - PhysicalBefore);
+		const int32 MagicalRestored = FMath::Max(0, ArmorSnapshot.CurrentMagicalArmor - MagicalBefore);
+		Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor + PhysicalRestored);
+		Character.Resources.CurrentMagicalArmor = FMath::Max(0, Character.Resources.CurrentMagicalArmor + MagicalRestored);
+		OutResult.PhysicalArmorAfter = ArmorSnapshot.CurrentPhysicalArmor;
+		OutResult.MagicalArmorAfter = ArmorSnapshot.CurrentMagicalArmor;
+		SelfTargetBefore.PhysicalArmor = ArmorSnapshot.CurrentPhysicalArmor;
+		SelfTargetBefore.MagicalArmor = ArmorSnapshot.CurrentMagicalArmor;
+	}
 	if (!Action.Definition.StatusApplications.IsEmpty())
 	{
 		if (UWorld* World = GetWorld())
@@ -509,7 +596,8 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 	if (!IsValid(Inventory) || !Action.bEnabled || !IsMON1285ClassActionSource(Action.Definition.SourcePolicy) ||
 		Action.Definition.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
 		Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
-		(!Action.Definition.EffectProfile.IsValid() && Action.Definition.StatusApplications.IsEmpty()) || Action.CurrentSourceItemQuantityCost != 0 || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
+		(!Action.Definition.EffectProfile.IsValid() && Action.Definition.StatusApplications.IsEmpty() && Action.Definition.ArmorEffects.IsEmpty()) ||
+		Action.CurrentSourceItemQuantityCost != 0 || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
 	{
 		return false;
 	}
@@ -531,13 +619,29 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 		FMath::Clamp(OutResult.HealthBefore + Action.Definition.EffectProfile.RestoreHealth, 0, FMath::Max(0, Summary.DerivedStats.MaxHealth));
 	OutResult.ManaAfter = FMath::Clamp(
 		OutResult.ManaBefore - Action.CurrentManaCost + Action.Definition.EffectProfile.RestoreMana, 0, FMath::Max(0, Summary.DerivedStats.MaxMana));
+	FGridCombatArmorPoolSnapshot ArmorSnapshot;
+	FGridResolvedCombatModifiers ArmorModifiers;
+	const FGridCombatArmorEffectSourceContext ArmorSourceContext =
+		FGridCombatArmorEffectResolver::MakeSourceContext(Character, Summary.Attributes);
+	const bool bHasArmorSnapshot = BuildRPG033PartyArmorSnapshot(Inventory, Action.CharacterIndex, ArmorSnapshot);
+	if (bHasArmorSnapshot)
+	{
+		ResolveRPG033CharacterArmorModifiers(Character, Action, ArmorModifiers);
+		FGridCombatArmorEffectResolver::ApplyReferenceModifiers(ArmorSnapshot, ArmorModifiers);
+		OutResult.PhysicalArmorBefore = ArmorSnapshot.CurrentPhysicalArmor;
+		OutResult.PhysicalArmorAfter = ArmorSnapshot.CurrentPhysicalArmor;
+		OutResult.MagicalArmorBefore = ArmorSnapshot.CurrentMagicalArmor;
+		OutResult.MagicalArmorAfter = ArmorSnapshot.CurrentMagicalArmor;
+	}
 	FGridAttackTargetStats SelfTargetBefore;
 	SelfTargetBefore.CurrentHealth = OutResult.HealthBefore;
-	SelfTargetBefore.PhysicalArmor = Character.Resources.CurrentPhysicalArmor;
-	SelfTargetBefore.MagicalArmor = Character.Resources.CurrentMagicalArmor;
+	SelfTargetBefore.PhysicalArmor = bHasArmorSnapshot ? ArmorSnapshot.CurrentPhysicalArmor : Character.Resources.CurrentPhysicalArmor;
+	SelfTargetBefore.MagicalArmor = bHasArmorSnapshot ? ArmorSnapshot.CurrentMagicalArmor : Character.Resources.CurrentMagicalArmor;
 	const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
 		Action.Definition.StatusApplications, Character.CharacterId, SelfTargetBefore, nullptr, Character.StatusEffects);
-	if (OutResult.HealthAfter <= OutResult.HealthBefore && OutResult.ManaAfter <= OutResult.ManaBefore && !bStatusWouldMutate)
+	const bool bArmorWouldMutate =
+		bHasArmorSnapshot && FGridCombatArmorEffectResolver::WouldAnyRestore(Action.Definition.ArmorEffects, ArmorSnapshot, ArmorModifiers, &ArmorSourceContext);
+	if (OutResult.HealthAfter <= OutResult.HealthBefore && OutResult.ManaAfter <= OutResult.ManaBefore && !bStatusWouldMutate && !bArmorWouldMutate)
 	{
 		return false;
 	}
@@ -549,6 +653,20 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 
 	Character.Resources.CurrentHealth = OutResult.HealthAfter;
 	Character.Resources.CurrentMana = OutResult.ManaAfter;
+	if (bHasArmorSnapshot && !Action.Definition.ArmorEffects.IsEmpty())
+	{
+		const int32 PhysicalBefore = ArmorSnapshot.CurrentPhysicalArmor;
+		const int32 MagicalBefore = ArmorSnapshot.CurrentMagicalArmor;
+		FGridCombatArmorEffectResolver::ApplyRestoreEffects(Action.Definition.ArmorEffects, ArmorSnapshot, ArmorModifiers, &ArmorSourceContext);
+		const int32 PhysicalRestored = FMath::Max(0, ArmorSnapshot.CurrentPhysicalArmor - PhysicalBefore);
+		const int32 MagicalRestored = FMath::Max(0, ArmorSnapshot.CurrentMagicalArmor - MagicalBefore);
+		Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor + PhysicalRestored);
+		Character.Resources.CurrentMagicalArmor = FMath::Max(0, Character.Resources.CurrentMagicalArmor + MagicalRestored);
+		OutResult.PhysicalArmorAfter = ArmorSnapshot.CurrentPhysicalArmor;
+		OutResult.MagicalArmorAfter = ArmorSnapshot.CurrentMagicalArmor;
+		SelfTargetBefore.PhysicalArmor = ArmorSnapshot.CurrentPhysicalArmor;
+		SelfTargetBefore.MagicalArmor = ArmorSnapshot.CurrentMagicalArmor;
+	}
 	if (!Action.Definition.StatusApplications.IsEmpty())
 	{
 		if (UWorld* World = GetWorld())
@@ -757,6 +875,8 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 
 	TArray<FGridCombatModifierProfile> ChoiceModifiers;
 	FGridResolvedCombatModifiers ResolvedModifiers;
+	const FGridCombatArmorEffectSourceContext ArmorSourceContext =
+		FGridCombatArmorEffectResolver::MakeSourceContext(Character, CharacterSummary.Attributes);
 	if (FGridCombatModifierResolver::CollectCharacterModifiers(Character, ChoiceModifiers))
 	{
 		FGridCombatModifierResolver::Resolve(ChoiceModifiers,
@@ -872,7 +992,24 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 		Request.OffensiveEquipmentSlot = EGridEquipmentSlot::None;
 		Request.ActionPointCost = Action.CurrentActionPointCost;
 
-		const FGridAttackResult AttackResult = FGridCombatResolver::ResolveAttack(Sources[Index], Targets[Index], AttackDefinitions[Index], CombatRandomStream);
+		FGridAttackResult AttackResult = FGridCombatResolver::ResolveAttack(Sources[Index], Targets[Index], AttackDefinitions[Index], CombatRandomStream);
+		FGridCombatArmorPoolSnapshot TargetArmorSnapshot;
+		TargetArmorSnapshot.CurrentPhysicalArmor = Targets[Index].PhysicalArmor;
+		TargetArmorSnapshot.CurrentMagicalArmor = Targets[Index].MagicalArmor;
+		TargetArmorSnapshot.ReferencePhysicalArmor =
+			IsValid(TargetMonster->MonsterDefinition) ? FMath::Max(0, TargetMonster->MonsterDefinition->PhysicalArmor) : Targets[Index].PhysicalArmor;
+		TargetArmorSnapshot.ReferenceMagicalArmor =
+			IsValid(TargetMonster->MonsterDefinition) ? FMath::Max(0, TargetMonster->MonsterDefinition->MagicalArmor) : Targets[Index].MagicalArmor;
+		FGridResolvedCombatModifiers TargetArmorModifiers;
+		TArray<FGridCombatModifierProfile> TargetArmorProfiles;
+		if (FGridCombatModifierResolver::CollectStatusModifiers(TargetMonster->StatusEffects, TargetArmorProfiles))
+		{
+			FGridCombatModifierResolver::Resolve(TargetArmorProfiles,
+				FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId), TargetArmorModifiers);
+			FGridCombatArmorEffectResolver::ApplyReferenceModifiers(TargetArmorSnapshot, TargetArmorModifiers);
+		}
+		FGridCombatArmorEffectResolver::ApplyAttackDamageEffects(
+			Action.Definition.ArmorEffects, TargetArmorSnapshot, TargetArmorModifiers, AttackResult, &ArmorSourceContext);
 		OutResult.TargetedActionResult.AttackRequests.Add(Request);
 		OutResult.TargetedActionResult.AttackResults.Add(AttackResult);
 		if (Index == 0)

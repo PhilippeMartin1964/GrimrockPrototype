@@ -537,6 +537,167 @@ struct FGridCombatStatusApplicationProfile
 	}
 };
 
+UENUM(BlueprintType)
+enum class EGridCombatArmorPool : uint8
+{
+	Physical UMETA(DisplayName = "Physical Armor"),
+	Magical UMETA(DisplayName = "Magical Armor")
+};
+
+UENUM(BlueprintType)
+enum class EGridCombatArmorEffectOperation : uint8
+{
+	Restore UMETA(DisplayName = "Restore"),
+	Damage UMETA(DisplayName = "Damage")
+};
+
+UENUM(BlueprintType)
+enum class EGridCombatArmorEffectMagnitude : uint8
+{
+	Flat UMETA(DisplayName = "Flat"),
+	ReferencePercent UMETA(DisplayName = "Reference Percent"),
+	RawDamagePercent UMETA(DisplayName = "Raw Damage Percent")
+};
+
+UENUM(BlueprintType)
+enum class EGridCombatArmorEffectTrigger : uint8
+{
+	AfterResolution UMETA(DisplayName = "After Resolution"),
+	AfterSuccessfulHit UMETA(DisplayName = "After Successful Hit")
+};
+
+/** Caster-side values consumed by C3 flat-magnitude scaling. */
+USTRUCT(BlueprintType)
+struct FGridCombatArmorEffectSourceContext
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor")
+	FRPGAttributes Attributes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor")
+	TArray<FRPGSkillRank> SkillRanks;
+};
+
+/**
+ * Generic C3 direct armor-pool mutation.
+ * Restore is clamped to the target reference pool; Damage never spills into HP.
+ */
+USTRUCT(BlueprintType)
+struct FGridCombatArmorEffectProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor")
+	EGridCombatArmorPool Pool = EGridCombatArmorPool::Physical;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor")
+	EGridCombatArmorEffectOperation Operation = EGridCombatArmorEffectOperation::Restore;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor")
+	EGridCombatArmorEffectMagnitude Magnitude = EGridCombatArmorEffectMagnitude::Flat;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor")
+	EGridCombatArmorEffectTrigger Trigger = EGridCombatArmorEffectTrigger::AfterResolution;
+
+	/** Base flat points or percentage, according to Magnitude. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor", meta = (ClampMin = "1", ClampMax = "1000"))
+	int32 Amount = 1;
+
+	/** Optional caster attribute modifier contribution for Flat magnitudes. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor|Scaling")
+	EGridAttackScalingAttribute ScalingAttribute = EGridAttackScalingAttribute::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor|Scaling", meta = (ClampMin = "0", ClampMax = "10"))
+	int32 AttributeModifierScale = 0;
+
+	/** Optional stable RPG SkillId contribution for Flat magnitudes. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor|Scaling")
+	FName ScalingSkillId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor|Scaling", meta = (ClampMin = "0", ClampMax = "10"))
+	int32 SkillRankScale = 0;
+
+	bool IsValid() const
+	{
+		if (Amount <= 0 || AttributeModifierScale < 0 || SkillRankScale < 0)
+		{
+			return false;
+		}
+		const bool bAttributeScalingValid =
+			(ScalingAttribute == EGridAttackScalingAttribute::None) == (AttributeModifierScale == 0);
+		const bool bSkillScalingValid = ScalingSkillId.IsNone() == (SkillRankScale == 0);
+		if (!bAttributeScalingValid || !bSkillScalingValid)
+		{
+			return false;
+		}
+		if (Magnitude != EGridCombatArmorEffectMagnitude::Flat && (AttributeModifierScale != 0 || SkillRankScale != 0))
+		{
+			return false;
+		}
+		if (Magnitude == EGridCombatArmorEffectMagnitude::RawDamagePercent)
+		{
+			return Operation == EGridCombatArmorEffectOperation::Damage && Trigger == EGridCombatArmorEffectTrigger::AfterSuccessfulHit;
+		}
+		return true;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FGridCombatArmorPoolSnapshot
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor")
+	int32 CurrentPhysicalArmor = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor")
+	int32 ReferencePhysicalArmor = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor")
+	int32 CurrentMagicalArmor = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Armor")
+	int32 ReferenceMagicalArmor = 0;
+
+	bool IsValid() const
+	{
+		return CurrentPhysicalArmor >= 0 && ReferencePhysicalArmor >= 0 && CurrentMagicalArmor >= 0 && ReferenceMagicalArmor >= 0;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FGridCombatArmorEffectResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Armor")
+	EGridCombatArmorPool Pool = EGridCombatArmorPool::Physical;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Armor")
+	EGridCombatArmorEffectOperation Operation = EGridCombatArmorEffectOperation::Restore;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Armor")
+	int32 ArmorBefore = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Armor")
+	int32 ArmorAfter = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Armor")
+	int32 ReferenceArmor = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Armor")
+	int32 RequestedAmount = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Armor")
+	int32 AppliedAmount = 0;
+
+	bool DidMutate() const
+	{
+		return AppliedAmount > 0 && ArmorBefore != ArmorAfter;
+	}
+};
+
 /** Resource costs declared by an action before runtime modifiers. */
 USTRUCT(BlueprintType)
 struct FGridCombatActionResourceCosts
@@ -614,11 +775,29 @@ struct FGridCombatModifierProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "-32", ClampMax = "32"))
 	int32 RangeCellsModifier = 0;
 
+	/** Percentage modifier to the target's reconstructible physical armor reference pool. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Armor", meta = (ClampMin = "-100", ClampMax = "500"))
+	int32 PhysicalArmorReferencePercentModifier = 0;
+
+	/** Percentage modifier to the target's reconstructible magical armor reference pool. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Armor", meta = (ClampMin = "-100", ClampMax = "500"))
+	int32 MagicalArmorReferencePercentModifier = 0;
+
+	/** Percentage modifier to physical-armor restoration received by the target. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Armor", meta = (ClampMin = "-100", ClampMax = "500"))
+	int32 PhysicalArmorRestorationPercentModifier = 0;
+
+	/** Percentage modifier to magical-armor restoration received by the target. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Armor", meta = (ClampMin = "-100", ClampMax = "500"))
+	int32 MagicalArmorRestorationPercentModifier = 0;
+
 	bool HasAnyModifier() const
 	{
 		return AccuracyModifier != 0 || EvasionModifier != 0 || OutgoingDamagePercentModifier != 0 || IncomingDamagePercentModifier != 0 ||
 			CriticalChancePercentModifier != 0 || CriticalDamagePercentModifier != 0 || !ResistanceModifiers.IsEmpty() || ActionPointCostModifier != 0 ||
-			ManaCostModifier != 0 || RangeCellsModifier != 0;
+			ManaCostModifier != 0 || RangeCellsModifier != 0 || PhysicalArmorReferencePercentModifier != 0 ||
+			MagicalArmorReferencePercentModifier != 0 || PhysicalArmorRestorationPercentModifier != 0 ||
+			MagicalArmorRestorationPercentModifier != 0;
 	}
 
 	bool IsValid() const
@@ -627,7 +806,11 @@ struct FGridCombatModifierProfile
 			IncomingDamagePercentModifier < -100 || IncomingDamagePercentModifier > 500 || CriticalChancePercentModifier < -100 ||
 			CriticalChancePercentModifier > 100 || CriticalDamagePercentModifier < -100 || CriticalDamagePercentModifier > 800 ||
 			ActionPointCostModifier < -6 || ActionPointCostModifier > 6 || ManaCostModifier < -100 || ManaCostModifier > 100 ||
-			RangeCellsModifier < -32 || RangeCellsModifier > 32)
+			RangeCellsModifier < -32 || RangeCellsModifier > 32 || PhysicalArmorReferencePercentModifier < -100 ||
+			PhysicalArmorReferencePercentModifier > 500 || MagicalArmorReferencePercentModifier < -100 ||
+			MagicalArmorReferencePercentModifier > 500 || PhysicalArmorRestorationPercentModifier < -100 ||
+			PhysicalArmorRestorationPercentModifier > 500 || MagicalArmorRestorationPercentModifier < -100 ||
+			MagicalArmorRestorationPercentModifier > 500)
 		{
 			return false;
 		}
@@ -756,6 +939,10 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Status")
 	TArray<FGridCombatStatusApplicationProfile> StatusApplications;
 
+	/** C3 direct armor effects resolved before C1 ArmorGate evaluation. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Armor")
+	TArray<FGridCombatArmorEffectProfile> ArmorEffects;
+
 	bool IsValid() const
 	{
 		const bool bAttackProfileValid = ResolutionProfile != EGridCombatActionResolutionProfile::Attack || (OffensiveProfile.IsValid() && ActionPointCost > 0);
@@ -771,10 +958,27 @@ struct FGridCombatActionDefinition
 					(Profile.Trigger == EGridCombatStatusApplicationTrigger::AfterSuccessfulHit &&
 						ResolutionProfile != EGridCombatActionResolutionProfile::Attack);
 			}) == false;
+		const bool bArmorEffectsValid = ArmorEffects.ContainsByPredicate(
+			[this](const FGridCombatArmorEffectProfile& Profile)
+			{
+				if (!Profile.IsValid())
+				{
+					return true;
+				}
+				if (ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
+				{
+					return Profile.Operation != EGridCombatArmorEffectOperation::Damage ||
+						Profile.Trigger != EGridCombatArmorEffectTrigger::AfterSuccessfulHit;
+				}
+				return ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
+					Profile.Operation != EGridCombatArmorEffectOperation::Restore ||
+					Profile.Trigger != EGridCombatArmorEffectTrigger::AfterResolution;
+			}) == false;
 		return !ActionId.IsNone() && ActionType != EGridCombatActionType::None && SourcePolicy != EGridCombatActionSourcePolicy::None &&
 			TargetingPolicy != EGridCombatTargetingPolicy::None && ResolutionProfile != EGridCombatActionResolutionProfile::None && ActionPointCost >= 0 &&
 			ActionPointCost <= 6 && ResourceCosts.IsValid() && RangeCells >= 0 && RangeCells <= 32 && AreaRadiusCells >= 0 && AreaRadiusCells <= 8 &&
-			CooldownRounds >= 0 && bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bStatusApplicationsValid;
+			CooldownRounds >= 0 && bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bStatusApplicationsValid &&
+			bArmorEffectsValid;
 	}
 };
 
@@ -1008,6 +1212,18 @@ struct FGridCombatQuickItemResult
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Quick Item")
 	int32 ManaAfter = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Quick Item")
+	int32 PhysicalArmorBefore = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Quick Item")
+	int32 PhysicalArmorAfter = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Quick Item")
+	int32 MagicalArmorBefore = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Quick Item")
+	int32 MagicalArmorAfter = 0;
 };
 
 /** Resource snapshot produced by a non-item ability or spell. */
@@ -1027,6 +1243,18 @@ struct FGridCombatClassActionResult
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Class Action")
 	int32 ManaAfter = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Class Action")
+	int32 PhysicalArmorBefore = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Class Action")
+	int32 PhysicalArmorAfter = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Class Action")
+	int32 MagicalArmorBefore = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Class Action")
+	int32 MagicalArmorAfter = 0;
 };
 
 /** Pure preview of one explicit cell/area target before resources are paid. */

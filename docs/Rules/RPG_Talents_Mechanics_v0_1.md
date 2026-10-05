@@ -67,9 +67,9 @@ RPG02 définit le **comportement cible**, pas encore son implémentation. Les co
 | Code | Besoin générique | État audité |
 |---|---|---|
 | `C0` | Shell action : PA, mana, ciblage, portée, zone, cooldown, Requirements | existe |
-| `C1` | Application d'un Status depuis action/attaque + ArmorGate post-dégâts | **implémenté par RPG03.2 — validation UE utilisateur requise** |
+| `C1` | Application d'un Status depuis action/attaque + ArmorGate post-dégâts | **validé par RPG03.2 — 7/7 TD04.2** |
 | `C2` | Modificateurs génériques dégâts/Accuracy/Evasion/crit/résistance/coûts | **validé par RPG03.1 — 7/7 TD04.2** |
-| `C3` | Modification/restauration directe des pools PhysicalArmor/MagicalArmor | à ajouter |
+| `C3` | Modification/restauration directe des pools PhysicalArmor/MagicalArmor | **implémenté par RPG03.3 — validation UE utilisateur requise** |
 | `C4` | Triggers/réactions : once-per-round, on-hit, on-miss, on-kill, consume-on-action | à ajouter |
 | `C5` | Déplacement tactique/forced movement/formation | à compléter |
 | `C6` | Surfaces persistantes et réactions élémentaires | non implémenté comme système RPG autoritaire |
@@ -86,6 +86,24 @@ Le contrat C2 est désormais porté par `FGridCombatModifierProfile`, authorable
 Le runtime reconstruit les profils actifs depuis `SelectedClassProgressionChoiceIds` ; aucun agrégat de combat supplémentaire n'est sauvegardé. Le catalogue applique PA/mana/portée sur sa copie runtime, tandis que les attaques utilisent le même resolver pour Accuracy, Evasion, dégâts, critiques et résistances.
 
 Le pont `StatusEffect -> CombatModifierProfile` reste volontairement hors RPG03.1 et appartient à RPG03.2/C1.
+
+## 4.3 RPG03.3 — C3 implémenté
+
+Le contrat C3 est porté par `FGridCombatArmorEffectProfile`. Il modifie directement les pools d'armure existants sans créer une seconde ressource :
+
+- `Pool = Physical|Magical` ;
+- `Operation = Restore|Damage` ;
+- `Magnitude = Flat|ReferencePercent|RawDamagePercent` ;
+- `Trigger = AfterResolution|AfterSuccessfulHit` ;
+- scaling Flat optionnel par modificateur d'attribut et rang de Skill.
+
+Les restaurations sont clampées au **pool de référence** de la cible. Les dégâts C3 sont clampés à l'armure restante et ne débordent jamais vers les PV.
+
+Pour une attaque, le C3 est intégré au même `FGridAttackResult` avant application et avant C1. Un ArmorGate peut donc s'ouvrir parce que l'attaque primaire + son effet C3 ont ensemble détruit l'armure.
+
+C2 expose en complément des modificateurs de pool de référence et de restauration reçue. Cela couvre notamment Rempart (+25 % référence physique) et Corroded (-20 % restauration physique reçue) sans logique par TalentId.
+
+Le ciblage Ally/Party/multi-cible et les Effects hostiles ciblés restent C8 ; les recettes/variantes d'alchimie restent C7.
 
 ## 5. Identité et prérequis
 

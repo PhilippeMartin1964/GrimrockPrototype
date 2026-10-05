@@ -129,6 +129,14 @@ void FGridCombatModifierResolver::Resolve(
 		OutModifiers.ActionPointCostModifier = SaturatingAdd(OutModifiers.ActionPointCostModifier, Profile.ActionPointCostModifier);
 		OutModifiers.ManaCostModifier = SaturatingAdd(OutModifiers.ManaCostModifier, Profile.ManaCostModifier);
 		OutModifiers.RangeCellsModifier = SaturatingAdd(OutModifiers.RangeCellsModifier, Profile.RangeCellsModifier);
+		OutModifiers.PhysicalArmorReferencePercentModifier =
+			SaturatingAdd(OutModifiers.PhysicalArmorReferencePercentModifier, Profile.PhysicalArmorReferencePercentModifier);
+		OutModifiers.MagicalArmorReferencePercentModifier =
+			SaturatingAdd(OutModifiers.MagicalArmorReferencePercentModifier, Profile.MagicalArmorReferencePercentModifier);
+		OutModifiers.PhysicalArmorRestorationPercentModifier =
+			SaturatingAdd(OutModifiers.PhysicalArmorRestorationPercentModifier, Profile.PhysicalArmorRestorationPercentModifier);
+		OutModifiers.MagicalArmorRestorationPercentModifier =
+			SaturatingAdd(OutModifiers.MagicalArmorRestorationPercentModifier, Profile.MagicalArmorRestorationPercentModifier);
 	}
 }
 

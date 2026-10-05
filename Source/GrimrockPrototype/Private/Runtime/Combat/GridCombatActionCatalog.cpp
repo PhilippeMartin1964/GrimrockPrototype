@@ -1,6 +1,7 @@
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 
 #include "Runtime/Combat/GridCombatModifierResolver.h"
+#include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "RPG/StatusEffects/GridCombatStatusApplicationResolver.h"
 
 #include "RPG/RPGClassProgressionTransactionService.h"
@@ -104,7 +105,7 @@ namespace
 			const bool bSupportedQuickItemProfile =
 				(Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack && IsSupportedAttackTargeting(Definition.TargetingPolicy)) ||
 				(Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect && Definition.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
-					(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty()));
+					(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty() || !Definition.ArmorEffects.IsEmpty()));
 			if (!Context.bEnableQuickItemExecutors || !bSupportedQuickItemProfile)
 			{
 				return EGridCombatActionAvailabilityReason::ExecutionNotImplemented;
@@ -121,7 +122,18 @@ namespace
 				SelfTarget.MagicalArmor = Context.CurrentMagicalArmor;
 				const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
 					Definition.StatusApplications, Context.CharacterId, SelfTarget, nullptr, Context.CurrentStatusEffects);
-				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate)
+				FGridResolvedCombatModifiers ArmorModifiers;
+				FGridCombatModifierResolver::Resolve(Context.CombatModifiers,
+					FGridCombatModifierResolver::MakeActionContext(Definition, Contribution.SourceDefinitionId), ArmorModifiers);
+				FGridCombatArmorPoolSnapshot ArmorSnapshot;
+				ArmorSnapshot.CurrentPhysicalArmor = Context.CurrentPhysicalArmor;
+				ArmorSnapshot.CurrentMagicalArmor = Context.CurrentMagicalArmor;
+				ArmorSnapshot.ReferencePhysicalArmor = Context.ReferencePhysicalArmor;
+				ArmorSnapshot.ReferenceMagicalArmor = Context.ReferenceMagicalArmor;
+				FGridCombatArmorEffectResolver::ApplyReferenceModifiers(ArmorSnapshot, ArmorModifiers);
+				const bool bArmorWouldMutate =
+					FGridCombatArmorEffectResolver::WouldAnyRestore(Definition.ArmorEffects, ArmorSnapshot, ArmorModifiers, &Context.ArmorEffectSource);
+				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate && !bArmorWouldMutate)
 				{
 					return EGridCombatActionAvailabilityReason::NoApplicableEffect;
 				}
@@ -144,7 +156,7 @@ namespace
 				Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack && IsSupportedAttackTargeting(Definition.TargetingPolicy);
 			const bool bSupportedSelfEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 				Definition.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
-				(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty());
+				(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty() || !Definition.ArmorEffects.IsEmpty());
 			if (!Context.bEnableClassActionExecutors || (!bSupportedAttack && !bSupportedSelfEffect))
 			{
 				return EGridCombatActionAvailabilityReason::ExecutionNotImplemented;
@@ -161,7 +173,18 @@ namespace
 				SelfTarget.MagicalArmor = Context.CurrentMagicalArmor;
 				const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
 					Definition.StatusApplications, Context.CharacterId, SelfTarget, nullptr, Context.CurrentStatusEffects);
-				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate)
+				FGridResolvedCombatModifiers ArmorModifiers;
+				FGridCombatModifierResolver::Resolve(Context.CombatModifiers,
+					FGridCombatModifierResolver::MakeActionContext(Definition, Contribution.SourceDefinitionId), ArmorModifiers);
+				FGridCombatArmorPoolSnapshot ArmorSnapshot;
+				ArmorSnapshot.CurrentPhysicalArmor = Context.CurrentPhysicalArmor;
+				ArmorSnapshot.CurrentMagicalArmor = Context.CurrentMagicalArmor;
+				ArmorSnapshot.ReferencePhysicalArmor = Context.ReferencePhysicalArmor;
+				ArmorSnapshot.ReferenceMagicalArmor = Context.ReferenceMagicalArmor;
+				FGridCombatArmorEffectResolver::ApplyReferenceModifiers(ArmorSnapshot, ArmorModifiers);
+				const bool bArmorWouldMutate =
+					FGridCombatArmorEffectResolver::WouldAnyRestore(Definition.ArmorEffects, ArmorSnapshot, ArmorModifiers, &Context.ArmorEffectSource);
+				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate && !bArmorWouldMutate)
 				{
 					return EGridCombatActionAvailabilityReason::NoApplicableEffect;
 				}

@@ -21,6 +21,9 @@ struct GRIMROCKPROTOTYPE_API FGridCombatActionCatalogContext
 	int32 MaximumMana = 0;
 	int32 CurrentPhysicalArmor = 0;
 	int32 CurrentMagicalArmor = 0;
+	int32 ReferencePhysicalArmor = 0;
+	int32 ReferenceMagicalArmor = 0;
+	FGridCombatArmorEffectSourceContext ArmorEffectSource;
 	FGridStatusEffectCollection CurrentStatusEffects;
 	TSet<FName> SatisfiedRequirements;
 	TMap<FName, int32> RemainingCooldownRounds;

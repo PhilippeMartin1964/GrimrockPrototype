@@ -29,6 +29,10 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedCombatModifiers
 	int32 ActionPointCostModifier = 0;
 	int32 ManaCostModifier = 0;
 	int32 RangeCellsModifier = 0;
+	int32 PhysicalArmorReferencePercentModifier = 0;
+	int32 MagicalArmorReferencePercentModifier = 0;
+	int32 PhysicalArmorRestorationPercentModifier = 0;
+	int32 MagicalArmorRestorationPercentModifier = 0;
 
 	void Reset()
 	{
@@ -39,7 +43,9 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedCombatModifiers
 	{
 		return AccuracyModifier == 0 && EvasionModifier == 0 && OutgoingDamagePercentModifier == 0 && IncomingDamagePercentModifier == 0 &&
 			CriticalChancePercentModifier == 0 && CriticalDamagePercentModifier == 0 && ResistanceModifiers.IsEmpty() && ActionPointCostModifier == 0 &&
-			ManaCostModifier == 0 && RangeCellsModifier == 0;
+			ManaCostModifier == 0 && RangeCellsModifier == 0 && PhysicalArmorReferencePercentModifier == 0 &&
+			MagicalArmorReferencePercentModifier == 0 && PhysicalArmorRestorationPercentModifier == 0 &&
+			MagicalArmorRestorationPercentModifier == 0;
 	}
 };
 

@@ -4,6 +4,7 @@
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
+#include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -67,6 +68,25 @@ namespace
 				Action.OffensiveProfile.AttackId == AttackId)
 			{
 				OutProfiles = Action.StatusApplications;
+				return;
+			}
+		}
+	}
+
+	void ResolveMON12AttackArmorEffects(
+		const UGridItemDefinitionAsset* Definition, FName AttackId, TArray<FGridCombatArmorEffectProfile>& OutProfiles)
+	{
+		OutProfiles.Reset();
+		if (!IsValid(Definition) || AttackId.IsNone())
+		{
+			return;
+		}
+		for (const FGridCombatActionDefinition& Action : Definition->CombatActions)
+		{
+			if (Action.IsValid() && Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
+				Action.OffensiveProfile.AttackId == AttackId)
+			{
+				OutProfiles = Action.ArmorEffects;
 				return;
 			}
 		}
@@ -235,14 +255,18 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	}
 
 	TArray<FGridCombatStatusApplicationProfile> AttackStatusApplications;
+	TArray<FGridCombatArmorEffectProfile> AttackArmorEffects;
 	if (CombatActionOverride)
 	{
 		AttackStatusApplications = CombatActionOverride->Definition.StatusApplications;
+		AttackArmorEffects = CombatActionOverride->Definition.ArmorEffects;
 	}
 	else if (!OffensiveItemDefinitionId.IsNone())
 	{
-		ResolveMON12AttackStatusApplications(
-			PartyPawn->PartyInventoryComponent->FindItemDefinition(OffensiveItemDefinitionId), OffensiveProfile.AttackId, AttackStatusApplications);
+		const UGridItemDefinitionAsset* OffensiveDefinition =
+			PartyPawn->PartyInventoryComponent->FindItemDefinition(OffensiveItemDefinitionId);
+		ResolveMON12AttackStatusApplications(OffensiveDefinition, OffensiveProfile.AttackId, AttackStatusApplications);
+		ResolveMON12AttackArmorEffects(OffensiveDefinition, OffensiveProfile.AttackId, AttackArmorEffects);
 	}
 
 	TArray<FGridCombatModifierProfile> ChoiceModifiers;
@@ -374,6 +398,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 
 	FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(Source, ResolvedAttackModifiers);
 	TArray<FGridCombatModifierProfile> TargetStatusModifiers;
+	FGridResolvedCombatModifiers TargetResolvedModifiers;
 	if (FGridCombatModifierResolver::CollectStatusModifiers(TargetMonster->StatusEffects, TargetStatusModifiers))
 	{
 		const EGridCombatActionSourcePolicy TargetContextSourcePolicy = CombatActionOverride ? CombatActionOverride->Definition.SourcePolicy
@@ -385,7 +410,6 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 			? FGridCombatModifierResolver::MakeActionContext(CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId)
 			: FGridCombatModifierResolver::MakeAttackContext(OffensiveProfile.AttackId, TargetContextSourceDefinitionId, TargetContextSourcePolicy,
 				TargetContextActionType, AttackDefinition.DamageType, AttackDefinition.PhysicalSubtype);
-		FGridResolvedCombatModifiers TargetResolvedModifiers;
 		FGridCombatModifierResolver::Resolve(TargetStatusModifiers, TargetContext, TargetResolvedModifiers);
 		FGridCombatModifierResolver::ApplyIncomingAttackModifiers(Target, AttackDefinition.DamageType, TargetResolvedModifiers);
 	}
@@ -503,7 +527,19 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	{
 		StartCombatActionCooldown(*CombatActionOverride);
 	}
-	const FGridAttackResult Result = FGridCombatResolver::ResolveAttack(Source, Target, AttackDefinition, CombatRandomStream);
+	FGridAttackResult Result = FGridCombatResolver::ResolveAttack(Source, Target, AttackDefinition, CombatRandomStream);
+	const FGridCombatArmorEffectSourceContext ArmorSourceContext =
+		FGridCombatArmorEffectResolver::MakeSourceContext(Attacker, CharacterSummary.Attributes);
+	FGridCombatArmorPoolSnapshot TargetArmorSnapshot;
+	TargetArmorSnapshot.CurrentPhysicalArmor = Target.PhysicalArmor;
+	TargetArmorSnapshot.CurrentMagicalArmor = Target.MagicalArmor;
+	TargetArmorSnapshot.ReferencePhysicalArmor =
+		IsValid(TargetMonster->MonsterDefinition) ? FMath::Max(0, TargetMonster->MonsterDefinition->PhysicalArmor) : Target.PhysicalArmor;
+	TargetArmorSnapshot.ReferenceMagicalArmor =
+		IsValid(TargetMonster->MonsterDefinition) ? FMath::Max(0, TargetMonster->MonsterDefinition->MagicalArmor) : Target.MagicalArmor;
+	FGridCombatArmorEffectResolver::ApplyReferenceModifiers(TargetArmorSnapshot, TargetResolvedModifiers);
+	FGridCombatArmorEffectResolver::ApplyAttackDamageEffects(
+		AttackArmorEffects, TargetArmorSnapshot, TargetResolvedModifiers, Result, &ArmorSourceContext);
 
 	OutRequest = Request;
 	OutResult = Result;
