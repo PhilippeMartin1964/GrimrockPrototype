@@ -11,7 +11,8 @@ public:
 	static bool IsDirectHostileTargetable(const FGridStatusEffectCollection& StatusEffects);
 
 	static bool MatchesTargetFilter(const FGridCombatTargetFilterProfile& Filter, FName MonsterCategoryId,
-		const FGridStatusEffectCollection& StatusEffects, const FGuid& ActingSourceId);
+		const FGridStatusEffectCollection& StatusEffects, const FGuid& ActingSourceId,
+		const FGridAttackTargetStats* TargetStats = nullptr, int32 MaximumHealth = 0);
 
 	static bool MatchesStatusRemoval(const FGridStatusEffectRuntimeState& State, const FGridCombatStatusRemovalProfile& Profile);
 

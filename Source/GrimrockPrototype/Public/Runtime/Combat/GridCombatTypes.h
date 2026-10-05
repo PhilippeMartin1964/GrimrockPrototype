@@ -675,7 +675,8 @@ enum class EGridCombatReactionTrigger : uint8
 	AttackMiss UMETA(DisplayName = "Attack Miss"),
 	TargetDefeated UMETA(DisplayName = "Target Defeated"),
 	DirectDamageReceived UMETA(DisplayName = "Direct Damage Received"),
-	SurfaceReaction UMETA(DisplayName = "Surface Reaction")
+	SurfaceReaction UMETA(DisplayName = "Surface Reaction"),
+	IncomingAttackHit UMETA(DisplayName = "Incoming Attack Hit")
 };
 
 UENUM(BlueprintType)
@@ -724,9 +725,41 @@ struct FGridCombatReactionProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction")
 	bool bConsumeOwningStatus = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response")
+	FName CounterAttackActionId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response", meta = (ClampMin = "1", ClampMax = "32"))
+	int32 CounterAttackRangeCells = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response")
+	FGridCombatWeaponAttackProfile CounterAttackWeaponProfile;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response", meta = (ClampMin = "0", ClampMax = "100"))
+	int32 InterceptFinalDamagePercent = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response")
+	bool bRequireOwnerFrontRow = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response")
+	bool bRequireEventTargetFrontRow = false;
+
 	bool IsValid() const
 	{
-		if (ReactionId.IsNone() || Trigger == EGridCombatReactionTrigger::None)
+		if (ReactionId.IsNone() || Trigger == EGridCombatReactionTrigger::None || CounterAttackRangeCells < 1 || CounterAttackRangeCells > 32 ||
+			InterceptFinalDamagePercent < 0 || InterceptFinalDamagePercent > 100)
+		{
+			return false;
+		}
+		const bool bHasCounterAttack = CounterAttackWeaponProfile.bUseEquippedWeapon;
+		if (bHasCounterAttack != !CounterAttackActionId.IsNone() || !CounterAttackWeaponProfile.IsValid())
+		{
+			return false;
+		}
+		if (bHasCounterAttack && Trigger != EGridCombatReactionTrigger::AttackMiss)
+		{
+			return false;
+		}
+		if (InterceptFinalDamagePercent > 0 && Trigger != EGridCombatReactionTrigger::IncomingAttackHit)
 		{
 			return false;
 		}
@@ -817,6 +850,24 @@ struct FGridCombatReactionMatch
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	bool bConsumeOwningStatus = false;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FName CounterAttackActionId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	int32 CounterAttackRangeCells = 1;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FGridCombatWeaponAttackProfile CounterAttackWeaponProfile;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	int32 InterceptFinalDamagePercent = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	bool bRequireOwnerFrontRow = false;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	bool bRequireEventTargetFrontRow = false;
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	FGridCombatReactionEvent Event;
@@ -951,6 +1002,16 @@ struct FGridCombatTargetFilterProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Target Filter")
 	bool bRequiredStatusesFromSource = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Target Filter|Vitals")
+	bool bRequirePhysicalArmorDepleted = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Target Filter|Vitals")
+	bool bRequireMagicalArmorDepleted = false;
+
+	/** Inclusive current-HP ceiling. Zero disables the health-percentage filter. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Target Filter|Vitals", meta = (ClampMin = "0", ClampMax = "100"))
+	int32 MaximumHealthPercent = 0;
+
 	bool IsValid() const
 	{
 		TSet<FName> Seen;
@@ -980,7 +1041,8 @@ struct FGridCombatTargetFilterProfile
 			}
 			Seen.Add(Tag);
 		}
-		return !bRequiredStatusesFromSource || !RequiredStatusEffectIds.IsEmpty();
+		return (!bRequiredStatusesFromSource || !RequiredStatusEffectIds.IsEmpty()) &&
+			MaximumHealthPercent >= 0 && MaximumHealthPercent <= 100;
 	}
 };
 
@@ -1331,6 +1393,10 @@ struct FGridCombatModifierProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
 	TArray<EGridPhysicalDamageSubtype> PhysicalSubtypes;
 
+	/** Requirements owned by the character before this choice modifier is projected. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
+	TArray<FName> RequiredOwnerRequirementIds;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier")
 	int32 AccuracyModifier = 0;
 
@@ -1490,6 +1556,17 @@ struct FGridCombatModifierProfile
 				return false;
 			}
 		}
+		{
+			TSet<FName> SeenOwnerRequirements;
+			for (const FName RequirementId : RequiredOwnerRequirementIds)
+			{
+				if (RequirementId.IsNone() || SeenOwnerRequirements.Contains(RequirementId))
+				{
+					return false;
+				}
+				SeenOwnerRequirements.Add(RequirementId);
+			}
+		}
 		return true;
 	}
 };
@@ -1540,9 +1617,37 @@ struct FGridCombatActionEffectProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Effect", meta = (ClampMin = "0"))
 	int32 RestoreMana = 0;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Effect", meta = (ClampMin = "0", ClampMax = "100"))
+	int32 RestoreHealthMaximumPercent = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Effect", meta = (ClampMin = "0", ClampMax = "100"))
+	int32 RestoreManaMaximumPercent = 0;
+
+	static int32 ResolveMaximumPercentAmount(int32 MaximumValue, int32 Percent)
+	{
+		if (MaximumValue <= 0 || Percent <= 0)
+		{
+			return 0;
+		}
+		const int64 Numerator = static_cast<int64>(MaximumValue) * static_cast<int64>(Percent);
+		return FMath::Max(1, static_cast<int32>(FMath::Clamp<int64>((Numerator + 99) / 100, 0, MAX_int32)));
+	}
+
+	int32 ResolveHealthRestore(int32 MaximumHealth) const
+	{
+		return FMath::Max(0, RestoreHealth) + ResolveMaximumPercentAmount(MaximumHealth, RestoreHealthMaximumPercent);
+	}
+
+	int32 ResolveManaRestore(int32 MaximumMana) const
+	{
+		return FMath::Max(0, RestoreMana) + ResolveMaximumPercentAmount(MaximumMana, RestoreManaMaximumPercent);
+	}
+
 	bool IsValid() const
 	{
-		return RestoreHealth >= 0 && RestoreMana >= 0 && (RestoreHealth > 0 || RestoreMana > 0);
+		return RestoreHealth >= 0 && RestoreMana >= 0 && RestoreHealthMaximumPercent >= 0 && RestoreHealthMaximumPercent <= 100 &&
+			RestoreManaMaximumPercent >= 0 && RestoreManaMaximumPercent <= 100 &&
+			(RestoreHealth > 0 || RestoreMana > 0 || RestoreHealthMaximumPercent > 0 || RestoreManaMaximumPercent > 0);
 	}
 };
 

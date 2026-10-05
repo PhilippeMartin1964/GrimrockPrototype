@@ -84,6 +84,24 @@ namespace
 		return FText::FromString(Reason ? Reason : TEXT("Cible invalide."));
 	}
 
+	bool MatchesRPG0391MonsterTargetFilter(
+		const FGridCombatTargetFilterProfile& Filter, const AGridMonsterActor* Monster, const FGuid& ActingSourceId)
+	{
+		if (!IsValid(Monster))
+		{
+			return false;
+		}
+		const FName CategoryId = IsValid(Monster->MonsterDefinition) ? Monster->MonsterDefinition->CategoryId : NAME_None;
+		FGridAttackTargetStats TargetStats;
+		TargetStats.CurrentHealth = Monster->CurrentHealth;
+		TargetStats.PhysicalArmor = Monster->CurrentPhysicalArmor;
+		TargetStats.MagicalArmor = Monster->CurrentMagicalArmor;
+		const int32 MaximumHealth =
+			IsValid(Monster->MonsterDefinition) ? FMath::Max(1, Monster->MonsterDefinition->MaxHealth) : FMath::Max(1, Monster->CurrentHealth);
+		return FGridCombatTargetingResolver::MatchesTargetFilter(
+			Filter, CategoryId, Monster->StatusEffects, ActingSourceId, &TargetStats, MaximumHealth);
+	}
+
 	bool TryBuildUI0143e2ProductionSpell(FName SpellId, FGridSpellDefinition& OutDefinition)
 	{
 		OutDefinition = FGridSpellDefinition();
@@ -447,9 +465,7 @@ void UGridTurnManagerComponent::ResolveSuggestedCombatActionTarget(FGridAvailabl
 		if (IsCombatMonster(Monster) && Monster->bMonsterEnabled && !Monster->IsDead() &&
 			FGridCombatTargetingResolver::IsDirectHostileTargetable(Monster->StatusEffects))
 		{
-			const FName CategoryId = IsValid(Monster->MonsterDefinition) ? Monster->MonsterDefinition->CategoryId : NAME_None;
-			if (FGridCombatTargetingResolver::MatchesTargetFilter(
-					Action.Definition.TargetFilter, CategoryId, Monster->StatusEffects, Action.CharacterId))
+			if (MatchesRPG0391MonsterTargetFilter(Action.Definition.TargetFilter, Monster, Action.CharacterId))
 			{
 				Action.SuggestedTargetId = Monster->ResolvePersistenceId();
 				Action.SuggestedTargetCell = SearchCell;
@@ -670,10 +686,12 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 	{
 		return false;
 	}
-	OutResult.HealthAfter =
-		FMath::Clamp(OutResult.HealthBefore + Action.Definition.EffectProfile.RestoreHealth, 0, FMath::Max(0, Summary.DerivedStats.MaxHealth));
+	OutResult.HealthAfter = FMath::Clamp(
+		OutResult.HealthBefore + Action.Definition.EffectProfile.ResolveHealthRestore(Summary.DerivedStats.MaxHealth),
+		0, FMath::Max(0, Summary.DerivedStats.MaxHealth));
 	OutResult.ManaAfter = FMath::Clamp(
-		OutResult.ManaBefore - Action.CurrentManaCost + Action.Definition.EffectProfile.RestoreMana, 0, FMath::Max(0, Summary.DerivedStats.MaxMana));
+		OutResult.ManaBefore - Action.CurrentManaCost + Action.Definition.EffectProfile.ResolveManaRestore(Summary.DerivedStats.MaxMana),
+		0, FMath::Max(0, Summary.DerivedStats.MaxMana));
 	FGridCombatArmorPoolSnapshot ArmorSnapshot;
 	FGridResolvedCombatModifiers ArmorModifiers;
 	const FGridCombatArmorEffectSourceContext ArmorSourceContext =
@@ -886,6 +904,10 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 
 		OutEffect.RestoreHealth = ScalePositive(OutEffect.RestoreHealth, SecondaryProjection.MagnitudePercent);
 		OutEffect.RestoreMana = ScalePositive(OutEffect.RestoreMana, SecondaryProjection.MagnitudePercent);
+		OutEffect.RestoreHealthMaximumPercent =
+			ScalePositive(OutEffect.RestoreHealthMaximumPercent, SecondaryProjection.MagnitudePercent);
+		OutEffect.RestoreManaMaximumPercent =
+			ScalePositive(OutEffect.RestoreManaMaximumPercent, SecondaryProjection.MagnitudePercent);
 		for (FGridCombatArmorEffectProfile& Armor : OutArmorEffects)
 		{
 			if (Armor.Operation == EGridCombatArmorEffectOperation::Restore)
@@ -942,10 +964,12 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 		TArray<FGridCombatStatusRemovalProfile> StatusRemovals;
 		BuildTargetPayloads(TargetOrdinal, TargetEffect, ArmorEffects, StatusApplications, StatusRemovals);
 
-		const int32 HealthAfter =
-			FMath::Clamp(TargetCharacter.Resources.CurrentHealth + TargetEffect.RestoreHealth, 0, FMath::Max(0, TargetSummary.DerivedStats.MaxHealth));
-		const int32 ManaAfter =
-			FMath::Clamp(TargetCharacter.Resources.CurrentMana + TargetEffect.RestoreMana, 0, FMath::Max(0, TargetSummary.DerivedStats.MaxMana));
+		const int32 HealthAfter = FMath::Clamp(
+			TargetCharacter.Resources.CurrentHealth + TargetEffect.ResolveHealthRestore(TargetSummary.DerivedStats.MaxHealth),
+			0, FMath::Max(0, TargetSummary.DerivedStats.MaxHealth));
+		const int32 ManaAfter = FMath::Clamp(
+			TargetCharacter.Resources.CurrentMana + TargetEffect.ResolveManaRestore(TargetSummary.DerivedStats.MaxMana),
+			0, FMath::Max(0, TargetSummary.DerivedStats.MaxMana));
 		if (HealthAfter > TargetCharacter.Resources.CurrentHealth || ManaAfter > TargetCharacter.Resources.CurrentMana)
 		{
 			bAnyMutation = true;
@@ -1046,9 +1070,11 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 		BuildTargetPayloads(TargetOrdinal, TargetEffect, ArmorEffects, StatusApplications, StatusRemovals);
 
 		TargetCharacter.Resources.CurrentHealth = FMath::Clamp(
-			TargetCharacter.Resources.CurrentHealth + TargetEffect.RestoreHealth, 0, FMath::Max(0, TargetSummary.DerivedStats.MaxHealth));
+			TargetCharacter.Resources.CurrentHealth + TargetEffect.ResolveHealthRestore(TargetSummary.DerivedStats.MaxHealth),
+			0, FMath::Max(0, TargetSummary.DerivedStats.MaxHealth));
 		TargetCharacter.Resources.CurrentMana = FMath::Clamp(
-			TargetCharacter.Resources.CurrentMana + TargetEffect.RestoreMana, 0, FMath::Max(0, TargetSummary.DerivedStats.MaxMana));
+			TargetCharacter.Resources.CurrentMana + TargetEffect.ResolveManaRestore(TargetSummary.DerivedStats.MaxMana),
+			0, FMath::Max(0, TargetSummary.DerivedStats.MaxMana));
 
 		FGridAttackTargetStats TargetBefore;
 		TargetBefore.CurrentHealth = TargetCharacter.Resources.CurrentHealth;
@@ -1264,9 +1290,7 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 		{
 			continue;
 		}
-		const FName CategoryId = IsValid(Monster->MonsterDefinition) ? Monster->MonsterDefinition->CategoryId : NAME_None;
-		if (!FGridCombatTargetingResolver::MatchesTargetFilter(
-				Action.Definition.TargetFilter, CategoryId, Monster->StatusEffects, Action.CharacterId))
+		if (!MatchesRPG0391MonsterTargetFilter(Action.Definition.TargetFilter, Monster, Action.CharacterId))
 		{
 			continue;
 		}
@@ -1799,9 +1823,7 @@ bool UGridTurnManagerComponent::RequestCharacterHostileEffect(
 	{
 		return false;
 	}
-	const FName CategoryId = IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->CategoryId : NAME_None;
-	if (!FGridCombatTargetingResolver::MatchesTargetFilter(
-			Action.Definition.TargetFilter, CategoryId, TargetMonster->StatusEffects, SourceCharacter.CharacterId))
+	if (!MatchesRPG0391MonsterTargetFilter(Action.Definition.TargetFilter, TargetMonster, SourceCharacter.CharacterId))
 	{
 		return false;
 	}
@@ -2179,12 +2201,9 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 				return false;
 			}
 			TargetMonster = FindCombatMonsterById(Action->SuggestedTargetId);
-			const FName TargetCategoryId =
-				IsValid(TargetMonster) && IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->CategoryId : NAME_None;
 			if (!IsValid(TargetMonster) || !TargetMonster->bMonsterEnabled || !TargetMonster->IsRuntimeLevelActive() || TargetMonster->IsDead() ||
 				!FGridCombatTargetingResolver::IsDirectHostileTargetable(TargetMonster->StatusEffects) ||
-				!FGridCombatTargetingResolver::MatchesTargetFilter(
-					Action->Definition.TargetFilter, TargetCategoryId, TargetMonster->StatusEffects, Action->CharacterId))
+				!MatchesRPG0391MonsterTargetFilter(Action->Definition.TargetFilter, TargetMonster, Action->CharacterId))
 			{
 				OutResult.RejectReason = EGridCombatActionRequestRejectReason::InvalidTarget;
 				return false;

@@ -51,6 +51,10 @@ bool FGridQuickItemResolver::ResolveEffectProfile(const FGridCombatActionDefinit
 		AddScaledRank(Definition.EffectProfile.RestoreMana, SkillRank, Definition.QuickItemScaling.RestoreManaSkillRankScale);
 	OutProfile.RestoreHealth = ScalePositiveByModifier(OutProfile.RestoreHealth, Modifiers.PositiveEffectPercentModifier);
 	OutProfile.RestoreMana = ScalePositiveByModifier(OutProfile.RestoreMana, Modifiers.PositiveEffectPercentModifier);
+	OutProfile.RestoreHealthMaximumPercent =
+		ScalePositiveByModifier(OutProfile.RestoreHealthMaximumPercent, Modifiers.PositiveEffectPercentModifier);
+	OutProfile.RestoreManaMaximumPercent =
+		ScalePositiveByModifier(OutProfile.RestoreManaMaximumPercent, Modifiers.PositiveEffectPercentModifier);
 	return OutProfile.IsValid();
 }
 

@@ -1,6 +1,7 @@
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGClassProgressionService.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 
@@ -97,6 +98,11 @@ FGridCombatModifierContext FGridCombatModifierResolver::MakeAttackContext(FName 
 
 bool FGridCombatModifierResolver::Matches(const FGridCombatModifierProfile& Profile, const FGridCombatModifierContext& Context)
 {
+	// Progression-owner requirements are consumed by CollectCharacterChoiceModifiers.
+	if (!Profile.RequiredOwnerRequirementIds.IsEmpty())
+	{
+		return false;
+	}
 	if (!Profile.ActionIds.IsEmpty() && !Profile.ActionIds.Contains(Context.ActionId))
 	{
 		return false;
@@ -198,23 +204,53 @@ bool FGridCombatModifierResolver::CollectCharacterChoiceModifiers(
 		return Character.SelectedClassProgressionChoiceIds.IsEmpty();
 	}
 
-	TSet<FName> SeenChoiceIds;
+	TSet<FName> SelectedChoiceIds;
 	for (const FName ChoiceId : Character.SelectedClassProgressionChoiceIds)
 	{
-		if (ChoiceId.IsNone() || SeenChoiceIds.Contains(ChoiceId))
+		if (ChoiceId.IsNone() || SelectedChoiceIds.Contains(ChoiceId))
 		{
 			OutProfiles.Reset();
 			return false;
 		}
-		SeenChoiceIds.Add(ChoiceId);
+		SelectedChoiceIds.Add(ChoiceId);
+	}
 
+	TSet<FName> OwnerRequirements;
+	if (!FRPGClassProgressionService::CollectSatisfiedRequirements(
+			ClassDefinition, Character.Level, SelectedChoiceIds, OwnerRequirements))
+	{
+		return false;
+	}
+
+	for (const FName ChoiceId : Character.SelectedClassProgressionChoiceIds)
+	{
 		const FRPGClassProgressionChoiceDefinition* Choice = ClassDefinition->FindProgressionChoice(ChoiceId);
 		if (!Choice)
 		{
 			OutProfiles.Reset();
 			return false;
 		}
-		OutProfiles.Append(Choice->CombatModifiers);
+
+		for (const FGridCombatModifierProfile& AuthoredProfile : Choice->CombatModifiers)
+		{
+			bool bOwnerRequirementsSatisfied = true;
+			for (const FName RequirementId : AuthoredProfile.RequiredOwnerRequirementIds)
+			{
+				if (!OwnerRequirements.Contains(RequirementId))
+				{
+					bOwnerRequirementsSatisfied = false;
+					break;
+				}
+			}
+			if (!bOwnerRequirementsSatisfied)
+			{
+				continue;
+			}
+
+			FGridCombatModifierProfile RuntimeProfile = AuthoredProfile;
+			RuntimeProfile.RequiredOwnerRequirementIds.Reset();
+			OutProfiles.Add(MoveTemp(RuntimeProfile));
+		}
 	}
 	return true;
 }

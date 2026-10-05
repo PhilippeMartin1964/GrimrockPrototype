@@ -14,6 +14,90 @@ namespace
 	{
 		return IsValid(ClassDefinition) && ClassDefinition->IsValidDefinition();
 	}
+
+	void AddAutomaticRequirements(const URPGClassAsset& ClassDefinition, int32 CharacterLevel, TSet<FName>& InOutRequirements)
+	{
+		InOutRequirements.Add(ClassDefinition.ClassId);
+		for (const FRPGClassProgressionLevelGrant& Grant : ClassDefinition.ProgressionLevelGrants)
+		{
+			if (Grant.Level <= CharacterLevel)
+			{
+				for (const FName RequirementId : Grant.GrantedRequirementIds)
+				{
+					InOutRequirements.Add(RequirementId);
+				}
+			}
+		}
+	}
+
+	bool HasExclusiveGroupConflict(const URPGClassAsset& ClassDefinition, const TSet<FName>& SelectedChoiceIds,
+		const FRPGClassProgressionChoiceDefinition* Candidate = nullptr)
+	{
+		TSet<FName> SelectedGroups;
+		for (const FName ChoiceId : SelectedChoiceIds)
+		{
+			const FRPGClassProgressionChoiceDefinition* Choice = ClassDefinition.FindProgressionChoice(ChoiceId);
+			if (!Choice || Choice->ExclusiveChoiceGroupId.IsNone())
+			{
+				continue;
+			}
+			if (SelectedGroups.Contains(Choice->ExclusiveChoiceGroupId))
+			{
+				return true;
+			}
+			SelectedGroups.Add(Choice->ExclusiveChoiceGroupId);
+		}
+		return Candidate && !Candidate->ExclusiveChoiceGroupId.IsNone() && SelectedGroups.Contains(Candidate->ExclusiveChoiceGroupId);
+	}
+
+	bool ResolveSelectionRequirements(const URPGClassAsset& ClassDefinition, int32 CharacterLevel,
+		const TSet<FName>& SelectedChoiceIds, TSet<FName>& OutRequirements)
+	{
+		OutRequirements.Reset();
+		AddAutomaticRequirements(ClassDefinition, CharacterLevel, OutRequirements);
+
+		TSet<FName> Pending = SelectedChoiceIds;
+		bool bProgress = true;
+		while (!Pending.IsEmpty() && bProgress)
+		{
+			bProgress = false;
+			TArray<FName> ResolvedThisPass;
+			for (const FName ChoiceId : Pending)
+			{
+				const FRPGClassProgressionChoiceDefinition* Choice = ClassDefinition.FindProgressionChoice(ChoiceId);
+				if (!Choice)
+				{
+					return false;
+				}
+				bool bRequirementsSatisfied = true;
+				for (const FName RequirementId : Choice->PrerequisiteRequirementIds)
+				{
+					if (!OutRequirements.Contains(RequirementId))
+					{
+						bRequirementsSatisfied = false;
+						break;
+					}
+				}
+				if (!bRequirementsSatisfied)
+				{
+					continue;
+				}
+
+				OutRequirements.Add(Choice->ChoiceId);
+				for (const FName RequirementId : Choice->GrantedRequirementIds)
+				{
+					OutRequirements.Add(RequirementId);
+				}
+				ResolvedThisPass.Add(ChoiceId);
+				bProgress = true;
+			}
+			for (const FName ChoiceId : ResolvedThisPass)
+			{
+				Pending.Remove(ChoiceId);
+			}
+		}
+		return Pending.IsEmpty();
+	}
 }
 
 int32 FRPGClassProgressionService::GetTotalChoicePointsGranted(const URPGClassAsset* ClassDefinition, int32 CharacterLevel)
@@ -48,6 +132,10 @@ bool FRPGClassProgressionService::TryGetChoicePointBalance(const URPGClassAsset*
 
 	const int32 GrantedPoints = GetTotalChoicePointsGranted(ClassDefinition, CharacterLevel);
 	int32 SpentPoints = 0;
+	if (HasExclusiveGroupConflict(*ClassDefinition, SelectedChoiceIds))
+	{
+		return false;
+	}
 
 	for (const FName ChoiceId : SelectedChoiceIds)
 	{
@@ -68,6 +156,12 @@ bool FRPGClassProgressionService::TryGetChoicePointBalance(const URPGClassAsset*
 		{
 			return false;
 		}
+	}
+
+	TSet<FName> ResolvedRequirements;
+	if (!ResolveSelectionRequirements(*ClassDefinition, CharacterLevel, SelectedChoiceIds, ResolvedRequirements))
+	{
+		return false;
 	}
 
 	OutGrantedPoints = GrantedPoints;
@@ -105,6 +199,10 @@ ERPGClassProgressionChoiceAvailabilityReason FRPGClassProgressionService::GetCho
 	{
 		return ERPGClassProgressionChoiceAvailabilityReason::AlreadySelected;
 	}
+	if (HasExclusiveGroupConflict(*ClassDefinition, SelectedChoiceIds, Choice))
+	{
+		return ERPGClassProgressionChoiceAvailabilityReason::MutuallyExclusiveChoice;
+	}
 	if (CharacterLevel < Choice->MinimumLevel)
 	{
 		return ERPGClassProgressionChoiceAvailabilityReason::LevelTooLow;
@@ -112,6 +210,18 @@ ERPGClassProgressionChoiceAvailabilityReason FRPGClassProgressionService::GetCho
 	for (const FName PrerequisiteId : Choice->PrerequisiteChoiceIds)
 	{
 		if (!SelectedChoiceIds.Contains(PrerequisiteId))
+		{
+			return ERPGClassProgressionChoiceAvailabilityReason::MissingPrerequisite;
+		}
+	}
+	TSet<FName> ResolvedRequirements;
+	if (!ResolveSelectionRequirements(*ClassDefinition, CharacterLevel, SelectedChoiceIds, ResolvedRequirements))
+	{
+		return ERPGClassProgressionChoiceAvailabilityReason::InvalidSelectionState;
+	}
+	for (const FName RequirementId : Choice->PrerequisiteRequirementIds)
+	{
+		if (!ResolvedRequirements.Contains(RequirementId))
 		{
 			return ERPGClassProgressionChoiceAvailabilityReason::MissingPrerequisite;
 		}
@@ -136,36 +246,7 @@ bool FRPGClassProgressionService::CollectSatisfiedRequirements(
 		return false;
 	}
 
-	OutSatisfiedRequirements.Add(ClassDefinition->ClassId);
-	for (const FRPGClassProgressionLevelGrant& Grant : ClassDefinition->ProgressionLevelGrants)
-	{
-		if (Grant.Level > CharacterLevel)
-		{
-			continue;
-		}
-		for (const FName RequirementId : Grant.GrantedRequirementIds)
-		{
-			OutSatisfiedRequirements.Add(RequirementId);
-		}
-	}
-
-	for (const FName ChoiceId : SelectedChoiceIds)
-	{
-		const FRPGClassProgressionChoiceDefinition* Choice = ClassDefinition->FindProgressionChoice(ChoiceId);
-		if (!Choice)
-		{
-			OutSatisfiedRequirements.Reset();
-			return false;
-		}
-
-		// ChoiceId doubles as a stable feature/requirement id.
-		OutSatisfiedRequirements.Add(Choice->ChoiceId);
-		for (const FName RequirementId : Choice->GrantedRequirementIds)
-		{
-			OutSatisfiedRequirements.Add(RequirementId);
-		}
-	}
-	return true;
+	return ResolveSelectionRequirements(*ClassDefinition, CharacterLevel, SelectedChoiceIds, OutSatisfiedRequirements);
 }
 
 bool FRPGClassProgressionService::CollectAutomaticSatisfiedRequirements(

@@ -300,7 +300,14 @@ void UGridTurnManagerComponent::CommitActiveAttackImpact()
 	}
 
 	FGridAttackResult Result;
-	if (!CurrentCombatComponent->ResolveAndApplyPartyAttack(TargetCharacterIndex, ActiveAttackDefinition, CombatRandomStream, Result))
+	const FGridPartyAttackResultTransform ResultTransform =
+		[this, TargetCharacterIndex](const FGridAttackTargetStats& TargetBefore, FGridAttackResult& InOutResult)
+		{
+			ApplyIncomingPartyDamageInterception(
+				TargetCharacterIndex, ActiveAttackDefinition, TargetBefore, ActiveCombatActionInstanceId, InOutResult);
+		};
+	if (!CurrentCombatComponent->ResolveAndApplyPartyAttack(
+			TargetCharacterIndex, ActiveAttackDefinition, CombatRandomStream, Result, ResultTransform))
 	{
 		return;
 	}

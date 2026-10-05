@@ -240,9 +240,11 @@ namespace
 
 			if (bSupportedSelfEffect)
 			{
-				const int32 HealthAfter = FMath::Clamp(Context.CurrentHealth + Definition.EffectProfile.RestoreHealth, 0, FMath::Max(0, Context.MaximumHealth));
+				const int32 HealthAfter = FMath::Clamp(
+					Context.CurrentHealth + Definition.EffectProfile.ResolveHealthRestore(Context.MaximumHealth), 0, FMath::Max(0, Context.MaximumHealth));
 				const int32 ManaAfter = FMath::Clamp(
-					Context.CurrentMana - Definition.ResourceCosts.ManaCost + Definition.EffectProfile.RestoreMana, 0, FMath::Max(0, Context.MaximumMana));
+					Context.CurrentMana - Definition.ResourceCosts.ManaCost + Definition.EffectProfile.ResolveManaRestore(Context.MaximumMana),
+					0, FMath::Max(0, Context.MaximumMana));
 				FGridAttackTargetStats SelfTarget;
 				SelfTarget.CurrentHealth = Context.CurrentHealth;
 				SelfTarget.PhysicalArmor = Context.CurrentPhysicalArmor;

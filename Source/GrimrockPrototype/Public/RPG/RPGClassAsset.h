@@ -45,9 +45,17 @@ struct FRPGClassProgressionChoiceDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression", meta = (ClampMin = "1"))
 	int32 PointCost = 1;
 
-	/** Other ChoiceIds that must already be selected. */
+	/** Other exact ChoiceIds that must already be selected. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression")
 	TArray<FName> PrerequisiteChoiceIds;
+
+	/** Generic requirement ids that must already be granted by progression choices or level grants. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression")
+	TArray<FName> PrerequisiteRequirementIds;
+
+	/** Optional mutually-exclusive variant group. At most one selected choice may carry the same non-empty group id. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression")
+	FName ExclusiveChoiceGroupId = NAME_None;
 
 	/** Extra generic requirement tags satisfied by this choice. ChoiceId itself is also granted. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression")

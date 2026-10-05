@@ -147,6 +147,7 @@ namespace
 		const TSet<FName>& CandidateSelection, const TArray<FName>& RequestedChoiceIds)
 	{
 		int32 TotalCost = 0;
+		TSet<FName> SelectedGroups;
 		for (const FName SelectedChoiceId : CandidateSelection)
 		{
 			const FRPGClassProgressionChoiceDefinition* SelectedChoice = ClassDefinition.FindProgressionChoice(SelectedChoiceId);
@@ -157,6 +158,14 @@ namespace
 			if (CharacterLevel < SelectedChoice->MinimumLevel)
 			{
 				return ERPGClassProgressionCommitRejectReason::LevelTooLow;
+			}
+			if (!SelectedChoice->ExclusiveChoiceGroupId.IsNone())
+			{
+				if (SelectedGroups.Contains(SelectedChoice->ExclusiveChoiceGroupId))
+				{
+					return ERPGClassProgressionCommitRejectReason::MutuallyExclusiveChoice;
+				}
+				SelectedGroups.Add(SelectedChoice->ExclusiveChoiceGroupId);
 			}
 			for (const FName PrerequisiteId : SelectedChoice->PrerequisiteChoiceIds)
 			{
@@ -171,6 +180,13 @@ namespace
 		if (TotalCost > GrantedPoints)
 		{
 			return ERPGClassProgressionCommitRejectReason::InsufficientChoicePoints;
+		}
+
+		TSet<FName> ResolvedRequirements;
+		if (!FRPGClassProgressionService::CollectSatisfiedRequirements(
+				&ClassDefinition, CharacterLevel, CandidateSelection, ResolvedRequirements))
+		{
+			return ERPGClassProgressionCommitRejectReason::MissingPrerequisite;
 		}
 
 		for (const FName RequestedChoiceId : RequestedChoiceIds)

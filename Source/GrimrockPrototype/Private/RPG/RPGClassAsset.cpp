@@ -122,7 +122,8 @@ bool URPGClassAsset::IsValidDefinition() const
 	{
 		if (Choice.ChoiceId.IsNone() || Choice.MinimumLevel < MinimumLevel || Choice.MinimumLevel > MaximumLevel || Choice.PointCost <= 0 ||
 			ChoiceIds.Contains(Choice.ChoiceId) || !AreMON154RequirementIdsValid(Choice.PrerequisiteChoiceIds) ||
-			!AreMON154RequirementIdsValid(Choice.GrantedRequirementIds) || Choice.PrerequisiteChoiceIds.Contains(Choice.ChoiceId))
+			!AreMON154RequirementIdsValid(Choice.PrerequisiteRequirementIds) || !AreMON154RequirementIdsValid(Choice.GrantedRequirementIds) ||
+			Choice.PrerequisiteChoiceIds.Contains(Choice.ChoiceId) || Choice.PrerequisiteRequirementIds.Contains(Choice.ChoiceId))
 		{
 			return false;
 		}
@@ -144,11 +145,31 @@ bool URPGClassAsset::IsValidDefinition() const
 		ChoiceDependencies.Add(Choice.ChoiceId, Choice.PrerequisiteChoiceIds);
 	}
 
+	TSet<FName> AvailableRequirementIds = AutomaticallyGrantedRequirementIds;
+	AvailableRequirementIds.Add(ClassId);
+	for (const FName ChoiceId : ChoiceIds)
+	{
+		AvailableRequirementIds.Add(ChoiceId);
+	}
+	for (const FRPGClassProgressionChoiceDefinition& Choice : ProgressionChoices)
+	{
+		for (const FName RequirementId : Choice.GrantedRequirementIds)
+		{
+			AvailableRequirementIds.Add(RequirementId);
+		}
+	}
 	for (const FRPGClassProgressionChoiceDefinition& Choice : ProgressionChoices)
 	{
 		for (const FName PrerequisiteId : Choice.PrerequisiteChoiceIds)
 		{
 			if (!ChoiceIds.Contains(PrerequisiteId))
+			{
+				return false;
+			}
+		}
+		for (const FName RequirementId : Choice.PrerequisiteRequirementIds)
+		{
+			if (!AvailableRequirementIds.Contains(RequirementId))
 			{
 				return false;
 			}

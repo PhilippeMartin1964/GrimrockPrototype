@@ -201,8 +201,8 @@ int32 UGridMonsterCombatComponent::SelectPartyTarget(FRandomStream& RandomStream
 	return FGridPartyTargetSelector::SelectTarget(PartyPawn->PartyInventoryComponent->PartyInventoryState, RandomStream, FrontLineSlotCount);
 }
 
-bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(
-	int32 TargetCharacterIndex, const FGridMonsterAttackDefinition& Attack, FRandomStream& RandomStream, FGridAttackResult& OutResult)
+bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(int32 TargetCharacterIndex, const FGridMonsterAttackDefinition& Attack,
+	FRandomStream& RandomStream, FGridAttackResult& OutResult, const FGridPartyAttackResultTransform& ResultTransform)
 {
 	OutResult = FGridAttackResult();
 	if (!bInitialized && !InitializeCombat(nullptr))
@@ -285,6 +285,10 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(
 	}
 
 	OutResult = FGridCombatResolver::ResolveAttack(Source, Target, GenericAttack, RandomStream);
+	if (ResultTransform)
+	{
+		ResultTransform(Target, OutResult);
+	}
 
 	if (OutResult.bHit)
 	{

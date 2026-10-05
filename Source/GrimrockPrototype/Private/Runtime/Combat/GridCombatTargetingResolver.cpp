@@ -9,7 +9,8 @@ bool FGridCombatTargetingResolver::IsDirectHostileTargetable(const FGridStatusEf
 }
 
 bool FGridCombatTargetingResolver::MatchesTargetFilter(const FGridCombatTargetFilterProfile& Filter, FName MonsterCategoryId,
-	const FGridStatusEffectCollection& StatusEffects, const FGuid& ActingSourceId)
+	const FGridStatusEffectCollection& StatusEffects, const FGuid& ActingSourceId,
+	const FGridAttackTargetStats* TargetStats, int32 MaximumHealth)
 {
 	if (!Filter.IsValid())
 	{
@@ -42,6 +43,33 @@ bool FGridCombatTargetingResolver::MatchesTargetFilter(const FGridCombatTargetFi
 		}
 	}
 
+	const bool bNeedsVitals =
+		Filter.bRequirePhysicalArmorDepleted || Filter.bRequireMagicalArmorDepleted || Filter.MaximumHealthPercent > 0;
+	if (!bNeedsVitals)
+	{
+		return true;
+	}
+	if (!TargetStats)
+	{
+		return false;
+	}
+	if (Filter.bRequirePhysicalArmorDepleted && TargetStats->PhysicalArmor > 0)
+	{
+		return false;
+	}
+	if (Filter.bRequireMagicalArmorDepleted && TargetStats->MagicalArmor > 0)
+	{
+		return false;
+	}
+	if (Filter.MaximumHealthPercent > 0)
+	{
+		if (MaximumHealth <= 0 ||
+			static_cast<int64>(FMath::Max(0, TargetStats->CurrentHealth)) * 100 >
+				static_cast<int64>(MaximumHealth) * Filter.MaximumHealthPercent)
+		{
+			return false;
+		}
+	}
 	return true;
 }
 

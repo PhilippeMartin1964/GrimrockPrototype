@@ -391,8 +391,15 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	if (CombatActionOverride)
 	{
 		const FName CategoryId = IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->CategoryId : NAME_None;
+		FGridAttackTargetStats FilterTargetStats;
+		FilterTargetStats.CurrentHealth = TargetMonster->CurrentHealth;
+		FilterTargetStats.PhysicalArmor = TargetMonster->CurrentPhysicalArmor;
+		FilterTargetStats.MagicalArmor = TargetMonster->CurrentMagicalArmor;
+		const int32 FilterMaximumHealth =
+			IsValid(TargetMonster->MonsterDefinition) ? FMath::Max(1, TargetMonster->MonsterDefinition->MaxHealth) : FMath::Max(1, TargetMonster->CurrentHealth);
 		if (!FGridCombatTargetingResolver::MatchesTargetFilter(
-				CombatActionOverride->Definition.TargetFilter, CategoryId, TargetMonster->StatusEffects, Attacker.CharacterId))
+				CombatActionOverride->Definition.TargetFilter, CategoryId, TargetMonster->StatusEffects, Attacker.CharacterId,
+				&FilterTargetStats, FilterMaximumHealth))
 		{
 			return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::TargetInactive, OutRejectReason);
 		}

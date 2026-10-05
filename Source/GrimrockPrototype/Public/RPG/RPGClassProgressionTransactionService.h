@@ -19,7 +19,8 @@ enum class ERPGClassProgressionCommitRejectReason : uint8
 	AlreadySelected,
 	LevelTooLow,
 	MissingPrerequisite,
-	InsufficientChoicePoints
+	InsufficientChoicePoints,
+	MutuallyExclusiveChoice
 };
 
 struct FRPGClassProgressionCommitResult

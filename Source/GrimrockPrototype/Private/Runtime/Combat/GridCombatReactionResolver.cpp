@@ -186,6 +186,12 @@ void FGridCombatReactionResolver::ResolveMatches(const TArray<FGridCombatReactio
 		Match.OwnerCombatantId = OwnerCombatantId;
 		Match.OwningStatusEffectId = Binding.OwningStatusEffectId;
 		Match.bConsumeOwningStatus = Binding.Profile.bConsumeOwningStatus && !Binding.OwningStatusEffectId.IsNone();
+		Match.CounterAttackActionId = Binding.Profile.CounterAttackActionId;
+		Match.CounterAttackRangeCells = Binding.Profile.CounterAttackRangeCells;
+		Match.CounterAttackWeaponProfile = Binding.Profile.CounterAttackWeaponProfile;
+		Match.InterceptFinalDamagePercent = Binding.Profile.InterceptFinalDamagePercent;
+		Match.bRequireOwnerFrontRow = Binding.Profile.bRequireOwnerFrontRow;
+		Match.bRequireEventTargetFrontRow = Binding.Profile.bRequireEventTargetFrontRow;
 		Match.Event = Event;
 	}
 }

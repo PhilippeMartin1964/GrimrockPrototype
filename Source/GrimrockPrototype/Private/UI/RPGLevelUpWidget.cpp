@@ -43,6 +43,8 @@ namespace
 				return LOCTEXT("CommitLevelTooLow", "Le niveau requis n'est pas atteint.");
 			case ERPGClassProgressionCommitRejectReason::MissingPrerequisite:
 				return LOCTEXT("CommitMissingPrerequisite", "Un prérequis de talent manque.");
+			case ERPGClassProgressionCommitRejectReason::MutuallyExclusiveChoice:
+				return LOCTEXT("CommitMutuallyExclusive", "Une autre variante exclusive de ce talent est déjà acquise.");
 			case ERPGClassProgressionCommitRejectReason::InsufficientChoicePoints:
 				return LOCTEXT("CommitInsufficientPoints", "Il n'y a pas assez de points de talent.");
 			case ERPGClassProgressionCommitRejectReason::EmptyRequest:
@@ -390,6 +392,8 @@ FText URPGLevelUpWidget::GetChoiceStatusText(int32 AvailabilityReasonValue) cons
 			return LOCTEXT("ChoiceLevelTooLow", "Niveau requis non atteint");
 		case ERPGClassProgressionChoiceAvailabilityReason::MissingPrerequisite:
 			return LOCTEXT("ChoiceMissingPrerequisite", "Prérequis manquant");
+		case ERPGClassProgressionChoiceAvailabilityReason::MutuallyExclusiveChoice:
+			return LOCTEXT("ChoiceMutuallyExclusive", "Une autre variante exclusive est déjà acquise");
 		case ERPGClassProgressionChoiceAvailabilityReason::InsufficientChoicePoints:
 			return LOCTEXT("ChoiceInsufficientPoints", "Points de talent insuffisants");
 		case ERPGClassProgressionChoiceAvailabilityReason::None:

@@ -10,6 +10,8 @@ class AGridMonsterActor;
 class AGrimrockPartyPawn;
 class UGridTurnManagerComponent;
 
+using FGridPartyAttackResultTransform = TFunction<void(const FGridAttackTargetStats&, FGridAttackResult&)>;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGridMonsterCombatNotifySignature);
 
 /**
@@ -158,8 +160,8 @@ public:
 
 	int32 SelectPartyTarget(FRandomStream& RandomStream) const;
 
-	bool ResolveAndApplyPartyAttack(
-		int32 TargetCharacterIndex, const FGridMonsterAttackDefinition& Attack, FRandomStream& RandomStream, FGridAttackResult& OutResult);
+	bool ResolveAndApplyPartyAttack(int32 TargetCharacterIndex, const FGridMonsterAttackDefinition& Attack, FRandomStream& RandomStream,
+		FGridAttackResult& OutResult, const FGridPartyAttackResultTransform& ResultTransform = FGridPartyAttackResultTransform());
 
 	/** Starts the optional montage and marks the owner as Attacking. */
 	bool StartAttackPresentation(const FGridCombatAction& Action, const FGridMonsterAttackDefinition& Attack);

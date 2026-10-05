@@ -737,6 +737,9 @@ private:
 	void FinishCombat(EGridCombatPhase ResultPhase);
 
 	void ProcessPartyCharacterReactionEvent(int32 CharacterIndex, const FGridCombatReactionEvent& Event);
+	bool ExecuteReactionCounterAttack(int32 CharacterIndex, const FGridCombatReactionMatch& Match);
+	void ApplyIncomingPartyDamageInterception(int32 TargetCharacterIndex, const FGridMonsterAttackDefinition& Attack,
+		const FGridAttackTargetStats& TargetBefore, const FGuid& ActionInstanceId, FGridAttackResult& InOutResult);
 	void EmitPlayerAttackReactionEvents(
 		int32 CharacterIndex, const FGridPlayerAttackRequest& Request, const FGridAttackResult& Result, EGridCombatActionSourcePolicy SourcePolicy,
 		EGridCombatActionType ActionType, const FGuid& ActionInstanceId, bool bReactionGenerated = false, bool bEmitActionResolved = true);

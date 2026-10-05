@@ -14,7 +14,8 @@ enum class ERPGClassProgressionChoiceAvailabilityReason : uint8
 	AlreadySelected,
 	LevelTooLow,
 	MissingPrerequisite,
-	InsufficientChoicePoints
+	InsufficientChoicePoints,
+	MutuallyExclusiveChoice
 };
 
 /**
