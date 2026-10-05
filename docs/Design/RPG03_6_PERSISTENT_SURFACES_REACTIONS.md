@@ -192,9 +192,9 @@ Le RuntimeActor reste l'autorité du niveau. Aucun WorldSubsystem Surface concur
 
 C4 a déjà le trigger `SurfaceReaction`, le ledger `OncePerAction` et l'anti-récursion.
 
-Les actions qui ciblent une cellule/zone — Bombes, Conversion élémentaire, Architecte du terrain, Catalyseur — restent volontairement non exécutées tant que C8 n'a pas fourni le ciblage/batch Effect générique.
+RPG03.8 raccorde désormais les actions `Cell/Area` au même pipeline de catalogue/TurnManager : une action peut créer des surfaces persistantes sur les cellules résolues, et une attaque de zone peut combiner dégâts directs et création de surface sans exécuteur parallèle.
 
-RPG03.6 fournit donc l'autorité Surface et la résolution de réaction ; C8 branchera ces primitives sur les actions Cell/Area sans créer un exécuteur temporaire.
+RPG03.6 reste l'autorité Surface et la résolution de réaction ; RPG03.8 ne duplique ni le stockage des surfaces ni leur lifecycle.
 
 ## Couverture RPG02
 

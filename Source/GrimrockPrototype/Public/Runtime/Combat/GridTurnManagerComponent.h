@@ -473,6 +473,17 @@ public:
 	bool RequestCharacterCombatAction(int32 CharacterIndex, FName ActionId, EGridCombatActionSourcePolicy SourcePolicy, FName SourceDefinitionId,
 		EGridEquipmentSlot SourceEquipmentSlot, FGridCombatActionRequestResult& OutResult);
 
+	/** C8 explicit party-target entry point for Ally actions and optional secondary selections. */
+	UFUNCTION(BlueprintCallable, Category = "Combat|Action Targeting")
+	bool RequestCharacterCombatActionOnPartyTargets(int32 CharacterIndex, FName ActionId, EGridCombatActionSourcePolicy SourcePolicy,
+		FName SourceDefinitionId, EGridEquipmentSlot SourceEquipmentSlot, const TArray<int32>& TargetCharacterIndices,
+		FGridCombatActionRequestResult& OutResult);
+
+	/** C8 explicit single-hostile entry point for non-attack Effect actions. */
+	UFUNCTION(BlueprintCallable, Category = "Combat|Action Targeting")
+	bool RequestCharacterCombatActionOnMonsterTarget(int32 CharacterIndex, FName ActionId, EGridCombatActionSourcePolicy SourcePolicy,
+		FName SourceDefinitionId, EGridEquipmentSlot SourceEquipmentSlot, FGuid TargetMonsterId, FGridCombatActionRequestResult& OutResult);
+
 	/** Revalidates an explicit Cell/Area candidate without mutating gameplay. */
 	UFUNCTION(BlueprintCallable, Category = "Combat|Action Targeting")
 	bool BuildCombatActionTargetingPreview(int32 CharacterIndex, FName ActionId, EGridCombatActionSourcePolicy SourcePolicy, FName SourceDefinitionId,
@@ -652,6 +663,10 @@ private:
 	void ResolveSuggestedCombatActionTarget(FGridAvailableCombatAction& Action) const;
 	bool RequestCharacterQuickItemEffect(const FGridAvailableCombatAction& Action, FGridCombatQuickItemResult& OutResult);
 	bool RequestCharacterClassActionEffect(const FGridAvailableCombatAction& Action, FGridCombatClassActionResult& OutResult);
+	bool RequestCharacterBatchPartyEffect(
+		const FGridAvailableCombatAction& Action, const TArray<int32>& ExplicitTargetCharacterIndices, FGridCombatActionRequestResult& OutResult);
+	bool RequestCharacterHostileEffect(
+		const FGridAvailableCombatAction& Action, const FGuid& TargetMonsterId, FGridCombatActionRequestResult& OutResult);
 	bool RequestCharacterClassActionAttack(const FGridAvailableCombatAction& Action, FGridPlayerAttackRequest& OutRequest, FGridAttackResult& OutResult,
 		EGridPlayerAttackRejectReason& OutRejectReason, FGridCombatClassActionResult& OutClassResult);
 	bool BuildTargetingPreviewForAction(

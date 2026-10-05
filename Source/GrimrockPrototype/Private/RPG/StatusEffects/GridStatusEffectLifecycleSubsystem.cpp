@@ -9,6 +9,7 @@
 #include "RPG/StatusEffects/GridStatusEffectPeriodicDamageResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectPresentation.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/Combat/GridCombatTargetingResolver.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -221,6 +222,70 @@ bool UGridStatusEffectLifecycleSubsystem::ConsumeStatusEffectFromMonster(AGridMo
 	RefreshInitiativeModifierForMonster(Monster);
 	EmitStatusFeedback(EGridCombatLogEntryType::StatusExpired, Removed, INDEX_NONE, Monster);
 	return true;
+}
+
+int32 UGridStatusEffectLifecycleSubsystem::RemoveCombatStatusEffectsFromPartyCharacter(
+	int32 CharacterIndex, const TArray<FGridCombatStatusRemovalProfile>& Profiles, TArray<FName>* OutRemovedEffectIds)
+{
+	if (OutRemovedEffectIds)
+	{
+		OutRemovedEffectIds->Reset();
+	}
+	UGridTurnManagerComponent* TurnManager = BoundTurnManager.Get();
+	if (!IsValid(TurnManager) || !IsValid(TurnManager->PartyPawn) || !IsValid(TurnManager->PartyPawn->PartyInventoryComponent))
+	{
+		return 0;
+	}
+	const TArray<FGridCharacterInventoryState>& Characters = TurnManager->PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters;
+	if (!Characters.IsValidIndex(CharacterIndex))
+	{
+		return 0;
+	}
+
+	TArray<FName> Candidates;
+	FGridCombatTargetingResolver::CollectStatusRemovalIds(Characters[CharacterIndex].StatusEffects, Profiles, Candidates);
+	int32 RemovedCount = 0;
+	for (const FName EffectId : Candidates)
+	{
+		if (ConsumeStatusEffectFromPartyCharacter(CharacterIndex, EffectId))
+		{
+			++RemovedCount;
+			if (OutRemovedEffectIds)
+			{
+				OutRemovedEffectIds->Add(EffectId);
+			}
+		}
+	}
+	return RemovedCount;
+}
+
+int32 UGridStatusEffectLifecycleSubsystem::RemoveCombatStatusEffectsFromMonster(
+	AGridMonsterActor* Monster, const TArray<FGridCombatStatusRemovalProfile>& Profiles, TArray<FName>* OutRemovedEffectIds)
+{
+	if (OutRemovedEffectIds)
+	{
+		OutRemovedEffectIds->Reset();
+	}
+	if (!IsValid(Monster))
+	{
+		return 0;
+	}
+
+	TArray<FName> Candidates;
+	FGridCombatTargetingResolver::CollectStatusRemovalIds(Monster->StatusEffects, Profiles, Candidates);
+	int32 RemovedCount = 0;
+	for (const FName EffectId : Candidates)
+	{
+		if (ConsumeStatusEffectFromMonster(Monster, EffectId))
+		{
+			++RemovedCount;
+			if (OutRemovedEffectIds)
+			{
+				OutRemovedEffectIds->Add(EffectId);
+			}
+		}
+	}
+	return RemovedCount;
 }
 
 int32 UGridStatusEffectLifecycleSubsystem::ApplyCombatStatusApplicationsToPartyCharacter(int32 CharacterIndex,

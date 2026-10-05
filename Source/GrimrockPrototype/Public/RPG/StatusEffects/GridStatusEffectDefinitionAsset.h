@@ -56,9 +56,13 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectControlProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Control")
 	bool bBlockTranslation = false;
 
+	/** C8: direct hostile attacks/spells cannot select this combatant; AoE/DoT/surfaces still apply. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Control")
+	bool bBlockDirectHostileTargeting = false;
+
 	bool HasAnyRestriction() const
 	{
-		return bSkipActivation || bBlockSpellActions || bBlockTranslation;
+		return bSkipActivation || bBlockSpellActions || bBlockTranslation || bBlockDirectHostileTargeting;
 	}
 
 	void Merge(const FGridStatusEffectControlProfile& Other)
@@ -66,6 +70,7 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectControlProfile
 		bSkipActivation = bSkipActivation || Other.bSkipActivation;
 		bBlockSpellActions = bBlockSpellActions || Other.bBlockSpellActions;
 		bBlockTranslation = bBlockTranslation || Other.bBlockTranslation;
+		bBlockDirectHostileTargeting = bBlockDirectHostileTargeting || Other.bBlockDirectHostileTargeting;
 	}
 };
 
@@ -85,6 +90,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Identity", meta = (MultiLine = "true"))
 	FText Description;
+
+	/** C8 semantic tags used by generic removal/target filters (for example Toxin or Purifiable). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Identity")
+	TArray<FName> StatusTags;
 
 	/** Optional MON16.6 HUD icon. Runtime rules never depend on it. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Presentation")

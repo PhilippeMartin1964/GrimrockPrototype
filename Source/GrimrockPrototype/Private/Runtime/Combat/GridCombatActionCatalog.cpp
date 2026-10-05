@@ -2,6 +2,7 @@
 
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
+#include "Runtime/Combat/GridCombatTargetingResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
 #include "RPG/StatusEffects/GridCombatStatusApplicationResolver.h"
 
@@ -108,7 +109,20 @@ namespace
 				(Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect && Definition.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
 					(Definition.EffectProfile.IsValid() || Definition.QuickItemScaling.RestoreHealthSkillRankScale > 0 ||
 						Definition.QuickItemScaling.RestoreManaSkillRankScale > 0 || !Definition.StatusApplications.IsEmpty() ||
-						!Definition.ArmorEffects.IsEmpty()));
+						!Definition.StatusRemovals.IsEmpty() || !Definition.ArmorEffects.IsEmpty())) ||
+				(Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+					(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Cell || Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area) &&
+					!Definition.SurfaceEffects.IsEmpty()) ||
+				(Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+					(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally ||
+						Definition.TargetingPolicy == EGridCombatTargetingPolicy::Party ||
+						Definition.TargetingPolicy == EGridCombatTargetingPolicy::FrontRowParty) &&
+					(Definition.EffectProfile.IsValid() || Definition.QuickItemScaling.RestoreHealthSkillRankScale > 0 ||
+						Definition.QuickItemScaling.RestoreManaSkillRankScale > 0 || !Definition.StatusApplications.IsEmpty() ||
+						!Definition.StatusRemovals.IsEmpty() || !Definition.ArmorEffects.IsEmpty())) ||
+				(Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+					Definition.TargetingPolicy == EGridCombatTargetingPolicy::Hostile &&
+					(!Definition.StatusApplications.IsEmpty() || !Definition.StatusRemovals.IsEmpty() || !Definition.ArmorEffects.IsEmpty()));
 			if (!Context.bEnableQuickItemExecutors || !bSupportedQuickItemProfile)
 			{
 				return EGridCombatActionAvailabilityReason::ExecutionNotImplemented;
@@ -131,6 +145,9 @@ namespace
 				SelfTarget.MagicalArmor = Context.CurrentMagicalArmor;
 				const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
 					Definition.StatusApplications, Context.CharacterId, SelfTarget, nullptr, Context.CurrentStatusEffects);
+				TArray<FName> StatusRemovalIds;
+				FGridCombatTargetingResolver::CollectStatusRemovalIds(Context.CurrentStatusEffects, Definition.StatusRemovals, StatusRemovalIds);
+				const bool bStatusRemovalWouldMutate = !StatusRemovalIds.IsEmpty();
 				const FGridResolvedCombatModifiers& ArmorModifiers = QuickItemModifiers;
 				FGridCombatArmorPoolSnapshot ArmorSnapshot;
 				ArmorSnapshot.CurrentPhysicalArmor = Context.CurrentPhysicalArmor;
@@ -158,8 +175,8 @@ namespace
 				{
 					return EGridCombatActionAvailabilityReason::InsufficientMobilityActionPoints;
 				}
-				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate && !bArmorWouldMutate &&
-					!bHasSupportedMovement)
+				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate &&
+					!bStatusRemovalWouldMutate && !bArmorWouldMutate && !bHasSupportedMovement)
 				{
 					return EGridCombatActionAvailabilityReason::NoApplicableEffect;
 				}
@@ -182,8 +199,22 @@ namespace
 				Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack && IsSupportedAttackTargeting(Definition.TargetingPolicy);
 			const bool bSupportedSelfEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 				Definition.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
-				(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty() || !Definition.ArmorEffects.IsEmpty() || !Definition.MovementEffects.IsEmpty());
-			if (!Context.bEnableClassActionExecutors || (!bSupportedAttack && !bSupportedSelfEffect))
+				(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty() || !Definition.StatusRemovals.IsEmpty() ||
+					!Definition.ArmorEffects.IsEmpty() || !Definition.MovementEffects.IsEmpty());
+			const bool bSupportedCellSurfaceEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+				(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Cell || Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area) &&
+				!Definition.SurfaceEffects.IsEmpty();
+			const bool bSupportedPartyEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+				(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally ||
+					Definition.TargetingPolicy == EGridCombatTargetingPolicy::Party ||
+					Definition.TargetingPolicy == EGridCombatTargetingPolicy::FrontRowParty) &&
+				(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty() || !Definition.StatusRemovals.IsEmpty() ||
+					!Definition.ArmorEffects.IsEmpty());
+			const bool bSupportedHostileEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+				Definition.TargetingPolicy == EGridCombatTargetingPolicy::Hostile &&
+				(!Definition.StatusApplications.IsEmpty() || !Definition.StatusRemovals.IsEmpty() || !Definition.ArmorEffects.IsEmpty());
+			if (!Context.bEnableClassActionExecutors ||
+				(!bSupportedAttack && !bSupportedSelfEffect && !bSupportedCellSurfaceEffect && !bSupportedPartyEffect && !bSupportedHostileEffect))
 			{
 				return EGridCombatActionAvailabilityReason::ExecutionNotImplemented;
 			}
@@ -199,6 +230,9 @@ namespace
 				SelfTarget.MagicalArmor = Context.CurrentMagicalArmor;
 				const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
 					Definition.StatusApplications, Context.CharacterId, SelfTarget, nullptr, Context.CurrentStatusEffects);
+				TArray<FName> StatusRemovalIds;
+				FGridCombatTargetingResolver::CollectStatusRemovalIds(Context.CurrentStatusEffects, Definition.StatusRemovals, StatusRemovalIds);
+				const bool bStatusRemovalWouldMutate = !StatusRemovalIds.IsEmpty();
 				FGridResolvedCombatModifiers ArmorModifiers;
 				FGridCombatModifierResolver::Resolve(Context.CombatModifiers,
 					FGridCombatModifierResolver::MakeActionContext(Definition, Contribution.SourceDefinitionId), ArmorModifiers);
@@ -224,8 +258,8 @@ namespace
 				{
 					return EGridCombatActionAvailabilityReason::InsufficientMobilityActionPoints;
 				}
-				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate && !bArmorWouldMutate &&
-					!bHasSupportedMovement)
+				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate &&
+					!bStatusRemovalWouldMutate && !bArmorWouldMutate && !bHasSupportedMovement)
 				{
 					return EGridCombatActionAvailabilityReason::NoApplicableEffect;
 				}

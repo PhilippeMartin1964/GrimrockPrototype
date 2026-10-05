@@ -4,7 +4,7 @@
 #include "RPG/RPGSkillTypes.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 
-/** Future C8 consumes this projection to resolve Diffusion-style secondary targets. */
+/** C7 projection consumed by C8 to resolve Diffusion-style secondary targets. */
 struct GRIMROCKPROTOTYPE_API FGridQuickItemSecondaryEffectProjection
 {
 	int32 TargetCount = 0;

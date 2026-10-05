@@ -26,6 +26,18 @@ bool UGridStatusEffectDefinitionAsset::ValidateDefinition(FString& OutError) con
 	{
 		Errors.Add(TEXT("DisplayName must not be empty."));
 	}
+	{
+		TSet<FName> SeenTags;
+		for (const FName Tag : StatusTags)
+		{
+			if (Tag.IsNone() || SeenTags.Contains(Tag))
+			{
+				Errors.Add(TEXT("StatusTags must contain unique non-None ids."));
+				break;
+			}
+			SeenTags.Add(Tag);
+		}
+	}
 	if (DurationUnit == EGridStatusEffectDurationUnit::Permanent)
 	{
 		if (DefaultDuration != 0)

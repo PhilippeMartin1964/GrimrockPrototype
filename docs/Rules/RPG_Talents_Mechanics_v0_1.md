@@ -73,8 +73,8 @@ RPG02 définit le **comportement cible**, pas encore son implémentation. Les co
 | `C4` | Triggers/réactions : once-per-round, on-hit, on-miss, on-kill, consume-on-action | **validé par RPG03.4 — 8/8 TD04.2** |
 | `C5` | Déplacement tactique/forced movement/formation | **validé par RPG03.5 — 8/8 TD04.2** |
 | `C6` | Surfaces persistantes et réactions élémentaires | **validé par RPG03.6 — 8/8 TD04.2** |
-| `C7` | Recettes/paramètres d'alchimie et modification générique de QuickItems | **implémenté par RPG03.7 — validation UE utilisateur requise** |
-| `C8` | Batch multi-cible, filtre de statut, targetability ou sélection secondaire | à compléter |
+| `C7` | Recettes/paramètres d'alchimie et modification générique de QuickItems | **validé par RPG03.7 — 8/8 TD04.2** |
+| `C8` | Batch multi-cible, filtre de statut, targetability ou sélection secondaire | **implémenté par RPG03.8 — validation UE utilisateur requise** |
 
 Aucun de ces codes n'autorise un `switch(TalentId)` de 90 cas. Les extensions futures doivent être **data-driven et réutilisables**.
 

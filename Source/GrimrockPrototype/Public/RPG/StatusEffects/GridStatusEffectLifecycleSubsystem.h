@@ -63,6 +63,13 @@ public:
 
 	bool ConsumeStatusEffectFromMonster(AGridMonsterActor* Monster, FName EffectId);
 
+	/** C8 deterministic filtered removals, routed through MON16 mutation/feedback. */
+	int32 RemoveCombatStatusEffectsFromPartyCharacter(
+		int32 CharacterIndex, const TArray<FGridCombatStatusRemovalProfile>& Profiles, TArray<FName>* OutRemovedEffectIds = nullptr);
+
+	int32 RemoveCombatStatusEffectsFromMonster(
+		AGridMonsterActor* Monster, const TArray<FGridCombatStatusRemovalProfile>& Profiles, TArray<FName>* OutRemovedEffectIds = nullptr);
+
 	/** Reprojects every authoritative status collection into InitiativeModifier. */
 	void RefreshAllInitiativeModifiers();
 

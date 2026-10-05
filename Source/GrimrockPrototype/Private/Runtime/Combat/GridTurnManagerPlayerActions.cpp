@@ -7,6 +7,7 @@
 #include "Runtime/Combat/GridQuickItemResolver.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/Combat/GridCombatTargetingResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -366,6 +367,19 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::TargetDefeated, OutRejectReason);
 	}
+	if (!FGridCombatTargetingResolver::IsDirectHostileTargetable(TargetMonster->StatusEffects))
+	{
+		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::TargetInactive, OutRejectReason);
+	}
+	if (CombatActionOverride)
+	{
+		const FName CategoryId = IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->CategoryId : NAME_None;
+		if (!FGridCombatTargetingResolver::MatchesTargetFilter(
+				CombatActionOverride->Definition.TargetFilter, CategoryId, TargetMonster->StatusEffects, Attacker.CharacterId))
+		{
+			return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::TargetInactive, OutRejectReason);
+		}
+	}
 
 	const FGuid TargetMonsterId = TargetMonster->ResolvePersistenceId();
 	if (!TargetMonsterId.IsValid())
@@ -443,6 +457,10 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		: OffensiveEquipmentSlot != EGridEquipmentSlot::None                ? EGridCombatActionSourcePolicy::Equipment
 																			: EGridCombatActionSourcePolicy::Universal;
 	const int32 ManaCost = CombatActionOverride ? FMath::Max(0, CombatActionOverride->CurrentManaCost) : 0;
+	const int32 AttackResolutionCount =
+		CombatActionOverride ? FMath::Clamp(CombatActionOverride->Definition.ResolutionCount, 1, 8) : 1;
+	const int32 SubsequentAccuracyModifier =
+		CombatActionOverride ? CombatActionOverride->Definition.SubsequentResolutionAccuracyModifier : 0;
 	int32 SourceItemQuantityCost = CombatActionOverride ? FMath::Max(0, CombatActionOverride->CurrentSourceItemQuantityCost) : 0;
 	const UGridItemDefinitionAsset* SourceItemDefinition =
 		OffensiveItemDefinitionId.IsNone() ? nullptr : Inventory->FindItemDefinition(OffensiveItemDefinitionId);
@@ -609,19 +627,130 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		: OffensiveEquipmentSlot != EGridEquipmentSlot::None ? EGridCombatActionSourcePolicy::Equipment : EGridCombatActionSourcePolicy::Universal;
 	const EGridCombatActionType ReactionActionType = CombatActionOverride ? CombatActionOverride->Definition.ActionType
 		: OffensiveProfile.RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
+	const FGuid ReactionActionInstanceId = Request.RequestId;
 	EmitPlayerAttackReactionEvents(
-		AttackerCharacterIndex, Request, Result, ReactionSourcePolicy, ReactionActionType, Request.RequestId, false, true);
+		AttackerCharacterIndex, Request, Result, ReactionSourcePolicy, ReactionActionType, ReactionActionInstanceId, false, AttackResolutionCount == 1);
 	++PlayerAttackResolvedBroadcastCount;
 	bPlayerAttackResolutionInProgress = false;
 	OnPlayerAttackResolved.Broadcast(Request, TargetMonster, Result);
-	if ((ManaCost > 0 || SourceItemQuantityCost > 0 || bCooldownStarted) && IsValid(Inventory))
-	{
-		Inventory->NotifyPartyInventoryChanged(AttackerCharacterIndex);
-	}
 
 	if (bCollectRuntimeMetrics)
 	{
 		++RuntimeMetrics.AttacksResolved;
+	}
+
+	for (int32 ResolutionIndex = 1; ResolutionIndex < AttackResolutionCount && IsValid(TargetMonster) && !TargetMonster->IsDead(); ++ResolutionIndex)
+	{
+		FGridAttackSourceStats RepeatSource;
+		FGridAttackTargetStats RepeatTarget;
+		FGridAttackDefinition RepeatAttackDefinition;
+		if (!BuildPlayerAttackResolutionInputs(CharacterSummary, TargetMonster, OffensiveProfile, RepeatSource, RepeatTarget, RepeatAttackDefinition))
+		{
+			break;
+		}
+		if (CombatActionOverride)
+		{
+			FGridQuickItemResolver::ApplyDirectDamageSkillScaling(CombatActionOverride->Definition, Attacker.SkillRanks, RepeatSource);
+		}
+		FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(RepeatSource, ResolvedAttackModifiers);
+		RepeatSource.Accuracy += SubsequentAccuracyModifier;
+
+		TArray<FGridCombatModifierProfile> RepeatTargetStatusProfiles;
+		FGridResolvedCombatModifiers RepeatTargetModifiers;
+		if (FGridCombatModifierResolver::CollectStatusModifiers(TargetMonster->StatusEffects, RepeatTargetStatusProfiles))
+		{
+			const FGridCombatModifierContext RepeatTargetContext = CombatActionOverride
+				? FGridCombatModifierResolver::MakeActionContext(CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId)
+				: FGridCombatModifierResolver::MakeAttackContext(OffensiveProfile.AttackId, OffensiveItemDefinitionId, ReactionSourcePolicy,
+					ReactionActionType, RepeatAttackDefinition.DamageType, RepeatAttackDefinition.PhysicalSubtype);
+			FGridCombatModifierResolver::Resolve(RepeatTargetStatusProfiles, RepeatTargetContext, RepeatTargetModifiers);
+			FGridCombatModifierResolver::ApplyIncomingAttackModifiers(
+				RepeatTarget, RepeatAttackDefinition.DamageType, RepeatTargetModifiers);
+		}
+
+		FGridAttackResult RepeatResult =
+			FGridCombatResolver::ResolveAttack(RepeatSource, RepeatTarget, RepeatAttackDefinition, CombatRandomStream);
+		FGridCombatArmorPoolSnapshot RepeatArmorSnapshot;
+		RepeatArmorSnapshot.CurrentPhysicalArmor = RepeatTarget.PhysicalArmor;
+		RepeatArmorSnapshot.CurrentMagicalArmor = RepeatTarget.MagicalArmor;
+		RepeatArmorSnapshot.ReferencePhysicalArmor = IsValid(TargetMonster->MonsterDefinition)
+			? FMath::Max(0, TargetMonster->MonsterDefinition->PhysicalArmor)
+			: RepeatTarget.PhysicalArmor;
+		RepeatArmorSnapshot.ReferenceMagicalArmor = IsValid(TargetMonster->MonsterDefinition)
+			? FMath::Max(0, TargetMonster->MonsterDefinition->MagicalArmor)
+			: RepeatTarget.MagicalArmor;
+		FGridCombatArmorEffectResolver::ApplyReferenceModifiers(RepeatArmorSnapshot, RepeatTargetModifiers);
+		FGridCombatArmorEffectResolver::ApplyAttackDamageEffects(
+			AttackArmorEffects, RepeatArmorSnapshot, RepeatTargetModifiers, RepeatResult, &ArmorSourceContext);
+
+		FGridPlayerAttackRequest RepeatRequest = Request;
+		RepeatRequest.RequestId = FGuid::NewGuid();
+		OutRequest = RepeatRequest;
+		OutResult = RepeatResult;
+		LastPlayerAttackRequest = RepeatRequest;
+		LastPlayerAttackResult = RepeatResult;
+
+		++PlayerAttackRequestedBroadcastCount;
+		OnPlayerAttackRequested.Broadcast(RepeatRequest);
+
+		FGridCombatLogEntry RepeatEntry;
+		RepeatEntry.RoundNumber = RoundNumber;
+		RepeatEntry.Phase = CurrentPhase;
+		RepeatEntry.Type = RepeatResult.bHit ? EGridCombatLogEntryType::AttackHit : EGridCombatLogEntryType::AttackMiss;
+		RepeatEntry.SourceId = FName(*RepeatRequest.AttackerCharacterId.ToString(EGuidFormats::Digits));
+		RepeatEntry.SourceDisplayName = CharacterSummary.DisplayName;
+		RepeatEntry.TargetId = FName(*TargetMonsterId.ToString(EGuidFormats::Digits));
+		RepeatEntry.TargetDisplayName = ResolveMonsterDisplayName(TargetMonster);
+		RepeatEntry.TargetCharacterIndex = INDEX_NONE;
+		RepeatEntry.AttackId = RepeatRequest.AttackId;
+		RepeatEntry.OffensiveItemDefinitionId = RepeatRequest.OffensiveItemDefinitionId;
+		RepeatEntry.OffensiveEquipmentSlot = RepeatRequest.OffensiveEquipmentSlot;
+		RepeatEntry.AttackResult = RepeatResult;
+		RepeatEntry.bTargetDefeated = RepeatResult.TargetHealthBefore > 0 && RepeatResult.TargetHealthAfter <= 0;
+		RepeatEntry.Message = FGridCombatLogFormatter::FormatPlayerAttack(
+			RepeatEntry.SourceDisplayName, RepeatEntry.TargetDisplayName, RepeatEntry.AttackId, RepeatResult);
+		AppendCombatLogEntry(RepeatEntry);
+
+		bPlayerAttackResolutionInProgress = true;
+		TargetMonster->ApplyAttackResult(RepeatResult);
+		if (!AttackStatusApplications.IsEmpty())
+		{
+			if (UWorld* StatusWorld = GetWorld())
+			{
+				if (UGridStatusEffectLifecycleSubsystem* StatusLifecycle = StatusWorld->GetSubsystem<UGridStatusEffectLifecycleSubsystem>())
+				{
+					StatusLifecycle->BindToTurnManager(this);
+					StatusLifecycle->ApplyCombatStatusApplicationsToMonster(
+						TargetMonster, AttackStatusApplications, Attacker.CharacterId, RepeatTarget, &RepeatResult);
+				}
+			}
+		}
+		if (FGridCombatantInitiativeEntry* RepeatTargetEntry = FindInitiativeEntry(EGridCombatantSide::Monster, TargetMonsterId))
+		{
+			RefreshInitiativeEntryVitals(*RepeatTargetEntry);
+			if (RepeatTargetEntry->State != EGridCombatantTurnState::Defeated)
+			{
+				OnCombatantStateChanged.Broadcast(*RepeatTargetEntry);
+			}
+		}
+		EmitPlayerAttackReactionEvents(AttackerCharacterIndex, RepeatRequest, RepeatResult, ReactionSourcePolicy,
+			ReactionActionType, ReactionActionInstanceId, false, false);
+		++PlayerAttackResolvedBroadcastCount;
+		bPlayerAttackResolutionInProgress = false;
+		OnPlayerAttackResolved.Broadcast(RepeatRequest, TargetMonster, RepeatResult);
+		if (bCollectRuntimeMetrics)
+		{
+			++RuntimeMetrics.AttacksResolved;
+		}
+	}
+
+	if (AttackResolutionCount > 1 && CombatActionOverride)
+	{
+		EmitCharacterActionResolvedReaction(AttackerCharacterIndex, *CombatActionOverride, ReactionActionInstanceId);
+	}
+	if ((ManaCost > 0 || SourceItemQuantityCost > 0 || bCooldownStarted) && IsValid(Inventory))
+	{
+		Inventory->NotifyPartyInventoryChanged(AttackerCharacterIndex);
 	}
 
 	if (bPendingVictoryAfterPlayerAttack)

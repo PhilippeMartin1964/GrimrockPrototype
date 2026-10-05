@@ -53,7 +53,10 @@ enum class EGridCombatTargetingPolicy : uint8
 	Ally UMETA(DisplayName = "Ally"),
 	FirstAxialTarget UMETA(DisplayName = "First Axial Target"),
 	Cell UMETA(DisplayName = "Cell"),
-	Area UMETA(DisplayName = "Area")
+	Area UMETA(DisplayName = "Area"),
+	Hostile UMETA(DisplayName = "Hostile"),
+	Party UMETA(DisplayName = "Party"),
+	FrontRowParty UMETA(DisplayName = "Front Row Party")
 };
 
 UENUM(BlueprintType)
@@ -742,6 +745,13 @@ enum class EGridCombatStatusArmorGate : uint8
  * Generic C1 secondary status application attached to one combat action.
  * StatusEffectId is the stable GridStatusEffect primary-asset identity.
  */
+UENUM(BlueprintType)
+enum class EGridCombatResolvedTargetScope : uint8
+{
+	AllResolvedTargets UMETA(DisplayName = "All Resolved Targets"),
+	PrimaryTargetOnly UMETA(DisplayName = "Primary Target Only")
+};
+
 USTRUCT(BlueprintType)
 struct FGridCombatStatusApplicationProfile
 {
@@ -767,12 +777,116 @@ struct FGridCombatStatusApplicationProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status", meta = (ClampMin = "-1"))
 	int32 PotencyOverride = INDEX_NONE;
 
+	/** C8 batch scope; primary is deterministic and resolved before secondary targets. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status")
+	EGridCombatResolvedTargetScope TargetScope = EGridCombatResolvedTargetScope::AllResolvedTargets;
+
 	bool IsValid() const
 	{
 		return !StatusEffectId.IsNone() && Trigger != EGridCombatStatusApplicationTrigger::None && InitialStackCount >= 1 &&
 			DurationOverride >= INDEX_NONE && PotencyOverride >= INDEX_NONE;
 	}
 };
+
+/** C8 deterministic removal filter. Identity/tag filters use OR; disposition further restricts matches. */
+USTRUCT(BlueprintType)
+struct FGridCombatStatusRemovalProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status Removal|Filter")
+	TArray<FName> EffectIds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status Removal|Filter")
+	TArray<FName> AnyStatusTags;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status Removal|Filter")
+	TArray<EGridStatusEffectDisposition> AllowedDispositions;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status Removal", meta = (ClampMin = "1", ClampMax = "16"))
+	int32 MaximumRemovals = 1;
+
+	bool IsValid() const
+	{
+		if (MaximumRemovals < 1 || MaximumRemovals > 16 ||
+			(EffectIds.IsEmpty() && AnyStatusTags.IsEmpty() && AllowedDispositions.IsEmpty()))
+		{
+			return false;
+		}
+		TSet<FName> Seen;
+		for (const FName Id : EffectIds)
+		{
+			if (Id.IsNone() || Seen.Contains(Id))
+			{
+				return false;
+			}
+			Seen.Add(Id);
+		}
+		Seen.Reset();
+		for (const FName Tag : AnyStatusTags)
+		{
+			if (Tag.IsNone() || Seen.Contains(Tag))
+			{
+				return false;
+			}
+			Seen.Add(Tag);
+		}
+		return true;
+	}
+};
+
+/** C8 reusable target eligibility filter; empty fields are wildcards. */
+USTRUCT(BlueprintType)
+struct FGridCombatTargetFilterProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Target Filter")
+	TArray<FName> AllowedMonsterCategoryIds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Target Filter")
+	TArray<FName> RequiredStatusEffectIds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Target Filter")
+	TArray<FName> RequiredStatusTags;
+
+	/** When true, every required status id must have SourceId equal to the acting combatant. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Target Filter")
+	bool bRequiredStatusesFromSource = false;
+
+	bool IsValid() const
+	{
+		TSet<FName> Seen;
+		for (const FName Id : AllowedMonsterCategoryIds)
+		{
+			if (Id.IsNone() || Seen.Contains(Id))
+			{
+				return false;
+			}
+			Seen.Add(Id);
+		}
+		Seen.Reset();
+		for (const FName Id : RequiredStatusEffectIds)
+		{
+			if (Id.IsNone() || Seen.Contains(Id))
+			{
+				return false;
+			}
+			Seen.Add(Id);
+		}
+		Seen.Reset();
+		for (const FName Tag : RequiredStatusTags)
+		{
+			if (Tag.IsNone() || Seen.Contains(Tag))
+			{
+				return false;
+			}
+			Seen.Add(Tag);
+		}
+		return !bRequiredStatusesFromSource || !RequiredStatusEffectIds.IsEmpty();
+	}
+};
+
 
 UENUM(BlueprintType)
 enum class EGridCombatArmorPool : uint8
@@ -1154,11 +1268,11 @@ struct FGridCombatModifierProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Quick Item", meta = (ClampMin = "-100", ClampMax = "500"))
 	int32 PositiveEffectPercentModifier = 0;
 
-	/** C7 future C8 hook: direct damage modifier when a QuickItem hits an allied target. */
+	/** C7/C8 direct damage modifier when a QuickItem Area action hits an allied target. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Quick Item", meta = (ClampMin = "-100", ClampMax = "500"))
 	int32 FriendlyDirectDamagePercentModifier = 0;
 
-	/** C7 future C8 hook: number of extra living allies receiving a secondary positive QuickItem effect. */
+	/** C7/C8 number of extra living allies receiving a secondary positive QuickItem effect. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Quick Item", meta = (ClampMin = "0", ClampMax = "6"))
 	int32 QuickItemSecondaryTargetCount = 0;
 
@@ -1381,9 +1495,29 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting", meta = (ClampMin = "0", ClampMax = "32"))
 	int32 RangeCells = 0;
 
+	/** C8 optional eligibility filter for the target(s). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting")
+	FGridCombatTargetFilterProfile TargetFilter;
+
+	/** 0 = every eligible target; otherwise deterministic cap after ordering. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting", meta = (ClampMin = "0", ClampMax = "16"))
+	int32 MaximumResolvedTargets = 0;
+
+	/** Independent resolutions against each target (Rapid Shot = 2); resources are paid once. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution", meta = (ClampMin = "1", ClampMax = "8"))
+	int32 ResolutionCount = 1;
+
+	/** Accuracy delta applied to every attack resolution after the first. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution", meta = (ClampMin = "-20", ClampMax = "20"))
+	int32 SubsequentResolutionAccuracyModifier = 0;
+
 	/** Manhattan radius around the selected cell when TargetingPolicy is Area. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting", meta = (ClampMin = "0", ClampMax = "8"))
 	int32 AreaRadiusCells = 0;
+
+	/** C8 opt-in: Area attack direct damage/statuses may also affect living party members on covered party cells. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting")
+	bool bAffectsAlliesInArea = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Requirements")
 	TArray<FName> Requirements;
@@ -1411,6 +1545,10 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Status")
 	TArray<FGridCombatStatusApplicationProfile> StatusApplications;
 
+	/** C8 deterministic status removals resolved through the MON16 lifecycle. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Status")
+	TArray<FGridCombatStatusRemovalProfile> StatusRemovals;
+
 	/** C3 direct armor effects resolved before C1 ArmorGate evaluation. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Armor")
 	TArray<FGridCombatArmorEffectProfile> ArmorEffects;
@@ -1428,9 +1566,12 @@ struct FGridCombatActionDefinition
 		const bool bAttackProfileValid = ResolutionProfile != EGridCombatActionResolutionProfile::Attack || (OffensiveProfile.IsValid() && ActionPointCost > 0);
 		const bool bAttackRangeValid = ResolutionProfile != EGridCombatActionResolutionProfile::Attack || RangeCells == OffensiveProfile.RangeCells;
 		const bool bTargetingRangeValid = (TargetingPolicy != EGridCombatTargetingPolicy::FirstAxialTarget &&
-											  TargetingPolicy != EGridCombatTargetingPolicy::Cell && TargetingPolicy != EGridCombatTargetingPolicy::Area) ||
+											  TargetingPolicy != EGridCombatTargetingPolicy::Cell && TargetingPolicy != EGridCombatTargetingPolicy::Area &&
+											  TargetingPolicy != EGridCombatTargetingPolicy::Hostile) ||
 			RangeCells > 0;
 		const bool bAreaRadiusValid = TargetingPolicy != EGridCombatTargetingPolicy::Area || AreaRadiusCells > 0;
+		const bool bFriendlyAreaValid = !bAffectsAlliesInArea ||
+			(TargetingPolicy == EGridCombatTargetingPolicy::Area && ResolutionProfile == EGridCombatActionResolutionProfile::Attack);
 		const bool bStatusApplicationsValid = StatusApplications.ContainsByPredicate(
 			[this](const FGridCombatStatusApplicationProfile& Profile)
 			{
@@ -1438,6 +1579,11 @@ struct FGridCombatActionDefinition
 					(Profile.Trigger == EGridCombatStatusApplicationTrigger::AfterSuccessfulHit &&
 						ResolutionProfile != EGridCombatActionResolutionProfile::Attack);
 			}) == false;
+		const bool bStatusRemovalsValid = StatusRemovals.ContainsByPredicate(
+			[](const FGridCombatStatusRemovalProfile& Profile)
+			{
+				return !Profile.IsValid();
+			}) == false && (StatusRemovals.IsEmpty() || ResolutionProfile == EGridCombatActionResolutionProfile::Effect);
 		const bool bArmorEffectsValid = ArmorEffects.ContainsByPredicate(
 			[this](const FGridCombatArmorEffectProfile& Profile)
 			{
@@ -1450,9 +1596,13 @@ struct FGridCombatActionDefinition
 					return Profile.Operation != EGridCombatArmorEffectOperation::Damage ||
 						Profile.Trigger != EGridCombatArmorEffectTrigger::AfterSuccessfulHit;
 				}
-				return ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
-					Profile.Operation != EGridCombatArmorEffectOperation::Restore ||
-					Profile.Trigger != EGridCombatArmorEffectTrigger::AfterResolution;
+				if (ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
+					Profile.Trigger != EGridCombatArmorEffectTrigger::AfterResolution)
+				{
+					return true;
+				}
+				return Profile.Operation == EGridCombatArmorEffectOperation::Damage &&
+					Profile.Magnitude == EGridCombatArmorEffectMagnitude::RawDamagePercent;
 			}) == false;
 		const bool bMovementEffectsValid = MovementEffects.ContainsByPredicate(
 			[this](const FGridCombatMovementEffectProfile& Profile)
@@ -1462,7 +1612,9 @@ struct FGridCombatActionDefinition
 		const bool bSurfaceEffectsValid = SurfaceEffects.ContainsByPredicate(
 			[this](const FGridCombatSurfaceEffectProfile& Profile)
 			{
-				return !Profile.IsValid() || ResolutionProfile != EGridCombatActionResolutionProfile::Effect;
+				return !Profile.IsValid() ||
+					(ResolutionProfile != EGridCombatActionResolutionProfile::Effect &&
+						ResolutionProfile != EGridCombatActionResolutionProfile::Attack);
 			}) == false;
 		bool bSourceTagsValid = true;
 		{
@@ -1482,8 +1634,11 @@ struct FGridCombatActionDefinition
 		return !ActionId.IsNone() && ActionType != EGridCombatActionType::None && SourcePolicy != EGridCombatActionSourcePolicy::None &&
 			TargetingPolicy != EGridCombatTargetingPolicy::None && ResolutionProfile != EGridCombatActionResolutionProfile::None && ActionPointCost >= 0 &&
 			ActionPointCost <= 6 && ResourceCosts.IsValid() && RangeCells >= 0 && RangeCells <= 32 && AreaRadiusCells >= 0 && AreaRadiusCells <= 8 &&
-			CooldownRounds >= 0 && bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bStatusApplicationsValid &&
-			bArmorEffectsValid && bMovementEffectsValid && bSurfaceEffectsValid && bSourceTagsValid && bQuickItemScalingValid;
+			CooldownRounds >= 0 && MaximumResolvedTargets >= 0 && MaximumResolvedTargets <= 16 && ResolutionCount >= 1 && ResolutionCount <= 8 &&
+			SubsequentResolutionAccuracyModifier >= -20 && SubsequentResolutionAccuracyModifier <= 20 &&
+			(ResolutionCount > 1 || SubsequentResolutionAccuracyModifier == 0) && TargetFilter.IsValid() && bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bFriendlyAreaValid && bStatusApplicationsValid &&
+			bStatusRemovalsValid && bArmorEffectsValid && bMovementEffectsValid && bSurfaceEffectsValid && bSourceTagsValid && bQuickItemScalingValid &&
+			(ResolutionCount == 1 || ResolutionProfile == EGridCombatActionResolutionProfile::Attack);
 	}
 };
 
@@ -1812,6 +1967,9 @@ struct FGridCombatTargetedActionResult
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Targeting")
 	TArray<FGuid> TargetMonsterIds;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Targeting")
+	TArray<int32> TargetCharacterIndices;
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Targeting")
 	TArray<FGridPlayerAttackRequest> AttackRequests;

@@ -1,4 +1,5 @@
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/Combat/GridCombatTargetingResolver.h"
 
 namespace
 {
@@ -158,7 +159,8 @@ int32 FGridPartyTargetSelector::SelectTarget(const FGridPartyInventoryState& Par
 	for (int32 CharacterIndex = 0; CharacterIndex < PartyState.ActiveCharacters.Num(); ++CharacterIndex)
 	{
 		const FGridCharacterInventoryState& Character = PartyState.ActiveCharacters[CharacterIndex];
-		if (Character.Resources.CurrentHealth <= 0)
+		if (Character.Resources.CurrentHealth <= 0 ||
+			!FGridCombatTargetingResolver::IsDirectHostileTargetable(Character.StatusEffects))
 		{
 			continue;
 		}

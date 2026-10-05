@@ -216,6 +216,62 @@ bool FGridCombatArmorEffectResolver::WouldAnyRestore(const TArray<FGridCombatArm
 	return false;
 }
 
+bool FGridCombatArmorEffectResolver::WouldAnyDirectDamage(const TArray<FGridCombatArmorEffectProfile>& Profiles,
+	const FGridCombatArmorPoolSnapshot& Snapshot, const FGridResolvedCombatModifiers& Modifiers,
+	const FGridCombatArmorEffectSourceContext* SourceContext)
+{
+	FGridCombatArmorPoolSnapshot Candidate = Snapshot;
+	for (const FGridCombatArmorEffectProfile& Profile : Profiles)
+	{
+		if (Profile.Operation != EGridCombatArmorEffectOperation::Damage ||
+			Profile.Trigger != EGridCombatArmorEffectTrigger::AfterResolution)
+		{
+			continue;
+		}
+		FGridCombatArmorEffectResult Result;
+		if (ResolveOne(Profile, Candidate, Modifiers, SourceContext, nullptr, Result) && Result.DidMutate())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+int32 FGridCombatArmorEffectResolver::ApplyDirectDamageEffects(const TArray<FGridCombatArmorEffectProfile>& Profiles,
+	FGridCombatArmorPoolSnapshot& InOutSnapshot, const FGridResolvedCombatModifiers& Modifiers,
+	const FGridCombatArmorEffectSourceContext* SourceContext, TArray<FGridCombatArmorEffectResult>* OutResults)
+{
+	int32 MutationCount = 0;
+	if (OutResults)
+	{
+		OutResults->Reset();
+	}
+	for (const FGridCombatArmorEffectProfile& Profile : Profiles)
+	{
+		if (Profile.Operation != EGridCombatArmorEffectOperation::Damage ||
+			Profile.Trigger != EGridCombatArmorEffectTrigger::AfterResolution)
+		{
+			continue;
+		}
+		FGridCombatArmorEffectResult Result;
+		if (!ResolveOne(Profile, InOutSnapshot, Modifiers, SourceContext, nullptr, Result))
+		{
+			continue;
+		}
+		if (OutResults)
+		{
+			OutResults->Add(Result);
+		}
+		if (!Result.DidMutate())
+		{
+			continue;
+		}
+		WriteCurrent(InOutSnapshot, Profile.Pool, Result.ArmorAfter);
+		++MutationCount;
+	}
+	return MutationCount;
+}
+
 int32 FGridCombatArmorEffectResolver::ApplyRestoreEffects(const TArray<FGridCombatArmorEffectProfile>& Profiles,
 	FGridCombatArmorPoolSnapshot& InOutSnapshot, const FGridResolvedCombatModifiers& Modifiers,
 	const FGridCombatArmorEffectSourceContext* SourceContext, TArray<FGridCombatArmorEffectResult>* OutResults)

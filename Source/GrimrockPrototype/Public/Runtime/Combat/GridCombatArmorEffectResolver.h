@@ -24,6 +24,15 @@ public:
 	static bool WouldAnyRestore(const TArray<FGridCombatArmorEffectProfile>& Profiles, const FGridCombatArmorPoolSnapshot& Snapshot,
 		const FGridResolvedCombatModifiers& Modifiers, const FGridCombatArmorEffectSourceContext* SourceContext = nullptr);
 
+	/** C8 preflight for direct Effect armor damage (no HP overflow). */
+	static bool WouldAnyDirectDamage(const TArray<FGridCombatArmorEffectProfile>& Profiles, const FGridCombatArmorPoolSnapshot& Snapshot,
+		const FGridResolvedCombatModifiers& Modifiers, const FGridCombatArmorEffectSourceContext* SourceContext = nullptr);
+
+	/** Applies AfterResolution Damage profiles directly to armor pools and never touches HP. */
+	static int32 ApplyDirectDamageEffects(const TArray<FGridCombatArmorEffectProfile>& Profiles, FGridCombatArmorPoolSnapshot& InOutSnapshot,
+		const FGridResolvedCombatModifiers& Modifiers, const FGridCombatArmorEffectSourceContext* SourceContext = nullptr,
+		TArray<FGridCombatArmorEffectResult>* OutResults = nullptr);
+
 	/** Applies only Restore profiles and updates the snapshot sequentially. */
 	static int32 ApplyRestoreEffects(const TArray<FGridCombatArmorEffectProfile>& Profiles, FGridCombatArmorPoolSnapshot& InOutSnapshot,
 		const FGridResolvedCombatModifiers& Modifiers, const FGridCombatArmorEffectSourceContext* SourceContext = nullptr,
