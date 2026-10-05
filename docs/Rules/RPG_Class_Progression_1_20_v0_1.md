@@ -490,3 +490,26 @@ La règle sera considérée implémentée lorsque :
 - actions et passifs se déverrouillent via les requirements existants ;
 - Automation couvre chaque classe aux niveaux 1,5,10,15,20 ;
 - PIE valide un build complet de chacune des six classes.
+
+
+## 18. RPG02 — mécanique détaillée des Talents
+
+La progression de ce document fixe **quand** les Talents deviennent accessibles.
+
+La spécification autoritaire suivante fixe désormais **ce qu'ils font réellement** :
+
+[`RPG_Talents_Mechanics_v0_1.md`](RPG_Talents_Mechanics_v0_1.md)
+
+RPG02 définit pour chacun des **90 Talents** :
+
+- `ChoiceId` et prérequis ;
+- action/passif/recette ;
+- coût PA, mana et item ;
+- ciblage, portée, zone et cooldown ;
+- coefficients de dégâts/soins ;
+- ArmorGate physique ou magique ;
+- Status Effects ;
+- interactions de formation, surfaces et inventaire ;
+- dépendances techniques génériques nécessaires à l'implémentation.
+
+En cas de divergence sur la mécanique précise d'un Talent, **RPG_Talents_Mechanics_v0_1.md est autoritaire** ; le présent document reste autoritaire pour la structure de progression 1→20.
