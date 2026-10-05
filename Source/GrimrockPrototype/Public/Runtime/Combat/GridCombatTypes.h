@@ -1104,6 +1104,10 @@ struct FGridCombatModifierProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
 	TArray<FName> SourceDefinitionIds;
 
+	/** Every listed tag must be present on the resolved action source. Empty = wildcard. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
+	TArray<FName> RequiredSourceTags;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
 	TArray<EGridCombatActionSourcePolicy> SourcePolicies;
 
@@ -1146,6 +1150,26 @@ struct FGridCombatModifierProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "-32", ClampMax = "32"))
 	int32 RangeCellsModifier = 0;
 
+	/** C7 positive Health/Mana/Armor magnitude modifier after skill scaling. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Quick Item", meta = (ClampMin = "-100", ClampMax = "500"))
+	int32 PositiveEffectPercentModifier = 0;
+
+	/** C7 future C8 hook: direct damage modifier when a QuickItem hits an allied target. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Quick Item", meta = (ClampMin = "-100", ClampMax = "500"))
+	int32 FriendlyDirectDamagePercentModifier = 0;
+
+	/** C7 future C8 hook: number of extra living allies receiving a secondary positive QuickItem effect. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Quick Item", meta = (ClampMin = "0", ClampMax = "6"))
+	int32 QuickItemSecondaryTargetCount = 0;
+
+	/** C7 future C8 hook: secondary positive effect magnitude as percent of primary. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Quick Item", meta = (ClampMin = "0", ClampMax = "100"))
+	int32 QuickItemSecondaryMagnitudePercent = 0;
+
+	/** C7 future C8 hook: secondary status duration as percent of primary. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Quick Item", meta = (ClampMin = "0", ClampMax = "100"))
+	int32 QuickItemSecondaryDurationPercent = 0;
+
 	/** Percentage modifier to the target's reconstructible physical armor reference pool. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Armor", meta = (ClampMin = "-100", ClampMax = "500"))
 	int32 PhysicalArmorReferencePercentModifier = 0;
@@ -1180,7 +1204,9 @@ struct FGridCombatModifierProfile
 	{
 		return AccuracyModifier != 0 || EvasionModifier != 0 || OutgoingDamagePercentModifier != 0 || IncomingDamagePercentModifier != 0 ||
 			CriticalChancePercentModifier != 0 || CriticalDamagePercentModifier != 0 || !ResistanceModifiers.IsEmpty() || ActionPointCostModifier != 0 ||
-			ManaCostModifier != 0 || RangeCellsModifier != 0 || PhysicalArmorReferencePercentModifier != 0 ||
+			ManaCostModifier != 0 || RangeCellsModifier != 0 || PositiveEffectPercentModifier != 0 ||
+			FriendlyDirectDamagePercentModifier != 0 || QuickItemSecondaryTargetCount != 0 || QuickItemSecondaryMagnitudePercent != 0 ||
+			QuickItemSecondaryDurationPercent != 0 || PhysicalArmorReferencePercentModifier != 0 ||
 			MagicalArmorReferencePercentModifier != 0 || PhysicalArmorRestorationPercentModifier != 0 ||
 			MagicalArmorRestorationPercentModifier != 0 || SurfaceDurationRoundsModifier != 0 ||
 			SurfacePeriodicDamagePercentModifier != 0 || SurfaceReactionDamagePercentModifier != 0 ||
@@ -1193,7 +1219,10 @@ struct FGridCombatModifierProfile
 			IncomingDamagePercentModifier < -100 || IncomingDamagePercentModifier > 500 || CriticalChancePercentModifier < -100 ||
 			CriticalChancePercentModifier > 100 || CriticalDamagePercentModifier < -100 || CriticalDamagePercentModifier > 800 ||
 			ActionPointCostModifier < -6 || ActionPointCostModifier > 6 || ManaCostModifier < -100 || ManaCostModifier > 100 ||
-			RangeCellsModifier < -32 || RangeCellsModifier > 32 || PhysicalArmorReferencePercentModifier < -100 ||
+			RangeCellsModifier < -32 || RangeCellsModifier > 32 || PositiveEffectPercentModifier < -100 || PositiveEffectPercentModifier > 500 ||
+			FriendlyDirectDamagePercentModifier < -100 || FriendlyDirectDamagePercentModifier > 500 || QuickItemSecondaryTargetCount < 0 ||
+			QuickItemSecondaryTargetCount > 6 || QuickItemSecondaryMagnitudePercent < 0 || QuickItemSecondaryMagnitudePercent > 100 ||
+			QuickItemSecondaryDurationPercent < 0 || QuickItemSecondaryDurationPercent > 100 || PhysicalArmorReferencePercentModifier < -100 ||
 			PhysicalArmorReferencePercentModifier > 500 || MagicalArmorReferencePercentModifier < -100 ||
 			MagicalArmorReferencePercentModifier > 500 || PhysicalArmorRestorationPercentModifier < -100 ||
 			PhysicalArmorRestorationPercentModifier > 500 || MagicalArmorRestorationPercentModifier < -100 ||
@@ -1218,6 +1247,17 @@ struct FGridCombatModifierProfile
 				return false;
 			}
 		}
+		{
+			TSet<FName> SeenTags;
+			for (const FName Tag : RequiredSourceTags)
+			{
+				if (Tag.IsNone() || SeenTags.Contains(Tag))
+				{
+					return false;
+				}
+				SeenTags.Add(Tag);
+			}
+		}
 		for (const EGridCombatActionSourcePolicy Policy : SourcePolicies)
 		{
 			if (Policy == EGridCombatActionSourcePolicy::None)
@@ -1240,6 +1280,40 @@ struct FGridCombatModifierProfile
 			}
 		}
 		return true;
+	}
+};
+
+/** Optional C7 Alchemy/QuickItem skill-rank scaling. */
+USTRUCT(BlueprintType)
+struct FGridCombatQuickItemScalingProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Quick Item|Scaling")
+	FName ScalingSkillId = NAME_None;
+
+	/** Added to direct attack DamageBonus for each rank of ScalingSkillId. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Quick Item|Scaling", meta = (ClampMin = "0", ClampMax = "10"))
+	int32 DirectDamageSkillRankScale = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Quick Item|Scaling", meta = (ClampMin = "0", ClampMax = "10"))
+	int32 RestoreHealthSkillRankScale = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Quick Item|Scaling", meta = (ClampMin = "0", ClampMax = "10"))
+	int32 RestoreManaSkillRankScale = 0;
+
+	bool HasAnyScaling() const
+	{
+		return DirectDamageSkillRankScale > 0 || RestoreHealthSkillRankScale > 0 || RestoreManaSkillRankScale > 0;
+	}
+
+	bool IsValid() const
+	{
+		if (DirectDamageSkillRankScale < 0 || RestoreHealthSkillRankScale < 0 || RestoreManaSkillRankScale < 0)
+		{
+			return false;
+		}
+		return HasAnyScaling() ? !ScalingSkillId.IsNone() : ScalingSkillId.IsNone();
 	}
 };
 
@@ -1288,6 +1362,10 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action")
 	EGridCombatActionSourcePolicy SourcePolicy = EGridCombatActionSourcePolicy::None;
 
+	/** C7 semantic tags projected from the source item; combat logic matches tags, never TalentIds. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Source")
+	TArray<FName> SourceTags;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action")
 	EGridCombatTargetingPolicy TargetingPolicy = EGridCombatTargetingPolicy::None;
 
@@ -1324,6 +1402,10 @@ struct FGridCombatActionDefinition
 	/** Immediate self payload used by supported Effect actions. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution")
 	FGridCombatActionEffectProfile EffectProfile;
+
+	/** Optional C7 skill scaling used only when SourcePolicy=QuickItem. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Quick Item")
+	FGridCombatQuickItemScalingProfile QuickItemScaling;
 
 	/** C1 secondary status applications resolved after the primary action/effect. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Status")
@@ -1382,11 +1464,26 @@ struct FGridCombatActionDefinition
 			{
 				return !Profile.IsValid() || ResolutionProfile != EGridCombatActionResolutionProfile::Effect;
 			}) == false;
+		bool bSourceTagsValid = true;
+		{
+			TSet<FName> SeenTags;
+			for (const FName Tag : SourceTags)
+			{
+				if (Tag.IsNone() || SeenTags.Contains(Tag))
+				{
+					bSourceTagsValid = false;
+					break;
+				}
+				SeenTags.Add(Tag);
+			}
+		}
+		const bool bQuickItemScalingValid =
+			QuickItemScaling.IsValid() && (!QuickItemScaling.HasAnyScaling() || SourcePolicy == EGridCombatActionSourcePolicy::QuickItem);
 		return !ActionId.IsNone() && ActionType != EGridCombatActionType::None && SourcePolicy != EGridCombatActionSourcePolicy::None &&
 			TargetingPolicy != EGridCombatTargetingPolicy::None && ResolutionProfile != EGridCombatActionResolutionProfile::None && ActionPointCost >= 0 &&
 			ActionPointCost <= 6 && ResourceCosts.IsValid() && RangeCells >= 0 && RangeCells <= 32 && AreaRadiusCells >= 0 && AreaRadiusCells <= 8 &&
 			CooldownRounds >= 0 && bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bStatusApplicationsValid &&
-			bArmorEffectsValid && bMovementEffectsValid && bSurfaceEffectsValid;
+			bArmorEffectsValid && bMovementEffectsValid && bSurfaceEffectsValid && bSourceTagsValid && bQuickItemScalingValid;
 	}
 };
 

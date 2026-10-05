@@ -9,6 +9,7 @@ struct GRIMROCKPROTOTYPE_API FGridCombatModifierContext
 {
 	FName ActionId = NAME_None;
 	FName SourceDefinitionId = NAME_None;
+	TArray<FName> SourceTags;
 	EGridCombatActionSourcePolicy SourcePolicy = EGridCombatActionSourcePolicy::None;
 	EGridCombatActionType ActionType = EGridCombatActionType::None;
 	bool bHasDamageDescriptor = false;
@@ -29,6 +30,11 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedCombatModifiers
 	int32 ActionPointCostModifier = 0;
 	int32 ManaCostModifier = 0;
 	int32 RangeCellsModifier = 0;
+	int32 PositiveEffectPercentModifier = 0;
+	int32 FriendlyDirectDamagePercentModifier = 0;
+	int32 QuickItemSecondaryTargetCount = 0;
+	int32 QuickItemSecondaryMagnitudePercent = 0;
+	int32 QuickItemSecondaryDurationPercent = 0;
 	int32 PhysicalArmorReferencePercentModifier = 0;
 	int32 MagicalArmorReferencePercentModifier = 0;
 	int32 PhysicalArmorRestorationPercentModifier = 0;
@@ -47,7 +53,9 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedCombatModifiers
 	{
 		return AccuracyModifier == 0 && EvasionModifier == 0 && OutgoingDamagePercentModifier == 0 && IncomingDamagePercentModifier == 0 &&
 			CriticalChancePercentModifier == 0 && CriticalDamagePercentModifier == 0 && ResistanceModifiers.IsEmpty() && ActionPointCostModifier == 0 &&
-			ManaCostModifier == 0 && RangeCellsModifier == 0 && PhysicalArmorReferencePercentModifier == 0 &&
+			ManaCostModifier == 0 && RangeCellsModifier == 0 && PositiveEffectPercentModifier == 0 &&
+			FriendlyDirectDamagePercentModifier == 0 && QuickItemSecondaryTargetCount == 0 && QuickItemSecondaryMagnitudePercent == 0 &&
+			QuickItemSecondaryDurationPercent == 0 && PhysicalArmorReferencePercentModifier == 0 &&
 			MagicalArmorReferencePercentModifier == 0 && PhysicalArmorRestorationPercentModifier == 0 &&
 			MagicalArmorRestorationPercentModifier == 0 && SurfaceDurationRoundsModifier == 0 &&
 			SurfacePeriodicDamagePercentModifier == 0 && SurfaceReactionDamagePercentModifier == 0 &&

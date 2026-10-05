@@ -2,6 +2,7 @@
 
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
+#include "Runtime/Combat/GridQuickItemResolver.h"
 #include "RPG/StatusEffects/GridCombatStatusApplicationResolver.h"
 
 #include "RPG/RPGClassProgressionTransactionService.h"
@@ -105,7 +106,9 @@ namespace
 			const bool bSupportedQuickItemProfile =
 				(Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack && IsSupportedAttackTargeting(Definition.TargetingPolicy)) ||
 				(Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect && Definition.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
-					(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty() || !Definition.ArmorEffects.IsEmpty()));
+					(Definition.EffectProfile.IsValid() || Definition.QuickItemScaling.RestoreHealthSkillRankScale > 0 ||
+						Definition.QuickItemScaling.RestoreManaSkillRankScale > 0 || !Definition.StatusApplications.IsEmpty() ||
+						!Definition.ArmorEffects.IsEmpty()));
 			if (!Context.bEnableQuickItemExecutors || !bSupportedQuickItemProfile)
 			{
 				return EGridCombatActionAvailabilityReason::ExecutionNotImplemented;
@@ -113,18 +116,22 @@ namespace
 
 			if (Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect)
 			{
-				const int32 HealthAfter = FMath::Clamp(Context.CurrentHealth + Definition.EffectProfile.RestoreHealth, 0, FMath::Max(0, Context.MaximumHealth));
+				FGridResolvedCombatModifiers QuickItemModifiers;
+				FGridCombatModifierResolver::Resolve(Context.CombatModifiers,
+					FGridCombatModifierResolver::MakeActionContext(Definition, Contribution.SourceDefinitionId), QuickItemModifiers);
+				FGridCombatActionEffectProfile EffectiveEffect;
+				FGridQuickItemResolver::ResolveEffectProfile(Definition, Context.SkillRanks, QuickItemModifiers, EffectiveEffect);
+				const int32 HealthAfter =
+					FMath::Clamp(Context.CurrentHealth + EffectiveEffect.RestoreHealth, 0, FMath::Max(0, Context.MaximumHealth));
 				const int32 ManaAfter = FMath::Clamp(
-					Context.CurrentMana - Definition.ResourceCosts.ManaCost + Definition.EffectProfile.RestoreMana, 0, FMath::Max(0, Context.MaximumMana));
+					Context.CurrentMana - Definition.ResourceCosts.ManaCost + EffectiveEffect.RestoreMana, 0, FMath::Max(0, Context.MaximumMana));
 				FGridAttackTargetStats SelfTarget;
 				SelfTarget.CurrentHealth = Context.CurrentHealth;
 				SelfTarget.PhysicalArmor = Context.CurrentPhysicalArmor;
 				SelfTarget.MagicalArmor = Context.CurrentMagicalArmor;
 				const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
 					Definition.StatusApplications, Context.CharacterId, SelfTarget, nullptr, Context.CurrentStatusEffects);
-				FGridResolvedCombatModifiers ArmorModifiers;
-				FGridCombatModifierResolver::Resolve(Context.CombatModifiers,
-					FGridCombatModifierResolver::MakeActionContext(Definition, Contribution.SourceDefinitionId), ArmorModifiers);
+				const FGridResolvedCombatModifiers& ArmorModifiers = QuickItemModifiers;
 				FGridCombatArmorPoolSnapshot ArmorSnapshot;
 				ArmorSnapshot.CurrentPhysicalArmor = Context.CurrentPhysicalArmor;
 				ArmorSnapshot.CurrentMagicalArmor = Context.CurrentMagicalArmor;

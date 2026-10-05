@@ -151,8 +151,9 @@ void FGridCombatArmorEffectResolver::ApplyReferenceModifiers(
 int32 FGridCombatArmorEffectResolver::GetRestorationPercentModifier(
 	EGridCombatArmorPool Pool, const FGridResolvedCombatModifiers& Modifiers)
 {
-	return Pool == EGridCombatArmorPool::Physical ? Modifiers.PhysicalArmorRestorationPercentModifier
-												 : Modifiers.MagicalArmorRestorationPercentModifier;
+	const int32 PoolModifier = Pool == EGridCombatArmorPool::Physical ? Modifiers.PhysicalArmorRestorationPercentModifier
+																		 : Modifiers.MagicalArmorRestorationPercentModifier;
+	return FMath::Clamp(PoolModifier + Modifiers.PositiveEffectPercentModifier, -100, 1000);
 }
 
 bool FGridCombatArmorEffectResolver::ResolveOne(const FGridCombatArmorEffectProfile& Profile, const FGridCombatArmorPoolSnapshot& Snapshot,

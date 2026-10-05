@@ -47,6 +47,7 @@ FGridCombatModifierContext FGridCombatModifierResolver::MakeActionContext(const 
 	FGridCombatModifierContext Context;
 	Context.ActionId = Definition.ActionId;
 	Context.SourceDefinitionId = SourceDefinitionId;
+	Context.SourceTags = Definition.SourceTags;
 	Context.SourcePolicy = Definition.SourcePolicy;
 	Context.ActionType = Definition.ActionType;
 	if (Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack && Definition.OffensiveProfile.IsValid())
@@ -81,6 +82,13 @@ bool FGridCombatModifierResolver::Matches(const FGridCombatModifierProfile& Prof
 	if (!Profile.SourceDefinitionIds.IsEmpty() && !Profile.SourceDefinitionIds.Contains(Context.SourceDefinitionId))
 	{
 		return false;
+	}
+	for (const FName RequiredTag : Profile.RequiredSourceTags)
+	{
+		if (!Context.SourceTags.Contains(RequiredTag))
+		{
+			return false;
+		}
 	}
 	if (!MatchesFilter(Profile.SourcePolicies, Context.SourcePolicy) || !MatchesFilter(Profile.ActionTypes, Context.ActionType))
 	{
@@ -129,6 +137,16 @@ void FGridCombatModifierResolver::Resolve(
 		OutModifiers.ActionPointCostModifier = SaturatingAdd(OutModifiers.ActionPointCostModifier, Profile.ActionPointCostModifier);
 		OutModifiers.ManaCostModifier = SaturatingAdd(OutModifiers.ManaCostModifier, Profile.ManaCostModifier);
 		OutModifiers.RangeCellsModifier = SaturatingAdd(OutModifiers.RangeCellsModifier, Profile.RangeCellsModifier);
+		OutModifiers.PositiveEffectPercentModifier =
+			SaturatingAdd(OutModifiers.PositiveEffectPercentModifier, Profile.PositiveEffectPercentModifier);
+		OutModifiers.FriendlyDirectDamagePercentModifier =
+			SaturatingAdd(OutModifiers.FriendlyDirectDamagePercentModifier, Profile.FriendlyDirectDamagePercentModifier);
+		OutModifiers.QuickItemSecondaryTargetCount =
+			FMath::Max(OutModifiers.QuickItemSecondaryTargetCount, Profile.QuickItemSecondaryTargetCount);
+		OutModifiers.QuickItemSecondaryMagnitudePercent =
+			FMath::Max(OutModifiers.QuickItemSecondaryMagnitudePercent, Profile.QuickItemSecondaryMagnitudePercent);
+		OutModifiers.QuickItemSecondaryDurationPercent =
+			FMath::Max(OutModifiers.QuickItemSecondaryDurationPercent, Profile.QuickItemSecondaryDurationPercent);
 		OutModifiers.PhysicalArmorReferencePercentModifier =
 			SaturatingAdd(OutModifiers.PhysicalArmorReferencePercentModifier, Profile.PhysicalArmorReferencePercentModifier);
 		OutModifiers.MagicalArmorReferencePercentModifier =

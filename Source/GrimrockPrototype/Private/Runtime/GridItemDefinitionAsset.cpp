@@ -7,6 +7,31 @@ namespace
 	constexpr float GridThrowableWeightPerStrengthKg = 0.25f;
 	constexpr float GridThrowReferenceStrength = 10.0f;
 	constexpr float GridThrowMaxWeightSpeedPenalty = 0.35f;
+
+	void NormalizeQuickItemSourceTags(const TArray<FName>& ItemTags, FGridCombatActionDefinition& Definition)
+	{
+		TArray<FName> Normalized;
+		for (const FName Tag : Definition.SourceTags)
+		{
+			if (!Tag.IsNone())
+			{
+				Normalized.AddUnique(Tag);
+			}
+		}
+		for (const FName Tag : ItemTags)
+		{
+			if (!Tag.IsNone())
+			{
+				Normalized.AddUnique(Tag);
+			}
+		}
+		Normalized.Sort(
+			[](const FName Left, const FName Right)
+			{
+				return Left.ToString().Compare(Right.ToString(), ESearchCase::CaseSensitive) < 0;
+			});
+		Definition.SourceTags = MoveTemp(Normalized);
+	}
 }
 
 bool UGridItemDefinitionAsset::IsValidDefinition() const
@@ -167,7 +192,7 @@ bool UGridItemDefinitionAsset::HasValidCombatActions() const
 bool UGridItemDefinitionAsset::BuildQuickItemCombatActionDefinition(FGridCombatActionDefinition& OutDefinition) const
 {
 	OutDefinition = FGridCombatActionDefinition();
-	if (!bProvidesQuickItemCombatAction || ItemDefinitionId.IsNone() || (ItemType != EGridItemType::Potion && ItemType != EGridItemType::Scroll))
+	if (!bProvidesQuickItemCombatAction || ItemDefinitionId.IsNone())
 	{
 		return false;
 	}
@@ -175,7 +200,8 @@ bool UGridItemDefinitionAsset::BuildQuickItemCombatActionDefinition(FGridCombatA
 	OutDefinition = QuickItemCombatAction;
 	OutDefinition.ActionId = FGridCombatHotbarBinding::MakeQuickItemActionId(ItemDefinitionId);
 	OutDefinition.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
-	OutDefinition.ResourceCosts.SourceItemQuantityCost = IsCombatThrowable() ? 1 : FMath::Max(1, OutDefinition.ResourceCosts.SourceItemQuantityCost);
+	OutDefinition.ResourceCosts.SourceItemQuantityCost = FMath::Max(1, OutDefinition.ResourceCosts.SourceItemQuantityCost);
+	NormalizeQuickItemSourceTags(ItemTags, OutDefinition);
 	if (OutDefinition.DisplayName.IsEmpty())
 	{
 		OutDefinition.DisplayName = DisplayName;
@@ -195,15 +221,9 @@ bool UGridItemDefinitionAsset::BuildQuickItemCombatActionDefinition(FGridCombatA
 		return false;
 	}
 
-	const bool bSupportedAttack = OutDefinition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
-		OutDefinition.TargetingPolicy == EGridCombatTargetingPolicy::FirstAxialTarget;
-	const bool bSupportedSelfEffect = OutDefinition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
-		OutDefinition.TargetingPolicy == EGridCombatTargetingPolicy::Self && OutDefinition.EffectProfile.IsValid();
-	if (!bSupportedAttack && !bSupportedSelfEffect)
-	{
-		OutDefinition = FGridCombatActionDefinition();
-		return false;
-	}
+	// Execution support belongs to the combat catalogue/TurnManager. C7 keeps
+	// valid Cell/Area/Ally QuickItems authorable so C8 can consume the same data
+	// instead of introducing a second item-action format.
 	return true;
 }
 
@@ -236,6 +256,7 @@ bool UGridItemDefinitionAsset::BuildInventoryCombatActionDefinition(FGridCombatA
 	OutDefinition.ActionId = FGridCombatHotbarBinding::MakeQuickItemActionId(ItemDefinitionId);
 	OutDefinition.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 	OutDefinition.ResourceCosts.SourceItemQuantityCost = 1;
+	NormalizeQuickItemSourceTags(ItemTags, OutDefinition);
 	if (OutDefinition.DisplayName.IsEmpty())
 	{
 		OutDefinition.DisplayName = DisplayName;

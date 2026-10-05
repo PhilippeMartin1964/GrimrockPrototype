@@ -4,6 +4,7 @@
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
+#include "Runtime/Combat/GridQuickItemResolver.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -396,6 +397,10 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::TargetInactive, OutRejectReason);
 	}
 
+	if (CombatActionOverride)
+	{
+		FGridQuickItemResolver::ApplyDirectDamageSkillScaling(CombatActionOverride->Definition, Attacker.SkillRanks, Source);
+	}
 	FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(Source, ResolvedAttackModifiers);
 	TArray<FGridCombatModifierProfile> TargetStatusModifiers;
 	FGridResolvedCombatModifiers TargetResolvedModifiers;

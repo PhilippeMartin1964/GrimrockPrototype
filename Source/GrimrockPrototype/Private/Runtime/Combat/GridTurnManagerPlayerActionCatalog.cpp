@@ -13,6 +13,7 @@
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
+#include "Runtime/Combat/GridQuickItemResolver.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -323,6 +324,7 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 	{
 		Context.SatisfiedRequirements.Add(Character.ClassId);
 	}
+	Context.SkillRanks = Character.SkillRanks;
 	if (!FGridCombatModifierResolver::CollectCharacterModifiers(Character, Context.CombatModifiers))
 	{
 		UE_LOG(LogGridTurnManager, Warning, TEXT("[RPG03.1] CombatModifierProjectionFailed Character=%d CharacterId=%s ClassId=%s"), CharacterIndex,
@@ -468,7 +470,9 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 	if (!IsValid(Inventory) || !Action.bEnabled || Action.Definition.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem ||
 		Action.Definition.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
 		Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
-		(!Action.Definition.EffectProfile.IsValid() && Action.Definition.StatusApplications.IsEmpty() && Action.Definition.ArmorEffects.IsEmpty()) ||
+		(!Action.Definition.EffectProfile.IsValid() && Action.Definition.QuickItemScaling.RestoreHealthSkillRankScale <= 0 &&
+			Action.Definition.QuickItemScaling.RestoreManaSkillRankScale <= 0 && Action.Definition.StatusApplications.IsEmpty() &&
+			Action.Definition.ArmorEffects.IsEmpty()) ||
 		Action.SourceDefinitionId.IsNone() || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
 	{
 		return false;
@@ -493,19 +497,21 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 		return false;
 	}
 
+	FGridResolvedCombatModifiers QuickItemModifiers;
+	ResolveRPG033CharacterArmorModifiers(Character, Action, QuickItemModifiers);
+	FGridCombatActionEffectProfile EffectiveEffect;
+	FGridQuickItemResolver::ResolveEffectProfile(Action.Definition, Character.SkillRanks, QuickItemModifiers, EffectiveEffect);
 	OutResult.HealthAfter =
-		FMath::Clamp(OutResult.HealthBefore + Action.Definition.EffectProfile.RestoreHealth, 0, FMath::Max(0, Summary.DerivedStats.MaxHealth));
+		FMath::Clamp(OutResult.HealthBefore + EffectiveEffect.RestoreHealth, 0, FMath::Max(0, Summary.DerivedStats.MaxHealth));
 	OutResult.ManaAfter =
-		FMath::Clamp(OutResult.ManaBefore - ManaCost + Action.Definition.EffectProfile.RestoreMana, 0, FMath::Max(0, Summary.DerivedStats.MaxMana));
+		FMath::Clamp(OutResult.ManaBefore - ManaCost + EffectiveEffect.RestoreMana, 0, FMath::Max(0, Summary.DerivedStats.MaxMana));
 	FGridCombatArmorPoolSnapshot ArmorSnapshot;
-	FGridResolvedCombatModifiers ArmorModifiers;
 	const FGridCombatArmorEffectSourceContext ArmorSourceContext =
 		FGridCombatArmorEffectResolver::MakeSourceContext(Character, Summary.Attributes);
 	const bool bHasArmorSnapshot = BuildRPG033PartyArmorSnapshot(Inventory, Action.CharacterIndex, ArmorSnapshot);
 	if (bHasArmorSnapshot)
 	{
-		ResolveRPG033CharacterArmorModifiers(Character, Action, ArmorModifiers);
-		FGridCombatArmorEffectResolver::ApplyReferenceModifiers(ArmorSnapshot, ArmorModifiers);
+		FGridCombatArmorEffectResolver::ApplyReferenceModifiers(ArmorSnapshot, QuickItemModifiers);
 		OutResult.PhysicalArmorBefore = ArmorSnapshot.CurrentPhysicalArmor;
 		OutResult.PhysicalArmorAfter = ArmorSnapshot.CurrentPhysicalArmor;
 		OutResult.MagicalArmorBefore = ArmorSnapshot.CurrentMagicalArmor;
@@ -518,7 +524,7 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 	const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
 		Action.Definition.StatusApplications, Character.CharacterId, SelfTargetBefore, nullptr, Character.StatusEffects);
 	const bool bArmorWouldMutate =
-		bHasArmorSnapshot && FGridCombatArmorEffectResolver::WouldAnyRestore(Action.Definition.ArmorEffects, ArmorSnapshot, ArmorModifiers, &ArmorSourceContext);
+		bHasArmorSnapshot && FGridCombatArmorEffectResolver::WouldAnyRestore(Action.Definition.ArmorEffects, ArmorSnapshot, QuickItemModifiers, &ArmorSourceContext);
 	if (OutResult.HealthAfter <= OutResult.HealthBefore && OutResult.ManaAfter <= OutResult.ManaBefore && !bStatusWouldMutate && !bArmorWouldMutate)
 	{
 		return false;
@@ -551,7 +557,7 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 	{
 		const int32 PhysicalBefore = ArmorSnapshot.CurrentPhysicalArmor;
 		const int32 MagicalBefore = ArmorSnapshot.CurrentMagicalArmor;
-		FGridCombatArmorEffectResolver::ApplyRestoreEffects(Action.Definition.ArmorEffects, ArmorSnapshot, ArmorModifiers, &ArmorSourceContext);
+		FGridCombatArmorEffectResolver::ApplyRestoreEffects(Action.Definition.ArmorEffects, ArmorSnapshot, QuickItemModifiers, &ArmorSourceContext);
 		const int32 PhysicalRestored = FMath::Max(0, ArmorSnapshot.CurrentPhysicalArmor - PhysicalBefore);
 		const int32 MagicalRestored = FMath::Max(0, ArmorSnapshot.CurrentMagicalArmor - MagicalBefore);
 		Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor + PhysicalRestored);
@@ -937,6 +943,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 		{
 			return false;
 		}
+		FGridQuickItemResolver::ApplyDirectDamageSkillScaling(Action.Definition, Character.SkillRanks, Source);
 		FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(Source, ResolvedModifiers);
 		TArray<FGridCombatModifierProfile> TargetStatusModifiers;
 		if (FGridCombatModifierResolver::CollectStatusModifiers(TargetMonster->StatusEffects, TargetStatusModifiers))

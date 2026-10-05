@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RPG/RPGSkillTypes.h"
 #include "Runtime/Combat/GridCombatTypes.h"
 
 /** Immutable inputs used to evaluate contributions without mutating gameplay. */
@@ -29,6 +30,7 @@ struct GRIMROCKPROTOTYPE_API FGridCombatActionCatalogContext
 	TSet<FName> SatisfiedRequirements;
 	TMap<FName, int32> RemainingCooldownRounds;
 	TArray<FGridCombatModifierProfile> CombatModifiers;
+	TArray<FRPGSkillRank> SkillRanks;
 };
 
 /**

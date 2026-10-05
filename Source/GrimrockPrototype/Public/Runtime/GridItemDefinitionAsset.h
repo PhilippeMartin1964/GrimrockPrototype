@@ -100,9 +100,11 @@ public:
 	TArray<FGridCombatActionDefinition> CombatActions;
 
 	/**
-	 * Enables one inventory-backed combat action for a potion or scroll.
-	 * Runtime identity, source policy and a minimum source cost of one are
-	 * normalized from ItemDefinitionId by BuildQuickItemCombatActionDefinition.
+	 * Enables one inventory-backed combat action. C7 deliberately uses explicit
+	 * opt-in instead of inferring semantics from ItemType so bombs, flasks,
+	 * potions, scrolls and future consumables share the same action pipeline.
+	 * Runtime identity, source policy, source tags and a minimum source cost of
+	 * one are normalized by BuildQuickItemCombatActionDefinition.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Quick Item")
 	bool bProvidesQuickItemCombatAction = false;
