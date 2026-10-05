@@ -68,7 +68,7 @@ RPG02 définit le **comportement cible**, pas encore son implémentation. Les co
 |---|---|---|
 | `C0` | Shell action : PA, mana, ciblage, portée, zone, cooldown, Requirements | existe |
 | `C1` | Application d'un Status depuis action/attaque + ArmorGate post-dégâts | Status system existe, pont générique à compléter |
-| `C2` | Modificateurs génériques dégâts/Accuracy/Evasion/crit/résistance/coûts | à ajouter |
+| `C2` | Modificateurs génériques dégâts/Accuracy/Evasion/crit/résistance/coûts | **implémenté par RPG03.1 — validation UE utilisateur requise** |
 | `C3` | Modification/restauration directe des pools PhysicalArmor/MagicalArmor | à ajouter |
 | `C4` | Triggers/réactions : once-per-round, on-hit, on-miss, on-kill, consume-on-action | à ajouter |
 | `C5` | Déplacement tactique/forced movement/formation | à compléter |
@@ -78,6 +78,14 @@ RPG02 définit le **comportement cible**, pas encore son implémentation. Les co
 
 Aucun de ces codes n'autorise un `switch(TalentId)` de 90 cas. Les extensions futures doivent être **data-driven et réutilisables**.
 
+
+## 4.1 RPG03.1 — C2 implémenté
+
+Le contrat C2 est désormais porté par `FGridCombatModifierProfile`, authorable directement sur un `FRPGClassProgressionChoiceDefinition`.
+
+Le runtime reconstruit les profils actifs depuis `SelectedClassProgressionChoiceIds` ; aucun agrégat de combat supplémentaire n'est sauvegardé. Le catalogue applique PA/mana/portée sur sa copie runtime, tandis que les attaques utilisent le même resolver pour Accuracy, Evasion, dégâts, critiques et résistances.
+
+Le pont `StatusEffect -> CombatModifierProfile` reste volontairement hors RPG03.1 et appartient à RPG03.2/C1.
 
 ## 5. Identité et prérequis
 

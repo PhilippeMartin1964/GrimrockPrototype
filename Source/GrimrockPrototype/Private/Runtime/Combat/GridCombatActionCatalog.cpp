@@ -1,5 +1,7 @@
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 
+#include "Runtime/Combat/GridCombatModifierResolver.h"
+
 #include "RPG/RPGClassProgressionTransactionService.h"
 
 #define LOCTEXT_NAMESPACE "GridCombatActionCatalog"
@@ -179,19 +181,29 @@ void FGridCombatActionCatalog::Build(
 			continue;
 		}
 
+		FGridCombatActionContribution EffectiveContribution = Contribution;
+		FGridResolvedCombatModifiers ResolvedModifiers;
+		FGridCombatModifierResolver::Resolve(EffectiveContext.CombatModifiers,
+			FGridCombatModifierResolver::MakeActionContext(Contribution.Definition, Contribution.SourceDefinitionId), ResolvedModifiers);
+		FGridCombatModifierResolver::ApplyToActionDefinitionProjection(EffectiveContribution.Definition, ResolvedModifiers);
+		if (!EffectiveContribution.IsValid())
+		{
+			continue;
+		}
+
 		FGridAvailableCombatAction Available;
-		Available.Definition = Contribution.Definition;
+		Available.Definition = EffectiveContribution.Definition;
 		Available.CharacterIndex = EffectiveContext.CharacterIndex;
 		Available.CharacterId = EffectiveContext.CharacterId;
-		Available.SourceDefinitionId = Contribution.SourceDefinitionId;
-		Available.SourceRuntimeId = Contribution.SourceRuntimeId;
-		Available.SourceEquipmentSlot = Contribution.SourceEquipmentSlot;
-		Available.CurrentActionPointCost = Contribution.Definition.ActionPointCost;
-		Available.CurrentManaCost = Contribution.Definition.ResourceCosts.ManaCost;
-		Available.CurrentSourceItemQuantityCost = Contribution.Definition.ResourceCosts.SourceItemQuantityCost;
-		Available.CurrentSourceItemQuantity = Contribution.AvailableSourceQuantity;
-		CollectMON2083MissingRequirements(EffectiveContext, Contribution.Definition, Available.MissingRequirements);
-		Available.AvailabilityReason = EvaluateMON126Availability(EffectiveContext, Contribution);
+		Available.SourceDefinitionId = EffectiveContribution.SourceDefinitionId;
+		Available.SourceRuntimeId = EffectiveContribution.SourceRuntimeId;
+		Available.SourceEquipmentSlot = EffectiveContribution.SourceEquipmentSlot;
+		Available.CurrentActionPointCost = EffectiveContribution.Definition.ActionPointCost;
+		Available.CurrentManaCost = EffectiveContribution.Definition.ResourceCosts.ManaCost;
+		Available.CurrentSourceItemQuantityCost = EffectiveContribution.Definition.ResourceCosts.SourceItemQuantityCost;
+		Available.CurrentSourceItemQuantity = EffectiveContribution.AvailableSourceQuantity;
+		CollectMON2083MissingRequirements(EffectiveContext, EffectiveContribution.Definition, Available.MissingRequirements);
+		Available.AvailabilityReason = EvaluateMON126Availability(EffectiveContext, EffectiveContribution);
 		Available.bEnabled = Available.AvailabilityReason == EGridCombatActionAvailabilityReason::None;
 		Available.DisabledReason = Available.bEnabled ? FText::GetEmpty() : GetAvailabilityReasonText(Available.AvailabilityReason);
 		OutActions.Add(MoveTemp(Available));

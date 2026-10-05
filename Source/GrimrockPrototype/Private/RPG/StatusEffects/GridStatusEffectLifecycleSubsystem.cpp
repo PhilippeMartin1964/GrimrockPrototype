@@ -8,6 +8,7 @@
 #include "RPG/StatusEffects/GridStatusEffectPeriodicDamageResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectPresentation.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -452,6 +453,18 @@ void UGridStatusEffectLifecycleSubsystem::ApplyPeriodicDamageToCharacter(
 		Target.MagicalArmor = Character.Resources.CurrentMagicalArmor;
 		Target.ResistancePercent = FGridCombatResolver::GetResistancePercent(Resistances, State.DefinitionAsset->PeriodicDamage.DamageType);
 		Target.DamageMultiplier = 1.0f;
+
+		TArray<FGridCombatModifierProfile> ChoiceModifiers;
+		if (FGridCombatModifierResolver::CollectCharacterChoiceModifiers(Character, ChoiceModifiers))
+		{
+			FGridResolvedCombatModifiers ResolvedModifiers;
+			FGridCombatModifierResolver::Resolve(ChoiceModifiers,
+				FGridCombatModifierResolver::MakeAttackContext(State.EffectId, State.EffectId, EGridCombatActionSourcePolicy::Universal,
+					EGridCombatActionType::Ability, State.DefinitionAsset->PeriodicDamage.DamageType, EGridPhysicalDamageSubtype::None),
+				ResolvedModifiers);
+			FGridCombatModifierResolver::ApplyIncomingAttackModifiers(
+				Target, State.DefinitionAsset->PeriodicDamage.DamageType, ResolvedModifiers);
+		}
 
 		FGridStatusEffectPeriodicDamageResolution Resolution;
 		FString Error;

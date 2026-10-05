@@ -11,6 +11,7 @@
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
+#include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -278,6 +279,12 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 	if (!Character.ClassId.IsNone())
 	{
 		Context.SatisfiedRequirements.Add(Character.ClassId);
+	}
+	if (!FGridCombatModifierResolver::CollectCharacterChoiceModifiers(Character, Context.CombatModifiers))
+	{
+		UE_LOG(LogGridTurnManager, Warning, TEXT("[RPG03.1] CombatModifierProjectionFailed Character=%d CharacterId=%s ClassId=%s"), CharacterIndex,
+			*Character.CharacterId.ToString(EGuidFormats::Digits), *Character.ClassId.ToString());
+		Context.CombatModifiers.Reset();
 	}
 	for (const TPair<FGridCombatActionCooldownKey, int32>& Cooldown : CombatActionCooldownAvailableRounds)
 	{
@@ -726,6 +733,14 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 		return false;
 	}
 
+	TArray<FGridCombatModifierProfile> ChoiceModifiers;
+	FGridResolvedCombatModifiers ResolvedModifiers;
+	if (FGridCombatModifierResolver::CollectCharacterChoiceModifiers(Character, ChoiceModifiers))
+	{
+		FGridCombatModifierResolver::Resolve(ChoiceModifiers,
+			FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId), ResolvedModifiers);
+	}
+
 	TArray<AGridMonsterActor*> TargetMonsters;
 	TArray<FGridAttackSourceStats> Sources;
 	TArray<FGridAttackTargetStats> Targets;
@@ -749,6 +764,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 		{
 			return false;
 		}
+		FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(Source, ResolvedModifiers);
 		TargetMonsters.Add(TargetMonster);
 		Sources.Add(Source);
 		Targets.Add(Target);

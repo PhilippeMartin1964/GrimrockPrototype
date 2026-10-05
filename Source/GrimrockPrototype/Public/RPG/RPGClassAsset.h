@@ -52,6 +52,10 @@ struct FRPGClassProgressionChoiceDefinition
 	/** Extra generic requirement tags satisfied by this choice. ChoiceId itself is also granted. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression")
 	TArray<FName> GrantedRequirementIds;
+
+	/** Optional C2 profiles projected while this durable choice is selected. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|Combat")
+	TArray<FGridCombatModifierProfile> CombatModifiers;
 };
 
 UCLASS(BlueprintType)

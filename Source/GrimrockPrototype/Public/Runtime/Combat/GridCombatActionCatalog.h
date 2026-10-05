@@ -21,6 +21,7 @@ struct GRIMROCKPROTOTYPE_API FGridCombatActionCatalogContext
 	int32 MaximumMana = 0;
 	TSet<FName> SatisfiedRequirements;
 	TMap<FName, int32> RemainingCooldownRounds;
+	TArray<FGridCombatModifierProfile> CombatModifiers;
 };
 
 /**

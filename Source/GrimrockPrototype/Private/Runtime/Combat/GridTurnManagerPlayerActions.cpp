@@ -2,6 +2,7 @@
 
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
+#include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -177,12 +178,6 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::NotActiveCombatant, OutRejectReason);
 	}
-	const int32 SafeAttackActionPointCost =
-		FMath::Clamp(CombatActionOverride ? CombatActionOverride->CurrentActionPointCost : PlayerAttackActionPointCost, 1, 6);
-	if (!CanCharacterSpendActionPoints(AttackerCharacterIndex, SafeAttackActionPointCost))
-	{
-		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InsufficientActionPoints, OutRejectReason);
-	}
 	if (!IsCardinalFacing(PartyPawn->Facing))
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidFacing, OutRejectReason);
@@ -217,6 +212,35 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 				 OffensiveProfile, OffensiveItemDefinitionId, OffensiveEquipmentSlot, OffensiveProfileRejectReason))
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, OffensiveProfileRejectReason, OutRejectReason);
+	}
+
+	TArray<FGridCombatModifierProfile> ChoiceModifiers;
+	FGridResolvedCombatModifiers ResolvedAttackModifiers;
+	if (FGridCombatModifierResolver::CollectCharacterChoiceModifiers(Attacker, ChoiceModifiers))
+	{
+		const EGridCombatActionSourcePolicy ModifierSourcePolicy = CombatActionOverride ? CombatActionOverride->Definition.SourcePolicy
+			: OffensiveEquipmentSlot != EGridEquipmentSlot::None ? EGridCombatActionSourcePolicy::Equipment : EGridCombatActionSourcePolicy::Universal;
+		const EGridCombatActionType ModifierActionType = CombatActionOverride ? CombatActionOverride->Definition.ActionType
+			: OffensiveProfile.RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
+		const FName ModifierSourceDefinitionId = CombatActionOverride ? CombatActionOverride->SourceDefinitionId : OffensiveItemDefinitionId;
+		const FGridCombatModifierContext ModifierContext = CombatActionOverride
+			? FGridCombatModifierResolver::MakeActionContext(CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId)
+			: FGridCombatModifierResolver::MakeAttackContext(OffensiveProfile.AttackId, ModifierSourceDefinitionId, ModifierSourcePolicy, ModifierActionType,
+				OffensiveProfile.AttackDefinition.DamageType, OffensiveProfile.AttackDefinition.PhysicalSubtype);
+		FGridCombatModifierResolver::Resolve(ChoiceModifiers, ModifierContext, ResolvedAttackModifiers);
+		if (!CombatActionOverride)
+		{
+			OffensiveProfile.RangeCells =
+				FMath::Clamp(OffensiveProfile.RangeCells + ResolvedAttackModifiers.RangeCellsModifier, 1, 32);
+		}
+	}
+
+	const int32 SafeAttackActionPointCost = FMath::Clamp(CombatActionOverride ? CombatActionOverride->CurrentActionPointCost
+																	 : PlayerAttackActionPointCost + ResolvedAttackModifiers.ActionPointCostModifier,
+		1, 6);
+	if (!CanCharacterSpendActionPoints(AttackerCharacterIndex, SafeAttackActionPointCost))
+	{
+		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InsufficientActionPoints, OutRejectReason);
 	}
 
 	const FIntPoint PartyCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
@@ -316,6 +340,8 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::TargetInactive, OutRejectReason);
 	}
+
+	FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(Source, ResolvedAttackModifiers);
 
 	FGridPlayerAttackRequest Request;
 	Request.RequestId = FGuid::NewGuid();

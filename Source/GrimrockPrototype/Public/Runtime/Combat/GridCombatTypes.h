@@ -393,6 +393,18 @@ struct FGridAttackSourceStats
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Source")
 	int32 DamageBonus = 0;
+
+	/** Multiplicative outgoing damage scale. 1.0 preserves historical behavior. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Source", meta = (ClampMin = "0.0"))
+	float DamageMultiplier = 1.0f;
+
+	/** Critical chance expressed in percentage points on the attack d20. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Source", meta = (ClampMin = "0", ClampMax = "100"))
+	int32 CriticalChancePercent = 5;
+
+	/** Critical raw-damage multiplier in percent. 200 means historical x2. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Source", meta = (ClampMin = "100", ClampMax = "1000"))
+	int32 CriticalDamagePercent = 200;
 };
 
 USTRUCT(BlueprintType)
@@ -489,6 +501,120 @@ struct FGridCombatActionResourceCosts
 	bool IsValid() const
 	{
 		return ManaCost >= 0 && SourceItemQuantityCost >= 0;
+	}
+};
+
+/**
+ * Generic C2 combat modifier authored by progression choices.
+ * Empty filters are wildcards. Runtime consumers aggregate matching profiles;
+ * durable character state never stores the aggregate.
+ */
+USTRUCT(BlueprintType)
+struct FGridCombatModifierProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
+	TArray<FName> ActionIds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
+	TArray<FName> SourceDefinitionIds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
+	TArray<EGridCombatActionSourcePolicy> SourcePolicies;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
+	TArray<EGridCombatActionType> ActionTypes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
+	TArray<EGridDamageType> DamageTypes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
+	TArray<EGridPhysicalDamageSubtype> PhysicalSubtypes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier")
+	int32 AccuracyModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier")
+	int32 EvasionModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "-100", ClampMax = "500"))
+	int32 OutgoingDamagePercentModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "-100", ClampMax = "500"))
+	int32 IncomingDamagePercentModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "-100", ClampMax = "100"))
+	int32 CriticalChancePercentModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "-100", ClampMax = "800"))
+	int32 CriticalDamagePercentModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier")
+	FGridDamageResistanceSet ResistanceModifiers;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "-6", ClampMax = "6"))
+	int32 ActionPointCostModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "-100", ClampMax = "100"))
+	int32 ManaCostModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "-32", ClampMax = "32"))
+	int32 RangeCellsModifier = 0;
+
+	bool HasAnyModifier() const
+	{
+		return AccuracyModifier != 0 || EvasionModifier != 0 || OutgoingDamagePercentModifier != 0 || IncomingDamagePercentModifier != 0 ||
+			CriticalChancePercentModifier != 0 || CriticalDamagePercentModifier != 0 || !ResistanceModifiers.IsEmpty() || ActionPointCostModifier != 0 ||
+			ManaCostModifier != 0 || RangeCellsModifier != 0;
+	}
+
+	bool IsValid() const
+	{
+		if (!HasAnyModifier() || OutgoingDamagePercentModifier < -100 || OutgoingDamagePercentModifier > 500 ||
+			IncomingDamagePercentModifier < -100 || IncomingDamagePercentModifier > 500 || CriticalChancePercentModifier < -100 ||
+			CriticalChancePercentModifier > 100 || CriticalDamagePercentModifier < -100 || CriticalDamagePercentModifier > 800 ||
+			ActionPointCostModifier < -6 || ActionPointCostModifier > 6 || ManaCostModifier < -100 || ManaCostModifier > 100 ||
+			RangeCellsModifier < -32 || RangeCellsModifier > 32)
+		{
+			return false;
+		}
+		for (const FName Id : ActionIds)
+		{
+			if (Id.IsNone())
+			{
+				return false;
+			}
+		}
+		for (const FName Id : SourceDefinitionIds)
+		{
+			if (Id.IsNone())
+			{
+				return false;
+			}
+		}
+		for (const EGridCombatActionSourcePolicy Policy : SourcePolicies)
+		{
+			if (Policy == EGridCombatActionSourcePolicy::None)
+			{
+				return false;
+			}
+		}
+		for (const EGridCombatActionType Type : ActionTypes)
+		{
+			if (Type == EGridCombatActionType::None)
+			{
+				return false;
+			}
+		}
+		for (const EGridPhysicalDamageSubtype Subtype : PhysicalSubtypes)
+		{
+			if (Subtype == EGridPhysicalDamageSubtype::None)
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 };
 

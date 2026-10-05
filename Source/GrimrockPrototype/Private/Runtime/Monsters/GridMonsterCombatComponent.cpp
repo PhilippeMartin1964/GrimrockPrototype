@@ -7,6 +7,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Runtime/Combat/GridCombatProjectileActor.h"
+#include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -256,6 +257,19 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(
 	GenericAttack.MinDamage = Attack.MinDamage;
 	GenericAttack.MaxDamage = Attack.MaxDamage;
 	GenericAttack.AccuracyBonus = Attack.AccuracyBonus;
+
+	TArray<FGridCombatModifierProfile> ChoiceModifiers;
+	if (FGridCombatModifierResolver::CollectCharacterChoiceModifiers(Character, ChoiceModifiers))
+	{
+		const EGridCombatActionType IncomingActionType =
+			Attack.MaxRangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
+		FGridResolvedCombatModifiers ResolvedModifiers;
+		FGridCombatModifierResolver::Resolve(ChoiceModifiers,
+			FGridCombatModifierResolver::MakeAttackContext(Attack.AttackId, OwnerMonster->MonsterDefinition->MonsterId,
+				EGridCombatActionSourcePolicy::Universal, IncomingActionType, GenericAttack.DamageType, GenericAttack.PhysicalSubtype),
+			ResolvedModifiers);
+		FGridCombatModifierResolver::ApplyIncomingAttackModifiers(Target, GenericAttack.DamageType, ResolvedModifiers);
+	}
 
 	OutResult = FGridCombatResolver::ResolveAttack(Source, Target, GenericAttack, RandomStream);
 

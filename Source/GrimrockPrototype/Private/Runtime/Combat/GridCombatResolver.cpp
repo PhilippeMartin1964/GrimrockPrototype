@@ -62,7 +62,7 @@ FGridAttackResult FGridCombatResolver::ResolveAttackFromRolls(
 	Result.AttackRoll = Result.NaturalAttackRoll + Source.Accuracy + Attack.AccuracyBonus;
 	Result.DefenseValue = 10 + Target.Evasion;
 	Result.ResistancePercent = ClampResistancePercent(Target.ResistancePercent);
-	Result.DamageMultiplier = FMath::Max(0.0f, Target.DamageMultiplier);
+	Result.DamageMultiplier = FMath::Max(0.0f, Source.DamageMultiplier) * FMath::Max(0.0f, Target.DamageMultiplier);
 	Result.TargetHealthBefore = FMath::Max(0, Target.CurrentHealth);
 	Result.TargetHealthAfter = Result.TargetHealthBefore;
 
@@ -74,7 +74,11 @@ FGridAttackResult FGridCombatResolver::ResolveAttackFromRolls(
 	const bool bNaturalMiss = Result.NaturalAttackRoll == 1;
 	const bool bNaturalHit = Result.NaturalAttackRoll == 20;
 	Result.bHit = !bNaturalMiss && (bNaturalHit || Result.AttackRoll >= Result.DefenseValue);
-	Result.bCriticalHit = Result.bHit && bNaturalHit;
+
+	const int32 SafeCriticalChance = FMath::Clamp(Source.CriticalChancePercent, 0, 100);
+	const int32 CriticalRollCount = FMath::Clamp((SafeCriticalChance + 4) / 5, 0, 20);
+	const int32 CriticalMinimumRoll = CriticalRollCount > 0 ? 21 - CriticalRollCount : 21;
+	Result.bCriticalHit = Result.bHit && CriticalRollCount > 0 && Result.NaturalAttackRoll >= CriticalMinimumRoll;
 
 	if (!Result.bHit)
 	{
@@ -83,7 +87,17 @@ FGridAttackResult FGridCombatResolver::ResolveAttackFromRolls(
 
 	const int32 SafeDamageRoll = FMath::Clamp(DamageRoll, Attack.MinDamage, Attack.MaxDamage);
 	const int32 BaseDamage = FMath::Max(0, SafeDamageRoll + Source.DamageBonus);
-	Result.RawDamage = Result.bCriticalHit ? BaseDamage * 2 : BaseDamage;
+	if (Result.bCriticalHit)
+	{
+		const int32 SafeCriticalDamagePercent = FMath::Clamp(Source.CriticalDamagePercent, 100, 1000);
+		const int64 CriticalDamage = static_cast<int64>(BaseDamage) * static_cast<int64>(SafeCriticalDamagePercent) / 100;
+		Result.RawDamage = static_cast<int32>(
+			FMath::Clamp<int64>(CriticalDamage, static_cast<int64>(0), static_cast<int64>(MAX_int32)));
+	}
+	else
+	{
+		Result.RawDamage = BaseDamage;
+	}
 	ResolveDamageModifiers(Target, Result);
 	return Result;
 }
