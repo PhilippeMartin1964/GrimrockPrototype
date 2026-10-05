@@ -30,6 +30,7 @@ class UGridEditorPreviewComponent;
 class UGridPlayerAttackPresentationComponent;
 class UReadableMessageWidget;
 class UUserWidget;
+struct FGridResolvedCombatModifiers;
 
 UENUM()
 enum class EGridRuntimeRebuildMode : uint8
@@ -408,6 +409,19 @@ public:
 	bool ApplyCurrentLevelRuntimeState();
 	FGridLevelRuntimeState* GetOrCreateRuntimeStateForCurrentLevel();
 	const FGridLevelRuntimeState* FindRuntimeStateForCurrentLevel() const;
+
+	/** RPG03.6 persistent cell-surface authority stored in the current level runtime state. */
+	bool ApplyCombatSurfaceAtCell(int32 CellX, int32 CellY, const FGridCombatSurfaceEffectProfile& Profile,
+		const FGuid& SourceCombatantId, FName SourceActionId, const FGridResolvedCombatModifiers& SourceModifiers);
+
+	bool InteractCombatSurfaceAtCell(int32 CellX, int32 CellY, EGridCombatSurfaceInteraction Interaction,
+		const FGridResolvedCombatModifiers& SourceModifiers, FGridCombatSurfaceReactionResult& OutReaction);
+
+	const FGridCombatSurfaceState* FindCombatSurfaceAtCell(int32 CellX, int32 CellY) const;
+
+	void GetCurrentCombatSurfaceSnapshot(TMap<FIntPoint, FGridCombatSurfaceState>& OutSurfaces) const;
+
+	int32 AdvanceCombatSurfaceRound(TArray<FIntPoint>* OutExpiredCells = nullptr);
 
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Runtime")
 	bool TryExecuteRelocationAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn);

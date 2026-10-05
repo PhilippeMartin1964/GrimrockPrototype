@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Core/GridTypes.h"
 #include "RPG/StatusEffects/GridStatusEffectTypes.h"
+#include "Runtime/Combat/GridCombatTypes.h"
 #include "Runtime/Map/GridMapExplorationState.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
 #include "GridDungeonRuntimeState.generated.h"
@@ -310,6 +311,10 @@ struct FGridLevelRuntimeState
 	/** MON21.6.5 authoritative and SaveGame-persistent exploration state for this canonical 32x32 tile. */
 	UPROPERTY(SaveGame)
 	FGridMapExplorationState MapExploration;
+
+	/** RPG03.6 authoritative persistent cell surfaces keyed by grid cell. */
+	UPROPERTY(SaveGame)
+	TMap<FIntPoint, FGridCombatSurfaceState> Surfaces;
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TMap<FGuid, FGridRuntimeMonsterState> Monsters;

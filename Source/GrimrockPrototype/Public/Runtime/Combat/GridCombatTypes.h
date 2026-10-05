@@ -803,6 +803,140 @@ enum class EGridCombatArmorEffectTrigger : uint8
 	AfterSuccessfulHit UMETA(DisplayName = "After Successful Hit")
 };
 
+UENUM(BlueprintType)
+enum class EGridCombatSurfaceType : uint8
+{
+	None UMETA(DisplayName = "None"),
+	Fire UMETA(DisplayName = "Fire"),
+	Water UMETA(DisplayName = "Water"),
+	Ice UMETA(DisplayName = "Ice"),
+	Poison UMETA(DisplayName = "Poison"),
+	Oil UMETA(DisplayName = "Oil"),
+	ElectrifiedWater UMETA(DisplayName = "Electrified Water"),
+	Smoke UMETA(DisplayName = "Smoke"),
+	PoisonCloud UMETA(DisplayName = "Poison Cloud")
+};
+
+UENUM(BlueprintType)
+enum class EGridCombatSurfaceInteraction : uint8
+{
+	None UMETA(DisplayName = "None"),
+	Fire UMETA(DisplayName = "Fire"),
+	Ice UMETA(DisplayName = "Ice"),
+	Lightning UMETA(DisplayName = "Lightning"),
+	Wind UMETA(DisplayName = "Wind")
+};
+
+/** C6 authoring payload used to create/replace a persistent runtime cell surface. */
+USTRUCT(BlueprintType)
+struct FGridCombatSurfaceEffectProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface")
+	EGridCombatSurfaceType SurfaceType = EGridCombatSurfaceType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface", meta = (ClampMin = "1", ClampMax = "6"))
+	int32 DurationRounds = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface|Periodic Damage")
+	EGridDamageType PeriodicDamageType = EGridDamageType::Physical;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface|Periodic Damage", meta = (ClampMin = "0", ClampMax = "1000"))
+	int32 PeriodicDamagePerRound = 0;
+
+	/** Optional C1 payload resolved after periodic surface damage. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface|Status")
+	TArray<FGridCombatStatusApplicationProfile> PeriodicStatusApplications;
+
+	bool IsValid() const
+	{
+		if (SurfaceType == EGridCombatSurfaceType::None || DurationRounds < 1 || DurationRounds > 6 || PeriodicDamagePerRound < 0)
+		{
+			return false;
+		}
+		for (const FGridCombatStatusApplicationProfile& Status : PeriodicStatusApplications)
+		{
+			if (!Status.IsValid() || Status.Trigger != EGridCombatStatusApplicationTrigger::AfterResolution)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+};
+
+/** SaveGame-safe authoritative state for one active surface cell. */
+USTRUCT(BlueprintType)
+struct FGridCombatSurfaceState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
+	EGridCombatSurfaceType SurfaceType = EGridCombatSurfaceType::None;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
+	int32 RemainingRounds = 0;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
+	FGuid SourceCombatantId;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
+	FName SourceActionId = NAME_None;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
+	EGridDamageType PeriodicDamageType = EGridDamageType::Physical;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
+	int32 PeriodicDamagePerRound = 0;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
+	TArray<FGridCombatStatusApplicationProfile> PeriodicStatusApplications;
+
+	bool IsValid() const
+	{
+		if (SurfaceType == EGridCombatSurfaceType::None || RemainingRounds < 1 || RemainingRounds > 6 || PeriodicDamagePerRound < 0)
+		{
+			return false;
+		}
+		for (const FGridCombatStatusApplicationProfile& Status : PeriodicStatusApplications)
+		{
+			if (!Status.IsValid() || Status.Trigger != EGridCombatStatusApplicationTrigger::AfterResolution)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FGridCombatSurfaceReactionResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Surface")
+	bool bReacted = false;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Surface")
+	bool bRemoveSurface = false;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Surface")
+	EGridCombatSurfaceType OutputSurfaceType = EGridCombatSurfaceType::None;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Surface")
+	bool bExplosive = false;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Surface")
+	EGridDamageType ExplosionDamageType = EGridDamageType::Fire;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Surface")
+	int32 ExplosionDamagePercentModifier = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Surface")
+	int32 ExplosionAreaRadiusModifier = 0;
+};
+
 /** Caster-side values consumed by C3 flat-magnitude scaling. */
 USTRUCT(BlueprintType)
 struct FGridCombatArmorEffectSourceContext
@@ -1028,13 +1162,29 @@ struct FGridCombatModifierProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Armor", meta = (ClampMin = "-100", ClampMax = "500"))
 	int32 MagicalArmorRestorationPercentModifier = 0;
 
+	/** C6 bonus applied only when the owner creates a surface from the matching action. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Surface", meta = (ClampMin = "-6", ClampMax = "6"))
+	int32 SurfaceDurationRoundsModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Surface", meta = (ClampMin = "-100", ClampMax = "500"))
+	int32 SurfacePeriodicDamagePercentModifier = 0;
+
+	/** C4+C6 modifier applied to explosive surface reactions triggered by the matching action. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Surface", meta = (ClampMin = "-100", ClampMax = "500"))
+	int32 SurfaceReactionDamagePercentModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Surface", meta = (ClampMin = "-8", ClampMax = "8"))
+	int32 SurfaceReactionAreaRadiusModifier = 0;
+
 	bool HasAnyModifier() const
 	{
 		return AccuracyModifier != 0 || EvasionModifier != 0 || OutgoingDamagePercentModifier != 0 || IncomingDamagePercentModifier != 0 ||
 			CriticalChancePercentModifier != 0 || CriticalDamagePercentModifier != 0 || !ResistanceModifiers.IsEmpty() || ActionPointCostModifier != 0 ||
 			ManaCostModifier != 0 || RangeCellsModifier != 0 || PhysicalArmorReferencePercentModifier != 0 ||
 			MagicalArmorReferencePercentModifier != 0 || PhysicalArmorRestorationPercentModifier != 0 ||
-			MagicalArmorRestorationPercentModifier != 0;
+			MagicalArmorRestorationPercentModifier != 0 || SurfaceDurationRoundsModifier != 0 ||
+			SurfacePeriodicDamagePercentModifier != 0 || SurfaceReactionDamagePercentModifier != 0 ||
+			SurfaceReactionAreaRadiusModifier != 0;
 	}
 
 	bool IsValid() const
@@ -1047,7 +1197,10 @@ struct FGridCombatModifierProfile
 			PhysicalArmorReferencePercentModifier > 500 || MagicalArmorReferencePercentModifier < -100 ||
 			MagicalArmorReferencePercentModifier > 500 || PhysicalArmorRestorationPercentModifier < -100 ||
 			PhysicalArmorRestorationPercentModifier > 500 || MagicalArmorRestorationPercentModifier < -100 ||
-			MagicalArmorRestorationPercentModifier > 500)
+			MagicalArmorRestorationPercentModifier > 500 || SurfaceDurationRoundsModifier < -6 || SurfaceDurationRoundsModifier > 6 ||
+			SurfacePeriodicDamagePercentModifier < -100 || SurfacePeriodicDamagePercentModifier > 500 ||
+			SurfaceReactionDamagePercentModifier < -100 || SurfaceReactionDamagePercentModifier > 500 ||
+			SurfaceReactionAreaRadiusModifier < -8 || SurfaceReactionAreaRadiusModifier > 8)
 		{
 			return false;
 		}
@@ -1184,6 +1337,10 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Movement")
 	TArray<FGridCombatMovementEffectProfile> MovementEffects;
 
+	/** C6 persistent cell-surface creation payloads; C8 owns cell/area execution. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Surface")
+	TArray<FGridCombatSurfaceEffectProfile> SurfaceEffects;
+
 	bool IsValid() const
 	{
 		const bool bAttackProfileValid = ResolutionProfile != EGridCombatActionResolutionProfile::Attack || (OffensiveProfile.IsValid() && ActionPointCost > 0);
@@ -1220,11 +1377,16 @@ struct FGridCombatActionDefinition
 			{
 				return !Profile.IsValid() || ResolutionProfile != EGridCombatActionResolutionProfile::Effect;
 			}) == false;
+		const bool bSurfaceEffectsValid = SurfaceEffects.ContainsByPredicate(
+			[this](const FGridCombatSurfaceEffectProfile& Profile)
+			{
+				return !Profile.IsValid() || ResolutionProfile != EGridCombatActionResolutionProfile::Effect;
+			}) == false;
 		return !ActionId.IsNone() && ActionType != EGridCombatActionType::None && SourcePolicy != EGridCombatActionSourcePolicy::None &&
 			TargetingPolicy != EGridCombatTargetingPolicy::None && ResolutionProfile != EGridCombatActionResolutionProfile::None && ActionPointCost >= 0 &&
 			ActionPointCost <= 6 && ResourceCosts.IsValid() && RangeCells >= 0 && RangeCells <= 32 && AreaRadiusCells >= 0 && AreaRadiusCells <= 8 &&
 			CooldownRounds >= 0 && bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bStatusApplicationsValid &&
-			bArmorEffectsValid && bMovementEffectsValid;
+			bArmorEffectsValid && bMovementEffectsValid && bSurfaceEffectsValid;
 	}
 };
 

@@ -726,6 +726,9 @@ private:
 		const FGuid& ActionInstanceId);
 	void EmitCharacterActionResolvedReaction(int32 CharacterIndex, const FGridAvailableCombatAction& Action, const FGuid& ActionInstanceId);
 
+	/** RPG03.6 applies periodic cell surfaces once at each new-round boundary, then decrements duration. */
+	void ResolveCombatSurfaceRound();
+
 	void ResetActiveAttackState();
 	void SetPhase(EGridCombatPhase NewPhase);
 	void AppendCombatLogEntry(FGridCombatLogEntry Entry);

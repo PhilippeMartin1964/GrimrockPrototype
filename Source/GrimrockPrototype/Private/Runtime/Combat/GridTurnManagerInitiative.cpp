@@ -403,6 +403,18 @@ void UGridTurnManagerComponent::FinishInitiativeRound()
 		++RuntimeMetrics.RoundsStarted;
 	}
 
+	ResolveCombatSurfaceRound();
+	if (!HasLivingPartyCharacter())
+	{
+		FinishCombat(EGridCombatPhase::Defeat);
+		return;
+	}
+	if (!HasLivingCombatMonster())
+	{
+		FinishCombat(EGridCombatPhase::Victory);
+		return;
+	}
+
 	FGridCombatLogEntry RoundEntry;
 	RoundEntry.RoundNumber = RoundNumber;
 	RoundEntry.Phase = PhaseState.GetPhase();

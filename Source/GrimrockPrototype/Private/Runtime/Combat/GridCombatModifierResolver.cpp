@@ -137,6 +137,14 @@ void FGridCombatModifierResolver::Resolve(
 			SaturatingAdd(OutModifiers.PhysicalArmorRestorationPercentModifier, Profile.PhysicalArmorRestorationPercentModifier);
 		OutModifiers.MagicalArmorRestorationPercentModifier =
 			SaturatingAdd(OutModifiers.MagicalArmorRestorationPercentModifier, Profile.MagicalArmorRestorationPercentModifier);
+		OutModifiers.SurfaceDurationRoundsModifier =
+			SaturatingAdd(OutModifiers.SurfaceDurationRoundsModifier, Profile.SurfaceDurationRoundsModifier);
+		OutModifiers.SurfacePeriodicDamagePercentModifier =
+			SaturatingAdd(OutModifiers.SurfacePeriodicDamagePercentModifier, Profile.SurfacePeriodicDamagePercentModifier);
+		OutModifiers.SurfaceReactionDamagePercentModifier =
+			SaturatingAdd(OutModifiers.SurfaceReactionDamagePercentModifier, Profile.SurfaceReactionDamagePercentModifier);
+		OutModifiers.SurfaceReactionAreaRadiusModifier =
+			SaturatingAdd(OutModifiers.SurfaceReactionAreaRadiusModifier, Profile.SurfaceReactionAreaRadiusModifier);
 	}
 }
 
