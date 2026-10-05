@@ -59,6 +59,28 @@ FGridCombatModifierContext FGridCombatModifierResolver::MakeActionContext(const 
 	return Context;
 }
 
+FGridCombatModifierContext FGridCombatModifierResolver::MakeResolvedActionAttackContext(const FGridCombatActionDefinition& Definition,
+	FName SourceDefinitionId, const FGridOffensiveEquipmentProfile& ResolvedOffensiveProfile, const TArray<FName>& ResolvedItemTags)
+{
+	FGridCombatModifierContext Context = MakeActionContext(Definition, SourceDefinitionId);
+	for (const FName ItemTag : ResolvedItemTags)
+	{
+		if (!ItemTag.IsNone())
+		{
+			Context.SourceTags.AddUnique(ItemTag);
+		}
+	}
+	if (ResolvedOffensiveProfile.IsValid())
+	{
+		Context.bHasDamageDescriptor = true;
+		Context.DamageType = ResolvedOffensiveProfile.AttackDefinition.DamageType;
+		Context.PhysicalSubtype = ResolvedOffensiveProfile.AttackDefinition.DamageType == EGridDamageType::Physical
+			? ResolvedOffensiveProfile.AttackDefinition.PhysicalSubtype
+			: EGridPhysicalDamageSubtype::None;
+	}
+	return Context;
+}
+
 FGridCombatModifierContext FGridCombatModifierResolver::MakeAttackContext(FName ActionId, FName SourceDefinitionId,
 	EGridCombatActionSourcePolicy SourcePolicy, EGridCombatActionType ActionType, EGridDamageType DamageType, EGridPhysicalDamageSubtype PhysicalSubtype)
 {

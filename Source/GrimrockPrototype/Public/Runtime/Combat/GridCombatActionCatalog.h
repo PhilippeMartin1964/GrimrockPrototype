@@ -28,6 +28,8 @@ struct GRIMROCKPROTOTYPE_API FGridCombatActionCatalogContext
 	FGridCombatArmorEffectSourceContext ArmorEffectSource;
 	FGridStatusEffectCollection CurrentStatusEffects;
 	TSet<FName> SatisfiedRequirements;
+	/** One tag set per currently equipped hand item that can actually provide an attack. */
+	TArray<TArray<FName>> EquippedOffensiveSourceTagSets;
 	TMap<FName, int32> RemainingCooldownRounds;
 	TArray<FGridCombatModifierProfile> CombatModifiers;
 	TArray<FRPGSkillRank> SkillRanks;

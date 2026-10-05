@@ -378,6 +378,10 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 			{
 				Context.SatisfiedRequirements.Add(ItemTag);
 			}
+			if (Definition->CanProvideAttackFromSlot(HandSlot))
+			{
+				Context.EquippedOffensiveSourceTagSets.Add(Definition->ItemTags);
+			}
 		}
 	}
 
@@ -1184,8 +1188,8 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 		return false;
 	}
 
-	const bool bAttackResolution =
-		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack && Action.Definition.OffensiveProfile.IsValid();
+	const bool bAttackResolution = Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
+		(Action.Definition.OffensiveProfile.IsValid() || Action.Definition.WeaponAttackProfile.bUseEquippedWeapon);
 	const bool bSurfaceEffectResolution =
 		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect && !Action.Definition.SurfaceEffects.IsEmpty();
 	if (!IsMON1286TargetedSource(Action.Definition.SourcePolicy) || !IsMON1286ExplicitTargetingPolicy(Action.Definition.TargetingPolicy) ||
@@ -1333,14 +1337,32 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 		return false;
 	}
 
+	FGridOffensiveEquipmentProfile EffectiveOffensiveProfile = Action.Definition.OffensiveProfile;
+	FName EffectiveOffensiveItemDefinitionId = NAME_None;
+	EGridEquipmentSlot EffectiveOffensiveEquipmentSlot = EGridEquipmentSlot::None;
+	TArray<FName> EffectiveOffensiveSourceTags;
+	const bool bUsesEquippedWeaponAction = bAttackResolution && Action.Definition.WeaponAttackProfile.bUseEquippedWeapon;
+	if (bUsesEquippedWeaponAction)
+	{
+		EGridPlayerAttackRejectReason WeaponRejectReason = EGridPlayerAttackRejectReason::None;
+		if (!ResolveCombatActionWeaponProfile(Inventory, Action.CharacterIndex, Action.Definition, EffectiveOffensiveProfile,
+				EffectiveOffensiveItemDefinitionId, EffectiveOffensiveEquipmentSlot, EffectiveOffensiveSourceTags, WeaponRejectReason))
+		{
+			return false;
+		}
+	}
+
 	TArray<FGridCombatModifierProfile> ChoiceModifiers;
 	FGridResolvedCombatModifiers ResolvedModifiers;
 	const FGridCombatArmorEffectSourceContext ArmorSourceContext =
 		FGridCombatArmorEffectResolver::MakeSourceContext(Character, CharacterSummary.Attributes);
 	if (FGridCombatModifierResolver::CollectCharacterModifiers(Character, ChoiceModifiers))
 	{
-		FGridCombatModifierResolver::Resolve(ChoiceModifiers,
-			FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId), ResolvedModifiers);
+		const FGridCombatModifierContext ModifierContext = bUsesEquippedWeaponAction
+			? FGridCombatModifierResolver::MakeResolvedActionAttackContext(
+				Action.Definition, Action.SourceDefinitionId, EffectiveOffensiveProfile, EffectiveOffensiveSourceTags)
+			: FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId);
+		FGridCombatModifierResolver::Resolve(ChoiceModifiers, ModifierContext, ResolvedModifiers);
 	}
 
 	TArray<AGridMonsterActor*> TargetMonsters;
@@ -1421,11 +1443,15 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 			FGridAttackSourceStats Source;
 			FGridAttackTargetStats Target;
 			FGridAttackDefinition AttackDefinition;
-			if (!BuildPlayerAttackResolutionInputs(CharacterSummary, TargetMonster, Action.Definition.OffensiveProfile, Source, Target, AttackDefinition))
+			if (!BuildPlayerAttackResolutionInputs(CharacterSummary, TargetMonster, EffectiveOffensiveProfile, Source, Target, AttackDefinition))
 			{
 				break;
 			}
 			FGridQuickItemResolver::ApplyDirectDamageSkillScaling(Action.Definition, Character.SkillRanks, Source);
+			if (bUsesEquippedWeaponAction)
+			{
+				Source.RawDamagePercent = Action.Definition.WeaponAttackProfile.WeaponDamagePercent;
+			}
 			FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(Source, ResolvedModifiers);
 			if (ResolutionIndex > 0)
 			{
@@ -1436,8 +1462,11 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 			FGridResolvedCombatModifiers TargetResolvedModifiers;
 			if (FGridCombatModifierResolver::CollectStatusModifiers(TargetMonster->StatusEffects, TargetStatusModifiers))
 			{
-				FGridCombatModifierResolver::Resolve(TargetStatusModifiers,
-					FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId), TargetResolvedModifiers);
+				const FGridCombatModifierContext TargetModifierContext = bUsesEquippedWeaponAction
+					? FGridCombatModifierResolver::MakeResolvedActionAttackContext(
+						Action.Definition, Action.SourceDefinitionId, EffectiveOffensiveProfile, EffectiveOffensiveSourceTags)
+					: FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId);
+				FGridCombatModifierResolver::Resolve(TargetStatusModifiers, TargetModifierContext, TargetResolvedModifiers);
 				FGridCombatModifierResolver::ApplyIncomingAttackModifiers(Target, AttackDefinition.DamageType, TargetResolvedModifiers);
 			}
 
@@ -1451,9 +1480,9 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 			Request.TargetCell = TargetMonsterCell;
 			Request.PartyFacing = PartyPawn->Facing;
 			Request.RangeCells = Action.Definition.RangeCells;
-			Request.AttackId = Action.Definition.OffensiveProfile.AttackId;
-			Request.OffensiveItemDefinitionId = bQuickItem ? Action.SourceDefinitionId : NAME_None;
-			Request.OffensiveEquipmentSlot = EGridEquipmentSlot::None;
+			Request.AttackId = EffectiveOffensiveProfile.AttackId;
+			Request.OffensiveItemDefinitionId = bQuickItem ? Action.SourceDefinitionId : EffectiveOffensiveItemDefinitionId;
+			Request.OffensiveEquipmentSlot = bQuickItem ? EGridEquipmentSlot::None : EffectiveOffensiveEquipmentSlot;
 			Request.ActionPointCost = Action.CurrentActionPointCost;
 
 			FGridAttackResult AttackResult =
@@ -1580,12 +1609,15 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 			{
 				FGridAttackSourceStats FriendlySource;
 				FriendlySource.Accuracy = CharacterSummary.DerivedStats.Accuracy;
-				FriendlySource.DamageBonus = Action.Definition.OffensiveProfile.FlatDamageBonus;
-				if (Action.Definition.OffensiveProfile.DamageScalingAttribute != EGridAttackScalingAttribute::None)
+				FriendlySource.DamageBonus = EffectiveOffensiveProfile.FlatDamageBonus;
+				if (EffectiveOffensiveProfile.DamageScalingAttribute != EGridAttackScalingAttribute::None)
 				{
 					FriendlySource.DamageBonus += URPGCharacterRulesLibrary::GetAttributeModifier(
-						ResolveRPG038AttributeValue(
-							CharacterSummary.Attributes, Action.Definition.OffensiveProfile.DamageScalingAttribute));
+						ResolveRPG038AttributeValue(CharacterSummary.Attributes, EffectiveOffensiveProfile.DamageScalingAttribute));
+				}
+				if (bUsesEquippedWeaponAction)
+				{
+					FriendlySource.RawDamagePercent = Action.Definition.WeaponAttackProfile.WeaponDamagePercent;
 				}
 				FGridQuickItemResolver::ApplyDirectDamageSkillScaling(Action.Definition, Character.SkillRanks, FriendlySource);
 				FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(FriendlySource, ResolvedModifiers);
@@ -1605,22 +1637,24 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				FriendlyTarget.DamageMultiplier = 1.0f;
 				const FGridDamageResistanceSet BaseResistances =
 					Inventory->ComputeCharacterEquipmentResistances(TargetCharacterIndex);
-				FriendlyTarget.ResistancePercent = FGridCombatResolver::GetResistancePercent(
-					BaseResistances, Action.Definition.OffensiveProfile.AttackDefinition.DamageType);
+				FriendlyTarget.ResistancePercent =
+					FGridCombatResolver::GetResistancePercent(BaseResistances, EffectiveOffensiveProfile.AttackDefinition.DamageType);
 
 				TArray<FGridCombatModifierProfile> FriendlyProfiles;
 				FGridResolvedCombatModifiers FriendlyModifiers;
 				if (FGridCombatModifierResolver::CollectCharacterModifiers(FriendlyCharacter, FriendlyProfiles))
 				{
-					FGridCombatModifierResolver::Resolve(FriendlyProfiles,
-						FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId),
-						FriendlyModifiers);
+					const FGridCombatModifierContext FriendlyModifierContext = bUsesEquippedWeaponAction
+						? FGridCombatModifierResolver::MakeResolvedActionAttackContext(
+							Action.Definition, Action.SourceDefinitionId, EffectiveOffensiveProfile, EffectiveOffensiveSourceTags)
+						: FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId);
+					FGridCombatModifierResolver::Resolve(FriendlyProfiles, FriendlyModifierContext, FriendlyModifiers);
 					FGridCombatModifierResolver::ApplyIncomingAttackModifiers(
-						FriendlyTarget, Action.Definition.OffensiveProfile.AttackDefinition.DamageType, FriendlyModifiers);
+						FriendlyTarget, EffectiveOffensiveProfile.AttackDefinition.DamageType, FriendlyModifiers);
 				}
 
-				FGridAttackResult FriendlyResult = FGridCombatResolver::ResolveAttack(
-					FriendlySource, FriendlyTarget, Action.Definition.OffensiveProfile.AttackDefinition, CombatRandomStream);
+				FGridAttackResult FriendlyResult =
+					FGridCombatResolver::ResolveAttack(FriendlySource, FriendlyTarget, EffectiveOffensiveProfile.AttackDefinition, CombatRandomStream);
 
 				FGridCombatArmorPoolSnapshot FriendlyArmorSnapshot;
 				if (BuildRPG033PartyArmorSnapshot(Inventory, TargetCharacterIndex, FriendlyArmorSnapshot))

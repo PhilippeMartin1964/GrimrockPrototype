@@ -72,6 +72,10 @@ class GRIMROCKPROTOTYPE_API FGridCombatModifierResolver
 public:
 	static FGridCombatModifierContext MakeActionContext(const FGridCombatActionDefinition& Definition, FName SourceDefinitionId = NAME_None);
 
+	/** Action identity plus the runtime-resolved weapon descriptor/tags for WD-based Talent attacks. */
+	static FGridCombatModifierContext MakeResolvedActionAttackContext(const FGridCombatActionDefinition& Definition, FName SourceDefinitionId,
+		const FGridOffensiveEquipmentProfile& ResolvedOffensiveProfile, const TArray<FName>& ResolvedItemTags);
+
 	static FGridCombatModifierContext MakeAttackContext(FName ActionId, FName SourceDefinitionId, EGridCombatActionSourcePolicy SourcePolicy,
 		EGridCombatActionType ActionType, EGridDamageType DamageType, EGridPhysicalDamageSubtype PhysicalSubtype);
 

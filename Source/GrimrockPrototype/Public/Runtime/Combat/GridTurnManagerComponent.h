@@ -682,6 +682,9 @@ private:
 	bool ResolvePlayerOffensiveProfile(const UGridPartyInventoryComponent* PartyInventory, int32 AttackerCharacterIndex,
 		EGridEquipmentSlot RequestedEquipmentSlot, bool bRequireRequestedEquipmentSlot, FGridOffensiveEquipmentProfile& OutProfile, FName& OutItemDefinitionId,
 		EGridEquipmentSlot& OutEquipmentSlot, EGridPlayerAttackRejectReason& OutRejectReason) const;
+	bool ResolveCombatActionWeaponProfile(const UGridPartyInventoryComponent* PartyInventory, int32 AttackerCharacterIndex,
+		const FGridCombatActionDefinition& ActionDefinition, FGridOffensiveEquipmentProfile& OutProfile, FName& OutItemDefinitionId,
+		EGridEquipmentSlot& OutEquipmentSlot, TArray<FName>& OutItemTags, EGridPlayerAttackRejectReason& OutRejectReason) const;
 	bool IsCombatMonster(const AGridMonsterActor* Monster) const;
 	void BuildGlobalInitiativeOrder();
 	void ResetInitiativeRound();

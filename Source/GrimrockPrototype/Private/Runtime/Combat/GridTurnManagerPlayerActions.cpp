@@ -228,26 +228,40 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	FGridOffensiveEquipmentProfile OffensiveProfile;
 	FName OffensiveItemDefinitionId = NAME_None;
 	EGridEquipmentSlot OffensiveEquipmentSlot = EGridEquipmentSlot::None;
+	TArray<FName> ResolvedAttackSourceTags;
 	EGridPlayerAttackRejectReason OffensiveProfileRejectReason = EGridPlayerAttackRejectReason::None;
+	const bool bUsesEquippedWeaponAction =
+		CombatActionOverride && CombatActionOverride->Definition.WeaponAttackProfile.bUseEquippedWeapon;
 	if (CombatActionOverride)
 	{
 		const bool bValidOverride = CombatActionOverride->IsValid() && CombatActionOverride->bEnabled &&
 			CombatActionOverride->CharacterIndex == AttackerCharacterIndex && CombatActionOverride->CharacterId == Attacker.CharacterId &&
 			CombatActionOverride->Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
-			CombatActionOverride->Definition.OffensiveProfile.IsValid();
+			(bUsesEquippedWeaponAction || CombatActionOverride->Definition.OffensiveProfile.IsValid());
 		if (!bValidOverride)
 		{
 			return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
 		}
-		OffensiveProfile = CombatActionOverride->Definition.OffensiveProfile;
-		if (CombatActionOverride->Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment ||
-			CombatActionOverride->Definition.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
+		if (bUsesEquippedWeaponAction)
 		{
-			OffensiveItemDefinitionId = CombatActionOverride->SourceDefinitionId;
+			if (!ResolveCombatActionWeaponProfile(PartyPawn->PartyInventoryComponent, AttackerCharacterIndex, CombatActionOverride->Definition,
+					OffensiveProfile, OffensiveItemDefinitionId, OffensiveEquipmentSlot, ResolvedAttackSourceTags, OffensiveProfileRejectReason))
+			{
+				return RejectPlayerAttack(AttackerCharacterIndex, OffensiveProfileRejectReason, OutRejectReason);
+			}
 		}
-		if (CombatActionOverride->Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment)
+		else
 		{
-			OffensiveEquipmentSlot = CombatActionOverride->SourceEquipmentSlot;
+			OffensiveProfile = CombatActionOverride->Definition.OffensiveProfile;
+			if (CombatActionOverride->Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment ||
+				CombatActionOverride->Definition.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
+			{
+				OffensiveItemDefinitionId = CombatActionOverride->SourceDefinitionId;
+			}
+			if (CombatActionOverride->Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment)
+			{
+				OffensiveEquipmentSlot = CombatActionOverride->SourceEquipmentSlot;
+			}
 		}
 	}
 	else if (!ResolvePlayerOffensiveProfile(PartyPawn->PartyInventoryComponent, AttackerCharacterIndex, RequestedEquipmentSlot, bRequireRequestedEquipmentSlot,
@@ -281,7 +295,10 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 			: OffensiveProfile.RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
 		const FName ModifierSourceDefinitionId = CombatActionOverride ? CombatActionOverride->SourceDefinitionId : OffensiveItemDefinitionId;
 		const FGridCombatModifierContext ModifierContext = CombatActionOverride
-			? FGridCombatModifierResolver::MakeActionContext(CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId)
+			? (bUsesEquippedWeaponAction
+					? FGridCombatModifierResolver::MakeResolvedActionAttackContext(
+						CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId, OffensiveProfile, ResolvedAttackSourceTags)
+					: FGridCombatModifierResolver::MakeActionContext(CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId))
 			: FGridCombatModifierResolver::MakeAttackContext(OffensiveProfile.AttackId, ModifierSourceDefinitionId, ModifierSourcePolicy, ModifierActionType,
 				OffensiveProfile.AttackDefinition.DamageType, OffensiveProfile.AttackDefinition.PhysicalSubtype);
 		FGridCombatModifierResolver::Resolve(ChoiceModifiers, ModifierContext, ResolvedAttackModifiers);
@@ -414,6 +431,10 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	if (CombatActionOverride)
 	{
 		FGridQuickItemResolver::ApplyDirectDamageSkillScaling(CombatActionOverride->Definition, Attacker.SkillRanks, Source);
+		if (bUsesEquippedWeaponAction)
+		{
+			Source.RawDamagePercent = CombatActionOverride->Definition.WeaponAttackProfile.WeaponDamagePercent;
+		}
 	}
 	FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(Source, ResolvedAttackModifiers);
 	TArray<FGridCombatModifierProfile> TargetStatusModifiers;
@@ -426,7 +447,10 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 			: OffensiveProfile.RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
 		const FName TargetContextSourceDefinitionId = CombatActionOverride ? CombatActionOverride->SourceDefinitionId : OffensiveItemDefinitionId;
 		const FGridCombatModifierContext TargetContext = CombatActionOverride
-			? FGridCombatModifierResolver::MakeActionContext(CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId)
+			? (bUsesEquippedWeaponAction
+					? FGridCombatModifierResolver::MakeResolvedActionAttackContext(
+						CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId, OffensiveProfile, ResolvedAttackSourceTags)
+					: FGridCombatModifierResolver::MakeActionContext(CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId))
 			: FGridCombatModifierResolver::MakeAttackContext(OffensiveProfile.AttackId, TargetContextSourceDefinitionId, TargetContextSourcePolicy,
 				TargetContextActionType, AttackDefinition.DamageType, AttackDefinition.PhysicalSubtype);
 		FGridCombatModifierResolver::Resolve(TargetStatusModifiers, TargetContext, TargetResolvedModifiers);
@@ -651,6 +675,10 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		if (CombatActionOverride)
 		{
 			FGridQuickItemResolver::ApplyDirectDamageSkillScaling(CombatActionOverride->Definition, Attacker.SkillRanks, RepeatSource);
+			if (bUsesEquippedWeaponAction)
+			{
+				RepeatSource.RawDamagePercent = CombatActionOverride->Definition.WeaponAttackProfile.WeaponDamagePercent;
+			}
 		}
 		FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(RepeatSource, ResolvedAttackModifiers);
 		RepeatSource.Accuracy += SubsequentAccuracyModifier;
@@ -660,7 +688,10 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		if (FGridCombatModifierResolver::CollectStatusModifiers(TargetMonster->StatusEffects, RepeatTargetStatusProfiles))
 		{
 			const FGridCombatModifierContext RepeatTargetContext = CombatActionOverride
-				? FGridCombatModifierResolver::MakeActionContext(CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId)
+				? (bUsesEquippedWeaponAction
+						? FGridCombatModifierResolver::MakeResolvedActionAttackContext(
+							CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId, OffensiveProfile, ResolvedAttackSourceTags)
+						: FGridCombatModifierResolver::MakeActionContext(CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId))
 				: FGridCombatModifierResolver::MakeAttackContext(OffensiveProfile.AttackId, OffensiveItemDefinitionId, ReactionSourcePolicy,
 					ReactionActionType, RepeatAttackDefinition.DamageType, RepeatAttackDefinition.PhysicalSubtype);
 			FGridCombatModifierResolver::Resolve(RepeatTargetStatusProfiles, RepeatTargetContext, RepeatTargetModifiers);
@@ -799,6 +830,76 @@ bool UGridTurnManagerComponent::BuildPlayerAttackResolutionInputs(const FGridInv
 	OutTarget.ResistancePercent = 0;
 	OutTarget.DamageMultiplier = TargetMonster->MonsterDefinition->GetDamageMultiplier(OutAttackDefinition.DamageType, OutAttackDefinition.PhysicalSubtype);
 	return OutAttackDefinition.IsValid();
+}
+
+bool UGridTurnManagerComponent::ResolveCombatActionWeaponProfile(const UGridPartyInventoryComponent* PartyInventory, int32 AttackerCharacterIndex,
+	const FGridCombatActionDefinition& ActionDefinition, FGridOffensiveEquipmentProfile& OutProfile, FName& OutItemDefinitionId,
+	EGridEquipmentSlot& OutEquipmentSlot, TArray<FName>& OutItemTags, EGridPlayerAttackRejectReason& OutRejectReason) const
+{
+	OutProfile = FGridOffensiveEquipmentProfile();
+	OutItemDefinitionId = NAME_None;
+	OutEquipmentSlot = EGridEquipmentSlot::None;
+	OutItemTags.Reset();
+	OutRejectReason = EGridPlayerAttackRejectReason::None;
+	if (!IsValid(PartyInventory) || !ActionDefinition.WeaponAttackProfile.bUseEquippedWeapon ||
+		ActionDefinition.ResolutionProfile != EGridCombatActionResolutionProfile::Attack)
+	{
+		OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+		return false;
+	}
+
+	const EGridEquipmentSlot HandSlots[] = { EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand };
+	for (const EGridEquipmentSlot HandSlot : HandSlots)
+	{
+		FGridItemInstance EquippedItem;
+		if (!PartyInventory->GetEquippedItem(AttackerCharacterIndex, HandSlot, EquippedItem))
+		{
+			continue;
+		}
+
+		const UGridItemDefinitionAsset* Definition = PartyInventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
+		if (!IsValid(Definition))
+		{
+			OutRejectReason = EGridPlayerAttackRejectReason::EquippedItemDefinitionUnavailable;
+			return false;
+		}
+		if (!DoesMON12ItemDeclareAttack(Definition))
+		{
+			continue;
+		}
+		if (!Definition->IsValidDefinition() || !Definition->CanProvideAttackFromSlot(HandSlot))
+		{
+			OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+			return false;
+		}
+		if (!ActionDefinition.WeaponAttackProfile.MatchesItemTags(Definition->ItemTags))
+		{
+			continue;
+		}
+		if (!ResolveMON12ItemAttackProfile(Definition, OutProfile) ||
+			!ActionDefinition.WeaponAttackProfile.ApplyToOffensiveProfile(ActionDefinition.ActionId, ActionDefinition.RangeCells, OutProfile))
+		{
+			OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+			return false;
+		}
+
+		OutItemDefinitionId = EquippedItem.ItemDefinitionId;
+		OutEquipmentSlot = HandSlot;
+		OutItemTags = Definition->ItemTags;
+		return true;
+	}
+
+	if (ActionDefinition.WeaponAttackProfile.bAllowUnarmed)
+	{
+		OutProfile = MakeUnarmedOffensiveProfile();
+		if (ActionDefinition.WeaponAttackProfile.ApplyToOffensiveProfile(ActionDefinition.ActionId, ActionDefinition.RangeCells, OutProfile))
+		{
+			return true;
+		}
+	}
+
+	OutRejectReason = EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+	return false;
 }
 
 bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile(const UGridPartyInventoryComponent* PartyInventory, int32 AttackerCharacterIndex,

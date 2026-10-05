@@ -88,16 +88,21 @@ FGridAttackResult FGridCombatResolver::ResolveAttackFromRolls(
 
 	const int32 SafeDamageRoll = FMath::Clamp(DamageRoll, Attack.MinDamage, Attack.MaxDamage);
 	const int32 BaseDamage = FMath::Max(0, SafeDamageRoll + Source.DamageBonus);
+	const int32 SafeRawDamagePercent = FMath::Clamp(Source.RawDamagePercent, 0, 1000);
+	const int64 ScaledBaseDamage64 = static_cast<int64>(BaseDamage) * static_cast<int64>(SafeRawDamagePercent) / 100;
+	const int32 ScaledBaseDamage = BaseDamage > 0 && SafeRawDamagePercent > 0
+		? FMath::Max(1, static_cast<int32>(FMath::Clamp<int64>(ScaledBaseDamage64, 0, MAX_int32)))
+		: 0;
 	if (Result.bCriticalHit)
 	{
 		const int32 SafeCriticalDamagePercent = FMath::Clamp(Source.CriticalDamagePercent, 100, 1000);
-		const int64 CriticalDamage = static_cast<int64>(BaseDamage) * static_cast<int64>(SafeCriticalDamagePercent) / 100;
+		const int64 CriticalDamage = static_cast<int64>(ScaledBaseDamage) * static_cast<int64>(SafeCriticalDamagePercent) / 100;
 		Result.RawDamage = static_cast<int32>(
 			FMath::Clamp<int64>(CriticalDamage, static_cast<int64>(0), static_cast<int64>(MAX_int32)));
 	}
 	else
 	{
-		Result.RawDamage = BaseDamage;
+		Result.RawDamage = ScaledBaseDamage;
 	}
 	ResolveDamageModifiers(Target, Result);
 	return Result;

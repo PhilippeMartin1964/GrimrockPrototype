@@ -23,6 +23,20 @@ namespace
 			TargetingPolicy == EGridCombatTargetingPolicy::Area;
 	}
 
+	bool HasMatchingEquippedWeaponSource(
+		const FGridCombatActionCatalogContext& Context, const FGridCombatWeaponAttackProfile& WeaponProfile)
+	{
+		if (!WeaponProfile.bUseEquippedWeapon || WeaponProfile.bAllowUnarmed)
+		{
+			return true;
+		}
+		return Context.EquippedOffensiveSourceTagSets.ContainsByPredicate(
+			[&WeaponProfile](const TArray<FName>& ItemTags)
+			{
+				return WeaponProfile.MatchesItemTags(ItemTags);
+			});
+	}
+
 	bool IsUI0143e2SpellbookProjection(const FGridCombatActionContribution& Contribution)
 	{
 		const FGridCombatActionDefinition& Definition = Contribution.Definition;
@@ -100,6 +114,11 @@ namespace
 			{
 				return EGridCombatActionAvailabilityReason::CooldownActive;
 			}
+		}
+		if (Definition.WeaponAttackProfile.bUseEquippedWeapon &&
+			!HasMatchingEquippedWeaponSource(Context, Definition.WeaponAttackProfile))
+		{
+			return EGridCombatActionAvailabilityReason::RequiredOffensiveEquipmentUnavailable;
 		}
 
 		if (Definition.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
@@ -369,6 +388,8 @@ FText FGridCombatActionCatalog::GetAvailabilityReasonText(EGridCombatActionAvail
 			return LOCTEXT("InsufficientSourceItems", "La source ne contient pas assez d’unités.");
 		case EGridCombatActionAvailabilityReason::MissingRequirement:
 			return LOCTEXT("MissingRequirement", "Une condition requise n’est pas satisfaite.");
+		case EGridCombatActionAvailabilityReason::RequiredOffensiveEquipmentUnavailable:
+			return LOCTEXT("RequiredOffensiveEquipmentUnavailable", "Cette action requiert une arme équipée compatible.");
 		case EGridCombatActionAvailabilityReason::CooldownActive:
 			return LOCTEXT("CooldownActive", "Cette action est encore en recharge.");
 		case EGridCombatActionAvailabilityReason::NoApplicableEffect:

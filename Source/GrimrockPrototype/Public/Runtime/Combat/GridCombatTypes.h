@@ -84,6 +84,7 @@ enum class EGridCombatActionAvailabilityReason : uint8
 	InsufficientMana UMETA(DisplayName = "Insufficient Mana"),
 	InsufficientSourceItems UMETA(DisplayName = "Insufficient Source Items"),
 	MissingRequirement UMETA(DisplayName = "Missing Requirement"),
+	RequiredOffensiveEquipmentUnavailable UMETA(DisplayName = "Required Offensive Equipment Unavailable"),
 	CooldownActive UMETA(DisplayName = "Cooldown Active"),
 	ExecutionNotImplemented UMETA(DisplayName = "Execution Not Implemented"),
 	NoApplicableEffect UMETA(DisplayName = "No Applicable Effect")
@@ -398,6 +399,13 @@ struct FGridAttackSourceStats
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Source")
 	int32 DamageBonus = 0;
 
+	/**
+	 * Integer base-damage coefficient applied after the weapon roll + flat/scaling
+	 * bonus and before critical damage. 100 preserves historical behavior.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Source", meta = (ClampMin = "0", ClampMax = "1000"))
+	int32 RawDamagePercent = 100;
+
 	/** Multiplicative outgoing damage scale. 1.0 preserves historical behavior. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Source", meta = (ClampMin = "0.0"))
 	float DamageMultiplier = 1.0f;
@@ -486,6 +494,95 @@ struct FGridOffensiveEquipmentProfile
 	bool IsValid() const
 	{
 		return !AttackId.IsNone() && AttackDefinition.IsValid() && AttackDefinition.MaxDamage > 0 && RangeCells >= 1 && RangeCells <= 32;
+	}
+};
+
+/**
+ * RPG03.9 generic projection for attacks whose base damage comes from the
+ * currently equipped offensive item. The authored action owns costs, targeting
+ * and the WD coefficient; the item remains authoritative for its damage roll,
+ * flat bonus and scaling attribute.
+ */
+USTRUCT(BlueprintType)
+struct FGridCombatWeaponAttackProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack")
+	bool bUseEquippedWeapon = false;
+
+	/** RPG02 WD coefficient. 100 = the resolved equipped-weapon base damage. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack", meta = (ClampMin = "1", ClampMax = "500"))
+	int32 WeaponDamagePercent = 100;
+
+	/** Every tag must exist on the selected offensive item's definition. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack")
+	TArray<FName> RequiredItemTags;
+
+	/** Allows the standard unarmed profile when no offensive item is equipped. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack")
+	bool bAllowUnarmed = false;
+
+	/** Optional action-owned damage descriptor; Min/Max, flat bonus and scaling still come from the weapon. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack")
+	bool bOverrideDamageDescriptor = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack")
+	EGridDamageType OverrideDamageType = EGridDamageType::Physical;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack")
+	EGridPhysicalDamageSubtype OverridePhysicalSubtype = EGridPhysicalDamageSubtype::None;
+
+	bool MatchesItemTags(const TArray<FName>& ItemTags) const
+	{
+		for (const FName RequiredTag : RequiredItemTags)
+		{
+			if (!ItemTags.Contains(RequiredTag))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool ApplyToOffensiveProfile(FName ActionId, int32 ActionRangeCells, FGridOffensiveEquipmentProfile& InOutProfile) const
+	{
+		if (!bUseEquippedWeapon || ActionId.IsNone() || ActionRangeCells < 1 || ActionRangeCells > 32 || !InOutProfile.IsValid())
+		{
+			return false;
+		}
+		InOutProfile.AttackId = ActionId;
+		InOutProfile.RangeCells = ActionRangeCells;
+		if (bOverrideDamageDescriptor)
+		{
+			InOutProfile.AttackDefinition.DamageType = OverrideDamageType;
+			InOutProfile.AttackDefinition.PhysicalSubtype =
+				OverrideDamageType == EGridDamageType::Physical ? OverridePhysicalSubtype : EGridPhysicalDamageSubtype::None;
+		}
+		return InOutProfile.IsValid();
+	}
+
+	bool IsValid() const
+	{
+		if (!bUseEquippedWeapon)
+		{
+			return true;
+		}
+		if (WeaponDamagePercent < 1 || WeaponDamagePercent > 500 || (bAllowUnarmed && !RequiredItemTags.IsEmpty()))
+		{
+			return false;
+		}
+		TSet<FName> SeenTags;
+		for (const FName Tag : RequiredItemTags)
+		{
+			if (Tag.IsNone() || SeenTags.Contains(Tag))
+			{
+				return false;
+			}
+			SeenTags.Add(Tag);
+		}
+		return !bOverrideDamageDescriptor || OverrideDamageType == EGridDamageType::Physical ||
+			OverridePhysicalSubtype == EGridPhysicalDamageSubtype::None;
 	}
 };
 
@@ -1529,7 +1626,14 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Presentation")
 	FName PresentationProfileId = NAME_None;
 
-	/** Attack payload used when ResolutionProfile is Attack. */
+	/**
+	 * Optional RPG03.9 weapon projection. When enabled, OffensiveProfile stays
+	 * empty and the runtime resolves the equipped weapon exactly once per action.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution")
+	FGridCombatWeaponAttackProfile WeaponAttackProfile;
+
+	/** Attack payload used when ResolutionProfile is Attack and WeaponAttackProfile is disabled. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution")
 	FGridOffensiveEquipmentProfile OffensiveProfile;
 
@@ -1563,8 +1667,15 @@ struct FGridCombatActionDefinition
 
 	bool IsValid() const
 	{
-		const bool bAttackProfileValid = ResolutionProfile != EGridCombatActionResolutionProfile::Attack || (OffensiveProfile.IsValid() && ActionPointCost > 0);
-		const bool bAttackRangeValid = ResolutionProfile != EGridCombatActionResolutionProfile::Attack || RangeCells == OffensiveProfile.RangeCells;
+		const bool bWeaponAttackProfileValid = WeaponAttackProfile.IsValid() &&
+			(!WeaponAttackProfile.bUseEquippedWeapon ||
+				(ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
+					(SourcePolicy == EGridCombatActionSourcePolicy::Ability || SourcePolicy == EGridCombatActionSourcePolicy::Spell)));
+		const bool bAttackProfileValid = ResolutionProfile != EGridCombatActionResolutionProfile::Attack ||
+			(ActionPointCost > 0 &&
+				(WeaponAttackProfile.bUseEquippedWeapon ? !OffensiveProfile.IsValid() : OffensiveProfile.IsValid()));
+		const bool bAttackRangeValid = ResolutionProfile != EGridCombatActionResolutionProfile::Attack ||
+			WeaponAttackProfile.bUseEquippedWeapon || RangeCells == OffensiveProfile.RangeCells;
 		const bool bTargetingRangeValid = (TargetingPolicy != EGridCombatTargetingPolicy::FirstAxialTarget &&
 											  TargetingPolicy != EGridCombatTargetingPolicy::Cell && TargetingPolicy != EGridCombatTargetingPolicy::Area &&
 											  TargetingPolicy != EGridCombatTargetingPolicy::Hostile) ||
@@ -1636,7 +1747,8 @@ struct FGridCombatActionDefinition
 			ActionPointCost <= 6 && ResourceCosts.IsValid() && RangeCells >= 0 && RangeCells <= 32 && AreaRadiusCells >= 0 && AreaRadiusCells <= 8 &&
 			CooldownRounds >= 0 && MaximumResolvedTargets >= 0 && MaximumResolvedTargets <= 16 && ResolutionCount >= 1 && ResolutionCount <= 8 &&
 			SubsequentResolutionAccuracyModifier >= -20 && SubsequentResolutionAccuracyModifier <= 20 &&
-			(ResolutionCount > 1 || SubsequentResolutionAccuracyModifier == 0) && TargetFilter.IsValid() && bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bFriendlyAreaValid && bStatusApplicationsValid &&
+			(ResolutionCount > 1 || SubsequentResolutionAccuracyModifier == 0) && TargetFilter.IsValid() && bWeaponAttackProfileValid &&
+			bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bFriendlyAreaValid && bStatusApplicationsValid &&
 			bStatusRemovalsValid && bArmorEffectsValid && bMovementEffectsValid && bSurfaceEffectsValid && bSourceTagsValid && bQuickItemScalingValid &&
 			(ResolutionCount == 1 || ResolutionProfile == EGridCombatActionResolutionProfile::Attack);
 	}
