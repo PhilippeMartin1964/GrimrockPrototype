@@ -94,7 +94,8 @@ bool FGridUICombatUnify01ContractsTest::RunTest(const FString& Parameters)
 
 	const FName DefaultsOnlyProperties[] = {
 		TEXT("PartyMemberPanelWidgetClass"), TEXT("InitiativeSlotWidgetClass"), TEXT("VisibleInitiativeSlotCount"),
-		TEXT("PartyMemberPanelSpacing"), TEXT("PersistentHudBottomClearance")
+		TEXT("PartyMemberPanelSpacing"), TEXT("PartyMembersPositionOffset"), TEXT("CombatControlsPositionOffset"),
+		TEXT("PersistentHudBottomClearance")
 	};
 	for (const FName PropertyName : DefaultsOnlyProperties)
 	{
@@ -115,6 +116,59 @@ bool FGridUICombatUnify01ContractsTest::RunTest(const FString& Parameters)
 		TestTrue(TEXT("DisabledOpacity is editable on widget defaults"), DisabledOpacityProperty->HasAnyPropertyFlags(CPF_Edit));
 		TestTrue(TEXT("DisabledOpacity is not a per-instance authority"), DisabledOpacityProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance));
 	}
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUICombatLayout01BottomGroupsTest, "Grimrock.UI.CombatLayout01.BottomGroups",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridUICombatLayout01BottomGroupsTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	FGridUIGlobalHud01World TestWorld;
+	if (!TestNotNull(TEXT("Transient world is created"), TestWorld.World))
+	{
+		return false;
+	}
+
+	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
+	UGridPersistentHudWidget* PersistentHud = NewObject<UGridPersistentHudWidget>(Party);
+	UGridCombatHudWidget* CombatHud = NewObject<UGridCombatHudWidget>(Party);
+	if (!TestNotNull(TEXT("Party is created"), Party) ||
+		!TestNotNull(TEXT("Persistent HUD is created"), PersistentHud) ||
+		!TestNotNull(TEXT("Combat HUD is created"), CombatHud))
+	{
+		return false;
+	}
+
+	Party->PersistentHudWidgetInstance = PersistentHud;
+	CombatHud->Panel_PartyMembers = NewObject<UVerticalBox>(CombatHud);
+	CombatHud->Panel_CombatBottomRight = NewObject<UVerticalBox>(CombatHud);
+	CombatHud->Panel_PartyMembers->SetRenderTranslation(FVector2D(5.0f, 7.0f));
+	CombatHud->Panel_CombatBottomRight->SetRenderTranslation(FVector2D(-3.0f, 11.0f));
+	CombatHud->PartyMembersPositionOffset = FVector2D(18.0f, -12.0f);
+	CombatHud->CombatControlsPositionOffset = FVector2D(-24.0f, 9.0f);
+	CombatHud->PersistentHudBottomClearance = 72.0f;
+
+	CombatHud->InitializeCombatHud(Party, nullptr);
+
+	TestEqual(TEXT("Party-member X keeps authored baseline plus configurable offset"),
+		CombatHud->Panel_PartyMembers->GetRenderTransform().Translation.X, 23.0);
+	TestEqual(TEXT("Party-member Y receives its offset and the shared persistent-HUD clearance"),
+		CombatHud->Panel_PartyMembers->GetRenderTransform().Translation.Y, -77.0);
+	TestEqual(TEXT("Combat-controls X keeps authored baseline plus configurable offset"),
+		CombatHud->Panel_CombatBottomRight->GetRenderTransform().Translation.X, -27.0);
+	TestEqual(TEXT("Combat-controls Y receives its offset and the shared persistent-HUD clearance"),
+		CombatHud->Panel_CombatBottomRight->GetRenderTransform().Translation.Y, -52.0);
+
+	Party->PersistentHudWidgetInstance = nullptr;
+	CombatHud->RefreshFromSources();
+
+	TestEqual(TEXT("Party-member block returns to baseline plus its own offset when persistent HUD is absent"),
+		CombatHud->Panel_PartyMembers->GetRenderTransform().Translation, FVector2D(23.0f, -5.0f));
+	TestEqual(TEXT("Combat-controls block returns to baseline plus its own offset when persistent HUD is absent"),
+		CombatHud->Panel_CombatBottomRight->GetRenderTransform().Translation, FVector2D(-27.0f, 20.0f));
 
 	return true;
 }

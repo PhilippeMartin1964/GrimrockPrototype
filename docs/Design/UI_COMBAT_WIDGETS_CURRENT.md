@@ -186,13 +186,40 @@ Combat | UI | Initiative
     Visible Initiative Slot Count   = 8
 
 Combat | UI | Layout
-    Party Member Panel Spacing      = 0
-    Persistent Hud Bottom Clearance = 56
+    Party Member Panel Spacing       = 0
+    Party Members Position Offset    = (0, 0)
+    Combat Controls Position Offset  = (0, 0)
+    Persistent Hud Bottom Clearance  = 56
 ```
 
 `Party Member Panel Spacing` ajoute un padding droit entre les panneaux générés
 lorsque `Panel_PartyMembers` est un `HorizontalBox`. Le dernier panneau ne reçoit
 pas de padding droit.
+
+UI-COMBAT-LAYOUT01 applique désormais `Persistent Hud Bottom Clearance` aux
+**deux** groupes du bas : `Panel_PartyMembers` et `Panel_CombatBottomRight`.
+La valeur par défaut reste 56 px mais peut être réglée de 0 vers le haut.
+
+Les deux groupes gardent leur position authored dans le Designer, puis reçoivent
+leur offset indépendant :
+
+```text
+Party Members Position Offset
+Combat Controls Position Offset
+```
+
+Convention : X positif = droite, X négatif = gauche, Y positif = bas, Y négatif = haut.
+Le déplacement final est donc :
+
+```text
+Authored UMG position
++ group Position Offset
++ (0, -Persistent Hud Bottom Clearance) lorsque le Persistent HUD existe
+```
+
+Le panneau enfant `WBP_GridCombatActionPanel` n'a volontairement pas de position
+viewport propre : ses quatre instances sont positionnées ensemble via
+`Panel_PartyMembers` dans `WBP_GridCombatHud`.
 
 ## Migration manuelle UE 5.5.4
 
@@ -223,7 +250,9 @@ pas de padding droit.
    - `Initiative Slot Widget Class = WBP_GridCombatHudInitiativeSlot` ;
    - `Visible Initiative Slot Count = 8` ;
    - `Party Member Panel Spacing` selon le rendu souhaité ;
-   - `Persistent Hud Bottom Clearance = 56`.
+   - `Party Members Position Offset` pour déplacer le bloc des personnages ;
+   - `Combat Controls Position Offset` pour déplacer PAM / Fin du tour ;
+   - `Persistent Hud Bottom Clearance = 56` comme marge commune au-dessus de la barre persistante.
 9. Compiler et sauvegarder.
 
 ## Validation attendue
@@ -232,6 +261,7 @@ Ne pas considérer le ticket comme validé avant retour des logs UE locaux.
 
 ```powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.CombatUnify01"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.UI.CombatLayout01"
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Monsters.MON12.CombatActionPanel"
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.Monsters.MON12.CombatHUD"
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.RPG.MON16.6"
@@ -248,3 +278,22 @@ PIE :
 - initiative, PAM et Fin du tour inchangés ;
 - aucune barre/navigation dupliquée dans le Combat HUD ;
 - ciblage souris toujours fonctionnel via le backend existant.
+
+## UI-COMBAT-LAYOUT01 — positionnement uniforme des blocs bas
+
+Le réglage de position est volontairement porté par `WBP_GridCombatHud`, car
+`WBP_GridCombatActionPanel` est instancié quatre fois comme enfant et ne doit
+pas connaître le viewport.
+
+Les deux surfaces basses suivent désormais le même contrat :
+
+```text
+Panel_PartyMembers
+Panel_CombatBottomRight
+    -> baseline Designer conservée
+    -> offset X/Y indépendant
+    -> même Persistent Hud Bottom Clearance
+```
+
+Cela permet de déplacer librement le groupe de personnages et les contrôles de
+combat sans créer de double autorité de layout.

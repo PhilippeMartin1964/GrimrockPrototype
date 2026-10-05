@@ -599,3 +599,17 @@ La politique SaveGame du prototype est stricte : aucune migration des anciennes 
 Les paramètres éditables des deux classes utilisent désormais la même convention `EditDefaultsOnly` et les catégories `Combat|UI|Appearance`, `Combat|UI|Classes`, `Combat|UI|Initiative` et `Combat|UI|Layout`. Ils se règlent dans un Widget Blueprint via `Graph > My Blueprint > Show Inherited Variables > Default Value`.
 
 Référence canonique : `docs/Design/UI_COMBAT_WIDGETS_CURRENT.md`.
+
+
+### UI-COMBAT-LAYOUT01 — positionnement des surfaces basses
+
+`PersistentHudBottomClearance` devient une marge commune appliquée à
+`Panel_PartyMembers` et `Panel_CombatBottomRight`. Sa valeur par défaut reste
+56 px, mais elle accepte désormais 0 ou davantage. Chaque groupe dispose en plus
+d'un offset X/Y indépendant : `PartyMembersPositionOffset` et
+`CombatControlsPositionOffset`.
+
+La position authored dans le Designer reste la baseline. Le runtime ajoute
+uniquement l'offset configuré et, lorsque le Persistent HUD existe, la marge
+commune verticale. `WBP_GridCombatActionPanel` reste sans position viewport
+propre puisque ses quatre instances appartiennent à `Panel_PartyMembers`.

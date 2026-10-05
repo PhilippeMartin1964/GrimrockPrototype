@@ -1223,3 +1223,17 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Aucun `.uasset` n'est modifié à l'aveugle ; la migration du Widget Tree reste manuelle dans UE 5.5.4.
 - La référence d'authoring courante devient `docs/Design/UI_COMBAT_WIDGETS_CURRENT.md` ; MON12.1, MON12.7, UI-GLOBALHUD01.3 et UI-COMBAT-CLEAN01 restent historiques.
 - Validation locale requise avant clôture : `Grimrock.UI.CombatUnify01`, `Grimrock.Monsters.MON12.CombatActionPanel`, `Grimrock.Monsters.MON12.CombatHUD`, `Grimrock.RPG.MON16.6` et `Grimrock.UI.GlobalHud01`.
+
+
+## 2026-10-05 — UI-COMBAT-LAYOUT01 : Adjustable Bottom Combat Layout
+
+### Décisions validées
+
+- `PersistentHudBottomClearance` est une marge commune aux deux surfaces de combat basses : `Panel_PartyMembers` et `Panel_CombatBottomRight`.
+- La valeur par défaut reste 56 px mais le minimum configurable devient 0 afin de ne pas imposer une position au designer.
+- `PartyMembersPositionOffset` déplace indépendamment le groupe des quatre panneaux personnages.
+- `CombatControlsPositionOffset` déplace indépendamment PAM / Fin du tour / texte de refus.
+- Les offsets sont ajoutés à la translation authored du Widget Blueprint ; aucune position Designer n'est écrasée.
+- Convention des offsets : X positif vers la droite, Y positif vers le bas.
+- `WBP_GridCombatActionPanel` ne reçoit aucune propriété de position viewport : il reste un enfant réutilisable, positionné par le HUD parent.
+- Filtre Automation dédié : `Grimrock.UI.CombatLayout01`.
