@@ -3,7 +3,7 @@
 Date : **5 octobre 2026**  
 Parent : `RPG_Talents_Mechanics_v0_1.md`  
 Dépendance : **RPG03.3 validé 8/8**  
-Statut : **IMPLÉMENTÉ — VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ — TD04.2 / Grimrock.RPG.RPG03.4 / 8 réussis / 0 warning / 0 échec / 5 octobre 2026**
 
 ## Objectif
 
@@ -210,4 +210,4 @@ Tests :
 7. `ResolveMatches`
 8. `RuntimeStatusConsumption`
 
-La validation n'est considérée réussie qu'après exécution du harness UE5.5.4 et fourniture de la sortie utilisateur.
+Validation utilisateur reçue le 5 octobre 2026 : 8 tests réussis, 0 warning, 0 échec, 0 not run, process exit code 0.

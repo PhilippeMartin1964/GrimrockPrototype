@@ -412,6 +412,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|Party Mobility")
 	bool RequestPartyTranslation(EGridEdge MoveDirection, FIntPoint& OutTargetCell, EGridPartyMovementRejectReason& OutRejectReason);
 
+	/** C5 preflight for a movement effect already owned by a combat action. */
+	bool CanResolvePartyActionMovement(int32 CharacterIndex, const FGridCombatMovementEffectProfile& Profile,
+		FGridCombatMovementResolution& OutResolution, EGridPartyMovementRejectReason& OutRejectReason) const;
+
+	/** C5 commits PAM and starts the already-authorized pawn interpolation; AP is paid by the action transaction. */
+	bool StartPartyActionMovement(int32 CharacterIndex, const FGridCombatMovementEffectProfile& Profile,
+		FGridCombatMovementResolution& OutResolution, EGridPartyMovementRejectReason& OutRejectReason);
+
 	/** Authorizes a free 90-degree rotation during the active party turn. */
 	UFUNCTION(BlueprintCallable, Category = "Combat|Party Mobility")
 	bool RequestPartyRotation(EGridEdge TargetFacing, EGridPartyMovementRejectReason& OutRejectReason);

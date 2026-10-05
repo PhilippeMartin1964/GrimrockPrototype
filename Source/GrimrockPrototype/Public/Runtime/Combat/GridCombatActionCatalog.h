@@ -15,6 +15,7 @@ struct GRIMROCKPROTOTYPE_API FGridCombatActionCatalogContext
 	bool bEnableQuickItemExecutors = false;
 	bool bEnableClassActionExecutors = false;
 	int32 RemainingActionPoints = 0;
+	int32 RemainingMobilityActionPoints = 0;
 	int32 CurrentHealth = 0;
 	int32 MaximumHealth = 0;
 	int32 CurrentMana = 0;

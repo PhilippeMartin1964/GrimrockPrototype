@@ -298,6 +298,7 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 	Context.bActiveCombatant = bHasTurnState && TurnState.State == EGridCombatantTurnState::Active && CurrentPhase == EGridCombatPhase::PlayerPhase;
 	Context.bPartyBusy = !IsPartyAtRest() || bPlayerAttackResolutionInProgress || IsPartyMotionInProgress();
 	Context.RemainingActionPoints = bHasTurnState ? FMath::Max(0, TurnState.RemainingActionPoints) : 0;
+	Context.RemainingMobilityActionPoints = FMath::Max(0, PartyMobilityState.RemainingMobilityActionPoints);
 	FGridInventoryCharacterSummary CharacterSummary;
 	if (Inventory->GetCharacterSummary(CharacterIndex, CharacterSummary))
 	{
@@ -597,7 +598,8 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 	if (!IsValid(Inventory) || !Action.bEnabled || !IsMON1285ClassActionSource(Action.Definition.SourcePolicy) ||
 		Action.Definition.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
 		Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
-		(!Action.Definition.EffectProfile.IsValid() && Action.Definition.StatusApplications.IsEmpty() && Action.Definition.ArmorEffects.IsEmpty()) ||
+		(!Action.Definition.EffectProfile.IsValid() && Action.Definition.StatusApplications.IsEmpty() && Action.Definition.ArmorEffects.IsEmpty() &&
+			Action.Definition.MovementEffects.IsEmpty()) ||
 		Action.CurrentSourceItemQuantityCost != 0 || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
 	{
 		return false;
@@ -605,7 +607,9 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[Action.CharacterIndex];
 	FGridInventoryCharacterSummary Summary;
-	if (!Inventory->GetCharacterSummary(Action.CharacterIndex, Summary) || !CanCharacterSpendActionPoints(Action.CharacterIndex, Action.CurrentActionPointCost))
+	FGridPlayerCharacterTurnState TurnStateBefore;
+	if (!Inventory->GetCharacterSummary(Action.CharacterIndex, Summary) || !GetPlayerCharacterTurnState(Action.CharacterIndex, TurnStateBefore) ||
+		!CanCharacterSpendActionPoints(Action.CharacterIndex, Action.CurrentActionPointCost))
 	{
 		return false;
 	}
@@ -642,7 +646,17 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 		Action.Definition.StatusApplications, Character.CharacterId, SelfTargetBefore, nullptr, Character.StatusEffects);
 	const bool bArmorWouldMutate =
 		bHasArmorSnapshot && FGridCombatArmorEffectResolver::WouldAnyRestore(Action.Definition.ArmorEffects, ArmorSnapshot, ArmorModifiers, &ArmorSourceContext);
-	if (OutResult.HealthAfter <= OutResult.HealthBefore && OutResult.ManaAfter <= OutResult.ManaBefore && !bStatusWouldMutate && !bArmorWouldMutate)
+	FGridCombatMovementResolution MovementResolution;
+	EGridPartyMovementRejectReason MovementRejectReason = EGridPartyMovementRejectReason::None;
+	const bool bHasMovement = !Action.Definition.MovementEffects.IsEmpty();
+	if (Action.Definition.MovementEffects.Num() > 1 ||
+		(bHasMovement && !CanResolvePartyActionMovement(
+			Action.CharacterIndex, Action.Definition.MovementEffects[0], MovementResolution, MovementRejectReason)))
+	{
+		return false;
+	}
+	if (OutResult.HealthAfter <= OutResult.HealthBefore && OutResult.ManaAfter <= OutResult.ManaBefore && !bStatusWouldMutate && !bArmorWouldMutate &&
+		!bHasMovement)
 	{
 		return false;
 	}
@@ -650,6 +664,21 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 	if (!SpendPlayerCharacterActionPoints(Action.CharacterIndex, Action.CurrentActionPointCost))
 	{
 		return false;
+	}
+	if (bHasMovement)
+	{
+		if (!StartPartyActionMovement(Action.CharacterIndex, Action.Definition.MovementEffects[0], MovementResolution, MovementRejectReason))
+		{
+			if (FGridPlayerCharacterTurnState* RestoredTurnState = EnsurePlayerCharacterTurnState(Action.CharacterIndex))
+			{
+				*RestoredTurnState = TurnStateBefore;
+				BroadcastPlayerCharacterTurnState(*RestoredTurnState);
+			}
+			return false;
+		}
+		OutResult.bMovementStarted = true;
+		OutResult.MovementFromCell = MovementResolution.FromCell;
+		OutResult.MovementToCell = MovementResolution.ToCell;
 	}
 
 	Character.Resources.CurrentHealth = OutResult.HealthAfter;
@@ -690,8 +719,8 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 	}
 
 	FGridPlayerCharacterTurnState TurnStateAfter;
-	if (!InitiativeOrder.IsEmpty() && GetPlayerCharacterTurnState(Action.CharacterIndex, TurnStateAfter) && TurnStateAfter.RemainingActionPoints <= 0 &&
-		IsActivePlayerCharacter(Action.CharacterIndex))
+	if (!IsPartyMotionInProgress() && !InitiativeOrder.IsEmpty() && GetPlayerCharacterTurnState(Action.CharacterIndex, TurnStateAfter) &&
+		TurnStateAfter.RemainingActionPoints <= 0 && IsActivePlayerCharacter(Action.CharacterIndex))
 	{
 		FinishActivePlayerTurn();
 	}

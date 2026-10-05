@@ -77,6 +77,7 @@ enum class EGridCombatActionAvailabilityReason : uint8
 	NotActiveCombatant UMETA(DisplayName = "Not Active Combatant"),
 	PartyBusy UMETA(DisplayName = "Party Busy"),
 	InsufficientActionPoints UMETA(DisplayName = "Insufficient Action Points"),
+	InsufficientMobilityActionPoints UMETA(DisplayName = "Insufficient Mobility Action Points"),
 	InsufficientMana UMETA(DisplayName = "Insufficient Mana"),
 	InsufficientSourceItems UMETA(DisplayName = "Insufficient Source Items"),
 	MissingRequirement UMETA(DisplayName = "Missing Requirement"),
@@ -482,6 +483,86 @@ struct FGridOffensiveEquipmentProfile
 	bool IsValid() const
 	{
 		return !AttackId.IsNone() && AttackDefinition.IsValid() && AttackDefinition.MaxDamage > 0 && RangeCells >= 1 && RangeCells <= 32;
+	}
+};
+
+UENUM(BlueprintType)
+enum class EGridCombatMovementSubject : uint8
+{
+	PartyGroup UMETA(DisplayName = "Party Group"),
+	TargetCombatant UMETA(DisplayName = "Target Combatant")
+};
+
+UENUM(BlueprintType)
+enum class EGridCombatMovementDirection : uint8
+{
+	ForwardFromFacing UMETA(DisplayName = "Forward From Facing"),
+	BackwardFromFacing UMETA(DisplayName = "Backward From Facing"),
+	LeftFromFacing UMETA(DisplayName = "Left From Facing"),
+	RightFromFacing UMETA(DisplayName = "Right From Facing"),
+	AwayFromSource UMETA(DisplayName = "Away From Source")
+};
+
+/**
+ * C5 tactical/forced movement primitive. PartyGroup always moves as one
+ * formation anchor; TargetCombatant is reserved for targeted C8 execution.
+ */
+USTRUCT(BlueprintType)
+struct FGridCombatMovementEffectProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Movement")
+	EGridCombatMovementSubject Subject = EGridCombatMovementSubject::PartyGroup;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Movement")
+	EGridCombatMovementDirection Direction = EGridCombatMovementDirection::BackwardFromFacing;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Movement", meta = (ClampMin = "1", ClampMax = "8"))
+	int32 DistanceCells = 1;
+
+	/** Shared party PAM paid in addition to the action's ordinary AP cost. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Movement", meta = (ClampMin = "0", ClampMax = "4"))
+	int32 MobilityActionPointCost = 0;
+
+	/** Forced movement ignores bBlockTranslation but never ignores geometry/occupancy. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Movement")
+	bool bForced = false;
+
+	bool IsValid() const
+	{
+		if (DistanceCells < 1 || DistanceCells > 8 || MobilityActionPointCost < 0 || MobilityActionPointCost > 4)
+		{
+			return false;
+		}
+		if (Subject == EGridCombatMovementSubject::PartyGroup)
+		{
+			return Direction != EGridCombatMovementDirection::AwayFromSource;
+		}
+		return MobilityActionPointCost == 0;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FGridCombatMovementResolution
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Movement")
+	FIntPoint FromCell = FIntPoint::ZeroValue;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Movement")
+	FIntPoint ToCell = FIntPoint::ZeroValue;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Movement")
+	EGridEdge Direction = EGridEdge::None;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Movement")
+	int32 DistanceCells = 0;
+
+	bool IsValid() const
+	{
+		return Direction != EGridEdge::None && DistanceCells > 0 && FromCell != ToCell;
 	}
 };
 
@@ -1099,6 +1180,10 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Armor")
 	TArray<FGridCombatArmorEffectProfile> ArmorEffects;
 
+	/** C5 tactical/forced movement effects. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Movement")
+	TArray<FGridCombatMovementEffectProfile> MovementEffects;
+
 	bool IsValid() const
 	{
 		const bool bAttackProfileValid = ResolutionProfile != EGridCombatActionResolutionProfile::Attack || (OffensiveProfile.IsValid() && ActionPointCost > 0);
@@ -1130,11 +1215,16 @@ struct FGridCombatActionDefinition
 					Profile.Operation != EGridCombatArmorEffectOperation::Restore ||
 					Profile.Trigger != EGridCombatArmorEffectTrigger::AfterResolution;
 			}) == false;
+		const bool bMovementEffectsValid = MovementEffects.ContainsByPredicate(
+			[this](const FGridCombatMovementEffectProfile& Profile)
+			{
+				return !Profile.IsValid() || ResolutionProfile != EGridCombatActionResolutionProfile::Effect;
+			}) == false;
 		return !ActionId.IsNone() && ActionType != EGridCombatActionType::None && SourcePolicy != EGridCombatActionSourcePolicy::None &&
 			TargetingPolicy != EGridCombatTargetingPolicy::None && ResolutionProfile != EGridCombatActionResolutionProfile::None && ActionPointCost >= 0 &&
 			ActionPointCost <= 6 && ResourceCosts.IsValid() && RangeCells >= 0 && RangeCells <= 32 && AreaRadiusCells >= 0 && AreaRadiusCells <= 8 &&
 			CooldownRounds >= 0 && bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bStatusApplicationsValid &&
-			bArmorEffectsValid;
+			bArmorEffectsValid && bMovementEffectsValid;
 	}
 };
 
@@ -1411,6 +1501,15 @@ struct FGridCombatClassActionResult
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Class Action")
 	int32 MagicalArmorAfter = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Class Action")
+	bool bMovementStarted = false;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Class Action")
+	FIntPoint MovementFromCell = FIntPoint::ZeroValue;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Class Action")
+	FIntPoint MovementToCell = FIntPoint::ZeroValue;
 };
 
 /** Pure preview of one explicit cell/area target before resources are paid. */

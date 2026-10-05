@@ -592,6 +592,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void SnapToCurrentCell();
 
+	/** C5 starts an already-authorized adjacent combat translation without charging movement costs again. */
+	bool BeginAuthorizedGridTranslation(EGridEdge MoveDirection, const FIntPoint& TargetCell);
+
 	void ClearBufferedCommand();
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")

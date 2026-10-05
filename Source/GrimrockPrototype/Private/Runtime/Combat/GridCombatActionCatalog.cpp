@@ -133,7 +133,26 @@ namespace
 				FGridCombatArmorEffectResolver::ApplyReferenceModifiers(ArmorSnapshot, ArmorModifiers);
 				const bool bArmorWouldMutate =
 					FGridCombatArmorEffectResolver::WouldAnyRestore(Definition.ArmorEffects, ArmorSnapshot, ArmorModifiers, &Context.ArmorEffectSource);
-				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate && !bArmorWouldMutate)
+				int32 MovementMobilityCost = 0;
+				bool bHasSupportedMovement = false;
+				for (const FGridCombatMovementEffectProfile& Movement : Definition.MovementEffects)
+				{
+					if (Movement.Subject == EGridCombatMovementSubject::PartyGroup && Movement.DistanceCells == 1)
+					{
+						bHasSupportedMovement = true;
+						MovementMobilityCost += Movement.MobilityActionPointCost;
+					}
+				}
+				if (!Definition.MovementEffects.IsEmpty() && !bHasSupportedMovement)
+				{
+					return EGridCombatActionAvailabilityReason::ExecutionNotImplemented;
+				}
+				if (bHasSupportedMovement && Context.RemainingMobilityActionPoints < MovementMobilityCost)
+				{
+					return EGridCombatActionAvailabilityReason::InsufficientMobilityActionPoints;
+				}
+				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate && !bArmorWouldMutate &&
+					!bHasSupportedMovement)
 				{
 					return EGridCombatActionAvailabilityReason::NoApplicableEffect;
 				}
@@ -156,7 +175,7 @@ namespace
 				Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack && IsSupportedAttackTargeting(Definition.TargetingPolicy);
 			const bool bSupportedSelfEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 				Definition.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
-				(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty() || !Definition.ArmorEffects.IsEmpty());
+				(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty() || !Definition.ArmorEffects.IsEmpty() || !Definition.MovementEffects.IsEmpty());
 			if (!Context.bEnableClassActionExecutors || (!bSupportedAttack && !bSupportedSelfEffect))
 			{
 				return EGridCombatActionAvailabilityReason::ExecutionNotImplemented;
@@ -184,7 +203,22 @@ namespace
 				FGridCombatArmorEffectResolver::ApplyReferenceModifiers(ArmorSnapshot, ArmorModifiers);
 				const bool bArmorWouldMutate =
 					FGridCombatArmorEffectResolver::WouldAnyRestore(Definition.ArmorEffects, ArmorSnapshot, ArmorModifiers, &Context.ArmorEffectSource);
-				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate && !bArmorWouldMutate)
+				int32 MovementMobilityCost = 0;
+				bool bHasSupportedMovement = false;
+				for (const FGridCombatMovementEffectProfile& Movement : Definition.MovementEffects)
+				{
+					if (Movement.Subject == EGridCombatMovementSubject::PartyGroup && Movement.DistanceCells == 1)
+					{
+						bHasSupportedMovement = true;
+						MovementMobilityCost += Movement.MobilityActionPointCost;
+					}
+				}
+				if (bHasSupportedMovement && Context.RemainingMobilityActionPoints < MovementMobilityCost)
+				{
+					return EGridCombatActionAvailabilityReason::InsufficientMobilityActionPoints;
+				}
+				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate && !bArmorWouldMutate &&
+					!bHasSupportedMovement)
 				{
 					return EGridCombatActionAvailabilityReason::NoApplicableEffect;
 				}
@@ -286,6 +320,8 @@ FText FGridCombatActionCatalog::GetAvailabilityReasonText(EGridCombatActionAvail
 			return LOCTEXT("PartyBusy", "Le groupe est occupé.");
 		case EGridCombatActionAvailabilityReason::InsufficientActionPoints:
 			return LOCTEXT("InsufficientActionPoints", "Ce personnage n’a pas assez de points d’action.");
+		case EGridCombatActionAvailabilityReason::InsufficientMobilityActionPoints:
+			return LOCTEXT("InsufficientMobilityActionPoints", "Le groupe n’a pas assez de points de mobilité.");
 		case EGridCombatActionAvailabilityReason::InsufficientMana:
 			return LOCTEXT("InsufficientMana", "Ce personnage n’a pas assez de mana.");
 		case EGridCombatActionAvailabilityReason::InsufficientSourceItems:

@@ -349,6 +349,35 @@ bool AGrimrockPartyPawn::TryStartMove(EGridEdge MoveDirection)
 	return true;
 }
 
+bool AGrimrockPartyPawn::BeginAuthorizedGridTranslation(EGridEdge MoveDirection, const FIntPoint& TargetCell)
+{
+	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || bIsPitFalling || !HasLevelRuntimeActor() ||
+		!GridDirectionUtils::IsCardinal(MoveDirection))
+	{
+		return false;
+	}
+
+	int32 NeighborX = INDEX_NONE;
+	int32 NeighborY = INDEX_NONE;
+	if (!TryGetNeighborOnLevel(CurrentCellX, CurrentCellY, MoveDirection, NeighborX, NeighborY) ||
+		TargetCell != FIntPoint(NeighborX, NeighborY))
+	{
+		return false;
+	}
+
+	MoveStartLocation = GetActorLocation();
+	MoveTargetLocation = GetCellCenterOnLevel(TargetCell.X, TargetCell.Y, EyeHeight);
+	MoveElapsed = 0.f;
+	bIsMoving = true;
+	MoveStartCellX = CurrentCellX;
+	MoveStartCellY = CurrentCellY;
+	CurrentCellX = TargetCell.X;
+	CurrentCellY = TargetCell.Y;
+	ActiveMoveDirection = MoveDirection;
+	PlayFootstepSound();
+	return true;
+}
+
 bool AGrimrockPartyPawn::TryStartBlockedMoveFeedback(EGridEdge MoveDirection)
 {
 	if (!bEnableBlockedMoveFeedback || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || bIsPitFalling || !HasLevelRuntimeActor() ||

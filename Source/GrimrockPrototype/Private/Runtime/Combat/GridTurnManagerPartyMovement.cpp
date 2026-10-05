@@ -3,6 +3,7 @@
 #include "Core/GridDirectionUtils.h"
 #include "Engine/World.h"
 #include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
+#include "Runtime/Combat/GridCombatMovementResolver.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -120,6 +121,111 @@ bool UGridTurnManagerComponent::RequestPartyTranslation(EGridEdge MoveDirection,
 		TEXT("[GridPartyMovement] Accepted=true Type=Translation Round=%d Character=%d From=(%d,%d) To=(%d,%d) Direction=%s AP=%d/%d PAM=%d/%d"), RoundNumber,
 		CharacterIndex, FromCell.X, FromCell.Y, TargetCell.X, TargetCell.Y, *UEnum::GetValueAsString(MoveDirection), TurnState.RemainingActionPoints,
 		TurnState.MaximumActionPoints, PartyMobilityState.RemainingMobilityActionPoints, PartyMobilityState.MaximumMobilityActionPoints);
+	return true;
+}
+
+bool UGridTurnManagerComponent::CanResolvePartyActionMovement(int32 CharacterIndex, const FGridCombatMovementEffectProfile& Profile,
+	FGridCombatMovementResolution& OutResolution, EGridPartyMovementRejectReason& OutRejectReason) const
+{
+	OutResolution = FGridCombatMovementResolution();
+	OutRejectReason = EGridPartyMovementRejectReason::None;
+	if (!bInitialized)
+	{
+		OutRejectReason = EGridPartyMovementRejectReason::TurnManagerNotInitialized;
+		return false;
+	}
+	if (!bCombatActive)
+	{
+		OutRejectReason = EGridPartyMovementRejectReason::CombatInactive;
+		return false;
+	}
+	if (!Profile.IsValid() || Profile.Subject != EGridCombatMovementSubject::PartyGroup || Profile.DistanceCells != 1)
+	{
+		OutRejectReason = EGridPartyMovementRejectReason::InvalidDirection;
+		return false;
+	}
+	if (!IsValid(RuntimeActor) || !IsValid(PartyPawn) || !IsValid(PartyPawn->PartyInventoryComponent))
+	{
+		OutRejectReason = EGridPartyMovementRejectReason::PartyUnavailable;
+		return false;
+	}
+	if (CurrentPhase != EGridCombatPhase::PlayerPhase)
+	{
+		OutRejectReason = EGridPartyMovementRejectReason::NotPlayerTurn;
+		return false;
+	}
+	if (CharacterIndex == INDEX_NONE || (!InitiativeOrder.IsEmpty() && !IsActivePlayerCharacter(CharacterIndex)))
+	{
+		OutRejectReason = EGridPartyMovementRejectReason::NotActiveCombatant;
+		return false;
+	}
+	if (bPartyInputLocked || bPlayerAttackResolutionInProgress || PendingPartyMotionType != EGridPendingPartyMotionType::None || !IsPartyAtRest())
+	{
+		OutRejectReason = EGridPartyMovementRejectReason::PartyBusy;
+		return false;
+	}
+	if (!Profile.bForced)
+	{
+		const TArray<FGridCharacterInventoryState>& Characters = PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters;
+		if (Characters.IsValidIndex(CharacterIndex) &&
+			FGridStatusEffectControlResolver::Resolve(Characters[CharacterIndex].StatusEffects).bBlockTranslation)
+		{
+			OutRejectReason = EGridPartyMovementRejectReason::PartyBusy;
+			return false;
+		}
+		if (PartyPawn->PartyInventoryComponent->IsAnyActiveCharacterOverloaded())
+		{
+			OutRejectReason = EGridPartyMovementRejectReason::PartyBusy;
+			return false;
+		}
+	}
+	if (!PartyMobilityState.CanSpend(Profile.MobilityActionPointCost))
+	{
+		OutRejectReason = EGridPartyMovementRejectReason::InsufficientMobilityActionPoints;
+		return false;
+	}
+
+	const FIntPoint FromCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+	const UGridMonsterOccupancySubsystem* Occupancy = GetWorld() ? GetWorld()->GetSubsystem<UGridMonsterOccupancySubsystem>() : nullptr;
+	if (!FGridCombatMovementResolver::ResolveDestination(
+			Profile, FromCell, PartyPawn->Facing, FromCell, RuntimeActor, Occupancy, OutResolution))
+	{
+		OutRejectReason = EGridPartyMovementRejectReason::PassageBlocked;
+		return false;
+	}
+	return true;
+}
+
+bool UGridTurnManagerComponent::StartPartyActionMovement(int32 CharacterIndex, const FGridCombatMovementEffectProfile& Profile,
+	FGridCombatMovementResolution& OutResolution, EGridPartyMovementRejectReason& OutRejectReason)
+{
+	if (!CanResolvePartyActionMovement(CharacterIndex, Profile, OutResolution, OutRejectReason))
+	{
+		return false;
+	}
+
+	PendingPartyMotionType = EGridPendingPartyMotionType::Translation;
+	PendingPartyMotionCharacterIndex = CharacterIndex;
+	PendingPartyTranslationFromCell = OutResolution.FromCell;
+	PendingPartyTranslationTargetCell = OutResolution.ToCell;
+
+	const int32 PreviousMobility = PartyMobilityState.RemainingMobilityActionPoints;
+	PartyMobilityState.RemainingMobilityActionPoints =
+		FMath::Max(0, PartyMobilityState.RemainingMobilityActionPoints - Profile.MobilityActionPointCost);
+	if (!PartyPawn->BeginAuthorizedGridTranslation(OutResolution.Direction, OutResolution.ToCell))
+	{
+		PartyMobilityState.RemainingMobilityActionPoints = PreviousMobility;
+		ClearPendingPartyMotion();
+		OutRejectReason = EGridPartyMovementRejectReason::PartyBusy;
+		return false;
+	}
+
+	OnPartyMobilityStateChanged.Broadcast(PartyMobilityState);
+	UE_LOG(LogGridTurnManager, Log,
+		TEXT("[RPG03.5] PartyActionMovement Character=%d From=(%d,%d) To=(%d,%d) Direction=%s Forced=%s PAM=%d/%d"),
+		CharacterIndex, OutResolution.FromCell.X, OutResolution.FromCell.Y, OutResolution.ToCell.X, OutResolution.ToCell.Y,
+		*UEnum::GetValueAsString(OutResolution.Direction), Profile.bForced ? TEXT("true") : TEXT("false"),
+		PartyMobilityState.RemainingMobilityActionPoints, PartyMobilityState.MaximumMobilityActionPoints);
 	return true;
 }
 
