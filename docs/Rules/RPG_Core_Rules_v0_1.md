@@ -232,16 +232,18 @@ Formule recommandée :
 PV = BaseClasse + Niveau × (GainClasse + Modificateur de Constitution)
 ```
 
-Exemple de valeurs de classe :
+Exemple de valeurs de classe autoritaires (alignées sur les DataAssets de création de personnage) :
 
-| Classe | PV niveau 1 | Gain par niveau |
-|---|---:|---:|
-| Guerrier | 18 | 8 |
-| Rôdeur | 14 | 6 |
-| Voleur | 12 | 5 |
-| Mage | 8 | 4 |
-| Prêtre | 14 | 6 |
-| Alchimiste | 12 | 5 |
+| Classe | PV niveau 1 | Gain par niveau | Mana niveau 1 | Mana/niveau |
+|---|---:|---:|---:|---:|
+| Guerrier | 18 | 8 | 0 | 0 |
+| Voleur | 14 | 6 | 0 | 0 |
+| Rôdeur | 16 | 7 | 0 | 0 |
+| Mage | 8 | 4 | 18 | 8 |
+| Prêtre | 12 | 6 | 16 | 7 |
+| Alchimiste | 12 | 5 | 10 | 5 |
+
+La formule réellement implémentée par `URPGCharacterRulesLibrary::CalculateDerivedStats` est la référence runtime. Les bonus de Constitution sont appliqués par ce calcul.
 
 ### Mana et endurance
 
@@ -1143,47 +1145,29 @@ Une plaque de pression gelée reste bloquée tant que la glace n'est pas fondue.
 
 ## Progression
 
-Le prototype doit commencer avec une progression courte.
+Le runtime supporte désormais une progression complète du **niveau 1 au niveau 20**. Le précédent objectif provisoire 1–5 est obsolète.
 
-### Niveau maximal recommandé en v0.1
-
-```text
-Niveau 1 à 5
-```
-
-C'est suffisant pour tester :
-
-- création de personnage ;
-- combat ;
-- inventaire ;
-- sorts ;
-- progression ;
-- dons ;
-- équilibrage.
-
-### Règles de progression
-
-À chaque niveau :
+Courbe XP autoritaire :
 
 ```text
-+ points de vie
-+ éventuellement mana
-+ points de compétence
+XP cumulé niveau N = 1000 × (N - 1) × N / 2
+Niveau maximum = 20
+XP cumulé niveau 20 = 190000
 ```
 
-Tous les 2 niveaux :
+Progression de base retenue :
 
-```text
-+ 1 don
-```
+- niveau 1 : 4 points de compétence ;
+- niveaux 2 à 20 : +1 point de compétence par niveau ;
+- +1 Talent Point tous les 2 niveaux, du niveau 2 au niveau 20 ;
+- +1 point de caractéristique aux niveaux 4, 8, 12, 16 et 20 ;
+- Skill Rank maximal : 2 aux niveaux 1–4, 3 aux niveaux 5–9, 4 aux niveaux 10–14, 5 aux niveaux 15–20 ;
+- les points de Skill et de Talent peuvent être conservés ;
+- les Talents réutilisent exclusivement les `ProgressionChoices` existants.
 
-Tous les 4 niveaux :
+La définition détaillée des six classes, des trois branches par classe et des choix niveau par niveau est autoritaire dans :
 
-```text
-+ 1 point de caractéristique
-```
-
-Extension future : progression du niveau 1 au niveau 10, puis éventuellement jusqu'au niveau 20.
+[`RPG_Class_Progression_1_20_v0_1.md`](RPG_Class_Progression_1_20_v0_1.md)
 
 ---
 
