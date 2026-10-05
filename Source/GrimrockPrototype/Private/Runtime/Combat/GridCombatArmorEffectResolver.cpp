@@ -156,7 +156,8 @@ int32 FGridCombatArmorEffectResolver::GetRestorationPercentModifier(
 }
 
 bool FGridCombatArmorEffectResolver::ResolveOne(const FGridCombatArmorEffectProfile& Profile, const FGridCombatArmorPoolSnapshot& Snapshot,
-	const FGridResolvedCombatModifiers& Modifiers, const FGridAttackResult* AttackResult, FGridCombatArmorEffectResult& OutResult)
+	const FGridResolvedCombatModifiers& Modifiers, const FGridCombatArmorEffectSourceContext* SourceContext,
+	const FGridAttackResult* AttackResult, FGridCombatArmorEffectResult& OutResult)
 {
 	OutResult = FGridCombatArmorEffectResult();
 	if (!Profile.IsValid() || !Snapshot.IsValid())
