@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectTypes.h"
+#include "Runtime/Combat/GridCombatTypes.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "GridStatusEffectDefinitionAsset.generated.h"
 
@@ -120,6 +121,10 @@ public:
 	/** Optional action/movement restrictions aggregated by MON16.5. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Control")
 	FGridStatusEffectControlProfile Control;
+
+	/** RPG03.2: C2 modifiers projected while this status is active. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Combat")
+	TArray<FGridCombatModifierProfile> CombatModifiers;
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Status Effects|Validation")
 	bool IsValidDefinition() const;

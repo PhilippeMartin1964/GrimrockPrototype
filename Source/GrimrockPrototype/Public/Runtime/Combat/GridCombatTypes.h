@@ -485,6 +485,58 @@ struct FGridOffensiveEquipmentProfile
 	}
 };
 
+UENUM(BlueprintType)
+enum class EGridCombatStatusApplicationTrigger : uint8
+{
+	None UMETA(DisplayName = "None"),
+	AfterResolution UMETA(DisplayName = "After Resolution"),
+	AfterSuccessfulHit UMETA(DisplayName = "After Successful Hit")
+};
+
+UENUM(BlueprintType)
+enum class EGridCombatStatusArmorGate : uint8
+{
+	None UMETA(DisplayName = "None"),
+	PhysicalArmorDepleted UMETA(DisplayName = "Physical Armor Depleted"),
+	MagicalArmorDepleted UMETA(DisplayName = "Magical Armor Depleted")
+};
+
+/**
+ * Generic C1 secondary status application attached to one combat action.
+ * StatusEffectId is the stable GridStatusEffect primary-asset identity.
+ */
+USTRUCT(BlueprintType)
+struct FGridCombatStatusApplicationProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status")
+	FName StatusEffectId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status")
+	EGridCombatStatusApplicationTrigger Trigger = EGridCombatStatusApplicationTrigger::AfterResolution;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status")
+	EGridCombatStatusArmorGate ArmorGate = EGridCombatStatusArmorGate::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status", meta = (ClampMin = "1"))
+	int32 InitialStackCount = 1;
+
+	/** INDEX_NONE uses the status definition default. Zero is reserved for permanent effects. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status", meta = (ClampMin = "-1"))
+	int32 DurationOverride = INDEX_NONE;
+
+	/** INDEX_NONE uses the status definition default potency. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status", meta = (ClampMin = "-1"))
+	int32 PotencyOverride = INDEX_NONE;
+
+	bool IsValid() const
+	{
+		return !StatusEffectId.IsNone() && Trigger != EGridCombatStatusApplicationTrigger::None && InitialStackCount >= 1 &&
+			DurationOverride >= INDEX_NONE && PotencyOverride >= INDEX_NONE;
+	}
+};
+
 /** Resource costs declared by an action before runtime modifiers. */
 USTRUCT(BlueprintType)
 struct FGridCombatActionResourceCosts
@@ -700,6 +752,10 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution")
 	FGridCombatActionEffectProfile EffectProfile;
 
+	/** C1 secondary status applications resolved after the primary action/effect. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Status")
+	TArray<FGridCombatStatusApplicationProfile> StatusApplications;
+
 	bool IsValid() const
 	{
 		const bool bAttackProfileValid = ResolutionProfile != EGridCombatActionResolutionProfile::Attack || (OffensiveProfile.IsValid() && ActionPointCost > 0);
@@ -708,10 +764,17 @@ struct FGridCombatActionDefinition
 											  TargetingPolicy != EGridCombatTargetingPolicy::Cell && TargetingPolicy != EGridCombatTargetingPolicy::Area) ||
 			RangeCells > 0;
 		const bool bAreaRadiusValid = TargetingPolicy != EGridCombatTargetingPolicy::Area || AreaRadiusCells > 0;
+		const bool bStatusApplicationsValid = StatusApplications.ContainsByPredicate(
+			[this](const FGridCombatStatusApplicationProfile& Profile)
+			{
+				return !Profile.IsValid() ||
+					(Profile.Trigger == EGridCombatStatusApplicationTrigger::AfterSuccessfulHit &&
+						ResolutionProfile != EGridCombatActionResolutionProfile::Attack);
+			}) == false;
 		return !ActionId.IsNone() && ActionType != EGridCombatActionType::None && SourcePolicy != EGridCombatActionSourcePolicy::None &&
 			TargetingPolicy != EGridCombatTargetingPolicy::None && ResolutionProfile != EGridCombatActionResolutionProfile::None && ActionPointCost >= 0 &&
 			ActionPointCost <= 6 && ResourceCosts.IsValid() && RangeCells >= 0 && RangeCells <= 32 && AreaRadiusCells >= 0 && AreaRadiusCells <= 8 &&
-			CooldownRounds >= 0 && bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid;
+			CooldownRounds >= 0 && bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bStatusApplicationsValid;
 	}
 };
 

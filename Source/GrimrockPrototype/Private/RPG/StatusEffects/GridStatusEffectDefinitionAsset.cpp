@@ -68,6 +68,14 @@ bool UGridStatusEffectDefinitionAsset::ValidateDefinition(FString& OutError) con
 	{
 		Errors.Add(TEXT("SkipActivation requires a Turns or Rounds duration in MON16.5."));
 	}
+	for (const FGridCombatModifierProfile& Modifier : CombatModifiers)
+	{
+		if (!Modifier.IsValid())
+		{
+			Errors.Add(TEXT("CombatModifiers contains an invalid RPG03.1 profile."));
+			break;
+		}
+	}
 
 	OutError = FString::Join(Errors, TEXT("\n"));
 	return Errors.IsEmpty();

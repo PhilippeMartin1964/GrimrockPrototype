@@ -1,6 +1,7 @@
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 
 #include "RPG/RPGClassAsset.h"
+#include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 
 namespace
@@ -159,6 +160,40 @@ bool FGridCombatModifierResolver::CollectCharacterChoiceModifiers(
 		}
 		OutProfiles.Append(Choice->CombatModifiers);
 	}
+	return true;
+}
+
+bool FGridCombatModifierResolver::CollectStatusModifiers(
+	const FGridStatusEffectCollection& StatusEffects, TArray<FGridCombatModifierProfile>& OutProfiles)
+{
+	OutProfiles.Reset();
+	for (const FGridStatusEffectRuntimeState& State : StatusEffects.ActiveEffects)
+	{
+		if (!State.IsValid() || !IsValid(State.DefinitionAsset) || !State.DefinitionAsset->IsValidDefinition())
+		{
+			OutProfiles.Reset();
+			return false;
+		}
+		for (int32 StackIndex = 0; StackIndex < State.StackCount; ++StackIndex)
+		{
+			OutProfiles.Append(State.DefinitionAsset->CombatModifiers);
+		}
+	}
+	return true;
+}
+
+bool FGridCombatModifierResolver::CollectCharacterModifiers(
+	const FGridCharacterInventoryState& Character, TArray<FGridCombatModifierProfile>& OutProfiles)
+{
+	TArray<FGridCombatModifierProfile> ChoiceProfiles;
+	TArray<FGridCombatModifierProfile> StatusProfiles;
+	if (!CollectCharacterChoiceModifiers(Character, ChoiceProfiles) || !CollectStatusModifiers(Character.StatusEffects, StatusProfiles))
+	{
+		OutProfiles.Reset();
+		return false;
+	}
+	OutProfiles = MoveTemp(ChoiceProfiles);
+	OutProfiles.Append(StatusProfiles);
 	return true;
 }
 

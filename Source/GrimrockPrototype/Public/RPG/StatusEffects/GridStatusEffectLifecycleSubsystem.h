@@ -50,6 +50,14 @@ public:
 		FGridStatusEffectApplyResult& OutResult, FString& OutError, int32 InitialStackCount = 1, int32 DurationOverride = INDEX_NONE,
 		int32 PotencyOverride = INDEX_NONE);
 
+	/** C1 post-resolution bridge. Returns the number of status collections actually mutated. */
+	int32 ApplyCombatStatusApplicationsToPartyCharacter(int32 CharacterIndex, const TArray<FGridCombatStatusApplicationProfile>& Profiles,
+		const FGuid& SourceId, const FGridAttackTargetStats& TargetBefore, const FGridAttackResult* AttackResult = nullptr);
+
+	/** C1 post-resolution bridge for monsters. */
+	int32 ApplyCombatStatusApplicationsToMonster(AGridMonsterActor* Monster, const TArray<FGridCombatStatusApplicationProfile>& Profiles,
+		const FGuid& SourceId, const FGridAttackTargetStats& TargetBefore, const FGridAttackResult* AttackResult = nullptr);
+
 	/** Reprojects every authoritative status collection into InitiativeModifier. */
 	void RefreshAllInitiativeModifiers();
 

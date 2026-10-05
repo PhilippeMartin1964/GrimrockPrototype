@@ -19,6 +19,9 @@ struct GRIMROCKPROTOTYPE_API FGridCombatActionCatalogContext
 	int32 MaximumHealth = 0;
 	int32 CurrentMana = 0;
 	int32 MaximumMana = 0;
+	int32 CurrentPhysicalArmor = 0;
+	int32 CurrentMagicalArmor = 0;
+	FGridStatusEffectCollection CurrentStatusEffects;
 	TSet<FName> SatisfiedRequirements;
 	TMap<FName, int32> RemainingCooldownRounds;
 	TArray<FGridCombatModifierProfile> CombatModifiers;

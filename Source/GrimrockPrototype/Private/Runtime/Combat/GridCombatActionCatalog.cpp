@@ -1,6 +1,7 @@
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 
 #include "Runtime/Combat/GridCombatModifierResolver.h"
+#include "RPG/StatusEffects/GridCombatStatusApplicationResolver.h"
 
 #include "RPG/RPGClassProgressionTransactionService.h"
 
@@ -103,7 +104,7 @@ namespace
 			const bool bSupportedQuickItemProfile =
 				(Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack && IsSupportedAttackTargeting(Definition.TargetingPolicy)) ||
 				(Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect && Definition.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
-					Definition.EffectProfile.IsValid());
+					(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty()));
 			if (!Context.bEnableQuickItemExecutors || !bSupportedQuickItemProfile)
 			{
 				return EGridCombatActionAvailabilityReason::ExecutionNotImplemented;
@@ -114,7 +115,13 @@ namespace
 				const int32 HealthAfter = FMath::Clamp(Context.CurrentHealth + Definition.EffectProfile.RestoreHealth, 0, FMath::Max(0, Context.MaximumHealth));
 				const int32 ManaAfter = FMath::Clamp(
 					Context.CurrentMana - Definition.ResourceCosts.ManaCost + Definition.EffectProfile.RestoreMana, 0, FMath::Max(0, Context.MaximumMana));
-				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana)
+				FGridAttackTargetStats SelfTarget;
+				SelfTarget.CurrentHealth = Context.CurrentHealth;
+				SelfTarget.PhysicalArmor = Context.CurrentPhysicalArmor;
+				SelfTarget.MagicalArmor = Context.CurrentMagicalArmor;
+				const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
+					Definition.StatusApplications, Context.CharacterId, SelfTarget, nullptr, Context.CurrentStatusEffects);
+				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate)
 				{
 					return EGridCombatActionAvailabilityReason::NoApplicableEffect;
 				}
@@ -136,7 +143,8 @@ namespace
 			const bool bSupportedAttack =
 				Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack && IsSupportedAttackTargeting(Definition.TargetingPolicy);
 			const bool bSupportedSelfEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
-				Definition.TargetingPolicy == EGridCombatTargetingPolicy::Self && Definition.EffectProfile.IsValid();
+				Definition.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
+				(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty());
 			if (!Context.bEnableClassActionExecutors || (!bSupportedAttack && !bSupportedSelfEffect))
 			{
 				return EGridCombatActionAvailabilityReason::ExecutionNotImplemented;
@@ -147,7 +155,13 @@ namespace
 				const int32 HealthAfter = FMath::Clamp(Context.CurrentHealth + Definition.EffectProfile.RestoreHealth, 0, FMath::Max(0, Context.MaximumHealth));
 				const int32 ManaAfter = FMath::Clamp(
 					Context.CurrentMana - Definition.ResourceCosts.ManaCost + Definition.EffectProfile.RestoreMana, 0, FMath::Max(0, Context.MaximumMana));
-				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana)
+				FGridAttackTargetStats SelfTarget;
+				SelfTarget.CurrentHealth = Context.CurrentHealth;
+				SelfTarget.PhysicalArmor = Context.CurrentPhysicalArmor;
+				SelfTarget.MagicalArmor = Context.CurrentMagicalArmor;
+				const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
+					Definition.StatusApplications, Context.CharacterId, SelfTarget, nullptr, Context.CurrentStatusEffects);
+				if (HealthAfter <= Context.CurrentHealth && ManaAfter <= Context.CurrentMana && !bStatusWouldMutate)
 				{
 					return EGridCombatActionAvailabilityReason::NoApplicableEffect;
 				}

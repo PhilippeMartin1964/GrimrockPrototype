@@ -1,6 +1,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
@@ -50,6 +51,25 @@ namespace
 			}
 		}
 		return false;
+	}
+
+	void ResolveMON12AttackStatusApplications(
+		const UGridItemDefinitionAsset* Definition, FName AttackId, TArray<FGridCombatStatusApplicationProfile>& OutProfiles)
+	{
+		OutProfiles.Reset();
+		if (!IsValid(Definition) || AttackId.IsNone())
+		{
+			return;
+		}
+		for (const FGridCombatActionDefinition& Action : Definition->CombatActions)
+		{
+			if (Action.IsValid() && Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
+				Action.OffensiveProfile.AttackId == AttackId)
+			{
+				OutProfiles = Action.StatusApplications;
+				return;
+			}
+		}
 	}
 
 	bool DoesMON12ItemDeclareAttack(const UGridItemDefinitionAsset* Definition)
@@ -214,9 +234,20 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		return RejectPlayerAttack(AttackerCharacterIndex, OffensiveProfileRejectReason, OutRejectReason);
 	}
 
+	TArray<FGridCombatStatusApplicationProfile> AttackStatusApplications;
+	if (CombatActionOverride)
+	{
+		AttackStatusApplications = CombatActionOverride->Definition.StatusApplications;
+	}
+	else if (!OffensiveItemDefinitionId.IsNone())
+	{
+		ResolveMON12AttackStatusApplications(
+			PartyPawn->PartyInventoryComponent->FindItemDefinition(OffensiveItemDefinitionId), OffensiveProfile.AttackId, AttackStatusApplications);
+	}
+
 	TArray<FGridCombatModifierProfile> ChoiceModifiers;
 	FGridResolvedCombatModifiers ResolvedAttackModifiers;
-	if (FGridCombatModifierResolver::CollectCharacterChoiceModifiers(Attacker, ChoiceModifiers))
+	if (FGridCombatModifierResolver::CollectCharacterModifiers(Attacker, ChoiceModifiers))
 	{
 		const EGridCombatActionSourcePolicy ModifierSourcePolicy = CombatActionOverride ? CombatActionOverride->Definition.SourcePolicy
 			: OffensiveEquipmentSlot != EGridEquipmentSlot::None ? EGridCombatActionSourcePolicy::Equipment : EGridCombatActionSourcePolicy::Universal;
@@ -342,6 +373,22 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	}
 
 	FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(Source, ResolvedAttackModifiers);
+	TArray<FGridCombatModifierProfile> TargetStatusModifiers;
+	if (FGridCombatModifierResolver::CollectStatusModifiers(TargetMonster->StatusEffects, TargetStatusModifiers))
+	{
+		const EGridCombatActionSourcePolicy TargetContextSourcePolicy = CombatActionOverride ? CombatActionOverride->Definition.SourcePolicy
+			: OffensiveEquipmentSlot != EGridEquipmentSlot::None ? EGridCombatActionSourcePolicy::Equipment : EGridCombatActionSourcePolicy::Universal;
+		const EGridCombatActionType TargetContextActionType = CombatActionOverride ? CombatActionOverride->Definition.ActionType
+			: OffensiveProfile.RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
+		const FName TargetContextSourceDefinitionId = CombatActionOverride ? CombatActionOverride->SourceDefinitionId : OffensiveItemDefinitionId;
+		const FGridCombatModifierContext TargetContext = CombatActionOverride
+			? FGridCombatModifierResolver::MakeActionContext(CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId)
+			: FGridCombatModifierResolver::MakeAttackContext(OffensiveProfile.AttackId, TargetContextSourceDefinitionId, TargetContextSourcePolicy,
+				TargetContextActionType, AttackDefinition.DamageType, AttackDefinition.PhysicalSubtype);
+		FGridResolvedCombatModifiers TargetResolvedModifiers;
+		FGridCombatModifierResolver::Resolve(TargetStatusModifiers, TargetContext, TargetResolvedModifiers);
+		FGridCombatModifierResolver::ApplyIncomingAttackModifiers(Target, AttackDefinition.DamageType, TargetResolvedModifiers);
+	}
 
 	FGridPlayerAttackRequest Request;
 	Request.RequestId = FGuid::NewGuid();
@@ -496,6 +543,18 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 
 	bPlayerAttackResolutionInProgress = true;
 	TargetMonster->ApplyAttackResult(Result);
+	if (!AttackStatusApplications.IsEmpty())
+	{
+		if (UWorld* StatusWorld = GetWorld())
+		{
+			if (UGridStatusEffectLifecycleSubsystem* StatusLifecycle = StatusWorld->GetSubsystem<UGridStatusEffectLifecycleSubsystem>())
+			{
+				StatusLifecycle->BindToTurnManager(this);
+				StatusLifecycle->ApplyCombatStatusApplicationsToMonster(
+					TargetMonster, AttackStatusApplications, Attacker.CharacterId, Target, &Result);
+			}
+		}
+	}
 	if (FGridCombatantInitiativeEntry* TargetEntry = FindInitiativeEntry(EGridCombatantSide::Monster, TargetMonsterId))
 	{
 		const int32 PreviousHealth = TargetEntry->CurrentHealth;

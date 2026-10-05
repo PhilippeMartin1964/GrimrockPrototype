@@ -4,6 +4,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
+#include "RPG/StatusEffects/GridCombatStatusApplicationResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectInitiativeResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectPeriodicDamageResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectPresentation.h"
@@ -180,6 +181,85 @@ bool UGridStatusEffectLifecycleSubsystem::TryApplyStatusEffectToMonster(AGridMon
 		}
 	}
 	return bApplied;
+}
+
+int32 UGridStatusEffectLifecycleSubsystem::ApplyCombatStatusApplicationsToPartyCharacter(int32 CharacterIndex,
+	const TArray<FGridCombatStatusApplicationProfile>& Profiles, const FGuid& SourceId, const FGridAttackTargetStats& TargetBefore,
+	const FGridAttackResult* AttackResult)
+{
+	int32 MutationCount = 0;
+	for (const FGridCombatStatusApplicationProfile& Profile : Profiles)
+	{
+		if (!FGridCombatStatusApplicationResolver::IsEligible(Profile, TargetBefore, AttackResult))
+		{
+			continue;
+		}
+
+		UGridStatusEffectDefinitionAsset* Definition = FGridCombatStatusApplicationResolver::ResolveDefinition(Profile.StatusEffectId);
+		if (!IsValid(Definition))
+		{
+			UE_LOG(LogGridStatusEffects, Warning, TEXT("[RPG03.2] Status definition unavailable Effect=%s Target=Party Character=%d"),
+				*Profile.StatusEffectId.ToString(), CharacterIndex);
+			continue;
+		}
+
+		FGridStatusEffectApplyResult ApplyResult;
+		FString Error;
+		if (TryApplyStatusEffectToPartyCharacter(CharacterIndex, Definition, SourceId, ApplyResult, Error, Profile.InitialStackCount,
+				Profile.DurationOverride, Profile.PotencyOverride) &&
+			ApplyResult.DidMutate())
+		{
+			++MutationCount;
+		}
+		else if (!Error.IsEmpty())
+		{
+			UE_LOG(LogGridStatusEffects, Verbose, TEXT("[RPG03.2] Status application skipped Effect=%s Target=Party Character=%d Reason=%s"),
+				*Profile.StatusEffectId.ToString(), CharacterIndex, *Error);
+		}
+	}
+	return MutationCount;
+}
+
+int32 UGridStatusEffectLifecycleSubsystem::ApplyCombatStatusApplicationsToMonster(AGridMonsterActor* Monster,
+	const TArray<FGridCombatStatusApplicationProfile>& Profiles, const FGuid& SourceId, const FGridAttackTargetStats& TargetBefore,
+	const FGridAttackResult* AttackResult)
+{
+	if (!IsValid(Monster))
+	{
+		return 0;
+	}
+
+	int32 MutationCount = 0;
+	for (const FGridCombatStatusApplicationProfile& Profile : Profiles)
+	{
+		if (!FGridCombatStatusApplicationResolver::IsEligible(Profile, TargetBefore, AttackResult))
+		{
+			continue;
+		}
+
+		UGridStatusEffectDefinitionAsset* Definition = FGridCombatStatusApplicationResolver::ResolveDefinition(Profile.StatusEffectId);
+		if (!IsValid(Definition))
+		{
+			UE_LOG(LogGridStatusEffects, Warning, TEXT("[RPG03.2] Status definition unavailable Effect=%s Target=Monster Monster=%s"),
+				*Profile.StatusEffectId.ToString(), *GetNameSafe(Monster));
+			continue;
+		}
+
+		FGridStatusEffectApplyResult ApplyResult;
+		FString Error;
+		if (TryApplyStatusEffectToMonster(Monster, Definition, SourceId, ApplyResult, Error, Profile.InitialStackCount, Profile.DurationOverride,
+				Profile.PotencyOverride) &&
+			ApplyResult.DidMutate())
+		{
+			++MutationCount;
+		}
+		else if (!Error.IsEmpty())
+		{
+			UE_LOG(LogGridStatusEffects, Verbose, TEXT("[RPG03.2] Status application skipped Effect=%s Target=Monster Monster=%s Reason=%s"),
+				*Profile.StatusEffectId.ToString(), *GetNameSafe(Monster), *Error);
+		}
+	}
+	return MutationCount;
 }
 
 void UGridStatusEffectLifecycleSubsystem::HandleCombatantStateChanged(FGridCombatantInitiativeEntry Combatant)
@@ -455,7 +535,7 @@ void UGridStatusEffectLifecycleSubsystem::ApplyPeriodicDamageToCharacter(
 		Target.DamageMultiplier = 1.0f;
 
 		TArray<FGridCombatModifierProfile> ChoiceModifiers;
-		if (FGridCombatModifierResolver::CollectCharacterChoiceModifiers(Character, ChoiceModifiers))
+		if (FGridCombatModifierResolver::CollectCharacterModifiers(Character, ChoiceModifiers))
 		{
 			FGridResolvedCombatModifiers ResolvedModifiers;
 			FGridCombatModifierResolver::Resolve(ChoiceModifiers,
@@ -520,6 +600,18 @@ void UGridStatusEffectLifecycleSubsystem::ApplyPeriodicDamageToMonster(AGridMons
 		Target.DamageMultiplier = IsValid(Monster->MonsterDefinition)
 			? Monster->MonsterDefinition->GetDamageMultiplier(State.DefinitionAsset->PeriodicDamage.DamageType, EGridPhysicalDamageSubtype::None)
 			: 1.0f;
+
+		TArray<FGridCombatModifierProfile> TargetStatusModifiers;
+		if (FGridCombatModifierResolver::CollectStatusModifiers(Monster->StatusEffects, TargetStatusModifiers))
+		{
+			FGridResolvedCombatModifiers ResolvedModifiers;
+			FGridCombatModifierResolver::Resolve(TargetStatusModifiers,
+				FGridCombatModifierResolver::MakeAttackContext(State.EffectId, State.EffectId, EGridCombatActionSourcePolicy::Universal,
+					EGridCombatActionType::Ability, State.DefinitionAsset->PeriodicDamage.DamageType, EGridPhysicalDamageSubtype::None),
+				ResolvedModifiers);
+			FGridCombatModifierResolver::ApplyIncomingAttackModifiers(
+				Target, State.DefinitionAsset->PeriodicDamage.DamageType, ResolvedModifiers);
+		}
 
 		FGridStatusEffectPeriodicDamageResolution Resolution;
 		FString Error;

@@ -8,6 +8,7 @@
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGSkillRequirementProjectionService.h"
 #include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
+#include "RPG/StatusEffects/GridCombatStatusApplicationResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
@@ -85,24 +86,6 @@ namespace
 		}
 		OutDefinition = *Found;
 		return true;
-	}
-
-	const UGridStatusEffectDefinitionAsset* ResolveUI0143e2StatusDefinition(FName EffectId)
-	{
-		if (EffectId.IsNone())
-		{
-			return nullptr;
-		}
-
-		for (TObjectIterator<UGridStatusEffectDefinitionAsset> It; It; ++It)
-		{
-			UGridStatusEffectDefinitionAsset* Definition = *It;
-			if (IsValid(Definition) && Definition->GetPrimaryAssetId().PrimaryAssetName == EffectId && Definition->IsValidDefinition())
-			{
-				return Definition;
-			}
-		}
-		return nullptr;
 	}
 }
 
@@ -273,6 +256,9 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 		Context.MaximumHealth = FMath::Max(0, CharacterSummary.DerivedStats.MaxHealth);
 		Context.CurrentMana = FMath::Max(0, CharacterSummary.Resources.CurrentMana);
 		Context.MaximumMana = FMath::Max(0, CharacterSummary.DerivedStats.MaxMana);
+		Context.CurrentPhysicalArmor = FMath::Max(0, CharacterSummary.Resources.CurrentPhysicalArmor);
+		Context.CurrentMagicalArmor = FMath::Max(0, CharacterSummary.Resources.CurrentMagicalArmor);
+		Context.CurrentStatusEffects = Character.StatusEffects;
 	}
 	Context.bEnableQuickItemExecutors = true;
 	Context.bEnableClassActionExecutors = true;
@@ -280,7 +266,7 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 	{
 		Context.SatisfiedRequirements.Add(Character.ClassId);
 	}
-	if (!FGridCombatModifierResolver::CollectCharacterChoiceModifiers(Character, Context.CombatModifiers))
+	if (!FGridCombatModifierResolver::CollectCharacterModifiers(Character, Context.CombatModifiers))
 	{
 		UE_LOG(LogGridTurnManager, Warning, TEXT("[RPG03.1] CombatModifierProjectionFailed Character=%d CharacterId=%s ClassId=%s"), CharacterIndex,
 			*Character.CharacterId.ToString(EGuidFormats::Digits), *Character.ClassId.ToString());
@@ -424,8 +410,8 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 	UGridPartyInventoryComponent* Inventory = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
 	if (!IsValid(Inventory) || !Action.bEnabled || Action.Definition.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem ||
 		Action.Definition.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
-		Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Self || !Action.Definition.EffectProfile.IsValid() ||
-		Action.SourceDefinitionId.IsNone() || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
+		Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
+		(!Action.Definition.EffectProfile.IsValid() && Action.Definition.StatusApplications.IsEmpty()) || Action.SourceDefinitionId.IsNone() || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
 	{
 		return false;
 	}
@@ -453,7 +439,13 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 		FMath::Clamp(OutResult.HealthBefore + Action.Definition.EffectProfile.RestoreHealth, 0, FMath::Max(0, Summary.DerivedStats.MaxHealth));
 	OutResult.ManaAfter =
 		FMath::Clamp(OutResult.ManaBefore - ManaCost + Action.Definition.EffectProfile.RestoreMana, 0, FMath::Max(0, Summary.DerivedStats.MaxMana));
-	if (OutResult.HealthAfter <= OutResult.HealthBefore && OutResult.ManaAfter <= OutResult.ManaBefore)
+	FGridAttackTargetStats SelfTargetBefore;
+	SelfTargetBefore.CurrentHealth = OutResult.HealthBefore;
+	SelfTargetBefore.PhysicalArmor = Character.Resources.CurrentPhysicalArmor;
+	SelfTargetBefore.MagicalArmor = Character.Resources.CurrentMagicalArmor;
+	const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
+		Action.Definition.StatusApplications, Character.CharacterId, SelfTargetBefore, nullptr, Character.StatusEffects);
+	if (OutResult.HealthAfter <= OutResult.HealthBefore && OutResult.ManaAfter <= OutResult.ManaBefore && !bStatusWouldMutate)
 	{
 		return false;
 	}
@@ -481,6 +473,18 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 	}
 
 	OutResult.SourceQuantityAfter = Inventory->CountItemDefinitionInCharacterInventory(Action.CharacterIndex, Action.SourceDefinitionId);
+	if (!Action.Definition.StatusApplications.IsEmpty())
+	{
+		if (UWorld* World = GetWorld())
+		{
+			if (UGridStatusEffectLifecycleSubsystem* StatusLifecycle = World->GetSubsystem<UGridStatusEffectLifecycleSubsystem>())
+			{
+				StatusLifecycle->BindToTurnManager(this);
+				StatusLifecycle->ApplyCombatStatusApplicationsToPartyCharacter(
+					Action.CharacterIndex, Action.Definition.StatusApplications, Character.CharacterId, SelfTargetBefore, nullptr);
+			}
+		}
+	}
 	StartCombatActionCooldown(Action);
 	Inventory->NotifyPartyInventoryChanged(Action.CharacterIndex);
 	if (FGridCombatantInitiativeEntry* Entry = FindInitiativeEntry(EGridCombatantSide::Party, Character.CharacterId))
@@ -504,8 +508,8 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 	UGridPartyInventoryComponent* Inventory = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
 	if (!IsValid(Inventory) || !Action.bEnabled || !IsMON1285ClassActionSource(Action.Definition.SourcePolicy) ||
 		Action.Definition.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
-		Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Self || !Action.Definition.EffectProfile.IsValid() ||
-		Action.CurrentSourceItemQuantityCost != 0 || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
+		Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
+		(!Action.Definition.EffectProfile.IsValid() && Action.Definition.StatusApplications.IsEmpty()) || Action.CurrentSourceItemQuantityCost != 0 || !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
 	{
 		return false;
 	}
@@ -527,7 +531,13 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 		FMath::Clamp(OutResult.HealthBefore + Action.Definition.EffectProfile.RestoreHealth, 0, FMath::Max(0, Summary.DerivedStats.MaxHealth));
 	OutResult.ManaAfter = FMath::Clamp(
 		OutResult.ManaBefore - Action.CurrentManaCost + Action.Definition.EffectProfile.RestoreMana, 0, FMath::Max(0, Summary.DerivedStats.MaxMana));
-	if (OutResult.HealthAfter <= OutResult.HealthBefore && OutResult.ManaAfter <= OutResult.ManaBefore)
+	FGridAttackTargetStats SelfTargetBefore;
+	SelfTargetBefore.CurrentHealth = OutResult.HealthBefore;
+	SelfTargetBefore.PhysicalArmor = Character.Resources.CurrentPhysicalArmor;
+	SelfTargetBefore.MagicalArmor = Character.Resources.CurrentMagicalArmor;
+	const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
+		Action.Definition.StatusApplications, Character.CharacterId, SelfTargetBefore, nullptr, Character.StatusEffects);
+	if (OutResult.HealthAfter <= OutResult.HealthBefore && OutResult.ManaAfter <= OutResult.ManaBefore && !bStatusWouldMutate)
 	{
 		return false;
 	}
@@ -539,6 +549,18 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 
 	Character.Resources.CurrentHealth = OutResult.HealthAfter;
 	Character.Resources.CurrentMana = OutResult.ManaAfter;
+	if (!Action.Definition.StatusApplications.IsEmpty())
+	{
+		if (UWorld* World = GetWorld())
+		{
+			if (UGridStatusEffectLifecycleSubsystem* StatusLifecycle = World->GetSubsystem<UGridStatusEffectLifecycleSubsystem>())
+			{
+				StatusLifecycle->BindToTurnManager(this);
+				StatusLifecycle->ApplyCombatStatusApplicationsToPartyCharacter(
+					Action.CharacterIndex, Action.Definition.StatusApplications, Character.CharacterId, SelfTargetBefore, nullptr);
+			}
+		}
+	}
 	StartCombatActionCooldown(Action);
 	Inventory->NotifyPartyInventoryChanged(Action.CharacterIndex);
 	if (FGridCombatantInitiativeEntry* Entry = FindInitiativeEntry(EGridCombatantSide::Party, Character.CharacterId))
@@ -735,7 +757,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 
 	TArray<FGridCombatModifierProfile> ChoiceModifiers;
 	FGridResolvedCombatModifiers ResolvedModifiers;
-	if (FGridCombatModifierResolver::CollectCharacterChoiceModifiers(Character, ChoiceModifiers))
+	if (FGridCombatModifierResolver::CollectCharacterModifiers(Character, ChoiceModifiers))
 	{
 		FGridCombatModifierResolver::Resolve(ChoiceModifiers,
 			FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId), ResolvedModifiers);
@@ -765,6 +787,14 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 			return false;
 		}
 		FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(Source, ResolvedModifiers);
+		TArray<FGridCombatModifierProfile> TargetStatusModifiers;
+		if (FGridCombatModifierResolver::CollectStatusModifiers(TargetMonster->StatusEffects, TargetStatusModifiers))
+		{
+			FGridResolvedCombatModifiers TargetResolvedModifiers;
+			FGridCombatModifierResolver::Resolve(TargetStatusModifiers,
+				FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId), TargetResolvedModifiers);
+			FGridCombatModifierResolver::ApplyIncomingAttackModifiers(Target, AttackDefinition.DamageType, TargetResolvedModifiers);
+		}
 		TargetMonsters.Add(TargetMonster);
 		Sources.Add(Source);
 		Targets.Add(Target);
@@ -876,6 +906,17 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 		AppendCombatLogEntry(AttackEntry);
 
 		TargetMonster->ApplyAttackResult(AttackResult);
+		if (!Action.Definition.StatusApplications.IsEmpty())
+		{
+			if (UWorld* World = GetWorld())
+			{
+				if (UGridStatusEffectLifecycleSubsystem* StatusLifecycle = World->GetSubsystem<UGridStatusEffectLifecycleSubsystem>())
+				{
+					StatusLifecycle->ApplyCombatStatusApplicationsToMonster(
+						TargetMonster, Action.Definition.StatusApplications, Character.CharacterId, Targets[Index], &AttackResult);
+				}
+			}
+		}
 		if (FGridCombatantInitiativeEntry* TargetEntry = FindInitiativeEntry(EGridCombatantSide::Monster, TargetMonsterId))
 		{
 			const int32 PreviousHealth = TargetEntry->CurrentHealth;
@@ -1070,7 +1111,7 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 			TargetCurrentHealth, TargetStatusEffects,
 			[](FName EffectId) -> const UGridStatusEffectDefinitionAsset*
 			{
-				return ResolveUI0143e2StatusDefinition(EffectId);
+				return FGridCombatStatusApplicationResolver::ResolveDefinition(EffectId);
 			},
 			Execution);
 		if (!bExecuted)

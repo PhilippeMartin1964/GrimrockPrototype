@@ -63,6 +63,12 @@ public:
 	/** Resolve selected class-choice profiles from durable ChoiceIds. */
 	static bool CollectCharacterChoiceModifiers(const FGridCharacterInventoryState& Character, TArray<FGridCombatModifierProfile>& OutProfiles);
 
+	/** Resolve modifiers from active status definitions; AddStacks scales profiles by StackCount. */
+	static bool CollectStatusModifiers(const FGridStatusEffectCollection& StatusEffects, TArray<FGridCombatModifierProfile>& OutProfiles);
+
+	/** Character aggregate = selected choices + active status modifiers. */
+	static bool CollectCharacterModifiers(const FGridCharacterInventoryState& Character, TArray<FGridCombatModifierProfile>& OutProfiles);
+
 	/** Mutates only the runtime/action projection copy. */
 	static void ApplyToActionDefinitionProjection(FGridCombatActionDefinition& Definition, const FGridResolvedCombatModifiers& Modifiers);
 

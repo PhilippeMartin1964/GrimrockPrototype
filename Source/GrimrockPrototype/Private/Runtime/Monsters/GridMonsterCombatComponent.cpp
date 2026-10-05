@@ -6,6 +6,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatProjectileActor.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
@@ -241,6 +242,18 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(
 	Source.Accuracy = OwnerMonster->MonsterDefinition->Accuracy;
 	Source.DamageBonus = Attack.DamageBonus;
 
+	TArray<FGridCombatModifierProfile> MonsterStatusModifiers;
+	if (FGridCombatModifierResolver::CollectStatusModifiers(OwnerMonster->StatusEffects, MonsterStatusModifiers))
+	{
+		FGridResolvedCombatModifiers MonsterResolvedModifiers;
+		FGridCombatModifierResolver::Resolve(MonsterStatusModifiers,
+			FGridCombatModifierResolver::MakeAttackContext(Attack.AttackId, OwnerMonster->MonsterDefinition->MonsterId,
+				EGridCombatActionSourcePolicy::Universal,
+				Attack.IsRangedAttack() ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack, Attack.DamageType, Attack.PhysicalSubtype),
+			MonsterResolvedModifiers);
+		FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(Source, MonsterResolvedModifiers);
+	}
+
 	const FGridDamageResistanceSet Resistances = PartyPawn->PartyInventoryComponent->ComputeCharacterEquipmentResistances(TargetCharacterIndex);
 
 	FGridAttackTargetStats Target;
@@ -259,7 +272,7 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(
 	GenericAttack.AccuracyBonus = Attack.AccuracyBonus;
 
 	TArray<FGridCombatModifierProfile> ChoiceModifiers;
-	if (FGridCombatModifierResolver::CollectCharacterChoiceModifiers(Character, ChoiceModifiers))
+	if (FGridCombatModifierResolver::CollectCharacterModifiers(Character, ChoiceModifiers))
 	{
 		const EGridCombatActionType IncomingActionType =
 			Attack.MaxRangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
@@ -278,6 +291,18 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(
 		Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor - OutResult.PhysicalArmorDamage);
 		Character.Resources.CurrentMagicalArmor = FMath::Max(0, Character.Resources.CurrentMagicalArmor - OutResult.MagicalArmorDamage);
 		Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - OutResult.HealthDamage);
+	}
+
+	if (!Attack.StatusApplications.IsEmpty())
+	{
+		if (UWorld* StatusWorld = GetWorld())
+		{
+			if (UGridStatusEffectLifecycleSubsystem* StatusLifecycle = StatusWorld->GetSubsystem<UGridStatusEffectLifecycleSubsystem>())
+			{
+				StatusLifecycle->ApplyCombatStatusApplicationsToPartyCharacter(
+					TargetCharacterIndex, Attack.StatusApplications, OwnerMonster->ResolvePersistenceId(), Target, &OutResult);
+			}
+		}
 	}
 
 	LastAttackId = Attack.AttackId;

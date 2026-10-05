@@ -98,6 +98,10 @@ struct FGridMonsterAttackDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack")
 	int32 AccuracyBonus = 0;
 
+	/** C1 secondary status applications resolved after this attack. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack|Status")
+	TArray<FGridCombatStatusApplicationProfile> StatusApplications;
+
 	/** Inclusive minimum legal grid distance for this attack. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1"))
 	int32 MinRangeCells = 1;
@@ -232,6 +236,14 @@ struct FGridMonsterAttackDefinition
 		if (DamageType != EGridDamageType::Physical && PhysicalSubtype != EGridPhysicalDamageSubtype::None)
 		{
 			Errors.Add(TEXT("PhysicalSubtype must be None for non-physical damage."));
+		}
+		for (const FGridCombatStatusApplicationProfile& StatusApplication : StatusApplications)
+		{
+			if (!StatusApplication.IsValid() || StatusApplication.Trigger != EGridCombatStatusApplicationTrigger::AfterSuccessfulHit)
+			{
+				Errors.Add(TEXT("Monster StatusApplications must be valid and use AfterSuccessfulHit."));
+				break;
+			}
 		}
 		if (!FMath::IsFinite(ProjectileTravelDuration) || ProjectileTravelDuration <= 0.0f)
 		{

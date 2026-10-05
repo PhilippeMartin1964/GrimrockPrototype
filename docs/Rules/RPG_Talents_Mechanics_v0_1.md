@@ -67,8 +67,8 @@ RPG02 définit le **comportement cible**, pas encore son implémentation. Les co
 | Code | Besoin générique | État audité |
 |---|---|---|
 | `C0` | Shell action : PA, mana, ciblage, portée, zone, cooldown, Requirements | existe |
-| `C1` | Application d'un Status depuis action/attaque + ArmorGate post-dégâts | Status system existe, pont générique à compléter |
-| `C2` | Modificateurs génériques dégâts/Accuracy/Evasion/crit/résistance/coûts | **implémenté par RPG03.1 — validation UE utilisateur requise** |
+| `C1` | Application d'un Status depuis action/attaque + ArmorGate post-dégâts | **implémenté par RPG03.2 — validation UE utilisateur requise** |
+| `C2` | Modificateurs génériques dégâts/Accuracy/Evasion/crit/résistance/coûts | **validé par RPG03.1 — 7/7 TD04.2** |
 | `C3` | Modification/restauration directe des pools PhysicalArmor/MagicalArmor | à ajouter |
 | `C4` | Triggers/réactions : once-per-round, on-hit, on-miss, on-kill, consume-on-action | à ajouter |
 | `C5` | Déplacement tactique/forced movement/formation | à compléter |
