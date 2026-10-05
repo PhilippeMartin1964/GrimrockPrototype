@@ -89,6 +89,17 @@ bool FGridCombatReactionResolver::Matches(const FGridCombatReactionProfile& Prof
 	{
 		return false;
 	}
+	for (const FName RequiredTag : Profile.RequiredSourceTags)
+	{
+		if (!Event.SourceTags.Contains(RequiredTag))
+		{
+			return false;
+		}
+	}
+	if (Profile.bRequireOffensiveAction && !Event.bOffensiveAction)
+	{
+		return false;
+	}
 	return true;
 }
 
@@ -192,6 +203,8 @@ void FGridCombatReactionResolver::ResolveMatches(const TArray<FGridCombatReactio
 		Match.InterceptFinalDamagePercent = Binding.Profile.InterceptFinalDamagePercent;
 		Match.bRequireOwnerFrontRow = Binding.Profile.bRequireOwnerFrontRow;
 		Match.bRequireEventTargetFrontRow = Binding.Profile.bRequireEventTargetFrontRow;
+		Match.ApplyOwnerStatusEffectId = Binding.Profile.ApplyOwnerStatusEffectId;
+		Match.ApplyOwnerStatusDurationOverride = Binding.Profile.ApplyOwnerStatusDurationOverride;
 		Match.Event = Event;
 	}
 }

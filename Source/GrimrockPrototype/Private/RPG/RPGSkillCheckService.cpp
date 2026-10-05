@@ -1,6 +1,7 @@
 #include "RPG/RPGSkillCheckService.h"
 
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/RPGClassAsset.h"
 #include "RPG/RPGSkillAsset.h"
 #include "RPG/RPGSkillService.h"
 #include "Runtime/GridInventoryTypes.h"
@@ -74,9 +75,30 @@ bool FRPGSkillCheckService::TryResolveSkillCheck(const FGridCharacterInventorySt
 		? 0
 		: URPGCharacterRulesLibrary::GetAttributeModifier(OutResult.AttributeValue);
 
+	const URPGClassAsset* ClassDefinition = CharacterState.ClassDefinition.Get();
+	if (IsValid(ClassDefinition))
+	{
+		for (const FName ChoiceId : CharacterState.SelectedClassProgressionChoiceIds)
+		{
+			const FRPGClassProgressionChoiceDefinition* Choice = ClassDefinition->FindProgressionChoice(ChoiceId);
+			if (!Choice) continue;
+			for (const FRPGSkillProgressionModifier& Modifier : Choice->SkillModifiers)
+			{
+				if (Modifier.SkillId == SkillDefinition->SkillId)
+				{
+					OutResult.ProgressionModifier += Modifier.CheckModifier;
+					OutResult.SafeFailureMargin = FMath::Max(OutResult.SafeFailureMargin, Modifier.SafeFailureMargin);
+				}
+			}
+		}
+	}
+
 	OutResult.Roll = RandomStream.RandRange(1, 20);
-	OutResult.Total = OutResult.Roll + OutResult.Rank + OutResult.AttributeModifier;
+	OutResult.Total = OutResult.Roll + OutResult.Rank + OutResult.AttributeModifier + OutResult.ProgressionModifier;
 	OutResult.bResolved = true;
 	OutResult.bSuccess = OutResult.Total >= OutResult.Difficulty;
+	OutResult.FailureMargin = OutResult.bSuccess ? 0 : OutResult.Difficulty - OutResult.Total;
+	OutResult.bSafeFailure = !OutResult.bSuccess && OutResult.SafeFailureMargin > 0 &&
+		OutResult.FailureMargin <= OutResult.SafeFailureMargin;
 	return true;
 }

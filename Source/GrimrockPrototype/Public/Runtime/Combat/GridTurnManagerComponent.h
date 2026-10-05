@@ -742,10 +742,12 @@ private:
 		const FGridAttackTargetStats& TargetBefore, const FGuid& ActionInstanceId, FGridAttackResult& InOutResult);
 	void EmitPlayerAttackReactionEvents(
 		int32 CharacterIndex, const FGridPlayerAttackRequest& Request, const FGridAttackResult& Result, EGridCombatActionSourcePolicy SourcePolicy,
-		EGridCombatActionType ActionType, const FGuid& ActionInstanceId, bool bReactionGenerated = false, bool bEmitActionResolved = true);
+		EGridCombatActionType ActionType, const FGuid& ActionInstanceId, bool bReactionGenerated = false, bool bEmitActionResolved = true,
+		const TArray<FName>& SourceTags = TArray<FName>());
 	void EmitMonsterAttackReactionEvents(int32 TargetCharacterIndex, const FGridMonsterAttackDefinition& Attack, const FGridAttackResult& Result,
 		const FGuid& ActionInstanceId);
-	void EmitCharacterActionResolvedReaction(int32 CharacterIndex, const FGridAvailableCombatAction& Action, const FGuid& ActionInstanceId);
+	void EmitCharacterActionResolvedReaction(int32 CharacterIndex, const FGridAvailableCombatAction& Action, const FGuid& ActionInstanceId,
+		const TArray<FName>& SourceTags = TArray<FName>());
 
 	/** RPG03.6 applies periodic cell surfaces once at each new-round boundary, then decrements duration. */
 	void ResolveCombatSurfaceRound();

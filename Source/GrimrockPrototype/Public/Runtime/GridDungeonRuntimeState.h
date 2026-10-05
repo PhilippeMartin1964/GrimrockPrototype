@@ -316,6 +316,10 @@ struct FGridLevelRuntimeState
 	UPROPERTY(SaveGame)
 	TMap<FIntPoint, FGridCombatSurfaceState> Surfaces;
 
+	/** RPG03.9 authoritative temporary combat traps keyed by grid cell. */
+	UPROPERTY(SaveGame)
+	TMap<FIntPoint, FGridCombatTrapState> CombatTraps;
+
 	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TMap<FGuid, FGridRuntimeMonsterState> Monsters;
 

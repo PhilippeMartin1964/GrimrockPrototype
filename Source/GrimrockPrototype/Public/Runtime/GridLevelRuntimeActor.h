@@ -385,6 +385,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction")
 	bool ExecuteLinksFromRuntimeObject(FGuid SourceObjectId, EGridObjectEvent SourceEvent);
 
+	/** Generic out-of-combat sabotage target query. The caller owns the Skill Check. */
+	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction|Sabotage")
+	bool GetRuntimeObjectSabotageDifficulty(FGuid ObjectId, int32& OutDifficulty) const;
+
+	/** Emits only the generic Sabotaged event after a caller has resolved a successful check. */
+	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction|Sabotage")
+	bool ExecuteRuntimeObjectSabotage(FGuid ObjectId);
+
 	UFUNCTION(BlueprintCallable, Category = "Runtime|Interaction")
 	void HandlePartyCellChanged(int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
 
@@ -422,6 +430,17 @@ public:
 	void GetCurrentCombatSurfaceSnapshot(TMap<FIntPoint, FGridCombatSurfaceState>& OutSurfaces) const;
 
 	int32 AdvanceCombatSurfaceRound(TArray<FIntPoint>* OutExpiredCells = nullptr);
+
+	/** RPG03.9 generic temporary combat trap authority. */
+	bool ApplyCombatTrapAtCell(int32 CellX, int32 CellY, const FGridCombatTrapEffectProfile& Profile,
+		const FGuid& SourceCombatantId, FName SourceActionId, int32 ResolvedRawDamage);
+	const FGridCombatTrapState* FindCombatTrapAtCell(int32 CellX, int32 CellY) const;
+	bool ConsumeCombatTrapAtCell(int32 CellX, int32 CellY, FGridCombatTrapState& OutState);
+	int32 AdvanceCombatTrapRound(TArray<FIntPoint>* OutExpiredCells = nullptr);
+
+	/** Smoke blocks only cells strictly between endpoints; an occupant in smoke instead receives the authored ranged Evasion bonus. */
+	bool DoesCombatSmokeBlockLine(const FIntPoint& FromCell, const FIntPoint& ToCell) const;
+	bool IsCombatSmokeAtCell(int32 CellX, int32 CellY) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Dungeon|Runtime")
 	bool TryExecuteRelocationAtCell(int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn);

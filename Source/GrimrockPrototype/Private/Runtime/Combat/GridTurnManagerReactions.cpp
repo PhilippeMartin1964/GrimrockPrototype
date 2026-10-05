@@ -1,6 +1,8 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
+#include "RPG/StatusEffects/GridCombatStatusApplicationResolver.h"
+#include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -47,6 +49,18 @@ void UGridTurnManagerComponent::ProcessPartyCharacterReactionEvent(int32 Charact
 		if (Match.bConsumeOwningStatus && StatusLifecycle)
 		{
 			StatusLifecycle->ConsumeStatusEffectFromPartyCharacter(CharacterIndex, Match.OwningStatusEffectId);
+		}
+		if (!Match.ApplyOwnerStatusEffectId.IsNone() && StatusLifecycle)
+		{
+			if (UGridStatusEffectDefinitionAsset* Definition =
+					const_cast<UGridStatusEffectDefinitionAsset*>(
+						FGridCombatStatusApplicationResolver::ResolveDefinition(Match.ApplyOwnerStatusEffectId)))
+			{
+				FGridStatusEffectApplyResult ApplyResult;
+				FString ApplyError;
+				StatusLifecycle->TryApplyStatusEffectToPartyCharacter(
+					CharacterIndex, Definition, Character.CharacterId, ApplyResult, ApplyError, 1, Match.ApplyOwnerStatusDurationOverride);
+			}
 		}
 		if (Match.CounterAttackWeaponProfile.bUseEquippedWeapon)
 		{
@@ -195,7 +209,7 @@ bool UGridTurnManagerComponent::ExecuteReactionCounterAttack(int32 CharacterInde
 	}
 
 	EmitPlayerAttackReactionEvents(CharacterIndex, Request, Result, EGridCombatActionSourcePolicy::Ability,
-		EGridCombatActionType::MeleeAttack, Request.RequestId, true, true);
+		EGridCombatActionType::MeleeAttack, Request.RequestId, true, true, OffensiveItemTags);
 	++PlayerAttackResolvedBroadcastCount;
 	bPlayerAttackResolutionInProgress = false;
 	OnPlayerAttackResolved.Broadcast(Request, TargetMonster, Result);
@@ -337,7 +351,7 @@ void UGridTurnManagerComponent::ApplyIncomingPartyDamageInterception(int32 Targe
 
 void UGridTurnManagerComponent::EmitPlayerAttackReactionEvents(int32 CharacterIndex, const FGridPlayerAttackRequest& Request,
 	const FGridAttackResult& Result, EGridCombatActionSourcePolicy SourcePolicy, EGridCombatActionType ActionType, const FGuid& ActionInstanceId,
-	bool bReactionGenerated, bool bEmitActionResolved)
+	bool bReactionGenerated, bool bEmitActionResolved, const TArray<FName>& SourceTags)
 {
 	if (!ActionInstanceId.IsValid())
 	{
@@ -355,6 +369,8 @@ void UGridTurnManagerComponent::EmitPlayerAttackReactionEvents(int32 CharacterIn
 	Event.SourcePolicy = SourcePolicy;
 	Event.ActionType = ActionType;
 	Event.DamageType = Result.DamageType;
+	Event.SourceTags = SourceTags;
+	Event.bOffensiveAction = true;
 	Event.bReactionGenerated = bReactionGenerated;
 	ProcessPartyCharacterReactionEvent(CharacterIndex, Event);
 
@@ -401,6 +417,7 @@ void UGridTurnManagerComponent::EmitMonsterAttackReactionEvents(
 	Event.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
 	Event.ActionType = Attack.IsRangedAttack() ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
 	Event.DamageType = Result.DamageType;
+	Event.bOffensiveAction = true;
 	ProcessPartyCharacterReactionEvent(TargetCharacterIndex, Event);
 
 	if (Result.GetTotalAppliedDamage() > 0)
@@ -413,7 +430,7 @@ void UGridTurnManagerComponent::EmitMonsterAttackReactionEvents(
 }
 
 void UGridTurnManagerComponent::EmitCharacterActionResolvedReaction(
-	int32 CharacterIndex, const FGridAvailableCombatAction& Action, const FGuid& ActionInstanceId)
+	int32 CharacterIndex, const FGridAvailableCombatAction& Action, const FGuid& ActionInstanceId, const TArray<FName>& SourceTags)
 {
 	if (!ActionInstanceId.IsValid() || !IsValid(PartyPawn) || !IsValid(PartyPawn->PartyInventoryComponent) ||
 		!PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
@@ -435,5 +452,9 @@ void UGridTurnManagerComponent::EmitCharacterActionResolvedReaction(
 	Event.DamageType = Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack
 		? Action.Definition.OffensiveProfile.AttackDefinition.DamageType
 		: EGridDamageType::Physical;
+	Event.SourceTags = SourceTags;
+	Event.bOffensiveAction =
+		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack ||
+		Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Hostile;
 	ProcessPartyCharacterReactionEvent(CharacterIndex, Event);
 }

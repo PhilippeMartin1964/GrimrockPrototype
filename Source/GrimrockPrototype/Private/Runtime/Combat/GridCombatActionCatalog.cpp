@@ -30,11 +30,23 @@ namespace
 		{
 			return true;
 		}
-		return Context.EquippedOffensiveSourceTagSets.ContainsByPredicate(
-			[&WeaponProfile](const TArray<FName>& ItemTags)
+		for (int32 Index = 0; Index < Context.EquippedOffensiveSourceTagSets.Num(); ++Index)
+		{
+			if (!WeaponProfile.MatchesItemTags(Context.EquippedOffensiveSourceTagSets[Index]))
 			{
-				return WeaponProfile.MatchesItemTags(ItemTags);
-			});
+				continue;
+			}
+			if (!WeaponProfile.AllowedPhysicalSubtypes.IsEmpty())
+			{
+				if (!Context.EquippedOffensivePhysicalSubtypes.IsValidIndex(Index) ||
+					!WeaponProfile.AllowedPhysicalSubtypes.Contains(Context.EquippedOffensivePhysicalSubtypes[Index]))
+				{
+					continue;
+				}
+			}
+			return true;
+		}
+		return false;
 	}
 
 	bool IsUI0143e2SpellbookProjection(const FGridCombatActionContribution& Contribution)
@@ -220,9 +232,9 @@ namespace
 				Definition.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
 				(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty() || !Definition.StatusRemovals.IsEmpty() ||
 					!Definition.ArmorEffects.IsEmpty() || !Definition.MovementEffects.IsEmpty());
-			const bool bSupportedCellSurfaceEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+			const bool bSupportedCellEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 				(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Cell || Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area) &&
-				!Definition.SurfaceEffects.IsEmpty();
+				(!Definition.SurfaceEffects.IsEmpty() || Definition.TrapEffect.bPlaceTrap);
 			const bool bSupportedPartyEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 				(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally ||
 					Definition.TargetingPolicy == EGridCombatTargetingPolicy::Party ||
@@ -233,7 +245,7 @@ namespace
 				Definition.TargetingPolicy == EGridCombatTargetingPolicy::Hostile &&
 				(!Definition.StatusApplications.IsEmpty() || !Definition.StatusRemovals.IsEmpty() || !Definition.ArmorEffects.IsEmpty());
 			if (!Context.bEnableClassActionExecutors ||
-				(!bSupportedAttack && !bSupportedSelfEffect && !bSupportedCellSurfaceEffect && !bSupportedPartyEffect && !bSupportedHostileEffect))
+				(!bSupportedAttack && !bSupportedSelfEffect && !bSupportedCellEffect && !bSupportedPartyEffect && !bSupportedHostileEffect))
 			{
 				return EGridCombatActionAvailabilityReason::ExecutionNotImplemented;
 			}

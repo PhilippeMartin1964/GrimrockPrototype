@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "RPG/RPGCharacterTypes.h"
+#include "RPG/RPGSkillTypes.h"
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "RPGClassAsset.generated.h"
 
@@ -68,6 +69,9 @@ struct FRPGClassProgressionChoiceDefinition
 	/** Optional C4 reactions projected while this durable choice is selected. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|Combat")
 	TArray<FGridCombatReactionProfile> CombatReactions;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|Skills")
+	TArray<FRPGSkillProgressionModifier> SkillModifiers;
 };
 
 UCLASS(BlueprintType)

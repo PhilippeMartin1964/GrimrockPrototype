@@ -122,3 +122,32 @@ int32 AGridLevelRuntimeActor::AdvanceCombatSurfaceRound(TArray<FIntPoint>* OutEx
 	}
 	return ExpiredCount;
 }
+
+
+bool AGridLevelRuntimeActor::IsCombatSmokeAtCell(int32 CellX, int32 CellY) const
+{
+	const FGridCombatSurfaceState* Surface = FindCombatSurfaceAtCell(CellX, CellY);
+	return Surface && Surface->IsValid() && Surface->SurfaceType == EGridCombatSurfaceType::Smoke;
+}
+
+bool AGridLevelRuntimeActor::DoesCombatSmokeBlockLine(const FIntPoint& FromCell, const FIntPoint& ToCell) const
+{
+	const int32 DX = ToCell.X - FromCell.X;
+	const int32 DY = ToCell.Y - FromCell.Y;
+	if ((DX != 0 && DY != 0) || (DX == 0 && DY == 0))
+	{
+		return false;
+	}
+
+	const FIntPoint Step(FMath::Sign(DX), FMath::Sign(DY));
+	FIntPoint Cell = FromCell + Step;
+	while (Cell != ToCell)
+	{
+		if (IsCombatSmokeAtCell(Cell.X, Cell.Y))
+		{
+			return true;
+		}
+		Cell += Step;
+	}
+	return false;
+}

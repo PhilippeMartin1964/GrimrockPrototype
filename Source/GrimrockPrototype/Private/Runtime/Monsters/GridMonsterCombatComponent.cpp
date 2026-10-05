@@ -263,6 +263,11 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(int32 TargetCharact
 	Target.MagicalArmor = Character.Resources.CurrentMagicalArmor;
 	Target.ResistancePercent = GetResistancePercent(Resistances, Attack.DamageType);
 	Target.DamageMultiplier = 1.0f;
+	if (Attack.IsRangedAttack() && IsValid(BoundTurnManager) && IsValid(BoundTurnManager->RuntimeActor) &&
+		BoundTurnManager->RuntimeActor->IsCombatSmokeAtCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY))
+	{
+		Target.Evasion += 2;
+	}
 
 	FGridAttackDefinition GenericAttack;
 	GenericAttack.DamageType = Attack.DamageType;

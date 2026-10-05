@@ -34,6 +34,33 @@ struct FRPGSkillRank
 	}
 };
 
+/** Class/talent contribution to the existing Skill authority. */
+USTRUCT(BlueprintType)
+struct FRPGSkillProgressionModifier
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|Progression")
+	FName SkillId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|Progression", meta = (ClampMin = "-20", ClampMax = "20"))
+	int32 CheckModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|Progression", meta = (ClampMin = "0", ClampMax = "5"))
+	int32 RequirementGrantRankModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|Progression", meta = (ClampMin = "0", ClampMax = "20"))
+	int32 SafeFailureMargin = 0;
+
+	bool IsValid() const
+	{
+		return !SkillId.IsNone() && CheckModifier >= -20 && CheckModifier <= 20 &&
+			RequirementGrantRankModifier >= 0 && RequirementGrantRankModifier <= 5 &&
+			SafeFailureMargin >= 0 && SafeFailureMargin <= 20 &&
+			(CheckModifier != 0 || RequirementGrantRankModifier != 0 || SafeFailureMargin != 0);
+	}
+};
+
 /** Reason why one skill check could not be resolved. */
 UENUM(BlueprintType)
 enum class ERPGSkillCheckRejectReason : uint8
@@ -74,6 +101,18 @@ struct FRPGSkillCheckResult
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Check")
 	int32 AttributeModifier = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Check")
+	int32 ProgressionModifier = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Check")
+	int32 SafeFailureMargin = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Check")
+	int32 FailureMargin = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Check")
+	bool bSafeFailure = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Check")
 	int32 Roll = 0;

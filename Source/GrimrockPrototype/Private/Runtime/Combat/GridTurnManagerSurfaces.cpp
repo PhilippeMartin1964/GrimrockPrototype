@@ -28,10 +28,6 @@ void UGridTurnManagerComponent::ResolveCombatSurfaceRound()
 
 	TMap<FIntPoint, FGridCombatSurfaceState> Surfaces;
 	RuntimeActor->GetCurrentCombatSurfaceSnapshot(Surfaces);
-	if (Surfaces.IsEmpty())
-	{
-		return;
-	}
 
 	UGridStatusEffectLifecycleSubsystem* StatusLifecycle =
 		GetWorld() ? GetWorld()->GetSubsystem<UGridStatusEffectLifecycleSubsystem>() : nullptr;
@@ -146,5 +142,12 @@ void UGridTurnManagerComponent::ResolveCombatSurfaceRound()
 	if (ExpiredCount > 0)
 	{
 		UE_LOG(LogGridTurnManager, Log, TEXT("[RPG03.6] SurfaceRoundAdvanced Round=%d Expired=%d"), RoundNumber, ExpiredCount);
+	}
+
+	TArray<FIntPoint> ExpiredTrapCells;
+	const int32 ExpiredTrapCount = RuntimeActor->AdvanceCombatTrapRound(&ExpiredTrapCells);
+	if (ExpiredTrapCount > 0)
+	{
+		UE_LOG(LogGridTurnManager, Log, TEXT("[RPG03.9.2] TrapRoundAdvanced Round=%d Expired=%d"), RoundNumber, ExpiredTrapCount);
 	}
 }

@@ -82,6 +82,7 @@ void UGridStatusEffectLifecycleSubsystem::BindToTurnManager(UGridTurnManagerComp
 	BoundTurnManager = TurnManager;
 	LastObservedRoundNumber = FMath::Max(0, TurnManager->RoundNumber);
 	TurnManager->OnCombatantStateChanged.AddUniqueDynamic(this, &UGridStatusEffectLifecycleSubsystem::HandleCombatantStateChanged);
+	TurnManager->OnActiveCombatantChanged.AddUniqueDynamic(this, &UGridStatusEffectLifecycleSubsystem::HandleActiveCombatantChanged);
 	TurnManager->OnRoundStarted.AddUniqueDynamic(this, &UGridStatusEffectLifecycleSubsystem::HandleRoundStarted);
 	TurnManager->OnCombatEnded.AddUniqueDynamic(this, &UGridStatusEffectLifecycleSubsystem::HandleCombatEnded);
 	TurnManager->OnTurnOrderChanged.AddUniqueDynamic(this, &UGridStatusEffectLifecycleSubsystem::HandleTurnOrderChanged);
@@ -93,6 +94,7 @@ void UGridStatusEffectLifecycleSubsystem::UnbindFromTurnManager()
 	if (UGridTurnManagerComponent* TurnManager = BoundTurnManager.Get())
 	{
 		TurnManager->OnCombatantStateChanged.RemoveDynamic(this, &UGridStatusEffectLifecycleSubsystem::HandleCombatantStateChanged);
+		TurnManager->OnActiveCombatantChanged.RemoveDynamic(this, &UGridStatusEffectLifecycleSubsystem::HandleActiveCombatantChanged);
 		TurnManager->OnRoundStarted.RemoveDynamic(this, &UGridStatusEffectLifecycleSubsystem::HandleRoundStarted);
 		TurnManager->OnCombatEnded.RemoveDynamic(this, &UGridStatusEffectLifecycleSubsystem::HandleCombatEnded);
 		TurnManager->OnTurnOrderChanged.RemoveDynamic(this, &UGridStatusEffectLifecycleSubsystem::HandleTurnOrderChanged);
@@ -367,6 +369,75 @@ int32 UGridStatusEffectLifecycleSubsystem::ApplyCombatStatusApplicationsToMonste
 	return MutationCount;
 }
 
+void UGridStatusEffectLifecycleSubsystem::HandleActiveCombatantChanged(FGridCombatantInitiativeEntry ActiveCombatant)
+{
+	if (ActiveCombatant.State != EGridCombatantTurnState::Active)
+	{
+		return;
+	}
+
+	if (ActiveCombatant.Side == EGridCombatantSide::Party)
+	{
+		UGridTurnManagerComponent* TurnManager = BoundTurnManager.Get();
+		if (!IsValid(TurnManager) || !IsValid(TurnManager->PartyPawn) || !IsValid(TurnManager->PartyPawn->PartyInventoryComponent))
+		{
+			return;
+		}
+		const TArray<FGridCharacterInventoryState>& Characters =
+			TurnManager->PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters;
+		if (!Characters.IsValidIndex(ActiveCombatant.CharacterIndex))
+		{
+			return;
+		}
+		TArray<FName> ExpiringIds;
+		for (const FGridStatusEffectRuntimeState& State : Characters[ActiveCombatant.CharacterIndex].StatusEffects.ActiveEffects)
+		{
+			if (State.IsValid() && IsValid(State.DefinitionAsset) && State.DefinitionAsset->bExpireAtOwnerNextActivation)
+			{
+				ExpiringIds.Add(State.EffectId);
+			}
+		}
+		for (const FName EffectId : ExpiringIds)
+		{
+			ConsumeStatusEffectFromPartyCharacter(ActiveCombatant.CharacterIndex, EffectId);
+		}
+		return;
+	}
+
+	if (ActiveCombatant.Side == EGridCombatantSide::Monster)
+	{
+		UGridTurnManagerComponent* TurnManager = BoundTurnManager.Get();
+		AGridMonsterActor* Monster = nullptr;
+		if (IsValid(TurnManager))
+		{
+			if (const TObjectPtr<AGridMonsterActor>* Match = TurnManager->CombatMonsters.FindByPredicate(
+					[&ActiveCombatant](const TObjectPtr<AGridMonsterActor>& Candidate)
+					{
+						return IsValid(Candidate) && Candidate->ResolvePersistenceId() == ActiveCombatant.CombatantId;
+					}))
+			{
+				Monster = Match->Get();
+			}
+		}
+		if (!IsValid(Monster))
+		{
+			return;
+		}
+		TArray<FName> ExpiringIds;
+		for (const FGridStatusEffectRuntimeState& State : Monster->StatusEffects.ActiveEffects)
+		{
+			if (State.IsValid() && IsValid(State.DefinitionAsset) && State.DefinitionAsset->bExpireAtOwnerNextActivation)
+			{
+				ExpiringIds.Add(State.EffectId);
+			}
+		}
+		for (const FName EffectId : ExpiringIds)
+		{
+			ConsumeStatusEffectFromMonster(Monster, EffectId);
+		}
+	}
+}
+
 void UGridStatusEffectLifecycleSubsystem::HandleCombatantStateChanged(FGridCombatantInitiativeEntry Combatant)
 {
 	if (Combatant.State != EGridCombatantTurnState::Completed && Combatant.State != EGridCombatantTurnState::Incapacitated)
@@ -444,6 +515,50 @@ void UGridStatusEffectLifecycleSubsystem::HandleRoundStarted(int32 RoundNumber)
 void UGridStatusEffectLifecycleSubsystem::HandleCombatEnded(EGridCombatPhase ResultPhase)
 {
 	(void)ResultPhase;
+	if (UGridTurnManagerComponent* TurnManager = BoundTurnManager.Get())
+	{
+		if (IsValid(TurnManager->PartyPawn) && IsValid(TurnManager->PartyPawn->PartyInventoryComponent))
+		{
+			TArray<FGridCharacterInventoryState>& Characters =
+				TurnManager->PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters;
+			for (int32 CharacterIndex = 0; CharacterIndex < Characters.Num(); ++CharacterIndex)
+			{
+				TArray<FName> ExpiringIds;
+				for (const FGridStatusEffectRuntimeState& State : Characters[CharacterIndex].StatusEffects.ActiveEffects)
+				{
+					if (State.IsValid() && IsValid(State.DefinitionAsset) && State.DefinitionAsset->bExpireAtOwnerNextActivation)
+					{
+						ExpiringIds.Add(State.EffectId);
+					}
+				}
+				for (const FName EffectId : ExpiringIds)
+				{
+					ConsumeStatusEffectFromPartyCharacter(CharacterIndex, EffectId);
+				}
+			}
+		}
+
+		for (AGridMonsterActor* Monster : TurnManager->CombatMonsters)
+		{
+			if (!IsValid(Monster))
+			{
+				continue;
+			}
+			TArray<FName> ExpiringIds;
+			for (const FGridStatusEffectRuntimeState& State : Monster->StatusEffects.ActiveEffects)
+			{
+				if (State.IsValid() && IsValid(State.DefinitionAsset) && State.DefinitionAsset->bExpireAtOwnerNextActivation)
+				{
+					ExpiringIds.Add(State.EffectId);
+				}
+			}
+			for (const FName EffectId : ExpiringIds)
+			{
+				ConsumeStatusEffectFromMonster(Monster, EffectId);
+			}
+		}
+	}
+
 	LastObservedRoundNumber = 0;
 	LastStatusEffectFeedback = FGridCombatLogEntry();
 }

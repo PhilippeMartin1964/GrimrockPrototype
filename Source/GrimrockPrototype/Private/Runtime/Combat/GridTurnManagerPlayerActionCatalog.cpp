@@ -8,6 +8,7 @@
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGSkillRequirementProjectionService.h"
+#include "RPG/RPGSkillCheckService.h"
 #include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
 #include "RPG/StatusEffects/GridCombatStatusApplicationResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
@@ -255,6 +256,13 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 		for (const FGridCombatActionDefinition& SourceAction : ItemDefinition->CombatActions)
 		{
 			FGridCombatActionDefinition Definition = SourceAction;
+			for (const FName ItemTag : ItemDefinition->ItemTags)
+			{
+				if (!ItemTag.IsNone())
+				{
+					Definition.SourceTags.AddUnique(ItemTag);
+				}
+			}
 			if (Definition.DisplayName.IsEmpty())
 			{
 				Definition.DisplayName = ItemDefinition->DisplayName;
@@ -399,6 +407,18 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 			if (Definition->CanProvideAttackFromSlot(HandSlot))
 			{
 				Context.EquippedOffensiveSourceTagSets.Add(Definition->ItemTags);
+				FGridOffensiveEquipmentProfile EquippedProfile;
+				if (ResolveMON12ItemAttackProfile(Definition, EquippedProfile) && EquippedProfile.IsValid())
+				{
+					Context.EquippedOffensivePhysicalSubtypes.Add(
+						EquippedProfile.AttackDefinition.DamageType == EGridDamageType::Physical
+							? EquippedProfile.AttackDefinition.PhysicalSubtype
+							: EGridPhysicalDamageSubtype::None);
+				}
+				else
+				{
+					Context.EquippedOffensivePhysicalSubtypes.Add(EGridPhysicalDamageSubtype::None);
+				}
 			}
 		}
 	}
@@ -1218,8 +1238,10 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 		(Action.Definition.OffensiveProfile.IsValid() || Action.Definition.WeaponAttackProfile.bUseEquippedWeapon);
 	const bool bSurfaceEffectResolution =
 		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect && !Action.Definition.SurfaceEffects.IsEmpty();
+	const bool bTrapEffectResolution =
+		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect && Action.Definition.TrapEffect.bPlaceTrap;
 	if (!IsMON1286TargetedSource(Action.Definition.SourcePolicy) || !IsMON1286ExplicitTargetingPolicy(Action.Definition.TargetingPolicy) ||
-		(!bAttackResolution && !bSurfaceEffectResolution))
+		(!bAttackResolution && !bSurfaceEffectResolution && !bTrapEffectResolution))
 	{
 		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Cette action ne prend pas de cible cellule ou zone."));
 		return false;
@@ -1227,6 +1249,11 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 	if (!RuntimeActor->IsValidCell(TargetCell.X, TargetCell.Y) || RuntimeActor->GetCell(TargetCell.X, TargetCell.Y).CellType == EGridCellType::Empty)
 	{
 		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Cette cellule n'appartient pas au niveau jouable."));
+		return false;
+	}
+	if (bTrapEffectResolution && !RuntimeActor->IsWalkableCell(TargetCell.X, TargetCell.Y))
+	{
+		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Un piège doit être posé sur une cellule marchable."));
 		return false;
 	}
 
@@ -1306,7 +1333,8 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 		}
 	}
 
-	if (bAttackResolution && OutPreview.TargetMonsterIds.IsEmpty() && Action.Definition.SurfaceEffects.IsEmpty())
+	if (bAttackResolution && OutPreview.TargetMonsterIds.IsEmpty() &&
+		Action.Definition.SurfaceEffects.IsEmpty() && !Action.Definition.TrapEffect.bPlaceTrap)
 	{
 		OutPreview.InvalidReason = MakeMON1286TargetingReason(Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area
 				? TEXT("Cette zone ne contient aucune cible éligible.")
@@ -1345,14 +1373,21 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	UGridPartyInventoryComponent* Inventory = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
 	const bool bAttackResolution = Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
 	const bool bSurfaceResolution = !Action.Definition.SurfaceEffects.IsEmpty();
-	if (!IsValid(Inventory) || !Preview.bValid || (!bAttackResolution && !bSurfaceResolution) ||
-		(bAttackResolution && Preview.TargetMonsterIds.IsEmpty() && !bSurfaceResolution) ||
+	const bool bTrapResolution = Action.Definition.TrapEffect.bPlaceTrap;
+	if (!IsValid(Inventory) || !Preview.bValid || (!bAttackResolution && !bSurfaceResolution && !bTrapResolution) ||
+		(bAttackResolution && Preview.TargetMonsterIds.IsEmpty() && !bSurfaceResolution && !bTrapResolution) ||
 		!Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
 	{
 		return false;
 	}
 
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[Action.CharacterIndex];
+	const FIntPoint PartyCellForTargetedAction(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+	if (Action.Definition.ActionType == EGridCombatActionType::RangedAttack && IsValid(RuntimeActor) &&
+		RuntimeActor->DoesCombatSmokeBlockLine(PartyCellForTargetedAction, Preview.TargetCell))
+	{
+		return false;
+	}
 	FGridInventoryCharacterSummary CharacterSummary;
 	FGridPlayerCharacterTurnState TurnStateBefore;
 	if (!Inventory->GetCharacterSummary(Action.CharacterIndex, CharacterSummary) || !GetPlayerCharacterTurnState(Action.CharacterIndex, TurnStateBefore) ||
@@ -1477,6 +1512,11 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				Source.RawDamagePercent = Action.Definition.WeaponAttackProfile.WeaponDamagePercent;
 			}
 			FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(Source, ResolvedModifiers);
+			if (Action.Definition.ActionType == EGridCombatActionType::RangedAttack && IsValid(RuntimeActor) &&
+				RuntimeActor->IsCombatSmokeAtCell(TargetMonster->CurrentCell.X, TargetMonster->CurrentCell.Y))
+			{
+				Target.Evasion += 2;
+			}
 			if (ResolutionIndex > 0)
 			{
 				Source.Accuracy += Action.Definition.SubsequentResolutionAccuracyModifier;
@@ -1750,8 +1790,23 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 			}
 		}
 	}
+	if (bTrapResolution && IsValid(RuntimeActor))
+	{
+		int32 ResolvedTrapDamage = FMath::Max(0, Action.Definition.TrapEffect.BaseDamage);
+		if (Action.Definition.TrapEffect.DamageScalingAttribute != EGridAttackScalingAttribute::None)
+		{
+			const int32 AttributeValue =
+				ResolveRPG038AttributeValue(CharacterSummary.Attributes, Action.Definition.TrapEffect.DamageScalingAttribute);
+			ResolvedTrapDamage = FMath::Max(0, ResolvedTrapDamage + URPGCharacterRulesLibrary::GetAttributeModifier(AttributeValue));
+		}
+		if (!RuntimeActor->ApplyCombatTrapAtCell(Preview.TargetCell.X, Preview.TargetCell.Y, Action.Definition.TrapEffect,
+				Character.CharacterId, Action.Definition.ActionId, ResolvedTrapDamage))
+		{
+			return false;
+		}
+	}
 	bPlayerAttackResolutionInProgress = false;
-	EmitCharacterActionResolvedReaction(Action.CharacterIndex, Action, ReactionActionInstanceId);
+	EmitCharacterActionResolvedReaction(Action.CharacterIndex, Action, ReactionActionInstanceId, EffectiveOffensiveSourceTags);
 
 	if (bPendingVictoryAfterPlayerAttack)
 	{
@@ -1853,6 +1908,21 @@ bool UGridTurnManagerComponent::RequestCharacterHostileEffect(
 			FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId), SourceModifiers);
 	}
 
+	const URPGSkillAsset* SkillCheckDefinition = nullptr;
+	int32 SkillCheckDifficulty = 0;
+	if (Action.Definition.SkillCheck.IsEnabled())
+	{
+		SkillCheckDefinition =
+			FRPGSkillRequirementProjectionService::ResolveDefinitionBySkillId(Action.Definition.SkillCheck.SkillId);
+		SkillCheckDifficulty = Action.Definition.SkillCheck.bUseTargetDifficulty && IsValid(TargetMonster->MonsterDefinition)
+			? TargetMonster->MonsterDefinition->SkillCheckDifficulty
+			: Action.Definition.SkillCheck.FixedDifficulty;
+		if (!IsValid(SkillCheckDefinition) || SkillCheckDifficulty <= 0)
+		{
+			return false;
+		}
+	}
+
 	FGridCombatArmorPoolSnapshot ArmorSnapshot;
 	ArmorSnapshot.CurrentPhysicalArmor = FMath::Max(0, TargetMonster->CurrentPhysicalArmor);
 	ArmorSnapshot.CurrentMagicalArmor = FMath::Max(0, TargetMonster->CurrentMagicalArmor);
@@ -1918,7 +1988,24 @@ bool UGridTurnManagerComponent::RequestCharacterHostileEffect(
 		return false;
 	}
 
-	if (!Action.Definition.ArmorEffects.IsEmpty())
+	bool bSkillCheckSucceeded = true;
+	FRPGSkillCheckResult SkillCheckResult;
+	if (Action.Definition.SkillCheck.IsEnabled())
+	{
+		if (!FRPGSkillCheckService::TryResolveSkillCheck(
+				SourceCharacter, SkillCheckDefinition, SkillCheckDifficulty, CombatRandomStream, SkillCheckResult))
+		{
+			return false;
+		}
+		bSkillCheckSucceeded = SkillCheckResult.bSuccess;
+		UE_LOG(LogGridTurnManager, Log,
+			TEXT("[RPG03.9.2] SkillCheck Action=%s Skill=%s Roll=%d Rank=%d Attribute=%d Progression=%d Total=%d DC=%d Success=%s SafeFailure=%s"),
+			*Action.Definition.ActionId.ToString(), *SkillCheckResult.SkillId.ToString(), SkillCheckResult.Roll, SkillCheckResult.Rank,
+			SkillCheckResult.AttributeModifier, SkillCheckResult.ProgressionModifier, SkillCheckResult.Total, SkillCheckResult.Difficulty,
+			bSkillCheckSucceeded ? TEXT("true") : TEXT("false"), SkillCheckResult.bSafeFailure ? TEXT("true") : TEXT("false"));
+	}
+
+	if (bSkillCheckSucceeded && !Action.Definition.ArmorEffects.IsEmpty())
 	{
 		FGridCombatArmorEffectResolver::ApplyDirectDamageEffects(
 			Action.Definition.ArmorEffects, ArmorSnapshot, TargetModifiers, &ArmorSourceContext);
@@ -1930,7 +2017,7 @@ bool UGridTurnManagerComponent::RequestCharacterHostileEffect(
 
 	UGridStatusEffectLifecycleSubsystem* StatusLifecycle =
 		GetWorld() ? GetWorld()->GetSubsystem<UGridStatusEffectLifecycleSubsystem>() : nullptr;
-	if (StatusLifecycle)
+	if (StatusLifecycle && bSkillCheckSucceeded)
 	{
 		StatusLifecycle->BindToTurnManager(this);
 		if (!Action.Definition.StatusApplications.IsEmpty())
@@ -2221,6 +2308,12 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 		{
 			OutResult.RejectReason = EGridCombatActionRequestRejectReason::UnsupportedResolution;
 			return false;
+		}
+
+		if (SpellDefinition.bRequiresLineOfSight && TargetingContext.bHasResolvedTargetCell && IsValid(RuntimeActor))
+		{
+			TargetingContext.bLineOfSightClear =
+				!RuntimeActor->DoesCombatSmokeBlockLine(TargetingContext.CasterCell, TargetingContext.ResolvedTargetCell);
 		}
 
 		const int32 TargetMaxHealth = TargetMonster ? IsValid(TargetMonster->MonsterDefinition) ? FMath::Max(1, TargetMonster->MonsterDefinition->MaxHealth)

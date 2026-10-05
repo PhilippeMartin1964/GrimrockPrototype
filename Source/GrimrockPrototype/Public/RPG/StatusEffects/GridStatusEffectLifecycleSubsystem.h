@@ -106,6 +106,9 @@ private:
 	void HandleCombatantStateChanged(FGridCombatantInitiativeEntry Combatant);
 
 	UFUNCTION()
+	void HandleActiveCombatantChanged(FGridCombatantInitiativeEntry ActiveCombatant);
+
+	UFUNCTION()
 	void HandleRoundStarted(int32 RoundNumber);
 
 	UFUNCTION()

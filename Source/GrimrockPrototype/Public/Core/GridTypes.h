@@ -126,7 +126,8 @@ enum class EGridObjectEvent : uint8
 	MonsterDespawned UMETA(DisplayName = "Monster Despawned"),
 	MonsterTeleported UMETA(DisplayName = "Monster Teleported"),
 	EncounterWaveStarted UMETA(DisplayName = "Encounter Wave Started"),
-	EncounterCompleted UMETA(DisplayName = "Encounter Completed")
+	EncounterCompleted UMETA(DisplayName = "Encounter Completed"),
+	Sabotaged UMETA(DisplayName = "Sabotaged")
 };
 
 USTRUCT(BlueprintType)

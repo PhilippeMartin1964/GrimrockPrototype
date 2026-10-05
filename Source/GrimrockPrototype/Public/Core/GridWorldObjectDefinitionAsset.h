@@ -179,6 +179,13 @@ public:
 			ToolTip = "Controls whether the runtime object can respond to direct player interaction when the runtime actor path supports it."))
 	bool bIsInteractable = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Sabotage", meta = (DisplayName = "Can Be Sabotaged"))
+	bool bCanBeSabotaged = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Sabotage",
+		meta = (ClampMin = "1", ClampMax = "40", EditCondition = "bCanBeSabotaged", EditConditionHides))
+	int32 SabotageDifficulty = 10;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction",
 		meta = (DisplayName = "Runtime Readable",
 			ToolTip = "Controls whether the object behaves as readable at runtime."))

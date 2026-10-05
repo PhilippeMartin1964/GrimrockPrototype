@@ -39,6 +39,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Identity", meta = (ClampMin = "1"))
 	int32 DangerLevel = 1;
 
+	/** Generic difficulty used by targeted Skill Check actions. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Identity", meta = (ClampMin = "1", ClampMax = "40"))
+	int32 SkillCheckDifficulty = 10;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Visual")
 	TSoftObjectPtr<UTexture2D> Icon;
 

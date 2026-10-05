@@ -2,6 +2,7 @@
 
 #include "Engine/AssetManager.h"
 #include "RPG/RPGSkillAsset.h"
+#include "RPG/RPGClassAsset.h"
 #include "RPG/RPGSkillService.h"
 #include "Runtime/GridInventoryTypes.h"
 
@@ -47,11 +48,29 @@ bool FRPGSkillRequirementProjectionService::AppendSatisfiedRequirements(const FG
 			return false;
 		}
 
+		int32 EffectiveGrantRank = SkillRank.Rank;
+		if (const URPGClassAsset* ClassDefinition = CharacterState.ClassDefinition.Get())
+		{
+			for (const FName ChoiceId : CharacterState.SelectedClassProgressionChoiceIds)
+			{
+				const FRPGClassProgressionChoiceDefinition* Choice = ClassDefinition->FindProgressionChoice(ChoiceId);
+				if (!Choice) continue;
+				for (const FRPGSkillProgressionModifier& Modifier : Choice->SkillModifiers)
+				{
+					if (Modifier.SkillId == SkillRank.SkillId)
+					{
+						EffectiveGrantRank += Modifier.RequirementGrantRankModifier;
+					}
+				}
+			}
+		}
+		EffectiveGrantRank = FMath::Clamp(EffectiveGrantRank, 0, Definition->MaxRank);
+
 		// Any trained skill satisfies its own stable SkillId requirement.
 		CandidateRequirements.Add(SkillRank.SkillId);
 		for (const FRPGSkillRequirementGrant& Grant : Definition->RequirementGrants)
 		{
-			if (SkillRank.Rank < Grant.MinimumRank)
+			if (EffectiveGrantRank < Grant.MinimumRank)
 			{
 				continue;
 			}

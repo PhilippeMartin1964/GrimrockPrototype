@@ -15,6 +15,13 @@ struct GRIMROCKPROTOTYPE_API FGridCombatModifierContext
 	bool bHasDamageDescriptor = false;
 	EGridDamageType DamageType = EGridDamageType::Physical;
 	EGridPhysicalDamageSubtype PhysicalSubtype = EGridPhysicalDamageSubtype::None;
+	EGridCombatTargetingPolicy TargetingPolicy = EGridCombatTargetingPolicy::None;
+	TArray<EGridCombatTargetCondition> TargetConditions;
+
+	bool HasTargetCondition(EGridCombatTargetCondition Condition) const
+	{
+		return TargetConditions.Contains(Condition);
+	}
 };
 
 /** Deterministic aggregate of every matching modifier profile. */
@@ -26,6 +33,7 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedCombatModifiers
 	int32 IncomingDamagePercentModifier = 0;
 	int32 CriticalChancePercentModifier = 0;
 	int32 CriticalDamagePercentModifier = 0;
+	int32 WeaponDamagePercentModifier = 0;
 	FGridDamageResistanceSet ResistanceModifiers;
 	int32 ActionPointCostModifier = 0;
 	int32 ManaCostModifier = 0;
@@ -52,7 +60,8 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedCombatModifiers
 	bool IsEmpty() const
 	{
 		return AccuracyModifier == 0 && EvasionModifier == 0 && OutgoingDamagePercentModifier == 0 && IncomingDamagePercentModifier == 0 &&
-			CriticalChancePercentModifier == 0 && CriticalDamagePercentModifier == 0 && ResistanceModifiers.IsEmpty() && ActionPointCostModifier == 0 &&
+			CriticalChancePercentModifier == 0 && CriticalDamagePercentModifier == 0 && WeaponDamagePercentModifier == 0 &&
+			ResistanceModifiers.IsEmpty() && ActionPointCostModifier == 0 &&
 			ManaCostModifier == 0 && RangeCellsModifier == 0 && PositiveEffectPercentModifier == 0 &&
 			FriendlyDirectDamagePercentModifier == 0 && QuickItemSecondaryTargetCount == 0 && QuickItemSecondaryMagnitudePercent == 0 &&
 			QuickItemSecondaryDurationPercent == 0 && PhysicalArmorReferencePercentModifier == 0 &&
@@ -77,7 +86,11 @@ public:
 		const FGridOffensiveEquipmentProfile& ResolvedOffensiveProfile, const TArray<FName>& ResolvedItemTags);
 
 	static FGridCombatModifierContext MakeAttackContext(FName ActionId, FName SourceDefinitionId, EGridCombatActionSourcePolicy SourcePolicy,
-		EGridCombatActionType ActionType, EGridDamageType DamageType, EGridPhysicalDamageSubtype PhysicalSubtype);
+		EGridCombatActionType ActionType, EGridDamageType DamageType, EGridPhysicalDamageSubtype PhysicalSubtype,
+		const TArray<FName>& SourceTags = TArray<FName>());
+
+	static void AddTargetContext(FGridCombatModifierContext& Context, EGridCombatTargetingPolicy TargetingPolicy,
+		bool bRearArc, bool bTargetHasActedThisRound, bool bTargetHasPhysicalControl);
 
 	static bool Matches(const FGridCombatModifierProfile& Profile, const FGridCombatModifierContext& Context);
 

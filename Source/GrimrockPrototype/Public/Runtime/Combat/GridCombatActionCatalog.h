@@ -30,6 +30,8 @@ struct GRIMROCKPROTOTYPE_API FGridCombatActionCatalogContext
 	TSet<FName> SatisfiedRequirements;
 	/** One tag set per currently equipped hand item that can actually provide an attack. */
 	TArray<TArray<FName>> EquippedOffensiveSourceTagSets;
+	/** Parallel to EquippedOffensiveSourceTagSets; None represents a non-physical descriptor. */
+	TArray<EGridPhysicalDamageSubtype> EquippedOffensivePhysicalSubtypes;
 	TMap<FName, int32> RemainingCooldownRounds;
 	TArray<FGridCombatModifierProfile> CombatModifiers;
 	TArray<FRPGSkillRank> SkillRanks;

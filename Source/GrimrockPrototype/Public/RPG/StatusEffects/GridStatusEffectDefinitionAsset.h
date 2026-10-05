@@ -108,6 +108,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Rules", meta = (ClampMin = "0"))
 	int32 DefaultDuration = 1;
 
+	/** Removes this effect when its owner next becomes the active combatant. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Rules")
+	bool bExpireAtOwnerNextActivation = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Rules", meta = (ClampMin = "0"))
 	int32 DefaultPotency = 0;
 

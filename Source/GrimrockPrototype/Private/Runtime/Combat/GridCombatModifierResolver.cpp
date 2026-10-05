@@ -51,6 +51,7 @@ FGridCombatModifierContext FGridCombatModifierResolver::MakeActionContext(const 
 	Context.SourceTags = Definition.SourceTags;
 	Context.SourcePolicy = Definition.SourcePolicy;
 	Context.ActionType = Definition.ActionType;
+	Context.TargetingPolicy = Definition.TargetingPolicy;
 	if (Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack && Definition.OffensiveProfile.IsValid())
 	{
 		Context.bHasDamageDescriptor = true;
@@ -83,17 +84,30 @@ FGridCombatModifierContext FGridCombatModifierResolver::MakeResolvedActionAttack
 }
 
 FGridCombatModifierContext FGridCombatModifierResolver::MakeAttackContext(FName ActionId, FName SourceDefinitionId,
-	EGridCombatActionSourcePolicy SourcePolicy, EGridCombatActionType ActionType, EGridDamageType DamageType, EGridPhysicalDamageSubtype PhysicalSubtype)
+	EGridCombatActionSourcePolicy SourcePolicy, EGridCombatActionType ActionType, EGridDamageType DamageType,
+	EGridPhysicalDamageSubtype PhysicalSubtype, const TArray<FName>& SourceTags)
 {
 	FGridCombatModifierContext Context;
 	Context.ActionId = ActionId;
 	Context.SourceDefinitionId = SourceDefinitionId;
 	Context.SourcePolicy = SourcePolicy;
 	Context.ActionType = ActionType;
+	Context.SourceTags = SourceTags;
 	Context.bHasDamageDescriptor = true;
 	Context.DamageType = DamageType;
 	Context.PhysicalSubtype = DamageType == EGridDamageType::Physical ? PhysicalSubtype : EGridPhysicalDamageSubtype::None;
 	return Context;
+}
+
+void FGridCombatModifierResolver::AddTargetContext(FGridCombatModifierContext& Context, EGridCombatTargetingPolicy TargetingPolicy,
+	bool bRearArc, bool bTargetHasActedThisRound, bool bTargetHasPhysicalControl)
+{
+	Context.TargetingPolicy = TargetingPolicy;
+	Context.TargetConditions.Reset();
+	if (bRearArc) Context.TargetConditions.Add(EGridCombatTargetCondition::RearArc);
+	Context.TargetConditions.Add(bTargetHasActedThisRound ? EGridCombatTargetCondition::HasActedThisRound
+														 : EGridCombatTargetCondition::HasNotActedThisRound);
+	if (bTargetHasPhysicalControl) Context.TargetConditions.Add(EGridCombatTargetCondition::PhysicalControl);
 }
 
 bool FGridCombatModifierResolver::Matches(const FGridCombatModifierProfile& Profile, const FGridCombatModifierContext& Context)
@@ -119,6 +133,25 @@ bool FGridCombatModifierResolver::Matches(const FGridCombatModifierProfile& Prof
 		}
 	}
 	if (!MatchesFilter(Profile.SourcePolicies, Context.SourcePolicy) || !MatchesFilter(Profile.ActionTypes, Context.ActionType))
+	{
+		return false;
+	}
+	if (Profile.bExcludeAreaActions && Context.TargetingPolicy == EGridCombatTargetingPolicy::Area)
+	{
+		return false;
+	}
+	for (const EGridCombatTargetCondition Condition : Profile.RequiredTargetConditions)
+	{
+		if (!Context.HasTargetCondition(Condition))
+		{
+			return false;
+		}
+	}
+	if (!Profile.AnyTargetConditions.IsEmpty() &&
+		!Profile.AnyTargetConditions.ContainsByPredicate([&Context](EGridCombatTargetCondition Condition)
+		{
+			return Context.HasTargetCondition(Condition);
+		}))
 	{
 		return false;
 	}
@@ -161,6 +194,8 @@ void FGridCombatModifierResolver::Resolve(
 			SaturatingAdd(OutModifiers.CriticalChancePercentModifier, Profile.CriticalChancePercentModifier);
 		OutModifiers.CriticalDamagePercentModifier =
 			SaturatingAdd(OutModifiers.CriticalDamagePercentModifier, Profile.CriticalDamagePercentModifier);
+		OutModifiers.WeaponDamagePercentModifier =
+			SaturatingAdd(OutModifiers.WeaponDamagePercentModifier, Profile.WeaponDamagePercentModifier);
 		AddResistanceSet(OutModifiers.ResistanceModifiers, Profile.ResistanceModifiers);
 		OutModifiers.ActionPointCostModifier = SaturatingAdd(OutModifiers.ActionPointCostModifier, Profile.ActionPointCostModifier);
 		OutModifiers.ManaCostModifier = SaturatingAdd(OutModifiers.ManaCostModifier, Profile.ManaCostModifier);
@@ -313,6 +348,7 @@ void FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(FGridAttackSource
 	Source.DamageMultiplier = FMath::Max(0.0f, Source.DamageMultiplier * PercentToMultiplier(Modifiers.OutgoingDamagePercentModifier));
 	Source.CriticalChancePercent = FMath::Clamp(SaturatingAdd(Source.CriticalChancePercent, Modifiers.CriticalChancePercentModifier), 0, 100);
 	Source.CriticalDamagePercent = FMath::Clamp(SaturatingAdd(Source.CriticalDamagePercent, Modifiers.CriticalDamagePercentModifier), 100, 1000);
+	Source.RawDamagePercent = FMath::Clamp(SaturatingAdd(Source.RawDamagePercent, Modifiers.WeaponDamagePercentModifier), 0, 1000);
 }
 
 void FGridCombatModifierResolver::ApplyIncomingAttackModifiers(

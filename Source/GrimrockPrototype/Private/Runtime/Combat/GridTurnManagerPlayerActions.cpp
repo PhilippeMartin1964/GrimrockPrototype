@@ -1,6 +1,8 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
+#include "Core/GridDirectionUtils.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
@@ -136,6 +138,52 @@ namespace
 		const UEnum* RejectReasonEnum = StaticEnum<EGridPlayerAttackRejectReason>();
 		return RejectReasonEnum ? RejectReasonEnum->GetNameStringByValue(static_cast<int64>(RejectReason)) : TEXT("Unknown");
 	}
+
+	bool IsRPG0392RearArc(const FIntPoint& SourceCell, const AGridMonsterActor* TargetMonster)
+	{
+		if (!IsValid(TargetMonster))
+		{
+			return false;
+		}
+		const FIntPoint TargetCell = TargetMonster->CurrentCell;
+		switch (GridDirectionUtils::GetBackward(TargetMonster->Facing))
+		{
+			case EGridEdge::North: return SourceCell.X == TargetCell.X && SourceCell.Y > TargetCell.Y;
+			case EGridEdge::East: return SourceCell.Y == TargetCell.Y && SourceCell.X > TargetCell.X;
+			case EGridEdge::South: return SourceCell.X == TargetCell.X && SourceCell.Y < TargetCell.Y;
+			case EGridEdge::West: return SourceCell.Y == TargetCell.Y && SourceCell.X < TargetCell.X;
+			default: return false;
+		}
+	}
+
+	bool HasRPG0392PhysicalControl(const AGridMonsterActor* TargetMonster)
+	{
+		if (!IsValid(TargetMonster))
+		{
+			return false;
+		}
+		return TargetMonster->StatusEffects.ActiveEffects.ContainsByPredicate(
+			[](const FGridStatusEffectRuntimeState& State)
+			{
+				return State.IsValid() && IsValid(State.DefinitionAsset) &&
+					State.DefinitionAsset->StatusTags.Contains(TEXT("Control.Physical"));
+			});
+	}
+
+	bool HasRPG0392ActedThisRound(const UGridTurnManagerComponent* TurnManager, const AGridMonsterActor* TargetMonster)
+	{
+		if (!IsValid(TurnManager) || !IsValid(TargetMonster))
+		{
+			return false;
+		}
+		const FGuid Id = TargetMonster->ResolvePersistenceId();
+		const FGridCombatantInitiativeEntry* Entry = TurnManager->InitiativeOrder.FindByPredicate(
+			[Id](const FGridCombatantInitiativeEntry& Candidate)
+			{
+				return Candidate.Side == EGridCombatantSide::Monster && Candidate.CombatantId == Id;
+			});
+		return Entry && Entry->State != EGridCombatantTurnState::Waiting;
+	}
 }
 
 bool UGridTurnManagerComponent::RequestSelectedCharacterAttack(
@@ -269,6 +317,14 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, OffensiveProfileRejectReason, OutRejectReason);
 	}
+	if (ResolvedAttackSourceTags.IsEmpty() && !OffensiveItemDefinitionId.IsNone())
+	{
+		if (const UGridItemDefinitionAsset* OffensiveDefinition =
+				PartyPawn->PartyInventoryComponent->FindItemDefinition(OffensiveItemDefinitionId))
+		{
+			ResolvedAttackSourceTags = OffensiveDefinition->ItemTags;
+		}
+	}
 
 	TArray<FGridCombatStatusApplicationProfile> AttackStatusApplications;
 	TArray<FGridCombatArmorEffectProfile> AttackArmorEffects;
@@ -300,7 +356,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 						CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId, OffensiveProfile, ResolvedAttackSourceTags)
 					: FGridCombatModifierResolver::MakeActionContext(CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId))
 			: FGridCombatModifierResolver::MakeAttackContext(OffensiveProfile.AttackId, ModifierSourceDefinitionId, ModifierSourcePolicy, ModifierActionType,
-				OffensiveProfile.AttackDefinition.DamageType, OffensiveProfile.AttackDefinition.PhysicalSubtype);
+				OffensiveProfile.AttackDefinition.DamageType, OffensiveProfile.AttackDefinition.PhysicalSubtype, ResolvedAttackSourceTags);
 		FGridCombatModifierResolver::Resolve(ChoiceModifiers, ModifierContext, ResolvedAttackModifiers);
 		if (!CombatActionOverride)
 		{
@@ -416,6 +472,13 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::TargetOutOfRange, OutRejectReason);
 	}
+	const bool bResolvedRangedAttack = CombatActionOverride
+		? CombatActionOverride->Definition.ActionType == EGridCombatActionType::RangedAttack
+		: OffensiveProfile.RangeCells > 1;
+	if (bResolvedRangedAttack && RuntimeActor->DoesCombatSmokeBlockLine(PartyCell, TargetCell))
+	{
+		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::PassageBlocked, OutRejectReason);
+	}
 
 	FGridInventoryCharacterSummary CharacterSummary;
 	if (!PartyPawn->PartyInventoryComponent->GetCharacterSummary(AttackerCharacterIndex, CharacterSummary))
@@ -427,12 +490,39 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::TargetInactive, OutRejectReason);
 	}
 
+	// RPG03.9.2 target-aware C2 resolution. Cost/range projection happened before target discovery;
+	// combat-output modifiers are resolved again with the authoritative target geometry/state.
+	if (!ChoiceModifiers.IsEmpty())
+	{
+		const EGridCombatActionSourcePolicy TargetSourcePolicy = CombatActionOverride ? CombatActionOverride->Definition.SourcePolicy
+			: OffensiveEquipmentSlot != EGridEquipmentSlot::None ? EGridCombatActionSourcePolicy::Equipment : EGridCombatActionSourcePolicy::Universal;
+		const EGridCombatActionType TargetActionType = CombatActionOverride ? CombatActionOverride->Definition.ActionType
+			: OffensiveProfile.RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
+		FGridCombatModifierContext TargetedContext = CombatActionOverride
+			? (bUsesEquippedWeaponAction
+					? FGridCombatModifierResolver::MakeResolvedActionAttackContext(
+						CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId, OffensiveProfile, ResolvedAttackSourceTags)
+					: FGridCombatModifierResolver::MakeActionContext(CombatActionOverride->Definition, CombatActionOverride->SourceDefinitionId))
+			: FGridCombatModifierResolver::MakeAttackContext(OffensiveProfile.AttackId, OffensiveItemDefinitionId, TargetSourcePolicy, TargetActionType,
+				OffensiveProfile.AttackDefinition.DamageType, OffensiveProfile.AttackDefinition.PhysicalSubtype, ResolvedAttackSourceTags);
+		const FIntPoint ModifierSourceCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+		FGridCombatModifierResolver::AddTargetContext(TargetedContext,
+			CombatActionOverride ? CombatActionOverride->Definition.TargetingPolicy : EGridCombatTargetingPolicy::FirstAxialTarget,
+			IsRPG0392RearArc(ModifierSourceCell, TargetMonster), HasRPG0392ActedThisRound(this, TargetMonster),
+			HasRPG0392PhysicalControl(TargetMonster));
+		FGridCombatModifierResolver::Resolve(ChoiceModifiers, TargetedContext, ResolvedAttackModifiers);
+	}
+
 	FGridAttackSourceStats Source;
 	FGridAttackTargetStats Target;
 	FGridAttackDefinition AttackDefinition;
 	if (!BuildPlayerAttackResolutionInputs(CharacterSummary, TargetMonster, OffensiveProfile, Source, Target, AttackDefinition))
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::TargetInactive, OutRejectReason);
+	}
+	if (bResolvedRangedAttack && RuntimeActor->IsCombatSmokeAtCell(TargetCell.X, TargetCell.Y))
+	{
+		Target.Evasion += 2;
 	}
 
 	if (CombatActionOverride)
@@ -659,8 +749,8 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	const EGridCombatActionType ReactionActionType = CombatActionOverride ? CombatActionOverride->Definition.ActionType
 		: OffensiveProfile.RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
 	const FGuid ReactionActionInstanceId = Request.RequestId;
-	EmitPlayerAttackReactionEvents(
-		AttackerCharacterIndex, Request, Result, ReactionSourcePolicy, ReactionActionType, ReactionActionInstanceId, false, AttackResolutionCount == 1);
+	EmitPlayerAttackReactionEvents(AttackerCharacterIndex, Request, Result, ReactionSourcePolicy, ReactionActionType,
+		ReactionActionInstanceId, false, AttackResolutionCount == 1, ResolvedAttackSourceTags);
 	++PlayerAttackResolvedBroadcastCount;
 	bPlayerAttackResolutionInProgress = false;
 	OnPlayerAttackResolved.Broadcast(Request, TargetMonster, Result);
@@ -678,6 +768,10 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		if (!BuildPlayerAttackResolutionInputs(CharacterSummary, TargetMonster, OffensiveProfile, RepeatSource, RepeatTarget, RepeatAttackDefinition))
 		{
 			break;
+		}
+		if (bResolvedRangedAttack && RuntimeActor->IsCombatSmokeAtCell(TargetCell.X, TargetCell.Y))
+		{
+			RepeatTarget.Evasion += 2;
 		}
 		if (CombatActionOverride)
 		{
@@ -772,7 +866,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 			}
 		}
 		EmitPlayerAttackReactionEvents(AttackerCharacterIndex, RepeatRequest, RepeatResult, ReactionSourcePolicy,
-			ReactionActionType, ReactionActionInstanceId, false, false);
+			ReactionActionType, ReactionActionInstanceId, false, false, ResolvedAttackSourceTags);
 		++PlayerAttackResolvedBroadcastCount;
 		bPlayerAttackResolutionInProgress = false;
 		OnPlayerAttackResolved.Broadcast(RepeatRequest, TargetMonster, RepeatResult);
@@ -784,7 +878,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 
 	if (AttackResolutionCount > 1 && CombatActionOverride)
 	{
-		EmitCharacterActionResolvedReaction(AttackerCharacterIndex, *CombatActionOverride, ReactionActionInstanceId);
+		EmitCharacterActionResolvedReaction(AttackerCharacterIndex, *CombatActionOverride, ReactionActionInstanceId, ResolvedAttackSourceTags);
 	}
 	if ((ManaCost > 0 || SourceItemQuantityCost > 0 || bCooldownStarted) && IsValid(Inventory))
 	{

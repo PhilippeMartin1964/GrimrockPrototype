@@ -1002,6 +1002,33 @@ bool AGridLevelRuntimeActor::ExecuteLinksFromRuntimeObject(FGuid SourceObjectId,
 	return ActivationComponent ? ActivationComponent->ExecuteLinksFromObjectForEvent(SourceObjectId, SourceEvent) : false;
 }
 
+bool AGridLevelRuntimeActor::GetRuntimeObjectSabotageDifficulty(FGuid ObjectId, int32& OutDifficulty) const
+{
+	OutDifficulty = 0;
+	if (!ObjectId.IsValid() || !IsValid(LevelAsset))
+	{
+		return false;
+	}
+
+	const FGridWorldObjectInstance* Instance = LevelAsset->FindWorldObjectInstanceById(ObjectId);
+	const UGridWorldObjectDefinitionAsset* Definition =
+		Instance ? FindWorldObjectDefinition(Instance->WorldObjectDefinitionId) : nullptr;
+	if (!Instance || !IsValid(Definition) || !Definition->bCanBeSabotaged || Definition->SabotageDifficulty <= 0)
+	{
+		return false;
+	}
+
+	OutDifficulty = Definition->SabotageDifficulty;
+	return true;
+}
+
+bool AGridLevelRuntimeActor::ExecuteRuntimeObjectSabotage(FGuid ObjectId)
+{
+	int32 Difficulty = 0;
+	return GetRuntimeObjectSabotageDifficulty(ObjectId, Difficulty) &&
+		ExecuteLinksFromRuntimeObject(ObjectId, EGridObjectEvent::Sabotaged);
+}
+
 void AGridLevelRuntimeActor::HandlePartyCellChanged(int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY)
 {
 	if (ActivationComponent)

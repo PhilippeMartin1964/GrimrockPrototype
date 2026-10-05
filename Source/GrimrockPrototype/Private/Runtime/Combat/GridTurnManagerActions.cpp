@@ -2,6 +2,9 @@
 
 #include "Core/GridDirectionUtils.h"
 #include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
+#include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
+#include "Runtime/Combat/GridCombatModifierResolver.h"
+#include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -211,14 +214,16 @@ bool UGridTurnManagerComponent::StartActiveMeleeAttack()
 		}
 
 		if (Attack->bRequiresLineOfSight &&
-			!FGridMonsterPerception::HasStraightLineOfSight(CurrentMonster->CurrentCell, PartyCell, Attack->MaxRangeCells,
+			(!FGridMonsterPerception::HasStraightLineOfSight(CurrentMonster->CurrentCell, PartyCell, Attack->MaxRangeCells,
 				[this](const FIntPoint& From, const FIntPoint& To)
 				{
 					const EGridEdge Direction = FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells(From, To);
 					return IsValid(RuntimeActor) && Direction != EGridEdge::None && RuntimeActor->CanMove(From.X, From.Y, Direction);
-				}))
+				}) ||
+				RuntimeActor->DoesCombatSmokeBlockLine(CurrentMonster->CurrentCell, PartyCell)))
 		{
-			UE_LOG(LogGridTurnManager, Warning, TEXT("[GridTurnManager] Ranged attack blocked by LOS. Monster=%s Attack=%s From=(%d,%d) Target=(%d,%d)"),
+			UE_LOG(LogGridTurnManager, Warning,
+				TEXT("[GridTurnManager] Ranged attack blocked by LOS/smoke. Monster=%s Attack=%s From=(%d,%d) Target=(%d,%d)"),
 				*GetNameSafe(CurrentMonster), *Attack->AttackId.ToString(), CurrentMonster->CurrentCell.X, CurrentMonster->CurrentCell.Y, PartyCell.X,
 				PartyCell.Y);
 			return false;
@@ -541,10 +546,69 @@ void UGridTurnManagerComponent::UnbindCurrentCombat()
 void UGridTurnManagerComponent::HandleMonsterMoveCompleted(FIntPoint FromCell, FIntPoint ToCell)
 {
 	(void)FromCell;
-	(void)ToCell;
 
-	if (bHasActiveAction && ActiveAction.Type == EGridCombatActionType::Move)
+	if (bHasActiveAction && ActiveAction.Type == EGridCombatActionType::Move && IsValid(CurrentMonster) && IsValid(RuntimeActor))
 	{
+		if (const FGridCombatTrapState* TrapPtr = RuntimeActor->FindCombatTrapAtCell(ToCell.X, ToCell.Y))
+		{
+			const FGridCombatTrapState Trap = *TrapPtr;
+			if (Trap.IsValid())
+			{
+				if (Trap.bConsumeOnTrigger)
+				{
+					FGridCombatTrapState Consumed;
+					RuntimeActor->ConsumeCombatTrapAtCell(ToCell.X, ToCell.Y, Consumed);
+				}
+
+				FGridAttackTargetStats TargetBefore;
+				TargetBefore.CurrentHealth = CurrentMonster->CurrentHealth;
+				TargetBefore.PhysicalArmor = CurrentMonster->CurrentPhysicalArmor;
+				TargetBefore.MagicalArmor = CurrentMonster->CurrentMagicalArmor;
+				TargetBefore.DamageMultiplier = IsValid(CurrentMonster->MonsterDefinition)
+					? CurrentMonster->MonsterDefinition->GetDamageMultiplier(Trap.DamageType, Trap.PhysicalSubtype)
+					: 1.0f;
+
+				TArray<FGridCombatModifierProfile> TargetProfiles;
+				if (FGridCombatModifierResolver::CollectStatusModifiers(CurrentMonster->StatusEffects, TargetProfiles))
+				{
+					FGridResolvedCombatModifiers TargetModifiers;
+					FGridCombatModifierResolver::Resolve(TargetProfiles,
+						FGridCombatModifierResolver::MakeAttackContext(
+							Trap.SourceActionId, Trap.SourceActionId, EGridCombatActionSourcePolicy::Ability,
+							EGridCombatActionType::Ability, Trap.DamageType, Trap.PhysicalSubtype),
+						TargetModifiers);
+					FGridCombatModifierResolver::ApplyIncomingAttackModifiers(TargetBefore, Trap.DamageType, TargetModifiers);
+				}
+
+				const FGridAttackResult Damage =
+					FGridCombatResolver::ResolveDirectDamage(TargetBefore, Trap.DamageType, Trap.RawDamage, Trap.PhysicalSubtype);
+				CurrentMonster->ApplyAttackResult(Damage);
+
+				if (!CurrentMonster->IsDead() && !Trap.StatusApplications.IsEmpty())
+				{
+					if (UGridStatusEffectLifecycleSubsystem* StatusLifecycle =
+							GetWorld() ? GetWorld()->GetSubsystem<UGridStatusEffectLifecycleSubsystem>() : nullptr)
+					{
+						StatusLifecycle->BindToTurnManager(this);
+						StatusLifecycle->ApplyCombatStatusApplicationsToMonster(
+							CurrentMonster, Trap.StatusApplications, Trap.SourceCombatantId, TargetBefore, &Damage);
+					}
+				}
+
+				if (FGridCombatantInitiativeEntry* Entry =
+						FindInitiativeEntry(EGridCombatantSide::Monster, CurrentMonster->ResolvePersistenceId()))
+				{
+					RefreshInitiativeEntryVitals(*Entry);
+					OnCombatantStateChanged.Broadcast(*Entry);
+				}
+
+				UE_LOG(LogGridTurnManager, Log,
+					TEXT("[RPG03.9.2] TrapTriggered Monster=%s Cell=(%d,%d) Trap=%s Raw=%d HP=%d->%d Consumed=%s"),
+					*GetNameSafe(CurrentMonster), ToCell.X, ToCell.Y, *Trap.TrapId.ToString(), Trap.RawDamage,
+					Damage.TargetHealthBefore, Damage.TargetHealthAfter, Trap.bConsumeOnTrigger ? TEXT("true") : TEXT("false"));
+			}
+		}
+
 		CompleteActiveAction(true);
 	}
 }

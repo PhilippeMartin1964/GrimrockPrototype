@@ -519,6 +519,9 @@ struct FGridCombatWeaponAttackProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack")
 	TArray<FName> RequiredItemTags;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack")
+	TArray<EGridPhysicalDamageSubtype> AllowedPhysicalSubtypes;
+
 	/** Allows the standard unarmed profile when no offensive item is equipped. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack")
 	bool bAllowUnarmed = false;
@@ -551,6 +554,12 @@ struct FGridCombatWeaponAttackProfile
 		{
 			return false;
 		}
+		if (!AllowedPhysicalSubtypes.IsEmpty() &&
+			(InOutProfile.AttackDefinition.DamageType != EGridDamageType::Physical ||
+				!AllowedPhysicalSubtypes.Contains(InOutProfile.AttackDefinition.PhysicalSubtype)))
+		{
+			return false;
+		}
 		InOutProfile.AttackId = ActionId;
 		InOutProfile.RangeCells = ActionRangeCells;
 		if (bOverrideDamageDescriptor)
@@ -580,6 +589,15 @@ struct FGridCombatWeaponAttackProfile
 				return false;
 			}
 			SeenTags.Add(Tag);
+		}
+		TSet<EGridPhysicalDamageSubtype> SeenSubtypes;
+		for (const EGridPhysicalDamageSubtype Subtype : AllowedPhysicalSubtypes)
+		{
+			if (Subtype == EGridPhysicalDamageSubtype::None || SeenSubtypes.Contains(Subtype))
+			{
+				return false;
+			}
+			SeenSubtypes.Add(Subtype);
 		}
 		return !bOverrideDamageDescriptor || OverrideDamageType == EGridDamageType::Physical ||
 			OverridePhysicalSubtype == EGridPhysicalDamageSubtype::None;
@@ -717,6 +735,13 @@ struct FGridCombatReactionProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
 	TArray<EGridDamageType> DamageTypes;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
+	TArray<FName> RequiredSourceTags;
+
+	/** Generic semantic filter used by stealth/status reactions. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
+	bool bRequireOffensiveAction = false;
+
 	/** Reaction-generated events are ignored by default to prevent recursive chains. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction")
 	bool bAllowReactionGeneratedEvents = false;
@@ -742,6 +767,12 @@ struct FGridCombatReactionProfile
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response")
 	bool bRequireEventTargetFrontRow = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response")
+	FName ApplyOwnerStatusEffectId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response", meta = (ClampMin = "-1", ClampMax = "12"))
+	int32 ApplyOwnerStatusDurationOverride = INDEX_NONE;
 
 	bool IsValid() const
 	{
@@ -784,6 +815,23 @@ struct FGridCombatReactionProfile
 				return false;
 			}
 		}
+		TSet<FName> SeenSourceTags;
+		for (const FName Tag : RequiredSourceTags)
+		{
+			if (Tag.IsNone() || SeenSourceTags.Contains(Tag))
+			{
+				return false;
+			}
+			SeenSourceTags.Add(Tag);
+		}
+		if (ApplyOwnerStatusDurationOverride < INDEX_NONE)
+		{
+			return false;
+		}
+		if (ApplyOwnerStatusEffectId.IsNone() && ApplyOwnerStatusDurationOverride != INDEX_NONE)
+		{
+			return false;
+		}
 		return true;
 	}
 };
@@ -823,6 +871,12 @@ struct FGridCombatReactionEvent
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	EGridDamageType DamageType = EGridDamageType::Physical;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	TArray<FName> SourceTags;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	bool bOffensiveAction = false;
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	bool bReactionGenerated = false;
@@ -868,6 +922,12 @@ struct FGridCombatReactionMatch
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	bool bRequireEventTargetFrontRow = false;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FName ApplyOwnerStatusEffectId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	int32 ApplyOwnerStatusDurationOverride = INDEX_NONE;
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	FGridCombatReactionEvent Event;
@@ -1366,6 +1426,16 @@ struct FGridCombatActionResourceCosts
  * Empty filters are wildcards. Runtime consumers aggregate matching profiles;
  * durable character state never stores the aggregate.
  */
+UENUM(BlueprintType)
+enum class EGridCombatTargetCondition : uint8
+{
+	None UMETA(DisplayName = "None"),
+	RearArc UMETA(DisplayName = "Rear Arc"),
+	HasActedThisRound UMETA(DisplayName = "Has Acted This Round"),
+	HasNotActedThisRound UMETA(DisplayName = "Has Not Acted This Round"),
+	PhysicalControl UMETA(DisplayName = "Physical Control")
+};
+
 USTRUCT(BlueprintType)
 struct FGridCombatModifierProfile
 {
@@ -1397,6 +1467,15 @@ struct FGridCombatModifierProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
 	TArray<FName> RequiredOwnerRequirementIds;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
+	TArray<EGridCombatTargetCondition> RequiredTargetConditions;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
+	TArray<EGridCombatTargetCondition> AnyTargetConditions;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
+	bool bExcludeAreaActions = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier")
 	int32 AccuracyModifier = 0;
 
@@ -1414,6 +1493,9 @@ struct FGridCombatModifierProfile
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "-100", ClampMax = "800"))
 	int32 CriticalDamagePercentModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "-500", ClampMax = "500"))
+	int32 WeaponDamagePercentModifier = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier")
 	FGridDamageResistanceSet ResistanceModifiers;
@@ -1480,7 +1562,8 @@ struct FGridCombatModifierProfile
 	bool HasAnyModifier() const
 	{
 		return AccuracyModifier != 0 || EvasionModifier != 0 || OutgoingDamagePercentModifier != 0 || IncomingDamagePercentModifier != 0 ||
-			CriticalChancePercentModifier != 0 || CriticalDamagePercentModifier != 0 || !ResistanceModifiers.IsEmpty() || ActionPointCostModifier != 0 ||
+			CriticalChancePercentModifier != 0 || CriticalDamagePercentModifier != 0 || WeaponDamagePercentModifier != 0 ||
+			!ResistanceModifiers.IsEmpty() || ActionPointCostModifier != 0 ||
 			ManaCostModifier != 0 || RangeCellsModifier != 0 || PositiveEffectPercentModifier != 0 ||
 			FriendlyDirectDamagePercentModifier != 0 || QuickItemSecondaryTargetCount != 0 || QuickItemSecondaryMagnitudePercent != 0 ||
 			QuickItemSecondaryDurationPercent != 0 || PhysicalArmorReferencePercentModifier != 0 ||
@@ -1495,7 +1578,7 @@ struct FGridCombatModifierProfile
 		if (!HasAnyModifier() || OutgoingDamagePercentModifier < -100 || OutgoingDamagePercentModifier > 500 ||
 			IncomingDamagePercentModifier < -100 || IncomingDamagePercentModifier > 500 || CriticalChancePercentModifier < -100 ||
 			CriticalChancePercentModifier > 100 || CriticalDamagePercentModifier < -100 || CriticalDamagePercentModifier > 800 ||
-			ActionPointCostModifier < -6 || ActionPointCostModifier > 6 || ManaCostModifier < -100 || ManaCostModifier > 100 ||
+			WeaponDamagePercentModifier < -500 || WeaponDamagePercentModifier > 500 || ActionPointCostModifier < -6 || ActionPointCostModifier > 6 || ManaCostModifier < -100 || ManaCostModifier > 100 ||
 			RangeCellsModifier < -32 || RangeCellsModifier > 32 || PositiveEffectPercentModifier < -100 || PositiveEffectPercentModifier > 500 ||
 			FriendlyDirectDamagePercentModifier < -100 || FriendlyDirectDamagePercentModifier > 500 || QuickItemSecondaryTargetCount < 0 ||
 			QuickItemSecondaryTargetCount > 6 || QuickItemSecondaryMagnitudePercent < 0 || QuickItemSecondaryMagnitudePercent > 100 ||
@@ -1567,7 +1650,20 @@ struct FGridCombatModifierProfile
 				SeenOwnerRequirements.Add(RequirementId);
 			}
 		}
-		return true;
+		auto ConditionsValid = [](const TArray<EGridCombatTargetCondition>& Conditions)
+		{
+			TSet<EGridCombatTargetCondition> Seen;
+			for (const EGridCombatTargetCondition Condition : Conditions)
+			{
+				if (Condition == EGridCombatTargetCondition::None || Seen.Contains(Condition))
+				{
+					return false;
+				}
+				Seen.Add(Condition);
+			}
+			return true;
+		};
+		return ConditionsValid(RequiredTargetConditions) && ConditionsValid(AnyTargetConditions);
 	}
 };
 
@@ -1655,6 +1751,134 @@ struct FGridCombatActionEffectProfile
  * Data-oriented definition shared by equipment, abilities and spells.
  * Resolution and presentation stay separate from catalogue construction.
  */
+USTRUCT(BlueprintType)
+struct FGridCombatTrapEffectProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Trap")
+	bool bPlaceTrap = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Trap")
+	FName TrapId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Trap", meta = (ClampMin = "1", ClampMax = "6"))
+	int32 DurationRounds = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Trap", meta = (ClampMin = "0", ClampMax = "1000"))
+	int32 BaseDamage = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Trap")
+	EGridDamageType DamageType = EGridDamageType::Physical;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Trap")
+	EGridPhysicalDamageSubtype PhysicalSubtype = EGridPhysicalDamageSubtype::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Trap")
+	EGridAttackScalingAttribute DamageScalingAttribute = EGridAttackScalingAttribute::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Trap")
+	TArray<FGridCombatStatusApplicationProfile> StatusApplications;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Trap")
+	bool bConsumeOnTrigger = true;
+
+	bool IsValid() const
+	{
+		if (!bPlaceTrap) return true;
+		if (TrapId.IsNone() || DurationRounds < 1 || DurationRounds > 6 || BaseDamage < 0 ||
+			(DamageType != EGridDamageType::Physical && PhysicalSubtype != EGridPhysicalDamageSubtype::None))
+		{
+			return false;
+		}
+		for (const FGridCombatStatusApplicationProfile& Profile : StatusApplications)
+		{
+			if (!Profile.IsValid()) return false;
+		}
+		return true;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FGridCombatTrapState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Trap")
+	FName TrapId = NAME_None;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Trap")
+	int32 RemainingRounds = 0;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Trap")
+	FGuid SourceCombatantId;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Trap")
+	FName SourceActionId = NAME_None;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Trap")
+	int32 RawDamage = 0;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Trap")
+	EGridDamageType DamageType = EGridDamageType::Physical;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Trap")
+	EGridPhysicalDamageSubtype PhysicalSubtype = EGridPhysicalDamageSubtype::None;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Trap")
+	TArray<FGridCombatStatusApplicationProfile> StatusApplications;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Trap")
+	bool bConsumeOnTrigger = true;
+
+	bool IsValid() const
+	{
+		if (TrapId.IsNone() || RemainingRounds <= 0 || RawDamage < 0 ||
+			(DamageType != EGridDamageType::Physical && PhysicalSubtype != EGridPhysicalDamageSubtype::None))
+		{
+			return false;
+		}
+		for (const FGridCombatStatusApplicationProfile& Profile : StatusApplications)
+		{
+			if (!Profile.IsValid())
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FGridCombatSkillCheckProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Skill Check")
+	FName SkillId = NAME_None;
+
+	/** Uses the target definition's generic SkillCheckDifficulty. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Skill Check")
+	bool bUseTargetDifficulty = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Skill Check", meta = (ClampMin = "0", ClampMax = "40"))
+	int32 FixedDifficulty = 0;
+
+	bool IsEnabled() const
+	{
+		return !SkillId.IsNone();
+	}
+
+	bool IsValid() const
+	{
+		if (!IsEnabled())
+		{
+			return !bUseTargetDifficulty && FixedDifficulty == 0;
+		}
+		return bUseTargetDifficulty ? FixedDifficulty == 0 : FixedDifficulty > 0 && FixedDifficulty <= 40;
+	}
+};
+
 USTRUCT(BlueprintType)
 struct FGridCombatActionDefinition
 {
@@ -1770,6 +1994,13 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Surface")
 	TArray<FGridCombatSurfaceEffectProfile> SurfaceEffects;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Trap")
+	FGridCombatTrapEffectProfile TrapEffect;
+
+	/** Optional generic targeted Skill Check gate. Failed checks still resolve/pay the attempted action. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Skill Check")
+	FGridCombatSkillCheckProfile SkillCheck;
+
 	bool IsValid() const
 	{
 		const bool bWeaponAttackProfileValid = WeaponAttackProfile.IsValid() &&
@@ -1825,6 +2056,14 @@ struct FGridCombatActionDefinition
 			{
 				return !Profile.IsValid() || ResolutionProfile != EGridCombatActionResolutionProfile::Effect;
 			}) == false;
+		const bool bTrapEffectValid = TrapEffect.IsValid() &&
+			(!TrapEffect.bPlaceTrap ||
+				(ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+					(TargetingPolicy == EGridCombatTargetingPolicy::Cell || TargetingPolicy == EGridCombatTargetingPolicy::Area)));
+		const bool bSkillCheckValid = SkillCheck.IsValid() &&
+			(!SkillCheck.IsEnabled() ||
+				(ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+					TargetingPolicy == EGridCombatTargetingPolicy::Hostile));
 		const bool bSurfaceEffectsValid = SurfaceEffects.ContainsByPredicate(
 			[this](const FGridCombatSurfaceEffectProfile& Profile)
 			{
@@ -1854,7 +2093,8 @@ struct FGridCombatActionDefinition
 			SubsequentResolutionAccuracyModifier >= -20 && SubsequentResolutionAccuracyModifier <= 20 &&
 			(ResolutionCount > 1 || SubsequentResolutionAccuracyModifier == 0) && TargetFilter.IsValid() && bWeaponAttackProfileValid &&
 			bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bFriendlyAreaValid && bStatusApplicationsValid &&
-			bStatusRemovalsValid && bArmorEffectsValid && bMovementEffectsValid && bSurfaceEffectsValid && bSourceTagsValid && bQuickItemScalingValid &&
+			bStatusRemovalsValid && bArmorEffectsValid && bMovementEffectsValid && bTrapEffectValid && bSkillCheckValid && bSurfaceEffectsValid &&
+			bSourceTagsValid && bQuickItemScalingValid &&
 			(ResolutionCount == 1 || ResolutionProfile == EGridCombatActionResolutionProfile::Attack);
 	}
 };

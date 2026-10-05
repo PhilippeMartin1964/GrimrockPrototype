@@ -141,6 +141,13 @@ bool URPGClassAsset::IsValidDefinition() const
 				return false;
 			}
 		}
+		for (const FRPGSkillProgressionModifier& SkillModifier : Choice.SkillModifiers)
+		{
+			if (!SkillModifier.IsValid())
+			{
+				return false;
+			}
+		}
 		ChoiceIds.Add(Choice.ChoiceId);
 		ChoiceDependencies.Add(Choice.ChoiceId, Choice.PrerequisiteChoiceIds);
 	}
