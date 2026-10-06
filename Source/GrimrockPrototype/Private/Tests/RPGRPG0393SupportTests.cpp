@@ -74,6 +74,51 @@ bool FRPG0393WeaponRangeProjectionTest::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0393DynamicWeaponRangeModifierCompositionTest,
+	"Grimrock.RPG.RPG03.9.3.Support.DynamicWeaponRangeModifierComposition",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0393DynamicWeaponRangeModifierCompositionTest::RunTest(const FString&)
+{
+	FGridCombatActionDefinition Action;
+	Action.ActionId = TEXT("Action_DynamicWeaponRange");
+	Action.ActionType = EGridCombatActionType::RangedAttack;
+	Action.SourcePolicy = EGridCombatActionSourcePolicy::Ability;
+	Action.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
+	Action.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
+	Action.ActionPointCost = 2;
+	Action.RangeCells = 1;
+	Action.WeaponAttackProfile.bUseEquippedWeapon = true;
+	Action.WeaponAttackProfile.bRequireRangedWeapon = true;
+	Action.WeaponAttackProfile.bUseWeaponRange = true;
+	Action.WeaponAttackProfile.WeaponRangeModifier = 2;
+
+	FGridResolvedCombatModifiers RuntimeModifiers;
+	RuntimeModifiers.RangeCellsModifier = 1;
+	FGridCombatModifierResolver::ApplyToActionDefinitionProjection(Action, RuntimeModifiers);
+
+	TestEqual(TEXT("Static action projection still receives the runtime range delta"), Action.RangeCells, 2);
+	TestEqual(TEXT("Dynamic weapon range composes authored and runtime modifiers"),
+		Action.WeaponAttackProfile.WeaponRangeModifier, 3);
+
+	FGridOffensiveEquipmentProfile Bow;
+	Bow.AttackId = TEXT("Attack_Bow");
+	Bow.AttackDefinition.MinDamage = 3;
+	Bow.AttackDefinition.MaxDamage = 6;
+	Bow.AttackDefinition.DamageType = EGridDamageType::Physical;
+	Bow.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::Piercing;
+	Bow.RangeCells = 5;
+	TestTrue(TEXT("Composed dynamic weapon range projects successfully"),
+		Action.WeaponAttackProfile.ApplyToOffensiveProfile(Action.ActionId, Action.RangeCells, Bow));
+	TestEqual(TEXT("Weapon R5 plus authored +2 plus runtime +1 resolves to R8"), Bow.RangeCells, 8);
+
+	Bow.RangeCells = 31;
+	TestTrue(TEXT("Composed dynamic weapon range remains valid near the global cap"),
+		Action.WeaponAttackProfile.ApplyToOffensiveProfile(Action.ActionId, Action.RangeCells, Bow));
+	TestEqual(TEXT("Composed dynamic weapon range clamps globally to R32"), Bow.RangeCells, 32);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0393DistinctSourceStatusTest, "Grimrock.RPG.RPG03.9.3.Support.DistinctSourceStatus",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 

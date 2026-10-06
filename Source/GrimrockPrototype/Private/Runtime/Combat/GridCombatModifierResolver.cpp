@@ -374,6 +374,14 @@ void FGridCombatModifierResolver::ApplyToActionDefinitionProjection(
 		const int32 MinimumRange = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack ? 1 : 0;
 		Definition.RangeCells = FMath::Clamp(SaturatingAdd(Definition.RangeCells, Modifiers.RangeCellsModifier), MinimumRange, 32);
 	}
+	if (Definition.WeaponAttackProfile.bUseEquippedWeapon && Definition.WeaponAttackProfile.bUseWeaponRange &&
+		Modifiers.RangeCellsModifier != 0)
+	{
+		// Dynamic weapon-range actions ignore Definition.RangeCells during weapon projection,
+		// so compose the same runtime delta into their authored weapon-range modifier.
+		Definition.WeaponAttackProfile.WeaponRangeModifier = FMath::Clamp(
+			SaturatingAdd(Definition.WeaponAttackProfile.WeaponRangeModifier, Modifiers.RangeCellsModifier), -31, 31);
+	}
 	if (Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack && Definition.OffensiveProfile.IsValid())
 	{
 		Definition.OffensiveProfile.RangeCells = Definition.RangeCells;
