@@ -19,9 +19,18 @@ namespace RPGMageAuthoring
 	const FName ElementalChainTalentId(TEXT("Talent_Mage_Evoker_ElementalChain"));
 	const FName CataclysmTalentId(TEXT("Talent_Mage_Evoker_Cataclysm"));
 
+	const FName ArcaneShieldTalentId(TEXT("Talent_Mage_Arcanist_ArcaneShield"));
+	const FName DispelTalentId(TEXT("Talent_Mage_Arcanist_Dispel"));
+	const FName RunicManipulationTalentId(TEXT("Talent_Mage_Arcanist_RunicManipulation"));
+	const FName ShortTeleportTalentId(TEXT("Talent_Mage_Arcanist_ShortTeleport"));
+	const FName ArcaneMasteryTalentId(TEXT("Talent_Mage_Arcanist_ArcaneMastery"));
+
 	const FName ElementalOverloadActionId(TEXT("Action_Mage_ElementalOverload"));
 	const FName ElementalChainActionId(TEXT("Action_Mage_ElementalChain"));
 	const FName CataclysmActionId(TEXT("Action_Mage_Cataclysm"));
+	const FName ArcaneShieldActionId(TEXT("Action_Mage_ArcaneShield"));
+	const FName DispelActionId(TEXT("Action_Mage_Dispel"));
+	const FName ShortTeleportActionId(TEXT("Action_Mage_ShortTeleport"));
 
 	const FName ElementalOverloadStatusId(TEXT("Status_ElementalOverload"));
 	const FName BurningStatusId(TEXT("Status_Burning"));
@@ -329,6 +338,130 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		CataclysmTalentId, TEXT("Cataclysme"),
 		TEXT("Débloque Cataclysme."), 18, ElementalChainTalentId));
+
+	// Arcanist actions.
+	{
+		FGridCombatActionDefinition Shield;
+		Shield.ActionId = ArcaneShieldActionId;
+		Shield.DisplayName = FText::FromString(TEXT("Bouclier arcanique"));
+		Shield.Description = FText::FromString(TEXT("Restaure l'armure magique de 6 + modificateur d'INT + rang d'Arcane."));
+		Shield.ActionType = EGridCombatActionType::Ability;
+		Shield.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+		Shield.SourceTags = { TEXT("Spell.School.Arcane") };
+		Shield.TargetingPolicy = EGridCombatTargetingPolicy::Ally;
+		Shield.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+		Shield.ActionPointCost = 2;
+		Shield.ResourceCosts.ManaCost = 5;
+		Shield.RangeCells = 3;
+		Shield.CooldownRounds = 2;
+		Shield.Requirements = { ArcaneShieldTalentId };
+
+		FGridCombatArmorEffectProfile Restore;
+		Restore.Pool = EGridCombatArmorPool::Magical;
+		Restore.Operation = EGridCombatArmorEffectOperation::Restore;
+		Restore.Magnitude = EGridCombatArmorEffectMagnitude::Flat;
+		Restore.Trigger = EGridCombatArmorEffectTrigger::AfterResolution;
+		Restore.Amount = 6;
+		Restore.ScalingAttribute = EGridAttackScalingAttribute::Intelligence;
+		Restore.AttributeModifierScale = 1;
+		Restore.ScalingSkillId = TEXT("Skill_Arcana");
+		Restore.SkillRankScale = 1;
+		Shield.ArmorEffects.Add(Restore);
+		ClassAsset.CombatActions.Add(Shield);
+	}
+	{
+		FGridCombatActionDefinition Dispel;
+		Dispel.ActionId = DispelActionId;
+		Dispel.DisplayName = FText::FromString(TEXT("Dissipation"));
+		Dispel.Description = FText::FromString(
+			TEXT("Allié : retire le Debuff magique amovible prioritaire. Hostile : retire le Buff magique amovible prioritaire."));
+		Dispel.ActionType = EGridCombatActionType::Ability;
+		Dispel.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+		Dispel.SourceTags = { TEXT("Spell.School.Arcane") };
+		Dispel.TargetingPolicy = EGridCombatTargetingPolicy::AllyOrHostile;
+		Dispel.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+		Dispel.ActionPointCost = 2;
+		Dispel.ResourceCosts.ManaCost = 6;
+		Dispel.RangeCells = 4;
+		Dispel.bRequiresLineOfSight = true;
+		Dispel.CooldownRounds = 2;
+		Dispel.Requirements = { DispelTalentId };
+
+		FGridCombatStatusRemovalProfile AllyRemoval;
+		AllyRemoval.AnyStatusTags = { TEXT("Dispel.Magical") };
+		AllyRemoval.AllowedDispositions = { EGridStatusEffectDisposition::Debuff };
+		AllyRemoval.TargetSide = EGridCombatStatusRemovalTargetSide::Party;
+		AllyRemoval.MaximumRemovals = 1;
+		Dispel.StatusRemovals.Add(AllyRemoval);
+
+		FGridCombatStatusRemovalProfile HostileRemoval;
+		HostileRemoval.AnyStatusTags = { TEXT("Dispel.Magical") };
+		HostileRemoval.AllowedDispositions = { EGridStatusEffectDisposition::Buff };
+		HostileRemoval.TargetSide = EGridCombatStatusRemovalTargetSide::Hostile;
+		HostileRemoval.MaximumRemovals = 1;
+		Dispel.StatusRemovals.Add(HostileRemoval);
+		ClassAsset.CombatActions.Add(Dispel);
+	}
+	{
+		FGridCombatActionDefinition Teleport;
+		Teleport.ActionId = ShortTeleportActionId;
+		Teleport.DisplayName = FText::FromString(TEXT("Téléportation courte"));
+		Teleport.Description = FText::FromString(TEXT("Téléporte le groupe vers une cellule visible, libre et marchable à portée 2, sans PAM."));
+		Teleport.ActionType = EGridCombatActionType::Ability;
+		Teleport.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+		Teleport.SourceTags = { TEXT("Spell.School.Arcane") };
+		Teleport.TargetingPolicy = EGridCombatTargetingPolicy::Cell;
+		Teleport.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+		Teleport.ActionPointCost = 3;
+		Teleport.ResourceCosts.ManaCost = 8;
+		Teleport.RangeCells = 2;
+		Teleport.bRequiresLineOfSight = true;
+		Teleport.CooldownRounds = 4;
+		Teleport.Requirements = { ShortTeleportTalentId };
+		Teleport.bRelocatePartyToTargetCell = true;
+		ClassAsset.CombatActions.Add(Teleport);
+	}
+
+	// Arcanist progression.
+	ClassAsset.ProgressionChoices.Add(MakeChoice(
+		ArcaneShieldTalentId, TEXT("Bouclier arcanique"),
+		TEXT("Débloque Bouclier arcanique."), 2));
+
+	ClassAsset.ProgressionChoices.Add(MakeChoice(
+		DispelTalentId, TEXT("Dissipation"),
+		TEXT("Débloque Dissipation."), 6, ArcaneShieldTalentId));
+
+	FRPGClassProgressionChoiceDefinition RunicManipulation = MakeChoice(
+		RunicManipulationTalentId, TEXT("Manipulation runique"),
+		TEXT("Jets de Runes +2 ; dégâts Arcane +20 % contre Rune ou Construct."), 10, DispelTalentId);
+	FRPGSkillProgressionModifier RuneSkill;
+	RuneSkill.SkillId = TEXT("Skill_Runes");
+	RuneSkill.CheckModifier = 2;
+	RunicManipulation.SkillModifiers.Add(RuneSkill);
+	FGridCombatModifierProfile RunicDamage;
+	RunicDamage.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+	RunicDamage.RequiredSourceTags = { TEXT("Spell.School.Arcane") };
+	RunicDamage.AnyTargetSemanticTags = { TEXT("Rune"), TEXT("Construct") };
+	RunicDamage.OutgoingDamagePercentModifier = 20;
+	RunicManipulation.CombatModifiers.Add(RunicDamage);
+	ClassAsset.ProgressionChoices.Add(RunicManipulation);
+
+	ClassAsset.ProgressionChoices.Add(MakeChoice(
+		ShortTeleportTalentId, TEXT("Téléportation courte"),
+		TEXT("Débloque Téléportation courte."), 14, RunicManipulationTalentId));
+
+	FRPGClassProgressionChoiceDefinition ArcaneMastery = MakeChoice(
+		ArcaneMasteryTalentId, TEXT("Maîtrise de l'Arcane"),
+		TEXT("Sorts Arcane : mana -1 (minimum 1), portée +1 et dégâts +15 %."), 18, ShortTeleportTalentId);
+	FGridCombatModifierProfile Mastery;
+	Mastery.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+	Mastery.RequiredSourceTags = { TEXT("Spell.School.Arcane") };
+	Mastery.ManaCostModifier = -1;
+	Mastery.MinimumManaCost = 1;
+	Mastery.RangeCellsModifier = 1;
+	Mastery.OutgoingDamagePercentModifier = 15;
+	ArcaneMastery.CombatModifiers.Add(Mastery);
+	ClassAsset.ProgressionChoices.Add(ArcaneMastery);
 }
 
 bool FRPGMageAuthoring::ConfigureElementalOverloadStatus(UGridStatusEffectDefinitionAsset& StatusAsset)
@@ -360,6 +493,7 @@ bool FRPGMageAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Status
 		StatusAsset.DisplayName = FText::FromString(TEXT("Surcharge élémentaire"));
 		StatusAsset.Description =
 			FText::FromString(TEXT("Le prochain sort correspondant à l'affinité élémentaire inflige +35 % de dégâts puis consomme cet effet."));
+		StatusAsset.StatusTags = { TEXT("Dispel.Magical") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
 		StatusAsset.DefaultDuration = 1;
@@ -394,7 +528,7 @@ bool FRPGMageAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Status
 	{
 		StatusAsset.DisplayName = FText::FromString(TEXT("Brûlure"));
 		StatusAsset.Description = FText::FromString(TEXT("Subit 2 dégâts de Feu à chaque tick pendant 2 tours."));
-		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Elemental.Fire") };
+		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Elemental.Fire") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
 		StatusAsset.DefaultDuration = 2;
@@ -407,7 +541,7 @@ bool FRPGMageAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Status
 	{
 		StatusAsset.DisplayName = FText::FromString(TEXT("Ralenti"));
 		StatusAsset.Description = FText::FromString(TEXT("Initiative -6 pendant 2 rounds."));
-		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Control.Magical"), TEXT("Control.Slow") };
+		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Control.Magical"), TEXT("Control.Slow") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 2;

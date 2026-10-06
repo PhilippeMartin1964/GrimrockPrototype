@@ -6,6 +6,7 @@
 #include "RPG/RPGMageAuthoring.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
+#include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatReactionResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
@@ -21,9 +22,18 @@ namespace RPG0394MageAuthoring
 	const FName ElementalChainTalentId(TEXT("Talent_Mage_Evoker_ElementalChain"));
 	const FName CataclysmTalentId(TEXT("Talent_Mage_Evoker_Cataclysm"));
 
+	const FName ArcaneShieldTalentId(TEXT("Talent_Mage_Arcanist_ArcaneShield"));
+	const FName DispelTalentId(TEXT("Talent_Mage_Arcanist_Dispel"));
+	const FName RunicManipulationTalentId(TEXT("Talent_Mage_Arcanist_RunicManipulation"));
+	const FName ShortTeleportTalentId(TEXT("Talent_Mage_Arcanist_ShortTeleport"));
+	const FName ArcaneMasteryTalentId(TEXT("Talent_Mage_Arcanist_ArcaneMastery"));
+
 	const FName OverloadActionId(TEXT("Action_Mage_ElementalOverload"));
 	const FName ElementalChainActionId(TEXT("Action_Mage_ElementalChain"));
 	const FName CataclysmActionId(TEXT("Action_Mage_Cataclysm"));
+	const FName ArcaneShieldActionId(TEXT("Action_Mage_ArcaneShield"));
+	const FName DispelActionId(TEXT("Action_Mage_Dispel"));
+	const FName ShortTeleportActionId(TEXT("Action_Mage_ShortTeleport"));
 	const FName OverloadStatusId(TEXT("Status_ElementalOverload"));
 
 	struct FAffinityExpectation
@@ -279,8 +289,8 @@ bool FRPG0394DEvokerBranchAuthoringTest::RunTest(const FString&)
 	using namespace RPG0394MageAuthoring;
 	URPGClassAsset* Mage = BuildMage();
 	TestTrue(TEXT("Complete Evoker authoring is structurally valid"), Mage->IsValidDefinition());
-	TestEqual(TEXT("Evoker branch authors exactly three active actions"), Mage->CombatActions.Num(), 3);
-	TestEqual(TEXT("Evoker branch authors four affinity variants plus four talents"), Mage->ProgressionChoices.Num(), 8);
+	TestTrue(TEXT("Evoker actions remain present after later Mage branches"), Mage->CombatActions.Num() >= 3);
+	TestTrue(TEXT("Evoker choices remain present after later Mage branches"), Mage->ProgressionChoices.Num() >= 8);
 
 	const FGridCombatActionDefinition* Chain = FindAction(Mage, ElementalChainActionId);
 	TestTrue(TEXT("Elemental Chain is a 3 AP / 8 mana / CD3 Cell R5 spell attack"), Chain &&
@@ -512,8 +522,8 @@ bool FRPG0394DProductionAssetsTest::RunTest(const FString&)
 		return false;
 	}
 	TestTrue(TEXT("Production Mage is structurally valid"), Mage->IsValidDefinition());
-	TestEqual(TEXT("Production Evoker has three active actions"), Mage->CombatActions.Num(), 3);
-	TestEqual(TEXT("Production Evoker has eight Choice records"), Mage->ProgressionChoices.Num(), 8);
+	TestTrue(TEXT("Production Evoker actions remain present after later Mage branches"), Mage->CombatActions.Num() >= 3);
+	TestTrue(TEXT("Production Evoker choices remain present after later Mage branches"), Mage->ProgressionChoices.Num() >= 8);
 	TestNotNull(TEXT("Production Elemental Chain exists"), FindAction(Mage, ElementalChainActionId));
 	TestNotNull(TEXT("Production Cataclysm exists"), FindAction(Mage, CataclysmActionId));
 
@@ -524,6 +534,258 @@ bool FRPG0394DProductionAssetsTest::RunTest(const FString&)
 		UGridStatusEffectDefinitionAsset* Status = LoadObject<UGridStatusEffectDefinitionAsset>(nullptr, *Path);
 		TestTrue(*FString::Printf(TEXT("Production status %s loads and is valid"), *EffectId.ToString()),
 			IsValid(Status) && Status->IsValidDefinition());
+	}
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394E2ArcanistBranchAuthoringTest, "Grimrock.RPG.RPG03.9.4E2.ArcanistBranchAuthoring",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394E2ArcanistBranchAuthoringTest::RunTest(const FString&)
+{
+	using namespace RPG0394MageAuthoring;
+	URPGClassAsset* Mage = BuildMage();
+	TestTrue(TEXT("Mage Evoker plus Arcanist authoring is structurally valid"), Mage->IsValidDefinition());
+	TestEqual(TEXT("Evoker plus Arcanist author exactly six active actions"), Mage->CombatActions.Num(), 6);
+	TestEqual(TEXT("Evoker plus Arcanist author exactly thirteen Choice records"), Mage->ProgressionChoices.Num(), 13);
+
+	const FGridCombatActionDefinition* Shield = FindAction(Mage, ArcaneShieldActionId);
+	TestTrue(TEXT("Arcane Shield is 2 AP / 5 mana, Ally R3, CD2, Arcane Spell"), Shield &&
+		Shield->SourcePolicy == EGridCombatActionSourcePolicy::Spell &&
+		Shield->SourceTags.Contains(TEXT("Spell.School.Arcane")) &&
+		Shield->TargetingPolicy == EGridCombatTargetingPolicy::Ally &&
+		Shield->ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+		Shield->ActionPointCost == 2 && Shield->ResourceCosts.ManaCost == 5 &&
+		Shield->RangeCells == 3 && Shield->CooldownRounds == 2 &&
+		Shield->ArmorEffects.Num() == 1);
+
+	const FGridCombatActionDefinition* Dispel = FindAction(Mage, DispelActionId);
+	TestTrue(TEXT("Dispel is 2 AP / 6 mana, AllyOrHostile R4, CD2, Arcane Spell"), Dispel &&
+		Dispel->SourcePolicy == EGridCombatActionSourcePolicy::Spell &&
+		Dispel->SourceTags.Contains(TEXT("Spell.School.Arcane")) &&
+		Dispel->TargetingPolicy == EGridCombatTargetingPolicy::AllyOrHostile &&
+		Dispel->ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+		Dispel->ActionPointCost == 2 && Dispel->ResourceCosts.ManaCost == 6 &&
+		Dispel->RangeCells == 4 && Dispel->bRequiresLineOfSight && Dispel->CooldownRounds == 2 &&
+		Dispel->StatusRemovals.Num() == 2);
+
+	const FGridCombatActionDefinition* Teleport = FindAction(Mage, ShortTeleportActionId);
+	TestTrue(TEXT("Short Teleport is 3 AP / 8 mana, visible Cell R2, CD4, no step movement"), Teleport &&
+		Teleport->SourcePolicy == EGridCombatActionSourcePolicy::Spell &&
+		Teleport->SourceTags.Contains(TEXT("Spell.School.Arcane")) &&
+		Teleport->TargetingPolicy == EGridCombatTargetingPolicy::Cell &&
+		Teleport->ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+		Teleport->ActionPointCost == 3 && Teleport->ResourceCosts.ManaCost == 8 &&
+		Teleport->RangeCells == 2 && Teleport->bRequiresLineOfSight && Teleport->CooldownRounds == 4 &&
+		Teleport->bRelocatePartyToTargetCell && Teleport->MovementEffects.IsEmpty());
+
+	const FRPGClassProgressionChoiceDefinition* DispelChoice = Mage->FindProgressionChoice(DispelTalentId);
+	const FRPGClassProgressionChoiceDefinition* RunicChoice = Mage->FindProgressionChoice(RunicManipulationTalentId);
+	const FRPGClassProgressionChoiceDefinition* TeleportChoice = Mage->FindProgressionChoice(ShortTeleportTalentId);
+	const FRPGClassProgressionChoiceDefinition* MasteryChoice = Mage->FindProgressionChoice(ArcaneMasteryTalentId);
+	TestTrue(TEXT("Arcanist progression is a single level 2/6/10/14/18 chain"),
+		DispelChoice && DispelChoice->MinimumLevel == 6 && DispelChoice->PrerequisiteChoiceIds.Contains(ArcaneShieldTalentId) &&
+		RunicChoice && RunicChoice->MinimumLevel == 10 && RunicChoice->PrerequisiteChoiceIds.Contains(DispelTalentId) &&
+		TeleportChoice && TeleportChoice->MinimumLevel == 14 && TeleportChoice->PrerequisiteChoiceIds.Contains(RunicManipulationTalentId) &&
+		MasteryChoice && MasteryChoice->MinimumLevel == 18 && MasteryChoice->PrerequisiteChoiceIds.Contains(ShortTeleportTalentId));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394E2ArcaneShieldFormulaTest, "Grimrock.RPG.RPG03.9.4E2.ArcaneShieldFormula",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394E2ArcaneShieldFormulaTest::RunTest(const FString&)
+{
+	using namespace RPG0394MageAuthoring;
+	URPGClassAsset* Mage = BuildMage();
+	const FGridCombatActionDefinition* Shield = FindAction(Mage, ArcaneShieldActionId);
+	if (!TestNotNull(TEXT("Arcane Shield exists"), Shield) || Shield->ArmorEffects.Num() != 1)
+	{
+		return false;
+	}
+
+	FGridCombatArmorEffectSourceContext Source;
+	Source.Attributes.Intelligence = 16;
+	FRPGSkillRank Arcana;
+	Arcana.SkillId = TEXT("Skill_Arcana");
+	Arcana.Rank = 4;
+	Source.SkillRanks = { Arcana };
+
+	FGridCombatArmorPoolSnapshot Snapshot;
+	Snapshot.CurrentMagicalArmor = 2;
+	Snapshot.ReferenceMagicalArmor = 20;
+	FGridResolvedCombatModifiers Modifiers;
+	TArray<FGridCombatArmorEffectResult> Results;
+	TestEqual(TEXT("Arcane Shield applies one restore effect"),
+		FGridCombatArmorEffectResolver::ApplyRestoreEffects(Shield->ArmorEffects, Snapshot, Modifiers, &Source, &Results), 1);
+	TestEqual(TEXT("6 + INT mod 3 + Arcana 4 restores 13 MagicalArmor"), Snapshot.CurrentMagicalArmor, 15);
+
+	Snapshot.CurrentMagicalArmor = 18;
+	Results.Reset();
+	FGridCombatArmorEffectResolver::ApplyRestoreEffects(Shield->ArmorEffects, Snapshot, Modifiers, &Source, &Results);
+	TestEqual(TEXT("Arcane Shield clamps to reference MagicalArmor"), Snapshot.CurrentMagicalArmor, 20);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394E2DispelAuthoringTest, "Grimrock.RPG.RPG03.9.4E2.DispelAuthoring",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394E2DispelAuthoringTest::RunTest(const FString&)
+{
+	using namespace RPG0394MageAuthoring;
+	URPGClassAsset* Mage = BuildMage();
+	const FGridCombatActionDefinition* Dispel = FindAction(Mage, DispelActionId);
+	if (!TestNotNull(TEXT("Dispel exists"), Dispel) || Dispel->StatusRemovals.Num() != 2)
+	{
+		return false;
+	}
+
+	const FGridCombatStatusRemovalProfile* PartyProfile = Dispel->StatusRemovals.FindByPredicate(
+		[](const FGridCombatStatusRemovalProfile& Profile)
+		{
+			return Profile.TargetSide == EGridCombatStatusRemovalTargetSide::Party;
+		});
+	const FGridCombatStatusRemovalProfile* HostileProfile = Dispel->StatusRemovals.FindByPredicate(
+		[](const FGridCombatStatusRemovalProfile& Profile)
+		{
+			return Profile.TargetSide == EGridCombatStatusRemovalTargetSide::Hostile;
+		});
+	TestTrue(TEXT("Ally Dissipation removes one magical Debuff"), PartyProfile &&
+		PartyProfile->MaximumRemovals == 1 &&
+		PartyProfile->AllowedDispositions.Contains(EGridStatusEffectDisposition::Debuff) &&
+		PartyProfile->AnyStatusTags.Contains(TEXT("Dispel.Magical")));
+	TestTrue(TEXT("Hostile Dissipation removes one magical Buff"), HostileProfile &&
+		HostileProfile->MaximumRemovals == 1 &&
+		HostileProfile->AllowedDispositions.Contains(EGridStatusEffectDisposition::Buff) &&
+		HostileProfile->AnyStatusTags.Contains(TEXT("Dispel.Magical")));
+
+	for (const FName EffectId : { FName(TEXT("Status_ElementalOverload")), FName(TEXT("Status_Burning")), FName(TEXT("Status_Slow")) })
+	{
+		UGridStatusEffectDefinitionAsset* Status = NewObject<UGridStatusEffectDefinitionAsset>(GetTransientPackage());
+		TestTrue(*FString::Printf(TEXT("%s configures for Mage authoring"), *EffectId.ToString()),
+			FRPGMageAuthoring::ConfigureStatus(*Status, EffectId));
+		TestTrue(*FString::Printf(TEXT("%s is explicitly classed as magically dispellable"), *EffectId.ToString()),
+			Status->StatusTags.Contains(TEXT("Dispel.Magical")));
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394E2RunicManipulationTest, "Grimrock.RPG.RPG03.9.4E2.RunicManipulation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394E2RunicManipulationTest::RunTest(const FString&)
+{
+	using namespace RPG0394MageAuthoring;
+	URPGClassAsset* Mage = BuildMage();
+	const FRPGClassProgressionChoiceDefinition* Choice = Mage->FindProgressionChoice(RunicManipulationTalentId);
+	if (!TestNotNull(TEXT("Runic Manipulation exists"), Choice))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Runic Manipulation grants Skill_Runes +2"),
+		Choice->SkillModifiers.Num() == 1 &&
+		Choice->SkillModifiers[0].SkillId == TEXT("Skill_Runes") &&
+		Choice->SkillModifiers[0].CheckModifier == 2);
+	TestEqual(TEXT("Runic Manipulation owns one combat modifier"), Choice->CombatModifiers.Num(), 1);
+
+	FGridCombatActionDefinition ArcaneSpell;
+	ArcaneSpell.ActionId = TEXT("Spell_RPG0394E2_Arcane");
+	ArcaneSpell.ActionType = EGridCombatActionType::Ability;
+	ArcaneSpell.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+	ArcaneSpell.SourceTags = { TEXT("Spell.School.Arcane") };
+
+	FGridCombatModifierContext Context = FGridCombatModifierResolver::MakeActionContext(ArcaneSpell, ArcaneSpell.ActionId);
+	FGridStatusEffectCollection NoStatuses;
+	FGridCombatModifierResolver::AddTargetStatusContext(Context, NoStatuses, FGuid::NewGuid(), TEXT("Construct"));
+	FGridResolvedCombatModifiers Modifiers;
+	FGridCombatModifierResolver::Resolve(Choice->CombatModifiers, Context, Modifiers);
+	TestEqual(TEXT("Arcane damage against Construct gains +20 percent"), Modifiers.OutgoingDamagePercentModifier, 20);
+
+	Context = FGridCombatModifierResolver::MakeActionContext(ArcaneSpell, ArcaneSpell.ActionId);
+	FGridCombatModifierResolver::AddTargetStatusContext(
+		Context, NoStatuses, FGuid::NewGuid(), TEXT("Other"), { FName(TEXT("Rune")) });
+	FGridCombatModifierResolver::Resolve(Choice->CombatModifiers, Context, Modifiers);
+	TestEqual(TEXT("Arcane damage against Rune semantic tag gains +20 percent"), Modifiers.OutgoingDamagePercentModifier, 20);
+
+	Context = FGridCombatModifierResolver::MakeActionContext(ArcaneSpell, ArcaneSpell.ActionId);
+	FGridCombatModifierResolver::AddTargetStatusContext(Context, NoStatuses, FGuid::NewGuid(), TEXT("Vermin"));
+	FGridCombatModifierResolver::Resolve(Choice->CombatModifiers, Context, Modifiers);
+	TestEqual(TEXT("Unrelated targets gain no Runic damage bonus"), Modifiers.OutgoingDamagePercentModifier, 0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394E2ArcaneMasteryTest, "Grimrock.RPG.RPG03.9.4E2.ArcaneMastery",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394E2ArcaneMasteryTest::RunTest(const FString&)
+{
+	using namespace RPG0394MageAuthoring;
+	URPGClassAsset* Mage = BuildMage();
+	const FRPGClassProgressionChoiceDefinition* Choice = Mage->FindProgressionChoice(ArcaneMasteryTalentId);
+	if (!TestNotNull(TEXT("Arcane Mastery exists"), Choice) || Choice->CombatModifiers.Num() != 1)
+	{
+		return false;
+	}
+
+	FGridCombatActionDefinition Spell;
+	Spell.ActionId = TEXT("Spell_RPG0394E2_Mastery");
+	Spell.ActionType = EGridCombatActionType::Ability;
+	Spell.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+	Spell.SourceTags = { TEXT("Spell.School.Arcane") };
+	Spell.ResourceCosts.ManaCost = 5;
+	Spell.RangeCells = 3;
+
+	FGridResolvedCombatModifiers Modifiers;
+	FGridCombatModifierResolver::Resolve(
+		Choice->CombatModifiers, FGridCombatModifierResolver::MakeActionContext(Spell, Spell.ActionId), Modifiers);
+	TestEqual(TEXT("Arcane Mastery grants +15 percent Arcane damage"), Modifiers.OutgoingDamagePercentModifier, 15);
+	FGridCombatModifierResolver::ApplyToActionDefinitionProjection(Spell, Modifiers);
+	TestEqual(TEXT("Arcane Mastery reduces mana by one"), Spell.ResourceCosts.ManaCost, 4);
+	TestEqual(TEXT("Arcane Mastery adds one range"), Spell.RangeCells, 4);
+
+	FGridCombatActionDefinition FloorSpell = Spell;
+	FloorSpell.ResourceCosts.ManaCost = 1;
+	FloorSpell.RangeCells = 32;
+	FGridCombatModifierResolver::ApplyToActionDefinitionProjection(FloorSpell, Modifiers);
+	TestEqual(TEXT("Arcane Mastery preserves minimum positive mana cost one"), FloorSpell.ResourceCosts.ManaCost, 1);
+	TestEqual(TEXT("Arcane Mastery clamps range at 32"), FloorSpell.RangeCells, 32);
+
+	FGridCombatActionDefinition NonArcane = Spell;
+	NonArcane.SourceTags = { TEXT("Spell.School.Fire") };
+	FGridResolvedCombatModifiers NonArcaneModifiers;
+	FGridCombatModifierResolver::Resolve(
+		Choice->CombatModifiers, FGridCombatModifierResolver::MakeActionContext(NonArcane, NonArcane.ActionId), NonArcaneModifiers);
+	TestTrue(TEXT("Arcane Mastery does not match non-Arcane spells"), NonArcaneModifiers.IsEmpty());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394E2ProductionAssetsTest, "Grimrock.RPG.RPG03.9.4E2.ProductionAssets",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394E2ProductionAssetsTest::RunTest(const FString&)
+{
+	using namespace RPG0394MageAuthoring;
+	URPGClassAsset* Mage = LoadObject<URPGClassAsset>(nullptr, FRPGMageAuthoring::MageAssetPath());
+	if (!TestNotNull(TEXT("Production DA_Class_Mage loads"), Mage))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Production Mage is structurally valid"), Mage->IsValidDefinition());
+	TestEqual(TEXT("Production Evoker plus Arcanist has six actions"), Mage->CombatActions.Num(), 6);
+	TestEqual(TEXT("Production Evoker plus Arcanist has thirteen Choice records"), Mage->ProgressionChoices.Num(), 13);
+	TestNotNull(TEXT("Production Arcane Shield exists"), FindAction(Mage, ArcaneShieldActionId));
+	TestNotNull(TEXT("Production Dispel exists"), FindAction(Mage, DispelActionId));
+	TestNotNull(TEXT("Production Short Teleport exists"), FindAction(Mage, ShortTeleportActionId));
+
+	for (const FName EffectId : { FName(TEXT("Status_ElementalOverload")), FName(TEXT("Status_Burning")), FName(TEXT("Status_Slow")) })
+	{
+		const FString Path = FRPGMageAuthoring::GetStatusObjectPath(EffectId);
+		UGridStatusEffectDefinitionAsset* Status = LoadObject<UGridStatusEffectDefinitionAsset>(nullptr, *Path);
+		TestTrue(*FString::Printf(TEXT("Production %s remains valid"), *EffectId.ToString()),
+			IsValid(Status) && Status->IsValidDefinition());
+		TestTrue(*FString::Printf(TEXT("Production %s is tagged Dispel.Magical"), *EffectId.ToString()),
+			IsValid(Status) && Status->StatusTags.Contains(TEXT("Dispel.Magical")));
 	}
 	return true;
 }

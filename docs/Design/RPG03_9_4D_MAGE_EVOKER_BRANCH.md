@@ -101,13 +101,8 @@ Il exige et réutilise, sans les réécrire :
 
 ## Materialisation locale
 
-Depuis un working tree propre sur `master` :
+Ce document décrit le jalon historique D. Depuis RPG03.9.4E2, `Scripts/AuthorRPGMage.ps1` matérialise Évocateur + Arcaniste et lance la campagne E2.
 
-```powershell
-.\Scripts\AuthorRPGMage.ps1 -EngineRoot D:\UE_5.5
-```
-
-Le script compile l'Editor, lance le commandlet `RPGMageAuthoring`, exécute la campagne
-`Grimrock.RPG.RPG03.9.4D` puis affiche les changements binaires.
+La campagne historique `Grimrock.RPG.RPG03.9.4D` reste disponible comme régression de la branche Évocateur.
 
 La validation UE n'est acquise qu'après réception de la sortie TD04.2 de l'utilisateur.
