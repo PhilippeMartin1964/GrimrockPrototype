@@ -5,6 +5,23 @@
 
 namespace
 {
+	FName MakeSpellSchoolSourceTag(EGridSpellSchool School)
+	{
+		if (School == EGridSpellSchool::None)
+		{
+			return NAME_None;
+		}
+
+		const UEnum* SchoolEnum = StaticEnum<EGridSpellSchool>();
+		if (!SchoolEnum)
+		{
+			return NAME_None;
+		}
+
+		const FString SchoolName = SchoolEnum->GetNameStringByValue(static_cast<int64>(School));
+		return SchoolName.IsEmpty() ? NAME_None : FName(*FString::Printf(TEXT("Spell.School.%s"), *SchoolName));
+	}
+
 	const FGridSpellDefinition* FindDefinition(const TArray<FGridSpellDefinition>& Definitions, FName SpellId)
 	{
 		return Definitions.FindByPredicate(
@@ -94,6 +111,11 @@ FGridCombatActionDefinition UGridSpellbookUILibrary::MakeSpellCombatActionDefini
 	// existing Ability visual family to avoid changing serialized enum values.
 	Action.ActionType = EGridCombatActionType::Ability;
 	Action.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+	const FName SchoolSourceTag = MakeSpellSchoolSourceTag(SpellDefinition.School);
+	if (!SchoolSourceTag.IsNone())
+	{
+		Action.SourceTags.Add(SchoolSourceTag);
+	}
 	Action.TargetingPolicy = SpellDefinition.TargetingPolicy;
 	Action.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
 	Action.ActionPointCost = SpellDefinition.ActionPointCost;

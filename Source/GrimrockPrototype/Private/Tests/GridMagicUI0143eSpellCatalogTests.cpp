@@ -4,6 +4,7 @@
 #include "Magic/GridSpellbookUI.h"
 #include "Misc/AutomationTest.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
+#include "Runtime/Combat/GridCombatModifierResolver.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridUI0143eSpellCatalogProjectionTest, "Grimrock.UI.UI01.4.3e.SpellCatalogProjection",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -21,6 +22,52 @@ bool FGridUI0143eSpellCatalogProjectionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("AP cost is preserved"), Action.ActionPointCost, Spell.ActionPointCost);
 	TestEqual(TEXT("Mana cost is preserved"), Action.ResourceCosts.ManaCost, Spell.ManaCost);
 	TestTrue(TEXT("First axial targeting is preserved"), Action.TargetingPolicy == Spell.TargetingPolicy);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridRPG0394B1SpellSchoolSourceTagProjectionTest, "Grimrock.RPG.RPG03.9.4B1.SpellSchoolSourceTagProjection",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridRPG0394B1SpellSchoolSourceTagProjectionTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	struct FSchoolCase
+	{
+		EGridSpellSchool School;
+		const TCHAR* ExpectedTag;
+	};
+
+	const FSchoolCase Cases[] = {
+		{ EGridSpellSchool::Arcane, TEXT("Spell.School.Arcane") },
+		{ EGridSpellSchool::Fire, TEXT("Spell.School.Fire") },
+		{ EGridSpellSchool::Frost, TEXT("Spell.School.Frost") }
+	};
+
+	for (const FSchoolCase& Case : Cases)
+	{
+		FGridSpellDefinition Spell = FGridProductionSpellLibrary::MakeArcaneBolt();
+		Spell.School = Case.School;
+		const FGridCombatActionDefinition Action = UGridSpellbookUILibrary::MakeSpellCombatActionDefinition(Spell);
+		const FName ExpectedTag(Case.ExpectedTag);
+
+		TestEqual(*FString::Printf(TEXT("%s projects exactly one school tag"), Case.ExpectedTag), Action.SourceTags.Num(), 1);
+		TestTrue(*FString::Printf(TEXT("%s is projected"), Case.ExpectedTag), Action.SourceTags.Contains(ExpectedTag));
+
+		const FGridCombatModifierContext Context = FGridCombatModifierResolver::MakeActionContext(Action, Spell.SpellId);
+		FGridCombatModifierProfile MatchingProfile;
+		MatchingProfile.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+		MatchingProfile.RequiredSourceTags = { ExpectedTag };
+		MatchingProfile.OutgoingDamagePercentModifier = 15;
+		TestTrue(*FString::Printf(TEXT("%s profile is valid"), Case.ExpectedTag), MatchingProfile.IsValid());
+		TestTrue(*FString::Printf(TEXT("%s is consumable by C2 RequiredSourceTags"), Case.ExpectedTag),
+			FGridCombatModifierResolver::Matches(MatchingProfile, Context));
+	}
+
+	FGridSpellDefinition UnscopedSpell = FGridProductionSpellLibrary::MakeArcaneBolt();
+	UnscopedSpell.School = EGridSpellSchool::None;
+	const FGridCombatActionDefinition UnscopedAction = UGridSpellbookUILibrary::MakeSpellCombatActionDefinition(UnscopedSpell);
+	TestTrue(TEXT("School None does not invent a source tag"), UnscopedAction.SourceTags.IsEmpty());
 	return true;
 }
 
