@@ -1,10 +1,18 @@
 #include "RPG/RPGPriestAuthoring.h"
 
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "HAL/FileManager.h"
+#include "Misc/PackageName.h"
+#include "Misc/Paths.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
+#include "UObject/Package.h"
+#include "UObject/SavePackage.h"
 
 namespace RPGPriestAuthoring
 {
+	const FName PriestClassId(TEXT("Priest"));
+
 	const FName EnhancedHealingTalentId(TEXT("Talent_Priest_Restoration_EnhancedHealing"));
 	const FName RegenerationTalentId(TEXT("Talent_Priest_Restoration_Regeneration"));
 	const FName GroupHealTalentId(TEXT("Talent_Priest_Restoration_GroupHeal"));
@@ -161,11 +169,88 @@ namespace RPGPriestAuthoring
 		Profile.SkillRankScale = SkillRankScale;
 		return Profile;
 	}
+
+	bool SaveAuthoredAsset(UObject* Asset, FString& OutError)
+	{
+		if (!IsValid(Asset))
+		{
+			OutError = TEXT("Cannot save a null authored asset.");
+			return false;
+		}
+		UPackage* Package = Asset->GetOutermost();
+		if (!Package)
+		{
+			OutError = FString::Printf(TEXT("Asset '%s' has no package."), *GetNameSafe(Asset));
+			return false;
+		}
+
+		Package->MarkPackageDirty();
+		const FString Filename =
+			FPackageName::LongPackageNameToFilename(Package->GetName(), FPackageName::GetAssetPackageExtension());
+		IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename), true);
+
+		FSavePackageArgs SaveArgs;
+		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+		SaveArgs.SaveFlags = SAVE_NoError;
+		if (!UPackage::SavePackage(Package, Asset, *Filename, SaveArgs))
+		{
+			OutError = FString::Printf(TEXT("Failed to save '%s' to '%s'."), *Asset->GetPathName(), *Filename);
+			return false;
+		}
+		return true;
+	}
+
+	UGridStatusEffectDefinitionAsset* FindOrCreateStatus(FName EffectId, FString& OutError)
+	{
+		if (EffectId.IsNone())
+		{
+			OutError = TEXT("Cannot author an empty Priest status id.");
+			return nullptr;
+		}
+
+		const FString AssetName = FString::Printf(TEXT("DA_%s"), *EffectId.ToString());
+		const FString PackageName =
+			FString::Printf(TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/StatusEffects/%s"), *AssetName);
+		if (FPackageName::DoesPackageExist(PackageName))
+		{
+			const FString ObjectPath = FRPGPriestAuthoring::GetStatusObjectPath(EffectId);
+			if (UGridStatusEffectDefinitionAsset* Existing =
+					LoadObject<UGridStatusEffectDefinitionAsset>(nullptr, *ObjectPath))
+			{
+				return Existing;
+			}
+			OutError = FString::Printf(TEXT("Existing Priest status package could not load expected asset: %s"), *ObjectPath);
+			return nullptr;
+		}
+
+		UPackage* Package = CreatePackage(*PackageName);
+		if (!Package)
+		{
+			OutError = FString::Printf(TEXT("Failed to create package '%s'."), *PackageName);
+			return nullptr;
+		}
+
+		UGridStatusEffectDefinitionAsset* Created = NewObject<UGridStatusEffectDefinitionAsset>(
+			Package, *AssetName, RF_Public | RF_Standalone | RF_Transactional);
+		if (!Created)
+		{
+			OutError = FString::Printf(TEXT("Failed to create '%s'."), *AssetName);
+			return nullptr;
+		}
+		FAssetRegistryModule::AssetCreated(Created);
+		return Created;
+	}
 }
 
 const TCHAR* FRPGPriestAuthoring::PriestAssetPath()
 {
 	return TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Priest.DA_Class_Priest");
+}
+
+FString FRPGPriestAuthoring::GetStatusObjectPath(FName EffectId)
+{
+	return FString::Printf(TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/StatusEffects/DA_%s.DA_%s"),
+		*EffectId.ToString(), *EffectId.ToString());
 }
 
 void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
@@ -554,4 +639,72 @@ bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Stat
 	}
 
 	return false;
+}
+
+
+void FRPGPriestAuthoring::GetRequiredPriestStatusIds(TArray<FName>& OutStatusIds)
+{
+	OutStatusIds = {
+		RPGPriestAuthoring::RegenerationStatusId,
+		RPGPriestAuthoring::BlessedStatusId,
+		RPGPriestAuthoring::HolyProtectionStatusId,
+		RPGPriestAuthoring::SanctuaryStatusId,
+		RPGPriestAuthoring::DivineBastionStatusId,
+		RPGPriestAuthoring::TurnedUndeadStatusId,
+		RPGPriestAuthoring::BanishedStatusId
+	};
+}
+
+bool FRPGPriestAuthoring::AuthorProductionAssets(FString& OutError)
+{
+	using namespace RPGPriestAuthoring;
+	OutError.Reset();
+
+	URPGClassAsset* Priest = LoadObject<URPGClassAsset>(nullptr, PriestAssetPath());
+	if (!IsValid(Priest))
+	{
+		OutError = FString::Printf(TEXT("Production Priest asset not found: %s"), PriestAssetPath());
+		return false;
+	}
+	if (Priest->ClassId != PriestClassId)
+	{
+		OutError = FString::Printf(TEXT("Unexpected Priest ClassId '%s'."), *Priest->ClassId.ToString());
+		return false;
+	}
+
+	TArray<UGridStatusEffectDefinitionAsset*> PriestStatuses;
+	TArray<FName> StatusIds;
+	GetRequiredPriestStatusIds(StatusIds);
+	for (const FName StatusId : StatusIds)
+	{
+		UGridStatusEffectDefinitionAsset* Status = FindOrCreateStatus(StatusId, OutError);
+		if (!IsValid(Status))
+		{
+			return false;
+		}
+		Status->Modify();
+		if (!ConfigureStatus(*Status, StatusId))
+		{
+			OutError = FString::Printf(TEXT("No Priest status authoring definition for '%s'."), *StatusId.ToString());
+			return false;
+		}
+		PriestStatuses.Add(Status);
+	}
+
+	Priest->Modify();
+	ConfigureClass(*Priest);
+	if (!Priest->IsValidDefinition())
+	{
+		OutError = TEXT("Authored DA_Class_Priest is structurally invalid.");
+		return false;
+	}
+
+	for (UGridStatusEffectDefinitionAsset* Status : PriestStatuses)
+	{
+		if (!SaveAuthoredAsset(Status, OutError))
+		{
+			return false;
+		}
+	}
+	return SaveAuthoredAsset(Priest, OutError);
 }
