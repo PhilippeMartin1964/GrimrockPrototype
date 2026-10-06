@@ -2,9 +2,21 @@
 
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 
+namespace
+{
+	int32 ScaleSpellDamageMagnitude(int32 BaseMagnitude, int32 OutgoingDamagePercentModifier)
+	{
+		const int32 SafeBaseMagnitude = FMath::Max(0, BaseMagnitude);
+		const int32 SafeModifier = FMath::Clamp(OutgoingDamagePercentModifier, -100, 500);
+		const float Scale = static_cast<float>(100 + SafeModifier) / 100.0f;
+		return FMath::Max(0, FMath::RoundToInt(static_cast<float>(SafeBaseMagnitude) * Scale));
+	}
+}
+
 bool FGridSpellEffectResolver::ResolveEffects(const FGridSpellDefinition& Definition, const FGuid& SourceId, int32 MaxHealth, int32& InOutCurrentHealth,
 	FGridStatusEffectCollection& InOutStatusEffects, TFunctionRef<const UGridStatusEffectDefinitionAsset*(FName)> StatusDefinitionResolver,
-	FGridSpellEffectResolutionResult& OutResult, EGridSpellEffectResolutionRejectReason& OutRejectReason, FString& OutError)
+	FGridSpellEffectResolutionResult& OutResult, EGridSpellEffectResolutionRejectReason& OutRejectReason, FString& OutError,
+	int32 OutgoingDamagePercentModifier)
 {
 	OutResult.Reset();
 	OutRejectReason = EGridSpellEffectResolutionRejectReason::None;
@@ -63,7 +75,8 @@ bool FGridSpellEffectResolver::ResolveEffects(const FGridSpellDefinition& Defini
 		{
 			case EGridSpellEffectType::Damage:
 			{
-				const int32 NewHealth = FMath::Max(0, WorkingHealth - Effect.Magnitude);
+				const int32 DamageMagnitude = ScaleSpellDamageMagnitude(Effect.Magnitude, OutgoingDamagePercentModifier);
+				const int32 NewHealth = FMath::Max(0, WorkingHealth - DamageMagnitude);
 				Resolved.MagnitudeApplied = WorkingHealth - NewHealth;
 				Resolved.bMutatedTarget = Resolved.MagnitudeApplied > 0;
 				WorkingHealth = NewHealth;
@@ -127,8 +140,8 @@ bool FGridSpellEffectResolver::ResolveEffects(const FGridSpellDefinition& Defini
 bool FGridSpellEffectResolver::ResolveCharacterEffects(const FGridSpellDefinition& Definition, const FGuid& SourceId, const FRPGDerivedStats& DerivedStats,
 	FRPGCharacterResources& InOutResources, FGridStatusEffectCollection& InOutStatusEffects,
 	TFunctionRef<const UGridStatusEffectDefinitionAsset*(FName)> StatusDefinitionResolver, FGridSpellEffectResolutionResult& OutResult,
-	EGridSpellEffectResolutionRejectReason& OutRejectReason, FString& OutError)
+	EGridSpellEffectResolutionRejectReason& OutRejectReason, FString& OutError, int32 OutgoingDamagePercentModifier)
 {
 	return ResolveEffects(Definition, SourceId, DerivedStats.MaxHealth, InOutResources.CurrentHealth, InOutStatusEffects, StatusDefinitionResolver, OutResult,
-		OutRejectReason, OutError);
+		OutRejectReason, OutError, OutgoingDamagePercentModifier);
 }

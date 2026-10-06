@@ -4,7 +4,7 @@ bool FGridSpellHotbarExecutionService::TryExecute(const FGridSpellDefinition& De
 	const FGridSpellTargetingContext& TargetingContext, const FGridCharacterSpellbookState& Spellbook, const FRPGCharacterResources& CasterResources,
 	const FGridPlayerCharacterTurnState& CasterTurnState, int32 TargetMaxHealth, int32 TargetCurrentHealth,
 	const FGridStatusEffectCollection& TargetStatusEffects, TFunctionRef<const UGridStatusEffectDefinitionAsset*(FName)> StatusDefinitionResolver,
-	FGridSpellHotbarExecutionResult& OutResult)
+	FGridSpellHotbarExecutionResult& OutResult, int32 OutgoingDamagePercentModifier)
 {
 	OutResult = FGridSpellHotbarExecutionResult();
 
@@ -22,7 +22,7 @@ bool FGridSpellHotbarExecutionService::TryExecute(const FGridSpellDefinition& De
 	FGridStatusEffectCollection WorkingTargetStatuses = TargetStatusEffects;
 	FGridSpellEffectResolutionResult EffectResult;
 	if (!FGridSpellEffectResolver::ResolveEffects(Definition, Request.CasterCharacterId, TargetMaxHealth, WorkingTargetHealth, WorkingTargetStatuses,
-			StatusDefinitionResolver, EffectResult, OutResult.EffectRejectReason, OutResult.Error))
+			StatusDefinitionResolver, EffectResult, OutResult.EffectRejectReason, OutResult.Error, OutgoingDamagePercentModifier))
 	{
 		// Costs were only committed to local copies. The caller's authoritative
 		// caster state therefore remains untouched on any effect rejection.

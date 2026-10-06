@@ -2,7 +2,9 @@
 
 #include "Magic/GridProductionSpellLibrary.h"
 #include "Magic/GridSpellHotbarExecution.h"
+#include "Magic/GridSpellbookUI.h"
 #include "Misc/AutomationTest.h"
+#include "Runtime/Combat/GridCombatModifierResolver.h"
 
 namespace
 {
@@ -200,5 +202,57 @@ bool FGridUI0143e2UnknownSpellNoCostCommitTest::RunTest(const FString& Parameter
 	TestEqual(TEXT("Input AP remains unchanged"), TurnState.RemainingActionPoints, 4);
 	return true;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridRPG0394B4SpellOutgoingDamageModifierTest,
+	"Grimrock.RPG.RPG03.9.4B4.SpellOutgoingDamageModifier",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridRPG0394B4SpellOutgoingDamageModifierTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	const FGuid CharacterId = FGuid::NewGuid();
+	const FGuid TargetId = FGuid::NewGuid();
+	const FGridSpellDefinition Definition = FGridProductionSpellLibrary::MakeArcaneBolt();
+	const FGridCombatActionDefinition Action = UGridSpellbookUILibrary::MakeSpellCombatActionDefinition(Definition);
+
+	FGridCombatModifierProfile DamageModifier;
+	DamageModifier.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+	DamageModifier.RequiredSourceTags = { TEXT("Spell.School.Arcane") };
+	DamageModifier.OutgoingDamagePercentModifier = 50;
+	TestTrue(TEXT("Spell damage modifier is valid"), DamageModifier.IsValid());
+
+	FGridResolvedCombatModifiers ResolvedModifiers;
+	FGridCombatModifierResolver::Resolve(
+		{ DamageModifier }, FGridCombatModifierResolver::MakeActionContext(Action, Definition.SpellId), ResolvedModifiers);
+	TestEqual(TEXT("C2 resolves +50 percent outgoing spell damage"), ResolvedModifiers.OutgoingDamagePercentModifier, 50);
+
+	const FGridCharacterSpellbookState Spellbook = MakeUI0143e2Spellbook(CharacterId, Definition.SpellId);
+	const FRPGCharacterResources CasterResources = MakeUI0143e2CasterResources();
+	const FGridPlayerCharacterTurnState TurnState = MakeUI0143e2TurnState(CharacterId);
+	const FGridSpellCastRequest Request = MakeUI0143e2Request(CharacterId, Definition.SpellId, TargetId, FIntPoint(1, 3));
+
+	FGridSpellTargetingContext Context;
+	Context.CasterCell = FIntPoint(1, 1);
+	Context.ResolvedTargetId = TargetId;
+	Context.ResolvedTargetCell = FIntPoint(1, 3);
+	Context.bHasResolvedTargetCell = true;
+	Context.bResolvedTargetIsHostile = true;
+	Context.bLineOfSightClear = true;
+
+	FGridSpellHotbarExecutionResult Result;
+	TestTrue(TEXT("Modified Arcane Bolt executes"),
+		FGridSpellHotbarExecutionService::TryExecute(
+			Definition, Request, Context, Spellbook, CasterResources, TurnState, 12, 12, FGridStatusEffectCollection(),
+			[](FName) -> const UGridStatusEffectDefinitionAsset*
+			{
+				return nullptr;
+			},
+			Result, ResolvedModifiers.OutgoingDamagePercentModifier));
+	TestEqual(TEXT("Four base damage at +50 percent becomes six"), Result.EffectResult.TotalDamage, 6);
+	TestEqual(TEXT("Modified damage is committed to target health"), Result.TargetCurrentHealth, 6);
+	return true;
+}
+
 
 #endif

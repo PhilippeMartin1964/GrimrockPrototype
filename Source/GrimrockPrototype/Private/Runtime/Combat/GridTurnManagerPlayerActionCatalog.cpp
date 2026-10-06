@@ -2395,6 +2395,14 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 		const int32 TargetCurrentHealth = TargetMonster ? TargetMonster->CurrentHealth : SpellCharacter->Resources.CurrentHealth;
 		const FGridStatusEffectCollection TargetStatusEffects = TargetMonster ? TargetMonster->StatusEffects : SpellCharacter->StatusEffects;
 
+		FGridResolvedCombatModifiers SpellModifiers;
+		TArray<FGridCombatModifierProfile> SpellModifierProfiles;
+		if (FGridCombatModifierResolver::CollectCharacterModifiers(*SpellCharacter, SpellModifierProfiles))
+		{
+			FGridCombatModifierResolver::Resolve(SpellModifierProfiles,
+				FGridCombatModifierResolver::MakeActionContext(Action->Definition, Action->SourceDefinitionId), SpellModifiers);
+		}
+
 		FGridSpellHotbarExecutionResult Execution;
 		const bool bExecuted = FGridSpellHotbarExecutionService::TryExecute(
 			SpellDefinition, CastRequest, TargetingContext, CharacterSpellbook, SpellCharacter->Resources, TurnStateBefore, TargetMaxHealth,
@@ -2403,7 +2411,7 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 			{
 				return FGridCombatStatusApplicationResolver::ResolveDefinition(EffectId);
 			},
-			Execution);
+			Execution, SpellModifiers.OutgoingDamagePercentModifier);
 		if (!bExecuted)
 		{
 			OutResult.RejectReason = Execution.PipelineRejectStage == EGridSpellCastPipelineRejectStage::Targeting

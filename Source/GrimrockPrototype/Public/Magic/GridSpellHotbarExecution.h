@@ -39,5 +39,6 @@ struct GRIMROCKPROTOTYPE_API FGridSpellHotbarExecutionService
 	static bool TryExecute(const FGridSpellDefinition& Definition, const FGridSpellCastRequest& Request, const FGridSpellTargetingContext& TargetingContext,
 		const FGridCharacterSpellbookState& Spellbook, const FRPGCharacterResources& CasterResources, const FGridPlayerCharacterTurnState& CasterTurnState,
 		int32 TargetMaxHealth, int32 TargetCurrentHealth, const FGridStatusEffectCollection& TargetStatusEffects,
-		TFunctionRef<const UGridStatusEffectDefinitionAsset*(FName)> StatusDefinitionResolver, FGridSpellHotbarExecutionResult& OutResult);
+		TFunctionRef<const UGridStatusEffectDefinitionAsset*(FName)> StatusDefinitionResolver, FGridSpellHotbarExecutionResult& OutResult,
+		int32 OutgoingDamagePercentModifier = 0);
 };
