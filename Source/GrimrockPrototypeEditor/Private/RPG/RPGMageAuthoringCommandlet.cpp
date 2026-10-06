@@ -16,10 +16,10 @@ int32 URPGMageAuthoringCommandlet::Main(const FString& Params)
 	FString Error;
 	if (!FRPGMageAuthoring::AuthorProductionAssets(Error))
 	{
-		UE_LOG(LogTemp, Error, TEXT("[RPG03.9.4C] Mage authoring failed: %s"), *Error);
+		UE_LOG(LogTemp, Error, TEXT("[RPG03.9.4D] Mage authoring failed: %s"), *Error);
 		return 1;
 	}
 
-	UE_LOG(LogTemp, Display, TEXT("[RPG03.9.4C] Mage production assets authored successfully."));
+	UE_LOG(LogTemp, Display, TEXT("[RPG03.9.4D] Mage production assets authored successfully."));
 	return 0;
 }

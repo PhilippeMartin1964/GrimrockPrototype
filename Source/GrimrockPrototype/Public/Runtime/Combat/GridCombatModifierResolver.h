@@ -44,6 +44,7 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedCombatModifiers
 	int32 RangeCellsModifier = 0;
 	int32 PositiveEffectPercentModifier = 0;
 	int32 FriendlyDirectDamagePercentModifier = 0;
+	int32 SelfDirectDamagePercentModifier = 0;
 	int32 QuickItemSecondaryTargetCount = 0;
 	int32 QuickItemSecondaryMagnitudePercent = 0;
 	int32 QuickItemSecondaryDurationPercent = 0;
@@ -67,7 +68,8 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedCombatModifiers
 			CriticalChancePercentModifier == 0 && CriticalDamagePercentModifier == 0 && WeaponDamagePercentModifier == 0 &&
 			ResistanceModifiers.IsEmpty() && ActionPointCostModifier == 0 &&
 			ManaCostModifier == 0 && RangeCellsModifier == 0 && PositiveEffectPercentModifier == 0 &&
-			FriendlyDirectDamagePercentModifier == 0 && QuickItemSecondaryTargetCount == 0 && QuickItemSecondaryMagnitudePercent == 0 &&
+			FriendlyDirectDamagePercentModifier == 0 && SelfDirectDamagePercentModifier == 0 &&
+			QuickItemSecondaryTargetCount == 0 && QuickItemSecondaryMagnitudePercent == 0 &&
 			QuickItemSecondaryDurationPercent == 0 && PhysicalArmorReferencePercentModifier == 0 &&
 			MagicalArmorReferencePercentModifier == 0 && PhysicalArmorRestorationPercentModifier == 0 &&
 			MagicalArmorRestorationPercentModifier == 0 && SurfaceDurationRoundsModifier == 0 &&
@@ -120,6 +122,14 @@ public:
 	static void ApplyToActionDefinitionProjection(FGridCombatActionDefinition& Definition, const FGridResolvedCombatModifiers& Modifiers);
 
 	static void ApplyOutgoingAttackModifiers(FGridAttackSourceStats& Source, const FGridResolvedCombatModifiers& Modifiers);
+
+	/** Adds generic action-owned Skill rank scaling to direct attack DamageBonus. */
+	static void ApplyDirectDamageSkillScaling(const FGridCombatActionDefinition& Definition, const TArray<FRPGSkillRank>& SkillRanks,
+		FGridAttackSourceStats& InOutSource);
+
+	/** Applies direct friendly-fire scaling; self damage composes the additional self-only modifier. */
+	static void ApplyFriendlyDirectDamageModifiers(
+		FGridAttackSourceStats& InOutSource, const FGridResolvedCombatModifiers& Modifiers, bool bSelfTarget);
 
 	static void ApplyIncomingAttackModifiers(
 		FGridAttackTargetStats& Target, EGridDamageType DamageType, const FGridResolvedCombatModifiers& Modifiers);

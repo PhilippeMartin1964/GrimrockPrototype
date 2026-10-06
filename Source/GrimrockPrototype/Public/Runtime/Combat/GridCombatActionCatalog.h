@@ -48,6 +48,9 @@ public:
 	static void Build(const FGridCombatActionCatalogContext& Context, const TArray<FGridCombatActionContribution>& Contributions,
 		TArray<FGridAvailableCombatAction>& OutActions);
 
+	/** Projects exactly one owner-requirement variant into a runtime action copy. */
+	static bool ApplyOwnerRequirementVariant(FGridCombatActionDefinition& Definition, const TSet<FName>& SatisfiedRequirements);
+
 	static FGridCombatActionDefinition MakeUnarmedAttackDefinition(int32 ActionPointCost);
 
 	static FText GetAvailabilityReasonText(EGridCombatActionAvailabilityReason Reason);

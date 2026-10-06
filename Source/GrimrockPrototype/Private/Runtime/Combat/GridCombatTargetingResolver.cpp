@@ -207,3 +207,71 @@ bool FGridCombatTargetingResolver::ShouldApplyStatusApplication(
 {
 	return Profile.TargetScope == EGridCombatResolvedTargetScope::AllResolvedTargets || TargetOrdinal == 0;
 }
+
+
+void FGridCombatTargetingResolver::BuildDeterministicChain(const FGuid& PrimaryTargetId, const FIntPoint& PrimaryCell,
+	const TArray<FGridCombatChainTargetCandidate>& Candidates, int32 JumpRangeCells, int32 MaximumTargets,
+	TArray<FGridCombatChainTargetCandidate>& OutTargets)
+{
+	OutTargets.Reset();
+	if (!PrimaryTargetId.IsValid() || JumpRangeCells <= 0 || MaximumTargets <= 0)
+	{
+		return;
+	}
+
+	const FGridCombatChainTargetCandidate* Primary = Candidates.FindByPredicate(
+		[&PrimaryTargetId](const FGridCombatChainTargetCandidate& Candidate)
+		{
+			return Candidate.TargetId == PrimaryTargetId && Candidate.IsValid();
+		});
+	if (!Primary)
+	{
+		return;
+	}
+
+	FGridCombatChainTargetCandidate PrimaryCopy = *Primary;
+	PrimaryCopy.Cell = PrimaryCell;
+	OutTargets.Add(PrimaryCopy);
+
+	TSet<FGuid> SelectedIds;
+	SelectedIds.Add(PrimaryTargetId);
+	FIntPoint PreviousCell = PrimaryCell;
+
+	while (OutTargets.Num() < MaximumTargets)
+	{
+		const FGridCombatChainTargetCandidate* Best = nullptr;
+		int32 BestDistance = MAX_int32;
+		for (const FGridCombatChainTargetCandidate& Candidate : Candidates)
+		{
+			if (!Candidate.IsValid() || SelectedIds.Contains(Candidate.TargetId))
+			{
+				continue;
+			}
+			const int32 Distance =
+				FMath::Abs(Candidate.Cell.X - PreviousCell.X) + FMath::Abs(Candidate.Cell.Y - PreviousCell.Y);
+			if (Distance <= 0 || Distance > JumpRangeCells)
+			{
+				continue;
+			}
+
+			const bool bBetter = !Best || Distance < BestDistance ||
+				(Distance == BestDistance && (Candidate.Cell.Y < Best->Cell.Y ||
+					(Candidate.Cell.Y == Best->Cell.Y && (Candidate.Cell.X < Best->Cell.X ||
+						(Candidate.Cell.X == Best->Cell.X &&
+							Candidate.TargetId.ToString(EGuidFormats::Digits) < Best->TargetId.ToString(EGuidFormats::Digits))))));
+			if (bBetter)
+			{
+				Best = &Candidate;
+				BestDistance = Distance;
+			}
+		}
+
+		if (!Best)
+		{
+			break;
+		}
+		OutTargets.Add(*Best);
+		SelectedIds.Add(Best->TargetId);
+		PreviousCell = Best->Cell;
+	}
+}

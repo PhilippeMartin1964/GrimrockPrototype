@@ -317,6 +317,55 @@ namespace
 	}
 }
 
+bool FGridCombatActionCatalog::ApplyOwnerRequirementVariant(
+	FGridCombatActionDefinition& Definition, const TSet<FName>& SatisfiedRequirements)
+{
+	if (Definition.OwnerVariants.IsEmpty())
+	{
+		return true;
+	}
+
+	const FGridCombatActionOwnerVariantProfile* MatchingVariant = nullptr;
+	for (const FGridCombatActionOwnerVariantProfile& Variant : Definition.OwnerVariants)
+	{
+		const bool bMatches = Variant.RequiredOwnerRequirementIds.ContainsByPredicate(
+			[&SatisfiedRequirements](const FName RequirementId)
+			{
+				return !SatisfiedRequirements.Contains(RequirementId);
+			}) == false;
+		if (!bMatches)
+		{
+			continue;
+		}
+		if (MatchingVariant)
+		{
+			return false;
+		}
+		MatchingVariant = &Variant;
+	}
+
+	if (!MatchingVariant)
+	{
+		return false;
+	}
+
+	for (const FName SourceTag : MatchingVariant->AddedSourceTags)
+	{
+		Definition.SourceTags.AddUnique(SourceTag);
+	}
+	if (MatchingVariant->bOverrideDamageDescriptor)
+	{
+		Definition.OffensiveProfile.AttackDefinition.DamageType = MatchingVariant->OverrideDamageType;
+		Definition.OffensiveProfile.AttackDefinition.PhysicalSubtype =
+			MatchingVariant->OverrideDamageType == EGridDamageType::Physical
+			? MatchingVariant->OverridePhysicalSubtype
+			: EGridPhysicalDamageSubtype::None;
+	}
+	Definition.StatusApplications.Append(MatchingVariant->StatusApplications);
+	Definition.OwnerVariants.Reset();
+	return Definition.IsValid();
+}
+
 void FGridCombatActionCatalog::Build(
 	const FGridCombatActionCatalogContext& Context, const TArray<FGridCombatActionContribution>& Contributions, TArray<FGridAvailableCombatAction>& OutActions)
 {
@@ -332,9 +381,13 @@ void FGridCombatActionCatalog::Build(
 		}
 
 		FGridCombatActionContribution EffectiveContribution = Contribution;
+		if (!ApplyOwnerRequirementVariant(EffectiveContribution.Definition, EffectiveContext.SatisfiedRequirements))
+		{
+			continue;
+		}
 		FGridResolvedCombatModifiers ResolvedModifiers;
 		FGridCombatModifierResolver::Resolve(EffectiveContext.CombatModifiers,
-			FGridCombatModifierResolver::MakeActionContext(Contribution.Definition, Contribution.SourceDefinitionId), ResolvedModifiers);
+			FGridCombatModifierResolver::MakeActionContext(EffectiveContribution.Definition, Contribution.SourceDefinitionId), ResolvedModifiers);
 		FGridCombatModifierResolver::ApplyToActionDefinitionProjection(EffectiveContribution.Definition, ResolvedModifiers);
 		if (!EffectiveContribution.IsValid())
 		{

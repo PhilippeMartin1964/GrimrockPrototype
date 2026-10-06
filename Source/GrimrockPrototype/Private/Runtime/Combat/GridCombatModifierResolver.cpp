@@ -220,7 +220,8 @@ bool FGridCombatModifierResolver::Matches(const FGridCombatModifierProfile& Prof
 			return false;
 		}
 	}
-	if (!MatchesFilter(Profile.SourcePolicies, Context.SourcePolicy) || !MatchesFilter(Profile.ActionTypes, Context.ActionType))
+	if (!MatchesFilter(Profile.SourcePolicies, Context.SourcePolicy) || !MatchesFilter(Profile.ActionTypes, Context.ActionType) ||
+		!MatchesFilter(Profile.TargetingPolicies, Context.TargetingPolicy))
 	{
 		return false;
 	}
@@ -310,6 +311,8 @@ void FGridCombatModifierResolver::Resolve(
 			SaturatingAdd(OutModifiers.PositiveEffectPercentModifier, Profile.PositiveEffectPercentModifier);
 		OutModifiers.FriendlyDirectDamagePercentModifier =
 			SaturatingAdd(OutModifiers.FriendlyDirectDamagePercentModifier, Profile.FriendlyDirectDamagePercentModifier);
+		OutModifiers.SelfDirectDamagePercentModifier =
+			SaturatingAdd(OutModifiers.SelfDirectDamagePercentModifier, Profile.SelfDirectDamagePercentModifier);
 		OutModifiers.QuickItemSecondaryTargetCount =
 			FMath::Max(OutModifiers.QuickItemSecondaryTargetCount, Profile.QuickItemSecondaryTargetCount);
 		OutModifiers.QuickItemSecondaryMagnitudePercent =
@@ -437,6 +440,41 @@ void FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(FGridAttackSource
 	Source.CriticalChancePercent = FMath::Clamp(SaturatingAdd(Source.CriticalChancePercent, Modifiers.CriticalChancePercentModifier), 0, 100);
 	Source.CriticalDamagePercent = FMath::Clamp(SaturatingAdd(Source.CriticalDamagePercent, Modifiers.CriticalDamagePercentModifier), 100, 1000);
 	Source.RawDamagePercent = FMath::Clamp(SaturatingAdd(Source.RawDamagePercent, Modifiers.WeaponDamagePercentModifier), 0, 1000);
+}
+
+void FGridCombatModifierResolver::ApplyDirectDamageSkillScaling(
+	const FGridCombatActionDefinition& Definition, const TArray<FRPGSkillRank>& SkillRanks, FGridAttackSourceStats& InOutSource)
+{
+	if (!Definition.DirectDamageScaling.IsValid() || Definition.DirectDamageScaling.SkillRankScale <= 0)
+	{
+		return;
+	}
+
+	const FRPGSkillRank* Rank = SkillRanks.FindByPredicate(
+		[&Definition](const FRPGSkillRank& Candidate)
+		{
+			return Candidate.SkillId == Definition.DirectDamageScaling.ScalingSkillId && Candidate.Rank > 0;
+		});
+	if (!Rank)
+	{
+		return;
+	}
+
+	const int64 Bonus = static_cast<int64>(Rank->Rank) * static_cast<int64>(Definition.DirectDamageScaling.SkillRankScale);
+	InOutSource.DamageBonus = static_cast<int32>(FMath::Clamp<int64>(
+		static_cast<int64>(InOutSource.DamageBonus) + Bonus, static_cast<int64>(MIN_int32), static_cast<int64>(MAX_int32)));
+}
+
+void FGridCombatModifierResolver::ApplyFriendlyDirectDamageModifiers(
+	FGridAttackSourceStats& InOutSource, const FGridResolvedCombatModifiers& Modifiers, bool bSelfTarget)
+{
+	InOutSource.DamageMultiplier = FMath::Max(
+		0.0f, InOutSource.DamageMultiplier * PercentToMultiplier(Modifiers.FriendlyDirectDamagePercentModifier));
+	if (bSelfTarget)
+	{
+		InOutSource.DamageMultiplier = FMath::Max(
+			0.0f, InOutSource.DamageMultiplier * PercentToMultiplier(Modifiers.SelfDirectDamagePercentModifier));
+	}
 }
 
 void FGridCombatModifierResolver::ApplyIncomingAttackModifiers(

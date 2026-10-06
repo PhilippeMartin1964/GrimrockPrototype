@@ -21,14 +21,14 @@ if (-not (Test-Path -LiteralPath $EditorCmd -PathType Leaf))
     throw "UnrealEditor-Cmd.exe introuvable : $EditorCmd"
 }
 
-Write-Host '=== RPG03.9.4C Mage Evoker authoring ==='
+Write-Host '=== RPG03.9.4D Complete Mage Evoker branch authoring ==='
 Write-Host "Repository : $RepoRoot"
 Write-Host "Project    : $ProjectFile"
 Write-Host "Engine     : $EngineRoot"
 
 $Branch = (& git -C $RepoRoot branch --show-current).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Impossible de lire la branche Git courante.' }
-if ($Branch -ne 'master') { throw "RPG03.9.4C doit etre authore sur master. Branche courante : $Branch" }
+if ($Branch -ne 'master') { throw "RPG03.9.4D doit etre authore sur master. Branche courante : $Branch" }
 
 $GitStatusBefore = @(& git -C $RepoRoot status --short)
 if ($LASTEXITCODE -ne 0) { throw 'Impossible de lire git status.' }
@@ -55,7 +55,7 @@ $Arguments = @(
 )
 
 Write-Host ''
-Write-Host '=== UE5.5.4 RPG03.9.4C authoring commandlet ==='
+Write-Host '=== UE5.5.4 RPG03.9.4D authoring commandlet ==='
 & $EditorCmd @Arguments
 $ExitCode = $LASTEXITCODE
 if ($ExitCode -ne 0)
@@ -63,15 +63,15 @@ if ($ExitCode -ne 0)
     throw "RPGMageAuthoring a echoue avec le code $ExitCode."
 }
 
-Write-Host '[OK] DA_Class_Mage and DA_Status_ElementalOverload authored through Unreal Editor.'
+Write-Host '[OK] DA_Class_Mage and Mage Evoker status assets authored through Unreal Editor.'
 
 if (-not $SkipAutomation)
 {
-    & (Join-Path $PSScriptRoot 'ValidateUE.ps1') -EngineRoot $EngineRoot -SkipBuild -AutomationFilter 'Grimrock.RPG.RPG03.9.4C'
+    & (Join-Path $PSScriptRoot 'ValidateUE.ps1') -EngineRoot $EngineRoot -SkipBuild -AutomationFilter 'Grimrock.RPG.RPG03.9.4D'
 }
 
 Write-Host ''
 Write-Host '=== Generated changes ==='
 & git -C $RepoRoot status --short --untracked-files=all
 if ($LASTEXITCODE -ne 0) { throw 'Impossible de lire le git status final.' }
-Write-Host 'Expected binary changes: DA_Class_Mage modified and DA_Status_ElementalOverload created.'
+Write-Host 'Expected Mage binaries: DA_Class_Mage, DA_Status_ElementalOverload, DA_Status_Burning and DA_Status_Slow.'

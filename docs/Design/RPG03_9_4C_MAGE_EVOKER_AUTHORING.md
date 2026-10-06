@@ -65,12 +65,8 @@ Aucun autre asset binaire n'est attendu.
 
 ## Authoring local
 
-Depuis un working tree propre sur `master` :
+Ce document décrit le jalon historique C. Depuis RPG03.9.4D, `Scripts/AuthorRPGMage.ps1` matérialise la branche Évocateur complète et lance la campagne D.
 
-```powershell
-.\Scripts\AuthorRPGMage.ps1 -EngineRoot D:\UE_5.5
-```
-
-Le script compile l'Editor, exécute le commandlet, lance `Grimrock.RPG.RPG03.9.4C` puis affiche les changements Git.
+La campagne historique `Grimrock.RPG.RPG03.9.4C` reste disponible comme régression des deux premiers talents.
 
 La validation n'est acquise que sur la sortie TD04.2 fournie par l'utilisateur.

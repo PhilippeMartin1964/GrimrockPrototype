@@ -4,6 +4,18 @@
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "Runtime/GridInventoryTypes.h"
 
+/** One eligible hostile used by deterministic chain targeting. */
+struct GRIMROCKPROTOTYPE_API FGridCombatChainTargetCandidate
+{
+	FGuid TargetId;
+	FIntPoint Cell = FIntPoint::ZeroValue;
+
+	bool IsValid() const
+	{
+		return TargetId.IsValid();
+	}
+};
+
 /** Pure C8 target/filter helpers shared by combat, statuses and batch resolution. */
 class GRIMROCKPROTOTYPE_API FGridCombatTargetingResolver
 {
@@ -26,4 +38,9 @@ public:
 		int32 SourceCharacterIndex, const TArray<int32>& ExplicitTargetCharacterIndices, int32 FrontLineSlotCount, TArray<int32>& OutCharacterIndices);
 
 	static bool ShouldApplyStatusApplication(const FGridCombatStatusApplicationProfile& Profile, int32 TargetOrdinal);
+
+	/** Primary target first, then nearest legal jump; ties are Y then X then TargetId. */
+	static void BuildDeterministicChain(const FGuid& PrimaryTargetId, const FIntPoint& PrimaryCell,
+		const TArray<FGridCombatChainTargetCandidate>& Candidates, int32 JumpRangeCells, int32 MaximumTargets,
+		TArray<FGridCombatChainTargetCandidate>& OutTargets);
 };

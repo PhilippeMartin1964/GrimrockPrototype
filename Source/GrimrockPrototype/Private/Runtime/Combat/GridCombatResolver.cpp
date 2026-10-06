@@ -74,12 +74,12 @@ FGridAttackResult FGridCombatResolver::ResolveAttackFromRolls(
 
 	const bool bNaturalMiss = Result.NaturalAttackRoll == 1;
 	const bool bNaturalHit = Result.NaturalAttackRoll == 20;
-	Result.bHit = !bNaturalMiss && (bNaturalHit || Result.AttackRoll >= Result.DefenseValue);
+	Result.bHit = Attack.bAlwaysHits || (!bNaturalMiss && (bNaturalHit || Result.AttackRoll >= Result.DefenseValue));
 
 	const int32 SafeCriticalChance = FMath::Clamp(Source.CriticalChancePercent, 0, 100);
 	const int32 CriticalRollCount = FMath::Clamp((SafeCriticalChance + 4) / 5, 0, 20);
 	const int32 CriticalMinimumRoll = CriticalRollCount > 0 ? 21 - CriticalRollCount : 21;
-	Result.bCriticalHit = Result.bHit && CriticalRollCount > 0 && Result.NaturalAttackRoll >= CriticalMinimumRoll;
+	Result.bCriticalHit = Attack.bCanCriticalHit && Result.bHit && CriticalRollCount > 0 && Result.NaturalAttackRoll >= CriticalMinimumRoll;
 
 	if (!Result.bHit)
 	{

@@ -15,21 +15,41 @@ namespace RPGMageAuthoring
 	const FName ElementalAffinityAlias(TEXT("Talent_Mage_Evoker_ElementalAffinity"));
 	const FName ElementalAffinityGroup(TEXT("TalentGroup_Mage_Evoker_ElementalAffinity"));
 	const FName ElementalOverloadTalentId(TEXT("Talent_Mage_Evoker_ElementalOverload"));
+	const FName ControlledExplosionTalentId(TEXT("Talent_Mage_Evoker_ControlledExplosion"));
+	const FName ElementalChainTalentId(TEXT("Talent_Mage_Evoker_ElementalChain"));
+	const FName CataclysmTalentId(TEXT("Talent_Mage_Evoker_Cataclysm"));
+
 	const FName ElementalOverloadActionId(TEXT("Action_Mage_ElementalOverload"));
+	const FName ElementalChainActionId(TEXT("Action_Mage_ElementalChain"));
+	const FName CataclysmActionId(TEXT("Action_Mage_Cataclysm"));
+
 	const FName ElementalOverloadStatusId(TEXT("Status_ElementalOverload"));
+	const FName BurningStatusId(TEXT("Status_Burning"));
+	const FName SlowStatusId(TEXT("Status_Slow"));
+	const FName StunnedStatusId(TEXT("Status_Stunned"));
+	const FName ImmobilizedStatusId(TEXT("Status_Immobilized"));
 
 	struct FAffinityVariant
 	{
 		const TCHAR* Suffix;
 		const TCHAR* DisplayName;
 		const TCHAR* SchoolTag;
+		EGridDamageType DamageType;
+		FName CataclysmStatusId;
+		int32 CataclysmStatusDuration;
 	};
 
 	const FAffinityVariant AffinityVariants[] = {
-		{ TEXT("Fire"), TEXT("Affinité élémentaire — Feu"), TEXT("Spell.School.Fire") },
-		{ TEXT("Frost"), TEXT("Affinité élémentaire — Glace"), TEXT("Spell.School.Frost") },
-		{ TEXT("Air"), TEXT("Affinité élémentaire — Air"), TEXT("Spell.School.Air") },
-		{ TEXT("Earth"), TEXT("Affinité élémentaire — Terre"), TEXT("Spell.School.Earth") }
+		{ TEXT("Fire"), TEXT("Affinité élémentaire — Feu"), TEXT("Spell.School.Fire"),
+			EGridDamageType::Fire, BurningStatusId, 2 },
+		{ TEXT("Frost"), TEXT("Affinité élémentaire — Glace"), TEXT("Spell.School.Frost"),
+			EGridDamageType::Ice, SlowStatusId, 2 },
+		{ TEXT("Air"), TEXT("Affinité élémentaire — Air"), TEXT("Spell.School.Air"),
+			EGridDamageType::Lightning, StunnedStatusId, 1 },
+		// RPG02 intentionally has no Earth damage enum. Until an Earth spell sub-choice exists,
+		// the deterministic Evoker interpretation is Physical damage + Immobilized.
+		{ TEXT("Earth"), TEXT("Affinité élémentaire — Terre"), TEXT("Spell.School.Earth"),
+			EGridDamageType::Physical, ImmobilizedStatusId, 1 }
 	};
 
 	FName MakeAffinityChoiceId(const TCHAR* Suffix)
@@ -37,7 +57,8 @@ namespace RPGMageAuthoring
 		return FName(*FString::Printf(TEXT("Talent_Mage_Evoker_ElementalAffinity_%s"), Suffix));
 	}
 
-	FRPGClassProgressionChoiceDefinition MakeChoice(FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 MinimumLevel)
+	FRPGClassProgressionChoiceDefinition MakeChoice(
+		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 MinimumLevel, FName PrerequisiteChoiceId = NAME_None)
 	{
 		FRPGClassProgressionChoiceDefinition Choice;
 		Choice.ChoiceId = ChoiceId;
@@ -45,17 +66,78 @@ namespace RPGMageAuthoring
 		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = MinimumLevel;
 		Choice.PointCost = 1;
+		if (!PrerequisiteChoiceId.IsNone())
+		{
+			Choice.PrerequisiteChoiceIds.Add(PrerequisiteChoiceId);
+		}
 		return Choice;
 	}
 
-	FGridCombatStatusApplicationProfile MakeStatusApplication(FName StatusId, int32 DurationOverride)
+	FGridCombatStatusApplicationProfile MakeStatusApplication(
+		FName StatusId, EGridCombatStatusApplicationTrigger Trigger, EGridCombatStatusArmorGate ArmorGate, int32 DurationOverride)
 	{
 		FGridCombatStatusApplicationProfile Profile;
 		Profile.StatusEffectId = StatusId;
-		Profile.Trigger = EGridCombatStatusApplicationTrigger::AfterResolution;
-		Profile.ArmorGate = EGridCombatStatusArmorGate::None;
+		Profile.Trigger = Trigger;
+		Profile.ArmorGate = ArmorGate;
 		Profile.DurationOverride = DurationOverride;
 		return Profile;
+	}
+
+	FGridCombatActionOwnerVariantProfile MakeAffinityActionVariant(const FAffinityVariant& Variant, bool bAddCataclysmStatus)
+	{
+		FGridCombatActionOwnerVariantProfile Result;
+		Result.RequiredOwnerRequirementIds = { MakeAffinityChoiceId(Variant.Suffix) };
+		Result.AddedSourceTags = { FName(Variant.SchoolTag) };
+		Result.bOverrideDamageDescriptor = true;
+		Result.OverrideDamageType = Variant.DamageType;
+		Result.OverridePhysicalSubtype = EGridPhysicalDamageSubtype::None;
+		if (bAddCataclysmStatus)
+		{
+			Result.StatusApplications.Add(MakeStatusApplication(
+				Variant.CataclysmStatusId, EGridCombatStatusApplicationTrigger::AfterSuccessfulHit,
+				EGridCombatStatusArmorGate::MagicalArmorDepleted, Variant.CataclysmStatusDuration));
+		}
+		return Result;
+	}
+
+	FGridCombatActionDefinition MakeDirectSpellAttack(
+		FName ActionId, const TCHAR* DisplayName, const TCHAR* Description, FName RequirementId,
+		int32 ActionPointCost, int32 ManaCost, EGridCombatTargetingPolicy TargetingPolicy,
+		int32 RangeCells, int32 BaseDamage, int32 CooldownRounds)
+	{
+		FGridCombatActionDefinition Action;
+		Action.ActionId = ActionId;
+		Action.DisplayName = FText::FromString(DisplayName);
+		Action.Description = FText::FromString(Description);
+		Action.ActionType = EGridCombatActionType::Ability;
+		Action.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+		Action.TargetingPolicy = TargetingPolicy;
+		Action.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
+		Action.ActionPointCost = ActionPointCost;
+		Action.ResourceCosts.ManaCost = ManaCost;
+		Action.RangeCells = RangeCells;
+		Action.bRequiresLineOfSight = true;
+		Action.CooldownRounds = CooldownRounds;
+		Action.Requirements = { RequirementId };
+
+		Action.OffensiveProfile.AttackId = ActionId;
+		Action.OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Physical;
+		Action.OffensiveProfile.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::None;
+		Action.OffensiveProfile.AttackDefinition.MinDamage = BaseDamage;
+		Action.OffensiveProfile.AttackDefinition.MaxDamage = BaseDamage;
+		Action.OffensiveProfile.AttackDefinition.bAlwaysHits = true;
+		Action.OffensiveProfile.AttackDefinition.bCanCriticalHit = false;
+		Action.OffensiveProfile.DamageScalingAttribute = EGridAttackScalingAttribute::Intelligence;
+		Action.OffensiveProfile.RangeCells = RangeCells;
+		Action.DirectDamageScaling.ScalingSkillId = TEXT("Skill_Arcana");
+		Action.DirectDamageScaling.SkillRankScale = 1;
+
+		for (const FAffinityVariant& Variant : AffinityVariants)
+		{
+			Action.OwnerVariants.Add(MakeAffinityActionVariant(Variant, ActionId == CataclysmActionId));
+		}
+		return Action;
 	}
 
 	bool SaveAuthoredAsset(UObject* Asset, FString& OutError)
@@ -88,16 +170,29 @@ namespace RPGMageAuthoring
 		return true;
 	}
 
-	UGridStatusEffectDefinitionAsset* FindOrCreateElementalOverloadStatus(FString& OutError)
+	UGridStatusEffectDefinitionAsset* FindOrCreateStatus(FName EffectId, FString& OutError)
 	{
-		if (UGridStatusEffectDefinitionAsset* Existing =
-				LoadObject<UGridStatusEffectDefinitionAsset>(nullptr, FRPGMageAuthoring::ElementalOverloadStatusPath()))
+		if (EffectId.IsNone())
 		{
-			return Existing;
+			OutError = TEXT("Cannot author an empty Mage status id.");
+			return nullptr;
 		}
 
-		const FString AssetName(TEXT("DA_Status_ElementalOverload"));
-		const FString PackageName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/StatusEffects/DA_Status_ElementalOverload"));
+		const FString AssetName = FString::Printf(TEXT("DA_%s"), *EffectId.ToString());
+		const FString PackageName =
+			FString::Printf(TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/StatusEffects/%s"), *AssetName);
+		if (FPackageName::DoesPackageExist(PackageName))
+		{
+			const FString ObjectPath = FRPGMageAuthoring::GetStatusObjectPath(EffectId);
+			if (UGridStatusEffectDefinitionAsset* Existing =
+					LoadObject<UGridStatusEffectDefinitionAsset>(nullptr, *ObjectPath))
+			{
+				return Existing;
+			}
+			OutError = FString::Printf(TEXT("Existing Mage status package could not load expected asset: %s"), *ObjectPath);
+			return nullptr;
+		}
+
 		UPackage* Package = CreatePackage(*PackageName);
 		if (!Package)
 		{
@@ -109,11 +204,24 @@ namespace RPGMageAuthoring
 			Package, *AssetName, RF_Public | RF_Standalone | RF_Transactional);
 		if (!Created)
 		{
-			OutError = TEXT("Failed to create DA_Status_ElementalOverload.");
+			OutError = FString::Printf(TEXT("Failed to create '%s'."), *AssetName);
 			return nullptr;
 		}
 		FAssetRegistryModule::AssetCreated(Created);
 		return Created;
+	}
+
+	bool ValidateSharedStatus(FName EffectId, FString& OutError)
+	{
+		const FString ObjectPath = FRPGMageAuthoring::GetStatusObjectPath(EffectId);
+		const UGridStatusEffectDefinitionAsset* Status =
+			LoadObject<UGridStatusEffectDefinitionAsset>(nullptr, *ObjectPath);
+		if (!IsValid(Status) || !Status->IsValidDefinition())
+		{
+			OutError = FString::Printf(TEXT("Required shared status is missing or invalid: %s"), *ObjectPath);
+			return false;
+		}
+		return true;
 	}
 }
 
@@ -127,6 +235,12 @@ const TCHAR* FRPGMageAuthoring::ElementalOverloadStatusPath()
 	return TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/StatusEffects/DA_Status_ElementalOverload.DA_Status_ElementalOverload");
 }
 
+FString FRPGMageAuthoring::GetStatusObjectPath(FName EffectId)
+{
+	return FString::Printf(TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/StatusEffects/DA_%s.DA_%s"),
+		*EffectId.ToString(), *EffectId.ToString());
+}
+
 void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 {
 	using namespace RPGMageAuthoring;
@@ -134,22 +248,46 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.CombatActions.Reset();
 	ClassAsset.ProgressionChoices.Reset();
 
-	FGridCombatActionDefinition OverloadAction;
-	OverloadAction.ActionId = ElementalOverloadActionId;
-	OverloadAction.DisplayName = FText::FromString(TEXT("Surcharge élémentaire"));
-	OverloadAction.Description =
-		FText::FromString(TEXT("Le prochain sort de l'affinité élémentaire inflige +35 % de dégâts avant de consommer la surcharge."));
-	OverloadAction.ActionType = EGridCombatActionType::Ability;
-	OverloadAction.SourcePolicy = EGridCombatActionSourcePolicy::Ability;
-	OverloadAction.TargetingPolicy = EGridCombatTargetingPolicy::Self;
-	OverloadAction.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
-	OverloadAction.ActionPointCost = 1;
-	OverloadAction.ResourceCosts.ManaCost = 4;
-	OverloadAction.CooldownRounds = 3;
-	OverloadAction.Requirements = { ElementalOverloadTalentId };
-	OverloadAction.StatusApplications.Add(MakeStatusApplication(ElementalOverloadStatusId, 1));
-	ClassAsset.CombatActions.Add(OverloadAction);
+	// Evoker actions.
+	{
+		FGridCombatActionDefinition OverloadAction;
+		OverloadAction.ActionId = ElementalOverloadActionId;
+		OverloadAction.DisplayName = FText::FromString(TEXT("Surcharge élémentaire"));
+		OverloadAction.Description =
+			FText::FromString(TEXT("Le prochain sort de l'affinité élémentaire inflige +35 % de dégâts avant de consommer la surcharge."));
+		OverloadAction.ActionType = EGridCombatActionType::Ability;
+		OverloadAction.SourcePolicy = EGridCombatActionSourcePolicy::Ability;
+		OverloadAction.TargetingPolicy = EGridCombatTargetingPolicy::Self;
+		OverloadAction.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+		OverloadAction.ActionPointCost = 1;
+		OverloadAction.ResourceCosts.ManaCost = 4;
+		OverloadAction.CooldownRounds = 3;
+		OverloadAction.Requirements = { ElementalOverloadTalentId };
+		OverloadAction.StatusApplications.Add(MakeStatusApplication(
+			ElementalOverloadStatusId, EGridCombatStatusApplicationTrigger::AfterResolution,
+			EGridCombatStatusArmorGate::None, 1));
+		ClassAsset.CombatActions.Add(OverloadAction);
+	}
+	{
+		FGridCombatActionDefinition Chain = MakeDirectSpellAttack(
+			ElementalChainActionId, TEXT("Chaîne élémentaire"),
+			TEXT("Frappe la cible primaire puis jusqu'à deux hostiles adjacents, une seule fois chacun."),
+			ElementalChainTalentId, 3, 8, EGridCombatTargetingPolicy::Cell, 5, 7, 3);
+		Chain.MaximumResolvedTargets = 3;
+		Chain.ChainJumpRangeCells = 1;
+		ClassAsset.CombatActions.Add(Chain);
+	}
+	{
+		FGridCombatActionDefinition Cataclysm = MakeDirectSpellAttack(
+			CataclysmActionId, TEXT("Cataclysme"),
+			TEXT("Frappe tous les hostiles dans un rayon de 2 et applique le contrôle de l'affinité si l'armure magique est épuisée."),
+			CataclysmTalentId, 4, 16, EGridCombatTargetingPolicy::Area, 5, 12, 5);
+		Cataclysm.AreaRadiusCells = 2;
+		Cataclysm.bAffectsAlliesInArea = true;
+		ClassAsset.CombatActions.Add(Cataclysm);
+	}
 
+	// Evoker progression.
 	for (const FAffinityVariant& Variant : AffinityVariants)
 	{
 		const FName ChoiceId = MakeAffinityChoiceId(Variant.Suffix);
@@ -171,24 +309,42 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		TEXT("Débloque Surcharge élémentaire : le prochain sort de l'affinité gagne +35 % de dégâts puis consomme l'effet."), 6);
 	Overload.PrerequisiteRequirementIds = { ElementalAffinityAlias };
 	ClassAsset.ProgressionChoices.Add(Overload);
+
+	FRPGClassProgressionChoiceDefinition ControlledExplosion = MakeChoice(
+		ControlledExplosionTalentId, TEXT("Explosion contrôlée"),
+		TEXT("Les sorts de zone du Mage ne lui infligent aucun dégât direct et en infligent 50 % de moins à ses alliés."),
+		10, ElementalOverloadTalentId);
+	FGridCombatModifierProfile AreaProtection;
+	AreaProtection.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+	AreaProtection.TargetingPolicies = { EGridCombatTargetingPolicy::Area };
+	AreaProtection.FriendlyDirectDamagePercentModifier = -50;
+	AreaProtection.SelfDirectDamagePercentModifier = -100;
+	ControlledExplosion.CombatModifiers.Add(AreaProtection);
+	ClassAsset.ProgressionChoices.Add(ControlledExplosion);
+
+	ClassAsset.ProgressionChoices.Add(MakeChoice(
+		ElementalChainTalentId, TEXT("Chaîne élémentaire"),
+		TEXT("Débloque Chaîne élémentaire."), 14, ControlledExplosionTalentId));
+
+	ClassAsset.ProgressionChoices.Add(MakeChoice(
+		CataclysmTalentId, TEXT("Cataclysme"),
+		TEXT("Débloque Cataclysme."), 18, ElementalChainTalentId));
 }
 
 bool FRPGMageAuthoring::ConfigureElementalOverloadStatus(UGridStatusEffectDefinitionAsset& StatusAsset)
 {
+	return ConfigureStatus(StatusAsset, RPGMageAuthoring::ElementalOverloadStatusId);
+}
+
+bool FRPGMageAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)
+{
 	using namespace RPGMageAuthoring;
 
-	StatusAsset.EffectId = ElementalOverloadStatusId;
-	StatusAsset.DisplayName = FText::FromString(TEXT("Surcharge élémentaire"));
-	StatusAsset.Description =
-		FText::FromString(TEXT("Le prochain sort correspondant à l'affinité élémentaire inflige +35 % de dégâts puis consomme cet effet."));
+	StatusAsset.EffectId = EffectId;
 	StatusAsset.StatusTags.Reset();
 	StatusAsset.Icon.Reset();
-	StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
-	StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
-	StatusAsset.DefaultDuration = 1;
-	StatusAsset.bExpireAtOwnerNextActivation = false;
 	StatusAsset.DefaultPotency = 0;
-	StatusAsset.StackPolicy = EGridStatusEffectStackPolicy::NoStack;
+	StatusAsset.StackPolicy = EGridStatusEffectStackPolicy::RefreshDuration;
 	StatusAsset.MaxStacks = 1;
 	StatusAsset.bDistinctPerSource = false;
 	StatusAsset.bUniquePerSourceAcrossMonsters = false;
@@ -197,35 +353,83 @@ bool FRPGMageAuthoring::ConfigureElementalOverloadStatus(UGridStatusEffectDefini
 	StatusAsset.Control = FGridStatusEffectControlProfile();
 	StatusAsset.CombatModifiers.Reset();
 	StatusAsset.CombatReactions.Reset();
+	StatusAsset.bExpireAtOwnerNextActivation = false;
 
-	for (const FAffinityVariant& Variant : AffinityVariants)
+	if (EffectId == ElementalOverloadStatusId)
 	{
-		const FName ChoiceId = MakeAffinityChoiceId(Variant.Suffix);
-		const FName SchoolTag(Variant.SchoolTag);
+		StatusAsset.DisplayName = FText::FromString(TEXT("Surcharge élémentaire"));
+		StatusAsset.Description =
+			FText::FromString(TEXT("Le prochain sort correspondant à l'affinité élémentaire inflige +35 % de dégâts puis consomme cet effet."));
+		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
+		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
+		StatusAsset.DefaultDuration = 1;
+		StatusAsset.StackPolicy = EGridStatusEffectStackPolicy::NoStack;
 
-		FGridCombatModifierProfile Modifier;
-		Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
-		Modifier.RequiredSourceTags = { SchoolTag };
-		Modifier.RequiredOwnerRequirementIds = { ChoiceId };
-		Modifier.OutgoingDamagePercentModifier = 35;
-		StatusAsset.CombatModifiers.Add(Modifier);
+		for (const FAffinityVariant& Variant : AffinityVariants)
+		{
+			const FName ChoiceId = MakeAffinityChoiceId(Variant.Suffix);
+			const FName SchoolTag(Variant.SchoolTag);
 
-		FGridCombatReactionProfile Reaction;
-		Reaction.ReactionId = FName(*FString::Printf(TEXT("Reaction_Mage_ElementalOverload_%s"), Variant.Suffix));
-		Reaction.Trigger = EGridCombatReactionTrigger::ActionResolved;
-		Reaction.Limit = EGridCombatReactionLimit::OncePerAction;
-		Reaction.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
-		Reaction.RequiredSourceTags = { SchoolTag };
-		Reaction.RequiredOwnerRequirementIds = { ChoiceId };
-		Reaction.bConsumeOwningStatus = true;
-		StatusAsset.CombatReactions.Add(Reaction);
+			FGridCombatModifierProfile Modifier;
+			Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+			Modifier.RequiredSourceTags = { SchoolTag };
+			Modifier.RequiredOwnerRequirementIds = { ChoiceId };
+			Modifier.OutgoingDamagePercentModifier = 35;
+			StatusAsset.CombatModifiers.Add(Modifier);
+
+			FGridCombatReactionProfile Reaction;
+			Reaction.ReactionId = FName(*FString::Printf(TEXT("Reaction_Mage_ElementalOverload_%s"), Variant.Suffix));
+			Reaction.Trigger = EGridCombatReactionTrigger::ActionResolved;
+			Reaction.Limit = EGridCombatReactionLimit::OncePerAction;
+			Reaction.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+			Reaction.RequiredSourceTags = { SchoolTag };
+			Reaction.RequiredOwnerRequirementIds = { ChoiceId };
+			Reaction.bConsumeOwningStatus = true;
+			StatusAsset.CombatReactions.Add(Reaction);
+		}
+		return StatusAsset.IsValidDefinition();
 	}
 
-	return StatusAsset.IsValidDefinition();
+	if (EffectId == BurningStatusId)
+	{
+		StatusAsset.DisplayName = FText::FromString(TEXT("Brûlure"));
+		StatusAsset.Description = FText::FromString(TEXT("Subit 2 dégâts de Feu à chaque tick pendant 2 tours."));
+		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Elemental.Fire") };
+		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
+		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
+		StatusAsset.DefaultDuration = 2;
+		StatusAsset.PeriodicDamage.DamageType = EGridDamageType::Fire;
+		StatusAsset.PeriodicDamage.DamagePerStack = 2;
+		return StatusAsset.IsValidDefinition();
+	}
+
+	if (EffectId == SlowStatusId)
+	{
+		StatusAsset.DisplayName = FText::FromString(TEXT("Ralenti"));
+		StatusAsset.Description = FText::FromString(TEXT("Initiative -6 pendant 2 rounds."));
+		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Control.Magical"), TEXT("Control.Slow") };
+		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
+		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
+		StatusAsset.DefaultDuration = 2;
+		StatusAsset.InitiativeModifier = -6;
+		return StatusAsset.IsValidDefinition();
+	}
+
+	return false;
+}
+
+void FRPGMageAuthoring::GetRequiredMageStatusIds(TArray<FName>& OutStatusIds)
+{
+	OutStatusIds = {
+		RPGMageAuthoring::ElementalOverloadStatusId,
+		RPGMageAuthoring::BurningStatusId,
+		RPGMageAuthoring::SlowStatusId
+	};
 }
 
 bool FRPGMageAuthoring::AuthorProductionAssets(FString& OutError)
 {
+	using namespace RPGMageAuthoring;
 	OutError.Reset();
 
 	URPGClassAsset* Mage = LoadObject<URPGClassAsset>(nullptr, MageAssetPath());
@@ -234,22 +438,34 @@ bool FRPGMageAuthoring::AuthorProductionAssets(FString& OutError)
 		OutError = FString::Printf(TEXT("Production Mage asset not found: %s"), MageAssetPath());
 		return false;
 	}
-	if (Mage->ClassId != RPGMageAuthoring::MageClassId)
+	if (Mage->ClassId != MageClassId)
 	{
 		OutError = FString::Printf(TEXT("Unexpected Mage ClassId '%s'."), *Mage->ClassId.ToString());
 		return false;
 	}
 
-	UGridStatusEffectDefinitionAsset* Overload = RPGMageAuthoring::FindOrCreateElementalOverloadStatus(OutError);
-	if (!IsValid(Overload))
+	if (!ValidateSharedStatus(StunnedStatusId, OutError) || !ValidateSharedStatus(ImmobilizedStatusId, OutError))
 	{
 		return false;
 	}
-	Overload->Modify();
-	if (!ConfigureElementalOverloadStatus(*Overload))
+
+	TArray<UGridStatusEffectDefinitionAsset*> MageStatuses;
+	TArray<FName> StatusIds;
+	GetRequiredMageStatusIds(StatusIds);
+	for (const FName StatusId : StatusIds)
 	{
-		OutError = TEXT("Authored Status_ElementalOverload is structurally invalid.");
-		return false;
+		UGridStatusEffectDefinitionAsset* Status = FindOrCreateStatus(StatusId, OutError);
+		if (!IsValid(Status))
+		{
+			return false;
+		}
+		Status->Modify();
+		if (!ConfigureStatus(*Status, StatusId))
+		{
+			OutError = FString::Printf(TEXT("No Mage status authoring definition for '%s'."), *StatusId.ToString());
+			return false;
+		}
+		MageStatuses.Add(Status);
 	}
 
 	Mage->Modify();
@@ -260,9 +476,12 @@ bool FRPGMageAuthoring::AuthorProductionAssets(FString& OutError)
 		return false;
 	}
 
-	if (!RPGMageAuthoring::SaveAuthoredAsset(Overload, OutError) || !RPGMageAuthoring::SaveAuthoredAsset(Mage, OutError))
+	for (UGridStatusEffectDefinitionAsset* Status : MageStatuses)
 	{
-		return false;
+		if (!SaveAuthoredAsset(Status, OutError))
+		{
+			return false;
+		}
 	}
-	return true;
+	return SaveAuthoredAsset(Mage, OutError);
 }

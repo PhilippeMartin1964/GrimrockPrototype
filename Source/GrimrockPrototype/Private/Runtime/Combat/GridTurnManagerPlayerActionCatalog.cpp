@@ -1393,6 +1393,44 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 		}
 	}
 
+
+	if (bAttackResolution && Action.Definition.ChainJumpRangeCells > 0 && !OutPreview.TargetMonsterIds.IsEmpty())
+	{
+		const FGuid PrimaryTargetId = OutPreview.TargetMonsterIds[0];
+		TArray<FGridCombatChainTargetCandidate> Candidates;
+		for (AGridMonsterActor* CandidateMonster : CombatMonsters)
+		{
+			if (!IsValid(CandidateMonster) || !CandidateMonster->bMonsterEnabled || !CandidateMonster->IsRuntimeLevelActive() ||
+				CandidateMonster->IsDead() ||
+				!FGridCombatTargetingResolver::IsDirectHostileTargetable(CandidateMonster->StatusEffects) ||
+				!MatchesRPG0391MonsterTargetFilter(Action.Definition.TargetFilter, CandidateMonster, Action.CharacterId))
+			{
+				continue;
+			}
+			FGridCombatChainTargetCandidate Candidate;
+			Candidate.TargetId = CandidateMonster->ResolvePersistenceId();
+			Candidate.Cell = CandidateMonster->CurrentCell;
+			if (Candidate.IsValid())
+			{
+				Candidates.Add(Candidate);
+			}
+		}
+
+		TArray<FGridCombatChainTargetCandidate> ChainTargets;
+		FGridCombatTargetingResolver::BuildDeterministicChain(
+			PrimaryTargetId, TargetCell, Candidates, Action.Definition.ChainJumpRangeCells,
+			Action.Definition.MaximumResolvedTargets, ChainTargets);
+		if (!ChainTargets.IsEmpty())
+		{
+			OutPreview.TargetMonsterIds.Reset(ChainTargets.Num());
+			for (const FGridCombatChainTargetCandidate& ChainTarget : ChainTargets)
+			{
+				OutPreview.TargetMonsterIds.Add(ChainTarget.TargetId);
+				OutPreview.AffectedCells.AddUnique(ChainTarget.Cell);
+			}
+		}
+	}
+
 	if (bAttackResolution && OutPreview.TargetMonsterIds.IsEmpty() &&
 		Action.Definition.SurfaceEffects.IsEmpty() && !Action.Definition.TrapEffect.bPlaceTrap)
 	{
@@ -1566,6 +1604,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 			{
 				break;
 			}
+			FGridCombatModifierResolver::ApplyDirectDamageSkillScaling(Action.Definition, Character.SkillRanks, Source);
 			FGridQuickItemResolver::ApplyDirectDamageSkillScaling(Action.Definition, Character.SkillRanks, Source);
 			if (bUsesEquippedWeaponAction)
 			{
@@ -1756,11 +1795,11 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				{
 					FriendlySource.RawDamagePercent = Action.Definition.WeaponAttackProfile.WeaponDamagePercent;
 				}
+				FGridCombatModifierResolver::ApplyDirectDamageSkillScaling(Action.Definition, Character.SkillRanks, FriendlySource);
 				FGridQuickItemResolver::ApplyDirectDamageSkillScaling(Action.Definition, Character.SkillRanks, FriendlySource);
 				FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(FriendlySource, ResolvedModifiers);
-				const float FriendlyMultiplier = FMath::Max(
-					0.0f, 1.0f + static_cast<float>(ResolvedModifiers.FriendlyDirectDamagePercentModifier) / 100.0f);
-				FriendlySource.DamageMultiplier *= FriendlyMultiplier;
+				FGridCombatModifierResolver::ApplyFriendlyDirectDamageModifiers(
+					FriendlySource, ResolvedModifiers, TargetCharacterIndex == Action.CharacterIndex);
 				if (ResolutionIndex > 0)
 				{
 					FriendlySource.Accuracy += Action.Definition.SubsequentResolutionAccuracyModifier;
