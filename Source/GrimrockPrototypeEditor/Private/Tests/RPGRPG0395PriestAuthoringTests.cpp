@@ -66,8 +66,8 @@ bool FRPG0395B1StructureTest::RunTest(const FString&)
 		TestTrue(*FString::Printf(TEXT("Authored action %s is structurally valid"), *Action.ActionId.ToString()), Action.IsValid());
 	}
 	TestTrue(TEXT("B1 Priest is structurally valid"), Priest->IsValidDefinition());
-	TestEqual(TEXT("B1 authors exactly ten Choice records"), Priest->ProgressionChoices.Num(), 10);
-	TestEqual(TEXT("B1 authors exactly nine active spells"), Priest->CombatActions.Num(), 9);
+	TestTrue(TEXT("Complete Priest still contains at least the ten B1 Choice records"), Priest->ProgressionChoices.Num() >= 10);
+	TestTrue(TEXT("Complete Priest still contains at least the nine B1 active spells"), Priest->CombatActions.Num() >= 9);
 
 	TestTrue(TEXT("Restoration chain level 2"), HasChainNode(Priest, EnhancedHealing, 2, NAME_None));
 	TestTrue(TEXT("Restoration chain level 6"), HasChainNode(Priest, Regeneration, 6, EnhancedHealing));
