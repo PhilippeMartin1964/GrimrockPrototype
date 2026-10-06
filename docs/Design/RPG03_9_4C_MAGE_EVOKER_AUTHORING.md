@@ -1,0 +1,76 @@
+# RPG03.9.4C — Mage Évocateur : Affinité élémentaire + Surcharge
+
+Statut : **IMPLÉMENTÉ — MATERIALISATION/VALIDATION UE UTILISATEUR REQUISE**
+
+## Périmètre
+
+Ce jalon regroupe l'authoring complet des deux premiers talents Évocateur :
+
+- Affinité élémentaire ;
+- Surcharge élémentaire.
+
+Les treize autres talents Mage restent hors de ce jalon. Aucun comportement incomplet n'est authoré sous forme de placeholder.
+
+## Affinité élémentaire
+
+Le talent logique `Talent_Mage_Evoker_ElementalAffinity` est matérialisé par quatre ChoiceIds exclusifs :
+
+- `Talent_Mage_Evoker_ElementalAffinity_Fire` ;
+- `Talent_Mage_Evoker_ElementalAffinity_Frost` ;
+- `Talent_Mage_Evoker_ElementalAffinity_Air` ;
+- `Talent_Mage_Evoker_ElementalAffinity_Earth`.
+
+Ils utilisent tous `TalentGroup_Mage_Evoker_ElementalAffinity` et accordent l'alias logique
+`Talent_Mage_Evoker_ElementalAffinity`.
+
+Chaque variante projette +15 % de dégâts pour les actions `SourcePolicy=Spell` portant le tag
+`Spell.School.<School>`.
+
+## Surcharge élémentaire
+
+`Action_Mage_ElementalOverload` :
+
+- 1 PA ;
+- 4 mana ;
+- Self ;
+- cooldown 3 ;
+- applique `Status_ElementalOverload` pour 1 Turn.
+
+Le statut est unique. Il contient quatre profils de modifier et quatre réactions, conditionnés à la fois par :
+
+- le ChoiceId d'affinité du propriétaire ;
+- le tag `Spell.School.*` de l'action.
+
+Pour l'affinité Fire, par exemple :
+
+```text
+Selected Affinity_Fire
++ Status_ElementalOverload
++ Spell.School.Fire
+= +15 % permanent +35 % temporaire
+= +50 % total
+= consommation du Status après ActionResolved
+```
+
+Un sort Frost du même personnage ne reçoit ni le +15 % Fire ni le +35 % temporaire et ne consomme pas la surcharge.
+
+## Assets
+
+Le commandlet `RPGMageAuthoring` modifie/crée :
+
+- `DA_Class_Mage` ;
+- `DA_Status_ElementalOverload`.
+
+Aucun autre asset binaire n'est attendu.
+
+## Authoring local
+
+Depuis un working tree propre sur `master` :
+
+```powershell
+.\Scripts\AuthorRPGMage.ps1 -EngineRoot D:\UE_5.5
+```
+
+Le script compile l'Editor, exécute le commandlet, lance `Grimrock.RPG.RPG03.9.4C` puis affiche les changements Git.
+
+La validation n'est acquise que sur la sortie TD04.2 fournie par l'utilisateur.
