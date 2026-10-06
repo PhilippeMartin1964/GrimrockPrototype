@@ -62,6 +62,8 @@ public:
 	static bool Matches(const FGridCombatReactionProfile& Profile, const FGridCombatReactionEvent& Event);
 
 	static bool CollectStatusBindings(const FGridStatusEffectCollection& StatusEffects, TArray<FGridCombatReactionBinding>& OutBindings);
+	static bool CollectStatusBindings(const FGridStatusEffectCollection& StatusEffects, const TSet<FName>& OwnerRequirements,
+		TArray<FGridCombatReactionBinding>& OutBindings);
 	static bool CollectCharacterBindings(const FGridCharacterInventoryState& Character, TArray<FGridCombatReactionBinding>& OutBindings);
 
 	static void ResolveMatches(const TArray<FGridCombatReactionBinding>& Bindings, const FGuid& OwnerCombatantId,

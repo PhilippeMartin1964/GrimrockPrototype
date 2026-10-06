@@ -86,9 +86,9 @@ bool UGridStatusEffectDefinitionAsset::ValidateDefinition(FString& OutError) con
 	}
 	for (const FGridCombatModifierProfile& Modifier : CombatModifiers)
 	{
-		if (!Modifier.IsValid() || !Modifier.RequiredOwnerRequirementIds.IsEmpty())
+		if (!Modifier.IsValid())
 		{
-			Errors.Add(TEXT("CombatModifiers contains an invalid RPG03.1 profile; status modifiers cannot depend on owner progression requirements."));
+			Errors.Add(TEXT("CombatModifiers contains an invalid RPG03.1 profile."));
 			break;
 		}
 	}

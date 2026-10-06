@@ -1,8 +1,60 @@
 #include "Runtime/Combat/GridCombatReactionResolver.h"
 
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGClassProgressionService.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/GridInventoryTypes.h"
+
+namespace
+{
+	bool CollectReactionOwnerRequirements(const FGridCharacterInventoryState& Character, TSet<FName>& OutRequirements)
+	{
+		OutRequirements.Reset();
+		const URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
+		if (!IsValid(ClassDefinition))
+		{
+			return Character.SelectedClassProgressionChoiceIds.IsEmpty();
+		}
+
+		TSet<FName> SelectedChoiceIds;
+		for (const FName ChoiceId : Character.SelectedClassProgressionChoiceIds)
+		{
+			if (ChoiceId.IsNone() || SelectedChoiceIds.Contains(ChoiceId))
+			{
+				return false;
+			}
+			SelectedChoiceIds.Add(ChoiceId);
+		}
+
+		return FRPGClassProgressionService::CollectSatisfiedRequirements(
+			ClassDefinition, Character.Level, SelectedChoiceIds, OutRequirements);
+	}
+
+	bool AreReactionOwnerRequirementsSatisfied(const TArray<FName>& RequiredIds, const TSet<FName>& OwnerRequirements)
+	{
+		for (const FName RequirementId : RequiredIds)
+		{
+			if (!OwnerRequirements.Contains(RequirementId))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	void AddProjectedReactionBinding(const FGridCombatReactionProfile& AuthoredProfile, const TSet<FName>& OwnerRequirements,
+		FName OwningStatusEffectId, TArray<FGridCombatReactionBinding>& OutBindings)
+	{
+		if (!AreReactionOwnerRequirementsSatisfied(AuthoredProfile.RequiredOwnerRequirementIds, OwnerRequirements))
+		{
+			return;
+		}
+		FGridCombatReactionBinding& Binding = OutBindings.AddDefaulted_GetRef();
+		Binding.Profile = AuthoredProfile;
+		Binding.Profile.RequiredOwnerRequirementIds.Reset();
+		Binding.OwningStatusEffectId = OwningStatusEffectId;
+	}
+}
 
 bool FGridCombatReactionLedger::CanTrigger(
 	const FGridCombatReactionProfile& Profile, const FGuid& OwnerCombatantId, const FGridCombatReactionEvent& Event) const
@@ -65,7 +117,7 @@ void FGridCombatReactionLedger::Reset()
 
 bool FGridCombatReactionResolver::Matches(const FGridCombatReactionProfile& Profile, const FGridCombatReactionEvent& Event)
 {
-	if (!Profile.IsValid() || !Event.IsValid() || Profile.Trigger != Event.Trigger)
+	if (!Profile.IsValid() || !Profile.RequiredOwnerRequirementIds.IsEmpty() || !Event.IsValid() || Profile.Trigger != Event.Trigger)
 	{
 		return false;
 	}
@@ -113,6 +165,12 @@ bool FGridCombatReactionResolver::Matches(const FGridCombatReactionProfile& Prof
 bool FGridCombatReactionResolver::CollectStatusBindings(
 	const FGridStatusEffectCollection& StatusEffects, TArray<FGridCombatReactionBinding>& OutBindings)
 {
+	return CollectStatusBindings(StatusEffects, TSet<FName>(), OutBindings);
+}
+
+bool FGridCombatReactionResolver::CollectStatusBindings(const FGridStatusEffectCollection& StatusEffects,
+	const TSet<FName>& OwnerRequirements, TArray<FGridCombatReactionBinding>& OutBindings)
+{
 	OutBindings.Reset();
 	for (const FGridStatusEffectRuntimeState& State : StatusEffects.ActiveEffects)
 	{
@@ -123,9 +181,7 @@ bool FGridCombatReactionResolver::CollectStatusBindings(
 		}
 		for (const FGridCombatReactionProfile& Profile : State.DefinitionAsset->CombatReactions)
 		{
-			FGridCombatReactionBinding& Binding = OutBindings.AddDefaulted_GetRef();
-			Binding.Profile = Profile;
-			Binding.OwningStatusEffectId = State.EffectId;
+			AddProjectedReactionBinding(Profile, OwnerRequirements, State.EffectId, OutBindings);
 		}
 	}
 	return true;
@@ -134,8 +190,15 @@ bool FGridCombatReactionResolver::CollectStatusBindings(
 bool FGridCombatReactionResolver::CollectCharacterBindings(
 	const FGridCharacterInventoryState& Character, TArray<FGridCombatReactionBinding>& OutBindings)
 {
+	TSet<FName> OwnerRequirements;
+	if (!CollectReactionOwnerRequirements(Character, OwnerRequirements))
+	{
+		OutBindings.Reset();
+		return false;
+	}
+
 	TArray<FGridCombatReactionBinding> StatusBindings;
-	if (!CollectStatusBindings(Character.StatusEffects, StatusBindings))
+	if (!CollectStatusBindings(Character.StatusEffects, OwnerRequirements, StatusBindings))
 	{
 		OutBindings.Reset();
 		return false;
@@ -145,10 +208,6 @@ bool FGridCombatReactionResolver::CollectCharacterBindings(
 	const URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
 	if (!IsValid(ClassDefinition))
 	{
-		if (!Character.SelectedClassProgressionChoiceIds.IsEmpty())
-		{
-			return false;
-		}
 		OutBindings = MoveTemp(StatusBindings);
 		return true;
 	}
@@ -158,16 +217,8 @@ bool FGridCombatReactionResolver::CollectCharacterBindings(
 		return false;
 	}
 
-	TSet<FName> SeenChoiceIds;
 	for (const FName ChoiceId : Character.SelectedClassProgressionChoiceIds)
 	{
-		if (ChoiceId.IsNone() || SeenChoiceIds.Contains(ChoiceId))
-		{
-			OutBindings.Reset();
-			return false;
-		}
-		SeenChoiceIds.Add(ChoiceId);
-
 		const FRPGClassProgressionChoiceDefinition* Choice = ClassDefinition->FindProgressionChoice(ChoiceId);
 		if (!Choice)
 		{
@@ -176,8 +227,7 @@ bool FGridCombatReactionResolver::CollectCharacterBindings(
 		}
 		for (const FGridCombatReactionProfile& Profile : Choice->CombatReactions)
 		{
-			FGridCombatReactionBinding& Binding = OutBindings.AddDefaulted_GetRef();
-			Binding.Profile = Profile;
+			AddProjectedReactionBinding(Profile, OwnerRequirements, NAME_None, OutBindings);
 		}
 	}
 	OutBindings.Append(StatusBindings);

@@ -764,6 +764,10 @@ struct FGridCombatReactionProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
 	TArray<FName> RequiredSourceTags;
 
+	/** Requirements owned by the reaction owner before this profile is projected. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
+	TArray<FName> RequiredOwnerRequirementIds;
+
 	/** Generic semantic filter used by stealth/status reactions. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
 	bool bRequireOffensiveAction = false;
@@ -863,6 +867,15 @@ struct FGridCombatReactionProfile
 				return false;
 			}
 			SeenSourceTags.Add(Tag);
+		}
+		TSet<FName> SeenOwnerRequirements;
+		for (const FName RequirementId : RequiredOwnerRequirementIds)
+		{
+			if (RequirementId.IsNone() || SeenOwnerRequirements.Contains(RequirementId))
+			{
+				return false;
+			}
+			SeenOwnerRequirements.Add(RequirementId);
 		}
 		TSet<FName> SeenTargetStatuses;
 		for (const FName EffectId : RequiredTargetStatusEffectIdsFromOwner)
@@ -1538,7 +1551,7 @@ struct FGridCombatModifierProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
 	TArray<EGridPhysicalDamageSubtype> PhysicalSubtypes;
 
-	/** Requirements owned by the character before this choice modifier is projected. */
+	/** Requirements owned by the character before this profile is projected. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Filter")
 	TArray<FName> RequiredOwnerRequirementIds;
 

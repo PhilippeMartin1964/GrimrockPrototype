@@ -41,6 +41,74 @@ namespace
 		Target.NecroticResistance = SaturatingAdd(Target.NecroticResistance, Source.NecroticResistance);
 		Target.ArcaneResistance = SaturatingAdd(Target.ArcaneResistance, Source.ArcaneResistance);
 	}
+
+	bool CollectCharacterOwnerRequirements(const FGridCharacterInventoryState& Character, TSet<FName>& OutRequirements)
+	{
+		OutRequirements.Reset();
+		const URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
+		if (!IsValid(ClassDefinition))
+		{
+			return Character.SelectedClassProgressionChoiceIds.IsEmpty();
+		}
+
+		TSet<FName> SelectedChoiceIds;
+		for (const FName ChoiceId : Character.SelectedClassProgressionChoiceIds)
+		{
+			if (ChoiceId.IsNone() || SelectedChoiceIds.Contains(ChoiceId))
+			{
+				return false;
+			}
+			SelectedChoiceIds.Add(ChoiceId);
+		}
+
+		return FRPGClassProgressionService::CollectSatisfiedRequirements(
+			ClassDefinition, Character.Level, SelectedChoiceIds, OutRequirements);
+	}
+
+	bool AreOwnerRequirementsSatisfied(const TArray<FName>& RequiredIds, const TSet<FName>& OwnerRequirements)
+	{
+		for (const FName RequirementId : RequiredIds)
+		{
+			if (!OwnerRequirements.Contains(RequirementId))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool CollectChoiceModifiersWithRequirements(const FGridCharacterInventoryState& Character, const TSet<FName>& OwnerRequirements,
+		TArray<FGridCombatModifierProfile>& OutProfiles)
+	{
+		OutProfiles.Reset();
+		const URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
+		if (!IsValid(ClassDefinition))
+		{
+			return Character.SelectedClassProgressionChoiceIds.IsEmpty();
+		}
+
+		for (const FName ChoiceId : Character.SelectedClassProgressionChoiceIds)
+		{
+			const FRPGClassProgressionChoiceDefinition* Choice = ClassDefinition->FindProgressionChoice(ChoiceId);
+			if (!Choice)
+			{
+				OutProfiles.Reset();
+				return false;
+			}
+
+			for (const FGridCombatModifierProfile& AuthoredProfile : Choice->CombatModifiers)
+			{
+				if (!AreOwnerRequirementsSatisfied(AuthoredProfile.RequiredOwnerRequirementIds, OwnerRequirements))
+				{
+					continue;
+				}
+				FGridCombatModifierProfile RuntimeProfile = AuthoredProfile;
+				RuntimeProfile.RequiredOwnerRequirementIds.Reset();
+				OutProfiles.Add(MoveTemp(RuntimeProfile));
+			}
+		}
+		return true;
+	}
 }
 
 FGridCombatModifierContext FGridCombatModifierResolver::MakeActionContext(const FGridCombatActionDefinition& Definition, FName SourceDefinitionId)
@@ -132,7 +200,7 @@ void FGridCombatModifierResolver::AddTargetStatusContext(FGridCombatModifierCont
 
 bool FGridCombatModifierResolver::Matches(const FGridCombatModifierProfile& Profile, const FGridCombatModifierContext& Context)
 {
-	// Progression-owner requirements are consumed by CollectCharacterChoiceModifiers.
+	// Progression-owner requirements are consumed by character projection collectors.
 	if (!Profile.RequiredOwnerRequirementIds.IsEmpty())
 	{
 		return false;
@@ -270,66 +338,23 @@ void FGridCombatModifierResolver::Resolve(
 bool FGridCombatModifierResolver::CollectCharacterChoiceModifiers(
 	const FGridCharacterInventoryState& Character, TArray<FGridCombatModifierProfile>& OutProfiles)
 {
-	OutProfiles.Reset();
-	const URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
-	if (!IsValid(ClassDefinition))
-	{
-		return Character.SelectedClassProgressionChoiceIds.IsEmpty();
-	}
-
-	TSet<FName> SelectedChoiceIds;
-	for (const FName ChoiceId : Character.SelectedClassProgressionChoiceIds)
-	{
-		if (ChoiceId.IsNone() || SelectedChoiceIds.Contains(ChoiceId))
-		{
-			OutProfiles.Reset();
-			return false;
-		}
-		SelectedChoiceIds.Add(ChoiceId);
-	}
-
 	TSet<FName> OwnerRequirements;
-	if (!FRPGClassProgressionService::CollectSatisfiedRequirements(
-			ClassDefinition, Character.Level, SelectedChoiceIds, OwnerRequirements))
+	if (!CollectCharacterOwnerRequirements(Character, OwnerRequirements))
 	{
+		OutProfiles.Reset();
 		return false;
 	}
-
-	for (const FName ChoiceId : Character.SelectedClassProgressionChoiceIds)
-	{
-		const FRPGClassProgressionChoiceDefinition* Choice = ClassDefinition->FindProgressionChoice(ChoiceId);
-		if (!Choice)
-		{
-			OutProfiles.Reset();
-			return false;
-		}
-
-		for (const FGridCombatModifierProfile& AuthoredProfile : Choice->CombatModifiers)
-		{
-			bool bOwnerRequirementsSatisfied = true;
-			for (const FName RequirementId : AuthoredProfile.RequiredOwnerRequirementIds)
-			{
-				if (!OwnerRequirements.Contains(RequirementId))
-				{
-					bOwnerRequirementsSatisfied = false;
-					break;
-				}
-			}
-			if (!bOwnerRequirementsSatisfied)
-			{
-				continue;
-			}
-
-			FGridCombatModifierProfile RuntimeProfile = AuthoredProfile;
-			RuntimeProfile.RequiredOwnerRequirementIds.Reset();
-			OutProfiles.Add(MoveTemp(RuntimeProfile));
-		}
-	}
-	return true;
+	return CollectChoiceModifiersWithRequirements(Character, OwnerRequirements, OutProfiles);
 }
 
 bool FGridCombatModifierResolver::CollectStatusModifiers(
 	const FGridStatusEffectCollection& StatusEffects, TArray<FGridCombatModifierProfile>& OutProfiles)
+{
+	return CollectStatusModifiers(StatusEffects, TSet<FName>(), OutProfiles);
+}
+
+bool FGridCombatModifierResolver::CollectStatusModifiers(const FGridStatusEffectCollection& StatusEffects,
+	const TSet<FName>& OwnerRequirements, TArray<FGridCombatModifierProfile>& OutProfiles)
 {
 	OutProfiles.Reset();
 	for (const FGridStatusEffectRuntimeState& State : StatusEffects.ActiveEffects)
@@ -341,7 +366,16 @@ bool FGridCombatModifierResolver::CollectStatusModifiers(
 		}
 		for (int32 StackIndex = 0; StackIndex < State.StackCount; ++StackIndex)
 		{
-			OutProfiles.Append(State.DefinitionAsset->CombatModifiers);
+			for (const FGridCombatModifierProfile& AuthoredProfile : State.DefinitionAsset->CombatModifiers)
+			{
+				if (!AreOwnerRequirementsSatisfied(AuthoredProfile.RequiredOwnerRequirementIds, OwnerRequirements))
+				{
+					continue;
+				}
+				FGridCombatModifierProfile RuntimeProfile = AuthoredProfile;
+				RuntimeProfile.RequiredOwnerRequirementIds.Reset();
+				OutProfiles.Add(MoveTemp(RuntimeProfile));
+			}
 		}
 	}
 	return true;
@@ -350,9 +384,17 @@ bool FGridCombatModifierResolver::CollectStatusModifiers(
 bool FGridCombatModifierResolver::CollectCharacterModifiers(
 	const FGridCharacterInventoryState& Character, TArray<FGridCombatModifierProfile>& OutProfiles)
 {
+	TSet<FName> OwnerRequirements;
+	if (!CollectCharacterOwnerRequirements(Character, OwnerRequirements))
+	{
+		OutProfiles.Reset();
+		return false;
+	}
+
 	TArray<FGridCombatModifierProfile> ChoiceProfiles;
 	TArray<FGridCombatModifierProfile> StatusProfiles;
-	if (!CollectCharacterChoiceModifiers(Character, ChoiceProfiles) || !CollectStatusModifiers(Character.StatusEffects, StatusProfiles))
+	if (!CollectChoiceModifiersWithRequirements(Character, OwnerRequirements, ChoiceProfiles) ||
+		!CollectStatusModifiers(Character.StatusEffects, OwnerRequirements, StatusProfiles))
 	{
 		OutProfiles.Reset();
 		return false;

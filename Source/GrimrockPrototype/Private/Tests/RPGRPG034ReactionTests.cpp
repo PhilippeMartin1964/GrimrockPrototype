@@ -429,4 +429,93 @@ bool FRPG0394B3ActionResolvedSourceTagsTest::RunTest(const FString& Parameters)
 }
 
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394B6StatusReactionOwnerRequirementsTest,
+	"Grimrock.RPG.RPG03.9.4B6.StatusReactionOwnerRequirements",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394B6StatusReactionOwnerRequirementsTest::RunTest(const FString&)
+{
+	URPGClassAsset* ClassAsset = NewObject<URPGClassAsset>(GetTransientPackage());
+	ClassAsset->ClassId = TEXT("Class_RPG0394B6_Reaction");
+	ClassAsset->DisplayName = FText::FromString(TEXT("Reaction variants"));
+	ClassAsset->HealthAtLevelOne = 10;
+
+	FRPGClassProgressionLevelGrant Grant;
+	Grant.Level = 1;
+	Grant.ChoicePointsGranted = 1;
+	ClassAsset->ProgressionLevelGrants.Add(Grant);
+
+	for (const FName ChoiceId : { FName(TEXT("Affinity_Fire")), FName(TEXT("Affinity_Frost")) })
+	{
+		FRPGClassProgressionChoiceDefinition Choice;
+		Choice.ChoiceId = ChoiceId;
+		Choice.DisplayName = FText::FromName(ChoiceId);
+		Choice.MinimumLevel = 1;
+		Choice.PointCost = 1;
+		Choice.ExclusiveChoiceGroupId = TEXT("Affinity_Group");
+		ClassAsset->ProgressionChoices.Add(Choice);
+	}
+	TestTrue(TEXT("Reaction variant class is structurally valid"), ClassAsset->IsValidDefinition());
+
+	UGridStatusEffectDefinitionAsset* Status = NewObject<UGridStatusEffectDefinitionAsset>(GetTransientPackage());
+	Status->EffectId = TEXT("Status_RPG0394B6_Reaction");
+	Status->DisplayName = FText::FromString(TEXT("Conditional status reaction"));
+	Status->DurationUnit = EGridStatusEffectDurationUnit::Turns;
+	Status->DefaultDuration = 1;
+	Status->StackPolicy = EGridStatusEffectStackPolicy::NoStack;
+
+	FGridCombatReactionProfile Fire = RPG034::MakeReaction(
+		TEXT("Reaction_RPG0394B6_Fire"), EGridCombatReactionTrigger::ActionResolved, EGridCombatReactionLimit::OncePerAction);
+	Fire.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+	Fire.RequiredSourceTags = { TEXT("Spell.School.Fire") };
+	Fire.RequiredOwnerRequirementIds = { TEXT("Affinity_Fire") };
+	Fire.bConsumeOwningStatus = true;
+	Status->CombatReactions.Add(Fire);
+
+	FGridCombatReactionProfile Frost = Fire;
+	Frost.ReactionId = TEXT("Reaction_RPG0394B6_Frost");
+	Frost.RequiredSourceTags = { TEXT("Spell.School.Frost") };
+	Frost.RequiredOwnerRequirementIds = { TEXT("Affinity_Frost") };
+	Status->CombatReactions.Add(Frost);
+	TestTrue(TEXT("Status accepts owner-conditioned reactions"), Status->IsValidDefinition());
+
+	FGridCharacterInventoryState Character;
+	Character.CharacterId = FGuid::NewGuid();
+	Character.ClassId = ClassAsset->ClassId;
+	Character.ClassDefinition = ClassAsset;
+	Character.Level = 1;
+	Character.SelectedClassProgressionChoiceIds = { TEXT("Affinity_Fire") };
+
+	FGridStatusEffectApplyResult ApplyResult;
+	FString Error;
+	TestTrue(TEXT("Conditional reaction status applies"), Character.StatusEffects.TryApply(*Status, Character.CharacterId, ApplyResult, Error));
+
+	TArray<FGridCombatReactionBinding> Bindings;
+	TestTrue(TEXT("Character reaction projection succeeds"), FGridCombatReactionResolver::CollectCharacterBindings(Character, Bindings));
+	TestEqual(TEXT("Only the owner-matching status reaction is projected"), Bindings.Num(), 1);
+	if (Bindings.Num() != 1)
+	{
+		return false;
+	}
+	TestTrue(TEXT("Owner requirements are consumed during reaction projection"), Bindings[0].Profile.RequiredOwnerRequirementIds.IsEmpty());
+	TestEqual(TEXT("Projected reaction keeps owning status identity"), Bindings[0].OwningStatusEffectId, Status->EffectId);
+
+	FGridCombatReactionEvent FireEvent = RPG034::MakeEvent(EGridCombatReactionTrigger::ActionResolved, FGuid::NewGuid());
+	FireEvent.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+	FireEvent.SourceTags = { TEXT("Spell.School.Fire") };
+	FGridCombatReactionLedger Ledger;
+	TArray<FGridCombatReactionMatch> Matches;
+	FGridCombatReactionResolver::ResolveMatches(Bindings, Character.CharacterId, FireEvent, Ledger, false, Matches);
+	TestEqual(TEXT("Matching Fire spell resolves one reaction"), Matches.Num(), 1);
+	TestTrue(TEXT("Matching Fire spell requests owning-status consumption"), Matches.Num() == 1 && Matches[0].bConsumeOwningStatus);
+
+	FGridCombatReactionEvent FrostEvent = RPG034::MakeEvent(EGridCombatReactionTrigger::ActionResolved, FGuid::NewGuid());
+	FrostEvent.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+	FrostEvent.SourceTags = { TEXT("Spell.School.Frost") };
+	FGridCombatReactionResolver::ResolveMatches(Bindings, Character.CharacterId, FrostEvent, Ledger, false, Matches);
+	TestEqual(TEXT("Non-owner Frost variant cannot consume the Fire owner's status"), Matches.Num(), 0);
+	return true;
+}
+
+
 #endif

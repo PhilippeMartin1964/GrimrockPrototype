@@ -4,6 +4,7 @@
 
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
+#include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatReactionResolver.h"
 #include "Runtime/Combat/GridCombatTargetingResolver.h"
@@ -234,5 +235,71 @@ bool FRPG0391ReactionResponseTest::RunTest(const FString&)
 	TestFalse(TEXT("Interception cannot be authored on a post-application trigger"), Interception.IsValid());
 	return true;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394B6StatusModifierOwnerRequirementsTest,
+	"Grimrock.RPG.RPG03.9.4B6.StatusModifierOwnerRequirements",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394B6StatusModifierOwnerRequirementsTest::RunTest(const FString&)
+{
+	URPGClassAsset* ClassAsset = RPG0391Support::MakeVariantClass();
+	TestTrue(TEXT("Variant class is valid for status-owner filtering"), ClassAsset->IsValidDefinition());
+
+	UGridStatusEffectDefinitionAsset* Status = NewObject<UGridStatusEffectDefinitionAsset>(GetTransientPackage());
+	Status->EffectId = TEXT("Status_RPG0394B6_Modifier");
+	Status->DisplayName = FText::FromString(TEXT("Conditional status modifier"));
+	Status->DurationUnit = EGridStatusEffectDurationUnit::Rounds;
+	Status->DefaultDuration = 2;
+	Status->StackPolicy = EGridStatusEffectStackPolicy::NoStack;
+
+	FGridCombatModifierProfile VariantA;
+	VariantA.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+	VariantA.RequiredSourceTags = { TEXT("Spell.School.Fire") };
+	VariantA.RequiredOwnerRequirementIds = { TEXT("Talent_Specialization_A") };
+	VariantA.OutgoingDamagePercentModifier = 35;
+	Status->CombatModifiers.Add(VariantA);
+
+	FGridCombatModifierProfile VariantB = VariantA;
+	VariantB.RequiredSourceTags = { TEXT("Spell.School.Frost") };
+	VariantB.RequiredOwnerRequirementIds = { TEXT("Talent_Specialization_B") };
+	Status->CombatModifiers.Add(VariantB);
+	TestTrue(TEXT("Status accepts owner-conditioned combat modifiers"), Status->IsValidDefinition());
+
+	FGridCharacterInventoryState Character;
+	Character.CharacterId = FGuid::NewGuid();
+	Character.ClassId = ClassAsset->ClassId;
+	Character.ClassDefinition = ClassAsset;
+	Character.Level = 2;
+	Character.SelectedClassProgressionChoiceIds = { TEXT("Talent_Specialization_A") };
+
+	FGridStatusEffectApplyResult ApplyResult;
+	FString Error;
+	TestTrue(TEXT("Conditional status applies"), Character.StatusEffects.TryApply(*Status, Character.CharacterId, ApplyResult, Error));
+
+	TArray<FGridCombatModifierProfile> Profiles;
+	TestTrue(TEXT("Character modifier projection succeeds"), FGridCombatModifierResolver::CollectCharacterModifiers(Character, Profiles));
+	TestEqual(TEXT("Only the owner-matching status modifier is projected"), Profiles.Num(), 1);
+	if (Profiles.Num() == 1)
+	{
+		TestTrue(TEXT("Owner requirements are consumed during status projection"), Profiles[0].RequiredOwnerRequirementIds.IsEmpty());
+		TestTrue(TEXT("Projected status modifier keeps Fire school filter"), Profiles[0].RequiredSourceTags.Contains(TEXT("Spell.School.Fire")));
+	}
+
+	FGridCombatActionDefinition FireSpell;
+	FireSpell.ActionId = TEXT("Spell_RPG0394B6_Fire");
+	FireSpell.DisplayName = FText::FromString(TEXT("Fire spell"));
+	FireSpell.Description = FireSpell.DisplayName;
+	FireSpell.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+	FireSpell.ActionType = EGridCombatActionType::Ability;
+	FireSpell.TargetingPolicy = EGridCombatTargetingPolicy::Hostile;
+	FireSpell.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+	FireSpell.SourceTags = { TEXT("Spell.School.Fire") };
+
+	FGridResolvedCombatModifiers Resolved;
+	FGridCombatModifierResolver::Resolve(Profiles, FGridCombatModifierResolver::MakeActionContext(FireSpell, FireSpell.ActionId), Resolved);
+	TestEqual(TEXT("Owner-matching Fire status modifier resolves +35 percent damage"), Resolved.OutgoingDamagePercentModifier, 35);
+	return true;
+}
+
 
 #endif

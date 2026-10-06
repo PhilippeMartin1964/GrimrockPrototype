@@ -109,6 +109,10 @@ public:
 	/** Resolve modifiers from active status definitions; AddStacks scales profiles by StackCount. */
 	static bool CollectStatusModifiers(const FGridStatusEffectCollection& StatusEffects, TArray<FGridCombatModifierProfile>& OutProfiles);
 
+	/** Character-owner overload: filters and consumes RequiredOwnerRequirementIds before runtime matching. */
+	static bool CollectStatusModifiers(const FGridStatusEffectCollection& StatusEffects, const TSet<FName>& OwnerRequirements,
+		TArray<FGridCombatModifierProfile>& OutProfiles);
+
 	/** Character aggregate = selected choices + active status modifiers. */
 	static bool CollectCharacterModifiers(const FGridCharacterInventoryState& Character, TArray<FGridCombatModifierProfile>& OutProfiles);
 
