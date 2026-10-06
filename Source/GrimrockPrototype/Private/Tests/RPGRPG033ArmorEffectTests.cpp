@@ -212,7 +212,9 @@ bool FRPG033ProfileValidationTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Armor-only self Effect action is valid"), SelfAction.IsValid());
 
 	SelfAction.ArmorEffects[0].Operation = EGridCombatArmorEffectOperation::Damage;
-	TestFalse(TEXT("Self Effect action rejects direct armor damage"), SelfAction.IsValid());
+	TestTrue(TEXT("Effect action accepts direct Flat armor damage"), SelfAction.IsValid());
+	SelfAction.ArmorEffects[0].Magnitude = EGridCombatArmorEffectMagnitude::RawDamagePercent;
+	TestFalse(TEXT("Effect action rejects RawDamagePercent without an attack result"), SelfAction.IsValid());
 	return true;
 }
 

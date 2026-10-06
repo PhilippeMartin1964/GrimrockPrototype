@@ -314,6 +314,10 @@ bool FRPG034ProjectionTest::RunTest(const FString& Parameters)
 	URPGClassAsset* Class = NewObject<URPGClassAsset>(GetTransientPackage());
 	Class->ClassId = TEXT("RPG034_ProjectionClass");
 	Class->HealthAtLevelOne = 10;
+	FRPGClassProgressionLevelGrant Grant;
+	Grant.Level = 2;
+	Grant.ChoicePointsGranted = 1;
+	Class->ProgressionLevelGrants.Add(Grant);
 	FRPGClassProgressionChoiceDefinition Choice;
 	Choice.ChoiceId = TEXT("Talent_RPG034");
 	Choice.DisplayName = FText::FromString(TEXT("Reaction talent"));
@@ -328,6 +332,7 @@ bool FRPG034ProjectionTest::RunTest(const FString& Parameters)
 	Character.CharacterId = FGuid::NewGuid();
 	Character.ClassId = Class->ClassId;
 	Character.ClassDefinition = TSoftObjectPtr<URPGClassAsset>(Class);
+	Character.Level = 2;
 	Character.SelectedClassProgressionChoiceIds.Add(Choice.ChoiceId);
 
 	UGridStatusEffectDefinitionAsset* Status =
