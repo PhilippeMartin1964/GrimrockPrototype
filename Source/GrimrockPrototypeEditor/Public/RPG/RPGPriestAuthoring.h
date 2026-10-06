@@ -11,7 +11,7 @@ struct GRIMROCKPROTOTYPEEDITOR_API FRPGPriestAuthoring
 	static const TCHAR* PriestAssetPath();
 	static FString GetStatusObjectPath(FName EffectId);
 
-	/** B1 authors Restoration + Protection. B2 extends the same class with Exorcism. */
+	/** Authors the complete Restoration, Protection and Exorcism talent tree. */
 	static void ConfigureClass(URPGClassAsset& ClassAsset);
 
 	/** Configures Priest-owned production statuses. */

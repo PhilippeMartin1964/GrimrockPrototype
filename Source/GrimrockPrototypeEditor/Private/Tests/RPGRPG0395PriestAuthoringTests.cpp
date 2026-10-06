@@ -26,13 +26,6 @@ namespace RPG0395B1
 		Priest->ClassId = TEXT("Priest");
 		Priest->DisplayName = FText::FromString(TEXT("Prêtre"));
 		Priest->HealthAtLevelOne = 12;
-		for (const int32 Level : { 2, 6, 10, 14, 18 })
-		{
-			FRPGClassProgressionLevelGrant Grant;
-			Grant.Level = Level;
-			Grant.ChoicePointsGranted = 1;
-			Priest->ProgressionLevelGrants.Add(Grant);
-		}
 		FRPGPriestAuthoring::ConfigureClass(*Priest);
 		return Priest;
 	}

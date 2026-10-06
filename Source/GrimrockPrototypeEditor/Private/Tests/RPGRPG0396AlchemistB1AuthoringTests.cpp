@@ -16,13 +16,6 @@ namespace RPG0396B1
 		Asset->ClassId = TEXT("Alchemist");
 		Asset->DisplayName = FText::FromString(TEXT("Alchimiste"));
 		Asset->HealthAtLevelOne = 10;
-		for (const int32 Level : { 2, 6, 10, 14, 18 })
-		{
-			FRPGClassProgressionLevelGrant Grant;
-			Grant.Level = Level;
-			Grant.ChoicePointsGranted = 1;
-			Asset->ProgressionLevelGrants.Add(Grant);
-		}
 		FRPGAlchemistAuthoring::ConfigureClass(*Asset);
 		return Asset;
 	}

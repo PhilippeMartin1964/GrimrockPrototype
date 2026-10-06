@@ -14,13 +14,13 @@ struct GRIMROCKPROTOTYPEEDITOR_API FRPGAlchemistAuthoring
 	static FString GetItemObjectPath(FName ItemDefinitionId);
 	static FString GetStatusObjectPath(FName EffectId);
 
-	/** B1 authors Grenadier + Apothecary. B2 will extend the same class with Transmuter. */
+	/** Authors the complete Grenadier, Apothecary and Transmuter talent tree. */
 	static void ConfigureClass(URPGClassAsset& ClassAsset);
 
 	/** Configures one Alchemist QuickItem by stable ItemDefinitionId. */
 	static bool ConfigureItem(UGridItemDefinitionAsset& ItemAsset, FName ItemDefinitionId);
 
-	/** Configures B1-owned/shared statuses required by the authored QuickItems. */
+	/** Configures Alchemist-owned/shared statuses required by the authored QuickItems. */
 	static bool ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId);
 
 	static void GetB1ItemIds(TArray<FName>& OutItemIds);

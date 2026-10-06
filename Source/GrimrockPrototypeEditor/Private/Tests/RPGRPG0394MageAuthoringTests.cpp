@@ -81,13 +81,6 @@ namespace RPG0394MageAuthoring
 		Mage->DisplayName = FText::FromString(TEXT("Mage"));
 		Mage->HealthAtLevelOne = 8;
 
-		for (const int32 Level : { 2, 6, 10, 14, 18 })
-		{
-			FRPGClassProgressionLevelGrant Grant;
-			Grant.Level = Level;
-			Grant.ChoicePointsGranted = 1;
-			Mage->ProgressionLevelGrants.Add(Grant);
-		}
 
 		FRPGMageAuthoring::ConfigureClass(*Mage);
 		return Mage;
