@@ -2,7 +2,7 @@
 
 Date : **6 octobre 2026**  
 Dépendance : `RPG03.9.6A` validé 8/8  
-Statut : **AUTHORING CODE — VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ — Grenadier/Apothicaire couvert par Grimrock.RPG.RPG03, 193/193 le 6 octobre 2026**
 
 ## Périmètre
 

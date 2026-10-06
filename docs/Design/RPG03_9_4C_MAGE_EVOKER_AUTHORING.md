@@ -1,6 +1,6 @@
 # RPG03.9.4C — Mage Évocateur : Affinité élémentaire + Surcharge
 
-Statut : **IMPLÉMENTÉ — MATERIALISATION/VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ — intégré à l'authoring Mage final et couvert par Grimrock.RPG.RPG03, 193/193 le 6 octobre 2026**
 
 ## Périmètre
 
@@ -69,4 +69,4 @@ Ce document décrit le jalon historique C. Depuis RPG03.9.4D, `Scripts/AuthorRPG
 
 La campagne historique `Grimrock.RPG.RPG03.9.4C` reste disponible comme régression des deux premiers talents.
 
-La validation n'est acquise que sur la sortie TD04.2 fournie par l'utilisateur.
+Validation finale de référence : `Grimrock.RPG.RPG03` — 193/193, 0 warning, 0 échec, exit 0 (6 octobre 2026).

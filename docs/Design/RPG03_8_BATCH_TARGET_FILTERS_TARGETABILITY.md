@@ -3,7 +3,7 @@
 Date : **5 octobre 2026**  
 Parent : `RPG_Talents_Mechanics_v0_1.md`  
 Dépendance : **RPG03.7 validé 8/8**  
-Statut : **IMPLÉMENTÉ — VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ — TD04.2 / Grimrock.RPG.RPG03.8 / 8 réussis / 0 warning / 0 échec / 5 octobre 2026**
 
 ## Objectif
 

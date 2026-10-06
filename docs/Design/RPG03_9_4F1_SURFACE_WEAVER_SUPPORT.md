@@ -1,6 +1,6 @@
 # RPG03.9.4F1 — socle générique du Tisseur de surfaces
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ — intégré à l'authoring Mage final et couvert par Grimrock.RPG.RPG03, 193/193 le 6 octobre 2026**
 
 ## Objectif
 
@@ -138,4 +138,4 @@ Tests :
 3. `AffinitySurfaceProjection` ;
 4. `TargetEnvironmentContext`.
 
-La validation n'est acquise qu'après réception de la sortie TD04.2 de l'utilisateur.
+Validation finale de référence : `Grimrock.RPG.RPG03` — 193/193, 0 warning, 0 échec, exit 0 (6 octobre 2026).

@@ -2,7 +2,7 @@
 
 Date : **6 octobre 2026**  
 Dépendances validées : `RPG03.9.5A` 6/6, `RPG03.9.5B1` 6/6, `RPG03.9.5B2` 7/7  
-Statut : **OUTILLAGE PRÊT — MATÉRIALISATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ / MATÉRIALISÉ — DA_Class_Priest et statuts de production présents ; campagne globale 193/193 le 6 octobre 2026**
 
 ## Objet
 

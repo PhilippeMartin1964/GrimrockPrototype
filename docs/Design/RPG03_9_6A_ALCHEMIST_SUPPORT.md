@@ -3,7 +3,7 @@
 Date : **6 octobre 2026**  
 Parent : `RPG_Talents_Mechanics_v0_1.md`  
 Dépendance : `RPG03.9.5` Prêtre validé 21/21 et matérialisé  
-Statut : **CODE — VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ — socle Alchimiste couvert par la campagne globale Grimrock.RPG.RPG03, 193/193 le 6 octobre 2026**
 
 ## Objet
 

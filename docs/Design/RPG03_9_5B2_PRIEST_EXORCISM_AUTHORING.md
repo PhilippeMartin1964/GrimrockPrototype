@@ -3,7 +3,7 @@
 Date : **6 octobre 2026**  
 Parent : `RPG_Talents_Mechanics_v0_1.md`  
 Dépendances : `RPG03.9.5A` validé 6/6, `RPG03.9.5B1` validé 6/6  
-Statut : **CODE AUTHORING — VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ — Prêtre 15/15 couvert par Grimrock.RPG.RPG03, 193/193 le 6 octobre 2026**
 
 ## Résultat attendu
 

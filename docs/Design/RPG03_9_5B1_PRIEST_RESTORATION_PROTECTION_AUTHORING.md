@@ -3,7 +3,7 @@
 Date : **6 octobre 2026**  
 Parent : `RPG_Talents_Mechanics_v0_1.md`  
 Dépendance : `RPG03.9.5A` validé localement 6/6  
-Statut : **CODE AUTHORING — VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ — Prêtre Restauration/Protection couvert par Grimrock.RPG.RPG03, 193/193 le 6 octobre 2026**
 
 ## Périmètre
 
@@ -42,7 +42,7 @@ B1 authorise les deux premières branches du Prêtre, sans matérialiser de `.ua
 - C8 reste l'autorité des cibles et purges ;
 - aucun asset binaire n'est créé par B1.
 
-## Validation demandée
+## Validation historique
 
 ```powershell
 .\Scripts\ValidateUE.ps1 `

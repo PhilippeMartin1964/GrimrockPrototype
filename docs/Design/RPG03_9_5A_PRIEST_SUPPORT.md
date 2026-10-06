@@ -2,7 +2,7 @@
 
 Date : **6 octobre 2026**  
 Parent : `RPG_Talents_Mechanics_v0_1.md`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ — socle Prêtre couvert par la campagne globale Grimrock.RPG.RPG03, 193/193 le 6 octobre 2026**
 
 ## Objectif
 
@@ -47,4 +47,4 @@ Couverture :
 5. profil de régénération périodique ;
 6. Area centrée groupe + push forcé sous ArmorGate.
 
-La réussite UE n'est acquise qu'après sortie `Scripts\ValidateUE.ps1` fournie par l'utilisateur.
+Validation finale de référence : `Grimrock.RPG.RPG03` — 193/193, 0 warning, 0 échec, exit 0 (6 octobre 2026).

@@ -2,7 +2,7 @@
 
 Date : **5 octobre 2026**  
 Parent : **RPG03.8 validé TD04.2 — 8/8**  
-Statut : **IMPLÉMENTÉ — VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ — couvert par la campagne globale Grimrock.RPG.RPG03, 193/193 le 6 octobre 2026**
 
 ## Objectif
 

@@ -1,6 +1,6 @@
 # RPG03.9.4D — branche Mage Évocateur complète
 
-Statut : **IMPLÉMENTÉ — MATERIALISATION/VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ — intégré à l'authoring Mage final et couvert par Grimrock.RPG.RPG03, 193/193 le 6 octobre 2026**
 
 ## Objectif
 
@@ -105,4 +105,4 @@ Ce document décrit le jalon historique D. Depuis RPG03.9.4E2, `Scripts/AuthorRP
 
 La campagne historique `Grimrock.RPG.RPG03.9.4D` reste disponible comme régression de la branche Évocateur.
 
-La validation UE n'est acquise qu'après réception de la sortie TD04.2 de l'utilisateur.
+Validation finale de référence : `Grimrock.RPG.RPG03` — 193/193, 0 warning, 0 échec, exit 0 (6 octobre 2026).

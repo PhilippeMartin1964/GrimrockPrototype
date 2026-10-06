@@ -2,7 +2,7 @@
 
 Date : **6 octobre 2026**  
 Dépendances validées : `RPG03.9.6A` 8/8, `RPG03.9.6B1` 7/7, `RPG03.9.6B2` 7/7  
-Statut : **OUTILLAGE PRÊT — MATÉRIALISATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ / MATÉRIALISÉ — 18 binaires Alchimiste matérialisés ; campagne globale 193/193 le 6 octobre 2026**
 
 ## Binaires attendus
 

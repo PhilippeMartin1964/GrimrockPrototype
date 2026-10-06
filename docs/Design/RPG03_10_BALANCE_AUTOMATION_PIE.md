@@ -2,7 +2,7 @@
 
 Date : **6 octobre 2026**  
 Dépendance : `RPG03.9` — 6 classes / 90 talents conceptuels matérialisés  
-Statut : **CODE — VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ — Grimrock.RPG.RPG03.10 6/6 et campagne globale Grimrock.RPG.RPG03 193/193, 0 warning, 0 échec, exit 0**
 
 ## But
 
@@ -93,7 +93,7 @@ Grimrock.RPG.RPG03
 
 Ce filtre couvre C1..C8, l'authoring RPG03.9 et RPG03.10, PIE compris.
 
-La clôture RPG03.10 ne sera déclarée qu'après lecture de la sortie TD04.2 fournie par l'utilisateur.
+La clôture RPG03.10 est acquise par la sortie TD04.2 globale `Grimrock.RPG.RPG03` — 193/193.
 
 
 ## Correction de cohérence découverte par RPG03.10

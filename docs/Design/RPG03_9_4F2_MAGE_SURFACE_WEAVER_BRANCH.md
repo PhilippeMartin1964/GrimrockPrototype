@@ -1,6 +1,6 @@
 # RPG03.9.4F2 — branche Mage Tisseur de surfaces complète
 
-Statut : **IMPLÉMENTÉ — MATERIALISATION/VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ / MATÉRIALISÉ — Mage 15/15, couvert par Grimrock.RPG.RPG03, 193/193 le 6 octobre 2026**
 
 ## Objectif
 
@@ -154,4 +154,4 @@ Depuis un working tree propre sur `master` :
 
 Le script compile l'Editor, lance `RPGMageAuthoring`, exécute `Grimrock.RPG.RPG03.9.4F2`, puis affiche les changements binaires.
 
-La validation UE n'est acquise qu'après réception de la sortie TD04.2 de l'utilisateur.
+Validation finale de référence : `Grimrock.RPG.RPG03` — 193/193, 0 warning, 0 échec, exit 0 (6 octobre 2026).

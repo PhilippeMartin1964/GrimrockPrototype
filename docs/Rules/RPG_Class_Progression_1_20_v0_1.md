@@ -2,7 +2,7 @@
 
 Date : **5 octobre 2026**  
 Projet : **GrimrockPrototype — UE 5.5.4**  
-Statut : **spécification de design autoritaire**  
+Statut : **spécification de design autoritaire — volet Talents RPG03 matérialisé/validé ; volet Skills/Level Up encore partiellement à implémenter**  
 
 ## 1. But
 
@@ -477,20 +477,25 @@ Aucun tableau runtime « Skill Tree » parallèle n’est nécessaire.
 
 Ces références inspirent la structure. Les valeurs et règles autoritaires sont celles de GrimrockPrototype.
 
-## 17. Validation future
+## 17. État d'implémentation
 
-La règle sera considérée implémentée lorsque :
+### Volet Talents — réalisé
 
-- les six classes exposent leur progression 1→20 ;
-- les 90 nœuds principaux sont authorés (plus variantes explicites, par ex. affinités élémentaires) ;
-- les Skill Assets de production existent ;
-- budget et plafonds de Skill sont transactionnels ;
-- l’écran Level Up présente Skill/Talent/Carac. ;
-- sauvegarde/chargement préservent Ranks et Talents ;
+- les six classes exposent la progression des Talent Points jusqu'au niveau 20 ;
+- les 90 nœuds conceptuels sont authorés, plus leurs variantes explicites ;
+- sauvegarde/chargement et projection des Talents réutilisent MON15/MON20 ;
 - actions et passifs se déverrouillent via les requirements existants ;
-- Automation couvre chaque classe aux niveaux 1,5,10,15,20 ;
-- PIE valide un build complet de chacune des six classes.
+- les six `DA_Class_*` portent les 10 grants canoniques aux niveaux pairs 2→20 ;
+- la campagne `Grimrock.RPG.RPG03` est validée **193/193** ;
+- un vrai PIE `L_Dungeon` valide un build de branche complet pour chacune des six classes.
 
+### Volet Skills / écran Level Up — encore ouvert
+
+- les `URPGSkillAsset` de production ne sont pas encore matérialisés dans `Content/` ;
+- le budget et les plafonds d'achat de Skill restent à rendre transactionnels ;
+- l'écran Level Up complet Skill/Talent/Carac. reste à finaliser.
+
+Le volet Talents ne doit donc pas être réimplémenté pour terminer ces travaux : ils doivent se raccorder aux autorités de progression existantes.
 
 ## 18. RPG02 — mécanique détaillée des Talents
 

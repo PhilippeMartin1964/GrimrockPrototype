@@ -1,6 +1,6 @@
 # RPG03.9.3 — Authoring Rôdeur
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE UTILISATEUR REQUISE**
+Statut : **VALIDÉ / MATÉRIALISÉ — couvert par la campagne globale Grimrock.RPG.RPG03, 193/193 le 6 octobre 2026**
 
 ## Objectif
 
@@ -134,4 +134,4 @@ Changements binaires attendus :
 
 ## Validation
 
-La validation n'est acquise que sur sortie TD04.2 fournie par l'utilisateur. Aucun succès UE n'est présumé.
+Validation finale de référence : `Grimrock.RPG.RPG03` — 193/193, 0 warning, 0 échec, exit 0 (6 octobre 2026).

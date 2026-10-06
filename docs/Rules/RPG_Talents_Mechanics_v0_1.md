@@ -3,7 +3,7 @@
 Date : **5 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : `RPG_Class_Progression_1_20_v0_1.md`  
-Statut : **SPÉCIFICATION MÉCANIQUE AUTORITAIRE — IMPLEMENTATION À VENIR**  
+Statut : **SPÉCIFICATION MÉCANIQUE AUTORITAIRE — RPG03 authoré/matérialisé ; campagne globale 193/193 le 6 octobre 2026**  
 Nombre de Talents : **90 = 6 classes × 3 branches × 5 paliers**
 
 ## 1. Objet
@@ -74,7 +74,7 @@ RPG02 définit le **comportement cible**, pas encore son implémentation. Les co
 | `C5` | Déplacement tactique/forced movement/formation | **validé par RPG03.5 — 8/8 TD04.2** |
 | `C6` | Surfaces persistantes et réactions élémentaires | **validé par RPG03.6 — 8/8 TD04.2** |
 | `C7` | Recettes/paramètres d'alchimie et modification générique de QuickItems | **validé par RPG03.7 — 8/8 TD04.2** |
-| `C8` | Batch multi-cible, filtre de statut, targetability ou sélection secondaire | **implémenté par RPG03.8 — validation UE utilisateur requise** |
+| `C8` | Batch multi-cible, filtre de statut, targetability ou sélection secondaire | **validé par RPG03.8 — 8/8 TD04.2** |
 
 Aucun de ces codes n'autorise un `switch(TalentId)` de 90 cas. Les extensions futures doivent être **data-driven et réutilisables**.
 
@@ -343,11 +343,11 @@ Le système MON16 existant fournit déjà durée, stacking, DoT, InitiativeModif
 
 ## 13. Surfaces canoniques nécessaires
 
-RPG02 ne prétend pas qu'elles existent déjà au runtime. Le futur contrat Surface doit au minimum supporter :
+RPG03.6 matérialise le contrat Surface au runtime. Les types canoniques supportés sont :
 
 `Surface_Fire, Surface_Water, Surface_Ice, Surface_Poison, Surface_Oil, Surface_ElectrifiedWater, Surface_Smoke, Surface_PoisonCloud`.
 
-Règles minimales de réaction visées :
+Règles canoniques de réaction :
 
 | Entrée | Action | Sortie |
 |---|---|---|
@@ -369,27 +369,36 @@ La surface reste un état de cellule du niveau/runtime, distinct d'un Status Eff
 - `Téléportation courte` et `Repli tactique` déplacent **le groupe**, jamais un personnage isolé, afin de préserver le modèle de dungeon crawler à case unique.
 - Les Talents ne créent donc pas de positions individuelles libres sur la grille.
 
-## 15. Conditions d'implémentation
+## 15. État d'implémentation RPG03
 
-RPG02 sera considéré **implémenté** seulement lorsque :
+Les conditions architecturales 1 à 9 de la spécification initiale sont satisfaites :
 
-1. les 90 `ProgressionChoices` sont authorés dans les six classes ;
-2. les actions actives ont leurs `Requirements=[ChoiceId]` ;
-3. aucune action verrouillée ne peut être exécutée via hotbar/catalogue ;
-4. les extensions C1..C8 sont génériques et testées séparément ;
-5. aucune logique de production ne compare un TalentId pour décider d'un effet ;
-6. les ArmorGates sont évalués après les dégâts de la même action ;
-7. les coûts PA/mana/item sont atomiques avec la résolution ;
-8. un effet invalide ne consomme pas ses ressources ;
-9. les passifs sont projetés depuis les ChoiceIds durables, jamais sauvegardés une seconde fois ;
-10. Automation couvre au minimum chaque Talent isolément puis six builds niveau 20 ;
-11. PIE valide les interactions UI/hotbar/targeting pour chaque famille de mécanique.
+1. les 90 talents conceptuels sont authorés dans les six classes ;
+2. les actions actives utilisent les Requirements de progression existants ;
+3. les actions verrouillées restent filtrées par le catalogue et les requirements ;
+4. C1..C8 sont des primitives génériques réutilisées par les classes ;
+5. les recherches statiques finales ne trouvent aucun `Talent_*`, `Action_<Classe>_*` ou `Status_*` spécifique dans le runtime de production ;
+6. les ArmorGates sont évalués sur l'état post-dégâts ;
+7. les coûts PA/mana/item utilisent les transactions de combat existantes ;
+8. les préflights empêchent la consommation d'un effet invalide ;
+9. les passifs sont reconstruits depuis les ChoiceIds durables.
 
-## 16. Découpage recommandé après RPG02
+Couverture de validation obtenue le **6 octobre 2026** :
 
-RPG02 est volontairement une **spécification**, pas un refactor massif.
+- `Grimrock.RPG.RPG03` : **193/193**, 0 warning, 0 échec, exit 0 ;
+- vrai PIE sur `L_Dungeon` : six classes, progression et projection runtime ;
+- contrôles globaux : 90 talents conceptuels, 10 Talent Points au niveau 20, requirements, actions, statuts et QuickItems.
 
-Ordre d'implémentation recommandé :
+Deux nuances restent explicites :
+
+- la campagne globale n'est pas un test nominatif isolé de chacun des 90 talents ;
+- le PIE actuel valide la projection/progression des six classes, pas encore une campagne exhaustive UI/hotbar/targeting pour chaque famille mécanique.
+
+Ces deux points relèvent de la profondeur de validation gameplay, pas d'une seconde implémentation des talents.
+
+## 16. Découpage réalisé par RPG03
+
+Le découpage suivant a été réalisé sans second moteur de combat, de statut, de spellbook ou d'inventaire :
 
 - **RPG03.1** — Combat Modifier Profile (C2) ;
 - **RPG03.2** — Status Application + ArmorGate (C1) ;
@@ -401,8 +410,6 @@ Ordre d'implémentation recommandé :
 - **RPG03.8** — Batch/Target Filters (C8) ;
 - **RPG03.9** — Authoring des 90 Talents ;
 - **RPG03.10** — Balance/Automation/PIE.
-
-Chaque tranche doit réduire ou réutiliser des autorités existantes ; aucune ne doit créer un second moteur de combat, de statut, de spellbook ou d'inventaire.
 
 ## 17. Références de design
 
