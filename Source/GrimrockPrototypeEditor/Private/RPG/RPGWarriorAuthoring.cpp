@@ -13,6 +13,9 @@
 namespace RPGWarriorAuthoring
 {
 	const FName WarriorClassId(TEXT("Warrior"));
+	const FName GuardianBranchId(TEXT("Guardian"));
+	const FName BreakerBranchId(TEXT("Breaker"));
+	const FName WeaponMasterBranchId(TEXT("WeaponMaster"));
 	const FName ShieldRequirement(TEXT("Equipment.Shield"));
 	const FName HeavyWeaponTag(TEXT("Weapon.Heavy"));
 	const FName MartialRequirement(TEXT("Talent_Warrior_WeaponMaster_MartialSpecialization"));
@@ -55,10 +58,12 @@ namespace RPGWarriorAuthoring
 	}
 
 	FRPGClassProgressionChoiceDefinition MakeChoice(FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description,
-		int32 MinimumLevel, FName PrerequisiteChoiceId = NAME_None)
+		int32 MinimumLevel, FName TalentBranchId, FName PrerequisiteChoiceId = NAME_None, FName TalentNodeId = NAME_None)
 	{
 		FRPGClassProgressionChoiceDefinition Choice;
 		Choice.ChoiceId = ChoiceId;
+		Choice.TalentBranchId = TalentBranchId;
+		Choice.TalentNodeId = TalentNodeId.IsNone() ? ChoiceId : TalentNodeId;
 		Choice.DisplayName = FText::FromString(DisplayName);
 		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = MinimumLevel;
@@ -307,15 +312,15 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Guardian_DefensiveStance"), TEXT("Posture défensive"),
-		TEXT("Débloque Posture défensive."), 2));
+		TEXT("Débloque Posture défensive."), 2, GuardianBranchId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Guardian_ShieldBash"), TEXT("Coup de bouclier"),
-		TEXT("Débloque Coup de bouclier."), 6, TEXT("Talent_Warrior_Guardian_DefensiveStance")));
+		TEXT("Débloque Coup de bouclier."), 6, GuardianBranchId, TEXT("Talent_Warrior_Guardian_DefensiveStance")));
 
 	FRPGClassProgressionChoiceDefinition Interception = MakeChoice(
 		TEXT("Talent_Warrior_Guardian_Interception"), TEXT("Interception"),
 		TEXT("Une fois par round, redirige 50 % des dégâts physiques finaux d'une attaque ciblée contre un allié de première ligne."),
-		10, TEXT("Talent_Warrior_Guardian_ShieldBash"));
+		10, GuardianBranchId, TEXT("Talent_Warrior_Guardian_ShieldBash"));
 	{
 		FGridCombatReactionProfile Reaction;
 		Reaction.ReactionId = TEXT("Reaction_Warrior_Interception");
@@ -333,7 +338,7 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	FRPGClassProgressionChoiceDefinition Bulwark = MakeChoice(
 		TEXT("Talent_Warrior_Guardian_Bulwark"), TEXT("Rempart"),
 		TEXT("Armure physique de référence fournie par l'équipement et le bouclier +25 %."),
-		14, TEXT("Talent_Warrior_Guardian_Interception"));
+		14, GuardianBranchId, TEXT("Talent_Warrior_Guardian_Interception"));
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.PhysicalArmorReferencePercentModifier = 25;
@@ -342,11 +347,11 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(Bulwark);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Guardian_Fortress"), TEXT("Forteresse"),
-		TEXT("Débloque Forteresse."), 18, TEXT("Talent_Warrior_Guardian_Bulwark")));
+		TEXT("Débloque Forteresse."), 18, GuardianBranchId, TEXT("Talent_Warrior_Guardian_Bulwark")));
 
 	FRPGClassProgressionChoiceDefinition PowerStrike = MakeChoice(
 		TEXT("Talent_Warrior_Breaker_PowerStrike"), TEXT("Coup puissant"),
-		TEXT("Débloque une attaque d'arme lourde à 150 % WD avec Accuracy -2."), 2);
+		TEXT("Débloque une attaque d'arme lourde à 150 % WD avec Accuracy -2."), 2, BreakerBranchId);
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.ActionIds = { TEXT("Action_Warrior_PowerStrike") };
@@ -356,16 +361,16 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(PowerStrike);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Breaker_ArmorBreak"), TEXT("Brise-armure"),
-		TEXT("Débloque Brise-armure."), 6, TEXT("Talent_Warrior_Breaker_PowerStrike")));
+		TEXT("Débloque Brise-armure."), 6, BreakerBranchId, TEXT("Talent_Warrior_Breaker_PowerStrike")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Breaker_Sweep"), TEXT("Balayage"),
-		TEXT("Débloque Balayage."), 10, TEXT("Talent_Warrior_Breaker_ArmorBreak")));
+		TEXT("Débloque Balayage."), 10, BreakerBranchId, TEXT("Talent_Warrior_Breaker_ArmorBreak")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Breaker_Execution"), TEXT("Exécution"),
-		TEXT("Débloque Exécution."), 14, TEXT("Talent_Warrior_Breaker_Sweep")));
+		TEXT("Débloque Exécution."), 14, BreakerBranchId, TEXT("Talent_Warrior_Breaker_Sweep")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Breaker_Devastation"), TEXT("Ravage"),
-		TEXT("Débloque Ravage."), 18, TEXT("Talent_Warrior_Breaker_Execution")));
+		TEXT("Débloque Ravage."), 18, BreakerBranchId, TEXT("Talent_Warrior_Breaker_Execution")));
 
 	const struct
 	{
@@ -382,7 +387,7 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		const FName ChoiceId(*FString::Printf(TEXT("Talent_Warrior_WeaponMaster_MartialSpecialization_%s"), Spec.Suffix));
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
 			ChoiceId, Spec.DisplayName,
-			TEXT("Avec une arme de ce type : Accuracy +1 et dégâts d'arme finaux +10 %."), 2);
+			TEXT("Avec une arme de ce type : Accuracy +1 et dégâts d'arme finaux +10 %."), 2, WeaponMasterBranchId, NAME_None, MartialRequirement);
 		Choice.ExclusiveChoiceGroupId = MartialGroup;
 		Choice.GrantedRequirementIds = { MartialRequirement };
 		Choice.CombatModifiers.Add(MakeSubtypeModifier(Spec.Subtype, 1, 10));
@@ -392,7 +397,7 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	FRPGClassProgressionChoiceDefinition Riposte = MakeChoice(
 		TEXT("Talent_Warrior_WeaponMaster_Riposte"), TEXT("Riposte"),
 		TEXT("Une fois par round après l'échec d'une attaque de mêlée ciblée : contre-attaque immédiate à 75 % WD sans PA."),
-		6);
+		6, WeaponMasterBranchId);
 	Riposte.PrerequisiteRequirementIds = { MartialRequirement };
 	{
 		FGridCombatReactionProfile Reaction;
@@ -411,12 +416,12 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_WeaponMaster_SecondWind"), TEXT("Second souffle"),
-		TEXT("Débloque Second souffle."), 10, TEXT("Talent_Warrior_WeaponMaster_Riposte")));
+		TEXT("Débloque Second souffle."), 10, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_Riposte")));
 
 	FRPGClassProgressionChoiceDefinition CriticalMastery = MakeChoice(
 		TEXT("Talent_Warrior_WeaponMaster_CriticalMastery"), TEXT("Maîtrise critique"),
 		TEXT("Avec la spécialisation choisie : critique +10 points et multiplicateur critique +25 points."),
-		14, TEXT("Talent_Warrior_WeaponMaster_SecondWind"));
+		14, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_SecondWind"));
 	for (const auto& Spec : Specializations)
 	{
 		FGridCombatModifierProfile Modifier = MakeSubtypeModifier(Spec.Subtype, 0, 0);
@@ -431,7 +436,7 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_WeaponMaster_Warlord"), TEXT("Seigneur de guerre"),
-		TEXT("Débloque Seigneur de guerre."), 18, TEXT("Talent_Warrior_WeaponMaster_CriticalMastery")));
+		TEXT("Débloque Seigneur de guerre."), 18, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_CriticalMastery")));
 }
 
 bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)

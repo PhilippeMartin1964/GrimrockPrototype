@@ -45,6 +45,8 @@ namespace RPGMON2084SkillsPageReadModelTests
 
 		FRPGClassProgressionChoiceDefinition Choice;
 		Choice.ChoiceId = TalentA;
+		Choice.TalentBranchId = TEXT("MON2084_TestBranch");
+		Choice.TalentNodeId = TalentA;
 		Choice.DisplayName = FText::FromString(TEXT("Doigts agiles"));
 		Choice.Description = FText::FromString(TEXT("Talent de test."));
 		Choice.MinimumLevel = 2;

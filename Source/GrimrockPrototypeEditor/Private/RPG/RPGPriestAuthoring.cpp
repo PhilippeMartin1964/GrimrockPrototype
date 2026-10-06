@@ -13,6 +13,9 @@
 namespace RPGPriestAuthoring
 {
 	const FName PriestClassId(TEXT("Priest"));
+	const FName RestorationBranchId(TEXT("Restoration"));
+	const FName ProtectionBranchId(TEXT("Protection"));
+	const FName ExorcismBranchId(TEXT("Exorcism"));
 
 	const FName EnhancedHealingTalentId(TEXT("Talent_Priest_Restoration_EnhancedHealing"));
 	const FName RegenerationTalentId(TEXT("Talent_Priest_Restoration_Regeneration"));
@@ -56,10 +59,12 @@ namespace RPGPriestAuthoring
 	const FName BanishedStatusId(TEXT("Status_Banished"));
 
 	FRPGClassProgressionChoiceDefinition MakeChoice(
-		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 MinimumLevel, FName PrerequisiteChoiceId = NAME_None)
+		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 MinimumLevel, FName TalentBranchId, FName PrerequisiteChoiceId = NAME_None, FName TalentNodeId = NAME_None)
 	{
 		FRPGClassProgressionChoiceDefinition Choice;
 		Choice.ChoiceId = ChoiceId;
+		Choice.TalentBranchId = TalentBranchId;
+		Choice.TalentNodeId = TalentNodeId.IsNone() ? ChoiceId : TalentNodeId;
 		Choice.DisplayName = FText::FromString(DisplayName);
 		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = MinimumLevel;
@@ -326,7 +331,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
 			EnhancedHealingTalentId, TEXT("Soin renforcé"),
-			TEXT("Les soins issus des sorts du Prêtre gagnent +25 % après calcul de leur magnitude."), 2);
+			TEXT("Les soins issus des sorts du Prêtre gagnent +25 % après calcul de leur magnitude."), 2, RestorationBranchId);
 		FGridCombatModifierProfile Modifier;
 		Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
 		Modifier.OutgoingHealingPercentModifier = 25;
@@ -334,13 +339,13 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		RegenerationTalentId, TEXT("Régénération"), TEXT("Débloque Régénération."), 6, EnhancedHealingTalentId));
+		RegenerationTalentId, TEXT("Régénération"), TEXT("Débloque Régénération."), 6, RestorationBranchId, EnhancedHealingTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		GroupHealTalentId, TEXT("Soin de groupe"), TEXT("Débloque Soin de groupe."), 10, RegenerationTalentId));
+		GroupHealTalentId, TEXT("Soin de groupe"), TEXT("Débloque Soin de groupe."), 10, RestorationBranchId, RegenerationTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		PurificationTalentId, TEXT("Purification"), TEXT("Débloque Purification."), 14, GroupHealTalentId));
+		PurificationTalentId, TEXT("Purification"), TEXT("Débloque Purification."), 14, RestorationBranchId, GroupHealTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		MiracleTalentId, TEXT("Miracle"), TEXT("Débloque Miracle."), 18, PurificationTalentId));
+		MiracleTalentId, TEXT("Miracle"), TEXT("Débloque Miracle."), 18, RestorationBranchId, PurificationTalentId));
 
 	// Protection actions.
 	{
@@ -388,15 +393,15 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	// Protection progression.
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		BlessingTalentId, TEXT("Bénédiction"), TEXT("Débloque Bénédiction."), 2));
+		BlessingTalentId, TEXT("Bénédiction"), TEXT("Débloque Bénédiction."), 2, ProtectionBranchId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		AegisTalentId, TEXT("Égide"), TEXT("Débloque Égide."), 6, BlessingTalentId));
+		AegisTalentId, TEXT("Égide"), TEXT("Débloque Égide."), 6, ProtectionBranchId, BlessingTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		HolyProtectionTalentId, TEXT("Protection sacrée"), TEXT("Débloque Protection sacrée."), 10, AegisTalentId));
+		HolyProtectionTalentId, TEXT("Protection sacrée"), TEXT("Débloque Protection sacrée."), 10, ProtectionBranchId, AegisTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		SanctuaryTalentId, TEXT("Sanctuaire"), TEXT("Débloque Sanctuaire."), 14, HolyProtectionTalentId));
+		SanctuaryTalentId, TEXT("Sanctuaire"), TEXT("Débloque Sanctuaire."), 14, ProtectionBranchId, HolyProtectionTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		DivineBastionTalentId, TEXT("Bastion divin"), TEXT("Débloque Bastion divin."), 18, SanctuaryTalentId));
+		DivineBastionTalentId, TEXT("Bastion divin"), TEXT("Débloque Bastion divin."), 18, ProtectionBranchId, SanctuaryTalentId));
 
 	// Exorcism actions.
 	{
@@ -481,7 +486,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Exorcism progression.
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			HolyLightTalentId, TEXT("Lumière sacrée"), TEXT("Débloque Lumière sacrée."), 2);
+			HolyLightTalentId, TEXT("Lumière sacrée"), TEXT("Débloque Lumière sacrée."), 2, ExorcismBranchId);
 		FGridCombatModifierProfile Bonus;
 		Bonus.ActionIds = { HolyLightActionId };
 		Bonus.AllowedTargetMonsterCategoryIds = { TEXT("Undead"), TEXT("Demon") };
@@ -490,12 +495,12 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TurnUndeadTalentId, TEXT("Repousser les morts-vivants"), TEXT("Débloque Repousser les morts-vivants."), 6, HolyLightTalentId));
+		TurnUndeadTalentId, TEXT("Repousser les morts-vivants"), TEXT("Débloque Repousser les morts-vivants."), 6, ExorcismBranchId, HolyLightTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		HolyDispelTalentId, TEXT("Dissipation sacrée"), TEXT("Débloque Dissipation sacrée."), 10, TurnUndeadTalentId));
+		HolyDispelTalentId, TEXT("Dissipation sacrée"), TEXT("Débloque Dissipation sacrée."), 10, ExorcismBranchId, TurnUndeadTalentId));
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			SmiteTalentId, TEXT("Châtiment"), TEXT("Débloque Châtiment."), 14, HolyDispelTalentId);
+			SmiteTalentId, TEXT("Châtiment"), TEXT("Débloque Châtiment."), 14, ExorcismBranchId, HolyDispelTalentId);
 		FGridCombatModifierProfile Bonus;
 		Bonus.ActionIds = { SmiteActionId };
 		Bonus.AllowedTargetMonsterCategoryIds = { TEXT("Undead"), TEXT("Demon") };
@@ -504,7 +509,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		MajorExorcismTalentId, TEXT("Exorcisme majeur"), TEXT("Débloque Exorcisme majeur."), 18, SmiteTalentId));
+		MajorExorcismTalentId, TEXT("Exorcisme majeur"), TEXT("Débloque Exorcisme majeur."), 18, ExorcismBranchId, SmiteTalentId));
 }
 
 bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)

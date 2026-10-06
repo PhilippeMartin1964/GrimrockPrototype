@@ -13,6 +13,9 @@
 namespace RPGMageAuthoring
 {
 	const FName MageClassId(TEXT("Mage"));
+	const FName EvokerBranchId(TEXT("Evoker"));
+	const FName ArcanistBranchId(TEXT("Arcanist"));
+	const FName SurfaceWeaverBranchId(TEXT("SurfaceWeaver"));
 	const FName ElementalAffinityAlias(TEXT("Talent_Mage_Evoker_ElementalAffinity"));
 	const FName ElementalAffinityGroup(TEXT("TalentGroup_Mage_Evoker_ElementalAffinity"));
 	const FName ElementalOverloadTalentId(TEXT("Talent_Mage_Evoker_ElementalOverload"));
@@ -84,10 +87,12 @@ namespace RPGMageAuthoring
 	}
 
 	FRPGClassProgressionChoiceDefinition MakeChoice(
-		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 MinimumLevel, FName PrerequisiteChoiceId = NAME_None)
+		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 MinimumLevel, FName TalentBranchId, FName PrerequisiteChoiceId = NAME_None, FName TalentNodeId = NAME_None)
 	{
 		FRPGClassProgressionChoiceDefinition Choice;
 		Choice.ChoiceId = ChoiceId;
+		Choice.TalentBranchId = TalentBranchId;
+		Choice.TalentNodeId = TalentNodeId.IsNone() ? ChoiceId : TalentNodeId;
 		Choice.DisplayName = FText::FromString(DisplayName);
 		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = MinimumLevel;
@@ -407,7 +412,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	{
 		const FName ChoiceId = MakeAffinityChoiceId(Variant.Suffix);
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			ChoiceId, Variant.DisplayName, TEXT("Les sorts de l'école choisie infligent +15 % de dégâts."), 2);
+			ChoiceId, Variant.DisplayName, TEXT("Les sorts de l'école choisie infligent +15 % de dégâts."), 2, EvokerBranchId, NAME_None, ElementalAffinityAlias);
 		Choice.ExclusiveChoiceGroupId = ElementalAffinityGroup;
 		Choice.GrantedRequirementIds = { ElementalAffinityAlias };
 
@@ -421,14 +426,14 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition Overload = MakeChoice(
 		ElementalOverloadTalentId, TEXT("Surcharge élémentaire"),
-		TEXT("Débloque Surcharge élémentaire : le prochain sort de l'affinité gagne +35 % de dégâts puis consomme l'effet."), 6);
+		TEXT("Débloque Surcharge élémentaire : le prochain sort de l'affinité gagne +35 % de dégâts puis consomme l'effet."), 6, EvokerBranchId);
 	Overload.PrerequisiteRequirementIds = { ElementalAffinityAlias };
 	ClassAsset.ProgressionChoices.Add(Overload);
 
 	FRPGClassProgressionChoiceDefinition ControlledExplosion = MakeChoice(
 		ControlledExplosionTalentId, TEXT("Explosion contrôlée"),
 		TEXT("Les sorts de zone du Mage ne lui infligent aucun dégât direct et en infligent 50 % de moins à ses alliés."),
-		10, ElementalOverloadTalentId);
+		10, EvokerBranchId, ElementalOverloadTalentId);
 	FGridCombatModifierProfile AreaProtection;
 	AreaProtection.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
 	AreaProtection.TargetingPolicies = { EGridCombatTargetingPolicy::Area };
@@ -439,11 +444,11 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		ElementalChainTalentId, TEXT("Chaîne élémentaire"),
-		TEXT("Débloque Chaîne élémentaire."), 14, ControlledExplosionTalentId));
+		TEXT("Débloque Chaîne élémentaire."), 14, EvokerBranchId, ControlledExplosionTalentId));
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		CataclysmTalentId, TEXT("Cataclysme"),
-		TEXT("Débloque Cataclysme."), 18, ElementalChainTalentId));
+		TEXT("Débloque Cataclysme."), 18, EvokerBranchId, ElementalChainTalentId));
 
 	// Arcanist actions.
 	{
@@ -531,15 +536,15 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Arcanist progression.
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		ArcaneShieldTalentId, TEXT("Bouclier arcanique"),
-		TEXT("Débloque Bouclier arcanique."), 2));
+		TEXT("Débloque Bouclier arcanique."), 2, ArcanistBranchId));
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		DispelTalentId, TEXT("Dissipation"),
-		TEXT("Débloque Dissipation."), 6, ArcaneShieldTalentId));
+		TEXT("Débloque Dissipation."), 6, ArcanistBranchId, ArcaneShieldTalentId));
 
 	FRPGClassProgressionChoiceDefinition RunicManipulation = MakeChoice(
 		RunicManipulationTalentId, TEXT("Manipulation runique"),
-		TEXT("Jets de Runes +2 ; dégâts Arcane +20 % contre Rune ou Construct."), 10, DispelTalentId);
+		TEXT("Jets de Runes +2 ; dégâts Arcane +20 % contre Rune ou Construct."), 10, ArcanistBranchId, DispelTalentId);
 	FRPGSkillProgressionModifier RuneSkill;
 	RuneSkill.SkillId = TEXT("Skill_Runes");
 	RuneSkill.CheckModifier = 2;
@@ -554,11 +559,11 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		ShortTeleportTalentId, TEXT("Téléportation courte"),
-		TEXT("Débloque Téléportation courte."), 14, RunicManipulationTalentId));
+		TEXT("Débloque Téléportation courte."), 14, ArcanistBranchId, RunicManipulationTalentId));
 
 	FRPGClassProgressionChoiceDefinition ArcaneMastery = MakeChoice(
 		ArcaneMasteryTalentId, TEXT("Maîtrise de l'Arcane"),
-		TEXT("Sorts Arcane : mana -1 (minimum 1), portée +1 et dégâts +15 %."), 18, ShortTeleportTalentId);
+		TEXT("Sorts Arcane : mana -1 (minimum 1), portée +1 et dégâts +15 %."), 18, ArcanistBranchId, ShortTeleportTalentId);
 	FGridCombatModifierProfile Mastery;
 	Mastery.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
 	Mastery.RequiredSourceTags = { TEXT("Spell.School.Arcane") };
@@ -641,7 +646,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		const FString DisplayName = FString::Printf(TEXT("Imprégnation — %s"),
 			*FString(Variant.DisplayName).Replace(TEXT("Affinité élémentaire — "), TEXT("")));
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			ChoiceId, *DisplayName, TEXT("Débloque Imprégnation et fixe l'affinité de la branche Tisseur de surfaces."), 2);
+			ChoiceId, *DisplayName, TEXT("Débloque Imprégnation et fixe l'affinité de la branche Tisseur de surfaces."), 2, SurfaceWeaverBranchId, NAME_None, ImbuementTalentId);
 		Choice.ExclusiveChoiceGroupId = ImbuementAffinityGroup;
 		Choice.GrantedRequirementIds = { ImbuementTalentId };
 		ClassAsset.ProgressionChoices.Add(Choice);
@@ -649,14 +654,14 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition ConversionChoice = MakeChoice(
 		ElementalConversionTalentId, TEXT("Conversion élémentaire"),
-		TEXT("Débloque Conversion élémentaire."), 6);
+		TEXT("Débloque Conversion élémentaire."), 6, SurfaceWeaverBranchId);
 	ConversionChoice.PrerequisiteRequirementIds = { ImbuementTalentId };
 	ClassAsset.ProgressionChoices.Add(ConversionChoice);
 
 	FRPGClassProgressionChoiceDefinition Conduction = MakeChoice(
 		ConductionTalentId, TEXT("Conduction"),
 		TEXT("Une attaque élémentaire exploitant un état ou une surface compatible inflige +20 % de dégâts."),
-		10, ElementalConversionTalentId);
+		10, SurfaceWeaverBranchId, ElementalConversionTalentId);
 	AddConductionModifier(Conduction, EGridDamageType::Fire, nullptr,
 		TArray<FName>{ FName(TEXT("Surface.Oil")), FName(TEXT("Surface.Poison")), FName(TEXT("Status_Burning")), FName(TEXT("Elemental.Fire")) });
 	AddConductionModifier(Conduction, EGridDamageType::Ice, nullptr,
@@ -672,7 +677,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	FRPGClassProgressionChoiceDefinition Persistent = MakeChoice(
 		PersistentSurfaceTalentId, TEXT("Surface persistante"),
 		TEXT("Les surfaces créées ou converties par le Mage durent +2 rounds et infligent +15 % de dégâts périodiques."),
-		14, ConductionTalentId);
+		14, SurfaceWeaverBranchId, ConductionTalentId);
 	FGridCombatModifierProfile PersistentModifier;
 	PersistentModifier.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
 	PersistentModifier.SurfaceDurationRoundsModifier = 2;
@@ -682,7 +687,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TerrainArchitectTalentId, TEXT("Architecte du terrain"),
-		TEXT("Débloque Architecte du terrain."), 18, PersistentSurfaceTalentId));
+		TEXT("Débloque Architecte du terrain."), 18, SurfaceWeaverBranchId, PersistentSurfaceTalentId));
 }
 
 bool FRPGMageAuthoring::ConfigureElementalOverloadStatus(UGridStatusEffectDefinitionAsset& StatusAsset)

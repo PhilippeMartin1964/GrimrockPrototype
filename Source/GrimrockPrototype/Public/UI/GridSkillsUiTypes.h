@@ -32,7 +32,104 @@ struct GRIMROCKPROTOTYPE_API FGridSkillEntryView
 	bool bTrained = false;
 };
 
-/** Read-only presentation alias of one acquired MON15 ProgressionChoice talent. */
+UENUM(BlueprintType)
+enum class EGridTalentNodeState : uint8
+{
+	Acquired,
+	Available,
+	LockedLevel,
+	LockedPrerequisite,
+	LockedPoints,
+	LockedExclusive
+};
+
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridTalentVariantView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FName ChoiceId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText DisplayName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText Description;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	bool bSelected = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	bool bAvailable = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	EGridTalentNodeState State = EGridTalentNodeState::LockedPrerequisite;
+};
+
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridTalentNodeView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FName TalentNodeId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FName TalentBranchId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 Tier = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 MinimumLevel = 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 PointCost = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	EGridTalentNodeState State = EGridTalentNodeState::LockedPrerequisite;
+
+	/** Presentation-only predecessor. Gameplay prerequisites remain authoritative in ProgressionChoice. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FName PreviousNodeId = NAME_None;
+
+	/** Concrete acquired ChoiceId when this conceptual node is acquired. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FName SelectedChoiceId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	TArray<FGridTalentVariantView> Variants;
+};
+
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridTalentBranchView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FName TalentBranchId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	TArray<FGridTalentNodeView> Nodes;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 AcquiredNodeCount = 0;
+};
+
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridTalentTreeView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FName ClassId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	TArray<FGridTalentBranchView> Branches;
+};
+
+/** Temporary flat compatibility projection retained until UI-RPG03. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridTalentEntryView
 {
@@ -57,7 +154,6 @@ struct GRIMROCKPROTOTYPE_API FGridTalentEntryView
 	bool bSelected = false;
 };
 
-/** Complete read-only model consumed by WBP_GridSkills. */
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridSkillsPageView
 {
@@ -73,6 +169,15 @@ struct GRIMROCKPROTOTYPE_API FGridSkillsPageView
 	FText CharacterName;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
+	int32 CharacterLevel = 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
+	FName ClassId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
+	FText ClassDisplayName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	TArray<FGridSkillEntryView> Skills;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
@@ -86,6 +191,9 @@ struct GRIMROCKPROTOTYPE_API FGridSkillsPageView
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	int32 RemainingTalentPoints = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FGridTalentTreeView TalentTree;
 
 	bool IsValid() const
 	{

@@ -17,6 +17,9 @@
 namespace RPGRangerAuthoring
 {
 	const FName RangerClassId(TEXT("Ranger"));
+	const FName MarksmanBranchId(TEXT("Marksman"));
+	const FName HunterBranchId(TEXT("Hunter"));
+	const FName ScoutBranchId(TEXT("Scout"));
 	const FName MarkStatusId(TEXT("Status_MarkedByRanger"));
 	const FName ImmobilizedStatusId(TEXT("Status_Immobilized"));
 	const FName FavoredEnemyAlias(TEXT("Talent_Ranger_Hunter_FavoredEnemy"));
@@ -45,10 +48,12 @@ namespace RPGRangerAuthoring
 	}
 
 	FRPGClassProgressionChoiceDefinition MakeChoice(FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description,
-		int32 MinimumLevel, FName PrerequisiteChoiceId = NAME_None)
+		int32 MinimumLevel, FName TalentBranchId, FName PrerequisiteChoiceId = NAME_None, FName TalentNodeId = NAME_None)
 	{
 		FRPGClassProgressionChoiceDefinition Choice;
 		Choice.ChoiceId = ChoiceId;
+		Choice.TalentBranchId = TalentBranchId;
+		Choice.TalentNodeId = TalentNodeId.IsNone() ? ChoiceId : TalentNodeId;
 		Choice.DisplayName = FText::FromString(DisplayName);
 		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = MinimumLevel;
@@ -296,7 +301,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 
 	// Marksman progression.
 	FRPGClassProgressionChoiceDefinition Precise = MakeChoice(
-		TEXT("Talent_Ranger_Marksman_PreciseShot"), TEXT("Tir précis"), TEXT("Débloque Tir précis."), 2);
+		TEXT("Talent_Ranger_Marksman_PreciseShot"), TEXT("Tir précis"), TEXT("Débloque Tir précis."), 2, MarksmanBranchId);
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.ActionIds = { TEXT("Action_Ranger_PreciseShot") };
@@ -306,17 +311,17 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	ClassAsset.ProgressionChoices.Add(Precise);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Ranger_Marksman_PiercingShot"), TEXT("Tir perforant"), TEXT("Débloque Tir perforant."),
-		6, TEXT("Talent_Ranger_Marksman_PreciseShot")));
+		6, MarksmanBranchId, TEXT("Talent_Ranger_Marksman_PreciseShot")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Ranger_Marksman_RapidShot"), TEXT("Tir rapide"), TEXT("Débloque Tir rapide."),
-		10, TEXT("Talent_Ranger_Marksman_PiercingShot")));
+		10, MarksmanBranchId, TEXT("Talent_Ranger_Marksman_PiercingShot")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Ranger_Marksman_Volley"), TEXT("Volée"), TEXT("Débloque Volée."),
-		14, TEXT("Talent_Ranger_Marksman_RapidShot")));
+		14, MarksmanBranchId, TEXT("Talent_Ranger_Marksman_RapidShot")));
 	FRPGClassProgressionChoiceDefinition EagleEye = MakeChoice(
 		TEXT("Talent_Ranger_Marksman_EagleEye"), TEXT("Œil d'aigle"),
 		TEXT("Actions Ranged : portée +1, Accuracy +1 ; Perception en contexte distant +2."),
-		18, TEXT("Talent_Ranger_Marksman_Volley"));
+		18, MarksmanBranchId, TEXT("Talent_Ranger_Marksman_Volley"));
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.ActionTypes = { EGridCombatActionType::RangedAttack };
@@ -335,7 +340,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	// Hunter progression.
 	FRPGClassProgressionChoiceDefinition MarkPrey = MakeChoice(
 		TEXT("Talent_Ranger_Hunter_MarkPrey"), TEXT("Marque de la proie"),
-		TEXT("Débloque Marque de la proie ; contre sa propre marque : Accuracy +2 et dégâts +15 %."), 2);
+		TEXT("Débloque Marque de la proie ; contre sa propre marque : Accuracy +2 et dégâts +15 %."), 2, HunterBranchId);
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.RequiredTargetStatusEffectIds = { MarkStatusId };
@@ -363,7 +368,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 		const FString Display = FString::Printf(TEXT("Ennemi juré — %s"), *CategoryId.ToString());
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
 			ChoiceId, *Display, TEXT("Dégâts +15 % et tests liés +2 contre cette catégorie."),
-			6, TEXT("Talent_Ranger_Hunter_MarkPrey"));
+			6, HunterBranchId, TEXT("Talent_Ranger_Hunter_MarkPrey"), FavoredEnemyAlias);
 		Choice.ExclusiveChoiceGroupId = FavoredEnemyGroup;
 		Choice.GrantedRequirementIds = { FavoredEnemyAlias };
 
@@ -388,14 +393,14 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 
 	FRPGClassProgressionChoiceDefinition Pinning = MakeChoice(
 		TEXT("Talent_Ranger_Hunter_PinningShot"), TEXT("Tir immobilisant"),
-		TEXT("Débloque Tir immobilisant."), 10);
+		TEXT("Débloque Tir immobilisant."), 10, HunterBranchId);
 	Pinning.PrerequisiteRequirementIds = { FavoredEnemyAlias };
 	ClassAsset.ProgressionChoices.Add(Pinning);
 
 	FRPGClassProgressionChoiceDefinition Predator = MakeChoice(
 		TEXT("Talent_Ranger_Hunter_PredatorStrike"), TEXT("Frappe du prédateur"),
 		TEXT("Débloque Frappe du prédateur et lui donne Accuracy +1."),
-		14, TEXT("Talent_Ranger_Hunter_PinningShot"));
+		14, HunterBranchId, TEXT("Talent_Ranger_Hunter_PinningShot"));
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.ActionIds = { TEXT("Action_Ranger_PredatorStrike") };
@@ -407,7 +412,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	FRPGClassProgressionChoiceDefinition Alpha = MakeChoice(
 		TEXT("Talent_Ranger_Hunter_AlphaHunter"), TEXT("Chasseur alpha"),
 		TEXT("Une fois par round, transfère la propre marque du Rôdeur lorsqu'une cible marquée meurt."),
-		18, TEXT("Talent_Ranger_Hunter_PredatorStrike"));
+		18, HunterBranchId, TEXT("Talent_Ranger_Hunter_PredatorStrike"));
 	{
 		FGridCombatReactionProfile Reaction;
 		Reaction.ReactionId = TEXT("Reaction_Ranger_AlphaHunter");
@@ -424,7 +429,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	// Scout progression.
 	FRPGClassProgressionChoiceDefinition Vigilance = MakeChoice(
 		TEXT("Talent_Ranger_Scout_Vigilance"), TEXT("Vigilance"),
-		TEXT("Meilleur jet de groupe de Perception +2 ; Initiative +2 au premier round."), 2);
+		TEXT("Meilleur jet de groupe de Perception +2 ; Initiative +2 au premier round."), 2, ScoutBranchId);
 	{
 		FRPGPartyProgressionModifier Party;
 		Party.StackingGroupId = TEXT("Party.Ranger.Vigilance");
@@ -436,15 +441,15 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	ClassAsset.ProgressionChoices.Add(Vigilance);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Ranger_Scout_HuntingTrap"), TEXT("Piège de chasse"),
-		TEXT("Débloque Piège de chasse."), 6, TEXT("Talent_Ranger_Scout_Vigilance")));
+		TEXT("Débloque Piège de chasse."), 6, ScoutBranchId, TEXT("Talent_Ranger_Scout_Vigilance")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Ranger_Scout_TacticalRetreat"), TEXT("Repli tactique"),
-		TEXT("Débloque Repli tactique."), 10, TEXT("Talent_Ranger_Scout_HuntingTrap")));
+		TEXT("Débloque Repli tactique."), 10, ScoutBranchId, TEXT("Talent_Ranger_Scout_HuntingTrap")));
 
 	FRPGClassProgressionChoiceDefinition Terrain = MakeChoice(
 		TEXT("Talent_Ranger_Scout_TerrainMaster"), TEXT("Maître du terrain"),
 		TEXT("Si le groupe n'a pas traduit depuis la précédente activation : Ranged dégâts +10 %, Accuracy +1."),
-		14, TEXT("Talent_Ranger_Scout_TacticalRetreat"));
+		14, ScoutBranchId, TEXT("Talent_Ranger_Scout_TacticalRetreat"));
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.ActionTypes = { EGridCombatActionType::RangedAttack };
@@ -458,7 +463,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	FRPGClassProgressionChoiceDefinition Guide = MakeChoice(
 		TEXT("Talent_Ranger_Scout_GroupGuide"), TEXT("Guide du groupe"),
 		TEXT("Meilleurs jets de groupe Perception/Survie +2 et PAM maximum +1 ; non cumulable."),
-		18, TEXT("Talent_Ranger_Scout_TerrainMaster"));
+		18, ScoutBranchId, TEXT("Talent_Ranger_Scout_TerrainMaster"));
 	{
 		FRPGPartyProgressionModifier Party;
 		Party.StackingGroupId = TEXT("Party.Ranger.GroupGuide");

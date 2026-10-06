@@ -14,6 +14,9 @@
 namespace RPGAlchemistAuthoring
 {
 	const FName AlchemistClassId(TEXT("Alchemist"));
+	const FName GrenadierBranchId(TEXT("Grenadier"));
+	const FName ApothecaryBranchId(TEXT("Apothecary"));
+	const FName TransmuterBranchId(TEXT("Transmuter"));
 	const FName BurningStatus(TEXT("Status_Burning"));
 
 	const FName FireBombTalent(TEXT("Talent_Alchemist_Grenadier_FireBomb"));
@@ -66,10 +69,12 @@ namespace RPGAlchemistAuthoring
 	const FName CorrodedStatus(TEXT("Status_Corroded"));
 
 	FRPGClassProgressionChoiceDefinition MakeChoice(
-		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 Level, FName Prerequisite = NAME_None)
+		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 Level, FName TalentBranchId, FName Prerequisite = NAME_None, FName TalentNodeId = NAME_None)
 	{
 		FRPGClassProgressionChoiceDefinition Choice;
 		Choice.ChoiceId = ChoiceId;
+		Choice.TalentBranchId = TalentBranchId;
+		Choice.TalentNodeId = TalentNodeId.IsNone() ? ChoiceId : TalentNodeId;
 		Choice.DisplayName = FText::FromString(DisplayName);
 		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = Level;
@@ -324,19 +329,19 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Grenadier
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			FireBombTalent, TEXT("Bombe incendiaire"), TEXT("Débloque la recette de Bombe incendiaire."), 2);
+			FireBombTalent, TEXT("Bombe incendiaire"), TEXT("Débloque la recette de Bombe incendiaire."), 2, GrenadierBranchId);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Bomb_Fire") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			ToxicBombTalent, TEXT("Bombe toxique"), TEXT("Débloque la recette de Bombe toxique."), 6, FireBombTalent);
+			ToxicBombTalent, TEXT("Bombe toxique"), TEXT("Débloque la recette de Bombe toxique."), 6, GrenadierBranchId, FireBombTalent);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Bomb_Toxic") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			PreciseChargeTalent, TEXT("Charge précise"), TEXT("Bombes : +1 portée et -50 % dégâts directs aux alliés."), 10, ToxicBombTalent);
+			PreciseChargeTalent, TEXT("Charge précise"), TEXT("Bombes : +1 portée et -50 % dégâts directs aux alliés."), 10, GrenadierBranchId, ToxicBombTalent);
 		FGridCombatModifierProfile Modifier;
 		Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::QuickItem };
 		Modifier.RequiredSourceTags = { TEXT("QuickItem.Bomb") };
@@ -347,7 +352,7 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			ChainReactionTalent, TEXT("Réaction en chaîne"), TEXT("Une réaction de surface de bombe par action reçoit +25 % dégâts et +1 rayon."), 14,
+			ChainReactionTalent, TEXT("Réaction en chaîne"), TEXT("Une réaction de surface de bombe par action reçoit +25 % dégâts et +1 rayon."), 14, GrenadierBranchId,
 			PreciseChargeTalent);
 		FGridCombatReactionProfile Reaction;
 		Reaction.ReactionId = TEXT("Reaction_Alchemist_ChainReaction");
@@ -362,7 +367,7 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			MasterGrenadierTalent, TEXT("Maître grenadier"), TEXT("Bombes : -1 PA (minimum 1) et +20 % dégâts directs."), 18, ChainReactionTalent);
+			MasterGrenadierTalent, TEXT("Maître grenadier"), TEXT("Bombes : -1 PA (minimum 1) et +20 % dégâts directs."), 18, GrenadierBranchId, ChainReactionTalent);
 		FGridCombatModifierProfile Modifier;
 		Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::QuickItem };
 		Modifier.RequiredSourceTags = { TEXT("QuickItem.Bomb") };
@@ -375,7 +380,7 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Apothecary
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			EnhancedPotionTalent, TEXT("Potion renforcée"), TEXT("Potions positives : +25 % Health/Mana/Armor, durée inchangée."), 2);
+			EnhancedPotionTalent, TEXT("Potion renforcée"), TEXT("Potions positives : +25 % Health/Mana/Armor, durée inchangée."), 2, ApothecaryBranchId);
 		FGridCombatModifierProfile Modifier;
 		Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::QuickItem };
 		Modifier.RequiredSourceTags = { TEXT("QuickItem.Potion.Positive") };
@@ -385,13 +390,13 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			AntidoteTalent, TEXT("Antidote"), TEXT("Débloque la recette d'Antidote."), 6, EnhancedPotionTalent);
+			AntidoteTalent, TEXT("Antidote"), TEXT("Débloque la recette d'Antidote."), 6, ApothecaryBranchId, EnhancedPotionTalent);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Antidote") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			DefensiveElixirTalent, TEXT("Élixir défensif"), TEXT("Débloque quatre variantes élémentaires d'Élixir défensif."), 10, AntidoteTalent);
+			DefensiveElixirTalent, TEXT("Élixir défensif"), TEXT("Débloque quatre variantes élémentaires d'Élixir défensif."), 10, ApothecaryBranchId, AntidoteTalent);
 		Choice.GrantedRequirementIds = {
 			TEXT("Recipe_DefensiveElixir_Fire"), TEXT("Recipe_DefensiveElixir_Ice"),
 			TEXT("Recipe_DefensiveElixir_Lightning"), TEXT("Recipe_DefensiveElixir_Poison")
@@ -400,7 +405,7 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			DiffusionTalent, TEXT("Diffusion"), TEXT("Une potion positive peut diffuser 50 % de sa magnitude et durée à un second allié."), 14,
+			DiffusionTalent, TEXT("Diffusion"), TEXT("Une potion positive peut diffuser 50 % de sa magnitude et durée à un second allié."), 14, ApothecaryBranchId,
 			DefensiveElixirTalent);
 		FGridCombatModifierProfile Modifier;
 		Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::QuickItem };
@@ -413,7 +418,7 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			PanaceaTalent, TEXT("Panacée"), TEXT("Débloque la recette de Panacée."), 18, DiffusionTalent);
+			PanaceaTalent, TEXT("Panacée"), TEXT("Débloque la recette de Panacée."), 18, ApothecaryBranchId, DiffusionTalent);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Panacea") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
@@ -421,25 +426,25 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Transmuter
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			OilSlickTalent, TEXT("Huile glissante"), TEXT("Débloque la recette de Flasque d'huile."), 2);
+			OilSlickTalent, TEXT("Huile glissante"), TEXT("Débloque la recette de Flasque d'huile."), 2, TransmuterBranchId);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Flask_Oil") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			AcidFlaskTalent, TEXT("Flasque acide"), TEXT("Débloque la recette de Flasque acide."), 6, OilSlickTalent);
+			AcidFlaskTalent, TEXT("Flasque acide"), TEXT("Débloque la recette de Flasque acide."), 6, TransmuterBranchId, OilSlickTalent);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Flask_Acid") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			CorrosiveCloudTalent, TEXT("Nuage corrosif"), TEXT("Débloque la recette de Flasque de nuage corrosif."), 10, AcidFlaskTalent);
+			CorrosiveCloudTalent, TEXT("Nuage corrosif"), TEXT("Débloque la recette de Flasque de nuage corrosif."), 10, TransmuterBranchId, AcidFlaskTalent);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Flask_CorrosiveCloud") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			CatalystTalent, TEXT("Catalyseur"), TEXT("Débloque Catalyseur."), 14, CorrosiveCloudTalent);
+			CatalystTalent, TEXT("Catalyseur"), TEXT("Débloque Catalyseur."), 14, TransmuterBranchId, CorrosiveCloudTalent);
 		ClassAsset.ProgressionChoices.Add(Choice);
 
 		FGridCombatActionDefinition Action;
@@ -462,7 +467,7 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
 			MajorTransmutationTalent, TEXT("Transmutation majeure"),
 			TEXT("Débloque les recettes de Transmutation majeure Fire/Ice/Poison/Oil utilisant un Catalyseur rare."),
-			18, CatalystTalent);
+			18, TransmuterBranchId, CatalystTalent);
 		Choice.GrantedRequirementIds = {
 			TEXT("Recipe_MajorTransmutation_Fire"), TEXT("Recipe_MajorTransmutation_Ice"),
 			TEXT("Recipe_MajorTransmutation_Poison"), TEXT("Recipe_MajorTransmutation_Oil")

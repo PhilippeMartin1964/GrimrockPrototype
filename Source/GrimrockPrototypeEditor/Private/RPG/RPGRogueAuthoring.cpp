@@ -13,6 +13,9 @@
 namespace RPGRogueAuthoring
 {
 	const FName RogueClassId(TEXT("Rogue"));
+	const FName AssassinBranchId(TEXT("Assassin"));
+	const FName ShadowBranchId(TEXT("Shadow"));
+	const FName SaboteurBranchId(TEXT("Saboteur"));
 	const FName LightWeaponTag(TEXT("Weapon.Light"));
 
 	FGridCombatStatusApplicationProfile MakeStatusApplication(FName StatusId, EGridCombatStatusApplicationTrigger Trigger,
@@ -27,10 +30,12 @@ namespace RPGRogueAuthoring
 	}
 
 	FRPGClassProgressionChoiceDefinition MakeChoice(FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description,
-		int32 MinimumLevel, FName PrerequisiteChoiceId = NAME_None)
+		int32 MinimumLevel, FName TalentBranchId, FName PrerequisiteChoiceId = NAME_None, FName TalentNodeId = NAME_None)
 	{
 		FRPGClassProgressionChoiceDefinition Choice;
 		Choice.ChoiceId = ChoiceId;
+		Choice.TalentBranchId = TalentBranchId;
+		Choice.TalentNodeId = TalentNodeId.IsNone() ? ChoiceId : TalentNodeId;
 		Choice.DisplayName = FText::FromString(DisplayName);
 		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = MinimumLevel;
@@ -306,7 +311,7 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Assassin progression.
 	FRPGClassProgressionChoiceDefinition SneakAttack = MakeChoice(
 		TEXT("Talent_Rogue_Assassin_SneakAttack"), TEXT("Attaque sournoise"),
-		TEXT("Débloque Attaque sournoise ; sa condition tactique augmente le coefficient WD de 50 points."), 2);
+		TEXT("Débloque Attaque sournoise ; sa condition tactique augmente le coefficient WD de 50 points."), 2, AssassinBranchId);
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.ActionIds = { TEXT("Action_Rogue_SneakAttack") };
@@ -323,7 +328,7 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	FRPGClassProgressionChoiceDefinition Backstab = MakeChoice(
 		TEXT("Talent_Rogue_Assassin_Backstab"), TEXT("Frappe dans le dos"),
 		TEXT("Avec une arme légère dans l'arc arrière : dégâts +20 % et critique +20 points, hors AoE."),
-		6, TEXT("Talent_Rogue_Assassin_SneakAttack"));
+		6, AssassinBranchId, TEXT("Talent_Rogue_Assassin_SneakAttack"));
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.RequiredSourceTags = { LightWeaponTag };
@@ -337,29 +342,29 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(Backstab);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Assassin_Hemorrhage"), TEXT("Hémorragie"),
-		TEXT("Débloque Hémorragie."), 10, TEXT("Talent_Rogue_Assassin_Backstab")));
+		TEXT("Débloque Hémorragie."), 10, AssassinBranchId, TEXT("Talent_Rogue_Assassin_Backstab")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Assassin_WeakPoint"), TEXT("Point faible"),
-		TEXT("Débloque Point faible."), 14, TEXT("Talent_Rogue_Assassin_Hemorrhage")));
+		TEXT("Débloque Point faible."), 14, AssassinBranchId, TEXT("Talent_Rogue_Assassin_Hemorrhage")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Assassin_Finisher"), TEXT("Finisseur"),
-		TEXT("Débloque Finisseur."), 18, TEXT("Talent_Rogue_Assassin_WeakPoint")));
+		TEXT("Débloque Finisseur."), 18, AssassinBranchId, TEXT("Talent_Rogue_Assassin_WeakPoint")));
 
 	// Shadow progression.
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Shadow_Dodge"), TEXT("Esquive"),
-		TEXT("Débloque Esquive."), 2));
+		TEXT("Débloque Esquive."), 2, ShadowBranchId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Shadow_ShortVanish"), TEXT("Disparition courte"),
-		TEXT("Débloque Disparition courte."), 6, TEXT("Talent_Rogue_Shadow_Dodge")));
+		TEXT("Débloque Disparition courte."), 6, ShadowBranchId, TEXT("Talent_Rogue_Shadow_Dodge")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Shadow_ShadowStep"), TEXT("Pas de l'ombre"),
-		TEXT("Débloque Pas de l'ombre."), 10, TEXT("Talent_Rogue_Shadow_ShortVanish")));
+		TEXT("Débloque Pas de l'ombre."), 10, ShadowBranchId, TEXT("Talent_Rogue_Shadow_ShortVanish")));
 
 	FRPGClassProgressionChoiceDefinition Elusive = MakeChoice(
 		TEXT("Talent_Rogue_Shadow_Elusive"), TEXT("Insaisissable"),
 		TEXT("Après Esquive, Disparition courte ou Pas de l'ombre : Evasion +2 et Initiative +4 pendant 1 round."),
-		14, TEXT("Talent_Rogue_Shadow_ShadowStep"));
+		14, ShadowBranchId, TEXT("Talent_Rogue_Shadow_ShadowStep"));
 	{
 		FGridCombatReactionProfile Reaction;
 		Reaction.ReactionId = TEXT("Reaction_Rogue_Elusive");
@@ -377,13 +382,13 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(Elusive);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Shadow_PerfectShadow"), TEXT("Ombre parfaite"),
-		TEXT("Débloque Ombre parfaite."), 18, TEXT("Talent_Rogue_Shadow_Elusive")));
+		TEXT("Débloque Ombre parfaite."), 18, ShadowBranchId, TEXT("Talent_Rogue_Shadow_Elusive")));
 
 	// Saboteur progression.
 	FRPGClassProgressionChoiceDefinition ExpertDisarm = MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_ExpertDisarm"), TEXT("Désamorçage expert"),
 		TEXT("Pièges +2 ; un échec de 1 ou 2 est signalé comme échec sûr."),
-		2);
+		2, SaboteurBranchId);
 	{
 		FRPGSkillProgressionModifier Modifier;
 		Modifier.SkillId = TEXT("Skill_Traps");
@@ -394,15 +399,15 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(ExpertDisarm);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_QuickTrap"), TEXT("Piège rapide"),
-		TEXT("Débloque Piège rapide."), 6, TEXT("Talent_Rogue_Saboteur_ExpertDisarm")));
+		TEXT("Débloque Piège rapide."), 6, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_ExpertDisarm")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_SmokeBomb"), TEXT("Bombe fumigène"),
-		TEXT("Débloque Bombe fumigène."), 10, TEXT("Talent_Rogue_Saboteur_QuickTrap")));
+		TEXT("Débloque Bombe fumigène."), 10, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_QuickTrap")));
 
 	FRPGClassProgressionChoiceDefinition MasterLocksmith = MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_MasterLocksmith"), TEXT("Maître des serrures"),
 		TEXT("Crochetage +2 ; rang effectif +1 pour les RequirementGrants ; échec de 1 ou 2 signalé comme sûr."),
-		14, TEXT("Talent_Rogue_Saboteur_SmokeBomb"));
+		14, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_SmokeBomb"));
 	{
 		FRPGSkillProgressionModifier Modifier;
 		Modifier.SkillId = TEXT("Skill_Lockpicking");
@@ -414,7 +419,7 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(MasterLocksmith);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_Sabotage"), TEXT("Sabotage"),
-		TEXT("Débloque Sabotage."), 18, TEXT("Talent_Rogue_Saboteur_MasterLocksmith")));
+		TEXT("Débloque Sabotage."), 18, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_MasterLocksmith")));
 }
 
 bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)

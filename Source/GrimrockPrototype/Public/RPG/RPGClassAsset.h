@@ -77,6 +77,14 @@ struct FRPGClassProgressionChoiceDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression")
 	FName ChoiceId = NAME_None;
 
+	/** UI-RPG01 structural branch identity. It groups choices for presentation but is never a gameplay or save authority. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|UI Structure")
+	FName TalentBranchId = NAME_None;
+
+	/** UI-RPG01 conceptual node identity. Variant ChoiceIds share one node id; simple choices normally reuse ChoiceId. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|UI Structure")
+	FName TalentNodeId = NAME_None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression")
 	FText DisplayName;
 
