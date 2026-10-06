@@ -79,9 +79,14 @@ bool FGridCombatTargetingResolver::MatchesTargetFilter(const FGridCombatTargetFi
 }
 
 bool FGridCombatTargetingResolver::MatchesStatusRemoval(
-	const FGridStatusEffectRuntimeState& State, const FGridCombatStatusRemovalProfile& Profile)
+	const FGridStatusEffectRuntimeState& State, const FGridCombatStatusRemovalProfile& Profile,
+	EGridCombatStatusRemovalTargetSide TargetSide)
 {
 	if (!State.IsValid() || !IsValid(State.DefinitionAsset) || !Profile.IsValid())
+	{
+		return false;
+	}
+	if (Profile.TargetSide != EGridCombatStatusRemovalTargetSide::Any && Profile.TargetSide != TargetSide)
 	{
 		return false;
 	}
@@ -96,7 +101,6 @@ bool FGridCombatTargetingResolver::MatchesStatusRemoval(
 	{
 		return true;
 	}
-
 	if (bHasIdentityFilter && Profile.EffectIds.Contains(State.EffectId))
 	{
 		return true;
@@ -115,34 +119,48 @@ bool FGridCombatTargetingResolver::MatchesStatusRemoval(
 }
 
 void FGridCombatTargetingResolver::CollectStatusRemovalIds(const FGridStatusEffectCollection& StatusEffects,
-	const TArray<FGridCombatStatusRemovalProfile>& Profiles, TArray<FName>& OutEffectIds)
+	const TArray<FGridCombatStatusRemovalProfile>& Profiles, TArray<FName>& OutEffectIds,
+	EGridCombatStatusRemovalTargetSide TargetSide)
 {
 	OutEffectIds.Reset();
 	for (const FGridCombatStatusRemovalProfile& Profile : Profiles)
 	{
-		if (!Profile.IsValid())
+		if (!Profile.IsValid() ||
+			(Profile.TargetSide != EGridCombatStatusRemovalTargetSide::Any && Profile.TargetSide != TargetSide))
 		{
 			continue;
 		}
 
-		TArray<FName> MatchingIds;
+		TArray<FGridStatusEffectRuntimeState> MatchingStates;
 		for (const FGridStatusEffectRuntimeState& State : StatusEffects.ActiveEffects)
 		{
-			if (!OutEffectIds.Contains(State.EffectId) && MatchesStatusRemoval(State, Profile))
+			if (!OutEffectIds.Contains(State.EffectId) && MatchesStatusRemoval(State, Profile, TargetSide))
 			{
-				MatchingIds.AddUnique(State.EffectId);
+				MatchingStates.Add(State);
 			}
 		}
-		MatchingIds.Sort(
-			[](const FName Left, const FName Right)
+		MatchingStates.Sort(
+			[](const FGridStatusEffectRuntimeState& Left, const FGridStatusEffectRuntimeState& Right)
 			{
-				return Left.ToString().Compare(Right.ToString(), ESearchCase::CaseSensitive) < 0;
+				if (Left.Potency != Right.Potency)
+				{
+					return Left.Potency > Right.Potency;
+				}
+				return Left.EffectId.ToString().Compare(Right.EffectId.ToString(), ESearchCase::CaseSensitive) < 0;
 			});
 
-		const int32 Count = FMath::Min(Profile.MaximumRemovals, MatchingIds.Num());
-		for (int32 Index = 0; Index < Count; ++Index)
+		int32 Added = 0;
+		for (const FGridStatusEffectRuntimeState& State : MatchingStates)
 		{
-			OutEffectIds.Add(MatchingIds[Index]);
+			if (OutEffectIds.Contains(State.EffectId))
+			{
+				continue;
+			}
+			OutEffectIds.Add(State.EffectId);
+			if (++Added >= Profile.MaximumRemovals)
+			{
+				break;
+			}
 		}
 	}
 }
@@ -177,6 +195,7 @@ void FGridCombatTargetingResolver::CollectPartyTargets(const FGridPartyInventory
 			AddIfLiving(SourceCharacterIndex);
 			break;
 		case EGridCombatTargetingPolicy::Ally:
+		case EGridCombatTargetingPolicy::AllyOrHostile:
 			for (const int32 CharacterIndex : ExplicitTargetCharacterIndices)
 			{
 				AddIfLiving(CharacterIndex);

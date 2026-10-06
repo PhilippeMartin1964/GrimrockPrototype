@@ -91,6 +91,19 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition(FString& OutError) const
 		Errors.Add(TEXT("CategoryId must not be None."));
 	}
 
+	{
+		TSet<FName> SeenSemanticTags;
+		for (const FName Tag : SemanticTags)
+		{
+			if (Tag.IsNone() || SeenSemanticTags.Contains(Tag))
+			{
+				Errors.Add(TEXT("SemanticTags must contain unique non-None ids."));
+				break;
+			}
+			SeenSemanticTags.Add(Tag);
+		}
+	}
+
 	if (!MonsterActorClass)
 	{
 		Errors.Add(TEXT("MonsterActorClass must be assigned."));

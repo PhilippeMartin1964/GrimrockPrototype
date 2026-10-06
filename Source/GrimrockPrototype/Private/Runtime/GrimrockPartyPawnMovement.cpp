@@ -640,6 +640,22 @@ void AGrimrockPartyPawn::UpdatePitFallLandingCameraImpact(float DeltaSeconds)
 		-FVector::UpVector * FMath::Max(0.0f, PitFallLandingCameraImpactDistance) * CompressionAlpha;
 }
 
+bool AGrimrockPartyPawn::ApplyAuthorizedGridRelocation(const FIntPoint& TargetCell)
+{
+	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || bIsPitFalling ||
+		!HasLevelRuntimeActor() || !LevelRuntimeActor->IsValidCell(TargetCell.X, TargetCell.Y) ||
+		!LevelRuntimeActor->IsWalkableCell(TargetCell.X, TargetCell.Y))
+	{
+		return false;
+	}
+
+	CurrentCellX = TargetCell.X;
+	CurrentCellY = TargetCell.Y;
+	SnapToCurrentCell();
+	ClearBufferedCommand();
+	return true;
+}
+
 bool AGrimrockPartyPawn::TryStartTurn(bool bTurnRight)
 {
 	if (bCharacterCreationModalActive || bIsMoving || bIsTurning || bIsBlockedMoveFeedbackActive || bIsPitFalling)

@@ -511,7 +511,8 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 			IsRPG0392RearArc(ModifierSourceCell, TargetMonster), HasRPG0392ActedThisRound(this, TargetMonster),
 			HasRPG0392PhysicalControl(TargetMonster));
 		FGridCombatModifierResolver::AddTargetStatusContext(TargetedContext, TargetMonster->StatusEffects, Attacker.CharacterId,
-			IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->CategoryId : NAME_None);
+			IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->CategoryId : NAME_None,
+			IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->SemanticTags : TArray<FName>());
 		TargetedContext.bPartyStationarySincePreviousActivation = IsPartyStationarySincePreviousActivation(Attacker.CharacterId);
 		FGridCombatModifierResolver::Resolve(ChoiceModifiers, TargetedContext, ResolvedAttackModifiers);
 	}

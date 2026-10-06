@@ -36,6 +36,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Identity")
 	FName CategoryId = NAME_None;
 
+	/** Generic semantic traits used by data-driven combat and skill rules (for example Rune or Construct). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Identity")
+	TArray<FName> SemanticTags;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Identity", meta = (ClampMin = "1"))
 	int32 DangerLevel = 1;
 

@@ -18,6 +18,7 @@
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
+#include "Runtime/Combat/GridCombatMovementResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/Combat/GridCombatTargetingResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -880,6 +881,7 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 	if (!IsValid(Inventory) || !Action.bEnabled || (!bQuickItem && !bClassAction) ||
 		Action.Definition.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
 		(Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Ally &&
+			Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::AllyOrHostile &&
 			Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Party &&
 			Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::FrontRowParty) ||
 		!Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
@@ -920,7 +922,8 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 
 	const FGridQuickItemSecondaryEffectProjection SecondaryProjection =
 		bQuickItem ? FGridQuickItemResolver::ResolveSecondaryEffect(SourceModifiers) : FGridQuickItemSecondaryEffectProjection();
-	if (Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally)
+	if (Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally ||
+		Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::AllyOrHostile)
 	{
 		const int32 MaximumExplicitTargets = 1 + (SecondaryProjection.IsEnabled() ? SecondaryProjection.TargetCount : 0);
 		if (TargetIndices.Num() > MaximumExplicitTargets)
@@ -1049,7 +1052,8 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 			break;
 		}
 		TArray<FName> Removable;
-		FGridCombatTargetingResolver::CollectStatusRemovalIds(TargetCharacter.StatusEffects, StatusRemovals, Removable);
+		FGridCombatTargetingResolver::CollectStatusRemovalIds(
+			TargetCharacter.StatusEffects, StatusRemovals, Removable, EGridCombatStatusRemovalTargetSide::Party);
 		if (!Removable.IsEmpty())
 		{
 			bAnyMutation = true;
@@ -1282,8 +1286,10 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect && !Action.Definition.SurfaceEffects.IsEmpty();
 	const bool bTrapEffectResolution =
 		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect && Action.Definition.TrapEffect.bPlaceTrap;
+	const bool bRelocationEffectResolution =
+		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect && Action.Definition.bRelocatePartyToTargetCell;
 	if (!IsMON1286TargetedSource(Action.Definition.SourcePolicy) || !IsMON1286ExplicitTargetingPolicy(Action.Definition.TargetingPolicy) ||
-		(!bAttackResolution && !bSurfaceEffectResolution && !bTrapEffectResolution))
+		(!bAttackResolution && !bSurfaceEffectResolution && !bTrapEffectResolution && !bRelocationEffectResolution))
 	{
 		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Cette action ne prend pas de cible cellule ou zone."));
 		return false;
@@ -1296,6 +1302,11 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 	if (bTrapEffectResolution && !RuntimeActor->IsWalkableCell(TargetCell.X, TargetCell.Y))
 	{
 		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Un piège doit être posé sur une cellule marchable."));
+		return false;
+	}
+	if (bRelocationEffectResolution && !RuntimeActor->IsWalkableCell(TargetCell.X, TargetCell.Y))
+	{
+		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("La destination doit être une cellule marchable."));
 		return false;
 	}
 
@@ -1362,6 +1373,14 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 	if (!IsValid(Occupancy))
 	{
 		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("L'occupation du niveau est indisponible."));
+		return false;
+	}
+	if (bRelocationEffectResolution &&
+		!FGridCombatMovementResolver::CanRelocatePartyToSelectedCell(
+			PartyCell, TargetCell, Action.Definition.RangeCells, RuntimeActor, Occupancy))
+	{
+		OutPreview.InvalidReason =
+			MakeMON1286TargetingReason(TEXT("La destination est occupée ou séparée par un mur, une porte fermée ou une limite de niveau."));
 		return false;
 	}
 
@@ -1618,7 +1637,8 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 						Action.Definition, Action.SourceDefinitionId, EffectiveOffensiveProfile, EffectiveOffensiveSourceTags)
 					: FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId);
 				FGridCombatModifierResolver::AddTargetStatusContext(TargetedSourceContext, TargetMonster->StatusEffects, Character.CharacterId,
-					IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->CategoryId : NAME_None);
+					IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->CategoryId : NAME_None,
+					IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->SemanticTags : TArray<FName>());
 				TargetedSourceContext.bPartyStationarySincePreviousActivation =
 					IsPartyStationarySincePreviousActivation(Character.CharacterId);
 				FGridCombatModifierResolver::Resolve(ChoiceModifiers, TargetedSourceContext, TargetedSourceModifiers);
@@ -1958,7 +1978,11 @@ bool UGridTurnManagerComponent::RequestCharacterCombatActionAtCell(int32 Charact
 	}
 
 	OutResult.Action = Preview.Action;
-	const bool bAccepted = RequestCharacterTargetedAttack(Preview.Action, Preview, OutResult);
+	const bool bAccepted =
+		Preview.Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+			Preview.Action.Definition.bRelocatePartyToTargetCell
+		? RequestCharacterTargetedCellEffect(Preview.Action, Preview, OutResult)
+		: RequestCharacterTargetedAttack(Preview.Action, Preview, OutResult);
 	OutResult.bAccepted = bAccepted;
 	OutResult.RejectReason = bAccepted ? EGridCombatActionRequestRejectReason::None : EGridCombatActionRequestRejectReason::InvalidTarget;
 	UE_LOG(LogGridTurnManager, Log,
@@ -1966,6 +1990,77 @@ bool UGridTurnManagerComponent::RequestCharacterCombatActionAtCell(int32 Charact
 		bAccepted ? TEXT("true") : TEXT("false"), CharacterIndex, *ActionId.ToString(), TargetCell.X, TargetCell.Y, Preview.AffectedCells.Num(),
 		Preview.TargetMonsterIds.Num(), Preview.Action.CurrentActionPointCost, Preview.Action.CurrentManaCost);
 	return bAccepted;
+}
+
+bool UGridTurnManagerComponent::RequestCharacterTargetedCellEffect(
+	const FGridAvailableCombatAction& Action, const FGridCombatActionTargetingPreview& Preview, FGridCombatActionRequestResult& OutResult)
+{
+	UGridPartyInventoryComponent* Inventory = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
+	if (!IsValid(Inventory) || !IsValid(RuntimeActor) || !Action.bEnabled || !Preview.bValid ||
+		!IsMON1285ClassActionSource(Action.Definition.SourcePolicy) ||
+		Action.Definition.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
+		Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Cell || !Action.Definition.bRelocatePartyToTargetCell ||
+		!Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
+	{
+		return false;
+	}
+
+	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[Action.CharacterIndex];
+	FGridPlayerCharacterTurnState TurnStateBefore;
+	if (!GetPlayerCharacterTurnState(Action.CharacterIndex, TurnStateBefore) ||
+		!CanCharacterSpendActionPoints(Action.CharacterIndex, Action.CurrentActionPointCost) ||
+		Character.Resources.CurrentMana < Action.CurrentManaCost)
+	{
+		return false;
+	}
+
+	UWorld* World = GetWorld();
+	UGridMonsterOccupancySubsystem* Occupancy = World ? World->GetSubsystem<UGridMonsterOccupancySubsystem>() : nullptr;
+	const FIntPoint SourceCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+	if (!IsValid(Occupancy) ||
+		!FGridCombatMovementResolver::CanRelocatePartyToSelectedCell(
+			SourceCell, Preview.TargetCell, Action.Definition.RangeCells, RuntimeActor, Occupancy))
+	{
+		return false;
+	}
+
+	if (!SpendPlayerCharacterActionPoints(Action.CharacterIndex, Action.CurrentActionPointCost))
+	{
+		return false;
+	}
+	const int32 ManaBefore = Character.Resources.CurrentMana;
+	Character.Resources.CurrentMana = FMath::Max(0, ManaBefore - Action.CurrentManaCost);
+
+	if (!PartyPawn->ApplyAuthorizedGridRelocation(Preview.TargetCell))
+	{
+		Character.Resources.CurrentMana = ManaBefore;
+		if (FGridPlayerCharacterTurnState* RestoredTurnState = EnsurePlayerCharacterTurnState(Action.CharacterIndex))
+		{
+			*RestoredTurnState = TurnStateBefore;
+			BroadcastPlayerCharacterTurnState(*RestoredTurnState);
+		}
+		return false;
+	}
+
+	// Deliberately do not call HandlePartyCellChanged/TryExecuteRelocationAtCell:
+	// direct combat relocation must not trigger another teleporter or level transition.
+	RuntimeActor->RevealMapAroundCell(Preview.TargetCell.X, Preview.TargetCell.Y);
+	StartCombatActionCooldown(Action);
+	EmitCharacterActionResolvedReaction(Action.CharacterIndex, Action, FGuid::NewGuid());
+	Inventory->NotifyPartyInventoryChanged(Action.CharacterIndex);
+
+	OutResult.TargetedActionResult.TargetCell = Preview.TargetCell;
+	OutResult.TargetedActionResult.AffectedCells = { Preview.TargetCell };
+	OutResult.ClassActionResult.ManaBefore = ManaBefore;
+	OutResult.ClassActionResult.ManaAfter = Character.Resources.CurrentMana;
+
+	FGridPlayerCharacterTurnState TurnStateAfter;
+	if (!InitiativeOrder.IsEmpty() && GetPlayerCharacterTurnState(Action.CharacterIndex, TurnStateAfter) &&
+		TurnStateAfter.RemainingActionPoints <= 0 && IsActivePlayerCharacter(Action.CharacterIndex))
+	{
+		FinishActivePlayerTurn();
+	}
+	return true;
 }
 
 bool UGridTurnManagerComponent::RequestCharacterHostileEffect(
@@ -1977,7 +2072,8 @@ bool UGridTurnManagerComponent::RequestCharacterHostileEffect(
 	AGridMonsterActor* TargetMonster = FindCombatMonsterById(TargetMonsterId);
 	if (!IsValid(Inventory) || !Action.bEnabled || (!bQuickItem && !bClassAction) ||
 		Action.Definition.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
-		Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Hostile ||
+		(Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::Hostile &&
+			Action.Definition.TargetingPolicy != EGridCombatTargetingPolicy::AllyOrHostile) ||
 		!Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex) ||
 		!IsValid(TargetMonster) || !TargetMonster->bMonsterEnabled || !TargetMonster->IsRuntimeLevelActive() || TargetMonster->IsDead())
 	{
@@ -2066,7 +2162,8 @@ bool UGridTurnManagerComponent::RequestCharacterHostileEffect(
 	const bool bStatusWouldMutate = FGridCombatStatusApplicationResolver::WouldAnyMutate(
 		Action.Definition.StatusApplications, SourceCharacter.CharacterId, TargetBefore, nullptr, TargetMonster->StatusEffects);
 	TArray<FName> RemovableIds;
-	FGridCombatTargetingResolver::CollectStatusRemovalIds(TargetMonster->StatusEffects, Action.Definition.StatusRemovals, RemovableIds);
+	FGridCombatTargetingResolver::CollectStatusRemovalIds(
+		TargetMonster->StatusEffects, Action.Definition.StatusRemovals, RemovableIds, EGridCombatStatusRemovalTargetSide::Hostile);
 	if (!bArmorWouldMutate && !bStatusWouldMutate && RemovableIds.IsEmpty())
 	{
 		return false;
@@ -2207,7 +2304,8 @@ bool UGridTurnManagerComponent::RequestCharacterCombatActionOnPartyTargets(int32
 		OutResult.RejectReason = EGridCombatActionRequestRejectReason::ActionUnavailable;
 		return false;
 	}
-	if (Action->Definition.TargetingPolicy != EGridCombatTargetingPolicy::Ally ||
+	if ((Action->Definition.TargetingPolicy != EGridCombatTargetingPolicy::Ally &&
+			Action->Definition.TargetingPolicy != EGridCombatTargetingPolicy::AllyOrHostile) ||
 		Action->Definition.ResolutionProfile != EGridCombatActionResolutionProfile::Effect)
 	{
 		OutResult.RejectReason = EGridCombatActionRequestRejectReason::InvalidTarget;
@@ -2252,7 +2350,8 @@ bool UGridTurnManagerComponent::RequestCharacterCombatActionOnMonsterTarget(int3
 		OutResult.RejectReason = EGridCombatActionRequestRejectReason::ActionUnavailable;
 		return false;
 	}
-	if (Action->Definition.TargetingPolicy != EGridCombatTargetingPolicy::Hostile ||
+	if ((Action->Definition.TargetingPolicy != EGridCombatTargetingPolicy::Hostile &&
+			Action->Definition.TargetingPolicy != EGridCombatTargetingPolicy::AllyOrHostile) ||
 		Action->Definition.ResolutionProfile != EGridCombatActionResolutionProfile::Effect || !TargetMonsterId.IsValid())
 	{
 		OutResult.RejectReason = EGridCombatActionRequestRejectReason::InvalidTarget;
@@ -2307,6 +2406,7 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 		Action->Definition.SourcePolicy == EGridCombatActionSourcePolicy::Spell &&
 		Action->SourceDefinitionId == Action->Definition.ActionId;
 	if (IsMON1286ExplicitTargetingPolicy(Action->Definition.TargetingPolicy) ||
+		Action->Definition.TargetingPolicy == EGridCombatTargetingPolicy::AllyOrHostile ||
 		(Action->Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally && !bLegacySpellbookAlly))
 	{
 		OutResult.RejectReason = EGridCombatActionRequestRejectReason::TargetRequired;
@@ -2438,8 +2538,15 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 		TArray<FGridCombatModifierProfile> SpellModifierProfiles;
 		if (FGridCombatModifierResolver::CollectCharacterModifiers(*SpellCharacter, SpellModifierProfiles))
 		{
-			FGridCombatModifierResolver::Resolve(SpellModifierProfiles,
-				FGridCombatModifierResolver::MakeActionContext(Action->Definition, Action->SourceDefinitionId), SpellModifiers);
+			FGridCombatModifierContext SpellContext =
+				FGridCombatModifierResolver::MakeActionContext(Action->Definition, Action->SourceDefinitionId);
+			if (TargetMonster && IsValid(TargetMonster->MonsterDefinition))
+			{
+				FGridCombatModifierResolver::AddTargetStatusContext(
+					SpellContext, TargetMonster->StatusEffects, SpellCharacter->CharacterId,
+					TargetMonster->MonsterDefinition->CategoryId, TargetMonster->MonsterDefinition->SemanticTags);
+			}
+			FGridCombatModifierResolver::Resolve(SpellModifierProfiles, SpellContext, SpellModifiers);
 		}
 
 		FGridSpellHotbarExecutionResult Execution;

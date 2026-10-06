@@ -676,6 +676,8 @@ private:
 		const FGridAvailableCombatAction& Action, const FIntPoint& TargetCell, FGridCombatActionTargetingPreview& OutPreview) const;
 	bool RequestCharacterTargetedAttack(
 		const FGridAvailableCombatAction& Action, const FGridCombatActionTargetingPreview& Preview, FGridCombatActionRequestResult& OutResult);
+	bool RequestCharacterTargetedCellEffect(
+		const FGridAvailableCombatAction& Action, const FGridCombatActionTargetingPreview& Preview, FGridCombatActionRequestResult& OutResult);
 	int32 GetRemainingCombatActionCooldown(const FGuid& CharacterId, FName ActionId) const;
 	void StartCombatActionCooldown(const FGridAvailableCombatAction& Action);
 	void ResetCombatActionCooldowns();

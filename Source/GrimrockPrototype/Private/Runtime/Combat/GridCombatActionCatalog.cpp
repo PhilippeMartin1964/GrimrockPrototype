@@ -239,15 +239,17 @@ namespace
 					!Definition.ArmorEffects.IsEmpty() || !Definition.MovementEffects.IsEmpty());
 			const bool bSupportedCellEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 				(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Cell || Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area) &&
-				(!Definition.SurfaceEffects.IsEmpty() || Definition.TrapEffect.bPlaceTrap);
+				(!Definition.SurfaceEffects.IsEmpty() || Definition.TrapEffect.bPlaceTrap || Definition.bRelocatePartyToTargetCell);
 			const bool bSupportedPartyEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 				(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally ||
+					Definition.TargetingPolicy == EGridCombatTargetingPolicy::AllyOrHostile ||
 					Definition.TargetingPolicy == EGridCombatTargetingPolicy::Party ||
 					Definition.TargetingPolicy == EGridCombatTargetingPolicy::FrontRowParty) &&
 				(Definition.EffectProfile.IsValid() || !Definition.StatusApplications.IsEmpty() || !Definition.StatusRemovals.IsEmpty() ||
 					!Definition.ArmorEffects.IsEmpty());
 			const bool bSupportedHostileEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
-				Definition.TargetingPolicy == EGridCombatTargetingPolicy::Hostile &&
+				(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Hostile ||
+					Definition.TargetingPolicy == EGridCombatTargetingPolicy::AllyOrHostile) &&
 				(!Definition.StatusApplications.IsEmpty() || !Definition.StatusRemovals.IsEmpty() || !Definition.ArmorEffects.IsEmpty());
 			if (!Context.bEnableClassActionExecutors ||
 				(!bSupportedAttack && !bSupportedSelfEffect && !bSupportedCellEffect && !bSupportedPartyEffect && !bSupportedHostileEffect))

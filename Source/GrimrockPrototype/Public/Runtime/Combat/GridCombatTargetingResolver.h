@@ -26,10 +26,12 @@ public:
 		const FGridStatusEffectCollection& StatusEffects, const FGuid& ActingSourceId,
 		const FGridAttackTargetStats* TargetStats = nullptr, int32 MaximumHealth = 0);
 
-	static bool MatchesStatusRemoval(const FGridStatusEffectRuntimeState& State, const FGridCombatStatusRemovalProfile& Profile);
+	static bool MatchesStatusRemoval(const FGridStatusEffectRuntimeState& State, const FGridCombatStatusRemovalProfile& Profile,
+		EGridCombatStatusRemovalTargetSide TargetSide = EGridCombatStatusRemovalTargetSide::Any);
 
 	static void CollectStatusRemovalIds(const FGridStatusEffectCollection& StatusEffects,
-		const TArray<FGridCombatStatusRemovalProfile>& Profiles, TArray<FName>& OutEffectIds);
+		const TArray<FGridCombatStatusRemovalProfile>& Profiles, TArray<FName>& OutEffectIds,
+		EGridCombatStatusRemovalTargetSide TargetSide = EGridCombatStatusRemovalTargetSide::Any);
 
 	static void CollectPartyTargets(const FGridPartyInventoryState& PartyState, EGridCombatTargetingPolicy Policy,
 		int32 SourceCharacterIndex, int32 ExplicitTargetCharacterIndex, int32 FrontLineSlotCount, TArray<int32>& OutCharacterIndices);

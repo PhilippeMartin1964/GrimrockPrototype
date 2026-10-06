@@ -299,7 +299,8 @@ int32 UGridStatusEffectLifecycleSubsystem::RemoveCombatStatusEffectsFromPartyCha
 	}
 
 	TArray<FName> Candidates;
-	FGridCombatTargetingResolver::CollectStatusRemovalIds(Characters[CharacterIndex].StatusEffects, Profiles, Candidates);
+	FGridCombatTargetingResolver::CollectStatusRemovalIds(
+		Characters[CharacterIndex].StatusEffects, Profiles, Candidates, EGridCombatStatusRemovalTargetSide::Party);
 	int32 RemovedCount = 0;
 	for (const FName EffectId : Candidates)
 	{
@@ -328,7 +329,8 @@ int32 UGridStatusEffectLifecycleSubsystem::RemoveCombatStatusEffectsFromMonster(
 	}
 
 	TArray<FName> Candidates;
-	FGridCombatTargetingResolver::CollectStatusRemovalIds(Monster->StatusEffects, Profiles, Candidates);
+	FGridCombatTargetingResolver::CollectStatusRemovalIds(
+		Monster->StatusEffects, Profiles, Candidates, EGridCombatStatusRemovalTargetSide::Hostile);
 	int32 RemovedCount = 0;
 	for (const FName EffectId : Candidates)
 	{

@@ -179,11 +179,17 @@ void FGridCombatModifierResolver::AddTargetContext(FGridCombatModifierContext& C
 }
 
 void FGridCombatModifierResolver::AddTargetStatusContext(FGridCombatModifierContext& Context,
-	const FGridStatusEffectCollection& StatusEffects, const FGuid& ActingSourceId, FName TargetMonsterCategoryId)
+	const FGridStatusEffectCollection& StatusEffects, const FGuid& ActingSourceId, FName TargetMonsterCategoryId,
+	const TArray<FName>& TargetSemanticTags)
 {
 	Context.TargetStatusEffectIds.Reset();
 	Context.TargetStatusEffectIdsFromSource.Reset();
 	Context.TargetMonsterCategoryId = TargetMonsterCategoryId;
+	Context.TargetSemanticTags = TargetSemanticTags;
+	if (!TargetMonsterCategoryId.IsNone())
+	{
+		Context.TargetSemanticTags.AddUnique(TargetMonsterCategoryId);
+	}
 	for (const FGridStatusEffectRuntimeState& State : StatusEffects.ActiveEffects)
 	{
 		if (!State.IsValid())
@@ -235,6 +241,15 @@ bool FGridCombatModifierResolver::Matches(const FGridCombatModifierProfile& Prof
 	}
 	if (!Profile.AllowedTargetMonsterCategoryIds.IsEmpty() &&
 		!Profile.AllowedTargetMonsterCategoryIds.Contains(Context.TargetMonsterCategoryId))
+	{
+		return false;
+	}
+	if (!Profile.AnyTargetSemanticTags.IsEmpty() &&
+		!Profile.AnyTargetSemanticTags.ContainsByPredicate(
+			[&Context](const FName Tag)
+			{
+				return Context.TargetSemanticTags.Contains(Tag);
+			}))
 	{
 		return false;
 	}
@@ -306,6 +321,7 @@ void FGridCombatModifierResolver::Resolve(
 		AddResistanceSet(OutModifiers.ResistanceModifiers, Profile.ResistanceModifiers);
 		OutModifiers.ActionPointCostModifier = SaturatingAdd(OutModifiers.ActionPointCostModifier, Profile.ActionPointCostModifier);
 		OutModifiers.ManaCostModifier = SaturatingAdd(OutModifiers.ManaCostModifier, Profile.ManaCostModifier);
+		OutModifiers.MinimumManaCost = FMath::Max(OutModifiers.MinimumManaCost, Profile.MinimumManaCost);
 		OutModifiers.RangeCellsModifier = SaturatingAdd(OutModifiers.RangeCellsModifier, Profile.RangeCellsModifier);
 		OutModifiers.PositiveEffectPercentModifier =
 			SaturatingAdd(OutModifiers.PositiveEffectPercentModifier, Profile.PositiveEffectPercentModifier);
@@ -412,7 +428,10 @@ void FGridCombatModifierResolver::ApplyToActionDefinitionProjection(
 {
 	Definition.ActionPointCost =
 		ClampActionPointCost(Definition, SaturatingAdd(Definition.ActionPointCost, Modifiers.ActionPointCostModifier));
-	Definition.ResourceCosts.ManaCost = FMath::Max(0, SaturatingAdd(Definition.ResourceCosts.ManaCost, Modifiers.ManaCostModifier));
+	const int32 AuthoredManaCost = Definition.ResourceCosts.ManaCost;
+	const int32 ModifiedManaCost = FMath::Max(0, SaturatingAdd(AuthoredManaCost, Modifiers.ManaCostModifier));
+	Definition.ResourceCosts.ManaCost =
+		AuthoredManaCost > 0 ? FMath::Max(Modifiers.MinimumManaCost, ModifiedManaCost) : 0;
 
 	if (Definition.RangeCells > 0 || Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
 	{

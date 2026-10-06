@@ -595,6 +595,9 @@ public:
 	/** C5 starts an already-authorized adjacent combat translation without charging movement costs again. */
 	bool BeginAuthorizedGridTranslation(EGridEdge MoveDirection, const FIntPoint& TargetCell);
 
+	/** C5 applies an already-authorized direct same-level relocation without emitting ordinary cell-transition gameplay events. */
+	bool ApplyAuthorizedGridRelocation(const FIntPoint& TargetCell);
+
 	void ClearBufferedCommand();
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")

@@ -56,7 +56,8 @@ enum class EGridCombatTargetingPolicy : uint8
 	Area UMETA(DisplayName = "Area"),
 	Hostile UMETA(DisplayName = "Hostile"),
 	Party UMETA(DisplayName = "Party"),
-	FrontRowParty UMETA(DisplayName = "Front Row Party")
+	FrontRowParty UMETA(DisplayName = "Front Row Party"),
+	AllyOrHostile UMETA(DisplayName = "Ally Or Hostile")
 };
 
 UENUM(BlueprintType)
@@ -1093,6 +1094,14 @@ struct FGridCombatStatusApplicationProfile
 };
 
 /** C8 deterministic removal filter. Identity/tag filters use OR; disposition further restricts matches. */
+UENUM(BlueprintType)
+enum class EGridCombatStatusRemovalTargetSide : uint8
+{
+	Any UMETA(DisplayName = "Any"),
+	Party UMETA(DisplayName = "Party"),
+	Hostile UMETA(DisplayName = "Hostile")
+};
+
 USTRUCT(BlueprintType)
 struct FGridCombatStatusRemovalProfile
 {
@@ -1106,6 +1115,9 @@ struct FGridCombatStatusRemovalProfile
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status Removal|Filter")
 	TArray<EGridStatusEffectDisposition> AllowedDispositions;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status Removal|Filter")
+	EGridCombatStatusRemovalTargetSide TargetSide = EGridCombatStatusRemovalTargetSide::Any;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Status Removal", meta = (ClampMin = "1", ClampMax = "16"))
 	int32 MaximumRemovals = 1;
@@ -1585,6 +1597,10 @@ struct FGridCombatModifierProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
 	TArray<FName> AllowedTargetMonsterCategoryIds;
 
+	/** OR filter over generic semantic tags authored by the target definition. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
+	TArray<FName> AnyTargetSemanticTags;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
 	bool bRequirePartyStationarySincePreviousActivation = false;
 
@@ -1617,6 +1633,10 @@ struct FGridCombatModifierProfile
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "-100", ClampMax = "100"))
 	int32 ManaCostModifier = 0;
+
+	/** Positive-cost actions are clamped to this floor after mana modifiers. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "0", ClampMax = "100"))
+	int32 MinimumManaCost = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier", meta = (ClampMin = "-32", ClampMax = "32"))
 	int32 RangeCellsModifier = 0;
@@ -1680,7 +1700,7 @@ struct FGridCombatModifierProfile
 		return AccuracyModifier != 0 || EvasionModifier != 0 || OutgoingDamagePercentModifier != 0 || IncomingDamagePercentModifier != 0 ||
 			CriticalChancePercentModifier != 0 || CriticalDamagePercentModifier != 0 || WeaponDamagePercentModifier != 0 ||
 			!ResistanceModifiers.IsEmpty() || ActionPointCostModifier != 0 ||
-			ManaCostModifier != 0 || RangeCellsModifier != 0 || PositiveEffectPercentModifier != 0 ||
+			ManaCostModifier != 0 || MinimumManaCost != 0 || RangeCellsModifier != 0 || PositiveEffectPercentModifier != 0 ||
 			FriendlyDirectDamagePercentModifier != 0 || SelfDirectDamagePercentModifier != 0 ||
 			QuickItemSecondaryTargetCount != 0 || QuickItemSecondaryMagnitudePercent != 0 ||
 			QuickItemSecondaryDurationPercent != 0 || PhysicalArmorReferencePercentModifier != 0 ||
@@ -1696,7 +1716,7 @@ struct FGridCombatModifierProfile
 			IncomingDamagePercentModifier < -100 || IncomingDamagePercentModifier > 500 || CriticalChancePercentModifier < -100 ||
 			CriticalChancePercentModifier > 100 || CriticalDamagePercentModifier < -100 || CriticalDamagePercentModifier > 800 ||
 			WeaponDamagePercentModifier < -500 || WeaponDamagePercentModifier > 500 || ActionPointCostModifier < -6 || ActionPointCostModifier > 6 || ManaCostModifier < -100 || ManaCostModifier > 100 ||
-			RangeCellsModifier < -32 || RangeCellsModifier > 32 || PositiveEffectPercentModifier < -100 || PositiveEffectPercentModifier > 500 ||
+			MinimumManaCost < 0 || MinimumManaCost > 100 || RangeCellsModifier < -32 || RangeCellsModifier > 32 || PositiveEffectPercentModifier < -100 || PositiveEffectPercentModifier > 500 ||
 			FriendlyDirectDamagePercentModifier < -100 || FriendlyDirectDamagePercentModifier > 500 ||
 			SelfDirectDamagePercentModifier < -100 || SelfDirectDamagePercentModifier > 500 || QuickItemSecondaryTargetCount < 0 ||
 			QuickItemSecondaryTargetCount > 6 || QuickItemSecondaryMagnitudePercent < 0 || QuickItemSecondaryMagnitudePercent > 100 ||
@@ -1809,6 +1829,15 @@ struct FGridCombatModifierProfile
 				return false;
 			}
 			SeenCategories.Add(CategoryId);
+		}
+		TSet<FName> SeenSemanticTags;
+		for (const FName Tag : AnyTargetSemanticTags)
+		{
+			if (Tag.IsNone() || SeenSemanticTags.Contains(Tag))
+			{
+				return false;
+			}
+			SeenSemanticTags.Add(Tag);
 		}
 		return (!bRequiredTargetStatusesFromOwner || !RequiredTargetStatusEffectIds.IsEmpty()) &&
 			ConditionsValid(RequiredTargetConditions) && ConditionsValid(AnyTargetConditions);
@@ -2235,6 +2264,10 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Movement")
 	TArray<FGridCombatMovementEffectProfile> MovementEffects;
 
+	/** C5 opt-in: relocate the whole party directly to the selected Cell without PAM or cell-transition events. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Movement")
+	bool bRelocatePartyToTargetCell = false;
+
 	/** C6 persistent cell-surface creation payloads; C8 owns cell/area execution. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Surface")
 	TArray<FGridCombatSurfaceEffectProfile> SurfaceEffects;
@@ -2259,12 +2292,14 @@ struct FGridCombatActionDefinition
 			WeaponAttackProfile.bUseEquippedWeapon || RangeCells == OffensiveProfile.RangeCells;
 		const bool bTargetingRangeValid = (TargetingPolicy != EGridCombatTargetingPolicy::FirstAxialTarget &&
 											  TargetingPolicy != EGridCombatTargetingPolicy::Cell && TargetingPolicy != EGridCombatTargetingPolicy::Area &&
-											  TargetingPolicy != EGridCombatTargetingPolicy::Hostile) ||
+											  TargetingPolicy != EGridCombatTargetingPolicy::Hostile &&
+											  TargetingPolicy != EGridCombatTargetingPolicy::AllyOrHostile) ||
 			RangeCells > 0;
 		const bool bAreaRadiusValid = TargetingPolicy != EGridCombatTargetingPolicy::Area || AreaRadiusCells > 0;
 		const bool bLineOfSightValid = !bRequiresLineOfSight ||
 			TargetingPolicy == EGridCombatTargetingPolicy::FirstAxialTarget ||
 			TargetingPolicy == EGridCombatTargetingPolicy::Hostile ||
+			TargetingPolicy == EGridCombatTargetingPolicy::AllyOrHostile ||
 			TargetingPolicy == EGridCombatTargetingPolicy::Cell ||
 			TargetingPolicy == EGridCombatTargetingPolicy::Area;
 		const bool bFriendlyAreaValid = !bAffectsAlliesInArea ||
@@ -2306,6 +2341,9 @@ struct FGridCombatActionDefinition
 			{
 				return !Profile.IsValid() || ResolutionProfile != EGridCombatActionResolutionProfile::Effect;
 			}) == false;
+		const bool bSelectedCellRelocationValid = !bRelocatePartyToTargetCell ||
+			(ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+				TargetingPolicy == EGridCombatTargetingPolicy::Cell && RangeCells > 0 && MovementEffects.IsEmpty());
 		const bool bTrapEffectValid = TrapEffect.IsValid() &&
 			(!TrapEffect.bPlaceTrap ||
 				(ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
@@ -2365,7 +2403,8 @@ struct FGridCombatActionDefinition
 			(ResolutionCount > 1 || SubsequentResolutionAccuracyModifier == 0) && TargetFilter.IsValid() && bWeaponAttackProfileValid &&
 			bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bLineOfSightValid && bFriendlyAreaValid &&
 			bStatusApplicationsValid &&
-			bStatusRemovalsValid && bArmorEffectsValid && bMovementEffectsValid && bTrapEffectValid && bSkillCheckValid && bSurfaceEffectsValid &&
+			bStatusRemovalsValid && bArmorEffectsValid && bMovementEffectsValid && bSelectedCellRelocationValid &&
+			bTrapEffectValid && bSkillCheckValid && bSurfaceEffectsValid &&
 			bSourceTagsValid && bDirectDamageScalingValid && bQuickItemScalingValid && bChainValid && bOwnerVariantsValid &&
 			(ResolutionCount == 1 || ResolutionProfile == EGridCombatActionResolutionProfile::Attack);
 	}

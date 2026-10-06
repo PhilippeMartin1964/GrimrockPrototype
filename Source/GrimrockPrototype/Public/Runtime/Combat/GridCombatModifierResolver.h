@@ -20,6 +20,7 @@ struct GRIMROCKPROTOTYPE_API FGridCombatModifierContext
 	TArray<FName> TargetStatusEffectIds;
 	TArray<FName> TargetStatusEffectIdsFromSource;
 	FName TargetMonsterCategoryId = NAME_None;
+	TArray<FName> TargetSemanticTags;
 	bool bPartyStationarySincePreviousActivation = false;
 
 	bool HasTargetCondition(EGridCombatTargetCondition Condition) const
@@ -41,6 +42,7 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedCombatModifiers
 	FGridDamageResistanceSet ResistanceModifiers;
 	int32 ActionPointCostModifier = 0;
 	int32 ManaCostModifier = 0;
+	int32 MinimumManaCost = 0;
 	int32 RangeCellsModifier = 0;
 	int32 PositiveEffectPercentModifier = 0;
 	int32 FriendlyDirectDamagePercentModifier = 0;
@@ -67,7 +69,7 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedCombatModifiers
 		return AccuracyModifier == 0 && EvasionModifier == 0 && OutgoingDamagePercentModifier == 0 && IncomingDamagePercentModifier == 0 &&
 			CriticalChancePercentModifier == 0 && CriticalDamagePercentModifier == 0 && WeaponDamagePercentModifier == 0 &&
 			ResistanceModifiers.IsEmpty() && ActionPointCostModifier == 0 &&
-			ManaCostModifier == 0 && RangeCellsModifier == 0 && PositiveEffectPercentModifier == 0 &&
+			ManaCostModifier == 0 && MinimumManaCost == 0 && RangeCellsModifier == 0 && PositiveEffectPercentModifier == 0 &&
 			FriendlyDirectDamagePercentModifier == 0 && SelfDirectDamagePercentModifier == 0 &&
 			QuickItemSecondaryTargetCount == 0 && QuickItemSecondaryMagnitudePercent == 0 &&
 			QuickItemSecondaryDurationPercent == 0 && PhysicalArmorReferencePercentModifier == 0 &&
@@ -98,7 +100,7 @@ public:
 	static void AddTargetContext(FGridCombatModifierContext& Context, EGridCombatTargetingPolicy TargetingPolicy,
 		bool bRearArc, bool bTargetHasActedThisRound, bool bTargetHasPhysicalControl);
 	static void AddTargetStatusContext(FGridCombatModifierContext& Context, const FGridStatusEffectCollection& StatusEffects,
-		const FGuid& ActingSourceId, FName TargetMonsterCategoryId);
+		const FGuid& ActingSourceId, FName TargetMonsterCategoryId, const TArray<FName>& TargetSemanticTags = TArray<FName>());
 
 	static bool Matches(const FGridCombatModifierProfile& Profile, const FGridCombatModifierContext& Context);
 

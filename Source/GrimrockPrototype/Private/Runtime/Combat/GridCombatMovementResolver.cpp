@@ -83,3 +83,70 @@ bool FGridCombatMovementResolver::ResolveDestination(const FGridCombatMovementEf
 	OutResolution.DistanceCells = Profile.DistanceCells;
 	return OutResolution.IsValid();
 }
+
+
+bool FGridCombatMovementResolver::CanRelocatePartyToSelectedCell(const FIntPoint& FromCell, const FIntPoint& TargetCell, int32 RangeCells,
+	const AGridLevelRuntimeActor* RuntimeActor, const UGridMonsterOccupancySubsystem* Occupancy)
+{
+	if (!IsValid(RuntimeActor) || RangeCells < 1 || RangeCells > 32 || FromCell == TargetCell ||
+		!RuntimeActor->IsValidCell(TargetCell.X, TargetCell.Y) || !RuntimeActor->IsWalkableCell(TargetCell.X, TargetCell.Y))
+	{
+		return false;
+	}
+	const int32 ManhattanDistance = FMath::Abs(TargetCell.X - FromCell.X) + FMath::Abs(TargetCell.Y - FromCell.Y);
+	if (ManhattanDistance <= 0 || ManhattanDistance > RangeCells)
+	{
+		return false;
+	}
+	if (IsValid(Occupancy) && IsValid(Occupancy->GetOccupantAtCell(TargetCell)))
+	{
+		return false;
+	}
+
+	struct FOpenCell
+	{
+		FIntPoint Cell = FIntPoint::ZeroValue;
+		int32 Distance = 0;
+	};
+	TArray<FOpenCell> Queue;
+	FOpenCell Start;
+	Start.Cell = FromCell;
+	Start.Distance = 0;
+	Queue.Add(Start);
+	TSet<FIntPoint> Visited;
+	Visited.Add(FromCell);
+
+	for (int32 QueueIndex = 0; QueueIndex < Queue.Num(); ++QueueIndex)
+	{
+		const FOpenCell Current = Queue[QueueIndex];
+		if (Current.Distance >= RangeCells)
+		{
+			continue;
+		}
+		for (const EGridEdge Direction : { EGridEdge::North, EGridEdge::East, EGridEdge::South, EGridEdge::West })
+		{
+			int32 NextX = INDEX_NONE;
+			int32 NextY = INDEX_NONE;
+			if (!RuntimeActor->TryGetNeighborCell(Current.Cell.X, Current.Cell.Y, Direction, NextX, NextY) ||
+				!RuntimeActor->CanMove(Current.Cell.X, Current.Cell.Y, Direction))
+			{
+				continue;
+			}
+			const FIntPoint NextCell(NextX, NextY);
+			if (!RuntimeActor->IsWalkableCell(NextCell.X, NextCell.Y) || Visited.Contains(NextCell))
+			{
+				continue;
+			}
+			if (NextCell == TargetCell)
+			{
+				return true;
+			}
+			Visited.Add(NextCell);
+			FOpenCell Next;
+			Next.Cell = NextCell;
+			Next.Distance = Current.Distance + 1;
+			Queue.Add(Next);
+		}
+	}
+	return false;
+}
