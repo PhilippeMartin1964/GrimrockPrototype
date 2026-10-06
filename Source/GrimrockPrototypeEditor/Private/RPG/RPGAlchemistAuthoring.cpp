@@ -254,7 +254,21 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 bool FRPGAlchemistAuthoring::ConfigureItem(UGridItemDefinitionAsset& Item, FName ItemDefinitionId)
 {
 	using namespace RPGAlchemistAuthoring;
-	Item = UGridItemDefinitionAsset();
+
+	// UObject instances are never value-assigned. Reset only gameplay authoring owned by
+	// this helper so re-authoring preserves presentation/mesh/icon fields.
+	Item.ItemDefinitionId = NAME_None;
+	Item.DisplayName = FText::GetEmpty();
+	Item.Description = FText::GetEmpty();
+	Item.ItemType = EGridItemType::None;
+	Item.HandUsage = EGridItemHandUsage::NotHandHeld;
+	Item.CompatibleEquipmentSlots.Reset();
+	Item.CombatActions.Reset();
+	Item.bProvidesQuickItemCombatAction = false;
+	Item.QuickItemCombatAction = FGridCombatActionDefinition();
+	Item.QuickItemActionIdOverride = NAME_None;
+	Item.bCombatThrowWeapon = false;
+	Item.ItemTags.Reset();
 
 	if (ItemDefinitionId == FireBombItem)
 	{
