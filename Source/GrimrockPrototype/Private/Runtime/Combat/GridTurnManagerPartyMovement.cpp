@@ -3,6 +3,7 @@
 #include "Core/GridDirectionUtils.h"
 #include "Engine/World.h"
 #include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
+#include "RPG/RPGPartyProgressionResolver.h"
 #include "Runtime/Combat/GridCombatMovementResolver.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -111,6 +112,7 @@ bool UGridTurnManagerComponent::RequestPartyTranslation(EGridEdge MoveDirection,
 	}
 
 	PartyMobilityState.RemainingMobilityActionPoints = FMath::Max(0, PartyMobilityState.RemainingMobilityActionPoints - MobilityActionPointCost);
+	RecordPartyTranslation();
 	LastPartyMovementRejectReason = EGridPartyMovementRejectReason::None;
 	OutTargetCell = TargetCell;
 	OnPartyMobilityStateChanged.Broadcast(PartyMobilityState);
@@ -220,6 +222,7 @@ bool UGridTurnManagerComponent::StartPartyActionMovement(int32 CharacterIndex, c
 		return false;
 	}
 
+	RecordPartyTranslation();
 	OnPartyMobilityStateChanged.Broadcast(PartyMobilityState);
 	UE_LOG(LogGridTurnManager, Log,
 		TEXT("[RPG03.5] PartyActionMovement Character=%d From=(%d,%d) To=(%d,%d) Direction=%s Forced=%s PAM=%d/%d"),
@@ -322,7 +325,13 @@ void UGridTurnManagerComponent::ResetPartyMobilityForRound()
 {
 	ClearPendingPartyMotion();
 	PartyMobilityState.RoundNumber = RoundNumber;
-	PartyMobilityState.MaximumMobilityActionPoints = FMath::Clamp(BasePartyMobilityActionPointsPerRound, 0, 4);
+	const int32 ProgressionMobilityBonus =
+		IsValid(PartyPawn) && IsValid(PartyPawn->PartyInventoryComponent)
+			? FRPGPartyProgressionResolver::ResolveMaximumMobilityActionPointsModifier(
+				PartyPawn->PartyInventoryComponent->PartyInventoryState)
+			: 0;
+	PartyMobilityState.MaximumMobilityActionPoints =
+		FMath::Clamp(BasePartyMobilityActionPointsPerRound + ProgressionMobilityBonus, 0, 4);
 	PartyMobilityState.RemainingMobilityActionPoints = PartyMobilityState.MaximumMobilityActionPoints;
 	LastPartyMovementRejectReason = EGridPartyMovementRejectReason::None;
 	OnPartyMobilityStateChanged.Broadcast(PartyMobilityState);
@@ -348,6 +357,22 @@ void UGridTurnManagerComponent::ClearPendingPartyMotion()
 	PendingPartyMotionCharacterIndex = INDEX_NONE;
 	PendingPartyTranslationFromCell = FIntPoint::ZeroValue;
 	PendingPartyTranslationTargetCell = FIntPoint::ZeroValue;
+}
+
+void UGridTurnManagerComponent::RecordPartyTranslation()
+{
+	PartyTranslationSerial = PartyTranslationSerial == MAX_int32 ? 1 : PartyTranslationSerial + 1;
+}
+
+bool UGridTurnManagerComponent::IsPartyStationarySincePreviousActivation(const FGuid& CharacterId) const
+{
+	if (!CharacterId.IsValid())
+	{
+		return false;
+	}
+	const bool* bQualified = CharacterStationaryQualification.Find(CharacterId);
+	const int32* ActivationSerial = CharacterActivationTranslationSerial.Find(CharacterId);
+	return bQualified && *bQualified && ActivationSerial && *ActivationSerial == PartyTranslationSerial;
 }
 
 bool UGridTurnManagerComponent::CompletePendingPartyMotion(EGridPendingPartyMotionType ExpectedMotionType)

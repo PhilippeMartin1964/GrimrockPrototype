@@ -148,6 +148,17 @@ bool URPGClassAsset::IsValidDefinition() const
 				return false;
 			}
 		}
+		for (const FRPGPartyProgressionModifier& PartyModifier : Choice.PartyModifiers)
+		{
+			if (!PartyModifier.IsValid())
+			{
+				return false;
+			}
+		}
+		if (Choice.FirstRoundInitiativeModifier < -20 || Choice.FirstRoundInitiativeModifier > 20)
+		{
+			return false;
+		}
 		ChoiceIds.Add(Choice.ChoiceId);
 		ChoiceDependencies.Add(Choice.ChoiceId, Choice.PrerequisiteChoiceIds);
 	}

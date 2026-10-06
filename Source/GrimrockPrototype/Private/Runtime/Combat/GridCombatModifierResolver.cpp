@@ -110,6 +110,26 @@ void FGridCombatModifierResolver::AddTargetContext(FGridCombatModifierContext& C
 	if (bTargetHasPhysicalControl) Context.TargetConditions.Add(EGridCombatTargetCondition::PhysicalControl);
 }
 
+void FGridCombatModifierResolver::AddTargetStatusContext(FGridCombatModifierContext& Context,
+	const FGridStatusEffectCollection& StatusEffects, const FGuid& ActingSourceId, FName TargetMonsterCategoryId)
+{
+	Context.TargetStatusEffectIds.Reset();
+	Context.TargetStatusEffectIdsFromSource.Reset();
+	Context.TargetMonsterCategoryId = TargetMonsterCategoryId;
+	for (const FGridStatusEffectRuntimeState& State : StatusEffects.ActiveEffects)
+	{
+		if (!State.IsValid())
+		{
+			continue;
+		}
+		Context.TargetStatusEffectIds.AddUnique(State.EffectId);
+		if (ActingSourceId.IsValid() && State.SourceId == ActingSourceId)
+		{
+			Context.TargetStatusEffectIdsFromSource.AddUnique(State.EffectId);
+		}
+	}
+}
+
 bool FGridCombatModifierResolver::Matches(const FGridCombatModifierProfile& Profile, const FGridCombatModifierContext& Context)
 {
 	// Progression-owner requirements are consumed by CollectCharacterChoiceModifiers.
@@ -139,6 +159,24 @@ bool FGridCombatModifierResolver::Matches(const FGridCombatModifierProfile& Prof
 	if (Profile.bExcludeAreaActions && Context.TargetingPolicy == EGridCombatTargetingPolicy::Area)
 	{
 		return false;
+	}
+	if (Profile.bRequirePartyStationarySincePreviousActivation && !Context.bPartyStationarySincePreviousActivation)
+	{
+		return false;
+	}
+	if (!Profile.AllowedTargetMonsterCategoryIds.IsEmpty() &&
+		!Profile.AllowedTargetMonsterCategoryIds.Contains(Context.TargetMonsterCategoryId))
+	{
+		return false;
+	}
+	const TArray<FName>& RequiredTargetStatusSet =
+		Profile.bRequiredTargetStatusesFromOwner ? Context.TargetStatusEffectIdsFromSource : Context.TargetStatusEffectIds;
+	for (const FName EffectId : Profile.RequiredTargetStatusEffectIds)
+	{
+		if (!RequiredTargetStatusSet.Contains(EffectId))
+		{
+			return false;
+		}
 	}
 	for (const EGridCombatTargetCondition Condition : Profile.RequiredTargetConditions)
 	{

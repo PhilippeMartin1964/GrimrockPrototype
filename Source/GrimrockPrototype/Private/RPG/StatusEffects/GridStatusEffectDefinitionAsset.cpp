@@ -57,6 +57,10 @@ bool UGridStatusEffectDefinitionAsset::ValidateDefinition(FString& OutError) con
 	{
 		Errors.Add(TEXT("MaxStacks must be at least one."));
 	}
+	if (bUniquePerSourceAcrossMonsters && !bDistinctPerSource)
+	{
+		Errors.Add(TEXT("Unique-per-source monster status requires bDistinctPerSource."));
+	}
 	if (StackPolicy == EGridStatusEffectStackPolicy::AddStacks)
 	{
 		if (MaxStacks < 2)

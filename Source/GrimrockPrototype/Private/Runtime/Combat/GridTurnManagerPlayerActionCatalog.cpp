@@ -27,6 +27,7 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
+#include "Runtime/Monsters/GridMonsterPathfinder.h"
 #include "UObject/UObjectIterator.h"
 
 namespace
@@ -213,8 +214,26 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 	}
 	if (ClassDefinition)
 	{
-		for (const FGridCombatActionDefinition& Definition : ClassDefinition->CombatActions)
+		for (const FGridCombatActionDefinition& SourceDefinition : ClassDefinition->CombatActions)
 		{
+			FGridCombatActionDefinition Definition = SourceDefinition;
+			if (Definition.WeaponAttackProfile.bUseEquippedWeapon)
+			{
+				FGridOffensiveEquipmentProfile ResolvedWeapon;
+				FName ResolvedItemDefinitionId = NAME_None;
+				EGridEquipmentSlot ResolvedSlot = EGridEquipmentSlot::None;
+				TArray<FName> ResolvedItemTags;
+				EGridPlayerAttackRejectReason RejectReason = EGridPlayerAttackRejectReason::None;
+				if (ResolveCombatActionWeaponProfile(
+						Inventory, CharacterIndex, Definition, ResolvedWeapon, ResolvedItemDefinitionId, ResolvedSlot, ResolvedItemTags, RejectReason))
+				{
+					Definition.RangeCells = ResolvedWeapon.RangeCells;
+					for (const FName Tag : ResolvedItemTags)
+					{
+						Definition.SourceTags.AddUnique(Tag);
+					}
+				}
+			}
 			AddMON126Contribution(Definition, Definition.SourcePolicy == EGridCombatActionSourcePolicy::Universal ? NAME_None : ClassDefinition->ClassId,
 				FGuid(), EGridEquipmentSlot::None, 1, OutContributions);
 		}
@@ -435,10 +454,12 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 						EquippedProfile.AttackDefinition.DamageType == EGridDamageType::Physical
 							? EquippedProfile.AttackDefinition.PhysicalSubtype
 							: EGridPhysicalDamageSubtype::None);
+					Context.EquippedOffensiveRangeCells.Add(EquippedProfile.RangeCells);
 				}
 				else
 				{
 					Context.EquippedOffensivePhysicalSubtypes.Add(EGridPhysicalDamageSubtype::None);
+					Context.EquippedOffensiveRangeCells.Add(0);
 				}
 			}
 		}
@@ -1285,6 +1306,24 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 		OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("Cette cellule est hors de portée."));
 		return false;
 	}
+	if (Action.Definition.bRequiresLineOfSight)
+	{
+		const bool bGridLineClear = FGridMonsterPerception::HasStraightLineOfSight(
+			PartyCell, TargetCell, Action.Definition.RangeCells,
+			[this](const FIntPoint& From, const FIntPoint& To)
+			{
+				const EGridEdge Direction = FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells(From, To);
+				return IsValid(RuntimeActor) && Direction != EGridEdge::None &&
+					RuntimeActor->CanMove(From.X, From.Y, Direction);
+			});
+		const bool bSmokeBlocked = Action.Definition.ActionType == EGridCombatActionType::RangedAttack &&
+			RuntimeActor->DoesCombatSmokeBlockLine(PartyCell, TargetCell);
+		if (!bGridLineClear || bSmokeBlocked)
+		{
+			OutPreview.InvalidReason = MakeMON1286TargetingReason(TEXT("La ligne de vue vers cette cellule est bloquée."));
+			return false;
+		}
+	}
 
 	if (Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Cell)
 	{
@@ -1532,7 +1571,20 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 			{
 				Source.RawDamagePercent = Action.Definition.WeaponAttackProfile.WeaponDamagePercent;
 			}
-			FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(Source, ResolvedModifiers);
+			FGridResolvedCombatModifiers TargetedSourceModifiers = ResolvedModifiers;
+			if (!ChoiceModifiers.IsEmpty())
+			{
+				FGridCombatModifierContext TargetedSourceContext = bUsesEquippedWeaponAction
+					? FGridCombatModifierResolver::MakeResolvedActionAttackContext(
+						Action.Definition, Action.SourceDefinitionId, EffectiveOffensiveProfile, EffectiveOffensiveSourceTags)
+					: FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId);
+				FGridCombatModifierResolver::AddTargetStatusContext(TargetedSourceContext, TargetMonster->StatusEffects, Character.CharacterId,
+					IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->CategoryId : NAME_None);
+				TargetedSourceContext.bPartyStationarySincePreviousActivation =
+					IsPartyStationarySincePreviousActivation(Character.CharacterId);
+				FGridCombatModifierResolver::Resolve(ChoiceModifiers, TargetedSourceContext, TargetedSourceModifiers);
+			}
+			FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(Source, TargetedSourceModifiers);
 			if (Action.Definition.ActionType == EGridCombatActionType::RangedAttack && IsValid(RuntimeActor) &&
 				RuntimeActor->IsCombatSmokeAtCell(TargetMonster->CurrentCell.X, TargetMonster->CurrentCell.Y))
 			{

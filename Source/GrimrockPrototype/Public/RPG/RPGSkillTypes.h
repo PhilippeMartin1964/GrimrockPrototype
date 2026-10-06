@@ -16,6 +16,19 @@ enum class ERPGSkillGoverningAttribute : uint8
 	Charisma UMETA(DisplayName = "Charisme")
 };
 
+/** Optional semantic context supplied by callers for situational Talent modifiers. */
+USTRUCT(BlueprintType)
+struct FRPGSkillCheckContext
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Skills|Check")
+	bool bRangedContext = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Skills|Check")
+	FName RelatedMonsterCategoryId = NAME_None;
+};
+
 /** Sparse runtime rank for one skill. Rank zero is represented by no entry. */
 USTRUCT(BlueprintType)
 struct FRPGSkillRank
@@ -52,12 +65,33 @@ struct FRPGSkillProgressionModifier
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|Progression", meta = (ClampMin = "0", ClampMax = "20"))
 	int32 SafeFailureMargin = 0;
 
+	/** Situational check bonus applies only when the caller identifies a ranged context. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|Progression|Context")
+	bool bRequireRangedContext = false;
+
+	/** Empty = any related category; non-empty requires a matching contextual monster category. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|Progression|Context")
+	TArray<FName> RelatedMonsterCategoryIds;
+
 	bool IsValid() const
 	{
-		return !SkillId.IsNone() && CheckModifier >= -20 && CheckModifier <= 20 &&
-			RequirementGrantRankModifier >= 0 && RequirementGrantRankModifier <= 5 &&
-			SafeFailureMargin >= 0 && SafeFailureMargin <= 20 &&
-			(CheckModifier != 0 || RequirementGrantRankModifier != 0 || SafeFailureMargin != 0);
+		if (SkillId.IsNone() || CheckModifier < -20 || CheckModifier > 20 ||
+			RequirementGrantRankModifier < 0 || RequirementGrantRankModifier > 5 ||
+			SafeFailureMargin < 0 || SafeFailureMargin > 20 ||
+			(CheckModifier == 0 && RequirementGrantRankModifier == 0 && SafeFailureMargin == 0))
+		{
+			return false;
+		}
+		TSet<FName> SeenCategories;
+		for (const FName CategoryId : RelatedMonsterCategoryIds)
+		{
+			if (CategoryId.IsNone() || SeenCategories.Contains(CategoryId))
+			{
+				return false;
+			}
+			SeenCategories.Add(CategoryId);
+		}
+		return true;
 	}
 };
 

@@ -641,6 +641,9 @@ private:
 	bool bPlayerAttackResolutionInProgress = false;
 	bool bPendingVictoryAfterPlayerAttack = false;
 	FGridCombatReactionLedger CombatReactionLedger;
+	int32 PartyTranslationSerial = 0;
+	TMap<FGuid, int32> CharacterActivationTranslationSerial;
+	TMap<FGuid, bool> CharacterStationaryQualification;
 	TSet<FGuid> LoggedDefeatedMonsterIds;
 	TMap<FGridCombatActionCooldownKey, int32> CombatActionCooldownAvailableRounds;
 	EGridPendingPartyMotionType PendingPartyMotionType = EGridPendingPartyMotionType::None;
@@ -718,6 +721,10 @@ private:
 	void ClearPartyMobilityState(bool bBroadcast);
 	void ClearPendingPartyMotion();
 	bool CompletePendingPartyMotion(EGridPendingPartyMotionType ExpectedMotionType);
+	bool IsPartyStationarySincePreviousActivation(const FGuid& CharacterId) const;
+	void RecordPartyTranslation();
+	void EmitMonsterDefeatedReactionEvents(AGridMonsterActor* Monster);
+	bool TransferOwnedTargetStatusFromReaction(int32 CharacterIndex, const FGridCombatReactionMatch& Match);
 	void CollectAllLivingMonsters(TArray<AGridMonsterActor*>& OutMonsters);
 	void CollectPerceivingMonsters(TArray<AGridMonsterActor*>& OutMonsters);
 	bool PrepareMonsterForCombat(AGridMonsterActor* Monster);

@@ -62,6 +62,10 @@ void UGridTurnManagerComponent::ProcessPartyCharacterReactionEvent(int32 Charact
 					CharacterIndex, Definition, Character.CharacterId, ApplyResult, ApplyError, 1, Match.ApplyOwnerStatusDurationOverride);
 			}
 		}
+		if (!Match.TransferOwnedTargetStatusEffectId.IsNone())
+		{
+			TransferOwnedTargetStatusFromReaction(CharacterIndex, Match);
+		}
 		if (Match.CounterAttackWeaponProfile.bUseEquippedWeapon)
 		{
 			ExecuteReactionCounterAttack(CharacterIndex, Match);
@@ -347,6 +351,117 @@ void UGridTurnManagerComponent::ApplyIncomingPartyDamageInterception(int32 Targe
 			return; // One deterministic interceptor per incoming attack.
 		}
 	}
+}
+
+void UGridTurnManagerComponent::EmitMonsterDefeatedReactionEvents(AGridMonsterActor* Monster)
+{
+	if (!bCombatActive || !IsValid(Monster) || !IsValid(PartyPawn) || !IsValid(PartyPawn->PartyInventoryComponent))
+	{
+		return;
+	}
+	const FGuid TargetId = Monster->ResolvePersistenceId();
+	if (!TargetId.IsValid())
+	{
+		return;
+	}
+
+	const TArray<FGridCharacterInventoryState>& Characters =
+		PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters;
+	for (int32 CharacterIndex = 0; CharacterIndex < Characters.Num(); ++CharacterIndex)
+	{
+		const FGridCharacterInventoryState& Character = Characters[CharacterIndex];
+		if (Character.Resources.CurrentHealth <= 0 || !Character.CharacterId.IsValid())
+		{
+			continue;
+		}
+
+		FGridCombatReactionEvent Event;
+		Event.EventId = FGuid::NewGuid();
+		Event.ActionInstanceId = FGuid::NewGuid();
+		Event.RoundNumber = FMath::Max(1, RoundNumber);
+		Event.Trigger = EGridCombatReactionTrigger::OwnedStatusTargetDefeated;
+		Event.SourceCombatantId = Character.CharacterId;
+		Event.TargetCombatantId = TargetId;
+		for (const FGridStatusEffectRuntimeState& State : Monster->StatusEffects.ActiveEffects)
+		{
+			if (State.IsValid() && State.SourceId == Character.CharacterId)
+			{
+				Event.TargetStatusEffectIdsFromOwner.AddUnique(State.EffectId);
+			}
+		}
+		ProcessPartyCharacterReactionEvent(CharacterIndex, Event);
+	}
+}
+
+bool UGridTurnManagerComponent::TransferOwnedTargetStatusFromReaction(int32 CharacterIndex, const FGridCombatReactionMatch& Match)
+{
+	if (Match.TransferOwnedTargetStatusEffectId.IsNone() || !IsValid(PartyPawn) || !IsValid(PartyPawn->PartyInventoryComponent) ||
+		!PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
+	{
+		return false;
+	}
+	FGridCharacterInventoryState& Character =
+		PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex];
+	if (Character.Resources.CurrentHealth <= 0 || !Character.CharacterId.IsValid())
+	{
+		return false;
+	}
+
+	const AGridMonsterActor* DefeatedTarget = FindCombatMonsterById(Match.Event.TargetCombatantId);
+	const FIntPoint OriginCell = IsValid(DefeatedTarget)
+		? DefeatedTarget->CurrentCell
+		: FIntPoint(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+	AGridMonsterActor* BestTarget = nullptr;
+	int32 BestDistance = MAX_int32;
+	FString BestKey;
+	for (AGridMonsterActor* Candidate : CombatMonsters)
+	{
+		if (!IsValid(Candidate) || Candidate->IsDead() || !Candidate->bMonsterEnabled || !Candidate->IsRuntimeLevelActive() ||
+			Candidate->ResolvePersistenceId() == Match.Event.TargetCombatantId)
+		{
+			continue;
+		}
+		const int32 Distance =
+			FMath::Abs(Candidate->CurrentCell.X - OriginCell.X) + FMath::Abs(Candidate->CurrentCell.Y - OriginCell.Y);
+		if (Distance < 1 || Distance > Match.TransferTargetRangeCells)
+		{
+			continue;
+		}
+		const FString Key = Candidate->ResolvePersistenceId().ToString(EGuidFormats::Digits);
+		if (!BestTarget || Distance < BestDistance || (Distance == BestDistance && Key < BestKey))
+		{
+			BestTarget = Candidate;
+			BestDistance = Distance;
+			BestKey = Key;
+		}
+	}
+	if (!IsValid(BestTarget))
+	{
+		return false;
+	}
+
+	UGridStatusEffectLifecycleSubsystem* StatusLifecycle =
+		GetWorld() ? GetWorld()->GetSubsystem<UGridStatusEffectLifecycleSubsystem>() : nullptr;
+	UGridStatusEffectDefinitionAsset* Definition =
+		const_cast<UGridStatusEffectDefinitionAsset*>(
+			FGridCombatStatusApplicationResolver::ResolveDefinition(Match.TransferOwnedTargetStatusEffectId));
+	if (!StatusLifecycle || !IsValid(Definition))
+	{
+		return false;
+	}
+	StatusLifecycle->BindToTurnManager(this);
+	FGridStatusEffectApplyResult ApplyResult;
+	FString ApplyError;
+	const bool bApplied = StatusLifecycle->TryApplyStatusEffectToMonster(
+		BestTarget, Definition, Character.CharacterId, ApplyResult, ApplyError, 1, Match.TransferStatusDurationOverride);
+	if (bApplied)
+	{
+		UE_LOG(LogGridTurnManager, Log,
+			TEXT("[RPG03.9] TargetStatusTransferred Owner=%s Effect=%s Target=%s Distance=%d DurationOverride=%d"),
+			*Character.CharacterId.ToString(EGuidFormats::Digits), *Match.TransferOwnedTargetStatusEffectId.ToString(),
+			*BestTarget->ResolvePersistenceId().ToString(EGuidFormats::Digits), BestDistance, Match.TransferStatusDurationOverride);
+	}
+	return bApplied;
 }
 
 void UGridTurnManagerComponent::EmitPlayerAttackReactionEvents(int32 CharacterIndex, const FGridPlayerAttackRequest& Request,

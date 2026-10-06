@@ -23,8 +23,13 @@ bool FGridCombatTargetingResolver::MatchesTargetFilter(const FGridCombatTargetFi
 
 	for (const FName RequiredId : Filter.RequiredStatusEffectIds)
 	{
-		const FGridStatusEffectRuntimeState* State = StatusEffects.FindByEffectId(RequiredId);
-		if (!State || (Filter.bRequiredStatusesFromSource && State->SourceId != ActingSourceId))
+		const bool bFound = StatusEffects.ActiveEffects.ContainsByPredicate(
+			[RequiredId, &Filter, &ActingSourceId](const FGridStatusEffectRuntimeState& State)
+			{
+				return State.EffectId == RequiredId &&
+					(!Filter.bRequiredStatusesFromSource || State.SourceId == ActingSourceId);
+			});
+		if (!bFound)
 		{
 			return false;
 		}

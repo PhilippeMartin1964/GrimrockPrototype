@@ -100,6 +100,13 @@ bool FGridCombatReactionResolver::Matches(const FGridCombatReactionProfile& Prof
 	{
 		return false;
 	}
+	for (const FName EffectId : Profile.RequiredTargetStatusEffectIdsFromOwner)
+	{
+		if (!Event.TargetStatusEffectIdsFromOwner.Contains(EffectId))
+		{
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -205,6 +212,9 @@ void FGridCombatReactionResolver::ResolveMatches(const TArray<FGridCombatReactio
 		Match.bRequireEventTargetFrontRow = Binding.Profile.bRequireEventTargetFrontRow;
 		Match.ApplyOwnerStatusEffectId = Binding.Profile.ApplyOwnerStatusEffectId;
 		Match.ApplyOwnerStatusDurationOverride = Binding.Profile.ApplyOwnerStatusDurationOverride;
+		Match.TransferOwnedTargetStatusEffectId = Binding.Profile.TransferOwnedTargetStatusEffectId;
+		Match.TransferTargetRangeCells = Binding.Profile.TransferTargetRangeCells;
+		Match.TransferStatusDurationOverride = Binding.Profile.TransferStatusDurationOverride;
 		Match.Event = Event;
 	}
 }

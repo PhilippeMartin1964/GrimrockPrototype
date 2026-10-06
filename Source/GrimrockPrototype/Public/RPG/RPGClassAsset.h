@@ -25,6 +25,49 @@ struct FRPGClassProgressionLevelGrant
 	TArray<FName> GrantedRequirementIds;
 };
 
+/** Party-wide progression contribution. StackingGroupId makes equal effects non-cumulative across characters. */
+USTRUCT(BlueprintType)
+struct FRPGPartyProgressionModifier
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|Party")
+	FName StackingGroupId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|Party")
+	TArray<FName> GroupSkillIds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|Party", meta = (ClampMin = "-20", ClampMax = "20"))
+	int32 GroupSkillCheckModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|Party", meta = (ClampMin = "-4", ClampMax = "4"))
+	int32 MaximumMobilityActionPointsModifier = 0;
+
+	bool IsValid() const
+	{
+		if (GroupSkillCheckModifier < -20 || GroupSkillCheckModifier > 20 ||
+			MaximumMobilityActionPointsModifier < -4 || MaximumMobilityActionPointsModifier > 4 ||
+			(GroupSkillCheckModifier == 0 && MaximumMobilityActionPointsModifier == 0))
+		{
+			return false;
+		}
+		if (GroupSkillCheckModifier != 0 && GroupSkillIds.IsEmpty())
+		{
+			return false;
+		}
+		TSet<FName> Seen;
+		for (const FName SkillId : GroupSkillIds)
+		{
+			if (SkillId.IsNone() || Seen.Contains(SkillId))
+			{
+				return false;
+			}
+			Seen.Add(SkillId);
+		}
+		return true;
+	}
+};
+
 /** One optional class progression choice offered to the player. */
 USTRUCT(BlueprintType)
 struct FRPGClassProgressionChoiceDefinition
@@ -72,6 +115,14 @@ struct FRPGClassProgressionChoiceDefinition
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|Skills")
 	TArray<FRPGSkillProgressionModifier> SkillModifiers;
+
+	/** Party/global modifiers projected while the choice owner is alive. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|Party")
+	TArray<FRPGPartyProgressionModifier> PartyModifiers;
+
+	/** Owner-only bonus applied when the initial combat initiative order is built. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|Combat", meta = (ClampMin = "-20", ClampMax = "20"))
+	int32 FirstRoundInitiativeModifier = 0;
 };
 
 UCLASS(BlueprintType)

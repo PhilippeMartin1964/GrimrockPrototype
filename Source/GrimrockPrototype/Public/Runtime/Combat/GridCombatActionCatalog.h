@@ -32,6 +32,7 @@ struct GRIMROCKPROTOTYPE_API FGridCombatActionCatalogContext
 	TArray<TArray<FName>> EquippedOffensiveSourceTagSets;
 	/** Parallel to EquippedOffensiveSourceTagSets; None represents a non-physical descriptor. */
 	TArray<EGridPhysicalDamageSubtype> EquippedOffensivePhysicalSubtypes;
+	TArray<int32> EquippedOffensiveRangeCells;
 	TMap<FName, int32> RemainingCooldownRounds;
 	TArray<FGridCombatModifierProfile> CombatModifiers;
 	TArray<FRPGSkillRank> SkillRanks;

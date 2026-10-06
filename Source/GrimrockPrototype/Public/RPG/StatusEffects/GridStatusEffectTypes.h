@@ -222,6 +222,7 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectCollection
 	}
 
 	const FGridStatusEffectRuntimeState* FindByEffectId(FName EffectId) const;
+	const FGridStatusEffectRuntimeState* FindByEffectIdAndSource(FName EffectId, const FGuid& SourceId) const;
 	bool Contains(FName EffectId) const
 	{
 		return FindByEffectId(EffectId) != nullptr;
@@ -243,6 +244,7 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectCollection
 	}
 
 	bool RemoveByEffectId(FName EffectId, FGridStatusEffectRuntimeState& OutRemovedState);
+	bool RemoveByEffectIdAndSource(FName EffectId, const FGuid& SourceId, FGridStatusEffectRuntimeState& OutRemovedState);
 
 	void AdvanceDuration(EGridStatusEffectDurationUnit DurationUnit, FGridStatusEffectAdvanceResult& OutResult);
 

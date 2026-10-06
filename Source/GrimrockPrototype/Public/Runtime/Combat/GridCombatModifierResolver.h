@@ -17,6 +17,10 @@ struct GRIMROCKPROTOTYPE_API FGridCombatModifierContext
 	EGridPhysicalDamageSubtype PhysicalSubtype = EGridPhysicalDamageSubtype::None;
 	EGridCombatTargetingPolicy TargetingPolicy = EGridCombatTargetingPolicy::None;
 	TArray<EGridCombatTargetCondition> TargetConditions;
+	TArray<FName> TargetStatusEffectIds;
+	TArray<FName> TargetStatusEffectIdsFromSource;
+	FName TargetMonsterCategoryId = NAME_None;
+	bool bPartyStationarySincePreviousActivation = false;
 
 	bool HasTargetCondition(EGridCombatTargetCondition Condition) const
 	{
@@ -91,6 +95,8 @@ public:
 
 	static void AddTargetContext(FGridCombatModifierContext& Context, EGridCombatTargetingPolicy TargetingPolicy,
 		bool bRearArc, bool bTargetHasActedThisRound, bool bTargetHasPhysicalControl);
+	static void AddTargetStatusContext(FGridCombatModifierContext& Context, const FGridStatusEffectCollection& StatusEffects,
+		const FGuid& ActingSourceId, FName TargetMonsterCategoryId);
 
 	static bool Matches(const FGridCombatModifierProfile& Profile, const FGridCombatModifierContext& Context);
 

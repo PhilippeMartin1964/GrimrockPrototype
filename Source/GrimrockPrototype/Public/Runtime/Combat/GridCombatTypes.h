@@ -177,6 +177,10 @@ struct FGridCombatantInitiativeEntry
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Initiative")
 	int32 InitiativeModifier = 0;
 
+	/** Owner-only class bonus used only during the first encounter round. */
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+	int32 FirstRoundInitiativeModifier = 0;
+
 	/** Final Dexterity used only as the second deterministic tie-break. */
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Initiative")
 	int32 Dexterity = 0;
@@ -202,7 +206,8 @@ struct FGridCombatantInitiativeEntry
 
 	int32 GetEffectiveInitiativeTotal() const
 	{
-		return static_cast<int32>(FMath::Clamp<int64>(static_cast<int64>(InitiativeTotal) + InitiativeModifier, MIN_int32, MAX_int32));
+		return static_cast<int32>(FMath::Clamp<int64>(
+			static_cast<int64>(InitiativeTotal) + InitiativeModifier + FirstRoundInitiativeModifier, MIN_int32, MAX_int32));
 	}
 };
 
@@ -522,6 +527,17 @@ struct FGridCombatWeaponAttackProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack")
 	TArray<EGridPhysicalDamageSubtype> AllowedPhysicalSubtypes;
 
+	/** Requires the resolved offensive item to have a range greater than one cell. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack")
+	bool bRequireRangedWeapon = false;
+
+	/** Use the equipped weapon's authored range instead of the action's absolute RangeCells. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack")
+	bool bUseWeaponRange = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack", meta = (ClampMin = "-31", ClampMax = "31"))
+	int32 WeaponRangeModifier = 0;
+
 	/** Allows the standard unarmed profile when no offensive item is equipped. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Weapon Attack")
 	bool bAllowUnarmed = false;
@@ -560,8 +576,14 @@ struct FGridCombatWeaponAttackProfile
 		{
 			return false;
 		}
+		if (bRequireRangedWeapon && InOutProfile.RangeCells <= 1)
+		{
+			return false;
+		}
 		InOutProfile.AttackId = ActionId;
-		InOutProfile.RangeCells = ActionRangeCells;
+		InOutProfile.RangeCells = bUseWeaponRange
+			? FMath::Clamp(InOutProfile.RangeCells + WeaponRangeModifier, 1, 32)
+			: ActionRangeCells;
 		if (bOverrideDamageDescriptor)
 		{
 			InOutProfile.AttackDefinition.DamageType = OverrideDamageType;
@@ -577,7 +599,10 @@ struct FGridCombatWeaponAttackProfile
 		{
 			return true;
 		}
-		if (WeaponDamagePercent < 1 || WeaponDamagePercent > 500 || (bAllowUnarmed && !RequiredItemTags.IsEmpty()))
+		if (WeaponDamagePercent < 1 || WeaponDamagePercent > 500 ||
+			WeaponRangeModifier < -31 || WeaponRangeModifier > 31 ||
+			(!bUseWeaponRange && WeaponRangeModifier != 0) ||
+			(bAllowUnarmed && (!RequiredItemTags.IsEmpty() || bRequireRangedWeapon)))
 		{
 			return false;
 		}
@@ -694,7 +719,8 @@ enum class EGridCombatReactionTrigger : uint8
 	TargetDefeated UMETA(DisplayName = "Target Defeated"),
 	DirectDamageReceived UMETA(DisplayName = "Direct Damage Received"),
 	SurfaceReaction UMETA(DisplayName = "Surface Reaction"),
-	IncomingAttackHit UMETA(DisplayName = "Incoming Attack Hit")
+	IncomingAttackHit UMETA(DisplayName = "Incoming Attack Hit"),
+	OwnedStatusTargetDefeated UMETA(DisplayName = "Owned Status Target Defeated")
 };
 
 UENUM(BlueprintType)
@@ -742,6 +768,10 @@ struct FGridCombatReactionProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
 	bool bRequireOffensiveAction = false;
 
+	/** Every listed target status must belong to the reaction owner on the event target. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
+	TArray<FName> RequiredTargetStatusEffectIdsFromOwner;
+
 	/** Reaction-generated events are ignored by default to prevent recursive chains. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction")
 	bool bAllowReactionGeneratedEvents = false;
@@ -773,6 +803,16 @@ struct FGridCombatReactionProfile
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response", meta = (ClampMin = "-1", ClampMax = "12"))
 	int32 ApplyOwnerStatusDurationOverride = INDEX_NONE;
+
+	/** Transfer this owner-sourced target status to the nearest living hostile after a qualifying event. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response")
+	FName TransferOwnedTargetStatusEffectId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response", meta = (ClampMin = "1", ClampMax = "32"))
+	int32 TransferTargetRangeCells = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response", meta = (ClampMin = "-1", ClampMax = "12"))
+	int32 TransferStatusDurationOverride = INDEX_NONE;
 
 	bool IsValid() const
 	{
@@ -823,6 +863,28 @@ struct FGridCombatReactionProfile
 				return false;
 			}
 			SeenSourceTags.Add(Tag);
+		}
+		TSet<FName> SeenTargetStatuses;
+		for (const FName EffectId : RequiredTargetStatusEffectIdsFromOwner)
+		{
+			if (EffectId.IsNone() || SeenTargetStatuses.Contains(EffectId))
+			{
+				return false;
+			}
+			SeenTargetStatuses.Add(EffectId);
+		}
+		if (!TransferOwnedTargetStatusEffectId.IsNone() &&
+			(Trigger != EGridCombatReactionTrigger::OwnedStatusTargetDefeated || TransferTargetRangeCells < 1 || TransferTargetRangeCells > 32))
+		{
+			return false;
+		}
+		if (TransferOwnedTargetStatusEffectId.IsNone() && TransferStatusDurationOverride != INDEX_NONE)
+		{
+			return false;
+		}
+		if (TransferStatusDurationOverride < INDEX_NONE)
+		{
+			return false;
 		}
 		if (ApplyOwnerStatusDurationOverride < INDEX_NONE)
 		{
@@ -878,6 +940,10 @@ struct FGridCombatReactionEvent
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	bool bOffensiveAction = false;
 
+	/** Filled per reaction owner for target statuses whose SourceId equals that owner. */
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	TArray<FName> TargetStatusEffectIdsFromOwner;
+
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	bool bReactionGenerated = false;
 
@@ -928,6 +994,15 @@ struct FGridCombatReactionMatch
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	int32 ApplyOwnerStatusDurationOverride = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FName TransferOwnedTargetStatusEffectId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	int32 TransferTargetRangeCells = 1;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	int32 TransferStatusDurationOverride = INDEX_NONE;
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	FGridCombatReactionEvent Event;
@@ -1476,6 +1551,18 @@ struct FGridCombatModifierProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
 	bool bExcludeAreaActions = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
+	TArray<FName> RequiredTargetStatusEffectIds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
+	bool bRequiredTargetStatusesFromOwner = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
+	TArray<FName> AllowedTargetMonsterCategoryIds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
+	bool bRequirePartyStationarySincePreviousActivation = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier")
 	int32 AccuracyModifier = 0;
 
@@ -1663,7 +1750,26 @@ struct FGridCombatModifierProfile
 			}
 			return true;
 		};
-		return ConditionsValid(RequiredTargetConditions) && ConditionsValid(AnyTargetConditions);
+		TSet<FName> SeenTargetStatuses;
+		for (const FName EffectId : RequiredTargetStatusEffectIds)
+		{
+			if (EffectId.IsNone() || SeenTargetStatuses.Contains(EffectId))
+			{
+				return false;
+			}
+			SeenTargetStatuses.Add(EffectId);
+		}
+		TSet<FName> SeenCategories;
+		for (const FName CategoryId : AllowedTargetMonsterCategoryIds)
+		{
+			if (CategoryId.IsNone() || SeenCategories.Contains(CategoryId))
+			{
+				return false;
+			}
+			SeenCategories.Add(CategoryId);
+		}
+		return (!bRequiredTargetStatusesFromOwner || !RequiredTargetStatusEffectIds.IsEmpty()) &&
+			ConditionsValid(RequiredTargetConditions) && ConditionsValid(AnyTargetConditions);
 	}
 };
 
@@ -1921,6 +2027,10 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting", meta = (ClampMin = "0", ClampMax = "32"))
 	int32 RangeCells = 0;
 
+	/** Grid LOS to the selected hostile/cell must be clear before committing the action. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting")
+	bool bRequiresLineOfSight = false;
+
 	/** C8 optional eligibility filter for the target(s). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting")
 	FGridCombatTargetFilterProfile TargetFilter;
@@ -2017,6 +2127,11 @@ struct FGridCombatActionDefinition
 											  TargetingPolicy != EGridCombatTargetingPolicy::Hostile) ||
 			RangeCells > 0;
 		const bool bAreaRadiusValid = TargetingPolicy != EGridCombatTargetingPolicy::Area || AreaRadiusCells > 0;
+		const bool bLineOfSightValid = !bRequiresLineOfSight ||
+			TargetingPolicy == EGridCombatTargetingPolicy::FirstAxialTarget ||
+			TargetingPolicy == EGridCombatTargetingPolicy::Hostile ||
+			TargetingPolicy == EGridCombatTargetingPolicy::Cell ||
+			TargetingPolicy == EGridCombatTargetingPolicy::Area;
 		const bool bFriendlyAreaValid = !bAffectsAlliesInArea ||
 			(TargetingPolicy == EGridCombatTargetingPolicy::Area && ResolutionProfile == EGridCombatActionResolutionProfile::Attack);
 		const bool bStatusApplicationsValid = StatusApplications.ContainsByPredicate(
@@ -2092,7 +2207,8 @@ struct FGridCombatActionDefinition
 			CooldownRounds >= 0 && MaximumResolvedTargets >= 0 && MaximumResolvedTargets <= 16 && ResolutionCount >= 1 && ResolutionCount <= 8 &&
 			SubsequentResolutionAccuracyModifier >= -20 && SubsequentResolutionAccuracyModifier <= 20 &&
 			(ResolutionCount > 1 || SubsequentResolutionAccuracyModifier == 0) && TargetFilter.IsValid() && bWeaponAttackProfileValid &&
-			bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bFriendlyAreaValid && bStatusApplicationsValid &&
+			bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bLineOfSightValid && bFriendlyAreaValid &&
+			bStatusApplicationsValid &&
 			bStatusRemovalsValid && bArmorEffectsValid && bMovementEffectsValid && bTrapEffectValid && bSkillCheckValid && bSurfaceEffectsValid &&
 			bSourceTagsValid && bQuickItemScalingValid &&
 			(ResolutionCount == 1 || ResolutionProfile == EGridCombatActionResolutionProfile::Attack);

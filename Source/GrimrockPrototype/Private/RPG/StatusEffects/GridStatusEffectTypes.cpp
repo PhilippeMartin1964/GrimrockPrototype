@@ -15,6 +15,19 @@ const FGridStatusEffectRuntimeState* FGridStatusEffectCollection::FindByEffectId
 		});
 }
 
+const FGridStatusEffectRuntimeState* FGridStatusEffectCollection::FindByEffectIdAndSource(FName EffectId, const FGuid& SourceId) const
+{
+	if (EffectId.IsNone())
+	{
+		return nullptr;
+	}
+	return ActiveEffects.FindByPredicate(
+		[EffectId, SourceId](const FGridStatusEffectRuntimeState& State)
+		{
+			return State.EffectId == EffectId && State.SourceId == SourceId;
+		});
+}
+
 bool FGridStatusEffectCollection::TryAdd(
 	const UGridStatusEffectDefinitionAsset& Definition, const FGuid& SourceId, int32 InitialStackCount, int32 DurationOverride, FString& OutError)
 {
@@ -24,9 +37,13 @@ bool FGridStatusEffectCollection::TryAdd(
 		return false;
 	}
 
-	if (Contains(Candidate.EffectId))
+	const bool bAlreadyActive = Definition.bDistinctPerSource
+		? FindByEffectIdAndSource(Candidate.EffectId, Candidate.SourceId) != nullptr
+		: Contains(Candidate.EffectId);
+	if (bAlreadyActive)
 	{
-		OutError = FString::Printf(TEXT("EffectId '%s' is already active. Use TryApply for MON16.2 reapplication rules."), *Candidate.EffectId.ToString());
+		OutError = FString::Printf(TEXT("EffectId '%s' is already active for the requested identity. Use TryApply for reapplication rules."),
+			*Candidate.EffectId.ToString());
 		return false;
 	}
 
@@ -48,9 +65,9 @@ bool FGridStatusEffectCollection::TryApply(const UGridStatusEffectDefinitionAsse
 	}
 
 	const int32 ExistingIndex = ActiveEffects.IndexOfByPredicate(
-		[&Candidate](const FGridStatusEffectRuntimeState& State)
+		[&Candidate, &Definition](const FGridStatusEffectRuntimeState& State)
 		{
-			return State.EffectId == Candidate.EffectId;
+			return State.EffectId == Candidate.EffectId && (!Definition.bDistinctPerSource || State.SourceId == Candidate.SourceId);
 		});
 
 	OutResult.EffectId = Candidate.EffectId;
@@ -155,6 +172,28 @@ bool FGridStatusEffectCollection::RemoveByEffectId(FName EffectId, FGridStatusEf
 	return true;
 }
 
+bool FGridStatusEffectCollection::RemoveByEffectIdAndSource(
+	FName EffectId, const FGuid& SourceId, FGridStatusEffectRuntimeState& OutRemovedState)
+{
+	OutRemovedState = FGridStatusEffectRuntimeState();
+	if (EffectId.IsNone())
+	{
+		return false;
+	}
+	const int32 Index = ActiveEffects.IndexOfByPredicate(
+		[EffectId, SourceId](const FGridStatusEffectRuntimeState& State)
+		{
+			return State.EffectId == EffectId && State.SourceId == SourceId;
+		});
+	if (Index == INDEX_NONE)
+	{
+		return false;
+	}
+	OutRemovedState = ActiveEffects[Index];
+	ActiveEffects.RemoveAt(Index);
+	return true;
+}
+
 void FGridStatusEffectCollection::AdvanceDuration(EGridStatusEffectDurationUnit DurationUnit, FGridStatusEffectAdvanceResult& OutResult)
 {
 	OutResult.Reset(DurationUnit);
@@ -192,6 +231,10 @@ void FGridStatusEffectCollection::SortDeterministically()
 	ActiveEffects.Sort(
 		[](const FGridStatusEffectRuntimeState& Left, const FGridStatusEffectRuntimeState& Right)
 		{
-			return Left.EffectId.ToString().Compare(Right.EffectId.ToString(), ESearchCase::CaseSensitive) < 0;
+			const int32 EffectCompare = Left.EffectId.ToString().Compare(Right.EffectId.ToString(), ESearchCase::CaseSensitive);
+			return EffectCompare != 0
+				? EffectCompare < 0
+				: Left.SourceId.ToString(EGuidFormats::Digits).Compare(
+					Right.SourceId.ToString(EGuidFormats::Digits), ESearchCase::CaseSensitive) < 0;
 		});
 }

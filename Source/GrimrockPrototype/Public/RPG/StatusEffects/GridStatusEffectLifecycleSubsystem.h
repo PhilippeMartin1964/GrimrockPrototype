@@ -60,8 +60,10 @@ public:
 
 	/** C4 deterministic status consumption used by matching reaction profiles. */
 	bool ConsumeStatusEffectFromPartyCharacter(int32 CharacterIndex, FName EffectId);
+	bool ConsumeStatusEffectFromPartyCharacterBySource(int32 CharacterIndex, FName EffectId, const FGuid& SourceId);
 
 	bool ConsumeStatusEffectFromMonster(AGridMonsterActor* Monster, FName EffectId);
+	bool ConsumeStatusEffectFromMonsterBySource(AGridMonsterActor* Monster, FName EffectId, const FGuid& SourceId);
 
 	/** C8 deterministic filtered removals, routed through MON16 mutation/feedback. */
 	int32 RemoveCombatStatusEffectsFromPartyCharacter(

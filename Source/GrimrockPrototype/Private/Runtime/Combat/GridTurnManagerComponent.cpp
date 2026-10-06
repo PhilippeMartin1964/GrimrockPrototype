@@ -693,6 +693,7 @@ void UGridTurnManagerComponent::HandleCombatMonsterDied(AGridMonsterActor* Monst
 		DefeatedEntry.SourceDisplayName = ResolveMonsterDisplayName(Monster);
 		DefeatedEntry.Message = FGridCombatLogFormatter::FormatMonsterDefeated(DefeatedEntry.SourceDisplayName);
 		AppendCombatLogEntry(DefeatedEntry);
+		EmitMonsterDefeatedReactionEvents(Monster);
 	}
 
 	const bool bWasCurrentMonster = CurrentMonster == Monster;

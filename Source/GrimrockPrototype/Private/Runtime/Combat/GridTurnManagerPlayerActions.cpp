@@ -510,6 +510,9 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 			CombatActionOverride ? CombatActionOverride->Definition.TargetingPolicy : EGridCombatTargetingPolicy::FirstAxialTarget,
 			IsRPG0392RearArc(ModifierSourceCell, TargetMonster), HasRPG0392ActedThisRound(this, TargetMonster),
 			HasRPG0392PhysicalControl(TargetMonster));
+		FGridCombatModifierResolver::AddTargetStatusContext(TargetedContext, TargetMonster->StatusEffects, Attacker.CharacterId,
+			IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->CategoryId : NAME_None);
+		TargetedContext.bPartyStationarySincePreviousActivation = IsPartyStationarySincePreviousActivation(Attacker.CharacterId);
 		FGridCombatModifierResolver::Resolve(ChoiceModifiers, TargetedContext, ResolvedAttackModifiers);
 	}
 

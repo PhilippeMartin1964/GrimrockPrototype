@@ -1,6 +1,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
 #include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
+#include "RPG/RPGPartyProgressionResolver.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -42,6 +43,7 @@ void UGridTurnManagerComponent::BuildGlobalInitiativeOrder()
 			Entry.DisplayName = ResolveInitiativeCharacterName(Character, CharacterIndex);
 			Entry.Portrait = bHasSummary ? Summary.Portrait : TSoftObjectPtr<UTexture2D>();
 			Entry.InitiativeBase = 10 + Character.DerivedStats.Initiative;
+			Entry.FirstRoundInitiativeModifier = FRPGPartyProgressionResolver::ResolveFirstRoundInitiativeModifier(Character);
 			Entry.Dexterity = bHasSummary ? Summary.Attributes.Dexterity : Character.Attributes.Dexterity;
 			Entry.CurrentHealth = Character.Resources.CurrentHealth;
 			Entry.MaximumHealth = FMath::Max(1, Character.DerivedStats.MaxHealth);
@@ -112,6 +114,13 @@ void UGridTurnManagerComponent::BuildGlobalInitiativeOrder()
 void UGridTurnManagerComponent::ResetInitiativeRound()
 {
 	CurrentInitiativeIndex = INDEX_NONE;
+	if (RoundNumber > 1)
+	{
+		for (FGridCombatantInitiativeEntry& Entry : InitiativeOrder)
+		{
+			Entry.FirstRoundInitiativeModifier = 0;
+		}
+	}
 	FGridInitiativeOrderBuilder::Sort(InitiativeOrder);
 	ResetPartyMobilityForRound();
 	BeginPlayerCharacterPhase();
@@ -248,6 +257,11 @@ bool UGridTurnManagerComponent::BeginPlayerCombatantTurn(FGridCombatantInitiativ
 	{
 		return false;
 	}
+
+	const int32* PreviousActivationSerial = CharacterActivationTranslationSerial.Find(Entry.CombatantId);
+	CharacterStationaryQualification.Add(
+		Entry.CombatantId, PreviousActivationSerial ? *PreviousActivationSerial == PartyTranslationSerial : PartyTranslationSerial == 0);
+	CharacterActivationTranslationSerial.Add(Entry.CombatantId, PartyTranslationSerial);
 
 	SetPartyInputLocked(false);
 	SetInitiativeEntryState(Entry, EGridCombatantTurnState::Active);
@@ -431,6 +445,9 @@ void UGridTurnManagerComponent::ClearInitiativeState(bool bBroadcast)
 {
 	InitiativeOrder.Reset();
 	CurrentInitiativeIndex = INDEX_NONE;
+	PartyTranslationSerial = 0;
+	CharacterActivationTranslationSerial.Reset();
+	CharacterStationaryQualification.Reset();
 	if (bBroadcast)
 	{
 		OnActiveCombatantChanged.Broadcast(FGridCombatantInitiativeEntry());
@@ -543,6 +560,7 @@ void UGridTurnManagerComponent::GetInitiativePreview(TArray<FGridInitiativePrevi
 
 		FGridCombatantInitiativeEntry& FutureEntry = FutureRoundOrder.AddDefaulted_GetRef();
 		FutureEntry = RefreshedEntry;
+		FutureEntry.FirstRoundInitiativeModifier = 0;
 		FutureEntry.State = EGridCombatantTurnState::Waiting;
 	}
 	FGridInitiativeOrderBuilder::Sort(FutureRoundOrder);

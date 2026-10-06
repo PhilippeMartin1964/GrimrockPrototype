@@ -121,6 +121,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Stacking", meta = (ClampMin = "1"))
 	int32 MaxStacks = 1;
 
+	/** Allows one runtime instance per SourceId instead of one instance per EffectId. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Stacking")
+	bool bDistinctPerSource = false;
+
+	/** When applied to a monster, removes this same EffectId+SourceId from every other combat monster. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Stacking", meta = (EditCondition = "bDistinctPerSource"))
+	bool bUniquePerSourceAcrossMonsters = false;
+
 	/**
      * Periodic damage executes immediately before the matching Turns/Rounds
      * duration decrement. A zero DamagePerStack means no periodic damage.

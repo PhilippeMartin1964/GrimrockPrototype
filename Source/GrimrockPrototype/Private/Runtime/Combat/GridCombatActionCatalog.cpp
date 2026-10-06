@@ -44,6 +44,11 @@ namespace
 					continue;
 				}
 			}
+			if (WeaponProfile.bRequireRangedWeapon &&
+				(!Context.EquippedOffensiveRangeCells.IsValidIndex(Index) || Context.EquippedOffensiveRangeCells[Index] <= 1))
+			{
+				continue;
+			}
 			return true;
 		}
 		return false;

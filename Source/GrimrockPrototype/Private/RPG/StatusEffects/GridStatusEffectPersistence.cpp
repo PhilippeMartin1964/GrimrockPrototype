@@ -10,12 +10,16 @@ namespace GridStatusEffectPersistencePrivate
 
 	bool StatusSaveStateLess(const FGridStatusEffectSaveState& Left, const FGridStatusEffectSaveState& Right)
 	{
-		return Left.EffectId.ToString().Compare(Right.EffectId.ToString(), ESearchCase::CaseSensitive) < 0;
+		const int32 EffectCompare = Left.EffectId.ToString().Compare(Right.EffectId.ToString(), ESearchCase::CaseSensitive);
+		return EffectCompare != 0 ? EffectCompare < 0 :
+			Left.SourceId.ToString(EGuidFormats::Digits).Compare(Right.SourceId.ToString(EGuidFormats::Digits), ESearchCase::CaseSensitive) < 0;
 	}
 
 	bool RuntimeStateLess(const FGridStatusEffectRuntimeState& Left, const FGridStatusEffectRuntimeState& Right)
 	{
-		return Left.EffectId.ToString().Compare(Right.EffectId.ToString(), ESearchCase::CaseSensitive) < 0;
+		const int32 EffectCompare = Left.EffectId.ToString().Compare(Right.EffectId.ToString(), ESearchCase::CaseSensitive);
+		return EffectCompare != 0 ? EffectCompare < 0 :
+			Left.SourceId.ToString(EGuidFormats::Digits).Compare(Right.SourceId.ToString(EGuidFormats::Digits), ESearchCase::CaseSensitive) < 0;
 	}
 
 	bool ValidateDefinitionForState(const FGridStatusEffectRuntimeState& State, const UGridStatusEffectDefinitionAsset* Definition, FString& OutError)
@@ -69,6 +73,10 @@ namespace GridStatusEffectPersistencePrivate
 		}
 
 		Candidate.ActiveEffects.Sort(&RuntimeStateLess);
+		if (!FGridStatusEffectPersistence::ValidateRuntimeCollection(Candidate, OutError))
+		{
+			return false;
+		}
 		Collection = MoveTemp(Candidate);
 		OutError.Reset();
 		return true;
@@ -103,7 +111,7 @@ using namespace GridStatusEffectPersistencePrivate;
 
 bool FGridStatusEffectPersistence::ValidateSavedCollection(const TArray<FGridStatusEffectSaveState>& SavedStates, FString& OutError)
 {
-	TSet<FName> EffectIds;
+	TSet<FString> Identities;
 	for (const FGridStatusEffectSaveState& SavedState : SavedStates)
 	{
 		if (!SavedState.IsStructurallyValid())
@@ -111,12 +119,13 @@ bool FGridStatusEffectPersistence::ValidateSavedCollection(const TArray<FGridSta
 			OutError = FString::Printf(TEXT("Saved status effect '%s' has an invalid runtime snapshot."), *SavedState.EffectId.ToString());
 			return false;
 		}
-		if (EffectIds.Contains(SavedState.EffectId))
+		const FString Identity = FString::Printf(TEXT("%s|%s"), *SavedState.EffectId.ToString(), *SavedState.SourceId.ToString(EGuidFormats::Digits));
+		if (Identities.Contains(Identity))
 		{
-			OutError = FString::Printf(TEXT("Saved status effect '%s' is duplicated."), *SavedState.EffectId.ToString());
+			OutError = FString::Printf(TEXT("Saved status effect identity '%s' is duplicated."), *Identity);
 			return false;
 		}
-		EffectIds.Add(SavedState.EffectId);
+		Identities.Add(Identity);
 	}
 
 	OutError.Reset();
@@ -125,7 +134,7 @@ bool FGridStatusEffectPersistence::ValidateSavedCollection(const TArray<FGridSta
 
 bool FGridStatusEffectPersistence::ValidateDurableCollection(const FGridStatusEffectCollection& Collection, FString& OutError)
 {
-	TSet<FName> EffectIds;
+	TSet<FString> Identities;
 	for (const FGridStatusEffectRuntimeState& State : Collection.ActiveEffects)
 	{
 		if (!State.IsValid())
@@ -133,12 +142,13 @@ bool FGridStatusEffectPersistence::ValidateDurableCollection(const FGridStatusEf
 			OutError = FString::Printf(TEXT("Durable status effect '%s' has an invalid stable state."), *State.EffectId.ToString());
 			return false;
 		}
-		if (EffectIds.Contains(State.EffectId))
+		const FString Identity = FString::Printf(TEXT("%s|%s"), *State.EffectId.ToString(), *State.SourceId.ToString(EGuidFormats::Digits));
+		if (Identities.Contains(Identity))
 		{
-			OutError = FString::Printf(TEXT("Durable status effect '%s' is duplicated."), *State.EffectId.ToString());
+			OutError = FString::Printf(TEXT("Durable status effect identity '%s' is duplicated."), *Identity);
 			return false;
 		}
-		EffectIds.Add(State.EffectId);
+		Identities.Add(Identity);
 	}
 
 	OutError.Reset();
@@ -152,11 +162,22 @@ bool FGridStatusEffectPersistence::ValidateRuntimeCollection(const FGridStatusEf
 		return false;
 	}
 
+	TSet<FName> NonDistinctEffectIds;
 	for (const FGridStatusEffectRuntimeState& State : Collection.ActiveEffects)
 	{
-		if (!ValidateDefinitionForState(State, State.DefinitionAsset.Get(), OutError))
+		const UGridStatusEffectDefinitionAsset* Definition = State.DefinitionAsset.Get();
+		if (!ValidateDefinitionForState(State, Definition, OutError))
 		{
 			return false;
+		}
+		if (!Definition->bDistinctPerSource)
+		{
+			if (NonDistinctEffectIds.Contains(State.EffectId))
+			{
+				OutError = FString::Printf(TEXT("Runtime status effect '%s' does not allow multiple sources."), *State.EffectId.ToString());
+				return false;
+			}
+			NonDistinctEffectIds.Add(State.EffectId);
 		}
 	}
 
@@ -303,6 +324,10 @@ bool FGridStatusEffectPersistence::RestoreCollection(const TArray<FGridStatusEff
 	}
 
 	Candidate.ActiveEffects.Sort(&RuntimeStateLess);
+	if (!ValidateRuntimeCollection(Candidate, OutError))
+	{
+		return false;
+	}
 	OutRuntimeCollection = MoveTemp(Candidate);
 	OutError.Reset();
 	return true;
