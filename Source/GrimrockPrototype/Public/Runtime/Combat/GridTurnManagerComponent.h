@@ -16,6 +16,7 @@ class UGridPartyInventoryComponent;
 class UGridMonsterBehaviorComponent;
 class UGridMonsterCombatComponent;
 class UGridMonsterMovementComponent;
+struct FGridResolvedCombatModifiers;
 struct FGridRetreatDecision;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogGridTurnManager, Log, All);
