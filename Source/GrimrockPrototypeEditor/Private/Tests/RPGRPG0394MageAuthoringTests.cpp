@@ -1079,7 +1079,7 @@ bool FRPG0394F2TerrainArchitectTest::RunTest(const FString&)
 	{
 		FGridCombatActionDefinition Projected;
 		TestTrue(*FString::Printf(TEXT("%s Terrain Architect projects"), Item.Suffix),
-			ProjectAffinityAction(*Authored, Item.Suffix, Projected));
+			ProjectSurfaceWeaverAction(*Authored, Item.Suffix, Projected));
 		TestEqual(TEXT("Projected Terrain Architect has one surface"), Projected.SurfaceEffects.Num(), 1);
 		if (Projected.SurfaceEffects.Num() == 1)
 		{
