@@ -398,4 +398,35 @@ bool FRPG034RuntimeStatusConsumptionTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394B3ActionResolvedSourceTagsTest, "Grimrock.RPG.RPG03.9.4B3.ActionResolvedSourceTags",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394B3ActionResolvedSourceTagsTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	RPG034::FIntegrationFixture Fixture;
+	if (!Fixture.TurnManager || !Fixture.Party || !Fixture.Party->PartyInventoryComponent || !Fixture.Class || !Fixture.Status ||
+		Fixture.Class->CombatActions.IsEmpty() || Fixture.Status->CombatReactions.IsEmpty())
+	{
+		return false;
+	}
+
+	const FName RequiredTag(TEXT("Spell.School.Fire"));
+	Fixture.Class->CombatActions[0].SourceTags = { RequiredTag };
+	Fixture.Status->CombatReactions[0].RequiredSourceTags = { RequiredTag };
+
+	FGridCharacterInventoryState& Character = Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0];
+	TestTrue(TEXT("Tagged consumable status is active before action"), Character.StatusEffects.Contains(Fixture.Status->EffectId));
+
+	FGridCombatActionRequestResult Result;
+	TestTrue(TEXT("Tagged action executes"),
+		Fixture.TurnManager->RequestCharacterCombatAction(0, TEXT("Action_RPG034_ConsumeStatus"), EGridCombatActionSourcePolicy::Ability,
+			Fixture.Class->ClassId, EGridEquipmentSlot::None, Result));
+	TestTrue(TEXT("Tagged action is accepted"), Result.bAccepted);
+	TestFalse(TEXT("ActionResolved preserves definition source tags for owning-status consumption"),
+		Character.StatusEffects.Contains(Fixture.Status->EffectId));
+	return true;
+}
+
+
 #endif

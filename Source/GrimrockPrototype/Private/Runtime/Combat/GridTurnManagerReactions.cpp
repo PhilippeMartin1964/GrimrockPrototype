@@ -567,7 +567,14 @@ void UGridTurnManagerComponent::EmitCharacterActionResolvedReaction(
 	Event.DamageType = Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack
 		? Action.Definition.OffensiveProfile.AttackDefinition.DamageType
 		: EGridDamageType::Physical;
-	Event.SourceTags = SourceTags;
+	Event.SourceTags = Action.Definition.SourceTags;
+	for (const FName SourceTag : SourceTags)
+	{
+		if (!SourceTag.IsNone())
+		{
+			Event.SourceTags.AddUnique(SourceTag);
+		}
+	}
 	Event.bOffensiveAction =
 		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack ||
 		Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Hostile;
