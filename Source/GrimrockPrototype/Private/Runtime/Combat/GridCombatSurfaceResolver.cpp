@@ -124,3 +124,38 @@ void FGridCombatSurfaceResolver::ApplyReactionToState(
 	InOutState.PeriodicDamagePerRound = 0;
 	InOutState.PeriodicStatusApplications.Reset();
 }
+
+
+bool FGridCombatSurfaceResolver::ResolveConversion(const FGridCombatSurfaceConversionProfile& Profile,
+	const FGridCombatSurfaceState* ExistingSurface, const FGuid& SourceCombatantId, FName SourceActionId,
+	const FGridResolvedCombatModifiers& SourceModifiers, FGridCombatSurfaceState& OutState)
+{
+	OutState = FGridCombatSurfaceState();
+	if (!Profile.IsValid() || !SourceCombatantId.IsValid() || SourceActionId.IsNone())
+	{
+		return false;
+	}
+
+	int32 BaseDuration = Profile.EmptyCellDurationRounds;
+	if (ExistingSurface && ExistingSurface->IsValid())
+	{
+		if (!Profile.InputSurfaceTypes.Contains(ExistingSurface->SurfaceType))
+		{
+			return false;
+		}
+		BaseDuration = ExistingSurface->RemainingRounds;
+	}
+	else if (!Profile.bAllowEmptyCell)
+	{
+		return false;
+	}
+
+	OutState.SurfaceType = Profile.OutputSurfaceType;
+	OutState.RemainingRounds = FMath::Clamp(BaseDuration + SourceModifiers.SurfaceDurationRoundsModifier, 1, 6);
+	OutState.SourceCombatantId = SourceCombatantId;
+	OutState.SourceActionId = SourceActionId;
+	OutState.PeriodicDamageType = EGridDamageType::Physical;
+	OutState.PeriodicDamagePerRound = 0;
+	OutState.PeriodicStatusApplications.Reset();
+	return OutState.IsValid();
+}

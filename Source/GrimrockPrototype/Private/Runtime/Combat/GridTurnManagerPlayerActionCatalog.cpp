@@ -1283,7 +1283,8 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 	const bool bAttackResolution = Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
 		(Action.Definition.OffensiveProfile.IsValid() || Action.Definition.WeaponAttackProfile.bUseEquippedWeapon);
 	const bool bSurfaceEffectResolution =
-		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect && !Action.Definition.SurfaceEffects.IsEmpty();
+		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+		(!Action.Definition.SurfaceEffects.IsEmpty() || !Action.Definition.SurfaceConversions.IsEmpty());
 	const bool bTrapEffectResolution =
 		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect && Action.Definition.TrapEffect.bPlaceTrap;
 	const bool bRelocationEffectResolution =
@@ -1451,7 +1452,8 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 	}
 
 	if (bAttackResolution && OutPreview.TargetMonsterIds.IsEmpty() &&
-		Action.Definition.SurfaceEffects.IsEmpty() && !Action.Definition.TrapEffect.bPlaceTrap)
+		Action.Definition.SurfaceEffects.IsEmpty() && Action.Definition.SurfaceConversions.IsEmpty() &&
+		!Action.Definition.TrapEffect.bPlaceTrap)
 	{
 		OutPreview.InvalidReason = MakeMON1286TargetingReason(Action.Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area
 				? TEXT("Cette zone ne contient aucune cible éligible.")
@@ -1489,7 +1491,8 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 {
 	UGridPartyInventoryComponent* Inventory = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
 	const bool bAttackResolution = Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
-	const bool bSurfaceResolution = !Action.Definition.SurfaceEffects.IsEmpty();
+	const bool bSurfaceResolution =
+		!Action.Definition.SurfaceEffects.IsEmpty() || !Action.Definition.SurfaceConversions.IsEmpty();
 	const bool bTrapResolution = Action.Definition.TrapEffect.bPlaceTrap;
 	if (!IsValid(Inventory) || !Preview.bValid || (!bAttackResolution && !bSurfaceResolution && !bTrapResolution) ||
 		(bAttackResolution && Preview.TargetMonsterIds.IsEmpty() && !bSurfaceResolution && !bTrapResolution) ||
@@ -1639,6 +1642,11 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				FGridCombatModifierResolver::AddTargetStatusContext(TargetedSourceContext, TargetMonster->StatusEffects, Character.CharacterId,
 					IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->CategoryId : NAME_None,
 					IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->SemanticTags : TArray<FName>());
+				if (const FGridCombatSurfaceState* TargetSurface =
+						RuntimeActor->FindCombatSurfaceAtCell(TargetMonsterCell.X, TargetMonsterCell.Y))
+				{
+					FGridCombatModifierResolver::AddTargetSurfaceContext(TargetedSourceContext, TargetSurface->SurfaceType);
+				}
 				TargetedSourceContext.bPartyStationarySincePreviousActivation =
 					IsPartyStationarySincePreviousActivation(Character.CharacterId);
 				FGridCombatModifierResolver::Resolve(ChoiceModifiers, TargetedSourceContext, TargetedSourceModifiers);
@@ -1769,7 +1777,8 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				}
 			}
 			EmitPlayerAttackReactionEvents(Action.CharacterIndex, Request, AttackResult, Action.Definition.SourcePolicy,
-				Action.Definition.ActionType, ReactionActionInstanceId, false, false);
+				Action.Definition.ActionType, ReactionActionInstanceId, false, false, EffectiveOffensiveSourceTags,
+				bUsesEquippedWeaponAction && EffectiveOffensiveEquipmentSlot != EGridEquipmentSlot::None);
 			++PlayerAttackResolvedBroadcastCount;
 			OnPlayerAttackResolved.Broadcast(Request, TargetMonster, AttackResult);
 			if (bCollectRuntimeMetrics)
@@ -1915,6 +1924,12 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	{
 		for (const FIntPoint& Cell : Preview.AffectedCells)
 		{
+			// Invalid conversion for the current cell is a canonical no-op, not an action failure.
+			for (const FGridCombatSurfaceConversionProfile& Conversion : Action.Definition.SurfaceConversions)
+			{
+				RuntimeActor->ConvertCombatSurfaceAtCell(
+					Cell.X, Cell.Y, Conversion, Character.CharacterId, Action.Definition.ActionId, ResolvedModifiers);
+			}
 			for (const FGridCombatSurfaceEffectProfile& SurfaceProfile : Action.Definition.SurfaceEffects)
 			{
 				RuntimeActor->ApplyCombatSurfaceAtCell(
@@ -2545,6 +2560,14 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 				FGridCombatModifierResolver::AddTargetStatusContext(
 					SpellContext, TargetMonster->StatusEffects, SpellCharacter->CharacterId,
 					TargetMonster->MonsterDefinition->CategoryId, TargetMonster->MonsterDefinition->SemanticTags);
+				if (IsValid(RuntimeActor))
+				{
+					if (const FGridCombatSurfaceState* TargetSurface =
+							RuntimeActor->FindCombatSurfaceAtCell(TargetMonster->CurrentCell.X, TargetMonster->CurrentCell.Y))
+					{
+						FGridCombatModifierResolver::AddTargetSurfaceContext(SpellContext, TargetSurface->SurfaceType);
+					}
+				}
 			}
 			FGridCombatModifierResolver::Resolve(SpellModifierProfiles, SpellContext, SpellModifiers);
 		}

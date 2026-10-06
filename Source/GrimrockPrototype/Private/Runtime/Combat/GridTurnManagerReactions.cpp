@@ -24,7 +24,8 @@ void UGridTurnManagerComponent::ProcessPartyCharacterReactionEvent(int32 Charact
 	}
 
 	TArray<FGridCombatReactionBinding> Bindings;
-	if (!FGridCombatReactionResolver::CollectCharacterBindings(Character, Bindings))
+	if (!FGridCombatReactionResolver::CollectCharacterBindings(
+			Character, PartyPawn->PartyInventoryComponent->PartyInventoryState, Bindings))
 	{
 		UE_LOG(LogGridTurnManager, Warning, TEXT("[RPG03.4] ReactionProjectionFailed Character=%d CharacterId=%s"),
 			CharacterIndex, *Character.CharacterId.ToString(EGuidFormats::Digits));
@@ -46,9 +47,21 @@ void UGridTurnManagerComponent::ProcessPartyCharacterReactionEvent(int32 Charact
 
 	for (const FGridCombatReactionMatch& Match : Matches)
 	{
+		if (Match.SecondaryDirectDamage > 0)
+		{
+			ExecuteReactionSecondaryDirectDamage(CharacterIndex, Match);
+		}
 		if (Match.bConsumeOwningStatus && StatusLifecycle)
 		{
-			StatusLifecycle->ConsumeStatusEffectFromPartyCharacter(CharacterIndex, Match.OwningStatusEffectId);
+			if (Match.OwningStatusSourceId.IsValid())
+			{
+				StatusLifecycle->ConsumeStatusEffectFromPartyCharacterBySource(
+					CharacterIndex, Match.OwningStatusEffectId, Match.OwningStatusSourceId);
+			}
+			else
+			{
+				StatusLifecycle->ConsumeStatusEffectFromPartyCharacter(CharacterIndex, Match.OwningStatusEffectId);
+			}
 		}
 		if (!Match.ApplyOwnerStatusEffectId.IsNone() && StatusLifecycle)
 		{
@@ -78,6 +91,107 @@ void UGridTurnManagerComponent::ProcessPartyCharacterReactionEvent(int32 Charact
 	}
 }
 
+
+bool UGridTurnManagerComponent::ExecuteReactionSecondaryDirectDamage(
+	int32 CharacterIndex, const FGridCombatReactionMatch& Match)
+{
+	if (Match.SecondaryDirectDamage <= 0 || !IsValid(PartyPawn) || !IsValid(PartyPawn->PartyInventoryComponent) ||
+		!PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
+	{
+		return false;
+	}
+
+	UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent.Get();
+	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
+	AGridMonsterActor* TargetMonster = FindCombatMonsterById(Match.Event.TargetCombatantId);
+	if (Character.Resources.CurrentHealth <= 0 || !Character.CharacterId.IsValid() ||
+		!IsValid(TargetMonster) || TargetMonster->IsDead() || !IsValid(TargetMonster->MonsterDefinition))
+	{
+		return false;
+	}
+
+	int32 ScalingCharacterIndex = CharacterIndex;
+	if (Match.OwningStatusSourceId.IsValid())
+	{
+		const int32 SourceIndex = Inventory->PartyInventoryState.ActiveCharacters.IndexOfByPredicate(
+			[&Match](const FGridCharacterInventoryState& Candidate)
+			{
+				return Candidate.CharacterId == Match.OwningStatusSourceId;
+			});
+		if (SourceIndex != INDEX_NONE)
+		{
+			ScalingCharacterIndex = SourceIndex;
+		}
+	}
+
+	FGridInventoryCharacterSummary ScalingSummary;
+	if (!Inventory->GetCharacterSummary(ScalingCharacterIndex, ScalingSummary))
+	{
+		return false;
+	}
+
+	FGridCombatReactionProfile Profile;
+	Profile.ReactionId = Match.ReactionId;
+	Profile.Trigger = Match.Event.Trigger;
+	Profile.SecondaryDirectDamage = Match.SecondaryDirectDamage;
+	Profile.SecondaryDirectDamageType = Match.SecondaryDirectDamageType;
+	Profile.SecondaryDirectDamagePhysicalSubtype = Match.SecondaryDirectDamagePhysicalSubtype;
+	Profile.SecondaryDirectDamageScalingAttribute = Match.SecondaryDirectDamageScalingAttribute;
+	Profile.SecondaryDirectDamageAttributeModifierScale = Match.SecondaryDirectDamageAttributeModifierScale;
+	const int32 RawDamage =
+		FGridCombatReactionResolver::ResolveSecondaryDirectDamageAmount(Profile, ScalingSummary.Attributes);
+	if (RawDamage <= 0)
+	{
+		return false;
+	}
+
+	FGridAttackTargetStats Target;
+	Target.CurrentHealth = TargetMonster->CurrentHealth;
+	Target.PhysicalArmor = TargetMonster->CurrentPhysicalArmor;
+	Target.MagicalArmor = TargetMonster->CurrentMagicalArmor;
+	Target.ResistancePercent = 0;
+	Target.DamageMultiplier = TargetMonster->MonsterDefinition->GetDamageMultiplier(
+		Match.SecondaryDirectDamageType, Match.SecondaryDirectDamagePhysicalSubtype);
+
+	TArray<FGridCombatModifierProfile> TargetProfiles;
+	FGridResolvedCombatModifiers TargetModifiers;
+	if (FGridCombatModifierResolver::CollectStatusModifiers(TargetMonster->StatusEffects, TargetProfiles))
+	{
+		const FGridCombatModifierContext Context = FGridCombatModifierResolver::MakeAttackContext(
+			Match.Event.ActionId, Character.ClassId, Match.Event.SourcePolicy, Match.Event.ActionType,
+			Match.SecondaryDirectDamageType, Match.SecondaryDirectDamagePhysicalSubtype, Match.Event.SourceTags);
+		FGridCombatModifierResolver::Resolve(TargetProfiles, Context, TargetModifiers);
+		FGridCombatModifierResolver::ApplyIncomingAttackModifiers(Target, Match.SecondaryDirectDamageType, TargetModifiers);
+	}
+
+	const FGridAttackResult Result = FGridCombatResolver::ResolveDirectDamage(
+		Target, Match.SecondaryDirectDamageType, RawDamage, Match.SecondaryDirectDamagePhysicalSubtype);
+	if (!Result.bHit)
+	{
+		return false;
+	}
+
+	const bool bPreviousResolutionInProgress = bPlayerAttackResolutionInProgress;
+	bPlayerAttackResolutionInProgress = true;
+	TargetMonster->ApplyAttackResult(Result);
+	bPlayerAttackResolutionInProgress = bPreviousResolutionInProgress;
+	if (FGridCombatantInitiativeEntry* Entry =
+			FindInitiativeEntry(EGridCombatantSide::Monster, TargetMonster->ResolvePersistenceId()))
+	{
+		RefreshInitiativeEntryVitals(*Entry);
+		if (Entry->State != EGridCombatantTurnState::Defeated)
+		{
+			OnCombatantStateChanged.Broadcast(*Entry);
+		}
+	}
+
+	UE_LOG(LogGridTurnManager, Log,
+		TEXT("[RPG03.9.4F1] ReactionSecondaryDamage Owner=%s Reaction=%s Target=%s Raw=%d Applied=%d Type=%s"),
+		*Character.CharacterId.ToString(EGuidFormats::Digits), *Match.ReactionId.ToString(),
+		*TargetMonster->ResolvePersistenceId().ToString(EGuidFormats::Digits), RawDamage, Result.GetTotalAppliedDamage(),
+		*UEnum::GetValueAsString(Match.SecondaryDirectDamageType));
+	return true;
+}
 
 bool UGridTurnManagerComponent::ExecuteReactionCounterAttack(int32 CharacterIndex, const FGridCombatReactionMatch& Match)
 {
@@ -213,7 +327,8 @@ bool UGridTurnManagerComponent::ExecuteReactionCounterAttack(int32 CharacterInde
 	}
 
 	EmitPlayerAttackReactionEvents(CharacterIndex, Request, Result, EGridCombatActionSourcePolicy::Ability,
-		EGridCombatActionType::MeleeAttack, Request.RequestId, true, true, OffensiveItemTags);
+		EGridCombatActionType::MeleeAttack, Request.RequestId, true, true, OffensiveItemTags,
+		OffensiveEquipmentSlot != EGridEquipmentSlot::None);
 	++PlayerAttackResolvedBroadcastCount;
 	bPlayerAttackResolutionInProgress = false;
 	OnPlayerAttackResolved.Broadcast(Request, TargetMonster, Result);
@@ -280,7 +395,8 @@ void UGridTurnManagerComponent::ApplyIncomingPartyDamageInterception(int32 Targe
 		}
 
 		TArray<FGridCombatReactionBinding> Bindings;
-		if (!FGridCombatReactionResolver::CollectCharacterBindings(Owner, Bindings))
+		if (!FGridCombatReactionResolver::CollectCharacterBindings(
+				Owner, Inventory->PartyInventoryState, Bindings))
 		{
 			continue;
 		}
@@ -466,7 +582,7 @@ bool UGridTurnManagerComponent::TransferOwnedTargetStatusFromReaction(int32 Char
 
 void UGridTurnManagerComponent::EmitPlayerAttackReactionEvents(int32 CharacterIndex, const FGridPlayerAttackRequest& Request,
 	const FGridAttackResult& Result, EGridCombatActionSourcePolicy SourcePolicy, EGridCombatActionType ActionType, const FGuid& ActionInstanceId,
-	bool bReactionGenerated, bool bEmitActionResolved, const TArray<FName>& SourceTags)
+	bool bReactionGenerated, bool bEmitActionResolved, const TArray<FName>& SourceTags, bool bWeaponAttack)
 {
 	if (!ActionInstanceId.IsValid())
 	{
@@ -486,6 +602,7 @@ void UGridTurnManagerComponent::EmitPlayerAttackReactionEvents(int32 CharacterIn
 	Event.DamageType = Result.DamageType;
 	Event.SourceTags = SourceTags;
 	Event.bOffensiveAction = true;
+	Event.bWeaponAttack = bWeaponAttack;
 	Event.bReactionGenerated = bReactionGenerated;
 	ProcessPartyCharacterReactionEvent(CharacterIndex, Event);
 

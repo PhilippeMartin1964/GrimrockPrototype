@@ -4,12 +4,14 @@
 #include "Runtime/Combat/GridCombatTypes.h"
 
 struct FGridCharacterInventoryState;
+struct FGridPartyInventoryState;
 struct FGridStatusEffectCollection;
 
 struct GRIMROCKPROTOTYPE_API FGridCombatReactionBinding
 {
 	FGridCombatReactionProfile Profile;
 	FName OwningStatusEffectId = NAME_None;
+	FGuid OwningStatusSourceId;
 };
 
 struct GRIMROCKPROTOTYPE_API FGridCombatReactionUsageKey
@@ -65,6 +67,12 @@ public:
 	static bool CollectStatusBindings(const FGridStatusEffectCollection& StatusEffects, const TSet<FName>& OwnerRequirements,
 		TArray<FGridCombatReactionBinding>& OutBindings);
 	static bool CollectCharacterBindings(const FGridCharacterInventoryState& Character, TArray<FGridCombatReactionBinding>& OutBindings);
+
+	/** Cross-owner status overload: source requirements are reconstructed from the authoritative party progression state. */
+	static bool CollectCharacterBindings(const FGridCharacterInventoryState& Character, const FGridPartyInventoryState& PartyState,
+		TArray<FGridCombatReactionBinding>& OutBindings);
+
+	static int32 ResolveSecondaryDirectDamageAmount(const FGridCombatReactionProfile& Profile, const FRPGAttributes& Attributes);
 
 	static void ResolveMatches(const TArray<FGridCombatReactionBinding>& Bindings, const FGuid& OwnerCombatantId,
 		const FGridCombatReactionEvent& Event, FGridCombatReactionLedger& Ledger, bool bCommit, TArray<FGridCombatReactionMatch>& OutMatches);

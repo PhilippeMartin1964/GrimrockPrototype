@@ -777,9 +777,17 @@ struct FGridCombatReactionProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
 	TArray<FName> RequiredOwnerRequirementIds;
 
+	/** For status-authored reactions, requirements owned by the combatant that originally applied the status. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
+	TArray<FName> RequiredStatusSourceRequirementIds;
+
 	/** Generic semantic filter used by stealth/status reactions. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
 	bool bRequireOffensiveAction = false;
+
+	/** Match only attack events resolved from an actual equipped-weapon action. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
+	bool bRequireWeaponAttack = false;
 
 	/** Every listed target status must belong to the reaction owner on the event target. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
@@ -811,6 +819,22 @@ struct FGridCombatReactionProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response")
 	bool bRequireEventTargetFrontRow = false;
 
+	/** Optional non-critical direct damage packet applied to the reaction event target. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response", meta = (ClampMin = "0", ClampMax = "1000"))
+	int32 SecondaryDirectDamage = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response")
+	EGridDamageType SecondaryDirectDamageType = EGridDamageType::Physical;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response")
+	EGridPhysicalDamageSubtype SecondaryDirectDamagePhysicalSubtype = EGridPhysicalDamageSubtype::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response")
+	EGridAttackScalingAttribute SecondaryDirectDamageScalingAttribute = EGridAttackScalingAttribute::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response", meta = (ClampMin = "0", ClampMax = "10"))
+	int32 SecondaryDirectDamageAttributeModifierScale = 0;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response")
 	FName ApplyOwnerStatusEffectId = NAME_None;
 
@@ -830,7 +854,19 @@ struct FGridCombatReactionProfile
 	bool IsValid() const
 	{
 		if (ReactionId.IsNone() || Trigger == EGridCombatReactionTrigger::None || CounterAttackRangeCells < 1 || CounterAttackRangeCells > 32 ||
-			InterceptFinalDamagePercent < 0 || InterceptFinalDamagePercent > 100)
+			InterceptFinalDamagePercent < 0 || InterceptFinalDamagePercent > 100 ||
+			SecondaryDirectDamage < 0 || SecondaryDirectDamage > 1000 ||
+			SecondaryDirectDamageAttributeModifierScale < 0 || SecondaryDirectDamageAttributeModifierScale > 10)
+		{
+			return false;
+		}
+		const bool bSecondaryScalingValid =
+			(SecondaryDirectDamageScalingAttribute == EGridAttackScalingAttribute::None) ==
+			(SecondaryDirectDamageAttributeModifierScale == 0);
+		if (!bSecondaryScalingValid ||
+			(SecondaryDirectDamageType != EGridDamageType::Physical &&
+				SecondaryDirectDamagePhysicalSubtype != EGridPhysicalDamageSubtype::None) ||
+			(SecondaryDirectDamage > 0 && Trigger != EGridCombatReactionTrigger::AttackHit))
 		{
 			return false;
 		}
@@ -844,6 +880,11 @@ struct FGridCombatReactionProfile
 			return false;
 		}
 		if (InterceptFinalDamagePercent > 0 && Trigger != EGridCombatReactionTrigger::IncomingAttackHit)
+		{
+			return false;
+		}
+		if (bRequireWeaponAttack &&
+			Trigger != EGridCombatReactionTrigger::AttackHit && Trigger != EGridCombatReactionTrigger::AttackMiss)
 		{
 			return false;
 		}
@@ -885,6 +926,15 @@ struct FGridCombatReactionProfile
 				return false;
 			}
 			SeenOwnerRequirements.Add(RequirementId);
+		}
+		TSet<FName> SeenSourceRequirements;
+		for (const FName RequirementId : RequiredStatusSourceRequirementIds)
+		{
+			if (RequirementId.IsNone() || SeenSourceRequirements.Contains(RequirementId))
+			{
+				return false;
+			}
+			SeenSourceRequirements.Add(RequirementId);
 		}
 		TSet<FName> SeenTargetStatuses;
 		for (const FName EffectId : RequiredTargetStatusEffectIdsFromOwner)
@@ -962,6 +1012,9 @@ struct FGridCombatReactionEvent
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	bool bOffensiveAction = false;
 
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	bool bWeaponAttack = false;
+
 	/** Filled per reaction owner for target statuses whose SourceId equals that owner. */
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	TArray<FName> TargetStatusEffectIdsFromOwner;
@@ -991,6 +1044,9 @@ struct FGridCombatReactionMatch
 	FName OwningStatusEffectId = NAME_None;
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	FGuid OwningStatusSourceId;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	bool bConsumeOwningStatus = false;
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
@@ -1010,6 +1066,21 @@ struct FGridCombatReactionMatch
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	bool bRequireEventTargetFrontRow = false;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	int32 SecondaryDirectDamage = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	EGridDamageType SecondaryDirectDamageType = EGridDamageType::Physical;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	EGridPhysicalDamageSubtype SecondaryDirectDamagePhysicalSubtype = EGridPhysicalDamageSubtype::None;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	EGridAttackScalingAttribute SecondaryDirectDamageScalingAttribute = EGridAttackScalingAttribute::None;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	int32 SecondaryDirectDamageAttributeModifierScale = 0;
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	FName ApplyOwnerStatusEffectId = NAME_None;
@@ -1255,7 +1326,8 @@ enum class EGridCombatSurfaceType : uint8
 	Oil UMETA(DisplayName = "Oil"),
 	ElectrifiedWater UMETA(DisplayName = "Electrified Water"),
 	Smoke UMETA(DisplayName = "Smoke"),
-	PoisonCloud UMETA(DisplayName = "Poison Cloud")
+	PoisonCloud UMETA(DisplayName = "Poison Cloud"),
+	Blood UMETA(DisplayName = "Blood")
 };
 
 UENUM(BlueprintType)
@@ -1302,6 +1374,51 @@ struct FGridCombatSurfaceEffectProfile
 			{
 				return false;
 			}
+		}
+		return true;
+	}
+};
+
+/**
+ * Generic C6 conversion of an existing (or optionally empty) cell surface.
+ * Existing conversions preserve the current duration before source modifiers;
+ * empty-cell conversion uses EmptyCellDurationRounds.
+ */
+USTRUCT(BlueprintType)
+struct FGridCombatSurfaceConversionProfile
+{
+	GENERATED_BODY()
+
+	/** Existing input surfaces accepted by this conversion. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion")
+	TArray<EGridCombatSurfaceType> InputSurfaceTypes;
+
+	/** Allows this conversion to create the output on a cell with no active surface. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion")
+	bool bAllowEmptyCell = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion")
+	EGridCombatSurfaceType OutputSurfaceType = EGridCombatSurfaceType::None;
+
+	/** Used only when bAllowEmptyCell resolves an empty cell. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion", meta = (ClampMin = "1", ClampMax = "6"))
+	int32 EmptyCellDurationRounds = 3;
+
+	bool IsValid() const
+	{
+		if (OutputSurfaceType == EGridCombatSurfaceType::None || (!bAllowEmptyCell && InputSurfaceTypes.IsEmpty()) ||
+			EmptyCellDurationRounds < 1 || EmptyCellDurationRounds > 6)
+		{
+			return false;
+		}
+		TSet<EGridCombatSurfaceType> Seen;
+		for (const EGridCombatSurfaceType Type : InputSurfaceTypes)
+		{
+			if (Type == EGridCombatSurfaceType::None || Seen.Contains(Type))
+			{
+				return false;
+			}
+			Seen.Add(Type);
 		}
 		return true;
 	}
@@ -1601,6 +1718,10 @@ struct FGridCombatModifierProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
 	TArray<FName> AnyTargetSemanticTags;
 
+	/** OR filter over transient target status/surface context (for example Status_Burning or Surface.Oil). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
+	TArray<FName> AnyTargetEnvironmentTags;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Target")
 	bool bRequirePartyStationarySincePreviousActivation = false;
 
@@ -1839,6 +1960,15 @@ struct FGridCombatModifierProfile
 			}
 			SeenSemanticTags.Add(Tag);
 		}
+		TSet<FName> SeenEnvironmentTags;
+		for (const FName Tag : AnyTargetEnvironmentTags)
+		{
+			if (Tag.IsNone() || SeenEnvironmentTags.Contains(Tag))
+			{
+				return false;
+			}
+			SeenEnvironmentTags.Add(Tag);
+		}
 		return (!bRequiredTargetStatusesFromOwner || !RequiredTargetStatusEffectIds.IsEmpty()) &&
 			ConditionsValid(RequiredTargetConditions) && ConditionsValid(AnyTargetConditions);
 	}
@@ -1925,6 +2055,12 @@ struct FGridCombatActionOwnerVariantProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Owner Variant")
 	TArray<FGridCombatStatusApplicationProfile> StatusApplications;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Owner Variant")
+	TArray<FGridCombatSurfaceEffectProfile> SurfaceEffects;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Owner Variant")
+	TArray<FGridCombatSurfaceConversionProfile> SurfaceConversions;
+
 	bool IsValid() const
 	{
 		if (RequiredOwnerRequirementIds.IsEmpty() ||
@@ -1955,7 +2091,17 @@ struct FGridCombatActionOwnerVariantProfile
 			[](const FGridCombatStatusApplicationProfile& Profile)
 			{
 				return !Profile.IsValid();
-			}) == false;
+			}) == false &&
+			SurfaceEffects.ContainsByPredicate(
+				[](const FGridCombatSurfaceEffectProfile& Profile)
+				{
+					return !Profile.IsValid();
+				}) == false &&
+			SurfaceConversions.ContainsByPredicate(
+				[](const FGridCombatSurfaceConversionProfile& Profile)
+				{
+					return !Profile.IsValid();
+				}) == false;
 	}
 };
 
@@ -2272,6 +2418,10 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Surface")
 	TArray<FGridCombatSurfaceEffectProfile> SurfaceEffects;
 
+	/** C6 conversion payloads resolved against the current surface state of each affected cell. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Surface")
+	TArray<FGridCombatSurfaceConversionProfile> SurfaceConversions;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Trap")
 	FGridCombatTrapEffectProfile TrapEffect;
 
@@ -2359,6 +2509,12 @@ struct FGridCombatActionDefinition
 					(ResolutionProfile != EGridCombatActionResolutionProfile::Effect &&
 						ResolutionProfile != EGridCombatActionResolutionProfile::Attack);
 			}) == false;
+		const bool bSurfaceConversionsValid = SurfaceConversions.ContainsByPredicate(
+			[this](const FGridCombatSurfaceConversionProfile& Profile)
+			{
+				return !Profile.IsValid() || ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
+					(TargetingPolicy != EGridCombatTargetingPolicy::Cell && TargetingPolicy != EGridCombatTargetingPolicy::Area);
+			}) == false;
 		bool bSourceTagsValid = true;
 		{
 			TSet<FName> SeenTags;
@@ -2404,7 +2560,7 @@ struct FGridCombatActionDefinition
 			bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bLineOfSightValid && bFriendlyAreaValid &&
 			bStatusApplicationsValid &&
 			bStatusRemovalsValid && bArmorEffectsValid && bMovementEffectsValid && bSelectedCellRelocationValid &&
-			bTrapEffectValid && bSkillCheckValid && bSurfaceEffectsValid &&
+			bTrapEffectValid && bSkillCheckValid && bSurfaceEffectsValid && bSurfaceConversionsValid &&
 			bSourceTagsValid && bDirectDamageScalingValid && bQuickItemScalingValid && bChainValid && bOwnerVariantsValid &&
 			(ResolutionCount == 1 || ResolutionProfile == EGridCombatActionResolutionProfile::Attack);
 	}

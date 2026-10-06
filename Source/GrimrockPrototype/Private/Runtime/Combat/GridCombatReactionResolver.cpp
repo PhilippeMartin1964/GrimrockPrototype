@@ -2,6 +2,7 @@
 
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
+#include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/GridInventoryTypes.h"
 
@@ -43,16 +44,46 @@ namespace
 	}
 
 	void AddProjectedReactionBinding(const FGridCombatReactionProfile& AuthoredProfile, const TSet<FName>& OwnerRequirements,
-		FName OwningStatusEffectId, TArray<FGridCombatReactionBinding>& OutBindings)
+		const TSet<FName>* StatusSourceRequirements, FName OwningStatusEffectId, const FGuid& OwningStatusSourceId,
+		TArray<FGridCombatReactionBinding>& OutBindings)
 	{
 		if (!AreReactionOwnerRequirementsSatisfied(AuthoredProfile.RequiredOwnerRequirementIds, OwnerRequirements))
+		{
+			return;
+		}
+		if (!AuthoredProfile.RequiredStatusSourceRequirementIds.IsEmpty() &&
+			(!StatusSourceRequirements ||
+				!AreReactionOwnerRequirementsSatisfied(AuthoredProfile.RequiredStatusSourceRequirementIds, *StatusSourceRequirements)))
 		{
 			return;
 		}
 		FGridCombatReactionBinding& Binding = OutBindings.AddDefaulted_GetRef();
 		Binding.Profile = AuthoredProfile;
 		Binding.Profile.RequiredOwnerRequirementIds.Reset();
+		Binding.Profile.RequiredStatusSourceRequirementIds.Reset();
 		Binding.OwningStatusEffectId = OwningStatusEffectId;
+		Binding.OwningStatusSourceId = OwningStatusSourceId;
+	}
+
+	const FGridCharacterInventoryState* FindPartyCharacterById(const FGridPartyInventoryState& PartyState, const FGuid& CharacterId)
+	{
+		if (!CharacterId.IsValid())
+		{
+			return nullptr;
+		}
+		if (const FGridCharacterInventoryState* Found = PartyState.ActiveCharacters.FindByPredicate(
+				[&CharacterId](const FGridCharacterInventoryState& Candidate)
+				{
+					return Candidate.CharacterId == CharacterId;
+				}))
+		{
+			return Found;
+		}
+		return PartyState.CharacterPool.FindByPredicate(
+			[&CharacterId](const FGridCharacterInventoryState& Candidate)
+			{
+				return Candidate.CharacterId == CharacterId;
+			});
 	}
 }
 
@@ -117,7 +148,8 @@ void FGridCombatReactionLedger::Reset()
 
 bool FGridCombatReactionResolver::Matches(const FGridCombatReactionProfile& Profile, const FGridCombatReactionEvent& Event)
 {
-	if (!Profile.IsValid() || !Profile.RequiredOwnerRequirementIds.IsEmpty() || !Event.IsValid() || Profile.Trigger != Event.Trigger)
+	if (!Profile.IsValid() || !Profile.RequiredOwnerRequirementIds.IsEmpty() ||
+		!Profile.RequiredStatusSourceRequirementIds.IsEmpty() || !Event.IsValid() || Profile.Trigger != Event.Trigger)
 	{
 		return false;
 	}
@@ -152,6 +184,10 @@ bool FGridCombatReactionResolver::Matches(const FGridCombatReactionProfile& Prof
 	{
 		return false;
 	}
+	if (Profile.bRequireWeaponAttack && !Event.bWeaponAttack)
+	{
+		return false;
+	}
 	for (const FName EffectId : Profile.RequiredTargetStatusEffectIdsFromOwner)
 	{
 		if (!Event.TargetStatusEffectIdsFromOwner.Contains(EffectId))
@@ -181,7 +217,7 @@ bool FGridCombatReactionResolver::CollectStatusBindings(const FGridStatusEffectC
 		}
 		for (const FGridCombatReactionProfile& Profile : State.DefinitionAsset->CombatReactions)
 		{
-			AddProjectedReactionBinding(Profile, OwnerRequirements, State.EffectId, OutBindings);
+			AddProjectedReactionBinding(Profile, OwnerRequirements, nullptr, State.EffectId, State.SourceId, OutBindings);
 		}
 	}
 	return true;
@@ -227,11 +263,93 @@ bool FGridCombatReactionResolver::CollectCharacterBindings(
 		}
 		for (const FGridCombatReactionProfile& Profile : Choice->CombatReactions)
 		{
-			AddProjectedReactionBinding(Profile, OwnerRequirements, NAME_None, OutBindings);
+			AddProjectedReactionBinding(Profile, OwnerRequirements, nullptr, NAME_None, FGuid(), OutBindings);
 		}
 	}
 	OutBindings.Append(StatusBindings);
 	return true;
+}
+
+bool FGridCombatReactionResolver::CollectCharacterBindings(
+	const FGridCharacterInventoryState& Character, const FGridPartyInventoryState& PartyState,
+	TArray<FGridCombatReactionBinding>& OutBindings)
+{
+	TSet<FName> OwnerRequirements;
+	if (!CollectReactionOwnerRequirements(Character, OwnerRequirements))
+	{
+		OutBindings.Reset();
+		return false;
+	}
+
+	OutBindings.Reset();
+	for (const FGridStatusEffectRuntimeState& State : Character.StatusEffects.ActiveEffects)
+	{
+		if (!State.IsValid() || !IsValid(State.DefinitionAsset) || !State.DefinitionAsset->IsValidDefinition())
+		{
+			OutBindings.Reset();
+			return false;
+		}
+
+		TSet<FName> SourceRequirements;
+		const FGridCharacterInventoryState* SourceCharacter = FindPartyCharacterById(PartyState, State.SourceId);
+		const bool bHasSourceRequirements =
+			SourceCharacter && CollectReactionOwnerRequirements(*SourceCharacter, SourceRequirements);
+		for (const FGridCombatReactionProfile& Profile : State.DefinitionAsset->CombatReactions)
+		{
+			AddProjectedReactionBinding(
+				Profile, OwnerRequirements, bHasSourceRequirements ? &SourceRequirements : nullptr, State.EffectId, State.SourceId, OutBindings);
+		}
+	}
+
+	const URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
+	if (!IsValid(ClassDefinition))
+	{
+		return true;
+	}
+	if (!ClassDefinition->IsValidDefinition())
+	{
+		OutBindings.Reset();
+		return false;
+	}
+
+	for (const FName ChoiceId : Character.SelectedClassProgressionChoiceIds)
+	{
+		const FRPGClassProgressionChoiceDefinition* Choice = ClassDefinition->FindProgressionChoice(ChoiceId);
+		if (!Choice)
+		{
+			OutBindings.Reset();
+			return false;
+		}
+		for (const FGridCombatReactionProfile& Profile : Choice->CombatReactions)
+		{
+			AddProjectedReactionBinding(Profile, OwnerRequirements, nullptr, NAME_None, FGuid(), OutBindings);
+		}
+	}
+	return true;
+}
+
+int32 FGridCombatReactionResolver::ResolveSecondaryDirectDamageAmount(
+	const FGridCombatReactionProfile& Profile, const FRPGAttributes& Attributes)
+{
+	if (!Profile.IsValid() || Profile.SecondaryDirectDamage <= 0)
+	{
+		return 0;
+	}
+	int32 AttributeValue = 0;
+	switch (Profile.SecondaryDirectDamageScalingAttribute)
+	{
+		case EGridAttackScalingAttribute::Strength: AttributeValue = Attributes.Strength; break;
+		case EGridAttackScalingAttribute::Dexterity: AttributeValue = Attributes.Dexterity; break;
+		case EGridAttackScalingAttribute::Constitution: AttributeValue = Attributes.Constitution; break;
+		case EGridAttackScalingAttribute::Intelligence: AttributeValue = Attributes.Intelligence; break;
+		case EGridAttackScalingAttribute::Wisdom: AttributeValue = Attributes.Wisdom; break;
+		case EGridAttackScalingAttribute::Charisma: AttributeValue = Attributes.Charisma; break;
+		case EGridAttackScalingAttribute::None:
+		default:
+			return Profile.SecondaryDirectDamage;
+	}
+	return FMath::Max(0, Profile.SecondaryDirectDamage +
+		URPGCharacterRulesLibrary::GetAttributeModifier(AttributeValue) * Profile.SecondaryDirectDamageAttributeModifierScale);
 }
 
 void FGridCombatReactionResolver::ResolveMatches(const TArray<FGridCombatReactionBinding>& Bindings, const FGuid& OwnerCombatantId,
@@ -253,6 +371,7 @@ void FGridCombatReactionResolver::ResolveMatches(const TArray<FGridCombatReactio
 		Match.ReactionId = Binding.Profile.ReactionId;
 		Match.OwnerCombatantId = OwnerCombatantId;
 		Match.OwningStatusEffectId = Binding.OwningStatusEffectId;
+		Match.OwningStatusSourceId = Binding.OwningStatusSourceId;
 		Match.bConsumeOwningStatus = Binding.Profile.bConsumeOwningStatus && !Binding.OwningStatusEffectId.IsNone();
 		Match.CounterAttackActionId = Binding.Profile.CounterAttackActionId;
 		Match.CounterAttackRangeCells = Binding.Profile.CounterAttackRangeCells;
@@ -260,6 +379,11 @@ void FGridCombatReactionResolver::ResolveMatches(const TArray<FGridCombatReactio
 		Match.InterceptFinalDamagePercent = Binding.Profile.InterceptFinalDamagePercent;
 		Match.bRequireOwnerFrontRow = Binding.Profile.bRequireOwnerFrontRow;
 		Match.bRequireEventTargetFrontRow = Binding.Profile.bRequireEventTargetFrontRow;
+		Match.SecondaryDirectDamage = Binding.Profile.SecondaryDirectDamage;
+		Match.SecondaryDirectDamageType = Binding.Profile.SecondaryDirectDamageType;
+		Match.SecondaryDirectDamagePhysicalSubtype = Binding.Profile.SecondaryDirectDamagePhysicalSubtype;
+		Match.SecondaryDirectDamageScalingAttribute = Binding.Profile.SecondaryDirectDamageScalingAttribute;
+		Match.SecondaryDirectDamageAttributeModifierScale = Binding.Profile.SecondaryDirectDamageAttributeModifierScale;
 		Match.ApplyOwnerStatusEffectId = Binding.Profile.ApplyOwnerStatusEffectId;
 		Match.ApplyOwnerStatusDurationOverride = Binding.Profile.ApplyOwnerStatusDurationOverride;
 		Match.TransferOwnedTargetStatusEffectId = Binding.Profile.TransferOwnedTargetStatusEffectId;

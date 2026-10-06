@@ -513,6 +513,11 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		FGridCombatModifierResolver::AddTargetStatusContext(TargetedContext, TargetMonster->StatusEffects, Attacker.CharacterId,
 			IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->CategoryId : NAME_None,
 			IsValid(TargetMonster->MonsterDefinition) ? TargetMonster->MonsterDefinition->SemanticTags : TArray<FName>());
+		if (const FGridCombatSurfaceState* TargetSurface =
+				RuntimeActor->FindCombatSurfaceAtCell(TargetCell.X, TargetCell.Y))
+		{
+			FGridCombatModifierResolver::AddTargetSurfaceContext(TargetedContext, TargetSurface->SurfaceType);
+		}
 		TargetedContext.bPartyStationarySincePreviousActivation = IsPartyStationarySincePreviousActivation(Attacker.CharacterId);
 		FGridCombatModifierResolver::Resolve(ChoiceModifiers, TargetedContext, ResolvedAttackModifiers);
 	}
@@ -755,7 +760,8 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		: OffensiveProfile.RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
 	const FGuid ReactionActionInstanceId = Request.RequestId;
 	EmitPlayerAttackReactionEvents(AttackerCharacterIndex, Request, Result, ReactionSourcePolicy, ReactionActionType,
-		ReactionActionInstanceId, false, AttackResolutionCount == 1, ResolvedAttackSourceTags);
+		ReactionActionInstanceId, false, AttackResolutionCount == 1, ResolvedAttackSourceTags,
+		OffensiveEquipmentSlot != EGridEquipmentSlot::None);
 	++PlayerAttackResolvedBroadcastCount;
 	bPlayerAttackResolutionInProgress = false;
 	OnPlayerAttackResolved.Broadcast(Request, TargetMonster, Result);
@@ -872,7 +878,8 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 			}
 		}
 		EmitPlayerAttackReactionEvents(AttackerCharacterIndex, RepeatRequest, RepeatResult, ReactionSourcePolicy,
-			ReactionActionType, ReactionActionInstanceId, false, false, ResolvedAttackSourceTags);
+			ReactionActionType, ReactionActionInstanceId, false, false, ResolvedAttackSourceTags,
+			OffensiveEquipmentSlot != EGridEquipmentSlot::None);
 		++PlayerAttackResolvedBroadcastCount;
 		bPlayerAttackResolutionInProgress = false;
 		OnPlayerAttackResolved.Broadcast(RepeatRequest, TargetMonster, RepeatResult);

@@ -21,6 +21,7 @@ struct GRIMROCKPROTOTYPE_API FGridCombatModifierContext
 	TArray<FName> TargetStatusEffectIdsFromSource;
 	FName TargetMonsterCategoryId = NAME_None;
 	TArray<FName> TargetSemanticTags;
+	TArray<FName> TargetEnvironmentTags;
 	bool bPartyStationarySincePreviousActivation = false;
 
 	bool HasTargetCondition(EGridCombatTargetCondition Condition) const
@@ -101,6 +102,9 @@ public:
 		bool bRearArc, bool bTargetHasActedThisRound, bool bTargetHasPhysicalControl);
 	static void AddTargetStatusContext(FGridCombatModifierContext& Context, const FGridStatusEffectCollection& StatusEffects,
 		const FGuid& ActingSourceId, FName TargetMonsterCategoryId, const TArray<FName>& TargetSemanticTags = TArray<FName>());
+
+	/** Adds a stable Surface.<Type> environment tag when the target currently occupies a combat surface. */
+	static void AddTargetSurfaceContext(FGridCombatModifierContext& Context, EGridCombatSurfaceType SurfaceType);
 
 	static bool Matches(const FGridCombatModifierProfile& Profile, const FGridCombatModifierContext& Context);
 

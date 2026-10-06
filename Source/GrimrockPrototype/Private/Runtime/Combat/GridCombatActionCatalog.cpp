@@ -239,7 +239,8 @@ namespace
 					!Definition.ArmorEffects.IsEmpty() || !Definition.MovementEffects.IsEmpty());
 			const bool bSupportedCellEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 				(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Cell || Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area) &&
-				(!Definition.SurfaceEffects.IsEmpty() || Definition.TrapEffect.bPlaceTrap || Definition.bRelocatePartyToTargetCell);
+				(!Definition.SurfaceEffects.IsEmpty() || !Definition.SurfaceConversions.IsEmpty() ||
+					Definition.TrapEffect.bPlaceTrap || Definition.bRelocatePartyToTargetCell);
 			const bool bSupportedPartyEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 				(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally ||
 					Definition.TargetingPolicy == EGridCombatTargetingPolicy::AllyOrHostile ||
@@ -364,6 +365,8 @@ bool FGridCombatActionCatalog::ApplyOwnerRequirementVariant(
 			: EGridPhysicalDamageSubtype::None;
 	}
 	Definition.StatusApplications.Append(MatchingVariant->StatusApplications);
+	Definition.SurfaceEffects.Append(MatchingVariant->SurfaceEffects);
+	Definition.SurfaceConversions.Append(MatchingVariant->SurfaceConversions);
 	Definition.OwnerVariants.Reset();
 	return Definition.IsValid();
 }

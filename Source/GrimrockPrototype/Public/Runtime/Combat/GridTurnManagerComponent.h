@@ -747,12 +747,13 @@ private:
 
 	void ProcessPartyCharacterReactionEvent(int32 CharacterIndex, const FGridCombatReactionEvent& Event);
 	bool ExecuteReactionCounterAttack(int32 CharacterIndex, const FGridCombatReactionMatch& Match);
+	bool ExecuteReactionSecondaryDirectDamage(int32 CharacterIndex, const FGridCombatReactionMatch& Match);
 	void ApplyIncomingPartyDamageInterception(int32 TargetCharacterIndex, const FGridMonsterAttackDefinition& Attack,
 		const FGridAttackTargetStats& TargetBefore, const FGuid& ActionInstanceId, FGridAttackResult& InOutResult);
 	void EmitPlayerAttackReactionEvents(
 		int32 CharacterIndex, const FGridPlayerAttackRequest& Request, const FGridAttackResult& Result, EGridCombatActionSourcePolicy SourcePolicy,
 		EGridCombatActionType ActionType, const FGuid& ActionInstanceId, bool bReactionGenerated = false, bool bEmitActionResolved = true,
-		const TArray<FName>& SourceTags = TArray<FName>());
+		const TArray<FName>& SourceTags = TArray<FName>(), bool bWeaponAttack = false);
 	void EmitMonsterAttackReactionEvents(int32 TargetCharacterIndex, const FGridMonsterAttackDefinition& Attack, const FGridAttackResult& Result,
 		const FGuid& ActionInstanceId);
 	void EmitCharacterActionResolvedReaction(int32 CharacterIndex, const FGridAvailableCombatAction& Action, const FGuid& ActionInstanceId,

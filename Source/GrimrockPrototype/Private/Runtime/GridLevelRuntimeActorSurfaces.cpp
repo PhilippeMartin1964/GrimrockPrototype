@@ -65,6 +65,36 @@ bool AGridLevelRuntimeActor::InteractCombatSurfaceAtCell(int32 CellX, int32 Cell
 	return true;
 }
 
+bool AGridLevelRuntimeActor::ConvertCombatSurfaceAtCell(int32 CellX, int32 CellY, const FGridCombatSurfaceConversionProfile& Profile,
+	const FGuid& SourceCombatantId, FName SourceActionId, const FGridResolvedCombatModifiers& SourceModifiers)
+{
+	if (!IsValidCell(CellX, CellY) || !IsWalkableCell(CellX, CellY))
+	{
+		return false;
+	}
+	FGridLevelRuntimeState* RuntimeState = GetOrCreateRuntimeStateForCurrentLevel();
+	if (!RuntimeState)
+	{
+		return false;
+	}
+
+	const FIntPoint Cell(CellX, CellY);
+	const FGridCombatSurfaceState* Existing = RuntimeState->Surfaces.Find(Cell);
+	FGridCombatSurfaceState Converted;
+	if (!FGridCombatSurfaceResolver::ResolveConversion(
+			Profile, Existing, SourceCombatantId, SourceActionId, SourceModifiers, Converted))
+	{
+		return false;
+	}
+
+	RuntimeState->Surfaces.Add(Cell, Converted);
+	UE_LOG(LogGridSurfaceRuntime, Log,
+		TEXT("[RPG03.9.4F1] SurfaceConverted Cell=(%d,%d) Output=%s Rounds=%d Source=%s Action=%s"),
+		CellX, CellY, *UEnum::GetValueAsString(Converted.SurfaceType), Converted.RemainingRounds,
+		*Converted.SourceCombatantId.ToString(EGuidFormats::Digits), *Converted.SourceActionId.ToString());
+	return true;
+}
+
 const FGridCombatSurfaceState* AGridLevelRuntimeActor::FindCombatSurfaceAtCell(int32 CellX, int32 CellY) const
 {
 	const FGridLevelRuntimeState* RuntimeState = FindRuntimeStateForCurrentLevel();

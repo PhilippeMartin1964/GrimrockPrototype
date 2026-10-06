@@ -184,6 +184,7 @@ void FGridCombatModifierResolver::AddTargetStatusContext(FGridCombatModifierCont
 {
 	Context.TargetStatusEffectIds.Reset();
 	Context.TargetStatusEffectIdsFromSource.Reset();
+	Context.TargetEnvironmentTags.Reset();
 	Context.TargetMonsterCategoryId = TargetMonsterCategoryId;
 	Context.TargetSemanticTags = TargetSemanticTags;
 	if (!TargetMonsterCategoryId.IsNone())
@@ -197,11 +198,43 @@ void FGridCombatModifierResolver::AddTargetStatusContext(FGridCombatModifierCont
 			continue;
 		}
 		Context.TargetStatusEffectIds.AddUnique(State.EffectId);
+		Context.TargetEnvironmentTags.AddUnique(State.EffectId);
+		if (IsValid(State.DefinitionAsset))
+		{
+			for (const FName Tag : State.DefinitionAsset->StatusTags)
+			{
+				if (!Tag.IsNone())
+				{
+					Context.TargetEnvironmentTags.AddUnique(Tag);
+				}
+			}
+		}
 		if (ActingSourceId.IsValid() && State.SourceId == ActingSourceId)
 		{
 			Context.TargetStatusEffectIdsFromSource.AddUnique(State.EffectId);
 		}
 	}
+}
+
+void FGridCombatModifierResolver::AddTargetSurfaceContext(FGridCombatModifierContext& Context, EGridCombatSurfaceType SurfaceType)
+{
+	const TCHAR* Suffix = nullptr;
+	switch (SurfaceType)
+	{
+		case EGridCombatSurfaceType::Fire: Suffix = TEXT("Fire"); break;
+		case EGridCombatSurfaceType::Water: Suffix = TEXT("Water"); break;
+		case EGridCombatSurfaceType::Ice: Suffix = TEXT("Ice"); break;
+		case EGridCombatSurfaceType::Poison: Suffix = TEXT("Poison"); break;
+		case EGridCombatSurfaceType::Oil: Suffix = TEXT("Oil"); break;
+		case EGridCombatSurfaceType::ElectrifiedWater: Suffix = TEXT("ElectrifiedWater"); break;
+		case EGridCombatSurfaceType::Blood: Suffix = TEXT("Blood"); break;
+		case EGridCombatSurfaceType::Smoke: Suffix = TEXT("Smoke"); break;
+		case EGridCombatSurfaceType::PoisonCloud: Suffix = TEXT("PoisonCloud"); break;
+		case EGridCombatSurfaceType::None:
+		default:
+			return;
+	}
+	Context.TargetEnvironmentTags.AddUnique(FName(*FString::Printf(TEXT("Surface.%s"), Suffix)));
 }
 
 bool FGridCombatModifierResolver::Matches(const FGridCombatModifierProfile& Profile, const FGridCombatModifierContext& Context)
@@ -249,6 +282,15 @@ bool FGridCombatModifierResolver::Matches(const FGridCombatModifierProfile& Prof
 			[&Context](const FName Tag)
 			{
 				return Context.TargetSemanticTags.Contains(Tag);
+			}))
+	{
+		return false;
+	}
+	if (!Profile.AnyTargetEnvironmentTags.IsEmpty() &&
+		!Profile.AnyTargetEnvironmentTags.ContainsByPredicate(
+			[&Context](const FName Tag)
+			{
+				return Context.TargetEnvironmentTags.Contains(Tag);
 			}))
 	{
 		return false;

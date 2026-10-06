@@ -14,6 +14,11 @@ public:
 	static bool ResolveReaction(const FGridCombatSurfaceState& ExistingSurface, EGridCombatSurfaceInteraction Interaction,
 		const FGridResolvedCombatModifiers& SourceModifiers, FGridCombatSurfaceReactionResult& OutResult);
 
+	/** Resolve one authored conversion against an existing surface or an empty cell. */
+	static bool ResolveConversion(const FGridCombatSurfaceConversionProfile& Profile, const FGridCombatSurfaceState* ExistingSurface,
+		const FGuid& SourceCombatantId, FName SourceActionId, const FGridResolvedCombatModifiers& SourceModifiers,
+		FGridCombatSurfaceState& OutState);
+
 	static void ApplyReactionToState(
 		const FGridCombatSurfaceReactionResult& Reaction, FGridCombatSurfaceState& InOutState);
 };
