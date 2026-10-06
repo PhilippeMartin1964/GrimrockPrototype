@@ -17,6 +17,12 @@ namespace RPGPriestAuthoring
 	const FName SanctuaryTalentId(TEXT("Talent_Priest_Protection_Sanctuary"));
 	const FName DivineBastionTalentId(TEXT("Talent_Priest_Protection_DivineBastion"));
 
+	const FName HolyLightTalentId(TEXT("Talent_Priest_Exorcism_HolyLight"));
+	const FName TurnUndeadTalentId(TEXT("Talent_Priest_Exorcism_TurnUndead"));
+	const FName HolyDispelTalentId(TEXT("Talent_Priest_Exorcism_HolyDispel"));
+	const FName SmiteTalentId(TEXT("Talent_Priest_Exorcism_Smite"));
+	const FName MajorExorcismTalentId(TEXT("Talent_Priest_Exorcism_MajorExorcism"));
+
 	const FName RegenerationActionId(TEXT("Action_Priest_Regeneration"));
 	const FName GroupHealActionId(TEXT("Action_Priest_GroupHeal"));
 	const FName PurificationActionId(TEXT("Action_Priest_Purification"));
@@ -26,12 +32,19 @@ namespace RPGPriestAuthoring
 	const FName HolyProtectionActionId(TEXT("Action_Priest_HolyProtection"));
 	const FName SanctuaryActionId(TEXT("Action_Priest_Sanctuary"));
 	const FName DivineBastionActionId(TEXT("Action_Priest_DivineBastion"));
+	const FName HolyLightActionId(TEXT("Action_Priest_HolyLight"));
+	const FName TurnUndeadActionId(TEXT("Action_Priest_TurnUndead"));
+	const FName HolyDispelActionId(TEXT("Action_Priest_HolyDispel"));
+	const FName SmiteActionId(TEXT("Action_Priest_Smite"));
+	const FName MajorExorcismActionId(TEXT("Action_Priest_MajorExorcism"));
 
 	const FName RegenerationStatusId(TEXT("Status_Regeneration"));
 	const FName BlessedStatusId(TEXT("Status_Blessed"));
 	const FName HolyProtectionStatusId(TEXT("Status_HolyProtection"));
 	const FName SanctuaryStatusId(TEXT("Status_Sanctuary"));
 	const FName DivineBastionStatusId(TEXT("Status_DivineBastion"));
+	const FName TurnedUndeadStatusId(TEXT("Status_TurnedUndead"));
+	const FName BanishedStatusId(TEXT("Status_Banished"));
 
 	FRPGClassProgressionChoiceDefinition MakeChoice(
 		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 MinimumLevel, FName PrerequisiteChoiceId = NAME_None)
@@ -71,6 +84,53 @@ namespace RPGPriestAuthoring
 			TargetingPolicy == EGridCombatTargetingPolicy::Hostile;
 		Action.CooldownRounds = CooldownRounds;
 		Action.Requirements = { RequirementId };
+		return Action;
+	}
+
+	FGridCombatActionDefinition MakeHolyAttack(
+		FName ActionId, const TCHAR* DisplayName, const TCHAR* Description, FName RequirementId,
+		int32 ActionPointCost, int32 ManaCost, EGridCombatTargetingPolicy TargetingPolicy,
+		int32 RangeCells, int32 BaseDamage, int32 CooldownRounds,
+		int32 AdditionalWisdomModifierScale, bool bScaleReligion)
+	{
+		FGridCombatActionDefinition Action;
+		Action.ActionId = ActionId;
+		Action.DisplayName = FText::FromString(DisplayName);
+		Action.Description = FText::FromString(Description);
+		Action.ActionType = EGridCombatActionType::Ability;
+		Action.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+		Action.SourceTags = { TEXT("Spell.School.Holy") };
+		Action.TargetingPolicy = TargetingPolicy;
+		Action.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
+		Action.ActionPointCost = ActionPointCost;
+		Action.ResourceCosts.ManaCost = ManaCost;
+		Action.RangeCells = RangeCells;
+		Action.bRequiresLineOfSight =
+			TargetingPolicy == EGridCombatTargetingPolicy::Hostile ||
+			TargetingPolicy == EGridCombatTargetingPolicy::Cell ||
+			TargetingPolicy == EGridCombatTargetingPolicy::Area;
+		Action.CooldownRounds = CooldownRounds;
+		Action.Requirements = { RequirementId };
+
+		Action.OffensiveProfile.AttackId = ActionId;
+		Action.OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Holy;
+		Action.OffensiveProfile.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::None;
+		Action.OffensiveProfile.AttackDefinition.MinDamage = BaseDamage;
+		Action.OffensiveProfile.AttackDefinition.MaxDamage = BaseDamage;
+		Action.OffensiveProfile.AttackDefinition.bAlwaysHits = true;
+		Action.OffensiveProfile.AttackDefinition.bCanCriticalHit = false;
+		Action.OffensiveProfile.DamageScalingAttribute = EGridAttackScalingAttribute::Wisdom;
+		Action.OffensiveProfile.RangeCells = RangeCells;
+		if (AdditionalWisdomModifierScale > 0)
+		{
+			Action.DirectDamageScaling.ScalingAttribute = EGridAttackScalingAttribute::Wisdom;
+			Action.DirectDamageScaling.AttributeModifierScale = AdditionalWisdomModifierScale;
+		}
+		if (bScaleReligion)
+		{
+			Action.DirectDamageScaling.ScalingSkillId = TEXT("Skill_Religion");
+			Action.DirectDamageScaling.SkillRankScale = 1;
+		}
 		return Action;
 	}
 
@@ -250,6 +310,114 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		SanctuaryTalentId, TEXT("Sanctuaire"), TEXT("Débloque Sanctuaire."), 14, HolyProtectionTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		DivineBastionTalentId, TEXT("Bastion divin"), TEXT("Débloque Bastion divin."), 18, SanctuaryTalentId));
+
+	// Exorcism actions.
+	{
+		FGridCombatActionDefinition Action = MakeHolyAttack(
+			HolyLightActionId, TEXT("Lumière sacrée"),
+			TEXT("Inflige 5 + modificateur de SAG + rang de Religion en dégâts Sacrés ; +50 % contre Undead ou Demon."),
+			HolyLightTalentId, 2, 4, EGridCombatTargetingPolicy::Hostile, 5, 5, 0, 0, true);
+		ClassAsset.CombatActions.Add(Action);
+	}
+	{
+		FGridCombatActionDefinition Action = MakeHolyAttack(
+			TurnUndeadActionId, TEXT("Repousser les morts-vivants"),
+			TEXT("Tous les Undead à 2 cellules du groupe subissent 4 dégâts Sacrés ; sans armure magique, ils sont repoussés et perdent 4 Initiative pendant un round."),
+			TurnUndeadTalentId, 3, 7, EGridCombatTargetingPolicy::Area, 1, 4, 3, 0, false);
+		Action.AreaRadiusCells = 2;
+		Action.bAreaCenteredOnParty = true;
+		Action.bRequiresLineOfSight = false;
+		Action.TargetFilter.AllowedMonsterCategoryIds = { TEXT("Undead") };
+
+		FGridCombatMovementEffectProfile Push;
+		Push.Subject = EGridCombatMovementSubject::TargetCombatant;
+		Push.Direction = EGridCombatMovementDirection::AwayFromSource;
+		Push.DistanceCells = 1;
+		Push.bForced = true;
+		Push.ArmorGate = EGridCombatStatusArmorGate::MagicalArmorDepleted;
+		Action.MovementEffects.Add(Push);
+
+		FGridCombatStatusApplicationProfile InitiativeLoss;
+		InitiativeLoss.StatusEffectId = TurnedUndeadStatusId;
+		InitiativeLoss.Trigger = EGridCombatStatusApplicationTrigger::AfterSuccessfulHit;
+		InitiativeLoss.ArmorGate = EGridCombatStatusArmorGate::MagicalArmorDepleted;
+		InitiativeLoss.DurationOverride = 1;
+		Action.StatusApplications.Add(InitiativeLoss);
+		ClassAsset.CombatActions.Add(Action);
+	}
+	{
+		FGridCombatActionDefinition Action = MakeEffectSpell(
+			HolyDispelActionId, TEXT("Dissipation sacrée"),
+			TEXT("Allié : retire jusqu'à deux Debuffs Nécrotiques ou Malédictions. Undead : retire un Buff magique amovible."),
+			HolyDispelTalentId, 2, 6, EGridCombatTargetingPolicy::AllyOrHostile, 3, 2);
+		Action.bRequiresLineOfSight = true;
+		Action.TargetFilter.AllowedMonsterCategoryIds = { TEXT("Undead") };
+
+		FGridCombatStatusRemovalProfile AllyRemoval;
+		AllyRemoval.AnyStatusTags = { TEXT("Necrotic"), TEXT("Curse") };
+		AllyRemoval.AllowedDispositions = { EGridStatusEffectDisposition::Debuff };
+		AllyRemoval.TargetSide = EGridCombatStatusRemovalTargetSide::Party;
+		AllyRemoval.MaximumRemovals = 2;
+		Action.StatusRemovals.Add(AllyRemoval);
+
+		FGridCombatStatusRemovalProfile HostileRemoval;
+		HostileRemoval.AnyStatusTags = { TEXT("Dispel.Magical") };
+		HostileRemoval.AllowedDispositions = { EGridStatusEffectDisposition::Buff };
+		HostileRemoval.TargetSide = EGridCombatStatusRemovalTargetSide::Hostile;
+		HostileRemoval.MaximumRemovals = 1;
+		Action.StatusRemovals.Add(HostileRemoval);
+		ClassAsset.CombatActions.Add(Action);
+	}
+	{
+		FGridCombatActionDefinition Action = MakeHolyAttack(
+			SmiteActionId, TEXT("Châtiment"),
+			TEXT("Inflige 10 + 2×modificateur de SAG + rang de Religion en dégâts Sacrés ; +50 % contre Undead ou Demon."),
+			SmiteTalentId, 3, 8, EGridCombatTargetingPolicy::Hostile, 4, 10, 2, 1, true);
+		ClassAsset.CombatActions.Add(Action);
+	}
+	{
+		FGridCombatActionDefinition Action = MakeHolyAttack(
+			MajorExorcismActionId, TEXT("Exorcisme majeur"),
+			TEXT("Zone sacrée n'affectant que Undead, Demon ou Summoned ; 14 + 2×SAG mod + Religion, et Banished si l'armure magique est épuisée."),
+			MajorExorcismTalentId, 4, 14, EGridCombatTargetingPolicy::Area, 4, 14, 5, 1, true);
+		Action.AreaRadiusCells = 2;
+		Action.TargetFilter.AllowedMonsterCategoryIds = { TEXT("Undead"), TEXT("Demon"), TEXT("Summoned") };
+		FGridCombatStatusApplicationProfile Banished;
+		Banished.StatusEffectId = BanishedStatusId;
+		Banished.Trigger = EGridCombatStatusApplicationTrigger::AfterSuccessfulHit;
+		Banished.ArmorGate = EGridCombatStatusArmorGate::MagicalArmorDepleted;
+		Banished.DurationOverride = 1;
+		Action.StatusApplications.Add(Banished);
+		ClassAsset.CombatActions.Add(Action);
+	}
+
+	// Exorcism progression.
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			HolyLightTalentId, TEXT("Lumière sacrée"), TEXT("Débloque Lumière sacrée."), 2);
+		FGridCombatModifierProfile Bonus;
+		Bonus.ActionIds = { HolyLightActionId };
+		Bonus.AllowedTargetMonsterCategoryIds = { TEXT("Undead"), TEXT("Demon") };
+		Bonus.OutgoingDamagePercentModifier = 50;
+		Choice.CombatModifiers.Add(Bonus);
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+	ClassAsset.ProgressionChoices.Add(MakeChoice(
+		TurnUndeadTalentId, TEXT("Repousser les morts-vivants"), TEXT("Débloque Repousser les morts-vivants."), 6, HolyLightTalentId));
+	ClassAsset.ProgressionChoices.Add(MakeChoice(
+		HolyDispelTalentId, TEXT("Dissipation sacrée"), TEXT("Débloque Dissipation sacrée."), 10, TurnUndeadTalentId));
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			SmiteTalentId, TEXT("Châtiment"), TEXT("Débloque Châtiment."), 14, HolyDispelTalentId);
+		FGridCombatModifierProfile Bonus;
+		Bonus.ActionIds = { SmiteActionId };
+		Bonus.AllowedTargetMonsterCategoryIds = { TEXT("Undead"), TEXT("Demon") };
+		Bonus.OutgoingDamagePercentModifier = 50;
+		Choice.CombatModifiers.Add(Bonus);
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+	ClassAsset.ProgressionChoices.Add(MakeChoice(
+		MajorExorcismTalentId, TEXT("Exorcisme majeur"), TEXT("Débloque Exorcisme majeur."), 18, SmiteTalentId));
 }
 
 bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)
@@ -358,6 +526,30 @@ bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Stat
 		};
 		Modifier.IncomingDamagePercentModifier = -20;
 		StatusAsset.CombatModifiers.Add(Modifier);
+		return StatusAsset.IsValidDefinition();
+	}
+
+	if (EffectId == TurnedUndeadStatusId)
+	{
+		StatusAsset.DisplayName = FText::FromString(TEXT("Repoussé"));
+		StatusAsset.Description = FText::FromString(TEXT("Initiative -4 pendant 1 round après Repousser les morts-vivants."));
+		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Control.Fear") };
+		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
+		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
+		StatusAsset.DefaultDuration = 1;
+		StatusAsset.InitiativeModifier = -4;
+		return StatusAsset.IsValidDefinition();
+	}
+
+	if (EffectId == BanishedStatusId)
+	{
+		StatusAsset.DisplayName = FText::FromString(TEXT("Banni"));
+		StatusAsset.Description = FText::FromString(TEXT("La prochaine activation est ignorée."));
+		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Control.Banish") };
+		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
+		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
+		StatusAsset.DefaultDuration = 1;
+		StatusAsset.Control.bSkipActivation = true;
 		return StatusAsset.IsValidDefinition();
 	}
 
