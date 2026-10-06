@@ -5,6 +5,7 @@
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGClassProgressionAuthoring.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/Package.h"
@@ -315,6 +316,8 @@ FString FRPGAlchemistAuthoring::GetStatusObjectPath(FName EffectId)
 void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 {
 	using namespace RPGAlchemistAuthoring;
+
+	FRPGClassProgressionAuthoring::ConfigureCanonicalTalentGrants(ClassAsset);
 	ClassAsset.CombatActions.Reset();
 	ClassAsset.ProgressionChoices.Reset();
 

@@ -172,9 +172,9 @@ namespace RPG0310PIE
 				Character.ClassId = Spec.ClassId;
 				Character.ClassDisplayName = ClassAsset->DisplayName;
 				Character.ClassDefinition = ClassAsset;
-				Character.Level = 18;
-				Character.Experience = URPGCharacterRulesLibrary::GetCumulativeExperienceRequiredForLevel(18);
-				Character.LastAcknowledgedLevel = 18;
+				Character.Level = 20;
+				Character.Experience = URPGCharacterRulesLibrary::GetCumulativeExperienceRequiredForLevel(20);
+				Character.LastAcknowledgedLevel = 20;
 				Character.Attributes = ClassAsset->BaseAttributes;
 				Character.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassAsset, Character.Level);
 				Character.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Character.DerivedStats, ClassAsset);
@@ -206,9 +206,9 @@ namespace RPG0310PIE
 				FRPGTalentPointBalance Balance;
 				Test->TestTrue(*FString::Printf(TEXT("%s talent balance is readable in PIE"), *Character.ClassId.ToString()),
 					FRPGTalentRuntimeService::TryGetTalentPointBalance(Inventory, Index, Balance));
-				Test->TestEqual(TEXT("Level 18 grants five talent points"), Balance.GrantedPoints, 5);
-				Test->TestEqual(TEXT("A complete branch spends five talent points"), Balance.SpentPoints, 5);
-				Test->TestEqual(TEXT("A complete branch leaves zero talent points"), Balance.RemainingPoints, 0);
+				Test->TestEqual(TEXT("Level 20 grants ten Talent Points"), Balance.GrantedPoints, 10);
+				Test->TestEqual(TEXT("A complete five-node branch spends five Talent Points"), Balance.SpentPoints, 5);
+				Test->TestEqual(TEXT("Unspent Talent Points are preserved"), Balance.RemainingPoints, 5);
 
 				TSet<FName> Requirements;
 				FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Character.CharacterId, Requirements);

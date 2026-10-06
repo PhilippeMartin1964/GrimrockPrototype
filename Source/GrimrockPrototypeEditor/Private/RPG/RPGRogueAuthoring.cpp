@@ -5,6 +5,7 @@
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGClassProgressionAuthoring.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
@@ -171,6 +172,7 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 {
 	using namespace RPGRogueAuthoring;
 
+	FRPGClassProgressionAuthoring::ConfigureCanonicalTalentGrants(ClassAsset);
 	ClassAsset.CombatActions.Reset();
 	ClassAsset.ProgressionChoices.Reset();
 

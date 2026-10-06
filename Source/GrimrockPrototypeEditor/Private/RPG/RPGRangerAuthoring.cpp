@@ -8,6 +8,7 @@
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGClassProgressionAuthoring.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "UObject/Package.h"
@@ -186,6 +187,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 {
 	using namespace RPGRangerAuthoring;
 
+	FRPGClassProgressionAuthoring::ConfigureCanonicalTalentGrants(ClassAsset);
 	ClassAsset.CombatActions.Reset();
 	ClassAsset.ProgressionChoices.Reset();
 

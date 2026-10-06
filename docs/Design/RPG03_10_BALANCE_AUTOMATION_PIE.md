@@ -17,8 +17,8 @@ Les invariants figés sont ceux déjà impliqués par la règle RPG03 :
 - six classes de production ;
 - quinze talents **conceptuels** par classe ;
 - quatre-vingt-dix talents conceptuels au total ;
-- cinq points de talent par classe ;
-- un point aux niveaux 2, 6, 10, 14 et 18 ;
+- dix Talent Points par classe au niveau 20 ;
+- un point aux niveaux 2, 4, 6, 8, 10, 12, 14, 16, 18 et 20 ;
 - trois choix conceptuels disponibles à chaque palier ;
 - chaque Choice coûte un point.
 
@@ -33,7 +33,7 @@ Automation vérifie également :
 - chaque Requirement d'action de classe est résoluble par la progression de cette classe ;
 - les actions restent dans les bornes économiques actuellement définies par RPG03 :
   - AP 1..4 ;
-  - Mana 0..15 ;
+  - Mana 0..16 ;
   - portée 0..6 ;
   - cooldown 0..5 ;
   - AreaRadius 0..2 ;
@@ -58,7 +58,7 @@ charge réellement :
 
 puis démarre un vrai monde `EWorldType::PIE`.
 
-Dans le monde PIE uniquement, il construit transitoirement un groupe de six personnages niveau 18 :
+Dans le monde PIE uniquement, il construit transitoirement un groupe de six personnages niveau 20 :
 
 - Warrior / Guardian ;
 - Rogue / Assassin ;
@@ -70,9 +70,9 @@ Dans le monde PIE uniquement, il construit transitoirement un groupe de six pers
 Pour chaque personnage, le test sélectionne les cinq talents de la branche, reconstruit la projection MON15, puis vérifie :
 
 - 5 talents sélectionnés lisibles par `FRPGTalentRuntimeService` ;
-- 5 points accordés ;
-- 5 points dépensés ;
-- 0 point restant ;
+- 10 Talent Points accordés ;
+- 5 points dépensés par une branche complète ;
+- 5 points non dépensés conservés ;
 - ClassId et talent terminal présents dans les RequirementIds runtime.
 
 Le test remet ensuite l'état transitoire à zéro et termine PIE. Aucune sauvegarde ni asset n'est modifié.
@@ -94,3 +94,30 @@ Grimrock.RPG.RPG03
 Ce filtre couvre C1..C8, l'authoring RPG03.9 et RPG03.10, PIE compris.
 
 La clôture RPG03.10 ne sera déclarée qu'après lecture de la sortie TD04.2 fournie par l'utilisateur.
+
+
+## Correction de cohérence découverte par RPG03.10
+
+La première campagne globale a révélé que les six `DA_Class_*` de production
+avaient `ProgressionLevelGrants` vide. Les tests d'authoring de branches
+injectaient localement des grants et masquaient donc cette lacune de production.
+
+RPG03.10 centralise désormais l'autorité Editor dans :
+
+```text
+FRPGClassProgressionAuthoring::ConfigureCanonicalTalentGrants()
+```
+
+et chaque authoring de classe l'appelle. Le commandlet
+`RPGClassProgressionAuthoring` matérialise uniquement les six classes.
+
+La règle `RPG_Class_Progression_1_20_v0_1.md` reste autoritaire :
+10 Talent Points aux niveaux pairs 2..20. Les cinq paliers de choix restent
+2/6/10/14/18.
+
+`Equipment.Shield` n'est pas un requirement de progression : c'est un gate
+runtime d'équipement. Le test de closure ne traite donc comme progression que
+les requirements `Talent_*`.
+
+`Action_Mage_Cataclysm` coûte 16 mana selon la spécification autoritaire ; la
+borne de régression globale est donc 0..16.

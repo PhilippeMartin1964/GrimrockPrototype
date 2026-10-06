@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGClassProgressionService.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
@@ -95,7 +96,7 @@ namespace RPG0310
 	{
 		return Action.IsValid() &&
 			Action.ActionPointCost >= 1 && Action.ActionPointCost <= 4 &&
-			Action.ResourceCosts.ManaCost >= 0 && Action.ResourceCosts.ManaCost <= 15 &&
+			Action.ResourceCosts.ManaCost >= 0 && Action.ResourceCosts.ManaCost <= 16 &&
 			Action.RangeCells >= 0 && Action.RangeCells <= 6 &&
 			Action.CooldownRounds >= 0 && Action.CooldownRounds <= 5 &&
 			Action.AreaRadiusCells >= 0 && Action.AreaRadiusCells <= 2;
@@ -166,8 +167,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0310TierEconomyTest,
 
 bool FRPG0310TierEconomyTest::RunTest(const FString&)
 {
-	const TArray<int32> Tiers = { 2, 6, 10, 14, 18 };
-	const TSet<int32> TierSet(Tiers);
+	const TArray<int32> ChoiceTiers = { 2, 6, 10, 14, 18 };
+	const TSet<int32> ChoiceTierSet(ChoiceTiers);
+	const TArray<int32> TalentGrantLevels = { 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 };
+	const TSet<int32> TalentGrantLevelSet(TalentGrantLevels);
 	for (const URPGClassAsset* ClassAsset : RPG0310::LoadProductionClasses(*this))
 	{
 		if (!ClassAsset)
@@ -187,16 +190,27 @@ bool FRPG0310TierEconomyTest::RunTest(const FString&)
 			++PositiveGrantCount;
 			TotalChoicePoints += Grant.ChoicePointsGranted;
 			PositiveGrantLevels.Add(Grant.Level);
-			TestEqual(*FString::Printf(TEXT("%s grants one point at each talent tier"), *ClassAsset->ClassId.ToString()),
+			TestEqual(*FString::Printf(TEXT("%s grants one Talent Point per canonical grant level"), *ClassAsset->ClassId.ToString()),
 				Grant.ChoicePointsGranted, 1);
-			TestTrue(*FString::Printf(TEXT("%s only grants talent points on canonical tiers"), *ClassAsset->ClassId.ToString()),
-				TierSet.Contains(Grant.Level));
+			TestTrue(*FString::Printf(TEXT("%s only grants Talent Points at even levels 2..20"), *ClassAsset->ClassId.ToString()),
+				TalentGrantLevelSet.Contains(Grant.Level));
 		}
-		TestEqual(*FString::Printf(TEXT("%s has five positive choice-point grants"), *ClassAsset->ClassId.ToString()), PositiveGrantCount, 5);
-		TestEqual(*FString::Printf(TEXT("%s grants five total talent points"), *ClassAsset->ClassId.ToString()), TotalChoicePoints, 5);
-		TestEqual(*FString::Printf(TEXT("%s covers all five canonical tier levels"), *ClassAsset->ClassId.ToString()), PositiveGrantLevels.Num(), 5);
+		TestEqual(*FString::Printf(TEXT("%s has ten positive Talent Point grants"), *ClassAsset->ClassId.ToString()), PositiveGrantCount, 10);
+		TestEqual(*FString::Printf(TEXT("%s grants ten total Talent Points at level 20"), *ClassAsset->ClassId.ToString()), TotalChoicePoints, 10);
+		TestEqual(*FString::Printf(TEXT("%s covers all ten canonical grant levels"), *ClassAsset->ClassId.ToString()), PositiveGrantLevels.Num(), 10);
 
-		for (const int32 Tier : Tiers)
+		TestEqual(TEXT("Level 1 grants zero Talent Points"),
+			FRPGClassProgressionService::GetTotalChoicePointsGranted(ClassAsset, 1), 0);
+		TestEqual(TEXT("Level 5 grants two Talent Points"),
+			FRPGClassProgressionService::GetTotalChoicePointsGranted(ClassAsset, 5), 2);
+		TestEqual(TEXT("Level 10 grants five Talent Points"),
+			FRPGClassProgressionService::GetTotalChoicePointsGranted(ClassAsset, 10), 5);
+		TestEqual(TEXT("Level 15 grants seven Talent Points"),
+			FRPGClassProgressionService::GetTotalChoicePointsGranted(ClassAsset, 15), 7);
+		TestEqual(TEXT("Level 20 grants ten Talent Points"),
+			FRPGClassProgressionService::GetTotalChoicePointsGranted(ClassAsset, 20), 10);
+
+		for (const int32 Tier : ChoiceTiers)
 		{
 			TestEqual(
 				*FString::Printf(TEXT("%s exposes three conceptual choices at level %d"), *ClassAsset->ClassId.ToString(), Tier),
@@ -204,8 +218,8 @@ bool FRPG0310TierEconomyTest::RunTest(const FString&)
 		}
 		for (const FRPGClassProgressionChoiceDefinition& Choice : ClassAsset->ProgressionChoices)
 		{
-			TestTrue(*FString::Printf(TEXT("%s choice %s sits on a canonical tier"), *ClassAsset->ClassId.ToString(), *Choice.ChoiceId.ToString()),
-				TierSet.Contains(Choice.MinimumLevel));
+			TestTrue(*FString::Printf(TEXT("%s choice %s sits on a canonical choice tier"), *ClassAsset->ClassId.ToString(), *Choice.ChoiceId.ToString()),
+				ChoiceTierSet.Contains(Choice.MinimumLevel));
 			TestEqual(*FString::Printf(TEXT("%s choice %s costs one point"), *ClassAsset->ClassId.ToString(), *Choice.ChoiceId.ToString()),
 				Choice.PointCost, 1);
 		}
@@ -235,9 +249,14 @@ bool FRPG0310RequirementClosureTest::RunTest(const FString&)
 			GlobalActionIds.Add(Action.ActionId);
 			for (const FName Requirement : Action.Requirements)
 			{
-				TestTrue(*FString::Printf(TEXT("%s action %s requirement %s resolves in its class progression"),
-					*ClassAsset->ClassId.ToString(), *Action.ActionId.ToString(), *Requirement.ToString()),
-					Requirements.Contains(Requirement));
+				// Talent_* requirements belong to class progression. Equipment.*, Skill_* and
+				// other runtime gates are projected by their own authoritative systems.
+				if (Requirement.ToString().StartsWith(TEXT("Talent_")))
+				{
+					TestTrue(*FString::Printf(TEXT("%s action %s talent requirement %s resolves in its class progression"),
+						*ClassAsset->ClassId.ToString(), *Action.ActionId.ToString(), *Requirement.ToString()),
+						Requirements.Contains(Requirement));
+				}
 			}
 		}
 	}
