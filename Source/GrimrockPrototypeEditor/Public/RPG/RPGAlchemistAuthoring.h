@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Runtime/Combat/GridCombatTypes.h"
 
 class URPGClassAsset;
 class UGridItemDefinitionAsset;
@@ -22,4 +23,14 @@ struct GRIMROCKPROTOTYPEEDITOR_API FRPGAlchemistAuthoring
 
 	static void GetB1ItemIds(TArray<FName>& OutItemIds);
 	static void GetB1StatusIds(TArray<FName>& OutStatusIds);
+	static void GetB2ItemIds(TArray<FName>& OutItemIds);
+	static void GetB2StatusIds(TArray<FName>& OutStatusIds);
+
+	/**
+	 * Recipe-facing definition for Transmutation majeure. The future crafting
+	 * system selects exactly one output profile per use while Item_Catalyst_Rare
+	 * remains the inventory source.
+	 */
+	static bool BuildMajorTransmutationRecipeAction(
+		EGridCombatSurfaceType OutputSurfaceType, FGridCombatActionDefinition& OutAction);
 };

@@ -18,6 +18,12 @@ namespace RPGAlchemistAuthoring
 	const FName DiffusionTalent(TEXT("Talent_Alchemist_Apothecary_Diffusion"));
 	const FName PanaceaTalent(TEXT("Talent_Alchemist_Apothecary_Panacea"));
 
+	const FName OilSlickTalent(TEXT("Talent_Alchemist_Transmuter_OilSlick"));
+	const FName AcidFlaskTalent(TEXT("Talent_Alchemist_Transmuter_AcidFlask"));
+	const FName CorrosiveCloudTalent(TEXT("Talent_Alchemist_Transmuter_CorrosiveCloud"));
+	const FName CatalystTalent(TEXT("Talent_Alchemist_Transmuter_Catalyst"));
+	const FName MajorTransmutationTalent(TEXT("Talent_Alchemist_Transmuter_MajorTransmutation"));
+
 	const FName FireBombItem(TEXT("Item_Bomb_Fire"));
 	const FName ToxicBombItem(TEXT("Item_Bomb_Toxic"));
 	const FName AntidoteItem(TEXT("Item_Antidote"));
@@ -26,18 +32,28 @@ namespace RPGAlchemistAuthoring
 	const FName DefensiveLightningItem(TEXT("Item_DefensiveElixir_Lightning"));
 	const FName DefensivePoisonItem(TEXT("Item_DefensiveElixir_Poison"));
 	const FName PanaceaItem(TEXT("Item_Panacea"));
+	const FName OilSlickItem(TEXT("Item_Flask_Oil"));
+	const FName AcidFlaskItem(TEXT("Item_Flask_Acid"));
+	const FName CorrosiveCloudItem(TEXT("Item_Flask_CorrosiveCloud"));
+	const FName RareCatalystItem(TEXT("Item_Catalyst_Rare"));
 
 	const FName FireBombAction(TEXT("Action_Alchemist_FireBomb"));
 	const FName ToxicBombAction(TEXT("Action_Alchemist_ToxicBomb"));
 	const FName AntidoteAction(TEXT("Action_Alchemist_Antidote"));
 	const FName DefensiveElixirAction(TEXT("Action_Alchemist_DefensiveElixir"));
 	const FName PanaceaAction(TEXT("Action_Alchemist_Panacea"));
+	const FName OilSlickAction(TEXT("Action_Alchemist_OilSlick"));
+	const FName AcidFlaskAction(TEXT("Action_Alchemist_AcidFlask"));
+	const FName CorrosiveCloudAction(TEXT("Action_Alchemist_CorrosiveCloud"));
+	const FName CatalystAction(TEXT("Action_Alchemist_Catalyst"));
+	const FName MajorTransmutationAction(TEXT("Action_Alchemist_MajorTransmutation"));
 
 	const FName PoisonStatus(TEXT("Status_Poison"));
 	const FName DefensiveFireStatus(TEXT("Status_DefensiveElixir_Fire"));
 	const FName DefensiveIceStatus(TEXT("Status_DefensiveElixir_Ice"));
 	const FName DefensiveLightningStatus(TEXT("Status_DefensiveElixir_Lightning"));
 	const FName DefensivePoisonStatus(TEXT("Status_DefensiveElixir_Poison"));
+	const FName CorrodedStatus(TEXT("Status_Corroded"));
 
 	FRPGClassProgressionChoiceDefinition MakeChoice(
 		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 Level, FName Prerequisite = NAME_None)
@@ -127,6 +143,22 @@ namespace RPGAlchemistAuthoring
 		Profile.Trigger = EGridCombatStatusApplicationTrigger::AfterResolution;
 		Profile.ArmorGate = EGridCombatStatusArmorGate::None;
 		Profile.DurationOverride = Duration;
+		return Profile;
+	}
+
+	FGridCombatArmorEffectProfile MakePhysicalArmorDamage(int32 Amount, int32 AlchemyScale)
+	{
+		FGridCombatArmorEffectProfile Profile;
+		Profile.Pool = EGridCombatArmorPool::Physical;
+		Profile.Operation = EGridCombatArmorEffectOperation::Damage;
+		Profile.Magnitude = EGridCombatArmorEffectMagnitude::Flat;
+		Profile.Trigger = EGridCombatArmorEffectTrigger::AfterResolution;
+		Profile.Amount = Amount;
+		if (AlchemyScale > 0)
+		{
+			Profile.ScalingSkillId = TEXT("Skill_Alchemy");
+			Profile.SkillRankScale = AlchemyScale;
+		}
 		return Profile;
 	}
 
@@ -249,6 +281,63 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Panacea") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
+
+	// Transmuter
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			OilSlickTalent, TEXT("Huile glissante"), TEXT("Débloque la recette de Flasque d'huile."), 2);
+		Choice.GrantedRequirementIds = { TEXT("Recipe_Flask_Oil") };
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			AcidFlaskTalent, TEXT("Flasque acide"), TEXT("Débloque la recette de Flasque acide."), 6, OilSlickTalent);
+		Choice.GrantedRequirementIds = { TEXT("Recipe_Flask_Acid") };
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			CorrosiveCloudTalent, TEXT("Nuage corrosif"), TEXT("Débloque la recette de Flasque de nuage corrosif."), 10, AcidFlaskTalent);
+		Choice.GrantedRequirementIds = { TEXT("Recipe_Flask_CorrosiveCloud") };
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			CatalystTalent, TEXT("Catalyseur"), TEXT("Débloque Catalyseur."), 14, CorrosiveCloudTalent);
+		ClassAsset.ProgressionChoices.Add(Choice);
+
+		FGridCombatActionDefinition Action;
+		Action.ActionId = CatalystAction;
+		Action.DisplayName = FText::FromString(TEXT("Catalyseur"));
+		Action.Description = FText::FromString(TEXT("Déclenche immédiatement une réaction canonique sur la surface ciblée."));
+		Action.ActionType = EGridCombatActionType::Ability;
+		Action.SourcePolicy = EGridCombatActionSourcePolicy::Ability;
+		Action.TargetingPolicy = EGridCombatTargetingPolicy::Cell;
+		Action.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+		Action.ActionPointCost = 1;
+		Action.RangeCells = 4;
+		Action.bRequiresLineOfSight = true;
+		Action.CooldownRounds = 2;
+		Action.Requirements = { CatalystTalent };
+		Action.SurfaceInteraction = EGridCombatSurfaceInteraction::AnyCanonical;
+		ClassAsset.CombatActions.Add(Action);
+	}
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			MajorTransmutationTalent, TEXT("Transmutation majeure"),
+			TEXT("Débloque les recettes de Transmutation majeure Fire/Ice/Poison/Oil utilisant un Catalyseur rare."),
+			18, CatalystTalent);
+		Choice.GrantedRequirementIds = {
+			TEXT("Recipe_MajorTransmutation_Fire"), TEXT("Recipe_MajorTransmutation_Ice"),
+			TEXT("Recipe_MajorTransmutation_Poison"), TEXT("Recipe_MajorTransmutation_Oil")
+		};
+		FGridCombatModifierProfile ReactionBonus;
+		ReactionBonus.ActionIds = { MajorTransmutationAction };
+		ReactionBonus.SourcePolicies = { EGridCombatActionSourcePolicy::QuickItem };
+		ReactionBonus.SurfaceReactionDamagePercentModifier = 50;
+		Choice.CombatModifiers.Add(ReactionBonus);
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
 }
 
 bool FRPGAlchemistAuthoring::ConfigureItem(UGridItemDefinitionAsset& Item, FName ItemDefinitionId)
@@ -361,6 +450,63 @@ bool FRPGAlchemistAuthoring::ConfigureItem(UGridItemDefinitionAsset& Item, FName
 		Item.QuickItemCombatAction = Action;
 		return Item.IsValidDefinition();
 	}
+	if (ItemDefinitionId == OilSlickItem)
+	{
+		ConfigureItemBase(Item, OilSlickItem, TEXT("Flasque d'huile"), EGridItemType::Misc, OilSlickAction);
+		Item.ItemTags.Add(TEXT("QuickItem.Flask"));
+		FGridCombatActionDefinition Action = MakeQuickItemAction(
+			OilSlickAction, EGridCombatTargetingPolicy::Area, EGridCombatActionResolutionProfile::Effect, 2, 4);
+		Action.AreaRadiusCells = 1;
+		FGridCombatSurfaceEffectProfile Oil;
+		Oil.SurfaceType = EGridCombatSurfaceType::Oil;
+		Oil.DurationRounds = 4;
+		Oil.TraversalCostModifier = 1;
+		Action.SurfaceEffects.Add(Oil);
+		Item.QuickItemCombatAction = Action;
+		return Item.IsValidDefinition();
+	}
+	if (ItemDefinitionId == AcidFlaskItem)
+	{
+		ConfigureItemBase(Item, AcidFlaskItem, TEXT("Flasque acide"), EGridItemType::Misc, AcidFlaskAction);
+		Item.ItemTags.Add(TEXT("QuickItem.Flask"));
+		FGridCombatActionDefinition Action = MakeQuickItemAction(
+			AcidFlaskAction, EGridCombatTargetingPolicy::Hostile, EGridCombatActionResolutionProfile::Effect, 2, 4, 1);
+		Action.ArmorEffects.Add(MakePhysicalArmorDamage(6, 2));
+		Action.StatusApplications.Add(MakeStatus(CorrodedStatus, 2));
+		Item.QuickItemCombatAction = Action;
+		return Item.IsValidDefinition();
+	}
+	if (ItemDefinitionId == CorrosiveCloudItem)
+	{
+		ConfigureItemBase(Item, CorrosiveCloudItem, TEXT("Flasque de nuage corrosif"), EGridItemType::Misc, CorrosiveCloudAction);
+		Item.ItemTags.Add(TEXT("QuickItem.Flask"));
+		FGridCombatActionDefinition Action = MakeQuickItemAction(
+			CorrosiveCloudAction, EGridCombatTargetingPolicy::Area, EGridCombatActionResolutionProfile::Attack, 3, 4, 2);
+		Action.AreaRadiusCells = 1;
+		Action.OffensiveProfile.AttackId = CorrosiveCloudAction;
+		Action.OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Poison;
+		Action.OffensiveProfile.AttackDefinition.MinDamage = 4;
+		Action.OffensiveProfile.AttackDefinition.MaxDamage = 4;
+		Action.OffensiveProfile.AttackDefinition.bAlwaysHits = true;
+		Action.OffensiveProfile.AttackDefinition.bCanCriticalHit = false;
+		Action.OffensiveProfile.RangeCells = 4;
+		Action.QuickItemScaling.ScalingSkillId = TEXT("Skill_Alchemy");
+		Action.QuickItemScaling.DirectDamageSkillRankScale = 1;
+		FGridCombatSurfaceEffectProfile Cloud;
+		Cloud.SurfaceType = EGridCombatSurfaceType::PoisonCloud;
+		Cloud.DurationRounds = 3;
+		Cloud.PeriodicDamageType = EGridDamageType::Poison;
+		Cloud.PeriodicDamagePerRound = 2;
+		FGridCombatStatusApplicationProfile Poison;
+		Poison.StatusEffectId = PoisonStatus;
+		Poison.Trigger = EGridCombatStatusApplicationTrigger::AfterResolution;
+		Poison.ArmorGate = EGridCombatStatusArmorGate::MagicalArmorDepleted;
+		Poison.DurationOverride = 2;
+		Cloud.PeriodicStatusApplications.Add(Poison);
+		Action.SurfaceEffects.Add(Cloud);
+		Item.QuickItemCombatAction = Action;
+		return Item.IsValidDefinition();
+	}
 
 	return false;
 }
@@ -416,6 +562,19 @@ bool FRPGAlchemistAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& S
 		StatusAsset.CombatModifiers.Add(Modifier);
 		return StatusAsset.IsValidDefinition();
 	}
+	if (EffectId == CorrodedStatus)
+	{
+		StatusAsset.DisplayName = FText::FromString(TEXT("Corrodé"));
+		StatusAsset.Description = FText::FromString(TEXT("Les restaurations d'armure physique reçues sont réduites de 20 % pendant 2 rounds."));
+		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Corrosion") };
+		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
+		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
+		StatusAsset.DefaultDuration = 2;
+		FGridCombatModifierProfile Modifier;
+		Modifier.PhysicalArmorRestorationPercentModifier = -20;
+		StatusAsset.CombatModifiers.Add(Modifier);
+		return StatusAsset.IsValidDefinition();
+	}
 	return false;
 }
 
@@ -434,4 +593,53 @@ void FRPGAlchemistAuthoring::GetB1StatusIds(TArray<FName>& OutStatusIds)
 	OutStatusIds = {
 		PoisonStatus, DefensiveFireStatus, DefensiveIceStatus, DefensiveLightningStatus, DefensivePoisonStatus
 	};
+}
+
+
+void FRPGAlchemistAuthoring::GetB2ItemIds(TArray<FName>& OutItemIds)
+{
+	using namespace RPGAlchemistAuthoring;
+	OutItemIds = { OilSlickItem, AcidFlaskItem, CorrosiveCloudItem };
+}
+
+void FRPGAlchemistAuthoring::GetB2StatusIds(TArray<FName>& OutStatusIds)
+{
+	using namespace RPGAlchemistAuthoring;
+	OutStatusIds = { CorrodedStatus };
+}
+
+bool FRPGAlchemistAuthoring::BuildMajorTransmutationRecipeAction(
+	EGridCombatSurfaceType OutputSurfaceType, FGridCombatActionDefinition& OutAction)
+{
+	using namespace RPGAlchemistAuthoring;
+	OutAction = FGridCombatActionDefinition();
+	if (OutputSurfaceType != EGridCombatSurfaceType::Fire &&
+		OutputSurfaceType != EGridCombatSurfaceType::Ice &&
+		OutputSurfaceType != EGridCombatSurfaceType::Poison &&
+		OutputSurfaceType != EGridCombatSurfaceType::Oil)
+	{
+		return false;
+	}
+
+	OutAction = MakeQuickItemAction(
+		MajorTransmutationAction, EGridCombatTargetingPolicy::Area,
+		EGridCombatActionResolutionProfile::Effect, 4, 4, 5);
+	OutAction.DisplayName = FText::FromString(TEXT("Transmutation majeure"));
+	OutAction.Description = FText::FromString(TEXT("Convertit une zone de rayon 2 vers la sortie choisie par la recette."));
+	OutAction.AreaRadiusCells = 2;
+	OutAction.Requirements = { MajorTransmutationTalent };
+	OutAction.SourceTags = { TEXT("QuickItem.Alchemy"), TEXT("QuickItem.Catalyst") };
+
+	FGridCombatSurfaceConversionProfile Conversion;
+	Conversion.bAllowEmptyCell = true;
+	Conversion.InputSurfaceTypes = {
+		EGridCombatSurfaceType::Fire, EGridCombatSurfaceType::Water, EGridCombatSurfaceType::Ice,
+		EGridCombatSurfaceType::Poison, EGridCombatSurfaceType::Oil, EGridCombatSurfaceType::ElectrifiedWater,
+		EGridCombatSurfaceType::Smoke, EGridCombatSurfaceType::PoisonCloud, EGridCombatSurfaceType::Blood
+	};
+	Conversion.OutputSurfaceType = OutputSurfaceType;
+	Conversion.EmptyCellDurationRounds = 4;
+	Conversion.OutputTraversalCostModifier = OutputSurfaceType == EGridCombatSurfaceType::Oil ? 1 : 0;
+	OutAction.SurfaceConversions.Add(Conversion);
+	return OutAction.IsValid();
 }

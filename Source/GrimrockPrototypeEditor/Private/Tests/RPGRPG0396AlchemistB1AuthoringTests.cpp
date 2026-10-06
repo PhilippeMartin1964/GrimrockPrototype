@@ -54,8 +54,12 @@ bool FRPG0396B1StructureTest::RunTest(const FString&)
 	using namespace RPG0396B1;
 	URPGClassAsset* Asset = BuildClass();
 	TestTrue(TEXT("B1 Alchemist class is structurally valid"), Asset->IsValidDefinition());
-	TestEqual(TEXT("B1 authors ten choices"), Asset->ProgressionChoices.Num(), 10);
-	TestEqual(TEXT("QuickItem actions do not duplicate into class CombatActions"), Asset->CombatActions.Num(), 0);
+	TestTrue(TEXT("Complete Alchemist still contains at least the ten B1 choices"), Asset->ProgressionChoices.Num() >= 10);
+	TestTrue(TEXT("Class CombatActions never duplicate QuickItem sources"),
+		!Asset->CombatActions.ContainsByPredicate([](const FGridCombatActionDefinition& Action)
+		{
+			return Action.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
+		}));
 
 	TestTrue(TEXT("Grenadier L2"), Chain(Asset, TEXT("Talent_Alchemist_Grenadier_FireBomb"), 2, NAME_None));
 	TestTrue(TEXT("Grenadier L6"), Chain(Asset, TEXT("Talent_Alchemist_Grenadier_ToxicBomb"), 6, TEXT("Talent_Alchemist_Grenadier_FireBomb")));
