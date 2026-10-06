@@ -112,6 +112,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Quick Item", meta = (EditCondition = "bProvidesQuickItemCombatAction"))
 	FGridCombatActionDefinition QuickItemCombatAction;
 
+	/** Optional stable action identity. NAME_None preserves legacy Use_<ItemDefinitionId> normalization. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Quick Item", meta = (EditCondition = "bProvidesQuickItemCombatAction"))
+	FName QuickItemActionIdOverride = NAME_None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment|Offense|Presentation")
 	bool bProvidesAttackPresentation = false;
 

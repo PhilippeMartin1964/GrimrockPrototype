@@ -198,7 +198,9 @@ bool UGridItemDefinitionAsset::BuildQuickItemCombatActionDefinition(FGridCombatA
 	}
 
 	OutDefinition = QuickItemCombatAction;
-	OutDefinition.ActionId = FGridCombatHotbarBinding::MakeQuickItemActionId(ItemDefinitionId);
+	OutDefinition.ActionId = QuickItemActionIdOverride.IsNone()
+		? FGridCombatHotbarBinding::MakeQuickItemActionId(ItemDefinitionId)
+		: QuickItemActionIdOverride;
 	OutDefinition.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 	OutDefinition.ResourceCosts.SourceItemQuantityCost = FMath::Max(1, OutDefinition.ResourceCosts.SourceItemQuantityCost);
 	NormalizeQuickItemSourceTags(ItemTags, OutDefinition);

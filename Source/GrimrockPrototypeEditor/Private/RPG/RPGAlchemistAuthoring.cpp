@@ -1,0 +1,423 @@
+#include "RPG/RPGAlchemistAuthoring.h"
+
+#include "RPG/RPGClassAsset.h"
+#include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
+#include "Runtime/GridItemDefinitionAsset.h"
+
+namespace RPGAlchemistAuthoring
+{
+	const FName FireBombTalent(TEXT("Talent_Alchemist_Grenadier_FireBomb"));
+	const FName ToxicBombTalent(TEXT("Talent_Alchemist_Grenadier_ToxicBomb"));
+	const FName PreciseChargeTalent(TEXT("Talent_Alchemist_Grenadier_PreciseCharge"));
+	const FName ChainReactionTalent(TEXT("Talent_Alchemist_Grenadier_ChainReaction"));
+	const FName MasterGrenadierTalent(TEXT("Talent_Alchemist_Grenadier_MasterGrenadier"));
+
+	const FName EnhancedPotionTalent(TEXT("Talent_Alchemist_Apothecary_EnhancedPotion"));
+	const FName AntidoteTalent(TEXT("Talent_Alchemist_Apothecary_Antidote"));
+	const FName DefensiveElixirTalent(TEXT("Talent_Alchemist_Apothecary_DefensiveElixir"));
+	const FName DiffusionTalent(TEXT("Talent_Alchemist_Apothecary_Diffusion"));
+	const FName PanaceaTalent(TEXT("Talent_Alchemist_Apothecary_Panacea"));
+
+	const FName FireBombItem(TEXT("Item_Bomb_Fire"));
+	const FName ToxicBombItem(TEXT("Item_Bomb_Toxic"));
+	const FName AntidoteItem(TEXT("Item_Antidote"));
+	const FName DefensiveFireItem(TEXT("Item_DefensiveElixir_Fire"));
+	const FName DefensiveIceItem(TEXT("Item_DefensiveElixir_Ice"));
+	const FName DefensiveLightningItem(TEXT("Item_DefensiveElixir_Lightning"));
+	const FName DefensivePoisonItem(TEXT("Item_DefensiveElixir_Poison"));
+	const FName PanaceaItem(TEXT("Item_Panacea"));
+
+	const FName FireBombAction(TEXT("Action_Alchemist_FireBomb"));
+	const FName ToxicBombAction(TEXT("Action_Alchemist_ToxicBomb"));
+	const FName AntidoteAction(TEXT("Action_Alchemist_Antidote"));
+	const FName DefensiveElixirAction(TEXT("Action_Alchemist_DefensiveElixir"));
+	const FName PanaceaAction(TEXT("Action_Alchemist_Panacea"));
+
+	const FName PoisonStatus(TEXT("Status_Poison"));
+	const FName DefensiveFireStatus(TEXT("Status_DefensiveElixir_Fire"));
+	const FName DefensiveIceStatus(TEXT("Status_DefensiveElixir_Ice"));
+	const FName DefensiveLightningStatus(TEXT("Status_DefensiveElixir_Lightning"));
+	const FName DefensivePoisonStatus(TEXT("Status_DefensiveElixir_Poison"));
+
+	FRPGClassProgressionChoiceDefinition MakeChoice(
+		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 Level, FName Prerequisite = NAME_None)
+	{
+		FRPGClassProgressionChoiceDefinition Choice;
+		Choice.ChoiceId = ChoiceId;
+		Choice.DisplayName = FText::FromString(DisplayName);
+		Choice.Description = FText::FromString(Description);
+		Choice.MinimumLevel = Level;
+		Choice.PointCost = 1;
+		if (!Prerequisite.IsNone())
+		{
+			Choice.PrerequisiteChoiceIds.Add(Prerequisite);
+		}
+		return Choice;
+	}
+
+	FGridCombatActionDefinition MakeQuickItemAction(
+		FName ActionId, EGridCombatTargetingPolicy Targeting, EGridCombatActionResolutionProfile Resolution,
+		int32 ActionPointCost, int32 RangeCells, int32 CooldownRounds = 0)
+	{
+		FGridCombatActionDefinition Action;
+		Action.ActionId = ActionId;
+		Action.DisplayName = FText::FromName(ActionId);
+		Action.ActionType = EGridCombatActionType::Ability;
+		Action.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
+		Action.TargetingPolicy = Targeting;
+		Action.ResolutionProfile = Resolution;
+		Action.ActionPointCost = ActionPointCost;
+		Action.RangeCells = RangeCells;
+		Action.CooldownRounds = CooldownRounds;
+		Action.ResourceCosts.SourceItemQuantityCost = 1;
+		Action.bRequiresLineOfSight =
+			Targeting == EGridCombatTargetingPolicy::Hostile ||
+			Targeting == EGridCombatTargetingPolicy::Cell ||
+			Targeting == EGridCombatTargetingPolicy::Area;
+		return Action;
+	}
+
+	FGridCombatActionDefinition MakeBomb(
+		FName ActionId, EGridDamageType DamageType, FName StatusId, int32 StatusDuration,
+		EGridCombatSurfaceType SurfaceType, int32 SurfaceDuration)
+	{
+		FGridCombatActionDefinition Action = MakeQuickItemAction(
+			ActionId, EGridCombatTargetingPolicy::Area, EGridCombatActionResolutionProfile::Attack, 2, 4);
+		Action.AreaRadiusCells = 1;
+		Action.bAffectsAlliesInArea = true;
+		Action.OffensiveProfile.AttackId = ActionId;
+		Action.OffensiveProfile.AttackDefinition.DamageType = DamageType;
+		Action.OffensiveProfile.AttackDefinition.MinDamage = 6;
+		Action.OffensiveProfile.AttackDefinition.MaxDamage = 6;
+		Action.OffensiveProfile.AttackDefinition.bAlwaysHits = true;
+		Action.OffensiveProfile.AttackDefinition.bCanCriticalHit = false;
+		Action.OffensiveProfile.RangeCells = 4;
+		Action.QuickItemScaling.ScalingSkillId = TEXT("Skill_Alchemy");
+		Action.QuickItemScaling.DirectDamageSkillRankScale = 1;
+
+		FGridCombatStatusApplicationProfile Status;
+		Status.StatusEffectId = StatusId;
+		Status.Trigger = EGridCombatStatusApplicationTrigger::AfterSuccessfulHit;
+		Status.ArmorGate = EGridCombatStatusArmorGate::MagicalArmorDepleted;
+		Status.DurationOverride = StatusDuration;
+		Action.StatusApplications.Add(Status);
+
+		FGridCombatSurfaceEffectProfile Surface;
+		Surface.SurfaceType = SurfaceType;
+		Surface.DurationRounds = SurfaceDuration;
+		Action.SurfaceEffects.Add(Surface);
+		return Action;
+	}
+
+	FGridCombatArmorEffectProfile MakeMagicalArmorRestore(int32 Amount)
+	{
+		FGridCombatArmorEffectProfile Profile;
+		Profile.Pool = EGridCombatArmorPool::Magical;
+		Profile.Operation = EGridCombatArmorEffectOperation::Restore;
+		Profile.Magnitude = EGridCombatArmorEffectMagnitude::Flat;
+		Profile.Trigger = EGridCombatArmorEffectTrigger::AfterResolution;
+		Profile.Amount = Amount;
+		return Profile;
+	}
+
+	FGridCombatStatusApplicationProfile MakeStatus(FName StatusId, int32 Duration)
+	{
+		FGridCombatStatusApplicationProfile Profile;
+		Profile.StatusEffectId = StatusId;
+		Profile.Trigger = EGridCombatStatusApplicationTrigger::AfterResolution;
+		Profile.ArmorGate = EGridCombatStatusArmorGate::None;
+		Profile.DurationOverride = Duration;
+		return Profile;
+	}
+
+	void ConfigureItemBase(UGridItemDefinitionAsset& Item, FName ItemId, const TCHAR* DisplayName, EGridItemType Type, FName ActionId)
+	{
+		Item.ItemDefinitionId = ItemId;
+		Item.DisplayName = FText::FromString(DisplayName);
+		Item.ItemType = Type;
+		Item.HandUsage = EGridItemHandUsage::NotHandHeld;
+		Item.bProvidesQuickItemCombatAction = true;
+		Item.QuickItemActionIdOverride = ActionId;
+		Item.ItemTags = { TEXT("QuickItem.Alchemy") };
+	}
+}
+
+const TCHAR* FRPGAlchemistAuthoring::AlchemistAssetPath()
+{
+	return TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Alchemist.DA_Class_Alchemist");
+}
+
+void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
+{
+	using namespace RPGAlchemistAuthoring;
+	ClassAsset.CombatActions.Reset();
+	ClassAsset.ProgressionChoices.Reset();
+
+	// Grenadier
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			FireBombTalent, TEXT("Bombe incendiaire"), TEXT("Débloque la recette de Bombe incendiaire."), 2);
+		Choice.GrantedRequirementIds = { TEXT("Recipe_Bomb_Fire") };
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			ToxicBombTalent, TEXT("Bombe toxique"), TEXT("Débloque la recette de Bombe toxique."), 6, FireBombTalent);
+		Choice.GrantedRequirementIds = { TEXT("Recipe_Bomb_Toxic") };
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			PreciseChargeTalent, TEXT("Charge précise"), TEXT("Bombes : +1 portée et -50 % dégâts directs aux alliés."), 10, ToxicBombTalent);
+		FGridCombatModifierProfile Modifier;
+		Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::QuickItem };
+		Modifier.RequiredSourceTags = { TEXT("QuickItem.Bomb") };
+		Modifier.RangeCellsModifier = 1;
+		Modifier.FriendlyDirectDamagePercentModifier = -50;
+		Choice.CombatModifiers.Add(Modifier);
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			ChainReactionTalent, TEXT("Réaction en chaîne"), TEXT("Une réaction de surface de bombe par action reçoit +25 % dégâts et +1 rayon."), 14,
+			PreciseChargeTalent);
+		FGridCombatReactionProfile Reaction;
+		Reaction.ReactionId = TEXT("Reaction_Alchemist_ChainReaction");
+		Reaction.Trigger = EGridCombatReactionTrigger::SurfaceReaction;
+		Reaction.Limit = EGridCombatReactionLimit::OncePerAction;
+		Reaction.SourcePolicies = { EGridCombatActionSourcePolicy::QuickItem };
+		Reaction.RequiredSourceTags = { TEXT("QuickItem.Bomb") };
+		Reaction.SurfaceReactionDamagePercentModifier = 25;
+		Reaction.SurfaceReactionAreaRadiusModifier = 1;
+		Choice.CombatReactions.Add(Reaction);
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			MasterGrenadierTalent, TEXT("Maître grenadier"), TEXT("Bombes : -1 PA (minimum 1) et +20 % dégâts directs."), 18, ChainReactionTalent);
+		FGridCombatModifierProfile Modifier;
+		Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::QuickItem };
+		Modifier.RequiredSourceTags = { TEXT("QuickItem.Bomb") };
+		Modifier.ActionPointCostModifier = -1;
+		Modifier.OutgoingDamagePercentModifier = 20;
+		Choice.CombatModifiers.Add(Modifier);
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+
+	// Apothecary
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			EnhancedPotionTalent, TEXT("Potion renforcée"), TEXT("Potions positives : +25 % Health/Mana/Armor, durée inchangée."), 2);
+		FGridCombatModifierProfile Modifier;
+		Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::QuickItem };
+		Modifier.RequiredSourceTags = { TEXT("QuickItem.Potion.Positive") };
+		Modifier.PositiveEffectPercentModifier = 25;
+		Choice.CombatModifiers.Add(Modifier);
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			AntidoteTalent, TEXT("Antidote"), TEXT("Débloque la recette d'Antidote."), 6, EnhancedPotionTalent);
+		Choice.GrantedRequirementIds = { TEXT("Recipe_Antidote") };
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			DefensiveElixirTalent, TEXT("Élixir défensif"), TEXT("Débloque quatre variantes élémentaires d'Élixir défensif."), 10, AntidoteTalent);
+		Choice.GrantedRequirementIds = {
+			TEXT("Recipe_DefensiveElixir_Fire"), TEXT("Recipe_DefensiveElixir_Ice"),
+			TEXT("Recipe_DefensiveElixir_Lightning"), TEXT("Recipe_DefensiveElixir_Poison")
+		};
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			DiffusionTalent, TEXT("Diffusion"), TEXT("Une potion positive peut diffuser 50 % de sa magnitude et durée à un second allié."), 14,
+			DefensiveElixirTalent);
+		FGridCombatModifierProfile Modifier;
+		Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::QuickItem };
+		Modifier.RequiredSourceTags = { TEXT("QuickItem.Potion.Positive") };
+		Modifier.QuickItemSecondaryTargetCount = 1;
+		Modifier.QuickItemSecondaryMagnitudePercent = 50;
+		Modifier.QuickItemSecondaryDurationPercent = 50;
+		Choice.CombatModifiers.Add(Modifier);
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+	{
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			PanaceaTalent, TEXT("Panacée"), TEXT("Débloque la recette de Panacée."), 18, DiffusionTalent);
+		Choice.GrantedRequirementIds = { TEXT("Recipe_Panacea") };
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+}
+
+bool FRPGAlchemistAuthoring::ConfigureItem(UGridItemDefinitionAsset& Item, FName ItemDefinitionId)
+{
+	using namespace RPGAlchemistAuthoring;
+	Item = UGridItemDefinitionAsset();
+
+	if (ItemDefinitionId == FireBombItem)
+	{
+		ConfigureItemBase(Item, FireBombItem, TEXT("Bombe incendiaire"), EGridItemType::Misc, FireBombAction);
+		Item.ItemTags.Add(TEXT("QuickItem.Bomb"));
+		Item.QuickItemCombatAction = MakeBomb(FireBombAction, EGridDamageType::Fire, TEXT("Status_Burning"), 2, EGridCombatSurfaceType::Fire, 2);
+		return Item.IsValidDefinition();
+	}
+	if (ItemDefinitionId == ToxicBombItem)
+	{
+		ConfigureItemBase(Item, ToxicBombItem, TEXT("Bombe toxique"), EGridItemType::Misc, ToxicBombAction);
+		Item.ItemTags.Add(TEXT("QuickItem.Bomb"));
+		Item.QuickItemCombatAction = MakeBomb(ToxicBombAction, EGridDamageType::Poison, PoisonStatus, 3, EGridCombatSurfaceType::Poison, 3);
+		return Item.IsValidDefinition();
+	}
+	if (ItemDefinitionId == AntidoteItem)
+	{
+		ConfigureItemBase(Item, AntidoteItem, TEXT("Antidote"), EGridItemType::Potion, AntidoteAction);
+		Item.ItemTags.Append({ TEXT("QuickItem.Potion"), TEXT("QuickItem.Potion.Positive") });
+		FGridCombatActionDefinition Action = MakeQuickItemAction(
+			AntidoteAction, EGridCombatTargetingPolicy::Ally, EGridCombatActionResolutionProfile::Effect, 1, 1);
+		FGridCombatStatusRemovalProfile Poison;
+		Poison.EffectIds = { TEXT("Status_Poison") };
+		Poison.AllowedDispositions = { EGridStatusEffectDisposition::Debuff };
+		Poison.TargetSide = EGridCombatStatusRemovalTargetSide::Party;
+		Poison.MaximumRemovals = 1;
+		Action.StatusRemovals.Add(Poison);
+		FGridCombatStatusRemovalProfile Toxin;
+		Toxin.AnyStatusTags = { TEXT("Toxin") };
+		Toxin.AllowedDispositions = { EGridStatusEffectDisposition::Debuff };
+		Toxin.TargetSide = EGridCombatStatusRemovalTargetSide::Party;
+		Toxin.MaximumRemovals = 1;
+		Action.StatusRemovals.Add(Toxin);
+		Item.QuickItemCombatAction = Action;
+		return Item.IsValidDefinition();
+	}
+
+	FName DefensiveStatus = NAME_None;
+	EGridDamageType DefensiveType = EGridDamageType::Physical;
+	const TCHAR* DefensiveName = nullptr;
+	if (ItemDefinitionId == DefensiveFireItem)
+	{
+		DefensiveStatus = DefensiveFireStatus; DefensiveType = EGridDamageType::Fire; DefensiveName = TEXT("Élixir défensif — Feu");
+	}
+	else if (ItemDefinitionId == DefensiveIceItem)
+	{
+		DefensiveStatus = DefensiveIceStatus; DefensiveType = EGridDamageType::Ice; DefensiveName = TEXT("Élixir défensif — Glace");
+	}
+	else if (ItemDefinitionId == DefensiveLightningItem)
+	{
+		DefensiveStatus = DefensiveLightningStatus; DefensiveType = EGridDamageType::Lightning; DefensiveName = TEXT("Élixir défensif — Foudre");
+	}
+	else if (ItemDefinitionId == DefensivePoisonItem)
+	{
+		DefensiveStatus = DefensivePoisonStatus; DefensiveType = EGridDamageType::Poison; DefensiveName = TEXT("Élixir défensif — Poison");
+	}
+	if (!DefensiveStatus.IsNone())
+	{
+		ConfigureItemBase(Item, ItemDefinitionId, DefensiveName, EGridItemType::Potion, DefensiveElixirAction);
+		Item.ItemTags.Append({ TEXT("QuickItem.Potion"), TEXT("QuickItem.Potion.Positive") });
+		FGridCombatActionDefinition Action = MakeQuickItemAction(
+			DefensiveElixirAction, EGridCombatTargetingPolicy::Ally, EGridCombatActionResolutionProfile::Effect, 1, 1);
+		Action.ArmorEffects.Add(MakeMagicalArmorRestore(4));
+		Action.StatusApplications.Add(MakeStatus(DefensiveStatus, 3));
+		Item.QuickItemCombatAction = Action;
+		(void)DefensiveType;
+		return Item.IsValidDefinition();
+	}
+
+	if (ItemDefinitionId == PanaceaItem)
+	{
+		ConfigureItemBase(Item, PanaceaItem, TEXT("Panacée"), EGridItemType::Potion, PanaceaAction);
+		Item.ItemTags.Append({ TEXT("QuickItem.Potion"), TEXT("QuickItem.Potion.Positive") });
+		FGridCombatActionDefinition Action = MakeQuickItemAction(
+			PanaceaAction, EGridCombatTargetingPolicy::Ally, EGridCombatActionResolutionProfile::Effect, 2, 1, 3);
+		Action.EffectProfile.RestoreHealth = 10;
+		Action.QuickItemScaling.ScalingSkillId = TEXT("Skill_Alchemy");
+		Action.QuickItemScaling.RestoreHealthSkillRankScale = 2;
+		Action.ArmorEffects.Add(MakeMagicalArmorRestore(8));
+		FGridCombatStatusRemovalProfile Removal;
+		Removal.EffectIds = {
+			TEXT("Status_Poison"), TEXT("Status_Burning"), TEXT("Status_Bleeding"),
+			TEXT("Status_Slow"), TEXT("Status_Silence"), TEXT("Status_Immobilized")
+		};
+		Removal.AnyStatusTags = { TEXT("Toxin"), TEXT("Purifiable") };
+		Removal.AllowedDispositions = { EGridStatusEffectDisposition::Debuff };
+		Removal.TargetSide = EGridCombatStatusRemovalTargetSide::Party;
+		Removal.MaximumRemovals = 3;
+		Action.StatusRemovals.Add(Removal);
+		Item.QuickItemCombatAction = Action;
+		return Item.IsValidDefinition();
+	}
+
+	return false;
+}
+
+bool FRPGAlchemistAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)
+{
+	using namespace RPGAlchemistAuthoring;
+	StatusAsset.EffectId = EffectId;
+	StatusAsset.StatusTags.Reset();
+	StatusAsset.Icon.Reset();
+	StatusAsset.DefaultPotency = 0;
+	StatusAsset.StackPolicy = EGridStatusEffectStackPolicy::RefreshDuration;
+	StatusAsset.MaxStacks = 1;
+	StatusAsset.bDistinctPerSource = false;
+	StatusAsset.bUniquePerSourceAcrossMonsters = false;
+	StatusAsset.PeriodicDamage = FGridStatusEffectPeriodicDamageProfile();
+	StatusAsset.PeriodicHealing = FGridStatusEffectPeriodicHealingProfile();
+	StatusAsset.InitiativeModifier = 0;
+	StatusAsset.Control = FGridStatusEffectControlProfile();
+	StatusAsset.CombatModifiers.Reset();
+	StatusAsset.CombatReactions.Reset();
+	StatusAsset.bExpireAtOwnerNextActivation = false;
+
+	if (EffectId == PoisonStatus)
+	{
+		StatusAsset.DisplayName = FText::FromString(TEXT("Poison"));
+		StatusAsset.Description = FText::FromString(TEXT("Subit 2 dégâts de Poison à chaque tick pendant 3 tours."));
+		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Toxin"), TEXT("Elemental.Poison") };
+		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
+		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
+		StatusAsset.DefaultDuration = 3;
+		StatusAsset.PeriodicDamage.DamageType = EGridDamageType::Poison;
+		StatusAsset.PeriodicDamage.DamagePerStack = 2;
+		return StatusAsset.IsValidDefinition();
+	}
+
+	FGridDamageResistanceSet Resistance;
+	const TCHAR* Name = nullptr;
+	if (EffectId == DefensiveFireStatus) { Resistance.FireResistance = 25; Name = TEXT("Élixir défensif — Feu"); }
+	else if (EffectId == DefensiveIceStatus) { Resistance.IceResistance = 25; Name = TEXT("Élixir défensif — Glace"); }
+	else if (EffectId == DefensiveLightningStatus) { Resistance.LightningResistance = 25; Name = TEXT("Élixir défensif — Foudre"); }
+	else if (EffectId == DefensivePoisonStatus) { Resistance.PoisonResistance = 25; Name = TEXT("Élixir défensif — Poison"); }
+	if (Name)
+	{
+		StatusAsset.DisplayName = FText::FromString(Name);
+		StatusAsset.Description = FText::FromString(TEXT("+25 % de résistance élémentaire pendant 3 rounds."));
+		StatusAsset.StatusTags = { TEXT("Dispel.Magical") };
+		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
+		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
+		StatusAsset.DefaultDuration = 3;
+		FGridCombatModifierProfile Modifier;
+		Modifier.ResistanceModifiers = Resistance;
+		StatusAsset.CombatModifiers.Add(Modifier);
+		return StatusAsset.IsValidDefinition();
+	}
+	return false;
+}
+
+void FRPGAlchemistAuthoring::GetB1ItemIds(TArray<FName>& OutItemIds)
+{
+	using namespace RPGAlchemistAuthoring;
+	OutItemIds = {
+		FireBombItem, ToxicBombItem, AntidoteItem,
+		DefensiveFireItem, DefensiveIceItem, DefensiveLightningItem, DefensivePoisonItem, PanaceaItem
+	};
+}
+
+void FRPGAlchemistAuthoring::GetB1StatusIds(TArray<FName>& OutStatusIds)
+{
+	using namespace RPGAlchemistAuthoring;
+	OutStatusIds = {
+		PoisonStatus, DefensiveFireStatus, DefensiveIceStatus, DefensiveLightningStatus, DefensivePoisonStatus
+	};
+}
