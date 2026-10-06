@@ -1,11 +1,20 @@
 #include "RPG/RPGAlchemistAuthoring.h"
 
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "HAL/FileManager.h"
+#include "Misc/PackageName.h"
+#include "Misc/Paths.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "UObject/Package.h"
+#include "UObject/SavePackage.h"
 
 namespace RPGAlchemistAuthoring
 {
+	const FName AlchemistClassId(TEXT("Alchemist"));
+	const FName BurningStatus(TEXT("Status_Burning"));
+
 	const FName FireBombTalent(TEXT("Talent_Alchemist_Grenadier_FireBomb"));
 	const FName ToxicBombTalent(TEXT("Talent_Alchemist_Grenadier_ToxicBomb"));
 	const FName PreciseChargeTalent(TEXT("Talent_Alchemist_Grenadier_PreciseCharge"));
@@ -172,11 +181,135 @@ namespace RPGAlchemistAuthoring
 		Item.QuickItemActionIdOverride = ActionId;
 		Item.ItemTags = { TEXT("QuickItem.Alchemy") };
 	}
+
+	bool SaveAuthoredAsset(UObject* Asset, FString& OutError)
+	{
+		if (!IsValid(Asset))
+		{
+			OutError = TEXT("Cannot save a null authored asset.");
+			return false;
+		}
+		UPackage* Package = Asset->GetOutermost();
+		if (!Package)
+		{
+			OutError = FString::Printf(TEXT("Asset '%s' has no package."), *GetNameSafe(Asset));
+			return false;
+		}
+		Package->MarkPackageDirty();
+		const FString Filename =
+			FPackageName::LongPackageNameToFilename(Package->GetName(), FPackageName::GetAssetPackageExtension());
+		IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename), true);
+
+		FSavePackageArgs SaveArgs;
+		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+		SaveArgs.SaveFlags = SAVE_NoError;
+		if (!UPackage::SavePackage(Package, Asset, *Filename, SaveArgs))
+		{
+			OutError = FString::Printf(TEXT("Failed to save '%s' to '%s'."), *Asset->GetPathName(), *Filename);
+			return false;
+		}
+		return true;
+	}
+
+	UGridItemDefinitionAsset* FindOrCreateItem(FName ItemDefinitionId, FString& OutError)
+	{
+		if (ItemDefinitionId.IsNone())
+		{
+			OutError = TEXT("Cannot author an empty Alchemist item id.");
+			return nullptr;
+		}
+		const FString AssetName = FString::Printf(TEXT("DA_%s"), *ItemDefinitionId.ToString());
+		const FString PackageName =
+			FString::Printf(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/%s"), *AssetName);
+		if (FPackageName::DoesPackageExist(PackageName))
+		{
+			const FString ObjectPath = FRPGAlchemistAuthoring::GetItemObjectPath(ItemDefinitionId);
+			if (UGridItemDefinitionAsset* Existing = LoadObject<UGridItemDefinitionAsset>(nullptr, *ObjectPath))
+			{
+				return Existing;
+			}
+			OutError = FString::Printf(TEXT("Existing Alchemist item package could not load expected asset: %s"), *ObjectPath);
+			return nullptr;
+		}
+
+		UPackage* Package = CreatePackage(*PackageName);
+		UGridItemDefinitionAsset* Created = Package
+			? NewObject<UGridItemDefinitionAsset>(Package, *AssetName, RF_Public | RF_Standalone | RF_Transactional)
+			: nullptr;
+		if (!Created)
+		{
+			OutError = FString::Printf(TEXT("Failed to create Alchemist item '%s'."), *AssetName);
+			return nullptr;
+		}
+		FAssetRegistryModule::AssetCreated(Created);
+		return Created;
+	}
+
+	UGridStatusEffectDefinitionAsset* FindOrCreateStatus(FName EffectId, FString& OutError)
+	{
+		if (EffectId.IsNone())
+		{
+			OutError = TEXT("Cannot author an empty Alchemist status id.");
+			return nullptr;
+		}
+		const FString AssetName = FString::Printf(TEXT("DA_%s"), *EffectId.ToString());
+		const FString PackageName =
+			FString::Printf(TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/StatusEffects/%s"), *AssetName);
+		if (FPackageName::DoesPackageExist(PackageName))
+		{
+			const FString ObjectPath = FRPGAlchemistAuthoring::GetStatusObjectPath(EffectId);
+			if (UGridStatusEffectDefinitionAsset* Existing =
+					LoadObject<UGridStatusEffectDefinitionAsset>(nullptr, *ObjectPath))
+			{
+				return Existing;
+			}
+			OutError = FString::Printf(TEXT("Existing Alchemist status package could not load expected asset: %s"), *ObjectPath);
+			return nullptr;
+		}
+
+		UPackage* Package = CreatePackage(*PackageName);
+		UGridStatusEffectDefinitionAsset* Created = Package
+			? NewObject<UGridStatusEffectDefinitionAsset>(
+				Package, *AssetName, RF_Public | RF_Standalone | RF_Transactional)
+			: nullptr;
+		if (!Created)
+		{
+			OutError = FString::Printf(TEXT("Failed to create Alchemist status '%s'."), *AssetName);
+			return nullptr;
+		}
+		FAssetRegistryModule::AssetCreated(Created);
+		return Created;
+	}
+
+	bool ValidateSharedStatus(FName EffectId, FString& OutError)
+	{
+		const FString Path = FRPGAlchemistAuthoring::GetStatusObjectPath(EffectId);
+		const UGridStatusEffectDefinitionAsset* Status =
+			LoadObject<UGridStatusEffectDefinitionAsset>(nullptr, *Path);
+		if (!IsValid(Status) || Status->EffectId != EffectId || !Status->IsValidDefinition())
+		{
+			OutError = FString::Printf(TEXT("Required shared status is missing or invalid: %s"), *Path);
+			return false;
+		}
+		return true;
+	}
 }
 
 const TCHAR* FRPGAlchemistAuthoring::AlchemistAssetPath()
 {
 	return TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Alchemist.DA_Class_Alchemist");
+}
+
+FString FRPGAlchemistAuthoring::GetItemObjectPath(FName ItemDefinitionId)
+{
+	return FString::Printf(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_%s.DA_%s"),
+		*ItemDefinitionId.ToString(), *ItemDefinitionId.ToString());
+}
+
+FString FRPGAlchemistAuthoring::GetStatusObjectPath(FName EffectId)
+{
+	return FString::Printf(TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/StatusEffects/DA_%s.DA_%s"),
+		*EffectId.ToString(), *EffectId.ToString());
 }
 
 void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
@@ -642,4 +775,97 @@ bool FRPGAlchemistAuthoring::BuildMajorTransmutationRecipeAction(
 	Conversion.OutputTraversalCostModifier = OutputSurfaceType == EGridCombatSurfaceType::Oil ? 1 : 0;
 	OutAction.SurfaceConversions.Add(Conversion);
 	return OutAction.IsValid();
+}
+
+
+bool FRPGAlchemistAuthoring::AuthorProductionAssets(FString& OutError)
+{
+	using namespace RPGAlchemistAuthoring;
+	OutError.Reset();
+
+	URPGClassAsset* Alchemist = LoadObject<URPGClassAsset>(nullptr, AlchemistAssetPath());
+	if (!IsValid(Alchemist))
+	{
+		OutError = FString::Printf(TEXT("Production Alchemist asset not found: %s"), AlchemistAssetPath());
+		return false;
+	}
+	if (Alchemist->ClassId != AlchemistClassId)
+	{
+		OutError = FString::Printf(TEXT("Unexpected Alchemist ClassId '%s'."), *Alchemist->ClassId.ToString());
+		return false;
+	}
+	if (!ValidateSharedStatus(BurningStatus, OutError))
+	{
+		return false;
+	}
+
+	TArray<FName> ItemIds;
+	TArray<FName> B2ItemIds;
+	GetB1ItemIds(ItemIds);
+	GetB2ItemIds(B2ItemIds);
+	ItemIds.Append(B2ItemIds);
+
+	TArray<UGridItemDefinitionAsset*> Items;
+	for (const FName ItemId : ItemIds)
+	{
+		UGridItemDefinitionAsset* Item = FindOrCreateItem(ItemId, OutError);
+		if (!IsValid(Item))
+		{
+			return false;
+		}
+		Item->Modify();
+		if (!ConfigureItem(*Item, ItemId))
+		{
+			OutError = FString::Printf(TEXT("No valid Alchemist item authoring definition for '%s'."), *ItemId.ToString());
+			return false;
+		}
+		Items.Add(Item);
+	}
+
+	TArray<FName> StatusIds;
+	TArray<FName> B2StatusIds;
+	GetB1StatusIds(StatusIds);
+	GetB2StatusIds(B2StatusIds);
+	StatusIds.Append(B2StatusIds);
+
+	TArray<UGridStatusEffectDefinitionAsset*> Statuses;
+	for (const FName StatusId : StatusIds)
+	{
+		UGridStatusEffectDefinitionAsset* Status = FindOrCreateStatus(StatusId, OutError);
+		if (!IsValid(Status))
+		{
+			return false;
+		}
+		Status->Modify();
+		if (!ConfigureStatus(*Status, StatusId))
+		{
+			OutError = FString::Printf(TEXT("No valid Alchemist status authoring definition for '%s'."), *StatusId.ToString());
+			return false;
+		}
+		Statuses.Add(Status);
+	}
+
+	Alchemist->Modify();
+	ConfigureClass(*Alchemist);
+	if (!Alchemist->IsValidDefinition())
+	{
+		OutError = TEXT("Authored DA_Class_Alchemist is structurally invalid.");
+		return false;
+	}
+
+	for (UGridItemDefinitionAsset* Item : Items)
+	{
+		if (!SaveAuthoredAsset(Item, OutError))
+		{
+			return false;
+		}
+	}
+	for (UGridStatusEffectDefinitionAsset* Status : Statuses)
+	{
+		if (!SaveAuthoredAsset(Status, OutError))
+		{
+			return false;
+		}
+	}
+	return SaveAuthoredAsset(Alchemist, OutError);
 }
