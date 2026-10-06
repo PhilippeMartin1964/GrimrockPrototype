@@ -833,6 +833,13 @@ struct FGridCombatReactionProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response", meta = (ClampMin = "0", ClampMax = "100"))
 	int32 InterceptFinalDamagePercent = 0;
 
+	/** C6 response modifiers applied only to the surface reaction that consumed this C4 match. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response", meta = (ClampMin = "-100", ClampMax = "1000"))
+	int32 SurfaceReactionDamagePercentModifier = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response", meta = (ClampMin = "-8", ClampMax = "8"))
+	int32 SurfaceReactionAreaRadiusModifier = 0;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Response")
 	bool bRequireOwnerFrontRow = false;
 
@@ -875,6 +882,8 @@ struct FGridCombatReactionProfile
 	{
 		if (ReactionId.IsNone() || Trigger == EGridCombatReactionTrigger::None || CounterAttackRangeCells < 1 || CounterAttackRangeCells > 32 ||
 			InterceptFinalDamagePercent < 0 || InterceptFinalDamagePercent > 100 ||
+			SurfaceReactionDamagePercentModifier < -100 || SurfaceReactionDamagePercentModifier > 1000 ||
+			SurfaceReactionAreaRadiusModifier < -8 || SurfaceReactionAreaRadiusModifier > 8 ||
 			SecondaryDirectDamage < 0 || SecondaryDirectDamage > 1000 ||
 			SecondaryDirectDamageAttributeModifierScale < 0 || SecondaryDirectDamageAttributeModifierScale > 10)
 		{
@@ -900,6 +909,11 @@ struct FGridCombatReactionProfile
 			return false;
 		}
 		if (InterceptFinalDamagePercent > 0 && Trigger != EGridCombatReactionTrigger::IncomingAttackHit)
+		{
+			return false;
+		}
+		if ((SurfaceReactionDamagePercentModifier != 0 || SurfaceReactionAreaRadiusModifier != 0) &&
+			Trigger != EGridCombatReactionTrigger::SurfaceReaction)
 		{
 			return false;
 		}
@@ -1084,6 +1098,12 @@ struct FGridCombatReactionMatch
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	int32 InterceptFinalDamagePercent = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	int32 SurfaceReactionDamagePercentModifier = 0;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	int32 SurfaceReactionAreaRadiusModifier = 0;
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	bool bRequireOwnerFrontRow = false;
@@ -1353,7 +1373,9 @@ enum class EGridCombatSurfaceInteraction : uint8
 	Fire UMETA(DisplayName = "Fire"),
 	Ice UMETA(DisplayName = "Ice"),
 	Lightning UMETA(DisplayName = "Lightning"),
-	Wind UMETA(DisplayName = "Wind")
+	Wind UMETA(DisplayName = "Wind"),
+	/** Deterministically resolves the first canonical interaction supported by the current surface. */
+	AnyCanonical UMETA(DisplayName = "Any Canonical")
 };
 
 /** C6 authoring payload used to create/replace a persistent runtime cell surface. */
@@ -1374,13 +1396,18 @@ struct FGridCombatSurfaceEffectProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface|Periodic Damage", meta = (ClampMin = "0", ClampMax = "1000"))
 	int32 PeriodicDamagePerRound = 0;
 
+	/** Additional traversal budget paid when a combatant enters this surface: PAM for the party, AP for monsters. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface|Traversal", meta = (ClampMin = "0", ClampMax = "4"))
+	int32 TraversalCostModifier = 0;
+
 	/** Optional C1 payload resolved after periodic surface damage. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface|Status")
 	TArray<FGridCombatStatusApplicationProfile> PeriodicStatusApplications;
 
 	bool IsValid() const
 	{
-		if (SurfaceType == EGridCombatSurfaceType::None || DurationRounds < 1 || DurationRounds > 6 || PeriodicDamagePerRound < 0)
+		if (SurfaceType == EGridCombatSurfaceType::None || DurationRounds < 1 || DurationRounds > 6 || PeriodicDamagePerRound < 0 ||
+			TraversalCostModifier < 0 || TraversalCostModifier > 4)
 		{
 			return false;
 		}
@@ -1420,10 +1447,15 @@ struct FGridCombatSurfaceConversionProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion", meta = (ClampMin = "1", ClampMax = "6"))
 	int32 EmptyCellDurationRounds = 3;
 
+	/** Traversal budget authored for the converted output surface. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion", meta = (ClampMin = "0", ClampMax = "4"))
+	int32 OutputTraversalCostModifier = 0;
+
 	bool IsValid() const
 	{
 		if (OutputSurfaceType == EGridCombatSurfaceType::None || (!bAllowEmptyCell && InputSurfaceTypes.IsEmpty()) ||
-			EmptyCellDurationRounds < 1 || EmptyCellDurationRounds > 6)
+			EmptyCellDurationRounds < 1 || EmptyCellDurationRounds > 6 ||
+			OutputTraversalCostModifier < 0 || OutputTraversalCostModifier > 4)
 		{
 			return false;
 		}
@@ -1465,11 +1497,15 @@ struct FGridCombatSurfaceState
 	int32 PeriodicDamagePerRound = 0;
 
 	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
+	int32 TraversalCostModifier = 0;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite, Category = "Combat|Surface")
 	TArray<FGridCombatStatusApplicationProfile> PeriodicStatusApplications;
 
 	bool IsValid() const
 	{
-		if (SurfaceType == EGridCombatSurfaceType::None || RemainingRounds < 1 || RemainingRounds > 6 || PeriodicDamagePerRound < 0)
+		if (SurfaceType == EGridCombatSurfaceType::None || RemainingRounds < 1 || RemainingRounds > 6 || PeriodicDamagePerRound < 0 ||
+			TraversalCostModifier < 0 || TraversalCostModifier > 4)
 		{
 			return false;
 		}
@@ -1491,6 +1527,10 @@ struct FGridCombatSurfaceReactionResult
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Surface")
 	bool bReacted = false;
+
+	/** Concrete interaction selected when AnyCanonical was requested. */
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Surface")
+	EGridCombatSurfaceInteraction ResolvedInteraction = EGridCombatSurfaceInteraction::None;
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Surface")
 	bool bRemoveSurface = false;
@@ -2499,6 +2539,10 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Surface")
 	TArray<FGridCombatSurfaceConversionProfile> SurfaceConversions;
 
+	/** Optional C6 interaction applied before conversions/effects on each affected cell. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Surface")
+	EGridCombatSurfaceInteraction SurfaceInteraction = EGridCombatSurfaceInteraction::None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Trap")
 	FGridCombatTrapEffectProfile TrapEffect;
 
@@ -2603,6 +2647,10 @@ struct FGridCombatActionDefinition
 				return !Profile.IsValid() || ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
 					(TargetingPolicy != EGridCombatTargetingPolicy::Cell && TargetingPolicy != EGridCombatTargetingPolicy::Area);
 			}) == false;
+		const bool bSurfaceInteractionValid = SurfaceInteraction == EGridCombatSurfaceInteraction::None ||
+			((ResolutionProfile == EGridCombatActionResolutionProfile::Effect ||
+				ResolutionProfile == EGridCombatActionResolutionProfile::Attack) &&
+				(TargetingPolicy == EGridCombatTargetingPolicy::Cell || TargetingPolicy == EGridCombatTargetingPolicy::Area));
 		bool bSourceTagsValid = true;
 		{
 			TSet<FName> SeenTags;
@@ -2652,7 +2700,7 @@ struct FGridCombatActionDefinition
 			bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bAreaCenterValid && bLineOfSightValid && bFriendlyAreaValid &&
 			bStatusApplicationsValid &&
 			bStatusRemovalsValid && bArmorEffectsValid && bMovementEffectsValid && bSelectedCellRelocationValid &&
-			bTrapEffectValid && bSkillCheckValid && bSurfaceEffectsValid && bSurfaceConversionsValid &&
+			bTrapEffectValid && bSkillCheckValid && bSurfaceEffectsValid && bSurfaceConversionsValid && bSurfaceInteractionValid &&
 			bSourceTagsValid && bHealingScalingValid && bDirectDamageScalingValid && bQuickItemScalingValid && bChainValid && bOwnerVariantsValid &&
 			(ResolutionCount == 1 || ResolutionProfile == EGridCombatActionResolutionProfile::Attack);
 	}

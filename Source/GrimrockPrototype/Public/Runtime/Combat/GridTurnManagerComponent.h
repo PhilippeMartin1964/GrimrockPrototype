@@ -745,7 +745,8 @@ private:
 	void FinishEnemyPhase();
 	void FinishCombat(EGridCombatPhase ResultPhase);
 
-	void ProcessPartyCharacterReactionEvent(int32 CharacterIndex, const FGridCombatReactionEvent& Event);
+	void ProcessPartyCharacterReactionEvent(
+		int32 CharacterIndex, const FGridCombatReactionEvent& Event, FGridResolvedCombatModifiers* OutSurfaceReactionModifiers = nullptr);
 	bool ExecuteReactionCounterAttack(int32 CharacterIndex, const FGridCombatReactionMatch& Match);
 	bool ExecuteReactionSecondaryDirectDamage(int32 CharacterIndex, const FGridCombatReactionMatch& Match);
 	void ApplyIncomingPartyDamageInterception(int32 TargetCharacterIndex, const FGridMonsterAttackDefinition& Attack,

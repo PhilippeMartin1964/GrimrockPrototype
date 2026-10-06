@@ -9,7 +9,8 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 
-void UGridTurnManagerComponent::ProcessPartyCharacterReactionEvent(int32 CharacterIndex, const FGridCombatReactionEvent& Event)
+void UGridTurnManagerComponent::ProcessPartyCharacterReactionEvent(
+	int32 CharacterIndex, const FGridCombatReactionEvent& Event, FGridResolvedCombatModifiers* OutSurfaceReactionModifiers)
 {
 	if (!bCombatActive || !Event.IsValid() || !IsValid(PartyPawn) || !IsValid(PartyPawn->PartyInventoryComponent) ||
 		!PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
@@ -47,6 +48,13 @@ void UGridTurnManagerComponent::ProcessPartyCharacterReactionEvent(int32 Charact
 
 	for (const FGridCombatReactionMatch& Match : Matches)
 	{
+		if (OutSurfaceReactionModifiers)
+		{
+			OutSurfaceReactionModifiers->SurfaceReactionDamagePercentModifier = FMath::Clamp(
+				OutSurfaceReactionModifiers->SurfaceReactionDamagePercentModifier + Match.SurfaceReactionDamagePercentModifier, -100, 1000);
+			OutSurfaceReactionModifiers->SurfaceReactionAreaRadiusModifier = FMath::Clamp(
+				OutSurfaceReactionModifiers->SurfaceReactionAreaRadiusModifier + Match.SurfaceReactionAreaRadiusModifier, -8, 8);
+		}
 		if (Match.SecondaryDirectDamage > 0)
 		{
 			ExecuteReactionSecondaryDirectDamage(CharacterIndex, Match);

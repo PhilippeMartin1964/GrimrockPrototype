@@ -430,6 +430,9 @@ public:
 
 	const FGridCombatSurfaceState* FindCombatSurfaceAtCell(int32 CellX, int32 CellY) const;
 
+	/** Additional movement budget charged when entering the current surface cell. */
+	int32 GetCombatSurfaceTraversalCostModifierAtCell(int32 CellX, int32 CellY) const;
+
 	void GetCurrentCombatSurfaceSnapshot(TMap<FIntPoint, FGridCombatSurfaceState>& OutSurfaces) const;
 
 	int32 AdvanceCombatSurfaceRound(TArray<FIntPoint>* OutExpiredCells = nullptr);

@@ -148,7 +148,8 @@ namespace
 						!Definition.StatusRemovals.IsEmpty() || !Definition.ArmorEffects.IsEmpty())) ||
 				(Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 					(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Cell || Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area) &&
-					!Definition.SurfaceEffects.IsEmpty()) ||
+					(!Definition.SurfaceEffects.IsEmpty() || !Definition.SurfaceConversions.IsEmpty() ||
+						Definition.SurfaceInteraction != EGridCombatSurfaceInteraction::None)) ||
 				(Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 					(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally ||
 						Definition.TargetingPolicy == EGridCombatTargetingPolicy::Party ||
@@ -240,6 +241,7 @@ namespace
 			const bool bSupportedCellEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 				(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Cell || Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area) &&
 				(!Definition.SurfaceEffects.IsEmpty() || !Definition.SurfaceConversions.IsEmpty() ||
+					Definition.SurfaceInteraction != EGridCombatSurfaceInteraction::None ||
 					Definition.TrapEffect.bPlaceTrap || Definition.bRelocatePartyToTargetCell);
 			const bool bSupportedPartyEffect = Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 				(Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally ||

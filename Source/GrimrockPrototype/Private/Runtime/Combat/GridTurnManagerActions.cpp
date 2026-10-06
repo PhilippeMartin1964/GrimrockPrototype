@@ -46,8 +46,14 @@ void UGridTurnManagerComponent::ExecuteNextAction()
 		return;
 	}
 
-	const FGridCombatAction NextAction = PendingActions[0];
+	FGridCombatAction NextAction = PendingActions[0];
 	PendingActions.RemoveAt(0);
+	if (NextAction.Type == EGridCombatActionType::Move && IsValid(RuntimeActor))
+	{
+		NextAction.ActionPointCost = FMath::Max(
+			0, NextAction.ActionPointCost +
+			RuntimeActor->GetCombatSurfaceTraversalCostModifierAtCell(NextAction.TargetCell.X, NextAction.TargetCell.Y));
+	}
 
 	if (!NextAction.IsValid() || !ActionPointBudget.CanSpend(NextAction.ActionPointCost))
 	{

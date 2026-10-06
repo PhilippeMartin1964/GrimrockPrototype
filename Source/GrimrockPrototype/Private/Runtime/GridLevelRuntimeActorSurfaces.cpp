@@ -101,6 +101,12 @@ const FGridCombatSurfaceState* AGridLevelRuntimeActor::FindCombatSurfaceAtCell(i
 	return RuntimeState ? RuntimeState->Surfaces.Find(FIntPoint(CellX, CellY)) : nullptr;
 }
 
+int32 AGridLevelRuntimeActor::GetCombatSurfaceTraversalCostModifierAtCell(int32 CellX, int32 CellY) const
+{
+	const FGridCombatSurfaceState* Surface = FindCombatSurfaceAtCell(CellX, CellY);
+	return Surface && Surface->IsValid() ? FMath::Clamp(Surface->TraversalCostModifier, 0, 4) : 0;
+}
+
 void AGridLevelRuntimeActor::GetCurrentCombatSurfaceSnapshot(TMap<FIntPoint, FGridCombatSurfaceState>& OutSurfaces) const
 {
 	OutSurfaces.Reset();

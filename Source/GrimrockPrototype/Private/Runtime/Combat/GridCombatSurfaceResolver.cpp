@@ -33,6 +33,7 @@ bool FGridCombatSurfaceResolver::BuildState(const FGridCombatSurfaceEffectProfil
 	OutState.SourceActionId = SourceActionId;
 	OutState.PeriodicDamageType = Profile.PeriodicDamageType;
 	OutState.PeriodicDamagePerRound = ScalePositive(Profile.PeriodicDamagePerRound, SourceModifiers.SurfacePeriodicDamagePercentModifier);
+	OutState.TraversalCostModifier = Profile.TraversalCostModifier;
 	OutState.PeriodicStatusApplications = Profile.PeriodicStatusApplications;
 	return OutState.IsValid();
 }
@@ -43,6 +44,23 @@ bool FGridCombatSurfaceResolver::ResolveReaction(const FGridCombatSurfaceState& 
 	OutResult = FGridCombatSurfaceReactionResult();
 	if (!ExistingSurface.IsValid() || Interaction == EGridCombatSurfaceInteraction::None)
 	{
+		return false;
+	}
+	if (Interaction == EGridCombatSurfaceInteraction::AnyCanonical)
+	{
+		for (const EGridCombatSurfaceInteraction Candidate : {
+			EGridCombatSurfaceInteraction::Fire,
+			EGridCombatSurfaceInteraction::Ice,
+			EGridCombatSurfaceInteraction::Lightning,
+			EGridCombatSurfaceInteraction::Wind })
+		{
+			FGridCombatSurfaceReactionResult CandidateResult;
+			if (ResolveReaction(ExistingSurface, Candidate, SourceModifiers, CandidateResult))
+			{
+				OutResult = CandidateResult;
+				return true;
+			}
+		}
 		return false;
 	}
 
@@ -96,6 +114,7 @@ bool FGridCombatSurfaceResolver::ResolveReaction(const FGridCombatSurfaceState& 
 	{
 		return false;
 	}
+	OutResult.ResolvedInteraction = Interaction;
 
 	if (OutResult.bExplosive)
 	{
@@ -122,6 +141,7 @@ void FGridCombatSurfaceResolver::ApplyReactionToState(
 	// Reaction outputs have no invented periodic magnitude. Authoring may
 	// subsequently overlay an explicit output profile if the action defines one.
 	InOutState.PeriodicDamagePerRound = 0;
+	InOutState.TraversalCostModifier = 0;
 	InOutState.PeriodicStatusApplications.Reset();
 }
 
@@ -156,6 +176,7 @@ bool FGridCombatSurfaceResolver::ResolveConversion(const FGridCombatSurfaceConve
 	OutState.SourceActionId = SourceActionId;
 	OutState.PeriodicDamageType = EGridDamageType::Physical;
 	OutState.PeriodicDamagePerRound = 0;
+	OutState.TraversalCostModifier = Profile.OutputTraversalCostModifier;
 	OutState.PeriodicStatusApplications.Reset();
 	return OutState.IsValid();
 }

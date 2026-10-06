@@ -20,6 +20,7 @@
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatMovementResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/Combat/GridCombatSurfaceResolver.h"
 #include "Runtime/Combat/GridCombatTargetingResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -1300,7 +1301,8 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 		(Action.Definition.OffensiveProfile.IsValid() || Action.Definition.WeaponAttackProfile.bUseEquippedWeapon);
 	const bool bSurfaceEffectResolution =
 		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
-		(!Action.Definition.SurfaceEffects.IsEmpty() || !Action.Definition.SurfaceConversions.IsEmpty());
+		(!Action.Definition.SurfaceEffects.IsEmpty() || !Action.Definition.SurfaceConversions.IsEmpty() ||
+			Action.Definition.SurfaceInteraction != EGridCombatSurfaceInteraction::None);
 	const bool bTrapEffectResolution =
 		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect && Action.Definition.TrapEffect.bPlaceTrap;
 	const bool bRelocationEffectResolution =
@@ -1383,6 +1385,34 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 			}
 			return Left.Y == Right.Y ? Left.X < Right.X : Left.Y < Right.Y;
 		});
+
+	const bool bInteractionOnlyEffect =
+		Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+		Action.Definition.SurfaceInteraction != EGridCombatSurfaceInteraction::None &&
+		Action.Definition.SurfaceEffects.IsEmpty() && Action.Definition.SurfaceConversions.IsEmpty() &&
+		!Action.Definition.TrapEffect.bPlaceTrap && !Action.Definition.bRelocatePartyToTargetCell;
+	if (bInteractionOnlyEffect)
+	{
+		bool bHasCanonicalReaction = false;
+		const FGridResolvedCombatModifiers NoModifiers;
+		for (const FIntPoint& Cell : OutPreview.AffectedCells)
+		{
+			const FGridCombatSurfaceState* Surface = RuntimeActor->FindCombatSurfaceAtCell(Cell.X, Cell.Y);
+			FGridCombatSurfaceReactionResult PreviewReaction;
+			if (Surface && FGridCombatSurfaceResolver::ResolveReaction(
+					*Surface, Action.Definition.SurfaceInteraction, NoModifiers, PreviewReaction))
+			{
+				bHasCanonicalReaction = true;
+				break;
+			}
+		}
+		if (!bHasCanonicalReaction)
+		{
+			OutPreview.InvalidReason = MakeMON1286TargetingReason(
+				TEXT("Cette cellule ne contient aucune réaction de surface canonique possible."));
+			return false;
+		}
+	}
 
 	UWorld* World = GetWorld();
 	UGridMonsterOccupancySubsystem* Occupancy = World ? World->GetSubsystem<UGridMonsterOccupancySubsystem>() : nullptr;
@@ -1507,7 +1537,8 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	UGridPartyInventoryComponent* Inventory = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
 	const bool bAttackResolution = Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
 	const bool bSurfaceResolution =
-		!Action.Definition.SurfaceEffects.IsEmpty() || !Action.Definition.SurfaceConversions.IsEmpty();
+		!Action.Definition.SurfaceEffects.IsEmpty() || !Action.Definition.SurfaceConversions.IsEmpty() ||
+		Action.Definition.SurfaceInteraction != EGridCombatSurfaceInteraction::None;
 	const bool bTrapResolution = Action.Definition.TrapEffect.bPlaceTrap;
 	if (!IsValid(Inventory) || !Preview.bValid || (!bAttackResolution && !bSurfaceResolution && !bTrapResolution) ||
 		(bAttackResolution && Preview.TargetMonsterIds.IsEmpty() && !bSurfaceResolution && !bTrapResolution) ||
@@ -1971,6 +2002,42 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	{
 		for (const FIntPoint& Cell : Preview.AffectedCells)
 		{
+			if (Action.Definition.SurfaceInteraction != EGridCombatSurfaceInteraction::None)
+			{
+				const FGridCombatSurfaceState* ExistingSurface = RuntimeActor->FindCombatSurfaceAtCell(Cell.X, Cell.Y);
+				FGridCombatSurfaceReactionResult PreviewReaction;
+				const FGridResolvedCombatModifiers NoReactionBonus;
+				if (ExistingSurface && FGridCombatSurfaceResolver::ResolveReaction(
+						*ExistingSurface, Action.Definition.SurfaceInteraction, NoReactionBonus, PreviewReaction))
+				{
+					FGridCombatReactionEvent SurfaceEvent;
+					SurfaceEvent.EventId = FGuid::NewGuid();
+					SurfaceEvent.ActionInstanceId = ReactionActionInstanceId;
+					SurfaceEvent.RoundNumber = FMath::Max(1, RoundNumber);
+					SurfaceEvent.Trigger = EGridCombatReactionTrigger::SurfaceReaction;
+					SurfaceEvent.SourceCombatantId = Character.CharacterId;
+					SurfaceEvent.TargetCombatantId = Character.CharacterId;
+					SurfaceEvent.ActionId = Action.Definition.ActionId;
+					SurfaceEvent.SourcePolicy = Action.Definition.SourcePolicy;
+					SurfaceEvent.ActionType = Action.Definition.ActionType;
+					SurfaceEvent.SourceTags = Action.Definition.SourceTags;
+					SurfaceEvent.bOffensiveAction = Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
+
+					FGridResolvedCombatModifiers ReactionResponse;
+					ProcessPartyCharacterReactionEvent(Action.CharacterIndex, SurfaceEvent, &ReactionResponse);
+					FGridResolvedCombatModifiers InteractionModifiers = ResolvedModifiers;
+					InteractionModifiers.SurfaceReactionDamagePercentModifier = FMath::Clamp(
+						InteractionModifiers.SurfaceReactionDamagePercentModifier + ReactionResponse.SurfaceReactionDamagePercentModifier,
+						-100, 1000);
+					InteractionModifiers.SurfaceReactionAreaRadiusModifier = FMath::Clamp(
+						InteractionModifiers.SurfaceReactionAreaRadiusModifier + ReactionResponse.SurfaceReactionAreaRadiusModifier, -8, 8);
+
+					FGridCombatSurfaceReactionResult AppliedReaction;
+					RuntimeActor->InteractCombatSurfaceAtCell(
+						Cell.X, Cell.Y, Action.Definition.SurfaceInteraction, InteractionModifiers, AppliedReaction);
+				}
+			}
+
 			// Invalid conversion for the current cell is a canonical no-op, not an action failure.
 			for (const FGridCombatSurfaceConversionProfile& Conversion : Action.Definition.SurfaceConversions)
 			{

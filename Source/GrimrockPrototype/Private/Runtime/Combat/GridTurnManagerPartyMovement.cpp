@@ -91,7 +91,8 @@ bool UGridTurnManagerComponent::RequestPartyTranslation(EGridEdge MoveDirection,
 	}
 
 	const int32 PersonalActionPointCost = FMath::Clamp(PartyTranslationActionPointCost, 1, 6);
-	const int32 MobilityActionPointCost = FMath::Clamp(PartyTranslationMobilityActionPointCost, 1, 4);
+	const int32 SurfaceTraversalCost = RuntimeActor->GetCombatSurfaceTraversalCostModifierAtCell(TargetCell.X, TargetCell.Y);
+	const int32 MobilityActionPointCost = FMath::Clamp(PartyTranslationMobilityActionPointCost + SurfaceTraversalCost, 1, 4);
 	if (!CanCharacterSpendActionPoints(CharacterIndex, PersonalActionPointCost))
 	{
 		return RejectPartyMovement(CharacterIndex, MoveDirection, EGridPartyMovementRejectReason::InsufficientActionPoints, OutRejectReason);
@@ -181,18 +182,21 @@ bool UGridTurnManagerComponent::CanResolvePartyActionMovement(int32 CharacterInd
 			return false;
 		}
 	}
-	if (!PartyMobilityState.CanSpend(Profile.MobilityActionPointCost))
-	{
-		OutRejectReason = EGridPartyMovementRejectReason::InsufficientMobilityActionPoints;
-		return false;
-	}
-
 	const FIntPoint FromCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
 	const UGridMonsterOccupancySubsystem* Occupancy = GetWorld() ? GetWorld()->GetSubsystem<UGridMonsterOccupancySubsystem>() : nullptr;
 	if (!FGridCombatMovementResolver::ResolveDestination(
 			Profile, FromCell, PartyPawn->Facing, FromCell, RuntimeActor, Occupancy, OutResolution))
 	{
 		OutRejectReason = EGridPartyMovementRejectReason::PassageBlocked;
+		return false;
+	}
+	const int32 SurfaceTraversalCost = Profile.bForced
+		? 0
+		: RuntimeActor->GetCombatSurfaceTraversalCostModifierAtCell(OutResolution.ToCell.X, OutResolution.ToCell.Y);
+	const int32 RequiredMobility = FMath::Clamp(Profile.MobilityActionPointCost + SurfaceTraversalCost, 0, 4);
+	if (!PartyMobilityState.CanSpend(RequiredMobility))
+	{
+		OutRejectReason = EGridPartyMovementRejectReason::InsufficientMobilityActionPoints;
 		return false;
 	}
 	return true;
@@ -211,9 +215,13 @@ bool UGridTurnManagerComponent::StartPartyActionMovement(int32 CharacterIndex, c
 	PendingPartyTranslationFromCell = OutResolution.FromCell;
 	PendingPartyTranslationTargetCell = OutResolution.ToCell;
 
+	const int32 SurfaceTraversalCost = Profile.bForced || !IsValid(RuntimeActor)
+		? 0
+		: RuntimeActor->GetCombatSurfaceTraversalCostModifierAtCell(OutResolution.ToCell.X, OutResolution.ToCell.Y);
+	const int32 RequiredMobility = FMath::Clamp(Profile.MobilityActionPointCost + SurfaceTraversalCost, 0, 4);
 	const int32 PreviousMobility = PartyMobilityState.RemainingMobilityActionPoints;
 	PartyMobilityState.RemainingMobilityActionPoints =
-		FMath::Max(0, PartyMobilityState.RemainingMobilityActionPoints - Profile.MobilityActionPointCost);
+		FMath::Max(0, PartyMobilityState.RemainingMobilityActionPoints - RequiredMobility);
 	if (!PartyPawn->BeginAuthorizedGridTranslation(OutResolution.Direction, OutResolution.ToCell))
 	{
 		PartyMobilityState.RemainingMobilityActionPoints = PreviousMobility;
