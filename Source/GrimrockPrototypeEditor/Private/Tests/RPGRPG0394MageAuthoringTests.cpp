@@ -10,6 +10,7 @@
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatReactionResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/Combat/GridCombatSurfaceResolver.h"
 #include "Runtime/Combat/GridCombatTargetingResolver.h"
 #include "Runtime/GridInventoryTypes.h"
 
@@ -28,13 +29,24 @@ namespace RPG0394MageAuthoring
 	const FName ShortTeleportTalentId(TEXT("Talent_Mage_Arcanist_ShortTeleport"));
 	const FName ArcaneMasteryTalentId(TEXT("Talent_Mage_Arcanist_ArcaneMastery"));
 
+	const FName ImbuementTalentId(TEXT("Talent_Mage_SurfaceWeaver_Imbuement"));
+	const FName ImbuementAffinityGroup(TEXT("TalentGroup_Mage_SurfaceWeaver_ImbuementAffinity"));
+	const FName ElementalConversionTalentId(TEXT("Talent_Mage_SurfaceWeaver_ElementalConversion"));
+	const FName ConductionTalentId(TEXT("Talent_Mage_SurfaceWeaver_Conduction"));
+	const FName PersistentSurfaceTalentId(TEXT("Talent_Mage_SurfaceWeaver_PersistentSurface"));
+	const FName TerrainArchitectTalentId(TEXT("Talent_Mage_SurfaceWeaver_TerrainArchitect"));
+
 	const FName OverloadActionId(TEXT("Action_Mage_ElementalOverload"));
 	const FName ElementalChainActionId(TEXT("Action_Mage_ElementalChain"));
 	const FName CataclysmActionId(TEXT("Action_Mage_Cataclysm"));
 	const FName ArcaneShieldActionId(TEXT("Action_Mage_ArcaneShield"));
 	const FName DispelActionId(TEXT("Action_Mage_Dispel"));
 	const FName ShortTeleportActionId(TEXT("Action_Mage_ShortTeleport"));
+	const FName ImbuementActionId(TEXT("Action_Mage_Imbuement"));
+	const FName ElementalConversionActionId(TEXT("Action_Mage_ElementalConversion"));
+	const FName TerrainArchitectActionId(TEXT("Action_Mage_TerrainArchitect"));
 	const FName OverloadStatusId(TEXT("Status_ElementalOverload"));
+	const FName ImbuementStatusId(TEXT("Status_ElementalImbuement"));
 
 	struct FAffinityExpectation
 	{
@@ -55,6 +67,11 @@ namespace RPG0394MageAuthoring
 	FName MakeAffinityChoiceId(const TCHAR* Suffix)
 	{
 		return FName(*FString::Printf(TEXT("Talent_Mage_Evoker_ElementalAffinity_%s"), Suffix));
+	}
+
+	FName MakeSurfaceWeaverAffinityChoiceId(const TCHAR* Suffix)
+	{
+		return FName(*FString::Printf(TEXT("Talent_Mage_SurfaceWeaver_Imbuement_%s"), Suffix));
 	}
 
 	URPGClassAsset* BuildMage()
@@ -90,6 +107,15 @@ namespace RPG0394MageAuthoring
 		OutAction = AuthoredAction;
 		TSet<FName> Requirements;
 		Requirements.Add(MakeAffinityChoiceId(Suffix));
+		return FGridCombatActionCatalog::ApplyOwnerRequirementVariant(OutAction, Requirements);
+	}
+
+	bool ProjectSurfaceWeaverAction(
+		const FGridCombatActionDefinition& AuthoredAction, const TCHAR* Suffix, FGridCombatActionDefinition& OutAction)
+	{
+		OutAction = AuthoredAction;
+		TSet<FName> Requirements;
+		Requirements.Add(MakeSurfaceWeaverAffinityChoiceId(Suffix));
 		return FGridCombatActionCatalog::ApplyOwnerRequirementVariant(OutAction, Requirements);
 	}
 }
@@ -547,8 +573,8 @@ bool FRPG0394E2ArcanistBranchAuthoringTest::RunTest(const FString&)
 	using namespace RPG0394MageAuthoring;
 	URPGClassAsset* Mage = BuildMage();
 	TestTrue(TEXT("Mage Evoker plus Arcanist authoring is structurally valid"), Mage->IsValidDefinition());
-	TestEqual(TEXT("Evoker plus Arcanist author exactly six active actions"), Mage->CombatActions.Num(), 6);
-	TestEqual(TEXT("Evoker plus Arcanist author exactly thirteen Choice records"), Mage->ProgressionChoices.Num(), 13);
+	TestTrue(TEXT("Evoker plus Arcanist actions remain present after later Mage branches"), Mage->CombatActions.Num() >= 6);
+	TestTrue(TEXT("Evoker plus Arcanist Choice records remain present after later Mage branches"), Mage->ProgressionChoices.Num() >= 13);
 
 	const FGridCombatActionDefinition* Shield = FindAction(Mage, ArcaneShieldActionId);
 	TestTrue(TEXT("Arcane Shield is 2 AP / 5 mana, Ally R3, CD2, Arcane Spell"), Shield &&
@@ -772,8 +798,8 @@ bool FRPG0394E2ProductionAssetsTest::RunTest(const FString&)
 		return false;
 	}
 	TestTrue(TEXT("Production Mage is structurally valid"), Mage->IsValidDefinition());
-	TestEqual(TEXT("Production Evoker plus Arcanist has six actions"), Mage->CombatActions.Num(), 6);
-	TestEqual(TEXT("Production Evoker plus Arcanist has thirteen Choice records"), Mage->ProgressionChoices.Num(), 13);
+	TestTrue(TEXT("Production Evoker plus Arcanist actions remain present after later Mage branches"), Mage->CombatActions.Num() >= 6);
+	TestTrue(TEXT("Production Evoker plus Arcanist Choice records remain present after later Mage branches"), Mage->ProgressionChoices.Num() >= 13);
 	TestNotNull(TEXT("Production Arcane Shield exists"), FindAction(Mage, ArcaneShieldActionId));
 	TestNotNull(TEXT("Production Dispel exists"), FindAction(Mage, DispelActionId));
 	TestNotNull(TEXT("Production Short Teleport exists"), FindAction(Mage, ShortTeleportActionId));
@@ -787,6 +813,329 @@ bool FRPG0394E2ProductionAssetsTest::RunTest(const FString&)
 		TestTrue(*FString::Printf(TEXT("Production %s is tagged Dispel.Magical"), *EffectId.ToString()),
 			IsValid(Status) && Status->StatusTags.Contains(TEXT("Dispel.Magical")));
 	}
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394F2SurfaceWeaverBranchAuthoringTest,
+	"Grimrock.RPG.RPG03.9.4F2.SurfaceWeaverBranchAuthoring",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394F2SurfaceWeaverBranchAuthoringTest::RunTest(const FString&)
+{
+	using namespace RPG0394MageAuthoring;
+	URPGClassAsset* Mage = BuildMage();
+	TestTrue(TEXT("Complete Mage authoring is structurally valid"), Mage->IsValidDefinition());
+	TestEqual(TEXT("Complete Mage authors nine active actions"), Mage->CombatActions.Num(), 9);
+	TestEqual(TEXT("Complete Mage authors twenty-one Choice records"), Mage->ProgressionChoices.Num(), 21);
+
+	const FGridCombatActionDefinition* Imbuement = FindAction(Mage, ImbuementActionId);
+	TestTrue(TEXT("Imbuement is 1 AP / 4 mana, Ally R3, CD1"), Imbuement &&
+		Imbuement->SourcePolicy == EGridCombatActionSourcePolicy::Spell &&
+		Imbuement->TargetingPolicy == EGridCombatTargetingPolicy::Ally &&
+		Imbuement->ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+		Imbuement->ActionPointCost == 1 && Imbuement->ResourceCosts.ManaCost == 4 &&
+		Imbuement->RangeCells == 3 && Imbuement->CooldownRounds == 1 &&
+		Imbuement->StatusApplications.Num() == 1 &&
+		Imbuement->StatusApplications[0].StatusEffectId == ImbuementStatusId &&
+		Imbuement->StatusApplications[0].DurationOverride == 2);
+
+	const FGridCombatActionDefinition* Conversion = FindAction(Mage, ElementalConversionActionId);
+	TestTrue(TEXT("Elemental Conversion is 2 AP / 5 mana, Area1 R4, CD2"), Conversion &&
+		Conversion->TargetingPolicy == EGridCombatTargetingPolicy::Area &&
+		Conversion->ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+		Conversion->ActionPointCost == 2 && Conversion->ResourceCosts.ManaCost == 5 &&
+		Conversion->RangeCells == 4 && Conversion->AreaRadiusCells == 1 && Conversion->CooldownRounds == 2 &&
+		Conversion->OwnerVariants.Num() == 4);
+
+	const FGridCombatActionDefinition* Architect = FindAction(Mage, TerrainArchitectActionId);
+	TestTrue(TEXT("Terrain Architect is 4 AP / 12 mana, Area2 R5, CD5"), Architect &&
+		Architect->TargetingPolicy == EGridCombatTargetingPolicy::Area &&
+		Architect->ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+		Architect->ActionPointCost == 4 && Architect->ResourceCosts.ManaCost == 12 &&
+		Architect->RangeCells == 5 && Architect->AreaRadiusCells == 2 && Architect->CooldownRounds == 5 &&
+		Architect->OwnerVariants.Num() == 4);
+
+	for (const FAffinityExpectation& Affinity : Affinities)
+	{
+		const FRPGClassProgressionChoiceDefinition* Variant =
+			Mage->FindProgressionChoice(MakeSurfaceWeaverAffinityChoiceId(Affinity.Suffix));
+		TestTrue(*FString::Printf(TEXT("Surface Weaver Imbuement variant %s exists"), Affinity.Suffix),
+			Variant && Variant->MinimumLevel == 2 &&
+			Variant->ExclusiveChoiceGroupId == ImbuementAffinityGroup &&
+			Variant->GrantedRequirementIds.Contains(ImbuementTalentId));
+	}
+
+	const FRPGClassProgressionChoiceDefinition* ConversionChoice = Mage->FindProgressionChoice(ElementalConversionTalentId);
+	const FRPGClassProgressionChoiceDefinition* ConductionChoice = Mage->FindProgressionChoice(ConductionTalentId);
+	const FRPGClassProgressionChoiceDefinition* PersistentChoice = Mage->FindProgressionChoice(PersistentSurfaceTalentId);
+	const FRPGClassProgressionChoiceDefinition* ArchitectChoice = Mage->FindProgressionChoice(TerrainArchitectTalentId);
+	TestTrue(TEXT("Surface Weaver progression is a single 2/6/10/14/18 chain"),
+		ConversionChoice && ConversionChoice->MinimumLevel == 6 && ConversionChoice->PrerequisiteRequirementIds.Contains(ImbuementTalentId) &&
+		ConductionChoice && ConductionChoice->MinimumLevel == 10 && ConductionChoice->PrerequisiteChoiceIds.Contains(ElementalConversionTalentId) &&
+		PersistentChoice && PersistentChoice->MinimumLevel == 14 && PersistentChoice->PrerequisiteChoiceIds.Contains(ConductionTalentId) &&
+		ArchitectChoice && ArchitectChoice->MinimumLevel == 18 && ArchitectChoice->PrerequisiteChoiceIds.Contains(PersistentSurfaceTalentId));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394F2ImbuementStatusTest,
+	"Grimrock.RPG.RPG03.9.4F2.ImbuementStatus",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394F2ImbuementStatusTest::RunTest(const FString&)
+{
+	using namespace RPG0394MageAuthoring;
+	UGridStatusEffectDefinitionAsset* Status = NewObject<UGridStatusEffectDefinitionAsset>(GetTransientPackage());
+	TestTrue(TEXT("Elemental Imbuement configures"), FRPGMageAuthoring::ConfigureStatus(*Status, ImbuementStatusId));
+	TestTrue(TEXT("Elemental Imbuement is structurally valid"), Status->IsValidDefinition());
+	TestEqual(TEXT("Elemental Imbuement lasts two Rounds"), Status->DurationUnit, EGridStatusEffectDurationUnit::Rounds);
+	TestEqual(TEXT("Elemental Imbuement default duration is two"), Status->DefaultDuration, 2);
+	TestEqual(TEXT("Elemental Imbuement owns four source-affinity reactions"), Status->CombatReactions.Num(), 4);
+	TestTrue(TEXT("Elemental Imbuement is magically dispellable"), Status->StatusTags.Contains(TEXT("Dispel.Magical")));
+
+	for (int32 Index = 0; Index < UE_ARRAY_COUNT(Affinities); ++Index)
+	{
+		const FAffinityExpectation& Affinity = Affinities[Index];
+		const FGridCombatReactionProfile* Reaction = Status->CombatReactions.FindByPredicate(
+			[&Affinity](const FGridCombatReactionProfile& Candidate)
+			{
+				return Candidate.RequiredStatusSourceRequirementIds.Contains(MakeSurfaceWeaverAffinityChoiceId(Affinity.Suffix));
+			});
+		TestTrue(*FString::Printf(TEXT("%s Imbuement reaction exists"), Affinity.Suffix), Reaction != nullptr);
+		if (!Reaction)
+		{
+			continue;
+		}
+		TestTrue(TEXT("Imbuement reacts only to a weapon hit and consumes itself"),
+			Reaction->Trigger == EGridCombatReactionTrigger::AttackHit &&
+			Reaction->bRequireWeaponAttack && Reaction->bConsumeOwningStatus);
+		TestEqual(TEXT("Imbuement base secondary damage is three"), Reaction->SecondaryDirectDamage, 3);
+		TestEqual(TEXT("Imbuement uses source Mage INT modifier scaling"),
+			Reaction->SecondaryDirectDamageScalingAttribute, EGridAttackScalingAttribute::Intelligence);
+		TestEqual(TEXT("Imbuement affinity selects the expected DamageType"),
+			Reaction->SecondaryDirectDamageType, Affinity.DamageType);
+	}
+
+	URPGClassAsset* MageClass = BuildMage();
+	FGridCharacterInventoryState Mage;
+	Mage.CharacterId = FGuid::NewGuid();
+	Mage.ClassId = MageClass->ClassId;
+	Mage.ClassDefinition = MageClass;
+	Mage.Level = 2;
+	Mage.Attributes.Intelligence = 16;
+	Mage.SelectedClassProgressionChoiceIds = { MakeSurfaceWeaverAffinityChoiceId(TEXT("Fire")) };
+
+	FGridCharacterInventoryState Ally;
+	Ally.CharacterId = FGuid::NewGuid();
+	FGridStatusEffectApplyResult ApplyResult;
+	FString ApplyError;
+	TestTrue(TEXT("Fire Mage can source an ally-held Imbuement"),
+		Ally.StatusEffects.TryApply(*Status, Mage.CharacterId, ApplyResult, ApplyError));
+
+	FGridPartyInventoryState Party;
+	Party.ActiveCharacters = { Mage, Ally };
+	TArray<FGridCombatReactionBinding> Bindings;
+	TestTrue(TEXT("Imbuement reactions project from source Mage progression"),
+		FGridCombatReactionResolver::CollectCharacterBindings(Party.ActiveCharacters[1], Party, Bindings));
+	TestEqual(TEXT("Only the Fire source-affinity reaction projects"), Bindings.Num(), 1);
+	TestTrue(TEXT("Projected binding preserves the Mage source id"),
+		Bindings.Num() == 1 && Bindings[0].OwningStatusSourceId == Mage.CharacterId);
+	TestEqual(TEXT("Fire Imbuement resolves 3 + INT mod 3 = 6"),
+		Bindings.Num() == 1
+			? FGridCombatReactionResolver::ResolveSecondaryDirectDamageAmount(Bindings[0].Profile, Mage.Attributes)
+			: 0,
+		6);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394F2ElementalConversionTest,
+	"Grimrock.RPG.RPG03.9.4F2.ElementalConversion",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394F2ElementalConversionTest::RunTest(const FString&)
+{
+	using namespace RPG0394MageAuthoring;
+	URPGClassAsset* Mage = BuildMage();
+	const FGridCombatActionDefinition* Authored = FindAction(Mage, ElementalConversionActionId);
+	if (!TestNotNull(TEXT("Elemental Conversion exists"), Authored))
+	{
+		return false;
+	}
+
+	FGridCombatActionDefinition Fire;
+	TestTrue(TEXT("Fire Conversion projects"), ProjectSurfaceWeaverAction(*Authored, TEXT("Fire"), Fire));
+	TestTrue(TEXT("Fire converts Oil/Poison to Fire"), Fire.SurfaceConversions.Num() == 1 &&
+		Fire.SurfaceConversions[0].InputSurfaceTypes.Contains(EGridCombatSurfaceType::Oil) &&
+		Fire.SurfaceConversions[0].InputSurfaceTypes.Contains(EGridCombatSurfaceType::Poison) &&
+		Fire.SurfaceConversions[0].OutputSurfaceType == EGridCombatSurfaceType::Fire);
+
+	FGridCombatActionDefinition Frost;
+	TestTrue(TEXT("Frost Conversion projects"), ProjectSurfaceWeaverAction(*Authored, TEXT("Frost"), Frost));
+	TestTrue(TEXT("Frost converts Water to Ice"), Frost.SurfaceConversions.Num() == 1 &&
+		Frost.SurfaceConversions[0].InputSurfaceTypes.Contains(EGridCombatSurfaceType::Water) &&
+		Frost.SurfaceConversions[0].OutputSurfaceType == EGridCombatSurfaceType::Ice);
+
+	FGridCombatActionDefinition Air;
+	TestTrue(TEXT("Air Conversion projects"), ProjectSurfaceWeaverAction(*Authored, TEXT("Air"), Air));
+	TestTrue(TEXT("Air converts Water/Blood to ElectrifiedWater"), Air.SurfaceConversions.Num() == 1 &&
+		Air.SurfaceConversions[0].InputSurfaceTypes.Contains(EGridCombatSurfaceType::Water) &&
+		Air.SurfaceConversions[0].InputSurfaceTypes.Contains(EGridCombatSurfaceType::Blood) &&
+		Air.SurfaceConversions[0].OutputSurfaceType == EGridCombatSurfaceType::ElectrifiedWater);
+
+	FGridCombatActionDefinition Earth;
+	TestTrue(TEXT("Earth Conversion projects"), ProjectSurfaceWeaverAction(*Authored, TEXT("Earth"), Earth));
+	TestEqual(TEXT("Earth owns Water->Poison and neutral->Oil rules"), Earth.SurfaceConversions.Num(), 2);
+	TestTrue(TEXT("Earth converts Water to Poison"), Earth.SurfaceConversions.Num() == 2 &&
+		Earth.SurfaceConversions[0].InputSurfaceTypes.Contains(EGridCombatSurfaceType::Water) &&
+		Earth.SurfaceConversions[0].OutputSurfaceType == EGridCombatSurfaceType::Poison);
+	TestTrue(TEXT("Earth neutral rule creates Oil"), Earth.SurfaceConversions.Num() == 2 &&
+		Earth.SurfaceConversions[1].bAllowEmptyCell &&
+		Earth.SurfaceConversions[1].OutputSurfaceType == EGridCombatSurfaceType::Oil);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394F2ConductionAndPersistentSurfaceTest,
+	"Grimrock.RPG.RPG03.9.4F2.ConductionAndPersistentSurface",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394F2ConductionAndPersistentSurfaceTest::RunTest(const FString&)
+{
+	using namespace RPG0394MageAuthoring;
+	URPGClassAsset* Mage = BuildMage();
+	const FRPGClassProgressionChoiceDefinition* Conduction = Mage->FindProgressionChoice(ConductionTalentId);
+	const FRPGClassProgressionChoiceDefinition* Persistent = Mage->FindProgressionChoice(PersistentSurfaceTalentId);
+	if (!TestNotNull(TEXT("Conduction exists"), Conduction) || !TestNotNull(TEXT("Persistent Surface exists"), Persistent))
+	{
+		return false;
+	}
+	TestEqual(TEXT("Conduction owns five compatibility profiles including Earth Physical/Poison"), Conduction->CombatModifiers.Num(), 5);
+
+	FGridCombatActionDefinition FireAttack;
+	FireAttack.ActionId = TEXT("Attack_RPG0394F2_Fire");
+	FireAttack.ActionType = EGridCombatActionType::Ability;
+	FireAttack.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+	FireAttack.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
+	FireAttack.TargetingPolicy = EGridCombatTargetingPolicy::Hostile;
+	FireAttack.OffensiveProfile.AttackId = FireAttack.ActionId;
+	FireAttack.OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Fire;
+	FireAttack.OffensiveProfile.AttackDefinition.MinDamage = 1;
+	FireAttack.OffensiveProfile.AttackDefinition.MaxDamage = 1;
+
+	FGridCombatModifierContext FireContext =
+		FGridCombatModifierResolver::MakeAttackContext(
+			FireAttack.ActionId, Mage->ClassId, FireAttack.SourcePolicy, FireAttack.ActionType,
+			EGridDamageType::Fire, EGridPhysicalDamageSubtype::None);
+	FGridCombatModifierResolver::AddTargetSurfaceContext(FireContext, EGridCombatSurfaceType::Oil);
+	FGridResolvedCombatModifiers Resolved;
+	FGridCombatModifierResolver::Resolve(Conduction->CombatModifiers, FireContext, Resolved);
+	TestEqual(TEXT("Fire attack exploiting Oil gains +20 percent"), Resolved.OutgoingDamagePercentModifier, 20);
+
+	FGridCombatModifierContext NeutralContext =
+		FGridCombatModifierResolver::MakeAttackContext(
+			FireAttack.ActionId, Mage->ClassId, FireAttack.SourcePolicy, FireAttack.ActionType,
+			EGridDamageType::Fire, EGridPhysicalDamageSubtype::None);
+	FGridCombatModifierResolver::Resolve(Conduction->CombatModifiers, NeutralContext, Resolved);
+	TestEqual(TEXT("Fire attack without compatible state gains no Conduction bonus"), Resolved.OutgoingDamagePercentModifier, 0);
+
+	TestTrue(TEXT("Persistent Surface owns one source modifier"), Persistent->CombatModifiers.Num() == 1);
+	if (Persistent->CombatModifiers.Num() == 1)
+	{
+		TestEqual(TEXT("Persistent Surface adds two rounds"), Persistent->CombatModifiers[0].SurfaceDurationRoundsModifier, 2);
+		TestEqual(TEXT("Persistent Surface adds fifteen percent periodic surface damage"),
+			Persistent->CombatModifiers[0].SurfacePeriodicDamagePercentModifier, 15);
+		TestTrue(TEXT("Persistent Surface is source-side Spell-only"),
+			Persistent->CombatModifiers[0].SourcePolicies.Contains(EGridCombatActionSourcePolicy::Spell));
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394F2TerrainArchitectTest,
+	"Grimrock.RPG.RPG03.9.4F2.TerrainArchitect",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394F2TerrainArchitectTest::RunTest(const FString&)
+{
+	using namespace RPG0394MageAuthoring;
+	URPGClassAsset* Mage = BuildMage();
+	const FGridCombatActionDefinition* Authored = FindAction(Mage, TerrainArchitectActionId);
+	if (!TestNotNull(TEXT("Terrain Architect exists"), Authored))
+	{
+		return false;
+	}
+
+	struct FExpectedSurface
+	{
+		const TCHAR* Suffix;
+		EGridCombatSurfaceType SurfaceType;
+	};
+	const FExpectedSurface Expected[] = {
+		{ TEXT("Fire"), EGridCombatSurfaceType::Fire },
+		{ TEXT("Frost"), EGridCombatSurfaceType::Ice },
+		{ TEXT("Air"), EGridCombatSurfaceType::ElectrifiedWater },
+		{ TEXT("Earth"), EGridCombatSurfaceType::Oil }
+	};
+
+	for (const FExpectedSurface& Item : Expected)
+	{
+		FGridCombatActionDefinition Projected;
+		TestTrue(*FString::Printf(TEXT("%s Terrain Architect projects"), Item.Suffix),
+			ProjectAffinityAction(*Authored, Item.Suffix, Projected));
+		TestEqual(TEXT("Projected Terrain Architect has one surface"), Projected.SurfaceEffects.Num(), 1);
+		if (Projected.SurfaceEffects.Num() == 1)
+		{
+			TestEqual(TEXT("Terrain surface matches affinity"), Projected.SurfaceEffects[0].SurfaceType, Item.SurfaceType);
+			TestEqual(TEXT("Terrain surface lasts three rounds before source modifiers"), Projected.SurfaceEffects[0].DurationRounds, 3);
+		}
+	}
+
+	const FRPGClassProgressionChoiceDefinition* Persistent = Mage->FindProgressionChoice(PersistentSurfaceTalentId);
+	if (!TestNotNull(TEXT("Persistent Surface exists for Terrain Architect"), Persistent))
+	{
+		return false;
+	}
+	FGridResolvedCombatModifiers PersistentModifiers;
+	FGridCombatModifierContext Context =
+		FGridCombatModifierResolver::MakeActionContext(*Authored, Mage->ClassId);
+	FGridCombatModifierResolver::Resolve(Persistent->CombatModifiers, Context, PersistentModifiers);
+
+	FGridCombatActionDefinition Fire;
+	ProjectSurfaceWeaverAction(*Authored, TEXT("Fire"), Fire);
+	FGridCombatSurfaceState State;
+	TestTrue(TEXT("Terrain surface state builds with Persistent Surface source modifiers"),
+		FGridCombatSurfaceResolver::BuildState(
+			Fire.SurfaceEffects[0], FGuid::NewGuid(), Fire.ActionId, PersistentModifiers, State));
+	TestEqual(TEXT("3-round Terrain Architect surface becomes 5 rounds with Persistent Surface"), State.RemainingRounds, 5);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0394F2ProductionAssetsTest,
+	"Grimrock.RPG.RPG03.9.4F2.ProductionAssets",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0394F2ProductionAssetsTest::RunTest(const FString&)
+{
+	using namespace RPG0394MageAuthoring;
+	URPGClassAsset* Mage = LoadObject<URPGClassAsset>(nullptr, FRPGMageAuthoring::MageAssetPath());
+	if (!TestNotNull(TEXT("Production DA_Class_Mage loads"), Mage))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Production Mage is structurally valid"), Mage->IsValidDefinition());
+	TestEqual(TEXT("Production complete Mage has nine actions"), Mage->CombatActions.Num(), 9);
+	TestEqual(TEXT("Production complete Mage has twenty-one Choice records"), Mage->ProgressionChoices.Num(), 21);
+	TestNotNull(TEXT("Production Imbuement exists"), FindAction(Mage, ImbuementActionId));
+	TestNotNull(TEXT("Production Elemental Conversion exists"), FindAction(Mage, ElementalConversionActionId));
+	TestNotNull(TEXT("Production Terrain Architect exists"), FindAction(Mage, TerrainArchitectActionId));
+
+	const FString StatusPath = FRPGMageAuthoring::GetStatusObjectPath(ImbuementStatusId);
+	UGridStatusEffectDefinitionAsset* Imbuement =
+		LoadObject<UGridStatusEffectDefinitionAsset>(nullptr, *StatusPath);
+	if (!TestNotNull(TEXT("Production Status_ElementalImbuement loads"), Imbuement))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Production Elemental Imbuement is valid"), Imbuement->IsValidDefinition());
+	TestEqual(TEXT("Production Elemental Imbuement has four affinity reactions"), Imbuement->CombatReactions.Num(), 4);
 	return true;
 }
 

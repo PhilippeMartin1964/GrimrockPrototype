@@ -25,14 +25,25 @@ namespace RPGMageAuthoring
 	const FName ShortTeleportTalentId(TEXT("Talent_Mage_Arcanist_ShortTeleport"));
 	const FName ArcaneMasteryTalentId(TEXT("Talent_Mage_Arcanist_ArcaneMastery"));
 
+	const FName ImbuementTalentId(TEXT("Talent_Mage_SurfaceWeaver_Imbuement"));
+	const FName ImbuementAffinityGroup(TEXT("TalentGroup_Mage_SurfaceWeaver_ImbuementAffinity"));
+	const FName ElementalConversionTalentId(TEXT("Talent_Mage_SurfaceWeaver_ElementalConversion"));
+	const FName ConductionTalentId(TEXT("Talent_Mage_SurfaceWeaver_Conduction"));
+	const FName PersistentSurfaceTalentId(TEXT("Talent_Mage_SurfaceWeaver_PersistentSurface"));
+	const FName TerrainArchitectTalentId(TEXT("Talent_Mage_SurfaceWeaver_TerrainArchitect"));
+
 	const FName ElementalOverloadActionId(TEXT("Action_Mage_ElementalOverload"));
 	const FName ElementalChainActionId(TEXT("Action_Mage_ElementalChain"));
 	const FName CataclysmActionId(TEXT("Action_Mage_Cataclysm"));
 	const FName ArcaneShieldActionId(TEXT("Action_Mage_ArcaneShield"));
 	const FName DispelActionId(TEXT("Action_Mage_Dispel"));
 	const FName ShortTeleportActionId(TEXT("Action_Mage_ShortTeleport"));
+	const FName ImbuementActionId(TEXT("Action_Mage_Imbuement"));
+	const FName ElementalConversionActionId(TEXT("Action_Mage_ElementalConversion"));
+	const FName TerrainArchitectActionId(TEXT("Action_Mage_TerrainArchitect"));
 
 	const FName ElementalOverloadStatusId(TEXT("Status_ElementalOverload"));
+	const FName ElementalImbuementStatusId(TEXT("Status_ElementalImbuement"));
 	const FName BurningStatusId(TEXT("Status_Burning"));
 	const FName SlowStatusId(TEXT("Status_Slow"));
 	const FName StunnedStatusId(TEXT("Status_Stunned"));
@@ -64,6 +75,11 @@ namespace RPGMageAuthoring
 	FName MakeAffinityChoiceId(const TCHAR* Suffix)
 	{
 		return FName(*FString::Printf(TEXT("Talent_Mage_Evoker_ElementalAffinity_%s"), Suffix));
+	}
+
+	FName MakeSurfaceWeaverAffinityChoiceId(const TCHAR* Suffix)
+	{
+		return FName(*FString::Printf(TEXT("Talent_Mage_SurfaceWeaver_Imbuement_%s"), Suffix));
 	}
 
 	FRPGClassProgressionChoiceDefinition MakeChoice(
@@ -108,6 +124,94 @@ namespace RPGMageAuthoring
 				EGridCombatStatusArmorGate::MagicalArmorDepleted, Variant.CataclysmStatusDuration));
 		}
 		return Result;
+	}
+
+	FGridCombatActionOwnerVariantProfile MakeSurfaceConversionVariant(const FAffinityVariant& Variant)
+	{
+		FGridCombatActionOwnerVariantProfile Result;
+		Result.RequiredOwnerRequirementIds = { MakeSurfaceWeaverAffinityChoiceId(Variant.Suffix) };
+		const FString Suffix(Variant.Suffix);
+
+		if (Suffix == TEXT("Fire"))
+		{
+			FGridCombatSurfaceConversionProfile Conversion;
+			Conversion.InputSurfaceTypes = { EGridCombatSurfaceType::Oil, EGridCombatSurfaceType::Poison };
+			Conversion.OutputSurfaceType = EGridCombatSurfaceType::Fire;
+			Result.SurfaceConversions.Add(Conversion);
+		}
+		else if (Suffix == TEXT("Frost"))
+		{
+			FGridCombatSurfaceConversionProfile Conversion;
+			Conversion.InputSurfaceTypes = { EGridCombatSurfaceType::Water };
+			Conversion.OutputSurfaceType = EGridCombatSurfaceType::Ice;
+			Result.SurfaceConversions.Add(Conversion);
+		}
+		else if (Suffix == TEXT("Air"))
+		{
+			FGridCombatSurfaceConversionProfile Conversion;
+			Conversion.InputSurfaceTypes = { EGridCombatSurfaceType::Water, EGridCombatSurfaceType::Blood };
+			Conversion.OutputSurfaceType = EGridCombatSurfaceType::ElectrifiedWater;
+			Result.SurfaceConversions.Add(Conversion);
+		}
+		else if (Suffix == TEXT("Earth"))
+		{
+			FGridCombatSurfaceConversionProfile WaterToPoison;
+			WaterToPoison.InputSurfaceTypes = { EGridCombatSurfaceType::Water };
+			WaterToPoison.OutputSurfaceType = EGridCombatSurfaceType::Poison;
+			Result.SurfaceConversions.Add(WaterToPoison);
+
+			FGridCombatSurfaceConversionProfile NeutralToOil;
+			NeutralToOil.bAllowEmptyCell = true;
+			NeutralToOil.OutputSurfaceType = EGridCombatSurfaceType::Oil;
+			NeutralToOil.EmptyCellDurationRounds = 3;
+			Result.SurfaceConversions.Add(NeutralToOil);
+		}
+		return Result;
+	}
+
+	FGridCombatActionOwnerVariantProfile MakeTerrainArchitectVariant(const FAffinityVariant& Variant)
+	{
+		FGridCombatActionOwnerVariantProfile Result;
+		Result.RequiredOwnerRequirementIds = { MakeSurfaceWeaverAffinityChoiceId(Variant.Suffix) };
+
+		FGridCombatSurfaceEffectProfile Surface;
+		Surface.DurationRounds = 3;
+		const FString Suffix(Variant.Suffix);
+		if (Suffix == TEXT("Fire"))
+		{
+			Surface.SurfaceType = EGridCombatSurfaceType::Fire;
+		}
+		else if (Suffix == TEXT("Frost"))
+		{
+			Surface.SurfaceType = EGridCombatSurfaceType::Ice;
+		}
+		else if (Suffix == TEXT("Air"))
+		{
+			Surface.SurfaceType = EGridCombatSurfaceType::ElectrifiedWater;
+		}
+		else
+		{
+			// Earth has no secondary Oil/Poison choice in the progression model.
+			// Oil is the deterministic neutral-terrain representation used by Conversion.
+			Surface.SurfaceType = EGridCombatSurfaceType::Oil;
+		}
+		Result.SurfaceEffects.Add(Surface);
+		return Result;
+	}
+
+	void AddConductionModifier(
+		FRPGClassProgressionChoiceDefinition& Choice, EGridDamageType DamageType, const TCHAR* SchoolTag,
+		const TArray<FName>& EnvironmentTags)
+	{
+		FGridCombatModifierProfile Modifier;
+		Modifier.DamageTypes = { DamageType };
+		if (SchoolTag && SchoolTag[0] != TCHAR('\0'))
+		{
+			Modifier.RequiredSourceTags = { FName(SchoolTag) };
+		}
+		Modifier.AnyTargetEnvironmentTags = EnvironmentTags;
+		Modifier.OutgoingDamagePercentModifier = 20;
+		Choice.CombatModifiers.Add(Modifier);
 	}
 
 	FGridCombatActionDefinition MakeDirectSpellAttack(
@@ -462,6 +566,121 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	Mastery.OutgoingDamagePercentModifier = 15;
 	ArcaneMastery.CombatModifiers.Add(Mastery);
 	ClassAsset.ProgressionChoices.Add(ArcaneMastery);
+
+	// Surface Weaver actions.
+	{
+		FGridCombatActionDefinition Imbuement;
+		Imbuement.ActionId = ImbuementActionId;
+		Imbuement.DisplayName = FText::FromString(TEXT("Imprégnation"));
+		Imbuement.Description = FText::FromString(
+			TEXT("Imprègne l'arme de la cible ; sa prochaine attaque d'arme ajoute 3 + modificateur d'INT du Mage en dégâts d'affinité."));
+		Imbuement.ActionType = EGridCombatActionType::Ability;
+		Imbuement.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+		Imbuement.TargetingPolicy = EGridCombatTargetingPolicy::Ally;
+		Imbuement.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+		Imbuement.ActionPointCost = 1;
+		Imbuement.ResourceCosts.ManaCost = 4;
+		Imbuement.RangeCells = 3;
+		Imbuement.CooldownRounds = 1;
+		Imbuement.Requirements = { ImbuementTalentId };
+		Imbuement.StatusApplications.Add(MakeStatusApplication(
+			ElementalImbuementStatusId, EGridCombatStatusApplicationTrigger::AfterResolution,
+			EGridCombatStatusArmorGate::None, 2));
+		ClassAsset.CombatActions.Add(Imbuement);
+	}
+	{
+		FGridCombatActionDefinition Conversion;
+		Conversion.ActionId = ElementalConversionActionId;
+		Conversion.DisplayName = FText::FromString(TEXT("Conversion élémentaire"));
+		Conversion.Description = FText::FromString(TEXT("Convertit les surfaces dans une zone selon l'affinité élémentaire."));
+		Conversion.ActionType = EGridCombatActionType::Ability;
+		Conversion.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+		Conversion.TargetingPolicy = EGridCombatTargetingPolicy::Area;
+		Conversion.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+		Conversion.ActionPointCost = 2;
+		Conversion.ResourceCosts.ManaCost = 5;
+		Conversion.RangeCells = 4;
+		Conversion.AreaRadiusCells = 1;
+		Conversion.CooldownRounds = 2;
+		Conversion.Requirements = { ElementalConversionTalentId };
+		for (const FAffinityVariant& Variant : AffinityVariants)
+		{
+			Conversion.OwnerVariants.Add(MakeSurfaceConversionVariant(Variant));
+		}
+		ClassAsset.CombatActions.Add(Conversion);
+	}
+	{
+		FGridCombatActionDefinition Architect;
+		Architect.ActionId = TerrainArchitectActionId;
+		Architect.DisplayName = FText::FromString(TEXT("Architecte du terrain"));
+		Architect.Description = FText::FromString(TEXT("Crée pendant 3 rounds une grande surface liée à l'affinité."));
+		Architect.ActionType = EGridCombatActionType::Ability;
+		Architect.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+		Architect.TargetingPolicy = EGridCombatTargetingPolicy::Area;
+		Architect.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+		Architect.ActionPointCost = 4;
+		Architect.ResourceCosts.ManaCost = 12;
+		Architect.RangeCells = 5;
+		Architect.AreaRadiusCells = 2;
+		Architect.CooldownRounds = 5;
+		Architect.Requirements = { TerrainArchitectTalentId };
+		for (const FAffinityVariant& Variant : AffinityVariants)
+		{
+			Architect.OwnerVariants.Add(MakeTerrainArchitectVariant(Variant));
+		}
+		ClassAsset.CombatActions.Add(Architect);
+	}
+
+	// Surface Weaver progression. Imbuement carries the branch-local affinity selection so a pure
+	// Surface Weaver does not need to buy the Evoker level-2 talent.
+	for (const FAffinityVariant& Variant : AffinityVariants)
+	{
+		const FName ChoiceId = MakeSurfaceWeaverAffinityChoiceId(Variant.Suffix);
+		const FString DisplayName = FString::Printf(TEXT("Imprégnation — %s"),
+			*FString(Variant.DisplayName).Replace(TEXT("Affinité élémentaire — "), TEXT("")));
+		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+			ChoiceId, *DisplayName, TEXT("Débloque Imprégnation et fixe l'affinité de la branche Tisseur de surfaces."), 2);
+		Choice.ExclusiveChoiceGroupId = ImbuementAffinityGroup;
+		Choice.GrantedRequirementIds = { ImbuementTalentId };
+		ClassAsset.ProgressionChoices.Add(Choice);
+	}
+
+	FRPGClassProgressionChoiceDefinition ConversionChoice = MakeChoice(
+		ElementalConversionTalentId, TEXT("Conversion élémentaire"),
+		TEXT("Débloque Conversion élémentaire."), 6);
+	ConversionChoice.PrerequisiteRequirementIds = { ImbuementTalentId };
+	ClassAsset.ProgressionChoices.Add(ConversionChoice);
+
+	FRPGClassProgressionChoiceDefinition Conduction = MakeChoice(
+		ConductionTalentId, TEXT("Conduction"),
+		TEXT("Une attaque élémentaire exploitant un état ou une surface compatible inflige +20 % de dégâts."),
+		10, ElementalConversionTalentId);
+	AddConductionModifier(Conduction, EGridDamageType::Fire, nullptr,
+		TArray<FName>{ FName(TEXT("Surface.Oil")), FName(TEXT("Surface.Poison")), FName(TEXT("Status_Burning")), FName(TEXT("Elemental.Fire")) });
+	AddConductionModifier(Conduction, EGridDamageType::Ice, nullptr,
+		TArray<FName>{ FName(TEXT("Surface.Water")), FName(TEXT("Status_Slow")), FName(TEXT("Control.Slow")) });
+	AddConductionModifier(Conduction, EGridDamageType::Lightning, nullptr,
+		TArray<FName>{ FName(TEXT("Surface.Water")), FName(TEXT("Surface.Blood")), FName(TEXT("Surface.ElectrifiedWater")), FName(TEXT("Status_Stunned")), FName(TEXT("Control.Stun")) });
+	AddConductionModifier(Conduction, EGridDamageType::Physical, TEXT("Spell.School.Earth"),
+		TArray<FName>{ FName(TEXT("Surface.Water")), FName(TEXT("Surface.Oil")), FName(TEXT("Surface.Poison")), FName(TEXT("Status_Immobilized")), FName(TEXT("Control.Immobilize")) });
+	AddConductionModifier(Conduction, EGridDamageType::Poison, TEXT("Spell.School.Earth"),
+		TArray<FName>{ FName(TEXT("Surface.Water")), FName(TEXT("Surface.Oil")), FName(TEXT("Surface.Poison")), FName(TEXT("Status_Immobilized")), FName(TEXT("Control.Immobilize")) });
+	ClassAsset.ProgressionChoices.Add(Conduction);
+
+	FRPGClassProgressionChoiceDefinition Persistent = MakeChoice(
+		PersistentSurfaceTalentId, TEXT("Surface persistante"),
+		TEXT("Les surfaces créées ou converties par le Mage durent +2 rounds et infligent +15 % de dégâts périodiques."),
+		14, ConductionTalentId);
+	FGridCombatModifierProfile PersistentModifier;
+	PersistentModifier.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+	PersistentModifier.SurfaceDurationRoundsModifier = 2;
+	PersistentModifier.SurfacePeriodicDamagePercentModifier = 15;
+	Persistent.CombatModifiers.Add(PersistentModifier);
+	ClassAsset.ProgressionChoices.Add(Persistent);
+
+	ClassAsset.ProgressionChoices.Add(MakeChoice(
+		TerrainArchitectTalentId, TEXT("Architecte du terrain"),
+		TEXT("Débloque Architecte du terrain."), 18, PersistentSurfaceTalentId));
 }
 
 bool FRPGMageAuthoring::ConfigureElementalOverloadStatus(UGridStatusEffectDefinitionAsset& StatusAsset)
@@ -524,6 +743,37 @@ bool FRPGMageAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Status
 		return StatusAsset.IsValidDefinition();
 	}
 
+	if (EffectId == ElementalImbuementStatusId)
+	{
+		StatusAsset.DisplayName = FText::FromString(TEXT("Imprégnation élémentaire"));
+		StatusAsset.Description =
+			FText::FromString(TEXT("La prochaine attaque d'arme ajoute 3 + modificateur d'INT du Mage source en dégâts de son affinité, puis consomme cet effet."));
+		StatusAsset.StatusTags = { TEXT("Dispel.Magical"), TEXT("Elemental.Imbuement") };
+		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
+		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
+		StatusAsset.DefaultDuration = 2;
+		StatusAsset.StackPolicy = EGridStatusEffectStackPolicy::RefreshDuration;
+
+		for (const FAffinityVariant& Variant : AffinityVariants)
+		{
+			FGridCombatReactionProfile Reaction;
+			Reaction.ReactionId =
+				FName(*FString::Printf(TEXT("Reaction_Mage_ElementalImbuement_%s"), Variant.Suffix));
+			Reaction.Trigger = EGridCombatReactionTrigger::AttackHit;
+			Reaction.Limit = EGridCombatReactionLimit::OncePerAction;
+			Reaction.RequiredStatusSourceRequirementIds = { MakeSurfaceWeaverAffinityChoiceId(Variant.Suffix) };
+			Reaction.bRequireWeaponAttack = true;
+			Reaction.SecondaryDirectDamage = 3;
+			Reaction.SecondaryDirectDamageType = Variant.DamageType;
+			Reaction.SecondaryDirectDamagePhysicalSubtype = EGridPhysicalDamageSubtype::None;
+			Reaction.SecondaryDirectDamageScalingAttribute = EGridAttackScalingAttribute::Intelligence;
+			Reaction.SecondaryDirectDamageAttributeModifierScale = 1;
+			Reaction.bConsumeOwningStatus = true;
+			StatusAsset.CombatReactions.Add(Reaction);
+		}
+		return StatusAsset.IsValidDefinition();
+	}
+
 	if (EffectId == BurningStatusId)
 	{
 		StatusAsset.DisplayName = FText::FromString(TEXT("Brûlure"));
@@ -556,6 +806,7 @@ void FRPGMageAuthoring::GetRequiredMageStatusIds(TArray<FName>& OutStatusIds)
 {
 	OutStatusIds = {
 		RPGMageAuthoring::ElementalOverloadStatusId,
+		RPGMageAuthoring::ElementalImbuementStatusId,
 		RPGMageAuthoring::BurningStatusId,
 		RPGMageAuthoring::SlowStatusId
 	};

@@ -121,12 +121,8 @@ Aucun nouvel asset n'est créé par E2.
 
 ## Materialisation et validation locale
 
-Depuis un working tree propre sur `master` :
+Ce document décrit le jalon historique E2. Depuis RPG03.9.4F2, `Scripts/AuthorRPGMage.ps1` matérialise les trois branches Mage complètes et lance la campagne F2.
 
-```powershell
-.\Scripts\AuthorRPGMage.ps1 -EngineRoot D:\UE_5.5
-```
+La campagne historique `Grimrock.RPG.RPG03.9.4E2` reste disponible comme régression de la branche Arcaniste.
 
-Le script compile l'Editor, exécute `RPGMageAuthoring`, lance `Grimrock.RPG.RPG03.9.4E2`, puis affiche le `git status`.
-
-La validation n'est acquise qu'après réception de la sortie TD04.2 de l'utilisateur.
+La validation UE n'est acquise qu'après réception de la sortie TD04.2 de l'utilisateur.
