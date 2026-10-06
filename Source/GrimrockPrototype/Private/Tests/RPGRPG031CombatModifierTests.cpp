@@ -73,6 +73,10 @@ bool FRPG031ChoiceProjectionTest::RunTest(const FString& Parameters)
 	URPGClassAsset* Class = NewObject<URPGClassAsset>();
 	Class->ClassId = TEXT("RPG031_Class");
 	Class->HealthAtLevelOne = 10;
+	FRPGClassProgressionLevelGrant Grant;
+	Grant.Level = 1;
+	Grant.ChoicePointsGranted = 1;
+	Class->ProgressionLevelGrants.Add(Grant);
 
 	FRPGClassProgressionChoiceDefinition Choice;
 	Choice.ChoiceId = TEXT("Talent_RPG031");
@@ -93,9 +97,13 @@ bool FRPG031ChoiceProjectionTest::RunTest(const FString& Parameters)
 	Character.SelectedClassProgressionChoiceIds.Add(Choice.ChoiceId);
 
 	TArray<FGridCombatModifierProfile> Profiles;
-	TestTrue(TEXT("Selected choice modifiers resolve"), FGridCombatModifierResolver::CollectCharacterChoiceModifiers(Character, Profiles));
+	const bool bResolved = FGridCombatModifierResolver::CollectCharacterChoiceModifiers(Character, Profiles);
+	TestTrue(TEXT("Selected choice modifiers resolve"), bResolved);
 	TestEqual(TEXT("Exactly one profile is projected"), Profiles.Num(), 1);
-	TestEqual(TEXT("Projected accuracy modifier survives"), Profiles[0].AccuracyModifier, 2);
+	if (Profiles.Num() == 1)
+	{
+		TestEqual(TEXT("Projected accuracy modifier survives"), Profiles[0].AccuracyModifier, 2);
+	}
 	return true;
 }
 
