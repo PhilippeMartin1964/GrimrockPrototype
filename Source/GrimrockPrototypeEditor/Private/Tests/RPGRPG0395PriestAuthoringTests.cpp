@@ -61,6 +61,10 @@ bool FRPG0395B1StructureTest::RunTest(const FString&)
 {
 	using namespace RPG0395B1;
 	URPGClassAsset* Priest = BuildPriest();
+	for (const FGridCombatActionDefinition& Action : Priest->CombatActions)
+	{
+		TestTrue(*FString::Printf(TEXT("Authored action %s is structurally valid"), *Action.ActionId.ToString()), Action.IsValid());
+	}
 	TestTrue(TEXT("B1 Priest is structurally valid"), Priest->IsValidDefinition());
 	TestEqual(TEXT("B1 authors exactly ten Choice records"), Priest->ProgressionChoices.Num(), 10);
 	TestEqual(TEXT("B1 authors exactly nine active spells"), Priest->CombatActions.Num(), 9);

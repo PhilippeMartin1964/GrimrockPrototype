@@ -65,8 +65,8 @@ namespace RPGPriestAuthoring
 		Action.ActionPointCost = ActionPointCost;
 		Action.ResourceCosts.ManaCost = ManaCost;
 		Action.RangeCells = RangeCells;
+		// Ally targeting uses the party-target path and does not participate in the grid LOS contract.
 		Action.bRequiresLineOfSight =
-			TargetingPolicy == EGridCombatTargetingPolicy::Ally ||
 			TargetingPolicy == EGridCombatTargetingPolicy::AllyOrHostile ||
 			TargetingPolicy == EGridCombatTargetingPolicy::Hostile;
 		Action.CooldownRounds = CooldownRounds;
