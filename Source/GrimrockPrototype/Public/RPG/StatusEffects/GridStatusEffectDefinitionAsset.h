@@ -34,6 +34,38 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectPeriodicDamageProfile
 	}
 };
 
+/** Optional deterministic periodic Health restoration on the matching duration boundary. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridStatusEffectPeriodicHealingProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Periodic Healing", meta = (ClampMin = "0"))
+	int32 HealingPerStack = 0;
+
+	/** Semantic source policy used by outgoing healing modifiers. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Periodic Healing")
+	EGridCombatActionSourcePolicy SourcePolicy = EGridCombatActionSourcePolicy::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Periodic Healing")
+	EGridAttackScalingAttribute ScalingAttribute = EGridAttackScalingAttribute::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Periodic Healing", meta = (ClampMin = "0", ClampMax = "10"))
+	int32 AttributeModifierScale = 0;
+
+	bool IsEnabled() const
+	{
+		return HealingPerStack > 0;
+	}
+
+	bool IsValid() const
+	{
+		return HealingPerStack >= 0 && AttributeModifierScale >= 0 && AttributeModifierScale <= 10 &&
+			(IsEnabled() ? SourcePolicy != EGridCombatActionSourcePolicy::None : SourcePolicy == EGridCombatActionSourcePolicy::None) &&
+			((ScalingAttribute == EGridAttackScalingAttribute::None) == (AttributeModifierScale == 0));
+	}
+};
+
 /**
  * Generic MON16.5 combat restrictions. Names such as Stun, Silence and
  * Immobilize remain data-only conventions; production code consumes these
@@ -135,6 +167,10 @@ public:
      */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Periodic Damage")
 	FGridStatusEffectPeriodicDamageProfile PeriodicDamage;
+
+	/** Optional positive tick resolved before the matching duration decrement. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Periodic Healing")
+	FGridStatusEffectPeriodicHealingProfile PeriodicHealing;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Combat")
 	int32 InitiativeModifier = 0;

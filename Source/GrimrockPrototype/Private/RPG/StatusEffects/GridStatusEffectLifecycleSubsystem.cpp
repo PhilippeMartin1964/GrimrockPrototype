@@ -3,6 +3,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
+#include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridCombatStatusApplicationResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectInitiativeResolver.h"
@@ -25,6 +26,21 @@ namespace
 	{
 		return IsValid(State.DefinitionAsset) && !State.DefinitionAsset->DisplayName.IsEmpty() ? State.DefinitionAsset->DisplayName
 																							   : FText::FromName(State.EffectId);
+	}
+
+	int32 ResolveHealingAttributeValue(const FRPGAttributes& Attributes, EGridAttackScalingAttribute ScalingAttribute)
+	{
+		switch (ScalingAttribute)
+		{
+			case EGridAttackScalingAttribute::Strength: return Attributes.Strength;
+			case EGridAttackScalingAttribute::Dexterity: return Attributes.Dexterity;
+			case EGridAttackScalingAttribute::Constitution: return Attributes.Constitution;
+			case EGridAttackScalingAttribute::Intelligence: return Attributes.Intelligence;
+			case EGridAttackScalingAttribute::Wisdom: return Attributes.Wisdom;
+			case EGridAttackScalingAttribute::Charisma: return Attributes.Charisma;
+			case EGridAttackScalingAttribute::None:
+			default: return 0;
+		}
 	}
 }
 
@@ -523,6 +539,7 @@ void UGridStatusEffectLifecycleSubsystem::HandleCombatantStateChanged(FGridComba
 		FGridCharacterInventoryState& Character = Characters[Combatant.CharacterIndex];
 		const TArray<FGridStatusEffectRuntimeState> PreviousStates = Character.StatusEffects.ActiveEffects;
 		ApplyPeriodicDamageToCharacter(Character, Combatant.CharacterIndex, EGridStatusEffectDurationUnit::Turns);
+		ApplyPeriodicHealingToCharacter(Character, Combatant.CharacterIndex, EGridStatusEffectDurationUnit::Turns);
 		Character.StatusEffects.AdvanceDuration(EGridStatusEffectDurationUnit::Turns, AdvanceResult);
 		EmitExpiredFeedback(PreviousStates, AdvanceResult, Combatant.CharacterIndex, nullptr);
 		RefreshInitiativeModifierForPartyCharacter(Combatant.CharacterIndex);
@@ -543,6 +560,7 @@ void UGridStatusEffectLifecycleSubsystem::HandleCombatantStateChanged(FGridComba
 		{
 			const TArray<FGridStatusEffectRuntimeState> PreviousStates = Monster->StatusEffects.ActiveEffects;
 			ApplyPeriodicDamageToMonster(Monster, EGridStatusEffectDurationUnit::Turns);
+			ApplyPeriodicHealingToMonster(Monster, EGridStatusEffectDurationUnit::Turns);
 			Monster->StatusEffects.AdvanceDuration(EGridStatusEffectDurationUnit::Turns, AdvanceResult);
 			EmitExpiredFeedback(PreviousStates, AdvanceResult, INDEX_NONE, Monster);
 			RefreshInitiativeModifierForMonster(Monster);
@@ -738,6 +756,7 @@ void UGridStatusEffectLifecycleSubsystem::AdvanceAllRoundEffects(int32 BoundaryC
 				FGridCharacterInventoryState& Character = Characters[CharacterIndex];
 				const TArray<FGridStatusEffectRuntimeState> PreviousStates = Character.StatusEffects.ActiveEffects;
 				ApplyPeriodicDamageToCharacter(Character, CharacterIndex, EGridStatusEffectDurationUnit::Rounds);
+				ApplyPeriodicHealingToCharacter(Character, CharacterIndex, EGridStatusEffectDurationUnit::Rounds);
 				FGridStatusEffectAdvanceResult AdvanceResult;
 				Character.StatusEffects.AdvanceDuration(EGridStatusEffectDurationUnit::Rounds, AdvanceResult);
 				EmitExpiredFeedback(PreviousStates, AdvanceResult, CharacterIndex, nullptr);
@@ -765,6 +784,7 @@ void UGridStatusEffectLifecycleSubsystem::AdvanceAllRoundEffects(int32 BoundaryC
 			}
 			const TArray<FGridStatusEffectRuntimeState> PreviousStates = Monster->StatusEffects.ActiveEffects;
 			ApplyPeriodicDamageToMonster(Monster, EGridStatusEffectDurationUnit::Rounds);
+			ApplyPeriodicHealingToMonster(Monster, EGridStatusEffectDurationUnit::Rounds);
 			FGridStatusEffectAdvanceResult AdvanceResult;
 			Monster->StatusEffects.AdvanceDuration(EGridStatusEffectDurationUnit::Rounds, AdvanceResult);
 			EmitExpiredFeedback(PreviousStates, AdvanceResult, INDEX_NONE, Monster);
@@ -907,6 +927,108 @@ void UGridStatusEffectLifecycleSubsystem::ApplyPeriodicDamageToMonster(AGridMons
 			*GetNameSafe(Monster), *Resolution.EffectId.ToString(), *UEnum::GetValueAsString(Resolution.DamageType), Resolution.StackCount,
 			Resolution.RawDamage, Damage.DamageMultiplier, Damage.PhysicalArmorDamage, Damage.MagicalArmorDamage, Damage.HealthDamage,
 			Damage.TargetHealthBefore, Damage.TargetHealthAfter);
+	}
+}
+
+void UGridStatusEffectLifecycleSubsystem::ApplyPeriodicHealingToCharacter(
+	FGridCharacterInventoryState& Character, int32 CharacterIndex, EGridStatusEffectDurationUnit DurationUnit)
+{
+	UGridTurnManagerComponent* TurnManager = BoundTurnManager.Get();
+	UGridPartyInventoryComponent* Inventory =
+		IsValid(TurnManager) && IsValid(TurnManager->PartyPawn) ? TurnManager->PartyPawn->PartyInventoryComponent.Get() : nullptr;
+	if (!IsValid(Inventory) || Character.Resources.CurrentHealth <= 0)
+	{
+		return;
+	}
+
+	for (const FGridStatusEffectRuntimeState& State : Character.StatusEffects.ActiveEffects)
+	{
+		if (State.DurationUnit != DurationUnit || !IsValid(State.DefinitionAsset) || !State.DefinitionAsset->PeriodicHealing.IsEnabled())
+		{
+			continue;
+		}
+
+		const FGridStatusEffectPeriodicHealingProfile& Profile = State.DefinitionAsset->PeriodicHealing;
+		int64 RawHealing = static_cast<int64>(Profile.HealingPerStack) * static_cast<int64>(FMath::Max(1, State.StackCount));
+		FGridResolvedCombatModifiers SourceModifiers;
+		const int32 SourceIndex = Inventory->PartyInventoryState.ActiveCharacters.IndexOfByPredicate(
+			[&State](const FGridCharacterInventoryState& Candidate)
+			{
+				return Candidate.CharacterId == State.SourceId;
+			});
+		if (Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(SourceIndex))
+		{
+			const FGridCharacterInventoryState& SourceCharacter = Inventory->PartyInventoryState.ActiveCharacters[SourceIndex];
+			FGridInventoryCharacterSummary SourceSummary;
+			if (Inventory->GetCharacterSummary(SourceIndex, SourceSummary))
+			{
+				if (Profile.AttributeModifierScale > 0)
+				{
+					RawHealing += static_cast<int64>(URPGCharacterRulesLibrary::GetAttributeModifier(
+						ResolveHealingAttributeValue(SourceSummary.Attributes, Profile.ScalingAttribute))) *
+						static_cast<int64>(Profile.AttributeModifierScale);
+				}
+				TArray<FGridCombatModifierProfile> Profiles;
+				if (FGridCombatModifierResolver::CollectCharacterModifiers(SourceCharacter, Profiles))
+				{
+					FGridCombatModifierContext Context;
+					Context.ActionId = State.EffectId;
+					Context.SourceDefinitionId = State.EffectId;
+					Context.SourcePolicy = Profile.SourcePolicy;
+					Context.ActionType = EGridCombatActionType::Ability;
+					Context.TargetingPolicy = EGridCombatTargetingPolicy::Ally;
+					FGridCombatModifierResolver::Resolve(Profiles, Context, SourceModifiers);
+				}
+			}
+		}
+
+		const int32 Healing = FGridCombatModifierResolver::ApplyOutgoingHealingModifier(
+			static_cast<int32>(FMath::Clamp<int64>(RawHealing, 0, MAX_int32)), SourceModifiers);
+		if (Healing <= 0)
+		{
+			continue;
+		}
+		FGridInventoryCharacterSummary TargetSummary;
+		if (!Inventory->GetCharacterSummary(CharacterIndex, TargetSummary))
+		{
+			continue;
+		}
+		const int32 Before = Character.Resources.CurrentHealth;
+		Character.Resources.CurrentHealth =
+			FMath::Clamp(Before + Healing, 0, FMath::Max(0, TargetSummary.DerivedStats.MaxHealth));
+		if (Character.Resources.CurrentHealth != Before)
+		{
+			UE_LOG(LogGridStatusEffects, Log, TEXT("[RPG03.9.5A] PeriodicHealing Target=Party Character=%d Effect=%s Health=%d->%d"),
+				CharacterIndex, *State.EffectId.ToString(), Before, Character.Resources.CurrentHealth);
+		}
+	}
+}
+
+void UGridStatusEffectLifecycleSubsystem::ApplyPeriodicHealingToMonster(
+	AGridMonsterActor* Monster, EGridStatusEffectDurationUnit DurationUnit)
+{
+	if (!IsValid(Monster) || Monster->IsDead())
+	{
+		return;
+	}
+	for (const FGridStatusEffectRuntimeState& State : Monster->StatusEffects.ActiveEffects)
+	{
+		if (State.DurationUnit != DurationUnit || !IsValid(State.DefinitionAsset) || !State.DefinitionAsset->PeriodicHealing.IsEnabled())
+		{
+			continue;
+		}
+		const FGridStatusEffectPeriodicHealingProfile& Profile = State.DefinitionAsset->PeriodicHealing;
+		const int64 RawHealing =
+			static_cast<int64>(Profile.HealingPerStack) * static_cast<int64>(FMath::Max(1, State.StackCount));
+		const int32 Healing = FGridCombatModifierResolver::ApplyOutgoingHealingModifier(
+			static_cast<int32>(FMath::Clamp<int64>(RawHealing, 0, MAX_int32)), FGridResolvedCombatModifiers());
+		if (Healing > 0)
+		{
+			const int32 Before = Monster->CurrentHealth;
+			Monster->SetCurrentHealth(FMath::Min(Monster->GetMaxHealth(), Before + Healing));
+			UE_LOG(LogGridStatusEffects, Log, TEXT("[RPG03.9.5A] PeriodicHealing Target=Monster Monster=%s Effect=%s Health=%d->%d"),
+				*GetNameSafe(Monster), *State.EffectId.ToString(), Before, Monster->CurrentHealth);
+		}
 	}
 }
 

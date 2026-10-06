@@ -92,6 +92,8 @@ private:
 	void AdvanceAllRoundEffects(int32 BoundaryCount);
 	void ApplyPeriodicDamageToCharacter(FGridCharacterInventoryState& Character, int32 CharacterIndex, EGridStatusEffectDurationUnit DurationUnit);
 	void ApplyPeriodicDamageToMonster(AGridMonsterActor* Monster, EGridStatusEffectDurationUnit DurationUnit);
+	void ApplyPeriodicHealingToCharacter(FGridCharacterInventoryState& Character, int32 CharacterIndex, EGridStatusEffectDurationUnit DurationUnit);
+	void ApplyPeriodicHealingToMonster(AGridMonsterActor* Monster, EGridStatusEffectDurationUnit DurationUnit);
 	void RefreshInitiativeModifierForPartyCharacter(int32 CharacterIndex);
 	void RefreshInitiativeModifierForMonster(AGridMonsterActor* Monster);
 	bool HasLivingPartyCharacter() const;

@@ -80,6 +80,14 @@ bool UGridStatusEffectDefinitionAsset::ValidateDefinition(FString& OutError) con
 	{
 		Errors.Add(TEXT("Periodic damage requires a Turns or Rounds duration in MON16.3."));
 	}
+	if (!PeriodicHealing.IsValid())
+	{
+		Errors.Add(TEXT("PeriodicHealing contains an invalid positive-healing profile."));
+	}
+	if (PeriodicHealing.IsEnabled() && DurationUnit == EGridStatusEffectDurationUnit::Permanent)
+	{
+		Errors.Add(TEXT("Periodic healing requires a Turns or Rounds duration."));
+	}
 	if (Control.bSkipActivation && DurationUnit == EGridStatusEffectDurationUnit::Permanent)
 	{
 		Errors.Add(TEXT("SkipActivation requires a Turns or Rounds duration in MON16.5."));

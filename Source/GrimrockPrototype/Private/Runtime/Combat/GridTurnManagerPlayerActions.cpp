@@ -536,7 +536,8 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 
 	if (CombatActionOverride)
 	{
-		FGridCombatModifierResolver::ApplyDirectDamageSkillScaling(CombatActionOverride->Definition, Attacker.SkillRanks, Source);
+		FGridCombatModifierResolver::ApplyDirectDamageSkillScaling(
+			CombatActionOverride->Definition, Attacker.SkillRanks, Source, &CharacterSummary.Attributes);
 		FGridQuickItemResolver::ApplyDirectDamageSkillScaling(CombatActionOverride->Definition, Attacker.SkillRanks, Source);
 		if (bUsesEquippedWeaponAction)
 		{
@@ -786,7 +787,8 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		}
 		if (CombatActionOverride)
 		{
-			FGridCombatModifierResolver::ApplyDirectDamageSkillScaling(CombatActionOverride->Definition, Attacker.SkillRanks, RepeatSource);
+			FGridCombatModifierResolver::ApplyDirectDamageSkillScaling(
+				CombatActionOverride->Definition, Attacker.SkillRanks, RepeatSource, &CharacterSummary.Attributes);
 			FGridQuickItemResolver::ApplyDirectDamageSkillScaling(CombatActionOverride->Definition, Attacker.SkillRanks, RepeatSource);
 			if (bUsesEquippedWeaponAction)
 			{

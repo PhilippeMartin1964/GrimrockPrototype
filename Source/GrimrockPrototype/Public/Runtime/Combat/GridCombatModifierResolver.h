@@ -46,6 +46,7 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedCombatModifiers
 	int32 MinimumManaCost = 0;
 	int32 RangeCellsModifier = 0;
 	int32 PositiveEffectPercentModifier = 0;
+	int32 OutgoingHealingPercentModifier = 0;
 	int32 FriendlyDirectDamagePercentModifier = 0;
 	int32 SelfDirectDamagePercentModifier = 0;
 	int32 QuickItemSecondaryTargetCount = 0;
@@ -71,7 +72,7 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedCombatModifiers
 			CriticalChancePercentModifier == 0 && CriticalDamagePercentModifier == 0 && WeaponDamagePercentModifier == 0 &&
 			ResistanceModifiers.IsEmpty() && ActionPointCostModifier == 0 &&
 			ManaCostModifier == 0 && MinimumManaCost == 0 && RangeCellsModifier == 0 && PositiveEffectPercentModifier == 0 &&
-			FriendlyDirectDamagePercentModifier == 0 && SelfDirectDamagePercentModifier == 0 &&
+			OutgoingHealingPercentModifier == 0 && FriendlyDirectDamagePercentModifier == 0 && SelfDirectDamagePercentModifier == 0 &&
 			QuickItemSecondaryTargetCount == 0 && QuickItemSecondaryMagnitudePercent == 0 &&
 			QuickItemSecondaryDurationPercent == 0 && PhysicalArmorReferencePercentModifier == 0 &&
 			MagicalArmorReferencePercentModifier == 0 && PhysicalArmorRestorationPercentModifier == 0 &&
@@ -129,9 +130,17 @@ public:
 
 	static void ApplyOutgoingAttackModifiers(FGridAttackSourceStats& Source, const FGridResolvedCombatModifiers& Modifiers);
 
-	/** Adds generic action-owned Skill rank scaling to direct attack DamageBonus. */
+	/** Adds generic action-owned attribute-modifier / Skill-rank scaling to direct attack DamageBonus. */
 	static void ApplyDirectDamageSkillScaling(const FGridCombatActionDefinition& Definition, const TArray<FRPGSkillRank>& SkillRanks,
-		FGridAttackSourceStats& InOutSource);
+		FGridAttackSourceStats& InOutSource, const FRPGAttributes* Attributes = nullptr);
+
+	/** Applies only outgoing Health-healing scaling; Mana and Armor use their existing authorities. */
+	static int32 ApplyOutgoingHealingModifier(int32 RawHealing, const FGridResolvedCombatModifiers& Modifiers);
+
+	/** Resolves direct Health restoration including action scaling, target-health floor and outgoing healing modifier. */
+	static int32 ResolveDirectHealthRestore(const FGridCombatActionDefinition& Definition, const FGridCombatActionEffectProfile& EffectProfile,
+		const FRPGAttributes& SourceAttributes, const TArray<FRPGSkillRank>& SourceSkillRanks,
+		const FGridResolvedCombatModifiers& SourceModifiers, int32 TargetCurrentHealth, int32 TargetMaximumHealth);
 
 	/** Applies direct friendly-fire scaling; self damage composes the additional self-only modifier. */
 	static void ApplyFriendlyDirectDamageModifiers(

@@ -27,6 +27,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "Runtime/Monsters/GridMonsterPathfinder.h"
 #include "UObject/UObjectIterator.h"
@@ -749,8 +750,16 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 	{
 		return false;
 	}
+	TArray<FGridCombatModifierProfile> SourceProfiles;
+	FGridResolvedCombatModifiers SourceModifiers;
+	if (FGridCombatModifierResolver::CollectCharacterModifiers(Character, SourceProfiles))
+	{
+		FGridCombatModifierResolver::Resolve(
+			SourceProfiles, FGridCombatModifierResolver::MakeActionContext(Action.Definition, Action.SourceDefinitionId), SourceModifiers);
+	}
 	OutResult.HealthAfter = FMath::Clamp(
-		OutResult.HealthBefore + Action.Definition.EffectProfile.ResolveHealthRestore(Summary.DerivedStats.MaxHealth),
+		OutResult.HealthBefore + FGridCombatModifierResolver::ResolveDirectHealthRestore(Action.Definition, Action.Definition.EffectProfile,
+			Summary.Attributes, Character.SkillRanks, SourceModifiers, OutResult.HealthBefore, Summary.DerivedStats.MaxHealth),
 		0, FMath::Max(0, Summary.DerivedStats.MaxHealth));
 	OutResult.ManaAfter = FMath::Clamp(
 		OutResult.ManaBefore - Action.CurrentManaCost + Action.Definition.EffectProfile.ResolveManaRestore(Summary.DerivedStats.MaxMana),
@@ -1030,7 +1039,9 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 		BuildTargetPayloads(TargetOrdinal, TargetEffect, ArmorEffects, StatusApplications, StatusRemovals);
 
 		const int32 HealthAfter = FMath::Clamp(
-			TargetCharacter.Resources.CurrentHealth + TargetEffect.ResolveHealthRestore(TargetSummary.DerivedStats.MaxHealth),
+			TargetCharacter.Resources.CurrentHealth +
+				FGridCombatModifierResolver::ResolveDirectHealthRestore(Action.Definition, TargetEffect, SourceSummary.Attributes,
+					SourceCharacter.SkillRanks, SourceModifiers, TargetCharacter.Resources.CurrentHealth, TargetSummary.DerivedStats.MaxHealth),
 			0, FMath::Max(0, TargetSummary.DerivedStats.MaxHealth));
 		const int32 ManaAfter = FMath::Clamp(
 			TargetCharacter.Resources.CurrentMana + TargetEffect.ResolveManaRestore(TargetSummary.DerivedStats.MaxMana),
@@ -1136,7 +1147,9 @@ bool UGridTurnManagerComponent::RequestCharacterBatchPartyEffect(
 		BuildTargetPayloads(TargetOrdinal, TargetEffect, ArmorEffects, StatusApplications, StatusRemovals);
 
 		TargetCharacter.Resources.CurrentHealth = FMath::Clamp(
-			TargetCharacter.Resources.CurrentHealth + TargetEffect.ResolveHealthRestore(TargetSummary.DerivedStats.MaxHealth),
+			TargetCharacter.Resources.CurrentHealth +
+				FGridCombatModifierResolver::ResolveDirectHealthRestore(Action.Definition, TargetEffect, SourceSummary.Attributes,
+					SourceCharacter.SkillRanks, SourceModifiers, TargetCharacter.Resources.CurrentHealth, TargetSummary.DerivedStats.MaxHealth),
 			0, FMath::Max(0, TargetSummary.DerivedStats.MaxHealth));
 		TargetCharacter.Resources.CurrentMana = FMath::Clamp(
 			TargetCharacter.Resources.CurrentMana + TargetEffect.ResolveManaRestore(TargetSummary.DerivedStats.MaxMana),
@@ -1256,11 +1269,10 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionAttack(const FGridAva
 }
 
 bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
-	const FGridAvailableCombatAction& Action, const FIntPoint& TargetCell, FGridCombatActionTargetingPreview& OutPreview) const
+	const FGridAvailableCombatAction& Action, const FIntPoint& RequestedTargetCell, FGridCombatActionTargetingPreview& OutPreview) const
 {
 	OutPreview = FGridCombatActionTargetingPreview();
 	OutPreview.Action = Action;
-	OutPreview.TargetCell = TargetCell;
 
 	if (!IsValid(RuntimeActor) || !IsValid(PartyPawn))
 	{
@@ -1279,6 +1291,10 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 		OutPreview.InvalidReason = Action.DisabledReason.IsEmpty() ? MakeMON1286TargetingReason(TEXT("Cette action est indisponible.")) : Action.DisabledReason;
 		return false;
 	}
+
+	const FIntPoint PartyCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+	const FIntPoint TargetCell = Action.Definition.bAreaCenteredOnParty ? PartyCell : RequestedTargetCell;
+	OutPreview.TargetCell = TargetCell;
 
 	const bool bAttackResolution = Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
 		(Action.Definition.OffensiveProfile.IsValid() || Action.Definition.WeaponAttackProfile.bUseEquippedWeapon);
@@ -1311,7 +1327,6 @@ bool UGridTurnManagerComponent::BuildTargetingPreviewForAction(
 		return false;
 	}
 
-	const FIntPoint PartyCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
 	const int32 TargetDistance = FMath::Abs(TargetCell.X - PartyCell.X) + FMath::Abs(TargetCell.Y - PartyCell.Y);
 	if (TargetDistance > Action.Definition.RangeCells)
 	{
@@ -1626,7 +1641,8 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 			{
 				break;
 			}
-			FGridCombatModifierResolver::ApplyDirectDamageSkillScaling(Action.Definition, Character.SkillRanks, Source);
+			FGridCombatModifierResolver::ApplyDirectDamageSkillScaling(
+				Action.Definition, Character.SkillRanks, Source, &CharacterSummary.Attributes);
 			FGridQuickItemResolver::ApplyDirectDamageSkillScaling(Action.Definition, Character.SkillRanks, Source);
 			if (bUsesEquippedWeaponAction)
 			{
@@ -1753,6 +1769,37 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 							StatusLifecycle->ApplyCombatStatusApplicationsToMonster(
 								TargetMonster, ApplicableStatusProfiles, Character.CharacterId, Target, &AttackResult);
 						}
+					}
+				}
+			}
+			if (ResolutionIndex == 0 && AttackResult.bHit && !Action.Definition.MovementEffects.IsEmpty() && !TargetMonster->IsDead())
+			{
+				for (const FGridCombatMovementEffectProfile& MovementProfile : Action.Definition.MovementEffects)
+				{
+					if (MovementProfile.Subject != EGridCombatMovementSubject::TargetCombatant || !MovementProfile.bForced)
+					{
+						continue;
+					}
+					const bool bArmorGateSatisfied =
+						MovementProfile.ArmorGate == EGridCombatStatusArmorGate::None ||
+						(MovementProfile.ArmorGate == EGridCombatStatusArmorGate::PhysicalArmorDepleted &&
+							TargetMonster->CurrentPhysicalArmor <= 0) ||
+						(MovementProfile.ArmorGate == EGridCombatStatusArmorGate::MagicalArmorDepleted &&
+							TargetMonster->CurrentMagicalArmor <= 0);
+					if (!bArmorGateSatisfied)
+					{
+						continue;
+					}
+					UGridMonsterMovementComponent* Movement = TargetMonster->FindComponentByClass<UGridMonsterMovementComponent>();
+					if (!IsValid(Movement) || (!Movement->IsInitialized() && !Movement->InitializeMovement(RuntimeActor)))
+					{
+						continue;
+					}
+					const EGridEdge Direction = FGridCombatMovementResolver::ResolveDirection(
+						MovementProfile.Direction, TargetMonster->Facing, TargetMonster->CurrentCell, PartyCell);
+					if (Direction != EGridEdge::None)
+					{
+						Movement->TryMove(Direction);
 					}
 				}
 			}
@@ -2420,6 +2467,20 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 		Action->Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally &&
 		Action->Definition.SourcePolicy == EGridCombatActionSourcePolicy::Spell &&
 		Action->SourceDefinitionId == Action->Definition.ActionId;
+	if (Action->Definition.TargetingPolicy == EGridCombatTargetingPolicy::Area && Action->Definition.bAreaCenteredOnParty)
+	{
+		const FIntPoint PartyCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+		FGridCombatActionTargetingPreview Preview;
+		if (!BuildTargetingPreviewForAction(*Action, PartyCell, Preview))
+		{
+			OutResult.RejectReason = EGridCombatActionRequestRejectReason::InvalidTarget;
+			return false;
+		}
+		const bool bAccepted = RequestCharacterTargetedAttack(*Action, Preview, OutResult);
+		OutResult.bAccepted = bAccepted;
+		OutResult.RejectReason = bAccepted ? EGridCombatActionRequestRejectReason::None : EGridCombatActionRequestRejectReason::InvalidTarget;
+		return bAccepted;
+	}
 	if (IsMON1286ExplicitTargetingPolicy(Action->Definition.TargetingPolicy) ||
 		Action->Definition.TargetingPolicy == EGridCombatTargetingPolicy::AllyOrHostile ||
 		(Action->Definition.TargetingPolicy == EGridCombatTargetingPolicy::Ally && !bLegacySpellbookAlly))

@@ -1,5 +1,6 @@
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 
+#include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
@@ -367,6 +368,8 @@ void FGridCombatModifierResolver::Resolve(
 		OutModifiers.RangeCellsModifier = SaturatingAdd(OutModifiers.RangeCellsModifier, Profile.RangeCellsModifier);
 		OutModifiers.PositiveEffectPercentModifier =
 			SaturatingAdd(OutModifiers.PositiveEffectPercentModifier, Profile.PositiveEffectPercentModifier);
+		OutModifiers.OutgoingHealingPercentModifier =
+			SaturatingAdd(OutModifiers.OutgoingHealingPercentModifier, Profile.OutgoingHealingPercentModifier);
 		OutModifiers.FriendlyDirectDamagePercentModifier =
 			SaturatingAdd(OutModifiers.FriendlyDirectDamagePercentModifier, Profile.FriendlyDirectDamagePercentModifier);
 		OutModifiers.SelfDirectDamagePercentModifier =
@@ -504,26 +507,118 @@ void FGridCombatModifierResolver::ApplyOutgoingAttackModifiers(FGridAttackSource
 }
 
 void FGridCombatModifierResolver::ApplyDirectDamageSkillScaling(
-	const FGridCombatActionDefinition& Definition, const TArray<FRPGSkillRank>& SkillRanks, FGridAttackSourceStats& InOutSource)
+	const FGridCombatActionDefinition& Definition, const TArray<FRPGSkillRank>& SkillRanks, FGridAttackSourceStats& InOutSource,
+	const FRPGAttributes* Attributes)
 {
-	if (!Definition.DirectDamageScaling.IsValid() || Definition.DirectDamageScaling.SkillRankScale <= 0)
+	if (!Definition.DirectDamageScaling.IsValid() || !Definition.DirectDamageScaling.HasAnyScaling())
 	{
 		return;
 	}
 
-	const FRPGSkillRank* Rank = SkillRanks.FindByPredicate(
-		[&Definition](const FRPGSkillRank& Candidate)
+	int64 Bonus = 0;
+	if (Attributes && Definition.DirectDamageScaling.AttributeModifierScale > 0)
+	{
+		int32 AttributeValue = 0;
+		switch (Definition.DirectDamageScaling.ScalingAttribute)
 		{
-			return Candidate.SkillId == Definition.DirectDamageScaling.ScalingSkillId && Candidate.Rank > 0;
-		});
-	if (!Rank)
-	{
-		return;
+			case EGridAttackScalingAttribute::Strength: AttributeValue = Attributes->Strength; break;
+			case EGridAttackScalingAttribute::Dexterity: AttributeValue = Attributes->Dexterity; break;
+			case EGridAttackScalingAttribute::Constitution: AttributeValue = Attributes->Constitution; break;
+			case EGridAttackScalingAttribute::Intelligence: AttributeValue = Attributes->Intelligence; break;
+			case EGridAttackScalingAttribute::Wisdom: AttributeValue = Attributes->Wisdom; break;
+			case EGridAttackScalingAttribute::Charisma: AttributeValue = Attributes->Charisma; break;
+			case EGridAttackScalingAttribute::None:
+			default: break;
+		}
+		Bonus += static_cast<int64>(URPGCharacterRulesLibrary::GetAttributeModifier(AttributeValue)) *
+			static_cast<int64>(Definition.DirectDamageScaling.AttributeModifierScale);
 	}
 
-	const int64 Bonus = static_cast<int64>(Rank->Rank) * static_cast<int64>(Definition.DirectDamageScaling.SkillRankScale);
+	if (Definition.DirectDamageScaling.SkillRankScale > 0)
+	{
+		const FRPGSkillRank* Rank = SkillRanks.FindByPredicate(
+			[&Definition](const FRPGSkillRank& Candidate)
+			{
+				return Candidate.SkillId == Definition.DirectDamageScaling.ScalingSkillId && Candidate.Rank > 0;
+			});
+		if (Rank)
+		{
+			Bonus += static_cast<int64>(Rank->Rank) * static_cast<int64>(Definition.DirectDamageScaling.SkillRankScale);
+		}
+	}
+
 	InOutSource.DamageBonus = static_cast<int32>(FMath::Clamp<int64>(
 		static_cast<int64>(InOutSource.DamageBonus) + Bonus, static_cast<int64>(MIN_int32), static_cast<int64>(MAX_int32)));
+}
+
+int32 FGridCombatModifierResolver::ApplyOutgoingHealingModifier(int32 RawHealing, const FGridResolvedCombatModifiers& Modifiers)
+{
+	if (RawHealing <= 0)
+	{
+		return 0;
+	}
+	const int32 PercentModifier = Modifiers.OutgoingHealingPercentModifier;
+	const int32 SafePercent = FMath::Max(0, 100 + PercentModifier);
+	const int64 Scaled = static_cast<int64>(RawHealing) * static_cast<int64>(SafePercent) / 100;
+	int32 Resolved = static_cast<int32>(FMath::Clamp<int64>(Scaled, 0, MAX_int32));
+	if (PercentModifier > 0)
+	{
+		Resolved = FMath::Max(Resolved, RawHealing + 1);
+	}
+	return Resolved;
+}
+
+int32 FGridCombatModifierResolver::ResolveDirectHealthRestore(const FGridCombatActionDefinition& Definition,
+	const FGridCombatActionEffectProfile& EffectProfile, const FRPGAttributes& SourceAttributes,
+	const TArray<FRPGSkillRank>& SourceSkillRanks, const FGridResolvedCombatModifiers& SourceModifiers,
+	int32 TargetCurrentHealth, int32 TargetMaximumHealth)
+{
+	if (!Definition.HealingScaling.IsValid() || TargetMaximumHealth <= 0)
+	{
+		return 0;
+	}
+
+	int64 RawHealing = EffectProfile.ResolveHealthRestore(TargetMaximumHealth);
+	if (Definition.HealingScaling.AttributeModifierScale > 0)
+	{
+		int32 AttributeValue = 0;
+		switch (Definition.HealingScaling.ScalingAttribute)
+		{
+			case EGridAttackScalingAttribute::Strength: AttributeValue = SourceAttributes.Strength; break;
+			case EGridAttackScalingAttribute::Dexterity: AttributeValue = SourceAttributes.Dexterity; break;
+			case EGridAttackScalingAttribute::Constitution: AttributeValue = SourceAttributes.Constitution; break;
+			case EGridAttackScalingAttribute::Intelligence: AttributeValue = SourceAttributes.Intelligence; break;
+			case EGridAttackScalingAttribute::Wisdom: AttributeValue = SourceAttributes.Wisdom; break;
+			case EGridAttackScalingAttribute::Charisma: AttributeValue = SourceAttributes.Charisma; break;
+			case EGridAttackScalingAttribute::None:
+			default: break;
+		}
+		RawHealing += static_cast<int64>(URPGCharacterRulesLibrary::GetAttributeModifier(AttributeValue)) *
+			static_cast<int64>(Definition.HealingScaling.AttributeModifierScale);
+	}
+
+	if (Definition.HealingScaling.SkillRankScale > 0)
+	{
+		const FRPGSkillRank* Rank = SourceSkillRanks.FindByPredicate(
+			[&Definition](const FRPGSkillRank& Candidate)
+			{
+				return Candidate.SkillId == Definition.HealingScaling.ScalingSkillId && Candidate.Rank > 0;
+			});
+		if (Rank)
+		{
+			RawHealing += static_cast<int64>(Rank->Rank) * static_cast<int64>(Definition.HealingScaling.SkillRankScale);
+		}
+	}
+
+	if (Definition.HealingScaling.MinimumTargetHealthPercent > 0)
+	{
+		const int32 TargetFloor = FGridCombatActionEffectProfile::ResolveMaximumPercentAmount(
+			TargetMaximumHealth, Definition.HealingScaling.MinimumTargetHealthPercent);
+		RawHealing = FMath::Max<int64>(RawHealing, FMath::Max(0, TargetFloor - TargetCurrentHealth));
+	}
+
+	return ApplyOutgoingHealingModifier(
+		static_cast<int32>(FMath::Clamp<int64>(RawHealing, 0, MAX_int32)), SourceModifiers);
 }
 
 void FGridCombatModifierResolver::ApplyFriendlyDirectDamageModifiers(

@@ -603,6 +603,7 @@ void UGridTurnManagerComponent::EmitPlayerAttackReactionEvents(int32 CharacterIn
 	Event.SourceTags = SourceTags;
 	Event.bOffensiveAction = true;
 	Event.bWeaponAttack = bWeaponAttack;
+	Event.bAppliedDamage = Result.GetTotalAppliedDamage() > 0;
 	Event.bReactionGenerated = bReactionGenerated;
 	ProcessPartyCharacterReactionEvent(CharacterIndex, Event);
 
@@ -650,6 +651,7 @@ void UGridTurnManagerComponent::EmitMonsterAttackReactionEvents(
 	Event.ActionType = Attack.IsRangedAttack() ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
 	Event.DamageType = Result.DamageType;
 	Event.bOffensiveAction = true;
+	Event.bAppliedDamage = Result.GetTotalAppliedDamage() > 0;
 	ProcessPartyCharacterReactionEvent(TargetCharacterIndex, Event);
 
 	if (Result.GetTotalAppliedDamage() > 0)

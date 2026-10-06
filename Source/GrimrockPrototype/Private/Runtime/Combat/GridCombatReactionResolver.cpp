@@ -188,6 +188,10 @@ bool FGridCombatReactionResolver::Matches(const FGridCombatReactionProfile& Prof
 	{
 		return false;
 	}
+	if (Profile.bRequireAppliedDamage && !Event.bAppliedDamage)
+	{
+		return false;
+	}
 	for (const FName EffectId : Profile.RequiredTargetStatusEffectIdsFromOwner)
 	{
 		if (!Event.TargetStatusEffectIdsFromOwner.Contains(EffectId))
@@ -358,7 +362,8 @@ void FGridCombatReactionResolver::ResolveMatches(const TArray<FGridCombatReactio
 	OutMatches.Reset();
 	for (const FGridCombatReactionBinding& Binding : Bindings)
 	{
-		if (!Matches(Binding.Profile, Event) || !Ledger.CanTrigger(Binding.Profile, OwnerCombatantId, Event))
+		if ((Binding.Profile.bRequireOwnerAsEventSource && Event.SourceCombatantId != OwnerCombatantId) ||
+			!Matches(Binding.Profile, Event) || !Ledger.CanTrigger(Binding.Profile, OwnerCombatantId, Event))
 		{
 			continue;
 		}

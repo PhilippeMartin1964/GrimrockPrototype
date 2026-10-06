@@ -639,6 +639,14 @@ struct FGridCombatWeaponAttackProfile
 };
 
 UENUM(BlueprintType)
+enum class EGridCombatStatusArmorGate : uint8
+{
+	None UMETA(DisplayName = "None"),
+	PhysicalArmorDepleted UMETA(DisplayName = "Physical Armor Depleted"),
+	MagicalArmorDepleted UMETA(DisplayName = "Magical Armor Depleted")
+};
+
+UENUM(BlueprintType)
 enum class EGridCombatMovementSubject : uint8
 {
 	PartyGroup UMETA(DisplayName = "Party Group"),
@@ -681,6 +689,10 @@ struct FGridCombatMovementEffectProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Movement")
 	bool bForced = false;
 
+	/** Optional post-damage armor gate for TargetCombatant movement. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Movement")
+	EGridCombatStatusArmorGate ArmorGate = EGridCombatStatusArmorGate::None;
+
 	bool IsValid() const
 	{
 		if (DistanceCells < 1 || DistanceCells > 8 || MobilityActionPointCost < 0 || MobilityActionPointCost > 4)
@@ -689,7 +701,7 @@ struct FGridCombatMovementEffectProfile
 		}
 		if (Subject == EGridCombatMovementSubject::PartyGroup)
 		{
-			return Direction != EGridCombatMovementDirection::AwayFromSource;
+			return Direction != EGridCombatMovementDirection::AwayFromSource && ArmorGate == EGridCombatStatusArmorGate::None;
 		}
 		return MobilityActionPointCost == 0;
 	}
@@ -788,6 +800,14 @@ struct FGridCombatReactionProfile
 	/** Match only attack events resolved from an actual equipped-weapon action. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
 	bool bRequireWeaponAttack = false;
+
+	/** Match only events whose source combatant is the reaction owner. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
+	bool bRequireOwnerAsEventSource = false;
+
+	/** Match only events that actually applied damage after armor/resistance. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
+	bool bRequireAppliedDamage = false;
 
 	/** Every listed target status must belong to the reaction owner on the event target. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Reaction|Filter")
@@ -1015,6 +1035,10 @@ struct FGridCombatReactionEvent
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	bool bWeaponAttack = false;
 
+	/** True only when the resolved event applied at least one point of damage. */
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
+	bool bAppliedDamage = false;
+
 	/** Filled per reaction owner for target statuses whose SourceId equals that owner. */
 	UPROPERTY(BlueprintReadOnly, Transient, Category = "Combat|Reaction")
 	TArray<FName> TargetStatusEffectIdsFromOwner;
@@ -1107,14 +1131,6 @@ enum class EGridCombatStatusApplicationTrigger : uint8
 	None UMETA(DisplayName = "None"),
 	AfterResolution UMETA(DisplayName = "After Resolution"),
 	AfterSuccessfulHit UMETA(DisplayName = "After Successful Hit")
-};
-
-UENUM(BlueprintType)
-enum class EGridCombatStatusArmorGate : uint8
-{
-	None UMETA(DisplayName = "None"),
-	PhysicalArmorDepleted UMETA(DisplayName = "Physical Armor Depleted"),
-	MagicalArmorDepleted UMETA(DisplayName = "Magical Armor Depleted")
 };
 
 /**
@@ -1766,6 +1782,10 @@ struct FGridCombatModifierProfile
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Quick Item", meta = (ClampMin = "-100", ClampMax = "500"))
 	int32 PositiveEffectPercentModifier = 0;
 
+	/** Generic outgoing Health-healing modifier. Does not modify Mana or Armor restoration. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Healing", meta = (ClampMin = "-100", ClampMax = "500"))
+	int32 OutgoingHealingPercentModifier = 0;
+
 	/** Direct-damage modifier when an Area action hits an allied target. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Modifier|Area", meta = (ClampMin = "-100", ClampMax = "500"))
 	int32 FriendlyDirectDamagePercentModifier = 0;
@@ -1821,7 +1841,7 @@ struct FGridCombatModifierProfile
 		return AccuracyModifier != 0 || EvasionModifier != 0 || OutgoingDamagePercentModifier != 0 || IncomingDamagePercentModifier != 0 ||
 			CriticalChancePercentModifier != 0 || CriticalDamagePercentModifier != 0 || WeaponDamagePercentModifier != 0 ||
 			!ResistanceModifiers.IsEmpty() || ActionPointCostModifier != 0 ||
-			ManaCostModifier != 0 || MinimumManaCost != 0 || RangeCellsModifier != 0 || PositiveEffectPercentModifier != 0 ||
+			ManaCostModifier != 0 || MinimumManaCost != 0 || RangeCellsModifier != 0 || PositiveEffectPercentModifier != 0 || OutgoingHealingPercentModifier != 0 ||
 			FriendlyDirectDamagePercentModifier != 0 || SelfDirectDamagePercentModifier != 0 ||
 			QuickItemSecondaryTargetCount != 0 || QuickItemSecondaryMagnitudePercent != 0 ||
 			QuickItemSecondaryDurationPercent != 0 || PhysicalArmorReferencePercentModifier != 0 ||
@@ -1838,6 +1858,7 @@ struct FGridCombatModifierProfile
 			CriticalChancePercentModifier > 100 || CriticalDamagePercentModifier < -100 || CriticalDamagePercentModifier > 800 ||
 			WeaponDamagePercentModifier < -500 || WeaponDamagePercentModifier > 500 || ActionPointCostModifier < -6 || ActionPointCostModifier > 6 || ManaCostModifier < -100 || ManaCostModifier > 100 ||
 			MinimumManaCost < 0 || MinimumManaCost > 100 || RangeCellsModifier < -32 || RangeCellsModifier > 32 || PositiveEffectPercentModifier < -100 || PositiveEffectPercentModifier > 500 ||
+			OutgoingHealingPercentModifier < -100 || OutgoingHealingPercentModifier > 500 ||
 			FriendlyDirectDamagePercentModifier < -100 || FriendlyDirectDamagePercentModifier > 500 ||
 			SelfDirectDamagePercentModifier < -100 || SelfDirectDamagePercentModifier > 500 || QuickItemSecondaryTargetCount < 0 ||
 			QuickItemSecondaryTargetCount > 6 || QuickItemSecondaryMagnitudePercent < 0 || QuickItemSecondaryMagnitudePercent > 100 ||
@@ -2008,11 +2029,17 @@ struct FGridCombatQuickItemScalingProfile
 	}
 };
 
-/** Generic rank scaling added to direct attack damage after attribute scaling. */
+/** Generic attribute-modifier / Skill-rank scaling added to direct attack damage. */
 USTRUCT(BlueprintType)
 struct FGridCombatDirectDamageScalingProfile
 {
 	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Direct Damage Scaling")
+	EGridAttackScalingAttribute ScalingAttribute = EGridAttackScalingAttribute::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Direct Damage Scaling", meta = (ClampMin = "0", ClampMax = "10"))
+	int32 AttributeModifierScale = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Direct Damage Scaling")
 	FName ScalingSkillId = NAME_None;
@@ -2020,10 +2047,52 @@ struct FGridCombatDirectDamageScalingProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Direct Damage Scaling", meta = (ClampMin = "0", ClampMax = "10"))
 	int32 SkillRankScale = 0;
 
+	bool HasAnyScaling() const
+	{
+		return AttributeModifierScale > 0 || SkillRankScale > 0;
+	}
+
 	bool IsValid() const
 	{
-		return SkillRankScale >= 0 && SkillRankScale <= 10 &&
-			(SkillRankScale > 0 ? !ScalingSkillId.IsNone() : ScalingSkillId.IsNone());
+		return AttributeModifierScale >= 0 && AttributeModifierScale <= 10 && SkillRankScale >= 0 && SkillRankScale <= 10 &&
+			((ScalingAttribute == EGridAttackScalingAttribute::None) == (AttributeModifierScale == 0)) &&
+			((SkillRankScale > 0) ? !ScalingSkillId.IsNone() : ScalingSkillId.IsNone());
+	}
+};
+
+/** Generic direct Health restoration scaling shared by class actions and future authored effects. */
+USTRUCT(BlueprintType)
+struct FGridCombatHealingScalingProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Healing Scaling")
+	EGridAttackScalingAttribute ScalingAttribute = EGridAttackScalingAttribute::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Healing Scaling", meta = (ClampMin = "0", ClampMax = "10"))
+	int32 AttributeModifierScale = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Healing Scaling")
+	FName ScalingSkillId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Healing Scaling", meta = (ClampMin = "0", ClampMax = "10"))
+	int32 SkillRankScale = 0;
+
+	/** Minimum target Health percentage after the heal; zero disables this floor. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Healing Scaling", meta = (ClampMin = "0", ClampMax = "100"))
+	int32 MinimumTargetHealthPercent = 0;
+
+	bool HasAnyEffect() const
+	{
+		return AttributeModifierScale > 0 || SkillRankScale > 0 || MinimumTargetHealthPercent > 0;
+	}
+
+	bool IsValid() const
+	{
+		return AttributeModifierScale >= 0 && AttributeModifierScale <= 10 && SkillRankScale >= 0 && SkillRankScale <= 10 &&
+			MinimumTargetHealthPercent >= 0 && MinimumTargetHealthPercent <= 100 &&
+			((ScalingAttribute == EGridAttackScalingAttribute::None) == (AttributeModifierScale == 0)) &&
+			((SkillRankScale > 0) ? !ScalingSkillId.IsNone() : ScalingSkillId.IsNone());
 	}
 };
 
@@ -2353,6 +2422,10 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting", meta = (ClampMin = "0", ClampMax = "8"))
 	int32 AreaRadiusCells = 0;
 
+	/** Generic party-centered Area action: runtime ignores the requested cell and uses the party cell as center. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting")
+	bool bAreaCenteredOnParty = false;
+
 	/** C8 opt-in: Area attack direct damage/statuses may also affect living party members on covered party cells. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Targeting")
 	bool bAffectsAlliesInArea = false;
@@ -2378,11 +2451,15 @@ struct FGridCombatActionDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution")
 	FGridOffensiveEquipmentProfile OffensiveProfile;
 
-	/** Immediate self payload used by supported Effect actions. */
+	/** Immediate/direct positive payload used by supported Effect actions. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution")
 	FGridCombatActionEffectProfile EffectProfile;
 
-	/** Optional generic direct-damage skill scaling. */
+	/** Optional generic direct Health-healing scaling/floor. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution")
+	FGridCombatHealingScalingProfile HealingScaling;
+
+	/** Optional generic direct-damage scaling. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution")
 	FGridCombatDirectDamageScalingProfile DirectDamageScaling;
 
@@ -2446,6 +2523,7 @@ struct FGridCombatActionDefinition
 											  TargetingPolicy != EGridCombatTargetingPolicy::AllyOrHostile) ||
 			RangeCells > 0;
 		const bool bAreaRadiusValid = TargetingPolicy != EGridCombatTargetingPolicy::Area || AreaRadiusCells > 0;
+		const bool bAreaCenterValid = !bAreaCenteredOnParty || TargetingPolicy == EGridCombatTargetingPolicy::Area;
 		const bool bLineOfSightValid = !bRequiresLineOfSight ||
 			TargetingPolicy == EGridCombatTargetingPolicy::FirstAxialTarget ||
 			TargetingPolicy == EGridCombatTargetingPolicy::Hostile ||
@@ -2489,7 +2567,17 @@ struct FGridCombatActionDefinition
 		const bool bMovementEffectsValid = MovementEffects.ContainsByPredicate(
 			[this](const FGridCombatMovementEffectProfile& Profile)
 			{
-				return !Profile.IsValid() || ResolutionProfile != EGridCombatActionResolutionProfile::Effect;
+				if (!Profile.IsValid())
+				{
+					return true;
+				}
+				if (ResolutionProfile == EGridCombatActionResolutionProfile::Effect)
+				{
+					return false;
+				}
+				return ResolutionProfile != EGridCombatActionResolutionProfile::Attack ||
+					Profile.Subject != EGridCombatMovementSubject::TargetCombatant || !Profile.bForced || Profile.DistanceCells != 1 ||
+					(TargetingPolicy != EGridCombatTargetingPolicy::Cell && TargetingPolicy != EGridCombatTargetingPolicy::Area);
 			}) == false;
 		const bool bSelectedCellRelocationValid = !bRelocatePartyToTargetCell ||
 			(ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
@@ -2528,8 +2616,12 @@ struct FGridCombatActionDefinition
 				SeenTags.Add(Tag);
 			}
 		}
+		const bool bHealingScalingValid = HealingScaling.IsValid() &&
+			(!HealingScaling.HasAnyEffect() ||
+				(ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
+					(EffectProfile.RestoreHealth > 0 || EffectProfile.RestoreHealthMaximumPercent > 0)));
 		const bool bDirectDamageScalingValid =
-			DirectDamageScaling.IsValid() && (DirectDamageScaling.SkillRankScale == 0 || ResolutionProfile == EGridCombatActionResolutionProfile::Attack);
+			DirectDamageScaling.IsValid() && (!DirectDamageScaling.HasAnyScaling() || ResolutionProfile == EGridCombatActionResolutionProfile::Attack);
 		const bool bQuickItemScalingValid =
 			QuickItemScaling.IsValid() && (!QuickItemScaling.HasAnyScaling() || SourcePolicy == EGridCombatActionSourcePolicy::QuickItem);
 		const bool bChainValid = ChainJumpRangeCells >= 0 && ChainJumpRangeCells <= 8 &&
@@ -2557,11 +2649,11 @@ struct FGridCombatActionDefinition
 			CooldownRounds >= 0 && MaximumResolvedTargets >= 0 && MaximumResolvedTargets <= 16 && ResolutionCount >= 1 && ResolutionCount <= 8 &&
 			SubsequentResolutionAccuracyModifier >= -20 && SubsequentResolutionAccuracyModifier <= 20 &&
 			(ResolutionCount > 1 || SubsequentResolutionAccuracyModifier == 0) && TargetFilter.IsValid() && bWeaponAttackProfileValid &&
-			bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bLineOfSightValid && bFriendlyAreaValid &&
+			bAttackProfileValid && bAttackRangeValid && bTargetingRangeValid && bAreaRadiusValid && bAreaCenterValid && bLineOfSightValid && bFriendlyAreaValid &&
 			bStatusApplicationsValid &&
 			bStatusRemovalsValid && bArmorEffectsValid && bMovementEffectsValid && bSelectedCellRelocationValid &&
 			bTrapEffectValid && bSkillCheckValid && bSurfaceEffectsValid && bSurfaceConversionsValid &&
-			bSourceTagsValid && bDirectDamageScalingValid && bQuickItemScalingValid && bChainValid && bOwnerVariantsValid &&
+			bSourceTagsValid && bHealingScalingValid && bDirectDamageScalingValid && bQuickItemScalingValid && bChainValid && bOwnerVariantsValid &&
 			(ResolutionCount == 1 || ResolutionProfile == EGridCombatActionResolutionProfile::Attack);
 	}
 };
