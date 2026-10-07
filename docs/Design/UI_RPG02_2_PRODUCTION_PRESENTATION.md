@@ -2,7 +2,7 @@
 
 Date : **7 octobre 2026**  
 Parent : **UI-RPG02 — Visual Language & Presentation Data**  
-État : **SOURCE/AUTHORING PRÊT — matérialisation locale du DataAsset en attente**
+État : **VALIDÉ — catalogue matérialisé, `ProductionPresentation` 3/3 et `PresentationData` 5/5**
 
 ## Objectif
 
@@ -56,3 +56,17 @@ UI-RPG03.1 — REAL WBP_GridSkills Talent Tree shell
 ```
 
 Ce sera le premier ticket qui remplace visiblement l'écran texte provisoire actuel.
+
+## Clôture
+
+```text
+UI-RPG02.2A : 572caa5485735e7c4535a402a8bdbe3295f20ebe
+UI-RPG02.2B : 4780d4a640c314ab493efb2c404946e60ec9ec93
+
+ProductionPresentation : 3/3
+PresentationData       : 5/5
+Warnings Automation    : 0
+Failures                : 0
+```
+
+Le DataAsset `DA_RPGTalentPresentation` est désormais versionné et UI-RPG03 peut construire le vrai écran UMG.
