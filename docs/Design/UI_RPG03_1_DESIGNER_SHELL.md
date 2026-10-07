@@ -1297,3 +1297,212 @@ UI-RPG03.3
     suppression de la projection plate legacy
     polish du vrai écran
 ```
+
+
+# 26. CORRECTIF CRITIQUE — ALIGNEMENT DES 15 NŒUDS SUR LA SPINE
+
+La première validation PIE a montré un point que la spécification initiale ne détaillait pas assez : les réglages **des slots** des enfants du `VerticalBox`.
+
+Symptôme :
+
+```text
+[I]
+[II]          │
+[III]         │
+[IV]          │
+[V]           │
+```
+
+au lieu de :
+
+```text
+      [I]
+       │
+      [II]
+       │
+     [III]
+       │
+      [IV]
+       │
+      [V]
+```
+
+Le correctif doit être appliqué de manière identique à Left / Center / Right.
+
+## 26.1 Overlay_Branch*Tree dans son VerticalBox
+
+Sélectionner :
+
+```text
+Overlay_BranchLeftTree
+Overlay_BranchCenterTree
+Overlay_BranchRightTree
+```
+
+Dans **Slot (Vertical Box Slot)** :
+
+```text
+Size                  : Fill
+Fill Weight           : 1.0
+Horizontal Alignment  : Fill
+Vertical Alignment    : Fill
+Padding               : 0
+```
+
+Sans ce `Fill`, la zone de nœuds ne reçoit que sa Desired Size et les spacers ne peuvent pas répartir les tiers sur la hauteur.
+
+## 26.2 VB_Branch*Nodes dans son Overlay
+
+Sélectionner :
+
+```text
+VB_BranchLeftNodes
+VB_BranchCenterNodes
+VB_BranchRightNodes
+```
+
+Dans **Slot (Overlay Slot)** :
+
+```text
+Horizontal Alignment : Fill
+Vertical Alignment   : Fill
+Padding              : 0
+```
+
+Le `VerticalBox` doit prendre toute la largeur disponible. Le centrage est ensuite réalisé sur chacun de ses enfants SizeBox.
+
+## 26.3 Chacun des 15 SizeBox de nœud
+
+Pour chaque :
+
+```text
+SB_Left_Tier1 .. SB_Left_Tier5
+SB_Center_Tier1 .. SB_Center_Tier5
+SB_Right_Tier1 .. SB_Right_Tier5
+```
+
+conserver :
+
+```text
+WidthOverride  : 68
+HeightOverride : 68
+```
+
+Puis, dans **Slot (Vertical Box Slot)** :
+
+```text
+Size                  : Auto
+Horizontal Alignment  : Center
+Vertical Alignment    : Center
+Padding               : 0
+```
+
+C'est ce réglage `Horizontal Alignment = Center` qui place effectivement le nœud au-dessus de la spine.
+
+## 26.4 Chacun des 12 Spacer entre tiers
+
+Pour chaque :
+
+```text
+Spacer_Left_12 / 23 / 34 / 45
+Spacer_Center_12 / 23 / 34 / 45
+Spacer_Right_12 / 23 / 34 / 45
+```
+
+la propriété `Size` du widget Spacer n'est **pas** le réglage important.
+
+Dans **Slot (Vertical Box Slot)** régler :
+
+```text
+Size                  : Fill
+Fill Weight           : 1.0
+Horizontal Alignment  : Fill
+Vertical Alignment    : Fill
+Padding               : 0
+```
+
+Les quatre spacers `Fill 1.0` absorbent alors uniformément l'espace libre et répartissent les cinq nœuds sur toute la hauteur.
+
+## 26.5 Spine
+
+Pour :
+
+```text
+Border_BranchLeftSpine
+Border_BranchCenterSpine
+Border_BranchRightSpine
+```
+
+dans **Slot (Overlay Slot)** :
+
+```text
+Horizontal Alignment : Center
+Vertical Alignment   : Fill
+Padding Top          : 34
+Padding Bottom       : 34
+```
+
+Le Border lui-même :
+
+```text
+Desired Width / Min Desired Width : 3
+Brush Color                         : gris bronze sombre provisoire
+```
+
+Éviter le blanc pur : la ligne ne doit pas devenir l'élément le plus lumineux de l'écran.
+
+## 26.6 Ordre des enfants dans Overlay_Branch*Tree
+
+L'ordre doit impérativement être :
+
+```text
+Overlay_BranchLeftTree
+├── Border_BranchLeftSpine   <- premier : arrière-plan
+└── VB_BranchLeftNodes       <- second : devant la ligne
+```
+
+Même règle pour Center et Right.
+
+Ainsi, les nœuds recouvrent visuellement la spine.
+
+## 26.7 Résultat attendu après correction
+
+Chaque colonne doit ressembler à :
+
+```text
+               GARDIEN
+
+                 [I]
+                  │
+                  │
+                [II]
+                  │
+                  │
+               [III]
+                  │
+                  │
+                [IV]
+                  │
+                  │
+                 [V]
+```
+
+et non à une pile de boutons sur le bord gauche.
+
+---
+
+# 27. VALIDATION VISUELLE INTERMÉDIAIRE
+
+Avant tout commit du WBP, vérifier en PIE :
+
+```text
+[ ] les 15 SizeBox sont centrés horizontalement
+[ ] chaque nœud recouvre la spine
+[ ] les 5 nœuds occupent toute la hauteur de la branche
+[ ] les quatre intervalles sont réguliers
+[ ] la spine reste derrière les nœuds
+[ ] aucune ligne blanche dominante
+[ ] les trois colonnes ont la même géométrie
+```
+
+Le header et les titres de branches déjà alimentés par le C++ ne doivent pas être modifiés pour cette correction.
