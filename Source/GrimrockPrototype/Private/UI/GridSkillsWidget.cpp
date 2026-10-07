@@ -457,10 +457,12 @@ void UGridSkillsWidget::HandleTalentNodeClicked(FName TalentNodeId)
 void UGridSkillsWidget::HandleTalentAcquireConfirmed(FName ChoiceId)
 {
 	FText Feedback;
-	CommitConfirmedTalentChoice(ChoiceId, Feedback);
+	const bool bCommitted = CommitConfirmedTalentChoice(ChoiceId, Feedback);
 	if (Detail_Talent)
 	{
-		Detail_Talent->SetAcquisitionFeedback(Feedback);
+		// UI-RPG05: the toast is the sole success feedback surface.
+		// Keep inline detail feedback only for a rejected transaction.
+		Detail_Talent->SetAcquisitionFeedback(bCommitted ? FText::GetEmpty() : Feedback);
 	}
 }
 
