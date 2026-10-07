@@ -7,6 +7,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridTalentBranchWidget.h"
+#include "UI/GridTalentDetailWidget.h"
 
 
 namespace GridSkillsWidgetPrivate
@@ -146,6 +147,7 @@ void UGridSkillsWidget::RefreshSkills()
 	}
 
 	ApplyDesignerPresentation();
+	ApplyTalentDetailPresentation();
 	OnSkillsRefreshed.Broadcast();
 }
 
@@ -310,6 +312,36 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 	}
 }
 
+void UGridSkillsWidget::ApplyTalentDetailPresentation()
+{
+	if (!Detail_Talent)
+	{
+		return;
+	}
+
+	FGridTalentNodeView SelectedNode;
+	if (!GetSelectedTalentNode(SelectedNode))
+	{
+		Detail_Talent->ClearTalentDetail();
+		return;
+	}
+
+	FRPGClassPresentationDefinition ClassPresentation;
+	if (!GetCurrentClassPresentation(ClassPresentation))
+	{
+		Detail_Talent->ClearTalentDetail();
+		return;
+	}
+
+	const FRPGTalentBranchPresentationDefinition* BranchPresentation =
+		ClassPresentation.FindBranch(SelectedNode.TalentBranchId);
+	if (!BranchPresentation ||
+		!Detail_Talent->InitializeTalentDetail(SelectedNode, *BranchPresentation))
+	{
+		Detail_Talent->ClearTalentDetail();
+	}
+}
+
 void UGridSkillsWidget::ShowSkillsTab()
 {
 	Switcher_SkillsTalents->SetActiveWidgetIndex(0);
@@ -332,7 +364,10 @@ void UGridSkillsWidget::HandleTalentsTabClicked()
 
 void UGridSkillsWidget::HandleTalentNodeClicked(FName TalentNodeId)
 {
-	SelectTalentNode(TalentNodeId);
+	if (SelectTalentNode(TalentNodeId))
+	{
+		ApplyTalentDetailPresentation();
+	}
 }
 
 int32 UGridSkillsWidget::GetSkillEntryCount() const

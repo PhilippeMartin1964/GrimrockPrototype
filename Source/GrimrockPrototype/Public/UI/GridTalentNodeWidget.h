@@ -54,6 +54,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Node")
 	EGridTalentNodeState GetTalentNodeState() const { return NodeView.State; }
 
+	/** Shared presentation resolver used by both node and detail widgets. */
+	static bool ResolvePresentationText(
+		const FGridTalentNodeView& InNodeView,
+		const FRPGTalentBranchPresentationDefinition& InBranchPresentation,
+		FText& OutDisplayName,
+		FText& OutDescription);
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -62,7 +69,6 @@ private:
 	UFUNCTION()
 	void HandleNodeClicked();
 
-	bool ResolveConceptualText(const FRPGTalentBranchPresentationDefinition& BranchPresentation);
 	void ApplyNodePresentation();
 
 	UPROPERTY(meta = (BindWidgetOptional))

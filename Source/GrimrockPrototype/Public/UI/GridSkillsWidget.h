@@ -10,6 +10,7 @@ class AGrimrockPartyPawn;
 class UButton;
 class UGridPartyInventoryComponent;
 class UGridTalentBranchWidget;
+class UGridTalentDetailWidget;
 class UTextBlock;
 class UWidgetSwitcher;
 
@@ -115,6 +116,7 @@ private:
 	void BindDesignerShell();
 	void UnbindDesignerShell();
 	void ApplyDesignerPresentation();
+	void ApplyTalentDetailPresentation();
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_CharacterName;
@@ -142,6 +144,10 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UGridTalentBranchWidget> Branch_Right;
+
+	/** UI-RPG04.2A: optional until WBP_RPGTalentDetail is materialized in Designer. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UGridTalentDetailWidget> Detail_Talent;
 
 	bool bRefreshInProgress = false;
 };

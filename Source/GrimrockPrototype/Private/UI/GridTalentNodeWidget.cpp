@@ -100,7 +100,7 @@ bool UGridTalentNodeWidget::InitializeTalentNode(
 	NodeView = InNodeView;
 	BranchAccentColor = InBranchPresentation.AccentColor;
 
-	if (!ResolveConceptualText(InBranchPresentation))
+	if (!ResolvePresentationText(NodeView, InBranchPresentation, ResolvedDisplayName, ResolvedDescription))
 	{
 		ClearTalentNode();
 		return false;
@@ -127,26 +127,38 @@ void UGridTalentNodeWidget::ClearTalentNode()
 	SetToolTipText(FText::GetEmpty());
 }
 
-bool UGridTalentNodeWidget::ResolveConceptualText(const FRPGTalentBranchPresentationDefinition& BranchPresentation)
+bool UGridTalentNodeWidget::ResolvePresentationText(
+	const FGridTalentNodeView& InNodeView,
+	const FRPGTalentBranchPresentationDefinition& InBranchPresentation,
+	FText& OutDisplayName,
+	FText& OutDescription)
 {
-	const FRPGTalentNodePresentationDefinition* Override =
-		BranchPresentation.FindNodeOverride(NodeView.TalentNodeId);
+	OutDisplayName = FText::GetEmpty();
+	OutDescription = FText::GetEmpty();
 
-	if (Override)
-	{
-		ResolvedDisplayName = Override->DisplayName;
-		ResolvedDescription = Override->Description;
-		return !ResolvedDisplayName.IsEmpty();
-	}
-
-	if (NodeView.Variants.Num() != 1)
+	if (InNodeView.TalentNodeId.IsNone() ||
+		InNodeView.TalentBranchId.IsNone() ||
+		InNodeView.TalentBranchId != InBranchPresentation.TalentBranchId)
 	{
 		return false;
 	}
 
-	ResolvedDisplayName = NodeView.Variants[0].DisplayName;
-	ResolvedDescription = NodeView.Variants[0].Description;
-	return !ResolvedDisplayName.IsEmpty();
+	if (const FRPGTalentNodePresentationDefinition* Override =
+			InBranchPresentation.FindNodeOverride(InNodeView.TalentNodeId))
+	{
+		OutDisplayName = Override->DisplayName;
+		OutDescription = Override->Description;
+		return !OutDisplayName.IsEmpty();
+	}
+
+	if (InNodeView.Variants.Num() != 1)
+	{
+		return false;
+	}
+
+	OutDisplayName = InNodeView.Variants[0].DisplayName;
+	OutDescription = InNodeView.Variants[0].Description;
+	return !OutDisplayName.IsEmpty();
 }
 
 void UGridTalentNodeWidget::ApplyNodePresentation()
