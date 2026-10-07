@@ -365,6 +365,7 @@ bool FGridSkillsPageService::TryBuildCharacterView(UGridPartyInventoryComponent*
 		SkillView.GoverningAttribute = Definition->GoverningAttribute;
 		SkillView.Rank = Rank;
 		SkillView.MaxRank = Definition->MaxRank;
+		SkillView.bAllowUntrainedChecks = Definition->bAllowUntrainedChecks;
 		SkillView.bTrained = Rank > 0;
 		Candidate.Skills.Add(MoveTemp(SkillView));
 	}

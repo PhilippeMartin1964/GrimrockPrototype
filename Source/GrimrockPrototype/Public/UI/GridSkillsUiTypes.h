@@ -28,6 +28,10 @@ struct GRIMROCKPROTOTYPE_API FGridSkillEntryView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	int32 MaxRank = 0;
 
+	/** True when this Skill may be checked at rank zero. This is definition data, not progression state. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
+	bool bAllowUntrainedChecks = true;
+
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	bool bTrained = false;
 };

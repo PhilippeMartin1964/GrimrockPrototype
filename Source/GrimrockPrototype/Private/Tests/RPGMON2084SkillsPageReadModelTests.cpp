@@ -304,4 +304,49 @@ bool FRPGMON2084MissingRankDefinitionAtomicTest::RunTest(const FString& Paramete
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG061TrainingPolicyProjectionTest, "Grimrock.UI.RPG06.Skills.ReadModelTrainingPolicy",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPG061TrainingPolicyProjectionTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	using namespace RPGMON2084SkillsPageReadModelTests;
+	FRuntimeStateGuard Guard;
+	URPGClassAsset* ClassDefinition = nullptr;
+	UGridPartyInventoryComponent* Party = MakeParty(ClassDefinition);
+	URPGSkillAsset* Lockpick = MakeSkill(Party, TEXT("Skill_Lockpicking"), TEXT("Crochetage"));
+	URPGSkillAsset* Perception = MakeSkill(Party, TEXT("Skill_Perception"), TEXT("Perception"));
+	Lockpick->bAllowUntrainedChecks = false;
+	Perception->bAllowUntrainedChecks = true;
+
+	FGridSkillsPageView View;
+	TestTrue(TEXT("Skills view builds"), FGridSkillsPageService::TryBuildCharacterView(Party, 0, { Lockpick, Perception }, View));
+
+	const FGridSkillEntryView* LockpickView = View.Skills.FindByPredicate(
+		[](const FGridSkillEntryView& Entry)
+		{
+			return Entry.SkillId == TEXT("Skill_Lockpicking");
+		});
+	const FGridSkillEntryView* PerceptionView = View.Skills.FindByPredicate(
+		[](const FGridSkillEntryView& Entry)
+		{
+			return Entry.SkillId == TEXT("Skill_Perception");
+		});
+
+	TestNotNull(TEXT("Lockpicking projection exists"), LockpickView);
+	TestNotNull(TEXT("Perception projection exists"), PerceptionView);
+	if (LockpickView)
+	{
+		TestFalse(TEXT("Lockpicking exposes trained-only policy"), LockpickView->bAllowUntrainedChecks);
+		TestEqual(TEXT("Training policy does not invent rank"), LockpickView->Rank, 0);
+	}
+	if (PerceptionView)
+	{
+		TestTrue(TEXT("Perception exposes untrained-check policy"), PerceptionView->bAllowUntrainedChecks);
+		TestEqual(TEXT("Untrained Perception remains rank zero"), PerceptionView->Rank, 0);
+	}
+	return true;
+}
+
 #endif
