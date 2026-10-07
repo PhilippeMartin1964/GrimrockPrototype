@@ -2,7 +2,7 @@
 
 Date : **7 octobre 2026**  
 Parent : **UI-RPG06 — Unification Compétences + Talents UX**  
-État : **SOURCE IMPLÉMENTÉE — validation locale requise**
+État : **VALIDÉ / CLOS — build Editor OK ; RPG06 Skills 7/7 ; MON20.8 8/8 ; RPG04 12/12 ; RPG05 5/5 ; PIE final validé**
 
 ## Objectif
 
@@ -99,7 +99,13 @@ acquisition simple et variantes toujours fonctionnelles
 toast progression toujours fonctionnel
 ```
 
-## Suite
+## Clôture
 
-UI-RPG06.3B est uniquement une tranche de régression/clôture documentaire si
-les validations ci-dessus sont vertes.
+Les validations Automation et le PIE final sont verts. UI-RPG06.3B clôt donc
+le chantier UI-RPG06 sans nouvelle modification de code.
+
+Référence :
+
+```text
+docs/Design/UI_RPG06_3B_FINAL_CLOSURE.md
+```

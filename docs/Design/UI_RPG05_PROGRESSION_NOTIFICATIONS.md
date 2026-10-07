@@ -1,7 +1,7 @@
 # UI-RPG05 — Notifications et feedback de progression
 
 Date : **7 octobre 2026**  
-État : **SOURCE PRÊTE — validation locale UE5.5.4 requise**
+État : **VALIDÉ / CLOS — Grimrock.UI.RPG05 5/5, 0 warning, 0 échec ; toast de progression revalidé en PIE**
 
 ## Objectif
 

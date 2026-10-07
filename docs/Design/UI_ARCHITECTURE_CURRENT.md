@@ -48,7 +48,7 @@ Viewport
 
 Les deux fenêtres dérivent de la même implémentation native `UGridInventoryWidget` via deux classes sémantiques fines. Elles partagent le même composant inventaire et se resynchronisent via `OnPartyInventoryChanged`.
 
-`WBP_GrimrockMenu` reste temporairement utilisé pour Skills/Spellbook/Journal/Map/Recipes/Codex. Depuis UI-CLEAN01, il ne possède plus du tout `Page_Inventory`, même comme fallback.
+`WBP_GrimrockMenu` reste temporairement utilisé uniquement pour Spellbook/Journal/Recipes/Codex. Skills et Map sont désormais des surfaces autonomes. Depuis UI-CLEAN01, il ne possède plus du tout `Page_Inventory`, même comme fallback.
 
 Référence : `docs/Design/UI_SPLIT01_INDEPENDENT_INVENTORY_WINDOWS.md`.
 
@@ -295,10 +295,11 @@ Référence : `docs/Design/UI_INV02_PARTY_DRAG_TRANSFER.md`.
 
 ```text
 Inventaire      fonctionnel
-Compétences     fonctionnel MON20
+Compétences     autonome ; UI-RPG06 clos
+Talents         autonome ; UI-RPG04/05 clos
 Sorts           fonctionnel MON18
 Journal         shell présent ; read model prévu MON21.5
-Carte           shell présent ; exploration prévue MON21.6
+Carte           autonome via WBP_GridMap
 Recettes        shell présent ; fonctionnalité future
 Codex           shell présent ; discovery prévu MON21.7
 ```
@@ -370,21 +371,41 @@ Les six `DA_Class_*` de production sont matérialisés. Les invariants validés 
 
 `ChoiceId` reste l'identité gameplay/persistante. `TalentNodeId` et `TalentBranchId` sont des métadonnées structurelles destinées à la projection UI. La disponibilité reste calculée par `FRPGClassProgressionService`.
 
-Validation close :
+UI-RPG02 à UI-RPG05 ont ensuite livré la présentation, les widgets réutilisables, le détail, les acquisitions simple/variantes et les notifications de progression.
+
+UI-RPG06 clôt l'unification Compétences + Talents :
 
 ```text
-Grimrock.UI.RPG01.ReadModel          5/5
-Grimrock.UI.RPG01.ProductionAssets  5/5
-Grimrock.RPG.RPG03                 193/193
+25 URPGSkillAsset de production
+    -> FGridSkillsPageService
+    -> FGridSkillEntryView[]
+    -> UGridSkillsWidget
+    -> WBP_RPGSkillEntry[]
+
+Talents
+    -> FGridTalentTreeView
+    -> WBP_RPGTalentBranch
+    -> WBP_RPGTalentNode
+    -> WBP_RPGTalentDetail
 ```
 
-La prochaine tranche est **UI-RPG02 — Presentation Data** : identité visuelle des classes et branches, ordre artistique, icônes et références graphiques, toujours sans logique gameplay dans UMG.
+Validation finale :
+
+```text
+Grimrock.UI.RPG06.Skills        7/7
+Grimrock.MON20.8.SkillsPage     8/8
+Grimrock.UI.RPG04              12/12
+Grimrock.UI.RPG05               5/5
+PIE Skills + Talents           validé
+```
+
+La projection Talent plate historique reste conservée par prudence tant qu'un audit de références Blueprint binaires n'autorise pas sa suppression.
 
 Références :
 
 - `docs/Design/RPG03_SKILL_TREE_SYNTHESIS.md`
-- `docs/Design/UI_RPG01_VISUAL_SYNTHESIS.md`
 - `docs/Design/UI_RPG_TALENT_TREE_ARCHITECTURE.md`
+- `docs/Design/UI_RPG06_3B_FINAL_CLOSURE.md`
 
 ## Hotbar
 
@@ -400,7 +421,7 @@ SourceDefinitionId = SpellId
 
 ```text
 UGrimrockMenuWidget
-    shell temporaire Skills / Spellbook / Journal / Map / Recipes / Codex
+    shell temporaire Spellbook / Journal / Recipes / Codex
 
 UGridInventoryWidget
     mécanique/projection commune réellement partagée

@@ -1,7 +1,7 @@
 # UI-RPG03.4 — Standalone Skills / Talents Window
 
 Date : **7 octobre 2026**  
-État : **03.4A SOURCE PRÊTE — validation locale puis migration UMG manuelle**
+État : **VALIDÉ / CLOS — WBP_GridSkills autonome ; navigation et commutation Compétences/Talents revalidées en PIE par UI-RPG06.3B**
 
 ## Décision
 

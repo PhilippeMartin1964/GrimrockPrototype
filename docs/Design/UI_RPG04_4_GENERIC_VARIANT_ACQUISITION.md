@@ -1,7 +1,7 @@
 # UI-RPG04.4 — Acquisition générique des talents à variantes
 
 Date : **7 octobre 2026**  
-État : **SOURCE PRÊTE — validation locale UE5.5.4 + matérialisation UMG requises**
+État : **VALIDÉ / CLOS — acquisition générique des variantes matérialisée ; Grimrock.UI.RPG04 12/12 + PIE final validés**
 
 ## Objectif
 

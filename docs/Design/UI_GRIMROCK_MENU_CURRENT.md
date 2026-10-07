@@ -1,7 +1,7 @@
 # GrimrockMenu — Current Technical Reference
 
 Date : **7 octobre 2026**  
-Statut : **CURRENT — UI-RPG03.4**
+Statut : **CURRENT — UI-RPG06.3B ; Skills autonome et clos**
 
 `WBP_GrimrockMenu / UGrimrockMenuWidget` est un shell temporaire pour les seules pages qui ne sont pas encore autonomes.
 
