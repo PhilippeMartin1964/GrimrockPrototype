@@ -2,7 +2,7 @@
 
 Date : **7 octobre 2026**  
 Parent : **UI-RPG02 — Visual Language & Presentation Data**  
-État : **SOURCE PRÊTE — validation locale UE5.5.4 en attente**
+État : **VALIDÉ — `Grimrock.UI.RPG02.PresentationData` 5/5, 0 warning, 0 échec**
 
 ## Pourquoi ce ticket existe
 
