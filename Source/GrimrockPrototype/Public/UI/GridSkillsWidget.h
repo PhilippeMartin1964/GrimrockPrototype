@@ -89,6 +89,12 @@ private:
 	UFUNCTION()
 	void HandleTalentsTabClicked();
 
+	UFUNCTION()
+	void HandleSkillsTabHovered();
+
+	UFUNCTION()
+	void HandleTalentsTabHovered();
+
 	void ClearView();
 	void BindDesignerShell();
 	void UnbindDesignerShell();
