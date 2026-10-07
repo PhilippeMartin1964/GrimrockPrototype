@@ -1,36 +1,61 @@
-# UI-RPG04.3A — Simple Talent Acquisition Contract
+# UI-RPG04.3 — Acquisition simple d’un talent
 
-Date: 7 octobre 2026
-Status: source ready; local UE5.5.4 validation required.
+Date : **7 octobre 2026**  
+État : **SOURCE VALIDÉE LOCALEMENT — 9/9 RPG04 avant UI-RPG04.4**
 
-## Flow
+## Objectif
+
+Permettre l’acquisition réelle d’un talent simple, c’est-à-dire d’un nœud conceptuel contenant exactement un `ChoiceId`.
+
+Le flux UI est :
 
 ```text
-selected simple Talent
--> ACQUERIR
--> confirmation pending
--> CONFIRMER / ANNULER
--> UGridTalentDetailWidget::OnAcquireConfirmed(ChoiceId)
--> UGridSkillsWidget::CommitConfirmedSimpleTalent()
--> FRPGClassProgressionTransactionService::TryCommitChoices()
--> NotifyPartyInventoryChanged()
--> existing Skills refresh
+talent simple sélectionné
+→ ACQUÉRIR
+→ demande de confirmation
+→ CONFIRMER / ANNULER
+→ UGridTalentDetailWidget::OnAcquireConfirmed(ChoiceId)
+→ UGridSkillsWidget::CommitConfirmedTalentChoice()
+→ FRPGClassProgressionTransactionService::TryCommitChoices()
+→ NotifyPartyInventoryChanged()
+→ RefreshSkills()
 ```
 
-## Authority
+## Autorité métier
 
-No cost, level, prerequisite, exclusivity or point-budget rule is reimplemented in UMG.
-The final mutation authority remains `FRPGClassProgressionTransactionService::TryCommitChoices()`.
+L’UMG ne recalcule jamais :
 
-The detail widget only permits the simple confirmation UX when the current read model is
-`Available` and contains exactly one concrete ChoiceId. The transaction service validates
-the request again at commit time.
+- le coût en points de talent ;
+- le niveau requis ;
+- les prérequis ;
+- les exclusions ;
+- le budget de points restant.
 
-Multi-variant nodes are deliberately deferred to UI-RPG04.4.
+L’autorité finale reste exclusivement :
 
-## 04.3B Designer controls
+```cpp
+FRPGClassProgressionTransactionService::TryCommitChoices(...)
+```
 
-The C++ contract already accepts these optional widgets in WBP_RPGTalentDetail:
+Le panneau de détail ne fait que décider si l’UX d’acquisition simple peut être proposée à partir du read model courant.
+
+## Conditions d’affichage du bouton ACQUÉRIR
+
+`UGridTalentDetailWidget::CanRequestSimpleAcquisition()` exige :
+
+```text
+bInitialized == true
+NodeView.State == Available
+NodeView.Variants.Num() == 1
+ChoiceId valide
+variante non déjà sélectionnée
+```
+
+Si le nœud possède plusieurs variantes, l’acquisition simple est masquée et UI-RPG04.4 prend le relais.
+
+## Contrôles Designer de WBP_RPGTalentDetail
+
+Contrôles déjà matérialisés :
 
 ```text
 Button_AcquireTalent
@@ -40,7 +65,42 @@ Text_AcquirePrompt
 Text_AcquireFeedback
 ```
 
-They remain BindWidgetOptional in 04.3A so source validation does not require a binary asset edit.
+Ces contrôles sont pilotés par le C++.
+
+Aucun Event Graph Blueprint n’est nécessaire.
+
+## Comportement attendu
+
+Talent simple disponible :
+
+```text
+[ ACQUÉRIR ]
+```
+
+Après clic :
+
+```text
+Confirmer l’acquisition de « Nom du talent » ?
+
+[ CONFIRMER ] [ ANNULER ]
+```
+
+ANNULER :
+
+```text
+aucune mutation
+retour à ACQUÉRIR
+```
+
+CONFIRMER :
+
+```text
+TryCommitChoices(ChoiceId)
+→ point consommé
+→ talent acquis
+→ refresh du read model
+→ compteur de points mis à jour
+```
 
 ## Tests
 
@@ -49,3 +109,5 @@ Grimrock.UI.RPG04.Acquisition.ConfirmationState
 Grimrock.UI.RPG04.Acquisition.VariantDeferred
 Grimrock.UI.RPG04.Acquisition.SimpleCommit
 ```
+
+Le test `SimpleCommit` vérifie la transaction réelle via le service autoritaire.
