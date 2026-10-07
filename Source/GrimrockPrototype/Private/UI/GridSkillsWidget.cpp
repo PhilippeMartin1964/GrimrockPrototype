@@ -8,7 +8,6 @@
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridTalentBranchWidget.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogGridSkillsUI, Log, All);
 
 namespace GridSkillsWidgetPrivate
 {
@@ -72,22 +71,10 @@ void UGridSkillsWidget::NativeDestruct()
 void UGridSkillsWidget::BindDesignerShell()
 {
 	Button_SkillsTab->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleSkillsTabClicked);
-	Button_SkillsTab->OnClicked.AddDynamic(this, &UGridSkillsWidget::HandleSkillsTabClicked);
-	Button_SkillsTab->OnHovered.RemoveDynamic(this, &UGridSkillsWidget::HandleSkillsTabHovered);
-	Button_SkillsTab->OnHovered.AddDynamic(this, &UGridSkillsWidget::HandleSkillsTabHovered);
+	Button_SkillsTab->OnClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleSkillsTabClicked);
 
 	Button_TalentsTab->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentsTabClicked);
-	Button_TalentsTab->OnClicked.AddDynamic(this, &UGridSkillsWidget::HandleTalentsTabClicked);
-	Button_TalentsTab->OnHovered.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentsTabHovered);
-	Button_TalentsTab->OnHovered.AddDynamic(this, &UGridSkillsWidget::HandleTalentsTabHovered);
-
-	UE_LOG(LogGridSkillsUI, Log,
-		TEXT("GridSkills Tabs Bound Widget=%s SkillsButton=%s TalentsButton=%s Switcher=%s ActiveIndex=%d"),
-		*GetName(),
-		*GetNameSafe(Button_SkillsTab),
-		*GetNameSafe(Button_TalentsTab),
-		*GetNameSafe(Switcher_SkillsTalents),
-		Switcher_SkillsTalents ? Switcher_SkillsTalents->GetActiveWidgetIndex() : INDEX_NONE);
+	Button_TalentsTab->OnClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentsTabClicked);
 }
 
 void UGridSkillsWidget::UnbindDesignerShell()
@@ -95,12 +82,10 @@ void UGridSkillsWidget::UnbindDesignerShell()
 	if (Button_SkillsTab)
 	{
 		Button_SkillsTab->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleSkillsTabClicked);
-		Button_SkillsTab->OnHovered.RemoveDynamic(this, &UGridSkillsWidget::HandleSkillsTabHovered);
 	}
 	if (Button_TalentsTab)
 	{
 		Button_TalentsTab->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentsTabClicked);
-		Button_TalentsTab->OnHovered.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentsTabHovered);
 	}
 }
 
@@ -237,38 +222,22 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 
 void UGridSkillsWidget::ShowSkillsTab()
 {
-	const int32 Before = Switcher_SkillsTalents->GetActiveWidgetIndex();
 	Switcher_SkillsTalents->SetActiveWidgetIndex(0);
-	UE_LOG(LogGridSkillsUI, Log, TEXT("GridSkills ShowSkillsTab Before=%d After=%d"), Before, Switcher_SkillsTalents->GetActiveWidgetIndex());
 }
 
 void UGridSkillsWidget::ShowTalentsTab()
 {
-	const int32 Before = Switcher_SkillsTalents->GetActiveWidgetIndex();
 	Switcher_SkillsTalents->SetActiveWidgetIndex(1);
-	UE_LOG(LogGridSkillsUI, Log, TEXT("GridSkills ShowTalentsTab Before=%d After=%d"), Before, Switcher_SkillsTalents->GetActiveWidgetIndex());
 }
 
 void UGridSkillsWidget::HandleSkillsTabClicked()
 {
-	UE_LOG(LogGridSkillsUI, Log, TEXT("GridSkills SkillsTab CLICKED"));
 	ShowSkillsTab();
 }
 
 void UGridSkillsWidget::HandleTalentsTabClicked()
 {
-	UE_LOG(LogGridSkillsUI, Log, TEXT("GridSkills TalentsTab CLICKED"));
 	ShowTalentsTab();
-}
-
-void UGridSkillsWidget::HandleSkillsTabHovered()
-{
-	UE_LOG(LogGridSkillsUI, Log, TEXT("GridSkills SkillsTab HOVERED"));
-}
-
-void UGridSkillsWidget::HandleTalentsTabHovered()
-{
-	UE_LOG(LogGridSkillsUI, Log, TEXT("GridSkills TalentsTab HOVERED"));
 }
 
 int32 UGridSkillsWidget::GetSkillEntryCount() const

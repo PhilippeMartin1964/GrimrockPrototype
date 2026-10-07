@@ -91,10 +91,6 @@ void AGrimrockPartyPawn::ShowSkillsWidget()
 	{
 		MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
-	if (SkillsWidgetInstance)
-	{
-		SkillsWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
-	}
 	if (MapWidgetInstance)
 	{
 		MapWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
@@ -123,7 +119,10 @@ void AGrimrockPartyPawn::ShowSkillsWidget()
 	{
 		SkillsWidgetInstance->AddToViewport(100);
 	}
-	SkillsWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+	// Same hit-test contract as the validated Inventory workspace:
+	// the window root itself does not consume pointer hits, while its child
+	// Buttons remain fully interactive.
+	SkillsWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
 	bInventoryWorkspaceVisible = false;
 	bInventoryWidgetVisible = true;

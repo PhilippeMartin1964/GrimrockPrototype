@@ -170,3 +170,37 @@ GridSkills TalentsTab HOVERED
 GridSkills TalentsTab CLICKED
 GridSkills ShowTalentsTab Before=0 After=1
 ```
+
+
+## 03.4F — alignement hit-test avec l'Inventaire
+
+Le diagnostic final compare directement les surfaces déjà validées.
+
+Inventaire :
+
+```cpp
+CharacterSheetWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+InventoryBagWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+```
+
+Skills utilisait encore :
+
+```cpp
+SkillsWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+```
+
+La fenêtre Skills ne traite aucun événement souris au niveau de son root : seuls ses enfants
+(`Button_SkillsTab`, `Button_TalentsTab`, puis les nœuds) doivent être interactifs.
+
+Le contrat est donc désormais identique à l'Inventaire :
+
+```cpp
+SkillsWidgetInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+```
+
+La Carte reste volontairement `Visible`, car sa surface traite elle-même des événements souris
+(pan/zoom/interactions) au niveau widget.
+
+Les instrumentations temporaires Hover/Click de UI-RPG03.4D sont retirées et le correctif
+spéculatif du root Persistent HUD de UI-RPG03.4E est annulé. Aucun code supplémentaire
+d'interaction n'est conservé.
