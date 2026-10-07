@@ -94,9 +94,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|UI")
 	bool GetSelectedTalentNode(FGridTalentNodeView& OutNode) const;
 
-	/** Called only after UI confirmation. Transaction service remains the sole gameplay authority. */
+	/** Called only after UI confirmation. Supports simple and variant ChoiceIds; transaction service remains sole authority. */
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Acquire")
-	bool CommitConfirmedSimpleTalent(FName ChoiceId, FText& OutFeedback);
+	bool CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFeedback);
 
 protected:
 	virtual void NativeConstruct() override;

@@ -2,6 +2,7 @@
 
 #include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/ComboBoxString.h"
 #include "Components/TextBlock.h"
 #include "UI/GridTalentNodeWidget.h"
 
@@ -21,21 +22,6 @@ namespace GridTalentDetailWidgetPrivate
 		}
 	}
 
-	FText VariantText(const FGridTalentNodeView& Node)
-	{
-		if (Node.Variants.Num() <= 1)
-		{
-			return FText::GetEmpty();
-		}
-
-		TArray<FString> Names;
-		Names.Reserve(Node.Variants.Num());
-		for (const FGridTalentVariantView& Variant : Node.Variants)
-		{
-			Names.Add(Variant.DisplayName.IsEmpty() ? Variant.ChoiceId.ToString() : Variant.DisplayName.ToString());
-		}
-		return FText::FromString(FString::Printf(TEXT("Variantes : %s"), *FString::Join(Names, TEXT(" / "))));
-	}
 }
 
 void UGridTalentDetailWidget::NativeConstruct()
@@ -58,6 +44,16 @@ void UGridTalentDetailWidget::BindAcquireButtons()
 		Button_AcquireTalent->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleAcquireClicked);
 		Button_AcquireTalent->OnClicked.AddUniqueDynamic(this, &UGridTalentDetailWidget::HandleAcquireClicked);
 	}
+	if (Button_ChooseVariant)
+	{
+		Button_ChooseVariant->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleChooseVariantClicked);
+		Button_ChooseVariant->OnClicked.AddUniqueDynamic(this, &UGridTalentDetailWidget::HandleChooseVariantClicked);
+	}
+	if (Combo_VariantChoice)
+	{
+		Combo_VariantChoice->OnSelectionChanged.RemoveDynamic(this, &UGridTalentDetailWidget::HandleVariantSelectionChanged);
+		Combo_VariantChoice->OnSelectionChanged.AddUniqueDynamic(this, &UGridTalentDetailWidget::HandleVariantSelectionChanged);
+	}
 	if (Button_ConfirmAcquire)
 	{
 		Button_ConfirmAcquire->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleConfirmAcquireClicked);
@@ -75,6 +71,14 @@ void UGridTalentDetailWidget::UnbindAcquireButtons()
 	if (Button_AcquireTalent)
 	{
 		Button_AcquireTalent->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleAcquireClicked);
+	}
+	if (Button_ChooseVariant)
+	{
+		Button_ChooseVariant->OnClicked.RemoveDynamic(this, &UGridTalentDetailWidget::HandleChooseVariantClicked);
+	}
+	if (Combo_VariantChoice)
+	{
+		Combo_VariantChoice->OnSelectionChanged.RemoveDynamic(this, &UGridTalentDetailWidget::HandleVariantSelectionChanged);
 	}
 	if (Button_ConfirmAcquire)
 	{
@@ -105,6 +109,7 @@ bool UGridTalentDetailWidget::InitializeTalentDetail(
 	ResolvedDescription = Description;
 	BranchAccentColor = InBranchPresentation.AccentColor;
 	bInitialized = true;
+	RebuildVariantOptions();
 	ApplyDetailPresentation();
 	ApplyAcquisitionPresentation();
 	return true;
@@ -118,7 +123,16 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	BranchAccentColor = FLinearColor::White;
 	bInitialized = false;
 	bAcquireConfirmationPending = false;
+	bVariantSelectionPending = false;
+	SelectedVariantChoiceId = NAME_None;
 	AcquisitionFeedback = FText::GetEmpty();
+	VariantOptionLabels.Reset();
+	VariantOptionChoiceIds.Reset();
+	if (Combo_VariantChoice)
+	{
+		Combo_VariantChoice->ClearOptions();
+		Combo_VariantChoice->ClearSelection();
+	}
 
 	if (Text_DetailName) Text_DetailName->SetText(FText::GetEmpty());
 	if (Text_DetailDescription) Text_DetailDescription->SetText(FText::GetEmpty());
@@ -138,6 +152,22 @@ bool UGridTalentDetailWidget::CanRequestSimpleAcquisition() const
 		!NodeView.Variants[0].bSelected;
 }
 
+bool UGridTalentDetailWidget::CanRequestVariantAcquisition() const
+{
+	if (!bInitialized ||
+		NodeView.State != EGridTalentNodeState::Available ||
+		NodeView.Variants.Num() <= 1)
+	{
+		return false;
+	}
+
+	return NodeView.Variants.ContainsByPredicate(
+		[](const FGridTalentVariantView& Variant)
+		{
+			return !Variant.ChoiceId.IsNone() && Variant.bAvailable && !Variant.bSelected;
+		});
+}
+
 bool UGridTalentDetailWidget::BeginAcquireConfirmation()
 {
 	if (!CanRequestSimpleAcquisition())
@@ -146,32 +176,120 @@ bool UGridTalentDetailWidget::BeginAcquireConfirmation()
 	}
 
 	bAcquireConfirmationPending = true;
+	bVariantSelectionPending = false;
+	SelectedVariantChoiceId = NAME_None;
 	AcquisitionFeedback = FText::GetEmpty();
 	ApplyAcquisitionPresentation();
 	return true;
 }
 
+bool UGridTalentDetailWidget::BeginVariantSelection()
+{
+	if (!CanRequestVariantAcquisition())
+	{
+		return false;
+	}
+
+	bAcquireConfirmationPending = false;
+	bVariantSelectionPending = true;
+	SelectedVariantChoiceId = NAME_None;
+	AcquisitionFeedback = FText::GetEmpty();
+	if (Combo_VariantChoice)
+	{
+		Combo_VariantChoice->ClearSelection();
+	}
+	ApplyAcquisitionPresentation();
+	return true;
+}
+
+bool UGridTalentDetailWidget::SelectVariantChoice(FName ChoiceId)
+{
+	if (!bVariantSelectionPending || ChoiceId.IsNone())
+	{
+		return false;
+	}
+
+	const FGridTalentVariantView* Variant = NodeView.Variants.FindByPredicate(
+		[ChoiceId](const FGridTalentVariantView& Candidate)
+		{
+			return Candidate.ChoiceId == ChoiceId;
+		});
+
+	if (!Variant || !Variant->bAvailable || Variant->bSelected)
+	{
+		return false;
+	}
+
+	SelectedVariantChoiceId = ChoiceId;
+	ApplyAcquisitionPresentation();
+	return true;
+}
+
+bool UGridTalentDetailWidget::GetVariantDisplayLabel(FName ChoiceId, FText& OutLabel) const
+{
+	OutLabel = FText::GetEmpty();
+	const FGridTalentVariantView* Variant = NodeView.Variants.FindByPredicate(
+		[ChoiceId](const FGridTalentVariantView& Candidate)
+		{
+			return Candidate.ChoiceId == ChoiceId;
+		});
+	if (!Variant)
+	{
+		return false;
+	}
+
+	OutLabel = MakeVariantDisplayLabel(*Variant);
+	return !OutLabel.IsEmpty();
+}
+
 void UGridTalentDetailWidget::CancelAcquireConfirmation()
 {
 	bAcquireConfirmationPending = false;
+	bVariantSelectionPending = false;
+	SelectedVariantChoiceId = NAME_None;
 	AcquisitionFeedback = FText::GetEmpty();
+	if (Combo_VariantChoice)
+	{
+		Combo_VariantChoice->ClearSelection();
+	}
 	ApplyAcquisitionPresentation();
 }
 
 bool UGridTalentDetailWidget::ConfirmAcquire()
 {
-	if (!bAcquireConfirmationPending || !bInitialized || NodeView.Variants.Num() != 1)
+	if (!bInitialized)
 	{
 		return false;
 	}
 
-	const FName ChoiceId = NodeView.Variants[0].ChoiceId;
+	FName ChoiceId = NAME_None;
+	if (bAcquireConfirmationPending && NodeView.Variants.Num() == 1)
+	{
+		ChoiceId = NodeView.Variants[0].ChoiceId;
+	}
+	else if (bVariantSelectionPending)
+	{
+		ChoiceId = SelectedVariantChoiceId;
+	}
+
 	if (ChoiceId.IsNone())
 	{
 		return false;
 	}
 
+	const FGridTalentVariantView* Variant = NodeView.Variants.FindByPredicate(
+		[ChoiceId](const FGridTalentVariantView& Candidate)
+		{
+			return Candidate.ChoiceId == ChoiceId;
+		});
+	if (!Variant || !Variant->bAvailable || Variant->bSelected)
+	{
+		return false;
+	}
+
 	bAcquireConfirmationPending = false;
+	bVariantSelectionPending = false;
+	SelectedVariantChoiceId = NAME_None;
 	ApplyAcquisitionPresentation();
 	OnAcquireConfirmed.Broadcast(ChoiceId);
 	return true;
@@ -188,6 +306,21 @@ void UGridTalentDetailWidget::HandleAcquireClicked()
 	BeginAcquireConfirmation();
 }
 
+void UGridTalentDetailWidget::HandleChooseVariantClicked()
+{
+	BeginVariantSelection();
+}
+
+void UGridTalentDetailWidget::HandleVariantSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
+{
+	(void)SelectionType;
+	const int32 Index = VariantOptionLabels.IndexOfByKey(SelectedItem);
+	if (VariantOptionChoiceIds.IsValidIndex(Index))
+	{
+		SelectVariantChoice(VariantOptionChoiceIds[Index]);
+	}
+}
+
 void UGridTalentDetailWidget::HandleConfirmAcquireClicked()
 {
 	ConfirmAcquire();
@@ -196,6 +329,77 @@ void UGridTalentDetailWidget::HandleConfirmAcquireClicked()
 void UGridTalentDetailWidget::HandleCancelAcquireClicked()
 {
 	CancelAcquireConfirmation();
+}
+
+void UGridTalentDetailWidget::RebuildVariantOptions()
+{
+	VariantOptionLabels.Reset();
+	VariantOptionChoiceIds.Reset();
+
+	if (Combo_VariantChoice)
+	{
+		Combo_VariantChoice->ClearOptions();
+		Combo_VariantChoice->ClearSelection();
+	}
+
+	if (!bInitialized || NodeView.Variants.Num() <= 1)
+	{
+		return;
+	}
+
+	for (const FGridTalentVariantView& Variant : NodeView.Variants)
+	{
+		if (Variant.ChoiceId.IsNone())
+		{
+			continue;
+		}
+
+		FString Label = MakeVariantDisplayLabel(Variant).ToString();
+		if (Label.IsEmpty())
+		{
+			Label = Variant.ChoiceId.ToString();
+		}
+
+		FString UniqueLabel = Label;
+		if (VariantOptionLabels.Contains(UniqueLabel))
+		{
+			UniqueLabel = FString::Printf(TEXT("%s [%s]"), *Label, *Variant.ChoiceId.ToString());
+		}
+
+		VariantOptionLabels.Add(UniqueLabel);
+		VariantOptionChoiceIds.Add(Variant.ChoiceId);
+		if (Combo_VariantChoice)
+		{
+			Combo_VariantChoice->AddOption(UniqueLabel);
+		}
+	}
+}
+
+FText UGridTalentDetailWidget::MakeVariantDisplayLabel(const FGridTalentVariantView& Variant) const
+{
+	FString Label = Variant.DisplayName.IsEmpty() ? Variant.ChoiceId.ToString() : Variant.DisplayName.ToString();
+	const FString Conceptual = ResolvedDisplayName.ToString();
+
+	if (!Conceptual.IsEmpty())
+	{
+		const TArray<FString> Prefixes = {
+			Conceptual + TEXT(" — "),
+			Conceptual + TEXT(" – "),
+			Conceptual + TEXT(" - "),
+			Conceptual + TEXT(": ")
+		};
+		for (const FString& Prefix : Prefixes)
+		{
+			if (Label.StartsWith(Prefix, ESearchCase::CaseSensitive))
+			{
+				Label.RightChopInline(Prefix.Len(), EAllowShrinking::No);
+				break;
+			}
+		}
+	}
+
+	Label.TrimStartAndEndInline();
+	return FText::FromString(Label);
 }
 
 void UGridTalentDetailWidget::ApplyDetailPresentation()
@@ -237,37 +441,98 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 	}
 	if (Text_DetailVariants)
 	{
-		Text_DetailVariants->SetText(VariantText(NodeView));
+		if (NodeView.Variants.Num() <= 1)
+		{
+			Text_DetailVariants->SetText(FText::GetEmpty());
+		}
+		else
+		{
+			TArray<FString> Labels;
+			Labels.Reserve(NodeView.Variants.Num());
+			for (const FGridTalentVariantView& Variant : NodeView.Variants)
+			{
+				Labels.Add(MakeVariantDisplayLabel(Variant).ToString());
+			}
+
+			FText SelectedLabel;
+			if (!NodeView.SelectedChoiceId.IsNone() &&
+				GetVariantDisplayLabel(NodeView.SelectedChoiceId, SelectedLabel))
+			{
+				Text_DetailVariants->SetText(
+					FText::Format(
+						NSLOCTEXT("GridTalentDetail", "SelectedVariant", "Variante choisie : {0}"),
+						SelectedLabel));
+			}
+			else
+			{
+				Text_DetailVariants->SetText(
+					FText::FromString(FString::Printf(TEXT("Variantes : %s"), *FString::Join(Labels, TEXT(" / ")))));
+			}
+		}
 	}
 }
 
 void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 {
-	const bool bCanAcquire = CanRequestSimpleAcquisition();
+	const bool bCanAcquireSimple = CanRequestSimpleAcquisition();
+	const bool bCanAcquireVariant = CanRequestVariantAcquisition();
+	const bool bAnyPending = bAcquireConfirmationPending || bVariantSelectionPending;
 
 	if (Button_AcquireTalent)
 	{
 		Button_AcquireTalent->SetVisibility(
-			bCanAcquire && !bAcquireConfirmationPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			bCanAcquireSimple && !bAnyPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+	if (Button_ChooseVariant)
+	{
+		Button_ChooseVariant->SetVisibility(
+			bCanAcquireVariant && !bAnyPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+	if (Combo_VariantChoice)
+	{
+		Combo_VariantChoice->SetVisibility(
+			bVariantSelectionPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
 	if (Button_ConfirmAcquire)
 	{
 		Button_ConfirmAcquire->SetVisibility(
-			bAcquireConfirmationPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			bAnyPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+		Button_ConfirmAcquire->SetIsEnabled(
+			bAcquireConfirmationPending || (bVariantSelectionPending && !SelectedVariantChoiceId.IsNone()));
 	}
 	if (Button_CancelAcquire)
 	{
 		Button_CancelAcquire->SetVisibility(
-			bAcquireConfirmationPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			bAnyPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
 	if (Text_AcquirePrompt)
 	{
-		Text_AcquirePrompt->SetText(
-			bAcquireConfirmationPending
-				? FText::Format(
-					NSLOCTEXT("GridTalentDetail", "ConfirmAcquirePrompt", "Confirmer l’acquisition de « {0} » ?"),
-					ResolvedDisplayName)
-				: FText::GetEmpty());
+		FText Prompt = FText::GetEmpty();
+		if (bAcquireConfirmationPending)
+		{
+			Prompt = FText::Format(
+				NSLOCTEXT("GridTalentDetail", "ConfirmAcquirePrompt", "Confirmer l’acquisition de « {0} » ?"),
+				ResolvedDisplayName);
+		}
+		else if (bVariantSelectionPending)
+		{
+			FText SelectedLabel;
+			if (!SelectedVariantChoiceId.IsNone() &&
+				GetVariantDisplayLabel(SelectedVariantChoiceId, SelectedLabel))
+			{
+				Prompt = FText::Format(
+					NSLOCTEXT("GridTalentDetail", "ConfirmVariantPrompt", "Confirmer « {0} » pour « {1} » ?"),
+					SelectedLabel,
+					ResolvedDisplayName);
+			}
+			else
+			{
+				Prompt = FText::Format(
+					NSLOCTEXT("GridTalentDetail", "ChooseVariantPrompt", "Choisissez une variante pour « {0} »."),
+					ResolvedDisplayName);
+			}
+		}
+		Text_AcquirePrompt->SetText(Prompt);
 	}
 	if (Text_AcquireFeedback)
 	{

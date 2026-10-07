@@ -270,7 +270,7 @@ bool UGridSkillsWidget::GetSelectedTalentNode(FGridTalentNodeView& OutNode) cons
 	return false;
 }
 
-bool UGridSkillsWidget::CommitConfirmedSimpleTalent(FName ChoiceId, FText& OutFeedback)
+bool UGridSkillsWidget::CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFeedback)
 {
 	OutFeedback = FText::FromString(TEXT("Acquisition impossible."));
 
@@ -278,9 +278,17 @@ bool UGridSkillsWidget::CommitConfirmedSimpleTalent(FName ChoiceId, FText& OutFe
 	if (!IsValid(InventoryComponent) ||
 		!View.IsValid() ||
 		!GetSelectedTalentNode(SelectedNode) ||
-		SelectedNode.Variants.Num() != 1 ||
-		ChoiceId.IsNone() ||
-		SelectedNode.Variants[0].ChoiceId != ChoiceId)
+		ChoiceId.IsNone())
+	{
+		return false;
+	}
+
+	const FGridTalentVariantView* RequestedVariant = SelectedNode.Variants.FindByPredicate(
+		[ChoiceId](const FGridTalentVariantView& Variant)
+		{
+			return Variant.ChoiceId == ChoiceId;
+		});
+	if (!RequestedVariant)
 	{
 		return false;
 	}
@@ -412,7 +420,7 @@ void UGridSkillsWidget::HandleTalentNodeClicked(FName TalentNodeId)
 void UGridSkillsWidget::HandleTalentAcquireConfirmed(FName ChoiceId)
 {
 	FText Feedback;
-	CommitConfirmedSimpleTalent(ChoiceId, Feedback);
+	CommitConfirmedTalentChoice(ChoiceId, Feedback);
 	if (Detail_Talent)
 	{
 		Detail_Talent->SetAcquisitionFeedback(Feedback);

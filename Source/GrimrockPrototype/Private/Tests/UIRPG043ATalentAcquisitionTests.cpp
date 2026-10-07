@@ -113,7 +113,7 @@ bool FUIRPG043ASimpleCommitTest::RunTest(const FString&)
 
 	FText Feedback;
 	TestTrue(TEXT("Confirmed simple Talent commits through the existing transaction service"),
-		Skills->CommitConfirmedSimpleTalent(TEXT("Choice_A"), Feedback));
+		Skills->CommitConfirmedTalentChoice(TEXT("Choice_A"), Feedback));
 
 	TArray<FName> Selected;
 	TestTrue(TEXT("Committed state remains readable"),
