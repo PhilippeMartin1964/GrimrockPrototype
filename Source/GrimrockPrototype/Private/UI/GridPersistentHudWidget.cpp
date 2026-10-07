@@ -52,6 +52,15 @@ void UGridPersistentHudWidget::InitializePersistentHud(AGrimrockPartyPawn* InPar
 void UGridPersistentHudWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	// The persistent HUD lives above major UI surfaces (Z=200). Its authored root
+	// can span the full viewport, so the root itself must never consume pointer
+	// hit tests. Children remain interactive (navigation buttons/action slots).
+	if (WidgetTree && WidgetTree->RootWidget)
+	{
+		WidgetTree->RootWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+
 	VisibleActionSlotCount = FGridCombatHotbarBinding::MinimumSlotCount;
 	BindNavigationButtons();
 	EnsureActionWidgets();

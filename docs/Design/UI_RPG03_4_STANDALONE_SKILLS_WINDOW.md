@@ -121,3 +121,52 @@ K ferme Skills
 ESC ferme Skills
 I/M/G/J/H ferment Skills avant d'ouvrir leur surface
 ```
+
+
+## 03.4E — Persistent HUD root hit-test shield
+
+Diagnostic runtime après extraction standalone :
+
+```text
+GridSkills Tabs Bound ... ActiveIndex=1
+aucun SkillsTab HOVERED
+aucun TalentsTab HOVERED
+```
+
+Le binding du WBP Skills était correct, mais la souris n'atteignait pas les boutons.
+
+Cause structurelle traitée :
+
+```text
+WBP_GridPersistentHud : Z = 200
+WBP_GridSkills        : Z = 100
+```
+
+Le `UUserWidget` Persistent HUD était déjà `SelfHitTestInvisible`, mais son root Designer
+(`CanvasPanel_Root` recommandé historiquement) pouvait rester `Visible` et couvrir tout le viewport.
+
+`UGridPersistentHudWidget::NativeConstruct()` force désormais :
+
+```cpp
+WidgetTree->RootWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+```
+
+Conséquence :
+
+- le root plein écran ne bloque plus les surfaces majeures situées dessous ;
+- les enfants restent hit-testables ;
+- les boutons ESC/I/K/G/M/J/H restent interactifs ;
+- les slots d'action restent interactifs ;
+- les boutons internes de `WBP_GridSkills` peuvent recevoir Hover/Click.
+
+Validation PIE attendue avec l'instrumentation temporaire :
+
+```text
+GridSkills SkillsTab HOVERED
+GridSkills SkillsTab CLICKED
+GridSkills ShowSkillsTab Before=1 After=0
+
+GridSkills TalentsTab HOVERED
+GridSkills TalentsTab CLICKED
+GridSkills ShowTalentsTab Before=0 After=1
+```
