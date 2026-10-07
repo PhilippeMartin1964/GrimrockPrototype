@@ -358,34 +358,55 @@ Parent :
 UGridTalentBranchWidget
 ```
 
-Hiérarchie exacte :
+### Hiérarchie exacte ET ordre de peinture
 
 ```text
 Overlay_BranchRoot
-├── Border_BranchBackground
-└── VB_Branch
-    ├── SB_BranchHeader
-    │   └── Border_BranchHeader
-    │       └── Overlay_BranchHeader
-    │           ├── Border_BranchAccent       [Variable]
-    │           ├── Text_BranchName           [Variable]
-    │           └── Text_BranchProgress       [Variable]
-    ├── Spacer_BranchHeader
-    └── Overlay_BranchTree
-        ├── Border_BranchSpine
-        └── VB_BranchNodes
-            ├── Node_Tier1                    [WBP_RPGTalentNode, Variable]
-            ├── Spacer_Node12
-            ├── Node_Tier2                    [WBP_RPGTalentNode, Variable]
-            ├── Spacer_Node23
-            ├── Node_Tier3                    [WBP_RPGTalentNode, Variable]
-            ├── Spacer_Node34
-            ├── Node_Tier4                    [WBP_RPGTalentNode, Variable]
-            ├── Spacer_Node45
-            └── Node_Tier5                    [WBP_RPGTalentNode, Variable]
+├── Border_BranchBackground                [Border]      <- 1er enfant : fond
+│
+└── VB_Branch                              [VerticalBox] <- 2e enfant : contenu
+    │
+    ├── SB_BranchHeader                    [SizeBox]
+    │   └── Border_BranchHeader            [Border]
+    │       └── Overlay_BranchHeader       [Overlay]
+    │           ├── Border_BranchAccent    [Border]      Variable
+    │           ├── Text_BranchName        [TextBlock]   Variable
+    │           └── Text_BranchProgress    [TextBlock]   Variable
+    │
+    ├── Spacer_BranchHeader                [Spacer]
+    │
+    └── Overlay_BranchTree                 [Overlay]
+        ├── Border_BranchSpine             [Border]      <- 1er enfant : derrière
+        │
+        └── VB_BranchNodes                 [VerticalBox] <- 2e enfant : devant
+            ├── Node_Tier1                 [WBP_RPGTalentNode] Variable
+            ├── Spacer_Node12              [Spacer]
+            ├── Node_Tier2                 [WBP_RPGTalentNode] Variable
+            ├── Spacer_Node23              [Spacer]
+            ├── Node_Tier3                 [WBP_RPGTalentNode] Variable
+            ├── Spacer_Node34              [Spacer]
+            ├── Node_Tier4                 [WBP_RPGTalentNode] Variable
+            ├── Spacer_Node45              [Spacer]
+            └── Node_Tier5                 [WBP_RPGTalentNode] Variable
 ```
 
-Les widgets obligatoires `BindWidget` sont :
+L'ordre de peinture est important dans les deux Overlays :
+
+```text
+Overlay_BranchRoot
+  Background d'abord
+  VB_Branch ensuite
+
+Overlay_BranchTree
+  Spine d'abord
+  Nodes ensuite
+```
+
+Sinon le fond ou la spine peut recouvrir le contenu.
+
+### Widgets obligatoires côté C++
+
+Ces widgets sont des `BindWidget` et leurs noms doivent être exacts :
 
 ```text
 Text_BranchName
@@ -396,68 +417,458 @@ Node_Tier4
 Node_Tier5
 ```
 
-Les noms doivent être exacts.
-
-### Header
+Ces widgets sont `BindWidgetOptional`, mais doivent être ajoutés dans UI-RPG03.2C :
 
 ```text
-SB_BranchHeader.HeightOverride = 54
-
-Text_BranchName:
-  Font = Alegreya Sans
-  Size = 21
-  Justification = Center
-
-Text_BranchProgress:
-  Font Size = 10
-  Overlay Slot Horizontal = Right
-  Overlay Slot Vertical   = Bottom
-  Padding = 0 / 0 / 6 / 4
+Text_BranchProgress
+Border_BranchAccent
 ```
 
-`Text_BranchProgress` affiche `0 / 5`, `1 / 5`, etc.
+### Visibility UE5.5.4
 
-### Tree
-
-`Overlay_BranchTree` dans son VerticalBox Slot :
+Utiliser les libellés UE5.5.4 suivants :
 
 ```text
-Size = Fill
-Fill Weight = 1.0
-Horizontal = Fill
-Vertical = Fill
+Overlay_BranchRoot       = Visible
+Border_BranchBackground  = Not Hit-Testable (Self & All Children)
+VB_Branch                = Visible
+
+Border_BranchHeader      = Not Hit-Testable (Self & All Children)
+Overlay_BranchHeader     = Visible
+Border_BranchAccent      = Not Hit-Testable (Self & All Children)
+Text_BranchName          = Not Hit-Testable (Self & All Children)
+Text_BranchProgress      = Not Hit-Testable (Self & All Children)
+
+Overlay_BranchTree       = Visible
+Border_BranchSpine       = Not Hit-Testable (Self & All Children)
+VB_BranchNodes           = Visible
 ```
 
-`Border_BranchSpine` :
+Les cinq `Node_TierX` restent `Visible`, car leurs boutons internes doivent recevoir les clics.
+
+---
+
+### Overlay_BranchRoot
+
+Le root n'a pas de taille fixe : il doit remplir l'espace donné par `WBP_GridSkills`.
+
+Dans le Designer du widget isolé, utiliser une Preview Size confortable, par exemple :
 
 ```text
-Overlay Slot Horizontal = Center
-Overlay Slot Vertical   = Fill
-Padding Top/Bottom      = 34
-Desired Width           = 3
+Desired / Custom Preview Size ≈ 380 × 620
 ```
 
-`VB_BranchNodes` :
+Cette taille n'est qu'une prévisualisation. Dans `WBP_GridSkills`, la branche sera étirée par son Border parent.
+
+`Border_BranchBackground` :
 
 ```text
-Overlay Slot Horizontal = Fill
-Overlay Slot Vertical   = Fill
+Overlay Slot:
+  Horizontal = Fill
+  Vertical   = Fill
+  Padding    = 0
+
+Brush Color fallback:
+  R = 0.025
+  G = 0.028
+  B = 0.032
+  A = 0.92
+
+Visibility = Not Hit-Testable (Self & All Children)
 ```
 
-Chaque `Node_TierX` :
+Ne pas laisser un Brush blanc par défaut.
+
+`VB_Branch` :
 
 ```text
-VerticalBox Slot Size = Auto
-Horizontal Alignment  = Center
-Vertical Alignment    = Center
+Overlay Slot:
+  Horizontal = Fill
+  Vertical   = Fill
+  Padding    = 12
 ```
 
-Chaque Spacer :
+---
+
+### SB_BranchHeader
 
 ```text
-VerticalBox Slot Size = Fill
-Fill Weight           = 1.0
+Height Override = 54
 ```
+
+Dans son VerticalBox Slot :
+
+```text
+Size                 = Auto
+Horizontal Alignment = Fill
+Vertical Alignment   = Fill
+Padding              = 0
+```
+
+Enfant unique :
+
+```text
+Border_BranchHeader
+```
+
+---
+
+### Border_BranchHeader
+
+```text
+Padding     = 0
+Brush Color:
+  R = 0.055
+  G = 0.058
+  B = 0.065
+  A = 1.00
+
+Visibility = Not Hit-Testable (Self & All Children)
+```
+
+Attention : le Border contient `Overlay_BranchHeader`. Le Border ne doit pas bloquer le hit test des futurs nœuds, même s'il est hors de leur zone.
+
+---
+
+### Overlay_BranchHeader
+
+Ordre exact :
+
+```text
+Overlay_BranchHeader
+├── Border_BranchAccent
+├── Text_BranchName
+└── Text_BranchProgress
+```
+
+#### Border_BranchAccent
+
+Cette ligne est purement décorative.
+
+```text
+Is Variable = ON
+Visibility  = Not Hit-Testable (Self & All Children)
+
+Overlay Slot:
+  Horizontal = Fill
+  Vertical   = Bottom
+  Padding:
+    Left   = 8
+    Top    = 0
+    Right  = 8
+    Bottom = 2
+
+Desired Height / Min Desired Height = 3
+
+Brush Color fallback:
+  R = 0.45
+  G = 0.35
+  B = 0.16
+  A = 1.00
+```
+
+Le C++ remplace cette couleur par `BranchPresentation.AccentColor`.
+
+#### Text_BranchName
+
+```text
+Is Variable = ON
+Text        = GARDIEN             <- placeholder de montage
+Font        = Alegreya Sans
+Font Size   = 21
+Justification = Center
+Color and Opacity:
+  R = 0.90
+  G = 0.90
+  B = 0.88
+  A = 1.00
+Visibility  = Not Hit-Testable (Self & All Children)
+
+Overlay Slot:
+  Horizontal = Fill
+  Vertical   = Center
+  Padding:
+    Left   = 8
+    Top    = 0
+    Right  = 48
+    Bottom = 0
+```
+
+Le padding Right = 48 réserve la place du compteur de progression.
+
+Le runtime remplace le placeholder par :
+
+```text
+Gardien
+Brise-ligne
+Maître d'armes
+etc.
+```
+
+et applique la couleur de branche.
+
+#### Text_BranchProgress
+
+```text
+Is Variable = ON
+Text        = 3 / 5               <- placeholder de montage
+Font        = Alegreya Sans
+Font Size   = 10
+Justification = Right
+Color and Opacity:
+  R = 0.78
+  G = 0.78
+  B = 0.76
+  A = 1.00
+Visibility  = Not Hit-Testable (Self & All Children)
+
+Overlay Slot:
+  Horizontal = Right
+  Vertical   = Bottom
+  Padding:
+    Left   = 0
+    Top    = 0
+    Right  = 6
+    Bottom = 5
+```
+
+Runtime : `0 / 5` à `5 / 5`.
+
+---
+
+### Spacer_BranchHeader
+
+Widget Spacer :
+
+```text
+Size X = 0
+Size Y = 8
+```
+
+VerticalBox Slot :
+
+```text
+Size = Auto
+```
+
+---
+
+### Overlay_BranchTree
+
+Dans le VerticalBox Slot de `VB_Branch` :
+
+```text
+Size                 = Fill
+Fill Weight          = 1.0
+Horizontal Alignment = Fill
+Vertical Alignment   = Fill
+Padding              = 0
+```
+
+Ordre exact :
+
+```text
+Overlay_BranchTree
+├── Border_BranchSpine
+└── VB_BranchNodes
+```
+
+La spine doit être derrière les nœuds.
+
+---
+
+### Border_BranchSpine
+
+```text
+Visibility = Not Hit-Testable (Self & All Children)
+
+Overlay Slot:
+  Horizontal = Center
+  Vertical   = Fill
+  Padding:
+    Left   = 0
+    Top    = 34
+    Right  = 0
+    Bottom = 34
+
+Min Desired Width / Width = 3
+```
+
+Fallback conseillé :
+
+```text
+Brush Color:
+  R = 0.26
+  G = 0.26
+  B = 0.25
+  A = 1.00
+```
+
+Ne pas mettre la spine en blanc pur.
+
+---
+
+### VB_BranchNodes
+
+Dans son Overlay Slot :
+
+```text
+Horizontal Alignment = Fill
+Vertical Alignment   = Fill
+Padding              = 0
+```
+
+Hiérarchie stricte :
+
+```text
+Node_Tier1
+Spacer_Node12
+Node_Tier2
+Spacer_Node23
+Node_Tier3
+Spacer_Node34
+Node_Tier4
+Spacer_Node45
+Node_Tier5
+```
+
+---
+
+### Les cinq Node_TierX
+
+Les cinq widgets sont des instances de :
+
+```text
+WBP_RPGTalentNode
+```
+
+Noms exacts :
+
+```text
+Node_Tier1
+Node_Tier2
+Node_Tier3
+Node_Tier4
+Node_Tier5
+```
+
+Pour chacun :
+
+```text
+Is Variable = ON
+Visibility  = Visible
+```
+
+Dans son **Vertical Box Slot** :
+
+```text
+Size                 = Auto
+Horizontal Alignment = Center
+Vertical Alignment   = Center
+Padding              = 0
+```
+
+Ne pas mettre `Fill` sur les Node_TierX.
+
+Sinon le `WBP_RPGTalentNode` 68×68 sera étiré horizontalement et reproduira le problème des gros rectangles de UI-RPG03.1.
+
+Comme `WBP_RPGTalentNode` a un root SizeBox 68×68, l'affichage attendu est un carré centré sur la spine.
+
+---
+
+### Les quatre Spacer_NodeXX
+
+```text
+Spacer_Node12
+Spacer_Node23
+Spacer_Node34
+Spacer_Node45
+```
+
+Pour chacun, dans son **Vertical Box Slot** :
+
+```text
+Size                 = Fill
+Fill Weight          = 1.0
+Horizontal Alignment = Fill
+Vertical Alignment   = Fill
+Padding              = 0
+```
+
+La propriété `Size` du widget Spacer lui-même peut rester à 0×0.
+
+C'est **le Fill du VerticalBox Slot** qui répartit les cinq nœuds sur toute la hauteur.
+
+---
+
+### Ce que doit montrer le Designer de WBP_RPGTalentBranch
+
+Avant de l'insérer dans `WBP_GridSkills`, avec les placeholders du Node :
+
+```text
+┌──────────────────────────────────────┐
+│              GARDIEN          3 / 5 │
+│        ─────────────────────────     │
+│                                      │
+│                ┌──────┐              │
+│                │ III  │              │
+│                └──────┘              │
+│                   │                  │
+│                   │                  │
+│                ┌──────┐              │
+│                │ III  │              │
+│                └──────┘              │
+│                   │                  │
+│                  ...                 │
+│                   │                  │
+│                ┌──────┐              │
+│                │ III  │              │
+│                └──────┘              │
+└──────────────────────────────────────┘
+```
+
+Les cinq instances affichent encore les mêmes placeholders tant qu'elles ne sont pas alimentées par le runtime. C'est normal.
+
+La branche ne doit afficher :
+
+- aucun grand rectangle blanc ;
+- aucune spine blanche dominante ;
+- aucun nœud étiré sur la largeur ;
+- aucun texte masqué.
+
+---
+
+### Diagnostic rapide si WBP_RPGTalentBranch est incorrect
+
+```text
+GROS RECTANGLE BLANC
+  -> vérifier Border_BranchBackground.Brush Color
+  -> vérifier Border_BranchHeader.Brush Color
+  -> vérifier l'ordre dans Overlay_BranchRoot
+
+NŒUDS EN BARRES HORIZONTALES
+  -> Node_TierX > VerticalBox Slot > Size doit être Auto
+  -> Horizontal Alignment doit être Center
+
+NŒUDS COLLÉS EN HAUT
+  -> Spacer_NodeXX > VerticalBox Slot > Size = Fill 1.0
+  -> Overlay_BranchTree > VerticalBox Slot > Size = Fill 1.0
+
+SPINE DEVANT LES NŒUDS
+  -> Border_BranchSpine doit être le 1er enfant de Overlay_BranchTree
+  -> VB_BranchNodes doit être le 2e enfant
+
+TITRE / 3/5 INVISIBLES
+  -> vérifier l'ordre de Overlay_BranchHeader
+  -> vérifier leur Color and Opacity
+  -> utiliser les placeholders GARDIEN et 3 / 5 pendant le montage
+
+CLICS FUTURS BLOQUÉS
+  -> Border/Texts décoratifs en Not Hit-Testable (Self & All Children)
+  -> Node_TierX reste Visible
+  -> Button_TalentNode interne reste Visible
+```
+
 
 ## Migration WBP_GridSkills
 
