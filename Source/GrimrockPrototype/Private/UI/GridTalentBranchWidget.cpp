@@ -4,6 +4,49 @@
 #include "Components/TextBlock.h"
 #include "UI/GridTalentNodeWidget.h"
 
+void UGridTalentBranchWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	BindNodeEvents();
+}
+
+void UGridTalentBranchWidget::NativeDestruct()
+{
+	UnbindNodeEvents();
+	Super::NativeDestruct();
+}
+
+void UGridTalentBranchWidget::BindNodeEvents()
+{
+	for (int32 Tier = 1; Tier <= 5; ++Tier)
+	{
+		if (UGridTalentNodeWidget* NodeWidget = GetTalentNodeWidgetForTier(Tier))
+		{
+			NodeWidget->OnTalentNodeClicked.RemoveDynamic(this, &UGridTalentBranchWidget::HandleTalentNodeClicked);
+			NodeWidget->OnTalentNodeClicked.AddUniqueDynamic(this, &UGridTalentBranchWidget::HandleTalentNodeClicked);
+		}
+	}
+}
+
+void UGridTalentBranchWidget::UnbindNodeEvents()
+{
+	for (int32 Tier = 1; Tier <= 5; ++Tier)
+	{
+		if (UGridTalentNodeWidget* NodeWidget = GetTalentNodeWidgetForTier(Tier))
+		{
+			NodeWidget->OnTalentNodeClicked.RemoveDynamic(this, &UGridTalentBranchWidget::HandleTalentNodeClicked);
+		}
+	}
+}
+
+void UGridTalentBranchWidget::HandleTalentNodeClicked(FName TalentNodeId)
+{
+	if (bInitialized && !TalentNodeId.IsNone())
+	{
+		OnTalentNodeClicked.Broadcast(TalentNodeId);
+	}
+}
+
 bool UGridTalentBranchWidget::InitializeTalentBranch(
 	const FGridTalentBranchView& InBranchView,
 	const FRPGTalentBranchPresentationDefinition& InPresentation)

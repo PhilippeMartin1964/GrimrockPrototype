@@ -14,6 +14,7 @@ class UTextBlock;
 class UWidgetSwitcher;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGridSkillsWidgetRefreshedSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentSelectionChangedSignature, FName, TalentNodeId);
 
 /**
  * Read-only presentation bridge for WBP_GridSkills.
@@ -39,6 +40,13 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Skills|UI|Events")
 	FGridSkillsWidgetRefreshedSignature OnSkillsRefreshed;
+
+	/** UI-only selection. NAME_None means that no conceptual Talent node is selected. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FName SelectedTalentNodeId = NAME_None;
+
+	UPROPERTY(BlueprintAssignable, Category = "RPG|Talents|UI|Events")
+	FGridTalentSelectionChangedSignature OnTalentSelectionChanged;
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI")
 	void InitializeSkillsWidget(AGrimrockPartyPawn* InPartyPawn);
@@ -75,6 +83,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI")
 	void ShowTalentsTab();
 
+	/** Selects a conceptual Talent node for presentation only; never commits progression. */
+	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|UI")
+	bool SelectTalentNode(FName TalentNodeId);
+
+	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|UI")
+	void ClearTalentSelection();
+
+	UFUNCTION(BlueprintPure, Category = "RPG|Talents|UI")
+	bool GetSelectedTalentNode(FGridTalentNodeView& OutNode) const;
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -89,6 +107,10 @@ private:
 	UFUNCTION()
 	void HandleTalentsTabClicked();
 
+	UFUNCTION()
+	void HandleTalentNodeClicked(FName TalentNodeId);
+
+	const FGridTalentNodeView* FindTalentNode(FName TalentNodeId) const;
 	void ClearView();
 	void BindDesignerShell();
 	void UnbindDesignerShell();

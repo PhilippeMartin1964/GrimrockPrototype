@@ -75,6 +75,13 @@ void UGridSkillsWidget::BindDesignerShell()
 
 	Button_TalentsTab->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentsTabClicked);
 	Button_TalentsTab->OnClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentsTabClicked);
+
+	Branch_Left->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+	Branch_Left->OnTalentNodeClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+	Branch_Center->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+	Branch_Center->OnTalentNodeClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+	Branch_Right->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+	Branch_Right->OnTalentNodeClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
 }
 
 void UGridSkillsWidget::UnbindDesignerShell()
@@ -86,6 +93,18 @@ void UGridSkillsWidget::UnbindDesignerShell()
 	if (Button_TalentsTab)
 	{
 		Button_TalentsTab->OnClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentsTabClicked);
+	}
+	if (Branch_Left)
+	{
+		Branch_Left->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+	}
+	if (Branch_Center)
+	{
+		Branch_Center->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+	}
+	if (Branch_Right)
+	{
+		Branch_Right->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
 	}
 }
 
@@ -102,6 +121,7 @@ void UGridSkillsWidget::RefreshSkills()
 	}
 	TGuardValue<bool> RefreshGuard(bRefreshInProgress, true);
 
+	const FGuid PreviousCharacterId = View.CharacterId;
 	ClearView();
 	if (InventoryComponent)
 	{
@@ -112,6 +132,16 @@ void UGridSkillsWidget::RefreshSkills()
 		if (FGridSkillsPageService::TryBuildSelectedCharacterView(InventoryComponent, SkillDefinitions, Candidate))
 		{
 			View = MoveTemp(Candidate);
+		}
+	}
+
+	if (!SelectedTalentNodeId.IsNone())
+	{
+		const bool bCharacterChanged =
+			PreviousCharacterId.IsValid() && (!View.IsValid() || PreviousCharacterId != View.CharacterId);
+		if (bCharacterChanged || !FindTalentNode(SelectedTalentNodeId))
+		{
+			ClearTalentSelection();
 		}
 	}
 
@@ -165,6 +195,66 @@ bool UGridSkillsWidget::GetPresentedTalentBranch(
 	OutPresentation.TalentBranchId = OutBranch.TalentBranchId;
 	OutPresentation.DisplayName = FText::FromName(OutBranch.TalentBranchId);
 	return true;
+}
+
+const FGridTalentNodeView* UGridSkillsWidget::FindTalentNode(FName TalentNodeId) const
+{
+	if (TalentNodeId.IsNone())
+	{
+		return nullptr;
+	}
+
+	for (const FGridTalentBranchView& Branch : View.TalentTree.Branches)
+	{
+		if (const FGridTalentNodeView* Node = Branch.Nodes.FindByPredicate(
+			[TalentNodeId](const FGridTalentNodeView& Candidate)
+			{
+				return Candidate.TalentNodeId == TalentNodeId;
+			}))
+		{
+			return Node;
+		}
+	}
+	return nullptr;
+}
+
+bool UGridSkillsWidget::SelectTalentNode(FName TalentNodeId)
+{
+	if (!View.IsValid() || !FindTalentNode(TalentNodeId))
+	{
+		return false;
+	}
+
+	if (SelectedTalentNodeId == TalentNodeId)
+	{
+		return true;
+	}
+
+	SelectedTalentNodeId = TalentNodeId;
+	OnTalentSelectionChanged.Broadcast(SelectedTalentNodeId);
+	return true;
+}
+
+void UGridSkillsWidget::ClearTalentSelection()
+{
+	if (SelectedTalentNodeId.IsNone())
+	{
+		return;
+	}
+
+	SelectedTalentNodeId = NAME_None;
+	OnTalentSelectionChanged.Broadcast(NAME_None);
+}
+
+bool UGridSkillsWidget::GetSelectedTalentNode(FGridTalentNodeView& OutNode) const
+{
+	OutNode = FGridTalentNodeView();
+	if (const FGridTalentNodeView* Node = FindTalentNode(SelectedTalentNodeId))
+	{
+		OutNode = *Node;
+		return true;
+	}
+	return false;
 }
 
 void UGridSkillsWidget::ApplyDesignerPresentation()
@@ -238,6 +328,11 @@ void UGridSkillsWidget::HandleSkillsTabClicked()
 void UGridSkillsWidget::HandleTalentsTabClicked()
 {
 	ShowTalentsTab();
+}
+
+void UGridSkillsWidget::HandleTalentNodeClicked(FName TalentNodeId)
+{
+	SelectTalentNode(TalentNodeId);
 }
 
 int32 UGridSkillsWidget::GetSkillEntryCount() const

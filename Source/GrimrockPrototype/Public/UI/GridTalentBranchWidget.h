@@ -10,6 +10,8 @@ class UBorder;
 class UGridTalentNodeWidget;
 class UTextBlock;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentBranchNodeClickedSignature, FName, TalentNodeId);
+
 /** Reusable visual column for one five-tier Talent branch. */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGridTalentBranchWidget : public UUserWidget
@@ -26,6 +28,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Branch")
 	bool bInitialized = false;
 
+	/** Presentation-only routing. No acquisition or progression mutation happens here. */
+	UPROPERTY(BlueprintAssignable, Category = "RPG|Talents|Branch|Events")
+	FGridTalentBranchNodeClickedSignature OnTalentNodeClicked;
+
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Branch")
 	bool InitializeTalentBranch(
 		const FGridTalentBranchView& InBranchView,
@@ -37,7 +43,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Branch")
 	UGridTalentNodeWidget* GetTalentNodeWidgetForTier(int32 Tier) const;
 
+protected:
+	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
+
 private:
+	UFUNCTION()
+	void HandleTalentNodeClicked(FName TalentNodeId);
+
+	void BindNodeEvents();
+	void UnbindNodeEvents();
 	void ApplyBranchPresentation();
 
 	UPROPERTY(meta = (BindWidget))
