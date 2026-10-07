@@ -1,17 +1,20 @@
 #include "UI/GridSkillsWidget.h"
 
 #include "Components/Button.h"
+#include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "Components/WidgetSwitcher.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
+#include "UI/GridSkillEntryWidget.h"
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridTalentBranchWidget.h"
 #include "UI/GridTalentDetailWidget.h"
 #include "UI/GridRPGNotificationWidget.h"
 #include "UI/RPGProgressionFeedbackService.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridSkillsUI, Log, All);
 
 namespace GridSkillsWidgetPrivate
 {
@@ -345,6 +348,8 @@ void UGridSkillsWidget::PublishProgressionNotification(const FRPGProgressionNoti
 
 void UGridSkillsWidget::ApplyDesignerPresentation()
 {
+	RebuildSkillEntryWidgets();
+
 	if (!View.IsValid())
 	{
 		Text_CharacterName->SetText(FText::FromString(TEXT("Aucun personnage sélectionné")));
@@ -423,6 +428,49 @@ void UGridSkillsWidget::ApplyTalentDetailPresentation()
 		!Detail_Talent->InitializeTalentDetail(SelectedNode, *BranchPresentation))
 	{
 		Detail_Talent->ClearTalentDetail();
+	}
+}
+
+void UGridSkillsWidget::RebuildSkillEntryWidgets()
+{
+	if (Text_EmptySkills)
+	{
+		Text_EmptySkills->SetVisibility(View.Skills.IsEmpty() ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+
+	if (!Panel_SkillEntries)
+	{
+		return;
+	}
+
+	Panel_SkillEntries->ClearChildren();
+	if (View.Skills.IsEmpty())
+	{
+		return;
+	}
+
+	if (!SkillEntryWidgetClass)
+	{
+		UE_LOG(LogGridSkillsUI, Warning, TEXT("WBP_GridSkills has Skills data but no SkillEntryWidgetClass."));
+		return;
+	}
+
+	for (const FGridSkillEntryView& Entry : View.Skills)
+	{
+		UGridSkillEntryWidget* EntryWidget = CreateWidget<UGridSkillEntryWidget>(this, SkillEntryWidgetClass);
+		if (!EntryWidget)
+		{
+			UE_LOG(LogGridSkillsUI, Warning, TEXT("Failed to create Skill row for %s."), *Entry.SkillId.ToString());
+			continue;
+		}
+
+		if (!EntryWidget->InitializeSkillEntry(Entry))
+		{
+			UE_LOG(LogGridSkillsUI, Warning, TEXT("Rejected invalid Skill row projection for %s."), *Entry.SkillId.ToString());
+			continue;
+		}
+
+		Panel_SkillEntries->AddChild(EntryWidget);
 	}
 }
 

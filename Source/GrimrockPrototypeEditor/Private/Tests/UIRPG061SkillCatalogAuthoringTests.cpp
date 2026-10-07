@@ -122,4 +122,47 @@ bool FUIRPG061SkillAuthoringPreservesExtensionsTest::RunTest(const FString& Para
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPG062AProductionSkillCatalogTest,
+	"Grimrock.UI.RPG06.Skills.ProductionCatalog",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPG062AProductionSkillCatalogTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	TArray<FRPGCanonicalSkillDefinition> Definitions;
+	FRPGSkillCatalogAuthoring::GetCanonicalDefinitions(Definitions);
+	TestEqual(TEXT("Twenty-five canonical Skill definitions are expected"), Definitions.Num(), 25);
+
+	int32 LoadedCount = 0;
+	for (const FRPGCanonicalSkillDefinition& Definition : Definitions)
+	{
+		const FString AssetName = FString::Printf(TEXT("DA_%s"), *Definition.SkillId.ToString());
+		const FString ObjectPath = FString::Printf(
+			TEXT("%s/%s.%s"),
+			FRPGSkillCatalogAuthoring::ProductionFolder(),
+			*AssetName,
+			*AssetName);
+
+		URPGSkillAsset* Skill = LoadObject<URPGSkillAsset>(nullptr, *ObjectPath);
+		TestNotNull(*FString::Printf(TEXT("%s production asset loads"), *Definition.SkillId.ToString()), Skill);
+		if (!Skill)
+		{
+			continue;
+		}
+
+		++LoadedCount;
+		TestTrue(
+			*FString::Printf(TEXT("%s production asset matches canonical fields"), *Definition.SkillId.ToString()),
+			FRPGSkillCatalogAuthoring::IsCanonicalSkill(*Skill, Definition));
+		TestTrue(
+			*FString::Printf(TEXT("%s production asset is structurally valid"), *Definition.SkillId.ToString()),
+			Skill->IsValidDefinition());
+	}
+
+	TestEqual(TEXT("All twenty-five production Skill assets load"), LoadedCount, 25);
+	return true;
+}
+
 #endif

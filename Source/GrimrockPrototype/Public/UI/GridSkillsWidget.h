@@ -11,7 +11,9 @@ class AGrimrockPartyPawn;
 class UButton;
 class UGridPartyInventoryComponent;
 class UGridRPGNotificationWidget;
+class UGridSkillEntryWidget;
 class UGridTalentBranchWidget;
+class UPanelWidget;
 class UGridTalentDetailWidget;
 class UTextBlock;
 class UWidgetSwitcher;
@@ -42,6 +44,18 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	FGridSkillsPageView View;
 
+	/** UI-RPG06.2B: reusable row class used to render the authoritative Skills projection. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|UI|Presentation")
+	TSubclassOf<UGridSkillEntryWidget> SkillEntryWidgetClass;
+
+	/** UI-RPG06.2B: optional until the Designer migration is materialized. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Skills|UI|Presentation")
+	TObjectPtr<UPanelWidget> Panel_SkillEntries;
+
+	/** Optional empty-state label for a missing/empty canonical Skills projection. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Skills|UI|Presentation")
+	TObjectPtr<UTextBlock> Text_EmptySkills;
+
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Skills|UI|Events")
 	FGridSkillsWidgetRefreshedSignature OnSkillsRefreshed;
 
@@ -64,7 +78,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI")
 	void RefreshSkills();
 
-	// Retained for the future Skills page renderer. These are read-only projections only.
+	/** Rebuilds the optional Designer Skills list from View.Skills. */
+	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI|Presentation")
+	void RebuildSkillEntryWidgets();
+
+	// Read-only accessors retained for diagnostics and Blueprint presentation helpers.
 	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
 	int32 GetSkillEntryCount() const;
 

@@ -3,7 +3,7 @@
 Date : **7 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Jalon parent : **UI-RPG06 — Unification Compétences + Talents UX**  
-Statut : **SOURCE IMPLÉMENTÉE — BUILD / AUTOMATION / MATÉRIALISATION LOCAUX À VALIDER**
+Statut : **UI-RPG06.1 VALIDÉ — Automation 3/3 ; UI-RPG06.2A catalogue de production matérialisé (25 assets) et poussé**
 
 ## 1. Objectif
 
@@ -234,36 +234,43 @@ La matérialisation des 25 DataAssets doit être exécutée localement sous UE5.
 
 ## 11. Suite UI-RPG06
 
-### UI-RPG06.2 — Matérialisation + page COMPÉTENCES
+### UI-RPG06.2A — Catalogue de production — VALIDÉ
 
-1. build local ;
-2. Automation `Grimrock.UI.RPG06.Skills` ;
-3. exécution locale du commandlet d'authoring ;
-4. contrôle des 25 DataAssets ;
-5. construction manuelle de la page dans `WBP_GridSkills` ;
-6. affichage du nom, attribut directeur, rang/max et règle entraînée/non entraînée ;
-7. description uniquement lorsqu'elle existe réellement.
+- build/Automation UI-RPG06.1 : **3/3, 0 warning, 0 échec** ;
+- commandlet exécuté localement ;
+- **25** `DA_Skill_*` créés ;
+- second passage `Grimrock.UI.RPG06.Skills` : **3/3, 0 warning, 0 échec** ;
+- commit production : `c3338d8941b81f9e7eafdad7bfb11fa48934d960`.
 
-Aucun achat de rang n'est ajouté dans cette tranche.
+### UI-RPG06.2B — Renderer COMPÉTENCES
+
+- widget de ligne réutilisable `UGridSkillEntryWidget` / `WBP_RPGSkillEntry` ;
+- liste dynamique pilotée uniquement par `FGridSkillsPageView::Skills` ;
+- nom, attribut directeur, rang/max et politique entraînée/non entraînée ;
+- description uniquement lorsqu'elle existe réellement ;
+- aucune économie de Skill Points, aucun achat de rang.
+
+La matérialisation UMG reste manuelle et est décrite dans
+`UI_RPG06_2B_SKILLS_PAGE_RENDERER.md`.
 
 ### UI-RPG06.3 — Finition et régression
 
-- interactions de sélection/détail si elles apportent une valeur réelle ;
+- rendre les nouveaux bindings UMG obligatoires après matérialisation validée ;
+- interactions de sélection/détail uniquement si elles apportent une valeur réelle ;
 - cohérence visuelle avec TALENTS ;
-- nettoyage des projections de compatibilité devenues réellement inutiles ;
+- nettoyage des projections de compatibilité réellement inutiles ;
+- correction des statuts documentaires UI-RPG03/04/05 devenus obsolètes ;
 - Automation et validation PIE de l'écran complet.
 
 ## 12. Validation locale requise
 
-Ne pas considérer UI-RPG06.1 validé avant fourniture du log local.
-
-Filtre dédié :
+Filtre dédié après UI-RPG06.2B :
 
 ```text
 Grimrock.UI.RPG06.Skills
 ```
 
-Régression minimale recommandée après build :
+Régression minimale recommandée :
 
 ```text
 Grimrock.MON20.8.SkillsPage
