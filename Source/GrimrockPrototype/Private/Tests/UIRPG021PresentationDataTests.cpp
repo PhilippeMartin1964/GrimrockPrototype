@@ -96,7 +96,8 @@ bool FUIRPG021DuplicateClassTest::RunTest(const FString&)
 {
 	using namespace UIRPG021Tests;
 	URPGTalentPresentationAsset* Catalog = MakeSixClassCatalog();
-	Catalog->Classes.Add(Catalog->Classes[0]);
+	const FRPGClassPresentationDefinition DuplicateClass = Catalog->Classes[0];
+	Catalog->Classes.Add(DuplicateClass);
 
 	TestFalse(TEXT("Duplicate ClassId is rejected"), Catalog->IsValidDefinition());
 	return true;
