@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "UI/GridTalentDetailWidget.h"
+#include "UI/GridTalentNodeWidget.h"
 
 namespace UIRPG042Tests
 {
