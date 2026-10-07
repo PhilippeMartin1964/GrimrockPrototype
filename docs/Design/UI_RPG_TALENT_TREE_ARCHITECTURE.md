@@ -108,28 +108,31 @@ Le nombre de `ChoiceId` n'est pas un invariant car certains nœuds contiennent p
 | Mage | Affinité élémentaire | Feu / Glace / Foudre / Terre |
 | Mage | Imprégnation | Feu / Glace / Foudre / Terre |
 
-## Frontière avec UI-RPG02
+## UI-RPG02 — Presentation Data
 
-UI-RPG02 ajoutera une couche **strictement de présentation** indexée par les identités existantes :
+UI-RPG02.1 fixe une couche **strictement de présentation** sous la forme d'un catalogue unique :
 
 ```text
-ClassId
-TalentBranchId
-TalentNodeId
+URPGTalentPresentationAsset
+└── Classes[]
+    └── FRPGClassPresentationDefinition
+        ├── ClassId
+        ├── portrait / emblème / palette / motifs
+        └── Branches[3]
+            └── FRPGTalentBranchPresentationDefinition
+                ├── TalentBranchId
+                ├── DisplayName / ShortDescription
+                ├── BranchEmblemTexture
+                └── AccentColor
 ```
 
-Elle pourra fournir :
+L'ordre de `Branches[3]` est directement gauche / centre / droite. Cette forme évite de dupliquer `OwningClassId`, `SortIndex` ou `OrderedBranchIds`.
 
-- illustration de classe ;
-- icône de classe ;
-- palette ;
-- fond/motif ;
-- nom et description de branche ;
-- emblème de branche ;
-- ordre artistique des trois branches ;
-- icône de nœud.
+La couche de présentation ne contient aucun coût, niveau, prérequis, choix acquis, calcul de disponibilité ou transaction.
 
-Elle ne doit contenir aucun coût, niveau, prérequis, choix acquis ou calcul de disponibilité.
+Les données de nœud individuelles restent volontairement hors de UI-RPG02.1 : leurs noms/descriptions viennent déjà des `ProgressionChoices`; les icônes de talents pourront être ajoutées ultérieurement si la production graphique le justifie.
+
+Après UI-RPG02.2 (catalogue de production minimal), **UI-RPG03.1 crée le vrai écran WBP Talent Tree**.
 
 ## Validation
 
