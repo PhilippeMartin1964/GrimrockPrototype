@@ -62,6 +62,7 @@ Write-Host '[OK] Exactly one presentation DataAsset was materialized.'
 
 & (Join-Path $PSScriptRoot 'ValidateUE.ps1') -EngineRoot $EngineRoot -SkipBuild -AutomationFilter 'Grimrock.UI.RPG02.ProductionPresentation'
 & (Join-Path $PSScriptRoot 'ValidateUE.ps1') -EngineRoot $EngineRoot -SkipBuild -AutomationFilter 'Grimrock.UI.RPG02.PresentationData'
+& (Join-Path $PSScriptRoot 'ValidateUE.ps1') -EngineRoot $EngineRoot -SkipBuild -AutomationFilter 'Grimrock.UI.RPG03.NodeBinding'
 
 Write-Host ''
 Write-Host '=== UI-RPG02.2 generated change ==='

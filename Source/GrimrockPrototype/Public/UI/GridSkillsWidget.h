@@ -9,6 +9,7 @@
 class AGrimrockPartyPawn;
 class UButton;
 class UGridPartyInventoryComponent;
+class UGridTalentBranchWidget;
 class UPanelWidget;
 class UScrollBox;
 class UTextBlock;
@@ -128,6 +129,15 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_BranchRight;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UGridTalentBranchWidget> Branch_Left;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UGridTalentBranchWidget> Branch_Center;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UGridTalentBranchWidget> Branch_Right;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UScrollBox> NativeScrollBox;

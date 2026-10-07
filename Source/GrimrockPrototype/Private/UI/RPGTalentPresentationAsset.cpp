@@ -1,8 +1,42 @@
 #include "UI/RPGTalentPresentationAsset.h"
 
+bool FRPGTalentNodePresentationDefinition::IsValidDefinition() const
+{
+	return !TalentNodeId.IsNone() && !DisplayName.IsEmpty();
+}
+
 bool FRPGTalentBranchPresentationDefinition::IsValidDefinition() const
 {
-	return !TalentBranchId.IsNone() && !DisplayName.IsEmpty();
+	if (TalentBranchId.IsNone() || DisplayName.IsEmpty())
+	{
+		return false;
+	}
+
+	TSet<FName> SeenNodeIds;
+	for (const FRPGTalentNodePresentationDefinition& NodeOverride : NodePresentationOverrides)
+	{
+		if (!NodeOverride.IsValidDefinition() || SeenNodeIds.Contains(NodeOverride.TalentNodeId))
+		{
+			return false;
+		}
+		SeenNodeIds.Add(NodeOverride.TalentNodeId);
+	}
+
+	return true;
+}
+
+const FRPGTalentNodePresentationDefinition* FRPGTalentBranchPresentationDefinition::FindNodeOverride(FName TalentNodeId) const
+{
+	if (TalentNodeId.IsNone())
+	{
+		return nullptr;
+	}
+
+	return NodePresentationOverrides.FindByPredicate(
+		[TalentNodeId](const FRPGTalentNodePresentationDefinition& NodeOverride)
+		{
+			return NodeOverride.TalentNodeId == TalentNodeId;
+		});
 }
 
 bool FRPGClassPresentationDefinition::IsValidDefinition() const

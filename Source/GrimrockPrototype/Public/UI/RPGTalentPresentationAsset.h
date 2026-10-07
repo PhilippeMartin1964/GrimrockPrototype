@@ -7,6 +7,31 @@
 class UTexture2D;
 
 /**
+ * Sparse presentation metadata for one conceptual Talent node.
+ * Simple one-choice nodes deliberately need no override: their text comes from
+ * RPG03 ProgressionChoice data. Overrides exist only for grouped ChoiceIds.
+ */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FRPGTalentNodePresentationDefinition
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
+	FName TalentNodeId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
+	FText DisplayName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation", meta = (MultiLine = "true"))
+	FText Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
+	TSoftObjectPtr<UTexture2D> NodeIconTexture;
+
+	bool IsValidDefinition() const;
+};
+
+/**
  * Pure presentation metadata for one Talent branch.
  * Array order inside FRPGClassPresentationDefinition is the visual left -> center -> right order.
  */
@@ -30,7 +55,12 @@ struct GRIMROCKPROTOTYPE_API FRPGTalentBranchPresentationDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
 	FLinearColor AccentColor = FLinearColor::White;
 
+	/** Sparse overrides only for conceptual nodes whose UI identity cannot be read from one Choice record. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation", meta = (TitleProperty = "TalentNodeId"))
+	TArray<FRPGTalentNodePresentationDefinition> NodePresentationOverrides;
+
 	bool IsValidDefinition() const;
+	const FRPGTalentNodePresentationDefinition* FindNodeOverride(FName TalentNodeId) const;
 };
 
 /**

@@ -13,6 +13,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridSkillsPageService.h"
+#include "UI/GridTalentBranchWidget.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGrimrockInGameUI, Log, All);
 
@@ -74,6 +75,21 @@ namespace GridSkillsWidgetPrivate
 	}
 
 	UTextBlock* BranchTitleByIndex(int32 Index, UTextBlock* Left, UTextBlock* Center, UTextBlock* Right)
+	{
+		switch (Index)
+		{
+			case 0: return Left;
+			case 1: return Center;
+			case 2: return Right;
+			default: return nullptr;
+		}
+	}
+
+	UGridTalentBranchWidget* BranchWidgetByIndex(
+		int32 Index,
+		UGridTalentBranchWidget* Left,
+		UGridTalentBranchWidget* Center,
+		UGridTalentBranchWidget* Right)
 	{
 		switch (Index)
 		{
@@ -253,6 +269,11 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 			{
 				BranchTitle->SetText(FText::FromString(TEXT("—")));
 			}
+			if (UGridTalentBranchWidget* BranchWidget = GridSkillsWidgetPrivate::BranchWidgetByIndex(
+				Index, Branch_Left, Branch_Center, Branch_Right))
+			{
+				BranchWidget->ClearTalentBranch();
+			}
 		}
 		return;
 	}
@@ -281,19 +302,41 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 
 	for (int32 Index = 0; Index < 3; ++Index)
 	{
-		UTextBlock* BranchTitle = GridSkillsWidgetPrivate::BranchTitleByIndex(Index, Text_BranchLeft, Text_BranchCenter, Text_BranchRight);
-		if (!BranchTitle) continue;
+		UTextBlock* BranchTitle = GridSkillsWidgetPrivate::BranchTitleByIndex(
+			Index, Text_BranchLeft, Text_BranchCenter, Text_BranchRight);
+		UGridTalentBranchWidget* BranchWidget = GridSkillsWidgetPrivate::BranchWidgetByIndex(
+			Index, Branch_Left, Branch_Center, Branch_Right);
 
 		FGridTalentBranchView BranchView;
 		FRPGTalentBranchPresentationDefinition BranchPresentation;
-		if (GetPresentedTalentBranch(Index, BranchView, BranchPresentation))
+		const bool bResolved = GetPresentedTalentBranch(Index, BranchView, BranchPresentation);
+
+		if (BranchTitle)
 		{
-			BranchTitle->SetText(BranchPresentation.DisplayName.IsEmpty() ? FText::FromName(BranchView.TalentBranchId) : BranchPresentation.DisplayName);
-			BranchTitle->SetColorAndOpacity(FSlateColor(BranchPresentation.AccentColor));
+			if (bResolved)
+			{
+				BranchTitle->SetText(
+					BranchPresentation.DisplayName.IsEmpty()
+						? FText::FromName(BranchView.TalentBranchId)
+						: BranchPresentation.DisplayName);
+				BranchTitle->SetColorAndOpacity(FSlateColor(BranchPresentation.AccentColor));
+			}
+			else
+			{
+				BranchTitle->SetText(FText::FromString(TEXT("—")));
+			}
 		}
-		else
+
+		if (BranchWidget)
 		{
-			BranchTitle->SetText(FText::FromString(TEXT("—")));
+			if (bResolved)
+			{
+				BranchWidget->InitializeTalentBranch(BranchView, BranchPresentation);
+			}
+			else
+			{
+				BranchWidget->ClearTalentBranch();
+			}
 		}
 	}
 }
