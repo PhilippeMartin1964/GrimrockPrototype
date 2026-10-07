@@ -1,7 +1,7 @@
 # UI-RPG03.2 — WBP_RPGTalentBranch + WBP_RPGTalentNode
 
 Date : **7 octobre 2026**  
-État : **03.2A SOURCE PRÊTE — validation locale puis rematérialisation du catalogue requises**
+État : **03.2A/03.2B VALIDÉS — 03.2C construction des WBP en cours**
 
 ## Objectif
 
@@ -73,18 +73,46 @@ Parent :
 UGridTalentNodeWidget
 ```
 
-Hiérarchie exacte :
+### Hiérarchie exacte ET ordre de peinture
 
 ```text
 SB_NodeRoot                              [SizeBox 68×68]
 └── Button_TalentNode                    [Button]      Variable
     └── Overlay_Node                     [Overlay]
-        ├── Border_TalentNode            [Border]      Variable
+        ├── Border_TalentNode            [Border]      Variable   <- DOIT ÊTRE LE 1er ENFANT
         ├── Text_TalentTier              [TextBlock]   Variable
         ├── Text_TalentLevel             [TextBlock]   Variable
         ├── Text_VariantCount            [TextBlock]   Variable
         └── Text_TalentState             [TextBlock]   Variable
 ```
+
+Dans un `Overlay`, les enfants placés plus bas dans la hiérarchie sont peints au-dessus des précédents.  
+**Si `Border_TalentNode` est placé après les TextBlock, il les recouvre et ils deviennent invisibles.**
+
+### Visibilité UE5.5.4 — nomenclature exacte
+
+Ne pas chercher le texte `Self Hit Test Invisible` : selon l'affichage de UE5.5.4, le champ **Visibility** propose les libellés conviviaux :
+
+```text
+Visible
+Collapsed
+Hidden
+Not Hit-Testable (Self & All Children)
+Not Hit-Testable (Self Only)
+```
+
+Pour UI-RPG03.2C :
+
+```text
+Button_TalentNode       = Visible
+Border_TalentNode       = Not Hit-Testable (Self & All Children)
+Text_TalentTier         = Not Hit-Testable (Self & All Children)
+Text_TalentLevel        = Not Hit-Testable (Self & All Children)
+Text_VariantCount       = Not Hit-Testable (Self & All Children)
+Text_TalentState        = Not Hit-Testable (Self & All Children)
+```
+
+Le Button doit rester `Visible`, sinon il ne recevra pas les clics.
 
 ### SB_NodeRoot
 
@@ -93,26 +121,74 @@ Width Override  = 68
 Height Override = 68
 ```
 
-### Button_TalentNode
+Important : ces valeurs donnent la **Desired Size** du UserWidget. Dans son futur `VerticalBox Slot` de branche, l'instance devra aussi être en :
+
+```text
+Size                 = Auto
+Horizontal Alignment = Center
+Vertical Alignment   = Center
+```
+
+C'est ce slot parent qui garantit que le nœud ne s'étire pas sur toute la largeur de la branche.
+
+### Button_TalentNode — rendre le Button transparent
 
 ```text
 Is Variable          = ON
 Horizontal Alignment = Fill
 Vertical Alignment   = Fill
+Visibility           = Visible
 ```
 
 Aucun `OnClicked` Blueprint.
 
-### Border_TalentNode
+Le Button ne doit pas fournir le fond visuel du talent : c'est `Border_TalentNode` qui le fait.
+
+Dans **Style** du Button, mettre les brushes de fond à transparent / sans dessin. La solution la plus sûre dans UE5.5.4 est :
+
+```text
+Style > Normal   > Draw As = No Draw Type
+Style > Hovered  > Draw As = No Draw Type
+Style > Pressed  > Draw As = No Draw Type
+Style > Disabled > Draw As = No Draw Type
+```
+
+Si l'éditeur ne propose pas `No Draw Type` pour l'un de ces brushes, mettre son `Tint` avec Alpha = 0.
+
+Le contenu de l'Overlay restera visible et le Button continuera à recevoir le clic.
+
+### Overlay_Node
+
+```text
+Horizontal Alignment = Fill
+Vertical Alignment   = Fill
+```
+
+Ne pas modifier son Visibility.
+
+### Border_TalentNode — correction du rectangle blanc
 
 ```text
 Is Variable          = ON
 Horizontal Alignment = Fill
 Vertical Alignment   = Fill
 Padding              = 0
+Visibility           = Not Hit-Testable (Self & All Children)
 ```
 
-Le C++ applique la couleur selon :
+Dans le Designer, choisir un **fallback sombre explicite** :
+
+```text
+Brush Color:
+R = 0.08
+G = 0.08
+B = 0.09
+A = 1.00
+```
+
+Ne jamais laisser le Brush blanc par défaut.
+
+Le C++ remplacera ensuite cette couleur au runtime selon :
 
 ```text
 Acquired
@@ -123,55 +199,148 @@ LockedPoints
 LockedExclusive
 ```
 
+Si un grand rectangle blanc apparaît dans le Designer, vérifier dans cet ordre :
+
+```text
+1. Button Style n'est pas encore transparent ;
+2. Border_TalentNode possède encore son Brush blanc par défaut ;
+3. Border_TalentNode n'est pas le premier enfant de Overlay_Node ;
+4. le UserWidget est prévisualisé en Fill Screen — ce point n'affecte pas sa taille réelle dans WBP_RPGTalentBranch.
+```
+
+### Couleur commune des quatre TextBlock
+
+Pour rendre le montage vérifiable dans le Designer :
+
+```text
+Color and Opacity = blanc cassé
+R = 0.90
+G = 0.90
+B = 0.88
+A = 1.00
+
+Shadow Offset  = 1 / 1
+Shadow Color   = noir avec Alpha ~= 0.75
+```
+
+Ils doivent tous apparaître **après `Border_TalentNode`** dans `Overlay_Node`.
+
 ### Text_TalentTier
 
 ```text
 Is Variable = ON
+Text        = III          <- placeholder de montage
 Font        = Alegreya Sans
-Size        = 18
+Font Size   = 18
+Justification = Center
+Visibility  = Not Hit-Testable (Self & All Children)
+
 Overlay Slot:
   Horizontal = Center
   Vertical   = Center
+  Padding    = 0
 ```
 
+Le placeholder `III` permet de vérifier immédiatement le centrage.  
 Runtime : I / II / III / IV / V.
 
 ### Text_TalentLevel
 
 ```text
 Is Variable = ON
+Text        = Niv. 10      <- placeholder de montage
+Font        = Alegreya Sans
 Font Size   = 9
+Visibility  = Not Hit-Testable (Self & All Children)
+
 Overlay Slot:
   Horizontal = Left
   Vertical   = Top
-  Padding    = 4 / 3 / 0 / 0
+  Padding:
+    Left   = 4
+    Top    = 3
+    Right  = 0
+    Bottom = 0
 ```
 
-Runtime : `Niv. 2`, `Niv. 6`, etc.
+Runtime : `Niv. 2`, `Niv. 6`, `Niv. 10`, `Niv. 14`, `Niv. 18`.
 
 ### Text_VariantCount
 
+Pendant la construction, **ne pas le laisser vide**, sinon son emplacement est impossible à contrôler visuellement.
+
 ```text
 Is Variable = ON
+Text        = ×4           <- placeholder de montage uniquement
+Font        = Alegreya Sans
 Font Size   = 10
+Visibility  = Not Hit-Testable (Self & All Children)
+
 Overlay Slot:
   Horizontal = Right
   Vertical   = Top
-  Padding    = 0 / 3 / 4 / 0
+  Padding:
+    Left   = 0
+    Top    = 3
+    Right  = 4
+    Bottom = 0
 ```
 
-Runtime : vide pour un nœud simple ; `×3`, `×4`, etc. pour les variantes.
+Runtime :
+
+```text
+nœud simple -> texte vide
+3 variantes -> ×3
+4 variantes -> ×4
+N variantes -> ×N
+```
 
 ### Text_TalentState
 
 ```text
 Is Variable = ON
+Text        = Prérequis    <- placeholder de montage
+Font        = Alegreya Sans
 Font Size   = 8
+Justification = Center
+Visibility  = Not Hit-Testable (Self & All Children)
+
 Overlay Slot:
   Horizontal = Center
   Vertical   = Bottom
-  Padding Bottom = 3
+  Padding:
+    Left   = 1
+    Top    = 0
+    Right  = 1
+    Bottom = 3
 ```
+
+Runtime :
+
+```text
+Acquis
+Disponible
+Niveau
+Prérequis
+Points
+Exclusif
+```
+
+### Aspect que le Designer doit montrer AVANT de créer WBP_RPGTalentBranch
+
+Avec les placeholders de montage, le carré 68×68 doit ressembler approximativement à :
+
+```text
+┌──────────────────┐
+│ Niv.10       ×4  │
+│                  │
+│       III        │
+│                  │
+│    Prérequis     │
+└──────────────────┘
+```
+
+Si vous ne voyez pas **ces quatre textes** dans le Designer, ne poursuivez pas vers `WBP_RPGTalentBranch`. Corriger d'abord l'ordre de l'Overlay, le Brush du Border et les couleurs de texte.
 
 Le nom et la description complets du talent sont fournis automatiquement en tooltip. Le futur panneau Detail les utilisera aussi.
 
