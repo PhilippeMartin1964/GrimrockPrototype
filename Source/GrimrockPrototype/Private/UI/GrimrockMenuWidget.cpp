@@ -1,7 +1,6 @@
 #include "UI/GrimrockMenuWidget.h"
 
 #include "Components/WidgetSwitcher.h"
-#include "UI/GridSkillsWidget.h"
 #include "UI/GridSpellbookWidget.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGrimrockInGameUI, Log, All);
@@ -20,21 +19,9 @@ void UGrimrockMenuWidget::InitializeMenuWidget(AGrimrockPartyPawn* InPartyPawn)
 {
 	OwningPartyPawn = InPartyPawn;
 
-	if (UGridSkillsWidget* SkillsWidget = GetSkillsWidget())
-	{
-		SkillsWidget->InitializeSkillsWidget(InPartyPawn);
-	}
 	if (UGridSpellbookWidget* SpellbookWidget = GetSpellbookWidget())
 	{
 		SpellbookWidget->InitializeSpellbookWidget(InPartyPawn);
-	}
-}
-
-void UGrimrockMenuWidget::RefreshSkills()
-{
-	if (UGridSkillsWidget* SkillsWidget = GetSkillsWidget())
-	{
-		SkillsWidget->RefreshSkills();
 	}
 }
 
@@ -44,11 +31,6 @@ void UGrimrockMenuWidget::RefreshSpellbook()
 	{
 		SpellbookWidget->RefreshSpellbook();
 	}
-}
-
-UGridSkillsWidget* UGrimrockMenuWidget::GetSkillsWidget() const
-{
-	return Cast<UGridSkillsWidget>(Page_Skills);
 }
 
 UGridSpellbookWidget* UGrimrockMenuWidget::GetSpellbookWidget() const
@@ -61,7 +43,7 @@ UWidget* UGrimrockMenuWidget::GetTopTabPage(EInventoryTopTab Tab) const
 	switch (Tab)
 	{
 		case EInventoryTopTab::Skills:
-			return Page_Skills;
+			return nullptr;
 		case EInventoryTopTab::Journal:
 			return Page_Journal;
 		case EInventoryTopTab::Map:
@@ -90,11 +72,7 @@ void UGrimrockMenuWidget::SetActiveTopTab(EInventoryTopTab NewTab)
 	CurrentTopTab = NewTab;
 	WidgetSwitcher_MainContent->SetActiveWidget(TargetPage);
 
-	if (NewTab == EInventoryTopTab::Skills)
-	{
-		RefreshSkills();
-	}
-	else if (NewTab == EInventoryTopTab::Spellbook)
+	if (NewTab == EInventoryTopTab::Spellbook)
 	{
 		RefreshSpellbook();
 	}

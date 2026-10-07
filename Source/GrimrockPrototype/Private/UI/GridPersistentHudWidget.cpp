@@ -171,15 +171,13 @@ void UGridPersistentHudWidget::RefreshNavigationSelection()
 	if (IsValid(PartyPawn))
 	{
 		bInventory = PartyPawn->IsInventoryWorkspaceVisible();
+		bSkills = PartyPawn->IsSkillsWidgetVisible();
 		bMap = PartyPawn->IsMapWidgetVisible();
-		const bool bMenuVisible = !bMap && PartyPawn->bInventoryWidgetVisible && IsWidgetPresentationVisible(PartyPawn->MenuWidgetInstance);
+		const bool bMenuVisible = !bSkills && !bMap && PartyPawn->bInventoryWidgetVisible && IsWidgetPresentationVisible(PartyPawn->MenuWidgetInstance);
 		if (bMenuVisible)
 		{
 			switch (PartyPawn->MenuWidgetInstance->CurrentTopTab)
 			{
-				case EInventoryTopTab::Skills:
-					bSkills = true;
-					break;
 				case EInventoryTopTab::Recipes:
 					bCrafting = true;
 					break;

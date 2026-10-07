@@ -11,6 +11,7 @@
 #include "UI/GridInventoryBagWidget.h"
 #include "UI/GridInventoryUiTypes.h"
 #include "UI/GridMapWidget.h"
+#include "UI/GridSkillsWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 
 namespace
@@ -133,9 +134,20 @@ bool FGridUINavigation01PageToggleTest::RunTest(const FString& Parameters)
 	Party->ToggleInventoryWidget();
 	TestFalse(TEXT("I closes the canonical split inventory workspace when both windows are visible"), Party->bInventoryWidgetVisible);
 
-	PrepareVisibleTab(EInventoryTopTab::Skills);
+	Menu->SetVisibility(ESlateVisibility::Collapsed);
+	UGridSkillsWidget* Skills = NewObject<UGridSkillsWidget>(Party);
+	TestNotNull(TEXT("Standalone Skills state object exists"), Skills);
+	if (!Skills)
+	{
+		return false;
+	}
+	Party->SkillsWidgetInstance = Skills;
+	Skills->SetVisibility(ESlateVisibility::Visible);
+	Party->bInventoryWidgetVisible = true;
+	TestTrue(TEXT("Standalone Skills reports visible before K toggle"), Party->IsSkillsWidgetVisible());
 	Party->ToggleSkillsWidget();
-	TestFalse(TEXT("K closes Skills when Skills is already active"), Party->bInventoryWidgetVisible);
+	TestFalse(TEXT("K closes standalone Skills when it is already active"), Party->bInventoryWidgetVisible);
+	TestFalse(TEXT("Standalone Skills presentation is collapsed by K"), Party->IsSkillsWidgetVisible());
 
 	PrepareVisibleTab(EInventoryTopTab::Recipes);
 	Party->ToggleCraftingWidget();

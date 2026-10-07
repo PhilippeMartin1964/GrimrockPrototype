@@ -25,6 +25,7 @@ class UGridInventoryWidget;
 class UGridCharacterSheetWidget;
 class UGridInventoryBagWidget;
 class UGridMapWidget;
+class UGridSkillsWidget;
 class UGridCombatHudWidget;
 class UGridTurnManagerComponent;
 class UGrimrockMenuWidget;
@@ -198,6 +199,13 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI|Pages")
 	TObjectPtr<UGrimrockMenuWidget> MenuWidgetInstance;
 
+	/** Standalone Skills/Talents window opened directly by K. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Skills|UI")
+	TSubclassOf<UGridSkillsWidget> SkillsWidgetClass;
+
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Skills|UI")
+	TObjectPtr<UGridSkillsWidget> SkillsWidgetInstance;
+
 	/** Standalone map window opened directly by M. Presentation only; map authority remains in runtime/read-model state. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|UI")
 	TSubclassOf<UGridMapWidget> MapWidgetClass;
@@ -360,6 +368,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "UI|Navigation")
 	void ToggleSkillsWidget();
+
+	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI")
+	void ShowSkillsWidget();
+
+	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI")
+	void HideSkillsWidget();
+
+	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
+	bool IsSkillsWidgetVisible() const;
 
 	UFUNCTION(BlueprintCallable, Category = "UI|Navigation")
 	void ToggleCraftingWidget();

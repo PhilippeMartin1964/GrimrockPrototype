@@ -11,6 +11,7 @@
 #include "UI/GridInventoryBagWidget.h"
 #include "UI/GridMapWidget.h"
 #include "UI/GridPersistentHudWidget.h"
+#include "UI/GridSkillsWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/RPGCharacterCreationWidget.h"
 
@@ -42,7 +43,106 @@ void AGrimrockPartyPawn::ToggleInventoryWidget()
 
 void AGrimrockPartyPawn::ToggleSkillsWidget()
 {
-	ToggleMenuPage(EInventoryTopTab::Skills);
+	if (IsMajorGameplayUiBlockedByCombat() || bCharacterCreationModalActive || bIsPitFalling)
+	{
+		return;
+	}
+
+	if (IsSkillsWidgetVisible())
+	{
+		HideSkillsWidget();
+		return;
+	}
+
+	ShowSkillsWidget();
+}
+
+bool AGrimrockPartyPawn::IsSkillsWidgetVisible() const
+{
+	return IsValid(SkillsWidgetInstance) &&
+		SkillsWidgetInstance->GetVisibility() != ESlateVisibility::Collapsed &&
+		SkillsWidgetInstance->GetVisibility() != ESlateVisibility::Hidden;
+}
+
+void AGrimrockPartyPawn::ShowSkillsWidget()
+{
+	if (IsMajorGameplayUiBlockedByCombat() || bCharacterCreationModalActive || bIsPitFalling)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController)
+	{
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridSkills Standalone Show Failed Pawn=%s Reason=NoPlayerController"), *GetName());
+		return;
+	}
+
+	if (!SkillsWidgetClass)
+	{
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridSkills Standalone Show Failed Pawn=%s Reason=WidgetClassUnset"), *GetName());
+		return;
+	}
+
+	ClearBufferedCommand();
+	CollapseInventoryWorkspaceForMenuPage();
+
+	if (MenuWidgetInstance)
+	{
+		MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (SkillsWidgetInstance)
+	{
+		SkillsWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (MapWidgetInstance)
+	{
+		MapWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (!SkillsWidgetInstance)
+	{
+		SkillsWidgetInstance = CreateWidget<UGridSkillsWidget>(PlayerController, SkillsWidgetClass);
+		if (SkillsWidgetInstance)
+		{
+			SkillsWidgetInstance->InitializeSkillsWidget(this);
+		}
+	}
+	else
+	{
+		SkillsWidgetInstance->RefreshSkills();
+	}
+
+	if (!SkillsWidgetInstance)
+	{
+		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridSkills Standalone Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
+		return;
+	}
+
+	if (!SkillsWidgetInstance->IsInViewport())
+	{
+		SkillsWidgetInstance->AddToViewport(100);
+	}
+	SkillsWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+
+	bInventoryWorkspaceVisible = false;
+	bInventoryWidgetVisible = true;
+	RefreshPersistentHudWidget();
+	ApplyMajorUiInputMode(true);
+
+	FInputModeGameAndUI InputMode;
+	InputMode.SetWidgetToFocus(SkillsWidgetInstance->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	InputMode.SetHideCursorDuringCapture(false);
+	PlayerController->SetInputMode(InputMode);
+
+	UE_LOG(LogGrimrockPartyUI, Verbose, TEXT("GridSkills Standalone Shown Pawn=%s Widget=%s"), *GetName(), *GetNameSafe(SkillsWidgetInstance));
+}
+
+void AGrimrockPartyPawn::HideSkillsWidget()
+{
+	CollapseMajorGameplayUi();
+	UE_LOG(LogGrimrockPartyUI, Verbose, TEXT("GridSkills Standalone Hidden Pawn=%s"), *GetName());
 }
 
 void AGrimrockPartyPawn::ToggleCraftingWidget()
@@ -97,6 +197,10 @@ void AGrimrockPartyPawn::ShowMapWidget()
 	ClearBufferedCommand();
 
 	CollapseInventoryWorkspaceForMenuPage();
+	if (SkillsWidgetInstance)
+	{
+		SkillsWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
 	if (MenuWidgetInstance)
 	{
 		MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
@@ -183,6 +287,11 @@ void AGrimrockPartyPawn::ToggleMenuPage(EInventoryTopTab TopTab)
 	if (TopTab == EInventoryTopTab::Inventory)
 	{
 		ToggleInventoryWidget();
+		return;
+	}
+	if (TopTab == EInventoryTopTab::Skills)
+	{
+		ToggleSkillsWidget();
 		return;
 	}
 	if (TopTab == EInventoryTopTab::Map)
@@ -340,6 +449,11 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 		ShowInventoryWorkspace();
 		return;
 	}
+	if (TopTab == EInventoryTopTab::Skills)
+	{
+		ShowSkillsWidget();
+		return;
+	}
 	if (TopTab == EInventoryTopTab::Map)
 	{
 		ShowMapWidget();
@@ -360,6 +474,10 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 	}
 
 	CollapseInventoryWorkspaceForMenuPage();
+	if (SkillsWidgetInstance)
+	{
+		SkillsWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
 	if (MapWidgetInstance)
 	{
 		MapWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
@@ -491,6 +609,11 @@ void AGrimrockPartyPawn::HandleGlobalEscape()
 		InventoryBagWidgetInstance->CloseItemActionMenu(FName(TEXT("Escape")));
 		return;
 	}
+	if (IsSkillsWidgetVisible())
+	{
+		HideSkillsWidget();
+		return;
+	}
 	if (IsMapWidgetVisible())
 	{
 		HideMapWidget();
@@ -507,6 +630,10 @@ void AGrimrockPartyPawn::HandleGlobalEscape()
 
 void AGrimrockPartyPawn::CollapseMajorGameplayUi()
 {
+	if (SkillsWidgetInstance)
+	{
+		SkillsWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
 	if (MenuWidgetInstance)
 	{
 		MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);

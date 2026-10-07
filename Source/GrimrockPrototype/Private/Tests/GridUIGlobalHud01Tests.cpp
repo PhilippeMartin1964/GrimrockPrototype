@@ -13,6 +13,7 @@
 #include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridCombatHudWidget.h"
 #include "UI/GridMapWidget.h"
+#include "UI/GridSkillsWidget.h"
 #include "UI/GridPersistentHudWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 #include "UObject/UnrealType.h"
@@ -160,14 +161,14 @@ bool FGridUIGlobalHud01NavigationSelectionTest::RunTest(const FString& Parameter
 	TestFalse(TEXT("ESC does not fabricate a selected state"), IsSelectionVisible(Hud->Image_NavEscapeSelectionFrame));
 
 	Party->bInventoryWorkspaceVisible = false;
-	Party->MenuWidgetInstance = NewObject<UGrimrockMenuWidget>(Party);
-	Party->MenuWidgetInstance->SetVisibility(ESlateVisibility::Visible);
-	Party->MenuWidgetInstance->CurrentTopTab = EInventoryTopTab::Skills;
+	Party->SkillsWidgetInstance = NewObject<UGridSkillsWidget>(Party);
+	Party->SkillsWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+	Party->bInventoryWidgetVisible = true;
 	Hud->RefreshFromSources();
-	TestTrue(TEXT("Skills navigation frame follows the active menu page"), IsSelectionVisible(Hud->Image_NavSkillsSelectionFrame));
+	TestTrue(TEXT("Skills navigation frame follows the standalone Skills window"), IsSelectionVisible(Hud->Image_NavSkillsSelectionFrame));
 	TestFalse(TEXT("Inventory frame clears when the inventory workspace closes"), IsSelectionVisible(Hud->Image_NavInventorySelectionFrame));
 
-	Party->MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	Party->SkillsWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	Party->MapWidgetInstance = NewObject<UGridMapWidget>(Party);
 	Party->MapWidgetInstance->SetVisibility(ESlateVisibility::Visible);
 	Party->bInventoryWidgetVisible = true;

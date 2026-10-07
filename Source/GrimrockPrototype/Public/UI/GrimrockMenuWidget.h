@@ -6,7 +6,6 @@
 #include "GrimrockMenuWidget.generated.h"
 
 class AGrimrockPartyPawn;
-class UGridSkillsWidget;
 class UGridSpellbookWidget;
 class UWidget;
 class UWidgetSwitcher;
@@ -15,7 +14,7 @@ class UWidgetSwitcher;
  * Temporary shell for the remaining shared pages.
  *
  * Inventory and Map are independent viewport surfaces. This shell now keeps
- * Skills / Journal / Recipes / Codex / Spellbook only.
+ * Journal / Recipes / Codex / Spellbook only.
  */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGrimrockMenuWidget : public UGrimrockDesignSurfaceWidget
@@ -27,17 +26,11 @@ public:
 	void InitializeMenuWidget(AGrimrockPartyPawn* InPartyPawn);
 
 	UFUNCTION(BlueprintCallable, Category = "Menu")
-	void RefreshSkills();
-
-	UFUNCTION(BlueprintCallable, Category = "Menu")
 	void RefreshSpellbook();
 
 
 	UFUNCTION(BlueprintCallable, Category = "Menu|Pages")
 	void SetActiveTopTab(EInventoryTopTab NewTab);
-
-	UFUNCTION(BlueprintCallable, Category = "Menu")
-	UGridSkillsWidget* GetSkillsWidget() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	UGridSpellbookWidget* GetSpellbookWidget() const;
@@ -47,7 +40,7 @@ public:
 	TObjectPtr<AGrimrockPartyPawn> OwningPartyPawn;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Menu|Pages")
-	EInventoryTopTab CurrentTopTab = EInventoryTopTab::Skills;
+	EInventoryTopTab CurrentTopTab = EInventoryTopTab::Recipes;
 
 protected:
 	virtual void NativeConstruct() override;
@@ -57,9 +50,6 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidgetSwitcher> WidgetSwitcher_MainContent;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWidget> Page_Skills;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> Page_Journal;
