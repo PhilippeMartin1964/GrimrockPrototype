@@ -1,7 +1,7 @@
 # UI Architecture Current State
 
 Statut : **CURRENT — UI-COMBAT-UNIFY01 CONTRACT NORMALIZED ; VALIDATION UE EN ATTENTE**  
-Date : **5 octobre 2026**
+Date : **7 octobre 2026**
 
 ## Références canoniques
 
@@ -342,7 +342,7 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
-MON20 a livré :
+MON20 reste le socle de la page :
 
 ```text
 SelectedCharacterIndex
@@ -351,7 +351,40 @@ SelectedCharacterIndex
     -> WBP_GridSkills
 ```
 
-La page Compétences projette Skills + Talents du personnage sélectionné. Les rangs de Skills sont persistés dans SaveGame v9 ; les Talents réutilisent les `ProgressionChoices` MON15.
+UI-RPG01 a étendu ce même chemin sans créer de second service ni de seconde autorité :
+
+```text
+URPGClassAsset::ProgressionChoices
+    -> TalentBranchId
+    -> TalentNodeId
+    -> ChoiceId / variants
+    -> FRPGClassProgressionService
+    -> FGridSkillsPageService
+    -> FGridTalentTreeView
+       -> FGridTalentBranchView[3]
+          -> FGridTalentNodeView[5]
+             -> FGridTalentVariantView[1..N]
+```
+
+Les six `DA_Class_*` de production sont matérialisés. Les invariants validés sont **6 classes / 18 branches / 90 nœuds conceptuels**, avec regroupement des variantes de Spécialisation martiale, Ennemi juré, Affinité élémentaire et Imprégnation.
+
+`ChoiceId` reste l'identité gameplay/persistante. `TalentNodeId` et `TalentBranchId` sont des métadonnées structurelles destinées à la projection UI. La disponibilité reste calculée par `FRPGClassProgressionService`.
+
+Validation close :
+
+```text
+Grimrock.UI.RPG01.ReadModel          5/5
+Grimrock.UI.RPG01.ProductionAssets  5/5
+Grimrock.RPG.RPG03                 193/193
+```
+
+La prochaine tranche est **UI-RPG02 — Presentation Data** : identité visuelle des classes et branches, ordre artistique, icônes et références graphiques, toujours sans logique gameplay dans UMG.
+
+Références :
+
+- `docs/Design/RPG03_SKILL_TREE_SYNTHESIS.md`
+- `docs/Design/UI_RPG01_VISUAL_SYNTHESIS.md`
+- `docs/Design/UI_RPG_TALENT_TREE_ARCHITECTURE.md`
 
 ## Hotbar
 
@@ -451,7 +484,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-INVENTORY02 | UI-INVENTORY02.9 C++ prêt : projection triée/filtrée mise à jour en place, sans recréer les slots ; Automation/PIE à valider |
 | UI-HOTBAR01 | réalisé |
 | UI-FEEDBACK01 | UI-FEEDBACK01.1 surcharge close ; UI-FEEDBACK01.2 effets de statut portrait actif |
-| UI-SKILLS01 | fonctionnel via MON20 |
+| UI-SKILLS01 | fonctionnel via MON20 ; UI-RPG01 arbre 3×5 read-only validé, UI-RPG02 présentation prochaine |
 | UI-CRAFT01 | shell |
 | UI-MAP01 | shell ; fonctionnalité prévue MON21.6 |
 | UI-JOURNAL01 | shell ; fonctionnalité prévue MON21.5 |

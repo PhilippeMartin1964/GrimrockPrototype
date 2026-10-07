@@ -2,7 +2,7 @@
 
 Date : **6 octobre 2026**  
 Parent : **UI-RPG01 — UX Contract & Talent Tree Read Model**  
-État : **SOURCE IMPLÉMENTÉ — VALIDATION UE5.5.4 ET MATÉRIALISATION DES 6 DA_Class_* EN ATTENTE**
+État : **VALIDÉ — Automation `Grimrock.UI.RPG01.ReadModel` 5/5 ; production matérialisée ensuite par UI-RPG01.4**
 
 ## Objectif
 
@@ -30,9 +30,9 @@ FGridTalentTreeView
 
 ## Migration des assets
 
-Les `.uasset` de production ne sont pas modifiés à l'aveugle dans ce commit source. Tant que tous les choix d'une classe ont leurs deux métadonnées vides, la page plate existante reste fonctionnelle et `TalentTree` reste vide. Un asset partiellement migré est rejeté atomiquement.
+Le commit UI-RPG01.3 n'a modifié aucun `.uasset` à l'aveugle. Le pont de pré-matérialisation a permis de conserver la page plate tant que les métadonnées étaient entièrement absentes et de rejeter atomiquement un asset partiellement migré.
 
-Après build C++ réussi, les six scripts/commandlets d'authoring devront être exécutés localement afin de matérialiser les métadonnées dans les `DA_Class_*`.
+UI-RPG01.4 a ensuite matérialisé proprement les six `DA_Class_*` via Unreal Editor ; le pont reste documenté comme garde de migration mais les assets de production actuels portent tous `TalentBranchId` et `TalentNodeId`.
 
 ## Tests source ajoutés
 
@@ -44,16 +44,16 @@ Grimrock.UI.RPG01.ReadModel
 
 Cas : `TreeShape`, `VariantSelection`, `PointsLock`, `PartialMetadataAtomic`, `PreMaterializationBridge`.
 
-UI-RPG01.4 ajoutera la validation globale des assets de production : 6 classes / 18 branches / 90 nœuds conceptuels.
+UI-RPG01.4 a ensuite validé les invariants globaux de production : **6 classes / 18 branches / 90 nœuds conceptuels**.
 
-## Validation demandée
+## Validation obtenue
 
-```powershell
-cd D:\Development\GrimrockPrototype
-
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Grimrock.UI.RPG01.ReadModel"
+```text
+Filter                  : Grimrock.UI.RPG01.ReadModel
+Succeeded               : 5
+Succeeded with warnings : 0
+Failed                  : 0
+Process exit code       : 0
 ```
 
-Ne pas considérer UI-RPG01.3 validé tant que la sortie locale n'a pas été fournie.
+Commit source : `7906028fad27a4cc2e36b57979454aa384c73242`.
