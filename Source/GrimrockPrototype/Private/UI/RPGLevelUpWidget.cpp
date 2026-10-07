@@ -6,6 +6,7 @@
 #include "RPG/RPGClassProgressionService.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "UI/RPGProgressionFeedbackService.h"
 
 #define LOCTEXT_NAMESPACE "RPGLevelUpWidget"
 
@@ -22,38 +23,7 @@ namespace
 		return Presentation;
 	}
 
-	FText MakeCommitRejectText(ERPGClassProgressionCommitRejectReason Reason)
-	{
-		switch (Reason)
-		{
-			case ERPGClassProgressionCommitRejectReason::InvalidInventory:
-			case ERPGClassProgressionCommitRejectReason::InvalidCharacter:
-				return LOCTEXT("CommitInvalidCharacter", "Le personnage n'est plus disponible.");
-			case ERPGClassProgressionCommitRejectReason::InvalidClassDefinition:
-				return LOCTEXT("CommitInvalidClass", "La définition de classe n'est plus valide.");
-			case ERPGClassProgressionCommitRejectReason::InvalidCurrentSelection:
-				return LOCTEXT("CommitInvalidState", "L'état de progression courant est incohérent.");
-			case ERPGClassProgressionCommitRejectReason::DuplicateRequest:
-				return LOCTEXT("CommitDuplicate", "Un même talent apparaît plusieurs fois dans la transaction.");
-			case ERPGClassProgressionCommitRejectReason::UnknownChoice:
-				return LOCTEXT("CommitUnknown", "Un talent de classe n'existe plus.");
-			case ERPGClassProgressionCommitRejectReason::AlreadySelected:
-				return LOCTEXT("CommitAlreadySelected", "Un talent demandé est déjà acquis.");
-			case ERPGClassProgressionCommitRejectReason::LevelTooLow:
-				return LOCTEXT("CommitLevelTooLow", "Le niveau requis n'est pas atteint.");
-			case ERPGClassProgressionCommitRejectReason::MissingPrerequisite:
-				return LOCTEXT("CommitMissingPrerequisite", "Un prérequis de talent manque.");
-			case ERPGClassProgressionCommitRejectReason::MutuallyExclusiveChoice:
-				return LOCTEXT("CommitMutuallyExclusive", "Une autre variante exclusive de ce talent est déjà acquise.");
-			case ERPGClassProgressionCommitRejectReason::InsufficientChoicePoints:
-				return LOCTEXT("CommitInsufficientPoints", "Il n'y a pas assez de points de talent.");
-			case ERPGClassProgressionCommitRejectReason::EmptyRequest:
-				return LOCTEXT("CommitEmpty", "Aucun talent n'est sélectionné.");
-			case ERPGClassProgressionCommitRejectReason::None:
-			default:
-				return FText::GetEmpty();
-		}
-	}
+
 }
 
 bool URPGLevelUpWidget::InitializeLevelUpWidget(
@@ -147,7 +117,7 @@ bool URPGLevelUpWidget::ConfirmSelection()
 	if (!FRPGClassProgressionTransactionService::TryCommitChoices(InventoryComponent, CharacterIndex, PendingChoiceIds, Result))
 	{
 		RefreshView();
-		View.ValidationMessage = MakeCommitRejectText(Result.RejectReason);
+		View.ValidationMessage = FRPGProgressionFeedbackService::GetCommitRejectMessage(Result.RejectReason);
 		RefreshNativeSlate();
 		BP_OnLevelUpViewRefreshed();
 		return false;

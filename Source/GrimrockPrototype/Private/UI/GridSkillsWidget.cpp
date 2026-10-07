@@ -9,6 +9,8 @@
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridTalentBranchWidget.h"
 #include "UI/GridTalentDetailWidget.h"
+#include "UI/GridRPGNotificationWidget.h"
+#include "UI/RPGProgressionFeedbackService.h"
 
 
 namespace GridSkillsWidgetPrivate
@@ -280,6 +282,12 @@ bool UGridSkillsWidget::CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFe
 		!GetSelectedTalentNode(SelectedNode) ||
 		ChoiceId.IsNone())
 	{
+		FRPGClassProgressionCommitResult InvalidResult;
+		InvalidResult.RejectReason = ERPGClassProgressionCommitRejectReason::InvalidCurrentSelection;
+		const FRPGProgressionNotificationView Notification =
+			FRPGProgressionFeedbackService::MakeTalentCommitNotification(InvalidResult, FText::GetEmpty());
+		OutFeedback = Notification.Message;
+		PublishProgressionNotification(Notification);
 		return false;
 	}
 
@@ -290,20 +298,49 @@ bool UGridSkillsWidget::CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFe
 		});
 	if (!RequestedVariant)
 	{
+		FRPGClassProgressionCommitResult InvalidResult;
+		InvalidResult.RejectReason = ERPGClassProgressionCommitRejectReason::UnknownChoice;
+		const FRPGProgressionNotificationView Notification =
+			FRPGProgressionFeedbackService::MakeTalentCommitNotification(InvalidResult, FText::GetEmpty());
+		OutFeedback = Notification.Message;
+		PublishProgressionNotification(Notification);
 		return false;
 	}
+
+	const FText RequestedDisplayName =
+		RequestedVariant->DisplayName.IsEmpty() ? FText::FromName(ChoiceId) : RequestedVariant->DisplayName;
 
 	FRPGClassProgressionCommitResult Result;
-	if (!FRPGClassProgressionTransactionService::TryCommitChoices(
-			InventoryComponent, View.CharacterIndex, { ChoiceId }, Result))
+	const bool bCommitted = FRPGClassProgressionTransactionService::TryCommitChoices(
+		InventoryComponent, View.CharacterIndex, { ChoiceId }, Result);
+
+	const FRPGProgressionNotificationView Notification =
+		FRPGProgressionFeedbackService::MakeTalentCommitNotification(Result, RequestedDisplayName);
+	OutFeedback = Notification.Message;
+	PublishProgressionNotification(Notification);
+
+	if (!bCommitted)
 	{
 		RefreshSkills();
-		OutFeedback = FText::FromString(TEXT("Acquisition refusée."));
 		return false;
 	}
 
-	OutFeedback = FText::FromString(TEXT("Talent acquis."));
 	return true;
+}
+
+void UGridSkillsWidget::PublishProgressionNotification(const FRPGProgressionNotificationView& Notification)
+{
+	if (!Notification.IsValid())
+	{
+		return;
+	}
+
+	LastProgressionNotification = Notification;
+	if (Notification_Progression)
+	{
+		Notification_Progression->ShowNotification(Notification);
+	}
+	OnProgressionNotification.Broadcast(LastProgressionNotification);
 }
 
 void UGridSkillsWidget::ApplyDesignerPresentation()

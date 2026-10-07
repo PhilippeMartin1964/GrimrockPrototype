@@ -4,11 +4,13 @@
 #include "Blueprint/UserWidget.h"
 #include "UI/GridSkillsUiTypes.h"
 #include "UI/RPGTalentPresentationAsset.h"
+#include "UI/RPGProgressionFeedbackService.h"
 #include "GridSkillsWidget.generated.h"
 
 class AGrimrockPartyPawn;
 class UButton;
 class UGridPartyInventoryComponent;
+class UGridRPGNotificationWidget;
 class UGridTalentBranchWidget;
 class UGridTalentDetailWidget;
 class UTextBlock;
@@ -16,6 +18,7 @@ class UWidgetSwitcher;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGridSkillsWidgetRefreshedSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentSelectionChangedSignature, FName, TalentNodeId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridProgressionNotificationSignature, const FRPGProgressionNotificationView&, Notification);
 
 /**
  * Read-only presentation bridge for WBP_GridSkills.
@@ -48,6 +51,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Talents|UI|Events")
 	FGridTalentSelectionChangedSignature OnTalentSelectionChanged;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Progression|Notification")
+	FRPGProgressionNotificationView LastProgressionNotification;
+
+	UPROPERTY(BlueprintAssignable, Category = "RPG|Progression|Notification|Events")
+	FGridProgressionNotificationSignature OnProgressionNotification;
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI")
 	void InitializeSkillsWidget(AGrimrockPartyPawn* InPartyPawn);
@@ -97,6 +106,9 @@ public:
 	/** Called only after UI confirmation. Supports simple and variant ChoiceIds; transaction service remains sole authority. */
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Acquire")
 	bool CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFeedback);
+
+	UFUNCTION(BlueprintCallable, Category = "RPG|Progression|Notification")
+	void PublishProgressionNotification(const FRPGProgressionNotificationView& Notification);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -155,6 +167,10 @@ private:
 	/** UI-RPG04.2A: optional until WBP_RPGTalentDetail is materialized in Designer. */
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UGridTalentDetailWidget> Detail_Talent;
+
+	/** UI-RPG05 : optionnel jusqu’à matérialisation de WBP_RPGNotification. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UGridRPGNotificationWidget> Notification_Progression;
 
 	bool bRefreshInProgress = false;
 };
