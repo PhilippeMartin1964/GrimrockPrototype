@@ -85,10 +85,47 @@ bool FUIRPG062BSkillsRendererContractTest::RunTest(const FString& Parameters)
 	UClass* SkillsClass = UGridSkillsWidget::StaticClass();
 	TestNotNull(TEXT("SkillEntryWidgetClass property exists"),
 		FindFProperty<FProperty>(SkillsClass, GET_MEMBER_NAME_CHECKED(UGridSkillsWidget, SkillEntryWidgetClass)));
-	TestNotNull(TEXT("Panel_SkillEntries property exists"),
-		FindFProperty<FProperty>(SkillsClass, GET_MEMBER_NAME_CHECKED(UGridSkillsWidget, Panel_SkillEntries)));
-	TestNotNull(TEXT("Text_EmptySkills property exists"),
-		FindFProperty<FProperty>(SkillsClass, GET_MEMBER_NAME_CHECKED(UGridSkillsWidget, Text_EmptySkills)));
+
+	FProperty* EntriesPanelProperty =
+		FindFProperty<FProperty>(SkillsClass, GET_MEMBER_NAME_CHECKED(UGridSkillsWidget, Panel_SkillEntries));
+	TestNotNull(TEXT("Panel_SkillEntries property exists"), EntriesPanelProperty);
+	if (EntriesPanelProperty)
+	{
+		TestTrue(TEXT("Panel_SkillEntries is a mandatory BindWidget"), EntriesPanelProperty->HasMetaData(TEXT("BindWidget")));
+		TestFalse(TEXT("Panel_SkillEntries is no longer optional"), EntriesPanelProperty->HasMetaData(TEXT("BindWidgetOptional")));
+	}
+
+	FProperty* EmptySkillsProperty =
+		FindFProperty<FProperty>(SkillsClass, GET_MEMBER_NAME_CHECKED(UGridSkillsWidget, Text_EmptySkills));
+	TestNotNull(TEXT("Text_EmptySkills property exists"), EmptySkillsProperty);
+	if (EmptySkillsProperty)
+	{
+		TestTrue(TEXT("Text_EmptySkills is a mandatory BindWidget"), EmptySkillsProperty->HasMetaData(TEXT("BindWidget")));
+		TestFalse(TEXT("Text_EmptySkills is no longer optional"), EmptySkillsProperty->HasMetaData(TEXT("BindWidgetOptional")));
+	}
+
+	UClass* EntryClass = UGridSkillEntryWidget::StaticClass();
+	const FName RequiredEntryBindings[] =
+	{
+		TEXT("Text_SkillName"),
+		TEXT("Text_SkillAttribute"),
+		TEXT("Text_SkillRank"),
+		TEXT("Text_SkillTrainingPolicy"),
+		TEXT("Text_SkillDescription")
+	};
+	for (const FName PropertyName : RequiredEntryBindings)
+	{
+		FProperty* Property = FindFProperty<FProperty>(EntryClass, PropertyName);
+		TestNotNull(*FString::Printf(TEXT("%s property exists"), *PropertyName.ToString()), Property);
+		if (Property)
+		{
+			TestTrue(*FString::Printf(TEXT("%s is a mandatory BindWidget"), *PropertyName.ToString()),
+				Property->HasMetaData(TEXT("BindWidget")));
+			TestFalse(*FString::Printf(TEXT("%s is no longer optional"), *PropertyName.ToString()),
+				Property->HasMetaData(TEXT("BindWidgetOptional")));
+		}
+	}
+
 	TestNotNull(TEXT("RebuildSkillEntryWidgets function exists"),
 		SkillsClass->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UGridSkillsWidget, RebuildSkillEntryWidgets)));
 	TestNotNull(TEXT("Read-only GetSkillEntry remains available"),

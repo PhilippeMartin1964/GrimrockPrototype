@@ -48,12 +48,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Skills|UI|Presentation")
 	TSubclassOf<UGridSkillEntryWidget> SkillEntryWidgetClass;
 
-	/** UI-RPG06.2B: optional until the Designer migration is materialized. */
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Skills|UI|Presentation")
+	/** UI-RPG06.3A: mandatory Designer container for the canonical Skills projection. */
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "RPG|Skills|UI|Presentation")
 	TObjectPtr<UPanelWidget> Panel_SkillEntries;
 
-	/** Optional empty-state label for a missing/empty canonical Skills projection. */
-	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Skills|UI|Presentation")
+	/** Mandatory empty-state label for a missing/empty canonical Skills projection. */
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "RPG|Skills|UI|Presentation")
 	TObjectPtr<UTextBlock> Text_EmptySkills;
 
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Skills|UI|Events")
@@ -78,7 +78,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI")
 	void RefreshSkills();
 
-	/** Rebuilds the optional Designer Skills list from View.Skills. */
+	/** Rebuilds the Designer Skills list from View.Skills. */
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI|Presentation")
 	void RebuildSkillEntryWidgets();
 

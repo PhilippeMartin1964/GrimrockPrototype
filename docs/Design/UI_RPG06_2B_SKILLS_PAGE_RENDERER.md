@@ -2,7 +2,7 @@
 
 Date : **7 octobre 2026**  
 Parent : **UI-RPG06 — Unification Compétences + Talents UX**  
-État : **SOURCE PRÊTE — validation locale puis matérialisation UMG manuelle**
+État : **SOURCE 7/7 + MATÉRIALISATION UMG/PIE VALIDÉES — finalisation UI-RPG06.3A en cours**
 
 ## 1. Objectif
 
@@ -86,10 +86,13 @@ Réglages :
 
 - `SB_SkillEntryRoot.Min Desired Height = 52` ;
 - `Border_SkillEntryRoot.Padding = 10, 6` ;
-- `Text_SkillName` : slot HorizontalBox = **Fill 1.0**, alignement vertical Center ;
+- `Text_SkillName` : slot HorizontalBox = **Fill 1.0**, alignement vertical Center, Font Size **18** ;
+- `Text_SkillAttribute` : Font Size **16** ;
+- `Text_SkillRank` : Font Size **16**, justification Center ;
+- `Text_SkillTrainingPolicy` : Font Size **15** ;
+- `Text_SkillDescription` : Font Size **14**, slot VerticalBox = Auto, padding haut 4, Auto Wrap Text = true ;
 - les trois `SizeBox` de droite : slot = **Auto**, alignement vertical Center ;
-- `Text_SkillDescription` : slot VerticalBox = Auto, padding haut 4 ;
-- `Text_SkillDescription.Auto Wrap Text = true` ;
+- les quatre textes de synthèse : Auto Wrap Text = false ;
 - tous les TextBlocks : **Not Hit-Testable (Self & All Children)** ;
 - aucune variable supplémentaire n'est nécessaire ;
 - aucun Event Graph n'est nécessaire.
@@ -141,15 +144,20 @@ RANG
 STATUT
 ```
 
-Slots :
+Slots et rendu validés en PIE :
 
 - `HB_SkillsColumns` = Auto dans `VB_SkillsPage` ;
-- `Text_HeaderSkill` = Fill 1.0 ;
+- `Text_HeaderSkill` = Fill 1.0, Font Size **18** ;
+- `Text_HeaderAttribute` = Font Size **16** ;
+- `Text_HeaderRank` = Font Size **16** ;
+- `Text_HeaderStatus` = Font Size **16** ;
 - les trois SizeBox d'en-tête = Auto ;
 - `Overlay_SkillsListArea` = **Fill 1.0** dans `VB_SkillsPage` ;
-- `ScrollBox_Skills` = Fill Horizontal + Fill Vertical ;
-- `Panel_SkillEntries` = unique enfant du ScrollBox ;
-- `Text_EmptySkills` = Center/Center, texte `Aucune compétence disponible.` ;
+- `ScrollBox_Skills` = **Fill Horizontal + Fill Vertical** dans son slot Overlay ;
+- `ScrollBox_Skills.Always Show Scrollbar = true` ;
+- scrollbar visible en PIE ;
+- `Panel_SkillEntries` = unique enfant du ScrollBox, Horizontal Alignment = Fill ;
+- `Text_EmptySkills` = Center/Center, Font Size **16**, texte `Aucune compétence disponible.` ;
 - `Text_EmptySkills` = Not Hit-Testable ;
 - ne pas ajouter de bouton d'achat ou de `ProgressBar`.
 
@@ -211,6 +219,15 @@ TALENTS reste inchangé et fonctionnel
 
 ## 7. Suite
 
-UI-RPG06.2C matérialisera les deux WBP manuellement. Après validation PIE,
-UI-RPG06.3 pourra rendre les bindings obligatoires, nettoyer les compatibilités
-devenues inutiles et lancer la régression finale UI-RPG.
+UI-RPG06.2C est matérialisé et validé en PIE.
+
+UI-RPG06.3A rend le contrat Designer obligatoire et remplace l'ordre technique
+par `SkillId` par un ordre de présentation alphabétique sur `DisplayName`.
+`SkillId` reste le tie-break déterministe.
+
+La projection Talent plate historique n'est pas supprimée dans cette tranche :
+elle est Blueprint-readable et peut encore être référencée par des assets
+binaires. Sa suppression exige un audit dédié des références Blueprint.
+
+UI-RPG06.3B exécute la régression finale Skills/Talents et clôt les statuts
+documentaires devenus obsolètes.

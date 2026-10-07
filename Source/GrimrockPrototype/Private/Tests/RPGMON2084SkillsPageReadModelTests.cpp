@@ -176,16 +176,17 @@ bool FRPGMON2084SkillOrderTest::RunTest(const FString& Parameters)
 	FRuntimeStateGuard Guard;
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Party = MakeParty(ClassDefinition);
-	URPGSkillAsset* Zeta = MakeSkill(Party, TEXT("Skill_Zeta"), TEXT("Zeta"));
-	URPGSkillAsset* Alpha = MakeSkill(Party, TEXT("Skill_Alpha"), TEXT("Alpha"));
+	URPGSkillAsset* DisplayFirst = MakeSkill(Party, TEXT("Skill_Zeta"), TEXT("Alpha"));
+	URPGSkillAsset* DisplaySecond = MakeSkill(Party, TEXT("Skill_Alpha"), TEXT("Zeta"));
 
 	FGridSkillsPageView View;
-	TestTrue(TEXT("Reverse input builds"), FGridSkillsPageService::TryBuildCharacterView(Party, 0, { Zeta, Alpha }, View));
+	TestTrue(TEXT("Reverse technical-id order builds"),
+		FGridSkillsPageService::TryBuildCharacterView(Party, 0, { DisplaySecond, DisplayFirst }, View));
 	TestEqual(TEXT("Two Skills are projected"), View.Skills.Num(), 2);
 	if (View.Skills.Num() == 2)
 	{
-		TestEqual(TEXT("Alpha sorts first"), View.Skills[0].SkillId, FName(TEXT("Skill_Alpha")));
-		TestEqual(TEXT("Zeta sorts second"), View.Skills[1].SkillId, FName(TEXT("Skill_Zeta")));
+		TestEqual(TEXT("Player-facing display name sorts first"), View.Skills[0].SkillId, FName(TEXT("Skill_Zeta")));
+		TestEqual(TEXT("Technical SkillId is only a tie-breaker"), View.Skills[1].SkillId, FName(TEXT("Skill_Alpha")));
 	}
 	return true;
 }

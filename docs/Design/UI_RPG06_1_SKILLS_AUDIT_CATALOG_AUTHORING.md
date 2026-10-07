@@ -242,25 +242,28 @@ La matérialisation des 25 DataAssets doit être exécutée localement sous UE5.
 - second passage `Grimrock.UI.RPG06.Skills` : **3/3, 0 warning, 0 échec** ;
 - commit production : `c3338d8941b81f9e7eafdad7bfb11fa48934d960`.
 
-### UI-RPG06.2B — Renderer COMPÉTENCES
+### UI-RPG06.2B/06.2C — Renderer + matérialisation COMPÉTENCES — VALIDÉS
 
-- widget de ligne réutilisable `UGridSkillEntryWidget` / `WBP_RPGSkillEntry` ;
-- liste dynamique pilotée uniquement par `FGridSkillsPageView::Skills` ;
-- nom, attribut directeur, rang/max et politique entraînée/non entraînée ;
-- description uniquement lorsqu'elle existe réellement ;
-- aucune économie de Skill Points, aucun achat de rang.
+- source renderer validée localement : **7/7, 0 warning, 0 échec** ;
+- `WBP_RPGSkillEntry` matérialisé ;
+- `WBP_GridSkills` contient la liste scrollable réelle ;
+- 25 compétences projetées depuis le catalogue de production ;
+- scrollbar et contraintes Fill validées en PIE ;
+- aucun Skill Point, achat de rang ou XP de Skill inventé ;
+- commit UMG : `9adde6a18de87812f740299b91541579c9377b70`.
 
-La matérialisation UMG reste manuelle et est décrite dans
-`UI_RPG06_2B_SKILLS_PAGE_RENDERER.md`.
+### UI-RPG06.3A — Contrat final COMPÉTENCES
 
-### UI-RPG06.3 — Finition et régression
+- tri de présentation par `DisplayName`, avec `SkillId` comme tie-break déterministe ;
+- bindings `Panel_SkillEntries`, `Text_EmptySkills` et les cinq TextBlocks de ligne désormais obligatoires ;
+- contrat UMG exact consolidé dans `UI_RPG06_2B_SKILLS_PAGE_RENDERER.md`.
 
-- rendre les nouveaux bindings UMG obligatoires après matérialisation validée ;
-- interactions de sélection/détail uniquement si elles apportent une valeur réelle ;
-- cohérence visuelle avec TALENTS ;
-- nettoyage des projections de compatibilité réellement inutiles ;
+### UI-RPG06.3B — Régression et clôture restantes
+
+- régression `Grimrock.MON20.8.SkillsPage`, `Grimrock.UI.RPG04`, `Grimrock.UI.RPG05` ;
+- validation PIE Skills + Talents sur changement de personnage ;
 - correction des statuts documentaires UI-RPG03/04/05 devenus obsolètes ;
-- Automation et validation PIE de l'écran complet.
+- la projection Talent plate reste volontairement conservée tant qu'aucun audit de références Blueprint binaires n'autorise sa suppression.
 
 ## 12. Validation locale requise
 

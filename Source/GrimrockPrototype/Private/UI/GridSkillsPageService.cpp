@@ -32,6 +32,13 @@ namespace
 		OutSortedDefinitions.Sort(
 			[](const URPGSkillAsset& Left, const URPGSkillAsset& Right)
 			{
+				const FString LeftLabel = Left.DisplayName.IsEmpty() ? Left.SkillId.ToString() : Left.DisplayName.ToString();
+				const FString RightLabel = Right.DisplayName.IsEmpty() ? Right.SkillId.ToString() : Right.DisplayName.ToString();
+				const int32 LabelComparison = LeftLabel.Compare(RightLabel, ESearchCase::IgnoreCase);
+				if (LabelComparison != 0)
+				{
+					return LabelComparison < 0;
+				}
 				return Left.SkillId.ToString().Compare(Right.SkillId.ToString(), ESearchCase::CaseSensitive) < 0;
 			});
 		return true;
