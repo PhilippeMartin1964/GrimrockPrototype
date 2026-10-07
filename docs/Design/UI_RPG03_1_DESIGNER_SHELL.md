@@ -1506,3 +1506,95 @@ Avant tout commit du WBP, vérifier en PIE :
 ```
 
 Le header et les titres de branches déjà alimentés par le C++ ne doivent pas être modifiés pour cette correction.
+
+
+# 28. CORRECTIF — HIT TEST DES ONGLETS COMPÉTENCES / TALENTS
+
+La barre d'onglets contient des widgets interactifs. Elle ne doit donc **jamais** hériter d'un conteneur configuré en :
+
+```text
+Not Hit-Testable (Self & All Children)
+```
+
+car cette valeur désactive aussi le hit-test de tous les descendants, y compris les deux `Button`.
+
+## 28.1 Chaîne exacte de Visibility
+
+Dans `WBP_GridSkills`, régler :
+
+```text
+Border_Root
+    Visibility = Visible
+
+Panel_GridSkillsDesignerRoot
+    Visibility = Visible
+
+VB_Main
+    Visibility = Visible
+
+SB_Tabs
+    Visibility = Visible
+
+Border_Tabs
+    Visibility = Not Hit-Testable (Self Only)
+
+HB_Tabs
+    Visibility = Visible
+
+Button_SkillsTab
+    Visibility = Visible
+    Is Enabled = true
+
+Text_SkillsTab
+    Visibility = Not Hit-Testable (Self & All Children)
+
+Button_TalentsTab
+    Visibility = Visible
+    Is Enabled = true
+
+Text_TalentsTab
+    Visibility = Not Hit-Testable (Self & All Children)
+```
+
+La distinction est essentielle :
+
+```text
+Not Hit-Testable (Self Only)
+    -> le widget lui-même n'intercepte pas la souris
+    -> ses enfants RESTENT interactifs
+
+Not Hit-Testable (Self & All Children)
+    -> le widget et tous ses descendants ne reçoivent plus la souris
+    -> interdit sur Border_Tabs / HB_Tabs / SB_Tabs / parents des Button
+```
+
+## 28.2 Background plein écran
+
+Le fond décoratif peut, lui, rester non interactif :
+
+```text
+Border_Background
+    Visibility = Not Hit-Testable (Self & All Children)
+```
+
+car il ne contient aucun contrôle interactif.
+
+Il doit aussi rester le premier enfant de l'Overlay afin d'être peint derrière `VB_Main`.
+
+## 28.3 Contrôle visuel minimal
+
+En PIE :
+
+```text
+clic COMPÉTENCES
+    -> Switcher_SkillsTalents index 0
+    -> page Skills visible
+
+clic TALENTS
+    -> Switcher_SkillsTalents index 1
+    -> arbre 3 × 5 visible
+```
+
+Si le bouton change visuellement d'état Hovered/Pressed mais que la page ne commute pas, le hit-test fonctionne et il faut diagnostiquer le binding C++.
+
+Si le bouton ne passe même pas en Hovered, le défaut est dans la chaîne Visibility / hit-test du WBP.

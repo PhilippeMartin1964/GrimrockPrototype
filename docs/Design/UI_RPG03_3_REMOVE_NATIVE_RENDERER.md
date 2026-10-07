@@ -153,3 +153,35 @@ PIE = validé
 aucun NativeSkillsScroll / NativeSkillsContent dans le code
 aucune construction WidgetTree dans UGridSkillsWidget
 ```
+
+
+## Correctif interaction onglets — validation PIE
+
+Le build et les tests de read model ne couvrent pas le hit-test Slate du Designer. Le contrat runtime des deux onglets est donc également :
+
+```text
+Border_Tabs
+    Visibility = Not Hit-Testable (Self Only)
+
+HB_Tabs
+    Visibility = Visible
+
+Button_SkillsTab
+Button_TalentsTab
+    Visibility = Visible
+    Is Enabled = true
+
+Text_SkillsTab
+Text_TalentsTab
+    Visibility = Not Hit-Testable (Self & All Children)
+```
+
+Ne jamais mettre un **parent** des boutons en `Not Hit-Testable (Self & All Children)`.
+
+La clôture UI-RPG03.3 exige désormais explicitement :
+
+```text
+[ ] COMPÉTENCES commute vers index 0
+[ ] TALENTS commute vers index 1
+[ ] les deux boutons passent en Hovered/Pressed
+```
