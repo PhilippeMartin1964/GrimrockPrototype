@@ -1,7 +1,7 @@
 # UI-RPG03.2 — WBP_RPGTalentBranch + WBP_RPGTalentNode
 
 Date : **7 octobre 2026**  
-État : **03.2A/03.2B VALIDÉS — 03.2C construction des WBP en cours**
+État : **VALIDÉ — 03.2A/03.2B/03.2C clos ; 6 classes / 18 branches / 90 nœuds projetés dans les WBP réutilisables**
 
 ## Objectif
 
@@ -942,3 +942,19 @@ Le tooltip d'un nœud simple affiche le vrai nom/description RPG03. Le tooltip d
 ```
 
 Ne committer aucun binaire avant validation locale et capture PIE.
+
+
+## Clôture UI-RPG03.2C
+
+```text
+Commit WBP : 7f1855aa2edfa8941ac81640141ef144af34a79b
+
+WBP_RPGTalentNode   : validé Designer + runtime
+WBP_RPGTalentBranch : validé Designer + runtime
+WBP_GridSkills      : 3 branches × 5 nœuds réels
+autre classe         : validé
+variantes            : validé
+tooltips             : validé
+```
+
+La suite est UI-RPG03.3 : suppression du renderer natif MON20 désormais obsolète.

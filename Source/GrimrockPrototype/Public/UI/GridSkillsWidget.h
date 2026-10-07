@@ -10,10 +10,7 @@ class AGrimrockPartyPawn;
 class UButton;
 class UGridPartyInventoryComponent;
 class UGridTalentBranchWidget;
-class UPanelWidget;
-class UScrollBox;
 class UTextBlock;
-class UVerticalBox;
 class UWidgetSwitcher;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGridSkillsWidgetRefreshedSignature);
@@ -22,9 +19,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGridSkillsWidgetRefreshedSignature);
  * Read-only presentation bridge for WBP_GridSkills.
  * Character selection remains authoritative in UGridPartyInventoryComponent.
  *
- * UI-RPG03 designer mode is activated automatically when the Blueprint contains
- * Panel_GridSkillsDesignerRoot. Until then, the MON20 native renderer remains a
- * compatibility fallback.
+ * UI-RPG03.3 removes the MON20 native widget renderer: WBP_GridSkills is now
+ * the single presentation authority for the Skills / Talents surface.
  */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGridSkillsWidget : public UUserWidget
@@ -50,20 +46,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI")
 	void RefreshSkills();
 
+	// Retained for the future Skills page renderer. These are read-only projections only.
 	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
 	int32 GetSkillEntryCount() const;
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
 	bool GetSkillEntry(int32 EntryIndex, FGridSkillEntryView& OutEntry) const;
 
+	// Transitional flat Talent accessors retained until the flat Talent projection is retired separately.
 	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
 	int32 GetTalentEntryCount() const;
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
 	bool GetTalentEntry(int32 EntryIndex, FGridTalentEntryView& OutEntry) const;
-
-	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
-	bool IsUsingDesignerPresentation() const;
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|UI")
 	bool GetCurrentClassPresentation(FRPGClassPresentationDefinition& OutPresentation) const;
@@ -98,52 +93,33 @@ private:
 	void BindDesignerShell();
 	void UnbindDesignerShell();
 	void ApplyDesignerPresentation();
-	void RebuildPresentation();
 
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UPanelWidget> Panel_GridSkillsDesignerRoot;
-
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_CharacterName;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_ClassLevel;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_TalentPoints;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_SkillsTab;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_TalentsTab;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidgetSwitcher> Switcher_SkillsTalents;
 
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_BranchLeft;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_BranchCenter;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_BranchRight;
-
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UGridTalentBranchWidget> Branch_Left;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UGridTalentBranchWidget> Branch_Center;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UGridTalentBranchWidget> Branch_Right;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UScrollBox> NativeScrollBox;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UVerticalBox> NativeContentBox;
 
 	bool bRefreshInProgress = false;
 };
