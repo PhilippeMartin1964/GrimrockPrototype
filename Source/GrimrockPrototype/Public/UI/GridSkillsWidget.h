@@ -94,6 +94,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|UI")
 	bool GetSelectedTalentNode(FGridTalentNodeView& OutNode) const;
 
+	/** Called only after UI confirmation. Transaction service remains the sole gameplay authority. */
+	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Acquire")
+	bool CommitConfirmedSimpleTalent(FName ChoiceId, FText& OutFeedback);
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -110,6 +114,9 @@ private:
 
 	UFUNCTION()
 	void HandleTalentNodeClicked(FName TalentNodeId);
+
+	UFUNCTION()
+	void HandleTalentAcquireConfirmed(FName ChoiceId);
 
 	const FGridTalentNodeView* FindTalentNode(FName TalentNodeId) const;
 	void ClearView();

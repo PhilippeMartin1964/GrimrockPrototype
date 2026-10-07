@@ -5,6 +5,7 @@
 #include "Components/WidgetSwitcher.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "RPG/RPGClassProgressionTransactionService.h"
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridTalentBranchWidget.h"
 #include "UI/GridTalentDetailWidget.h"
@@ -83,6 +84,12 @@ void UGridSkillsWidget::BindDesignerShell()
 	Branch_Center->OnTalentNodeClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
 	Branch_Right->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
 	Branch_Right->OnTalentNodeClicked.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+
+	if (Detail_Talent)
+	{
+		Detail_Talent->OnAcquireConfirmed.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentAcquireConfirmed);
+		Detail_Talent->OnAcquireConfirmed.AddUniqueDynamic(this, &UGridSkillsWidget::HandleTalentAcquireConfirmed);
+	}
 }
 
 void UGridSkillsWidget::UnbindDesignerShell()
@@ -106,6 +113,10 @@ void UGridSkillsWidget::UnbindDesignerShell()
 	if (Branch_Right)
 	{
 		Branch_Right->OnTalentNodeClicked.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentNodeClicked);
+	}
+	if (Detail_Talent)
+	{
+		Detail_Talent->OnAcquireConfirmed.RemoveDynamic(this, &UGridSkillsWidget::HandleTalentAcquireConfirmed);
 	}
 }
 
@@ -259,6 +270,34 @@ bool UGridSkillsWidget::GetSelectedTalentNode(FGridTalentNodeView& OutNode) cons
 	return false;
 }
 
+bool UGridSkillsWidget::CommitConfirmedSimpleTalent(FName ChoiceId, FText& OutFeedback)
+{
+	OutFeedback = FText::FromString(TEXT("Acquisition impossible."));
+
+	FGridTalentNodeView SelectedNode;
+	if (!IsValid(InventoryComponent) ||
+		!View.IsValid() ||
+		!GetSelectedTalentNode(SelectedNode) ||
+		SelectedNode.Variants.Num() != 1 ||
+		ChoiceId.IsNone() ||
+		SelectedNode.Variants[0].ChoiceId != ChoiceId)
+	{
+		return false;
+	}
+
+	FRPGClassProgressionCommitResult Result;
+	if (!FRPGClassProgressionTransactionService::TryCommitChoices(
+			InventoryComponent, View.CharacterIndex, { ChoiceId }, Result))
+	{
+		RefreshSkills();
+		OutFeedback = FText::FromString(TEXT("Acquisition refusée."));
+		return false;
+	}
+
+	OutFeedback = FText::FromString(TEXT("Talent acquis."));
+	return true;
+}
+
 void UGridSkillsWidget::ApplyDesignerPresentation()
 {
 	if (!View.IsValid())
@@ -367,6 +406,16 @@ void UGridSkillsWidget::HandleTalentNodeClicked(FName TalentNodeId)
 	if (SelectTalentNode(TalentNodeId))
 	{
 		ApplyTalentDetailPresentation();
+	}
+}
+
+void UGridSkillsWidget::HandleTalentAcquireConfirmed(FName ChoiceId)
+{
+	FText Feedback;
+	CommitConfirmedSimpleTalent(ChoiceId, Feedback);
+	if (Detail_Talent)
+	{
+		Detail_Talent->SetAcquisitionFeedback(Feedback);
 	}
 }
 
