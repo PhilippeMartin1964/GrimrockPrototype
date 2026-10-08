@@ -4,6 +4,10 @@ Date : **8 octobre 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Périmètre : **les 6 classes / 18 branches / 90 nœuds conceptuels**
 
+## Statut historique
+
+La validation Automation de DESC01.4 reste utile comme régression technique, mais la validation PIE a rejeté son contrat UX : confusion entre focus de consultation, acquisition et nature mécanique ; vocabulaire d'action ambigu ; hiérarchie variable selon les Talents. Le nouveau contrat est `docs/Design/UI_RPG_DESC01_5_TALENT_UX_CONTRACT.md`.
+
 ## Problème corrigé
 
 Le panneau historique mélangeait trois notions :
