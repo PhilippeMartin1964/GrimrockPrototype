@@ -2,7 +2,7 @@
 
 Date : **5 octobre 2026**  
 Projet : **GrimrockPrototype — UE 5.5.4**  
-Statut : **spécification de design autoritaire — Talents et Skill Points validés ; RPG-ATTR01.1 économie des points de caractéristiques implémentée en source, validation locale requise**  
+Statut : **spécification de design autoritaire — Talents, Skill Points et Attribute Points matérialisés et validés**  
 
 ## 1. But
 
@@ -502,13 +502,18 @@ Ces références inspirent la structure. Les valeurs et règles autoritaires son
 - la campagne `Grimrock.RPG.RPG03` est validée **193/193** ;
 - un vrai PIE `L_Dungeon` valide un build de branche complet pour chacune des six classes.
 
-### Volet Skills / écran Level Up — encore ouvert
+### Volets Skills / Level Up / Caractéristiques — réalisés
 
-- les `URPGSkillAsset` de production ne sont pas encore matérialisés dans `Content/` ;
-- le budget et les plafonds d'achat de Skill restent à rendre transactionnels ;
-- l'écran Level Up complet Skill/Talent/Carac. reste à finaliser.
+- les 25 `URPGSkillAsset` de production sont matérialisés ;
+- `FRPGSkillPointService` porte l'économie dérivée et les transactions de Rank ;
+- le Level Up est non modal et utilise le toast du Persistent HUD ;
+- `FRPGAttributePointService` porte l'économie dérivée des caractéristiques ;
+- `WBP_CharacterSheet` matérialise le solde et les commandes −/+ ;
+- Skill Points et Attribute Points ne possèdent aucun compteur persistant distinct ;
+- les deux systèmes offrent uniquement un Safe Undo limité à la session courante.
 
-Le volet Talents ne doit donc pas être réimplémenté pour terminer ces travaux : ils doivent se raccorder aux autorités de progression existantes.
+Les autorités durables restent `SkillRanks`, `Character.Attributes`, la progression
+de classe existante et les définitions data-driven correspondantes.
 
 ## 18. RPG02 — mécanique détaillée des Talents
 

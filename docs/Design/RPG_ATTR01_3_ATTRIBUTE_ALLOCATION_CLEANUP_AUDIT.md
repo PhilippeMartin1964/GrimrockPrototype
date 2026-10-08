@@ -1,7 +1,7 @@
 # RPG-ATTR01.3 — Attribute Allocation Cleanup Audit
 
 Date : **8 octobre 2026**  
-État : **SOURCE CLEANUP IMPLÉMENTÉ — validation locale requise**
+État : **VALIDÉ / CLOS — 10/10 Automation, PIE final validé**
 
 ## Autorité
 
@@ -76,5 +76,18 @@ Attendu après RPG-ATTR01.3 : **10 tests**.
 Le dixième test verrouille l'absence du delegate parallèle et la présence du
 refresh polymorphique canonique.
 
-RPG-ATTR01 ne sera déclaré clos qu'après cette validation et un dernier contrôle
-PIE de changement de personnage avec la feuille ouverte.
+Validation finale obtenue :
+
+```text
+Grimrock.RPG.ATTR01
+Succeeded              : 10
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+PIE final validé : changement de personnage avec PERSONNAGE ouvert,
+rafraîchissement immédiat des valeurs, du solde et des états −/+.
+
+RPG-ATTR01.3 et le parent RPG-ATTR01 sont **CLOS**.

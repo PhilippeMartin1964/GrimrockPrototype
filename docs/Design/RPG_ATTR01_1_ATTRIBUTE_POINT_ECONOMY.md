@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **RPG-ATTR01.1 VALIDÉ 9/9 ; RPG-ATTR01.2 matérialisé/PIE validé ; RPG-ATTR01.3 cleanup source à revalider**
+État : **VALIDÉ / CLOS — économie dérivée, allocation UMG, Safe Undo, cleanup refresh canonique**
 
 ## Objectif
 
@@ -232,7 +232,9 @@ cd D:\Development\GrimrockPrototype
     -AutomationFilter "Grimrock.RPG.ATTR01"
 ```
 
-RPG-ATTR01 ne sera clos qu'après matérialisation UMG et validation PIE.
+RPG-ATTR01 est clos après matérialisation UMG, validation Automation 10/10,
+audit de clôture et PIE final. Référence canonique :
+`RPG_ATTR01_FINAL_CLOSURE.md`.
 
 
 ## RPG-ATTR01.3 — audit / cleanup

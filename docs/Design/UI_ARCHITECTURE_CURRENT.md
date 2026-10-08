@@ -769,3 +769,30 @@ GetPendingLevelUpNotificationCount()
 
 Le SaveGame courant est **v24 exact-match**. L'audit Automation du Content n'a
 détecté aucune référence sérialisée aux anciens symboles Level-Up.
+
+
+## RPG-ATTR01 — allocation des points de caractéristiques
+
+RPG-ATTR01 est **CLOS**.
+
+```text
+Level
+    -> FRPGAttributePointService::GetTotalPointsGranted()
+
+Class.BaseAttributes + Race.AttributeBonuses
+Character.Attributes
+    -> balance dérivée
+
+WBP_CharacterSheet
+    -> Text_AttributePoints
+    -> boutons − / +
+
+UGridCharacterSheetWidget
+    -> Safe Undo limité à la session courante
+    -> refresh via l'unique RefreshInventory() canonique
+```
+
+Aucune monnaie Attribute Point n'est persistée. `Character.Attributes` reste
+l'autorité durable. Le SaveGame reste **v24 exact-match**.
+
+Validation finale : **10/10 Automation, 0 warning, 0 échec, PIE validé**.
