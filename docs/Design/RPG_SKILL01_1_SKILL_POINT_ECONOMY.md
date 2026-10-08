@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Parent : **RPG-SKILL01 — Skill Point Economy & Allocation**  
-État : **RPG-SKILL01.1 VALIDÉ 5/5 ; RPG-SKILL01.2 matérialisé/validé localement ; RPG-SKILL01.3 Safe Undo en cours**
+État : **VALIDÉ / CLOS — RPG-SKILL01.1/.2/.3 terminés ; Automation 8/8 ; PIE + / − validé**
 
 ## Objectif
 
@@ -177,8 +177,39 @@ Grimrock.MON20.8.SkillsPage
 Grimrock.UI.RPG06.Skills
 ```
 
-RPG-SKILL01.1 est validé localement : **5/5, 0 warning, 0 échec**.
-
-RPG-SKILL01.2 a ensuite matérialisé localement `Text_SkillPoints` et le bouton `+`.
+RPG-SKILL01.1 a établi l'économie et la transaction d'achat.
+RPG-SKILL01.2 a matérialisé `Text_SkillPoints` et le bouton `+`.
 RPG-SKILL01.3 ajoute l'annulation sûre des seules attributions de la session
-courante. Référence : `RPG_SKILL01_3_SAFE_SKILL_ALLOCATION_UNDO.md`.
+courante.
+
+Validation finale locale :
+
+```text
+Grimrock.RPG.SKILL01
+Succeeded              : 8
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+PIE final validé :
+
+```text
++  -> Rank +1, Skill Point -1, bouton - actif
+-  -> Rank -1, Skill Point +1
+plancher de session -> - désactivé
+fermer/réouvrir K -> ancien rang non remboursable
+```
+
+Matérialisation finale poussée :
+
+```text
+aba11f5502376a77ab6b98749a3a0cbbfb9e4f7f
+RPG-SKILL01.3B materialize safe Skill allocation undo
+```
+
+Références :
+
+- `RPG_SKILL01_3_SAFE_SKILL_ALLOCATION_UNDO.md`
+- `RPG_SKILL01_FINAL_CLOSURE.md`

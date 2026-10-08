@@ -369,6 +369,37 @@ URPGClassAsset::ProgressionChoices
 
 Les six `DA_Class_*` de production sont matérialisés. Les invariants validés sont **6 classes / 18 branches / 90 nœuds conceptuels**, avec regroupement des variantes de Spécialisation martiale, Ennemi juré, Affinité élémentaire et Imprégnation.
 
+RPG-SKILL01 complète désormais la moitié Skills de la progression :
+
+```text
+Character.Level
+    -> points accordés = Level + 3
+
+FGridCharacterInventoryState::SkillRanks
+    -> points dépensés = somme des Rank
+
+FRPGSkillPointService
+    -> Remaining = Granted - Spent
+    -> RankCap = 2 / 3 / 4 / 5
+    -> TryPurchaseNextRank()
+    -> TryRefundPurchasedRank(SessionFloorRank)
+
+FGridSkillsPageService
+    -> RemainingSkillPoints / SkillRankCap
+    -> bCanIncreaseRank
+
+UGridSkillsWidget
+    -> session d'annulation transitoire
+    -> bCanDecreaseRank
+    -> WBP_RPGSkillEntry [ − / + ]
+```
+
+Aucun compteur de Skill Points n'est persisté. Le bouton `−` n'est pas un
+respec : il ne peut annuler que les rangs achetés depuis l'ouverture courante
+de COMPÉTENCES. Fermer puis rouvrir la fenêtre fixe une nouvelle frontière.
+
+Validation finale RPG-SKILL01 : **8/8 Automation, 0 warning, 0 échec, PIE validé**.
+
 `ChoiceId` reste l'identité gameplay/persistante. `TalentNodeId` et `TalentBranchId` sont des métadonnées structurelles destinées à la projection UI. La disponibilité reste calculée par `FRPGClassProgressionService`.
 
 UI-RPG02 à UI-RPG05 ont ensuite livré la présentation, les widgets réutilisables, le détail, les acquisitions simple/variantes et les notifications de progression.
@@ -505,7 +536,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-INVENTORY02 | UI-INVENTORY02.9 C++ prêt : projection triée/filtrée mise à jour en place, sans recréer les slots ; Automation/PIE à valider |
 | UI-HOTBAR01 | réalisé |
 | UI-FEEDBACK01 | UI-FEEDBACK01.1 surcharge close ; UI-FEEDBACK01.2 effets de statut portrait actif |
-| UI-SKILLS01 | fonctionnel via MON20 ; UI-RPG01 arbre 3×5 read-only validé, UI-RPG02 présentation prochaine |
+| UI-SKILLS01 | fonctionnel ; UI-RPG01→06 clos ; RPG-SKILL01 économie Skill Points + Safe Undo validés |
 | UI-CRAFT01 | shell |
 | UI-MAP01 | shell ; fonctionnalité prévue MON21.6 |
 | UI-JOURNAL01 | shell ; fonctionnalité prévue MON21.5 |

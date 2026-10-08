@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Parent : **RPG-SKILL01 — Skill Point Economy & Allocation**  
-État : **SOURCE IMPLÉMENTÉE — validation locale puis matérialisation UMG requises**
+État : **VALIDÉ / CLOS — Automation 8/8 ; matérialisation UMG poussée ; PIE Safe Undo validé**
 
 ## Objectif
 
@@ -177,3 +177,37 @@ ouvrir K
 fermer K
 rouvrir K       -> ancien rang devient non remboursable
 ```
+
+
+## Clôture
+
+Validation source :
+
+```text
+Grimrock.RPG.SKILL01
+8/8
+0 warning
+0 échec
+exit code 0
+```
+
+Validation PIE :
+
+- `+` achète un rang et consomme un point ;
+- `−` annule uniquement un rang acheté pendant la session courante ;
+- le point est remboursé automatiquement ;
+- le bouton `−` se désactive au plancher de session ;
+- fermer puis rouvrir COMPÉTENCES crée une nouvelle frontière non remboursable.
+
+Matérialisation :
+
+```text
+aba11f5502376a77ab6b98749a3a0cbbfb9e4f7f
+RPG-SKILL01.3B materialize safe Skill allocation undo
+```
+
+Le commit binaire final contient uniquement `WBP_RPGSkillEntry.uasset` ; l'état
+de `WBP_GridSkills` requis par RPG-SKILL01.2/01.3 a été confirmé en PIE sans
+diff binaire supplémentaire dans ce commit.
+
+Le parent `RPG-SKILL01` est **CLOS**.

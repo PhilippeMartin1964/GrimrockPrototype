@@ -2,7 +2,7 @@
 
 Date : **5 octobre 2026**  
 Projet : **GrimrockPrototype — UE 5.5.4**  
-Statut : **spécification de design autoritaire — Talents matérialisés/validés ; économie Skill Points RPG-SKILL01.1 implémentée en source, matérialisation UMG à valider**  
+Statut : **spécification de design autoritaire — Talents matérialisés/validés ; économie Skill Points RPG-SKILL01 implémentée et validée**  
 
 ## 1. But
 
@@ -32,7 +32,7 @@ Le projet possède déjà :
 
 **Talent = ProgressionChoice existant.** Aucune seconde monnaie de Talent ne doit apparaître.
 
-**Écart restant :** le Rank de Skill existe, mais l’économie permettant au joueur d’acheter ces Ranks avec des points n’est pas encore implémentée. Les règles ci-dessous définissent cette économie avant codage.
+**Économie Skill Points :** implémentée par `FRPGSkillPointService`. Le total accordé est dérivé du niveau, les points dépensés de la somme des `SkillRanks`, et l'UI joueur passe par les transactions C++ d'achat/remboursement sûr. Aucun compteur `SkillPoints` persistant distinct n'existe.
 
 ## 3. Progression universelle
 
