@@ -21,6 +21,19 @@ bool FRPG0395CProductionClassTest::RunTest(const FString&)
 	TestEqual(TEXT("Production Priest has fifteen Choice records"), Priest->ProgressionChoices.Num(), 15);
 	TestEqual(TEXT("Production Priest has fourteen active actions"), Priest->CombatActions.Num(), 14);
 
+	const FGridCombatActionDefinition* TurnUndead = Priest->CombatActions.FindByPredicate(
+		[](const FGridCombatActionDefinition& Action)
+		{
+			return Action.ActionId == TEXT("Action_Priest_TurnUndead");
+		});
+	TestTrue(TEXT("Production Turn Undead keeps exactly 4 fixed Holy damage with no Wisdom or Skill scaling"),
+		TurnUndead &&
+		TurnUndead->OffensiveProfile.AttackDefinition.MinDamage == 4 &&
+		TurnUndead->OffensiveProfile.AttackDefinition.MaxDamage == 4 &&
+		TurnUndead->OffensiveProfile.DamageScalingAttribute == EGridAttackScalingAttribute::None &&
+		TurnUndead->DirectDamageScaling.ScalingAttribute == EGridAttackScalingAttribute::None &&
+		TurnUndead->DirectDamageScaling.ScalingSkillId.IsNone());
+
 	for (const FName ChoiceId : {
 		FName(TEXT("Talent_Priest_Restoration_Miracle")),
 		FName(TEXT("Talent_Priest_Protection_DivineBastion")),

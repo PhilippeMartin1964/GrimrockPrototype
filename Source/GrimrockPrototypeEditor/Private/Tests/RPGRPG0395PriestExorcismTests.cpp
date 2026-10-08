@@ -159,7 +159,10 @@ bool FRPG0395B2TurnUndeadTest::RunTest(const FString&)
 		Action->AreaRadiusCells == 2 && Action->ActionPointCost == 3 && Action->ResourceCosts.ManaCost == 7 &&
 		Action->CooldownRounds == 3 && Action->TargetFilter.AllowedMonsterCategoryIds.Num() == 1 &&
 		Action->TargetFilter.AllowedMonsterCategoryIds.Contains(TEXT("Undead")) &&
-		Action->OffensiveProfile.AttackDefinition.MinDamage == 4 && Action->OffensiveProfile.AttackDefinition.MaxDamage == 4);
+		Action->OffensiveProfile.AttackDefinition.MinDamage == 4 && Action->OffensiveProfile.AttackDefinition.MaxDamage == 4 &&
+		Action->OffensiveProfile.DamageScalingAttribute == EGridAttackScalingAttribute::None &&
+		Action->DirectDamageScaling.ScalingAttribute == EGridAttackScalingAttribute::None &&
+		Action->DirectDamageScaling.ScalingSkillId.IsNone());
 
 	TestTrue(TEXT("Turn Undead pushes one cell away only after magical armor depletion"), Action &&
 		Action->MovementEffects.Num() == 1 &&

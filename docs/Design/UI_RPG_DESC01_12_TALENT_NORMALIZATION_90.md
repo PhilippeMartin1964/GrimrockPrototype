@@ -710,7 +710,7 @@ Les catégories sont dynamiques et fonctionnelles, mais une autorité de
 `DisplayName` de catégorie reste nécessaire pour une présentation de production
 sans identifiant technique.
 
-### D05 — Prêtre / Repousser les morts-vivants
+### D05 — Prêtre / Repousser les morts-vivants — SOURCE CORRIGÉE
 
 Contrat canonique validé :
 
@@ -718,8 +718,12 @@ Contrat canonique validé :
 4 dégâts sacrés fixes
 ```
 
-L'authoring générique peut actuellement ajouter le modificateur de Sagesse.
-Le gameplay devra être corrigé pour rejoindre le contrat.
+**RPG-TALENT-FIX01** neutralise explicitement le scaling Sagesse sur
+`Action_Priest_TurnUndead` tout en conservant le helper sacré commun pour les
+autres sorts.
+
+État : **source + tests corrigés ; rematérialisation de DA_Class_Priest et
+validation locale encore requises avant clôture D05.**
 
 ### D06 — Alchimiste / Réaction en chaîne
 

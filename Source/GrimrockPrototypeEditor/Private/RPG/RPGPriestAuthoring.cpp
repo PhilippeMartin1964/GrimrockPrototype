@@ -433,6 +433,9 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 			TurnUndeadActionId, TEXT("Repousser les morts-vivants"),
 			TEXT("Tous les Undead à 2 cellules du groupe subissent 4 dégâts Sacrés ; sans armure magique, ils sont repoussés et perdent 4 Initiative pendant un round."),
 			TurnUndeadTalentId, 3, 7, EGridCombatTargetingPolicy::Area, 1, 4, 3, 0, false);
+		// D05: Repousser les morts-vivants is exactly 4 Holy damage; unlike the
+		// other holy attacks, Wisdom must not contribute to the attack base damage.
+		Action.OffensiveProfile.DamageScalingAttribute = EGridAttackScalingAttribute::None;
 		Action.AreaRadiusCells = 2;
 		Action.bAreaCenteredOnParty = true;
 		Action.bRequiresLineOfSight = false;

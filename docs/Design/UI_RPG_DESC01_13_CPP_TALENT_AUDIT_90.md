@@ -141,7 +141,7 @@ Les Skills Arcane et Runes existent en production.
 | Sanctuaire | OK |
 | Bastion divin | OK |
 | Lumière sacrée | OK |
-| **Repousser les morts-vivants** | **DIVERGENT D05 — helper ajoute actuellement le modificateur de Sagesse ; contrat = 4 fixes** |
+| **Repousser les morts-vivants** | **D05 SOURCE CORRIGÉE — 4 fixes / aucun scaling Sagesse ; production à rematérialiser et revalider** |
 | Dissipation sacrée | OK |
 | Châtiment | OK |
 | Exorcisme majeur | OK — destruction future d'invocations faibles volontairement absente |
@@ -199,7 +199,7 @@ DESC01.14 doit implémenter le read-model, pas réparer silencieusement le gamep
 D01  Second souffle — garde-fou PV max
 D02  échecs sûrs Pièges / Crochetage
 D03  Sabotage monde
-D05  Repousser les morts-vivants — 4 dégâts fixes
+D05  Repousser les morts-vivants — source corrigée ; production/Automation à revalider
 D06  Réaction en chaîne — raccord bombes -> SurfaceReaction
 D07  Transmutation majeure — durée 4 rounds
 D08  Transmutation majeure — décision/raccord +50 % réaction
