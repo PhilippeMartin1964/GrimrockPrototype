@@ -1,7 +1,7 @@
 # UI-RPG-DESC01.14.1 — Projection C++ structurée du read-model Talent
 
 Date : **8 octobre 2026**  
-État : **DESC01.14.2 SOURCE PRÊTE — validation locale finale requise**
+État : **VALIDÉ / CLOS — source, assets de production et Automation validés le 8 octobre 2026**
 
 ## Objet
 
@@ -30,11 +30,19 @@ DESC01.14.2 supprime maintenant le fallback d'inférence : le read-model projett
 directement `Choice.PresentationType`. Un nouveau test de production exige que
 les six assets matérialisés portent explicitement la matrice TYPE 90/90.
 
-Validation finale encore requise après récupération de ce commit :
+Validation finale reçue le 8 octobre 2026 :
 
-1. `Grimrock.UI.RPG01.ProductionAssets` — attendu 6/6 ;
-2. `Grimrock.UI.RPG.DESC01` ;
-3. aucune modification autre que les six `DA_Class_*` dans le working tree avant commit binaire.
+```text
+Grimrock.UI.RPG01.ProductionAssets   6/6
+Grimrock.UI.RPG.DESC01             14/14
+Grimrock.RPG.RPG03                193/193
+warnings                              0
+échecs                                0
+```
+
+Les six `DA_Class_*` ont été commités dans
+`a42c62c0 UI-RPG-DESC01.14.2 materialize explicit Talent types`.
+DESC01.14 est clos.
 
 ## Dettes gameplay — calendrier obligatoire
 
