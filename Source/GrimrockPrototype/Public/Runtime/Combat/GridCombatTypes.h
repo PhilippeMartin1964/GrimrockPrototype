@@ -1461,6 +1461,14 @@ struct FGridCombatSurfaceConversionProfile
 		meta = (ClampMin = "1", ClampMax = "6", EditCondition = "bUseFixedFinalDuration", EditConditionHides))
 	int32 FixedFinalDurationRounds = 1;
 
+	/**
+	 * If true, the output surface type is first offered to the canonical elemental
+	 * reaction table against the existing surface. The conversion still owns the
+	 * final output after that reaction has been emitted/resolved.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion")
+	bool bTriggerCanonicalReactionBeforeConversion = false;
+
 	/** Traversal budget authored for the converted output surface. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion", meta = (ClampMin = "0", ClampMax = "4"))
 	int32 OutputTraversalCostModifier = 0;

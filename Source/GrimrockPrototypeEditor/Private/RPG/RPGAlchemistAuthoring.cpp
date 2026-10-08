@@ -801,6 +801,8 @@ bool FRPGAlchemistAuthoring::BuildMajorTransmutationRecipeAction(
 	Conversion.EmptyCellDurationRounds = 4;
 	Conversion.bUseFixedFinalDuration = true;
 	Conversion.FixedFinalDurationRounds = 4;
+	Conversion.bTriggerCanonicalReactionBeforeConversion =
+		OutputSurfaceType == EGridCombatSurfaceType::Fire || OutputSurfaceType == EGridCombatSurfaceType::Ice;
 	Conversion.OutputTraversalCostModifier = OutputSurfaceType == EGridCombatSurfaceType::Oil ? 1 : 0;
 	OutAction.SurfaceConversions.Add(Conversion);
 	return OutAction.IsValid();

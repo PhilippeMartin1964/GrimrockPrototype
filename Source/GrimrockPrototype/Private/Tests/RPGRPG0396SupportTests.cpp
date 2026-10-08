@@ -374,4 +374,53 @@ bool FRPG0396FixedConversionDurationTest::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0396ConversionReactionBridgeTest,
+	"Grimrock.RPG.RPG03.9.6A.ConversionReactionBridge",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0396ConversionReactionBridgeTest::RunTest(const FString&)
+{
+	FGridCombatSurfaceState Poison;
+	Poison.SurfaceType = EGridCombatSurfaceType::Poison;
+	Poison.RemainingRounds = 3;
+	Poison.SourceCombatantId = FGuid::NewGuid();
+	Poison.SourceActionId = TEXT("Action_Poison");
+
+	FGridCombatSurfaceConversionProfile ToFire;
+	ToFire.InputSurfaceTypes = { EGridCombatSurfaceType::Poison, EGridCombatSurfaceType::Ice };
+	ToFire.OutputSurfaceType = EGridCombatSurfaceType::Fire;
+	ToFire.bTriggerCanonicalReactionBeforeConversion = true;
+
+	FGridResolvedCombatModifiers Modifiers;
+	Modifiers.SurfaceReactionDamagePercentModifier = 50;
+
+	FGridCombatSurfaceReactionResult Reaction;
+	TestTrue(TEXT("Opt-in Fire conversion resolves Poison + Fire before conversion"),
+		FGridCombatSurfaceResolver::ResolveConversionReaction(Poison, ToFire, Modifiers, Reaction));
+	TestEqual(TEXT("Fire conversion uses canonical Fire interaction"),
+		Reaction.ResolvedInteraction, EGridCombatSurfaceInteraction::Fire);
+	TestTrue(TEXT("Poison plus Fire conversion is explosive"), Reaction.bExplosive);
+	TestEqual(TEXT("Major Transmutation style modifier reaches the explosion result"),
+		Reaction.ExplosionDamagePercentModifier, 50);
+
+	FGridCombatSurfaceState Ice = Poison;
+	Ice.SurfaceType = EGridCombatSurfaceType::Ice;
+	TestTrue(TEXT("Fire conversion can also emit the non-explosive Ice + Fire reaction"),
+		FGridCombatSurfaceResolver::ResolveConversionReaction(Ice, ToFire, Modifiers, Reaction));
+	TestEqual(TEXT("Intermediate Ice + Fire reaction outputs Water"),
+		Reaction.OutputSurfaceType, EGridCombatSurfaceType::Water);
+
+	ToFire.bTriggerCanonicalReactionBeforeConversion = false;
+	TestFalse(TEXT("Ordinary conversions do not emit canonical reactions by default"),
+		FGridCombatSurfaceResolver::ResolveConversionReaction(Poison, ToFire, Modifiers, Reaction));
+
+	FGridCombatSurfaceConversionProfile ToPoison = ToFire;
+	ToPoison.bTriggerCanonicalReactionBeforeConversion = true;
+	ToPoison.OutputSurfaceType = EGridCombatSurfaceType::Poison;
+	TestFalse(TEXT("Poison output does not invent a canonical Poison interaction"),
+		FGridCombatSurfaceResolver::ResolveConversionReaction(Ice, ToPoison, Modifiers, Reaction));
+	return true;
+}
+
 #endif

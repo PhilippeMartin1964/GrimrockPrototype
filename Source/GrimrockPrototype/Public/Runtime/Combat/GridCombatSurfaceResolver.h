@@ -23,6 +23,15 @@ public:
 		const FGridResolvedCombatModifiers& SourceModifiers,
 		FGridCombatSurfaceReactionResult& OutResult);
 
+	/**
+	 * Resolves the optional pre-conversion canonical reaction authored by a
+	 * conversion profile. The conversion itself is applied separately afterwards.
+	 */
+	static bool ResolveConversionReaction(const FGridCombatSurfaceState& ExistingSurface,
+		const FGridCombatSurfaceConversionProfile& Conversion,
+		const FGridResolvedCombatModifiers& SourceModifiers,
+		FGridCombatSurfaceReactionResult& OutResult);
+
 	/** Resolve one authored conversion against an existing surface or an empty cell. */
 	static bool ResolveConversion(const FGridCombatSurfaceConversionProfile& Profile, const FGridCombatSurfaceState* ExistingSurface,
 		const FGuid& SourceCombatantId, FName SourceActionId, const FGridResolvedCombatModifiers& SourceModifiers,

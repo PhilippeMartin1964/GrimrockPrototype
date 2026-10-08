@@ -158,6 +158,8 @@ bool FRPG0396B2MajorTransmutationTest::RunTest(const FString&)
 			A.SurfaceConversions[0].EmptyCellDurationRounds == 4 &&
 			A.SurfaceConversions[0].bUseFixedFinalDuration &&
 			A.SurfaceConversions[0].FixedFinalDurationRounds == 4 &&
+			A.SurfaceConversions[0].bTriggerCanonicalReactionBeforeConversion ==
+				(Output == EGridCombatSurfaceType::Fire || Output == EGridCombatSurfaceType::Ice) &&
 			A.SurfaceConversions[0].bAllowEmptyCell);
 		if (Output == EGridCombatSurfaceType::Oil)
 		{

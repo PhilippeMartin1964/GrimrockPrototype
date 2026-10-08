@@ -16,6 +16,22 @@ namespace
 		OutResult.bExplosive = bExplosive;
 		OutResult.ExplosionDamageType = EGridDamageType::Fire;
 	}
+
+	bool TryMapIncomingSurfaceToInteraction(EGridCombatSurfaceType SurfaceType, EGridCombatSurfaceInteraction& OutInteraction)
+	{
+		OutInteraction = EGridCombatSurfaceInteraction::None;
+		switch (SurfaceType)
+		{
+			case EGridCombatSurfaceType::Fire:
+				OutInteraction = EGridCombatSurfaceInteraction::Fire;
+				return true;
+			case EGridCombatSurfaceType::Ice:
+				OutInteraction = EGridCombatSurfaceInteraction::Ice;
+				return true;
+			default:
+				return false;
+		}
+	}
 }
 
 bool FGridCombatSurfaceResolver::BuildState(const FGridCombatSurfaceEffectProfile& Profile, const FGuid& SourceCombatantId, FName SourceActionId,
@@ -137,19 +153,32 @@ bool FGridCombatSurfaceResolver::ResolveAppliedSurfaceReaction(
 	}
 
 	EGridCombatSurfaceInteraction Interaction = EGridCombatSurfaceInteraction::None;
-	switch (IncomingSurface.SurfaceType)
+	if (!TryMapIncomingSurfaceToInteraction(IncomingSurface.SurfaceType, Interaction))
 	{
-		case EGridCombatSurfaceType::Fire:
-			Interaction = EGridCombatSurfaceInteraction::Fire;
-			break;
-		case EGridCombatSurfaceType::Ice:
-			Interaction = EGridCombatSurfaceInteraction::Ice;
-			break;
-		default:
-			// Water/Poison/Oil/etc. are persistent states, not canonical
-			// interaction verbs. Lightning and Wind have no direct surface-effect
-			// type and remain explicit interactions/conversions.
-			return false;
+		// Water/Poison/Oil/etc. are persistent states, not canonical interaction verbs.
+		return false;
+	}
+
+	return ResolveReaction(ExistingSurface, Interaction, SourceModifiers, OutResult);
+}
+
+bool FGridCombatSurfaceResolver::ResolveConversionReaction(
+	const FGridCombatSurfaceState& ExistingSurface,
+	const FGridCombatSurfaceConversionProfile& Conversion,
+	const FGridResolvedCombatModifiers& SourceModifiers,
+	FGridCombatSurfaceReactionResult& OutResult)
+{
+	OutResult = FGridCombatSurfaceReactionResult();
+	if (!Conversion.IsValid() || !Conversion.bTriggerCanonicalReactionBeforeConversion ||
+		!Conversion.InputSurfaceTypes.Contains(ExistingSurface.SurfaceType))
+	{
+		return false;
+	}
+
+	EGridCombatSurfaceInteraction Interaction = EGridCombatSurfaceInteraction::None;
+	if (!TryMapIncomingSurfaceToInteraction(Conversion.OutputSurfaceType, Interaction))
+	{
+		return false;
 	}
 
 	return ResolveReaction(ExistingSurface, Interaction, SourceModifiers, OutResult);

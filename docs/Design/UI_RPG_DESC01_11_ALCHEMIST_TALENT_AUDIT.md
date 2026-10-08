@@ -1140,18 +1140,28 @@ Les dégâts de réaction déclenchés pendant cette conversion +50 %
 
 n'a donc pas encore de sémantique runtime complète.
 
-**Décision validée pour la v0.1 : ne pas promettre ce +50 % dans la fiche joueur
-finale tant qu'un contrat explicite « conversion -> réaction » n'a pas été validé.**
-
-Le champ reste une dette de mécanique à examiner en DESC01.12 / futur chantier
-surfaces. Deux options pourront alors être décidées :
+La décision est maintenant résolue par **RPG-TALENT-FIX06 / D08** :
 
 ```text
 A — définir génériquement les réactions provoquées par conversion et conserver +50 %
-B — simplifier Transmutation majeure en conversion pure et retirer ce bonus mort
 ```
 
-Aucune des deux options ne doit être implémentée pendant l'audit documentaire.
+Le profil de conversion peut explicitement demander une réaction canonique
+**avant** la conversion. Transmutation majeure active cette option pour ses
+sorties Feu et Glace uniquement.
+
+La réaction est réellement émise dans le pipeline C4/C6, puis la conversion
+impose toujours la sortie de recette finale pendant 4 rounds.
+
+Le +50 % atteint donc `FGridCombatSurfaceReactionResult::ExplosionDamagePercentModifier`
+pour une réaction explosive déclenchée par l'action.
+
+La limite globale C6 demeure inchangée : aucune magnitude de base universelle
+d'explosion de surface n'est définie par RPG02. Cette absence n'est pas propre à
+Transmutation majeure et n'autorise pas l'UI à inventer une valeur de dégâts.
+
+État : **source + tests de raccord ajoutés ; validation locale requise avant
+clôture D08.**
 
 # 11. Friendly fire des bombes
 

@@ -2058,6 +2058,28 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 			// Invalid conversion for the current cell is a canonical no-op, not an action failure.
 			for (const FGridCombatSurfaceConversionProfile& Conversion : Action.Definition.SurfaceConversions)
 			{
+				// D08: selected conversion outputs may first behave as an incoming
+				// canonical element. This emits the ordinary SurfaceReaction event
+				// and lets existing action/reaction modifiers feed the same C6 result.
+				// The conversion is then applied unconditionally and remains the
+				// authority for the final selected output.
+				if (Conversion.bTriggerCanonicalReactionBeforeConversion &&
+					Action.Definition.SurfaceInteraction == EGridCombatSurfaceInteraction::None)
+				{
+					const FGridCombatSurfaceState* ExistingSurface =
+						RuntimeActor->FindCombatSurfaceAtCell(Cell.X, Cell.Y);
+					FGridCombatSurfaceReactionResult PreviewConversionReaction;
+					const FGridResolvedCombatModifiers NoReactionBonus;
+					if (ExistingSurface &&
+						FGridCombatSurfaceResolver::ResolveConversionReaction(
+							*ExistingSurface, Conversion, NoReactionBonus, PreviewConversionReaction))
+					{
+						FGridCombatSurfaceReactionResult AppliedConversionReaction;
+						ResolveSurfaceReactionAtCell(
+							Cell, PreviewConversionReaction.ResolvedInteraction, AppliedConversionReaction);
+					}
+				}
+
 				RuntimeActor->ConvertCombatSurfaceAtCell(
 					Cell.X, Cell.Y, Conversion, Character.CharacterId, Action.Definition.ActionId, ResolvedModifiers);
 			}

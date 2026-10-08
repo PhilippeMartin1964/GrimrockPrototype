@@ -380,6 +380,7 @@ D02 Désamorçage/Crochetage — **DIFFÉRÉ au vrai runtime Lock/Trap** ; primi
 D03 Sabotage monde — **DIFFÉRÉ au flux générique d'aptitudes hors combat** ; primitives monde déjà présentes.
 `docs/Design/RPG_TALENT_FIX04_D06_CHAIN_REACTION_SURFACE_EFFECT_BRIDGE.md` — **D06 VALIDÉ / CLOS** (9/9 RPG03.9.6A + 7/7 RPG03.9.6B1).
 `docs/Design/RPG_TALENT_FIX05_D07_MAJOR_TRANSMUTATION_FIXED_DURATION.md` — **D07 VALIDÉ / CLOS** (10/10 RPG03.9.6A + 4/4 RPG03.9.4F1 + 7/7 RPG03.9.6B2).
+`docs/Design/RPG_TALENT_FIX06_D08_MAJOR_TRANSMUTATION_REACTION_BRIDGE.md` — D08 source raccordée, validation RPG03.9.6A / RPG03.9.6B2 / RPG03.9.4F1 requise.
 `docs/Design/UI_RPG_DESC01_13_CPP_TALENT_AUDIT_90.md` — audit statique C++ 90/90.
 
 Les audits de classe restent documentaires ; aucun nouveau C++ / UMG / DataAsset

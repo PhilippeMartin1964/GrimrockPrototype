@@ -811,16 +811,35 @@ modificateur de durée.
 
 État : **VALIDÉ / CLOS** — 10/10 RPG03.9.6A, 4/4 RPG03.9.4F1 et 7/7 RPG03.9.6B2, sans warning ni échec.
 
-### D08 — Alchimiste / Transmutation majeure — bonus de réaction
+### D08 — Alchimiste / Transmutation majeure — bonus de réaction — SOURCE RACCORDÉE
 
-Le +50 % de dégâts de réaction est authoré mais n'a pas de chemin d'exécution
-complet avec les conversions actuelles.
+Le choix architectural est désormais tranché en faveur du contrat RPG02 :
 
-Décision DESC01.11 conservée :
+```text
+conversion opt-in
+-> réaction canonique préalable si la sortie peut agir comme élément entrant
+-> événement SurfaceReaction
+-> modificateurs de l'action/réactions
+-> conversion finale vers la sortie de recette
+```
 
-- ne pas le présenter comme garantie actuelle ;
-- décider ultérieurement entre une vraie règle générique conversion→réaction ou
-  la suppression de ce bonus mort.
+Transmutation majeure active ce chemin pour les sorties **Feu** et **Glace**.
+Les sorties Poison/Huile n'inventent aucune interaction canonique.
+
+Le modificateur authoré :
+
+```text
+Action_Alchemist_MajorTransmutation
+SurfaceReactionDamagePercentModifier = +50 %
+```
+
+atteint ainsi le résultat d'une réaction explosive déclenchée pendant la
+conversion.
+
+La magnitude de base d'une explosion de surface reste une limite C6 globale déjà
+documentée : aucun chiffre universel n'est inventé ici.
+
+État : **source + tests ajoutés ; validation locale requise avant clôture D08.**
 
 ### D09 — Alchimiste / Crafting
 

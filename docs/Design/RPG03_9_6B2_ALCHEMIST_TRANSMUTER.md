@@ -89,3 +89,32 @@ warnings      0
 ```
 
 D07 est clos.
+
+
+## Correctif D08 — réaction avant conversion
+
+Transmutation majeure conserve le bonus authoré de +50 % aux dégâts de réaction.
+
+Les conversions de sortie Feu/Glace activent désormais :
+
+```text
+bTriggerCanonicalReactionBeforeConversion = true
+```
+
+Ordre :
+
+```text
+surface existante
+-> réaction canonique éventuelle avec la sortie choisie
+-> événement SurfaceReaction / modificateurs
+-> conversion finale vers la sortie choisie
+-> durée finale 4 rounds
+```
+
+La sortie finale de recette reste donc autoritaire, même si la réaction
+intermédiaire produit temporairement un autre type (ex. Ice + Fire -> Water).
+
+Les sorties Poison/Huile ne déclenchent aucune interaction artificielle.
+
+La magnitude de base des explosions de surface reste volontairement non inventée,
+conformément à RPG03.6/RPG03.9.6A.
