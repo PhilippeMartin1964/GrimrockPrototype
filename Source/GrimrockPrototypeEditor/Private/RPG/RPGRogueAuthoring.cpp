@@ -311,7 +311,7 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Assassin progression.
 	FRPGClassProgressionChoiceDefinition SneakAttack = MakeChoice(
 		TEXT("Talent_Rogue_Assassin_SneakAttack"), TEXT("Attaque sournoise"),
-		TEXT("Débloque Attaque sournoise ; sa condition tactique augmente le coefficient WD de 50 points."), 2, AssassinBranchId);
+		TEXT("Requiert arme légère. 125 % dégâts de l'arme. Si la cible n'a pas encore agi ce round, subit un contrôle physique, ou si le groupe se trouve dans son arc arrière : 175 % dégâts de l'arme à la place."), 2, AssassinBranchId);
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.ActionIds = { TEXT("Action_Rogue_SneakAttack") };
@@ -327,7 +327,7 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition Backstab = MakeChoice(
 		TEXT("Talent_Rogue_Assassin_Backstab"), TEXT("Frappe dans le dos"),
-		TEXT("Avec une arme légère dans l'arc arrière : dégâts +20 % et critique +20 points, hors AoE."),
+		TEXT("Avec arme légère contre une cible dont le groupe occupe l'arc arrière : dégâts +20 % et chance de critique +20 points. Ne s'applique pas aux AoE."),
 		6, AssassinBranchId, TEXT("Talent_Rogue_Assassin_SneakAttack"));
 	{
 		FGridCombatModifierProfile Modifier;
@@ -342,28 +342,28 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(Backstab);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Assassin_Hemorrhage"), TEXT("Hémorragie"),
-		TEXT("Débloque Hémorragie."), 10, AssassinBranchId, TEXT("Talent_Rogue_Assassin_Backstab")));
+		TEXT("100 % dégâts de l'arme Tranchant/Perforant. Si armure physique=0 après dégâts, applique Status_Bleeding 3 tours : 2 dégâts Physical par tick, la réapplication rafraîchit la durée, MaxStacks=1."), 10, AssassinBranchId, TEXT("Talent_Rogue_Assassin_Backstab")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Assassin_WeakPoint"), TEXT("Point faible"),
-		TEXT("Débloque Point faible."), 14, AssassinBranchId, TEXT("Talent_Rogue_Assassin_Hemorrhage")));
+		TEXT("Aucun dégât. Disponible seulement si armure physique=0. Applique Status_ExposedPhysical 2 rounds : dégâts Physical reçus +20 %."), 14, AssassinBranchId, TEXT("Talent_Rogue_Assassin_Hemorrhage")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Assassin_Finisher"), TEXT("Finisseur"),
-		TEXT("Débloque Finisseur."), 18, AssassinBranchId, TEXT("Talent_Rogue_Assassin_WeakPoint")));
+		TEXT("Disponible seulement si armure physique=0 et PV <=30 % PV maximum. Inflige 220 % dégâts de l'arme. Si la cible survit, aucun effet secondaire automatique."), 18, AssassinBranchId, TEXT("Talent_Rogue_Assassin_WeakPoint")));
 
 	// Shadow progression.
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Shadow_Dodge"), TEXT("Esquive"),
-		TEXT("Débloque Esquive."), 2, ShadowBranchId));
+		TEXT("Applique Status_Evasive 1 round : Esquive +4. la réapplication rafraîchit la durée, non cumulable."), 2, ShadowBranchId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Shadow_ShortVanish"), TEXT("Disparition courte"),
-		TEXT("Débloque Disparition courte."), 6, ShadowBranchId, TEXT("Talent_Rogue_Shadow_Dodge")));
+		TEXT("Applique Status_Hidden jusqu'au début du prochain tour du Voleur ou jusqu'à sa première action offensive. Les attaques ciblées hostiles ne peuvent pas le sélectionner ; AoE/DoT/surfaces continuent de l'affecter."), 6, ShadowBranchId, TEXT("Talent_Rogue_Shadow_Dodge")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Shadow_ShadowStep"), TEXT("Pas de l'ombre"),
-		TEXT("Débloque Pas de l'ombre."), 10, ShadowBranchId, TEXT("Talent_Rogue_Shadow_ShortVanish")));
+		TEXT("Applique Status_ShadowReach jusqu'à la fin du tour : la prochaine attaque de mêlée avec arme légère peut être exécutée depuis le rang arrière et gagne +1 cellule de portée ; l'effet est consommé à l'attaque."), 10, ShadowBranchId, TEXT("Talent_Rogue_Shadow_ShortVanish")));
 
 	FRPGClassProgressionChoiceDefinition Elusive = MakeChoice(
 		TEXT("Talent_Rogue_Shadow_Elusive"), TEXT("Insaisissable"),
-		TEXT("Après Esquive, Disparition courte ou Pas de l'ombre : Evasion +2 et Initiative +4 pendant 1 round."),
+		TEXT("Après utilisation réussie d'Esquive, Disparition courte ou Pas de l'ombre, applique Status_Elusive 1 round : Esquive +2 et InitiativeModifier +4. Ne se cumule pas avec lui-même."),
 		14, ShadowBranchId, TEXT("Talent_Rogue_Shadow_ShadowStep"));
 	{
 		FGridCombatReactionProfile Reaction;
@@ -382,12 +382,12 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(Elusive);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Shadow_PerfectShadow"), TEXT("Ombre parfaite"),
-		TEXT("Débloque Ombre parfaite."), 18, ShadowBranchId, TEXT("Talent_Rogue_Shadow_Elusive")));
+		TEXT("Status_HiddenPerfect 2 rounds. La première action offensive bénéficie de +50 % dégâts et Précision +2 puis rompt l'effet ; recevoir des dégâts directs rompt aussi l'effet après résolution."), 18, ShadowBranchId, TEXT("Talent_Rogue_Shadow_Elusive")));
 
 	// Saboteur progression.
 	FRPGClassProgressionChoiceDefinition ExpertDisarm = MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_ExpertDisarm"), TEXT("Désamorçage expert"),
-		TEXT("Pièges +2 ; un échec de 1 ou 2 est signalé comme échec sûr."),
+		TEXT("Jets Skill_Traps +2. 1 fois par piège, un échec de 1 ou 2 points devient un échec sûr : le piège reste armé mais ne se déclenche pas."),
 		2, SaboteurBranchId);
 	{
 		FRPGSkillProgressionModifier Modifier;
@@ -399,14 +399,14 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(ExpertDisarm);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_QuickTrap"), TEXT("Piège rapide"),
-		TEXT("Débloque Piège rapide."), 6, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_ExpertDisarm")));
+		TEXT("Pose Trap_Quick pour 3 rounds. Premier hostile entrant : dégâts Physical Piercing = 6 + DEX mod ; si armure physique=0 après dégâts, Status_Immobilized 1 round. Le piège est ensuite consommé."), 6, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_ExpertDisarm")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_SmokeBomb"), TEXT("Bombe fumigène"),
-		TEXT("Débloque Bombe fumigène."), 10, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_QuickTrap")));
+		TEXT("Crée Surface_Smoke 2 rounds. Une ligne de tir traversant la fumée invalide les attaques/spells ciblés à distance ; un occupant de la fumée gagne Esquive +2 contre les attaques à distance."), 10, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_QuickTrap")));
 
 	FRPGClassProgressionChoiceDefinition MasterLocksmith = MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_MasterLocksmith"), TEXT("Maître des serrures"),
-		TEXT("Crochetage +2 ; rang effectif +1 pour les RequirementGrants ; échec de 1 ou 2 signalé comme sûr."),
+		TEXT("Jets Skill_Lockpicking +2. Pour les RequirementGrants de Crochetage, le Rank effectif vaut Rank+1, plafonné à 5. Un échec de <=2 ne bloque/jamme jamais la serrure."),
 		14, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_SmokeBomb"));
 	{
 		FRPGSkillProgressionModifier Modifier;
@@ -419,7 +419,7 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(MasterLocksmith);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_Sabotage"), TEXT("Sabotage"),
-		TEXT("Débloque Sabotage."), 18, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_MasterLocksmith")));
+		TEXT("Sur cible `Mechanical"), 18, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_MasterLocksmith")));
 }
 
 bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)

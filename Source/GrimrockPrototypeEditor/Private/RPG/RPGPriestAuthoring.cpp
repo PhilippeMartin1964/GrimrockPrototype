@@ -331,7 +331,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
 			EnhancedHealingTalentId, TEXT("Soin renforcé"),
-			TEXT("Les soins issus des sorts du Prêtre gagnent +25 % après calcul de leur magnitude."), 2, RestorationBranchId);
+			TEXT("Tous les soins issus d'une action SourcePolicy=Spell du Prêtre sont multipliés par 1,25 après calcul de la magnitude, arrondi inférieur, minimum +1 si soin positif."), 2, RestorationBranchId);
 		FGridCombatModifierProfile Modifier;
 		Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
 		Modifier.OutgoingHealingPercentModifier = 25;
@@ -339,13 +339,13 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		RegenerationTalentId, TEXT("Régénération"), TEXT("Débloque Régénération."), 6, RestorationBranchId, EnhancedHealingTalentId));
+		RegenerationTalentId, TEXT("Régénération"), TEXT("Applique Status_Regeneration 3 tours : à la fin de chaque activation de la cible, soigne 3 + WIS mod, minimum 1, puis décrémente la durée."), 6, RestorationBranchId, EnhancedHealingTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		GroupHealTalentId, TEXT("Soin de groupe"), TEXT("Débloque Soin de groupe."), 10, RestorationBranchId, RegenerationTalentId));
+		GroupHealTalentId, TEXT("Soin de groupe"), TEXT("Chaque membre vivant du groupe récupère 5 + WIS mod + Skill_Medicine Rank PV, clampé à PV maximum. Les personnages vaincus ne sont pas ciblés."), 10, RestorationBranchId, RegenerationTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		PurificationTalentId, TEXT("Purification"), TEXT("Débloque Purification."), 14, RestorationBranchId, GroupHealTalentId));
+		PurificationTalentId, TEXT("Purification"), TEXT("Retire jusqu'à 2 Debuffs amovibles parmi Poison, Burning, Bleeding, Slow, Silence, Immobilize et effets explicitement tagués Purifiable. Priorité : Potency puis EffectId."), 14, RestorationBranchId, GroupHealTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		MiracleTalentId, TEXT("Miracle"), TEXT("Débloque Miracle."), 18, RestorationBranchId, PurificationTalentId));
+		MiracleTalentId, TEXT("Miracle"), TEXT("Soigne le maximum entre 12 + 2×WIS mod + Religion Rank et la quantité nécessaire pour atteindre 50 % PV maximum. Retire jusqu'à 3 Debuffs Purifiable et restaure 25 % du pool armure magique de référence. Ne ressuscite pas."), 18, RestorationBranchId, PurificationTalentId));
 
 	// Protection actions.
 	{
@@ -393,15 +393,15 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	// Protection progression.
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		BlessingTalentId, TEXT("Bénédiction"), TEXT("Débloque Bénédiction."), 2, ProtectionBranchId));
+		BlessingTalentId, TEXT("Bénédiction"), TEXT("Status_Blessed 2 rounds : Précision +2 et InitiativeModifier +4. la réapplication rafraîchit la durée, non cumulable."), 2, ProtectionBranchId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		AegisTalentId, TEXT("Égide"), TEXT("Débloque Égide."), 6, ProtectionBranchId, BlessingTalentId));
+		AegisTalentId, TEXT("Égide"), TEXT("Restaure 8 + WIS mod + Religion Rank armure magique, clampé au pool de référence."), 6, ProtectionBranchId, BlessingTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		HolyProtectionTalentId, TEXT("Protection sacrée"), TEXT("Débloque Protection sacrée."), 10, ProtectionBranchId, AegisTalentId));
+		HolyProtectionTalentId, TEXT("Protection sacrée"), TEXT("Status_HolyProtection 3 rounds : résistances Holy/Necrotic/Arcane +25 % et Esquive +2 contre actions SourcePolicy=Spell ciblées."), 10, ProtectionBranchId, AegisTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		SanctuaryTalentId, TEXT("Sanctuaire"), TEXT("Débloque Sanctuaire."), 14, ProtectionBranchId, HolyProtectionTalentId));
+		SanctuaryTalentId, TEXT("Sanctuaire"), TEXT("Jusqu'au début de la prochaine activation de la cible, max 2 rounds : attaques hostiles ciblées ne peuvent pas la sélectionner. Si la cible inflige des dégâts, le statut disparaît après cette action. AoE/DoT/surfaces restent valides."), 14, ProtectionBranchId, HolyProtectionTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		DivineBastionTalentId, TEXT("Bastion divin"), TEXT("Débloque Bastion divin."), 18, ProtectionBranchId, SanctuaryTalentId));
+		DivineBastionTalentId, TEXT("Bastion divin"), TEXT("Restaure 35 % du pool armure magique de référence à tous les alliés vivants puis applique Status_DivineBastion 2 rounds : dégâts non-Physical reçus -20 %."), 18, ProtectionBranchId, SanctuaryTalentId));
 
 	// Exorcism actions.
 	{
@@ -486,7 +486,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Exorcism progression.
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			HolyLightTalentId, TEXT("Lumière sacrée"), TEXT("Débloque Lumière sacrée."), 2, ExorcismBranchId);
+			HolyLightTalentId, TEXT("Lumière sacrée"), TEXT("Inflige 5 + WIS mod + Religion Rank dégâts Holy. Contre `Undead"), 2, ExorcismBranchId);
 		FGridCombatModifierProfile Bonus;
 		Bonus.ActionIds = { HolyLightActionId };
 		Bonus.AllowedTargetMonsterCategoryIds = { TEXT("Undead"), TEXT("Demon") };
@@ -495,12 +495,12 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TurnUndeadTalentId, TEXT("Repousser les morts-vivants"), TEXT("Débloque Repousser les morts-vivants."), 6, ExorcismBranchId, HolyLightTalentId));
+		TurnUndeadTalentId, TEXT("Repousser les morts-vivants"), TEXT("Chaque Undead dans la zone subit 4 Holy. Si armure magique=0 après dégâts, il est poussé d'1 cellule à l'opposé du groupe si possible et reçoit InitiativeModifier -4 pendant 1 round."), 6, ExorcismBranchId, HolyLightTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		HolyDispelTalentId, TEXT("Dissipation sacrée"), TEXT("Débloque Dissipation sacrée."), 10, ExorcismBranchId, TurnUndeadTalentId));
+		HolyDispelTalentId, TEXT("Dissipation sacrée"), TEXT("Allié : retire jusqu'à 2 Debuffs `Necrotic"), 10, ExorcismBranchId, TurnUndeadTalentId));
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			SmiteTalentId, TEXT("Châtiment"), TEXT("Débloque Châtiment."), 14, ExorcismBranchId, HolyDispelTalentId);
+			SmiteTalentId, TEXT("Châtiment"), TEXT("Inflige 10 + 2×WIS mod + Religion Rank Holy. Contre `Undead"), 14, ExorcismBranchId, HolyDispelTalentId);
 		FGridCombatModifierProfile Bonus;
 		Bonus.ActionIds = { SmiteActionId };
 		Bonus.AllowedTargetMonsterCategoryIds = { TEXT("Undead"), TEXT("Demon") };
@@ -509,7 +509,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		MajorExorcismTalentId, TEXT("Exorcisme majeur"), TEXT("Débloque Exorcisme majeur."), 18, ExorcismBranchId, SmiteTalentId));
+		MajorExorcismTalentId, TEXT("Exorcisme majeur"), TEXT("N'affecte que `Undead"), 18, ExorcismBranchId, SmiteTalentId));
 }
 
 bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)

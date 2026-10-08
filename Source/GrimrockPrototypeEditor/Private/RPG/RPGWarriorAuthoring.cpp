@@ -312,14 +312,14 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Guardian_DefensiveStance"), TEXT("Posture défensive"),
-		TEXT("Débloque Posture défensive."), 2, GuardianBranchId));
+		TEXT("Applique Status_Guarded pendant 2 rounds : dégâts physiques reçus -20 %, Esquive +2, dégâts d'arme infligés -10 %. Réapplication = la réapplication rafraîchit la durée."), 2, GuardianBranchId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Guardian_ShieldBash"), TEXT("Coup de bouclier"),
-		TEXT("Débloque Coup de bouclier."), 6, GuardianBranchId, TEXT("Talent_Warrior_Guardian_DefensiveStance")));
+		TEXT("Requiert bouclier équipé. Inflige 80 % dégâts de l'arme, Contondant. Après dégâts, si armure physique=0, applique Status_Stunned pour 1 tour (fait perdre la prochaine activation)."), 6, GuardianBranchId, TEXT("Talent_Warrior_Guardian_DefensiveStance")));
 
 	FRPGClassProgressionChoiceDefinition Interception = MakeChoice(
 		TEXT("Talent_Warrior_Guardian_Interception"), TEXT("Interception"),
-		TEXT("Une fois par round, redirige 50 % des dégâts physiques finaux d'une attaque ciblée contre un allié de première ligne."),
+		TEXT("1 fois/round, lorsqu'un allié du rang avant subit une attaque physique ciblée : 50 % des dégâts finaux sont redirigés vers le Guerrier et résolus contre sa propre armure physique. Ignore AoE, DoT et surfaces."),
 		10, GuardianBranchId, TEXT("Talent_Warrior_Guardian_ShieldBash"));
 	{
 		FGridCombatReactionProfile Reaction;
@@ -337,7 +337,7 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition Bulwark = MakeChoice(
 		TEXT("Talent_Warrior_Guardian_Bulwark"), TEXT("Rempart"),
-		TEXT("Armure physique de référence fournie par l'équipement et le bouclier +25 %."),
+		TEXT("Armure physique fournie par équipement+bouclier +25 %. Le bonus modifie le pool projeté au démarrage/refresh, pas une seconde armure parallèle."),
 		14, GuardianBranchId, TEXT("Talent_Warrior_Guardian_Interception"));
 	{
 		FGridCombatModifierProfile Modifier;
@@ -347,11 +347,11 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(Bulwark);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Guardian_Fortress"), TEXT("Forteresse"),
-		TEXT("Débloque Forteresse."), 18, GuardianBranchId, TEXT("Talent_Warrior_Guardian_Bulwark")));
+		TEXT("Restaure 40 % du pool d'armure physique de référence à chaque allié vivant du rang avant puis applique Status_Fortified 2 rounds : dégâts physiques reçus -25 %."), 18, GuardianBranchId, TEXT("Talent_Warrior_Guardian_Bulwark")));
 
 	FRPGClassProgressionChoiceDefinition PowerStrike = MakeChoice(
 		TEXT("Talent_Warrior_Breaker_PowerStrike"), TEXT("Coup puissant"),
-		TEXT("Débloque une attaque d'arme lourde à 150 % WD avec Accuracy -2."), 2, BreakerBranchId);
+		TEXT("Attaque d'arme lourde à 150 % dégâts de l'arme, Précision -2. Critique autorisé. Aucun contrôle."), 2, BreakerBranchId);
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.ActionIds = { TEXT("Action_Warrior_PowerStrike") };
@@ -361,16 +361,16 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(PowerStrike);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Breaker_ArmorBreak"), TEXT("Brise-armure"),
-		TEXT("Débloque Brise-armure."), 6, BreakerBranchId, TEXT("Talent_Warrior_Breaker_PowerStrike")));
+		TEXT("Attaque à 100 % dégâts de l'arme. En plus, inflige à armure physique uniquement un bonus égal à 50 % du dégâts bruts de l'attaque ; l'excédent de ce bonus ne déborde jamais sur les PV."), 6, BreakerBranchId, TEXT("Talent_Warrior_Breaker_PowerStrike")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Breaker_Sweep"), TEXT("Balayage"),
-		TEXT("Débloque Balayage."), 10, BreakerBranchId, TEXT("Talent_Warrior_Breaker_ArmorBreak")));
+		TEXT("Chaque hostile dans la zone reçoit une attaque à 85 % dégâts de l'arme avec un jet séparé. Aucun friendly fire sur les membres du groupe occupant la case de départ."), 10, BreakerBranchId, TEXT("Talent_Warrior_Breaker_ArmorBreak")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Breaker_Execution"), TEXT("Exécution"),
-		TEXT("Débloque Exécution."), 14, BreakerBranchId, TEXT("Talent_Warrior_Breaker_Sweep")));
+		TEXT("Disponible uniquement si armure physique=0 et PV <=35 % PV maximum. Inflige 200 % dégâts de l'arme. L'éligibilité est recalculée à la requête ; pas d'exécution automatique."), 14, BreakerBranchId, TEXT("Talent_Warrior_Breaker_Sweep")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Breaker_Devastation"), TEXT("Ravage"),
-		TEXT("Débloque Ravage."), 18, BreakerBranchId, TEXT("Talent_Warrior_Breaker_Execution")));
+		TEXT("Inflige 140 % dégâts de l'arme à tous les hostiles de la zone. La cible primaire, si armure physique=0 après dégâts, reçoit Status_KnockedDown 1 tour (fait perdre la prochaine activation)."), 18, BreakerBranchId, TEXT("Talent_Warrior_Breaker_Execution")));
 
 	const struct
 	{
@@ -396,7 +396,7 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition Riposte = MakeChoice(
 		TEXT("Talent_Warrior_WeaponMaster_Riposte"), TEXT("Riposte"),
-		TEXT("Une fois par round après l'échec d'une attaque de mêlée ciblée : contre-attaque immédiate à 75 % WD sans PA."),
+		TEXT("1 fois/round après l'échec d'une attaque de mêlée ciblée contre le Guerrier : contre-attaque immédiate à 75 % dégâts de l'arme, sans PA et sans déclencher une nouvelle Riposte."),
 		6, WeaponMasterBranchId);
 	Riposte.PrerequisiteRequirementIds = { MartialRequirement };
 	{
@@ -416,11 +416,11 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_WeaponMaster_SecondWind"), TEXT("Second souffle"),
-		TEXT("Débloque Second souffle."), 10, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_Riposte")));
+		TEXT("Restaure 20 % PV maximum, arrondi au supérieur, minimum 1. Indisponible à PV max. Ne restaure ni mana ni armure."), 10, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_Riposte")));
 
 	FRPGClassProgressionChoiceDefinition CriticalMastery = MakeChoice(
 		TEXT("Talent_Warrior_WeaponMaster_CriticalMastery"), TEXT("Maîtrise critique"),
-		TEXT("Avec la spécialisation choisie : critique +10 points et multiplicateur critique +25 points."),
+		TEXT("Avec la spécialisation martiale choisie : chance de critique +10 points de pourcentage et multiplicateur de dégâts critiques +25 points de pourcentage."),
 		14, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_SecondWind"));
 	for (const auto& Spec : Specializations)
 	{
@@ -436,7 +436,7 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_WeaponMaster_Warlord"), TEXT("Seigneur de guerre"),
-		TEXT("Débloque Seigneur de guerre."), 18, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_CriticalMastery")));
+		TEXT("Applique Status_Warlord 2 rounds à tous les alliés actifs : Précision +2 et InitiativeModifier +4. Non cumulable ; nouvelle application rafraîchit la durée."), 18, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_CriticalMastery")));
 }
 
 bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)

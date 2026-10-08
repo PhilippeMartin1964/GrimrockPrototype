@@ -301,7 +301,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 
 	// Marksman progression.
 	FRPGClassProgressionChoiceDefinition Precise = MakeChoice(
-		TEXT("Talent_Ranger_Marksman_PreciseShot"), TEXT("Tir précis"), TEXT("Débloque Tir précis."), 2, MarksmanBranchId);
+		TEXT("Talent_Ranger_Marksman_PreciseShot"), TEXT("Tir précis"), TEXT("150 % dégâts de l'arme, Précision +2. Requiert arme à distance. Portée finale clampée à 32 cellules."), 2, MarksmanBranchId);
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.ActionIds = { TEXT("Action_Ranger_PreciseShot") };
@@ -310,17 +310,17 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	}
 	ClassAsset.ProgressionChoices.Add(Precise);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TEXT("Talent_Ranger_Marksman_PiercingShot"), TEXT("Tir perforant"), TEXT("Débloque Tir perforant."),
+		TEXT("Talent_Ranger_Marksman_PiercingShot"), TEXT("Tir perforant"), TEXT("110 % dégâts de l'arme, Physical/Piercing. Inflige en plus 50 % du dégâts bruts à armure physique uniquement, sans débordement vers PV."),
 		6, MarksmanBranchId, TEXT("Talent_Ranger_Marksman_PreciseShot")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TEXT("Talent_Ranger_Marksman_RapidShot"), TEXT("Tir rapide"), TEXT("Débloque Tir rapide."),
+		TEXT("Talent_Ranger_Marksman_RapidShot"), TEXT("Tir rapide"), TEXT("Deux attaques successives indépendantes à 65 % dégâts de l'arme chacune. La seconde a Précision -1. Les deux peuvent critiquer ; la mort après le premier tir annule le second."),
 		10, MarksmanBranchId, TEXT("Talent_Ranger_Marksman_PiercingShot")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TEXT("Talent_Ranger_Marksman_Volley"), TEXT("Volée"), TEXT("Débloque Volée."),
+		TEXT("Talent_Ranger_Marksman_Volley"), TEXT("Volée"), TEXT("Chaque hostile de la zone reçoit une attaque indépendante à 80 % dégâts de l'arme. Aucun statut. Les obstacles/ligne de vue sont évalués vers la cellule cible."),
 		14, MarksmanBranchId, TEXT("Talent_Ranger_Marksman_RapidShot")));
 	FRPGClassProgressionChoiceDefinition EagleEye = MakeChoice(
 		TEXT("Talent_Ranger_Marksman_EagleEye"), TEXT("Œil d'aigle"),
-		TEXT("Actions Ranged : portée +1, Accuracy +1 ; Perception en contexte distant +2."),
+		TEXT("Actions à distance : portée +1 et Précision +1. Jets de Perception à distance +2. Les limites globales de portée restent applicables."),
 		18, MarksmanBranchId, TEXT("Talent_Ranger_Marksman_Volley"));
 	{
 		FGridCombatModifierProfile Modifier;
@@ -340,7 +340,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	// Hunter progression.
 	FRPGClassProgressionChoiceDefinition MarkPrey = MakeChoice(
 		TEXT("Talent_Ranger_Hunter_MarkPrey"), TEXT("Marque de la proie"),
-		TEXT("Débloque Marque de la proie ; contre sa propre marque : Accuracy +2 et dégâts +15 %."), 2, HunterBranchId);
+		TEXT("Applique Status_MarkedByRanger 3 rounds, sans ArmorGate. Une seule marque active par Rôdeur. Contre sa propre marque : Précision +2, dégâts +15 %."), 2, HunterBranchId);
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.RequiredTargetStatusEffectIds = { MarkStatusId };
@@ -393,13 +393,13 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 
 	FRPGClassProgressionChoiceDefinition Pinning = MakeChoice(
 		TEXT("Talent_Ranger_Hunter_PinningShot"), TEXT("Tir immobilisant"),
-		TEXT("Débloque Tir immobilisant."), 10, HunterBranchId);
+		TEXT("100 % dégâts de l'arme. Si armure physique=0 après dégâts, applique Status_Immobilized 1 round (bBlockTranslation=true)."), 10, HunterBranchId);
 	Pinning.PrerequisiteRequirementIds = { FavoredEnemyAlias };
 	ClassAsset.ProgressionChoices.Add(Pinning);
 
 	FRPGClassProgressionChoiceDefinition Predator = MakeChoice(
 		TEXT("Talent_Ranger_Hunter_PredatorStrike"), TEXT("Frappe du prédateur"),
-		TEXT("Débloque Frappe du prédateur et lui donne Accuracy +1."),
+		TEXT("Requiert Status_MarkedByRanger provenant du lanceur. Inflige 170 % dégâts de l'arme avec Précision +1. La marque n'est pas consommée."),
 		14, HunterBranchId, TEXT("Talent_Ranger_Hunter_PinningShot"));
 	{
 		FGridCombatModifierProfile Modifier;
@@ -411,7 +411,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 
 	FRPGClassProgressionChoiceDefinition Alpha = MakeChoice(
 		TEXT("Talent_Ranger_Hunter_AlphaHunter"), TEXT("Chasseur alpha"),
-		TEXT("Une fois par round, transfère la propre marque du Rôdeur lorsqu'une cible marquée meurt."),
+		TEXT("1 fois/round, à la mort de la cible marquée, transfère automatiquement la marque vers l'hostile vivant le plus proche dans un rayon de 3 cellules ; nouvelle durée 2 rounds. Aucun PA."),
 		18, HunterBranchId, TEXT("Talent_Ranger_Hunter_PredatorStrike"));
 	{
 		FGridCombatReactionProfile Reaction;
@@ -429,7 +429,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	// Scout progression.
 	FRPGClassProgressionChoiceDefinition Vigilance = MakeChoice(
 		TEXT("Talent_Ranger_Scout_Vigilance"), TEXT("Vigilance"),
-		TEXT("Meilleur jet de groupe de Perception +2 ; Initiative +2 au premier round."), 2, ScoutBranchId);
+		TEXT("Le Rôdeur apporte +2 au meilleur jet de groupe de Perception et gagne InitiativeModifier +2 au premier round de chaque combat. Ne se cumule pas entre plusieurs Rôdeurs."), 2, ScoutBranchId);
 	{
 		FRPGPartyProgressionModifier Party;
 		Party.StackingGroupId = TEXT("Party.Ranger.Vigilance");
@@ -441,14 +441,14 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	ClassAsset.ProgressionChoices.Add(Vigilance);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Ranger_Scout_HuntingTrap"), TEXT("Piège de chasse"),
-		TEXT("Débloque Piège de chasse."), 6, ScoutBranchId, TEXT("Talent_Ranger_Scout_Vigilance")));
+		TEXT("Pose Trap_Hunting 4 rounds. Premier hostile entrant : 5 + WIS mod dégâts Physical/Piercing ; si armure physique=0, Status_Immobilized 1 round ; piège consommé."), 6, ScoutBranchId, TEXT("Talent_Ranger_Scout_Vigilance")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Ranger_Scout_TacticalRetreat"), TEXT("Repli tactique"),
-		TEXT("Débloque Repli tactique."), 10, ScoutBranchId, TEXT("Talent_Ranger_Scout_HuntingTrap")));
+		TEXT("Déplace tout le groupe d'une cellule en arrière si la translation est légale. Ne paie pas le coût personnel normal de translation, mais paie 1 PAM. Aucun franchissement d'obstacle."), 10, ScoutBranchId, TEXT("Talent_Ranger_Scout_HuntingTrap")));
 
 	FRPGClassProgressionChoiceDefinition Terrain = MakeChoice(
 		TEXT("Talent_Ranger_Scout_TerrainMaster"), TEXT("Maître du terrain"),
-		TEXT("Si le groupe n'a pas traduit depuis la précédente activation : Ranged dégâts +10 %, Accuracy +1."),
+		TEXT("Si le groupe n'a effectué aucune translation depuis la précédente activation du Rôdeur : attaques à distance +10 % dégâts et Précision +1. Le bonus disparaît immédiatement après une translation."),
 		14, ScoutBranchId, TEXT("Talent_Ranger_Scout_TacticalRetreat"));
 	{
 		FGridCombatModifierProfile Modifier;
@@ -462,7 +462,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 
 	FRPGClassProgressionChoiceDefinition Guide = MakeChoice(
 		TEXT("Talent_Ranger_Scout_GroupGuide"), TEXT("Guide du groupe"),
-		TEXT("Meilleurs jets de groupe Perception/Survie +2 et PAM maximum +1 ; non cumulable."),
+		TEXT("Tant qu'un Rôdeur vivant possède ce talent : meilleurs jets de groupe Perception/Survie +2 et MaximumMobilityActionPoints +1 par round. Effet global non cumulable."),
 		18, ScoutBranchId, TEXT("Talent_Ranger_Scout_TerrainMaster"));
 	{
 		FRPGPartyProgressionModifier Party;

@@ -426,13 +426,13 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition Overload = MakeChoice(
 		ElementalOverloadTalentId, TEXT("Surcharge élémentaire"),
-		TEXT("Débloque Surcharge élémentaire : le prochain sort de l'affinité gagne +35 % de dégâts puis consomme l'effet."), 6, EvokerBranchId);
+		TEXT("Applique Status_ElementalOverload jusqu'à la fin du tour. Le prochain sort de l'Affinité gagne +35 % dégâts puis consomme l'effet."), 6, EvokerBranchId);
 	Overload.PrerequisiteRequirementIds = { ElementalAffinityAlias };
 	ClassAsset.ProgressionChoices.Add(Overload);
 
 	FRPGClassProgressionChoiceDefinition ControlledExplosion = MakeChoice(
 		ControlledExplosionTalentId, TEXT("Explosion contrôlée"),
-		TEXT("Les sorts de zone du Mage ne lui infligent aucun dégât direct et en infligent 50 % de moins à ses alliés."),
+		TEXT("Le Mage ne subit aucun dégât direct de ses propres sorts de zone ; ses alliés en subissent 50 % de moins. Les surfaces et statuts créés restent inchangés et peuvent toujours affecter le groupe."),
 		10, EvokerBranchId, ElementalOverloadTalentId);
 	FGridCombatModifierProfile AreaProtection;
 	AreaProtection.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
@@ -444,11 +444,11 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		ElementalChainTalentId, TEXT("Chaîne élémentaire"),
-		TEXT("Débloque Chaîne élémentaire."), 14, EvokerBranchId, ControlledExplosionTalentId));
+		TEXT("Cible primaire puis jusqu'à 2 autres hostiles à <=1 cellule du précédent. Chaque impact inflige 7 + INT mod + Skill_Arcana Rank du DamageType associé au sort d'affinité. Une cible ne peut être touchée qu'une fois."), 14, EvokerBranchId, ControlledExplosionTalentId));
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		CataclysmTalentId, TEXT("Cataclysme"),
-		TEXT("Débloque Cataclysme."), 18, EvokerBranchId, ElementalChainTalentId));
+		TEXT("Chaque hostile : 12 + INT mod + Arcana Rank dégâts d'affinité. Si armure magique=0 après dégâts : Fire→Burning 2 rounds ; Frost→Slow (Initiative -6) 2 rounds ; Air/Lightning→Stunned 1 tour ; Earth→Immobilized 1 round ou Poison 3 tours selon le sort choisi."), 18, EvokerBranchId, ElementalChainTalentId));
 
 	// Arcanist actions.
 	{
@@ -536,15 +536,15 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Arcanist progression.
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		ArcaneShieldTalentId, TEXT("Bouclier arcanique"),
-		TEXT("Débloque Bouclier arcanique."), 2, ArcanistBranchId));
+		TEXT("Restaure armure magique de 6 + INT mod + Arcana Rank, sans dépasser le pool d'armure magique de référence de la cible."), 2, ArcanistBranchId));
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		DispelTalentId, TEXT("Dissipation"),
-		TEXT("Débloque Dissipation."), 6, ArcanistBranchId, ArcaneShieldTalentId));
+		TEXT("Allié : retire 1 Debuff magique amovible. Hostile : retire 1 Buff magique amovible. Priorité déterministe : Potency la plus élevée puis EffectId lexical."), 6, ArcanistBranchId, ArcaneShieldTalentId));
 
 	FRPGClassProgressionChoiceDefinition RunicManipulation = MakeChoice(
 		RunicManipulationTalentId, TEXT("Manipulation runique"),
-		TEXT("Jets de Runes +2 ; dégâts Arcane +20 % contre Rune ou Construct."), 10, ArcanistBranchId, DispelTalentId);
+		TEXT("Jets Skill_Runes +2. Les dégâts Arcane contre cibles taguées `Rune"), 10, ArcanistBranchId, DispelTalentId);
 	FRPGSkillProgressionModifier RuneSkill;
 	RuneSkill.SkillId = TEXT("Skill_Runes");
 	RuneSkill.CheckModifier = 2;
@@ -559,11 +559,11 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		ShortTeleportTalentId, TEXT("Téléportation courte"),
-		TEXT("Débloque Téléportation courte."), 14, ArcanistBranchId, RunicManipulationTalentId));
+		TEXT("Téléporte le groupe entier vers une cellule visible, libre et marchable. Ne traverse ni mur solide, ni porte fermée, ni frontière de niveau et ne déclenche aucune transition. Aucun PAM dépensé."), 14, ArcanistBranchId, RunicManipulationTalentId));
 
 	FRPGClassProgressionChoiceDefinition ArcaneMastery = MakeChoice(
 		ArcaneMasteryTalentId, TEXT("Maîtrise de l'Arcane"),
-		TEXT("Sorts Arcane : mana -1 (minimum 1), portée +1 et dégâts +15 %."), 18, ArcanistBranchId, ShortTeleportTalentId);
+		TEXT("Actions Spell de School Arcane : ManaCost -1 (minimum 1), portée +1 (max32) et dégâts Arcane +15 %."), 18, ArcanistBranchId, ShortTeleportTalentId);
 	FGridCombatModifierProfile Mastery;
 	Mastery.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
 	Mastery.RequiredSourceTags = { TEXT("Spell.School.Arcane") };
@@ -654,13 +654,13 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition ConversionChoice = MakeChoice(
 		ElementalConversionTalentId, TEXT("Conversion élémentaire"),
-		TEXT("Débloque Conversion élémentaire."), 6, SurfaceWeaverBranchId);
+		TEXT("Convertit une surface selon table canonique : Water→Ice (Frost), Water/Blood→Electrified (Air), Oil/Poison→Fire (Fire), Water→Poison ou terrain neutre→Oil selon la variante Earth. Pas d'effet si conversion invalide."), 6, SurfaceWeaverBranchId);
 	ConversionChoice.PrerequisiteRequirementIds = { ImbuementTalentId };
 	ClassAsset.ProgressionChoices.Add(ConversionChoice);
 
 	FRPGClassProgressionChoiceDefinition Conduction = MakeChoice(
 		ConductionTalentId, TEXT("Conduction"),
-		TEXT("Une attaque élémentaire exploitant un état ou une surface compatible inflige +20 % de dégâts."),
+		TEXT("Une attaque élémentaire exploitant une surface/état compatible gagne +20 % dégâts. Si elle détruit armure magique, son contrôle associé peut s'appliquer immédiatement après dégâts selon l'ArmorGate normal."),
 		10, SurfaceWeaverBranchId, ElementalConversionTalentId);
 	AddConductionModifier(Conduction, EGridDamageType::Fire, nullptr,
 		TArray<FName>{ FName(TEXT("Surface.Oil")), FName(TEXT("Surface.Poison")), FName(TEXT("Status_Burning")), FName(TEXT("Elemental.Fire")) });
@@ -676,7 +676,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition Persistent = MakeChoice(
 		PersistentSurfaceTalentId, TEXT("Surface persistante"),
-		TEXT("Les surfaces créées ou converties par le Mage durent +2 rounds et infligent +15 % de dégâts périodiques."),
+		TEXT("Surfaces créées par le Mage : durée +2 rounds, plafonnée à 6 ; dégâts périodiques de surface +15 %. Ne prolonge pas les surfaces du décor ou d'un autre auteur."),
 		14, SurfaceWeaverBranchId, ConductionTalentId);
 	FGridCombatModifierProfile PersistentModifier;
 	PersistentModifier.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
@@ -687,7 +687,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TerrainArchitectTalentId, TEXT("Architecte du terrain"),
-		TEXT("Débloque Architecte du terrain."), 18, SurfaceWeaverBranchId, PersistentSurfaceTalentId));
+		TEXT("Crée pendant 3 rounds une grande surface maîtrisée liée à l'affinité (Fire, Ice, Electrified Water, Oil/Poison). Les réactions standards sont ensuite résolues par le système de surfaces, sans effet spécial hard-codé au Talent."), 18, SurfaceWeaverBranchId, PersistentSurfaceTalentId));
 }
 
 bool FRPGMageAuthoring::ConfigureElementalOverloadStatus(UGridStatusEffectDefinitionAsset& StatusAsset)
