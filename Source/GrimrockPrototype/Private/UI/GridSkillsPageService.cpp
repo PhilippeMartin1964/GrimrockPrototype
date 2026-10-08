@@ -618,7 +618,8 @@ namespace
 		for (const FName Id : Choice.PrerequisiteRequirementIds)
 		{
 			const FText Name = ConceptualChoiceDisplayName(ClassDefinition, Id);
-			if (!Name.IsEmpty() && !Out.PrerequisiteTalentNames.Contains(Name)) Out.PrerequisiteTalentNames.Add(Name);
+			if (!Name.IsEmpty() && !Out.PrerequisiteTalentNames.ContainsByPredicate(
+				[&Name](const FText& Existing) { return Existing.EqualTo(Name); })) Out.PrerequisiteTalentNames.Add(Name);
 		}
 		if (bExclusiveVariant)
 		{
@@ -695,7 +696,11 @@ namespace
 		if (!Catalog) return false;
 		const FRPGClassPresentationDefinition* ClassPresentation = Catalog->FindClass(ClassId);
 		if (!ClassPresentation) return false;
-		const FRPGTalentBranchPresentationDefinition* Branch = ClassPresentation->FindBranch(BranchId);
+		const FRPGTalentBranchPresentationDefinition* Branch = ClassPresentation->Branches.FindByPredicate(
+			[BranchId](const FRPGTalentBranchPresentationDefinition& Candidate)
+			{
+				return Candidate.TalentBranchId == BranchId;
+			});
 		if (!Branch) return false;
 		const FRPGTalentNodePresentationDefinition* Override = Branch->FindNodeOverride(NodeId);
 		if (!Override) return false;
