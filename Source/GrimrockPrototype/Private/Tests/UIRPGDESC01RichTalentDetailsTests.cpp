@@ -63,6 +63,7 @@ namespace UIRPGDESC01Tests
 		Choice.TalentNodeId = Choice.ChoiceId;
 		Choice.DisplayName = FText::FromString(TEXT("Talent simple"));
 		Choice.Description = FText::FromString(TEXT("Débloque Trait de test."));
+		Choice.PresentationType = ERPGTalentPresentationType::Active;
 		Choice.MinimumLevel = 2;
 		Choice.PointCost = 1;
 		FGridCombatModifierProfile Modifier;
@@ -159,7 +160,10 @@ bool FUIRPGDESC01ActionProjectionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Mana cost is projected"), Action.ManaCost, 3);
 	TestEqual(TEXT("Cooldown is projected"), Action.CooldownRounds, 2);
 	TestTrue(TEXT("Passive mechanics are projected from canonical modifier data"), Variant.MechanicsSummary.ToString().Contains(TEXT("Précision : +2")));
-	TestEqual(TEXT("Action plus passive category is explicit"), Variant.EffectCategory.ToString(), FString(TEXT("CAPACITÉ ACTIVE + BONUS PASSIF")));
+	TestEqual(TEXT("Talent TYPE remains ACTIF even when passive modifiers are also present"),
+		Variant.Type, ERPGTalentPresentationType::Active);
+	TestEqual(TEXT("Talent TYPE label is canonical"),
+		Variant.TypeText.ToString(), FString(TEXT("ACTIF")));
 	return true;
 }
 
@@ -405,6 +409,8 @@ bool FUIRPGDESC01ReactionMechanicsTest::RunTest(const FString& Parameters)
  UGridPartyInventoryComponent* Component = MakeSimpleInventory(ClassDefinition);
  FRPGClassProgressionChoiceDefinition& Choice = ClassDefinition->ProgressionChoices[0];
  Choice.CombatModifiers.Reset();
+ Choice.PresentationType = ERPGTalentPresentationType::AutomaticReaction;
+ ClassDefinition->CombatActions.Reset();
  FGridCombatReactionProfile Reaction;
  Reaction.ReactionId = TEXT("Reaction_DESC01");
  Reaction.Trigger = EGridCombatReactionTrigger::IncomingAttackHit;
@@ -415,7 +421,11 @@ bool FUIRPGDESC01ReactionMechanicsTest::RunTest(const FString& Parameters)
  FGridSkillsPageView View;
  TestTrue(TEXT("Reaction view builds"), FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, View));
  const FGridTalentVariantView& Variant = View.TalentTree.Branches[0].Nodes[0].Variants[0];
- TestEqual(TEXT("Reaction category is explicit"), Variant.EffectCategory.ToString(), FString(TEXT("CAPACITÉ ACTIVE + RÉACTION AUTOMATIQUE")));
+ TestEqual(TEXT("Reaction Talent TYPE is explicit"),
+  Variant.Type, ERPGTalentPresentationType::AutomaticReaction);
+ TestEqual(TEXT("Reaction TYPE label is canonical"),
+  Variant.TypeText.ToString(), FString(TEXT("RÉACTION AUTOMATIQUE")));
+ TestTrue(TEXT("Automatic reaction exposes no voluntary UTILISATION"), Variant.Usage.IsEmpty());
  TestTrue(TEXT("Reaction trigger is readable"), Variant.MechanicsSummary.ToString().Contains(TEXT("attaque entrante touche")));
  TestTrue(TEXT("Reaction limit is readable"), Variant.MechanicsSummary.ToString().Contains(TEXT("une fois par round")));
  TestTrue(TEXT("Reaction response is readable"), Variant.MechanicsSummary.ToString().Contains(TEXT("redirige 50 %")));
