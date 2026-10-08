@@ -182,9 +182,9 @@ bool FUIRPGDESC01SimpleDetailTest::RunTest(const FString& Parameters)
 
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 	TestTrue(TEXT("Simple detail initializes"), Detail->InitializeTalentDetail(Node, Branch));
-	TestTrue(TEXT("Simple Talent exposes authoritative action summary"), Detail->ResolvedActionSummary.ToString().Contains(TEXT("1 PA")));
-	TestTrue(TEXT("Action summary exposes Mana"), Detail->ResolvedActionSummary.ToString().Contains(TEXT("4 Mana")));
-	TestTrue(TEXT("Action summary exposes cooldown"), Detail->ResolvedActionSummary.ToString().Contains(TEXT("Recharge 3 tours")));
+	TestTrue(TEXT("Simple Talent exposes authoritative action summary"), Detail->ResolvedActionSummary.ToString().Contains(TEXT("1 point d'action")));
+	TestTrue(TEXT("Action summary exposes Mana"), Detail->ResolvedActionSummary.ToString().Contains(TEXT("4 mana")));
+	TestTrue(TEXT("Action summary exposes cooldown"), Detail->ResolvedActionSummary.ToString().Contains(TEXT("recharge : 3 tours")));
 	TestTrue(TEXT("Action summary exposes action description"), Detail->ResolvedActionSummary.ToString().Contains(TEXT("Effet concret")));
 	TestTrue(TEXT("Simple Talent does not duplicate a variant heading"), Detail->ResolvedVariantDisplayName.IsEmpty());
 	return true;

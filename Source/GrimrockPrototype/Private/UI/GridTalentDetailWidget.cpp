@@ -492,19 +492,19 @@ FText UGridTalentDetailWidget::BuildActionSummary(const FGridTalentVariantView& 
 		FString Header = Action.DisplayName.IsEmpty() ? Action.ActionId.ToString() : Action.DisplayName.ToString();
 
 		TArray<FString> Costs;
-		Costs.Add(FString::Printf(TEXT("%d PA"), Action.ActionPointCost));
+		Costs.Add(FString::Printf(TEXT("%d point%s d'action"), Action.ActionPointCost, Action.ActionPointCost > 1 ? TEXT("s") : TEXT("")));
 		if (Action.ManaCost > 0)
 		{
-			Costs.Add(FString::Printf(TEXT("%d Mana"), Action.ManaCost));
+			Costs.Add(FString::Printf(TEXT("%d mana"), Action.ManaCost));
 		}
 		if (Action.RangeCells > 0)
 		{
-			Costs.Add(FString::Printf(TEXT("Portée %d"), Action.RangeCells));
+			Costs.Add(FString::Printf(TEXT("portée : %d case%s"), Action.RangeCells, Action.RangeCells > 1 ? TEXT("s") : TEXT("")));
 		}
 		if (Action.CooldownRounds > 0)
 		{
 			Costs.Add(FString::Printf(
-				TEXT("Recharge %d tour%s"),
+				TEXT("recharge : %d tour%s"),
 				Action.CooldownRounds,
 				Action.CooldownRounds > 1 ? TEXT("s") : TEXT("")));
 		}
@@ -517,9 +517,11 @@ FText UGridTalentDetailWidget::BuildActionSummary(const FGridTalentVariantView& 
 
 		FString Description = Action.Description.ToString();
 		Description.TrimStartAndEndInline();
+		Description.ReplaceInline(TEXT(" WD"), TEXT(" des dégâts de l'arme"), ESearchCase::CaseSensitive);
+		Description.ReplaceInline(TEXT(" PA"), TEXT(" points d'action"), ESearchCase::CaseSensitive);
 		ActionBlocks.Add(Description.IsEmpty()
 			? Header
-			: FString::Printf(TEXT("%s\n%s"), *Header, *Description));
+			: FString::Printf(TEXT("%s\nEffet : %s"), *Header, *Description));
 	}
 
 	return FText::FromString(TEXT("ACTION DÉBLOQUÉE\n") + FString::Join(ActionBlocks, TEXT("\n\n")));
@@ -547,7 +549,8 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 		if (NodeView.Variants.Num() == 1 && !NodeView.Variants[0].EffectCategory.IsEmpty())
 		{
 			Text_DetailDescription->SetText(FText::FromString(
-				NodeView.Variants[0].EffectCategory.ToString() + TEXT("\n") + ResolvedDescription.ToString()));
+				NodeView.Variants[0].EffectCategory.ToString() + TEXT("\n") +
+				ResolvedDescription.ToString().Replace(TEXT(" WD"), TEXT(" des dégâts de l'arme")).Replace(TEXT(" PA"), TEXT(" points d'action"))));
 		}
 		else
 		{
