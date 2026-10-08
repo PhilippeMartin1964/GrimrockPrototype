@@ -114,7 +114,7 @@ bool FGridMapMON2165MalformedTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMapMON2165VersionTest, "Grimrock.Map.MON21_6_5.Persistence.ExactMatchVersion23",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMapMON2165VersionTest, "Grimrock.Map.MON21_6_5.Persistence.ExactMatchVersion24",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridMapMON2165VersionTest::RunTest(const FString& Parameters)
@@ -123,7 +123,7 @@ bool FGridMapMON2165VersionTest::RunTest(const FString& Parameters)
 
 	TestEqual(TEXT("MON21.6.5 opens exact-match SaveGame v24"), UGrimrockPartySaveGame::CurrentSaveVersion, 24);
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
-	TestEqual(TEXT("Fresh SaveGame defaults to v24"), Current->SaveVersion, 23);
+	TestEqual(TEXT("Fresh SaveGame defaults to v24"), Current->SaveVersion, 24);
 	TestTrue(TEXT("Fresh v24 SaveGame is compatible"), Current->IsCompatible());
 
 	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
@@ -131,8 +131,8 @@ bool FGridMapMON2165VersionTest::RunTest(const FString& Parameters)
 	FText Error;
 	TestFalse(TEXT("Previous v23 is rejected without migration"), Previous->ValidateCurrentState(Error));
 	TestFalse(TEXT("Previous v23 is incompatible"), Previous->IsCompatible());
-	TestEqual(TEXT("Validation never rewrites v22"), Previous->SaveVersion, 22);
-	TestTrue(TEXT("v22 rejection reports an error"), !Error.IsEmpty());
+	TestEqual(TEXT("Validation never rewrites v23"), Previous->SaveVersion, 23);
+	TestTrue(TEXT("v23 rejection reports an error"), !Error.IsEmpty());
 	return true;
 }
 
