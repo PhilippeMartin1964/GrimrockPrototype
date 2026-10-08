@@ -189,7 +189,7 @@ Répartition : **14 SORTS ACTIFS / 1 PASSIF**.
 | Grenadier | 2 | Bombe incendiaire | RECETTE + OBJET RAPIDE | friendly fire |
 | Grenadier | 6 | Bombe toxique | RECETTE + OBJET RAPIDE | friendly fire |
 | Grenadier | 10 | Charge précise | PASSIF | réduit uniquement dégâts directs alliés |
-| Grenadier | 14 | Réaction en chaîne | RÉACTION AUTOMATIQUE | dette runtime ALCH-02 |
+| Grenadier | 14 | Réaction en chaîne | RÉACTION AUTOMATIQUE | **D06 CLOS** — SurfaceEffects raccordés à SurfaceReaction |
 | Grenadier | 18 | Maître grenadier | PASSIF | — |
 | Apothicaire | 2 | Potion renforcée | PASSIF | — |
 | Apothicaire | 6 | Antidote | RECETTE + OBJET RAPIDE | no-op refusé avant consommation |
@@ -785,8 +785,8 @@ même pipeline générique `SurfaceReaction` que les interactions explicites.
 Une surface entrante Feu utilise l'interaction canonique Fire ; une surface
 entrante Glace utilise Ice. Aucune interaction Poison/Oil/etc. n'est inventée.
 
-État : **source + test de pont ajoutés ; validation locale requise avant clôture
-D06.**
+État : **VALIDÉ / CLOS** — `RPG03.9.6A` 9/9 et `RPG03.9.6B1` 7/7,
+sans warning ni échec.
 
 ### D07 — Alchimiste / Transmutation majeure — durée
 

@@ -1,7 +1,7 @@
 # RPG-TALENT-FIX04 — D06 Réaction en chaîne / SurfaceEffects
 
 Date : **8 octobre 2026**  
-État : **SOURCE PRÊTE — validation locale requise**
+État : **VALIDÉ / CLOS — 8 octobre 2026**
 
 ## Problème
 
@@ -94,3 +94,26 @@ Puis :
 
 Aucun DataAsset n'est modifié par ce ticket : l'authoring de Réaction en chaîne
 et les tags `QuickItem.Bomb` étaient déjà corrects.
+
+
+## Validation finale
+
+Validation utilisateur reçue le 8 octobre 2026 :
+
+```text
+Grimrock.RPG.RPG03.9.6A
+Succeeded              : 9
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+
+Grimrock.RPG.RPG03.9.6B1
+Succeeded              : 7
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+D06 est clos.

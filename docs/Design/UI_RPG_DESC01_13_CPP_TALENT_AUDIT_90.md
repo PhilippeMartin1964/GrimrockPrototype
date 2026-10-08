@@ -153,7 +153,7 @@ Les Skills Arcane et Runes existent en production.
 | Bombe incendiaire | OK |
 | Bombe toxique | OK |
 | Charge précise | OK |
-| **Réaction en chaîne** | **D06 SOURCE CORRIGÉE — SurfaceEffects Feu/Glace raccordés au pipeline SurfaceReaction ; validation locale requise** |
+| Réaction en chaîne | **OK — D06 CLOS, validation 9/9 RPG03.9.6A + 7/7 RPG03.9.6B1** |
 | Maître grenadier | OK |
 | Potion renforcée | OK |
 | Antidote | OK |
@@ -200,7 +200,7 @@ D01  Second souffle — CLOS (garde-fou générique + test spécifique)
 D02  échecs sûrs Pièges / Crochetage — dépendance du futur runtime Lock/Trap
 D03  Sabotage monde — dépendance du futur flux générique d'aptitudes hors combat
 D05  Repousser les morts-vivants — CLOS (4 dégâts fixes, 21/21 RPG03.9.5)
-D06  Réaction en chaîne — source corrigée ; validation RPG03.9.6A/B1 requise
+D06  Réaction en chaîne — CLOS (9/9 RPG03.9.6A + 7/7 RPG03.9.6B1)
 D07  Transmutation majeure — durée 4 rounds
 D08  Transmutation majeure — décision/raccord +50 % réaction
 ~~~
