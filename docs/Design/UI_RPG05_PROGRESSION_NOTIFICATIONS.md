@@ -56,9 +56,10 @@ points insuffisants
 variante exclusive déjà acquise
 ```
 
-`URPGLevelUpWidget` utilise désormais la même traduction que Skills/Talents.
-
-Il n’existe donc plus deux tables de messages concurrentes.
+Depuis RPG-LEVELUX01, `URPGLevelUpWidget` n'est plus invoqué par le runtime de
+montée de niveau. La traduction commune reste portée par
+`FRPGProgressionFeedbackService`, et le feedback Level-Up est présenté par le
+Persistent HUD sans modalité.
 
 ## Notifications de talent
 
@@ -80,14 +81,19 @@ Sévérité: Error
 
 ## Notification de niveau
 
-Le service sait également produire :
+Le service produit désormais un résumé non modal des gains réels :
 
 ```text
-Niveau supérieur
-Elias passe du niveau 1 au niveau 2 et gagne 1 point(s) de talent.
+Niveau 6 atteint
+Elias passe du niveau 5 au niveau 6.
++1 point de compétence.
++1 point de talent.
 ```
 
-Cette vue est réutilisable par les futures surfaces globales de progression.
+Aux niveaux 5, 10 et 15, il peut également annoncer le nouveau plafond de Rank.
+
+RPG-LEVELUX01 projette cette vue dans `WBP_GridPersistentHud`, afin que la
+notification soit visible même lorsque COMPÉTENCES est fermée.
 
 ## UGridRPGNotificationWidget
 

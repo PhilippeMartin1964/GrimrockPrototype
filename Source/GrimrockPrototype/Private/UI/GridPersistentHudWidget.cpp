@@ -12,6 +12,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GrimrockPlayerController.h"
 #include "UI/GridCombatHudWidget.h"
+#include "UI/GridRPGNotificationWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 
 namespace
@@ -93,6 +94,17 @@ void UGridPersistentHudWidget::RefreshFromSources()
 	{
 		Panel_ActionBar->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	}
+}
+
+bool UGridPersistentHudWidget::ShowProgressionNotification(const FRPGProgressionNotificationView& Notification)
+{
+	if (!Notification_Progression || !Notification.IsValid())
+	{
+		return false;
+	}
+
+	Notification_Progression->ShowNotification(Notification);
+	return true;
 }
 
 void UGridPersistentHudWidget::BindNavigationButtons()

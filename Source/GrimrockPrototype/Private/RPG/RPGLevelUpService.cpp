@@ -106,8 +106,6 @@ bool FRPGLevelUpService::ApplyPendingLevelUp(UGridPartyInventoryComponent* Party
 	}
 
 	const int32 PreviousLevel = Character.Level;
-	// TD07.3.3.9: LastAcknowledgedLevel deliberately remains unchanged.
-	// The resulting gap is the durable signal that a Level-Up modal is pending.
 	const FRPGDerivedStats PreviousStats = Character.DerivedStats;
 	const FRPGCharacterResources PreviousResources = Character.Resources;
 
@@ -118,6 +116,9 @@ bool FRPGLevelUpService::ApplyPendingLevelUp(UGridPartyInventoryComponent* Party
 
 	// Commit the new calculated projection and mutable resources together.
 	Character.Level = TargetLevel;
+	// RPG-LEVELUX01: Level-Up feedback is informational and non-modal.
+	// Keep the durable compatibility watermark synchronized immediately.
+	Character.LastAcknowledgedLevel = TargetLevel;
 	Character.DerivedStats = NewStats;
 	Character.Resources = NewResources;
 

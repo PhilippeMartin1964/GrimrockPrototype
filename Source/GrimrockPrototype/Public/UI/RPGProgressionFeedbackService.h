@@ -66,5 +66,7 @@ struct GRIMROCKPROTOTYPE_API FRPGProgressionFeedbackService
 		const FText& CharacterName,
 		int32 PreviousLevel,
 		int32 NewLevel,
-		int32 TalentPointsGained);
+		int32 SkillPointsGained,
+		int32 TalentPointsGained,
+		int32 UnlockedSkillRankCap = 0);
 };

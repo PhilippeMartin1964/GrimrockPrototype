@@ -70,18 +70,12 @@ La formule canonique reste portée par
 1. lancer le PIE ;
 2. sélectionner le personnage à tester ;
 3. exécuter `Grimrock.RPG.SetSelectedLevel 2` ;
-4. terminer/fermer la vraie fenêtre de Level Up ;
-5. ouvrir `K` et tester l'arbre ;
-6. répéter avec 6, 10, 14, 18 puis 20.
+4. ouvrir `K` et tester l'arbre ;
+5. répéter directement avec 6, 10, 14, 18 puis 20.
 
-La commande refuse un nouveau saut tant que :
-
-```text
-LastAcknowledgedLevel < Level
-```
-
-Cela évite d'empiler artificiellement plusieurs notifications de montée de
-niveau avant validation de la précédente.
+Depuis RPG-LEVELUX01, il n'existe plus de popup Level Up à fermer :
+`LastAcknowledgedLevel` est synchronisé automatiquement avec `Level` et les
+montées successives sont autorisées immédiatement.
 
 ## 5. Sécurité des sauvegardes
 
@@ -112,7 +106,6 @@ RPG-DEV01 refuse :
 - un niveau hors 1..20 ;
 - un niveau inférieur ou égal au niveau courant ;
 - un état `Level / Experience` incohérent ;
-- une montée précédente non acquittée ;
 - toute progression rejetée par `FRPGLevelUpService`.
 
 Il n'existe volontairement aucune commande de démotion.
@@ -133,7 +126,8 @@ Pour recommencer au niveau 1, relancer le PIE depuis un état propre.
 - notification de montée de niveau ;
 - comportement au niveau 20.
 
-RPG-DEV01 ne crée toujours ni Skill Points, ni achat de rang de Skill.
+RPG-DEV01 n'invente aucune économie : les Skill Points et achats de rang sont
+désormais fournis séparément par RPG-SKILL01.
 
 ## 8. Automation
 
@@ -148,7 +142,7 @@ Tests attendus :
 ```text
 ProgressionSimulator.Level20
 ProgressionSimulator.RejectInvalidTarget
-ProgressionSimulator.RejectPendingAcknowledgement
+ProgressionSimulator.SuccessiveNonModalJumps
 ProgressionSimulator.RollbackOnLevelUpFailure
 ConsoleCommand.Registered
 ```

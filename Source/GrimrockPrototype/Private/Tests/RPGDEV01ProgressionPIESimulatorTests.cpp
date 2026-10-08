@@ -46,7 +46,7 @@ bool FRPGDEV01LevelTwentySimulationTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Level twenty uses the canonical cumulative XP threshold"), Character.Experience,
 		URPGCharacterRulesLibrary::GetCumulativeExperienceRequiredForLevel(20));
 	TestEqual(TEXT("Level twenty threshold is 190000 XP"), Character.Experience, 190000);
-	TestEqual(TEXT("Level-Up acknowledgement remains pending for the real UI"), Character.LastAcknowledgedLevel, 1);
+	TestEqual(TEXT("Non-modal Level-Up is acknowledged immediately"), Character.LastAcknowledgedLevel, 20);
 	TestEqual(TEXT("Exactly one canonical level event is emitted"), LevelEventCount, 1);
 	TestEqual(TEXT("Event previous level"), EventPreviousLevel, 1);
 	TestEqual(TEXT("Event new level"), EventNewLevel, 20);
@@ -96,27 +96,29 @@ bool FRPGDEV01InvalidTargetTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FRPGDEV01PendingAcknowledgementTest,
-	"Grimrock.RPG.DEV01.ProgressionSimulator.RejectPendingAcknowledgement",
+	FRPGDEV01SuccessiveJumpTest,
+	"Grimrock.RPG.DEV01.ProgressionSimulator.SuccessiveNonModalJumps",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FRPGDEV01PendingAcknowledgementTest::RunTest(const FString& Parameters)
+bool FRPGDEV01SuccessiveJumpTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	FMON155RuntimeStateGuard Guard;
 
 	URPGClassAsset* ClassDefinition = nullptr;
-	UGridPartyInventoryComponent* Component = MakeMON155Inventory(2, 1000, ClassDefinition);
+	UGridPartyInventoryComponent* Component = MakeMON155Inventory(1, 0, ClassDefinition);
 	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
 	Character.LastAcknowledgedLevel = 1;
 
 	FText Feedback;
-	TestFalse(TEXT("A new jump is rejected while the previous Level-Up remains unacknowledged"),
+	TestTrue(TEXT("First jump reaches level two without a modal acknowledgement step"),
+		FRPGProgressionPIESimulator::TrySetSelectedCharacterLevel(Component, 2, Feedback));
+	TestEqual(TEXT("First jump auto-acknowledges level two"), Character.LastAcknowledgedLevel, 2);
+
+	TestTrue(TEXT("Second jump can immediately continue to level six"),
 		FRPGProgressionPIESimulator::TrySetSelectedCharacterLevel(Component, 6, Feedback));
-	TestEqual(TEXT("Pending acknowledgement preserves level"), Character.Level, 2);
-	TestEqual(TEXT("Pending acknowledgement preserves XP"), Character.Experience, 1000);
-	TestTrue(TEXT("Feedback explains the pending Level-Up"),
-		Feedback.ToString().Contains(TEXT("montée de niveau")));
+	TestEqual(TEXT("Second jump reaches level six"), Character.Level, 6);
+	TestEqual(TEXT("Second jump auto-acknowledges level six"), Character.LastAcknowledgedLevel, 6);
 	return true;
 }
 

@@ -60,16 +60,6 @@ bool FRPGProgressionPIESimulator::TrySetCharacterLevel(
 		return false;
 	}
 
-	if (Character.LastAcknowledgedLevel != Character.Level)
-	{
-		OutFeedback = FText::FromString(FString::Printf(
-			TEXT("%s possède encore une montée de niveau à valider (%d -> %d). Fermez d'abord la fenêtre de Level Up."),
-			*CharacterLabel,
-			Character.LastAcknowledgedLevel,
-			Character.Level));
-		return false;
-	}
-
 	if (TargetLevel <= Character.Level)
 	{
 		OutFeedback = FText::FromString(FString::Printf(

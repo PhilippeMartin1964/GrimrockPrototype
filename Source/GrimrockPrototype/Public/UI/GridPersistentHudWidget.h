@@ -3,12 +3,14 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "UI/GridInventoryUiTypes.h"
+#include "UI/RPGProgressionFeedbackService.h"
 #include "GridPersistentHudWidget.generated.h"
 
 class AGrimrockPartyPawn;
 class UButton;
 class UGridCombatHudActionWidget;
 class UGridPartyInventoryComponent;
+class UGridRPGNotificationWidget;
 class UHorizontalBox;
 class UImage;
 class UPanelWidget;
@@ -51,6 +53,10 @@ public:
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Persistent|Actions")
 	TObjectPtr<UPanelWidget> Panel_ActionBar;
+
+	/** RPG-LEVELUX01.2 Designer materialization point for global non-modal progression feedback. */
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Persistent|Progression")
+	TObjectPtr<UGridRPGNotificationWidget> Notification_Progression;
 
 	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "HUD|Persistent|Navigation")
 	TObjectPtr<UButton> Button_NavEscape;
@@ -100,6 +106,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent")
 	void RefreshFromSources();
+
+	/** Returns false until the optional Designer notification surface is materialized. */
+	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Progression")
+	bool ShowProgressionNotification(const FRPGProgressionNotificationView& Notification);
 
 	/** Pure layout rule: fixed-width adjacent slots, with any remainder left empty at the right edge. */
 	static int32 CalculateVisibleActionSlotCount(float ViewportWidth, float NavigationWidth, float ActionSlotWidth);

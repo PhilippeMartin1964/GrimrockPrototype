@@ -392,8 +392,10 @@ struct FGridCharacterInventoryState
 	int32 Experience = 0;
 
 	/**
-	 * TD07.3.3.9 durable Level-Up acknowledgement authority.
-	 * A notification is required whenever LastAcknowledgedLevel < Level.
+	 * Durable SaveGame compatibility watermark for Level-Up feedback.
+	 * RPG-LEVELUX01 keeps it synchronized with Level for new progression.
+	 * A lower value may only survive from an older/current save and is consumed
+	 * once as non-modal catch-up feedback on load.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Progression", meta = (ClampMin = "1"))
 	int32 LastAcknowledgedLevel = 1;

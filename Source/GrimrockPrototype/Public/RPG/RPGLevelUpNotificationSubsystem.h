@@ -1,19 +1,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Runtime/Combat/GridCombatTypes.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "RPGLevelUpNotificationSubsystem.generated.h"
 
 class UGridPartyInventoryComponent;
-class UGridTurnManagerComponent;
-class URPGLevelUpWidget;
 
 /**
- * Runtime coordinator that derives transient Level-Up presentation from the
- * durable FGridCharacterInventoryState::LastAcknowledgedLevel contract.
+ * RPG-LEVELUX01 non-modal Level-Up feedback coordinator.
  *
- * TD07.3.3.9 removes all persistent notification queues and SaveGame mirrors.
+ * New level-ups are acknowledged immediately by FRPGLevelUpService. This
+ * subsystem owns only a transient toast queue. LastAcknowledgedLevel remains
+ * durable for current SaveGame compatibility and for one-time catch-up of
+ * saves that still contain an older unacknowledged gap.
  */
 UCLASS()
 class GRIMROCKPROTOTYPE_API URPGLevelUpNotificationSubsystem : public UGameInstanceSubsystem
@@ -24,15 +23,17 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
+	/** Number of transient non-modal Level-Up toasts waiting or currently shown. */
 	UFUNCTION(BlueprintPure, Category = "RPG|Level Up")
 	int32 GetPendingLevelUpNotificationCount() const;
 
+	/** Legacy compatibility query. RPG-LEVELUX01 never opens a Level-Up modal. */
 	UFUNCTION(BlueprintPure, Category = "RPG|Level Up")
-	bool IsLevelUpModalOpen() const;
+	bool IsLevelUpModalOpen() const { return false; }
 
 	/**
-	 * Binds the authoritative party inventory and reconstructs transient
-	 * notifications from LastAcknowledgedLevel < Level.
+	 * Binds the authoritative party inventory and consumes any legacy
+	 * LastAcknowledgedLevel < Level gap as non-modal catch-up feedback.
 	 */
 	void RefreshFromPartyState(UGridPartyInventoryComponent* PartyInventoryComponent);
 
@@ -50,33 +51,25 @@ private:
 	TArray<FPendingNotification> PendingNotifications;
 	TOptional<FPendingNotification> ActiveNotification;
 	TWeakObjectPtr<UGridPartyInventoryComponent> ObservedPartyInventory;
-
-	UPROPERTY(Transient)
-	TObjectPtr<URPGLevelUpWidget> ActiveWidget;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UGridTurnManagerComponent> DeferredCombatTurnManager;
-
+	FTimerHandle ActiveToastTimerHandle;
 	FDelegateHandle LevelUpDelegateHandle;
-	FDelegateHandle WidgetClosedDelegateHandle;
-	bool bInventoryRefreshScheduled = false;
 
 	void HandleCharacterLevelUpApplied(
-		UGridPartyInventoryComponent* PartyInventoryComponent, int32 CharacterIndex, int32 PreviousLevel, int32 NewLevel, int32 LevelsGained);
-	void HandleWidgetClosed(URPGLevelUpWidget* ClosedWidget);
-
-	UFUNCTION()
-	void HandlePartyInventoryChanged(int32 CharacterIndex);
-
-	void HandleScheduledInventoryRefresh();
-
-	UFUNCTION()
-	void HandleDeferredCombatEnded(EGridCombatPhase ResultPhase);
+		UGridPartyInventoryComponent* PartyInventoryComponent,
+		int32 CharacterIndex,
+		int32 PreviousLevel,
+		int32 NewLevel,
+		int32 LevelsGained);
 
 	void BindPartyInventory(UGridPartyInventoryComponent* PartyInventoryComponent);
-	void RebuildPendingNotificationsFromPartyState(UGridPartyInventoryComponent* PartyInventoryComponent);
+	void EnqueueNotification(
+		UGridPartyInventoryComponent* PartyInventoryComponent,
+		int32 CharacterIndex,
+		int32 PreviousLevel,
+		int32 NewLevel,
+		int32 LevelsGained);
 	void AcknowledgeNotification(const FPendingNotification& Notification);
-	void SetDeferredCombatTurnManager(UGridTurnManagerComponent* TurnManager);
-	void ClearDeferredCombatTurnManager();
+	bool PresentNotification(const FPendingNotification& Notification, float& OutDurationSeconds);
 	void TryPresentNextNotification();
+	void HandleActiveToastExpired();
 };

@@ -155,29 +155,48 @@ FRPGProgressionNotificationView FRPGProgressionFeedbackService::MakeLevelUpNotif
 	const FText& CharacterName,
 	int32 PreviousLevel,
 	int32 NewLevel,
-	int32 TalentPointsGained)
+	int32 SkillPointsGained,
+	int32 TalentPointsGained,
+	int32 UnlockedSkillRankCap)
 {
 	FRPGProgressionNotificationView Notification;
 	Notification.Severity = ERPGProgressionNotificationSeverity::Success;
-	Notification.Title = LOCTEXT("LevelUpTitle", "Niveau supérieur");
+	Notification.Title = FText::Format(
+		LOCTEXT("LevelUpTitle", "Niveau {0} atteint"),
+		FText::AsNumber(NewLevel));
+	Notification.DurationSeconds = 5.0f;
+
+	FString Message = FText::Format(
+		LOCTEXT("LevelUpBase", "{0} passe du niveau {1} au niveau {2}."),
+		CharacterName,
+		FText::AsNumber(PreviousLevel),
+		FText::AsNumber(NewLevel)).ToString();
+
+	if (SkillPointsGained > 0)
+	{
+		Message += TEXT(" ");
+		Message += FText::Format(
+			LOCTEXT("LevelUpSkillPoints", "+{0} point(s) de compétence."),
+			FText::AsNumber(SkillPointsGained)).ToString();
+	}
 
 	if (TalentPointsGained > 0)
 	{
-		Notification.Message = FText::Format(
-			LOCTEXT("LevelUpWithTalentPoint", "{0} passe du niveau {1} au niveau {2} et gagne {3} point(s) de talent."),
-			CharacterName,
-			FText::AsNumber(PreviousLevel),
-			FText::AsNumber(NewLevel),
-			FText::AsNumber(TalentPointsGained));
+		Message += TEXT(" ");
+		Message += FText::Format(
+			LOCTEXT("LevelUpTalentPoints", "+{0} point(s) de talent."),
+			FText::AsNumber(TalentPointsGained)).ToString();
 	}
-	else
+
+	if (UnlockedSkillRankCap > 0)
 	{
-		Notification.Message = FText::Format(
-			LOCTEXT("LevelUpNoTalentPoint", "{0} passe du niveau {1} au niveau {2}."),
-			CharacterName,
-			FText::AsNumber(PreviousLevel),
-			FText::AsNumber(NewLevel));
+		Message += TEXT(" ");
+		Message += FText::Format(
+			LOCTEXT("LevelUpSkillRankCap", "Rang maximal des compétences : {0}."),
+			FText::AsNumber(UnlockedSkillRankCap)).ToString();
 	}
+
+	Notification.Message = FText::FromString(MoveTemp(Message));
 	return Notification;
 }
 

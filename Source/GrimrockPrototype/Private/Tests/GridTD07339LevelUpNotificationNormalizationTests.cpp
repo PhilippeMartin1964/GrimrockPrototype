@@ -49,7 +49,7 @@ bool FGridTD07339SchemaAuthorityTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339LevelUpGapTest, "Grimrock.TechnicalDebt.TD07_3_3_9.Normalization.LevelUpCreatesDurableGap",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07339LevelUpGapTest, "Grimrock.TechnicalDebt.TD07_3_3_9.Normalization.LevelUpAutoAcknowledges",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridTD07339LevelUpGapTest::RunTest(const FString& Parameters)
@@ -63,8 +63,8 @@ bool FGridTD07339LevelUpGapTest::RunTest(const FString& Parameters)
 
 	TestTrue(TEXT("Pending level applies"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0, false));
 	TestEqual(TEXT("Character reaches level two"), Character.Level, 2);
-	TestEqual(TEXT("Level-Up service deliberately leaves acknowledgement unchanged"), Character.LastAcknowledgedLevel, 1);
-	TestEqual(TEXT("One unacknowledged level is derivable"), Character.Level - Character.LastAcknowledgedLevel, 1);
+	TestEqual(TEXT("RPG-LEVELUX01 auto-acknowledges non-modal Level-Up feedback"), Character.LastAcknowledgedLevel, 2);
+	TestEqual(TEXT("No durable modal gap remains"), Character.Level - Character.LastAcknowledgedLevel, 0);
 	return true;
 }
 
