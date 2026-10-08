@@ -265,7 +265,7 @@ public:
 	void InitializeInventoryWidget(AGrimrockPartyPawn* InPartyPawn);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void RefreshInventory();
+	virtual void RefreshInventory();
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	int32 GetSelectedCharacterIndex() const;

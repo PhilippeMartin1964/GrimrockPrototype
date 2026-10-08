@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **SOURCE IMPLÉMENTÉE — validation locale puis matérialisation UMG requises**
+État : **RPG-ATTR01.1 VALIDÉ 9/9 ; RPG-ATTR01.2 matérialisé/PIE validé ; RPG-ATTR01.3 cleanup source à revalider**
 
 ## Objectif
 
@@ -233,3 +233,39 @@ cd D:\Development\GrimrockPrototype
 ```
 
 RPG-ATTR01 ne sera clos qu'après matérialisation UMG et validation PIE.
+
+
+## RPG-ATTR01.3 — audit / cleanup
+
+Audit de clôture effectué après matérialisation UMG.
+
+Constats :
+
+```text
+monnaie AttributePoints persistée              aucune
+SpentAttributePoints persistant                aucun
+AttributePointBalance persistant               aucun
+mutation runtime concurrente Character.Attributes aucune
+écritures initiales création/recrutement       légitimes
+budget AttributePoints du wizard               création initiale uniquement
+```
+
+Le seul résidu concret trouvé était un second abonnement
+`OnPartyInventoryChanged` dans `UGridCharacterSheetWidget`. Il était tenté
+dans `NativeConstruct()`, avant l'injection de `InventoryComponent` par
+`InitializeInventoryWidget()`.
+
+RPG-ATTR01.3 le supprime et fait de `RefreshInventory()` l'unique route de
+refresh :
+
+```text
+UGridPartyInventoryComponent::OnPartyInventoryChanged
+    -> UGridInventoryWidget::HandlePartyInventoryChanged
+    -> virtual RefreshInventory()
+    -> UGridCharacterSheetWidget::RefreshInventory()
+       -> Super::RefreshInventory()
+       -> RefreshAttributeAllocationPresentation()
+```
+
+Cela couvre aussi le changement de personnage pendant que PERSONNAGE reste
+ouvert, sans ajouter de delegate parallèle.

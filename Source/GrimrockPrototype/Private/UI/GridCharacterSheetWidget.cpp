@@ -13,28 +13,18 @@ void UGridCharacterSheetWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	BindAttributeButtons();
-
-	if (InventoryComponent)
-	{
-		InventoryComponent->OnPartyInventoryChanged.AddUniqueDynamic(
-			this,
-			&UGridCharacterSheetWidget::HandleAttributeInventoryChanged);
-	}
-
-	RefreshAttributeAllocationPresentation();
 }
 
 void UGridCharacterSheetWidget::NativeDestruct()
 {
-	if (InventoryComponent)
-	{
-		InventoryComponent->OnPartyInventoryChanged.RemoveDynamic(
-			this,
-			&UGridCharacterSheetWidget::HandleAttributeInventoryChanged);
-	}
-
 	UnbindAttributeButtons();
 	Super::NativeDestruct();
+}
+
+void UGridCharacterSheetWidget::RefreshInventory()
+{
+	Super::RefreshInventory();
+	RefreshAttributeAllocationPresentation();
 }
 
 void UGridCharacterSheetWidget::BeginAttributeAllocationSession()
@@ -130,17 +120,6 @@ void UGridCharacterSheetWidget::UnbindAttributeButtons()
 	if (Button_IncreaseWisdom) Button_IncreaseWisdom->OnClicked.RemoveDynamic(this, &UGridCharacterSheetWidget::HandleIncreaseWisdomClicked);
 	if (Button_DecreaseCharisma) Button_DecreaseCharisma->OnClicked.RemoveDynamic(this, &UGridCharacterSheetWidget::HandleDecreaseCharismaClicked);
 	if (Button_IncreaseCharisma) Button_IncreaseCharisma->OnClicked.RemoveDynamic(this, &UGridCharacterSheetWidget::HandleIncreaseCharismaClicked);
-}
-
-void UGridCharacterSheetWidget::HandleAttributeInventoryChanged(int32 CharacterIndex)
-{
-	if (!InventoryComponent ||
-		(CharacterIndex != INDEX_NONE && CharacterIndex != InventoryComponent->GetSelectedCharacterIndex()))
-	{
-		return;
-	}
-
-	RefreshAttributeAllocationPresentation();
 }
 
 void UGridCharacterSheetWidget::CaptureSelectedCharacterSessionFloors()

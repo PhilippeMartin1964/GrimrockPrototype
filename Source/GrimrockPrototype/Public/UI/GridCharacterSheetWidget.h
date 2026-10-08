@@ -69,6 +69,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG|Attributes")
 	void RefreshAttributeAllocationPresentation();
 
+	virtual void RefreshInventory() override;
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -78,7 +80,6 @@ private:
 
 	void BindAttributeButtons();
 	void UnbindAttributeButtons();
-	void HandleAttributeInventoryChanged(int32 CharacterIndex);
 	void CaptureSelectedCharacterSessionFloors();
 	FString MakeSessionKey(const FGuid& CharacterId, ERPGAttributePointTarget Target) const;
 	int32 GetSessionFloor(const FGridCharacterInventoryState& Character, ERPGAttributePointTarget Target) const;

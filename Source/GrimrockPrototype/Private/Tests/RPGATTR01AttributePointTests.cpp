@@ -2,6 +2,9 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+
 #include "RPG/RPGAttributePointService.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
@@ -391,6 +394,53 @@ bool FRPGATTR01AuthorityTest::RunTest(const FString& Parameters)
 	TestNull(TEXT("No SpentAttributePoints field is persisted"), CharacterStruct->FindPropertyByName(TEXT("SpentAttributePoints")));
 	TestNull(TEXT("No AttributePointBalance field is persisted"), CharacterStruct->FindPropertyByName(TEXT("AttributePointBalance")));
 	TestNotNull(TEXT("Attributes remains the durable authority"), CharacterStruct->FindPropertyByName(TEXT("Attributes")));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FRPGATTR01CanonicalRefreshPathTest,
+	"Grimrock.RPG.ATTR01.UI.CanonicalRefreshPath",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPGATTR01CanonicalRefreshPathTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	FString BaseHeader;
+	FString SheetHeader;
+	FString SheetSource;
+
+	TestTrue(
+		TEXT("GridInventoryWidget header loads"),
+		FFileHelper::LoadFileToString(
+			BaseHeader,
+			*FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/GrimrockPrototype/Public/UI/GridInventoryWidget.h"))));
+	TestTrue(
+		TEXT("GridCharacterSheetWidget header loads"),
+		FFileHelper::LoadFileToString(
+			SheetHeader,
+			*FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/GrimrockPrototype/Public/UI/GridCharacterSheetWidget.h"))));
+	TestTrue(
+		TEXT("GridCharacterSheetWidget source loads"),
+		FFileHelper::LoadFileToString(
+			SheetSource,
+			*FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/GrimrockPrototype/Private/UI/GridCharacterSheetWidget.cpp"))));
+
+	TestTrue(
+		TEXT("Shared inventory refresh is virtual"),
+		BaseHeader.Contains(TEXT("virtual void RefreshInventory();")));
+	TestTrue(
+		TEXT("Character Sheet overrides the canonical refresh"),
+		SheetHeader.Contains(TEXT("virtual void RefreshInventory() override;")));
+	TestTrue(
+		TEXT("Character Sheet refresh delegates to the shared inventory refresh"),
+		SheetSource.Contains(TEXT("Super::RefreshInventory();")));
+	TestTrue(
+		TEXT("Character Sheet refresh extends presentation with Attribute allocation"),
+		SheetSource.Contains(TEXT("RefreshAttributeAllocationPresentation();")));
+	TestFalse(
+		TEXT("No second Attribute-specific inventory delegate remains"),
+		SheetSource.Contains(TEXT("HandleAttributeInventoryChanged")));
 	return true;
 }
 
