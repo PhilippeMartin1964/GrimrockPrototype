@@ -12,12 +12,12 @@ namespace GridTalentDetailWidgetPrivate
 	{
 		switch (State)
 		{
-			case EGridTalentNodeState::Acquired: return FText::FromString(TEXT("Acquis"));
-			case EGridTalentNodeState::Available: return FText::FromString(TEXT("Disponible"));
-			case EGridTalentNodeState::LockedLevel: return FText::FromString(TEXT("Niveau requis"));
+			case EGridTalentNodeState::Acquired: return FText::FromString(TEXT("État : acquis"));
+			case EGridTalentNodeState::Available: return FText::FromString(TEXT("État : disponible"));
+			case EGridTalentNodeState::LockedLevel: return FText::FromString(TEXT("État : niveau insuffisant"));
 			case EGridTalentNodeState::LockedPrerequisite: return FText::FromString(TEXT("Prérequis manquant"));
-			case EGridTalentNodeState::LockedPoints: return FText::FromString(TEXT("Points insuffisants"));
-			case EGridTalentNodeState::LockedExclusive: return FText::FromString(TEXT("Choix exclusif"));
+			case EGridTalentNodeState::LockedPoints: return FText::FromString(TEXT("État : points de talent insuffisants"));
+			case EGridTalentNodeState::LockedExclusive: return FText::FromString(TEXT("État : choix exclusif déjà effectué"));
 			default: return FText::GetEmpty();
 		}
 	}
@@ -480,50 +480,54 @@ void UGridTalentDetailWidget::RefreshVariantDetailPreview()
 
 FText UGridTalentDetailWidget::BuildActionSummary(const FGridTalentVariantView& Variant) const
 {
-	if (Variant.UnlockedActions.IsEmpty())
-	{
-		return FText::GetEmpty();
-	}
+	if (Variant.UnlockedActions.IsEmpty()) return FText::GetEmpty();
 
 	TArray<FString> ActionBlocks;
 	ActionBlocks.Reserve(Variant.UnlockedActions.Num());
 	for (const FGridTalentUnlockedActionView& Action : Variant.UnlockedActions)
 	{
-		FString Header = Action.DisplayName.IsEmpty() ? Action.ActionId.ToString() : Action.DisplayName.ToString();
+		TArray<FString> Lines;
+		Lines.Add(Action.DisplayName.IsEmpty() ? Action.ActionId.ToString() : Action.DisplayName.ToString());
 
 		TArray<FString> Costs;
 		Costs.Add(FString::Printf(TEXT("%d point%s d'action"), Action.ActionPointCost, Action.ActionPointCost > 1 ? TEXT("s") : TEXT("")));
-		if (Action.ManaCost > 0)
+		if (Action.ManaCost > 0) Costs.Add(FString::Printf(TEXT("%d mana"), Action.ManaCost));
+		if (Action.SourceItemQuantityCost > 0)
 		{
-			Costs.Add(FString::Printf(TEXT("%d mana"), Action.ManaCost));
+			Costs.Add(FString::Printf(TEXT("%d objet%s consommé%s"), Action.SourceItemQuantityCost,
+				Action.SourceItemQuantityCost > 1 ? TEXT("s") : TEXT(""), Action.SourceItemQuantityCost > 1 ? TEXT("s") : TEXT("")));
 		}
-		if (Action.RangeCells > 0)
-		{
-			Costs.Add(FString::Printf(TEXT("portée : %d case%s"), Action.RangeCells, Action.RangeCells > 1 ? TEXT("s") : TEXT("")));
-		}
-		if (Action.CooldownRounds > 0)
-		{
-			Costs.Add(FString::Printf(
-				TEXT("recharge : %d tour%s"),
-				Action.CooldownRounds,
-				Action.CooldownRounds > 1 ? TEXT("s") : TEXT("")));
-		}
+		Lines.Add(TEXT("Coût : ") + FString::Join(Costs, TEXT(" — ")));
 
-		if (!Costs.IsEmpty())
+		TArray<FString> Targeting;
+		if (!Action.TargetSummary.IsEmpty()) Targeting.Add(Action.TargetSummary.ToString());
+		if (Action.RangeCells > 0) Targeting.Add(FString::Printf(TEXT("portée : %d case%s"), Action.RangeCells, Action.RangeCells > 1 ? TEXT("s") : TEXT("")));
+		if (Action.AreaRadiusCells > 0) Targeting.Add(FString::Printf(TEXT("zone : rayon %d case%s"), Action.AreaRadiusCells, Action.AreaRadiusCells > 1 ? TEXT("s") : TEXT("")));
+		if (Action.MaximumResolvedTargets > 0) Targeting.Add(FString::Printf(TEXT("maximum %d cible%s"), Action.MaximumResolvedTargets, Action.MaximumResolvedTargets > 1 ? TEXT("s") : TEXT("")));
+		if (Action.ChainJumpRangeCells > 0) Targeting.Add(FString::Printf(TEXT("enchaînement : %d case%s"), Action.ChainJumpRangeCells, Action.ChainJumpRangeCells > 1 ? TEXT("s") : TEXT("")));
+		if (Action.bAreaCenteredOnParty) Targeting.Add(TEXT("zone centrée sur le groupe"));
+		if (Action.bRequiresLineOfSight) Targeting.Add(TEXT("ligne de vue requise"));
+		if (!Targeting.IsEmpty()) Lines.Add(TEXT("Cible : ") + FString::Join(Targeting, TEXT(" — ")));
+
+		TArray<FString> Resolution;
+		if (Action.ResolutionCount > 1)
 		{
-			Header += TEXT(" — ");
-			Header += FString::Join(Costs, TEXT(" — "));
+			Resolution.Add(FString::Printf(TEXT("%d résolutions"), Action.ResolutionCount));
+			if (Action.SubsequentResolutionAccuracyModifier != 0)
+				Resolution.Add(FString::Printf(TEXT("%+d précision à partir de la 2e"), Action.SubsequentResolutionAccuracyModifier));
 		}
+		if (Action.bAffectsAlliesInArea) Resolution.Add(TEXT("peut affecter les alliés dans la zone"));
+		if (!Resolution.IsEmpty()) Lines.Add(TEXT("Résolution : ") + FString::Join(Resolution, TEXT(" — ")));
+
+		if (Action.CooldownRounds > 0) Lines.Add(FString::Printf(TEXT("Recharge : %d tour%s"), Action.CooldownRounds, Action.CooldownRounds > 1 ? TEXT("s") : TEXT("")));
 
 		FString Description = Action.Description.ToString();
 		Description.TrimStartAndEndInline();
 		Description.ReplaceInline(TEXT(" WD"), TEXT(" des dégâts de l'arme"), ESearchCase::CaseSensitive);
 		Description.ReplaceInline(TEXT(" PA"), TEXT(" points d'action"), ESearchCase::CaseSensitive);
-		ActionBlocks.Add(Description.IsEmpty()
-			? Header
-			: FString::Printf(TEXT("%s\nEffet : %s"), *Header, *Description));
+		if (!Description.IsEmpty()) Lines.Add(TEXT("Effet : ") + Description);
+		ActionBlocks.Add(FString::Join(Lines, TEXT("\n")));
 	}
-
 	return FText::FromString(TEXT("ACTION DÉBLOQUÉE\n") + FString::Join(ActionBlocks, TEXT("\n\n")));
 }
 
@@ -571,7 +575,15 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 	}
 	if (Text_DetailState)
 	{
-		Text_DetailState->SetText(StateText(NodeView.State));
+		if (NodeView.State == EGridTalentNodeState::LockedPrerequisite && !NodeView.PreviousNodeDisplayName.IsEmpty())
+		{
+			Text_DetailState->SetText(FText::Format(NSLOCTEXT("GridTalentDetail", "MissingNamedPrerequisite", "Prérequis manquant : {0}"), NodeView.PreviousNodeDisplayName));
+		}
+		else if (NodeView.State == EGridTalentNodeState::Available && !NodeView.PreviousNodeDisplayName.IsEmpty())
+		{
+			Text_DetailState->SetText(FText::Format(NSLOCTEXT("GridTalentDetail", "SatisfiedNamedPrerequisite", "Prérequis : {0} — satisfait"), NodeView.PreviousNodeDisplayName));
+		}
+		else Text_DetailState->SetText(StateText(NodeView.State));
 	}
 	if (Text_DetailVariants)
 	{

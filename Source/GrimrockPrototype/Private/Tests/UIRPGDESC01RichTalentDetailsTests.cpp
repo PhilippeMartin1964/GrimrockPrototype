@@ -342,4 +342,44 @@ bool FUIRPGDESC01EffectCategoryTest::RunTest(const FString& Parameters)
  return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+ FUIRPGDESC01StructuredActionSummaryTest,
+ "Grimrock.UI.RPG.DESC01.Detail.StructuredActionSummary",
+ EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FUIRPGDESC01StructuredActionSummaryTest::RunTest(const FString& Parameters)
+{
+ (void)Parameters;
+ using namespace UIRPGDESC01Tests;
+ FGridTalentNodeView Node;
+ Node.TalentNodeId = TEXT("Talent_DESC01_Structured");
+ Node.TalentBranchId = TEXT("Branch_DESC01");
+ Node.Tier = 1;
+ Node.MinimumLevel = 2;
+ Node.PointCost = 1;
+ Node.State = EGridTalentNodeState::Available;
+ FGridTalentVariantView Variant = MakeVariant(Node.TalentNodeId, TEXT("Talent structuré"), TEXT("Description structurée."));
+ FGridTalentUnlockedActionView& Action = Variant.UnlockedActions[0];
+ Action.TargetSummary = FText::FromString(TEXT("une zone"));
+ Action.RangeCells = 4;
+ Action.AreaRadiusCells = 1;
+ Action.SourceItemQuantityCost = 1;
+ Action.bRequiresLineOfSight = true;
+ Action.ResolutionCount = 2;
+ Action.SubsequentResolutionAccuracyModifier = -1;
+ Node.Variants.Add(Variant);
+ FRPGTalentBranchPresentationDefinition Branch;
+ Branch.TalentBranchId = Node.TalentBranchId;
+ UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
+ TestTrue(TEXT("Structured detail initializes"), Detail->InitializeTalentDetail(Node, Branch));
+ const FString Summary = Detail->ResolvedActionSummary.ToString();
+ TestTrue(TEXT("Structured cost exposes item consumption"), Summary.Contains(TEXT("1 objet consommé")));
+ TestTrue(TEXT("Structured target is readable"), Summary.Contains(TEXT("Cible : une zone")));
+ TestTrue(TEXT("Structured range is readable"), Summary.Contains(TEXT("portée : 4 cases")));
+ TestTrue(TEXT("Structured area is readable"), Summary.Contains(TEXT("zone : rayon 1 case")));
+ TestTrue(TEXT("Structured LOS is readable"), Summary.Contains(TEXT("ligne de vue requise")));
+ TestTrue(TEXT("Structured multi-resolution is readable"), Summary.Contains(TEXT("2 résolutions")));
+ TestTrue(TEXT("Structured follow-up accuracy is readable"), Summary.Contains(TEXT("-1 précision")));
+ return true;
+}
+
 #endif

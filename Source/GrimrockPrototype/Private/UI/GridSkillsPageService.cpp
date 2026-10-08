@@ -138,6 +138,43 @@ namespace
 		for (const FName RequirementId : Choice.GrantedRequirementIds) OutIds.Add(RequirementId);
 	}
 
+	FText TargetingSummary(EGridCombatTargetingPolicy Policy)
+	{
+		switch (Policy)
+		{
+			case EGridCombatTargetingPolicy::Self: return FText::FromString(TEXT("soi-même"));
+			case EGridCombatTargetingPolicy::Ally: return FText::FromString(TEXT("un allié"));
+			case EGridCombatTargetingPolicy::FirstAxialTarget: return FText::FromString(TEXT("première cible dans l'axe"));
+			case EGridCombatTargetingPolicy::Cell: return FText::FromString(TEXT("une cellule"));
+			case EGridCombatTargetingPolicy::Area: return FText::FromString(TEXT("une zone"));
+			case EGridCombatTargetingPolicy::Hostile: return FText::FromString(TEXT("un ennemi"));
+			case EGridCombatTargetingPolicy::Party: return FText::FromString(TEXT("tout le groupe"));
+			case EGridCombatTargetingPolicy::FrontRowParty: return FText::FromString(TEXT("rang avant du groupe"));
+			case EGridCombatTargetingPolicy::AllyOrHostile: return FText::FromString(TEXT("un allié ou un ennemi"));
+			default: return FText::GetEmpty();
+		}
+	}
+
+	FText ConceptualNodeDisplayName(const FGridTalentNodeView& Node)
+	{
+		if (Node.Variants.IsEmpty()) return FText::GetEmpty();
+		FString Label = Node.Variants[0].DisplayName.ToString();
+		if (Node.Variants.Num() > 1)
+		{
+			for (const FString Separator : { FString(TEXT(" — ")), FString(TEXT(" – ")), FString(TEXT(" - ")), FString(TEXT(": ")) })
+			{
+				const int32 SeparatorIndex = Label.Find(Separator, ESearchCase::CaseSensitive);
+				if (SeparatorIndex > 0)
+				{
+					Label = Label.Left(SeparatorIndex);
+					break;
+				}
+			}
+		}
+		Label.TrimStartAndEndInline();
+		return FText::FromString(Label);
+	}
+
 	void BuildUnlockedActionViews(
 		const URPGClassAsset& ClassDefinition,
 		const FRPGClassProgressionChoiceDefinition& Choice,
@@ -168,6 +205,16 @@ namespace
 			ActionView.ManaCost = Action.ResourceCosts.ManaCost;
 			ActionView.RangeCells = Action.RangeCells;
 			ActionView.CooldownRounds = Action.CooldownRounds;
+			ActionView.SourceItemQuantityCost = Action.ResourceCosts.SourceItemQuantityCost;
+			ActionView.TargetSummary = TargetingSummary(Action.TargetingPolicy);
+			ActionView.AreaRadiusCells = Action.AreaRadiusCells;
+			ActionView.MaximumResolvedTargets = Action.MaximumResolvedTargets;
+			ActionView.ChainJumpRangeCells = Action.ChainJumpRangeCells;
+			ActionView.ResolutionCount = Action.ResolutionCount;
+			ActionView.SubsequentResolutionAccuracyModifier = Action.SubsequentResolutionAccuracyModifier;
+			ActionView.bRequiresLineOfSight = Action.bRequiresLineOfSight;
+			ActionView.bAreaCenteredOnParty = Action.bAreaCenteredOnParty;
+			ActionView.bAffectsAlliesInArea = Action.bAffectsAlliesInArea;
 			OutActions.Add(MoveTemp(ActionView));
 		}
 
@@ -378,6 +425,7 @@ namespace
 					const FChoiceArray* PreviousChoices = NodeGroups->Find(Previous.TalentNodeId);
 					if (!CurrentChoices || !PreviousChoices || !NodeDependsOnPrevious(*CurrentChoices, *PreviousChoices)) return false;
 					Node.PreviousNodeId = Previous.TalentNodeId;
+					Node.PreviousNodeDisplayName = ConceptualNodeDisplayName(Previous);
 				}
 				if (Node.State == EGridTalentNodeState::Acquired) ++Branch.AcquiredNodeCount;
 			}

@@ -82,6 +82,36 @@ struct GRIMROCKPROTOTYPE_API FGridTalentUnlockedActionView
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	int32 CooldownRounds = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 SourceItemQuantityCost = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText TargetSummary;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 AreaRadiusCells = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 MaximumResolvedTargets = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 ChainJumpRangeCells = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 ResolutionCount = 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 SubsequentResolutionAccuracyModifier = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	bool bRequiresLineOfSight = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	bool bAreaCenteredOnParty = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	bool bAffectsAlliesInArea = false;
 };
 
 USTRUCT(BlueprintType)
@@ -145,6 +175,10 @@ struct GRIMROCKPROTOTYPE_API FGridTalentNodeView
 	/** Presentation-only predecessor. Gameplay prerequisites remain authoritative in ProgressionChoice. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FName PreviousNodeId = NAME_None;
+
+	/** Human-readable predecessor label for the detail panel; gameplay prerequisites stay authoritative in ProgressionChoice. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText PreviousNodeDisplayName;
 
 	/** Concrete acquired ChoiceId when this conceptual node is acquired. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
