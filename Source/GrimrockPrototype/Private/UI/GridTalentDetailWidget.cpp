@@ -114,6 +114,7 @@ bool UGridTalentDetailWidget::InitializeTalentDetail(
 	ResolvedDescription = !NodeView.Principle.IsEmpty() ? NodeView.Principle : Description;
 	BranchAccentColor = InBranchPresentation.AccentColor;
 	bInitialized = true;
+	RefreshCanonicalSections();
 	RebuildVariantOptions();
 	RefreshVariantDetailPreview();
 	ApplyDetailPresentation();
@@ -127,6 +128,12 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	bHasCanonicalDetail = false;
 	ResolvedDisplayName = FText::GetEmpty();
 	ResolvedDescription = FText::GetEmpty();
+	ResolvedTypeText = FText::GetEmpty();
+	ResolvedStatusText = FText::GetEmpty();
+	ResolvedPrincipleText = FText::GetEmpty();
+	ResolvedEffectsText = FText::GetEmpty();
+	ResolvedUsageText = FText::GetEmpty();
+	ResolvedAcquisitionText = FText::GetEmpty();
 	ResolvedMainDetailText = FText::GetEmpty();
 	ResolvedVariantDisplayName = FText::GetEmpty();
 	ResolvedVariantDescription = FText::GetEmpty();
@@ -147,6 +154,12 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 
 	if (Text_DetailName) Text_DetailName->SetText(FText::GetEmpty());
 	if (Text_DetailDescription) Text_DetailDescription->SetText(FText::GetEmpty());
+	if (Text_DetailType) { Text_DetailType->SetText(FText::GetEmpty()); Text_DetailType->SetVisibility(ESlateVisibility::Collapsed); }
+	if (Text_DetailStatus) { Text_DetailStatus->SetText(FText::GetEmpty()); Text_DetailStatus->SetVisibility(ESlateVisibility::Collapsed); }
+	if (Text_DetailPrinciple) { Text_DetailPrinciple->SetText(FText::GetEmpty()); Text_DetailPrinciple->SetVisibility(ESlateVisibility::Collapsed); }
+	if (Text_DetailEffects) { Text_DetailEffects->SetText(FText::GetEmpty()); Text_DetailEffects->SetVisibility(ESlateVisibility::Collapsed); }
+	if (Text_DetailUsage) { Text_DetailUsage->SetText(FText::GetEmpty()); Text_DetailUsage->SetVisibility(ESlateVisibility::Collapsed); }
+	if (Text_DetailAcquisition) { Text_DetailAcquisition->SetText(FText::GetEmpty()); Text_DetailAcquisition->SetVisibility(ESlateVisibility::Collapsed); }
 	if (Text_DetailLevel) Text_DetailLevel->SetText(FText::GetEmpty());
 	if (Text_DetailCost) Text_DetailCost->SetText(FText::GetEmpty());
 	if (Text_DetailState) Text_DetailState->SetText(FText::GetEmpty());
@@ -581,6 +594,84 @@ FText UGridTalentDetailWidget::BuildMainDetailText() const
 	return FText::FromString(FString::Join(Parts, TEXT("\n\n")));
 }
 
+FText UGridTalentDetailWidget::FormatDetailLines(const TArray<FGridTalentDetailLineView>& Lines) const
+{
+	TArray<FString> Formatted;
+	Formatted.Reserve(Lines.Num());
+	for (const FGridTalentDetailLineView& Line : Lines)
+	{
+		if (Line.Value.IsEmpty())
+		{
+			continue;
+		}
+		Formatted.Add(Line.Label.IsEmpty()
+			? Line.Value.ToString()
+			: Line.Label.ToString() + TEXT(" : ") + Line.Value.ToString());
+	}
+	return FText::FromString(FString::Join(Formatted, TEXT("\n")));
+}
+
+FText UGridTalentDetailWidget::BuildAcquisitionText() const
+{
+	if (!bHasCanonicalDetail)
+	{
+		return FText::GetEmpty();
+	}
+
+	TArray<FString> Lines;
+	Lines.Add(FString::Printf(TEXT("Niveau requis : %d"), NodeView.Acquisition.MinimumLevel));
+	Lines.Add(FString::Printf(TEXT("Coût : %d point%s de Talent"),
+		NodeView.Acquisition.PointCost,
+		NodeView.Acquisition.PointCost > 1 ? TEXT("s") : TEXT("")));
+
+	if (!NodeView.Acquisition.PrerequisiteTalentNames.IsEmpty())
+	{
+		TArray<FString> Names;
+		Names.Reserve(NodeView.Acquisition.PrerequisiteTalentNames.Num());
+		for (const FText& Name : NodeView.Acquisition.PrerequisiteTalentNames)
+		{
+			if (!Name.IsEmpty()) Names.Add(Name.ToString());
+		}
+		if (!Names.IsEmpty()) Lines.Add(TEXT("Prérequis : ") + FString::Join(Names, TEXT(", ")));
+	}
+	if (!NodeView.Acquisition.ExclusivityText.IsEmpty())
+	{
+		Lines.Add(NodeView.Acquisition.ExclusivityText.ToString());
+	}
+	if (!NodeView.Acquisition.GrantedRecipeNames.IsEmpty())
+	{
+		TArray<FString> Recipes;
+		for (const FText& Recipe : NodeView.Acquisition.GrantedRecipeNames)
+		{
+			if (!Recipe.IsEmpty()) Recipes.Add(Recipe.ToString());
+		}
+		if (!Recipes.IsEmpty()) Lines.Add(TEXT("Recette : ") + FString::Join(Recipes, TEXT(", ")));
+	}
+	return FText::FromString(FString::Join(Lines, TEXT("\n")));
+}
+
+void UGridTalentDetailWidget::RefreshCanonicalSections()
+{
+	ResolvedTypeText = FText::GetEmpty();
+	ResolvedStatusText = FText::GetEmpty();
+	ResolvedPrincipleText = FText::GetEmpty();
+	ResolvedEffectsText = FText::GetEmpty();
+	ResolvedUsageText = FText::GetEmpty();
+	ResolvedAcquisitionText = FText::GetEmpty();
+
+	if (!bHasCanonicalDetail)
+	{
+		return;
+	}
+
+	ResolvedTypeText = NodeView.TypeText;
+	ResolvedStatusText = NodeView.StatusText;
+	ResolvedPrincipleText = NodeView.Principle;
+	ResolvedEffectsText = FormatDetailLines(NodeView.Effects);
+	ResolvedUsageText = FormatDetailLines(NodeView.Usage);
+	ResolvedAcquisitionText = BuildAcquisitionText();
+}
+
 void UGridTalentDetailWidget::RefreshVariantDetailPreview()
 {
 	ResolvedMainDetailText = FText::GetEmpty();
@@ -595,23 +686,13 @@ void UGridTalentDetailWidget::RefreshVariantDetailPreview()
 
 	if (bHasCanonicalDetail)
 	{
-		// Formatting only: all text and effect values already belong to FGridSkillsPageService.
+		// Transitional aggregate for the pre-15.2 WBP; section texts below are the final presenter surface.
 		TArray<FString> Sections;
-		Sections.Add(TEXT("TYPE\n") + NodeView.TypeText.ToString());
-		Sections.Add(TEXT("STATUT\n") + NodeView.StatusText.ToString());
-		if (!NodeView.Principle.IsEmpty()) Sections.Add(TEXT("PRINCIPE\n") + NodeView.Principle.ToString());
-		auto AddLines = [&Sections](const TCHAR* Heading, const TArray<FGridTalentDetailLineView>& Lines)
-		{
-			if (Lines.IsEmpty()) return;
-			TArray<FString> Formatted;
-			for (const FGridTalentDetailLineView& Line : Lines)
-			{
-				Formatted.Add(Line.Label.IsEmpty() ? Line.Value.ToString() : Line.Label.ToString() + TEXT(" : ") + Line.Value.ToString());
-			}
-			Sections.Add(FString(Heading) + TEXT("\n") + FString::Join(Formatted, TEXT("\n")));
-		};
-		AddLines(TEXT("EFFETS"), NodeView.Effects);
-		AddLines(TEXT("UTILISATION"), NodeView.Usage);
+		if (!ResolvedTypeText.IsEmpty()) Sections.Add(TEXT("TYPE\n") + ResolvedTypeText.ToString());
+		if (!ResolvedStatusText.IsEmpty()) Sections.Add(TEXT("STATUT\n") + ResolvedStatusText.ToString());
+		if (!ResolvedPrincipleText.IsEmpty()) Sections.Add(TEXT("PRINCIPE\n") + ResolvedPrincipleText.ToString());
+		if (!ResolvedEffectsText.IsEmpty()) Sections.Add(TEXT("EFFETS\n") + ResolvedEffectsText.ToString());
+		if (!ResolvedUsageText.IsEmpty()) Sections.Add(TEXT("UTILISATION\n") + ResolvedUsageText.ToString());
 		ResolvedMainDetailText = FText::FromString(FString::Join(Sections, TEXT("\n\n")));
 	}
 	else
@@ -711,6 +792,18 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 	{
 		Text_DetailDescription->SetText(ResolvedMainDetailText);
 	}
+	auto ApplyOptionalText = [](UTextBlock* Widget, const FText& Text)
+	{
+		if (!Widget) return;
+		Widget->SetText(Text);
+		Widget->SetVisibility(Text.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
+	};
+	ApplyOptionalText(Text_DetailType, ResolvedTypeText);
+	ApplyOptionalText(Text_DetailStatus, ResolvedStatusText);
+	ApplyOptionalText(Text_DetailPrinciple, ResolvedPrincipleText);
+	ApplyOptionalText(Text_DetailEffects, ResolvedEffectsText);
+	ApplyOptionalText(Text_DetailUsage, ResolvedUsageText);
+	ApplyOptionalText(Text_DetailAcquisition, ResolvedAcquisitionText);
 	if (Text_DetailLevel)
 	{
 		Text_DetailLevel->SetText(

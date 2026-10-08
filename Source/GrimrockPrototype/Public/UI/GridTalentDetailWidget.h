@@ -34,7 +34,26 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FText ResolvedDescription;
 
-	/** Stable player-facing TYPE / FONCTIONNEMENT / EFFETS block used for every Talent. */
+	/** DESC01.15.2A: static sections projected from the canonical read-model. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
+	FText ResolvedTypeText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
+	FText ResolvedStatusText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
+	FText ResolvedPrincipleText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
+	FText ResolvedEffectsText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
+	FText ResolvedUsageText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
+	FText ResolvedAcquisitionText;
+
+	/** Transitional aggregate kept until the WBP migration is complete. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FText ResolvedMainDetailText;
 
@@ -136,6 +155,9 @@ private:
 	FText MakePlayerReadableText(const FText& Source) const;
 	FText BuildVariantOverview() const;
 	FText BuildMainDetailText() const;
+	FText FormatDetailLines(const TArray<FGridTalentDetailLineView>& Lines) const;
+	FText BuildAcquisitionText() const;
+	void RefreshCanonicalSections();
 	void RefreshVariantDetailPreview();
 	FText BuildActionSummary(const FGridTalentVariantView& Variant, bool bAlreadyAcquired) const;
 	void ApplyDetailPresentation();
@@ -149,6 +171,25 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_DetailDescription;
+
+	/** DESC01.15.2A static section materialization points. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DetailType;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DetailStatus;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DetailPrinciple;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DetailEffects;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DetailUsage;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DetailAcquisition;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_DetailLevel;

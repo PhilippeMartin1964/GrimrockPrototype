@@ -600,4 +600,51 @@ bool FUIRPGDESC01151CanonicalDetailTest::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGDESC01152AStaticSectionsTest,
+	"Grimrock.UI.RPG.DESC01.Detail.StaticSections",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
+{
+	FGridTalentNodeView Node;
+	Node.TalentNodeId = TEXT("StaticSections");
+	Node.TalentBranchId = TEXT("StaticBranch");
+	Node.DisplayName = FText::FromString(TEXT("Talent statique"));
+	Node.TypeText = FText::FromString(TEXT("SORT ACTIF"));
+	Node.StatusText = FText::FromString(TEXT("DISPONIBLE"));
+	Node.Principle = FText::FromString(TEXT("Principe déjà résolu."));
+	Node.Acquisition.MinimumLevel = 3;
+	Node.Acquisition.PointCost = 2;
+	Node.Acquisition.PrerequisiteTalentNames.Add(FText::FromString(TEXT("Précurseur")));
+	Node.Acquisition.ExclusivityText = FText::FromString(TEXT("Exclusif avec une autre voie."));
+
+	FGridTalentDetailLineView Effect;
+	Effect.Label = FText::FromString(TEXT("Dégâts"));
+	Effect.Value = FText::FromString(TEXT("10"));
+	Node.Effects.Add(Effect);
+
+	FGridTalentDetailLineView Usage;
+	Usage.Label = FText::FromString(TEXT("Mana"));
+	Usage.Value = FText::FromString(TEXT("5"));
+	Node.Usage.Add(Usage);
+
+	FRPGTalentBranchPresentationDefinition Branch;
+	Branch.TalentBranchId = Node.TalentBranchId;
+
+	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
+	TestTrue(TEXT("Static section detail initializes"), Detail->InitializeTalentDetail(Node, Branch));
+	TestEqual(TEXT("TYPE is exposed independently"), Detail->ResolvedTypeText.ToString(), FString(TEXT("SORT ACTIF")));
+	TestEqual(TEXT("STATUT is exposed independently"), Detail->ResolvedStatusText.ToString(), FString(TEXT("DISPONIBLE")));
+	TestEqual(TEXT("PRINCIPE is exposed independently"), Detail->ResolvedPrincipleText.ToString(), FString(TEXT("Principe déjà résolu.")));
+	TestEqual(TEXT("EFFETS are presentation-formatted only"), Detail->ResolvedEffectsText.ToString(), FString(TEXT("Dégâts : 10")));
+	TestEqual(TEXT("UTILISATION is presentation-formatted only"), Detail->ResolvedUsageText.ToString(), FString(TEXT("Mana : 5")));
+	TestTrue(TEXT("ACQUISITION contains canonical level"), Detail->ResolvedAcquisitionText.ToString().Contains(TEXT("Niveau requis : 3")));
+	TestTrue(TEXT("ACQUISITION contains canonical cost"), Detail->ResolvedAcquisitionText.ToString().Contains(TEXT("Coût : 2 points de Talent")));
+	TestTrue(TEXT("ACQUISITION contains resolved prerequisite name"), Detail->ResolvedAcquisitionText.ToString().Contains(TEXT("Précurseur")));
+	TestTrue(TEXT("ACQUISITION contains exclusivity text"), Detail->ResolvedAcquisitionText.ToString().Contains(TEXT("Exclusif avec une autre voie.")));
+	return true;
+}
+
 #endif
