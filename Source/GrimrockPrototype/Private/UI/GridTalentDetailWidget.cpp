@@ -471,9 +471,11 @@ void UGridTalentDetailWidget::RefreshVariantDetailPreview()
 	if (NodeView.Variants.Num() > 1)
 	{
 		ResolvedVariantDisplayName = MakeVariantDisplayLabel(*PreviewVariant);
-		ResolvedVariantDescription = PreviewVariant->EffectCategory.IsEmpty()
-			? PreviewVariant->Description
-			: FText::FromString(PreviewVariant->EffectCategory.ToString() + TEXT("\n") + PreviewVariant->Description.ToString());
+		TArray<FString> DetailParts;
+		if (!PreviewVariant->EffectCategory.IsEmpty()) DetailParts.Add(PreviewVariant->EffectCategory.ToString());
+		if (!PreviewVariant->Description.IsEmpty()) DetailParts.Add(PreviewVariant->Description.ToString());
+		if (!PreviewVariant->MechanicsSummary.IsEmpty()) DetailParts.Add(PreviewVariant->MechanicsSummary.ToString());
+		ResolvedVariantDescription = FText::FromString(FString::Join(DetailParts, TEXT("\n")));
 	}
 	ResolvedActionSummary = BuildActionSummary(*PreviewVariant);
 }
@@ -552,9 +554,11 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 	{
 		if (NodeView.Variants.Num() == 1 && !NodeView.Variants[0].EffectCategory.IsEmpty())
 		{
-			Text_DetailDescription->SetText(FText::FromString(
-				NodeView.Variants[0].EffectCategory.ToString() + TEXT("\n") +
-				ResolvedDescription.ToString().Replace(TEXT(" WD"), TEXT(" des dégâts de l'arme")).Replace(TEXT(" PA"), TEXT(" points d'action"))));
+			TArray<FString> DetailParts;
+			DetailParts.Add(NodeView.Variants[0].EffectCategory.ToString());
+			DetailParts.Add(ResolvedDescription.ToString().Replace(TEXT(" WD"), TEXT(" des dégâts de l'arme")).Replace(TEXT(" PA"), TEXT(" points d'action")));
+			if (!NodeView.Variants[0].MechanicsSummary.IsEmpty()) DetailParts.Add(NodeView.Variants[0].MechanicsSummary.ToString());
+			Text_DetailDescription->SetText(FText::FromString(FString::Join(DetailParts, TEXT("\n"))));
 		}
 		else
 		{

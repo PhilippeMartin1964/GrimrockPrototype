@@ -65,6 +65,9 @@ namespace UIRPGDESC01Tests
 		Choice.Description = FText::FromString(TEXT("Débloque Trait de test."));
 		Choice.MinimumLevel = 2;
 		Choice.PointCost = 1;
+		FGridCombatModifierProfile Modifier;
+		Modifier.AccuracyModifier = 2;
+		Choice.CombatModifiers.Add(Modifier);
 		OutClass->ProgressionChoices.Add(Choice);
 		OutClass->CombatActions.Add(MakeAction(Choice.ChoiceId));
 
@@ -155,6 +158,8 @@ bool FUIRPGDESC01ActionProjectionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("AP cost is projected"), Action.ActionPointCost, 2);
 	TestEqual(TEXT("Mana cost is projected"), Action.ManaCost, 3);
 	TestEqual(TEXT("Cooldown is projected"), Action.CooldownRounds, 2);
+	TestTrue(TEXT("Passive mechanics are projected from canonical modifier data"), Variant.MechanicsSummary.ToString().Contains(TEXT("Précision : +2")));
+	TestEqual(TEXT("Action plus passive category is explicit"), Variant.EffectCategory.ToString(), FString(TEXT("CAPACITÉ + BONUS PASSIF")));
 	return true;
 }
 
@@ -379,6 +384,35 @@ bool FUIRPGDESC01StructuredActionSummaryTest::RunTest(const FString& Parameters)
  TestTrue(TEXT("Structured LOS is readable"), Summary.Contains(TEXT("ligne de vue requise")));
  TestTrue(TEXT("Structured multi-resolution is readable"), Summary.Contains(TEXT("2 résolutions")));
  TestTrue(TEXT("Structured follow-up accuracy is readable"), Summary.Contains(TEXT("-1 précision")));
+ return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+ FUIRPGDESC01ReactionMechanicsTest,
+ "Grimrock.UI.RPG.DESC01.ReadModel.ReactionMechanics",
+ EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FUIRPGDESC01ReactionMechanicsTest::RunTest(const FString& Parameters)
+{
+ (void)Parameters;
+ using namespace UIRPGDESC01Tests;
+ URPGClassAsset* ClassDefinition = nullptr;
+ UGridPartyInventoryComponent* Component = MakeSimpleInventory(ClassDefinition);
+ FRPGClassProgressionChoiceDefinition& Choice = ClassDefinition->ProgressionChoices[0];
+ Choice.CombatModifiers.Reset();
+ FGridCombatReactionProfile Reaction;
+ Reaction.ReactionId = TEXT("Reaction_DESC01");
+ Reaction.Trigger = EGridCombatReactionTrigger::IncomingAttackHit;
+ Reaction.Limit = EGridCombatReactionLimit::OncePerRound;
+ Reaction.InterceptFinalDamagePercent = 50;
+ Choice.CombatReactions.Add(Reaction);
+ TestTrue(TEXT("Reaction class stays valid"), ClassDefinition->IsValidDefinition());
+ FGridSkillsPageView View;
+ TestTrue(TEXT("Reaction view builds"), FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, View));
+ const FGridTalentVariantView& Variant = View.TalentTree.Branches[0].Nodes[0].Variants[0];
+ TestEqual(TEXT("Reaction category is explicit"), Variant.EffectCategory.ToString(), FString(TEXT("CAPACITÉ + RÉACTION AUTOMATIQUE")));
+ TestTrue(TEXT("Reaction trigger is readable"), Variant.MechanicsSummary.ToString().Contains(TEXT("attaque entrante touche")));
+ TestTrue(TEXT("Reaction limit is readable"), Variant.MechanicsSummary.ToString().Contains(TEXT("une fois par round")));
+ TestTrue(TEXT("Reaction response is readable"), Variant.MechanicsSummary.ToString().Contains(TEXT("redirige 50 %")));
  return true;
 }
 

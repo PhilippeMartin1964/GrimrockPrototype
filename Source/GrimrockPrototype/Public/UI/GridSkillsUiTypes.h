@@ -139,6 +139,10 @@ struct GRIMROCKPROTOTYPE_API FGridTalentVariantView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FText EffectCategory;
 
+	/** Structured readable summary projected from canonical modifier/reaction/skill/party data. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText MechanicsSummary;
+
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	bool bSelected = false;
 

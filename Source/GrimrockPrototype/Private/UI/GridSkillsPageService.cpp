@@ -138,6 +138,259 @@ namespace
 		for (const FName RequirementId : Choice.GrantedRequirementIds) OutIds.Add(RequirementId);
 	}
 
+	FString HumanizeId(FName Id)
+	{
+		FString Value = Id.ToString();
+		for (const TCHAR* Prefix : { TEXT("Status_"), TEXT("Skill_"), TEXT("Recipe_"), TEXT("Action_"), TEXT("Talent_") })
+		{
+			if (Value.StartsWith(Prefix, ESearchCase::CaseSensitive))
+			{
+				Value.RightChopInline(FCString::Strlen(Prefix), EAllowShrinking::No);
+				break;
+			}
+		}
+		Value.ReplaceInline(TEXT("_"), TEXT(" "));
+		Value.ReplaceInline(TEXT("."), TEXT(" "));
+		return Value;
+	}
+
+	FString DamageTypeLabel(EGridDamageType Type)
+	{
+		switch (Type)
+		{
+			case EGridDamageType::Physical: return TEXT("physiques");
+			case EGridDamageType::Fire: return TEXT("de feu");
+			case EGridDamageType::Ice: return TEXT("de glace");
+			case EGridDamageType::Lightning: return TEXT("de foudre");
+			case EGridDamageType::Poison: return TEXT("de poison");
+			case EGridDamageType::Holy: return TEXT("sacrés");
+			case EGridDamageType::Necrotic: return TEXT("nécrotiques");
+			case EGridDamageType::Arcane: return TEXT("arcaniques");
+			default: return TEXT("inconnus");
+		}
+	}
+
+	FString PhysicalSubtypeLabel(EGridPhysicalDamageSubtype Type)
+	{
+		switch (Type)
+		{
+			case EGridPhysicalDamageSubtype::Slashing: return TEXT("tranchantes");
+			case EGridPhysicalDamageSubtype::Piercing: return TEXT("perforantes");
+			case EGridPhysicalDamageSubtype::Bludgeoning: return TEXT("contondantes");
+			default: return TEXT("physiques");
+		}
+	}
+
+	FString SourcePolicyLabel(EGridCombatActionSourcePolicy Policy)
+	{
+		switch (Policy)
+		{
+			case EGridCombatActionSourcePolicy::Universal: return TEXT("actions universelles");
+			case EGridCombatActionSourcePolicy::Equipment: return TEXT("actions d'équipement");
+			case EGridCombatActionSourcePolicy::Ability: return TEXT("capacités");
+			case EGridCombatActionSourcePolicy::Spell: return TEXT("sorts");
+			case EGridCombatActionSourcePolicy::QuickItem: return TEXT("objets rapides");
+			default: return TEXT("actions");
+		}
+	}
+
+	FString TargetConditionLabel(EGridCombatTargetCondition Condition)
+	{
+		switch (Condition)
+		{
+			case EGridCombatTargetCondition::RearArc: return TEXT("cible attaquée par l'arrière");
+			case EGridCombatTargetCondition::HasActedThisRound: return TEXT("cible ayant déjà agi ce round");
+			case EGridCombatTargetCondition::HasNotActedThisRound: return TEXT("cible n'ayant pas encore agi ce round");
+			case EGridCombatTargetCondition::PhysicalControl: return TEXT("cible sous contrôle physique");
+			default: return FString();
+		}
+	}
+
+	FString ReactionTriggerLabel(EGridCombatReactionTrigger Trigger)
+	{
+		switch (Trigger)
+		{
+			case EGridCombatReactionTrigger::ActionResolved: return TEXT("après résolution d'une action");
+			case EGridCombatReactionTrigger::AttackHit: return TEXT("après une attaque réussie");
+			case EGridCombatReactionTrigger::AttackMiss: return TEXT("après une attaque manquée");
+			case EGridCombatReactionTrigger::TargetDefeated: return TEXT("lorsqu'une cible est vaincue");
+			case EGridCombatReactionTrigger::DirectDamageReceived: return TEXT("après avoir subi des dégâts directs");
+			case EGridCombatReactionTrigger::SurfaceReaction: return TEXT("lors d'une réaction de surface");
+			case EGridCombatReactionTrigger::IncomingAttackHit: return TEXT("lorsqu'une attaque entrante touche");
+			case EGridCombatReactionTrigger::OwnedStatusTargetDefeated: return TEXT("lorsqu'une cible affectée par votre statut est vaincue");
+			default: return TEXT("réaction");
+		}
+	}
+
+	FString ReactionLimitLabel(EGridCombatReactionLimit Limit)
+	{
+		switch (Limit)
+		{
+			case EGridCombatReactionLimit::OncePerRound: return TEXT("une fois par round");
+			case EGridCombatReactionLimit::OncePerAction: return TEXT("une fois par action");
+			default: return TEXT("sans limite spéciale");
+		}
+	}
+
+	void AppendSignedPercent(TArray<FString>& Out, const TCHAR* Label, int32 Value)
+	{
+		if (Value != 0) Out.Add(FString::Printf(TEXT("%s : %+d %%"), Label, Value));
+	}
+
+	void AppendSignedValue(TArray<FString>& Out, const TCHAR* Label, int32 Value)
+	{
+		if (Value != 0) Out.Add(FString::Printf(TEXT("%s : %+d"), Label, Value));
+	}
+
+	FString BuildModifierContext(const FGridCombatModifierProfile& Modifier)
+	{
+		TArray<FString> Parts;
+		for (const EGridCombatActionSourcePolicy Policy : Modifier.SourcePolicies) Parts.Add(SourcePolicyLabel(Policy));
+		for (const EGridPhysicalDamageSubtype Subtype : Modifier.PhysicalSubtypes) Parts.Add(TEXT("armes ") + PhysicalSubtypeLabel(Subtype));
+		for (const EGridDamageType Type : Modifier.DamageTypes) Parts.Add(TEXT("dégâts ") + DamageTypeLabel(Type));
+		for (const EGridCombatTargetCondition Condition : Modifier.RequiredTargetConditions)
+		{
+			const FString Label = TargetConditionLabel(Condition);
+			if (!Label.IsEmpty()) Parts.Add(Label);
+		}
+		for (const EGridCombatTargetCondition Condition : Modifier.AnyTargetConditions)
+		{
+			const FString Label = TargetConditionLabel(Condition);
+			if (!Label.IsEmpty()) Parts.Add(Label);
+		}
+		for (const FName StatusId : Modifier.RequiredTargetStatusEffectIds) Parts.Add(TEXT("cible avec ") + HumanizeId(StatusId));
+		for (const FName CategoryId : Modifier.AllowedTargetMonsterCategoryIds) Parts.Add(TEXT("cible : ") + HumanizeId(CategoryId));
+		for (const FName Tag : Modifier.RequiredSourceTags) Parts.Add(HumanizeId(Tag));
+		if (Modifier.bRequirePartyStationarySincePreviousActivation) Parts.Add(TEXT("si le groupe n'a pas bougé depuis l'activation précédente"));
+		if (Modifier.bExcludeAreaActions) Parts.Add(TEXT("hors actions de zone"));
+		return FString::Join(Parts, TEXT(", "));
+	}
+
+	FText BuildMechanicsSummary(const FRPGClassProgressionChoiceDefinition& Choice)
+	{
+		TArray<FString> Lines;
+
+		for (const FGridCombatModifierProfile& Modifier : Choice.CombatModifiers)
+		{
+			TArray<FString> Effects;
+			AppendSignedValue(Effects, TEXT("Précision"), Modifier.AccuracyModifier);
+			AppendSignedValue(Effects, TEXT("Esquive"), Modifier.EvasionModifier);
+			AppendSignedPercent(Effects, TEXT("Dégâts infligés"), Modifier.OutgoingDamagePercentModifier);
+			AppendSignedPercent(Effects, TEXT("Dégâts reçus"), Modifier.IncomingDamagePercentModifier);
+			AppendSignedValue(Effects, TEXT("Chance de critique (points)"), Modifier.CriticalChancePercentModifier);
+			AppendSignedValue(Effects, TEXT("Dégâts critiques (points)"), Modifier.CriticalDamagePercentModifier);
+			AppendSignedPercent(Effects, TEXT("Dégâts de l'arme"), Modifier.WeaponDamagePercentModifier);
+			AppendSignedValue(Effects, TEXT("Coût en points d'action"), Modifier.ActionPointCostModifier);
+			AppendSignedValue(Effects, TEXT("Coût en mana"), Modifier.ManaCostModifier);
+			AppendSignedValue(Effects, TEXT("Portée (cases)"), Modifier.RangeCellsModifier);
+			AppendSignedPercent(Effects, TEXT("Effets positifs"), Modifier.PositiveEffectPercentModifier);
+			AppendSignedPercent(Effects, TEXT("Soins prodigués"), Modifier.OutgoingHealingPercentModifier);
+			AppendSignedPercent(Effects, TEXT("Dégâts directs aux alliés"), Modifier.FriendlyDirectDamagePercentModifier);
+			AppendSignedPercent(Effects, TEXT("Dégâts directs sur soi"), Modifier.SelfDirectDamagePercentModifier);
+			AppendSignedValue(Effects, TEXT("Cibles secondaires d'objet rapide"), Modifier.QuickItemSecondaryTargetCount);
+			AppendSignedPercent(Effects, TEXT("Magnitude secondaire"), Modifier.QuickItemSecondaryMagnitudePercent);
+			AppendSignedPercent(Effects, TEXT("Durée secondaire"), Modifier.QuickItemSecondaryDurationPercent);
+			AppendSignedPercent(Effects, TEXT("Armure physique de référence"), Modifier.PhysicalArmorReferencePercentModifier);
+			AppendSignedPercent(Effects, TEXT("Armure magique de référence"), Modifier.MagicalArmorReferencePercentModifier);
+			AppendSignedPercent(Effects, TEXT("Restauration d'armure physique"), Modifier.PhysicalArmorRestorationPercentModifier);
+			AppendSignedPercent(Effects, TEXT("Restauration d'armure magique"), Modifier.MagicalArmorRestorationPercentModifier);
+			AppendSignedValue(Effects, TEXT("Durée des surfaces (rounds)"), Modifier.SurfaceDurationRoundsModifier);
+			AppendSignedPercent(Effects, TEXT("Dégâts périodiques des surfaces"), Modifier.SurfacePeriodicDamagePercentModifier);
+			AppendSignedPercent(Effects, TEXT("Dégâts des réactions de surface"), Modifier.SurfaceReactionDamagePercentModifier);
+			AppendSignedValue(Effects, TEXT("Rayon des réactions de surface"), Modifier.SurfaceReactionAreaRadiusModifier);
+			AppendSignedPercent(Effects, TEXT("Résistance physique"), Modifier.ResistanceModifiers.PhysicalResistance);
+			AppendSignedPercent(Effects, TEXT("Résistance au feu"), Modifier.ResistanceModifiers.FireResistance);
+			AppendSignedPercent(Effects, TEXT("Résistance à la glace"), Modifier.ResistanceModifiers.IceResistance);
+			AppendSignedPercent(Effects, TEXT("Résistance à la foudre"), Modifier.ResistanceModifiers.LightningResistance);
+			AppendSignedPercent(Effects, TEXT("Résistance au poison"), Modifier.ResistanceModifiers.PoisonResistance);
+			AppendSignedPercent(Effects, TEXT("Résistance sacrée"), Modifier.ResistanceModifiers.HolyResistance);
+			AppendSignedPercent(Effects, TEXT("Résistance nécrotique"), Modifier.ResistanceModifiers.NecroticResistance);
+			AppendSignedPercent(Effects, TEXT("Résistance arcanique"), Modifier.ResistanceModifiers.ArcaneResistance);
+			if (Modifier.MinimumManaCost > 0) Effects.Add(FString::Printf(TEXT("Coût minimum en mana : %d"), Modifier.MinimumManaCost));
+
+			if (!Effects.IsEmpty())
+			{
+				const FString Context = BuildModifierContext(Modifier);
+				Lines.Add(Context.IsEmpty()
+					? TEXT("• ") + FString::Join(Effects, TEXT(" ; "))
+					: TEXT("• ") + Context + TEXT(" → ") + FString::Join(Effects, TEXT(" ; ")));
+			}
+		}
+
+		for (const FGridCombatReactionProfile& Reaction : Choice.CombatReactions)
+		{
+			TArray<FString> Response;
+			if (Reaction.CounterAttackWeaponProfile.bUseEquippedWeapon)
+			{
+				Response.Add(FString::Printf(TEXT("contre-attaque à %d %% des dégâts de l'arme, portée %d"),
+					Reaction.CounterAttackWeaponProfile.WeaponDamagePercent, Reaction.CounterAttackRangeCells));
+			}
+			if (Reaction.InterceptFinalDamagePercent > 0)
+				Response.Add(FString::Printf(TEXT("redirige %d %% des dégâts finaux"), Reaction.InterceptFinalDamagePercent));
+			AppendSignedPercent(Response, TEXT("dégâts de réaction de surface"), Reaction.SurfaceReactionDamagePercentModifier);
+			AppendSignedValue(Response, TEXT("rayon de réaction de surface"), Reaction.SurfaceReactionAreaRadiusModifier);
+			if (Reaction.SecondaryDirectDamage > 0)
+				Response.Add(FString::Printf(TEXT("%d dégâts directs %s"), Reaction.SecondaryDirectDamage, *DamageTypeLabel(Reaction.SecondaryDirectDamageType)));
+			if (!Reaction.ApplyOwnerStatusEffectId.IsNone())
+			{
+				FString Status = TEXT("applique ") + HumanizeId(Reaction.ApplyOwnerStatusEffectId);
+				if (Reaction.ApplyOwnerStatusDurationOverride >= 0)
+					Status += FString::Printf(TEXT(" pendant %d tour%s"), Reaction.ApplyOwnerStatusDurationOverride, Reaction.ApplyOwnerStatusDurationOverride > 1 ? TEXT("s") : TEXT(""));
+				Response.Add(Status);
+			}
+			if (!Reaction.TransferOwnedTargetStatusEffectId.IsNone())
+				Response.Add(TEXT("transfère ") + HumanizeId(Reaction.TransferOwnedTargetStatusEffectId) +
+					FString::Printf(TEXT(" vers une cible à %d case%s"), Reaction.TransferTargetRangeCells, Reaction.TransferTargetRangeCells > 1 ? TEXT("s") : TEXT("")));
+			if (Reaction.bConsumeOwningStatus) Response.Add(TEXT("consomme le statut déclencheur"));
+			FString Line = TEXT("• ") + ReactionTriggerLabel(Reaction.Trigger) + TEXT(", ") + ReactionLimitLabel(Reaction.Limit);
+			if (!Response.IsEmpty()) Line += TEXT(" → ") + FString::Join(Response, TEXT(" ; "));
+			Lines.Add(Line);
+		}
+
+		for (const FRPGSkillProgressionModifier& Skill : Choice.SkillModifiers)
+		{
+			TArray<FString> Effects;
+			AppendSignedValue(Effects, TEXT("jets"), Skill.CheckModifier);
+			if (Skill.RequirementGrantRankModifier > 0) Effects.Add(FString::Printf(TEXT("rang effectif pour prérequis : +%d"), Skill.RequirementGrantRankModifier));
+			if (Skill.SafeFailureMargin > 0) Effects.Add(FString::Printf(TEXT("échec sûr jusqu'à %d point%s"), Skill.SafeFailureMargin, Skill.SafeFailureMargin > 1 ? TEXT("s") : TEXT("")));
+			if (Skill.bRequireRangedContext) Effects.Add(TEXT("uniquement à distance"));
+			if (!Skill.RelatedMonsterCategoryIds.IsEmpty())
+			{
+				TArray<FString> Categories;
+				for (const FName Id : Skill.RelatedMonsterCategoryIds) Categories.Add(HumanizeId(Id));
+				Effects.Add(TEXT("contre : ") + FString::Join(Categories, TEXT(", ")));
+			}
+			Lines.Add(TEXT("• Compétence ") + HumanizeId(Skill.SkillId) + TEXT(" → ") + FString::Join(Effects, TEXT(" ; ")));
+		}
+
+		for (const FRPGPartyProgressionModifier& Party : Choice.PartyModifiers)
+		{
+			TArray<FString> Effects;
+			if (Party.GroupSkillCheckModifier != 0)
+			{
+				TArray<FString> Skills;
+				for (const FName Id : Party.GroupSkillIds) Skills.Add(HumanizeId(Id));
+				Effects.Add(FString::Printf(TEXT("jets de groupe %+d (%s)"), Party.GroupSkillCheckModifier, *FString::Join(Skills, TEXT(", "))));
+			}
+			AppendSignedValue(Effects, TEXT("points d'action de mobilité maximum"), Party.MaximumMobilityActionPointsModifier);
+			if (!Effects.IsEmpty()) Lines.Add(TEXT("• Groupe → ") + FString::Join(Effects, TEXT(" ; ")));
+		}
+
+		if (Choice.FirstRoundInitiativeModifier != 0)
+			Lines.Add(FString::Printf(TEXT("• Initiative au premier round : %+d"), Choice.FirstRoundInitiativeModifier));
+
+		for (const FName RequirementId : Choice.GrantedRequirementIds)
+		{
+			const FString Raw = RequirementId.ToString();
+			if (Raw.StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive))
+				Lines.Add(TEXT("• Recette débloquée : ") + HumanizeId(RequirementId));
+		}
+
+		return Lines.IsEmpty()
+			? FText::GetEmpty()
+			: FText::FromString(TEXT("EFFETS MÉCANIQUES\n") + FString::Join(Lines, TEXT("\n")));
+	}
+
 	FText TargetingSummary(EGridCombatTargetingPolicy Policy)
 	{
 		switch (Policy)
@@ -318,20 +571,38 @@ namespace
 			Variant.ChoiceId = Choice->ChoiceId;
 			Variant.DisplayName = Choice->DisplayName;
 			Variant.Description = Choice->Description;
-			if (!Choice->CombatReactions.IsEmpty())
+			BuildUnlockedActionViews(ClassDefinition, *Choice, Variant.UnlockedActions);
+			Variant.MechanicsSummary = BuildMechanicsSummary(*Choice);
+			const bool bHasPassive = !Choice->CombatModifiers.IsEmpty() || !Choice->SkillModifiers.IsEmpty() ||
+				!Choice->PartyModifiers.IsEmpty() || Choice->FirstRoundInitiativeModifier != 0;
+			const bool bHasReaction = !Choice->CombatReactions.IsEmpty();
+			const bool bHasAction = !Variant.UnlockedActions.IsEmpty();
+			const bool bHasRecipe = Choice->GrantedRequirementIds.ContainsByPredicate(
+				[](const FName Id) { return Id.ToString().StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive); });
+			if (bHasAction && bHasReaction)
+			{
+				Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ + RÉACTION AUTOMATIQUE"));
+			}
+			else if (bHasAction && bHasPassive)
+			{
+				Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ + BONUS PASSIF"));
+			}
+			else if (bHasReaction)
 			{
 				Variant.EffectCategory = FText::FromString(TEXT("RÉACTION AUTOMATIQUE"));
 			}
-			else if (!Choice->CombatModifiers.IsEmpty() || !Choice->SkillModifiers.IsEmpty() ||
-				!Choice->PartyModifiers.IsEmpty() || Choice->FirstRoundInitiativeModifier != 0)
+			else if (bHasPassive)
 			{
 				Variant.EffectCategory = FText::FromString(TEXT("BONUS PASSIF"));
+			}
+			else if (bHasRecipe)
+			{
+				Variant.EffectCategory = FText::FromString(TEXT("RECETTE DÉBLOQUÉE"));
 			}
 			else
 			{
 				Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ DÉBLOQUÉE"));
 			}
-			BuildUnlockedActionViews(ClassDefinition, *Choice, Variant.UnlockedActions);
 			Variant.bSelected = bSelected;
 			if (!TryMapChoiceState(bSelected, Availability, Variant.State)) return false;
 			Variant.bAvailable = Variant.State == EGridTalentNodeState::Available;
