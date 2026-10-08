@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **DRAFT — validation utilisateur requise**  
+État : **VALIDÉ PAR L'UTILISATEUR — 8 octobre 2026**  
 Dépendances : **UI-RPG-DESC01.5 / .6 / .7 validés**  
 Périmètre : **Rôdeur / 3 branches / 15 nœuds conceptuels / 14 + N catégories de bestiaire Choice records**
 
@@ -798,7 +798,7 @@ Vigilance
 
 Aucune nouvelle mécanique n'est inventée dans les fiches ci-dessus.
 
-# 9. Arbitrages et dépendances ouverts
+# 9. Arbitrages et dépendances validés / à normaliser
 
 ## RANGER-01 — libellés joueur d'Ennemi juré
 
@@ -812,14 +812,7 @@ Ennemi juré — <CategoryId>
 C'est correct comme identité technique, mais DESC01.5 interdit d'exposer un
 identifiant interne comme libellé joueur si une présentation dédiée est nécessaire.
 
-**Recommandation :**
-
-- conserver la génération **entièrement dynamique** depuis le bestiaire ;
-- ne jamais dupliquer une liste de catégories dans l'UI ;
-- fournir ultérieurement une autorité de **DisplayName de catégorie de monstre**
-  (ou réutiliser une autorité de bestiaire existante si elle apparaît) ;
-- à défaut temporaire, humaniser l'identifiant uniquement comme fallback de
-  développement, jamais comme contrat final.
+**Décision validée :** conserver la génération entièrement dynamique depuis le bestiaire, sans liste de catégories dupliquée dans l'UI. Le libellé final doit venir d'une autorité de présentation de catégorie ; l'humanisation d'un `CategoryId` n'est qu'un fallback de développement.
 
 La zone VARIANTES doit rester verticalement scrollable si le bestiaire contient
 beaucoup de catégories.
@@ -850,10 +843,7 @@ Le document RPG03.9.3 précise que le catalogue complet des `URPGSkillAsset` de
 production n'est pas encore matérialisé ; les contrats sont couverts avec des
 définitions transitoires.
 
-**Recommandation :** conserver tous ces effets comme comportement cible canonique,
-mais reporter explicitement cette dépendance dans DESC01.12 et dans l'effort
-**Skills / Audit données compétences**. DESC01 ne doit pas créer un catalogue de
-Skills parallèle.
+**Décision initialement validée :** ne jamais créer de catalogue Skills parallèle et conserver les effets canoniques. **Mise à jour découverte pendant DESC01.9 :** `UI-RPG06.2A` a déjà matérialisé les 25 `URPGSkillAsset` de production ; cette dépendance est donc désormais satisfaite et sera normalisée en DESC01.12.
 
 ## RANGER-03 — cumul Vigilance + Guide du groupe
 
@@ -880,10 +870,7 @@ Perception de groupe : +4
 
 Les tests de support valident explicitement cette composition.
 
-**Recommandation :** canoniser ce comportement pour la v0.1. Les deux Talents
-occupent des paliers différents et leurs effets sont intentionnellement issus de
-groupes de stacking distincts. Réévaluer à l'usage si +4 rend la Perception trop
-dominante.
+**Décision validée :** canoniser ce comportement pour la v0.1. Vigilance et Guide du groupe se cumulent entre eux (+4 Perception au total) mais pas avec une seconde copie du même Talent. Réévaluer à l'usage si nécessaire.
 
 # 10. Points runtime confirmés sans arbitrage
 
@@ -999,7 +986,7 @@ La forme C++ sera définie seulement en DESC01.13 après l'audit 90/90.
 
 # 14. Critères de validation UI-RPG-DESC01.8
 
-Le jalon est validé lorsque l'utilisateur approuve :
+Le jalon a été validé par l'utilisateur le **8 octobre 2026**. Ont été approuvés :
 
 - les 15 fiches Rôdeur ;
 - la classification **9 ACTIF / 5 PASSIF / 1 RÉACTION AUTOMATIQUE** ;
