@@ -159,7 +159,7 @@ bool FUIRPGDESC01ActionProjectionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Mana cost is projected"), Action.ManaCost, 3);
 	TestEqual(TEXT("Cooldown is projected"), Action.CooldownRounds, 2);
 	TestTrue(TEXT("Passive mechanics are projected from canonical modifier data"), Variant.MechanicsSummary.ToString().Contains(TEXT("Précision : +2")));
-	TestEqual(TEXT("Action plus passive category is explicit"), Variant.EffectCategory.ToString(), FString(TEXT("CAPACITÉ + BONUS PASSIF")));
+	TestEqual(TEXT("Action plus passive category is explicit"), Variant.EffectCategory.ToString(), FString(TEXT("CAPACITÉ ACTIVE + BONUS PASSIF")));
 	return true;
 }
 
@@ -188,6 +188,8 @@ bool FUIRPGDESC01SimpleDetailTest::RunTest(const FString& Parameters)
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 	TestTrue(TEXT("Simple detail initializes"), Detail->InitializeTalentDetail(Node, Branch));
 	TestTrue(TEXT("Simple Talent exposes authoritative action summary"), Detail->ResolvedActionSummary.ToString().Contains(TEXT("1 point d'action")));
+	TestTrue(TEXT("Unacquired simple Talent labels its action as future"), Detail->ResolvedActionSummary.ToString().StartsWith(TEXT("ACTION ACCORDÉE APRÈS ACQUISITION")));
+	TestFalse(TEXT("Unacquired simple Talent never claims its action is already unlocked"), Detail->ResolvedActionSummary.ToString().Contains(TEXT("ACTION DÉBLOQUÉE")));
 	TestTrue(TEXT("Action summary exposes Mana"), Detail->ResolvedActionSummary.ToString().Contains(TEXT("4 mana")));
 	TestTrue(TEXT("Action summary exposes cooldown"), Detail->ResolvedActionSummary.ToString().Contains(TEXT("recharge : 3 tours")));
 	TestTrue(TEXT("Action summary exposes action description"), Detail->ResolvedActionSummary.ToString().Contains(TEXT("Effet concret")));
@@ -217,14 +219,17 @@ bool FUIRPGDESC01VariantPreviewTest::RunTest(const FString& Parameters)
 
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 	TestTrue(TEXT("Variant detail initializes"), Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId, Node.TalentNodeId)));
-	TestTrue(TEXT("Variant acquisition can start"), Detail->BeginVariantSelection());
-	TestTrue(TEXT("Fire can be previewed"), Detail->SelectVariantChoice(TEXT("Choice_Fire")));
-	TestEqual(TEXT("Concrete short variant name is exposed"), Detail->ResolvedVariantDisplayName.ToString(), FString(TEXT("Feu")));
-	TestEqual(
-		TEXT("Actual FGridTalentVariantView description is exposed"),
-		Detail->ResolvedVariantDescription.ToString(),
-		FString(TEXT("Les sorts de Feu infligent +15 % de dégâts.")));
-	TestTrue(TEXT("Variant action summary is exposed"), Detail->ResolvedActionSummary.ToString().Contains(TEXT("Action variante")));
+	TestEqual(TEXT("Multi-variant detail has one stable heading"), Detail->ResolvedVariantDisplayName.ToString(), FString(TEXT("VARIANTES")));
+	TestTrue(TEXT("Fire is visible immediately"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Feu")));
+	TestTrue(TEXT("Frost is visible immediately"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Glace")));
+	TestTrue(TEXT("Fire description is visible immediately"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Les sorts de Feu infligent +15 % de dégâts.")));
+	TestTrue(TEXT("Frost description is visible immediately"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Les sorts de Glace infligent +15 % de dégâts.")));
+	TestTrue(TEXT("Variant actions are included in the overview"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Action variante")));
+	TestTrue(TEXT("Variant actions are future before acquisition"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("ACTION ACCORDÉE APRÈS ACQUISITION")));
+	TestTrue(TEXT("Variant acquisition can start as a separate interaction"), Detail->BeginVariantSelection());
+	TestTrue(TEXT("Fire can be chosen as the acquisition candidate"), Detail->SelectVariantChoice(TEXT("Choice_Fire")));
+	TestTrue(TEXT("Choosing Fire never hides Frost"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Glace")));
+	TestTrue(TEXT("The acquisition candidate is identified"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Feu — SÉLECTIONNÉE")));
 	return true;
 }
 
@@ -256,8 +261,10 @@ bool FUIRPGDESC01AcquiredVariantTest::RunTest(const FString& Parameters)
 
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 	TestTrue(TEXT("Acquired variant detail initializes"), Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId, Node.TalentNodeId)));
-	TestEqual(TEXT("Acquired concrete variant is previewed automatically"), Detail->ResolvedVariantDisplayName.ToString(), FString(TEXT("Glace")));
-	TestEqual(TEXT("Acquired variant keeps its concrete description"), Detail->ResolvedVariantDescription.ToString(), FString(TEXT("Description Glace.")));
+	TestEqual(TEXT("Acquired multi-variant detail keeps the stable heading"), Detail->ResolvedVariantDisplayName.ToString(), FString(TEXT("VARIANTES")));
+	TestTrue(TEXT("Acquired variant is explicitly identified"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Glace — CHOISIE")));
+	TestTrue(TEXT("Non-selected variants remain visible"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Feu")));
+	TestTrue(TEXT("Acquired variant action is labeled available"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("ACTION DISPONIBLE")));
 	return true;
 }
 
@@ -308,12 +315,11 @@ bool FUIRPGDESC01LockedVariantPreviewTest::RunTest(const FString& Parameters)
  Node.Variants = { Fire, Frost };
  UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
  TestTrue(TEXT("Locked node initializes"), Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId, Node.TalentNodeId)));
- TestTrue(TEXT("Locked Fire can be inspected"), Detail->SelectVariantChoice(TEXT("Choice_Fire")));
- TestEqual(TEXT("Locked Fire readable"), Detail->ResolvedVariantDescription.ToString(), FString(TEXT("Effet Feu.")));
- TestFalse(TEXT("Locked Fire cannot begin purchase"), Detail->BeginVariantSelection());
- TestFalse(TEXT("Locked Fire cannot confirm purchase"), Detail->ConfirmAcquire());
- TestTrue(TEXT("Locked Frost can be inspected"), Detail->SelectVariantChoice(TEXT("Choice_Frost")));
- TestEqual(TEXT("Locked Frost readable"), Detail->ResolvedVariantDescription.ToString(), FString(TEXT("Effet Glace.")));
+ TestTrue(TEXT("Locked Fire is visible without interaction"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Effet Feu.")));
+ TestTrue(TEXT("Locked Frost is visible without interaction"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Effet Glace.")));
+ TestFalse(TEXT("Locked node cannot begin purchase"), Detail->BeginVariantSelection());
+ TestFalse(TEXT("Locked node cannot choose a variant outside acquisition"), Detail->SelectVariantChoice(TEXT("Choice_Fire")));
+ TestFalse(TEXT("Locked node cannot confirm purchase"), Detail->ConfirmAcquire());
  return true;
 }
 
@@ -341,9 +347,9 @@ bool FUIRPGDESC01EffectCategoryTest::RunTest(const FString& Parameters)
  Node.Variants = { Fire, Frost };
  UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
  TestTrue(TEXT("Categorized node initializes"), Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId, Node.TalentNodeId)));
- TestTrue(TEXT("Locked variant remains previewable"), Detail->SelectVariantChoice(TEXT("Choice_Fire")));
- TestTrue(TEXT("Category is displayed"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("BONUS PASSIF")));
- TestTrue(TEXT("Effect is displayed"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Bonus de feu.")));
+ TestTrue(TEXT("Category is displayed without variant interaction"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("BONUS PASSIF")));
+ TestTrue(TEXT("Fire effect is displayed without variant interaction"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Bonus de feu.")));
+ TestTrue(TEXT("Frost effect is displayed at the same time"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Bonus de glace.")));
  return true;
 }
 
@@ -409,10 +415,47 @@ bool FUIRPGDESC01ReactionMechanicsTest::RunTest(const FString& Parameters)
  FGridSkillsPageView View;
  TestTrue(TEXT("Reaction view builds"), FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, View));
  const FGridTalentVariantView& Variant = View.TalentTree.Branches[0].Nodes[0].Variants[0];
- TestEqual(TEXT("Reaction category is explicit"), Variant.EffectCategory.ToString(), FString(TEXT("CAPACITÉ + RÉACTION AUTOMATIQUE")));
+ TestEqual(TEXT("Reaction category is explicit"), Variant.EffectCategory.ToString(), FString(TEXT("CAPACITÉ ACTIVE + RÉACTION AUTOMATIQUE")));
  TestTrue(TEXT("Reaction trigger is readable"), Variant.MechanicsSummary.ToString().Contains(TEXT("attaque entrante touche")));
  TestTrue(TEXT("Reaction limit is readable"), Variant.MechanicsSummary.ToString().Contains(TEXT("une fois par round")));
  TestTrue(TEXT("Reaction response is readable"), Variant.MechanicsSummary.ToString().Contains(TEXT("redirige 50 %")));
+ return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+ FUIRPGDESC01UnifiedPlayerLanguageTest,
+ "Grimrock.UI.RPG.DESC01.Detail.UnifiedPlayerLanguage",
+ EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FUIRPGDESC01UnifiedPlayerLanguageTest::RunTest(const FString& Parameters)
+{
+ (void)Parameters;
+ using namespace UIRPGDESC01Tests;
+ FGridTalentNodeView Node;
+ Node.TalentNodeId = TEXT("Talent_DESC01_Language");
+ Node.TalentBranchId = TEXT("Branch_DESC01");
+ Node.Tier = 2;
+ Node.MinimumLevel = 6;
+ Node.PointCost = 1;
+ Node.State = EGridTalentNodeState::LockedLevel;
+ FGridTalentVariantView Variant = MakeVariant(
+  Node.TalentNodeId,
+  TEXT("Talent lisible"),
+  TEXT("Accuracy +2 ; applique Status_Stunned si PhysicalArmor est épuisée."));
+ Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ ACTIVE"));
+ Variant.MechanicsSummary = FText::FromString(TEXT("Accuracy : +2"));
+ Node.Variants.Add(Variant);
+ FRPGTalentBranchPresentationDefinition Branch;
+ Branch.TalentBranchId = Node.TalentBranchId;
+ UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
+ TestTrue(TEXT("Readable Talent initializes"), Detail->InitializeTalentDetail(Node, Branch));
+ const FString Main = Detail->ResolvedMainDetailText.ToString();
+ TestTrue(TEXT("Stable TYPE section exists"), Main.Contains(TEXT("TYPE")));
+ TestTrue(TEXT("Stable FONCTIONNEMENT section exists"), Main.Contains(TEXT("FONCTIONNEMENT")));
+ TestTrue(TEXT("Stable EFFETS section exists"), Main.Contains(TEXT("EFFETS")));
+ TestTrue(TEXT("Accuracy becomes player-readable"), Main.Contains(TEXT("Précision")));
+ TestTrue(TEXT("Stunned status becomes player-readable"), Main.Contains(TEXT("Étourdi")));
+ TestTrue(TEXT("PhysicalArmor becomes player-readable"), Main.Contains(TEXT("armure physique")));
+ TestFalse(TEXT("Raw Status identifier is hidden"), Main.Contains(TEXT("Status_")));
  return true;
 }
 

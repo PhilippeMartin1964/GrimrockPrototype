@@ -400,25 +400,34 @@ de COMPÉTENCES. Fermer puis rouvrir la fenêtre fixe une nouvelle frontière.
 
 Validation finale RPG-SKILL01 : **8/8 Automation, 0 warning, 0 échec, PIE validé**.
 
-### UI-RPG-DESC01.1 — détails Talent / variante enrichis
+### UI-RPG-DESC01 — contrat unifié de détail Talent
 
-La source prépare un détail enrichi sans nouvelle autorité :
+Le panneau de détail utilise une présentation unique pour les six classes :
 
 ```text
 ProgressionChoice.Description
+CombatModifiers / CombatReactions / SkillModifiers / PartyModifiers
 CombatActions
     -> FGridSkillsPageService
        -> FGridTalentVariantView
+          -> EffectCategory
+          -> MechanicsSummary
           -> UnlockedActions[]
     -> UGridTalentDetailWidget
-       -> description conceptuelle
-       -> description concrète de variante
-       -> résumé d'action dérivé
+       -> TYPE
+       -> FONCTIONNEMENT
+       -> EFFETS
+       -> VARIANTES (toutes visibles simultanément)
+       -> ACTION ACCORDÉE APRÈS ACQUISITION / ACTION DISPONIBLE
 ```
 
-Les valeurs PA/Mana/portée/cooldown restent lues depuis les actions autoritaires.
-La matérialisation de trois TextBlocks optionnels dans
-`WBP_RPGTalentDetail` reste à faire après validation locale.
+La consultation d'un Talent ne modifie jamais le gameplay. Pour un nœud à variantes,
+toutes les variantes sont visibles sans ComboBox. Le sélecteur n'apparaît qu'après
+l'action explicite d'acquisition d'une variante. Le terme « débloquée » n'est plus
+utilisé pour une action seulement prévisualisée.
+
+Référence canonique :
+`docs/Design/UI_RPG_DESC01_4_UNIFIED_TALENT_DETAIL_UX.md`.
 
 
 RPG-ATTR01.1 ajoute l'économie des points de caractéristiques sans nouveau

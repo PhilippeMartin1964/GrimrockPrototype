@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **SOURCE IMPLÉMENTÉE — validation locale puis matérialisation UMG requises**
+État : **HISTORIQUE — superseded par UI-RPG-DESC01.4**
 
 ## Objectif
 
@@ -194,3 +194,13 @@ cd D:\Development\GrimrockPrototype
     -EngineRoot D:\UE_5.5 `
     -AutomationFilter "Grimrock.UI.RPG.DESC01"
 ```
+
+
+## Supersession UI-RPG-DESC01.4
+
+Le comportement « choisir une variante dans la ComboBox pour la consulter » est abandonné.
+Le contrat courant est documenté dans
+`docs/Design/UI_RPG_DESC01_4_UNIFIED_TALENT_DETAIL_UX.md`.
+
+La ComboBox n'est désormais qu'un contrôle d'acquisition temporaire. La consultation
+d'un nœud à variantes affiche toutes les variantes simultanément.

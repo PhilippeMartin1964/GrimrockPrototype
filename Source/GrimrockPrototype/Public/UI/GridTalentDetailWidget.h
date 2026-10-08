@@ -29,15 +29,19 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FText ResolvedDescription;
 
-	/** Concrete variant preview; populated only for multi-variant conceptual nodes. */
+	/** Stable player-facing TYPE / FONCTIONNEMENT / EFFETS block used for every Talent. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
+	FText ResolvedMainDetailText;
+
+	/** Stable "VARIANTES" heading for multi-variant nodes; never a hidden inspection selector. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FText ResolvedVariantDisplayName;
 
-	/** Actual FGridTalentVariantView::Description of the previewed variant. */
+	/** All concrete variants at once, including their type, mechanics and granted action preview. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FText ResolvedVariantDescription;
 
-	/** Derived only from authoritative CombatActions unlocked by the previewed concrete choice. */
+	/** State-aware action preview for simple Talents only. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FText ResolvedActionSummary;
 
@@ -124,8 +128,11 @@ private:
 	void UnbindAcquireButtons();
 	void RebuildVariantOptions();
 	FText MakeVariantDisplayLabel(const FGridTalentVariantView& Variant) const;
+	FText MakePlayerReadableText(const FText& Source) const;
+	FText BuildVariantOverview() const;
+	FText BuildMainDetailText() const;
 	void RefreshVariantDetailPreview();
-	FText BuildActionSummary(const FGridTalentVariantView& Variant) const;
+	FText BuildActionSummary(const FGridTalentVariantView& Variant, bool bAlreadyAcquired) const;
 	void ApplyDetailPresentation();
 	void ApplyAcquisitionPresentation();
 

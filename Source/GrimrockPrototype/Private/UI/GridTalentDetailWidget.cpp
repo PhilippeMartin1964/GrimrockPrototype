@@ -121,6 +121,7 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	NodeView = FGridTalentNodeView();
 	ResolvedDisplayName = FText::GetEmpty();
 	ResolvedDescription = FText::GetEmpty();
+	ResolvedMainDetailText = FText::GetEmpty();
 	ResolvedVariantDisplayName = FText::GetEmpty();
 	ResolvedVariantDescription = FText::GetEmpty();
 	ResolvedActionSummary = FText::GetEmpty();
@@ -143,7 +144,31 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	if (Text_DetailLevel) Text_DetailLevel->SetText(FText::GetEmpty());
 	if (Text_DetailCost) Text_DetailCost->SetText(FText::GetEmpty());
 	if (Text_DetailState) Text_DetailState->SetText(FText::GetEmpty());
-	if (Text_DetailVariants) Text_DetailVariants->SetText(FText::GetEmpty());
+	if (Text_DetailVariants)
+	{
+		if (NodeView.Variants.Num() <= 1)
+		{
+			Text_DetailVariants->SetText(FText::GetEmpty());
+		}
+		else
+		{
+			FText SelectedLabel;
+			if (!NodeView.SelectedChoiceId.IsNone() &&
+				GetVariantDisplayLabel(NodeView.SelectedChoiceId, SelectedLabel))
+			{
+				Text_DetailVariants->SetText(FText::Format(
+					NSLOCTEXT("GridTalentDetail", "SelectedVariant", "Variante acquise : {0} — toutes les variantes restent détaillées ci-dessous."),
+					SelectedLabel));
+			}
+			else
+			{
+				Text_DetailVariants->SetText(FText::FromString(FString::Printf(
+					TEXT("%d variantes — toutes détaillées ci-dessous. Le choix n'est demandé qu'au moment de l'acquisition."),
+					NodeView.Variants.Num())));
+			}
+		}
+	}
+
 	if (Text_DetailVariantName)
 	{
 		Text_DetailVariantName->SetText(FText::GetEmpty());
@@ -225,7 +250,7 @@ bool UGridTalentDetailWidget::BeginVariantSelection()
 
 bool UGridTalentDetailWidget::SelectVariantChoice(FName ChoiceId)
 {
-	if (!bInitialized || NodeView.Variants.Num() <= 1 || ChoiceId.IsNone())
+	if (!bInitialized || !bVariantSelectionPending || NodeView.Variants.Num() <= 1 || ChoiceId.IsNone())
 	{
 		return false;
 	}
@@ -428,8 +453,131 @@ FText UGridTalentDetailWidget::MakeVariantDisplayLabel(const FGridTalentVariantV
 	return FText::FromString(Label);
 }
 
+FText UGridTalentDetailWidget::MakePlayerReadableText(const FText& Source) const
+{
+	FString Text = Source.ToString();
+	Text.ReplaceInline(TEXT(" WD"), TEXT(" des dégâts de l'arme"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT(" PA"), TEXT(" points d'action"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("Accuracy"), TEXT("Précision"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("InitiativeModifier"), TEXT("Initiative"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("PhysicalArmor"), TEXT("armure physique"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("MagicalArmor"), TEXT("armure magique"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("RawDamage"), TEXT("dégâts bruts"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("MaxHP"), TEXT("PV maximum"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("ArmorGate"), TEXT("condition d'armure"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("Status_Stunned"), TEXT("Étourdi"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("Status_Burning"), TEXT("Brûlure"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("Status_Poison"), TEXT("Poison"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("Status_Bleeding"), TEXT("Saignement"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("Status_Slow"), TEXT("Ralentissement"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("Status_Silence"), TEXT("Silence"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("Status_Immobilized"), TEXT("Immobilisé"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("Status_Banished"), TEXT("Banni"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("bSkipActivation=true"), TEXT("fait perdre la prochaine activation"), ESearchCase::CaseSensitive);
+	Text.ReplaceInline(TEXT("Spell.School."), TEXT("école "), ESearchCase::CaseSensitive);
+
+	const TCHAR* Prefixes[] = { TEXT("Status_"), TEXT("Skill_"), TEXT("Action_"), TEXT("Recipe_"), TEXT("Item_"), TEXT("Surface_") };
+	for (const TCHAR* Prefix : Prefixes)
+	{
+		int32 SearchFrom = 0;
+		while (SearchFrom < Text.Len())
+		{
+			const int32 Start = Text.Find(Prefix, ESearchCase::CaseSensitive, ESearchDir::FromStart, SearchFrom);
+			if (Start == INDEX_NONE) break;
+			const int32 PrefixLength = FCString::Strlen(Prefix);
+			int32 End = Start + PrefixLength;
+			while (End < Text.Len() && (FChar::IsAlnum(Text[End]) || Text[End] == TCHAR('_')))
+			{
+				++End;
+			}
+			FString Token = Text.Mid(Start + PrefixLength, End - Start - PrefixLength);
+			Token.ReplaceInline(TEXT("_"), TEXT(" "));
+			Text = Text.Left(Start) + Token + Text.Mid(End);
+			SearchFrom = Start + Token.Len();
+		}
+	}
+	return FText::FromString(Text);
+}
+
+FText UGridTalentDetailWidget::BuildVariantOverview() const
+{
+	if (!bInitialized || NodeView.Variants.Num() <= 1)
+	{
+		return FText::GetEmpty();
+	}
+
+	TArray<FString> Blocks;
+	Blocks.Reserve(NodeView.Variants.Num());
+	for (const FGridTalentVariantView& Variant : NodeView.Variants)
+	{
+		FString Header = MakeVariantDisplayLabel(Variant).ToString();
+		if (Variant.bSelected)
+		{
+			Header += TEXT(" — CHOISIE");
+		}
+		else if (bVariantSelectionPending && Variant.ChoiceId == SelectedVariantChoiceId)
+		{
+			Header += TEXT(" — SÉLECTIONNÉE");
+		}
+
+		TArray<FString> Lines;
+		Lines.Add(Header);
+		if (!Variant.EffectCategory.IsEmpty())
+		{
+			Lines.Add(FString(TEXT("Type : ")) + Variant.EffectCategory.ToString());
+		}
+		if (!Variant.Description.IsEmpty())
+		{
+			Lines.Add(FString(TEXT("Fonctionnement : ")) + MakePlayerReadableText(Variant.Description).ToString());
+		}
+		if (!Variant.MechanicsSummary.IsEmpty())
+		{
+			Lines.Add(FString(TEXT("Effets : ")) + MakePlayerReadableText(Variant.MechanicsSummary).ToString());
+		}
+		if (!Variant.UnlockedActions.IsEmpty())
+		{
+			Lines.Add(BuildActionSummary(Variant, Variant.bSelected).ToString());
+		}
+		Blocks.Add(FString::Join(Lines, TEXT("\n")));
+	}
+	return FText::FromString(FString::Join(Blocks, TEXT("\n\n")));
+}
+
+FText UGridTalentDetailWidget::BuildMainDetailText() const
+{
+	if (!bInitialized || NodeView.Variants.IsEmpty())
+	{
+		return FText::GetEmpty();
+	}
+
+	TArray<FString> Parts;
+	if (NodeView.Variants.Num() > 1)
+	{
+		Parts.Add(TEXT("TYPE\nCHOIX DE VARIANTE"));
+		if (!ResolvedDescription.IsEmpty())
+		{
+			Parts.Add(FString(TEXT("FONCTIONNEMENT\n")) + MakePlayerReadableText(ResolvedDescription).ToString());
+		}
+		return FText::FromString(FString::Join(Parts, TEXT("\n\n")));
+	}
+
+	const FGridTalentVariantView& Variant = NodeView.Variants[0];
+	Parts.Add(FString(TEXT("TYPE\n")) +
+		(Variant.EffectCategory.IsEmpty() ? FString(TEXT("TALENT")) : Variant.EffectCategory.ToString()));
+	if (!ResolvedDescription.IsEmpty())
+	{
+		Parts.Add(FString(TEXT("FONCTIONNEMENT\n")) + MakePlayerReadableText(ResolvedDescription).ToString());
+	}
+	if (!Variant.MechanicsSummary.IsEmpty())
+	{
+		Parts.Add(FString(TEXT("EFFETS\n")) + MakePlayerReadableText(Variant.MechanicsSummary).ToString());
+	}
+	return FText::FromString(FString::Join(Parts, TEXT("\n\n")));
+}
+
 void UGridTalentDetailWidget::RefreshVariantDetailPreview()
 {
+	ResolvedMainDetailText = FText::GetEmpty();
 	ResolvedVariantDisplayName = FText::GetEmpty();
 	ResolvedVariantDescription = FText::GetEmpty();
 	ResolvedActionSummary = FText::GetEmpty();
@@ -439,48 +587,22 @@ void UGridTalentDetailWidget::RefreshVariantDetailPreview()
 		return;
 	}
 
-	const FGridTalentVariantView* PreviewVariant = nullptr;
-	if (!SelectedVariantChoiceId.IsNone())
-	{
-		PreviewVariant = NodeView.Variants.FindByPredicate(
-			[this](const FGridTalentVariantView& Candidate)
-			{
-				return Candidate.ChoiceId == SelectedVariantChoiceId;
-			});
-	}
-
-	if (!PreviewVariant && !NodeView.SelectedChoiceId.IsNone())
-	{
-		PreviewVariant = NodeView.Variants.FindByPredicate(
-			[this](const FGridTalentVariantView& Candidate)
-			{
-				return Candidate.ChoiceId == NodeView.SelectedChoiceId;
-			});
-	}
-
-	if (!PreviewVariant && NodeView.Variants.Num() == 1)
-	{
-		PreviewVariant = &NodeView.Variants[0];
-	}
-
-	if (!PreviewVariant)
-	{
-		return;
-	}
+	ResolvedMainDetailText = BuildMainDetailText();
 
 	if (NodeView.Variants.Num() > 1)
 	{
-		ResolvedVariantDisplayName = MakeVariantDisplayLabel(*PreviewVariant);
-		TArray<FString> DetailParts;
-		if (!PreviewVariant->EffectCategory.IsEmpty()) DetailParts.Add(PreviewVariant->EffectCategory.ToString());
-		if (!PreviewVariant->Description.IsEmpty()) DetailParts.Add(PreviewVariant->Description.ToString());
-		if (!PreviewVariant->MechanicsSummary.IsEmpty()) DetailParts.Add(PreviewVariant->MechanicsSummary.ToString());
-		ResolvedVariantDescription = FText::FromString(FString::Join(DetailParts, TEXT("\n")));
+		ResolvedVariantDisplayName = FText::FromString(TEXT("VARIANTES"));
+		ResolvedVariantDescription = BuildVariantOverview();
+		return;
 	}
-	ResolvedActionSummary = BuildActionSummary(*PreviewVariant);
+
+	const FGridTalentVariantView& Variant = NodeView.Variants[0];
+	ResolvedActionSummary = BuildActionSummary(
+		Variant,
+		Variant.bSelected || NodeView.State == EGridTalentNodeState::Acquired);
 }
 
-FText UGridTalentDetailWidget::BuildActionSummary(const FGridTalentVariantView& Variant) const
+FText UGridTalentDetailWidget::BuildActionSummary(const FGridTalentVariantView& Variant, bool bAlreadyAcquired) const
 {
 	if (Variant.UnlockedActions.IsEmpty()) return FText::GetEmpty();
 
@@ -523,14 +645,15 @@ FText UGridTalentDetailWidget::BuildActionSummary(const FGridTalentVariantView& 
 
 		if (Action.CooldownRounds > 0) Lines.Add(FString::Printf(TEXT("Recharge : %d tour%s"), Action.CooldownRounds, Action.CooldownRounds > 1 ? TEXT("s") : TEXT("")));
 
-		FString Description = Action.Description.ToString();
+		FString Description = MakePlayerReadableText(Action.Description).ToString();
 		Description.TrimStartAndEndInline();
-		Description.ReplaceInline(TEXT(" WD"), TEXT(" des dégâts de l'arme"), ESearchCase::CaseSensitive);
-		Description.ReplaceInline(TEXT(" PA"), TEXT(" points d'action"), ESearchCase::CaseSensitive);
-		if (!Description.IsEmpty()) Lines.Add(TEXT("Effet : ") + Description);
+		if (!Description.IsEmpty()) Lines.Add(FString(TEXT("Effet : ")) + Description);
 		ActionBlocks.Add(FString::Join(Lines, TEXT("\n")));
 	}
-	return FText::FromString(TEXT("ACTION DÉBLOQUÉE\n") + FString::Join(ActionBlocks, TEXT("\n\n")));
+	const FString Heading = bAlreadyAcquired
+		? TEXT("ACTION DISPONIBLE")
+		: TEXT("ACTION ACCORDÉE APRÈS ACQUISITION");
+	return FText::FromString(Heading + TEXT("\n") + FString::Join(ActionBlocks, TEXT("\n\n")));
 }
 
 void UGridTalentDetailWidget::ApplyDetailPresentation()
@@ -552,18 +675,7 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 	}
 	if (Text_DetailDescription)
 	{
-		if (NodeView.Variants.Num() == 1 && !NodeView.Variants[0].EffectCategory.IsEmpty())
-		{
-			TArray<FString> DetailParts;
-			DetailParts.Add(NodeView.Variants[0].EffectCategory.ToString());
-			DetailParts.Add(ResolvedDescription.ToString().Replace(TEXT(" WD"), TEXT(" des dégâts de l'arme")).Replace(TEXT(" PA"), TEXT(" points d'action")));
-			if (!NodeView.Variants[0].MechanicsSummary.IsEmpty()) DetailParts.Add(NodeView.Variants[0].MechanicsSummary.ToString());
-			Text_DetailDescription->SetText(FText::FromString(FString::Join(DetailParts, TEXT("\n"))));
-		}
-		else
-		{
-			Text_DetailDescription->SetText(ResolvedDescription);
-		}
+		Text_DetailDescription->SetText(ResolvedMainDetailText);
 	}
 	if (Text_DetailLevel)
 	{
@@ -660,7 +772,7 @@ void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 	if (Combo_VariantChoice)
 	{
 		Combo_VariantChoice->SetVisibility(
-			bInitialized && NodeView.Variants.Num() > 1 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			bVariantSelectionPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
 	if (Button_ConfirmAcquire)
 	{

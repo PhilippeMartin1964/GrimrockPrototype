@@ -388,7 +388,7 @@ namespace
 
 		return Lines.IsEmpty()
 			? FText::GetEmpty()
-			: FText::FromString(TEXT("EFFETS MÉCANIQUES\n") + FString::Join(Lines, TEXT("\n")));
+			: FText::FromString(FString::Join(Lines, TEXT("\n")));
 	}
 
 	FText TargetingSummary(EGridCombatTargetingPolicy Policy)
@@ -581,11 +581,11 @@ namespace
 				[](const FName Id) { return Id.ToString().StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive); });
 			if (bHasAction && bHasReaction)
 			{
-				Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ + RÉACTION AUTOMATIQUE"));
+				Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ ACTIVE + RÉACTION AUTOMATIQUE"));
 			}
 			else if (bHasAction && bHasPassive)
 			{
-				Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ + BONUS PASSIF"));
+				Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ ACTIVE + BONUS PASSIF"));
 			}
 			else if (bHasReaction)
 			{
@@ -597,11 +597,11 @@ namespace
 			}
 			else if (bHasRecipe)
 			{
-				Variant.EffectCategory = FText::FromString(TEXT("RECETTE DÉBLOQUÉE"));
+				Variant.EffectCategory = FText::FromString(TEXT("RECETTE"));
 			}
 			else
 			{
-				Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ DÉBLOQUÉE"));
+				Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ ACTIVE"));
 			}
 			Variant.bSelected = bSelected;
 			if (!TryMapChoiceState(bSelected, Availability, Variant.State)) return false;
