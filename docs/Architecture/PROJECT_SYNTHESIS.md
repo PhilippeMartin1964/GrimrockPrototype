@@ -11,7 +11,7 @@
 | Moteur | Unreal Engine 5.5.4 |
 | Branche | `master` |
 | Modules C++ | `GrimrockPrototype`, `GrimrockPrototypeEditor`, `GrimrockLua` |
-| SaveGame | **v23 exact-match** ; aucune compatibilité arrière ni migration |
+| SaveGame | **v24 exact-match** ; aucune compatibilité arrière ni migration |
 | Dernier jalon fonctionnel clos | `MON21.6 — Map` + `MAP-THEME01 — Textured Map Rendering` |
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
@@ -74,7 +74,7 @@ Le module Editor dépend aussi de `GrimrockLua`. Le Runtime ne dépend pas du mo
 | Magic / Spellbook | ✅ MON18 |
 | Recrutement / réserve | ✅ MON20 |
 | Skills / Talents | ✅ MON20 |
-| Save | ✅ v23 exact-match ; aucune migration arrière |
+| Save | ✅ v24 exact-match ; aucune migration arrière |
 | Quêtes runtime | ✅ MON21.2–MON21.3 |
 | Journal | ⬜ WBP existant ; read model prévu MON21.5 |
 | Map | ✅ MON21.6 validé/clos ; MAP-THEME01 texturé data-driven validé/clos |
@@ -140,7 +140,7 @@ L’état Quest reste transient. La characterization MON21.4 est validée et TD0
 
 ## 11. Persistance
 
-`UGrimrockPartySaveGame` utilise désormais la génération prototype **v23 exact-match**. Toute autre génération est rejetée ; aucune migration arrière n'est exécutée.
+`UGrimrockPartySaveGame` utilise désormais la génération prototype **v24 exact-match**. Toute autre génération est rejetée ; aucune migration arrière n'est exécutée.
 
 TD07.3 impose désormais :
 

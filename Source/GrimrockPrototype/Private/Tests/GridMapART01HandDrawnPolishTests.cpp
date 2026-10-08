@@ -76,7 +76,7 @@ bool FGridMapART01PresentationOnlyTest::RunTest(const FString& Parameters)
 	}
 
 	TestEqual(TEXT("MAP-ART01 does not change exact-match SaveGame version"),
-		UGrimrockPartySaveGame::CurrentSaveVersion, 23);
+		UGrimrockPartySaveGame::CurrentSaveVersion, 24);
 	return true;
 }
 

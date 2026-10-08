@@ -1,3 +1,8 @@
+> **SUPERSEDED — RPG-LEVELUX01.3 (08.10.2026).**  
+> Historique : l'ancien workflow Level Up modal n'est plus le contrat courant.
+> Les Talents sont acquis depuis COMPÉTENCES / TALENTS et les montées de niveau
+> utilisent le toast non modal du Persistent HUD.
+
 # MON20.8.4 — Skills/Talents Page Read Model & Menu Integration
 
 Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE**  

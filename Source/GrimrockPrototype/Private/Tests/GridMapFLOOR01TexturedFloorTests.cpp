@@ -52,7 +52,7 @@ bool FGridMapFLOOR01ContractTest::RunTest(const FString& Parameters)
 	TestEqual(
 		TEXT("MAP-FLOOR01 does not change exact-match SaveGame version"),
 		UGrimrockPartySaveGame::CurrentSaveVersion,
-		23);
+		24);
 
 	return true;
 }

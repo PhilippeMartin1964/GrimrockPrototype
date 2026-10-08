@@ -9,7 +9,6 @@
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
-#include "UI/RPGLevelUpWidget.h"
 
 namespace
 {

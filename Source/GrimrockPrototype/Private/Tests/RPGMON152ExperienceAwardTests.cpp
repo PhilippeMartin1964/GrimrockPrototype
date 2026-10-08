@@ -79,7 +79,6 @@ namespace
 		Character.ClassDisplayName = ClassDefinition ? ClassDefinition->DisplayName : FText::GetEmpty();
 		Character.ClassDefinition = ClassDefinition;
 		Character.Level = Level;
-		Character.LastAcknowledgedLevel = Level;
 		Character.Experience = Experience;
 		Character.Attributes = FRPGAttributes{ 12, 11, 10, 9, 8, 7 };
 

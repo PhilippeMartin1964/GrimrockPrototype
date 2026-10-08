@@ -116,9 +116,6 @@ bool FRPGLevelUpService::ApplyPendingLevelUp(UGridPartyInventoryComponent* Party
 
 	// Commit the new calculated projection and mutable resources together.
 	Character.Level = TargetLevel;
-	// RPG-LEVELUX01: Level-Up feedback is informational and non-modal.
-	// Keep the durable compatibility watermark synchronized immediately.
-	Character.LastAcknowledgedLevel = TargetLevel;
 	Character.DerivedStats = NewStats;
 	Character.Resources = NewResources;
 

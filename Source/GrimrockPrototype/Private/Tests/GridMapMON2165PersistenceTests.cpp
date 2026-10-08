@@ -62,7 +62,7 @@ bool FGridMapMON2165RoundTripTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Level B secret discovery is accepted"), LevelB->MapExploration.TryMarkSecretDiscovered(SecretB, bNewlyDiscovered));
 
 	TArray<uint8> SaveBytes;
-	TestTrue(TEXT("Current v23 SaveGame serializes map exploration"), UGameplayStatics::SaveGameToMemory(Source, SaveBytes));
+	TestTrue(TEXT("Current v24 SaveGame serializes map exploration"), UGameplayStatics::SaveGameToMemory(Source, SaveBytes));
 	UGrimrockPartySaveGame* Loaded = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromMemory(SaveBytes));
 	if (!TestNotNull(TEXT("Serialized map SaveGame loads"), Loaded))
 	{
@@ -121,16 +121,16 @@ bool FGridMapMON2165VersionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestEqual(TEXT("MON21.6.5 opens exact-match SaveGame v23"), UGrimrockPartySaveGame::CurrentSaveVersion, 23);
+	TestEqual(TEXT("MON21.6.5 opens exact-match SaveGame v24"), UGrimrockPartySaveGame::CurrentSaveVersion, 24);
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
-	TestEqual(TEXT("Fresh SaveGame defaults to v23"), Current->SaveVersion, 23);
-	TestTrue(TEXT("Fresh v23 SaveGame is compatible"), Current->IsCompatible());
+	TestEqual(TEXT("Fresh SaveGame defaults to v24"), Current->SaveVersion, 23);
+	TestTrue(TEXT("Fresh v24 SaveGame is compatible"), Current->IsCompatible());
 
 	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
-	Previous->SaveVersion = 22;
+	Previous->SaveVersion = 23;
 	FText Error;
-	TestFalse(TEXT("Previous v22 is rejected without migration"), Previous->ValidateCurrentState(Error));
-	TestFalse(TEXT("Previous v22 is incompatible"), Previous->IsCompatible());
+	TestFalse(TEXT("Previous v23 is rejected without migration"), Previous->ValidateCurrentState(Error));
+	TestFalse(TEXT("Previous v23 is incompatible"), Previous->IsCompatible());
 	TestEqual(TEXT("Validation never rewrites v22"), Previous->SaveVersion, 22);
 	TestTrue(TEXT("v22 rejection reports an error"), !Error.IsEmpty());
 	return true;

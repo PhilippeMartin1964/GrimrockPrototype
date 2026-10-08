@@ -60,7 +60,6 @@ namespace GridTD07343Normalization
 		Character.RaceDisplayName = FText::FromString(TEXT("CORRUPTED RACE LABEL"));
 		Character.Level = Level;
 		Character.Experience = URPGCharacterRulesLibrary::GetCumulativeExperienceRequiredForLevel(Level);
-		Character.LastAcknowledgedLevel = Level;
 		Character.Attributes = ClassDefinition->BaseAttributes;
 		Character.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, Level);
 		Character.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Character.DerivedStats, ClassDefinition);

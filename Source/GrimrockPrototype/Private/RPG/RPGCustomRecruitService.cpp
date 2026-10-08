@@ -73,7 +73,6 @@ namespace RPGCustomRecruitServicePrivate
 		Candidate.ClassDefinition = CombatActionSourceClass;
 		Candidate.Level = 1;
 		Candidate.Experience = 0;
-		Candidate.LastAcknowledgedLevel = Candidate.Level;
 		Candidate.Attributes = FinalAttributes;
 		Candidate.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(FinalAttributes, Request.ClassDefinition, Candidate.Level);
 		Candidate.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Candidate.DerivedStats, Request.ClassDefinition);

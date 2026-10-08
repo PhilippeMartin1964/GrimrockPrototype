@@ -250,7 +250,7 @@ bool FGridMapMON2166TransientTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestEqual(TEXT("Read model does not change exact-match SaveGame v23"), UGrimrockPartySaveGame::CurrentSaveVersion, 23);
+	TestEqual(TEXT("Read model does not change exact-match SaveGame v24"), UGrimrockPartySaveGame::CurrentSaveVersion, 24);
 
 	for (TFieldIterator<FProperty> It(FGridMapTileView::StaticStruct()); It; ++It)
 	{

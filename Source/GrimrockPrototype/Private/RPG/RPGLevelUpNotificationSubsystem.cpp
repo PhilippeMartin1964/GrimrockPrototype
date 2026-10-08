@@ -72,83 +72,20 @@ void URPGLevelUpNotificationSubsystem::Deinitialize()
 		World->GetTimerManager().ClearTimer(ActiveToastTimerHandle);
 	}
 
-	ObservedPartyInventory.Reset();
 	PendingNotifications.Reset();
 	ActiveNotification.Reset();
 	Super::Deinitialize();
-}
-
-int32 URPGLevelUpNotificationSubsystem::GetPendingLevelUpNotificationCount() const
-{
-	return PendingNotifications.Num() + (ActiveNotification.IsSet() ? 1 : 0);
-}
-
-void URPGLevelUpNotificationSubsystem::RefreshFromPartyState(UGridPartyInventoryComponent* PartyInventoryComponent)
-{
-	if (!IsValid(PartyInventoryComponent))
-	{
-		return;
-	}
-
-	if (UWorld* SourceWorld = PartyInventoryComponent->GetWorld())
-	{
-		if (SourceWorld->GetGameInstance() != GetGameInstance())
-		{
-			return;
-		}
-	}
-
-	BindPartyInventory(PartyInventoryComponent);
-
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(ActiveToastTimerHandle);
-	}
-	PendingNotifications.Reset();
-	ActiveNotification.Reset();
-
-	FGridPartyInventoryState& PartyState = PartyInventoryComponent->PartyInventoryState;
-	for (int32 CharacterIndex = 0; CharacterIndex < PartyState.ActiveCharacters.Num(); ++CharacterIndex)
-	{
-		FGridCharacterInventoryState& Character = PartyState.ActiveCharacters[CharacterIndex];
-		if (!Character.CharacterId.IsValid() || Character.LastAcknowledgedLevel >= Character.Level)
-		{
-			continue;
-		}
-
-		const int32 PreviousLevel = Character.LastAcknowledgedLevel;
-		const int32 NewLevel = Character.Level;
-		EnqueueNotification(
-			PartyInventoryComponent,
-			CharacterIndex,
-			PreviousLevel,
-			NewLevel,
-			NewLevel - PreviousLevel);
-
-		// Legacy/current saves may still contain the old durable modal gap.
-		// Consume it immediately: the toast is informational and never blocks play.
-		Character.LastAcknowledgedLevel = Character.Level;
-	}
-
-	TryPresentNextNotification();
-}
-
-void URPGLevelUpNotificationSubsystem::BindPartyInventory(UGridPartyInventoryComponent* PartyInventoryComponent)
-{
-	ObservedPartyInventory = PartyInventoryComponent;
 }
 
 void URPGLevelUpNotificationSubsystem::EnqueueNotification(
 	UGridPartyInventoryComponent* PartyInventoryComponent,
 	int32 CharacterIndex,
 	int32 PreviousLevel,
-	int32 NewLevel,
-	int32 LevelsGained)
+	int32 NewLevel)
 {
 	if (!IsValid(PartyInventoryComponent) ||
 		!PartyInventoryComponent->IsValidCharacterIndex(CharacterIndex) ||
-		PreviousLevel >= NewLevel ||
-		LevelsGained <= 0)
+		PreviousLevel >= NewLevel)
 	{
 		return;
 	}
@@ -166,7 +103,6 @@ void URPGLevelUpNotificationSubsystem::EnqueueNotification(
 	Notification.CharacterId = Character.CharacterId;
 	Notification.PreviousLevel = PreviousLevel;
 	Notification.NewLevel = NewLevel;
-	Notification.LevelsGained = LevelsGained;
 	PendingNotifications.Add(MoveTemp(Notification));
 }
 
@@ -188,45 +124,19 @@ void URPGLevelUpNotificationSubsystem::HandleCharacterLevelUpApplied(
 		return;
 	}
 
-	BindPartyInventory(PartyInventoryComponent);
-	EnqueueNotification(PartyInventoryComponent, CharacterIndex, PreviousLevel, NewLevel, LevelsGained);
+	EnqueueNotification(PartyInventoryComponent, CharacterIndex, PreviousLevel, NewLevel);
 
-	const FGridCharacterInventoryState& Character =
-		PartyInventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex];
 	UE_LOG(
 		LogGridLevelUpUI,
 		Log,
-		TEXT("[GridLevelUpUI] QueuedNonModal Character=%d Previous=%d New=%d Gained=%d Acknowledged=%d Pending=%d"),
+		TEXT("[GridLevelUpUI] QueuedNonModal Character=%d Previous=%d New=%d Gained=%d Pending=%d"),
 		CharacterIndex,
 		PreviousLevel,
 		NewLevel,
 		LevelsGained,
-		Character.LastAcknowledgedLevel,
 		PendingNotifications.Num());
 
 	TryPresentNextNotification();
-}
-
-void URPGLevelUpNotificationSubsystem::AcknowledgeNotification(const FPendingNotification& Notification)
-{
-	UGridPartyInventoryComponent* InventoryComponent = Notification.InventoryComponent.Get();
-	if (!IsValid(InventoryComponent))
-	{
-		return;
-	}
-
-	const int32 CharacterIndex =
-		FindCharacterIndexById(InventoryComponent->PartyInventoryState, Notification.CharacterId);
-	if (!InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
-	{
-		return;
-	}
-
-	FGridCharacterInventoryState& Character =
-		InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex];
-	Character.LastAcknowledgedLevel = FMath::Max(
-		Character.LastAcknowledgedLevel,
-		FMath::Min(Notification.NewLevel, Character.Level));
 }
 
 bool URPGLevelUpNotificationSubsystem::PresentNotification(
@@ -300,13 +210,10 @@ void URPGLevelUpNotificationSubsystem::TryPresentNextNotification()
 		const FPendingNotification Notification = PendingNotifications[0];
 		PendingNotifications.RemoveAt(0);
 
-		UGridPartyInventoryComponent* InventoryComponent = Notification.InventoryComponent.Get();
-		if (!IsValid(InventoryComponent))
+		if (!IsValid(Notification.InventoryComponent.Get()))
 		{
 			continue;
 		}
-
-		AcknowledgeNotification(Notification);
 
 		float DurationSeconds = 0.0f;
 		if (!PresentNotification(Notification, DurationSeconds))

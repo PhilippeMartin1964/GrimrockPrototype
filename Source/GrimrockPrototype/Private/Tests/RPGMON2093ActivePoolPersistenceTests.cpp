@@ -21,7 +21,6 @@ namespace RPGMON2093Tests
 		Character.RaceDisplayName = FText::FromString(TEXT("Humain"));
 		Character.Level = 1;
 		Character.Experience = 0;
-		Character.LastAcknowledgedLevel = 1;
 		Character.Attributes = FRPGAttributes(10, 10, 10, 10, 10, 10);
 		Character.DerivedStats.MaxHealth = 10;
 		Character.Resources.CurrentHealth = 10;

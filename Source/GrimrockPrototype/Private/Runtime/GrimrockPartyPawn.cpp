@@ -13,7 +13,6 @@
 #include "Core/GridDirectionUtils.h"
 #include "InputCoreTypes.h"
 #include "Magic/GridPartySpellbookComponent.h"
-#include "RPG/RPGLevelUpNotificationSubsystem.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -202,16 +201,6 @@ void AGrimrockPartyPawn::BeginPlay()
 	ShowCombatActionPanelWidget();
 	ShowPersistentHudWidget();
 
-	if (bLoadedSavedGame && PartyInventoryComponent)
-	{
-		if (UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr)
-		{
-			if (URPGLevelUpNotificationSubsystem* LevelUpNotifications = GameInstance->GetSubsystem<URPGLevelUpNotificationSubsystem>())
-			{
-				LevelUpNotifications->RefreshFromPartyState(PartyInventoryComponent);
-			}
-		}
-	}
 
 	if (bLoadedSavedGame && bFreshDungeonPlaytest)
 	{

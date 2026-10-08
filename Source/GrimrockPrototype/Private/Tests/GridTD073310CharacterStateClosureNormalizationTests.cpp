@@ -107,7 +107,6 @@ bool FGridTD073310PoolRoundTripTest::RunTest(const FString& Parameters)
 	}
 
 	FGridCharacterInventoryState Reserve = MakeMON155Character(ClassDefinition, 2, 1000, TEXT("Reserve"));
-	Reserve.LastAcknowledgedLevel = 2;
 	const FRPGDerivedStats Expected = URPGCharacterRulesLibrary::CalculateDerivedStats(Reserve.Attributes, ClassDefinition, Reserve.Level);
 	CorruptTD073310DerivedStats(Reserve.DerivedStats);
 	Component->PartyInventoryState.CharacterPool.Add(Reserve);

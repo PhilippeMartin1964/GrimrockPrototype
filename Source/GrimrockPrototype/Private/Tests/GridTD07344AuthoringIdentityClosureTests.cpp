@@ -171,7 +171,6 @@ bool FGridTD07344VisualRoundTripTest::RunTest(const FString& Parameters)
 	Character.ClassIcon = Texture(TEXT("/Game/TD07344/T_ClassIcon_STALE.T_ClassIcon_STALE"));
 	Character.Level = 1;
 	Character.Experience = 0;
-	Character.LastAcknowledgedLevel = 1;
 	Character.Attributes = ClassDefinition->BaseAttributes;
 	Character.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, 1);
 	Character.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Character.DerivedStats, ClassDefinition);

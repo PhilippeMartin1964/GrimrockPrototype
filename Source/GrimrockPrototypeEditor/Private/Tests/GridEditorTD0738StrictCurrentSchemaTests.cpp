@@ -184,7 +184,7 @@ bool FGridTD0738CharacterAuthorityTest::RunTest(const FString& Parameters)
 	}
 
 	for (const TCHAR* Name :
-		{ TEXT("ClassId"), TEXT("RaceId"), TEXT("Experience"), TEXT("LastAcknowledgedLevel"), TEXT("SelectedClassProgressionChoiceIds"), TEXT("Attributes"),
+		{ TEXT("ClassId"), TEXT("RaceId"), TEXT("Experience"), TEXT("SelectedClassProgressionChoiceIds"), TEXT("Attributes"),
 			TEXT("Resources"), TEXT("SkillRanks"), TEXT("KnownSpellIds"), TEXT("StatusEffects"), TEXT("PortraitGender"), TEXT("PortraitVariantId") })
 	{
 		TestTrue(*FString::Printf(TEXT("%s remains durable authority"), Name), IsDurableProperty(Character, Name));
@@ -199,6 +199,7 @@ bool FGridTD0738CharacterAuthorityTest::RunTest(const FString& Parameters)
 	TestNull(TEXT("Legacy CharacterSkillStates mirror is absent"), Character->FindPropertyByName(TEXT("CharacterSkillStates")));
 	TestNull(TEXT("Legacy CharacterSpellbookStates mirror is absent"), Character->FindPropertyByName(TEXT("CharacterSpellbookStates")));
 	TestNull(TEXT("Legacy ClassProgressionStates mirror is absent"), Character->FindPropertyByName(TEXT("ClassProgressionStates")));
+	TestNull(TEXT("Legacy LastAcknowledgedLevel watermark is absent"), Character->FindPropertyByName(TEXT("LastAcknowledgedLevel")));
 	return true;
 }
 

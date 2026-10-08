@@ -875,3 +875,22 @@ Le 28 août 2026, TD07.3 atteint sa stop condition :
 - Shipping Win64 validé.
 
 `TD-DATA-001` est donc résolue. Les futures évolutions Save/DataAsset du prototype suivent le même contrat strict courant.
+
+
+## RPG-LEVELUX01.3 — suppression définitive du legacy Level-Up
+
+État courant :
+
+```text
+URPGLevelUpWidget                         supprimé
+LastAcknowledgedLevel                    supprimé
+RefreshFromPartyState                    supprimé
+ObservedPartyInventory                   supprimé
+AcknowledgeNotification                  supprimé
+IsLevelUpModalOpen                       supprimé
+GetPendingLevelUpNotificationCount       supprimé
+SaveGame                                 v24 exact-match
+```
+
+Les anciennes sections TD07.3.3.9 décrivent l'histoire v19 et ne constituent
+plus le contrat courant.

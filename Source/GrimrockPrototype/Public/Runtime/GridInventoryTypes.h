@@ -391,15 +391,6 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character", meta = (ClampMin = "0"))
 	int32 Experience = 0;
 
-	/**
-	 * Durable SaveGame compatibility watermark for Level-Up feedback.
-	 * RPG-LEVELUX01 keeps it synchronized with Level for new progression.
-	 * A lower value may only survive from an older/current save and is consumed
-	 * once as non-modal catch-up feedback on load.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Progression", meta = (ClampMin = "1"))
-	int32 LastAcknowledgedLevel = 1;
-
 	/** Durable player-selected class progression choices. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Progression")
 	TArray<FName> SelectedClassProgressionChoiceIds;

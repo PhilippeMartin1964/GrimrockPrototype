@@ -12,8 +12,8 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	/** MON21.6.5: map exploration cells + discovered secret identities are durable. */
-	static constexpr int32 CurrentSaveVersion = 23;
+	/** RPG-LEVELUX01.3: legacy durable Level-Up acknowledgement state removed. */
+	static constexpr int32 CurrentSaveVersion = 24;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	int32 SaveVersion = CurrentSaveVersion;

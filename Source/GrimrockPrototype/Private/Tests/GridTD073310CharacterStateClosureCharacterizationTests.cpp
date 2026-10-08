@@ -73,7 +73,7 @@ bool FGridTD073310AuthorityFlagsTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("SkillRanks are durable"), IsDurableCharacterProperty(TEXT("SkillRanks")));
 	TestTrue(TEXT("KnownSpellIds are durable"), IsDurableCharacterProperty(TEXT("KnownSpellIds")));
 	TestTrue(TEXT("StatusEffects are durable"), IsDurableCharacterProperty(TEXT("StatusEffects")));
-	TestTrue(TEXT("LastAcknowledgedLevel is durable"), IsDurableCharacterProperty(TEXT("LastAcknowledgedLevel")));
+	TestNull(TEXT("Legacy LastAcknowledgedLevel watermark is absent"), FindCharacterProperty(TEXT("LastAcknowledgedLevel")));
 
 	TestNull(TEXT("Legacy Strength bridge remains absent"), FindCharacterProperty(TEXT("Strength")));
 	TestNull(TEXT("Legacy RPG initialization marker remains absent"), FindCharacterProperty(TEXT("bRPGAttributesInitialized")));

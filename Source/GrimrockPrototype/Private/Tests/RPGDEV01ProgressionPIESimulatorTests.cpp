@@ -21,7 +21,6 @@ bool FRPGDEV01LevelTwentySimulationTest::RunTest(const FString& Parameters)
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(1, 0, ClassDefinition);
 	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
-	Character.LastAcknowledgedLevel = 1;
 
 	int32 LevelEventCount = 0;
 	int32 EventPreviousLevel = INDEX_NONE;
@@ -46,7 +45,6 @@ bool FRPGDEV01LevelTwentySimulationTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Level twenty uses the canonical cumulative XP threshold"), Character.Experience,
 		URPGCharacterRulesLibrary::GetCumulativeExperienceRequiredForLevel(20));
 	TestEqual(TEXT("Level twenty threshold is 190000 XP"), Character.Experience, 190000);
-	TestEqual(TEXT("Non-modal Level-Up is acknowledged immediately"), Character.LastAcknowledgedLevel, 20);
 	TestEqual(TEXT("Exactly one canonical level event is emitted"), LevelEventCount, 1);
 	TestEqual(TEXT("Event previous level"), EventPreviousLevel, 1);
 	TestEqual(TEXT("Event new level"), EventNewLevel, 20);
@@ -78,7 +76,6 @@ bool FRPGDEV01InvalidTargetTest::RunTest(const FString& Parameters)
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(1, 0, ClassDefinition);
 	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
-	Character.LastAcknowledgedLevel = 1;
 
 	FText Feedback;
 	TestFalse(TEXT("Current level is rejected as a no-op"),
@@ -108,17 +105,14 @@ bool FRPGDEV01SuccessiveJumpTest::RunTest(const FString& Parameters)
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(1, 0, ClassDefinition);
 	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
-	Character.LastAcknowledgedLevel = 1;
 
 	FText Feedback;
 	TestTrue(TEXT("First jump reaches level two without a modal acknowledgement step"),
 		FRPGProgressionPIESimulator::TrySetSelectedCharacterLevel(Component, 2, Feedback));
-	TestEqual(TEXT("First jump auto-acknowledges level two"), Character.LastAcknowledgedLevel, 2);
 
 	TestTrue(TEXT("Second jump can immediately continue to level six"),
 		FRPGProgressionPIESimulator::TrySetSelectedCharacterLevel(Component, 6, Feedback));
 	TestEqual(TEXT("Second jump reaches level six"), Character.Level, 6);
-	TestEqual(TEXT("Second jump auto-acknowledges level six"), Character.LastAcknowledgedLevel, 6);
 	return true;
 }
 
@@ -135,7 +129,6 @@ bool FRPGDEV01RollbackTest::RunTest(const FString& Parameters)
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(1, 0, ClassDefinition);
 	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
-	Character.LastAcknowledgedLevel = 1;
 	Character.ClassId = TEXT("Wrong_Class_Id");
 
 	AddExpectedError(TEXT("Reason=InvalidClassDefinition"), EAutomationExpectedErrorFlags::Contains, 1);

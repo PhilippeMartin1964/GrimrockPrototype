@@ -167,8 +167,8 @@ bool FGridMapMON21613ClosureContractTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("World object definitions still opt out of map symbols by default"),
 		Definition->MapSymbolStyle, EGridMapSymbolStyle::None);
 
-	TestEqual(TEXT("Map closure does not change exact-match SaveGame v23"),
-		UGrimrockPartySaveGame::CurrentSaveVersion, 23);
+	TestEqual(TEXT("Map closure does not change exact-match SaveGame v24"),
+		UGrimrockPartySaveGame::CurrentSaveVersion, 24);
 	return true;
 }
 

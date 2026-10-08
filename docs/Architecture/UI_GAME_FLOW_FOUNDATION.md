@@ -30,7 +30,7 @@ Depuis UI-CLEAN01, l'Inventaire / Personnage n'est plus une page unique. `WBP_Ch
 - `GridPartyMemberWidget` ;
 - character creation wizard ;
 - recrutement Story Companion et Custom Recruit MON20 ;
-- `RPGLevelUpWidget` ;
+- toast Level Up non modal via `WBP_GridPersistentHud` ;
 - `GridCombatHudWidget` et ActionPanel ;
 - `GridSpellbookWidget` et entries ;
 - `GridSkillsWidget` ;
@@ -123,3 +123,18 @@ Les changements de bindings, widgets Blueprint ou assets nécessitent une valida
 ## Règle
 
 Conserver les contrats C++ existants et éviter tout graphe Blueprint métier parallèle. Journal/Map/Codex lisent les autorités runtime ; ils ne stockent pas une copie gameplay indépendante.
+
+
+## RPG-LEVELUX01 — Level Up courant
+
+Le Level Up n'est plus une fenêtre.
+
+```text
+FRPGLevelUpService
+    -> URPGLevelUpNotificationSubsystem
+    -> WBP_GridPersistentHud
+    -> WBP_RPGNotification
+```
+
+`URPGLevelUpWidget` a été supprimé par RPG-LEVELUX01.3. L'acquisition des
+Talents appartient exclusivement à la fenêtre autonome COMPÉTENCES / TALENTS.

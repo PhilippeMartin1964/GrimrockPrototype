@@ -1,7 +1,5 @@
 #include "Save/GrimrockPartySaveGame.h"
 
-#include "Algo/Count.h"
-
 #include "Magic/GridSpellbookPersistence.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGCharacterIdentityPersistence.h"
@@ -90,14 +88,6 @@ namespace GridPartySaveValidationPrivate
 		{
 			OutError = FText::FromString(FString::Printf(TEXT("%s possède un cache Level incohérent : Level=%d Expected=%d Experience=%d."), Location,
 				Character.Level, ExpectedLevel, Character.Experience));
-			return false;
-		}
-
-		const int32 MinimumLevel = URPGCharacterRulesLibrary::GetMinimumLevel();
-		if (Character.LastAcknowledgedLevel < MinimumLevel || Character.LastAcknowledgedLevel > Character.Level)
-		{
-			OutError = FText::FromString(FString::Printf(
-				TEXT("%s possède un LastAcknowledgedLevel invalide : Acknowledged=%d Level=%d."), Location, Character.LastAcknowledgedLevel, Character.Level));
 			return false;
 		}
 
@@ -366,13 +356,8 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 		UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSave] ProgressionProjection Result=Rejected Reason=%s"), *LoadError);
 		return;
 	}
-	const int32 PendingLevelUpAcknowledgements = Algo::CountIf(PartyInventoryState.ActiveCharacters,
-		[](const FGridCharacterInventoryState& Character)
-		{
-			return Character.LastAcknowledgedLevel < Character.Level;
-		});
 	UE_LOG(LogGrimrockPartySave, Log,
-		TEXT("[GridSave] Load Version=%d ClassChoices=%d PendingLevelUps=%d StatusCharacters=%d KnownSpellCharacters=%d Result=Accepted"), SaveVersion,
-		CountSelectedClassChoices(PartyInventoryState), PendingLevelUpAcknowledgements, CountCharactersWithStatusEffects(PartyInventoryState),
+		TEXT("[GridSave] Load Version=%d ClassChoices=%d StatusCharacters=%d KnownSpellCharacters=%d Result=Accepted"), SaveVersion,
+		CountSelectedClassChoices(PartyInventoryState), CountCharactersWithStatusEffects(PartyInventoryState),
 		CountCharactersWithKnownSpells(PartyInventoryState));
 }

@@ -28,9 +28,9 @@ namespace GridPartyRecruitmentPrivate
 			return false;
 		}
 
-		if (Candidate.Level < 1 || Candidate.Experience < 0 || Candidate.LastAcknowledgedLevel < 1 || Candidate.LastAcknowledgedLevel > Candidate.Level)
+		if (Candidate.Level < 1 || Candidate.Experience < 0)
 		{
-			OutError = TEXT("Candidate RPG progression or Level-Up acknowledgement state is invalid.");
+			OutError = TEXT("Candidate RPG progression state is invalid.");
 			return false;
 		}
 

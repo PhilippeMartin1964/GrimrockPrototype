@@ -195,7 +195,7 @@ bool FGridMapMON2167ContractTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	using namespace GridMapMON2167Tests;
 
-	TestEqual(TEXT("Floor projection does not change exact-match SaveGame v23"), UGrimrockPartySaveGame::CurrentSaveVersion, 23);
+	TestEqual(TEXT("Floor projection does not change exact-match SaveGame v24"), UGrimrockPartySaveGame::CurrentSaveVersion, 24);
 	for (TFieldIterator<FProperty> It(FGridMapFloorView::StaticStruct()); It; ++It)
 	{
 		TestFalse(*FString::Printf(TEXT("Floor view property '%s' is not SaveGame state"), *It->GetName()), It->HasAnyPropertyFlags(CPF_SaveGame));

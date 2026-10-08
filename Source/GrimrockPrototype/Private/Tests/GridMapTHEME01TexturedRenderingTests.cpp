@@ -92,7 +92,7 @@ bool FGridMapTHEME01DefaultsTest::RunTest(const FString& Parameters)
 	Widget->VisualTheme = Theme;
 	TestTrue(TEXT("Map widget accepts one data-driven visual theme"), Widget->VisualTheme == Theme);
 	TestEqual(TEXT("MAP-THEME01 does not change exact-match SaveGame version"),
-		UGrimrockPartySaveGame::CurrentSaveVersion, 23);
+		UGrimrockPartySaveGame::CurrentSaveVersion, 24);
 
 	return true;
 }

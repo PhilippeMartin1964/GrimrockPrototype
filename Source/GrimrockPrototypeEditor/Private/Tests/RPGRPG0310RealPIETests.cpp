@@ -174,7 +174,6 @@ namespace RPG0310PIE
 				Character.ClassDefinition = ClassAsset;
 				Character.Level = 20;
 				Character.Experience = URPGCharacterRulesLibrary::GetCumulativeExperienceRequiredForLevel(20);
-				Character.LastAcknowledgedLevel = 20;
 				Character.Attributes = ClassAsset->BaseAttributes;
 				Character.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassAsset, Character.Level);
 				Character.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Character.DerivedStats, ClassAsset);

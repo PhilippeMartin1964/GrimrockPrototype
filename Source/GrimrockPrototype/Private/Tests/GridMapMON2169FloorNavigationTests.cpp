@@ -299,7 +299,7 @@ bool FGridMapMON2169UIContractTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("SelectedFloorZ exists as widget-only state"), SelectedFloorProperty);
 	TestTrue(TEXT("SelectedFloorZ is transient"), SelectedFloorProperty && SelectedFloorProperty->HasAnyPropertyFlags(CPF_Transient));
 	TestFalse(TEXT("SelectedFloorZ is never SaveGame state"), SelectedFloorProperty && SelectedFloorProperty->HasAnyPropertyFlags(CPF_SaveGame));
-	TestEqual(TEXT("Floor navigation does not change exact-match SaveGame v23"), UGrimrockPartySaveGame::CurrentSaveVersion, 23);
+	TestEqual(TEXT("Floor navigation does not change exact-match SaveGame v24"), UGrimrockPartySaveGame::CurrentSaveVersion, 24);
 	return true;
 }
 

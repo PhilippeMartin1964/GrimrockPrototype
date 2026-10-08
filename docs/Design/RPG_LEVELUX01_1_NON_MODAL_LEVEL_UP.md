@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **SOURCE IMPLÉMENTÉE — validation locale puis matérialisation Persistent HUD requises**
+État : **RPG-LEVELUX01.1 VALIDÉ 6/6 ; RPG-LEVELUX01.2 matérialisé/PIE validé ; nettoyage legacy poursuivi par RPG-LEVELUX01.3**
 
 ## Objectif
 
@@ -23,7 +23,6 @@ Les choix de Talents restent dans la page COMPÉTENCES / TALENTS.
 XP
  -> FRPGLevelUpService
  -> Level / DerivedStats / Resources
- -> LastAcknowledgedLevel = Level
  -> projection Talent
  -> OnCharacterLevelUpAppliedWithSource
  -> URPGLevelUpNotificationSubsystem
@@ -34,26 +33,13 @@ XP
 
 Aucune popup et aucun changement de mode d'input.
 
-## LastAcknowledgedLevel
+## Suppression du watermark durable
 
-Le champ reste durable pour ne pas modifier aveuglément le schéma SaveGame
-courant.
+La première tranche conservait temporairement `LastAcknowledgedLevel` afin de
+ne pas modifier le schéma Save pendant la matérialisation du toast.
 
-Pour toute nouvelle progression :
-
-```text
-Level = N
-LastAcknowledgedLevel = N
-```
-
-Un ancien/current save peut encore contenir :
-
-```text
-LastAcknowledgedLevel < Level
-```
-
-Au chargement, `RefreshFromPartyState()` transforme ce delta une seule fois en
-feedback non modal puis synchronise le watermark avec `Level`.
+RPG-LEVELUX01.3 supprime finalement ce champ, les chemins de catch-up associés
+et l'ancien modal. Le SaveGame passe en v24 exact-match.
 
 ## Toast global
 

@@ -1,3 +1,10 @@
+> **SUPERSEDED — RPG-LEVELUX01.3 (08.10.2026).**  
+> Ce document décrit l'ancien workflow Level Up modal. `URPGLevelUpWidget` et
+> `LastAcknowledgedLevel` ont été supprimés du code de production. Les Talents
+> sont acquis depuis COMPÉTENCES / TALENTS et les montées de niveau utilisent
+> uniquement le toast non modal du Persistent HUD. Le contenu ci-dessous reste
+> conservé comme historique du jalon.
+
 # MON15.5 — Choix de progression et interface Level Up
 
 Statut : **VALIDÉ ET CLOS — UE5.5.4 — 16 août 2026**.

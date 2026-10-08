@@ -701,3 +701,18 @@ Padding Bottom authored dans UMG. `Panel_PartyMembers` et
 `WBP_GridCombatActionPanel` conserve `SizeBox_ActionPanel` comme racine car il
 s'agit d'un composant répétable à taille intrinsèque, et non d'un HUD plein
 écran. Il ne porte aucune position viewport.
+
+
+## Level Up non modal — RPG-LEVELUX01
+
+```text
+FRPGLevelUpService
+    -> event source-aware
+URPGLevelUpNotificationSubsystem
+    -> queue transitoire uniquement
+WBP_GridPersistentHud
+    -> Notification_Progression
+```
+
+Il n'existe plus de `URPGLevelUpWidget`, de pause Level Up ni de watermark
+`LastAcknowledgedLevel` durable.

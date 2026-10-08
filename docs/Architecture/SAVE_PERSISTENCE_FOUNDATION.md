@@ -11,13 +11,13 @@ Git conserve l'historique du code et du contenu. Une sauvegarde créée avec un 
 ## Contrat courant
 
 ```text
-UGrimrockPartySaveGame::CurrentSaveVersion = 23
+UGrimrockPartySaveGame::CurrentSaveVersion = 24
 
-SaveVersion == 23
+SaveVersion == 24
     -> validation du schéma courant
     -> restore
 
-SaveVersion != 23
+SaveVersion != 24
     -> rejet
     -> aucune migration
 ```
@@ -47,12 +47,11 @@ Elle ne migre et ne modifie jamais le snapshot. Elle vérifie notamment :
 - version exacte ;
 - validité de Experience et cohérence du cache runtime Level reconstruit ;
 - CharacterId et progression active ;
-- notifications Level Up ;
 - Spellbooks ;
 - Skills ;
 - variables de niveau.
 
-La restauration des Status Effects reste assurée par son service de domaine ; les notifications Level Up sont reconstruites depuis LastAcknowledgedLevel. Les Skills sont désormais directement présents dans `FGridCharacterInventoryState::SkillRanks`; aucune restauration Skill séparée n'existe. La projection de progression de classe est reconstruite depuis `SelectedClassProgressionChoiceIds`.
+La restauration des Status Effects reste assurée par son service de domaine. Les notifications Level Up sont désormais purement transitoires et ne possèdent plus d'état SaveGame. Les Skills sont directement présents dans `FGridCharacterInventoryState::SkillRanks`; aucune restauration Skill séparée n'existe. La projection de progression de classe est reconstruite depuis `SelectedClassProgressionChoiceIds`.
 
 ## Frontière persistante cible
 
@@ -73,7 +72,7 @@ Ne doivent pas être persistés comme autorités :
 - duplications runtime/save de la même structure sans nécessité ;
 - marqueurs servant uniquement à distinguer un ancien snapshot.
 
-TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 a normalisé Level et la progression de classe. TD07.3.3.6 rend `SkillRanks` durable et supprime `CharacterSkillStates`. Le schéma courant est v23 exact-match.
+TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 a normalisé Level et la progression de classe. TD07.3.3.6 rend `SkillRanks` durable et supprime `CharacterSkillStates`. Le schéma courant est v24 exact-match.
 
 ## Dungeon state
 
@@ -95,7 +94,7 @@ Le schéma passe à **v23 exact-match**. v22 et toutes les générations antéri
 
 `FGridPartyInventoryState` reste l'autorité du groupe et du CharacterPool.
 
-Les snapshots parallèles de progression, skills, spellbook, status effects et Level-Up ont été supprimés pendant TD07.3.3. L'état du personnage persistant est désormais porté directement par FGridCharacterInventoryState et ses IDs durables.
+Les snapshots parallèles de progression, skills, spellbook et status effects ont été supprimés pendant TD07.3.3. RPG-LEVELUX01.3 supprime ensuite le dernier watermark Level-Up `LastAcknowledgedLevel` : le feedback de niveau est désormais entièrement transitoire.
 
 ## Politique de sauvegarde en combat
 
@@ -218,7 +217,6 @@ Durable
     SkillRanks
     KnownSpellIds
     StatusEffects
-    LastAcknowledgedLevel
 
 Transient
     Level
@@ -302,3 +300,28 @@ Transient / reconstructed
     Portrait
     ClassIcon
 ```
+
+
+## RPG-LEVELUX01.3 — suppression du legacy Level-Up / v24
+
+RPG-LEVELUX01.3 ouvre **v24 exact-match** afin de retirer le dernier état durable
+qui n'avait plus d'autorité gameplay :
+
+```text
+LastAcknowledgedLevel
+```
+
+Sont également supprimés du runtime courant :
+
+```text
+URPGLevelUpWidget
+RefreshFromPartyState()
+IsLevelUpModalOpen()
+GetPendingLevelUpNotificationCount()
+ObservedPartyInventory
+AcknowledgeNotification()
+```
+
+Le subsystem Level-Up conserve uniquement la file transitoire nécessaire pour
+séquencer les toasts du Persistent HUD. Les sauvegardes v23 sont rejetées sans
+migration, conformément à la politique prototype.
