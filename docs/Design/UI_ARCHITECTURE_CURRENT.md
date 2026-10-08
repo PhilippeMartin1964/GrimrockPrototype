@@ -368,7 +368,8 @@ Références actives :
 `docs/Design/UI_RPG_DESC01_6_WARRIOR_TALENT_AUDIT.md` — validé.
 `docs/Design/UI_RPG_DESC01_7_ROGUE_TALENT_AUDIT.md` — validé.
 `docs/Design/UI_RPG_DESC01_8_RANGER_TALENT_AUDIT.md` — validé.
-`docs/Design/UI_RPG_DESC01_9_MAGE_TALENT_AUDIT.md` — audit Mage en validation.
+`docs/Design/UI_RPG_DESC01_9_MAGE_TALENT_AUDIT.md` — validé.
+`docs/Design/UI_RPG_DESC01_10_PRIEST_TALENT_AUDIT.md` — audit Prêtre en validation.
 
 Les audits de classe restent documentaires ; aucun nouveau C++ / UMG / DataAsset
 DESC01 avant le contrat de read-model DESC01.13.

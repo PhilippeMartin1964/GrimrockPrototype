@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **DRAFT — validation utilisateur requise**  
+État : **VALIDÉ PAR L'UTILISATEUR — 8 octobre 2026**  
 Dépendances : **UI-RPG-DESC01.5 / .6 / .7 / .8 validés**  
 Périmètre : **Mage / 3 branches / 15 nœuds conceptuels / 21 Choice records concrets**
 
@@ -965,7 +965,7 @@ Conversion élémentaire.
 | Surface persistante | Conforme | PASSIF |
 | Architecte du terrain | Conforme à la décision Earth Oil | SORT ACTIF |
 
-# 9. Arbitrages proposés
+# 9. Arbitrages validés
 
 ## MAGE-01 — sémantique de l'affinité Terre
 
@@ -988,7 +988,7 @@ Tisseur Terre :
 RPG02 laisse parfois entendre « Physique ou Poison selon le sort » et
 « Huile/Poison » sans sous-choix concret.
 
-**Recommandation : canoniser le comportement runtime actuel pour la v0.1.**
+**Décision validée :** canoniser le comportement runtime actuel pour la v0.1.
 
 Cela évite d'inventer une seconde sélection Terre ou un nouveau DamageType. Un
 futur sort explicitement Poison pourra toujours appartenir à l'école Terre.
@@ -1013,7 +1013,7 @@ ET
 Imprégnation — Glace
 ```
 
-**Recommandation : canoniser cette indépendance.**
+**Décision validée :** canoniser cette indépendance.
 
 La future UI doit parler d'**affinité Évocateur** et d'**affinité Tisseur** lorsque
 le contexte pourrait être ambigu, et ne jamais présenter une « affinité globale du
@@ -1046,8 +1046,7 @@ surfaces / statuts :
     non réduits par Explosion contrôlée
 ```
 
-**Recommandation : canoniser le runtime actuel et corriger ultérieurement le résumé
-RPG02 « Chaque hostile » pour rendre le risque allié explicite.**
+**Décision validée :** canoniser le runtime actuel et corriger ultérieurement le résumé RPG02 « Chaque hostile » pour rendre le risque allié explicite.
 
 # 10. Skills — état actuel corrigé
 
@@ -1168,7 +1167,7 @@ La forme C++ sera définie seulement en DESC01.13 après l'audit 90/90.
 
 # 13. Critères de validation UI-RPG-DESC01.9
 
-Le jalon est validé lorsque l'utilisateur approuve :
+Le jalon a été validé par l'utilisateur le **8 octobre 2026**. Ont été approuvés :
 
 - les 15 fiches Mage ;
 - la classification **1 ACTIF / 8 SORTS ACTIFS / 6 PASSIFS** ;
