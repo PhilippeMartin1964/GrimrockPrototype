@@ -88,7 +88,7 @@ MON21.6.2–6.4 ont construit l’autorité `MapExploration` en session : cellul
 
 MON21.6.5 ouvre cette même autorité à la persistance disque, sans snapshot parallèle : `FGridLevelRuntimeState::MapExploration`, `ExploredCells` et `DiscoveredSecretObjectIds` portent `SaveGame`.
 
-Le schéma passe à **v23 exact-match**. v22 et toutes les générations antérieures sont rejetées, sans migration. `ValidateCurrentState()` vérifie la structure de chaque exploration avant toute application au runtime.
+MON21.6.5 avait alors ouvert **v23 exact-match** pour la persistance Map. RPG-LEVELUX01.3 a depuis ouvert **v24 exact-match** en supprimant le watermark Level-Up legacy. `ValidateCurrentState()` vérifie toujours la structure de chaque exploration avant toute application au runtime.
 
 ## RPG state
 

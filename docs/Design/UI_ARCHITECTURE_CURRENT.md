@@ -716,3 +716,32 @@ WBP_GridPersistentHud
 
 Il n'existe plus de `URPGLevelUpWidget`, de pause Level Up ni de watermark
 `LastAcknowledgedLevel` durable.
+
+
+## RPG-LEVELUX01 — clôture
+
+RPG-LEVELUX01 est **CLOS**.
+
+```text
+FRPGLevelUpService
+    -> event source-aware
+URPGLevelUpNotificationSubsystem
+    -> file transitoire de toasts uniquement
+WBP_GridPersistentHud
+    -> Notification_Progression
+```
+
+Supprimés définitivement :
+
+```text
+URPGLevelUpWidget
+LastAcknowledgedLevel
+RefreshFromPartyState()
+ObservedPartyInventory
+AcknowledgeNotification()
+IsLevelUpModalOpen()
+GetPendingLevelUpNotificationCount()
+```
+
+Le SaveGame courant est **v24 exact-match**. L'audit Automation du Content n'a
+détecté aucune référence sérialisée aux anciens symboles Level-Up.

@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **RPG-LEVELUX01.1 VALIDÉ 6/6 ; RPG-LEVELUX01.2 matérialisé/PIE validé ; nettoyage legacy poursuivi par RPG-LEVELUX01.3**
+État : **VALIDÉ / CLOS — pipeline non modal, toast Persistent HUD, legacy modal supprimé, SaveGame v24**
 
 ## Objectif
 
@@ -173,5 +173,5 @@ Grimrock.UI.RPG05
 Grimrock.TechnicalDebt.TD07_3_3_9
 ```
 
-RPG-LEVELUX01 ne sera clos qu'après validation Automation et PIE sans popup,
-avec toast visible dans le Persistent HUD.
+RPG-LEVELUX01 est clos après validation Automation, régressions ciblées et PIE.
+Référence finale : `RPG_LEVELUX01_FINAL_CLOSURE.md`.

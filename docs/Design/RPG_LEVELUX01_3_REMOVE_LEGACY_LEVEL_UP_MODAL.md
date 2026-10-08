@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **SOURCE / DOCS IMPLÉMENTÉS — validation locale requise**
+État : **VALIDÉ / CLOS — 8/8 LEVELUX01, audit binaire vert, régressions vertes, PIE validé**
 
 ## Objectif
 
@@ -166,4 +166,22 @@ Après Automation verte :
 5. vérifier qu'aucune popup, pause ou capture d'input Level Up n'apparaît ;
 6. ouvrir K et vérifier que l'acquisition des Talents fonctionne toujours.
 
-RPG-LEVELUX01 ne sera déclaré clos qu'après validation locale et PIE.
+Validation finale obtenue :
+
+```text
+Grimrock.RPG.LEVELUX01                         8/8
+Grimrock.RPG.DEV01                             5/5
+Grimrock.UI.RPG04                             12/12
+Grimrock.UI.RPG05                              5/5
+Grimrock.UI.RPG06.Skills                       7/7
+Grimrock.MON20.8.SkillsPage                    8/8
+Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema 5/5
+Warnings                                       0
+Failures                                       0
+```
+
+PIE final validé : aucun modal, aucune pause/capture d'input, toast visible,
+sauts successifs de niveau possibles, K toujours fonctionnel et acquisition de
+Talent préservée.
+
+RPG-LEVELUX01.3 et le parent RPG-LEVELUX01 sont **CLOS**.
