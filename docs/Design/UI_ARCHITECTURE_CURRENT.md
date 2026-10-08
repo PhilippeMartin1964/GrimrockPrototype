@@ -366,7 +366,8 @@ retenu comme interaction finale.
 Références actives :
 `docs/Design/UI_RPG_DESC01_5_TALENT_UX_CONTRACT.md`.
 `docs/Design/UI_RPG_DESC01_6_WARRIOR_TALENT_AUDIT.md` — validé.
-`docs/Design/UI_RPG_DESC01_7_ROGUE_TALENT_AUDIT.md` — audit Voleur en validation.
+`docs/Design/UI_RPG_DESC01_7_ROGUE_TALENT_AUDIT.md` — validé.
+`docs/Design/UI_RPG_DESC01_8_RANGER_TALENT_AUDIT.md` — audit Rôdeur en validation.
 
 Les audits de classe restent documentaires ; aucun nouveau C++ / UMG / DataAsset
 DESC01 avant le contrat de read-model DESC01.13.

@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **DRAFT — validation utilisateur requise**  
+État : **VALIDÉ PAR L'UTILISATEUR — 8 octobre 2026**  
 Dépendances : **UI-RPG-DESC01.5 validé / UI-RPG-DESC01.6 validé**  
 Périmètre : **Voleur / 3 branches / 15 nœuds conceptuels / 15 Choice records**
 
@@ -778,7 +778,7 @@ Désamorçage expert
 
 Aucune nouvelle mécanique n'est inventée dans les fiches ci-dessus.
 
-# 9. Arbitrages et dépendances ouverts
+# 9. Arbitrages et dépendances validés
 
 ## ROGUE-01 — « Mise à mort » ou « Finisseur »
 
@@ -796,11 +796,7 @@ Finisseur
 
 La mécanique est identique.
 
-**Recommandation :** retenir **Mise à mort**, plus explicite pour le joueur et plus
-cohérent avec la fonction du Talent ; harmoniser ultérieurement l'authoring lors
-de la phase d'implémentation.
-
-Alternative : canoniser **Finisseur** si l'on veut un vocabulaire plus technique.
+**Décision validée :** retenir **Mise à mort** comme nom joueur canonique. L'authoring « Finisseur » sera harmonisé ultérieurement lors de la phase d'implémentation.
 
 ## ROGUE-02 — Pas de l'ombre et « rang arrière »
 
@@ -820,11 +816,7 @@ Aucune règle spécifique de sortie « front row / rear row » n'a été identif
 ce chemin d'attaque ; le modèle de rang sert surtout au ciblage des membres du
 groupe par les ennemis et à certains effets comme Interception.
 
-**Recommandation :** pour la v0.1, considérer que la phrase « depuis le rang
-arrière » décrit l'intention de l'allonge +1 et ne constitue pas une règle
-supplémentaire. La fiche joueur finale dirait simplement « prochaine attaque de
-mêlée avec arme légère : portée +1 case ». Réévaluer si une vraie restriction de
-rang des attaques du groupe est ajoutée plus tard.
+**Décision validée :** pour la v0.1, la fiche joueur retient uniquement « prochaine attaque de mêlée avec arme légère : portée +1 case ». La mention historique « depuis le rang arrière » n'ajoute pas de règle runtime supplémentaire ; elle pourra être réévaluée si un vrai système de restriction de rang est introduit.
 
 ## ROGUE-03 — échecs sûrs Pièges / Crochetage
 
@@ -853,10 +845,7 @@ Maître des serrures :
 
 Ces conséquences ne sont pas établies par le seul `FRPGSkillProgressionModifier`.
 
-**Recommandation :** conserver ces règles comme **comportement cible RPG02**, mais
-les marquer comme dépendances du futur runtime métier Pièges/Crochetage. Ne pas
-présenter « une fois par piège » ou « ne jamme jamais » comme déjà garanti avant
-leur branchement réel.
+**Décision validée :** conserver ces règles comme **comportement cible RPG02**, mais les reporter au futur runtime métier Pièges/Crochetage. L'UI ne devra pas les présenter comme garanties tant que ce branchement n'existe pas.
 
 ## ROGUE-04 — catalogue Skills de production
 
@@ -881,9 +870,7 @@ Conséquences :
   `bCanBeSabotaged / SabotageDifficulty / Sabotaged`, mais le caller doit encore
   fournir le Skill Check.
 
-**Décision proposée :** ne pas modifier DESC01 pour masquer cette dépendance.
-L'inscrire dans la normalisation DESC01.12 et la reconnecter explicitement à
-l'effort global **Skills / Audit données compétences**.
+**Décision validée :** ne pas masquer cette dépendance. Elle reste inscrite pour DESC01.12 et reliée explicitement à l'effort global **Skills / Audit données compétences**.
 
 # 10. Vocabulaire Voleur à normaliser
 
@@ -980,7 +967,7 @@ La forme C++ ne sera définie qu'en DESC01.13 après l'audit 90/90.
 
 # 13. Critères de validation UI-RPG-DESC01.7
 
-Le jalon est validé lorsque l'utilisateur approuve :
+Le jalon a été validé par l'utilisateur le **8 octobre 2026**. Ont été approuvés :
 
 - les 15 fiches Voleur ;
 - la classification **11 ACTIF / 3 PASSIF / 1 RÉACTION AUTOMATIQUE** ;
