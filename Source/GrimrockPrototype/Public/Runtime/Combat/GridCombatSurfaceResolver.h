@@ -14,6 +14,15 @@ public:
 	static bool ResolveReaction(const FGridCombatSurfaceState& ExistingSurface, EGridCombatSurfaceInteraction Interaction,
 		const FGridResolvedCombatModifiers& SourceModifiers, FGridCombatSurfaceReactionResult& OutResult);
 
+	/**
+	 * Bridges an incoming authored surface effect to the canonical elemental reaction table.
+	 * Only surface types that directly represent a canonical interaction are mapped.
+	 */
+	static bool ResolveAppliedSurfaceReaction(const FGridCombatSurfaceState& ExistingSurface,
+		const FGridCombatSurfaceEffectProfile& IncomingSurface,
+		const FGridResolvedCombatModifiers& SourceModifiers,
+		FGridCombatSurfaceReactionResult& OutResult);
+
 	/** Resolve one authored conversion against an existing surface or an empty cell. */
 	static bool ResolveConversion(const FGridCombatSurfaceConversionProfile& Profile, const FGridCombatSurfaceState* ExistingSurface,
 		const FGuid& SourceCombatantId, FName SourceActionId, const FGridResolvedCombatModifiers& SourceModifiers,

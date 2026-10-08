@@ -124,6 +124,37 @@ bool FGridCombatSurfaceResolver::ResolveReaction(const FGridCombatSurfaceState& 
 	return true;
 }
 
+bool FGridCombatSurfaceResolver::ResolveAppliedSurfaceReaction(
+	const FGridCombatSurfaceState& ExistingSurface,
+	const FGridCombatSurfaceEffectProfile& IncomingSurface,
+	const FGridResolvedCombatModifiers& SourceModifiers,
+	FGridCombatSurfaceReactionResult& OutResult)
+{
+	OutResult = FGridCombatSurfaceReactionResult();
+	if (!IncomingSurface.IsValid())
+	{
+		return false;
+	}
+
+	EGridCombatSurfaceInteraction Interaction = EGridCombatSurfaceInteraction::None;
+	switch (IncomingSurface.SurfaceType)
+	{
+		case EGridCombatSurfaceType::Fire:
+			Interaction = EGridCombatSurfaceInteraction::Fire;
+			break;
+		case EGridCombatSurfaceType::Ice:
+			Interaction = EGridCombatSurfaceInteraction::Ice;
+			break;
+		default:
+			// Water/Poison/Oil/etc. are persistent states, not canonical
+			// interaction verbs. Lightning and Wind have no direct surface-effect
+			// type and remain explicit interactions/conversions.
+			return false;
+	}
+
+	return ResolveReaction(ExistingSurface, Interaction, SourceModifiers, OutResult);
+}
+
 void FGridCombatSurfaceResolver::ApplyReactionToState(
 	const FGridCombatSurfaceReactionResult& Reaction, FGridCombatSurfaceState& InOutState)
 {

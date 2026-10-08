@@ -2000,42 +2000,59 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 
 	if (bSurfaceResolution && IsValid(RuntimeActor))
 	{
+		auto ResolveSurfaceReactionAtCell =
+			[this, &Action, &Character, &ReactionActionInstanceId, &ResolvedModifiers](
+				const FIntPoint& Cell,
+				EGridCombatSurfaceInteraction Interaction,
+				FGridCombatSurfaceReactionResult& OutAppliedReaction) -> bool
+			{
+				const FGridCombatSurfaceState* ExistingSurface =
+					RuntimeActor->FindCombatSurfaceAtCell(Cell.X, Cell.Y);
+				FGridCombatSurfaceReactionResult PreviewReaction;
+				const FGridResolvedCombatModifiers NoReactionBonus;
+				if (!ExistingSurface ||
+					!FGridCombatSurfaceResolver::ResolveReaction(
+						*ExistingSurface, Interaction, NoReactionBonus, PreviewReaction))
+				{
+					return false;
+				}
+
+				FGridCombatReactionEvent SurfaceEvent;
+				SurfaceEvent.EventId = FGuid::NewGuid();
+				SurfaceEvent.ActionInstanceId = ReactionActionInstanceId;
+				SurfaceEvent.RoundNumber = FMath::Max(1, RoundNumber);
+				SurfaceEvent.Trigger = EGridCombatReactionTrigger::SurfaceReaction;
+				SurfaceEvent.SourceCombatantId = Character.CharacterId;
+				SurfaceEvent.TargetCombatantId = Character.CharacterId;
+				SurfaceEvent.ActionId = Action.Definition.ActionId;
+				SurfaceEvent.SourcePolicy = Action.Definition.SourcePolicy;
+				SurfaceEvent.ActionType = Action.Definition.ActionType;
+				SurfaceEvent.SourceTags = Action.Definition.SourceTags;
+				SurfaceEvent.bOffensiveAction =
+					Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
+
+				FGridResolvedCombatModifiers ReactionResponse;
+				ProcessPartyCharacterReactionEvent(Action.CharacterIndex, SurfaceEvent, &ReactionResponse);
+				FGridResolvedCombatModifiers InteractionModifiers = ResolvedModifiers;
+				InteractionModifiers.SurfaceReactionDamagePercentModifier = FMath::Clamp(
+					InteractionModifiers.SurfaceReactionDamagePercentModifier +
+						ReactionResponse.SurfaceReactionDamagePercentModifier,
+					-100, 1000);
+				InteractionModifiers.SurfaceReactionAreaRadiusModifier = FMath::Clamp(
+					InteractionModifiers.SurfaceReactionAreaRadiusModifier +
+						ReactionResponse.SurfaceReactionAreaRadiusModifier,
+					-8, 8);
+
+				return RuntimeActor->InteractCombatSurfaceAtCell(
+					Cell.X, Cell.Y, Interaction, InteractionModifiers, OutAppliedReaction);
+			};
+
 		for (const FIntPoint& Cell : Preview.AffectedCells)
 		{
 			if (Action.Definition.SurfaceInteraction != EGridCombatSurfaceInteraction::None)
 			{
-				const FGridCombatSurfaceState* ExistingSurface = RuntimeActor->FindCombatSurfaceAtCell(Cell.X, Cell.Y);
-				FGridCombatSurfaceReactionResult PreviewReaction;
-				const FGridResolvedCombatModifiers NoReactionBonus;
-				if (ExistingSurface && FGridCombatSurfaceResolver::ResolveReaction(
-						*ExistingSurface, Action.Definition.SurfaceInteraction, NoReactionBonus, PreviewReaction))
-				{
-					FGridCombatReactionEvent SurfaceEvent;
-					SurfaceEvent.EventId = FGuid::NewGuid();
-					SurfaceEvent.ActionInstanceId = ReactionActionInstanceId;
-					SurfaceEvent.RoundNumber = FMath::Max(1, RoundNumber);
-					SurfaceEvent.Trigger = EGridCombatReactionTrigger::SurfaceReaction;
-					SurfaceEvent.SourceCombatantId = Character.CharacterId;
-					SurfaceEvent.TargetCombatantId = Character.CharacterId;
-					SurfaceEvent.ActionId = Action.Definition.ActionId;
-					SurfaceEvent.SourcePolicy = Action.Definition.SourcePolicy;
-					SurfaceEvent.ActionType = Action.Definition.ActionType;
-					SurfaceEvent.SourceTags = Action.Definition.SourceTags;
-					SurfaceEvent.bOffensiveAction = Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
-
-					FGridResolvedCombatModifiers ReactionResponse;
-					ProcessPartyCharacterReactionEvent(Action.CharacterIndex, SurfaceEvent, &ReactionResponse);
-					FGridResolvedCombatModifiers InteractionModifiers = ResolvedModifiers;
-					InteractionModifiers.SurfaceReactionDamagePercentModifier = FMath::Clamp(
-						InteractionModifiers.SurfaceReactionDamagePercentModifier + ReactionResponse.SurfaceReactionDamagePercentModifier,
-						-100, 1000);
-					InteractionModifiers.SurfaceReactionAreaRadiusModifier = FMath::Clamp(
-						InteractionModifiers.SurfaceReactionAreaRadiusModifier + ReactionResponse.SurfaceReactionAreaRadiusModifier, -8, 8);
-
-					FGridCombatSurfaceReactionResult AppliedReaction;
-					RuntimeActor->InteractCombatSurfaceAtCell(
-						Cell.X, Cell.Y, Action.Definition.SurfaceInteraction, InteractionModifiers, AppliedReaction);
-				}
+				FGridCombatSurfaceReactionResult AppliedReaction;
+				ResolveSurfaceReactionAtCell(Cell, Action.Definition.SurfaceInteraction, AppliedReaction);
 			}
 
 			// Invalid conversion for the current cell is a canonical no-op, not an action failure.
@@ -2044,10 +2061,40 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 				RuntimeActor->ConvertCombatSurfaceAtCell(
 					Cell.X, Cell.Y, Conversion, Character.CharacterId, Action.Definition.ActionId, ResolvedModifiers);
 			}
+
 			for (const FGridCombatSurfaceEffectProfile& SurfaceProfile : Action.Definition.SurfaceEffects)
 			{
-				RuntimeActor->ApplyCombatSurfaceAtCell(
-					Cell.X, Cell.Y, SurfaceProfile, Character.CharacterId, Action.Definition.ActionId, ResolvedModifiers);
+				bool bResolvedIncomingReaction = false;
+				FGridCombatSurfaceReactionResult IncomingReaction;
+
+				// D06: an authored Fire/Ice surface is also an incoming elemental
+				// interaction when a canonical existing surface can react. Explicit
+				// SurfaceInteraction actions keep their own path and are not doubled.
+				if (Action.Definition.SurfaceInteraction == EGridCombatSurfaceInteraction::None)
+				{
+					const FGridCombatSurfaceState* ExistingSurface =
+						RuntimeActor->FindCombatSurfaceAtCell(Cell.X, Cell.Y);
+					FGridCombatSurfaceReactionResult PreviewIncomingReaction;
+					const FGridResolvedCombatModifiers NoReactionBonus;
+					if (ExistingSurface &&
+						FGridCombatSurfaceResolver::ResolveAppliedSurfaceReaction(
+							*ExistingSurface, SurfaceProfile, NoReactionBonus, PreviewIncomingReaction))
+					{
+						bResolvedIncomingReaction = ResolveSurfaceReactionAtCell(
+							Cell, PreviewIncomingReaction.ResolvedInteraction, IncomingReaction);
+					}
+				}
+
+				// If the canonical reaction outputs the same surface type as the
+				// authored effect (Oil/Poison/PoisonCloud + Fire, Water + Ice), the
+				// explicit profile supplies duration/periodic payload. When the
+				// reaction outputs a different type (Ice + Fire -> Water), preserve
+				// that canonical output instead of blindly overwriting it.
+				if (!bResolvedIncomingReaction || IncomingReaction.OutputSurfaceType == SurfaceProfile.SurfaceType)
+				{
+					RuntimeActor->ApplyCombatSurfaceAtCell(
+						Cell.X, Cell.Y, SurfaceProfile, Character.CharacterId, Action.Definition.ActionId, ResolvedModifiers);
+				}
 			}
 		}
 	}

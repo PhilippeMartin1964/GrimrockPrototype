@@ -293,4 +293,51 @@ bool FRPG0396ConversionTraversalTest::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0396SurfaceEffectReactionBridgeTest,
+	"Grimrock.RPG.RPG03.9.6A.SurfaceEffectReactionBridge",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0396SurfaceEffectReactionBridgeTest::RunTest(const FString&)
+{
+	FGridCombatSurfaceState Poison;
+	Poison.SurfaceType = EGridCombatSurfaceType::Poison;
+	Poison.RemainingRounds = 3;
+	Poison.SourceCombatantId = FGuid::NewGuid();
+	Poison.SourceActionId = TEXT("Action_Poison");
+
+	FGridCombatSurfaceEffectProfile Fire;
+	Fire.SurfaceType = EGridCombatSurfaceType::Fire;
+	Fire.DurationRounds = 2;
+
+	FGridResolvedCombatModifiers Modifiers;
+	Modifiers.SurfaceReactionDamagePercentModifier = 25;
+	Modifiers.SurfaceReactionAreaRadiusModifier = 1;
+
+	FGridCombatSurfaceReactionResult Reaction;
+	TestTrue(TEXT("Incoming Fire surface resolves the canonical Poison + Fire reaction"),
+		FGridCombatSurfaceResolver::ResolveAppliedSurfaceReaction(Poison, Fire, Modifiers, Reaction));
+	TestEqual(TEXT("Incoming Fire maps to the canonical Fire interaction"),
+		Reaction.ResolvedInteraction, EGridCombatSurfaceInteraction::Fire);
+	TestTrue(TEXT("Poison plus incoming Fire is explosive"), Reaction.bExplosive);
+	TestEqual(TEXT("Reaction carries the Chain Reaction damage modifier"),
+		Reaction.ExplosionDamagePercentModifier, 25);
+	TestEqual(TEXT("Reaction carries the Chain Reaction radius modifier"),
+		Reaction.ExplosionAreaRadiusModifier, 1);
+
+	FGridCombatSurfaceState Ice = Poison;
+	Ice.SurfaceType = EGridCombatSurfaceType::Ice;
+	TestTrue(TEXT("Incoming Fire also resolves Ice + Fire"),
+		FGridCombatSurfaceResolver::ResolveAppliedSurfaceReaction(Ice, Fire, FGridResolvedCombatModifiers(), Reaction));
+	TestEqual(TEXT("Ice plus Fire canonically outputs Water"),
+		Reaction.OutputSurfaceType, EGridCombatSurfaceType::Water);
+
+	FGridCombatSurfaceEffectProfile Toxic;
+	Toxic.SurfaceType = EGridCombatSurfaceType::Poison;
+	Toxic.DurationRounds = 3;
+	TestFalse(TEXT("Poison surface placement does not invent a non-canonical Poison interaction"),
+		FGridCombatSurfaceResolver::ResolveAppliedSurfaceReaction(Ice, Toxic, FGridResolvedCombatModifiers(), Reaction));
+	return true;
+}
+
 #endif

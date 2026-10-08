@@ -54,7 +54,7 @@ Après DESC01.14 et avant DESC01.16 QA six classes :
 - **D02** Désamorçage expert / Maître des serrures : **DIFFÉRÉ LOCK/TRAP** — primitives SafeFailure déjà conformes ;
 - **D03** Sabotage monde : **DIFFÉRÉ ACTIONS HORS COMBAT** — cible/difficulté/événement existent déjà ;
 - **D05** Repousser les morts-vivants : **CLOS** — 4 dégâts fixes validés 21/21 ;
-- **D06** Réaction en chaîne : raccord bombes -> SurfaceReaction ;
+- **D06** Réaction en chaîne : **SOURCE CORRIGÉE** — validation locale requise ;
 - **D07** Transmutation majeure : durée finale 4 rounds.
 
 **D04** est une dette de présentation bestiaire et doit être réglée avant DESC01.16.

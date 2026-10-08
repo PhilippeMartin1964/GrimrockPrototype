@@ -766,10 +766,27 @@ autres sorts.
 État : **VALIDÉ / CLOS** — source corrigée, assets Prêtre rematérialisés et
 `Grimrock.RPG.RPG03.9.5` validé 21/21 sans warning ni échec.
 
-### D06 — Alchimiste / Réaction en chaîne
+### D06 — Alchimiste / Réaction en chaîne — SOURCE CORRIGÉE
 
-Le profil automatique existe, mais les bombes actuelles ne déclenchent pas le
-`SurfaceReaction` requis via leur chemin normal `SurfaceEffects`.
+Le profil automatique existe déjà :
+
+```text
+SurfaceReaction
+QuickItem.Bomb
+OncePerAction
+dégâts de réaction +25 %
+rayon +1
+anti-récursion
+```
+
+**RPG-TALENT-FIX04** raccorde désormais les `SurfaceEffects` élémentaires au
+même pipeline générique `SurfaceReaction` que les interactions explicites.
+
+Une surface entrante Feu utilise l'interaction canonique Fire ; une surface
+entrante Glace utilise Ice. Aucune interaction Poison/Oil/etc. n'est inventée.
+
+État : **source + test de pont ajoutés ; validation locale requise avant clôture
+D06.**
 
 ### D07 — Alchimiste / Transmutation majeure — durée
 
