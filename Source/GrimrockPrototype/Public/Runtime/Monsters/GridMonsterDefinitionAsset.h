@@ -12,6 +12,7 @@ class UAnimMontage;
 class USkeletalMesh;
 class UTexture2D;
 class AGridMonsterActor;
+class UGridMonsterCategoryAsset;
 
 UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridMonsterDefinitionAsset : public UPrimaryDataAsset
@@ -35,6 +36,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Identity")
 	FName CategoryId = NAME_None;
+
+	/**
+	 * Shared bestiary presentation authority for CategoryId.
+	 * Gameplay continues to use CategoryId; this reference owns the player-facing label.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Identity")
+	TSoftObjectPtr<UGridMonsterCategoryAsset> CategoryDefinition;
 
 	/** Generic semantic traits used by data-driven combat and skill rules (for example Rune or Construct). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Identity")

@@ -20,7 +20,10 @@ namespace UIRPGDESC013Authoring
 
 		if (ClassId == TEXT("Warrior")) FRPGWarriorAuthoring::ConfigureClass(*Class);
 		else if (ClassId == TEXT("Rogue")) FRPGRogueAuthoring::ConfigureClass(*Class);
-		else if (ClassId == TEXT("Ranger")) FRPGRangerAuthoring::ConfigureClass(*Class, { TEXT("Goblin"), TEXT("Vermin") });
+		else if (ClassId == TEXT("Ranger")) FRPGRangerAuthoring::ConfigureClass(*Class, {
+			{ TEXT("Goblin"), FText::FromString(TEXT("Gobelins")) },
+			{ TEXT("Vermin"), FText::FromString(TEXT("Vermine")) }
+		});
 		else if (ClassId == TEXT("Mage")) FRPGMageAuthoring::ConfigureClass(*Class);
 		else if (ClassId == TEXT("Priest")) FRPGPriestAuthoring::ConfigureClass(*Class);
 		else if (ClassId == TEXT("Alchemist")) FRPGAlchemistAuthoring::ConfigureClass(*Class);

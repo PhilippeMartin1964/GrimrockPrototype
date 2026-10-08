@@ -812,7 +812,33 @@ Ennemi juré — <CategoryId>
 C'est correct comme identité technique, mais DESC01.5 interdit d'exposer un
 identifiant interne comme libellé joueur si une présentation dédiée est nécessaire.
 
-**Décision validée :** conserver la génération entièrement dynamique depuis le bestiaire, sans liste de catégories dupliquée dans l'UI. Le libellé final doit venir d'une autorité de présentation de catégorie ; l'humanisation d'un `CategoryId` n'est qu'un fallback de développement.
+**Décision validée :** conserver la génération entièrement dynamique depuis le bestiaire, sans liste de catégories dupliquée dans l'UI.
+
+**RPG-TALENT-FIX07 / D04** introduit `UGridMonsterCategoryAsset` comme autorité
+bestiaire unique de présentation :
+
+```text
+CategoryId   = identité gameplay
+DisplayName  = libellé joueur
+```
+
+Les monstres de production référencent leur catégorie canonique. L'authoring
+`Ennemi juré` découvre toujours dynamiquement les CategoryId réellement présents,
+mais construit les titres depuis `CategoryAsset.DisplayName`.
+
+Le read-model utilise la même autorité pour les lignes EFFETS. `HumanizeId`
+reste uniquement un fallback diagnostic si une catégorie de développement n'a
+pas encore d'asset de présentation.
+
+Catégories de production actuelles :
+
+```text
+Goblin -> Gobelins
+Vermin -> Vermine
+```
+
+État : **source prête ; matérialisation et validation locale requises avant
+clôture D04.**
 
 La zone VARIANTES doit rester verticalement scrollable si le bestiaire contient
 beaucoup de catégories.

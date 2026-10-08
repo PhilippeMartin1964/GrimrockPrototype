@@ -65,12 +65,12 @@ namespace UIRPGTalentTreeAuthoring
 		}
 		if (ClassId == TEXT("Ranger"))
 		{
-			TArray<FName> FavoredEnemyCategoryIds;
-			if (!FRPGRangerAuthoring::CollectProductionFavoredEnemyCategories(FavoredEnemyCategoryIds, OutError))
+			TArray<FRPGRangerFavoredEnemyCategoryDefinition> FavoredEnemyCategories;
+			if (!FRPGRangerAuthoring::CollectProductionFavoredEnemyCategories(FavoredEnemyCategories, OutError))
 			{
 				return false;
 			}
-			FRPGRangerAuthoring::ConfigureClass(ClassAsset, FavoredEnemyCategoryIds);
+			FRPGRangerAuthoring::ConfigureClass(ClassAsset, FavoredEnemyCategories);
 			return true;
 		}
 		if (ClassId == TEXT("Mage"))

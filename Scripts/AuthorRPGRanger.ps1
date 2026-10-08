@@ -63,7 +63,7 @@ if ($ExitCode -ne 0)
     throw "RPGRangerAuthoring a echoue avec le code $ExitCode."
 }
 
-Write-Host '[OK] DA_Class_Ranger and Status_MarkedByRanger authored through Unreal Editor.'
+Write-Host '[OK] Ranger, marked status, bestiary category presentation and monster category references authored through Unreal Editor.'
 
 if (-not $SkipAutomation)
 {
@@ -74,4 +74,10 @@ Write-Host ''
 Write-Host '=== Generated changes ==='
 & git -C $RepoRoot status --short --untracked-files=all
 if ($LASTEXITCODE -ne 0) { throw 'Impossible de lire le git status final.' }
-Write-Host 'Expected binary changes: DA_Class_Ranger and DA_Status_MarkedByRanger only.'
+Write-Host 'Expected D04 first materialization changes:'
+Write-Host '  DA_Class_Ranger'
+Write-Host '  DA_Status_MarkedByRanger'
+Write-Host '  DA_MONCAT_Goblin'
+Write-Host '  DA_MONCAT_Vermin'
+Write-Host '  DA_MON_GoblinThrower'
+Write-Host '  DA_MON_RatGiant'

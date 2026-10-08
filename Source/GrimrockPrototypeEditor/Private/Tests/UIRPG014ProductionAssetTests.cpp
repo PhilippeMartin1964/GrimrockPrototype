@@ -5,6 +5,7 @@
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/Monsters/GridMonsterCategoryAsset.h"
 #include "UI/GridSkillsPageService.h"
 
 namespace UIRPG014Production
@@ -368,6 +369,82 @@ bool FUIRPG014ExplicitTalentPresentationTypesTest::RunTest(const FString&)
 	TestEqual(TEXT("Production RÉACTION AUTOMATIQUE count"), Counts.FindRef(ERPGTalentPresentationType::AutomaticReaction), 5);
 	TestEqual(TEXT("Production RECETTE + OBJET RAPIDE count"), Counts.FindRef(ERPGTalentPresentationType::RecipeQuickItem), 8);
 	TestEqual(TEXT("Production RECETTE + ACTIF count"), Counts.FindRef(ERPGTalentPresentationType::RecipeActive), 1);
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG014FavoredEnemyCategoryPresentationTest,
+	"Grimrock.UI.RPG01.ProductionAssets.FavoredEnemyCategoryPresentation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPG014FavoredEnemyCategoryPresentationTest::RunTest(const FString&)
+{
+	using namespace UIRPG014Production;
+	FRPGClassProgressionTransactionService::ResetRuntimeState();
+
+	URPGClassAsset* Ranger = LoadObject<URPGClassAsset>(
+		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger"));
+	if (!TestNotNull(TEXT("Production Ranger loads"), Ranger))
+	{
+		return false;
+	}
+
+	UGridPartyInventoryComponent* Party = MakeParty(Ranger);
+	FGridSkillsPageView View;
+	if (!TestTrue(TEXT("Production Ranger read model builds"),
+			FGridSkillsPageService::TryBuildCharacterView(Party, 0, {}, View)))
+	{
+		return false;
+	}
+
+	const FGridTalentNodeView* FavoredNode = nullptr;
+	for (const FGridTalentBranchView& Branch : View.TalentTree.Branches)
+	{
+		for (const FGridTalentNodeView& Node : Branch.Nodes)
+		{
+			if (Node.TalentNodeId == TEXT("Talent_Ranger_Hunter_FavoredEnemy"))
+			{
+				FavoredNode = &Node;
+				break;
+			}
+		}
+	}
+	if (!TestNotNull(TEXT("Favored Enemy conceptual node is projected"), FavoredNode))
+	{
+		return false;
+	}
+
+	for (const FGridTalentVariantView& Variant : FavoredNode->Variants)
+	{
+		const FRPGClassProgressionChoiceDefinition* Choice = Ranger->FindProgressionChoice(Variant.ChoiceId);
+		if (!TestNotNull(TEXT("Projected Favored Enemy variant maps to authored Choice"), Choice) ||
+			Choice->CombatModifiers.IsEmpty() ||
+			Choice->CombatModifiers[0].AllowedTargetMonsterCategoryIds.Num() != 1)
+		{
+			continue;
+		}
+
+		const FName CategoryId = Choice->CombatModifiers[0].AllowedTargetMonsterCategoryIds[0];
+		const UGridMonsterCategoryAsset* Category = UGridMonsterCategoryAsset::ResolveByCategoryId(CategoryId);
+		if (!TestNotNull(*FString::Printf(TEXT("Category %s has a production presentation asset"), *CategoryId.ToString()), Category))
+		{
+			continue;
+		}
+
+		TestEqual(TEXT("Variant title comes from bestiary category DisplayName"),
+			Variant.DisplayName.ToString(),
+			FString::Printf(TEXT("Ennemi juré — %s"), *Category->DisplayName.ToString()));
+
+		bool bEffectUsesPlayerLabel = false;
+		for (const FGridTalentDetailLineView& Line : Variant.Effects)
+		{
+			bEffectUsesPlayerLabel |=
+				Line.Value.ToString().Contains(Category->DisplayName.ToString(), ESearchCase::CaseSensitive);
+		}
+		TestTrue(TEXT("Variant effects use bestiary DisplayName instead of raw CategoryId"), bEffectUsesPlayerLabel);
+	}
+
+	FRPGClassProgressionTransactionService::ResetRuntimeState(Party);
 	return true;
 }
 

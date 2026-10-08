@@ -17,7 +17,10 @@ namespace UIRPGDESC014
 		URPGClassAsset* Asset = NewObject<URPGClassAsset>();
 		if (ClassId == TEXT("Warrior")) FRPGWarriorAuthoring::ConfigureClass(*Asset);
 		else if (ClassId == TEXT("Rogue")) FRPGRogueAuthoring::ConfigureClass(*Asset);
-		else if (ClassId == TEXT("Ranger")) FRPGRangerAuthoring::ConfigureClass(*Asset, { TEXT("Goblin"), TEXT("Vermin") });
+		else if (ClassId == TEXT("Ranger")) FRPGRangerAuthoring::ConfigureClass(*Asset, {
+			{ TEXT("Goblin"), FText::FromString(TEXT("Gobelins")) },
+			{ TEXT("Vermin"), FText::FromString(TEXT("Vermine")) }
+		});
 		else if (ClassId == TEXT("Mage")) FRPGMageAuthoring::ConfigureClass(*Asset);
 		else if (ClassId == TEXT("Priest")) FRPGPriestAuthoring::ConfigureClass(*Asset);
 		else if (ClassId == TEXT("Alchemist")) FRPGAlchemistAuthoring::ConfigureClass(*Asset);

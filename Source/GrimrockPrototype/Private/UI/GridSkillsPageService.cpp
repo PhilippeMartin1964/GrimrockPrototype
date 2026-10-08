@@ -1,6 +1,7 @@
 #include "UI/GridSkillsPageService.h"
 
 #include "UI/RPGTalentPresentationAsset.h"
+#include "Runtime/Monsters/GridMonsterCategoryAsset.h"
 
 #include "Engine/AssetManager.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
@@ -156,6 +157,22 @@ namespace
 		return Value;
 	}
 
+	FString MonsterCategoryLabel(FName CategoryId)
+	{
+		if (const UGridMonsterCategoryAsset* Category =
+				UGridMonsterCategoryAsset::ResolveByCategoryId(CategoryId))
+		{
+			if (!Category->DisplayName.IsEmpty())
+			{
+				return Category->DisplayName.ToString();
+			}
+		}
+
+		// Diagnostic/development fallback only. Production bestiary categories
+		// are required to own a UGridMonsterCategoryAsset by D04.
+		return HumanizeId(CategoryId);
+	}
+
 	FString DamageTypeLabel(EGridDamageType Type)
 	{
 		switch (Type)
@@ -261,7 +278,7 @@ namespace
 			if (!Label.IsEmpty()) Parts.Add(Label);
 		}
 		for (const FName StatusId : Modifier.RequiredTargetStatusEffectIds) Parts.Add(TEXT("cible avec ") + HumanizeId(StatusId));
-		for (const FName CategoryId : Modifier.AllowedTargetMonsterCategoryIds) Parts.Add(TEXT("cible : ") + HumanizeId(CategoryId));
+		for (const FName CategoryId : Modifier.AllowedTargetMonsterCategoryIds) Parts.Add(TEXT("cible : ") + MonsterCategoryLabel(CategoryId));
 		for (const FName Tag : Modifier.RequiredSourceTags) Parts.Add(HumanizeId(Tag));
 		if (Modifier.bRequirePartyStationarySincePreviousActivation) Parts.Add(TEXT("si le groupe n'a pas bougé depuis l'activation précédente"));
 		if (Modifier.bExcludeAreaActions) Parts.Add(TEXT("hors actions de zone"));
@@ -359,7 +376,7 @@ namespace
 			if (!Skill.RelatedMonsterCategoryIds.IsEmpty())
 			{
 				TArray<FString> Categories;
-				for (const FName Id : Skill.RelatedMonsterCategoryIds) Categories.Add(HumanizeId(Id));
+				for (const FName Id : Skill.RelatedMonsterCategoryIds) Categories.Add(MonsterCategoryLabel(Id));
 				Effects.Add(TEXT("contre : ") + FString::Join(Categories, TEXT(", ")));
 			}
 			Lines.Add(TEXT("• Compétence ") + HumanizeId(Skill.SkillId) + TEXT(" → ") + FString::Join(Effects, TEXT(" ; ")));

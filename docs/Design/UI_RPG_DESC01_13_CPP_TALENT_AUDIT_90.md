@@ -102,7 +102,7 @@ Le catalogue Skills de production n'est plus un trou : Crochetage, Pièges / dé
 | Maître du terrain | OK |
 | Guide du groupe | OK |
 
-D04 reste une dette de présentation : les variantes Ennemi juré sont encore nommées depuis le CategoryId brut dans l'authoring. Ce n'est pas une divergence de mécanique.
+D04 est **SOURCE CORRIGÉE** : `UGridMonsterCategoryAsset` devient l'autorité bestiaire de `DisplayName`; l'authoring et le read-model l'utilisent. Matérialisation/Automation requises avant clôture.
 
 ## 7. Mage — 15 conformes
 
@@ -205,7 +205,7 @@ D07  Transmutation majeure — CLOS (10/10 RPG03.9.6A + 4/4 RPG03.9.4F1 + 7/7 RP
 D08  Transmutation majeure — CLOS (11/11 RPG03.9.6A + 7/7 RPG03.9.6B2 + 4/4 RPG03.9.4F1)
 ~~~
 
-D04 est présentation bestiaire. D09 est le futur Crafting.
+D04 présentation bestiaire : **source corrigée, validation en attente**. D09 est le futur Crafting.
 
 ## 13. Niveau de confiance
 

@@ -11,6 +11,7 @@
 #include "RPG/RPGClassProgressionAuthoring.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterCategoryAsset.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
 
@@ -24,6 +25,29 @@ namespace RPGRangerAuthoring
 	const FName ImmobilizedStatusId(TEXT("Status_Immobilized"));
 	const FName FavoredEnemyAlias(TEXT("Talent_Ranger_Hunter_FavoredEnemy"));
 	const FName FavoredEnemyGroup(TEXT("TalentGroup_Ranger_Hunter_FavoredEnemy"));
+
+	struct FProductionMonsterCategorySpec
+	{
+		FName CategoryId = NAME_None;
+		const TCHAR* DisplayName = nullptr;
+	};
+
+	const FProductionMonsterCategorySpec ProductionCategorySpecs[] = {
+		{ TEXT("Goblin"), TEXT("Gobelins") },
+		{ TEXT("Vermin"), TEXT("Vermine") }
+	};
+
+	const FProductionMonsterCategorySpec* FindProductionCategorySpec(FName CategoryId)
+	{
+		for (const FProductionMonsterCategorySpec& Spec : ProductionCategorySpecs)
+		{
+			if (Spec.CategoryId == CategoryId)
+			{
+				return &Spec;
+			}
+		}
+		return nullptr;
+	}
 
 	FGridCombatStatusApplicationProfile MakeStatusApplication(FName StatusId, EGridCombatStatusApplicationTrigger Trigger,
 		EGridCombatStatusArmorGate Gate = EGridCombatStatusArmorGate::None, int32 DurationOverride = INDEX_NONE)
@@ -167,6 +191,140 @@ namespace RPGRangerAuthoring
 		return true;
 	}
 
+	FString CategoryAssetName(FName CategoryId)
+	{
+		return FString::Printf(TEXT("DA_MONCAT_%s"), *SanitizeCategoryForChoiceId(CategoryId));
+	}
+
+	UGridMonsterCategoryAsset* FindOrCreateCategoryAsset(FName CategoryId, FString& OutError)
+	{
+		const FString AssetName = CategoryAssetName(CategoryId);
+		const FString PackageName = FString::Printf(
+			TEXT("%s/%s"), UGridMonsterCategoryAsset::ProductionFolder(), *AssetName);
+		const FString ObjectPath = FString::Printf(TEXT("%s.%s"), *PackageName, *AssetName);
+
+		if (UGridMonsterCategoryAsset* Existing = LoadObject<UGridMonsterCategoryAsset>(nullptr, *ObjectPath))
+		{
+			return Existing;
+		}
+
+		UPackage* Package = CreatePackage(*PackageName);
+		if (!Package)
+		{
+			OutError = FString::Printf(TEXT("Failed to create monster category package '%s'."), *PackageName);
+			return nullptr;
+		}
+
+		UGridMonsterCategoryAsset* Created = NewObject<UGridMonsterCategoryAsset>(
+			Package, FName(*AssetName), RF_Public | RF_Standalone | RF_Transactional);
+		if (!Created)
+		{
+			OutError = FString::Printf(TEXT("Failed to create monster category asset '%s'."), *ObjectPath);
+			return nullptr;
+		}
+		FAssetRegistryModule::AssetCreated(Created);
+		return Created;
+	}
+
+	bool CollectProductionMonsterDefinitions(TArray<UGridMonsterDefinitionAsset*>& OutDefinitions, FString& OutError)
+	{
+		OutDefinitions.Reset();
+
+		FAssetRegistryModule& RegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		FARFilter Filter;
+		Filter.PackagePaths.Add(FName(TEXT("/Game/GrimrockPrototype/Monsters")));
+		Filter.ClassPaths.Add(UGridMonsterDefinitionAsset::StaticClass()->GetClassPathName());
+		Filter.bRecursivePaths = true;
+		Filter.bRecursiveClasses = true;
+
+		TArray<FAssetData> Assets;
+		RegistryModule.Get().GetAssets(Filter, Assets);
+		for (const FAssetData& AssetData : Assets)
+		{
+			UGridMonsterDefinitionAsset* Definition = Cast<UGridMonsterDefinitionAsset>(AssetData.GetAsset());
+			if (IsValid(Definition) && !Definition->CategoryId.IsNone())
+			{
+				OutDefinitions.Add(Definition);
+			}
+		}
+		OutDefinitions.Sort(
+			[](const UGridMonsterDefinitionAsset& Left, const UGridMonsterDefinitionAsset& Right)
+			{
+				return Left.GetPathName() < Right.GetPathName();
+			});
+
+		if (OutDefinitions.IsEmpty())
+		{
+			OutError = TEXT("No production monster definition found for Favored Enemy authoring.");
+			return false;
+		}
+		return true;
+	}
+
+	bool EnsureProductionMonsterCategoryAuthority(FString& OutError)
+	{
+		TArray<UGridMonsterDefinitionAsset*> Monsters;
+		if (!CollectProductionMonsterDefinitions(Monsters, OutError))
+		{
+			return false;
+		}
+
+		TMap<FName, UGridMonsterCategoryAsset*> Categories;
+		for (UGridMonsterDefinitionAsset* Monster : Monsters)
+		{
+			if (!IsValid(Monster))
+			{
+				continue;
+			}
+
+			const FProductionMonsterCategorySpec* Spec = FindProductionCategorySpec(Monster->CategoryId);
+			if (!Spec || !Spec->DisplayName)
+			{
+				OutError = FString::Printf(
+					TEXT("Production monster '%s' uses CategoryId '%s' without an authored bestiary DisplayName."),
+					*Monster->GetPathName(), *Monster->CategoryId.ToString());
+				return false;
+			}
+
+			UGridMonsterCategoryAsset*& Category = Categories.FindOrAdd(Monster->CategoryId);
+			if (!IsValid(Category))
+			{
+				Category = FindOrCreateCategoryAsset(Monster->CategoryId, OutError);
+				if (!IsValid(Category))
+				{
+					return false;
+				}
+				Category->Modify();
+				Category->CategoryId = Monster->CategoryId;
+				Category->DisplayName = FText::FromString(Spec->DisplayName);
+				if (!Category->IsValidDefinition() || !SaveAuthoredAsset(Category, OutError))
+				{
+					if (OutError.IsEmpty())
+					{
+						OutError = FString::Printf(TEXT("Invalid monster category asset '%s'."), *Category->GetPathName());
+					}
+					return false;
+				}
+			}
+
+			const FSoftObjectPath ExpectedPath(Category);
+			if (Monster->CategoryDefinition.ToSoftObjectPath() != ExpectedPath)
+			{
+				Monster->Modify();
+				Monster->CategoryDefinition = Category;
+				if (!Monster->IsValidDefinition() || !SaveAuthoredAsset(Monster, OutError))
+				{
+					if (OutError.IsEmpty())
+					{
+						OutError = FString::Printf(TEXT("Failed to assign category authority to '%s'."), *Monster->GetPathName());
+					}
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
 	UGridStatusEffectDefinitionAsset* FindOrCreateMarkedStatus(FString& OutError)
 	{
 		if (UGridStatusEffectDefinitionAsset* Existing =
@@ -206,7 +364,7 @@ const TCHAR* FRPGRangerAuthoring::MarkedStatusPath()
 	return TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/StatusEffects/DA_Status_MarkedByRanger.DA_Status_MarkedByRanger");
 }
 
-void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArray<FName>& FavoredEnemyCategoryIds)
+void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArray<FRPGRangerFavoredEnemyCategoryDefinition>& FavoredEnemyCategories)
 {
 	using namespace RPGRangerAuthoring;
 
@@ -369,21 +527,26 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	}
 	ClassAsset.ProgressionChoices.Add(MarkPrey);
 
-	TArray<FName> Categories = FavoredEnemyCategoryIds;
-	Categories.RemoveAll([](const FName Id) { return Id.IsNone(); });
-	Categories.Sort([](const FName A, const FName B) { return A.ToString() < B.ToString(); });
+	TArray<FRPGRangerFavoredEnemyCategoryDefinition> Categories = FavoredEnemyCategories;
+	Categories.RemoveAll([](const FRPGRangerFavoredEnemyCategoryDefinition& Category) { return !Category.IsValid(); });
+	Categories.Sort(
+		[](const FRPGRangerFavoredEnemyCategoryDefinition& A, const FRPGRangerFavoredEnemyCategoryDefinition& B)
+		{
+			return A.CategoryId.ToString() < B.CategoryId.ToString();
+		});
 	for (int32 Index = Categories.Num() - 1; Index > 0; --Index)
 	{
-		if (Categories[Index] == Categories[Index - 1])
+		if (Categories[Index].CategoryId == Categories[Index - 1].CategoryId)
 		{
 			Categories.RemoveAt(Index);
 		}
 	}
-	for (const FName CategoryId : Categories)
+	for (const FRPGRangerFavoredEnemyCategoryDefinition& Category : Categories)
 	{
+		const FName CategoryId = Category.CategoryId;
 		const FString Suffix = SanitizeCategoryForChoiceId(CategoryId);
 		const FName ChoiceId(*FString::Printf(TEXT("Talent_Ranger_Hunter_FavoredEnemy_%s"), *Suffix));
-		const FString Display = FString::Printf(TEXT("Ennemi juré — %s"), *CategoryId.ToString());
+		const FString Display = FString::Printf(TEXT("Ennemi juré — %s"), *Category.DisplayName.ToString());
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
 			ChoiceId, *Display, TEXT("Dégâts +15 % et tests liés +2 contre cette catégorie."),
 			6, HunterBranchId, TEXT("Talent_Ranger_Hunter_MarkPrey"), FavoredEnemyAlias);
@@ -517,32 +680,71 @@ bool FRPGRangerAuthoring::ConfigureMarkedStatus(UGridStatusEffectDefinitionAsset
 	return StatusAsset.IsValidDefinition();
 }
 
-bool FRPGRangerAuthoring::CollectProductionFavoredEnemyCategories(TArray<FName>& OutCategoryIds, FString& OutError)
+bool FRPGRangerAuthoring::CollectProductionFavoredEnemyCategories(
+	TArray<FRPGRangerFavoredEnemyCategoryDefinition>& OutCategories, FString& OutError)
 {
-	OutCategoryIds.Reset();
+	OutCategories.Reset();
 	OutError.Reset();
 
-	FAssetRegistryModule& RegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	FARFilter Filter;
-	Filter.PackagePaths.Add(FName(TEXT("/Game/GrimrockPrototype/Monsters")));
-	Filter.ClassPaths.Add(UGridMonsterDefinitionAsset::StaticClass()->GetClassPathName());
-	Filter.bRecursivePaths = true;
-	Filter.bRecursiveClasses = true;
-
-	TArray<FAssetData> Assets;
-	RegistryModule.Get().GetAssets(Filter, Assets);
-	for (const FAssetData& AssetData : Assets)
+	TArray<UGridMonsterDefinitionAsset*> Monsters;
+	if (!RPGRangerAuthoring::CollectProductionMonsterDefinitions(Monsters, OutError))
 	{
-		const UGridMonsterDefinitionAsset* Definition = Cast<UGridMonsterDefinitionAsset>(AssetData.GetAsset());
-		if (IsValid(Definition) && !Definition->CategoryId.IsNone())
+		return false;
+	}
+
+	TMap<FName, FText> DisplayNameByCategory;
+	for (const UGridMonsterDefinitionAsset* Monster : Monsters)
+	{
+		if (!IsValid(Monster) || Monster->CategoryId.IsNone())
 		{
-			OutCategoryIds.AddUnique(Definition->CategoryId);
+			continue;
+		}
+		if (Monster->CategoryDefinition.IsNull())
+		{
+			OutError = FString::Printf(
+				TEXT("Production monster '%s' has CategoryId '%s' but no CategoryDefinition presentation authority."),
+				*Monster->GetPathName(), *Monster->CategoryId.ToString());
+			return false;
+		}
+
+		const UGridMonsterCategoryAsset* Category = Monster->CategoryDefinition.LoadSynchronous();
+		if (!IsValid(Category) || !Category->IsValidDefinition() || Category->CategoryId != Monster->CategoryId)
+		{
+			OutError = FString::Printf(
+				TEXT("Production monster '%s' has an invalid or mismatched CategoryDefinition."),
+				*Monster->GetPathName());
+			return false;
+		}
+
+		if (const FText* Existing = DisplayNameByCategory.Find(Category->CategoryId))
+		{
+			if (!Existing->EqualTo(Category->DisplayName))
+			{
+				OutError = FString::Printf(
+					TEXT("CategoryId '%s' resolves to conflicting bestiary DisplayName values."),
+					*Category->CategoryId.ToString());
+				return false;
+			}
+		}
+		else
+		{
+			DisplayNameByCategory.Add(Category->CategoryId, Category->DisplayName);
 		}
 	}
-	OutCategoryIds.Sort([](const FName A, const FName B) { return A.ToString() < B.ToString(); });
-	if (OutCategoryIds.IsEmpty())
+
+	for (const TPair<FName, FText>& Pair : DisplayNameByCategory)
 	{
-		OutError = TEXT("No production monster CategoryId found for Favored Enemy authoring.");
+		OutCategories.Emplace(Pair.Key, Pair.Value);
+	}
+	OutCategories.Sort(
+		[](const FRPGRangerFavoredEnemyCategoryDefinition& A, const FRPGRangerFavoredEnemyCategoryDefinition& B)
+		{
+			return A.CategoryId.ToString() < B.CategoryId.ToString();
+		});
+
+	if (OutCategories.IsEmpty())
+	{
+		OutError = TEXT("No production monster category presentation found for Favored Enemy authoring.");
 		return false;
 	}
 	return true;
@@ -552,7 +754,12 @@ bool FRPGRangerAuthoring::AuthorProductionAssets(FString& OutError)
 {
 	OutError.Reset();
 
-	TArray<FName> Categories;
+	if (!RPGRangerAuthoring::EnsureProductionMonsterCategoryAuthority(OutError))
+	{
+		return false;
+	}
+
+	TArray<FRPGRangerFavoredEnemyCategoryDefinition> Categories;
 	if (!CollectProductionFavoredEnemyCategories(Categories, OutError))
 	{
 		return false;

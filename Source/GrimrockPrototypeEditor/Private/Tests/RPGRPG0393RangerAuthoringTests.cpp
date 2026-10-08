@@ -8,7 +8,10 @@
 
 namespace RPG0393Authoring
 {
-	const TArray<FName> TestCategories = { TEXT("Goblin"), TEXT("Vermin") };
+	const TArray<FRPGRangerFavoredEnemyCategoryDefinition> TestCategories = {
+		{ TEXT("Goblin"), FText::FromString(TEXT("Gobelins")) },
+		{ TEXT("Vermin"), FText::FromString(TEXT("Vermine")) }
+	};
 
 	URPGClassAsset* BuildRanger()
 	{
@@ -123,11 +126,11 @@ bool FRPG0393HunterAuthoringTest::RunTest(const FString&)
 		MarkChoice->CombatModifiers[0].AccuracyModifier == 2 &&
 		MarkChoice->CombatModifiers[0].OutgoingDamagePercentModifier == 15);
 
-	for (const FName Category : RPG0393Authoring::TestCategories)
+	for (const FRPGRangerFavoredEnemyCategoryDefinition& Category : RPG0393Authoring::TestCategories)
 	{
-		const FName ChoiceId(*FString::Printf(TEXT("Talent_Ranger_Hunter_FavoredEnemy_%s"), *Category.ToString()));
+		const FName ChoiceId(*FString::Printf(TEXT("Talent_Ranger_Hunter_FavoredEnemy_%s"), *Category.CategoryId.ToString()));
 		const FRPGClassProgressionChoiceDefinition* Choice = Ranger->FindProgressionChoice(ChoiceId);
-		TestTrue(*FString::Printf(TEXT("Favored Enemy %s exists"), *Category.ToString()), Choice != nullptr);
+		TestTrue(*FString::Printf(TEXT("Favored Enemy %s exists"), *Category.CategoryId.ToString()), Choice != nullptr);
 		if (Choice)
 		{
 			TestEqual(TEXT("Favored Enemy uses common exclusive group"), Choice->ExclusiveChoiceGroupId,
@@ -136,9 +139,12 @@ bool FRPG0393HunterAuthoringTest::RunTest(const FString&)
 				Choice->GrantedRequirementIds.Contains(TEXT("Talent_Ranger_Hunter_FavoredEnemy")));
 			TestTrue(TEXT("Favored Enemy damage is category-scoped +15 percent"),
 				Choice->CombatModifiers.Num() == 1 &&
-				Choice->CombatModifiers[0].AllowedTargetMonsterCategoryIds.Contains(Category) &&
+				Choice->CombatModifiers[0].AllowedTargetMonsterCategoryIds.Contains(Category.CategoryId) &&
 				Choice->CombatModifiers[0].OutgoingDamagePercentModifier == 15);
 			TestEqual(TEXT("Favored Enemy projects four related contextual skills"), Choice->SkillModifiers.Num(), 4);
+			TestEqual(TEXT("Favored Enemy uses bestiary player-facing category DisplayName"),
+				Choice->DisplayName.ToString(),
+				FString::Printf(TEXT("Ennemi juré — %s"), *Category.DisplayName.ToString()));
 		}
 	}
 
@@ -246,7 +252,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0393ProductionAssetsTest, "Grimrock.RPG.RPG
 
 bool FRPG0393ProductionAssetsTest::RunTest(const FString&)
 {
-	TArray<FName> Categories;
+	TArray<FRPGRangerFavoredEnemyCategoryDefinition> Categories;
 	FString Error;
 	if (!TestTrue(TEXT("Production bestiary exposes Favored Enemy categories"),
 			FRPGRangerAuthoring::CollectProductionFavoredEnemyCategories(Categories, Error)))
@@ -264,6 +270,16 @@ bool FRPG0393ProductionAssetsTest::RunTest(const FString&)
 	TestEqual(TEXT("Production Ranger contains nine active actions"), Ranger->CombatActions.Num(), 9);
 	TestEqual(TEXT("Production Ranger choice count follows current bestiary categories"), Ranger->ProgressionChoices.Num(), 14 + Categories.Num());
 	TestTrue(TEXT("Production Ranger is structurally valid"), Ranger->IsValidDefinition());
+
+	for (const FRPGRangerFavoredEnemyCategoryDefinition& Category : Categories)
+	{
+		const FName ChoiceId(*FString::Printf(TEXT("Talent_Ranger_Hunter_FavoredEnemy_%s"), *Category.CategoryId.ToString()));
+		const FRPGClassProgressionChoiceDefinition* Choice = Ranger->FindProgressionChoice(ChoiceId);
+		TestTrue(*FString::Printf(TEXT("Production Favored Enemy %s uses category presentation authority"),
+			*Category.CategoryId.ToString()),
+			Choice && Choice->DisplayName.ToString() ==
+				FString::Printf(TEXT("Ennemi juré — %s"), *Category.DisplayName.ToString()));
+	}
 
 	UGridStatusEffectDefinitionAsset* Marked =
 		LoadObject<UGridStatusEffectDefinitionAsset>(nullptr, FRPGRangerAuthoring::MarkedStatusPath());

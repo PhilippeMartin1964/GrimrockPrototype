@@ -1,4 +1,5 @@
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterCategoryAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBalanceTypes.h"
@@ -89,6 +90,21 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition(FString& OutError) const
 	if (CategoryId.IsNone())
 	{
 		Errors.Add(TEXT("CategoryId must not be None."));
+	}
+
+	if (!CategoryDefinition.IsNull())
+	{
+		const UGridMonsterCategoryAsset* Category = CategoryDefinition.LoadSynchronous();
+		if (!IsValid(Category) || !Category->IsValidDefinition())
+		{
+			Errors.Add(TEXT("CategoryDefinition must resolve to a valid monster category asset."));
+		}
+		else if (Category->CategoryId != CategoryId)
+		{
+			Errors.Add(FString::Printf(
+				TEXT("CategoryDefinition id '%s' does not match CategoryId '%s'."),
+				*Category->CategoryId.ToString(), *CategoryId.ToString()));
+		}
 	}
 
 	{
