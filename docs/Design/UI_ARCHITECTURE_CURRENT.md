@@ -343,7 +343,7 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
-### UI-RPG-DESC01.5 — contrat UX validé / DESC01.6 audit Guerrier
+### UI-RPG-DESC01.5-.11 — audits validés / DESC01.12 normalisation croisée
 
 Les captures PIE de DESC01.4 ont invalidé le contrat de présentation malgré une
 validation Automation verte. Le contrat sémantique DESC01.5 est désormais validé :
@@ -370,7 +370,8 @@ Références actives :
 `docs/Design/UI_RPG_DESC01_8_RANGER_TALENT_AUDIT.md` — validé.
 `docs/Design/UI_RPG_DESC01_9_MAGE_TALENT_AUDIT.md` — validé.
 `docs/Design/UI_RPG_DESC01_10_PRIEST_TALENT_AUDIT.md` — validé.
-`docs/Design/UI_RPG_DESC01_11_ALCHEMIST_TALENT_AUDIT.md` — audit Alchimiste en validation.
+`docs/Design/UI_RPG_DESC01_11_ALCHEMIST_TALENT_AUDIT.md` — validé.
+`docs/Design/UI_RPG_DESC01_12_TALENT_NORMALIZATION_90.md` — normalisation 90/90 en validation.
 
 Les audits de classe restent documentaires ; aucun nouveau C++ / UMG / DataAsset
 DESC01 avant le contrat de read-model DESC01.13.
@@ -434,34 +435,41 @@ de COMPÉTENCES. Fermer puis rouvrir la fenêtre fixe une nouvelle frontière.
 
 Validation finale RPG-SKILL01 : **8/8 Automation, 0 warning, 0 échec, PIE validé**.
 
-### UI-RPG-DESC01 — contrat unifié de détail Talent
+### UI-RPG-DESC01 — contrat sémantique courant
 
-Le panneau de détail utilise une présentation unique pour les six classes :
+Le contrat historique DESC01.4 est superseded par DESC01.5 puis par la
+normalisation croisée DESC01.12.
+
+La fiche cible est unique pour les six classes :
 
 ```text
-ProgressionChoice.Description
-CombatModifiers / CombatReactions / SkillModifiers / PartyModifiers
-CombatActions
-    -> FGridSkillsPageService
-       -> FGridTalentVariantView
-          -> EffectCategory
-          -> MechanicsSummary
-          -> UnlockedActions[]
-    -> UGridTalentDetailWidget
-       -> TYPE
-       -> FONCTIONNEMENT
-       -> EFFETS
-       -> VARIANTES (toutes visibles simultanément)
-       -> ACTION ACCORDÉE APRÈS ACQUISITION / ACTION DISPONIBLE
+NOM
+TYPE
+STATUT
+PRINCIPE
+EFFETS
+[UTILISATION]
+[VARIANTES]
+ACQUISITION
 ```
 
-La consultation d'un Talent ne modifie jamais le gameplay. Pour un nœud à variantes,
-toutes les variantes sont visibles sans ComboBox. Le sélecteur n'apparaît qu'après
-l'action explicite d'acquisition d'une variante. Le terme « débloquée » n'est plus
-utilisé pour une action seulement prévisualisée.
+Règles majeures :
 
-Référence canonique :
-`docs/Design/UI_RPG_DESC01_4_UNIFIED_TALENT_DETAIL_UX.md`.
+- le focus de consultation n'est jamais un état d'acquisition ;
+- TYPE et STATUT sont indépendants ;
+- aucune fiche Talent n'affiche « ACTION DISPONIBLE », « ACTION DÉBLOQUÉE » ou
+  « ACTION ACCORDÉE APRÈS ACQUISITION » ;
+- les quatre seuls nœuds à variantes sont Spécialisation martiale, Ennemi juré,
+  Affinité élémentaire et Imprégnation ;
+- toutes leurs variantes sont visibles simultanément ;
+- les recettes multiples de l'Alchimiste ne sont pas des variantes ;
+- disponibilité de combat, quantité d'objet et crafting restent des autorités
+  distinctes du statut Talent.
+
+Références canoniques :
+
+- `docs/Design/UI_RPG_DESC01_5_TALENT_UX_CONTRACT.md`
+- `docs/Design/UI_RPG_DESC01_12_TALENT_NORMALIZATION_90.md`
 
 
 RPG-ATTR01.1 ajoute l'économie des points de caractéristiques sans nouveau

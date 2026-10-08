@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **DRAFT — validation utilisateur requise**  
+État : **VALIDÉ PAR L'UTILISATEUR — 8 octobre 2026**  
 Dépendances : **UI-RPG-DESC01.5 à .10 validés**  
 Périmètre : **Alchimiste / 3 branches / 15 nœuds conceptuels**
 
@@ -998,7 +998,7 @@ Huile glissante
 | Catalyseur | Conforme | ACTIF |
 | Transmutation majeure | Frontière Crafting + deux écarts surface | RECETTE + ACTIF |
 
-# 10. Arbitrages et écarts proposés
+# 10. Arbitrages et écarts validés
 
 ## ALCH-01 — aucune fausse disponibilité de recette / objet
 
@@ -1007,7 +1007,7 @@ Le projet ne possède pas encore de moteur de Crafting autoritaire.
 Les Talents accordent aujourd'hui des `GrantedRequirementIds Recipe_*`, tandis que
 les QuickItems matérialisés existent comme ItemDefinitions indépendants.
 
-**Recommandation : canoniser la distinction suivante dans l'UX :**
+**Décision validée : canoniser la distinction suivante dans l'UX :**
 
 ```text
 Talent ACQUIS
@@ -1052,7 +1052,7 @@ SurfaceEffect
 Donc le profil de Réaction en chaîne est authoré et testé isolément, mais le chemin
 normal d'une Bombe incendiaire/toxique ne produit actuellement pas son déclencheur.
 
-**Recommandation : conserver le contrat RPG02 comme comportement cible**, puis
+**Décision validée : conserver le contrat RPG02 comme comportement cible**, puis
 corriger ultérieurement le pipeline générique des bombes/surfaces afin qu'une
 bombe puisse réellement déclencher une réaction canonique sans
 `switch(TalentId)`.
@@ -1080,7 +1080,7 @@ résistance               -> reste +25 %
 durée                    -> environ moitié, arrondie
 ```
 
-**Recommandation : canoniser ce comportement pour la v0.1.**
+**Décision validée : canoniser ce comportement pour la v0.1.**
 
 Il reste générique, simple et évite d'introduire un système séparé de « statut à
 potency divisée ». La fiche joueur devra dire précisément ce qui est réduit plutôt
@@ -1110,7 +1110,7 @@ surface existante
     -> conserve RemainingRounds de la surface existante
 ```
 
-**Recommandation : conserver RPG02 comme autorité : toute cellule convertie par
+**Décision validée : conserver RPG02 comme autorité : toute cellule convertie par
 Transmutation majeure doit avoir une durée finale de 4 rounds.**
 
 Le resolver/contrat de conversion devra être corrigé plus tard sans modifier la
@@ -1137,7 +1137,7 @@ Les dégâts de réaction déclenchés pendant cette conversion +50 %
 
 n'a donc pas encore de sémantique runtime complète.
 
-**Recommandation pour la v0.1 : ne pas promettre ce +50 % dans la fiche joueur
+**Décision validée pour la v0.1 : ne pas promettre ce +50 % dans la fiche joueur
 finale tant qu'un contrat explicite « conversion -> réaction » n'a pas été validé.**
 
 Le champ reste une dette de mécanique à examiner en DESC01.12 / futur chantier
@@ -1284,7 +1284,7 @@ DESC01.12.
 
 # 15. Critères de validation UI-RPG-DESC01.11
 
-Le jalon est validé lorsque l'utilisateur approuve :
+Le jalon a été validé par l'utilisateur le **8 octobre 2026**. Ont été approuvés :
 
 - les 15 fiches Alchimiste ;
 - la classification

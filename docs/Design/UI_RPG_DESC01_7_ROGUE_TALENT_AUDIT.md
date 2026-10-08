@@ -847,30 +847,32 @@ Ces conséquences ne sont pas établies par le seul `FRPGSkillProgressionModifie
 
 **Décision validée :** conserver ces règles comme **comportement cible RPG02**, mais les reporter au futur runtime métier Pièges/Crochetage. L'UI ne devra pas les présenter comme garanties tant que ce branchement n'existe pas.
 
-## ROGUE-04 — catalogue Skills de production
+## ROGUE-04 — catalogue Skills de production — dépendance résolue
 
-Le document RPG03.9.2 indique que le dépôt ne contient pas encore de
-`URPGSkillAsset` de production pour :
+Au moment de l'audit initial DESC01.7, le document RPG03.9.2 signalait l'absence
+de catalogue de production pour :
 
 ```text
-Pièges
+Pièges / désamorçage
 Crochetage
 Mécanique
 ```
 
-Les contrats sont testés avec des définitions transitoires.
+Cette dépendance est désormais **résolue** : UI-RPG06.2A a matérialisé les
+25 `URPGSkillAsset` canoniques de production, dont
+`Skill_Traps`, `Skill_Lockpicking` et `Skill_Mechanics`.
 
-Conséquences :
+La dette restante n'est donc plus le catalogue Skills. Elle concerne uniquement
+les **consommateurs métier** déjà identifiés :
 
-- Désamorçage expert a son modificateur, mais dépend du futur Skill Pièges ;
-- Maître des serrures dépend du futur Skill Crochetage ;
-- Sabotage de combat dépend du futur Skill Mécanique pour résoudre réellement son
-  test Intelligence + Mécanique ;
-- le sabotage d'objet de monde possède déjà les primitives
-  `bCanBeSabotaged / SabotageDifficulty / Sabotaged`, mais le caller doit encore
-  fournir le Skill Check.
+- Désamorçage expert : conséquence métier d'un échec sûr sur un piège ;
+- Maître des serrures : conséquence métier d'un échec sûr sur une serrure ;
+- Sabotage d'objet de monde : caller devant réellement exécuter le Skill Check.
 
-**Décision validée :** ne pas masquer cette dépendance. Elle reste inscrite pour DESC01.12 et reliée explicitement à l'effort global **Skills / Audit données compétences**.
+**Décision normalisée DESC01.12 :** ne jamais recréer un catalogue Skills
+parallèle. Les fiches Talent utilisent les `DisplayName` du catalogue de
+production ; les conséquences métier non raccordées restent explicitement des
+dettes runtime et ne sont pas présentées comme garanties actuelles.
 
 # 10. Vocabulaire Voleur à normaliser
 
