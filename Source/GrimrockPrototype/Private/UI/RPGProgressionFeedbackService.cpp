@@ -151,12 +151,98 @@ FRPGProgressionNotificationView FRPGProgressionFeedbackService::MakeSkillRankRef
 	return Notification;
 }
 
+FText FRPGProgressionFeedbackService::GetAttributeMutationRejectMessage(
+	ERPGAttributePointMutationRejectReason Reason)
+{
+	switch (Reason)
+	{
+		case ERPGAttributePointMutationRejectReason::InvalidInventory:
+		case ERPGAttributePointMutationRejectReason::InvalidCharacter:
+			return LOCTEXT("AttributeInvalidCharacter", "Le personnage n'est plus disponible.");
+		case ERPGAttributePointMutationRejectReason::InvalidLevel:
+			return LOCTEXT("AttributeInvalidLevel", "Le niveau du personnage est invalide.");
+		case ERPGAttributePointMutationRejectReason::InvalidDefinition:
+			return LOCTEXT("AttributeInvalidDefinition", "La classe ou la race du personnage n'est plus résolue.");
+		case ERPGAttributePointMutationRejectReason::InvalidAttributeState:
+		case ERPGAttributePointMutationRejectReason::InvalidPointBalance:
+			return LOCTEXT("AttributeInvalidState", "L'état des caractéristiques du personnage est incohérent.");
+		case ERPGAttributePointMutationRejectReason::NoAttributePoints:
+			return LOCTEXT("AttributeNoPoints", "Il ne reste aucun point de caractéristique.");
+		case ERPGAttributePointMutationRejectReason::AttributeCapReached:
+			return LOCTEXT("AttributeCap", "Cette caractéristique a atteint sa valeur de base maximale de 20.");
+		case ERPGAttributePointMutationRejectReason::InvalidSessionFloor:
+			return LOCTEXT("AttributeInvalidSessionFloor", "La limite d'annulation de cette session est incohérente.");
+		case ERPGAttributePointMutationRejectReason::NoSessionPurchaseToUndo:
+			return LOCTEXT("AttributeNoSessionUndo", "Seuls les points attribués depuis l'ouverture actuelle de PERSONNAGE peuvent être annulés.");
+		case ERPGAttributePointMutationRejectReason::MutationRejected:
+			return LOCTEXT("AttributeMutationRejected", "La modification de caractéristique a été refusée.");
+		case ERPGAttributePointMutationRejectReason::None:
+		default:
+			return FText::GetEmpty();
+	}
+}
+
+FRPGProgressionNotificationView FRPGProgressionFeedbackService::MakeAttributePointPurchaseNotification(
+	const FRPGAttributePointMutationResult& Result,
+	const FText& AttributeDisplayName)
+{
+	FRPGProgressionNotificationView Notification;
+	if (Result.bCommitted)
+	{
+		Notification.Severity = ERPGProgressionNotificationSeverity::Success;
+		Notification.Title = LOCTEXT("AttributeImprovedTitle", "Caractéristique améliorée");
+		Notification.Message = FText::Format(
+			LOCTEXT("AttributeImproved", "« {0} » passe à {1}. Points de caractéristiques restants : {2}."),
+			AttributeDisplayName,
+			FText::AsNumber(Result.NewValue),
+			FText::AsNumber(Result.RemainingPoints));
+		return Notification;
+	}
+
+	Notification.Severity = ERPGProgressionNotificationSeverity::Warning;
+	Notification.Title = LOCTEXT("AttributeImproveRejectedTitle", "Amélioration impossible");
+	Notification.Message = GetAttributeMutationRejectMessage(Result.RejectReason);
+	if (Notification.Message.IsEmpty())
+	{
+		Notification.Message = LOCTEXT("AttributeImproveRejectedGeneric", "La caractéristique n'a pas pu être améliorée.");
+	}
+	return Notification;
+}
+
+FRPGProgressionNotificationView FRPGProgressionFeedbackService::MakeAttributePointRefundNotification(
+	const FRPGAttributePointMutationResult& Result,
+	const FText& AttributeDisplayName)
+{
+	FRPGProgressionNotificationView Notification;
+	if (Result.bCommitted)
+	{
+		Notification.Severity = ERPGProgressionNotificationSeverity::Success;
+		Notification.Title = LOCTEXT("AttributeRefundedTitle", "Attribution annulée");
+		Notification.Message = FText::Format(
+			LOCTEXT("AttributeRefunded", "« {0} » revient à {1}. Points de caractéristiques disponibles : {2}."),
+			AttributeDisplayName,
+			FText::AsNumber(Result.NewValue),
+			FText::AsNumber(Result.RemainingPoints));
+		return Notification;
+	}
+
+	Notification.Severity = ERPGProgressionNotificationSeverity::Warning;
+	Notification.Title = LOCTEXT("AttributeRefundRejectedTitle", "Annulation impossible");
+	Notification.Message = GetAttributeMutationRejectMessage(Result.RejectReason);
+	if (Notification.Message.IsEmpty())
+	{
+		Notification.Message = LOCTEXT("AttributeRefundRejectedGeneric", "Cette attribution ne peut pas être annulée.");
+	}
+	return Notification;
+}
+
 FRPGProgressionNotificationView FRPGProgressionFeedbackService::MakeLevelUpNotification(
 	const FText& CharacterName,
 	int32 PreviousLevel,
 	int32 NewLevel,
 	int32 SkillPointsGained,
 	int32 TalentPointsGained,
+	int32 AttributePointsGained,
 	int32 UnlockedSkillRankCap)
 {
 	FRPGProgressionNotificationView Notification;
@@ -186,6 +272,14 @@ FRPGProgressionNotificationView FRPGProgressionFeedbackService::MakeLevelUpNotif
 		Message += FText::Format(
 			LOCTEXT("LevelUpTalentPoints", "+{0} point(s) de talent."),
 			FText::AsNumber(TalentPointsGained)).ToString();
+	}
+
+	if (AttributePointsGained > 0)
+	{
+		Message += TEXT(" ");
+		Message += FText::Format(
+			LOCTEXT("LevelUpAttributePoints", "+{0} point(s) de caractéristique."),
+			FText::AsNumber(AttributePointsGained)).ToString();
 	}
 
 	if (UnlockedSkillRankCap > 0)

@@ -120,6 +120,7 @@ bool FRPGLEVELUX01SkillOnlyFeedbackTest::RunTest(const FString& Parameters)
 			5,
 			1,
 			0,
+			0,
 			3);
 
 	TestEqual(TEXT("Title names the reached level"), Notification.Title.ToString(), FString(TEXT("Niveau 5 atteint")));
@@ -146,6 +147,7 @@ bool FRPGLEVELUX01SkillTalentFeedbackTest::RunTest(const FString& Parameters)
 			6,
 			1,
 			1,
+			0,
 			0);
 
 	TestTrue(TEXT("Even level feedback contains the Skill Point"), Notification.Message.ToString().Contains(TEXT("compétence")));

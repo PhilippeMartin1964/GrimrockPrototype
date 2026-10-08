@@ -93,7 +93,7 @@ bool FUIRPG05LevelUpNotificationTest::RunTest(const FString&)
 {
 	const FRPGProgressionNotificationView Notification =
 		FRPGProgressionFeedbackService::MakeLevelUpNotification(
-			FText::FromString(TEXT("Elias")), 1, 2, 1, 1, 0);
+			FText::FromString(TEXT("Elias")), 1, 2, 1, 1, 0, 0);
 
 	TestEqual(TEXT("Level-up severity"), Notification.Severity, ERPGProgressionNotificationSeverity::Success);
 	TestEqual(TEXT("Level-up title"), Notification.Title.ToString(), FString(TEXT("Niveau 2 atteint")));

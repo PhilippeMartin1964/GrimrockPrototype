@@ -2,7 +2,7 @@
 
 Date : **5 octobre 2026**  
 Projet : **GrimrockPrototype — UE 5.5.4**  
-Statut : **spécification de design autoritaire — Talents matérialisés/validés ; économie Skill Points RPG-SKILL01 implémentée et validée**  
+Statut : **spécification de design autoritaire — Talents et Skill Points validés ; RPG-ATTR01.1 économie des points de caractéristiques implémentée en source, validation locale requise**  
 
 ## 1. But
 
@@ -34,6 +34,8 @@ Le projet possède déjà :
 
 **Économie Skill Points :** implémentée par `FRPGSkillPointService`. Le total accordé est dérivé du niveau, les points dépensés de la somme des `SkillRanks`, et l'UI joueur passe par les transactions C++ d'achat/remboursement sûr. Aucun compteur `SkillPoints` persistant distinct n'existe.
 
+**Économie des caractéristiques :** RPG-ATTR01 utilise `FRPGAttributePointService`. Aucun compteur de points n'est persisté : les points accordés dérivent du niveau et les points dépensés dérivent de l'écart entre le total durable `Character.Attributes` et le total initial canonique Classe + Race.
+
 ## 3. Progression universelle
 
 ### Skill Points
@@ -58,6 +60,17 @@ Le projet possède déjà :
 ### Caractéristiques
 
 +1 point aux niveaux **4,8,12,16,20** : total **5**. La valeur de base normale reste plafonnée à 20.
+
+RPG-ATTR01 matérialise cette économie sans seconde autorité persistante :
+
+```text
+Granted   = floor(Level / 4)
+Starting  = sum(Class.BaseAttributes) + sum(Race.AttributeBonuses)
+Spent     = sum(Character.Attributes) - Starting
+Remaining = Granted - Spent
+```
+
+Les bonus d'équipement restent hors de ce calcul. Les points non dépensés sont conservables. Une correction `−` ne peut revenir que sur une attribution effectuée depuis l'ouverture courante de PERSONNAGE ; fermer/réouvrir fixe une nouvelle frontière non remboursable.
 
 ### Courbe XP
 

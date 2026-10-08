@@ -46,6 +46,7 @@ Elle ne migre et ne modifie jamais le snapshot. Elle vérifie notamment :
 
 - version exacte ;
 - validité de Experience et cohérence du cache runtime Level reconstruit ;
+- cohérence du budget de caractéristiques dérivé depuis Level + Class + Race + Attributes ;
 - CharacterId et progression active ;
 - Spellbooks ;
 - Skills ;
@@ -325,3 +326,19 @@ AcknowledgeNotification()
 Le subsystem Level-Up conserve uniquement la file transitoire nécessaire pour
 séquencer les toasts du Persistent HUD. Les sauvegardes v23 sont rejetées sans
 migration, conformément à la politique prototype.
+
+
+## RPG-ATTR01 — budget de caractéristiques dérivé
+
+RPG-ATTR01 n'ajoute aucun champ au SaveGame et ne change pas la v24.
+
+```text
+Granted   = floor(Level / 4)
+Starting  = sum(Class.BaseAttributes) + sum(Race.AttributeBonuses)
+Spent     = sum(Character.Attributes) - Starting
+Remaining = Granted - Spent
+```
+
+`Character.Attributes` reste l'autorité durable. La validation du schéma
+courant rejette un total de caractéristiques incompatible avec le niveau ou
+avec les définitions canoniques Class/Race.

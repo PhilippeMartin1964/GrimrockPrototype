@@ -384,6 +384,10 @@ void AGrimrockPartyPawn::ShowInventoryWorkspace()
 		return;
 	}
 
+	// RPG-ATTR01: reopening PERSONNAGE commits the previous correction boundary
+	// and starts a fresh, non-persistent attribute allocation session.
+	CharacterSheetWidgetInstance->BeginAttributeAllocationSession();
+
 	// Inventory owns independent viewport windows; hide any other major page surface.
 	if (MenuWidgetInstance)
 	{

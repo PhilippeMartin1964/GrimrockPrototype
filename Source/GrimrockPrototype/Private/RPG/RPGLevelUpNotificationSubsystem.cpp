@@ -2,6 +2,7 @@
 
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
+#include "RPG/RPGAttributePointService.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
@@ -181,6 +182,11 @@ bool URPGLevelUpNotificationSubsystem::PresentNotification(
 				FRPGClassProgressionService::GetTotalChoicePointsGranted(ClassDefinition, Notification.PreviousLevel));
 	}
 
+	const int32 AttributePointsGained = FMath::Max(
+		0,
+		FRPGAttributePointService::GetTotalPointsGranted(Notification.NewLevel) -
+			FRPGAttributePointService::GetTotalPointsGranted(Notification.PreviousLevel));
+
 	const int32 PreviousRankCap = FRPGSkillPointService::GetRankCapForLevel(Notification.PreviousLevel);
 	const int32 NewRankCap = FRPGSkillPointService::GetRankCapForLevel(Notification.NewLevel);
 	const int32 UnlockedRankCap = NewRankCap > PreviousRankCap ? NewRankCap : 0;
@@ -192,6 +198,7 @@ bool URPGLevelUpNotificationSubsystem::PresentNotification(
 			Notification.NewLevel,
 			SkillPointsGained,
 			TalentPointsGained,
+			AttributePointsGained,
 			UnlockedRankCap);
 
 	OutDurationSeconds = View.DurationSeconds;

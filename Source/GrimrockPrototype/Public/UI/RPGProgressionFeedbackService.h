@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RPG/RPGAttributePointService.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGSkillPointService.h"
 #include "RPGProgressionFeedbackService.generated.h"
@@ -61,6 +62,16 @@ struct GRIMROCKPROTOTYPE_API FRPGProgressionFeedbackService
 		const FRPGSkillPointMutationResult& Result,
 		const FText& SkillDisplayName);
 
+	static FText GetAttributeMutationRejectMessage(ERPGAttributePointMutationRejectReason Reason);
+
+	static FRPGProgressionNotificationView MakeAttributePointPurchaseNotification(
+		const FRPGAttributePointMutationResult& Result,
+		const FText& AttributeDisplayName);
+
+	static FRPGProgressionNotificationView MakeAttributePointRefundNotification(
+		const FRPGAttributePointMutationResult& Result,
+		const FText& AttributeDisplayName);
+
 	/** Notification générique de montée de niveau, utilisable par les surfaces de progression. */
 	static FRPGProgressionNotificationView MakeLevelUpNotification(
 		const FText& CharacterName,
@@ -68,5 +79,6 @@ struct GRIMROCKPROTOTYPE_API FRPGProgressionFeedbackService
 		int32 NewLevel,
 		int32 SkillPointsGained,
 		int32 TalentPointsGained,
+		int32 AttributePointsGained,
 		int32 UnlockedSkillRankCap = 0);
 };

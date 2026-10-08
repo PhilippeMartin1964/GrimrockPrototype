@@ -400,6 +400,30 @@ de COMPÉTENCES. Fermer puis rouvrir la fenêtre fixe une nouvelle frontière.
 
 Validation finale RPG-SKILL01 : **8/8 Automation, 0 warning, 0 échec, PIE validé**.
 
+RPG-ATTR01.1 ajoute l'économie des points de caractéristiques sans nouveau
+snapshot persistant :
+
+```text
+Character.Level
+    -> Granted = floor(Level / 4)
+
+Class.BaseAttributes + Race.AttributeBonuses
+Character.Attributes
+    -> Spent / Remaining dérivés
+
+FRPGAttributePointService
+    -> TryPurchasePoint()
+    -> TryRefundPurchasedPoint(SessionFloorValue)
+
+UGridCharacterSheetWidget
+    -> session d'annulation transitoire
+    -> Text_AttributePoints
+    -> boutons − / + optionnels
+```
+
+La source RPG-ATTR01.1 est implémentée ; la matérialisation
+`WBP_CharacterSheet` et la validation locale restent requises.
+
 `ChoiceId` reste l'identité gameplay/persistante. `TalentNodeId` et `TalentBranchId` sont des métadonnées structurelles destinées à la projection UI. La disponibilité reste calculée par `FRPGClassProgressionService`.
 
 UI-RPG02 à UI-RPG05 ont ensuite livré la présentation, les widgets réutilisables, le détail, les acquisitions simple/variantes et les notifications de progression.

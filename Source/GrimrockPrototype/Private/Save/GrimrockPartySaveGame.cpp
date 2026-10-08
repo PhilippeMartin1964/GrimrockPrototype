@@ -1,6 +1,7 @@
 #include "Save/GrimrockPartySaveGame.h"
 
 #include "Magic/GridSpellbookPersistence.h"
+#include "RPG/RPGAttributePointService.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGCharacterIdentityPersistence.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
@@ -88,6 +89,15 @@ namespace GridPartySaveValidationPrivate
 		{
 			OutError = FText::FromString(FString::Printf(TEXT("%s possède un cache Level incohérent : Level=%d Expected=%d Experience=%d."), Location,
 				Character.Level, ExpectedLevel, Character.Experience));
+			return false;
+		}
+
+		FRPGAttributePointBalance AttributeBalance;
+		if (!FRPGAttributePointService::TryGetBalance(Character, AttributeBalance))
+		{
+			OutError = FText::FromString(FString::Printf(
+				TEXT("%s possède un budget de caractéristiques incohérent avec son niveau, sa classe ou sa race."),
+				Location));
 			return false;
 		}
 
