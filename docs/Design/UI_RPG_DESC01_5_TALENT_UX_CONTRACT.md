@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **DRAFT — validation utilisateur requise avant toute nouvelle modification C++ / UMG / DataAsset**  
+État : **VALIDÉ PAR L'UTILISATEUR — 8 octobre 2026**  
 Périmètre : **6 classes / 18 branches / 90 nœuds conceptuels**
 
 ## 1. Objet du jalon
@@ -416,7 +416,7 @@ Le Guerrier choisit une spécialisation d'arme exclusive.
 
 VARIANTES
 
-TRanchant
+TRANCHant
 Précision : +1
 Dégâts d'arme : +10 %
 Condition : arme tranchante
@@ -440,7 +440,7 @@ Coût : 1 point de Talent
 Choix exclusif : une seule spécialisation
 ```
 
-La casse « TRanchant » dans cet exemple n'a aucune valeur normative ; la charte
+La casse « TRANCHant » dans cet exemple n'a aucune valeur normative ; la charte
 graphique déterminera la casse finale des titres.
 
 ## 13. Couverture fonctionnelle
@@ -609,6 +609,6 @@ DESC01.5 est validé uniquement lorsque l'utilisateur approuve explicitement :
 - l'abandon du dropdown comme outil final de sélection des variantes ;
 - la séparation des responsabilités entre DESC01 et VISUAL01.
 
-Tant que cette validation n'est pas donnée :
+Validation utilisateur reçue le **8 octobre 2026**.
 
-**aucune nouvelle implémentation C++ / UMG / DataAsset DESC01 n'est autorisée.**
+La phase suivante est l'audit documentaire des 90 Talents, classe par classe. Aucune nouvelle implémentation C++ / UMG / DataAsset DESC01 n'est autorisée avant DESC01.13.

@@ -343,11 +343,10 @@ La vue est construite depuis les autorités runtime et ne possède aucune copie 
 
 ## Skills / Talents
 
-### UI-RPG-DESC01.5 — contrat UX en validation
+### UI-RPG-DESC01.5 — contrat UX validé / DESC01.6 audit Guerrier
 
 Les captures PIE de DESC01.4 ont invalidé le contrat de présentation malgré une
-validation Automation verte. Aucun nouveau code DESC01 ne doit être écrit avant
-validation du contrat sémantique suivant :
+validation Automation verte. Le contrat sémantique DESC01.5 est désormais validé :
 
 ```text
 NOM
@@ -364,8 +363,12 @@ Le focus de consultation d'un nœud est indépendant de son statut d'acquisition
 Toutes les variantes doivent être lisibles simultanément ; le dropdown n'est plus
 retenu comme interaction finale.
 
-Référence active :
+Références actives :
 `docs/Design/UI_RPG_DESC01_5_TALENT_UX_CONTRACT.md`.
+`docs/Design/UI_RPG_DESC01_6_WARRIOR_TALENT_AUDIT.md`.
+
+Les audits de classe restent documentaires ; aucun nouveau C++ / UMG / DataAsset
+DESC01 avant le contrat de read-model DESC01.13.
 
 
 
