@@ -400,6 +400,27 @@ de COMPÉTENCES. Fermer puis rouvrir la fenêtre fixe une nouvelle frontière.
 
 Validation finale RPG-SKILL01 : **8/8 Automation, 0 warning, 0 échec, PIE validé**.
 
+### UI-RPG-DESC01.1 — détails Talent / variante enrichis
+
+La source prépare un détail enrichi sans nouvelle autorité :
+
+```text
+ProgressionChoice.Description
+CombatActions
+    -> FGridSkillsPageService
+       -> FGridTalentVariantView
+          -> UnlockedActions[]
+    -> UGridTalentDetailWidget
+       -> description conceptuelle
+       -> description concrète de variante
+       -> résumé d'action dérivé
+```
+
+Les valeurs PA/Mana/portée/cooldown restent lues depuis les actions autoritaires.
+La matérialisation de trois TextBlocks optionnels dans
+`WBP_RPGTalentDetail` reste à faire après validation locale.
+
+
 RPG-ATTR01.1 ajoute l'économie des points de caractéristiques sans nouveau
 snapshot persistant :
 

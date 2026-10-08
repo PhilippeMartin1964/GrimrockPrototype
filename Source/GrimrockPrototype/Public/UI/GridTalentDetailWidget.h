@@ -29,6 +29,18 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FText ResolvedDescription;
 
+	/** Concrete variant preview; populated only for multi-variant conceptual nodes. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
+	FText ResolvedVariantDisplayName;
+
+	/** Actual FGridTalentVariantView::Description of the previewed variant. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
+	FText ResolvedVariantDescription;
+
+	/** Derived only from authoritative CombatActions unlocked by the previewed concrete choice. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
+	FText ResolvedActionSummary;
+
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FLinearColor BranchAccentColor = FLinearColor::White;
 
@@ -112,6 +124,8 @@ private:
 	void UnbindAcquireButtons();
 	void RebuildVariantOptions();
 	FText MakeVariantDisplayLabel(const FGridTalentVariantView& Variant) const;
+	void RefreshVariantDetailPreview();
+	FText BuildActionSummary(const FGridTalentVariantView& Variant) const;
 	void ApplyDetailPresentation();
 	void ApplyAcquisitionPresentation();
 
@@ -135,6 +149,16 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_DetailVariants;
+
+	/** UI-RPG-DESC01.2 Designer materialization points. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DetailVariantName;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DetailVariantDescription;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DetailActionSummary;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_AcquireTalent;

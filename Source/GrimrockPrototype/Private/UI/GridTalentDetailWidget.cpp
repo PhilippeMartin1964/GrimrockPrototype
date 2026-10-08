@@ -110,6 +110,7 @@ bool UGridTalentDetailWidget::InitializeTalentDetail(
 	BranchAccentColor = InBranchPresentation.AccentColor;
 	bInitialized = true;
 	RebuildVariantOptions();
+	RefreshVariantDetailPreview();
 	ApplyDetailPresentation();
 	ApplyAcquisitionPresentation();
 	return true;
@@ -120,6 +121,9 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	NodeView = FGridTalentNodeView();
 	ResolvedDisplayName = FText::GetEmpty();
 	ResolvedDescription = FText::GetEmpty();
+	ResolvedVariantDisplayName = FText::GetEmpty();
+	ResolvedVariantDescription = FText::GetEmpty();
+	ResolvedActionSummary = FText::GetEmpty();
 	BranchAccentColor = FLinearColor::White;
 	bInitialized = false;
 	bAcquireConfirmationPending = false;
@@ -140,6 +144,21 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	if (Text_DetailCost) Text_DetailCost->SetText(FText::GetEmpty());
 	if (Text_DetailState) Text_DetailState->SetText(FText::GetEmpty());
 	if (Text_DetailVariants) Text_DetailVariants->SetText(FText::GetEmpty());
+	if (Text_DetailVariantName)
+	{
+		Text_DetailVariantName->SetText(FText::GetEmpty());
+		Text_DetailVariantName->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (Text_DetailVariantDescription)
+	{
+		Text_DetailVariantDescription->SetText(FText::GetEmpty());
+		Text_DetailVariantDescription->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (Text_DetailActionSummary)
+	{
+		Text_DetailActionSummary->SetText(FText::GetEmpty());
+		Text_DetailActionSummary->SetVisibility(ESlateVisibility::Collapsed);
+	}
 	ApplyAcquisitionPresentation();
 }
 
@@ -198,6 +217,8 @@ bool UGridTalentDetailWidget::BeginVariantSelection()
 	{
 		Combo_VariantChoice->ClearSelection();
 	}
+	RefreshVariantDetailPreview();
+	ApplyDetailPresentation();
 	ApplyAcquisitionPresentation();
 	return true;
 }
@@ -221,6 +242,8 @@ bool UGridTalentDetailWidget::SelectVariantChoice(FName ChoiceId)
 	}
 
 	SelectedVariantChoiceId = ChoiceId;
+	RefreshVariantDetailPreview();
+	ApplyDetailPresentation();
 	ApplyAcquisitionPresentation();
 	return true;
 }
@@ -252,6 +275,8 @@ void UGridTalentDetailWidget::CancelAcquireConfirmation()
 	{
 		Combo_VariantChoice->ClearSelection();
 	}
+	RefreshVariantDetailPreview();
+	ApplyDetailPresentation();
 	ApplyAcquisitionPresentation();
 }
 
@@ -402,6 +427,101 @@ FText UGridTalentDetailWidget::MakeVariantDisplayLabel(const FGridTalentVariantV
 	return FText::FromString(Label);
 }
 
+void UGridTalentDetailWidget::RefreshVariantDetailPreview()
+{
+	ResolvedVariantDisplayName = FText::GetEmpty();
+	ResolvedVariantDescription = FText::GetEmpty();
+	ResolvedActionSummary = FText::GetEmpty();
+
+	if (!bInitialized || NodeView.Variants.IsEmpty())
+	{
+		return;
+	}
+
+	const FGridTalentVariantView* PreviewVariant = nullptr;
+	if (!SelectedVariantChoiceId.IsNone())
+	{
+		PreviewVariant = NodeView.Variants.FindByPredicate(
+			[this](const FGridTalentVariantView& Candidate)
+			{
+				return Candidate.ChoiceId == SelectedVariantChoiceId;
+			});
+	}
+
+	if (!PreviewVariant && !NodeView.SelectedChoiceId.IsNone())
+	{
+		PreviewVariant = NodeView.Variants.FindByPredicate(
+			[this](const FGridTalentVariantView& Candidate)
+			{
+				return Candidate.ChoiceId == NodeView.SelectedChoiceId;
+			});
+	}
+
+	if (!PreviewVariant && NodeView.Variants.Num() == 1)
+	{
+		PreviewVariant = &NodeView.Variants[0];
+	}
+
+	if (!PreviewVariant)
+	{
+		return;
+	}
+
+	if (NodeView.Variants.Num() > 1)
+	{
+		ResolvedVariantDisplayName = MakeVariantDisplayLabel(*PreviewVariant);
+		ResolvedVariantDescription = PreviewVariant->Description;
+	}
+	ResolvedActionSummary = BuildActionSummary(*PreviewVariant);
+}
+
+FText UGridTalentDetailWidget::BuildActionSummary(const FGridTalentVariantView& Variant) const
+{
+	if (Variant.UnlockedActions.IsEmpty())
+	{
+		return FText::GetEmpty();
+	}
+
+	TArray<FString> ActionBlocks;
+	ActionBlocks.Reserve(Variant.UnlockedActions.Num());
+	for (const FGridTalentUnlockedActionView& Action : Variant.UnlockedActions)
+	{
+		FString Header = Action.DisplayName.IsEmpty() ? Action.ActionId.ToString() : Action.DisplayName.ToString();
+
+		TArray<FString> Costs;
+		Costs.Add(FString::Printf(TEXT("%d PA"), Action.ActionPointCost));
+		if (Action.ManaCost > 0)
+		{
+			Costs.Add(FString::Printf(TEXT("%d Mana"), Action.ManaCost));
+		}
+		if (Action.RangeCells > 0)
+		{
+			Costs.Add(FString::Printf(TEXT("Portée %d"), Action.RangeCells));
+		}
+		if (Action.CooldownRounds > 0)
+		{
+			Costs.Add(FString::Printf(
+				TEXT("Recharge %d tour%s"),
+				Action.CooldownRounds,
+				Action.CooldownRounds > 1 ? TEXT("s") : TEXT("")));
+		}
+
+		if (!Costs.IsEmpty())
+		{
+			Header += TEXT(" — ");
+			Header += FString::Join(Costs, TEXT(" — "));
+		}
+
+		FString Description = Action.Description.ToString();
+		Description.TrimStartAndEndInline();
+		ActionBlocks.Add(Description.IsEmpty()
+			? Header
+			: FString::Printf(TEXT("%s\n%s"), *Header, *Description));
+	}
+
+	return FText::FromString(FString::Join(ActionBlocks, TEXT("\n\n")));
+}
+
 void UGridTalentDetailWidget::ApplyDetailPresentation()
 {
 	if (!bInitialized)
@@ -469,6 +589,25 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 					FText::FromString(FString::Printf(TEXT("Variantes : %s"), *FString::Join(Labels, TEXT(" / ")))));
 			}
 		}
+	}
+
+	if (Text_DetailVariantName)
+	{
+		Text_DetailVariantName->SetText(ResolvedVariantDisplayName);
+		Text_DetailVariantName->SetVisibility(
+			ResolvedVariantDisplayName.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
+	}
+	if (Text_DetailVariantDescription)
+	{
+		Text_DetailVariantDescription->SetText(ResolvedVariantDescription);
+		Text_DetailVariantDescription->SetVisibility(
+			ResolvedVariantDescription.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
+	}
+	if (Text_DetailActionSummary)
+	{
+		Text_DetailActionSummary->SetText(ResolvedActionSummary);
+		Text_DetailActionSummary->SetVisibility(
+			ResolvedActionSummary.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
 	}
 }
 

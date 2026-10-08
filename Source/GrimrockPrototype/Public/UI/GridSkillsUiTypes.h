@@ -58,6 +58,33 @@ enum class EGridTalentNodeState : uint8
 };
 
 USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridTalentUnlockedActionView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FName ActionId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText DisplayName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText Description;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 ActionPointCost = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 ManaCost = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 RangeCells = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 CooldownRounds = 0;
+};
+
+USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridTalentVariantView
 {
 	GENERATED_BODY()
@@ -70,6 +97,13 @@ struct GRIMROCKPROTOTYPE_API FGridTalentVariantView
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FText Description;
+
+	/**
+	 * Read-only projection of class CombatActions unlocked by this concrete
+	 * ChoiceId or by one of its GrantedRequirementIds.
+	 */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	TArray<FGridTalentUnlockedActionView> UnlockedActions;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	bool bSelected = false;

@@ -138,6 +138,46 @@ namespace
 		for (const FName RequirementId : Choice.GrantedRequirementIds) OutIds.Add(RequirementId);
 	}
 
+	void BuildUnlockedActionViews(
+		const URPGClassAsset& ClassDefinition,
+		const FRPGClassProgressionChoiceDefinition& Choice,
+		TArray<FGridTalentUnlockedActionView>& OutActions)
+	{
+		OutActions.Reset();
+
+		TSet<FName> SatisfiedIds;
+		BuildSatisfiedIdsForChoice(Choice, SatisfiedIds);
+
+		for (const FGridCombatActionDefinition& Action : ClassDefinition.CombatActions)
+		{
+			const bool bUnlockedByChoice = Action.Requirements.ContainsByPredicate(
+				[&SatisfiedIds](const FName RequirementId)
+				{
+					return SatisfiedIds.Contains(RequirementId);
+				});
+			if (!bUnlockedByChoice)
+			{
+				continue;
+			}
+
+			FGridTalentUnlockedActionView ActionView;
+			ActionView.ActionId = Action.ActionId;
+			ActionView.DisplayName = Action.DisplayName;
+			ActionView.Description = Action.Description;
+			ActionView.ActionPointCost = Action.ActionPointCost;
+			ActionView.ManaCost = Action.ResourceCosts.ManaCost;
+			ActionView.RangeCells = Action.RangeCells;
+			ActionView.CooldownRounds = Action.CooldownRounds;
+			OutActions.Add(MoveTemp(ActionView));
+		}
+
+		OutActions.Sort(
+			[](const FGridTalentUnlockedActionView& Left, const FGridTalentUnlockedActionView& Right)
+			{
+				return Left.ActionId.ToString().Compare(Right.ActionId.ToString(), ESearchCase::CaseSensitive) < 0;
+			});
+	}
+
 	bool BuildCommonSatisfiedIds(const FChoiceArray& Choices, TSet<FName>& OutCommonIds)
 	{
 		OutCommonIds.Reset();
@@ -231,6 +271,7 @@ namespace
 			Variant.ChoiceId = Choice->ChoiceId;
 			Variant.DisplayName = Choice->DisplayName;
 			Variant.Description = Choice->Description;
+			BuildUnlockedActionViews(ClassDefinition, *Choice, Variant.UnlockedActions);
 			Variant.bSelected = bSelected;
 			if (!TryMapChoiceState(bSelected, Availability, Variant.State)) return false;
 			Variant.bAvailable = Variant.State == EGridTalentNodeState::Available;
