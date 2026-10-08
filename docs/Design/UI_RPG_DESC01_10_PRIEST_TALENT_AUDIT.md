@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **DRAFT — validation utilisateur requise**  
+État : **VALIDÉ PAR L'UTILISATEUR — 8 octobre 2026**  
 Dépendances : **UI-RPG-DESC01.5 à .9 validés**  
 Périmètre : **Prêtre / 3 branches / 15 nœuds conceptuels / 15 Choice records**
 
@@ -914,7 +914,7 @@ Lumière sacrée
 | Châtiment | Conforme | SORT ACTIF |
 | Exorcisme majeur | Conforme ; future règle Summoned non implémentée | SORT ACTIF |
 
-# 9. Arbitrages et reports proposés
+# 9. Arbitrages et reports validés
 
 ## PRIEST-01 — dégâts de Repousser les morts-vivants
 
@@ -941,7 +941,7 @@ Conséquence : l'action peut actuellement résoudre :
 
 alors que le contrat dit 4 fixes.
 
-**Recommandation : conserver RPG02 comme autorité et canoniser 4 dégâts fixes.**
+**Décision validée : conserver RPG02 comme autorité et canoniser 4 dégâts fixes.**
 L'authoring devra être corrigé plus tard dans la phase d'implémentation/régression,
 sans modifier le contrat UX.
 
@@ -956,7 +956,7 @@ sans hard-code ici.
 
 Aucune telle règle n'existe actuellement dans Exorcisme majeur.
 
-**Recommandation : ne pas afficher cette promesse dans la fiche joueur actuelle.**
+**Décision validée : ne pas afficher cette promesse dans la fiche joueur actuelle.**
 
 Le Talent actuel :
 
@@ -975,7 +975,7 @@ Les sources RPG02 alternent entre « Ally » et « Self/Ally », alors que le re
 générique actuel permet à une action `Ally` de sélectionner explicitement le
 lanceur lui-même.
 
-**Recommandation : canoniser pour l'UX Prêtre :**
+**Décision validée : canoniser pour l'UX Prêtre :**
 
 ```text
 Ally -> soi-même ou un allié vivant
@@ -1141,7 +1141,7 @@ La forme C++ sera définie seulement en DESC01.13 après l'audit 90/90.
 
 # 14. Critères de validation UI-RPG-DESC01.10
 
-Le jalon est validé lorsque l'utilisateur approuve :
+Le jalon a été validé par l'utilisateur le **8 octobre 2026**. Ont été approuvés :
 
 - les 15 fiches Prêtre ;
 - la classification **14 SORTS ACTIFS / 1 PASSIF** ;
