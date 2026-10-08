@@ -319,4 +319,56 @@ bool FUIRPG014ReadModelProjectionTest::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG014ExplicitTalentPresentationTypesTest,
+	"Grimrock.UI.RPG01.ProductionAssets.ExplicitTalentPresentationTypes",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FUIRPG014ExplicitTalentPresentationTypesTest::RunTest(const FString&)
+{
+	using namespace UIRPG014Production;
+	TMap<ERPGTalentPresentationType, int32> Counts;
+	int32 TotalNodes = 0;
+
+	for (const URPGClassAsset* ClassAsset : LoadProductionClasses(*this))
+	{
+		if (!ClassAsset) continue;
+
+		TMap<FName, ERPGTalentPresentationType> TypeByNode;
+		for (const FRPGClassProgressionChoiceDefinition& Choice : ClassAsset->ProgressionChoices)
+		{
+			TestTrue(*FString::Printf(TEXT("%s/%s stores explicit PresentationType"),
+				*ClassAsset->ClassId.ToString(), *Choice.ChoiceId.ToString()),
+				Choice.PresentationType != ERPGTalentPresentationType::None);
+
+			if (ERPGTalentPresentationType* Existing = TypeByNode.Find(Choice.TalentNodeId))
+			{
+				TestEqual(TEXT("All concrete variants in a conceptual node share one PresentationType"),
+					*Existing, Choice.PresentationType);
+			}
+			else
+			{
+				TypeByNode.Add(Choice.TalentNodeId, Choice.PresentationType);
+			}
+		}
+
+		TestEqual(*FString::Printf(TEXT("%s has fifteen explicitly typed conceptual Talents"),
+			*ClassAsset->ClassId.ToString()), TypeByNode.Num(), 15);
+		TotalNodes += TypeByNode.Num();
+
+		for (const TPair<FName, ERPGTalentPresentationType>& Pair : TypeByNode)
+		{
+			Counts.FindOrAdd(Pair.Value)++;
+		}
+	}
+
+	TestEqual(TEXT("Production assets expose exactly ninety typed conceptual Talents"), TotalNodes, 90);
+	TestEqual(TEXT("Production ACTIF count"), Counts.FindRef(ERPGTalentPresentationType::Active), 32);
+	TestEqual(TEXT("Production SORT ACTIF count"), Counts.FindRef(ERPGTalentPresentationType::ActiveSpell), 22);
+	TestEqual(TEXT("Production PASSIF count"), Counts.FindRef(ERPGTalentPresentationType::Passive), 22);
+	TestEqual(TEXT("Production RÉACTION AUTOMATIQUE count"), Counts.FindRef(ERPGTalentPresentationType::AutomaticReaction), 5);
+	TestEqual(TEXT("Production RECETTE + OBJET RAPIDE count"), Counts.FindRef(ERPGTalentPresentationType::RecipeQuickItem), 8);
+	TestEqual(TEXT("Production RECETTE + ACTIF count"), Counts.FindRef(ERPGTalentPresentationType::RecipeActive), 1);
+	return true;
+}
+
 #endif

@@ -496,38 +496,6 @@ namespace
 		}
 	}
 
-	ERPGTalentPresentationType ResolveLegacyTalentType(
-		const FRPGClassProgressionChoiceDefinition& Choice,
-		const TArray<FGridTalentUnlockedActionView>& Actions)
-	{
-		if (Choice.PresentationType != ERPGTalentPresentationType::None)
-		{
-			return Choice.PresentationType;
-		}
-
-		// DESC01.14.1 migration fallback for the six pre-materialization DA_Class_* assets.
-		// Removed in DESC01.14.2 once those binaries persist PresentationType.
-		const bool bRecipe = Choice.GrantedRequirementIds.ContainsByPredicate(
-			[](const FName Id) { return Id.ToString().StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive); });
-		if (bRecipe)
-		{
-			return ERPGTalentPresentationType::RecipeQuickItem;
-		}
-		if (!Choice.CombatReactions.IsEmpty() && Actions.IsEmpty())
-		{
-			return ERPGTalentPresentationType::AutomaticReaction;
-		}
-		if (!Actions.IsEmpty())
-		{
-			const bool bSpell = Actions.ContainsByPredicate(
-				[](const FGridTalentUnlockedActionView& Action)
-				{
-					return Action.SourcePolicy == EGridCombatActionSourcePolicy::Spell;
-				});
-			return bSpell ? ERPGTalentPresentationType::ActiveSpell : ERPGTalentPresentationType::Active;
-		}
-		return ERPGTalentPresentationType::Passive;
-	}
 
 	void AddDetailLine(TArray<FGridTalentDetailLineView>& Lines, const TCHAR* Label, const FString& Value)
 	{
@@ -805,7 +773,7 @@ namespace
 			Variant.Description = Choice->Description;
 			Variant.Principle = Choice->Description;
 			BuildUnlockedActionViews(ClassDefinition, *Choice, Variant.UnlockedActions);
-			Variant.Type = ResolveLegacyTalentType(*Choice, Variant.UnlockedActions);
+			Variant.Type = Choice->PresentationType;
 			Variant.TypeText = TalentTypeText(Variant.Type);
 			Variant.EffectCategory = Variant.TypeText; // DESC01.14.1 compatibility only.
 			Variant.MechanicsSummary = BuildMechanicsSummary(*Choice); // compatibility only.

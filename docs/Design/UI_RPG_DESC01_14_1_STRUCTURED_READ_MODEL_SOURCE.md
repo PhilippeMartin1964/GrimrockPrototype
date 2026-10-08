@@ -1,7 +1,7 @@
 # UI-RPG-DESC01.14.1 — Projection C++ structurée du read-model Talent
 
 Date : **8 octobre 2026**  
-État : **SOURCE IMPLEMENTÉ — validation locale utilisateur requise**
+État : **DESC01.14.2 SOURCE PRÊTE — validation locale finale requise**
 
 ## Objet
 
@@ -21,17 +21,20 @@ Implémenté :
 
 ## Frontière binaire
 
-Les six `DA_Class_*` de production ont été matérialisés avant l'existence de
-`PresentationType`. DESC01.14.1 garde donc un fallback de migration pour ces
-assets **uniquement jusqu'à DESC01.14.2**.
+Le 8 octobre 2026, l'utilisateur a exécuté `Scripts/AuthorUIRPGTalentTree.ps1`.
+Le build Development Editor a réussi, exactement les six `DA_Class_*` ont été
+modifiés, `Grimrock.UI.RPG01.ProductionAssets` a réussi 5/5 et
+`Grimrock.RPG.RPG03` a réussi 193/193, sans warning ni échec.
 
-DESC01.14.2 doit :
+DESC01.14.2 supprime maintenant le fallback d'inférence : le read-model projette
+directement `Choice.PresentationType`. Un nouveau test de production exige que
+les six assets matérialisés portent explicitement la matrice TYPE 90/90.
 
-1. exécuter `Scripts/AuthorUIRPGTalentTree.ps1` ;
-2. matérialiser exactement les six `DA_Class_*` ;
-3. vérifier la matrice TYPE sur les assets de production ;
-4. supprimer le fallback d'inférence ;
-5. valider `Grimrock.UI.RPG.DESC01` et les régressions RPG03.
+Validation finale encore requise après récupération de ce commit :
+
+1. `Grimrock.UI.RPG01.ProductionAssets` — attendu 6/6 ;
+2. `Grimrock.UI.RPG.DESC01` ;
+3. aucune modification autre que les six `DA_Class_*` dans le working tree avant commit binaire.
 
 ## Dettes gameplay — calendrier obligatoire
 
