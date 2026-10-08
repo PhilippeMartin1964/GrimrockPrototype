@@ -559,4 +559,45 @@ bool FUIRPGDESC014VariantTypeContractTest::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGDESC01151CanonicalDetailTest,
+	"Grimrock.UI.RPG.DESC01.Detail.CanonicalPresenter",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGDESC01151CanonicalDetailTest::RunTest(const FString&)
+{
+	FGridTalentNodeView Node;
+	Node.TalentNodeId = TEXT("Canonical_Active");
+	Node.TalentBranchId = TEXT("Canonical_Branch");
+	Node.DisplayName = FText::FromString(TEXT("Nom canonique"));
+	Node.TypeText = FText::FromString(TEXT("ACTIF"));
+	Node.StatusText = FText::FromString(TEXT("VERROUILLÉ — niveau 4 requis"));
+	Node.Principle = FText::FromString(TEXT("Principe canonique"));
+	Node.Acquisition.MinimumLevel = 4;
+	Node.Acquisition.PointCost = 2;
+	FGridTalentDetailLineView Effect;
+	Effect.Label = FText::FromString(TEXT("Dégâts"));
+	Effect.Value = FText::FromString(TEXT("+4"));
+	Node.Effects.Add(Effect);
+	FGridTalentDetailLineView Usage;
+	Usage.Label = FText::FromString(TEXT("Recharge"));
+	Usage.Value = FText::FromString(TEXT("3 rounds"));
+	Node.Usage.Add(Usage);
+	FGridTalentVariantView Variant;
+	Variant.ChoiceId = TEXT("Canonical_Choice");
+	Node.Variants.Add(Variant);
+	FRPGTalentBranchPresentationDefinition Branch;
+	Branch.TalentBranchId = Node.TalentBranchId;
+	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
+	TestTrue(TEXT("Canonical node initializes"), Detail->InitializeTalentDetail(Node, Branch));
+	TestTrue(TEXT("Canonical projection is active"), Detail->bHasCanonicalDetail);
+	TestEqual(TEXT("Canonical name is retained"), Detail->ResolvedDisplayName.ToString(), FString(TEXT("Nom canonique")));
+	TestTrue(TEXT("TYPE comes from read-model"), Detail->ResolvedMainDetailText.ToString().Contains(TEXT("ACTIF")));
+	TestTrue(TEXT("STATUT comes from read-model"), Detail->ResolvedMainDetailText.ToString().Contains(TEXT("VERROUILLÉ — niveau 4 requis")));
+	TestTrue(TEXT("EFFETS uses structured lines"), Detail->ResolvedMainDetailText.ToString().Contains(TEXT("Dégâts : +4")));
+	TestTrue(TEXT("UTILISATION uses structured lines"), Detail->ResolvedMainDetailText.ToString().Contains(TEXT("Recharge : 3 rounds")));
+	TestTrue(TEXT("No reconstructed action summary"), Detail->ResolvedActionSummary.IsEmpty());
+	return true;
+}
+
 #endif

@@ -20,8 +20,13 @@ class GRIMROCKPROTOTYPE_API UGridTalentDetailWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	/** Canonical DESC01.14 read-model. UMG must consume its sections without recalculating gameplay. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FGridTalentNodeView NodeView;
+
+	/** True when the node supplies a structured canonical detail. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
+	bool bHasCanonicalDetail = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FText ResolvedDisplayName;

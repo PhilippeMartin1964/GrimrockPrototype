@@ -96,17 +96,22 @@ bool UGridTalentDetailWidget::InitializeTalentDetail(
 {
 	ClearTalentDetail();
 
+	const bool bCanonical = !InNodeView.DisplayName.IsEmpty() &&
+		!InNodeView.TypeText.IsEmpty() && !InNodeView.StatusText.IsEmpty();
 	FText DisplayName;
 	FText Description;
-	if (!UGridTalentNodeWidget::ResolvePresentationText(
+	if (!bCanonical && !UGridTalentNodeWidget::ResolvePresentationText(
 			InNodeView, InBranchPresentation, DisplayName, Description))
 	{
 		return false;
 	}
 
 	NodeView = InNodeView;
-	ResolvedDisplayName = DisplayName;
-	ResolvedDescription = Description;
+	// Canonical production views no longer depend on a second name resolver.
+	// The legacy resolver is used only by incomplete historical fixtures until 15.5.
+	bHasCanonicalDetail = bCanonical;
+	ResolvedDisplayName = !NodeView.DisplayName.IsEmpty() ? NodeView.DisplayName : DisplayName;
+	ResolvedDescription = !NodeView.Principle.IsEmpty() ? NodeView.Principle : Description;
 	BranchAccentColor = InBranchPresentation.AccentColor;
 	bInitialized = true;
 	RebuildVariantOptions();
@@ -119,6 +124,7 @@ bool UGridTalentDetailWidget::InitializeTalentDetail(
 void UGridTalentDetailWidget::ClearTalentDetail()
 {
 	NodeView = FGridTalentNodeView();
+	bHasCanonicalDetail = false;
 	ResolvedDisplayName = FText::GetEmpty();
 	ResolvedDescription = FText::GetEmpty();
 	ResolvedMainDetailText = FText::GetEmpty();
@@ -587,9 +593,33 @@ void UGridTalentDetailWidget::RefreshVariantDetailPreview()
 		return;
 	}
 
-	ResolvedMainDetailText = BuildMainDetailText();
+	if (bHasCanonicalDetail)
+	{
+		// Formatting only: all text and effect values already belong to FGridSkillsPageService.
+		TArray<FString> Sections;
+		Sections.Add(TEXT("TYPE\n") + NodeView.TypeText.ToString());
+		Sections.Add(TEXT("STATUT\n") + NodeView.StatusText.ToString());
+		if (!NodeView.Principle.IsEmpty()) Sections.Add(TEXT("PRINCIPE\n") + NodeView.Principle.ToString());
+		auto AddLines = [&Sections](const TCHAR* Heading, const TArray<FGridTalentDetailLineView>& Lines)
+		{
+			if (Lines.IsEmpty()) return;
+			TArray<FString> Formatted;
+			for (const FGridTalentDetailLineView& Line : Lines)
+			{
+				Formatted.Add(Line.Label.IsEmpty() ? Line.Value.ToString() : Line.Label.ToString() + TEXT(" : ") + Line.Value.ToString());
+			}
+			Sections.Add(FString(Heading) + TEXT("\n") + FString::Join(Formatted, TEXT("\n")));
+		};
+		AddLines(TEXT("EFFETS"), NodeView.Effects);
+		AddLines(TEXT("UTILISATION"), NodeView.Usage);
+		ResolvedMainDetailText = FText::FromString(FString::Join(Sections, TEXT("\n\n")));
+	}
+	else
+	{
+		ResolvedMainDetailText = BuildMainDetailText();
+	}
 
-	if (NodeView.Variants.Num() > 1)
+	if (NodeView.bHasExclusiveVariants || (!bHasCanonicalDetail && NodeView.Variants.Num() > 1))
 	{
 		ResolvedVariantDisplayName = FText::FromString(TEXT("VARIANTES"));
 		ResolvedVariantDescription = BuildVariantOverview();
@@ -597,9 +627,13 @@ void UGridTalentDetailWidget::RefreshVariantDetailPreview()
 	}
 
 	const FGridTalentVariantView& Variant = NodeView.Variants[0];
-	ResolvedActionSummary = BuildActionSummary(
-		Variant,
-		Variant.bSelected || NodeView.State == EGridTalentNodeState::Acquired);
+	// Canonical UTILISATION already contains the player-facing action properties.
+	if (!bHasCanonicalDetail)
+	{
+		ResolvedActionSummary = BuildActionSummary(
+			Variant,
+			Variant.bSelected || NodeView.State == EGridTalentNodeState::Acquired);
+	}
 }
 
 FText UGridTalentDetailWidget::BuildActionSummary(const FGridTalentVariantView& Variant, bool bAlreadyAcquired) const
@@ -680,18 +714,23 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 	if (Text_DetailLevel)
 	{
 		Text_DetailLevel->SetText(
-			FText::FromString(FString::Printf(TEXT("Niveau requis : %d"), NodeView.MinimumLevel)));
+			FText::FromString(FString::Printf(TEXT("Niveau requis : %d"),
+				bHasCanonicalDetail ? NodeView.Acquisition.MinimumLevel : NodeView.MinimumLevel)));
 	}
 	if (Text_DetailCost)
 	{
 		Text_DetailCost->SetText(
 			FText::FromString(FString::Printf(TEXT("Coût : %d point%s"),
-				NodeView.PointCost,
-				NodeView.PointCost > 1 ? TEXT("s") : TEXT(""))));
+				bHasCanonicalDetail ? NodeView.Acquisition.PointCost : NodeView.PointCost,
+				(bHasCanonicalDetail ? NodeView.Acquisition.PointCost : NodeView.PointCost) > 1 ? TEXT("s") : TEXT(""))));
 	}
 	if (Text_DetailState)
 	{
-		if (NodeView.State == EGridTalentNodeState::LockedPrerequisite && !NodeView.PreviousNodeDisplayName.IsEmpty())
+		if (bHasCanonicalDetail)
+		{
+			Text_DetailState->SetText(NodeView.StatusText);
+		}
+		else if (NodeView.State == EGridTalentNodeState::LockedPrerequisite && !NodeView.PreviousNodeDisplayName.IsEmpty())
 		{
 			Text_DetailState->SetText(FText::Format(NSLOCTEXT("GridTalentDetail", "MissingNamedPrerequisite", "Prérequis manquant : {0}"), NodeView.PreviousNodeDisplayName));
 		}
