@@ -74,3 +74,18 @@ FixedFinalDurationRounds = 4
 La durée finale vaut donc exactement 4 rounds, qu'une cellule soit vide ou
 qu'elle contienne déjà une surface. Le modificateur de durée de la source n'est
 pas appliqué dans ce mode.
+
+
+## Validation D07
+
+Le correctif de durée finale fixe a été validé le 8 octobre 2026 :
+
+```text
+RPG03.9.6A  10/10
+RPG03.9.4F1  4/4
+RPG03.9.6B2  7/7
+warnings      0
+échecs        0
+```
+
+D07 est clos.

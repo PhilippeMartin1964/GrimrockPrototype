@@ -1117,8 +1117,7 @@ Transmutation majeure doit avoir une durée finale de 4 rounds.**
 avec un opt-in de durée finale fixe. Transmutation majeure demande explicitement
 4 rounds ; les conversions ordinaires conservent leur ancien comportement.
 
-État : **source corrigée ; validation locale RPG03.9.6A / RPG03.9.4F1 /
-RPG03.9.6B2 requise avant clôture D07.**
+État : **VALIDÉ / CLOS** — 10/10 RPG03.9.6A, 4/4 RPG03.9.4F1 et 7/7 RPG03.9.6B2, sans warning ni échec.
 
 ## ALCH-05 — bonus +50 % de réaction pendant Transmutation majeure
 

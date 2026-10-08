@@ -809,7 +809,7 @@ cellule vide       -> EmptyCellDurationRounds + modificateur de source
 Le mode fixe produit au contraire exactement la durée authorée et ignore le
 modificateur de durée.
 
-État : **source + tests ajoutés ; validation locale requise avant clôture D07.**
+État : **VALIDÉ / CLOS** — 10/10 RPG03.9.6A, 4/4 RPG03.9.4F1 et 7/7 RPG03.9.6B2, sans warning ni échec.
 
 ### D08 — Alchimiste / Transmutation majeure — bonus de réaction
 
