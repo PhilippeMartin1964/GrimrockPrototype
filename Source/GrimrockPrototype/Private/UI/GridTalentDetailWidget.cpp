@@ -4,6 +4,7 @@
 #include "Components/Button.h"
 #include "Components/ComboBoxString.h"
 #include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
 #include "UI/GridTalentNodeWidget.h"
 
 namespace GridTalentDetailWidgetPrivate
@@ -792,18 +793,24 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 	{
 		Text_DetailDescription->SetText(ResolvedMainDetailText);
 	}
-	auto ApplyOptionalText = [](UTextBlock* Widget, const FText& Text)
+	auto ApplyOptionalSection = [](UVerticalBox* Section, UTextBlock* Widget, const FText& Text)
 	{
-		if (!Widget) return;
-		Widget->SetText(Text);
-		Widget->SetVisibility(Text.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
+		const ESlateVisibility Visibility = Text.IsEmpty()
+			? ESlateVisibility::Collapsed
+			: ESlateVisibility::SelfHitTestInvisible;
+		if (Section) Section->SetVisibility(Visibility);
+		if (Widget)
+		{
+			Widget->SetText(Text);
+			Widget->SetVisibility(Visibility);
+		}
 	};
-	ApplyOptionalText(Text_DetailType, ResolvedTypeText);
-	ApplyOptionalText(Text_DetailStatus, ResolvedStatusText);
-	ApplyOptionalText(Text_DetailPrinciple, ResolvedPrincipleText);
-	ApplyOptionalText(Text_DetailEffects, ResolvedEffectsText);
-	ApplyOptionalText(Text_DetailUsage, ResolvedUsageText);
-	ApplyOptionalText(Text_DetailAcquisition, ResolvedAcquisitionText);
+	ApplyOptionalSection(VB_DetailType, Text_DetailType, ResolvedTypeText);
+	ApplyOptionalSection(VB_DetailStatus, Text_DetailStatus, ResolvedStatusText);
+	ApplyOptionalSection(VB_DetailPrinciple, Text_DetailPrinciple, ResolvedPrincipleText);
+	ApplyOptionalSection(VB_DetailEffects, Text_DetailEffects, ResolvedEffectsText);
+	ApplyOptionalSection(VB_DetailUsage, Text_DetailUsage, ResolvedUsageText);
+	ApplyOptionalSection(VB_DetailAcquisition, Text_DetailAcquisition, ResolvedAcquisitionText);
 	if (Text_DetailLevel)
 	{
 		Text_DetailLevel->SetText(
