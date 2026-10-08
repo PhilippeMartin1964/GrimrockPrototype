@@ -375,6 +375,7 @@ Références actives :
 `docs/Design/UI_RPG_DESC01_13_TALENT_READ_MODEL_CONTRACT.md` — validé.
 `docs/Design/UI_RPG_DESC01_14_1_STRUCTURED_READ_MODEL_SOURCE.md` — **VALIDÉ / CLOS** (6/6 ProductionAssets, 14/14 DESC01, 193/193 RPG03).
 `docs/Design/RPG_TALENT_FIX01_D05_TURN_UNDEAD_FIXED_DAMAGE.md` — **VALIDÉ / CLOS** (21/21 RPG03.9.5, assets Prêtre commités).
+`docs/Design/RPG_TALENT_FIX02_D01_SECOND_WIND_FULL_HEALTH.md` — D01 garde-fou générique confirmé, validation RPG03.9.1 requise.
 `docs/Design/UI_RPG_DESC01_13_CPP_TALENT_AUDIT_90.md` — audit statique C++ 90/90.
 
 Les audits de classe restent documentaires ; aucun nouveau C++ / UMG / DataAsset

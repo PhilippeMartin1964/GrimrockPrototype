@@ -5,6 +5,7 @@
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGWarriorAuthoring.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
+#include "Runtime/Combat/GridCombatActionCatalog.h"
 
 namespace RPG0391Authoring
 {
@@ -187,6 +188,62 @@ bool FRPG0391WeaponMasterAuthoringTest::RunTest(const FString&)
 		Warlord->TargetingPolicy == EGridCombatTargetingPolicy::Party &&
 		Warlord->StatusApplications.Num() == 1 &&
 		Warlord->StatusApplications[0].StatusEffectId == TEXT("Status_Warlord"));
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0391SecondWindFullHealthGuardTest,
+	"Grimrock.RPG.RPG03.9.1.Authoring.SecondWindFullHealthGuard",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0391SecondWindFullHealthGuardTest::RunTest(const FString&)
+{
+	URPGClassAsset* Warrior = RPG0391Authoring::BuildWarrior();
+	const FGridCombatActionDefinition* SecondWind =
+		RPG0391Authoring::FindAction(Warrior, TEXT("Action_Warrior_SecondWind"));
+	if (!TestNotNull(TEXT("Second Wind action is authored"), SecondWind))
+	{
+		return false;
+	}
+
+	FGridCombatActionContribution Contribution;
+	Contribution.Definition = *SecondWind;
+	Contribution.SourceDefinitionId = Warrior->ClassId;
+	Contribution.AvailableSourceQuantity = 1;
+	TestTrue(TEXT("Second Wind contribution is structurally valid"), Contribution.IsValid());
+
+	FGridCombatActionCatalogContext Context;
+	Context.CharacterIndex = 0;
+	Context.CharacterId = FGuid::NewGuid();
+	Context.bCombatActive = true;
+	Context.bActiveCombatant = true;
+	Context.bEnableClassActionExecutors = true;
+	Context.RemainingActionPoints = 4;
+	Context.CurrentHealth = 80;
+	Context.MaximumHealth = 100;
+	Context.SatisfiedRequirements.Add(TEXT("Talent_Warrior_WeaponMaster_SecondWind"));
+
+	TArray<FGridAvailableCombatAction> Actions;
+	FGridCombatActionCatalog::Build(Context, { Contribution }, Actions);
+	TestEqual(TEXT("Second Wind remains catalogued while wounded"), Actions.Num(), 1);
+	if (Actions.Num() != 1)
+	{
+		return false;
+	}
+	TestEqual(TEXT("Second Wind is usable while wounded"),
+		Actions[0].AvailabilityReason, EGridCombatActionAvailabilityReason::None);
+	TestTrue(TEXT("Second Wind is enabled while wounded"), Actions[0].bEnabled);
+
+	Context.CurrentHealth = Context.MaximumHealth;
+	FGridCombatActionCatalog::Build(Context, { Contribution }, Actions);
+	TestEqual(TEXT("Second Wind remains visible at full health"), Actions.Num(), 1);
+	if (Actions.Num() != 1)
+	{
+		return false;
+	}
+	TestEqual(TEXT("Second Wind is generically rejected at full health"),
+		Actions[0].AvailabilityReason, EGridCombatActionAvailabilityReason::NoApplicableEffect);
+	TestFalse(TEXT("Second Wind cannot be spent at full health"), Actions[0].bEnabled);
 	return true;
 }
 

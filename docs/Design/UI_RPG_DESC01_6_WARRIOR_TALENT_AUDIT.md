@@ -604,8 +604,7 @@ Coût : 1 point de Talent
 Prérequis : Riposte
 ```
 
-**Audit source** : restauration 20 % et recharge 4 authorées et testées. Voir
-**ARBITRAGE WARRIOR-03** pour la condition « indisponible à PV maximum ».
+**Audit source** : conforme. La restauration 20 % et la recharge 4 sont authorées. **RPG-TALENT-FIX02** confirme par test de régression que le catalogue générique renvoie `NoApplicableEffect` à PV maximum ; aucune logique spécifique à Second souffle n'est nécessaire.
 
 ---
 
@@ -777,7 +776,7 @@ L'authoring de l'action encode la restauration de 20 % et la recharge, mais aucu
 filtre dédié à « PV < PV maximum » n'a été identifié dans la définition du Talent
 ou son test d'authoring.
 
-**Décision validée :** conserver strictement la règle RPG02 « indisponible à PV maximum ». La présence du garde-fou runtime sera vérifiée lors de la normalisation/implémentation ultérieure ; s'il manque, ce sera une anomalie mécanique à corriger sans changer le contrat UX.
+**Décision validée et vérifiée :** la règle RPG02 « indisponible à PV maximum » est déjà assurée par `FGridCombatActionCatalog`. Pour une action de classe `Self + Effect`, si le soin ne peut produire aucune mutation, l'action reçoit `NoApplicableEffect` et n'est pas dépensable. RPG-TALENT-FIX02 ajoute un test spécifique sur `Action_Warrior_SecondWind`.
 
 # 10. Vocabulaire Guerrier à normaliser
 

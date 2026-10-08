@@ -33,14 +33,14 @@ Il ne remplace pas une exécution locale UE5.5.4. Conformément à la politique 
 ## 3. Résultat mécanique consolidé
 
 ~~~text
-83 / 90 nœuds : mécanique C++ conforme au contrat v0.1 normalisé
- 7 / 90 nœuds : divergence ou raccordement runtime incomplet déjà identifié
+85 / 90 nœuds : mécanique C++ conforme au contrat v0.1 normalisé
+ 5 / 90 nœuds : divergence ou raccordement runtime incomplet encore identifié
 90 / 90 nœuds : identité/structure authorée présente
 ~~~
 
 Les 7 nœuds ne sont pas absents : ils existent dans l'authoring, mais une partie de leur comportement ne correspond pas encore entièrement au contrat validé.
 
-## 4. Guerrier — 14 conformes / 1 partiel
+## 4. Guerrier — 15 conformes
 
 | Talent | Audit C++ |
 |---|---|
@@ -56,7 +56,7 @@ Les 7 nœuds ne sont pas absents : ils existent dans l'authoring, mais une parti
 | Ravage | OK |
 | Spécialisation martiale | OK — 3 Choice exclusifs |
 | Riposte | OK — mains nues autorisées |
-| **Second souffle** | **PARTIEL D01 — garde-fou PV maximum non établi** |
+| Second souffle | OK — D01 clos : `NoApplicableEffect` à PV maximum via le catalogue générique |
 | Maîtrise critique | OK |
 | Seigneur de guerre | OK |
 
@@ -126,7 +126,7 @@ D04 reste une dette de présentation : les variantes Ennemi juré sont encore no
 
 Les Skills Arcane et Runes existent en production.
 
-## 8. Prêtre — 14 conformes / 1 divergent
+## 8. Prêtre — 15 conformes
 
 | Talent | Audit C++ |
 |---|---|
@@ -196,7 +196,7 @@ Ces éléments sont des dettes du read-model/UI, pas des erreurs dans les 83 Tal
 DESC01.14 doit implémenter le read-model, pas réparer silencieusement le gameplay.
 
 ~~~text
-D01  Second souffle — garde-fou PV max
+D01  Second souffle — CLOS (garde-fou générique + test spécifique)
 D02  échecs sûrs Pièges / Crochetage
 D03  Sabotage monde
 D05  Repousser les morts-vivants — CLOS (4 dégâts fixes, 21/21 RPG03.9.5)
@@ -214,7 +214,7 @@ Identité 90/90                   ÉLEVÉ
 Branches / tiers / coût          ÉLEVÉ
 Variantes structurelles          ÉLEVÉ
 Actions / modifiers / reactions  ÉLEVÉ
-Conformité 83/90                 ÉLEVÉ sur audit statique
+Conformité 85/90                 ÉLEVÉ sur audit statique + D01/D05 validés
 Exécution UE au commit courant   NON REVALIDÉE dans ce jalon
 PIE                              NON REVALIDÉ
 ~~~

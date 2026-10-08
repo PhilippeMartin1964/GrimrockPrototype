@@ -677,7 +677,7 @@ Affinité Évocateur et Affinité Tisseur restent deux choix exclusifs indépend
 
 La normalisation ne transforme pas une promesse documentaire en mécanique réelle.
 
-### D01 — Guerrier / Second souffle
+### D01 — Guerrier / Second souffle — CLOS
 
 Contrat canonique :
 
@@ -685,7 +685,14 @@ Contrat canonique :
 indisponible à PV maximum
 ```
 
-Le garde-fou runtime doit être confirmé/corrigé avant clôture QA.
+**RPG-TALENT-FIX02** confirme que le garde-fou existe déjà dans le catalogue
+générique des actions de classe : une action `Self + Effect` dont le soin ne
+peut augmenter les PV reçoit `NoApplicableEffect`.
+
+Un test de régression utilisant le vrai `Action_Warrior_SecondWind` vérifie que
+l'action est active lorsque le Guerrier est blessé et désactivée à PV maximum.
+
+Aucun `if SecondWind` runtime n'est ajouté.
 
 ### D02 — Voleur / échecs sûrs
 
