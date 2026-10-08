@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **DRAFT — validation utilisateur requise**  
+État : **VALIDÉ PAR L'UTILISATEUR — 8 octobre 2026**  
 Dépendance : **UI-RPG-DESC01.5 validé**  
 Périmètre : **Guerrier / 3 branches / 15 nœuds conceptuels / 17 Choice records concrets**
 
@@ -740,7 +740,7 @@ n'importe laquelle des trois spécialisations satisfait le prérequis de Riposte
 
 Aucune nouvelle mécanique n'est inventée dans les fiches ci-dessus.
 
-# 9. Arbitrages ouverts
+# 9. Arbitrages validés
 
 ## WARRIOR-01 — plusieurs Intercepteurs
 
@@ -750,14 +750,7 @@ avant est touché.
 **Runtime actuel** : si plusieurs personnages possèdent une Interception éligible,
 le code choisit **un seul intercepteur déterministe** puis s'arrête.
 
-Décision requise avant DESC01.12 :
-
-- **A — canoniser le comportement actuel** : une seule Interception peut répondre à
-  une même attaque ;
-- **B — changer ultérieurement la mécanique**.
-
-Tant que ce point n'est pas arbitré, la fiche joueur ne doit pas mentionner le cas
-multi-Guerriers.
+**Décision validée : A.** Une seule Interception peut répondre à une même attaque. Le comportement runtime déterministe actuel est canonisé pour la v0.1 ; il pourra être réévalué à l'usage.
 
 ## WARRIOR-02 — Riposte à mains nues
 
@@ -770,12 +763,7 @@ pas le comportement sans arme.
 bAllowUnarmed = true
 ```
 
-Décision requise :
-
-- **A — autoriser officiellement la Riposte à mains nues** et le documenter ;
-- **B — exiger une arme équipée** et corriger ultérieurement l'authoring.
-
-Aucune formulation joueur ne doit trancher ce point avant décision.
+**Décision validée : A.** Riposte est officiellement autorisée à mains nues. À défaut d'arme, elle utilise le profil d'attaque non armée normal, avec le coefficient de Riposte.
 
 ## WARRIOR-03 — Second souffle à PV maximum
 
@@ -789,12 +777,7 @@ L'authoring de l'action encode la restauration de 20 % et la recharge, mais aucu
 filtre dédié à « PV < PV maximum » n'a été identifié dans la définition du Talent
 ou son test d'authoring.
 
-Décision / vérification requise avant DESC01.12 :
-
-- confirmer qu'un garde-fou runtime générique interdit déjà l'action à PV maximum ;
-- sinon enregistrer un écart mécanique à corriger dans un ticket ultérieur.
-
-L'audit conserve la règle RPG02 comme comportement cible.
+**Décision validée :** conserver strictement la règle RPG02 « indisponible à PV maximum ». La présence du garde-fou runtime sera vérifiée lors de la normalisation/implémentation ultérieure ; s'il manque, ce sera une anomalie mécanique à corriger sans changer le contrat UX.
 
 # 10. Vocabulaire Guerrier à normaliser
 
@@ -852,15 +835,14 @@ six audits de classe et la normalisation croisée DESC01.12.
 
 # 12. Critères de validation UI-RPG-DESC01.6
 
-Le jalon est validé lorsque l'utilisateur approuve :
+Le jalon a été validé par l'utilisateur le **8 octobre 2026**. Ont été approuvés :
 
 - les 15 fiches Guerrier ;
 - la classification 10 ACTIF / 3 PASSIF / 2 RÉACTION AUTOMATIQUE ;
 - la présentation de Spécialisation martiale comme PASSIF + VARIANTES ;
 - les trois chaînes de progression ;
 - le vocabulaire joueur ;
-- les trois arbitrages WARRIOR-01 à WARRIOR-03, ou leur report explicite à
-  DESC01.12.
+- les décisions WARRIOR-01 à WARRIOR-03 ci-dessus.
 
 Après validation :
 

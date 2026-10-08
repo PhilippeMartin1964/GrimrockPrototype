@@ -22,8 +22,7 @@ mélangeait encore :
 
 DESC01.5 définit le contrat UX avant toute nouvelle implémentation.
 
-**Règle de gel : aucun changement C++, UMG ou DataAsset lié à DESC01 ne doit être
-effectué avant validation explicite de ce document.**
+**Contrat validé : DESC01.6 à DESC01.12 restent documentaires. Aucun nouveau C++, UMG ou DataAsset DESC01 n'est autorisé avant le contrat de read-model DESC01.13.**
 
 ## 2. Principes non négociables
 
@@ -416,7 +415,7 @@ Le Guerrier choisit une spécialisation d'arme exclusive.
 
 VARIANTES
 
-TRANCHant
+Tranchant
 Précision : +1
 Dégâts d'arme : +10 %
 Condition : arme tranchante
@@ -440,7 +439,7 @@ Coût : 1 point de Talent
 Choix exclusif : une seule spécialisation
 ```
 
-La casse « TRANCHant » dans cet exemple n'a aucune valeur normative ; la charte
+La casse « Tranchant » dans cet exemple n'a aucune valeur normative ; la charte
 graphique déterminera la casse finale des titres.
 
 ## 13. Couverture fonctionnelle
