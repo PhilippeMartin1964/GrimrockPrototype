@@ -722,8 +722,8 @@ Contrat canonique validé :
 `Action_Priest_TurnUndead` tout en conservant le helper sacré commun pour les
 autres sorts.
 
-État : **source + tests corrigés ; rematérialisation de DA_Class_Priest et
-validation locale encore requises avant clôture D05.**
+État : **VALIDÉ / CLOS** — source corrigée, assets Prêtre rematérialisés et
+`Grimrock.RPG.RPG03.9.5` validé 21/21 sans warning ni échec.
 
 ### D06 — Alchimiste / Réaction en chaîne
 

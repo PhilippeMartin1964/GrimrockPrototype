@@ -53,7 +53,7 @@ Après DESC01.14 et avant DESC01.16 QA six classes :
 - **D01** Second souffle : garde-fou PV maximum ;
 - **D02** Désamorçage expert / Maître des serrures : conséquences des échecs sûrs ;
 - **D03** Sabotage : caller monde ;
-- **D05** Repousser les morts-vivants : 4 dégâts fixes ;
+- **D05** Repousser les morts-vivants : **CLOS** — 4 dégâts fixes validés 21/21 ;
 - **D06** Réaction en chaîne : raccord bombes -> SurfaceReaction ;
 - **D07** Transmutation majeure : durée finale 4 rounds.
 

@@ -1,7 +1,7 @@
 # RPG-TALENT-FIX01 — D05 Repousser les morts-vivants : dégâts fixes
 
 Date : **8 octobre 2026**  
-État : **SOURCE PRÊTE — rematérialisation / validation locale requise**
+État : **VALIDÉ / CLOS — 8 octobre 2026**
 
 ## Contrat
 
@@ -61,3 +61,25 @@ Le script exige un working tree propre, recompile l'Editor, rematérialise les
 assets Prêtre puis lance `Grimrock.RPG.RPG03.9.5`.
 
 Les binaires ne sont commités qu'après lecture du `git status --short`.
+
+
+## Validation finale
+
+Validation utilisateur reçue après rematérialisation Prêtre :
+
+```text
+Grimrock.RPG.RPG03.9.5
+Succeeded              : 21
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Les huit binaires attendus ont été rematérialisés puis commités dans :
+
+```text
+6dc8f98d RPG-TALENT-FIX01 materialize Turn Undead fixed damage
+```
+
+D05 est clos.
