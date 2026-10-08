@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "RPG/RPGSkillTypes.h"
+#include "RPG/RPGClassAsset.h"
 #include "GridSkillsUiTypes.generated.h"
 
 /** Read-only presentation of one canonical Skill for the selected character. */
@@ -58,12 +59,49 @@ enum class EGridTalentNodeState : uint8
 };
 
 USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridTalentDetailLineView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText Label;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText Value;
+};
+
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridTalentAcquisitionView
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 MinimumLevel = 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 PointCost = 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	TArray<FText> PrerequisiteTalentNames;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText ExclusivityText;
+
+	/** Populated only when a real recipe display-name authority exists. Raw Recipe_* ids are never shown. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	TArray<FText> GrantedRecipeNames;
+};
+
+USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridTalentUnlockedActionView
 {
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FName ActionId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	EGridCombatActionSourcePolicy SourcePolicy = EGridCombatActionSourcePolicy::None;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FText DisplayName;
@@ -149,8 +187,34 @@ struct GRIMROCKPROTOTYPE_API FGridTalentVariantView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	bool bAvailable = false;
 
+
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	EGridTalentNodeState State = EGridTalentNodeState::LockedPrerequisite;
+
+	/** DESC01.14 structured projection. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	ERPGTalentPresentationType Type = ERPGTalentPresentationType::None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText TypeText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText StatusText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText Principle;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	TArray<FGridTalentDetailLineView> Effects;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	TArray<FGridTalentDetailLineView> Usage;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	bool bAcquired = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	bool bCanChoose = false;
 };
 
 USTRUCT(BlueprintType)
@@ -188,6 +252,47 @@ struct GRIMROCKPROTOTYPE_API FGridTalentNodeView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FName SelectedChoiceId = NAME_None;
 
+
+	/** DESC01.14 canonical detail projection. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText DisplayName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	ERPGTalentPresentationType Type = ERPGTalentPresentationType::None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText TypeText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText StatusText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText Principle;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	TArray<FGridTalentDetailLineView> Effects;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	TArray<FGridTalentDetailLineView> Usage;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FGridTalentAcquisitionView Acquisition;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FName SimpleChoiceId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	bool bCanAcquireSimple = false;
+
+	/** True only for one of the four exclusive multi-choice conceptual nodes. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	bool bHasExclusiveVariants = false;
+
+	/**
+	 * Transitional DESC01.14.1 compatibility: simple nodes still contain one entry
+	 * until WBP_RPGTalentDetail migrates in DESC01.15. bHasExclusiveVariants is the
+	 * authoritative discriminator; never infer "variant" from array size in new code.
+	 */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	TArray<FGridTalentVariantView> Variants;
 };

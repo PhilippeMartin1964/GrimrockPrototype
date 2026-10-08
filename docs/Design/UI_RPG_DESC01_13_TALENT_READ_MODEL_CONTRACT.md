@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **DRAFT — validation utilisateur requise**  
+État : **VALIDÉ PAR L'UTILISATEUR — 8 octobre 2026**  
 Dépendances : **UI-RPG-DESC01.5 à .12 validés**  
 Périmètre : **contrat uniquement — aucun C++, UMG ou DataAsset modifié**
 
@@ -318,7 +318,7 @@ La charte graphique reste sous l'autorité du thread parallèle UI-RPG-VISUAL01.
 
 ## 21. Critères de validation DESC01.13
 
-Le contrat est validé lorsque l'utilisateur approuve :
+Le contrat a été validé par l'utilisateur le **8 octobre 2026**. Ont été approuvés :
 
 1. FGridSkillsPageService comme unique builder ;
 2. l'ajout unique de ERPGTalentPresentationType dans les Choice authorées ;

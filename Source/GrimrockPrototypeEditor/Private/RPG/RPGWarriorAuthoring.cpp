@@ -57,6 +57,24 @@ namespace RPGWarriorAuthoring
 		return Profile;
 	}
 
+
+	ERPGTalentPresentationType ResolveTalentPresentationType(FName ChoiceId)
+	{
+		const FString Id = ChoiceId.ToString();
+		if (Id.StartsWith(TEXT("Talent_Warrior_WeaponMaster_MartialSpecialization"))) return ERPGTalentPresentationType::Passive;
+		if (Id == TEXT("Talent_Warrior_Guardian_Interception") || Id == TEXT("Talent_Warrior_WeaponMaster_Riposte"))
+			return ERPGTalentPresentationType::AutomaticReaction;
+		if (Id == TEXT("Talent_Warrior_Guardian_Bulwark") || Id == TEXT("Talent_Warrior_WeaponMaster_CriticalMastery"))
+			return ERPGTalentPresentationType::Passive;
+		if (Id == TEXT("Talent_Warrior_Guardian_DefensiveStance") || Id == TEXT("Talent_Warrior_Guardian_ShieldBash") ||
+			Id == TEXT("Talent_Warrior_Guardian_Fortress") || Id == TEXT("Talent_Warrior_Breaker_PowerStrike") ||
+			Id == TEXT("Talent_Warrior_Breaker_ArmorBreak") || Id == TEXT("Talent_Warrior_Breaker_Sweep") ||
+			Id == TEXT("Talent_Warrior_Breaker_Execution") || Id == TEXT("Talent_Warrior_Breaker_Devastation") ||
+			Id == TEXT("Talent_Warrior_WeaponMaster_SecondWind") || Id == TEXT("Talent_Warrior_WeaponMaster_Warlord"))
+			return ERPGTalentPresentationType::Active;
+		return ERPGTalentPresentationType::None;
+	}
+
 	FRPGClassProgressionChoiceDefinition MakeChoice(FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description,
 		int32 MinimumLevel, FName TalentBranchId, FName PrerequisiteChoiceId = NAME_None, FName TalentNodeId = NAME_None)
 	{
@@ -68,6 +86,7 @@ namespace RPGWarriorAuthoring
 		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = MinimumLevel;
 		Choice.PointCost = 1;
+		Choice.PresentationType = ResolveTalentPresentationType(ChoiceId);
 		if (!PrerequisiteChoiceId.IsNone())
 		{
 			Choice.PrerequisiteChoiceIds.Add(PrerequisiteChoiceId);

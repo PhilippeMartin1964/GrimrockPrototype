@@ -68,6 +68,24 @@ namespace RPGAlchemistAuthoring
 	const FName DefensivePoisonStatus(TEXT("Status_DefensiveElixir_Poison"));
 	const FName CorrodedStatus(TEXT("Status_Corroded"));
 
+
+	ERPGTalentPresentationType ResolveTalentPresentationType(FName ChoiceId)
+	{
+		const FString Id = ChoiceId.ToString();
+		if (Id == TEXT("Talent_Alchemist_Grenadier_ChainReaction")) return ERPGTalentPresentationType::AutomaticReaction;
+		if (Id == TEXT("Talent_Alchemist_Grenadier_PreciseCharge") || Id == TEXT("Talent_Alchemist_Grenadier_MasterGrenadier") ||
+			Id == TEXT("Talent_Alchemist_Apothecary_EnhancedPotion") || Id == TEXT("Talent_Alchemist_Apothecary_Diffusion"))
+			return ERPGTalentPresentationType::Passive;
+		if (Id == TEXT("Talent_Alchemist_Transmuter_Catalyst")) return ERPGTalentPresentationType::Active;
+		if (Id == TEXT("Talent_Alchemist_Transmuter_MajorTransmutation")) return ERPGTalentPresentationType::RecipeActive;
+		if (Id == TEXT("Talent_Alchemist_Grenadier_FireBomb") || Id == TEXT("Talent_Alchemist_Grenadier_ToxicBomb") ||
+			Id == TEXT("Talent_Alchemist_Apothecary_Antidote") || Id == TEXT("Talent_Alchemist_Apothecary_DefensiveElixir") ||
+			Id == TEXT("Talent_Alchemist_Apothecary_Panacea") || Id == TEXT("Talent_Alchemist_Transmuter_OilSlick") ||
+			Id == TEXT("Talent_Alchemist_Transmuter_AcidFlask") || Id == TEXT("Talent_Alchemist_Transmuter_CorrosiveCloud"))
+			return ERPGTalentPresentationType::RecipeQuickItem;
+		return ERPGTalentPresentationType::None;
+	}
+
 	FRPGClassProgressionChoiceDefinition MakeChoice(
 		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 Level, FName TalentBranchId, FName Prerequisite = NAME_None, FName TalentNodeId = NAME_None)
 	{
@@ -79,6 +97,7 @@ namespace RPGAlchemistAuthoring
 		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = Level;
 		Choice.PointCost = 1;
+		Choice.PresentationType = ResolveTalentPresentationType(ChoiceId);
 		if (!Prerequisite.IsNone())
 		{
 			Choice.PrerequisiteChoiceIds.Add(Prerequisite);

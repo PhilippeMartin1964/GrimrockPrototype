@@ -58,6 +58,22 @@ namespace RPGPriestAuthoring
 	const FName TurnedUndeadStatusId(TEXT("Status_TurnedUndead"));
 	const FName BanishedStatusId(TEXT("Status_Banished"));
 
+
+	ERPGTalentPresentationType ResolveTalentPresentationType(FName ChoiceId)
+	{
+		const FString Id = ChoiceId.ToString();
+		if (Id == TEXT("Talent_Priest_Restoration_EnhancedHealing")) return ERPGTalentPresentationType::Passive;
+		if (Id == TEXT("Talent_Priest_Restoration_Regeneration") || Id == TEXT("Talent_Priest_Restoration_GroupHeal") ||
+			Id == TEXT("Talent_Priest_Restoration_Purification") || Id == TEXT("Talent_Priest_Restoration_Miracle") ||
+			Id == TEXT("Talent_Priest_Protection_Blessing") || Id == TEXT("Talent_Priest_Protection_Aegis") ||
+			Id == TEXT("Talent_Priest_Protection_HolyProtection") || Id == TEXT("Talent_Priest_Protection_Sanctuary") ||
+			Id == TEXT("Talent_Priest_Protection_DivineBastion") || Id == TEXT("Talent_Priest_Exorcism_HolyLight") ||
+			Id == TEXT("Talent_Priest_Exorcism_TurnUndead") || Id == TEXT("Talent_Priest_Exorcism_HolyDispel") ||
+			Id == TEXT("Talent_Priest_Exorcism_Smite") || Id == TEXT("Talent_Priest_Exorcism_MajorExorcism"))
+			return ERPGTalentPresentationType::ActiveSpell;
+		return ERPGTalentPresentationType::None;
+	}
+
 	FRPGClassProgressionChoiceDefinition MakeChoice(
 		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 MinimumLevel, FName TalentBranchId, FName PrerequisiteChoiceId = NAME_None, FName TalentNodeId = NAME_None)
 	{
@@ -69,6 +85,7 @@ namespace RPGPriestAuthoring
 		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = MinimumLevel;
 		Choice.PointCost = 1;
+		Choice.PresentationType = ResolveTalentPresentationType(ChoiceId);
 		if (!PrerequisiteChoiceId.IsNone())
 		{
 			Choice.PrerequisiteChoiceIds.Add(PrerequisiteChoiceId);

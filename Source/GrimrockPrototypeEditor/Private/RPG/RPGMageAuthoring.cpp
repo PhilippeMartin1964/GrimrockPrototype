@@ -86,6 +86,23 @@ namespace RPGMageAuthoring
 		return FName(*FString::Printf(TEXT("Talent_Mage_SurfaceWeaver_Imbuement_%s"), Suffix));
 	}
 
+
+	ERPGTalentPresentationType ResolveTalentPresentationType(FName ChoiceId)
+	{
+		const FString Id = ChoiceId.ToString();
+		if (Id.StartsWith(TEXT("Talent_Mage_Evoker_ElementalAffinity"))) return ERPGTalentPresentationType::Passive;
+		if (Id.StartsWith(TEXT("Talent_Mage_SurfaceWeaver_Imbuement"))) return ERPGTalentPresentationType::ActiveSpell;
+		if (Id == TEXT("Talent_Mage_Evoker_ControlledExplosion") || Id == TEXT("Talent_Mage_Arcanist_RunicManipulation") ||
+			Id == TEXT("Talent_Mage_Arcanist_ArcaneMastery") || Id == TEXT("Talent_Mage_SurfaceWeaver_Conduction") ||
+			Id == TEXT("Talent_Mage_SurfaceWeaver_PersistentSurface")) return ERPGTalentPresentationType::Passive;
+		if (Id == TEXT("Talent_Mage_Evoker_ElementalOverload")) return ERPGTalentPresentationType::Active;
+		if (Id == TEXT("Talent_Mage_Evoker_ElementalChain") || Id == TEXT("Talent_Mage_Evoker_Cataclysm") ||
+			Id == TEXT("Talent_Mage_Arcanist_ArcaneShield") || Id == TEXT("Talent_Mage_Arcanist_Dispel") ||
+			Id == TEXT("Talent_Mage_Arcanist_ShortTeleport") || Id == TEXT("Talent_Mage_SurfaceWeaver_ElementalConversion") ||
+			Id == TEXT("Talent_Mage_SurfaceWeaver_TerrainArchitect")) return ERPGTalentPresentationType::ActiveSpell;
+		return ERPGTalentPresentationType::None;
+	}
+
 	FRPGClassProgressionChoiceDefinition MakeChoice(
 		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 MinimumLevel, FName TalentBranchId, FName PrerequisiteChoiceId = NAME_None, FName TalentNodeId = NAME_None)
 	{
@@ -97,6 +114,7 @@ namespace RPGMageAuthoring
 		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = MinimumLevel;
 		Choice.PointCost = 1;
+		Choice.PresentationType = ResolveTalentPresentationType(ChoiceId);
 		if (!PrerequisiteChoiceId.IsNone())
 		{
 			Choice.PrerequisiteChoiceIds.Add(PrerequisiteChoiceId);

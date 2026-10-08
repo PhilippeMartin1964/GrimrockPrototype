@@ -372,7 +372,8 @@ Références actives :
 `docs/Design/UI_RPG_DESC01_10_PRIEST_TALENT_AUDIT.md` — validé.
 `docs/Design/UI_RPG_DESC01_11_ALCHEMIST_TALENT_AUDIT.md` — validé.
 `docs/Design/UI_RPG_DESC01_12_TALENT_NORMALIZATION_90.md` — validé.
-`docs/Design/UI_RPG_DESC01_13_TALENT_READ_MODEL_CONTRACT.md` — contrat read-model en validation.
+`docs/Design/UI_RPG_DESC01_13_TALENT_READ_MODEL_CONTRACT.md` — validé.
+`docs/Design/UI_RPG_DESC01_14_1_STRUCTURED_READ_MODEL_SOURCE.md` — source C++ implémentée, validation locale requise.
 `docs/Design/UI_RPG_DESC01_13_CPP_TALENT_AUDIT_90.md` — audit statique C++ 90/90.
 
 Les audits de classe restent documentaires ; aucun nouveau C++ / UMG / DataAsset

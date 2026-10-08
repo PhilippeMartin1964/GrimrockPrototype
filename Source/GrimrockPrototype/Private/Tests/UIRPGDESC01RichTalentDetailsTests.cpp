@@ -459,4 +459,94 @@ bool FUIRPGDESC01UnifiedPlayerLanguageTest::RunTest(const FString& Parameters)
  return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGDESC014StructuredReadModelTest,
+	"Grimrock.UI.RPG.DESC01.ReadModel.StructuredContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGDESC014StructuredReadModelTest::RunTest(const FString&)
+{
+	using namespace UIRPGDESC01Tests;
+	FRuntimeGuard Guard;
+
+	URPGClassAsset* ClassDefinition = nullptr;
+	UGridPartyInventoryComponent* Component = MakeSimpleInventory(ClassDefinition);
+	FRPGClassProgressionChoiceDefinition& Choice = ClassDefinition->ProgressionChoices[0];
+	Choice.PresentationType = ERPGTalentPresentationType::Active;
+	TestTrue(TEXT("DESC01.14 transient class is valid"), ClassDefinition->IsValidDefinition());
+
+	FGridSkillsPageView View;
+	TestTrue(TEXT("DESC01.14 structured read model builds"),
+		FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, View));
+	const FGridTalentNodeView& Node = View.TalentTree.Branches[0].Nodes[0];
+
+	TestEqual(TEXT("Explicit Talent TYPE is projected"), Node.Type, ERPGTalentPresentationType::Active);
+	TestEqual(TEXT("TYPE label is canonical"), Node.TypeText.ToString(), FString(TEXT("ACTIF")));
+	TestEqual(TEXT("Available Talent STATUS is isolated from action state"), Node.StatusText.ToString(), FString(TEXT("DISPONIBLE")));
+	TestEqual(TEXT("PRINCIPE comes from authored Description"), Node.Principle.ToString(), Choice.Description.ToString());
+	TestEqual(TEXT("Simple ChoiceId is explicit"), Node.SimpleChoiceId, Choice.ChoiceId);
+	TestTrue(TEXT("Simple Talent can be acquired"), Node.bCanAcquireSimple);
+	TestTrue(TEXT("Structured EFFETS are present"), !Node.Effects.IsEmpty());
+	TestTrue(TEXT("Structured UTILISATION is present"), !Node.Usage.IsEmpty());
+	TestEqual(TEXT("Acquisition level is projected"), Node.Acquisition.MinimumLevel, Choice.MinimumLevel);
+	TestEqual(TEXT("Acquisition point cost is projected"), Node.Acquisition.PointCost, Choice.PointCost);
+
+	bool bSawRoundCooldown = false;
+	for (const FGridTalentDetailLineView& Line : Node.Usage)
+	{
+		const FString Joined = Line.Label.ToString() + TEXT(" ") + Line.Value.ToString();
+		TestFalse(TEXT("Structured usage never claims ACTION DISPONIBLE"), Joined.Contains(TEXT("ACTION DISPONIBLE")));
+		TestFalse(TEXT("Structured usage never claims future action unlock"), Joined.Contains(TEXT("ACTION ACCORDÉE")));
+		if (Line.Label.ToString() == TEXT("Recharge") && Line.Value.ToString().Contains(TEXT("round")))
+		{
+			bSawRoundCooldown = true;
+		}
+	}
+	TestTrue(TEXT("CooldownRounds is rendered in rounds"), bSawRoundCooldown);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGDESC014VariantTypeContractTest,
+	"Grimrock.UI.RPG.DESC01.ReadModel.VariantTypeContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGDESC014VariantTypeContractTest::RunTest(const FString&)
+{
+	using namespace UIRPGDESC01Tests;
+	FRuntimeGuard Guard;
+
+	URPGClassAsset* ClassDefinition = nullptr;
+	UGridPartyInventoryComponent* Component = MakeSimpleInventory(ClassDefinition);
+	FRPGClassProgressionChoiceDefinition Base = ClassDefinition->ProgressionChoices[0];
+	Base.PresentationType = ERPGTalentPresentationType::Passive;
+	Base.ChoiceId = TEXT("Talent_DESC01_Affinity_Fire");
+	Base.TalentNodeId = TEXT("Talent_DESC01_Affinity");
+	Base.ExclusiveChoiceGroupId = TEXT("TalentGroup_DESC01_Affinity");
+	Base.GrantedRequirementIds = { Base.TalentNodeId };
+	Base.DisplayName = FText::FromString(TEXT("Affinité — Feu"));
+
+	FRPGClassProgressionChoiceDefinition Other = Base;
+	Other.ChoiceId = TEXT("Talent_DESC01_Affinity_Ice");
+	Other.DisplayName = FText::FromString(TEXT("Affinité — Glace"));
+	ClassDefinition->ProgressionChoices = { Base, Other };
+	ClassDefinition->CombatActions.Reset();
+	TestTrue(TEXT("Variant class remains valid"), ClassDefinition->IsValidDefinition());
+
+	FGridSkillsPageView View;
+	TestTrue(TEXT("Variant read model builds"), FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, View));
+	const FGridTalentNodeView& Node = View.TalentTree.Branches[0].Nodes[0];
+	TestTrue(TEXT("Node is explicitly a true exclusive-variant node"), Node.bHasExclusiveVariants);
+	TestEqual(TEXT("Both variants remain projected"), Node.Variants.Num(), 2);
+	TestEqual(TEXT("Node TYPE stays PASSIF"), Node.Type, ERPGTalentPresentationType::Passive);
+	for (const FGridTalentVariantView& Variant : Node.Variants)
+	{
+		TestEqual(TEXT("Variant TYPE matches node TYPE"), Variant.Type, Node.Type);
+		TestEqual(TEXT("Variant TYPE label is canonical"), Variant.TypeText.ToString(), FString(TEXT("PASSIF")));
+		TestTrue(TEXT("Available variant can be chosen"), Variant.bCanChoose);
+	}
+	return true;
+}
+
 #endif

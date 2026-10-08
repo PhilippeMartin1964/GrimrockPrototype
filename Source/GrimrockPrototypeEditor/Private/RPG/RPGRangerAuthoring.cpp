@@ -47,6 +47,23 @@ namespace RPGRangerAuthoring
 		return Profile;
 	}
 
+
+	ERPGTalentPresentationType ResolveTalentPresentationType(FName ChoiceId)
+	{
+		const FString Id = ChoiceId.ToString();
+		if (Id.StartsWith(TEXT("Talent_Ranger_Hunter_FavoredEnemy"))) return ERPGTalentPresentationType::Passive;
+		if (Id == TEXT("Talent_Ranger_Hunter_AlphaHunter")) return ERPGTalentPresentationType::AutomaticReaction;
+		if (Id == TEXT("Talent_Ranger_Marksman_EagleEye") || Id == TEXT("Talent_Ranger_Scout_Vigilance") ||
+			Id == TEXT("Talent_Ranger_Scout_TerrainMaster") || Id == TEXT("Talent_Ranger_Scout_GroupGuide"))
+			return ERPGTalentPresentationType::Passive;
+		if (Id == TEXT("Talent_Ranger_Marksman_PreciseShot") || Id == TEXT("Talent_Ranger_Marksman_PiercingShot") ||
+			Id == TEXT("Talent_Ranger_Marksman_RapidShot") || Id == TEXT("Talent_Ranger_Marksman_Volley") ||
+			Id == TEXT("Talent_Ranger_Hunter_MarkPrey") || Id == TEXT("Talent_Ranger_Hunter_PinningShot") ||
+			Id == TEXT("Talent_Ranger_Hunter_PredatorStrike") || Id == TEXT("Talent_Ranger_Scout_HuntingTrap") ||
+			Id == TEXT("Talent_Ranger_Scout_TacticalRetreat")) return ERPGTalentPresentationType::Active;
+		return ERPGTalentPresentationType::None;
+	}
+
 	FRPGClassProgressionChoiceDefinition MakeChoice(FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description,
 		int32 MinimumLevel, FName TalentBranchId, FName PrerequisiteChoiceId = NAME_None, FName TalentNodeId = NAME_None)
 	{
@@ -58,6 +75,7 @@ namespace RPGRangerAuthoring
 		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = MinimumLevel;
 		Choice.PointCost = 1;
+		Choice.PresentationType = ResolveTalentPresentationType(ChoiceId);
 		if (!PrerequisiteChoiceId.IsNone())
 		{
 			Choice.PrerequisiteChoiceIds.Add(PrerequisiteChoiceId);

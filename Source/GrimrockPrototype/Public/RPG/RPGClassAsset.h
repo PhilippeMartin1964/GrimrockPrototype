@@ -68,6 +68,19 @@ struct FRPGPartyProgressionModifier
 	}
 };
 
+/** Stable UI semantics for one Talent choice. It does not change gameplay. */
+UENUM(BlueprintType)
+enum class ERPGTalentPresentationType : uint8
+{
+	None,
+	Active,
+	ActiveSpell,
+	Passive,
+	AutomaticReaction,
+	RecipeQuickItem,
+	RecipeActive
+};
+
 /** One optional class progression choice offered to the player. */
 USTRUCT(BlueprintType)
 struct FRPGClassProgressionChoiceDefinition
@@ -84,6 +97,10 @@ struct FRPGClassProgressionChoiceDefinition
 	/** UI-RPG01 conceptual node identity. Variant ChoiceIds share one node id; simple choices normally reuse ChoiceId. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|UI Structure")
 	FName TalentNodeId = NAME_None;
+
+	/** DESC01.14: explicit player-facing mechanic type. Never inferred by UMG. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression|UI Structure")
+	ERPGTalentPresentationType PresentationType = ERPGTalentPresentationType::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Progression")
 	FText DisplayName;

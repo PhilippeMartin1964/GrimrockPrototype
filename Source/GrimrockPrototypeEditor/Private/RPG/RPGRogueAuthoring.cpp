@@ -29,6 +29,22 @@ namespace RPGRogueAuthoring
 		return Profile;
 	}
 
+
+	ERPGTalentPresentationType ResolveTalentPresentationType(FName ChoiceId)
+	{
+		const FString Id = ChoiceId.ToString();
+		if (Id == TEXT("Talent_Rogue_Shadow_Elusive")) return ERPGTalentPresentationType::AutomaticReaction;
+		if (Id == TEXT("Talent_Rogue_Assassin_Backstab") || Id == TEXT("Talent_Rogue_Saboteur_ExpertDisarm") ||
+			Id == TEXT("Talent_Rogue_Saboteur_MasterLocksmith")) return ERPGTalentPresentationType::Passive;
+		if (Id == TEXT("Talent_Rogue_Assassin_SneakAttack") || Id == TEXT("Talent_Rogue_Assassin_Hemorrhage") ||
+			Id == TEXT("Talent_Rogue_Assassin_WeakPoint") || Id == TEXT("Talent_Rogue_Assassin_Finisher") ||
+			Id == TEXT("Talent_Rogue_Shadow_Dodge") || Id == TEXT("Talent_Rogue_Shadow_ShortVanish") ||
+			Id == TEXT("Talent_Rogue_Shadow_ShadowStep") || Id == TEXT("Talent_Rogue_Shadow_PerfectShadow") ||
+			Id == TEXT("Talent_Rogue_Saboteur_QuickTrap") || Id == TEXT("Talent_Rogue_Saboteur_SmokeBomb") ||
+			Id == TEXT("Talent_Rogue_Saboteur_Sabotage")) return ERPGTalentPresentationType::Active;
+		return ERPGTalentPresentationType::None;
+	}
+
 	FRPGClassProgressionChoiceDefinition MakeChoice(FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description,
 		int32 MinimumLevel, FName TalentBranchId, FName PrerequisiteChoiceId = NAME_None, FName TalentNodeId = NAME_None)
 	{
@@ -40,6 +56,7 @@ namespace RPGRogueAuthoring
 		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = MinimumLevel;
 		Choice.PointCost = 1;
+		Choice.PresentationType = ResolveTalentPresentationType(ChoiceId);
 		if (!PrerequisiteChoiceId.IsNone())
 		{
 			Choice.PrerequisiteChoiceIds.Add(PrerequisiteChoiceId);

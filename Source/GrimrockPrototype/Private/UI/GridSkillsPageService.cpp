@@ -1,5 +1,7 @@
 #include "UI/GridSkillsPageService.h"
 
+#include "UI/RPGTalentPresentationAsset.h"
+
 #include "Engine/AssetManager.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
@@ -396,13 +398,13 @@ namespace
 		switch (Policy)
 		{
 			case EGridCombatTargetingPolicy::Self: return FText::FromString(TEXT("soi-même"));
-			case EGridCombatTargetingPolicy::Ally: return FText::FromString(TEXT("un allié"));
+			case EGridCombatTargetingPolicy::Ally: return FText::FromString(TEXT("soi-même ou un allié vivant"));
 			case EGridCombatTargetingPolicy::FirstAxialTarget: return FText::FromString(TEXT("première cible dans l'axe"));
 			case EGridCombatTargetingPolicy::Cell: return FText::FromString(TEXT("une cellule"));
 			case EGridCombatTargetingPolicy::Area: return FText::FromString(TEXT("une zone"));
 			case EGridCombatTargetingPolicy::Hostile: return FText::FromString(TEXT("un ennemi"));
-			case EGridCombatTargetingPolicy::Party: return FText::FromString(TEXT("tout le groupe"));
-			case EGridCombatTargetingPolicy::FrontRowParty: return FText::FromString(TEXT("rang avant du groupe"));
+			case EGridCombatTargetingPolicy::Party: return FText::FromString(TEXT("tous les membres vivants du groupe"));
+			case EGridCombatTargetingPolicy::FrontRowParty: return FText::FromString(TEXT("membres vivants du rang avant"));
 			case EGridCombatTargetingPolicy::AllyOrHostile: return FText::FromString(TEXT("un allié ou un ennemi"));
 			default: return FText::GetEmpty();
 		}
@@ -452,6 +454,7 @@ namespace
 
 			FGridTalentUnlockedActionView ActionView;
 			ActionView.ActionId = Action.ActionId;
+			ActionView.SourcePolicy = Action.SourcePolicy;
 			ActionView.DisplayName = Action.DisplayName;
 			ActionView.Description = Action.Description;
 			ActionView.ActionPointCost = Action.ActionPointCost;
@@ -476,6 +479,229 @@ namespace
 			{
 				return Left.ActionId.ToString().Compare(Right.ActionId.ToString(), ESearchCase::CaseSensitive) < 0;
 			});
+	}
+
+
+	FText TalentTypeText(ERPGTalentPresentationType Type)
+	{
+		switch (Type)
+		{
+			case ERPGTalentPresentationType::Active: return FText::FromString(TEXT("ACTIF"));
+			case ERPGTalentPresentationType::ActiveSpell: return FText::FromString(TEXT("SORT ACTIF"));
+			case ERPGTalentPresentationType::Passive: return FText::FromString(TEXT("PASSIF"));
+			case ERPGTalentPresentationType::AutomaticReaction: return FText::FromString(TEXT("RÉACTION AUTOMATIQUE"));
+			case ERPGTalentPresentationType::RecipeQuickItem: return FText::FromString(TEXT("RECETTE + OBJET RAPIDE"));
+			case ERPGTalentPresentationType::RecipeActive: return FText::FromString(TEXT("RECETTE + ACTIF"));
+			default: return FText::GetEmpty();
+		}
+	}
+
+	ERPGTalentPresentationType ResolveLegacyTalentType(
+		const FRPGClassProgressionChoiceDefinition& Choice,
+		const TArray<FGridTalentUnlockedActionView>& Actions)
+	{
+		if (Choice.PresentationType != ERPGTalentPresentationType::None)
+		{
+			return Choice.PresentationType;
+		}
+
+		// DESC01.14.1 migration fallback for the six pre-materialization DA_Class_* assets.
+		// Removed in DESC01.14.2 once those binaries persist PresentationType.
+		const bool bRecipe = Choice.GrantedRequirementIds.ContainsByPredicate(
+			[](const FName Id) { return Id.ToString().StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive); });
+		if (bRecipe)
+		{
+			return ERPGTalentPresentationType::RecipeQuickItem;
+		}
+		if (!Choice.CombatReactions.IsEmpty() && Actions.IsEmpty())
+		{
+			return ERPGTalentPresentationType::AutomaticReaction;
+		}
+		if (!Actions.IsEmpty())
+		{
+			const bool bSpell = Actions.ContainsByPredicate(
+				[](const FGridTalentUnlockedActionView& Action)
+				{
+					return Action.SourcePolicy == EGridCombatActionSourcePolicy::Spell;
+				});
+			return bSpell ? ERPGTalentPresentationType::ActiveSpell : ERPGTalentPresentationType::Active;
+		}
+		return ERPGTalentPresentationType::Passive;
+	}
+
+	void AddDetailLine(TArray<FGridTalentDetailLineView>& Lines, const TCHAR* Label, const FString& Value)
+	{
+		if (Value.IsEmpty())
+		{
+			return;
+		}
+		FGridTalentDetailLineView Line;
+		Line.Label = FText::FromString(Label);
+		Line.Value = FText::FromString(Value);
+		Lines.Add(MoveTemp(Line));
+	}
+
+	FString Plural(int32 Value, const TCHAR* Singular, const TCHAR* PluralForm)
+	{
+		return FString::Printf(TEXT("%d %s"), Value, Value > 1 ? PluralForm : Singular);
+	}
+
+	FText TalentStatusText(
+		EGridTalentNodeState State, int32 MinimumLevel, int32 PointCost, const TArray<FText>& PrerequisiteNames)
+	{
+		switch (State)
+		{
+			case EGridTalentNodeState::Acquired:
+				return FText::FromString(TEXT("ACQUIS"));
+			case EGridTalentNodeState::Available:
+				return FText::FromString(TEXT("DISPONIBLE"));
+			case EGridTalentNodeState::LockedLevel:
+				return FText::FromString(FString::Printf(TEXT("VERROUILLÉ — niveau %d requis"), MinimumLevel));
+			case EGridTalentNodeState::LockedPrerequisite:
+				if (!PrerequisiteNames.IsEmpty() && !PrerequisiteNames[0].IsEmpty())
+				{
+					return FText::Format(NSLOCTEXT("GridSkillsPage", "TalentLockedPrerequisite",
+						"VERROUILLÉ — nécessite « {0} »"), PrerequisiteNames[0]);
+				}
+				return FText::FromString(TEXT("VERROUILLÉ — prérequis manquant"));
+			case EGridTalentNodeState::LockedPoints:
+				return FText::FromString(FString::Printf(
+					TEXT("VERROUILLÉ — nécessite %d point%s de Talent"), PointCost, PointCost > 1 ? TEXT("s") : TEXT("")));
+			case EGridTalentNodeState::LockedExclusive:
+				return FText::FromString(TEXT("INDISPONIBLE — autre variante déjà choisie"));
+			default:
+				return FText::GetEmpty();
+		}
+	}
+
+	FText ConceptualChoiceDisplayName(const URPGClassAsset& ClassDefinition, FName RequirementId)
+	{
+		for (const FRPGClassProgressionChoiceDefinition& Candidate : ClassDefinition.ProgressionChoices)
+		{
+			if (Candidate.ChoiceId != RequirementId && Candidate.TalentNodeId != RequirementId)
+			{
+				continue;
+			}
+			FString Label = Candidate.DisplayName.ToString();
+			if (Candidate.TalentNodeId == RequirementId && Candidate.ChoiceId != RequirementId)
+			{
+				for (const FString Separator : { FString(TEXT(" — ")), FString(TEXT(" – ")), FString(TEXT(" - ")), FString(TEXT(": ")) })
+				{
+					const int32 Index = Label.Find(Separator, ESearchCase::CaseSensitive);
+					if (Index > 0)
+					{
+						Label = Label.Left(Index);
+						break;
+					}
+				}
+			}
+			Label.TrimStartAndEndInline();
+			return FText::FromString(Label);
+		}
+		return FText::GetEmpty();
+	}
+
+	void BuildAcquisitionView(
+		const URPGClassAsset& ClassDefinition,
+		const FRPGClassProgressionChoiceDefinition& Choice,
+		bool bExclusiveVariant,
+		FGridTalentAcquisitionView& Out)
+	{
+		Out = FGridTalentAcquisitionView();
+		Out.MinimumLevel = Choice.MinimumLevel;
+		Out.PointCost = Choice.PointCost;
+		for (const FName Id : Choice.PrerequisiteChoiceIds)
+		{
+			const FText Name = ConceptualChoiceDisplayName(ClassDefinition, Id);
+			if (!Name.IsEmpty()) Out.PrerequisiteTalentNames.Add(Name);
+		}
+		for (const FName Id : Choice.PrerequisiteRequirementIds)
+		{
+			const FText Name = ConceptualChoiceDisplayName(ClassDefinition, Id);
+			if (!Name.IsEmpty() && !Out.PrerequisiteTalentNames.Contains(Name)) Out.PrerequisiteTalentNames.Add(Name);
+		}
+		if (bExclusiveVariant)
+		{
+			Out.ExclusivityText = FText::FromString(TEXT("Une seule variante peut être acquise."));
+		}
+	}
+
+	void BuildStructuredUsage(
+		const TArray<FGridTalentUnlockedActionView>& Actions,
+		TArray<FGridTalentDetailLineView>& Out)
+	{
+		Out.Reset();
+		for (const FGridTalentUnlockedActionView& Action : Actions)
+		{
+			if (Actions.Num() > 1 && !Action.DisplayName.IsEmpty())
+			{
+				AddDetailLine(Out, TEXT("Action"), Action.DisplayName.ToString());
+			}
+			if (Action.ActionPointCost > 0)
+				AddDetailLine(Out, TEXT("Coût"), Plural(Action.ActionPointCost, TEXT("point d'action"), TEXT("points d'action")));
+			if (Action.ManaCost > 0)
+				AddDetailLine(Out, TEXT("Mana"), FString::FromInt(Action.ManaCost));
+			if (Action.SourceItemQuantityCost > 0)
+				AddDetailLine(Out, TEXT("Objet consommé"), Plural(Action.SourceItemQuantityCost, TEXT("objet"), TEXT("objets")));
+			if (!Action.TargetSummary.IsEmpty())
+				AddDetailLine(Out, TEXT("Cible"), Action.TargetSummary.ToString());
+			if (Action.RangeCells > 0)
+				AddDetailLine(Out, TEXT("Portée"), Plural(Action.RangeCells, TEXT("case"), TEXT("cases")));
+			if (Action.AreaRadiusCells > 0)
+				AddDetailLine(Out, TEXT("Zone"), FString::Printf(TEXT("rayon %s"), *Plural(Action.AreaRadiusCells, TEXT("case"), TEXT("cases"))));
+			if (Action.bRequiresLineOfSight)
+				AddDetailLine(Out, TEXT("Ligne de vue"), TEXT("requise"));
+			if (Action.ResolutionCount > 1)
+			{
+				FString Value = Plural(Action.ResolutionCount, TEXT("résolution"), TEXT("résolutions"));
+				if (Action.SubsequentResolutionAccuracyModifier != 0)
+					Value += FString::Printf(TEXT(" ; Précision %+d à partir de la 2e"), Action.SubsequentResolutionAccuracyModifier);
+				AddDetailLine(Out, TEXT("Résolutions"), Value);
+			}
+			if (Action.CooldownRounds > 0)
+				AddDetailLine(Out, TEXT("Recharge"), Plural(Action.CooldownRounds, TEXT("round"), TEXT("rounds")));
+		}
+	}
+
+	void BuildStructuredEffects(
+		const FRPGClassProgressionChoiceDefinition& Choice,
+		const TArray<FGridTalentUnlockedActionView>& Actions,
+		TArray<FGridTalentDetailLineView>& Out)
+	{
+		Out.Reset();
+		const FString Mechanics = BuildMechanicsSummary(Choice).ToString();
+		TArray<FString> Lines;
+		Mechanics.ParseIntoArrayLines(Lines, true);
+		for (FString Line : Lines)
+		{
+			Line.RemoveFromStart(TEXT("• "));
+			Line.TrimStartAndEndInline();
+			AddDetailLine(Out, TEXT("Effet"), Line);
+		}
+		for (const FGridTalentUnlockedActionView& Action : Actions)
+		{
+			if (Action.bAffectsAlliesInArea)
+				AddDetailLine(Out, TEXT("Zone"), TEXT("peut également affecter les alliés"));
+		}
+	}
+
+	bool ResolveConceptPresentation(
+		FName ClassId, FName BranchId, FName NodeId, FText& OutName, FText& OutPrinciple)
+	{
+		OutName = FText::GetEmpty();
+		OutPrinciple = FText::GetEmpty();
+		const URPGTalentPresentationAsset* Catalog = LoadObject<URPGTalentPresentationAsset>(
+			nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/UI/RPG/DA_RPGTalentPresentation.DA_RPGTalentPresentation"));
+		if (!Catalog) return false;
+		const FRPGClassPresentationDefinition* ClassPresentation = Catalog->FindClass(ClassId);
+		if (!ClassPresentation) return false;
+		const FRPGTalentBranchPresentationDefinition* Branch = ClassPresentation->FindBranch(BranchId);
+		if (!Branch) return false;
+		const FRPGTalentNodePresentationDefinition* Override = Branch->FindNodeOverride(NodeId);
+		if (!Override) return false;
+		OutName = Override->DisplayName;
+		OutPrinciple = Override->Description;
+		return !OutName.IsEmpty();
 	}
 
 	bool BuildCommonSatisfiedIds(const FChoiceArray& Choices, TSet<FName>& OutCommonIds)
@@ -557,6 +783,7 @@ namespace
 		OutNode.Tier = Tier;
 		OutNode.MinimumLevel = First->MinimumLevel;
 		OutNode.PointCost = First->PointCost;
+		OutNode.bHasExclusiveVariants = bVariantNode;
 		OutNode.Variants.Reserve(Choices.Num());
 
 		int32 SelectedVariantCount = 0;
@@ -571,41 +798,25 @@ namespace
 			Variant.ChoiceId = Choice->ChoiceId;
 			Variant.DisplayName = Choice->DisplayName;
 			Variant.Description = Choice->Description;
+			Variant.Principle = Choice->Description;
 			BuildUnlockedActionViews(ClassDefinition, *Choice, Variant.UnlockedActions);
-			Variant.MechanicsSummary = BuildMechanicsSummary(*Choice);
-			const bool bHasPassive = !Choice->CombatModifiers.IsEmpty() || !Choice->SkillModifiers.IsEmpty() ||
-				!Choice->PartyModifiers.IsEmpty() || Choice->FirstRoundInitiativeModifier != 0;
-			const bool bHasReaction = !Choice->CombatReactions.IsEmpty();
-			const bool bHasAction = !Variant.UnlockedActions.IsEmpty();
-			const bool bHasRecipe = Choice->GrantedRequirementIds.ContainsByPredicate(
-				[](const FName Id) { return Id.ToString().StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive); });
-			if (bHasAction && bHasReaction)
-			{
-				Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ ACTIVE + RÉACTION AUTOMATIQUE"));
-			}
-			else if (bHasAction && bHasPassive)
-			{
-				Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ ACTIVE + BONUS PASSIF"));
-			}
-			else if (bHasReaction)
-			{
-				Variant.EffectCategory = FText::FromString(TEXT("RÉACTION AUTOMATIQUE"));
-			}
-			else if (bHasPassive)
-			{
-				Variant.EffectCategory = FText::FromString(TEXT("BONUS PASSIF"));
-			}
-			else if (bHasRecipe)
-			{
-				Variant.EffectCategory = FText::FromString(TEXT("RECETTE"));
-			}
-			else
-			{
-				Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ ACTIVE"));
-			}
+			Variant.Type = ResolveLegacyTalentType(*Choice, Variant.UnlockedActions);
+			Variant.TypeText = TalentTypeText(Variant.Type);
+			Variant.EffectCategory = Variant.TypeText; // DESC01.14.1 compatibility only.
+			Variant.MechanicsSummary = BuildMechanicsSummary(*Choice); // compatibility only.
+			BuildStructuredEffects(*Choice, Variant.UnlockedActions, Variant.Effects);
+			BuildStructuredUsage(Variant.UnlockedActions, Variant.Usage);
 			Variant.bSelected = bSelected;
+			Variant.bAcquired = bSelected;
 			if (!TryMapChoiceState(bSelected, Availability, Variant.State)) return false;
 			Variant.bAvailable = Variant.State == EGridTalentNodeState::Available;
+			Variant.bCanChoose = bVariantNode && Variant.bAvailable && !Variant.bAcquired;
+
+			FGridTalentAcquisitionView VariantAcquisition;
+			BuildAcquisitionView(ClassDefinition, *Choice, bVariantNode, VariantAcquisition);
+			Variant.StatusText = TalentStatusText(
+				Variant.State, Choice->MinimumLevel, Choice->PointCost, VariantAcquisition.PrerequisiteTalentNames);
+
 			OutNode.Variants.Add(MoveTemp(Variant));
 
 			if (bSelected)
@@ -625,6 +836,41 @@ namespace
 		}
 		if (SelectedVariantCount > 1) return false;
 		OutNode.State = SelectedVariantCount == 1 ? EGridTalentNodeState::Acquired : CommonUnselectedState;
+
+		OutNode.Type = OutNode.Variants[0].Type;
+		for (const FGridTalentVariantView& Variant : OutNode.Variants)
+		{
+			if (Variant.Type != OutNode.Type) return false;
+		}
+		OutNode.TypeText = TalentTypeText(OutNode.Type);
+		BuildAcquisitionView(ClassDefinition, *First, bVariantNode, OutNode.Acquisition);
+		OutNode.StatusText = TalentStatusText(
+			OutNode.State, First->MinimumLevel, First->PointCost, OutNode.Acquisition.PrerequisiteTalentNames);
+
+		if (bVariantNode)
+		{
+			FText OverrideName;
+			FText OverridePrinciple;
+			if (ResolveConceptPresentation(ClassDefinition.ClassId, BranchId, NodeId, OverrideName, OverridePrinciple))
+			{
+				OutNode.DisplayName = OverrideName;
+				OutNode.Principle = OverridePrinciple;
+			}
+			else
+			{
+				OutNode.DisplayName = ConceptualNodeDisplayName(OutNode);
+			}
+		}
+		else
+		{
+			OutNode.DisplayName = First->DisplayName;
+			OutNode.Principle = First->Description;
+			OutNode.Effects = OutNode.Variants[0].Effects;
+			OutNode.Usage = OutNode.Variants[0].Usage;
+			OutNode.SimpleChoiceId = First->ChoiceId;
+			OutNode.bCanAcquireSimple =
+				OutNode.State == EGridTalentNodeState::Available && !SelectedChoiceIds.Contains(First->ChoiceId);
+		}
 		return SelectedVariantCount == 1 || bHaveUnselectedState;
 	}
 
@@ -696,7 +942,13 @@ namespace
 					const FChoiceArray* PreviousChoices = NodeGroups->Find(Previous.TalentNodeId);
 					if (!CurrentChoices || !PreviousChoices || !NodeDependsOnPrevious(*CurrentChoices, *PreviousChoices)) return false;
 					Node.PreviousNodeId = Previous.TalentNodeId;
-					Node.PreviousNodeDisplayName = ConceptualNodeDisplayName(Previous);
+					Node.PreviousNodeDisplayName = Previous.DisplayName.IsEmpty() ? ConceptualNodeDisplayName(Previous) : Previous.DisplayName;
+					if (Node.State == EGridTalentNodeState::LockedPrerequisite && !Node.PreviousNodeDisplayName.IsEmpty())
+					{
+						Node.StatusText = FText::Format(
+							NSLOCTEXT("GridSkillsPage", "TalentLockedPrevious",
+								"VERROUILLÉ — nécessite « {0} »"), Node.PreviousNodeDisplayName);
+					}
 				}
 				if (Node.State == EGridTalentNodeState::Acquired) ++Branch.AcquiredNodeCount;
 			}
