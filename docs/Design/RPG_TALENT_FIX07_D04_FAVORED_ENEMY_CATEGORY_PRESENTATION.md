@@ -1,7 +1,7 @@
 # RPG-TALENT-FIX07 — D04 Ennemi juré / présentation des catégories
 
 Date : **8 octobre 2026**  
-État : **SOURCE PRÊTE — matérialisation / validation locale requise**
+État : **VALIDÉ / CLOS — matérialisation et validations locales confirmées**
 
 ## Problème
 
@@ -122,3 +122,9 @@ Après matérialisation :
 Le filtre gagne un test `FavoredEnemyCategoryPresentation`.
 
 Aucun UMG n'est modifié par D04.
+
+## Clôture D04 — 8 octobre 2026
+
+Matérialisation binaire : [`f305dbc`](https://github.com/PhilippeMartin1964/GrimrockPrototype/commit/f305dbc3c0ae729f97308311fd790e3253bdf497) ; exactement les six `.uasset` listés ci-dessus, aucun UMG modifié.
+
+Validations locales fournies : `Grimrock.RPG.RPG03.9.3` **12/12** ; `Grimrock.UI.RPG01.ProductionAssets` **7/7** ; **0 warning, 0 échec, exit code 0** pour chaque filtre. Le correctif D04 est **VALIDÉ / CLOS**.

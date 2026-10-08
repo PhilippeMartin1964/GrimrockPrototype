@@ -57,7 +57,7 @@ Après DESC01.14 et avant DESC01.16 QA six classes :
 - **D06** Réaction en chaîne : **CLOS** — 9/9 RPG03.9.6A + 7/7 RPG03.9.6B1 ;
 - **D07** Transmutation majeure : **CLOS** — durée finale fixe 4 rounds validée 10/10 + 4/4 + 7/7.
 
-**D04** est une dette de présentation bestiaire et doit être réglée avant DESC01.16.
+**D04 : VALIDÉ / CLOS.** Autorité de présentation bestiaire matérialisée dans `f305dbc` ; validations locales rapportées : RPG03.9.3 12/12 et RPG01.ProductionAssets 7/7, sans warning ni échec.
 
 **D08** : **CLOS** — raccord générique conversion→réaction +50 % validé 11/11 + 7/7 + 4/4.
 

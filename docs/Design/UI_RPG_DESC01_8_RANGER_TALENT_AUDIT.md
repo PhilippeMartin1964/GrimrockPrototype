@@ -837,8 +837,7 @@ Goblin -> Gobelins
 Vermin -> Vermine
 ```
 
-État : **source prête ; matérialisation et validation locale requises avant
-clôture D04.**
+État : **VALIDÉ / CLOS** — six `.uasset` matérialisés au commit `f305dbc` ; `Grimrock.RPG.RPG03.9.3` : 12/12 et `Grimrock.UI.RPG01.ProductionAssets` : 7/7, sans warning ni échec.
 
 La zone VARIANTES doit rester verticalement scrollable si le bestiaire contient
 beaucoup de catégories.

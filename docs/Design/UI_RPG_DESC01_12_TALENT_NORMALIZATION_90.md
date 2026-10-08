@@ -745,7 +745,7 @@ acteur de monde. D03 sera raccordé lorsque le projet disposera du vrai flux
 générique « aptitude hors combat -> objet du monde -> Skill Check -> événement ».
 Le combat Sabotage reste déjà opérationnel et indépendant de cette dette.
 
-### D04 — Rôdeur / Ennemi juré — SOURCE CORRIGÉE
+### D04 — Rôdeur / Ennemi juré — VALIDÉ / CLOS
 
 Les catégories restent dynamiques depuis les `UGridMonsterDefinitionAsset`,
 mais leur présentation est désormais portée par
@@ -765,8 +765,7 @@ présentation ou avec un identifiant incohérent.
 Le read-model Talent résout aussi les contextes de catégorie depuis cette même
 autorité ; `HumanizeId(CategoryId)` n'est plus le chemin de production.
 
-État : **source + tests prêts ; exécuter AuthorRPGRanger.ps1 puis valider avant
-clôture D04.**
+État : **VALIDÉ / CLOS** — six `.uasset` matérialisés au commit `f305dbc` ; `Grimrock.RPG.RPG03.9.3` : 12/12 et `Grimrock.UI.RPG01.ProductionAssets` : 7/7, sans warning ni échec.
 
 ### D05 — Prêtre / Repousser les morts-vivants — SOURCE CORRIGÉE
 
