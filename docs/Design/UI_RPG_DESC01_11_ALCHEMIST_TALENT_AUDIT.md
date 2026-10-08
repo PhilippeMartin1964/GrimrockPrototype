@@ -1113,8 +1113,12 @@ surface existante
 **Décision validée : conserver RPG02 comme autorité : toute cellule convertie par
 Transmutation majeure doit avoir une durée finale de 4 rounds.**
 
-Le resolver/contrat de conversion devra être corrigé plus tard sans modifier la
-fiche UX.
+**RPG-TALENT-FIX05 / D07** corrige maintenant le contrat générique de conversion
+avec un opt-in de durée finale fixe. Transmutation majeure demande explicitement
+4 rounds ; les conversions ordinaires conservent leur ancien comportement.
+
+État : **source corrigée ; validation locale RPG03.9.6A / RPG03.9.4F1 /
+RPG03.9.6B2 requise avant clôture D07.**
 
 ## ALCH-05 — bonus +50 % de réaction pendant Transmutation majeure
 

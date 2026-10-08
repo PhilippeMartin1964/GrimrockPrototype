@@ -1424,8 +1424,10 @@ struct FGridCombatSurfaceEffectProfile
 
 /**
  * Generic C6 conversion of an existing (or optionally empty) cell surface.
- * Existing conversions preserve the current duration before source modifiers;
- * empty-cell conversion uses EmptyCellDurationRounds.
+ * By default, existing conversions preserve the current duration before source
+ * modifiers and empty-cell conversion uses EmptyCellDurationRounds.
+ * bUseFixedFinalDuration opts into an exact final duration and intentionally
+ * bypasses SurfaceDurationRoundsModifier.
  */
 USTRUCT(BlueprintType)
 struct FGridCombatSurfaceConversionProfile
@@ -1443,9 +1445,21 @@ struct FGridCombatSurfaceConversionProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion")
 	EGridCombatSurfaceType OutputSurfaceType = EGridCombatSurfaceType::None;
 
-	/** Used only when bAllowEmptyCell resolves an empty cell. */
+	/** Used only when bAllowEmptyCell resolves an empty cell and no fixed final duration is requested. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion", meta = (ClampMin = "1", ClampMax = "6"))
 	int32 EmptyCellDurationRounds = 3;
+
+	/** If true, every successful conversion ends with exactly FixedFinalDurationRounds. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion")
+	bool bUseFixedFinalDuration = false;
+
+	/**
+	 * Exact final duration for a successful conversion.
+	 * Source SurfaceDurationRoundsModifier is intentionally ignored when enabled.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion",
+		meta = (ClampMin = "1", ClampMax = "6", EditCondition = "bUseFixedFinalDuration", EditConditionHides))
+	int32 FixedFinalDurationRounds = 1;
 
 	/** Traversal budget authored for the converted output surface. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Surface Conversion", meta = (ClampMin = "0", ClampMax = "4"))
@@ -1455,6 +1469,7 @@ struct FGridCombatSurfaceConversionProfile
 	{
 		if (OutputSurfaceType == EGridCombatSurfaceType::None || (!bAllowEmptyCell && InputSurfaceTypes.IsEmpty()) ||
 			EmptyCellDurationRounds < 1 || EmptyCellDurationRounds > 6 ||
+			(bUseFixedFinalDuration && (FixedFinalDurationRounds < 1 || FixedFinalDurationRounds > 6)) ||
 			OutputTraversalCostModifier < 0 || OutputTraversalCostModifier > 4)
 		{
 			return false;

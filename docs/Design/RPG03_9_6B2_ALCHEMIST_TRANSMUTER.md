@@ -20,7 +20,7 @@ Aucun `.uasset` n'est modifié.
 - **Flasque acide** : `Item_Flask_Acid`, Hostile R4 AP2 CD1, PhysicalArmor `6 + 2×Alchemy`, jamais de spill HP, `Status_Corroded` 2 rounds.
 - **Nuage corrosif** : `Item_Flask_CorrosiveCloud`, AP3 R4 Area1 CD2, impact `4 + Alchemy` Poison, PoisonCloud 3 rounds à 2 Poison/round, Poison 2 Turns sous ArmorGate magique.
 - **Catalyseur** : action de classe AP1 R4 CD2, `SurfaceInteraction=AnyCanonical`.
-- **Transmutation majeure** : AP4 R4 Area2 CD5, coût source 1, quatre profils de recette Fire/Ice/Poison/Oil, durée 4. Le Choice apporte +50 % aux dégâts de réaction de surface de cette ActionId.
+- **Transmutation majeure** : AP4 R4 Area2 CD5, coût source 1, quatre profils de recette Fire/Ice/Poison/Oil. **D07** impose désormais une durée finale exacte de 4 rounds sur toute conversion réussie, y compris une surface préexistante. Le Choice apporte toujours +50 % aux dégâts de réaction de surface de cette ActionId (D08 reste séparé).
 
 ## Frontière recette
 
@@ -50,3 +50,27 @@ Recipe_MajorTransmutation_Oil
     -EngineRoot D:\UE_5.5 `
     -AutomationFilter "Grimrock.RPG.RPG03.9.6B2"
 ```
+
+
+## Correctif D07 — durée finale fixe
+
+Le profil générique de conversion possède désormais :
+
+```text
+bUseFixedFinalDuration
+FixedFinalDurationRounds
+```
+
+Par défaut, rien ne change : une conversion existante conserve sa durée puis
+applique `SurfaceDurationRoundsModifier`.
+
+Transmutation majeure active explicitement :
+
+```text
+bUseFixedFinalDuration = true
+FixedFinalDurationRounds = 4
+```
+
+La durée finale vaut donc exactement 4 rounds, qu'une cellule soit vide ou
+qu'elle contienne déjà une surface. Le modificateur de durée de la source n'est
+pas appliqué dans ce mode.

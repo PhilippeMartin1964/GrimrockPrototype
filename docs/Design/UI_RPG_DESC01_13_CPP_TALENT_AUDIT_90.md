@@ -164,7 +164,7 @@ Les Skills Arcane et Runes existent en production.
 | Flasque acide | OK |
 | Nuage corrosif | OK |
 | Catalyseur | OK |
-| **Transmutation majeure** | **PARTIEL D07/D08 — durée d'une surface existante et bonus +50 % de réaction non conformes/complets** |
+| **Transmutation majeure** | **D07 SOURCE CORRIGÉE — durée finale fixe 4 rounds ; D08 +50 % réaction reste non résolu** |
 
 ## 10. Dépendance Crafting D09
 
@@ -201,7 +201,7 @@ D02  échecs sûrs Pièges / Crochetage — dépendance du futur runtime Lock/Tr
 D03  Sabotage monde — dépendance du futur flux générique d'aptitudes hors combat
 D05  Repousser les morts-vivants — CLOS (4 dégâts fixes, 21/21 RPG03.9.5)
 D06  Réaction en chaîne — CLOS (9/9 RPG03.9.6A + 7/7 RPG03.9.6B1)
-D07  Transmutation majeure — durée 4 rounds
+D07  Transmutation majeure — source corrigée ; validation RPG03.9.6A/9.4F1/9.6B2 requise
 D08  Transmutation majeure — décision/raccord +50 % réaction
 ~~~
 

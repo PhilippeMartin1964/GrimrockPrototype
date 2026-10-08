@@ -202,7 +202,9 @@ bool FGridCombatSurfaceResolver::ResolveConversion(const FGridCombatSurfaceConve
 	}
 
 	OutState.SurfaceType = Profile.OutputSurfaceType;
-	OutState.RemainingRounds = FMath::Clamp(BaseDuration + SourceModifiers.SurfaceDurationRoundsModifier, 1, 6);
+	OutState.RemainingRounds = Profile.bUseFixedFinalDuration
+		? Profile.FixedFinalDurationRounds
+		: FMath::Clamp(BaseDuration + SourceModifiers.SurfaceDurationRoundsModifier, 1, 6);
 	OutState.SourceCombatantId = SourceCombatantId;
 	OutState.SourceActionId = SourceActionId;
 	OutState.PeriodicDamageType = EGridDamageType::Physical;

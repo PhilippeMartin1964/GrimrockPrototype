@@ -788,7 +788,7 @@ entrante Glace utilise Ice. Aucune interaction Poison/Oil/etc. n'est inventée.
 État : **VALIDÉ / CLOS** — `RPG03.9.6A` 9/9 et `RPG03.9.6B1` 7/7,
 sans warning ni échec.
 
-### D07 — Alchimiste / Transmutation majeure — durée
+### D07 — Alchimiste / Transmutation majeure — durée — SOURCE CORRIGÉE
 
 Contrat canonique :
 
@@ -796,7 +796,20 @@ Contrat canonique :
 toute cellule convertie -> durée finale 4 rounds
 ```
 
-Le resolver actuel conserve la durée restante d'une surface préexistante.
+**RPG-TALENT-FIX05** ajoute au profil de conversion une option générique de durée
+finale fixe. Transmutation majeure active cette option à 4 rounds.
+
+Les conversions ordinaires gardent le comportement historique :
+
+```text
+surface existante -> durée existante + modificateur de source
+cellule vide       -> EmptyCellDurationRounds + modificateur de source
+```
+
+Le mode fixe produit au contraire exactement la durée authorée et ignore le
+modificateur de durée.
+
+État : **source + tests ajoutés ; validation locale requise avant clôture D07.**
 
 ### D08 — Alchimiste / Transmutation majeure — bonus de réaction
 

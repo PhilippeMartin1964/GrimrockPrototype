@@ -340,4 +340,38 @@ bool FRPG0396SurfaceEffectReactionBridgeTest::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0396FixedConversionDurationTest,
+	"Grimrock.RPG.RPG03.9.6A.FixedConversionDuration",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0396FixedConversionDurationTest::RunTest(const FString&)
+{
+	FGridCombatSurfaceState Existing;
+	Existing.SurfaceType = EGridCombatSurfaceType::Water;
+	Existing.RemainingRounds = 1;
+	Existing.SourceCombatantId = FGuid::NewGuid();
+	Existing.SourceActionId = TEXT("Action_OldSurface");
+
+	FGridCombatSurfaceConversionProfile Conversion;
+	Conversion.InputSurfaceTypes = { EGridCombatSurfaceType::Water };
+	Conversion.OutputSurfaceType = EGridCombatSurfaceType::Ice;
+	Conversion.bUseFixedFinalDuration = true;
+	Conversion.FixedFinalDurationRounds = 4;
+
+	FGridResolvedCombatModifiers Modifiers;
+	Modifiers.SurfaceDurationRoundsModifier = 2;
+
+	FGridCombatSurfaceState Converted;
+	TestTrue(TEXT("Fixed-duration conversion resolves against an existing surface"),
+		FGridCombatSurfaceResolver::ResolveConversion(
+			Conversion, &Existing, FGuid::NewGuid(), TEXT("Action_FixedConversion"), Modifiers, Converted));
+	TestEqual(TEXT("Fixed final duration ignores the previous one-round surface and +2 source modifier"),
+		Converted.RemainingRounds, 4);
+
+	Conversion.FixedFinalDurationRounds = 7;
+	TestFalse(TEXT("Fixed final duration outside the surface lifetime cap is invalid"), Conversion.IsValid());
+	return true;
+}
+
 #endif

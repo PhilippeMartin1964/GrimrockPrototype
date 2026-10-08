@@ -153,9 +153,11 @@ bool FRPG0396B2MajorTransmutationTest::RunTest(const FString&)
 			A.ActionPointCost == 4 && A.RangeCells == 4 && A.AreaRadiusCells == 2 && A.CooldownRounds == 5 &&
 			A.ResourceCosts.SourceItemQuantityCost == 1 && A.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem &&
 			A.Requirements.Contains(TEXT("Talent_Alchemist_Transmuter_MajorTransmutation")));
-		TestTrue(TEXT("Recipe contributes exactly one four-round selected conversion"), A.SurfaceConversions.Num() == 1 &&
+		TestTrue(TEXT("Recipe contributes exactly one fixed four-round selected conversion"), A.SurfaceConversions.Num() == 1 &&
 			A.SurfaceConversions[0].OutputSurfaceType == Output &&
 			A.SurfaceConversions[0].EmptyCellDurationRounds == 4 &&
+			A.SurfaceConversions[0].bUseFixedFinalDuration &&
+			A.SurfaceConversions[0].FixedFinalDurationRounds == 4 &&
 			A.SurfaceConversions[0].bAllowEmptyCell);
 		if (Output == EGridCombatSurfaceType::Oil)
 		{
