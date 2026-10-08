@@ -1,7 +1,7 @@
 # RPG-TALENT-FIX06 — D08 Transmutation majeure / réaction avant conversion
 
 Date : **8 octobre 2026**  
-État : **SOURCE PRÊTE — validation locale requise**
+État : **VALIDÉ / CLOS — 8 octobre 2026**
 
 ## Décision
 
@@ -104,3 +104,37 @@ spécifique de Transmutation majeure.
 ```
 
 Aucun DataAsset n'est modifié.
+
+
+## Validation finale
+
+Validation utilisateur reçue le 8 octobre 2026 :
+
+```text
+Grimrock.RPG.RPG03.9.6A
+Succeeded              : 11
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+
+Grimrock.RPG.RPG03.9.6B2
+Succeeded              : 7
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+
+Grimrock.RPG.RPG03.9.4F1
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+D08 est clos.
+
+La magnitude de base universelle d'une explosion de surface reste une limite
+générale de C6 ; elle n'est plus une divergence spécifique de Transmutation
+majeure.

@@ -118,3 +118,19 @@ Les sorties Poison/Huile ne déclenchent aucune interaction artificielle.
 
 La magnitude de base des explosions de surface reste volontairement non inventée,
 conformément à RPG03.6/RPG03.9.6A.
+
+
+## Validation D08
+
+Le raccord réaction avant conversion a été validé le 8 octobre 2026 :
+
+```text
+RPG03.9.6A  11/11
+RPG03.9.6B2  7/7
+RPG03.9.4F1  4/4
+warnings      0
+échecs        0
+```
+
+D08 est clos. La limite de magnitude de base des explosions reste une limite
+globale C6, pas une divergence de Transmutation majeure.

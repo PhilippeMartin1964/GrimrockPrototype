@@ -839,7 +839,8 @@ conversion.
 La magnitude de base d'une explosion de surface reste une limite C6 globale déjà
 documentée : aucun chiffre universel n'est inventé ici.
 
-État : **source + tests ajoutés ; validation locale requise avant clôture D08.**
+État : **VALIDÉ / CLOS** — 11/11 RPG03.9.6A, 7/7 RPG03.9.6B2 et 4/4 RPG03.9.4F1,
+sans warning ni échec.
 
 ### D09 — Alchimiste / Crafting
 

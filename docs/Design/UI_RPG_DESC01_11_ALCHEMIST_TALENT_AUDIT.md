@@ -1160,8 +1160,8 @@ La limite globale C6 demeure inchangée : aucune magnitude de base universelle
 d'explosion de surface n'est définie par RPG02. Cette absence n'est pas propre à
 Transmutation majeure et n'autorise pas l'UI à inventer une valeur de dégâts.
 
-État : **source + tests de raccord ajoutés ; validation locale requise avant
-clôture D08.**
+État : **VALIDÉ / CLOS** — 11/11 RPG03.9.6A, 7/7 RPG03.9.6B2 et 4/4 RPG03.9.4F1,
+sans warning ni échec.
 
 # 11. Friendly fire des bombes
 

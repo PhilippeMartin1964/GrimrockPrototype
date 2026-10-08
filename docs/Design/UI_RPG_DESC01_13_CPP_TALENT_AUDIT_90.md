@@ -33,12 +33,12 @@ Il ne remplace pas une exécution locale UE5.5.4. Conformément à la politique 
 ## 3. Résultat mécanique consolidé
 
 ~~~text
-85 / 90 nœuds : mécanique C++ conforme au contrat v0.1 normalisé
- 5 / 90 nœuds : divergence ou raccordement runtime incomplet encore identifié
+87 / 90 nœuds : mécanique C++ conforme au contrat v0.1 normalisé
+ 3 / 90 nœuds : dépendance runtime métier encore non implémentée
 90 / 90 nœuds : identité/structure authorée présente
 ~~~
 
-Les 7 nœuds ne sont pas absents : ils existent dans l'authoring, mais une partie de leur comportement ne correspond pas encore entièrement au contrat validé.
+Les 3 nœuds restants ne sont pas absents : leurs primitives Talent existent, mais leurs consommateurs métier dépendent encore des futurs runtimes Lock/Trap ou d'aptitudes hors combat.
 
 ## 4. Guerrier — 15 conformes
 
@@ -146,7 +146,7 @@ Les Skills Arcane et Runes existent en production.
 | Châtiment | OK |
 | Exorcisme majeur | OK — destruction future d'invocations faibles volontairement absente |
 
-## 9. Alchimiste — 13 conformes / 2 partiels
+## 9. Alchimiste — 15 conformes
 
 | Talent | Audit C++ |
 |---|---|
@@ -164,7 +164,7 @@ Les Skills Arcane et Runes existent en production.
 | Flasque acide | OK |
 | Nuage corrosif | OK |
 | Catalyseur | OK |
-| **Transmutation majeure** | **D07 CLOS ; D08 SOURCE RACCORDÉE — conversion→SurfaceReaction +50 %, validation locale requise** |
+| Transmutation majeure | **OK — D07/D08 CLOS : durée finale 4 rounds + conversion→SurfaceReaction +50 % validées** |
 
 ## 10. Dépendance Crafting D09
 
@@ -176,7 +176,7 @@ Mais il n'existe pas encore de moteur complet recette + ingrédients + fabricati
 
 ## 11. Écarts de présentation C++ actuels
 
-Le gameplay 83/90 n'implique pas que le read-model actuel respecte DESC01.12. Le code UI actuel contient encore :
+Le gameplay 87/90 n'implique pas que le read-model historique respecte DESC01.12. Le code UI actuel contient encore :
 
 ~~~text
 EffectCategory : FText inféré
@@ -189,7 +189,7 @@ CooldownRounds affiché comme tour(s)
 ComboBox de variante pendant l'acquisition
 ~~~
 
-Ces éléments sont des dettes du read-model/UI, pas des erreurs dans les 83 Talents gameplay conformes.
+Ces éléments sont des dettes du read-model/UI, pas des erreurs dans les 87 Talents gameplay conformes.
 
 ## 12. Corrections gameplay à ne pas mélanger à DESC01.14
 
@@ -202,7 +202,7 @@ D03  Sabotage monde — dépendance du futur flux générique d'aptitudes hors c
 D05  Repousser les morts-vivants — CLOS (4 dégâts fixes, 21/21 RPG03.9.5)
 D06  Réaction en chaîne — CLOS (9/9 RPG03.9.6A + 7/7 RPG03.9.6B1)
 D07  Transmutation majeure — CLOS (10/10 RPG03.9.6A + 4/4 RPG03.9.4F1 + 7/7 RPG03.9.6B2)
-D08  Transmutation majeure — source raccordée ; validation RPG03.9.6A/9.6B2/9.4F1 requise
+D08  Transmutation majeure — CLOS (11/11 RPG03.9.6A + 7/7 RPG03.9.6B2 + 4/4 RPG03.9.4F1)
 ~~~
 
 D04 est présentation bestiaire. D09 est le futur Crafting.
@@ -214,8 +214,8 @@ Identité 90/90                   ÉLEVÉ
 Branches / tiers / coût          ÉLEVÉ
 Variantes structurelles          ÉLEVÉ
 Actions / modifiers / reactions  ÉLEVÉ
-Conformité 85/90                 ÉLEVÉ sur audit statique + D01/D05 validés
-Exécution UE au commit courant   NON REVALIDÉE dans ce jalon
+Conformité 87/90                 ÉLEVÉ ; D01/D05/D06/D07/D08 revalidés localement
+Exécution UE ciblée              VALIDÉE sur les filtres des correctifs clos
 PIE                              NON REVALIDÉ
 ~~~
 

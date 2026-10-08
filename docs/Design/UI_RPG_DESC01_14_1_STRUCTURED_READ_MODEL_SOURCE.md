@@ -59,7 +59,7 @@ Après DESC01.14 et avant DESC01.16 QA six classes :
 
 **D04** est une dette de présentation bestiaire et doit être réglée avant DESC01.16.
 
-**D08** : l'arbitrage est désormais tranché en faveur du raccord générique conversion→réaction. Source implémentée ; validation locale requise.
+**D08** : **CLOS** — raccord générique conversion→réaction +50 % validé 11/11 + 7/7 + 4/4.
 
 **D09** est le chantier Crafting futur ; il n'empêche pas la refonte du panneau Talent.
 
