@@ -873,7 +873,11 @@ Audit complémentaire du 8 octobre 2026 :
   créer une seconde architecture ;
 - ces deux conséquences seront raccordées directement lors de l'implémentation
   du vrai système Lock/Trap ;
-- Sabotage d'objet de monde reste audité séparément en D03.
+- Sabotage d'objet de monde : `bCanBeSabotaged`, `SabotageDifficulty`,
+  `GetRuntimeObjectSabotageDifficulty()` et `ExecuteRuntimeObjectSabotage()`
+  existent déjà, mais aucun caller d'aptitude hors combat n'exécute le Skill
+  Check `Skill_Mechanics`. D03 est donc différé au futur flux générique
+  d'actions sur objets du monde, sans branche spéciale sur TalentId.
 
 **Décision normalisée DESC01.12 :** ne jamais recréer un catalogue Skills ni un
 mini-système de serrure/piège parallèle uniquement pour les Talents.

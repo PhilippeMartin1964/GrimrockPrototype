@@ -52,7 +52,7 @@ Après DESC01.14 et avant DESC01.16 QA six classes :
 
 - **D01** Second souffle : **CLOS** — garde-fou générique confirmé par test spécifique ;
 - **D02** Désamorçage expert / Maître des serrures : **DIFFÉRÉ LOCK/TRAP** — primitives SafeFailure déjà conformes ;
-- **D03** Sabotage : caller monde ;
+- **D03** Sabotage monde : **DIFFÉRÉ ACTIONS HORS COMBAT** — cible/difficulté/événement existent déjà ;
 - **D05** Repousser les morts-vivants : **CLOS** — 4 dégâts fixes validés 21/21 ;
 - **D06** Réaction en chaîne : raccord bombes -> SurfaceReaction ;
 - **D07** Transmutation majeure : durée finale 4 rounds.

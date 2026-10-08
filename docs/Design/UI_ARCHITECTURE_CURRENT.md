@@ -377,6 +377,7 @@ Références actives :
 `docs/Design/RPG_TALENT_FIX01_D05_TURN_UNDEAD_FIXED_DAMAGE.md` — **VALIDÉ / CLOS** (21/21 RPG03.9.5, assets Prêtre commités).
 `docs/Design/RPG_TALENT_FIX02_D01_SECOND_WIND_FULL_HEALTH.md` — **VALIDÉ / CLOS** (12/12 RPG03.9.1).
 D02 Désamorçage/Crochetage — **DIFFÉRÉ au vrai runtime Lock/Trap** ; primitives SafeFailure déjà opérationnelles.
+D03 Sabotage monde — **DIFFÉRÉ au flux générique d'aptitudes hors combat** ; primitives monde déjà présentes.
 `docs/Design/UI_RPG_DESC01_13_CPP_TALENT_AUDIT_90.md` — audit statique C++ 90/90.
 
 Les audits de classe restent documentaires ; aucun nouveau C++ / UMG / DataAsset

@@ -78,7 +78,7 @@ Les 7 nœuds ne sont pas absents : ils existent dans l'authoring, mais une parti
 | Piège rapide | OK |
 | Bombe fumigène | OK |
 | Maître des serrures | **D02 — primitive conforme ; consommateur métier différé au vrai runtime Lock/Trap** |
-| **Sabotage** | **PARTIEL D03 — combat OK, caller monde incomplet** |
+| Sabotage | **D03 — combat OK ; caller monde différé au flux générique d'aptitudes hors combat** |
 
 Le catalogue Skills de production n'est plus un trou : Crochetage, Pièges / désamorçage et Mécanique existent.
 
@@ -198,7 +198,7 @@ DESC01.14 doit implémenter le read-model, pas réparer silencieusement le gamep
 ~~~text
 D01  Second souffle — CLOS (garde-fou générique + test spécifique)
 D02  échecs sûrs Pièges / Crochetage — dépendance du futur runtime Lock/Trap
-D03  Sabotage monde
+D03  Sabotage monde — dépendance du futur flux générique d'aptitudes hors combat
 D05  Repousser les morts-vivants — CLOS (4 dégâts fixes, 21/21 RPG03.9.5)
 D06  Réaction en chaîne — raccord bombes -> SurfaceReaction
 D07  Transmutation majeure — durée 4 rounds

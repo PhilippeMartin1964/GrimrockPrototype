@@ -722,10 +722,28 @@ pas encore le consommateur métier correspondant :
 D02a/D02b seront implémentés avec le vrai système Lock/Trap, qui devra consommer
 directement le `bSafeFailure` existant.
 
-### D03 — Voleur / Sabotage monde
+### D03 — Voleur / Sabotage monde — DÉPENDANCE ACTIONS HORS COMBAT
 
-Le Skill **Mécanique** existe en production. Le caller d'un objet de monde doit
-encore exécuter le Skill Check avec ses données de sabotage.
+Le Skill **Mécanique** existe en production. Le runtime possède déjà les deux
+extrémités génériques du contrat :
+
+```text
+UGridWorldObjectDefinitionAsset
+    bCanBeSabotaged
+    SabotageDifficulty
+
+AGridLevelRuntimeActor
+    GetRuntimeObjectSabotageDifficulty()
+    ExecuteRuntimeObjectSabotage() -> EGridObjectEvent::Sabotaged
+```
+
+L'audit du 8 octobre 2026 confirme cependant qu'aucun caller n'exécute encore le
+Skill Check `Skill_Mechanics` entre ces deux extrémités.
+
+**Décision :** ne pas ajouter un `if Talent_Rogue_Saboteur_Sabotage` dans un
+acteur de monde. D03 sera raccordé lorsque le projet disposera du vrai flux
+générique « aptitude hors combat -> objet du monde -> Skill Check -> événement ».
+Le combat Sabotage reste déjà opérationnel et indépendant de cette dette.
 
 ### D04 — Rôdeur / Ennemi juré
 
