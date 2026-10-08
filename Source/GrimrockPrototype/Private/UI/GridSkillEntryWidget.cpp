@@ -1,6 +1,35 @@
 #include "UI/GridSkillEntryWidget.h"
 
+#include "Components/Button.h"
 #include "Components/TextBlock.h"
+
+void UGridSkillEntryWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	if (Button_IncreaseSkill)
+	{
+		Button_IncreaseSkill->OnClicked.RemoveDynamic(this, &UGridSkillEntryWidget::HandleIncreaseSkillClicked);
+		Button_IncreaseSkill->OnClicked.AddUniqueDynamic(this, &UGridSkillEntryWidget::HandleIncreaseSkillClicked);
+	}
+	RefreshEntryVisual();
+}
+
+void UGridSkillEntryWidget::NativeDestruct()
+{
+	if (Button_IncreaseSkill)
+	{
+		Button_IncreaseSkill->OnClicked.RemoveDynamic(this, &UGridSkillEntryWidget::HandleIncreaseSkillClicked);
+	}
+	Super::NativeDestruct();
+}
+
+void UGridSkillEntryWidget::HandleIncreaseSkillClicked()
+{
+	if (bInitialized && Entry.bCanIncreaseRank && !Entry.SkillId.IsNone())
+	{
+		OnIncreaseSkillRequested.Broadcast(Entry.SkillId);
+	}
+}
 
 bool UGridSkillEntryWidget::InitializeSkillEntry(const FGridSkillEntryView& InEntry)
 {
@@ -34,6 +63,10 @@ void UGridSkillEntryWidget::ClearSkillEntry()
 		Text_SkillDescription->SetText(FText::GetEmpty());
 		Text_SkillDescription->SetVisibility(ESlateVisibility::Collapsed);
 	}
+	if (Button_IncreaseSkill)
+	{
+		Button_IncreaseSkill->SetIsEnabled(false);
+	}
 }
 
 void UGridSkillEntryWidget::RefreshEntryVisual()
@@ -66,6 +99,10 @@ void UGridSkillEntryWidget::RefreshEntryVisual()
 		const bool bHasDescription = HasDescription(Entry);
 		Text_SkillDescription->SetText(bHasDescription ? Entry.Description : FText::GetEmpty());
 		Text_SkillDescription->SetVisibility(bHasDescription ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+	if (Button_IncreaseSkill)
+	{
+		Button_IncreaseSkill->SetIsEnabled(Entry.bCanIncreaseRank);
 	}
 }
 
@@ -122,9 +159,16 @@ bool UGridSkillEntryWidget::HasDescription(const FGridSkillEntryView& InEntry)
 
 bool UGridSkillEntryWidget::IsValidEntry(const FGridSkillEntryView& InEntry)
 {
+	const bool bRankCapValid =
+		InEntry.CurrentRankCap == 0 ||
+		(InEntry.CurrentRankCap >= 1 && InEntry.CurrentRankCap <= InEntry.MaxRank);
+
 	return !InEntry.SkillId.IsNone() &&
 		InEntry.MaxRank > 0 &&
 		InEntry.Rank >= 0 &&
 		InEntry.Rank <= InEntry.MaxRank &&
-		InEntry.bTrained == (InEntry.Rank > 0);
+		bRankCapValid &&
+		InEntry.bTrained == (InEntry.Rank > 0) &&
+		(!InEntry.bCanIncreaseRank ||
+			(InEntry.CurrentRankCap > 0 && InEntry.Rank < InEntry.CurrentRankCap));
 }

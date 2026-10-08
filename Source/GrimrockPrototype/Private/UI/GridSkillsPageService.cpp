@@ -6,6 +6,7 @@
 #include "RPG/RPGClassProgressionService.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGSkillAsset.h"
+#include "RPG/RPGSkillPointService.h"
 #include "RPG/RPGSkillService.h"
 #include "RPG/RPGTalentRuntimeService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -360,6 +361,13 @@ bool FGridSkillsPageService::TryBuildCharacterView(UGridPartyInventoryComponent*
 	Candidate.ClassId = ClassDefinition->ClassId;
 	Candidate.ClassDisplayName = ClassDefinition->DisplayName;
 
+	FRPGSkillPointBalance SkillPointBalance;
+	if (!FRPGSkillPointService::TryGetBalance(Character, SkillPointBalance)) return false;
+	Candidate.GrantedSkillPoints = SkillPointBalance.GrantedPoints;
+	Candidate.SpentSkillPoints = SkillPointBalance.SpentPoints;
+	Candidate.RemainingSkillPoints = SkillPointBalance.RemainingPoints;
+	Candidate.SkillRankCap = SkillPointBalance.RankCap;
+
 	Candidate.Skills.Reserve(SortedDefinitions.Num());
 	for (const URPGSkillAsset* Definition : SortedDefinitions)
 	{
@@ -374,6 +382,10 @@ bool FGridSkillsPageService::TryBuildCharacterView(UGridPartyInventoryComponent*
 		SkillView.MaxRank = Definition->MaxRank;
 		SkillView.bAllowUntrainedChecks = Definition->bAllowUntrainedChecks;
 		SkillView.bTrained = Rank > 0;
+		SkillView.CurrentRankCap = FMath::Min(Definition->MaxRank, SkillPointBalance.RankCap);
+		SkillView.bCanIncreaseRank =
+			FRPGSkillPointService::GetNextRankPurchaseAvailability(Character, Definition) ==
+			ERPGSkillPointPurchaseRejectReason::None;
 		Candidate.Skills.Add(MoveTemp(SkillView));
 	}
 

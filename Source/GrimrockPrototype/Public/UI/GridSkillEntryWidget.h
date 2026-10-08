@@ -5,7 +5,10 @@
 #include "UI/GridSkillsUiTypes.h"
 #include "GridSkillEntryWidget.generated.h"
 
+class UButton;
 class UTextBlock;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridSkillIncreaseRequestedSignature, FName, SkillId);
 
 /**
  * Presentation-only row for one canonical Skill.
@@ -25,6 +28,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|Entry")
 	bool bInitialized = false;
+
+	UPROPERTY(BlueprintAssignable, Category = "RPG|Skills|Entry|Events")
+	FGridSkillIncreaseRequestedSignature OnIncreaseSkillRequested;
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|Entry")
 	bool InitializeSkillEntry(const FGridSkillEntryView& InEntry);
@@ -50,7 +56,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Skills|Entry")
 	static bool HasDescription(const FGridSkillEntryView& InEntry);
 
+protected:
+	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
+
 private:
+	UFUNCTION()
+	void HandleIncreaseSkillClicked();
+
 	static bool IsValidEntry(const FGridSkillEntryView& InEntry);
 
 	UPROPERTY(meta = (BindWidget))
@@ -67,4 +80,7 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SkillDescription;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Button_IncreaseSkill;
 };

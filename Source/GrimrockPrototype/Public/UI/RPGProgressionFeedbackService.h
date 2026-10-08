@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
+#include "RPG/RPGSkillPointService.h"
 #include "RPGProgressionFeedbackService.generated.h"
 
 UENUM(BlueprintType)
@@ -49,6 +50,12 @@ struct GRIMROCKPROTOTYPE_API FRPGProgressionFeedbackService
 	static FRPGProgressionNotificationView MakeTalentCommitNotification(
 		const FRPGClassProgressionCommitResult& Result,
 		const FText& TalentDisplayName);
+
+	static FText GetSkillPurchaseRejectMessage(ERPGSkillPointPurchaseRejectReason Reason);
+
+	static FRPGProgressionNotificationView MakeSkillRankPurchaseNotification(
+		const FRPGSkillPointPurchaseResult& Result,
+		const FText& SkillDisplayName);
 
 	/** Notification générique de montée de niveau, utilisable par les surfaces de progression. */
 	static FRPGProgressionNotificationView MakeLevelUpNotification(

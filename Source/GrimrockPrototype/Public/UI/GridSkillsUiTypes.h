@@ -34,6 +34,12 @@ struct GRIMROCKPROTOTYPE_API FGridSkillEntryView
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	bool bTrained = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
+	int32 CurrentRankCap = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
+	bool bCanIncreaseRank = false;
 };
 
 UENUM(BlueprintType)
@@ -183,6 +189,18 @@ struct GRIMROCKPROTOTYPE_API FGridSkillsPageView
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	TArray<FGridSkillEntryView> Skills;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
+	int32 GrantedSkillPoints = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
+	int32 SpentSkillPoints = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
+	int32 RemainingSkillPoints = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
+	int32 SkillRankCap = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	TArray<FGridTalentEntryView> Talents;

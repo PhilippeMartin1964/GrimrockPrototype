@@ -82,6 +82,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI|Presentation")
 	void RebuildSkillEntryWidgets();
 
+	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|Allocation")
+	bool CommitSkillRankIncrease(FName SkillId, FText& OutFeedback);
+
 	// Read-only accessors retained for diagnostics and Blueprint presentation helpers.
 	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
 	int32 GetSkillEntryCount() const;
@@ -148,6 +151,9 @@ private:
 	UFUNCTION()
 	void HandleTalentAcquireConfirmed(FName ChoiceId);
 
+	UFUNCTION()
+	void HandleSkillIncreaseRequested(FName SkillId);
+
 	const FGridTalentNodeView* FindTalentNode(FName TalentNodeId) const;
 	void ClearView();
 	void BindDesignerShell();
@@ -163,6 +169,9 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_TalentPoints;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_SkillPoints;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_SkillsTab;

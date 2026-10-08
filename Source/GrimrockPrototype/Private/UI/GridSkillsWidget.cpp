@@ -7,6 +7,8 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
+#include "RPG/RPGSkillAsset.h"
+#include "RPG/RPGSkillPointService.h"
 #include "UI/GridSkillEntryWidget.h"
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridTalentBranchWidget.h"
@@ -331,6 +333,48 @@ bool UGridSkillsWidget::CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFe
 	return true;
 }
 
+bool UGridSkillsWidget::CommitSkillRankIncrease(FName SkillId, FText& OutFeedback)
+{
+	OutFeedback = FText::FromString(TEXT("Attribution de compétence impossible."));
+
+	TArray<const URPGSkillAsset*> Definitions;
+	FGridSkillsPageService::ResolveCanonicalSkillDefinitions(Definitions);
+	const URPGSkillAsset* Definition = nullptr;
+	for (const URPGSkillAsset* Candidate : Definitions)
+	{
+		if (IsValid(Candidate) && Candidate->SkillId == SkillId)
+		{
+			Definition = Candidate;
+			break;
+		}
+	}
+
+	FText SkillDisplayName = FText::FromName(SkillId);
+	if (const FGridSkillEntryView* Entry = View.Skills.FindByPredicate(
+		[SkillId](const FGridSkillEntryView& Candidate)
+		{
+			return Candidate.SkillId == SkillId;
+		}))
+	{
+		SkillDisplayName = Entry->DisplayName.IsEmpty() ? FText::FromName(SkillId) : Entry->DisplayName;
+	}
+
+	FRPGSkillPointPurchaseResult Result;
+	const bool bCommitted =
+		FRPGSkillPointService::TryPurchaseNextRank(InventoryComponent, View.CharacterIndex, Definition, Result);
+
+	const FRPGProgressionNotificationView Notification =
+		FRPGProgressionFeedbackService::MakeSkillRankPurchaseNotification(Result, SkillDisplayName);
+	OutFeedback = Notification.Message;
+	PublishProgressionNotification(Notification);
+
+	if (!bCommitted)
+	{
+		RefreshSkills();
+	}
+	return bCommitted;
+}
+
 void UGridSkillsWidget::PublishProgressionNotification(const FRPGProgressionNotificationView& Notification)
 {
 	if (!Notification.IsValid())
@@ -355,6 +399,10 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 		Text_CharacterName->SetText(FText::FromString(TEXT("Aucun personnage sélectionné")));
 		Text_ClassLevel->SetText(FText::GetEmpty());
 		Text_TalentPoints->SetText(FText::FromString(TEXT("Points de talent : —")));
+		if (Text_SkillPoints)
+		{
+			Text_SkillPoints->SetText(FText::FromString(TEXT("Points de compétence : —")));
+		}
 
 		Branch_Left->ClearTalentBranch();
 		Branch_Center->ClearTalentBranch();
@@ -372,6 +420,14 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 
 	Text_TalentPoints->SetText(
 		FText::FromString(FString::Printf(TEXT("Points de talent : %d"), View.RemainingTalentPoints)));
+	if (Text_SkillPoints)
+	{
+		Text_SkillPoints->SetText(
+			FText::FromString(FString::Printf(
+				TEXT("Points de compétence : %d  —  Rang max : %d"),
+				View.RemainingSkillPoints,
+				View.SkillRankCap)));
+	}
 
 	FRPGClassPresentationDefinition ClassPresentation;
 	if (GetCurrentClassPresentation(ClassPresentation))
@@ -470,6 +526,7 @@ void UGridSkillsWidget::RebuildSkillEntryWidgets()
 			continue;
 		}
 
+		EntryWidget->OnIncreaseSkillRequested.AddUniqueDynamic(this, &UGridSkillsWidget::HandleSkillIncreaseRequested);
 		Panel_SkillEntries->AddChild(EntryWidget);
 	}
 }
@@ -512,6 +569,12 @@ void UGridSkillsWidget::HandleTalentAcquireConfirmed(FName ChoiceId)
 		// Keep inline detail feedback only for a rejected transaction.
 		Detail_Talent->SetAcquisitionFeedback(bCommitted ? FText::GetEmpty() : Feedback);
 	}
+}
+
+void UGridSkillsWidget::HandleSkillIncreaseRequested(FName SkillId)
+{
+	FText Feedback;
+	CommitSkillRankIncrease(SkillId, Feedback);
 }
 
 int32 UGridSkillsWidget::GetSkillEntryCount() const

@@ -2,7 +2,7 @@
 
 Date : **5 octobre 2026**  
 Projet : **GrimrockPrototype — UE 5.5.4**  
-Statut : **spécification de design autoritaire — volet Talents RPG03 matérialisé/validé ; volet Skills/Level Up encore partiellement à implémenter**  
+Statut : **spécification de design autoritaire — Talents matérialisés/validés ; économie Skill Points RPG-SKILL01.1 implémentée en source, matérialisation UMG à valider**  
 
 ## 1. But
 
