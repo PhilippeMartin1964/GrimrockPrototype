@@ -271,6 +271,19 @@ namespace
 			Variant.ChoiceId = Choice->ChoiceId;
 			Variant.DisplayName = Choice->DisplayName;
 			Variant.Description = Choice->Description;
+			if (!Choice->CombatReactions.IsEmpty())
+			{
+				Variant.EffectCategory = FText::FromString(TEXT("RÉACTION AUTOMATIQUE"));
+			}
+			else if (!Choice->CombatModifiers.IsEmpty() || !Choice->SkillModifiers.IsEmpty() ||
+				!Choice->PartyModifiers.IsEmpty() || Choice->FirstRoundInitiativeModifier != 0)
+			{
+				Variant.EffectCategory = FText::FromString(TEXT("BONUS PASSIF"));
+			}
+			else
+			{
+				Variant.EffectCategory = FText::FromString(TEXT("CAPACITÉ DÉBLOQUÉE"));
+			}
 			BuildUnlockedActionViews(ClassDefinition, *Choice, Variant.UnlockedActions);
 			Variant.bSelected = bSelected;
 			if (!TryMapChoiceState(bSelected, Availability, Variant.State)) return false;

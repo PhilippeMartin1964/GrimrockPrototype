@@ -471,7 +471,9 @@ void UGridTalentDetailWidget::RefreshVariantDetailPreview()
 	if (NodeView.Variants.Num() > 1)
 	{
 		ResolvedVariantDisplayName = MakeVariantDisplayLabel(*PreviewVariant);
-		ResolvedVariantDescription = PreviewVariant->Description;
+		ResolvedVariantDescription = PreviewVariant->EffectCategory.IsEmpty()
+			? PreviewVariant->Description
+			: FText::FromString(PreviewVariant->EffectCategory.ToString() + TEXT("\n") + PreviewVariant->Description.ToString());
 	}
 	ResolvedActionSummary = BuildActionSummary(*PreviewVariant);
 }
@@ -542,7 +544,15 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 	}
 	if (Text_DetailDescription)
 	{
-		Text_DetailDescription->SetText(ResolvedDescription);
+		if (NodeView.Variants.Num() == 1 && !NodeView.Variants[0].EffectCategory.IsEmpty())
+		{
+			Text_DetailDescription->SetText(FText::FromString(
+				NodeView.Variants[0].EffectCategory.ToString() + TEXT("\n") + ResolvedDescription.ToString()));
+		}
+		else
+		{
+			Text_DetailDescription->SetText(ResolvedDescription);
+		}
 	}
 	if (Text_DetailLevel)
 	{

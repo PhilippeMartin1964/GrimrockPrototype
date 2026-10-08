@@ -105,6 +105,10 @@ struct GRIMROCKPROTOTYPE_API FGridTalentVariantView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	TArray<FGridTalentUnlockedActionView> UnlockedActions;
 
+	/** Read-only effect category inferred from authoritative progression profiles. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FText EffectCategory;
+
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	bool bSelected = false;
 

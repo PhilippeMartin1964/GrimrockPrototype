@@ -312,4 +312,34 @@ bool FUIRPGDESC01LockedVariantPreviewTest::RunTest(const FString& Parameters)
  return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+ FUIRPGDESC01EffectCategoryTest,
+ "Grimrock.UI.RPG.DESC01.Detail.EffectCategory",
+ EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FUIRPGDESC01EffectCategoryTest::RunTest(const FString& Parameters)
+{
+ (void)Parameters;
+ using namespace UIRPGDESC01Tests;
+ FGridTalentNodeView Node;
+ Node.TalentNodeId = TEXT("Talent_DESC01_Affinity");
+ Node.TalentBranchId = TEXT("Branch_DESC01");
+ Node.Tier = 1;
+ Node.MinimumLevel = 2;
+ Node.PointCost = 1;
+ Node.State = EGridTalentNodeState::LockedPoints;
+ FGridTalentVariantView Fire = MakeVariant(TEXT("Choice_Fire"), TEXT("Talent conceptuel — Feu"), TEXT("Bonus de feu."));
+ FGridTalentVariantView Frost = MakeVariant(TEXT("Choice_Frost"), TEXT("Talent conceptuel — Glace"), TEXT("Bonus de glace."));
+ Fire.EffectCategory = FText::FromString(TEXT("BONUS PASSIF"));
+ Frost.EffectCategory = FText::FromString(TEXT("BONUS PASSIF"));
+ Fire.bAvailable = false;
+ Frost.bAvailable = false;
+ Node.Variants = { Fire, Frost };
+ UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
+ TestTrue(TEXT("Categorized node initializes"), Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId, Node.TalentNodeId)));
+ TestTrue(TEXT("Locked variant remains previewable"), Detail->SelectVariantChoice(TEXT("Choice_Fire")));
+ TestTrue(TEXT("Category is displayed"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("BONUS PASSIF")));
+ TestTrue(TEXT("Effect is displayed"), Detail->ResolvedVariantDescription.ToString().Contains(TEXT("Bonus de feu.")));
+ return true;
+}
+
 #endif
