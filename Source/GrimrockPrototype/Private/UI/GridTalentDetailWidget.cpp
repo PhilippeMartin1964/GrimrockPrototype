@@ -225,7 +225,7 @@ bool UGridTalentDetailWidget::BeginVariantSelection()
 
 bool UGridTalentDetailWidget::SelectVariantChoice(FName ChoiceId)
 {
-	if (!bVariantSelectionPending || ChoiceId.IsNone())
+	if (!bInitialized || NodeView.Variants.Num() <= 1 || ChoiceId.IsNone())
 	{
 		return false;
 	}
@@ -236,11 +236,12 @@ bool UGridTalentDetailWidget::SelectVariantChoice(FName ChoiceId)
 			return Candidate.ChoiceId == ChoiceId;
 		});
 
-	if (!Variant || !Variant->bAvailable || Variant->bSelected)
+	if (!Variant)
 	{
 		return false;
 	}
 
+	// Inspection never grants acquisition rights, including for locked variants.
 	SelectedVariantChoiceId = ChoiceId;
 	RefreshVariantDetailPreview();
 	ApplyDetailPresentation();
@@ -519,7 +520,7 @@ FText UGridTalentDetailWidget::BuildActionSummary(const FGridTalentVariantView& 
 			: FString::Printf(TEXT("%s\n%s"), *Header, *Description));
 	}
 
-	return FText::FromString(FString::Join(ActionBlocks, TEXT("\n\n")));
+	return FText::FromString(TEXT("ACTION DÉBLOQUÉE\n") + FString::Join(ActionBlocks, TEXT("\n\n")));
 }
 
 void UGridTalentDetailWidget::ApplyDetailPresentation()
@@ -630,14 +631,18 @@ void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 	if (Combo_VariantChoice)
 	{
 		Combo_VariantChoice->SetVisibility(
-			bVariantSelectionPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			bInitialized && NodeView.Variants.Num() > 1 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
 	if (Button_ConfirmAcquire)
 	{
 		Button_ConfirmAcquire->SetVisibility(
 			bAnyPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 		Button_ConfirmAcquire->SetIsEnabled(
-			bAcquireConfirmationPending || (bVariantSelectionPending && !SelectedVariantChoiceId.IsNone()));
+			bAcquireConfirmationPending || (bVariantSelectionPending && NodeView.Variants.ContainsByPredicate(
+			[this](const FGridTalentVariantView& Variant)
+			{
+				return Variant.ChoiceId == SelectedVariantChoiceId && Variant.bAvailable && !Variant.bSelected;
+			})));
 	}
 	if (Button_CancelAcquire)
 	{

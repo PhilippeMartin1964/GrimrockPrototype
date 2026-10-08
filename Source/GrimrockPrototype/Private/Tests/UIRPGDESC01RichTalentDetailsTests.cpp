@@ -279,4 +279,37 @@ bool FUIRPGDESC01WidgetContractTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+ FUIRPGDESC01LockedVariantPreviewTest,
+ "Grimrock.UI.RPG.DESC01.Detail.LockedVariantPreview",
+ EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FUIRPGDESC01LockedVariantPreviewTest::RunTest(const FString& Parameters)
+{
+ (void)Parameters;
+ using namespace UIRPGDESC01Tests;
+ FGridTalentNodeView Node;
+ Node.TalentNodeId = TEXT("Talent_DESC01_Affinity");
+ Node.TalentBranchId = TEXT("Branch_DESC01");
+ Node.Tier = 1;
+ Node.MinimumLevel = 2;
+ Node.PointCost = 1;
+ Node.State = EGridTalentNodeState::LockedPoints;
+ FGridTalentVariantView Fire = MakeVariant(TEXT("Choice_Fire"), TEXT("Talent conceptuel — Feu"), TEXT("Effet Feu."));
+ FGridTalentVariantView Frost = MakeVariant(TEXT("Choice_Frost"), TEXT("Talent conceptuel — Glace"), TEXT("Effet Glace."));
+ Fire.State = EGridTalentNodeState::LockedPoints;
+ Frost.State = EGridTalentNodeState::LockedPoints;
+ Fire.bAvailable = false;
+ Frost.bAvailable = false;
+ Node.Variants = { Fire, Frost };
+ UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
+ TestTrue(TEXT("Locked node initializes"), Detail->InitializeTalentDetail(Node, MakeBranch(Node.TalentBranchId, Node.TalentNodeId)));
+ TestTrue(TEXT("Locked Fire can be inspected"), Detail->SelectVariantChoice(TEXT("Choice_Fire")));
+ TestEqual(TEXT("Locked Fire readable"), Detail->ResolvedVariantDescription.ToString(), FString(TEXT("Effet Feu.")));
+ TestFalse(TEXT("Locked Fire cannot begin purchase"), Detail->BeginVariantSelection());
+ TestFalse(TEXT("Locked Fire cannot confirm purchase"), Detail->ConfirmAcquire());
+ TestTrue(TEXT("Locked Frost can be inspected"), Detail->SelectVariantChoice(TEXT("Choice_Frost")));
+ TestEqual(TEXT("Locked Frost readable"), Detail->ResolvedVariantDescription.ToString(), FString(TEXT("Effet Glace.")));
+ return true;
+}
+
 #endif
