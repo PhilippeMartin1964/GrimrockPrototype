@@ -2,7 +2,7 @@
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **DRAFT — validation utilisateur requise**  
+État : **VALIDÉ PAR L'UTILISATEUR — 8 octobre 2026**  
 Dépendances : **UI-RPG-DESC01.5 à .11 validés**  
 Périmètre : **6 classes / 18 branches / 90 nœuds conceptuels**
 
@@ -888,7 +888,7 @@ Il ne peut pas :
 
 ## 25. Critères de validation UI-RPG-DESC01.12
 
-DESC01.12 est validé lorsque l'utilisateur approuve explicitement :
+DESC01.12 a été validé par l'utilisateur le **8 octobre 2026**. Ont été approuvés :
 
 1. la matrice TYPE **90/90** ;
 2. les **4 seuls nœuds à variantes** ;
