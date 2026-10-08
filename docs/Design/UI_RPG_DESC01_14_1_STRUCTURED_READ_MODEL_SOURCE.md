@@ -51,7 +51,7 @@ Les dettes ne sont pas corrigées dans la projection UI.
 Après DESC01.14 et avant DESC01.16 QA six classes :
 
 - **D01** Second souffle : **CLOS** — garde-fou générique confirmé par test spécifique ;
-- **D02** Désamorçage expert / Maître des serrures : conséquences des échecs sûrs ;
+- **D02** Désamorçage expert / Maître des serrures : **DIFFÉRÉ LOCK/TRAP** — primitives SafeFailure déjà conformes ;
 - **D03** Sabotage : caller monde ;
 - **D05** Repousser les morts-vivants : **CLOS** — 4 dégâts fixes validés 21/21 ;
 - **D06** Réaction en chaîne : raccord bombes -> SurfaceReaction ;

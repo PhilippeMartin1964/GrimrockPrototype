@@ -692,19 +692,35 @@ peut augmenter les PV reçoit `NoApplicableEffect`.
 Un test de régression utilisant le vrai `Action_Warrior_SecondWind` vérifie que
 l'action est active lorsque le Guerrier est blessé et désactivée à PV maximum.
 
+Validation finale : **12/12 `Grimrock.RPG.RPG03.9.1`, 0 warning, 0 échec**.
+
 Aucun `if SecondWind` runtime n'est ajouté.
 
-### D02 — Voleur / échecs sûrs
+### D02 — Voleur / échecs sûrs — DÉPENDANCE LOCK/TRAP
 
 Contrats cibles :
 
 ```text
 Désamorçage expert -> le piège reste armé mais ne se déclenche pas
-Maître des serrures -> la serrure ne se bloque pas sur un échec sûr
+Maître des serrures -> la serrure ne se bloque/jamme pas sur un échec sûr
 ```
 
-Les primitives Skill Check existent ; les consommateurs métier doivent encore
-appliquer ces conséquences.
+Les primitives `FRPGSkillProgressionModifier::SafeFailureMargin` et
+`FRPGSkillCheckResult::bSafeFailure` sont déjà opérationnelles et testées.
+
+L'audit du 8 octobre 2026 confirme en revanche que le runtime courant ne possède
+pas encore le consommateur métier correspondant :
+
+- aucune API `TryDisarmTrap` ;
+- aucun état runtime de piège de serrure ;
+- aucun caller de crochetage/désamorçage ;
+- `AGridWallLockActor` ne gère aujourd'hui que les clés ;
+- le futur domaine est déjà spécifié dans
+  `docs/Design/GRIMROCK_LOCK_SYSTEM.md`.
+
+**Décision :** ne pas créer un sous-système ad hoc dans la vague Talent.
+D02a/D02b seront implémentés avec le vrai système Lock/Trap, qui devra consommer
+directement le `bSafeFailure` existant.
 
 ### D03 — Voleur / Sabotage monde
 

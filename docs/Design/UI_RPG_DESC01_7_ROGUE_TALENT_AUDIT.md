@@ -862,17 +862,21 @@ Cette dépendance est désormais **résolue** : UI-RPG06.2A a matérialisé les
 25 `URPGSkillAsset` canoniques de production, dont
 `Skill_Traps`, `Skill_Lockpicking` et `Skill_Mechanics`.
 
-La dette restante n'est donc plus le catalogue Skills. Elle concerne uniquement
-les **consommateurs métier** déjà identifiés :
+La dette restante n'est donc plus le catalogue Skills.
 
-- Désamorçage expert : conséquence métier d'un échec sûr sur un piège ;
-- Maître des serrures : conséquence métier d'un échec sûr sur une serrure ;
-- Sabotage d'objet de monde : caller devant réellement exécuter le Skill Check.
+Audit complémentaire du 8 octobre 2026 :
 
-**Décision normalisée DESC01.12 :** ne jamais recréer un catalogue Skills
-parallèle. Les fiches Talent utilisent les `DisplayName` du catalogue de
-production ; les conséquences métier non raccordées restent explicitement des
-dettes runtime et ne sont pas présentées comme garanties actuelles.
+- Désamorçage expert et Maître des serrures disposent déjà de toute la primitive
+  `SafeFailure`, mais le runtime Lock/Trap décrit par
+  `docs/Design/GRIMROCK_LOCK_SYSTEM.md` n'est pas encore implémenté ;
+- il n'existe donc pas encore de consommateur métier légitime à patcher sans
+  créer une seconde architecture ;
+- ces deux conséquences seront raccordées directement lors de l'implémentation
+  du vrai système Lock/Trap ;
+- Sabotage d'objet de monde reste audité séparément en D03.
+
+**Décision normalisée DESC01.12 :** ne jamais recréer un catalogue Skills ni un
+mini-système de serrure/piège parallèle uniquement pour les Talents.
 
 # 10. Vocabulaire Voleur à normaliser
 

@@ -1,7 +1,7 @@
 # RPG-TALENT-FIX02 — D01 Second souffle à PV maximum
 
 Date : **8 octobre 2026**  
-État : **SOURCE / TEST PRÊT — validation locale requise**
+État : **VALIDÉ / CLOS — 8 octobre 2026**
 
 ## Contrat
 
@@ -64,3 +64,19 @@ if (ActionId == "Action_Warrior_SecondWind")
 ```
 
 Aucun DataAsset ne doit être rematérialisé pour ce ticket.
+
+
+## Validation finale
+
+Validation utilisateur :
+
+```text
+Grimrock.RPG.RPG03.9.1
+Succeeded              : 12
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+D01 est clos sans modification runtime supplémentaire.
