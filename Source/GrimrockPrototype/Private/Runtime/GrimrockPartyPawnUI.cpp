@@ -104,16 +104,16 @@ void AGrimrockPartyPawn::ShowSkillsWidget()
 			SkillsWidgetInstance->InitializeSkillsWidget(this);
 		}
 	}
-	else
-	{
-		SkillsWidgetInstance->RefreshSkills();
-	}
 
 	if (!SkillsWidgetInstance)
 	{
 		UE_LOG(LogGrimrockPartyUI, Warning, TEXT("GridSkills Standalone Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName());
 		return;
 	}
+
+	// RPG-SKILL01.3: reopening COMPÉTENCES commits the previous undo boundary
+	// and starts a fresh, non-persistent correction session.
+	SkillsWidgetInstance->BeginSkillAllocationSession();
 
 	if (!SkillsWidgetInstance->IsInViewport())
 	{

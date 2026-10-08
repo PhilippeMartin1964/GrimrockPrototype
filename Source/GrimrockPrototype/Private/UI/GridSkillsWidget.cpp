@@ -132,6 +132,91 @@ void UGridSkillsWidget::ClearView()
 	View = FGridSkillsPageView();
 }
 
+void UGridSkillsWidget::BeginSkillAllocationSession()
+{
+	SessionPurchasedSkillRanks.Reset();
+	SessionSkillRankFloors.Reset();
+	RefreshSkills();
+}
+
+const URPGSkillAsset* UGridSkillsWidget::ResolveCanonicalSkillDefinition(FName SkillId) const
+{
+	if (SkillId.IsNone())
+	{
+		return nullptr;
+	}
+
+	TArray<const URPGSkillAsset*> Definitions;
+	FGridSkillsPageService::ResolveCanonicalSkillDefinitions(Definitions);
+	for (const URPGSkillAsset* Definition : Definitions)
+	{
+		if (IsValid(Definition) && Definition->SkillId == SkillId)
+		{
+			return Definition;
+		}
+	}
+	return nullptr;
+}
+
+FString UGridSkillsWidget::MakeSkillAllocationSessionKey(const FGuid& CharacterId, FName SkillId) const
+{
+	return CharacterId.IsValid() && !SkillId.IsNone()
+		? FString::Printf(TEXT("%s|%s"), *CharacterId.ToString(EGuidFormats::Digits), *SkillId.ToString())
+		: FString();
+}
+
+int32 UGridSkillsWidget::GetSessionPurchasedSkillRankCount(const FGuid& CharacterId, FName SkillId) const
+{
+	const FString Key = MakeSkillAllocationSessionKey(CharacterId, SkillId);
+	return Key.IsEmpty() ? 0 : SessionPurchasedSkillRanks.FindRef(Key);
+}
+
+int32 UGridSkillsWidget::GetSessionSkillRankFloor(const FGuid& CharacterId, FName SkillId) const
+{
+	const FString Key = MakeSkillAllocationSessionKey(CharacterId, SkillId);
+	if (Key.IsEmpty())
+	{
+		return INDEX_NONE;
+	}
+
+	const int32* Floor = SessionSkillRankFloors.Find(Key);
+	return Floor ? *Floor : INDEX_NONE;
+}
+
+void UGridSkillsWidget::RecordSessionSkillPurchase(const FGuid& CharacterId, FName SkillId, int32 PreviousRank)
+{
+	const FString Key = MakeSkillAllocationSessionKey(CharacterId, SkillId);
+	if (Key.IsEmpty() || PreviousRank < 0)
+	{
+		return;
+	}
+
+	SessionSkillRankFloors.FindOrAdd(Key, PreviousRank);
+	++SessionPurchasedSkillRanks.FindOrAdd(Key);
+}
+
+void UGridSkillsWidget::ConsumeSessionSkillPurchase(const FGuid& CharacterId, FName SkillId)
+{
+	const FString Key = MakeSkillAllocationSessionKey(CharacterId, SkillId);
+	if (Key.IsEmpty())
+	{
+		return;
+	}
+
+	int32* Count = SessionPurchasedSkillRanks.Find(Key);
+	if (!Count)
+	{
+		return;
+	}
+
+	--(*Count);
+	if (*Count <= 0)
+	{
+		SessionPurchasedSkillRanks.Remove(Key);
+		SessionSkillRankFloors.Remove(Key);
+	}
+}
+
 void UGridSkillsWidget::RefreshSkills()
 {
 	if (bRefreshInProgress)
@@ -150,6 +235,17 @@ void UGridSkillsWidget::RefreshSkills()
 		FGridSkillsPageView Candidate;
 		if (FGridSkillsPageService::TryBuildSelectedCharacterView(InventoryComponent, SkillDefinitions, Candidate))
 		{
+			for (FGridSkillEntryView& Entry : Candidate.Skills)
+			{
+				const int32 SessionPurchaseCount =
+					GetSessionPurchasedSkillRankCount(Candidate.CharacterId, Entry.SkillId);
+				const int32 SessionFloor =
+					GetSessionSkillRankFloor(Candidate.CharacterId, Entry.SkillId);
+				Entry.bCanDecreaseRank =
+					SessionPurchaseCount > 0 &&
+					SessionFloor >= 0 &&
+					Entry.Rank > SessionFloor;
+			}
 			View = MoveTemp(Candidate);
 		}
 	}
@@ -337,18 +433,7 @@ bool UGridSkillsWidget::CommitSkillRankIncrease(FName SkillId, FText& OutFeedbac
 {
 	OutFeedback = FText::FromString(TEXT("Attribution de compétence impossible."));
 
-	TArray<const URPGSkillAsset*> Definitions;
-	FGridSkillsPageService::ResolveCanonicalSkillDefinitions(Definitions);
-	const URPGSkillAsset* Definition = nullptr;
-	for (const URPGSkillAsset* Candidate : Definitions)
-	{
-		if (IsValid(Candidate) && Candidate->SkillId == SkillId)
-		{
-			Definition = Candidate;
-			break;
-		}
-	}
-
+	const URPGSkillAsset* Definition = ResolveCanonicalSkillDefinition(SkillId);
 	FText SkillDisplayName = FText::FromName(SkillId);
 	if (const FGridSkillEntryView* Entry = View.Skills.FindByPredicate(
 		[SkillId](const FGridSkillEntryView& Candidate)
@@ -359,19 +444,74 @@ bool UGridSkillsWidget::CommitSkillRankIncrease(FName SkillId, FText& OutFeedbac
 		SkillDisplayName = Entry->DisplayName.IsEmpty() ? FText::FromName(SkillId) : Entry->DisplayName;
 	}
 
-	FRPGSkillPointPurchaseResult Result;
+	const FGuid SessionCharacterId = View.CharacterId;
+	FRPGSkillPointMutationResult Result;
 	const bool bCommitted =
 		FRPGSkillPointService::TryPurchaseNextRank(InventoryComponent, View.CharacterIndex, Definition, Result);
+
+	if (bCommitted)
+	{
+		RecordSessionSkillPurchase(SessionCharacterId, SkillId, Result.PreviousRank);
+	}
 
 	const FRPGProgressionNotificationView Notification =
 		FRPGProgressionFeedbackService::MakeSkillRankPurchaseNotification(Result, SkillDisplayName);
 	OutFeedback = Notification.Message;
 	PublishProgressionNotification(Notification);
 
-	if (!bCommitted)
+	// The transaction broadcasts inventory changes synchronously, before the
+	// UI-session history is updated. Refresh once more to project the undo state.
+	RefreshSkills();
+	return bCommitted;
+}
+
+bool UGridSkillsWidget::CommitSkillRankDecrease(FName SkillId, FText& OutFeedback)
+{
+	OutFeedback = FText::FromString(TEXT("Annulation de compétence impossible."));
+
+	const URPGSkillAsset* Definition = ResolveCanonicalSkillDefinition(SkillId);
+	FText SkillDisplayName = FText::FromName(SkillId);
+	if (const FGridSkillEntryView* Entry = View.Skills.FindByPredicate(
+		[SkillId](const FGridSkillEntryView& Candidate)
+		{
+			return Candidate.SkillId == SkillId;
+		}))
 	{
-		RefreshSkills();
+		SkillDisplayName = Entry->DisplayName.IsEmpty() ? FText::FromName(SkillId) : Entry->DisplayName;
 	}
+
+	const FGuid SessionCharacterId = View.CharacterId;
+	const int32 SessionPurchaseCount = GetSessionPurchasedSkillRankCount(SessionCharacterId, SkillId);
+	const int32 SessionFloor = GetSessionSkillRankFloor(SessionCharacterId, SkillId);
+
+	FRPGSkillPointMutationResult Result;
+	bool bCommitted = false;
+	if (SessionPurchaseCount <= 0 || SessionFloor < 0)
+	{
+		Result.SkillId = SkillId;
+		Result.RejectReason = ERPGSkillPointMutationRejectReason::NoSessionPurchaseToUndo;
+	}
+	else
+	{
+		bCommitted = FRPGSkillPointService::TryRefundPurchasedRank(
+			InventoryComponent,
+			View.CharacterIndex,
+			Definition,
+			SessionFloor,
+			Result);
+	}
+
+	if (bCommitted)
+	{
+		ConsumeSessionSkillPurchase(SessionCharacterId, SkillId);
+	}
+
+	const FRPGProgressionNotificationView Notification =
+		FRPGProgressionFeedbackService::MakeSkillRankRefundNotification(Result, SkillDisplayName);
+	OutFeedback = Notification.Message;
+	PublishProgressionNotification(Notification);
+
+	RefreshSkills();
 	return bCommitted;
 }
 
@@ -527,6 +667,7 @@ void UGridSkillsWidget::RebuildSkillEntryWidgets()
 		}
 
 		EntryWidget->OnIncreaseSkillRequested.AddUniqueDynamic(this, &UGridSkillsWidget::HandleSkillIncreaseRequested);
+		EntryWidget->OnDecreaseSkillRequested.AddUniqueDynamic(this, &UGridSkillsWidget::HandleSkillDecreaseRequested);
 		Panel_SkillEntries->AddChild(EntryWidget);
 	}
 }
@@ -575,6 +716,12 @@ void UGridSkillsWidget::HandleSkillIncreaseRequested(FName SkillId)
 {
 	FText Feedback;
 	CommitSkillRankIncrease(SkillId, Feedback);
+}
+
+void UGridSkillsWidget::HandleSkillDecreaseRequested(FName SkillId)
+{
+	FText Feedback;
+	CommitSkillRankDecrease(SkillId, Feedback);
 }
 
 int32 UGridSkillsWidget::GetSkillEntryCount() const

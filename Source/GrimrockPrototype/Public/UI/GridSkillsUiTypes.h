@@ -40,6 +40,10 @@ struct GRIMROCKPROTOTYPE_API FGridSkillEntryView
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	bool bCanIncreaseRank = false;
+
+	/** Session-only undo availability, supplied by UGridSkillsWidget. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
+	bool bCanDecreaseRank = false;
 };
 
 UENUM(BlueprintType)

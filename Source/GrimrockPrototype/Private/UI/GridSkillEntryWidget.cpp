@@ -11,6 +11,11 @@ void UGridSkillEntryWidget::NativeConstruct()
 		Button_IncreaseSkill->OnClicked.RemoveDynamic(this, &UGridSkillEntryWidget::HandleIncreaseSkillClicked);
 		Button_IncreaseSkill->OnClicked.AddUniqueDynamic(this, &UGridSkillEntryWidget::HandleIncreaseSkillClicked);
 	}
+	if (Button_DecreaseSkill)
+	{
+		Button_DecreaseSkill->OnClicked.RemoveDynamic(this, &UGridSkillEntryWidget::HandleDecreaseSkillClicked);
+		Button_DecreaseSkill->OnClicked.AddUniqueDynamic(this, &UGridSkillEntryWidget::HandleDecreaseSkillClicked);
+	}
 	RefreshEntryVisual();
 }
 
@@ -20,6 +25,10 @@ void UGridSkillEntryWidget::NativeDestruct()
 	{
 		Button_IncreaseSkill->OnClicked.RemoveDynamic(this, &UGridSkillEntryWidget::HandleIncreaseSkillClicked);
 	}
+	if (Button_DecreaseSkill)
+	{
+		Button_DecreaseSkill->OnClicked.RemoveDynamic(this, &UGridSkillEntryWidget::HandleDecreaseSkillClicked);
+	}
 	Super::NativeDestruct();
 }
 
@@ -28,6 +37,14 @@ void UGridSkillEntryWidget::HandleIncreaseSkillClicked()
 	if (bInitialized && Entry.bCanIncreaseRank && !Entry.SkillId.IsNone())
 	{
 		OnIncreaseSkillRequested.Broadcast(Entry.SkillId);
+	}
+}
+
+void UGridSkillEntryWidget::HandleDecreaseSkillClicked()
+{
+	if (bInitialized && Entry.bCanDecreaseRank && !Entry.SkillId.IsNone())
+	{
+		OnDecreaseSkillRequested.Broadcast(Entry.SkillId);
 	}
 }
 
@@ -67,6 +84,10 @@ void UGridSkillEntryWidget::ClearSkillEntry()
 	{
 		Button_IncreaseSkill->SetIsEnabled(false);
 	}
+	if (Button_DecreaseSkill)
+	{
+		Button_DecreaseSkill->SetIsEnabled(false);
+	}
 }
 
 void UGridSkillEntryWidget::RefreshEntryVisual()
@@ -103,6 +124,10 @@ void UGridSkillEntryWidget::RefreshEntryVisual()
 	if (Button_IncreaseSkill)
 	{
 		Button_IncreaseSkill->SetIsEnabled(Entry.bCanIncreaseRank);
+	}
+	if (Button_DecreaseSkill)
+	{
+		Button_DecreaseSkill->SetIsEnabled(Entry.bCanDecreaseRank);
 	}
 }
 
@@ -170,5 +195,6 @@ bool UGridSkillEntryWidget::IsValidEntry(const FGridSkillEntryView& InEntry)
 		bRankCapValid &&
 		InEntry.bTrained == (InEntry.Rank > 0) &&
 		(!InEntry.bCanIncreaseRank ||
-			(InEntry.CurrentRankCap > 0 && InEntry.Rank < InEntry.CurrentRankCap));
+			(InEntry.CurrentRankCap > 0 && InEntry.Rank < InEntry.CurrentRankCap)) &&
+		(!InEntry.bCanDecreaseRank || InEntry.Rank > 0);
 }

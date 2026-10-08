@@ -385,7 +385,7 @@ bool FGridSkillsPageService::TryBuildCharacterView(UGridPartyInventoryComponent*
 		SkillView.CurrentRankCap = FMath::Min(Definition->MaxRank, SkillPointBalance.RankCap);
 		SkillView.bCanIncreaseRank =
 			FRPGSkillPointService::GetNextRankPurchaseAvailability(Character, Definition) ==
-			ERPGSkillPointPurchaseRejectReason::None;
+			ERPGSkillPointMutationRejectReason::None;
 		Candidate.Skills.Add(MoveTemp(SkillView));
 	}
 

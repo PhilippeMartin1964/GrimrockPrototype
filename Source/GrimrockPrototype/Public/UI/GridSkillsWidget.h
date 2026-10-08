@@ -12,6 +12,7 @@ class UButton;
 class UGridPartyInventoryComponent;
 class UGridRPGNotificationWidget;
 class UGridSkillEntryWidget;
+class URPGSkillAsset;
 class UGridTalentBranchWidget;
 class UPanelWidget;
 class UGridTalentDetailWidget;
@@ -82,8 +83,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|UI|Presentation")
 	void RebuildSkillEntryWidgets();
 
+	/** Starts a fresh undo boundary every time the standalone Skills window opens. */
+	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|Allocation")
+	void BeginSkillAllocationSession();
+
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|Allocation")
 	bool CommitSkillRankIncrease(FName SkillId, FText& OutFeedback);
+
+	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|Allocation")
+	bool CommitSkillRankDecrease(FName SkillId, FText& OutFeedback);
 
 	// Read-only accessors retained for diagnostics and Blueprint presentation helpers.
 	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
@@ -154,6 +162,16 @@ private:
 	UFUNCTION()
 	void HandleSkillIncreaseRequested(FName SkillId);
 
+	UFUNCTION()
+	void HandleSkillDecreaseRequested(FName SkillId);
+
+	const URPGSkillAsset* ResolveCanonicalSkillDefinition(FName SkillId) const;
+	FString MakeSkillAllocationSessionKey(const FGuid& CharacterId, FName SkillId) const;
+	int32 GetSessionPurchasedSkillRankCount(const FGuid& CharacterId, FName SkillId) const;
+	int32 GetSessionSkillRankFloor(const FGuid& CharacterId, FName SkillId) const;
+	void RecordSessionSkillPurchase(const FGuid& CharacterId, FName SkillId, int32 PreviousRank);
+	void ConsumeSessionSkillPurchase(const FGuid& CharacterId, FName SkillId);
+
 	const FGridTalentNodeView* FindTalentNode(FName TalentNodeId) const;
 	void ClearView();
 	void BindDesignerShell();
@@ -198,6 +216,10 @@ private:
 	/** UI-RPG05 : optionnel jusqu’à matérialisation de WBP_RPGNotification. */
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UGridRPGNotificationWidget> Notification_Progression;
+
+	/** UI-session-only history. Never persisted and never gameplay authority. */
+	TMap<FString, int32> SessionPurchasedSkillRanks;
+	TMap<FString, int32> SessionSkillRankFloors;
 
 	bool bRefreshInProgress = false;
 };

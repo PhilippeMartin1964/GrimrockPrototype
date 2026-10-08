@@ -6,7 +6,7 @@ class UGridPartyInventoryComponent;
 class URPGSkillAsset;
 struct FGridCharacterInventoryState;
 
-enum class ERPGSkillPointPurchaseRejectReason : uint8
+enum class ERPGSkillPointMutationRejectReason : uint8
 {
 	None,
 	InvalidInventory,
@@ -18,6 +18,8 @@ enum class ERPGSkillPointPurchaseRejectReason : uint8
 	NoSkillPoints,
 	LevelRankCapReached,
 	SkillMaxRankReached,
+	InvalidSessionFloor,
+	NoSessionPurchaseToUndo,
 	MutationRejected
 };
 
@@ -29,10 +31,10 @@ struct FRPGSkillPointBalance
 	int32 RankCap = 0;
 };
 
-struct FRPGSkillPointPurchaseResult
+struct FRPGSkillPointMutationResult
 {
 	bool bCommitted = false;
-	ERPGSkillPointPurchaseRejectReason RejectReason = ERPGSkillPointPurchaseRejectReason::None;
+	ERPGSkillPointMutationRejectReason RejectReason = ERPGSkillPointMutationRejectReason::None;
 	FName SkillId = NAME_None;
 	int32 PreviousRank = 0;
 	int32 NewRank = 0;
@@ -60,7 +62,7 @@ struct GRIMROCKPROTOTYPE_API FRPGSkillPointService
 	static bool TryGetBalance(const FGridCharacterInventoryState& CharacterState, FRPGSkillPointBalance& OutBalance);
 
 	/** Pure availability query used by read models and presentation. */
-	static ERPGSkillPointPurchaseRejectReason GetNextRankPurchaseAvailability(
+	static ERPGSkillPointMutationRejectReason GetNextRankPurchaseAvailability(
 		const FGridCharacterInventoryState& CharacterState,
 		const URPGSkillAsset* SkillDefinition);
 
@@ -69,5 +71,17 @@ struct GRIMROCKPROTOTYPE_API FRPGSkillPointService
 		UGridPartyInventoryComponent* PartyInventoryComponent,
 		int32 CharacterIndex,
 		const URPGSkillAsset* SkillDefinition,
-		FRPGSkillPointPurchaseResult& OutResult);
+		FRPGSkillPointMutationResult& OutResult);
+
+	/**
+	 * Refunds exactly one rank purchased during the current allocation session.
+	 * SessionFloorRank is presentation-session state; the transaction refuses
+	 * to cross it, so durable pre-session ranks cannot be refunded here.
+	 */
+	static bool TryRefundPurchasedRank(
+		UGridPartyInventoryComponent* PartyInventoryComponent,
+		int32 CharacterIndex,
+		const URPGSkillAsset* SkillDefinition,
+		int32 SessionFloorRank,
+		FRPGSkillPointMutationResult& OutResult);
 };

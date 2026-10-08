@@ -51,10 +51,14 @@ struct GRIMROCKPROTOTYPE_API FRPGProgressionFeedbackService
 		const FRPGClassProgressionCommitResult& Result,
 		const FText& TalentDisplayName);
 
-	static FText GetSkillPurchaseRejectMessage(ERPGSkillPointPurchaseRejectReason Reason);
+	static FText GetSkillMutationRejectMessage(ERPGSkillPointMutationRejectReason Reason);
 
 	static FRPGProgressionNotificationView MakeSkillRankPurchaseNotification(
-		const FRPGSkillPointPurchaseResult& Result,
+		const FRPGSkillPointMutationResult& Result,
+		const FText& SkillDisplayName);
+
+	static FRPGProgressionNotificationView MakeSkillRankRefundNotification(
+		const FRPGSkillPointMutationResult& Result,
 		const FText& SkillDisplayName);
 
 	/** Notification générique de montée de niveau, utilisable par les surfaces de progression. */

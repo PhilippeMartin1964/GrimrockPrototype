@@ -7,7 +7,10 @@
 #include "RPG/RPGSkillService.h"
 #include "RPGMON155TestHelpers.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "UI/GridSkillEntryWidget.h"
 #include "UI/GridSkillsPageService.h"
+#include "UI/GridSkillsWidget.h"
+#include "UObject/UnrealType.h"
 
 namespace RPGSKILL01Tests
 {
@@ -94,7 +97,7 @@ bool FRPGSKILL01PurchaseTest::RunTest(const FString& Parameters)
 	Party->PartyInventoryState.SelectedCharacterIndex = 0;
 
 	URPGSkillAsset* Skill = MakeSkill(Party, TEXT("Skill_Test"), TEXT("Test"));
-	FRPGSkillPointPurchaseResult Result;
+	FRPGSkillPointMutationResult Result;
 
 	TestTrue(TEXT("Rank zero to one spends one point"), FRPGSkillPointService::TryPurchaseNextRank(Party, 0, Skill, Result));
 	TestTrue(TEXT("Transaction reports committed"), Result.bCommitted);
@@ -106,7 +109,7 @@ bool FRPGSKILL01PurchaseTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Two points remain"), Result.RemainingPoints, 2);
 
 	TestFalse(TEXT("Third purchase is blocked by level rank cap"), FRPGSkillPointService::TryPurchaseNextRank(Party, 0, Skill, Result));
-	TestTrue(TEXT("Reject reason is level cap"), Result.RejectReason == ERPGSkillPointPurchaseRejectReason::LevelRankCapReached);
+	TestTrue(TEXT("Reject reason is level cap"), Result.RejectReason == ERPGSkillPointMutationRejectReason::LevelRankCapReached);
 	TestEqual(TEXT("Rejected purchase preserves rank two"),
 		FRPGSkillService::GetSkillRank(Party->PartyInventoryState.ActiveCharacters[0], Skill->SkillId), 2);
 	return true;
@@ -135,10 +138,10 @@ bool FRPGSKILL01NoPointsTest::RunTest(const FString& Parameters)
 	SetRank(Party->PartyInventoryState.ActiveCharacters[0], A, 2);
 	SetRank(Party->PartyInventoryState.ActiveCharacters[0], B, 2);
 
-	FRPGSkillPointPurchaseResult Result;
+	FRPGSkillPointMutationResult Result;
 	TestFalse(TEXT("All four level-one points being spent blocks another purchase"),
 		FRPGSkillPointService::TryPurchaseNextRank(Party, 0, C, Result));
-	TestTrue(TEXT("Reject reason is no Skill Points"), Result.RejectReason == ERPGSkillPointPurchaseRejectReason::NoSkillPoints);
+	TestTrue(TEXT("Reject reason is no Skill Points"), Result.RejectReason == ERPGSkillPointMutationRejectReason::NoSkillPoints);
 	TestEqual(TEXT("No rank was invented"), FRPGSkillService::GetSkillRank(Party->PartyInventoryState.ActiveCharacters[0], C->SkillId), 0);
 	return true;
 }
@@ -186,6 +189,97 @@ bool FRPGSKILL01ReadModelTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("Open entry exposes current cap"), OpenView->CurrentRankCap, 3);
 		TestTrue(TEXT("Open entry can spend a point"), OpenView->bCanIncreaseRank);
 	}
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FRPGSKILL01SafeUndoRefundTest,
+	"Grimrock.RPG.SKILL01.Undo.RefundToSessionFloor",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPGSKILL01SafeUndoRefundTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	using namespace RPGSKILL01Tests;
+
+	UGridPartyInventoryComponent* Party = NewObject<UGridPartyInventoryComponent>();
+	FGridCharacterInventoryState Character;
+	Character.CharacterId = FGuid::NewGuid();
+	Character.Level = 1;
+	Party->PartyInventoryState.ActiveCharacters.Add(Character);
+	Party->PartyInventoryState.ActiveEquipment.SetNum(1);
+
+	URPGSkillAsset* Skill = MakeSkill(Party, TEXT("Skill_Undo"), TEXT("Undo"));
+	SetRank(Party->PartyInventoryState.ActiveCharacters[0], Skill, 1);
+
+	FRPGSkillPointMutationResult Result;
+	TestTrue(TEXT("Session purchase from baseline rank one succeeds"),
+		FRPGSkillPointService::TryPurchaseNextRank(Party, 0, Skill, Result));
+	TestEqual(TEXT("Purchase reaches rank two"), Result.NewRank, 2);
+
+	TestTrue(TEXT("Purchased rank can be refunded to session floor"),
+		FRPGSkillPointService::TryRefundPurchasedRank(Party, 0, Skill, 1, Result));
+	TestEqual(TEXT("Refund restores baseline rank one"), Result.NewRank, 1);
+	TestEqual(TEXT("Refund restores three available points"), Result.RemainingPoints, 3);
+	TestEqual(TEXT("Runtime rank is baseline rank one"),
+		FRPGSkillService::GetSkillRank(Party->PartyInventoryState.ActiveCharacters[0], Skill->SkillId), 1);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FRPGSKILL01SafeUndoFloorRejectTest,
+	"Grimrock.RPG.SKILL01.Undo.RejectBelowSessionFloor",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPGSKILL01SafeUndoFloorRejectTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	using namespace RPGSKILL01Tests;
+
+	UGridPartyInventoryComponent* Party = NewObject<UGridPartyInventoryComponent>();
+	FGridCharacterInventoryState Character;
+	Character.CharacterId = FGuid::NewGuid();
+	Character.Level = 1;
+	Party->PartyInventoryState.ActiveCharacters.Add(Character);
+	Party->PartyInventoryState.ActiveEquipment.SetNum(1);
+
+	URPGSkillAsset* Skill = MakeSkill(Party, TEXT("Skill_UndoFloor"), TEXT("Undo Floor"));
+	SetRank(Party->PartyInventoryState.ActiveCharacters[0], Skill, 1);
+
+	FRPGSkillPointMutationResult Result;
+	TestFalse(TEXT("Baseline rank cannot be refunded"),
+		FRPGSkillPointService::TryRefundPurchasedRank(Party, 0, Skill, 1, Result));
+	TestTrue(TEXT("Reject reason is session undo boundary"),
+		Result.RejectReason == ERPGSkillPointMutationRejectReason::NoSessionPurchaseToUndo);
+	TestEqual(TEXT("Rejected refund preserves baseline rank"),
+		FRPGSkillService::GetSkillRank(Party->PartyInventoryState.ActiveCharacters[0], Skill->SkillId), 1);
+
+	TestFalse(TEXT("Floor above current rank is rejected"),
+		FRPGSkillPointService::TryRefundPurchasedRank(Party, 0, Skill, 2, Result));
+	TestTrue(TEXT("Invalid floor is explicit"),
+		Result.RejectReason == ERPGSkillPointMutationRejectReason::InvalidSessionFloor);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FRPGSKILL01SafeUndoUIContractTest,
+	"Grimrock.RPG.SKILL01.Undo.UIContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPGSKILL01SafeUndoUIContractTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	UClass* EntryClass = UGridSkillEntryWidget::StaticClass();
+	TestNotNull(TEXT("Decrease button binding point exists"),
+		FindFProperty<FProperty>(EntryClass, FName(TEXT("Button_DecreaseSkill"))));
+
+	UClass* SkillsClass = UGridSkillsWidget::StaticClass();
+	TestNotNull(TEXT("Skills widget exposes session reset"),
+		SkillsClass->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UGridSkillsWidget, BeginSkillAllocationSession)));
+	TestNotNull(TEXT("Skills widget exposes safe decrement transaction"),
+		SkillsClass->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UGridSkillsWidget, CommitSkillRankDecrease)));
 	return true;
 }
 

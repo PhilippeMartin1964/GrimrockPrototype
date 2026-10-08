@@ -65,36 +65,40 @@ FRPGProgressionNotificationView FRPGProgressionFeedbackService::MakeTalentCommit
 	return Notification;
 }
 
-FText FRPGProgressionFeedbackService::GetSkillPurchaseRejectMessage(ERPGSkillPointPurchaseRejectReason Reason)
+FText FRPGProgressionFeedbackService::GetSkillMutationRejectMessage(ERPGSkillPointMutationRejectReason Reason)
 {
 	switch (Reason)
 	{
-		case ERPGSkillPointPurchaseRejectReason::InvalidInventory:
-		case ERPGSkillPointPurchaseRejectReason::InvalidCharacter:
+		case ERPGSkillPointMutationRejectReason::InvalidInventory:
+		case ERPGSkillPointMutationRejectReason::InvalidCharacter:
 			return LOCTEXT("SkillInvalidCharacter", "Le personnage n'est plus disponible.");
-		case ERPGSkillPointPurchaseRejectReason::InvalidDefinition:
+		case ERPGSkillPointMutationRejectReason::InvalidDefinition:
 			return LOCTEXT("SkillInvalidDefinition", "La définition de cette compétence n'est plus valide.");
-		case ERPGSkillPointPurchaseRejectReason::InvalidLevel:
+		case ERPGSkillPointMutationRejectReason::InvalidLevel:
 			return LOCTEXT("SkillInvalidLevel", "Le niveau du personnage est invalide.");
-		case ERPGSkillPointPurchaseRejectReason::InvalidSkillState:
-		case ERPGSkillPointPurchaseRejectReason::InvalidPointBalance:
+		case ERPGSkillPointMutationRejectReason::InvalidSkillState:
+		case ERPGSkillPointMutationRejectReason::InvalidPointBalance:
 			return LOCTEXT("SkillInvalidState", "L'état des compétences du personnage est incohérent.");
-		case ERPGSkillPointPurchaseRejectReason::NoSkillPoints:
+		case ERPGSkillPointMutationRejectReason::NoSkillPoints:
 			return LOCTEXT("SkillNoPoints", "Il ne reste aucun point de compétence.");
-		case ERPGSkillPointPurchaseRejectReason::LevelRankCapReached:
+		case ERPGSkillPointMutationRejectReason::LevelRankCapReached:
 			return LOCTEXT("SkillLevelCap", "Le plafond de rang actuel est atteint. Montez de niveau pour progresser davantage.");
-		case ERPGSkillPointPurchaseRejectReason::SkillMaxRankReached:
+		case ERPGSkillPointMutationRejectReason::SkillMaxRankReached:
 			return LOCTEXT("SkillAbsoluteCap", "Cette compétence a atteint son rang maximal.");
-		case ERPGSkillPointPurchaseRejectReason::MutationRejected:
+		case ERPGSkillPointMutationRejectReason::InvalidSessionFloor:
+			return LOCTEXT("SkillInvalidSessionFloor", "La limite d'annulation de cette session est incohérente.");
+		case ERPGSkillPointMutationRejectReason::NoSessionPurchaseToUndo:
+			return LOCTEXT("SkillNoSessionUndo", "Seuls les rangs attribués depuis l'ouverture actuelle de COMPÉTENCES peuvent être annulés.");
+		case ERPGSkillPointMutationRejectReason::MutationRejected:
 			return LOCTEXT("SkillMutationRejected", "L'augmentation de rang a été refusée.");
-		case ERPGSkillPointPurchaseRejectReason::None:
+		case ERPGSkillPointMutationRejectReason::None:
 		default:
 			return FText::GetEmpty();
 	}
 }
 
 FRPGProgressionNotificationView FRPGProgressionFeedbackService::MakeSkillRankPurchaseNotification(
-	const FRPGSkillPointPurchaseResult& Result,
+	const FRPGSkillPointMutationResult& Result,
 	const FText& SkillDisplayName)
 {
 	FRPGProgressionNotificationView Notification;
@@ -112,10 +116,37 @@ FRPGProgressionNotificationView FRPGProgressionFeedbackService::MakeSkillRankPur
 
 	Notification.Severity = ERPGProgressionNotificationSeverity::Warning;
 	Notification.Title = LOCTEXT("SkillRankRejectedTitle", "Amélioration impossible");
-	Notification.Message = GetSkillPurchaseRejectMessage(Result.RejectReason);
+	Notification.Message = GetSkillMutationRejectMessage(Result.RejectReason);
 	if (Notification.Message.IsEmpty())
 	{
 		Notification.Message = LOCTEXT("SkillRankRejectedGeneric", "La compétence n'a pas pu être améliorée.");
+	}
+	return Notification;
+}
+
+FRPGProgressionNotificationView FRPGProgressionFeedbackService::MakeSkillRankRefundNotification(
+	const FRPGSkillPointMutationResult& Result,
+	const FText& SkillDisplayName)
+{
+	FRPGProgressionNotificationView Notification;
+	if (Result.bCommitted)
+	{
+		Notification.Severity = ERPGProgressionNotificationSeverity::Success;
+		Notification.Title = LOCTEXT("SkillRankRefundedTitle", "Attribution annulée");
+		Notification.Message = FText::Format(
+			LOCTEXT("SkillRankRefunded", "« {0} » revient au rang {1}. Points de compétence disponibles : {2}."),
+			SkillDisplayName,
+			FText::AsNumber(Result.NewRank),
+			FText::AsNumber(Result.RemainingPoints));
+		return Notification;
+	}
+
+	Notification.Severity = ERPGProgressionNotificationSeverity::Warning;
+	Notification.Title = LOCTEXT("SkillRankRefundRejectedTitle", "Annulation impossible");
+	Notification.Message = GetSkillMutationRejectMessage(Result.RejectReason);
+	if (Notification.Message.IsEmpty())
+	{
+		Notification.Message = LOCTEXT("SkillRankRefundRejectedGeneric", "Cette attribution ne peut pas être annulée.");
 	}
 	return Notification;
 }

@@ -9,6 +9,7 @@ class UButton;
 class UTextBlock;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridSkillIncreaseRequestedSignature, FName, SkillId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridSkillDecreaseRequestedSignature, FName, SkillId);
 
 /**
  * Presentation-only row for one canonical Skill.
@@ -31,6 +32,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Skills|Entry|Events")
 	FGridSkillIncreaseRequestedSignature OnIncreaseSkillRequested;
+
+	UPROPERTY(BlueprintAssignable, Category = "RPG|Skills|Entry|Events")
+	FGridSkillDecreaseRequestedSignature OnDecreaseSkillRequested;
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Skills|Entry")
 	bool InitializeSkillEntry(const FGridSkillEntryView& InEntry);
@@ -64,6 +68,9 @@ private:
 	UFUNCTION()
 	void HandleIncreaseSkillClicked();
 
+	UFUNCTION()
+	void HandleDecreaseSkillClicked();
+
 	static bool IsValidEntry(const FGridSkillEntryView& InEntry);
 
 	UPROPERTY(meta = (BindWidget))
@@ -83,4 +90,8 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_IncreaseSkill;
+
+	/** RPG-SKILL01.3B Designer materialization; optional until WBP_RPGSkillEntry is updated manually. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Button_DecreaseSkill;
 };

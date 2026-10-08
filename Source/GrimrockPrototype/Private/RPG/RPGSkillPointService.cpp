@@ -61,64 +61,64 @@ bool FRPGSkillPointService::TryGetBalance(
 	return true;
 }
 
-ERPGSkillPointPurchaseRejectReason FRPGSkillPointService::GetNextRankPurchaseAvailability(
+ERPGSkillPointMutationRejectReason FRPGSkillPointService::GetNextRankPurchaseAvailability(
 	const FGridCharacterInventoryState& CharacterState,
 	const URPGSkillAsset* SkillDefinition)
 {
 	if (!IsValid(SkillDefinition) || !SkillDefinition->IsValidDefinition())
 	{
-		return ERPGSkillPointPurchaseRejectReason::InvalidDefinition;
+		return ERPGSkillPointMutationRejectReason::InvalidDefinition;
 	}
 
 	if (GetTotalPointsGranted(CharacterState.Level) <= 0 || GetRankCapForLevel(CharacterState.Level) <= 0)
 	{
-		return ERPGSkillPointPurchaseRejectReason::InvalidLevel;
+		return ERPGSkillPointMutationRejectReason::InvalidLevel;
 	}
 
 	if (!FRPGSkillService::ValidateSkillState(CharacterState))
 	{
-		return ERPGSkillPointPurchaseRejectReason::InvalidSkillState;
+		return ERPGSkillPointMutationRejectReason::InvalidSkillState;
 	}
 
 	FRPGSkillPointBalance Balance;
 	if (!TryGetBalance(CharacterState, Balance))
 	{
-		return ERPGSkillPointPurchaseRejectReason::InvalidPointBalance;
+		return ERPGSkillPointMutationRejectReason::InvalidPointBalance;
 	}
 
 	const int32 CurrentRank = FRPGSkillService::GetSkillRank(CharacterState, SkillDefinition->SkillId);
 	if (CurrentRank >= SkillDefinition->MaxRank)
 	{
-		return ERPGSkillPointPurchaseRejectReason::SkillMaxRankReached;
+		return ERPGSkillPointMutationRejectReason::SkillMaxRankReached;
 	}
 	if (CurrentRank >= Balance.RankCap)
 	{
-		return ERPGSkillPointPurchaseRejectReason::LevelRankCapReached;
+		return ERPGSkillPointMutationRejectReason::LevelRankCapReached;
 	}
 	if (Balance.RemainingPoints <= 0)
 	{
-		return ERPGSkillPointPurchaseRejectReason::NoSkillPoints;
+		return ERPGSkillPointMutationRejectReason::NoSkillPoints;
 	}
 
-	return ERPGSkillPointPurchaseRejectReason::None;
+	return ERPGSkillPointMutationRejectReason::None;
 }
 
 bool FRPGSkillPointService::TryPurchaseNextRank(
 	UGridPartyInventoryComponent* PartyInventoryComponent,
 	int32 CharacterIndex,
 	const URPGSkillAsset* SkillDefinition,
-	FRPGSkillPointPurchaseResult& OutResult)
+	FRPGSkillPointMutationResult& OutResult)
 {
-	OutResult = FRPGSkillPointPurchaseResult();
+	OutResult = FRPGSkillPointMutationResult();
 
 	if (!IsValid(PartyInventoryComponent))
 	{
-		OutResult.RejectReason = ERPGSkillPointPurchaseRejectReason::InvalidInventory;
+		OutResult.RejectReason = ERPGSkillPointMutationRejectReason::InvalidInventory;
 		return false;
 	}
 	if (!PartyInventoryComponent->IsValidCharacterIndex(CharacterIndex))
 	{
-		OutResult.RejectReason = ERPGSkillPointPurchaseRejectReason::InvalidCharacter;
+		OutResult.RejectReason = ERPGSkillPointMutationRejectReason::InvalidCharacter;
 		return false;
 	}
 
@@ -137,7 +137,7 @@ bool FRPGSkillPointService::TryPurchaseNextRank(
 		OutResult.RankCap = Balance.RankCap;
 	}
 
-	if (OutResult.RejectReason != ERPGSkillPointPurchaseRejectReason::None)
+	if (OutResult.RejectReason != ERPGSkillPointMutationRejectReason::None)
 	{
 		return false;
 	}
@@ -149,7 +149,7 @@ bool FRPGSkillPointService::TryPurchaseNextRank(
 		!Mutation.bChanged ||
 		Mutation.NewRank != OutResult.PreviousRank + 1)
 	{
-		OutResult.RejectReason = ERPGSkillPointPurchaseRejectReason::MutationRejected;
+		OutResult.RejectReason = ERPGSkillPointMutationRejectReason::MutationRejected;
 		return false;
 	}
 
@@ -157,7 +157,92 @@ bool FRPGSkillPointService::TryPurchaseNextRank(
 	OutResult.NewRank = Mutation.NewRank;
 	OutResult.SpentPoints = Balance.SpentPoints + 1;
 	OutResult.RemainingPoints = Balance.RemainingPoints - 1;
-	OutResult.RejectReason = ERPGSkillPointPurchaseRejectReason::None;
+	OutResult.RejectReason = ERPGSkillPointMutationRejectReason::None;
+
+	PartyInventoryComponent->NotifyPartyInventoryChanged(CharacterIndex);
+	return true;
+}
+
+bool FRPGSkillPointService::TryRefundPurchasedRank(
+	UGridPartyInventoryComponent* PartyInventoryComponent,
+	int32 CharacterIndex,
+	const URPGSkillAsset* SkillDefinition,
+	int32 SessionFloorRank,
+	FRPGSkillPointMutationResult& OutResult)
+{
+	OutResult = FRPGSkillPointMutationResult();
+
+	if (!IsValid(PartyInventoryComponent))
+	{
+		OutResult.RejectReason = ERPGSkillPointMutationRejectReason::InvalidInventory;
+		return false;
+	}
+	if (!PartyInventoryComponent->IsValidCharacterIndex(CharacterIndex))
+	{
+		OutResult.RejectReason = ERPGSkillPointMutationRejectReason::InvalidCharacter;
+		return false;
+	}
+	if (!IsValid(SkillDefinition) || !SkillDefinition->IsValidDefinition())
+	{
+		OutResult.RejectReason = ERPGSkillPointMutationRejectReason::InvalidDefinition;
+		return false;
+	}
+
+	FGridCharacterInventoryState& Character =
+		PartyInventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex];
+
+	OutResult.SkillId = SkillDefinition->SkillId;
+
+	if (GetTotalPointsGranted(Character.Level) <= 0 || GetRankCapForLevel(Character.Level) <= 0)
+	{
+		OutResult.RejectReason = ERPGSkillPointMutationRejectReason::InvalidLevel;
+		return false;
+	}
+	if (!FRPGSkillService::ValidateSkillState(Character))
+	{
+		OutResult.RejectReason = ERPGSkillPointMutationRejectReason::InvalidSkillState;
+		return false;
+	}
+
+	FRPGSkillPointBalance Balance;
+	if (!TryGetBalance(Character, Balance))
+	{
+		OutResult.RejectReason = ERPGSkillPointMutationRejectReason::InvalidPointBalance;
+		return false;
+	}
+
+	OutResult.GrantedPoints = Balance.GrantedPoints;
+	OutResult.SpentPoints = Balance.SpentPoints;
+	OutResult.RemainingPoints = Balance.RemainingPoints;
+	OutResult.RankCap = Balance.RankCap;
+	OutResult.PreviousRank = FRPGSkillService::GetSkillRank(Character, SkillDefinition->SkillId);
+
+	if (OutResult.PreviousRank < 0 || OutResult.PreviousRank > SkillDefinition->MaxRank ||
+		SessionFloorRank < 0 || SessionFloorRank > OutResult.PreviousRank)
+	{
+		OutResult.RejectReason = ERPGSkillPointMutationRejectReason::InvalidSessionFloor;
+		return false;
+	}
+	if (OutResult.PreviousRank <= SessionFloorRank)
+	{
+		OutResult.RejectReason = ERPGSkillPointMutationRejectReason::NoSessionPurchaseToUndo;
+		return false;
+	}
+
+	FRPGSkillMutationResult Mutation;
+	if (!FRPGSkillService::TrySetSkillRank(Character, SkillDefinition, OutResult.PreviousRank - 1, Mutation) ||
+		!Mutation.bChanged ||
+		Mutation.NewRank != OutResult.PreviousRank - 1)
+	{
+		OutResult.RejectReason = ERPGSkillPointMutationRejectReason::MutationRejected;
+		return false;
+	}
+
+	OutResult.bCommitted = true;
+	OutResult.NewRank = Mutation.NewRank;
+	OutResult.SpentPoints = Balance.SpentPoints - 1;
+	OutResult.RemainingPoints = Balance.RemainingPoints + 1;
+	OutResult.RejectReason = ERPGSkillPointMutationRejectReason::None;
 
 	PartyInventoryComponent->NotifyPartyInventoryChanged(CharacterIndex);
 	return true;
