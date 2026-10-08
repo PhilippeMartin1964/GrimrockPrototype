@@ -486,7 +486,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Exorcism progression.
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			HolyLightTalentId, TEXT("Lumière sacrée"), TEXT("Inflige 5 + WIS mod + Religion Rank dégâts Holy. Contre `Undead"), 2, ExorcismBranchId);
+			HolyLightTalentId, TEXT("Lumière sacrée"), TEXT("Inflige 5 + modificateur de Sagesse + rang de Religion en dégâts sacrés. Contre les Morts-vivants ou Démons, les dégâts sont multipliés par 1,5. Aucun statut supplémentaire."), 2, ExorcismBranchId);
 		FGridCombatModifierProfile Bonus;
 		Bonus.ActionIds = { HolyLightActionId };
 		Bonus.AllowedTargetMonsterCategoryIds = { TEXT("Undead"), TEXT("Demon") };
@@ -497,10 +497,10 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TurnUndeadTalentId, TEXT("Repousser les morts-vivants"), TEXT("Chaque Undead dans la zone subit 4 Holy. Si armure magique=0 après dégâts, il est poussé d'1 cellule à l'opposé du groupe si possible et reçoit InitiativeModifier -4 pendant 1 round."), 6, ExorcismBranchId, HolyLightTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		HolyDispelTalentId, TEXT("Dissipation sacrée"), TEXT("Allié : retire jusqu'à 2 Debuffs `Necrotic"), 10, ExorcismBranchId, TurnUndeadTalentId));
+		HolyDispelTalentId, TEXT("Dissipation sacrée"), TEXT("Sur un allié : retire jusqu'à 2 affaiblissements Nécrotiques ou Malédictions. Sur un Mort-vivant hostile : retire 1 amélioration magique amovible. La priorité est déterministe : puissance, puis identifiant de l'effet."), 10, ExorcismBranchId, TurnUndeadTalentId));
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			SmiteTalentId, TEXT("Châtiment"), TEXT("Inflige 10 + 2×WIS mod + Religion Rank Holy. Contre `Undead"), 14, ExorcismBranchId, HolyDispelTalentId);
+			SmiteTalentId, TEXT("Châtiment"), TEXT("Inflige 10 + 2×modificateur de Sagesse + rang de Religion en dégâts sacrés. Contre les Morts-vivants ou Démons, les dégâts sont multipliés par 1,5. Ce sort ne peut pas infliger de coup critique."), 14, ExorcismBranchId, HolyDispelTalentId);
 		FGridCombatModifierProfile Bonus;
 		Bonus.ActionIds = { SmiteActionId };
 		Bonus.AllowedTargetMonsterCategoryIds = { TEXT("Undead"), TEXT("Demon") };
@@ -509,7 +509,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		MajorExorcismTalentId, TEXT("Exorcisme majeur"), TEXT("N'affecte que `Undead"), 18, ExorcismBranchId, SmiteTalentId));
+		MajorExorcismTalentId, TEXT("Exorcisme majeur"), TEXT("N'affecte que les Morts-vivants, Démons et créatures invoquées. Inflige 14 + 2×modificateur de Sagesse + rang de Religion en dégâts sacrés. Si l'armure magique est épuisée après les dégâts, applique Banni pendant 1 tour et fait perdre la prochaine activation."), 18, ExorcismBranchId, SmiteTalentId));
 }
 
 bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)

@@ -419,7 +419,7 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(MasterLocksmith);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_Sabotage"), TEXT("Sabotage"),
-		TEXT("Sur cible `Mechanical"), 18, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_MasterLocksmith")));
+		TEXT("Sur une cible Mechanical ou Construct : effectue un test Intelligence + Mécanique contre sa difficulté. En cas de succès, applique Saboté pendant 2 rounds : Précision -2 et Initiative -4. Hors combat, un mécanisme explicitement sabotable reçoit son événement de sabotage."), 18, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_MasterLocksmith")));
 }
 
 bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)

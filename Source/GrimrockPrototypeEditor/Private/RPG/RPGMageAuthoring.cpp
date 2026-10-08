@@ -544,7 +544,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition RunicManipulation = MakeChoice(
 		RunicManipulationTalentId, TEXT("Manipulation runique"),
-		TEXT("Jets Skill_Runes +2. Les dégâts Arcane contre cibles taguées `Rune"), 10, ArcanistBranchId, DispelTalentId);
+		TEXT("Jets de Runes +2. Les dégâts arcaniques contre les cibles Rune ou Construct augmentent de 20 %. Les interactions avec les mécanismes runiques gagnent également +2 au test, sans réussite automatique."), 10, ArcanistBranchId, DispelTalentId);
 	FRPGSkillProgressionModifier RuneSkill;
 	RuneSkill.SkillId = TEXT("Skill_Runes");
 	RuneSkill.CheckModifier = 2;
@@ -646,7 +646,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		const FString DisplayName = FString::Printf(TEXT("Imprégnation — %s"),
 			*FString(Variant.DisplayName).Replace(TEXT("Affinité élémentaire — "), TEXT("")));
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			ChoiceId, *DisplayName, TEXT("Débloque Imprégnation et fixe l'affinité de la branche Tisseur de surfaces."), 2, SurfaceWeaverBranchId, NAME_None, ImbuementTalentId);
+			ChoiceId, *DisplayName, TEXT("Choisit cette affinité pour la branche Tisseur de surfaces et donne accès à Imprégnation. Imprégnation cible un allié : sa prochaine attaque d'arme ajoute 3 + modificateur d'Intelligence du Mage en dégâts de cette affinité. L'effet dure au maximum 2 rounds et est consommé par la première attaque d'arme réussie."), 2, SurfaceWeaverBranchId, NAME_None, ImbuementTalentId);
 		Choice.ExclusiveChoiceGroupId = ImbuementAffinityGroup;
 		Choice.GrantedRequirementIds = { ImbuementTalentId };
 		ClassAsset.ProgressionChoices.Add(Choice);

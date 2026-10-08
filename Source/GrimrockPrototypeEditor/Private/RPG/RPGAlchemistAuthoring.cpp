@@ -329,13 +329,13 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Grenadier
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			FireBombTalent, TEXT("Bombe incendiaire"), TEXT("Débloque Recipe_Bomb_Fire / Item_Bomb_Fire. Chaque hostile : 6 + Alchemy Rank Fire. Si armure magique=0, Status_Burning 2 tours à 2 Fire/tick. Crée Surface_Fire 2 rounds."), 2, GrenadierBranchId);
+			FireBombTalent, TEXT("Bombe incendiaire"), TEXT("Permet de fabriquer et d'utiliser la Bombe incendiaire. Chaque ennemi de la zone subit 6 + rang d'Alchimie dégâts de feu. Si son armure magique est épuisée, applique Brûlure pendant 2 tours à 2 dégâts de feu par tick. Crée une surface de feu pendant 2 rounds."), 2, GrenadierBranchId);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Bomb_Fire") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			ToxicBombTalent, TEXT("Bombe toxique"), TEXT("Débloque Recipe_Bomb_Toxic. Chaque hostile : 6 + Alchemy Rank Poison. Si armure magique=0, Status_Poison 3 tours à 2 Poison/tick. Crée Surface_Poison 3 rounds."), 6, GrenadierBranchId, FireBombTalent);
+			ToxicBombTalent, TEXT("Bombe toxique"), TEXT("Permet de fabriquer et d'utiliser la Bombe toxique. Chaque ennemi de la zone subit 6 + rang d'Alchimie dégâts de poison. Si son armure magique est épuisée, applique Poison pendant 3 tours à 2 dégâts de poison par tick. Crée une surface empoisonnée pendant 3 rounds."), 6, GrenadierBranchId, FireBombTalent);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Bomb_Toxic") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
@@ -390,13 +390,13 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			AntidoteTalent, TEXT("Antidote"), TEXT("Débloque Recipe_Antidote. Retire Status_Poison et 1 autre Debuff tagué Toxin. Si aucun effet applicable, l'action est indisponible et l'objet n'est pas consommé."), 6, ApothecaryBranchId, EnhancedPotionTalent);
+			AntidoteTalent, TEXT("Antidote"), TEXT("Permet de fabriquer et d'utiliser l'Antidote. Retire Poison et un autre affaiblissement de type Toxine. Si aucun effet applicable n'est présent, l'action est indisponible et l'objet n'est pas consommé."), 6, ApothecaryBranchId, EnhancedPotionTalent);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Antidote") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			DefensiveElixirTalent, TEXT("Élixir défensif"), TEXT("Débloque quatre variantes craftées Fire/Ice/Lightning/Poison. Restaure 4 armure magique et applique +25 % résistance au type choisi pendant 3 rounds."), 10, ApothecaryBranchId, AntidoteTalent);
+			DefensiveElixirTalent, TEXT("Élixir défensif"), TEXT("Permet de fabriquer quatre Élixirs défensifs : Feu, Glace, Foudre ou Poison. L'élixir restaure 4 points d'armure magique et accorde +25 % de résistance au type choisi pendant 3 rounds."), 10, ApothecaryBranchId, AntidoteTalent);
 		Choice.GrantedRequirementIds = {
 			TEXT("Recipe_DefensiveElixir_Fire"), TEXT("Recipe_DefensiveElixir_Ice"),
 			TEXT("Recipe_DefensiveElixir_Lightning"), TEXT("Recipe_DefensiveElixir_Poison")
@@ -418,7 +418,7 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			PanaceaTalent, TEXT("Panacée"), TEXT("Débloque Recipe_Panacea. Soigne 10 + 2×Alchemy Rank, restaure 8 armure magique et retire jusqu'à 3 Debuffs parmi Poison/Burning/Bleeding/Slow/Silence/Immobilize/Toxin/Purifiable."), 18, ApothecaryBranchId, DiffusionTalent);
+			PanaceaTalent, TEXT("Panacée"), TEXT("Permet de fabriquer et d'utiliser la Panacée. Soigne 10 + 2×rang d'Alchimie PV, restaure 8 points d'armure magique et retire jusqu'à 3 affaiblissements parmi Poison, Brûlure, Saignement, Ralentissement, Silence, Immobilisation, Toxine ou effets purifiables."), 18, ApothecaryBranchId, DiffusionTalent);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Panacea") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
@@ -426,7 +426,7 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Transmuter
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			OilSlickTalent, TEXT("Huile glissante"), TEXT("Débloque Recipe_Flask_Oil. Crée Surface_Oil 4 rounds, sans dégâts directs. Traverser une cellule huilée coûte +1 point de mouvement/PAM selon l'acteur. Fire transforme Oil en Fire."), 2, TransmuterBranchId);
+			OilSlickTalent, TEXT("Huile glissante"), TEXT("Permet de fabriquer et d'utiliser la Flasque d'huile. Crée une surface d'huile pendant 4 rounds sans dégâts directs. Traverser une cellule huilée coûte +1 point de mouvement ou de PAM selon l'acteur. Le feu transforme l'huile en surface de feu."), 2, TransmuterBranchId);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Flask_Oil") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
