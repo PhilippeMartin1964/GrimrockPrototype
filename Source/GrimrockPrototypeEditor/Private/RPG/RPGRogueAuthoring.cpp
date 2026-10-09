@@ -419,7 +419,7 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		TEXT("Pose un piège rapide pendant 3 rounds. Le premier hostile qui entre subit 6 + modificateur de DEX dégâts physiques perforants ; si son armure physique est épuisée après les dégâts, il est immobilisé pendant 1 round. Le piège est ensuite consommé."), 6, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_ExpertDisarm")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_SmokeBomb"), TEXT("Bombe fumigène"),
-		TEXT("Crée Surface_Smoke 2 rounds. Une ligne de tir traversant la fumée invalide les attaques/spells ciblés à distance ; un occupant de la fumée gagne Esquive +2 contre les attaques à distance."), 10, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_QuickTrap")));
+		TEXT("Crée une zone de fumée pendant 2 rounds. Une ligne de tir traversant la fumée invalide les attaques et sorts ciblés à distance ; un occupant de la fumée gagne Esquive +2 contre les attaques à distance."), 10, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_QuickTrap")));
 
 	FRPGClassProgressionChoiceDefinition MasterLocksmith = MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_MasterLocksmith"), TEXT("Maître des serrures"),
@@ -552,7 +552,7 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	if (EffectId == TEXT("Status_HiddenPerfect"))
 	{
 		StatusAsset.DisplayName = FText::FromString(TEXT("Ombre parfaite"));
-		StatusAsset.Description = FText::FromString(TEXT("Caché ; première offense : dégâts +50 % et Accuracy +2, puis rupture. Les dégâts directs rompent aussi l'effet."));
+		StatusAsset.Description = FText::FromString(TEXT("Caché ; la première action offensive gagne +50 % de dégâts et Précision +2, puis rompt l'effet. Les dégâts directs rompent aussi l'effet."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 2;
@@ -594,7 +594,7 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	if (EffectId == TEXT("Status_Sabotaged"))
 	{
 		StatusAsset.DisplayName = FText::FromString(TEXT("Saboté"));
-		StatusAsset.Description = FText::FromString(TEXT("Accuracy -2 et Initiative -4."));
+		StatusAsset.Description = FText::FromString(TEXT("Précision -2 et Initiative -4."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 2;

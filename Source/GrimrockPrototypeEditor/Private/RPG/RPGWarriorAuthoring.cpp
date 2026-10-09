@@ -406,7 +406,7 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		const FName ChoiceId(*FString::Printf(TEXT("Talent_Warrior_WeaponMaster_MartialSpecialization_%s"), Spec.Suffix));
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
 			ChoiceId, Spec.DisplayName,
-			TEXT("Avec une arme de ce type : Accuracy +1 et dégâts d'arme finaux +10 %."), 2, WeaponMasterBranchId, NAME_None, MartialRequirement);
+			TEXT("Avec une arme de ce type : Précision +1 et dégâts d'arme finaux +10 %."), 2, WeaponMasterBranchId, NAME_None, MartialRequirement);
 		Choice.ExclusiveChoiceGroupId = MartialGroup;
 		Choice.GrantedRequirementIds = { MartialRequirement };
 		Choice.CombatModifiers.Add(MakeSubtypeModifier(Spec.Subtype, 1, 10));
@@ -535,7 +535,7 @@ bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Sta
 	if (EffectId == TEXT("Status_Warlord"))
 	{
 		StatusAsset.DisplayName = FText::FromString(TEXT("Seigneur de guerre"));
-		StatusAsset.Description = FText::FromString(TEXT("Accuracy +2 et InitiativeModifier +4."));
+		StatusAsset.Description = FText::FromString(TEXT("Précision +2 et Initiative +4."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 2;
