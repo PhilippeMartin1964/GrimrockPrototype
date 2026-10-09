@@ -244,6 +244,43 @@ if ($PakFiles.Count -le 0)
     exit 3
 }
 
+# UI-RPG-PACK01: a successful cook does not imply dynamically loaded DataAssets are staged.
+# Scan the actual packaged PAK contents, never the Editor Asset Registry or the source Content folder.
+$UnrealPak = Join-Path $ResolvedEngineRoot 'Engine\\Binaries\\Win64\\UnrealPak.exe'
+if (-not (Test-Path -LiteralPath $UnrealPak -PathType Leaf))
+{
+    throw "Verification des assets Shipping impossible : UnrealPak.exe introuvable : $UnrealPak"
+}
+
+Write-Host ''
+Write-Host '=== UI-RPG packaged asset validation ==='
+$PackagedAssetListing = New-Object System.Collections.Generic.List[string]
+foreach ($PakFile in $PakFiles)
+{
+    $Listing = @(& $UnrealPak $PakFile.FullName '-List' 2>&1)
+    if ($LASTEXITCODE -ne 0)
+    {
+        throw "UnrealPak -List a echoue pour : $($PakFile.FullName)"
+    }
+    $PackagedAssetListing.Add(($Listing -join "`n"))
+}
+$PackagedPaths = $PackagedAssetListing -join "`n"
+$PresentationPattern = '(?i)[/\\]GrimrockPrototype[/\\]Core[/\\]DataAssets[/\\]UI[/\\]RPG[/\\]DA_RPGTalentPresentation\\.uasset'
+$SkillsPattern = '(?i)[/\\]GrimrockPrototype[/\\]Core[/\\]DataAssets[/\\]RPG[/\\]Skills[/\\](DA_Skill_[A-Za-z0-9_]+\\.uasset)'
+$PresentationFound = [regex]::IsMatch($PackagedPaths, $PresentationPattern)
+$SkillAssets = @(
+    [regex]::Matches($PackagedPaths, $SkillsPattern) |
+        ForEach-Object { $_.Groups[1].Value } |
+        Sort-Object -Unique
+)
+Write-Host ('Talent presentation : ' + $(if ($PresentationFound) { '[OK]' } else { '[MISSING]' }))
+Write-Host "RPG Skill assets    : $($SkillAssets.Count) / 25"
+if (-not $PresentationFound -or $SkillAssets.Count -ne 25)
+{
+    throw 'UI-RPG-PACK01 failed: Shipping PAK is missing DA_RPGTalentPresentation or one or more of the 25 canonical DA_Skill_* assets.'
+}
+Write-Host '[OK] UI-RPG Shipping DataAssets verified in packaged PAK.'
+
 $ArchiveFiles = @(Get-ChildItem -LiteralPath $SessionArchivePath -Recurse -File)
 $ArchiveBytes = 0L
 foreach ($ArchiveFile in $ArchiveFiles)
