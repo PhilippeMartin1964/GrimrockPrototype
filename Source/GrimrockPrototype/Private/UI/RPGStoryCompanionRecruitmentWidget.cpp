@@ -350,7 +350,6 @@ void URPGStoryCompanionRecruitmentWidget::ApplyInputGuard()
 	FInputModeUIOnly InputMode;
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	PlayerController->SetInputMode(InputMode);
-	PlayerController->bShowMouseCursor = true;
 	bInputGuardApplied = true;
 
 	UE_LOG(LogGridRecruitmentWidget, Log, TEXT("[GridRecruitmentUI] ModalGuard Applied Companion=%s PausedByModal=%s"), *GetNameSafe(CompanionDefinition),
@@ -383,7 +382,6 @@ void URPGStoryCompanionRecruitmentWidget::RestoreInputGuard()
 		FInputModeGameAndUI InputMode;
 		InputMode.SetHideCursorDuringCapture(false);
 		PlayerController->SetInputMode(InputMode);
-		PlayerController->bShowMouseCursor = true;
 	}
 
 	bInputGuardApplied = false;
