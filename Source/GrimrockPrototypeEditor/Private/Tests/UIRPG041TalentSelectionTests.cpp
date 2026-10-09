@@ -27,13 +27,13 @@ namespace UIRPG041Tests
 		Node.MinimumLevel = 2;
 		Node.PointCost = 1;
 		Node.State = EGridTalentNodeState::Available;
-
-		FGridTalentVariantView Variant;
-		Variant.ChoiceId = Node.TalentNodeId;
-		Variant.DisplayName = FText::FromString(TEXT("Test"));
-		Variant.bAvailable = true;
-		Variant.State = EGridTalentNodeState::Available;
-		Node.Variants.Add(Variant);
+		Node.DisplayName = FText::FromString(TEXT("Test"));
+		Node.Type = ERPGTalentPresentationType::Passive;
+		Node.TypeText = FText::FromString(TEXT("PASSIF"));
+		Node.StatusText = FText::FromString(TEXT("DISPONIBLE"));
+		Node.Principle = FText::FromString(TEXT("Description"));
+		Node.SimpleChoiceId = Node.TalentNodeId;
+		Node.bCanAcquireSimple = true;
 
 		Branch.Nodes.Add(Node);
 		View.TalentTree.Branches.Add(Branch);

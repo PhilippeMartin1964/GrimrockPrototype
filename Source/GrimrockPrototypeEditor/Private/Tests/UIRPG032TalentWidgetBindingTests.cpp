@@ -44,9 +44,12 @@ namespace UIRPG032Tests
 		FGridTalentVariantView Variant;
 		Variant.ChoiceId = ChoiceId;
 		Variant.DisplayName = FText::FromString(DisplayName);
-		Variant.Description = FText::FromString(TEXT("Description"));
 		Variant.State = EGridTalentNodeState::Available;
-		Variant.bAvailable = true;
+		Variant.Type = ERPGTalentPresentationType::Passive;
+		Variant.TypeText = FText::FromString(TEXT("PASSIF"));
+		Variant.StatusText = FText::FromString(TEXT("DISPONIBLE"));
+		Variant.Principle = FText::FromString(TEXT("Description"));
+		Variant.bCanChoose = true;
 		return Variant;
 	}
 }
@@ -69,12 +72,14 @@ bool FUIRPG032SimpleNodeResolutionTest::RunTest(const FString&)
 	Node.MinimumLevel = 2;
 	Node.PointCost = 1;
 	Node.State = EGridTalentNodeState::Available;
-	Node.Variants.Add(MakeVariant(TEXT("Talent_Test"), TEXT("Talent réel")));
+	Node.DisplayName = FText::FromString(TEXT("Talent réel"));
+	Node.Principle = FText::FromString(TEXT("Description"));
+	Node.SimpleChoiceId = Node.TalentNodeId;
 
 	UGridTalentNodeWidget* Widget = NewObject<UGridTalentNodeWidget>();
 	TestTrue(TEXT("Simple node initializes without presentation override"), Widget->InitializeTalentNode(Node, Branch));
 	TestEqual(TEXT("Simple node uses Choice display name"), Widget->ResolvedDisplayName.ToString(), FString(TEXT("Talent réel")));
-	TestEqual(TEXT("Simple node has one variant"), Widget->GetVariantCount(), 1);
+	TestEqual(TEXT("Simple node has no variant payload"), Widget->GetVariantCount(), 0);
 	return true;
 }
 
@@ -96,20 +101,25 @@ bool FUIRPG032VariantOverrideTest::RunTest(const FString&)
 	Node.MinimumLevel = 2;
 	Node.PointCost = 1;
 	Node.State = EGridTalentNodeState::Available;
+	Node.bHasExclusiveVariants = true;
 	Node.Variants.Add(MakeVariant(TEXT("Talent_Test_A"), TEXT("Variante A")));
 	Node.Variants.Add(MakeVariant(TEXT("Talent_Test_B"), TEXT("Variante B")));
 
 	UGridTalentNodeWidget* Widget = NewObject<UGridTalentNodeWidget>();
-	TestFalse(TEXT("Variant node is rejected without conceptual presentation override"), Widget->InitializeTalentNode(Node, Branch));
+	TestFalse(TEXT("Variant node is rejected before canonical conceptual presentation is projected"),
+		Widget->InitializeTalentNode(Node, Branch));
 
 	FRPGTalentNodePresentationDefinition Override;
 	Override.TalentNodeId = Node.TalentNodeId;
 	Override.DisplayName = FText::FromString(TEXT("Talent conceptuel"));
 	Override.Description = FText::FromString(TEXT("Choisissez une variante."));
 	Branch.NodePresentationOverrides.Add(Override);
+	Node.DisplayName = Override.DisplayName;
+	Node.Principle = Override.Description;
 
-	TestTrue(TEXT("Variant node initializes with conceptual presentation override"), Widget->InitializeTalentNode(Node, Branch));
-	TestEqual(TEXT("Override display name wins"), Widget->ResolvedDisplayName.ToString(), FString(TEXT("Talent conceptuel")));
+	TestTrue(TEXT("Variant node initializes once canonical conceptual presentation is projected"),
+		Widget->InitializeTalentNode(Node, Branch));
+	TestEqual(TEXT("Canonical conceptual display name is consumed"), Widget->ResolvedDisplayName.ToString(), FString(TEXT("Talent conceptuel")));
 	TestEqual(TEXT("Variant count is preserved"), Widget->GetVariantCount(), 2);
 	return true;
 }
@@ -196,16 +206,33 @@ bool FUIRPG032ProductionCoverageTest::RunTest(const FString&)
 				Node.PointCost = Choices[0]->PointCost;
 				Node.State = EGridTalentNodeState::Available;
 
-				for (const FRPGClassProgressionChoiceDefinition* Choice : Choices)
+				if (Choices.Num() > 1)
 				{
-					if (!Choice) continue;
-					FGridTalentVariantView Variant;
-					Variant.ChoiceId = Choice->ChoiceId;
-					Variant.DisplayName = Choice->DisplayName;
-					Variant.Description = Choice->Description;
-					Variant.State = EGridTalentNodeState::Available;
-					Variant.bAvailable = true;
-					Node.Variants.Add(MoveTemp(Variant));
+					Node.bHasExclusiveVariants = true;
+					const FRPGTalentNodePresentationDefinition* Override =
+						BranchPresentation.FindNodeOverride(Pair.Key);
+					TestNotNull(*FString::Printf(TEXT("%s/%s variant node has sparse presentation override"),
+						*Spec.ClassId.ToString(), *Pair.Key.ToString()), Override);
+					if (!Override) continue;
+					Node.DisplayName = Override->DisplayName;
+					Node.Principle = Override->Description;
+					for (const FRPGClassProgressionChoiceDefinition* Choice : Choices)
+					{
+						if (!Choice) continue;
+						FGridTalentVariantView Variant;
+						Variant.ChoiceId = Choice->ChoiceId;
+						Variant.DisplayName = Choice->DisplayName;
+						Variant.State = EGridTalentNodeState::Available;
+						Variant.Principle = Choice->Description;
+						Variant.bCanChoose = true;
+						Node.Variants.Add(MoveTemp(Variant));
+					}
+				}
+				else
+				{
+					Node.DisplayName = Choices[0]->DisplayName;
+					Node.Principle = Choices[0]->Description;
+					Node.SimpleChoiceId = Choices[0]->ChoiceId;
 				}
 
 				UGridTalentNodeWidget* Widget = NewObject<UGridTalentNodeWidget>();
@@ -220,9 +247,6 @@ bool FUIRPG032ProductionCoverageTest::RunTest(const FString&)
 				if (Choices.Num() > 1)
 				{
 					++VariantNodeCount;
-					TestNotNull(*FString::Printf(TEXT("%s/%s variant node has sparse presentation override"),
-						*Spec.ClassId.ToString(), *Pair.Key.ToString()),
-						BranchPresentation.FindNodeOverride(Pair.Key));
 				}
 			}
 		}

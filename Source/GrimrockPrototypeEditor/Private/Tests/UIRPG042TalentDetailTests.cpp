@@ -12,9 +12,12 @@ namespace UIRPG042Tests
 		FGridTalentVariantView Variant;
 		Variant.ChoiceId = ChoiceId;
 		Variant.DisplayName = FText::FromString(Name);
-		Variant.Description = FText::FromString(TEXT("Description"));
 		Variant.State = EGridTalentNodeState::Available;
-		Variant.bAvailable = true;
+		Variant.Type = ERPGTalentPresentationType::Passive;
+		Variant.TypeText = FText::FromString(TEXT("PASSIF"));
+		Variant.StatusText = FText::FromString(TEXT("DISPONIBLE"));
+		Variant.Principle = FText::FromString(TEXT("Description"));
+		Variant.bCanChoose = true;
 		return Variant;
 	}
 
@@ -27,6 +30,11 @@ namespace UIRPG042Tests
 		Node.MinimumLevel = 2;
 		Node.PointCost = 1;
 		Node.State = EGridTalentNodeState::Available;
+		Node.Type = ERPGTalentPresentationType::Passive;
+		Node.TypeText = FText::FromString(TEXT("PASSIF"));
+		Node.StatusText = FText::FromString(TEXT("DISPONIBLE"));
+		Node.Acquisition.MinimumLevel = 2;
+		Node.Acquisition.PointCost = 1;
 		return Node;
 	}
 }
@@ -43,7 +51,10 @@ bool FUIRPG042SimpleDetailTest::RunTest(const FString&)
 	Branch.AccentColor = FLinearColor(0.3f, 0.2f, 0.1f, 1.0f);
 
 	FGridTalentNodeView Node = MakeNode(TEXT("Talent_Test"), Branch.TalentBranchId);
-	Node.Variants.Add(MakeVariant(TEXT("Talent_Test"), TEXT("Talent simple")));
+	Node.DisplayName = FText::FromString(TEXT("Talent simple"));
+	Node.Principle = FText::FromString(TEXT("Description"));
+	Node.SimpleChoiceId = Node.TalentNodeId;
+	Node.bCanAcquireSimple = true;
 
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 	TestTrue(TEXT("Simple detail initializes"), Detail->InitializeTalentDetail(Node, Branch));
@@ -63,18 +74,15 @@ bool FUIRPG042VariantDetailTest::RunTest(const FString&)
 	Branch.TalentBranchId = TEXT("WeaponMaster");
 
 	FGridTalentNodeView Node = MakeNode(TEXT("Talent_MartialSpecialization"), Branch.TalentBranchId);
+	Node.DisplayName = FText::FromString(TEXT("Spécialisation martiale"));
+	Node.Principle = FText::FromString(TEXT("Choisissez une spécialisation."));
+	Node.bHasExclusiveVariants = true;
 	Node.Variants.Add(MakeVariant(TEXT("Choice_Slashing"), TEXT("Tranchant")));
 	Node.Variants.Add(MakeVariant(TEXT("Choice_Piercing"), TEXT("Perforant")));
 	Node.Variants.Add(MakeVariant(TEXT("Choice_Bludgeoning"), TEXT("Contondant")));
 
-	FRPGTalentNodePresentationDefinition Override;
-	Override.TalentNodeId = Node.TalentNodeId;
-	Override.DisplayName = FText::FromString(TEXT("Spécialisation martiale"));
-	Override.Description = FText::FromString(TEXT("Choisissez une spécialisation."));
-	Branch.NodePresentationOverrides.Add(Override);
-
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
-	TestTrue(TEXT("Variant detail initializes through conceptual override"), Detail->InitializeTalentDetail(Node, Branch));
+	TestTrue(TEXT("Variant detail initializes from canonical conceptual projection"), Detail->InitializeTalentDetail(Node, Branch));
 	TestEqual(TEXT("Variant detail uses conceptual name"), Detail->ResolvedDisplayName.ToString(), FString(TEXT("Spécialisation martiale")));
 	TestEqual(TEXT("Variant detail preserves three choices"), Detail->NodeView.Variants.Num(), 3);
 	return true;
@@ -91,13 +99,17 @@ bool FUIRPG042SharedResolverTest::RunTest(const FString&)
 	Branch.TalentBranchId = TEXT("Branch");
 
 	FGridTalentNodeView Node = MakeNode(TEXT("Node"), Branch.TalentBranchId);
-	Node.Variants.Add(MakeVariant(TEXT("Choice"), TEXT("Nom partagé")));
+	Node.DisplayName = FText::FromString(TEXT("Nom canonique"));
+	Node.Principle = FText::FromString(TEXT("Description canonique."));
+	Node.SimpleChoiceId = TEXT("Choice");
 
-	FText Name;
-	FText Description;
-	TestTrue(TEXT("Shared resolver accepts simple node"),
-		UGridTalentNodeWidget::ResolvePresentationText(Node, Branch, Name, Description));
-	TestEqual(TEXT("Shared resolver returns canonical display name"), Name.ToString(), FString(TEXT("Nom partagé")));
+	UGridTalentNodeWidget* Widget = NewObject<UGridTalentNodeWidget>();
+	TestTrue(TEXT("Canonical node projection initializes without a secondary resolver"),
+		Widget->InitializeTalentNode(Node, Branch));
+	TestEqual(TEXT("Canonical display name is consumed directly"),
+		Widget->ResolvedDisplayName.ToString(), FString(TEXT("Nom canonique")));
+	TestEqual(TEXT("Canonical principle is consumed directly"),
+		Widget->ResolvedDescription.ToString(), FString(TEXT("Description canonique.")));
 	return true;
 }
 
