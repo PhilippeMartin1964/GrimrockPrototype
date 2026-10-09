@@ -5,7 +5,9 @@
 #include "Components/ComboBoxString.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
+#include "Engine/World.h"
 #include "UI/GridTalentNodeWidget.h"
+#include "UI/GridTalentVariantBlockWidget.h"
 
 namespace GridTalentDetailWidgetPrivate
 {
@@ -29,6 +31,10 @@ void UGridTalentDetailWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	BindAcquireButtons();
+	if (bInitialized)
+	{
+		RebuildVariantBlocks();
+	}
 	ApplyAcquisitionPresentation();
 }
 
@@ -118,6 +124,7 @@ bool UGridTalentDetailWidget::InitializeTalentDetail(
 	RefreshCanonicalSections();
 	RebuildVariantOptions();
 	RefreshVariantDetailPreview();
+	RebuildVariantBlocks();
 	ApplyDetailPresentation();
 	ApplyAcquisitionPresentation();
 	return true;
@@ -147,6 +154,14 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	AcquisitionFeedback = FText::GetEmpty();
 	VariantOptionLabels.Reset();
 	VariantOptionChoiceIds.Reset();
+	if (VB_VariantEntries)
+	{
+		VB_VariantEntries->ClearChildren();
+	}
+	if (VB_DetailVariants)
+	{
+		VB_DetailVariants->SetVisibility(ESlateVisibility::Collapsed);
+	}
 	if (Combo_VariantChoice)
 	{
 		Combo_VariantChoice->ClearOptions();
@@ -207,9 +222,15 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	ApplyAcquisitionPresentation();
 }
 
+bool UGridTalentDetailWidget::HasExclusiveVariants() const
+{
+	return NodeView.bHasExclusiveVariants || (!bHasCanonicalDetail && NodeView.Variants.Num() > 1);
+}
+
 bool UGridTalentDetailWidget::CanRequestSimpleAcquisition() const
 {
 	return bInitialized &&
+		!HasExclusiveVariants() &&
 		NodeView.State == EGridTalentNodeState::Available &&
 		NodeView.Variants.Num() == 1 &&
 		!NodeView.Variants[0].ChoiceId.IsNone() &&
@@ -219,8 +240,8 @@ bool UGridTalentDetailWidget::CanRequestSimpleAcquisition() const
 bool UGridTalentDetailWidget::CanRequestVariantAcquisition() const
 {
 	if (!bInitialized ||
-		NodeView.State != EGridTalentNodeState::Available ||
-		NodeView.Variants.Num() <= 1)
+		!HasExclusiveVariants() ||
+		NodeView.State != EGridTalentNodeState::Available)
 	{
 		return false;
 	}
@@ -258,6 +279,7 @@ bool UGridTalentDetailWidget::BeginVariantSelection()
 	bVariantSelectionPending = true;
 	SelectedVariantChoiceId = NAME_None;
 	AcquisitionFeedback = FText::GetEmpty();
+	RebuildVariantBlocks();
 	if (Combo_VariantChoice)
 	{
 		Combo_VariantChoice->ClearSelection();
@@ -270,7 +292,7 @@ bool UGridTalentDetailWidget::BeginVariantSelection()
 
 bool UGridTalentDetailWidget::SelectVariantChoice(FName ChoiceId)
 {
-	if (!bInitialized || !bVariantSelectionPending || NodeView.Variants.Num() <= 1 || ChoiceId.IsNone())
+	if (!bInitialized || !bVariantSelectionPending || !HasExclusiveVariants() || ChoiceId.IsNone())
 	{
 		return false;
 	}
@@ -288,6 +310,7 @@ bool UGridTalentDetailWidget::SelectVariantChoice(FName ChoiceId)
 
 	// Inspection never grants acquisition rights, including for locked variants.
 	SelectedVariantChoiceId = ChoiceId;
+	RebuildVariantBlocks();
 	RefreshVariantDetailPreview();
 	ApplyDetailPresentation();
 	ApplyAcquisitionPresentation();
@@ -317,6 +340,7 @@ void UGridTalentDetailWidget::CancelAcquireConfirmation()
 	bVariantSelectionPending = false;
 	SelectedVariantChoiceId = NAME_None;
 	AcquisitionFeedback = FText::GetEmpty();
+	RebuildVariantBlocks();
 	if (Combo_VariantChoice)
 	{
 		Combo_VariantChoice->ClearSelection();
@@ -382,6 +406,19 @@ void UGridTalentDetailWidget::HandleChooseVariantClicked()
 	BeginVariantSelection();
 }
 
+void UGridTalentDetailWidget::HandleVariantChooseRequested(FName ChoiceId)
+{
+	if (!HasExclusiveVariants() || ChoiceId.IsNone())
+	{
+		return;
+	}
+	if (!bVariantSelectionPending && !BeginVariantSelection())
+	{
+		return;
+	}
+	SelectVariantChoice(ChoiceId);
+}
+
 void UGridTalentDetailWidget::HandleVariantSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
 {
 	(void)SelectionType;
@@ -443,6 +480,41 @@ void UGridTalentDetailWidget::RebuildVariantOptions()
 		{
 			Combo_VariantChoice->AddOption(UniqueLabel);
 		}
+	}
+}
+
+void UGridTalentDetailWidget::RebuildVariantBlocks()
+{
+	if (!VB_DetailVariants || !VB_VariantEntries)
+	{
+		return;
+	}
+
+	VB_VariantEntries->ClearChildren();
+	const bool bShowVariants =
+		bInitialized && HasExclusiveVariants() && VariantBlockWidgetClass != nullptr && GetWorld() != nullptr;
+	VB_DetailVariants->SetVisibility(
+		bShowVariants ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	if (!bShowVariants)
+	{
+		return;
+	}
+
+	for (const FGridTalentVariantView& Variant : NodeView.Variants)
+	{
+		UGridTalentVariantBlockWidget* Block =
+			CreateWidget<UGridTalentVariantBlockWidget>(GetWorld(), VariantBlockWidgetClass);
+		if (!Block)
+		{
+			continue;
+		}
+		const bool bPending = bVariantSelectionPending && Variant.ChoiceId == SelectedVariantChoiceId;
+		if (!Block->InitializeVariant(Variant, MakeVariantDisplayLabel(Variant), bPending))
+		{
+			continue;
+		}
+		Block->OnChooseRequested.AddUniqueDynamic(this, &UGridTalentDetailWidget::HandleVariantChooseRequested);
+		VB_VariantEntries->AddChildToVerticalBox(Block);
 	}
 }
 
@@ -701,7 +773,7 @@ void UGridTalentDetailWidget::RefreshVariantDetailPreview()
 		ResolvedMainDetailText = BuildMainDetailText();
 	}
 
-	if (NodeView.bHasExclusiveVariants || (!bHasCanonicalDetail && NodeView.Variants.Num() > 1))
+	if (HasExclusiveVariants())
 	{
 		ResolvedVariantDisplayName = FText::FromString(TEXT("VARIANTES"));
 		ResolvedVariantDescription = BuildVariantOverview();
@@ -840,9 +912,16 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 		}
 		else Text_DetailState->SetText(StateText(NodeView.State));
 	}
+	const bool bUsingVariantBlocks =
+		VB_DetailVariants && VB_VariantEntries && VariantBlockWidgetClass != nullptr && HasExclusiveVariants();
 	if (Text_DetailVariants)
 	{
-		if (NodeView.Variants.Num() <= 1)
+		if (bUsingVariantBlocks)
+		{
+			Text_DetailVariants->SetText(FText::GetEmpty());
+			Text_DetailVariants->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		else if (NodeView.Variants.Num() <= 1)
 		{
 			Text_DetailVariants->SetText(FText::GetEmpty());
 		}
@@ -874,15 +953,15 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 
 	if (Text_DetailVariantName)
 	{
-		Text_DetailVariantName->SetText(ResolvedVariantDisplayName);
+		Text_DetailVariantName->SetText(bUsingVariantBlocks ? FText::GetEmpty() : ResolvedVariantDisplayName);
 		Text_DetailVariantName->SetVisibility(
-			ResolvedVariantDisplayName.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
+			bUsingVariantBlocks || ResolvedVariantDisplayName.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
 	}
 	if (Text_DetailVariantDescription)
 	{
-		Text_DetailVariantDescription->SetText(ResolvedVariantDescription);
+		Text_DetailVariantDescription->SetText(bUsingVariantBlocks ? FText::GetEmpty() : ResolvedVariantDescription);
 		Text_DetailVariantDescription->SetVisibility(
-			ResolvedVariantDescription.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
+			bUsingVariantBlocks || ResolvedVariantDescription.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
 	}
 	if (Text_DetailActionSummary)
 	{
@@ -897,6 +976,8 @@ void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 	const bool bCanAcquireSimple = CanRequestSimpleAcquisition();
 	const bool bCanAcquireVariant = CanRequestVariantAcquisition();
 	const bool bAnyPending = bAcquireConfirmationPending || bVariantSelectionPending;
+	const bool bUsingVariantBlocks =
+		VB_DetailVariants && VB_VariantEntries && VariantBlockWidgetClass != nullptr && HasExclusiveVariants();
 
 	if (Button_AcquireTalent)
 	{
@@ -906,12 +987,12 @@ void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 	if (Button_ChooseVariant)
 	{
 		Button_ChooseVariant->SetVisibility(
-			bCanAcquireVariant && !bAnyPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			!bUsingVariantBlocks && bCanAcquireVariant && !bAnyPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
 	if (Combo_VariantChoice)
 	{
 		Combo_VariantChoice->SetVisibility(
-			bVariantSelectionPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			!bUsingVariantBlocks && bVariantSelectionPending ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
 	if (Button_ConfirmAcquire)
 	{

@@ -11,6 +11,7 @@ class UBorder;
 class UButton;
 class UTextBlock;
 class UVerticalBox;
+class UGridTalentVariantBlockWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentAcquireConfirmedSignature, FName, ChoiceId);
 
@@ -141,6 +142,9 @@ private:
 	void HandleChooseVariantClicked();
 
 	UFUNCTION()
+	void HandleVariantChooseRequested(FName ChoiceId);
+
+	UFUNCTION()
 	void HandleVariantSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 
 	UFUNCTION()
@@ -151,7 +155,9 @@ private:
 
 	void BindAcquireButtons();
 	void UnbindAcquireButtons();
+	bool HasExclusiveVariants() const;
 	void RebuildVariantOptions();
+	void RebuildVariantBlocks();
 	FText MakeVariantDisplayLabel(const FGridTalentVariantView& Variant) const;
 	FText MakePlayerReadableText(const FText& Source) const;
 	FText BuildVariantOverview() const;
@@ -218,6 +224,16 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_DetailState;
+
+	/** DESC01.15.3: one global variants section with N reusable blocks. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UVerticalBox> VB_DetailVariants;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UVerticalBox> VB_VariantEntries;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Variant", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UGridTalentVariantBlockWidget> VariantBlockWidgetClass;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_DetailVariants;

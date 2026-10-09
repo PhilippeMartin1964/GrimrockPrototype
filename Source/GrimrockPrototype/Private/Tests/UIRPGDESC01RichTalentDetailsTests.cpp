@@ -8,6 +8,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridTalentDetailWidget.h"
+#include "UI/GridTalentVariantBlockWidget.h"
 #include "UObject/UnrealType.h"
 
 namespace UIRPGDESC01Tests
@@ -692,6 +693,62 @@ bool FUIRPGDESC01152CStatusActionEffectsTest::RunTest(const FString&)
 		}
 	}
 	TestTrue(TEXT("Action StatusApplications are projected into EFFETS"), bSawGuardEffect);
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGDESC01153VariantBlockPresenterTest,
+	"Grimrock.UI.RPG.DESC01.Detail.VariantBlockPresenter",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGDESC01153VariantBlockPresenterTest::RunTest(const FString&)
+{
+	FGridTalentVariantView Variant;
+	Variant.ChoiceId = TEXT("Talent_DESC01_Variant_Slash");
+	Variant.DisplayName = FText::FromString(TEXT("Spécialisation martiale — Tranchant"));
+	Variant.TypeText = FText::FromString(TEXT("PASSIF"));
+	Variant.StatusText = FText::FromString(TEXT("DISPONIBLE"));
+	Variant.Principle = FText::FromString(TEXT("Maîtrise les armes tranchantes."));
+	Variant.bAvailable = true;
+	Variant.bCanChoose = true;
+
+	FGridTalentDetailLineView Effect;
+	Effect.Label = FText::FromString(TEXT("Précision"));
+	Effect.Value = FText::FromString(TEXT("+1"));
+	Variant.Effects.Add(Effect);
+
+	UGridTalentVariantBlockWidget* Block = NewObject<UGridTalentVariantBlockWidget>();
+	TestTrue(TEXT("Variant block initializes"),
+		Block->InitializeVariant(Variant, FText::FromString(TEXT("Tranchant")), false));
+	TestEqual(TEXT("Short display name is preserved"), Block->ResolvedDisplayName.ToString(), FString(TEXT("Tranchant")));
+	TestEqual(TEXT("Variant TYPE is canonical"), Block->ResolvedTypeText.ToString(), FString(TEXT("PASSIF")));
+	TestEqual(TEXT("Variant STATUS is canonical"), Block->ResolvedStatusText.ToString(), FString(TEXT("DISPONIBLE")));
+	TestTrue(TEXT("Variant EFFETS are structured"), Block->ResolvedEffectsText.ToString().Contains(TEXT("Précision : +1")));
+	TestEqual(TEXT("Available variant exposes CHOISIR"), Block->ResolvedChooseLabel.ToString(), FString(TEXT("CHOISIR")));
+	TestTrue(TEXT("Available variant choice is enabled"), Block->bChooseEnabled);
+
+	TestTrue(TEXT("Pending variant reinitializes"),
+		Block->InitializeVariant(Variant, FText::FromString(TEXT("Tranchant")), true));
+	TestEqual(TEXT("Pending variant exposes CHOIX EN COURS"), Block->ResolvedChooseLabel.ToString(), FString(TEXT("CHOIX EN COURS")));
+	TestFalse(TEXT("Pending variant cannot be chosen twice"), Block->bChooseEnabled);
+
+	Variant.bSelected = true;
+	Variant.bAcquired = true;
+	Variant.bCanChoose = false;
+	TestTrue(TEXT("Acquired variant reinitializes"),
+		Block->InitializeVariant(Variant, FText::FromString(TEXT("Tranchant")), false));
+	TestEqual(TEXT("Acquired variant exposes ACQUISE"), Block->ResolvedChooseLabel.ToString(), FString(TEXT("ACQUISE")));
+	TestFalse(TEXT("Acquired variant choice is disabled"), Block->bChooseEnabled);
+
+	Variant.bSelected = false;
+	Variant.bAcquired = false;
+	Variant.bCanChoose = false;
+	Variant.StatusText = FText::FromString(TEXT("INDISPONIBLE — autre variante déjà choisie"));
+	TestTrue(TEXT("Unavailable variant reinitializes"),
+		Block->InitializeVariant(Variant, FText::FromString(TEXT("Perforant")), false));
+	TestEqual(TEXT("Unavailable variant exposes INDISPONIBLE"), Block->ResolvedChooseLabel.ToString(), FString(TEXT("INDISPONIBLE")));
+	TestFalse(TEXT("Unavailable variant choice is disabled"), Block->bChooseEnabled);
 	return true;
 }
 
