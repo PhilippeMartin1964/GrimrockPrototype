@@ -235,31 +235,6 @@ struct GRIMROCKPROTOTYPE_API FGridTalentTreeView
 	TArray<FGridTalentBranchView> Branches;
 };
 
-/** Temporary flat compatibility projection retained until UI-RPG03. */
-USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridTalentEntryView
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FName ChoiceId = NAME_None;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText DisplayName;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText Description;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	int32 MinimumLevel = 1;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	int32 PointCost = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	bool bSelected = false;
-};
-
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridSkillsPageView
 {
@@ -297,9 +272,6 @@ struct GRIMROCKPROTOTYPE_API FGridSkillsPageView
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Skills|UI")
 	int32 SkillRankCap = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	TArray<FGridTalentEntryView> Talents;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	int32 GrantedTalentPoints = 0;

@@ -7,7 +7,6 @@
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
-#include "RPG/RPGTalentRuntimeService.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -196,18 +195,21 @@ namespace RPG0310PIE
 				Test->TestTrue(*FString::Printf(TEXT("%s runtime requirement projection rebuilds"), *Character.ClassId.ToString()),
 					FRPGClassProgressionTransactionService::RefreshCharacterProjection(Inventory, Index));
 
-				TArray<FRPGTalentRuntimeView> SelectedTalents;
-				Test->TestTrue(*FString::Printf(TEXT("%s selected talents are readable in PIE"), *Character.ClassId.ToString()),
-					FRPGTalentRuntimeService::TryGetSelectedTalents(Inventory, Index, SelectedTalents));
-				Test->TestEqual(*FString::Printf(TEXT("%s exposes five selected talents in PIE"), *Character.ClassId.ToString()),
-					SelectedTalents.Num(), 5);
+				TArray<FName> SelectedChoiceIds;
+				Test->TestTrue(*FString::Printf(TEXT("%s selected progression choices are readable in PIE"), *Character.ClassId.ToString()),
+					FRPGClassProgressionTransactionService::TryGetSelectedChoiceIds(Inventory, Index, SelectedChoiceIds));
+				Test->TestEqual(*FString::Printf(TEXT("%s exposes five selected progression choices in PIE"), *Character.ClassId.ToString()),
+					SelectedChoiceIds.Num(), 5);
 
-				FRPGTalentPointBalance Balance;
-				Test->TestTrue(*FString::Printf(TEXT("%s talent balance is readable in PIE"), *Character.ClassId.ToString()),
-					FRPGTalentRuntimeService::TryGetTalentPointBalance(Inventory, Index, Balance));
-				Test->TestEqual(TEXT("Level 20 grants ten Talent Points"), Balance.GrantedPoints, 10);
-				Test->TestEqual(TEXT("A complete five-node branch spends five Talent Points"), Balance.SpentPoints, 5);
-				Test->TestEqual(TEXT("Unspent Talent Points are preserved"), Balance.RemainingPoints, 5);
+				int32 GrantedPoints = 0;
+				int32 SpentPoints = 0;
+				int32 RemainingPoints = 0;
+				Test->TestTrue(*FString::Printf(TEXT("%s Talent Point balance is readable in PIE"), *Character.ClassId.ToString()),
+					FRPGClassProgressionTransactionService::TryGetChoicePointBalance(
+						Inventory, Index, GrantedPoints, SpentPoints, RemainingPoints));
+				Test->TestEqual(TEXT("Level 20 grants ten Talent Points"), GrantedPoints, 10);
+				Test->TestEqual(TEXT("A complete five-node branch spends five Talent Points"), SpentPoints, 5);
+				Test->TestEqual(TEXT("Unspent Talent Points are preserved"), RemainingPoints, 5);
 
 				TSet<FName> Requirements;
 				FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Character.CharacterId, Requirements);

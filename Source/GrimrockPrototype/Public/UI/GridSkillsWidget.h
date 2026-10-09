@@ -100,13 +100,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
 	bool GetSkillEntry(int32 EntryIndex, FGridSkillEntryView& OutEntry) const;
 
-	// Transitional flat Talent accessors retained until the flat Talent projection is retired separately.
-	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
-	int32 GetTalentEntryCount() const;
-
-	UFUNCTION(BlueprintPure, Category = "RPG|Skills|UI")
-	bool GetTalentEntry(int32 EntryIndex, FGridTalentEntryView& OutEntry) const;
-
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|UI")
 	bool GetCurrentClassPresentation(FRPGClassPresentationDefinition& OutPresentation) const;
 

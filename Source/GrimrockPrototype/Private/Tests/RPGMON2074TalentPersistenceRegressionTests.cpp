@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "RPG/RPGTalentRuntimeService.h"
 #include "RPGMON155TestHelpers.h"
 #include "Save/GrimrockPartySaveGame.h"
 
@@ -122,9 +121,10 @@ bool FRPGMON2074RestoreTalentReadModelTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Talent A commits"), CommitTalentA(Component, 0));
 
 	FRPGClassProgressionTransactionService::ResetRuntimeState(Component);
-	bool bHasTalent = false;
-	TestTrue(TEXT("MON20.7 read facade remains usable after cache reset"), FRPGTalentRuntimeService::HasTalent(Component, 0, TalentA, bHasTalent));
-	TestTrue(TEXT("Character-owned ChoiceId is still exposed as acquired talent"), bHasTalent);
+	TArray<FName> SelectedChoiceIds;
+	TestTrue(TEXT("Authoritative progression choices remain readable after cache reset"),
+		FRPGClassProgressionTransactionService::TryGetSelectedChoiceIds(Component, 0, SelectedChoiceIds));
+	TestTrue(TEXT("Character-owned ChoiceId remains acquired after cache reset"), SelectedChoiceIds.Contains(TalentA));
 	return true;
 }
 

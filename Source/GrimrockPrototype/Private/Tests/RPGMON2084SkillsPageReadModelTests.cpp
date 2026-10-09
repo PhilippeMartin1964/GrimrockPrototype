@@ -206,11 +206,17 @@ bool FRPGMON2084TalentProjectionTest::RunTest(const FString& Parameters)
 
 	FGridSkillsPageView View;
 	TestTrue(TEXT("View builds with acquired Talent"), FGridSkillsPageService::TryBuildCharacterView(Party, 0, { Skill }, View));
-	TestEqual(TEXT("One acquired Talent is visible"), View.Talents.Num(), 1);
-	if (View.Talents.Num() == 1)
+	TestEqual(TEXT("Canonical Talent tree has one branch"), View.TalentTree.Branches.Num(), 1);
+	if (View.TalentTree.Branches.Num() == 1)
 	{
-		TestEqual(TEXT("ChoiceId remains Talent identity"), View.Talents[0].ChoiceId, TalentA);
-		TestTrue(TEXT("Talent remains selected"), View.Talents[0].bSelected);
+		const FGridTalentBranchView& Branch = View.TalentTree.Branches[0];
+		TestEqual(TEXT("Canonical Talent branch has one node"), Branch.Nodes.Num(), 1);
+		if (Branch.Nodes.Num() == 1)
+		{
+			TestEqual(TEXT("TalentNodeId remains canonical Talent identity"), Branch.Nodes[0].TalentNodeId, TalentA);
+			TestEqual(TEXT("Acquired Talent is projected as acquired"), Branch.Nodes[0].State, EGridTalentNodeState::Acquired);
+			TestEqual(TEXT("SelectedChoiceId remains the committed ChoiceId"), Branch.Nodes[0].SelectedChoiceId, TalentA);
+		}
 	}
 	return true;
 }

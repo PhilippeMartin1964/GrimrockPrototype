@@ -758,23 +758,6 @@ bool UGridSkillsWidget::GetSkillEntry(int32 EntryIndex, FGridSkillEntryView& Out
 	return true;
 }
 
-int32 UGridSkillsWidget::GetTalentEntryCount() const
-{
-	return View.Talents.Num();
-}
-
-bool UGridSkillsWidget::GetTalentEntry(int32 EntryIndex, FGridTalentEntryView& OutEntry) const
-{
-	if (!View.Talents.IsValidIndex(EntryIndex))
-	{
-		OutEntry = FGridTalentEntryView();
-		return false;
-	}
-
-	OutEntry = View.Talents[EntryIndex];
-	return true;
-}
-
 void UGridSkillsWidget::HandlePartyInventoryChanged(int32 CharacterIndex)
 {
 	(void)CharacterIndex;

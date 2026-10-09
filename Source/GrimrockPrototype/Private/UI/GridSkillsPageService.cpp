@@ -11,7 +11,6 @@
 #include "RPG/RPGSkillAsset.h"
 #include "RPG/RPGSkillPointService.h"
 #include "RPG/RPGSkillService.h"
-#include "RPG/RPGTalentRuntimeService.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectPersistence.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -1122,30 +1121,15 @@ bool FGridSkillsPageService::TryBuildCharacterView(UGridPartyInventoryComponent*
 		Candidate.Skills.Add(MoveTemp(SkillView));
 	}
 
-	TArray<FRPGTalentRuntimeView> TalentViews;
-	if (!FRPGTalentRuntimeService::TryGetSelectedTalents(PartyInventoryComponent, CharacterIndex, TalentViews)) return false;
-	TalentViews.Sort([](const FRPGTalentRuntimeView& Left, const FRPGTalentRuntimeView& Right)
+	if (!FRPGClassProgressionTransactionService::TryGetChoicePointBalance(
+			PartyInventoryComponent,
+			CharacterIndex,
+			Candidate.GrantedTalentPoints,
+			Candidate.SpentTalentPoints,
+			Candidate.RemainingTalentPoints))
 	{
-		return Left.ChoiceId.ToString().Compare(Right.ChoiceId.ToString(), ESearchCase::CaseSensitive) < 0;
-	});
-	Candidate.Talents.Reserve(TalentViews.Num());
-	for (const FRPGTalentRuntimeView& Talent : TalentViews)
-	{
-		FGridTalentEntryView TalentView;
-		TalentView.ChoiceId = Talent.ChoiceId;
-		TalentView.DisplayName = Talent.DisplayName;
-		TalentView.Description = Talent.Description;
-		TalentView.MinimumLevel = Talent.MinimumLevel;
-		TalentView.PointCost = Talent.PointCost;
-		TalentView.bSelected = Talent.bSelected;
-		Candidate.Talents.Add(MoveTemp(TalentView));
+		return false;
 	}
-
-	FRPGTalentPointBalance Balance;
-	if (!FRPGTalentRuntimeService::TryGetTalentPointBalance(PartyInventoryComponent, CharacterIndex, Balance)) return false;
-	Candidate.GrantedTalentPoints = Balance.GrantedPoints;
-	Candidate.SpentTalentPoints = Balance.SpentPoints;
-	Candidate.RemainingTalentPoints = Balance.RemainingPoints;
 
 	if (!BuildTalentTree(PartyInventoryComponent, CharacterIndex, Character, *ClassDefinition, Candidate.TalentTree)) return false;
 	OutView = MoveTemp(Candidate);
