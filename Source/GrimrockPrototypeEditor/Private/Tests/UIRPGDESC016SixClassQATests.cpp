@@ -280,11 +280,11 @@ bool FUIRPGDESC016SixClassCanonicalSurfaceTest::RunTest(const FString&)
 				}
 			}
 
-			TestEqual(
-				*FString::Printf(TEXT("%s exposes fifteen Talent nodes"), *Spec.ClassId.ToString()),
-				ClassNodeCount, 15);
 		}
 
+		TestEqual(
+			*FString::Printf(TEXT("%s exposes fifteen Talent nodes"), *Spec.ClassId.ToString()),
+			ClassNodeCount, 15);
 		FRPGClassProgressionTransactionService::ResetRuntimeState(Party);
 	}
 

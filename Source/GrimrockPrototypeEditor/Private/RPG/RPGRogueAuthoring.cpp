@@ -404,7 +404,7 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Saboteur progression.
 	FRPGClassProgressionChoiceDefinition ExpertDisarm = MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_ExpertDisarm"), TEXT("Désamorçage expert"),
-		TEXT("Jets Skill_Traps +2. 1 fois par piège, un échec de 1 ou 2 points devient un échec sûr : le piège reste armé mais ne se déclenche pas."),
+		TEXT("Jets de Pièges / désamorçage +2. 1 fois par piège, un échec de 1 ou 2 points devient un échec sûr : le piège reste armé mais ne se déclenche pas."),
 		2, SaboteurBranchId);
 	{
 		FRPGSkillProgressionModifier Modifier;
@@ -423,7 +423,7 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition MasterLocksmith = MakeChoice(
 		TEXT("Talent_Rogue_Saboteur_MasterLocksmith"), TEXT("Maître des serrures"),
-		TEXT("Jets Skill_Lockpicking +2. Pour les RequirementGrants de Crochetage, le Rank effectif vaut Rank+1, plafonné à 5. Un échec de <=2 ne bloque/jamme jamais la serrure."),
+		TEXT("Jets de Crochetage +2. Pour les prérequis de Crochetage, le rang effectif vaut rang +1, plafonné à 5. Un échec de 2 points ou moins ne bloque ni ne coince jamais la serrure."),
 		14, SaboteurBranchId, TEXT("Talent_Rogue_Saboteur_SmokeBomb"));
 	{
 		FRPGSkillProgressionModifier Modifier;

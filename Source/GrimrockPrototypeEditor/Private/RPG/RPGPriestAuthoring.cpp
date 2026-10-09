@@ -358,7 +358,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		RegenerationTalentId, TEXT("Régénération"), TEXT("Applique Status_Regeneration 3 tours : à la fin de chaque activation de la cible, soigne 3 + WIS mod, minimum 1, puis décrémente la durée."), 6, RestorationBranchId, EnhancedHealingTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		GroupHealTalentId, TEXT("Soin de groupe"), TEXT("Chaque membre vivant du groupe récupère 5 + WIS mod + Skill_Medicine Rank PV, clampé à PV maximum. Les personnages vaincus ne sont pas ciblés."), 10, RestorationBranchId, RegenerationTalentId));
+		GroupHealTalentId, TEXT("Soin de groupe"), TEXT("Chaque membre vivant du groupe récupère 5 + modificateur de SAG + rang de Médecine PV, sans dépasser ses PV maximum. Les personnages vaincus ne sont pas ciblés."), 10, RestorationBranchId, RegenerationTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		PurificationTalentId, TEXT("Purification"), TEXT("Retire jusqu'à 2 Debuffs amovibles parmi Poison, Burning, Bleeding, Slow, Silence, Immobilize et effets explicitement tagués Purifiable. Priorité : Potency puis EffectId."), 14, RestorationBranchId, GroupHealTalentId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(

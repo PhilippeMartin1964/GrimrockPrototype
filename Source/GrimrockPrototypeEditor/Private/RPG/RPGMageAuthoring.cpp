@@ -462,7 +462,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		ElementalChainTalentId, TEXT("Chaîne élémentaire"),
-		TEXT("Cible primaire puis jusqu'à 2 autres hostiles à <=1 cellule du précédent. Chaque impact inflige 7 + INT mod + Skill_Arcana Rank du DamageType associé au sort d'affinité. Une cible ne peut être touchée qu'une fois."), 14, EvokerBranchId, ControlledExplosionTalentId));
+		TEXT("Cible primaire puis jusqu'à 2 autres hostiles à 1 cellule ou moins du précédent. Chaque impact inflige 7 + modificateur d'INT + rang d'Arcane du type de dégâts associé au sort d'affinité. Une cible ne peut être touchée qu'une fois."), 14, EvokerBranchId, ControlledExplosionTalentId));
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		CataclysmTalentId, TEXT("Cataclysme"),
