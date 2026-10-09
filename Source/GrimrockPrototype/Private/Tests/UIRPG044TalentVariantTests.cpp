@@ -150,25 +150,17 @@ bool FUIRPG044VariantTransactionTest::RunTest(const FString&)
 	ChoiceB->PrerequisiteChoiceIds.Reset();
 	ChoiceB->MinimumLevel = 2;
 
-	FRPGClassProgressionChoiceDefinition* ChoiceC = ClassDefinition->ProgressionChoices.FindByPredicate(
-		[](const FRPGClassProgressionChoiceDefinition& Choice) { return Choice.ChoiceId == TEXT("Choice_C"); });
-	FRPGClassProgressionChoiceDefinition* Expensive = ClassDefinition->ProgressionChoices.FindByPredicate(
-		[](const FRPGClassProgressionChoiceDefinition& Choice) { return Choice.ChoiceId == TEXT("Choice_Expensive"); });
-	TestNotNull(TEXT("Choice C exists"), ChoiceC);
-	TestNotNull(TEXT("Expensive choice exists"), Expensive);
-	if (!ChoiceC || !Expensive)
-	{
-		return false;
-	}
-	ChoiceC->TalentBranchId = TEXT("Branch_C");
-	ChoiceC->TalentNodeId = ChoiceC->ChoiceId;
-	ChoiceC->MinimumLevel = 6; // Talent tree tiers are 2 / 6 / 10 / 14 / 18.
-	ChoiceC->PresentationType = ERPGTalentPresentationType::Passive;
-	ChoiceC->Description = FText::FromString(TEXT("Talent C de test pour la projection d'acquisition."));
-	Expensive->TalentBranchId = TEXT("Branch_Expensive");
-	Expensive->TalentNodeId = Expensive->ChoiceId;
-	Expensive->PresentationType = ERPGTalentPresentationType::Passive;
-	Expensive->Description = FText::FromString(TEXT("Talent coûteux de test pour la projection d'acquisition."));
+	// This test exercises one exclusive conceptual node only. Keep the synthetic
+	// class focused instead of forcing unrelated MON15.5 choices into the TalentTree contract.
+	ClassDefinition->ProgressionChoices.RemoveAll(
+		[](const FRPGClassProgressionChoiceDefinition& Choice)
+		{
+			return Choice.ChoiceId != TEXT("Choice_A") && Choice.ChoiceId != TEXT("Choice_B");
+		});
+	TestEqual(TEXT("Focused transaction fixture contains exactly two variants"),
+		ClassDefinition->ProgressionChoices.Num(), 2);
+	TestTrue(TEXT("Focused transaction fixture remains a valid RPG class"),
+		ClassDefinition->IsValidDefinition());
 
 	const FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
 	UGridSkillsWidget* Skills = NewObject<UGridSkillsWidget>();
