@@ -22,33 +22,21 @@ function Resolve-ClangFormat
         return (Resolve-Path -LiteralPath $RequestedPath).Path
     }
 
-    $VsWhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-    if (Test-Path -LiteralPath $VsWhere -PathType Leaf)
+    $StandaloneCandidate = 'C:\Program Files\LLVM\bin\clang-format.exe'
+    if (Test-Path -LiteralPath $StandaloneCandidate -PathType Leaf)
     {
-        $VsInstallPath = (& $VsWhere -latest -products * -version '[17.0,18.0)' -property installationPath | Select-Object -First 1)
-        if (-not [string]::IsNullOrWhiteSpace($VsInstallPath))
-        {
-            $VsCandidate = Join-Path $VsInstallPath 'VC\Tools\Llvm\x64\bin\clang-format.exe'
-            if (Test-Path -LiteralPath $VsCandidate -PathType Leaf)
-            {
-                return $VsCandidate
-            }
-        }
+        return $StandaloneCandidate
     }
 
-    $DefaultVsCandidate = 'C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\bin\clang-format.exe'
-    if (Test-Path -LiteralPath $DefaultVsCandidate -PathType Leaf)
-    {
-        return $DefaultVsCandidate
-    }
+    $Command = Get-Command clang-format -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
 
-    $Command = Get-Command clang-format -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($null -ne $Command)
     {
         return $Command.Source
     }
 
-    throw 'clang-format 19.1.5 introuvable. Installez les outils Clang/LLVM de Visual Studio 2022 ou utilisez -ClangFormatPath.'
+    throw 'clang-format 19.1.5 introuvable. Installez LLVM 19.1.5 ou utilisez -ClangFormatPath.'
 }
 
 function Assert-ClangFormatVersion
