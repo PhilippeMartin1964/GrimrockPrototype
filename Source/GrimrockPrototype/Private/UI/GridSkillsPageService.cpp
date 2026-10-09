@@ -12,6 +12,8 @@
 #include "RPG/RPGSkillPointService.h"
 #include "RPG/RPGSkillService.h"
 #include "RPG/RPGTalentRuntimeService.h"
+#include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
+#include "RPG/StatusEffects/GridStatusEffectPersistence.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 namespace
@@ -649,7 +651,97 @@ namespace
 		}
 	}
 
+	FText ResolveStatusReferences(const FText& Source)
+	{
+		FString Text = Source.ToString();
+		int32 SearchFrom = 0;
+		while (SearchFrom < Text.Len())
+		{
+			const int32 Start = Text.Find(TEXT("Status_"), ESearchCase::CaseSensitive, ESearchDir::FromStart, SearchFrom);
+			if (Start == INDEX_NONE)
+			{
+				break;
+			}
+			int32 End = Start;
+			while (End < Text.Len() && (FChar::IsAlnum(Text[End]) || Text[End] == TCHAR('_')))
+			{
+				++End;
+			}
+			const FName EffectId(*Text.Mid(Start, End - Start));
+			UGridStatusEffectDefinitionAsset* Definition =
+				FGridStatusEffectPersistence::ResolveDefinitionByEffectId(EffectId);
+			if (!IsValid(Definition) || Definition->DisplayName.IsEmpty())
+			{
+				SearchFrom = End;
+				continue;
+			}
+			const FString Replacement = Definition->DisplayName.ToString();
+			Text = Text.Left(Start) + Replacement + Text.Mid(End);
+			SearchFrom = Start + Replacement.Len();
+		}
+		return FText::FromString(Text);
+	}
+
+	FString StatusDurationText(const UGridStatusEffectDefinitionAsset& Definition, int32 DurationOverride)
+	{
+		const int32 Duration = DurationOverride == INDEX_NONE ? Definition.DefaultDuration : DurationOverride;
+		switch (Definition.DurationUnit)
+		{
+			case EGridStatusEffectDurationUnit::Turns:
+				return Plural(Duration, TEXT("tour"), TEXT("tours"));
+			case EGridStatusEffectDurationUnit::Rounds:
+				return Plural(Duration, TEXT("round"), TEXT("rounds"));
+			case EGridStatusEffectDurationUnit::Permanent:
+				return TEXT("permanent");
+			default:
+				return FString();
+		}
+	}
+
+	void AddStatusApplicationEffect(
+		const FGridCombatStatusApplicationProfile& Profile,
+		TArray<FGridTalentDetailLineView>& Out)
+	{
+		UGridStatusEffectDefinitionAsset* Definition =
+			FGridStatusEffectPersistence::ResolveDefinitionByEffectId(Profile.StatusEffectId);
+		if (!IsValid(Definition) || Definition->DisplayName.IsEmpty())
+		{
+			return;
+		}
+
+		FString Label = TEXT("Statut");
+		if (Profile.ArmorGate == EGridCombatStatusArmorGate::PhysicalArmorDepleted)
+		{
+			Label = TEXT("Si l'armure physique est épuisée après les dégâts");
+		}
+		else if (Profile.ArmorGate == EGridCombatStatusArmorGate::MagicalArmorDepleted)
+		{
+			Label = TEXT("Si l'armure magique est épuisée après les dégâts");
+		}
+		else if (Profile.Trigger == EGridCombatStatusApplicationTrigger::AfterSuccessfulHit)
+		{
+			Label = TEXT("Après un coup réussi");
+		}
+
+		FString Value = Definition->DisplayName.ToString();
+		const FString Duration = StatusDurationText(*Definition, Profile.DurationOverride);
+		if (!Duration.IsEmpty())
+		{
+			Value += TEXT(" — ") + Duration;
+		}
+		if (Profile.InitialStackCount > 1)
+		{
+			Value += FString::Printf(TEXT(" — %d charges"), Profile.InitialStackCount);
+		}
+		if (!Definition->Description.IsEmpty())
+		{
+			Value += TEXT(" — ") + Definition->Description.ToString();
+		}
+		AddDetailLine(Out, *Label, Value);
+	}
+
 	void BuildStructuredEffects(
+		const URPGClassAsset& ClassDefinition,
 		const FRPGClassProgressionChoiceDefinition& Choice,
 		const TArray<FGridTalentUnlockedActionView>& Actions,
 		TArray<FGridTalentDetailLineView>& Out)
@@ -664,6 +756,26 @@ namespace
 			Line.TrimStartAndEndInline();
 			AddDetailLine(Out, TEXT("Effet"), Line);
 		}
+
+		TSet<FName> SatisfiedIds;
+		BuildSatisfiedIdsForChoice(Choice, SatisfiedIds);
+		for (const FGridCombatActionDefinition& Action : ClassDefinition.CombatActions)
+		{
+			const bool bUnlockedByChoice = Action.Requirements.ContainsByPredicate(
+				[&SatisfiedIds](const FName RequirementId)
+				{
+					return SatisfiedIds.Contains(RequirementId);
+				});
+			if (!bUnlockedByChoice)
+			{
+				continue;
+			}
+			for (const FGridCombatStatusApplicationProfile& Profile : Action.StatusApplications)
+			{
+				AddStatusApplicationEffect(Profile, Out);
+			}
+		}
+
 		for (const FGridTalentUnlockedActionView& Action : Actions)
 		{
 			if (Action.bAffectsAlliesInArea)
@@ -787,14 +899,14 @@ namespace
 			FGridTalentVariantView Variant;
 			Variant.ChoiceId = Choice->ChoiceId;
 			Variant.DisplayName = Choice->DisplayName;
-			Variant.Description = Choice->Description;
-			Variant.Principle = Choice->Description;
+			Variant.Description = ResolveStatusReferences(Choice->Description);
+			Variant.Principle = Variant.Description;
 			BuildUnlockedActionViews(ClassDefinition, *Choice, Variant.UnlockedActions);
 			Variant.Type = Choice->PresentationType;
 			Variant.TypeText = TalentTypeText(Variant.Type);
 			Variant.EffectCategory = Variant.TypeText; // DESC01.14.1 compatibility only.
 			Variant.MechanicsSummary = BuildMechanicsSummary(*Choice); // compatibility only.
-			BuildStructuredEffects(*Choice, Variant.UnlockedActions, Variant.Effects);
+			BuildStructuredEffects(ClassDefinition, *Choice, Variant.UnlockedActions, Variant.Effects);
 			BuildStructuredUsage(Variant.UnlockedActions, Variant.Usage);
 			Variant.bSelected = bSelected;
 			Variant.bAcquired = bSelected;
@@ -844,7 +956,7 @@ namespace
 			if (ResolveConceptPresentation(ClassDefinition.ClassId, BranchId, NodeId, OverrideName, OverridePrinciple))
 			{
 				OutNode.DisplayName = OverrideName;
-				OutNode.Principle = OverridePrinciple;
+				OutNode.Principle = ResolveStatusReferences(OverridePrinciple);
 			}
 			else
 			{
@@ -854,7 +966,7 @@ namespace
 		else
 		{
 			OutNode.DisplayName = First->DisplayName;
-			OutNode.Principle = First->Description;
+			OutNode.Principle = ResolveStatusReferences(First->Description);
 			OutNode.Effects = OutNode.Variants[0].Effects;
 			OutNode.Usage = OutNode.Variants[0].Usage;
 			OutNode.SimpleChoiceId = First->ChoiceId;

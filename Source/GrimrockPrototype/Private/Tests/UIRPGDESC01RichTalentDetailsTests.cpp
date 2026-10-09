@@ -647,4 +647,52 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGDESC01152CStatusActionEffectsTest,
+	"Grimrock.UI.RPG.DESC01.ReadModel.StatusActionEffects",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGDESC01152CStatusActionEffectsTest::RunTest(const FString&)
+{
+	using namespace UIRPGDESC01Tests;
+	FRuntimeGuard Guard;
+
+	URPGClassAsset* ClassDefinition = nullptr;
+	UGridPartyInventoryComponent* Component = MakeSimpleInventory(ClassDefinition);
+	FRPGClassProgressionChoiceDefinition& Choice = ClassDefinition->ProgressionChoices[0];
+	Choice.Description = FText::FromString(
+		TEXT("Applique Status_Guarded pendant 2 rounds : protection défensive."));
+	FGridCombatStatusApplicationProfile Status;
+	Status.StatusEffectId = TEXT("Status_Guarded");
+	Status.Trigger = EGridCombatStatusApplicationTrigger::AfterResolution;
+	Status.DurationOverride = 2;
+	ClassDefinition->CombatActions[0].StatusApplications.Add(Status);
+
+	TestTrue(TEXT("Status-action test class remains valid"), ClassDefinition->IsValidDefinition());
+
+	FGridSkillsPageView View;
+	TestTrue(TEXT("Status-action read model builds"),
+		FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, View));
+	const FGridTalentNodeView& Node = View.TalentTree.Branches[0].Nodes[0];
+
+	TestTrue(TEXT("PRINCIPE resolves canonical status DisplayName"),
+		Node.Principle.ToString().Contains(TEXT("Garde")));
+	TestFalse(TEXT("PRINCIPE never leaks raw status ids"),
+		Node.Principle.ToString().Contains(TEXT("Status_Guarded")));
+
+	bool bSawGuardEffect = false;
+	for (const FGridTalentDetailLineView& Line : Node.Effects)
+	{
+		const FString Text = Line.Label.ToString() + TEXT(" ") + Line.Value.ToString();
+		TestFalse(TEXT("EFFETS never leaks raw status ids"), Text.Contains(TEXT("Status_")));
+		if (Text.Contains(TEXT("Garde")) && Text.Contains(TEXT("2 rounds")))
+		{
+			bSawGuardEffect = true;
+		}
+	}
+	TestTrue(TEXT("Action StatusApplications are projected into EFFETS"), bSawGuardEffect);
+	return true;
+}
+
 #endif
