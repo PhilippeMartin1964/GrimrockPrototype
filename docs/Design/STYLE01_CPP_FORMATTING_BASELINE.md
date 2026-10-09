@@ -4,7 +4,8 @@ Statut : **STYLE01.5 — CLOS — GRIMROCK C++ STYLE v1 FIGÉ**
 Date de préparation : **25 août 2026**  
 Baseline de préparation : `3ac78b3b892207c30734dacfba3d0ed2613f6542`  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-Environnement de développement : **Visual Studio 2022 — clang-format 19.1.5**
+Environnement lors de STYLE01 : **Visual Studio 2022 — clang-format 19.1.5**  
+Environnement courant : **Visual Studio 2026 + clang-format 19.1.5 standalone** (voir `DEVELOPMENT_ENVIRONMENT_SETUP.md`)
 
 ## 1. Objectif
 
@@ -203,7 +204,7 @@ Build.cs et autres langages non C++
 
 ### 5.1 Environnement de référence
 
-Audit effectué le **25 août 2026** sur l'environnement de développement réel :
+Audit historique effectué le **25 août 2026** sur l'environnement de développement réel :
 
 ```text
 IDE : Visual Studio 2022 Community
@@ -211,9 +212,9 @@ clang-format : 19.1.5
 Chemin vérifié : C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\bin\clang-format.exe
 ```
 
-`clang-format.exe` n'est pas exposé dans le `PATH` de la session PowerShell. Les scripts STYLE01 ne dépendent donc pas du `PATH` : ils recherchent d'abord l'installation Visual Studio 2022 via `vswhere`, puis le chemin Community par défaut, puis seulement un éventuel `clang-format` disponible dans le `PATH`.
+`clang-format.exe` n'était pas exposé dans le `PATH` de la session PowerShell lors de STYLE01. À cette date, les scripts recherchaient d'abord l'installation Visual Studio 2022 via `vswhere`, puis le chemin Community par défaut, puis le `PATH`.
 
-La version **19.1.5** est figée pour **Grimrock C++ Style v1**. Les scripts refusent une autre version afin d'éviter des diffs dépendant de la version de formatter.
+Depuis TOOLCHAIN01 du **9 octobre 2026**, cette résolution historique a été remplacée : les scripts utilisent d'abord un chemin explicite, puis `C:\Program Files\LLVM\bin\clang-format.exe`, puis le `PATH`. La version **19.1.5** reste figée pour **Grimrock C++ Style v1** et toute autre version est refusée.
 
 ### 5.2 Fichiers versionnés
 
@@ -232,7 +233,7 @@ Le commit mécanique global `3c4032beaad5a0fa9e7b3809701ee3de85c4e1de` est enreg
 
 `Scripts/FormatCpp.ps1` :
 
-- résout automatiquement clang-format 19.1.5 depuis Visual Studio 2022 ;
+- résout automatiquement clang-format 19.1.5 depuis l'installation LLVM standalone de référence, avec override explicite et fallback `PATH` ;
 - refuse toute autre version ;
 - ne parcourt que les trois modules first-party audités ;
 - ne traite que `.h`, `.cpp`, `.inl` ;

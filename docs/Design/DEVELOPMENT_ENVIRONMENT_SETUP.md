@@ -1,6 +1,6 @@
 # GrimrockPrototype — Environnement de développement
 
-Date de référence : **27 août 2026**  
+Date de référence : **9 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**
 
 ## 1. Environnement autoritaire
@@ -10,9 +10,11 @@ Le dépôt est développé et validé avec :
 ```text
 Unreal Engine 5.5.4
 Windows
-Visual Studio 2022
+Visual Studio Community 2026 18.10.3
 C++
-clang-format 19.1.5
+MSVC v143 / 14.44.35207
+Windows SDK 10.0.28000.0
+clang-format 19.1.5 standalone
 Git
 ```
 
@@ -124,40 +126,86 @@ git clone <repository>
 cd GrimrockPrototype
 
 .\Scripts\CheckProjectDependencies.ps1 -EngineRoot D:\UE_5.5
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_8"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.StartupFlow.STARTUPFLOW01"
 .\Scripts\ValidatePackage.ps1 -EngineRoot D:\UE_5.5
 ```
 
 Le premier script vérifie que chaque plugin **activé** du `.uproject` possède réellement un descripteur `.uplugin` dans le projet ou l'installation UE.
 
-## 6. Toolchain Visual Studio
+## 6. Toolchain Visual Studio 2026 / UE5.5.4
 
-Le projet ne pince actuellement pas une version MSVC précise dans les Target.cs.
-
-Sur l'environnement validé en août 2026, UBT a utilisé :
+L'environnement validé le **9 octobre 2026** utilise :
 
 ```text
-Visual Studio 2022
-MSVC 14.44.35227
-Windows SDK 10.0.26100.0
+IDE                         : Visual Studio Community 2026 18.10.3
+Installation                : C:\Program Files\Microsoft Visual Studio\18\Community
+Toolset C++                  : MSVC v143 / 14.44.35207
+Version compilateur vue UBT : 14.44.35229
+Windows SDK                 : 10.0.28000.0
 ```
 
-UE5.5.4 affiche actuellement un warning indiquant que cette version MSVC n'est pas sa version préférée et mentionne `14.38.33130` comme version préférée. Malgré ce warning, les builds Editor et les validations Automation ont réussi.
+Le composant v143 / 14.44 doit rester installé dans Visual Studio 2026. UE5.5.4 ne connaît pas nativement la génération Visual Studio 2026 et conserve le nom de famille `VisualStudio2022` pour cette toolchain. C'est pourquoi UBT peut afficher :
 
-Décision TD07.1 :
+```text
+Using Visual Studio 2022 14.44.35229 toolchain
+(C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.44.35207)
+```
 
-- **ne pas forcer un downgrade ou un pinning préventif tant que le build UE5.5.4 et Shipping sont verts** ;
-- documenter la toolchain réellement utilisée ;
-- considérer tout changement de toolchain comme un point à revalider avec les deux harness ;
-- rouvrir ce point si UBT transforme le warning en incompatibilité ou si deux environnements produisent des résultats divergents.
+Ce libellé est **normal**. Le chemin physique est l'autorité pour déterminer l'installation réellement utilisée. Après désinstallation de Visual Studio 2022, `vswhere` ne retourne plus que Visual Studio 2026 et les builds Editor continuent d'utiliser le chemin `Visual Studio\18\Community`.
+
+La solution générée par UE5.5.4 peut également afficher `UE5 (Visual Studio 2022)` et `GrimrockPrototype (Visual Studio 2022)` dans Visual Studio 2026. Ne pas retargeter manuellement les projets uniquement pour supprimer ce libellé.
+
+### Configuration UBT utilisateur
+
+La configuration validée conserve volontairement :
+
+```xml
+<WindowsPlatform>
+  <Compiler>VisualStudio2022</Compiler>
+  <CompilerVersion>14.44.35207</CompilerVersion>
+</WindowsPlatform>
+```
+
+dans :
+
+```text
+%APPDATA%\Unreal Engine\UnrealBuildTool\BuildConfiguration.xml
+```
+
+`VisualStudio2022` désigne ici la famille de compilateur comprise par UE5.5.4. Ne pas remplacer cette valeur par `VisualStudio2026` sans migration de version Unreal et nouvelle validation complète.
+
+UE5.5.4 avertit encore que cette version MSVC n'est pas sa version préférée et mentionne `14.38.33130`. La migration n'a pas tenté de supprimer ce warning par un changement arbitraire de compilateur.
+
+### Validations réalisées après migration
+
+La configuration VS2026/v143 a été validée avec :
+
+- ouverture de `GrimrockPrototype.sln` dans Visual Studio 2026 sans migration de solution ;
+- build complet depuis Visual Studio 2026 ;
+- build `GrimrockPrototypeEditor Win64 Development` via `Scripts\ValidateUE.ps1` ;
+- Automation `Grimrock.StartupFlow.STARTUPFLOW01` : **1 succès, 0 warning, 0 échec** ;
+- `RunUAT BuildCookRun` Shipping : build, cook, stage, package et archive **réussis** ;
+- MSBuild utilisé par UAT : `C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe`;
+- désinstallation de Visual Studio 2022 Community, puis nouveau build Editor réussi avec uniquement les toolchains VS2026 détectées.
+
+Décision : conserver UE5.5.4 + v143/14.44 tant que les harness Editor et Shipping restent verts. Réouvrir ce point lors d'une migration Unreal, d'une incompatibilité concrète ou de l'introduction d'une CI Windows reproductible.
 
 ## 7. Clang-format
 
-La baseline de formatage utilise :
+Grimrock C++ Style v1 reste figé sur :
 
 ```text
 clang-format 19.1.5
+C:\Program Files\LLVM\bin\clang-format.exe
 ```
+
+Depuis TOOLCHAIN01 (`bfd4e1d7`), `Scripts\CheckCppFormat.ps1` et `Scripts\FormatCpp.ps1` ne dépendent plus de Visual Studio. Leur ordre de résolution est :
+
+1. `-ClangFormatPath` explicite ;
+2. `C:\Program Files\LLVM\bin\clang-format.exe` ;
+3. `clang-format` dans le `PATH`.
+
+La version est toujours contrôlée strictement et doit être **19.1.5**. Visual Studio 2026 installe actuellement un clang-format 22.1.3 sur la machine validée ; il ne doit pas remplacer silencieusement la baseline STYLE01.
 
 Contrôle :
 
@@ -165,4 +213,5 @@ Contrôle :
 .\Scripts\CheckCppFormat.ps1
 ```
 
-La dérive globale historique de formatage reste une dette distincte ; TD07.1 ne lance aucun reformatage massif.
+Au moment de la migration, le contrôle parcourt **867 fichiers first-party** et signale **457 fichiers non conformes**. Le même résultat a été obtenu avec le clang-format 19.1.5 historique de VS2022 et le standalone 19.1.5 ; cette dérive préexistante est donc distincte de la migration d'IDE. Ne pas lancer un reformatage massif dans un ticket de toolchain.
+

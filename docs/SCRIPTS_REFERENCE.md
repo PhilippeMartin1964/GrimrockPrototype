@@ -1,6 +1,6 @@
 # Référence des scripts PowerShell du prototype
 
-Audit du **21 septembre 2026**, sur `master`, commit de référence `4b6f974390f0bc6de0982af898a5e49fb877519b` (UI-ITEM01). Cette référence décrit les fichiers versionnés dans `Scripts/`, correspondant à `D:\Development\GrimrockPrototype\Scripts` après synchronisation du dépôt. Les éventuels scripts locaux non versionnés ne font pas partie de cet audit.
+Audit initial du **21 septembre 2026**, mis à jour le **9 octobre 2026** après TOOLCHAIN01. Référence de comportement des scripts : `bfd4e1d779aa99db2338b9a6d1572ab3ed2a78a5`. Cette référence décrit les fichiers versionnés dans `Scripts/`, correspondant à `D:\Development\GrimrockPrototype\Scripts` après synchronisation du dépôt. Les éventuels scripts locaux non versionnés ne font pas partie de cet audit.
 
 ## Résultat de l’audit documentaire
 
@@ -60,10 +60,10 @@ Prérequis selon l’opération :
 
 - build, Automation et packaging : installation UE **5.5.4**, outils de compilation C++/Windows SDK compatibles avec cet environnement, sources et contenu du projet disponibles ;
 - contrôle des dépendances : installation UE et `.uproject` disponibles ; pas de compilation effectuée ;
-- formatage : **clang-format 19.1.5**, `.clang-format` du dépôt et les trois dossiers `Source/GrimrockPrototype`, `Source/GrimrockPrototypeEditor`, `Source/GrimrockLua` ; UE n’est pas nécessaire ;
+- formatage : **clang-format 19.1.5 standalone**, installé par défaut sous `C:\Program Files\LLVM\bin\clang-format.exe`, `.clang-format` du dépôt et les trois dossiers `Source/GrimrockPrototype`, `Source/GrimrockPrototypeEditor`, `Source/GrimrockLua` ; UE n’est pas nécessaire ;
 - Git : nécessaire aux commandes de suivi proposées ici ; le lanceur de migration l’appelle aussi après `-Apply`.
 
-Les scripts ne vérifient pas eux-mêmes le numéro exact de version d’Unreal. Ils ne sélectionnent pas une version de Visual Studio pour UBT. Voir le [guide d’environnement](Design/DEVELOPMENT_ENVIRONMENT_SETUP.md) pour les validations historiques de la toolchain. La détection de **clang-format**, elle, cible explicitement VS 2022 : la marche à suivre pour une installation VS 2026 est précisée plus bas.
+Les scripts ne vérifient pas eux-mêmes le numéro exact de version d’Unreal. Ils ne sélectionnent pas une version de Visual Studio pour UBT. Voir le [guide d’environnement](Design/DEVELOPMENT_ENVIRONMENT_SETUP.md) pour la toolchain validée. Depuis TOOLCHAIN01, la détection de **clang-format** est indépendante de Visual Studio et privilégie l'installation LLVM standalone 19.1.5.
 
 Avant une compilation complète ou un packaging, fermer l’éditeur et les sessions de jeu utilisant les binaires concernés, et attendre la fin des autres compilations. Cela évite les verrouillages de DLL et les conflits avec Live Coding.
 
@@ -217,13 +217,12 @@ Les deux scripts emploient la même configuration `.clang-format`, la même vers
 Ordre de recherche :
 
 1. Chemin fourni par `-ClangFormatPath`, s’il est renseigné.
-2. Installation Visual Studio détectée par `vswhere`, plage `[17.0,18.0)` (**VS 2022**), puis `VC\Tools\Llvm\x64\bin\clang-format.exe`.
-3. Chemin fixe `C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\bin\clang-format.exe`.
-4. Première application `clang-format` trouvée dans le `PATH`.
+2. Installation standalone `C:\Program Files\LLVM\bin\clang-format.exe`.
+3. Première application `clang-format` trouvée dans le `PATH`.
 
 Le premier exécutable trouvé est ensuite interrogé avec `--version`. Le texte doit commencer par `clang-format version 19.1.5` (comparaison sans distinction de casse). Une version différente provoque une erreur ; le script ne poursuit pas la recherche d’un second exécutable compatible.
 
-**Avec Visual Studio 2026 :** l’installation n’est pas couverte par la recherche `vswhere` ciblée sur VS 2022. Fournir le chemin d’un exécutable **19.1.5** déjà installé, ou le rendre accessible dans le `PATH`. Le numéro de version du formatter reste requis, indépendamment de l’IDE utilisé pour compiler.
+**Avec Visual Studio 2026 :** ne pas utiliser implicitement le `clang-format` livré avec l'IDE si sa version diffère. L'environnement validé fournit clang-format **22.1.3** avec VS2026, tandis que Grimrock C++ Style v1 reste figé sur **19.1.5** standalone.
 
 ### Périmètre exact
 
@@ -243,11 +242,13 @@ Les fichiers `.Build.cs`, `.Target.cs`, les assets et les sources hors de ces tr
 
 Le script appelle `clang-format --dry-run --Werror --style=file`, vérifie tous les fichiers et affiche `[FORMAT] <chemin>` pour chaque retour non nul. Il masque volontairement les diagnostics natifs du formatter pour conserver une sortie concise. Le code explicite est `0` si tout est conforme et `1` si au moins un fichier est signalé. Un retour non nul du formatter peut aussi traduire une erreur de configuration ; ne pas supposer systématiquement un simple problème d’indentation.
 
-Exemple avec l’emplacement VS 2022 Community historique, si cet exécutable existe sur votre machine :
+Exemple avec l'installation standalone de référence :
 
 ```powershell
-.\Scripts\CheckCppFormat.ps1 -ClangFormatPath 'C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\bin\clang-format.exe'
+.\Scripts\CheckCppFormat.ps1 -ClangFormatPath 'C:\Program Files\LLVM\bin\clang-format.exe'
 ```
+
+Après TOOLCHAIN01, l'appel sans argument doit sélectionner automatiquement ce même exécutable.
 
 ### Appliquer le format
 

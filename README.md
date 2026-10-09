@@ -26,7 +26,9 @@ Le projet vise à développer une architecture simple, modulaire et orientée do
 
 - Unreal Engine : **5.5.4**
 - Langage : **C++**
-- IDE : **Visual Studio 2022**
+- IDE : **Visual Studio 2026 Community 18.10.3**
+- Toolchain UE5.5.4 : **MSVC v143 / 14.44.35207** installé avec Visual Studio 2026
+- Formatter : **clang-format 19.1.5 standalone**
 - Plateforme de développement principale : **Windows**
 - Type de projet : **modules Unreal C++**
 
@@ -46,6 +48,8 @@ La procédure de référence est :
 ```text
 docs/Design/DEVELOPMENT_ENVIRONMENT_SETUP.md
 ```
+
+UE5.5.4 continue d'afficher la famille de toolchain et certains projets générés sous le libellé `Visual Studio 2022`. Sur l'environnement validé, ce libellé désigne le toolset v143 attendu par UE5.5.4 ; les exécutables de compilation proviennent bien de `C:\Program Files\Microsoft Visual Studio\18\Community`. Visual Studio 2022 n'est plus requis ni installé.
 
 Contrôle des plugins/dépendances d'un environnement :
 

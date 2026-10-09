@@ -119,7 +119,7 @@ ou au lancement :
 1. Exécuter `git status -sb`.
 2. Vérifier `git diff --stat`.
 3. Exécuter `git diff --check`.
-4. Si du C++ a été modifié, compiler avec UnrealBuildTool ou Visual Studio 2022.
+4. Si du C++ a été modifié, compiler avec UnrealBuildTool ou Visual Studio 2026 ; sous UE5.5.4, le toolset v143 peut rester libellé `Visual Studio 2022` par UBT.
 5. Lancer un smoke test PIE avec la matrice minimale adaptée au changement.
 6. Vérifier qu'aucun asset, Blueprint, DataAsset ou binaire non voulu n'a changé.
 7. Préparer un commit ciblé uniquement avec les fichiers nécessaires. Ne pas utiliser `git add .`.

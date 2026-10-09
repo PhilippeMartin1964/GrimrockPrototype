@@ -32,7 +32,9 @@
 - Version cible : Unreal Engine 5.5.4.
 - Modifier les `.uasset` et `.umap` seulement si nécessaire.
 - Pour les assets Unreal, préférer les modifications via Unreal Editor.
-- Après modification C++, compiler avec Visual Studio 2022 ou UnrealBuildTool si disponible.
+- Après modification C++, compiler avec Visual Studio 2026 ou UnrealBuildTool si disponible.
+- En UE5.5.4, conserver la toolchain v143 / MSVC 14.44.35207 installée sous Visual Studio 2026. Le libellé UBT `Visual Studio 2022` est attendu pour cette famille de compilateur ; vérifier le chemin physique `C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.44.35207`.
+- Pour le formatage, utiliser clang-format 19.1.5 standalone ; ne pas basculer implicitement sur le clang-format 22.x fourni par Visual Studio 2026.
 - Ne pas versionner `Binaries/`, `Intermediate/`, `Saved/`, `DerivedDataCache/`.
 
 ## Style de travail

@@ -34,11 +34,13 @@ P3
   TD-RPG-001    lancer manuel / future intégration Skills
 ```
 
-## 3. TD-BUILD-002 — Toolchain MSVC
+## 3. TD-BUILD-002 — Toolchain MSVC / UE5.5.4
 
 **P2 — surveillée.**
 
-La machine de développement compile avec Visual Studio 2022 / MSVC 14.44 alors que UE 5.5.4 peut avertir qu'une version antérieure est préférée. Ne pas imposer un downgrade tant que build Editor et Shipping restent fonctionnels ; réouvrir uniquement sur incompatibilité concrète ou CI Windows reproductible.
+La machine de développement utilise désormais Visual Studio Community 2026 18.10.3 avec le toolset v143 / MSVC 14.44.35207 installé sous `Visual Studio\18\Community`. UE5.5.4 continue d'identifier cette famille comme `Visual Studio 2022` et avertit que 14.44 n'est pas sa version préférée. Editor, Automation STARTUPFLOW01 et Shipping BuildCookRun ont été validés après migration, puis un nouveau build Editor a réussi après désinstallation de VS2022.
+
+Le risque restant n'est donc plus une dépendance à l'IDE VS2022, mais la reproductibilité d'une combinaison UE5.5.4 + v143 legacy installée dans VS2026, non figée dans les `Target.cs` et sans CI Windows. Ne pas imposer un downgrade ni retargeter les projets générés uniquement pour supprimer le libellé `Visual Studio 2022` ; réouvrir sur incompatibilité concrète, migration Unreal ou CI reproductible.
 
 `TD-BUILD-001` Meshy est résolu : Meshy reste un outil local optionnel, pas une dépendance first-party requise.
 
@@ -113,6 +115,7 @@ TD-PERSIST-001 Receptacle runtime permissions           RÉSOLU
 TD-PARTY-001   selection / held visual notification     RÉSOLU
 TD-EVENT-001   Event -> Command semantics               RÉSOLU
 TD-STYLE-001   formatting tooling                       RÉSOLU
+TOOLCHAIN01     clang-format découplé de VS2022          RÉSOLU
 TD05           RuntimeActor stop condition              CLOS
 TD06           PartyInventory stop condition            CLOS
 TD07           future-proofing / schema reset           CLOS
