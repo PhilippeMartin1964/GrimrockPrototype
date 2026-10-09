@@ -1,8 +1,9 @@
+[CmdletBinding()]
 param(
     [string]$EngineRoot = $env:UE_ROOT,
     [string]$ArchiveRoot,
-    [ValidateSet('Development', 'Shipping')]
-    [string]$Configuration = 'Shipping'
+    [string]$Configuration = 'Shipping',
+    [switch]$Help
 )
 
 $ErrorActionPreference = 'Stop'
@@ -12,6 +13,38 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 $ProjectFile = Join-Path $RepoRoot 'GrimrockPrototype.uproject'
 $GameTarget = 'GrimrockPrototype'
 $Platform = 'Win64'
+$ValidConfigurations = @('Development', 'Shipping')
+
+function Show-GrimrockPackageUsage
+{
+    Write-Host @'
+GrimrockPrototype TD04.3 - Cook / Package Validation
+
+Usage:
+  .\Scripts\ValidatePackage.ps1 -EngineRoot <UE_ROOT> [-Configuration Shipping|Development] [-ArchiveRoot <path>]
+  .\Scripts\ValidatePackage.ps1 -Help
+
+Parameters:
+  -EngineRoot       Racine Unreal Engine contenant Engine\Build\BatchFiles\RunUAT.bat.
+                    Peut etre omis si UE_ROOT est defini.
+  -Configuration    Shipping (defaut) ou Development.
+  -ArchiveRoot      Dossier parent des archives.
+                    Defaut : <Repo>\Saved\Packaging\TD04
+  -Help             Affiche cette aide sans lancer de build.
+
+Examples:
+  .\Scripts\ValidatePackage.ps1 -EngineRoot D:\UE_5.5
+
+  .\Scripts\ValidatePackage.ps1 `
+      -EngineRoot D:\UE_5.5 `
+      -Configuration Shipping
+
+  .\Scripts\ValidatePackage.ps1 `
+      -EngineRoot D:\UE_5.5 `
+      -Configuration Development `
+      -ArchiveRoot D:\Development\GrimrockPrototype\Saved\Packaging\Diagnostics
+'@
+}
 
 function Resolve-GrimrockEngineRoot
 {
@@ -19,28 +52,16 @@ function Resolve-GrimrockEngineRoot
 
     if ([string]::IsNullOrWhiteSpace($RequestedRoot))
     {
-        throw 'Racine Unreal Engine non renseignee. Utilisez -EngineRoot ou definissez la variable d''environnement UE_ROOT.'
+        return $null
     }
 
     if (-not (Test-Path -LiteralPath $RequestedRoot -PathType Container))
     {
-        throw "Racine Unreal Engine introuvable : $RequestedRoot"
+        Write-Host "[MISSING] Racine Unreal Engine introuvable : $RequestedRoot"
+        return $null
     }
 
     return (Resolve-Path -LiteralPath $RequestedRoot).Path
-}
-
-function Assert-FileExists
-{
-    param(
-        [string]$Path,
-        [string]$Description
-    )
-
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf))
-    {
-        throw "$Description introuvable : $Path"
-    }
 }
 
 function Invoke-GrimrockNativeStep
@@ -64,11 +85,116 @@ function Invoke-GrimrockNativeStep
     }
 }
 
-Assert-FileExists -Path $ProjectFile -Description 'Projet Unreal'
+if ($Help)
+{
+    Show-GrimrockPackageUsage
+    exit 0
+}
+
+if (-not ($ValidConfigurations -contains $Configuration))
+{
+    Write-Host "[INVALID] Configuration '$Configuration'. Valeurs possibles : Development, Shipping."
+    Write-Host ''
+    Show-GrimrockPackageUsage
+    exit 2
+}
+
+if ([string]::IsNullOrWhiteSpace($EngineRoot))
+{
+    Write-Host '[INFO] Aucune racine Unreal Engine n''a ete fournie.'
+    Write-Host 'Utilisez -EngineRoot ou definissez la variable d''environnement UE_ROOT.'
+    Write-Host ''
+    Show-GrimrockPackageUsage
+    exit 2
+}
+
+if (-not (Test-Path -LiteralPath $ProjectFile -PathType Leaf))
+{
+    Write-Host "[MISSING] Projet Unreal introuvable : $ProjectFile"
+    exit 3
+}
 
 $ResolvedEngineRoot = Resolve-GrimrockEngineRoot -RequestedRoot $EngineRoot
+if ($null -eq $ResolvedEngineRoot)
+{
+    Write-Host ''
+    Show-GrimrockPackageUsage
+    exit 3
+}
+
 $RunUAT = Join-Path $ResolvedEngineRoot 'Engine\Build\BatchFiles\RunUAT.bat'
-Assert-FileExists -Path $RunUAT -Description 'Unreal RunUAT.bat'
+$AutomationToolDll = Join-Path $ResolvedEngineRoot 'Engine\Binaries\DotNET\AutomationTool\AutomationTool.dll'
+$AutomationToolCsproj = Join-Path $ResolvedEngineRoot 'Engine\Source\Programs\AutomationTool\AutomationTool.csproj'
+$AutomationToolLauncherCsproj = Join-Path $ResolvedEngineRoot 'Engine\Source\Programs\AutomationToolLauncher\AutomationToolLauncher.csproj'
+$BuildUAT = Join-Path $ResolvedEngineRoot 'Engine\Build\BatchFiles\BuildUAT.bat'
+$InstalledBuildMarker = Join-Path $ResolvedEngineRoot 'Engine\Build\InstalledBuild.txt'
+
+$HasRunUAT = Test-Path -LiteralPath $RunUAT -PathType Leaf
+$HasPrecompiledAutomationTool = Test-Path -LiteralPath $AutomationToolDll -PathType Leaf
+$HasAutomationToolProject = Test-Path -LiteralPath $AutomationToolCsproj -PathType Leaf
+$HasAutomationToolLauncherProject = Test-Path -LiteralPath $AutomationToolLauncherCsproj -PathType Leaf
+$HasBuildUAT = Test-Path -LiteralPath $BuildUAT -PathType Leaf
+$HasSourceAutomationTool = $HasAutomationToolProject -and $HasAutomationToolLauncherProject -and $HasBuildUAT
+$IsInstalledBuild = Test-Path -LiteralPath $InstalledBuildMarker -PathType Leaf
+
+Write-Host 'GrimrockPrototype TD04.3 - Cook / Package Validation'
+Write-Host "Repository    : $RepoRoot"
+Write-Host "Project       : $ProjectFile"
+Write-Host "Engine        : $ResolvedEngineRoot"
+Write-Host "Target        : $GameTarget"
+Write-Host "Platform      : $Platform"
+Write-Host "Configuration : $Configuration"
+
+Write-Host ''
+Write-Host '=== Packaging prerequisite check ==='
+
+if ($HasRunUAT)
+{
+    Write-Host "[OK] RunUAT.bat : $RunUAT"
+}
+else
+{
+    Write-Host "[MISSING] RunUAT.bat : $RunUAT"
+}
+
+if ($HasPrecompiledAutomationTool)
+{
+    Write-Host "[OK] AutomationTool precompiled : $AutomationToolDll"
+}
+elseif ($HasSourceAutomationTool)
+{
+    Write-Host '[OK] AutomationTool precompiled absent, but source rebuild prerequisites are present.'
+    Write-Host "     AutomationTool.csproj         : $AutomationToolCsproj"
+    Write-Host "     AutomationToolLauncher.csproj : $AutomationToolLauncherCsproj"
+    Write-Host "     BuildUAT.bat                   : $BuildUAT"
+}
+else
+{
+    Write-Host "[MISSING] AutomationTool.dll : $AutomationToolDll"
+    Write-Host ('          AutomationTool.csproj         : ' + $(if ($HasAutomationToolProject) { 'present' } else { 'missing' }))
+    Write-Host ('          AutomationToolLauncher.csproj : ' + $(if ($HasAutomationToolLauncherProject) { 'present' } else { 'missing' }))
+    Write-Host ('          BuildUAT.bat                   : ' + $(if ($HasBuildUAT) { 'present' } else { 'missing' }))
+}
+
+if (-not $HasRunUAT -or (-not $HasPrecompiledAutomationTool -and -not $HasSourceAutomationTool))
+{
+    Write-Host ''
+    Write-Host '[FAIL] L''installation Unreal Engine ne contient pas les prerequis necessaires au packaging.'
+
+    if ($IsInstalledBuild)
+    {
+        Write-Host 'Cette installation semble etre une build installee/precompilee.'
+        Write-Host 'Action conseillee : lancer "Verify / Verifier" sur Unreal Engine 5.5.4 dans Epic Games Launcher.'
+    }
+    else
+    {
+        Write-Host 'Action conseillee : restaurer/recompiler les fichiers Engine manquants, puis verifier AutomationTool.'
+    }
+
+    Write-Host ''
+    Write-Host 'Le packaging n''a pas ete lance et aucun dossier d''archive de session n''a ete cree.'
+    exit 4
+}
 
 if ([string]::IsNullOrWhiteSpace($ArchiveRoot))
 {
@@ -80,13 +206,7 @@ $SessionName = "TD04-$Configuration-$Timestamp"
 $SessionArchivePath = Join-Path $ArchiveRoot $SessionName
 New-Item -ItemType Directory -Path $SessionArchivePath -Force | Out-Null
 
-Write-Host 'GrimrockPrototype TD04.3 - Cook / Package Validation'
-Write-Host "Repository    : $RepoRoot"
-Write-Host "Project       : $ProjectFile"
-Write-Host "Engine        : $ResolvedEngineRoot"
-Write-Host "Target        : $GameTarget"
-Write-Host "Platform      : $Platform"
-Write-Host "Configuration : $Configuration"
+Write-Host "[OK] Packaging prerequisites validated."
 Write-Host "Archive       : $SessionArchivePath"
 
 $UATArguments = @(
@@ -125,10 +245,10 @@ if ($PakFiles.Count -le 0)
 }
 
 $ArchiveFiles = @(Get-ChildItem -LiteralPath $SessionArchivePath -Recurse -File)
-$ArchiveBytes = ($ArchiveFiles | Measure-Object -Property Length -Sum).Sum
-if ($null -eq $ArchiveBytes)
+$ArchiveBytes = 0L
+foreach ($ArchiveFile in $ArchiveFiles)
 {
-    $ArchiveBytes = 0
+    $ArchiveBytes += [long]$ArchiveFile.Length
 }
 
 Write-Host ''
