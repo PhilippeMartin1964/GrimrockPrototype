@@ -8,6 +8,48 @@
 
 namespace UIRPG044Tests
 {
+	UGridPartyInventoryComponent* MakeVariantTransactionInventory(URPGClassAsset*& OutClassDefinition)
+	{
+		UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
+		OutClassDefinition = NewObject<URPGClassAsset>(Component);
+		OutClassDefinition->ClassId = TEXT("RPG04_VariantTransaction");
+		OutClassDefinition->DisplayName = FText::FromString(TEXT("RPG04 Variant Transaction"));
+		OutClassDefinition->BaseAttributes = FRPGAttributes{ 12, 12, 12, 10, 10, 10 };
+		OutClassDefinition->HealthAtLevelOne = 20;
+
+		FRPGClassProgressionLevelGrant Grant;
+		Grant.Level = 2;
+		Grant.ChoicePointsGranted = 1;
+		OutClassDefinition->ProgressionLevelGrants.Add(Grant);
+
+		const FName ConceptNodeId(TEXT("Talent_Test_Variant"));
+		const FName ExclusiveGroup(TEXT("TalentGroup_Test_Variant"));
+
+		FRPGClassProgressionChoiceDefinition ChoiceA;
+		ChoiceA.ChoiceId = TEXT("Choice_A");
+		ChoiceA.DisplayName = FText::FromString(TEXT("Talent test — Variante A"));
+		ChoiceA.Description = FText::FromString(TEXT("Variante A de test pour la projection d'acquisition."));
+		ChoiceA.MinimumLevel = 2;
+		ChoiceA.PointCost = 1;
+		ChoiceA.TalentBranchId = TEXT("Branch");
+		ChoiceA.TalentNodeId = ConceptNodeId;
+		ChoiceA.ExclusiveChoiceGroupId = ExclusiveGroup;
+		ChoiceA.GrantedRequirementIds.Add(ConceptNodeId);
+		ChoiceA.PresentationType = ERPGTalentPresentationType::Passive;
+		OutClassDefinition->ProgressionChoices.Add(ChoiceA);
+
+		FRPGClassProgressionChoiceDefinition ChoiceB = ChoiceA;
+		ChoiceB.ChoiceId = TEXT("Choice_B");
+		ChoiceB.DisplayName = FText::FromString(TEXT("Talent test — Variante B"));
+		ChoiceB.Description = FText::FromString(TEXT("Variante B de test pour la projection d'acquisition."));
+		OutClassDefinition->ProgressionChoices.Add(ChoiceB);
+
+		Component->PartyInventoryState.ActiveCharacters.Add(
+			MakeMON155Character(OutClassDefinition, 2, 1000));
+		Component->PartyInventoryState.ActiveEquipment.SetNum(1);
+		return Component;
+	}
+
 	FGridTalentVariantView MakeVariant(FName ChoiceId, const TCHAR* DisplayName)
 	{
 		FGridTalentVariantView Variant;
@@ -118,49 +160,26 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG044VariantTransactionTest,
 
 bool FUIRPG044VariantTransactionTest::RunTest(const FString&)
 {
+	using namespace UIRPG044Tests;
 	FMON155RuntimeStateGuard RuntimeGuard;
 	URPGClassAsset* ClassDefinition = nullptr;
-	UGridPartyInventoryComponent* Component = MakeMON155Inventory(2, 1000, ClassDefinition);
+	UGridPartyInventoryComponent* Component = MakeVariantTransactionInventory(ClassDefinition);
 
-	FRPGClassProgressionChoiceDefinition* ChoiceA = ClassDefinition->ProgressionChoices.FindByPredicate(
-		[](const FRPGClassProgressionChoiceDefinition& Choice) { return Choice.ChoiceId == TEXT("Choice_A"); });
-	FRPGClassProgressionChoiceDefinition* ChoiceB = ClassDefinition->ProgressionChoices.FindByPredicate(
-		[](const FRPGClassProgressionChoiceDefinition& Choice) { return Choice.ChoiceId == TEXT("Choice_B"); });
-	TestNotNull(TEXT("Choice A exists"), ChoiceA);
-	TestNotNull(TEXT("Choice B exists"), ChoiceB);
-	if (!ChoiceA || !ChoiceB)
+	const FName ConceptNodeId(TEXT("Talent_Test_Variant"));
+	TestNotNull(TEXT("Dedicated transaction fixture has a class"), ClassDefinition);
+	TestNotNull(TEXT("Dedicated transaction fixture has an inventory"), Component);
+	if (!ClassDefinition || !Component)
 	{
 		return false;
 	}
-
-	const FName ConceptNodeId(TEXT("Talent_Test_Variant"));
-	const FName ExclusiveGroup(TEXT("TalentGroup_Test_Variant"));
-	ChoiceA->TalentBranchId = TEXT("Branch");
-	ChoiceB->TalentBranchId = TEXT("Branch");
-	ChoiceA->TalentNodeId = ConceptNodeId;
-	ChoiceB->TalentNodeId = ConceptNodeId;
-	ChoiceA->ExclusiveChoiceGroupId = ExclusiveGroup;
-	ChoiceB->ExclusiveChoiceGroupId = ExclusiveGroup;
-	ChoiceA->GrantedRequirementIds.AddUnique(ConceptNodeId);
-	ChoiceB->GrantedRequirementIds.AddUnique(ConceptNodeId);
-	ChoiceA->PresentationType = ERPGTalentPresentationType::Passive;
-	ChoiceB->PresentationType = ERPGTalentPresentationType::Passive;
-	ChoiceA->Description = FText::FromString(TEXT("Variante A de test pour la projection d'acquisition."));
-	ChoiceB->Description = FText::FromString(TEXT("Variante B de test pour la projection d'acquisition."));
-	ChoiceB->PrerequisiteChoiceIds.Reset();
-	ChoiceB->MinimumLevel = 2;
-
-	// This test exercises one exclusive conceptual node only. Keep the synthetic
-	// class focused instead of forcing unrelated MON15.5 choices into the TalentTree contract.
-	ClassDefinition->ProgressionChoices.RemoveAll(
-		[](const FRPGClassProgressionChoiceDefinition& Choice)
-		{
-			return Choice.ChoiceId != TEXT("Choice_A") && Choice.ChoiceId != TEXT("Choice_B");
-		});
-	TestEqual(TEXT("Focused transaction fixture contains exactly two variants"),
+	TestEqual(TEXT("Dedicated transaction fixture contains exactly two variants"),
 		ClassDefinition->ProgressionChoices.Num(), 2);
-	TestTrue(TEXT("Focused transaction fixture remains a valid RPG class"),
+	TestTrue(TEXT("Dedicated transaction fixture is a valid RPG class"),
 		ClassDefinition->IsValidDefinition());
+
+	FGridSkillsPageView BeforeCommit;
+	TestTrue(TEXT("Pre-commit read-model rebuild succeeds"),
+		FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, BeforeCommit));
 
 	const FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
 	UGridSkillsWidget* Skills = NewObject<UGridSkillsWidget>();
