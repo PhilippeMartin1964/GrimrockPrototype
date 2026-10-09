@@ -4,49 +4,49 @@
 
 ## 1. Principe
 
-\`UGridLevelAsset::Links\` stocke les \`FGridObjectLink\` authored.
-\`UGridActivationComponent\` est le dispatcher runtime Event → Command.
+`UGridLevelAsset::Links` stocke les `FGridObjectLink` authored.
+`UGridActivationComponent` est le dispatcher runtime Event → Command.
 
-\`\`\`text
+```text
 Source Object + Event
     -> FGridObjectLink
         -> condition optionnelle
         -> target / payload
         -> EGridObjectCommand
-\`\`\`
+```
 
 Les Actors émettent des événements ; le dispatcher évalue et route ; la cible ou
 le service de domaine applique la mutation.
 
 ## 2. Identités
 
-\`FGridObjectLink\` référence les placements par GUID :
+`FGridObjectLink` référence les placements par GUID :
 
-\`\`\`text
+```text
 SourceObjectId
 TargetObjectId
-\`\`\`
+```
 
-\`LogicId\` est un alias d'authoring résolu vers une identité stable lorsqu'un
+`LogicId` est un alias d'authoring résolu vers une identité stable lorsqu'un
 script l'utilise.
 
 Les commandes Quest portent en plus :
 
-\`\`\`text
+```text
 QuestId
 QuestObjectiveId
-\`\`\`
+```
 
 Lua porte :
 
-\`\`\`text
+```text
 LuaScriptId
 LuaCallbackName
-\`\`\`
+```
 
 ## 3. Événements courants
 
-\`EGridObjectEvent\` couvre notamment :
+`EGridObjectEvent` couvre notamment :
 
 - Activated / Deactivated ;
 - ItemInserted / ItemRemoved / ItemChanged ;
@@ -63,7 +63,7 @@ possède un émetteur réel.
 
 ## 4. Commandes courantes
 
-\`EGridObjectCommand\` couvre notamment :
+`EGridObjectCommand` couvre notamment :
 
 - Toggle / Open / Close ;
 - Activate / Deactivate ;
@@ -79,12 +79,12 @@ possède un émetteur réel.
 - QuestStart / QuestCompleteObjective / QuestComplete / QuestFail.
 
 Les commandes de domaine restent implémentées par leur runtime/service
-spécialisé ; \`UGridActivationComponent\` ne devient pas une seconde
+spécialisé ; `UGridActivationComponent` ne devient pas une seconde
 implémentation métier.
 
 ## 5. Conditions
 
-Le contrat direct \`EGridObjectCondition\` reste volontairement centré sur le
+Le contrat direct `EGridObjectCondition` reste volontairement centré sur le
 contenu d'un réceptacle :
 
 - vide / non vide ;
@@ -100,26 +100,26 @@ appartiennent au système Logic/Lua plutôt qu'à une explosion de cette enum.
 
 ## 6. Logic
 
-\`\`\`text
+```text
 Event
     -> LogicExecute
         -> GridLogicRuntime
         -> nouvel Event
         -> dispatcher
-\`\`\`
+```
 
 Logic fournit les primitives génériques (Relay, Set/Toggle, Add/Subtract,
 Compare, Latch, Reset...) et revient toujours dans le même bus.
 
 ## 7. Lua
 
-\`\`\`text
+```text
 Event
     -> LuaCallback
         -> FGridLuaVm
         -> grid.command(...)
         -> dispatcher canonique
-\`\`\`
+```
 
 Lua n'est pas une voie parallèle de mutation.
 
@@ -127,7 +127,7 @@ Lua n'est pas une voie parallèle de mutation.
 
 MON21.3 ajoute les commandes Quest au bus existant.
 
-\`UGridActivationComponent\` délègue au \`UGridQuestSubsystem\`; l'état Quest
+`UGridActivationComponent` délègue au `UGridQuestSubsystem`; l'état Quest
 reste unique dans ce subsystem et n'est pas encore persisté.
 
 ## 9. Receptacles
@@ -141,7 +141,7 @@ Une transaction annulée ne doit pas émettre un succès.
 ## 10. Editor
 
 Le Grid Editor permet de choisir source, event, target et command. Les services
-d'authoring/validation travaillent sur le \`LevelAsset\`, jamais sur une copie
+d'authoring/validation travaillent sur le `LevelAsset`, jamais sur une copie
 Slate.
 
 Les scripts Lua et identités Quest possèdent leurs panneaux/contrats
@@ -149,8 +149,8 @@ spécialisés.
 
 ## 11. Invariants
 
-1. \`UGridLevelAsset::Links\` = autorité authored.
-2. \`UGridActivationComponent\` = dispatcher runtime unique.
+1. `UGridLevelAsset::Links` = autorité authored.
+2. `UGridActivationComponent` = dispatcher runtime unique.
 3. Un événement métier est émis une seule fois par action.
 4. Une condition invalide échoue avant la mutation.
 5. Logic/Lua/Quest réutilisent le bus existant.

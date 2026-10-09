@@ -14,7 +14,7 @@ Aucun Widget Blueprint ne doit devenir une seconde autorité gameplay.
 
 ## 2. Flux principal
 
-\`\`\`text
+```text
 L_MainMenu
     -> New Game
         -> Character Creation
@@ -31,11 +31,11 @@ L_Dungeon
     -> map
     -> spellbook / journal / recipes / codex
     -> combat
-\`\`\`
+```
 
 ## 3. Surfaces viewport courantes
 
-\`\`\`text
+```text
 Viewport
 ├── WBP_CharacterSheet
 ├── WBP_InventoryBag
@@ -43,17 +43,17 @@ Viewport
 ├── WBP_GridMap
 ├── WBP_GridCombatHud
 └── WBP_GridPersistentHud
-\`\`\`
+```
 
 ### Character Sheet / Inventory
 
-\`WBP_CharacterSheet\` et \`WBP_InventoryBag\` sont indépendants mais lisent le
-même \`UGridPartyInventoryComponent\` et le même
-\`SelectedCharacterIndex\`.
+`WBP_CharacterSheet` et `WBP_InventoryBag` sont indépendants mais lisent le
+même `UGridPartyInventoryComponent` et le même
+`SelectedCharacterIndex`.
 
 ### Skills / Talents
 
-\`WBP_GridSkills\` est autonome et contient COMPÉTENCES / TALENTS.
+`WBP_GridSkills` est autonome et contient COMPÉTENCES / TALENTS.
 
 Le C++ fournit :
 
@@ -65,25 +65,25 @@ Le C++ fournit :
 
 ### Map
 
-\`WBP_GridMap\` est une fenêtre autonome. Elle n'appartient plus au shell
-\`WBP_GrimrockMenu\`.
+`WBP_GridMap` est une fenêtre autonome. Elle n'appartient plus au shell
+`WBP_GrimrockMenu`.
 
 ### Shell restant
 
-\`WBP_GrimrockMenu\`, parent \`UGrimrockMenuWidget\`, conserve temporairement :
+`WBP_GrimrockMenu`, parent `UGrimrockMenuWidget`, conserve temporairement :
 
-\`\`\`text
+```text
 Journal
 Recipes
 Codex
 Spellbook
-\`\`\`
+```
 
 Inventory, Skills et Map n'y sont plus des pages actives.
 
 ## 4. Persistent HUD
 
-\`UGridPersistentHudWidget\` / \`WBP_GridPersistentHud\` possède :
+`UGridPersistentHudWidget` / `WBP_GridPersistentHud` possède :
 
 - navigation globale ;
 - sélection visuelle du bouton actif ;
@@ -91,20 +91,20 @@ Inventory, Skills et Map n'y sont plus des pages actives.
 - toast de progression.
 
 La barre d'actions utilise les bindings persistés dans
-\`FGridCharacterInventoryState::CombatHotbarSlots\` et possède au minimum
+`FGridCharacterInventoryState::CombatHotbarSlots` et possède au minimum
 **12 slots**.
 
 Navigation actuelle :
 
-\`\`\`text
+```text
 ESC  I  K  G  M  J  H
-\`\`\`
+```
 
 Les touches et boutons passent par les mêmes routes C++.
 
 ## 5. Combat HUD
 
-\`UGridCombatHudWidget\` / \`WBP_GridCombatHud\` est **combat-only** :
+`UGridCombatHudWidget` / `WBP_GridCombatHud` est **combat-only** :
 
 - panneaux des membres ;
 - initiative ;
@@ -117,13 +117,13 @@ Il ne possède plus la navigation globale ni la barre d'actions persistante.
 
 UI-COMBAT-UNIFY02 est le contrat C++/UMG actuel :
 
-\`\`\`text
+```text
 Panel_CombatHud (Overlay root)
     -> HorizontalBox_CombatBottomBar
         -> Panel_PartyMembers
         -> Spacer Fill
         -> Panel_CombatBottomRight
-\`\`\`
+```
 
 Le runtime ne translate plus ces surfaces. Le padding Bottom est authored une
 seule fois dans UMG. La validation UMG/PIE finale de cette hiérarchie reste
@@ -133,12 +133,12 @@ explicitement à fournir.
 
 Le Level Up est non modal :
 
-\`\`\`text
+```text
 FRPGLevelUpService
     -> URPGLevelUpNotificationSubsystem
     -> WBP_GridPersistentHud
         -> WBP_RPGNotification
-\`\`\`
+```
 
 Aucun état d'acknowledgement n'est persisté.
 
@@ -146,11 +146,11 @@ Aucun état d'acknowledgement n'est persisté.
 
 Quest runtime existe :
 
-\`\`\`text
+```text
 UGridQuestDefinitionAsset
 UGridQuestSubsystem
 FGridCampaignQuestRuntimeState
-\`\`\`
+```
 
 Mais Quest n'est pas encore persisté.
 
@@ -171,19 +171,19 @@ Map est **implémentée et close**, pas un shell :
 - symboles ;
 - changement d'étage ;
 - zoom/pan/recenter ;
-- rendu texturé via \`UGridMapVisualThemeAsset\`.
+- rendu texturé via `UGridMapVisualThemeAsset`.
 
 ## 9. Spellbook
 
-Le Spellbook lit \`KnownSpellIds\` du personnage courant. Il ne possède pas de
+Le Spellbook lit `KnownSpellIds` du personnage courant. Il ne possède pas de
 snapshot durable parallèle.
 
 ## 10. Règles
 
-1. \`SelectedCharacterIndex\` unique.
+1. `SelectedCharacterIndex` unique.
 2. Persistent HUD = chrome global.
 3. Combat HUD = combat seulement.
 4. Fenêtres autonomes pour CharacterSheet, InventoryBag, Skills et Map.
 5. UMG ne calcule pas les règles métier.
 6. Une modification de WBP exige validation UE/PIE.
-7. Aucun ancien \`WBP_GridInventory\` ou Level-Up modal ne doit être réintroduit.
+7. Aucun ancien `WBP_GridInventory` ou Level-Up modal ne doit être réintroduit.

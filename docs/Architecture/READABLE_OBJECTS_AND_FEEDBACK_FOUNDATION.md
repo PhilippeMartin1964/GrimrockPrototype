@@ -2,56 +2,56 @@
 
 > **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
 >
-> Les anciens noms \`FGridLevelObjectData::OverrideReadableText\` /
-> \`UGridLevelAsset::Objects\` ne sont plus le schéma courant.
+> Les anciens noms `FGridLevelObjectData::OverrideReadableText` /
+> `UGridLevelAsset::Objects` ne sont plus le schéma courant.
 
 ## 1. World Object readable
 
-Une \`UGridWorldObjectDefinitionAsset\` peut activer :
+Une `UGridWorldObjectDefinitionAsset` peut activer :
 
-\`\`\`text
+```text
 bIsReadable
 ReadableText
 bShowReadableOnlyOnce
-\`\`\`
+```
 
-Un placement \`FGridWorldObjectInstance\` peut fournir :
+Un placement `FGridWorldObjectInstance` peut fournir :
 
-\`\`\`text
+```text
 ReadableTextOverride
-\`\`\`
+```
 
 Un override vide signifie que le texte de la définition reste applicable.
 
-\`Notes\` est de l'authoring et ne devient jamais automatiquement du texte
-joueur. \`LogicId\` est une identité/alias et n'est pas un libellé.
+`Notes` est de l'authoring et ne devient jamais automatiquement du texte
+joueur. `LogicId` est une identité/alias et n'est pas un libellé.
 
 ## 2. Loose Items lisibles
 
-\`FGridLooseItemInstance\` peut utiliser les données lisibles dédiées :
+`FGridLooseItemInstance` peut utiliser les données lisibles dédiées :
 
-\`\`\`text
+```text
 ReadableContentAsset
 ReadableContentId
 ReadTitleOverride
 ReadTextOverride
-\`\`\`
+```
 
 Le contenu joueur doit venir de ces autorités explicites, pas de Notes/IDs.
 
 ## 3. Runtime
 
-\`AGridGenericObjectActor\` porte le comportement générique d'un World Object
+`AGridGenericObjectActor` porte le comportement générique d'un World Object
 readable lorsque la définition l'autorise.
 
-\`CanInteract()\` refuse une lecture sans texte effectif ou déjà consommée
-lorsque \`bShowReadableOnlyOnce\` s'applique.
+`CanInteract()` refuse une lecture sans texte effectif ou déjà consommée
+lorsque `bShowReadableOnlyOnce` s'applique.
 
 Les règles de côté/portée restent celles de l'interaction monde.
 
 ## 4. Message lisible
 
-\`UReadableMessageWidget\` est une surface de présentation. Le runtime choisit
+`UReadableMessageWidget` est une surface de présentation. Le runtime choisit
 le texte puis ouvre/ferme le widget.
 
 Le message lisible actif possède une priorité spéciale dans le routage souris :
@@ -71,7 +71,7 @@ long :
 ## 6. Curseur
 
 Le curseur annonce l'affordance résolue par le controller/acteur.
-\`SetGridInteractionCursor()\` centralise le feedback curseur custom.
+`SetGridInteractionCursor()` centralise le feedback curseur custom.
 
 Le curseur ne garantit pas qu'une mutation réussira si l'état change entre
 hover et clic ; la validation métier est répétée lors de l'action.

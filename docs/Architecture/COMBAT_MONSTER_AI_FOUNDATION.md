@@ -7,7 +7,7 @@
 
 ## 1. Autorité combat
 
-\`UGridTurnManagerComponent\` orchestre le combat déterministe sur grille.
+`UGridTurnManagerComponent` orchestre le combat déterministe sur grille.
 
 Il porte notamment :
 
@@ -46,13 +46,13 @@ constantes dispersées dans UMG.
 
 Le catalogue unifie les sources :
 
-\`\`\`text
+```text
 Universal
 Equipment / MainHand / OffHand / Unarmed
 Class / Talent
 Quick Item
 Spell
-\`\`\`
+```
 
 Les bindings de la barre d'actions ne sérialisent pas une copie de
 l'action disponible ; ils conservent une identité résolue contre le catalogue
@@ -61,14 +61,14 @@ courant.
 ## 4. Targeting et résolution
 
 Le ciblage repose sur cellules, arêtes, portée, LOS et blocages de grille.
-\`GridCombatResolver\` applique les résultats gameplay.
+`GridCombatResolver` applique les résultats gameplay.
 
 La présentation (HUD, animation, audio, VFX, projectile) observe la résolution ;
 elle ne la décide pas.
 
 ## 5. Combat HUD
 
-\`UGridCombatHudWidget\` est combat-only :
+`UGridCombatHudWidget` est combat-only :
 
 - 4 panneaux de membres ;
 - initiative ;
@@ -77,14 +77,14 @@ elle ne la décide pas.
 - raison de refus ;
 - targeting/preview.
 
-\`Panel_PartyMembers\` et \`Panel_CombatBottomRight\` appartiennent au contrat
+`Panel_PartyMembers` et `Panel_CombatBottomRight` appartiennent au contrat
 UI-COMBAT-UNIFY02. Navigation globale et action bar appartiennent au
-\`UGridPersistentHudWidget\`.
+`UGridPersistentHudWidget`.
 
 ## 6. Monster definitions
 
-\`UGridMonsterDefinitionAsset\` porte les données authored d'une famille de
-monstre. \`AGridMonsterActor\` projette l'état vivant et s'appuie sur des
+`UGridMonsterDefinitionAsset` porte les données authored d'une famille de
+monstre. `AGridMonsterActor` projette l'état vivant et s'appuie sur des
 composants spécialisés :
 
 - Movement ;
@@ -116,7 +116,7 @@ Le NavMesh ne remplace pas ces contrats.
 
 Le comportement couvre notamment :
 
-\`\`\`text
+```text
 Idle
 Alert
 Pursuing
@@ -126,17 +126,17 @@ Dead
 Patrol
 Investigation
 Alarm
-\`\`\`
+```
 
-\`UGridMonsterBehaviorComponent\` réconcilie l'état avec perception et mémoire
+`UGridMonsterBehaviorComponent` réconcilie l'état avec perception et mémoire
 de la cible. Un monstre qui entend encore le groupe mais dont le chemin est
 temporairement bloqué reste en investigation au lieu de déclencher une recherche
 oscillante.
 
 ## 9. Encounters
 
-\`MonsterSpawn\` et les groupes d'encounter gèrent spawn/despawn, vagues et
-\`StartEncounter\`.
+`MonsterSpawn` et les groupes d'encounter gèrent spawn/despawn, vagues et
+`StartEncounter`.
 
 L'intention d'engagement passe par le pipeline d'engagement automatique et le
 TurnManager, sans seconde autorité de combat.
@@ -155,7 +155,7 @@ Save courant : **v24 exact-match**.
 
 Le bus peut recevoir des événements monstre et des commandes encounter. Les
 commandes Quest de MON21.3 réutilisent le même dispatcher et délèguent au
-\`UGridQuestSubsystem\`.
+`UGridQuestSubsystem`.
 
 Aucun second bus n'est créé.
 

@@ -78,11 +78,21 @@ Les anciennes collections monolithiques et projections de compatibilité LevelAs
 
 ## 6. Noms Unreal et chemins historiques
 
-Le renommage historique `UGridObjectArchetypeAsset` → `UGridWorldObjectDefinitionAsset` est achevé. Les Core Redirects de `Config/DefaultEngine.ini` restent temporaires mais nécessaires pendant la période où des Blueprints/assets externes éventuels peuvent encore contenir l'ancien nom. Ils sont détaillés dans le [rapport de clôture](WORLDOBJ_MIG10_FINAL.md).
+Le renommage historique `UGridObjectArchetypeAsset` → `UGridWorldObjectDefinitionAsset` est achevé.
 
-`GridObjectArchetypeAsset` peut subsister dans certains chemins de packages historiques, notamment `Content/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/`. Ce chemin ne représente plus une classe ni un concept architectural actif. Les assets concernés sont des `UGridWorldObjectDefinitionAsset`.
+Le `Config/DefaultEngine.ini` courant ne contient **aucun Core Redirect actif**
+pour `GridObjectArchetypeAsset`. Le runtime et l'authoring C++ utilisent
+directement `UGridWorldObjectDefinitionAsset`.
 
-Une éventuelle réorganisation Content nécessitera une tâche dédiée avec AssetTools ; MIG10-C ne déplace aucun package.
+`GridObjectArchetypeAsset` subsiste uniquement dans certains **chemins de
+packages historiques**, notamment
+`Content/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/`. Le nom
+du dossier ne représente plus une classe ni une autorité architecturale ; les
+assets concernés sont des `UGridWorldObjectDefinitionAsset`.
+
+Une éventuelle réorganisation de ces packages est un chantier Content séparé,
+à effectuer avec AssetTools/redirectors UE. Elle ne doit pas être confondue
+avec une compatibilité de classe C++ active.
 
 ## 7. Références
 

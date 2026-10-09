@@ -2,17 +2,17 @@
 
 > **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
 >
-> L'ancien stockage \`FGridLevelObjectData / UGridLevelAsset::Objects\` est
+> L'ancien stockage `FGridLevelObjectData / UGridLevelAsset::Objects` est
 > supprimé. Un réceptacle authored est aujourd'hui un
-> \`FGridWorldObjectInstance\` résolu contre une
-> \`UGridWorldObjectDefinitionAsset\`.
+> `FGridWorldObjectInstance` résolu contre une
+> `UGridWorldObjectDefinitionAsset`.
 
 ## 1. Définition / instance
 
 La définition partage les règles par défaut dans
-\`FGridObjectBehaviorParams::Receptacle\` :
+`FGridObjectBehaviorParams::Receptacle` :
 
-\`\`\`text
+```text
 bAcceptAnyItem
 AcceptedItems[]
 InitialContent[]
@@ -21,28 +21,28 @@ VisualPlacementMode
 bSimulatePhysicsWhenPlaced
 PhysicalPlacementSurfaceOffset
 PhysicalPlacementInitialRotationOffset
-\`\`\`
+```
 
-Le placement \`FGridWorldObjectInstance\` porte :
+Le placement `FGridWorldObjectInstance` porte :
 
-- \`InstanceId\` ;
-- \`WorldObjectDefinitionId\` ;
+- `InstanceId` ;
+- `WorldObjectDefinitionId` ;
 - cellule/surface/facing ;
-- \`InstanceConfig.ReceptacleInitialContent\` ;
-- éventuels \`InteractionOverrides\` sparse.
+- `InstanceConfig.ReceptacleInitialContent` ;
+- éventuels `InteractionOverrides` sparse.
 
 Les overrides ne copient pas tout le comportement : ils ne remplacent que les
 familles explicitement authorées comme exception.
 
 ## 2. Runtime
 
-\`AGridReceptacleActor\` porte la collection logique
-\`ContainedItems\` de \`FGridContainedReceptacleItem\`.
+`AGridReceptacleActor` porte la collection logique
+`ContainedItems` de `FGridContainedReceptacleItem`.
 
 Chaque entrée utilise :
 
-- \`RuntimeObjectId\` ;
-- \`ItemDefinitionId\` ;
+- `RuntimeObjectId` ;
+- `ItemDefinitionId` ;
 - définition résolue/cache si disponible ;
 - quantité ;
 - Actor visuel optionnel.
@@ -53,10 +53,10 @@ La présence d'un Actor n'est jamais l'autorité de possession.
 
 Le runtime distingue :
 
-\`\`\`text
+```text
 bCanRemoveItem
 bCanInsertItems
-\`\`\`
+```
 
 Ces permissions peuvent être modifiées par commande sans changer la définition
 authored.
@@ -67,19 +67,19 @@ La validation d'insertion utilise la définition résolue et les éventuels
 overrides d'instance :
 
 - capacité ;
-- accept-any ou liste \`AcceptedItems\` ;
+- accept-any ou liste `AcceptedItems` ;
 - identité/type/tag selon règles de domaine pertinentes.
 
 Une insertion refusée ne vide jamais la source.
 
 ## 5. Placement visuel
 
-\`EGridReceptacleVisualPlacementMode\` :
+`EGridReceptacleVisualPlacementMode` :
 
-\`\`\`text
+```text
 AttachedSocket
 PhysicalAtHit
-\`\`\`
+```
 
 La représentation visuelle reste séparée de l'entrée logique contenue.
 
@@ -93,12 +93,12 @@ transactionnels d'item.
 
 Principe :
 
-\`\`\`text
+```text
 prévalider
     -> muter source/cible
     -> rollback si nécessaire
     -> publier les événements après succès
-\`\`\`
+```
 
 ## 7. Événements et commandes
 
@@ -133,14 +133,14 @@ déterminent l'action.
 
 ## 9. Persistance
 
-\`FGridRuntimeReceptacleState\` sauvegarde :
+`FGridRuntimeReceptacleState` sauvegarde :
 
-\`\`\`text
+```text
 ObjectId
 bCanRemoveItem
 bCanInsertItems
 ContainedItems[]
-\`\`\`
+```
 
 Le restore recrée la représentation depuis le contenu logique et les
 définitions courantes.
@@ -155,7 +155,7 @@ contenu vivant.
 
 1. Definition = règles partagées.
 2. Instance = différences authored locales.
-3. \`ContainedItems\` = contenu runtime logique.
+3. `ContainedItems` = contenu runtime logique.
 4. Actor Item = présentation optionnelle.
 5. Transfert atomique.
 6. Événements de succès après commit.

@@ -8,10 +8,10 @@
 
 ## 1. Autorité du groupe
 
-\`UGridPartyInventoryComponent::PartyInventoryState\` reste l'unique autorité
+`UGridPartyInventoryComponent::PartyInventoryState` reste l'unique autorité
 du groupe :
 
-\`\`\`text
+```text
 FGridPartyInventoryState
     SelectedCharacterIndex
     MaxActiveCharacters = 6
@@ -20,15 +20,15 @@ FGridPartyInventoryState
     ActiveEquipment[]
     CharacterPool[]
     CursorItem
-\`\`\`
+```
 
 Il n'existe pas de second registre des membres actifs ou de la réserve.
 
 ## 2. État personnage
 
-\`FGridCharacterInventoryState\` sépare désormais clairement durable et dérivé.
+`FGridCharacterInventoryState` sépare désormais clairement durable et dérivé.
 
-\`\`\`text
+```text
 Durable
     CharacterId / identity
     ClassId
@@ -53,9 +53,9 @@ Transient / reconstruit
     DerivedStats
     Portrait
     ClassIcon
-\`\`\`
+```
 
-\`Level\` dérive de \`Experience\`. Les statistiques dérivées ne sont pas une
+`Level` dérive de `Experience`. Les statistiques dérivées ne sont pas une
 autorité Save.
 
 ## 3. Création et recrutement
@@ -65,39 +65,39 @@ Le recrutement réutilise le même modèle de personnage.
 
 Services :
 
-- \`FRPGPartyRecruitmentService\` : transfert pool → groupe ;
-- \`FRPGStoryCompanionService\` : compagnons authored ;
-- \`FRPGCustomRecruitService\` : recrutement personnalisé ;
-- \`URPGStoryCompanionAsset\` : définition d'un compagnon.
+- `FRPGPartyRecruitmentService` : transfert pool → groupe ;
+- `FRPGStoryCompanionService` : compagnons authored ;
+- `FRPGCustomRecruitService` : recrutement personnalisé ;
+- `URPGStoryCompanionAsset` : définition d'un compagnon.
 
 Les transactions doivent préserver CharacterId, inventaire, équipement,
 ownership et capacité du groupe.
 
 ## 4. XP et niveau
 
-\`\`\`text
+```text
 Experience durable
     -> FRPGLevelUpService
     -> Level transient
     -> derived stats / progression / UI refresh
-\`\`\`
+```
 
 Le Level-Up ne crée plus de popup modale persistante.
 
-\`URPGLevelUpNotificationSubsystem\` possède uniquement une file transitoire de
-toasts. \`LastAcknowledgedLevel\` et \`URPGLevelUpWidget\` ont été supprimés.
+`URPGLevelUpNotificationSubsystem` possède uniquement une file transitoire de
+toasts. `LastAcknowledgedLevel` et `URPGLevelUpWidget` ont été supprimés.
 
 ## 5. Talents
 
 Autorité :
 
-\`\`\`text
+```text
 URPGClassAsset::ProgressionChoices
     -> FRPGClassProgressionService
     -> FRPGClassProgressionTransactionService
     -> FGridSkillsPageService
     -> FGridTalentTreeView
-\`\`\`
+```
 
 Production courante :
 
@@ -110,22 +110,22 @@ Production courante :
 Les Talent Points sont dérivés des grants de classe et des choix acquis. Aucun
 compteur parallèle n'est persisté.
 
-Les anciennes façades \`FRPGTalentRuntimeService\` et la projection plate
-\`FGridTalentEntryView\` ont été supprimées.
+Les anciennes façades `FRPGTalentRuntimeService` et la projection plate
+`FGridTalentEntryView` ont été supprimées.
 
 ## 6. Skills
 
-\`FGridCharacterInventoryState::SkillRanks\` est l'autorité durable sparse.
+`FGridCharacterInventoryState::SkillRanks` est l'autorité durable sparse.
 
-\`\`\`text
+```text
 SkillRanks
     -> FRPGSkillService
     -> FRPGSkillPointService
     -> FGridSkillsPageService
-\`\`\`
+```
 
-\`FRPGSkillService\` fournit les primitives métier de rang.
-\`FRPGSkillPointService\` est l'économie joueur : achat, balance, caps et Safe
+`FRPGSkillService` fournit les primitives métier de rang.
+`FRPGSkillPointService` est l'économie joueur : achat, balance, caps et Safe
 Undo de session.
 
 Règles actuelles :
@@ -138,37 +138,37 @@ Règles actuelles :
 
 ## 7. Attributes
 
-\`Character.Attributes\` reste l'autorité durable.
+`Character.Attributes` reste l'autorité durable.
 
-\`FRPGAttributePointService\` dérive :
+`FRPGAttributePointService` dérive :
 
-\`\`\`text
+```text
 Granted   = floor(Level / 4)
 Starting  = Class.BaseAttributes + Race.AttributeBonuses
 Spent     = Character.Attributes - Starting
 Remaining = Granted - Spent
-\`\`\`
+```
 
 Aucun compteur Attribute Point n'est persisté. Le Safe Undo est limité à la
 session courante du Character Sheet.
 
 ## 8. Requirements
 
-\`FRPGClassProgressionService::CollectSatisfiedRequirements(...)\` reconstruit
+`FRPGClassProgressionService::CollectSatisfiedRequirements(...)` reconstruit
 le set générique depuis :
 
 - ClassId ;
 - grants automatiques de niveau ;
-- \`SelectedClassProgressionChoiceIds\`.
+- `SelectedClassProgressionChoiceIds`.
 
-Le helper historique \`CollectAutomaticSatisfiedRequirements()\` n'existe plus.
+Le helper historique `CollectAutomaticSatisfiedRequirements()` n'existe plus.
 
 ## 9. UI
 
-\`UGridPartyInventoryComponent::SelectedCharacterIndex\` reste l'autorité unique
+`UGridPartyInventoryComponent::SelectedCharacterIndex` reste l'autorité unique
 de sélection pour Character Sheet, Inventory, Skills/Talents et Spellbook.
 
-\`WBP_GridSkills\` est une surface autonome Skills + Talents. UMG ne recalcule
+`WBP_GridSkills` est une surface autonome Skills + Talents. UMG ne recalcule
 ni coût, ni prérequis, ni balance de points.
 
 ## 10. Save

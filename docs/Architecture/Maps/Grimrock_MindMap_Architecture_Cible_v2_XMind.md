@@ -2,8 +2,8 @@
 
 > Arbre Markdown lisible dans Git et importable/reprenable dans XMind.
 >
-> Baseline C++ auditée : \`6f98a0ef\`. Dernière globale + Shipping :
-> \`9045ef2d\` — 1026/1026, 0 warning/échec, Shipping validé.
+> Baseline C++ auditée : `6f98a0ef`. Dernière globale + Shipping :
+> `9045ef2d` — 1026/1026, 0 warning/échec, Shipping validé.
 
 - **GrimrockPrototype**
   - **Principes**
@@ -395,14 +395,73 @@
       - OPEN
   - **Map**
     - **VALIDATED / CLOSED**
-    - FGridLevelRuntimeState::MapExploration
-      - ExploredCells
-      - DiscoveredSecretObjectIds
-    - FGridMapReadModelBuilder
-    - FGridMapFloorView
-    - UGridMapWidget
-    - UGridMapSurfaceWidget
-    - UGridMapVisualThemeAsset
+    - authoring / topology
+      - UGridDungeonAsset
+        - FGridDungeonLevelEntry
+        - LogicalPosition XYZ
+      - UGridLevelAsset
+        - Cells / walls
+        - WorldObjectInstances
+        - MapSymbolStyle on definitions
+    - runtime exploration
+      - FGridLevelRuntimeState::MapExploration
+        - ExploredCells
+          - lazy 32×32 / 1024
+          - SaveGame
+        - DiscoveredSecretObjectIds
+          - SaveGame
+      - FGridMapRevealService
+        - RevealRadiusCells = 1.25
+        - current + visible cardinal neighbours
+        - structural wall blocks
+        - blocked door blocks
+        - occupancy/pathfinding not visibility authority
+    - secret discovery
+      - initially-open secret -> discovered
+      - fully-open animation -> discovered
+      - undiscovered secret -> Wall in read model
+      - unresolved Door metadata -> Wall
+    - read model
+      - FGridMapReadModelBuilder
+        - BuildTileView
+          - explored non-empty cells only
+          - live door state
+          - persisted door fallback
+          - authored initial fallback
+          - filtered symbols
+        - BuildFloorView
+          - all enabled tiles on same Z
+          - GlobalXY = LogicalXY * 32 + LocalXY
+          - seam boundary deduplication
+          - contradictory seam -> fail closed
+      - FGridMapTileView
+      - FGridMapFloorView
+        - transient
+        - party marker only on active floor
+    - presentation
+      - UGridMapWidget
+        - RefreshMap
+        - SelectPartyFloor
+        - NavigateFloorUp/Down
+        - zoom / pan / recenter
+      - UGridMapSurfaceWidget
+        - NativePaint only
+        - no gameplay/map authority
+      - UGridMapVisualThemeAsset
+        - presentation-only
+        - parchment / floor / walls / doors
+        - symbols / party marker
+        - layout ratios
+      - orientation
+        - canonical North = Y+
+        - canonical East = X+
+        - screen North = up
+        - screen East = left
+        - X mirror is presentation-only
+    - persistence
+      - MapExploration -> FGridDungeonRuntimeState -> Save v24
+      - TileView / FloorView not saved
+      - selected floor / zoom / pan not saved
     - features
       - secret filtering
       - multi-tile
@@ -411,6 +470,7 @@
       - floor navigation
       - zoom/pan/recenter
       - textured parchment rendering
+
   - **Save**
     - UGrimrockPartySaveGame
       - CurrentSaveVersion = **24**

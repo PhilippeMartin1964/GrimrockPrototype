@@ -3,29 +3,29 @@
 > **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
 >
 > Cette fondation reflète les stabilisations MI1–MI6 et le routage réellement
-> présent dans \`AGrimrockPlayerController\`.
+> présent dans `AGrimrockPlayerController`.
 
 ## 1. Principe
 
-\`\`\`text
+```text
 PlayerController
     -> détecte / arbitre l'intention
 
 Actor / service de domaine
     -> décide et exécute la règle métier
-\`\`\`
+```
 
 Le contrôleur ne code pas « bouton ouvre porte » ou « torche entre dans
 réceptacle ». Il orchestre des interfaces et services existants.
 
 ## 2. Résolution centrale du clic
 
-\`ResolveLeftMouseInteraction()\` construit une intention unique pour le clic
+`ResolveLeftMouseInteraction()` construit une intention unique pour le clic
 courant.
 
 Intentions actuelles couvrant notamment :
 
-\`\`\`text
+```text
 DismissReadableMessage
 IgnoreInventoryUiWithoutCursorItem
 IgnoreModalUi
@@ -40,7 +40,7 @@ WorldInteractableOutOfRange
 WorldInteractableInvalidPawnOrComponent
 WorldInteractableCanInteractRejected
 FallbackNoInteractable
-\`\`\`
+```
 
 Une résolution ne mute pas le gameplay ; le handler exécute ensuite le chemin
 correspondant.
@@ -62,7 +62,7 @@ une mauvaise clé sur WallLock ne devient pas un dépôt au sol.
 
 ## 4. Hover avec item au curseur
 
-\`ResolveCursorItemHoverCursor()\` ne fait qu'évaluer l'affordance :
+`ResolveCursorItemHoverCursor()` ne fait qu'évaluer l'affordance :
 
 - wall lock compatible/incompatible ;
 - receptacle compatible/incompatible ;
@@ -72,20 +72,20 @@ une mauvaise clé sur WallLock ne devient pas un dépôt au sol.
 
 Aucune mutation n'est autorisée pendant le hover.
 
-\`SetGridInteractionCursor()\` est le point central de sortie vers le curseur
+`SetGridInteractionCursor()` est le point central de sortie vers le curseur
 custom.
 
 ## 5. Interaction monde
 
-Les acteurs interactifs implémentent \`IGridInteractableInterface\` :
+Les acteurs interactifs implémentent `IGridInteractableInterface` :
 
-\`\`\`text
+```text
 CanInteract(...)
 Interact(...)
 InteractWithHit(...)
 GetInteractionCursor(...)
 GetInteractionText(...)
-\`\`\`
+```
 
 Le composant touché peut faire partie du contrat : bouton/levier, item,
 réceptacle, chaîne de porte, readable, etc.
@@ -116,7 +116,7 @@ Ownership reste atomique : un échec laisse l'item à sa source.
 
 L'exploration normale utilise le curseur comme feedback principal. Un clic qui
 ne produit aucune mutation peut rester silencieux ; les raisons diagnostiques
-restent dans \`LogGridMouse\`/logs appropriés.
+restent dans `LogGridMouse`/logs appropriés.
 
 Les modes explicites de combat/throw targeting gardent leurs feedbacks propres.
 
@@ -134,5 +134,5 @@ Mouvement/rotation peuvent aussi fermer le message selon le contrat du Pawn.
 3. UI modale prime sur monde.
 4. Refus métier ne déclenche pas un fallback dangereux.
 5. Ownership/transferts restent atomiques.
-6. \`IGridInteractableInterface\` reste local à l'acteur touché.
+6. `IGridInteractableInterface` reste local à l'acteur touché.
 7. Le controller orchestre, il ne devient pas l'autorité de lock/receptacle/item.

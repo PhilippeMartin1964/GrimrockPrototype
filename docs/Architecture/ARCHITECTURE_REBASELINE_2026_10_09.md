@@ -14,7 +14,10 @@ docs/Architecture              62 fichiers Markdown
 docs/Architecture/Maps          3 fichiers Markdown
 docs/Design                   522 fichiers Markdown
 Markdown repository total     620
-Source files                  872
+Source files (.h/.cpp/.cs)    850
+Runtime test files (.cpp)     275
+Editor test files (.cpp)       69
+Lua test files (.cpp)           4
 ```
 
 Les 62 documents Architecture existants ont tous été classés et mis à jour :
@@ -224,3 +227,25 @@ Ordre recommandé :
 8. snapshots historiques.
 
 **DOC-ARCH01 : rebaseline Architecture terminée.**
+
+
+## 10. Seconde passe de cohérence
+
+Une seconde lecture après publication de DOC-ARCH01 a corrigé trois défauts
+strictement documentaires :
+
+- les compteurs Source/tests du snapshot ont été recalculés depuis l'arbre Git ;
+- les backticks Markdown échappés accidentellement dans plusieurs fondations et
+  cartes ont été restaurés afin que les blocs/code inline se rendent
+  correctement ;
+- la documentation World Object ne prétend plus qu'un Core Redirect
+  `GridObjectArchetypeAsset` est actif dans `DefaultEngine.ini` : aucun n'est
+  présent dans la configuration courante.
+
+La seconde passe a également approfondi les trois documents
+`docs/Architecture/Maps` à partir des classes réelles
+`FGridMapRevealService`, `FGridMapReadModelBuilder`,
+`UGridMapWidget`, `UGridMapSurfaceWidget` et
+`UGridMapVisualThemeAsset`.
+
+Ces corrections restent **documentation-only**.

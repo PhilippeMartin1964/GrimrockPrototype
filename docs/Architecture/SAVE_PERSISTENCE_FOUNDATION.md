@@ -2,7 +2,7 @@
 
 > **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
 >
-> \`UGrimrockPartySaveGame::CurrentSaveVersion = 24\`. Le prototype utilise un
+> `UGrimrockPartySaveGame::CurrentSaveVersion = 24`. Le prototype utilise un
 > contrat **exact-match** : aucune migration arrière n'est maintenue.
 
 ## 1. Principe
@@ -11,7 +11,7 @@ Le Save contient uniquement l'état mutable nécessaire à un Continue cohérent
 Les définitions permanentes restent dans les DataAssets et les projections
 reconstructibles ne deviennent pas des autorités persistantes.
 
-\`\`\`text
+```text
 Authoring DataAssets
     -> état initial
 
@@ -20,13 +20,13 @@ Runtime state
 
 SaveGame
     -> snapshot durable minimal du runtime
-\`\`\`
+```
 
 ## 2. Enveloppe courante
 
-\`UGrimrockPartySaveGame\` contient :
+`UGrimrockPartySaveGame` contient :
 
-\`\`\`text
+```text
 SaveVersion
 PartyInventoryState
 DungeonRuntimeState
@@ -34,28 +34,28 @@ CurrentDungeonLevelId
 PartyCellX
 PartyCellY
 PartyFacing
-\`\`\`
+```
 
 Contrat :
 
-\`\`\`text
+```text
 SaveVersion == 24
     -> ValidateCurrentState()
     -> restore
 
 SaveVersion != 24
     -> reject
-\`\`\`
+```
 
-Il n'existe plus de \`MinimumCompatibleSaveVersion\`, de pipeline général de
+Il n'existe plus de `MinimumCompatibleSaveVersion`, de pipeline général de
 migration historique ou de réécriture silencieuse du numéro de version.
 
 ## 3. État personnage
 
 L'état personnage durable voyage directement dans
-\`FGridPartyInventoryState::ActiveCharacters\` et \`CharacterPool\`.
+`FGridPartyInventoryState::ActiveCharacters` et `CharacterPool`.
 
-\`\`\`text
+```text
 Durable
     CharacterId / identity
     ClassId
@@ -81,19 +81,19 @@ Transient / reconstruit
     Portrait
     ClassIcon
     read models UI / combat
-\`\`\`
+```
 
 Les snapshots parallèles historiques
-\`ClassProgressionStates\`, \`CharacterSkillStates\`,
-\`CharacterSpellbookStates\`, \`CharacterStatusEffectStates\` et
-\`PendingLevelUpNotifications\` n'existent plus.
+`ClassProgressionStates`, `CharacterSkillStates`,
+`CharacterSpellbookStates`, `CharacterStatusEffectStates` et
+`PendingLevelUpNotifications` n'existent plus.
 
-\`LastAcknowledgedLevel\` a également été supprimé : le feedback Level-Up est
+`LastAcknowledgedLevel` a également été supprimé : le feedback Level-Up est
 désormais entièrement transitoire.
 
 ## 4. Dungeon runtime state
 
-\`FGridDungeonRuntimeState\` et ses \`FGridLevelRuntimeState\` portent les
+`FGridDungeonRuntimeState` et ses `FGridLevelRuntimeState` portent les
 deltas vivants du donjon, notamment selon le niveau :
 
 - portes et objets interactifs ;
@@ -110,14 +110,14 @@ comme seconde autorité.
 
 ## 5. Receptacles
 
-\`FGridRuntimeReceptacleState\` persiste actuellement :
+`FGridRuntimeReceptacleState` persiste actuellement :
 
-\`\`\`text
+```text
 ObjectId
 bCanRemoveItem
 bCanInsertItems
 ContainedItems[]
-\`\`\`
+```
 
 Les items contenus conservent leurs identités runtime et définition ; la
 représentation Actor est reconstruite.
@@ -134,38 +134,38 @@ capturé atomiquement. Le checkpoint pré-combat reste la politique de secours.
 ## 7. Map
 
 MON21.6 persiste l'exploration dans
-\`FGridLevelRuntimeState::MapExploration\` :
+`FGridLevelRuntimeState::MapExploration` :
 
-\`\`\`text
+```text
 ExploredCells
 DiscoveredSecretObjectIds
-\`\`\`
+```
 
 Il n'existe pas de snapshot Map parallèle. Le read model cartographique est
 reconstruit à la demande.
 
 ## 8. Quest — frontière encore ouverte
 
-\`UGridQuestSubsystem\` possède actuellement un
-\`FGridCampaignQuestRuntimeState\` **transient**.
+`UGridQuestSubsystem` possède actuellement un
+`FGridCampaignQuestRuntimeState` **transient**.
 
 Le Save v24 ne contient encore aucun snapshot Quest.
 
 Donc :
 
-\`\`\`text
+```text
 MON21.2 Quest runtime       VALIDÉ
 MON21.3 Event -> Command    VALIDÉ
 MON21.4 Quest Persistence   EN ATTENTE
-\`\`\`
+```
 
-La future persistance Quest devra rester identifiée par \`QuestId\` /
-\`ObjectiveId\`, validée contre les définitions courantes et intégrée sans
+La future persistance Quest devra rester identifiée par `QuestId` /
+`ObjectiveId`, validée contre les définitions courantes et intégrée sans
 dupliquer le runtime state.
 
 ## 9. Validation au chargement
 
-\`UGrimrockPartySaveGame::ValidateCurrentState()\` est la frontière de
+`UGrimrockPartySaveGame::ValidateCurrentState()` est la frontière de
 validation du snapshot courant. Elle doit échouer sans mutation si l'état est
 incompatible avec le schéma ou les définitions canoniques.
 
@@ -179,9 +179,9 @@ Ils ne sont pas répétés ici comme contrat actif.
 
 La seule version courante est :
 
-\`\`\`text
+```text
 v24 exact-match
-\`\`\`
+```
 
 ## 11. Invariants
 

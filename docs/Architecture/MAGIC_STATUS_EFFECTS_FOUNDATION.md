@@ -4,13 +4,13 @@
 >
 > Les snapshots Spellbook/Status séparés par CharacterId décrits dans
 > d'anciens jalons ont été supprimés pendant TD07.3. L'état durable vit
-> directement dans \`FGridCharacterInventoryState\`.
+> directement dans `FGridCharacterInventoryState`.
 
 ## 1. Spellbook
 
 MON18 fournit :
 
-\`\`\`text
+```text
 Spell Definition
     -> KnownSpellIds du personnage
     -> catalogue / hotbar
@@ -18,10 +18,10 @@ Spell Definition
     -> targeting
     -> effect resolver
     -> presentation
-\`\`\`
+```
 
-\`KnownSpellIds\` est l'autorité durable du Spellbook par personnage.
-\`UGridPartySpellbookComponent\` est une façade/runtime projection, pas un
+`KnownSpellIds` est l'autorité durable du Spellbook par personnage.
+`UGridPartySpellbookComponent` est une façade/runtime projection, pas un
 snapshot persistant parallèle.
 
 ## 2. Cast transaction
@@ -47,10 +47,10 @@ MON16 fournit :
 
 Pour un personnage :
 
-\`\`\`text
+```text
 FGridCharacterInventoryState::StatusEffects
     = autorité durable
-\`\`\`
+```
 
 Les références de définition à l'intérieur des effets sont des caches
 transients réhydratés depuis leur identité.
@@ -69,7 +69,7 @@ pour produire les sections EFFETS / UTILISATION.
 ## 5. UI
 
 Spellbook et Skills/Talents suivent le même
-\`UGridPartyInventoryComponent::SelectedCharacterIndex\`.
+`UGridPartyInventoryComponent::SelectedCharacterIndex`.
 
 La UI :
 
@@ -84,10 +84,10 @@ Save courant : **v24 exact-match**.
 
 Il n'existe plus de :
 
-\`\`\`text
+```text
 CharacterSpellbookStates
 CharacterStatusEffectStates
-\`\`\`
+```
 
 Les données vivent directement dans le personnage durable.
 

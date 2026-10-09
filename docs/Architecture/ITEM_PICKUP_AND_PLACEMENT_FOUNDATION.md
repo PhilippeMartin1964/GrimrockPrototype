@@ -2,32 +2,32 @@
 
 > **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
 >
-> Les collectibles utilisent directement \`UGridItemDefinitionAsset\`; aucun
+> Les collectibles utilisent directement `UGridItemDefinitionAsset`; aucun
 > World Object Definition miroir n'est requis.
 
 ## 1. Définitions et instances
 
-\`UGridItemDefinitionAsset\` porte les données partagées d'un item :
+`UGridItemDefinitionAsset` porte les données partagées d'un item :
 identité, présentation, poids, stack, équipement, stats, actions, lumière,
 sparkle et mesh monde.
 
-\`FGridItemInstance\` porte l'état vivant :
+`FGridItemInstance` porte l'état vivant :
 
-- \`RuntimeObjectId\` ;
-- \`ItemDefinitionId\` ;
+- `RuntimeObjectId` ;
+- `ItemDefinitionId` ;
 - quantité ;
 - ownership ;
 - état lumière ;
 - données runtime nécessaires.
 
-Un item dans le niveau authored utilise \`FGridLooseItemInstance\` avec une
-référence directe \`ItemDefinition\`.
+Un item dans le niveau authored utilise `FGridLooseItemInstance` avec une
+référence directe `ItemDefinition`.
 
 ## 2. Ownership
 
 Un item possède un seul owner logique à la fois :
 
-\`\`\`text
+```text
 World
 Receptacle
 CharacterInventory
@@ -35,21 +35,21 @@ EquipmentSlot
 Cursor
 HeldBySelectedCharacter
 Removed
-\`\`\`
+```
 
 Les Actors monde/held ne remplacent jamais cette autorité logique.
 
 ## 3. Party inventory
 
-\`UGridPartyInventoryComponent\` possède
-\`FGridPartyInventoryState\` et les états d'équipement des personnages.
+`UGridPartyInventoryComponent` possède
+`FGridPartyInventoryState` et les états d'équipement des personnages.
 
 L'implémentation est répartie entre noyau, transferts curseur, équipement,
 monde, hotbar et diagnostics tout en gardant une autorité unique.
 
 ## 4. Transfer service
 
-\`UGridItemTransferService\` centralise les transactions entre :
+`UGridItemTransferService` centralise les transactions entre :
 
 - inventory ;
 - equipment ;
@@ -60,18 +60,18 @@ monde, hotbar et diagnostics tout en gardant une autorité unique.
 
 Contrat :
 
-\`\`\`text
+```text
 validate source + target
     -> commit atomique
     -> rollback en cas d'échec
     -> notification
-\`\`\`
+```
 
 Aucune duplication/perte d'instance n'est acceptable.
 
 ## 5. Mouse interaction
 
-Avec un item au curseur, \`AGrimrockPlayerController\` résout notamment :
+Avec un item au curseur, `AGrimrockPlayerController` résout notamment :
 
 - WallLock ;
 - Receptacle ;
@@ -85,7 +85,7 @@ Un refus explicite de cible ne doit pas être transformé en dépôt involontair
 
 ## 6. World Item
 
-\`AGridItemActor\` est la représentation générique d'un pickup monde.
+`AGridItemActor` est la représentation générique d'un pickup monde.
 
 Il peut prendre en charge :
 
@@ -112,7 +112,7 @@ L'équipement reste dans l'état personnage. Le visuel tenu est reconstruit depu
 l'item équipé du personnage sélectionné.
 
 Une lumière portée peut déléguer son PointLight au
-\`UGridPartyIlluminationComponent\` tout en gardant le Niagara physique de
+`UGridPartyIlluminationComponent` tout en gardant le Niagara physique de
 l'item.
 
 ## 9. Persistence
@@ -125,9 +125,9 @@ courantes.
 
 ## 10. Invariants
 
-1. Une seule \`UGridItemDefinitionAsset\` par collectible.
+1. Une seule `UGridItemDefinitionAsset` par collectible.
 2. Un seul owner logique par instance.
-3. \`RuntimeObjectId\` stable pour l'instance.
+3. `RuntimeObjectId` stable pour l'instance.
 4. Transferts atomiques.
 5. Actor = représentation, pas ownership.
 6. Refus = aucune mutation partielle.
