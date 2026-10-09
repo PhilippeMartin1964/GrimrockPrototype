@@ -101,6 +101,26 @@ bool FRPG0391GuardianAuthoringTest::RunTest(const FString&)
 		Fortress->ArmorEffects.Num() == 1 &&
 		Fortress->ArmorEffects[0].Magnitude == EGridCombatArmorEffectMagnitude::ReferencePercent &&
 		Fortress->ArmorEffects[0].Amount == 40);
+
+	const FRPGClassProgressionChoiceDefinition* DefensiveStance =
+		Warrior->FindProgressionChoice(TEXT("Talent_Warrior_Guardian_DefensiveStance"));
+	const FRPGClassProgressionChoiceDefinition* ShieldBash =
+		Warrior->FindProgressionChoice(TEXT("Talent_Warrior_Guardian_ShieldBash"));
+	TestTrue(TEXT("Defensive Stance description uses player-facing Garde"),
+		DefensiveStance && DefensiveStance->Description.ToString().Contains(TEXT("Garde")) &&
+		!DefensiveStance->Description.ToString().Contains(TEXT("Status_")));
+	TestTrue(TEXT("Shield Bash description uses player-facing armor wording"),
+		ShieldBash && ShieldBash->Description.ToString().Contains(TEXT("armure physique est épuisée")) &&
+		ShieldBash->Description.ToString().Contains(TEXT("Étourdi")) &&
+		!ShieldBash->Description.ToString().Contains(TEXT("Status_")) &&
+		!ShieldBash->Description.ToString().Contains(TEXT("=0")));
+
+	UGridStatusEffectDefinitionAsset* Guarded = NewObject<UGridStatusEffectDefinitionAsset>(GetTransientPackage());
+	TestTrue(TEXT("Guarded status configures"), FRPGWarriorAuthoring::ConfigureStatus(*Guarded, TEXT("Status_Guarded")));
+	TestTrue(TEXT("Guarded status description uses Esquive"),
+		Guarded->Description.ToString().Contains(TEXT("Esquive +2")));
+	TestFalse(TEXT("Guarded status description no longer uses Evasion"),
+		Guarded->Description.ToString().Contains(TEXT("Evasion")));
 	return true;
 }
 

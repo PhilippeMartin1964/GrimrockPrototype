@@ -331,10 +331,10 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Guardian_DefensiveStance"), TEXT("Posture défensive"),
-		TEXT("Applique Status_Guarded pendant 2 rounds : dégâts physiques reçus -20 %, Esquive +2, dégâts d'arme infligés -10 %. Réapplication = la réapplication rafraîchit la durée."), 2, GuardianBranchId));
+		TEXT("Applique Garde pendant 2 rounds : dégâts physiques reçus -20 %, Esquive +2, dégâts d'arme infligés -10 %. Réapplication : rafraîchit la durée."), 2, GuardianBranchId));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Guardian_ShieldBash"), TEXT("Coup de bouclier"),
-		TEXT("Requiert bouclier équipé. Inflige 80 % dégâts de l'arme, Contondant. Après dégâts, si armure physique=0, applique Status_Stunned pour 1 tour (fait perdre la prochaine activation)."), 6, GuardianBranchId, TEXT("Talent_Warrior_Guardian_DefensiveStance")));
+		TEXT("Requiert un bouclier équipé. Inflige 80 % des dégâts de l'arme, de type contondant. Après les dégâts, si l'armure physique est épuisée, applique Étourdi pendant 1 tour et fait perdre la prochaine activation."), 6, GuardianBranchId, TEXT("Talent_Warrior_Guardian_DefensiveStance")));
 
 	FRPGClassProgressionChoiceDefinition Interception = MakeChoice(
 		TEXT("Talent_Warrior_Guardian_Interception"), TEXT("Interception"),
@@ -475,7 +475,7 @@ bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Sta
 	if (EffectId == TEXT("Status_Guarded"))
 	{
 		StatusAsset.DisplayName = FText::FromString(TEXT("Garde"));
-		StatusAsset.Description = FText::FromString(TEXT("Dégâts physiques reçus -20 %, Evasion +2, dégâts d'arme infligés -10 %."));
+		StatusAsset.Description = FText::FromString(TEXT("Dégâts physiques reçus -20 %, Esquive +2, dégâts d'arme infligés -10 %."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 2;
