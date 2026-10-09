@@ -162,6 +162,7 @@ bool FUIRPG044VariantTransactionTest::RunTest(const FString&)
 	}
 	ChoiceC->TalentBranchId = TEXT("Branch_C");
 	ChoiceC->TalentNodeId = ChoiceC->ChoiceId;
+	ChoiceC->MinimumLevel = 6; // Talent tree tiers are 2 / 6 / 10 / 14 / 18.
 	ChoiceC->PresentationType = ERPGTalentPresentationType::Passive;
 	ChoiceC->Description = FText::FromString(TEXT("Talent C de test pour la projection d'acquisition."));
 	Expensive->TalentBranchId = TEXT("Branch_Expensive");
