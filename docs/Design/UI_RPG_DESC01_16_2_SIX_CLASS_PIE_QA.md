@@ -2,7 +2,7 @@
 
 Date : **9 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
-État : **À VALIDER EN PIE**  
+État : **VALIDÉ / CLOS — 9 octobre 2026**  
 Précondition : **UI-RPG-DESC01.16.1 validé — 6 classes / 90 Talents / 86 simples / 4 nœuds à variantes**
 
 ## 1. Objet
@@ -204,6 +204,30 @@ DESC01.16.2 est validé si :
 
 Une anomalie purement esthétique est reportée à UI-RPG-VISUAL01 et ne rouvre pas DESC01.15/16.
 
-Après validation utilisateur :
-- DESC01.16 est clos ;
-- suite : UI-RPG-DESC01.17 — Documentation & Closure.
+Validation utilisateur reçue le **9 octobre 2026**.
+
+La revue PIE des six classes a confirmé la cohérence générale de la fiche. Deux
+écarts supplémentaires ont ensuite été corrigés dans DESC01.16.3/16.4 :
+
+- l'état initial du panneau de détail est désormais entièrement vide tant
+  qu'aucun Talent n'est consulté ;
+- le langage joueur a été normalisé en français, y compris les descriptions de
+  statuts projetées.
+
+DESC01.16.4B a ensuite supprimé l'humanisation des IDs `Recipe_*` comme source
+de texte joueur. Les 15 recettes de l'Alchimiste possèdent désormais un nom
+canonique français dans ACQUISITION.
+
+Validation finale :
+
+```text
+Grimrock.UI.RPG.DESC01.Detail.EmptyInitialState   1/1
+Grimrock.UI.RPG.DESC01.QA16                      4/4
+Grimrock.UI.RPG.DESC01                          19/19
+warnings                                            0
+échecs                                              0
+PIE six classes                                  validé
+PIE recettes                                     validé
+```
+
+**DESC01.16 est CLOS.** La suite est DESC01.17 — Documentation & Closure.

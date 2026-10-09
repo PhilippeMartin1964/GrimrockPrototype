@@ -446,12 +446,12 @@ de COMPÉTENCES. Fermer puis rouvrir la fenêtre fixe une nouvelle frontière.
 
 Validation finale RPG-SKILL01 : **8/8 Automation, 0 warning, 0 échec, PIE validé**.
 
-### UI-RPG-DESC01 — contrat sémantique courant
+### UI-RPG-DESC01 — CLOS le 9 octobre 2026
 
-Le contrat historique DESC01.4 est superseded par DESC01.5 puis par la
-normalisation croisée DESC01.12.
+Le contrat historique DESC01.4 est superseded par DESC01.5, la normalisation
+croisée DESC01.12 et l'implémentation finale DESC01.13→17.
 
-La fiche cible est unique pour les six classes :
+La fiche Talent canonique est unique pour les six classes :
 
 ```text
 NOM
@@ -464,24 +464,75 @@ EFFETS
 ACQUISITION
 ```
 
-Règles majeures :
+État de production :
 
-- le focus de consultation n'est jamais un état d'acquisition ;
-- TYPE et STATUT sont indépendants ;
-- aucune fiche Talent n'affiche « ACTION DISPONIBLE », « ACTION DÉBLOQUÉE » ou
-  « ACTION ACCORDÉE APRÈS ACQUISITION » ;
-- les quatre seuls nœuds à variantes sont Spécialisation martiale, Ennemi juré,
-  Affinité élémentaire et Imprégnation ;
-- toutes leurs variantes sont visibles simultanément ;
-- les recettes multiples de l'Alchimiste ne sont pas des variantes ;
+- 6 classes / 18 branches / 90 Talents conceptuels ;
+- 86 Talents simples ;
+- exactement 4 familles exclusives à variantes : Spécialisation martiale,
+  Ennemi juré, Affinité élémentaire et Imprégnation ;
+- toutes les variantes sont visibles simultanément dans la fiche ;
+- aucun ComboBox de choix de variante ;
+- consultation, TYPE et STATUT sont trois notions indépendantes ;
+- aucun Talent n'est acquis par simple consultation ;
+- le panneau de détail est vide avant le premier Talent consulté ;
+- un seul scroll vertical porte la fiche ;
+- ACQUISITION reste la dernière section ;
+- les réactions automatiques sans déclenchement volontaire n'affichent pas
+  UTILISATION ;
+- les identifiants techniques ne sont pas du texte joueur ;
+- les 15 recettes de l'Alchimiste sont projetées avec des noms canoniques
+  français dans ACQUISITION ;
 - disponibilité de combat, quantité d'objet et crafting restent des autorités
   distinctes du statut Talent.
+
+Architecture :
+
+```text
+URPGClassAsset / ProgressionChoices
+    -> identité et mécanique Talent
+
+FRPGClassProgressionService
+FRPGClassProgressionTransactionService
+    -> disponibilité / acquisition / choix exclusif
+
+FGridSkillsPageService
+    -> read-model canonique read-only
+    -> TYPE / STATUT / PRINCIPE / EFFETS / UTILISATION / ACQUISITION
+    -> noms joueur des recettes
+
+UGridSkillsWidget
+    -> sélection/navigation
+
+UGridTalentDetailWidget
+UGridTalentVariantBlockWidget
+    -> présentation native
+
+WBP_RPGTalentDetail
+WBP_RPGTalentVariantBlock
+    -> composition UMG
+```
+
+La projection Talent plate et les chemins de détail legacy ont été supprimés par
+DESC01.15.5. Ils ne constituent plus une compatibilité à maintenir.
+
+Validation finale rapportée par l'utilisateur :
+
+```text
+Grimrock.UI.RPG.DESC01.QA16   4/4
+Grimrock.UI.RPG.DESC01       19/19
+warnings                         0
+échecs                           0
+PIE six classes               validé
+PIE recettes                  validé
+```
 
 Références canoniques :
 
 - `docs/Design/UI_RPG_DESC01_5_TALENT_UX_CONTRACT.md`
 - `docs/Design/UI_RPG_DESC01_12_TALENT_NORMALIZATION_90.md`
-
+- `docs/Design/UI_RPG_DESC01_13_TALENT_READ_MODEL_CONTRACT.md`
+- `docs/Design/UI_RPG_DESC01_16_2_SIX_CLASS_PIE_QA.md`
+- `docs/Design/UI_RPG_DESC01_17_FINAL_CLOSURE.md`
 
 RPG-ATTR01.1 ajoute l'économie des points de caractéristiques sans nouveau
 snapshot persistant :
@@ -537,7 +588,7 @@ Grimrock.UI.RPG05               5/5
 PIE Skills + Talents           validé
 ```
 
-La projection Talent plate historique reste conservée par prudence tant qu'un audit de références Blueprint binaires n'autorise pas sa suppression.
+La projection Talent plate historique a depuis été supprimée par UI-RPG-DESC01.15.5.
 
 Références :
 
@@ -623,7 +674,10 @@ Dette réelle suivie dans `TECHNICAL_DEBT_REGISTER.md` :
 - MON21.7 : Codex Discovery / projections ;
 - sélection explicite d’un autre allié pour les sorts `Ally` : amélioration fonctionnelle/UX ;
 - icônes finales : contenu de production ;
-- Recipes : fonctionnalité future.
+- Recipes / D09 : fonctionnalité future de Crafting ;
+- LOC01 — Localization Foundation : future migration des textes joueur vers les
+  mécanismes de localisation Unreal (FText / clés stables / String Tables /
+  Localization Dashboard), sans modifier les IDs gameplay.
 
 ## Roadmap UI canonique
 
@@ -643,7 +697,7 @@ La cible visuelle de référence est : feuille de personnage à gauche, vue 3D c
 | UI-INVENTORY02 | UI-INVENTORY02.9 C++ prêt : projection triée/filtrée mise à jour en place, sans recréer les slots ; Automation/PIE à valider |
 | UI-HOTBAR01 | réalisé |
 | UI-FEEDBACK01 | UI-FEEDBACK01.1 surcharge close ; UI-FEEDBACK01.2 effets de statut portrait actif |
-| UI-SKILLS01 | fonctionnel ; UI-RPG01→06 clos ; RPG-SKILL01 économie Skill Points + Safe Undo validés |
+| UI-SKILLS01 | fonctionnel ; UI-RPG01→06 clos ; RPG-SKILL01 validé ; UI-RPG-DESC01 clos le 9 octobre 2026 |
 | UI-CRAFT01 | shell |
 | UI-MAP01 | shell ; fonctionnalité prévue MON21.6 |
 | UI-JOURNAL01 | shell ; fonctionnalité prévue MON21.5 |

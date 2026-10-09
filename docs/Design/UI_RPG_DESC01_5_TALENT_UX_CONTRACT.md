@@ -572,25 +572,25 @@ Le futur read-model doit être conçu **après** l'audit des 90 Talents
 ```text
 RPG-SKILL01      CLOS
 RPG-LEVELUX01    CLOS
-UI-RPG-DESC01    EN COURS
-UI-RPG-VISUAL01  PARALLÈLE — charte graphique uniquement à ce stade
+UI-RPG-DESC01    CLOS — 9 octobre 2026
+UI-RPG-VISUAL01  FUTUR / PARALLÈLE — présentation visuelle uniquement
 ```
 
 Découpage DESC01 après validation de ce contrat :
 
 ```text
-DESC01.6   Guerrier — 15 Talents
-DESC01.7   Voleur — 15 Talents
-DESC01.8   Rôdeur — 15 Talents
-DESC01.9   Mage — 15 Talents
-DESC01.10  Prêtre — 15 Talents
-DESC01.11  Alchimiste — 15 Talents
-DESC01.12  Normalisation croisée 90/90
-DESC01.13  Contrat du read-model
-DESC01.14  Projection C++
-DESC01.15  Rebuild UMG
-DESC01.16  QA six classes
-DESC01.17  Documentation / clôture
+DESC01.6   CLOS — Guerrier, 15 Talents
+DESC01.7   CLOS — Voleur, 15 Talents
+DESC01.8   CLOS — Rôdeur, 15 Talents
+DESC01.9   CLOS — Mage, 15 Talents
+DESC01.10  CLOS — Prêtre, 15 Talents
+DESC01.11  CLOS — Alchimiste, 15 Talents
+DESC01.12  CLOS — normalisation croisée 90/90
+DESC01.13  CLOS — contrat du read-model
+DESC01.14  CLOS — projection C++
+DESC01.15  CLOS — rebuild UMG et suppression legacy
+DESC01.16  CLOS — QA six classes, langue joueur et recettes
+DESC01.17  CLOS — documentation / clôture
 ```
 
 ## 19. Critères de validation de DESC01.5
@@ -610,4 +610,40 @@ DESC01.5 est validé uniquement lorsque l'utilisateur approuve explicitement :
 
 Validation utilisateur reçue le **8 octobre 2026**.
 
-La phase suivante est l'audit documentaire des 90 Talents, classe par classe. Aucune nouvelle implémentation C++ / UMG / DataAsset DESC01 n'est autorisée avant DESC01.13.
+## 20. Clôture du chantier DESC01
+
+Le contrat défini ici a été implémenté puis validé jusqu'à DESC01.17 le
+**9 octobre 2026**.
+
+État final :
+
+- 6 classes / 18 branches / 90 Talents conceptuels ;
+- 86 Talents simples ;
+- 4 familles exclusives à variantes : Spécialisation martiale, Ennemi juré,
+  Affinité élémentaire, Imprégnation ;
+- fiche unique NOM / TYPE / STATUT / PRINCIPE / EFFETS /
+  [UTILISATION] / [VARIANTES] / ACQUISITION ;
+- aucun ComboBox de variante ;
+- panneau de détail vide tant qu'aucun Talent n'est consulté ;
+- textes joueur français normalisés ;
+- 15 recettes de l'Alchimiste projetées avec des noms canoniques dans
+  ACQUISITION, jamais depuis les IDs `Recipe_*` ;
+- projection legacy du détail Talent supprimée.
+
+Validation finale rapportée par l'utilisateur :
+
+```text
+Grimrock.UI.RPG.DESC01.QA16   4/4
+Grimrock.UI.RPG.DESC01       19/19
+warnings                         0
+échecs                           0
+PIE six classes               validé
+PIE recettes                  validé
+```
+
+La synthèse de clôture canonique est :
+`docs/Design/UI_RPG_DESC01_17_FINAL_CLOSURE.md`.
+
+Les évolutions futures de style appartiennent à **UI-RPG-VISUAL01**.
+La localisation multilingue appartient à un futur **LOC01 — Localization
+Foundation** et n'est pas une dette de DESC01.
