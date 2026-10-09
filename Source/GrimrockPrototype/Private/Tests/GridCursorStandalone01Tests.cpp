@@ -6,7 +6,6 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GrimrockPlayerController.h"
-#include "UI/GridInventorySlotWidget.h"
 
 namespace
 {
@@ -73,8 +72,8 @@ bool FGridCursorStandalone01SingleAuthorityTest::RunTest(const FString& Paramete
 		return false;
 	}
 
-	Controller->CustomCursorWidget = NewObject<UGridInventorySlotWidget>(Controller);
-	if (!TestNotNull(TEXT("Custom cursor widget exists"), Controller->CustomCursorWidget.Get()))
+	Controller->CustomCursorWidget = NewObject<UUserWidget>(Controller);
+	if (!TestNotNull(TEXT("Custom cursor widget exists"), Controller->CustomCursorWidget))
 	{
 		return false;
 	}

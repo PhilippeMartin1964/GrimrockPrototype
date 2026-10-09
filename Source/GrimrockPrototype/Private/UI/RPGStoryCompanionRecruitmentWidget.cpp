@@ -380,7 +380,7 @@ void URPGStoryCompanionRecruitmentWidget::RestoreInputGuard()
 		PlayerController->SetInventoryUiOpen(bPreviousInventoryUiOpen);
 
 		FInputModeGameAndUI InputMode;
-		InputMode.SetHideCursorDuringCapture(true);
+		InputMode.SetHideCursorDuringCapture(false);
 		PlayerController->SetInputMode(InputMode);
 	}
 

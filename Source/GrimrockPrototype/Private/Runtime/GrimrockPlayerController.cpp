@@ -200,7 +200,7 @@ void AGrimrockPlayerController::BeginPlay()
 	DefaultMouseCursor = EMouseCursor::Default;
 	CurrentMouseCursor = EMouseCursor::Default;
 	FInputModeGameAndUI InputMode;
-	InputMode.SetHideCursorDuringCapture(true);
+	InputMode.SetHideCursorDuringCapture(false);
 	SetInputMode(InputMode);
 	InitializeCustomCursor();
 	SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("BeginPlay"));
