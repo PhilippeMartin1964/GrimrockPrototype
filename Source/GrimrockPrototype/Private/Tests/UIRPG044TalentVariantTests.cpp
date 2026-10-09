@@ -141,6 +141,8 @@ bool FUIRPG044VariantTransactionTest::RunTest(const FString&)
 	ChoiceB->TalentNodeId = ConceptNodeId;
 	ChoiceA->ExclusiveChoiceGroupId = ExclusiveGroup;
 	ChoiceB->ExclusiveChoiceGroupId = ExclusiveGroup;
+	ChoiceA->GrantedRequirementIds.AddUnique(ConceptNodeId);
+	ChoiceB->GrantedRequirementIds.AddUnique(ConceptNodeId);
 	ChoiceA->PresentationType = ERPGTalentPresentationType::Passive;
 	ChoiceB->PresentationType = ERPGTalentPresentationType::Passive;
 	ChoiceA->Description = FText::FromString(TEXT("Variante A de test pour la projection d'acquisition."));
@@ -158,12 +160,12 @@ bool FUIRPG044VariantTransactionTest::RunTest(const FString&)
 	{
 		return false;
 	}
-	ChoiceC->TalentBranchId = TEXT("Branch");
-	ChoiceC->TalentNodeId = TEXT("Talent_Test_C");
+	ChoiceC->TalentBranchId = TEXT("Branch_C");
+	ChoiceC->TalentNodeId = ChoiceC->ChoiceId;
 	ChoiceC->PresentationType = ERPGTalentPresentationType::Passive;
 	ChoiceC->Description = FText::FromString(TEXT("Talent C de test pour la projection d'acquisition."));
-	Expensive->TalentBranchId = TEXT("Branch");
-	Expensive->TalentNodeId = TEXT("Talent_Test_Expensive");
+	Expensive->TalentBranchId = TEXT("Branch_Expensive");
+	Expensive->TalentNodeId = Expensive->ChoiceId;
 	Expensive->PresentationType = ERPGTalentPresentationType::Passive;
 	Expensive->Description = FText::FromString(TEXT("Talent coûteux de test pour la projection d'acquisition."));
 
