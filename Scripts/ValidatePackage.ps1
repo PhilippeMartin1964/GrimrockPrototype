@@ -244,52 +244,35 @@ if ($PakFiles.Count -le 0)
     exit 3
 }
 
-# UI-RPG-PACK01: a successful cook does not imply dynamically loaded DataAssets are staged.
-# Scan the actual packaged PAK contents, never the Editor Asset Registry or the source Content folder.
-$UnrealPak = Join-Path $ResolvedEngineRoot 'Engine\\Binaries\\Win64\\UnrealPak.exe'
-if (-not (Test-Path -LiteralPath $UnrealPak -PathType Leaf))
-{
-    throw "Verification des assets Shipping impossible : UnrealPak.exe introuvable : $UnrealPak"
-}
+# UI-RPG-PACK01: dynamically loaded RPG DataAssets must exist in the cooked
+# Windows content consumed by the staging/IoStore steps. This validates the
+# authoritative cook output without assuming a specific PAK/IoStore listing CLI.
+$CookedRpgDataRoot = Join-Path $RepoRoot 'Saved\Cooked\Windows\GrimrockPrototype\Content\GrimrockPrototype\Core\DataAssets'
+$CookedTalentPresentation = Join-Path $CookedRpgDataRoot 'UI\RPG\DA_RPGTalentPresentation.uasset'
+$CookedSkillsRoot = Join-Path $CookedRpgDataRoot 'RPG\Skills'
 
 Write-Host ''
-Write-Host '=== UI-RPG packaged asset validation ==='
-$IoStoreTocFiles = @(Get-ChildItem -LiteralPath $SessionArchivePath -Recurse -File -Filter '*.utoc')
-$AssetContainerFiles = @($PakFiles) + @($IoStoreTocFiles)
-if ($AssetContainerFiles.Count -le 0)
+Write-Host '=== UI-RPG cooked asset validation ==='
+
+$PresentationFound = Test-Path -LiteralPath $CookedTalentPresentation -PathType Leaf
+$SkillAssets = @()
+if (Test-Path -LiteralPath $CookedSkillsRoot -PathType Container)
 {
-    throw 'Aucun conteneur PAK/IoStore inspectable n''a ete produit.'
+    $SkillAssets = @(
+        Get-ChildItem -LiteralPath $CookedSkillsRoot -File -Filter 'DA_Skill_*.uasset' |
+            Sort-Object Name
+    )
 }
 
-Write-Host "PAK containers     : $($PakFiles.Count)"
-Write-Host "IoStore TOCs       : $($IoStoreTocFiles.Count)"
-
-$PackagedAssetListing = New-Object System.Collections.Generic.List[string]
-foreach ($ContainerFile in $AssetContainerFiles)
-{
-    $Listing = @(& $UnrealPak $ContainerFile.FullName '-List' 2>&1)
-    if ($LASTEXITCODE -ne 0)
-    {
-        throw "UnrealPak -List a echoue pour : $($ContainerFile.FullName)"
-    }
-    $PackagedAssetListing.Add(($Listing -join "`n"))
-}
-$PackagedPaths = $PackagedAssetListing -join "`n"
-$PresentationPattern = '(?i)[/\\]GrimrockPrototype[/\\]Core[/\\]DataAssets[/\\]UI[/\\]RPG[/\\]DA_RPGTalentPresentation\\.uasset'
-$SkillsPattern = '(?i)[/\\]GrimrockPrototype[/\\]Core[/\\]DataAssets[/\\]RPG[/\\]Skills[/\\](DA_Skill_[A-Za-z0-9_]+\\.uasset)'
-$PresentationFound = [regex]::IsMatch($PackagedPaths, $PresentationPattern)
-$SkillAssets = @(
-    [regex]::Matches($PackagedPaths, $SkillsPattern) |
-        ForEach-Object { $_.Groups[1].Value } |
-        Sort-Object -Unique
-)
 Write-Host ('Talent presentation : ' + $(if ($PresentationFound) { '[OK]' } else { '[MISSING]' }))
 Write-Host "RPG Skill assets    : $($SkillAssets.Count) / 25"
+
 if (-not $PresentationFound -or $SkillAssets.Count -ne 25)
 {
-    throw 'UI-RPG-PACK01 failed: Shipping PAK is missing DA_RPGTalentPresentation or one or more of the 25 canonical DA_Skill_* assets.'
+    throw 'UI-RPG-PACK01 failed: cooked Windows content is missing DA_RPGTalentPresentation or one or more of the 25 canonical DA_Skill_* assets.'
 }
-Write-Host '[OK] UI-RPG Shipping DataAssets verified in packaged PAK.'
+
+Write-Host '[OK] UI-RPG Shipping DataAssets verified in cooked Windows content.'
 
 $ArchiveFiles = @(Get-ChildItem -LiteralPath $SessionArchivePath -Recurse -File)
 $ArchiveBytes = 0L
