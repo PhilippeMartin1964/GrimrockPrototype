@@ -1,7 +1,7 @@
 # UI-RPG-CODE-AUDIT01 — Remove Dead Talent/Skill Compatibility Paths
 
 Date : **9 octobre 2026**  
-État : **SOURCE PRÊTE — validation locale requise**
+État : **VALIDÉ / CLOS — 9 octobre 2026**
 
 ## Objectif
 
@@ -111,46 +111,47 @@ Ils ont peu ou pas de consommateurs C++ mais restent exposés à Blueprint. Leur
 suppression nécessite une preuve séparée de non-référence binaire ; elle ne doit
 pas être faite à l'aveugle.
 
-## Validation locale requise
+## Validation finale
 
-Le build complet est obligatoire car des headers UHT ont été supprimés/modifiés :
+Validation locale fournie par l'utilisateur le **9 octobre 2026**.
 
-```powershell
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -AutomationFilter "Grimrock.UI.RPG.CODEAUDIT01"
+Le build complet a précédé les Automation ; les filtres suivants ont tous
+terminé avec **Process exit code = 0**, sans warning ni échec :
+
+```text
+Grimrock.UI.RPG.CODEAUDIT01
+    Succeeded              1
+    Succeeded with warnings 0
+    Failed                 0
+
+Grimrock.UI.RPG.DESC01
+    Succeeded             19
+    Succeeded with warnings 0
+    Failed                 0
+
+Grimrock.MON20.8.SkillsPage
+    Succeeded              8
+    Succeeded with warnings 0
+    Failed                 0
+
+Grimrock.RPG.MON15.4
+    Succeeded              7
+    Succeeded with warnings 0
+    Failed                 0
+
+Grimrock.RPG.RPG03.10.PIE.SixClassTalentRuntime
+    Succeeded              1
+    Succeeded with warnings 0
+    Failed                 0
 ```
 
-Puis :
+Le garde-fou Editor a donc confirmé que `WBP_GridSkills` charge et recompile
+sans référence aux symboles Talent plats supprimés.
 
-```powershell
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -SkipBuild `
-    -AutomationFilter "Grimrock.UI.RPG.DESC01"
-```
+La régression DESC01 confirme que le contrat final des 90 Talents reste intact.
+La régression MON20.8 confirme que le read-model Skills/Talents canonique reste
+opérationnel. MON15.4 confirme que le nettoyage du helper pré-transaction n'a
+pas modifié les règles de progression. Enfin, le test PIE six classes confirme
+le fonctionnement dans un vrai monde PIE.
 
-```powershell
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -SkipBuild `
-    -AutomationFilter "Grimrock.MON20.8.SkillsPage"
-```
-
-```powershell
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -SkipBuild `
-    -AutomationFilter "Grimrock.RPG.MON15.4"
-```
-
-Enfin, revalider le vrai PIE RPG03.10 :
-
-```powershell
-.\Scripts\ValidateUE.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -SkipBuild `
-    -AutomationFilter "Grimrock.RPG.RPG03.10.PIE.SixClassTalentRuntime"
-```
-
-Le ticket n'est **CLOS** qu'après sorties locales fournies par l'utilisateur.
+**UI-RPG-CODE-AUDIT01 est VALIDÉ / CLOS.**

@@ -514,8 +514,9 @@ WBP_RPGTalentVariantBlock
 
 Les chemins de détail legacy ont été supprimés par DESC01.15.5. La dernière
 projection Talent plate C++ (`FGridTalentEntryView` / `FRPGTalentRuntimeService`)
-est retirée par UI-RPG-CODE-AUDIT01 ; validation locale du build et de
-`WBP_GridSkills` requise avant clôture du ticket.
+a été retirée par UI-RPG-CODE-AUDIT01. Le build, la recompilation de
+`WBP_GridSkills`, les régressions DESC01/MON20.8/MON15.4 et le PIE six classes
+ont été validés le 9 octobre 2026.
 
 Validation finale rapportée par l'utilisateur :
 
@@ -539,7 +540,7 @@ Références canoniques :
 
 ### UI-RPG-CODE-AUDIT01 — nettoyage des compatibilités Skills/Talents
 
-État : **SOURCE PRÊTE — validation locale requise**.
+État : **VALIDÉ / CLOS — 9 octobre 2026**.
 
 Le nettoyage supprime :
 
@@ -566,6 +567,18 @@ Skills  -> FRPGSkillService
 Le test `Grimrock.UI.RPG.CODEAUDIT01.BlueprintCompatibility` recompile
 `WBP_GridSkills` afin de détecter une référence binaire cachée aux symboles
 réfléchis supprimés.
+
+Validation locale :
+
+```text
+CODEAUDIT01                      1/1
+DESC01                          19/19
+MON20.8.SkillsPage               8/8
+MON15.4                          7/7
+RPG03.10 PIE six classes         1/1
+warnings                           0
+échecs                             0
+```
 
 Référence :
 `docs/Design/UI_RPG_CODE_AUDIT01_DEAD_COMPATIBILITY_PATHS.md`.
