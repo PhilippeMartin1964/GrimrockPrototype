@@ -132,7 +132,7 @@ void AGrimrockPartyPawn::ShowSkillsWidget()
 	FInputModeGameAndUI InputMode;
 	InputMode.SetWidgetToFocus(SkillsWidgetInstance->TakeWidget());
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetHideCursorDuringCapture(true);
 	PlayerController->SetInputMode(InputMode);
 
 	UE_LOG(LogGrimrockPartyUI, Verbose, TEXT("GridSkills Standalone Shown Pawn=%s Widget=%s"), *GetName(), *GetNameSafe(SkillsWidgetInstance));
@@ -245,7 +245,7 @@ void AGrimrockPartyPawn::ShowMapWidget()
 	FInputModeGameAndUI InputMode;
 	InputMode.SetWidgetToFocus(MapWidgetInstance->TakeWidget());
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetHideCursorDuringCapture(true);
 	PlayerController->SetInputMode(InputMode);
 
 	UE_LOG(LogGrimrockPartyUI, Verbose, TEXT("GridMap Standalone Shown Pawn=%s Widget=%s"), *GetName(), *GetNameSafe(MapWidgetInstance));
@@ -515,7 +515,7 @@ void AGrimrockPartyPawn::ShowMenuPage(EInventoryTopTab TopTab)
 	FInputModeGameAndUI InputMode;
 	InputMode.SetWidgetToFocus(MenuWidgetInstance->TakeWidget());
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetHideCursorDuringCapture(true);
 	PlayerController->SetInputMode(InputMode);
 
 	UE_LOG(LogGrimrockPartyUI, Verbose, TEXT("GrimrockMenu UI Shown Pawn=%s TopTab=%d"), *GetName(), static_cast<int32>(TopTab));
@@ -546,7 +546,7 @@ void AGrimrockPartyPawn::ApplyMajorUiInputMode(bool bOpen)
 
 	FInputModeGameAndUI InputMode;
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetHideCursorDuringCapture(true);
 	PlayerController->SetInputMode(InputMode);
 }
 
@@ -928,7 +928,7 @@ void AGrimrockPartyPawn::ApplyCharacterCreationInputMode(bool bIsActive)
 
 	FInputModeGameAndUI InputMode;
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetHideCursorDuringCapture(true);
 	PlayerController->SetInputMode(InputMode);
 }
 
