@@ -512,8 +512,10 @@ WBP_RPGTalentVariantBlock
     -> composition UMG
 ```
 
-La projection Talent plate et les chemins de détail legacy ont été supprimés par
-DESC01.15.5. Ils ne constituent plus une compatibilité à maintenir.
+Les chemins de détail legacy ont été supprimés par DESC01.15.5. La dernière
+projection Talent plate C++ (`FGridTalentEntryView` / `FRPGTalentRuntimeService`)
+est retirée par UI-RPG-CODE-AUDIT01 ; validation locale du build et de
+`WBP_GridSkills` requise avant clôture du ticket.
 
 Validation finale rapportée par l'utilisateur :
 
@@ -533,6 +535,40 @@ Références canoniques :
 - `docs/Design/UI_RPG_DESC01_13_TALENT_READ_MODEL_CONTRACT.md`
 - `docs/Design/UI_RPG_DESC01_16_2_SIX_CLASS_PIE_QA.md`
 - `docs/Design/UI_RPG_DESC01_17_FINAL_CLOSURE.md`
+
+
+### UI-RPG-CODE-AUDIT01 — nettoyage des compatibilités Skills/Talents
+
+État : **SOURCE PRÊTE — validation locale requise**.
+
+Le nettoyage supprime :
+
+```text
+FRPGTalentRuntimeService
+FGridTalentEntryView / FGridSkillsPageView::Talents
+GetTalentEntryCount / GetTalentEntry
+FRPGSkillRuntimeService
+CollectAutomaticSatisfiedRequirements
+```
+
+Autorités restantes :
+
+```text
+Talents -> FRPGClassProgressionService
+        -> FRPGClassProgressionTransactionService
+        -> FGridSkillsPageService -> FGridTalentTreeView
+
+Skills  -> FRPGSkillService
+        -> FRPGSkillPointService
+        -> FGridSkillsPageService
+```
+
+Le test `Grimrock.UI.RPG.CODEAUDIT01.BlueprintCompatibility` recompile
+`WBP_GridSkills` afin de détecter une référence binaire cachée aux symboles
+réfléchis supprimés.
+
+Référence :
+`docs/Design/UI_RPG_CODE_AUDIT01_DEAD_COMPATIBILITY_PATHS.md`.
 
 RPG-ATTR01.1 ajoute l'économie des points de caractéristiques sans nouveau
 snapshot persistant :
