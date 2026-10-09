@@ -1,7 +1,7 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — UI-COMBAT-UNIFY01 CONTRACT NORMALIZED ; VALIDATION UE EN ATTENTE**  
-Date : **7 octobre 2026**
+Statut : **CURRENT — rebaseliné après UI-RPG-CODE-AUDIT01 ; UI-COMBAT-UNIFY02 UMG/PIE reste explicitement à valider**  
+Date : **9 octobre 2026**
 
 ## Références canoniques
 
@@ -604,8 +604,8 @@ UGridCharacterSheetWidget
     -> boutons − / + optionnels
 ```
 
-La source RPG-ATTR01.1 est implémentée ; la matérialisation
-`WBP_CharacterSheet` et la validation locale restent requises.
+RPG-ATTR01 a depuis été matérialisé et validé : **10/10 Automation,
+0 warning, 0 échec, PIE validé**.
 
 `ChoiceId` reste l'identité gameplay/persistante. `TalentNodeId` et `TalentBranchId` sont des métadonnées structurelles destinées à la projection UI. La disponibilité reste calculée par `FRPGClassProgressionService`.
 
@@ -637,7 +637,8 @@ Grimrock.UI.RPG05               5/5
 PIE Skills + Talents           validé
 ```
 
-La projection Talent plate historique a depuis été supprimée par UI-RPG-DESC01.15.5.
+La projection Talent plate historique a été supprimée définitivement par
+UI-RPG-CODE-AUDIT01, après recompilation validée de `WBP_GridSkills`.
 
 Références :
 

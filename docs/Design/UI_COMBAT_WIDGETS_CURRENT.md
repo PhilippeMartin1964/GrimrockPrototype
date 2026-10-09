@@ -1,7 +1,7 @@
-# UI-COMBAT-UNIFY01 — Combat Widgets Current Contract
+# UI-COMBAT-UNIFY02 — Combat Widgets Current Contract
 
-Date : **5 octobre 2026**  
-Statut : **C++ prêt ; migration UMG manuelle et validation UE 5.5.4 requises**
+Date : **9 octobre 2026**  
+Statut : **CONTRAT C++ COURANT ; migration UMG / validation UE 5.5.4 toujours requises**
 
 Ce document est la référence actuelle pour :
 

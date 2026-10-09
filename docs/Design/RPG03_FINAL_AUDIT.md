@@ -1,5 +1,13 @@
 # RPG03 — Audit final des quatre fils de travail
 
+> **DOC-AUDIT02 — état courant : HISTORIQUE / SUPERSEDED.** Cet audit finalise
+> RPG03 tel qu'il existait le 6 octobre. Ses résultats de mécanique restent un
+> historique valide, mais les compteurs et la couche Talent/UI ont ensuite
+> évolué via RPG-TALENT-FIX01..07, UI-RPG-DESC01 et
+> UI-RPG-CODE-AUDIT01. Pour l'architecture Talent actuelle, lire
+> `UI_RPG_DESC01_17_FINAL_CLOSURE.md` puis
+> `UI_RPG_CODE_AUDIT01_DEAD_COMPATIBILITY_PATHS.md`.
+
 Date : **6 octobre 2026**  
 Périmètre : arbre de compétences / RPG03 / six classes / 90 talents  
 État de référence avant audit : `master` validé `Grimrock.RPG.RPG03` **193/193**, 0 warning, 0 échec, exit 0.

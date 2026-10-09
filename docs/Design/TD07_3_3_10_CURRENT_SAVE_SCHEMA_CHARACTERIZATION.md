@@ -1,5 +1,10 @@
 # TD07.3.3.10 — Current Save Schema / Closure Characterization
 
+> **DOC-AUDIT02 — HISTORIQUE / SUPERSEDED.** « Current Save Schema » signifie
+> ici le checkpoint du 27 août (v19 -> cible v20). Le schéma C++ courant est
+> **v24 exact-match** ; `LastAcknowledgedLevel` a été supprimé par
+> RPG-LEVELUX01. Ce document reste une characterization historique de TD07.3.3.
+
 Date : **27 août 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  

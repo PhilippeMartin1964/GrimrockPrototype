@@ -1,5 +1,12 @@
 # MON20.7.2 — Talent Runtime Read Model / Selected Character
 
+> **DOC-AUDIT02 — CONTRAT HISTORIQUE / SERVICE SUPPRIMÉ.**
+> `FRPGTalentRuntimeService` a rempli le rôle décrit ici pendant MON20.7,
+> puis a été rendu redondant par le read-model Talent canonique. Il a été
+> supprimé par UI-RPG-CODE-AUDIT01. L'autorité de lecture/acquisition courante
+> passe par `FRPGClassProgressionTransactionService` et
+> `FGridSkillsPageService -> FGridTalentTreeView`.
+
 Statut : **VALIDÉ UE5.5.4 — 8/8 AUTOMATION SUCCESS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.7 — Talents / Progression Choice Integration**

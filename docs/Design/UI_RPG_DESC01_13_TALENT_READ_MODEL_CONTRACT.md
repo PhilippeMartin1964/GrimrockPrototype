@@ -1,5 +1,11 @@
 # UI-RPG-DESC01.13 — Contrat du read-model Talent
 
+> **DOC-AUDIT02 — CONTRAT HISTORIQUE IMPLÉMENTÉ.** DESC01.13 reste utile pour
+> comprendre la conception du read-model, mais les mentions « futur » et la
+> conservation provisoire de `FGridTalentEntryView` ont été dépassées.
+> DESC01.17 décrit le résultat final ; UI-RPG-CODE-AUDIT01 a ensuite supprimé
+> la dernière projection Talent plate.
+
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 État : **VALIDÉ PAR L'UTILISATEUR — 8 octobre 2026**  

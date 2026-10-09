@@ -1,5 +1,10 @@
 # TD07.3.7 — Current Asset Repair / Recreation
 
+> **DOC-AUDIT02 — CHECKPOINT HISTORIQUE.** Le mot `Current` décrit ici
+> l'état des assets lors de TD07.3.7 (28 août), pas le Content actuel du
+> 9 octobre. Les décisions d'autorité (assets canoniques, pas d'IDs miroirs)
+> restent valides ; les nombres d'assets et candidats sont historiques.
+
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3 — Prototype Data Model Reset

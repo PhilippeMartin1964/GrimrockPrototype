@@ -1,5 +1,11 @@
 # MON20.7.5 — Automation Regression / Closure
 
+> **DOC-AUDIT02 — CLÔTURE HISTORIQUE / API SUPERSEDED.** MON20.7 reste
+> validé pour son époque, mais les références à
+> `FRPGTalentRuntimeService`, à l'ancien Level-Up modal, aux snapshots
+> `ClassProgressionStates` et au Save v7 ne décrivent plus le C++ courant.
+> Voir UI-RPG-DESC01.17, RPG-LEVELUX01 et UI-RPG-CODE-AUDIT01.
+
 Statut : **VALIDÉ UE5.5.4 — CLOS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.7 — Talents / Progression Choice Integration**

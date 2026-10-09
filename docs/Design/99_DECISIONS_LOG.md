@@ -1259,3 +1259,74 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - `WBP_GridCombatActionPanel` conserve `SizeBox_ActionPanel` comme racine :
   ce SizeBox définit une taille intrinsèque, pas une position écran.
 - Aucune nouvelle couche ni aucun fallback legacy de positionnement n'est ajouté.
+
+
+---
+
+## 2026-10-08 — RPG-SKILL01 : Skill Point Economy
+
+### Décisions validées
+
+- Aucun compteur Skill Point n'est persisté.
+- `Granted = Level + 3` et `Spent = somme des SkillRanks`.
+- `FGridCharacterInventoryState::SkillRanks` reste l'autorité durable.
+- `FRPGSkillPointService` est l'unique économie joueur : achat de rang,
+  plafond par niveau et Safe Undo limité à la session courante.
+- `FRPGSkillService` reste une primitive métier de rang, pas une voie joueur
+  parallèle de dépense de points.
+
+## 2026-10-08 — RPG-LEVELUX01 : Level Up non modal / Save v24
+
+### Décisions validées
+
+- La popup Level Up modale et son blocage input/pause sont supprimés.
+- `URPGLevelUpNotificationSubsystem` ne possède qu'une file transitoire de
+  toasts ; aucun acknowledgement durable n'existe.
+- `LastAcknowledgedLevel` est supprimé du personnage et du Save.
+- `UGrimrockPartySaveGame::CurrentSaveVersion = 24`, exact-match, sans
+  migration arrière.
+
+## 2026-10-08 — RPG-ATTR01 : Attribute Point Economy
+
+### Décisions validées
+
+- Aucun compteur Attribute Point n'est persisté.
+- Les points accordés dérivent de `floor(Level / 4)`.
+- `Character.Attributes` reste l'autorité durable ; le budget dépensé est
+  reconstruit depuis Class + Race + Attributes.
+- `FRPGAttributePointService` porte achat et Safe Undo de session.
+
+## 2026-10-09 — UI-RPG-DESC01 : contrat final Talent
+
+### Décisions validées
+
+- Fiche unique : NOM / TYPE / STATUT / PRINCIPE / EFFETS /
+  [UTILISATION] / [VARIANTES] / ACQUISITION.
+- 6 classes, 18 branches, 90 Talents conceptuels : 86 simples et exactement
+  4 familles à variantes exclusives.
+- Consultation d'un Talent != acquisition ; TYPE != STATUT.
+- Aucun ComboBox de variante ; toutes les variantes sont visibles
+  simultanément.
+- Le panneau de détail est vide avant le premier Talent consulté.
+- Les 15 recettes de l'Alchimiste utilisent des noms joueur canoniques ;
+  `Recipe_*` reste une identité gameplay et n'est jamais humanisé comme
+  libellé.
+- LOC01 est une évolution future de localisation, pas une dette DESC01.
+
+## 2026-10-09 — UI-RPG-CODE-AUDIT01 : suppression des compatibilités mortes
+
+### Décisions validées
+
+- `FRPGTalentRuntimeService`, `FRPGSkillRuntimeService` et leurs tests
+  auto-référentiels sont supprimés.
+- `FGridTalentEntryView`, `FGridSkillsPageView::Talents` et
+  `GetTalentEntry*` sont supprimés après recompilation réussie de
+  `WBP_GridSkills`.
+- `CollectAutomaticSatisfiedRequirements()` est supprimé ; le chemin générique
+  `CollectSatisfiedRequirements()` reste l'autorité.
+- Les Talents passent uniquement par
+  `FRPGClassProgressionService` /
+  `FRPGClassProgressionTransactionService` puis
+  `FGridSkillsPageService -> FGridTalentTreeView`.
+- Les Skills joueur passent par `FRPGSkillPointService` ; aucune façade de
+  mutation parallèle n'est conservée.

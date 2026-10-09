@@ -219,3 +219,24 @@ Le but est désormais de découvrir les défauts d'intégration et de rythme qui
 n'apparaissent pas dans les tests isolés.
 
 **UI-RPG-DESC01 : CLOS.**
+
+
+## 12. État post-clôture — UI-RPG-CODE-AUDIT01
+
+Après la clôture DESC01, l'audit de code a supprimé la dernière compatibilité
+Talent plate qui ne faisait pas partie du contrat de détail final :
+
+```text
+FRPGTalentRuntimeService              supprimé
+FGridTalentEntryView                  supprimé
+FGridSkillsPageView::Talents          supprimé
+GetTalentEntryCount / GetTalentEntry  supprimés
+```
+
+`WBP_GridSkills` a été recompilé par Automation après suppression et les
+régressions DESC01 19/19, MON20.8 8/8, MON15.4 7/7 ainsi que le PIE six classes
+sont restés verts.
+
+Le contrat sémantique de DESC01.17 est inchangé ; cette note confirme simplement
+que la promesse « aucune double autorité / aucun chemin legacy » est désormais
+également vraie pour la projection C++ plate historique.

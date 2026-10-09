@@ -1,5 +1,12 @@
 # UI-RPG06.3B — Clôture finale Compétences + Talents
 
+> **DOC-AUDIT02 — CLÔTURE HISTORIQUE.** UI-RPG06 reste validé/clos, mais deux
+> éléments explicitement conservés à l'époque ne sont plus actuels :
+> la projection plate `FGridTalentEntryView / FGridSkillsPageView::Talents`
+> a été supprimée par UI-RPG-CODE-AUDIT01, et l'économie de Skill Points a
+> depuis été livrée par RPG-SKILL01. Le reste du résultat UI-RPG06 demeure un
+> jalon historique valide.
+
 Date : **7 octobre 2026**  
 Parent : **UI-RPG06 — Unification Compétences + Talents UX**  
 État : **VALIDÉ / CLOS**

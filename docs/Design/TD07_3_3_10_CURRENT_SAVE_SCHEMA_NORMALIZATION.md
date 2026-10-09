@@ -1,5 +1,11 @@
 # TD07.3.3.10 — Current Save Schema / Regressions / Closure Normalization
 
+> **DOC-AUDIT02 — HISTORIQUE / SUPERSEDED.** Ce document clôt le passage à
+> **v20** du 27 août. Le SaveGame courant est désormais **v24 exact-match**.
+> Les principes encore actuels sont notamment `Level` et `DerivedStats`
+> transient et `Resources` durable ; les versions et états postérieurs
+> priment pour le schéma courant.
+
 Date : **27 août 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  

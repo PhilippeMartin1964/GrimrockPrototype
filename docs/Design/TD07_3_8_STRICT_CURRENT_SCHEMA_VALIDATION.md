@@ -1,5 +1,11 @@
 # TD07.3.8 — Strict Current-Schema Validation / Stop Condition
 
+> **DOC-AUDIT02 — GATE HISTORIQUE, PAS SCHÉMA SAVE COURANT.** Le gate
+> `StrictCurrentSchema` reste un garde-fou valable de TD07.3, mais la liste
+> Character State de ce document reflète le 28 août : le SaveGame est passé à
+> **v24** et `LastAcknowledgedLevel` a depuis été supprimé par
+> RPG-LEVELUX01.
+
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3 — Prototype Data Model Reset

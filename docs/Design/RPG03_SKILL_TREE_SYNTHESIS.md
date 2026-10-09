@@ -1,5 +1,12 @@
 # RPG03 — Synthèse des six classes et des 90 Talents
 
+> **DOC-AUDIT02 — état courant : HISTORIQUE / SUPERSEDED pour le statut.**
+> Cette synthèse 90 Talents reste utile pour les classes et la structure
+> 6 × 15, mais son statut « 193/193 / prêt pour UI-RPG02 » est un snapshot du
+> 6 octobre. Le contrat UI final et les validations actuelles sont dans
+> `UI_RPG_DESC01_17_FINAL_CLOSURE.md` et
+> `UI_RPG_CODE_AUDIT01_DEAD_COMPATIBILITY_PATHS.md`.
+
 Date : **6 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Source mécanique autoritaire : `docs/Rules/RPG_Talents_Mechanics_v0_1.md`  

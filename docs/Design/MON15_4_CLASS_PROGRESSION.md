@@ -1,5 +1,12 @@
 # MON15.4 — Progression propre aux classes
 
+> **DOC-AUDIT02 — JALON HISTORIQUE.** Le modèle MON15.4 reste la fondation
+> actuelle de progression, mais son helper de commodité
+> `CollectAutomaticSatisfiedRequirements()` a été supprimé par
+> UI-RPG-CODE-AUDIT01. Le chemin courant utilise
+> `CollectSatisfiedRequirements(..., SelectedChoiceIds, ...)` et les
+> transactions vivent dans `FRPGClassProgressionTransactionService`.
+
 Statut : **VALIDÉ ET CLOS sous Unreal Engine 5.5.4**.
 
 MON15.4 définit le modèle data-driven des points, grants et choix de progression propres à chaque classe. Il prépare la transaction/interface de sélection de MON15.5 et la persistance/migration de MON15.6 sans introduire prématurément un second état persistant dans le personnage.

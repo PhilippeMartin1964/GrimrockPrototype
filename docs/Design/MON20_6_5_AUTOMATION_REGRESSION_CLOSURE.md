@@ -1,5 +1,12 @@
 # MON20.6.5 — Automation Regression / Closure
 
+> **DOC-AUDIT02 — CLÔTURE HISTORIQUE / API SUPERSEDED.** MON20.6 reste un
+> jalon validé, mais son « architecture finale » n'est plus l'architecture
+> courante : `FRPGSkillRuntimeService` a été supprimé par
+> UI-RPG-CODE-AUDIT01, `SkillRanks` est désormais durable, et le SaveGame
+> courant est v24. L'économie joueur actuelle appartient à
+> `FRPGSkillPointService` (RPG-SKILL01).
+
 Statut : **VALIDÉ UE5.5.4 — CLOS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.6 — Skills Data Model & Runtime**

@@ -1,5 +1,10 @@
 # TD07.3.3 — Character State Normalization — Closure
 
+> **DOC-AUDIT02 — CLÔTURE HISTORIQUE / SUPERSEDED POUR LE SCHÉMA COURANT.**
+> TD07.3.3 reste validé comme jalon, mais sa clôture v20 n'est plus la version
+> actuelle. Le SaveGame est **v24 exact-match** et
+> `LastAcknowledgedLevel` n'existe plus.
+
 Date : **27 août 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Statut : **VALIDÉ ET CLOS**  

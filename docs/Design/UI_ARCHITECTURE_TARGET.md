@@ -1,6 +1,12 @@
 # UI01.2 — Architecture UI cible détaillée
 
-> **HISTORIQUE / SUPERSEDED.** Ce document décrit l'ancienne cible monolithique `WBP_GrimrockMenu`. La référence actuelle est `docs/Design/UI_ARCHITECTURE_CURRENT.md`, avec `WBP_CharacterSheet` et `WBP_InventoryBag` indépendants et la navigation persistante dans `WBP_GridCombatHud`.
+> **HISTORIQUE / SUPERSEDED.** Ce document décrit l'ancienne cible monolithique
+> `WBP_GrimrockMenu`. La référence actuelle est
+> `docs/Design/UI_ARCHITECTURE_CURRENT.md`, avec
+> `WBP_CharacterSheet` et `WBP_InventoryBag` indépendants,
+> `WBP_GridSkills` et `WBP_GridMap` autonomes, et la navigation/action bar
+> persistante dans **`WBP_GridPersistentHud`**. Le Combat HUD est réservé à la
+> présentation combat.
 
 ## Objectif
 

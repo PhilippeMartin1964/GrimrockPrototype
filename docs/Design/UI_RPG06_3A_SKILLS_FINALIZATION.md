@@ -1,5 +1,11 @@
 # UI-RPG06.3A — Finalisation du contrat COMPÉTENCES
 
+> **DOC-AUDIT02 — état courant : HISTORIQUE.** La finalisation Skills reste
+> validée comme jalon UI-RPG06. La « compatibilité Talent plate » volontairement
+> conservée dans ce document a depuis été auditée puis supprimée par
+> UI-RPG-CODE-AUDIT01 ; `WBP_GridSkills` a été recompilé avec succès sans ces
+> symboles.
+
 Date : **7 octobre 2026**  
 Parent : **UI-RPG06 — Unification Compétences + Talents UX**  
 État : **VALIDÉ / CLOS — build Editor OK ; RPG06 Skills 7/7 ; MON20.8 8/8 ; RPG04 12/12 ; RPG05 5/5 ; PIE final validé**

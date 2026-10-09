@@ -1,11 +1,18 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07 VALIDÉ/CLOS — MON21.6 + MAP-THEME01 VALIDÉS/CLOS — SUITE MON21 À PRIORISER**  
-Date de référence : **4 octobre 2026**
+Statut : **REBASELINÉ 9 OCTOBRE 2026 — SUITE MON21 / MON22 À PRIORISER**  
+Date de référence : **9 octobre 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
 
-Baseline de clôture du 4 octobre 2026 : `9045ef2d`, **1026/1026**, 0 warning, 0 échec, Shipping Win64 validé. Le commit DOC-CLOSURE01 est documentation-only.
+Baseline C++ auditée : `6f98a0ef`
+(`UI-RPG-CODE-AUDIT01` validé/clos). DOC-AUDIT02 est documentation-only et
+peut faire avancer le HEAD Git sans modifier cette baseline C++.
+
+La dernière baseline **globale + Shipping** reste celle du 4 octobre 2026 :
+`9045ef2d`, **1026/1026**, 0 warning, 0 échec, Shipping Win64 validé.
+Les travaux postérieurs disposent de validations ciblées et ne sont pas
+présentés ici comme une nouvelle campagne globale.
 
 ---
 
@@ -42,7 +49,10 @@ Puis :
 MON22 — 45–90 Minute Vertical Slice
 ```
 
-Les campagnes TD05 et TD06 restent closes. TD07.1 et TD07.2 sont validées. Une nouvelle campagne volontaire, **TD07.3 — Prototype Data Model Reset**, suspend temporairement MON21 afin de supprimer les compatibilités historiques et schémas legacy avant de poursuivre les nouvelles fonctionnalités.
+Les campagnes TD05, TD06 et TD07 sont closes. TD07.3 a atteint sa stop
+condition le 28 août ; il ne suspend plus MON21. Les références TD07 qui
+décrivent v19/v20/v22 restent des checkpoints historiques : le SaveGame courant
+est désormais **v24 exact-match**.
 
 ---
 
@@ -62,6 +72,36 @@ FGridPartyInventoryState
 ```
 
 Le SaveGame était v8 à la clôture MON20, puis v9 via TD01.1. TD07.3.2 a ouvert le schéma prototype v10 exact-match. TD07.3.3.2 a ouvert **v11 exact-match** après suppression du bridge legacy des attributs. TD07.3.3.3 a ouvert **v12 exact-match** après séparation des ressources mutables. TD07.3.3.4 a ouvert **v13 exact-match** après suppression des caches de poids. TD07.3.3.5 B1 a ouvert **v14** lorsque `Level` est devenu transient ; B2 a ouvert **v15 exact-match** après suppression du miroir `ClassProgressionStates`. TD07.3.3.6 ouvre **v16 exact-match** avec `SkillRanks` comme autorité durable unique et suppression de `CharacterSkillStates`. TD07.3.3.7 ouvre **v17 exact-match** avec `KnownSpellIds` comme autorité durable unique et suppression du miroir Spellbook ; aucune migration arrière. TD07.3.3.7 Shipping final est validé le 27 août 2026. TD07.3.3.8 ouvre **v18 exact-match** avec `Character.StatusEffects` comme autorité durable directe et suppression du miroir `CharacterStatusEffectStates`.
+
+---
+
+## 2.1 Clôtures RPG/UI postérieures à MON20
+
+Les systèmes MON20 ont été prolongés sans créer de seconde autorité :
+
+```text
+UI-RPG06             CLOS — surface autonome Compétences/Talents
+RPG-SKILL01          CLOS — économie Skill Points + Safe Undo
+RPG-LEVELUX01        CLOS — Level Up non modal, Save v24
+RPG-ATTR01           CLOS — Attribute Points + Safe Undo
+UI-RPG-DESC01        CLOS — fiche Talent canonique 90/90
+UI-RPG-CODE-AUDIT01 CLOS — façades/projections compatibility supprimées
+```
+
+Architecture courante :
+
+```text
+Talents -> FRPGClassProgressionTransactionService
+        -> FGridSkillsPageService -> FGridTalentTreeView
+
+Skills  -> FRPGSkillService
+        -> FRPGSkillPointService
+        -> FGridSkillsPageService
+```
+
+Les anciens `FRPGTalentRuntimeService`, `FRPGSkillRuntimeService`,
+`FGridTalentEntryView` et `CollectAutomaticSatisfiedRequirements()` ont été
+supprimés.
 
 ---
 
@@ -496,10 +536,9 @@ MON22   — 45–90 Minute Vertical Slice               À FAIRE
 La prochaine priorité produit doit être choisie explicitement ; la documentation ne réactive pas automatiquement MON21.4.
 
 
-TD07.3.3.9 ouvre **v19 exact-match** : `LastAcknowledgedLevel` devient l'état durable minimal de notification Level-Up et les queues persistantes MON15.6 sont supprimées.
-
-
-TD07.3.3.10 ouvre **v20 exact-match** : `DerivedStats` devient transient et est reconstruit depuis l'autorité personnage durable après chargement.
+> **Note historique SaveGame.** Les étapes v19/v20 de TD07.3 ont été
+> superseded. RPG-LEVELUX01 a supprimé `LastAcknowledgedLevel` et le SaveGame
+> courant est **v24 exact-match**. `DerivedStats` reste transient.
 
 
 ## Ordre de clôture TD07 avant reprise fonctionnelle
