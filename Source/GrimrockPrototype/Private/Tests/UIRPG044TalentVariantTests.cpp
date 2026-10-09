@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "RPGMON155TestHelpers.h"
+#include "UI/GridSkillsPageService.h"
 #include "UI/GridSkillsWidget.h"
 #include "UI/GridTalentDetailWidget.h"
 
@@ -63,17 +64,32 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG044GenericNVariantSelectionTest,
 bool FUIRPG044GenericNVariantSelectionTest::RunTest(const FString&)
 {
 	using namespace UIRPG044Tests;
+	FGridTalentNodeView Node = MakeVariantNode(4);
+	Node.Variants[1].State = EGridTalentNodeState::LockedPoints;
+	Node.Variants[1].bAvailable = false;
+
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 	TestTrue(TEXT("Four-variant conceptual node initializes"),
-		Detail->InitializeTalentDetail(MakeVariantNode(4), MakePresentation()));
+		Detail->InitializeTalentDetail(Node, MakePresentation()));
 	TestFalse(TEXT("Multi-variant node is not a simple acquisition"), Detail->CanRequestSimpleAcquisition());
 	TestTrue(TEXT("Multi-variant node can open generic selector"), Detail->CanRequestVariantAcquisition());
 	TestTrue(TEXT("Variant selector enters pending state"), Detail->BeginVariantSelection());
 	TestTrue(TEXT("Variant pending flag is set"), Detail->bVariantSelectionPending);
+	TestFalse(TEXT("Locked sibling cannot become the pending choice"), Detail->SelectVariantChoice(TEXT("Choice_1")));
+	TestTrue(TEXT("Rejected sibling leaves no pending ChoiceId"), Detail->GetSelectedVariantChoiceId().IsNone());
 	TestTrue(TEXT("A concrete available ChoiceId can be selected"), Detail->SelectVariantChoice(TEXT("Choice_3")));
 	TestEqual(TEXT("Selected variant ChoiceId is stable"), Detail->GetSelectedVariantChoiceId(), FName(TEXT("Choice_3")));
+
+	Detail->CancelAcquireConfirmation();
+	TestFalse(TEXT("Cancel clears variant pending state"), Detail->bVariantSelectionPending);
+	TestTrue(TEXT("Cancel clears the pending ChoiceId"), Detail->GetSelectedVariantChoiceId().IsNone());
+	TestFalse(TEXT("Nothing can be confirmed after cancel"), Detail->ConfirmAcquire());
+
+	TestTrue(TEXT("Variant acquisition can be started again after cancel"), Detail->BeginVariantSelection());
+	TestTrue(TEXT("Available variant can be selected again"), Detail->SelectVariantChoice(TEXT("Choice_3")));
 	TestTrue(TEXT("Selected variant can be confirmed"), Detail->ConfirmAcquire());
 	TestFalse(TEXT("Variant pending state clears after confirmation"), Detail->bVariantSelectionPending);
+	TestTrue(TEXT("Confirmed ChoiceId is no longer retained as transient UI state"), Detail->GetSelectedVariantChoiceId().IsNone());
 	return true;
 }
 
@@ -119,12 +135,37 @@ bool FUIRPG044VariantTransactionTest::RunTest(const FString&)
 
 	const FName ConceptNodeId(TEXT("Talent_Test_Variant"));
 	const FName ExclusiveGroup(TEXT("TalentGroup_Test_Variant"));
+	ChoiceA->TalentBranchId = TEXT("Branch");
+	ChoiceB->TalentBranchId = TEXT("Branch");
 	ChoiceA->TalentNodeId = ConceptNodeId;
 	ChoiceB->TalentNodeId = ConceptNodeId;
 	ChoiceA->ExclusiveChoiceGroupId = ExclusiveGroup;
 	ChoiceB->ExclusiveChoiceGroupId = ExclusiveGroup;
+	ChoiceA->PresentationType = ERPGTalentPresentationType::Passive;
+	ChoiceB->PresentationType = ERPGTalentPresentationType::Passive;
+	ChoiceA->Description = FText::FromString(TEXT("Variante A de test pour la projection d'acquisition."));
+	ChoiceB->Description = FText::FromString(TEXT("Variante B de test pour la projection d'acquisition."));
 	ChoiceB->PrerequisiteChoiceIds.Reset();
 	ChoiceB->MinimumLevel = 2;
+
+	FRPGClassProgressionChoiceDefinition* ChoiceC = ClassDefinition->ProgressionChoices.FindByPredicate(
+		[](const FRPGClassProgressionChoiceDefinition& Choice) { return Choice.ChoiceId == TEXT("Choice_C"); });
+	FRPGClassProgressionChoiceDefinition* Expensive = ClassDefinition->ProgressionChoices.FindByPredicate(
+		[](const FRPGClassProgressionChoiceDefinition& Choice) { return Choice.ChoiceId == TEXT("Choice_Expensive"); });
+	TestNotNull(TEXT("Choice C exists"), ChoiceC);
+	TestNotNull(TEXT("Expensive choice exists"), Expensive);
+	if (!ChoiceC || !Expensive)
+	{
+		return false;
+	}
+	ChoiceC->TalentBranchId = TEXT("Branch");
+	ChoiceC->TalentNodeId = TEXT("Talent_Test_C");
+	ChoiceC->PresentationType = ERPGTalentPresentationType::Passive;
+	ChoiceC->Description = FText::FromString(TEXT("Talent C de test pour la projection d'acquisition."));
+	Expensive->TalentBranchId = TEXT("Branch");
+	Expensive->TalentNodeId = TEXT("Talent_Test_Expensive");
+	Expensive->PresentationType = ERPGTalentPresentationType::Passive;
+	Expensive->Description = FText::FromString(TEXT("Talent coûteux de test pour la projection d'acquisition."));
 
 	const FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
 	UGridSkillsWidget* Skills = NewObject<UGridSkillsWidget>();
@@ -170,6 +211,52 @@ bool FUIRPG044VariantTransactionTest::RunTest(const FString&)
 	TestTrue(TEXT("Requested variant is persisted"), Selected.Contains(TEXT("Choice_B")));
 	TestFalse(TEXT("Sibling variant is not persisted"), Selected.Contains(TEXT("Choice_A")));
 	TestEqual(TEXT("Exactly one exclusive variant is committed"), Selected.Num(), 1);
+
+	FGridSkillsPageView Projected;
+	TestTrue(TEXT("Post-commit read-model rebuild succeeds"),
+		FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, Projected));
+
+	const FGridTalentNodeView* ProjectedNode = nullptr;
+	for (const FGridTalentBranchView& ProjectedBranch : Projected.TalentTree.Branches)
+	{
+		ProjectedNode = ProjectedBranch.Nodes.FindByPredicate(
+			[ConceptNodeId](const FGridTalentNodeView& Candidate)
+			{
+				return Candidate.TalentNodeId == ConceptNodeId;
+			});
+		if (ProjectedNode) break;
+	}
+	TestNotNull(TEXT("Committed conceptual node remains projected"), ProjectedNode);
+	if (!ProjectedNode)
+	{
+		return false;
+	}
+
+	TestEqual(TEXT("Conceptual node becomes ACQUIS"), ProjectedNode->StatusText.ToString(), FString(TEXT("ACQUIS")));
+	TestEqual(TEXT("Committed ChoiceId becomes the selected variant"),
+		ProjectedNode->SelectedChoiceId, FName(TEXT("Choice_B")));
+
+	const FGridTalentVariantView* ProjectedA = ProjectedNode->Variants.FindByPredicate(
+		[](const FGridTalentVariantView& Variant) { return Variant.ChoiceId == TEXT("Choice_A"); });
+	const FGridTalentVariantView* ProjectedB = ProjectedNode->Variants.FindByPredicate(
+		[](const FGridTalentVariantView& Variant) { return Variant.ChoiceId == TEXT("Choice_B"); });
+	TestNotNull(TEXT("Sibling variant remains visible"), ProjectedA);
+	TestNotNull(TEXT("Committed variant remains visible"), ProjectedB);
+	if (!ProjectedA || !ProjectedB)
+	{
+		return false;
+	}
+
+	TestTrue(TEXT("Committed variant is acquired"), ProjectedB->bAcquired && ProjectedB->bSelected);
+	TestEqual(TEXT("Committed variant status is ACQUIS"), ProjectedB->StatusText.ToString(), FString(TEXT("ACQUIS")));
+	TestFalse(TEXT("Committed variant no longer exposes CHOISIR"), ProjectedB->bCanChoose);
+
+	TestFalse(TEXT("Sibling variant is not acquired"), ProjectedA->bAcquired || ProjectedA->bSelected);
+	TestEqual(TEXT("Sibling variant becomes exclusive-unavailable"),
+		ProjectedA->State, EGridTalentNodeState::LockedExclusive);
+	TestEqual(TEXT("Sibling variant status is player-facing INDISPONIBLE"),
+		ProjectedA->StatusText.ToString(), FString(TEXT("INDISPONIBLE — autre variante déjà choisie")));
+	TestFalse(TEXT("Sibling variant no longer exposes CHOISIR"), ProjectedA->bCanChoose);
 	return true;
 }
 

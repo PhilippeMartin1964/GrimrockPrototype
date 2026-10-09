@@ -247,9 +247,10 @@ bool UGridTalentDetailWidget::CanRequestVariantAcquisition() const
 	}
 
 	return NodeView.Variants.ContainsByPredicate(
-		[](const FGridTalentVariantView& Variant)
+		[this](const FGridTalentVariantView& Variant)
 		{
-			return !Variant.ChoiceId.IsNone() && Variant.bAvailable && !Variant.bSelected;
+			const bool bCanChoose = bHasCanonicalDetail ? Variant.bCanChoose : Variant.bAvailable;
+			return !Variant.ChoiceId.IsNone() && bCanChoose && !Variant.bSelected && !Variant.bAcquired;
 		});
 }
 
@@ -308,7 +309,13 @@ bool UGridTalentDetailWidget::SelectVariantChoice(FName ChoiceId)
 		return false;
 	}
 
-	// Inspection never grants acquisition rights, including for locked variants.
+	const bool bCanChoose = bHasCanonicalDetail ? Variant->bCanChoose : Variant->bAvailable;
+	if (!bCanChoose || Variant->bSelected || Variant->bAcquired)
+	{
+		return false;
+	}
+
+	// Only an actually acquirable variant may enter the pending transaction state.
 	SelectedVariantChoiceId = ChoiceId;
 	RebuildVariantBlocks();
 	RefreshVariantDetailPreview();
@@ -377,7 +384,8 @@ bool UGridTalentDetailWidget::ConfirmAcquire()
 		{
 			return Candidate.ChoiceId == ChoiceId;
 		});
-	if (!Variant || !Variant->bAvailable || Variant->bSelected)
+	const bool bCanChoose = Variant && (bHasCanonicalDetail ? Variant->bCanChoose : Variant->bAvailable);
+	if (!Variant || !bCanChoose || Variant->bSelected || Variant->bAcquired)
 	{
 		return false;
 	}
