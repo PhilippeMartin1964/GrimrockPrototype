@@ -254,13 +254,23 @@ if (-not (Test-Path -LiteralPath $UnrealPak -PathType Leaf))
 
 Write-Host ''
 Write-Host '=== UI-RPG packaged asset validation ==='
-$PackagedAssetListing = New-Object System.Collections.Generic.List[string]
-foreach ($PakFile in $PakFiles)
+$IoStoreTocFiles = @(Get-ChildItem -LiteralPath $SessionArchivePath -Recurse -File -Filter '*.utoc')
+$AssetContainerFiles = @($PakFiles) + @($IoStoreTocFiles)
+if ($AssetContainerFiles.Count -le 0)
 {
-    $Listing = @(& $UnrealPak $PakFile.FullName '-List' 2>&1)
+    throw 'Aucun conteneur PAK/IoStore inspectable n''a ete produit.'
+}
+
+Write-Host "PAK containers     : $($PakFiles.Count)"
+Write-Host "IoStore TOCs       : $($IoStoreTocFiles.Count)"
+
+$PackagedAssetListing = New-Object System.Collections.Generic.List[string]
+foreach ($ContainerFile in $AssetContainerFiles)
+{
+    $Listing = @(& $UnrealPak $ContainerFile.FullName '-List' 2>&1)
     if ($LASTEXITCODE -ne 0)
     {
-        throw "UnrealPak -List a echoue pour : $($PakFile.FullName)"
+        throw "UnrealPak -List a echoue pour : $($ContainerFile.FullName)"
     }
     $PackagedAssetListing.Add(($Listing -join "`n"))
 }
