@@ -249,9 +249,3 @@ bool FRPGClassProgressionService::CollectSatisfiedRequirements(
 	return ResolveSelectionRequirements(*ClassDefinition, CharacterLevel, SelectedChoiceIds, OutSatisfiedRequirements);
 }
 
-bool FRPGClassProgressionService::CollectAutomaticSatisfiedRequirements(
-	const URPGClassAsset* ClassDefinition, int32 CharacterLevel, TSet<FName>& OutSatisfiedRequirements)
-{
-	const TSet<FName> NoSelectedChoices;
-	return CollectSatisfiedRequirements(ClassDefinition, CharacterLevel, NoSelectedChoices, OutSatisfiedRequirements);
-}

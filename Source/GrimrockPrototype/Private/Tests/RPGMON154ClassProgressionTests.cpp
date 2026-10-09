@@ -233,12 +233,15 @@ bool FRPGMON154RequirementProjectionTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	URPGClassAsset* ClassDefinition = MakeMON154Class(GetTransientPackage());
 	TSet<FName> Requirements;
+	const TSet<FName> NoSelectedChoices;
 
-	TestTrue(TEXT("Level one requirements resolve"), FRPGClassProgressionService::CollectAutomaticSatisfiedRequirements(ClassDefinition, 1, Requirements));
+	TestTrue(TEXT("Level one requirements resolve"),
+		FRPGClassProgressionService::CollectSatisfiedRequirements(ClassDefinition, 1, NoSelectedChoices, Requirements));
 	TestTrue(TEXT("Class identity is always satisfied"), Requirements.Contains(ClassDefinition->ClassId));
 	TestFalse(TEXT("Level two feature is locked at level one"), Requirements.Contains(TEXT("Feature_Level2")));
 
-	TestTrue(TEXT("Level two requirements resolve"), FRPGClassProgressionService::CollectAutomaticSatisfiedRequirements(ClassDefinition, 2, Requirements));
+	TestTrue(TEXT("Level two requirements resolve"),
+		FRPGClassProgressionService::CollectSatisfiedRequirements(ClassDefinition, 2, NoSelectedChoices, Requirements));
 	TestTrue(TEXT("Level two automatic feature is granted"), Requirements.Contains(TEXT("Feature_Level2")));
 
 	TSet<FName> Selected;
@@ -265,12 +268,15 @@ bool FRPGMON154CombatActionUnlockProjectionTest::RunTest(const FString& Paramete
 	TestTrue(TEXT("Class remains valid with progression-gated action"), ClassDefinition->IsValidDefinition());
 
 	TSet<FName> Requirements;
-	TestTrue(TEXT("Level one projection succeeds"), FRPGClassProgressionService::CollectAutomaticSatisfiedRequirements(ClassDefinition, 1, Requirements));
+	const TSet<FName> NoSelectedChoices;
+	TestTrue(TEXT("Level one projection succeeds"),
+		FRPGClassProgressionService::CollectSatisfiedRequirements(ClassDefinition, 1, NoSelectedChoices, Requirements));
 	FGridAvailableCombatAction Available = BuildMON154AvailableAction(ClassDefinition, LevelAction, Requirements);
 	TestFalse(TEXT("Level-gated ability is disabled before unlock"), Available.bEnabled);
 	TestTrue(TEXT("Locked ability reports MissingRequirement"), Available.AvailabilityReason == EGridCombatActionAvailabilityReason::MissingRequirement);
 
-	TestTrue(TEXT("Level two projection succeeds"), FRPGClassProgressionService::CollectAutomaticSatisfiedRequirements(ClassDefinition, 2, Requirements));
+	TestTrue(TEXT("Level two projection succeeds"),
+		FRPGClassProgressionService::CollectSatisfiedRequirements(ClassDefinition, 2, NoSelectedChoices, Requirements));
 	Available = BuildMON154AvailableAction(ClassDefinition, LevelAction, Requirements);
 	TestTrue(TEXT("Level-gated ability becomes available"), Available.bEnabled);
 
@@ -309,9 +315,10 @@ bool FRPGMON154LevelUpIntegrationTest::RunTest(const FString& Parameters)
 		FRPGClassProgressionService::GetTotalChoicePointsGranted(ClassDefinition, Component->PartyInventoryState.ActiveCharacters[0].Level), 1);
 
 	TSet<FName> Requirements;
+	const TSet<FName> NoSelectedChoices;
 	TestTrue(TEXT("New level automatically projects progression requirements"),
-		FRPGClassProgressionService::CollectAutomaticSatisfiedRequirements(
-			ClassDefinition, Component->PartyInventoryState.ActiveCharacters[0].Level, Requirements));
+		FRPGClassProgressionService::CollectSatisfiedRequirements(
+			ClassDefinition, Component->PartyInventoryState.ActiveCharacters[0].Level, NoSelectedChoices, Requirements));
 	TestTrue(TEXT("Level-up exposes the level-two feature"), Requirements.Contains(TEXT("Feature_Level2")));
 	return true;
 }
@@ -332,8 +339,9 @@ bool FRPGMON154NoProgressionChoicesCompatibilityTest::RunTest(const FString& Par
 		FRPGClassProgressionService::GetTotalChoicePointsGranted(ClassDefinition, 10), 0);
 
 	TSet<FName> Requirements;
+	const TSet<FName> NoSelectedChoices;
 	TestTrue(TEXT("Class without progression choices still projects requirements"),
-		FRPGClassProgressionService::CollectAutomaticSatisfiedRequirements(ClassDefinition, 10, Requirements));
+		FRPGClassProgressionService::CollectSatisfiedRequirements(ClassDefinition, 10, NoSelectedChoices, Requirements));
 	TestTrue(TEXT("Class identity remains available without progression choices"), Requirements.Contains(ClassDefinition->ClassId));
 	return true;
 }

@@ -19,9 +19,9 @@ enum class ERPGClassProgressionChoiceAvailabilityReason : uint8
 };
 
 /**
- * Pure MON15.4 progression rules. It derives class choice currency and granted
- * requirement tags without mutating character state. MON15.5 will own the
- * selection transaction; MON15.6 will own persistence/migration.
+ * Pure class-progression rules. It derives Talent Point currency and granted
+ * requirement tags without mutating character state.
+ * FRPGClassProgressionTransactionService owns live selection transactions.
  */
 struct GRIMROCKPROTOTYPE_API FRPGClassProgressionService
 {
@@ -44,6 +44,4 @@ struct GRIMROCKPROTOTYPE_API FRPGClassProgressionService
 	static bool CollectSatisfiedRequirements(
 		const URPGClassAsset* ClassDefinition, int32 CharacterLevel, const TSet<FName>& SelectedChoiceIds, TSet<FName>& OutSatisfiedRequirements);
 
-	/** Convenience overload for the current runtime before MON15.5 selections. */
-	static bool CollectAutomaticSatisfiedRequirements(const URPGClassAsset* ClassDefinition, int32 CharacterLevel, TSet<FName>& OutSatisfiedRequirements);
 };
