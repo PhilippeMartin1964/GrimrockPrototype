@@ -477,7 +477,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 
 	// Marksman progression.
 	FRPGClassProgressionChoiceDefinition Precise = MakeChoice(
-		TEXT("Talent_Ranger_Marksman_PreciseShot"), TEXT("Tir précis"), TEXT("150 % dégâts de l'arme, Précision +2. Requiert arme à distance. Portée finale clampée à 32 cellules."), 2, MarksmanBranchId);
+		TEXT("Talent_Ranger_Marksman_PreciseShot"), TEXT("Tir précis"), TEXT("150 % des dégâts de l'arme et Précision +2. Requiert une arme à distance. La portée finale est limitée à 32 cellules."), 2, MarksmanBranchId);
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.ActionIds = { TEXT("Action_Ranger_PreciseShot") };
@@ -486,7 +486,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	}
 	ClassAsset.ProgressionChoices.Add(Precise);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TEXT("Talent_Ranger_Marksman_PiercingShot"), TEXT("Tir perforant"), TEXT("110 % dégâts de l'arme, Physical/Piercing. Inflige en plus 50 % du dégâts bruts à armure physique uniquement, sans débordement vers PV."),
+		TEXT("Talent_Ranger_Marksman_PiercingShot"), TEXT("Tir perforant"), TEXT("110 % des dégâts de l'arme, de type physique perforant. Inflige en plus 50 % des dégâts bruts à l'armure physique uniquement, sans débordement vers les PV."),
 		6, MarksmanBranchId, TEXT("Talent_Ranger_Marksman_PreciseShot")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Ranger_Marksman_RapidShot"), TEXT("Tir rapide"), TEXT("Deux attaques successives indépendantes à 65 % dégâts de l'arme chacune. La seconde a Précision -1. Les deux peuvent critiquer ; la mort après le premier tir annule le second."),
@@ -516,7 +516,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	// Hunter progression.
 	FRPGClassProgressionChoiceDefinition MarkPrey = MakeChoice(
 		TEXT("Talent_Ranger_Hunter_MarkPrey"), TEXT("Marque de la proie"),
-		TEXT("Applique Status_MarkedByRanger 3 rounds, sans ArmorGate. Une seule marque active par Rôdeur. Contre sa propre marque : Précision +2, dégâts +15 %."), 2, HunterBranchId);
+		TEXT("Marque la cible pendant 3 rounds, quelle que soit son armure. Une seule marque peut être active par Rôdeur. Contre sa propre cible marquée : Précision +2 et dégâts +15 %."), 2, HunterBranchId);
 	{
 		FGridCombatModifierProfile Modifier;
 		Modifier.RequiredTargetStatusEffectIds = { MarkStatusId };
@@ -610,7 +610,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	// Scout progression.
 	FRPGClassProgressionChoiceDefinition Vigilance = MakeChoice(
 		TEXT("Talent_Ranger_Scout_Vigilance"), TEXT("Vigilance"),
-		TEXT("Le Rôdeur apporte +2 au meilleur jet de groupe de Perception et gagne InitiativeModifier +2 au premier round de chaque combat. Ne se cumule pas entre plusieurs Rôdeurs."), 2, ScoutBranchId);
+		TEXT("Le Rôdeur apporte +2 au meilleur jet de groupe de Perception et gagne Initiative +2 au premier round de chaque combat. Ce bonus ne se cumule pas entre plusieurs Rôdeurs."), 2, ScoutBranchId);
 	{
 		FRPGPartyProgressionModifier Party;
 		Party.StackingGroupId = TEXT("Party.Ranger.Vigilance");
@@ -622,7 +622,7 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 	ClassAsset.ProgressionChoices.Add(Vigilance);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Ranger_Scout_HuntingTrap"), TEXT("Piège de chasse"),
-		TEXT("Pose Trap_Hunting 4 rounds. Premier hostile entrant : 5 + WIS mod dégâts Physical/Piercing ; si armure physique=0, Status_Immobilized 1 round ; piège consommé."), 6, ScoutBranchId, TEXT("Talent_Ranger_Scout_Vigilance")));
+		TEXT("Pose un piège de chasse pendant 4 rounds. Le premier hostile qui entre subit 5 + modificateur de SAG dégâts physiques perforants ; si son armure physique est épuisée, il est immobilisé pendant 1 round. Le piège est ensuite consommé."), 6, ScoutBranchId, TEXT("Talent_Ranger_Scout_Vigilance")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Ranger_Scout_TacticalRetreat"), TEXT("Repli tactique"),
 		TEXT("Déplace tout le groupe d'une cellule en arrière si la translation est légale. Ne paie pas le coût personnel normal de translation, mais paie 1 PAM. Aucun franchissement d'obstacle."), 10, ScoutBranchId, TEXT("Talent_Ranger_Scout_HuntingTrap")));

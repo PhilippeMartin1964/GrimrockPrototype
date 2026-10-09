@@ -466,7 +466,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		CataclysmTalentId, TEXT("Cataclysme"),
-		TEXT("Chaque hostile : 12 + INT mod + Arcana Rank dégâts d'affinité. Si armure magique=0 après dégâts : Fire→Burning 2 rounds ; Frost→Slow (Initiative -6) 2 rounds ; Air/Lightning→Stunned 1 tour ; Earth→Immobilized 1 round ou Poison 3 tours selon le sort choisi."), 18, EvokerBranchId, ElementalChainTalentId));
+		TEXT("Chaque hostile subit 12 + modificateur d'INT + rang d'Arcane dégâts d'affinité. Si son armure magique est épuisée après les dégâts : Feu → Brûlure 2 rounds ; Glace → Ralentissement (Initiative -6) 2 rounds ; Air/Foudre → Étourdissement 1 tour ; Terre → Immobilisation 1 round ou Poison 3 tours selon le sort choisi."), 18, EvokerBranchId, ElementalChainTalentId));
 
 	// Arcanist actions.
 	{
@@ -554,7 +554,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Arcanist progression.
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		ArcaneShieldTalentId, TEXT("Bouclier arcanique"),
-		TEXT("Restaure armure magique de 6 + INT mod + Arcana Rank, sans dépasser le pool d'armure magique de référence de la cible."), 2, ArcanistBranchId));
+		TEXT("Restaure 6 + modificateur d'INT + rang d'Arcane points d'armure magique, sans dépasser la réserve d'armure magique de référence de la cible."), 2, ArcanistBranchId));
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		DispelTalentId, TEXT("Dissipation"),
@@ -562,7 +562,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition RunicManipulation = MakeChoice(
 		RunicManipulationTalentId, TEXT("Manipulation runique"),
-		TEXT("Jets de Runes +2. Les dégâts arcaniques contre les cibles Rune ou Construct augmentent de 20 %. Les interactions avec les mécanismes runiques gagnent également +2 au test, sans réussite automatique."), 10, ArcanistBranchId, DispelTalentId);
+		TEXT("Jets de Runes +2. Les dégâts arcaniques contre les cibles runiques ou artificielles augmentent de 20 %. Les interactions avec les mécanismes runiques gagnent également +2 au test, sans réussite automatique."), 10, ArcanistBranchId, DispelTalentId);
 	FRPGSkillProgressionModifier RuneSkill;
 	RuneSkill.SkillId = TEXT("Skill_Runes");
 	RuneSkill.CheckModifier = 2;
@@ -581,7 +581,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition ArcaneMastery = MakeChoice(
 		ArcaneMasteryTalentId, TEXT("Maîtrise de l'Arcane"),
-		TEXT("Actions Spell de School Arcane : ManaCost -1 (minimum 1), portée +1 (max32) et dégâts Arcane +15 %."), 18, ArcanistBranchId, ShortTeleportTalentId);
+		TEXT("Les sorts de l'école arcanique coûtent 1 point de mana de moins (minimum 1), gagnent +1 cellule de portée (maximum 32) et infligent +15 % de dégâts arcaniques."), 18, ArcanistBranchId, ShortTeleportTalentId);
 	FGridCombatModifierProfile Mastery;
 	Mastery.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
 	Mastery.RequiredSourceTags = { TEXT("Spell.School.Arcane") };
@@ -672,13 +672,13 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition ConversionChoice = MakeChoice(
 		ElementalConversionTalentId, TEXT("Conversion élémentaire"),
-		TEXT("Convertit une surface selon table canonique : Water→Ice (Frost), Water/Blood→Electrified (Air), Oil/Poison→Fire (Fire), Water→Poison ou terrain neutre→Oil selon la variante Earth. Pas d'effet si conversion invalide."), 6, SurfaceWeaverBranchId);
+		TEXT("Convertit une surface selon la table canonique : Eau → Glace (affinité Glace), Eau/Sang → Eau électrifiée (Air), Huile/Poison → Feu (Feu), Eau → Poison ou terrain neutre → Huile (Terre). Aucun effet si la conversion est invalide."), 6, SurfaceWeaverBranchId);
 	ConversionChoice.PrerequisiteRequirementIds = { ImbuementTalentId };
 	ClassAsset.ProgressionChoices.Add(ConversionChoice);
 
 	FRPGClassProgressionChoiceDefinition Conduction = MakeChoice(
 		ConductionTalentId, TEXT("Conduction"),
-		TEXT("Une attaque élémentaire exploitant une surface/état compatible gagne +20 % dégâts. Si elle détruit armure magique, son contrôle associé peut s'appliquer immédiatement après dégâts selon l'ArmorGate normal."),
+		TEXT("Une attaque élémentaire exploitant une surface ou un état compatible gagne +20 % de dégâts. Si elle détruit l'armure magique, son contrôle associé peut s'appliquer immédiatement après les dégâts si les conditions d'armure sont remplies."),
 		10, SurfaceWeaverBranchId, ElementalConversionTalentId);
 	AddConductionModifier(Conduction, EGridDamageType::Fire, nullptr,
 		TArray<FName>{ FName(TEXT("Surface.Oil")), FName(TEXT("Surface.Poison")), FName(TEXT("Status_Burning")), FName(TEXT("Elemental.Fire")) });
@@ -705,7 +705,7 @@ void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TerrainArchitectTalentId, TEXT("Architecte du terrain"),
-		TEXT("Crée pendant 3 rounds une grande surface maîtrisée liée à l'affinité (Fire, Ice, Electrified Water, Oil/Poison). Les réactions standards sont ensuite résolues par le système de surfaces, sans effet spécial hard-codé au Talent."), 18, SurfaceWeaverBranchId, PersistentSurfaceTalentId));
+		TEXT("Crée pendant 3 rounds une grande surface maîtrisée liée à l'affinité (Feu, Glace, Eau électrifiée, Huile/Poison). Les réactions standards sont ensuite résolues par le système de surfaces, sans effet spécial codé en dur dans le Talent."), 18, SurfaceWeaverBranchId, PersistentSurfaceTalentId));
 }
 
 bool FRPGMageAuthoring::ConfigureElementalOverloadStatus(UGridStatusEffectDefinitionAsset& StatusAsset)

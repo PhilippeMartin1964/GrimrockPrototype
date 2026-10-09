@@ -338,7 +338,7 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition Interception = MakeChoice(
 		TEXT("Talent_Warrior_Guardian_Interception"), TEXT("Interception"),
-		TEXT("1 fois/round, lorsqu'un allié du rang avant subit une attaque physique ciblée : 50 % des dégâts finaux sont redirigés vers le Guerrier et résolus contre sa propre armure physique. Ignore AoE, DoT et surfaces."),
+		TEXT("1 fois/round, lorsqu'un allié du rang avant subit une attaque physique ciblée : 50 % des dégâts finaux sont redirigés vers le Guerrier et résolus contre sa propre armure physique. Les attaques de zone, les dégâts périodiques et les surfaces sont ignorés."),
 		10, GuardianBranchId, TEXT("Talent_Warrior_Guardian_ShieldBash"));
 	{
 		FGridCombatReactionProfile Reaction;
@@ -356,7 +356,7 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	FRPGClassProgressionChoiceDefinition Bulwark = MakeChoice(
 		TEXT("Talent_Warrior_Guardian_Bulwark"), TEXT("Rempart"),
-		TEXT("Armure physique fournie par équipement+bouclier +25 %. Le bonus modifie le pool projeté au démarrage/refresh, pas une seconde armure parallèle."),
+		TEXT("Armure physique fournie par l'équipement et le bouclier +25 %. Le bonus modifie la réserve d'armure physique projetée au démarrage et lors des actualisations ; il ne crée pas une seconde armure parallèle."),
 		14, GuardianBranchId, TEXT("Talent_Warrior_Guardian_Interception"));
 	{
 		FGridCombatModifierProfile Modifier;
@@ -366,7 +366,7 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	ClassAsset.ProgressionChoices.Add(Bulwark);
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Guardian_Fortress"), TEXT("Forteresse"),
-		TEXT("Restaure 40 % du pool d'armure physique de référence à chaque allié vivant du rang avant puis applique Status_Fortified 2 rounds : dégâts physiques reçus -25 %."), 18, GuardianBranchId, TEXT("Talent_Warrior_Guardian_Bulwark")));
+		TEXT("Restaure 40 % de la réserve d'armure physique de référence à chaque allié vivant du rang avant, puis réduit de 25 % les dégâts physiques qu'il reçoit pendant 2 rounds."), 18, GuardianBranchId, TEXT("Talent_Warrior_Guardian_Bulwark")));
 
 	FRPGClassProgressionChoiceDefinition PowerStrike = MakeChoice(
 		TEXT("Talent_Warrior_Breaker_PowerStrike"), TEXT("Coup puissant"),
@@ -383,7 +383,7 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		TEXT("Attaque à 100 % dégâts de l'arme. En plus, inflige à armure physique uniquement un bonus égal à 50 % du dégâts bruts de l'attaque ; l'excédent de ce bonus ne déborde jamais sur les PV."), 6, BreakerBranchId, TEXT("Talent_Warrior_Breaker_PowerStrike")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Breaker_Sweep"), TEXT("Balayage"),
-		TEXT("Chaque hostile dans la zone reçoit une attaque à 85 % dégâts de l'arme avec un jet séparé. Aucun friendly fire sur les membres du groupe occupant la case de départ."), 10, BreakerBranchId, TEXT("Talent_Warrior_Breaker_ArmorBreak")));
+		TEXT("Chaque hostile dans la zone reçoit une attaque à 85 % des dégâts de l'arme avec un jet séparé. Les membres du groupe occupant la case de départ ne subissent aucun dégât."), 10, BreakerBranchId, TEXT("Talent_Warrior_Breaker_ArmorBreak")));
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_Breaker_Execution"), TEXT("Exécution"),
 		TEXT("Disponible uniquement si armure physique=0 et PV <=35 % PV maximum. Inflige 200 % dégâts de l'arme. L'éligibilité est recalculée à la requête ; pas d'exécution automatique."), 14, BreakerBranchId, TEXT("Talent_Warrior_Breaker_Sweep")));
@@ -455,7 +455,7 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 	ClassAsset.ProgressionChoices.Add(MakeChoice(
 		TEXT("Talent_Warrior_WeaponMaster_Warlord"), TEXT("Seigneur de guerre"),
-		TEXT("Applique Status_Warlord 2 rounds à tous les alliés actifs : Précision +2 et InitiativeModifier +4. Non cumulable ; nouvelle application rafraîchit la durée."), 18, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_CriticalMastery")));
+		TEXT("Pendant 2 rounds, tous les alliés actifs gagnent Précision +2 et Initiative +4. L'effet n'est pas cumulable ; une nouvelle application rafraîchit sa durée."), 18, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_CriticalMastery")));
 }
 
 bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)

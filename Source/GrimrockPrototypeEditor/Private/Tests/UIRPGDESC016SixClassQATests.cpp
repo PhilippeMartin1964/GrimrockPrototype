@@ -117,6 +117,43 @@ namespace UIRPGDESC016QA
 				*FString::Printf(TEXT("%s does not revive legacy action status '%s'"), *Context, LegacyStatus),
 				Value.Contains(LegacyStatus, ESearchCase::IgnoreCase));
 		}
+
+		for (const TCHAR* TechnicalFragment : {
+			TEXT(" WD"),
+			TEXT("RawDamage"),
+			TEXT("Accuracy"),
+			TEXT("AoE"),
+			TEXT("DoT"),
+			TEXT("friendly fire"),
+			TEXT("InitiativeModifier"),
+			TEXT("ArmorGate"),
+			TEXT("ActionPointCost"),
+			TEXT("AreaRadius"),
+			TEXT("DamageType"),
+			TEXT("Alchemy Rank"),
+			TEXT("Arcana Rank"),
+			TEXT("Religion Rank"),
+			TEXT("WIS mod"),
+			TEXT("DEX mod"),
+			TEXT("INT mod"),
+			TEXT("SourcePolicy"),
+			TEXT("MaxStacks"),
+			TEXT("Mechanical"),
+			TEXT("Construct"),
+			TEXT("Physical"),
+			TEXT("Piercing"),
+			TEXT("ManaCost"),
+			TEXT("clamp"),
+			TEXT("hard-cod"),
+			TEXT("Item_"),
+			TEXT("Surface_"),
+			TEXT("Trap_")
+		})
+		{
+			Test.TestFalse(
+				*FString::Printf(TEXT("%s does not leak technical wording '%s'"), *Context, TechnicalFragment),
+				Value.Contains(TechnicalFragment, ESearchCase::CaseSensitive));
+		}
 	}
 
 	void ValidateDetailLines(

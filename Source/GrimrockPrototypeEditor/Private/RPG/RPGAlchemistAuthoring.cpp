@@ -348,13 +348,13 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	// Grenadier
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			FireBombTalent, TEXT("Bombe incendiaire"), TEXT("Permet de fabriquer et d'utiliser la Bombe incendiaire. Chaque ennemi de la zone subit 6 + rang d'Alchimie dégâts de feu. Si son armure magique est épuisée, applique Brûlure pendant 2 tours à 2 dégâts de feu par tick. Crée une surface de feu pendant 2 rounds."), 2, GrenadierBranchId);
+			FireBombTalent, TEXT("Bombe incendiaire"), TEXT("Permet de fabriquer et d'utiliser la Bombe incendiaire. Chaque ennemi de la zone subit 6 + rang d'Alchimie dégâts de feu. Si son armure magique est épuisée, applique Brûlure pendant 2 tours, à raison de 2 dégâts de feu par déclenchement périodique. Crée une surface de feu pendant 2 rounds."), 2, GrenadierBranchId);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Bomb_Fire") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			ToxicBombTalent, TEXT("Bombe toxique"), TEXT("Permet de fabriquer et d'utiliser la Bombe toxique. Chaque ennemi de la zone subit 6 + rang d'Alchimie dégâts de poison. Si son armure magique est épuisée, applique Poison pendant 3 tours à 2 dégâts de poison par tick. Crée une surface empoisonnée pendant 3 rounds."), 6, GrenadierBranchId, FireBombTalent);
+			ToxicBombTalent, TEXT("Bombe toxique"), TEXT("Permet de fabriquer et d'utiliser la Bombe toxique. Chaque ennemi de la zone subit 6 + rang d'Alchimie dégâts de poison. Si son armure magique est épuisée, applique Poison pendant 3 tours, à raison de 2 dégâts de poison par déclenchement périodique. Crée une surface empoisonnée pendant 3 rounds."), 6, GrenadierBranchId, FireBombTalent);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Bomb_Toxic") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
@@ -371,7 +371,7 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			ChainReactionTalent, TEXT("Réaction en chaîne"), TEXT("1 fois par action de bombe, lorsqu'elle déclenche une réaction de surface, les dégâts de cette réaction +25 % et son AreaRadius +1, plafonné à 2. Ne chaîne jamais récursivement."), 14, GrenadierBranchId,
+			ChainReactionTalent, TEXT("Réaction en chaîne"), TEXT("Une fois par action de bombe, lorsqu'elle déclenche une réaction de surface, les dégâts de cette réaction augmentent de 25 % et son rayon augmente de 1 cellule, jusqu'à un maximum de 2 cellules. Cet effet ne se déclenche jamais récursivement."), 14, GrenadierBranchId,
 			PreciseChargeTalent);
 		FGridCombatReactionProfile Reaction;
 		Reaction.ReactionId = TEXT("Reaction_Alchemist_ChainReaction");
@@ -386,7 +386,7 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			MasterGrenadierTalent, TEXT("Maître grenadier"), TEXT("Bombes : ActionPointCost -1 (minimum 1) et dégâts directs +20 %. Aucun effet sur le coût en items, les DoT déjà appliqués ou les dégâts de surface ultérieurs."), 18, GrenadierBranchId, ChainReactionTalent);
+			MasterGrenadierTalent, TEXT("Maître grenadier"), TEXT("Bombes : coût en points d'action -1 (minimum 1) et dégâts directs +20 %. Aucun effet sur le coût en objets, les dégâts périodiques déjà appliqués ou les dégâts de surface ultérieurs."), 18, GrenadierBranchId, ChainReactionTalent);
 		FGridCombatModifierProfile Modifier;
 		Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::QuickItem };
 		Modifier.RequiredSourceTags = { TEXT("QuickItem.Bomb") };
@@ -451,13 +451,13 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			AcidFlaskTalent, TEXT("Flasque acide"), TEXT("Pas de nouveau DamageType Acide : réduit directement armure physique de 6 + 2×Alchemy Rank; l'excédent ne touche jamais PV. Applique Status_Corroded 2 rounds : restaurations d'armure physique reçues -20 %."), 6, TransmuterBranchId, OilSlickTalent);
+			AcidFlaskTalent, TEXT("Flasque acide"), TEXT("L'acide n'introduit pas de nouveau type de dégâts : il réduit directement l'armure physique de 6 + 2 × rang d'Alchimie ; l'excédent ne touche jamais les PV. Pendant 2 rounds, les restaurations d'armure physique reçues sont réduites de 20 %."), 6, TransmuterBranchId, OilSlickTalent);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Flask_Acid") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			CorrosiveCloudTalent, TEXT("Nuage corrosif"), TEXT("Impact initial : 4 + Alchemy Rank Poison. Crée Surface_PoisonCloud 3 rounds : 2 Poison/round. Si armure magique=0, les occupants reçoivent Status_Poison 2 tours."), 10, TransmuterBranchId, AcidFlaskTalent);
+			CorrosiveCloudTalent, TEXT("Nuage corrosif"), TEXT("Impact initial : 4 + rang d'Alchimie dégâts de poison. Crée un nuage empoisonné pendant 3 rounds, infligeant 2 dégâts de poison par round. Si l'armure magique est épuisée, les occupants subissent Poison pendant 2 tours."), 10, TransmuterBranchId, AcidFlaskTalent);
 		Choice.GrantedRequirementIds = { TEXT("Recipe_Flask_CorrosiveCloud") };
 		ClassAsset.ProgressionChoices.Add(Choice);
 	}
@@ -485,7 +485,7 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 	{
 		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
 			MajorTransmutationTalent, TEXT("Transmutation majeure"),
-			TEXT("Consomme Item_Catalyst_Rare. Convertit toutes les cellules de la zone vers une sortie valide choisie par recette (Fire/Ice/Poison/Oil) et fixe leur durée à 4 rounds. Les dégâts de réaction déclenchés pendant cette conversion +50 %."),
+			TEXT("Consomme un Catalyseur rare. Convertit toutes les cellules de la zone vers une surface valide choisie par recette (Feu/Glace/Poison/Huile) et fixe leur durée à 4 rounds. Les dégâts des réactions déclenchées pendant cette conversion augmentent de 50 %."),
 			18, TransmuterBranchId, CatalystTalent);
 		Choice.GrantedRequirementIds = {
 			TEXT("Recipe_MajorTransmutation_Fire"), TEXT("Recipe_MajorTransmutation_Ice"),
