@@ -73,7 +73,7 @@ bool FGridCursorStandalone01SingleAuthorityTest::RunTest(const FString& Paramete
 	}
 
 	Controller->CustomCursorWidget = NewObject<UUserWidget>(Controller);
-	if (!TestNotNull(TEXT("Custom cursor widget exists"), Controller->CustomCursorWidget))
+	if (!TestNotNull(TEXT("Custom cursor widget exists"), Controller->CustomCursorWidget.Get()))
 	{
 		return false;
 	}
