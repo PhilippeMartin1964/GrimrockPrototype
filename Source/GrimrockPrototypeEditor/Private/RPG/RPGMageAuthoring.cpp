@@ -802,7 +802,7 @@ bool FRPGMageAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Status
 	if (EffectId == BurningStatusId)
 	{
 		StatusAsset.DisplayName = FText::FromString(TEXT("Brûlure"));
-		StatusAsset.Description = FText::FromString(TEXT("Subit 2 dégâts de Feu à chaque tick pendant 2 tours."));
+		StatusAsset.Description = FText::FromString(TEXT("Subit 2 dégâts de Feu à chaque déclenchement périodique pendant 2 tours."));
 		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Elemental.Fire") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;

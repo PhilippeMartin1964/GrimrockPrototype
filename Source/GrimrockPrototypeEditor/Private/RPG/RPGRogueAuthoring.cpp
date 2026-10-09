@@ -459,7 +459,7 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	if (EffectId == TEXT("Status_Bleeding"))
 	{
 		StatusAsset.DisplayName = FText::FromString(TEXT("Saignement"));
-		StatusAsset.Description = FText::FromString(TEXT("Subit 2 dégâts physiques à chaque tick pendant 3 tours."));
+		StatusAsset.Description = FText::FromString(TEXT("Subit 2 dégâts physiques à chaque déclenchement périodique pendant 3 tours."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
 		StatusAsset.DefaultDuration = 3;
@@ -483,7 +483,7 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	if (EffectId == TEXT("Status_Evasive"))
 	{
 		StatusAsset.DisplayName = FText::FromString(TEXT("Esquive"));
-		StatusAsset.Description = FText::FromString(TEXT("Evasion +4."));
+		StatusAsset.Description = FText::FromString(TEXT("Esquive +4."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 1;
@@ -539,7 +539,7 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	if (EffectId == TEXT("Status_Elusive"))
 	{
 		StatusAsset.DisplayName = FText::FromString(TEXT("Insaisissable"));
-		StatusAsset.Description = FText::FromString(TEXT("Evasion +2 et Initiative +4."));
+		StatusAsset.Description = FText::FromString(TEXT("Esquive +2 et Initiative +4."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 1;

@@ -693,7 +693,7 @@ bool FRPGAlchemistAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& S
 	if (EffectId == PoisonStatus)
 	{
 		StatusAsset.DisplayName = FText::FromString(TEXT("Poison"));
-		StatusAsset.Description = FText::FromString(TEXT("Subit 2 dégâts de Poison à chaque tick pendant 3 tours."));
+		StatusAsset.Description = FText::FromString(TEXT("Subit 2 dégâts de Poison à chaque déclenchement périodique pendant 3 tours."));
 		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Toxin"), TEXT("Elemental.Poison") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;

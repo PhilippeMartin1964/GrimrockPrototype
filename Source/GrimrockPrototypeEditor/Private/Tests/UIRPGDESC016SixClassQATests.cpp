@@ -143,6 +143,8 @@ namespace UIRPGDESC016QA
 			TEXT("Physical"),
 			TEXT("Piercing"),
 			TEXT("ManaCost"),
+			TEXT("Evasion"),
+			TEXT("tick"),
 			TEXT("clamp"),
 			TEXT("hard-cod"),
 			TEXT("Item_"),
