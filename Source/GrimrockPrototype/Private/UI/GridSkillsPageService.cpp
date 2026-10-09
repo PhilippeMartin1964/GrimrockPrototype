@@ -449,16 +449,15 @@ namespace
 		return FText::FromString(Label);
 	}
 
-	void BuildUnlockedActionViews(
+	void CollectUnlockedActions(
 		const URPGClassAsset& ClassDefinition,
 		const FRPGClassProgressionChoiceDefinition& Choice,
-		TArray<FGridTalentUnlockedActionView>& OutActions)
+		TArray<const FGridCombatActionDefinition*>& OutActions)
 	{
 		OutActions.Reset();
 
 		TSet<FName> SatisfiedIds;
 		BuildSatisfiedIdsForChoice(Choice, SatisfiedIds);
-
 		for (const FGridCombatActionDefinition& Action : ClassDefinition.CombatActions)
 		{
 			const bool bUnlockedByChoice = Action.Requirements.ContainsByPredicate(
@@ -466,38 +465,11 @@ namespace
 				{
 					return SatisfiedIds.Contains(RequirementId);
 				});
-			if (!bUnlockedByChoice)
+			if (bUnlockedByChoice)
 			{
-				continue;
+				OutActions.Add(&Action);
 			}
-
-			FGridTalentUnlockedActionView ActionView;
-			ActionView.ActionId = Action.ActionId;
-			ActionView.SourcePolicy = Action.SourcePolicy;
-			ActionView.DisplayName = Action.DisplayName;
-			ActionView.Description = Action.Description;
-			ActionView.ActionPointCost = Action.ActionPointCost;
-			ActionView.ManaCost = Action.ResourceCosts.ManaCost;
-			ActionView.RangeCells = Action.RangeCells;
-			ActionView.CooldownRounds = Action.CooldownRounds;
-			ActionView.SourceItemQuantityCost = Action.ResourceCosts.SourceItemQuantityCost;
-			ActionView.TargetSummary = TargetingSummary(Action.TargetingPolicy);
-			ActionView.AreaRadiusCells = Action.AreaRadiusCells;
-			ActionView.MaximumResolvedTargets = Action.MaximumResolvedTargets;
-			ActionView.ChainJumpRangeCells = Action.ChainJumpRangeCells;
-			ActionView.ResolutionCount = Action.ResolutionCount;
-			ActionView.SubsequentResolutionAccuracyModifier = Action.SubsequentResolutionAccuracyModifier;
-			ActionView.bRequiresLineOfSight = Action.bRequiresLineOfSight;
-			ActionView.bAreaCenteredOnParty = Action.bAreaCenteredOnParty;
-			ActionView.bAffectsAlliesInArea = Action.bAffectsAlliesInArea;
-			OutActions.Add(MoveTemp(ActionView));
 		}
-
-		OutActions.Sort(
-			[](const FGridTalentUnlockedActionView& Left, const FGridTalentUnlockedActionView& Right)
-			{
-				return Left.ActionId.ToString().Compare(Right.ActionId.ToString(), ESearchCase::CaseSensitive) < 0;
-			});
 	}
 
 
@@ -615,24 +587,30 @@ namespace
 	}
 
 	void BuildStructuredUsage(
-		const TArray<FGridTalentUnlockedActionView>& Actions,
+		const URPGClassAsset& ClassDefinition,
+		const FRPGClassProgressionChoiceDefinition& Choice,
 		TArray<FGridTalentDetailLineView>& Out)
 	{
 		Out.Reset();
-		for (const FGridTalentUnlockedActionView& Action : Actions)
+		TArray<const FGridCombatActionDefinition*> Actions;
+		CollectUnlockedActions(ClassDefinition, Choice, Actions);
+		for (const FGridCombatActionDefinition* ActionPtr : Actions)
 		{
+			if (!ActionPtr) continue;
+			const FGridCombatActionDefinition& Action = *ActionPtr;
 			if (Actions.Num() > 1 && !Action.DisplayName.IsEmpty())
 			{
 				AddDetailLine(Out, TEXT("Action"), Action.DisplayName.ToString());
 			}
 			if (Action.ActionPointCost > 0)
 				AddDetailLine(Out, TEXT("Coût"), Plural(Action.ActionPointCost, TEXT("point d'action"), TEXT("points d'action")));
-			if (Action.ManaCost > 0)
-				AddDetailLine(Out, TEXT("Mana"), FString::FromInt(Action.ManaCost));
-			if (Action.SourceItemQuantityCost > 0)
-				AddDetailLine(Out, TEXT("Objet consommé"), Plural(Action.SourceItemQuantityCost, TEXT("objet"), TEXT("objets")));
-			if (!Action.TargetSummary.IsEmpty())
-				AddDetailLine(Out, TEXT("Cible"), Action.TargetSummary.ToString());
+			if (Action.ResourceCosts.ManaCost > 0)
+				AddDetailLine(Out, TEXT("Mana"), FString::FromInt(Action.ResourceCosts.ManaCost));
+			if (Action.ResourceCosts.SourceItemQuantityCost > 0)
+				AddDetailLine(Out, TEXT("Objet consommé"), Plural(Action.ResourceCosts.SourceItemQuantityCost, TEXT("objet"), TEXT("objets")));
+			const FText TargetSummary = TargetingSummary(Action.TargetingPolicy);
+			if (!TargetSummary.IsEmpty())
+				AddDetailLine(Out, TEXT("Cible"), TargetSummary.ToString());
 			if (Action.RangeCells > 0)
 				AddDetailLine(Out, TEXT("Portée"), Plural(Action.RangeCells, TEXT("case"), TEXT("cases")));
 			if (Action.AreaRadiusCells > 0)
@@ -743,7 +721,6 @@ namespace
 	void BuildStructuredEffects(
 		const URPGClassAsset& ClassDefinition,
 		const FRPGClassProgressionChoiceDefinition& Choice,
-		const TArray<FGridTalentUnlockedActionView>& Actions,
 		TArray<FGridTalentDetailLineView>& Out)
 	{
 		Out.Reset();
@@ -757,29 +734,19 @@ namespace
 			AddDetailLine(Out, TEXT("Effet"), Line);
 		}
 
-		TSet<FName> SatisfiedIds;
-		BuildSatisfiedIdsForChoice(Choice, SatisfiedIds);
-		for (const FGridCombatActionDefinition& Action : ClassDefinition.CombatActions)
+		TArray<const FGridCombatActionDefinition*> Actions;
+		CollectUnlockedActions(ClassDefinition, Choice, Actions);
+		for (const FGridCombatActionDefinition* ActionPtr : Actions)
 		{
-			const bool bUnlockedByChoice = Action.Requirements.ContainsByPredicate(
-				[&SatisfiedIds](const FName RequirementId)
-				{
-					return SatisfiedIds.Contains(RequirementId);
-				});
-			if (!bUnlockedByChoice)
-			{
-				continue;
-			}
-			for (const FGridCombatStatusApplicationProfile& Profile : Action.StatusApplications)
+			if (!ActionPtr) continue;
+			for (const FGridCombatStatusApplicationProfile& Profile : ActionPtr->StatusApplications)
 			{
 				AddStatusApplicationEffect(Profile, Out);
 			}
-		}
-
-		for (const FGridTalentUnlockedActionView& Action : Actions)
-		{
-			if (Action.bAffectsAlliesInArea)
+			if (ActionPtr->bAffectsAlliesInArea)
+			{
 				AddDetailLine(Out, TEXT("Zone"), TEXT("peut également affecter les alliés"));
+			}
 		}
 	}
 
@@ -899,20 +866,15 @@ namespace
 			FGridTalentVariantView Variant;
 			Variant.ChoiceId = Choice->ChoiceId;
 			Variant.DisplayName = Choice->DisplayName;
-			Variant.Description = ResolveStatusReferences(Choice->Description);
-			Variant.Principle = Variant.Description;
-			BuildUnlockedActionViews(ClassDefinition, *Choice, Variant.UnlockedActions);
+			Variant.Principle = ResolveStatusReferences(Choice->Description);
 			Variant.Type = Choice->PresentationType;
 			Variant.TypeText = TalentTypeText(Variant.Type);
-			Variant.EffectCategory = Variant.TypeText; // DESC01.14.1 compatibility only.
-			Variant.MechanicsSummary = BuildMechanicsSummary(*Choice); // compatibility only.
-			BuildStructuredEffects(ClassDefinition, *Choice, Variant.UnlockedActions, Variant.Effects);
-			BuildStructuredUsage(Variant.UnlockedActions, Variant.Usage);
-			Variant.bSelected = bSelected;
+			BuildStructuredEffects(ClassDefinition, *Choice, Variant.Effects);
+			BuildStructuredUsage(ClassDefinition, *Choice, Variant.Usage);
 			Variant.bAcquired = bSelected;
 			if (!TryMapChoiceState(bSelected, Availability, Variant.State)) return false;
-			Variant.bAvailable = Variant.State == EGridTalentNodeState::Available;
-			Variant.bCanChoose = bVariantNode && Variant.bAvailable && !Variant.bAcquired;
+			Variant.bCanChoose =
+				bVariantNode && Variant.State == EGridTalentNodeState::Available && !Variant.bAcquired;
 
 			FGridTalentAcquisitionView VariantAcquisition;
 			BuildAcquisitionView(ClassDefinition, *Choice, bVariantNode, VariantAcquisition);
@@ -972,6 +934,9 @@ namespace
 			OutNode.SimpleChoiceId = First->ChoiceId;
 			OutNode.bCanAcquireSimple =
 				OutNode.State == EGridTalentNodeState::Available && !SelectedChoiceIds.Contains(First->ChoiceId);
+			// Simple Talents are not one-option variant nodes. Keep Variants reserved for
+			// the four true exclusive-choice concepts.
+			OutNode.Variants.Reset();
 		}
 		return SelectedVariantCount == 1 || bHaveUnselectedState;
 	}

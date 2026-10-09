@@ -93,66 +93,6 @@ struct GRIMROCKPROTOTYPE_API FGridTalentAcquisitionView
 };
 
 USTRUCT(BlueprintType)
-struct GRIMROCKPROTOTYPE_API FGridTalentUnlockedActionView
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FName ActionId = NAME_None;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	EGridCombatActionSourcePolicy SourcePolicy = EGridCombatActionSourcePolicy::None;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText DisplayName;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText Description;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	int32 ActionPointCost = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	int32 ManaCost = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	int32 RangeCells = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	int32 CooldownRounds = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	int32 SourceItemQuantityCost = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText TargetSummary;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	int32 AreaRadiusCells = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	int32 MaximumResolvedTargets = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	int32 ChainJumpRangeCells = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	int32 ResolutionCount = 1;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	int32 SubsequentResolutionAccuracyModifier = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	bool bRequiresLineOfSight = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	bool bAreaCenteredOnParty = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	bool bAffectsAlliesInArea = false;
-};
-
-USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridTalentVariantView
 {
 	GENERATED_BODY()
@@ -162,31 +102,6 @@ struct GRIMROCKPROTOTYPE_API FGridTalentVariantView
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FText DisplayName;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText Description;
-
-	/**
-	 * Read-only projection of class CombatActions unlocked by this concrete
-	 * ChoiceId or by one of its GrantedRequirementIds.
-	 */
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	TArray<FGridTalentUnlockedActionView> UnlockedActions;
-
-	/** Read-only effect category inferred from authoritative progression profiles. */
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText EffectCategory;
-
-	/** Structured readable summary projected from canonical modifier/reaction/skill/party data. */
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText MechanicsSummary;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	bool bSelected = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	bool bAvailable = false;
-
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	EGridTalentNodeState State = EGridTalentNodeState::LockedPrerequisite;
@@ -288,11 +203,7 @@ struct GRIMROCKPROTOTYPE_API FGridTalentNodeView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	bool bHasExclusiveVariants = false;
 
-	/**
-	 * Transitional DESC01.14.1 compatibility: simple nodes still contain one entry
-	 * until WBP_RPGTalentDetail migrates in DESC01.15. bHasExclusiveVariants is the
-	 * authoritative discriminator; never infer "variant" from array size in new code.
-	 */
+	/** Concrete alternatives for true exclusive-variant nodes only. Empty for simple Talents. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	TArray<FGridTalentVariantView> Variants;
 };

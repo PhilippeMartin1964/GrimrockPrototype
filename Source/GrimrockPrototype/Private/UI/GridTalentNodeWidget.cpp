@@ -92,20 +92,17 @@ bool UGridTalentNodeWidget::InitializeTalentNode(
 		InNodeView.TalentBranchId != InBranchPresentation.TalentBranchId ||
 		InNodeView.Tier < 1 ||
 		InNodeView.Tier > 5 ||
-		InNodeView.Variants.IsEmpty())
+		InNodeView.DisplayName.IsEmpty() ||
+		(InNodeView.bHasExclusiveVariants && InNodeView.Variants.Num() < 2) ||
+		(!InNodeView.bHasExclusiveVariants && !InNodeView.Variants.IsEmpty()))
 	{
 		return false;
 	}
 
 	NodeView = InNodeView;
+	ResolvedDisplayName = NodeView.DisplayName;
+	ResolvedDescription = NodeView.Principle;
 	BranchAccentColor = InBranchPresentation.AccentColor;
-
-	if (!ResolvePresentationText(NodeView, InBranchPresentation, ResolvedDisplayName, ResolvedDescription))
-	{
-		ClearTalentNode();
-		return false;
-	}
-
 	bInitialized = true;
 	ApplyNodePresentation();
 	return true;
@@ -127,39 +124,7 @@ void UGridTalentNodeWidget::ClearTalentNode()
 	SetToolTipText(FText::GetEmpty());
 }
 
-bool UGridTalentNodeWidget::ResolvePresentationText(
-	const FGridTalentNodeView& InNodeView,
-	const FRPGTalentBranchPresentationDefinition& InBranchPresentation,
-	FText& OutDisplayName,
-	FText& OutDescription)
-{
-	OutDisplayName = FText::GetEmpty();
-	OutDescription = FText::GetEmpty();
 
-	if (InNodeView.TalentNodeId.IsNone() ||
-		InNodeView.TalentBranchId.IsNone() ||
-		InNodeView.TalentBranchId != InBranchPresentation.TalentBranchId)
-	{
-		return false;
-	}
-
-	if (const FRPGTalentNodePresentationDefinition* Override =
-			InBranchPresentation.FindNodeOverride(InNodeView.TalentNodeId))
-	{
-		OutDisplayName = Override->DisplayName;
-		OutDescription = Override->Description;
-		return !OutDisplayName.IsEmpty();
-	}
-
-	if (InNodeView.Variants.Num() != 1)
-	{
-		return false;
-	}
-
-	OutDisplayName = InNodeView.Variants[0].DisplayName;
-	OutDescription = InNodeView.Variants[0].Description;
-	return !OutDisplayName.IsEmpty();
-}
 
 void UGridTalentNodeWidget::ApplyNodePresentation()
 {
@@ -180,7 +145,7 @@ void UGridTalentNodeWidget::ApplyNodePresentation()
 	if (Text_VariantCount)
 	{
 		Text_VariantCount->SetText(
-			NodeView.Variants.Num() > 1
+			NodeView.bHasExclusiveVariants
 				? FText::FromString(FString::Printf(TEXT("×%d"), NodeView.Variants.Num()))
 				: FText::GetEmpty());
 	}

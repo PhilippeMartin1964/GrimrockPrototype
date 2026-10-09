@@ -203,12 +203,12 @@ bool FRPGUIRPG013VariantSelectionTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("Ice variant exists"), Ice);
 	if (Fire)
 	{
-		TestTrue(TEXT("Selected variant is marked selected"), Fire->bSelected);
+		TestTrue(TEXT("Selected variant is marked acquired"), Fire->bAcquired);
 		TestEqual(TEXT("Selected variant is acquired"), Fire->State, EGridTalentNodeState::Acquired);
 	}
 	if (Ice)
 	{
-		TestFalse(TEXT("Sibling variant is not selected"), Ice->bSelected);
+		TestFalse(TEXT("Sibling variant is not acquired"), Ice->bAcquired);
 		TestEqual(TEXT("Sibling variant is exclusivity-locked"), Ice->State, EGridTalentNodeState::LockedExclusive);
 	}
 	if (Beta && Beta->Nodes.Num() >= 2) TestEqual(TEXT("Next node is unlocked by logical requirement alias"), Beta->Nodes[1].State, EGridTalentNodeState::Available);

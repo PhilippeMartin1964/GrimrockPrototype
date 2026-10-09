@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/ComboBoxString.h"
 #include "UI/GridSkillsUiTypes.h"
 #include "UI/RPGTalentPresentationAsset.h"
 #include "GridTalentDetailWidget.generated.h"
@@ -15,28 +14,19 @@ class UGridTalentVariantBlockWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentAcquireConfirmedSignature, FName, ChoiceId);
 
-/** Talent detail + confirmation presenter. Gameplay authority remains outside this widget. */
+/** Canonical Talent detail + confirmation presenter. Gameplay authority remains outside this widget. */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGridTalentDetailWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
-	/** Canonical DESC01.14 read-model. UMG must consume its sections without recalculating gameplay. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FGridTalentNodeView NodeView;
-
-	/** True when the node supplies a structured canonical detail. */
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
-	bool bHasCanonicalDetail = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FText ResolvedDisplayName;
 
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
-	FText ResolvedDescription;
-
-	/** DESC01.15.2A: static sections projected from the canonical read-model. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FText ResolvedTypeText;
 
@@ -54,22 +44,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FText ResolvedAcquisitionText;
-
-	/** Transitional aggregate kept until the WBP migration is complete. */
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
-	FText ResolvedMainDetailText;
-
-	/** Stable "VARIANTES" heading for multi-variant nodes; never a hidden inspection selector. */
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
-	FText ResolvedVariantDisplayName;
-
-	/** All concrete variants at once, including their type, mechanics and granted action preview. */
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
-	FText ResolvedVariantDescription;
-
-	/** State-aware action preview for simple Talents only. */
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
-	FText ResolvedActionSummary;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FLinearColor BranchAccentColor = FLinearColor::White;
@@ -139,13 +113,7 @@ private:
 	void HandleAcquireClicked();
 
 	UFUNCTION()
-	void HandleChooseVariantClicked();
-
-	UFUNCTION()
 	void HandleVariantChooseRequested(FName ChoiceId);
-
-	UFUNCTION()
-	void HandleVariantSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 
 	UFUNCTION()
 	void HandleConfirmAcquireClicked();
@@ -156,17 +124,11 @@ private:
 	void BindAcquireButtons();
 	void UnbindAcquireButtons();
 	bool HasExclusiveVariants() const;
-	void RebuildVariantOptions();
 	void RebuildVariantBlocks();
 	FText MakeVariantDisplayLabel(const FGridTalentVariantView& Variant) const;
-	FText MakePlayerReadableText(const FText& Source) const;
-	FText BuildVariantOverview() const;
-	FText BuildMainDetailText() const;
 	FText FormatDetailLines(const TArray<FGridTalentDetailLineView>& Lines) const;
 	FText BuildAcquisitionText() const;
 	void RefreshCanonicalSections();
-	void RefreshVariantDetailPreview();
-	FText BuildActionSummary(const FGridTalentVariantView& Variant, bool bAlreadyAcquired) const;
 	void ApplyDetailPresentation();
 	void ApplyAcquisitionPresentation();
 
@@ -176,10 +138,6 @@ private:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_DetailName;
 
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_DetailDescription;
-
-	/** DESC01.15.2 static section materialization points. */
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailType;
 
@@ -217,16 +175,6 @@ private:
 	TObjectPtr<UTextBlock> Text_DetailAcquisition;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_DetailLevel;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_DetailCost;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_DetailState;
-
-	/** DESC01.15.3: one global variants section with N reusable blocks. */
-	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailVariants;
 
 	UPROPERTY(meta = (BindWidgetOptional))
@@ -234,19 +182,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Variant", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UGridTalentVariantBlockWidget> VariantBlockWidgetClass;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_DetailVariants;
-
-	/** UI-RPG-DESC01.2 Designer materialization points. */
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_DetailVariantName;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_DetailVariantDescription;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_DetailActionSummary;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_AcquireTalent;
@@ -262,14 +197,4 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_AcquireFeedback;
-
-	/** UI-RPG04.4: generic N-variant selector; optional until the WBP migration is saved. */
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> Button_ChooseVariant;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UComboBoxString> Combo_VariantChoice;
-
-	TArray<FString> VariantOptionLabels;
-	TArray<FName> VariantOptionChoiceIds;
 };

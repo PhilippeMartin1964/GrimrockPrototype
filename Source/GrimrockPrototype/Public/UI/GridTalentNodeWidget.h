@@ -46,20 +46,13 @@ public:
 	void ClearTalentNode();
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Node")
-	int32 GetVariantCount() const { return NodeView.Variants.Num(); }
+	int32 GetVariantCount() const { return NodeView.bHasExclusiveVariants ? NodeView.Variants.Num() : 0; }
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Node")
-	bool HasVariants() const { return NodeView.Variants.Num() > 1; }
+	bool HasVariants() const { return NodeView.bHasExclusiveVariants; }
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Node")
 	EGridTalentNodeState GetTalentNodeState() const { return NodeView.State; }
-
-	/** Shared presentation resolver used by both node and detail widgets. */
-	static bool ResolvePresentationText(
-		const FGridTalentNodeView& InNodeView,
-		const FRPGTalentBranchPresentationDefinition& InBranchPresentation,
-		FText& OutDisplayName,
-		FText& OutDescription);
 
 protected:
 	virtual void NativeConstruct() override;

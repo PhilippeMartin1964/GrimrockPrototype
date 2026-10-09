@@ -12,9 +12,12 @@ namespace UIRPG043ATests
 		FGridTalentVariantView Variant;
 		Variant.ChoiceId = ChoiceId;
 		Variant.DisplayName = FText::FromString(Name);
-		Variant.Description = FText::FromString(TEXT("Description"));
 		Variant.State = EGridTalentNodeState::Available;
-		Variant.bAvailable = true;
+		Variant.Type = ERPGTalentPresentationType::Passive;
+		Variant.TypeText = FText::FromString(TEXT("PASSIF"));
+		Variant.StatusText = FText::FromString(TEXT("DISPONIBLE"));
+		Variant.Principle = FText::FromString(TEXT("Description"));
+		Variant.bCanChoose = true;
 		return Variant;
 	}
 
@@ -27,7 +30,15 @@ namespace UIRPG043ATests
 		Node.MinimumLevel = 2;
 		Node.PointCost = 1;
 		Node.State = EGridTalentNodeState::Available;
-		Node.Variants.Add(MakeVariant(*ChoiceId.ToString(), TEXT("Talent simple")));
+		Node.DisplayName = FText::FromString(TEXT("Talent simple"));
+		Node.Type = ERPGTalentPresentationType::Passive;
+		Node.TypeText = FText::FromString(TEXT("PASSIF"));
+		Node.StatusText = FText::FromString(TEXT("DISPONIBLE"));
+		Node.Principle = FText::FromString(TEXT("Description"));
+		Node.Acquisition.MinimumLevel = 2;
+		Node.Acquisition.PointCost = 1;
+		Node.SimpleChoiceId = ChoiceId;
+		Node.bCanAcquireSimple = true;
 		return Node;
 	}
 
@@ -69,14 +80,17 @@ bool FUIRPG043AVariantDeferredTest::RunTest(const FString&)
 	using namespace UIRPG043ATests;
 	const FName BranchId(TEXT("WeaponMaster"));
 	FGridTalentNodeView Node = MakeNode(TEXT("Talent_Variant"), BranchId, TEXT("Choice_A"));
-	Node.Variants.Add(MakeVariant(TEXT("Choice_B"), TEXT("Variante B")));
+	Node.DisplayName = FText::FromString(TEXT("Talent à variantes"));
+	Node.Principle = FText::FromString(TEXT("Choisissez une variante."));
+	Node.SimpleChoiceId = NAME_None;
+	Node.bCanAcquireSimple = false;
+	Node.bHasExclusiveVariants = true;
+	Node.Variants = {
+		MakeVariant(TEXT("Choice_A"), TEXT("Variante A")),
+		MakeVariant(TEXT("Choice_B"), TEXT("Variante B"))
+	};
 
 	FRPGTalentBranchPresentationDefinition Branch = MakeBranch(BranchId);
-	FRPGTalentNodePresentationDefinition Override;
-	Override.TalentNodeId = Node.TalentNodeId;
-	Override.DisplayName = FText::FromString(TEXT("Talent à variantes"));
-	Override.Description = FText::FromString(TEXT("Choisissez une variante."));
-	Branch.NodePresentationOverrides.Add(Override);
 
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 	TestTrue(TEXT("Variant detail initializes"), Detail->InitializeTalentDetail(Node, Branch));

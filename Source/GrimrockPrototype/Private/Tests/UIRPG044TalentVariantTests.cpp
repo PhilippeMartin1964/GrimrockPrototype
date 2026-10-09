@@ -55,9 +55,12 @@ namespace UIRPG044Tests
 		FGridTalentVariantView Variant;
 		Variant.ChoiceId = ChoiceId;
 		Variant.DisplayName = FText::FromString(DisplayName);
-		Variant.Description = FText::FromString(TEXT("Description"));
 		Variant.State = EGridTalentNodeState::Available;
-		Variant.bAvailable = true;
+		Variant.Type = ERPGTalentPresentationType::Passive;
+		Variant.TypeText = FText::FromString(TEXT("PASSIF"));
+		Variant.StatusText = FText::FromString(TEXT("DISPONIBLE"));
+		Variant.Principle = FText::FromString(TEXT("Description"));
+		Variant.bCanChoose = true;
 		return Variant;
 	}
 
@@ -70,6 +73,14 @@ namespace UIRPG044Tests
 		Node.MinimumLevel = 2;
 		Node.PointCost = 1;
 		Node.State = EGridTalentNodeState::Available;
+		Node.DisplayName = FText::FromString(TEXT("Talent conceptuel"));
+		Node.Type = ERPGTalentPresentationType::Passive;
+		Node.TypeText = FText::FromString(TEXT("PASSIF"));
+		Node.StatusText = FText::FromString(TEXT("DISPONIBLE"));
+		Node.Principle = FText::FromString(TEXT("Choisissez une variante."));
+		Node.Acquisition.MinimumLevel = 2;
+		Node.Acquisition.PointCost = 1;
+		Node.bHasExclusiveVariants = true;
 
 		static const TCHAR* Names[] = {
 			TEXT("Talent conceptuel — Feu"),
@@ -108,7 +119,7 @@ bool FUIRPG044GenericNVariantSelectionTest::RunTest(const FString&)
 	using namespace UIRPG044Tests;
 	FGridTalentNodeView Node = MakeVariantNode(4);
 	Node.Variants[1].State = EGridTalentNodeState::LockedPoints;
-	Node.Variants[1].bAvailable = false;
+	Node.Variants[1].bCanChoose = false;
 
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 	TestTrue(TEXT("Four-variant conceptual node initializes"),
@@ -198,12 +209,22 @@ bool FUIRPG044VariantTransactionTest::RunTest(const FString&)
 	Node.MinimumLevel = 2;
 	Node.PointCost = 1;
 	Node.State = EGridTalentNodeState::Available;
+	Node.DisplayName = FText::FromString(TEXT("Talent test à variantes"));
+	Node.Type = ERPGTalentPresentationType::Passive;
+	Node.TypeText = FText::FromString(TEXT("PASSIF"));
+	Node.StatusText = FText::FromString(TEXT("DISPONIBLE"));
+	Node.Principle = FText::FromString(TEXT("Choisissez une variante."));
+	Node.bHasExclusiveVariants = true;
 
 	FGridTalentVariantView VariantA;
 	VariantA.ChoiceId = TEXT("Choice_A");
 	VariantA.DisplayName = FText::FromString(TEXT("Variante A"));
 	VariantA.State = EGridTalentNodeState::Available;
-	VariantA.bAvailable = true;
+	VariantA.Type = ERPGTalentPresentationType::Passive;
+	VariantA.TypeText = FText::FromString(TEXT("PASSIF"));
+	VariantA.StatusText = FText::FromString(TEXT("DISPONIBLE"));
+	VariantA.Principle = FText::FromString(TEXT("Variante A."));
+	VariantA.bCanChoose = true;
 	Node.Variants.Add(VariantA);
 
 	FGridTalentVariantView VariantB = VariantA;
@@ -261,11 +282,11 @@ bool FUIRPG044VariantTransactionTest::RunTest(const FString&)
 		return false;
 	}
 
-	TestTrue(TEXT("Committed variant is acquired"), ProjectedB->bAcquired && ProjectedB->bSelected);
+	TestTrue(TEXT("Committed variant is acquired"), ProjectedB->bAcquired);
 	TestEqual(TEXT("Committed variant status is ACQUIS"), ProjectedB->StatusText.ToString(), FString(TEXT("ACQUIS")));
 	TestFalse(TEXT("Committed variant no longer exposes CHOISIR"), ProjectedB->bCanChoose);
 
-	TestFalse(TEXT("Sibling variant is not acquired"), ProjectedA->bAcquired || ProjectedA->bSelected);
+	TestFalse(TEXT("Sibling variant is not acquired"), ProjectedA->bAcquired);
 	TestEqual(TEXT("Sibling variant becomes exclusive-unavailable"),
 		ProjectedA->State, EGridTalentNodeState::LockedExclusive);
 	TestEqual(TEXT("Sibling variant status is player-facing INDISPONIBLE"),

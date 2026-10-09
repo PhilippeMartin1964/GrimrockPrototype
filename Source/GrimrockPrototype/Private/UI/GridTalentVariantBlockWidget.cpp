@@ -44,7 +44,7 @@ bool UGridTalentVariantBlockWidget::InitializeVariant(
 	ResolvedUsageText = FormatDetailLines(InVariant.Usage);
 	bPendingChoice = bInPendingChoice;
 
-	if (InVariant.bAcquired || InVariant.bSelected)
+	if (InVariant.bAcquired)
 	{
 		ResolvedChooseLabel = FText::FromString(TEXT("ACQUISE"));
 		bChooseEnabled = false;

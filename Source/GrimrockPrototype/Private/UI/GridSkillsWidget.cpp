@@ -392,12 +392,28 @@ bool UGridSkillsWidget::CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFe
 		return false;
 	}
 
-	const FGridTalentVariantView* RequestedVariant = SelectedNode.Variants.FindByPredicate(
-		[ChoiceId](const FGridTalentVariantView& Variant)
+	FText RequestedDisplayName = SelectedNode.DisplayName;
+	if (SelectedNode.bHasExclusiveVariants)
+	{
+		const FGridTalentVariantView* RequestedVariant = SelectedNode.Variants.FindByPredicate(
+			[ChoiceId](const FGridTalentVariantView& Variant)
+			{
+				return Variant.ChoiceId == ChoiceId;
+			});
+		if (!RequestedVariant)
 		{
-			return Variant.ChoiceId == ChoiceId;
-		});
-	if (!RequestedVariant)
+			FRPGClassProgressionCommitResult InvalidResult;
+			InvalidResult.RejectReason = ERPGClassProgressionCommitRejectReason::UnknownChoice;
+			const FRPGProgressionNotificationView Notification =
+				FRPGProgressionFeedbackService::MakeTalentCommitNotification(InvalidResult, FText::GetEmpty());
+			OutFeedback = Notification.Message;
+			PublishProgressionNotification(Notification);
+			return false;
+		}
+		RequestedDisplayName =
+			RequestedVariant->DisplayName.IsEmpty() ? FText::FromName(ChoiceId) : RequestedVariant->DisplayName;
+	}
+	else if (SelectedNode.SimpleChoiceId != ChoiceId)
 	{
 		FRPGClassProgressionCommitResult InvalidResult;
 		InvalidResult.RejectReason = ERPGClassProgressionCommitRejectReason::UnknownChoice;
@@ -407,9 +423,10 @@ bool UGridSkillsWidget::CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFe
 		PublishProgressionNotification(Notification);
 		return false;
 	}
-
-	const FText RequestedDisplayName =
-		RequestedVariant->DisplayName.IsEmpty() ? FText::FromName(ChoiceId) : RequestedVariant->DisplayName;
+	if (RequestedDisplayName.IsEmpty())
+	{
+		RequestedDisplayName = FText::FromName(ChoiceId);
+	}
 
 	FRPGClassProgressionCommitResult Result;
 	const bool bCommitted = FRPGClassProgressionTransactionService::TryCommitChoices(
