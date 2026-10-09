@@ -92,15 +92,13 @@ function Get-DirectorySize
         return 0L
     }
 
-    $Measure = Get-ChildItem -LiteralPath $Path -File -Recurse -Force -ErrorAction SilentlyContinue |
-        Measure-Object -Property Length -Sum
+    # Accumulation manuelle pour rester compatible avec Windows PowerShell 5.1
+    # sous StrictMode, sans dependre de la propriete Sum de Measure-Object.
+    $TotalBytes = 0L
+    Get-ChildItem -LiteralPath $Path -File -Recurse -Force -ErrorAction SilentlyContinue |
+        ForEach-Object { $TotalBytes += [long]$_.Length }
 
-    if ($null -eq $Measure.Sum)
-    {
-        return 0L
-    }
-
-    return [long]$Measure.Sum
+    return $TotalBytes
 }
 
 function New-CleanupTarget
@@ -205,7 +203,12 @@ $Targets |
     Select-Object Category, RelativePath, @{ Name = 'Size'; Expression = { Format-ByteSize $_.Bytes } }, Description |
     Format-Table -AutoSize
 
-$TotalBytes = [long](($Targets | Measure-Object -Property Bytes -Sum).Sum)
+$TotalBytes = 0L
+foreach ($Target in $Targets)
+{
+    $TotalBytes += [long]$Target.Bytes
+}
+
 Write-Host ''
 Write-Host ("Total cible : {0}" -f (Format-ByteSize $TotalBytes))
 
