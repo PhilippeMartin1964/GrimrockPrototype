@@ -1,5 +1,8 @@
 # Notes d’audit du système d’objets
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 Statut : **mis à jour après WORLDOBJ-MIG10, ALIGN-A et ALIGN-B5.3 — 2026-09-09**.
 
 Ce document conserve les conclusions utiles de l’audit initial, mais les anciens noms d’archétypes et helpers ne doivent plus être lus comme le contrat courant. Le modèle actif est documenté dans `docs/Design/02_OBJECT_ARCHETYPES.md` et `docs/Architecture/WORLDOBJ_MIG10_FINAL.md`.

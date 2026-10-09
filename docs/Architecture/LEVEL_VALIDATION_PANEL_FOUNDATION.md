@@ -1,5 +1,7 @@
 # Panneau de validation du niveau
 
+> **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. Le panneau de validation reste read-only vis-à-vis du LevelAsset.
+
 ## 1. Objet
 
 Ce document décrit la production, la présentation et l'exploitation des validations du niveau dans le mode d'édition de grille. La validation analyse les données sans modifier le `LevelAsset`.

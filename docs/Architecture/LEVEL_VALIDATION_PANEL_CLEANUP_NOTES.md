@@ -1,5 +1,8 @@
 # Relecture du panneau de validation
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 ## Fichiers relus
 
 La passe a couvert `GridLevelEditorActor.h/.cpp`, `GridLevelEdModeToolkit.cpp`, `SGridEditorValidationPanel.h/.cpp`, les panneaux voisins, les structures Core utiles et les documents de fondation par domaine.

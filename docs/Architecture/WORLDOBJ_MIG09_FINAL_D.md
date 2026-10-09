@@ -1,5 +1,8 @@
 # WORLDOBJ-MIG09 FINAL-D — clôture de la migration
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 Date : 2026-09-09. **WORLDOBJ-MIG09 ✅ CLOSED — FINAL-D publié dans `0bfe69583042f7b04fd0329df43d9a13e1333d76`. MIG10 non commencé.**
 
 La clôture porte sur la migration du modèle de données. Elle ne certifie pas la jouabilité visuelle de tous les niveaux : le départ de `DA_GridLevel_01` est invalide, défaut de contenu préexistant décrit ci-dessous.

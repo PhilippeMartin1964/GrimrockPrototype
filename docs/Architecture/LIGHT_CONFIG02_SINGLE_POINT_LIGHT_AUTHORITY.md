@@ -1,5 +1,7 @@
 # LIGHT-CONFIG02 — Single Point-Light Base Authority
 
+> **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. `LightIntensity`, `LightRadius` et `LightColor` restent les bases uniques du PointLight.
+
 Date : 16 septembre 2026
 
 ## Objectif

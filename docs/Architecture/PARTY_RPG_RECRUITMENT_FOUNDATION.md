@@ -1,50 +1,188 @@
-# Groupe, RPG et recrutement — Fondation d’architecture
+# Groupe, RPG et recrutement — Fondation d'architecture
 
-## Autorité du groupe
+> **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
+>
+> Ce document remplace l'ancien état MON20 intermédiaire. Recrutement, Skills,
+> Talents, Skill Points, Attribute Points et Level-Up non modal sont maintenant
+> implémentés selon les autorités ci-dessous.
 
-`UGridPartyInventoryComponent::PartyInventoryState` est l’unique autorité persistante :
+## 1. Autorité du groupe
 
-```text
+\`UGridPartyInventoryComponent::PartyInventoryState\` reste l'unique autorité
+du groupe :
+
+\`\`\`text
 FGridPartyInventoryState
-  ActiveCharacters
-  ActiveEquipment
-  CharacterPool
-  SelectedCharacterIndex
-  MaxActiveCharacters = 6
-```
+    SelectedCharacterIndex
+    MaxActiveCharacters = 6
+    bInitialCharacterCreationCompleted
+    ActiveCharacters[]
+    ActiveEquipment[]
+    CharacterPool[]
+    CursorItem
+\`\`\`
 
-Aucun second registre de personnages actifs ou de réserve ne doit être créé.
+Il n'existe pas de second registre des membres actifs ou de la réserve.
 
-## Personnage
+## 2. État personnage
 
-`FGridCharacterInventoryState` porte `CharacterId`, identité, race/classe, niveau/XP, attributs, statistiques dérivées, inventaire, hotbar, portraits et Status Effects. `CharacterId` reste l’identité durable pour progression, spellbook, status et recrutement.
+\`FGridCharacterInventoryState\` sépare désormais clairement durable et dérivé.
 
-## Création
+\`\`\`text
+Durable
+    CharacterId / identity
+    ClassId
+    RaceId
+    PortraitGender
+    PortraitVariantId
+    Experience
+    SelectedClassProgressionChoiceIds
+    Attributes
+    Resources
+    SkillRanks
+    KnownSpellIds
+    StatusEffects
+    InventorySlots
+    CombatHotbarSlots
 
-Le wizard existant valide Race → Class → Attributes → Identity → Summary. MON20 doit le réutiliser pour une future recrue personnalisée au lieu de créer un second processus de création.
+Transient / reconstruit
+    ClassDefinition
+    ClassDisplayName
+    RaceDisplayName
+    Level
+    DerivedStats
+    Portrait
+    ClassIcon
+\`\`\`
 
-## Progression MON15
+\`Level\` dérive de \`Experience\`. Les statistiques dérivées ne sont pas une
+autorité Save.
 
-XP, calcul de niveau, Level Up, progression de classe et notifications sont déjà en production. Les choix de progression possèdent niveau minimum, coût, prérequis et `GrantedRequirementIds`.
+## 3. Création et recrutement
 
-### Talents
+Le wizard de création reste le chemin canonique de création d'un personnage.
+Le recrutement réutilise le même modèle de personnage.
 
-La stratégie MON20 est de modéliser d’abord les talents de classe comme une extension/présentation des `ProgressionChoices`. Un système TalentPoints parallèle n’est justifié que si un besoin non exprimable apparaît.
+Services :
 
-### Skills
+- \`FRPGPartyRecruitmentService\` : transfert pool → groupe ;
+- \`FRPGStoryCompanionService\` : compagnons authored ;
+- \`FRPGCustomRecruitService\` : recrutement personnalisé ;
+- \`URPGStoryCompanionAsset\` : définition d'un compagnon.
 
-Un domaine Skill autonome n’existe pas encore. Il ne doit être ajouté que pour des rangs/progressions/tests hors combat réellement indépendants de la classe. Les `RequirementIds` sont déjà un point d’intégration transversal.
+Les transactions doivent préserver CharacterId, inventaire, équipement,
+ownership et capacité du groupe.
 
-## Recrutement MON20.2
+## 4. XP et niveau
 
-`FRPGPartyRecruitmentService::TryRecruitFromPool` transfère atomiquement un candidat de `CharacterPool` vers `ActiveCharacters`, aligne `ActiveEquipment`, normalise l’ownership et rollback si la validation finale échoue. Validation UE5.5.4 : 6/6.
+\`\`\`text
+Experience durable
+    -> FRPGLevelUpService
+    -> Level transient
+    -> derived stats / progression / UI refresh
+\`\`\`
 
-## Compagnons MON20.3
+Le Level-Up ne crée plus de popup modale persistante.
 
-`URPGStoryCompanionAsset` porte `CompanionId`, `CharacterId`, identité visuelle, race/classe, niveau et équipement déclaré. `FRPGStoryCompanionService::EnsureCandidateRegistered` est idempotent : absent → pool, déjà pool → aucun doublon, déjà actif → reconnu, collision GUID → rejet. Validation : 6/6.
+\`URPGLevelUpNotificationSubsystem\` possède uniquement une file transitoire de
+toasts. \`LastAcknowledgedLevel\` et \`URPGLevelUpWidget\` ont été supprimés.
 
-Le SaveGame reste v7. `PartyMemberKind` est différé jusqu’à ce qu’une vraie règle de réserve/migration en ait besoin.
+## 5. Talents
 
-## Suite
+Autorité :
 
-MON20.4 doit ajouter le Recruitment UI, puis les tranches suivantes traiteront custom recruit, skills, talents, réserve et régression.
+\`\`\`text
+URPGClassAsset::ProgressionChoices
+    -> FRPGClassProgressionService
+    -> FRPGClassProgressionTransactionService
+    -> FGridSkillsPageService
+    -> FGridTalentTreeView
+\`\`\`
+
+Production courante :
+
+- 6 classes ;
+- 18 branches ;
+- 90 Talents conceptuels ;
+- 86 nœuds simples ;
+- 4 familles à variantes exclusives.
+
+Les Talent Points sont dérivés des grants de classe et des choix acquis. Aucun
+compteur parallèle n'est persisté.
+
+Les anciennes façades \`FRPGTalentRuntimeService\` et la projection plate
+\`FGridTalentEntryView\` ont été supprimées.
+
+## 6. Skills
+
+\`FGridCharacterInventoryState::SkillRanks\` est l'autorité durable sparse.
+
+\`\`\`text
+SkillRanks
+    -> FRPGSkillService
+    -> FRPGSkillPointService
+    -> FGridSkillsPageService
+\`\`\`
+
+\`FRPGSkillService\` fournit les primitives métier de rang.
+\`FRPGSkillPointService\` est l'économie joueur : achat, balance, caps et Safe
+Undo de session.
+
+Règles actuelles :
+
+- niveau 1 : 4 points ;
+- chaque niveau supplémentaire : +1 ;
+- aucun compteur Skill Point persisté ;
+- le budget est reconstruit depuis Level + SkillRanks ;
+- Safe Undo limité aux achats de la session UI courante.
+
+## 7. Attributes
+
+\`Character.Attributes\` reste l'autorité durable.
+
+\`FRPGAttributePointService\` dérive :
+
+\`\`\`text
+Granted   = floor(Level / 4)
+Starting  = Class.BaseAttributes + Race.AttributeBonuses
+Spent     = Character.Attributes - Starting
+Remaining = Granted - Spent
+\`\`\`
+
+Aucun compteur Attribute Point n'est persisté. Le Safe Undo est limité à la
+session courante du Character Sheet.
+
+## 8. Requirements
+
+\`FRPGClassProgressionService::CollectSatisfiedRequirements(...)\` reconstruit
+le set générique depuis :
+
+- ClassId ;
+- grants automatiques de niveau ;
+- \`SelectedClassProgressionChoiceIds\`.
+
+Le helper historique \`CollectAutomaticSatisfiedRequirements()\` n'existe plus.
+
+## 9. UI
+
+\`UGridPartyInventoryComponent::SelectedCharacterIndex\` reste l'autorité unique
+de sélection pour Character Sheet, Inventory, Skills/Talents et Spellbook.
+
+\`WBP_GridSkills\` est une surface autonome Skills + Talents. UMG ne recalcule
+ni coût, ni prérequis, ni balance de points.
+
+## 10. Save
+
+Save courant : **v24 exact-match**.
+
+Les données RPG sont stockées directement dans l'état personnage. Les anciens
+snapshots parallèles Progression/Skills/Spellbook/Status ont été supprimés.
+
+## 11. Invariants
+
+1. Une identité CharacterId stable par personnage.
+2. Un seul SelectedCharacterIndex.
+3. Pas de monnaie RPG persistée lorsqu'elle est reconstructible.
+4. Transactions C++ autoritaires pour recrutement et acquisition.
+5. UMG = présentation/commande, jamais seconde logique.
+6. Aucun retour aux façades runtime supprimées de Skills/Talents.

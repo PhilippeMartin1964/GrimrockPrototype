@@ -1,5 +1,7 @@
 # ITEM-LIGHT01 — Data-Driven Item Light Emitter
 
+> **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. Lumière Item data-driven inchangée ; les valeurs PointLight de base restent uniques.
+
 Statut : implémenté et validé localement sous UE 5.5.4.  
 Portée : items ramassables, monde, réceptacles, équipement/visuel tenu et projectiles récupérables.
 

@@ -1,29 +1,28 @@
 # GrimrockPrototype — Cartographie Mermaid détaillée
 
-> Vues visuelles complémentaires de la carte textuelle.
+> **Vue actuelle — DOC-ARCH01, 9 octobre 2026.**
 >
-> État : **4 octobre 2026** — baseline runtime/content validée `9045ef2db75c09997db4fc65dbf99d4598f4df5c` ; MON21.6 + MAP-THEME01 clos ; global **1026/1026** ; Shipping validé.
+> Baseline C++ auditée : \`6f98a0ef\`. Dernière globale + Shipping :
+> \`9045ef2d\`, **1026/1026**, 0 warning/échec, Shipping Win64 validé.
 
-## 1 — Vue système globale
+## 1 — Modules et autorités
 
-```mermaid
+\`\`\`mermaid
 flowchart LR
-    LUA[GrimrockLua\nLua 5.4 + sandbox] --> RT[GrimrockPrototype\nCore + Runtime + RPG + Magic + Quests + Save + UI]
-    RT --> ED[GrimrockPrototypeEditor\nEdMode + Toolkit + Slate + Validation + Preview]
+    LUA[GrimrockLua\nLua 5.4 sandbox] --> RT[GrimrockPrototype\nCore Runtime RPG Combat Magic Quests Save UI]
+    RT --> ED[GrimrockPrototypeEditor\nEdMode Slate Validation Preview]
     DA[DataAssets] --> RT
     DA --> ED
     ED --> LVL[UGridLevelAsset]
-    LVL --> RT
-    RT --> STATE[Runtime State]
-    STATE --> SAVE[UGrimrockPartySaveGame v23]
-    SAVE --> RT
-    RT --> UI[UMG Runtime]
-    RT --> AUDIO[Audio / VFX / Light]
-```
+    LVL --> RTA[AGridLevelRuntimeActor]
+    RTA --> STATE[Runtime State]
+    STATE --> SAVE[UGrimrockPartySaveGame\nv24 exact-match]
+    SAVE --> RTA
+\`\`\`
 
-## 2 — Donjon, niveau et placements typés
+## 2 — Dungeon / LevelAsset
 
-```mermaid
+\`\`\`mermaid
 flowchart TB
     D[UGridDungeonAsset] --> E[FGridDungeonLevelEntry]
     E --> L[UGridLevelAsset]
@@ -33,392 +32,289 @@ flowchart TB
     L --> MS[MonsterSpawns]
     L --> IS[ItemSpawns]
     L --> LO[LogicObjects]
-    L --> LINKS[Links]
-    L --> VARS[LevelVariables]
-    L --> LUA[LuaScripts]
+    L --> LK[Links]
     L --> Q[QuestDefinitions]
+    L --> V[LevelVariables]
+    L --> LUA[LuaScripts]
+\`\`\`
 
-    WO --> WOD[UGridWorldObjectDefinitionAsset]
-    LI --> ITEM[UGridItemDefinitionAsset]
-    MS --> MON[UGridMonsterDefinitionAsset]
-    Q --> QD[UGridQuestDefinitionAsset]
-```
+## 3 — World Object Definition / Instance / Palette
 
-## 3 — Définition / instance World Object
-
-```mermaid
+\`\`\`mermaid
 flowchart LR
-    DEF[UGridWorldObjectDefinitionAsset] --> ID[DefinitionId]
+    DEF[UGridWorldObjectDefinitionAsset] --> DID[DefinitionId]
     DEF --> TYPE[SupportedType]
-    DEF --> PLACE[Placement Rules]
+    DEF --> MAP[MapSymbolStyle]
     DEF --> STATIC[StaticPart]
-    DEF --> MOVE[MovingParts 0..N]
+    DEF --> MOV[MovingParts 0..N]
     DEF --> AUDIO[AudioEvents]
-    DEF --> LIGHT[Light]
+    DEF --> BEH[DefaultBehavior]
     DEF --> ACTOR[RuntimeActorClass]
 
-    INST[FGridWorldObjectInstance] --> OID[ObjectId]
-    INST --> DID[WorldObjectDefinitionId]
+    INST[FGridWorldObjectInstance] --> IID[InstanceId]
+    INST --> REF[WorldObjectDefinitionId]
+    INST --> POS[Cell Surface Facing]
     INST --> LOGIC[LogicId]
-    INST --> POS[Cell + Surface + Facing]
-    INST --> LOCAL[Local Transform Override]
-    INST --> CFG[FGridWorldObjectInstanceConfig]
+    INST --> OVR[InstanceConfig]
+    REF -. resolves .-> DEF
 
-    DID -. resolves .-> DEF
-    CFG --> DOOR[Door State]
-    CFG --> RELO[Relocation]
-    CFG --> PIT[Pit]
-    CFG --> REC[Receptacle]
-    CFG --> INT[Interaction Overrides]
-    CFG --> MP[MovingPartOverrides]
-    CFG --> LOCK[Lock]
-```
+    PAL[FGridObjectPaletteEntry] --> CAT[PaletteCategory]
+    PAL --> WREF[DefaultWorldObjectDefinition]
+    PAL --> IREF[DefaultItemDefinition]
+    PAL --> MREF[DefaultMonsterDefinition]
+    PAL --> CREF[DefaultStoryCompanionDefinition]
+\`\`\`
+
+La palette n'a **aucun DisplayNameOverride** ; son nom effectif vient de la
+définition référencée.
 
 ## 4 — Grid Editor
 
-```mermaid
+\`\`\`mermaid
 flowchart TB
     MODE[FGridLevelEdMode] --> TK[FGridLevelEdModeToolkit]
     TK --> ACT[AGridLevelEditorActor]
+    ACT --> LVL[UGridLevelAsset]
     ACT --> LEVELS[Dungeon Levels]
     ACT --> PAL[Palette]
     ACT --> SEL[Selected Object]
     ACT --> LINKS[Connectors]
     ACT --> VAL[Validation]
     ACT --> PLAY[Playtest]
-    ACT --> MAP[Overview Map]
-
+    ACT --> OVMAP[Overview Map]
     PAL --> TOOLS[Select / Paint Cell / Paint Wall / Paint Object / Erase / Link]
-    SEL --> INSPECT[Context Inspectors]
-    INSPECT --> DOOR[Door]
-    INSPECT --> PP[Pressure Plate]
-    INSPECT --> REC[Receptacle]
-    INSPECT --> LOCK[Lock]
-    INSPECT --> RELO[Relocation]
-    INSPECT --> PIT[Pit]
-    INSPECT --> MON[Monster Spawn]
-    INSPECT --> LUA[Logic / Lua]
-    ACT --> LVL[UGridLevelAsset]
-```
+\`\`\`
 
-## 5 — Runtime niveau
+## 5 — Mouse interaction
 
-```mermaid
+\`\`\`mermaid
 flowchart TB
-    LVL[UGridLevelAsset] --> R[AGridLevelRuntimeActor]
-    SAVE[FGridLevelRuntimeState] --> R
-    R --> GEO[Grid Geometry]
-    R --> OBJ[Runtime Objects]
-    R --> ITEMS[World Items]
-    R --> MON[Monsters]
-    R --> ACT[UGridActivationComponent]
-    R --> ENC[UGridMonsterEncounterComponent]
+    CLICK[Left Click] --> RES[ResolveLeftMouseInteraction]
+    RES --> READ[Dismiss Readable]
+    RES --> UI[UI Block / Inventory]
+    RES --> CUR{Cursor Item?}
+    CUR --> LOCK[WallLock]
+    CUR --> REC[Receptacle]
+    CUR --> DROP[World Drop]
+    CUR --> THROW[Throw]
+    RES --> WORLD[IGridInteractableInterface]
+    HOVER[Mouse Hover + Cursor Item] --> HRES[ResolveCursorItemHoverCursor]
+    HRES --> CURSOR[SetGridInteractionCursor]
+\`\`\`
 
-    OBJ --> DOOR[Door / SecretDoor]
-    OBJ --> MECH[Buttons / Levers / Plates]
-    OBJ --> REC[Receptacles / Locks]
-    OBJ --> PIT[Pits]
-    OBJ --> RELO[Relocations]
-    ITEMS --> IA[AGridItemActor]
-    MON --> MA[AGridMonsterActor]
-```
+## 6 — Event / Logic / Lua / Quest
 
-## 6 — Exploration joueur
-
-```mermaid
+\`\`\`mermaid
 flowchart LR
-    INPUT[Enhanced Input / Mouse] --> PC[AGrimrockPlayerController]
-    INPUT --> P[AGrimrockPartyPawn]
-    P --> GRID[Grid Movement]
-    GRID --> PASS[Passability]
-    PASS --> WALL[Walls]
-    PASS --> DOOR[Doors]
-    PASS --> OCC[Monster Occupancy]
-    PASS --> WEIGHT[Overload]
-    P --> INTERACT[Interaction]
-    PC --> TRACE[Mouse Trace]
-    TRACE --> INTERACT
-    P --> PIT[Pit Fall]
-    P --> RELO[Level Relocation]
-    P --> CAM[Head Bob + Free Look]
-```
-
-## 7 — Event / Logic / Lua / Quest
-
-```mermaid
-flowchart LR
-    E[Object Event] --> A[UGridActivationComponent]
+    EV[Object Event] --> A[UGridActivationComponent]
     A --> L[FGridObjectLink]
-    L --> C{Target kind}
-    C --> CMD[Gameplay Command]
-    C --> LOGIC[Logic Object]
-    C --> LUA[Lua Callback]
-    C --> QUEST[Quest Command]
-
-    LOGIC --> E2[New Event]
-    E2 --> A
+    L --> COND[Condition]
+    COND --> CMD[EGridObjectCommand]
+    CMD --> OBJ[Runtime Object]
+    CMD --> LOG[GridLogicRuntime]
+    CMD --> LUA[Lua Callback]
+    CMD --> QUEST[UGridQuestSubsystem]
+    LOG --> EV2[New Event]
+    EV2 --> A
     LUA --> GC[grid.command]
-    GC --> CMD
-    QUEST --> QS[UGridQuestSubsystem]
-```
+    GC --> A
+\`\`\`
 
-## 8 — Inventory / Item authority
+## 7 — Inventory / ownership
 
-```mermaid
+\`\`\`mermaid
 flowchart TB
-    PIC[UGridPartyInventoryComponent] --> STATE[FGridPartyInventoryState]
-    STATE --> AC[ActiveCharacters]
-    STATE --> EQ[ActiveEquipment]
-    STATE --> POOL[CharacterPool]
-    STATE --> SEL[SelectedCharacterIndex]
-    STATE --> CUR[Cursor Item]
-    STATE --> HOT[Hotbar]
+    PIC[UGridPartyInventoryComponent] --> PS[FGridPartyInventoryState]
+    PS --> AC[ActiveCharacters]
+    PS --> EQ[ActiveEquipment]
+    PS --> POOL[CharacterPool]
+    PS --> SEL[SelectedCharacterIndex]
+    PS --> CUR[CursorItem]
+
+    CHAR[FGridCharacterInventoryState] --> INV[InventorySlots]
+    CHAR --> HOT[CombatHotbarSlots]
+    AC --> CHAR
 
     XFER[UGridItemTransferService] --> PIC
     XFER --> WORLD[World]
     XFER --> REC[Receptacle]
+\`\`\`
 
-    ITEM[UGridItemDefinitionAsset] --> PIC
-    PIC --> UI[Inventory / Character UI]
-```
+## 8 — RPG Skills / Talents / Attributes
 
-## 9 — Combat
-
-```mermaid
+\`\`\`mermaid
 flowchart TB
-    TM[UGridTurnManagerComponent] --> PH[Phase / Round]
-    TM --> INIT[Global Initiative]
-    TM --> CHAR[Character Turn States]
-    TM --> MOB[Party Mobility PAM]
+    CHAR[FGridCharacterInventoryState]
+    CHAR --> SKR[SkillRanks]
+    SKR --> SKS[FRPGSkillService]
+    SKS --> SKP[FRPGSkillPointService]
+    SKP --> PAGE[FGridSkillsPageService]
+
+    CLASS[URPGClassAsset ProgressionChoices] --> CPS[FRPGClassProgressionService]
+    CPS --> TX[FRPGClassProgressionTransactionService]
+    TX --> PAGE
+    PAGE --> TREE[FGridTalentTreeView]
+    TREE --> UI[WBP_GridSkills]
+
+    CHAR --> ATTR[Attributes]
+    ATTR --> APS[FRPGAttributePointService]
+\`\`\`
+
+## 9 — Level Up
+
+\`\`\`mermaid
+flowchart LR
+    XP[Experience] --> LVL[FRPGLevelUpService]
+    LVL --> EVENT[Level Up Event]
+    EVENT --> SUB[URPGLevelUpNotificationSubsystem]
+    SUB --> HUD[WBP_GridPersistentHud]
+    HUD --> TOAST[WBP_RPGNotification]
+\`\`\`
+
+Aucun Level-Up modal ni \`LastAcknowledgedLevel\`.
+
+## 10 — Combat
+
+\`\`\`mermaid
+flowchart TB
+    TM[UGridTurnManagerComponent] --> INIT[Global Initiative]
+    TM --> TURN[Combatant Turn]
+    TM --> PA[PA]
+    TM --> PAM[PAM]
     TM --> CAT[Action Catalog]
-    CAT --> HAND[MainHand / OffHand / Unarmed]
+    CAT --> EQUIP[Equipment]
+    CAT --> CLASS[Class / Talent]
     CAT --> QUICK[Quick Item]
-    CAT --> CLASS[Class Action]
     CAT --> SPELL[Spell]
-    TM --> TARGET[Target Validation]
+    TM --> TARGET[Targeting]
     TARGET --> RES[GridCombatResolver]
     RES --> COST[Atomic Costs]
-    COST --> EFFECT[Damage / Heal / Status / Item]
-    EFFECT --> PRESENT[Presentation]
-    PRESENT --> HUD[Combat HUD]
-    PRESENT --> AUDIO[Audio / VFX / Projectile]
-    PRESENT --> LOG[Combat Log]
-```
+    COST --> FX[Gameplay Effects]
+    FX --> PRES[Presentation]
+    PRES --> HUD[WBP_GridCombatHud]
+\`\`\`
 
-## 10 — Monster AI
+## 11 — Monster AI
 
-```mermaid
+\`\`\`mermaid
 flowchart TB
     DEF[UGridMonsterDefinitionAsset] --> M[AGridMonsterActor]
-    M --> MOVE[Movement Component]
-    M --> BEH[Behavior Component]
-    M --> COMBAT[Combat Component]
-    M --> DEATH[Death Component]
-    M --> AUD[Audio Component]
-    M --> VFX[VFX Component]
-    M --> IDLE[Idle Variation]
-
-    OCC[Occupancy Subsystem] --> MOVE
-    PATH[Pathfinder] --> MOVE
-    PERC[LOS + CanHearThroughGrid] --> BEH
-    PATROL[Patrol Subsystem] --> BEH
+    M --> MOVE[Movement]
+    M --> BEH[Behavior]
+    M --> COMBAT[Combat]
+    M --> DEATH[Death]
+    M --> AUDIO[Audio]
+    M --> VFX[VFX]
+    OCC[Grid Occupancy] --> MOVE
+    PATH[Grid Pathfinder] --> MOVE
+    PERC[LOS / Hearing] --> BEH
+    PATROL[Patrol] --> BEH
     ENG[Automatic Engagement] --> BEH
-    BEH --> STATES[Idle / Alert / Pursuing / Attacking / Hurt / Dead]
-```
+\`\`\`
 
-## 11 — Save current-schema
+## 12 — Save v24
 
-```mermaid
-flowchart LR
-    PARTY[FGridPartyInventoryState] --> SG[UGrimrockPartySaveGame v23]
-    DUN[FGridDungeonRuntimeState] --> SG
-    LEVEL[FGridLevelRuntimeState] --> DUN
-
-    LEVEL --> DOORS[Doors]
-    LEVEL --> ITEMS[Items]
-    LEVEL --> REC[Receptacles]
-    LEVEL --> PITS[Pits]
-    LEVEL --> MON[Monsters]
-    LEVEL --> ENCS[Encounters]
-    LEVEL --> VARS[Bool/Int Vars]
-
-    SG --> CHECK{SaveVersion == 23}
-    CHECK -- yes --> LOAD[Restore]
-    CHECK -- no --> REJECT[Reject]
-    QUEST[Campaign Quest State] -. not persisted yet .-> SG
-```
-
-## 12 — UI viewport actuel
-
-```mermaid
+\`\`\`mermaid
 flowchart TB
-    VP[Viewport] --> LEFT[WBP_CharacterSheet\nLeft]
-    VP --> CENTER[3D View\nInteractive]
-    VP --> RIGHT[WBP_InventoryBag\nRight]
-    VP --> BOTTOM[WBP_GridPersistentHud\nBottom]
-    VP --> COMBAT[WBP_GridCombatHud\nCombat only]
+    PARTY[FGridPartyInventoryState] --> SG[UGrimrockPartySaveGame v24]
+    DUN[FGridDungeonRuntimeState] --> SG
+    POS[Current Level + Party Cell/Facing] --> SG
+    SG --> CHECK{SaveVersion == 24}
+    CHECK -- Yes --> VALID[ValidateCurrentState]
+    VALID --> LOAD[Restore]
+    CHECK -- No --> REJECT[Reject]
 
-    LEFT --> PARTY[6 Party Selectors]
-    LEFT --> STATS[Stats / Resources / Resistances]
-    LEFT --> PAPER[Paper Doll]
+    Q[FGridCampaignQuestRuntimeState] -. not persisted yet .-> SG
+\`\`\`
 
-    RIGHT --> BAG[Fixed Capacity Bag]
-    RIGHT --> FILTER[Filters]
-    RIGHT --> SORT[Sort]
-    RIGHT --> CTX[Context Menu]
-    RIGHT --> TIP[Tooltip]
+## 13 — Map runtime
 
-    BOTTOM --> NAV[I K G M J H ESC]
-    BOTTOM --> ACTIONS[Dynamic Global Action Bar]
-
-    COMBAT --> INIT[Initiative]
-    COMBAT --> PAM[PAM]
-    COMBAT --> ROUND[Round]
-    COMBAT --> END[End Turn]
-    COMBAT --> TARGET[Targeting]
-```
-
-## 13 — État de la roadmap UI
-
-```mermaid
+\`\`\`mermaid
 flowchart LR
-    DONE[Validé / réalisé] --> FND[FOUNDATION]
-    DONE --> NAV[NAV]
-    DONE --> CHAR[CHAR01/02]
-    DONE --> INV[INV01/02]
-    DONE --> ITEM[ITEM01]
-    DONE --> WEIGHT[WEIGHT01]
-    DONE --> FILTER[FILTER01]
-    DONE --> HOT[HOTBAR01]
-    DONE --> SK[SKILLS via MON20]
+    EXP[FGridLevelRuntimeState\nMapExploration] --> READ[FGridMapReadModelBuilder]
+    LEVEL[UGridLevelAsset + Runtime Objects] --> READ
+    READ --> FLOOR[FGridMapFloorView]
+    FLOOR --> W[UGridMapWidget]
+    W --> SURF[UGridMapSurfaceWidget]
+    THEME[UGridMapVisualThemeAsset] --> SURF
+    SURF --> PAINT[NativePaint]
+\`\`\`
 
-    PART[Partiel] --> FB[FEEDBACK01.2]
-    PART --> POL[POLISH01]
+## 14 — UI viewport
 
-    SHELL[Shell seulement] --> CRAFT[CRAFT]
-    SHELL --> MAP[MAP]
-    SHELL --> JOURNAL[JOURNAL]
-    SHELL --> CODEX[CODEX]
+\`\`\`mermaid
+flowchart TB
+    VP[Viewport] --> CS[WBP_CharacterSheet]
+    VP --> BAG[WBP_InventoryBag]
+    VP --> SK[WBP_GridSkills]
+    VP --> MAP[WBP_GridMap]
+    VP --> CH[WBP_GridCombatHud\nCombat only]
+    VP --> PH[WBP_GridPersistentHud]
 
-    FUTURE[Final] --> QA[UI-QA01]
-```
+    PH --> NAV[Global Navigation]
+    PH --> BAR[Persistent Action Bar >= 12]
+    PH --> NOTIF[Progression Toast]
 
-## 14 — Main Menu / Startup
+    CH --> MEMBERS[Party Combat Panels]
+    CH --> INIT[Initiative]
+    CH --> PAM[PAM]
+    CH --> END[End Turn]
+    CH --> TARGET[Targeting]
+\`\`\`
 
-```mermaid
+## 15 — Remaining GrimrockMenu shell
+
+\`\`\`mermaid
+flowchart TB
+    MENU[WBP_GrimrockMenu] --> JOURNAL[Journal]
+    MENU --> RECIPES[Recipes]
+    MENU --> CODEX[Codex]
+    MENU --> SPELL[Spellbook]
+\`\`\`
+
+Inventory, Skills et Map sont autonomes.
+
+## 16 — Startup
+
+\`\`\`mermaid
 flowchart LR
-    MENU[L_MainMenu] --> NEW[New Game]
-    MENU --> CONT[Continue]
-    MENU --> LOAD[Load]
-    MENU --> OPT[Options]
-    NEW --> CC[Character Creation Wizard]
+    MAIN[L_MainMenu] --> NEW[New Game]
+    MAIN --> CONT[Continue]
+    MAIN --> LOAD[Load]
+    NEW --> CC[Character Creation]
     CC --> PROG[Dungeon Build Progress]
     PROG --> DUN[L_Dungeon]
     CONT --> DUN
     LOAD --> DUN
-```
+\`\`\`
 
-## 15 — Validation
+## 17 — Roadmap
 
-```mermaid
+\`\`\`mermaid
 flowchart LR
-    CODE[Code Change] --> BUILD[ValidateUE.ps1\nDevelopment Editor Build]
-    BUILD --> AUTO[AutomationFilter]
-    AUTO --> REPORT[Saved/Automation/TD04]
-    AUTO --> GLOBAL[Grimrock global regression]
-    GLOBAL --> BASE[964 / 0 / 0 / 0 baseline]
+    DONE[Validated / Closed] --> M13[MON13..MON20]
+    DONE --> Q123[MON21.1..21.3]
+    DONE --> MAP[MON21.6 + MAP-THEME01]
+    DONE --> RPG[RPG-SKILL01 / LEVELUX01 / ATTR01]
+    DONE --> UI[UI-RPG-DESC01 / CODE-AUDIT01]
 
-    RELEASE[Shipping candidate] --> PACK[ValidatePackage.ps1]
-    PACK --> COOK[Cook]
-    COOK --> STAGE[Stage]
-    STAGE --> PAK[Pak]
-    PAK --> ARCH[Archive]
-```
+    OPEN[Open] --> QP[MON21.4 Quest Persistence]
+    OPEN --> J[MON21.5 Journal]
+    OPEN --> C[MON21.7 Codex]
+    OPEN --> CROSS[MON21.8 Closure]
+    OPEN --> VS[MON22 Vertical Slice]
+\`\`\`
 
-## 16 — Audits / stop conditions
+## 18 — Documentation authority
 
-```mermaid
+\`\`\`mermaid
 flowchart TB
-    TD05[TD05 RuntimeActor] --> STOP1[Stop condition]
-    TD06[TD06 PartyInventory] --> STOP2[Stop condition]
-    TD07[TD07 Current Schema] --> STOP3[Stop condition]
-    CPP[CPP-AUDIT01] --> C1[CLEAN01 Door Audio]
-    CPP --> C2[CLEAN02 Item Authority]
-    CPP --> C3[CLEAN03 Dead Compatibility]
-    CPP --> C4[CLEAN04 Asset Fallbacks]
-    CPP --> C5[CLEAN05 Logging\n502 LogTemp -> 0]
-    CPP --> C6[CLEAN06 Friends\n51 -> 49 active]
-```
-
-## 17 — Documentation authority
-
-```mermaid
-flowchart TB
-    CODE[Code + validated tests + latest commits] --> CLOSURE[Latest closure docs]
-    CLOSURE --> DEC[99_DECISIONS_LOG]
-    DEC --> SYN[PROJECT_SYNTHESIS]
-    SYN --> ROAD[PROJECT_COMPLETION_ROADMAP]
-    ROAD --> IDX[ARCHITECTURE_INDEX]
-    IDX --> FOUNDATION[Foundation / ticket docs]
-    FOUNDATION --> HIST[Historical superseded docs]
-
-    MAP1[GRIMROCK_PROJECT_MAP] --> SYN
-    MAP2[XMind map] --> SYN
-    MAP3[Mermaid map] --> SYN
-```
-
-## 18 — Roadmap courante
-
-```mermaid
-flowchart LR
-    NOW[Current UI closure] --> FB[UI-FEEDBACK01.2]
-    FB --> POL[UI-POLISH01]
-    POL --> QA[UI-QA01]
-    QA --> CLOSED[UI Refactor Closed]
-
-    CLOSED --> FEATURES[Future Feature Packages]
-    FEATURES --> QUEST[Quest Persistence]
-    FEATURES --> JOURNAL[Journal]
-    FEATURES --> MAP[Map]
-    FEATURES --> CODEX[Codex]
-    FEATURES --> CRAFT[Craft]
-
-    FEATURES --> VS[MON22 Vertical Slice]
-    VS --> PLAYER[Player Level Editor / Packaging]
-```
-
-## 19 — Invariants à ne pas casser
-
-```mermaid
-flowchart TB
-    INV[Architectural Invariants]
-    INV --> I1[One authority per data]
-    INV --> I2[Definition != Instance]
-    INV --> I3[Grid authoritative]
-    INV --> I4[Event -> Command central]
-    INV --> I5[PartyInventory authority]
-    INV --> I6[TurnManager combat authority]
-    INV --> I7[QuestSubsystem quest authority]
-    INV --> I8[UI is projection]
-    INV --> I9[Save exact-match]
-    INV --> I10[No hard-coded fallback authority]
-    INV --> I11[Domain log categories]
-    INV --> I12[Refactor only on proof + characterization]
-```
-
-## Rebaseline DOC-CLOSURE01
-
-Cette vue est complémentaire de `GRIMROCK_PROJECT_MAP.md`. Les changements du 4 octobre 2026 sont documentaires : la baseline runtime/content reste `9045ef2d`.
-
-Map runtime :
-
-```mermaid
-flowchart LR
-    STATE[FGridLevelRuntimeState::MapExploration] --> READ[FGridMapReadModelBuilder]
-    READ --> VIEW[FGridMapFloorView]
-    VIEW --> W[UGridMapWidget / UGridMapSurfaceWidget]
-    THEME[UGridMapVisualThemeAsset] --> W
-    W --> PAINT[Slate NativePaint]
-```
-
-Le thème est presentation-only ; il ne porte ni exploration, ni topologie, ni SaveGame.
+    CODE[Current C++ + user-provided UE results] --> CLOSURE[Latest Closure Docs]
+    CLOSURE --> OVER[Design Overview / Roadmap]
+    OVER --> SYN[Architecture Project Synthesis]
+    SYN --> MAP1[Detailed Project Map]
+    MAP1 --> MAP2[Mermaid Views]
+    MAP1 --> IDX[Architecture Index]
+    IDX --> FOUND[Current Foundations]
+    FOUND --> HIST[Historical MIG / Cleanup / Audit snapshots]
+\`\`\`

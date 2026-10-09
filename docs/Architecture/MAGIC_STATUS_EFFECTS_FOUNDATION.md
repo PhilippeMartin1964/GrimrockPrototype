@@ -1,52 +1,98 @@
-# Magie et effets de statut — Fondation d’architecture
+# Magie et effets de statut — Fondation d'architecture
 
-## Spellbook et sorts
+> **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
+>
+> Les snapshots Spellbook/Status séparés par CharacterId décrits dans
+> d'anciens jalons ont été supprimés pendant TD07.3. L'état durable vit
+> directement dans \`FGridCharacterInventoryState\`.
 
-MON18 fournit un pipeline complet : définition de sort, spellbook par personnage, transaction de cast, ciblage, résolution d’effet, présentation, hotbar, UI et persistance.
+## 1. Spellbook
 
-```text
+MON18 fournit :
+
+\`\`\`text
 Spell Definition
-  -> Spellbook known state
-  -> Action/Hotbar
-  -> Cast transaction (PA + mana)
-  -> Targeting
-  -> Effect resolver
-  -> Presentation
-```
+    -> KnownSpellIds du personnage
+    -> catalogue / hotbar
+    -> cast transaction
+    -> targeting
+    -> effect resolver
+    -> presentation
+\`\`\`
 
-Les quatre sorts de production de référence sont Arcane Bolt, Lesser Heal, Haste et Cure Poison.
+\`KnownSpellIds\` est l'autorité durable du Spellbook par personnage.
+\`UGridPartySpellbookComponent\` est une façade/runtime projection, pas un
+snapshot persistant parallèle.
 
-## Status Effects
+## 2. Cast transaction
+
+La transaction valide et paie les ressources nécessaires (PA, mana et autres
+conditions applicables) avant d'appliquer l'effet.
+
+Un Widget ou un VFX ne doit jamais contourner cette transaction.
+
+## 3. Status Effects
 
 MON16 fournit :
 
 - définition data-driven ;
-- collection d’effets pour groupe et monstres ;
-- stacking/refresh/durée ;
+- collection runtime ;
+- stacking / refresh ;
+- durée en tours/rounds ;
 - dégâts périodiques ;
-- modification d’initiative ;
 - contrôle ;
+- initiative/modificateurs ;
 - présentation ;
-- persistance.
+- persistance personnage et monstre.
 
-Les sorts réutilisent ce moteur lorsqu’un effet durable est nécessaire : Haste applique un Status Effect et Cure Poison agit sur la collection d’effets.
+Pour un personnage :
 
-## Autorités
+\`\`\`text
+FGridCharacterInventoryState::StatusEffects
+    = autorité durable
+\`\`\`
 
-- Spell Definition = données du sort ;
-- Spellbook = sorts connus ;
-- CastTransaction = validation/paiement ;
-- Targeting = cible légale ;
-- EffectResolver = effet gameplay ;
-- StatusEffectLifecycle = état durable ;
-- Presentation = retour utilisateur.
+Les références de définition à l'intérieur des effets sont des caches
+transients réhydratés depuis leur identité.
 
-La UI et les VFX ne doivent pas contourner la transaction ou appliquer directement un effet gameplay.
+Les monstres persistés utilisent leurs snapshots d'effet stables dans le
+DungeonRuntimeState.
 
-## Persistance
+## 4. Actions magiques et Talents
 
-Les spellbooks et Status Effects sont sérialisés via snapshots identifiés par `CharacterId`; les pointeurs runtime vers assets de statut sont reconstruits lors du chargement.
+Les actions magiques restent des actions du catalogue de combat. Un Talent peut
+accorder/modifier une action mais ne crée pas un second moteur de magie.
 
-## Suite de production
+Le read model Talent lit les vraies primitives de combat et de Status Effects
+pour produire les sections EFFETS / UTILISATION.
 
-Le framework est plus mature que le catalogue de contenu : priorité à davantage de sorts, effets, icônes, VFX et équilibrage plutôt qu’à une seconde architecture magique.
+## 5. UI
+
+Spellbook et Skills/Talents suivent le même
+\`UGridPartyInventoryComponent::SelectedCharacterIndex\`.
+
+La UI :
+
+- affiche les sorts connus ;
+- affiche coûts et ciblage projetés ;
+- permet l'affectation à la barre d'actions ;
+- n'applique aucun effet gameplay directement.
+
+## 6. Save
+
+Save courant : **v24 exact-match**.
+
+Il n'existe plus de :
+
+\`\`\`text
+CharacterSpellbookStates
+CharacterStatusEffectStates
+\`\`\`
+
+Les données vivent directement dans le personnage durable.
+
+## 7. Règle de production
+
+Le framework Magic/Status est déjà structurellement complet. Ajouter des sorts,
+effets, VFX, icônes et équilibrages doit normalement enrichir les assets et
+catalogues existants, pas introduire une deuxième architecture.

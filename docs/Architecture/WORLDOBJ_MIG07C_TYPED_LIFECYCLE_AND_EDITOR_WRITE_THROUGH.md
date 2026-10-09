@@ -1,5 +1,8 @@
 # WORLDOBJ-MIG07-C — Cycle de vie et écriture typée du LevelAsset
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 ## Statut
 
 MIG07-C ferme le cycle de vie C++ du stockage typé introduit par MIG07-A/B.

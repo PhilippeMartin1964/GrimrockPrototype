@@ -1,5 +1,8 @@
 # WORLDOBJ-MIG07-B — Autorité des placements typés et miroir de compatibilité
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 Statut : candidat de validation UE5.5.4 — 2026-09-06.
 
 ## 1. But

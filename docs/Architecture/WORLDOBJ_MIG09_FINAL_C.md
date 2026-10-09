@@ -1,5 +1,8 @@
 # WORLDOBJ-MIG09 FINAL-C — Rapport de clôture locale
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 Date : 2026-09-09. Branche : `master`. Base : `1a49329e9aa0ce3475ab8becefc8d2b7b209e018` (FINAL-B).
 
 **FINAL-C publié : `046d58bc429cfbff4b51576cd29ba46b10941eb5` — `WORLDOBJ-MIG09 FINAL-C purge compatibility model`.** La validation de clôture est consignée dans le [rapport FINAL-D](WORLDOBJ_MIG09_FINAL_D.md). MIG10 non commencé.

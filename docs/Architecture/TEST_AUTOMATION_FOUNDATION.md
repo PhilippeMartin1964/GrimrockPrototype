@@ -1,5 +1,7 @@
 # Tests Automation et validation — Fondation d’architecture
 
+> **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. Le harness local reste l'autorité de validation exécutée par l'utilisateur.
+
 Date de référence : **27 août 2026**
 
 ## Niveaux de validation
@@ -96,3 +98,22 @@ Certains tests négatifs provoquent volontairement des warnings ou errors attend
 - validation automatisée exhaustive des assets binaires.
 
 La validation locale build/Automation et la validation Win64 Shipping ne sont plus des manques : elles sont versionnées et ont été exécutées avec succès.
+
+
+## Rebaseline DOC-ARCH01 — validations globales
+
+La dernière campagne **globale** reçue reste :
+
+```text
+Runtime/content baseline : 9045ef2db75c09997db4fc65dbf99d4598f4df5c
+Grimrock                 : 1026/1026
+Warnings                 : 0
+Failed                   : 0
+Not run                  : 0
+Win64 Shipping           : VALIDÉ
+Cook                     : 0 error / 0 warning
+```
+
+Les modifications postérieures disposent de validations ciblées. Une
+documentation-only rebaseline ne transforme pas ces validations ciblées en
+nouvelle campagne globale.

@@ -1,5 +1,7 @@
 # Event, variables, Logic et Lua — Fondation d’architecture
 
+> **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. Event → Command, Logic et Lua conservent une voie d'effet unique.
+
 ## Autorités
 
 - `UGridLevelAsset` porte objets, liens, variables et scripts de niveau.
@@ -20,7 +22,7 @@ Event -> Lua -> grid.command(...) -> Command
 
 ## Variables
 
-Les variables de niveau supportées sont `Bool` et `Int32`. Elles possèdent une définition initiale dans le LevelAsset et une valeur vivante dans `FGridLevelRuntimeState`; elles sont sauvegardées avec le dungeon runtime state. Les liens peuvent tester ces variables avant d’appliquer une commande.
+Les variables de niveau supportées sont `Bool` et `Int32`. Elles possèdent une définition initiale dans le LevelAsset et une valeur vivante dans `FGridLevelRuntimeState`; elles sont sauvegardées avec le dungeon runtime state. Les comparaisons de variables passent par les nœuds Logic (`CompareBool` / `CompareInt`) ou par Lua ; `EGridObjectCondition` reste centré sur les conditions de réceptacle.
 
 ## Logic nodes
 

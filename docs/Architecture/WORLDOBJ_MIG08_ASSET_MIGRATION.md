@@ -1,5 +1,8 @@
 # WORLDOBJ-MIG08 — Migration des assets Unreal réels
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 > **Document historique — constat du 21 septembre 2026 :** le lanceur `Scripts/MigrateWorldObjectAssets.ps1` est encore versionné, mais le commandlet `GridWorldObjectMIG08` est absent du code courant audité (`4b6f9743`). Les commandes ci-dessous décrivent le jalon historique et ne constituent plus une procédure applicable à un build propre de cette révision. Consulter la [référence des scripts](../SCRIPTS_REFERENCE.md#migrateworldobjectassetsps1) avant toute intervention sur les assets.
 
 Statut : **MIG08-B — migration des définitions d’objets + sauvegarde sélective**.

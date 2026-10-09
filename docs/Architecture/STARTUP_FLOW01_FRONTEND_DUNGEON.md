@@ -1,5 +1,7 @@
 # STARTUP-FLOW01 — Frontend character creation and canonical dungeon map
 
+> **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. `L_MainMenu -> Character Creation -> L_Dungeon` et la barre de progression de construction restent le flux canonique.
+
 ## Canonical maps
 
 - `L_MainMenu`: lightweight frontend only.

@@ -1,224 +1,386 @@
 # GrimrockPrototype — Synthèse globale du projet
 
-> Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **4 octobre 2026 — TD07 clos ; MON21.6 + MAP-THEME01 validés/clos ; FINAL-MASTER-CLOSURE validé.**
+> **Référence courante — DOC-ARCH01, 9 octobre 2026.**
+>
+> Baseline C++ auditée : \`6f98a0ef5599f37d3d544529aa5a790d647e8251\`
+> (\`UI-RPG-CODE-AUDIT01\`). Les commits DOC-AUDIT02 / DOC-ARCH01 sont
+> documentaires et ne modifient pas cette baseline C++.
+>
+> Dernière campagne **globale + Shipping** fournie par l'utilisateur :
+> baseline runtime/content \`9045ef2db75c09997db4fc65dbf99d4598f4df5c\`,
+> **1026/1026**, 0 warning, 0 échec, 0 non exécuté ; Win64 Shipping
+> Build/Cook/Stage/Package/Pak/Archive validé, cook 0 error / 0 warning.
 
-## 1. Référence
+## 1. Vue d'ensemble
 
-| Élément | Valeur |
-|---|---|
-| Projet | `GrimrockPrototype` |
-| Moteur | Unreal Engine 5.5.4 |
-| Branche | `master` |
-| Modules C++ | `GrimrockPrototype`, `GrimrockPrototypeEditor`, `GrimrockLua` |
-| SaveGame | **v24 exact-match** ; aucune compatibilité arrière ni migration |
-| Dernier jalon fonctionnel clos | `MON21.6 — Map` + `MAP-THEME01 — Textured Map Rendering` |
-| Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
-| Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
-| Dernière clôture validée | `FINAL-MASTER-CLOSURE — 1026/1026 + Shipping Win64` |
-| Tranche active | **Aucune clôture Map active ; prochaine priorité produit à choisir explicitement** |
+GrimrockPrototype est un dungeon crawler UE 5.5.4 en C++ inspiré de
+*Legend of Grimrock 2* : exploration case par case, Grid Editor, mécanismes
+data-driven, Event → Command, Logic/Lua, inventaire/équipement, combat tactique,
+IA, progression RPG, magie, Map persistante et fondation Quest.
 
-La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`. La baseline quantitative de clôture TD07 pour les audits futurs est `docs/Architecture/TD07_FINAL_QUANTITATIVE_AUDIT_BASELINE.md`.
+Architecture de modules :
 
-## 2. Lecture en cinq minutes
-
-GrimrockPrototype est un dungeon crawler case par case avancé : édition de donjons, exploration, mécanismes, Event -> Command enrichi de variables/Logic/Lua, groupe RPG persistant, inventaire/équipement, combat tactique, IA de monstres, XP/niveaux, Status Effects, magie/Spellbook, recrutement, Skills, Talents et persistance associée.
-
-MON13 à MON20 sont clos. MON21 possède déjà sa fondation Quest data-driven, mais les nouvelles fonctionnalités sont temporairement suspendues. TD07.3 remet à plat le modèle de données afin d'éliminer les compatibilités historiques, duplications d'autorité et schémas legacy devenus inutiles pendant la phase prototype. TD07.3.1 a scanné 86 DataAssets et produit une baseline de 41 findings. TD07.3.2 est validé : SaveGame v10 exact-match, aucune migration historique, régressions de persistance validées et Shipping vert. TD07.3.3.1 a ensuite cartographié l'autorité du personnage : pont legacy Attributes, DerivedStats mixte, poids dérivés et snapshots parallèles Progression/Skills/Spellbook/Status Effects. TD07.3.3.2 est validé : `Attributes` est l'unique autorité d'attributs, `Strength` legacy et `bRPGAttributesInitialized` sont supprimés, le SaveGame courant est v11 exact-match, les régressions sont vertes et le Shipping Win64 est validé. TD07.3.3.3 est validé : `FRPGDerivedStats` ne porte plus que les valeurs reconstructibles, `FRPGCharacterResources` porte HP/mana/armures courantes, le pipeline Magic consomme les ressources mutables, le SaveGame courant est v12 exact-match et les régressions ciblées ainsi que le Shipping Win64 sont verts. TD07.3.3.4 est validé : `CurrentWeight` et `MaxCarryWeight` ont quitté l'état durable, la charge et la surcharge sont désormais calculées à la demande depuis le contenu réel, `CarryWeightBonus` reste la seule extension de capacité issue de l'équipement, le SaveGame courant est v13 exact-match, les régressions ciblées et le Shipping Win64 sont verts. TD07.3.3.5 est validé : `Experience` est l'autorité durable du niveau, `Level` est une projection Transient reconstruite, `SelectedClassProgressionChoiceIds` vit directement dans le personnage, `RuntimeStates` ne contient plus que les requirements dérivés, le miroir `ClassProgressionStates` est supprimé, le SaveGame courant est v15 exact-match et les régressions ciblées ainsi que le Shipping Win64 sont verts. TD07.3.3.6 est validé et clos : `SkillRanks` est durable et constitue l'autorité unique, `CharacterSkillStates` et les structs de snapshot MON20.9 sont supprimés, `FRPGSkillPersistence` ne conserve que la validation canonique, et le SaveGame courant est v16 exact-match. TD07.3.3.7 est validé et clos : `KnownSpellIds` vit directement dans `FGridCharacterInventoryState`, le composant Spellbook n'est plus qu'une façade, `FGridPartySpellbookState` et `CharacterSpellbookStates` sont supprimés, les 55 régressions sont vertes et le Shipping Win64 est validé. TD07.3.3.8 est implémenté : `Character.StatusEffects` est durable, `DefinitionAsset` reste transient et rehydraté depuis `EffectId`, le miroir `CharacterStatusEffectStates` est supprimé, la persistance monster conserve `FGridStatusEffectSaveState`, et le SaveGame courant passe en v18 exact-match.
-
-Les campagnes TD05 et TD06 ont atteint leur stop condition : `AGridLevelRuntimeActor` et `UGridPartyInventoryComponent` restent des façades/orchestrateurs, mais leurs frontières à forte cohésion sont désormais séparées sans dupliquer l’autorité.
-
-## 3. Principes autoritaires
-
-1. DataAssets = état de conception persistant ; Actors runtime reconstruits et transitoires.
-2. Grille autoritaire pour déplacement, occupation, ligne de mire et ciblage.
-3. Event -> Command reste le bus gameplay ; Logic et Lua y reviennent.
-4. Identités stables : `ObjectId`, `LogicId`, `CharacterId`, `RuntimeObjectId`, `QuestId`, `ObjectiveId`.
-5. État initial distinct de l’état vivant/sauvegardé.
-6. Logique déterministe séparée de la présentation.
-7. Pas d’abstraction parallèle sans besoin démontré.
-8. Editor dépend du Runtime, jamais l’inverse ; `GrimrockLua` est autonome.
-9. `FGridPartyInventoryState` reste l’autorité unique du groupe.
-10. `UGridQuestSubsystem` reste l’autorité runtime unique des quêtes.
-11. Les données dérivées ne sont pas persistées lorsqu’elles peuvent être reconstruites.
-12. Refactors structurels uniquement après caractérisation et avec une stop condition explicite.
-13. Tant que le projet reste un prototype, aucune compatibilité arrière Save/DataAsset/Blueprint n'est exigée ; Git conserve l'historique.
-
-## 4. Architecture des modules
-
-```text
+\`\`\`text
 GrimrockLua
     ↓
 GrimrockPrototype
     ↓
 GrimrockPrototypeEditor
-```
+\`\`\`
 
-Le module Editor dépend aussi de `GrimrockLua`. Le Runtime ne dépend pas du module Editor.
+Le Runtime ne dépend jamais du module Editor. Le module Editor consomme le
+modèle Core/Runtime au lieu de créer une seconde autorité.
 
-## 5. Domaines actuels
+## 2. Principes structurants
 
-| Domaine | État |
-|---|---|
-| Donjon / grille / LevelAsset | ✅ |
-| Grid Editor | ✅ avancé ; TD03 legacy Details nettoyé |
-| Runtime niveau | ✅ ; TD05.9 stop condition atteinte |
-| Interaction / mécanismes | ✅ |
-| Event / Command | ✅ ; commandes Quest intégrées MON21.3 |
-| Variables / Logic / Lua | ✅ MON19 |
-| Items / inventaire / équipement | ✅ avancé ; TD06.9 stop condition atteinte |
-| Combat | ✅ MON12+ |
-| Monstres / IA | ✅ ; bestiaire à densifier comme contenu |
-| Progression RPG | ✅ MON15 |
-| Status Effects | ✅ MON16 |
-| Magic / Spellbook | ✅ MON18 |
-| Recrutement / réserve | ✅ MON20 |
-| Skills / Talents | ✅ MON20 |
-| Save | ✅ v24 exact-match ; aucune migration arrière |
-| Quêtes runtime | ✅ MON21.2–MON21.3 |
-| Journal | ⬜ WBP existant ; read model prévu MON21.5 |
-| Map | ✅ MON21.6 validé/clos ; MAP-THEME01 texturé data-driven validé/clos |
-| Codex | ⬜ WBP existant ; discovery prévu MON21.7 |
+1. **Une seule autorité par donnée.**
+2. **Définition ≠ instance ≠ état runtime ≠ état sauvegardé.**
+3. La grille est autoritaire pour déplacement, occupation, LOS, ciblage et
+   frontières.
+4. \`UGridLevelAsset\` est l'autorité authored d'un niveau.
+5. \`AGridLevelRuntimeActor\` reconstruit la représentation vivante.
+6. Event → Command reste le bus gameplay ; Logic et Lua y reviennent.
+7. C++ porte règles, transactions, validations et read models.
+8. Blueprint/UMG porte composition, assets, style et présentation.
+9. Pendant le prototype, le Save utilise **exact-match** et ne maintient pas de
+   migration arrière.
+10. Git conserve l'historique ; les documents de migration ne sont pas des
+    contrats courants.
 
-## 6. Donjon, grille et éditeur
+## 3. Donjon et placements
 
-`UGridDungeonAsset -> UGridLevelAsset` reste la racine du contenu. Un LevelAsset porte cellules, objets, liens, variables typées, scripts Lua et désormais les références de définitions Quest utilisées par le niveau.
+\`\`\`text
+UGridDungeonAsset
+    -> FGridDungeonLevelEntry
+        -> UGridLevelAsset
+            -> Cells
+            -> WorldObjectInstances
+            -> LooseItemInstances
+            -> MonsterSpawns
+            -> ItemSpawns
+            -> LogicObjects
+            -> Links
+            -> QuestDefinitions
+            -> LevelVariables
+            -> LuaScripts
+\`\`\`
 
-Le Grid Editor offre peinture cellule/mur, placement, inspecteur, connecteurs, preview, mini-carte, validation et playtest PIE.
+Les placements sont typés. L'ancien stockage monolithique n'est plus une
+autorité active.
 
-## 7. Event -> Command, Logic, Lua et Quests
+### World Objects
 
-```text
-Event -> Command
-Event -> Logic -> Event -> Command
-Event -> Lua -> grid.command(...) -> Command
-Event -> QuestStart / QuestCompleteObjective / QuestComplete / QuestFail
-```
+\`UGridWorldObjectDefinitionAsset\` porte notamment :
 
-`TD-EVENT-001` est résolu. MON21.3 adapte le bus existant vers `UGridQuestSubsystem` ; les commandes Quest ne créent aucun pipeline parallèle.
+- \`DefinitionId\`, \`DisplayName\`, \`SupportedType\` ;
+- règles de placement et comportement spatial ;
+- interaction / readable / lumière ;
+- \`StaticPart\` et \`MovingParts[]\` ;
+- \`AudioEvents\` ;
+- \`MapSymbolStyle\` de présentation ;
+- \`RuntimeActorClass\`.
 
-## 8. Groupe, inventaire, recrutement, Skills et Talents
+\`FGridWorldObjectInstance\` porte l'identité et les différences locales :
 
-Autorité :
+- \`InstanceId\` ;
+- \`WorldObjectDefinitionId\` ;
+- cellule / surface / facing ;
+- \`LogicId\` ;
+- \`ReadableTextOverride\` ;
+- \`FGridWorldObjectInstanceConfig\`.
 
-```text
+La palette ne possède plus de \`DisplayNameOverride\`. Son libellé effectif
+vient directement de la définition Item ou World Object référencée.
+\`PaletteCategory\` reste l'autorité de groupement Editor.
+
+## 4. Grid Editor
+
+Le Grid Editor repose sur :
+
+\`\`\`text
+FGridLevelEdMode
+FGridLevelEdModeToolkit
+AGridLevelEditorActor
+Slate panels / authoring services
+\`\`\`
+
+Fonctions actuelles : cellules, murs, placements typés, palette, Selected
+Object, links/connectors, variables, Lua, monstres/patrouilles, relocations,
+pits, validation, preview, Overview Map, Playtest, Undo/Redo et Erase one-shot.
+
+Le long terme reste un éditeur joueur autonome réutilisant les mêmes assets et
+contrats, pas un second modèle de niveau.
+
+## 5. Runtime exploration et interaction
+
+\`AGrimrockPartyPawn\` porte le déplacement grille, rotation, free look,
+head-bob, transitions, pits et orchestration runtime.
+
+\`AGrimrockPlayerController\` arbitre le clic souris via
+\`ResolveLeftMouseInteraction()\` et le hover d'item tenu via
+\`ResolveCursorItemHoverCursor()\`.
+
+Ordre conceptuel :
+
+\`\`\`text
+UI / message lisible
+    -> item tenu : wall lock / receptacle / world drop / throw
+    -> interaction monde via IGridInteractableInterface
+    -> fallback silencieux
+\`\`\`
+
+Le hover n'exécute aucune mutation. Les règles métier restent dans les acteurs,
+services de transfert et runtime.
+
+## 6. Event → Command, Logic, Lua et Quest
+
+\`\`\`text
+Object Event
+    -> UGridActivationComponent
+        -> FGridObjectLink
+            -> Command
+            -> LogicExecute
+            -> LuaCallback
+            -> Quest*
+\`\`\`
+
+Lua 5.4 est sandboxé dans \`GrimrockLua\`. Les scripts de puzzle utilisent
+\`grid.command(...)\` pour revenir au dispatcher canonique.
+
+Quest :
+
+- \`UGridQuestDefinitionAsset\` = définition ;
+- \`UGridQuestSubsystem\` = autorité runtime de campagne ;
+- \`FGridCampaignQuestRuntimeState\` = état runtime transient ;
+- MON21.3 route \`QuestStart\`, \`QuestCompleteObjective\`,
+  \`QuestComplete\`, \`QuestFail\`.
+
+**MON21.4 Quest Persistence reste ouvert** : le SaveGame courant ne contient
+pas encore le snapshot Quest.
+
+## 7. Items, inventaire et équipement
+
+\`UGridItemDefinitionAsset\` est l'unique définition collectible.
+\`FGridItemInstance\` porte l'identité runtime et l'ownership.
+\`UGridPartyInventoryComponent\` reste l'autorité du groupe/inventaire.
+
+\`\`\`text
 FGridPartyInventoryState
-├── ActiveCharacters
-├── ActiveEquipment
-├── CharacterPool
-└── FGridCharacterInventoryState
-```
+    ActiveCharacters
+    ActiveEquipment
+    CharacterPool
+    SelectedCharacterIndex
+    CursorItem
+\`\`\`
 
-MON20 fournit recrutement actif/réserve, Story Companion, Custom Recruit, Skills, skill checks déterministes, Talents via `ProgressionChoices` et projection vers `RequirementIds`.
+Les bindings de barre d'actions sont persistés par personnage dans
+\`CombatHotbarSlots\`. Le contrat courant prévoit au minimum **12 slots**.
 
-TD06 a réparti l’implémentation de `UGridPartyInventoryComponent` entre Hotbar, Cursor Transfer, Equipment Core, World Transfer et Diagnostics. Le fichier principal conserve le lifecycle, l’inventaire générique, Registry/Rehydration, poids, ownership et validations centrales. L’autorité `FGridPartyInventoryState` reste unique.
+\`UGridItemTransferService\` conserve l'atomicité des transferts entre
+inventaire, équipement, curseur, monde et réceptacles.
 
-## 9. Combat, monstres et magie
+## 8. Combat et monstres
 
-Combat : initiative globale, PA/PAM, catalogue d’actions, ciblage grille, transactions de ressources, cooldowns, hotbar 0–9.
+\`UGridTurnManagerComponent\` est l'autorité combat :
 
-Monstres : occupation/pathfinding, perception automatique, dormance, patrouille, investigation, alarmes ; Rat géant mêlée et Gobelin lanceur à distance.
+- initiative globale ;
+- round / combattant actif ;
+- PA individuels ;
+- PAM du groupe ;
+- catalogue d'actions ;
+- ciblage ;
+- paiement atomique ;
+- résolution ;
+- victoire/défaite.
 
-MON16 fournit Status Effects ; MON18 fournit Spellbook/cast. Le petit bestiaire est un manque de contenu, pas une dette d’architecture.
+Le Combat HUD est une projection et ne décide pas des coûts ou de l'initiative.
 
-## 10. Quêtes
+Les monstres restent data-driven via \`UGridMonsterDefinitionAsset\` et des
+composants spécialisés : mouvement, comportement, combat, mort, audio, VFX.
+Perception, occupation et pathfinding restent basés sur la grille.
 
-```text
-UGridQuestDefinitionAsset
-    -> QuestId
-    -> objectifs ordonnés / ObjectiveId
+## 9. RPG courant
 
-UGridQuestSubsystem : UGameInstanceSubsystem
-    -> registre transient des définitions
-    -> FGridCampaignQuestRuntimeState
-    -> Start / CompleteObjective / Complete / Fail
-```
+### Personnage
 
-MON21.2 a établi l’autorité runtime et les transitions séquentielles. MON21.3 a relié les commandes Quest au bus Event -> Command via `FGridObjectLink`.
+\`\`\`text
+Durable
+    Experience
+    SelectedClassProgressionChoiceIds
+    Attributes
+    Resources
+    SkillRanks
+    KnownSpellIds
+    StatusEffects
+    InventorySlots
+    CombatHotbarSlots
+    identity authored
 
-L’état Quest reste transient. La characterization MON21.4 est validée et TD07 est maintenant clos ; l'implémentation de Quest Persistence reste volontairement en attente du feu vert explicite de l'utilisateur.
+Transient / reconstruit
+    Level
+    DerivedStats
+    ClassDefinition / ClassDisplayName
+    RaceDisplayName
+    Portrait / ClassIcon
+\`\`\`
 
-## 11. Persistance
+### Skills
 
-`UGrimrockPartySaveGame` utilise désormais la génération prototype **v24 exact-match**. Toute autre génération est rejetée ; aucune migration arrière n'est exécutée.
+\`\`\`text
+SkillRanks
+    -> FRPGSkillService
+    -> FRPGSkillPointService
+    -> FGridSkillsPageService
+\`\`\`
 
-TD07.3 impose désormais :
+L'économie Skill Points n'est pas persistée : points accordés et dépensés sont
+reconstruits depuis Level + SkillRanks. Le Safe Undo ne traverse pas la session
+courante.
 
-```text
-ancienne save incompatible -> rejet
-aucune migration arrière pendant le prototype
-une seule représentation de chaque donnée durable
-données dérivées recalculées
-runtime/save fondés sur identités stables, pas sur pointeurs de contenu persistants
-```
+### Talents
 
-TD07.3.2 supprime la chaîne de migration v1-v9. TD07.3.3.2 supprime le bridge legacy des attributs et ouvre v11 ; les sous-tranches suivantes normalisent les autres états du personnage. TD07.3.4–TD07.3.7 ont nettoyé les autorités d'authoring, le schéma combat, les APIs/data legacy et les DataAssets courants. TD07.3.8 fige la validation stricte transversale.
+\`\`\`text
+URPGClassAsset::ProgressionChoices
+    -> FRPGClassProgressionService
+    -> FRPGClassProgressionTransactionService
+    -> FGridSkillsPageService
+    -> FGridTalentTreeView
+\`\`\`
 
-## 12. UI
+Production : **6 classes / 18 branches / 90 Talents conceptuels**, dont
+**86 simples et 4 familles à variantes**. Les anciennes façades
+\`FRPGTalentRuntimeService\`, \`FRPGSkillRuntimeService\` et la projection plate
+\`FGridTalentEntryView\` ont été supprimées.
 
-Surfaces fonctionnelles : menu principal/Continue/Load, inventaire/paper doll, sélection du groupe, création/recrutement, Level Up, combat, Spellbook, Skills/Talents.
+### Attributes et Level Up
 
-Journal et Codex existent déjà dans le menu et restent des projections futures. La Map est désormais close : exploration persistante, secrets filtrés, projection multi-dalles/multi-étages, symboles, navigation, zoom/pan/recenter et rendu texturé data-driven via `UGridMapVisualThemeAsset`. `UGridMapWidget` reconstruit toujours un `FGridMapFloorView` transitoire ; Map ne devient jamais une autorité gameplay.
+- \`FRPGAttributePointService\` dérive le budget depuis le niveau et les
+  attributs durables ;
+- aucun compteur Attribute Point n'est persisté ;
+- \`URPGLevelUpNotificationSubsystem\` ne porte qu'une file transitoire de
+  toasts ;
+- \`LastAcknowledgedLevel\` et l'ancien Level-Up modal n'existent plus.
 
-## 13. Validation et packaging
+## 10. Magic et Status Effects
 
-```text
+\`KnownSpellIds\` vit directement dans le personnage durable. Le Spellbook
+runtime est une façade/projection.
+
+\`Character.StatusEffects\` est durable ; les références de définition
+transientes sont réhydratées depuis les identités d'effet.
+
+La transaction de cast reste autoritaire pour PA/mana/cible/effets.
+
+## 11. UI courante
+
+\`\`\`text
+Viewport
+├── WBP_CharacterSheet       fenêtre autonome
+├── WBP_InventoryBag         fenêtre autonome
+├── WBP_GridSkills           fenêtre autonome Skills + Talents
+├── WBP_GridMap              fenêtre autonome Map
+├── WBP_GridCombatHud        combat uniquement
+└── WBP_GridPersistentHud    navigation + action bar persistante
+
+WBP_GrimrockMenu
+└── shell temporaire Journal / Recipes / Codex / Spellbook
+\`\`\`
+
+\`UGridPersistentHudWidget\` est le propriétaire de la navigation globale et de
+la barre d'actions. \`UGridCombatHudWidget\` est réservé à la présentation
+combat.
+
+UI-COMBAT-UNIFY02 est le contrat C++ courant ; la validation UMG/PIE de sa
+hiérarchie finale reste explicitement non revendiquée.
+
+## 12. Map
+
+MON21.6 et MAP-THEME01 sont clos.
+
+\`\`\`text
+FGridLevelRuntimeState::MapExploration
+    -> FGridMapReadModelBuilder
+    -> FGridMapFloorView
+    -> UGridMapWidget / UGridMapSurfaceWidget
+    -> UGridMapVisualThemeAsset
+    -> rendu NativePaint
+\`\`\`
+
+La Map supporte exploration persistante, secrets filtrés, multi-dalles,
+multi-étages, symboles, navigation d'étage, zoom/pan/recenter et rendu texturé.
+Elle reste une projection : aucune topologie ou exploration n'est authorée dans
+UMG.
+
+## 13. Save / Continue
+
+\`UGrimrockPartySaveGame::CurrentSaveVersion = 24\`.
+
+Contrat :
+
+\`\`\`text
+SaveVersion == 24 -> validate -> restore
+SaveVersion != 24 -> reject
+\`\`\`
+
+Enveloppe persistée :
+
+- \`PartyInventoryState\` ;
+- \`DungeonRuntimeState\` ;
+- \`CurrentDungeonLevelId\` ;
+- position/facing du groupe.
+
+La MapExploration est incluse dans le runtime state. Quest ne l'est pas encore.
+
+## 14. Validation
+
+Harness :
+
+\`\`\`text
 Scripts/ValidateUE.ps1
-    -> GrimrockPrototypeEditor Win64 Development
-    -> Automation explicite
-
 Scripts/ValidatePackage.ps1
-    -> GrimrockPrototype Win64 Shipping
-    -> Build + Cook + Stage + Package + Pak + Archive
-```
+\`\`\`
 
-Validation TD07.3.2 du 27 août 2026 : 6/6 sur le contrat TD07.3.2, 2/2 MON19.2 Save, 7/7 MON20.9 Skills, 10/10 MON16.7, 11/11 MON18.8 ; TD01.1 termine avec 2 tests `Succeeded with warnings` et 0 échec à cause de warnings du fixture transient. Le Shipping Win64 est validé.
+Dernière campagne globale + Shipping : baseline \`9045ef2d\`,
+**1026/1026**, zéro warning/échec, Shipping validé.
 
-Validation finale du 4 octobre 2026 sur la baseline runtime/content `9045ef2d` : **1026/1026**, 0 warning, 0 échec, 0 non exécuté. Le Shipping Win64 Build/Cook/Stage/Package/Pak/Archive est validé avec cook **0 error / 0 warning** et `ExitCode=0`.
+Les changements postérieurs ont des validations ciblées, notamment RPG-SKILL01,
+RPG-LEVELUX01, RPG-ATTR01, UI-RPG-DESC01 et UI-RPG-CODE-AUDIT01. Aucun document
+ne doit les transformer artificiellement en nouvelle campagne globale.
 
-La CI distante UE reste différée tant qu’aucun vrai runner UE5.5.4 n’est provisionné.
+## 15. État fonctionnel
 
-## 14. Dette technique
+\`\`\`text
+MON13–MON20                  CLOS / VALIDÉS
+MON21.1                      CLOS
+MON21.2 Quest Runtime        VALIDÉ
+MON21.3 Quest Event/Command  VALIDÉ
+MON21.4 Quest Persistence    EN ATTENTE
+MON21.5 Journal              À FAIRE
+MON21.6 Map                  VALIDÉ / CLOS
+MAP-THEME01                  VALIDÉ / CLOS
+MON21.7 Codex                À FAIRE
+MON21.8 Cross-System Closure À FAIRE
+MON22 Vertical Slice         À FAIRE
 
-Stop conditions atteintes :
+RPG-SKILL01                  VALIDÉ / CLOS
+RPG-LEVELUX01                VALIDÉ / CLOS
+RPG-ATTR01                   VALIDÉ / CLOS
+UI-RPG-DESC01                VALIDÉ / CLOS
+UI-RPG-CODE-AUDIT01          VALIDÉ / CLOS
+\`\`\`
 
-```text
-TD05.9  AGridLevelRuntimeActor
-TD06.9  UGridPartyInventoryComponent
-```
+## 16. Documentation de référence
 
-Aucune nouvelle tranche de découpage de ces classes n’est recommandée sans signal concret. Les dettes restantes sont suivies comme surveillées, opportunistes ou différées dans le registre autoritaire.
+Ordre conseillé :
 
-## 15. Roadmap
+1. \`docs/Design/00_PROJECT_OVERVIEW.md\`
+2. \`docs/Design/PROJECT_COMPLETION_ROADMAP.md\`
+3. \`docs/Architecture/PROJECT_SYNTHESIS.md\`
+4. \`docs/Architecture/ARCHITECTURE_INDEX.md\`
+5. \`docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.md\`
+6. \`docs/Architecture/Maps/GRIMROCK_PROJECT_MAP_MERMAID.md\`
+7. \`docs/Design/99_DECISIONS_LOG.md\`
+8. \`docs/Design/DOC_AUDIT02_DESIGN_CPP_COHERENCE.md\`
+9. \`docs/Architecture/ARCHITECTURE_REBASELINE_2026_10_09.md\`
 
-```text
-MON13–MON20  systèmes gameplay majeurs                    CLOS
-MON21.1      architecture Quests/Journal/Map/Codex        CLOS
-MON21.2      Quest Definition + Campaign Runtime State    VALIDÉ
-MON21.3      Quest Event -> Command Integration           VALIDÉ
-TD01–TD06    stabilisation / dette ciblée                 STOP CONDITIONS ATTEINTES
-TD07.3.1     Prototype Data Model Asset Audit             VALIDÉ
-TD07.3.2     SaveGame Reset                              VALIDÉ
-TD07.3.3     Character State Normalization                  VALIDÉ — CLOS
-TD07.3.3.1   Character State Authority Audit                VALIDÉ
-TD07.3.3.2   Remove Legacy Attribute Bridge                 VALIDÉ
-TD07.3.3.3   Normalize Derived Stats / Mutable Resources     VALIDÉ
-TD07.3.3.4   Normalize Weight State                            VALIDÉ
-TD07.3.3.5   Normalize XP / Level / Class Progression              VALIDÉ
-TD07.3.3.6   Normalize Skills                                          VALIDÉ — CLOS
-TD07.3.3.7   Normalize Spellbook                                       VALIDÉ — CLOS
-TD07.3.3.8   Normalize Status Effects                                  VALIDÉ — CLOS
-TD07.3.3.9   Normalize Level-Up Notification State                    VALIDÉ — CLOS
-TD07.3.3.10  Current Save Schema / Regressions / Closure              VALIDÉ — CLOS
-MON21.4      Quest Persistence                          EN ATTENTE
-MON21.5      Journal Read Model / WBP                     À FAIRE
-MON21.6      Map Geometry / Exploration                   VALIDÉ — CLOS
-MON21.7      Codex Discovery / Projection                 À FAIRE
-MON21.8      Cross-System Regression / PIE / Closure      À FAIRE
-MON22        vertical slice 45–90 minutes                 À FAIRE
-```
-
-## 16. Cartographie
-
-- statut courant : présent document, `TECHNICAL_DEBT_REGISTER.md` et `PROJECT_COMPLETION_ROADMAP.md` ;
-- `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.md` et sa vue Mermaid ont été rebaselinés par DOC-CLOSURE01 ; les anciens commits Git restent les snapshots historiques.
+Les documents MIG/cleanup/audit datés restent des snapshots historiques.

@@ -1,5 +1,7 @@
 # PARTY-LIGHT01 — Equipment-Driven Party Illumination
 
+> **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. Le proxy d'illumination du groupe reste distinct de la présentation physique de l'item tenu.
+
 Statut : implémenté en C++, validation UE locale réussie le 16.09.2026.
 
 ## 1. Principe

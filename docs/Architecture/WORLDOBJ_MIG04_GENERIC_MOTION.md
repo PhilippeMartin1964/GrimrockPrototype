@@ -1,5 +1,8 @@
 # WORLDOBJ-MIG04 — Motion générique autoritaire
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 Statut : **clôture technique proposée — validation UE5.5.4 requise**  
 Date : **6 septembre 2026**
 

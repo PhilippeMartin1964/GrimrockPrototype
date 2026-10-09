@@ -1,146 +1,138 @@
 # Fondation des interactions souris
 
-## 1. Portée
+> **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
+>
+> Cette fondation reflète les stabilisations MI1–MI6 et le routage réellement
+> présent dans \`AGrimrockPlayerController\`.
 
-Ce document décrit le socle runtime existant pour les interactions directes à la souris. Il couvre la sélection sous le curseur, la portée, les règles de grille, les curseurs, les messages lisibles et les interactions déjà raccordées. Il ne définit pas de nouveau système de gameplay.
+## 1. Principe
 
-Le détail du ramassage, du curseur d'item et des propriétaires logiques est décrit dans [`ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md`](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md).
+\`\`\`text
+PlayerController
+    -> détecte / arbitre l'intention
 
-## 2. Cartographie du code
+Actor / service de domaine
+    -> décide et exécute la règle métier
+\`\`\`
 
-| Domaine | Déclaration | Implémentation |
-|---|---|---|
-| Contrôleur souris | `Source/GrimrockPrototype/Public/Runtime/GrimrockPlayerController.h` | `Source/GrimrockPrototype/Private/Runtime/GrimrockPlayerController.cpp` |
-| Pawn et solution de repli au clavier | `Source/GrimrockPrototype/Public/Runtime/GrimrockPartyPawn.h` | `Source/GrimrockPrototype/Private/Runtime/GrimrockPartyPawn.cpp` |
-| Contrat interactif | `Source/GrimrockPrototype/Public/Runtime/GridInteractableInterface.h` | fonctions virtuelles implémentées par les acteurs |
-| Résolution du pawn et du runtime | `Source/GrimrockPrototype/Public/Runtime/GridInteractionUtils.h` | `Source/GrimrockPrototype/Private/Runtime/GridInteractionUtils.cpp` |
-| Règles de grille et texte lisible | `Source/GrimrockPrototype/Public/Runtime/GridLevelRuntimeActor.h` | `Source/GrimrockPrototype/Private/Runtime/GridLevelRuntimeActor.cpp` |
-| Widget de lecture | `Source/GrimrockPrototype/Public/UI/ReadableMessageWidget.h` | `Source/GrimrockPrototype/Private/UI/ReadableMessageWidget.cpp` |
+Le contrôleur ne code pas « bouton ouvre porte » ou « torche entre dans
+réceptacle ». Il orchestre des interfaces et services existants.
 
-Les acteurs interactifs actuels sont `AGridButtonActor`, `AGridLeverActor`, `AGridGenericObjectActor`, `AGridItemActor`, `AGridReceptacleActor` et, uniquement par sa chaîne optionnelle, `AGridDoorActor`.
+## 2. Résolution centrale du clic
 
-## 3. Entrée et sélection
+\`ResolveLeftMouseInteraction()\` construit une intention unique pour le clic
+courant.
 
-`AGrimrockPlayerController` lie directement `LeftMouseButton` à `HandleLeftMousePressed()`. Le contrôleur active le curseur et un mode `GameAndUI` ; `PlayerTick()` recalcule le survol.
+Intentions actuelles couvrant notamment :
 
-La sélection suit un rayon obtenu par déprojection de la position de la souris sur `ECC_Visibility`. Seul le premier impact bloquant est considéré. Un composant effectivement touché et bloquant `Visibility` interdit la sélection derrière cet impact. Le rayon peut toutefois passer entre les barreaux d’une grille fermée. Le système ne recherche pas en profondeur une autre cible valide pour le gameplay.
+\`\`\`text
+DismissReadableMessage
+IgnoreInventoryUiWithoutCursorItem
+IgnoreModalUi
+CursorItemNoWorldHit
+CursorItemCannotPlace
+CursorItemWallLock
+CursorItemReceptacle
+CursorItemWorldDrop
+CursorItemThrow
+WorldInteractable
+WorldInteractableOutOfRange
+WorldInteractableInvalidPawnOrComponent
+WorldInteractableCanInteractRejected
+FallbackNoInteractable
+\`\`\`
 
-![Trace de visibilité et premier obstacle bloquant](../Images/mouse_10_2_visibility_trace.svg)
+Une résolution ne mute pas le gameplay ; le handler exécute ensuite le chemin
+correspondant.
 
-Le premier composant bloquant possède le clic, qu'il implémente ou non l'interface d'interaction.
+## 3. Priorité
 
-Le composant touché est conservé dans `FHitResult`, puis transmis à :
+Ordre fonctionnel :
 
-- `CanInteract()` pour valider la cible et le sous-composant ;
-- `GetInteractionCursor()` pour le retour de survol ;
-- `InteractWithHit()` pour l'action.
+1. fermer un message lisible actif ;
+2. respecter UI modale / menu item ;
+3. lorsque Inventory est ouvert sans item curseur, ne pas cliquer le monde ;
+4. si un item est tenu : wall lock, receptacle, dépôt monde ou lancer selon la
+   cible et les règles ;
+5. sinon interaction monde classique ;
+6. aucun hit/action valide : fallback silencieux.
 
-La distance maximale est `AGrimrockPlayerController::MaxInteractionDistance`, initialisée à `300 cm` et mesurée entre la position du pawn et `HitResult::ImpactPoint`.
+Un refus ne doit pas être transformé en action différente involontaire. Exemple :
+une mauvaise clé sur WallLock ne devient pas un dépôt au sol.
 
-## 4. Priorité d'un clic gauche
+## 4. Hover avec item au curseur
 
-L'ordre réel est :
+\`ResolveCursorItemHoverCursor()\` ne fait qu'évaluer l'affordance :
 
-1. fermer le message lisible actif, puis consommer le clic ;
-2. si un item est porté par le curseur, tenter uniquement le réceptacle directement touché ;
-3. sinon, résoudre l'acteur interactif directement touché ;
-4. vérifier la distance ;
-5. appeler `CanInteract()` sur le composant touché ;
-6. exécuter une seule fois `InteractWithHit()` ;
-7. ne rien faire si une étape échoue.
+- wall lock compatible/incompatible ;
+- receptacle compatible/incompatible ;
+- dépôt monde ;
+- lancer ;
+- interdit/neutre.
 
-![Priorité de traitement d'un clic gauche](../Images/mouse_10_1_click_priority.svg)
+Aucune mutation n'est autorisée pendant le hover.
 
-Chaque branche est exclusive : la fermeture d'un message, le dépôt d'un item ou l'interaction directe consomme le clic.
+\`SetGridInteractionCursor()\` est le point central de sortie vers le curseur
+custom.
 
-Si l'interface d'inventaire est ouverte et qu'aucun item n'est porté par le curseur, le clic de gameplay est ignoré. Si un item est porté, le chemin de dépôt direct vers un réceptacle reste disponible.
+## 5. Interaction monde
 
-Il n'existe plus de solution de repli clavier globale vers la cellule ou le bord situé en face. TD07.3.6 a supprimé `UseAction`, `HandleUse`, `TryUseFrontInteraction`, le buffer `Use` et `bEnableLegacyKeyboardUseAction`. L'interaction directe à la souris est désormais l'unique voie joueur pour ce comportement.
+Les acteurs interactifs implémentent \`IGridInteractableInterface\` :
 
-## 5. Règles de grille
+\`\`\`text
+CanInteract(...)
+Interact(...)
+InteractWithHit(...)
+GetInteractionCursor(...)
+GetInteractionText(...)
+\`\`\`
 
-Les objets placés sur un bord ne sont pas validés par la seule distance. Les boutons, leviers, réceptacles et chaînes de porte appellent `AGridLevelRuntimeActor::CanPartyInteractWithEdgeObject()`.
+Le composant touché peut faire partie du contrat : bouton/levier, item,
+réceptacle, chaîne de porte, readable, etc.
 
-Une interaction de bord est autorisée uniquement si l'objet se trouve :
+La porte elle-même ne devient pas un bouton générique : ses mécanismes, liens
+ou chaîne éventuelle conservent leurs règles propres.
 
-- sur la cellule du groupe et sur le bord regardé ;
-- ou dans la cellule située devant le groupe et sur son bord opposé.
+## 6. Trace et distance
 
-![Règles spatiales des interactions sur un bord](../Images/mouse_10_3_edge_interaction_rules.svg)
+Le premier hit bloquant pertinent de visibilité possède le clic. La distance
+d'interaction est contrôlée avant l'exécution d'une interaction monde.
 
-Ces deux positions couvrent notamment les boutons, leviers, chaînes de porte et réceptacles muraux.
+Le système ne recherche pas une cible « derrière » un composant bloquant pour
+contourner les collisions authored.
 
-Les boutons, leviers et objets lisibles placés sur un bord font ensuite transiter l'action par `TryInteractAtEdge()`, afin de conserver l'activation et les liens runtime. Les items utilisent les règles propres à `CanPartyPickupItemEntry()` et au service de transfert.
+## 7. Item tenu
 
-La portée de main canonique est `AGridLevelRuntimeActor::WorldItemPickupReach`, **200 cm** par défaut. Son nom sérialisé est conservé pour compatibilité Blueprint. Le pickup d’un item libre, la pose depuis le CursorItem ou la hotbar et la décision `PlaceItem` / `AimThrow` utilisent ce même paramètre. La distance est horizontale, entre le PartyPawn et la position physique de l’item ou le point d’impact ciblé ; elle prime sur l’adjacence logique des cellules. `CanMove()` n’est pas consulté pour un item libre visible à portée. Les items d’arête et les réceptacles conservent leurs règles spécifiques.
+Le controller délègue :
 
-Le premier impact bloquant du trace `Visibility` possède l’obstacle : un mur plein ou un barreau touché intercepte le rayon ; un espace entre les barreaux laisse atteindre la cible. Une porte fermée ne constitue donc pas, à elle seule, un veto logique. Le projectile conserve sa propre collision physique : il ne traverse la grille que si sa collision passe réellement entre les barreaux.
+- compatibilité WallLock au système de lock ;
+- acceptation Receptacle aux règles/transfer service ;
+- dépôt monde aux services d'item ;
+- lancer au pipeline de targeting/projectile.
 
-## 6. Acteurs et composants cliquables
+Ownership reste atomique : un échec laisse l'item à sa source.
 
-| Acteur | Composant accepté | Curseur | Action |
-|---|---|---|---|
-| `AGridButtonActor` | mesh mobile | `Push` | interaction de bord via le runtime |
-| `AGridLeverActor` | mesh mobile | `Pull` | interaction de bord via le runtime |
-| `AGridGenericObjectActor` lisible | mesh principal | `Read` | activation du texte via le runtime |
-| `AGridItemActor` | mesh de l'item | `Take` | ramassage ou retrait du réceptacle |
-| `AGridReceptacleActor` | support ou mesh d'un item contenu | `Use` ou `Take` | dépôt ou retrait |
-| `AGridDoorActor` | volume de la chaîne optionnelle | `Pull` | traction directe de la chaîne |
+## 8. UI et silence des refus
 
-La surface normale d'une porte n'est pas interactive. Les plaques de pression et les triggers ne sont pas des cibles pour la souris.
+L'exploration normale utilise le curseur comme feedback principal. Un clic qui
+ne produit aucune mutation peut rester silencieux ; les raisons diagnostiques
+restent dans \`LogGridMouse\`/logs appropriés.
 
-## 7. Dépôt d'un item
+Les modes explicites de combat/throw targeting gardent leurs feedbacks propres.
 
-Lorsqu'un item est attaché au curseur, le contrôleur recherche un `AGridReceptacleActor` sur le premier impact `Visibility`. Le dépôt exige ensuite :
+## 9. Readables
 
-- une distance valide ;
-- une position de cellule et de bord compatible avec l'orientation du groupe ;
-- `CanAcceptItemInstance()` vrai ;
-- un placement effectué avec le `FHitResult` direct.
+Le message lisible actif a priorité sur le clic monde. Sa fermeture consomme le
+clic et n'active rien derrière.
 
-Un clic ailleurs ne dépose plus implicitement l'item dans le réceptacle situé en face.
-
-Les règles d'acceptation et de transfert sont détaillées dans
-[`RECEPTACLE_SYSTEM_FOUNDATION.md`](RECEPTACLE_SYSTEM_FOUNDATION.md).
-
-## 8. Curseur et interface
-
-`EGridInteractionCursor` contient `None`, `Default`, `Use`, `Push`, `Pull`, `Take`, `Read`, `Locked`, `Forbidden`, `PlaceItem` et `CannotPlaceItem`.
-
-Le widget configuré dans `CustomCursorWidgetClass` doit fournir la fonction Blueprint `SetCursorState(EGridInteractionCursor)` et rester `HitTestInvisible`. Sans widget personnalisé, le curseur système de repli ne distingue actuellement que l'état `Take`, représenté par une main.
-
-Le survol affiche :
-
-- `Forbidden` pour une cible interactive directe hors de portée ;
-- le curseur fourni par l'acteur si `CanInteract()` accepte ;
-- `PlaceItem` ou `CannotPlaceItem` lorsqu'un item est porté ;
-- `Default` dans les autres cas.
-
-## 9. Messages lisibles
-
-`AGridLevelRuntimeActor::ShowReadableMessage()` crée ou met à jour `UReadableMessageWidget`. La fermeture automatique est optionnelle et désactivée par défaut. Le premier clic gauche suivant appelle `DismissReadableMessage()` et ne déclenche aucune autre interaction.
-
-Les actions de déplacement et de rotation du pawn ferment également le message avant de poursuivre leur propre action. Le widget est ajouté au viewport avec un ordre Z de `50` ; le curseur personnalisé utilise `9999`.
+Mouvement/rotation peuvent aussi fermer le message selon le contrat du Pawn.
 
 ## 10. Invariants
 
-- Un clic déclenche au plus une interaction.
-- Le premier composant bloquant `ECC_Visibility` est autoritaire.
-- Une cible hors de portée n'est pas activée.
-- Une interaction de bord respecte cellule, bord et orientation.
-- Les composants non prévus par `CanInteract()` ne sont pas cliquables.
-- Les liens et activations restent exécutés par le runtime lorsqu'un acteur le requiert.
-- L'efficacité de l'occlusion dépend des collisions `Visibility` des meshes et volumes utilisés par les assets.
-
-## 11. Validation manuelle
-
-- Cliquer un bouton et un levier de face, puis depuis un autre bord.
-- Vérifier qu’un mur plein ou un barreau touché bloque la cible ; viser entre les barreaux doit permettre d’atteindre une cible à portée.
-- Ramasser un item dans la cellule courante et sur le bord opposé de la cellule située devant.
-- Déposer un item uniquement en cliquant directement sur un réceptacle compatible.
-- Vérifier les curseurs hors de portée et sur un sous-composant refusé.
-- Lire un texte, puis confirmer que le clic suivant ferme seulement le message.
-- Tester la chaîne d'une porte depuis le bon bord et depuis un bord incorrect.
-
-Les messages lisibles, retours courts et états de curseur sont détaillés dans
-[`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md`](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md).
+1. Un clic = au plus une action.
+2. Hover = zéro mutation.
+3. UI modale prime sur monde.
+4. Refus métier ne déclenche pas un fallback dangereux.
+5. Ownership/transferts restent atomiques.
+6. \`IGridInteractableInterface\` reste local à l'acteur touché.
+7. Le controller orchestre, il ne devient pas l'autorité de lock/receptacle/item.

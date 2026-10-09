@@ -1,5 +1,8 @@
 # ITEM-THROW-MIG01 — Migration de l'autorité de lancer du Shuriken
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 Date : 16 septembre 2026
 
 Statut : migration terminée par le commit `33f05524037374d2cd4b31efc47a9679d246151f`. Le champ historique `bThrowable` et les outils one-shot décrits ci-dessous ont ensuite été supprimés par `ITEM-THROW-CLEAN01`.

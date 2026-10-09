@@ -1,5 +1,7 @@
 # Grimrock Prototype — Architecture noyau Donjon / Niveau / Grille
 
+> **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. Les placements typés et les cinq collections du LevelAsset restent le contrat courant.
+
 > **Contrat courant — 2026-09-12 / UE 5.5.4.** Le niveau repose sur des placements typés. L'ancien modèle monolithique `Objects` / `FGridLevelObjectData` n'est plus une architecture active. Voir aussi [Définitions et placements typés](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md).
 
 ## 1. Objet du document
@@ -12,7 +14,7 @@ Ce document décrit le socle commun qui organise, édite et exécute un donjon q
 - `AGridLevelRuntimeActor` et la représentation jouable ;
 - les règles de coordonnées, murs, identité et état initial.
 
-Les systèmes spécialisés — portes, réceptacles, pits, téléporteurs, monstres, items, Lua, inventaire et combat — utilisent ce noyau mais possèdent leur propre documentation.
+Les systèmes spécialisés — portes, réceptacles, pits, relocations, monstres, items, Lua, inventaire et combat — utilisent ce noyau mais possèdent leur propre documentation.
 
 ## 2. Séparation des responsabilités
 
@@ -108,7 +110,7 @@ Le niveau fournit les opérations communes de coordonnées, accès aux cellules,
 
 ### 5.1 `WorldObjectInstances`
 
-`FGridWorldObjectInstance` représente les objets réutilisables du décor et du gameplay : portes, boutons, leviers, plaques de pression, téléporteurs, pits, triggers, réceptacles, décorations, lumières, etc.
+`FGridWorldObjectInstance` représente les objets réutilisables du décor et du gameplay : portes, boutons, leviers, plaques de pression, relocations, pits, triggers, réceptacles, décorations, lumières, etc.
 
 Le placement référence une `UGridWorldObjectDefinitionAsset` par `WorldObjectDefinitionId`.
 
@@ -209,7 +211,7 @@ Les objets de frontière, notamment les portes, utilisent leurs propres système
 
 - identité et classification ;
 - surface de placement et position locale par défaut ;
-- `StaticPart` et jusqu'à deux `MovingParts` ;
+- `StaticPart` et `MovingParts[0..N-1]` ;
 - motion, audio et comportement partagé ;
 - classe runtime ;
 - interaction, lecture, lumière et règles spécialisées.

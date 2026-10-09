@@ -1,5 +1,7 @@
 # Architecture des portes et mécanismes
 
+> **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. Les portes utilisent toujours le système de frontière, MovingParts et DoorSystem central.
+
 > **Contrat courant (2026-09-12)** : placements typés, `UGridWorldObjectDefinitionAsset`, motion générique `MovingParts[].Motion` et états initiaux sémantiques. Voir aussi [Définitions et placements typés](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md).
 
 Les items, le curseur et leur transfert vers les réceptacles sont documentés dans [`ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md`](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md).

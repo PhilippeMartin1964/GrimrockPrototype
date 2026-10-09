@@ -1,5 +1,7 @@
 # Définitions des objets du monde et objets placés
 
+> **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. Definition/Instance, placements typés et `MapSymbolStyle` restent alignés avec le C++ courant.
+
 Statut : **contrat actif après WORLDOBJ-CLASS01**, 2026-09-14.
 
 ## 1. Autorités
@@ -99,3 +101,12 @@ A generic candidate requires `Type=Relocation` and configured nonnegative X/Y. D
 instance-owned. Normal level None means current level, Facing None preserves facing.
 Pit level None keeps automatic-lower-level resolution. All relocations activate on entry.
 See [Relocation](../Design/GRID_RELOCATION_DATA.md).
+
+
+## Rebaseline palette DOC-ARCH01
+
+`FGridObjectPaletteEntry` ne possède plus de `DisplayNameOverride`.
+
+Le nom effectif est résolu depuis `DefaultItemDefinition::DisplayName` ou
+`DefaultWorldObjectDefinition::DisplayName`, avec fallback technique sur les
+identifiants. `PaletteCategory` reste la seule autorité de groupement Editor.

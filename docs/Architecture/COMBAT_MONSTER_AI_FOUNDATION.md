@@ -1,91 +1,170 @@
-# Combat, monstres et IA — Fondation d’architecture
+# Combat, monstres et IA — Fondation d'architecture
 
-Date de référence : **26 août 2026**
+> **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
+>
+> Le SaveGame courant est **v24 exact-match**. Les anciennes mentions v9 dans
+> cette fondation sont superseded.
 
-## Combat
+## 1. Autorité combat
 
-`UGridTurnManagerComponent` est l’orchestrateur du combat. Son implémentation est répartie entre initiative, phases, tours joueurs, actions, catalogue et mouvement du groupe. Le combat reste déterministe et basé sur la grille.
+\`UGridTurnManagerComponent\` orchestre le combat déterministe sur grille.
 
-### Ressources
+Il porte notamment :
 
+- rencontre active ;
+- rounds ;
+- initiative globale ;
+- combattant actif ;
+- états de tour des personnages ;
+- tours monstres ;
 - PA individuels ;
-- PAM communs ;
+- PAM du groupe ;
+- catalogue d'actions ;
+- targeting ;
+- exécution / fin de tour ;
+- combat log.
+
+Les Widgets ne calculent pas initiative, coûts ou légalité.
+
+## 2. Économie d'action
+
+Ressources possibles :
+
+- PA ;
+- PAM ;
 - mana ;
-- quantités d’items ;
-- cooldowns.
+- quantité d'item ;
+- cooldown.
 
-Les actions sont payées transactionnellement : une action refusée ne doit pas laisser de ressource partiellement consommée.
+Le paiement est transactionnel : un refus ne doit pas laisser un paiement
+partiel.
 
-### Ciblage et résolution
+Les valeurs d'équilibrage restent des données/règles de domaine, jamais des
+constantes dispersées dans UMG.
 
-Les règles utilisent cellules, arêtes, portée, murs, portes et première cible bloquante. `GridCombatResolver` applique la résolution ; les composants de présentation, audio/VFX et HUD ne décident pas du résultat.
+## 3. Catalogue d'actions
 
-## Monstres
+Le catalogue unifie les sources :
 
-`UGridMonsterDefinitionAsset` porte la définition data-driven. `AGridMonsterActor` s’appuie sur des composants spécialisés de mouvement, comportement, combat, mort, audio, VFX et variations idle.
+\`\`\`text
+Universal
+Equipment / MainHand / OffHand / Unarmed
+Class / Talent
+Quick Item
+Spell
+\`\`\`
 
-### Spawn et encounters
+Les bindings de la barre d'actions ne sérialisent pas une copie de
+l'action disponible ; ils conservent une identité résolue contre le catalogue
+courant.
 
-`MonsterSpawn` est un objet de niveau persistant. Les placements gardent spawn/despawn, cellule, orientation, état de combat et mort. Les encounter groups supportent vagues et `EncounterCompleted`.
+## 4. Targeting et résolution
 
-### IA exploration
+Le ciblage repose sur cellules, arêtes, portée, LOS et blocages de grille.
+\`GridCombatResolver\` applique les résultats gameplay.
 
-- occupation et pathfinding sur grille ;
-- perception directionnelle ;
-- engagement automatique ;
-- dormance/réveil ;
-- patrouille ;
-- investigation ;
-- alarmes ;
-- planners spécialisés (`RangedKeeper`, ranged attack, fast harasser).
+La présentation (HUD, animation, audio, VFX, projectile) observe la résolution ;
+elle ne la décide pas.
 
-Le NavMesh ne remplace pas l’autorité de la grille.
+## 5. Combat HUD
 
-## Familles de référence
+\`UGridCombatHudWidget\` est combat-only :
 
-- Rat géant : baseline mêlée ;
-- Gobelin lanceur : attaque à distance/projectile et maintien de distance.
+- 4 panneaux de membres ;
+- initiative ;
+- PAM ;
+- fin du tour ;
+- raison de refus ;
+- targeting/preview.
 
-Le petit nombre de familles de monstres n’est pas une dette technique : il s’agit d’un manque de contenu de production.
+\`Panel_PartyMembers\` et \`Panel_CombatBottomRight\` appartiennent au contrat
+UI-COMBAT-UNIFY02. Navigation globale et action bar appartiennent au
+\`UGridPersistentHudWidget\`.
 
-## Persistance
+## 6. Monster definitions
 
-L’état vivant des monstres est capturé dans le dungeon runtime state. La sauvegarde durable est bloquée pendant un combat actif afin de ne pas sérialiser un tour partiel. MON20.10 a verrouillé la restauration des monstres déjà morts : Actor conservé, état `Dead`, mesh caché, collision et occupation désactivées.
+\`UGridMonsterDefinitionAsset\` porte les données authored d'une famille de
+monstre. \`AGridMonsterActor\` projette l'état vivant et s'appuie sur des
+composants spécialisés :
 
-SaveGame courant : **v9**.
+- Movement ;
+- Behavior ;
+- Combat ;
+- Death ;
+- Audio ;
+- VFX ;
+- Idle variation.
 
-## Event -> Command et Quests
+Le nombre de familles de production est une question de contenu, pas une raison
+de créer une seconde architecture.
 
-`TD-EVENT-001` est **RÉSOLU**. La sémantique Gameplay / StateOnly / Unsupported est explicite et protégée par tests. Le bus Event -> Command reste le chemin d’effet gameplay.
+## 7. Occupation, pathfinding et perception
 
-MON21.3 ajoute les commandes campagne :
+La grille reste autoritaire :
 
-```text
-QuestStart
-QuestCompleteObjective
-QuestComplete
-QuestFail
-```
+- occupation ;
+- déplacement ;
+- passabilité ;
+- pathfinding ;
+- LOS ;
+- audition traversant les frontières ;
+- cellule connue du groupe.
 
-Elles délèguent à `UGridQuestSubsystem`, sans créer de second bus ni de second état Quest.
+Le NavMesh ne remplace pas ces contrats.
 
-La dette encore suivie sous `TD-ARCH-005` concerne uniquement la concentration interne de `UGridActivationComponent`. Une extraction future ne doit créer ni second bus, ni second état.
+## 8. Exploration AI
 
-## Dette technique runtime
+Le comportement couvre notamment :
 
-Le registre autoritaire est :
+\`\`\`text
+Idle
+Alert
+Pursuing
+Attacking
+Hurt
+Dead
+Patrol
+Investigation
+Alarm
+\`\`\`
 
-```text
-docs/Architecture/TECHNICAL_DEBT_REGISTER.md
-```
+\`UGridMonsterBehaviorComponent\` réconcilie l'état avec perception et mémoire
+de la cible. Un monstre qui entend encore le groupe mais dont le chemin est
+temporairement bloqué reste en investigation au lieu de déclencher une recherche
+oscillante.
 
-Les deux gros orchestrateurs audités ont atteint leur stop condition :
+## 9. Encounters
 
-```text
-TD05.9  AGridLevelRuntimeActor
-TD06.9  UGridPartyInventoryComponent
-```
+\`MonsterSpawn\` et les groupes d'encounter gèrent spawn/despawn, vagues et
+\`StartEncounter\`.
 
-Le RuntimeActor reste volontairement façade du niveau ; PartyInventory reste l’autorité groupe/inventaire. Aucun refactor massif de Combat/IA n’est justifié par ces clôtures.
+L'intention d'engagement passe par le pipeline d'engagement automatique et le
+TurnManager, sans seconde autorité de combat.
 
-Réouvrir une dette structurelle uniquement en présence d’un signal concret : duplication d’autorité, régression récurrente, difficulté de test ou nouvelle responsabilité autonome importante.
+## 10. Persistance
+
+L'état vivant des monstres est capturé dans le DungeonRuntimeState, y compris
+mort, ressources, état de placement, encounter et Status Effects.
+
+Le Save durable est refusé pendant un combat actif lorsqu'un état intermédiaire
+ne peut pas être restauré correctement.
+
+Save courant : **v24 exact-match**.
+
+## 11. Event → Command / Quest
+
+Le bus peut recevoir des événements monstre et des commandes encounter. Les
+commandes Quest de MON21.3 réutilisent le même dispatcher et délèguent au
+\`UGridQuestSubsystem\`.
+
+Aucun second bus n'est créé.
+
+## 12. Invariants
+
+1. TurnManager = autorité combat.
+2. Grille = autorité spatiale.
+3. Action refusée = aucune dépense partielle.
+4. IA et présentation n'appliquent pas directement une résolution parallèle.
+5. Mort/restauration ne doit pas réintroduire occupation/collision.
+6. UI combat = projection.
+7. Save v24 exact-match.

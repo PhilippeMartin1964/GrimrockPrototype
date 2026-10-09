@@ -1,5 +1,8 @@
 # WORLDOBJ-MIG09-E2C — Autorité typée des helpers d’édition et fixtures
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 Statut : **WORLDOBJ-MIG09 ✅ CLOSED — FINAL-A/B/C/D validés. FINAL-C publié dans `046d58bc`. MIG10 non commencé.**
 
 Date : 2026-09-09

@@ -1,5 +1,8 @@
 # WORLDOBJ-MIG09-C-C1 — Détachement runtime/tests des paramètres d’animation legacy
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 Statut : **candidat — validation locale UE5.5.4 requise**.
 
 ## Objectif

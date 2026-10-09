@@ -1,5 +1,8 @@
 # Relecture des objets lisibles et des retours
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 ## Fichiers relus
 
 Les classes runtime de contrôleur, pawn, objets génériques, activation, widget, niveau, portes, items et réceptacles ont été relues, ainsi que les structures Core, l'inspecteur d'objet et la validation du niveau dans le module éditeur. Les documents souris, objets, portes, réceptacles et items ont également été comparés au code.

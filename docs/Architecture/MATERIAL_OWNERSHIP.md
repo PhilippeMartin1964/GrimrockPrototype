@@ -1,5 +1,7 @@
 # MATERIAL-OWNERSHIP01 — Propriété des matériaux des objets
 
+> **DOC-ARCH01 — REVALIDÉ LE 9 OCTOBRE 2026.** Comparé à la baseline C++ `6f98a0ef`. Ce document reste une fondation courante. Les Material Slots du StaticMesh restent l'autorité du matériau principal.
+
 Date : 2026-09-04  
 Statut : **architecture active**
 

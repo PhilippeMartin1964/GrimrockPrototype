@@ -1,133 +1,126 @@
-# Index de l’architecture
+# Index de l'architecture
 
-**WORLDOBJ MIG00 → MIG10 + RECOVERY01 : modèle courant consolidé au 2026-09-10.** Voir le [rapport MIG10](WORLDOBJ_MIG10_FINAL.md), le [rapport final RECOVERY01](WORLDOBJ_RECOVERY01_FINAL.md) et le [contrat courant des définitions et placements](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md). Les anciennes notes de cleanup, audits et schémas `object_10_*` décrivent l'état historique antérieur ; ils ne définissent plus le stockage des placements.
+> **Référence courante — DOC-ARCH01, 9 octobre 2026.**
+>
+> Baseline C++ auditée : \`6f98a0ef5599f37d3d544529aa5a790d647e8251\`.
+> Dernière campagne globale + Shipping : \`9045ef2d\`, 1026/1026,
+> 0 warning, 0 échec, Shipping Win64 validé.
 
+## 1. Objet
 
-## Objet
+\`docs/Architecture/\` décrit les **autorités et frontières durables** du projet.
+Les documents \`docs/Design/\` décrivent davantage les tickets, décisions,
+validations et roadmaps.
 
-Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
+DOC-ARCH01 classe le corpus Architecture en deux groupes :
 
-**Référence courante : 4 octobre 2026 — baseline runtime/content `9045ef2d`, MON21.6 + MAP-THEME01 validés/clos, régression globale 1026/1026, Shipping validé.**  
-Phase active : **aucune clôture Map active ; prochaine priorité produit à choisir explicitement**.
+- **références courantes** : à utiliser pour comprendre le code actuel ;
+- **snapshots historiques** : migrations, cleanup, audits et clôtures datés.
 
-## Ordre de lecture recommandé
+Un document historique peut contenir une API ou une version Save aujourd'hui
+supprimée sans être « faux » : il décrit son jalon. Il ne prime jamais sur les
+références courantes.
 
-1. [Registre autoritaire de dette technique](TECHNICAL_DEBT_REGISTER.md)
-2. [Synthèse globale du projet](PROJECT_SYNTHESIS.md)
-3. [Roadmap active](../Design/PROJECT_COMPLETION_ROADMAP.md)
-4. [Donjon, niveau et grille](CORE_DUNGEON_LEVEL_GRID.md)
-5. [Définitions et objets placés](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md)
-6. [Event, variables, Logic et Lua](ADVANCED_DUNGEON_LOGIC_FOUNDATION.md)
-7. [Combat, monstres et IA](COMBAT_MONSTER_AI_FOUNDATION.md)
-8. [Groupe, RPG et recrutement](PARTY_RPG_RECRUITMENT_FOUNDATION.md)
-9. [Magie et effets de statut](MAGIC_STATUS_EFFECTS_FOUNDATION.md)
-10. [Sauvegarde et persistance](SAVE_PERSISTENCE_FOUNDATION.md)
-11. [UI et flux de jeu](UI_GAME_FLOW_FOUNDATION.md)
-12. [Tests et validation](TEST_AUTOMATION_FOUNDATION.md)
+## 2. Ordre de lecture recommandé
 
-`TECHNICAL_DEBT_DOCUMENTATION_AUDIT.md` et `ARCHITECTURE_CONSISTENCY_AUDIT.md` sont des snapshots historiques. `Maps/GRIMROCK_PROJECT_MAP.md` et sa vue Mermaid ont été rebaselinés le 4 octobre 2026 et complètent désormais la synthèse courante.
+1. [Synthèse globale](PROJECT_SYNTHESIS.md)
+2. [Carte détaillée](Maps/GRIMROCK_PROJECT_MAP.md)
+3. [Cartographie Mermaid](Maps/GRIMROCK_PROJECT_MAP_MERMAID.md)
+4. [Roadmap active](../Design/PROJECT_COMPLETION_ROADMAP.md)
+5. [Registre de dette technique](TECHNICAL_DEBT_REGISTER.md)
+6. [Donjon / Niveau / Grille](CORE_DUNGEON_LEVEL_GRID.md)
+7. [World Object Definition / Instance](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md)
+8. [Event / Logic / Lua](ADVANCED_DUNGEON_LOGIC_FOUNDATION.md)
+9. [Interactions souris](MOUSE_INTERACTION_FOUNDATION.md)
+10. [Items / transferts](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md)
+11. [Réceptacles](RECEPTACLE_SYSTEM_FOUNDATION.md)
+12. [Combat / IA](COMBAT_MONSTER_AI_FOUNDATION.md)
+13. [Groupe / RPG](PARTY_RPG_RECRUITMENT_FOUNDATION.md)
+14. [Magic / Status](MAGIC_STATUS_EFFECTS_FOUNDATION.md)
+15. [Save](SAVE_PERSISTENCE_FOUNDATION.md)
+16. [UI / flux](UI_GAME_FLOW_FOUNDATION.md)
+17. [Tests / validation](TEST_AUTOMATION_FOUNDATION.md)
 
-Contrat Map : [MON21.6.1 — Map Architecture Contract](../Design/MON21_6_1_MAP_ARCHITECTURE_CONTRACT.md). Clôture : [MON21.6.13](../Design/MON21_6_13_MAP_CLOSURE.md). Présentation finale : [MAP-THEME01](../Design/MAP_THEME01_TEXTURED_MAP_RENDERING.md).
+## 3. Références courantes
 
-## Fondations courantes
-
-| Document | Portée |
+| Document | Autorité décrite |
 |---|---|
-| [CORE_DUNGEON_LEVEL_GRID.md](CORE_DUNGEON_LEVEL_GRID.md) | Donjon, niveaux, cellules, murs et génération runtime. |
-| [WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md](WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md) | Définitions, palette, objets placés, preview et actors. |
-| [ADVANCED_DUNGEON_LOGIC_FOUNDATION.md](ADVANCED_DUNGEON_LOGIC_FOUNDATION.md) | Variables typées, Logic, Lua, `persistent`, `LogicId`. |
-| [COMBAT_MONSTER_AI_FOUNDATION.md](COMBAT_MONSTER_AI_FOUNDATION.md) | Turn manager, actions, monstres, perception, patrouille, planners. |
-| [PARTY_RPG_RECRUITMENT_FOUNDATION.md](PARTY_RPG_RECRUITMENT_FOUNDATION.md) | Groupe, XP/progression, CharacterPool et recrutement. |
-| [MAGIC_STATUS_EFFECTS_FOUNDATION.md](MAGIC_STATUS_EFFECTS_FOUNDATION.md) | Spellbook, cast pipeline et Status Effects. |
-| [SAVE_PERSISTENCE_FOUNDATION.md](SAVE_PERSISTENCE_FOUNDATION.md) | Save prototype v24 exact-match ; aucune migration arrière. |
-| [UI_GAME_FLOW_FOUNDATION.md](UI_GAME_FLOW_FOUNDATION.md) | Menus, inventaire, Skills, Spellbook et surfaces campagne. |
-| [TEST_AUTOMATION_FOUNDATION.md](TEST_AUTOMATION_FOUNDATION.md) | Automation, harness Editor/Shipping, PIE et règles de validation. |
-| [TECHNICAL_DEBT_REGISTER.md](TECHNICAL_DEBT_REGISTER.md) | Dette technique active, surveillée et différée. |
-| [TD07_FINAL_QUANTITATIVE_AUDIT_BASELINE.md](TD07_FINAL_QUANTITATIVE_AUDIT_BASELINE.md) | Baseline chiffrée de clôture TD07 pour comparaison lors des futurs audits. |
+| \`PROJECT_SYNTHESIS.md\` | Vue transversale actuelle. |
+| \`CORE_DUNGEON_LEVEL_GRID.md\` | DungeonAsset, LevelAsset, grille et placements typés. |
+| \`WORLD_OBJECT_DEFINITIONS_AND_PLACED_OBJECTS.md\` | Definition/Instance, palette, runtime/preview. |
+| \`DOOR_MECHANISM_FOUNDATION.md\` | Portes, motion, passabilité et mécanismes. |
+| \`LINK_EVENT_COMMAND_FOUNDATION.md\` | Events, links, commands, conditions, Quest/Lua. |
+| \`ADVANCED_DUNGEON_LOGIC_FOUNDATION.md\` | Variables, Logic, Lua sandboxé. |
+| \`MOUSE_INTERACTION_FOUNDATION.md\` | Routage souris et curseur. |
+| \`ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md\` | Items, ownership, transferts monde/inventaire. |
+| \`RECEPTACLE_SYSTEM_FOUNDATION.md\` | Contenu, acceptation, insertion/retrait, save. |
+| \`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md\` | Readables et feedback interaction. |
+| \`ITEM_LIGHT01_DATA_DRIVEN_ITEM_LIGHT.md\` | Lumière data-driven des items. |
+| \`LIGHT_CONFIG02_SINGLE_POINT_LIGHT_AUTHORITY.md\` | Autorité unique des bases PointLight. |
+| \`PARTY_LIGHT01_EQUIPMENT_DRIVEN_PARTY_ILLUMINATION.md\` | Proxy lumineux du groupe. |
+| \`MATERIAL_OWNERSHIP.md\` | Material Slots des StaticMesh. |
+| \`COMBAT_MONSTER_AI_FOUNDATION.md\` | TurnManager, actions, IA et encounters. |
+| \`PARTY_RPG_RECRUITMENT_FOUNDATION.md\` | Groupe, recrutement, Skills, Talents, Attributes. |
+| \`MAGIC_STATUS_EFFECTS_FOUNDATION.md\` | Spellbook, cast et Status Effects. |
+| \`SAVE_PERSISTENCE_FOUNDATION.md\` | Save v24 exact-match. |
+| \`UI_GAME_FLOW_FOUNDATION.md\` | Surfaces runtime et navigation. |
+| \`STARTUP_FLOW01_FRONTEND_DUNGEON.md\` | Main menu → création → L_Dungeon. |
+| \`LEVEL_VALIDATION_PANEL_FOUNDATION.md\` | Validation Editor. |
+| \`TEST_AUTOMATION_FOUNDATION.md\` | Build, Automation, PIE, Shipping. |
+| \`TECHNICAL_DEBT_REGISTER.md\` | Dette active/surveillée. |
+| \`Maps/GRIMROCK_PROJECT_MAP.md\` | Carte textuelle autoritaire. |
+| \`Maps/GRIMROCK_PROJECT_MAP_MERMAID.md\` | Vues système Mermaid. |
+| \`Maps/Grimrock_MindMap_Architecture_Cible_v2_XMind.md\` | Arbre Markdown importable XMind. |
 
-## Modules
+## 4. Snapshots historiques
 
-```text
-GrimrockLua
-    ↓
-GrimrockPrototype
-    ↓
-GrimrockPrototypeEditor
-```
+Les familles suivantes restent dans Git pour expliquer les migrations et les
+décisions, mais ne définissent plus le schéma actuel :
 
-L’Editor dépend aussi directement de `GrimrockLua`. Le Runtime ne dépend jamais du module Editor.
+- \`ALIGN_*\` ;
+- \`*_CLEANUP_NOTES.md\` ;
+- \`ARCHITECTURE_CONSISTENCY_AUDIT.md\` ;
+- \`TECHNICAL_DEBT_DOCUMENTATION_AUDIT.md\` ;
+- \`CPP_GENERAL_AUDIT_2026_09_27.md\` ;
+- \`TD07_FINAL_QUANTITATIVE_AUDIT_BASELINE.md\` ;
+- \`PAWN_CLEAN02_EDITOR_SURFACE.md\` ;
+- \`ITEM_THROW_MIG01_SHURIKEN_AUTHORITY.md\` ;
+- \`WORLDOBJ_MIG*.md\` ;
+- \`WORLDOBJ_RECOVERY01_FINAL.md\` ;
+- \`WORLDOBJ_ITEMCLASS01_ITEM_ACTOR_AUTHORITY.md\` ;
+- \`WORLDOBJ_MOVINGPARTS01_GENERIC_ARRAY.md\` ;
+- \`WORLDOBJ_MIGRATION_ROADMAP_AND_TARGET_DATA_MODEL.md\`.
 
-## Règles transversales
+DOC-ARCH01 ajoute un bandeau historique à ces fichiers afin qu'un ancien
+\`CURRENT\`, \`FINAL\` ou plan de migration ne soit pas interprété comme une
+nouvelle autorité.
 
-1. DataAssets = sources persistantes de conception.
-2. Actors runtime reconstruits depuis ces données.
-3. Grille autoritaire pour déplacement, occupation, ligne de mire et combat.
-4. `ObjectId` reste l’identité d’objet ; `LogicId` est un alias authoring.
-5. Event -> Command est le bus gameplay ; Logic et Lua reviennent vers ses commandes.
-6. `UGridQuestSubsystem` est l’autorité runtime de campagne pour les quêtes ; `UGridQuestDefinitionAsset` porte les définitions.
-7. Ownership item exclusif.
-8. `FGridPartyInventoryState` reste l’autorité groupe/`CharacterPool`.
-9. Pendant le prototype, le SaveGame utilise uniquement le schéma courant ; une version ancienne est rejetée et aucune migration arrière n'est exigée.
-10. Blueprint configure/compose ; logique métier validable en C++.
-11. Les assets binaires exigent une validation Unreal/PIE lorsqu’ils sont concernés.
-12. `Scripts/ValidateUE.ps1` est le harness local Editor + Automation validé.
-13. `Scripts/ValidatePackage.ps1` est le harness Win64 Shipping validé.
-14. Aucun refactor massif : réduire la dette par frontières stabilisées et caractérisées.
-15. Les helpers locaux de nouveaux `.cpp` doivent être nommés de façon Unity-safe.
+## 5. Règles transversales courantes
 
-## Dette technique
+1. \`SupportedType\` est la classification gameplay principale des World Objects.
+2. \`FGridObjectPaletteEntry::PaletteCategory\` est le groupement Editor.
+3. La palette ne possède plus de \`DisplayNameOverride\`.
+4. \`InstanceId\` / SpawnId restent les identités stables de placement.
+5. \`LogicId\` est un alias d'authoring, pas l'identité persistante.
+6. Event → Command reste le bus de mutation.
+7. Lua et Logic ne contournent pas ce bus.
+8. \`FGridPartyInventoryState\` reste l'autorité groupe/inventaire.
+9. \`UGridTurnManagerComponent\` reste l'autorité combat.
+10. \`UGridQuestSubsystem\` est l'autorité Quest runtime, encore non persistée.
+11. Le SaveGame courant est **v24 exact-match**.
+12. La Map est une projection filtrée de l'état runtime et de l'exploration.
+13. \`UGridPersistentHudWidget\` porte navigation + action bar persistante.
+14. \`UGridCombatHudWidget\` porte uniquement la présentation combat.
+15. C++ décide ; UMG présente.
 
-TD05 et TD06 ont atteint leur stop condition respective :
+## 6. Jalons encore ouverts
 
-- `AGridLevelRuntimeActor` : TD05.9 ;
-- `UGridPartyInventoryComponent` : TD06.9.
+\`\`\`text
+MON21.4 Quest Persistence      EN ATTENTE
+MON21.5 Journal               À FAIRE
+MON21.7 Codex                 À FAIRE
+MON21.8 Cross-System Closure  À FAIRE
+MON22 Vertical Slice          À FAIRE
+\`\`\`
 
-Aucune nouvelle tranche de refactor de ces classes n’est recommandée sans signal concret. Le registre autoritaire reste :
-
-```text
-docs/Architecture/TECHNICAL_DEBT_REGISTER.md
-```
-
-## Phase courante
-
-TD07 et MON21.6 sont clos. Aucun nettoyage structurel n’est actif par défaut ; la prochaine priorité fonctionnelle doit être choisie explicitement.
-
-```text
-TD07.1    Build / dependency reproducibility             VALIDÉ
-TD07.2    UE compatibility cleanup                       VALIDÉ
-TD07.3.1  Prototype Data Model Policy + Asset Audit      VALIDÉ
-TD07.3.2  SaveGame Reset / no backward migration         VALIDÉ
-TD07.3.3  Character State Normalization                    VALIDÉ — CLOS
-TD07.3.3.1 Character State Authority Audit                 VALIDÉ
-TD07.3.3.2 Remove Legacy Attribute Bridge                  VALIDÉ
-TD07.3.3.3 Normalize Derived Stats / Mutable Resources      VALIDÉ
-TD07.3.3.4 Normalize Weight State                             VALIDÉ
-TD07.3.3.5 Normalize XP / Level / Class Progression              VALIDÉ
-TD07.3.3.6 Normalize Skills                                          VALIDÉ — CLOS
-TD07.3.3.7 Normalize Spellbook                                       VALIDÉ — CLOS
-TD07.3.3.8 Normalize Status Effects                                  VALIDÉ — CLOS
-TD07.3.3.9 Normalize Level-Up Notification State                    VALIDÉ — CLOS
-TD07.3.3.10 Current Save Schema / Regressions / Closure              VALIDÉ — CLOS
-TD07.3.4 Authoring Identity Normalization                         VALIDÉ — CLOS
-TD07.3.5 Combat Data Schema Reset                              VALIDÉ — CLOS
-TD07.3.6 Remaining Legacy API/Data Purge                      VALIDÉ — CLOS
-TD07.3.7 Current Asset Repair / Recreation                      VALIDÉ — CLOS
-TD07.3.8 Strict Current-Schema Validation / stop condition      VALIDÉ — STOP CONDITION ATTEINTE
-```
-
-## État fonctionnel MON21
-
-```text
-MON21.1  Audit & Architecture Contract                  CLOS
-MON21.2  Quest Definition + Campaign Runtime State      VALIDÉ
-MON21.3  Quest Event -> Command Integration             VALIDÉ
-MON21.4  Quest Persistence                            EN ATTENTE — CHARACTERIZATION VALIDÉE
-MON21.5  Journal Read Model + Existing WBP Integration  À FAIRE
-MON21.6  Map Geometry + Exploration State + Existing WBP VALIDÉ — CLOS
-MON21.7  Codex Discovery + Definition Projection        À FAIRE
-MON21.8  Cross-System Regression / PIE / Closure        À FAIRE
-```
-
-## Historique
-
-Git est l’unique mécanisme de conservation des versions antérieures. Les documents de jalon datés ne sont pas réécrits pour simuler l’état courant.
+MON21.6 Map est **clos** et ne doit plus apparaître comme « shell » ou futur.

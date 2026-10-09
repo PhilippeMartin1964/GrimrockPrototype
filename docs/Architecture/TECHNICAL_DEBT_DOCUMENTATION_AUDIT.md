@@ -1,5 +1,8 @@
 # TD05.1 — Audit des rubriques de dette technique et re-baseline RuntimeActor
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 Date : **26 août 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Baseline auditée : `7b6daf18fbc1a9f589fa3f1ad85668428cf8c71f`  

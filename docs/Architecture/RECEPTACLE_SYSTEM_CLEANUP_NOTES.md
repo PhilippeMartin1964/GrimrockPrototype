@@ -1,5 +1,8 @@
 # Notes d'audit du système de réceptacles
 
+> **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
+
+
 ## Fichiers relus
 
 - `docs/Design/RECEPTACLE_SYSTEM.md` et les fondations objet, souris, liens et portes ;

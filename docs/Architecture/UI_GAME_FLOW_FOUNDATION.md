@@ -1,140 +1,189 @@
-# UI et flux de jeu — Fondation d’architecture
+# UI et flux de jeu — Fondation d'architecture
 
-Date de référence : **20 septembre 2026**
+> **Contrat courant — DOC-ARCH01, 9 octobre 2026.**
+>
+> L'ancienne architecture de menu monolithique est superseded. Les grandes
+> surfaces sont maintenant indépendantes et partagent les mêmes autorités C++.
 
-## Principe
+## 1. Principe
 
-Les widgets présentent et déclenchent des contrats C++; ils ne doivent pas devenir l’autorité métier d’un système. Blueprint/UMG sert à composer, styliser et configurer les variantes concrètes.
+C++ fournit les données, read models, validations et transactions.
+Blueprint/UMG compose et présente ces résultats.
 
-## Flux principal
+Aucun Widget Blueprint ne doit devenir une seconde autorité gameplay.
 
-```text
-Main Menu
-  -> New Game / Continue / Load
-  -> Character Creation ou Save restore
-  -> Runtime dungeon
-  -> Exploration / Inventory / In-game Menu
-  -> Combat / Level Up / Spellbook / Skills
-  -> Quest progression via Event -> Command
-  -> Save / Transition
-```
+## 2. Flux principal
 
-## Surfaces fonctionnelles
+\`\`\`text
+L_MainMenu
+    -> New Game
+        -> Character Creation
+        -> progress "Construction du donjon"
+        -> L_Dungeon
+    -> Continue / Load
+        -> L_Dungeon
+        -> restore v24
 
-Depuis UI-CLEAN01, l'Inventaire / Personnage n'est plus une page unique. `WBP_CharacterSheet` et `WBP_InventoryBag` sont deux fenêtres viewport indépendantes qui partagent la même autorité `UGridPartyInventoryComponent`; la vue 3D centrale reste visible et interactive.
+L_Dungeon
+    -> exploration
+    -> inventaire / character sheet
+    -> skills / talents
+    -> map
+    -> spellbook / journal / recipes / codex
+    -> combat
+\`\`\`
 
-- `GrimrockMainMenuWidget`, LoadGame menu/slots ;
-- `GridInventoryWidget` comme mécanique/projection commune ;
-- `GridCharacterSheetWidget` pour la feuille/paper doll ;
-- `GridInventoryBagWidget` pour le sac ;
-- `GridPartyMemberWidget` ;
-- character creation wizard ;
-- recrutement Story Companion et Custom Recruit MON20 ;
-- toast Level Up non modal via `WBP_GridPersistentHud` ;
-- `GridCombatHudWidget` et ActionPanel ;
-- `GridSpellbookWidget` et entries ;
-- `GridSkillsWidget` ;
-- `GrimrockMenuWidget` pour les tabs du menu en jeu.
+## 3. Surfaces viewport courantes
 
-## Quests / Journal / Map / Codex
+\`\`\`text
+Viewport
+├── WBP_CharacterSheet
+├── WBP_InventoryBag
+├── WBP_GridSkills
+├── WBP_GridMap
+├── WBP_GridCombatHud
+└── WBP_GridPersistentHud
+\`\`\`
 
-Le menu contient déjà Journal, Map, Recipes et Codex.
+### Character Sheet / Inventory
 
-La couche Quest n’est plus un simple futur :
+\`WBP_CharacterSheet\` et \`WBP_InventoryBag\` sont indépendants mais lisent le
+même \`UGridPartyInventoryComponent\` et le même
+\`SelectedCharacterIndex\`.
 
-```text
-MON21.2
-    UGridQuestDefinitionAsset
-    UGridQuestSubsystem
-    FGridCampaignQuestRuntimeState
+### Skills / Talents
 
-MON21.3
-    Event -> QuestStart / QuestCompleteObjective / QuestComplete / QuestFail
-```
+\`WBP_GridSkills\` est autonome et contient COMPÉTENCES / TALENTS.
 
-L’état Quest est encore transient. **MON21.4 — Quest Persistence / Migration** est la prochaine étape.
+Le C++ fournit :
 
-Journal, Map et Codex restent des projections UI :
+- balance Skill Points ;
+- rang/cap/disponibilité ;
+- arbre Talent 3×5 ;
+- détail Talent canonique ;
+- acquisition simple ou à variantes.
 
-- MON21.5 : Journal Read Model + WBP existant ;
-- MON21.6 : Map Geometry + Exploration State + WBP existant ;
-- MON21.7 : Codex Discovery + projection des définitions existantes.
+### Map
 
-Recipes reste une fonctionnalité future hors MON21.
+\`WBP_GridMap\` est une fenêtre autonome. Elle n'appartient plus au shell
+\`WBP_GrimrockMenu\`.
 
-## Recruitment UI
+### Shell restant
 
-MON20 a fermé le recrutement : Story Companion et Custom Recruit réutilisent les services C++ de recrutement et le wizard existant. Le Blueprint ne réimplémente pas les validations de groupe, identité ou ownership.
+\`WBP_GrimrockMenu\`, parent \`UGrimrockMenuWidget\`, conserve temporairement :
 
-## HUD runtime / navigation persistante
+\`\`\`text
+Journal
+Recipes
+Codex
+Spellbook
+\`\`\`
 
-UI-NAV01 fixe une barre inférieure permanente, extérieure à `WBP_GrimrockMenu`, `WBP_CharacterSheet` et `WBP_InventoryBag`. Elle est portée par le HUD runtime existant et reste visible lorsque les panneaux sont ouverts ou fermés.
+Inventory, Skills et Map n'y sont plus des pages actives.
 
-```text
-ESC I K G M J H  ||  hotbar 1..0
-```
+## 4. Persistent HUD
 
-Les boutons et touches appellent les mêmes routes C++. Les panneaux du menu doivent réserver sa hauteur et ne jamais la recouvrir.
+\`UGridPersistentHudWidget\` / \`WBP_GridPersistentHud\` possède :
 
-## Combat UI
+- navigation globale ;
+- sélection visuelle du bouton actif ;
+- barre d'actions persistante ;
+- toast de progression.
 
-Le HUD ne décide pas initiative/coûts/résolution. Il reflète le Turn Manager et le catalogue d’actions. La hotbar est persistante dans l’état de personnage. Les éléments combat-only peuvent apparaître/disparaître sans affecter `Panel_GlobalNavigation`.
+La barre d'actions utilise les bindings persistés dans
+\`FGridCharacterInventoryState::CombatHotbarSlots\` et possède au minimum
+**12 slots**.
 
-## Skills / Spellbook
+Navigation actuelle :
 
-Les pages Skills et Spellbook suivent `SelectedCharacterIndex` et projettent les autorités C++ existantes. Elles ne possèdent aucune copie gameplay indépendante.
+\`\`\`text
+ESC  I  K  G  M  J  H
+\`\`\`
 
-Spellbook et SkillRanks sont persistés dans le SaveGame courant **v9**.
+Les touches et boutons passent par les mêmes routes C++.
 
-## Sélection de personnage / held visual
+## 5. Combat HUD
 
-Le workspace split réutilise strictement `UGridPartyInventoryComponent::SelectedCharacterIndex` pour la feuille, l'équipement et le sac. Il n'existe pas de sélection UI parallèle.
+\`UGridCombatHudWidget\` / \`WBP_GridCombatHud\` est **combat-only** :
 
-`TD-PARTY-001` est **RÉSOLU**. `UGridPartyInventoryComponent` reste l’autorité de `SelectedCharacterIndex`. Le changement de sélection émet la notification autoritaire et `AGrimrockPartyPawn` resynchronise le held visual.
+- panneaux des membres ;
+- initiative ;
+- PAM ;
+- fin du tour ;
+- feedback de rejet ;
+- targeting combat.
 
-TD06.9 a atteint la stop condition de PartyInventory sans modifier ce contrat.
+Il ne possède plus la navigation globale ni la barre d'actions persistante.
 
-## Dette technique UI active
+UI-COMBAT-UNIFY02 est le contrat C++/UMG actuel :
 
-Le registre autoritaire est :
+\`\`\`text
+Panel_CombatHud (Overlay root)
+    -> HorizontalBox_CombatBottomBar
+        -> Panel_PartyMembers
+        -> Spacer Fill
+        -> Panel_CombatBottomRight
+\`\`\`
 
-```text
-docs/Architecture/TECHNICAL_DEBT_REGISTER.md
-```
+Le runtime ne translate plus ces surfaces. Le padding Bottom est authored une
+seule fois dans UMG. La validation UMG/PIE finale de cette hiérarchie reste
+explicitement à fournir.
 
-Points UI encore actifs ou surveillés :
+## 6. Level Up
 
-- `TD-UI-001` : nommage historique `EInventoryTopTab` / certaines APIs UI, faible priorité ;
-- `TD-LOG-001` : taxonomie de logs encore partiellement `LogTemp` ;
-- divergence visuelle potentielle entre surfaces UMG, à traiter par conventions/composants partagés lorsqu’une douleur concrète apparaît.
+Le Level Up est non modal :
 
-`TD-PARTY-001` ne doit plus être listé comme dette active.
-
-## Validation
-
-Le code UI/C++ touché par un jalon doit passer le harness local :
-
-```text
-Scripts/ValidateUE.ps1
-```
-
-Les changements de bindings, widgets Blueprint ou assets nécessitent une validation PIE ciblée. TD04.3 a également validé le packaging Win64 Shipping via `Scripts/ValidatePackage.ps1`.
-
-## Règle
-
-Conserver les contrats C++ existants et éviter tout graphe Blueprint métier parallèle. Journal/Map/Codex lisent les autorités runtime ; ils ne stockent pas une copie gameplay indépendante.
-
-
-## RPG-LEVELUX01 — Level Up courant
-
-Le Level Up n'est plus une fenêtre.
-
-```text
+\`\`\`text
 FRPGLevelUpService
     -> URPGLevelUpNotificationSubsystem
     -> WBP_GridPersistentHud
-    -> WBP_RPGNotification
-```
+        -> WBP_RPGNotification
+\`\`\`
 
-`URPGLevelUpWidget` a été supprimé par RPG-LEVELUX01.3. L'acquisition des
-Talents appartient exclusivement à la fenêtre autonome COMPÉTENCES / TALENTS.
+Aucun état d'acknowledgement n'est persisté.
+
+## 7. Quests / Journal / Codex / Recipes
+
+Quest runtime existe :
+
+\`\`\`text
+UGridQuestDefinitionAsset
+UGridQuestSubsystem
+FGridCampaignQuestRuntimeState
+\`\`\`
+
+Mais Quest n'est pas encore persisté.
+
+- MON21.4 : Quest Persistence — en attente ;
+- MON21.5 : Journal — à faire ;
+- MON21.7 : Codex — à faire ;
+- Recipes/Crafting : futur chantier distinct.
+
+Journal et Codex doivent rester des projections des autorités gameplay.
+
+## 8. Map
+
+Map est **implémentée et close**, pas un shell :
+
+- exploration persistante ;
+- secrets filtrés ;
+- multi-dalles/multi-étages ;
+- symboles ;
+- changement d'étage ;
+- zoom/pan/recenter ;
+- rendu texturé via \`UGridMapVisualThemeAsset\`.
+
+## 9. Spellbook
+
+Le Spellbook lit \`KnownSpellIds\` du personnage courant. Il ne possède pas de
+snapshot durable parallèle.
+
+## 10. Règles
+
+1. \`SelectedCharacterIndex\` unique.
+2. Persistent HUD = chrome global.
+3. Combat HUD = combat seulement.
+4. Fenêtres autonomes pour CharacterSheet, InventoryBag, Skills et Map.
+5. UMG ne calcule pas les règles métier.
+6. Une modification de WBP exige validation UE/PIE.
+7. Aucun ancien \`WBP_GridInventory\` ou Level-Up modal ne doit être réintroduit.
