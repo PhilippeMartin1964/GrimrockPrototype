@@ -15,8 +15,13 @@ void UGridTalentDetailWidget::NativeConstruct()
 	{
 		RebuildVariantBlocks();
 		ApplyDetailPresentation();
+		ApplyAcquisitionPresentation();
 	}
-	ApplyAcquisitionPresentation();
+	else
+	{
+		// Designer labels must not leak before a Talent is actually consulted.
+		ClearTalentDetail();
+	}
 }
 
 void UGridTalentDetailWidget::NativeDestruct()
@@ -106,15 +111,38 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	SelectedVariantChoiceId = NAME_None;
 	AcquisitionFeedback = FText::GetEmpty();
 
+	if (Border_DetailAccent)
+	{
+		Border_DetailAccent->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (Text_DetailName)
+	{
+		Text_DetailName->SetText(FText::GetEmpty());
+		Text_DetailName->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	auto ClearSection = [](UVerticalBox* Section, UTextBlock* Value)
+	{
+		if (Section)
+		{
+			Section->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		if (Value)
+		{
+			Value->SetText(FText::GetEmpty());
+			Value->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	};
+
+	ClearSection(VB_DetailType, Text_DetailType);
+	ClearSection(VB_DetailStatus, Text_DetailStatus);
+	ClearSection(VB_DetailPrinciple, Text_DetailPrinciple);
+	ClearSection(VB_DetailEffects, Text_DetailEffects);
+	ClearSection(VB_DetailUsage, Text_DetailUsage);
+	ClearSection(VB_DetailAcquisition, Text_DetailAcquisition);
+
 	if (VB_VariantEntries) VB_VariantEntries->ClearChildren();
 	if (VB_DetailVariants) VB_DetailVariants->SetVisibility(ESlateVisibility::Collapsed);
-	if (Text_DetailName) Text_DetailName->SetText(FText::GetEmpty());
-	if (Text_DetailType) { Text_DetailType->SetText(FText::GetEmpty()); Text_DetailType->SetVisibility(ESlateVisibility::Collapsed); }
-	if (Text_DetailStatus) { Text_DetailStatus->SetText(FText::GetEmpty()); Text_DetailStatus->SetVisibility(ESlateVisibility::Collapsed); }
-	if (Text_DetailPrinciple) { Text_DetailPrinciple->SetText(FText::GetEmpty()); Text_DetailPrinciple->SetVisibility(ESlateVisibility::Collapsed); }
-	if (Text_DetailEffects) { Text_DetailEffects->SetText(FText::GetEmpty()); Text_DetailEffects->SetVisibility(ESlateVisibility::Collapsed); }
-	if (Text_DetailUsage) { Text_DetailUsage->SetText(FText::GetEmpty()); Text_DetailUsage->SetVisibility(ESlateVisibility::Collapsed); }
-	if (Text_DetailAcquisition) { Text_DetailAcquisition->SetText(FText::GetEmpty()); Text_DetailAcquisition->SetVisibility(ESlateVisibility::Collapsed); }
 	ApplyAcquisitionPresentation();
 }
 
@@ -394,8 +422,16 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 {
 	if (!bInitialized) return;
 
-	if (Border_DetailAccent) Border_DetailAccent->SetBrushColor(BranchAccentColor);
-	if (Text_DetailName) Text_DetailName->SetText(ResolvedDisplayName);
+	if (Border_DetailAccent)
+	{
+		Border_DetailAccent->SetBrushColor(BranchAccentColor);
+		Border_DetailAccent->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+	if (Text_DetailName)
+	{
+		Text_DetailName->SetText(ResolvedDisplayName);
+		Text_DetailName->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
 
 	auto ApplyOptionalSection = [](UVerticalBox* Section, UTextBlock* Widget, const FText& Text)
 	{

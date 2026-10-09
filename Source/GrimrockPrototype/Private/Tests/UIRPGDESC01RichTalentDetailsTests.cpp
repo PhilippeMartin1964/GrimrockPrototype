@@ -616,4 +616,59 @@ bool FUIRPGDESC01153VariantBlockPresenterTest::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGDESC01163EmptyInitialStateTest,
+	"Grimrock.UI.RPG.DESC01.Detail.EmptyInitialState",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGDESC01163EmptyInitialStateTest::RunTest(const FString&)
+{
+	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
+
+	TestFalse(TEXT("Fresh detail has no Talent initialized"), Detail->bInitialized);
+	TestTrue(TEXT("Fresh detail name is empty"), Detail->ResolvedDisplayName.IsEmpty());
+	TestTrue(TEXT("Fresh TYPE is empty"), Detail->ResolvedTypeText.IsEmpty());
+	TestTrue(TEXT("Fresh STATUS is empty"), Detail->ResolvedStatusText.IsEmpty());
+	TestTrue(TEXT("Fresh PRINCIPE is empty"), Detail->ResolvedPrincipleText.IsEmpty());
+	TestTrue(TEXT("Fresh EFFETS are empty"), Detail->ResolvedEffectsText.IsEmpty());
+	TestTrue(TEXT("Fresh UTILISATION is empty"), Detail->ResolvedUsageText.IsEmpty());
+	TestTrue(TEXT("Fresh ACQUISITION is empty"), Detail->ResolvedAcquisitionText.IsEmpty());
+	TestFalse(TEXT("Fresh detail cannot acquire a simple Talent"), Detail->CanRequestSimpleAcquisition());
+	TestFalse(TEXT("Fresh detail cannot acquire a variant"), Detail->CanRequestVariantAcquisition());
+
+	FGridTalentNodeView Node;
+	Node.TalentNodeId = TEXT("Talent_DESC01_EmptyState");
+	Node.TalentBranchId = TEXT("Branch_DESC01_EmptyState");
+	Node.Tier = 1;
+	Node.State = EGridTalentNodeState::Available;
+	Node.DisplayName = FText::FromString(TEXT("Talent temporaire"));
+	Node.Type = ERPGTalentPresentationType::Passive;
+	Node.TypeText = FText::FromString(TEXT("PASSIF"));
+	Node.StatusText = FText::FromString(TEXT("DISPONIBLE"));
+	Node.Principle = FText::FromString(TEXT("Principe temporaire."));
+	Node.SimpleChoiceId = Node.TalentNodeId;
+	Node.bCanAcquireSimple = true;
+	Node.Acquisition.MinimumLevel = 2;
+	Node.Acquisition.PointCost = 1;
+
+	FRPGTalentBranchPresentationDefinition Branch;
+	Branch.TalentBranchId = Node.TalentBranchId;
+	TestTrue(TEXT("Temporary Talent initializes"),
+		Detail->InitializeTalentDetail(Node, Branch));
+	TestTrue(TEXT("Initialized detail carries a name"), !Detail->ResolvedDisplayName.IsEmpty());
+
+	Detail->ClearTalentDetail();
+
+	TestFalse(TEXT("Clear returns detail to no-Talent state"), Detail->bInitialized);
+	TestTrue(TEXT("Clear removes name"), Detail->ResolvedDisplayName.IsEmpty());
+	TestTrue(TEXT("Clear removes TYPE"), Detail->ResolvedTypeText.IsEmpty());
+	TestTrue(TEXT("Clear removes STATUS"), Detail->ResolvedStatusText.IsEmpty());
+	TestTrue(TEXT("Clear removes PRINCIPE"), Detail->ResolvedPrincipleText.IsEmpty());
+	TestTrue(TEXT("Clear removes EFFETS"), Detail->ResolvedEffectsText.IsEmpty());
+	TestTrue(TEXT("Clear removes UTILISATION"), Detail->ResolvedUsageText.IsEmpty());
+	TestTrue(TEXT("Clear removes ACQUISITION"), Detail->ResolvedAcquisitionText.IsEmpty());
+	TestTrue(TEXT("Clear removes pending variant choice"), Detail->GetSelectedVariantChoiceId().IsNone());
+	return true;
+}
+
 #endif
