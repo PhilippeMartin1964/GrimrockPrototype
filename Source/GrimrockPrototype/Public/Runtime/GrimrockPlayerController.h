@@ -55,7 +55,6 @@ public:
 protected:
 	friend class FGridTD021WorldItemsContractTest;
 	friend class FGridUISplit02WorldInteractionPolicyTest;
-	friend class FGridCursorStandalone01SingleAuthorityTest;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction", meta = (ClampMin = "0.0"))
 	float MaxInteractionDistance = 300.f;

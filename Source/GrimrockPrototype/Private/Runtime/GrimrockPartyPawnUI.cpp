@@ -529,20 +529,16 @@ void AGrimrockPartyPawn::ApplyMajorUiInputMode(bool bOpen)
 		return;
 	}
 
-	AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController>(PlayerController);
-	if (GrimrockPlayerController)
+	if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController>(PlayerController))
 	{
 		GrimrockPlayerController->SetInventoryUiOpen(bOpen);
 	}
 
 	PlayerController->bEnableClickEvents = true;
 	PlayerController->bEnableMouseOverEvents = true;
-	if (!GrimrockPlayerController)
-	{
-		PlayerController->bShowMouseCursor = true;
-		PlayerController->DefaultMouseCursor = EMouseCursor::Default;
-		PlayerController->CurrentMouseCursor = EMouseCursor::Default;
-	}
+	PlayerController->bShowMouseCursor = true;
+	PlayerController->DefaultMouseCursor = EMouseCursor::Default;
+	PlayerController->CurrentMouseCursor = EMouseCursor::Default;
 
 	FInputModeGameAndUI InputMode;
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
@@ -898,20 +894,16 @@ void AGrimrockPartyPawn::ApplyCharacterCreationInputMode(bool bIsActive)
 		return;
 	}
 
-	AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController>(PlayerController);
-	if (GrimrockPlayerController)
+	if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController>(PlayerController))
 	{
 		GrimrockPlayerController->SetInventoryUiOpen(bIsActive);
 	}
 
 	PlayerController->bEnableClickEvents = true;
 	PlayerController->bEnableMouseOverEvents = true;
-	if (!GrimrockPlayerController)
-	{
-		PlayerController->bShowMouseCursor = true;
-		PlayerController->DefaultMouseCursor = EMouseCursor::Default;
-		PlayerController->CurrentMouseCursor = EMouseCursor::Default;
-	}
+	PlayerController->bShowMouseCursor = true;
+	PlayerController->DefaultMouseCursor = EMouseCursor::Default;
+	PlayerController->CurrentMouseCursor = EMouseCursor::Default;
 
 	if (bIsActive)
 	{

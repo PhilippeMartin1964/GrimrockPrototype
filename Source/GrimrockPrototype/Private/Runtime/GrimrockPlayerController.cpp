@@ -203,7 +203,6 @@ void AGrimrockPlayerController::BeginPlay()
 	InputMode.SetHideCursorDuringCapture(false);
 	SetInputMode(InputMode);
 	InitializeCustomCursor();
-	SetGridInteractionCursor(EGridInteractionCursor::Default, TEXT("BeginPlay"));
 }
 
 void AGrimrockPlayerController::PlayerTick(float DeltaTime)
@@ -647,15 +646,12 @@ void AGrimrockPlayerController::SetInventoryUiOpen(bool bOpen)
 			PartyPawn->CombatHudWidgetInstance->CancelCombatActionTargeting();
 		}
 	}
+	DefaultMouseCursor = EMouseCursor::Default;
+	CurrentMouseCursor = EMouseCursor::Default;
+	bShowMouseCursor = true;
 	if (CustomCursorWidget)
 	{
-		SetGridInteractionCursor(EGridInteractionCursor::Default, bOpen ? TEXT("GameplayUiOpen") : TEXT("GameplayUiClosed"));
-	}
-	else
-	{
-		DefaultMouseCursor = EMouseCursor::Default;
-		CurrentMouseCursor = EMouseCursor::Default;
-		bShowMouseCursor = true;
+		CustomCursorWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	UE_LOG(LogGridMouse, Verbose, TEXT("GridInventory UI State Open=%s"), bInventoryUiOpen ? TEXT("true") : TEXT("false"));
 	UE_LOG(LogGridMouse, Verbose, TEXT("GridInventory UI CustomCursor Widget=%s Visibility=%s Enabled=%s"), *GetNameSafe(CustomCursorWidget),
