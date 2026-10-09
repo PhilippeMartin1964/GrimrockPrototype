@@ -400,12 +400,6 @@ namespace
 		if (Choice.FirstRoundInitiativeModifier != 0)
 			Lines.Add(FString::Printf(TEXT("• Initiative au premier round : %+d"), Choice.FirstRoundInitiativeModifier));
 
-		for (const FName RequirementId : Choice.GrantedRequirementIds)
-		{
-			const FString Raw = RequirementId.ToString();
-			if (Raw.StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive))
-				Lines.Add(TEXT("• Recette débloquée : ") + HumanizeId(RequirementId));
-		}
 
 		return Lines.IsEmpty()
 			? FText::GetEmpty()
@@ -560,6 +554,41 @@ namespace
 		return FText::GetEmpty();
 	}
 
+	FText RecipeDisplayName(FName RecipeId)
+	{
+		if (RecipeId == TEXT("Recipe_Bomb_Fire"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeBombFire", "Bombe incendiaire");
+		if (RecipeId == TEXT("Recipe_Bomb_Toxic"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeBombToxic", "Bombe toxique");
+		if (RecipeId == TEXT("Recipe_Antidote"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeAntidote", "Antidote");
+		if (RecipeId == TEXT("Recipe_DefensiveElixir_Fire"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeDefensiveElixirFire", "Élixir défensif — Feu");
+		if (RecipeId == TEXT("Recipe_DefensiveElixir_Ice"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeDefensiveElixirIce", "Élixir défensif — Glace");
+		if (RecipeId == TEXT("Recipe_DefensiveElixir_Lightning"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeDefensiveElixirLightning", "Élixir défensif — Foudre");
+		if (RecipeId == TEXT("Recipe_DefensiveElixir_Poison"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeDefensiveElixirPoison", "Élixir défensif — Poison");
+		if (RecipeId == TEXT("Recipe_Panacea"))
+			return NSLOCTEXT("GridSkillsPage", "RecipePanacea", "Panacée");
+		if (RecipeId == TEXT("Recipe_Flask_Oil"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeFlaskOil", "Flasque d'huile");
+		if (RecipeId == TEXT("Recipe_Flask_Acid"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeFlaskAcid", "Flasque acide");
+		if (RecipeId == TEXT("Recipe_Flask_CorrosiveCloud"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeFlaskCorrosiveCloud", "Flasque de nuage corrosif");
+		if (RecipeId == TEXT("Recipe_MajorTransmutation_Fire"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeMajorTransmutationFire", "Transmutation majeure — Feu");
+		if (RecipeId == TEXT("Recipe_MajorTransmutation_Ice"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeMajorTransmutationIce", "Transmutation majeure — Glace");
+		if (RecipeId == TEXT("Recipe_MajorTransmutation_Poison"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeMajorTransmutationPoison", "Transmutation majeure — Poison");
+		if (RecipeId == TEXT("Recipe_MajorTransmutation_Oil"))
+			return NSLOCTEXT("GridSkillsPage", "RecipeMajorTransmutationOil", "Transmutation majeure — Huile");
+		return FText::GetEmpty();
+	}
+
 	void BuildAcquisitionView(
 		const URPGClassAsset& ClassDefinition,
 		const FRPGClassProgressionChoiceDefinition& Choice,
@@ -579,6 +608,18 @@ namespace
 			const FText Name = ConceptualChoiceDisplayName(ClassDefinition, Id);
 			if (!Name.IsEmpty() && !Out.PrerequisiteTalentNames.ContainsByPredicate(
 				[&Name](const FText& Existing) { return Existing.EqualTo(Name); })) Out.PrerequisiteTalentNames.Add(Name);
+		}
+		for (const FName Id : Choice.GrantedRequirementIds)
+		{
+			if (!Id.ToString().StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive))
+			{
+				continue;
+			}
+			const FText RecipeName = RecipeDisplayName(Id);
+			if (!RecipeName.IsEmpty())
+			{
+				Out.GrantedRecipeNames.Add(RecipeName);
+			}
 		}
 		if (bExclusiveVariant)
 		{

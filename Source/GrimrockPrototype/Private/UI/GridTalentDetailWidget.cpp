@@ -403,7 +403,12 @@ FText UGridTalentDetailWidget::BuildAcquisitionText() const
 		{
 			if (!Recipe.IsEmpty()) Recipes.Add(Recipe.ToString());
 		}
-		if (!Recipes.IsEmpty()) Lines.Add(TEXT("Recette : ") + FString::Join(Recipes, TEXT(", ")));
+		if (!Recipes.IsEmpty())
+		{
+			Lines.Add(
+				(Recipes.Num() > 1 ? TEXT("Recettes : ") : TEXT("Recette : ")) +
+				FString::Join(Recipes, TEXT(", ")));
+		}
 	}
 	return FText::FromString(FString::Join(Lines, TEXT("\n")));
 }

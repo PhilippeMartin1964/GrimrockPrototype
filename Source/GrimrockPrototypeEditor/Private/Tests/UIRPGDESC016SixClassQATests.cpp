@@ -509,4 +509,115 @@ bool FUIRPGDESC016VariantFamiliesTest::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGDESC016CanonicalRecipeDisplayNamesTest,
+	"Grimrock.UI.RPG.DESC01.QA16.CanonicalRecipeDisplayNames",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGDESC016CanonicalRecipeDisplayNamesTest::RunTest(const FString&)
+{
+	using namespace UIRPGDESC016QA;
+	FRPGClassProgressionTransactionService::ResetRuntimeState();
+
+	const TMap<FName, TArray<FString>> ExpectedByTalent = {
+		{ TEXT("Talent_Alchemist_Grenadier_FireBomb"), { TEXT("Bombe incendiaire") } },
+		{ TEXT("Talent_Alchemist_Grenadier_ToxicBomb"), { TEXT("Bombe toxique") } },
+		{ TEXT("Talent_Alchemist_Apothecary_Antidote"), { TEXT("Antidote") } },
+		{ TEXT("Talent_Alchemist_Apothecary_DefensiveElixir"), {
+			TEXT("Élixir défensif — Feu"),
+			TEXT("Élixir défensif — Glace"),
+			TEXT("Élixir défensif — Foudre"),
+			TEXT("Élixir défensif — Poison")
+		} },
+		{ TEXT("Talent_Alchemist_Apothecary_Panacea"), { TEXT("Panacée") } },
+		{ TEXT("Talent_Alchemist_Transmuter_OilSlick"), { TEXT("Flasque d'huile") } },
+		{ TEXT("Talent_Alchemist_Transmuter_AcidFlask"), { TEXT("Flasque acide") } },
+		{ TEXT("Talent_Alchemist_Transmuter_CorrosiveCloud"), { TEXT("Flasque de nuage corrosif") } },
+		{ TEXT("Talent_Alchemist_Transmuter_MajorTransmutation"), {
+			TEXT("Transmutation majeure — Feu"),
+			TEXT("Transmutation majeure — Glace"),
+			TEXT("Transmutation majeure — Poison"),
+			TEXT("Transmutation majeure — Huile")
+		} }
+	};
+
+	int32 TotalGrantedRecipeIds = 0;
+	int32 TotalProjectedRecipeNames = 0;
+
+	for (const FClassSpec& Spec : ClassSpecs)
+	{
+		URPGClassAsset* ClassAsset = LoadObject<URPGClassAsset>(nullptr, Spec.ObjectPath);
+		if (!TestNotNull(*FString::Printf(TEXT("%s production class loads for recipe audit"), *Spec.ClassId.ToString()), ClassAsset))
+		{
+			continue;
+		}
+
+		for (const FRPGClassProgressionChoiceDefinition& Choice : ClassAsset->ProgressionChoices)
+		{
+			for (const FName GrantedId : Choice.GrantedRequirementIds)
+			{
+				if (GrantedId.ToString().StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive))
+				{
+					++TotalGrantedRecipeIds;
+				}
+			}
+		}
+
+		UGridPartyInventoryComponent* Party = MakeParty(ClassAsset);
+		FGridSkillsPageView View;
+		if (!TestTrue(
+			*FString::Printf(TEXT("%s read-model builds for recipe audit"), *Spec.ClassId.ToString()),
+			FGridSkillsPageService::TryBuildCharacterView(Party, 0, {}, View)))
+		{
+			FRPGClassProgressionTransactionService::ResetRuntimeState(Party);
+			continue;
+		}
+
+		for (const FGridTalentBranchView& Branch : View.TalentTree.Branches)
+		{
+			for (const FGridTalentNodeView& Node : Branch.Nodes)
+			{
+				TotalProjectedRecipeNames += Node.Acquisition.GrantedRecipeNames.Num();
+				for (const FText& RecipeName : Node.Acquisition.GrantedRecipeNames)
+				{
+					ValidatePlayerFacingText(
+						*this,
+						FString::Printf(TEXT("%s/%s/Recipe"), *Spec.ClassId.ToString(), *Node.TalentNodeId.ToString()),
+						RecipeName);
+				}
+
+				if (const TArray<FString>* ExpectedNames = ExpectedByTalent.Find(Node.TalentNodeId))
+				{
+					TestEqual(
+						*FString::Printf(TEXT("%s has exact canonical recipe count"), *Node.TalentNodeId.ToString()),
+						Node.Acquisition.GrantedRecipeNames.Num(),
+						ExpectedNames->Num());
+
+					for (int32 Index = 0; Index < ExpectedNames->Num() && Index < Node.Acquisition.GrantedRecipeNames.Num(); ++Index)
+					{
+						TestEqual(
+							*FString::Printf(TEXT("%s recipe %d has canonical French name"), *Node.TalentNodeId.ToString(), Index),
+							Node.Acquisition.GrantedRecipeNames[Index].ToString(),
+							(*ExpectedNames)[Index]);
+					}
+				}
+				else
+				{
+					TestTrue(
+						*FString::Printf(TEXT("%s has no unexpected recipe presentation"), *Node.TalentNodeId.ToString()),
+						Node.Acquisition.GrantedRecipeNames.IsEmpty());
+				}
+			}
+		}
+
+		FRPGClassProgressionTransactionService::ResetRuntimeState(Party);
+	}
+
+	FRPGClassProgressionTransactionService::ResetRuntimeState();
+	TestEqual(TEXT("Production classes declare fifteen Recipe_* grants"), TotalGrantedRecipeIds, 15);
+	TestEqual(TEXT("Read-model projects fifteen canonical recipe names"), TotalProjectedRecipeNames, 15);
+	TestEqual(TEXT("Exactly nine Talents expose recipes"), ExpectedByTalent.Num(), 9);
+	return true;
+}
+
 #endif
