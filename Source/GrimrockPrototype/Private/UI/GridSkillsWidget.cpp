@@ -1,9 +1,14 @@
 #include "UI/GridSkillsWidget.h"
 
+#include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "Components/WidgetSwitcher.h"
+#include "Engine/Texture2D.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
+#include "RPG/RPGClassVisualAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
@@ -550,6 +555,7 @@ void UGridSkillsWidget::PublishProgressionNotification(const FRPGProgressionNoti
 void UGridSkillsWidget::ApplyDesignerPresentation()
 {
 	RebuildSkillEntryWidgets();
+	ApplyClassVisualIdentity();
 
 	if (!View.IsValid())
 	{
@@ -612,6 +618,35 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 			BranchWidget->ClearTalentBranch();
 		}
 	}
+}
+
+void UGridSkillsWidget::ApplyClassVisualIdentity()
+{
+	UTexture2D* BannerTexture = nullptr;
+	UTexture2D* FlagTexture = nullptr;
+
+	if (View.IsValid() && !View.ClassId.IsNone())
+	{
+		if (const URPGClassVisualAsset* ClassVisual = FRPGAuthoringIdentityResolver::ResolveClassVisualByClassId(View.ClassId))
+		{
+			BannerTexture = ClassVisual->Banner.LoadSynchronous();
+			FlagTexture = ClassVisual->Flag.LoadSynchronous();
+		}
+
+		if (!BannerTexture || !FlagTexture)
+		{
+			UE_LOG(
+				LogGridSkillsUI,
+				Warning,
+				TEXT("GridSkills ClassVisual Missing ClassId=%s Banner=%s Flag=%s"),
+				*View.ClassId.ToString(),
+				BannerTexture ? TEXT("OK") : TEXT("Missing"),
+				FlagTexture ? TEXT("OK") : TEXT("Missing"));
+		}
+	}
+
+	Border_Header->SetBrushFromTexture(BannerTexture);
+	Image_ClassFlag->SetBrushFromTexture(FlagTexture, false);
 }
 
 void UGridSkillsWidget::ApplyTalentDetailPresentation()

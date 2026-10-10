@@ -8,6 +8,7 @@
 #include "GridSkillsWidget.generated.h"
 
 class AGrimrockPartyPawn;
+class UBorder;
 class UButton;
 class UGridPartyInventoryComponent;
 class UGridRPGNotificationWidget;
@@ -16,6 +17,7 @@ class URPGSkillAsset;
 class UGridTalentBranchWidget;
 class UPanelWidget;
 class UGridTalentDetailWidget;
+class UImage;
 class UTextBlock;
 class UWidgetSwitcher;
 
@@ -174,7 +176,16 @@ private:
 	void BindDesignerShell();
 	void UnbindDesignerShell();
 	void ApplyDesignerPresentation();
+	void ApplyClassVisualIdentity();
 	void ApplyTalentDetailPresentation();
+
+	/** Class-specific header banner sourced from URPGClassVisualAsset::Banner. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UBorder> Border_Header;
+
+	/** Class-specific flag sourced from URPGClassVisualAsset::Flag. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_ClassFlag;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_CharacterName;

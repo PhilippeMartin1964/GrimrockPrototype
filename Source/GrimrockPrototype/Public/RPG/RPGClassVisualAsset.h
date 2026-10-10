@@ -26,6 +26,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual")
 	TSoftObjectPtr<UTexture2D> ClassIcon;
 
+	/** Wide class-specific banner used by Skills/Talents and other class headers. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual")
+	TSoftObjectPtr<UTexture2D> Banner;
+
+	/** Compact class-specific flag/emblem used by Skills/Talents and related chrome. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual")
+	TSoftObjectPtr<UTexture2D> Flag;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual")
 	FLinearColor AccentColor = FLinearColor::White;
 
