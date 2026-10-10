@@ -393,6 +393,10 @@ void AGrimrockPartyPawn::ShowInventoryWorkspace()
 	{
 		MenuWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
+	if (SkillsWidgetInstance)
+	{
+		SkillsWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
 	if (MapWidgetInstance)
 	{
 		MapWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
