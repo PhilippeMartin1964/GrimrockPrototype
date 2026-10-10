@@ -1,9 +1,12 @@
 #include "UI/GridSkillsWidget.h"
 
+#include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "Components/WidgetSwitcher.h"
+#include "Engine/Texture2D.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
@@ -22,6 +25,24 @@ namespace GridSkillsWidgetPrivate
 {
 	const TCHAR* TalentPresentationAssetPath =
 		TEXT("/Game/GrimrockPrototype/Core/DataAssets/UI/RPG/DA_RPGTalentPresentation.DA_RPGTalentPresentation");
+	const TCHAR* ClassVisualRootPath =
+		TEXT("/Game/GrimrockPrototype/Blueprints/UI/InGameMenu/Images");
+
+	UTexture2D* LoadClassVisualTexture(FName ClassId, const TCHAR* Prefix)
+	{
+		if (ClassId.IsNone() || !Prefix)
+		{
+			return nullptr;
+		}
+
+		const FString AssetName = FString::Printf(TEXT("%s%s"), Prefix, *ClassId.ToString());
+		const FString ObjectPath = FString::Printf(
+			TEXT("%s/%s.%s"),
+			ClassVisualRootPath,
+			*AssetName,
+			*AssetName);
+		return LoadObject<UTexture2D>(nullptr, *ObjectPath);
+	}
 
 	UGridTalentBranchWidget* BranchWidgetByIndex(
 		int32 Index,
@@ -550,6 +571,7 @@ void UGridSkillsWidget::PublishProgressionNotification(const FRPGProgressionNoti
 void UGridSkillsWidget::ApplyDesignerPresentation()
 {
 	RebuildSkillEntryWidgets();
+	ApplyClassVisualIdentity();
 
 	if (!View.IsValid())
 	{
@@ -611,6 +633,28 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 		{
 			BranchWidget->ClearTalentBranch();
 		}
+	}
+}
+
+void UGridSkillsWidget::ApplyClassVisualIdentity()
+{
+	const FName ClassId = View.IsValid() ? View.ClassId : NAME_None;
+	UTexture2D* BannerTexture = GridSkillsWidgetPrivate::LoadClassVisualTexture(ClassId, TEXT("T_Banner"));
+	UTexture2D* FlagTexture = GridSkillsWidgetPrivate::LoadClassVisualTexture(ClassId, TEXT("T_Flag"));
+
+	Border_Header->SetBrushFromTexture(BannerTexture);
+	Image_ClassFlag->SetBrushFromTexture(FlagTexture, false);
+
+	if (!ClassId.IsNone() && (!BannerTexture || !FlagTexture))
+	{
+		UE_LOG(
+			LogGridSkillsUI,
+			Warning,
+			TEXT("GridSkills ClassVisual Missing ClassId=%s Banner=%s Flag=%s Root=%s"),
+			*ClassId.ToString(),
+			BannerTexture ? TEXT("OK") : TEXT("Missing"),
+			FlagTexture ? TEXT("OK") : TEXT("Missing"),
+			GridSkillsWidgetPrivate::ClassVisualRootPath);
 	}
 }
 
