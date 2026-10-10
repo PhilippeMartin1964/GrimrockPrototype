@@ -177,6 +177,7 @@ private:
 	void UnbindDesignerShell();
 	void ApplyDesignerPresentation();
 	void ApplyClassVisualIdentity();
+	void RefreshTabSelection();
 	void ApplyTalentDetailPresentation();
 
 	/** Class-specific header banner sourced from URPGClassVisualAsset::Banner. */
@@ -205,6 +206,13 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_TalentsTab;
 
+	/** Presentation-only selection frame shown while the Skills page is active. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_SkillsTabSelectionFrame;
+
+	/** Presentation-only selection frame shown while the Talents page is active. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_TalentsTabSelectionFrame;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidgetSwitcher> Switcher_SkillsTalents;

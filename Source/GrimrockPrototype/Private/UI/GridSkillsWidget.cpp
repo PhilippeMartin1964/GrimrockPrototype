@@ -556,6 +556,7 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 {
 	RebuildSkillEntryWidgets();
 	ApplyClassVisualIdentity();
+	RefreshTabSelection();
 
 	if (!View.IsValid())
 	{
@@ -724,14 +725,26 @@ void UGridSkillsWidget::RebuildSkillEntryWidgets()
 	}
 }
 
+void UGridSkillsWidget::RefreshTabSelection()
+{
+	const int32 ActiveIndex = Switcher_SkillsTalents->GetActiveWidgetIndex();
+
+	Image_SkillsTabSelectionFrame->SetVisibility(
+		ActiveIndex == 0 ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	Image_TalentsTabSelectionFrame->SetVisibility(
+		ActiveIndex == 1 ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+}
+
 void UGridSkillsWidget::ShowSkillsTab()
 {
 	Switcher_SkillsTalents->SetActiveWidgetIndex(0);
+	RefreshTabSelection();
 }
 
 void UGridSkillsWidget::ShowTalentsTab()
 {
 	Switcher_SkillsTalents->SetActiveWidgetIndex(1);
+	RefreshTabSelection();
 }
 
 void UGridSkillsWidget::HandleSkillsTabClicked()
