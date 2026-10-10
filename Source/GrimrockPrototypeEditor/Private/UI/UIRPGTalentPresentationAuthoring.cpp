@@ -102,18 +102,18 @@ void FUIRPGTalentPresentationAuthoring::ConfigureCatalog(URPGTalentPresentationA
 		TEXT("Ranger"),
 		Color(0.12f, 0.28f, 0.12f), Color(0.34f, 0.22f, 0.10f), Color(0.68f, 0.42f, 0.10f), Color(0.76f, 0.58f, 0.20f),
 		{
-			MakeBranch(TEXT("Marksman"), TEXT("Tireur"), Color(0.74f, 0.54f, 0.16f)),
+			MakeBranch(TEXT("Marksman"), TEXT("Tireur"), Color(0.32f, 0.48f, 0.16f)),
 			MakeBranch(
 				TEXT("Hunter"),
 				TEXT("Chasseur"),
-				Color(0.36f, 0.48f, 0.18f),
+				Color(0.68f, 0.22f, 0.08f),
 				{
 					MakeNodeOverride(
 						TEXT("Talent_Ranger_Hunter_FavoredEnemy"),
 						TEXT("Ennemi juré"),
 						TEXT("Choisissez une catégorie de créatures comme ennemi juré. Les variantes sont mutuellement exclusives."))
 				}),
-			MakeBranch(TEXT("Scout"), TEXT("Éclaireur"), Color(0.62f, 0.46f, 0.18f))
+			MakeBranch(TEXT("Scout"), TEXT("Éclaireur"), Color(0.10f, 0.38f, 0.44f))
 		}));
 
 	Catalog.Classes.Add(MakeClass(
