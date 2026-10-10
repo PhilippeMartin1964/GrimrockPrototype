@@ -13,6 +13,7 @@ class UButton;
 class UGridPartyInventoryComponent;
 class UGridRPGNotificationWidget;
 class UGridSkillEntryWidget;
+class URPGClassVisualAsset;
 class URPGSkillAsset;
 class UGridTalentBranchWidget;
 class UPanelWidget;
@@ -176,6 +177,7 @@ private:
 	void BindDesignerShell();
 	void UnbindDesignerShell();
 	void ApplyDesignerPresentation();
+	const URPGClassVisualAsset* ResolveCurrentClassVisual() const;
 	void ApplyClassVisualIdentity();
 	void RefreshTabSelection();
 	void ApplyTalentDetailPresentation();

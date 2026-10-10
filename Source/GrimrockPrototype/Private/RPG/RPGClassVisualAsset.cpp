@@ -18,3 +18,17 @@ bool URPGClassVisualAsset::IsValidForClass(FName InClassId) const
 {
 	return IsValidDefinition() && !InClassId.IsNone() && ClassId == InClassId;
 }
+
+const FRPGTalentBranchVisualDefinition* URPGClassVisualAsset::FindTalentBranchVisual(FName TalentBranchId) const
+{
+	if (TalentBranchId.IsNone())
+	{
+		return nullptr;
+	}
+
+	return TalentBranchVisuals.FindByPredicate(
+		[TalentBranchId](const FRPGTalentBranchVisualDefinition& Definition)
+		{
+			return Definition.TalentBranchId == TalentBranchId;
+		});
+}

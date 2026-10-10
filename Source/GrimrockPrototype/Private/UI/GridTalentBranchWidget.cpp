@@ -1,7 +1,9 @@
 #include "UI/GridTalentBranchWidget.h"
 
 #include "Components/Border.h"
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Engine/Texture2D.h"
 #include "UI/GridTalentNodeWidget.h"
 
 void UGridTalentBranchWidget::NativeConstruct()
@@ -104,6 +106,7 @@ void UGridTalentBranchWidget::ClearTalentBranch()
 
 	if (Text_BranchName) Text_BranchName->SetText(FText::GetEmpty());
 	if (Text_BranchProgress) Text_BranchProgress->SetText(FText::GetEmpty());
+	SetBranchBackground(nullptr);
 
 	for (int32 Tier = 1; Tier <= 5; ++Tier)
 	{
@@ -112,6 +115,13 @@ void UGridTalentBranchWidget::ClearTalentBranch()
 			NodeWidget->ClearTalentNode();
 		}
 	}
+}
+
+void UGridTalentBranchWidget::SetBranchBackground(UTexture2D* BackgroundTexture)
+{
+	Image_BranchBackground->SetBrushFromTexture(BackgroundTexture, false);
+	Image_BranchBackground->SetVisibility(
+		BackgroundTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 }
 
 UGridTalentNodeWidget* UGridTalentBranchWidget::GetTalentNodeWidgetForTier(int32 Tier) const

@@ -8,7 +8,9 @@
 
 class UBorder;
 class UGridTalentNodeWidget;
+class UImage;
 class UTextBlock;
+class UTexture2D;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentBranchNodeClickedSignature, FName, TalentNodeId);
 
@@ -40,6 +42,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Branch")
 	void ClearTalentBranch();
 
+	/** Presentation-only background supplied by the owning class visual asset. */
+	void SetBranchBackground(UTexture2D* BackgroundTexture);
+
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Branch")
 	UGridTalentNodeWidget* GetTalentNodeWidgetForTier(int32 Tier) const;
 
@@ -54,6 +59,10 @@ private:
 	void BindNodeEvents();
 	void UnbindNodeEvents();
 	void ApplyBranchPresentation();
+
+	/** Authored background layer for this Talent branch. Keep behind the node widgets in WBP_RPGTalentBranch. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_BranchBackground;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_BranchName;

@@ -599,6 +599,7 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 		Text_ClassLevel->SetColorAndOpacity(FSlateColor(ClassPresentation.AccentColor));
 	}
 
+	const URPGClassVisualAsset* ClassVisual = ResolveCurrentClassVisual();
 	for (int32 Index = 0; Index < 3; ++Index)
 	{
 		UGridTalentBranchWidget* BranchWidget = GridSkillsWidgetPrivate::BranchWidgetByIndex(
@@ -612,13 +613,32 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 		FRPGTalentBranchPresentationDefinition BranchPresentation;
 		if (GetPresentedTalentBranch(Index, BranchView, BranchPresentation))
 		{
-			BranchWidget->InitializeTalentBranch(BranchView, BranchPresentation);
+			if (BranchWidget->InitializeTalentBranch(BranchView, BranchPresentation))
+			{
+				UTexture2D* BackgroundTexture = nullptr;
+				if (ClassVisual)
+				{
+					if (const FRPGTalentBranchVisualDefinition* BranchVisual =
+						ClassVisual->FindTalentBranchVisual(BranchView.TalentBranchId))
+					{
+						BackgroundTexture = BranchVisual->Background.LoadSynchronous();
+					}
+				}
+				BranchWidget->SetBranchBackground(BackgroundTexture);
+			}
 		}
 		else
 		{
 			BranchWidget->ClearTalentBranch();
 		}
 	}
+}
+
+const URPGClassVisualAsset* UGridSkillsWidget::ResolveCurrentClassVisual() const
+{
+	return View.IsValid() && !View.ClassId.IsNone()
+		? FRPGAuthoringIdentityResolver::ResolveClassVisualByClassId(View.ClassId)
+		: nullptr;
 }
 
 void UGridSkillsWidget::ApplyClassVisualIdentity()
@@ -628,7 +648,7 @@ void UGridSkillsWidget::ApplyClassVisualIdentity()
 
 	if (View.IsValid() && !View.ClassId.IsNone())
 	{
-		if (const URPGClassVisualAsset* ClassVisual = FRPGAuthoringIdentityResolver::ResolveClassVisualByClassId(View.ClassId))
+		if (const URPGClassVisualAsset* ClassVisual = ResolveCurrentClassVisual())
 		{
 			BannerTexture = ClassVisual->Banner.LoadSynchronous();
 			FlagTexture = ClassVisual->Flag.LoadSynchronous();

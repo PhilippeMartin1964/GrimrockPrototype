@@ -6,6 +6,19 @@
 
 class UTexture2D;
 
+/** Presentation-only background assigned to one canonical Talent branch. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FRPGTalentBranchVisualDefinition
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual|Talents")
+	FName TalentBranchId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual|Talents")
+	TSoftObjectPtr<UTexture2D> Background;
+};
+
 UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API URPGClassVisualAsset : public UPrimaryDataAsset
 {
@@ -34,6 +47,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual")
 	TSoftObjectPtr<UTexture2D> Flag;
 
+	/** Branch backgrounds keyed by the same TalentBranchId used by progression/presentation data. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual|Talents", meta = (TitleProperty = "TalentBranchId"))
+	TArray<FRPGTalentBranchVisualDefinition> TalentBranchVisuals;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual")
 	FLinearColor AccentColor = FLinearColor::White;
 
@@ -42,4 +59,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Class Visual")
 	bool IsValidForClass(FName InClassId) const;
+
+	const FRPGTalentBranchVisualDefinition* FindTalentBranchVisual(FName TalentBranchId) const;
 };
