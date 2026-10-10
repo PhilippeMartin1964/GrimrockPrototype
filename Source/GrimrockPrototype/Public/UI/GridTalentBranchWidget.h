@@ -8,7 +8,6 @@
 
 class UBorder;
 class UGridTalentNodeWidget;
-class UImage;
 class UTextBlock;
 class UTexture2D;
 
@@ -60,9 +59,9 @@ private:
 	void UnbindNodeEvents();
 	void ApplyBranchPresentation();
 
-	/** Authored background layer for this Talent branch. Keep behind the node widgets in WBP_RPGTalentBranch. */
+	/** Existing authored background layer for this Talent branch, behind VB_Branch in Overlay_BranchRoot. */
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UImage> Image_BranchBackground;
+	TObjectPtr<UBorder> Border_BranchBackground;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_BranchName;

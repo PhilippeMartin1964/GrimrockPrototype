@@ -1,7 +1,6 @@
 #include "UI/GridTalentBranchWidget.h"
 
 #include "Components/Border.h"
-#include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
 #include "UI/GridTalentNodeWidget.h"
@@ -119,8 +118,8 @@ void UGridTalentBranchWidget::ClearTalentBranch()
 
 void UGridTalentBranchWidget::SetBranchBackground(UTexture2D* BackgroundTexture)
 {
-	Image_BranchBackground->SetBrushFromTexture(BackgroundTexture, false);
-	Image_BranchBackground->SetVisibility(
+	Border_BranchBackground->SetBrushFromTexture(BackgroundTexture);
+	Border_BranchBackground->SetVisibility(
 		BackgroundTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 }
 
