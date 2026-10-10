@@ -709,6 +709,9 @@ private:
 	void HandleMapWindowCloseClicked();
 
 	UFUNCTION()
+	void HandleSkillsWindowCloseClicked();
+
+	UFUNCTION()
 	void HandleCharacterSheetWindowCloseClicked();
 
 	UFUNCTION()

@@ -190,6 +190,10 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_TalentsTab;
 
+	/** Canonical title-bar close button. The pawn owns the close transition/input mode. */
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "RPG|Skills|UI")
+	TObjectPtr<UButton> Button_CloseSkills;
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidgetSwitcher> Switcher_SkillsTalents;
 

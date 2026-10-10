@@ -102,6 +102,11 @@ void AGrimrockPartyPawn::ShowSkillsWidget()
 		if (SkillsWidgetInstance)
 		{
 			SkillsWidgetInstance->InitializeSkillsWidget(this);
+			if (SkillsWidgetInstance->Button_CloseSkills)
+			{
+				SkillsWidgetInstance->Button_CloseSkills->OnClicked.AddUniqueDynamic(
+					this, &AGrimrockPartyPawn::HandleSkillsWindowCloseClicked);
+			}
 		}
 	}
 
@@ -559,6 +564,11 @@ void AGrimrockPartyPawn::HideMapWidget()
 void AGrimrockPartyPawn::HandleMapWindowCloseClicked()
 {
 	HideMapWidget();
+}
+
+void AGrimrockPartyPawn::HandleSkillsWindowCloseClicked()
+{
+	HideSkillsWidget();
 }
 
 void AGrimrockPartyPawn::HandleCharacterSheetWindowCloseClicked()
