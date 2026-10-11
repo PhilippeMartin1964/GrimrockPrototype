@@ -22,13 +22,27 @@ bool UGridTalentDetailLineWidget::InitializeLine(
 	}
 
 	LineView = InLine;
-	ResolvedLabelText = InLine.Label.IsEmpty()
-		? FText::GetEmpty()
-		: FText::Format(
-			NSLOCTEXT("GridTalentDetailLine", "LabelWithSeparator", "{0} :"),
-			InLine.Label);
-	ResolvedValueText = InLine.Value;
 	ResolvedIcon = InIcon;
+
+	if (ResolvedIcon)
+	{
+		ResolvedLabelText = InLine.Label.IsEmpty()
+			? FText::GetEmpty()
+			: FText::Format(
+				NSLOCTEXT("GridTalentDetailLine", "LabelWithSeparator", "{0} :"),
+				InLine.Label);
+		ResolvedValueText = InLine.Value;
+	}
+	else
+	{
+		ResolvedLabelText = FText::GetEmpty();
+		ResolvedValueText = InLine.Label.IsEmpty()
+			? InLine.Value
+			: FText::Format(
+				NSLOCTEXT("GridTalentDetailLine", "CompactLabelValue", "{0} : {1}"),
+				InLine.Label,
+				InLine.Value);
+	}
 	bInitialized = true;
 	ApplyPresentation();
 	return true;

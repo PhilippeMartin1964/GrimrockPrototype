@@ -31,12 +31,6 @@ public:
 	FText ResolvedDisplayName;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Variant")
-	FText ResolvedTypeText;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Variant")
-	FText ResolvedStatusText;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Variant")
 	FText ResolvedPrincipleText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Variant")
@@ -84,12 +78,6 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_VariantName;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_VariantType;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_VariantStatus;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_VariantPrinciple;

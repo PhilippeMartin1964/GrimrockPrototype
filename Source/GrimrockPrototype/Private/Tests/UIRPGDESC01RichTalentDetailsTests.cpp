@@ -369,6 +369,10 @@ bool FUIRPGDESC01LegacyBindingsRemovedTest::RunTest(const FString&)
 
 	UClass* VariantClass = UGridTalentVariantBlockWidget::StaticClass();
 	for (const TCHAR* PropertyName : {
+		TEXT("Text_VariantType"),
+		TEXT("Text_VariantStatus"),
+		TEXT("ResolvedTypeText"),
+		TEXT("ResolvedStatusText"),
 		TEXT("Text_VariantEffects"),
 		TEXT("Text_VariantUsage"),
 		TEXT("ResolvedEffectsText"),
@@ -568,9 +572,15 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	TargetLine.Label = FText::FromString(TEXT("Cible"));
 	TargetLine.Value = FText::FromString(TEXT("première cible dans l'axe"));
 	UGridTalentDetailLineWidget* LineWidget = NewObject<UGridTalentDetailLineWidget>();
-	TestTrue(TEXT("Semantic detail row initializes without Designer bindings"), LineWidget->InitializeLine(TargetLine, nullptr));
-	TestEqual(TEXT("Semantic row label is presentation-ready"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible :")));
-	TestEqual(TEXT("Semantic row value stays canonical"), LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
+	TestTrue(TEXT("Unglyphed detail row initializes without Designer bindings"), LineWidget->InitializeLine(TargetLine, nullptr));
+	TestTrue(TEXT("Unglyphed row collapses the separate label"), LineWidget->ResolvedLabelText.IsEmpty());
+	TestEqual(TEXT("Unglyphed row renders compact label and value"),
+		LineWidget->ResolvedValueText.ToString(), FString(TEXT("Cible : première cible dans l'axe")));
+
+	UTexture2D* InlineTargetGlyph = NewObject<UTexture2D>(LineWidget);
+	TestTrue(TEXT("Glyphed detail row reinitializes"), LineWidget->InitializeLine(TargetLine, InlineTargetGlyph));
+	TestEqual(TEXT("Glyphed row keeps presentation label"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible :")));
+	TestEqual(TEXT("Glyphed row keeps canonical value"), LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
 
 	URPGTalentDetailGlyphSet* GlyphSet = NewObject<URPGTalentDetailGlyphSet>();
 	UTexture2D* CostGlyph = NewObject<UTexture2D>(GlyphSet);
@@ -696,8 +706,6 @@ bool FUIRPGDESC01153VariantBlockPresenterTest::RunTest(const FString&)
 	TestTrue(TEXT("Variant block initializes"),
 		Block->InitializeVariant(Variant, FText::FromString(TEXT("Tranchant")), false));
 	TestEqual(TEXT("Short display name is preserved"), Block->ResolvedDisplayName.ToString(), FString(TEXT("Tranchant")));
-	TestEqual(TEXT("Variant TYPE is canonical"), Block->ResolvedTypeText.ToString(), FString(TEXT("PASSIF")));
-	TestEqual(TEXT("Variant STATUS is canonical"), Block->ResolvedStatusText.ToString(), FString(TEXT("DISPONIBLE")));
 	TestTrue(TEXT("Variant EFFETS are structured"), UIRPGDESC01Tests::JoinDetailLines(Block->VariantView.Effects).Contains(TEXT("Précision : +1")));
 	TestEqual(TEXT("Available variant exposes CHOISIR"), Block->ResolvedChooseLabel.ToString(), FString(TEXT("CHOISIR")));
 	TestTrue(TEXT("Available variant choice is enabled"), Block->bChooseEnabled);

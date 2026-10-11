@@ -41,8 +41,6 @@ bool UGridTalentVariantBlockWidget::InitializeVariant(
 		return false;
 	}
 
-	ResolvedTypeText = InVariant.TypeText;
-	ResolvedStatusText = InVariant.StatusText;
 	ResolvedPrincipleText = InVariant.Principle;
 	bPendingChoice = bInPendingChoice;
 
@@ -77,8 +75,6 @@ void UGridTalentVariantBlockWidget::ClearVariant()
 {
 	VariantView = FGridTalentVariantView();
 	ResolvedDisplayName = FText::GetEmpty();
-	ResolvedTypeText = FText::GetEmpty();
-	ResolvedStatusText = FText::GetEmpty();
 	ResolvedPrincipleText = FText::GetEmpty();
 	ResolvedChooseLabel = FText::GetEmpty();
 	bChooseEnabled = false;
@@ -210,8 +206,6 @@ void UGridTalentVariantBlockWidget::ApplyPresentation()
 	};
 
 	SetOptionalText(Text_VariantName, ResolvedDisplayName);
-	SetOptionalText(Text_VariantType, ResolvedTypeText);
-	SetOptionalText(Text_VariantStatus, ResolvedStatusText);
 	SetOptionalText(Text_VariantPrinciple, ResolvedPrincipleText);
 
 	auto SetStructuredSection = [](UVerticalBox* Section, UVerticalBox* Entries)
