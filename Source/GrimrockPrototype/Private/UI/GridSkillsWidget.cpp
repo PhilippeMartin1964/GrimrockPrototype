@@ -716,7 +716,20 @@ void UGridSkillsWidget::ApplyTalentDetailPresentation()
 		!Detail_Talent->InitializeTalentDetail(SelectedNode, *BranchPresentation))
 	{
 		Detail_Talent->ClearTalentDetail();
+		return;
 	}
+
+	UTexture2D* IconTexture = nullptr;
+	if (const URPGClassVisualAsset* ClassVisual = ResolveCurrentClassVisual())
+	{
+		if (const FRPGTalentNodeVisualDefinition* NodeVisual =
+			ClassVisual->FindTalentNodeVisual(SelectedNode.TalentNodeId))
+		{
+			IconTexture = NodeVisual->Icon.LoadSynchronous();
+		}
+	}
+
+	Detail_Talent->SetTalentIcon(IconTexture);
 }
 
 void UGridSkillsWidget::RebuildSkillEntryWidgets()

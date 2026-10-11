@@ -2,6 +2,7 @@
 
 #include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Engine/World.h"
@@ -94,6 +95,20 @@ bool UGridTalentDetailWidget::InitializeTalentDetail(
 	return true;
 }
 
+void UGridTalentDetailWidget::SetTalentIcon(UTexture2D* IconTexture)
+{
+	if (!Image_DetailTalentIcon)
+	{
+		return;
+	}
+
+	Image_DetailTalentIcon->SetBrushFromTexture(IconTexture, false);
+	Image_DetailTalentIcon->SetVisibility(
+		IconTexture
+			? ESlateVisibility::SelfHitTestInvisible
+			: ESlateVisibility::Collapsed);
+}
+
 void UGridTalentDetailWidget::ClearTalentDetail()
 {
 	NodeView = FGridTalentNodeView();
@@ -110,6 +125,7 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	bVariantSelectionPending = false;
 	SelectedVariantChoiceId = NAME_None;
 	AcquisitionFeedback = FText::GetEmpty();
+	SetTalentIcon(nullptr);
 
 	if (Border_DetailAccent)
 	{

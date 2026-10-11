@@ -8,7 +8,9 @@
 
 class UBorder;
 class UButton;
+class UImage;
 class UTextBlock;
+class UTexture2D;
 class UVerticalBox;
 class UGridTalentVariantBlockWidget;
 
@@ -74,6 +76,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Detail")
 	void ClearTalentDetail();
 
+	/** Presentation-only icon resolved from URPGClassVisualAsset by canonical TalentNodeId. */
+	void SetTalentIcon(UTexture2D* IconTexture);
+
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Acquire")
 	bool CanRequestSimpleAcquisition() const;
 
@@ -134,6 +139,9 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UBorder> Border_DetailAccent;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UImage> Image_DetailTalentIcon;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_DetailName;
