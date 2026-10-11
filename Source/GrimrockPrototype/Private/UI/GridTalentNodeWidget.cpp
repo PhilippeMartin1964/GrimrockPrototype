@@ -3,6 +3,7 @@
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
+#include "Engine/Texture2D.h"
 
 namespace GridTalentNodeWidgetPrivate
 {
@@ -33,25 +34,20 @@ namespace GridTalentNodeWidgetPrivate
 		}
 	}
 
-	FLinearColor NodeColor(EGridTalentNodeState State, const FLinearColor& Accent)
+	FLinearColor NodeStateTint(EGridTalentNodeState State)
 	{
+		float Luminance = 0.30f;
 		switch (State)
 		{
-			case EGridTalentNodeState::Acquired:
-				return FLinearColor(Accent.R, Accent.G, Accent.B, 1.0f);
-			case EGridTalentNodeState::Available:
-				return FLinearColor(Accent.R * 0.72f, Accent.G * 0.72f, Accent.B * 0.72f, 1.0f);
-			case EGridTalentNodeState::LockedLevel:
-				return FLinearColor(0.12f, 0.12f, 0.13f, 1.0f);
-			case EGridTalentNodeState::LockedPrerequisite:
-				return FLinearColor(0.10f, 0.10f, 0.11f, 1.0f);
-			case EGridTalentNodeState::LockedPoints:
-				return FLinearColor(0.16f, 0.12f, 0.08f, 1.0f);
-			case EGridTalentNodeState::LockedExclusive:
-				return FLinearColor(0.14f, 0.09f, 0.12f, 1.0f);
-			default:
-				return FLinearColor(0.10f, 0.10f, 0.11f, 1.0f);
+			case EGridTalentNodeState::Acquired:           Luminance = 1.00f; break;
+			case EGridTalentNodeState::Available:          Luminance = 0.82f; break;
+			case EGridTalentNodeState::LockedPoints:       Luminance = 0.55f; break;
+			case EGridTalentNodeState::LockedLevel:        Luminance = 0.42f; break;
+			case EGridTalentNodeState::LockedPrerequisite: Luminance = 0.32f; break;
+			case EGridTalentNodeState::LockedExclusive:    Luminance = 0.24f; break;
+			default:                                       Luminance = 0.30f; break;
 		}
+		return FLinearColor(Luminance, Luminance, Luminance, 1.0f);
 	}
 }
 
@@ -102,7 +98,6 @@ bool UGridTalentNodeWidget::InitializeTalentNode(
 	NodeView = InNodeView;
 	ResolvedDisplayName = NodeView.DisplayName;
 	ResolvedDescription = NodeView.Principle;
-	BranchAccentColor = InBranchPresentation.AccentColor;
 	bInitialized = true;
 	ApplyNodePresentation();
 	return true;
@@ -113,7 +108,6 @@ void UGridTalentNodeWidget::ClearTalentNode()
 	NodeView = FGridTalentNodeView();
 	ResolvedDisplayName = FText::GetEmpty();
 	ResolvedDescription = FText::GetEmpty();
-	BranchAccentColor = FLinearColor::White;
 	bInitialized = false;
 
 	if (Text_TalentTier) Text_TalentTier->SetText(FText::GetEmpty());
@@ -121,10 +115,17 @@ void UGridTalentNodeWidget::ClearTalentNode()
 	if (Text_TalentLevel) Text_TalentLevel->SetText(FText::GetEmpty());
 	if (Text_TalentState) Text_TalentState->SetText(FText::GetEmpty());
 	if (Text_VariantCount) Text_VariantCount->SetText(FText::GetEmpty());
+	SetTalentIcon(nullptr);
 	SetToolTipText(FText::GetEmpty());
 }
 
-
+void UGridTalentNodeWidget::SetTalentIcon(UTexture2D* IconTexture)
+{
+	if (Border_TalentNode)
+	{
+		Border_TalentNode->SetBrushFromTexture(IconTexture);
+	}
+}
 
 void UGridTalentNodeWidget::ApplyNodePresentation()
 {
@@ -151,7 +152,7 @@ void UGridTalentNodeWidget::ApplyNodePresentation()
 	}
 	if (Border_TalentNode)
 	{
-		Border_TalentNode->SetBrushColor(NodeColor(NodeView.State, BranchAccentColor));
+		Border_TalentNode->SetBrushColor(NodeStateTint(NodeView.State));
 	}
 
 	if (!ResolvedDescription.IsEmpty())

@@ -32,3 +32,17 @@ const FRPGTalentBranchVisualDefinition* URPGClassVisualAsset::FindTalentBranchVi
 			return Definition.TalentBranchId == TalentBranchId;
 		});
 }
+
+const FRPGTalentNodeVisualDefinition* URPGClassVisualAsset::FindTalentNodeVisual(FName TalentNodeId) const
+{
+	if (TalentNodeId.IsNone())
+	{
+		return nullptr;
+	}
+
+	return TalentNodeVisuals.FindByPredicate(
+		[TalentNodeId](const FRPGTalentNodeVisualDefinition& Definition)
+		{
+			return Definition.TalentNodeId == TalentNodeId;
+		});
+}

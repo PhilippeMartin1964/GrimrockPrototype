@@ -25,8 +25,6 @@ struct GRIMROCKPROTOTYPE_API FRPGTalentNodePresentationDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation", meta = (MultiLine = "true"))
 	FText Description;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Presentation")
-	TSoftObjectPtr<UTexture2D> NodeIconTexture;
 
 	bool IsValidDefinition() const;
 };

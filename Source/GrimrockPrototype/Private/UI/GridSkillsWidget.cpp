@@ -18,6 +18,7 @@
 #include "UI/GridSkillsPageService.h"
 #include "UI/GridTalentBranchWidget.h"
 #include "UI/GridTalentDetailWidget.h"
+#include "UI/GridTalentNodeWidget.h"
 #include "UI/GridRPGNotificationWidget.h"
 #include "UI/RPGProgressionFeedbackService.h"
 
@@ -625,6 +626,24 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 					}
 				}
 				BranchWidget->SetBranchBackground(BackgroundTexture);
+
+				for (const FGridTalentNodeView& NodeView : BranchView.Nodes)
+				{
+					UTexture2D* IconTexture = nullptr;
+					if (ClassVisual)
+					{
+						if (const FRPGTalentNodeVisualDefinition* NodeVisual =
+							ClassVisual->FindTalentNodeVisual(NodeView.TalentNodeId))
+						{
+							IconTexture = NodeVisual->Icon.LoadSynchronous();
+						}
+					}
+
+					if (UGridTalentNodeWidget* NodeWidget = BranchWidget->GetTalentNodeWidgetForTier(NodeView.Tier))
+					{
+						NodeWidget->SetTalentIcon(IconTexture);
+					}
+				}
 			}
 		}
 		else

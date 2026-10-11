@@ -9,6 +9,7 @@
 class UBorder;
 class UButton;
 class UTextBlock;
+class UTexture2D;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentNodeClickedSignature, FName, TalentNodeId);
 
@@ -29,9 +30,6 @@ public:
 	FText ResolvedDescription;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Node")
-	FLinearColor BranchAccentColor = FLinearColor::White;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Node")
 	bool bInitialized = false;
 
 	UPROPERTY(BlueprintAssignable, Category = "RPG|Talents|Node|Events")
@@ -44,6 +42,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Node")
 	void ClearTalentNode();
+
+	/** Presentation-only icon supplied by URPGClassVisualAsset for this canonical TalentNodeId. */
+	void SetTalentIcon(UTexture2D* IconTexture);
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Node")
 	int32 GetVariantCount() const { return NodeView.bHasExclusiveVariants ? NodeView.Variants.Num() : 0; }
