@@ -36,16 +36,16 @@ namespace GridTalentNodeWidgetPrivate
 
 	FLinearColor NodeStateTint(EGridTalentNodeState State)
 	{
-		float Luminance = 0.30f;
+		float Luminance = 0.20f;
 		switch (State)
 		{
 			case EGridTalentNodeState::Acquired:           Luminance = 1.00f; break;
-			case EGridTalentNodeState::Available:          Luminance = 0.82f; break;
-			case EGridTalentNodeState::LockedPoints:       Luminance = 0.55f; break;
-			case EGridTalentNodeState::LockedLevel:        Luminance = 0.42f; break;
-			case EGridTalentNodeState::LockedPrerequisite: Luminance = 0.32f; break;
-			case EGridTalentNodeState::LockedExclusive:    Luminance = 0.24f; break;
-			default:                                       Luminance = 0.30f; break;
+			case EGridTalentNodeState::Available:          Luminance = 0.50f; break;
+			case EGridTalentNodeState::LockedPoints:       Luminance = 0.02f; break;
+			case EGridTalentNodeState::LockedLevel:        Luminance = 0.02f; break;
+			case EGridTalentNodeState::LockedPrerequisite: Luminance = 0.02f; break;
+			case EGridTalentNodeState::LockedExclusive:    Luminance = 0.02f; break;
+			default:                                       Luminance = 0.02f; break;
 		}
 		return FLinearColor(Luminance, Luminance, Luminance, 1.0f);
 	}
