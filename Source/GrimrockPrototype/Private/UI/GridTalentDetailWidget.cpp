@@ -161,6 +161,11 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	ClearSection(VB_DetailUsage, Text_DetailUsage);
 	ClearSection(VB_DetailAcquisition, Text_DetailAcquisition);
 
+	if (VB_DetailEffectsEntries)
+	{
+		VB_DetailEffectsEntries->ClearChildren();
+		VB_DetailEffectsEntries->SetVisibility(ESlateVisibility::Collapsed);
+	}
 	if (VB_DetailUsageEntries)
 	{
 		VB_DetailUsageEntries->ClearChildren();
@@ -356,6 +361,8 @@ void UGridTalentDetailWidget::RebuildVariantBlocks()
 			CreateWidget<UGridTalentVariantBlockWidget>(GetWorld(), VariantBlockWidgetClass);
 		if (!Block) continue;
 
+		Block->ConfigureDetailRows(DetailLineWidgetClass, DetailGlyphSet);
+
 		const bool bPending = bVariantSelectionPending && Variant.ChoiceId == SelectedVariantChoiceId;
 		if (!Block->InitializeVariant(Variant, MakeVariantDisplayLabel(Variant), bPending)) continue;
 
@@ -491,6 +498,7 @@ void UGridTalentDetailWidget::BuildAcquisitionLines(
 
 void UGridTalentDetailWidget::RebuildDetailLineRows()
 {
+	PopulateDetailLineRows(VB_DetailEffectsEntries, NodeView.Effects);
 	PopulateDetailLineRows(VB_DetailUsageEntries, NodeView.Usage);
 
 	TArray<FGridTalentDetailLineView> AcquisitionLines;
@@ -587,7 +595,6 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 	ApplyOptionalSection(VB_DetailType, Text_DetailType, ResolvedTypeText);
 	ApplyOptionalSection(VB_DetailStatus, Text_DetailStatus, ResolvedStatusText);
 	ApplyOptionalSection(VB_DetailPrinciple, Text_DetailPrinciple, ResolvedPrincipleText);
-	ApplyOptionalSection(VB_DetailEffects, Text_DetailEffects, ResolvedEffectsText);
 
 	auto ApplyStructuredSection = [](
 		UVerticalBox* Section,
@@ -623,6 +630,7 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 		}
 	};
 
+	ApplyStructuredSection(VB_DetailEffects, Text_DetailEffects, VB_DetailEffectsEntries, ResolvedEffectsText);
 	ApplyStructuredSection(VB_DetailUsage, Text_DetailUsage, VB_DetailUsageEntries, ResolvedUsageText);
 	ApplyStructuredSection(
 		VB_DetailAcquisition,

@@ -176,6 +176,9 @@ private:
 	TObjectPtr<UTextBlock> Text_DetailEffects;
 
 	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UVerticalBox> VB_DetailEffectsEntries;
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailUsage;
 
 	UPROPERTY(meta = (BindWidgetOptional))

@@ -660,6 +660,8 @@ bool FUIRPGDESC01153VariantBlockPresenterTest::RunTest(const FString&)
 	Variant.Effects.Add(Effect);
 
 	UGridTalentVariantBlockWidget* Block = NewObject<UGridTalentVariantBlockWidget>();
+	URPGTalentDetailGlyphSet* VariantGlyphSet = NewObject<URPGTalentDetailGlyphSet>(Block);
+	Block->ConfigureDetailRows(UGridTalentDetailLineWidget::StaticClass(), VariantGlyphSet);
 	TestTrue(TEXT("Variant block initializes"),
 		Block->InitializeVariant(Variant, FText::FromString(TEXT("Tranchant")), false));
 	TestEqual(TEXT("Short display name is preserved"), Block->ResolvedDisplayName.ToString(), FString(TEXT("Tranchant")));

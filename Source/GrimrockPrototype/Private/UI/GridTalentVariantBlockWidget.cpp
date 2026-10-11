@@ -3,11 +3,15 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
+#include "Engine/World.h"
+#include "UI/GridTalentDetailLineWidget.h"
+#include "UI/RPGTalentDetailGlyphSet.h"
 
 void UGridTalentVariantBlockWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	BindChooseButton();
+	RebuildDetailLineRows();
 	ApplyPresentation();
 }
 
@@ -66,6 +70,7 @@ bool UGridTalentVariantBlockWidget::InitializeVariant(
 	}
 
 	bInitialized = true;
+	RebuildDetailLineRows();
 	ApplyPresentation();
 	return true;
 }
@@ -83,7 +88,32 @@ void UGridTalentVariantBlockWidget::ClearVariant()
 	bChooseEnabled = false;
 	bPendingChoice = false;
 	bInitialized = false;
+
+	if (VB_VariantEffectsEntries)
+	{
+		VB_VariantEffectsEntries->ClearChildren();
+		VB_VariantEffectsEntries->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (VB_VariantUsageEntries)
+	{
+		VB_VariantUsageEntries->ClearChildren();
+		VB_VariantUsageEntries->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
 	ApplyPresentation();
+}
+
+void UGridTalentVariantBlockWidget::ConfigureDetailRows(
+	TSubclassOf<UGridTalentDetailLineWidget> InDetailLineWidgetClass,
+	URPGTalentDetailGlyphSet* InDetailGlyphSet)
+{
+	DetailLineWidgetClass = InDetailLineWidgetClass;
+	DetailGlyphSet = InDetailGlyphSet;
+	if (bInitialized)
+	{
+		RebuildDetailLineRows();
+		ApplyPresentation();
+	}
 }
 
 void UGridTalentVariantBlockWidget::BindChooseButton()
@@ -109,6 +139,56 @@ void UGridTalentVariantBlockWidget::HandleChooseClicked()
 	{
 		OnChooseRequested.Broadcast(VariantView.ChoiceId);
 	}
+}
+
+void UGridTalentVariantBlockWidget::PopulateDetailLineRows(
+	UVerticalBox* Container,
+	const TArray<FGridTalentDetailLineView>& Lines)
+{
+	if (!Container)
+	{
+		return;
+	}
+
+	Container->ClearChildren();
+	if (!bInitialized || !DetailLineWidgetClass || GetWorld() == nullptr)
+	{
+		Container->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	for (const FGridTalentDetailLineView& Line : Lines)
+	{
+		if (Line.Value.IsEmpty())
+		{
+			continue;
+		}
+
+		UGridTalentDetailLineWidget* Row =
+			CreateWidget<UGridTalentDetailLineWidget>(GetWorld(), DetailLineWidgetClass);
+		if (!Row)
+		{
+			continue;
+		}
+
+		UTexture2D* Glyph = DetailGlyphSet ? DetailGlyphSet->ResolveGlyph(Line.Semantic) : nullptr;
+		if (!Row->InitializeLine(Line, Glyph))
+		{
+			continue;
+		}
+		Container->AddChildToVerticalBox(Row);
+	}
+
+	Container->SetVisibility(
+		Container->GetChildrenCount() > 0
+			? ESlateVisibility::SelfHitTestInvisible
+			: ESlateVisibility::Collapsed);
+}
+
+void UGridTalentVariantBlockWidget::RebuildDetailLineRows()
+{
+	PopulateDetailLineRows(VB_VariantEffectsEntries, VariantView.Effects);
+	PopulateDetailLineRows(VB_VariantUsageEntries, VariantView.Usage);
 }
 
 FText UGridTalentVariantBlockWidget::FormatDetailLines(const TArray<FGridTalentDetailLineView>& Lines)
@@ -154,8 +234,43 @@ void UGridTalentVariantBlockWidget::ApplyPresentation()
 	SetOptionalText(Text_VariantType, ResolvedTypeText);
 	SetOptionalText(Text_VariantStatus, ResolvedStatusText);
 	SetOptionalText(Text_VariantPrinciple, ResolvedPrincipleText);
-	SetOptionalSection(VB_VariantEffects, Text_VariantEffects, ResolvedEffectsText);
-	SetOptionalSection(VB_VariantUsage, Text_VariantUsage, ResolvedUsageText);
+
+	auto SetStructuredSection = [](
+		UVerticalBox* Section,
+		UTextBlock* LegacyText,
+		UVerticalBox* Entries,
+		const FText& FallbackText)
+	{
+		const bool bHasRows = Entries && Entries->GetChildrenCount() > 0;
+		const bool bHasFallback = !FallbackText.IsEmpty();
+		const ESlateVisibility SectionVisibility =
+			(bHasRows || bHasFallback)
+				? ESlateVisibility::SelfHitTestInvisible
+				: ESlateVisibility::Collapsed;
+
+		if (Section)
+		{
+			Section->SetVisibility(SectionVisibility);
+		}
+		if (Entries)
+		{
+			Entries->SetVisibility(
+				bHasRows
+					? ESlateVisibility::SelfHitTestInvisible
+					: ESlateVisibility::Collapsed);
+		}
+		if (LegacyText)
+		{
+			LegacyText->SetText(FallbackText);
+			LegacyText->SetVisibility(
+				!bHasRows && bHasFallback
+					? ESlateVisibility::SelfHitTestInvisible
+					: ESlateVisibility::Collapsed);
+		}
+	};
+
+	SetStructuredSection(VB_VariantEffects, Text_VariantEffects, VB_VariantEffectsEntries, ResolvedEffectsText);
+	SetStructuredSection(VB_VariantUsage, Text_VariantUsage, VB_VariantUsageEntries, ResolvedUsageText);
 
 	if (Text_ChooseVariant)
 	{

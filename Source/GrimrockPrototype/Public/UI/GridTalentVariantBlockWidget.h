@@ -7,7 +7,10 @@
 
 class UButton;
 class UTextBlock;
+class UTexture2D;
 class UVerticalBox;
+class UGridTalentDetailLineWidget;
+class URPGTalentDetailGlyphSet;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentVariantChooseRequestedSignature, FName, ChoiceId);
 
@@ -66,6 +69,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Variant")
 	void ClearVariant();
 
+	/** Shares the parent detail row class/glyph authority; no gameplay data is resolved here. */
+	void ConfigureDetailRows(
+		TSubclassOf<UGridTalentDetailLineWidget> InDetailLineWidgetClass,
+		URPGTalentDetailGlyphSet* InDetailGlyphSet);
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -76,6 +84,8 @@ private:
 
 	void BindChooseButton();
 	void UnbindChooseButton();
+	void RebuildDetailLineRows();
+	void PopulateDetailLineRows(UVerticalBox* Container, const TArray<FGridTalentDetailLineView>& Lines);
 	void ApplyPresentation();
 	static FText FormatDetailLines(const TArray<FGridTalentDetailLineView>& Lines);
 
@@ -98,10 +108,22 @@ private:
 	TObjectPtr<UTextBlock> Text_VariantEffects;
 
 	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UVerticalBox> VB_VariantEffectsEntries;
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_VariantUsage;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_VariantUsage;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UVerticalBox> VB_VariantUsageEntries;
+
+	UPROPERTY(Transient)
+	TSubclassOf<UGridTalentDetailLineWidget> DetailLineWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<URPGTalentDetailGlyphSet> DetailGlyphSet;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_ChooseVariant;
