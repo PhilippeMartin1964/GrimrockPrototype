@@ -34,6 +34,19 @@ namespace GridTalentNodeWidgetPrivate
 		}
 	}
 
+	FLinearColor NodeStateTextColor(EGridTalentNodeState State)
+	{
+		switch (State)
+		{
+			case EGridTalentNodeState::Acquired:
+				return FLinearColor(0.30f, 0.90f, 0.30f, 1.0f);
+			case EGridTalentNodeState::Available:
+				return FLinearColor(0.45f, 1.00f, 0.45f, 1.0f);
+			default:
+				return FLinearColor(0.65f, 0.65f, 0.65f, 1.0f);
+		}
+	}
+
 	FLinearColor NodeStateTint(EGridTalentNodeState State)
 	{
 		float Luminance = 0.20f;
@@ -142,7 +155,11 @@ void UGridTalentNodeWidget::ApplyNodePresentation()
 	{
 		Text_TalentLevel->SetText(FText::FromString(FString::Printf(TEXT("Niv. %d"), NodeView.MinimumLevel)));
 	}
-	if (Text_TalentState) Text_TalentState->SetText(StateText(NodeView.State));
+	if (Text_TalentState)
+	{
+		Text_TalentState->SetText(StateText(NodeView.State));
+		Text_TalentState->SetColorAndOpacity(FSlateColor(NodeStateTextColor(NodeView.State)));
+	}
 	if (Text_VariantCount)
 	{
 		Text_VariantCount->SetText(
