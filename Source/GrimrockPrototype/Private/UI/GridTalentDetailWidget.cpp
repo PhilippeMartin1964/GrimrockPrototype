@@ -120,9 +120,6 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	ResolvedTypeText = FText::GetEmpty();
 	ResolvedStatusText = FText::GetEmpty();
 	ResolvedPrincipleText = FText::GetEmpty();
-	ResolvedEffectsText = FText::GetEmpty();
-	ResolvedUsageText = FText::GetEmpty();
-	ResolvedAcquisitionText = FText::GetEmpty();
 	BranchAccentColor = FLinearColor::White;
 	bInitialized = false;
 	bAcquireConfirmationPending = false;
@@ -157,9 +154,19 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	ClearSection(VB_DetailType, Text_DetailType);
 	ClearSection(VB_DetailStatus, Text_DetailStatus);
 	ClearSection(VB_DetailPrinciple, Text_DetailPrinciple);
-	ClearSection(VB_DetailEffects, Text_DetailEffects);
-	ClearSection(VB_DetailUsage, Text_DetailUsage);
-	ClearSection(VB_DetailAcquisition, Text_DetailAcquisition);
+
+	if (VB_DetailEffects)
+	{
+		VB_DetailEffects->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (VB_DetailUsage)
+	{
+		VB_DetailUsage->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (VB_DetailAcquisition)
+	{
+		VB_DetailAcquisition->SetVisibility(ESlateVisibility::Collapsed);
+	}
 
 	if (VB_DetailEffectsEntries)
 	{
@@ -533,35 +540,11 @@ FText UGridTalentDetailWidget::MakeVariantDisplayLabel(const FGridTalentVariantV
 	return FText::FromString(Label);
 }
 
-FText UGridTalentDetailWidget::FormatDetailLines(const TArray<FGridTalentDetailLineView>& Lines) const
-{
-	TArray<FString> Formatted;
-	Formatted.Reserve(Lines.Num());
-	for (const FGridTalentDetailLineView& Line : Lines)
-	{
-		if (Line.Value.IsEmpty()) continue;
-		Formatted.Add(Line.Label.IsEmpty()
-			? Line.Value.ToString()
-			: Line.Label.ToString() + TEXT(" : ") + Line.Value.ToString());
-	}
-	return FText::FromString(FString::Join(Formatted, TEXT("\n")));
-}
-
-FText UGridTalentDetailWidget::BuildAcquisitionText() const
-{
-	TArray<FGridTalentDetailLineView> Lines;
-	BuildAcquisitionLines(Lines);
-	return FormatDetailLines(Lines);
-}
-
 void UGridTalentDetailWidget::RefreshCanonicalSections()
 {
 	ResolvedTypeText = NodeView.TypeText;
 	ResolvedStatusText = NodeView.StatusText;
 	ResolvedPrincipleText = NodeView.Principle;
-	ResolvedEffectsText = FormatDetailLines(NodeView.Effects);
-	ResolvedUsageText = FormatDetailLines(NodeView.Usage);
-	ResolvedAcquisitionText = BuildAcquisitionText();
 }
 
 void UGridTalentDetailWidget::ApplyDetailPresentation()
@@ -596,47 +579,25 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 	ApplyOptionalSection(VB_DetailStatus, Text_DetailStatus, ResolvedStatusText);
 	ApplyOptionalSection(VB_DetailPrinciple, Text_DetailPrinciple, ResolvedPrincipleText);
 
-	auto ApplyStructuredSection = [](
-		UVerticalBox* Section,
-		UTextBlock* LegacyText,
-		UVerticalBox* Entries,
-		const FText& FallbackText)
+	auto ApplyStructuredSection = [](UVerticalBox* Section, UVerticalBox* Entries)
 	{
 		const bool bHasRows = Entries && Entries->GetChildrenCount() > 0;
-		const bool bHasFallback = !FallbackText.IsEmpty();
-		const ESlateVisibility SectionVisibility =
-			(bHasRows || bHasFallback)
-				? ESlateVisibility::SelfHitTestInvisible
-				: ESlateVisibility::Collapsed;
+		const ESlateVisibility Visibility =
+			bHasRows ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
 
 		if (Section)
 		{
-			Section->SetVisibility(SectionVisibility);
+			Section->SetVisibility(Visibility);
 		}
 		if (Entries)
 		{
-			Entries->SetVisibility(
-				bHasRows
-					? ESlateVisibility::SelfHitTestInvisible
-					: ESlateVisibility::Collapsed);
-		}
-		if (LegacyText)
-		{
-			LegacyText->SetText(FallbackText);
-			LegacyText->SetVisibility(
-				!bHasRows && bHasFallback
-					? ESlateVisibility::SelfHitTestInvisible
-					: ESlateVisibility::Collapsed);
+			Entries->SetVisibility(Visibility);
 		}
 	};
 
-	ApplyStructuredSection(VB_DetailEffects, Text_DetailEffects, VB_DetailEffectsEntries, ResolvedEffectsText);
-	ApplyStructuredSection(VB_DetailUsage, Text_DetailUsage, VB_DetailUsageEntries, ResolvedUsageText);
-	ApplyStructuredSection(
-		VB_DetailAcquisition,
-		Text_DetailAcquisition,
-		VB_DetailAcquisitionEntries,
-		ResolvedAcquisitionText);
+	ApplyStructuredSection(VB_DetailEffects, VB_DetailEffectsEntries);
+	ApplyStructuredSection(VB_DetailUsage, VB_DetailUsageEntries);
+	ApplyStructuredSection(VB_DetailAcquisition, VB_DetailAcquisitionEntries);
 }
 
 void UGridTalentDetailWidget::ApplyAcquisitionPresentation()

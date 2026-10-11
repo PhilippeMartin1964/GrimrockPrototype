@@ -41,15 +41,6 @@ public:
 	FText ResolvedPrincipleText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
-	FText ResolvedEffectsText;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
-	FText ResolvedUsageText;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
-	FText ResolvedAcquisitionText;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
 	FLinearColor BranchAccentColor = FLinearColor::White;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail")
@@ -136,8 +127,6 @@ private:
 	void PopulateDetailLineRows(UVerticalBox* Container, const TArray<FGridTalentDetailLineView>& Lines);
 	void BuildAcquisitionLines(TArray<FGridTalentDetailLineView>& OutLines) const;
 	FText MakeVariantDisplayLabel(const FGridTalentVariantView& Variant) const;
-	FText FormatDetailLines(const TArray<FGridTalentDetailLineView>& Lines) const;
-	FText BuildAcquisitionText() const;
 	void RefreshCanonicalSections();
 	void ApplyDetailPresentation();
 	void ApplyAcquisitionPresentation();
@@ -173,25 +162,16 @@ private:
 	TObjectPtr<UVerticalBox> VB_DetailEffects;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_DetailEffects;
-
-	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailEffectsEntries;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailUsage;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_DetailUsage;
-
-	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailUsageEntries;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailAcquisition;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_DetailAcquisition;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailAcquisitionEntries;

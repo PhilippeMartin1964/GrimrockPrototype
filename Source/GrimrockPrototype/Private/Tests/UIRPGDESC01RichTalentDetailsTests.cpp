@@ -251,8 +251,8 @@ bool FUIRPGDESC01CanonicalSimpleDetailTest::RunTest(const FString&)
 	TestEqual(TEXT("TYPE is independent"), Detail->ResolvedTypeText.ToString(), FString(TEXT("ACTIF")));
 	TestEqual(TEXT("STATUS is independent"), Detail->ResolvedStatusText.ToString(), FString(TEXT("DISPONIBLE")));
 	TestEqual(TEXT("PRINCIPE is independent"), Detail->ResolvedPrincipleText.ToString(), FString(TEXT("Principe canonique.")));
-	TestTrue(TEXT("EFFETS are canonical"), Detail->ResolvedEffectsText.ToString().Contains(TEXT("Précision : +2")));
-	TestTrue(TEXT("UTILISATION is canonical"), Detail->ResolvedUsageText.ToString().Contains(TEXT("Recharge : 2 rounds")));
+	TestTrue(TEXT("EFFETS are canonical"), UIRPGDESC01Tests::JoinDetailLines(Detail->NodeView.Effects).Contains(TEXT("Précision : +2")));
+	TestTrue(TEXT("UTILISATION is canonical"), UIRPGDESC01Tests::JoinDetailLines(Detail->NodeView.Usage).Contains(TEXT("Recharge : 2 rounds")));
 	TestTrue(TEXT("Simple acquisition uses SimpleChoiceId authority"), Detail->CanRequestSimpleAcquisition());
 	return true;
 }
@@ -337,7 +337,13 @@ bool FUIRPGDESC01LegacyBindingsRemovedTest::RunTest(const FString&)
 		TEXT("Text_DetailVariantDescription"),
 		TEXT("Text_DetailActionSummary"),
 		TEXT("Button_ChooseVariant"),
-		TEXT("Combo_VariantChoice")
+		TEXT("Combo_VariantChoice"),
+		TEXT("Text_DetailEffects"),
+		TEXT("Text_DetailUsage"),
+		TEXT("Text_DetailAcquisition"),
+		TEXT("ResolvedEffectsText"),
+		TEXT("ResolvedUsageText"),
+		TEXT("ResolvedAcquisitionText")
 	})
 	{
 		TestTrue(
@@ -349,9 +355,9 @@ bool FUIRPGDESC01LegacyBindingsRemovedTest::RunTest(const FString&)
 		TEXT("Text_DetailType"),
 		TEXT("Text_DetailStatus"),
 		TEXT("Text_DetailPrinciple"),
-		TEXT("Text_DetailEffects"),
-		TEXT("Text_DetailUsage"),
-		TEXT("Text_DetailAcquisition"),
+		TEXT("VB_DetailEffectsEntries"),
+		TEXT("VB_DetailUsageEntries"),
+		TEXT("VB_DetailAcquisitionEntries"),
 		TEXT("VB_DetailVariants"),
 		TEXT("VB_VariantEntries")
 	})
@@ -359,6 +365,28 @@ bool FUIRPGDESC01LegacyBindingsRemovedTest::RunTest(const FString&)
 		TestNotNull(
 			*FString::Printf(TEXT("%s canonical binding remains"), PropertyName),
 			FindFProperty<FProperty>(DetailClass, FName(PropertyName)));
+	}
+
+	UClass* VariantClass = UGridTalentVariantBlockWidget::StaticClass();
+	for (const TCHAR* PropertyName : {
+		TEXT("Text_VariantEffects"),
+		TEXT("Text_VariantUsage"),
+		TEXT("ResolvedEffectsText"),
+		TEXT("ResolvedUsageText")
+	})
+	{
+		TestTrue(
+			*FString::Printf(TEXT("%s variant legacy property is removed"), PropertyName),
+			FindFProperty<FProperty>(VariantClass, FName(PropertyName)) == nullptr);
+	}
+	for (const TCHAR* PropertyName : {
+		TEXT("VB_VariantEffectsEntries"),
+		TEXT("VB_VariantUsageEntries")
+	})
+	{
+		TestNotNull(
+			*FString::Printf(TEXT("%s structured variant binding remains"), PropertyName),
+			FindFProperty<FProperty>(VariantClass, FName(PropertyName)));
 	}
 	return true;
 }
@@ -525,12 +553,15 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	TestEqual(TEXT("TYPE is exposed independently"), Detail->ResolvedTypeText.ToString(), FString(TEXT("SORT ACTIF")));
 	TestEqual(TEXT("STATUT is exposed independently"), Detail->ResolvedStatusText.ToString(), FString(TEXT("DISPONIBLE")));
 	TestEqual(TEXT("PRINCIPE is exposed independently"), Detail->ResolvedPrincipleText.ToString(), FString(TEXT("Principe déjà résolu.")));
-	TestEqual(TEXT("EFFETS are presentation-formatted only"), Detail->ResolvedEffectsText.ToString(), FString(TEXT("Dégâts : 10")));
-	TestEqual(TEXT("UTILISATION is presentation-formatted only"), Detail->ResolvedUsageText.ToString(), FString(TEXT("Mana : 5")));
-	TestTrue(TEXT("ACQUISITION contains canonical level"), Detail->ResolvedAcquisitionText.ToString().Contains(TEXT("Niveau requis : 3")));
-	TestTrue(TEXT("ACQUISITION contains canonical cost"), Detail->ResolvedAcquisitionText.ToString().Contains(TEXT("Coût : 2 points de Talent")));
-	TestTrue(TEXT("ACQUISITION contains resolved prerequisite name"), Detail->ResolvedAcquisitionText.ToString().Contains(TEXT("Précurseur")));
-	TestTrue(TEXT("ACQUISITION contains exclusivity text"), Detail->ResolvedAcquisitionText.ToString().Contains(TEXT("Exclusif avec une autre voie.")));
+	TestEqual(TEXT("EFFETS remain structured"), UIRPGDESC01Tests::JoinDetailLines(Detail->NodeView.Effects), FString(TEXT("Dégâts : 10")));
+	TestEqual(TEXT("UTILISATION remains structured"), UIRPGDESC01Tests::JoinDetailLines(Detail->NodeView.Usage), FString(TEXT("Mana : 5")));
+	TestEqual(TEXT("ACQUISITION keeps canonical level"), Detail->NodeView.Acquisition.MinimumLevel, 3);
+	TestEqual(TEXT("ACQUISITION keeps canonical cost"), Detail->NodeView.Acquisition.PointCost, 2);
+	TestTrue(TEXT("ACQUISITION keeps resolved prerequisite name"),
+		Detail->NodeView.Acquisition.PrerequisiteTalentNames.ContainsByPredicate(
+			[](const FText& Value) { return Value.ToString() == TEXT("Précurseur"); }));
+	TestEqual(TEXT("ACQUISITION keeps exclusivity text"),
+		Detail->NodeView.Acquisition.ExclusivityText.ToString(), FString(TEXT("Exclusif avec une autre voie.")));
 
 	FGridTalentDetailLineView TargetLine;
 	TargetLine.Semantic = EGridTalentDetailLineSemantic::Target;
@@ -667,7 +698,7 @@ bool FUIRPGDESC01153VariantBlockPresenterTest::RunTest(const FString&)
 	TestEqual(TEXT("Short display name is preserved"), Block->ResolvedDisplayName.ToString(), FString(TEXT("Tranchant")));
 	TestEqual(TEXT("Variant TYPE is canonical"), Block->ResolvedTypeText.ToString(), FString(TEXT("PASSIF")));
 	TestEqual(TEXT("Variant STATUS is canonical"), Block->ResolvedStatusText.ToString(), FString(TEXT("DISPONIBLE")));
-	TestTrue(TEXT("Variant EFFETS are structured"), Block->ResolvedEffectsText.ToString().Contains(TEXT("Précision : +1")));
+	TestTrue(TEXT("Variant EFFETS are structured"), UIRPGDESC01Tests::JoinDetailLines(Block->VariantView.Effects).Contains(TEXT("Précision : +1")));
 	TestEqual(TEXT("Available variant exposes CHOISIR"), Block->ResolvedChooseLabel.ToString(), FString(TEXT("CHOISIR")));
 	TestTrue(TEXT("Available variant choice is enabled"), Block->bChooseEnabled);
 
@@ -710,9 +741,6 @@ bool FUIRPGDESC01163EmptyInitialStateTest::RunTest(const FString&)
 	TestTrue(TEXT("Fresh TYPE is empty"), Detail->ResolvedTypeText.IsEmpty());
 	TestTrue(TEXT("Fresh STATUS is empty"), Detail->ResolvedStatusText.IsEmpty());
 	TestTrue(TEXT("Fresh PRINCIPE is empty"), Detail->ResolvedPrincipleText.IsEmpty());
-	TestTrue(TEXT("Fresh EFFETS are empty"), Detail->ResolvedEffectsText.IsEmpty());
-	TestTrue(TEXT("Fresh UTILISATION is empty"), Detail->ResolvedUsageText.IsEmpty());
-	TestTrue(TEXT("Fresh ACQUISITION is empty"), Detail->ResolvedAcquisitionText.IsEmpty());
 	TestFalse(TEXT("Fresh detail cannot acquire a simple Talent"), Detail->CanRequestSimpleAcquisition());
 	TestFalse(TEXT("Fresh detail cannot acquire a variant"), Detail->CanRequestVariantAcquisition());
 
@@ -744,9 +772,6 @@ bool FUIRPGDESC01163EmptyInitialStateTest::RunTest(const FString&)
 	TestTrue(TEXT("Clear removes TYPE"), Detail->ResolvedTypeText.IsEmpty());
 	TestTrue(TEXT("Clear removes STATUS"), Detail->ResolvedStatusText.IsEmpty());
 	TestTrue(TEXT("Clear removes PRINCIPE"), Detail->ResolvedPrincipleText.IsEmpty());
-	TestTrue(TEXT("Clear removes EFFETS"), Detail->ResolvedEffectsText.IsEmpty());
-	TestTrue(TEXT("Clear removes UTILISATION"), Detail->ResolvedUsageText.IsEmpty());
-	TestTrue(TEXT("Clear removes ACQUISITION"), Detail->ResolvedAcquisitionText.IsEmpty());
 	TestTrue(TEXT("Clear removes pending variant choice"), Detail->GetSelectedVariantChoiceId().IsNone());
 	return true;
 }

@@ -40,12 +40,6 @@ public:
 	FText ResolvedPrincipleText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Variant")
-	FText ResolvedEffectsText;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Variant")
-	FText ResolvedUsageText;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Variant")
 	FText ResolvedChooseLabel;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Variant")
@@ -87,7 +81,6 @@ private:
 	void RebuildDetailLineRows();
 	void PopulateDetailLineRows(UVerticalBox* Container, const TArray<FGridTalentDetailLineView>& Lines);
 	void ApplyPresentation();
-	static FText FormatDetailLines(const TArray<FGridTalentDetailLineView>& Lines);
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_VariantName;
@@ -105,16 +98,10 @@ private:
 	TObjectPtr<UVerticalBox> VB_VariantEffects;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_VariantEffects;
-
-	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_VariantEffectsEntries;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_VariantUsage;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Text_VariantUsage;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_VariantUsageEntries;

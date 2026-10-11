@@ -44,8 +44,6 @@ bool UGridTalentVariantBlockWidget::InitializeVariant(
 	ResolvedTypeText = InVariant.TypeText;
 	ResolvedStatusText = InVariant.StatusText;
 	ResolvedPrincipleText = InVariant.Principle;
-	ResolvedEffectsText = FormatDetailLines(InVariant.Effects);
-	ResolvedUsageText = FormatDetailLines(InVariant.Usage);
 	bPendingChoice = bInPendingChoice;
 
 	if (InVariant.bAcquired)
@@ -82,8 +80,6 @@ void UGridTalentVariantBlockWidget::ClearVariant()
 	ResolvedTypeText = FText::GetEmpty();
 	ResolvedStatusText = FText::GetEmpty();
 	ResolvedPrincipleText = FText::GetEmpty();
-	ResolvedEffectsText = FText::GetEmpty();
-	ResolvedUsageText = FText::GetEmpty();
 	ResolvedChooseLabel = FText::GetEmpty();
 	bChooseEnabled = false;
 	bPendingChoice = false;
@@ -191,23 +187,6 @@ void UGridTalentVariantBlockWidget::RebuildDetailLineRows()
 	PopulateDetailLineRows(VB_VariantUsageEntries, VariantView.Usage);
 }
 
-FText UGridTalentVariantBlockWidget::FormatDetailLines(const TArray<FGridTalentDetailLineView>& Lines)
-{
-	TArray<FString> Formatted;
-	Formatted.Reserve(Lines.Num());
-	for (const FGridTalentDetailLineView& Line : Lines)
-	{
-		if (Line.Value.IsEmpty())
-		{
-			continue;
-		}
-		Formatted.Add(Line.Label.IsEmpty()
-			? Line.Value.ToString()
-			: Line.Label.ToString() + TEXT(" : ") + Line.Value.ToString());
-	}
-	return FText::FromString(FString::Join(Formatted, TEXT("\n")));
-}
-
 void UGridTalentVariantBlockWidget::ApplyPresentation()
 {
 	auto SetOptionalText = [](UTextBlock* Widget, const FText& Text)
@@ -235,42 +214,24 @@ void UGridTalentVariantBlockWidget::ApplyPresentation()
 	SetOptionalText(Text_VariantStatus, ResolvedStatusText);
 	SetOptionalText(Text_VariantPrinciple, ResolvedPrincipleText);
 
-	auto SetStructuredSection = [](
-		UVerticalBox* Section,
-		UTextBlock* LegacyText,
-		UVerticalBox* Entries,
-		const FText& FallbackText)
+	auto SetStructuredSection = [](UVerticalBox* Section, UVerticalBox* Entries)
 	{
 		const bool bHasRows = Entries && Entries->GetChildrenCount() > 0;
-		const bool bHasFallback = !FallbackText.IsEmpty();
-		const ESlateVisibility SectionVisibility =
-			(bHasRows || bHasFallback)
-				? ESlateVisibility::SelfHitTestInvisible
-				: ESlateVisibility::Collapsed;
+		const ESlateVisibility Visibility =
+			bHasRows ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
 
 		if (Section)
 		{
-			Section->SetVisibility(SectionVisibility);
+			Section->SetVisibility(Visibility);
 		}
 		if (Entries)
 		{
-			Entries->SetVisibility(
-				bHasRows
-					? ESlateVisibility::SelfHitTestInvisible
-					: ESlateVisibility::Collapsed);
-		}
-		if (LegacyText)
-		{
-			LegacyText->SetText(FallbackText);
-			LegacyText->SetVisibility(
-				!bHasRows && bHasFallback
-					? ESlateVisibility::SelfHitTestInvisible
-					: ESlateVisibility::Collapsed);
+			Entries->SetVisibility(Visibility);
 		}
 	};
 
-	SetStructuredSection(VB_VariantEffects, Text_VariantEffects, VB_VariantEffectsEntries, ResolvedEffectsText);
-	SetStructuredSection(VB_VariantUsage, Text_VariantUsage, VB_VariantUsageEntries, ResolvedUsageText);
+	SetStructuredSection(VB_VariantEffects, VB_VariantEffectsEntries);
+	SetStructuredSection(VB_VariantUsage, VB_VariantUsageEntries);
 
 	if (Text_ChooseVariant)
 	{
