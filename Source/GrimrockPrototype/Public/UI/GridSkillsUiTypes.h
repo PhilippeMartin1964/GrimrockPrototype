@@ -58,10 +58,35 @@ enum class EGridTalentNodeState : uint8
 	LockedExclusive
 };
 
+UENUM(BlueprintType)
+enum class EGridTalentDetailLineSemantic : uint8
+{
+	None,
+	Action,
+	ActionPointCost,
+	ManaCost,
+	ItemCost,
+	Target,
+	Range,
+	Area,
+	LineOfSight,
+	ResolutionCount,
+	Cooldown,
+	LevelRequirement,
+	TalentPointCost,
+	Prerequisite,
+	Exclusivity,
+	Recipe
+};
+
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridTalentDetailLineView
 {
 	GENERATED_BODY()
+
+	/** Stable presentation meaning. Never derive glyphs from localized Label text. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	EGridTalentDetailLineSemantic Semantic = EGridTalentDetailLineSemantic::None;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FText Label;

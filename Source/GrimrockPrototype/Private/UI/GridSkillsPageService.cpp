@@ -481,13 +481,18 @@ namespace
 	}
 
 
-	void AddDetailLine(TArray<FGridTalentDetailLineView>& Lines, const TCHAR* Label, const FString& Value)
+	void AddDetailLine(
+		TArray<FGridTalentDetailLineView>& Lines,
+		const TCHAR* Label,
+		const FString& Value,
+		EGridTalentDetailLineSemantic Semantic = EGridTalentDetailLineSemantic::None)
 	{
 		if (Value.IsEmpty())
 		{
 			return;
 		}
 		FGridTalentDetailLineView Line;
+		Line.Semantic = Semantic;
 		Line.Label = FText::FromString(Label);
 		Line.Value = FText::FromString(Value);
 		Lines.Add(MoveTemp(Line));
@@ -640,32 +645,32 @@ namespace
 			const FGridCombatActionDefinition& Action = *ActionPtr;
 			if (Actions.Num() > 1 && !Action.DisplayName.IsEmpty())
 			{
-				AddDetailLine(Out, TEXT("Action"), Action.DisplayName.ToString());
+				AddDetailLine(Out, TEXT("Action"), Action.DisplayName.ToString(), EGridTalentDetailLineSemantic::Action);
 			}
 			if (Action.ActionPointCost > 0)
-				AddDetailLine(Out, TEXT("Coût"), Plural(Action.ActionPointCost, TEXT("point d'action"), TEXT("points d'action")));
+				AddDetailLine(Out, TEXT("Coût"), Plural(Action.ActionPointCost, TEXT("point d'action"), TEXT("points d'action")), EGridTalentDetailLineSemantic::ActionPointCost);
 			if (Action.ResourceCosts.ManaCost > 0)
-				AddDetailLine(Out, TEXT("Mana"), FString::FromInt(Action.ResourceCosts.ManaCost));
+				AddDetailLine(Out, TEXT("Mana"), FString::FromInt(Action.ResourceCosts.ManaCost), EGridTalentDetailLineSemantic::ManaCost);
 			if (Action.ResourceCosts.SourceItemQuantityCost > 0)
-				AddDetailLine(Out, TEXT("Objet consommé"), Plural(Action.ResourceCosts.SourceItemQuantityCost, TEXT("objet"), TEXT("objets")));
+				AddDetailLine(Out, TEXT("Objet consommé"), Plural(Action.ResourceCosts.SourceItemQuantityCost, TEXT("objet"), TEXT("objets")), EGridTalentDetailLineSemantic::ItemCost);
 			const FText TargetSummary = TargetingSummary(Action.TargetingPolicy);
 			if (!TargetSummary.IsEmpty())
-				AddDetailLine(Out, TEXT("Cible"), TargetSummary.ToString());
+				AddDetailLine(Out, TEXT("Cible"), TargetSummary.ToString(), EGridTalentDetailLineSemantic::Target);
 			if (Action.RangeCells > 0)
-				AddDetailLine(Out, TEXT("Portée"), Plural(Action.RangeCells, TEXT("case"), TEXT("cases")));
+				AddDetailLine(Out, TEXT("Portée"), Plural(Action.RangeCells, TEXT("case"), TEXT("cases")), EGridTalentDetailLineSemantic::Range);
 			if (Action.AreaRadiusCells > 0)
-				AddDetailLine(Out, TEXT("Zone"), FString::Printf(TEXT("rayon %s"), *Plural(Action.AreaRadiusCells, TEXT("case"), TEXT("cases"))));
+				AddDetailLine(Out, TEXT("Zone"), FString::Printf(TEXT("rayon %s"), *Plural(Action.AreaRadiusCells, TEXT("case"), TEXT("cases"))), EGridTalentDetailLineSemantic::Area);
 			if (Action.bRequiresLineOfSight)
-				AddDetailLine(Out, TEXT("Ligne de vue"), TEXT("requise"));
+				AddDetailLine(Out, TEXT("Ligne de vue"), TEXT("requise"), EGridTalentDetailLineSemantic::LineOfSight);
 			if (Action.ResolutionCount > 1)
 			{
 				FString Value = Plural(Action.ResolutionCount, TEXT("résolution"), TEXT("résolutions"));
 				if (Action.SubsequentResolutionAccuracyModifier != 0)
 					Value += FString::Printf(TEXT(" ; Précision %+d à partir de la 2e"), Action.SubsequentResolutionAccuracyModifier);
-				AddDetailLine(Out, TEXT("Résolutions"), Value);
+				AddDetailLine(Out, TEXT("Résolutions"), Value, EGridTalentDetailLineSemantic::ResolutionCount);
 			}
 			if (Action.CooldownRounds > 0)
-				AddDetailLine(Out, TEXT("Recharge"), Plural(Action.CooldownRounds, TEXT("round"), TEXT("rounds")));
+				AddDetailLine(Out, TEXT("Recharge"), Plural(Action.CooldownRounds, TEXT("round"), TEXT("rounds")), EGridTalentDetailLineSemantic::Cooldown);
 		}
 	}
 

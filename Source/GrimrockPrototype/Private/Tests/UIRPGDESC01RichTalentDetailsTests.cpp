@@ -189,10 +189,22 @@ bool FUIRPGDESC01ActionProjectionTest::RunTest(const FString&)
 
 	const FString Effects = JoinDetailLines(Node.Effects);
 	const FString Usage = JoinDetailLines(Node.Usage);
+	const auto HasUsageSemantic = [&Node](EGridTalentDetailLineSemantic Semantic)
+	{
+		return Node.Usage.ContainsByPredicate(
+			[Semantic](const FGridTalentDetailLineView& Line)
+			{
+				return Line.Semantic == Semantic;
+			});
+	};
 	TestTrue(TEXT("Passive mechanics are projected into EFFETS"), Effects.Contains(TEXT("Précision : +2")));
 	TestTrue(TEXT("AP cost is projected into UTILISATION"), Usage.Contains(TEXT("Coût : 2 points d'action")));
 	TestTrue(TEXT("Mana cost is projected into UTILISATION"), Usage.Contains(TEXT("Mana : 3")));
 	TestTrue(TEXT("Cooldown is projected into UTILISATION"), Usage.Contains(TEXT("Recharge : 2 rounds")));
+	TestTrue(TEXT("AP cost carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::ActionPointCost));
+	TestTrue(TEXT("Target carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::Target));
+	TestTrue(TEXT("Mana carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::ManaCost));
+	TestTrue(TEXT("Cooldown carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::Cooldown));
 	return true;
 }
 
