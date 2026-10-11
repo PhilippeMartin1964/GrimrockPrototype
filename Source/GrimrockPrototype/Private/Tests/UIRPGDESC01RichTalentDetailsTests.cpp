@@ -7,8 +7,11 @@
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridSkillsPageService.h"
+#include "UI/GridTalentDetailLineWidget.h"
 #include "UI/GridTalentDetailWidget.h"
 #include "UI/GridTalentVariantBlockWidget.h"
+#include "UI/RPGTalentDetailGlyphSet.h"
+#include "Engine/Texture2D.h"
 #include "UObject/UnrealType.h"
 
 namespace UIRPGDESC01Tests
@@ -511,6 +514,7 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	Effect.Value = FText::FromString(TEXT("10"));
 	Node.Effects.Add(Effect);
 	FGridTalentDetailLineView Usage;
+	Usage.Semantic = EGridTalentDetailLineSemantic::ManaCost;
 	Usage.Label = FText::FromString(TEXT("Mana"));
 	Usage.Value = FText::FromString(TEXT("5"));
 	Node.Usage.Add(Usage);
@@ -527,6 +531,29 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	TestTrue(TEXT("ACQUISITION contains canonical cost"), Detail->ResolvedAcquisitionText.ToString().Contains(TEXT("Coût : 2 points de Talent")));
 	TestTrue(TEXT("ACQUISITION contains resolved prerequisite name"), Detail->ResolvedAcquisitionText.ToString().Contains(TEXT("Précurseur")));
 	TestTrue(TEXT("ACQUISITION contains exclusivity text"), Detail->ResolvedAcquisitionText.ToString().Contains(TEXT("Exclusif avec une autre voie.")));
+
+	FGridTalentDetailLineView TargetLine;
+	TargetLine.Semantic = EGridTalentDetailLineSemantic::Target;
+	TargetLine.Label = FText::FromString(TEXT("Cible"));
+	TargetLine.Value = FText::FromString(TEXT("première cible dans l'axe"));
+	UGridTalentDetailLineWidget* LineWidget = NewObject<UGridTalentDetailLineWidget>();
+	TestTrue(TEXT("Semantic detail row initializes without Designer bindings"), LineWidget->InitializeLine(TargetLine, nullptr));
+	TestEqual(TEXT("Semantic row label is presentation-ready"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible :")));
+	TestEqual(TEXT("Semantic row value stays canonical"), LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
+
+	URPGTalentDetailGlyphSet* GlyphSet = NewObject<URPGTalentDetailGlyphSet>();
+	UTexture2D* CostGlyph = NewObject<UTexture2D>(GlyphSet);
+	UTexture2D* TargetGlyph = NewObject<UTexture2D>(GlyphSet);
+	GlyphSet->Cost = CostGlyph;
+	GlyphSet->Target = TargetGlyph;
+	TestEqual(TEXT("Action cost resolves shared Cost glyph"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::ActionPointCost), CostGlyph);
+	TestEqual(TEXT("Talent point cost resolves shared Cost glyph"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::TalentPointCost), CostGlyph);
+	TestEqual(TEXT("Target resolves Target glyph"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::Target), TargetGlyph);
+	TestNull(TEXT("Unsupported semantics render safely without a glyph"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::ResolutionCount));
 	return true;
 }
 

@@ -12,7 +12,9 @@ class UImage;
 class UTextBlock;
 class UTexture2D;
 class UVerticalBox;
+class UGridTalentDetailLineWidget;
 class UGridTalentVariantBlockWidget;
+class URPGTalentDetailGlyphSet;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentAcquireConfirmedSignature, FName, ChoiceId);
 
@@ -130,6 +132,9 @@ private:
 	void UnbindAcquireButtons();
 	bool HasExclusiveVariants() const;
 	void RebuildVariantBlocks();
+	void RebuildDetailLineRows();
+	void PopulateDetailLineRows(UVerticalBox* Container, const TArray<FGridTalentDetailLineView>& Lines);
+	void BuildAcquisitionLines(TArray<FGridTalentDetailLineView>& OutLines) const;
 	FText MakeVariantDisplayLabel(const FGridTalentVariantView& Variant) const;
 	FText FormatDetailLines(const TArray<FGridTalentDetailLineView>& Lines) const;
 	FText BuildAcquisitionText() const;
@@ -177,10 +182,16 @@ private:
 	TObjectPtr<UTextBlock> Text_DetailUsage;
 
 	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UVerticalBox> VB_DetailUsageEntries;
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailAcquisition;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_DetailAcquisition;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UVerticalBox> VB_DetailAcquisitionEntries;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailVariants;
@@ -190,6 +201,12 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Variant", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UGridTalentVariantBlockWidget> VariantBlockWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Detail|Lines", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UGridTalentDetailLineWidget> DetailLineWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Detail|Lines", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<URPGTalentDetailGlyphSet> DetailGlyphSet;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_AcquireTalent;

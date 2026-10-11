@@ -6,7 +6,9 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Engine/World.h"
+#include "UI/GridTalentDetailLineWidget.h"
 #include "UI/GridTalentVariantBlockWidget.h"
+#include "UI/RPGTalentDetailGlyphSet.h"
 
 void UGridTalentDetailWidget::NativeConstruct()
 {
@@ -15,6 +17,7 @@ void UGridTalentDetailWidget::NativeConstruct()
 	if (bInitialized)
 	{
 		RebuildVariantBlocks();
+		RebuildDetailLineRows();
 		ApplyDetailPresentation();
 		ApplyAcquisitionPresentation();
 	}
@@ -90,6 +93,7 @@ bool UGridTalentDetailWidget::InitializeTalentDetail(
 	bInitialized = true;
 	RefreshCanonicalSections();
 	RebuildVariantBlocks();
+	RebuildDetailLineRows();
 	ApplyDetailPresentation();
 	ApplyAcquisitionPresentation();
 	return true;
@@ -156,6 +160,17 @@ void UGridTalentDetailWidget::ClearTalentDetail()
 	ClearSection(VB_DetailEffects, Text_DetailEffects);
 	ClearSection(VB_DetailUsage, Text_DetailUsage);
 	ClearSection(VB_DetailAcquisition, Text_DetailAcquisition);
+
+	if (VB_DetailUsageEntries)
+	{
+		VB_DetailUsageEntries->ClearChildren();
+		VB_DetailUsageEntries->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (VB_DetailAcquisitionEntries)
+	{
+		VB_DetailAcquisitionEntries->ClearChildren();
+		VB_DetailAcquisitionEntries->SetVisibility(ESlateVisibility::Collapsed);
+	}
 
 	if (VB_VariantEntries) VB_VariantEntries->ClearChildren();
 	if (VB_DetailVariants) VB_DetailVariants->SetVisibility(ESlateVisibility::Collapsed);
@@ -349,6 +364,140 @@ void UGridTalentDetailWidget::RebuildVariantBlocks()
 	}
 }
 
+void UGridTalentDetailWidget::PopulateDetailLineRows(
+	UVerticalBox* Container,
+	const TArray<FGridTalentDetailLineView>& Lines)
+{
+	if (!Container)
+	{
+		return;
+	}
+
+	Container->ClearChildren();
+	if (!bInitialized || !DetailLineWidgetClass || GetWorld() == nullptr)
+	{
+		Container->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	for (const FGridTalentDetailLineView& Line : Lines)
+	{
+		if (Line.Value.IsEmpty())
+		{
+			continue;
+		}
+
+		UGridTalentDetailLineWidget* Row =
+			CreateWidget<UGridTalentDetailLineWidget>(GetWorld(), DetailLineWidgetClass);
+		if (!Row)
+		{
+			continue;
+		}
+
+		UTexture2D* Glyph = DetailGlyphSet ? DetailGlyphSet->ResolveGlyph(Line.Semantic) : nullptr;
+		if (!Row->InitializeLine(Line, Glyph))
+		{
+			continue;
+		}
+		Container->AddChildToVerticalBox(Row);
+	}
+
+	Container->SetVisibility(
+		Container->GetChildrenCount() > 0
+			? ESlateVisibility::SelfHitTestInvisible
+			: ESlateVisibility::Collapsed);
+}
+
+void UGridTalentDetailWidget::BuildAcquisitionLines(
+	TArray<FGridTalentDetailLineView>& OutLines) const
+{
+	OutLines.Reset();
+
+	auto AddLine = [&OutLines](
+		EGridTalentDetailLineSemantic Semantic,
+		const FText& Label,
+		const FText& Value)
+	{
+		if (Value.IsEmpty())
+		{
+			return;
+		}
+		FGridTalentDetailLineView Line;
+		Line.Semantic = Semantic;
+		Line.Label = Label;
+		Line.Value = Value;
+		OutLines.Add(MoveTemp(Line));
+	};
+
+	AddLine(
+		EGridTalentDetailLineSemantic::LevelRequirement,
+		NSLOCTEXT("GridTalentDetail", "LevelRequirementLabel", "Niveau requis"),
+		FText::AsNumber(NodeView.Acquisition.MinimumLevel));
+
+	AddLine(
+		EGridTalentDetailLineSemantic::TalentPointCost,
+		NSLOCTEXT("GridTalentDetail", "TalentPointCostLabel", "Coût"),
+		FText::FromString(FString::Printf(
+			TEXT("%d point%s de Talent"),
+			NodeView.Acquisition.PointCost,
+			NodeView.Acquisition.PointCost > 1 ? TEXT("s") : TEXT(""))));
+
+	if (!NodeView.Acquisition.PrerequisiteTalentNames.IsEmpty())
+	{
+		TArray<FString> Names;
+		for (const FText& Name : NodeView.Acquisition.PrerequisiteTalentNames)
+		{
+			if (!Name.IsEmpty())
+			{
+				Names.Add(Name.ToString());
+			}
+		}
+		if (!Names.IsEmpty())
+		{
+			AddLine(
+				EGridTalentDetailLineSemantic::Prerequisite,
+				NSLOCTEXT("GridTalentDetail", "PrerequisiteLabel", "Prérequis"),
+				FText::FromString(FString::Join(Names, TEXT(", "))));
+		}
+	}
+
+	if (!NodeView.Acquisition.ExclusivityText.IsEmpty())
+	{
+		AddLine(
+			EGridTalentDetailLineSemantic::Exclusivity,
+			FText::GetEmpty(),
+			NodeView.Acquisition.ExclusivityText);
+	}
+
+	if (!NodeView.Acquisition.GrantedRecipeNames.IsEmpty())
+	{
+		TArray<FString> Recipes;
+		for (const FText& Recipe : NodeView.Acquisition.GrantedRecipeNames)
+		{
+			if (!Recipe.IsEmpty())
+			{
+				Recipes.Add(Recipe.ToString());
+			}
+		}
+		if (!Recipes.IsEmpty())
+		{
+			AddLine(
+				EGridTalentDetailLineSemantic::Recipe,
+				FText::FromString(Recipes.Num() > 1 ? TEXT("Recettes") : TEXT("Recette")),
+				FText::FromString(FString::Join(Recipes, TEXT(", "))));
+		}
+	}
+}
+
+void UGridTalentDetailWidget::RebuildDetailLineRows()
+{
+	PopulateDetailLineRows(VB_DetailUsageEntries, NodeView.Usage);
+
+	TArray<FGridTalentDetailLineView> AcquisitionLines;
+	BuildAcquisitionLines(AcquisitionLines);
+	PopulateDetailLineRows(VB_DetailAcquisitionEntries, AcquisitionLines);
+}
+
 FText UGridTalentDetailWidget::MakeVariantDisplayLabel(const FGridTalentVariantView& Variant) const
 {
 	FString Label = Variant.DisplayName.IsEmpty() ? Variant.ChoiceId.ToString() : Variant.DisplayName.ToString();
@@ -392,41 +541,9 @@ FText UGridTalentDetailWidget::FormatDetailLines(const TArray<FGridTalentDetailL
 
 FText UGridTalentDetailWidget::BuildAcquisitionText() const
 {
-	TArray<FString> Lines;
-	Lines.Add(FString::Printf(TEXT("Niveau requis : %d"), NodeView.Acquisition.MinimumLevel));
-	Lines.Add(FString::Printf(TEXT("Coût : %d point%s de Talent"),
-		NodeView.Acquisition.PointCost,
-		NodeView.Acquisition.PointCost > 1 ? TEXT("s") : TEXT("")));
-
-	if (!NodeView.Acquisition.PrerequisiteTalentNames.IsEmpty())
-	{
-		TArray<FString> Names;
-		Names.Reserve(NodeView.Acquisition.PrerequisiteTalentNames.Num());
-		for (const FText& Name : NodeView.Acquisition.PrerequisiteTalentNames)
-		{
-			if (!Name.IsEmpty()) Names.Add(Name.ToString());
-		}
-		if (!Names.IsEmpty()) Lines.Add(TEXT("Prérequis : ") + FString::Join(Names, TEXT(", ")));
-	}
-	if (!NodeView.Acquisition.ExclusivityText.IsEmpty())
-	{
-		Lines.Add(NodeView.Acquisition.ExclusivityText.ToString());
-	}
-	if (!NodeView.Acquisition.GrantedRecipeNames.IsEmpty())
-	{
-		TArray<FString> Recipes;
-		for (const FText& Recipe : NodeView.Acquisition.GrantedRecipeNames)
-		{
-			if (!Recipe.IsEmpty()) Recipes.Add(Recipe.ToString());
-		}
-		if (!Recipes.IsEmpty())
-		{
-			Lines.Add(
-				(Recipes.Num() > 1 ? TEXT("Recettes : ") : TEXT("Recette : ")) +
-				FString::Join(Recipes, TEXT(", ")));
-		}
-	}
-	return FText::FromString(FString::Join(Lines, TEXT("\n")));
+	TArray<FGridTalentDetailLineView> Lines;
+	BuildAcquisitionLines(Lines);
+	return FormatDetailLines(Lines);
 }
 
 void UGridTalentDetailWidget::RefreshCanonicalSections()
@@ -471,8 +588,47 @@ void UGridTalentDetailWidget::ApplyDetailPresentation()
 	ApplyOptionalSection(VB_DetailStatus, Text_DetailStatus, ResolvedStatusText);
 	ApplyOptionalSection(VB_DetailPrinciple, Text_DetailPrinciple, ResolvedPrincipleText);
 	ApplyOptionalSection(VB_DetailEffects, Text_DetailEffects, ResolvedEffectsText);
-	ApplyOptionalSection(VB_DetailUsage, Text_DetailUsage, ResolvedUsageText);
-	ApplyOptionalSection(VB_DetailAcquisition, Text_DetailAcquisition, ResolvedAcquisitionText);
+
+	auto ApplyStructuredSection = [](
+		UVerticalBox* Section,
+		UTextBlock* LegacyText,
+		UVerticalBox* Entries,
+		const FText& FallbackText)
+	{
+		const bool bHasRows = Entries && Entries->GetChildrenCount() > 0;
+		const bool bHasFallback = !FallbackText.IsEmpty();
+		const ESlateVisibility SectionVisibility =
+			(bHasRows || bHasFallback)
+				? ESlateVisibility::SelfHitTestInvisible
+				: ESlateVisibility::Collapsed;
+
+		if (Section)
+		{
+			Section->SetVisibility(SectionVisibility);
+		}
+		if (Entries)
+		{
+			Entries->SetVisibility(
+				bHasRows
+					? ESlateVisibility::SelfHitTestInvisible
+					: ESlateVisibility::Collapsed);
+		}
+		if (LegacyText)
+		{
+			LegacyText->SetText(FallbackText);
+			LegacyText->SetVisibility(
+				!bHasRows && bHasFallback
+					? ESlateVisibility::SelfHitTestInvisible
+					: ESlateVisibility::Collapsed);
+		}
+	};
+
+	ApplyStructuredSection(VB_DetailUsage, Text_DetailUsage, VB_DetailUsageEntries, ResolvedUsageText);
+	ApplyStructuredSection(
+		VB_DetailAcquisition,
+		Text_DetailAcquisition,
+		VB_DetailAcquisitionEntries,
+		ResolvedAcquisitionText);
 }
 
 void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
