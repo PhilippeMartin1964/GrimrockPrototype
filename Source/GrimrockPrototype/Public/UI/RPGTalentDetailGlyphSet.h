@@ -18,10 +18,28 @@ public:
 	TObjectPtr<UTexture2D> Cost;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Detail|Glyphs")
+	TObjectPtr<UTexture2D> ManaCost;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Detail|Glyphs")
+	TObjectPtr<UTexture2D> ItemCost;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Detail|Glyphs")
+	TObjectPtr<UTexture2D> Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Detail|Glyphs")
 	TObjectPtr<UTexture2D> Target;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Detail|Glyphs")
 	TObjectPtr<UTexture2D> Range;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Detail|Glyphs")
+	TObjectPtr<UTexture2D> Area;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Detail|Glyphs")
+	TObjectPtr<UTexture2D> LineOfSight;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Detail|Glyphs")
+	TObjectPtr<UTexture2D> ResolutionCount;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Detail|Glyphs")
 	TObjectPtr<UTexture2D> Cooldown;
@@ -32,7 +50,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Detail|Glyphs")
 	TObjectPtr<UTexture2D> Prerequisite;
 
-	/** Unsupported semantics intentionally return nullptr so the text row remains readable without a misleading glyph. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Detail|Glyphs")
+	TObjectPtr<UTexture2D> Exclusivity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Talents|Detail|Glyphs")
+	TObjectPtr<UTexture2D> Recipe;
+
+	/** Unknown or intentionally unglyphed semantics return nullptr. */
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Detail|Glyphs")
 	UTexture2D* ResolveGlyph(EGridTalentDetailLineSemantic Semantic) const;
 };

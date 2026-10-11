@@ -543,17 +543,56 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 
 	URPGTalentDetailGlyphSet* GlyphSet = NewObject<URPGTalentDetailGlyphSet>();
 	UTexture2D* CostGlyph = NewObject<UTexture2D>(GlyphSet);
+	UTexture2D* ManaGlyph = NewObject<UTexture2D>(GlyphSet);
+	UTexture2D* ItemGlyph = NewObject<UTexture2D>(GlyphSet);
+	UTexture2D* ActionGlyph = NewObject<UTexture2D>(GlyphSet);
 	UTexture2D* TargetGlyph = NewObject<UTexture2D>(GlyphSet);
+	UTexture2D* AreaGlyph = NewObject<UTexture2D>(GlyphSet);
+	UTexture2D* SightGlyph = NewObject<UTexture2D>(GlyphSet);
+	UTexture2D* ResolutionGlyph = NewObject<UTexture2D>(GlyphSet);
+	UTexture2D* ExclusivityGlyph = NewObject<UTexture2D>(GlyphSet);
+	UTexture2D* RecipeGlyph = NewObject<UTexture2D>(GlyphSet);
+
 	GlyphSet->Cost = CostGlyph;
+	GlyphSet->Action = ActionGlyph;
 	GlyphSet->Target = TargetGlyph;
+	GlyphSet->Area = AreaGlyph;
+	GlyphSet->LineOfSight = SightGlyph;
+	GlyphSet->ResolutionCount = ResolutionGlyph;
+	GlyphSet->Exclusivity = ExclusivityGlyph;
+	GlyphSet->Recipe = RecipeGlyph;
+
 	TestEqual(TEXT("Action cost resolves shared Cost glyph"),
 		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::ActionPointCost), CostGlyph);
 	TestEqual(TEXT("Talent point cost resolves shared Cost glyph"),
 		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::TalentPointCost), CostGlyph);
+	TestEqual(TEXT("Mana cost falls back to Cost glyph when unset"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::ManaCost), CostGlyph);
+	TestEqual(TEXT("Item cost falls back to Cost glyph when unset"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::ItemCost), CostGlyph);
+
+	GlyphSet->ManaCost = ManaGlyph;
+	GlyphSet->ItemCost = ItemGlyph;
+	TestEqual(TEXT("Mana cost resolves dedicated glyph when assigned"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::ManaCost), ManaGlyph);
+	TestEqual(TEXT("Item cost resolves dedicated glyph when assigned"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::ItemCost), ItemGlyph);
+	TestEqual(TEXT("Action resolves Action glyph"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::Action), ActionGlyph);
 	TestEqual(TEXT("Target resolves Target glyph"),
 		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::Target), TargetGlyph);
-	TestNull(TEXT("Unsupported semantics render safely without a glyph"),
-		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::ResolutionCount));
+	TestEqual(TEXT("Area resolves Area glyph"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::Area), AreaGlyph);
+	TestEqual(TEXT("Line of sight resolves LineOfSight glyph"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::LineOfSight), SightGlyph);
+	TestEqual(TEXT("Resolution count resolves ResolutionCount glyph"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::ResolutionCount), ResolutionGlyph);
+	TestEqual(TEXT("Exclusivity resolves Exclusivity glyph"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::Exclusivity), ExclusivityGlyph);
+	TestEqual(TEXT("Recipe resolves Recipe glyph"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::Recipe), RecipeGlyph);
+	TestNull(TEXT("None semantic renders safely without a glyph"),
+		GlyphSet->ResolveGlyph(EGridTalentDetailLineSemantic::None));
 	return true;
 }
 
