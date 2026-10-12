@@ -5,11 +5,10 @@
 
 class URPGSkillAsset;
 
-/** Définition Editor-only d'une entrée du catalogue canonique de compétences. */
+/** Définition Editor-only de l'identité et de la mécanique canonique d'une compétence. */
 struct GRIMROCKPROTOTYPEEDITOR_API FRPGCanonicalSkillDefinition
 {
 	FName SkillId = NAME_None;
-	FText DisplayName;
 	ERPGSkillGoverningAttribute GoverningAttribute = ERPGSkillGoverningAttribute::None;
 	bool bAllowUntrainedChecks = true;
 };

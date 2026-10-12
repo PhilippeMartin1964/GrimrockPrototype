@@ -42,7 +42,6 @@ bool FUIRPG061CanonicalSkillCatalogTest::RunTest(const FString& Parameters)
 	for (const FRPGCanonicalSkillDefinition& Definition : Definitions)
 	{
 		TestFalse(TEXT("Canonical SkillId is not None"), Definition.SkillId.IsNone());
-		TestFalse(TEXT("Canonical DisplayName is not empty"), Definition.DisplayName.IsEmpty());
 		TestTrue(TEXT("Canonical governing attribute is explicit"), Definition.GoverningAttribute != ERPGSkillGoverningAttribute::None);
 		TestFalse(TEXT("Canonical SkillId is unique"), SeenIds.Contains(Definition.SkillId));
 		SeenIds.Add(Definition.SkillId);
@@ -54,14 +53,12 @@ bool FUIRPG061CanonicalSkillCatalogTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Exactly six Skills require training"), TrainedOnlyCount, 6);
 
 	const FRPGCanonicalSkillDefinition* HeavyWeapons = FindDefinition(Definitions, TEXT("Skill_HeavyWeapons"));
-	TestTrue(TEXT("Heavy Weapons contract matches rules"), HeavyWeapons &&
-		HeavyWeapons->DisplayName.EqualTo(FText::FromString(TEXT("Armes lourdes"))) &&
+	TestTrue(TEXT("Heavy Weapons mechanical contract matches rules"), HeavyWeapons &&
 		HeavyWeapons->GoverningAttribute == ERPGSkillGoverningAttribute::Strength &&
 		HeavyWeapons->bAllowUntrainedChecks);
 
 	const FRPGCanonicalSkillDefinition* Lockpicking = FindDefinition(Definitions, TEXT("Skill_Lockpicking"));
-	TestTrue(TEXT("Lockpicking contract matches rules"), Lockpicking &&
-		Lockpicking->DisplayName.EqualTo(FText::FromString(TEXT("Crochetage"))) &&
+	TestTrue(TEXT("Lockpicking mechanical contract matches rules"), Lockpicking &&
 		Lockpicking->GoverningAttribute == ERPGSkillGoverningAttribute::Dexterity &&
 		!Lockpicking->bAllowUntrainedChecks);
 
@@ -102,7 +99,7 @@ bool FUIRPG061SkillAuthoringPreservesExtensionsTest::RunTest(const FString& Para
 
 	FRPGSkillCatalogAuthoring::ConfigureSkill(*Skill, Lockpicking);
 
-	TestTrue(TEXT("Fresh Skill receives canonical bootstrap DisplayName"), Skill->DisplayName.EqualTo(Lockpicking.DisplayName));
+	TestEqual(TEXT("Fresh Skill receives technical SkillId bootstrap DisplayName"), Skill->DisplayName.ToString(), Lockpicking.SkillId.ToString());
 	TestTrue(TEXT("Authored Skill matches canonical mechanical fields"), FRPGSkillCatalogAuthoring::IsCanonicalSkill(*Skill, Lockpicking));
 	TestTrue(TEXT("Authored Skill remains structurally valid"), Skill->IsValidDefinition());
 	TestTrue(

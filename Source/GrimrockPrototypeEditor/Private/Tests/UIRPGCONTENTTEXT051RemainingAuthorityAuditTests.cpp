@@ -360,9 +360,9 @@ bool FUIRPGCONTENTTEXT052SkillTextPreservationTest::RunTest(const FString&)
 		URPGSkillAsset* Fresh = NewObject<URPGSkillAsset>(GetTransientPackage());
 		FRPGSkillCatalogAuthoring::ConfigureSkill(*Fresh, Definition);
 		TestEqual(
-			*FString::Printf(TEXT("%s fresh record still receives current C++ bootstrap DisplayName"), *Definition.SkillId.ToString()),
+			*FString::Printf(TEXT("%s fresh record receives technical SkillId bootstrap DisplayName"), *Definition.SkillId.ToString()),
 			Fresh->DisplayName.ToString(),
-			Definition.DisplayName.ToString());
+			Definition.SkillId.ToString());
 		TestTrue(
 			*FString::Printf(TEXT("%s fresh record is mechanically canonical"), *Definition.SkillId.ToString()),
 			FRPGSkillCatalogAuthoring::IsCanonicalSkill(*Fresh, Definition));
@@ -407,6 +407,96 @@ bool FUIRPGCONTENTTEXT052SkillTextPreservationTest::RunTest(const FString&)
 		Display,
 		TEXT("[UI-RPG-CONTENT-TEXT05.2][SUMMARY] PreservedSkills=%d"),
 		PreservedSkillCount);
+
+	return true;
+}
+
+
+/**
+ * UI-RPG-CONTENT-TEXT05.3 proves that the canonical Skill catalog no longer
+ * owns player-facing presentation. Fresh records use SkillId only as technical
+ * bootstrap; production DA_Skill_* records keep serialized presentation.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT053SkillBootstrapOnlyTest,
+	"Grimrock.UI.RPG.CONTENTTEXT05.SkillBootstrapOnly",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT053SkillBootstrapOnlyTest::RunTest(const FString&)
+{
+	using namespace UIRPGCONTENTTEXT051;
+
+	TArray<FRPGCanonicalSkillDefinition> Definitions;
+	FRPGSkillCatalogAuthoring::GetCanonicalDefinitions(Definitions);
+	TestEqual(TEXT("Bootstrap-only audit covers twenty-five canonical Skills"), Definitions.Num(), 25);
+
+	int32 BootstrapCount = 0;
+	int32 ProductionPresentationCount = 0;
+
+	for (const FRPGCanonicalSkillDefinition& Definition : Definitions)
+	{
+		URPGSkillAsset* Fresh = NewObject<URPGSkillAsset>(GetTransientPackage());
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s fresh Skill bootstrap object is created"), *Definition.SkillId.ToString()),
+				Fresh))
+		{
+			continue;
+		}
+
+		FRPGSkillCatalogAuthoring::ConfigureSkill(*Fresh, Definition);
+		TestEqual(
+			*FString::Printf(TEXT("%s bootstrap DisplayName is technical SkillId only"), *Definition.SkillId.ToString()),
+			Fresh->DisplayName.ToString(),
+			Definition.SkillId.ToString());
+		TestTrue(
+			*FString::Printf(TEXT("%s bootstrap remains mechanically canonical"), *Definition.SkillId.ToString()),
+			FRPGSkillCatalogAuthoring::IsCanonicalSkill(*Fresh, Definition));
+		++BootstrapCount;
+
+		URPGSkillAsset* Serialized =
+			LoadObject<URPGSkillAsset>(nullptr, *SkillObjectPath(Definition.SkillId));
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s production DA_Skill loads for presentation audit"), *Definition.SkillId.ToString()),
+				Serialized))
+		{
+			continue;
+		}
+
+		TestFalse(
+			*FString::Printf(TEXT("%s production DisplayName is authored, not SkillId bootstrap"), *Definition.SkillId.ToString()),
+			Serialized->DisplayName.ToString() == Definition.SkillId.ToString());
+		TestFalse(
+			*FString::Printf(TEXT("%s production DisplayName is non-empty"), *Definition.SkillId.ToString()),
+			Serialized->DisplayName.IsEmpty());
+		++ProductionPresentationCount;
+	}
+
+	TestEqual(TEXT("Technical bootstrap covers all twenty-five Skills"), BootstrapCount, 25);
+	TestEqual(TEXT("Serialized production presentation covers all twenty-five Skills"), ProductionPresentationCount, 25);
+
+	FString SkillAuthoringSource;
+	TestTrue(
+		TEXT("Skill authoring source loads for final C++ text-authority check"),
+		LoadProjectSource(
+			TEXT("Source/GrimrockPrototypeEditor/Private/RPG/RPGSkillCatalogAuthoring.cpp"),
+			SkillAuthoringSource));
+
+	TestFalse(
+		TEXT("Canonical Skill authoring no longer contains Definition.DisplayName"),
+		SkillAuthoringSource.Contains(TEXT("Definition.DisplayName")));
+	TestFalse(
+		TEXT("Canonical Skill authoring no longer accepts a DisplayName parameter"),
+		SkillAuthoringSource.Contains(TEXT("const TCHAR* DisplayName")));
+	TestTrue(
+		TEXT("Fresh Skill presentation is derived only from SkillId"),
+		SkillAuthoringSource.Contains(TEXT("SkillAsset.DisplayName = FText::FromName(Definition.SkillId);")));
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("[UI-RPG-CONTENT-TEXT05.3][SUMMARY] BootstrapSkills=%d SerializedProductionSkills=%d"),
+		BootstrapCount,
+		ProductionPresentationCount);
 
 	return true;
 }

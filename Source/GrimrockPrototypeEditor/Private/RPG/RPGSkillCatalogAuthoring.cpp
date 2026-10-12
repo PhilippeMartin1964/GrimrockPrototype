@@ -17,13 +17,11 @@ namespace RPGSkillCatalogAuthoringPrivate
 	void AddDefinition(
 		TArray<FRPGCanonicalSkillDefinition>& OutDefinitions,
 		const TCHAR* SkillId,
-		const TCHAR* DisplayName,
 		ERPGSkillGoverningAttribute GoverningAttribute,
 		bool bAllowUntrainedChecks)
 	{
 		FRPGCanonicalSkillDefinition Definition;
 		Definition.SkillId = FName(SkillId);
-		Definition.DisplayName = FText::FromString(DisplayName);
 		Definition.GoverningAttribute = GoverningAttribute;
 		Definition.bAllowUntrainedChecks = bAllowUntrainedChecks;
 		OutDefinitions.Add(MoveTemp(Definition));
@@ -106,31 +104,31 @@ void FRPGSkillCatalogAuthoring::GetCanonicalDefinitions(TArray<FRPGCanonicalSkil
 	using namespace RPGSkillCatalogAuthoringPrivate;
 
 	OutDefinitions.Reset(CanonicalSkillCount);
-	AddDefinition(OutDefinitions, TEXT("Skill_HeavyWeapons"), TEXT("Armes lourdes"), ERPGSkillGoverningAttribute::Strength, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_LightWeapons"), TEXT("Armes légères"), ERPGSkillGoverningAttribute::Dexterity, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_RangedWeapons"), TEXT("Armes à distance"), ERPGSkillGoverningAttribute::Dexterity, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Throwing"), TEXT("Lancer"), ERPGSkillGoverningAttribute::Dexterity, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Shield"), TEXT("Bouclier"), ERPGSkillGoverningAttribute::Constitution, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Armor"), TEXT("Armures"), ERPGSkillGoverningAttribute::Constitution, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Athletics"), TEXT("Athlétisme"), ERPGSkillGoverningAttribute::Strength, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Acrobatics"), TEXT("Acrobatie"), ERPGSkillGoverningAttribute::Dexterity, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Perception"), TEXT("Perception"), ERPGSkillGoverningAttribute::Wisdom, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Survival"), TEXT("Survie"), ERPGSkillGoverningAttribute::Wisdom, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Stealth"), TEXT("Discrétion"), ERPGSkillGoverningAttribute::Dexterity, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Lockpicking"), TEXT("Crochetage"), ERPGSkillGoverningAttribute::Dexterity, false);
-	AddDefinition(OutDefinitions, TEXT("Skill_Traps"), TEXT("Pièges / désamorçage"), ERPGSkillGoverningAttribute::Intelligence, false);
-	AddDefinition(OutDefinitions, TEXT("Skill_Mechanics"), TEXT("Mécanique"), ERPGSkillGoverningAttribute::Intelligence, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Crafting"), TEXT("Artisanat"), ERPGSkillGoverningAttribute::Intelligence, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Alchemy"), TEXT("Alchimie"), ERPGSkillGoverningAttribute::Intelligence, false);
-	AddDefinition(OutDefinitions, TEXT("Skill_Arcana"), TEXT("Arcane"), ERPGSkillGoverningAttribute::Intelligence, false);
-	AddDefinition(OutDefinitions, TEXT("Skill_Runes"), TEXT("Runes"), ERPGSkillGoverningAttribute::Intelligence, false);
-	AddDefinition(OutDefinitions, TEXT("Skill_Religion"), TEXT("Religion"), ERPGSkillGoverningAttribute::Wisdom, false);
-	AddDefinition(OutDefinitions, TEXT("Skill_Nature"), TEXT("Nature"), ERPGSkillGoverningAttribute::Wisdom, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Medicine"), TEXT("Médecine"), ERPGSkillGoverningAttribute::Wisdom, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_History"), TEXT("Histoire"), ERPGSkillGoverningAttribute::Intelligence, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Persuasion"), TEXT("Persuasion"), ERPGSkillGoverningAttribute::Charisma, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Intimidation"), TEXT("Intimidation"), ERPGSkillGoverningAttribute::Charisma, true);
-	AddDefinition(OutDefinitions, TEXT("Skill_Deception"), TEXT("Tromperie"), ERPGSkillGoverningAttribute::Charisma, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_HeavyWeapons"), ERPGSkillGoverningAttribute::Strength, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_LightWeapons"), ERPGSkillGoverningAttribute::Dexterity, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_RangedWeapons"), ERPGSkillGoverningAttribute::Dexterity, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Throwing"), ERPGSkillGoverningAttribute::Dexterity, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Shield"), ERPGSkillGoverningAttribute::Constitution, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Armor"), ERPGSkillGoverningAttribute::Constitution, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Athletics"), ERPGSkillGoverningAttribute::Strength, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Acrobatics"), ERPGSkillGoverningAttribute::Dexterity, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Perception"), ERPGSkillGoverningAttribute::Wisdom, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Survival"), ERPGSkillGoverningAttribute::Wisdom, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Stealth"), ERPGSkillGoverningAttribute::Dexterity, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Lockpicking"), ERPGSkillGoverningAttribute::Dexterity, false);
+	AddDefinition(OutDefinitions, TEXT("Skill_Traps"), ERPGSkillGoverningAttribute::Intelligence, false);
+	AddDefinition(OutDefinitions, TEXT("Skill_Mechanics"), ERPGSkillGoverningAttribute::Intelligence, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Crafting"), ERPGSkillGoverningAttribute::Intelligence, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Alchemy"), ERPGSkillGoverningAttribute::Intelligence, false);
+	AddDefinition(OutDefinitions, TEXT("Skill_Arcana"), ERPGSkillGoverningAttribute::Intelligence, false);
+	AddDefinition(OutDefinitions, TEXT("Skill_Runes"), ERPGSkillGoverningAttribute::Intelligence, false);
+	AddDefinition(OutDefinitions, TEXT("Skill_Religion"), ERPGSkillGoverningAttribute::Wisdom, false);
+	AddDefinition(OutDefinitions, TEXT("Skill_Nature"), ERPGSkillGoverningAttribute::Wisdom, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Medicine"), ERPGSkillGoverningAttribute::Wisdom, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_History"), ERPGSkillGoverningAttribute::Intelligence, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Persuasion"), ERPGSkillGoverningAttribute::Charisma, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Intimidation"), ERPGSkillGoverningAttribute::Charisma, true);
+	AddDefinition(OutDefinitions, TEXT("Skill_Deception"), ERPGSkillGoverningAttribute::Charisma, true);
 }
 
 bool FRPGSkillCatalogAuthoring::TryGetCanonicalDefinition(FName SkillId, FRPGCanonicalSkillDefinition& OutDefinition)
@@ -176,7 +174,6 @@ bool FRPGSkillCatalogAuthoring::ValidateCanonicalCatalog(FString& OutError)
 	for (const FRPGCanonicalSkillDefinition& Definition : Definitions)
 	{
 		if (Definition.SkillId.IsNone() ||
-			Definition.DisplayName.IsEmpty() ||
 			Definition.GoverningAttribute == ERPGSkillGoverningAttribute::None ||
 			!Definition.SkillId.ToString().StartsWith(TEXT("Skill_")) ||
 			SeenSkillIds.Contains(Definition.SkillId))
@@ -200,7 +197,7 @@ void FRPGSkillCatalogAuthoring::ConfigureSkill(
 	const FText ExistingDisplayName = SkillAsset.DisplayName;
 
 	SkillAsset.SkillId = Definition.SkillId;
-	SkillAsset.DisplayName = Definition.DisplayName;
+	SkillAsset.DisplayName = FText::FromName(Definition.SkillId);
 	SkillAsset.GoverningAttribute = Definition.GoverningAttribute;
 	SkillAsset.MaxRank = RPGSkillCatalogAuthoringPrivate::CanonicalMaxRank;
 	SkillAsset.bAllowUntrainedChecks = Definition.bAllowUntrainedChecks;

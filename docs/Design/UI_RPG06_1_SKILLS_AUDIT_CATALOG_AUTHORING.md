@@ -5,6 +5,8 @@ Projet : **GrimrockPrototype — Unreal Engine 5.5.4**
 Jalon parent : **UI-RPG06 — Unification Compétences + Talents UX**  
 Statut : **UI-RPG06.1 VALIDÉ — Automation 3/3 ; UI-RPG06.2A catalogue de production matérialisé (25 assets) et poussé**
 
+> **État après CONTENT-TEXT05.3 :** le catalogue canonique C++ ne porte plus de `DisplayName`. Les 25 `DA_Skill_*` sont l'autorité de présentation ; le C++ conserve uniquement `SkillId`, attribut directeur, politique d'entraînement et rang max. Un record neuf reçoit `SkillId` comme bootstrap technique.
+
 ## 1. Objectif
 
 Commencer UI-RPG06 par les données réellement disponibles avant toute construction UMG.

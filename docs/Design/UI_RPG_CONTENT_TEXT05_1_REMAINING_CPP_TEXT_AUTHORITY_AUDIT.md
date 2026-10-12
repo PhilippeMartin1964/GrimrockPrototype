@@ -4,7 +4,7 @@ Date : **12 octobre 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Ticket : **UI-RPG-CONTENT-TEXT05.1**
 
-> **État après TEXT05.2 :** le `DisplayName` sérialisé d'un `DA_Skill_*` existant est désormais préservé lorsque le `SkillId` est stable. Les 25 libellés C++ restent provisoirement présents comme bootstrap de record neuf jusqu'à TEXT05.3.
+> **État après TEXT05.3 :** le `DisplayName` sérialisé des 25 `DA_Skill_*` est autoritaire. `FRPGCanonicalSkillDefinition` ne contient plus de texte joueur et un Skill neuf reçoit seulement `DisplayName = SkillId` comme bootstrap technique. Les dettes restantes de TEXT05 sont désormais les Spells puis `Attack_Unarmed`.
 
 ## 1. Objet
 
@@ -136,6 +136,25 @@ C'est le prochain chantier le plus direct parce que :
 - le problème est exactement une double autorité de présentation ;
 - la correction peut suivre le modèle TEXT02/TEXT03/TEXT04 sans nouvelle
   architecture.
+
+---
+
+### 4.5 État après TEXT05.3
+
+La dette P1 est désormais fermée :
+
+```text
+FRPGCanonicalSkillDefinition
+    = SkillId + mécanique uniquement
+
+DA_Skill_*.DisplayName
+    = autorité joueur
+
+record neuf
+    = DisplayName = SkillId (bootstrap technique)
+```
+
+Les 25 libellés français ont été retirés de l'authoring C++.
 
 ---
 
