@@ -71,6 +71,9 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectPresentationView
 class GRIMROCKPROTOTYPE_API FGridStatusEffectPresentationBuilder
 {
 public:
+	/** Resolve serialized status name, with EffectId as the only technical fallback. */
+	static FText ResolveDisplayName(const FGridStatusEffectRuntimeState& State);
+
 	static bool BuildOne(const FGridStatusEffectRuntimeState& State, FGridStatusEffectPresentationView& OutView);
 
 	static void Build(const FGridStatusEffectCollection& StatusEffects, TArray<FGridStatusEffectPresentationView>& OutViews);

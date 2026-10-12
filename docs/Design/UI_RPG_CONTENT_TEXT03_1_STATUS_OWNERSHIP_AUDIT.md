@@ -4,6 +4,9 @@ Date : **12 octobre 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Ticket : **UI-RPG-CONTENT-TEXT03.1**
 
+> **État après TEXT03.3 :** cet audit décrit volontairement l'état initial observé en TEXT03.1.  
+> TEXT03.2 a ajouté la préservation du texte sérialisé et TEXT03.3 a supprimé l'autorité prose C++ ainsi que la dépendance textuelle du test Warrior.
+
 ## 1. Objet
 
 Caractériser l'autorité texte actuelle des `UGridStatusEffectDefinitionAsset`

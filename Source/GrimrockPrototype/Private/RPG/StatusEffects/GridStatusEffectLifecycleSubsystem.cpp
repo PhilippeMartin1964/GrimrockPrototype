@@ -22,12 +22,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridStatusEffects, Log, All);
 
 namespace
 {
-	FText ResolveStatusDisplayName(const FGridStatusEffectRuntimeState& State)
-	{
-		return IsValid(State.DefinitionAsset) && !State.DefinitionAsset->DisplayName.IsEmpty() ? State.DefinitionAsset->DisplayName
-																							   : FText::FromName(State.EffectId);
-	}
-
 	int32 ResolveHealingAttributeValue(const FRPGAttributes& Attributes, EGridAttackScalingAttribute ScalingAttribute)
 	{
 		switch (ScalingAttribute)
@@ -1058,7 +1052,7 @@ void UGridStatusEffectLifecycleSubsystem::EmitStatusFeedback(EGridCombatLogEntry
 	Entry.Type = Type;
 	Entry.SourceId = State.SourceId.IsValid() ? FName(*State.SourceId.ToString(EGuidFormats::Digits)) : NAME_None;
 	Entry.StatusEffectId = State.EffectId;
-	Entry.StatusEffectDisplayName = ResolveStatusDisplayName(State);
+	Entry.StatusEffectDisplayName = FGridStatusEffectPresentationBuilder::ResolveDisplayName(State);
 	Entry.StatusEffectStackCount = State.StackCount;
 	Entry.StatusEffectDurationText = FGridStatusEffectPresentationBuilder::FormatDuration(State.DurationUnit, State.RemainingDuration);
 

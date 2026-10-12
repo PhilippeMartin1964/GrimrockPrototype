@@ -9,11 +9,12 @@ namespace
 		return Value > static_cast<int64>(MAX_int32) ? MAX_int32 : Value < static_cast<int64>(MIN_int32) ? MIN_int32 : static_cast<int32>(Value);
 	}
 
-	FText ResolveDisplayName(const FGridStatusEffectRuntimeState& State)
-	{
-		return IsValid(State.DefinitionAsset) && !State.DefinitionAsset->DisplayName.IsEmpty() ? State.DefinitionAsset->DisplayName
-																							   : FText::FromName(State.EffectId);
-	}
+}
+
+FText FGridStatusEffectPresentationBuilder::ResolveDisplayName(const FGridStatusEffectRuntimeState& State)
+{
+	return IsValid(State.DefinitionAsset) && !State.DefinitionAsset->DisplayName.IsEmpty() ? State.DefinitionAsset->DisplayName
+																						   : FText::FromName(State.EffectId);
 }
 
 bool FGridStatusEffectPresentationBuilder::BuildOne(const FGridStatusEffectRuntimeState& State, FGridStatusEffectPresentationView& OutView)
@@ -25,7 +26,7 @@ bool FGridStatusEffectPresentationBuilder::BuildOne(const FGridStatusEffectRunti
 	}
 
 	OutView.EffectId = State.EffectId;
-	OutView.DisplayName = ResolveDisplayName(State);
+	OutView.DisplayName = FGridStatusEffectPresentationBuilder::ResolveDisplayName(State);
 	OutView.DurationUnit = State.DurationUnit;
 	OutView.RemainingDuration = State.RemainingDuration;
 	OutView.StackCount = State.StackCount;

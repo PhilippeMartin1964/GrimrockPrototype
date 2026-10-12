@@ -9,6 +9,7 @@
 #include "RPG/RPGRogueAuthoring.h"
 #include "RPG/RPGWarriorAuthoring.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
+#include "RPG/StatusEffects/GridStatusEffectPresentation.h"
 
 namespace UIRPGCONTENTTEXT031
 {
@@ -554,6 +555,109 @@ bool FUIRPGCONTENTTEXT033StatusBootstrapOnlyTest::RunTest(const FString&)
 		Display,
 		TEXT("[UI-RPG-CONTENT-TEXT03.3][SUMMARY] BootstrapStatuses=%d"),
 		BootstrapStatusCount);
+
+	return true;
+}
+
+
+/**
+ * UI-RPG-CONTENT-TEXT03.4 closes status text ownership at the runtime boundary.
+ *
+ * Production DA_Status_* records must contain authored presentation, never the
+ * technical bootstrap markers used for fresh records. Runtime name resolution
+ * consumes the serialized DisplayName and falls back only to EffectId.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT034FinalStatusOwnershipAuditTest,
+	"Grimrock.UI.RPG.CONTENTTEXT03.FinalAudit",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT034FinalStatusOwnershipAuditTest::RunTest(const FString&)
+{
+	using namespace UIRPGCONTENTTEXT031;
+
+	TArray<FStatusAuditSpec> Specs;
+	CollectStatusSpecs(Specs);
+
+	int32 AuditedStatusCount = 0;
+	int32 SerializedDescriptionCount = 0;
+
+	for (const FStatusAuditSpec& Spec : Specs)
+	{
+		UGridStatusEffectDefinitionAsset* Serialized =
+			LoadObject<UGridStatusEffectDefinitionAsset>(nullptr, *Spec.ObjectPath);
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s/%s serialized DA_Status loads for final audit"), OwnerName(Spec.Owner), *Spec.EffectId.ToString()),
+				Serialized))
+		{
+			continue;
+		}
+
+		const FString StableEffectId = Spec.EffectId.ToString();
+		TestEqual(
+			*FString::Printf(TEXT("%s keeps canonical EffectId"), *StableEffectId),
+			Serialized->EffectId,
+			Spec.EffectId);
+		TestTrue(
+			*FString::Printf(TEXT("%s production status remains structurally valid"), *StableEffectId),
+			Serialized->IsValidDefinition());
+		TestFalse(
+			*FString::Printf(TEXT("%s production DisplayName is not the technical EffectId bootstrap"), *StableEffectId),
+			Serialized->DisplayName.ToString() == StableEffectId);
+		TestFalse(
+			*FString::Printf(TEXT("%s production DisplayName is not a technical marker"), *StableEffectId),
+			Serialized->DisplayName.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
+
+		if (!Serialized->Description.IsEmpty())
+		{
+			++SerializedDescriptionCount;
+			TestFalse(
+				*FString::Printf(TEXT("%s production Description is not a technical marker"), *StableEffectId),
+				Serialized->Description.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
+		}
+
+		FGridStatusEffectRuntimeState State;
+		State.EffectId = Spec.EffectId;
+		State.DefinitionAsset = Serialized;
+
+		TestEqual(
+			*FString::Printf(TEXT("%s runtime resolver uses serialized DisplayName"), *StableEffectId),
+			FGridStatusEffectPresentationBuilder::ResolveDisplayName(State).ToString(),
+			Serialized->DisplayName.ToString());
+
+		UGridStatusEffectDefinitionAsset* EmptyNameProbe =
+			DuplicateObject<UGridStatusEffectDefinitionAsset>(Serialized, GetTransientPackage());
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s empty-name fallback probe is created"), *StableEffectId),
+				EmptyNameProbe))
+		{
+			continue;
+		}
+
+		EmptyNameProbe->DisplayName = FText::GetEmpty();
+		State.DefinitionAsset = EmptyNameProbe;
+		TestEqual(
+			*FString::Printf(TEXT("%s empty serialized DisplayName falls back to EffectId"), *StableEffectId),
+			FGridStatusEffectPresentationBuilder::ResolveDisplayName(State).ToString(),
+			StableEffectId);
+
+		State.DefinitionAsset = nullptr;
+		TestEqual(
+			*FString::Printf(TEXT("%s unresolved definition falls back to EffectId"), *StableEffectId),
+			FGridStatusEffectPresentationBuilder::ResolveDisplayName(State).ToString(),
+			StableEffectId);
+
+		++AuditedStatusCount;
+	}
+
+	TestEqual(TEXT("Final ownership audit covers all thirty-two production statuses"), AuditedStatusCount, 32);
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("[UI-RPG-CONTENT-TEXT03.4][SUMMARY] AuditedStatuses=%d SerializedDescriptions=%d"),
+		AuditedStatusCount,
+		SerializedDescriptionCount);
 
 	return true;
 }
