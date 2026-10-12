@@ -15,7 +15,6 @@ class UVerticalBox;
 class UGridTalentDetailLineWidget;
 class UGridTalentVariantBlockWidget;
 class URPGTalentDetailGlyphSet;
-class URPGTalentDetailTextSet;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentAcquireConfirmedSignature, FName, ChoiceId);
 
@@ -191,10 +190,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Detail|Lines", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<URPGTalentDetailGlyphSet> DetailGlyphSet;
-
-	/** Player-facing row vocabulary. No C++ fallback: missing keys resolve to empty text. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RPG|Talents|Detail|Lines", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<URPGTalentDetailTextSet> DetailTextSet;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_AcquireTalent;

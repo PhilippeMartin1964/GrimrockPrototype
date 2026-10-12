@@ -309,15 +309,7 @@ bool UGridSkillsWidget::GetPresentedTalentBranch(
 		return false;
 	}
 
-	if (!View.TalentTree.Branches.IsValidIndex(VisualIndex))
-	{
-		return false;
-	}
-
-	OutBranch = View.TalentTree.Branches[VisualIndex];
-	OutPresentation.TalentBranchId = OutBranch.TalentBranchId;
-	OutPresentation.DisplayName = FText::FromName(OutBranch.TalentBranchId);
-	return true;
+	return false;
 }
 
 const FGridTalentNodeView* UGridSkillsWidget::FindTalentNode(FName TalentNodeId) const
@@ -417,8 +409,7 @@ bool UGridSkillsWidget::CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFe
 			PublishProgressionNotification(Notification);
 			return false;
 		}
-		RequestedDisplayName =
-			RequestedVariant->DisplayName.IsEmpty() ? FText::FromName(ChoiceId) : RequestedVariant->DisplayName;
+		RequestedDisplayName = RequestedVariant->DisplayName;
 	}
 	else if (SelectedNode.SimpleChoiceId != ChoiceId)
 	{
@@ -430,11 +421,6 @@ bool UGridSkillsWidget::CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFe
 		PublishProgressionNotification(Notification);
 		return false;
 	}
-	if (RequestedDisplayName.IsEmpty())
-	{
-		RequestedDisplayName = FText::FromName(ChoiceId);
-	}
-
 	FRPGClassProgressionCommitResult Result;
 	const bool bCommitted = FRPGClassProgressionTransactionService::TryCommitChoices(
 		InventoryComponent, View.CharacterIndex, { ChoiceId }, Result);
@@ -590,14 +576,12 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 			? URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Screen.SelectedCharacterFallback"))
 			: View.CharacterName);
 
-	const FText ClassName =
-		View.ClassDisplayName.IsEmpty() ? FText::FromName(View.ClassId) : View.ClassDisplayName;
 	const FText ClassLevelFormat =
 		URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Screen.ClassLevelFormat"));
 	Text_ClassLevel->SetText(
-		ClassLevelFormat.IsEmpty()
+		ClassLevelFormat.IsEmpty() || View.ClassDisplayName.IsEmpty()
 			? FText::GetEmpty()
-			: FText::Format(ClassLevelFormat, ClassName, FText::AsNumber(View.CharacterLevel)));
+			: FText::Format(ClassLevelFormat, View.ClassDisplayName, FText::AsNumber(View.CharacterLevel)));
 
 	const FText TalentPointsFormat =
 		URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Screen.TalentPointsFormat"));

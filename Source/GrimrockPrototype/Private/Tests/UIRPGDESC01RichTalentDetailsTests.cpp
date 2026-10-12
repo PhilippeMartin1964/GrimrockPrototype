@@ -361,28 +361,14 @@ bool FUIRPGDESC01AcquiredVariantContractTest::RunTest(const FString&)
 	TestFalse(TEXT("Acquired variant node cannot restart acquisition"), Detail->CanRequestVariantAcquisition());
 	TestFalse(TEXT("Acquired variant node cannot enter pending flow"), Detail->BeginVariantSelection());
 
-	URPGTalentDetailTextSet* VariantTextSet = NewObject<URPGTalentDetailTextSet>();
-	for (const TPair<FName, FString>& Entry : {
-		TPair<FName, FString>(TEXT("Talent.Variant.Acquired"), TEXT("ACQUISE")),
-		TPair<FName, FString>(TEXT("Talent.Variant.Pending"), TEXT("CHOIX EN COURS")),
-		TPair<FName, FString>(TEXT("Talent.Variant.Choose"), TEXT("CHOISIR")),
-		TPair<FName, FString>(TEXT("Talent.Variant.Unavailable"), TEXT("INDISPONIBLE"))
-	})
-	{
-		FRPGTalentDetailTextEntry TextEntry;
-		TextEntry.TextId = Entry.Key;
-		TextEntry.Text = FText::FromString(Entry.Value);
-		VariantTextSet->Entries.Add(TextEntry);
-	}
-
 	UGridTalentVariantBlockWidget* AcquiredBlock = NewObject<UGridTalentVariantBlockWidget>();
-	AcquiredBlock->ConfigureDetailRows(nullptr, nullptr, VariantTextSet);
+	AcquiredBlock->ConfigureDetailRows(nullptr, nullptr);
 	TestTrue(TEXT("Acquired block initializes"),
 		AcquiredBlock->InitializeVariant(Node.Variants[1], FText::FromString(TEXT("Glace")), false));
 	TestEqual(TEXT("Acquired block says ACQUISE"), AcquiredBlock->ResolvedChooseLabel.ToString(), FString(TEXT("ACQUISE")));
 
 	UGridTalentVariantBlockWidget* SiblingBlock = NewObject<UGridTalentVariantBlockWidget>();
-	SiblingBlock->ConfigureDetailRows(nullptr, nullptr, VariantTextSet);
+	SiblingBlock->ConfigureDetailRows(nullptr, nullptr);
 	TestTrue(TEXT("Sibling block initializes"),
 		SiblingBlock->InitializeVariant(Node.Variants[0], FText::FromString(TEXT("Feu")), false));
 	TestEqual(TEXT("Sibling block says INDISPONIBLE"), SiblingBlock->ResolvedChooseLabel.ToString(), FString(TEXT("INDISPONIBLE")));
@@ -901,11 +887,11 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	NumericLine.ValueStyle = EGridTalentDetailValueStyle::SignedPercent;
 	TestTrue(TEXT("Signed-percent row initializes from mechanic data"),
 		LineWidget->InitializeLine(NumericLine, nullptr, FText::FromString(TEXT("Bonus")), FText::GetEmpty()));
-	TestEqual(TEXT("Numeric row keeps raw numeric authority"), LineWidget->ResolvedNumericValue, 10);
+	TestEqual(TEXT("Numeric row keeps raw numeric authority"), LineWidget->LineView.NumericValue, 10);
+	TestEqual(TEXT("Numeric row keeps value style in the canonical line view"),
+		LineWidget->LineView.ValueStyle, EGridTalentDetailValueStyle::SignedPercent);
 	TestEqual(TEXT("Signed-percent row renders the complete universal token"),
 		LineWidget->ResolvedValueText.ToString(), FString(TEXT("+10%")));
-	TestFalse(TEXT("UMG does not add a duplicate positive sign"), LineWidget->bShowPositiveSign);
-	TestFalse(TEXT("UMG does not add a duplicate percent unit"), LineWidget->bShowPercentUnit);
 
 	NumericLine.NumericValue = -25;
 	TestTrue(TEXT("Negative signed-percent row reinitializes"),
@@ -1073,20 +1059,7 @@ bool FUIRPGDESC01153VariantBlockPresenterTest::RunTest(const FString&)
 
 	UGridTalentVariantBlockWidget* Block = NewObject<UGridTalentVariantBlockWidget>();
 	URPGTalentDetailGlyphSet* VariantGlyphSet = NewObject<URPGTalentDetailGlyphSet>(Block);
-	URPGTalentDetailTextSet* VariantTextSet = NewObject<URPGTalentDetailTextSet>(Block);
-	for (const TPair<FName, FString>& Entry : {
-		TPair<FName, FString>(TEXT("Talent.Variant.Acquired"), TEXT("ACQUISE")),
-		TPair<FName, FString>(TEXT("Talent.Variant.Pending"), TEXT("CHOIX EN COURS")),
-		TPair<FName, FString>(TEXT("Talent.Variant.Choose"), TEXT("CHOISIR")),
-		TPair<FName, FString>(TEXT("Talent.Variant.Unavailable"), TEXT("INDISPONIBLE"))
-	})
-	{
-		FRPGTalentDetailTextEntry TextEntry;
-		TextEntry.TextId = Entry.Key;
-		TextEntry.Text = FText::FromString(Entry.Value);
-		VariantTextSet->Entries.Add(TextEntry);
-	}
-	Block->ConfigureDetailRows(UGridTalentDetailLineWidget::StaticClass(), VariantGlyphSet, VariantTextSet);
+	Block->ConfigureDetailRows(UGridTalentDetailLineWidget::StaticClass(), VariantGlyphSet);
 	TestTrue(TEXT("Variant block initializes"),
 		Block->InitializeVariant(Variant, FText::FromString(TEXT("Tranchant")), false));
 	TestEqual(TEXT("Short display name is preserved"), Block->ResolvedDisplayName.ToString(), FString(TEXT("Tranchant")));

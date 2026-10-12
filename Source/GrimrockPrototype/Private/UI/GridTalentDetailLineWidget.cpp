@@ -47,10 +47,6 @@ bool UGridTalentDetailLineWidget::InitializeLine(
 
 	LineView = InLine;
 	ResolvedLabelText = InResolvedLabelText;
-	ResolvedNumericValue = InLine.NumericValue;
-	ResolvedValueStyle = InLine.ValueStyle;
-	bShowPositiveSign = false;
-	bShowPercentUnit = false;
 	ResolvedValueText =
 		InLine.bHasNumericValue
 			? ResolveNumericValueText(InLine.NumericValue, InLine.ValueStyle)
@@ -66,10 +62,6 @@ void UGridTalentDetailLineWidget::ClearLine()
 	LineView = FGridTalentDetailLineView();
 	ResolvedLabelText = FText::GetEmpty();
 	ResolvedValueText = FText::GetEmpty();
-	ResolvedNumericValue = 0;
-	ResolvedValueStyle = EGridTalentDetailValueStyle::Text;
-	bShowPositiveSign = false;
-	bShowPercentUnit = false;
 	ResolvedIcon = nullptr;
 	bInitialized = false;
 	ApplyPresentation();

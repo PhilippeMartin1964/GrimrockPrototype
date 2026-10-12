@@ -255,26 +255,6 @@ namespace
 		}
 	}
 
-	FText ConceptualNodeDisplayName(const FGridTalentNodeView& Node)
-	{
-		if (Node.Variants.IsEmpty()) return FText::GetEmpty();
-		FString Label = Node.Variants[0].DisplayName.ToString();
-		if (Node.Variants.Num() > 1)
-		{
-			for (const FString Separator : { FString(TEXT(" — ")), FString(TEXT(" – ")), FString(TEXT(" - ")), FString(TEXT(": ")) })
-			{
-				const int32 SeparatorIndex = Label.Find(Separator, ESearchCase::CaseSensitive);
-				if (SeparatorIndex > 0)
-				{
-					Label = Label.Left(SeparatorIndex);
-					break;
-				}
-			}
-		}
-		Label.TrimStartAndEndInline();
-		return FText::FromString(Label);
-	}
-
 	void CollectUnlockedActions(
 		const URPGClassAsset& ClassDefinition,
 		const FRPGClassProgressionChoiceDefinition& Choice,
@@ -1132,18 +1112,21 @@ namespace
 		{
 			FText OverrideName;
 			FText OverridePrinciple;
-			if (ResolveConceptPresentation(ClassDefinition.ClassId, BranchId, NodeId, OverrideName, OverridePrinciple))
+			if (!ResolveConceptPresentation(
+				ClassDefinition.ClassId, BranchId, NodeId, OverrideName, OverridePrinciple) ||
+				OverrideName.IsEmpty())
 			{
-				OutNode.DisplayName = OverrideName;
-				OutNode.Principle = ResolveStatusReferences(OverridePrinciple);
+				return false;
 			}
-			else
-			{
-				OutNode.DisplayName = ConceptualNodeDisplayName(OutNode);
-			}
+			OutNode.DisplayName = OverrideName;
+			OutNode.Principle = ResolveStatusReferences(OverridePrinciple);
 		}
 		else
 		{
+			if (First->DisplayName.IsEmpty())
+			{
+				return false;
+			}
 			OutNode.DisplayName = First->DisplayName;
 			OutNode.Principle = ResolveStatusReferences(First->Description);
 			OutNode.Effects = OutNode.Variants[0].Effects;
@@ -1225,8 +1208,9 @@ namespace
 					const FChoiceArray* CurrentChoices = NodeGroups->Find(Node.TalentNodeId);
 					const FChoiceArray* PreviousChoices = NodeGroups->Find(Previous.TalentNodeId);
 					if (!CurrentChoices || !PreviousChoices || !NodeDependsOnPrevious(*CurrentChoices, *PreviousChoices)) return false;
+					if (Previous.DisplayName.IsEmpty()) return false;
 					Node.PreviousNodeId = Previous.TalentNodeId;
-					Node.PreviousNodeDisplayName = Previous.DisplayName.IsEmpty() ? ConceptualNodeDisplayName(Previous) : Previous.DisplayName;
+					Node.PreviousNodeDisplayName = Previous.DisplayName;
 				}
 				if (Node.State == EGridTalentNodeState::Acquired) ++Branch.AcquiredNodeCount;
 			}

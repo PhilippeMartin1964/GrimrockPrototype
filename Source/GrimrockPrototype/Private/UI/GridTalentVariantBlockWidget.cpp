@@ -56,9 +56,8 @@ bool UGridTalentVariantBlockWidget::InitializeVariant(
 	ResolvedPrincipleText = InVariant.Principle;
 	bPendingChoice = bInPendingChoice;
 
-	ResolvedChooseLabel = DetailTextSet
-		? DetailTextSet->ResolveText(VariantChooseTextId(InVariant, bPendingChoice))
-		: FText::GetEmpty();
+	ResolvedChooseLabel =
+		URPGTalentDetailTextSet::ResolveProductionText(VariantChooseTextId(InVariant, bPendingChoice));
 	bChooseEnabled = !InVariant.bAcquired && !bPendingChoice && InVariant.bCanChoose;
 
 	bInitialized = true;
@@ -93,12 +92,10 @@ void UGridTalentVariantBlockWidget::ClearVariant()
 
 void UGridTalentVariantBlockWidget::ConfigureDetailRows(
 	TSubclassOf<UGridTalentDetailLineWidget> InDetailLineWidgetClass,
-	URPGTalentDetailGlyphSet* InDetailGlyphSet,
-	URPGTalentDetailTextSet* InDetailTextSet)
+	URPGTalentDetailGlyphSet* InDetailGlyphSet)
 {
 	DetailLineWidgetClass = InDetailLineWidgetClass;
 	DetailGlyphSet = InDetailGlyphSet;
-	DetailTextSet = InDetailTextSet;
 	if (bInitialized)
 	{
 		RebuildDetailLineRows();
@@ -162,10 +159,9 @@ void UGridTalentVariantBlockWidget::PopulateDetailLineRows(
 		}
 
 		UTexture2D* Glyph = DetailGlyphSet ? DetailGlyphSet->ResolveGlyph(Line.Semantic) : nullptr;
-		const FText LabelText =
-			DetailTextSet ? DetailTextSet->ResolveText(Line.LabelTextId) : FText::GetEmpty();
+		const FText LabelText = URPGTalentDetailTextSet::ResolveProductionText(Line.LabelTextId);
 		const FText ValueText = !Line.ValueTextId.IsNone()
-			? (DetailTextSet ? DetailTextSet->ResolveText(Line.ValueTextId) : FText::GetEmpty())
+			? URPGTalentDetailTextSet::ResolveProductionText(Line.ValueTextId)
 			: Line.Value;
 		if (!Row->InitializeLine(Line, Glyph, LabelText, ValueText))
 		{

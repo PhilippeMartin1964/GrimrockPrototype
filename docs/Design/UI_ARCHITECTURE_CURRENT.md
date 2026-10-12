@@ -538,6 +538,33 @@ Références canoniques :
 - `docs/Design/UI_RPG_DESC01_17_FINAL_CLOSURE.md`
 
 
+### UI-RPG-VISUAL01.4 — audit final visual/code/data
+
+État : **implémenté, validation locale requise**.
+
+Le pipeline Talent visuel est désormais audité jusqu'aux Data Assets sérialisés :
+
+~~~text
+DA_Class_*                  -> 6 classes / 18 branches / 90 nœuds
+DA_ClassVisual_*            -> ClassIcon / Banner / Flag / 18 backgrounds / 90 icônes
+DA_RPGTalentDetailGlyphSet  -> 14 glyphes
+DA_RPGTalentDetailTextSet   -> autorité unique du vocabulaire Talent
+~~~
+
+Le cleanup retire les anciens miroirs numériques du row widget, la seconde
+référence configurable de TextSet et les fallbacks de présentation vers les IDs
+techniques. Les nœuds à variantes exigent leur override conceptuel dans
+`DA_RPGTalentPresentation`.
+
+Validation canonique :
+
+~~~powershell
+.\Scripts\ValidateUIRPGVisual.ps1 -EngineRoot D:\UE_5.5
+~~~
+
+Référence :
+`docs/Design/UI_RPG_VISUAL01_4_FINAL_AUDIT.md`.
+
 ### UI-RPG-CODE-AUDIT01 — nettoyage des compatibilités Skills/Talents
 
 État : **VALIDÉ / CLOS — 9 octobre 2026**.

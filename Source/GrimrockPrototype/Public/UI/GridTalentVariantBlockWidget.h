@@ -11,7 +11,6 @@ class UTexture2D;
 class UVerticalBox;
 class UGridTalentDetailLineWidget;
 class URPGTalentDetailGlyphSet;
-class URPGTalentDetailTextSet;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridTalentVariantChooseRequestedSignature, FName, ChoiceId);
 
@@ -61,8 +60,7 @@ public:
 	/** Shares the parent detail row class/glyph authority; no gameplay data is resolved here. */
 	void ConfigureDetailRows(
 		TSubclassOf<UGridTalentDetailLineWidget> InDetailLineWidgetClass,
-		URPGTalentDetailGlyphSet* InDetailGlyphSet,
-		URPGTalentDetailTextSet* InDetailTextSet);
+		URPGTalentDetailGlyphSet* InDetailGlyphSet);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -101,9 +99,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<URPGTalentDetailGlyphSet> DetailGlyphSet;
-
-	UPROPERTY(Transient)
-	TObjectPtr<URPGTalentDetailTextSet> DetailTextSet;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_ChooseVariant;

@@ -1,17 +1,17 @@
 # Référence des scripts PowerShell du prototype
 
-Audit initial du **21 septembre 2026**, mis à jour le **9 octobre 2026** après TOOLCHAIN01. Référence de comportement des scripts : `bfd4e1d779aa99db2338b9a6d1572ab3ed2a78a5`. Cette référence décrit les fichiers versionnés dans `Scripts/`, correspondant à `D:\Development\GrimrockPrototype\Scripts` après synchronisation du dépôt. Les éventuels scripts locaux non versionnés ne font pas partie de cet audit.
+Audit initial du **21 septembre 2026**, mis à jour le **12 octobre 2026** pour UI-RPG-VISUAL01.4. Cette référence décrit les fichiers versionnés dans `Scripts/`, correspondant à `D:\Development\GrimrockPrototype\Scripts` après synchronisation du dépôt. Les éventuels scripts locaux non versionnés ne font pas partie de cet audit.
 
 ## Résultat de l’audit documentaire
 
-Il existait des explications utiles, mais **pas de référence complète et centralisée des six scripts**. Les guides TD04.2, TD04.3, TD07.1, STYLE01 et MIG08 documentaient leurs jalons respectifs. Il manquait notamment un inventaire actuel, des tableaux exhaustifs des paramètres, un dépannage commun et une distinction explicite entre outils courants et migration historique.
+Il existait des explications utiles, mais **pas de référence complète et centralisée des scripts de développement**. Les guides TD04.2, TD04.3, TD07.1, STYLE01 et MIG08 documentaient leurs jalons respectifs. Il manquait notamment un inventaire actuel, des tableaux exhaustifs des paramètres, un dépannage commun et une distinction explicite entre outils courants et migration historique.
 
-L’audit a lu intégralement les six `.ps1` et vérifié leurs références dans `Source/` et la documentation. Il révèle deux limites à connaître :
+L’audit initial a lu les scripts de base et cette référence est ensuite maintenue avec les lanceurs versionnés ajoutés au projet. Il révèle deux limites à connaître :
 
 - `MigrateWorldObjectAssets.ps1` existe encore, mais le commandlet `GridWorldObjectMIG08` qu’il appelle n’existe plus dans le code source courant. Ce lanceur ne constitue donc pas une procédure utilisable sur un build propre de cette révision.
 - Certains codes d’échec annoncés dans les anciens guides ne sont pas garantis : plusieurs branches appellent `Write-Error` avec `$ErrorActionPreference = 'Stop'` avant leur instruction `exit`. Voir [résultats et codes de sortie](#resultats-et-codes-de-sortie).
 
-Cette mise à jour porte uniquement sur la documentation. Elle ne réactive pas la migration et ne change pas le comportement des scripts.
+La mise à jour UI-RPG-VISUAL01.4 documente également `ValidateUIRPGVisual.ps1`, qui orchestre des validations existantes sans réenregistrer les Data Assets.
 
 ## Sommaire
 
@@ -19,6 +19,7 @@ Cette mise à jour porte uniquement sur la documentation. Elle ne réactive pas 
 - [Préparer PowerShell et les chemins](#preparer-powershell-et-les-chemins)
 - [CheckProjectDependencies.ps1](#checkprojectdependenciesps1)
 - [ValidateUE.ps1](#validateueps1)
+- [ValidateUIRPGVisual.ps1](#validateuirpgvisualps1)
 - [ValidatePackage.ps1](#validatepackageps1)
 - [CheckCppFormat.ps1 et FormatCpp.ps1](#checkcppformatps1-et-formatcppps1)
 - [MigrateWorldObjectAssets.ps1](#migrateworldobjectassetsps1)
@@ -34,6 +35,7 @@ Cette mise à jour porte uniquement sur la documentation. Elle ne réactive pas 
 | --- | --- | --- |
 | `CheckProjectDependencies.ps1` | Vérifier la présence des plugins déclarés dans le `.uproject` | Lecture seule ; n’installe aucun plugin |
 | `ValidateUE.ps1` | Compiler `GrimrockPrototypeEditor` en Win64 Development, puis exécuter un filtre Automation | Produits de compilation et rapports ; les effets propres aux tests sélectionnés dépendent de ces tests |
+| `ValidateUIRPGVisual.ps1` | Valider la chaîne UI-RPG-VISUAL01.4, les Data Assets sérialisés et les WBP Talent | Lecture/compilation/tests uniquement ; ne réenregistre aucun `.uasset` |
 | `ValidatePackage.ps1` | Produire le jeu Win64, en Shipping par défaut | Produits de build/cook/stage et archive complète du jeu |
 | `CheckCppFormat.ps1` | Contrôler la conformité à `.clang-format` | Lecture seule des sources |
 | `FormatCpp.ps1` | Appliquer `.clang-format` | Réécriture en place de tous les fichiers C++ admissibles, pas seulement des fichiers modifiés dans Git |
@@ -165,6 +167,39 @@ Un `index.json` absent provoque un échec et un résumé de secours. Un rapport 
 Le nombre exécuté est `Succeeded + Succeeded with warnings + Failed`. Le succès exige un rapport lisible, au moins un test exécuté, `Failed = 0` et un code du processus Unreal égal à `0`. Ainsi, un succès du script peut coexister avec `Not run > 0` : pour une validation complète de la sélection, vérifier aussi ce compteur. Les avertissements doivent être examinés, même s’ils sont attendus dans certains tests négatifs.
 
 Le résumé extrait certaines lignes `LogAutomationController` en cas d’échec ou de succès avec avertissements. Il ne remplace pas le journal complet pour diagnostiquer un crash ou une erreur hors Automation.
+
+<a id="validateuirpgvisualps1"></a>
+## ValidateUIRPGVisual.ps1
+
+**But :** exécuter la validation de clôture `UI-RPG-VISUAL01.4` avec une seule commande. Le script délègue à `ValidateUE.ps1` et ne modifie aucun Data Asset.
+
+| Paramètre | Type | Défaut | Explication |
+| --- | --- | --- | --- |
+| `-EngineRoot` | chaîne | `$env:UE_ROOT` | Racine UE transmise à chaque appel de `ValidateUE.ps1` |
+
+~~~powershell
+.\Scripts\ValidateUIRPGVisual.ps1 -EngineRoot 'D:\UE_5.5'
+~~~
+
+La première étape compile l'Editor puis lance `Grimrock.UI.RPG.VISUAL01.FinalAudit`. Les étapes suivantes réutilisent ce build avec `-SkipBuild` :
+
+~~~text
+Grimrock.UI.RPG01.ProductionAssets
+Grimrock.UI.RPG02.ProductionPresentation
+Grimrock.UI.RPG03.NodeBinding
+Grimrock.UI.RPG.CODEAUDIT01.BlueprintCompatibility
+Grimrock.UI.RPG.DESC01
+~~~
+
+`FinalAudit` charge directement les `.uasset` de production : les six
+`DA_Class_*`, les six `DA_ClassVisual_*` et
+`DA_RPGTalentDetailGlyphSet`. Il contrôle la couverture exacte **6 classes /
+18 branches / 90 Talents**, les références visuelles, la présence des textes
+authorés nécessaires dans les classes et l'absence des propriétés de migration
+supprimées.
+
+Il s'agit d'une validation du **contenu sérialisé réel chargé par Unreal**, et
+non d'un parsing du binaire `.uasset` depuis PowerShell.
 
 <a id="validatepackageps1"></a>
 ## ValidatePackage.ps1

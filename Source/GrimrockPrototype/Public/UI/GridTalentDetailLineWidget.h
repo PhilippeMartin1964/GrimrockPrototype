@@ -26,23 +26,6 @@ public:
 	FText ResolvedValueText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")
-	int32 ResolvedNumericValue = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")
-	EGridTalentDetailValueStyle ResolvedValueStyle = EGridTalentDetailValueStyle::Text;
-
-	/**
-	 * Kept false so existing Blueprint bindings cannot duplicate the sign now embedded in ResolvedValueText.
-	 * Remove the corresponding optional UMG fragments when the Blueprint is next cleaned up.
-	 */
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")
-	bool bShowPositiveSign = false;
-
-	/** Same migration guard for the '%' fragment; ResolvedValueText already contains the full numeric token. */
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")
-	bool bShowPercentUnit = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")
 	TObjectPtr<UTexture2D> ResolvedIcon;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")

@@ -24,18 +24,26 @@ bool FUIRPGCODEAUDIT01BlueprintCompatibilityTest::RunTest(const FString&)
 		TEXT("Legacy flat Talents property is absent from FGridSkillsPageView"),
 		FGridSkillsPageView::StaticStruct()->FindPropertyByName(TEXT("Talents")));
 
-	UBlueprint* SkillsBlueprint = LoadObject<UBlueprint>(
-		nullptr,
-		TEXT("/Game/GrimrockPrototype/Blueprints/UI/InGameMenu/WBP_GridSkills.WBP_GridSkills"));
-	if (!TestNotNull(TEXT("Production WBP_GridSkills loads"), SkillsBlueprint))
-	{
-		return false;
-	}
+	const TCHAR* BlueprintPaths[] = {
+		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills"),
+		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail"),
+		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetailLine.WBP_RPGTalentDetailLine"),
+		TEXT("/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentVariantBlock.WBP_RPGTalentVariantBlock")
+	};
 
-	FKismetEditorUtilities::CompileBlueprint(SkillsBlueprint);
-	TestTrue(
-		TEXT("Production WBP_GridSkills recompiles without references to removed compatibility symbols"),
-		SkillsBlueprint->Status != BS_Error);
+	for (const TCHAR* BlueprintPath : BlueprintPaths)
+	{
+		UBlueprint* Blueprint = LoadObject<UBlueprint>(nullptr, BlueprintPath);
+		if (!TestNotNull(*FString::Printf(TEXT("%s loads"), BlueprintPath), Blueprint))
+		{
+			continue;
+		}
+
+		FKismetEditorUtilities::CompileBlueprint(Blueprint);
+		TestTrue(
+			*FString::Printf(TEXT("%s recompiles after Talent presentation cleanup"), BlueprintPath),
+			Blueprint->Status != BS_Error);
+	}
 	return true;
 }
 

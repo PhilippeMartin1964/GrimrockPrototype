@@ -399,7 +399,7 @@ void UGridTalentDetailWidget::RebuildVariantBlocks()
 			CreateWidget<UGridTalentVariantBlockWidget>(GetWorld(), VariantBlockWidgetClass);
 		if (!Block) continue;
 
-		Block->ConfigureDetailRows(DetailLineWidgetClass, DetailGlyphSet, DetailTextSet);
+		Block->ConfigureDetailRows(DetailLineWidgetClass, DetailGlyphSet);
 
 		const bool bPending = bVariantSelectionPending && Variant.ChoiceId == SelectedVariantChoiceId;
 		if (!Block->InitializeVariant(Variant, MakeVariantDisplayLabel(Variant), bPending)) continue;
@@ -440,10 +440,9 @@ void UGridTalentDetailWidget::PopulateDetailLineRows(
 		}
 
 		UTexture2D* Glyph = DetailGlyphSet ? DetailGlyphSet->ResolveGlyph(Line.Semantic) : nullptr;
-		const FText LabelText =
-			DetailTextSet ? DetailTextSet->ResolveText(Line.LabelTextId) : FText::GetEmpty();
+		const FText LabelText = URPGTalentDetailTextSet::ResolveProductionText(Line.LabelTextId);
 		const FText ValueText = !Line.ValueTextId.IsNone()
-			? (DetailTextSet ? DetailTextSet->ResolveText(Line.ValueTextId) : FText::GetEmpty())
+			? URPGTalentDetailTextSet::ResolveProductionText(Line.ValueTextId)
 			: Line.Value;
 		if (!Row->InitializeLine(Line, Glyph, LabelText, ValueText))
 		{
@@ -568,7 +567,12 @@ void UGridTalentDetailWidget::RebuildDetailLineRows()
 
 FText UGridTalentDetailWidget::MakeVariantDisplayLabel(const FGridTalentVariantView& Variant) const
 {
-	FString Label = Variant.DisplayName.IsEmpty() ? Variant.ChoiceId.ToString() : Variant.DisplayName.ToString();
+	if (Variant.DisplayName.IsEmpty())
+	{
+		return FText::GetEmpty();
+	}
+
+	FString Label = Variant.DisplayName.ToString();
 	const FString Conceptual = ResolvedDisplayName.ToString();
 
 	if (!Conceptual.IsEmpty())
@@ -595,12 +599,8 @@ FText UGridTalentDetailWidget::MakeVariantDisplayLabel(const FGridTalentVariantV
 
 void UGridTalentDetailWidget::RefreshCanonicalSections()
 {
-	ResolvedTypeText = DetailTextSet
-		? DetailTextSet->ResolveText(TalentTypeTextId(NodeView.Type))
-		: FText::GetEmpty();
-	ResolvedStatusText = DetailTextSet
-		? DetailTextSet->ResolveText(TalentStatusTextId(NodeView.State))
-		: FText::GetEmpty();
+	ResolvedTypeText = URPGTalentDetailTextSet::ResolveProductionText(TalentTypeTextId(NodeView.Type));
+	ResolvedStatusText = URPGTalentDetailTextSet::ResolveProductionText(TalentStatusTextId(NodeView.State));
 	ResolvedPrincipleText = NodeView.Principle;
 }
 
@@ -690,9 +690,8 @@ void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 		FText Prompt = FText::GetEmpty();
 		if (bAcquireConfirmationPending)
 		{
-			const FText Template = DetailTextSet
-				? DetailTextSet->ResolveText(TEXT("Talent.Acquisition.Prompt.ConfirmTalent"))
-				: FText::GetEmpty();
+			const FText Template = URPGTalentDetailTextSet::ResolveProductionText(
+				TEXT("Talent.Acquisition.Prompt.ConfirmTalent"));
 			if (!Template.IsEmpty())
 			{
 				Prompt = FText::Format(Template, ResolvedDisplayName);
@@ -704,9 +703,8 @@ void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 			if (!SelectedVariantChoiceId.IsNone() &&
 				GetVariantDisplayLabel(SelectedVariantChoiceId, SelectedLabel))
 			{
-				const FText Template = DetailTextSet
-					? DetailTextSet->ResolveText(TEXT("Talent.Acquisition.Prompt.ConfirmVariant"))
-					: FText::GetEmpty();
+				const FText Template = URPGTalentDetailTextSet::ResolveProductionText(
+					TEXT("Talent.Acquisition.Prompt.ConfirmVariant"));
 				if (!Template.IsEmpty())
 				{
 					Prompt = FText::Format(Template, SelectedLabel, ResolvedDisplayName);
@@ -714,9 +712,8 @@ void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 			}
 			else
 			{
-				const FText Template = DetailTextSet
-					? DetailTextSet->ResolveText(TEXT("Talent.Acquisition.Prompt.ChooseVariant"))
-					: FText::GetEmpty();
+				const FText Template = URPGTalentDetailTextSet::ResolveProductionText(
+					TEXT("Talent.Acquisition.Prompt.ChooseVariant"));
 				if (!Template.IsEmpty())
 				{
 					Prompt = FText::Format(Template, ResolvedDisplayName);
