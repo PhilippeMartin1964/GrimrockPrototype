@@ -483,7 +483,7 @@ namespace
 
 	void AddDetailLine(
 		TArray<FGridTalentDetailLineView>& Lines,
-		const TCHAR* Label,
+		FName LabelTextId,
 		const FString& Value,
 		EGridTalentDetailLineSemantic Semantic = EGridTalentDetailLineSemantic::None)
 	{
@@ -493,7 +493,7 @@ namespace
 		}
 		FGridTalentDetailLineView Line;
 		Line.Semantic = Semantic;
-		Line.Label = FText::FromString(Label);
+		Line.LabelTextId = LabelTextId;
 		Line.Value = FText::FromString(Value);
 		Lines.Add(MoveTemp(Line));
 	}
@@ -645,32 +645,32 @@ namespace
 			const FGridCombatActionDefinition& Action = *ActionPtr;
 			if (Actions.Num() > 1 && !Action.DisplayName.IsEmpty())
 			{
-				AddDetailLine(Out, TEXT("Action"), Action.DisplayName.ToString(), EGridTalentDetailLineSemantic::Action);
+				AddDetailLine(Out, TEXT("Talent.Detail.Action"), Action.DisplayName.ToString(), EGridTalentDetailLineSemantic::Action);
 			}
 			if (Action.ActionPointCost > 0)
-				AddDetailLine(Out, TEXT("Coût"), Plural(Action.ActionPointCost, TEXT("point d'action"), TEXT("points d'action")), EGridTalentDetailLineSemantic::ActionPointCost);
+				AddDetailLine(Out, TEXT("Talent.Detail.ActionPointCost"), Plural(Action.ActionPointCost, TEXT("point d'action"), TEXT("points d'action")), EGridTalentDetailLineSemantic::ActionPointCost);
 			if (Action.ResourceCosts.ManaCost > 0)
-				AddDetailLine(Out, TEXT("Mana"), FString::FromInt(Action.ResourceCosts.ManaCost), EGridTalentDetailLineSemantic::ManaCost);
+				AddDetailLine(Out, TEXT("Talent.Detail.ManaCost"), FString::FromInt(Action.ResourceCosts.ManaCost), EGridTalentDetailLineSemantic::ManaCost);
 			if (Action.ResourceCosts.SourceItemQuantityCost > 0)
-				AddDetailLine(Out, TEXT("Objet consommé"), Plural(Action.ResourceCosts.SourceItemQuantityCost, TEXT("objet"), TEXT("objets")), EGridTalentDetailLineSemantic::ItemCost);
+				AddDetailLine(Out, TEXT("Talent.Detail.ItemCost"), Plural(Action.ResourceCosts.SourceItemQuantityCost, TEXT("objet"), TEXT("objets")), EGridTalentDetailLineSemantic::ItemCost);
 			const FText TargetSummary = TargetingSummary(Action.TargetingPolicy);
 			if (!TargetSummary.IsEmpty())
-				AddDetailLine(Out, TEXT("Cible"), TargetSummary.ToString(), EGridTalentDetailLineSemantic::Target);
+				AddDetailLine(Out, TEXT("Talent.Detail.Target"), TargetSummary.ToString(), EGridTalentDetailLineSemantic::Target);
 			if (Action.RangeCells > 0)
-				AddDetailLine(Out, TEXT("Portée"), Plural(Action.RangeCells, TEXT("case"), TEXT("cases")), EGridTalentDetailLineSemantic::Range);
+				AddDetailLine(Out, TEXT("Talent.Detail.Range"), Plural(Action.RangeCells, TEXT("case"), TEXT("cases")), EGridTalentDetailLineSemantic::Range);
 			if (Action.AreaRadiusCells > 0)
-				AddDetailLine(Out, TEXT("Zone"), FString::Printf(TEXT("rayon %s"), *Plural(Action.AreaRadiusCells, TEXT("case"), TEXT("cases"))), EGridTalentDetailLineSemantic::Area);
+				AddDetailLine(Out, TEXT("Talent.Detail.Area"), FString::Printf(TEXT("rayon %s"), *Plural(Action.AreaRadiusCells, TEXT("case"), TEXT("cases"))), EGridTalentDetailLineSemantic::Area);
 			if (Action.bRequiresLineOfSight)
-				AddDetailLine(Out, TEXT("Ligne de vue"), TEXT("requise"), EGridTalentDetailLineSemantic::LineOfSight);
+				AddDetailLine(Out, TEXT("Talent.Detail.LineOfSight"), TEXT("requise"), EGridTalentDetailLineSemantic::LineOfSight);
 			if (Action.ResolutionCount > 1)
 			{
 				FString Value = Plural(Action.ResolutionCount, TEXT("résolution"), TEXT("résolutions"));
 				if (Action.SubsequentResolutionAccuracyModifier != 0)
 					Value += FString::Printf(TEXT(" ; Précision %+d à partir de la 2e"), Action.SubsequentResolutionAccuracyModifier);
-				AddDetailLine(Out, TEXT("Résolutions"), Value, EGridTalentDetailLineSemantic::ResolutionCount);
+				AddDetailLine(Out, TEXT("Talent.Detail.ResolutionCount"), Value, EGridTalentDetailLineSemantic::ResolutionCount);
 			}
 			if (Action.CooldownRounds > 0)
-				AddDetailLine(Out, TEXT("Recharge"), Plural(Action.CooldownRounds, TEXT("round"), TEXT("rounds")), EGridTalentDetailLineSemantic::Cooldown);
+				AddDetailLine(Out, TEXT("Talent.Detail.Cooldown"), Plural(Action.CooldownRounds, TEXT("round"), TEXT("rounds")), EGridTalentDetailLineSemantic::Cooldown);
 		}
 	}
 
@@ -732,18 +732,18 @@ namespace
 			return;
 		}
 
-		FString Label = TEXT("Statut");
+		FName LabelTextId = TEXT("Talent.Detail.Status");
 		if (Profile.ArmorGate == EGridCombatStatusArmorGate::PhysicalArmorDepleted)
 		{
-			Label = TEXT("Si l'armure physique est épuisée après les dégâts");
+			LabelTextId = TEXT("Talent.Detail.Status.PhysicalArmorDepleted");
 		}
 		else if (Profile.ArmorGate == EGridCombatStatusArmorGate::MagicalArmorDepleted)
 		{
-			Label = TEXT("Si l'armure magique est épuisée après les dégâts");
+			LabelTextId = TEXT("Talent.Detail.Status.MagicalArmorDepleted");
 		}
 		else if (Profile.Trigger == EGridCombatStatusApplicationTrigger::AfterSuccessfulHit)
 		{
-			Label = TEXT("Après un coup réussi");
+			LabelTextId = TEXT("Talent.Detail.Status.AfterSuccessfulHit");
 		}
 
 		FString Value = Definition->DisplayName.ToString();
@@ -760,7 +760,7 @@ namespace
 		{
 			Value += TEXT(" — ") + Definition->Description.ToString();
 		}
-		AddDetailLine(Out, *Label, Value);
+		AddDetailLine(Out, LabelTextId, Value);
 	}
 
 	void BuildStructuredEffects(
@@ -776,7 +776,7 @@ namespace
 		{
 			Line.RemoveFromStart(TEXT("• "));
 			Line.TrimStartAndEndInline();
-			AddDetailLine(Out, TEXT(""), Line);
+			AddDetailLine(Out, NAME_None, Line);
 		}
 
 		TArray<const FGridCombatActionDefinition*> Actions;
@@ -790,7 +790,7 @@ namespace
 			}
 			if (ActionPtr->bAffectsAlliesInArea)
 			{
-				AddDetailLine(Out, TEXT("Zone"), TEXT("peut également affecter les alliés"));
+				AddDetailLine(Out, TEXT("Talent.Detail.Area"), TEXT("peut également affecter les alliés"));
 			}
 		}
 	}

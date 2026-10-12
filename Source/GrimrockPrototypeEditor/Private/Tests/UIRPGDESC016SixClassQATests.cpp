@@ -167,10 +167,6 @@ namespace UIRPGDESC016QA
 		{
 			ValidatePlayerFacingText(
 				Test,
-				FString::Printf(TEXT("%s line %d label"), *Context, Index),
-				Lines[Index].Label);
-			ValidatePlayerFacingText(
-				Test,
 				FString::Printf(TEXT("%s line %d value"), *Context, Index),
 				Lines[Index].Value);
 		}

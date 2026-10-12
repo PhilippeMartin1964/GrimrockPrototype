@@ -6,6 +6,7 @@
 #include "Engine/World.h"
 #include "UI/GridTalentDetailLineWidget.h"
 #include "UI/RPGTalentDetailGlyphSet.h"
+#include "UI/RPGTalentDetailTextSet.h"
 
 void UGridTalentVariantBlockWidget::NativeConstruct()
 {
@@ -97,10 +98,12 @@ void UGridTalentVariantBlockWidget::ClearVariant()
 
 void UGridTalentVariantBlockWidget::ConfigureDetailRows(
 	TSubclassOf<UGridTalentDetailLineWidget> InDetailLineWidgetClass,
-	URPGTalentDetailGlyphSet* InDetailGlyphSet)
+	URPGTalentDetailGlyphSet* InDetailGlyphSet,
+	URPGTalentDetailTextSet* InDetailTextSet)
 {
 	DetailLineWidgetClass = InDetailLineWidgetClass;
 	DetailGlyphSet = InDetailGlyphSet;
+	DetailTextSet = InDetailTextSet;
 	if (bInitialized)
 	{
 		RebuildDetailLineRows();
@@ -164,7 +167,9 @@ void UGridTalentVariantBlockWidget::PopulateDetailLineRows(
 		}
 
 		UTexture2D* Glyph = DetailGlyphSet ? DetailGlyphSet->ResolveGlyph(Line.Semantic) : nullptr;
-		if (!Row->InitializeLine(Line, Glyph))
+		const FText LabelText =
+			DetailTextSet ? DetailTextSet->ResolveText(Line.LabelTextId) : FText::GetEmpty();
+		if (!Row->InitializeLine(Line, Glyph, LabelText))
 		{
 			continue;
 		}

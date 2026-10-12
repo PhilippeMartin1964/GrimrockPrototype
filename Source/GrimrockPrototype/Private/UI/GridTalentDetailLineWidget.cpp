@@ -12,7 +12,8 @@ void UGridTalentDetailLineWidget::NativeConstruct()
 
 bool UGridTalentDetailLineWidget::InitializeLine(
 	const FGridTalentDetailLineView& InLine,
-	UTexture2D* InIcon)
+	UTexture2D* InIcon,
+	const FText& InResolvedLabelText)
 {
 	ClearLine();
 
@@ -22,7 +23,7 @@ bool UGridTalentDetailLineWidget::InitializeLine(
 	}
 
 	LineView = InLine;
-	ResolvedLabelText = InLine.Label;
+	ResolvedLabelText = InResolvedLabelText;
 	ResolvedValueText = InLine.Value;
 	ResolvedIcon = InIcon;
 	bInitialized = true;

@@ -32,7 +32,10 @@ public:
 	bool bInitialized = false;
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Detail|Line")
-	bool InitializeLine(const FGridTalentDetailLineView& InLine, UTexture2D* InIcon);
+	bool InitializeLine(
+		const FGridTalentDetailLineView& InLine,
+		UTexture2D* InIcon,
+		const FText& InResolvedLabelText);
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Detail|Line")
 	void ClearLine();

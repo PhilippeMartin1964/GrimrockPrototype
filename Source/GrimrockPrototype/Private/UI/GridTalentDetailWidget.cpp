@@ -9,6 +9,7 @@
 #include "UI/GridTalentDetailLineWidget.h"
 #include "UI/GridTalentVariantBlockWidget.h"
 #include "UI/RPGTalentDetailGlyphSet.h"
+#include "UI/RPGTalentDetailTextSet.h"
 
 void UGridTalentDetailWidget::NativeConstruct()
 {
@@ -368,7 +369,7 @@ void UGridTalentDetailWidget::RebuildVariantBlocks()
 			CreateWidget<UGridTalentVariantBlockWidget>(GetWorld(), VariantBlockWidgetClass);
 		if (!Block) continue;
 
-		Block->ConfigureDetailRows(DetailLineWidgetClass, DetailGlyphSet);
+		Block->ConfigureDetailRows(DetailLineWidgetClass, DetailGlyphSet, DetailTextSet);
 
 		const bool bPending = bVariantSelectionPending && Variant.ChoiceId == SelectedVariantChoiceId;
 		if (!Block->InitializeVariant(Variant, MakeVariantDisplayLabel(Variant), bPending)) continue;
@@ -409,7 +410,9 @@ void UGridTalentDetailWidget::PopulateDetailLineRows(
 		}
 
 		UTexture2D* Glyph = DetailGlyphSet ? DetailGlyphSet->ResolveGlyph(Line.Semantic) : nullptr;
-		if (!Row->InitializeLine(Line, Glyph))
+		const FText LabelText =
+			DetailTextSet ? DetailTextSet->ResolveText(Line.LabelTextId) : FText::GetEmpty();
+		if (!Row->InitializeLine(Line, Glyph, LabelText))
 		{
 			continue;
 		}
@@ -429,7 +432,7 @@ void UGridTalentDetailWidget::BuildAcquisitionLines(
 
 	auto AddLine = [&OutLines](
 		EGridTalentDetailLineSemantic Semantic,
-		const FText& Label,
+		FName LabelTextId,
 		const FText& Value)
 	{
 		if (Value.IsEmpty())
@@ -438,19 +441,19 @@ void UGridTalentDetailWidget::BuildAcquisitionLines(
 		}
 		FGridTalentDetailLineView Line;
 		Line.Semantic = Semantic;
-		Line.Label = Label;
+		Line.LabelTextId = LabelTextId;
 		Line.Value = Value;
 		OutLines.Add(MoveTemp(Line));
 	};
 
 	AddLine(
 		EGridTalentDetailLineSemantic::LevelRequirement,
-		NSLOCTEXT("GridTalentDetail", "LevelRequirementLabel", "Niveau requis"),
+		TEXT("Talent.Detail.LevelRequirement"),
 		FText::AsNumber(NodeView.Acquisition.MinimumLevel));
 
 	AddLine(
 		EGridTalentDetailLineSemantic::TalentPointCost,
-		NSLOCTEXT("GridTalentDetail", "TalentPointCostLabel", "Coût"),
+		TEXT("Talent.Detail.TalentPointCost"),
 		FText::FromString(FString::Printf(
 			TEXT("%d point%s de Talent"),
 			NodeView.Acquisition.PointCost,
@@ -470,7 +473,7 @@ void UGridTalentDetailWidget::BuildAcquisitionLines(
 		{
 			AddLine(
 				EGridTalentDetailLineSemantic::Prerequisite,
-				NSLOCTEXT("GridTalentDetail", "PrerequisiteLabel", "Prérequis"),
+				TEXT("Talent.Detail.Prerequisite"),
 				FText::FromString(FString::Join(Names, TEXT(", "))));
 		}
 	}
@@ -479,7 +482,7 @@ void UGridTalentDetailWidget::BuildAcquisitionLines(
 	{
 		AddLine(
 			EGridTalentDetailLineSemantic::Exclusivity,
-			FText::GetEmpty(),
+			NAME_None,
 			NodeView.Acquisition.ExclusivityText);
 	}
 
@@ -497,7 +500,7 @@ void UGridTalentDetailWidget::BuildAcquisitionLines(
 		{
 			AddLine(
 				EGridTalentDetailLineSemantic::Recipe,
-				FText::FromString(Recipes.Num() > 1 ? TEXT("Recettes") : TEXT("Recette")),
+				Recipes.Num() > 1 ? TEXT("Talent.Detail.Recipes") : TEXT("Talent.Detail.Recipe"),
 				FText::FromString(FString::Join(Recipes, TEXT(", "))));
 		}
 	}

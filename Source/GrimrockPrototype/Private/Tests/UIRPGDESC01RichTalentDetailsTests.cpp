@@ -11,6 +11,7 @@
 #include "UI/GridTalentDetailWidget.h"
 #include "UI/GridTalentVariantBlockWidget.h"
 #include "UI/RPGTalentDetailGlyphSet.h"
+#include "UI/RPGTalentDetailTextSet.h"
 #include "Engine/Texture2D.h"
 #include "UObject/UnrealType.h"
 
@@ -153,7 +154,7 @@ namespace UIRPGDESC01Tests
 		TArray<FString> Values;
 		for (const FGridTalentDetailLineView& Line : Lines)
 		{
-			Values.Add(Line.Label.ToString() + TEXT(" : ") + Line.Value.ToString());
+			Values.Add(Line.LabelTextId.ToString() + TEXT(" : ") + Line.Value.ToString());
 		}
 		return FString::Join(Values, TEXT("\n"));
 	}
@@ -191,12 +192,20 @@ bool FUIRPGDESC01ActionProjectionTest::RunTest(const FString&)
 	TestEqual(TEXT("Talent TYPE label is canonical"), Node.TypeText.ToString(), FString(TEXT("ACTIF")));
 
 	const FString Effects = JoinDetailLines(Node.Effects);
-	const FString Usage = JoinDetailLines(Node.Usage);
+	const auto UsageValue = [&Node](EGridTalentDetailLineSemantic Semantic)
+	{
+		const FGridTalentDetailLineView* Found = Node.Usage.FindByPredicate(
+			[Semantic](const FGridTalentDetailLineView& Line)
+			{
+				return Line.Semantic == Semantic;
+			});
+		return Found ? Found->Value.ToString() : FString();
+	};
 	TestFalse(TEXT("Generic EFFETS rows do not repeat the section name"),
 		Node.Effects.ContainsByPredicate(
 			[](const FGridTalentDetailLineView& Line)
 			{
-				return Line.Label.ToString().Equals(TEXT("Effet"), ESearchCase::CaseSensitive);
+				return Line.LabelTextId == TEXT("Talent.Detail.Effect");
 			}));
 	const auto HasUsageSemantic = [&Node](EGridTalentDetailLineSemantic Semantic)
 	{
@@ -207,9 +216,9 @@ bool FUIRPGDESC01ActionProjectionTest::RunTest(const FString&)
 			});
 	};
 	TestTrue(TEXT("Passive mechanics are projected into EFFETS"), Effects.Contains(TEXT("Précision : +2")));
-	TestTrue(TEXT("AP cost is projected into UTILISATION"), Usage.Contains(TEXT("Coût : 2 points d'action")));
-	TestTrue(TEXT("Mana cost is projected into UTILISATION"), Usage.Contains(TEXT("Mana : 3")));
-	TestTrue(TEXT("Cooldown is projected into UTILISATION"), Usage.Contains(TEXT("Recharge : 2 rounds")));
+	TestEqual(TEXT("AP cost is projected into UTILISATION"), UsageValue(EGridTalentDetailLineSemantic::ActionPointCost), FString(TEXT("2 points d'action")));
+	TestEqual(TEXT("Mana cost is projected into UTILISATION"), UsageValue(EGridTalentDetailLineSemantic::ManaCost), FString(TEXT("3")));
+	TestEqual(TEXT("Cooldown is projected into UTILISATION"), UsageValue(EGridTalentDetailLineSemantic::Cooldown), FString(TEXT("2 rounds")));
 	TestTrue(TEXT("AP cost carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::ActionPointCost));
 	TestTrue(TEXT("Target carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::Target));
 	TestTrue(TEXT("Mana carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::ManaCost));
@@ -242,11 +251,11 @@ bool FUIRPGDESC01CanonicalSimpleDetailTest::RunTest(const FString&)
 	Node.Acquisition.PointCost = 1;
 
 	FGridTalentDetailLineView Effect;
-	Effect.Label = FText::FromString(TEXT("Précision"));
+	Effect.LabelTextId = TEXT("Test.Effect.Accuracy");
 	Effect.Value = FText::FromString(TEXT("+2"));
 	Node.Effects.Add(Effect);
 	FGridTalentDetailLineView Usage;
-	Usage.Label = FText::FromString(TEXT("Recharge"));
+	Usage.LabelTextId = TEXT("Talent.Detail.Cooldown");
 	Usage.Value = FText::FromString(TEXT("2 rounds"));
 	Node.Usage.Add(Usage);
 
@@ -257,8 +266,16 @@ bool FUIRPGDESC01CanonicalSimpleDetailTest::RunTest(const FString&)
 	TestEqual(TEXT("TYPE is independent"), Detail->ResolvedTypeText.ToString(), FString(TEXT("ACTIF")));
 	TestEqual(TEXT("STATUS is independent"), Detail->ResolvedStatusText.ToString(), FString(TEXT("DISPONIBLE")));
 	TestEqual(TEXT("PRINCIPE is independent"), Detail->ResolvedPrincipleText.ToString(), FString(TEXT("Principe canonique.")));
-	TestTrue(TEXT("EFFETS are canonical"), UIRPGDESC01Tests::JoinDetailLines(Detail->NodeView.Effects).Contains(TEXT("Précision : +2")));
-	TestTrue(TEXT("UTILISATION is canonical"), UIRPGDESC01Tests::JoinDetailLines(Detail->NodeView.Usage).Contains(TEXT("Recharge : 2 rounds")));
+	TestTrue(TEXT("EFFETS are canonical"), Detail->NodeView.Effects.ContainsByPredicate(
+		[](const FGridTalentDetailLineView& Line)
+		{
+			return Line.LabelTextId == TEXT("Test.Effect.Accuracy") && Line.Value.ToString() == TEXT("+2");
+		}));
+	TestTrue(TEXT("UTILISATION is canonical"), Detail->NodeView.Usage.ContainsByPredicate(
+		[](const FGridTalentDetailLineView& Line)
+		{
+			return Line.LabelTextId == TEXT("Talent.Detail.Cooldown") && Line.Value.ToString() == TEXT("2 rounds");
+		}));
 	TestTrue(TEXT("Simple acquisition uses SimpleChoiceId authority"), Detail->CanRequestSimpleAcquisition());
 	return true;
 }
@@ -548,12 +565,12 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	Node.Acquisition.ExclusivityText = FText::FromString(TEXT("Exclusif avec une autre voie."));
 
 	FGridTalentDetailLineView Effect;
-	Effect.Label = FText::FromString(TEXT("Dégâts"));
+	Effect.LabelTextId = TEXT("Test.Effect.Damage");
 	Effect.Value = FText::FromString(TEXT("10"));
 	Node.Effects.Add(Effect);
 	FGridTalentDetailLineView Usage;
 	Usage.Semantic = EGridTalentDetailLineSemantic::ManaCost;
-	Usage.Label = FText::FromString(TEXT("Mana"));
+	Usage.LabelTextId = TEXT("Talent.Detail.ManaCost");
 	Usage.Value = FText::FromString(TEXT("5"));
 	Node.Usage.Add(Usage);
 
@@ -563,8 +580,8 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	TestEqual(TEXT("TYPE is exposed independently"), Detail->ResolvedTypeText.ToString(), FString(TEXT("SORT ACTIF")));
 	TestEqual(TEXT("STATUT is exposed independently"), Detail->ResolvedStatusText.ToString(), FString(TEXT("DISPONIBLE")));
 	TestEqual(TEXT("PRINCIPE is exposed independently"), Detail->ResolvedPrincipleText.ToString(), FString(TEXT("Principe déjà résolu.")));
-	TestEqual(TEXT("EFFETS remain structured"), UIRPGDESC01Tests::JoinDetailLines(Detail->NodeView.Effects), FString(TEXT("Dégâts : 10")));
-	TestEqual(TEXT("UTILISATION remains structured"), UIRPGDESC01Tests::JoinDetailLines(Detail->NodeView.Usage), FString(TEXT("Mana : 5")));
+	TestEqual(TEXT("EFFETS remain structured"), Detail->NodeView.Effects[0].Value.ToString(), FString(TEXT("10")));
+	TestEqual(TEXT("UTILISATION remains structured"), Detail->NodeView.Usage[0].Value.ToString(), FString(TEXT("5")));
 	TestEqual(TEXT("ACQUISITION keeps canonical level"), Detail->NodeView.Acquisition.MinimumLevel, 3);
 	TestEqual(TEXT("ACQUISITION keeps canonical cost"), Detail->NodeView.Acquisition.PointCost, 2);
 	TestTrue(TEXT("ACQUISITION keeps resolved prerequisite name"),
@@ -575,17 +592,27 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 
 	FGridTalentDetailLineView TargetLine;
 	TargetLine.Semantic = EGridTalentDetailLineSemantic::Target;
-	TargetLine.Label = FText::FromString(TEXT("Cible"));
+	TargetLine.LabelTextId = TEXT("Talent.Detail.Target");
 	TargetLine.Value = FText::FromString(TEXT("première cible dans l'axe"));
+	URPGTalentDetailTextSet* TextSet = NewObject<URPGTalentDetailTextSet>();
+	FRPGTalentDetailTextEntry TargetText;
+	TargetText.TextId = TEXT("Talent.Detail.Target");
+	TargetText.Text = FText::FromString(TEXT("Cible"));
+	TextSet->Entries.Add(TargetText);
+	TestTrue(TEXT("Detail text set validates"), TextSet->IsValidDefinition());
+	TestEqual(TEXT("Detail text set resolves editable label"), TextSet->ResolveText(TargetLine.LabelTextId).ToString(), FString(TEXT("Cible")));
+
 	UGridTalentDetailLineWidget* LineWidget = NewObject<UGridTalentDetailLineWidget>();
-	TestTrue(TEXT("Unglyphed detail row initializes without Designer bindings"), LineWidget->InitializeLine(TargetLine, nullptr));
-	TestEqual(TEXT("Unglyphed row exposes raw label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
+	TestTrue(TEXT("Unglyphed detail row initializes without Designer bindings"),
+		LineWidget->InitializeLine(TargetLine, nullptr, TextSet->ResolveText(TargetLine.LabelTextId)));
+	TestEqual(TEXT("Unglyphed row receives asset-resolved label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
 	TestEqual(TEXT("Unglyphed row exposes raw value content"),
 		LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
 
 	UTexture2D* InlineTargetGlyph = NewObject<UTexture2D>(LineWidget);
-	TestTrue(TEXT("Glyphed detail row reinitializes"), LineWidget->InitializeLine(TargetLine, InlineTargetGlyph));
-	TestEqual(TEXT("Glyphed row still exposes raw label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
+	TestTrue(TEXT("Glyphed detail row reinitializes"),
+		LineWidget->InitializeLine(TargetLine, InlineTargetGlyph, TextSet->ResolveText(TargetLine.LabelTextId)));
+	TestEqual(TEXT("Glyphed row keeps asset-resolved label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
 	TestEqual(TEXT("Glyphed row still exposes raw value content"), LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
 
 	URPGTalentDetailGlyphSet* GlyphSet = NewObject<URPGTalentDetailGlyphSet>();
@@ -674,7 +701,7 @@ bool FUIRPGDESC01152CStatusActionEffectsTest::RunTest(const FString&)
 	bool bSawGuardEffect = false;
 	for (const FGridTalentDetailLineView& Line : Node.Effects)
 	{
-		const FString Text = Line.Label.ToString() + TEXT(" ") + Line.Value.ToString();
+		const FString Text = Line.LabelTextId.ToString() + TEXT(" ") + Line.Value.ToString();
 		TestFalse(TEXT("EFFETS never leaks raw status ids"), Text.Contains(TEXT("Status_")));
 		if (Text.Contains(TEXT("Garde")) && Text.Contains(TEXT("2 rounds")))
 		{
@@ -702,17 +729,22 @@ bool FUIRPGDESC01153VariantBlockPresenterTest::RunTest(const FString&)
 	Variant.bCanChoose = true;
 
 	FGridTalentDetailLineView Effect;
-	Effect.Label = FText::FromString(TEXT("Précision"));
+	Effect.LabelTextId = TEXT("Test.Effect.Accuracy");
 	Effect.Value = FText::FromString(TEXT("+1"));
 	Variant.Effects.Add(Effect);
 
 	UGridTalentVariantBlockWidget* Block = NewObject<UGridTalentVariantBlockWidget>();
 	URPGTalentDetailGlyphSet* VariantGlyphSet = NewObject<URPGTalentDetailGlyphSet>(Block);
-	Block->ConfigureDetailRows(UGridTalentDetailLineWidget::StaticClass(), VariantGlyphSet);
+	URPGTalentDetailTextSet* VariantTextSet = NewObject<URPGTalentDetailTextSet>(Block);
+	Block->ConfigureDetailRows(UGridTalentDetailLineWidget::StaticClass(), VariantGlyphSet, VariantTextSet);
 	TestTrue(TEXT("Variant block initializes"),
 		Block->InitializeVariant(Variant, FText::FromString(TEXT("Tranchant")), false));
 	TestEqual(TEXT("Short display name is preserved"), Block->ResolvedDisplayName.ToString(), FString(TEXT("Tranchant")));
-	TestTrue(TEXT("Variant EFFETS are structured"), UIRPGDESC01Tests::JoinDetailLines(Block->VariantView.Effects).Contains(TEXT("Précision : +1")));
+	TestTrue(TEXT("Variant EFFETS are structured"), Block->VariantView.Effects.ContainsByPredicate(
+		[](const FGridTalentDetailLineView& Line)
+		{
+			return Line.LabelTextId == TEXT("Test.Effect.Accuracy") && Line.Value.ToString() == TEXT("+1");
+		}));
 	TestEqual(TEXT("Available variant exposes CHOISIR"), Block->ResolvedChooseLabel.ToString(), FString(TEXT("CHOISIR")));
 	TestTrue(TEXT("Available variant choice is enabled"), Block->bChooseEnabled);
 

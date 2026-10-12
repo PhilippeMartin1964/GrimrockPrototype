@@ -88,8 +88,9 @@ struct GRIMROCKPROTOTYPE_API FGridTalentDetailLineView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	EGridTalentDetailLineSemantic Semantic = EGridTalentDetailLineSemantic::None;
 
+	/** Stable presentation-text key. Player-facing wording is resolved by URPGTalentDetailTextSet. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText Label;
+	FName LabelTextId = NAME_None;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FText Value;
