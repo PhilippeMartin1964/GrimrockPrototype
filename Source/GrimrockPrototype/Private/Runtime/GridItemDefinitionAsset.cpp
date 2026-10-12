@@ -32,6 +32,24 @@ namespace
 			});
 		Definition.SourceTags = MoveTemp(Normalized);
 	}
+
+	void ApplySerializedItemPresentationFallback(
+		const UGridItemDefinitionAsset& Item,
+		FGridCombatActionDefinition& Definition)
+	{
+		if (Definition.DisplayName.IsEmpty())
+		{
+			Definition.DisplayName = Item.DisplayName;
+		}
+		if (Definition.Description.IsEmpty())
+		{
+			Definition.Description = Item.Description;
+		}
+		if (Definition.Icon.IsNull())
+		{
+			Definition.Icon = Item.Icon;
+		}
+	}
 }
 
 bool UGridItemDefinitionAsset::IsValidDefinition() const
@@ -204,18 +222,7 @@ bool UGridItemDefinitionAsset::BuildQuickItemCombatActionDefinition(FGridCombatA
 	OutDefinition.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 	OutDefinition.ResourceCosts.SourceItemQuantityCost = FMath::Max(1, OutDefinition.ResourceCosts.SourceItemQuantityCost);
 	NormalizeQuickItemSourceTags(ItemTags, OutDefinition);
-	if (OutDefinition.DisplayName.IsEmpty())
-	{
-		OutDefinition.DisplayName = DisplayName;
-	}
-	if (OutDefinition.Description.IsEmpty())
-	{
-		OutDefinition.Description = Description;
-	}
-	if (OutDefinition.Icon.IsNull())
-	{
-		OutDefinition.Icon = Icon;
-	}
+	ApplySerializedItemPresentationFallback(*this, OutDefinition);
 
 	if (!OutDefinition.IsValid())
 	{
@@ -259,18 +266,7 @@ bool UGridItemDefinitionAsset::BuildInventoryCombatActionDefinition(FGridCombatA
 	OutDefinition.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 	OutDefinition.ResourceCosts.SourceItemQuantityCost = 1;
 	NormalizeQuickItemSourceTags(ItemTags, OutDefinition);
-	if (OutDefinition.DisplayName.IsEmpty())
-	{
-		OutDefinition.DisplayName = DisplayName;
-	}
-	if (OutDefinition.Description.IsEmpty())
-	{
-		OutDefinition.Description = Description;
-	}
-	if (OutDefinition.Icon.IsNull())
-	{
-		OutDefinition.Icon = Icon;
-	}
+	ApplySerializedItemPresentationFallback(*this, OutDefinition);
 
 	if (!OutDefinition.IsValid())
 	{

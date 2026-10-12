@@ -143,13 +143,9 @@ FinalAudit
 La régression dédiée aux variantes vérifie également que le texte authoré est
 retourné sans parsing.
 
-## 8. Hors périmètre restant
+## 8. Hors périmètre de CONTENT-TEXT01
 
-Le problème identifié dans l'authoring Alchemist des `DA_Item_*` reste
-volontairement hors CONTENT-TEXT01 : certaines routines d'authoring d'items
-peuvent encore remettre à zéro une `Description` d'item.
-
-Ce point concerne l'autorité texte des items et doit être traité dans un
-ticket atomique distinct.
+L'autorité texte des `DA_Item_*` était volontairement hors CONTENT-TEXT01.
+Elle a ensuite été traitée séparément par `UI-RPG-CONTENT-TEXT02`.
 
 Aucun `.uasset` n'est modifié par TEXT01.4.

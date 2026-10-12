@@ -506,4 +506,112 @@ bool FUIRPGCONTENTTEXT023BootstrapOnlyTest::RunTest(const FString&)
 	return true;
 }
 
+
+/**
+ * UI-RPG-CONTENT-TEXT02.4 closes item text ownership at the runtime boundary.
+ *
+ * BuildQuickItemCombatActionDefinition must never synthesize player-facing
+ * prose. An explicitly authored action presentation wins; otherwise the
+ * containing DA_Item_* record supplies the fallback. Both are serialized data
+ * from the same authority.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT024FinalItemOwnershipAuditTest,
+	"Grimrock.UI.RPG.CONTENTTEXT02.FinalAudit",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT024FinalItemOwnershipAuditTest::RunTest(const FString&)
+{
+	using namespace UIRPGCONTENTTEXT021;
+
+	TArray<FName> ItemIds;
+	CollectProductionItemIds(ItemIds);
+
+	int32 AuditedItemCount = 0;
+	for (const FName ItemId : ItemIds)
+	{
+		const FString ObjectPath = FRPGAlchemistAuthoring::GetItemObjectPath(ItemId);
+		UGridItemDefinitionAsset* Serialized =
+			LoadObject<UGridItemDefinitionAsset>(nullptr, *ObjectPath);
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s serialized DA_Item loads for final audit"), *ItemId.ToString()),
+				Serialized))
+		{
+			continue;
+		}
+
+		const FString TechnicalItemMarker =
+			FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *ItemId.ToString());
+		TestFalse(
+			*FString::Printf(TEXT("%s production item DisplayName is not a technical bootstrap marker"), *ItemId.ToString()),
+			Serialized->DisplayName.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
+		TestFalse(
+			*FString::Printf(TEXT("%s production item Description is not a technical bootstrap marker"), *ItemId.ToString()),
+			Serialized->Description.ToString() == TechnicalItemMarker);
+
+		UGridItemDefinitionAsset* FallbackProbe =
+			DuplicateObject<UGridItemDefinitionAsset>(Serialized, GetTransientPackage());
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s fallback probe is created"), *ItemId.ToString()),
+				FallbackProbe))
+		{
+			continue;
+		}
+
+		const FString ItemName =
+			FString::Printf(TEXT("TEXT02.4 Item Name %s"), *ItemId.ToString());
+		const FString ItemDescription =
+			FString::Printf(TEXT("TEXT02.4 Item Description %s"), *ItemId.ToString());
+		FallbackProbe->DisplayName = FText::FromString(ItemName);
+		FallbackProbe->Description = FText::FromString(ItemDescription);
+		FallbackProbe->QuickItemCombatAction.DisplayName = FText::GetEmpty();
+		FallbackProbe->QuickItemCombatAction.Description = FText::GetEmpty();
+
+		FGridCombatActionDefinition Built;
+		if (!TestTrue(
+				*FString::Printf(TEXT("%s runtime QuickItem definition builds for fallback audit"), *ItemId.ToString()),
+				FallbackProbe->BuildQuickItemCombatActionDefinition(Built)))
+		{
+			continue;
+		}
+
+		TestEqual(
+			*FString::Printf(TEXT("%s empty action DisplayName falls back to serialized item DisplayName"), *ItemId.ToString()),
+			Built.DisplayName.ToString(),
+			ItemName);
+		TestEqual(
+			*FString::Printf(TEXT("%s empty action Description falls back to serialized item Description"), *ItemId.ToString()),
+			Built.Description.ToString(),
+			ItemDescription);
+
+		const FString ActionName =
+			FString::Printf(TEXT("TEXT02.4 Action Name %s"), *ItemId.ToString());
+		const FString ActionDescription =
+			FString::Printf(TEXT("TEXT02.4 Action Description %s"), *ItemId.ToString());
+		FallbackProbe->QuickItemCombatAction.DisplayName = FText::FromString(ActionName);
+		FallbackProbe->QuickItemCombatAction.Description = FText::FromString(ActionDescription);
+
+		if (!TestTrue(
+				*FString::Printf(TEXT("%s runtime QuickItem definition rebuilds with authored action presentation"), *ItemId.ToString()),
+				FallbackProbe->BuildQuickItemCombatActionDefinition(Built)))
+		{
+			continue;
+		}
+
+		TestEqual(
+			*FString::Printf(TEXT("%s authored action DisplayName wins over item fallback"), *ItemId.ToString()),
+			Built.DisplayName.ToString(),
+			ActionName);
+		TestEqual(
+			*FString::Printf(TEXT("%s authored action Description wins over item fallback"), *ItemId.ToString()),
+			Built.Description.ToString(),
+			ActionDescription);
+
+		++AuditedItemCount;
+	}
+
+	TestEqual(TEXT("Final ownership audit covers all eleven Alchemist QuickItems"), AuditedItemCount, 11);
+	return true;
+}
+
 #endif
