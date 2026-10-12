@@ -193,14 +193,14 @@ bool FUIRPGCONTENTTEXT051RemainingAuthorityAuditTest::RunTest(const FString&)
 	TestEqual(TEXT("All four production spells expose serialized Description"), SpellDescriptionCount, 4);
 
 	// ---------------------------------------------------------------------
-	// Universal unarmed action: one built-in runtime action still owns its
-	// player-facing name and description directly in C++.
+	// Universal unarmed action: intentional localized system vocabulary.
+	// It is a built-in runtime primitive, not independently authored RPG content.
 	// ---------------------------------------------------------------------
 	const FGridCombatActionDefinition Unarmed =
 		FGridCombatActionCatalog::MakeUnarmedAttackDefinition(2);
 	TestEqual(TEXT("Universal unarmed action keeps stable ActionId"), Unarmed.ActionId, FName(TEXT("Attack_Unarmed")));
-	TestFalse(TEXT("Universal unarmed action has C++ DisplayName"), Unarmed.DisplayName.IsEmpty());
-	TestFalse(TEXT("Universal unarmed action has C++ Description"), Unarmed.Description.IsEmpty());
+	TestFalse(TEXT("Universal unarmed action has localized system DisplayName"), Unarmed.DisplayName.IsEmpty());
+	TestFalse(TEXT("Universal unarmed action has localized system Description"), Unarmed.Description.IsEmpty());
 
 	UE_LOG(
 		LogTemp,
@@ -499,6 +499,117 @@ bool FUIRPGCONTENTTEXT053SkillBootstrapOnlyTest::RunTest(const FString&)
 		TEXT("[UI-RPG-CONTENT-TEXT05.3][SUMMARY] BootstrapSkills=%d SerializedProductionSkills=%d"),
 		BootstrapCount,
 		ProductionPresentationCount);
+
+	return true;
+}
+
+
+/**
+ * UI-RPG-CONTENT-TEXT05.7 closes the remaining-authority campaign.
+ *
+ * Serialized RPG content families must no longer recreate player-authored
+ * presentation in C++. Attack_Unarmed is the sole explicit exception because
+ * it is localized system vocabulary for a built-in runtime primitive rather
+ * than an independently authored content record.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT057FinalAuthorityAuditTest,
+	"Grimrock.UI.RPG.CONTENTTEXT05.FinalAudit",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT057FinalAuthorityAuditTest::RunTest(const FString&)
+{
+	using namespace UIRPGCONTENTTEXT051;
+
+	FString SkillAuthoringSource;
+	FString SpellLibrarySource;
+	FString CombatCatalogSource;
+
+	TestTrue(
+		TEXT("Final audit loads Skill authoring source"),
+		LoadProjectSource(
+			TEXT("Source/GrimrockPrototypeEditor/Private/RPG/RPGSkillCatalogAuthoring.cpp"),
+			SkillAuthoringSource));
+	TestTrue(
+		TEXT("Final audit loads Spell runtime facade source"),
+		LoadProjectSource(
+			TEXT("Source/GrimrockPrototype/Private/Magic/GridProductionSpellLibrary.cpp"),
+			SpellLibrarySource));
+	TestTrue(
+		TEXT("Final audit loads Combat action catalog source"),
+		LoadProjectSource(
+			TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridCombatActionCatalog.cpp"),
+			CombatCatalogSource));
+
+	// Skills: serialized DA_Skill_* presentation only.
+	TestFalse(
+		TEXT("Skill authoring has no canonical DisplayName authority"),
+		SkillAuthoringSource.Contains(TEXT("Definition.DisplayName")));
+	TestFalse(
+		TEXT("Skill authoring has no player-facing FromString presentation"),
+		SkillAuthoringSource.Contains(TEXT("FText::FromString")));
+
+	// Spells: runtime facade resolves serialized DA_Spell_* only.
+	TestTrue(
+		TEXT("Spell runtime facade resolves UGridSpellDefinitionAsset"),
+		SpellLibrarySource.Contains(TEXT("LoadObject<UGridSpellDefinitionAsset>")));
+	TestFalse(
+		TEXT("Spell runtime facade has no player-facing FText::FromString content"),
+		SpellLibrarySource.Contains(TEXT("FText::FromString")));
+	TestFalse(
+		TEXT("Spell runtime facade has no C++ mechanical authoring"),
+		SpellLibrarySource.Contains(TEXT("Definition.ManaCost =")) ||
+		SpellLibrarySource.Contains(TEXT("Definition.ActionPointCost =")) ||
+		SpellLibrarySource.Contains(TEXT("MakeMagnitudeEffect")) ||
+		SpellLibrarySource.Contains(TEXT("MakeStatusEffect")));
+
+	// Attack_Unarmed: exactly one explicitly documented system-vocabulary pair.
+	TestEqual(
+		TEXT("Attack_Unarmed has exactly one localized system DisplayName entry"),
+		CountOccurrences(
+			CombatCatalogSource,
+			TEXT("Definition.DisplayName = LOCTEXT(\"UnarmedName\"")),
+		1);
+	TestEqual(
+		TEXT("Attack_Unarmed has exactly one localized system Description entry"),
+		CountOccurrences(
+			CombatCatalogSource,
+			TEXT("Definition.Description = LOCTEXT(\"UnarmedDescription\"")),
+		1);
+	TestTrue(
+		TEXT("Attack_Unarmed system-vocabulary exception is documented in source"),
+		CombatCatalogSource.Contains(
+			TEXT("Intentional localized system vocabulary, not serialized RPG content.")));
+
+	const FGridCombatActionDefinition Unarmed =
+		FGridCombatActionCatalog::MakeUnarmedAttackDefinition(2);
+	TestEqual(TEXT("Final audit keeps Attack_Unarmed stable identity"), Unarmed.ActionId, FName(TEXT("Attack_Unarmed")));
+	TestEqual(TEXT("Final audit keeps Attack_Unarmed universal source"), Unarmed.SourcePolicy, EGridCombatActionSourcePolicy::Universal);
+	TestEqual(TEXT("Final audit keeps Attack_Unarmed AP cost"), Unarmed.ActionPointCost, 2);
+	TestFalse(TEXT("Final audit keeps Attack_Unarmed localized DisplayName"), Unarmed.DisplayName.IsEmpty());
+	TestFalse(TEXT("Final audit keeps Attack_Unarmed localized Description"), Unarmed.Description.IsEmpty());
+
+	// Temporary Spell materialization infrastructure must stay removed.
+	TestFalse(
+		TEXT("Temporary Spell authoring implementation is removed"),
+		FPaths::FileExists(FPaths::Combine(
+			FPaths::ProjectDir(),
+			TEXT("Source/GrimrockPrototypeEditor/Private/Magic/GridSpellCatalogAuthoring.cpp"))));
+	TestFalse(
+		TEXT("Temporary Spell commandlet implementation is removed"),
+		FPaths::FileExists(FPaths::Combine(
+			FPaths::ProjectDir(),
+			TEXT("Source/GrimrockPrototypeEditor/Private/Magic/GridSpellCatalogAuthoringCommandlet.cpp"))));
+	TestFalse(
+		TEXT("Temporary Spell authoring runner is removed"),
+		FPaths::FileExists(FPaths::Combine(
+			FPaths::ProjectDir(),
+			TEXT("Scripts/AuthorGridSpells.ps1"))));
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("[UI-RPG-CONTENT-TEXT05.7][SUMMARY] Skills=Serialized Spells=Serialized AttackUnarmed=LocalizedSystemVocabulary RemainingSerializedContentCxxAuthorities=0"));
 
 	return true;
 }

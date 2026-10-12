@@ -74,8 +74,8 @@ Scripts/AuthorGridSpells.ps1
 ```text
 P1 Skills          CLOSED
 P2 Spells          CLOSED
-P3 Attack_Unarmed  restant
-Audit final        restant
+P3 Attack_Unarmed  CLOSED — localized system vocabulary exception
+Audit final        CLOSED
 ```
 
 Après validation de TEXT05.6, la campagne n’a plus que deux petits tickets.

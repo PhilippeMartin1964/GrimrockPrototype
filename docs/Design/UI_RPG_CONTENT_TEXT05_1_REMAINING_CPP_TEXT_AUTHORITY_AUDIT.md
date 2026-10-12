@@ -4,7 +4,7 @@ Date : **12 octobre 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Ticket : **UI-RPG-CONTENT-TEXT05.1**
 
-> **État après TEXT05.6 :** les quatre `DA_Spell_*` matérialisés sont désormais l’unique autorité Spell. `FGridProductionSpellLibrary` est seulement une façade de résolution vers ces assets et l’infrastructure temporaire de matérialisation est retirée. Il ne reste que `Attack_Unarmed` puis l’audit final.
+> **État après TEXT05.7 : CONTENT-TEXT05 CLOSED.** Skills et Spells ont une autorité sérialisée unique. `Attack_Unarmed` est explicitement classé comme vocabulaire système localisé d’une primitive runtime universelle, au même niveau que les messages de disponibilité du catalogue ; aucun DataAsset artificiel n’est créé pour deux chaînes. L’audit final ne trouve plus d’autorité C++ de contenu RPG sérialisable dans le périmètre.
 
 ## 1. Objet
 
@@ -238,27 +238,32 @@ inventer une nouvelle couche.
 
 ## 6. P3 — Action universelle Attack_Unarmed
 
-`FGridCombatActionCatalog::MakeUnarmedAttackDefinition()` possède encore :
+`FGridCombatActionCatalog::MakeUnarmedAttackDefinition()` reste une primitive
+runtime universelle :
 
-```cpp
-ActionId    = Attack_Unarmed
-DisplayName = À mains nues
-Description = Attaque physique effectuée sans arme.
+```text
+ActionId = Attack_Unarmed
+mécanique = C++
+présentation = LOCTEXT localisé
 ```
 
-La mécanique universelle de l'attaque à mains nues a une justification forte
-pour rester une primitive C++.
+TEXT05.7 tranche explicitement ce dernier point : `Attack_Unarmed` n'a pas de
+cycle d'authoring indépendant et ne justifie pas la création d'un DataAsset ou
+d'un catalogue de présentation uniquement pour deux chaînes.
 
-En revanche, son **libellé joueur** et sa **description joueur** constituent
-encore une petite autorité de contenu C++.
+Les deux textes :
 
-Cette dette est isolée : un seul record, sans catalogue sérialisé dédié.
+```text
+À mains nues
+Attaque physique effectuée sans arme.
+```
 
-Elle est classée P3 afin de ne pas créer prématurément un nouveau DataAsset
-uniquement pour deux chaînes.
+sont donc classés comme **vocabulaire système localisé**, au même niveau que
+les messages `CombatInactive`, `InsufficientMana`, etc. Ils ne sont plus
+considérés comme une dette `CONTENT-TEXT`.
 
-Une solution future peut réutiliser une autorité de vocabulaire/presentation
-existante si cela reste simple ; TEXT05.1 ne choisit pas encore cette solution.
+Le code source porte un commentaire explicite et le FinalAudit exige qu'il
+s'agisse exactement de cette exception documentée.
 
 ---
 
@@ -437,15 +442,19 @@ possible.
 
 ## 13. Conclusion
 
-Après CONTENT-TEXT01..04, les grandes autorités sérialisées RPG sont propres.
-
-Les dettes restantes ne sont plus diffuses :
+La campagne TEXT05 est fermée :
 
 ```text
-P1  Skills          -> 25 DisplayName C++ en double des DA_Skill_*
-P2  Spells          -> 4 noms + 4 descriptions encore uniquement C++
-P3  Attack_Unarmed  -> 1 nom + 1 description C++ universels
+P1  Skills          CLOSED — DA_Skill_* autoritaires
+P2  Spells          CLOSED — DA_Spell_* autoritaires
+P3  Attack_Unarmed  CLOSED — vocabulaire système localisé explicite
+Final audit          CLOSED
 ```
 
-TEXT05.1 ne modifie aucune de ces autorités ; il fournit la carte de travail
-pour les prochains tickets.
+Aucune autorité C++ de contenu RPG sérialisable ne subsiste dans le périmètre
+audité. Les textes C++ restants relèvent des fallbacks techniques, du feedback
+système, de l'UI générique, des outils Editor ou de primitives runtime
+localisées sans cycle d'authoring autonome.
+
+Aucun `CONTENT-TEXT06` n'est requis par cet audit.
+

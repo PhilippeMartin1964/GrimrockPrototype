@@ -424,6 +424,11 @@ FGridCombatActionDefinition FGridCombatActionCatalog::MakeUnarmedAttackDefinitio
 {
 	FGridCombatActionDefinition Definition;
 	Definition.ActionId = TEXT("Attack_Unarmed");
+
+	// Intentional localized system vocabulary, not serialized RPG content.
+	// Attack_Unarmed is a built-in universal runtime primitive with no independent
+	// authored lifecycle; introducing a dedicated DataAsset for two strings would
+	// create a second content layer without a gameplay/data ownership benefit.
 	Definition.DisplayName = LOCTEXT("UnarmedName", "À mains nues");
 	Definition.Description = LOCTEXT("UnarmedDescription", "Attaque physique effectuée sans arme.");
 	Definition.ActionType = EGridCombatActionType::MeleeAttack;
