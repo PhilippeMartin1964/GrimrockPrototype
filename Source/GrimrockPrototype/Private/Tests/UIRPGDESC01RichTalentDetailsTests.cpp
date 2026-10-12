@@ -73,6 +73,8 @@ namespace UIRPGDESC01Tests
 		Choice.PointCost = 1;
 		FGridCombatModifierProfile Modifier;
 		Modifier.AccuracyModifier = 2;
+		Modifier.CriticalChancePercentModifier = 10;
+		Modifier.CriticalDamagePercentModifier = 25;
 		Choice.CombatModifiers.Add(Modifier);
 		OutClass->ProgressionChoices.Add(Choice);
 		OutClass->CombatActions.Add(MakeAction(Choice.ChoiceId));
@@ -220,6 +222,24 @@ bool FUIRPGDESC01ActionProjectionTest::RunTest(const FString&)
 					Line.NumericValue == 2 &&
 					Line.ValueStyle == EGridTalentDetailValueStyle::SignedInteger &&
 					Line.Value.IsEmpty();
+			}));
+	TestTrue(TEXT("Critical chance uses an explicit localized label and signed percent value"),
+		Node.Effects.ContainsByPredicate(
+			[](const FGridTalentDetailLineView& Line)
+			{
+				return Line.LabelTextId == TEXT("Talent.Effect.CriticalChance") &&
+					Line.bHasNumericValue &&
+					Line.NumericValue == 10 &&
+					Line.ValueStyle == EGridTalentDetailValueStyle::SignedPercent;
+			}));
+	TestTrue(TEXT("Critical damage uses an explicit localized label and signed percent value"),
+		Node.Effects.ContainsByPredicate(
+			[](const FGridTalentDetailLineView& Line)
+			{
+				return Line.LabelTextId == TEXT("Talent.Effect.CriticalDamage") &&
+					Line.bHasNumericValue &&
+					Line.NumericValue == 25 &&
+					Line.ValueStyle == EGridTalentDetailValueStyle::SignedPercent;
 			}));
 	TestEqual(TEXT("AP cost is projected as raw numeric content"), UsageNumericValue(EGridTalentDetailLineSemantic::ActionPointCost), 2);
 	TestEqual(TEXT("Mana cost is projected into UTILISATION"), UsageNumericValue(EGridTalentDetailLineSemantic::ManaCost), 3);
@@ -631,6 +651,9 @@ bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 		FName(TEXT("Talent.Variant.Pending")),
 		FName(TEXT("Talent.Variant.Choose")),
 		FName(TEXT("Talent.Variant.Unavailable")),
+		FName(TEXT("Talent.Effect.CriticalChance")),
+		FName(TEXT("Talent.Effect.CriticalDamage")),
+		FName(TEXT("Talent.Effect.PhysicalArmorReference")),
 		FName(TEXT("Talent.Acquisition.Exclusivity.SingleVariant")),
 		FName(TEXT("Talent.Acquisition.Prompt.ConfirmTalent")),
 		FName(TEXT("Talent.Acquisition.Prompt.ConfirmVariant")),

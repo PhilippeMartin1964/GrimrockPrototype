@@ -684,8 +684,8 @@ namespace
 			AddSignedValueLine(Out, TEXT("Talent.Effect.Evasion"), Modifier.EvasionModifier);
 			AddSignedPercentLine(Out, TEXT("Talent.Effect.OutgoingDamage"), Modifier.OutgoingDamagePercentModifier);
 			AddSignedPercentLine(Out, TEXT("Talent.Effect.IncomingDamage"), Modifier.IncomingDamagePercentModifier);
-			AddSignedValueLine(Out, TEXT("Talent.Effect.CriticalChancePoints"), Modifier.CriticalChancePercentModifier);
-			AddSignedValueLine(Out, TEXT("Talent.Effect.CriticalDamagePoints"), Modifier.CriticalDamagePercentModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.CriticalChance"), Modifier.CriticalChancePercentModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.CriticalDamage"), Modifier.CriticalDamagePercentModifier);
 			AddSignedPercentLine(Out, TEXT("Talent.Effect.WeaponDamage"), Modifier.WeaponDamagePercentModifier);
 			AddSignedValueLine(Out, TEXT("Talent.Effect.ActionPointCost"), Modifier.ActionPointCostModifier);
 			AddSignedValueLine(Out, TEXT("Talent.Effect.ManaCost"), Modifier.ManaCostModifier);

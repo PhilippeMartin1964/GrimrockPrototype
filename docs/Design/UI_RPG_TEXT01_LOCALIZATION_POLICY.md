@@ -144,3 +144,22 @@ Talent.Recipe.Recipe_*
 Un `Recipe_*` n'est jamais humanisé en français par le code. Il est converti
 en clé stable `Talent.Recipe.Recipe_*`, puis résolu par le Data Asset de
 texte.
+
+
+## 8. Libellé obligatoire pour toute valeur numérique
+
+Une valeur mécanique ne doit jamais apparaître seule dans EFFETS lorsqu'elle a
+besoin d'un contexte pour être comprise.
+
+Le read-model associe donc chaque valeur à une clé de texte explicite.
+
+Exemples canoniques :
+
+~~~text
+Talent.Effect.CriticalChance          -> Chance de critique          -> +10%
+Talent.Effect.CriticalDamage          -> Dégâts critiques            -> +25%
+Talent.Effect.PhysicalArmorReference  -> Armure physique de référence -> +25%
+~~~
+
+La valeur et sa notation (`+10%`, `+25%`) restent C++. Le libellé humain
+reste dans `URPGTalentDetailTextSet`.
