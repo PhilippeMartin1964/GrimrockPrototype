@@ -80,6 +80,16 @@ enum class EGridTalentDetailLineSemantic : uint8
 	Recipe
 };
 
+UENUM(BlueprintType)
+enum class EGridTalentDetailValueStyle : uint8
+{
+	Text,
+	Integer,
+	SignedInteger,
+	Percent,
+	SignedPercent
+};
+
 USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridTalentDetailLineView
 {
@@ -97,9 +107,20 @@ struct GRIMROCKPROTOTYPE_API FGridTalentDetailLineView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FName ValueTextId = NAME_None;
 
-	/** Dynamic/authored value. Empty when ValueTextId supplies the complete value. */
+	/** Dynamic/authored text value. Empty for numeric rows and when ValueTextId supplies the complete value. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FText Value;
+
+	/** Raw numeric authority for numeric rows. No sign or unit is embedded in text. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	int32 NumericValue = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	bool bHasNumericValue = false;
+
+	/** Presentation semantics only. UMG decides how to render sign and unit. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	EGridTalentDetailValueStyle ValueStyle = EGridTalentDetailValueStyle::Text;
 };
 
 USTRUCT(BlueprintType)

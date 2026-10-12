@@ -397,7 +397,7 @@ void UGridTalentDetailWidget::PopulateDetailLineRows(
 
 	for (const FGridTalentDetailLineView& Line : Lines)
 	{
-		if (Line.Value.IsEmpty() && Line.ValueTextId.IsNone())
+		if (Line.Value.IsEmpty() && Line.ValueTextId.IsNone() && !Line.bHasNumericValue)
 		{
 			continue;
 		}
@@ -449,18 +449,29 @@ void UGridTalentDetailWidget::BuildAcquisitionLines(
 		OutLines.Add(MoveTemp(Line));
 	};
 
-	AddLine(
+	auto AddNumberLine = [&OutLines](
+		EGridTalentDetailLineSemantic Semantic,
+		FName LabelTextId,
+		int32 NumericValue)
+	{
+		FGridTalentDetailLineView Line;
+		Line.Semantic = Semantic;
+		Line.LabelTextId = LabelTextId;
+		Line.NumericValue = NumericValue;
+		Line.bHasNumericValue = true;
+		Line.ValueStyle = EGridTalentDetailValueStyle::Integer;
+		OutLines.Add(MoveTemp(Line));
+	};
+
+	AddNumberLine(
 		EGridTalentDetailLineSemantic::LevelRequirement,
 		TEXT("Talent.Detail.LevelRequirement"),
-		FText::AsNumber(NodeView.Acquisition.MinimumLevel));
+		NodeView.Acquisition.MinimumLevel);
 
-	AddLine(
+	AddNumberLine(
 		EGridTalentDetailLineSemantic::TalentPointCost,
 		TEXT("Talent.Detail.TalentPointCost"),
-		FText::FromString(FString::Printf(
-			TEXT("%d point%s de Talent"),
-			NodeView.Acquisition.PointCost,
-			NodeView.Acquisition.PointCost > 1 ? TEXT("s") : TEXT(""))));
+		NodeView.Acquisition.PointCost);
 
 	if (!NodeView.Acquisition.PrerequisiteTalentNames.IsEmpty())
 	{

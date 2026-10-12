@@ -18,14 +18,28 @@ bool UGridTalentDetailLineWidget::InitializeLine(
 {
 	ClearLine();
 
-	if (InResolvedValueText.IsEmpty())
+	if (InResolvedValueText.IsEmpty() && !InLine.bHasNumericValue)
 	{
 		return false;
 	}
 
 	LineView = InLine;
 	ResolvedLabelText = InResolvedLabelText;
-	ResolvedValueText = InResolvedValueText;
+	ResolvedNumericValue = InLine.NumericValue;
+	ResolvedValueStyle = InLine.ValueStyle;
+	bShowPositiveSign =
+		InLine.bHasNumericValue &&
+		InLine.NumericValue > 0 &&
+		(InLine.ValueStyle == EGridTalentDetailValueStyle::SignedInteger ||
+			InLine.ValueStyle == EGridTalentDetailValueStyle::SignedPercent);
+	bShowPercentUnit =
+		InLine.bHasNumericValue &&
+		(InLine.ValueStyle == EGridTalentDetailValueStyle::Percent ||
+			InLine.ValueStyle == EGridTalentDetailValueStyle::SignedPercent);
+	ResolvedValueText =
+		InLine.bHasNumericValue
+			? FText::AsNumber(InLine.NumericValue)
+			: InResolvedValueText;
 	ResolvedIcon = InIcon;
 	bInitialized = true;
 	ApplyPresentation();
@@ -37,6 +51,10 @@ void UGridTalentDetailLineWidget::ClearLine()
 	LineView = FGridTalentDetailLineView();
 	ResolvedLabelText = FText::GetEmpty();
 	ResolvedValueText = FText::GetEmpty();
+	ResolvedNumericValue = 0;
+	ResolvedValueStyle = EGridTalentDetailValueStyle::Text;
+	bShowPositiveSign = false;
+	bShowPercentUnit = false;
 	ResolvedIcon = nullptr;
 	bInitialized = false;
 	ApplyPresentation();

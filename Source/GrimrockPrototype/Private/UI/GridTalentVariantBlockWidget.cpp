@@ -154,7 +154,7 @@ void UGridTalentVariantBlockWidget::PopulateDetailLineRows(
 
 	for (const FGridTalentDetailLineView& Line : Lines)
 	{
-		if (Line.Value.IsEmpty() && Line.ValueTextId.IsNone())
+		if (Line.Value.IsEmpty() && Line.ValueTextId.IsNone() && !Line.bHasNumericValue)
 		{
 			continue;
 		}

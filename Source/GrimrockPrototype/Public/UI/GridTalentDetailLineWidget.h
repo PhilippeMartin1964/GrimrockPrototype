@@ -26,6 +26,20 @@ public:
 	FText ResolvedValueText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")
+	int32 ResolvedNumericValue = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")
+	EGridTalentDetailValueStyle ResolvedValueStyle = EGridTalentDetailValueStyle::Text;
+
+	/** UMG may show a static '+' TextBlock when true. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")
+	bool bShowPositiveSign = false;
+
+	/** UMG may show a static '%' TextBlock when true. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")
+	bool bShowPercentUnit = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")
 	TObjectPtr<UTexture2D> ResolvedIcon;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")

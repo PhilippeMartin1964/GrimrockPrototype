@@ -154,9 +154,11 @@ namespace UIRPGDESC01Tests
 		TArray<FString> Values;
 		for (const FGridTalentDetailLineView& Line : Lines)
 		{
-			const FString Value = !Line.ValueTextId.IsNone()
-				? Line.ValueTextId.ToString()
-				: Line.Value.ToString();
+			const FString Value = Line.bHasNumericValue
+				? FString::FromInt(Line.NumericValue)
+				: (!Line.ValueTextId.IsNone()
+					? Line.ValueTextId.ToString()
+					: Line.Value.ToString());
 			Values.Add(Line.LabelTextId.ToString() + TEXT(" : ") + Value);
 		}
 		return FString::Join(Values, TEXT("\n"));
@@ -195,14 +197,14 @@ bool FUIRPGDESC01ActionProjectionTest::RunTest(const FString&)
 	TestEqual(TEXT("Talent TYPE label is canonical"), Node.TypeText.ToString(), FString(TEXT("ACTIF")));
 
 	const FString Effects = JoinDetailLines(Node.Effects);
-	const auto UsageValue = [&Node](EGridTalentDetailLineSemantic Semantic)
+	const auto UsageNumericValue = [&Node](EGridTalentDetailLineSemantic Semantic)
 	{
 		const FGridTalentDetailLineView* Found = Node.Usage.FindByPredicate(
 			[Semantic](const FGridTalentDetailLineView& Line)
 			{
 				return Line.Semantic == Semantic;
 			});
-		return Found ? Found->Value.ToString() : FString();
+		return Found && Found->bHasNumericValue ? Found->NumericValue : INDEX_NONE;
 	};
 	TestFalse(TEXT("Generic EFFETS rows do not repeat the section name"),
 		Node.Effects.ContainsByPredicate(
@@ -218,16 +220,19 @@ bool FUIRPGDESC01ActionProjectionTest::RunTest(const FString&)
 				return Line.Semantic == Semantic;
 			});
 	};
-	TestTrue(TEXT("Passive mechanics are projected into structured EFFETS"),
+	TestTrue(TEXT("Passive mechanics expose raw signed numeric semantics"),
 		Node.Effects.ContainsByPredicate(
 			[](const FGridTalentDetailLineView& Line)
 			{
 				return Line.LabelTextId == TEXT("Talent.Effect.Accuracy") &&
-					Line.Value.ToString() == TEXT("+2");
+					Line.bHasNumericValue &&
+					Line.NumericValue == 2 &&
+					Line.ValueStyle == EGridTalentDetailValueStyle::SignedInteger &&
+					Line.Value.IsEmpty();
 			}));
-	TestEqual(TEXT("AP cost is projected as raw numeric content"), UsageValue(EGridTalentDetailLineSemantic::ActionPointCost), FString(TEXT("2")));
-	TestEqual(TEXT("Mana cost is projected into UTILISATION"), UsageValue(EGridTalentDetailLineSemantic::ManaCost), FString(TEXT("3")));
-	TestEqual(TEXT("Cooldown is projected as raw numeric content"), UsageValue(EGridTalentDetailLineSemantic::Cooldown), FString(TEXT("2")));
+	TestEqual(TEXT("AP cost is projected as raw numeric content"), UsageNumericValue(EGridTalentDetailLineSemantic::ActionPointCost), 2);
+	TestEqual(TEXT("Mana cost is projected into UTILISATION"), UsageNumericValue(EGridTalentDetailLineSemantic::ManaCost), 3);
+	TestEqual(TEXT("Cooldown is projected as raw numeric content"), UsageNumericValue(EGridTalentDetailLineSemantic::Cooldown), 2);
 	TestTrue(TEXT("AP cost carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::ActionPointCost));
 	TestTrue(TEXT("Target carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::Target));
 	TestTrue(TEXT("Mana carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::ManaCost));
@@ -503,12 +508,15 @@ bool FUIRPGDESC01ReactionMechanicsTest::RunTest(const FString&)
 					Line.ValueTextId == TEXT("Talent.Reaction.Limit.OncePerRound") &&
 					Line.Value.IsEmpty();
 			}));
-	TestTrue(TEXT("Reaction response keeps raw numeric data"),
+	TestTrue(TEXT("Reaction response keeps raw percent semantics"),
 		Node.Effects.ContainsByPredicate(
 			[](const FGridTalentDetailLineView& Line)
 			{
 				return Line.LabelTextId == TEXT("Talent.Reaction.InterceptFinalDamagePercent") &&
-					Line.Value.ToString() == TEXT("50");
+					Line.bHasNumericValue &&
+					Line.NumericValue == 50 &&
+					Line.ValueStyle == EGridTalentDetailValueStyle::Percent &&
+					Line.Value.IsEmpty();
 			}));
 	return true;
 }
@@ -553,23 +561,26 @@ bool FUIRPGDESC01SkillPartyMechanicsTest::RunTest(const FString&)
 		FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, View));
 	const FGridTalentNodeView& Node = View.TalentTree.Branches[0].Nodes[0];
 
-	auto HasRawValue = [&Node](FName LabelTextId, const TCHAR* ExpectedValue)
+	auto HasRawValue = [&Node](FName LabelTextId, int32 ExpectedValue, EGridTalentDetailValueStyle ExpectedStyle)
 	{
 		return Node.Effects.ContainsByPredicate(
-			[LabelTextId, ExpectedValue](const FGridTalentDetailLineView& Line)
+			[LabelTextId, ExpectedValue, ExpectedStyle](const FGridTalentDetailLineView& Line)
 			{
 				return Line.LabelTextId == LabelTextId &&
 					Line.ValueTextId.IsNone() &&
-					Line.Value.ToString() == ExpectedValue;
+					Line.Value.IsEmpty() &&
+					Line.bHasNumericValue &&
+					Line.NumericValue == ExpectedValue &&
+					Line.ValueStyle == ExpectedStyle;
 			});
 	};
 
 	TestTrue(TEXT("Skill check modifier is raw numeric content"),
-		HasRawValue(TEXT("Talent.Skill.CheckModifier"), TEXT("2")));
+		HasRawValue(TEXT("Talent.Skill.CheckModifier"), 2, EGridTalentDetailValueStyle::SignedInteger));
 	TestTrue(TEXT("Effective prerequisite rank modifier is raw numeric content"),
-		HasRawValue(TEXT("Talent.Skill.RequirementGrantRankModifier"), TEXT("1")));
+		HasRawValue(TEXT("Talent.Skill.RequirementGrantRankModifier"), 1, EGridTalentDetailValueStyle::SignedInteger));
 	TestTrue(TEXT("Safe failure margin is raw numeric content"),
-		HasRawValue(TEXT("Talent.Skill.SafeFailureMargin"), TEXT("2")));
+		HasRawValue(TEXT("Talent.Skill.SafeFailureMargin"), 2, EGridTalentDetailValueStyle::Integer));
 	TestTrue(TEXT("Ranged context wording is data-driven"),
 		Node.Effects.ContainsByPredicate(
 			[](const FGridTalentDetailLineView& Line)
@@ -579,11 +590,11 @@ bool FUIRPGDESC01SkillPartyMechanicsTest::RunTest(const FString&)
 					Line.Value.IsEmpty();
 			}));
 	TestTrue(TEXT("Party group Skill modifier is raw numeric content"),
-		HasRawValue(TEXT("Talent.Party.GroupSkillCheckModifier"), TEXT("2")));
+		HasRawValue(TEXT("Talent.Party.GroupSkillCheckModifier"), 2, EGridTalentDetailValueStyle::SignedInteger));
 	TestTrue(TEXT("Party mobility modifier is raw numeric content"),
-		HasRawValue(TEXT("Talent.Party.MaximumMobilityActionPointsModifier"), TEXT("1")));
+		HasRawValue(TEXT("Talent.Party.MaximumMobilityActionPointsModifier"), 1, EGridTalentDetailValueStyle::SignedInteger));
 	TestTrue(TEXT("First-round initiative is raw numeric content"),
-		HasRawValue(TEXT("Talent.Effect.FirstRoundInitiative"), TEXT("3")));
+		HasRawValue(TEXT("Talent.Effect.FirstRoundInitiative"), 3, EGridTalentDetailValueStyle::SignedInteger));
 	return true;
 }
 
@@ -746,6 +757,18 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	TestEqual(TEXT("Context row wording comes from text data"),
 		LineWidget->ResolvedValueText.ToString(), FString(TEXT("Actions d'équipement")));
 
+	FGridTalentDetailLineView NumericLine;
+	NumericLine.LabelTextId = TEXT("Test.Effect.Accuracy");
+	NumericLine.NumericValue = 10;
+	NumericLine.bHasNumericValue = true;
+	NumericLine.ValueStyle = EGridTalentDetailValueStyle::SignedPercent;
+	TestTrue(TEXT("Numeric row initializes without synthetic text value"),
+		LineWidget->InitializeLine(NumericLine, nullptr, FText::FromString(TEXT("Bonus")), FText::GetEmpty()));
+	TestEqual(TEXT("Numeric row keeps raw numeric authority"), LineWidget->ResolvedNumericValue, 10);
+	TestEqual(TEXT("Numeric row exposes plain number only"), LineWidget->ResolvedValueText.ToString(), FString(TEXT("10")));
+	TestTrue(TEXT("Positive sign is delegated to UMG"), LineWidget->bShowPositiveSign);
+	TestTrue(TEXT("Percent unit is delegated to UMG"), LineWidget->bShowPercentUnit);
+
 	URPGTalentDetailGlyphSet* GlyphSet = NewObject<URPGTalentDetailGlyphSet>();
 	UTexture2D* CostGlyph = NewObject<UTexture2D>(GlyphSet);
 	UTexture2D* ManaGlyph = NewObject<UTexture2D>(GlyphSet);
@@ -849,7 +872,10 @@ bool FUIRPGDESC01152CStatusActionEffectsTest::RunTest(const FString&)
 			[](const FGridTalentDetailLineView& Line)
 			{
 				return Line.LabelTextId == TEXT("Talent.Detail.StatusDurationRounds") &&
-					Line.Value.ToString() == TEXT("2");
+					Line.bHasNumericValue &&
+					Line.NumericValue == 2 &&
+					Line.ValueStyle == EGridTalentDetailValueStyle::Integer &&
+					Line.Value.IsEmpty();
 			}));
 	TestTrue(TEXT("Status description remains authored content"),
 		Node.Effects.ContainsByPredicate(

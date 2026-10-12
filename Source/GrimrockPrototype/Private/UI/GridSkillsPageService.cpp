@@ -348,24 +348,45 @@ namespace
 		Lines.Add(MoveTemp(Line));
 	}
 
+	void AddNumericLine(
+		TArray<FGridTalentDetailLineView>& Lines,
+		FName LabelTextId,
+		int32 Value,
+		EGridTalentDetailValueStyle ValueStyle,
+		EGridTalentDetailLineSemantic Semantic = EGridTalentDetailLineSemantic::None)
+	{
+		FGridTalentDetailLineView Line;
+		Line.Semantic = Semantic;
+		Line.LabelTextId = LabelTextId;
+		Line.NumericValue = Value;
+		Line.bHasNumericValue = true;
+		Line.ValueStyle = ValueStyle;
+		Lines.Add(MoveTemp(Line));
+	}
+
 	void AddDetailNumberLine(
 		TArray<FGridTalentDetailLineView>& Lines,
 		FName LabelTextId,
 		int32 Value,
 		EGridTalentDetailLineSemantic Semantic = EGridTalentDetailLineSemantic::None)
 	{
-		FGridTalentDetailLineView Line;
-		Line.Semantic = Semantic;
-		Line.LabelTextId = LabelTextId;
-		Line.Value = FText::AsNumber(Value);
-		Lines.Add(MoveTemp(Line));
+		AddNumericLine(Lines, LabelTextId, Value, EGridTalentDetailValueStyle::Integer, Semantic);
+	}
+
+	void AddPercentLine(
+		TArray<FGridTalentDetailLineView>& Lines,
+		FName LabelTextId,
+		int32 Value,
+		EGridTalentDetailLineSemantic Semantic = EGridTalentDetailLineSemantic::None)
+	{
+		AddNumericLine(Lines, LabelTextId, Value, EGridTalentDetailValueStyle::Percent, Semantic);
 	}
 
 	void AddSignedValueLine(TArray<FGridTalentDetailLineView>& Lines, FName LabelTextId, int32 Value)
 	{
 		if (Value != 0)
 		{
-			AddDetailLine(Lines, LabelTextId, FString::Printf(TEXT("%+d"), Value));
+			AddNumericLine(Lines, LabelTextId, Value, EGridTalentDetailValueStyle::SignedInteger);
 		}
 	}
 
@@ -373,7 +394,7 @@ namespace
 	{
 		if (Value != 0)
 		{
-			AddDetailLine(Lines, LabelTextId, FString::Printf(TEXT("%+d %%"), Value));
+			AddNumericLine(Lines, LabelTextId, Value, EGridTalentDetailValueStyle::SignedPercent);
 		}
 	}
 
@@ -390,11 +411,11 @@ namespace
 			}
 			if (Skill.CheckModifier != 0)
 			{
-				AddDetailNumberLine(Out, TEXT("Talent.Skill.CheckModifier"), Skill.CheckModifier);
+				AddSignedValueLine(Out, TEXT("Talent.Skill.CheckModifier"), Skill.CheckModifier);
 			}
 			if (Skill.RequirementGrantRankModifier > 0)
 			{
-				AddDetailNumberLine(
+				AddSignedValueLine(
 					Out,
 					TEXT("Talent.Skill.RequirementGrantRankModifier"),
 					Skill.RequirementGrantRankModifier);
@@ -438,14 +459,14 @@ namespace
 			}
 			if (Party.GroupSkillCheckModifier != 0)
 			{
-				AddDetailNumberLine(
+				AddSignedValueLine(
 					Out,
 					TEXT("Talent.Party.GroupSkillCheckModifier"),
 					Party.GroupSkillCheckModifier);
 			}
 			if (Party.MaximumMobilityActionPointsModifier != 0)
 			{
-				AddDetailNumberLine(
+				AddSignedValueLine(
 					Out,
 					TEXT("Talent.Party.MaximumMobilityActionPointsModifier"),
 					Party.MaximumMobilityActionPointsModifier);
@@ -454,7 +475,7 @@ namespace
 
 		if (Choice.FirstRoundInitiativeModifier != 0)
 		{
-			AddDetailNumberLine(
+			AddSignedValueLine(
 				Out,
 				TEXT("Talent.Effect.FirstRoundInitiative"),
 				Choice.FirstRoundInitiativeModifier);
@@ -513,7 +534,7 @@ namespace
 
 			if (Reaction.CounterAttackWeaponProfile.bUseEquippedWeapon)
 			{
-				AddDetailNumberLine(
+				AddPercentLine(
 					Out,
 					TEXT("Talent.Reaction.CounterAttackWeaponDamagePercent"),
 					Reaction.CounterAttackWeaponProfile.WeaponDamagePercent);
@@ -524,21 +545,21 @@ namespace
 			}
 			if (Reaction.InterceptFinalDamagePercent > 0)
 			{
-				AddDetailNumberLine(
+				AddPercentLine(
 					Out,
 					TEXT("Talent.Reaction.InterceptFinalDamagePercent"),
 					Reaction.InterceptFinalDamagePercent);
 			}
 			if (Reaction.SurfaceReactionDamagePercentModifier != 0)
 			{
-				AddDetailNumberLine(
+				AddSignedPercentLine(
 					Out,
 					TEXT("Talent.Reaction.SurfaceDamagePercentModifier"),
 					Reaction.SurfaceReactionDamagePercentModifier);
 			}
 			if (Reaction.SurfaceReactionAreaRadiusModifier != 0)
 			{
-				AddDetailNumberLine(
+				AddSignedValueLine(
 					Out,
 					TEXT("Talent.Reaction.SurfaceRadiusModifier"),
 					Reaction.SurfaceReactionAreaRadiusModifier);
@@ -708,7 +729,7 @@ namespace
 			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Arcane"), Modifier.ResistanceModifiers.ArcaneResistance);
 			if (Modifier.MinimumManaCost > 0)
 			{
-				AddDetailLine(Out, TEXT("Talent.Effect.MinimumManaCost"), FString::FromInt(Modifier.MinimumManaCost));
+				AddDetailNumberLine(Out, TEXT("Talent.Effect.MinimumManaCost"), Modifier.MinimumManaCost);
 			}
 		}
 	}
