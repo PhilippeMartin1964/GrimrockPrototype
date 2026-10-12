@@ -721,6 +721,8 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	Node.TalentNodeId = TEXT("StaticSections");
 	Node.TalentBranchId = TEXT("StaticBranch");
 	Node.DisplayName = FText::FromString(TEXT("Talent statique"));
+	Node.Type = ERPGTalentPresentationType::ActiveSpell;
+	Node.State = EGridTalentNodeState::Available;
 	Node.Principle = FText::FromString(TEXT("Principe déjà résolu."));
 	Node.Acquisition.MinimumLevel = 3;
 	Node.Acquisition.PointCost = 2;
@@ -738,11 +740,22 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	Node.Usage.Add(Usage);
 
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
-	TestTrue(TEXT("Static section detail initializes"),
-		Detail->InitializeTalentDetail(Node, UIRPGDESC01Tests::MakeBranch(Node.TalentBranchId)));
+	const bool bInitialized =
+		Detail->InitializeTalentDetail(Node, UIRPGDESC01Tests::MakeBranch(Node.TalentBranchId));
+	TestTrue(TEXT("Static section detail initializes"), bInitialized);
+	if (!bInitialized)
+	{
+		return false;
+	}
 	TestEqual(TEXT("TYPE semantic is exposed independently"), Detail->NodeView.Type, ERPGTalentPresentationType::ActiveSpell);
 	TestEqual(TEXT("STATUS semantic is exposed independently"), Detail->NodeView.State, EGridTalentNodeState::Available);
 	TestEqual(TEXT("PRINCIPE is exposed independently"), Detail->ResolvedPrincipleText.ToString(), FString(TEXT("Principe déjà résolu.")));
+	TestEqual(TEXT("One EFFETS row remains structured"), Detail->NodeView.Effects.Num(), 1);
+	TestEqual(TEXT("One UTILISATION row remains structured"), Detail->NodeView.Usage.Num(), 1);
+	if (Detail->NodeView.Effects.Num() != 1 || Detail->NodeView.Usage.Num() != 1)
+	{
+		return false;
+	}
 	TestEqual(TEXT("EFFETS remain structured"), Detail->NodeView.Effects[0].Value.ToString(), FString(TEXT("10")));
 	TestEqual(TEXT("UTILISATION remains structured"), Detail->NodeView.Usage[0].Value.ToString(), FString(TEXT("5")));
 	TestEqual(TEXT("ACQUISITION keeps canonical level"), Detail->NodeView.Acquisition.MinimumLevel, 3);
