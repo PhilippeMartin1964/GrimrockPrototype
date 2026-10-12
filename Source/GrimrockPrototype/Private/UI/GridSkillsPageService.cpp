@@ -174,22 +174,6 @@ namespace
 		return HumanizeId(CategoryId);
 	}
 
-	FString DamageTypeLabel(EGridDamageType Type)
-	{
-		switch (Type)
-		{
-			case EGridDamageType::Physical: return TEXT("physiques");
-			case EGridDamageType::Fire: return TEXT("de feu");
-			case EGridDamageType::Ice: return TEXT("de glace");
-			case EGridDamageType::Lightning: return TEXT("de foudre");
-			case EGridDamageType::Poison: return TEXT("de poison");
-			case EGridDamageType::Holy: return TEXT("sacrés");
-			case EGridDamageType::Necrotic: return TEXT("nécrotiques");
-			case EGridDamageType::Arcane: return TEXT("arcaniques");
-			default: return TEXT("inconnus");
-		}
-	}
-
 	FName PhysicalSubtypeTextId(EGridPhysicalDamageSubtype Type)
 	{
 		switch (Type)
@@ -242,29 +226,30 @@ namespace
 		}
 	}
 
-	FString ReactionTriggerLabel(EGridCombatReactionTrigger Trigger)
+	FName ReactionTriggerTextId(EGridCombatReactionTrigger Trigger)
 	{
 		switch (Trigger)
 		{
-			case EGridCombatReactionTrigger::ActionResolved: return TEXT("après résolution d'une action");
-			case EGridCombatReactionTrigger::AttackHit: return TEXT("après une attaque réussie");
-			case EGridCombatReactionTrigger::AttackMiss: return TEXT("après une attaque manquée");
-			case EGridCombatReactionTrigger::TargetDefeated: return TEXT("lorsqu'une cible est vaincue");
-			case EGridCombatReactionTrigger::DirectDamageReceived: return TEXT("après avoir subi des dégâts directs");
-			case EGridCombatReactionTrigger::SurfaceReaction: return TEXT("lors d'une réaction de surface");
-			case EGridCombatReactionTrigger::IncomingAttackHit: return TEXT("lorsqu'une attaque entrante touche");
-			case EGridCombatReactionTrigger::OwnedStatusTargetDefeated: return TEXT("lorsqu'une cible affectée par votre statut est vaincue");
-			default: return TEXT("réaction");
+			case EGridCombatReactionTrigger::ActionResolved: return TEXT("Talent.Reaction.Trigger.ActionResolved");
+			case EGridCombatReactionTrigger::AttackHit: return TEXT("Talent.Reaction.Trigger.AttackHit");
+			case EGridCombatReactionTrigger::AttackMiss: return TEXT("Talent.Reaction.Trigger.AttackMiss");
+			case EGridCombatReactionTrigger::TargetDefeated: return TEXT("Talent.Reaction.Trigger.TargetDefeated");
+			case EGridCombatReactionTrigger::DirectDamageReceived: return TEXT("Talent.Reaction.Trigger.DirectDamageReceived");
+			case EGridCombatReactionTrigger::SurfaceReaction: return TEXT("Talent.Reaction.Trigger.SurfaceReaction");
+			case EGridCombatReactionTrigger::IncomingAttackHit: return TEXT("Talent.Reaction.Trigger.IncomingAttackHit");
+			case EGridCombatReactionTrigger::OwnedStatusTargetDefeated: return TEXT("Talent.Reaction.Trigger.OwnedStatusTargetDefeated");
+			default: return NAME_None;
 		}
 	}
 
-	FString ReactionLimitLabel(EGridCombatReactionLimit Limit)
+	FName ReactionLimitTextId(EGridCombatReactionLimit Limit)
 	{
 		switch (Limit)
 		{
-			case EGridCombatReactionLimit::OncePerRound: return TEXT("une fois par round");
-			case EGridCombatReactionLimit::OncePerAction: return TEXT("une fois par action");
-			default: return TEXT("sans limite spéciale");
+			case EGridCombatReactionLimit::Unlimited: return TEXT("Talent.Reaction.Limit.Unlimited");
+			case EGridCombatReactionLimit::OncePerRound: return TEXT("Talent.Reaction.Limit.OncePerRound");
+			case EGridCombatReactionLimit::OncePerAction: return TEXT("Talent.Reaction.Limit.OncePerAction");
+			default: return NAME_None;
 		}
 	}
 
@@ -282,36 +267,6 @@ namespace
 	FText BuildMechanicsSummary(const FRPGClassProgressionChoiceDefinition& Choice)
 	{
 		TArray<FString> Lines;
-
-		for (const FGridCombatReactionProfile& Reaction : Choice.CombatReactions)
-		{
-			TArray<FString> Response;
-			if (Reaction.CounterAttackWeaponProfile.bUseEquippedWeapon)
-			{
-				Response.Add(FString::Printf(TEXT("contre-attaque à %d %% des dégâts de l'arme, portée %d"),
-					Reaction.CounterAttackWeaponProfile.WeaponDamagePercent, Reaction.CounterAttackRangeCells));
-			}
-			if (Reaction.InterceptFinalDamagePercent > 0)
-				Response.Add(FString::Printf(TEXT("redirige %d %% des dégâts finaux"), Reaction.InterceptFinalDamagePercent));
-			AppendSignedPercent(Response, TEXT("dégâts de réaction de surface"), Reaction.SurfaceReactionDamagePercentModifier);
-			AppendSignedValue(Response, TEXT("rayon de réaction de surface"), Reaction.SurfaceReactionAreaRadiusModifier);
-			if (Reaction.SecondaryDirectDamage > 0)
-				Response.Add(FString::Printf(TEXT("%d dégâts directs %s"), Reaction.SecondaryDirectDamage, *DamageTypeLabel(Reaction.SecondaryDirectDamageType)));
-			if (!Reaction.ApplyOwnerStatusEffectId.IsNone())
-			{
-				FString Status = TEXT("applique ") + HumanizeId(Reaction.ApplyOwnerStatusEffectId);
-				if (Reaction.ApplyOwnerStatusDurationOverride >= 0)
-					Status += FString::Printf(TEXT(" pendant %d tour%s"), Reaction.ApplyOwnerStatusDurationOverride, Reaction.ApplyOwnerStatusDurationOverride > 1 ? TEXT("s") : TEXT(""));
-				Response.Add(Status);
-			}
-			if (!Reaction.TransferOwnedTargetStatusEffectId.IsNone())
-				Response.Add(TEXT("transfère ") + HumanizeId(Reaction.TransferOwnedTargetStatusEffectId) +
-					FString::Printf(TEXT(" vers une cible à %d case%s"), Reaction.TransferTargetRangeCells, Reaction.TransferTargetRangeCells > 1 ? TEXT("s") : TEXT("")));
-			if (Reaction.bConsumeOwningStatus) Response.Add(TEXT("consomme le statut déclencheur"));
-			FString Line = TEXT("• ") + ReactionTriggerLabel(Reaction.Trigger) + TEXT(", ") + ReactionLimitLabel(Reaction.Limit);
-			if (!Response.IsEmpty()) Line += TEXT(" → ") + FString::Join(Response, TEXT(" ; "));
-			Lines.Add(Line);
-		}
 
 		for (const FRPGSkillProgressionModifier& Skill : Choice.SkillModifiers)
 		{
@@ -487,6 +442,152 @@ namespace
 		if (Value != 0)
 		{
 			AddDetailLine(Lines, LabelTextId, FString::Printf(TEXT("%+d %%"), Value));
+		}
+	}
+
+	void AddStatusDurationLine(
+		TArray<FGridTalentDetailLineView>& Lines,
+		const UGridStatusEffectDefinitionAsset& Definition,
+		int32 DurationOverride,
+		FName TurnsLabelTextId,
+		FName RoundsLabelTextId,
+		FName PermanentLabelTextId)
+	{
+		const int32 Duration =
+			DurationOverride == INDEX_NONE ? Definition.DefaultDuration : DurationOverride;
+		switch (Definition.DurationUnit)
+		{
+			case EGridStatusEffectDurationUnit::Turns:
+				AddDetailNumberLine(Lines, TurnsLabelTextId, Duration);
+				break;
+			case EGridStatusEffectDurationUnit::Rounds:
+				AddDetailNumberLine(Lines, RoundsLabelTextId, Duration);
+				break;
+			case EGridStatusEffectDurationUnit::Permanent:
+				AddDetailTextLine(Lines, PermanentLabelTextId, TEXT("Talent.Value.Permanent"));
+				break;
+			default:
+				break;
+		}
+	}
+
+	void AddResolvedStatusLine(
+		TArray<FGridTalentDetailLineView>& Lines,
+		FName LabelTextId,
+		FName StatusEffectId,
+		const UGridStatusEffectDefinitionAsset*& OutDefinition)
+	{
+		OutDefinition = FGridStatusEffectPersistence::ResolveDefinitionByEffectId(StatusEffectId);
+		if (IsValid(OutDefinition) && !OutDefinition->DisplayName.IsEmpty())
+		{
+			AddDetailLine(Lines, LabelTextId, OutDefinition->DisplayName.ToString());
+		}
+	}
+
+	void BuildStructuredReactionEffects(
+		const FRPGClassProgressionChoiceDefinition& Choice,
+		TArray<FGridTalentDetailLineView>& Out)
+	{
+		for (const FGridCombatReactionProfile& Reaction : Choice.CombatReactions)
+		{
+			AddDetailTextLine(
+				Out, TEXT("Talent.Reaction.Trigger"), ReactionTriggerTextId(Reaction.Trigger));
+			AddDetailTextLine(
+				Out, TEXT("Talent.Reaction.Limit"), ReactionLimitTextId(Reaction.Limit));
+
+			if (Reaction.CounterAttackWeaponProfile.bUseEquippedWeapon)
+			{
+				AddDetailNumberLine(
+					Out,
+					TEXT("Talent.Reaction.CounterAttackWeaponDamagePercent"),
+					Reaction.CounterAttackWeaponProfile.WeaponDamagePercent);
+				AddDetailNumberLine(
+					Out,
+					TEXT("Talent.Reaction.CounterAttackRangeCells"),
+					Reaction.CounterAttackRangeCells);
+			}
+			if (Reaction.InterceptFinalDamagePercent > 0)
+			{
+				AddDetailNumberLine(
+					Out,
+					TEXT("Talent.Reaction.InterceptFinalDamagePercent"),
+					Reaction.InterceptFinalDamagePercent);
+			}
+			if (Reaction.SurfaceReactionDamagePercentModifier != 0)
+			{
+				AddDetailNumberLine(
+					Out,
+					TEXT("Talent.Reaction.SurfaceDamagePercentModifier"),
+					Reaction.SurfaceReactionDamagePercentModifier);
+			}
+			if (Reaction.SurfaceReactionAreaRadiusModifier != 0)
+			{
+				AddDetailNumberLine(
+					Out,
+					TEXT("Talent.Reaction.SurfaceRadiusModifier"),
+					Reaction.SurfaceReactionAreaRadiusModifier);
+			}
+			if (Reaction.SecondaryDirectDamage > 0)
+			{
+				AddDetailNumberLine(
+					Out,
+					TEXT("Talent.Reaction.SecondaryDirectDamage"),
+					Reaction.SecondaryDirectDamage);
+				AddDetailTextLine(
+					Out,
+					TEXT("Talent.Reaction.SecondaryDamageType"),
+					DamageTypeTextId(Reaction.SecondaryDirectDamageType));
+			}
+
+			if (!Reaction.ApplyOwnerStatusEffectId.IsNone())
+			{
+				const UGridStatusEffectDefinitionAsset* Definition = nullptr;
+				AddResolvedStatusLine(
+					Out,
+					TEXT("Talent.Reaction.ApplyOwnerStatus"),
+					Reaction.ApplyOwnerStatusEffectId,
+					Definition);
+				if (IsValid(Definition))
+				{
+					AddStatusDurationLine(
+						Out,
+						*Definition,
+						Reaction.ApplyOwnerStatusDurationOverride,
+						TEXT("Talent.Reaction.ApplyOwnerStatusDurationTurns"),
+						TEXT("Talent.Reaction.ApplyOwnerStatusDurationRounds"),
+						TEXT("Talent.Reaction.ApplyOwnerStatusDuration"));
+				}
+			}
+
+			if (!Reaction.TransferOwnedTargetStatusEffectId.IsNone())
+			{
+				const UGridStatusEffectDefinitionAsset* Definition = nullptr;
+				AddResolvedStatusLine(
+					Out,
+					TEXT("Talent.Reaction.TransferStatus"),
+					Reaction.TransferOwnedTargetStatusEffectId,
+					Definition);
+				AddDetailNumberLine(
+					Out,
+					TEXT("Talent.Reaction.TransferRangeCells"),
+					Reaction.TransferTargetRangeCells);
+				if (IsValid(Definition))
+				{
+					AddStatusDurationLine(
+						Out,
+						*Definition,
+						Reaction.TransferStatusDurationOverride,
+						TEXT("Talent.Reaction.TransferStatusDurationTurns"),
+						TEXT("Talent.Reaction.TransferStatusDurationRounds"),
+						TEXT("Talent.Reaction.TransferStatusDuration"));
+				}
+			}
+
+			if (Reaction.bConsumeOwningStatus)
+			{
+				AddDetailTextLine(
+					Out, NAME_None, TEXT("Talent.Reaction.ConsumeOwningStatus"));
+			}
 		}
 	}
 
@@ -832,22 +933,6 @@ namespace
 		return FText::FromString(Text);
 	}
 
-	FString StatusDurationText(const UGridStatusEffectDefinitionAsset& Definition, int32 DurationOverride)
-	{
-		const int32 Duration = DurationOverride == INDEX_NONE ? Definition.DefaultDuration : DurationOverride;
-		switch (Definition.DurationUnit)
-		{
-			case EGridStatusEffectDurationUnit::Turns:
-				return Plural(Duration, TEXT("tour"), TEXT("tours"));
-			case EGridStatusEffectDurationUnit::Rounds:
-				return Plural(Duration, TEXT("round"), TEXT("rounds"));
-			case EGridStatusEffectDurationUnit::Permanent:
-				return TEXT("permanent");
-			default:
-				return FString();
-		}
-	}
-
 	void AddStatusApplicationEffect(
 		const FGridCombatStatusApplicationProfile& Profile,
 		TArray<FGridTalentDetailLineView>& Out)
@@ -873,21 +958,25 @@ namespace
 			LabelTextId = TEXT("Talent.Detail.Status.AfterSuccessfulHit");
 		}
 
-		FString Value = Definition->DisplayName.ToString();
-		const FString Duration = StatusDurationText(*Definition, Profile.DurationOverride);
-		if (!Duration.IsEmpty())
-		{
-			Value += TEXT(" — ") + Duration;
-		}
+		AddDetailLine(Out, LabelTextId, Definition->DisplayName.ToString());
+		AddStatusDurationLine(
+			Out,
+			*Definition,
+			Profile.DurationOverride,
+			TEXT("Talent.Detail.StatusDurationTurns"),
+			TEXT("Talent.Detail.StatusDurationRounds"),
+			TEXT("Talent.Detail.StatusDuration"));
+
 		if (Profile.InitialStackCount > 1)
 		{
-			Value += FString::Printf(TEXT(" — %d charges"), Profile.InitialStackCount);
+			AddDetailNumberLine(
+				Out, TEXT("Talent.Detail.StatusCharges"), Profile.InitialStackCount);
 		}
 		if (!Definition->Description.IsEmpty())
 		{
-			Value += TEXT(" — ") + Definition->Description.ToString();
+			AddDetailLine(
+				Out, TEXT("Talent.Detail.StatusDescription"), Definition->Description.ToString());
 		}
-		AddDetailLine(Out, LabelTextId, Value);
 	}
 
 	void BuildStructuredEffects(
@@ -897,6 +986,7 @@ namespace
 	{
 		Out.Reset();
 		BuildStructuredCombatModifierEffects(Choice, Out);
+		BuildStructuredReactionEffects(Choice, Out);
 		const FString Mechanics = BuildMechanicsSummary(Choice).ToString();
 		TArray<FString> Lines;
 		Mechanics.ParseIntoArrayLines(Lines, true);

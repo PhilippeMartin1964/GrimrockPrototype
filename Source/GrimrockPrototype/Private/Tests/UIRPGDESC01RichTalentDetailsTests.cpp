@@ -487,10 +487,29 @@ bool FUIRPGDESC01ReactionMechanicsTest::RunTest(const FString&)
 	TestEqual(TEXT("Reaction Talent TYPE is explicit"), Node.Type, ERPGTalentPresentationType::AutomaticReaction);
 	TestEqual(TEXT("Reaction TYPE label is canonical"), Node.TypeText.ToString(), FString(TEXT("RÉACTION AUTOMATIQUE")));
 	TestTrue(TEXT("Automatic reaction exposes no voluntary UTILISATION"), Node.Usage.IsEmpty());
-	const FString Effects = JoinDetailLines(Node.Effects);
-	TestTrue(TEXT("Reaction trigger is readable"), Effects.Contains(TEXT("attaque entrante touche")));
-	TestTrue(TEXT("Reaction limit is readable"), Effects.Contains(TEXT("une fois par round")));
-	TestTrue(TEXT("Reaction response is readable"), Effects.Contains(TEXT("redirige 50 %")));
+	TestTrue(TEXT("Reaction trigger wording is data-driven"),
+		Node.Effects.ContainsByPredicate(
+			[](const FGridTalentDetailLineView& Line)
+			{
+				return Line.LabelTextId == TEXT("Talent.Reaction.Trigger") &&
+					Line.ValueTextId == TEXT("Talent.Reaction.Trigger.IncomingAttackHit") &&
+					Line.Value.IsEmpty();
+			}));
+	TestTrue(TEXT("Reaction limit wording is data-driven"),
+		Node.Effects.ContainsByPredicate(
+			[](const FGridTalentDetailLineView& Line)
+			{
+				return Line.LabelTextId == TEXT("Talent.Reaction.Limit") &&
+					Line.ValueTextId == TEXT("Talent.Reaction.Limit.OncePerRound") &&
+					Line.Value.IsEmpty();
+			}));
+	TestTrue(TEXT("Reaction response keeps raw numeric data"),
+		Node.Effects.ContainsByPredicate(
+			[](const FGridTalentDetailLineView& Line)
+			{
+				return Line.LabelTextId == TEXT("Talent.Reaction.InterceptFinalDamagePercent") &&
+					Line.Value.ToString() == TEXT("50");
+			}));
 	return true;
 }
 
@@ -736,17 +755,35 @@ bool FUIRPGDESC01152CStatusActionEffectsTest::RunTest(const FString&)
 	TestTrue(TEXT("PRINCIPE resolves canonical status DisplayName"), Node.Principle.ToString().Contains(TEXT("Garde")));
 	TestFalse(TEXT("PRINCIPE never leaks raw status ids"), Node.Principle.ToString().Contains(TEXT("Status_Guarded")));
 
-	bool bSawGuardEffect = false;
 	for (const FGridTalentDetailLineView& Line : Node.Effects)
 	{
-		const FString Text = Line.LabelTextId.ToString() + TEXT(" ") + Line.Value.ToString();
-		TestFalse(TEXT("EFFETS never leaks raw status ids"), Text.Contains(TEXT("Status_")));
-		if (Text.Contains(TEXT("Garde")) && Text.Contains(TEXT("2 rounds")))
-		{
-			bSawGuardEffect = true;
-		}
+		const FString Text =
+			Line.LabelTextId.ToString() + TEXT(" ") +
+			Line.ValueTextId.ToString() + TEXT(" ") +
+			Line.Value.ToString();
+		TestFalse(TEXT("EFFETS never leaks raw status ids"), Text.Contains(TEXT("Status_Guarded")));
 	}
-	TestTrue(TEXT("Action StatusApplications are projected into EFFETS"), bSawGuardEffect);
+	TestTrue(TEXT("Status name is projected as authored content"),
+		Node.Effects.ContainsByPredicate(
+			[](const FGridTalentDetailLineView& Line)
+			{
+				return Line.LabelTextId == TEXT("Talent.Detail.Status") &&
+					Line.Value.ToString().Contains(TEXT("Garde"));
+			}));
+	TestTrue(TEXT("Status duration is projected as raw numeric data"),
+		Node.Effects.ContainsByPredicate(
+			[](const FGridTalentDetailLineView& Line)
+			{
+				return Line.LabelTextId == TEXT("Talent.Detail.StatusDurationRounds") &&
+					Line.Value.ToString() == TEXT("2");
+			}));
+	TestTrue(TEXT("Status description remains authored content"),
+		Node.Effects.ContainsByPredicate(
+			[](const FGridTalentDetailLineView& Line)
+			{
+				return Line.LabelTextId == TEXT("Talent.Detail.StatusDescription") &&
+					!Line.Value.IsEmpty();
+			}));
 	return true;
 }
 
