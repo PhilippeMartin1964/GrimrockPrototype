@@ -644,8 +644,9 @@ bool FRPGRangerAuthoring::ConfigureMarkedStatus(UGridStatusEffectDefinitionAsset
 	const bool bConfigured = [&]()
 	{
 	StatusAsset.EffectId = RPGRangerAuthoring::MarkStatusId;
-	StatusAsset.DisplayName = FText::FromString(TEXT("Marqué par un Rôdeur"));
-	StatusAsset.Description = FText::FromString(TEXT("Marque personnelle d'un Rôdeur ; plusieurs sources peuvent coexister sur une même cible."));
+	StatusAsset.DisplayName = FText::FromName(CanonicalEffectId);
+	StatusAsset.Description = FText::FromString(
+		FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *CanonicalEffectId.ToString()));
 	StatusAsset.StatusTags = { TEXT("Marked") };
 	StatusAsset.Icon.Reset();
 	StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;

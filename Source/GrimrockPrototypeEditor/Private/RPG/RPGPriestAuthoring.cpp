@@ -527,6 +527,9 @@ bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Stat
 	using namespace RPGPriestAuthoring;
 
 	StatusAsset.EffectId = EffectId;
+	StatusAsset.DisplayName = FText::FromName(CanonicalEffectId);
+	StatusAsset.Description = FText::FromString(
+		FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *CanonicalEffectId.ToString()));
 	StatusAsset.StatusTags.Reset();
 	StatusAsset.Icon.Reset();
 	StatusAsset.DefaultPotency = 0;
@@ -544,8 +547,6 @@ bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Stat
 
 	if (EffectId == RegenerationStatusId)
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Régénération"));
-		StatusAsset.Description = FText::FromString(TEXT("Rend 3 + modificateur de SAG du Prêtre source à la fin de chaque activation."));
 		StatusAsset.StatusTags = { TEXT("Dispel.Magical") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
@@ -559,8 +560,6 @@ bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Stat
 
 	if (EffectId == BlessedStatusId)
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Bénédiction"));
-		StatusAsset.Description = FText::FromString(TEXT("+2 Précision et +4 Initiative pendant 2 rounds."));
 		StatusAsset.StatusTags = { TEXT("Dispel.Magical") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
@@ -574,8 +573,6 @@ bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Stat
 
 	if (EffectId == HolyProtectionStatusId)
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Protection sacrée"));
-		StatusAsset.Description = FText::FromString(TEXT("+25 % résistances Sacré/Nécrotique/Arcane et +2 Esquive contre les sorts ciblés."));
 		StatusAsset.StatusTags = { TEXT("Dispel.Magical") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
@@ -593,8 +590,6 @@ bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Stat
 
 	if (EffectId == SanctuaryStatusId)
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Sanctuaire"));
-		StatusAsset.Description = FText::FromString(TEXT("Bloque le ciblage hostile direct jusqu'à la prochaine activation ou jusqu'à ce que le bénéficiaire inflige des dégâts."));
 		StatusAsset.StatusTags = { TEXT("Dispel.Magical") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
@@ -615,8 +610,6 @@ bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Stat
 
 	if (EffectId == DivineBastionStatusId)
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Bastion divin"));
-		StatusAsset.Description = FText::FromString(TEXT("Réduit de 20 % les dégâts non physiques reçus pendant 2 rounds."));
 		StatusAsset.StatusTags = { TEXT("Dispel.Magical") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
@@ -633,8 +626,6 @@ bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Stat
 
 	if (EffectId == TurnedUndeadStatusId)
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Repoussé"));
-		StatusAsset.Description = FText::FromString(TEXT("Initiative -4 pendant 1 round après Repousser les morts-vivants."));
 		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Control.Fear") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
@@ -645,8 +636,6 @@ bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Stat
 
 	if (EffectId == BanishedStatusId)
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Banni"));
-		StatusAsset.Description = FText::FromString(TEXT("La prochaine activation est ignorée."));
 		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Control.Banish") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;

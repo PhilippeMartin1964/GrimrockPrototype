@@ -490,4 +490,72 @@ bool FUIRPGCONTENTTEXT032StatusTextPreservationTest::RunTest(const FString&)
 	return true;
 }
 
+
+/**
+ * UI-RPG-CONTENT-TEXT03.3 proves that fresh status records receive technical
+ * bootstrap text only. Existing records are covered by TEXT03.2 preservation;
+ * C++ owns mechanics and stable EffectId, not player-facing status prose.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT033StatusBootstrapOnlyTest,
+	"Grimrock.UI.RPG.CONTENTTEXT03.BootstrapOnly",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT033StatusBootstrapOnlyTest::RunTest(const FString&)
+{
+	using namespace UIRPGCONTENTTEXT031;
+
+	TArray<FStatusAuditSpec> Specs;
+	CollectStatusSpecs(Specs);
+
+	int32 BootstrapStatusCount = 0;
+	for (const FStatusAuditSpec& Spec : Specs)
+	{
+		UGridStatusEffectDefinitionAsset* Fresh =
+			NewObject<UGridStatusEffectDefinitionAsset>(GetTransientPackage());
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s fresh status bootstrap object is created"), *Spec.EffectId.ToString()),
+				Fresh))
+		{
+			continue;
+		}
+
+		if (!TestTrue(
+				*FString::Printf(TEXT("%s fresh status mechanics can be authored"), *Spec.EffectId.ToString()),
+				ConfigureStatus(Spec, *Fresh)))
+		{
+			continue;
+		}
+
+		const FString StableEffectId = Spec.EffectId.ToString();
+		TestEqual(
+			*FString::Printf(TEXT("%s bootstrap DisplayName is its stable EffectId"), *StableEffectId),
+			Fresh->DisplayName.ToString(),
+			StableEffectId);
+		TestEqual(
+			*FString::Printf(TEXT("%s bootstrap Description is technical only"), *StableEffectId),
+			Fresh->Description.ToString(),
+			FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *StableEffectId));
+		TestEqual(
+			*FString::Printf(TEXT("%s bootstrap keeps canonical EffectId"), *StableEffectId),
+			Fresh->EffectId,
+			Spec.EffectId);
+		TestTrue(
+			*FString::Printf(TEXT("%s bootstrap status remains structurally valid"), *StableEffectId),
+			Fresh->IsValidDefinition());
+
+		++BootstrapStatusCount;
+	}
+
+	TestEqual(TEXT("Bootstrap-only audit covers all thirty-two production status definitions"), BootstrapStatusCount, 32);
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("[UI-RPG-CONTENT-TEXT03.3][SUMMARY] BootstrapStatuses=%d"),
+		BootstrapStatusCount);
+
+	return true;
+}
+
 #endif

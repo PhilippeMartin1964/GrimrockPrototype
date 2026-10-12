@@ -690,6 +690,9 @@ bool FRPGMageAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Status
 	using namespace RPGMageAuthoring;
 
 	StatusAsset.EffectId = EffectId;
+	StatusAsset.DisplayName = FText::FromName(CanonicalEffectId);
+	StatusAsset.Description = FText::FromString(
+		FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *CanonicalEffectId.ToString()));
 	StatusAsset.StatusTags.Reset();
 	StatusAsset.Icon.Reset();
 	StatusAsset.DefaultPotency = 0;
@@ -706,9 +709,6 @@ bool FRPGMageAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Status
 
 	if (EffectId == ElementalOverloadStatusId)
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Surcharge élémentaire"));
-		StatusAsset.Description =
-			FText::FromString(TEXT("Le prochain sort correspondant à l'affinité élémentaire inflige +35 % de dégâts puis consomme cet effet."));
 		StatusAsset.StatusTags = { TEXT("Dispel.Magical") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
@@ -742,9 +742,6 @@ bool FRPGMageAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Status
 
 	if (EffectId == ElementalImbuementStatusId)
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Imprégnation élémentaire"));
-		StatusAsset.Description =
-			FText::FromString(TEXT("La prochaine attaque d'arme ajoute 3 + modificateur d'INT du Mage source en dégâts de son affinité, puis consomme cet effet."));
 		StatusAsset.StatusTags = { TEXT("Dispel.Magical"), TEXT("Elemental.Imbuement") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
@@ -773,8 +770,6 @@ bool FRPGMageAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Status
 
 	if (EffectId == BurningStatusId)
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Brûlure"));
-		StatusAsset.Description = FText::FromString(TEXT("Subit 2 dégâts de Feu à chaque déclenchement périodique pendant 2 tours."));
 		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Elemental.Fire") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
@@ -786,8 +781,6 @@ bool FRPGMageAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Status
 
 	if (EffectId == SlowStatusId)
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Ralenti"));
-		StatusAsset.Description = FText::FromString(TEXT("Initiative -6 pendant 2 rounds."));
 		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Control.Magical"), TEXT("Control.Slow") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;

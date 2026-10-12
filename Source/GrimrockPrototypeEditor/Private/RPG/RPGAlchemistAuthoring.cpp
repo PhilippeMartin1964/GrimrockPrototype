@@ -712,6 +712,9 @@ bool FRPGAlchemistAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& S
 	{
 	using namespace RPGAlchemistAuthoring;
 	StatusAsset.EffectId = EffectId;
+	StatusAsset.DisplayName = FText::FromName(CanonicalEffectId);
+	StatusAsset.Description = FText::FromString(
+		FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *CanonicalEffectId.ToString()));
 	StatusAsset.StatusTags.Reset();
 	StatusAsset.Icon.Reset();
 	StatusAsset.DefaultPotency = 0;
@@ -729,8 +732,6 @@ bool FRPGAlchemistAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& S
 
 	if (EffectId == PoisonStatus)
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Poison"));
-		StatusAsset.Description = FText::FromString(TEXT("Subit 2 dégâts de Poison à chaque déclenchement périodique pendant 3 tours."));
 		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Toxin"), TEXT("Elemental.Poison") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
@@ -741,15 +742,14 @@ bool FRPGAlchemistAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& S
 	}
 
 	FGridDamageResistanceSet Resistance;
-	const TCHAR* Name = nullptr;
-	if (EffectId == DefensiveFireStatus) { Resistance.FireResistance = 25; Name = TEXT("Élixir défensif — Feu"); }
-	else if (EffectId == DefensiveIceStatus) { Resistance.IceResistance = 25; Name = TEXT("Élixir défensif — Glace"); }
-	else if (EffectId == DefensiveLightningStatus) { Resistance.LightningResistance = 25; Name = TEXT("Élixir défensif — Foudre"); }
-	else if (EffectId == DefensivePoisonStatus) { Resistance.PoisonResistance = 25; Name = TEXT("Élixir défensif — Poison"); }
-	if (Name)
+	bool bDefensiveStatus = true;
+	if (EffectId == DefensiveFireStatus) { Resistance.FireResistance = 25; }
+	else if (EffectId == DefensiveIceStatus) { Resistance.IceResistance = 25; }
+	else if (EffectId == DefensiveLightningStatus) { Resistance.LightningResistance = 25; }
+	else if (EffectId == DefensivePoisonStatus) { Resistance.PoisonResistance = 25; }
+	else { bDefensiveStatus = false; }
+	if (bDefensiveStatus)
 	{
-		StatusAsset.DisplayName = FText::FromString(Name);
-		StatusAsset.Description = FText::FromString(TEXT("+25 % de résistance élémentaire pendant 3 rounds."));
 		StatusAsset.StatusTags = { TEXT("Dispel.Magical") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
@@ -761,8 +761,6 @@ bool FRPGAlchemistAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& S
 	}
 	if (EffectId == CorrodedStatus)
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Corrodé"));
-		StatusAsset.Description = FText::FromString(TEXT("Les restaurations d'armure physique reçues sont réduites de 20 % pendant 2 rounds."));
 		StatusAsset.StatusTags = { TEXT("Purifiable"), TEXT("Dispel.Magical"), TEXT("Corrosion") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;

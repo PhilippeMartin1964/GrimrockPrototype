@@ -440,6 +440,9 @@ bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Sta
 	const bool bConfigured = [&]()
 	{
 	StatusAsset.EffectId = EffectId;
+	StatusAsset.DisplayName = FText::FromName(CanonicalEffectId);
+	StatusAsset.Description = FText::FromString(
+		FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *CanonicalEffectId.ToString()));
 	StatusAsset.StatusTags.Reset();
 	StatusAsset.Icon.Reset();
 	StatusAsset.DefaultPotency = 0;
@@ -453,8 +456,6 @@ bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Sta
 
 	if (EffectId == TEXT("Status_Guarded"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Garde"));
-		StatusAsset.Description = FText::FromString(TEXT("Dégâts physiques reçus -20 %, Esquive +2, dégâts d'arme infligés -10 %."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 2;
@@ -477,8 +478,6 @@ bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Sta
 	}
 	if (EffectId == TEXT("Status_Stunned"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Étourdi"));
-		StatusAsset.Description = FText::FromString(TEXT("La prochaine activation est ignorée."));
 		StatusAsset.StatusTags = { TEXT("Control.Physical"), TEXT("Control.Stun") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
@@ -488,8 +487,6 @@ bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Sta
 	}
 	if (EffectId == TEXT("Status_Fortified"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Fortifié"));
-		StatusAsset.Description = FText::FromString(TEXT("Dégâts physiques reçus -25 %."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 2;
@@ -502,8 +499,6 @@ bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Sta
 	}
 	if (EffectId == TEXT("Status_KnockedDown"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("À terre"));
-		StatusAsset.Description = FText::FromString(TEXT("La prochaine activation est ignorée."));
 		StatusAsset.StatusTags = { TEXT("Control.Physical"), TEXT("Control.Knockdown") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
@@ -513,8 +508,6 @@ bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Sta
 	}
 	if (EffectId == TEXT("Status_Warlord"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Seigneur de guerre"));
-		StatusAsset.Description = FText::FromString(TEXT("Précision +2 et Initiative +4."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 2;

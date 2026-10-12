@@ -104,10 +104,12 @@ bool FRPG0391GuardianAuthoringTest::RunTest(const FString&)
 
 	UGridStatusEffectDefinitionAsset* Guarded = NewObject<UGridStatusEffectDefinitionAsset>(GetTransientPackage());
 	TestTrue(TEXT("Guarded status configures"), FRPGWarriorAuthoring::ConfigureStatus(*Guarded, TEXT("Status_Guarded")));
-	TestTrue(TEXT("Guarded status description uses Esquive"),
-		Guarded->Description.ToString().Contains(TEXT("Esquive +2")));
-	TestFalse(TEXT("Guarded status description no longer uses Evasion"),
-		Guarded->Description.ToString().Contains(TEXT("Evasion")));
+	TestTrue(TEXT("Guarded status owns +2 evasion mechanically"),
+		Guarded->CombatModifiers.ContainsByPredicate(
+			[](const FGridCombatModifierProfile& Modifier)
+			{
+				return Modifier.EvasionModifier == 2;
+			}));
 	return true;
 }
 

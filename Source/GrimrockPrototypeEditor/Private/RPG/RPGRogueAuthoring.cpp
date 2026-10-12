@@ -423,6 +423,9 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	using namespace RPGRogueAuthoring;
 
 	StatusAsset.EffectId = EffectId;
+	StatusAsset.DisplayName = FText::FromName(CanonicalEffectId);
+	StatusAsset.Description = FText::FromString(
+		FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *CanonicalEffectId.ToString()));
 	StatusAsset.StatusTags.Reset();
 	StatusAsset.Icon.Reset();
 	StatusAsset.DefaultPotency = 0;
@@ -437,8 +440,6 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 
 	if (EffectId == TEXT("Status_Bleeding"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Saignement"));
-		StatusAsset.Description = FText::FromString(TEXT("Subit 2 dégâts physiques à chaque déclenchement périodique pendant 3 tours."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
 		StatusAsset.DefaultDuration = 3;
@@ -448,8 +449,6 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	}
 	if (EffectId == TEXT("Status_ExposedPhysical"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Exposé physiquement"));
-		StatusAsset.Description = FText::FromString(TEXT("Dégâts physiques reçus +20 %."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 2;
@@ -461,8 +460,6 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	}
 	if (EffectId == TEXT("Status_Evasive"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Esquive"));
-		StatusAsset.Description = FText::FromString(TEXT("Esquive +4."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 1;
@@ -473,8 +470,6 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	}
 	if (EffectId == TEXT("Status_Hidden"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Caché"));
-		StatusAsset.Description = FText::FromString(TEXT("Non ciblable directement jusqu'à la prochaine activation ou première action offensive."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Permanent;
 		StatusAsset.DefaultDuration = 0;
@@ -492,8 +487,6 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	}
 	if (EffectId == TEXT("Status_ShadowReach"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Allonge de l'ombre"));
-		StatusAsset.Description = FText::FromString(TEXT("La prochaine attaque de mêlée avec arme légère gagne +1 cellule de portée."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Turns;
 		StatusAsset.DefaultDuration = 1;
@@ -517,8 +510,6 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	}
 	if (EffectId == TEXT("Status_Elusive"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Insaisissable"));
-		StatusAsset.Description = FText::FromString(TEXT("Esquive +2 et Initiative +4."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 1;
@@ -530,8 +521,6 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	}
 	if (EffectId == TEXT("Status_HiddenPerfect"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Ombre parfaite"));
-		StatusAsset.Description = FText::FromString(TEXT("Caché ; la première action offensive gagne +50 % de dégâts et Précision +2, puis rompt l'effet. Les dégâts directs rompent aussi l'effet."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Buff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 2;
@@ -561,8 +550,6 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	}
 	if (EffectId == TEXT("Status_Immobilized"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Immobilisé"));
-		StatusAsset.Description = FText::FromString(TEXT("La translation volontaire est bloquée pendant 1 round."));
 		StatusAsset.StatusTags = { TEXT("Control.Physical"), TEXT("Control.Immobilize") };
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
@@ -572,8 +559,6 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 	}
 	if (EffectId == TEXT("Status_Sabotaged"))
 	{
-		StatusAsset.DisplayName = FText::FromString(TEXT("Saboté"));
-		StatusAsset.Description = FText::FromString(TEXT("Précision -2 et Initiative -4."));
 		StatusAsset.Disposition = EGridStatusEffectDisposition::Debuff;
 		StatusAsset.DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 		StatusAsset.DefaultDuration = 2;
