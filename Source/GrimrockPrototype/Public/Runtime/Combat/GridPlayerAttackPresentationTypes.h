@@ -28,7 +28,7 @@ enum class EGridPlayerAttackMotionStyle : uint8
 };
 
 USTRUCT(BlueprintType)
-struct FGridPlayerAttackAudioDefinition
+struct GRIMROCKPROTOTYPE_API FGridPlayerAttackAudioDefinition
 {
 	GENERATED_BODY()
 
@@ -52,7 +52,7 @@ struct FGridPlayerAttackAudioDefinition
 };
 
 USTRUCT(BlueprintType)
-struct FGridPlayerAttackVFXDefinition
+struct GRIMROCKPROTOTYPE_API FGridPlayerAttackVFXDefinition
 {
 	GENERATED_BODY()
 
@@ -82,7 +82,7 @@ struct FGridPlayerAttackVFXDefinition
 };
 
 USTRUCT(BlueprintType)
-struct FGridPlayerAttackPresentationProfile
+struct GRIMROCKPROTOTYPE_API FGridPlayerAttackPresentationProfile
 {
 	GENERATED_BODY()
 

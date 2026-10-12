@@ -4,6 +4,8 @@ Date : **12 octobre 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Ticket : **UI-RPG-CONTENT-TEXT05.5**
 
+> **Correctif de liaison Editor :** les structures publiques `FGridPlayerAttackAudioDefinition`, `FGridPlayerAttackVFXDefinition` et `FGridPlayerAttackPresentationProfile` exportent désormais leurs méthodes out-of-line via `GRIMROCKPROTOTYPE_API`. Ce correctif ne change aucun comportement runtime ; il permet au module Editor de valider les profils Spell sans symbole DLL non résolu.
+
 ## 1. Objet
 
 Préparer la matérialisation des quatre sorts MON18.5 dans le type existant UGridSpellDefinitionAsset, sans encore basculer le runtime et sans fabriquer de .uasset hors Unreal Engine.

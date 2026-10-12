@@ -4,6 +4,7 @@
 
 #include "Magic/GridSpellCatalogAuthoring.h"
 #include "Magic/GridSpellDefinitionAsset.h"
+#include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 
 namespace UIRPGCONTENTTEXT055
 {
@@ -43,6 +44,11 @@ bool FUIRPGCONTENTTEXT055SpellMaterializationAuthoringTest::RunTest(const FStrin
 		}
 		return false;
 	}
+
+	FGridPlayerAttackPresentationProfile CrossModuleAttackPresentation;
+	TestTrue(
+		TEXT("Player attack presentation validation links across runtime/editor module boundary"),
+		CrossModuleAttackPresentation.IsValid());
 
 	TestEqual(TEXT("Exactly four production Spell seeds exist"), Seeds.Num(), 4);
 	TestEqual(
