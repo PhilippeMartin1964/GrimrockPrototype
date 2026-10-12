@@ -643,25 +643,25 @@ bool FUIRPGDESC016CanonicalRecipeDisplayNamesTest::RunTest(const FString&)
 	using namespace UIRPGDESC016QA;
 	FRPGClassProgressionTransactionService::ResetRuntimeState();
 
-	const TMap<FName, TArray<FString>> ExpectedByTalent = {
-		{ TEXT("Talent_Alchemist_Grenadier_FireBomb"), { TEXT("Bombe incendiaire") } },
-		{ TEXT("Talent_Alchemist_Grenadier_ToxicBomb"), { TEXT("Bombe toxique") } },
-		{ TEXT("Talent_Alchemist_Apothecary_Antidote"), { TEXT("Antidote") } },
+	const TMap<FName, TArray<FName>> ExpectedByTalent = {
+		{ TEXT("Talent_Alchemist_Grenadier_FireBomb"), { TEXT("Talent.Recipe.Recipe_Bomb_Fire") } },
+		{ TEXT("Talent_Alchemist_Grenadier_ToxicBomb"), { TEXT("Talent.Recipe.Recipe_Bomb_Toxic") } },
+		{ TEXT("Talent_Alchemist_Apothecary_Antidote"), { TEXT("Talent.Recipe.Recipe_Antidote") } },
 		{ TEXT("Talent_Alchemist_Apothecary_DefensiveElixir"), {
-			TEXT("Élixir défensif — Feu"),
-			TEXT("Élixir défensif — Glace"),
-			TEXT("Élixir défensif — Foudre"),
-			TEXT("Élixir défensif — Poison")
+			TEXT("Talent.Recipe.Recipe_DefensiveElixir_Fire"),
+			TEXT("Talent.Recipe.Recipe_DefensiveElixir_Ice"),
+			TEXT("Talent.Recipe.Recipe_DefensiveElixir_Lightning"),
+			TEXT("Talent.Recipe.Recipe_DefensiveElixir_Poison")
 		} },
-		{ TEXT("Talent_Alchemist_Apothecary_Panacea"), { TEXT("Panacée") } },
-		{ TEXT("Talent_Alchemist_Transmuter_OilSlick"), { TEXT("Flasque d'huile") } },
-		{ TEXT("Talent_Alchemist_Transmuter_AcidFlask"), { TEXT("Flasque acide") } },
-		{ TEXT("Talent_Alchemist_Transmuter_CorrosiveCloud"), { TEXT("Flasque de nuage corrosif") } },
+		{ TEXT("Talent_Alchemist_Apothecary_Panacea"), { TEXT("Talent.Recipe.Recipe_Panacea") } },
+		{ TEXT("Talent_Alchemist_Transmuter_OilSlick"), { TEXT("Talent.Recipe.Recipe_Flask_Oil") } },
+		{ TEXT("Talent_Alchemist_Transmuter_AcidFlask"), { TEXT("Talent.Recipe.Recipe_Flask_Acid") } },
+		{ TEXT("Talent_Alchemist_Transmuter_CorrosiveCloud"), { TEXT("Talent.Recipe.Recipe_Flask_CorrosiveCloud") } },
 		{ TEXT("Talent_Alchemist_Transmuter_MajorTransmutation"), {
-			TEXT("Transmutation majeure — Feu"),
-			TEXT("Transmutation majeure — Glace"),
-			TEXT("Transmutation majeure — Poison"),
-			TEXT("Transmutation majeure — Huile")
+			TEXT("Talent.Recipe.Recipe_MajorTransmutation_Fire"),
+			TEXT("Talent.Recipe.Recipe_MajorTransmutation_Ice"),
+			TEXT("Talent.Recipe.Recipe_MajorTransmutation_Poison"),
+			TEXT("Talent.Recipe.Recipe_MajorTransmutation_Oil")
 		} }
 	};
 
@@ -711,15 +711,15 @@ bool FUIRPGDESC016CanonicalRecipeDisplayNamesTest::RunTest(const FString&)
 			{
 				TotalProjectedRecipeNames += Node.Acquisition.GrantedRecipeTextIds.Num();
 
-				if (const TArray<FString>* ExpectedNames = ExpectedByTalent.Find(Node.TalentNodeId))
+				if (const TArray<FName>* ExpectedTextIds = ExpectedByTalent.Find(Node.TalentNodeId))
 				{
 					TestEqual(
 						*FString::Printf(TEXT("%s has exact canonical recipe count"), *Node.TalentNodeId.ToString()),
 						Node.Acquisition.GrantedRecipeTextIds.Num(),
-						ExpectedNames->Num());
+						ExpectedTextIds->Num());
 
 					for (int32 Index = 0;
-						Index < ExpectedNames->Num() && Index < Node.Acquisition.GrantedRecipeTextIds.Num();
+						Index < ExpectedTextIds->Num() && Index < Node.Acquisition.GrantedRecipeTextIds.Num();
 						++Index)
 					{
 						const FName RecipeTextId = Node.Acquisition.GrantedRecipeTextIds[Index];
@@ -729,9 +729,9 @@ bool FUIRPGDESC016CanonicalRecipeDisplayNamesTest::RunTest(const FString&)
 							FString::Printf(TEXT("%s/%s/Recipe"), *Spec.ClassId.ToString(), *Node.TalentNodeId.ToString()),
 							RecipeName);
 						TestEqual(
-							*FString::Printf(TEXT("%s recipe %d has canonical French localization"), *Node.TalentNodeId.ToString(), Index),
-							RecipeName.ToString(),
-							(*ExpectedNames)[Index]);
+							*FString::Printf(TEXT("%s recipe %d keeps canonical text identity"), *Node.TalentNodeId.ToString(), Index),
+							RecipeTextId,
+							(*ExpectedTextIds)[Index]);
 					}
 				}
 				else
@@ -748,7 +748,7 @@ bool FUIRPGDESC016CanonicalRecipeDisplayNamesTest::RunTest(const FString&)
 
 	FRPGClassProgressionTransactionService::ResetRuntimeState();
 	TestEqual(TEXT("Production classes declare fifteen Recipe_* grants"), TotalGrantedRecipeIds, 15);
-	TestEqual(TEXT("Read-model projects fifteen canonical recipe names"), TotalProjectedRecipeNames, 15);
+	TestEqual(TEXT("Read-model projects fifteen canonical recipe text identities"), TotalProjectedRecipeNames, 15);
 	TestEqual(TEXT("Exactly nine Talents expose recipes"), ExpectedByTalent.Num(), 9);
 	return true;
 }
