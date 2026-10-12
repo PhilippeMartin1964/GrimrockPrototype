@@ -142,11 +142,11 @@ bool FUIRPG044GenericNVariantSelectionTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG044ShortVariantLabelsTest,
-	"Grimrock.UI.RPG04.Variants.ShortLabels",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPG044AuthoredVariantLabelsTest,
+	"Grimrock.UI.RPG04.Variants.AuthoredLabels",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FUIRPG044ShortVariantLabelsTest::RunTest(const FString&)
+bool FUIRPG044AuthoredVariantLabelsTest::RunTest(const FString&)
 {
 	using namespace UIRPG044Tests;
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
@@ -155,9 +155,9 @@ bool FUIRPG044ShortVariantLabelsTest::RunTest(const FString&)
 
 	FText Label;
 	TestTrue(TEXT("Variant label resolves"), Detail->GetVariantDisplayLabel(TEXT("Choice_0"), Label));
-	TestEqual(TEXT("Conceptual prefix is removed"), Label.ToString(), FString(TEXT("Feu")));
+	TestEqual(TEXT("Authored variant label is returned verbatim"), Label.ToString(), FString(TEXT("Talent conceptuel — Feu")));
 	TestTrue(TEXT("Third variant label resolves"), Detail->GetVariantDisplayLabel(TEXT("Choice_2"), Label));
-	TestEqual(TEXT("Third variant is concise"), Label.ToString(), FString(TEXT("Air")));
+	TestEqual(TEXT("Third authored variant label is returned verbatim"), Label.ToString(), FString(TEXT("Talent conceptuel — Air")));
 	return true;
 }
 

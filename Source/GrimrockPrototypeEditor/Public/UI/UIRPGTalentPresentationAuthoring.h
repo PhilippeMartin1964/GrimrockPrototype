@@ -11,6 +11,6 @@ struct GRIMROCKPROTOTYPEEDITOR_API FUIRPGTalentPresentationAuthoring
 	static const TCHAR* AssetName();
 	static const TCHAR* ObjectPath();
 
-	/** Replaces presentation data with the canonical six-class / eighteen-branch catalog. */
+	/** Rebuilds canonical structure/colors while preserving serialized branch/node text by stable ID. */
 	static void ConfigureCatalog(URPGTalentPresentationAsset& Catalog);
 };

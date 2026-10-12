@@ -9,6 +9,8 @@
 #include "RPG/RPGRangerAuthoring.h"
 #include "RPG/RPGRogueAuthoring.h"
 #include "RPG/RPGWarriorAuthoring.h"
+#include "UI/RPGTalentPresentationAsset.h"
+#include "UI/UIRPGTalentPresentationAuthoring.h"
 
 namespace UIRPGCONTENTTEXT011
 {
@@ -524,6 +526,182 @@ bool FUIRPGCONTENTTEXT013BootstrapOnlyTest::RunTest(const FString&)
 
 	TestTrue(TEXT("Bootstrap-only audit covers every production class choice family"), BootstrapChoiceCount >= 90);
 	TestTrue(TEXT("Bootstrap-only audit covers production class combat actions"), BootstrapActionCount > 0);
+	return true;
+}
+
+
+/**
+ * UI-RPG-CONTENT-TEXT01.4 closes the remaining Talent presentation text writer.
+ *
+ * DA_RPGTalentPresentation is the serialized authority for branch names and
+ * the four grouped conceptual-node overrides. ConfigureCatalog may rebuild
+ * structure/colors, but must preserve existing text by stable IDs. Fresh IDs
+ * receive only the same explicit technical bootstrap used by DA_Class authoring.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT014FinalOwnershipAuditTest,
+	"Grimrock.UI.RPG.CONTENTTEXT01.FinalAudit",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT014FinalOwnershipAuditTest::RunTest(const FString&)
+{
+	URPGTalentPresentationAsset* Serialized =
+		LoadObject<URPGTalentPresentationAsset>(nullptr, FUIRPGTalentPresentationAuthoring::ObjectPath());
+	if (!TestNotNull(TEXT("Serialized DA_RPGTalentPresentation loads"), Serialized))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Serialized presentation catalog is structurally valid"), Serialized->IsValidDefinition());
+
+	int32 SerializedBranchCount = 0;
+	int32 SerializedOverrideCount = 0;
+	for (const FRPGClassPresentationDefinition& ClassPresentation : Serialized->Classes)
+	{
+		SerializedBranchCount += ClassPresentation.Branches.Num();
+		for (const FRPGTalentBranchPresentationDefinition& Branch : ClassPresentation.Branches)
+		{
+			TestFalse(
+				*FString::Printf(TEXT("%s/%s serialized branch DisplayName is authored"),
+					*ClassPresentation.ClassId.ToString(), *Branch.TalentBranchId.ToString()),
+				Branch.DisplayName.IsEmpty());
+
+			for (const FRPGTalentNodePresentationDefinition& Node : Branch.NodePresentationOverrides)
+			{
+				++SerializedOverrideCount;
+				TestFalse(
+					*FString::Printf(TEXT("%s/%s/%s serialized conceptual DisplayName is authored"),
+						*ClassPresentation.ClassId.ToString(), *Branch.TalentBranchId.ToString(), *Node.TalentNodeId.ToString()),
+					Node.DisplayName.IsEmpty());
+				TestFalse(
+					*FString::Printf(TEXT("%s/%s/%s serialized conceptual Description is authored"),
+						*ClassPresentation.ClassId.ToString(), *Branch.TalentBranchId.ToString(), *Node.TalentNodeId.ToString()),
+					Node.Description.IsEmpty());
+			}
+		}
+	}
+
+	TestEqual(TEXT("Presentation text authority covers eighteen branches"), SerializedBranchCount, 18);
+	TestEqual(TEXT("Presentation text authority covers four grouped conceptual nodes"), SerializedOverrideCount, 4);
+
+	URPGTalentPresentationAsset* Working =
+		DuplicateObject<URPGTalentPresentationAsset>(Serialized, GetTransientPackage());
+	if (!TestNotNull(TEXT("Transient presentation duplicate is created"), Working))
+	{
+		return false;
+	}
+
+	for (FRPGClassPresentationDefinition& ClassPresentation : Working->Classes)
+	{
+		for (FRPGTalentBranchPresentationDefinition& Branch : ClassPresentation.Branches)
+		{
+			const FString Prefix =
+				ClassPresentation.ClassId.ToString() + TEXT("/") + Branch.TalentBranchId.ToString();
+			Branch.DisplayName = FText::FromString(TEXT("TEXT01.4 Branch Name ") + Prefix);
+			Branch.ShortDescription = FText::FromString(TEXT("TEXT01.4 Branch Description ") + Prefix);
+
+			for (FRPGTalentNodePresentationDefinition& Node : Branch.NodePresentationOverrides)
+			{
+				const FString NodePrefix = Prefix + TEXT("/") + Node.TalentNodeId.ToString();
+				Node.DisplayName = FText::FromString(TEXT("TEXT01.4 Node Name ") + NodePrefix);
+				Node.Description = FText::FromString(TEXT("TEXT01.4 Node Description ") + NodePrefix);
+			}
+		}
+	}
+
+	FUIRPGTalentPresentationAuthoring::ConfigureCatalog(*Working);
+	TestTrue(TEXT("Presentation rematerialization remains structurally valid"), Working->IsValidDefinition());
+
+	for (const FRPGClassPresentationDefinition& SerializedClass : Serialized->Classes)
+	{
+		const FRPGClassPresentationDefinition* RematerializedClass = Working->FindClass(SerializedClass.ClassId);
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s class presentation survives rematerialization"), *SerializedClass.ClassId.ToString()),
+				RematerializedClass))
+		{
+			continue;
+		}
+
+		for (const FRPGTalentBranchPresentationDefinition& SerializedBranch : SerializedClass.Branches)
+		{
+			const FRPGTalentBranchPresentationDefinition* Branch =
+				RematerializedClass->FindBranch(SerializedBranch.TalentBranchId);
+			if (!TestNotNull(
+					*FString::Printf(TEXT("%s/%s branch survives rematerialization"),
+						*SerializedClass.ClassId.ToString(), *SerializedBranch.TalentBranchId.ToString()),
+					Branch))
+			{
+				continue;
+			}
+
+			const FString Prefix =
+				SerializedClass.ClassId.ToString() + TEXT("/") + SerializedBranch.TalentBranchId.ToString();
+			TestEqual(
+				*FString::Printf(TEXT("%s preserves branch DisplayName"), *Prefix),
+				Branch->DisplayName.ToString(),
+				TEXT("TEXT01.4 Branch Name ") + Prefix);
+			TestEqual(
+				*FString::Printf(TEXT("%s preserves branch ShortDescription"), *Prefix),
+				Branch->ShortDescription.ToString(),
+				TEXT("TEXT01.4 Branch Description ") + Prefix);
+
+			for (const FRPGTalentNodePresentationDefinition& SerializedNode : SerializedBranch.NodePresentationOverrides)
+			{
+				const FRPGTalentNodePresentationDefinition* Node =
+					Branch->FindNodeOverride(SerializedNode.TalentNodeId);
+				if (!TestNotNull(
+						*FString::Printf(TEXT("%s/%s conceptual override survives rematerialization"),
+							*Prefix, *SerializedNode.TalentNodeId.ToString()),
+						Node))
+				{
+					continue;
+				}
+
+				const FString NodePrefix = Prefix + TEXT("/") + SerializedNode.TalentNodeId.ToString();
+				TestEqual(
+					*FString::Printf(TEXT("%s preserves conceptual DisplayName"), *NodePrefix),
+					Node->DisplayName.ToString(),
+					TEXT("TEXT01.4 Node Name ") + NodePrefix);
+				TestEqual(
+					*FString::Printf(TEXT("%s preserves conceptual Description"), *NodePrefix),
+					Node->Description.ToString(),
+					TEXT("TEXT01.4 Node Description ") + NodePrefix);
+			}
+		}
+	}
+
+	URPGTalentPresentationAsset* Fresh = NewObject<URPGTalentPresentationAsset>(GetTransientPackage());
+	FUIRPGTalentPresentationAuthoring::ConfigureCatalog(*Fresh);
+	TestTrue(TEXT("Fresh presentation bootstrap is structurally valid"), Fresh->IsValidDefinition());
+
+	int32 BootstrapBranchCount = 0;
+	int32 BootstrapOverrideCount = 0;
+	for (const FRPGClassPresentationDefinition& ClassPresentation : Fresh->Classes)
+	{
+		for (const FRPGTalentBranchPresentationDefinition& Branch : ClassPresentation.Branches)
+		{
+			const FString StableId = Branch.TalentBranchId.ToString();
+			TestEqual(TEXT("Fresh branch bootstrap name is stable id"), Branch.DisplayName.ToString(), StableId);
+			TestEqual(
+				TEXT("Fresh branch bootstrap description is technical only"),
+				Branch.ShortDescription.ToString(),
+				FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *StableId));
+			++BootstrapBranchCount;
+
+			for (const FRPGTalentNodePresentationDefinition& Node : Branch.NodePresentationOverrides)
+			{
+				const FString NodeId = Node.TalentNodeId.ToString();
+				TestEqual(TEXT("Fresh conceptual bootstrap name is stable id"), Node.DisplayName.ToString(), NodeId);
+				TestEqual(
+					TEXT("Fresh conceptual bootstrap description is technical only"),
+					Node.Description.ToString(),
+					FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *NodeId));
+				++BootstrapOverrideCount;
+			}
+		}
+	}
+
+	TestEqual(TEXT("Fresh bootstrap covers eighteen branches"), BootstrapBranchCount, 18);
+	TestEqual(TEXT("Fresh bootstrap covers four grouped conceptual nodes"), BootstrapOverrideCount, 4);
 	return true;
 }
 

@@ -306,7 +306,7 @@ bool UGridTalentDetailWidget::GetVariantDisplayLabel(FName ChoiceId, FText& OutL
 		});
 	if (!Variant) return false;
 
-	OutLabel = MakeVariantDisplayLabel(*Variant);
+	OutLabel = Variant->DisplayName;
 	return !OutLabel.IsEmpty();
 }
 
@@ -402,7 +402,7 @@ void UGridTalentDetailWidget::RebuildVariantBlocks()
 		Block->ConfigureDetailRows(DetailLineWidgetClass, DetailGlyphSet);
 
 		const bool bPending = bVariantSelectionPending && Variant.ChoiceId == SelectedVariantChoiceId;
-		if (!Block->InitializeVariant(Variant, MakeVariantDisplayLabel(Variant), bPending)) continue;
+		if (!Block->InitializeVariant(Variant, Variant.DisplayName, bPending)) continue;
 
 		Block->OnChooseRequested.AddUniqueDynamic(this, &UGridTalentDetailWidget::HandleVariantChooseRequested);
 		VB_VariantEntries->AddChildToVerticalBox(Block);
@@ -563,38 +563,6 @@ void UGridTalentDetailWidget::RebuildDetailLineRows()
 	TArray<FGridTalentDetailLineView> AcquisitionLines;
 	BuildAcquisitionLines(AcquisitionLines);
 	PopulateDetailLineRows(VB_DetailAcquisitionEntries, AcquisitionLines);
-}
-
-FText UGridTalentDetailWidget::MakeVariantDisplayLabel(const FGridTalentVariantView& Variant) const
-{
-	if (Variant.DisplayName.IsEmpty())
-	{
-		return FText::GetEmpty();
-	}
-
-	FString Label = Variant.DisplayName.ToString();
-	const FString Conceptual = ResolvedDisplayName.ToString();
-
-	if (!Conceptual.IsEmpty())
-	{
-		const TArray<FString> Prefixes = {
-			Conceptual + TEXT(" — "),
-			Conceptual + TEXT(" – "),
-			Conceptual + TEXT(" - "),
-			Conceptual + TEXT(": ")
-		};
-		for (const FString& Prefix : Prefixes)
-		{
-			if (Label.StartsWith(Prefix, ESearchCase::CaseSensitive))
-			{
-				Label.RightChopInline(Prefix.Len(), EAllowShrinking::No);
-				break;
-			}
-		}
-	}
-
-	Label.TrimStartAndEndInline();
-	return FText::FromString(Label);
 }
 
 void UGridTalentDetailWidget::RefreshCanonicalSections()

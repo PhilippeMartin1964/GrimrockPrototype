@@ -126,7 +126,6 @@ private:
 	void RebuildDetailLineRows();
 	void PopulateDetailLineRows(UVerticalBox* Container, const TArray<FGridTalentDetailLineView>& Lines);
 	void BuildAcquisitionLines(TArray<FGridTalentDetailLineView>& OutLines) const;
-	FText MakeVariantDisplayLabel(const FGridTalentVariantView& Variant) const;
 	void RefreshCanonicalSections();
 	void ApplyDetailPresentation();
 	void ApplyAcquisitionPresentation();
