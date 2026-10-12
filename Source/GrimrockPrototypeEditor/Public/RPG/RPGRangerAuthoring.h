@@ -4,6 +4,7 @@
 
 class URPGClassAsset;
 class UGridStatusEffectDefinitionAsset;
+class UGridMonsterCategoryAsset;
 
 struct GRIMROCKPROTOTYPEEDITOR_API FRPGRangerFavoredEnemyCategoryDefinition
 {
@@ -30,6 +31,8 @@ struct GRIMROCKPROTOTYPEEDITOR_API FRPGRangerAuthoring
 
 	static void ConfigureClass(URPGClassAsset& ClassAsset, const TArray<FRPGRangerFavoredEnemyCategoryDefinition>& FavoredEnemyCategories);
 	static bool ConfigureMarkedStatus(UGridStatusEffectDefinitionAsset& StatusAsset);
+	/** Rebuilds one production monster category identity while preserving serialized DisplayName for the same CategoryId. */
+	static bool ConfigureMonsterCategory(UGridMonsterCategoryAsset& CategoryAsset, FName CategoryId);
 	static bool CollectProductionFavoredEnemyCategories(TArray<FRPGRangerFavoredEnemyCategoryDefinition>& OutCategories, FString& OutError);
 	static bool AuthorProductionAssets(FString& OutError);
 };

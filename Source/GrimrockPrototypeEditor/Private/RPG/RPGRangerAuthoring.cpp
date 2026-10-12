@@ -289,9 +289,8 @@ namespace RPGRangerAuthoring
 					return false;
 				}
 				Category->Modify();
-				Category->CategoryId = Monster->CategoryId;
-				Category->DisplayName = FText::FromString(Spec->DisplayName);
-				if (!Category->IsValidDefinition() || !SaveAuthoredAsset(Category, OutError))
+				if (!FRPGRangerAuthoring::ConfigureMonsterCategory(*Category, Monster->CategoryId) ||
+					!SaveAuthoredAsset(Category, OutError))
 				{
 					if (OutError.IsEmpty())
 					{
@@ -679,6 +678,33 @@ bool FRPGRangerAuthoring::ConfigureMarkedStatus(UGridStatusEffectDefinitionAsset
 	}
 
 	return StatusAsset.IsValidDefinition();
+}
+
+bool FRPGRangerAuthoring::ConfigureMonsterCategory(
+	UGridMonsterCategoryAsset& CategoryAsset,
+	FName CategoryId)
+{
+	using namespace RPGRangerAuthoring;
+
+	const FProductionMonsterCategorySpec* Spec = FindProductionCategorySpec(CategoryId);
+	if (!Spec || !Spec->DisplayName)
+	{
+		return false;
+	}
+
+	const bool bPreserveSerializedDisplayName =
+		!CategoryAsset.CategoryId.IsNone() && CategoryAsset.CategoryId == CategoryId;
+	const FText ExistingDisplayName = CategoryAsset.DisplayName;
+
+	CategoryAsset.CategoryId = CategoryId;
+	CategoryAsset.DisplayName = FText::FromString(Spec->DisplayName);
+
+	if (bPreserveSerializedDisplayName)
+	{
+		CategoryAsset.DisplayName = ExistingDisplayName;
+	}
+
+	return CategoryAsset.IsValidDefinition();
 }
 
 bool FRPGRangerAuthoring::CollectProductionFavoredEnemyCategories(

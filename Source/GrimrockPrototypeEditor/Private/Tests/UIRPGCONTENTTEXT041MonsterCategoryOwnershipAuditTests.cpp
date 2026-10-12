@@ -207,7 +207,7 @@ bool FUIRPGCONTENTTEXT041MonsterCategoryOwnershipAuditTest::RunTest(const FStrin
 
 	const int32 CategoryDisplayNameWrites = CountOccurrences(
 		RangerAuthoringSource,
-		TEXT("Category->DisplayName = FText::FromString(Spec->DisplayName);"));
+		TEXT("CategoryAsset.DisplayName = FText::FromString(Spec->DisplayName);"));
 	const int32 CategoryDescriptionWrites = CountOccurrences(
 		RangerAuthoringSource,
 		TEXT("Category->Description ="));
@@ -245,6 +245,131 @@ bool FUIRPGCONTENTTEXT041MonsterCategoryOwnershipAuditTest::RunTest(const FStrin
 		SerializedDescriptionCount,
 		CategoryDisplayNameWrites,
 		CategoryDescriptionWrites);
+
+	return true;
+}
+
+
+/**
+ * UI-RPG-CONTENT-TEXT04.2 proves that Ranger category rematerialization keeps
+ * serialized DA_MONCAT DisplayName for an existing stable CategoryId.
+ *
+ * Description is not written by the Ranger authoring path and is checked as an
+ * invariant rather than introducing a redundant snapshot/restore layer.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT042MonsterCategoryTextPreservationTest,
+	"Grimrock.UI.RPG.CONTENTTEXT04.Preservation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT042MonsterCategoryTextPreservationTest::RunTest(const FString&)
+{
+	using namespace UIRPGCONTENTTEXT041;
+
+	TArray<FCategoryAuditSpec> Specs;
+	CollectProductionCategorySpecs(Specs);
+
+	int32 PreservedCategoryCount = 0;
+	for (const FCategoryAuditSpec& Spec : Specs)
+	{
+		UGridMonsterCategoryAsset* Serialized =
+			LoadObject<UGridMonsterCategoryAsset>(nullptr, *CategoryObjectPath(Spec.CategoryId));
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s serialized DA_MONCAT loads for preservation test"), *Spec.CategoryId.ToString()),
+				Serialized))
+		{
+			continue;
+		}
+
+		UGridMonsterCategoryAsset* Working =
+			DuplicateObject<UGridMonsterCategoryAsset>(Serialized, GetTransientPackage());
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s preservation duplicate is created"), *Spec.CategoryId.ToString()),
+				Working))
+		{
+			continue;
+		}
+
+		const FString DisplayName =
+			FString::Printf(TEXT("TEXT04.2 Category Name %s"), *Spec.CategoryId.ToString());
+		const FString Description =
+			FString::Printf(TEXT("TEXT04.2 Category Description %s"), *Spec.CategoryId.ToString());
+		Working->DisplayName = FText::FromString(DisplayName);
+		Working->Description = FText::FromString(Description);
+
+		if (!TestTrue(
+				*FString::Printf(TEXT("%s existing category rematerializes"), *Spec.CategoryId.ToString()),
+				FRPGRangerAuthoring::ConfigureMonsterCategory(*Working, Spec.CategoryId)))
+		{
+			continue;
+		}
+
+		TestEqual(
+			*FString::Printf(TEXT("%s preserves serialized DisplayName"), *Spec.CategoryId.ToString()),
+			Working->DisplayName.ToString(),
+			DisplayName);
+		TestEqual(
+			*FString::Printf(TEXT("%s leaves serialized Description untouched"), *Spec.CategoryId.ToString()),
+			Working->Description.ToString(),
+			Description);
+		TestEqual(
+			*FString::Printf(TEXT("%s keeps canonical CategoryId"), *Spec.CategoryId.ToString()),
+			Working->CategoryId,
+			Spec.CategoryId);
+		TestTrue(
+			*FString::Printf(TEXT("%s remains structurally valid after text restoration"), *Spec.CategoryId.ToString()),
+			Working->IsValidDefinition());
+
+		UGridMonsterCategoryAsset* Fresh =
+			NewObject<UGridMonsterCategoryAsset>(GetTransientPackage());
+		if (TestNotNull(
+				*FString::Printf(TEXT("%s fresh category bootstrap object is created"), *Spec.CategoryId.ToString()),
+				Fresh))
+		{
+			TestTrue(
+				*FString::Printf(TEXT("%s fresh category still receives a valid bootstrap"), *Spec.CategoryId.ToString()),
+				FRPGRangerAuthoring::ConfigureMonsterCategory(*Fresh, Spec.CategoryId));
+			TestEqual(
+				*FString::Printf(TEXT("%s fresh category keeps canonical CategoryId"), *Spec.CategoryId.ToString()),
+				Fresh->CategoryId,
+				Spec.CategoryId);
+			TestFalse(
+				*FString::Printf(TEXT("%s fresh category bootstrap DisplayName is non-empty"), *Spec.CategoryId.ToString()),
+				Fresh->DisplayName.IsEmpty());
+		}
+
+		UGridMonsterCategoryAsset* Mismatch =
+			DuplicateObject<UGridMonsterCategoryAsset>(Serialized, GetTransientPackage());
+		if (TestNotNull(
+				*FString::Printf(TEXT("%s mismatched identity probe is created"), *Spec.CategoryId.ToString()),
+				Mismatch))
+		{
+			Mismatch->CategoryId = TEXT("TEXT04_2_DifferentCategory");
+			Mismatch->DisplayName = FText::FromString(DisplayName);
+			TestTrue(
+				*FString::Printf(TEXT("%s mismatched category rematerializes as requested identity"), *Spec.CategoryId.ToString()),
+				FRPGRangerAuthoring::ConfigureMonsterCategory(*Mismatch, Spec.CategoryId));
+			TestFalse(
+				*FString::Printf(TEXT("%s mismatched identity does not preserve unrelated DisplayName"), *Spec.CategoryId.ToString()),
+				Mismatch->DisplayName.ToString() == DisplayName);
+		}
+
+		++PreservedCategoryCount;
+	}
+
+	TestEqual(TEXT("DisplayName preservation covers both current production categories"), PreservedCategoryCount, 2);
+
+	UGridMonsterCategoryAsset* Unknown =
+		NewObject<UGridMonsterCategoryAsset>(GetTransientPackage());
+	TestFalse(
+		TEXT("Unknown production CategoryId has no Ranger bootstrap spec"),
+		FRPGRangerAuthoring::ConfigureMonsterCategory(*Unknown, TEXT("TEXT04_2_UnknownCategory")));
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("[UI-RPG-CONTENT-TEXT04.2][SUMMARY] PreservedCategories=%d"),
+		PreservedCategoryCount);
 
 	return true;
 }
