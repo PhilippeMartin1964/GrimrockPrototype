@@ -278,103 +278,6 @@ namespace
 		if (Value != 0) Out.Add(FString::Printf(TEXT("%s : %+d"), Label, Value));
 	}
 
-	void BuildStructuredCombatModifierEffects(
-		const FRPGClassProgressionChoiceDefinition& Choice,
-		TArray<FGridTalentDetailLineView>& Out)
-	{
-		for (const FGridCombatModifierProfile& Modifier : Choice.CombatModifiers)
-		{
-			for (const EGridCombatActionSourcePolicy Policy : Modifier.SourcePolicies)
-			{
-				AddDetailTextLine(Out, NAME_None, SourcePolicyTextId(Policy), EGridTalentDetailLineSemantic::Context);
-			}
-			for (const EGridPhysicalDamageSubtype Subtype : Modifier.PhysicalSubtypes)
-			{
-				AddDetailTextLine(Out, NAME_None, PhysicalSubtypeTextId(Subtype), EGridTalentDetailLineSemantic::Context);
-			}
-			for (const EGridDamageType Type : Modifier.DamageTypes)
-			{
-				AddDetailTextLine(Out, NAME_None, DamageTypeTextId(Type), EGridTalentDetailLineSemantic::Context);
-			}
-			for (const EGridCombatTargetCondition Condition : Modifier.RequiredTargetConditions)
-			{
-				AddDetailTextLine(Out, NAME_None, TargetConditionTextId(Condition), EGridTalentDetailLineSemantic::Context);
-			}
-			for (const EGridCombatTargetCondition Condition : Modifier.AnyTargetConditions)
-			{
-				AddDetailTextLine(Out, NAME_None, TargetConditionTextId(Condition), EGridTalentDetailLineSemantic::Context);
-			}
-			for (const FName StatusId : Modifier.RequiredTargetStatusEffectIds)
-			{
-				if (const UGridStatusEffectDefinitionAsset* Definition =
-					FGridStatusEffectPersistence::ResolveDefinitionByEffectId(StatusId))
-				{
-					if (!Definition->DisplayName.IsEmpty())
-					{
-						AddDetailLine(Out, TEXT("Talent.Context.TargetStatus"), Definition->DisplayName.ToString(), EGridTalentDetailLineSemantic::Context);
-					}
-				}
-			}
-			for (const FName CategoryId : Modifier.AllowedTargetMonsterCategoryIds)
-			{
-				AddDetailLine(Out, TEXT("Talent.Context.TargetCategory"), MonsterCategoryLabel(CategoryId), EGridTalentDetailLineSemantic::Context);
-			}
-			for (const FName Tag : Modifier.RequiredSourceTags)
-			{
-				AddDetailTextLine(
-					Out,
-					TEXT("Talent.Context.SourceTag"),
-					FName(*(FString(TEXT("Talent.Context.Tag.")) + Tag.ToString())),
-					EGridTalentDetailLineSemantic::Context);
-			}
-			if (Modifier.bRequirePartyStationarySincePreviousActivation)
-			{
-				AddDetailTextLine(Out, NAME_None, TEXT("Talent.Context.PartyStationary"), EGridTalentDetailLineSemantic::Context);
-			}
-			if (Modifier.bExcludeAreaActions)
-			{
-				AddDetailTextLine(Out, NAME_None, TEXT("Talent.Context.ExcludeAreaActions"), EGridTalentDetailLineSemantic::Context);
-			}
-
-			AddSignedValueLine(Out, TEXT("Talent.Effect.Accuracy"), Modifier.AccuracyModifier);
-			AddSignedValueLine(Out, TEXT("Talent.Effect.Evasion"), Modifier.EvasionModifier);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.OutgoingDamage"), Modifier.OutgoingDamagePercentModifier);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.IncomingDamage"), Modifier.IncomingDamagePercentModifier);
-			AddSignedValueLine(Out, TEXT("Talent.Effect.CriticalChancePoints"), Modifier.CriticalChancePercentModifier);
-			AddSignedValueLine(Out, TEXT("Talent.Effect.CriticalDamagePoints"), Modifier.CriticalDamagePercentModifier);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.WeaponDamage"), Modifier.WeaponDamagePercentModifier);
-			AddSignedValueLine(Out, TEXT("Talent.Effect.ActionPointCost"), Modifier.ActionPointCostModifier);
-			AddSignedValueLine(Out, TEXT("Talent.Effect.ManaCost"), Modifier.ManaCostModifier);
-			AddSignedValueLine(Out, TEXT("Talent.Effect.RangeCells"), Modifier.RangeCellsModifier);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.PositiveEffects"), Modifier.PositiveEffectPercentModifier);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.OutgoingHealing"), Modifier.OutgoingHealingPercentModifier);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.FriendlyDirectDamage"), Modifier.FriendlyDirectDamagePercentModifier);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.SelfDirectDamage"), Modifier.SelfDirectDamagePercentModifier);
-			AddSignedValueLine(Out, TEXT("Talent.Effect.QuickItemSecondaryTargets"), Modifier.QuickItemSecondaryTargetCount);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.SecondaryMagnitude"), Modifier.QuickItemSecondaryMagnitudePercent);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.SecondaryDuration"), Modifier.QuickItemSecondaryDurationPercent);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.PhysicalArmorReference"), Modifier.PhysicalArmorReferencePercentModifier);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.MagicalArmorReference"), Modifier.MagicalArmorReferencePercentModifier);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.PhysicalArmorRestoration"), Modifier.PhysicalArmorRestorationPercentModifier);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.MagicalArmorRestoration"), Modifier.MagicalArmorRestorationPercentModifier);
-			AddSignedValueLine(Out, TEXT("Talent.Effect.SurfaceDurationRounds"), Modifier.SurfaceDurationRoundsModifier);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.SurfacePeriodicDamage"), Modifier.SurfacePeriodicDamagePercentModifier);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.SurfaceReactionDamage"), Modifier.SurfaceReactionDamagePercentModifier);
-			AddSignedValueLine(Out, TEXT("Talent.Effect.SurfaceReactionRadius"), Modifier.SurfaceReactionAreaRadiusModifier);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Physical"), Modifier.ResistanceModifiers.PhysicalResistance);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Fire"), Modifier.ResistanceModifiers.FireResistance);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Ice"), Modifier.ResistanceModifiers.IceResistance);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Lightning"), Modifier.ResistanceModifiers.LightningResistance);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Poison"), Modifier.ResistanceModifiers.PoisonResistance);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Holy"), Modifier.ResistanceModifiers.HolyResistance);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Necrotic"), Modifier.ResistanceModifiers.NecroticResistance);
-			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Arcane"), Modifier.ResistanceModifiers.ArcaneResistance);
-			if (Modifier.MinimumManaCost > 0)
-			{
-				AddDetailLine(Out, TEXT("Talent.Effect.MinimumManaCost"), FString::FromInt(Modifier.MinimumManaCost));
-			}
-		}
-	}
 
 	FText BuildMechanicsSummary(const FRPGClassProgressionChoiceDefinition& Choice)
 	{
@@ -571,6 +474,104 @@ namespace
 		if (Value != 0)
 		{
 			AddDetailLine(Lines, LabelTextId, FString::Printf(TEXT("%+d %%"), Value));
+		}
+	}
+
+	void BuildStructuredCombatModifierEffects(
+		const FRPGClassProgressionChoiceDefinition& Choice,
+		TArray<FGridTalentDetailLineView>& Out)
+	{
+		for (const FGridCombatModifierProfile& Modifier : Choice.CombatModifiers)
+		{
+			for (const EGridCombatActionSourcePolicy Policy : Modifier.SourcePolicies)
+			{
+				AddDetailTextLine(Out, NAME_None, SourcePolicyTextId(Policy), EGridTalentDetailLineSemantic::Context);
+			}
+			for (const EGridPhysicalDamageSubtype Subtype : Modifier.PhysicalSubtypes)
+			{
+				AddDetailTextLine(Out, NAME_None, PhysicalSubtypeTextId(Subtype), EGridTalentDetailLineSemantic::Context);
+			}
+			for (const EGridDamageType Type : Modifier.DamageTypes)
+			{
+				AddDetailTextLine(Out, NAME_None, DamageTypeTextId(Type), EGridTalentDetailLineSemantic::Context);
+			}
+			for (const EGridCombatTargetCondition Condition : Modifier.RequiredTargetConditions)
+			{
+				AddDetailTextLine(Out, NAME_None, TargetConditionTextId(Condition), EGridTalentDetailLineSemantic::Context);
+			}
+			for (const EGridCombatTargetCondition Condition : Modifier.AnyTargetConditions)
+			{
+				AddDetailTextLine(Out, NAME_None, TargetConditionTextId(Condition), EGridTalentDetailLineSemantic::Context);
+			}
+			for (const FName StatusId : Modifier.RequiredTargetStatusEffectIds)
+			{
+				if (const UGridStatusEffectDefinitionAsset* Definition =
+					FGridStatusEffectPersistence::ResolveDefinitionByEffectId(StatusId))
+				{
+					if (!Definition->DisplayName.IsEmpty())
+					{
+						AddDetailLine(Out, TEXT("Talent.Context.TargetStatus"), Definition->DisplayName.ToString(), EGridTalentDetailLineSemantic::Context);
+					}
+				}
+			}
+			for (const FName CategoryId : Modifier.AllowedTargetMonsterCategoryIds)
+			{
+				AddDetailLine(Out, TEXT("Talent.Context.TargetCategory"), MonsterCategoryLabel(CategoryId), EGridTalentDetailLineSemantic::Context);
+			}
+			for (const FName Tag : Modifier.RequiredSourceTags)
+			{
+				AddDetailTextLine(
+					Out,
+					TEXT("Talent.Context.SourceTag"),
+					FName(*(FString(TEXT("Talent.Context.Tag.")) + Tag.ToString())),
+					EGridTalentDetailLineSemantic::Context);
+			}
+			if (Modifier.bRequirePartyStationarySincePreviousActivation)
+			{
+				AddDetailTextLine(Out, NAME_None, TEXT("Talent.Context.PartyStationary"), EGridTalentDetailLineSemantic::Context);
+			}
+			if (Modifier.bExcludeAreaActions)
+			{
+				AddDetailTextLine(Out, NAME_None, TEXT("Talent.Context.ExcludeAreaActions"), EGridTalentDetailLineSemantic::Context);
+			}
+
+			AddSignedValueLine(Out, TEXT("Talent.Effect.Accuracy"), Modifier.AccuracyModifier);
+			AddSignedValueLine(Out, TEXT("Talent.Effect.Evasion"), Modifier.EvasionModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.OutgoingDamage"), Modifier.OutgoingDamagePercentModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.IncomingDamage"), Modifier.IncomingDamagePercentModifier);
+			AddSignedValueLine(Out, TEXT("Talent.Effect.CriticalChancePoints"), Modifier.CriticalChancePercentModifier);
+			AddSignedValueLine(Out, TEXT("Talent.Effect.CriticalDamagePoints"), Modifier.CriticalDamagePercentModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.WeaponDamage"), Modifier.WeaponDamagePercentModifier);
+			AddSignedValueLine(Out, TEXT("Talent.Effect.ActionPointCost"), Modifier.ActionPointCostModifier);
+			AddSignedValueLine(Out, TEXT("Talent.Effect.ManaCost"), Modifier.ManaCostModifier);
+			AddSignedValueLine(Out, TEXT("Talent.Effect.RangeCells"), Modifier.RangeCellsModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.PositiveEffects"), Modifier.PositiveEffectPercentModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.OutgoingHealing"), Modifier.OutgoingHealingPercentModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.FriendlyDirectDamage"), Modifier.FriendlyDirectDamagePercentModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.SelfDirectDamage"), Modifier.SelfDirectDamagePercentModifier);
+			AddSignedValueLine(Out, TEXT("Talent.Effect.QuickItemSecondaryTargets"), Modifier.QuickItemSecondaryTargetCount);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.SecondaryMagnitude"), Modifier.QuickItemSecondaryMagnitudePercent);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.SecondaryDuration"), Modifier.QuickItemSecondaryDurationPercent);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.PhysicalArmorReference"), Modifier.PhysicalArmorReferencePercentModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.MagicalArmorReference"), Modifier.MagicalArmorReferencePercentModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.PhysicalArmorRestoration"), Modifier.PhysicalArmorRestorationPercentModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.MagicalArmorRestoration"), Modifier.MagicalArmorRestorationPercentModifier);
+			AddSignedValueLine(Out, TEXT("Talent.Effect.SurfaceDurationRounds"), Modifier.SurfaceDurationRoundsModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.SurfacePeriodicDamage"), Modifier.SurfacePeriodicDamagePercentModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.SurfaceReactionDamage"), Modifier.SurfaceReactionDamagePercentModifier);
+			AddSignedValueLine(Out, TEXT("Talent.Effect.SurfaceReactionRadius"), Modifier.SurfaceReactionAreaRadiusModifier);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Physical"), Modifier.ResistanceModifiers.PhysicalResistance);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Fire"), Modifier.ResistanceModifiers.FireResistance);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Ice"), Modifier.ResistanceModifiers.IceResistance);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Lightning"), Modifier.ResistanceModifiers.LightningResistance);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Poison"), Modifier.ResistanceModifiers.PoisonResistance);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Holy"), Modifier.ResistanceModifiers.HolyResistance);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Necrotic"), Modifier.ResistanceModifiers.NecroticResistance);
+			AddSignedPercentLine(Out, TEXT("Talent.Effect.Resistance.Arcane"), Modifier.ResistanceModifiers.ArcaneResistance);
+			if (Modifier.MinimumManaCost > 0)
+			{
+				AddDetailLine(Out, TEXT("Talent.Effect.MinimumManaCost"), FString::FromInt(Modifier.MinimumManaCost));
+			}
 		}
 	}
 
