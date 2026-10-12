@@ -1112,14 +1112,26 @@ namespace
 		{
 			FText OverrideName;
 			FText OverridePrinciple;
-			if (!ResolveConceptPresentation(
-				ClassDefinition.ClassId, BranchId, NodeId, OverrideName, OverridePrinciple) ||
-				OverrideName.IsEmpty())
+			if (ResolveConceptPresentation(
+				ClassDefinition.ClassId, BranchId, NodeId, OverrideName, OverridePrinciple) &&
+				!OverrideName.IsEmpty())
 			{
-				return false;
+				OutNode.DisplayName = OverrideName;
+				OutNode.Principle = ResolveStatusReferences(OverridePrinciple);
 			}
-			OutNode.DisplayName = OverrideName;
-			OutNode.Principle = ResolveStatusReferences(OverridePrinciple);
+			else
+			{
+				// Generic/synthetic class definitions may not belong to the production
+				// presentation catalog. Keep their authored player text intact without
+				// parsing labels or exposing a technical id. Production coverage is
+				// enforced separately by the serialized presentation tests.
+				if (First->DisplayName.IsEmpty())
+				{
+					return false;
+				}
+				OutNode.DisplayName = First->DisplayName;
+				OutNode.Principle = ResolveStatusReferences(First->Description);
+			}
 		}
 		else
 		{

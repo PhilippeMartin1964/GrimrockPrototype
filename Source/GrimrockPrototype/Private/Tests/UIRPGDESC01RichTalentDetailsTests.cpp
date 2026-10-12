@@ -766,7 +766,12 @@ bool FUIRPGDESC014VariantTypeContractTest::RunTest(const FString&)
 	TestTrue(TEXT("Variant class remains valid"), ClassDefinition->IsValidDefinition());
 
 	FGridSkillsPageView View;
-	TestTrue(TEXT("Variant read model builds"), FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, View));
+	const bool bBuilt = FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, View);
+	TestTrue(TEXT("Variant read model builds"), bBuilt);
+	if (!bBuilt || View.TalentTree.Branches.Num() != 1 || View.TalentTree.Branches[0].Nodes.Num() != 1)
+	{
+		return false;
+	}
 	const FGridTalentNodeView& Node = View.TalentTree.Branches[0].Nodes[0];
 	TestTrue(TEXT("Node is explicitly a true exclusive-variant node"), Node.bHasExclusiveVariants);
 	TestEqual(TEXT("Both variants remain projected"), Node.Variants.Num(), 2);
