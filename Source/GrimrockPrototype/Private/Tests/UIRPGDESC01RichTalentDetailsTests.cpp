@@ -514,6 +514,80 @@ bool FUIRPGDESC01ReactionMechanicsTest::RunTest(const FString&)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGDESC01SkillPartyMechanicsTest,
+	"Grimrock.UI.RPG.DESC01.ReadModel.SkillPartyMechanics",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGDESC01SkillPartyMechanicsTest::RunTest(const FString&)
+{
+	using namespace UIRPGDESC01Tests;
+	FRuntimeGuard Guard;
+
+	URPGClassAsset* ClassDefinition = nullptr;
+	UGridPartyInventoryComponent* Component = MakeSimpleInventory(ClassDefinition);
+	FRPGClassProgressionChoiceDefinition& Choice = ClassDefinition->ProgressionChoices[0];
+	Choice.PresentationType = ERPGTalentPresentationType::Passive;
+	Choice.CombatModifiers.Reset();
+	ClassDefinition->CombatActions.Reset();
+
+	FRPGSkillProgressionModifier Skill;
+	Skill.SkillId = TEXT("Skill_Perception");
+	Skill.CheckModifier = 2;
+	Skill.RequirementGrantRankModifier = 1;
+	Skill.SafeFailureMargin = 2;
+	Skill.bRequireRangedContext = true;
+	Choice.SkillModifiers.Add(Skill);
+
+	FRPGPartyProgressionModifier Party;
+	Party.StackingGroupId = TEXT("Party.DESC01");
+	Party.GroupSkillIds = { TEXT("Skill_Perception") };
+	Party.GroupSkillCheckModifier = 2;
+	Party.MaximumMobilityActionPointsModifier = 1;
+	Choice.PartyModifiers.Add(Party);
+	Choice.FirstRoundInitiativeModifier = 3;
+
+	TestTrue(TEXT("Skill/party class stays valid"), ClassDefinition->IsValidDefinition());
+
+	FGridSkillsPageView View;
+	TestTrue(TEXT("Skill/party view builds"),
+		FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, View));
+	const FGridTalentNodeView& Node = View.TalentTree.Branches[0].Nodes[0];
+
+	auto HasRawValue = [&Node](FName LabelTextId, const TCHAR* ExpectedValue)
+	{
+		return Node.Effects.ContainsByPredicate(
+			[LabelTextId, ExpectedValue](const FGridTalentDetailLineView& Line)
+			{
+				return Line.LabelTextId == LabelTextId &&
+					Line.ValueTextId.IsNone() &&
+					Line.Value.ToString() == ExpectedValue;
+			});
+	};
+
+	TestTrue(TEXT("Skill check modifier is raw numeric content"),
+		HasRawValue(TEXT("Talent.Skill.CheckModifier"), TEXT("2")));
+	TestTrue(TEXT("Effective prerequisite rank modifier is raw numeric content"),
+		HasRawValue(TEXT("Talent.Skill.RequirementGrantRankModifier"), TEXT("1")));
+	TestTrue(TEXT("Safe failure margin is raw numeric content"),
+		HasRawValue(TEXT("Talent.Skill.SafeFailureMargin"), TEXT("2")));
+	TestTrue(TEXT("Ranged context wording is data-driven"),
+		Node.Effects.ContainsByPredicate(
+			[](const FGridTalentDetailLineView& Line)
+			{
+				return Line.LabelTextId == TEXT("Talent.Skill.Context") &&
+					Line.ValueTextId == TEXT("Talent.Skill.Context.Ranged") &&
+					Line.Value.IsEmpty();
+			}));
+	TestTrue(TEXT("Party group Skill modifier is raw numeric content"),
+		HasRawValue(TEXT("Talent.Party.GroupSkillCheckModifier"), TEXT("2")));
+	TestTrue(TEXT("Party mobility modifier is raw numeric content"),
+		HasRawValue(TEXT("Talent.Party.MaximumMobilityActionPointsModifier"), TEXT("1")));
+	TestTrue(TEXT("First-round initiative is raw numeric content"),
+		HasRawValue(TEXT("Talent.Effect.FirstRoundInitiative"), TEXT("3")));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FUIRPGDESC014StructuredReadModelTest,
 	"Grimrock.UI.RPG.DESC01.ReadModel.StructuredContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)

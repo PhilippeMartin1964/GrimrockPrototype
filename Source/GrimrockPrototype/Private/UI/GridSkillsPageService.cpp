@@ -10,6 +10,7 @@
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGSkillAsset.h"
 #include "RPG/RPGSkillPointService.h"
+#include "RPG/RPGSkillRequirementProjectionService.h"
 #include "RPG/RPGSkillService.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectPersistence.h"
@@ -142,38 +143,22 @@ namespace
 		for (const FName RequirementId : Choice.GrantedRequirementIds) OutIds.Add(RequirementId);
 	}
 
-	FString HumanizeId(FName Id)
-	{
-		FString Value = Id.ToString();
-		for (const TCHAR* Prefix : { TEXT("Status_"), TEXT("Skill_"), TEXT("Recipe_"), TEXT("Action_"), TEXT("Talent_") })
-		{
-			if (Value.StartsWith(Prefix, ESearchCase::CaseSensitive))
-			{
-				Value.RightChopInline(FCString::Strlen(Prefix), EAllowShrinking::No);
-				break;
-			}
-		}
-		Value.ReplaceInline(TEXT("_"), TEXT(" "));
-		Value.ReplaceInline(TEXT("."), TEXT(" "));
-		return Value;
-	}
-
-	FString MonsterCategoryLabel(FName CategoryId)
+	FText MonsterCategoryDisplayName(FName CategoryId)
 	{
 		if (const UGridMonsterCategoryAsset* Category =
 				UGridMonsterCategoryAsset::ResolveByCategoryId(CategoryId))
 		{
-			if (!Category->DisplayName.IsEmpty())
-			{
-				return Category->DisplayName.ToString();
-			}
+			return Category->DisplayName;
 		}
-
-		// Diagnostic/development fallback only. Production bestiary categories
-		// are required to own a UGridMonsterCategoryAsset by D04.
-		return HumanizeId(CategoryId);
+		return FText::GetEmpty();
 	}
 
+	FText SkillDisplayName(FName SkillId)
+	{
+		const URPGSkillAsset* Definition =
+			FRPGSkillRequirementProjectionService::ResolveDefinitionBySkillId(SkillId);
+		return IsValid(Definition) ? Definition->DisplayName : FText::GetEmpty();
+	}
 	FName PhysicalSubtypeTextId(EGridPhysicalDamageSubtype Type)
 	{
 		switch (Type)
@@ -251,59 +236,6 @@ namespace
 			case EGridCombatReactionLimit::OncePerAction: return TEXT("Talent.Reaction.Limit.OncePerAction");
 			default: return NAME_None;
 		}
-	}
-
-	void AppendSignedPercent(TArray<FString>& Out, const TCHAR* Label, int32 Value)
-	{
-		if (Value != 0) Out.Add(FString::Printf(TEXT("%s : %+d %%"), Label, Value));
-	}
-
-	void AppendSignedValue(TArray<FString>& Out, const TCHAR* Label, int32 Value)
-	{
-		if (Value != 0) Out.Add(FString::Printf(TEXT("%s : %+d"), Label, Value));
-	}
-
-
-	FText BuildMechanicsSummary(const FRPGClassProgressionChoiceDefinition& Choice)
-	{
-		TArray<FString> Lines;
-
-		for (const FRPGSkillProgressionModifier& Skill : Choice.SkillModifiers)
-		{
-			TArray<FString> Effects;
-			AppendSignedValue(Effects, TEXT("jets"), Skill.CheckModifier);
-			if (Skill.RequirementGrantRankModifier > 0) Effects.Add(FString::Printf(TEXT("rang effectif pour prérequis : +%d"), Skill.RequirementGrantRankModifier));
-			if (Skill.SafeFailureMargin > 0) Effects.Add(FString::Printf(TEXT("échec sûr jusqu'à %d point%s"), Skill.SafeFailureMargin, Skill.SafeFailureMargin > 1 ? TEXT("s") : TEXT("")));
-			if (Skill.bRequireRangedContext) Effects.Add(TEXT("uniquement à distance"));
-			if (!Skill.RelatedMonsterCategoryIds.IsEmpty())
-			{
-				TArray<FString> Categories;
-				for (const FName Id : Skill.RelatedMonsterCategoryIds) Categories.Add(MonsterCategoryLabel(Id));
-				Effects.Add(TEXT("contre : ") + FString::Join(Categories, TEXT(", ")));
-			}
-			Lines.Add(TEXT("• Compétence ") + HumanizeId(Skill.SkillId) + TEXT(" → ") + FString::Join(Effects, TEXT(" ; ")));
-		}
-
-		for (const FRPGPartyProgressionModifier& Party : Choice.PartyModifiers)
-		{
-			TArray<FString> Effects;
-			if (Party.GroupSkillCheckModifier != 0)
-			{
-				TArray<FString> Skills;
-				for (const FName Id : Party.GroupSkillIds) Skills.Add(HumanizeId(Id));
-				Effects.Add(FString::Printf(TEXT("jets de groupe %+d (%s)"), Party.GroupSkillCheckModifier, *FString::Join(Skills, TEXT(", "))));
-			}
-			AppendSignedValue(Effects, TEXT("points d'action de mobilité maximum"), Party.MaximumMobilityActionPointsModifier);
-			if (!Effects.IsEmpty()) Lines.Add(TEXT("• Groupe → ") + FString::Join(Effects, TEXT(" ; ")));
-		}
-
-		if (Choice.FirstRoundInitiativeModifier != 0)
-			Lines.Add(FString::Printf(TEXT("• Initiative au premier round : %+d"), Choice.FirstRoundInitiativeModifier));
-
-
-		return Lines.IsEmpty()
-			? FText::GetEmpty()
-			: FText::FromString(FString::Join(Lines, TEXT("\n")));
 	}
 
 	FName TargetingPolicyTextId(EGridCombatTargetingPolicy Policy)
@@ -442,6 +374,90 @@ namespace
 		if (Value != 0)
 		{
 			AddDetailLine(Lines, LabelTextId, FString::Printf(TEXT("%+d %%"), Value));
+		}
+	}
+
+	void BuildStructuredSkillPartyEffects(
+		const FRPGClassProgressionChoiceDefinition& Choice,
+		TArray<FGridTalentDetailLineView>& Out)
+	{
+		for (const FRPGSkillProgressionModifier& Skill : Choice.SkillModifiers)
+		{
+			const FText Name = SkillDisplayName(Skill.SkillId);
+			if (!Name.IsEmpty())
+			{
+				AddDetailLine(Out, TEXT("Talent.Skill.Name"), Name.ToString());
+			}
+			if (Skill.CheckModifier != 0)
+			{
+				AddDetailNumberLine(Out, TEXT("Talent.Skill.CheckModifier"), Skill.CheckModifier);
+			}
+			if (Skill.RequirementGrantRankModifier > 0)
+			{
+				AddDetailNumberLine(
+					Out,
+					TEXT("Talent.Skill.RequirementGrantRankModifier"),
+					Skill.RequirementGrantRankModifier);
+			}
+			if (Skill.SafeFailureMargin > 0)
+			{
+				AddDetailNumberLine(
+					Out,
+					TEXT("Talent.Skill.SafeFailureMargin"),
+					Skill.SafeFailureMargin);
+			}
+			if (Skill.bRequireRangedContext)
+			{
+				AddDetailTextLine(
+					Out,
+					TEXT("Talent.Skill.Context"),
+					TEXT("Talent.Skill.Context.Ranged"));
+			}
+			for (const FName CategoryId : Skill.RelatedMonsterCategoryIds)
+			{
+				const FText CategoryName = MonsterCategoryDisplayName(CategoryId);
+				if (!CategoryName.IsEmpty())
+				{
+					AddDetailLine(
+						Out,
+						TEXT("Talent.Skill.RelatedCategory"),
+						CategoryName.ToString());
+				}
+			}
+		}
+
+		for (const FRPGPartyProgressionModifier& Party : Choice.PartyModifiers)
+		{
+			for (const FName SkillId : Party.GroupSkillIds)
+			{
+				const FText Name = SkillDisplayName(SkillId);
+				if (!Name.IsEmpty())
+				{
+					AddDetailLine(Out, TEXT("Talent.Party.GroupSkill"), Name.ToString());
+				}
+			}
+			if (Party.GroupSkillCheckModifier != 0)
+			{
+				AddDetailNumberLine(
+					Out,
+					TEXT("Talent.Party.GroupSkillCheckModifier"),
+					Party.GroupSkillCheckModifier);
+			}
+			if (Party.MaximumMobilityActionPointsModifier != 0)
+			{
+				AddDetailNumberLine(
+					Out,
+					TEXT("Talent.Party.MaximumMobilityActionPointsModifier"),
+					Party.MaximumMobilityActionPointsModifier);
+			}
+		}
+
+		if (Choice.FirstRoundInitiativeModifier != 0)
+		{
+			AddDetailNumberLine(
+				Out,
+				TEXT("Talent.Effect.FirstRoundInitiative"),
+				Choice.FirstRoundInitiativeModifier);
 		}
 	}
 
@@ -630,7 +646,15 @@ namespace
 			}
 			for (const FName CategoryId : Modifier.AllowedTargetMonsterCategoryIds)
 			{
-				AddDetailLine(Out, TEXT("Talent.Context.TargetCategory"), MonsterCategoryLabel(CategoryId), EGridTalentDetailLineSemantic::Context);
+				const FText CategoryName = MonsterCategoryDisplayName(CategoryId);
+				if (!CategoryName.IsEmpty())
+				{
+					AddDetailLine(
+						Out,
+						TEXT("Talent.Context.TargetCategory"),
+						CategoryName.ToString(),
+						EGridTalentDetailLineSemantic::Context);
+				}
 			}
 			for (const FName Tag : Modifier.RequiredSourceTags)
 			{
@@ -689,10 +713,6 @@ namespace
 		}
 	}
 
-	FString Plural(int32 Value, const TCHAR* Singular, const TCHAR* PluralForm)
-	{
-		return FString::Printf(TEXT("%d %s"), Value, Value > 1 ? PluralForm : Singular);
-	}
 
 	FText TalentStatusText(
 		EGridTalentNodeState State, int32 MinimumLevel, int32 PointCost, const TArray<FText>& PrerequisiteNames)
@@ -987,15 +1007,7 @@ namespace
 		Out.Reset();
 		BuildStructuredCombatModifierEffects(Choice, Out);
 		BuildStructuredReactionEffects(Choice, Out);
-		const FString Mechanics = BuildMechanicsSummary(Choice).ToString();
-		TArray<FString> Lines;
-		Mechanics.ParseIntoArrayLines(Lines, true);
-		for (FString Line : Lines)
-		{
-			Line.RemoveFromStart(TEXT("• "));
-			Line.TrimStartAndEndInline();
-			AddDetailLine(Out, NAME_None, Line);
-		}
+		BuildStructuredSkillPartyEffects(Choice, Out);
 
 		TArray<const FGridCombatActionDefinition*> Actions;
 		CollectUnlockedActions(ClassDefinition, Choice, Actions);
