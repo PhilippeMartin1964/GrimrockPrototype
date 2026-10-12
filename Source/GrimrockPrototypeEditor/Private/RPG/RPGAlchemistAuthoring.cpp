@@ -702,6 +702,14 @@ bool FRPGAlchemistAuthoring::ConfigureItem(UGridItemDefinitionAsset& Item, FName
 
 bool FRPGAlchemistAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)
 {
+	const FName CanonicalEffectId = EffectId;
+	const bool bPreserveSerializedText =
+		!CanonicalEffectId.IsNone() && StatusAsset.EffectId == CanonicalEffectId;
+	const FText ExistingDisplayName = StatusAsset.DisplayName;
+	const FText ExistingDescription = StatusAsset.Description;
+
+	const bool bConfigured = [&]()
+	{
 	using namespace RPGAlchemistAuthoring;
 	StatusAsset.EffectId = EffectId;
 	StatusAsset.StatusTags.Reset();
@@ -765,6 +773,21 @@ bool FRPGAlchemistAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& S
 		return StatusAsset.IsValidDefinition();
 	}
 	return false;
+
+	}();
+
+	if (!bConfigured)
+	{
+		return false;
+	}
+
+	if (bPreserveSerializedText)
+	{
+		StatusAsset.DisplayName = ExistingDisplayName;
+		StatusAsset.Description = ExistingDescription;
+	}
+
+	return StatusAsset.IsValidDefinition();
 }
 
 void FRPGAlchemistAuthoring::GetB1ItemIds(TArray<FName>& OutItemIds)

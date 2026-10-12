@@ -412,6 +412,14 @@ void FRPGRogueAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)
 {
+	const FName CanonicalEffectId = EffectId;
+	const bool bPreserveSerializedText =
+		!CanonicalEffectId.IsNone() && StatusAsset.EffectId == CanonicalEffectId;
+	const FText ExistingDisplayName = StatusAsset.DisplayName;
+	const FText ExistingDescription = StatusAsset.Description;
+
+	const bool bConfigured = [&]()
+	{
 	using namespace RPGRogueAuthoring;
 
 	StatusAsset.EffectId = EffectId;
@@ -576,6 +584,21 @@ bool FRPGRogueAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Statu
 		return true;
 	}
 	return false;
+
+	}();
+
+	if (!bConfigured)
+	{
+		return false;
+	}
+
+	if (bPreserveSerializedText)
+	{
+		StatusAsset.DisplayName = ExistingDisplayName;
+		StatusAsset.Description = ExistingDescription;
+	}
+
+	return StatusAsset.IsValidDefinition();
 }
 
 bool FRPGRogueAuthoring::AuthorProductionAssets(FString& OutError)

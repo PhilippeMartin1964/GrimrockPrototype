@@ -635,6 +635,14 @@ void FRPGRangerAuthoring::ConfigureClass(URPGClassAsset& ClassAsset, const TArra
 
 bool FRPGRangerAuthoring::ConfigureMarkedStatus(UGridStatusEffectDefinitionAsset& StatusAsset)
 {
+	const FName CanonicalEffectId = RPGRangerAuthoring::MarkStatusId;
+	const bool bPreserveSerializedText =
+		!CanonicalEffectId.IsNone() && StatusAsset.EffectId == CanonicalEffectId;
+	const FText ExistingDisplayName = StatusAsset.DisplayName;
+	const FText ExistingDescription = StatusAsset.Description;
+
+	const bool bConfigured = [&]()
+	{
 	StatusAsset.EffectId = RPGRangerAuthoring::MarkStatusId;
 	StatusAsset.DisplayName = FText::FromString(TEXT("Marqué par un Rôdeur"));
 	StatusAsset.Description = FText::FromString(TEXT("Marque personnelle d'un Rôdeur ; plusieurs sources peuvent coexister sur une même cible."));
@@ -654,6 +662,21 @@ bool FRPGRangerAuthoring::ConfigureMarkedStatus(UGridStatusEffectDefinitionAsset
 	StatusAsset.Control = FGridStatusEffectControlProfile();
 	StatusAsset.CombatModifiers.Reset();
 	StatusAsset.CombatReactions.Reset();
+	return StatusAsset.IsValidDefinition();
+
+	}();
+
+	if (!bConfigured)
+	{
+		return false;
+	}
+
+	if (bPreserveSerializedText)
+	{
+		StatusAsset.DisplayName = ExistingDisplayName;
+		StatusAsset.Description = ExistingDescription;
+	}
+
 	return StatusAsset.IsValidDefinition();
 }
 

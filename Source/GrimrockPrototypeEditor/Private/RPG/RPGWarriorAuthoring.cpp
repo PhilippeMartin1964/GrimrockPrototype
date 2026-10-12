@@ -431,6 +431,14 @@ void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)
 {
+	const FName CanonicalEffectId = EffectId;
+	const bool bPreserveSerializedText =
+		!CanonicalEffectId.IsNone() && StatusAsset.EffectId == CanonicalEffectId;
+	const FText ExistingDisplayName = StatusAsset.DisplayName;
+	const FText ExistingDescription = StatusAsset.Description;
+
+	const bool bConfigured = [&]()
+	{
 	StatusAsset.EffectId = EffectId;
 	StatusAsset.StatusTags.Reset();
 	StatusAsset.Icon.Reset();
@@ -518,6 +526,21 @@ bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Sta
 		return true;
 	}
 	return false;
+
+	}();
+
+	if (!bConfigured)
+	{
+		return false;
+	}
+
+	if (bPreserveSerializedText)
+	{
+		StatusAsset.DisplayName = ExistingDisplayName;
+		StatusAsset.Description = ExistingDescription;
+	}
+
+	return StatusAsset.IsValidDefinition();
 }
 
 bool FRPGWarriorAuthoring::AuthorProductionAssets(FString& OutError)

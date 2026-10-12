@@ -516,6 +516,14 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)
 {
+	const FName CanonicalEffectId = EffectId;
+	const bool bPreserveSerializedText =
+		!CanonicalEffectId.IsNone() && StatusAsset.EffectId == CanonicalEffectId;
+	const FText ExistingDisplayName = StatusAsset.DisplayName;
+	const FText ExistingDescription = StatusAsset.Description;
+
+	const bool bConfigured = [&]()
+	{
 	using namespace RPGPriestAuthoring;
 
 	StatusAsset.EffectId = EffectId;
@@ -648,6 +656,21 @@ bool FRPGPriestAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Stat
 	}
 
 	return false;
+
+	}();
+
+	if (!bConfigured)
+	{
+		return false;
+	}
+
+	if (bPreserveSerializedText)
+	{
+		StatusAsset.DisplayName = ExistingDisplayName;
+		StatusAsset.Description = ExistingDescription;
+	}
+
+	return StatusAsset.IsValidDefinition();
 }
 
 

@@ -679,6 +679,14 @@ bool FRPGMageAuthoring::ConfigureElementalOverloadStatus(UGridStatusEffectDefini
 
 bool FRPGMageAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)
 {
+	const FName CanonicalEffectId = EffectId;
+	const bool bPreserveSerializedText =
+		!CanonicalEffectId.IsNone() && StatusAsset.EffectId == CanonicalEffectId;
+	const FText ExistingDisplayName = StatusAsset.DisplayName;
+	const FText ExistingDescription = StatusAsset.Description;
+
+	const bool bConfigured = [&]()
+	{
 	using namespace RPGMageAuthoring;
 
 	StatusAsset.EffectId = EffectId;
@@ -789,6 +797,21 @@ bool FRPGMageAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& Status
 	}
 
 	return false;
+
+	}();
+
+	if (!bConfigured)
+	{
+		return false;
+	}
+
+	if (bPreserveSerializedText)
+	{
+		StatusAsset.DisplayName = ExistingDisplayName;
+		StatusAsset.Description = ExistingDescription;
+	}
+
+	return StatusAsset.IsValidDefinition();
 }
 
 void FRPGMageAuthoring::GetRequiredMageStatusIds(TArray<FName>& OutStatusIds)

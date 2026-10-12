@@ -158,9 +158,8 @@ namespace UIRPGCONTENTTEXT031
  * the matching class authoring function runs only against a transient
  * duplicate carrying sentinel text and deliberately poisoned mechanics.
  *
- * TEXT-OVERWRITE entries are informational. They identify the exact fields
- * currently reclaimed by C++ authoring so later TEXT03 tickets can remove that
- * authority without changing gameplay mechanics.
+ * TEXT-OVERWRITE entries are informational. They identify any text field
+ * reclaimed by C++ authoring; after preservation work they naturally disappear.
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FUIRPGCONTENTTEXT031StatusTextOwnershipAuditTest,
@@ -343,6 +342,150 @@ bool FUIRPGCONTENTTEXT031StatusTextOwnershipAuditTest::RunTest(const FString&)
 		MageCount,
 		PriestCount,
 		AlchemistCount);
+
+	return true;
+}
+
+
+/**
+ * UI-RPG-CONTENT-TEXT03.2 proves that all six class authoring families
+ * rematerialize status mechanics without reclaiming serialized status text.
+ *
+ * DisplayName must remain non-empty because UGridStatusEffectDefinitionAsset
+ * requires it for structural validity. Description may legitimately be empty,
+ * so a second probe verifies that an empty serialized description remains
+ * authoritative.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT032StatusTextPreservationTest,
+	"Grimrock.UI.RPG.CONTENTTEXT03.Preservation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT032StatusTextPreservationTest::RunTest(const FString&)
+{
+	using namespace UIRPGCONTENTTEXT031;
+
+	TArray<FStatusAuditSpec> Specs;
+	CollectStatusSpecs(Specs);
+
+	int32 PreservedStatusCount = 0;
+	int32 EmptyDescriptionCount = 0;
+
+	for (const FStatusAuditSpec& Spec : Specs)
+	{
+		UGridStatusEffectDefinitionAsset* Serialized =
+			LoadObject<UGridStatusEffectDefinitionAsset>(nullptr, *Spec.ObjectPath);
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s/%s serialized DA_Status loads for preservation test"), OwnerName(Spec.Owner), *Spec.EffectId.ToString()),
+				Serialized))
+		{
+			continue;
+		}
+
+		UGridStatusEffectDefinitionAsset* Working =
+			DuplicateObject<UGridStatusEffectDefinitionAsset>(Serialized, GetTransientPackage());
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s preservation duplicate is created"), *Spec.EffectId.ToString()),
+				Working))
+		{
+			continue;
+		}
+
+		const FString DisplayName =
+			FString::Printf(TEXT("TEXT03.2 Status Name %s"), *Spec.EffectId.ToString());
+		const FString Description =
+			FString::Printf(TEXT("TEXT03.2 Status Description %s"), *Spec.EffectId.ToString());
+
+		Working->DisplayName = FText::FromString(DisplayName);
+		Working->Description = FText::FromString(Description);
+		Working->StatusTags = { TEXT("TEXT03_2_POISON_TAG") };
+		Working->DefaultDuration = 777;
+		Working->DefaultPotency = 777;
+		Working->InitiativeModifier = 777;
+		Working->CombatModifiers.Reset();
+		Working->CombatReactions.Reset();
+
+		if (!TestTrue(
+				*FString::Printf(TEXT("%s rematerializes mechanics while preserving serialized text"), *Spec.EffectId.ToString()),
+				ConfigureStatus(Spec, *Working)))
+		{
+			continue;
+		}
+
+		TestEqual(
+			*FString::Printf(TEXT("%s preserves serialized DisplayName"), *Spec.EffectId.ToString()),
+			Working->DisplayName.ToString(),
+			DisplayName);
+		TestEqual(
+			*FString::Printf(TEXT("%s preserves serialized Description"), *Spec.EffectId.ToString()),
+			Working->Description.ToString(),
+			Description);
+		TestTrue(
+			*FString::Printf(TEXT("%s rematerializes DefaultDuration"), *Spec.EffectId.ToString()),
+			Working->DefaultDuration != 777);
+		TestTrue(
+			*FString::Printf(TEXT("%s rematerializes DefaultPotency"), *Spec.EffectId.ToString()),
+			Working->DefaultPotency != 777);
+		TestTrue(
+			*FString::Printf(TEXT("%s rematerializes InitiativeModifier"), *Spec.EffectId.ToString()),
+			Working->InitiativeModifier != 777);
+		TestFalse(
+			*FString::Printf(TEXT("%s rematerializes StatusTags"), *Spec.EffectId.ToString()),
+			Working->StatusTags.Contains(TEXT("TEXT03_2_POISON_TAG")));
+		TestTrue(
+			*FString::Printf(TEXT("%s remains structurally valid after text restoration"), *Spec.EffectId.ToString()),
+			Working->IsValidDefinition());
+
+		UGridStatusEffectDefinitionAsset* EmptyDescriptionProbe =
+			DuplicateObject<UGridStatusEffectDefinitionAsset>(Serialized, GetTransientPackage());
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s empty-description duplicate is created"), *Spec.EffectId.ToString()),
+				EmptyDescriptionProbe))
+		{
+			continue;
+		}
+
+		const FString EmptyProbeName =
+			FString::Printf(TEXT("TEXT03.2 Empty Description Name %s"), *Spec.EffectId.ToString());
+		EmptyDescriptionProbe->DisplayName = FText::FromString(EmptyProbeName);
+		EmptyDescriptionProbe->Description = FText::GetEmpty();
+		EmptyDescriptionProbe->DefaultDuration = 777;
+
+		if (!TestTrue(
+				*FString::Printf(TEXT("%s rematerializes with an empty serialized Description"), *Spec.EffectId.ToString()),
+				ConfigureStatus(Spec, *EmptyDescriptionProbe)))
+		{
+			continue;
+		}
+
+		TestEqual(
+			*FString::Printf(TEXT("%s preserves DisplayName while Description is empty"), *Spec.EffectId.ToString()),
+			EmptyDescriptionProbe->DisplayName.ToString(),
+			EmptyProbeName);
+		TestTrue(
+			*FString::Printf(TEXT("%s preserves an empty serialized Description"), *Spec.EffectId.ToString()),
+			EmptyDescriptionProbe->Description.IsEmpty());
+		TestTrue(
+			*FString::Printf(TEXT("%s still rebuilds mechanics with empty Description"), *Spec.EffectId.ToString()),
+			EmptyDescriptionProbe->DefaultDuration != 777);
+		TestTrue(
+			*FString::Printf(TEXT("%s remains valid with empty Description"), *Spec.EffectId.ToString()),
+			EmptyDescriptionProbe->IsValidDefinition());
+
+		++PreservedStatusCount;
+		++EmptyDescriptionCount;
+	}
+
+	TestEqual(TEXT("Preservation covers all thirty-two production statuses"), PreservedStatusCount, 32);
+	TestEqual(TEXT("Empty Description preservation covers all thirty-two production statuses"), EmptyDescriptionCount, 32);
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("[UI-RPG-CONTENT-TEXT03.2][SUMMARY] PreservedStatuses=%d PreservedTextFields=%d EmptyDescriptionsPreserved=%d"),
+		PreservedStatusCount,
+		PreservedStatusCount * 2,
+		EmptyDescriptionCount);
 
 	return true;
 }
