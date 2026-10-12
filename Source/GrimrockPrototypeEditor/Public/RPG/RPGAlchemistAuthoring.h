@@ -17,7 +17,7 @@ struct GRIMROCKPROTOTYPEEDITOR_API FRPGAlchemistAuthoring
 	/** Authors the complete Grenadier, Apothecary and Transmuter talent tree. */
 	static void ConfigureClass(URPGClassAsset& ClassAsset);
 
-	/** Configures one Alchemist QuickItem by stable ItemDefinitionId. */
+	/** Rebuilds one Alchemist QuickItem mechanically and preserves existing serialized item/action text by stable ItemDefinitionId. */
 	static bool ConfigureItem(UGridItemDefinitionAsset& ItemAsset, FName ItemDefinitionId);
 
 	/** Configures Alchemist-owned/shared statuses required by the authored QuickItems. */

@@ -500,173 +500,200 @@ void FRPGAlchemistAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 bool FRPGAlchemistAuthoring::ConfigureItem(UGridItemDefinitionAsset& Item, FName ItemDefinitionId)
 {
-	using namespace RPGAlchemistAuthoring;
+	const bool bPreserveSerializedText =
+		!ItemDefinitionId.IsNone() && Item.ItemDefinitionId == ItemDefinitionId;
+	const FText ExistingDisplayName = Item.DisplayName;
+	const FText ExistingDescription = Item.Description;
+	const FText ExistingReadText = Item.ReadText;
+	const FText ExistingQuickDisplayName = Item.QuickItemCombatAction.DisplayName;
+	const FText ExistingQuickDescription = Item.QuickItemCombatAction.Description;
 
-	// UObject instances are never value-assigned. Reset only gameplay authoring owned by
-	// this helper so re-authoring preserves presentation/mesh/icon fields.
-	Item.ItemDefinitionId = NAME_None;
-	Item.DisplayName = FText::GetEmpty();
-	Item.Description = FText::GetEmpty();
-	Item.ItemType = EGridItemType::None;
-	Item.HandUsage = EGridItemHandUsage::NotHandHeld;
-	Item.CompatibleEquipmentSlots.Reset();
-	Item.CombatActions.Reset();
-	Item.bProvidesQuickItemCombatAction = false;
-	Item.QuickItemCombatAction = FGridCombatActionDefinition();
-	Item.QuickItemActionIdOverride = NAME_None;
-	Item.bCombatThrowWeapon = false;
-	Item.ItemTags.Reset();
+	const bool bConfigured = [&]()
+	{
+		using namespace RPGAlchemistAuthoring;
 
-	if (ItemDefinitionId == FireBombItem)
+		// Rebuild mechanics from scratch. Existing serialized text is restored below by stable ItemDefinitionId.
+		Item.ItemDefinitionId = NAME_None;
+		Item.DisplayName = FText::GetEmpty();
+		Item.Description = FText::GetEmpty();
+		Item.ItemType = EGridItemType::None;
+		Item.HandUsage = EGridItemHandUsage::NotHandHeld;
+		Item.CompatibleEquipmentSlots.Reset();
+		Item.CombatActions.Reset();
+		Item.bProvidesQuickItemCombatAction = false;
+		Item.QuickItemCombatAction = FGridCombatActionDefinition();
+		Item.QuickItemActionIdOverride = NAME_None;
+		Item.bCombatThrowWeapon = false;
+		Item.ItemTags.Reset();
+
+		if (ItemDefinitionId == FireBombItem)
+		{
+			ConfigureItemBase(Item, FireBombItem, TEXT("Bombe incendiaire"), EGridItemType::Misc, FireBombAction);
+			Item.ItemTags.Add(TEXT("QuickItem.Bomb"));
+			Item.QuickItemCombatAction = MakeBomb(FireBombAction, EGridDamageType::Fire, TEXT("Status_Burning"), 2, EGridCombatSurfaceType::Fire, 2);
+			return true;
+		}
+		if (ItemDefinitionId == ToxicBombItem)
+		{
+			ConfigureItemBase(Item, ToxicBombItem, TEXT("Bombe toxique"), EGridItemType::Misc, ToxicBombAction);
+			Item.ItemTags.Add(TEXT("QuickItem.Bomb"));
+			Item.QuickItemCombatAction = MakeBomb(ToxicBombAction, EGridDamageType::Poison, PoisonStatus, 3, EGridCombatSurfaceType::Poison, 3);
+			return true;
+		}
+		if (ItemDefinitionId == AntidoteItem)
+		{
+			ConfigureItemBase(Item, AntidoteItem, TEXT("Antidote"), EGridItemType::Potion, AntidoteAction);
+			Item.ItemTags.Append({ TEXT("QuickItem.Potion"), TEXT("QuickItem.Potion.Positive") });
+			FGridCombatActionDefinition Action = MakeQuickItemAction(
+				AntidoteAction, EGridCombatTargetingPolicy::Ally, EGridCombatActionResolutionProfile::Effect, 1, 1);
+			FGridCombatStatusRemovalProfile Poison;
+			Poison.EffectIds = { TEXT("Status_Poison") };
+			Poison.AllowedDispositions = { EGridStatusEffectDisposition::Debuff };
+			Poison.TargetSide = EGridCombatStatusRemovalTargetSide::Party;
+			Poison.MaximumRemovals = 1;
+			Action.StatusRemovals.Add(Poison);
+			FGridCombatStatusRemovalProfile Toxin;
+			Toxin.AnyStatusTags = { TEXT("Toxin") };
+			Toxin.AllowedDispositions = { EGridStatusEffectDisposition::Debuff };
+			Toxin.TargetSide = EGridCombatStatusRemovalTargetSide::Party;
+			Toxin.MaximumRemovals = 1;
+			Action.StatusRemovals.Add(Toxin);
+			Item.QuickItemCombatAction = Action;
+			return true;
+		}
+
+		FName DefensiveStatus = NAME_None;
+		EGridDamageType DefensiveType = EGridDamageType::Physical;
+		const TCHAR* DefensiveName = nullptr;
+		if (ItemDefinitionId == DefensiveFireItem)
+		{
+			DefensiveStatus = DefensiveFireStatus; DefensiveType = EGridDamageType::Fire; DefensiveName = TEXT("Élixir défensif — Feu");
+		}
+		else if (ItemDefinitionId == DefensiveIceItem)
+		{
+			DefensiveStatus = DefensiveIceStatus; DefensiveType = EGridDamageType::Ice; DefensiveName = TEXT("Élixir défensif — Glace");
+		}
+		else if (ItemDefinitionId == DefensiveLightningItem)
+		{
+			DefensiveStatus = DefensiveLightningStatus; DefensiveType = EGridDamageType::Lightning; DefensiveName = TEXT("Élixir défensif — Foudre");
+		}
+		else if (ItemDefinitionId == DefensivePoisonItem)
+		{
+			DefensiveStatus = DefensivePoisonStatus; DefensiveType = EGridDamageType::Poison; DefensiveName = TEXT("Élixir défensif — Poison");
+		}
+		if (!DefensiveStatus.IsNone())
+		{
+			ConfigureItemBase(Item, ItemDefinitionId, DefensiveName, EGridItemType::Potion, DefensiveElixirAction);
+			Item.ItemTags.Append({ TEXT("QuickItem.Potion"), TEXT("QuickItem.Potion.Positive") });
+			FGridCombatActionDefinition Action = MakeQuickItemAction(
+				DefensiveElixirAction, EGridCombatTargetingPolicy::Ally, EGridCombatActionResolutionProfile::Effect, 1, 1);
+			Action.ArmorEffects.Add(MakeMagicalArmorRestore(4));
+			Action.StatusApplications.Add(MakeStatus(DefensiveStatus, 3));
+			Item.QuickItemCombatAction = Action;
+			(void)DefensiveType;
+			return true;
+		}
+
+		if (ItemDefinitionId == PanaceaItem)
+		{
+			ConfigureItemBase(Item, PanaceaItem, TEXT("Panacée"), EGridItemType::Potion, PanaceaAction);
+			Item.ItemTags.Append({ TEXT("QuickItem.Potion"), TEXT("QuickItem.Potion.Positive") });
+			FGridCombatActionDefinition Action = MakeQuickItemAction(
+				PanaceaAction, EGridCombatTargetingPolicy::Ally, EGridCombatActionResolutionProfile::Effect, 2, 1, 3);
+			Action.EffectProfile.RestoreHealth = 10;
+			Action.QuickItemScaling.ScalingSkillId = TEXT("Skill_Alchemy");
+			Action.QuickItemScaling.RestoreHealthSkillRankScale = 2;
+			Action.ArmorEffects.Add(MakeMagicalArmorRestore(8));
+			FGridCombatStatusRemovalProfile Removal;
+			Removal.EffectIds = {
+				TEXT("Status_Poison"), TEXT("Status_Burning"), TEXT("Status_Bleeding"),
+				TEXT("Status_Slow"), TEXT("Status_Silence"), TEXT("Status_Immobilized")
+			};
+			Removal.AnyStatusTags = { TEXT("Toxin"), TEXT("Purifiable") };
+			Removal.AllowedDispositions = { EGridStatusEffectDisposition::Debuff };
+			Removal.TargetSide = EGridCombatStatusRemovalTargetSide::Party;
+			Removal.MaximumRemovals = 3;
+			Action.StatusRemovals.Add(Removal);
+			Item.QuickItemCombatAction = Action;
+			return true;
+		}
+		if (ItemDefinitionId == OilSlickItem)
+		{
+			ConfigureItemBase(Item, OilSlickItem, TEXT("Flasque d'huile"), EGridItemType::Misc, OilSlickAction);
+			Item.ItemTags.Add(TEXT("QuickItem.Flask"));
+			FGridCombatActionDefinition Action = MakeQuickItemAction(
+				OilSlickAction, EGridCombatTargetingPolicy::Area, EGridCombatActionResolutionProfile::Effect, 2, 4);
+			Action.AreaRadiusCells = 1;
+			FGridCombatSurfaceEffectProfile Oil;
+			Oil.SurfaceType = EGridCombatSurfaceType::Oil;
+			Oil.DurationRounds = 4;
+			Oil.TraversalCostModifier = 1;
+			Action.SurfaceEffects.Add(Oil);
+			Item.QuickItemCombatAction = Action;
+			return true;
+		}
+		if (ItemDefinitionId == AcidFlaskItem)
+		{
+			ConfigureItemBase(Item, AcidFlaskItem, TEXT("Flasque acide"), EGridItemType::Misc, AcidFlaskAction);
+			Item.ItemTags.Add(TEXT("QuickItem.Flask"));
+			FGridCombatActionDefinition Action = MakeQuickItemAction(
+				AcidFlaskAction, EGridCombatTargetingPolicy::Hostile, EGridCombatActionResolutionProfile::Effect, 2, 4, 1);
+			Action.ArmorEffects.Add(MakePhysicalArmorDamage(6, 2));
+			Action.StatusApplications.Add(MakeStatus(CorrodedStatus, 2));
+			Item.QuickItemCombatAction = Action;
+			return true;
+		}
+		if (ItemDefinitionId == CorrosiveCloudItem)
+		{
+			ConfigureItemBase(Item, CorrosiveCloudItem, TEXT("Flasque de nuage corrosif"), EGridItemType::Misc, CorrosiveCloudAction);
+			Item.ItemTags.Add(TEXT("QuickItem.Flask"));
+			FGridCombatActionDefinition Action = MakeQuickItemAction(
+				CorrosiveCloudAction, EGridCombatTargetingPolicy::Area, EGridCombatActionResolutionProfile::Attack, 3, 4, 2);
+			Action.AreaRadiusCells = 1;
+			Action.OffensiveProfile.AttackId = CorrosiveCloudAction;
+			Action.OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Poison;
+			Action.OffensiveProfile.AttackDefinition.MinDamage = 4;
+			Action.OffensiveProfile.AttackDefinition.MaxDamage = 4;
+			Action.OffensiveProfile.AttackDefinition.bAlwaysHits = true;
+			Action.OffensiveProfile.AttackDefinition.bCanCriticalHit = false;
+			Action.OffensiveProfile.RangeCells = 4;
+			Action.QuickItemScaling.ScalingSkillId = TEXT("Skill_Alchemy");
+			Action.QuickItemScaling.DirectDamageSkillRankScale = 1;
+			FGridCombatSurfaceEffectProfile Cloud;
+			Cloud.SurfaceType = EGridCombatSurfaceType::PoisonCloud;
+			Cloud.DurationRounds = 3;
+			Cloud.PeriodicDamageType = EGridDamageType::Poison;
+			Cloud.PeriodicDamagePerRound = 2;
+			FGridCombatStatusApplicationProfile Poison;
+			Poison.StatusEffectId = PoisonStatus;
+			Poison.Trigger = EGridCombatStatusApplicationTrigger::AfterResolution;
+			Poison.ArmorGate = EGridCombatStatusArmorGate::MagicalArmorDepleted;
+			Poison.DurationOverride = 2;
+			Cloud.PeriodicStatusApplications.Add(Poison);
+			Action.SurfaceEffects.Add(Cloud);
+			Item.QuickItemCombatAction = Action;
+			return true;
+		}
+
+		return false;
+
+	}();
+
+	if (!bConfigured)
 	{
-		ConfigureItemBase(Item, FireBombItem, TEXT("Bombe incendiaire"), EGridItemType::Misc, FireBombAction);
-		Item.ItemTags.Add(TEXT("QuickItem.Bomb"));
-		Item.QuickItemCombatAction = MakeBomb(FireBombAction, EGridDamageType::Fire, TEXT("Status_Burning"), 2, EGridCombatSurfaceType::Fire, 2);
-		return Item.IsValidDefinition();
-	}
-	if (ItemDefinitionId == ToxicBombItem)
-	{
-		ConfigureItemBase(Item, ToxicBombItem, TEXT("Bombe toxique"), EGridItemType::Misc, ToxicBombAction);
-		Item.ItemTags.Add(TEXT("QuickItem.Bomb"));
-		Item.QuickItemCombatAction = MakeBomb(ToxicBombAction, EGridDamageType::Poison, PoisonStatus, 3, EGridCombatSurfaceType::Poison, 3);
-		return Item.IsValidDefinition();
-	}
-	if (ItemDefinitionId == AntidoteItem)
-	{
-		ConfigureItemBase(Item, AntidoteItem, TEXT("Antidote"), EGridItemType::Potion, AntidoteAction);
-		Item.ItemTags.Append({ TEXT("QuickItem.Potion"), TEXT("QuickItem.Potion.Positive") });
-		FGridCombatActionDefinition Action = MakeQuickItemAction(
-			AntidoteAction, EGridCombatTargetingPolicy::Ally, EGridCombatActionResolutionProfile::Effect, 1, 1);
-		FGridCombatStatusRemovalProfile Poison;
-		Poison.EffectIds = { TEXT("Status_Poison") };
-		Poison.AllowedDispositions = { EGridStatusEffectDisposition::Debuff };
-		Poison.TargetSide = EGridCombatStatusRemovalTargetSide::Party;
-		Poison.MaximumRemovals = 1;
-		Action.StatusRemovals.Add(Poison);
-		FGridCombatStatusRemovalProfile Toxin;
-		Toxin.AnyStatusTags = { TEXT("Toxin") };
-		Toxin.AllowedDispositions = { EGridStatusEffectDisposition::Debuff };
-		Toxin.TargetSide = EGridCombatStatusRemovalTargetSide::Party;
-		Toxin.MaximumRemovals = 1;
-		Action.StatusRemovals.Add(Toxin);
-		Item.QuickItemCombatAction = Action;
-		return Item.IsValidDefinition();
+		return false;
 	}
 
-	FName DefensiveStatus = NAME_None;
-	EGridDamageType DefensiveType = EGridDamageType::Physical;
-	const TCHAR* DefensiveName = nullptr;
-	if (ItemDefinitionId == DefensiveFireItem)
+	if (bPreserveSerializedText)
 	{
-		DefensiveStatus = DefensiveFireStatus; DefensiveType = EGridDamageType::Fire; DefensiveName = TEXT("Élixir défensif — Feu");
-	}
-	else if (ItemDefinitionId == DefensiveIceItem)
-	{
-		DefensiveStatus = DefensiveIceStatus; DefensiveType = EGridDamageType::Ice; DefensiveName = TEXT("Élixir défensif — Glace");
-	}
-	else if (ItemDefinitionId == DefensiveLightningItem)
-	{
-		DefensiveStatus = DefensiveLightningStatus; DefensiveType = EGridDamageType::Lightning; DefensiveName = TEXT("Élixir défensif — Foudre");
-	}
-	else if (ItemDefinitionId == DefensivePoisonItem)
-	{
-		DefensiveStatus = DefensivePoisonStatus; DefensiveType = EGridDamageType::Poison; DefensiveName = TEXT("Élixir défensif — Poison");
-	}
-	if (!DefensiveStatus.IsNone())
-	{
-		ConfigureItemBase(Item, ItemDefinitionId, DefensiveName, EGridItemType::Potion, DefensiveElixirAction);
-		Item.ItemTags.Append({ TEXT("QuickItem.Potion"), TEXT("QuickItem.Potion.Positive") });
-		FGridCombatActionDefinition Action = MakeQuickItemAction(
-			DefensiveElixirAction, EGridCombatTargetingPolicy::Ally, EGridCombatActionResolutionProfile::Effect, 1, 1);
-		Action.ArmorEffects.Add(MakeMagicalArmorRestore(4));
-		Action.StatusApplications.Add(MakeStatus(DefensiveStatus, 3));
-		Item.QuickItemCombatAction = Action;
-		(void)DefensiveType;
-		return Item.IsValidDefinition();
+		Item.DisplayName = ExistingDisplayName;
+		Item.Description = ExistingDescription;
+		Item.ReadText = ExistingReadText;
+		Item.QuickItemCombatAction.DisplayName = ExistingQuickDisplayName;
+		Item.QuickItemCombatAction.Description = ExistingQuickDescription;
 	}
 
-	if (ItemDefinitionId == PanaceaItem)
-	{
-		ConfigureItemBase(Item, PanaceaItem, TEXT("Panacée"), EGridItemType::Potion, PanaceaAction);
-		Item.ItemTags.Append({ TEXT("QuickItem.Potion"), TEXT("QuickItem.Potion.Positive") });
-		FGridCombatActionDefinition Action = MakeQuickItemAction(
-			PanaceaAction, EGridCombatTargetingPolicy::Ally, EGridCombatActionResolutionProfile::Effect, 2, 1, 3);
-		Action.EffectProfile.RestoreHealth = 10;
-		Action.QuickItemScaling.ScalingSkillId = TEXT("Skill_Alchemy");
-		Action.QuickItemScaling.RestoreHealthSkillRankScale = 2;
-		Action.ArmorEffects.Add(MakeMagicalArmorRestore(8));
-		FGridCombatStatusRemovalProfile Removal;
-		Removal.EffectIds = {
-			TEXT("Status_Poison"), TEXT("Status_Burning"), TEXT("Status_Bleeding"),
-			TEXT("Status_Slow"), TEXT("Status_Silence"), TEXT("Status_Immobilized")
-		};
-		Removal.AnyStatusTags = { TEXT("Toxin"), TEXT("Purifiable") };
-		Removal.AllowedDispositions = { EGridStatusEffectDisposition::Debuff };
-		Removal.TargetSide = EGridCombatStatusRemovalTargetSide::Party;
-		Removal.MaximumRemovals = 3;
-		Action.StatusRemovals.Add(Removal);
-		Item.QuickItemCombatAction = Action;
-		return Item.IsValidDefinition();
-	}
-	if (ItemDefinitionId == OilSlickItem)
-	{
-		ConfigureItemBase(Item, OilSlickItem, TEXT("Flasque d'huile"), EGridItemType::Misc, OilSlickAction);
-		Item.ItemTags.Add(TEXT("QuickItem.Flask"));
-		FGridCombatActionDefinition Action = MakeQuickItemAction(
-			OilSlickAction, EGridCombatTargetingPolicy::Area, EGridCombatActionResolutionProfile::Effect, 2, 4);
-		Action.AreaRadiusCells = 1;
-		FGridCombatSurfaceEffectProfile Oil;
-		Oil.SurfaceType = EGridCombatSurfaceType::Oil;
-		Oil.DurationRounds = 4;
-		Oil.TraversalCostModifier = 1;
-		Action.SurfaceEffects.Add(Oil);
-		Item.QuickItemCombatAction = Action;
-		return Item.IsValidDefinition();
-	}
-	if (ItemDefinitionId == AcidFlaskItem)
-	{
-		ConfigureItemBase(Item, AcidFlaskItem, TEXT("Flasque acide"), EGridItemType::Misc, AcidFlaskAction);
-		Item.ItemTags.Add(TEXT("QuickItem.Flask"));
-		FGridCombatActionDefinition Action = MakeQuickItemAction(
-			AcidFlaskAction, EGridCombatTargetingPolicy::Hostile, EGridCombatActionResolutionProfile::Effect, 2, 4, 1);
-		Action.ArmorEffects.Add(MakePhysicalArmorDamage(6, 2));
-		Action.StatusApplications.Add(MakeStatus(CorrodedStatus, 2));
-		Item.QuickItemCombatAction = Action;
-		return Item.IsValidDefinition();
-	}
-	if (ItemDefinitionId == CorrosiveCloudItem)
-	{
-		ConfigureItemBase(Item, CorrosiveCloudItem, TEXT("Flasque de nuage corrosif"), EGridItemType::Misc, CorrosiveCloudAction);
-		Item.ItemTags.Add(TEXT("QuickItem.Flask"));
-		FGridCombatActionDefinition Action = MakeQuickItemAction(
-			CorrosiveCloudAction, EGridCombatTargetingPolicy::Area, EGridCombatActionResolutionProfile::Attack, 3, 4, 2);
-		Action.AreaRadiusCells = 1;
-		Action.OffensiveProfile.AttackId = CorrosiveCloudAction;
-		Action.OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Poison;
-		Action.OffensiveProfile.AttackDefinition.MinDamage = 4;
-		Action.OffensiveProfile.AttackDefinition.MaxDamage = 4;
-		Action.OffensiveProfile.AttackDefinition.bAlwaysHits = true;
-		Action.OffensiveProfile.AttackDefinition.bCanCriticalHit = false;
-		Action.OffensiveProfile.RangeCells = 4;
-		Action.QuickItemScaling.ScalingSkillId = TEXT("Skill_Alchemy");
-		Action.QuickItemScaling.DirectDamageSkillRankScale = 1;
-		FGridCombatSurfaceEffectProfile Cloud;
-		Cloud.SurfaceType = EGridCombatSurfaceType::PoisonCloud;
-		Cloud.DurationRounds = 3;
-		Cloud.PeriodicDamageType = EGridDamageType::Poison;
-		Cloud.PeriodicDamagePerRound = 2;
-		FGridCombatStatusApplicationProfile Poison;
-		Poison.StatusEffectId = PoisonStatus;
-		Poison.Trigger = EGridCombatStatusApplicationTrigger::AfterResolution;
-		Poison.ArmorGate = EGridCombatStatusArmorGate::MagicalArmorDepleted;
-		Poison.DurationOverride = 2;
-		Cloud.PeriodicStatusApplications.Add(Poison);
-		Action.SurfaceEffects.Add(Cloud);
-		Item.QuickItemCombatAction = Action;
-		return Item.IsValidDefinition();
-	}
-
-	return false;
+	return Item.IsValidDefinition();
 }
 
 bool FRPGAlchemistAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)
