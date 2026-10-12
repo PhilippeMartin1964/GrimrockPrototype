@@ -62,6 +62,7 @@ UENUM(BlueprintType)
 enum class EGridTalentDetailLineSemantic : uint8
 {
 	None,
+	Context,
 	Action,
 	ActionPointCost,
 	ManaCost,
@@ -92,6 +93,11 @@ struct GRIMROCKPROTOTYPE_API FGridTalentDetailLineView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FName LabelTextId = NAME_None;
 
+	/** Optional data-driven value key. When set, it is authoritative over Value. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
+	FName ValueTextId = NAME_None;
+
+	/** Dynamic/authored value. Empty when ValueTextId supplies the complete value. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FText Value;
 };

@@ -397,7 +397,7 @@ void UGridTalentDetailWidget::PopulateDetailLineRows(
 
 	for (const FGridTalentDetailLineView& Line : Lines)
 	{
-		if (Line.Value.IsEmpty())
+		if (Line.Value.IsEmpty() && Line.ValueTextId.IsNone())
 		{
 			continue;
 		}
@@ -412,7 +412,10 @@ void UGridTalentDetailWidget::PopulateDetailLineRows(
 		UTexture2D* Glyph = DetailGlyphSet ? DetailGlyphSet->ResolveGlyph(Line.Semantic) : nullptr;
 		const FText LabelText =
 			DetailTextSet ? DetailTextSet->ResolveText(Line.LabelTextId) : FText::GetEmpty();
-		if (!Row->InitializeLine(Line, Glyph, LabelText))
+		const FText ValueText = !Line.ValueTextId.IsNone()
+			? (DetailTextSet ? DetailTextSet->ResolveText(Line.ValueTextId) : FText::GetEmpty())
+			: Line.Value;
+		if (!Row->InitializeLine(Line, Glyph, LabelText, ValueText))
 		{
 			continue;
 		}

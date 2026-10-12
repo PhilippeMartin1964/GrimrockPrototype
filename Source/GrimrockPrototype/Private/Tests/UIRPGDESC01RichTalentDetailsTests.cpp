@@ -154,7 +154,10 @@ namespace UIRPGDESC01Tests
 		TArray<FString> Values;
 		for (const FGridTalentDetailLineView& Line : Lines)
 		{
-			Values.Add(Line.LabelTextId.ToString() + TEXT(" : ") + Line.Value.ToString());
+			const FString Value = !Line.ValueTextId.IsNone()
+				? Line.ValueTextId.ToString()
+				: Line.Value.ToString();
+			Values.Add(Line.LabelTextId.ToString() + TEXT(" : ") + Value);
 		}
 		return FString::Join(Values, TEXT("\n"));
 	}
@@ -215,7 +218,13 @@ bool FUIRPGDESC01ActionProjectionTest::RunTest(const FString&)
 				return Line.Semantic == Semantic;
 			});
 	};
-	TestTrue(TEXT("Passive mechanics are projected into EFFETS"), Effects.Contains(TEXT("Précision : +2")));
+	TestTrue(TEXT("Passive mechanics are projected into structured EFFETS"),
+		Node.Effects.ContainsByPredicate(
+			[](const FGridTalentDetailLineView& Line)
+			{
+				return Line.LabelTextId == TEXT("Talent.Effect.Accuracy") &&
+					Line.Value.ToString() == TEXT("+2");
+			}));
 	TestEqual(TEXT("AP cost is projected into UTILISATION"), UsageValue(EGridTalentDetailLineSemantic::ActionPointCost), FString(TEXT("2 points d'action")));
 	TestEqual(TEXT("Mana cost is projected into UTILISATION"), UsageValue(EGridTalentDetailLineSemantic::ManaCost), FString(TEXT("3")));
 	TestEqual(TEXT("Cooldown is projected into UTILISATION"), UsageValue(EGridTalentDetailLineSemantic::Cooldown), FString(TEXT("2 rounds")));
@@ -599,21 +608,38 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	TargetText.TextId = TEXT("Talent.Detail.Target");
 	TargetText.Text = FText::FromString(TEXT("Cible"));
 	TextSet->Entries.Add(TargetText);
+	FRPGTalentDetailTextEntry EquipmentText;
+	EquipmentText.TextId = TEXT("Talent.Context.Source.Equipment");
+	EquipmentText.Text = FText::FromString(TEXT("Actions d'équipement"));
+	TextSet->Entries.Add(EquipmentText);
 	TestTrue(TEXT("Detail text set validates"), TextSet->IsValidDefinition());
 	TestEqual(TEXT("Detail text set resolves editable label"), TextSet->ResolveText(TargetLine.LabelTextId).ToString(), FString(TEXT("Cible")));
 
 	UGridTalentDetailLineWidget* LineWidget = NewObject<UGridTalentDetailLineWidget>();
 	TestTrue(TEXT("Unglyphed detail row initializes without Designer bindings"),
-		LineWidget->InitializeLine(TargetLine, nullptr, TextSet->ResolveText(TargetLine.LabelTextId)));
+		LineWidget->InitializeLine(TargetLine, nullptr, TextSet->ResolveText(TargetLine.LabelTextId), TargetLine.Value));
 	TestEqual(TEXT("Unglyphed row receives asset-resolved label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
 	TestEqual(TEXT("Unglyphed row exposes raw value content"),
 		LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
 
 	UTexture2D* InlineTargetGlyph = NewObject<UTexture2D>(LineWidget);
 	TestTrue(TEXT("Glyphed detail row reinitializes"),
-		LineWidget->InitializeLine(TargetLine, InlineTargetGlyph, TextSet->ResolveText(TargetLine.LabelTextId)));
+		LineWidget->InitializeLine(TargetLine, InlineTargetGlyph, TextSet->ResolveText(TargetLine.LabelTextId), TargetLine.Value));
 	TestEqual(TEXT("Glyphed row keeps asset-resolved label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
 	TestEqual(TEXT("Glyphed row still exposes raw value content"), LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
+
+	FGridTalentDetailLineView ContextLine;
+	ContextLine.Semantic = EGridTalentDetailLineSemantic::Context;
+	ContextLine.ValueTextId = TEXT("Talent.Context.Source.Equipment");
+	TestTrue(TEXT("Data-driven context row initializes"),
+		LineWidget->InitializeLine(
+			ContextLine,
+			nullptr,
+			FText::GetEmpty(),
+			TextSet->ResolveText(ContextLine.ValueTextId)));
+	TestTrue(TEXT("Context row has no synthetic label"), LineWidget->ResolvedLabelText.IsEmpty());
+	TestEqual(TEXT("Context row wording comes from text data"),
+		LineWidget->ResolvedValueText.ToString(), FString(TEXT("Actions d'équipement")));
 
 	URPGTalentDetailGlyphSet* GlyphSet = NewObject<URPGTalentDetailGlyphSet>();
 	UTexture2D* CostGlyph = NewObject<UTexture2D>(GlyphSet);

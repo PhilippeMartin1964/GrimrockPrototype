@@ -35,7 +35,8 @@ public:
 	bool InitializeLine(
 		const FGridTalentDetailLineView& InLine,
 		UTexture2D* InIcon,
-		const FText& InResolvedLabelText);
+		const FText& InResolvedLabelText,
+		const FText& InResolvedValueText);
 
 	UFUNCTION(BlueprintCallable, Category = "RPG|Talents|Detail|Line")
 	void ClearLine();
