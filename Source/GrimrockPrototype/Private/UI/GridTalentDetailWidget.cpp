@@ -11,6 +11,37 @@
 #include "UI/RPGTalentDetailGlyphSet.h"
 #include "UI/RPGTalentDetailTextSet.h"
 
+namespace
+{
+	FName TalentTypeTextId(ERPGTalentPresentationType Type)
+	{
+		switch (Type)
+		{
+			case ERPGTalentPresentationType::Active: return TEXT("Talent.Type.Active");
+			case ERPGTalentPresentationType::ActiveSpell: return TEXT("Talent.Type.ActiveSpell");
+			case ERPGTalentPresentationType::Passive: return TEXT("Talent.Type.Passive");
+			case ERPGTalentPresentationType::AutomaticReaction: return TEXT("Talent.Type.AutomaticReaction");
+			case ERPGTalentPresentationType::RecipeQuickItem: return TEXT("Talent.Type.RecipeQuickItem");
+			case ERPGTalentPresentationType::RecipeActive: return TEXT("Talent.Type.RecipeActive");
+			default: return NAME_None;
+		}
+	}
+
+	FName TalentStatusTextId(EGridTalentNodeState State)
+	{
+		switch (State)
+		{
+			case EGridTalentNodeState::Acquired: return TEXT("Talent.Status.Acquired");
+			case EGridTalentNodeState::Available: return TEXT("Talent.Status.Available");
+			case EGridTalentNodeState::LockedLevel: return TEXT("Talent.Status.LockedLevel");
+			case EGridTalentNodeState::LockedPrerequisite: return TEXT("Talent.Status.LockedPrerequisite");
+			case EGridTalentNodeState::LockedPoints: return TEXT("Talent.Status.LockedPoints");
+			case EGridTalentNodeState::LockedExclusive: return TEXT("Talent.Status.LockedExclusive");
+			default: return NAME_None;
+		}
+	}
+}
+
 void UGridTalentDetailWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -80,8 +111,7 @@ bool UGridTalentDetailWidget::InitializeTalentDetail(
 		InNodeView.TalentBranchId.IsNone() ||
 		InNodeView.TalentBranchId != InBranchPresentation.TalentBranchId ||
 		InNodeView.DisplayName.IsEmpty() ||
-		InNodeView.TypeText.IsEmpty() ||
-		InNodeView.StatusText.IsEmpty() ||
+		InNodeView.Type == ERPGTalentPresentationType::None ||
 		(InNodeView.bHasExclusiveVariants && InNodeView.Variants.Num() < 2) ||
 		(!InNodeView.bHasExclusiveVariants && !InNodeView.Variants.IsEmpty()))
 	{
@@ -559,8 +589,12 @@ FText UGridTalentDetailWidget::MakeVariantDisplayLabel(const FGridTalentVariantV
 
 void UGridTalentDetailWidget::RefreshCanonicalSections()
 {
-	ResolvedTypeText = NodeView.TypeText;
-	ResolvedStatusText = NodeView.StatusText;
+	ResolvedTypeText = DetailTextSet
+		? DetailTextSet->ResolveText(TalentTypeTextId(NodeView.Type))
+		: FText::GetEmpty();
+	ResolvedStatusText = DetailTextSet
+		? DetailTextSet->ResolveText(TalentStatusTextId(NodeView.State))
+		: FText::GetEmpty();
 	ResolvedPrincipleText = NodeView.Principle;
 }
 

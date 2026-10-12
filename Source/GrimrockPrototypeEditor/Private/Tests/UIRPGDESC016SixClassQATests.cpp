@@ -62,26 +62,6 @@ namespace UIRPGDESC016QA
 		return Level == 2 || Level == 6 || Level == 10 || Level == 14 || Level == 18;
 	}
 
-	bool IsAllowedTypeLabel(const FText& TypeText)
-	{
-		const FString Value = TypeText.ToString();
-		return Value == TEXT("ACTIF") ||
-			Value == TEXT("SORT ACTIF") ||
-			Value == TEXT("PASSIF") ||
-			Value == TEXT("RÉACTION AUTOMATIQUE") ||
-			Value == TEXT("RECETTE + OBJET RAPIDE") ||
-			Value == TEXT("RECETTE + ACTIF");
-	}
-
-	bool IsAllowedStatusLabel(const FText& StatusText)
-	{
-		const FString Value = StatusText.ToString();
-		return Value == TEXT("ACQUIS") ||
-			Value == TEXT("DISPONIBLE") ||
-			Value.StartsWith(TEXT("VERROUILLÉ — ")) ||
-			Value.StartsWith(TEXT("INDISPONIBLE — "));
-	}
-
 	void ValidatePlayerFacingText(
 		FAutomationTestBase& Test,
 		const FString& Context,
@@ -266,10 +246,6 @@ bool FUIRPGDESC016SixClassCanonicalSurfaceTest::RunTest(const FString&)
 				TestFalse(*FString::Printf(TEXT("%s has a display name"), *Context), Node.DisplayName.IsEmpty());
 				TestTrue(*FString::Printf(TEXT("%s has an explicit TYPE"), *Context),
 					Node.Type != ERPGTalentPresentationType::None);
-				TestTrue(*FString::Printf(TEXT("%s TYPE label is canonical"), *Context),
-					IsAllowedTypeLabel(Node.TypeText));
-				TestTrue(*FString::Printf(TEXT("%s STATUS label is canonical"), *Context),
-					IsAllowedStatusLabel(Node.StatusText));
 				TestFalse(*FString::Printf(TEXT("%s has a PRINCIPE"), *Context), Node.Principle.IsEmpty());
 				TestTrue(*FString::Printf(TEXT("%s uses a canonical tier level"), *Context),
 					IsCanonicalTierLevel(Node.Acquisition.MinimumLevel));
@@ -294,10 +270,6 @@ bool FUIRPGDESC016SixClassCanonicalSurfaceTest::RunTest(const FString&)
 						TestFalse(*FString::Printf(TEXT("%s has display name"), *VariantContext), Variant.DisplayName.IsEmpty());
 						TestEqual(*FString::Printf(TEXT("%s TYPE matches conceptual node"), *VariantContext),
 							Variant.Type, Node.Type);
-						TestTrue(*FString::Printf(TEXT("%s TYPE label is canonical"), *VariantContext),
-							IsAllowedTypeLabel(Variant.TypeText));
-						TestTrue(*FString::Printf(TEXT("%s STATUS label is canonical"), *VariantContext),
-							IsAllowedStatusLabel(Variant.StatusText));
 						TestFalse(*FString::Printf(TEXT("%s has PRINCIPE"), *VariantContext), Variant.Principle.IsEmpty());
 
 						UGridTalentVariantBlockWidget* Block = NewObject<UGridTalentVariantBlockWidget>();
@@ -368,8 +340,6 @@ bool FUIRPGDESC016PlayerFacingLanguageTest::RunTest(const FString&)
 					TEXT("%s/%s"), *Spec.ClassId.ToString(), *Node.TalentNodeId.ToString());
 
 				ValidatePlayerFacingText(*this, Context + TEXT("/Name"), Node.DisplayName);
-				ValidatePlayerFacingText(*this, Context + TEXT("/Type"), Node.TypeText);
-				ValidatePlayerFacingText(*this, Context + TEXT("/Status"), Node.StatusText);
 				ValidatePlayerFacingText(*this, Context + TEXT("/Principle"), Node.Principle);
 				ValidateDetailLines(*this, Context + TEXT("/Effects"), Node.Effects);
 				ValidateDetailLines(*this, Context + TEXT("/Usage"), Node.Usage);
@@ -393,8 +363,6 @@ bool FUIRPGDESC016PlayerFacingLanguageTest::RunTest(const FString&)
 				{
 					const FString VariantContext = Context + TEXT("/") + Variant.ChoiceId.ToString();
 					ValidatePlayerFacingText(*this, VariantContext + TEXT("/Name"), Variant.DisplayName);
-					ValidatePlayerFacingText(*this, VariantContext + TEXT("/Type"), Variant.TypeText);
-					ValidatePlayerFacingText(*this, VariantContext + TEXT("/Status"), Variant.StatusText);
 					ValidatePlayerFacingText(*this, VariantContext + TEXT("/Principle"), Variant.Principle);
 					ValidateDetailLines(*this, VariantContext + TEXT("/Effects"), Variant.Effects);
 					ValidateDetailLines(*this, VariantContext + TEXT("/Usage"), Variant.Usage);

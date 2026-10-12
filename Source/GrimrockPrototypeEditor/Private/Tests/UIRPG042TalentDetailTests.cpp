@@ -14,8 +14,6 @@ namespace UIRPG042Tests
 		Variant.DisplayName = FText::FromString(Name);
 		Variant.State = EGridTalentNodeState::Available;
 		Variant.Type = ERPGTalentPresentationType::Passive;
-		Variant.TypeText = FText::FromString(TEXT("PASSIF"));
-		Variant.StatusText = FText::FromString(TEXT("DISPONIBLE"));
 		Variant.Principle = FText::FromString(TEXT("Description"));
 		Variant.bCanChoose = true;
 		return Variant;
@@ -31,8 +29,6 @@ namespace UIRPG042Tests
 		Node.PointCost = 1;
 		Node.State = EGridTalentNodeState::Available;
 		Node.Type = ERPGTalentPresentationType::Passive;
-		Node.TypeText = FText::FromString(TEXT("PASSIF"));
-		Node.StatusText = FText::FromString(TEXT("DISPONIBLE"));
 		Node.Acquisition.MinimumLevel = 2;
 		Node.Acquisition.PointCost = 1;
 		return Node;

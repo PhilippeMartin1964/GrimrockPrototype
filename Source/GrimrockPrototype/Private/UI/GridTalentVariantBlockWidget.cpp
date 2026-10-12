@@ -8,6 +8,17 @@
 #include "UI/RPGTalentDetailGlyphSet.h"
 #include "UI/RPGTalentDetailTextSet.h"
 
+namespace
+{
+	FName VariantChooseTextId(const FGridTalentVariantView& Variant, bool bPendingChoice)
+	{
+		if (Variant.bAcquired) return TEXT("Talent.Variant.Acquired");
+		if (bPendingChoice) return TEXT("Talent.Variant.Pending");
+		if (Variant.bCanChoose) return TEXT("Talent.Variant.Choose");
+		return TEXT("Talent.Variant.Unavailable");
+	}
+}
+
 void UGridTalentVariantBlockWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -45,26 +56,10 @@ bool UGridTalentVariantBlockWidget::InitializeVariant(
 	ResolvedPrincipleText = InVariant.Principle;
 	bPendingChoice = bInPendingChoice;
 
-	if (InVariant.bAcquired)
-	{
-		ResolvedChooseLabel = FText::FromString(TEXT("ACQUISE"));
-		bChooseEnabled = false;
-	}
-	else if (bPendingChoice)
-	{
-		ResolvedChooseLabel = FText::FromString(TEXT("CHOIX EN COURS"));
-		bChooseEnabled = false;
-	}
-	else if (InVariant.bCanChoose)
-	{
-		ResolvedChooseLabel = FText::FromString(TEXT("CHOISIR"));
-		bChooseEnabled = true;
-	}
-	else
-	{
-		ResolvedChooseLabel = FText::FromString(TEXT("INDISPONIBLE"));
-		bChooseEnabled = false;
-	}
+	ResolvedChooseLabel = DetailTextSet
+		? DetailTextSet->ResolveText(VariantChooseTextId(InVariant, bPendingChoice))
+		: FText::GetEmpty();
+	bChooseEnabled = !InVariant.bAcquired && !bPendingChoice && InVariant.bCanChoose;
 
 	bInitialized = true;
 	RebuildDetailLineRows();

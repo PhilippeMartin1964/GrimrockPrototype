@@ -46,8 +46,6 @@ namespace UIRPG032Tests
 		Variant.DisplayName = FText::FromString(DisplayName);
 		Variant.State = EGridTalentNodeState::Available;
 		Variant.Type = ERPGTalentPresentationType::Passive;
-		Variant.TypeText = FText::FromString(TEXT("PASSIF"));
-		Variant.StatusText = FText::FromString(TEXT("DISPONIBLE"));
 		Variant.Principle = FText::FromString(TEXT("Description"));
 		Variant.bCanChoose = true;
 		return Variant;

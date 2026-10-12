@@ -29,8 +29,6 @@ namespace UIRPG041Tests
 		Node.State = EGridTalentNodeState::Available;
 		Node.DisplayName = FText::FromString(TEXT("Test"));
 		Node.Type = ERPGTalentPresentationType::Passive;
-		Node.TypeText = FText::FromString(TEXT("PASSIF"));
-		Node.StatusText = FText::FromString(TEXT("DISPONIBLE"));
 		Node.Principle = FText::FromString(TEXT("Description"));
 		Node.SimpleChoiceId = Node.TalentNodeId;
 		Node.bCanAcquireSimple = true;

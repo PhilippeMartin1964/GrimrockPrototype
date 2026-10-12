@@ -113,10 +113,6 @@ namespace UIRPGDESC01Tests
 		Variant.DisplayName = FText::FromString(Name);
 		Variant.State = State;
 		Variant.Type = ERPGTalentPresentationType::Passive;
-		Variant.TypeText = FText::FromString(TEXT("PASSIF"));
-		Variant.StatusText = State == EGridTalentNodeState::Available
-			? FText::FromString(TEXT("DISPONIBLE"))
-			: FText::FromString(TEXT("VERROUILLÉ — nécessite 1 point de Talent"));
 		Variant.Principle = FText::FromString(Principle);
 		Variant.bAcquired = State == EGridTalentNodeState::Acquired;
 		Variant.bCanChoose = State == EGridTalentNodeState::Available;
@@ -134,10 +130,6 @@ namespace UIRPGDESC01Tests
 		Node.State = State;
 		Node.DisplayName = FText::FromString(TEXT("Talent conceptuel"));
 		Node.Type = ERPGTalentPresentationType::Passive;
-		Node.TypeText = FText::FromString(TEXT("PASSIF"));
-		Node.StatusText = State == EGridTalentNodeState::Available
-			? FText::FromString(TEXT("DISPONIBLE"))
-			: FText::FromString(TEXT("VERROUILLÉ — nécessite 1 point de Talent"));
 		Node.Principle = FText::FromString(TEXT("Choisissez une variante."));
 		Node.Acquisition.MinimumLevel = 2;
 		Node.Acquisition.PointCost = 1;
@@ -194,7 +186,6 @@ bool FUIRPGDESC01ActionProjectionTest::RunTest(const FString&)
 	TestEqual(TEXT("Simple ChoiceId is canonical"), Node.SimpleChoiceId, FName(TEXT("Talent_DESC01_Simple")));
 	TestTrue(TEXT("Simple Talent can be acquired"), Node.bCanAcquireSimple);
 	TestEqual(TEXT("Talent TYPE remains ACTIF"), Node.Type, ERPGTalentPresentationType::Active);
-	TestEqual(TEXT("Talent TYPE label is canonical"), Node.TypeText.ToString(), FString(TEXT("ACTIF")));
 
 	const FString Effects = JoinDetailLines(Node.Effects);
 	const auto UsageNumericValue = [&Node](EGridTalentDetailLineSemantic Semantic)
@@ -268,8 +259,6 @@ bool FUIRPGDESC01CanonicalSimpleDetailTest::RunTest(const FString&)
 	Node.State = EGridTalentNodeState::Available;
 	Node.DisplayName = FText::FromString(TEXT("Talent simple"));
 	Node.Type = ERPGTalentPresentationType::Active;
-	Node.TypeText = FText::FromString(TEXT("ACTIF"));
-	Node.StatusText = FText::FromString(TEXT("DISPONIBLE"));
 	Node.Principle = FText::FromString(TEXT("Principe canonique."));
 	Node.SimpleChoiceId = TEXT("Talent_DESC01_Simple");
 	Node.bCanAcquireSimple = true;
@@ -289,8 +278,8 @@ bool FUIRPGDESC01CanonicalSimpleDetailTest::RunTest(const FString&)
 	TestTrue(TEXT("Canonical simple detail initializes"),
 		Detail->InitializeTalentDetail(Node, UIRPGDESC01Tests::MakeBranch(Node.TalentBranchId)));
 	TestEqual(TEXT("Name is canonical"), Detail->ResolvedDisplayName.ToString(), FString(TEXT("Talent simple")));
-	TestEqual(TEXT("TYPE is independent"), Detail->ResolvedTypeText.ToString(), FString(TEXT("ACTIF")));
-	TestEqual(TEXT("STATUS is independent"), Detail->ResolvedStatusText.ToString(), FString(TEXT("DISPONIBLE")));
+	TestEqual(TEXT("TYPE semantic survives detail initialization"), Detail->NodeView.Type, ERPGTalentPresentationType::Active);
+	TestEqual(TEXT("STATUS semantic survives detail initialization"), Detail->NodeView.State, EGridTalentNodeState::Available);
 	TestEqual(TEXT("PRINCIPE is independent"), Detail->ResolvedPrincipleText.ToString(), FString(TEXT("Principe canonique.")));
 	TestTrue(TEXT("EFFETS are canonical"), Detail->NodeView.Effects.ContainsByPredicate(
 		[](const FGridTalentDetailLineView& Line)
@@ -339,13 +328,10 @@ bool FUIRPGDESC01AcquiredVariantContractTest::RunTest(const FString&)
 	using namespace UIRPGDESC01Tests;
 	FGridTalentNodeView Node = MakeCanonicalVariantNode(EGridTalentNodeState::LockedExclusive);
 	Node.State = EGridTalentNodeState::Acquired;
-	Node.StatusText = FText::FromString(TEXT("ACQUIS"));
 	Node.SelectedChoiceId = TEXT("Choice_Frost");
 	Node.Variants[0].State = EGridTalentNodeState::LockedExclusive;
-	Node.Variants[0].StatusText = FText::FromString(TEXT("INDISPONIBLE — autre variante déjà choisie"));
 	Node.Variants[0].bCanChoose = false;
 	Node.Variants[1].State = EGridTalentNodeState::Acquired;
-	Node.Variants[1].StatusText = FText::FromString(TEXT("ACQUIS"));
 	Node.Variants[1].bAcquired = true;
 	Node.Variants[1].bCanChoose = false;
 
@@ -355,12 +341,28 @@ bool FUIRPGDESC01AcquiredVariantContractTest::RunTest(const FString&)
 	TestFalse(TEXT("Acquired variant node cannot restart acquisition"), Detail->CanRequestVariantAcquisition());
 	TestFalse(TEXT("Acquired variant node cannot enter pending flow"), Detail->BeginVariantSelection());
 
+	URPGTalentDetailTextSet* VariantTextSet = NewObject<URPGTalentDetailTextSet>();
+	for (const TPair<FName, FString>& Entry : {
+		TPair<FName, FString>(TEXT("Talent.Variant.Acquired"), TEXT("ACQUISE")),
+		TPair<FName, FString>(TEXT("Talent.Variant.Pending"), TEXT("CHOIX EN COURS")),
+		TPair<FName, FString>(TEXT("Talent.Variant.Choose"), TEXT("CHOISIR")),
+		TPair<FName, FString>(TEXT("Talent.Variant.Unavailable"), TEXT("INDISPONIBLE"))
+	})
+	{
+		FRPGTalentDetailTextEntry TextEntry;
+		TextEntry.TextId = Entry.Key;
+		TextEntry.Text = FText::FromString(Entry.Value);
+		VariantTextSet->Entries.Add(TextEntry);
+	}
+
 	UGridTalentVariantBlockWidget* AcquiredBlock = NewObject<UGridTalentVariantBlockWidget>();
+	AcquiredBlock->ConfigureDetailRows(nullptr, nullptr, VariantTextSet);
 	TestTrue(TEXT("Acquired block initializes"),
 		AcquiredBlock->InitializeVariant(Node.Variants[1], FText::FromString(TEXT("Glace")), false));
 	TestEqual(TEXT("Acquired block says ACQUISE"), AcquiredBlock->ResolvedChooseLabel.ToString(), FString(TEXT("ACQUISE")));
 
 	UGridTalentVariantBlockWidget* SiblingBlock = NewObject<UGridTalentVariantBlockWidget>();
+	SiblingBlock->ConfigureDetailRows(nullptr, nullptr, VariantTextSet);
 	TestTrue(TEXT("Sibling block initializes"),
 		SiblingBlock->InitializeVariant(Node.Variants[0], FText::FromString(TEXT("Feu")), false));
 	TestEqual(TEXT("Sibling block says INDISPONIBLE"), SiblingBlock->ResolvedChooseLabel.ToString(), FString(TEXT("INDISPONIBLE")));
@@ -490,7 +492,6 @@ bool FUIRPGDESC01ReactionMechanicsTest::RunTest(const FString&)
 	TestTrue(TEXT("Reaction view builds"), FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, View));
 	const FGridTalentNodeView& Node = View.TalentTree.Branches[0].Nodes[0];
 	TestEqual(TEXT("Reaction Talent TYPE is explicit"), Node.Type, ERPGTalentPresentationType::AutomaticReaction);
-	TestEqual(TEXT("Reaction TYPE label is canonical"), Node.TypeText.ToString(), FString(TEXT("RÉACTION AUTOMATIQUE")));
 	TestTrue(TEXT("Automatic reaction exposes no voluntary UTILISATION"), Node.Usage.IsEmpty());
 	TestTrue(TEXT("Reaction trigger wording is data-driven"),
 		Node.Effects.ContainsByPredicate(
@@ -599,6 +600,47 @@ bool FUIRPGDESC01SkillPartyMechanicsTest::RunTest(const FString&)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGDESC01PresentationTextAuthorityTest,
+	"Grimrock.UI.RPG.DESC01.ReadModel.PresentationTextAuthority",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
+{
+	const URPGTalentDetailTextSet* TextSet = LoadObject<URPGTalentDetailTextSet>(
+		nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet"));
+	if (!TestNotNull(TEXT("Production Talent detail text set loads"), TextSet))
+	{
+		return false;
+	}
+
+	for (const FName TextId : {
+		FName(TEXT("Talent.Type.Active")),
+		FName(TEXT("Talent.Type.ActiveSpell")),
+		FName(TEXT("Talent.Type.Passive")),
+		FName(TEXT("Talent.Type.AutomaticReaction")),
+		FName(TEXT("Talent.Type.RecipeQuickItem")),
+		FName(TEXT("Talent.Type.RecipeActive")),
+		FName(TEXT("Talent.Status.Acquired")),
+		FName(TEXT("Talent.Status.Available")),
+		FName(TEXT("Talent.Status.LockedLevel")),
+		FName(TEXT("Talent.Status.LockedPrerequisite")),
+		FName(TEXT("Talent.Status.LockedPoints")),
+		FName(TEXT("Talent.Status.LockedExclusive")),
+		FName(TEXT("Talent.Variant.Acquired")),
+		FName(TEXT("Talent.Variant.Pending")),
+		FName(TEXT("Talent.Variant.Choose")),
+		FName(TEXT("Talent.Variant.Unavailable"))
+	})
+	{
+		TestFalse(
+			*FString::Printf(TEXT("%s resolves from editable text data"), *TextId.ToString()),
+			TextSet->ResolveText(TextId).IsEmpty());
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FUIRPGDESC014StructuredReadModelTest,
 	"Grimrock.UI.RPG.DESC01.ReadModel.StructuredContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -616,8 +658,7 @@ bool FUIRPGDESC014StructuredReadModelTest::RunTest(const FString&)
 	const FGridTalentNodeView& Node = View.TalentTree.Branches[0].Nodes[0];
 
 	TestEqual(TEXT("Explicit Talent TYPE is projected"), Node.Type, ERPGTalentPresentationType::Active);
-	TestEqual(TEXT("TYPE label is canonical"), Node.TypeText.ToString(), FString(TEXT("ACTIF")));
-	TestEqual(TEXT("Available Talent STATUS is isolated"), Node.StatusText.ToString(), FString(TEXT("DISPONIBLE")));
+	TestEqual(TEXT("Available Talent state remains semantic"), Node.State, EGridTalentNodeState::Available);
 	TestEqual(TEXT("PRINCIPE comes from authored Description"),
 		Node.Principle.ToString(), ClassDefinition->ProgressionChoices[0].Description.ToString());
 	TestEqual(TEXT("Simple ChoiceId is explicit"), Node.SimpleChoiceId, ClassDefinition->ProgressionChoices[0].ChoiceId);
@@ -664,7 +705,6 @@ bool FUIRPGDESC014VariantTypeContractTest::RunTest(const FString&)
 	for (const FGridTalentVariantView& Variant : Node.Variants)
 	{
 		TestEqual(TEXT("Variant TYPE matches node TYPE"), Variant.Type, Node.Type);
-		TestEqual(TEXT("Variant TYPE label is canonical"), Variant.TypeText.ToString(), FString(TEXT("PASSIF")));
 		TestTrue(TEXT("Available variant can be chosen"), Variant.bCanChoose);
 	}
 	return true;
@@ -681,8 +721,6 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	Node.TalentNodeId = TEXT("StaticSections");
 	Node.TalentBranchId = TEXT("StaticBranch");
 	Node.DisplayName = FText::FromString(TEXT("Talent statique"));
-	Node.TypeText = FText::FromString(TEXT("SORT ACTIF"));
-	Node.StatusText = FText::FromString(TEXT("DISPONIBLE"));
 	Node.Principle = FText::FromString(TEXT("Principe déjà résolu."));
 	Node.Acquisition.MinimumLevel = 3;
 	Node.Acquisition.PointCost = 2;
@@ -702,8 +740,8 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	UGridTalentDetailWidget* Detail = NewObject<UGridTalentDetailWidget>();
 	TestTrue(TEXT("Static section detail initializes"),
 		Detail->InitializeTalentDetail(Node, UIRPGDESC01Tests::MakeBranch(Node.TalentBranchId)));
-	TestEqual(TEXT("TYPE is exposed independently"), Detail->ResolvedTypeText.ToString(), FString(TEXT("SORT ACTIF")));
-	TestEqual(TEXT("STATUT is exposed independently"), Detail->ResolvedStatusText.ToString(), FString(TEXT("DISPONIBLE")));
+	TestEqual(TEXT("TYPE semantic is exposed independently"), Detail->NodeView.Type, ERPGTalentPresentationType::ActiveSpell);
+	TestEqual(TEXT("STATUS semantic is exposed independently"), Detail->NodeView.State, EGridTalentNodeState::Available);
 	TestEqual(TEXT("PRINCIPE is exposed independently"), Detail->ResolvedPrincipleText.ToString(), FString(TEXT("Principe déjà résolu.")));
 	TestEqual(TEXT("EFFETS remain structured"), Detail->NodeView.Effects[0].Value.ToString(), FString(TEXT("10")));
 	TestEqual(TEXT("UTILISATION remains structured"), Detail->NodeView.Usage[0].Value.ToString(), FString(TEXT("5")));
@@ -897,8 +935,6 @@ bool FUIRPGDESC01153VariantBlockPresenterTest::RunTest(const FString&)
 	FGridTalentVariantView Variant;
 	Variant.ChoiceId = TEXT("Talent_DESC01_Variant_Slash");
 	Variant.DisplayName = FText::FromString(TEXT("Spécialisation martiale — Tranchant"));
-	Variant.TypeText = FText::FromString(TEXT("PASSIF"));
-	Variant.StatusText = FText::FromString(TEXT("DISPONIBLE"));
 	Variant.Principle = FText::FromString(TEXT("Maîtrise les armes tranchantes."));
 	Variant.State = EGridTalentNodeState::Available;
 	Variant.bCanChoose = true;
@@ -911,6 +947,18 @@ bool FUIRPGDESC01153VariantBlockPresenterTest::RunTest(const FString&)
 	UGridTalentVariantBlockWidget* Block = NewObject<UGridTalentVariantBlockWidget>();
 	URPGTalentDetailGlyphSet* VariantGlyphSet = NewObject<URPGTalentDetailGlyphSet>(Block);
 	URPGTalentDetailTextSet* VariantTextSet = NewObject<URPGTalentDetailTextSet>(Block);
+	for (const TPair<FName, FString>& Entry : {
+		TPair<FName, FString>(TEXT("Talent.Variant.Acquired"), TEXT("ACQUISE")),
+		TPair<FName, FString>(TEXT("Talent.Variant.Pending"), TEXT("CHOIX EN COURS")),
+		TPair<FName, FString>(TEXT("Talent.Variant.Choose"), TEXT("CHOISIR")),
+		TPair<FName, FString>(TEXT("Talent.Variant.Unavailable"), TEXT("INDISPONIBLE"))
+	})
+	{
+		FRPGTalentDetailTextEntry TextEntry;
+		TextEntry.TextId = Entry.Key;
+		TextEntry.Text = FText::FromString(Entry.Value);
+		VariantTextSet->Entries.Add(TextEntry);
+	}
 	Block->ConfigureDetailRows(UGridTalentDetailLineWidget::StaticClass(), VariantGlyphSet, VariantTextSet);
 	TestTrue(TEXT("Variant block initializes"),
 		Block->InitializeVariant(Variant, FText::FromString(TEXT("Tranchant")), false));
@@ -931,7 +979,6 @@ bool FUIRPGDESC01153VariantBlockPresenterTest::RunTest(const FString&)
 	Variant.bAcquired = true;
 	Variant.bCanChoose = false;
 	Variant.State = EGridTalentNodeState::Acquired;
-	Variant.StatusText = FText::FromString(TEXT("ACQUIS"));
 	TestTrue(TEXT("Acquired variant reinitializes"),
 		Block->InitializeVariant(Variant, FText::FromString(TEXT("Tranchant")), false));
 	TestEqual(TEXT("Acquired variant exposes ACQUISE"), Block->ResolvedChooseLabel.ToString(), FString(TEXT("ACQUISE")));
@@ -940,7 +987,6 @@ bool FUIRPGDESC01153VariantBlockPresenterTest::RunTest(const FString&)
 	Variant.bAcquired = false;
 	Variant.State = EGridTalentNodeState::LockedExclusive;
 	Variant.bCanChoose = false;
-	Variant.StatusText = FText::FromString(TEXT("INDISPONIBLE — autre variante déjà choisie"));
 	TestTrue(TEXT("Unavailable variant reinitializes"),
 		Block->InitializeVariant(Variant, FText::FromString(TEXT("Perforant")), false));
 	TestEqual(TEXT("Unavailable variant exposes INDISPONIBLE"), Block->ResolvedChooseLabel.ToString(), FString(TEXT("INDISPONIBLE")));
@@ -972,8 +1018,6 @@ bool FUIRPGDESC01163EmptyInitialStateTest::RunTest(const FString&)
 	Node.State = EGridTalentNodeState::Available;
 	Node.DisplayName = FText::FromString(TEXT("Talent temporaire"));
 	Node.Type = ERPGTalentPresentationType::Passive;
-	Node.TypeText = FText::FromString(TEXT("PASSIF"));
-	Node.StatusText = FText::FromString(TEXT("DISPONIBLE"));
 	Node.Principle = FText::FromString(TEXT("Principe temporaire."));
 	Node.SimpleChoiceId = Node.TalentNodeId;
 	Node.bCanAcquireSimple = true;

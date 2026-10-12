@@ -299,20 +299,6 @@ namespace
 	}
 
 
-	FText TalentTypeText(ERPGTalentPresentationType Type)
-	{
-		switch (Type)
-		{
-			case ERPGTalentPresentationType::Active: return FText::FromString(TEXT("ACTIF"));
-			case ERPGTalentPresentationType::ActiveSpell: return FText::FromString(TEXT("SORT ACTIF"));
-			case ERPGTalentPresentationType::Passive: return FText::FromString(TEXT("PASSIF"));
-			case ERPGTalentPresentationType::AutomaticReaction: return FText::FromString(TEXT("RÉACTION AUTOMATIQUE"));
-			case ERPGTalentPresentationType::RecipeQuickItem: return FText::FromString(TEXT("RECETTE + OBJET RAPIDE"));
-			case ERPGTalentPresentationType::RecipeActive: return FText::FromString(TEXT("RECETTE + ACTIF"));
-			default: return FText::GetEmpty();
-		}
-	}
-
 
 	void AddDetailLine(
 		TArray<FGridTalentDetailLineView>& Lines,
@@ -735,34 +721,6 @@ namespace
 	}
 
 
-	FText TalentStatusText(
-		EGridTalentNodeState State, int32 MinimumLevel, int32 PointCost, const TArray<FText>& PrerequisiteNames)
-	{
-		switch (State)
-		{
-			case EGridTalentNodeState::Acquired:
-				return FText::FromString(TEXT("ACQUIS"));
-			case EGridTalentNodeState::Available:
-				return FText::FromString(TEXT("DISPONIBLE"));
-			case EGridTalentNodeState::LockedLevel:
-				return FText::FromString(FString::Printf(TEXT("VERROUILLÉ — niveau %d requis"), MinimumLevel));
-			case EGridTalentNodeState::LockedPrerequisite:
-				if (!PrerequisiteNames.IsEmpty() && !PrerequisiteNames[0].IsEmpty())
-				{
-					return FText::Format(NSLOCTEXT("GridSkillsPage", "TalentLockedPrerequisite",
-						"VERROUILLÉ — nécessite « {0} »"), PrerequisiteNames[0]);
-				}
-				return FText::FromString(TEXT("VERROUILLÉ — prérequis manquant"));
-			case EGridTalentNodeState::LockedPoints:
-				return FText::FromString(FString::Printf(
-					TEXT("VERROUILLÉ — nécessite %d point%s de Talent"), PointCost, PointCost > 1 ? TEXT("s") : TEXT("")));
-			case EGridTalentNodeState::LockedExclusive:
-				return FText::FromString(TEXT("INDISPONIBLE — autre variante déjà choisie"));
-			default:
-				return FText::GetEmpty();
-		}
-	}
-
 	FText ConceptualChoiceDisplayName(const URPGClassAsset& ClassDefinition, FName RequirementId)
 	{
 		for (const FRPGClassProgressionChoiceDefinition& Candidate : ClassDefinition.ProgressionChoices)
@@ -1164,7 +1122,6 @@ namespace
 			Variant.DisplayName = Choice->DisplayName;
 			Variant.Principle = ResolveStatusReferences(Choice->Description);
 			Variant.Type = Choice->PresentationType;
-			Variant.TypeText = TalentTypeText(Variant.Type);
 			BuildStructuredEffects(ClassDefinition, *Choice, Variant.Effects);
 			BuildStructuredUsage(ClassDefinition, *Choice, Variant.Usage);
 			Variant.bAcquired = bSelected;
@@ -1172,10 +1129,6 @@ namespace
 			Variant.bCanChoose =
 				bVariantNode && Variant.State == EGridTalentNodeState::Available && !Variant.bAcquired;
 
-			FGridTalentAcquisitionView VariantAcquisition;
-			BuildAcquisitionView(ClassDefinition, *Choice, bVariantNode, VariantAcquisition);
-			Variant.StatusText = TalentStatusText(
-				Variant.State, Choice->MinimumLevel, Choice->PointCost, VariantAcquisition.PrerequisiteTalentNames);
 
 			OutNode.Variants.Add(MoveTemp(Variant));
 
@@ -1202,10 +1155,7 @@ namespace
 		{
 			if (Variant.Type != OutNode.Type) return false;
 		}
-		OutNode.TypeText = TalentTypeText(OutNode.Type);
 		BuildAcquisitionView(ClassDefinition, *First, bVariantNode, OutNode.Acquisition);
-		OutNode.StatusText = TalentStatusText(
-			OutNode.State, First->MinimumLevel, First->PointCost, OutNode.Acquisition.PrerequisiteTalentNames);
 
 		if (bVariantNode)
 		{
@@ -1306,12 +1256,6 @@ namespace
 					if (!CurrentChoices || !PreviousChoices || !NodeDependsOnPrevious(*CurrentChoices, *PreviousChoices)) return false;
 					Node.PreviousNodeId = Previous.TalentNodeId;
 					Node.PreviousNodeDisplayName = Previous.DisplayName.IsEmpty() ? ConceptualNodeDisplayName(Previous) : Previous.DisplayName;
-					if (Node.State == EGridTalentNodeState::LockedPrerequisite && !Node.PreviousNodeDisplayName.IsEmpty())
-					{
-						Node.StatusText = FText::Format(
-							NSLOCTEXT("GridSkillsPage", "TalentLockedPrevious",
-								"VERROUILLÉ — nécessite « {0} »"), Node.PreviousNodeDisplayName);
-					}
 				}
 				if (Node.State == EGridTalentNodeState::Acquired) ++Branch.AcquiredNodeCount;
 			}

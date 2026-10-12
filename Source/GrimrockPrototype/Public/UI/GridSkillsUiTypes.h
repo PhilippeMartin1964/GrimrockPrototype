@@ -163,11 +163,6 @@ struct GRIMROCKPROTOTYPE_API FGridTalentVariantView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	ERPGTalentPresentationType Type = ERPGTalentPresentationType::None;
 
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText TypeText;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText StatusText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FText Principle;
@@ -228,11 +223,6 @@ struct GRIMROCKPROTOTYPE_API FGridTalentNodeView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	ERPGTalentPresentationType Type = ERPGTalentPresentationType::None;
 
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText TypeText;
-
-	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText StatusText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FText Principle;
