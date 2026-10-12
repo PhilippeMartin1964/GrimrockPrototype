@@ -4,7 +4,7 @@ Date : **12 octobre 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Ticket : **UI-RPG-CONTENT-TEXT05.1**
 
-> **État après TEXT05.3 :** le `DisplayName` sérialisé des 25 `DA_Skill_*` est autoritaire. `FRPGCanonicalSkillDefinition` ne contient plus de texte joueur et un Skill neuf reçoit seulement `DisplayName = SkillId` comme bootstrap technique. Les dettes restantes de TEXT05 sont désormais les Spells puis `Attack_Unarmed`.
+> **État après TEXT05.4 :** la dette Skills est fermée. L'audit Spells confirme que les quatre sorts de production restent entièrement construits par `FGridProductionSpellLibrary`, qu'aucun `DA_Spell_*` n'est encore matérialisé et que `UGridSpellDefinitionAsset` suffit déjà comme conteneur cible. La migration peut donc réutiliser la façade runtime existante au lieu de créer une nouvelle couche.
 
 ## 1. Objet
 
