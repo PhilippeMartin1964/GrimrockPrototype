@@ -26,29 +26,6 @@ namespace RPGRangerAuthoring
 	const FName FavoredEnemyAlias(TEXT("Talent_Ranger_Hunter_FavoredEnemy"));
 	const FName FavoredEnemyGroup(TEXT("TalentGroup_Ranger_Hunter_FavoredEnemy"));
 
-	struct FProductionMonsterCategorySpec
-	{
-		FName CategoryId = NAME_None;
-		const TCHAR* DisplayName = nullptr;
-	};
-
-	const FProductionMonsterCategorySpec ProductionCategorySpecs[] = {
-		{ TEXT("Goblin"), TEXT("Gobelins") },
-		{ TEXT("Vermin"), TEXT("Vermine") }
-	};
-
-	const FProductionMonsterCategorySpec* FindProductionCategorySpec(FName CategoryId)
-	{
-		for (const FProductionMonsterCategorySpec& Spec : ProductionCategorySpecs)
-		{
-			if (Spec.CategoryId == CategoryId)
-			{
-				return &Spec;
-			}
-		}
-		return nullptr;
-	}
-
 	FGridCombatStatusApplicationProfile MakeStatusApplication(FName StatusId, EGridCombatStatusApplicationTrigger Trigger,
 		EGridCombatStatusArmorGate Gate = EGridCombatStatusArmorGate::None, int32 DurationOverride = INDEX_NONE)
 	{
@@ -269,15 +246,6 @@ namespace RPGRangerAuthoring
 			if (!IsValid(Monster))
 			{
 				continue;
-			}
-
-			const FProductionMonsterCategorySpec* Spec = FindProductionCategorySpec(Monster->CategoryId);
-			if (!Spec || !Spec->DisplayName)
-			{
-				OutError = FString::Printf(
-					TEXT("Production monster '%s' uses CategoryId '%s' without an authored bestiary DisplayName."),
-					*Monster->GetPathName(), *Monster->CategoryId.ToString());
-				return false;
 			}
 
 			UGridMonsterCategoryAsset*& Category = Categories.FindOrAdd(Monster->CategoryId);
@@ -684,10 +652,7 @@ bool FRPGRangerAuthoring::ConfigureMonsterCategory(
 	UGridMonsterCategoryAsset& CategoryAsset,
 	FName CategoryId)
 {
-	using namespace RPGRangerAuthoring;
-
-	const FProductionMonsterCategorySpec* Spec = FindProductionCategorySpec(CategoryId);
-	if (!Spec || !Spec->DisplayName)
+	if (CategoryId.IsNone())
 	{
 		return false;
 	}
@@ -697,7 +662,7 @@ bool FRPGRangerAuthoring::ConfigureMonsterCategory(
 	const FText ExistingDisplayName = CategoryAsset.DisplayName;
 
 	CategoryAsset.CategoryId = CategoryId;
-	CategoryAsset.DisplayName = FText::FromString(Spec->DisplayName);
+	CategoryAsset.DisplayName = FText::FromName(CategoryId);
 
 	if (bPreserveSerializedDisplayName)
 	{

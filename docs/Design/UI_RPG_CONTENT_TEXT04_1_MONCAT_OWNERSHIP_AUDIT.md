@@ -4,6 +4,9 @@ Date : **12 octobre 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Ticket : **UI-RPG-CONTENT-TEXT04.1**
 
+> **État après TEXT04.3 :** ce document conserve l'état observé au moment de TEXT04.1.  
+> TEXT04.2 a ajouté la préservation du `DisplayName` sérialisé et TEXT04.3 a supprimé `ProductionCategorySpecs[]` ainsi que les libellés C++ `Gobelins/Vermine`. Les catégories neuves utilisent désormais uniquement `CategoryId` comme bootstrap technique.
+
 ## 1. Objet
 
 Caractériser l'autorité texte actuelle des `UGridMonsterCategoryAsset`

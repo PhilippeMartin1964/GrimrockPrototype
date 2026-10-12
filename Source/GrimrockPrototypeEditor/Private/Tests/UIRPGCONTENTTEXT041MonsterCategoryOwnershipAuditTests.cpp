@@ -205,14 +205,20 @@ bool FUIRPGCONTENTTEXT041MonsterCategoryOwnershipAuditTest::RunTest(const FStrin
 		TEXT("Skills read-model source loads for runtime-fallback characterization"),
 		FFileHelper::LoadFileToString(SkillsPageSource, *SkillsSourcePath));
 
-	const int32 CategoryDisplayNameWrites = CountOccurrences(
+	const int32 PlayerDisplayNameWrites = CountOccurrences(
 		RangerAuthoringSource,
-		TEXT("CategoryAsset.DisplayName = FText::FromString(Spec->DisplayName);"));
+		TEXT("CategoryAsset.DisplayName = FText::FromString("));
+	const int32 TechnicalDisplayNameWrites = CountOccurrences(
+		RangerAuthoringSource,
+		TEXT("CategoryAsset.DisplayName = FText::FromName(CategoryId);"));
 	const int32 CategoryDescriptionWrites = CountOccurrences(
 		RangerAuthoringSource,
 		TEXT("Category->Description ="));
 	const bool bHasProductionSpecTable =
 		RangerAuthoringSource.Contains(TEXT("ProductionCategorySpecs[]"));
+	const bool bHasPlayerCategoryLiterals =
+		RangerAuthoringSource.Contains(TEXT("Gobelins")) ||
+		RangerAuthoringSource.Contains(TEXT("Vermine"));
 	const bool bHasCategorySavePath =
 		RangerAuthoringSource.Contains(TEXT("SaveAuthoredAsset(Category"));
 	const bool bReadModelResolvesCategoryAsset =
@@ -223,11 +229,13 @@ bool FUIRPGCONTENTTEXT041MonsterCategoryOwnershipAuditTest::RunTest(const FStrin
 	UE_LOG(
 		LogTemp,
 		Display,
-		TEXT("[UI-RPG-CONTENT-TEXT04.1][AUTHORING] ProductionSpecTable=%d DisplayNameWrites=%d DescriptionWrites=%d SavesCategoryAsset=%d"),
+		TEXT("[UI-RPG-CONTENT-TEXT04.1][AUTHORING] ProductionSpecTable=%d PlayerDisplayNameWrites=%d TechnicalDisplayNameWrites=%d DescriptionWrites=%d SavesCategoryAsset=%d PlayerCategoryLiterals=%d"),
 		bHasProductionSpecTable ? 1 : 0,
-		CategoryDisplayNameWrites,
+		PlayerDisplayNameWrites,
+		TechnicalDisplayNameWrites,
 		CategoryDescriptionWrites,
-		bHasCategorySavePath ? 1 : 0);
+		bHasCategorySavePath ? 1 : 0,
+		bHasPlayerCategoryLiterals ? 1 : 0);
 
 	UE_LOG(
 		LogTemp,
@@ -239,11 +247,12 @@ bool FUIRPGCONTENTTEXT041MonsterCategoryOwnershipAuditTest::RunTest(const FStrin
 	UE_LOG(
 		LogTemp,
 		Display,
-		TEXT("[UI-RPG-CONTENT-TEXT04.1][SUMMARY] Categories=%d SerializedDisplayNames=%d SerializedDescriptions=%d DisplayNameOverwritePaths=%d DescriptionOverwritePaths=%d"),
+		TEXT("[UI-RPG-CONTENT-TEXT04.1][SUMMARY] Categories=%d SerializedDisplayNames=%d SerializedDescriptions=%d PlayerDisplayNameWrites=%d TechnicalDisplayNameWrites=%d DescriptionOverwritePaths=%d"),
 		LoadedCategoryCount,
 		SerializedDisplayNameCount,
 		SerializedDescriptionCount,
-		CategoryDisplayNameWrites,
+		PlayerDisplayNameWrites,
+		TechnicalDisplayNameWrites,
 		CategoryDescriptionWrites);
 
 	return true;
@@ -359,17 +368,120 @@ bool FUIRPGCONTENTTEXT042MonsterCategoryTextPreservationTest::RunTest(const FStr
 
 	TestEqual(TEXT("DisplayName preservation covers both current production categories"), PreservedCategoryCount, 2);
 
-	UGridMonsterCategoryAsset* Unknown =
+	UGridMonsterCategoryAsset* DynamicCategory =
 		NewObject<UGridMonsterCategoryAsset>(GetTransientPackage());
-	TestFalse(
-		TEXT("Unknown production CategoryId has no Ranger bootstrap spec"),
-		FRPGRangerAuthoring::ConfigureMonsterCategory(*Unknown, TEXT("TEXT04_2_UnknownCategory")));
+	TestTrue(
+		TEXT("A new bestiary CategoryId can bootstrap without a C++ presentation registry"),
+		FRPGRangerAuthoring::ConfigureMonsterCategory(*DynamicCategory, TEXT("TEXT04_2_NewCategory")));
+	TestEqual(
+		TEXT("Dynamic category bootstrap uses the stable CategoryId as technical DisplayName"),
+		DynamicCategory->DisplayName.ToString(),
+		FString(TEXT("TEXT04_2_NewCategory")));
 
 	UE_LOG(
 		LogTemp,
 		Display,
 		TEXT("[UI-RPG-CONTENT-TEXT04.2][SUMMARY] PreservedCategories=%d"),
 		PreservedCategoryCount);
+
+	return true;
+}
+
+
+/**
+ * UI-RPG-CONTENT-TEXT04.3 proves that fresh monster-category records receive
+ * technical text only and that production Ranger authoring no longer contains
+ * a category presentation registry.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT043MonsterCategoryBootstrapOnlyTest,
+	"Grimrock.UI.RPG.CONTENTTEXT04.BootstrapOnly",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT043MonsterCategoryBootstrapOnlyTest::RunTest(const FString&)
+{
+	using namespace UIRPGCONTENTTEXT041;
+
+	TArray<FCategoryAuditSpec> Specs;
+	CollectProductionCategorySpecs(Specs);
+
+	int32 BootstrapCategoryCount = 0;
+	for (const FCategoryAuditSpec& Spec : Specs)
+	{
+		UGridMonsterCategoryAsset* Fresh =
+			NewObject<UGridMonsterCategoryAsset>(GetTransientPackage());
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s fresh category object is created"), *Spec.CategoryId.ToString()),
+				Fresh))
+		{
+			continue;
+		}
+
+		if (!TestTrue(
+				*FString::Printf(TEXT("%s fresh category bootstraps without player-facing C++ text"), *Spec.CategoryId.ToString()),
+				FRPGRangerAuthoring::ConfigureMonsterCategory(*Fresh, Spec.CategoryId)))
+		{
+			continue;
+		}
+
+		TestEqual(
+			*FString::Printf(TEXT("%s bootstrap keeps canonical CategoryId"), *Spec.CategoryId.ToString()),
+			Fresh->CategoryId,
+			Spec.CategoryId);
+		TestEqual(
+			*FString::Printf(TEXT("%s bootstrap DisplayName is technical CategoryId only"), *Spec.CategoryId.ToString()),
+			Fresh->DisplayName.ToString(),
+			Spec.CategoryId.ToString());
+		TestTrue(
+			*FString::Printf(TEXT("%s bootstrap category remains structurally valid"), *Spec.CategoryId.ToString()),
+			Fresh->IsValidDefinition());
+
+		++BootstrapCategoryCount;
+	}
+
+	TestEqual(TEXT("Bootstrap-only audit covers both current production categories"), BootstrapCategoryCount, 2);
+
+	UGridMonsterCategoryAsset* Dynamic =
+		NewObject<UGridMonsterCategoryAsset>(GetTransientPackage());
+	TestTrue(
+		TEXT("An arbitrary non-empty CategoryId can bootstrap without a C++ category registry"),
+		FRPGRangerAuthoring::ConfigureMonsterCategory(*Dynamic, TEXT("TEXT04_3_DynamicCategory")));
+	TestEqual(
+		TEXT("Dynamic category uses its stable id as technical DisplayName"),
+		Dynamic->DisplayName.ToString(),
+		FString(TEXT("TEXT04_3_DynamicCategory")));
+
+	UGridMonsterCategoryAsset* Invalid =
+		NewObject<UGridMonsterCategoryAsset>(GetTransientPackage());
+	TestFalse(
+		TEXT("None remains invalid as a monster CategoryId"),
+		FRPGRangerAuthoring::ConfigureMonsterCategory(*Invalid, NAME_None));
+
+	FString RangerAuthoringSource;
+	const FString RangerSourcePath = FPaths::Combine(
+		FPaths::ProjectDir(),
+		TEXT("Source/GrimrockPrototypeEditor/Private/RPG/RPGRangerAuthoring.cpp"));
+	TestTrue(
+		TEXT("Ranger source loads for bootstrap-only audit"),
+		FFileHelper::LoadFileToString(RangerAuthoringSource, *RangerSourcePath));
+	TestFalse(
+		TEXT("Ranger production authoring no longer has a category presentation registry"),
+		RangerAuthoringSource.Contains(TEXT("ProductionCategorySpecs")));
+	TestFalse(
+		TEXT("Ranger production authoring no longer contains Gobelins player text"),
+		RangerAuthoringSource.Contains(TEXT("Gobelins")));
+	TestFalse(
+		TEXT("Ranger production authoring no longer contains Vermine player text"),
+		RangerAuthoringSource.Contains(TEXT("Vermine")));
+	TestTrue(
+		TEXT("Ranger category bootstrap is derived from CategoryId"),
+		RangerAuthoringSource.Contains(TEXT("CategoryAsset.DisplayName = FText::FromName(CategoryId);")));
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("[UI-RPG-CONTENT-TEXT04.3][SUMMARY] BootstrapCategories=%d DynamicCategoryBootstrap=1"),
+		BootstrapCategoryCount);
 
 	return true;
 }
