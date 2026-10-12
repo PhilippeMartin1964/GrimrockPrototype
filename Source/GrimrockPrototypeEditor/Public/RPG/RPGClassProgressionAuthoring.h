@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Templates/Function.h"
 
 class URPGClassAsset;
 
@@ -14,4 +15,9 @@ struct GRIMROCKPROTOTYPEEDITOR_API FRPGClassProgressionAuthoring
 {
 	static void ConfigureCanonicalTalentGrants(URPGClassAsset& ClassAsset);
 	static bool HasCanonicalTalentGrants(const URPGClassAsset& ClassAsset);
+
+	/** Rebuild mechanics while preserving existing Choice/Action DisplayName + Description by stable ID. */
+	static void RematerializePreservingChoiceAndActionText(
+		URPGClassAsset& ClassAsset,
+		TFunctionRef<void()> Rematerialize);
 };

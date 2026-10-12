@@ -320,4 +320,140 @@ bool FUIRPGCONTENTTEXT011ClassTextOwnershipAuditTest::RunTest(const FString&)
 	return true;
 }
 
+
+/**
+ * UI-RPG-CONTENT-TEXT01.2 proves that ConfigureClass rematerializes mechanics
+ * without taking text ownership back from an existing DA_Class record.
+ *
+ * Sentinels deliberately differ from the bootstrap C++ strings. Mechanical
+ * fields are poisoned at the same time so the test also proves that the
+ * rematerialization itself still happened.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT012ClassTextPreservationTest,
+	"Grimrock.UI.RPG.CONTENTTEXT01.Preservation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT012ClassTextPreservationTest::RunTest(const FString&)
+{
+	using namespace UIRPGCONTENTTEXT011;
+
+	int32 PreservedChoiceCount = 0;
+	int32 PreservedActionCount = 0;
+
+	for (const FClassSpec& Spec : ClassSpecs)
+	{
+		URPGClassAsset* Serialized = LoadObject<URPGClassAsset>(nullptr, Spec.ObjectPath);
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s serialized DA_Class loads for preservation test"), *Spec.ClassId.ToString()),
+				Serialized))
+		{
+			continue;
+		}
+
+		URPGClassAsset* Working = DuplicateObject<URPGClassAsset>(Serialized, GetTransientPackage());
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s transient preservation duplicate is created"), *Spec.ClassId.ToString()),
+				Working))
+		{
+			continue;
+		}
+
+		TArray<FName> ChoiceIds;
+		for (FRPGClassProgressionChoiceDefinition& Choice : Working->ProgressionChoices)
+		{
+			ChoiceIds.Add(Choice.ChoiceId);
+			Choice.DisplayName = FText::FromString(FString::Printf(
+				TEXT("TEXT01.2 Choice Name %s"), *Choice.ChoiceId.ToString()));
+			Choice.Description = FText::FromString(FString::Printf(
+				TEXT("TEXT01.2 Choice Description %s"), *Choice.ChoiceId.ToString()));
+			Choice.MinimumLevel = 777;
+		}
+
+		TArray<FName> ActionIds;
+		for (FGridCombatActionDefinition& Action : Working->CombatActions)
+		{
+			ActionIds.Add(Action.ActionId);
+			Action.DisplayName = FText::FromString(FString::Printf(
+				TEXT("TEXT01.2 Action Name %s"), *Action.ActionId.ToString()));
+			Action.Description = FText::FromString(FString::Printf(
+				TEXT("TEXT01.2 Action Description %s"), *Action.ActionId.ToString()));
+			Action.ActionPointCost = 777;
+		}
+
+		FString AuthoringError;
+		if (!TestTrue(
+				*FString::Printf(TEXT("%s mechanics rematerialize with authored text preservation"), *Spec.ClassId.ToString()),
+				ConfigureFromCurrentAuthoring(Spec.ClassId, *Working, AuthoringError)))
+		{
+			AddError(FString::Printf(TEXT("%s authoring error: %s"), *Spec.ClassId.ToString(), *AuthoringError));
+			continue;
+		}
+
+		for (const FName ChoiceId : ChoiceIds)
+		{
+			const FRPGClassProgressionChoiceDefinition* Choice = Working->FindProgressionChoice(ChoiceId);
+			if (!TestNotNull(
+					*FString::Printf(TEXT("%s/%s survives rematerialization"), *Spec.ClassId.ToString(), *ChoiceId.ToString()),
+					Choice))
+			{
+				continue;
+			}
+
+			const FString ExpectedDisplayName = FString::Printf(TEXT("TEXT01.2 Choice Name %s"), *ChoiceId.ToString());
+			const FString ExpectedDescription = FString::Printf(TEXT("TEXT01.2 Choice Description %s"), *ChoiceId.ToString());
+			TestEqual(
+				*FString::Printf(TEXT("%s/%s preserves Choice DisplayName"), *Spec.ClassId.ToString(), *ChoiceId.ToString()),
+				Choice->DisplayName.ToString(),
+				ExpectedDisplayName);
+			TestEqual(
+				*FString::Printf(TEXT("%s/%s preserves Choice Description"), *Spec.ClassId.ToString(), *ChoiceId.ToString()),
+				Choice->Description.ToString(),
+				ExpectedDescription);
+			TestTrue(
+				*FString::Printf(TEXT("%s/%s still rematerializes Choice mechanics"), *Spec.ClassId.ToString(), *ChoiceId.ToString()),
+				Choice->MinimumLevel != 777);
+			++PreservedChoiceCount;
+		}
+
+		for (const FName ActionId : ActionIds)
+		{
+			const FGridCombatActionDefinition* Action = FindAction(*Working, ActionId);
+			if (!TestNotNull(
+					*FString::Printf(TEXT("%s/%s survives rematerialization"), *Spec.ClassId.ToString(), *ActionId.ToString()),
+					Action))
+			{
+				continue;
+			}
+
+			const FString ExpectedDisplayName = FString::Printf(TEXT("TEXT01.2 Action Name %s"), *ActionId.ToString());
+			const FString ExpectedDescription = FString::Printf(TEXT("TEXT01.2 Action Description %s"), *ActionId.ToString());
+			TestEqual(
+				*FString::Printf(TEXT("%s/%s preserves Action DisplayName"), *Spec.ClassId.ToString(), *ActionId.ToString()),
+				Action->DisplayName.ToString(),
+				ExpectedDisplayName);
+			TestEqual(
+				*FString::Printf(TEXT("%s/%s preserves Action Description"), *Spec.ClassId.ToString(), *ActionId.ToString()),
+				Action->Description.ToString(),
+				ExpectedDescription);
+			TestTrue(
+				*FString::Printf(TEXT("%s/%s still rematerializes Action mechanics"), *Spec.ClassId.ToString(), *ActionId.ToString()),
+				Action->ActionPointCost != 777);
+			++PreservedActionCount;
+		}
+	}
+
+	TestTrue(TEXT("Preservation test covers every production class choice family"), PreservedChoiceCount >= 90);
+	TestTrue(TEXT("Preservation test covers production class combat actions"), PreservedActionCount > 0);
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("[UI-RPG-CONTENT-TEXT01.2][SUMMARY] PreservedChoices=%d PreservedActions=%d"),
+		PreservedChoiceCount,
+		PreservedActionCount);
+
+	return true;
+}
+
 #endif

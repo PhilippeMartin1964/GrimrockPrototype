@@ -217,245 +217,248 @@ FString FRPGWarriorAuthoring::GetStatusObjectPath(FName EffectId)
 
 void FRPGWarriorAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 {
-	using namespace RPGWarriorAuthoring;
+	FRPGClassProgressionAuthoring::RematerializePreservingChoiceAndActionText(ClassAsset, [&]()
+	{
+		using namespace RPGWarriorAuthoring;
 
-	FRPGClassProgressionAuthoring::ConfigureCanonicalTalentGrants(ClassAsset);
-	ClassAsset.CombatActions.Reset();
-	ClassAsset.ProgressionChoices.Reset();
+		FRPGClassProgressionAuthoring::ConfigureCanonicalTalentGrants(ClassAsset);
+		ClassAsset.CombatActions.Reset();
+		ClassAsset.ProgressionChoices.Reset();
 
-	// Guardian
-	{
-		FGridCombatActionDefinition Action = MakeEffectAction(
-			TEXT("Action_Warrior_DefensiveStance"), TEXT("Posture défensive"),
-			TEXT("Applique Garde pendant 2 rounds."), TEXT("Talent_Warrior_Guardian_DefensiveStance"),
-			1, EGridCombatTargetingPolicy::Self, 3);
-		Action.StatusApplications.Add(MakeStatusApplication(
-			TEXT("Status_Guarded"), EGridCombatStatusApplicationTrigger::AfterResolution, EGridCombatStatusArmorGate::None, 2));
-		ClassAsset.CombatActions.Add(Action);
-	}
-	{
-		FGridCombatActionDefinition Action = MakeWeaponAction(
-			TEXT("Action_Warrior_ShieldBash"), TEXT("Coup de bouclier"),
-			TEXT("80 % WD contondant ; étourdit 1 tour si l'armure physique est épuisée."),
-			TEXT("Talent_Warrior_Guardian_ShieldBash"), 2, EGridCombatTargetingPolicy::FirstAxialTarget, 1, 2, 80);
-		Action.Requirements.Add(ShieldRequirement);
-		Action.WeaponAttackProfile.bOverrideDamageDescriptor = true;
-		Action.WeaponAttackProfile.OverrideDamageType = EGridDamageType::Physical;
-		Action.WeaponAttackProfile.OverridePhysicalSubtype = EGridPhysicalDamageSubtype::Bludgeoning;
-		Action.StatusApplications.Add(MakeStatusApplication(
-			TEXT("Status_Stunned"), EGridCombatStatusApplicationTrigger::AfterSuccessfulHit,
-			EGridCombatStatusArmorGate::PhysicalArmorDepleted, 1));
-		ClassAsset.CombatActions.Add(Action);
-	}
-	{
-		FGridCombatActionDefinition Action = MakeEffectAction(
-			TEXT("Action_Warrior_Fortress"), TEXT("Forteresse"),
-			TEXT("Restaure 40 % de l'armure physique de référence et applique Fortifié au rang avant."),
-			TEXT("Talent_Warrior_Guardian_Fortress"), 3, EGridCombatTargetingPolicy::FrontRowParty, 5);
-		Action.ArmorEffects.Add(MakeArmorEffect(
-			EGridCombatArmorEffectOperation::Restore, EGridCombatArmorEffectMagnitude::ReferencePercent, 40,
-			EGridCombatArmorEffectTrigger::AfterResolution));
-		Action.StatusApplications.Add(MakeStatusApplication(
-			TEXT("Status_Fortified"), EGridCombatStatusApplicationTrigger::AfterResolution, EGridCombatStatusArmorGate::None, 2));
-		ClassAsset.CombatActions.Add(Action);
-	}
+		// Guardian
+		{
+			FGridCombatActionDefinition Action = MakeEffectAction(
+				TEXT("Action_Warrior_DefensiveStance"), TEXT("Posture défensive"),
+				TEXT("Applique Garde pendant 2 rounds."), TEXT("Talent_Warrior_Guardian_DefensiveStance"),
+				1, EGridCombatTargetingPolicy::Self, 3);
+			Action.StatusApplications.Add(MakeStatusApplication(
+				TEXT("Status_Guarded"), EGridCombatStatusApplicationTrigger::AfterResolution, EGridCombatStatusArmorGate::None, 2));
+			ClassAsset.CombatActions.Add(Action);
+		}
+		{
+			FGridCombatActionDefinition Action = MakeWeaponAction(
+				TEXT("Action_Warrior_ShieldBash"), TEXT("Coup de bouclier"),
+				TEXT("80 % WD contondant ; étourdit 1 tour si l'armure physique est épuisée."),
+				TEXT("Talent_Warrior_Guardian_ShieldBash"), 2, EGridCombatTargetingPolicy::FirstAxialTarget, 1, 2, 80);
+			Action.Requirements.Add(ShieldRequirement);
+			Action.WeaponAttackProfile.bOverrideDamageDescriptor = true;
+			Action.WeaponAttackProfile.OverrideDamageType = EGridDamageType::Physical;
+			Action.WeaponAttackProfile.OverridePhysicalSubtype = EGridPhysicalDamageSubtype::Bludgeoning;
+			Action.StatusApplications.Add(MakeStatusApplication(
+				TEXT("Status_Stunned"), EGridCombatStatusApplicationTrigger::AfterSuccessfulHit,
+				EGridCombatStatusArmorGate::PhysicalArmorDepleted, 1));
+			ClassAsset.CombatActions.Add(Action);
+		}
+		{
+			FGridCombatActionDefinition Action = MakeEffectAction(
+				TEXT("Action_Warrior_Fortress"), TEXT("Forteresse"),
+				TEXT("Restaure 40 % de l'armure physique de référence et applique Fortifié au rang avant."),
+				TEXT("Talent_Warrior_Guardian_Fortress"), 3, EGridCombatTargetingPolicy::FrontRowParty, 5);
+			Action.ArmorEffects.Add(MakeArmorEffect(
+				EGridCombatArmorEffectOperation::Restore, EGridCombatArmorEffectMagnitude::ReferencePercent, 40,
+				EGridCombatArmorEffectTrigger::AfterResolution));
+			Action.StatusApplications.Add(MakeStatusApplication(
+				TEXT("Status_Fortified"), EGridCombatStatusApplicationTrigger::AfterResolution, EGridCombatStatusArmorGate::None, 2));
+			ClassAsset.CombatActions.Add(Action);
+		}
 
-	// Breaker
-	{
-		FGridCombatActionDefinition Action = MakeWeaponAction(
-			TEXT("Action_Warrior_PowerStrike"), TEXT("Coup puissant"),
-			TEXT("Attaque d'arme lourde à 150 % WD avec Accuracy -2."),
-			TEXT("Talent_Warrior_Breaker_PowerStrike"), 3, EGridCombatTargetingPolicy::FirstAxialTarget, 1, 1, 150);
-		Action.WeaponAttackProfile.RequiredItemTags = { HeavyWeaponTag };
-		ClassAsset.CombatActions.Add(Action);
-	}
-	{
-		FGridCombatActionDefinition Action = MakeWeaponAction(
-			TEXT("Action_Warrior_ArmorBreak"), TEXT("Brise-armure"),
-			TEXT("100 % WD puis 50 % du RawDamage supplémentaires contre l'armure physique uniquement."),
-			TEXT("Talent_Warrior_Breaker_ArmorBreak"), 2, EGridCombatTargetingPolicy::FirstAxialTarget, 1, 2, 100);
-		Action.ArmorEffects.Add(MakeArmorEffect(
-			EGridCombatArmorEffectOperation::Damage, EGridCombatArmorEffectMagnitude::RawDamagePercent, 50,
-			EGridCombatArmorEffectTrigger::AfterSuccessfulHit));
-		ClassAsset.CombatActions.Add(Action);
-	}
-	{
-		FGridCombatActionDefinition Action = MakeWeaponAction(
-			TEXT("Action_Warrior_Sweep"), TEXT("Balayage"),
-			TEXT("Chaque hostile de la zone reçoit une attaque indépendante à 85 % WD."),
-			TEXT("Talent_Warrior_Breaker_Sweep"), 3, EGridCombatTargetingPolicy::Area, 1, 2, 85);
-		Action.AreaRadiusCells = 1;
-		Action.bAffectsAlliesInArea = false;
-		ClassAsset.CombatActions.Add(Action);
-	}
-	{
-		FGridCombatActionDefinition Action = MakeWeaponAction(
-			TEXT("Action_Warrior_Execution"), TEXT("Exécution"),
-			TEXT("200 % WD, uniquement contre une cible sans armure physique à 35 % PV ou moins."),
-			TEXT("Talent_Warrior_Breaker_Execution"), 2, EGridCombatTargetingPolicy::FirstAxialTarget, 1, 2, 200);
-		Action.TargetFilter.bRequirePhysicalArmorDepleted = true;
-		Action.TargetFilter.MaximumHealthPercent = 35;
-		ClassAsset.CombatActions.Add(Action);
-	}
-	{
-		FGridCombatActionDefinition Action = MakeWeaponAction(
-			TEXT("Action_Warrior_Devastation"), TEXT("Ravage"),
-			TEXT("140 % WD à tous les hostiles de la zone ; la cible primaire tombe si son armure physique est épuisée."),
-			TEXT("Talent_Warrior_Breaker_Devastation"), 4, EGridCombatTargetingPolicy::Area, 1, 5, 140);
-		Action.AreaRadiusCells = 1;
-		Action.bAffectsAlliesInArea = false;
-		Action.StatusApplications.Add(MakeStatusApplication(
-			TEXT("Status_KnockedDown"), EGridCombatStatusApplicationTrigger::AfterSuccessfulHit,
-			EGridCombatStatusArmorGate::PhysicalArmorDepleted, 1, EGridCombatResolvedTargetScope::PrimaryTargetOnly));
-		ClassAsset.CombatActions.Add(Action);
-	}
+		// Breaker
+		{
+			FGridCombatActionDefinition Action = MakeWeaponAction(
+				TEXT("Action_Warrior_PowerStrike"), TEXT("Coup puissant"),
+				TEXT("Attaque d'arme lourde à 150 % WD avec Accuracy -2."),
+				TEXT("Talent_Warrior_Breaker_PowerStrike"), 3, EGridCombatTargetingPolicy::FirstAxialTarget, 1, 1, 150);
+			Action.WeaponAttackProfile.RequiredItemTags = { HeavyWeaponTag };
+			ClassAsset.CombatActions.Add(Action);
+		}
+		{
+			FGridCombatActionDefinition Action = MakeWeaponAction(
+				TEXT("Action_Warrior_ArmorBreak"), TEXT("Brise-armure"),
+				TEXT("100 % WD puis 50 % du RawDamage supplémentaires contre l'armure physique uniquement."),
+				TEXT("Talent_Warrior_Breaker_ArmorBreak"), 2, EGridCombatTargetingPolicy::FirstAxialTarget, 1, 2, 100);
+			Action.ArmorEffects.Add(MakeArmorEffect(
+				EGridCombatArmorEffectOperation::Damage, EGridCombatArmorEffectMagnitude::RawDamagePercent, 50,
+				EGridCombatArmorEffectTrigger::AfterSuccessfulHit));
+			ClassAsset.CombatActions.Add(Action);
+		}
+		{
+			FGridCombatActionDefinition Action = MakeWeaponAction(
+				TEXT("Action_Warrior_Sweep"), TEXT("Balayage"),
+				TEXT("Chaque hostile de la zone reçoit une attaque indépendante à 85 % WD."),
+				TEXT("Talent_Warrior_Breaker_Sweep"), 3, EGridCombatTargetingPolicy::Area, 1, 2, 85);
+			Action.AreaRadiusCells = 1;
+			Action.bAffectsAlliesInArea = false;
+			ClassAsset.CombatActions.Add(Action);
+		}
+		{
+			FGridCombatActionDefinition Action = MakeWeaponAction(
+				TEXT("Action_Warrior_Execution"), TEXT("Exécution"),
+				TEXT("200 % WD, uniquement contre une cible sans armure physique à 35 % PV ou moins."),
+				TEXT("Talent_Warrior_Breaker_Execution"), 2, EGridCombatTargetingPolicy::FirstAxialTarget, 1, 2, 200);
+			Action.TargetFilter.bRequirePhysicalArmorDepleted = true;
+			Action.TargetFilter.MaximumHealthPercent = 35;
+			ClassAsset.CombatActions.Add(Action);
+		}
+		{
+			FGridCombatActionDefinition Action = MakeWeaponAction(
+				TEXT("Action_Warrior_Devastation"), TEXT("Ravage"),
+				TEXT("140 % WD à tous les hostiles de la zone ; la cible primaire tombe si son armure physique est épuisée."),
+				TEXT("Talent_Warrior_Breaker_Devastation"), 4, EGridCombatTargetingPolicy::Area, 1, 5, 140);
+			Action.AreaRadiusCells = 1;
+			Action.bAffectsAlliesInArea = false;
+			Action.StatusApplications.Add(MakeStatusApplication(
+				TEXT("Status_KnockedDown"), EGridCombatStatusApplicationTrigger::AfterSuccessfulHit,
+				EGridCombatStatusArmorGate::PhysicalArmorDepleted, 1, EGridCombatResolvedTargetScope::PrimaryTargetOnly));
+			ClassAsset.CombatActions.Add(Action);
+		}
 
-	// Weapon Master
-	{
-		FGridCombatActionDefinition Action = MakeEffectAction(
-			TEXT("Action_Warrior_SecondWind"), TEXT("Second souffle"),
-			TEXT("Restaure 20 % des PV maximum."), TEXT("Talent_Warrior_WeaponMaster_SecondWind"),
-			1, EGridCombatTargetingPolicy::Self, 4);
-		Action.EffectProfile.RestoreHealthMaximumPercent = 20;
-		ClassAsset.CombatActions.Add(Action);
-	}
-	{
-		FGridCombatActionDefinition Action = MakeEffectAction(
-			TEXT("Action_Warrior_Warlord"), TEXT("Seigneur de guerre"),
-			TEXT("Applique Seigneur de guerre pendant 2 rounds à tous les alliés actifs."),
-			TEXT("Talent_Warrior_WeaponMaster_Warlord"), 2, EGridCombatTargetingPolicy::Party, 4);
-		Action.StatusApplications.Add(MakeStatusApplication(
-			TEXT("Status_Warlord"), EGridCombatStatusApplicationTrigger::AfterResolution, EGridCombatStatusArmorGate::None, 2));
-		ClassAsset.CombatActions.Add(Action);
-	}
+		// Weapon Master
+		{
+			FGridCombatActionDefinition Action = MakeEffectAction(
+				TEXT("Action_Warrior_SecondWind"), TEXT("Second souffle"),
+				TEXT("Restaure 20 % des PV maximum."), TEXT("Talent_Warrior_WeaponMaster_SecondWind"),
+				1, EGridCombatTargetingPolicy::Self, 4);
+			Action.EffectProfile.RestoreHealthMaximumPercent = 20;
+			ClassAsset.CombatActions.Add(Action);
+		}
+		{
+			FGridCombatActionDefinition Action = MakeEffectAction(
+				TEXT("Action_Warrior_Warlord"), TEXT("Seigneur de guerre"),
+				TEXT("Applique Seigneur de guerre pendant 2 rounds à tous les alliés actifs."),
+				TEXT("Talent_Warrior_WeaponMaster_Warlord"), 2, EGridCombatTargetingPolicy::Party, 4);
+			Action.StatusApplications.Add(MakeStatusApplication(
+				TEXT("Status_Warlord"), EGridCombatStatusApplicationTrigger::AfterResolution, EGridCombatStatusArmorGate::None, 2));
+			ClassAsset.CombatActions.Add(Action);
+		}
 
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TEXT("Talent_Warrior_Guardian_DefensiveStance"), TEXT("Posture défensive"),
-		TEXT("Applique Garde pendant 2 rounds : dégâts physiques reçus -20 %, Esquive +2, dégâts d'arme infligés -10 %. Réapplication : rafraîchit la durée."), 2, GuardianBranchId));
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TEXT("Talent_Warrior_Guardian_ShieldBash"), TEXT("Coup de bouclier"),
-		TEXT("Requiert un bouclier équipé. Inflige 80 % des dégâts de l'arme, de type contondant. Après les dégâts, si l'armure physique est épuisée, applique Étourdi pendant 1 tour et fait perdre la prochaine activation."), 6, GuardianBranchId, TEXT("Talent_Warrior_Guardian_DefensiveStance")));
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			TEXT("Talent_Warrior_Guardian_DefensiveStance"), TEXT("Posture défensive"),
+			TEXT("Applique Garde pendant 2 rounds : dégâts physiques reçus -20 %, Esquive +2, dégâts d'arme infligés -10 %. Réapplication : rafraîchit la durée."), 2, GuardianBranchId));
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			TEXT("Talent_Warrior_Guardian_ShieldBash"), TEXT("Coup de bouclier"),
+			TEXT("Requiert un bouclier équipé. Inflige 80 % des dégâts de l'arme, de type contondant. Après les dégâts, si l'armure physique est épuisée, applique Étourdi pendant 1 tour et fait perdre la prochaine activation."), 6, GuardianBranchId, TEXT("Talent_Warrior_Guardian_DefensiveStance")));
 
-	FRPGClassProgressionChoiceDefinition Interception = MakeChoice(
-		TEXT("Talent_Warrior_Guardian_Interception"), TEXT("Interception"),
-		TEXT("1 fois/round, lorsqu'un allié du rang avant subit une attaque physique ciblée : 50 % des dégâts finaux sont redirigés vers le Guerrier et résolus contre sa propre armure physique. Les attaques de zone, les dégâts périodiques et les surfaces sont ignorés."),
-		10, GuardianBranchId, TEXT("Talent_Warrior_Guardian_ShieldBash"));
-	{
-		FGridCombatReactionProfile Reaction;
-		Reaction.ReactionId = TEXT("Reaction_Warrior_Interception");
-		Reaction.Trigger = EGridCombatReactionTrigger::IncomingAttackHit;
-		Reaction.Limit = EGridCombatReactionLimit::OncePerRound;
-		Reaction.ActionTypes = { EGridCombatActionType::MeleeAttack, EGridCombatActionType::RangedAttack };
-		Reaction.DamageTypes = { EGridDamageType::Physical };
-		Reaction.InterceptFinalDamagePercent = 50;
-		Reaction.bRequireOwnerFrontRow = true;
-		Reaction.bRequireEventTargetFrontRow = true;
-		Interception.CombatReactions.Add(Reaction);
-	}
-	ClassAsset.ProgressionChoices.Add(Interception);
+		FRPGClassProgressionChoiceDefinition Interception = MakeChoice(
+			TEXT("Talent_Warrior_Guardian_Interception"), TEXT("Interception"),
+			TEXT("1 fois/round, lorsqu'un allié du rang avant subit une attaque physique ciblée : 50 % des dégâts finaux sont redirigés vers le Guerrier et résolus contre sa propre armure physique. Les attaques de zone, les dégâts périodiques et les surfaces sont ignorés."),
+			10, GuardianBranchId, TEXT("Talent_Warrior_Guardian_ShieldBash"));
+		{
+			FGridCombatReactionProfile Reaction;
+			Reaction.ReactionId = TEXT("Reaction_Warrior_Interception");
+			Reaction.Trigger = EGridCombatReactionTrigger::IncomingAttackHit;
+			Reaction.Limit = EGridCombatReactionLimit::OncePerRound;
+			Reaction.ActionTypes = { EGridCombatActionType::MeleeAttack, EGridCombatActionType::RangedAttack };
+			Reaction.DamageTypes = { EGridDamageType::Physical };
+			Reaction.InterceptFinalDamagePercent = 50;
+			Reaction.bRequireOwnerFrontRow = true;
+			Reaction.bRequireEventTargetFrontRow = true;
+			Interception.CombatReactions.Add(Reaction);
+		}
+		ClassAsset.ProgressionChoices.Add(Interception);
 
-	FRPGClassProgressionChoiceDefinition Bulwark = MakeChoice(
-		TEXT("Talent_Warrior_Guardian_Bulwark"), TEXT("Rempart"),
-		TEXT("Armure physique fournie par l'équipement et le bouclier +25 %. Le bonus modifie la réserve d'armure physique projetée au démarrage et lors des actualisations ; il ne crée pas une seconde armure parallèle."),
-		14, GuardianBranchId, TEXT("Talent_Warrior_Guardian_Interception"));
-	{
-		FGridCombatModifierProfile Modifier;
-		Modifier.PhysicalArmorReferencePercentModifier = 25;
-		Bulwark.CombatModifiers.Add(Modifier);
-	}
-	ClassAsset.ProgressionChoices.Add(Bulwark);
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TEXT("Talent_Warrior_Guardian_Fortress"), TEXT("Forteresse"),
-		TEXT("Restaure 40 % de la réserve d'armure physique de référence à chaque allié vivant du rang avant, puis réduit de 25 % les dégâts physiques qu'il reçoit pendant 2 rounds."), 18, GuardianBranchId, TEXT("Talent_Warrior_Guardian_Bulwark")));
+		FRPGClassProgressionChoiceDefinition Bulwark = MakeChoice(
+			TEXT("Talent_Warrior_Guardian_Bulwark"), TEXT("Rempart"),
+			TEXT("Armure physique fournie par l'équipement et le bouclier +25 %. Le bonus modifie la réserve d'armure physique projetée au démarrage et lors des actualisations ; il ne crée pas une seconde armure parallèle."),
+			14, GuardianBranchId, TEXT("Talent_Warrior_Guardian_Interception"));
+		{
+			FGridCombatModifierProfile Modifier;
+			Modifier.PhysicalArmorReferencePercentModifier = 25;
+			Bulwark.CombatModifiers.Add(Modifier);
+		}
+		ClassAsset.ProgressionChoices.Add(Bulwark);
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			TEXT("Talent_Warrior_Guardian_Fortress"), TEXT("Forteresse"),
+			TEXT("Restaure 40 % de la réserve d'armure physique de référence à chaque allié vivant du rang avant, puis réduit de 25 % les dégâts physiques qu'il reçoit pendant 2 rounds."), 18, GuardianBranchId, TEXT("Talent_Warrior_Guardian_Bulwark")));
 
-	FRPGClassProgressionChoiceDefinition PowerStrike = MakeChoice(
-		TEXT("Talent_Warrior_Breaker_PowerStrike"), TEXT("Coup puissant"),
-		TEXT("Attaque d'arme lourde à 150 % dégâts de l'arme, Précision -2. Critique autorisé. Aucun contrôle."), 2, BreakerBranchId);
-	{
-		FGridCombatModifierProfile Modifier;
-		Modifier.ActionIds = { TEXT("Action_Warrior_PowerStrike") };
-		Modifier.AccuracyModifier = -2;
-		PowerStrike.CombatModifiers.Add(Modifier);
-	}
-	ClassAsset.ProgressionChoices.Add(PowerStrike);
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TEXT("Talent_Warrior_Breaker_ArmorBreak"), TEXT("Brise-armure"),
-		TEXT("Attaque à 100 % dégâts de l'arme. En plus, inflige à armure physique uniquement un bonus égal à 50 % du dégâts bruts de l'attaque ; l'excédent de ce bonus ne déborde jamais sur les PV."), 6, BreakerBranchId, TEXT("Talent_Warrior_Breaker_PowerStrike")));
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TEXT("Talent_Warrior_Breaker_Sweep"), TEXT("Balayage"),
-		TEXT("Chaque hostile dans la zone reçoit une attaque à 85 % des dégâts de l'arme avec un jet séparé. Les membres du groupe occupant la case de départ ne subissent aucun dégât."), 10, BreakerBranchId, TEXT("Talent_Warrior_Breaker_ArmorBreak")));
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TEXT("Talent_Warrior_Breaker_Execution"), TEXT("Exécution"),
-		TEXT("Disponible uniquement si armure physique=0 et PV <=35 % PV maximum. Inflige 200 % dégâts de l'arme. L'éligibilité est recalculée à la requête ; pas d'exécution automatique."), 14, BreakerBranchId, TEXT("Talent_Warrior_Breaker_Sweep")));
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TEXT("Talent_Warrior_Breaker_Devastation"), TEXT("Ravage"),
-		TEXT("Inflige 140 % dégâts de l'arme à tous les hostiles de la zone. La cible primaire, si armure physique=0 après dégâts, reçoit Status_KnockedDown 1 tour (fait perdre la prochaine activation)."), 18, BreakerBranchId, TEXT("Talent_Warrior_Breaker_Execution")));
+		FRPGClassProgressionChoiceDefinition PowerStrike = MakeChoice(
+			TEXT("Talent_Warrior_Breaker_PowerStrike"), TEXT("Coup puissant"),
+			TEXT("Attaque d'arme lourde à 150 % dégâts de l'arme, Précision -2. Critique autorisé. Aucun contrôle."), 2, BreakerBranchId);
+		{
+			FGridCombatModifierProfile Modifier;
+			Modifier.ActionIds = { TEXT("Action_Warrior_PowerStrike") };
+			Modifier.AccuracyModifier = -2;
+			PowerStrike.CombatModifiers.Add(Modifier);
+		}
+		ClassAsset.ProgressionChoices.Add(PowerStrike);
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			TEXT("Talent_Warrior_Breaker_ArmorBreak"), TEXT("Brise-armure"),
+			TEXT("Attaque à 100 % dégâts de l'arme. En plus, inflige à armure physique uniquement un bonus égal à 50 % du dégâts bruts de l'attaque ; l'excédent de ce bonus ne déborde jamais sur les PV."), 6, BreakerBranchId, TEXT("Talent_Warrior_Breaker_PowerStrike")));
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			TEXT("Talent_Warrior_Breaker_Sweep"), TEXT("Balayage"),
+			TEXT("Chaque hostile dans la zone reçoit une attaque à 85 % des dégâts de l'arme avec un jet séparé. Les membres du groupe occupant la case de départ ne subissent aucun dégât."), 10, BreakerBranchId, TEXT("Talent_Warrior_Breaker_ArmorBreak")));
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			TEXT("Talent_Warrior_Breaker_Execution"), TEXT("Exécution"),
+			TEXT("Disponible uniquement si armure physique=0 et PV <=35 % PV maximum. Inflige 200 % dégâts de l'arme. L'éligibilité est recalculée à la requête ; pas d'exécution automatique."), 14, BreakerBranchId, TEXT("Talent_Warrior_Breaker_Sweep")));
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			TEXT("Talent_Warrior_Breaker_Devastation"), TEXT("Ravage"),
+			TEXT("Inflige 140 % dégâts de l'arme à tous les hostiles de la zone. La cible primaire, si armure physique=0 après dégâts, reçoit Status_KnockedDown 1 tour (fait perdre la prochaine activation)."), 18, BreakerBranchId, TEXT("Talent_Warrior_Breaker_Execution")));
 
-	const struct
-	{
-		EGridPhysicalDamageSubtype Subtype;
-		const TCHAR* Suffix;
-		const TCHAR* DisplayName;
-	} Specializations[] = {
-		{ EGridPhysicalDamageSubtype::Slashing, TEXT("Slashing"), TEXT("Spécialisation martiale — Tranchant") },
-		{ EGridPhysicalDamageSubtype::Piercing, TEXT("Piercing"), TEXT("Spécialisation martiale — Perforant") },
-		{ EGridPhysicalDamageSubtype::Bludgeoning, TEXT("Bludgeoning"), TEXT("Spécialisation martiale — Contondant") }
-	};
-	for (const auto& Spec : Specializations)
-	{
-		const FName ChoiceId(*FString::Printf(TEXT("Talent_Warrior_WeaponMaster_MartialSpecialization_%s"), Spec.Suffix));
-		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			ChoiceId, Spec.DisplayName,
-			TEXT("Avec une arme de ce type : Précision +1 et dégâts d'arme finaux +10 %."), 2, WeaponMasterBranchId, NAME_None, MartialRequirement);
-		Choice.ExclusiveChoiceGroupId = MartialGroup;
-		Choice.GrantedRequirementIds = { MartialRequirement };
-		Choice.CombatModifiers.Add(MakeSubtypeModifier(Spec.Subtype, 1, 10));
-		ClassAsset.ProgressionChoices.Add(Choice);
-	}
-
-	FRPGClassProgressionChoiceDefinition Riposte = MakeChoice(
-		TEXT("Talent_Warrior_WeaponMaster_Riposte"), TEXT("Riposte"),
-		TEXT("1 fois/round après l'échec d'une attaque de mêlée ciblée contre le Guerrier : contre-attaque immédiate à 75 % dégâts de l'arme, sans PA et sans déclencher une nouvelle Riposte."),
-		6, WeaponMasterBranchId);
-	Riposte.PrerequisiteRequirementIds = { MartialRequirement };
-	{
-		FGridCombatReactionProfile Reaction;
-		Reaction.ReactionId = TEXT("Reaction_Warrior_Riposte");
-		Reaction.Trigger = EGridCombatReactionTrigger::AttackMiss;
-		Reaction.Limit = EGridCombatReactionLimit::OncePerRound;
-		Reaction.ActionTypes = { EGridCombatActionType::MeleeAttack };
-		Reaction.CounterAttackActionId = TEXT("Action_Warrior_Riposte");
-		Reaction.CounterAttackRangeCells = 1;
-		Reaction.CounterAttackWeaponProfile.bUseEquippedWeapon = true;
-		Reaction.CounterAttackWeaponProfile.WeaponDamagePercent = 75;
-		Reaction.CounterAttackWeaponProfile.bAllowUnarmed = true;
-		Riposte.CombatReactions.Add(Reaction);
-	}
-	ClassAsset.ProgressionChoices.Add(Riposte);
-
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TEXT("Talent_Warrior_WeaponMaster_SecondWind"), TEXT("Second souffle"),
-		TEXT("Restaure 20 % PV maximum, arrondi au supérieur, minimum 1. Indisponible à PV max. Ne restaure ni mana ni armure."), 10, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_Riposte")));
-
-	FRPGClassProgressionChoiceDefinition CriticalMastery = MakeChoice(
-		TEXT("Talent_Warrior_WeaponMaster_CriticalMastery"), TEXT("Maîtrise critique"),
-		TEXT("Avec la spécialisation martiale choisie : chance de critique +10 points de pourcentage et multiplicateur de dégâts critiques +25 points de pourcentage."),
-		14, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_SecondWind"));
-	for (const auto& Spec : Specializations)
-	{
-		FGridCombatModifierProfile Modifier = MakeSubtypeModifier(Spec.Subtype, 0, 0);
-		Modifier.CriticalChancePercentModifier = 10;
-		Modifier.CriticalDamagePercentModifier = 25;
-		Modifier.RequiredOwnerRequirementIds = {
-			FName(*FString::Printf(TEXT("Talent_Warrior_WeaponMaster_MartialSpecialization_%s"), Spec.Suffix))
+		const struct
+		{
+			EGridPhysicalDamageSubtype Subtype;
+			const TCHAR* Suffix;
+			const TCHAR* DisplayName;
+		} Specializations[] = {
+			{ EGridPhysicalDamageSubtype::Slashing, TEXT("Slashing"), TEXT("Spécialisation martiale — Tranchant") },
+			{ EGridPhysicalDamageSubtype::Piercing, TEXT("Piercing"), TEXT("Spécialisation martiale — Perforant") },
+			{ EGridPhysicalDamageSubtype::Bludgeoning, TEXT("Bludgeoning"), TEXT("Spécialisation martiale — Contondant") }
 		};
-		CriticalMastery.CombatModifiers.Add(Modifier);
-	}
-	ClassAsset.ProgressionChoices.Add(CriticalMastery);
+		for (const auto& Spec : Specializations)
+		{
+			const FName ChoiceId(*FString::Printf(TEXT("Talent_Warrior_WeaponMaster_MartialSpecialization_%s"), Spec.Suffix));
+			FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+				ChoiceId, Spec.DisplayName,
+				TEXT("Avec une arme de ce type : Précision +1 et dégâts d'arme finaux +10 %."), 2, WeaponMasterBranchId, NAME_None, MartialRequirement);
+			Choice.ExclusiveChoiceGroupId = MartialGroup;
+			Choice.GrantedRequirementIds = { MartialRequirement };
+			Choice.CombatModifiers.Add(MakeSubtypeModifier(Spec.Subtype, 1, 10));
+			ClassAsset.ProgressionChoices.Add(Choice);
+		}
 
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TEXT("Talent_Warrior_WeaponMaster_Warlord"), TEXT("Seigneur de guerre"),
-		TEXT("Pendant 2 rounds, tous les alliés actifs gagnent Précision +2 et Initiative +4. L'effet n'est pas cumulable ; une nouvelle application rafraîchit sa durée."), 18, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_CriticalMastery")));
+		FRPGClassProgressionChoiceDefinition Riposte = MakeChoice(
+			TEXT("Talent_Warrior_WeaponMaster_Riposte"), TEXT("Riposte"),
+			TEXT("1 fois/round après l'échec d'une attaque de mêlée ciblée contre le Guerrier : contre-attaque immédiate à 75 % dégâts de l'arme, sans PA et sans déclencher une nouvelle Riposte."),
+			6, WeaponMasterBranchId);
+		Riposte.PrerequisiteRequirementIds = { MartialRequirement };
+		{
+			FGridCombatReactionProfile Reaction;
+			Reaction.ReactionId = TEXT("Reaction_Warrior_Riposte");
+			Reaction.Trigger = EGridCombatReactionTrigger::AttackMiss;
+			Reaction.Limit = EGridCombatReactionLimit::OncePerRound;
+			Reaction.ActionTypes = { EGridCombatActionType::MeleeAttack };
+			Reaction.CounterAttackActionId = TEXT("Action_Warrior_Riposte");
+			Reaction.CounterAttackRangeCells = 1;
+			Reaction.CounterAttackWeaponProfile.bUseEquippedWeapon = true;
+			Reaction.CounterAttackWeaponProfile.WeaponDamagePercent = 75;
+			Reaction.CounterAttackWeaponProfile.bAllowUnarmed = true;
+			Riposte.CombatReactions.Add(Reaction);
+		}
+		ClassAsset.ProgressionChoices.Add(Riposte);
+
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			TEXT("Talent_Warrior_WeaponMaster_SecondWind"), TEXT("Second souffle"),
+			TEXT("Restaure 20 % PV maximum, arrondi au supérieur, minimum 1. Indisponible à PV max. Ne restaure ni mana ni armure."), 10, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_Riposte")));
+
+		FRPGClassProgressionChoiceDefinition CriticalMastery = MakeChoice(
+			TEXT("Talent_Warrior_WeaponMaster_CriticalMastery"), TEXT("Maîtrise critique"),
+			TEXT("Avec la spécialisation martiale choisie : chance de critique +10 points de pourcentage et multiplicateur de dégâts critiques +25 points de pourcentage."),
+			14, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_SecondWind"));
+		for (const auto& Spec : Specializations)
+		{
+			FGridCombatModifierProfile Modifier = MakeSubtypeModifier(Spec.Subtype, 0, 0);
+			Modifier.CriticalChancePercentModifier = 10;
+			Modifier.CriticalDamagePercentModifier = 25;
+			Modifier.RequiredOwnerRequirementIds = {
+				FName(*FString::Printf(TEXT("Talent_Warrior_WeaponMaster_MartialSpecialization_%s"), Spec.Suffix))
+			};
+			CriticalMastery.CombatModifiers.Add(Modifier);
+		}
+		ClassAsset.ProgressionChoices.Add(CriticalMastery);
+
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			TEXT("Talent_Warrior_WeaponMaster_Warlord"), TEXT("Seigneur de guerre"),
+			TEXT("Pendant 2 rounds, tous les alliés actifs gagnent Précision +2 et Initiative +4. L'effet n'est pas cumulable ; une nouvelle application rafraîchit sa durée."), 18, WeaponMasterBranchId, TEXT("Talent_Warrior_WeaponMaster_CriticalMastery")));
+	});
 }
 
 bool FRPGWarriorAuthoring::ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId)

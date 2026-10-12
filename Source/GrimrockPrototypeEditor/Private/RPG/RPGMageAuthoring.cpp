@@ -380,332 +380,335 @@ FString FRPGMageAuthoring::GetStatusObjectPath(FName EffectId)
 
 void FRPGMageAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 {
-	using namespace RPGMageAuthoring;
-
-	FRPGClassProgressionAuthoring::ConfigureCanonicalTalentGrants(ClassAsset);
-	ClassAsset.CombatActions.Reset();
-	ClassAsset.ProgressionChoices.Reset();
-
-	// Evoker actions.
+	FRPGClassProgressionAuthoring::RematerializePreservingChoiceAndActionText(ClassAsset, [&]()
 	{
-		FGridCombatActionDefinition OverloadAction;
-		OverloadAction.ActionId = ElementalOverloadActionId;
-		OverloadAction.DisplayName = FText::FromString(TEXT("Surcharge élémentaire"));
-		OverloadAction.Description =
-			FText::FromString(TEXT("Le prochain sort de l'affinité élémentaire inflige +35 % de dégâts avant de consommer la surcharge."));
-		OverloadAction.ActionType = EGridCombatActionType::Ability;
-		OverloadAction.SourcePolicy = EGridCombatActionSourcePolicy::Ability;
-		OverloadAction.TargetingPolicy = EGridCombatTargetingPolicy::Self;
-		OverloadAction.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
-		OverloadAction.ActionPointCost = 1;
-		OverloadAction.ResourceCosts.ManaCost = 4;
-		OverloadAction.CooldownRounds = 3;
-		OverloadAction.Requirements = { ElementalOverloadTalentId };
-		OverloadAction.StatusApplications.Add(MakeStatusApplication(
-			ElementalOverloadStatusId, EGridCombatStatusApplicationTrigger::AfterResolution,
-			EGridCombatStatusArmorGate::None, 1));
-		ClassAsset.CombatActions.Add(OverloadAction);
-	}
-	{
-		FGridCombatActionDefinition Chain = MakeDirectSpellAttack(
-			ElementalChainActionId, TEXT("Chaîne élémentaire"),
-			TEXT("Frappe la cible primaire puis jusqu'à deux hostiles adjacents, une seule fois chacun."),
-			ElementalChainTalentId, 3, 8, EGridCombatTargetingPolicy::Cell, 5, 7, 3);
-		Chain.MaximumResolvedTargets = 3;
-		Chain.ChainJumpRangeCells = 1;
-		ClassAsset.CombatActions.Add(Chain);
-	}
-	{
-		FGridCombatActionDefinition Cataclysm = MakeDirectSpellAttack(
-			CataclysmActionId, TEXT("Cataclysme"),
-			TEXT("Frappe tous les hostiles dans un rayon de 2 et applique le contrôle de l'affinité si l'armure magique est épuisée."),
-			CataclysmTalentId, 4, 16, EGridCombatTargetingPolicy::Area, 5, 12, 5);
-		Cataclysm.AreaRadiusCells = 2;
-		Cataclysm.bAffectsAlliesInArea = true;
-		ClassAsset.CombatActions.Add(Cataclysm);
-	}
+		using namespace RPGMageAuthoring;
 
-	// Evoker progression.
-	for (const FAffinityVariant& Variant : AffinityVariants)
-	{
-		const FName ChoiceId = MakeAffinityChoiceId(Variant.Suffix);
-		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			ChoiceId, Variant.DisplayName, TEXT("Les sorts de l'école choisie infligent +15 % de dégâts."), 2, EvokerBranchId, NAME_None, ElementalAffinityAlias);
-		Choice.ExclusiveChoiceGroupId = ElementalAffinityGroup;
-		Choice.GrantedRequirementIds = { ElementalAffinityAlias };
+		FRPGClassProgressionAuthoring::ConfigureCanonicalTalentGrants(ClassAsset);
+		ClassAsset.CombatActions.Reset();
+		ClassAsset.ProgressionChoices.Reset();
 
-		FGridCombatModifierProfile Modifier;
-		Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
-		Modifier.RequiredSourceTags = { FName(Variant.SchoolTag) };
-		Modifier.OutgoingDamagePercentModifier = 15;
-		Choice.CombatModifiers.Add(Modifier);
-		ClassAsset.ProgressionChoices.Add(Choice);
-	}
+		// Evoker actions.
+		{
+			FGridCombatActionDefinition OverloadAction;
+			OverloadAction.ActionId = ElementalOverloadActionId;
+			OverloadAction.DisplayName = FText::FromString(TEXT("Surcharge élémentaire"));
+			OverloadAction.Description =
+				FText::FromString(TEXT("Le prochain sort de l'affinité élémentaire inflige +35 % de dégâts avant de consommer la surcharge."));
+			OverloadAction.ActionType = EGridCombatActionType::Ability;
+			OverloadAction.SourcePolicy = EGridCombatActionSourcePolicy::Ability;
+			OverloadAction.TargetingPolicy = EGridCombatTargetingPolicy::Self;
+			OverloadAction.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+			OverloadAction.ActionPointCost = 1;
+			OverloadAction.ResourceCosts.ManaCost = 4;
+			OverloadAction.CooldownRounds = 3;
+			OverloadAction.Requirements = { ElementalOverloadTalentId };
+			OverloadAction.StatusApplications.Add(MakeStatusApplication(
+				ElementalOverloadStatusId, EGridCombatStatusApplicationTrigger::AfterResolution,
+				EGridCombatStatusArmorGate::None, 1));
+			ClassAsset.CombatActions.Add(OverloadAction);
+		}
+		{
+			FGridCombatActionDefinition Chain = MakeDirectSpellAttack(
+				ElementalChainActionId, TEXT("Chaîne élémentaire"),
+				TEXT("Frappe la cible primaire puis jusqu'à deux hostiles adjacents, une seule fois chacun."),
+				ElementalChainTalentId, 3, 8, EGridCombatTargetingPolicy::Cell, 5, 7, 3);
+			Chain.MaximumResolvedTargets = 3;
+			Chain.ChainJumpRangeCells = 1;
+			ClassAsset.CombatActions.Add(Chain);
+		}
+		{
+			FGridCombatActionDefinition Cataclysm = MakeDirectSpellAttack(
+				CataclysmActionId, TEXT("Cataclysme"),
+				TEXT("Frappe tous les hostiles dans un rayon de 2 et applique le contrôle de l'affinité si l'armure magique est épuisée."),
+				CataclysmTalentId, 4, 16, EGridCombatTargetingPolicy::Area, 5, 12, 5);
+			Cataclysm.AreaRadiusCells = 2;
+			Cataclysm.bAffectsAlliesInArea = true;
+			ClassAsset.CombatActions.Add(Cataclysm);
+		}
 
-	FRPGClassProgressionChoiceDefinition Overload = MakeChoice(
-		ElementalOverloadTalentId, TEXT("Surcharge élémentaire"),
-		TEXT("Applique Status_ElementalOverload jusqu'à la fin du tour. Le prochain sort de l'Affinité gagne +35 % dégâts puis consomme l'effet."), 6, EvokerBranchId);
-	Overload.PrerequisiteRequirementIds = { ElementalAffinityAlias };
-	ClassAsset.ProgressionChoices.Add(Overload);
-
-	FRPGClassProgressionChoiceDefinition ControlledExplosion = MakeChoice(
-		ControlledExplosionTalentId, TEXT("Explosion contrôlée"),
-		TEXT("Le Mage ne subit aucun dégât direct de ses propres sorts de zone ; ses alliés en subissent 50 % de moins. Les surfaces et statuts créés restent inchangés et peuvent toujours affecter le groupe."),
-		10, EvokerBranchId, ElementalOverloadTalentId);
-	FGridCombatModifierProfile AreaProtection;
-	AreaProtection.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
-	AreaProtection.TargetingPolicies = { EGridCombatTargetingPolicy::Area };
-	AreaProtection.FriendlyDirectDamagePercentModifier = -50;
-	AreaProtection.SelfDirectDamagePercentModifier = -100;
-	ControlledExplosion.CombatModifiers.Add(AreaProtection);
-	ClassAsset.ProgressionChoices.Add(ControlledExplosion);
-
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		ElementalChainTalentId, TEXT("Chaîne élémentaire"),
-		TEXT("Cible primaire puis jusqu'à 2 autres hostiles à 1 cellule ou moins du précédent. Chaque impact inflige 7 + modificateur d'INT + rang d'Arcane du type de dégâts associé au sort d'affinité. Une cible ne peut être touchée qu'une fois."), 14, EvokerBranchId, ControlledExplosionTalentId));
-
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		CataclysmTalentId, TEXT("Cataclysme"),
-		TEXT("Chaque hostile subit 12 + modificateur d'INT + rang d'Arcane dégâts d'affinité. Si son armure magique est épuisée après les dégâts : Feu → Brûlure 2 rounds ; Glace → Ralentissement (Initiative -6) 2 rounds ; Air/Foudre → Étourdissement 1 tour ; Terre → Immobilisation 1 round ou Poison 3 tours selon le sort choisi."), 18, EvokerBranchId, ElementalChainTalentId));
-
-	// Arcanist actions.
-	{
-		FGridCombatActionDefinition Shield;
-		Shield.ActionId = ArcaneShieldActionId;
-		Shield.DisplayName = FText::FromString(TEXT("Bouclier arcanique"));
-		Shield.Description = FText::FromString(TEXT("Restaure l'armure magique de 6 + modificateur d'INT + rang d'Arcane."));
-		Shield.ActionType = EGridCombatActionType::Ability;
-		Shield.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
-		Shield.SourceTags = { TEXT("Spell.School.Arcane") };
-		Shield.TargetingPolicy = EGridCombatTargetingPolicy::Ally;
-		Shield.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
-		Shield.ActionPointCost = 2;
-		Shield.ResourceCosts.ManaCost = 5;
-		Shield.RangeCells = 3;
-		Shield.CooldownRounds = 2;
-		Shield.Requirements = { ArcaneShieldTalentId };
-
-		FGridCombatArmorEffectProfile Restore;
-		Restore.Pool = EGridCombatArmorPool::Magical;
-		Restore.Operation = EGridCombatArmorEffectOperation::Restore;
-		Restore.Magnitude = EGridCombatArmorEffectMagnitude::Flat;
-		Restore.Trigger = EGridCombatArmorEffectTrigger::AfterResolution;
-		Restore.Amount = 6;
-		Restore.ScalingAttribute = EGridAttackScalingAttribute::Intelligence;
-		Restore.AttributeModifierScale = 1;
-		Restore.ScalingSkillId = TEXT("Skill_Arcana");
-		Restore.SkillRankScale = 1;
-		Shield.ArmorEffects.Add(Restore);
-		ClassAsset.CombatActions.Add(Shield);
-	}
-	{
-		FGridCombatActionDefinition Dispel;
-		Dispel.ActionId = DispelActionId;
-		Dispel.DisplayName = FText::FromString(TEXT("Dissipation"));
-		Dispel.Description = FText::FromString(
-			TEXT("Allié : retire le Debuff magique amovible prioritaire. Hostile : retire le Buff magique amovible prioritaire."));
-		Dispel.ActionType = EGridCombatActionType::Ability;
-		Dispel.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
-		Dispel.SourceTags = { TEXT("Spell.School.Arcane") };
-		Dispel.TargetingPolicy = EGridCombatTargetingPolicy::AllyOrHostile;
-		Dispel.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
-		Dispel.ActionPointCost = 2;
-		Dispel.ResourceCosts.ManaCost = 6;
-		Dispel.RangeCells = 4;
-		Dispel.bRequiresLineOfSight = true;
-		Dispel.CooldownRounds = 2;
-		Dispel.Requirements = { DispelTalentId };
-
-		FGridCombatStatusRemovalProfile AllyRemoval;
-		AllyRemoval.AnyStatusTags = { TEXT("Dispel.Magical") };
-		AllyRemoval.AllowedDispositions = { EGridStatusEffectDisposition::Debuff };
-		AllyRemoval.TargetSide = EGridCombatStatusRemovalTargetSide::Party;
-		AllyRemoval.MaximumRemovals = 1;
-		Dispel.StatusRemovals.Add(AllyRemoval);
-
-		FGridCombatStatusRemovalProfile HostileRemoval;
-		HostileRemoval.AnyStatusTags = { TEXT("Dispel.Magical") };
-		HostileRemoval.AllowedDispositions = { EGridStatusEffectDisposition::Buff };
-		HostileRemoval.TargetSide = EGridCombatStatusRemovalTargetSide::Hostile;
-		HostileRemoval.MaximumRemovals = 1;
-		Dispel.StatusRemovals.Add(HostileRemoval);
-		ClassAsset.CombatActions.Add(Dispel);
-	}
-	{
-		FGridCombatActionDefinition Teleport;
-		Teleport.ActionId = ShortTeleportActionId;
-		Teleport.DisplayName = FText::FromString(TEXT("Téléportation courte"));
-		Teleport.Description = FText::FromString(TEXT("Téléporte le groupe vers une cellule visible, libre et marchable à portée 2, sans PAM."));
-		Teleport.ActionType = EGridCombatActionType::Ability;
-		Teleport.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
-		Teleport.SourceTags = { TEXT("Spell.School.Arcane") };
-		Teleport.TargetingPolicy = EGridCombatTargetingPolicy::Cell;
-		Teleport.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
-		Teleport.ActionPointCost = 3;
-		Teleport.ResourceCosts.ManaCost = 8;
-		Teleport.RangeCells = 2;
-		Teleport.bRequiresLineOfSight = true;
-		Teleport.CooldownRounds = 4;
-		Teleport.Requirements = { ShortTeleportTalentId };
-		Teleport.bRelocatePartyToTargetCell = true;
-		ClassAsset.CombatActions.Add(Teleport);
-	}
-
-	// Arcanist progression.
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		ArcaneShieldTalentId, TEXT("Bouclier arcanique"),
-		TEXT("Restaure 6 + modificateur d'INT + rang d'Arcane points d'armure magique, sans dépasser la réserve d'armure magique de référence de la cible."), 2, ArcanistBranchId));
-
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		DispelTalentId, TEXT("Dissipation"),
-		TEXT("Allié : retire 1 Debuff magique amovible. Hostile : retire 1 Buff magique amovible. Priorité déterministe : Potency la plus élevée puis EffectId lexical."), 6, ArcanistBranchId, ArcaneShieldTalentId));
-
-	FRPGClassProgressionChoiceDefinition RunicManipulation = MakeChoice(
-		RunicManipulationTalentId, TEXT("Manipulation runique"),
-		TEXT("Jets de Runes +2. Les dégâts arcaniques contre les cibles runiques ou artificielles augmentent de 20 %. Les interactions avec les mécanismes runiques gagnent également +2 au test, sans réussite automatique."), 10, ArcanistBranchId, DispelTalentId);
-	FRPGSkillProgressionModifier RuneSkill;
-	RuneSkill.SkillId = TEXT("Skill_Runes");
-	RuneSkill.CheckModifier = 2;
-	RunicManipulation.SkillModifiers.Add(RuneSkill);
-	FGridCombatModifierProfile RunicDamage;
-	RunicDamage.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
-	RunicDamage.RequiredSourceTags = { TEXT("Spell.School.Arcane") };
-	RunicDamage.AnyTargetSemanticTags = { TEXT("Rune"), TEXT("Construct") };
-	RunicDamage.OutgoingDamagePercentModifier = 20;
-	RunicManipulation.CombatModifiers.Add(RunicDamage);
-	ClassAsset.ProgressionChoices.Add(RunicManipulation);
-
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		ShortTeleportTalentId, TEXT("Téléportation courte"),
-		TEXT("Téléporte le groupe entier vers une cellule visible, libre et marchable. Ne traverse ni mur solide, ni porte fermée, ni frontière de niveau et ne déclenche aucune transition. Aucun PAM dépensé."), 14, ArcanistBranchId, RunicManipulationTalentId));
-
-	FRPGClassProgressionChoiceDefinition ArcaneMastery = MakeChoice(
-		ArcaneMasteryTalentId, TEXT("Maîtrise de l'Arcane"),
-		TEXT("Les sorts de l'école arcanique coûtent 1 point de mana de moins (minimum 1), gagnent +1 cellule de portée (maximum 32) et infligent +15 % de dégâts arcaniques."), 18, ArcanistBranchId, ShortTeleportTalentId);
-	FGridCombatModifierProfile Mastery;
-	Mastery.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
-	Mastery.RequiredSourceTags = { TEXT("Spell.School.Arcane") };
-	Mastery.ManaCostModifier = -1;
-	Mastery.MinimumManaCost = 1;
-	Mastery.RangeCellsModifier = 1;
-	Mastery.OutgoingDamagePercentModifier = 15;
-	ArcaneMastery.CombatModifiers.Add(Mastery);
-	ClassAsset.ProgressionChoices.Add(ArcaneMastery);
-
-	// Surface Weaver actions.
-	{
-		FGridCombatActionDefinition Imbuement;
-		Imbuement.ActionId = ImbuementActionId;
-		Imbuement.DisplayName = FText::FromString(TEXT("Imprégnation"));
-		Imbuement.Description = FText::FromString(
-			TEXT("Imprègne l'arme de la cible ; sa prochaine attaque d'arme ajoute 3 + modificateur d'INT du Mage en dégâts d'affinité."));
-		Imbuement.ActionType = EGridCombatActionType::Ability;
-		Imbuement.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
-		Imbuement.TargetingPolicy = EGridCombatTargetingPolicy::Ally;
-		Imbuement.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
-		Imbuement.ActionPointCost = 1;
-		Imbuement.ResourceCosts.ManaCost = 4;
-		Imbuement.RangeCells = 3;
-		Imbuement.CooldownRounds = 1;
-		Imbuement.Requirements = { ImbuementTalentId };
-		Imbuement.StatusApplications.Add(MakeStatusApplication(
-			ElementalImbuementStatusId, EGridCombatStatusApplicationTrigger::AfterResolution,
-			EGridCombatStatusArmorGate::None, 2));
-		ClassAsset.CombatActions.Add(Imbuement);
-	}
-	{
-		FGridCombatActionDefinition Conversion;
-		Conversion.ActionId = ElementalConversionActionId;
-		Conversion.DisplayName = FText::FromString(TEXT("Conversion élémentaire"));
-		Conversion.Description = FText::FromString(TEXT("Convertit les surfaces dans une zone selon l'affinité élémentaire."));
-		Conversion.ActionType = EGridCombatActionType::Ability;
-		Conversion.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
-		Conversion.TargetingPolicy = EGridCombatTargetingPolicy::Area;
-		Conversion.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
-		Conversion.ActionPointCost = 2;
-		Conversion.ResourceCosts.ManaCost = 5;
-		Conversion.RangeCells = 4;
-		Conversion.AreaRadiusCells = 1;
-		Conversion.CooldownRounds = 2;
-		Conversion.Requirements = { ElementalConversionTalentId };
+		// Evoker progression.
 		for (const FAffinityVariant& Variant : AffinityVariants)
 		{
-			Conversion.OwnerVariants.Add(MakeSurfaceConversionVariant(Variant));
+			const FName ChoiceId = MakeAffinityChoiceId(Variant.Suffix);
+			FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+				ChoiceId, Variant.DisplayName, TEXT("Les sorts de l'école choisie infligent +15 % de dégâts."), 2, EvokerBranchId, NAME_None, ElementalAffinityAlias);
+			Choice.ExclusiveChoiceGroupId = ElementalAffinityGroup;
+			Choice.GrantedRequirementIds = { ElementalAffinityAlias };
+
+			FGridCombatModifierProfile Modifier;
+			Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+			Modifier.RequiredSourceTags = { FName(Variant.SchoolTag) };
+			Modifier.OutgoingDamagePercentModifier = 15;
+			Choice.CombatModifiers.Add(Modifier);
+			ClassAsset.ProgressionChoices.Add(Choice);
 		}
-		ClassAsset.CombatActions.Add(Conversion);
-	}
-	{
-		FGridCombatActionDefinition Architect;
-		Architect.ActionId = TerrainArchitectActionId;
-		Architect.DisplayName = FText::FromString(TEXT("Architecte du terrain"));
-		Architect.Description = FText::FromString(TEXT("Crée pendant 3 rounds une grande surface liée à l'affinité."));
-		Architect.ActionType = EGridCombatActionType::Ability;
-		Architect.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
-		Architect.TargetingPolicy = EGridCombatTargetingPolicy::Area;
-		Architect.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
-		Architect.ActionPointCost = 4;
-		Architect.ResourceCosts.ManaCost = 12;
-		Architect.RangeCells = 5;
-		Architect.AreaRadiusCells = 2;
-		Architect.CooldownRounds = 5;
-		Architect.Requirements = { TerrainArchitectTalentId };
+
+		FRPGClassProgressionChoiceDefinition Overload = MakeChoice(
+			ElementalOverloadTalentId, TEXT("Surcharge élémentaire"),
+			TEXT("Applique Status_ElementalOverload jusqu'à la fin du tour. Le prochain sort de l'Affinité gagne +35 % dégâts puis consomme l'effet."), 6, EvokerBranchId);
+		Overload.PrerequisiteRequirementIds = { ElementalAffinityAlias };
+		ClassAsset.ProgressionChoices.Add(Overload);
+
+		FRPGClassProgressionChoiceDefinition ControlledExplosion = MakeChoice(
+			ControlledExplosionTalentId, TEXT("Explosion contrôlée"),
+			TEXT("Le Mage ne subit aucun dégât direct de ses propres sorts de zone ; ses alliés en subissent 50 % de moins. Les surfaces et statuts créés restent inchangés et peuvent toujours affecter le groupe."),
+			10, EvokerBranchId, ElementalOverloadTalentId);
+		FGridCombatModifierProfile AreaProtection;
+		AreaProtection.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+		AreaProtection.TargetingPolicies = { EGridCombatTargetingPolicy::Area };
+		AreaProtection.FriendlyDirectDamagePercentModifier = -50;
+		AreaProtection.SelfDirectDamagePercentModifier = -100;
+		ControlledExplosion.CombatModifiers.Add(AreaProtection);
+		ClassAsset.ProgressionChoices.Add(ControlledExplosion);
+
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			ElementalChainTalentId, TEXT("Chaîne élémentaire"),
+			TEXT("Cible primaire puis jusqu'à 2 autres hostiles à 1 cellule ou moins du précédent. Chaque impact inflige 7 + modificateur d'INT + rang d'Arcane du type de dégâts associé au sort d'affinité. Une cible ne peut être touchée qu'une fois."), 14, EvokerBranchId, ControlledExplosionTalentId));
+
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			CataclysmTalentId, TEXT("Cataclysme"),
+			TEXT("Chaque hostile subit 12 + modificateur d'INT + rang d'Arcane dégâts d'affinité. Si son armure magique est épuisée après les dégâts : Feu → Brûlure 2 rounds ; Glace → Ralentissement (Initiative -6) 2 rounds ; Air/Foudre → Étourdissement 1 tour ; Terre → Immobilisation 1 round ou Poison 3 tours selon le sort choisi."), 18, EvokerBranchId, ElementalChainTalentId));
+
+		// Arcanist actions.
+		{
+			FGridCombatActionDefinition Shield;
+			Shield.ActionId = ArcaneShieldActionId;
+			Shield.DisplayName = FText::FromString(TEXT("Bouclier arcanique"));
+			Shield.Description = FText::FromString(TEXT("Restaure l'armure magique de 6 + modificateur d'INT + rang d'Arcane."));
+			Shield.ActionType = EGridCombatActionType::Ability;
+			Shield.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+			Shield.SourceTags = { TEXT("Spell.School.Arcane") };
+			Shield.TargetingPolicy = EGridCombatTargetingPolicy::Ally;
+			Shield.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+			Shield.ActionPointCost = 2;
+			Shield.ResourceCosts.ManaCost = 5;
+			Shield.RangeCells = 3;
+			Shield.CooldownRounds = 2;
+			Shield.Requirements = { ArcaneShieldTalentId };
+
+			FGridCombatArmorEffectProfile Restore;
+			Restore.Pool = EGridCombatArmorPool::Magical;
+			Restore.Operation = EGridCombatArmorEffectOperation::Restore;
+			Restore.Magnitude = EGridCombatArmorEffectMagnitude::Flat;
+			Restore.Trigger = EGridCombatArmorEffectTrigger::AfterResolution;
+			Restore.Amount = 6;
+			Restore.ScalingAttribute = EGridAttackScalingAttribute::Intelligence;
+			Restore.AttributeModifierScale = 1;
+			Restore.ScalingSkillId = TEXT("Skill_Arcana");
+			Restore.SkillRankScale = 1;
+			Shield.ArmorEffects.Add(Restore);
+			ClassAsset.CombatActions.Add(Shield);
+		}
+		{
+			FGridCombatActionDefinition Dispel;
+			Dispel.ActionId = DispelActionId;
+			Dispel.DisplayName = FText::FromString(TEXT("Dissipation"));
+			Dispel.Description = FText::FromString(
+				TEXT("Allié : retire le Debuff magique amovible prioritaire. Hostile : retire le Buff magique amovible prioritaire."));
+			Dispel.ActionType = EGridCombatActionType::Ability;
+			Dispel.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+			Dispel.SourceTags = { TEXT("Spell.School.Arcane") };
+			Dispel.TargetingPolicy = EGridCombatTargetingPolicy::AllyOrHostile;
+			Dispel.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+			Dispel.ActionPointCost = 2;
+			Dispel.ResourceCosts.ManaCost = 6;
+			Dispel.RangeCells = 4;
+			Dispel.bRequiresLineOfSight = true;
+			Dispel.CooldownRounds = 2;
+			Dispel.Requirements = { DispelTalentId };
+
+			FGridCombatStatusRemovalProfile AllyRemoval;
+			AllyRemoval.AnyStatusTags = { TEXT("Dispel.Magical") };
+			AllyRemoval.AllowedDispositions = { EGridStatusEffectDisposition::Debuff };
+			AllyRemoval.TargetSide = EGridCombatStatusRemovalTargetSide::Party;
+			AllyRemoval.MaximumRemovals = 1;
+			Dispel.StatusRemovals.Add(AllyRemoval);
+
+			FGridCombatStatusRemovalProfile HostileRemoval;
+			HostileRemoval.AnyStatusTags = { TEXT("Dispel.Magical") };
+			HostileRemoval.AllowedDispositions = { EGridStatusEffectDisposition::Buff };
+			HostileRemoval.TargetSide = EGridCombatStatusRemovalTargetSide::Hostile;
+			HostileRemoval.MaximumRemovals = 1;
+			Dispel.StatusRemovals.Add(HostileRemoval);
+			ClassAsset.CombatActions.Add(Dispel);
+		}
+		{
+			FGridCombatActionDefinition Teleport;
+			Teleport.ActionId = ShortTeleportActionId;
+			Teleport.DisplayName = FText::FromString(TEXT("Téléportation courte"));
+			Teleport.Description = FText::FromString(TEXT("Téléporte le groupe vers une cellule visible, libre et marchable à portée 2, sans PAM."));
+			Teleport.ActionType = EGridCombatActionType::Ability;
+			Teleport.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+			Teleport.SourceTags = { TEXT("Spell.School.Arcane") };
+			Teleport.TargetingPolicy = EGridCombatTargetingPolicy::Cell;
+			Teleport.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+			Teleport.ActionPointCost = 3;
+			Teleport.ResourceCosts.ManaCost = 8;
+			Teleport.RangeCells = 2;
+			Teleport.bRequiresLineOfSight = true;
+			Teleport.CooldownRounds = 4;
+			Teleport.Requirements = { ShortTeleportTalentId };
+			Teleport.bRelocatePartyToTargetCell = true;
+			ClassAsset.CombatActions.Add(Teleport);
+		}
+
+		// Arcanist progression.
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			ArcaneShieldTalentId, TEXT("Bouclier arcanique"),
+			TEXT("Restaure 6 + modificateur d'INT + rang d'Arcane points d'armure magique, sans dépasser la réserve d'armure magique de référence de la cible."), 2, ArcanistBranchId));
+
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			DispelTalentId, TEXT("Dissipation"),
+			TEXT("Allié : retire 1 Debuff magique amovible. Hostile : retire 1 Buff magique amovible. Priorité déterministe : Potency la plus élevée puis EffectId lexical."), 6, ArcanistBranchId, ArcaneShieldTalentId));
+
+		FRPGClassProgressionChoiceDefinition RunicManipulation = MakeChoice(
+			RunicManipulationTalentId, TEXT("Manipulation runique"),
+			TEXT("Jets de Runes +2. Les dégâts arcaniques contre les cibles runiques ou artificielles augmentent de 20 %. Les interactions avec les mécanismes runiques gagnent également +2 au test, sans réussite automatique."), 10, ArcanistBranchId, DispelTalentId);
+		FRPGSkillProgressionModifier RuneSkill;
+		RuneSkill.SkillId = TEXT("Skill_Runes");
+		RuneSkill.CheckModifier = 2;
+		RunicManipulation.SkillModifiers.Add(RuneSkill);
+		FGridCombatModifierProfile RunicDamage;
+		RunicDamage.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+		RunicDamage.RequiredSourceTags = { TEXT("Spell.School.Arcane") };
+		RunicDamage.AnyTargetSemanticTags = { TEXT("Rune"), TEXT("Construct") };
+		RunicDamage.OutgoingDamagePercentModifier = 20;
+		RunicManipulation.CombatModifiers.Add(RunicDamage);
+		ClassAsset.ProgressionChoices.Add(RunicManipulation);
+
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			ShortTeleportTalentId, TEXT("Téléportation courte"),
+			TEXT("Téléporte le groupe entier vers une cellule visible, libre et marchable. Ne traverse ni mur solide, ni porte fermée, ni frontière de niveau et ne déclenche aucune transition. Aucun PAM dépensé."), 14, ArcanistBranchId, RunicManipulationTalentId));
+
+		FRPGClassProgressionChoiceDefinition ArcaneMastery = MakeChoice(
+			ArcaneMasteryTalentId, TEXT("Maîtrise de l'Arcane"),
+			TEXT("Les sorts de l'école arcanique coûtent 1 point de mana de moins (minimum 1), gagnent +1 cellule de portée (maximum 32) et infligent +15 % de dégâts arcaniques."), 18, ArcanistBranchId, ShortTeleportTalentId);
+		FGridCombatModifierProfile Mastery;
+		Mastery.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+		Mastery.RequiredSourceTags = { TEXT("Spell.School.Arcane") };
+		Mastery.ManaCostModifier = -1;
+		Mastery.MinimumManaCost = 1;
+		Mastery.RangeCellsModifier = 1;
+		Mastery.OutgoingDamagePercentModifier = 15;
+		ArcaneMastery.CombatModifiers.Add(Mastery);
+		ClassAsset.ProgressionChoices.Add(ArcaneMastery);
+
+		// Surface Weaver actions.
+		{
+			FGridCombatActionDefinition Imbuement;
+			Imbuement.ActionId = ImbuementActionId;
+			Imbuement.DisplayName = FText::FromString(TEXT("Imprégnation"));
+			Imbuement.Description = FText::FromString(
+				TEXT("Imprègne l'arme de la cible ; sa prochaine attaque d'arme ajoute 3 + modificateur d'INT du Mage en dégâts d'affinité."));
+			Imbuement.ActionType = EGridCombatActionType::Ability;
+			Imbuement.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+			Imbuement.TargetingPolicy = EGridCombatTargetingPolicy::Ally;
+			Imbuement.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+			Imbuement.ActionPointCost = 1;
+			Imbuement.ResourceCosts.ManaCost = 4;
+			Imbuement.RangeCells = 3;
+			Imbuement.CooldownRounds = 1;
+			Imbuement.Requirements = { ImbuementTalentId };
+			Imbuement.StatusApplications.Add(MakeStatusApplication(
+				ElementalImbuementStatusId, EGridCombatStatusApplicationTrigger::AfterResolution,
+				EGridCombatStatusArmorGate::None, 2));
+			ClassAsset.CombatActions.Add(Imbuement);
+		}
+		{
+			FGridCombatActionDefinition Conversion;
+			Conversion.ActionId = ElementalConversionActionId;
+			Conversion.DisplayName = FText::FromString(TEXT("Conversion élémentaire"));
+			Conversion.Description = FText::FromString(TEXT("Convertit les surfaces dans une zone selon l'affinité élémentaire."));
+			Conversion.ActionType = EGridCombatActionType::Ability;
+			Conversion.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+			Conversion.TargetingPolicy = EGridCombatTargetingPolicy::Area;
+			Conversion.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+			Conversion.ActionPointCost = 2;
+			Conversion.ResourceCosts.ManaCost = 5;
+			Conversion.RangeCells = 4;
+			Conversion.AreaRadiusCells = 1;
+			Conversion.CooldownRounds = 2;
+			Conversion.Requirements = { ElementalConversionTalentId };
+			for (const FAffinityVariant& Variant : AffinityVariants)
+			{
+				Conversion.OwnerVariants.Add(MakeSurfaceConversionVariant(Variant));
+			}
+			ClassAsset.CombatActions.Add(Conversion);
+		}
+		{
+			FGridCombatActionDefinition Architect;
+			Architect.ActionId = TerrainArchitectActionId;
+			Architect.DisplayName = FText::FromString(TEXT("Architecte du terrain"));
+			Architect.Description = FText::FromString(TEXT("Crée pendant 3 rounds une grande surface liée à l'affinité."));
+			Architect.ActionType = EGridCombatActionType::Ability;
+			Architect.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+			Architect.TargetingPolicy = EGridCombatTargetingPolicy::Area;
+			Architect.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+			Architect.ActionPointCost = 4;
+			Architect.ResourceCosts.ManaCost = 12;
+			Architect.RangeCells = 5;
+			Architect.AreaRadiusCells = 2;
+			Architect.CooldownRounds = 5;
+			Architect.Requirements = { TerrainArchitectTalentId };
+			for (const FAffinityVariant& Variant : AffinityVariants)
+			{
+				Architect.OwnerVariants.Add(MakeTerrainArchitectVariant(Variant));
+			}
+			ClassAsset.CombatActions.Add(Architect);
+		}
+
+		// Surface Weaver progression. Imbuement carries the branch-local affinity selection so a pure
+		// Surface Weaver does not need to buy the Evoker level-2 talent.
 		for (const FAffinityVariant& Variant : AffinityVariants)
 		{
-			Architect.OwnerVariants.Add(MakeTerrainArchitectVariant(Variant));
+			const FName ChoiceId = MakeSurfaceWeaverAffinityChoiceId(Variant.Suffix);
+			const FString DisplayName = FString::Printf(TEXT("Imprégnation — %s"),
+				*FString(Variant.DisplayName).Replace(TEXT("Affinité élémentaire — "), TEXT("")));
+			FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
+				ChoiceId, *DisplayName, TEXT("Choisit cette affinité pour la branche Tisseur de surfaces et donne accès à Imprégnation. Imprégnation cible un allié : sa prochaine attaque d'arme ajoute 3 + modificateur d'Intelligence du Mage en dégâts de cette affinité. L'effet dure au maximum 2 rounds et est consommé par la première attaque d'arme réussie."), 2, SurfaceWeaverBranchId, NAME_None, ImbuementTalentId);
+			Choice.ExclusiveChoiceGroupId = ImbuementAffinityGroup;
+			Choice.GrantedRequirementIds = { ImbuementTalentId };
+			ClassAsset.ProgressionChoices.Add(Choice);
 		}
-		ClassAsset.CombatActions.Add(Architect);
-	}
 
-	// Surface Weaver progression. Imbuement carries the branch-local affinity selection so a pure
-	// Surface Weaver does not need to buy the Evoker level-2 talent.
-	for (const FAffinityVariant& Variant : AffinityVariants)
-	{
-		const FName ChoiceId = MakeSurfaceWeaverAffinityChoiceId(Variant.Suffix);
-		const FString DisplayName = FString::Printf(TEXT("Imprégnation — %s"),
-			*FString(Variant.DisplayName).Replace(TEXT("Affinité élémentaire — "), TEXT("")));
-		FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-			ChoiceId, *DisplayName, TEXT("Choisit cette affinité pour la branche Tisseur de surfaces et donne accès à Imprégnation. Imprégnation cible un allié : sa prochaine attaque d'arme ajoute 3 + modificateur d'Intelligence du Mage en dégâts de cette affinité. L'effet dure au maximum 2 rounds et est consommé par la première attaque d'arme réussie."), 2, SurfaceWeaverBranchId, NAME_None, ImbuementTalentId);
-		Choice.ExclusiveChoiceGroupId = ImbuementAffinityGroup;
-		Choice.GrantedRequirementIds = { ImbuementTalentId };
-		ClassAsset.ProgressionChoices.Add(Choice);
-	}
+		FRPGClassProgressionChoiceDefinition ConversionChoice = MakeChoice(
+			ElementalConversionTalentId, TEXT("Conversion élémentaire"),
+			TEXT("Convertit une surface selon la table canonique : Eau → Glace (affinité Glace), Eau/Sang → Eau électrifiée (Air), Huile/Poison → Feu (Feu), Eau → Poison ou terrain neutre → Huile (Terre). Aucun effet si la conversion est invalide."), 6, SurfaceWeaverBranchId);
+		ConversionChoice.PrerequisiteRequirementIds = { ImbuementTalentId };
+		ClassAsset.ProgressionChoices.Add(ConversionChoice);
 
-	FRPGClassProgressionChoiceDefinition ConversionChoice = MakeChoice(
-		ElementalConversionTalentId, TEXT("Conversion élémentaire"),
-		TEXT("Convertit une surface selon la table canonique : Eau → Glace (affinité Glace), Eau/Sang → Eau électrifiée (Air), Huile/Poison → Feu (Feu), Eau → Poison ou terrain neutre → Huile (Terre). Aucun effet si la conversion est invalide."), 6, SurfaceWeaverBranchId);
-	ConversionChoice.PrerequisiteRequirementIds = { ImbuementTalentId };
-	ClassAsset.ProgressionChoices.Add(ConversionChoice);
+		FRPGClassProgressionChoiceDefinition Conduction = MakeChoice(
+			ConductionTalentId, TEXT("Conduction"),
+			TEXT("Une attaque élémentaire exploitant une surface ou un état compatible gagne +20 % de dégâts. Si elle détruit l'armure magique, son contrôle associé peut s'appliquer immédiatement après les dégâts si les conditions d'armure sont remplies."),
+			10, SurfaceWeaverBranchId, ElementalConversionTalentId);
+		AddConductionModifier(Conduction, EGridDamageType::Fire, nullptr,
+			TArray<FName>{ FName(TEXT("Surface.Oil")), FName(TEXT("Surface.Poison")), FName(TEXT("Status_Burning")), FName(TEXT("Elemental.Fire")) });
+		AddConductionModifier(Conduction, EGridDamageType::Ice, nullptr,
+			TArray<FName>{ FName(TEXT("Surface.Water")), FName(TEXT("Status_Slow")), FName(TEXT("Control.Slow")) });
+		AddConductionModifier(Conduction, EGridDamageType::Lightning, nullptr,
+			TArray<FName>{ FName(TEXT("Surface.Water")), FName(TEXT("Surface.Blood")), FName(TEXT("Surface.ElectrifiedWater")), FName(TEXT("Status_Stunned")), FName(TEXT("Control.Stun")) });
+		AddConductionModifier(Conduction, EGridDamageType::Physical, TEXT("Spell.School.Earth"),
+			TArray<FName>{ FName(TEXT("Surface.Water")), FName(TEXT("Surface.Oil")), FName(TEXT("Surface.Poison")), FName(TEXT("Status_Immobilized")), FName(TEXT("Control.Immobilize")) });
+		AddConductionModifier(Conduction, EGridDamageType::Poison, TEXT("Spell.School.Earth"),
+			TArray<FName>{ FName(TEXT("Surface.Water")), FName(TEXT("Surface.Oil")), FName(TEXT("Surface.Poison")), FName(TEXT("Status_Immobilized")), FName(TEXT("Control.Immobilize")) });
+		ClassAsset.ProgressionChoices.Add(Conduction);
 
-	FRPGClassProgressionChoiceDefinition Conduction = MakeChoice(
-		ConductionTalentId, TEXT("Conduction"),
-		TEXT("Une attaque élémentaire exploitant une surface ou un état compatible gagne +20 % de dégâts. Si elle détruit l'armure magique, son contrôle associé peut s'appliquer immédiatement après les dégâts si les conditions d'armure sont remplies."),
-		10, SurfaceWeaverBranchId, ElementalConversionTalentId);
-	AddConductionModifier(Conduction, EGridDamageType::Fire, nullptr,
-		TArray<FName>{ FName(TEXT("Surface.Oil")), FName(TEXT("Surface.Poison")), FName(TEXT("Status_Burning")), FName(TEXT("Elemental.Fire")) });
-	AddConductionModifier(Conduction, EGridDamageType::Ice, nullptr,
-		TArray<FName>{ FName(TEXT("Surface.Water")), FName(TEXT("Status_Slow")), FName(TEXT("Control.Slow")) });
-	AddConductionModifier(Conduction, EGridDamageType::Lightning, nullptr,
-		TArray<FName>{ FName(TEXT("Surface.Water")), FName(TEXT("Surface.Blood")), FName(TEXT("Surface.ElectrifiedWater")), FName(TEXT("Status_Stunned")), FName(TEXT("Control.Stun")) });
-	AddConductionModifier(Conduction, EGridDamageType::Physical, TEXT("Spell.School.Earth"),
-		TArray<FName>{ FName(TEXT("Surface.Water")), FName(TEXT("Surface.Oil")), FName(TEXT("Surface.Poison")), FName(TEXT("Status_Immobilized")), FName(TEXT("Control.Immobilize")) });
-	AddConductionModifier(Conduction, EGridDamageType::Poison, TEXT("Spell.School.Earth"),
-		TArray<FName>{ FName(TEXT("Surface.Water")), FName(TEXT("Surface.Oil")), FName(TEXT("Surface.Poison")), FName(TEXT("Status_Immobilized")), FName(TEXT("Control.Immobilize")) });
-	ClassAsset.ProgressionChoices.Add(Conduction);
+		FRPGClassProgressionChoiceDefinition Persistent = MakeChoice(
+			PersistentSurfaceTalentId, TEXT("Surface persistante"),
+			TEXT("Surfaces créées par le Mage : durée +2 rounds, plafonnée à 6 ; dégâts périodiques de surface +15 %. Ne prolonge pas les surfaces du décor ou d'un autre auteur."),
+			14, SurfaceWeaverBranchId, ConductionTalentId);
+		FGridCombatModifierProfile PersistentModifier;
+		PersistentModifier.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
+		PersistentModifier.SurfaceDurationRoundsModifier = 2;
+		PersistentModifier.SurfacePeriodicDamagePercentModifier = 15;
+		Persistent.CombatModifiers.Add(PersistentModifier);
+		ClassAsset.ProgressionChoices.Add(Persistent);
 
-	FRPGClassProgressionChoiceDefinition Persistent = MakeChoice(
-		PersistentSurfaceTalentId, TEXT("Surface persistante"),
-		TEXT("Surfaces créées par le Mage : durée +2 rounds, plafonnée à 6 ; dégâts périodiques de surface +15 %. Ne prolonge pas les surfaces du décor ou d'un autre auteur."),
-		14, SurfaceWeaverBranchId, ConductionTalentId);
-	FGridCombatModifierProfile PersistentModifier;
-	PersistentModifier.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
-	PersistentModifier.SurfaceDurationRoundsModifier = 2;
-	PersistentModifier.SurfacePeriodicDamagePercentModifier = 15;
-	Persistent.CombatModifiers.Add(PersistentModifier);
-	ClassAsset.ProgressionChoices.Add(Persistent);
-
-	ClassAsset.ProgressionChoices.Add(MakeChoice(
-		TerrainArchitectTalentId, TEXT("Architecte du terrain"),
-		TEXT("Crée pendant 3 rounds une grande surface maîtrisée liée à l'affinité (Feu, Glace, Eau électrifiée, Huile/Poison). Les réactions standards sont ensuite résolues par le système de surfaces, sans effet spécial codé en dur dans le Talent."), 18, SurfaceWeaverBranchId, PersistentSurfaceTalentId));
+		ClassAsset.ProgressionChoices.Add(MakeChoice(
+			TerrainArchitectTalentId, TEXT("Architecte du terrain"),
+			TEXT("Crée pendant 3 rounds une grande surface maîtrisée liée à l'affinité (Feu, Glace, Eau électrifiée, Huile/Poison). Les réactions standards sont ensuite résolues par le système de surfaces, sans effet spécial codé en dur dans le Talent."), 18, SurfaceWeaverBranchId, PersistentSurfaceTalentId));
+	});
 }
 
 bool FRPGMageAuthoring::ConfigureElementalOverloadStatus(UGridStatusEffectDefinitionAsset& StatusAsset)
