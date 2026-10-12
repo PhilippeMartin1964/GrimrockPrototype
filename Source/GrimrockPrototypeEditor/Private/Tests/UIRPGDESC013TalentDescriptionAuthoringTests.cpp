@@ -2,34 +2,24 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "RPG/RPGAlchemistAuthoring.h"
 #include "RPG/RPGClassAsset.h"
-#include "RPG/RPGMageAuthoring.h"
-#include "RPG/RPGPriestAuthoring.h"
-#include "RPG/RPGRangerAuthoring.h"
-#include "RPG/RPGRogueAuthoring.h"
-#include "RPG/RPGWarriorAuthoring.h"
 
 namespace UIRPGDESC013Authoring
 {
-	void AddClass(TArray<URPGClassAsset*>& OutClasses, FName ClassId)
+	struct FClassSpec
 	{
-		URPGClassAsset* Class = NewObject<URPGClassAsset>(GetTransientPackage());
-		Class->ClassId = ClassId;
-		Class->HealthAtLevelOne = 10;
+		FName ClassId = NAME_None;
+		const TCHAR* ObjectPath = nullptr;
+	};
 
-		if (ClassId == TEXT("Warrior")) FRPGWarriorAuthoring::ConfigureClass(*Class);
-		else if (ClassId == TEXT("Rogue")) FRPGRogueAuthoring::ConfigureClass(*Class);
-		else if (ClassId == TEXT("Ranger")) FRPGRangerAuthoring::ConfigureClass(*Class, {
-			{ TEXT("Goblin"), FText::FromString(TEXT("Gobelins")) },
-			{ TEXT("Vermin"), FText::FromString(TEXT("Vermine")) }
-		});
-		else if (ClassId == TEXT("Mage")) FRPGMageAuthoring::ConfigureClass(*Class);
-		else if (ClassId == TEXT("Priest")) FRPGPriestAuthoring::ConfigureClass(*Class);
-		else if (ClassId == TEXT("Alchemist")) FRPGAlchemistAuthoring::ConfigureClass(*Class);
-
-		OutClasses.Add(Class);
-	}
+	const FClassSpec ClassSpecs[] = {
+		{ TEXT("Warrior"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior") },
+		{ TEXT("Rogue"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Rogue.DA_Class_Rogue") },
+		{ TEXT("Ranger"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger") },
+		{ TEXT("Mage"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Mage.DA_Class_Mage") },
+		{ TEXT("Priest"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Priest.DA_Class_Priest") },
+		{ TEXT("Alchemist"), TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Alchemist.DA_Class_Alchemist") }
+	};
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
@@ -42,18 +32,21 @@ bool FUIRPGDESC013TalentDescriptionsAuthoringTest::RunTest(const FString& Parame
 	(void)Parameters;
 	using namespace UIRPGDESC013Authoring;
 
-	TArray<URPGClassAsset*> Classes;
-	for (const FName ClassId : { FName(TEXT("Warrior")), FName(TEXT("Rogue")), FName(TEXT("Ranger")),
-		FName(TEXT("Mage")), FName(TEXT("Priest")), FName(TEXT("Alchemist")) })
-	{
-		AddClass(Classes, ClassId);
-	}
-
 	TSet<FString> ConceptualNodes;
-	for (const URPGClassAsset* Class : Classes)
+	for (const FClassSpec& Spec : ClassSpecs)
 	{
-		TestNotNull(TEXT("Transient class is authored"), Class);
-		if (!Class) continue;
+		const URPGClassAsset* Class = LoadObject<URPGClassAsset>(nullptr, Spec.ObjectPath);
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s serialized DA_Class text authority loads"), *Spec.ClassId.ToString()),
+				Class))
+		{
+			continue;
+		}
+
+		TestEqual(
+			*FString::Printf(TEXT("%s keeps canonical ClassId"), *Spec.ClassId.ToString()),
+			Class->ClassId,
+			Spec.ClassId);
 
 		for (const FRPGClassProgressionChoiceDefinition& Choice : Class->ProgressionChoices)
 		{
@@ -64,13 +57,13 @@ bool FUIRPGDESC013TalentDescriptionsAuthoringTest::RunTest(const FString& Parame
 					*Class->ClassId.ToString(), *Choice.ChoiceId.ToString()),
 				Description.StartsWith(TEXT("Débloque "), ESearchCase::IgnoreCase));
 			TestTrue(
-				*FString::Printf(TEXT("%s / %s has a meaningful description"),
+				*FString::Printf(TEXT("%s / %s has a meaningful serialized description"),
 					*Class->ClassId.ToString(), *Choice.ChoiceId.ToString()),
 				Description.Len() >= 30);
 		}
 	}
 
-	TestEqual(TEXT("Six classes still expose exactly 90 conceptual Talent nodes"), ConceptualNodes.Num(), 90);
+	TestEqual(TEXT("Six serialized classes still expose exactly 90 conceptual Talent nodes"), ConceptualNodes.Num(), 90);
 	return true;
 }
 

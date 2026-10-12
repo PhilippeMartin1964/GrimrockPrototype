@@ -9,6 +9,12 @@ namespace
 		FText DisplayName;
 		FText Description;
 	};
+
+	void SetBootstrapRecordText(FName StableId, FText& DisplayName, FText& Description)
+	{
+		DisplayName = FText::FromName(StableId);
+		Description = FText::FromString(FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *StableId.ToString()));
+	}
 }
 
 namespace RPGClassProgressionAuthoring
@@ -84,6 +90,10 @@ void FRPGClassProgressionAuthoring::RematerializePreservingChoiceAndActionText(
 			Choice.DisplayName = ExistingText->DisplayName;
 			Choice.Description = ExistingText->Description;
 		}
+		else
+		{
+			SetBootstrapRecordText(Choice.ChoiceId, Choice.DisplayName, Choice.Description);
+		}
 	}
 
 	for (FGridCombatActionDefinition& Action : ClassAsset.CombatActions)
@@ -92,6 +102,10 @@ void FRPGClassProgressionAuthoring::RematerializePreservingChoiceAndActionText(
 		{
 			Action.DisplayName = ExistingText->DisplayName;
 			Action.Description = ExistingText->Description;
+		}
+		else
+		{
+			SetBootstrapRecordText(Action.ActionId, Action.DisplayName, Action.Description);
 		}
 	}
 }

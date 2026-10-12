@@ -75,14 +75,12 @@ namespace RPGPriestAuthoring
 	}
 
 	FRPGClassProgressionChoiceDefinition MakeChoice(
-		FName ChoiceId, const TCHAR* DisplayName, const TCHAR* Description, int32 MinimumLevel, FName TalentBranchId, FName PrerequisiteChoiceId = NAME_None, FName TalentNodeId = NAME_None)
+		FName ChoiceId, int32 MinimumLevel, FName TalentBranchId, FName PrerequisiteChoiceId = NAME_None, FName TalentNodeId = NAME_None)
 	{
 		FRPGClassProgressionChoiceDefinition Choice;
 		Choice.ChoiceId = ChoiceId;
 		Choice.TalentBranchId = TalentBranchId;
 		Choice.TalentNodeId = TalentNodeId.IsNone() ? ChoiceId : TalentNodeId;
-		Choice.DisplayName = FText::FromString(DisplayName);
-		Choice.Description = FText::FromString(Description);
 		Choice.MinimumLevel = MinimumLevel;
 		Choice.PointCost = 1;
 		Choice.PresentationType = ResolveTalentPresentationType(ChoiceId);
@@ -94,14 +92,12 @@ namespace RPGPriestAuthoring
 	}
 
 	FGridCombatActionDefinition MakeEffectSpell(
-		FName ActionId, const TCHAR* DisplayName, const TCHAR* Description, FName RequirementId,
+		FName ActionId, FName RequirementId,
 		int32 ActionPointCost, int32 ManaCost, EGridCombatTargetingPolicy TargetingPolicy,
 		int32 RangeCells, int32 CooldownRounds)
 	{
 		FGridCombatActionDefinition Action;
 		Action.ActionId = ActionId;
-		Action.DisplayName = FText::FromString(DisplayName);
-		Action.Description = FText::FromString(Description);
 		Action.ActionType = EGridCombatActionType::Ability;
 		Action.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
 		Action.TargetingPolicy = TargetingPolicy;
@@ -119,15 +115,13 @@ namespace RPGPriestAuthoring
 	}
 
 	FGridCombatActionDefinition MakeHolyAttack(
-		FName ActionId, const TCHAR* DisplayName, const TCHAR* Description, FName RequirementId,
+		FName ActionId, FName RequirementId,
 		int32 ActionPointCost, int32 ManaCost, EGridCombatTargetingPolicy TargetingPolicy,
 		int32 RangeCells, int32 BaseDamage, int32 CooldownRounds,
 		int32 AdditionalWisdomModifierScale, bool bScaleReligion)
 	{
 		FGridCombatActionDefinition Action;
 		Action.ActionId = ActionId;
-		Action.DisplayName = FText::FromString(DisplayName);
-		Action.Description = FText::FromString(Description);
 		Action.ActionType = EGridCombatActionType::Ability;
 		Action.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
 		Action.SourceTags = { TEXT("Spell.School.Holy") };
@@ -289,16 +283,14 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		// Restoration actions.
 		{
 			FGridCombatActionDefinition Action = MakeEffectSpell(
-				RegenerationActionId, TEXT("Régénération"),
-				TEXT("Applique Régénération pendant 3 tours : 3 + modificateur de SAG PV à la fin de chaque activation."),
+				RegenerationActionId,
 				RegenerationTalentId, 2, 5, EGridCombatTargetingPolicy::Ally, 3, 2);
 			Action.StatusApplications.Add(MakeStatusApplication(RegenerationStatusId, 3));
 			ClassAsset.CombatActions.Add(Action);
 		}
 		{
 			FGridCombatActionDefinition Action = MakeEffectSpell(
-				GroupHealActionId, TEXT("Soin de groupe"),
-				TEXT("Soigne tous les membres vivants du groupe de 5 + modificateur de SAG + rang de Médecine."),
+				GroupHealActionId,
 				GroupHealTalentId, 3, 8, EGridCombatTargetingPolicy::Party, 0, 3);
 			Action.EffectProfile.RestoreHealth = 5;
 			Action.HealingScaling.ScalingAttribute = EGridAttackScalingAttribute::Wisdom;
@@ -309,8 +301,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		}
 		{
 			FGridCombatActionDefinition Action = MakeEffectSpell(
-				PurificationActionId, TEXT("Purification"),
-				TEXT("Retire jusqu'à deux afflictions purifiables, avec résolution déterministe."),
+				PurificationActionId,
 				PurificationTalentId, 2, 6, EGridCombatTargetingPolicy::Ally, 3, 2);
 			FGridCombatStatusRemovalProfile Removal;
 			Removal.EffectIds = {
@@ -326,8 +317,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		}
 		{
 			FGridCombatActionDefinition Action = MakeEffectSpell(
-				MiracleActionId, TEXT("Miracle"),
-				TEXT("Soigne 12 + 2×modificateur de SAG + rang de Religion, au minimum jusqu'à 50 % des PV ; purifie et restaure 25 % d'armure magique."),
+				MiracleActionId,
 				MiracleTalentId, 4, 15, EGridCombatTargetingPolicy::Ally, 3, 5);
 			Action.EffectProfile.RestoreHealth = 12;
 			Action.HealingScaling.ScalingAttribute = EGridAttackScalingAttribute::Wisdom;
@@ -349,8 +339,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		// Restoration progression.
 		{
 			FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-				EnhancedHealingTalentId, TEXT("Soin renforcé"),
-				TEXT("Tous les soins produits par un sort du Prêtre sont multipliés par 1,25 après calcul de leur valeur, avec arrondi inférieur et un minimum de +1 si le soin est positif."), 2, RestorationBranchId);
+				EnhancedHealingTalentId, 2, RestorationBranchId);
 			FGridCombatModifierProfile Modifier;
 			Modifier.SourcePolicies = { EGridCombatActionSourcePolicy::Spell };
 			Modifier.OutgoingHealingPercentModifier = 25;
@@ -358,27 +347,25 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 			ClassAsset.ProgressionChoices.Add(Choice);
 		}
 		ClassAsset.ProgressionChoices.Add(MakeChoice(
-			RegenerationTalentId, TEXT("Régénération"), TEXT("Pendant 3 tours, à la fin de chaque activation de la cible, celle-ci récupère 3 + modificateur de SAG PV, minimum 1, puis la durée diminue."), 6, RestorationBranchId, EnhancedHealingTalentId));
+			RegenerationTalentId, 6, RestorationBranchId, EnhancedHealingTalentId));
 		ClassAsset.ProgressionChoices.Add(MakeChoice(
-			GroupHealTalentId, TEXT("Soin de groupe"), TEXT("Chaque membre vivant du groupe récupère 5 + modificateur de SAG + rang de Médecine PV, sans dépasser ses PV maximum. Les personnages vaincus ne sont pas ciblés."), 10, RestorationBranchId, RegenerationTalentId));
+			GroupHealTalentId, 10, RestorationBranchId, RegenerationTalentId));
 		ClassAsset.ProgressionChoices.Add(MakeChoice(
-			PurificationTalentId, TEXT("Purification"), TEXT("Retire jusqu'à 2 Debuffs amovibles parmi Poison, Burning, Bleeding, Slow, Silence, Immobilize et effets explicitement tagués Purifiable. Priorité : Potency puis EffectId."), 14, RestorationBranchId, GroupHealTalentId));
+			PurificationTalentId, 14, RestorationBranchId, GroupHealTalentId));
 		ClassAsset.ProgressionChoices.Add(MakeChoice(
-			MiracleTalentId, TEXT("Miracle"), TEXT("Restaure le maximum entre 12 + 2 × modificateur de SAG + rang de Religion PV et la quantité nécessaire pour atteindre 50 % des PV maximum. Retire jusqu'à 3 affaiblissements purifiables et restaure 25 % de la réserve d'armure magique de référence. Ne ressuscite pas."), 18, RestorationBranchId, PurificationTalentId));
+			MiracleTalentId, 18, RestorationBranchId, PurificationTalentId));
 
 		// Protection actions.
 		{
 			FGridCombatActionDefinition Action = MakeEffectSpell(
-				BlessingActionId, TEXT("Bénédiction"),
-				TEXT("Accorde +2 Précision et +4 Initiative pendant 2 rounds."),
+				BlessingActionId,
 				BlessingTalentId, 2, 5, EGridCombatTargetingPolicy::Ally, 3, 2);
 			Action.StatusApplications.Add(MakeStatusApplication(BlessedStatusId, 2));
 			ClassAsset.CombatActions.Add(Action);
 		}
 		{
 			FGridCombatActionDefinition Action = MakeEffectSpell(
-				AegisActionId, TEXT("Égide"),
-				TEXT("Restaure 8 + modificateur de SAG + rang de Religion en armure magique."),
+				AegisActionId,
 				AegisTalentId, 2, 6, EGridCombatTargetingPolicy::Ally, 3, 2);
 			Action.ArmorEffects.Add(MakeMagicalArmorRestore(
 				EGridCombatArmorEffectMagnitude::Flat, 8, EGridAttackScalingAttribute::Wisdom, 1, TEXT("Skill_Religion"), 1));
@@ -386,24 +373,21 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		}
 		{
 			FGridCombatActionDefinition Action = MakeEffectSpell(
-				HolyProtectionActionId, TEXT("Protection sacrée"),
-				TEXT("Accorde une protection de 3 rounds contre les attaques magiques ciblées."),
+				HolyProtectionActionId,
 				HolyProtectionTalentId, 2, 7, EGridCombatTargetingPolicy::Ally, 3, 3);
 			Action.StatusApplications.Add(MakeStatusApplication(HolyProtectionStatusId, 3));
 			ClassAsset.CombatActions.Add(Action);
 		}
 		{
 			FGridCombatActionDefinition Action = MakeEffectSpell(
-				SanctuaryActionId, TEXT("Sanctuaire"),
-				TEXT("Empêche les attaques hostiles directes de cibler l'allié jusqu'à sa prochaine activation ou jusqu'à ce qu'il inflige des dégâts."),
+				SanctuaryActionId,
 				SanctuaryTalentId, 3, 10, EGridCombatTargetingPolicy::Ally, 3, 4);
 			Action.StatusApplications.Add(MakeStatusApplication(SanctuaryStatusId, 2));
 			ClassAsset.CombatActions.Add(Action);
 		}
 		{
 			FGridCombatActionDefinition Action = MakeEffectSpell(
-				DivineBastionActionId, TEXT("Bastion divin"),
-				TEXT("Restaure 35 % de l'armure magique de référence du groupe puis réduit de 20 % les dégâts non physiques pendant 2 rounds."),
+				DivineBastionActionId,
 				DivineBastionTalentId, 4, 12, EGridCombatTargetingPolicy::Party, 0, 5);
 			Action.ArmorEffects.Add(MakeMagicalArmorRestore(EGridCombatArmorEffectMagnitude::ReferencePercent, 35));
 			Action.StatusApplications.Add(MakeStatusApplication(DivineBastionStatusId, 2));
@@ -412,28 +396,26 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 
 		// Protection progression.
 		ClassAsset.ProgressionChoices.Add(MakeChoice(
-			BlessingTalentId, TEXT("Bénédiction"), TEXT("Pendant 2 rounds, la cible gagne Précision +2 et Initiative +4. Une nouvelle application rafraîchit la durée ; l'effet n'est pas cumulable."), 2, ProtectionBranchId));
+			BlessingTalentId, 2, ProtectionBranchId));
 		ClassAsset.ProgressionChoices.Add(MakeChoice(
-			AegisTalentId, TEXT("Égide"), TEXT("Restaure 8 + modificateur de SAG + rang de Religion points d'armure magique, sans dépasser la réserve de référence."), 6, ProtectionBranchId, BlessingTalentId));
+			AegisTalentId, 6, ProtectionBranchId, BlessingTalentId));
 		ClassAsset.ProgressionChoices.Add(MakeChoice(
-			HolyProtectionTalentId, TEXT("Protection sacrée"), TEXT("Pendant 3 rounds, la cible gagne +25 % de résistance aux dégâts sacrés, nécrotiques et arcaniques, ainsi qu'Esquive +2 contre les sorts ciblés."), 10, ProtectionBranchId, AegisTalentId));
+			HolyProtectionTalentId, 10, ProtectionBranchId, AegisTalentId));
 		ClassAsset.ProgressionChoices.Add(MakeChoice(
-			SanctuaryTalentId, TEXT("Sanctuaire"), TEXT("Jusqu'au début de la prochaine activation de la cible, pour un maximum de 2 rounds, les attaques hostiles ciblées ne peuvent pas la sélectionner. Si la cible inflige des dégâts, l'effet disparaît après cette action. Les attaques de zone, dégâts périodiques et surfaces restent valides."), 14, ProtectionBranchId, HolyProtectionTalentId));
+			SanctuaryTalentId, 14, ProtectionBranchId, HolyProtectionTalentId));
 		ClassAsset.ProgressionChoices.Add(MakeChoice(
-			DivineBastionTalentId, TEXT("Bastion divin"), TEXT("Restaure 35 % de la réserve d'armure magique de référence à tous les alliés vivants, puis réduit de 20 % les dégâts non physiques qu'ils reçoivent pendant 2 rounds."), 18, ProtectionBranchId, SanctuaryTalentId));
+			DivineBastionTalentId, 18, ProtectionBranchId, SanctuaryTalentId));
 
 		// Exorcism actions.
 		{
 			FGridCombatActionDefinition Action = MakeHolyAttack(
-				HolyLightActionId, TEXT("Lumière sacrée"),
-				TEXT("Inflige 5 + modificateur de SAG + rang de Religion en dégâts Sacrés ; +50 % contre Undead ou Demon."),
+				HolyLightActionId,
 				HolyLightTalentId, 2, 4, EGridCombatTargetingPolicy::Hostile, 5, 5, 0, 0, true);
 			ClassAsset.CombatActions.Add(Action);
 		}
 		{
 			FGridCombatActionDefinition Action = MakeHolyAttack(
-				TurnUndeadActionId, TEXT("Repousser les morts-vivants"),
-				TEXT("Tous les Undead à 2 cellules du groupe subissent 4 dégâts Sacrés ; sans armure magique, ils sont repoussés et perdent 4 Initiative pendant un round."),
+				TurnUndeadActionId,
 				TurnUndeadTalentId, 3, 7, EGridCombatTargetingPolicy::Area, 1, 4, 3, 0, false);
 			// D05: Repousser les morts-vivants is exactly 4 Holy damage; unlike the
 			// other holy attacks, Wisdom must not contribute to the attack base damage.
@@ -461,8 +443,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		}
 		{
 			FGridCombatActionDefinition Action = MakeEffectSpell(
-				HolyDispelActionId, TEXT("Dissipation sacrée"),
-				TEXT("Allié : retire jusqu'à deux Debuffs Nécrotiques ou Malédictions. Undead : retire un Buff magique amovible."),
+				HolyDispelActionId,
 				HolyDispelTalentId, 2, 6, EGridCombatTargetingPolicy::AllyOrHostile, 3, 2);
 			Action.bRequiresLineOfSight = true;
 			Action.TargetFilter.AllowedMonsterCategoryIds = { TEXT("Undead") };
@@ -484,15 +465,13 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		}
 		{
 			FGridCombatActionDefinition Action = MakeHolyAttack(
-				SmiteActionId, TEXT("Châtiment"),
-				TEXT("Inflige 10 + 2×modificateur de SAG + rang de Religion en dégâts Sacrés ; +50 % contre Undead ou Demon."),
+				SmiteActionId,
 				SmiteTalentId, 3, 8, EGridCombatTargetingPolicy::Hostile, 4, 10, 2, 1, true);
 			ClassAsset.CombatActions.Add(Action);
 		}
 		{
 			FGridCombatActionDefinition Action = MakeHolyAttack(
-				MajorExorcismActionId, TEXT("Exorcisme majeur"),
-				TEXT("Zone sacrée n'affectant que Undead, Demon ou Summoned ; 14 + 2×SAG mod + Religion, et Banished si l'armure magique est épuisée."),
+				MajorExorcismActionId,
 				MajorExorcismTalentId, 4, 14, EGridCombatTargetingPolicy::Area, 4, 14, 5, 1, true);
 			Action.AreaRadiusCells = 2;
 			Action.TargetFilter.AllowedMonsterCategoryIds = { TEXT("Undead"), TEXT("Demon"), TEXT("Summoned") };
@@ -508,7 +487,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 		// Exorcism progression.
 		{
 			FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-				HolyLightTalentId, TEXT("Lumière sacrée"), TEXT("Inflige 5 + modificateur de Sagesse + rang de Religion en dégâts sacrés. Contre les Morts-vivants ou Démons, les dégâts sont multipliés par 1,5. Aucun statut supplémentaire."), 2, ExorcismBranchId);
+				HolyLightTalentId, 2, ExorcismBranchId);
 			FGridCombatModifierProfile Bonus;
 			Bonus.ActionIds = { HolyLightActionId };
 			Bonus.AllowedTargetMonsterCategoryIds = { TEXT("Undead"), TEXT("Demon") };
@@ -517,12 +496,12 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 			ClassAsset.ProgressionChoices.Add(Choice);
 		}
 		ClassAsset.ProgressionChoices.Add(MakeChoice(
-			TurnUndeadTalentId, TEXT("Repousser les morts-vivants"), TEXT("Chaque mort-vivant dans la zone subit 4 dégâts sacrés. Si son armure magique est épuisée après les dégâts, il est repoussé d'1 cellule à l'opposé du groupe si possible et subit Initiative -4 pendant 1 round."), 6, ExorcismBranchId, HolyLightTalentId));
+			TurnUndeadTalentId, 6, ExorcismBranchId, HolyLightTalentId));
 		ClassAsset.ProgressionChoices.Add(MakeChoice(
-			HolyDispelTalentId, TEXT("Dissipation sacrée"), TEXT("Sur un allié : retire jusqu'à 2 affaiblissements Nécrotiques ou Malédictions. Sur un Mort-vivant hostile : retire 1 amélioration magique amovible. La priorité est déterministe : puissance, puis identifiant de l'effet."), 10, ExorcismBranchId, TurnUndeadTalentId));
+			HolyDispelTalentId, 10, ExorcismBranchId, TurnUndeadTalentId));
 		{
 			FRPGClassProgressionChoiceDefinition Choice = MakeChoice(
-				SmiteTalentId, TEXT("Châtiment"), TEXT("Inflige 10 + 2×modificateur de Sagesse + rang de Religion en dégâts sacrés. Contre les Morts-vivants ou Démons, les dégâts sont multipliés par 1,5. Ce sort ne peut pas infliger de coup critique."), 14, ExorcismBranchId, HolyDispelTalentId);
+				SmiteTalentId, 14, ExorcismBranchId, HolyDispelTalentId);
 			FGridCombatModifierProfile Bonus;
 			Bonus.ActionIds = { SmiteActionId };
 			Bonus.AllowedTargetMonsterCategoryIds = { TEXT("Undead"), TEXT("Demon") };
@@ -531,7 +510,7 @@ void FRPGPriestAuthoring::ConfigureClass(URPGClassAsset& ClassAsset)
 			ClassAsset.ProgressionChoices.Add(Choice);
 		}
 		ClassAsset.ProgressionChoices.Add(MakeChoice(
-			MajorExorcismTalentId, TEXT("Exorcisme majeur"), TEXT("N'affecte que les Morts-vivants, Démons et créatures invoquées. Inflige 14 + 2×modificateur de Sagesse + rang de Religion en dégâts sacrés. Si l'armure magique est épuisée après les dégâts, applique Banni pendant 1 tour et fait perdre la prochaine activation."), 18, ExorcismBranchId, SmiteTalentId));
+			MajorExorcismTalentId, 18, ExorcismBranchId, SmiteTalentId));
 	});
 }
 

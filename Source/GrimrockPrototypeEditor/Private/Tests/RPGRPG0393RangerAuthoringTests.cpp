@@ -142,9 +142,6 @@ bool FRPG0393HunterAuthoringTest::RunTest(const FString&)
 				Choice->CombatModifiers[0].AllowedTargetMonsterCategoryIds.Contains(Category.CategoryId) &&
 				Choice->CombatModifiers[0].OutgoingDamagePercentModifier == 15);
 			TestEqual(TEXT("Favored Enemy projects four related contextual skills"), Choice->SkillModifiers.Num(), 4);
-			TestEqual(TEXT("Favored Enemy uses bestiary player-facing category DisplayName"),
-				Choice->DisplayName.ToString(),
-				FString::Printf(TEXT("Ennemi juré — %s"), *Category.DisplayName.ToString()));
 		}
 	}
 

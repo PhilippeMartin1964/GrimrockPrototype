@@ -456,4 +456,75 @@ bool FUIRPGCONTENTTEXT012ClassTextPreservationTest::RunTest(const FString&)
 	return true;
 }
 
+
+/**
+ * UI-RPG-CONTENT-TEXT01.3 keeps C++ as a mechanics/bootstrap producer only.
+ * A fresh class has no serialized text to preserve, so every generated Choice
+ * and class Action must receive the deterministic technical bootstrap marker.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT013BootstrapOnlyTest,
+	"Grimrock.UI.RPG.CONTENTTEXT01.BootstrapOnly",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT013BootstrapOnlyTest::RunTest(const FString&)
+{
+	using namespace UIRPGCONTENTTEXT011;
+
+	int32 BootstrapChoiceCount = 0;
+	int32 BootstrapActionCount = 0;
+
+	for (const FClassSpec& Spec : ClassSpecs)
+	{
+		URPGClassAsset* Fresh = NewObject<URPGClassAsset>(GetTransientPackage());
+		Fresh->ClassId = Spec.ClassId;
+		Fresh->HealthAtLevelOne = 10;
+
+		FString AuthoringError;
+		if (!TestTrue(
+				*FString::Printf(TEXT("%s fresh mechanics can be authored"), *Spec.ClassId.ToString()),
+				ConfigureFromCurrentAuthoring(Spec.ClassId, *Fresh, AuthoringError)))
+		{
+			AddError(FString::Printf(TEXT("%s authoring error: %s"), *Spec.ClassId.ToString(), *AuthoringError));
+			continue;
+		}
+
+		TestTrue(
+			*FString::Printf(TEXT("%s fresh mechanics remain structurally valid"), *Spec.ClassId.ToString()),
+			Fresh->IsValidDefinition());
+
+		for (const FRPGClassProgressionChoiceDefinition& Choice : Fresh->ProgressionChoices)
+		{
+			const FString StableId = Choice.ChoiceId.ToString();
+			TestEqual(
+				*FString::Printf(TEXT("%s/%s Choice bootstrap name is its stable id"), *Spec.ClassId.ToString(), *StableId),
+				Choice.DisplayName.ToString(),
+				StableId);
+			TestEqual(
+				*FString::Printf(TEXT("%s/%s Choice bootstrap description is technical only"), *Spec.ClassId.ToString(), *StableId),
+				Choice.Description.ToString(),
+				FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *StableId));
+			++BootstrapChoiceCount;
+		}
+
+		for (const FGridCombatActionDefinition& Action : Fresh->CombatActions)
+		{
+			const FString StableId = Action.ActionId.ToString();
+			TestEqual(
+				*FString::Printf(TEXT("%s/%s Action bootstrap name is its stable id"), *Spec.ClassId.ToString(), *StableId),
+				Action.DisplayName.ToString(),
+				StableId);
+			TestEqual(
+				*FString::Printf(TEXT("%s/%s Action bootstrap description is technical only"), *Spec.ClassId.ToString(), *StableId),
+				Action.Description.ToString(),
+				FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *StableId));
+			++BootstrapActionCount;
+		}
+	}
+
+	TestTrue(TEXT("Bootstrap-only audit covers every production class choice family"), BootstrapChoiceCount >= 90);
+	TestTrue(TEXT("Bootstrap-only audit covers production class combat actions"), BootstrapActionCount > 0);
+	return true;
+}
+
 #endif
