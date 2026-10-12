@@ -416,4 +416,94 @@ bool FUIRPGCONTENTTEXT022ItemTextPreservationTest::RunTest(const FString&)
 	return true;
 }
 
+
+/**
+ * UI-RPG-CONTENT-TEXT02.3 keeps Alchemist C++ as a mechanics/bootstrap producer
+ * only. Fresh DA_Item records have no serialized text to preserve, so item and
+ * QuickItem action text must be deterministic technical markers, never
+ * player-facing prose.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT023BootstrapOnlyTest,
+	"Grimrock.UI.RPG.CONTENTTEXT02.BootstrapOnly",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT023BootstrapOnlyTest::RunTest(const FString&)
+{
+	using namespace UIRPGCONTENTTEXT021;
+
+	TArray<FName> ItemIds;
+	CollectProductionItemIds(ItemIds);
+
+	int32 BootstrapItemCount = 0;
+	for (const FName ItemId : ItemIds)
+	{
+		UGridItemDefinitionAsset* Fresh = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
+		if (!TestTrue(
+				*FString::Printf(TEXT("%s fresh QuickItem mechanics can be authored"), *ItemId.ToString()),
+				FRPGAlchemistAuthoring::ConfigureItem(*Fresh, ItemId)))
+		{
+			continue;
+		}
+
+		const FString StableItemId = ItemId.ToString();
+		TestEqual(
+			*FString::Printf(TEXT("%s bootstrap item name is its stable id"), *StableItemId),
+			Fresh->DisplayName.ToString(),
+			StableItemId);
+		TestEqual(
+			*FString::Printf(TEXT("%s bootstrap item description is technical only"), *StableItemId),
+			Fresh->Description.ToString(),
+			FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *StableItemId));
+
+		const FName ActionId = Fresh->QuickItemCombatAction.ActionId;
+		TestFalse(
+			*FString::Printf(TEXT("%s fresh item exposes a stable QuickItem ActionId"), *StableItemId),
+			ActionId.IsNone());
+		const FString StableActionId = ActionId.ToString();
+		TestEqual(
+			*FString::Printf(TEXT("%s bootstrap QuickItem action name is its stable id"), *StableItemId),
+			Fresh->QuickItemCombatAction.DisplayName.ToString(),
+			StableActionId);
+		TestEqual(
+			*FString::Printf(TEXT("%s bootstrap QuickItem action description is technical only"), *StableItemId),
+			Fresh->QuickItemCombatAction.Description.ToString(),
+			FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *StableActionId));
+		TestTrue(
+			*FString::Printf(TEXT("%s fresh bootstrap remains structurally valid"), *StableItemId),
+			Fresh->IsValidDefinition());
+
+		++BootstrapItemCount;
+	}
+
+	TestEqual(TEXT("Bootstrap-only audit covers all eleven Alchemist QuickItems"), BootstrapItemCount, 11);
+
+	for (const EGridCombatSurfaceType Output : {
+		EGridCombatSurfaceType::Fire,
+		EGridCombatSurfaceType::Ice,
+		EGridCombatSurfaceType::Poison,
+		EGridCombatSurfaceType::Oil })
+	{
+		FGridCombatActionDefinition Action;
+		if (!TestTrue(
+				TEXT("Major Transmutation recipe action builds with technical presentation"),
+				FRPGAlchemistAuthoring::BuildMajorTransmutationRecipeAction(Output, Action)))
+		{
+			continue;
+		}
+
+		const FString StableActionId = Action.ActionId.ToString();
+		TestEqual(
+			TEXT("Major Transmutation bootstrap name is its stable ActionId"),
+			Action.DisplayName.ToString(),
+			StableActionId);
+		TestEqual(
+			TEXT("Major Transmutation bootstrap description is technical only"),
+			Action.Description.ToString(),
+			FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *StableActionId));
+	}
+
+	return true;
+}
+
 #endif

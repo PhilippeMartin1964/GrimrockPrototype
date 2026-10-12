@@ -103,13 +103,20 @@ namespace RPGAlchemistAuthoring
 		return Choice;
 	}
 
+	void SetBootstrapText(FName StableId, FText& DisplayName, FText& Description)
+	{
+		DisplayName = FText::FromName(StableId);
+		Description = FText::FromString(
+			FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *StableId.ToString()));
+	}
+
 	FGridCombatActionDefinition MakeQuickItemAction(
 		FName ActionId, EGridCombatTargetingPolicy Targeting, EGridCombatActionResolutionProfile Resolution,
 		int32 ActionPointCost, int32 RangeCells, int32 CooldownRounds = 0)
 	{
 		FGridCombatActionDefinition Action;
 		Action.ActionId = ActionId;
-		Action.DisplayName = FText::FromName(ActionId);
+		SetBootstrapText(ActionId, Action.DisplayName, Action.Description);
 		Action.ActionType = EGridCombatActionType::Ability;
 		Action.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 		Action.TargetingPolicy = Targeting;
@@ -194,10 +201,10 @@ namespace RPGAlchemistAuthoring
 		return Profile;
 	}
 
-	void ConfigureItemBase(UGridItemDefinitionAsset& Item, FName ItemId, const TCHAR* DisplayName, EGridItemType Type, FName ActionId)
+	void ConfigureItemBase(UGridItemDefinitionAsset& Item, FName ItemId, EGridItemType Type, FName ActionId)
 	{
 		Item.ItemDefinitionId = ItemId;
-		Item.DisplayName = FText::FromString(DisplayName);
+		SetBootstrapText(ItemId, Item.DisplayName, Item.Description);
 		Item.ItemType = Type;
 		Item.HandUsage = EGridItemHandUsage::NotHandHeld;
 		Item.bProvidesQuickItemCombatAction = true;
@@ -528,21 +535,21 @@ bool FRPGAlchemistAuthoring::ConfigureItem(UGridItemDefinitionAsset& Item, FName
 
 		if (ItemDefinitionId == FireBombItem)
 		{
-			ConfigureItemBase(Item, FireBombItem, TEXT("Bombe incendiaire"), EGridItemType::Misc, FireBombAction);
+			ConfigureItemBase(Item, FireBombItem, EGridItemType::Misc, FireBombAction);
 			Item.ItemTags.Add(TEXT("QuickItem.Bomb"));
 			Item.QuickItemCombatAction = MakeBomb(FireBombAction, EGridDamageType::Fire, TEXT("Status_Burning"), 2, EGridCombatSurfaceType::Fire, 2);
 			return true;
 		}
 		if (ItemDefinitionId == ToxicBombItem)
 		{
-			ConfigureItemBase(Item, ToxicBombItem, TEXT("Bombe toxique"), EGridItemType::Misc, ToxicBombAction);
+			ConfigureItemBase(Item, ToxicBombItem, EGridItemType::Misc, ToxicBombAction);
 			Item.ItemTags.Add(TEXT("QuickItem.Bomb"));
 			Item.QuickItemCombatAction = MakeBomb(ToxicBombAction, EGridDamageType::Poison, PoisonStatus, 3, EGridCombatSurfaceType::Poison, 3);
 			return true;
 		}
 		if (ItemDefinitionId == AntidoteItem)
 		{
-			ConfigureItemBase(Item, AntidoteItem, TEXT("Antidote"), EGridItemType::Potion, AntidoteAction);
+			ConfigureItemBase(Item, AntidoteItem, EGridItemType::Potion, AntidoteAction);
 			Item.ItemTags.Append({ TEXT("QuickItem.Potion"), TEXT("QuickItem.Potion.Positive") });
 			FGridCombatActionDefinition Action = MakeQuickItemAction(
 				AntidoteAction, EGridCombatTargetingPolicy::Ally, EGridCombatActionResolutionProfile::Effect, 1, 1);
@@ -563,40 +570,37 @@ bool FRPGAlchemistAuthoring::ConfigureItem(UGridItemDefinitionAsset& Item, FName
 		}
 
 		FName DefensiveStatus = NAME_None;
-		EGridDamageType DefensiveType = EGridDamageType::Physical;
-		const TCHAR* DefensiveName = nullptr;
 		if (ItemDefinitionId == DefensiveFireItem)
 		{
-			DefensiveStatus = DefensiveFireStatus; DefensiveType = EGridDamageType::Fire; DefensiveName = TEXT("Élixir défensif — Feu");
+			DefensiveStatus = DefensiveFireStatus;
 		}
 		else if (ItemDefinitionId == DefensiveIceItem)
 		{
-			DefensiveStatus = DefensiveIceStatus; DefensiveType = EGridDamageType::Ice; DefensiveName = TEXT("Élixir défensif — Glace");
+			DefensiveStatus = DefensiveIceStatus;
 		}
 		else if (ItemDefinitionId == DefensiveLightningItem)
 		{
-			DefensiveStatus = DefensiveLightningStatus; DefensiveType = EGridDamageType::Lightning; DefensiveName = TEXT("Élixir défensif — Foudre");
+			DefensiveStatus = DefensiveLightningStatus;
 		}
 		else if (ItemDefinitionId == DefensivePoisonItem)
 		{
-			DefensiveStatus = DefensivePoisonStatus; DefensiveType = EGridDamageType::Poison; DefensiveName = TEXT("Élixir défensif — Poison");
+			DefensiveStatus = DefensivePoisonStatus;
 		}
 		if (!DefensiveStatus.IsNone())
 		{
-			ConfigureItemBase(Item, ItemDefinitionId, DefensiveName, EGridItemType::Potion, DefensiveElixirAction);
+			ConfigureItemBase(Item, ItemDefinitionId, EGridItemType::Potion, DefensiveElixirAction);
 			Item.ItemTags.Append({ TEXT("QuickItem.Potion"), TEXT("QuickItem.Potion.Positive") });
 			FGridCombatActionDefinition Action = MakeQuickItemAction(
 				DefensiveElixirAction, EGridCombatTargetingPolicy::Ally, EGridCombatActionResolutionProfile::Effect, 1, 1);
 			Action.ArmorEffects.Add(MakeMagicalArmorRestore(4));
 			Action.StatusApplications.Add(MakeStatus(DefensiveStatus, 3));
 			Item.QuickItemCombatAction = Action;
-			(void)DefensiveType;
 			return true;
 		}
 
 		if (ItemDefinitionId == PanaceaItem)
 		{
-			ConfigureItemBase(Item, PanaceaItem, TEXT("Panacée"), EGridItemType::Potion, PanaceaAction);
+			ConfigureItemBase(Item, PanaceaItem, EGridItemType::Potion, PanaceaAction);
 			Item.ItemTags.Append({ TEXT("QuickItem.Potion"), TEXT("QuickItem.Potion.Positive") });
 			FGridCombatActionDefinition Action = MakeQuickItemAction(
 				PanaceaAction, EGridCombatTargetingPolicy::Ally, EGridCombatActionResolutionProfile::Effect, 2, 1, 3);
@@ -619,7 +623,7 @@ bool FRPGAlchemistAuthoring::ConfigureItem(UGridItemDefinitionAsset& Item, FName
 		}
 		if (ItemDefinitionId == OilSlickItem)
 		{
-			ConfigureItemBase(Item, OilSlickItem, TEXT("Flasque d'huile"), EGridItemType::Misc, OilSlickAction);
+			ConfigureItemBase(Item, OilSlickItem, EGridItemType::Misc, OilSlickAction);
 			Item.ItemTags.Add(TEXT("QuickItem.Flask"));
 			FGridCombatActionDefinition Action = MakeQuickItemAction(
 				OilSlickAction, EGridCombatTargetingPolicy::Area, EGridCombatActionResolutionProfile::Effect, 2, 4);
@@ -634,7 +638,7 @@ bool FRPGAlchemistAuthoring::ConfigureItem(UGridItemDefinitionAsset& Item, FName
 		}
 		if (ItemDefinitionId == AcidFlaskItem)
 		{
-			ConfigureItemBase(Item, AcidFlaskItem, TEXT("Flasque acide"), EGridItemType::Misc, AcidFlaskAction);
+			ConfigureItemBase(Item, AcidFlaskItem, EGridItemType::Misc, AcidFlaskAction);
 			Item.ItemTags.Add(TEXT("QuickItem.Flask"));
 			FGridCombatActionDefinition Action = MakeQuickItemAction(
 				AcidFlaskAction, EGridCombatTargetingPolicy::Hostile, EGridCombatActionResolutionProfile::Effect, 2, 4, 1);
@@ -645,7 +649,7 @@ bool FRPGAlchemistAuthoring::ConfigureItem(UGridItemDefinitionAsset& Item, FName
 		}
 		if (ItemDefinitionId == CorrosiveCloudItem)
 		{
-			ConfigureItemBase(Item, CorrosiveCloudItem, TEXT("Flasque de nuage corrosif"), EGridItemType::Misc, CorrosiveCloudAction);
+			ConfigureItemBase(Item, CorrosiveCloudItem, EGridItemType::Misc, CorrosiveCloudAction);
 			Item.ItemTags.Add(TEXT("QuickItem.Flask"));
 			FGridCombatActionDefinition Action = MakeQuickItemAction(
 				CorrosiveCloudAction, EGridCombatTargetingPolicy::Area, EGridCombatActionResolutionProfile::Attack, 3, 4, 2);
@@ -809,8 +813,6 @@ bool FRPGAlchemistAuthoring::BuildMajorTransmutationRecipeAction(
 	OutAction = MakeQuickItemAction(
 		MajorTransmutationAction, EGridCombatTargetingPolicy::Area,
 		EGridCombatActionResolutionProfile::Effect, 4, 4, 5);
-	OutAction.DisplayName = FText::FromString(TEXT("Transmutation majeure"));
-	OutAction.Description = FText::FromString(TEXT("Convertit une zone de rayon 2 vers la sortie choisie par la recette."));
 	OutAction.AreaRadiusCells = 2;
 	OutAction.Requirements = { MajorTransmutationTalent };
 	OutAction.SourceTags = { TEXT("QuickItem.Alchemy"), TEXT("QuickItem.Catalyst") };
