@@ -4,6 +4,8 @@ Date : **12 octobre 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Ticket : **UI-RPG-CONTENT-TEXT05.1**
 
+> **État après TEXT05.2 :** le `DisplayName` sérialisé d'un `DA_Skill_*` existant est désormais préservé lorsque le `SkillId` est stable. Les 25 libellés C++ restent provisoirement présents comme bootstrap de record neuf jusqu'à TEXT05.3.
+
 ## 1. Objet
 
 Après la fermeture de CONTENT-TEXT01 à CONTENT-TEXT04, auditer transversalement

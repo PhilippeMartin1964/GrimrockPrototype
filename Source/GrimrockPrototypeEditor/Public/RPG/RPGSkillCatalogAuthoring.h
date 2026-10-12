@@ -32,11 +32,13 @@ struct GRIMROCKPROTOTYPEEDITOR_API FRPGSkillCatalogAuthoring
 	static bool ValidateCanonicalCatalog(FString& OutError);
 
 	/**
-	 * Applique uniquement les champs définis par le catalogue canonique.
-	 * Description et RequirementGrants sont volontairement préservés.
+	 * Rematérialise l'identité et la mécanique du Skill.
+	 * Un DisplayName déjà sérialisé pour le même SkillId est préservé exactement.
+	 * Description et RequirementGrants sont également préservés.
 	 */
 	static void ConfigureSkill(URPGSkillAsset& SkillAsset, const FRPGCanonicalSkillDefinition& Definition);
 
+	/** Vérifie uniquement l'identité et les champs mécaniques canoniques, jamais le texte authored. */
 	static bool IsCanonicalSkill(const URPGSkillAsset& SkillAsset, const FRPGCanonicalSkillDefinition& Definition);
 
 	/** Crée/met à jour puis sauvegarde les 25 DataAssets de production. */

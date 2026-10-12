@@ -287,4 +287,128 @@ bool FUIRPGCONTENTTEXT051RemainingAuthorityAuditTest::RunTest(const FString&)
 	return true;
 }
 
+
+/**
+ * UI-RPG-CONTENT-TEXT05.2 proves that DA_Skill_* DisplayName is preserved
+ * during catalog rematerialization once the stable SkillId already matches.
+ *
+ * The twenty-five C++ labels remain as fresh-record bootstrap until TEXT05.3.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT052SkillTextPreservationTest,
+	"Grimrock.UI.RPG.CONTENTTEXT05.SkillPreservation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT052SkillTextPreservationTest::RunTest(const FString&)
+{
+	using namespace UIRPGCONTENTTEXT051;
+
+	TArray<FRPGCanonicalSkillDefinition> Definitions;
+	FRPGSkillCatalogAuthoring::GetCanonicalDefinitions(Definitions);
+	TestEqual(TEXT("Skill preservation covers twenty-five canonical definitions"), Definitions.Num(), 25);
+
+	int32 PreservedSkillCount = 0;
+	for (const FRPGCanonicalSkillDefinition& Definition : Definitions)
+	{
+		URPGSkillAsset* Serialized =
+			LoadObject<URPGSkillAsset>(nullptr, *SkillObjectPath(Definition.SkillId));
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s production DA_Skill loads for preservation"), *Definition.SkillId.ToString()),
+				Serialized))
+		{
+			continue;
+		}
+
+		URPGSkillAsset* Working =
+			DuplicateObject<URPGSkillAsset>(Serialized, GetTransientPackage());
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s transient preservation duplicate is created"), *Definition.SkillId.ToString()),
+				Working))
+		{
+			continue;
+		}
+
+		const FString DisplayName =
+			FString::Printf(TEXT("TEXT05.2 Skill Name %s"), *Definition.SkillId.ToString());
+		const FString Description =
+			FString::Printf(TEXT("TEXT05.2 Skill Description %s"), *Definition.SkillId.ToString());
+		Working->DisplayName = FText::FromString(DisplayName);
+		Working->Description = FText::FromString(Description);
+
+		// Poison mechanics to prove rematerialization still occurs.
+		Working->GoverningAttribute = ERPGSkillGoverningAttribute::None;
+		Working->MaxRank = 99;
+		Working->bAllowUntrainedChecks = !Definition.bAllowUntrainedChecks;
+
+		FRPGSkillCatalogAuthoring::ConfigureSkill(*Working, Definition);
+
+		TestEqual(
+			*FString::Printf(TEXT("%s preserves serialized DisplayName"), *Definition.SkillId.ToString()),
+			Working->DisplayName.ToString(),
+			DisplayName);
+		TestEqual(
+			*FString::Printf(TEXT("%s preserves serialized Description"), *Definition.SkillId.ToString()),
+			Working->Description.ToString(),
+			Description);
+		TestTrue(
+			*FString::Printf(TEXT("%s rematerializes canonical mechanical fields"), *Definition.SkillId.ToString()),
+			FRPGSkillCatalogAuthoring::IsCanonicalSkill(*Working, Definition));
+		TestTrue(
+			*FString::Printf(TEXT("%s remains structurally valid"), *Definition.SkillId.ToString()),
+			Working->IsValidDefinition());
+
+		URPGSkillAsset* Fresh = NewObject<URPGSkillAsset>(GetTransientPackage());
+		FRPGSkillCatalogAuthoring::ConfigureSkill(*Fresh, Definition);
+		TestEqual(
+			*FString::Printf(TEXT("%s fresh record still receives current C++ bootstrap DisplayName"), *Definition.SkillId.ToString()),
+			Fresh->DisplayName.ToString(),
+			Definition.DisplayName.ToString());
+		TestTrue(
+			*FString::Printf(TEXT("%s fresh record is mechanically canonical"), *Definition.SkillId.ToString()),
+			FRPGSkillCatalogAuthoring::IsCanonicalSkill(*Fresh, Definition));
+
+		URPGSkillAsset* Mismatch =
+			DuplicateObject<URPGSkillAsset>(Serialized, GetTransientPackage());
+		if (TestNotNull(
+				*FString::Printf(TEXT("%s mismatched identity probe is created"), *Definition.SkillId.ToString()),
+				Mismatch))
+		{
+			Mismatch->SkillId = TEXT("Skill_TEXT05_2_Different");
+			Mismatch->DisplayName = FText::FromString(DisplayName);
+			FRPGSkillCatalogAuthoring::ConfigureSkill(*Mismatch, Definition);
+			TestFalse(
+				*FString::Printf(TEXT("%s mismatched identity does not preserve unrelated DisplayName"), *Definition.SkillId.ToString()),
+				Mismatch->DisplayName.ToString() == DisplayName);
+		}
+
+		++PreservedSkillCount;
+	}
+
+	TestEqual(TEXT("Serialized DisplayName preservation covers all twenty-five production Skills"), PreservedSkillCount, 25);
+
+	// Empty is still authored data: preservation is exact, not a non-empty-only policy.
+	FRPGCanonicalSkillDefinition Representative;
+	if (TestTrue(
+			TEXT("Representative Skill definition resolves for empty-text preservation"),
+			FRPGSkillCatalogAuthoring::TryGetCanonicalDefinition(TEXT("Skill_HeavyWeapons"), Representative)))
+	{
+		URPGSkillAsset* EmptyProbe = NewObject<URPGSkillAsset>(GetTransientPackage());
+		EmptyProbe->SkillId = Representative.SkillId;
+		EmptyProbe->DisplayName = FText::GetEmpty();
+		FRPGSkillCatalogAuthoring::ConfigureSkill(*EmptyProbe, Representative);
+		TestTrue(TEXT("Empty serialized DisplayName is preserved exactly"), EmptyProbe->DisplayName.IsEmpty());
+		TestTrue(
+			TEXT("Empty-text preservation does not prevent mechanical rematerialization"),
+			FRPGSkillCatalogAuthoring::IsCanonicalSkill(*EmptyProbe, Representative));
+	}
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("[UI-RPG-CONTENT-TEXT05.2][SUMMARY] PreservedSkills=%d"),
+		PreservedSkillCount);
+
+	return true;
+}
+
 #endif

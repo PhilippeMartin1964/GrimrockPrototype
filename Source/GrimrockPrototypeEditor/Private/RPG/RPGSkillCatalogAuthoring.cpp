@@ -195,14 +195,23 @@ void FRPGSkillCatalogAuthoring::ConfigureSkill(
 	URPGSkillAsset& SkillAsset,
 	const FRPGCanonicalSkillDefinition& Definition)
 {
+	const bool bPreserveSerializedDisplayName =
+		!SkillAsset.SkillId.IsNone() && SkillAsset.SkillId == Definition.SkillId;
+	const FText ExistingDisplayName = SkillAsset.DisplayName;
+
 	SkillAsset.SkillId = Definition.SkillId;
 	SkillAsset.DisplayName = Definition.DisplayName;
 	SkillAsset.GoverningAttribute = Definition.GoverningAttribute;
 	SkillAsset.MaxRank = RPGSkillCatalogAuthoringPrivate::CanonicalMaxRank;
 	SkillAsset.bAllowUntrainedChecks = Definition.bAllowUntrainedChecks;
 
-	// Description et RequirementGrants appartiennent à des règles métier distinctes.
-	// Un rerun de l'authoring ne doit jamais les effacer.
+	if (bPreserveSerializedDisplayName)
+	{
+		SkillAsset.DisplayName = ExistingDisplayName;
+	}
+
+	// DisplayName appartient au DataAsset une fois le SkillId établi.
+	// Description et RequirementGrants sont également préservés.
 }
 
 bool FRPGSkillCatalogAuthoring::IsCanonicalSkill(
@@ -210,7 +219,6 @@ bool FRPGSkillCatalogAuthoring::IsCanonicalSkill(
 	const FRPGCanonicalSkillDefinition& Definition)
 {
 	return SkillAsset.SkillId == Definition.SkillId &&
-		SkillAsset.DisplayName.EqualTo(Definition.DisplayName) &&
 		SkillAsset.GoverningAttribute == Definition.GoverningAttribute &&
 		SkillAsset.MaxRank == RPGSkillCatalogAuthoringPrivate::CanonicalMaxRank &&
 		SkillAsset.bAllowUntrainedChecks == Definition.bAllowUntrainedChecks;

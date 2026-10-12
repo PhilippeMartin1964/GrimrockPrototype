@@ -102,7 +102,8 @@ bool FUIRPG061SkillAuthoringPreservesExtensionsTest::RunTest(const FString& Para
 
 	FRPGSkillCatalogAuthoring::ConfigureSkill(*Skill, Lockpicking);
 
-	TestTrue(TEXT("Authored Skill matches canonical fields"), FRPGSkillCatalogAuthoring::IsCanonicalSkill(*Skill, Lockpicking));
+	TestTrue(TEXT("Fresh Skill receives canonical bootstrap DisplayName"), Skill->DisplayName.EqualTo(Lockpicking.DisplayName));
+	TestTrue(TEXT("Authored Skill matches canonical mechanical fields"), FRPGSkillCatalogAuthoring::IsCanonicalSkill(*Skill, Lockpicking));
 	TestTrue(TEXT("Authored Skill remains structurally valid"), Skill->IsValidDefinition());
 	TestTrue(
 		TEXT("Description is preserved"),
@@ -154,8 +155,11 @@ bool FUIRPG062AProductionSkillCatalogTest::RunTest(const FString& Parameters)
 
 		++LoadedCount;
 		TestTrue(
-			*FString::Printf(TEXT("%s production asset matches canonical fields"), *Definition.SkillId.ToString()),
+			*FString::Printf(TEXT("%s production asset matches canonical mechanical fields"), *Definition.SkillId.ToString()),
 			FRPGSkillCatalogAuthoring::IsCanonicalSkill(*Skill, Definition));
+		TestFalse(
+			*FString::Printf(TEXT("%s production asset has serialized DisplayName"), *Definition.SkillId.ToString()),
+			Skill->DisplayName.IsEmpty());
 		TestTrue(
 			*FString::Printf(TEXT("%s production asset is structurally valid"), *Definition.SkillId.ToString()),
 			Skill->IsValidDefinition());
