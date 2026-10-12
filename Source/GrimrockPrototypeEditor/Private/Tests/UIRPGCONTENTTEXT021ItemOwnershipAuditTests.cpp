@@ -41,7 +41,7 @@ namespace UIRPGCONTENTTEXT021
 	{
 		UE_LOG(
 			LogTemp,
-			Warning,
+			Display,
 			TEXT("[UI-RPG-CONTENT-TEXT02.1][TEXT-OVERWRITE] ItemId=%s Field=%s Before=\"%s\" After=\"%s\""),
 			*ItemId.ToString(),
 			Field,
