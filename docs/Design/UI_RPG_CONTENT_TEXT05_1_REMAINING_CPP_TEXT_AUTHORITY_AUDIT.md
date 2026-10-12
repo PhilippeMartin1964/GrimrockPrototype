@@ -4,7 +4,7 @@ Date : **12 octobre 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Ticket : **UI-RPG-CONTENT-TEXT05.1**
 
-> **État après TEXT05.5 :** la dette Skills est fermée et l’infrastructure de matérialisation Spell est prête. UGridSpellDefinitionAsset est identifié par GridSpell:<SpellId> et FGridSpellCatalogAuthoring peut créer/réparer les quatre assets via Unreal en préservant leur texte et leur présentation authored. Les binaires DA_Spell_* restent à matérialiser localement dans un ticket atomique séparé avant la bascule runtime.
+> **État après TEXT05.6 :** les quatre `DA_Spell_*` matérialisés sont désormais l’unique autorité Spell. `FGridProductionSpellLibrary` est seulement une façade de résolution vers ces assets et l’infrastructure temporaire de matérialisation est retirée. Il ne reste que `Attack_Unarmed` puis l’audit final.
 
 ## 1. Objet
 

@@ -157,9 +157,8 @@ bool FUIRPGCONTENTTEXT051RemainingAuthorityAuditTest::RunTest(const FString&)
 	TestEqual(TEXT("Current Skill authoring preserves Description for all twenty-five Skills"), SkillDescriptionPreservedCount, 25);
 
 	// ---------------------------------------------------------------------
-	// Spells: current production definitions are built directly in C++.
-	// UGridSpellDefinitionAsset exists as a data-driven container, but this
-	// production library remains the live text authority for the four spells.
+	// Spells: TEXT05.6 keeps the production facade but resolves the four
+	// serialized UGridSpellDefinitionAsset records as runtime authority.
 	// ---------------------------------------------------------------------
 	TArray<FGridSpellDefinition> Spells;
 	FGridProductionSpellLibrary::BuildAll(Spells);
@@ -184,14 +183,14 @@ bool FUIRPGCONTENTTEXT051RemainingAuthorityAuditTest::RunTest(const FString&)
 		UE_LOG(
 			LogTemp,
 			Display,
-			TEXT("[UI-RPG-CONTENT-TEXT05.1][SPELL-CXX-AUTHORITY] SpellId=%s DisplayName=\"%s\" Description=\"%s\""),
+			TEXT("[UI-RPG-CONTENT-TEXT05.1][SPELL-SERIALIZED-AUTHORITY] SpellId=%s DisplayName=\"%s\" Description=\"%s\""),
 			*Spell.SpellId.ToString(),
 			*Spell.DisplayName.ToString(),
 			*Spell.Description.ToString());
 	}
 
-	TestEqual(TEXT("All four production spells have C++ DisplayName"), SpellDisplayNameCount, 4);
-	TestEqual(TEXT("All four production spells have C++ Description"), SpellDescriptionCount, 4);
+	TestEqual(TEXT("All four production spells expose serialized DisplayName"), SpellDisplayNameCount, 4);
+	TestEqual(TEXT("All four production spells expose serialized Description"), SpellDescriptionCount, 4);
 
 	// ---------------------------------------------------------------------
 	// Universal unarmed action: one built-in runtime action still owns its
@@ -250,6 +249,9 @@ bool FUIRPGCONTENTTEXT051RemainingAuthorityAuditTest::RunTest(const FString&)
 	const int32 SpellDescriptionWriterCount = CountOccurrences(
 		SpellLibrarySource,
 		TEXT("Definition.Description = FText::FromString(TEXT("));
+	TestEqual(TEXT("Spell C++ DisplayName writers are removed"), SpellDisplayNameWriterCount, 0);
+	TestEqual(TEXT("Spell C++ Description writers are removed"), SpellDescriptionWriterCount, 0);
+
 	const int32 UnarmedDisplayNameWriterCount = CountOccurrences(
 		CombatCatalogSource,
 		TEXT("Definition.DisplayName = LOCTEXT(\"UnarmedName\""));
@@ -276,7 +278,7 @@ bool FUIRPGCONTENTTEXT051RemainingAuthorityAuditTest::RunTest(const FString&)
 	UE_LOG(
 		LogTemp,
 		Display,
-		TEXT("[UI-RPG-CONTENT-TEXT05.1][SUMMARY] SkillAssets=%d SkillDisplayNameOverwrites=%d SkillDescriptionsPreserved=%d CxxSpells=%d CxxSpellDisplayNames=%d CxxSpellDescriptions=%d CxxUniversalActions=1"),
+		TEXT("[UI-RPG-CONTENT-TEXT05.1][SUMMARY] SkillAssets=%d SkillDisplayNameOverwrites=%d SkillDescriptionsPreserved=%d SerializedSpells=%d SpellDisplayNames=%d SpellDescriptions=%d CxxUniversalActions=1"),
 		LoadedSkillCount,
 		SkillDisplayNameOverwriteCount,
 		SkillDescriptionPreservedCount,

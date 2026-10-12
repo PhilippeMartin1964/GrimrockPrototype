@@ -1,156 +1,172 @@
 #include "Magic/GridProductionSpellLibrary.h"
 
-namespace
+#include "Magic/GridSpellDefinitionAsset.h"
+#include "UObject/UObjectGlobals.h"
+
+namespace GridProductionSpellLibraryPrivate
 {
-	FGridSpellEffectDefinition MakeMagnitudeEffect(EGridSpellEffectType Type, int32 Magnitude)
+	struct FProductionSpellAssetSpec
 	{
-		FGridSpellEffectDefinition Effect;
-		Effect.Type = Type;
-		Effect.Magnitude = Magnitude;
-		return Effect;
+		FName SpellId;
+		const TCHAR* ObjectPath;
+	};
+
+	const FProductionSpellAssetSpec ProductionSpells[] = {
+		{ FGridProductionSpellLibrary::ArcaneBoltId(),
+		  TEXT("/Game/GrimrockPrototype/Core/DataAssets/Magic/Spells/DA_Spell_ArcaneBolt.DA_Spell_ArcaneBolt") },
+		{ FGridProductionSpellLibrary::LesserHealId(),
+		  TEXT("/Game/GrimrockPrototype/Core/DataAssets/Magic/Spells/DA_Spell_LesserHeal.DA_Spell_LesserHeal") },
+		{ FGridProductionSpellLibrary::HasteId(),
+		  TEXT("/Game/GrimrockPrototype/Core/DataAssets/Magic/Spells/DA_Spell_Haste.DA_Spell_Haste") },
+		{ FGridProductionSpellLibrary::CurePoisonId(),
+		  TEXT("/Game/GrimrockPrototype/Core/DataAssets/Magic/Spells/DA_Spell_CurePoison.DA_Spell_CurePoison") }
+	};
+
+	const FProductionSpellAssetSpec* FindSpec(FName SpellId)
+	{
+		for (const FProductionSpellAssetSpec& Spec : ProductionSpells)
+		{
+			if (Spec.SpellId == SpellId)
+			{
+				return &Spec;
+			}
+		}
+		return nullptr;
 	}
 
-	FGridSpellEffectDefinition MakeStatusEffect(EGridSpellEffectType Type, FName StatusEffectId)
+	const UGridSpellDefinitionAsset* LoadValidatedAsset(const FProductionSpellAssetSpec& Spec)
 	{
-		FGridSpellEffectDefinition Effect;
-		Effect.Type = Type;
-		Effect.StatusEffectId = StatusEffectId;
-		return Effect;
+		const UGridSpellDefinitionAsset* Asset =
+			LoadObject<UGridSpellDefinitionAsset>(nullptr, Spec.ObjectPath);
+		if (!IsValid(Asset))
+		{
+			UE_LOG(LogTemp, Error, TEXT("Production Spell asset missing: %s (%s)."),
+				*Spec.SpellId.ToString(), Spec.ObjectPath);
+			return nullptr;
+		}
+
+		if (Asset->Definition.SpellId != Spec.SpellId)
+		{
+			UE_LOG(LogTemp, Error,
+				TEXT("Production Spell asset '%s' has mismatched SpellId '%s' (expected '%s')."),
+				Spec.ObjectPath,
+				*Asset->Definition.SpellId.ToString(),
+				*Spec.SpellId.ToString());
+			return nullptr;
+		}
+
+		if (Asset->ValidateDefinition() != EGridSpellValidationError::None)
+		{
+			UE_LOG(LogTemp, Error, TEXT("Production Spell asset '%s' has an invalid Definition."), Spec.ObjectPath);
+			return nullptr;
+		}
+
+		if (!Asset->HasValidPresentation())
+		{
+			UE_LOG(LogTemp, Error, TEXT("Production Spell asset '%s' has an invalid Presentation."), Spec.ObjectPath);
+			return nullptr;
+		}
+
+		return Asset;
 	}
 
-	FGridSpellPresentationProfile MakeInstantPresentation()
+	const UGridSpellDefinitionAsset* LoadValidatedAsset(FName SpellId)
 	{
-		FGridSpellPresentationProfile Profile;
-		Profile.Projectile.bEnabled = false;
-		Profile.FeedbackDurationSeconds = 1.25f;
-		return Profile;
+		const FProductionSpellAssetSpec* Spec = FindSpec(SpellId);
+		return Spec ? LoadValidatedAsset(*Spec) : nullptr;
+	}
+
+	FGridSpellDefinition LoadDefinitionOrTechnicalFallback(FName SpellId)
+	{
+		if (const UGridSpellDefinitionAsset* Asset = LoadValidatedAsset(SpellId))
+		{
+			return Asset->Definition;
+		}
+
+		FGridSpellDefinition Fallback;
+		Fallback.SpellId = SpellId;
+		return Fallback;
+	}
+
+	FGridSpellPresentationProfile LoadPresentationOrEmpty(FName SpellId)
+	{
+		if (const UGridSpellDefinitionAsset* Asset = LoadValidatedAsset(SpellId))
+		{
+			return Asset->Presentation;
+		}
+		return FGridSpellPresentationProfile();
 	}
 }
 
 FGridSpellDefinition FGridProductionSpellLibrary::MakeArcaneBolt()
 {
-	FGridSpellDefinition Definition;
-	Definition.SpellId = ArcaneBoltId();
-	Definition.DisplayName = FText::FromString(TEXT("Arcane Bolt"));
-	Definition.Description = FText::FromString(TEXT("A focused bolt of arcane force that damages the first hostile target in line."));
-	Definition.School = EGridSpellSchool::Arcane;
-	Definition.ManaCost = 3;
-	Definition.ActionPointCost = 2;
-	Definition.MinRangeCells = 1;
-	Definition.MaxRangeCells = 5;
-	Definition.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
-	Definition.bRequiresLineOfSight = true;
-	Definition.Effects.Add(MakeMagnitudeEffect(EGridSpellEffectType::Damage, 4));
-	return Definition;
+	return GridProductionSpellLibraryPrivate::LoadDefinitionOrTechnicalFallback(ArcaneBoltId());
 }
 
 FGridSpellDefinition FGridProductionSpellLibrary::MakeLesserHeal()
 {
-	FGridSpellDefinition Definition;
-	Definition.SpellId = LesserHealId();
-	Definition.DisplayName = FText::FromString(TEXT("Lesser Heal"));
-	Definition.Description = FText::FromString(TEXT("Restores a small amount of health to an allied character."));
-	Definition.School = EGridSpellSchool::Life;
-	Definition.ManaCost = 4;
-	Definition.ActionPointCost = 2;
-	Definition.MinRangeCells = 0;
-	Definition.MaxRangeCells = 3;
-	Definition.TargetingPolicy = EGridCombatTargetingPolicy::Ally;
-	Definition.bRequiresLineOfSight = true;
-	Definition.Effects.Add(MakeMagnitudeEffect(EGridSpellEffectType::Heal, 5));
-	return Definition;
+	return GridProductionSpellLibraryPrivate::LoadDefinitionOrTechnicalFallback(LesserHealId());
 }
 
 FGridSpellDefinition FGridProductionSpellLibrary::MakeHaste()
 {
-	FGridSpellDefinition Definition;
-	Definition.SpellId = HasteId();
-	Definition.DisplayName = FText::FromString(TEXT("Haste"));
-	Definition.Description = FText::FromString(TEXT("Applies the canonical MON16 haste status to an allied character."));
-	Definition.School = EGridSpellSchool::Air;
-	Definition.ManaCost = 5;
-	Definition.ActionPointCost = 2;
-	Definition.MinRangeCells = 0;
-	Definition.MaxRangeCells = 3;
-	Definition.TargetingPolicy = EGridCombatTargetingPolicy::Ally;
-	Definition.bRequiresLineOfSight = true;
-	Definition.Effects.Add(MakeStatusEffect(EGridSpellEffectType::ApplyStatusEffect, TEXT("Status_Haste")));
-	return Definition;
+	return GridProductionSpellLibraryPrivate::LoadDefinitionOrTechnicalFallback(HasteId());
 }
 
 FGridSpellDefinition FGridProductionSpellLibrary::MakeCurePoison()
 {
-	FGridSpellDefinition Definition;
-	Definition.SpellId = CurePoisonId();
-	Definition.DisplayName = FText::FromString(TEXT("Cure Poison"));
-	Definition.Description = FText::FromString(TEXT("Removes the canonical poison status from an allied character."));
-	Definition.School = EGridSpellSchool::Life;
-	Definition.ManaCost = 4;
-	Definition.ActionPointCost = 2;
-	Definition.MinRangeCells = 0;
-	Definition.MaxRangeCells = 3;
-	Definition.TargetingPolicy = EGridCombatTargetingPolicy::Ally;
-	Definition.bRequiresLineOfSight = true;
-	Definition.Effects.Add(MakeStatusEffect(EGridSpellEffectType::RemoveStatusEffect, TEXT("Status_Poison")));
-	return Definition;
+	return GridProductionSpellLibraryPrivate::LoadDefinitionOrTechnicalFallback(CurePoisonId());
 }
 
 FGridSpellPresentationProfile FGridProductionSpellLibrary::MakeArcaneBoltPresentation()
 {
-	FGridSpellPresentationProfile Profile;
-	Profile.Projectile.bEnabled = true;
-	Profile.Projectile.TravelDurationSeconds = 0.20f;
-	Profile.Projectile.VisualScale = FVector(0.25f);
-	Profile.FeedbackDurationSeconds = 1.25f;
-	return Profile;
+	return GridProductionSpellLibraryPrivate::LoadPresentationOrEmpty(ArcaneBoltId());
 }
 
 FGridSpellPresentationProfile FGridProductionSpellLibrary::MakeLesserHealPresentation()
 {
-	return MakeInstantPresentation();
+	return GridProductionSpellLibraryPrivate::LoadPresentationOrEmpty(LesserHealId());
 }
 
 FGridSpellPresentationProfile FGridProductionSpellLibrary::MakeHastePresentation()
 {
-	return MakeInstantPresentation();
+	return GridProductionSpellLibraryPrivate::LoadPresentationOrEmpty(HasteId());
 }
 
 FGridSpellPresentationProfile FGridProductionSpellLibrary::MakeCurePoisonPresentation()
 {
-	return MakeInstantPresentation();
+	return GridProductionSpellLibraryPrivate::LoadPresentationOrEmpty(CurePoisonId());
 }
 
-bool FGridProductionSpellLibrary::TryBuildPresentationProfile(FName SpellId, FGridSpellPresentationProfile& OutProfile)
+bool FGridProductionSpellLibrary::TryBuildPresentationProfile(
+	FName SpellId,
+	FGridSpellPresentationProfile& OutProfile)
 {
 	OutProfile = FGridSpellPresentationProfile();
-	if (SpellId == ArcaneBoltId())
+
+	const UGridSpellDefinitionAsset* Asset =
+		GridProductionSpellLibraryPrivate::LoadValidatedAsset(SpellId);
+	if (!Asset)
 	{
-		OutProfile = MakeArcaneBoltPresentation();
-		return true;
+		return false;
 	}
-	if (SpellId == LesserHealId())
-	{
-		OutProfile = MakeLesserHealPresentation();
-		return true;
-	}
-	if (SpellId == HasteId())
-	{
-		OutProfile = MakeHastePresentation();
-		return true;
-	}
-	if (SpellId == CurePoisonId())
-	{
-		OutProfile = MakeCurePoisonPresentation();
-		return true;
-	}
-	return false;
+
+	OutProfile = Asset->Presentation;
+	return true;
 }
 
 void FGridProductionSpellLibrary::BuildAll(TArray<FGridSpellDefinition>& OutDefinitions)
 {
 	OutDefinitions.Reset();
-	OutDefinitions.Add(MakeArcaneBolt());
-	OutDefinitions.Add(MakeLesserHeal());
-	OutDefinitions.Add(MakeHaste());
-	OutDefinitions.Add(MakeCurePoison());
+	OutDefinitions.Reserve(UE_ARRAY_COUNT(GridProductionSpellLibraryPrivate::ProductionSpells));
+
+	for (const GridProductionSpellLibraryPrivate::FProductionSpellAssetSpec& Spec :
+		GridProductionSpellLibraryPrivate::ProductionSpells)
+	{
+		if (const UGridSpellDefinitionAsset* Asset =
+				GridProductionSpellLibraryPrivate::LoadValidatedAsset(Spec))
+		{
+			OutDefinitions.Add(Asset->Definition);
+		}
+	}
 }
