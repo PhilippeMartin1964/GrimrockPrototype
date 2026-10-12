@@ -99,6 +99,28 @@ TEXT05.5 ajoute Grimrock.UI.RPG.CONTENTTEXT05.SpellMaterializationAuthoring.
 
 Le test vérifie quatre seeds, l’identité GridSpell:<SpellId>, l’indépendance vis-à-vis du nom UObject, le bootstrap d’un asset neuf, la reconstruction mécanique, la préservation de DisplayName/Description/Presentation, l’absence de contamination entre SpellId et l’échec explicite sur un DisplayName authored invalide.
 
+## 12 bis. Runner local sécurisé
+
+TEXT05.5A ajoute `Scripts/AuthorGridSpells.ps1` comme garde-fou local.
+
+Le script :
+
+- exige `master` et un working tree propre ;
+- valide `Grimrock.UI.RPG.CONTENTTEXT05` avant authoring ;
+- exécute `-run=GridSpellCatalogAuthoring` via `UnrealEditor-Cmd.exe` ;
+- exige exactement les quatre `DA_Spell_*` attendus sur disque ;
+- refuse tout changement Git supplémentaire ;
+- relance `CONTENTTEXT05` et `MON18.1` après matérialisation ;
+- n’effectue aucun commit ni push automatiquement.
+
+Invocation :
+
+~~~powershell
+.\Scripts\AuthorGridSpells.ps1 -EngineRoot D:\UE_5.5
+~~~
+
+Le commit binaire demeure donc une action explicite après inspection des quatre fichiers générés.
+
 ## 13. Séquence suivante
 
 ~~~text
