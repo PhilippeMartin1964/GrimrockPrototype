@@ -776,7 +776,7 @@ namespace
 		{
 			Line.RemoveFromStart(TEXT("• "));
 			Line.TrimStartAndEndInline();
-			AddDetailLine(Out, TEXT("Effet"), Line);
+			AddDetailLine(Out, TEXT(""), Line);
 		}
 
 		TArray<const FGridCombatActionDefinition*> Actions;

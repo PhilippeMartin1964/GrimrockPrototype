@@ -192,6 +192,12 @@ bool FUIRPGDESC01ActionProjectionTest::RunTest(const FString&)
 
 	const FString Effects = JoinDetailLines(Node.Effects);
 	const FString Usage = JoinDetailLines(Node.Usage);
+	TestFalse(TEXT("Generic EFFETS rows do not repeat the section name"),
+		Node.Effects.ContainsByPredicate(
+			[](const FGridTalentDetailLineView& Line)
+			{
+				return Line.Label.ToString().Equals(TEXT("Effet"), ESearchCase::CaseSensitive);
+			}));
 	const auto HasUsageSemantic = [&Node](EGridTalentDetailLineSemantic Semantic)
 	{
 		return Node.Usage.ContainsByPredicate(
@@ -573,14 +579,14 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	TargetLine.Value = FText::FromString(TEXT("première cible dans l'axe"));
 	UGridTalentDetailLineWidget* LineWidget = NewObject<UGridTalentDetailLineWidget>();
 	TestTrue(TEXT("Unglyphed detail row initializes without Designer bindings"), LineWidget->InitializeLine(TargetLine, nullptr));
-	TestTrue(TEXT("Unglyphed row collapses the separate label"), LineWidget->ResolvedLabelText.IsEmpty());
-	TestEqual(TEXT("Unglyphed row renders compact label and value"),
-		LineWidget->ResolvedValueText.ToString(), FString(TEXT("Cible : première cible dans l'axe")));
+	TestEqual(TEXT("Unglyphed row exposes raw label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
+	TestEqual(TEXT("Unglyphed row exposes raw value content"),
+		LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
 
 	UTexture2D* InlineTargetGlyph = NewObject<UTexture2D>(LineWidget);
 	TestTrue(TEXT("Glyphed detail row reinitializes"), LineWidget->InitializeLine(TargetLine, InlineTargetGlyph));
-	TestEqual(TEXT("Glyphed row keeps presentation label"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible :")));
-	TestEqual(TEXT("Glyphed row keeps canonical value"), LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
+	TestEqual(TEXT("Glyphed row still exposes raw label content"), LineWidget->ResolvedLabelText.ToString(), FString(TEXT("Cible")));
+	TestEqual(TEXT("Glyphed row still exposes raw value content"), LineWidget->ResolvedValueText.ToString(), FString(TEXT("première cible dans l'axe")));
 
 	URPGTalentDetailGlyphSet* GlyphSet = NewObject<URPGTalentDetailGlyphSet>();
 	UTexture2D* CostGlyph = NewObject<UTexture2D>(GlyphSet);
