@@ -826,9 +826,9 @@ Les monstres de production référencent leur catégorie canonique. L'authoring
 `Ennemi juré` découvre toujours dynamiquement les CategoryId réellement présents,
 mais construit les titres depuis `CategoryAsset.DisplayName`.
 
-Le read-model utilise la même autorité pour les lignes EFFETS. `HumanizeId`
-reste uniquement un fallback diagnostic si une catégorie de développement n'a
-pas encore d'asset de présentation.
+Le read-model utilise la même autorité pour les lignes EFFETS. Il ne fabrique plus
+de libellé via `HumanizeId` : sans `DA_MONCAT_*` canonique, la ligne de contexte
+n'est pas affichée.
 
 Catégories de production actuelles :
 

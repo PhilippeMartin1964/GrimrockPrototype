@@ -85,8 +85,9 @@ Cela couvre :
 - les contextes de `CombatModifiers` ;
 - les catégories liées aux `SkillModifiers`.
 
-`HumanizeId` reste un fallback de développement uniquement, jamais l'autorité
-de production.
+Le code actuel ne synthétise plus de libellé de catégorie via `HumanizeId` : si aucun
+`DA_MONCAT_*` canonique n'est résolu, le read-model retourne un texte vide et
+omet cette ligne de contexte.
 
 ## Matérialisation
 

@@ -486,4 +486,139 @@ bool FUIRPGCONTENTTEXT043MonsterCategoryBootstrapOnlyTest::RunTest(const FString
 	return true;
 }
 
+
+/**
+ * UI-RPG-CONTENT-TEXT04.4 closes DA_MONCAT text ownership.
+ *
+ * Production category assets own player-facing text. Ranger authoring may only
+ * preserve serialized text or bootstrap a new record from CategoryId. The
+ * Skills read-model consumes the canonical asset and has no synthesized
+ * player-facing fallback.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGCONTENTTEXT044FinalMonsterCategoryOwnershipAuditTest,
+	"Grimrock.UI.RPG.CONTENTTEXT04.FinalAudit",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT044FinalMonsterCategoryOwnershipAuditTest::RunTest(const FString&)
+{
+	using namespace UIRPGCONTENTTEXT041;
+
+	TArray<FCategoryAuditSpec> Specs;
+	CollectProductionCategorySpecs(Specs);
+
+	int32 AuditedCategoryCount = 0;
+	for (const FCategoryAuditSpec& Spec : Specs)
+	{
+		const UGridMonsterCategoryAsset* Category =
+			UGridMonsterCategoryAsset::ResolveByCategoryId(Spec.CategoryId);
+		if (!TestNotNull(
+				*FString::Printf(TEXT("%s resolves to its canonical production DA_MONCAT"), *Spec.CategoryId.ToString()),
+				Category))
+		{
+			continue;
+		}
+
+		TestEqual(
+			*FString::Printf(TEXT("%s keeps canonical CategoryId"), *Spec.CategoryId.ToString()),
+			Category->CategoryId,
+			Spec.CategoryId);
+		TestTrue(
+			*FString::Printf(TEXT("%s production category remains structurally valid"), *Spec.CategoryId.ToString()),
+			Category->IsValidDefinition());
+		TestFalse(
+			*FString::Printf(TEXT("%s production DisplayName is not the technical CategoryId bootstrap"), *Spec.CategoryId.ToString()),
+			Category->DisplayName.ToString() == Spec.CategoryId.ToString());
+		TestFalse(
+			*FString::Printf(TEXT("%s production DisplayName is not an authoring marker"), *Spec.CategoryId.ToString()),
+			Category->DisplayName.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
+		if (!Category->Description.IsEmpty())
+		{
+			TestFalse(
+				*FString::Printf(TEXT("%s production Description is not an authoring marker"), *Spec.CategoryId.ToString()),
+				Category->Description.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
+		}
+
+		++AuditedCategoryCount;
+	}
+
+	TestEqual(TEXT("Final ownership audit covers both current production DA_MONCAT assets"), AuditedCategoryCount, 2);
+
+	TArray<FRPGRangerFavoredEnemyCategoryDefinition> RangerCategories;
+	FString RangerError;
+	if (TestTrue(
+			TEXT("Ranger production projection still resolves canonical MONCAT presentation"),
+			FRPGRangerAuthoring::CollectProductionFavoredEnemyCategories(RangerCategories, RangerError)))
+	{
+		TestEqual(TEXT("Ranger production projection exposes both current categories"), RangerCategories.Num(), 2);
+		for (const FRPGRangerFavoredEnemyCategoryDefinition& Projection : RangerCategories)
+		{
+			const UGridMonsterCategoryAsset* Category =
+				UGridMonsterCategoryAsset::ResolveByCategoryId(Projection.CategoryId);
+			if (TestNotNull(
+					*FString::Printf(TEXT("%s resolves for final Ranger projection audit"), *Projection.CategoryId.ToString()),
+					Category))
+			{
+				TestEqual(
+					*FString::Printf(TEXT("%s Ranger projection uses serialized DA_MONCAT DisplayName"), *Projection.CategoryId.ToString()),
+					Projection.DisplayName.ToString(),
+					Category->DisplayName.ToString());
+			}
+		}
+	}
+	else if (!RangerError.IsEmpty())
+	{
+		AddError(RangerError);
+	}
+
+	FString RangerAuthoringSource;
+	TestTrue(
+		TEXT("Ranger authoring source loads for final ownership audit"),
+		FFileHelper::LoadFileToString(
+			RangerAuthoringSource,
+			*FPaths::Combine(
+				FPaths::ProjectDir(),
+				TEXT("Source/GrimrockPrototypeEditor/Private/RPG/RPGRangerAuthoring.cpp"))));
+
+	TestFalse(
+		TEXT("Ranger authoring has no monster-category presentation registry"),
+		RangerAuthoringSource.Contains(TEXT("ProductionCategorySpecs")));
+	TestFalse(
+		TEXT("Ranger authoring has no MONCAT player-facing FromString writer"),
+		RangerAuthoringSource.Contains(TEXT("CategoryAsset.DisplayName = FText::FromString(")));
+	TestTrue(
+		TEXT("Ranger authoring retains only CategoryId technical bootstrap"),
+		RangerAuthoringSource.Contains(TEXT("CategoryAsset.DisplayName = FText::FromName(CategoryId);")));
+	TestTrue(
+		TEXT("Ranger authoring preserves serialized DisplayName for matching CategoryId"),
+		RangerAuthoringSource.Contains(TEXT("CategoryAsset.DisplayName = ExistingDisplayName;")));
+
+	FString SkillsPageSource;
+	TestTrue(
+		TEXT("Skills read-model source loads for final MONCAT audit"),
+		FFileHelper::LoadFileToString(
+			SkillsPageSource,
+			*FPaths::Combine(
+				FPaths::ProjectDir(),
+				TEXT("Source/GrimrockPrototype/Private/UI/GridSkillsPageService.cpp"))));
+	TestTrue(
+		TEXT("Skills read-model resolves monster category presentation from DA_MONCAT"),
+		SkillsPageSource.Contains(TEXT("UGridMonsterCategoryAsset::ResolveByCategoryId(CategoryId)")));
+	TestTrue(
+		TEXT("Skills read-model returns empty when canonical category presentation is unavailable"),
+		SkillsPageSource.Contains(TEXT("return FText::GetEmpty();")));
+	TestFalse(
+		TEXT("Skills read-model has no HumanizeId monster-category fallback"),
+		SkillsPageSource.Contains(TEXT("HumanizeId(CategoryId)")));
+
+	UE_LOG(
+		LogTemp,
+		Display,
+		TEXT("[UI-RPG-CONTENT-TEXT04.4][SUMMARY] AuditedCategories=%d RangerProjectionCategories=%d"),
+		AuditedCategoryCount,
+		RangerCategories.Num());
+
+	return true;
+}
+
 #endif
