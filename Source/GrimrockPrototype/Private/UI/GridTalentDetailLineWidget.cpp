@@ -4,6 +4,28 @@
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
 
+namespace
+{
+	FText ResolveNumericValueText(int32 Value, EGridTalentDetailValueStyle Style)
+	{
+		FString Token = FString::FromInt(Value);
+		if (Value > 0 &&
+			(Style == EGridTalentDetailValueStyle::SignedInteger ||
+				Style == EGridTalentDetailValueStyle::SignedPercent))
+		{
+			Token.InsertAt(0, TEXT('+'));
+		}
+
+		if (Style == EGridTalentDetailValueStyle::Percent ||
+			Style == EGridTalentDetailValueStyle::SignedPercent)
+		{
+			Token.AppendChar(TEXT('%'));
+		}
+
+		return FText::FromString(MoveTemp(Token));
+	}
+}
+
 void UGridTalentDetailLineWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -27,18 +49,11 @@ bool UGridTalentDetailLineWidget::InitializeLine(
 	ResolvedLabelText = InResolvedLabelText;
 	ResolvedNumericValue = InLine.NumericValue;
 	ResolvedValueStyle = InLine.ValueStyle;
-	bShowPositiveSign =
-		InLine.bHasNumericValue &&
-		InLine.NumericValue > 0 &&
-		(InLine.ValueStyle == EGridTalentDetailValueStyle::SignedInteger ||
-			InLine.ValueStyle == EGridTalentDetailValueStyle::SignedPercent);
-	bShowPercentUnit =
-		InLine.bHasNumericValue &&
-		(InLine.ValueStyle == EGridTalentDetailValueStyle::Percent ||
-			InLine.ValueStyle == EGridTalentDetailValueStyle::SignedPercent);
+	bShowPositiveSign = false;
+	bShowPercentUnit = false;
 	ResolvedValueText =
 		InLine.bHasNumericValue
-			? FText::AsNumber(InLine.NumericValue)
+			? ResolveNumericValueText(InLine.NumericValue, InLine.ValueStyle)
 			: InResolvedValueText;
 	ResolvedIcon = InIcon;
 	bInitialized = true;

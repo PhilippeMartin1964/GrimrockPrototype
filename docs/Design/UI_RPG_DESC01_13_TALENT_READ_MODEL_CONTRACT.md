@@ -5,6 +5,10 @@
 > conservation provisoire de `FGridTalentEntryView` ont été dépassées.
 > DESC01.17 décrit le résultat final ; UI-RPG-CODE-AUDIT01 a ensuite supprimé
 > la dernière projection Talent plate.
+>
+> **Pour la frontière actuelle texte/localisation vs notation mécanique, voir
+> `UI_RPG_TEXT01_LOCALIZATION_POLICY.md`. Cette politique prévaut sur les
+> formulations historiques de ce document concernant le formatage des valeurs.**
 
 Date : **8 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  

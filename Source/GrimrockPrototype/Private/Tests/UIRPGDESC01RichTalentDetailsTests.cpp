@@ -813,12 +813,40 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	NumericLine.NumericValue = 10;
 	NumericLine.bHasNumericValue = true;
 	NumericLine.ValueStyle = EGridTalentDetailValueStyle::SignedPercent;
-	TestTrue(TEXT("Numeric row initializes without synthetic text value"),
+	TestTrue(TEXT("Signed-percent row initializes from mechanic data"),
 		LineWidget->InitializeLine(NumericLine, nullptr, FText::FromString(TEXT("Bonus")), FText::GetEmpty()));
 	TestEqual(TEXT("Numeric row keeps raw numeric authority"), LineWidget->ResolvedNumericValue, 10);
-	TestEqual(TEXT("Numeric row exposes plain number only"), LineWidget->ResolvedValueText.ToString(), FString(TEXT("10")));
-	TestTrue(TEXT("Positive sign is delegated to UMG"), LineWidget->bShowPositiveSign);
-	TestTrue(TEXT("Percent unit is delegated to UMG"), LineWidget->bShowPercentUnit);
+	TestEqual(TEXT("Signed-percent row renders the complete universal token"),
+		LineWidget->ResolvedValueText.ToString(), FString(TEXT("+10%")));
+	TestFalse(TEXT("UMG does not add a duplicate positive sign"), LineWidget->bShowPositiveSign);
+	TestFalse(TEXT("UMG does not add a duplicate percent unit"), LineWidget->bShowPercentUnit);
+
+	NumericLine.NumericValue = -25;
+	TestTrue(TEXT("Negative signed-percent row reinitializes"),
+		LineWidget->InitializeLine(NumericLine, nullptr, FText::FromString(TEXT("Bonus")), FText::GetEmpty()));
+	TestEqual(TEXT("Negative signed-percent token is complete"),
+		LineWidget->ResolvedValueText.ToString(), FString(TEXT("-25%")));
+
+	NumericLine.NumericValue = 2;
+	NumericLine.ValueStyle = EGridTalentDetailValueStyle::SignedInteger;
+	TestTrue(TEXT("Signed-integer row reinitializes"),
+		LineWidget->InitializeLine(NumericLine, nullptr, FText::FromString(TEXT("Bonus")), FText::GetEmpty()));
+	TestEqual(TEXT("Signed-integer token is complete"),
+		LineWidget->ResolvedValueText.ToString(), FString(TEXT("+2")));
+
+	NumericLine.NumericValue = 25;
+	NumericLine.ValueStyle = EGridTalentDetailValueStyle::Percent;
+	TestTrue(TEXT("Percent row reinitializes"),
+		LineWidget->InitializeLine(NumericLine, nullptr, FText::FromString(TEXT("Bonus")), FText::GetEmpty()));
+	TestEqual(TEXT("Percent token is complete"),
+		LineWidget->ResolvedValueText.ToString(), FString(TEXT("25%")));
+
+	NumericLine.NumericValue = 10;
+	NumericLine.ValueStyle = EGridTalentDetailValueStyle::Integer;
+	TestTrue(TEXT("Integer row reinitializes"),
+		LineWidget->InitializeLine(NumericLine, nullptr, FText::FromString(TEXT("Bonus")), FText::GetEmpty()));
+	TestEqual(TEXT("Integer token stays undecorated"),
+		LineWidget->ResolvedValueText.ToString(), FString(TEXT("10")));
 
 	URPGTalentDetailGlyphSet* GlyphSet = NewObject<URPGTalentDetailGlyphSet>();
 	UTexture2D* CostGlyph = NewObject<UTexture2D>(GlyphSet);

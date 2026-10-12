@@ -111,14 +111,17 @@ struct GRIMROCKPROTOTYPE_API FGridTalentDetailLineView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	FText Value;
 
-	/** Raw numeric authority for numeric rows. No sign or unit is embedded in text. */
+	/** Raw mechanic value for numeric rows. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	int32 NumericValue = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	bool bHasNumericValue = false;
 
-	/** Presentation semantics only. UMG decides how to render sign and unit. */
+	/**
+	 * Universal mechanic notation for NumericValue.
+	 * C++ renders signs and '%' from this semantic; only linguistic wording is localized.
+	 */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	EGridTalentDetailValueStyle ValueStyle = EGridTalentDetailValueStyle::Text;
 };

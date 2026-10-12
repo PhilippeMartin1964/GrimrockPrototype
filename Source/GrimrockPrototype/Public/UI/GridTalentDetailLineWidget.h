@@ -31,11 +31,14 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")
 	EGridTalentDetailValueStyle ResolvedValueStyle = EGridTalentDetailValueStyle::Text;
 
-	/** UMG may show a static '+' TextBlock when true. */
+	/**
+	 * Kept false so existing Blueprint bindings cannot duplicate the sign now embedded in ResolvedValueText.
+	 * Remove the corresponding optional UMG fragments when the Blueprint is next cleaned up.
+	 */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")
 	bool bShowPositiveSign = false;
 
-	/** UMG may show a static '%' TextBlock when true. */
+	/** Same migration guard for the '%' fragment; ResolvedValueText already contains the full numeric token. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|Detail|Line")
 	bool bShowPercentUnit = false;
 
