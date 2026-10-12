@@ -687,15 +687,13 @@ bool FUIRPGDESC014StructuredReadModelTest::RunTest(const FString&)
 	TestTrue(TEXT("Structured UTILISATION is present"), !Node.Usage.IsEmpty());
 
 	FRPGClassProgressionChoiceDefinition& Choice = ClassDefinition->ProgressionChoices[0];
-	Choice.ExclusiveChoiceGroupId = TEXT("TalentGroup_DESC01");
 	Choice.GrantedRequirementIds.Add(TEXT("Recipe_Bomb_Fire"));
 	FGridSkillsPageView UpdatedView;
 	TestTrue(TEXT("Acquisition text identities reproject"),
 		FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, UpdatedView));
 	const FGridTalentNodeView& UpdatedNode = UpdatedView.TalentTree.Branches[0].Nodes[0];
-	TestEqual(TEXT("Exclusive acquisition uses a stable text id"),
-		UpdatedNode.Acquisition.ExclusivityTextId,
-		FName(TEXT("Talent.Acquisition.Exclusivity.SingleVariant")));
+	TestTrue(TEXT("Simple Talent has no exclusivity presentation"),
+		UpdatedNode.Acquisition.ExclusivityTextId.IsNone());
 	TestTrue(TEXT("Recipe acquisition uses a stable text id"),
 		UpdatedNode.Acquisition.GrantedRecipeTextIds.Contains(
 			TEXT("Talent.Recipe.Recipe_Bomb_Fire")));
@@ -735,6 +733,9 @@ bool FUIRPGDESC014VariantTypeContractTest::RunTest(const FString&)
 	TestTrue(TEXT("Node is explicitly a true exclusive-variant node"), Node.bHasExclusiveVariants);
 	TestEqual(TEXT("Both variants remain projected"), Node.Variants.Num(), 2);
 	TestEqual(TEXT("Node TYPE stays PASSIF"), Node.Type, ERPGTalentPresentationType::Passive);
+	TestEqual(TEXT("True variant node exposes the exclusivity text identity"),
+		Node.Acquisition.ExclusivityTextId,
+		FName(TEXT("Talent.Acquisition.Exclusivity.SingleVariant")));
 	for (const FGridTalentVariantView& Variant : Node.Variants)
 	{
 		TestEqual(TEXT("Variant TYPE matches node TYPE"), Variant.Type, Node.Type);
