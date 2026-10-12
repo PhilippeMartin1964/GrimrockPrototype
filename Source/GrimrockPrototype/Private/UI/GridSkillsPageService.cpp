@@ -748,39 +748,14 @@ namespace
 		return FText::GetEmpty();
 	}
 
-	FText RecipeDisplayName(FName RecipeId)
+	FName RecipeTextId(FName RecipeId)
 	{
-		if (RecipeId == TEXT("Recipe_Bomb_Fire"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeBombFire", "Bombe incendiaire");
-		if (RecipeId == TEXT("Recipe_Bomb_Toxic"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeBombToxic", "Bombe toxique");
-		if (RecipeId == TEXT("Recipe_Antidote"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeAntidote", "Antidote");
-		if (RecipeId == TEXT("Recipe_DefensiveElixir_Fire"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeDefensiveElixirFire", "Élixir défensif — Feu");
-		if (RecipeId == TEXT("Recipe_DefensiveElixir_Ice"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeDefensiveElixirIce", "Élixir défensif — Glace");
-		if (RecipeId == TEXT("Recipe_DefensiveElixir_Lightning"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeDefensiveElixirLightning", "Élixir défensif — Foudre");
-		if (RecipeId == TEXT("Recipe_DefensiveElixir_Poison"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeDefensiveElixirPoison", "Élixir défensif — Poison");
-		if (RecipeId == TEXT("Recipe_Panacea"))
-			return NSLOCTEXT("GridSkillsPage", "RecipePanacea", "Panacée");
-		if (RecipeId == TEXT("Recipe_Flask_Oil"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeFlaskOil", "Flasque d'huile");
-		if (RecipeId == TEXT("Recipe_Flask_Acid"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeFlaskAcid", "Flasque acide");
-		if (RecipeId == TEXT("Recipe_Flask_CorrosiveCloud"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeFlaskCorrosiveCloud", "Flasque de nuage corrosif");
-		if (RecipeId == TEXT("Recipe_MajorTransmutation_Fire"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeMajorTransmutationFire", "Transmutation majeure — Feu");
-		if (RecipeId == TEXT("Recipe_MajorTransmutation_Ice"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeMajorTransmutationIce", "Transmutation majeure — Glace");
-		if (RecipeId == TEXT("Recipe_MajorTransmutation_Poison"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeMajorTransmutationPoison", "Transmutation majeure — Poison");
-		if (RecipeId == TEXT("Recipe_MajorTransmutation_Oil"))
-			return NSLOCTEXT("GridSkillsPage", "RecipeMajorTransmutationOil", "Transmutation majeure — Huile");
-		return FText::GetEmpty();
+		if (RecipeId.IsNone() ||
+			!RecipeId.ToString().StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive))
+		{
+			return NAME_None;
+		}
+		return FName(*(FString(TEXT("Talent.Recipe.")) + RecipeId.ToString()));
 	}
 
 	void BuildAcquisitionView(
@@ -805,19 +780,15 @@ namespace
 		}
 		for (const FName Id : Choice.GrantedRequirementIds)
 		{
-			if (!Id.ToString().StartsWith(TEXT("Recipe_"), ESearchCase::CaseSensitive))
+			const FName TextId = RecipeTextId(Id);
+			if (!TextId.IsNone())
 			{
-				continue;
-			}
-			const FText RecipeName = RecipeDisplayName(Id);
-			if (!RecipeName.IsEmpty())
-			{
-				Out.GrantedRecipeNames.Add(RecipeName);
+				Out.GrantedRecipeTextIds.AddUnique(TextId);
 			}
 		}
 		if (bExclusiveVariant)
 		{
-			Out.ExclusivityText = FText::FromString(TEXT("Une seule variante peut être acquise."));
+			Out.ExclusivityTextId = TEXT("Talent.Acquisition.Exclusivity.SingleVariant");
 		}
 	}
 

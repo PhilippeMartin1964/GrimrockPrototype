@@ -9,6 +9,7 @@
 #include "UI/GridTalentDetailWidget.h"
 #include "UI/GridTalentVariantBlockWidget.h"
 #include "UI/RPGTalentPresentationAsset.h"
+#include "UI/RPGTalentDetailTextSet.h"
 
 namespace UIRPGDESC016QA
 {
@@ -347,10 +348,18 @@ bool FUIRPGDESC016PlayerFacingLanguageTest::RunTest(const FString&)
 				{
 					ValidatePlayerFacingText(*this, Context + TEXT("/Prerequisite"), Name);
 				}
-				ValidatePlayerFacingText(*this, Context + TEXT("/Exclusivity"), Node.Acquisition.ExclusivityText);
-				for (const FText& RecipeName : Node.Acquisition.GrantedRecipeNames)
+				if (Node.bHasExclusiveVariants)
 				{
-					ValidatePlayerFacingText(*this, Context + TEXT("/Recipe"), RecipeName);
+					TestEqual(
+						*FString::Printf(TEXT("%s exclusivity uses stable text identity"), *Context),
+						Node.Acquisition.ExclusivityTextId,
+						FName(TEXT("Talent.Acquisition.Exclusivity.SingleVariant")));
+				}
+				for (const FName RecipeTextId : Node.Acquisition.GrantedRecipeTextIds)
+				{
+					TestTrue(
+						*FString::Printf(TEXT("%s recipe uses Talent.Recipe text identity"), *Context),
+						RecipeTextId.ToString().StartsWith(TEXT("Talent.Recipe.Recipe_"), ESearchCase::CaseSensitive));
 				}
 
 				if (Node.Type == ERPGTalentPresentationType::AutomaticReaction)
@@ -505,6 +514,14 @@ bool FUIRPGDESC016CanonicalRecipeDisplayNamesTest::RunTest(const FString&)
 		} }
 	};
 
+	const URPGTalentDetailTextSet* TextSet = LoadObject<URPGTalentDetailTextSet>(
+		nullptr,
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet"));
+	if (!TestNotNull(TEXT("Production Talent detail text set loads for recipe audit"), TextSet))
+	{
+		return false;
+	}
+
 	int32 TotalGrantedRecipeIds = 0;
 	int32 TotalProjectedRecipeNames = 0;
 
@@ -541,27 +558,28 @@ bool FUIRPGDESC016CanonicalRecipeDisplayNamesTest::RunTest(const FString&)
 		{
 			for (const FGridTalentNodeView& Node : Branch.Nodes)
 			{
-				TotalProjectedRecipeNames += Node.Acquisition.GrantedRecipeNames.Num();
-				for (const FText& RecipeName : Node.Acquisition.GrantedRecipeNames)
-				{
-					ValidatePlayerFacingText(
-						*this,
-						FString::Printf(TEXT("%s/%s/Recipe"), *Spec.ClassId.ToString(), *Node.TalentNodeId.ToString()),
-						RecipeName);
-				}
+				TotalProjectedRecipeNames += Node.Acquisition.GrantedRecipeTextIds.Num();
 
 				if (const TArray<FString>* ExpectedNames = ExpectedByTalent.Find(Node.TalentNodeId))
 				{
 					TestEqual(
 						*FString::Printf(TEXT("%s has exact canonical recipe count"), *Node.TalentNodeId.ToString()),
-						Node.Acquisition.GrantedRecipeNames.Num(),
+						Node.Acquisition.GrantedRecipeTextIds.Num(),
 						ExpectedNames->Num());
 
-					for (int32 Index = 0; Index < ExpectedNames->Num() && Index < Node.Acquisition.GrantedRecipeNames.Num(); ++Index)
+					for (int32 Index = 0;
+						Index < ExpectedNames->Num() && Index < Node.Acquisition.GrantedRecipeTextIds.Num();
+						++Index)
 					{
+						const FName RecipeTextId = Node.Acquisition.GrantedRecipeTextIds[Index];
+						const FText RecipeName = TextSet->ResolveText(RecipeTextId);
+						ValidatePlayerFacingText(
+							*this,
+							FString::Printf(TEXT("%s/%s/Recipe"), *Spec.ClassId.ToString(), *Node.TalentNodeId.ToString()),
+							RecipeName);
 						TestEqual(
-							*FString::Printf(TEXT("%s recipe %d has canonical French name"), *Node.TalentNodeId.ToString(), Index),
-							Node.Acquisition.GrantedRecipeNames[Index].ToString(),
+							*FString::Printf(TEXT("%s recipe %d has canonical French localization"), *Node.TalentNodeId.ToString(), Index),
+							RecipeName.ToString(),
 							(*ExpectedNames)[Index]);
 					}
 				}
@@ -569,7 +587,7 @@ bool FUIRPGDESC016CanonicalRecipeDisplayNamesTest::RunTest(const FString&)
 				{
 					TestTrue(
 						*FString::Printf(TEXT("%s has no unexpected recipe presentation"), *Node.TalentNodeId.ToString()),
-						Node.Acquisition.GrantedRecipeNames.IsEmpty());
+						Node.Acquisition.GrantedRecipeTextIds.IsEmpty());
 				}
 			}
 		}

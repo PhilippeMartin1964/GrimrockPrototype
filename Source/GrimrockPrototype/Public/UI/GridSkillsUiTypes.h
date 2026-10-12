@@ -140,12 +140,13 @@ struct GRIMROCKPROTOTYPE_API FGridTalentAcquisitionView
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
 	TArray<FText> PrerequisiteTalentNames;
 
+	/** Stable localizable text key for the exclusivity rule, empty when not applicable. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	FText ExclusivityText;
+	FName ExclusivityTextId = NAME_None;
 
-	/** Populated only when a real recipe display-name authority exists. Raw Recipe_* ids are never shown. */
+	/** Stable localizable recipe-name keys. Raw Recipe_* ids are never shown to the player. */
 	UPROPERTY(BlueprintReadOnly, Category = "RPG|Talents|UI")
-	TArray<FText> GrantedRecipeNames;
+	TArray<FName> GrantedRecipeTextIds;
 };
 
 USTRUCT(BlueprintType)

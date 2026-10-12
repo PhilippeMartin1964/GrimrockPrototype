@@ -630,7 +630,26 @@ bool FUIRPGDESC01PresentationTextAuthorityTest::RunTest(const FString&)
 		FName(TEXT("Talent.Variant.Acquired")),
 		FName(TEXT("Talent.Variant.Pending")),
 		FName(TEXT("Talent.Variant.Choose")),
-		FName(TEXT("Talent.Variant.Unavailable"))
+		FName(TEXT("Talent.Variant.Unavailable")),
+		FName(TEXT("Talent.Acquisition.Exclusivity.SingleVariant")),
+		FName(TEXT("Talent.Acquisition.Prompt.ConfirmTalent")),
+		FName(TEXT("Talent.Acquisition.Prompt.ConfirmVariant")),
+		FName(TEXT("Talent.Acquisition.Prompt.ChooseVariant")),
+		FName(TEXT("Talent.Recipe.Recipe_Bomb_Fire")),
+		FName(TEXT("Talent.Recipe.Recipe_Bomb_Toxic")),
+		FName(TEXT("Talent.Recipe.Recipe_Antidote")),
+		FName(TEXT("Talent.Recipe.Recipe_DefensiveElixir_Fire")),
+		FName(TEXT("Talent.Recipe.Recipe_DefensiveElixir_Ice")),
+		FName(TEXT("Talent.Recipe.Recipe_DefensiveElixir_Lightning")),
+		FName(TEXT("Talent.Recipe.Recipe_DefensiveElixir_Poison")),
+		FName(TEXT("Talent.Recipe.Recipe_Panacea")),
+		FName(TEXT("Talent.Recipe.Recipe_Flask_Oil")),
+		FName(TEXT("Talent.Recipe.Recipe_Flask_Acid")),
+		FName(TEXT("Talent.Recipe.Recipe_Flask_CorrosiveCloud")),
+		FName(TEXT("Talent.Recipe.Recipe_MajorTransmutation_Fire")),
+		FName(TEXT("Talent.Recipe.Recipe_MajorTransmutation_Ice")),
+		FName(TEXT("Talent.Recipe.Recipe_MajorTransmutation_Poison")),
+		FName(TEXT("Talent.Recipe.Recipe_MajorTransmutation_Oil"))
 	})
 	{
 		TestFalse(
@@ -666,6 +685,20 @@ bool FUIRPGDESC014StructuredReadModelTest::RunTest(const FString&)
 	TestTrue(TEXT("Simple Talent has no Variants payload"), Node.Variants.IsEmpty());
 	TestTrue(TEXT("Structured EFFETS are present"), !Node.Effects.IsEmpty());
 	TestTrue(TEXT("Structured UTILISATION is present"), !Node.Usage.IsEmpty());
+
+	FRPGClassProgressionChoiceDefinition& Choice = ClassDefinition->ProgressionChoices[0];
+	Choice.ExclusiveChoiceGroupId = TEXT("TalentGroup_DESC01");
+	Choice.GrantedRequirementIds.Add(TEXT("Recipe_Bomb_Fire"));
+	FGridSkillsPageView UpdatedView;
+	TestTrue(TEXT("Acquisition text identities reproject"),
+		FGridSkillsPageService::TryBuildCharacterView(Component, 0, {}, UpdatedView));
+	const FGridTalentNodeView& UpdatedNode = UpdatedView.TalentTree.Branches[0].Nodes[0];
+	TestEqual(TEXT("Exclusive acquisition uses a stable text id"),
+		UpdatedNode.Acquisition.ExclusivityTextId,
+		FName(TEXT("Talent.Acquisition.Exclusivity.SingleVariant")));
+	TestTrue(TEXT("Recipe acquisition uses a stable text id"),
+		UpdatedNode.Acquisition.GrantedRecipeTextIds.Contains(
+			TEXT("Talent.Recipe.Recipe_Bomb_Fire")));
 	return true;
 }
 
@@ -727,7 +760,7 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	Node.Acquisition.MinimumLevel = 3;
 	Node.Acquisition.PointCost = 2;
 	Node.Acquisition.PrerequisiteTalentNames.Add(FText::FromString(TEXT("Précurseur")));
-	Node.Acquisition.ExclusivityText = FText::FromString(TEXT("Exclusif avec une autre voie."));
+	Node.Acquisition.ExclusivityTextId = TEXT("Test.Acquisition.Exclusivity");
 
 	FGridTalentDetailLineView Effect;
 	Effect.LabelTextId = TEXT("Test.Effect.Damage");
@@ -763,8 +796,8 @@ bool FUIRPGDESC01152AStaticSectionsTest::RunTest(const FString&)
 	TestTrue(TEXT("ACQUISITION keeps resolved prerequisite name"),
 		Detail->NodeView.Acquisition.PrerequisiteTalentNames.ContainsByPredicate(
 			[](const FText& Value) { return Value.ToString() == TEXT("Précurseur"); }));
-	TestEqual(TEXT("ACQUISITION keeps exclusivity text"),
-		Detail->NodeView.Acquisition.ExclusivityText.ToString(), FString(TEXT("Exclusif avec une autre voie.")));
+	TestEqual(TEXT("ACQUISITION keeps exclusivity text identity"),
+		Detail->NodeView.Acquisition.ExclusivityTextId, FName(TEXT("Test.Acquisition.Exclusivity")));
 
 	FGridTalentDetailLineView TargetLine;
 	TargetLine.Semantic = EGridTalentDetailLineSemantic::Target;

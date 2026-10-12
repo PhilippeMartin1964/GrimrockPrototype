@@ -175,15 +175,15 @@ FGridTalentAcquisitionView
     MinimumLevel
     PointCost
     PrerequisiteTalentNames[]
-    ExclusivityText
-    GrantedRecipeNames[]
+    ExclusivityTextId
+    GrantedRecipeTextIds[]
 ~~~
 
 Le read-model conserve aussi les identités internes nécessaires aux commandes d'acquisition, mais elles ne sont jamais rendues comme texte.
 
 Les prérequis viennent des vraies autorités : PrerequisiteChoiceIds, PrerequisiteRequirementIds et alias conceptuels accordés par les variantes. PreviousNodeDisplayName peut rester temporairement pour compatibilité, mais ne doit plus être l'autorité de la section ACQUISITION.
 
-Les Recipe_* peuvent rester comme identités internes. Il est interdit de fabriquer un nom joueur par HumanizeId(Recipe_*). Tant qu'un catalogue Crafting autoritaire n'existe pas, une recette sans autorité de DisplayName n'est pas inventée par l'UI.
+Les Recipe_* restent des identités internes. L'UI ne fabrique jamais de nom joueur par HumanizeId(Recipe_*). UI-RPG-TEXT01 utilise des clés stables Talent.Recipe.Recipe_* résolues par URPGTalentDetailTextSet jusqu'à l'existence éventuelle d'un catalogue Crafting possédant ses propres DisplayName.
 
 ## 9. Variantes
 

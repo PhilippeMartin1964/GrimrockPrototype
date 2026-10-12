@@ -522,31 +522,37 @@ void UGridTalentDetailWidget::BuildAcquisitionLines(
 		}
 	}
 
-	if (!NodeView.Acquisition.ExclusivityText.IsEmpty())
+	auto AddTextIdLine = [&OutLines](
+		EGridTalentDetailLineSemantic Semantic,
+		FName LabelTextId,
+		FName ValueTextId)
 	{
-		AddLine(
-			EGridTalentDetailLineSemantic::Exclusivity,
-			NAME_None,
-			NodeView.Acquisition.ExclusivityText);
-	}
+		if (ValueTextId.IsNone())
+		{
+			return;
+		}
+		FGridTalentDetailLineView Line;
+		Line.Semantic = Semantic;
+		Line.LabelTextId = LabelTextId;
+		Line.ValueTextId = ValueTextId;
+		OutLines.Add(MoveTemp(Line));
+	};
 
-	if (!NodeView.Acquisition.GrantedRecipeNames.IsEmpty())
+	AddTextIdLine(
+		EGridTalentDetailLineSemantic::Exclusivity,
+		NAME_None,
+		NodeView.Acquisition.ExclusivityTextId);
+
+	const int32 RecipeCount = NodeView.Acquisition.GrantedRecipeTextIds.Num();
+	for (int32 RecipeIndex = 0; RecipeIndex < RecipeCount; ++RecipeIndex)
 	{
-		TArray<FString> Recipes;
-		for (const FText& Recipe : NodeView.Acquisition.GrantedRecipeNames)
-		{
-			if (!Recipe.IsEmpty())
-			{
-				Recipes.Add(Recipe.ToString());
-			}
-		}
-		if (!Recipes.IsEmpty())
-		{
-			AddLine(
-				EGridTalentDetailLineSemantic::Recipe,
-				Recipes.Num() > 1 ? TEXT("Talent.Detail.Recipes") : TEXT("Talent.Detail.Recipe"),
-				FText::FromString(FString::Join(Recipes, TEXT(", "))));
-		}
+		const FName LabelTextId = RecipeIndex == 0
+			? (RecipeCount > 1 ? FName(TEXT("Talent.Detail.Recipes")) : FName(TEXT("Talent.Detail.Recipe")))
+			: NAME_None;
+		AddTextIdLine(
+			EGridTalentDetailLineSemantic::Recipe,
+			LabelTextId,
+			NodeView.Acquisition.GrantedRecipeTextIds[RecipeIndex]);
 	}
 }
 
@@ -684,9 +690,13 @@ void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 		FText Prompt = FText::GetEmpty();
 		if (bAcquireConfirmationPending)
 		{
-			Prompt = FText::Format(
-				NSLOCTEXT("GridTalentDetail", "ConfirmAcquirePrompt", "Confirmer l’acquisition de « {0} » ?"),
-				ResolvedDisplayName);
+			const FText Template = DetailTextSet
+				? DetailTextSet->ResolveText(TEXT("Talent.Acquisition.Prompt.ConfirmTalent"))
+				: FText::GetEmpty();
+			if (!Template.IsEmpty())
+			{
+				Prompt = FText::Format(Template, ResolvedDisplayName);
+			}
 		}
 		else if (bVariantSelectionPending)
 		{
@@ -694,16 +704,23 @@ void UGridTalentDetailWidget::ApplyAcquisitionPresentation()
 			if (!SelectedVariantChoiceId.IsNone() &&
 				GetVariantDisplayLabel(SelectedVariantChoiceId, SelectedLabel))
 			{
-				Prompt = FText::Format(
-					NSLOCTEXT("GridTalentDetail", "ConfirmVariantPrompt", "Confirmer « {0} » pour « {1} » ?"),
-					SelectedLabel,
-					ResolvedDisplayName);
+				const FText Template = DetailTextSet
+					? DetailTextSet->ResolveText(TEXT("Talent.Acquisition.Prompt.ConfirmVariant"))
+					: FText::GetEmpty();
+				if (!Template.IsEmpty())
+				{
+					Prompt = FText::Format(Template, SelectedLabel, ResolvedDisplayName);
+				}
 			}
 			else
 			{
-				Prompt = FText::Format(
-					NSLOCTEXT("GridTalentDetail", "ChooseVariantPrompt", "Choisissez une variante pour « {0} »."),
-					ResolvedDisplayName);
+				const FText Template = DetailTextSet
+					? DetailTextSet->ResolveText(TEXT("Talent.Acquisition.Prompt.ChooseVariant"))
+					: FText::GetEmpty();
+				if (!Template.IsEmpty())
+				{
+					Prompt = FText::Format(Template, ResolvedDisplayName);
+				}
 			}
 		}
 		Text_AcquirePrompt->SetText(Prompt);

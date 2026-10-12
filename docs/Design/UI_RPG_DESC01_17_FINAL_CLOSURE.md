@@ -118,13 +118,13 @@ DESC01.16.4B fixe la règle suivante :
 > Un ID `Recipe_*` est une identité gameplay et n'est jamais une source de nom
 > joueur.
 
-Les 15 recettes de production de l'Alchimiste sont projetées sous des noms
-canoniques français via `GrantedRecipeNames` dans ACQUISITION. Elles sont
-réparties sur 9 Talents.
+Les 15 recettes de production de l'Alchimiste sont projetées dans ACQUISITION
+via des clés stables `GrantedRecipeTextIds`. Elles sont réparties sur 9
+Talents.
 
-La projection courante utilise des clés `NSLOCTEXT` stables pour ces noms de
-recettes. Cela prépare une future localisation sans créer maintenant un nouveau
-système transversal.
+Depuis UI-RPG-TEXT01, le service ne contient plus les noms français des recettes.
+Un identifiant `Recipe_*` devient une clé `Talent.Recipe.Recipe_*`, résolue
+par `URPGTalentDetailTextSet`.
 
 ## 7. Architecture finale
 

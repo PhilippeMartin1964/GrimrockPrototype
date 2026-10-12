@@ -119,3 +119,28 @@ Lorsqu'un texte est audité, poser une seule question :
 
 Aucun ticket ne doit déplacer un nombre, `+`, `-` ou `%` vers UMG dans le
 but de localisation.
+
+
+## 7. Acquisition, confirmations et recettes
+
+Les phrases de confirmation d'acquisition, les règles d'exclusivité et les noms
+de recettes sont du langage humain et suivent donc la même règle de
+localisation.
+
+Le C++ peut conserver les identités et effectuer le `FText::Format` avec des
+valeurs dynamiques, mais le modèle de phrase vient de
+`URPGTalentDetailTextSet`.
+
+Clés canoniques :
+
+~~~text
+Talent.Acquisition.Exclusivity.SingleVariant
+Talent.Acquisition.Prompt.ConfirmTalent
+Talent.Acquisition.Prompt.ConfirmVariant
+Talent.Acquisition.Prompt.ChooseVariant
+Talent.Recipe.Recipe_*
+~~~
+
+Un `Recipe_*` n'est jamais humanisé en français par le code. Il est converti
+en clé stable `Talent.Recipe.Recipe_*`, puis résolu par le Data Asset de
+texte.
