@@ -36,4 +36,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "RPG|Talents|Detail|Text")
 	FText ResolveText(FName TextId) const;
+
+	/** Canonical production asset used by the runtime Talent presentation pipeline. */
+	static const URPGTalentDetailTextSet* LoadProduction();
+
+	/** Resolves one production Talent UI text identity. No C++ wording fallback. */
+	static FText ResolveProductionText(FName TextId);
 };

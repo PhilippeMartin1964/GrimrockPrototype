@@ -39,3 +39,21 @@ FText URPGTalentDetailTextSet::ResolveText(FName TextId) const
 		});
 	return Found ? Found->Text : FText::GetEmpty();
 }
+
+
+namespace
+{
+	const TCHAR* ProductionTalentDetailTextSetPath =
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet");
+}
+
+const URPGTalentDetailTextSet* URPGTalentDetailTextSet::LoadProduction()
+{
+	return LoadObject<URPGTalentDetailTextSet>(nullptr, ProductionTalentDetailTextSetPath);
+}
+
+FText URPGTalentDetailTextSet::ResolveProductionText(FName TextId)
+{
+	const URPGTalentDetailTextSet* TextSet = LoadProduction();
+	return TextSet ? TextSet->ResolveText(TextId) : FText::GetEmpty();
+}

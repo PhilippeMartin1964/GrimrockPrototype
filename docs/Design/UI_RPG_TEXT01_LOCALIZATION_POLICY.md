@@ -192,3 +192,38 @@ Contrat vérifié :
 Cette couverture complète l'audit de langue existant : le C++ conserve les
 valeurs mécaniques et leur notation universelle, tandis que le Data Asset reste
 l'autorité de tout libellé dépendant de la langue.
+
+
+## 10. TEXT01.10 — audit final et fermeture
+
+L'audit final retire les derniers textes français du **pipeline de présentation
+runtime des Talents** qui étaient encore codés dans :
+
+- `GridTalentNodeWidget.cpp` : état compact du nœud et format de niveau ;
+- `GridSkillsWidget.cpp` : en-tête de l'écran Compétences/Talents et compteur
+  de points ;
+- la partie **Talent** de `RPGProgressionFeedbackService.cpp` : refus,
+  succès et notifications d'acquisition.
+
+Ces surfaces utilisent désormais elles aussi
+`DA_RPGTalentDetailTextSet`. Le C++ ne fournit que des identités de texte,
+des valeurs dynamiques et la notation mécanique.
+
+### Limite explicite de la fermeture
+
+TEXT01 est fermé pour le **runtime Talent presentation/read-model**. Cette
+fermeture ne signifie pas « zéro français dans tout le dépôt ».
+
+Deux corpus restent volontairement hors de TEXT01 :
+
+1. `Source/GrimrockPrototypeEditor/Private/RPG/RPG*Authoring.cpp` contient
+   encore les noms, principes et descriptions de contenu des classes/Talents/
+   actions. Ce sont des **contenus gameplay authorés**, pas le vocabulaire
+   générique de présentation traité par TEXT01. Une localisation complète du
+   jeu devra migrer ce corpus dans un chantier de localisation de contenu.
+2. Les messages de progression **Compétences / Attributs / montée de niveau**
+   encore présents dans `RPGProgressionFeedbackService.cpp` ne font pas partie
+   du pipeline Talent et ne sont pas couverts par TEXT01.
+
+Ainsi, la fermeture TEXT01 est précise : aucune prétention n'est faite à une
+localisation globale du projet.

@@ -4,6 +4,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
+#include "UI/RPGTalentDetailTextSet.h"
 
 namespace GridTalentNodeWidgetPrivate
 {
@@ -20,17 +21,17 @@ namespace GridTalentNodeWidgetPrivate
 		}
 	}
 
-	FText StateText(EGridTalentNodeState State)
+	FName StateTextId(EGridTalentNodeState State)
 	{
 		switch (State)
 		{
-			case EGridTalentNodeState::Acquired: return FText::FromString(TEXT("Acquis"));
-			case EGridTalentNodeState::Available: return FText::FromString(TEXT("Disponible"));
-			case EGridTalentNodeState::LockedLevel: return FText::FromString(TEXT("Niveau"));
-			case EGridTalentNodeState::LockedPrerequisite: return FText::FromString(TEXT("Prérequis"));
-			case EGridTalentNodeState::LockedPoints: return FText::FromString(TEXT("Points"));
-			case EGridTalentNodeState::LockedExclusive: return FText::FromString(TEXT("Exclusif"));
-			default: return FText::GetEmpty();
+			case EGridTalentNodeState::Acquired: return TEXT("Talent.Node.State.Acquired");
+			case EGridTalentNodeState::Available: return TEXT("Talent.Node.State.Available");
+			case EGridTalentNodeState::LockedLevel: return TEXT("Talent.Node.State.LockedLevel");
+			case EGridTalentNodeState::LockedPrerequisite: return TEXT("Talent.Node.State.LockedPrerequisite");
+			case EGridTalentNodeState::LockedPoints: return TEXT("Talent.Node.State.LockedPoints");
+			case EGridTalentNodeState::LockedExclusive: return TEXT("Talent.Node.State.LockedExclusive");
+			default: return NAME_None;
 		}
 	}
 
@@ -153,11 +154,17 @@ void UGridTalentNodeWidget::ApplyNodePresentation()
 	if (Text_TalentName) Text_TalentName->SetText(ResolvedDisplayName);
 	if (Text_TalentLevel)
 	{
-		Text_TalentLevel->SetText(FText::FromString(FString::Printf(TEXT("Niv. %d"), NodeView.MinimumLevel)));
+		const FText LevelFormat =
+			URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Node.LevelFormat"));
+		Text_TalentLevel->SetText(
+			LevelFormat.IsEmpty()
+				? FText::GetEmpty()
+				: FText::Format(LevelFormat, FText::AsNumber(NodeView.MinimumLevel)));
 	}
 	if (Text_TalentState)
 	{
-		Text_TalentState->SetText(StateText(NodeView.State));
+		Text_TalentState->SetText(
+			URPGTalentDetailTextSet::ResolveProductionText(StateTextId(NodeView.State)));
 		Text_TalentState->SetColorAndOpacity(FSlateColor(NodeStateTextColor(NodeView.State)));
 	}
 	if (Text_VariantCount)

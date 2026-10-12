@@ -21,6 +21,7 @@
 #include "UI/GridTalentNodeWidget.h"
 #include "UI/GridRPGNotificationWidget.h"
 #include "UI/RPGProgressionFeedbackService.h"
+#include "UI/RPGTalentDetailTextSet.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridSkillsUI, Log, All);
 
@@ -381,7 +382,7 @@ bool UGridSkillsWidget::GetSelectedTalentNode(FGridTalentNodeView& OutNode) cons
 
 bool UGridSkillsWidget::CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFeedback)
 {
-	OutFeedback = FText::FromString(TEXT("Acquisition impossible."));
+	OutFeedback = FText::GetEmpty();
 
 	FGridTalentNodeView SelectedNode;
 	if (!IsValid(InventoryComponent) ||
@@ -561,12 +562,21 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 
 	if (!View.IsValid())
 	{
-		Text_CharacterName->SetText(FText::FromString(TEXT("Aucun personnage sélectionné")));
+		Text_CharacterName->SetText(
+			URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Screen.NoCharacterSelected")));
 		Text_ClassLevel->SetText(FText::GetEmpty());
-		Text_TalentPoints->SetText(FText::FromString(TEXT("Points de talent : —")));
+
+		const FText TalentPointsFormat =
+			URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Screen.TalentPointsFormat"));
+		Text_TalentPoints->SetText(
+			TalentPointsFormat.IsEmpty()
+				? FText::GetEmpty()
+				: FText::Format(TalentPointsFormat, FText::FromString(TEXT("—"))));
+
 		if (Text_SkillPoints)
 		{
-			Text_SkillPoints->SetText(FText::FromString(TEXT("Points de compétence : —")));
+			Text_SkillPoints->SetText(
+				URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Screen.SkillPointsUnavailable")));
 		}
 
 		Branch_Left->ClearTalentBranch();
@@ -576,22 +586,37 @@ void UGridSkillsWidget::ApplyDesignerPresentation()
 	}
 
 	Text_CharacterName->SetText(
-		View.CharacterName.IsEmpty() ? FText::FromString(TEXT("Personnage sélectionné")) : View.CharacterName);
+		View.CharacterName.IsEmpty()
+			? URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Screen.SelectedCharacterFallback"))
+			: View.CharacterName);
 
-	const FString ClassName =
-		View.ClassDisplayName.IsEmpty() ? View.ClassId.ToString() : View.ClassDisplayName.ToString();
+	const FText ClassName =
+		View.ClassDisplayName.IsEmpty() ? FText::FromName(View.ClassId) : View.ClassDisplayName;
+	const FText ClassLevelFormat =
+		URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Screen.ClassLevelFormat"));
 	Text_ClassLevel->SetText(
-		FText::FromString(FString::Printf(TEXT("%s — Niveau %d"), *ClassName, View.CharacterLevel)));
+		ClassLevelFormat.IsEmpty()
+			? FText::GetEmpty()
+			: FText::Format(ClassLevelFormat, ClassName, FText::AsNumber(View.CharacterLevel)));
 
+	const FText TalentPointsFormat =
+		URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Screen.TalentPointsFormat"));
 	Text_TalentPoints->SetText(
-		FText::FromString(FString::Printf(TEXT("Points de talent : %d"), View.RemainingTalentPoints)));
+		TalentPointsFormat.IsEmpty()
+			? FText::GetEmpty()
+			: FText::Format(TalentPointsFormat, FText::AsNumber(View.RemainingTalentPoints)));
+
 	if (Text_SkillPoints)
 	{
+		const FText SkillPointsFormat =
+			URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Screen.SkillPointsFormat"));
 		Text_SkillPoints->SetText(
-			FText::FromString(FString::Printf(
-				TEXT("Points de compétence : %d  —  Rang max : %d"),
-				View.RemainingSkillPoints,
-				View.SkillRankCap)));
+			SkillPointsFormat.IsEmpty()
+				? FText::GetEmpty()
+				: FText::Format(
+					SkillPointsFormat,
+					FText::AsNumber(View.RemainingSkillPoints),
+					FText::AsNumber(View.SkillRankCap)));
 	}
 
 	FRPGClassPresentationDefinition ClassPresentation;

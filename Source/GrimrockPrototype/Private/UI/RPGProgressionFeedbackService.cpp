@@ -1,38 +1,61 @@
 #include "UI/RPGProgressionFeedbackService.h"
 
+#include "UI/RPGTalentDetailTextSet.h"
+
 #define LOCTEXT_NAMESPACE "RPGProgressionFeedbackService"
+
+namespace
+{
+	FText TalentFeedbackText(FName TextId)
+	{
+		return URPGTalentDetailTextSet::ResolveProductionText(TextId);
+	}
+}
 
 FText FRPGProgressionFeedbackService::GetCommitRejectMessage(ERPGClassProgressionCommitRejectReason Reason)
 {
+	FName TextId = NAME_None;
 	switch (Reason)
 	{
 		case ERPGClassProgressionCommitRejectReason::InvalidInventory:
 		case ERPGClassProgressionCommitRejectReason::InvalidCharacter:
-			return LOCTEXT("CommitInvalidCharacter", "Le personnage n'est plus disponible.");
+			TextId = TEXT("Talent.Feedback.Reject.InvalidCharacter");
+			break;
 		case ERPGClassProgressionCommitRejectReason::InvalidClassDefinition:
-			return LOCTEXT("CommitInvalidClass", "La définition de classe n'est plus valide.");
+			TextId = TEXT("Talent.Feedback.Reject.InvalidClassDefinition");
+			break;
 		case ERPGClassProgressionCommitRejectReason::InvalidCurrentSelection:
-			return LOCTEXT("CommitInvalidState", "L'état de progression courant est incohérent.");
+			TextId = TEXT("Talent.Feedback.Reject.InvalidCurrentSelection");
+			break;
 		case ERPGClassProgressionCommitRejectReason::EmptyRequest:
-			return LOCTEXT("CommitEmpty", "Aucun talent n'est sélectionné.");
+			TextId = TEXT("Talent.Feedback.Reject.EmptyRequest");
+			break;
 		case ERPGClassProgressionCommitRejectReason::DuplicateRequest:
-			return LOCTEXT("CommitDuplicate", "Un même talent apparaît plusieurs fois dans la transaction.");
+			TextId = TEXT("Talent.Feedback.Reject.DuplicateRequest");
+			break;
 		case ERPGClassProgressionCommitRejectReason::UnknownChoice:
-			return LOCTEXT("CommitUnknown", "Un talent de classe n'existe plus.");
+			TextId = TEXT("Talent.Feedback.Reject.UnknownChoice");
+			break;
 		case ERPGClassProgressionCommitRejectReason::AlreadySelected:
-			return LOCTEXT("CommitAlreadySelected", "Ce talent est déjà acquis.");
+			TextId = TEXT("Talent.Feedback.Reject.AlreadySelected");
+			break;
 		case ERPGClassProgressionCommitRejectReason::LevelTooLow:
-			return LOCTEXT("CommitLevelTooLow", "Le niveau requis n'est pas atteint.");
+			TextId = TEXT("Talent.Feedback.Reject.LevelTooLow");
+			break;
 		case ERPGClassProgressionCommitRejectReason::MissingPrerequisite:
-			return LOCTEXT("CommitMissingPrerequisite", "Un prérequis de talent manque.");
+			TextId = TEXT("Talent.Feedback.Reject.MissingPrerequisite");
+			break;
 		case ERPGClassProgressionCommitRejectReason::InsufficientChoicePoints:
-			return LOCTEXT("CommitInsufficientPoints", "Il n'y a pas assez de points de talent.");
+			TextId = TEXT("Talent.Feedback.Reject.InsufficientChoicePoints");
+			break;
 		case ERPGClassProgressionCommitRejectReason::MutuallyExclusiveChoice:
-			return LOCTEXT("CommitMutuallyExclusive", "Une autre variante exclusive de ce talent est déjà acquise.");
+			TextId = TEXT("Talent.Feedback.Reject.MutuallyExclusiveChoice");
+			break;
 		case ERPGClassProgressionCommitRejectReason::None:
 		default:
-			return FText::GetEmpty();
+			break;
 	}
+	return TalentFeedbackText(TextId);
 }
 
 FRPGProgressionNotificationView FRPGProgressionFeedbackService::MakeTalentCommitNotification(
@@ -43,24 +66,30 @@ FRPGProgressionNotificationView FRPGProgressionFeedbackService::MakeTalentCommit
 	if (Result.bCommitted)
 	{
 		Notification.Severity = ERPGProgressionNotificationSeverity::Success;
-		Notification.Title = LOCTEXT("TalentAcquiredTitle", "Talent acquis");
-		Notification.Message = TalentDisplayName.IsEmpty()
-			? FText::Format(
-				LOCTEXT("TalentAcquiredGeneric", "Acquisition réussie. Points de talent restants : {0}."),
-				FText::AsNumber(Result.RemainingPoints))
-			: FText::Format(
-				LOCTEXT("TalentAcquiredNamed", "« {0} » a été acquis. Points de talent restants : {1}."),
-				TalentDisplayName,
-				FText::AsNumber(Result.RemainingPoints));
+		Notification.Title = TalentFeedbackText(TEXT("Talent.Feedback.Success.Title"));
+
+		const FText Template = TalentFeedbackText(
+			TalentDisplayName.IsEmpty()
+				? FName(TEXT("Talent.Feedback.Success.Generic"))
+				: FName(TEXT("Talent.Feedback.Success.Named")));
+		if (!Template.IsEmpty())
+		{
+			Notification.Message = TalentDisplayName.IsEmpty()
+				? FText::Format(Template, FText::AsNumber(Result.RemainingPoints))
+				: FText::Format(
+					Template,
+					TalentDisplayName,
+					FText::AsNumber(Result.RemainingPoints));
+		}
 		return Notification;
 	}
 
 	Notification.Severity = ERPGProgressionNotificationSeverity::Error;
-	Notification.Title = LOCTEXT("TalentRejectedTitle", "Acquisition refusée");
+	Notification.Title = TalentFeedbackText(TEXT("Talent.Feedback.Rejected.Title"));
 	Notification.Message = GetCommitRejectMessage(Result.RejectReason);
 	if (Notification.Message.IsEmpty())
 	{
-		Notification.Message = LOCTEXT("TalentRejectedGeneric", "Le talent n'a pas pu être acquis.");
+		Notification.Message = TalentFeedbackText(TEXT("Talent.Feedback.Rejected.Generic"));
 	}
 	return Notification;
 }

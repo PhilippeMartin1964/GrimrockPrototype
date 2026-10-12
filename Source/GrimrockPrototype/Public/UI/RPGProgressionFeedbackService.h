@@ -44,7 +44,7 @@ struct FRPGProgressionNotificationView
  */
 struct GRIMROCKPROTOTYPE_API FRPGProgressionFeedbackService
 {
-	/** Message français partagé pour une raison de rejet de transaction. */
+	/** Message localisable partagé pour une raison de rejet de transaction Talent. */
 	static FText GetCommitRejectMessage(ERPGClassProgressionCommitRejectReason Reason);
 
 	/** Notification de résultat pour une acquisition de talent. */
