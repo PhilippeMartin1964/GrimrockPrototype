@@ -4,6 +4,8 @@ Date : **12 octobre 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Ticket : **UI-RPG-CONTENT-TEXT05.4**
 
+> **État après TEXT05.5 :** UGridSpellDefinitionAsset possède désormais l’identité stable GridSpell:<SpellId>. Un authoring Editor-only dérivé de FGridProductionSpellLibrary peut créer les quatre DA_Spell_* via Unreal tout en préservant DisplayName, Description et Presentation lors des reruns. Aucun asset binaire n’est créé par le commit TEXT05.5 lui-même.
+
 ## 1. Objet
 
 Auditer le bloc P2 identifié par TEXT05.1 avant toute création de DataAsset ou

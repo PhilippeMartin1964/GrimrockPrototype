@@ -16,6 +16,9 @@ class GRIMROCKPROTOTYPE_API UGridSpellDefinitionAsset : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	/** Stable canonical identity: GridSpell:<Definition.SpellId>. */
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spell")
 	FGridSpellDefinition Definition;
 
