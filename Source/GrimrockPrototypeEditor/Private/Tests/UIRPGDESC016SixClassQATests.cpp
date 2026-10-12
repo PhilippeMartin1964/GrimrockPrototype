@@ -31,6 +31,9 @@ namespace UIRPGDESC016QA
 	const TCHAR* PresentationPath =
 		TEXT("/Game/GrimrockPrototype/Core/DataAssets/UI/RPG/DA_RPGTalentPresentation.DA_RPGTalentPresentation");
 
+	const TCHAR* TalentDetailTextPath =
+		TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet");
+
 	UGridPartyInventoryComponent* MakeParty(URPGClassAsset* ClassAsset)
 	{
 		UGridPartyInventoryComponent* Party = NewObject<UGridPartyInventoryComponent>();
@@ -150,6 +153,66 @@ namespace UIRPGDESC016QA
 				Test,
 				FString::Printf(TEXT("%s line %d value"), *Context, Index),
 				Lines[Index].Value);
+		}
+	}
+
+	void ValidateTextIdentity(
+		FAutomationTestBase& Test,
+		const URPGTalentDetailTextSet& TextSet,
+		const FString& Context,
+		FName TextId)
+	{
+		if (TextId.IsNone())
+		{
+			return;
+		}
+
+		const FText Resolved = TextSet.ResolveText(TextId);
+		Test.TestFalse(
+			*FString::Printf(TEXT("%s resolves %s"), *Context, *TextId.ToString()),
+			Resolved.IsEmpty());
+		if (!Resolved.IsEmpty())
+		{
+			ValidatePlayerFacingText(Test, Context + TEXT("/") + TextId.ToString(), Resolved);
+		}
+	}
+
+	void ValidateDetailTextCoverage(
+		FAutomationTestBase& Test,
+		const URPGTalentDetailTextSet& TextSet,
+		const FString& Context,
+		const TArray<FGridTalentDetailLineView>& Lines,
+		int32& InOutNumericLineCount)
+	{
+		for (int32 Index = 0; Index < Lines.Num(); ++Index)
+		{
+			const FGridTalentDetailLineView& Line = Lines[Index];
+			const FString LineContext = FString::Printf(TEXT("%s line %d"), *Context, Index);
+
+			if (Line.bHasNumericValue)
+			{
+				++InOutNumericLineCount;
+				Test.TestFalse(
+					*FString::Printf(TEXT("%s numeric value has an explanatory label identity"), *LineContext),
+					Line.LabelTextId.IsNone());
+			}
+
+			if (!Line.LabelTextId.IsNone())
+			{
+				ValidateTextIdentity(Test, TextSet, LineContext + TEXT("/Label"), Line.LabelTextId);
+			}
+			if (!Line.ValueTextId.IsNone())
+			{
+				ValidateTextIdentity(Test, TextSet, LineContext + TEXT("/Value"), Line.ValueTextId);
+			}
+
+			const bool bHasPayload =
+				Line.bHasNumericValue ||
+				!Line.ValueTextId.IsNone() ||
+				!Line.Value.IsEmpty();
+			Test.TestTrue(
+				*FString::Printf(TEXT("%s has a displayable payload"), *LineContext),
+				bHasPayload);
 		}
 	}
 
@@ -384,6 +447,94 @@ bool FUIRPGDESC016PlayerFacingLanguageTest::RunTest(const FString&)
 
 	FRPGClassProgressionTransactionService::ResetRuntimeState();
 	TestEqual(TEXT("Player-facing audit covers all ninety Talent nodes"), AuditedNodes, 90);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUIRPGDESC016TextSetCoverageTest,
+	"Grimrock.UI.RPG.DESC01.QA16.TextSetCoverage",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGDESC016TextSetCoverageTest::RunTest(const FString&)
+{
+	using namespace UIRPGDESC016QA;
+	FRPGClassProgressionTransactionService::ResetRuntimeState();
+
+	const URPGTalentDetailTextSet* TextSet =
+		LoadObject<URPGTalentDetailTextSet>(nullptr, TalentDetailTextPath);
+	if (!TestNotNull(TEXT("Production Talent detail text set loads for systematic coverage"), TextSet))
+	{
+		return false;
+	}
+
+	int32 AuditedNodes = 0;
+	int32 NumericLineCount = 0;
+	for (const FClassSpec& Spec : ClassSpecs)
+	{
+		URPGClassAsset* ClassAsset = LoadObject<URPGClassAsset>(nullptr, Spec.ObjectPath);
+		if (!TestNotNull(*FString::Printf(TEXT("%s production class loads"), *Spec.ClassId.ToString()), ClassAsset))
+		{
+			continue;
+		}
+
+		UGridPartyInventoryComponent* Party = MakeParty(ClassAsset);
+		FGridSkillsPageView View;
+		if (!TestTrue(
+			*FString::Printf(TEXT("%s read-model builds for text coverage"), *Spec.ClassId.ToString()),
+			FGridSkillsPageService::TryBuildCharacterView(Party, 0, {}, View)))
+		{
+			FRPGClassProgressionTransactionService::ResetRuntimeState(Party);
+			continue;
+		}
+
+		for (const FGridTalentBranchView& Branch : View.TalentTree.Branches)
+		{
+			for (const FGridTalentNodeView& Node : Branch.Nodes)
+			{
+				++AuditedNodes;
+				const FString Context = FString::Printf(
+					TEXT("%s/%s"), *Spec.ClassId.ToString(), *Node.TalentNodeId.ToString());
+
+				ValidateDetailTextCoverage(
+					*this, *TextSet, Context + TEXT("/Effects"), Node.Effects, NumericLineCount);
+				ValidateDetailTextCoverage(
+					*this, *TextSet, Context + TEXT("/Usage"), Node.Usage, NumericLineCount);
+
+				if (!Node.Acquisition.ExclusivityTextId.IsNone())
+				{
+					ValidateTextIdentity(
+						*this,
+						*TextSet,
+						Context + TEXT("/Acquisition/Exclusivity"),
+						Node.Acquisition.ExclusivityTextId);
+				}
+				for (const FName RecipeTextId : Node.Acquisition.GrantedRecipeTextIds)
+				{
+					ValidateTextIdentity(
+						*this,
+						*TextSet,
+						Context + TEXT("/Acquisition/Recipe"),
+						RecipeTextId);
+				}
+
+				for (const FGridTalentVariantView& Variant : Node.Variants)
+				{
+					const FString VariantContext =
+						Context + TEXT("/") + Variant.ChoiceId.ToString();
+					ValidateDetailTextCoverage(
+						*this, *TextSet, VariantContext + TEXT("/Effects"), Variant.Effects, NumericLineCount);
+					ValidateDetailTextCoverage(
+						*this, *TextSet, VariantContext + TEXT("/Usage"), Variant.Usage, NumericLineCount);
+				}
+			}
+		}
+
+		FRPGClassProgressionTransactionService::ResetRuntimeState(Party);
+	}
+
+	FRPGClassProgressionTransactionService::ResetRuntimeState();
+	TestEqual(TEXT("Systematic text coverage audits all ninety Talent nodes"), AuditedNodes, 90);
+	TestTrue(TEXT("Systematic text coverage exercises numeric effect/usage rows"), NumericLineCount > 0);
 	return true;
 }
 

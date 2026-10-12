@@ -163,3 +163,32 @@ Talent.Effect.PhysicalArmorReference  -> Armure physique de référence -> +25%
 
 La valeur et sa notation (`+10%`, `+25%`) restent C++. Le libellé humain
 reste dans `URPGTalentDetailTextSet`.
+
+
+## 9. Audit automatique systématique des libellés
+
+UI-RPG-TEXT01.9 ajoute le test :
+
+~~~text
+Grimrock.UI.RPG.DESC01.QA16.TextSetCoverage
+~~~
+
+Ce test construit le read-model de production des six classes et parcourt les
+90 Talents, leurs variantes, EFFETS, UTILISATION et les textes d'ACQUISITION
+portés par des identités localisables.
+
+Contrat vérifié :
+
+- toute `LabelTextId` utilisée par une ligne de production doit se résoudre
+  dans `DA_RPGTalentDetailTextSet` ;
+- toute `ValueTextId` utilisée par une ligne de production doit également se
+  résoudre ;
+- toute ligne numérique doit posséder une `LabelTextId` explicative : un
+  `+25%`, `+10`, etc. ne peut plus être projeté seul sans libellé ;
+- les identités d'exclusivité et de recettes doivent se résoudre dans le même
+  Data Asset ;
+- une ligne structurée ne peut pas exister sans payload affichable.
+
+Cette couverture complète l'audit de langue existant : le C++ conserve les
+valeurs mécaniques et leur notation universelle, tandis que le Data Asset reste
+l'autorité de tout libellé dépendant de la langue.
