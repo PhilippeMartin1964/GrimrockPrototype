@@ -351,20 +351,20 @@ namespace
 			: FText::FromString(FString::Join(Lines, TEXT("\n")));
 	}
 
-	FText TargetingSummary(EGridCombatTargetingPolicy Policy)
+	FName TargetingPolicyTextId(EGridCombatTargetingPolicy Policy)
 	{
 		switch (Policy)
 		{
-			case EGridCombatTargetingPolicy::Self: return FText::FromString(TEXT("soi-même"));
-			case EGridCombatTargetingPolicy::Ally: return FText::FromString(TEXT("soi-même ou un allié vivant"));
-			case EGridCombatTargetingPolicy::FirstAxialTarget: return FText::FromString(TEXT("première cible dans l'axe"));
-			case EGridCombatTargetingPolicy::Cell: return FText::FromString(TEXT("une cellule"));
-			case EGridCombatTargetingPolicy::Area: return FText::FromString(TEXT("une zone"));
-			case EGridCombatTargetingPolicy::Hostile: return FText::FromString(TEXT("un ennemi"));
-			case EGridCombatTargetingPolicy::Party: return FText::FromString(TEXT("tous les membres vivants du groupe"));
-			case EGridCombatTargetingPolicy::FrontRowParty: return FText::FromString(TEXT("membres vivants du rang avant"));
-			case EGridCombatTargetingPolicy::AllyOrHostile: return FText::FromString(TEXT("un allié ou un ennemi"));
-			default: return FText::GetEmpty();
+			case EGridCombatTargetingPolicy::Self: return TEXT("Talent.Target.Self");
+			case EGridCombatTargetingPolicy::Ally: return TEXT("Talent.Target.Ally");
+			case EGridCombatTargetingPolicy::FirstAxialTarget: return TEXT("Talent.Target.FirstAxialTarget");
+			case EGridCombatTargetingPolicy::Cell: return TEXT("Talent.Target.Cell");
+			case EGridCombatTargetingPolicy::Area: return TEXT("Talent.Target.Area");
+			case EGridCombatTargetingPolicy::Hostile: return TEXT("Talent.Target.Hostile");
+			case EGridCombatTargetingPolicy::Party: return TEXT("Talent.Target.Party");
+			case EGridCombatTargetingPolicy::FrontRowParty: return TEXT("Talent.Target.FrontRowParty");
+			case EGridCombatTargetingPolicy::AllyOrHostile: return TEXT("Talent.Target.AllyOrHostile");
+			default: return NAME_None;
 		}
 	}
 
@@ -458,6 +458,19 @@ namespace
 		Line.Semantic = Semantic;
 		Line.LabelTextId = LabelTextId;
 		Line.ValueTextId = ValueTextId;
+		Lines.Add(MoveTemp(Line));
+	}
+
+	void AddDetailNumberLine(
+		TArray<FGridTalentDetailLineView>& Lines,
+		FName LabelTextId,
+		int32 Value,
+		EGridTalentDetailLineSemantic Semantic = EGridTalentDetailLineSemantic::None)
+	{
+		FGridTalentDetailLineView Line;
+		Line.Semantic = Semantic;
+		Line.LabelTextId = LabelTextId;
+		Line.Value = FText::AsNumber(Value);
 		Lines.Add(MoveTemp(Line));
 	}
 
@@ -725,32 +738,69 @@ namespace
 				AddDetailLine(Out, TEXT("Talent.Detail.Action"), Action.DisplayName.ToString(), EGridTalentDetailLineSemantic::Action);
 			}
 			if (Action.ActionPointCost > 0)
-				AddDetailLine(Out, TEXT("Talent.Detail.ActionPointCost"), Plural(Action.ActionPointCost, TEXT("point d'action"), TEXT("points d'action")), EGridTalentDetailLineSemantic::ActionPointCost);
+			{
+				AddDetailNumberLine(
+					Out, TEXT("Talent.Detail.ActionPointCost"), Action.ActionPointCost,
+					EGridTalentDetailLineSemantic::ActionPointCost);
+			}
 			if (Action.ResourceCosts.ManaCost > 0)
-				AddDetailLine(Out, TEXT("Talent.Detail.ManaCost"), FString::FromInt(Action.ResourceCosts.ManaCost), EGridTalentDetailLineSemantic::ManaCost);
+			{
+				AddDetailNumberLine(
+					Out, TEXT("Talent.Detail.ManaCost"), Action.ResourceCosts.ManaCost,
+					EGridTalentDetailLineSemantic::ManaCost);
+			}
 			if (Action.ResourceCosts.SourceItemQuantityCost > 0)
-				AddDetailLine(Out, TEXT("Talent.Detail.ItemCost"), Plural(Action.ResourceCosts.SourceItemQuantityCost, TEXT("objet"), TEXT("objets")), EGridTalentDetailLineSemantic::ItemCost);
-			const FText TargetSummary = TargetingSummary(Action.TargetingPolicy);
-			if (!TargetSummary.IsEmpty())
-				AddDetailLine(Out, TEXT("Talent.Detail.Target"), TargetSummary.ToString(), EGridTalentDetailLineSemantic::Target);
+			{
+				AddDetailNumberLine(
+					Out, TEXT("Talent.Detail.ItemCost"), Action.ResourceCosts.SourceItemQuantityCost,
+					EGridTalentDetailLineSemantic::ItemCost);
+			}
+
+			AddDetailTextLine(
+				Out,
+				TEXT("Talent.Detail.Target"),
+				TargetingPolicyTextId(Action.TargetingPolicy),
+				EGridTalentDetailLineSemantic::Target);
+
 			if (Action.RangeCells > 0)
-				AddDetailLine(Out, TEXT("Talent.Detail.Range"), Plural(Action.RangeCells, TEXT("case"), TEXT("cases")), EGridTalentDetailLineSemantic::Range);
+			{
+				AddDetailNumberLine(
+					Out, TEXT("Talent.Detail.RangeCells"), Action.RangeCells,
+					EGridTalentDetailLineSemantic::Range);
+			}
 			if (Action.AreaRadiusCells > 0)
-				AddDetailLine(Out, TEXT("Talent.Detail.Area"), FString::Printf(TEXT("rayon %s"), *Plural(Action.AreaRadiusCells, TEXT("case"), TEXT("cases"))), EGridTalentDetailLineSemantic::Area);
+			{
+				AddDetailNumberLine(
+					Out, TEXT("Talent.Detail.AreaRadiusCells"), Action.AreaRadiusCells,
+					EGridTalentDetailLineSemantic::Area);
+			}
 			if (Action.bRequiresLineOfSight)
-				AddDetailLine(Out, TEXT("Talent.Detail.LineOfSight"), TEXT("requise"), EGridTalentDetailLineSemantic::LineOfSight);
+			{
+				AddDetailTextLine(
+					Out, TEXT("Talent.Detail.LineOfSight"), TEXT("Talent.Value.Required"),
+					EGridTalentDetailLineSemantic::LineOfSight);
+			}
 			if (Action.ResolutionCount > 1)
 			{
-				FString Value = Plural(Action.ResolutionCount, TEXT("résolution"), TEXT("résolutions"));
+				AddDetailNumberLine(
+					Out, TEXT("Talent.Detail.ResolutionCount"), Action.ResolutionCount,
+					EGridTalentDetailLineSemantic::ResolutionCount);
 				if (Action.SubsequentResolutionAccuracyModifier != 0)
-					Value += FString::Printf(TEXT(" ; Précision %+d à partir de la 2e"), Action.SubsequentResolutionAccuracyModifier);
-				AddDetailLine(Out, TEXT("Talent.Detail.ResolutionCount"), Value, EGridTalentDetailLineSemantic::ResolutionCount);
+				{
+					AddSignedValueLine(
+						Out,
+						TEXT("Talent.Detail.SubsequentResolutionAccuracy"),
+						Action.SubsequentResolutionAccuracyModifier);
+				}
 			}
 			if (Action.CooldownRounds > 0)
-				AddDetailLine(Out, TEXT("Talent.Detail.Cooldown"), Plural(Action.CooldownRounds, TEXT("round"), TEXT("rounds")), EGridTalentDetailLineSemantic::Cooldown);
+			{
+				AddDetailNumberLine(
+					Out, TEXT("Talent.Detail.CooldownRounds"), Action.CooldownRounds,
+					EGridTalentDetailLineSemantic::Cooldown);
+			}
 		}
 	}
-
 	FText ResolveStatusReferences(const FText& Source)
 	{
 		FString Text = Source.ToString();
@@ -868,7 +918,7 @@ namespace
 			}
 			if (ActionPtr->bAffectsAlliesInArea)
 			{
-				AddDetailLine(Out, TEXT("Talent.Detail.Area"), TEXT("peut également affecter les alliés"));
+				AddDetailTextLine(Out, TEXT("Talent.Detail.Area"), TEXT("Talent.Value.AreaCanAffectAllies"));
 			}
 		}
 	}

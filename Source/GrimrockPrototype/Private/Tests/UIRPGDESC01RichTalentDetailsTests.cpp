@@ -225,13 +225,25 @@ bool FUIRPGDESC01ActionProjectionTest::RunTest(const FString&)
 				return Line.LabelTextId == TEXT("Talent.Effect.Accuracy") &&
 					Line.Value.ToString() == TEXT("+2");
 			}));
-	TestEqual(TEXT("AP cost is projected into UTILISATION"), UsageValue(EGridTalentDetailLineSemantic::ActionPointCost), FString(TEXT("2 points d'action")));
+	TestEqual(TEXT("AP cost is projected as raw numeric content"), UsageValue(EGridTalentDetailLineSemantic::ActionPointCost), FString(TEXT("2")));
 	TestEqual(TEXT("Mana cost is projected into UTILISATION"), UsageValue(EGridTalentDetailLineSemantic::ManaCost), FString(TEXT("3")));
-	TestEqual(TEXT("Cooldown is projected into UTILISATION"), UsageValue(EGridTalentDetailLineSemantic::Cooldown), FString(TEXT("2 rounds")));
+	TestEqual(TEXT("Cooldown is projected as raw numeric content"), UsageValue(EGridTalentDetailLineSemantic::Cooldown), FString(TEXT("2")));
 	TestTrue(TEXT("AP cost carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::ActionPointCost));
 	TestTrue(TEXT("Target carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::Target));
 	TestTrue(TEXT("Mana carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::ManaCost));
 	TestTrue(TEXT("Cooldown carries stable semantic identity"), HasUsageSemantic(EGridTalentDetailLineSemantic::Cooldown));
+	const FGridTalentDetailLineView* TargetLine = Node.Usage.FindByPredicate(
+		[](const FGridTalentDetailLineView& Line)
+		{
+			return Line.Semantic == EGridTalentDetailLineSemantic::Target;
+		});
+	TestNotNull(TEXT("Target row exists"), TargetLine);
+	if (TargetLine)
+	{
+		TestEqual(TEXT("Target wording is resolved through text data"),
+			TargetLine->ValueTextId, FName(TEXT("Talent.Target.Self")));
+		TestTrue(TEXT("Target row carries no hard-coded player text"), TargetLine->Value.IsEmpty());
+	}
 	return true;
 }
 
