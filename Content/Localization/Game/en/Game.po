@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Game\n"
-"POT-Creation-Date: 2026-10-13 09:21\n"
-"PO-Revision-Date: 2026-10-13 09:21\n"
+"POT-Creation-Date: 2026-10-13 09:37\n"
+"PO-Revision-Date: 2026-10-13 09:37\n"
 "Language-Team: \n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
@@ -748,6 +748,102 @@ msgstr ""
 msgctxt "ST_UI,CharacterCreation.Wizard.Step.Summary"
 msgid "Résumé"
 msgstr "Summary"
+
+#. Key:	Interaction.Button.Push
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Action générique sur un bouton"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Button.Push"
+msgid "Appuyer sur le bouton"
+msgstr "Push button"
+
+#. Key:	Interaction.Door.Close
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Action générique sur une chaîne de porte ouverte"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Door.Close"
+msgid "Fermer la porte"
+msgstr ""
+
+#. Key:	Interaction.Door.Open
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Action générique sur une chaîne de porte fermée"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Door.Open"
+msgid "Ouvrir la porte"
+msgstr "Open door"
+
+#. Key:	Interaction.Item.Take
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Action générique de prise d'un item"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Item.Take"
+msgid "Prendre"
+msgstr "Take"
+
+#. Key:	Interaction.Lever.Pull
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Action générique sur un levier au repos"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Lever.Pull"
+msgid "Tirer le levier"
+msgstr ""
+
+#. Key:	Interaction.Lever.Push
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Action générique sur un levier activé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Lever.Push"
+msgid "Pousser le levier"
+msgstr ""
+
+#. Key:	Interaction.Lock.AlreadyUnlocked
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback générique de serrure déjà ouverte"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Lock.AlreadyUnlocked"
+msgid "La serrure est déjà déverrouillée."
+msgstr ""
+
+#. Key:	Interaction.Lock.Locked
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback générique de serrure verrouillée"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Lock.Locked"
+msgid "La serrure est verrouillée."
+msgstr "The lock is locked."
+
+#. Key:	Interaction.Lock.MissingKey
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback générique de clé manquante"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Lock.MissingKey"
+msgid "Il vous manque la clé adéquate."
+msgstr ""
+
+#. Key:	Interaction.Lock.UnlockSuccess
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback générique de déverrouillage réussi"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Lock.UnlockSuccess"
+msgid "La serrure s'ouvre avec un déclic métallique."
+msgstr ""
+
+#. Key:	Interaction.Readable.Read
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Action générique de lecture"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Readable.Read"
+msgid "Lire"
+msgstr "Read"
+
+#. Key:	Interaction.Receptacle.PlaceItem
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Action générique de dépôt dans un réceptacle"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Interaction.Receptacle.PlaceItem"
+msgid "Placer l'objet"
+msgstr "Place item"
 
 #. Key:	Status.Control.BlockSpellActions
 #. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
