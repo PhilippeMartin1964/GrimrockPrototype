@@ -4,7 +4,9 @@ param(
     [ValidateNotNullOrEmpty()]
     [string]$EngineRoot,
 
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+
+    [switch]$KeepGeneratedOutputs
 )
 
 Set-StrictMode -Version Latest
@@ -51,6 +53,7 @@ $BuildBat = Join-Path $EngineRoot "Engine\Build\BatchFiles\Build.bat"
 $ApplyTranslationsScript = Join-Path $PSScriptRoot "ApplyEnglishSmokeTranslations.ps1"
 $ScriptValidator = Join-Path $PSScriptRoot "TestLocalizationScripts.ps1"
 $LocalizationRoot = Join-Path $ProjectRoot "Content\Localization\Game"
+$GameCsv = Join-Path $LocalizationRoot "Game.csv"
 $EnglishPo = Join-Path $LocalizationRoot "en\Game.po"
 $FrenchPo = Join-Path $LocalizationRoot "fr\Game.po"
 $EnglishLocRes = Join-Path $LocalizationRoot "en\Game.locres"
@@ -81,6 +84,10 @@ $ReportRoot = Join-Path $ProjectRoot ("Saved\Localization\UI-LOCALIZATION01.6\{0
 [void](New-Item -ItemType Directory -Path $ReportRoot -Force)
 Write-Host ("Localization report directory: {0}" -f $ReportRoot)
 
+$GameCsvSnapshot = New-FileSnapshot -Path $GameCsv
+$EnglishPoSnapshot = New-FileSnapshot -Path $EnglishPo
+$FrenchPoSnapshot = New-FileSnapshot -Path $FrenchPo
+
 # Unreal may rewrite GatherText config files by adding metadata comments.
 # Never expose source-controlled configs to that mutation. Work on report-local
 # copies and verify that the repository copies remain byte-for-byte unchanged.
@@ -109,6 +116,35 @@ Copy-Item -LiteralPath $ImportConfigSource -Destination $ImportConfig -Force
 Copy-Item -LiteralPath $CompileConfigSource -Destination $CompileConfig -Force
 
 $PowerShellExe = (Get-Command powershell.exe -ErrorAction Stop).Source
+
+function New-FileSnapshot {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $Exists = Test-Path -LiteralPath $Path -PathType Leaf
+    return @{
+        Exists = $Exists
+        Bytes = if ($Exists) { [System.IO.File]::ReadAllBytes($Path) } else { $null }
+    }
+}
+
+function Restore-FileSnapshot {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Snapshot
+    )
+
+    if ($Snapshot.Exists) {
+        [System.IO.File]::WriteAllBytes($Path, [byte[]]$Snapshot.Bytes)
+    }
+    elseif (Test-Path -LiteralPath $Path -PathType Leaf) {
+        Remove-Item -LiteralPath $Path -Force
+    }
+}
 
 function Invoke-NativeStep {
     param(
@@ -243,18 +279,33 @@ else {
 Invoke-UnrealStep -Label "Sync_ST_UI" -Arguments @("-run=UIStringTableAuthoring")
 Assert-FileExists -Path $StringTableAsset -Label "materialized ST_UI String Table asset"
 
-Invoke-UnrealStep -Label "Gather" -Arguments @("-run=GatherText", ("-config={0}" -f $GatherConfig))
+try {
+    Invoke-UnrealStep -Label "Gather" -Arguments @("-run=GatherText", ("-config={0}" -f $GatherConfig))
+}
+finally {
+    if (-not $KeepGeneratedOutputs) {
+        Restore-FileSnapshot -Path $GameCsv -Snapshot $GameCsvSnapshot
+    }
+}
 Assert-GatherIntegrity -ManifestPath $Manifest -ConflictReportPath $ConflictReport
 
-Invoke-UnrealStep -Label "Export_PO" -Arguments @("-run=GatherText", ("-config={0}" -f $ExportConfig))
-Assert-FileExists -Path $EnglishPo -Label "English PO"
-Assert-FileExists -Path $FrenchPo -Label "French PO"
+try {
+    Invoke-UnrealStep -Label "Export_PO" -Arguments @("-run=GatherText", ("-config={0}" -f $ExportConfig))
+    Assert-FileExists -Path $EnglishPo -Label "English PO"
+    Assert-FileExists -Path $FrenchPo -Label "French PO"
 
-Write-Host ""
-Write-Host "=== Apply_English_Smoke_Translations ==="
-& $ApplyTranslationsScript -PoPath $EnglishPo -CsvPath (Join-Path $ProjectRoot "Localization\Source\UI.csv")
+    Write-Host ""
+    Write-Host "=== Apply_English_Smoke_Translations ==="
+    & $ApplyTranslationsScript -PoPath $EnglishPo -CsvPath (Join-Path $ProjectRoot "Localization\Source\UI.csv")
 
-Invoke-UnrealStep -Label "Import_PO" -Arguments @("-run=GatherText", ("-config={0}" -f $ImportConfig))
+    Invoke-UnrealStep -Label "Import_PO" -Arguments @("-run=GatherText", ("-config={0}" -f $ImportConfig))
+}
+finally {
+    if (-not $KeepGeneratedOutputs) {
+        Restore-FileSnapshot -Path $EnglishPo -Snapshot $EnglishPoSnapshot
+        Restore-FileSnapshot -Path $FrenchPo -Snapshot $FrenchPoSnapshot
+    }
+}
 Invoke-UnrealStep -Label "Compile_LocRes" -Arguments @("-run=GatherText", ("-config={0}" -f $CompileConfig))
 Assert-FileExists -Path $EnglishLocRes -Label "English locres"
 Assert-FileExists -Path $FrenchLocRes -Label "French locres"
@@ -269,6 +320,9 @@ foreach ($SourceConfigPath in $SourceConfigPaths) {
     }
 }
 Write-Host "[OK] Source-controlled localization configs remained unchanged."
+if (-not $KeepGeneratedOutputs) {
+    Write-Host "[OK] Volatile generated localization outputs restored after smoke validation."
+}
 
 Write-Host ""
 Write-Host "[OK] UI-LOCALIZATION01.6 localization pipeline and English smoke test completed successfully."

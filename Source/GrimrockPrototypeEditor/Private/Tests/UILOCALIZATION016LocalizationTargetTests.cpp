@@ -121,6 +121,9 @@ bool FUILOCALIZATION016TargetContractTest::RunTest(const FString&)
 		TestTrue(TEXT("Smoke script rejects source config mutation"), RunScript.Contains(TEXT("Source-controlled localization config was modified during smoke execution")));
 		TestTrue(TEXT("Smoke script requires generated target metadata"), RunScript.Contains(TEXT("Game.locmeta")));
 		TestTrue(TEXT("Smoke script validates fresh Gather output"), RunScript.Contains(TEXT("Assert-GatherIntegrity")));
+		TestTrue(TEXT("Smoke script supports explicit generated-output materialization"), RunScript.Contains(TEXT("KeepGeneratedOutputs")));
+		TestTrue(TEXT("Smoke script snapshots volatile generated outputs"), RunScript.Contains(TEXT("New-FileSnapshot")) && RunScript.Contains(TEXT("Game.csv")));
+		TestTrue(TEXT("Smoke script restores volatile generated outputs after validation"), RunScript.Contains(TEXT("Restore-FileSnapshot")) && RunScript.Contains(TEXT("Volatile generated localization outputs restored after smoke validation")));
 		TestTrue(TEXT("Smoke script rejects UMG TextBlock placeholders"), RunScript.Contains(TEXT("TextBlockDefaultValue")));
 		TestTrue(TEXT("Smoke script rejects test fixtures in the player manifest"), RunScript.Contains(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Tests/")));
 		TestTrue(TEXT("Smoke script rejects reflected enum metadata"), RunScript.Contains(TEXT("EGridSpellSchool")) && RunScript.Contains(TEXT("ERPGSkillGoverningAttribute")));
