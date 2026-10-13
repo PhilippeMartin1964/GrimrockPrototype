@@ -39,6 +39,11 @@ $TranslationsByKey = [ordered]@{
     "CharacterCreation.Identity.Title" = "Character Identity"
     "CharacterCreation.Wizard.Step.Summary" = "Summary"
     "CharacterCreation.Summary.State.Ready.Create" = "Ready to create character."
+    "Status.Control.BlockTranslation" = "Grid movement is blocked."
+    "Status.Duration.Rounds" = "{Count} {Count}|plural(one=round,other=rounds)"
+    "Status.Duration.Turns" = "{Count} {Count}|plural(one=turn,other=turns)"
+    "Status.Tooltip.Duration" = "Duration: {Duration}"
+    "Status.Tooltip.PeriodicDamage" = "Periodic damage active."
 }
 
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)

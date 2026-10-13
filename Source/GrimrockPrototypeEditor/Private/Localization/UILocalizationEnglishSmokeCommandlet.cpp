@@ -3,6 +3,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Internationalization/Internationalization.h"
 #include "Internationalization/TextLocalizationManager.h"
+#include "RPG/StatusEffects/GridStatusEffectPresentation.h"
 #include "UI/UILocalizationText.h"
 
 UUILocalizationEnglishSmokeCommandlet::UUILocalizationEnglishSmokeCommandlet()
@@ -74,6 +75,49 @@ int32 UUILocalizationEnglishSmokeCommandlet::Main(const FString& Params)
 	CheckText(TEXT("en"), TEXT("CharacterCreation.Identity.Title"), TEXT("Character Identity"));
 	CheckText(TEXT("en"), TEXT("CharacterCreation.Wizard.Step.Summary"), TEXT("Summary"));
 	CheckText(TEXT("en"), TEXT("CharacterCreation.Summary.State.Ready.Create"), TEXT("Ready to create character."));
+	CheckText(TEXT("fr"), TEXT("Status.Tooltip.Duration"), TEXT("Durée : {Duration}"));
+	CheckText(TEXT("en"), TEXT("Status.Tooltip.Duration"), TEXT("Duration: {Duration}"));
+	CheckText(TEXT("en"), TEXT("Status.Control.BlockTranslation"), TEXT("Grid movement is blocked."));
+	CheckText(TEXT("en"), TEXT("Status.Tooltip.PeriodicDamage"), TEXT("Periodic damage active."));
+
+	auto CheckDuration =
+		[&](const TCHAR* Culture, EGridStatusEffectDurationUnit Unit, int32 Count, const TCHAR* Expected)
+		{
+			if (!Internationalization.SetCurrentCulture(Culture))
+			{
+				UE_LOG(LogTemp, Error, TEXT("[UI-LOCALIZATION01.7] Unable to activate culture '%s'."), Culture);
+				bSucceeded = false;
+				return;
+			}
+
+			LocalizationManager.RefreshResources();
+			LocalizationManager.WaitForAsyncTasks();
+
+			const FString Actual = FGridStatusEffectPresentationBuilder::FormatDuration(Unit, Count).ToString();
+			if (Actual != Expected)
+			{
+				UE_LOG(
+					LogTemp,
+					Error,
+					TEXT("[UI-LOCALIZATION01.7] Culture='%s' StatusDuration Expected='%s' Actual='%s'."),
+					Culture,
+					Expected,
+					*Actual);
+				bSucceeded = false;
+			}
+			else
+			{
+				UE_LOG(
+					LogTemp,
+					Display,
+					TEXT("[UI-LOCALIZATION01.7] PASS Culture='%s' StatusDuration Text='%s'."),
+					Culture,
+					*Actual);
+			}
+		};
+
+	CheckDuration(TEXT("fr"), EGridStatusEffectDurationUnit::Rounds, 2, TEXT("2 manches"));
+	CheckDuration(TEXT("en"), EGridStatusEffectDurationUnit::Rounds, 2, TEXT("2 rounds"));
 
 	Internationalization.RestoreCultureState(Snapshot);
 	LocalizationManager.RefreshResources();

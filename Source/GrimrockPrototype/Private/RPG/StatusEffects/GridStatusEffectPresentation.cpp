@@ -1,6 +1,7 @@
 #include "RPG/StatusEffects/GridStatusEffectPresentation.h"
 
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
+#include "UI/UILocalizationText.h"
 
 namespace
 {
@@ -9,6 +10,40 @@ namespace
 		return Value > static_cast<int64>(MAX_int32) ? MAX_int32 : Value < static_cast<int64>(MIN_int32) ? MIN_int32 : static_cast<int32>(Value);
 	}
 
+	FText FormatSignedInteger(int32 Value)
+	{
+		return FText::FromString(FString::Printf(TEXT("%+d"), Value));
+	}
+
+	FText BuildStatusLabel(const FGridStatusEffectPresentationView& View)
+	{
+		const bool bHasStacks = View.StackCount > 1;
+		const bool bHasDuration = !View.CompactDurationText.IsEmpty();
+
+		if (bHasStacks && bHasDuration)
+		{
+			return FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Status.Label.StackedTimed")),
+				TEXT("Name"), View.DisplayName,
+				TEXT("Stacks"), View.StackCount,
+				TEXT("Duration"), View.CompactDurationText);
+		}
+		if (bHasStacks)
+		{
+			return FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Status.Label.Stacked")),
+				TEXT("Name"), View.DisplayName,
+				TEXT("Stacks"), View.StackCount);
+		}
+		if (bHasDuration)
+		{
+			return FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Status.Label.Timed")),
+				TEXT("Name"), View.DisplayName,
+				TEXT("Duration"), View.CompactDurationText);
+		}
+		return View.DisplayName;
+	}
 }
 
 FText FGridStatusEffectPresentationBuilder::ResolveDisplayName(const FGridStatusEffectRuntimeState& State)
@@ -47,50 +82,49 @@ bool FGridStatusEffectPresentationBuilder::BuildOne(const FGridStatusEffectRunti
 		OutView.InitiativeContribution = SaturateInt64ToInt32(static_cast<int64>(Definition.InitiativeModifier) * static_cast<int64>(State.StackCount));
 	}
 
-	FString Label = OutView.DisplayName.ToString();
-	if (OutView.StackCount > 1)
-	{
-		Label += FString::Printf(TEXT(" x%d"), OutView.StackCount);
-	}
-	if (!OutView.CompactDurationText.IsEmpty())
-	{
-		Label += TEXT(" | ");
-		Label += OutView.CompactDurationText.ToString();
-	}
-	OutView.LabelText = FText::FromString(Label);
+	OutView.LabelText = BuildStatusLabel(OutView);
 
-	TArray<FString> ToolTipLines;
-	ToolTipLines.Add(OutView.DisplayName.ToString());
+	TArray<FText> ToolTipLines;
+	ToolTipLines.Add(OutView.DisplayName);
 	if (!OutView.Description.IsEmpty())
 	{
-		ToolTipLines.Add(OutView.Description.ToString());
+		ToolTipLines.Add(OutView.Description);
 	}
-	ToolTipLines.Add(FString::Printf(TEXT("Durée : %s"), *OutView.DurationText.ToString()));
+	ToolTipLines.Add(
+		FText::FormatNamed(
+			FUILocalizationText::Get(TEXT("Status.Tooltip.Duration")),
+			TEXT("Duration"), OutView.DurationText));
 	if (OutView.StackCount > 1)
 	{
-		ToolTipLines.Add(FString::Printf(TEXT("Stacks : %d"), OutView.StackCount));
+		ToolTipLines.Add(
+			FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Status.Tooltip.Stacks")),
+				TEXT("Count"), OutView.StackCount));
 	}
 	if (OutView.InitiativeContribution != 0)
 	{
-		ToolTipLines.Add(FString::Printf(TEXT("Initiative : %+d"), OutView.InitiativeContribution));
+		ToolTipLines.Add(
+			FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Status.Tooltip.Initiative")),
+				TEXT("Value"), FormatSignedInteger(OutView.InitiativeContribution)));
 	}
 	if (OutView.bPeriodicDamage)
 	{
-		ToolTipLines.Add(TEXT("Dégâts périodiques actifs."));
+		ToolTipLines.Add(FUILocalizationText::Get(TEXT("Status.Tooltip.PeriodicDamage")));
 	}
 	if (OutView.bSkipActivation)
 	{
-		ToolTipLines.Add(TEXT("La prochaine activation correspondante est perdue."));
+		ToolTipLines.Add(FUILocalizationText::Get(TEXT("Status.Control.SkipActivation")));
 	}
 	if (OutView.bBlockSpellActions)
 	{
-		ToolTipLines.Add(TEXT("Les actions de type Sort sont bloquées."));
+		ToolTipLines.Add(FUILocalizationText::Get(TEXT("Status.Control.BlockSpellActions")));
 	}
 	if (OutView.bBlockTranslation)
 	{
-		ToolTipLines.Add(TEXT("Les déplacements de case sont bloqués."));
+		ToolTipLines.Add(FUILocalizationText::Get(TEXT("Status.Control.BlockTranslation")));
 	}
-	OutView.ToolTipText = FText::FromString(FString::Join(ToolTipLines, TEXT("\n")));
+	OutView.ToolTipText = FText::Join(FText::FromString(TEXT("\n")), ToolTipLines);
 	return true;
 }
 
@@ -115,14 +149,19 @@ void FGridStatusEffectPresentationBuilder::Build(const FGridStatusEffectCollecti
 
 FText FGridStatusEffectPresentationBuilder::FormatCompactDuration(EGridStatusEffectDurationUnit DurationUnit, int32 RemainingDuration)
 {
+	const int32 SafeDuration = FMath::Max(0, RemainingDuration);
 	switch (DurationUnit)
 	{
 		case EGridStatusEffectDurationUnit::Turns:
-			return FText::FromString(FString::Printf(TEXT("T%d"), FMath::Max(0, RemainingDuration)));
+			return FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Status.Duration.Compact.Turns")),
+				TEXT("Count"), SafeDuration);
 		case EGridStatusEffectDurationUnit::Rounds:
-			return FText::FromString(FString::Printf(TEXT("R%d"), FMath::Max(0, RemainingDuration)));
+			return FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Status.Duration.Compact.Rounds")),
+				TEXT("Count"), SafeDuration);
 		case EGridStatusEffectDurationUnit::Permanent:
-			return FText::FromString(TEXT("PERM"));
+			return FUILocalizationText::Get(TEXT("Status.Duration.Compact.Permanent"));
 		default:
 			return FText::GetEmpty();
 	}
@@ -134,19 +173,15 @@ FText FGridStatusEffectPresentationBuilder::FormatDuration(EGridStatusEffectDura
 	switch (DurationUnit)
 	{
 		case EGridStatusEffectDurationUnit::Turns:
-			if (SafeDuration == 1)
-			{
-				return FText::FromString(TEXT("1 tour"));
-			}
-			return FText::FromString(FString::Printf(TEXT("%d tours"), SafeDuration));
+			return FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Status.Duration.Turns")),
+				TEXT("Count"), SafeDuration);
 		case EGridStatusEffectDurationUnit::Rounds:
-			if (SafeDuration == 1)
-			{
-				return FText::FromString(TEXT("1 manche"));
-			}
-			return FText::FromString(FString::Printf(TEXT("%d manches"), SafeDuration));
+			return FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Status.Duration.Rounds")),
+				TEXT("Count"), SafeDuration);
 		case EGridStatusEffectDurationUnit::Permanent:
-			return FText::FromString(TEXT("Permanent"));
+			return FUILocalizationText::Get(TEXT("Status.Duration.Permanent"));
 		default:
 			return FText::GetEmpty();
 	}
