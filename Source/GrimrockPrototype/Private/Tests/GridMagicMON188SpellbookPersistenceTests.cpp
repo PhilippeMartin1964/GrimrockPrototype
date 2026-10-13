@@ -5,6 +5,8 @@
 #include "Magic/GridProductionSpellLibrary.h"
 #include "Magic/GridSpellbookPersistence.h"
 #include "Misc/AutomationTest.h"
+#include "RPG/RPGClassAsset.h"
+#include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
@@ -58,6 +60,50 @@ namespace GridMON188Tests
 		Binding.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
 		Binding.SourceDefinitionId = SpellId;
 		return Binding;
+	}
+
+	UGridPartyInventoryComponent* MakeMON188SerializableParty()
+	{
+		UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
+		if (!Component)
+		{
+			return nullptr;
+		}
+
+		Component->InitializeDefaultPartyIfNeeded();
+
+		URPGRaceAsset* RaceDefinition = NewObject<URPGRaceAsset>(Component);
+		URPGClassAsset* ClassDefinition = NewObject<URPGClassAsset>(Component);
+		if (!RaceDefinition || !ClassDefinition)
+		{
+			return nullptr;
+		}
+
+		RaceDefinition->RaceId = TEXT("MON188_Human");
+		RaceDefinition->DisplayName = FText::FromString(TEXT("MON18.8 Human"));
+		RaceDefinition->AttributeBonuses = FRPGAttributes{ 0, 0, 0, 0, 0, 0 };
+
+		ClassDefinition->ClassId = TEXT("MON188_Mage");
+		ClassDefinition->DisplayName = FText::FromString(TEXT("MON18.8 Mage"));
+		ClassDefinition->BaseAttributes = FRPGAttributes{ 10, 10, 10, 12, 12, 10 };
+		ClassDefinition->HealthAtLevelOne = 16;
+		ClassDefinition->HealthPerLevel = 5;
+		ClassDefinition->ManaAtLevelOne = 20;
+		ClassDefinition->ManaPerLevel = 4;
+
+		FRPGCharacterCreationRequest Request;
+		Request.DisplayName = FText::FromString(TEXT("MON18.8 Mage"));
+		Request.RaceDefinition = RaceDefinition;
+		Request.ClassDefinition = ClassDefinition;
+
+		FText CreationError;
+		if (!Component->CreateInitialCharacter(Request, CreationError) ||
+			!Component->PartyInventoryState.ActiveCharacters.IsValidIndex(0))
+		{
+			return nullptr;
+		}
+
+		return Component;
 	}
 }
 
@@ -250,25 +296,58 @@ bool FGridMagicMON188DiskRoundTripTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	using namespace GridMON188Tests;
-	FMON188DiskSlot DiskSlot;
-	UGrimrockPartySaveGame* Source = NewObject<UGrimrockPartySaveGame>();
-	Source->PartyInventoryState = MakeMON188Party({ FGuid(18, 8, 12, 1) });
-	Source->PartyInventoryState.ActiveCharacters[0].KnownSpellIds = { FGridProductionSpellLibrary::ArcaneBoltId(), FGridProductionSpellLibrary::HasteId(),
-		FGridProductionSpellLibrary::LesserHealId() };
-	Source->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1] = MakeMON188SpellBinding(FGridProductionSpellLibrary::LesserHealId(), 1);
 
-	TestTrue(TEXT("Current-schema durable Spellbook writes to disk"), UGameplayStatics::SaveGameToSlot(Source, DiskSlot.SlotName, DiskSlot.UserIndex));
-	UGrimrockPartySaveGame* Loaded = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromSlot(DiskSlot.SlotName, DiskSlot.UserIndex));
-	TestNotNull(TEXT("Temporary disk save reloads"), Loaded);
-	if (!Loaded)
+	FMON188DiskSlot DiskSlot;
+
+	UGridPartyInventoryComponent* SourceParty = MakeMON188SerializableParty();
+	if (!TestNotNull(TEXT("Serializable MON18.8 party is created"), SourceParty))
 	{
 		return false;
 	}
+	if (!TestTrue(
+			TEXT("Serializable MON18.8 party contains one active character"),
+			SourceParty->PartyInventoryState.ActiveCharacters.IsValidIndex(0)))
+	{
+		return false;
+	}
+
+	FGridCharacterInventoryState& SourceCharacter = SourceParty->PartyInventoryState.ActiveCharacters[0];
+	SourceCharacter.KnownSpellIds = { FGridProductionSpellLibrary::ArcaneBoltId(), FGridProductionSpellLibrary::HasteId(),
+		FGridProductionSpellLibrary::LesserHealId() };
+	SourceCharacter.CombatHotbarSlots[1] = MakeMON188SpellBinding(FGridProductionSpellLibrary::LesserHealId(), 1);
+
+	UGrimrockPartySaveGame* Source = NewObject<UGrimrockPartySaveGame>();
+	if (!TestNotNull(TEXT("Temporary SaveGame is created"), Source))
+	{
+		return false;
+	}
+	Source->PartyInventoryState = SourceParty->PartyInventoryState;
+
+	if (!TestTrue(TEXT("Current-schema durable Spellbook writes to disk"),
+			UGameplayStatics::SaveGameToSlot(Source, DiskSlot.SlotName, DiskSlot.UserIndex)))
+	{
+		return false;
+	}
+
+	UGrimrockPartySaveGame* Loaded = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromSlot(DiskSlot.SlotName, DiskSlot.UserIndex));
+	if (!TestNotNull(TEXT("Temporary disk save reloads"), Loaded))
+	{
+		return false;
+	}
+
 	TestEqual(TEXT("Disk round trip uses current SaveVersion"), Loaded->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
 	TestTrue(TEXT("Loaded save is compatible"), Loaded->IsCompatible());
-	TestEqual(TEXT("Three known spells survive in character state"), Loaded->PartyInventoryState.ActiveCharacters[0].KnownSpellIds.Num(), 3);
+
+	if (!TestTrue(TEXT("One active character survives disk round trip"), Loaded->PartyInventoryState.ActiveCharacters.IsValidIndex(0)))
+	{
+		return false;
+	}
+
+	const FGridCharacterInventoryState& LoadedCharacter = Loaded->PartyInventoryState.ActiveCharacters[0];
+	TestEqual(TEXT("Three known spells survive in character state"), LoadedCharacter.KnownSpellIds.Num(), 3);
 	TestTrue(TEXT("Spell hotbar survives beside durable knowledge"),
-		Loaded->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1].SourcePolicy == EGridCombatActionSourcePolicy::Spell);
+		LoadedCharacter.CombatHotbarSlots.IsValidIndex(1) &&
+			LoadedCharacter.CombatHotbarSlots[1].SourcePolicy == EGridCombatActionSourcePolicy::Spell);
 	return true;
 }
 
