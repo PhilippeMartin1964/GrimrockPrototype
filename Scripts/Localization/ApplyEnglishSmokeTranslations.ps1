@@ -1,18 +1,28 @@
 [CmdletBinding()]
 param(
-    [string]$PoPath
+    [string]$PoPath,
+    [string]$CsvPath
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$ProjectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
+
 if ([string]::IsNullOrWhiteSpace($PoPath)) {
-    $ProjectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
     $PoPath = Join-Path $ProjectRoot "Content\Localization\Game\en\Game.po"
+}
+
+if ([string]::IsNullOrWhiteSpace($CsvPath)) {
+    $CsvPath = Join-Path $ProjectRoot "Localization\Source\UI.csv"
 }
 
 if (-not (Test-Path -LiteralPath $PoPath -PathType Leaf)) {
     throw ("English PO file not found: {0}" -f $PoPath)
+}
+
+if (-not (Test-Path -LiteralPath $CsvPath -PathType Leaf)) {
+    throw ("UI localization CSV not found: {0}" -f $CsvPath)
 }
 
 function ConvertTo-PoQuoted {
@@ -21,30 +31,46 @@ function ConvertTo-PoQuoted {
     return $Value.Replace("\", "\\").Replace('"', '\"').Replace([string][char]13, "\r").Replace([string][char]10, "\n")
 }
 
-$Translations = [ordered]@{
-    "Féminin" = "Female"
-    "Masculin" = "Male"
-    "Identité du personnage" = "Character Identity"
-    "Résumé" = "Summary"
-    "Prêt à créer le personnage." = "Ready to create character."
+# Keep this script ASCII-only for Windows PowerShell 5.1 compatibility.
+# French source text is read from UI.csv as UTF-8 using stable keys.
+$TranslationsByKey = [ordered]@{
+    "CharacterCreation.Gender.Female" = "Female"
+    "CharacterCreation.Gender.Male" = "Male"
+    "CharacterCreation.Identity.Title" = "Character Identity"
+    "CharacterCreation.Wizard.Step.Summary" = "Summary"
+    "CharacterCreation.Summary.State.Ready.Create" = "Ready to create character."
 }
 
-$Utf8 = New-Object System.Text.UTF8Encoding($false)
-$Content = [System.IO.File]::ReadAllText($PoPath, [System.Text.Encoding]::UTF8)
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+$CsvText = [System.IO.File]::ReadAllText($CsvPath, [System.Text.Encoding]::UTF8)
+$CsvRows = @($CsvText | ConvertFrom-Csv)
+$PoContent = [System.IO.File]::ReadAllText($PoPath, [System.Text.Encoding]::UTF8)
 
-foreach ($Pair in $Translations.GetEnumerator()) {
-    $Source = ConvertTo-PoQuoted -Value ([string]$Pair.Key)
-    $Translation = ConvertTo-PoQuoted -Value ([string]$Pair.Value)
+foreach ($Pair in $TranslationsByKey.GetEnumerator()) {
+    $Key = [string]$Pair.Key
+    $EnglishText = [string]$Pair.Value
+    $Rows = @($CsvRows | Where-Object { $_.Key -eq $Key })
 
-    $Pattern = '(?ms)(^msgid "' + [regex]::Escape($Source) + '"\r?\n(?:(?!\r?\n\r?\n).)*?^msgstr )"(?:\\.|[^"\\])*"'
-    $Matches = [regex]::Matches($Content, $Pattern)
-
-    if ($Matches.Count -ne 1) {
-        throw ("Expected exactly one PO entry for '{0}'; found {1}. File: {2}" -f $Pair.Key, $Matches.Count, $PoPath)
+    if ($Rows.Count -ne 1) {
+        throw ("Expected exactly one UI.csv row for key '{0}'; found {1}. File: {2}" -f $Key, $Rows.Count, $CsvPath)
     }
 
-    $Content = [regex]::Replace(
-        $Content,
+    $SourceText = [string]$Rows[0].SourceString
+    if ([string]::IsNullOrWhiteSpace($SourceText)) {
+        throw ("UI.csv source text is empty for key '{0}'." -f $Key)
+    }
+
+    $Source = ConvertTo-PoQuoted -Value $SourceText
+    $Translation = ConvertTo-PoQuoted -Value $EnglishText
+    $Pattern = '(?ms)(^msgid "' + [regex]::Escape($Source) + '"\r?\n(?:(?!\r?\n\r?\n).)*?^msgstr )"(?:\\.|[^"\\])*"'
+    $Matches = [regex]::Matches($PoContent, $Pattern)
+
+    if ($Matches.Count -ne 1) {
+        throw ("Expected exactly one PO entry for key '{0}' (source length {1}); found {2}. File: {3}" -f $Key, $SourceText.Length, $Matches.Count, $PoPath)
+    }
+
+    $PoContent = [regex]::Replace(
+        $PoContent,
         $Pattern,
         [System.Text.RegularExpressions.MatchEvaluator]{
             param($Match)
@@ -53,20 +79,24 @@ foreach ($Pair in $Translations.GetEnumerator()) {
         1)
 }
 
-foreach ($Pair in $Translations.GetEnumerator()) {
-    $Source = ConvertTo-PoQuoted -Value ([string]$Pair.Key)
-    $Translation = ConvertTo-PoQuoted -Value ([string]$Pair.Value)
+foreach ($Pair in $TranslationsByKey.GetEnumerator()) {
+    $Key = [string]$Pair.Key
+    $EnglishText = [string]$Pair.Value
+    $Rows = @($CsvRows | Where-Object { $_.Key -eq $Key })
+    $SourceText = [string]$Rows[0].SourceString
+    $Source = ConvertTo-PoQuoted -Value $SourceText
+    $Translation = ConvertTo-PoQuoted -Value $EnglishText
     $ValidationPattern = '(?ms)^msgid "' + [regex]::Escape($Source) + '"\r?\n(?:(?!\r?\n\r?\n).)*?^msgstr "' + [regex]::Escape($Translation) + '"'
 
-    if (-not [regex]::IsMatch($Content, $ValidationPattern)) {
-        throw ("English PO validation failed for source '{0}'." -f $Pair.Key)
+    if (-not [regex]::IsMatch($PoContent, $ValidationPattern)) {
+        throw ("English PO validation failed for key '{0}'." -f $Key)
     }
 }
 
 $Directory = Split-Path -Parent $PoPath
 $TempPath = Join-Path $Directory ((Split-Path -Leaf $PoPath) + ".tmp")
 try {
-    [System.IO.File]::WriteAllText($TempPath, $Content, $Utf8)
+    [System.IO.File]::WriteAllText($TempPath, $PoContent, $Utf8NoBom)
     Move-Item -LiteralPath $TempPath -Destination $PoPath -Force
 }
 finally {
@@ -75,4 +105,4 @@ finally {
     }
 }
 
-Write-Host ("[OK] English localization smoke translations applied and verified: {0}" -f $PoPath)
+Write-Host ("[OK] English smoke translations applied from stable UI.csv keys: {0}" -f $PoPath)

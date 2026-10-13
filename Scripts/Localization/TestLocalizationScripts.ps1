@@ -6,7 +6,8 @@ $ErrorActionPreference = "Stop"
 
 $Targets = @(
     (Join-Path $PSScriptRoot "RunLocalizationSmoke.ps1"),
-    (Join-Path $PSScriptRoot "ApplyEnglishSmokeTranslations.ps1")
+    (Join-Path $PSScriptRoot "ApplyEnglishSmokeTranslations.ps1"),
+    (Join-Path $PSScriptRoot "TestLocalizationScripts.ps1")
 )
 
 $Failed = $false
@@ -15,6 +16,16 @@ foreach ($Path in $Targets) {
         Write-Error ("Script not found: {0}" -f $Path)
         $Failed = $true
         continue
+    }
+
+    $Bytes = [System.IO.File]::ReadAllBytes($Path)
+    $NonAsciiCount = @($Bytes | Where-Object { $_ -gt 127 }).Count
+    if ($NonAsciiCount -ne 0) {
+        Write-Error ("Script must remain ASCII-only for Windows PowerShell 5.1 compatibility: {0}. Non-ASCII bytes: {1}" -f $Path, $NonAsciiCount)
+        $Failed = $true
+    }
+    else {
+        Write-Host ("[OK] ASCII-only PowerShell source: {0}" -f $Path)
     }
 
     $Tokens = $null
@@ -36,5 +47,5 @@ if ($Failed) {
     exit 1
 }
 
-Write-Host "[OK] Localization PowerShell scripts parsed successfully."
+Write-Host "[OK] Localization PowerShell scripts are ASCII-only and parsed successfully."
 exit 0

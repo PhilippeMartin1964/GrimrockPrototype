@@ -49,6 +49,7 @@ $EngineRoot = (Resolve-Path -LiteralPath $EngineRoot).Path
 $EditorCmd = Join-Path $EngineRoot "Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
 $BuildBat = Join-Path $EngineRoot "Engine\Build\BatchFiles\Build.bat"
 $ApplyTranslationsScript = Join-Path $PSScriptRoot "ApplyEnglishSmokeTranslations.ps1"
+$ScriptValidator = Join-Path $PSScriptRoot "TestLocalizationScripts.ps1"
 $LocalizationRoot = Join-Path $ProjectRoot "Content\Localization\Game"
 $EnglishPo = Join-Path $LocalizationRoot "en\Game.po"
 $FrenchPo = Join-Path $LocalizationRoot "fr\Game.po"
@@ -65,6 +66,7 @@ $CompileConfig = Join-Path $ProjectRoot "Config\Localization\Game_Compile.ini"
 Assert-FileExists -Path $EditorCmd -Label "UnrealEditor-Cmd.exe"
 Assert-FileExists -Path $BuildBat -Label "Build.bat"
 Assert-FileExists -Path $ApplyTranslationsScript -Label "English smoke translation script"
+Assert-FileExists -Path $ScriptValidator -Label "localization PowerShell validator"
 Assert-FileExists -Path $GatherConfig -Label "Gather config"
 Assert-FileExists -Path $ExportConfig -Label "Export config"
 Assert-FileExists -Path $ImportConfig -Label "Import config"
@@ -76,6 +78,8 @@ $Timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $ReportRoot = Join-Path $ProjectRoot ("Saved\Localization\UI-LOCALIZATION01.6\{0}" -f $Timestamp)
 [void](New-Item -ItemType Directory -Path $ReportRoot -Force)
 Write-Host ("Localization report directory: {0}" -f $ReportRoot)
+
+$PowerShellExe = (Get-Command powershell.exe -ErrorAction Stop).Source
 
 function Invoke-NativeStep {
     param(
@@ -135,6 +139,15 @@ function Invoke-UnrealStep {
     Invoke-NativeStep -Label $Label -FilePath $EditorCmd -ArgumentList (@($ProjectFile.FullName) + $Arguments + $CommonArgs)
 }
 
+Invoke-NativeStep -Label "Validate_PowerShell" -FilePath $PowerShellExe -ArgumentList @(
+    "-NoProfile",
+    "-NonInteractive",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    $ScriptValidator
+)
+
 if (-not $SkipBuild) {
     $EditorTarget = "{0}Editor" -f $ProjectFile.BaseName
     Invoke-NativeStep -Label "Build_Editor" -FilePath $BuildBat -ArgumentList @(
@@ -162,7 +175,7 @@ Assert-FileExists -Path $FrenchPo -Label "French PO"
 
 Write-Host ""
 Write-Host "=== Apply_English_Smoke_Translations ==="
-& $ApplyTranslationsScript -PoPath $EnglishPo
+& $ApplyTranslationsScript -PoPath $EnglishPo -CsvPath (Join-Path $ProjectRoot "Localization\Source\UI.csv")
 
 Invoke-UnrealStep -Label "Import_PO" -Arguments @("-run=GatherText", ("-config={0}" -f $ImportConfig))
 Invoke-UnrealStep -Label "Compile_LocRes" -Arguments @("-run=GatherText", ("-config={0}" -f $CompileConfig))
