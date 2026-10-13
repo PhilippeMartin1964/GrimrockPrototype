@@ -2,10 +2,12 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGLevelUpService.h"
+#include "RPG/RPGRaceAsset.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
@@ -109,15 +111,23 @@ namespace
 
 	FGridCharacterInventoryState MakeMON155Character(URPGClassAsset* ClassDefinition, int32 Level, int32 Experience, const TCHAR* DisplayName = TEXT("Elias"))
 	{
+		URPGRaceAsset* RaceDefinition = NewObject<URPGRaceAsset>(ClassDefinition ? ClassDefinition->GetOuter() : GetTransientPackage());
+		RaceDefinition->RaceId = TEXT("MON155_Human");
+		RaceDefinition->DisplayName = FText::FromString(TEXT("MON15.5 Human"));
+		RaceDefinition->AttributeBonuses = FRPGAttributes{ 0, 0, 0, 0, 0, 0 };
+		FRPGAuthoringIdentityResolver::RememberRaceDefinition(RaceDefinition);
+
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = FGuid::NewGuid();
 		Character.DisplayName = FText::FromString(DisplayName);
+		Character.RaceId = RaceDefinition->RaceId;
+		Character.RaceDisplayName = RaceDefinition->DisplayName;
 		Character.ClassId = ClassDefinition->ClassId;
 		Character.ClassDisplayName = ClassDefinition->DisplayName;
 		Character.ClassDefinition = ClassDefinition;
 		Character.Level = Level;
 		Character.Experience = Experience;
-		Character.Attributes = ClassDefinition->BaseAttributes;
+		Character.Attributes = URPGCharacterRulesLibrary::AddAttributes(ClassDefinition->BaseAttributes, RaceDefinition->AttributeBonuses);
 		Character.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, Level);
 		Character.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Character.DerivedStats, ClassDefinition);
 		return Character;
