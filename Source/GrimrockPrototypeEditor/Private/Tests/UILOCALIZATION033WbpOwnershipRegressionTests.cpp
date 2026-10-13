@@ -46,7 +46,7 @@ namespace UILOCALIZATION033
 	{
 		for (const TCHAR* Path : Paths)
 		{
-			Test.TestTrue(
+			TestTrue(
 				*FString::Printf(TEXT("%s manifest identity remains intentionally present: %s"), GroupLabel, Path),
 				Manifest.Contains(Path));
 		}
