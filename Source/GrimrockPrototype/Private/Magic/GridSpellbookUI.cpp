@@ -2,6 +2,7 @@
 
 #include "Magic/GridProductionSpellLibrary.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "UI/UILocalizationText.h"
 
 namespace
 {
@@ -89,7 +90,7 @@ void UGridSpellbookUILibrary::BuildProductionSpellbookEntries(
 		else
 		{
 			Entry.DisplayName = FText::FromString(SpellId.ToString());
-			Entry.Description = FText::FromString(TEXT("Définition de sort indisponible."));
+			Entry.Description = FUILocalizationText::Get(TEXT("Spellbook.Fallback.DefinitionUnavailable"));
 		}
 
 		OutEntries.Add(MoveTemp(Entry));

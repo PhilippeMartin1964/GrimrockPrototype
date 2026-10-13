@@ -16,6 +16,7 @@
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UI/UILocalizationText.h"
 #include "UObject/UnrealType.h"
 
 
@@ -104,8 +105,13 @@ namespace
 
 	FText FormatInventoryBagWeight(float CurrentWeight, float MaximumWeight)
 	{
-		return FText::FromString(
-			FString::Printf(TEXT("Poids : %.1f / %.1f"), FMath::Max(0.0f, CurrentWeight), FMath::Max(0.0f, MaximumWeight)));
+		FNumberFormattingOptions NumberOptions;
+		NumberOptions.MinimumFractionalDigits = 1;
+		NumberOptions.MaximumFractionalDigits = 1;
+		return FText::FormatNamed(
+			FUILocalizationText::Get(TEXT("Inventory.Bag.Weight")),
+			TEXT("Current"), FText::AsNumber(FMath::Max(0.0f, CurrentWeight), &NumberOptions),
+			TEXT("Maximum"), FText::AsNumber(FMath::Max(0.0f, MaximumWeight), &NumberOptions));
 	}
 
 	const TCHAR* GetContextActionName(EGridItemActionType ActionType)

@@ -138,6 +138,16 @@ int32 UUILocalizationEnglishSmokeCommandlet::Main(const FString& Params)
 	CheckText(TEXT("en"), TEXT("Combat.Targeting.Invalid.OutOfRange"), TEXT("This cell is out of range."));
 	CheckText(TEXT("en"), TEXT("Combat.Action.Unavailable.StatusBlocksSpells"), TEXT("A status effect prevents spell use."));
 
+	CheckText(TEXT("fr"), TEXT("Inventory.Bag.Weight"), TEXT("Poids : {Current} / {Maximum}"));
+	CheckText(TEXT("en"), TEXT("Inventory.Bag.Weight"), TEXT("Weight: {Current} / {Maximum}"));
+	CheckText(TEXT("en"), TEXT("SaveLoad.Slot.Primary"), TEXT("Primary save"));
+	CheckText(TEXT("en"), TEXT("SaveLoad.Slot.Numbered"), TEXT("Save {Index}"));
+	CheckText(TEXT("en"), TEXT("SaveLoad.Slot.Available"), TEXT("Available"));
+	CheckText(TEXT("en"), TEXT("SaveLoad.Slot.Unavailable"), TEXT("Unavailable"));
+	CheckText(TEXT("en"), TEXT("Spellbook.Fallback.DefinitionUnavailable"), TEXT("Spell definition unavailable."));
+	CheckText(TEXT("en"), TEXT("Progression.Skill.AllocationFailed"), TEXT("Skill allocation failed."));
+	CheckText(TEXT("en"), TEXT("Progression.Skill.CancellationFailed"), TEXT("Skill allocation cancellation failed."));
+
 	Internationalization.RestoreCultureState(Snapshot);
 	LocalizationManager.RefreshResources();
 	LocalizationManager.WaitForAsyncTasks();

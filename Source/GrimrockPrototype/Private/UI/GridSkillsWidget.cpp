@@ -22,6 +22,7 @@
 #include "UI/GridRPGNotificationWidget.h"
 #include "UI/RPGProgressionFeedbackService.h"
 #include "UI/RPGTalentDetailTextSet.h"
+#include "UI/UILocalizationText.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridSkillsUI, Log, All);
 
@@ -441,7 +442,7 @@ bool UGridSkillsWidget::CommitConfirmedTalentChoice(FName ChoiceId, FText& OutFe
 
 bool UGridSkillsWidget::CommitSkillRankIncrease(FName SkillId, FText& OutFeedback)
 {
-	OutFeedback = FText::FromString(TEXT("Attribution de compétence impossible."));
+	OutFeedback = FUILocalizationText::Get(TEXT("Progression.Skill.AllocationFailed"));
 
 	const URPGSkillAsset* Definition = ResolveCanonicalSkillDefinition(SkillId);
 	FText SkillDisplayName = FText::FromName(SkillId);
@@ -477,7 +478,7 @@ bool UGridSkillsWidget::CommitSkillRankIncrease(FName SkillId, FText& OutFeedbac
 
 bool UGridSkillsWidget::CommitSkillRankDecrease(FName SkillId, FText& OutFeedback)
 {
-	OutFeedback = FText::FromString(TEXT("Annulation de compétence impossible."));
+	OutFeedback = FUILocalizationText::Get(TEXT("Progression.Skill.CancellationFailed"));
 
 	const URPGSkillAsset* Definition = ResolveCanonicalSkillDefinition(SkillId);
 	FText SkillDisplayName = FText::FromName(SkillId);

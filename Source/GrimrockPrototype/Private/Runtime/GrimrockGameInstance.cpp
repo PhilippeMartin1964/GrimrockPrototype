@@ -2,6 +2,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Save/GrimrockPartySaveGame.h"
+#include "UI/UILocalizationText.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGrimrockGameInstance, Log, All);
 
@@ -359,8 +360,11 @@ FGrimrockSaveSlotInfo UGrimrockGameInstance::MakeSaveSlotInfo(const FString& Slo
 	SlotInfo.bExists = DoesPartySaveGameExist(SlotName, UserIndex);
 	SlotInfo.bIsLoadable = HasPartySaveGame(SlotName, UserIndex);
 	SlotInfo.bIsDefaultSlot = bIsDefaultSlot;
-	SlotInfo.DisplayName =
-		bIsDefaultSlot ? FText::FromString(TEXT("Sauvegarde principale")) : FText::FromString(FString::Printf(TEXT("Sauvegarde %d"), DisplayIndex));
+	SlotInfo.DisplayName = bIsDefaultSlot
+		? FUILocalizationText::Get(TEXT("SaveLoad.Slot.Primary"))
+		: FText::FormatNamed(
+			FUILocalizationText::Get(TEXT("SaveLoad.Slot.Numbered")),
+			TEXT("Index"), DisplayIndex);
 	return SlotInfo;
 }
 

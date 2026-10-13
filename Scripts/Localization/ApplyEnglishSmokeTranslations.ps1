@@ -58,6 +58,14 @@ $TranslationsByKey = [ordered]@{
     "Combat.Resource.ActionPoints" = "AP {Current} / {Maximum}"
     "Combat.State.Active" = "ACTIVE"
     "Combat.Targeting.Invalid.OutOfRange" = "This cell is out of range."
+    "Inventory.Bag.Weight" = "Weight: {Current} / {Maximum}"
+    "Progression.Skill.AllocationFailed" = "Skill allocation failed."
+    "Progression.Skill.CancellationFailed" = "Skill allocation cancellation failed."
+    "SaveLoad.Slot.Available" = "Available"
+    "SaveLoad.Slot.Numbered" = "Save {Index}"
+    "SaveLoad.Slot.Primary" = "Primary save"
+    "SaveLoad.Slot.Unavailable" = "Unavailable"
+    "Spellbook.Fallback.DefinitionUnavailable" = "Spell definition unavailable."
 }
 
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)

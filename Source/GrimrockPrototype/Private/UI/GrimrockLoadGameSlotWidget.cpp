@@ -2,6 +2,7 @@
 
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
+#include "UI/UILocalizationText.h"
 
 void UGrimrockLoadGameSlotWidget::NativeConstruct()
 {
@@ -47,7 +48,7 @@ void UGrimrockLoadGameSlotWidget::RefreshSlotText()
 
 	if (Text_Status)
 	{
-		Text_Status->SetText(SaveSlotInfo.bExists ? FText::FromString(TEXT("Disponible")) : FText::FromString(TEXT("Indisponible")));
+		Text_Status->SetText(SaveSlotInfo.bExists ? FUILocalizationText::Get(TEXT("SaveLoad.Slot.Available")) : FUILocalizationText::Get(TEXT("SaveLoad.Slot.Unavailable")));
 	}
 
 	if (Button_LoadSlot)
