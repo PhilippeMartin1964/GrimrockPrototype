@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Game\n"
-"POT-Creation-Date: 2026-10-13 13:41\n"
-"PO-Revision-Date: 2026-10-13 13:41\n"
+"POT-Creation-Date: 2026-10-13 13:59\n"
+"PO-Revision-Date: 2026-10-13 13:59\n"
 "Language-Team: \n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
@@ -5047,7 +5047,7 @@ msgstr ""
 #: /Game/Localization/StringTables/ST_UI.ST_UI
 msgctxt "ST_UI,CharacterCreation.Attribute.Dexterity"
 msgid "Dextérité"
-msgstr ""
+msgstr "Dexterity"
 
 #. Key:	CharacterCreation.Attribute.Effect.Charisma
 #. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
@@ -6536,6 +6536,78 @@ msgstr "Unavailable"
 msgctxt "ST_UI,Spellbook.Fallback.DefinitionUnavailable"
 msgid "Définition de sort indisponible."
 msgstr "Spell definition unavailable."
+
+#. Key:	Spellbook.School.Air
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom d'école de magie"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Spellbook.School.Air"
+msgid "Air"
+msgstr ""
+
+#. Key:	Spellbook.School.Arcane
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom d'école de magie"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Spellbook.School.Arcane"
+msgid "Arcane"
+msgstr ""
+
+#. Key:	Spellbook.School.Death
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom d'école de magie"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Spellbook.School.Death"
+msgid "Mort"
+msgstr ""
+
+#. Key:	Spellbook.School.Earth
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom d'école de magie"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Spellbook.School.Earth"
+msgid "Terre"
+msgstr ""
+
+#. Key:	Spellbook.School.Fire
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom d'école de magie"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Spellbook.School.Fire"
+msgid "Feu"
+msgstr "Fire"
+
+#. Key:	Spellbook.School.Frost
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom d'école de magie"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Spellbook.School.Frost"
+msgid "Glace"
+msgstr ""
+
+#. Key:	Spellbook.School.Life
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom d'école de magie"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Spellbook.School.Life"
+msgid "Vie"
+msgstr ""
+
+#. Key:	Spellbook.School.None
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom d'école de magie"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Spellbook.School.None"
+msgid "Aucune"
+msgstr ""
+
+#. Key:	Spellbook.School.Protection
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom d'école de magie"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Spellbook.School.Protection"
+msgid "Protection"
+msgstr ""
 
 #. Key:	Status.Control.BlockSpellActions
 #. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
@@ -8031,99 +8103,99 @@ msgid "Niveau {0}"
 msgstr ""
 
 #. Key:	UnknownSkill
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(141)
-#: Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(141)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(142)
+#: Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(142)
 msgctxt "GridSkills,UnknownSkill"
 msgid "Compétence inconnue"
 msgstr ""
 
 #. Key:	SkillRankFormat
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(162)
-#: Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(162)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(172)
+#: Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(172)
 msgctxt "GridSkills,SkillRankFormat"
 msgid "Rang {0} / {1}"
 msgstr ""
 
 #. Key:	SkillTrained
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(171)
-#: Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(171)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(181)
+#: Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(181)
 msgctxt "GridSkills,SkillTrained"
 msgid "Entraînée"
 msgstr ""
 
 #. Key:	SkillUntrainedAllowed
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(175)
-#: Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(175)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(185)
+#: Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(185)
 msgctxt "GridSkills,SkillUntrainedAllowed"
 msgid "Test possible sans entraînement"
 msgstr ""
 
 #. Key:	SkillTrainingRequired
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(177)
-#: Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(177)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(187)
+#: Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp(187)
 msgctxt "GridSkills,SkillTrainingRequired"
 msgid "Entraînement requis"
 msgstr ""
 
 #. Key:	UnresolvedDefinition
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(113)
-#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(113)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(132)
+#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(132)
 msgctxt "GridSpellbook,UnresolvedDefinition"
 msgid "Définition introuvable"
 msgstr ""
 
 #. Key:	SpellCostFormat
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(117)
-#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(117)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(136)
+#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(136)
 msgctxt "GridSpellbook,SpellCostFormat"
 msgid "Mana {0}  |  PA {1}"
 msgstr ""
 
 #. Key:	SpellRangeSingle
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(129)
-#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(129)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(148)
+#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(148)
 msgctxt "GridSpellbook,SpellRangeSingle"
 msgid "Portée {0}"
 msgstr ""
 
 #. Key:	SpellRangeInterval
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(133)
-#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(133)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(152)
+#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(152)
 msgctxt "GridSpellbook,SpellRangeInterval"
 msgid "Portée {0}-{1}"
 msgstr ""
 
 #. Key:	SpellNotAssigned
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(140)
-#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(140)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(159)
+#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(159)
 msgctxt "GridSpellbook,SpellNotAssigned"
 msgid "Non assigné"
 msgstr ""
 
 #. Key:	SpellAssignedFormat
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(144)
-#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(144)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(163)
+#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(163)
 msgctxt "GridSpellbook,SpellAssignedFormat"
 msgid "Raccourci {0}"
 msgstr ""
 
 #. Key:	SpellDragToHotbar
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(43)
-#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(43)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(44)
+#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(44)
 msgctxt "GridSpellbook,SpellDragToHotbar"
 msgid "Glissez ce sort vers un raccourci de la barre d'actions."
 msgstr ""
 
 #. Key:	SpellCannotDragToHotbar
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(44)
-#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(44)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(45)
+#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(45)
 msgctxt "GridSpellbook,SpellCannotDragToHotbar"
 msgid "Ce sort ne peut pas être assigné à la barre d'actions."
 msgstr ""
 
 #. Key:	UnknownSpell
-#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(97)
-#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(97)
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(98)
+#: Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp(98)
 msgctxt "GridSpellbook,UnknownSpell"
 msgid "Sort inconnu"
 msgstr ""
