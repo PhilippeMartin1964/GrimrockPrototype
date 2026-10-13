@@ -56,6 +56,7 @@ $FrenchPo = Join-Path $LocalizationRoot "fr\Game.po"
 $EnglishLocRes = Join-Path $LocalizationRoot "en\Game.locres"
 $FrenchLocRes = Join-Path $LocalizationRoot "fr\Game.locres"
 $Manifest = Join-Path $LocalizationRoot "Game.manifest"
+$LocMeta = Join-Path $LocalizationRoot "Game.locmeta"
 $StringTableAsset = Join-Path $ProjectRoot "Content\Localization\StringTables\ST_UI.uasset"
 
 $GatherConfig = Join-Path $ProjectRoot "Config\Localization\Game_Gather.ini"
@@ -181,6 +182,7 @@ Invoke-UnrealStep -Label "Import_PO" -Arguments @("-run=GatherText", ("-config={
 Invoke-UnrealStep -Label "Compile_LocRes" -Arguments @("-run=GatherText", ("-config={0}" -f $CompileConfig))
 Assert-FileExists -Path $EnglishLocRes -Label "English locres"
 Assert-FileExists -Path $FrenchLocRes -Label "French locres"
+Assert-FileExists -Path $LocMeta -Label "localization target metadata"
 
 Invoke-UnrealStep -Label "Runtime_Culture_Smoke" -Arguments @("-run=UILocalizationEnglishSmoke")
 

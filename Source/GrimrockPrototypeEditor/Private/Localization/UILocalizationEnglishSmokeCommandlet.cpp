@@ -1,6 +1,7 @@
 #include "Localization/UILocalizationEnglishSmokeCommandlet.h"
 
 #include "Internationalization/Internationalization.h"
+#include "Internationalization/TextLocalizationManager.h"
 #include "UI/UILocalizationText.h"
 
 UUILocalizationEnglishSmokeCommandlet::UUILocalizationEnglishSmokeCommandlet()
@@ -16,6 +17,7 @@ int32 UUILocalizationEnglishSmokeCommandlet::Main(const FString& Params)
 	(void)Params;
 
 	FInternationalization& Internationalization = FInternationalization::Get();
+	FTextLocalizationManager& LocalizationManager = FTextLocalizationManager::Get();
 	FInternationalization::FCultureStateSnapshot Snapshot;
 	Internationalization.BackupCultureState(Snapshot);
 
@@ -29,6 +31,12 @@ int32 UUILocalizationEnglishSmokeCommandlet::Main(const FString& Params)
 				bSucceeded = false;
 				return;
 			}
+
+			// Commandlets run in editor context. Explicitly reload and wait for
+			// project localization resources after changing culture so the
+			// String Table display strings are evaluated against the new LocRes.
+			LocalizationManager.RefreshResources();
+			LocalizationManager.WaitForAsyncTasks();
 
 			const FString Actual = FUILocalizationText::Get(Key).ToString();
 			if (Actual != Expected)
@@ -51,6 +59,8 @@ int32 UUILocalizationEnglishSmokeCommandlet::Main(const FString& Params)
 	CheckText(TEXT("en"), TEXT("CharacterCreation.Summary.State.Ready.Create"), TEXT("Ready to create character."));
 
 	Internationalization.RestoreCultureState(Snapshot);
+	LocalizationManager.RefreshResources();
+	LocalizationManager.WaitForAsyncTasks();
 
 	if (!bSucceeded)
 	{

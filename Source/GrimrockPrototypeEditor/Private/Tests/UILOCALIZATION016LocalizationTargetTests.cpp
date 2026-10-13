@@ -109,7 +109,15 @@ bool FUILOCALIZATION016TargetContractTest::RunTest(const FString&)
 		TestTrue(TEXT("Smoke script checks Unreal processes before execution"), RunScript.Contains(TEXT("Assert-NoUnrealProcess")));
 		TestTrue(TEXT("Smoke script creates per-run reports"), RunScript.Contains(TEXT("Saved\\Localization\\UI-LOCALIZATION01.6")));
 		TestTrue(TEXT("Smoke script captures native output"), RunScript.Contains(TEXT("Tee-Object -FilePath")));
+		TestTrue(TEXT("Smoke script requires generated target metadata"), RunScript.Contains(TEXT("Game.locmeta")));
 		TestFalse(TEXT("Smoke script does not contain ambiguous LASTEXITCODE interpolation"), RunScript.Contains(TEXT("$LASTEXITCODE:")));
+	}
+
+	FString RuntimeSmoke;
+	if (LoadProjectFile(TEXT("Source/GrimrockPrototypeEditor/Private/Localization/UILocalizationEnglishSmokeCommandlet.cpp"), RuntimeSmoke, *this))
+	{
+		TestTrue(TEXT("Runtime smoke explicitly refreshes localization resources"), RuntimeSmoke.Contains(TEXT("LocalizationManager.RefreshResources()")));
+		TestTrue(TEXT("Runtime smoke waits for localization reload"), RuntimeSmoke.Contains(TEXT("LocalizationManager.WaitForAsyncTasks()")));
 	}
 
 	FString TranslationScript;
