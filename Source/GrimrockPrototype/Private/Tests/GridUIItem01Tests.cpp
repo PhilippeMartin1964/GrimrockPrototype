@@ -60,6 +60,7 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 	CandidateDefinition->EquipmentStatBonus.StrengthBonus = 3;
 	CandidateDefinition->EquipmentStatBonus.CarryWeightBonus = 5.0f;
 	CandidateDefinition->EquipmentResistanceBonus.FireResistance = 8;
+	CandidateDefinition->LightEmitter.bUsePointLight = true;
 	TestTrue(TEXT("Candidate definition registers"), Inventory->RegisterItemDefinition(CandidateDefinition));
 
 	UGridInventoryWidget* OwnerWidget = NewObject<UGridInventoryWidget>();
@@ -75,6 +76,7 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 	Candidate.DisplayName = CandidateDefinition->DisplayName;
 	Candidate.Quantity = 2;
 	Candidate.Weight = CandidateDefinition->Weight;
+	Candidate.bLightsEnabled = true;
 	Candidate.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Candidate.OwnerCharacterIndex = 0;
 	SlotWidget->SetItem(Candidate);
@@ -84,9 +86,13 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Tooltip name comes from item definition"), View.DisplayName.ToString(), FString(TEXT("Ceinture du voyageur")));
 	TestEqual(TEXT("Tooltip type covers jewelry"), View.ItemType.ToString(), FString(TEXT("Bijou")));
 	TestEqual(TEXT("Tooltip quantity is projected"), View.Quantity, 2);
+	TestEqual(TEXT("Tooltip quantity presentation is projected"), View.QuantityText.ToString(), FString(TEXT("(2x)")));
 	TestTrue(TEXT("Tooltip unit weight is projected"), FMath::IsNearlyEqual(View.UnitWeight, 1.5f));
 	TestTrue(TEXT("Tooltip total weight multiplies stack quantity"), FMath::IsNearlyEqual(View.TotalWeight, 3.0f));
 	TestTrue(TEXT("Tooltip reports equippable state"), View.bEquippable);
+	TestTrue(TEXT("Tooltip reports light capability"), View.bProvidesLight);
+	TestTrue(TEXT("Tooltip reports enabled light state"), View.bLightEnabled);
+	TestEqual(TEXT("Tooltip light presentation is projected"), View.LightStateText.ToString(), FString(TEXT("Lumière : allumée")));
 	TestTrue(TEXT("Tooltip exposes the Belt compatibility"), View.CompatibleSlotsText.ToString().Contains(TEXT("Ceinture")));
 	TestTrue(TEXT("Fallback tooltip contains the authored description"),
 		SlotWidget->GetTooltipText().ToString().Contains(TEXT("Un objet de test pour le tooltip.")));
@@ -162,6 +168,7 @@ bool FGridUIItem01EmptyEquipmentComparisonTest::RunTest(const FString& Parameter
 	const FGridItemTooltipEquipmentComparison& Comparison = View.EquipmentComparisons[0];
 	TestFalse(TEXT("Empty-slot comparison reports no equipped item"), Comparison.bHasEquippedItem);
 	TestTrue(TEXT("Empty-slot comparison keeps an empty equipped-item name"), Comparison.EquippedItemName.IsEmpty());
+	TestEqual(TEXT("Empty-slot presentation is projected"), Comparison.EquippedItemDisplayText.ToString(), FString(TEXT("vide")));
 	TestEqual(TEXT("Empty-slot comparison identifies the Belt slot"), Comparison.EquipmentSlot, EGridEquipmentSlot::Belt);
 
 	const FGridItemTooltipStatLine* Strength = FindLine(Comparison.StatLines, TEXT("Strength"));
@@ -170,6 +177,7 @@ bool FGridUIItem01EmptyEquipmentComparisonTest::RunTest(const FString& Parameter
 	{
 		TestTrue(TEXT("Empty-slot Strength delta is +2"), FMath::IsNearlyEqual(Strength->Delta, 2.0f));
 		TestTrue(TEXT("Empty-slot Strength delta is positive"), Strength->DeltaState == EGridItemTooltipDeltaState::Positive);
+		TestEqual(TEXT("Empty-slot Strength delta presentation is projected"), Strength->DeltaDisplayText.ToString(), FString(TEXT("(Δ +2)")));
 	}
 
 	TestTrue(TEXT("Fallback tooltip labels the empty equipment reference"), SlotWidget->GetTooltipText().ToString().Contains(TEXT("vide")));
@@ -235,6 +243,7 @@ bool FGridUIItem01EquipmentComparisonTest::RunTest(const FString& Parameters)
 	const FGridItemTooltipEquipmentComparison& Comparison = View.EquipmentComparisons[0];
 	TestTrue(TEXT("Compared slot is occupied"), Comparison.bHasEquippedItem);
 	TestEqual(TEXT("Compared item name is projected"), Comparison.EquippedItemName.ToString(), FString(TEXT("Ancienne ceinture")));
+	TestEqual(TEXT("Compared item display text reuses the item name"), Comparison.EquippedItemDisplayText.ToString(), FString(TEXT("Ancienne ceinture")));
 
 	const FGridItemTooltipStatLine* Strength = FindLine(Comparison.StatLines, TEXT("Strength"));
 	const FGridItemTooltipStatLine* Armor = FindLine(Comparison.StatLines, TEXT("Armor"));

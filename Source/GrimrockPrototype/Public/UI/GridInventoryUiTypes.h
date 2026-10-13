@@ -141,6 +141,10 @@ struct FGridItemTooltipStatLine
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	FText DeltaText;
 
+	/** Complete localized delta presentation, ready for direct UMG display. */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
+	FText DeltaDisplayText;
+
 	/** Stable presentation key for Blueprint icon lookup; independent of the localized Label. */
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	FName StatId = NAME_None;
@@ -162,6 +166,10 @@ struct FGridItemTooltipEquipmentComparison
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	FText EquippedItemName;
+
+	/** Occupied item name or the localized empty-slot presentation. */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
+	FText EquippedItemDisplayText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	TArray<FGridItemTooltipStatLine> StatLines;
@@ -190,6 +198,10 @@ struct FGridItemTooltipView
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	int32 Quantity = 0;
 
+	/** Empty for a single item; otherwise the localized stack-count presentation. */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
+	FText QuantityText;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	float UnitWeight = 0.0f;
 
@@ -213,6 +225,10 @@ struct FGridItemTooltipView
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	bool bLightEnabled = false;
+
+	/** Empty for non-light items; otherwise the localized current light state. */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
+	FText LightStateText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory|Tooltip")
 	bool bCanAssignToHotbar = false;

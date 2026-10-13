@@ -24,6 +24,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Load Game")
 	void RefreshSaveSlots();
 
+	/** Localized player-facing failure text for the presentation-only Blueprint event. */
+	UFUNCTION(BlueprintPure, Category = "Load Game")
+	FText GetLoadFailureText() const;
+
 protected:
 	virtual void NativeConstruct() override;
 

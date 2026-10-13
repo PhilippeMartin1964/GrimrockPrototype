@@ -16,6 +16,11 @@ void UGrimrockLoadGameMenuWidget::NativeConstruct()
 	RefreshSaveSlots();
 }
 
+FText UGrimrockLoadGameMenuWidget::GetLoadFailureText() const
+{
+	return NSLOCTEXT("GrimrockLoadGameMenu", "LoadFailed", "Impossible de charger cette sauvegarde.");
+}
+
 void UGrimrockLoadGameMenuWidget::RefreshSaveSlots()
 {
 	if (!VerticalBox_SaveSlots)

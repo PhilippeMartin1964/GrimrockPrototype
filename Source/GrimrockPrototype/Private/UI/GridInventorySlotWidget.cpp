@@ -151,6 +151,12 @@ namespace
 			Line.DeltaText = FMath::IsNearlyZero(Line.Delta)
 				? FText::FromString(TEXT("±0"))
 				: FText::FromString(FormatTooltipNumber(Line.Delta, bInteger));
+
+			FFormatNamedArguments DeltaArguments;
+			DeltaArguments.Add(TEXT("Delta"), Line.DeltaText);
+			Line.DeltaDisplayText = FText::Format(
+				NSLOCTEXT("GridInventoryTooltip", "DeltaDisplayFormat", "(Δ {Delta})"),
+				DeltaArguments);
 		}
 	}
 
@@ -362,6 +368,14 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	View.Description = Definition ? Definition->Description : FText::GetEmpty();
 	View.ItemType = Definition ? GetItemTypeDisplayName(Definition->ItemType) : NSLOCTEXT("GridInventoryTooltip", "ItemTypeUnknown", "Objet");
 	View.Quantity = FMath::Max(1, CachedItem.Quantity);
+	if (View.Quantity > 1)
+	{
+		FFormatNamedArguments QuantityArguments;
+		QuantityArguments.Add(TEXT("Quantity"), View.Quantity);
+		View.QuantityText = FText::Format(
+			NSLOCTEXT("GridInventoryTooltip", "StackQuantityFormat", "({Quantity}x)"),
+			QuantityArguments);
+	}
 	View.UnitWeight = FMath::Max(0.0f, Definition ? Definition->Weight : CachedItem.Weight);
 	View.TotalWeight = View.UnitWeight * static_cast<float>(View.Quantity);
 	View.WeightText = View.Quantity > 1
@@ -378,6 +392,12 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	View.bReadable = UGridItemContextActionLibrary::IsItemReadable(CachedItem, Definition);
 	View.bProvidesLight = Definition->HasLightEmitter();
 	View.bLightEnabled = View.bProvidesLight && CachedItem.bLightsEnabled;
+	if (View.bProvidesLight)
+	{
+		View.LightStateText = View.bLightEnabled
+			? NSLOCTEXT("GridInventoryTooltip", "LightEnabled", "Lumière : allumée")
+			: NSLOCTEXT("GridInventoryTooltip", "LightDisabled", "Lumière : éteinte");
+	}
 
 	FGridCombatActionDefinition InventoryAction;
 	View.bCanAssignToHotbar =
@@ -420,6 +440,11 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		{
 			EquippedDefinition = InventoryComponent->FindItemDefinition(EquippedItem.ItemDefinitionId);
 			Comparison.EquippedItemName = GetItemDisplayName(EquippedItem, EquippedDefinition);
+			Comparison.EquippedItemDisplayText = Comparison.EquippedItemName;
+		}
+		else
+		{
+			Comparison.EquippedItemDisplayText = NSLOCTEXT("GridInventoryTooltip", "EmptyEquipment", "vide");
 		}
 		AppendDefinitionStats(Definition, EquippedDefinition, true, Comparison.StatLines);
 	}
