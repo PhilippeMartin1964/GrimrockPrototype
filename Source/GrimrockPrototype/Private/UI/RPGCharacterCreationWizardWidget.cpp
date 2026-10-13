@@ -357,7 +357,7 @@ namespace
 		Widget->Text_ValidationMessage->SetColorAndOpacity(
 			bIsError ? FSlateColor(FLinearColor(0.85f, 0.12f, 0.08f)) : FSlateColor(FLinearColor(0.80f, 0.72f, 0.55f)));
 		Widget->Text_ValidationMessage->SetVisibility(Message.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
-	
+	}
 }
 
 void URPGCharacterCreationWizardWidget::NativeConstruct()
