@@ -72,6 +72,12 @@ $TranslationsByKey = [ordered]@{
     "Recruitment.Registration.IdentityCollision" = "This companion conflicts with a character already registered."
     "Recruitment.Registration.InvalidDefinition" = "This companion's data is invalid."
     "Recruitment.Registration.InvalidInventory" = "The party is not available to prepare this companion."
+    "Combat.Targeting.SelectDungeonCell" = "Select a dungeon cell."
+    "Interaction.Throw.Failed" = "Throw failed."
+    "Interaction.Throw.NoActiveLevel" = "No active level."
+    "Interaction.Throw.NoTargetUnderCursor" = "No throw target under the cursor."
+    "Interaction.Throw.TooHeavy" = "Too heavy: {Weight} kg (maximum {MaximumWeight} kg with Strength {Strength})."
+    "Progression.LevelUp.CharacterFallback" = "Character {Index}"
 }
 
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)

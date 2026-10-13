@@ -21,6 +21,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
 #include "UI/GridCombatHudWidget.h"
+#include "UI/UILocalizationText.h"
 #include "Sound/SoundBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridMouse, Log, All);
@@ -91,24 +92,24 @@ namespace
 		OutReason = FText::GetEmpty();
 		if (!PartyPawn || !PartyPawn->PartyInventoryComponent || !PartyPawn->LevelRuntimeActor)
 		{
-			OutReason = FText::FromString(TEXT("Aucun niveau actif."));
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.NoActiveLevel"));
 			return false;
 		}
 
 		const int32 CharacterIndex = PartyPawn->PartyInventoryComponent->GetSelectedCharacterIndex();
 		if (ExpectedCharacterIndex != INDEX_NONE && CharacterIndex != ExpectedCharacterIndex)
 		{
-			OutReason = FText::FromString(TEXT("Le personnage sélectionné a changé."));
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.CharacterChanged"));
 			return false;
 		}
 		if (!PartyPawn->PartyInventoryComponent->GetEquippedItem(CharacterIndex, EGridEquipmentSlot::MainHand, OutItem))
 		{
-			OutReason = FText::FromString(TEXT("La main droite est vide."));
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.EmptyMainHand"));
 			return false;
 		}
 		if (ExpectedRuntimeId.IsValid() && OutItem.RuntimeObjectId != ExpectedRuntimeId)
 		{
-			OutReason = FText::FromString(TEXT("L'objet tenu en main a changé."));
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.HeldItemChanged"));
 			return false;
 		}
 
@@ -120,19 +121,21 @@ namespace
 		FGridInventoryCharacterSummary Summary;
 		if (!IsValid(OutDefinition) || !PartyPawn->PartyInventoryComponent->GetCharacterSummary(CharacterIndex, Summary))
 		{
-			OutReason = FText::FromString(TEXT("Définition d'objet ou personnage indisponible."));
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.DefinitionOrCharacterUnavailable"));
 			return false;
 		}
 		if (OutDefinition->GetEffectiveHandUsage() != EGridItemHandUsage::OneHanded)
 		{
-			OutReason = FText::FromString(TEXT("Cet objet ne peut pas être lancé d'une seule main."));
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.RequiresOneHand"));
 			return false;
 		}
 		if (!OutDefinition->CanBeThrownByStrength(Summary.Attributes.Strength))
 		{
-			OutReason = FText::Format(FText::FromString(TEXT("Trop lourd : {0} kg (maximum {1} kg avec Force {2}).")),
-				FText::AsNumber(OutDefinition->Weight), FText::AsNumber(OutDefinition->GetMaxThrowableWeightForStrength(Summary.Attributes.Strength)),
-				FText::AsNumber(Summary.Attributes.Strength));
+			OutReason = FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Interaction.Throw.TooHeavy")),
+				TEXT("Weight"), FText::AsNumber(OutDefinition->Weight),
+				TEXT("MaximumWeight"), FText::AsNumber(OutDefinition->GetMaxThrowableWeightForStrength(Summary.Attributes.Strength)),
+				TEXT("Strength"), FText::AsNumber(Summary.Attributes.Strength));
 			return false;
 		}
 		return true;
@@ -145,18 +148,18 @@ namespace
 		OutReason = FText::GetEmpty();
 		if (!PartyPawn || !PartyPawn->PartyInventoryComponent || !PartyPawn->LevelRuntimeActor || ItemDefinitionId.IsNone())
 		{
-			OutReason = FText::FromString(TEXT("Aucun objet de lancer sélectionné."));
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.NoItemSelected"));
 			return false;
 		}
 		const int32 CharacterIndex = PartyPawn->PartyInventoryComponent->GetSelectedCharacterIndex();
 		if (ExpectedCharacterIndex != INDEX_NONE && CharacterIndex != ExpectedCharacterIndex)
 		{
-			OutReason = FText::FromString(TEXT("Le personnage sélectionné a changé."));
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.CharacterChanged"));
 			return false;
 		}
 		if (PartyPawn->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(CharacterIndex, ItemDefinitionId) <= 0)
 		{
-			OutReason = FText::FromString(TEXT("Cet objet n'est plus présent dans l'inventaire."));
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.ItemMissingInventory"));
 			return false;
 		}
 		OutDefinition = PartyPawn->PartyInventoryComponent->FindItemDefinition(ItemDefinitionId);
@@ -167,14 +170,16 @@ namespace
 		FGridInventoryCharacterSummary Summary;
 		if (!IsValid(OutDefinition) || !PartyPawn->PartyInventoryComponent->GetCharacterSummary(CharacterIndex, Summary))
 		{
-			OutReason = FText::FromString(TEXT("Définition d'objet ou personnage indisponible."));
+			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.DefinitionOrCharacterUnavailable"));
 			return false;
 		}
 		if (!OutDefinition->CanBeThrownByStrength(Summary.Attributes.Strength))
 		{
-			OutReason = FText::Format(FText::FromString(TEXT("Trop lourd : {0} kg (maximum {1} kg avec Force {2}).")),
-				FText::AsNumber(OutDefinition->Weight), FText::AsNumber(OutDefinition->GetMaxThrowableWeightForStrength(Summary.Attributes.Strength)),
-				FText::AsNumber(Summary.Attributes.Strength));
+			OutReason = FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Interaction.Throw.TooHeavy")),
+				TEXT("Weight"), FText::AsNumber(OutDefinition->Weight),
+				TEXT("MaximumWeight"), FText::AsNumber(OutDefinition->GetMaxThrowableWeightForStrength(Summary.Attributes.Strength)),
+				TEXT("Strength"), FText::AsNumber(Summary.Attributes.Strength));
 			return false;
 		}
 		return true;
@@ -416,7 +421,7 @@ bool AGrimrockPlayerController::HandlePhysicalThrowAimingClick()
 	FHitResult HitResult;
 	if (!TryGetWorldHitUnderCursor(HitResult))
 	{
-		ShowInteractionFeedback(FText::FromString(TEXT("Aucune cible de lancer sous le curseur.")));
+		ShowInteractionFeedback(FUILocalizationText::Get(TEXT("Interaction.Throw.NoTargetUnderCursor")));
 		return true;
 	}
 
@@ -462,7 +467,7 @@ bool AGrimrockPlayerController::HandlePhysicalThrowAimingHit(const FHitResult& H
 		else
 		{
 			SetGridInteractionCursor(EGridInteractionCursor::CannotPlaceItem, TEXT("PhysicalItemPlacementRejected"));
-			ShowInteractionFeedback(FText::FromString(TEXT("Pose impossible.")));
+			ShowInteractionFeedback(FUILocalizationText::Get(TEXT("Interaction.Throw.PlacementFailed")));
 		}
 		// A near target must never fall through to a projectile, even if placement fails.
 		return true;
@@ -473,7 +478,7 @@ bool AGrimrockPlayerController::HandlePhysicalThrowAimingHit(const FHitResult& H
 	const float TargetDistance = TargetOffset.Size();
 	if (TargetOffset.IsNearlyZero() || (MaxThrowTargetDistance > 0.f && TargetDistance > MaxThrowTargetDistance))
 	{
-		ShowInteractionFeedback(FText::FromString(TEXT("Cible de lancer trop éloignée ou invalide.")));
+		ShowInteractionFeedback(FUILocalizationText::Get(TEXT("Interaction.Throw.TargetTooFarOrInvalid")));
 		return true;
 	}
 
@@ -483,7 +488,7 @@ bool AGrimrockPlayerController::HandlePhysicalThrowAimingHit(const FHitResult& H
 		: PartyPawn->TryThrowSelectedCharacterInventoryItem(InventoryThrowDefinitionId, TargetOffset);
 	if (!bThrown)
 	{
-		ShowInteractionFeedback(FText::FromString(TEXT("Lancer impossible.")));
+		ShowInteractionFeedback(FUILocalizationText::Get(TEXT("Interaction.Throw.Failed")));
 		return true;
 	}
 
@@ -889,7 +894,7 @@ bool AGrimrockPlayerController::HandleCombatTargetingClick()
 	if (!TryResolveCombatTargetCellUnderCursor(TargetCell))
 	{
 		Hud->ClearCombatActionTargetingPreview();
-		ShowInteractionFeedback(FText::FromString(TEXT("Sélectionnez une cellule du donjon.")));
+		ShowInteractionFeedback(FUILocalizationText::Get(TEXT("Combat.Targeting.SelectDungeonCell")));
 		return true;
 	}
 
@@ -897,7 +902,7 @@ bool AGrimrockPlayerController::HandleCombatTargetingClick()
 	if (!Hud->ConfirmCombatActionTarget(TargetCell, Result))
 	{
 		const FText Reason =
-			Hud->TargetingPreview.InvalidReason.IsEmpty() ? FText::FromString(TEXT("Cette cible est invalide.")) : Hud->TargetingPreview.InvalidReason;
+			Hud->TargetingPreview.InvalidReason.IsEmpty() ? FUILocalizationText::Get(TEXT("Combat.Targeting.Invalid.Default")) : Hud->TargetingPreview.InvalidReason;
 		ShowInteractionFeedback(Reason);
 	}
 	else

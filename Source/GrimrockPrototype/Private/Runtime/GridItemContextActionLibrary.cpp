@@ -8,6 +8,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "UI/UILocalizationText.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GridRuntimeObjectActor.h"
@@ -366,9 +367,11 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		}
 		else if (!bCanThrow)
 		{
-			DisabledReason = FText::Format(
-				NSLOCTEXT("GridItemActions", "ThrowTooHeavy", "Trop lourd : {0} kg (maximum {1} kg avec Force {2})."),
-				FText::AsNumber(Definition->Weight), FText::AsNumber(Definition->GetMaxThrowableWeightForStrength(Strength)), FText::AsNumber(Strength));
+			DisabledReason = FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Interaction.Throw.TooHeavy")),
+				TEXT("Weight"), FText::AsNumber(Definition->Weight),
+				TEXT("MaximumWeight"), FText::AsNumber(Definition->GetMaxThrowableWeightForStrength(Strength)),
+				TEXT("Strength"), FText::AsNumber(Strength));
 		}
 
 		AddAction(OutActions, EGridItemActionType::Throw, NSLOCTEXT("GridItemActions", "Throw", "Lancer"), nullptr, EGridEquipmentSlot::MainHand,

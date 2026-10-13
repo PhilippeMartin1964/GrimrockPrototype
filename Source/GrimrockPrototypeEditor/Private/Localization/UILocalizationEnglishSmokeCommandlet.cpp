@@ -156,6 +156,14 @@ int32 UUILocalizationEnglishSmokeCommandlet::Main(const FString& Params)
 	CheckText(TEXT("en"), TEXT("Recruitment.Activation.InvalidCandidate"), TEXT("This companion cannot be recruited because its data is invalid."));
 	CheckText(TEXT("en"), TEXT("Recruitment.Activation.PartyFull"), TEXT("The party is full. This companion remains available in the reserve."));
 
+	CheckText(TEXT("fr"), TEXT("Interaction.Throw.NoActiveLevel"), TEXT("Aucun niveau actif."));
+	CheckText(TEXT("en"), TEXT("Interaction.Throw.NoActiveLevel"), TEXT("No active level."));
+	CheckText(TEXT("en"), TEXT("Interaction.Throw.NoTargetUnderCursor"), TEXT("No throw target under the cursor."));
+	CheckText(TEXT("en"), TEXT("Interaction.Throw.Failed"), TEXT("Throw failed."));
+	CheckText(TEXT("en"), TEXT("Interaction.Throw.TooHeavy"), TEXT("Too heavy: {Weight} kg (maximum {MaximumWeight} kg with Strength {Strength})."));
+	CheckText(TEXT("en"), TEXT("Combat.Targeting.SelectDungeonCell"), TEXT("Select a dungeon cell."));
+	CheckText(TEXT("en"), TEXT("Progression.LevelUp.CharacterFallback"), TEXT("Character {Index}"));
+
 	Internationalization.RestoreCultureState(Snapshot);
 	LocalizationManager.RefreshResources();
 	LocalizationManager.WaitForAsyncTasks();

@@ -11,6 +11,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridPersistentHudWidget.h"
+#include "UI/UILocalizationText.h"
 #include "UI/RPGProgressionFeedbackService.h"
 #include "TimerManager.h"
 
@@ -33,7 +34,9 @@ namespace GridLevelUpNotificationPrivate
 	FText ResolveCharacterName(const FGridCharacterInventoryState& Character, int32 CharacterIndex)
 	{
 		return Character.DisplayName.IsEmpty()
-			? FText::FromString(FString::Printf(TEXT("Personnage %d"), CharacterIndex + 1))
+			? FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("Progression.LevelUp.CharacterFallback")),
+				TEXT("Index"), CharacterIndex + 1)
 			: Character.DisplayName;
 	}
 
