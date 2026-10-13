@@ -27,20 +27,6 @@ msgctxt ",39A68BC448FA12F7A0B2F9B624401C0C"
 msgid "PV : "
 msgstr ""
 
-#. Key:	6575A84B442F77E2457C4091DAEA1FA9
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Combat/WBP_GridCombatHud.WBP_GridCombatHud_C:WidgetTree.Text_EndTurnDisabledReason.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Combat/WBP_GridCombatHud.WBP_GridCombatHud_C:WidgetTree.Text_EndTurnDisabledReason.Text
-msgctxt ",6575A84B442F77E2457C4091DAEA1FA9"
-msgid "Déplacement en cours"
-msgstr ""
-
-#. Key:	C2E594514D96D0084EF9C3B3CE8D5DF7
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Combat/WBP_GridCombatHud.WBP_GridCombatHud_C:WidgetTree.Text_MobilityActionPoints.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Combat/WBP_GridCombatHud.WBP_GridCombatHud_C:WidgetTree.Text_MobilityActionPoints.Text
-msgctxt ",C2E594514D96D0084EF9C3B3CE8D5DF7"
-msgid "PAM 2 / 2"
-msgstr ""
-
 #. Key:	2E6BBADD4DDD29F35E19019125C18588
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Combat/WBP_GridCombatHud.WBP_GridCombatHud_C:WidgetTree.TextBlock_412.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/Combat/WBP_GridCombatHud.WBP_GridCombatHud_C:WidgetTree.TextBlock_412.Text
@@ -118,32 +104,11 @@ msgctxt ",30D9C5654A496E35A5C310A096DF4589"
 msgid "Livre de sorts"
 msgstr ""
 
-#. Key:	632610B1453CB8298057C19B19E98EC7
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Label_Arcane.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Label_Arcane.Text
-msgctxt ",632610B1453CB8298057C19B19E98EC7"
-msgid "Arcane"
-msgstr ""
-
-#. Key:	D1938378432D01228657F2B9C2AF12A5
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Label_Fire.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Label_Fire.Text
-msgctxt ",D1938378432D01228657F2B9C2AF12A5"
-msgid "Feu"
-msgstr ""
-
 #. Key:	9140A67C418266591CE65187445541B7
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Label_Holy.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Label_Holy.Text
 msgctxt ",9140A67C418266591CE65187445541B7"
 msgid "Sacré"
-msgstr ""
-
-#. Key:	854C841C41CC992A0E356293F0C67B4D
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Label_Ice.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Label_Ice.Text
-msgctxt ",854C841C41CC992A0E356293F0C67B4D"
-msgid "Glace"
 msgstr ""
 
 #. Key:	4BD593704072723D286046838DBE3A3E
@@ -167,90 +132,6 @@ msgctxt ",2A71A1544A54515F4C35D99909471915"
 msgid "Poison"
 msgstr ""
 
-#. Key:	6F81A48341ADAC38F70A4AB8221E3EF5
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_AttributePoints.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_AttributePoints.Text
-msgctxt ",6F81A48341ADAC38F70A4AB8221E3EF5"
-msgid "Points de caractéristiques : 0"
-msgstr ""
-
-#. Key:	E57EEC504372F52DC8F401AD67EF3BFC
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterCharisma.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterCharisma.Text
-msgctxt ",E57EEC504372F52DC8F401AD67EF3BFC"
-msgid "-"
-msgstr ""
-
-#. Key:	BCFDE2904BB12F323726BD967ACE9052
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterClass.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterClass.Text
-msgctxt ",BCFDE2904BB12F323726BD967ACE9052"
-msgid "-"
-msgstr ""
-
-#. Key:	0875F9F641652F42E23D199A8E985B44
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterConstitution.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterConstitution.Text
-msgctxt ",0875F9F641652F42E23D199A8E985B44"
-msgid "-"
-msgstr ""
-
-#. Key:	7216B12043F184043B91CD8AAC863A43
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterDexterity.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterDexterity.Text
-msgctxt ",7216B12043F184043B91CD8AAC863A43"
-msgid "-"
-msgstr ""
-
-#. Key:	3A05E6EC41FAE0D616143F8DE6E05A61
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterExperience.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterExperience.Text
-msgctxt ",3A05E6EC41FAE0D616143F8DE6E05A61"
-msgid "-"
-msgstr ""
-
-#. Key:	87C0C13B4BA231F91449EB884FD1E3BD
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterIntelligence.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterIntelligence.Text
-msgctxt ",87C0C13B4BA231F91449EB884FD1E3BD"
-msgid "10"
-msgstr ""
-
-#. Key:	C485ABE94D1F7550565560BF3E20505A
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterLevel.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterLevel.Text
-msgctxt ",C485ABE94D1F7550565560BF3E20505A"
-msgid "-"
-msgstr ""
-
-#. Key:	5139205F4F3DEF44F4EA31961A539000
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterName.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterName.Text
-msgctxt ",5139205F4F3DEF44F4EA31961A539000"
-msgid "Nom"
-msgstr ""
-
-#. Key:	47A3BAC143CBAA3F47845FADC9E4B28B
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterRace.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterRace.Text
-msgctxt ",47A3BAC143CBAA3F47845FADC9E4B28B"
-msgid "-"
-msgstr ""
-
-#. Key:	D5E3FDEE436E97FAF3D275BFA0D40EFD
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterStrength.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterStrength.Text
-msgctxt ",D5E3FDEE436E97FAF3D275BFA0D40EFD"
-msgid "-"
-msgstr ""
-
-#. Key:	D165BCCD47892A50985708BE54FF7770
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterWisdom.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_CharacterWisdom.Text
-msgctxt ",D165BCCD47892A50985708BE54FF7770"
-msgid "-"
-msgstr ""
-
 #. Key:	FE67234E4DE66B33552D4BAEBE0E9A75
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_DetailsTitle.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_DetailsTitle.Text
@@ -263,13 +144,6 @@ msgstr ""
 #: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.Text_InventoryTitle.Text
 msgctxt ",23A767DB488DD0797E31AFA36EBA0566"
 msgid "Feuille de personnage"
-msgstr ""
-
-#. Key:	84987275458E4B4EAA8D5EBF1AD84489
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.TextBlock.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.TextBlock.Text
-msgctxt ",84987275458E4B4EAA8D5EBF1AD84489"
-msgid " - "
 msgstr ""
 
 #. Key:	46E9E8854078079711C3A8A3CADB0C6B
@@ -314,13 +188,6 @@ msgctxt ",3C1745314254FC94ABF32A91B3A8D52D"
 msgid "DEX"
 msgstr ""
 
-#. Key:	6CEBFA804461E906C843CFB406893B97
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.TextLabel_Equipment.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.TextLabel_Equipment.Text
-msgctxt ",6CEBFA804461E906C843CFB406893B97"
-msgid "Equipement"
-msgstr ""
-
 #. Key:	97ED74F84606565BFD3EA6811C3871DA
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.TextLabel_Experience.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.TextLabel_Experience.Text
@@ -347,13 +214,6 @@ msgstr ""
 #: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.TextLabel_Level.Text
 msgctxt ",F59C2EBC4325941E441CC8B80BBC4F38"
 msgid "Niveau : "
-msgstr ""
-
-#. Key:	1C3B356C40668F8D015B3F9F61E6973B
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.TextLabel_Mana.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_CharacterSheet.WBP_CharacterSheet_C:WidgetTree.TextLabel_Mana.Text
-msgctxt ",1C3B356C40668F8D015B3F9F61E6973B"
-msgid "Mana"
 msgstr ""
 
 #. Key:	1C54883F480B73072A52DEA70E91752B
@@ -440,13 +300,6 @@ msgctxt ",E662854040753C993CEF3FBDE5A15F8F"
 msgid "Consomables"
 msgstr ""
 
-#. Key:	D3F9CA6F4BCEDF6F33C6FEA6A9E68C9E
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_InventoryBag.WBP_InventoryBag_C:WidgetTree.Button_FilterEquipment.ToolTipText
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_InventoryBag.WBP_InventoryBag_C:WidgetTree.Button_FilterEquipment.ToolTipText
-msgctxt ",D3F9CA6F4BCEDF6F33C6FEA6A9E68C9E"
-msgid "Equipement"
-msgstr ""
-
 #. Key:	0D2BD3AC4D2E77FBB79E9AB4508F4792
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_InventoryBag.WBP_InventoryBag_C:WidgetTree.Button_FilterIngredients.ToolTipText
 #: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_InventoryBag.WBP_InventoryBag_C:WidgetTree.Button_FilterIngredients.ToolTipText
@@ -489,27 +342,6 @@ msgctxt ",E8FCDE354EEC35C295E48A89CF1CD321"
 msgid "Fermer"
 msgstr ""
 
-#. Key:	23BF5BE5485EAB545B3C6584D2130BCD
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltip.WBP_ItemTooltip_C:InitFromInventorySlot [Script Bytecode]
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltip.WBP_ItemTooltip_C:InitFromInventorySlot [Script Bytecode]
-msgctxt ",23BF5BE5485EAB545B3C6584D2130BCD"
-msgid "Lumière : allumée"
-msgstr ""
-
-#. Key:	9269F21540EC933BD445BA824A6467BF
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltip.WBP_ItemTooltip_C:InitFromInventorySlot [Script Bytecode]
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltip.WBP_ItemTooltip_C:InitFromInventorySlot [Script Bytecode]
-msgctxt ",9269F21540EC933BD445BA824A6467BF"
-msgid "({Qty}x)"
-msgstr ""
-
-#. Key:	96470DFD492F5997F852DC8F0729BE85
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltip.WBP_ItemTooltip_C:InitFromInventorySlot [Script Bytecode]
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltip.WBP_ItemTooltip_C:InitFromInventorySlot [Script Bytecode]
-msgctxt ",96470DFD492F5997F852DC8F0729BE85"
-msgid "Lumière : éteinte"
-msgstr ""
-
 #. Key:	D71C4E10487F35F3E5486180BD01F268
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltip.WBP_ItemTooltip_C:WidgetTree.Text_StatsTitle.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltip.WBP_ItemTooltip_C:WidgetTree.Text_StatsTitle.Text
@@ -531,39 +363,11 @@ msgctxt ",E6DE2BE844B40049AD6440BE962A7E8D"
 msgid "Poids : "
 msgstr ""
 
-#. Key:	5C435AAB4A211CD559D468AE07F4A832
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipComparisonRow.WBP_ItemTooltipComparisonRow_C:ExecuteUbergraph_WBP_ItemTooltipComparisonRow [Script Bytecode]
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipComparisonRow.WBP_ItemTooltipComparisonRow_C:ExecuteUbergraph_WBP_ItemTooltipComparisonRow [Script Bytecode]
-msgctxt ",5C435AAB4A211CD559D468AE07F4A832"
-msgid "vide"
-msgstr ""
-
 #. Key:	32A9855C4CB74D38B48804B7436C7F3F
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipComparisonRow.WBP_ItemTooltipComparisonRow_C:WidgetTree.Text_CurrentLabel.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipComparisonRow.WBP_ItemTooltipComparisonRow_C:WidgetTree.Text_CurrentLabel.Text
 msgctxt ",32A9855C4CB74D38B48804B7436C7F3F"
 msgid "Actuellement :"
-msgstr ""
-
-#. Key:	D0C23BC54F19BEBC4907D8AB36D9F4D6
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipStatLine.WBP_ItemTooltipStatLine_C:ExecuteUbergraph_WBP_ItemTooltipStatLine [Script Bytecode]
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipStatLine.WBP_ItemTooltipStatLine_C:ExecuteUbergraph_WBP_ItemTooltipStatLine [Script Bytecode]
-msgctxt ",D0C23BC54F19BEBC4907D8AB36D9F4D6"
-msgid "(Δ {Delta})"
-msgstr ""
-
-#. Key:	226055DE42832226BD735B979959BFF9
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipStatLine.WBP_ItemTooltipStatLine_C:WidgetTree.Text_StatDelta.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemTooltipStatLine.WBP_ItemTooltipStatLine_C:WidgetTree.Text_StatDelta.Text
-msgctxt ",226055DE42832226BD735B979959BFF9"
-msgid "(Δ +1)"
-msgstr ""
-
-#. Key:	588C169E4F511B65F0F6DBB507325BE7
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_CreditsMenu.WBP_CreditsMenu_C:WidgetTree.Text_Back.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_CreditsMenu.WBP_CreditsMenu_C:WidgetTree.Text_Back.Text
-msgctxt ",588C169E4F511B65F0F6DBB507325BE7"
-msgid "Retour"
 msgstr ""
 
 #. Key:	16C95C6141BFBC3820BA46BA99086244
@@ -587,13 +391,6 @@ msgctxt ",8406B7EF43A795197D944CB7A179D4A3"
 msgid "Credits"
 msgstr ""
 
-#. Key:	ED8C19B14A93A1BFFD22E491B76A7CDB
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LicenseMenu.WBP_LicenseMenu_C:WidgetTree.Text_Back.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LicenseMenu.WBP_LicenseMenu_C:WidgetTree.Text_Back.Text
-msgctxt ",ED8C19B14A93A1BFFD22E491B76A7CDB"
-msgid "Retour"
-msgstr ""
-
 #. Key:	968F2C63441A84A12210CCB4C5A074F2
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LicenseMenu.WBP_LicenseMenu_C:WidgetTree.Text_Content.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LicenseMenu.WBP_LicenseMenu_C:WidgetTree.Text_Content.Text
@@ -608,27 +405,6 @@ msgctxt ",CAD6837C456812F0691637AD4479B1D4"
 msgid "Informations légales"
 msgstr ""
 
-#. Key:	54DC8B564CA1A738E608C5A71EA9A00F
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LicenseMenu.WBP_LicenseMenu_C:WidgetTree.Text_Title.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LicenseMenu.WBP_LicenseMenu_C:WidgetTree.Text_Title.Text
-msgctxt ",54DC8B564CA1A738E608C5A71EA9A00F"
-msgid "Licence"
-msgstr ""
-
-#. Key:	D4B8FDD24A132A7224A11A8A33EF9074
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameMenu.WBP_LoadGameMenu_C:ExecuteUbergraph_WBP_LoadGameMenu [Script Bytecode]
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameMenu.WBP_LoadGameMenu_C:ExecuteUbergraph_WBP_LoadGameMenu [Script Bytecode]
-msgctxt ",D4B8FDD24A132A7224A11A8A33EF9074"
-msgid "Impossible de charger cette sauvegarde."
-msgstr ""
-
-#. Key:	6F752E884C7967742CD48EA12D2C36B9
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameMenu.WBP_LoadGameMenu_C:WidgetTree.Text_Back.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameMenu.WBP_LoadGameMenu_C:WidgetTree.Text_Back.Text
-msgctxt ",6F752E884C7967742CD48EA12D2C36B9"
-msgid "Retour"
-msgstr ""
-
 #. Key:	CC4D331740965F45411B13AAD53F1096
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameMenu.WBP_LoadGameMenu_C:WidgetTree.Text_EmptyState.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameMenu.WBP_LoadGameMenu_C:WidgetTree.Text_EmptyState.Text
@@ -641,34 +417,6 @@ msgstr ""
 #: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameMenu.WBP_LoadGameMenu_C:WidgetTree.Text_Subtitle.Text
 msgctxt ",D07FFD9443657B14529D34B92AD74124"
 msgid "Sélectionnez une sauvegarde à charger."
-msgstr ""
-
-#. Key:	86D79BEF42B2C2D5979DBC98EF65DAAE
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameMenu.WBP_LoadGameMenu_C:WidgetTree.Text_Title.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameMenu.WBP_LoadGameMenu_C:WidgetTree.Text_Title.Text
-msgctxt ",86D79BEF42B2C2D5979DBC98EF65DAAE"
-msgid "Charger partie"
-msgstr ""
-
-#. Key:	C350947A4E80872D7701078EF6ABE9B4
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameSlotRow.WBP_LoadGameSlotRow_C:WidgetTree.Text_DisplayName.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameSlotRow.WBP_LoadGameSlotRow_C:WidgetTree.Text_DisplayName.Text
-msgctxt ",C350947A4E80872D7701078EF6ABE9B4"
-msgid "Sauvegarde TEST"
-msgstr ""
-
-#. Key:	12F424644D0ED543C49102B492293C9B
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameSlotRow.WBP_LoadGameSlotRow_C:WidgetTree.Text_SlotName.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameSlotRow.WBP_LoadGameSlotRow_C:WidgetTree.Text_SlotName.Text
-msgctxt ",12F424644D0ED543C49102B492293C9B"
-msgid "Slot TEST"
-msgstr ""
-
-#. Key:	C510CAE54257E35E236445916E2A0FD3
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameSlotRow.WBP_LoadGameSlotRow_C:WidgetTree.Text_Status.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LoadGameSlotRow.WBP_LoadGameSlotRow_C:WidgetTree.Text_Status.Text
-msgctxt ",C510CAE54257E35E236445916E2A0FD3"
-msgid "Disponible"
 msgstr ""
 
 #. Key:	3B5232AA40EB7DE6991106BE3FC9FC7F
@@ -692,13 +440,6 @@ msgctxt ",BC11DC4B48BD9A801E3B3FAB2F0A3310"
 msgid "Crédits"
 msgstr ""
 
-#. Key:	109D06884FDB5439610147B0BF259377
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_MainMenu.WBP_MainMenu_C:WidgetTree.TextBlock_1181.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_MainMenu.WBP_MainMenu_C:WidgetTree.TextBlock_1181.Text
-msgctxt ",109D06884FDB5439610147B0BF259377"
-msgid "Licence"
-msgstr ""
-
 #. Key:	96184A2A4CA25D9ED7E481AE224078AC
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_MainMenu.WBP_MainMenu_C:WidgetTree.TextBlock_1287.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_MainMenu.WBP_MainMenu_C:WidgetTree.TextBlock_1287.Text
@@ -720,27 +461,6 @@ msgctxt ",01691E86440B6162434C71AC56D5021A"
 msgid "Nouvelle partie"
 msgstr ""
 
-#. Key:	7B88AB0246CC08F476FA7B89209ECF21
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_MainMenu.WBP_MainMenu_C:WidgetTree.TextBlock_729.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_MainMenu.WBP_MainMenu_C:WidgetTree.TextBlock_729.Text
-msgctxt ",7B88AB0246CC08F476FA7B89209ECF21"
-msgid "Charger partie"
-msgstr ""
-
-#. Key:	45F535604CFD2E03E72F1A89B16E2312
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_MainMenu.WBP_MainMenu_C:WidgetTree.TextBlock_875.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_MainMenu.WBP_MainMenu_C:WidgetTree.TextBlock_875.Text
-msgctxt ",45F535604CFD2E03E72F1A89B16E2312"
-msgid "Options"
-msgstr ""
-
-#. Key:	EE4FE44E4035C6B468FC04AF06660894
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_OptionsMenu.WBP_OptionsMenu_C:WidgetTree.Text_Back.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_OptionsMenu.WBP_OptionsMenu_C:WidgetTree.Text_Back.Text
-msgctxt ",EE4FE44E4035C6B468FC04AF06660894"
-msgid "Retour"
-msgstr ""
-
 #. Key:	7FB8A41645E2BD4E8799B2940C76730B
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_OptionsMenu.WBP_OptionsMenu_C:WidgetTree.Text_OptionPlaceholder.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_OptionsMenu.WBP_OptionsMenu_C:WidgetTree.Text_OptionPlaceholder.Text
@@ -755,123 +475,11 @@ msgctxt ",C3502D4C4140598E8E16E99956BCE31E"
 msgid "Reglages du prototype"
 msgstr ""
 
-#. Key:	EC633D7E4852A755E8A608B964ACF4A8
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_OptionsMenu.WBP_OptionsMenu_C:WidgetTree.Text_Title.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_OptionsMenu.WBP_OptionsMenu_C:WidgetTree.Text_Title.Text
-msgctxt ",EC633D7E4852A755E8A608B964ACF4A8"
-msgid "Options"
-msgstr ""
-
-#. Key:	AE72A1A1435848402CEFBB854323DCC9
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_AttributeHelp.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_AttributeHelp.Text
-msgctxt ",AE72A1A1435848402CEFBB854323DCC9"
-msgid "Les valeurs de classe peuvent être ajustées. Les bonus de race sont appliqués ensuite."
-msgstr ""
-
-#. Key:	7D20591B4D06B8FD2E330DA14168BAD7
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_AttributePointsRemaining.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_AttributePointsRemaining.Text
-msgctxt ",7D20591B4D06B8FD2E330DA14168BAD7"
-msgid "Points restants : 0 / 18"
-msgstr ""
-
 #. Key:	115914884C136F41EE1CE09870AB45BD
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_AttributesTitle.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_AttributesTitle.Text
 msgctxt ",115914884C136F41EE1CE09870AB45BD"
 msgid "Répartition des caractéristiques"
-msgstr ""
-
-#. Key:	11BC4BE745EBC3EAFD640DB0BCFBB5A4
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_CharismaClassValue.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_CharismaClassValue.Text
-msgctxt ",11BC4BE745EBC3EAFD640DB0BCFBB5A4"
-msgid "10"
-msgstr ""
-
-#. Key:	97F7224048AF2FE5A66BF3882CB327DC
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_CharismaModifier.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_CharismaModifier.Text
-msgctxt ",97F7224048AF2FE5A66BF3882CB327DC"
-msgid "0"
-msgstr ""
-
-#. Key:	737F39BD4A343CD0229D2FAD1EC35383
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_CharismaRaceBonus.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_CharismaRaceBonus.Text
-msgctxt ",737F39BD4A343CD0229D2FAD1EC35383"
-msgid "0"
-msgstr ""
-
-#. Key:	D84B62DF4795BC23D4D8C6AF65F704AB
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_CharismaTotalValue.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_CharismaTotalValue.Text
-msgctxt ",D84B62DF4795BC23D4D8C6AF65F704AB"
-msgid "0"
-msgstr ""
-
-#. Key:	DD3A134048AC738693801983062E9780
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_ConstitutionClassValue.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_ConstitutionClassValue.Text
-msgctxt ",DD3A134048AC738693801983062E9780"
-msgid "10"
-msgstr ""
-
-#. Key:	7E871E8A447069747993EFAC666916F6
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_ConstitutionModifier.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_ConstitutionModifier.Text
-msgctxt ",7E871E8A447069747993EFAC666916F6"
-msgid "0"
-msgstr ""
-
-#. Key:	057D105840E56CCC88C7A7AFDB790A4C
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_ConstitutionRaceBonus.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_ConstitutionRaceBonus.Text
-msgctxt ",057D105840E56CCC88C7A7AFDB790A4C"
-msgid "0"
-msgstr ""
-
-#. Key:	AFCBC1554FB1A0EAFE74049683FF5414
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_ConstitutionTotalValue.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_ConstitutionTotalValue.Text
-msgctxt ",AFCBC1554FB1A0EAFE74049683FF5414"
-msgid "0"
-msgstr ""
-
-#. Key:	CBD232EC4CE918B9C756928BE01B70CC
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_DexterityClassValue.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_DexterityClassValue.Text
-msgctxt ",CBD232EC4CE918B9C756928BE01B70CC"
-msgid "10"
-msgstr ""
-
-#. Key:	45335A8046252BC74A8509BE07C10126
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_DexterityModifier.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_DexterityModifier.Text
-msgctxt ",45335A8046252BC74A8509BE07C10126"
-msgid "0"
-msgstr ""
-
-#. Key:	B5F84BC24A1484C40FBC0AAAA49FF300
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_DexterityRaceBonus.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_DexterityRaceBonus.Text
-msgctxt ",B5F84BC24A1484C40FBC0AAAA49FF300"
-msgid "0"
-msgstr ""
-
-#. Key:	C37A7A0F4450A29B563989AB3D8AD7E4
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_DexterityTotalValue.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_DexterityTotalValue.Text
-msgctxt ",C37A7A0F4450A29B563989AB3D8AD7E4"
-msgid "0"
-msgstr ""
-
-#. Key:	0767545B4006C6402A2313A3968C552E
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_HeaderClass.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_HeaderClass.Text
-msgctxt ",0767545B4006C6402A2313A3968C552E"
-msgid "Classe"
 msgstr ""
 
 #. Key:	9B6F39374EA8055AEE42D5A53CB9B8DB
@@ -909,132 +517,6 @@ msgctxt ",A9D80B804367B641223ED6AE4812A2B6"
 msgid "Total"
 msgstr ""
 
-#. Key:	649F1DE348ECFD14A686ED9A54765CAD
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_IntelligenceClassValue.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_IntelligenceClassValue.Text
-msgctxt ",649F1DE348ECFD14A686ED9A54765CAD"
-msgid "10"
-msgstr ""
-
-#. Key:	399D33EC4FDC086E420A21817E979B6B
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_IntelligenceModifier.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_IntelligenceModifier.Text
-msgctxt ",399D33EC4FDC086E420A21817E979B6B"
-msgid "0"
-msgstr ""
-
-#. Key:	F3FDEF6A4F6888A7217EC585F90C9440
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_IntelligenceRaceBonus.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_IntelligenceRaceBonus.Text
-msgctxt ",F3FDEF6A4F6888A7217EC585F90C9440"
-msgid "0"
-msgstr ""
-
-#. Key:	6DE4ED194B9ADC74221696BCCF032167
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_IntelligenceTotalValue.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_IntelligenceTotalValue.Text
-msgctxt ",6DE4ED194B9ADC74221696BCCF032167"
-msgid "0"
-msgstr ""
-
-#. Key:	FF60FABF465E63CFBF084D895ED2F900
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_LabelCharisma.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_LabelCharisma.Text
-msgctxt ",FF60FABF465E63CFBF084D895ED2F900"
-msgid "Charisme"
-msgstr ""
-
-#. Key:	D18A6A5B40A0DCA4D70BE5984CB2DCF8
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_LabelConstitution.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_LabelConstitution.Text
-msgctxt ",D18A6A5B40A0DCA4D70BE5984CB2DCF8"
-msgid "Constitution"
-msgstr ""
-
-#. Key:	26115B774477C2689FBB0A80C3C4D765
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_LabelDexterity.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_LabelDexterity.Text
-msgctxt ",26115B774477C2689FBB0A80C3C4D765"
-msgid "Dextérité"
-msgstr ""
-
-#. Key:	FBBD8BA9431F34C670F679B27AB849B8
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_LabelIntelligence.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_LabelIntelligence.Text
-msgctxt ",FBBD8BA9431F34C670F679B27AB849B8"
-msgid "Intelligence"
-msgstr ""
-
-#. Key:	2A1C738844EF0E943CC4AA865CE0FE0C
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_LabelStrength.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_LabelStrength.Text
-msgctxt ",2A1C738844EF0E943CC4AA865CE0FE0C"
-msgid "Force"
-msgstr ""
-
-#. Key:	466A483F4A7388D5F003309B1F391E7A
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_LabelWisdom.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_LabelWisdom.Text
-msgctxt ",466A483F4A7388D5F003309B1F391E7A"
-msgid "Sagesse"
-msgstr ""
-
-#. Key:	A36E110C4C705FE607B7E381249B7565
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_StrengthClassValue.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_StrengthClassValue.Text
-msgctxt ",A36E110C4C705FE607B7E381249B7565"
-msgid "10"
-msgstr ""
-
-#. Key:	857817E642E9B52C038CAEA49D0E092F
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_StrengthModifier.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_StrengthModifier.Text
-msgctxt ",857817E642E9B52C038CAEA49D0E092F"
-msgid "0"
-msgstr ""
-
-#. Key:	8E4D69734EBF28F6C189059C2784CD68
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_StrengthRaceBonus.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_StrengthRaceBonus.Text
-msgctxt ",8E4D69734EBF28F6C189059C2784CD68"
-msgid "0"
-msgstr ""
-
-#. Key:	D8BCB91542B4A4B25541B19FDE5C069E
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_StrengthTotalValue.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_StrengthTotalValue.Text
-msgctxt ",D8BCB91542B4A4B25541B19FDE5C069E"
-msgid "0"
-msgstr ""
-
-#. Key:	B83D692642A0A00729EFB687E628775F
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_WisdomClassValue.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_WisdomClassValue.Text
-msgctxt ",B83D692642A0A00729EFB687E628775F"
-msgid "10"
-msgstr ""
-
-#. Key:	76E324A448F7028B784C9EBD8D8A047A
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_WisdomModifier.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_WisdomModifier.Text
-msgctxt ",76E324A448F7028B784C9EBD8D8A047A"
-msgid "0"
-msgstr ""
-
-#. Key:	898E8D2247B136BB9A1231BFD33FF089
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_WisdomRaceBonus.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_WisdomRaceBonus.Text
-msgctxt ",898E8D2247B136BB9A1231BFD33FF089"
-msgid "0"
-msgstr ""
-
-#. Key:	8A253548455B36B78DFF2C8A95096B08
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_WisdomTotalValue.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.Text_WisdomTotalValue.Text
-msgctxt ",8A253548455B36B78DFF2C8A95096B08"
-msgid "0"
-msgstr ""
-
 #. Key:	970EF29D40CA34A27F665E9F10FDFF7D
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.TextBlock_431.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.TextBlock_431.Text
@@ -1054,97 +536,6 @@ msgstr ""
 #: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.TextLabel_Health.Text
 msgctxt ",F9754E6E496A96F217045A81EFCA208D"
 msgid "Santé"
-msgstr ""
-
-#. Key:	DF10CFC24A683EBF38006C9AB47D1A5D
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.TextLabel_Mana.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CCStep_Attributes.WBP_CCStep_Attributes_C:WidgetTree.TextLabel_Mana.Text
-msgctxt ",DF10CFC24A683EBF38006C9AB47D1A5D"
-msgid "Mana"
-msgstr ""
-
-#. Key:	6E52130A419AC5CFB04052BB97699B23
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(0).AvailableRaceIllustrations.DisplayName
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(0).AvailableRaceIllustrations.DisplayName
-msgctxt ",6E52130A419AC5CFB04052BB97699B23"
-msgid "Humain mâle."
-msgstr ""
-
-#. Key:	1D4C04AD49E17A8EE18EE59775F8794C
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(1).AvailableRaceIllustrations.DisplayName
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(1).AvailableRaceIllustrations.DisplayName
-msgctxt ",1D4C04AD49E17A8EE18EE59775F8794C"
-msgid "Humain femelle."
-msgstr ""
-
-#. Key:	872373464D5A18F3BCFEE080C438892E
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(10).AvailableRaceIllustrations.DisplayName
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(10).AvailableRaceIllustrations.DisplayName
-msgctxt ",872373464D5A18F3BCFEE080C438892E"
-msgid "Demi-orque mâle."
-msgstr ""
-
-#. Key:	6050E7D34724B728FF3ED7841F35B265
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(11).AvailableRaceIllustrations.DisplayName
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(11).AvailableRaceIllustrations.DisplayName
-msgctxt ",6050E7D34724B728FF3ED7841F35B265"
-msgid "Demi-orque femelle."
-msgstr ""
-
-#. Key:	6629A56F457C3340AC42F1B2B5D699AD
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(2).AvailableRaceIllustrations.DisplayName
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(2).AvailableRaceIllustrations.DisplayName
-msgctxt ",6629A56F457C3340AC42F1B2B5D699AD"
-msgid "Nain mâle."
-msgstr ""
-
-#. Key:	FDECA39549237F738F9FC3900B863B55
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(3).AvailableRaceIllustrations.DisplayName
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(3).AvailableRaceIllustrations.DisplayName
-msgctxt ",FDECA39549237F738F9FC3900B863B55"
-msgid "Nain femelle."
-msgstr ""
-
-#. Key:	E69256974FC5B104C6F830977985D55A
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(4).AvailableRaceIllustrations.DisplayName
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(4).AvailableRaceIllustrations.DisplayName
-msgctxt ",E69256974FC5B104C6F830977985D55A"
-msgid "Elfe mâle."
-msgstr ""
-
-#. Key:	4495E30B44FA66D99B18149CAAAF6E7C
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(5).AvailableRaceIllustrations.DisplayName
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(5).AvailableRaceIllustrations.DisplayName
-msgctxt ",4495E30B44FA66D99B18149CAAAF6E7C"
-msgid "Elf femelle."
-msgstr ""
-
-#. Key:	086F98574006A9EEF1A8F586B42B1EBF
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(6).AvailableRaceIllustrations.DisplayName
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(6).AvailableRaceIllustrations.DisplayName
-msgctxt ",086F98574006A9EEF1A8F586B42B1EBF"
-msgid "Gnome mâle."
-msgstr ""
-
-#. Key:	AE409A724768927369C540B5CE0B9A66
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(7).AvailableRaceIllustrations.DisplayName
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(7).AvailableRaceIllustrations.DisplayName
-msgctxt ",AE409A724768927369C540B5CE0B9A66"
-msgid "Gnome femelle."
-msgstr ""
-
-#. Key:	77FF5E40441250D343E2BFA03FF8999A
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(8).AvailableRaceIllustrations.DisplayName
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(8).AvailableRaceIllustrations.DisplayName
-msgctxt ",77FF5E40441250D343E2BFA03FF8999A"
-msgid "Halfelin mâle."
-msgstr ""
-
-#. Key:	15A9048A48E755A8DCF95B8F2FC548ED
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(9).AvailableRaceIllustrations.DisplayName
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.Default__WBP_CharacterCreationWizard_C.AvailableRaceIllustrations(9).AvailableRaceIllustrations.DisplayName
-msgctxt ",15A9048A48E755A8DCF95B8F2FC548ED"
-msgid "Halfelin femelle."
 msgstr ""
 
 #. Key:	496B21C94AB3A802C8C3909FF8CD64FE
@@ -1182,46 +573,11 @@ msgctxt ",1D6ED875465DF91FCD566984A78991B0"
 msgid "Genre"
 msgstr ""
 
-#. Key:	D5A322FC4BC018378A80F4858E741F42
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_IdentityClass.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_IdentityClass.Text
-msgctxt ",D5A322FC4BC018378A80F4858E741F42"
-msgid "Classe : Rôdeur"
-msgstr ""
-
-#. Key:	2A1801DC4D85ADAA513FB7BBA3F90171
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_IdentityGender.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_IdentityGender.Text
-msgctxt ",2A1801DC4D85ADAA513FB7BBA3F90171"
-msgid "Sexe : Masculin"
-msgstr ""
-
-#. Key:	3C2081DD45BD38406CF5E8AC5D9FF4E2
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_IdentityRace.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_IdentityRace.Text
-msgctxt ",3C2081DD45BD38406CF5E8AC5D9FF4E2"
-msgid "Race : Humain"
-msgstr ""
-
-#. Key:	79D6F8EA4E06D10855C736826A485F5A
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_IdentitySummaryTitle.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_IdentitySummaryTitle.Text
-msgctxt ",79D6F8EA4E06D10855C736826A485F5A"
-msgid "Choix actuels"
-msgstr ""
-
 #. Key:	2F849537414DBFD740CFECAE76C472AA
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_Next.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_Next.Text
 msgctxt ",2F849537414DBFD740CFECAE76C472AA"
 msgid "Suivant"
-msgstr ""
-
-#. Key:	559C3E664936B04F583B429018B67CCD
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_PortraitCaption.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_PortraitCaption.Text
-msgctxt ",559C3E664936B04F583B429018B67CCD"
-msgid "Portrait final"
 msgstr ""
 
 #. Key:	126DF33E479A262BFEE94A8D0F363A36
@@ -1259,13 +615,6 @@ msgctxt ",AC01F3AB44F01CB3DC31539672D45A2D"
 msgid "Vérifiez vos choix avant de créer le personnage."
 msgstr ""
 
-#. Key:	3F404AC446681298E1CF0C86488D3E55
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_SummaryTitle.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreationWizard.WBP_CharacterCreationWizard_C:WidgetTree.Text_SummaryTitle.Text
-msgctxt ",3F404AC446681298E1CF0C86488D3E55"
-msgid "Résumé"
-msgstr ""
-
 #. Key:	A79DAFE04EF3FE4A3926BCB4D485A09F
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_RPGStoryCompanionRecruitment.WBP_RPGStoryCompanionRecruitment_C:WidgetTree.Text_Recruit.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/RPG/WBP_RPGStoryCompanionRecruitment.WBP_RPGStoryCompanionRecruitment_C:WidgetTree.Text_Recruit.Text
@@ -1292,188 +641,6 @@ msgstr ""
 #: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_IncreaseSkill.Text
 msgctxt ",37117913474F998C6F7115997F679348"
 msgid "+"
-msgstr ""
-
-#. Key:	44C808BE4291620582A555840E62BFAE
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillAttribute.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillAttribute.Text
-msgctxt ",44C808BE4291620582A555840E62BFAE"
-msgid "Attribut"
-msgstr ""
-
-#. Key:	D3C338FB4DCB3CDCDE8781A0A7181D80
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillDescription.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillDescription.Text
-msgctxt ",D3C338FB4DCB3CDCDE8781A0A7181D80"
-msgid "Description de la compétence"
-msgstr ""
-
-#. Key:	8B3AA7534A95C344F927D9B2C71E7346
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillName.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillName.Text
-msgctxt ",8B3AA7534A95C344F927D9B2C71E7346"
-msgid "Compétence"
-msgstr ""
-
-#. Key:	F901A410491897A367F2A79FAD7C23AD
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillRank.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillRank.Text
-msgctxt ",F901A410491897A367F2A79FAD7C23AD"
-msgid "Rang 0 / 5"
-msgstr ""
-
-#. Key:	3CF4C0E148F1730E086F9489D2F8B2F4
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillTrainingPolicy.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGSkillEntry.WBP_RPGSkillEntry_C:WidgetTree.Text_SkillTrainingPolicy.Text
-msgctxt ",3CF4C0E148F1730E086F9489D2F8B2F4"
-msgid "Test possible sans entraînement"
-msgstr ""
-
-#. Key:	2243B2A5497BF16D5CD8B1AF8AB3D9D5
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentBranch.WBP_RPGTalentBranch_C:WidgetTree.Text_BranchName.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentBranch.WBP_RPGTalentBranch_C:WidgetTree.Text_BranchName.Text
-msgctxt ",2243B2A5497BF16D5CD8B1AF8AB3D9D5"
-msgid "GARDIEN"
-msgstr ""
-
-#. Key:	026F1080499E444D84BEB7B1ECC20F88
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentBranch.WBP_RPGTalentBranch_C:WidgetTree.Text_BranchProgress.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentBranch.WBP_RPGTalentBranch_C:WidgetTree.Text_BranchProgress.Text
-msgctxt ",026F1080499E444D84BEB7B1ECC20F88"
-msgid "3 / 5"
-msgstr ""
-
-#. Key:	11A5A6D94E9FB39B2A2FC9AA134AE1C6
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_AcquireTalent.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_AcquireTalent.Text
-msgctxt ",11A5A6D94E9FB39B2A2FC9AA134AE1C6"
-msgid "ACQUÉRIR"
-msgstr ""
-
-#. Key:	6C0B1A6648AED34F4EBFDFB457A8C914
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_CancelAcquire.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_CancelAcquire.Text
-msgctxt ",6C0B1A6648AED34F4EBFDFB457A8C914"
-msgid "ANNULER"
-msgstr ""
-
-#. Key:	4C77BF2A4041C4BC3F14A89239898023
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_ConfirmAcquire.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_ConfirmAcquire.Text
-msgctxt ",4C77BF2A4041C4BC3F14A89239898023"
-msgid "CONFIRMER"
-msgstr ""
-
-#. Key:	A8E2C7AE406AC7104FCCB2925EB70796
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_DetailName.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_DetailName.Text
-msgctxt ",A8E2C7AE406AC7104FCCB2925EB70796"
-msgid "Talent sélectionné"
-msgstr ""
-
-#. Key:	03FD4B57430FD4055529C09C0C04F79D
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelAcquisition.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelAcquisition.Text
-msgctxt ",03FD4B57430FD4055529C09C0C04F79D"
-msgid "ACQUISITION"
-msgstr ""
-
-#. Key:	8B087B434003AD7C2395D2BA8CBB4143
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelEffects.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelEffects.Text
-msgctxt ",8B087B434003AD7C2395D2BA8CBB4143"
-msgid "EFFETS"
-msgstr ""
-
-#. Key:	6E86DBBB4E17354C01ABD3891CEA0921
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelPrinciple.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelPrinciple.Text
-msgctxt ",6E86DBBB4E17354C01ABD3891CEA0921"
-msgid "PRINCIPE"
-msgstr ""
-
-#. Key:	720EF631481CB308151313A30FF7BE25
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelStatus.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelStatus.Text
-msgctxt ",720EF631481CB308151313A30FF7BE25"
-msgid "STATUT"
-msgstr ""
-
-#. Key:	39AE1DEE4339ABB1BC3EA6A152450313
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelType.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelType.Text
-msgctxt ",39AE1DEE4339ABB1BC3EA6A152450313"
-msgid "TYPE"
-msgstr ""
-
-#. Key:	C57C1B1C46A6668AAE76A988BD019427
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelUsage.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelUsage.Text
-msgctxt ",C57C1B1C46A6668AAE76A988BD019427"
-msgid "UTILISATION"
-msgstr ""
-
-#. Key:	D430C2A94779FB57A49CAF895FC59715
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelVariants.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentDetail.WBP_RPGTalentDetail_C:WidgetTree.Text_LabelVariants.Text
-msgctxt ",D430C2A94779FB57A49CAF895FC59715"
-msgid "VARIANTES"
-msgstr ""
-
-#. Key:	08833292499B5EF4ED859384954E4004
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentNode.WBP_RPGTalentNode_C:WidgetTree.Text_TalentLevel.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentNode.WBP_RPGTalentNode_C:WidgetTree.Text_TalentLevel.Text
-msgctxt ",08833292499B5EF4ED859384954E4004"
-msgid "Niv. 2"
-msgstr ""
-
-#. Key:	378788D74917B75FAC853489C12ABCC3
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentNode.WBP_RPGTalentNode_C:WidgetTree.Text_TalentState.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentNode.WBP_RPGTalentNode_C:WidgetTree.Text_TalentState.Text
-msgctxt ",378788D74917B75FAC853489C12ABCC3"
-msgid "Niveau"
-msgstr ""
-
-#. Key:	81D5DBA04EA8F35DE40E6BA345B4E1C6
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentNode.WBP_RPGTalentNode_C:WidgetTree.Text_TalentTier.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentNode.WBP_RPGTalentNode_C:WidgetTree.Text_TalentTier.Text
-msgctxt ",81D5DBA04EA8F35DE40E6BA345B4E1C6"
-msgid "I"
-msgstr ""
-
-#. Key:	2608B056444E6D5C760547AE3693CEB5
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentVariantBlock.WBP_RPGTalentVariantBlock_C:WidgetTree.Text_ChooseVariant.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentVariantBlock.WBP_RPGTalentVariantBlock_C:WidgetTree.Text_ChooseVariant.Text
-msgctxt ",2608B056444E6D5C760547AE3693CEB5"
-msgid "CHOISIR"
-msgstr ""
-
-#. Key:	679F1E3345C9B7DEAA55489AFD23EAEE
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentVariantBlock.WBP_RPGTalentVariantBlock_C:WidgetTree.Text_LabelVariantEffects.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentVariantBlock.WBP_RPGTalentVariantBlock_C:WidgetTree.Text_LabelVariantEffects.Text
-msgctxt ",679F1E3345C9B7DEAA55489AFD23EAEE"
-msgid "EFFETS"
-msgstr ""
-
-#. Key:	12FE770840E726B2D970D6B6842E3C95
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentVariantBlock.WBP_RPGTalentVariantBlock_C:WidgetTree.Text_LabelVariantUsage.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/RPG/WBP_RPGTalentVariantBlock.WBP_RPGTalentVariantBlock_C:WidgetTree.Text_LabelVariantUsage.Text
-msgctxt ",12FE770840E726B2D970D6B6842E3C95"
-msgid "UTILISATION"
-msgstr ""
-
-#. Key:	A046D905445EC8CF180A09AED719254B
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills_C:WidgetTree.Text_CharacterName.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills_C:WidgetTree.Text_CharacterName.Text
-msgctxt ",A046D905445EC8CF180A09AED719254B"
-msgid "PERSONNAGE"
-msgstr ""
-
-#. Key:	50794F674CD32C62D610628865767EE2
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills_C:WidgetTree.Text_ClassLevel.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills_C:WidgetTree.Text_ClassLevel.Text
-msgctxt ",50794F674CD32C62D610628865767EE2"
-msgid "Classe — Niveau 1"
 msgstr ""
 
 #. Key:	A5591A2C4DC15B0DDE049996832E58DA
@@ -1525,13 +692,6 @@ msgctxt ",081760EE4E6FBE00B5B8268A8F861EC9"
 msgid "Compétences et talents"
 msgstr ""
 
-#. Key:	777F3BE54E876967F8FDD3A560817C7A
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills_C:WidgetTree.Text_SkillPoints.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills_C:WidgetTree.Text_SkillPoints.Text
-msgctxt ",777F3BE54E876967F8FDD3A560817C7A"
-msgid "Points de compétence : 4 — Rang max : 2"
-msgstr ""
-
 #. Key:	0A15E1F049B1677C4D63708C2A17DA58
 #. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills_C:WidgetTree.Text_SkillsPageTitle.Text
 #: /Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills_C:WidgetTree.Text_SkillsPageTitle.Text
@@ -1544,13 +704,6 @@ msgstr ""
 #: /Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills_C:WidgetTree.Text_SkillsTab.Text
 msgctxt ",0344729343A4D5BBF5A6CEBEFED3CEF3"
 msgid "COMPÉTENCES"
-msgstr ""
-
-#. Key:	6E616255466993858883C7B1AA0CF2C2
-#. SourceLocation:	/Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills_C:WidgetTree.Text_TalentPoints.Text
-#: /Game/GrimrockPrototype/Blueprints/UI/Skills/WBP_GridSkills.WBP_GridSkills_C:WidgetTree.Text_TalentPoints.Text
-msgctxt ",6E616255466993858883C7B1AA0CF2C2"
-msgid "Points de talent : 0"
 msgstr ""
 
 #. Key:	C8A1A1434FA1EEB4A9B19081634C9AB2
@@ -3086,11 +2239,81 @@ msgctxt ",EA39BA7D473E7D0C39C00FBF86E94C6D"
 msgid "Le talent n'a pas pu être acquis."
 msgstr ""
 
+#. Key:	4BCAA87F471542266070CFA5531AEA51
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(189).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(189).Entries.Text
+msgctxt ",4BCAA87F471542266070CFA5531AEA51"
+msgid "ACQUISITION"
+msgstr ""
+
 #. Key:	259673F54D8391062B82B3946F284BD2
 #. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(19).Entries.Text
 #: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(19).Entries.Text
 msgctxt ",259673F54D8391062B82B3946F284BD2"
 msgid "Actions d'équipement"
+msgstr ""
+
+#. Key:	93F1E3C7453D07C13A3C968B51F2099F
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(190).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(190).Entries.Text
+msgctxt ",93F1E3C7453D07C13A3C968B51F2099F"
+msgid "ACQUÉRIR"
+msgstr ""
+
+#. Key:	6FC3D0FD4FB74CBC67AC289C5724E904
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(191).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(191).Entries.Text
+msgctxt ",6FC3D0FD4FB74CBC67AC289C5724E904"
+msgid "ANNULER"
+msgstr ""
+
+#. Key:	EB058D21425630923E50A89572FF684A
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(192).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(192).Entries.Text
+msgctxt ",EB058D21425630923E50A89572FF684A"
+msgid "CONFIRMER"
+msgstr ""
+
+#. Key:	936A6C7C467E2D5556EF72A8C46E46F1
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(193).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(193).Entries.Text
+msgctxt ",936A6C7C467E2D5556EF72A8C46E46F1"
+msgid "EFFETS"
+msgstr ""
+
+#. Key:	A0275A614F4518D7E5604FADEBD7CF3A
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(194).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(194).Entries.Text
+msgctxt ",A0275A614F4518D7E5604FADEBD7CF3A"
+msgid "PRINCIPE"
+msgstr ""
+
+#. Key:	6610924A4325BF35ED39F2BB9F52BFDC
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(195).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(195).Entries.Text
+msgctxt ",6610924A4325BF35ED39F2BB9F52BFDC"
+msgid "STATUT"
+msgstr ""
+
+#. Key:	8F9226204794D67FE9FB6E939586DE6E
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(196).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(196).Entries.Text
+msgctxt ",8F9226204794D67FE9FB6E939586DE6E"
+msgid "TYPE"
+msgstr ""
+
+#. Key:	51013C8F46B68EE1B8DC1DB4F079F90E
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(197).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(197).Entries.Text
+msgctxt ",51013C8F46B68EE1B8DC1DB4F079F90E"
+msgid "UTILISATION"
+msgstr ""
+
+#. Key:	019793DE44753760BB9D28AAD81DC520
+#. SourceLocation:	/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(198).Entries.Text
+#: /Game/GrimrockPrototype/Core/DataAssets/RPG/DA_RPGTalentDetailTextSet.DA_RPGTalentDetailTextSet.Entries(198).Entries.Text
+msgctxt ",019793DE44753760BB9D28AAD81DC520"
+msgid "VARIANTES"
 msgstr ""
 
 #. Key:	4C781DAD492D0220562E25A9F677A8BD
@@ -6737,6 +5960,48 @@ msgctxt "ST_UI,Status.Tooltip.Stacks"
 msgid "Stacks : {Count}"
 msgstr ""
 
+#. Key:	Inventory.Category.Equipment
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Inventory.Category.Equipment"
+msgid "Equipement"
+msgstr ""
+
+#. Key:	Menu.License
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Menu.License"
+msgid "Licence"
+msgstr ""
+
+#. Key:	Menu.LoadGame
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Menu.LoadGame"
+msgid "Charger partie"
+msgstr ""
+
+#. Key:	Menu.Options
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Menu.Options"
+msgid "Options"
+msgstr ""
+
+#. Key:	Navigation.Back
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Navigation.Back"
+msgid "Retour"
+msgstr ""
+
+#. Key:	Resource.Mana
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Resource.Mana"
+msgid "Mana"
+msgstr ""
+
 #. Key:	UnarmedName
 #. SourceLocation:	Source/GrimrockPrototype/Private/Runtime/Combat/GridCombatActionCatalog.cpp(432)
 #: Source/GrimrockPrototype/Private/Runtime/Combat/GridCombatActionCatalog.cpp(432)
@@ -7724,6 +6989,13 @@ msgctxt "GridDungeonBuildProgressWidget,DungeonBuildPercentFormat"
 msgid "{0} %"
 msgstr ""
 
+#. Key:	DeltaDisplayFormat
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(158)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(158)
+msgctxt "GridInventoryTooltip,DeltaDisplayFormat"
+msgid "(Δ {Delta})"
+msgstr ""
+
 #. Key:	StatStrength
 #. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(172)
 #: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(172)
@@ -7983,6 +7255,34 @@ msgctxt "GridInventoryTooltip,ItemTypeUnknown"
 msgid "Objet"
 msgstr ""
 
+#. Key:	StackQuantityFormat
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(376)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(376)
+msgctxt "GridInventoryTooltip,StackQuantityFormat"
+msgid "({Quantity}x)"
+msgstr ""
+
+#. Key:	LightEnabled
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(398)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(398)
+msgctxt "GridInventoryTooltip,LightEnabled"
+msgid "Lumière : allumée"
+msgstr ""
+
+#. Key:	LightDisabled
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(399)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(399)
+msgctxt "GridInventoryTooltip,LightDisabled"
+msgid "Lumière : éteinte"
+msgstr ""
+
+#. Key:	EmptyEquipment
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(447)
+#: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(447)
+msgctxt "GridInventoryTooltip,EmptyEquipment"
+msgid "vide"
+msgstr ""
+
 #. Key:	ItemTypeTorch
 #. SourceLocation:	Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(46)
 #: Source/GrimrockPrototype/Private/UI/GridInventorySlotWidget.cpp(46)
@@ -8205,6 +7505,13 @@ msgstr ""
 #: Source/GrimrockPrototype/Private/UI/GridTalentNodeWidget.cpp(185)
 msgctxt "GridTalentNode,TalentTooltip"
 msgid "{0}\n{1}"
+msgstr ""
+
+#. Key:	LoadFailed
+#. SourceLocation:	Source/GrimrockPrototype/Private/UI/GrimrockLoadGameMenuWidget.cpp(21)
+#: Source/GrimrockPrototype/Private/UI/GrimrockLoadGameMenuWidget.cpp(21)
+msgctxt "GrimrockLoadGameMenu,LoadFailed"
+msgid "Impossible de charger cette sauvegarde."
 msgstr ""
 
 #. Key:	SkillInvalidCharacter
@@ -8668,4 +7975,3 @@ msgstr ""
 msgctxt "GridInventorySort,NameAscending"
 msgid "Nom ordre croissant"
 msgstr ""
-
