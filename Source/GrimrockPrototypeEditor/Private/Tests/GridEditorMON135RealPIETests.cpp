@@ -7,9 +7,12 @@
 #include "Editor.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
+#include "RPG/RPGClassAsset.h"
+#include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GrimrockGameInstance.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
@@ -47,6 +50,7 @@ namespace
 		TStrongObjectPtr<UGridDungeonAsset> OriginalPreviewDungeonAsset;
 		TStrongObjectPtr<UGridLevelAsset> FixtureLevelAsset;
 		TStrongObjectPtr<UGridDungeonAsset> FixtureDungeonAsset;
+		TStrongObjectPtr<UGridPartyInventoryComponent> SavePartyFixture;
 		FString PreparedRuntimeActorName;
 		FIntPoint StartCell = FIntPoint(0, 0);
 		bool bOriginalAutoPreparePIE = true;
@@ -55,6 +59,50 @@ namespace
 		FDelegateHandle PIEWorldInitializationHandle;
 		TArray<uint8> TemporarySaveBytesBeforeFreshPIE;
 	};
+
+	UGridPartyInventoryComponent* CreateMON135SerializablePartyFixture()
+	{
+		UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
+		if (!Component)
+		{
+			return nullptr;
+		}
+
+		Component->InitializeDefaultPartyIfNeeded();
+
+		URPGRaceAsset* RaceDefinition = NewObject<URPGRaceAsset>(Component);
+		URPGClassAsset* ClassDefinition = NewObject<URPGClassAsset>(Component);
+		if (!RaceDefinition || !ClassDefinition)
+		{
+			return nullptr;
+		}
+
+		RaceDefinition->RaceId = TEXT("MON135_Human");
+		RaceDefinition->DisplayName = FText::FromString(TEXT("MON13.5 Human"));
+		RaceDefinition->AttributeBonuses = FRPGAttributes{ 0, 0, 0, 0, 0, 0 };
+
+		ClassDefinition->ClassId = TEXT("MON135_Fighter");
+		ClassDefinition->DisplayName = FText::FromString(TEXT("MON13.5 Fighter"));
+		ClassDefinition->BaseAttributes = FRPGAttributes{ 12, 12, 12, 10, 10, 10 };
+		ClassDefinition->HealthAtLevelOne = 20;
+		ClassDefinition->HealthPerLevel = 5;
+		ClassDefinition->ManaAtLevelOne = 5;
+		ClassDefinition->ManaPerLevel = 2;
+
+		FRPGCharacterCreationRequest Request;
+		Request.DisplayName = FText::FromString(TEXT("MON13.5 PIE Test"));
+		Request.RaceDefinition = RaceDefinition;
+		Request.ClassDefinition = ClassDefinition;
+
+		FText CreationError;
+		if (!Component->CreateInitialCharacter(Request, CreationError) ||
+			!Component->PartyInventoryState.ActiveCharacters.IsValidIndex(0))
+		{
+			return nullptr;
+		}
+
+		return Component;
+	}
 
 	bool InstallMON135TransientPIEFixture(FAutomationTestBase& Test, AGridLevelEditorActor* EditorActor, FMON135RealPIEState& State)
 	{
@@ -362,24 +410,16 @@ namespace
 			State->bOriginalAutoPreparePIE = EditorActor->bAutoPreparePIE;
 
 			UGameplayStatics::DeleteGameInSlot(State->TemporarySaveSlot, 0);
-			UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
-			Save->PartyInventoryState.bInitialCharacterCreationCompleted = true;
-			Save->PartyInventoryState.SelectedCharacterIndex = 0;
-			Save->PartyInventoryState.MaxActiveCharacters = 6;
-			FGridCharacterInventoryState Character;
-			Character.CharacterId = FGuid::NewGuid();
-			Character.DisplayName = FText::FromString(TEXT("MON13.5 PIE Test"));
-			Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::MinimumSlotCount);
-			for (int32 SlotIndex = 0; SlotIndex < Character.CombatHotbarSlots.Num(); ++SlotIndex)
+			UGridPartyInventoryComponent* SavePartyFixture = CreateMON135SerializablePartyFixture();
+			Test->TestNotNull(TEXT("The MON13.5 temporary save party is current-schema valid"), SavePartyFixture);
+			if (!SavePartyFixture)
 			{
-				Character.CombatHotbarSlots[SlotIndex].Reset(SlotIndex);
+				return true;
 			}
-			FGridCombatHotbarBinding& PrimaryAttack =
-				Character.CombatHotbarSlots[FGridCombatHotbarBinding::PrimaryAttackSlotIndex];
-			PrimaryAttack.ActionId = FGridCombatHotbarBinding::MakePrimaryAttackActionId();
-			PrimaryAttack.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
-			Save->PartyInventoryState.ActiveCharacters.Add(Character);
-			Save->PartyInventoryState.ActiveEquipment.AddDefaulted();
+			State->SavePartyFixture.Reset(SavePartyFixture);
+
+			UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
+			Save->PartyInventoryState = SavePartyFixture->PartyInventoryState;
 			Save->CurrentDungeonLevelId = EditorActor->CurrentDungeonLevelId;
 			Save->PartyCellX = State->StartCell.X;
 			Save->PartyCellY = State->StartCell.Y;
@@ -794,6 +834,7 @@ namespace
 				}
 			}
 
+			State->SavePartyFixture.Reset();
 			State->FixtureDungeonAsset.Reset();
 			State->FixtureLevelAsset.Reset();
 			if (State->PIEWorldInitializationHandle.IsValid())
