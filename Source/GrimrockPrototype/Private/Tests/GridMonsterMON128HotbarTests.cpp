@@ -4,6 +4,7 @@
 #include "Misc/AutomationTest.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
@@ -29,6 +30,50 @@ namespace
 	{
 		UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
 		Component->InitializeDefaultPartyIfNeeded();
+		return Component;
+	}
+
+	UGridPartyInventoryComponent* CreateMON128SerializableInventory()
+	{
+		UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
+		if (!Component)
+		{
+			return nullptr;
+		}
+
+		Component->InitializeDefaultPartyIfNeeded();
+
+		URPGRaceAsset* RaceDefinition = NewObject<URPGRaceAsset>(Component);
+		URPGClassAsset* ClassDefinition = NewObject<URPGClassAsset>(Component);
+		if (!RaceDefinition || !ClassDefinition)
+		{
+			return nullptr;
+		}
+
+		RaceDefinition->RaceId = TEXT("MON128_Human");
+		RaceDefinition->DisplayName = FText::FromString(TEXT("MON12.8 Human"));
+		RaceDefinition->AttributeBonuses = FRPGAttributes{ 0, 0, 0, 0, 0, 0 };
+
+		ClassDefinition->ClassId = TEXT("MON128_Warrior");
+		ClassDefinition->DisplayName = FText::FromString(TEXT("MON12.8 Warrior"));
+		ClassDefinition->BaseAttributes = FRPGAttributes{ 12, 11, 12, 9, 9, 9 };
+		ClassDefinition->HealthAtLevelOne = 18;
+		ClassDefinition->HealthPerLevel = 8;
+		ClassDefinition->ManaAtLevelOne = 5;
+		ClassDefinition->ManaPerLevel = 2;
+
+		FRPGCharacterCreationRequest Request;
+		Request.DisplayName = FText::FromString(TEXT("MON12.8 Hero"));
+		Request.RaceDefinition = RaceDefinition;
+		Request.ClassDefinition = ClassDefinition;
+
+		FText CreationError;
+		if (!Component->CreateInitialCharacter(Request, CreationError) ||
+			!Component->PartyInventoryState.ActiveCharacters.IsValidIndex(0))
+		{
+			return nullptr;
+		}
+
 		return Component;
 	}
 
@@ -119,33 +164,46 @@ bool FGridMON128HotbarSaveRoundTripTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	FGridMON128IdentityCacheGuard IdentityGuard;
-	UGridPartyInventoryComponent* SourceComponent = CreateMON128Inventory();
-	if (!SourceComponent)
+
+	UGridPartyInventoryComponent* SourceComponent = CreateMON128SerializableInventory();
+	if (!TestNotNull(TEXT("The serializable inventory component is created"), SourceComponent))
 	{
 		return false;
 	}
-	SourceComponent->PartyInventoryState.bInitialCharacterCreationCompleted = true;
-
-	FGridCharacterInventoryState& SourceCharacter = SourceComponent->PartyInventoryState.ActiveCharacters[0];
-	URPGClassAsset* WarriorDefinition = NewObject<URPGClassAsset>(SourceComponent, TEXT("MON128_WarriorDefinition"));
-	WarriorDefinition->ClassId = SourceCharacter.ClassId;
-	WarriorDefinition->DisplayName = FText::FromName(SourceCharacter.ClassId);
-	TestTrue(TEXT("The synthetic current class definition is valid"), WarriorDefinition->IsValidDefinition());
-	TestTrue(TEXT("The synthetic current ClassId can be rehydrated"), FRPGAuthoringIdentityResolver::RememberClassDefinition(WarriorDefinition));
-	SourceCharacter.ClassDefinition = WarriorDefinition;
-	SourceCharacter.ClassDisplayName = WarriorDefinition->DisplayName;
+	if (!TestTrue(TEXT("The serializable party contains one active character"),
+			SourceComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(0)))
+	{
+		return false;
+	}
 
 	const FGuid WeaponRuntimeId = FGuid::NewGuid();
 	TestTrue(TEXT("An equipment shortcut is assigned before saving"),
 		SourceComponent->SetCharacterCombatHotbarBinding(0, 9, MakeMON128EquipmentBinding(WeaponRuntimeId)));
 
 	UGrimrockPartySaveGame* SourceSave = NewObject<UGrimrockPartySaveGame>();
+	if (!TestNotNull(TEXT("The hotbar SaveGame is created"), SourceSave))
+	{
+		return false;
+	}
 	SourceSave->PartyInventoryState = SourceComponent->PartyInventoryState;
 
 	TArray<uint8> SaveBytes;
-	TestTrue(TEXT("The hotbar SaveGame serializes to memory"), UGameplayStatics::SaveGameToMemory(SourceSave, SaveBytes));
+	if (!TestTrue(TEXT("The hotbar SaveGame serializes to memory"), UGameplayStatics::SaveGameToMemory(SourceSave, SaveBytes)))
+	{
+		return false;
+	}
+
 	UGrimrockPartySaveGame* LoadedSave = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromMemory(SaveBytes));
 	if (!TestNotNull(TEXT("The hotbar SaveGame deserializes"), LoadedSave))
+	{
+		return false;
+	}
+	if (!TestTrue(TEXT("The loaded party contains one active character"), LoadedSave->PartyInventoryState.ActiveCharacters.IsValidIndex(0)))
+	{
+		return false;
+	}
+	if (!TestTrue(TEXT("The loaded character contains hotbar slot 10"),
+			LoadedSave->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots.IsValidIndex(9)))
 	{
 		return false;
 	}
@@ -159,9 +217,18 @@ bool FGridMON128HotbarSaveRoundTripTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("The preferred equipment slot survives serialization"), LoadedBinding.PreferredEquipmentSlot == EGridEquipmentSlot::MainHand);
 
 	UGridPartyInventoryComponent* RestoredComponent = NewObject<UGridPartyInventoryComponent>();
+	if (!TestNotNull(TEXT("The restored inventory component is created"), RestoredComponent))
+	{
+		return false;
+	}
+
 	FText RestoreError;
-	TestTrue(TEXT("The deserialized party and hotbar restore atomically"),
-		RestoredComponent->RestorePartyInventoryState(LoadedSave->PartyInventoryState, RestoreError));
+	if (!TestTrue(TEXT("The deserialized party and hotbar restore atomically"),
+			RestoredComponent->RestorePartyInventoryState(LoadedSave->PartyInventoryState, RestoreError)))
+	{
+		return false;
+	}
+
 	FGridCombatHotbarBinding RestoredBinding;
 	TestTrue(TEXT("The restored binding is exposed by the component"), RestoredComponent->GetCharacterCombatHotbarBinding(0, 9, RestoredBinding));
 	TestTrue(TEXT("The restored runtime identity is unchanged"), RestoredBinding.PreferredSourceRuntimeId == WeaponRuntimeId);
