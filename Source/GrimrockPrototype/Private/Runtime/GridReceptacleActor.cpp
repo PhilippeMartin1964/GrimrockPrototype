@@ -9,6 +9,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UI/UILocalizationText.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -938,11 +939,11 @@ FText AGridReceptacleActor::GetInteractionText_Implementation(UPrimitiveComponen
 {
 	if (IsContainedItemHitComponent(HitComponent) && HasItem() && IsItemRemovalAllowed())
 	{
-		return FText::FromString(TEXT("Take"));
+		return FUILocalizationText::Get(TEXT("Interaction.Item.Take"));
 	}
 	if (HitComponent == MeshComponent && !IsFull())
 	{
-		return FText::FromString(TEXT("Place item"));
+		return FUILocalizationText::Get(TEXT("Interaction.Receptacle.PlaceItem"));
 	}
 	return FText::GetEmpty();
 }

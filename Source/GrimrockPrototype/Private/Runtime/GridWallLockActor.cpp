@@ -6,6 +6,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UI/UILocalizationText.h"
 
 DEFINE_LOG_CATEGORY(LogGridWallLock);
 
@@ -190,22 +191,22 @@ FText AGridWallLockActor::GetInteractionText_Implementation(UPrimitiveComponent*
 
 FText AGridWallLockActor::GetEffectiveLockedMessage() const
 {
-	return LockedMessage.IsEmpty() ? FText::FromString(TEXT("La serrure est verrouillée.")) : LockedMessage;
+	return LockedMessage.IsEmpty() ? FUILocalizationText::Get(TEXT("Interaction.Lock.Locked")) : LockedMessage;
 }
 
 FText AGridWallLockActor::GetEffectiveUnlockSuccessMessage() const
 {
-	return UnlockedMessage.IsEmpty() ? FText::FromString(TEXT("La serrure s'ouvre avec un déclic métallique.")) : UnlockedMessage;
+	return UnlockedMessage.IsEmpty() ? FUILocalizationText::Get(TEXT("Interaction.Lock.UnlockSuccess")) : UnlockedMessage;
 }
 
 FText AGridWallLockActor::GetEffectiveAlreadyUnlockedMessage() const
 {
-	return FText::FromString(TEXT("La serrure est déjà déverrouillée."));
+	return FUILocalizationText::Get(TEXT("Interaction.Lock.AlreadyUnlocked"));
 }
 
 FText AGridWallLockActor::GetEffectiveMissingKeyMessage() const
 {
-	return MissingKeyMessage.IsEmpty() ? FText::FromString(TEXT("Il vous manque la clé adéquate.")) : MissingKeyMessage;
+	return MissingKeyMessage.IsEmpty() ? FUILocalizationText::Get(TEXT("Interaction.Lock.MissingKey")) : MissingKeyMessage;
 }
 
 bool AGridWallLockActor::IsAcceptedKey(FName ItemDefinitionId) const

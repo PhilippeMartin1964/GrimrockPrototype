@@ -7,6 +7,7 @@
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UI/UILocalizationText.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridRuntimeObject, Log, All);
 
@@ -240,7 +241,7 @@ FText AGridGenericObjectActor::GetInteractionText_Implementation(UPrimitiveCompo
 {
 	if (HitComponent == MeshComponent && HasReadableText())
 	{
-		return FText::FromString(TEXT("Read"));
+		return FUILocalizationText::Get(TEXT("Interaction.Readable.Read"));
 	}
 
 	return FText::GetEmpty();

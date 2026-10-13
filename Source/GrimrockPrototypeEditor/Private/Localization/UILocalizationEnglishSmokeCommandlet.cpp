@@ -119,6 +119,14 @@ int32 UUILocalizationEnglishSmokeCommandlet::Main(const FString& Params)
 	CheckDuration(TEXT("fr"), EGridStatusEffectDurationUnit::Rounds, 2, TEXT("2 manches"));
 	CheckDuration(TEXT("en"), EGridStatusEffectDurationUnit::Rounds, 2, TEXT("2 rounds"));
 
+	CheckText(TEXT("fr"), TEXT("Interaction.Door.Open"), TEXT("Ouvrir la porte"));
+	CheckText(TEXT("en"), TEXT("Interaction.Door.Open"), TEXT("Open door"));
+	CheckText(TEXT("en"), TEXT("Interaction.Button.Push"), TEXT("Push button"));
+	CheckText(TEXT("en"), TEXT("Interaction.Item.Take"), TEXT("Take"));
+	CheckText(TEXT("en"), TEXT("Interaction.Readable.Read"), TEXT("Read"));
+	CheckText(TEXT("en"), TEXT("Interaction.Receptacle.PlaceItem"), TEXT("Place item"));
+	CheckText(TEXT("en"), TEXT("Interaction.Lock.Locked"), TEXT("The lock is locked."));
+
 	Internationalization.RestoreCultureState(Snapshot);
 	LocalizationManager.RefreshResources();
 	LocalizationManager.WaitForAsyncTasks();

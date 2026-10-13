@@ -4,6 +4,7 @@
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UI/UILocalizationText.h"
 
 AGridButtonActor::AGridButtonActor()
 {
@@ -166,7 +167,7 @@ FText AGridButtonActor::GetInteractionText_Implementation(UPrimitiveComponent* H
 {
 	if (HitComponent == MovingMeshComponent)
 	{
-		return FText::FromString(TEXT("Push button"));
+		return FUILocalizationText::Get(TEXT("Interaction.Button.Push"));
 	}
 
 	return FText::GetEmpty();

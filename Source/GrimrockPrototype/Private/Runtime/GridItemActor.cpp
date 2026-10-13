@@ -11,6 +11,7 @@
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "UI/UILocalizationText.h"
 
 AGridItemActor::AGridItemActor()
 {
@@ -367,5 +368,5 @@ FText AGridItemActor::GetInteractionText_Implementation(UPrimitiveComponent* Hit
 	{
 		return OwnerReceptacle->GetInteractionText_Implementation(MeshComponent);
 	}
-	return FText::FromString(TEXT("Take"));
+	return FUILocalizationText::Get(TEXT("Interaction.Item.Take"));
 }

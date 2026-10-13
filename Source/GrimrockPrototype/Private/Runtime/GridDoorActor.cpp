@@ -8,6 +8,7 @@
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UI/UILocalizationText.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridRuntimeObject, Log, All);
 
@@ -319,7 +320,7 @@ FText AGridDoorActor::GetInteractionText_Implementation(UPrimitiveComponent* Hit
 		return FText::GetEmpty();
 	}
 
-	return FText::FromString(bIsOpen ? TEXT("Close door") : TEXT("Open door"));
+	return bIsOpen ? FUILocalizationText::Get(TEXT("Interaction.Door.Close")) : FUILocalizationText::Get(TEXT("Interaction.Door.Open"));
 }
 
 void AGridDoorActor::UpdateChainAnimation(float DeltaSeconds)

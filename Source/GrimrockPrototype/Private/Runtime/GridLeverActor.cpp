@@ -5,6 +5,7 @@
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UI/UILocalizationText.h"
 
 AGridLeverActor::AGridLeverActor()
 {
@@ -160,7 +161,7 @@ FText AGridLeverActor::GetInteractionText_Implementation(UPrimitiveComponent* Hi
 {
 	if (HitComponent == MovingMeshComponent)
 	{
-		return FText::FromString(bIsOn ? TEXT("Push lever") : TEXT("Pull lever"));
+		return bIsOn ? FUILocalizationText::Get(TEXT("Interaction.Lever.Push")) : FUILocalizationText::Get(TEXT("Interaction.Lever.Pull"));
 	}
 
 	return FText::GetEmpty();

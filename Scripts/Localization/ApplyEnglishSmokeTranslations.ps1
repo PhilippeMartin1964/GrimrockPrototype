@@ -44,6 +44,12 @@ $TranslationsByKey = [ordered]@{
     "Status.Duration.Turns" = "{Count} {Count}|plural(one=turn,other=turns)"
     "Status.Tooltip.Duration" = "Duration: {Duration}"
     "Status.Tooltip.PeriodicDamage" = "Periodic damage active."
+    "Interaction.Button.Push" = "Push button"
+    "Interaction.Door.Open" = "Open door"
+    "Interaction.Item.Take" = "Take"
+    "Interaction.Lock.Locked" = "The lock is locked."
+    "Interaction.Readable.Read" = "Read"
+    "Interaction.Receptacle.PlaceItem" = "Place item"
 }
 
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
