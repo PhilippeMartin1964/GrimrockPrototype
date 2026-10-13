@@ -84,10 +84,6 @@ $ReportRoot = Join-Path $ProjectRoot ("Saved\Localization\UI-LOCALIZATION01.6\{0
 [void](New-Item -ItemType Directory -Path $ReportRoot -Force)
 Write-Host ("Localization report directory: {0}" -f $ReportRoot)
 
-$GameCsvSnapshot = New-FileSnapshot -Path $GameCsv
-$EnglishPoSnapshot = New-FileSnapshot -Path $EnglishPo
-$FrenchPoSnapshot = New-FileSnapshot -Path $FrenchPo
-
 # Unreal may rewrite GatherText config files by adding metadata comments.
 # Never expose source-controlled configs to that mutation. Work on report-local
 # copies and verify that the repository copies remain byte-for-byte unchanged.
@@ -145,6 +141,10 @@ function Restore-FileSnapshot {
         Remove-Item -LiteralPath $Path -Force
     }
 }
+
+$GameCsvSnapshot = New-FileSnapshot -Path $GameCsv
+$EnglishPoSnapshot = New-FileSnapshot -Path $EnglishPo
+$FrenchPoSnapshot = New-FileSnapshot -Path $FrenchPo
 
 function Invoke-NativeStep {
     param(
