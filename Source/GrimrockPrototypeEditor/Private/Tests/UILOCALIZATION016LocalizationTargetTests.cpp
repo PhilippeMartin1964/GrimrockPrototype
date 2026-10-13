@@ -138,6 +138,8 @@ bool FUILOCALIZATION016TargetContractTest::RunTest(const FString&)
 		TestTrue(TEXT("Translation script enables strict mode"), TranslationScript.Contains(TEXT("Set-StrictMode -Version Latest")));
 		TestTrue(TEXT("Translation script resolves source text from UI.csv"), TranslationScript.Contains(TEXT("Localization\\Source\\UI.csv")));
 		TestTrue(TEXT("Translation script uses stable localization keys"), TranslationScript.Contains(TEXT("CharacterCreation.Gender.Female")));
+		TestTrue(TEXT("Translation script targets PO entries by msgctxt"), TranslationScript.Contains(TEXT("msgctxt")));
+		TestTrue(TEXT("Translation script binds smoke keys to the ST_UI namespace"), TranslationScript.Contains(TEXT("ST_UI,{0}")));
 		TestTrue(TEXT("Translation script reads CSV explicitly as UTF-8"), TranslationScript.Contains(TEXT("ReadAllText($CsvPath, [System.Text.Encoding]::UTF8)")));
 		TestTrue(TEXT("Translation script verifies translated PO content"), TranslationScript.Contains(TEXT("English PO validation failed")));
 		TestTrue(TEXT("Translation script writes through a temporary file"), TranslationScript.Contains(TEXT(".tmp")));

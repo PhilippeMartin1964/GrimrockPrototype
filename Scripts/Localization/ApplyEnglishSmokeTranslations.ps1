@@ -101,7 +101,12 @@ foreach ($Pair in $TranslationsByKey.GetEnumerator()) {
 
     $Source = ConvertTo-PoQuoted -Value $SourceText
     $Translation = ConvertTo-PoQuoted -Value $EnglishText
-    $Pattern = '(?ms)(^msgid "' + [regex]::Escape($Source) + '"\r?\n(?:(?!\r?\n\r?\n).)*?^msgstr )"(?:\\.|[^"\\])*"'
+    $PoContext = ConvertTo-PoQuoted -Value ("ST_UI,{0}" -f $Key)
+
+    # Full Game gather may contain the same source text under several
+    # localization identities. Target the stable ST_UI context + key rather
+    # than matching msgid alone.
+    $Pattern = '(?ms)(^msgctxt "' + [regex]::Escape($PoContext) + '"\r?\n^msgid "' + [regex]::Escape($Source) + '"\r?\n(?:(?!\r?\n\r?\n).)*?^msgstr )"(?:\\.|[^"\\])*"'
     $Matches = [regex]::Matches($PoContent, $Pattern)
 
     if ($Matches.Count -ne 1) {
@@ -125,7 +130,8 @@ foreach ($Pair in $TranslationsByKey.GetEnumerator()) {
     $SourceText = [string]$Rows[0].SourceString
     $Source = ConvertTo-PoQuoted -Value $SourceText
     $Translation = ConvertTo-PoQuoted -Value $EnglishText
-    $ValidationPattern = '(?ms)^msgid "' + [regex]::Escape($Source) + '"\r?\n(?:(?!\r?\n\r?\n).)*?^msgstr "' + [regex]::Escape($Translation) + '"'
+    $PoContext = ConvertTo-PoQuoted -Value ("ST_UI,{0}" -f $Key)
+    $ValidationPattern = '(?ms)^msgctxt "' + [regex]::Escape($PoContext) + '"\r?\n^msgid "' + [regex]::Escape($Source) + '"\r?\n(?:(?!\r?\n\r?\n).)*?^msgstr "' + [regex]::Escape($Translation) + '"'
 
     if (-not [regex]::IsMatch($PoContent, $ValidationPattern)) {
         throw ("English PO validation failed for key '{0}'." -f $Key)

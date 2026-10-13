@@ -164,3 +164,38 @@ local et inspection du résultat.
 
 Aucun test UE local n'est déclaré réussi tant que sa sortie n'a pas été fournie
 par l'utilisateur.
+
+## 8. UI-LOCALIZATION02.2A — premier retour de validation locale
+
+Le premier Full Game gather local du 13 octobre 2026 a confirmé que le test
+Automation `LOCALIZATION02` passe et que les deux étapes de Gather se
+terminent avec un code de sortie nul.
+
+Le pipeline s'est ensuite arrêté pendant l'application du fixture anglais sur
+`CharacterCreation.Wizard.Step.Summary`. Le Full Game gather contient
+désormais plusieurs entrées ayant le même `msgid` français `Résumé`, alors
+que le fixture historique identifiait une entrée uniquement par son texte
+source.
+
+02.2A corrige le fixture pour cibler l'identité PO stable :
+
+~~~text
+msgctxt "ST_UI,<Key>"
++
+msgid "<SourceString>"
+~~~
+
+Le fixture reste volontairement limité aux clés smoke de `UI.csv`; il ne
+devient pas une traduction anglaise exhaustive.
+
+Le même Gather a révélé un problème de contenu distinct : `DA_FloorCarpet`
+et `DA_FloorRubble` partagent le même package Localization ID, ce qui crée
+des conflits sur `DisplayName` et `Description`. Cette correction exige une
+modification d'asset dans Unreal Editor et n'est pas effectuée à l'aveugle.
+
+Enfin, `DA_BookPage_Test` et `DA_Scroll_Test` ont été parcourus malgré les
+filtres nominaux `*_Test*`. Ce point sera traité séparément : une organisation
+des fixtures sous un chemin de test explicitement excluable est préférable à
+une nouvelle couche de filtrage ad hoc.
+
+Une nouvelle exécution locale du pipeline complet est requise après 02.2A.
