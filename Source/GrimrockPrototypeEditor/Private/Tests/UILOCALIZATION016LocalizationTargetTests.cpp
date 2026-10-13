@@ -25,8 +25,17 @@ namespace UILOCALIZATION016
 		Test.TestTrue(*FString::Printf(TEXT("%s generates French"), Label), Content.Contains(TEXT("CulturesToGenerate=fr")));
 		Test.TestTrue(*FString::Printf(TEXT("%s generates English"), Label), Content.Contains(TEXT("CulturesToGenerate=en")));
 		Test.TestFalse(
-			*FString::Printf(TEXT("%s uses neutral localization identifiers"), Label),
-			Content.Contains(TEXT("Grimrock"), ESearchCase::IgnoreCase));
+			*FString::Printf(TEXT("%s keeps a neutral manifest identifier"), Label),
+			Content.Contains(TEXT("ManifestName=Grimrock"), ESearchCase::IgnoreCase));
+		Test.TestFalse(
+			*FString::Printf(TEXT("%s keeps a neutral archive identifier"), Label),
+			Content.Contains(TEXT("ArchiveName=Grimrock"), ESearchCase::IgnoreCase));
+		Test.TestFalse(
+			*FString::Printf(TEXT("%s keeps a neutral resource identifier"), Label),
+			Content.Contains(TEXT("ResourceName=Grimrock"), ESearchCase::IgnoreCase));
+		Test.TestFalse(
+			*FString::Printf(TEXT("%s keeps a neutral PO identifier"), Label),
+			Content.Contains(TEXT("PortableObjectName=Grimrock"), ESearchCase::IgnoreCase));
 	}
 }
 
@@ -63,11 +72,8 @@ bool FUILOCALIZATION016TargetContractTest::RunTest(const FString&)
 	if (LoadProjectFile(TEXT("Config/Localization/Game_Gather.ini"), Gather, *this))
 	{
 		TestTrue(
-			TEXT("Gather target is intentionally scoped to generated UI String Tables"),
+			TEXT("Gather target still includes generated UI String Tables"),
 			Gather.Contains(TEXT("IncludePathFilters=Content/Localization/StringTables/*")));
-		TestFalse(
-			TEXT("01.6 smoke target does not gather legacy source namespaces"),
-			Gather.Contains(TEXT("CommandletClass=GatherTextFromSource")));
 	}
 
 	FString Export;
@@ -143,6 +149,55 @@ bool FUILOCALIZATION016TargetContractTest::RunTest(const FString&)
 		TestTrue(TEXT("PowerShell validator enforces ASCII-only script sources"), ScriptValidator.Contains(TEXT("ASCII-only")));
 		TestTrue(TEXT("PowerShell validator checks raw script bytes"), ScriptValidator.Contains(TEXT("ReadAllBytes")));
 	}
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUILOCALIZATION022FullGameGatherContractTest,
+	"Game.UI.Localization.LOCALIZATION02.FullGameGatherContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUILOCALIZATION022FullGameGatherContractTest::RunTest(const FString&)
+{
+	using namespace UILOCALIZATION016;
+
+	FString Gather;
+	if (!LoadProjectFile(TEXT("Config/Localization/Game_Gather.ini"), Gather, *this))
+	{
+		return false;
+	}
+
+	TestTrue(TEXT("Full Game gather reads player-facing C++ source"), Gather.Contains(TEXT("CommandletClass=GatherTextFromSource")));
+	TestTrue(TEXT("Source gather is limited to the runtime module"), Gather.Contains(TEXT("SearchDirectoryPaths=Source/GrimrockPrototype")));
+	TestTrue(TEXT("Source gather includes headers"), Gather.Contains(TEXT("FileNameFilters=*.h")));
+	TestTrue(TEXT("Source gather includes implementation files"), Gather.Contains(TEXT("FileNameFilters=*.cpp")));
+	TestTrue(TEXT("Source gather excludes runtime Automation tests"), Gather.Contains(TEXT("ExcludePathFilters=Source/GrimrockPrototype/Private/Tests/*")));
+	TestTrue(TEXT("Source gather excludes the PIE progression simulator"), Gather.Contains(TEXT("ExcludePathFilters=Source/GrimrockPrototype/Private/RPG/RPGProgressionPIESimulator.*")));
+	TestFalse(TEXT("Full Game gather does not search the Editor module"), Gather.Contains(TEXT("SearchDirectoryPaths=Source/GrimrockPrototypeEditor")));
+	TestFalse(TEXT("Full Game gather does not enable broad metadata gathering"), Gather.Contains(TEXT("CommandletClass=GatherTextFromMetaData")));
+
+	const TCHAR* RequiredAssetScopes[] = {
+		TEXT("IncludePathFilters=Content/Localization/StringTables/*"),
+		TEXT("IncludePathFilters=Content/GrimrockPrototype/Core/DataAssets/*"),
+		TEXT("IncludePathFilters=Content/GrimrockPrototype/Monsters/Categories/*"),
+		TEXT("IncludePathFilters=Content/GrimrockPrototype/Monsters/*/Data/*"),
+		TEXT("IncludePathFilters=Content/GrimrockPrototype/Blueprints/UI/*"),
+		TEXT("IncludePathFilters=Content/GrimrockPrototype/Blueprints/Runtime/*"),
+		TEXT("IncludePathFilters=Content/GrimrockPrototype/Maps/*")
+	};
+	for (const TCHAR* RequiredScope : RequiredAssetScopes)
+	{
+		TestTrue(*FString::Printf(TEXT("Full Game asset gather contains '%s'"), RequiredScope), Gather.Contains(RequiredScope));
+	}
+
+	TestTrue(TEXT("Asset gather excludes the test note fixture"), Gather.Contains(TEXT("ExcludePathFilters=Content/GrimrockPrototype/Core/DataAssets/Items/DA_Item_TestNote*")));
+	TestTrue(TEXT("Asset gather excludes test readable fixtures"), Gather.Contains(TEXT("ExcludePathFilters=Content/GrimrockPrototype/Core/DataAssets/Readables/*_Test*")));
+	TestTrue(TEXT("Asset gather includes uasset packages"), Gather.Contains(TEXT("PackageFileNameFilters=*.uasset")));
+	TestTrue(TEXT("Asset gather includes runtime maps"), Gather.Contains(TEXT("PackageFileNameFilters=*.umap")));
+	TestTrue(TEXT("Editor-only serialized data stays excluded"), Gather.Contains(TEXT("ShouldGatherFromEditorOnlyData=false")));
+	TestFalse(TEXT("Editor Blueprints stay outside the player target"), Gather.Contains(TEXT("IncludePathFilters=Content/GrimrockPrototype/Blueprints/Editor/*")));
+	TestFalse(TEXT("Dungeon editor icons stay outside the player target"), Gather.Contains(TEXT("IncludePathFilters=Content/GrimrockPrototype/Icons/DungeonEditorIcons/*")));
 
 	return true;
 }
