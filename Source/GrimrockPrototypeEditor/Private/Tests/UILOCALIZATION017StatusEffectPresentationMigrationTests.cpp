@@ -113,7 +113,7 @@ bool FUILOCALIZATION017StatusEffectPresentationMigrationTest::RunTest(const FStr
 	TestEqual(
 		TEXT("Status presentation references exactly the authored Status keys"),
 		ReferencedKeys.Num(),
-		UE_ARRAY_COUNT(RequiredKeys));
+		static_cast<int32>(UE_ARRAY_COUNT(RequiredKeys)));
 
 	for (const FString& Key : ReferencedKeys)
 	{
