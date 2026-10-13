@@ -4,6 +4,7 @@
 #include "Components/TextBlock.h"
 #include "InputCoreTypes.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UI/UILocalizationText.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridCombatHotbarDragDropOperation.h"
 
@@ -99,11 +100,29 @@ FText UGridSpellbookEntryWidget::GetSpellNameText() const
 
 FText UGridSpellbookEntryWidget::GetSchoolText() const
 {
-	if (const UEnum* SchoolEnum = StaticEnum<EGridSpellSchool>())
+	switch (Entry.School)
 	{
-		return SchoolEnum->GetDisplayNameTextByValue(static_cast<int64>(Entry.School));
+		case EGridSpellSchool::None:
+			return FUILocalizationText::Get(TEXT("Spellbook.School.None"));
+		case EGridSpellSchool::Arcane:
+			return FUILocalizationText::Get(TEXT("Spellbook.School.Arcane"));
+		case EGridSpellSchool::Fire:
+			return FUILocalizationText::Get(TEXT("Spellbook.School.Fire"));
+		case EGridSpellSchool::Frost:
+			return FUILocalizationText::Get(TEXT("Spellbook.School.Frost"));
+		case EGridSpellSchool::Air:
+			return FUILocalizationText::Get(TEXT("Spellbook.School.Air"));
+		case EGridSpellSchool::Earth:
+			return FUILocalizationText::Get(TEXT("Spellbook.School.Earth"));
+		case EGridSpellSchool::Life:
+			return FUILocalizationText::Get(TEXT("Spellbook.School.Life"));
+		case EGridSpellSchool::Death:
+			return FUILocalizationText::Get(TEXT("Spellbook.School.Death"));
+		case EGridSpellSchool::Protection:
+			return FUILocalizationText::Get(TEXT("Spellbook.School.Protection"));
+		default:
+			return FText::GetEmpty();
 	}
-	return FText::GetEmpty();
 }
 
 FText UGridSpellbookEntryWidget::GetCostText() const

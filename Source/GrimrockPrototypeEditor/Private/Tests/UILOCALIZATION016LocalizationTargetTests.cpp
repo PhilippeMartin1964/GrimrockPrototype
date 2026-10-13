@@ -193,13 +193,50 @@ bool FUILOCALIZATION022FullGameGatherContractTest::RunTest(const FString&)
 		TestTrue(*FString::Printf(TEXT("Full Game asset gather contains '%s'"), RequiredScope), Gather.Contains(RequiredScope));
 	}
 
-	TestTrue(TEXT("Asset gather excludes the test note fixture"), Gather.Contains(TEXT("ExcludePathFilters=Content/GrimrockPrototype/Core/DataAssets/Items/DA_Item_TestNote*")));
-	TestTrue(TEXT("Asset gather excludes test readable fixtures"), Gather.Contains(TEXT("ExcludePathFilters=Content/GrimrockPrototype/Core/DataAssets/Readables/*_Test*")));
+	TestTrue(TEXT("Asset gather excludes the dedicated test fixture subtree"), Gather.Contains(TEXT("ExcludePathFilters=Content/GrimrockPrototype/Core/DataAssets/Tests/*")));
+	TestFalse(TEXT("Asset gather no longer relies on the test-note filename"), Gather.Contains(TEXT("DA_Item_TestNote*")));
+	TestFalse(TEXT("Asset gather no longer relies on readable filename wildcards"), Gather.Contains(TEXT("Readables/*_Test*")));
 	TestTrue(TEXT("Asset gather includes uasset packages"), Gather.Contains(TEXT("PackageFileNameFilters=*.uasset")));
 	TestTrue(TEXT("Asset gather includes runtime maps"), Gather.Contains(TEXT("PackageFileNameFilters=*.umap")));
 	TestTrue(TEXT("Editor-only serialized data stays excluded"), Gather.Contains(TEXT("ShouldGatherFromEditorOnlyData=false")));
 	TestFalse(TEXT("Editor Blueprints stay outside the player target"), Gather.Contains(TEXT("IncludePathFilters=Content/GrimrockPrototype/Blueprints/Editor/*")));
 	TestFalse(TEXT("Dungeon editor icons stay outside the player target"), Gather.Contains(TEXT("IncludePathFilters=Content/GrimrockPrototype/Icons/DungeonEditorIcons/*")));
+
+	FString UiCsv;
+	if (LoadProjectFile(TEXT("Localization/Source/UI.csv"), UiCsv, *this))
+	{
+		const TCHAR* RequiredSpellSchoolKeys[] = {
+			TEXT("Spellbook.School.None"),
+			TEXT("Spellbook.School.Arcane"),
+			TEXT("Spellbook.School.Fire"),
+			TEXT("Spellbook.School.Frost"),
+			TEXT("Spellbook.School.Air"),
+			TEXT("Spellbook.School.Earth"),
+			TEXT("Spellbook.School.Life"),
+			TEXT("Spellbook.School.Death"),
+			TEXT("Spellbook.School.Protection")
+		};
+		for (const TCHAR* RequiredKey : RequiredSpellSchoolKeys)
+		{
+			TestTrue(*FString::Printf(TEXT("UI.csv contains '%s'"), RequiredKey), UiCsv.Contains(RequiredKey));
+		}
+	}
+
+	FString SpellbookEntrySource;
+	if (LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/UI/GridSpellbookEntryWidget.cpp"), SpellbookEntrySource, *this))
+	{
+		TestTrue(TEXT("Spell school presentation reads ST_UI vocabulary"), SpellbookEntrySource.Contains(TEXT("FUILocalizationText::Get")));
+		TestTrue(TEXT("Spell school presentation references the Fire key"), SpellbookEntrySource.Contains(TEXT("Spellbook.School.Fire")));
+		TestFalse(TEXT("Spell school presentation no longer depends on enum metadata"), SpellbookEntrySource.Contains(TEXT("GetDisplayNameTextByValue")));
+	}
+
+	FString SkillEntrySource;
+	if (LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/UI/GridSkillEntryWidget.cpp"), SkillEntrySource, *this))
+	{
+		TestTrue(TEXT("Skill attribute presentation reads ST_UI vocabulary"), SkillEntrySource.Contains(TEXT("FUILocalizationText::Get")));
+		TestTrue(TEXT("Skill attribute presentation reuses the Dexterity key"), SkillEntrySource.Contains(TEXT("CharacterCreation.Attribute.Dexterity")));
+		TestFalse(TEXT("Skill attribute presentation no longer depends on enum metadata"), SkillEntrySource.Contains(TEXT("GetDisplayNameTextByValue")));
+	}
 
 	return true;
 }

@@ -27,7 +27,7 @@ bool FUIRPG062BSkillEntryPresentationTest::RunTest(const FString& Parameters)
 	UGridSkillEntryWidget* Widget = NewObject<UGridSkillEntryWidget>();
 	TestTrue(TEXT("Canonical untrained Skill row initializes"), Widget->InitializeSkillEntry(Lockpicking));
 	TestTrue(TEXT("Display name is projected"), UGridSkillEntryWidget::ResolveDisplayName(Lockpicking).EqualTo(FText::FromString(TEXT("Crochetage"))));
-	TestTrue(TEXT("Governing attribute uses enum presentation"), UGridSkillEntryWidget::ResolveAttributeLabel(Lockpicking).EqualTo(FText::FromString(TEXT("Dextérité"))));
+	TestTrue(TEXT("Governing attribute uses localized UI vocabulary"), UGridSkillEntryWidget::ResolveAttributeLabel(Lockpicking).EqualTo(FText::FromString(TEXT("Dextérité"))));
 	TestTrue(TEXT("Rank uses existing rank/max only"), UGridSkillEntryWidget::ResolveRankLabel(Lockpicking).EqualTo(FText::FromString(TEXT("Rang 0 / 5"))));
 	TestTrue(TEXT("Trained-only policy is explicit"), UGridSkillEntryWidget::ResolveTrainingLabel(Lockpicking).EqualTo(FText::FromString(TEXT("Entraînement requis"))));
 	TestFalse(TEXT("Empty description remains absent"), UGridSkillEntryWidget::HasDescription(Lockpicking));
@@ -41,6 +41,7 @@ bool FUIRPG062BSkillEntryPresentationTest::RunTest(const FString& Parameters)
 	Perception.bTrained = true;
 	Perception.Description = FText::FromString(TEXT("Description réelle."));
 
+	TestTrue(TEXT("Wisdom reuses localized attribute vocabulary"), UGridSkillEntryWidget::ResolveAttributeLabel(Perception).EqualTo(FText::FromString(TEXT("Sagesse"))));
 	TestTrue(TEXT("Trained Skill row initializes"), Widget->InitializeSkillEntry(Perception));
 	TestTrue(TEXT("Trained state is explicit"), UGridSkillEntryWidget::ResolveTrainingLabel(Perception).EqualTo(FText::FromString(TEXT("Entraînée"))));
 	TestTrue(TEXT("Existing description is exposed"), UGridSkillEntryWidget::HasDescription(Perception));

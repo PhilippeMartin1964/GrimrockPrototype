@@ -2,6 +2,7 @@
 
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
+#include "UI/UILocalizationText.h"
 
 void UGridSkillEntryWidget::NativeConstruct()
 {
@@ -144,16 +145,25 @@ FText UGridSkillEntryWidget::ResolveDisplayName(const FGridSkillEntryView& InEnt
 
 FText UGridSkillEntryWidget::ResolveAttributeLabel(const FGridSkillEntryView& InEntry)
 {
-	if (InEntry.GoverningAttribute == ERPGSkillGoverningAttribute::None)
+	switch (InEntry.GoverningAttribute)
 	{
-		return FText::GetEmpty();
+		case ERPGSkillGoverningAttribute::None:
+			return FText::GetEmpty();
+		case ERPGSkillGoverningAttribute::Strength:
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Strength"));
+		case ERPGSkillGoverningAttribute::Dexterity:
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Dexterity"));
+		case ERPGSkillGoverningAttribute::Constitution:
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Constitution"));
+		case ERPGSkillGoverningAttribute::Intelligence:
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Intelligence"));
+		case ERPGSkillGoverningAttribute::Wisdom:
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Wisdom"));
+		case ERPGSkillGoverningAttribute::Charisma:
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Charisma"));
+		default:
+			return FText::GetEmpty();
 	}
-
-	if (const UEnum* AttributeEnum = StaticEnum<ERPGSkillGoverningAttribute>())
-	{
-		return AttributeEnum->GetDisplayNameTextByValue(static_cast<int64>(InEntry.GoverningAttribute));
-	}
-	return FText::GetEmpty();
 }
 
 FText UGridSkillEntryWidget::ResolveRankLabel(const FGridSkillEntryView& InEntry)

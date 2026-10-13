@@ -68,6 +68,8 @@ int32 UUILocalizationEnglishSmokeCommandlet::Main(const FString& Params)
 			}
 		};
 
+	CheckText(TEXT("fr"), TEXT("CharacterCreation.Attribute.Dexterity"), TEXT("Dextérité"));
+	CheckText(TEXT("en"), TEXT("CharacterCreation.Attribute.Dexterity"), TEXT("Dexterity"));
 	CheckText(TEXT("fr"), TEXT("CharacterCreation.Gender.Female"), TEXT("Féminin"));
 	CheckText(TEXT("fr"), TEXT("CharacterCreation.Identity.Title"), TEXT("Identité du personnage"));
 	CheckText(TEXT("en"), TEXT("CharacterCreation.Gender.Female"), TEXT("Female"));
@@ -145,6 +147,8 @@ int32 UUILocalizationEnglishSmokeCommandlet::Main(const FString& Params)
 	CheckText(TEXT("en"), TEXT("SaveLoad.Slot.Available"), TEXT("Available"));
 	CheckText(TEXT("en"), TEXT("SaveLoad.Slot.Unavailable"), TEXT("Unavailable"));
 	CheckText(TEXT("en"), TEXT("Spellbook.Fallback.DefinitionUnavailable"), TEXT("Spell definition unavailable."));
+	CheckText(TEXT("fr"), TEXT("Spellbook.School.Fire"), TEXT("Feu"));
+	CheckText(TEXT("en"), TEXT("Spellbook.School.Fire"), TEXT("Fire"));
 	CheckText(TEXT("en"), TEXT("Progression.Skill.AllocationFailed"), TEXT("Skill allocation failed."));
 	CheckText(TEXT("en"), TEXT("Progression.Skill.CancellationFailed"), TEXT("Skill allocation cancellation failed."));
 

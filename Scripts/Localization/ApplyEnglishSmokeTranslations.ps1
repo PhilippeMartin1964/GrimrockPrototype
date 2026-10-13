@@ -34,6 +34,7 @@ function ConvertTo-PoQuoted {
 # Keep this script ASCII-only for Windows PowerShell 5.1 compatibility.
 # French source text is read from UI.csv as UTF-8 using stable keys.
 $TranslationsByKey = [ordered]@{
+    "CharacterCreation.Attribute.Dexterity" = "Dexterity"
     "CharacterCreation.Gender.Female" = "Female"
     "CharacterCreation.Gender.Male" = "Male"
     "CharacterCreation.Identity.Title" = "Character Identity"
@@ -66,6 +67,7 @@ $TranslationsByKey = [ordered]@{
     "SaveLoad.Slot.Primary" = "Primary save"
     "SaveLoad.Slot.Unavailable" = "Unavailable"
     "Spellbook.Fallback.DefinitionUnavailable" = "Spell definition unavailable."
+    "Spellbook.School.Fire" = "Fire"
     "Recruitment.Activation.CandidateNotFound" = "This companion is no longer available in the reserve."
     "Recruitment.Activation.InvalidCandidate" = "This companion cannot be recruited because its data is invalid."
     "Recruitment.Activation.PartyFull" = "The party is full. This companion remains available in the reserve."
