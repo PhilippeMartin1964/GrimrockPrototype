@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "HAL/PlatformProcess.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
@@ -100,6 +101,70 @@ bool FUILOCALIZATION016TargetContractTest::RunTest(const FString&)
 		TestTrue(TEXT("Packaging stages English localization"), DefaultGame.Contains(TEXT("+CulturesToStage=en")));
 		TestTrue(TEXT("Packaging includes French internationalization data"), DefaultGame.Contains(TEXT("InternationalizationPreset=EFIGS")));
 	}
+
+	FString RunScript;
+	if (LoadProjectFile(TEXT("Scripts/Localization/RunLocalizationSmoke.ps1"), RunScript, *this))
+	{
+		TestTrue(TEXT("Smoke script enables strict mode"), RunScript.Contains(TEXT("Set-StrictMode -Version Latest")));
+		TestTrue(TEXT("Smoke script checks Unreal processes before execution"), RunScript.Contains(TEXT("Assert-NoUnrealProcess")));
+		TestTrue(TEXT("Smoke script creates per-run reports"), RunScript.Contains(TEXT("Saved\\Localization\\UI-LOCALIZATION01.6")));
+		TestTrue(TEXT("Smoke script captures native output"), RunScript.Contains(TEXT("Tee-Object -FilePath")));
+		TestFalse(TEXT("Smoke script does not contain ambiguous LASTEXITCODE interpolation"), RunScript.Contains(TEXT("$LASTEXITCODE:")));
+	}
+
+	FString TranslationScript;
+	if (LoadProjectFile(TEXT("Scripts/Localization/ApplyEnglishSmokeTranslations.ps1"), TranslationScript, *this))
+	{
+		TestTrue(TEXT("Translation script enables strict mode"), TranslationScript.Contains(TEXT("Set-StrictMode -Version Latest")));
+		TestTrue(TEXT("Translation script verifies translated PO content"), TranslationScript.Contains(TEXT("English PO validation failed")));
+		TestTrue(TEXT("Translation script writes through a temporary file"), TranslationScript.Contains(TEXT(".tmp")));
+	}
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FUILOCALIZATION016PowerShellSyntaxTest,
+	"Game.UI.Localization.LOCALIZATION01.PowerShellSyntax",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUILOCALIZATION016PowerShellSyntaxTest::RunTest(const FString&)
+{
+#if PLATFORM_WINDOWS
+	const FString ScriptPath =
+		FPaths::Combine(FPaths::ProjectDir(), TEXT("Scripts/Localization/TestLocalizationScripts.ps1"));
+	const FString Arguments = FString::Printf(
+		TEXT("-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"%s\""),
+		*ScriptPath);
+
+	int32 ReturnCode = INDEX_NONE;
+	FString StdOut;
+	FString StdErr;
+	const bool bLaunched = FPlatformProcess::ExecProcess(
+		TEXT("powershell.exe"),
+		*Arguments,
+		&ReturnCode,
+		&StdOut,
+		&StdErr);
+
+	if (!TestTrue(TEXT("PowerShell syntax validator launches"), bLaunched))
+	{
+		return false;
+	}
+
+	if (ReturnCode != 0)
+	{
+		AddError(FString::Printf(
+			TEXT("Localization PowerShell syntax validation failed. ExitCode=%d\nSTDOUT:\n%s\nSTDERR:\n%s"),
+			ReturnCode,
+			*StdOut,
+			*StdErr));
+	}
+
+	TestEqual(TEXT("Localization PowerShell scripts parse successfully"), ReturnCode, 0);
+#else
+	AddWarning(TEXT("PowerShell syntax validation is only executed on Windows."));
+#endif
 
 	return true;
 }
