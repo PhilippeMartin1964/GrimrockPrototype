@@ -66,6 +66,12 @@ $TranslationsByKey = [ordered]@{
     "SaveLoad.Slot.Primary" = "Primary save"
     "SaveLoad.Slot.Unavailable" = "Unavailable"
     "Spellbook.Fallback.DefinitionUnavailable" = "Spell definition unavailable."
+    "Recruitment.Activation.CandidateNotFound" = "This companion is no longer available in the reserve."
+    "Recruitment.Activation.InvalidCandidate" = "This companion cannot be recruited because its data is invalid."
+    "Recruitment.Activation.PartyFull" = "The party is full. This companion remains available in the reserve."
+    "Recruitment.Registration.IdentityCollision" = "This companion conflicts with a character already registered."
+    "Recruitment.Registration.InvalidDefinition" = "This companion's data is invalid."
+    "Recruitment.Registration.InvalidInventory" = "The party is not available to prepare this companion."
 }
 
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)

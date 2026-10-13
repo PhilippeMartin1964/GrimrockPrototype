@@ -11,6 +11,8 @@ class UPanelWidget;
 class URPGStoryCompanionAsset;
 class UTextBlock;
 class UTexture2D;
+enum class ERPGPartyRecruitmentRejectReason : uint8;
+enum class ERPGStoryCompanionRegistrationStatus : uint8;
 class FReply;
 class SButton;
 class STextBlock;
@@ -213,8 +215,8 @@ private:
 
 	FText BuildIdentityLine() const;
 	FText BuildDetailsText() const;
-	FText BuildRegistrationFailureText(const FString& Error) const;
-	FText BuildRecruitmentFailureText(int32 RejectReasonValue, const FString& Error) const;
+	FText BuildRegistrationFailureText(ERPGStoryCompanionRegistrationStatus Status) const;
+	FText BuildRecruitmentFailureText(ERPGPartyRecruitmentRejectReason RejectReason) const;
 
 	UFUNCTION()
 	void HandleRecruitClicked();

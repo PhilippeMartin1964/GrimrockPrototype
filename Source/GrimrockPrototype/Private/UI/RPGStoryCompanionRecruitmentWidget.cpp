@@ -14,6 +14,7 @@
 #include "RPG/RPGStoryCompanionService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPlayerController.h"
+#include "UI/UILocalizationText.h"
 
 #define LOCTEXT_NAMESPACE "RPGStoryCompanionRecruitmentWidget"
 
@@ -69,9 +70,11 @@ bool URPGStoryCompanionRecruitmentWidget::TryRecruit()
 	FRPGStoryCompanionRegistrationResult RegistrationResult;
 	if (!FRPGStoryCompanionService::EnsureCandidateRegistered(InventoryComponent, CompanionDefinition, RegistrationResult))
 	{
+		UE_LOG(LogGridRecruitmentWidget, Warning, TEXT("[GridRecruitmentUI] Registration rejected Status=%d Detail=%s"),
+			static_cast<int32>(RegistrationResult.Status), *RegistrationResult.Error);
 		RefreshView();
 		View.State = ERPGStoryCompanionRecruitmentState::Failed;
-		View.StatusText = BuildRegistrationFailureText(RegistrationResult.Error);
+		View.StatusText = BuildRegistrationFailureText(RegistrationResult.Status);
 		View.bCanRecruit = false;
 		RefreshPresentation();
 		return false;
@@ -90,17 +93,18 @@ bool URPGStoryCompanionRecruitmentWidget::TryRecruit()
 	FRPGPartyRecruitmentResult RecruitmentResult;
 	if (!FRPGPartyRecruitmentService::TryRecruitFromPool(InventoryComponent, CompanionDefinition->CharacterId, RecruitmentResult))
 	{
+		UE_LOG(LogGridRecruitmentWidget, Warning, TEXT("[GridRecruitmentUI] Recruitment rejected Reason=%d Detail=%s"),
+			static_cast<int32>(RecruitmentResult.RejectReason), *RecruitmentResult.Error);
 		RefreshView();
 		if (RecruitmentResult.RejectReason == ERPGPartyRecruitmentRejectReason::PartyFull)
 		{
 			View.State = ERPGStoryCompanionRecruitmentState::PartyFull;
-			View.StatusText = LOCTEXT("PartyFull", "Le groupe est complet. Ce compagnon reste disponible dans la réserve.");
 		}
 		else
 		{
 			View.State = ERPGStoryCompanionRecruitmentState::Failed;
-			View.StatusText = BuildRecruitmentFailureText(static_cast<int32>(RecruitmentResult.RejectReason), RecruitmentResult.Error);
 		}
+		View.StatusText = BuildRecruitmentFailureText(RecruitmentResult.RejectReason);
 		View.bCanRecruit = false;
 		RefreshPresentation();
 		return false;
@@ -309,19 +313,48 @@ FText URPGStoryCompanionRecruitmentWidget::BuildDetailsText() const
 		View.ClassName, ClassDescription);
 }
 
-FText URPGStoryCompanionRecruitmentWidget::BuildRegistrationFailureText(const FString& Error) const
+FText URPGStoryCompanionRecruitmentWidget::BuildRegistrationFailureText(ERPGStoryCompanionRegistrationStatus Status) const
 {
-	return Error.IsEmpty() ? LOCTEXT("RegistrationFailed", "Le compagnon ne peut pas être préparé au recrutement.") : FText::FromString(Error);
+	switch (Status)
+	{
+		case ERPGStoryCompanionRegistrationStatus::InvalidInventory:
+			return FUILocalizationText::Get(TEXT("Recruitment.Registration.InvalidInventory"));
+		case ERPGStoryCompanionRegistrationStatus::InvalidDefinition:
+			return FUILocalizationText::Get(TEXT("Recruitment.Registration.InvalidDefinition"));
+		case ERPGStoryCompanionRegistrationStatus::IdentityCollision:
+			return FUILocalizationText::Get(TEXT("Recruitment.Registration.IdentityCollision"));
+		default:
+			return FUILocalizationText::Get(TEXT("Recruitment.Registration.Failed"));
+	}
 }
 
-FText URPGStoryCompanionRecruitmentWidget::BuildRecruitmentFailureText(int32 RejectReasonValue, const FString& Error) const
+FText URPGStoryCompanionRecruitmentWidget::BuildRecruitmentFailureText(ERPGPartyRecruitmentRejectReason RejectReason) const
 {
-	if (!Error.IsEmpty())
+	switch (RejectReason)
 	{
-		return FText::FromString(Error);
+		case ERPGPartyRecruitmentRejectReason::InvalidInventory:
+			return FUILocalizationText::Get(TEXT("Recruitment.Activation.InvalidInventory"));
+		case ERPGPartyRecruitmentRejectReason::InitialCharacterMissing:
+			return FUILocalizationText::Get(TEXT("Recruitment.Activation.InitialCharacterMissing"));
+		case ERPGPartyRecruitmentRejectReason::InvalidPartyState:
+			return FUILocalizationText::Get(TEXT("Recruitment.Activation.InvalidPartyState"));
+		case ERPGPartyRecruitmentRejectReason::InvalidCharacterId:
+			return FUILocalizationText::Get(TEXT("Recruitment.Activation.InvalidCharacterId"));
+		case ERPGPartyRecruitmentRejectReason::CandidateNotFound:
+			return FUILocalizationText::Get(TEXT("Recruitment.Activation.CandidateNotFound"));
+		case ERPGPartyRecruitmentRejectReason::AmbiguousCandidate:
+			return FUILocalizationText::Get(TEXT("Recruitment.Activation.AmbiguousCandidate"));
+		case ERPGPartyRecruitmentRejectReason::DuplicateActiveCharacter:
+			return FUILocalizationText::Get(TEXT("Recruitment.Activation.DuplicateActiveCharacter"));
+		case ERPGPartyRecruitmentRejectReason::PartyFull:
+			return FUILocalizationText::Get(TEXT("Recruitment.Activation.PartyFull"));
+		case ERPGPartyRecruitmentRejectReason::InvalidCandidate:
+			return FUILocalizationText::Get(TEXT("Recruitment.Activation.InvalidCandidate"));
+		case ERPGPartyRecruitmentRejectReason::OwnershipValidationFailed:
+			return FUILocalizationText::Get(TEXT("Recruitment.Activation.OwnershipValidationFailed"));
+		default:
+			return FUILocalizationText::Get(TEXT("Recruitment.Activation.Failed"));
 	}
-
-	return FText::Format(LOCTEXT("RecruitmentFailed", "Le recrutement a échoué (raison {0})."), FText::AsNumber(RejectReasonValue));
 }
 
 void URPGStoryCompanionRecruitmentWidget::ApplyInputGuard()

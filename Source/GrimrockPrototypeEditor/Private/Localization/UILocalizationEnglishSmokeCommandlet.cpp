@@ -148,6 +148,14 @@ int32 UUILocalizationEnglishSmokeCommandlet::Main(const FString& Params)
 	CheckText(TEXT("en"), TEXT("Progression.Skill.AllocationFailed"), TEXT("Skill allocation failed."));
 	CheckText(TEXT("en"), TEXT("Progression.Skill.CancellationFailed"), TEXT("Skill allocation cancellation failed."));
 
+	CheckText(TEXT("fr"), TEXT("Recruitment.Registration.IdentityCollision"), TEXT("Ce compagnon entre en conflit avec un personnage déjà enregistré."));
+	CheckText(TEXT("en"), TEXT("Recruitment.Registration.IdentityCollision"), TEXT("This companion conflicts with a character already registered."));
+	CheckText(TEXT("en"), TEXT("Recruitment.Registration.InvalidDefinition"), TEXT("This companion's data is invalid."));
+	CheckText(TEXT("en"), TEXT("Recruitment.Registration.InvalidInventory"), TEXT("The party is not available to prepare this companion."));
+	CheckText(TEXT("en"), TEXT("Recruitment.Activation.CandidateNotFound"), TEXT("This companion is no longer available in the reserve."));
+	CheckText(TEXT("en"), TEXT("Recruitment.Activation.InvalidCandidate"), TEXT("This companion cannot be recruited because its data is invalid."));
+	CheckText(TEXT("en"), TEXT("Recruitment.Activation.PartyFull"), TEXT("The party is full. This companion remains available in the reserve."));
+
 	Internationalization.RestoreCultureState(Snapshot);
 	LocalizationManager.RefreshResources();
 	LocalizationManager.WaitForAsyncTasks();
