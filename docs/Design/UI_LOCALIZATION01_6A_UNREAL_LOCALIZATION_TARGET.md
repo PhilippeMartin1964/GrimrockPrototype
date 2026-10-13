@@ -1,5 +1,8 @@
 # UI-LOCALIZATION01.6A — Unreal Localization Target + English smoke infrastructure
 
+> **Statut : CLOSED.** Mise en place initiale : `6449fdb35358cea63d2bc97c23a5b952169e8e47`, durcissements successifs jusqu'à `fb4d873cefdaa968f9348b0ac735dff872844ef0`. Matérialisation 01.6B : `06a0cfd1296b27b4f5685c048aca9e0e1a12e691`.
+
+
 Date : **13 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**
 

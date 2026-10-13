@@ -1,5 +1,8 @@
 # UI-LOCALIZATION01.9A — Combat HUD player-facing text migration
 
+> **Statut : CLOSED.** Migration : `f9d55611fb7649bd5b7904e820a86b8b901d4999`. Matérialisation 01.9B : `ff045086a6cc6b08935dc424439bbd168af480e0`.
+
+
 Date : **13 octobre 2026**
 
 ## Objet

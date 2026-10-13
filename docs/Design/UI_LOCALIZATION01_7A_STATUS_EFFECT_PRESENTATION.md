@@ -1,5 +1,8 @@
 # UI-LOCALIZATION01.7A — Status Effect presentation migration
 
+> **Statut : CLOSED.** Migration : `6b8299cf3d85c86702a906016ff672d979a91c1b`, correctifs jusqu'à `042acb2f7af4182d5b32dd1bf018b63423a03aa6`. Matérialisation 01.7B : `08f6f54aa2c653ea9ca56d94469b41d9bacfab7c`.
+
+
 Date : **13 octobre 2026**
 
 ## Objet

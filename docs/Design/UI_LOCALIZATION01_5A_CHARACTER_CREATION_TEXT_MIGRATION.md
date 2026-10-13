@@ -1,5 +1,8 @@
 # UI-LOCALIZATION01.5A — Character Creation text migration
 
+> **Statut : CLOSED.** Migration : `975188e74f56897621cf272083c8d98f10b4cf68`, correction : `2b2817f9d4bbdfbf767f59a119ad7431b1075d01`. Matérialisation 01.5B : `f962071868cf7098ad9f8117a2f792e81f5f3948`.
+
+
 Date : **13 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**
 

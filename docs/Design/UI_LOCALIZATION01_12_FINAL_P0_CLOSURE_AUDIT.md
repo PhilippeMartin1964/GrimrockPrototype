@@ -1,5 +1,8 @@
 # UI-LOCALIZATION01.12 — Final P0 closure audit
 
+> **Statut : CLOSED — P0 localization complete.** Source closure 01.12A : `62203a68f9d122cc64fe965c0389bb473960c59f`. Matérialisation finale 01.12B : `6e5cb5f14f532e2685117e4f803d5ae7a13c6e7e`.
+
+
 Date : **13 octobre 2026**
 
 ## Résultat
@@ -12,8 +15,8 @@ P0 réellement visibles par le joueur :
 
 Ils sont corrigés par `UI-LOCALIZATION01.12A`.
 
-Sous réserve de validation locale et de matérialisation `01.12B`, aucun autre
-P0 brut confirmé n'est retenu.
+La validation locale et la matérialisation `01.12B` sont terminées. Aucun autre
+P0 brut confirmé n'est retenu à la clôture de la campagne.
 
 ## Reliquat corrigé : lancer physique
 
@@ -155,10 +158,10 @@ vérifie notamment :
 
 ## Fermeture
 
-Après validation de `01.12A` puis matérialisation `01.12B`, le chantier
-**UI-LOCALIZATION01 P0** peut être déclaré terminé.
+Après validation de `01.12A` et matérialisation `01.12B`, le chantier
+**UI-LOCALIZATION01 P0 est terminé** sur la baseline `6e5cb5f14f532e2685117e4f803d5ae7a13c6e7e`.
 
-Les suites éventuelles sont des campagnes séparées :
+Les suites sont des campagnes séparées :
 
 - P1 : unification/gather des `LOCTEXT/NSLOCTEXT` ;
 - traduction anglaise exhaustive ;

@@ -1,5 +1,8 @@
 # UI-LOCALIZATION01.10A — Residual P0 presentation migration
 
+> **Statut : CLOSED.** Migration : `f03213372c7df7ddd2ba2684491833ae52d3bd09`. Matérialisation 01.10B : `55a74f90ff109c10ba9783f1211517715f8bfff7`.
+
+
 Date : **13 octobre 2026**
 
 ## Objet

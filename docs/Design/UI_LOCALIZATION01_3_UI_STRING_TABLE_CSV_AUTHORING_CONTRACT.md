@@ -1,5 +1,8 @@
 # UI-LOCALIZATION01.3 — UI String Table / CSV authoring contract
 
+> **Statut : CLOSED — contrat de référence.** Commit : `788733b67ee3c48a8ab9d34cb087a55c13f12936`. Le contrat reste l'autorité d'authoring pour `UI.csv -> ST_UI`.
+
+
 Date : **13 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**  
 Ticket : **UI-LOCALIZATION01.3**  

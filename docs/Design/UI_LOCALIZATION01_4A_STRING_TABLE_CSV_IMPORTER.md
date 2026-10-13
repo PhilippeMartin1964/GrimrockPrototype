@@ -1,5 +1,8 @@
 # UI-LOCALIZATION01.4A — UI String Table CSV importer + integrity tests
 
+> **Statut : CLOSED.** Source : `24dcee4d73180e56641ad8cb741b14f23504fc03`. Matérialisation 01.4B : `0191ed7d348e7d91951c9adb2d8b398d15f6d230`. La section 01.4B ci-dessous est conservée comme procédure historique.
+
+
 Date : **13 octobre 2026**  
 Projet : **UE 5.5.4 dungeon crawler prototype**
 

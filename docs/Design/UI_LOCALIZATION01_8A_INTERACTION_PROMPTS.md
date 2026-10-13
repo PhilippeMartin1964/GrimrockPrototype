@@ -1,5 +1,8 @@
 # UI-LOCALIZATION01.8A — Interaction prompts migration
 
+> **Statut : CLOSED.** Migration : `ce871d5c6f19db3ad57b1f44b384d511426017e9`. Matérialisation 01.8B : `429b0acec51edf2d5c50c9663478d747ab723612`.
+
+
 Date : **13 octobre 2026**
 
 ## Objet

@@ -1,5 +1,8 @@
 # UI-LOCALIZATION01.11A — Recruitment error boundary
 
+> **Statut : CLOSED.** Migration : `d98bd006e148a240b7130d3ff988dfb30b1de45c`. Matérialisation 01.11B : `e8e987659b8bc3e400470107c1065fd687bc1162`.
+
+
 Date : **13 octobre 2026**
 
 ## Objet

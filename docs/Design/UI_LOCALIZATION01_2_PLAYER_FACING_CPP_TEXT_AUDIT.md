@@ -1,5 +1,8 @@
 # UI-LOCALIZATION01.2 — Player-facing C++ text audit
 
+> **Statut : CLOSED — audit historique.** Commit : `6ac148d385381d171b184d4f7b13fc0b58ce413c`. Les P0 identifiés ici ont été fermés par les jalons 01.5 à 01.12. Baseline finale P0 : `6e5cb5f14f532e2685117e4f803d5ae7a13c6e7e`.
+
+
 Date : **13 octobre 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Ticket : **UI-LOCALIZATION01.2**  
