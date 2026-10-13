@@ -34,7 +34,7 @@ namespace UILOCALIZATION011
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FUILOCALIZATION011TalentTextSetIntegrityTest,
-	"Grimrock.UI.Localization.LOCALIZATION01.TalentTextSetIntegrity",
+	"Game.UI.Localization.LOCALIZATION01.TalentTextSetIntegrity",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FUILOCALIZATION011TalentTextSetIntegrityTest::RunTest(const FString&)
