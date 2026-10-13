@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Game\n"
-"POT-Creation-Date: 2026-10-13 10:13\n"
-"PO-Revision-Date: 2026-10-13 10:13\n"
+"POT-Creation-Date: 2026-10-13 10:23\n"
+"PO-Revision-Date: 2026-10-13 10:23\n"
 "Language-Team: \n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -1244,6 +1244,126 @@ msgstr "Attribution de compétence impossible."
 msgctxt "ST_UI,Progression.Skill.CancellationFailed"
 msgid "Annulation de compétence impossible."
 msgstr "Annulation de compétence impossible."
+
+#. Key:	Recruitment.Activation.AmbiguousCandidate
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Recrutement refusé car plusieurs candidats partagent la même identité"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Activation.AmbiguousCandidate"
+msgid "Ce compagnon apparaît plusieurs fois dans la réserve."
+msgstr "Ce compagnon apparaît plusieurs fois dans la réserve."
+
+#. Key:	Recruitment.Activation.CandidateNotFound
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Recrutement refusé car le candidat n'est plus présent dans la réserve"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Activation.CandidateNotFound"
+msgid "Ce compagnon n'est plus disponible dans la réserve."
+msgstr "Ce compagnon n'est plus disponible dans la réserve."
+
+#. Key:	Recruitment.Activation.DuplicateActiveCharacter
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Recrutement refusé car le personnage est déjà actif"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Activation.DuplicateActiveCharacter"
+msgid "Ce compagnon fait déjà partie du groupe."
+msgstr "Ce compagnon fait déjà partie du groupe."
+
+#. Key:	Recruitment.Activation.Failed
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback générique d'échec de recrutement"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Activation.Failed"
+msgid "Le recrutement de ce compagnon a échoué."
+msgstr "Le recrutement de ce compagnon a échoué."
+
+#. Key:	Recruitment.Activation.InitialCharacterMissing
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Recrutement refusé car la création initiale du groupe n'est pas terminée"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Activation.InitialCharacterMissing"
+msgid "Le groupe initial n'est pas prêt pour recruter ce compagnon."
+msgstr "Le groupe initial n'est pas prêt pour recruter ce compagnon."
+
+#. Key:	Recruitment.Activation.InvalidCandidate
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Recrutement refusé car l'état du candidat est invalide"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Activation.InvalidCandidate"
+msgid "Les données de ce compagnon ne permettent pas son recrutement."
+msgstr "Les données de ce compagnon ne permettent pas son recrutement."
+
+#. Key:	Recruitment.Activation.InvalidCharacterId
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Recrutement refusé car l'identifiant du candidat est invalide"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Activation.InvalidCharacterId"
+msgid "L'identité de ce compagnon est invalide."
+msgstr "L'identité de ce compagnon est invalide."
+
+#. Key:	Recruitment.Activation.InvalidInventory
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Recrutement refusé car l'inventaire du groupe est indisponible"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Activation.InvalidInventory"
+msgid "Le groupe n'est pas disponible pour ce recrutement."
+msgstr "Le groupe n'est pas disponible pour ce recrutement."
+
+#. Key:	Recruitment.Activation.InvalidPartyState
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Recrutement refusé car l'état du groupe est incohérent"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Activation.InvalidPartyState"
+msgid "L'état actuel du groupe ne permet pas ce recrutement."
+msgstr "L'état actuel du groupe ne permet pas ce recrutement."
+
+#. Key:	Recruitment.Activation.OwnershipValidationFailed
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Recrutement annulé après échec de validation de propriété des objets"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Activation.OwnershipValidationFailed"
+msgid "Le recrutement a été annulé car l'inventaire du groupe est incohérent."
+msgstr "Le recrutement a été annulé car l'inventaire du groupe est incohérent."
+
+#. Key:	Recruitment.Activation.PartyFull
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Recrutement refusé car le groupe actif est complet"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Activation.PartyFull"
+msgid "Le groupe est complet. Ce compagnon reste disponible dans la réserve."
+msgstr "Le groupe est complet. Ce compagnon reste disponible dans la réserve."
+
+#. Key:	Recruitment.Registration.Failed
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback générique d'échec de préparation d'un compagnon"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Registration.Failed"
+msgid "Le compagnon ne peut pas être préparé au recrutement."
+msgstr "Le compagnon ne peut pas être préparé au recrutement."
+
+#. Key:	Recruitment.Registration.IdentityCollision
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Préparation refusée car l'identité du compagnon entre en collision"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Registration.IdentityCollision"
+msgid "Ce compagnon entre en conflit avec un personnage déjà enregistré."
+msgstr "Ce compagnon entre en conflit avec un personnage déjà enregistré."
+
+#. Key:	Recruitment.Registration.InvalidDefinition
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Préparation refusée car la définition du compagnon est invalide"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Registration.InvalidDefinition"
+msgid "Les données de ce compagnon sont invalides."
+msgstr "Les données de ce compagnon sont invalides."
+
+#. Key:	Recruitment.Registration.InvalidInventory
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Préparation refusée car l'inventaire ou l'état du groupe est invalide"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Recruitment.Registration.InvalidInventory"
+msgid "Le groupe n'est pas disponible pour préparer ce compagnon."
+msgstr "Le groupe n'est pas disponible pour préparer ce compagnon."
 
 #. Key:	SaveLoad.Slot.Available
 #. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
