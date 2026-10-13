@@ -1,0 +1,751 @@
+# Game English translation.
+# Fill out your copyright notice in the Description page of Project Settings.
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: Game\n"
+"POT-Creation-Date: 2026-10-13 09:03\n"
+"PO-Revision-Date: 2026-10-13 09:03\n"
+"Language-Team: \n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. Key:	CharacterCreation.Attribute.Charisma
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom de caractéristique"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.Charisma"
+msgid "Charisme"
+msgstr ""
+
+#. Key:	CharacterCreation.Attribute.Constitution
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom de caractéristique"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.Constitution"
+msgid "Constitution"
+msgstr ""
+
+#. Key:	CharacterCreation.Attribute.Dexterity
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom de caractéristique"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.Dexterity"
+msgid "Dextérité"
+msgstr ""
+
+#. Key:	CharacterCreation.Attribute.Effect.Charisma
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Effets dérivés du Charisme"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.Effect.Charisma"
+msgid "Influence {Influence} · Recrutement {Recruitment}"
+msgstr ""
+
+#. Key:	CharacterCreation.Attribute.Effect.Constitution
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Effets dérivés de la Constitution"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.Effect.Constitution"
+msgid "Santé {Health} · Résistance {Resistance}"
+msgstr ""
+
+#. Key:	CharacterCreation.Attribute.Effect.Dexterity
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Effets dérivés de la Dextérité"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.Effect.Dexterity"
+msgid "Précision {Accuracy} · Esquive {Evasion}"
+msgstr ""
+
+#. Key:	CharacterCreation.Attribute.Effect.Intelligence
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Effets dérivés de l'Intelligence"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.Effect.Intelligence"
+msgid "Savoirs {Knowledge} · Alchimie {Alchemy}"
+msgstr ""
+
+#. Key:	CharacterCreation.Attribute.Effect.Strength
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Effets dérivés de la Force"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.Effect.Strength"
+msgid "Charge {Carry} · CàC {Melee}"
+msgstr ""
+
+#. Key:	CharacterCreation.Attribute.Effect.Wisdom
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Effets dérivés de la Sagesse"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.Effect.Wisdom"
+msgid "Perception {Perception} · Volonté {Willpower}"
+msgstr ""
+
+#. Key:	CharacterCreation.Attribute.Help
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Aide de répartition des caractéristiques"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.Help"
+msgid "Les valeurs de classe peuvent être ajustées. Les bonus de race sont appliqués ensuite."
+msgstr ""
+
+#. Key:	CharacterCreation.Attribute.Intelligence
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom de caractéristique"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.Intelligence"
+msgid "Intelligence"
+msgstr ""
+
+#. Key:	CharacterCreation.Attribute.PointsRemaining
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Budget de caractéristiques"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.PointsRemaining"
+msgid "Points restants : {Current} / {Total}"
+msgstr ""
+
+#. Key:	CharacterCreation.Attribute.Strength
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom de caractéristique"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.Strength"
+msgid "Force"
+msgstr ""
+
+#. Key:	CharacterCreation.Attribute.Wisdom
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom de caractéristique"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Attribute.Wisdom"
+msgid "Sagesse"
+msgstr ""
+
+#. Key:	CharacterCreation.Configuration.ClassUnavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback de configuration de classe"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Configuration.ClassUnavailable"
+msgid "Classe non configurée"
+msgstr ""
+
+#. Key:	CharacterCreation.Configuration.RaceUnavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback de configuration de race"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Configuration.RaceUnavailable"
+msgid "Race non configurée"
+msgstr ""
+
+#. Key:	CharacterCreation.Gender.Female
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Genre de portrait"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Gender.Female"
+msgid "Féminin"
+msgstr "Female"
+
+#. Key:	CharacterCreation.Gender.Male
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Genre de portrait"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Gender.Male"
+msgid "Masculin"
+msgstr "Male"
+
+#. Key:	CharacterCreation.Identity.ClassFormat
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Résumé identité"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Identity.ClassFormat"
+msgid "Classe : {Class}"
+msgstr ""
+
+#. Key:	CharacterCreation.Identity.CurrentChoicesTitle
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Titre du résumé d'identité"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Identity.CurrentChoicesTitle"
+msgid "Choix actuels"
+msgstr ""
+
+#. Key:	CharacterCreation.Identity.GenderFormat
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Résumé identité"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Identity.GenderFormat"
+msgid "Sexe : {Gender}"
+msgstr ""
+
+#. Key:	CharacterCreation.Identity.Help
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Aide de l'étape identité"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Identity.Help"
+msgid "Donnez un nom à votre personnage et choisissez le portrait qui sera utilisé dans l'interface de jeu."
+msgstr ""
+
+#. Key:	CharacterCreation.Identity.NameLabel
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Libellé du nom"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Identity.NameLabel"
+msgid "Nom du personnage"
+msgstr ""
+
+#. Key:	CharacterCreation.Identity.RaceFormat
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Résumé identité"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Identity.RaceFormat"
+msgid "Race : {Race}"
+msgstr ""
+
+#. Key:	CharacterCreation.Identity.Title
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Titre de l'étape identité"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Identity.Title"
+msgid "Identité du personnage"
+msgstr "Character Identity"
+
+#. Key:	CharacterCreation.Portrait.DescriptionTitle
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Titre de description du portrait"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Portrait.DescriptionTitle"
+msgid "Description du portrait"
+msgstr ""
+
+#. Key:	CharacterCreation.Portrait.DescriptionUnavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback description de portrait"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Portrait.DescriptionUnavailable"
+msgid "Aucune description disponible pour ce portrait."
+msgstr ""
+
+#. Key:	CharacterCreation.Portrait.FinalCaption
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Légende du portrait"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Portrait.FinalCaption"
+msgid "Portrait final"
+msgstr ""
+
+#. Key:	CharacterCreation.Portrait.NoneForRaceGender
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback portrait"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Portrait.NoneForRaceGender"
+msgid "Aucun portrait disponible pour cette race et ce sexe."
+msgstr ""
+
+#. Key:	CharacterCreation.Portrait.VariantLabel
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Libellé de variante"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Portrait.VariantLabel"
+msgid "Variante de portrait"
+msgstr ""
+
+#. Key:	CharacterCreation.Submit.ClassPrepareFailed
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Erreur de soumission"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Submit.ClassPrepareFailed"
+msgid "Impossible de préparer la classe du personnage."
+msgstr ""
+
+#. Key:	CharacterCreation.Submit.DistributeAllPoints
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Erreur de soumission"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Submit.DistributeAllPoints"
+msgid "Répartissez tous les points de caractéristiques avant de créer le personnage."
+msgstr ""
+
+#. Key:	CharacterCreation.Submit.NameLength
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Erreur de soumission"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Submit.NameLength"
+msgid "Le nom du personnage doit contenir entre 1 et 24 caractères."
+msgstr ""
+
+#. Key:	CharacterCreation.Submit.RaceClassRequired
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Erreur de soumission"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Submit.RaceClassRequired"
+msgid "Une race et une classe valides sont requises."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.Attribute.Format
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Ligne de caractéristique du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.Attribute.Format"
+msgid "{Label} : {ClassValue} + {RaceBonus} = {TotalValue}  mod {Modifier}"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.Attribute.Unavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Ligne de caractéristique indisponible"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.Attribute.Unavailable"
+msgid "{Label} : -"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.CarryWeight.Format
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Charge maximale"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.CarryWeight.Format"
+msgid "Charge max. : {Value}"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.CarryWeight.Unavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Charge maximale indisponible"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.CarryWeight.Unavailable"
+msgid "Charge max. : -"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.ClassFormat
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Résumé final"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.ClassFormat"
+msgid "Classe : {Class}"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.Full
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Résumé complet"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.Full"
+msgid "{Name}\\n{Race} · {Class} · {Gender}\\nPortrait : {Portrait}\\n\\nCaractéristiques finales\\n{Strength}\\n{Dexterity}\\n{Constitution}\\n{Intelligence}\\n{Wisdom}\\n{Charisma}\\n\\nStatistiques dérivées\\n{Health} | {Mana} | {Carry}\\n\\n{State}"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.GenderFormat
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Résumé final"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.GenderFormat"
+msgid "Genre : {Gender}"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.Health.Format
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Points de vie"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.Health.Format"
+msgid "PV : {Value}"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.Health.Unavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Points de vie indisponibles"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.Health.Unavailable"
+msgid "PV : -"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.Mana.Format
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Mana"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.Mana.Format"
+msgid "Mana : {Value}"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.Mana.Unavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Mana indisponible"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.Mana.Unavailable"
+msgid "Mana : -"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.NameFormat
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Résumé final"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.NameFormat"
+msgid "Nom : {Name}"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.PortraitFormat
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Résumé final"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.PortraitFormat"
+msgid "Portrait : {Portrait}"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.RaceFormat
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Résumé final"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.RaceFormat"
+msgid "Race : {Race}"
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.ClassInvalid.Create
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.ClassInvalid.Create"
+msgid "Création impossible : classe invalide."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.ClassInvalid.Recruit
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.ClassInvalid.Recruit"
+msgid "Recrutement impossible : classe invalide."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.InventoryUnavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.InventoryUnavailable"
+msgid "Création impossible : inventaire indisponible."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.MainHeroMissing
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.MainHeroMissing"
+msgid "Recrutement impossible : héros principal absent."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.NameMissing.Create
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.NameMissing.Create"
+msgid "Création impossible : saisissez un nom."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.NameMissing.Recruit
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.NameMissing.Recruit"
+msgid "Recrutement impossible : saisissez un nom."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.NameTooLong.Create
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.NameTooLong.Create"
+msgid "Création impossible : le nom dépasse 24 caractères."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.NameTooLong.Recruit
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.NameTooLong.Recruit"
+msgid "Recrutement impossible : le nom dépasse 24 caractères."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.PartyFull
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.PartyFull"
+msgid "Recrutement impossible : groupe actif complet."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.PointsRemaining.Create
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.PointsRemaining.Create"
+msgid "Création impossible : {Count} {Count}|plural(one=point,other=points) à répartir."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.PointsRemaining.Recruit
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.PointsRemaining.Recruit"
+msgid "Recrutement impossible : {Count} {Count}|plural(one=point,other=points) à répartir."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.PreviousChoices.Create
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.PreviousChoices.Create"
+msgid "Création impossible : vérifiez les choix précédents."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.PreviousChoices.Recruit
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.PreviousChoices.Recruit"
+msgid "Recrutement impossible : vérifiez les choix précédents."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.RaceInvalid.Create
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.RaceInvalid.Create"
+msgid "Création impossible : race invalide."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.RaceInvalid.Recruit
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.RaceInvalid.Recruit"
+msgid "Recrutement impossible : race invalide."
+msgstr ""
+
+#. Key:	CharacterCreation.Summary.State.Ready.Create
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.Ready.Create"
+msgid "Prêt à créer le personnage."
+msgstr "Ready to create character."
+
+#. Key:	CharacterCreation.Summary.State.Ready.Recruit
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Summary.State.Ready.Recruit"
+msgid "Prêt à engager la recrue."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.ClassNotConfigured
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du wizard"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.ClassNotConfigured"
+msgid "Classe non configurée : renseignez une classe valide dans le widget."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.CreationFailed
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Erreur générique de création"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.CreationFailed"
+msgid "Création du personnage impossible."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.DefinitionsMissing
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Erreur de configuration"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.DefinitionsMissing"
+msgid "Ajoutez au moins une race et une classe valides dans Class Defaults du widget."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.InitialAlreadyCompleted
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du contexte"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.InitialAlreadyCompleted"
+msgid "La création initiale du personnage est déjà terminée."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.InvalidPartyState
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du contexte"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.InvalidPartyState"
+msgid "L'état du groupe n'est pas valide pour un recrutement."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.InventoryUnavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du contexte"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.InventoryUnavailable"
+msgid "Composant d'inventaire indisponible."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.MainHeroRequiredForRecruit
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du contexte"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.MainHeroRequiredForRecruit"
+msgid "Créez d'abord le héros principal avant d'engager une recrue."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.NameRequired.Create
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du nom"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.NameRequired.Create"
+msgid "Saisissez un nom pour pouvoir créer le personnage."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.NameRequired.Recruit
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du nom"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.NameRequired.Recruit"
+msgid "Saisissez un nom pour pouvoir engager la recrue."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.NameTooLong
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du nom"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.NameTooLong"
+msgid "Le nom du personnage dépasse 24 caractères."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.PartyFull
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du contexte"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.PartyFull"
+msgid "Le groupe actif est complet."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.PreviousChoices.Create
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.PreviousChoices.Create"
+msgid "Création impossible : vérifiez les choix précédents."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.PreviousChoices.Recruit
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.PreviousChoices.Recruit"
+msgid "Recrutement impossible : vérifiez les choix précédents."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.RaceNotConfigured
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du wizard"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.RaceNotConfigured"
+msgid "Race non configurée : renseignez une race valide dans le widget."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.Ready.Create
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.Ready.Create"
+msgid "Tous les choix sont valides. Vous pouvez créer le personnage."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.Ready.Recruit
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation du résumé"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.Ready.Recruit"
+msgid "Tous les choix sont valides. Vous pouvez engager cette recrue."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.RecruitmentFailed
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Erreur générique de recrutement"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.RecruitmentFailed"
+msgid "Recrutement impossible."
+msgstr ""
+
+#. Key:	CharacterCreation.Validation.RemainingAttributePoints
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Validation des caractéristiques"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Validation.RemainingAttributePoints"
+msgid "Il reste {Count} {Count}|plural(one=point de caractéristique,other=points de caractéristiques) à répartir."
+msgstr ""
+
+#. Key:	CharacterCreation.Wizard.Guide.AttributesReady
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Guide du wizard"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Wizard.Guide.AttributesReady"
+msgid "Caractéristiques validées. Vous pouvez passer à l'identité."
+msgstr ""
+
+#. Key:	CharacterCreation.Wizard.Guide.Class
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Guide du wizard"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Wizard.Guide.Class"
+msgid "Choisissez la classe du personnage, puis passez aux caractéristiques."
+msgstr ""
+
+#. Key:	CharacterCreation.Wizard.Guide.IdentityReady
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Guide du wizard"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Wizard.Guide.IdentityReady"
+msgid "Identité validée. Vous pouvez consulter le résumé."
+msgstr ""
+
+#. Key:	CharacterCreation.Wizard.Guide.Race
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Guide du wizard"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Wizard.Guide.Race"
+msgid "Choisissez la race du personnage, puis passez à la classe."
+msgstr ""
+
+#. Key:	CharacterCreation.Wizard.Step.Attributes
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Titre d'étape"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Wizard.Step.Attributes"
+msgid "Caractéristiques"
+msgstr ""
+
+#. Key:	CharacterCreation.Wizard.Step.Class
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Titre d'étape"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Wizard.Step.Class"
+msgid "Classe"
+msgstr ""
+
+#. Key:	CharacterCreation.Wizard.Step.Identity
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Titre d'étape"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Wizard.Step.Identity"
+msgid "Identité"
+msgstr ""
+
+#. Key:	CharacterCreation.Wizard.Step.Race
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Titre d'étape"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Wizard.Step.Race"
+msgid "Race"
+msgstr ""
+
+#. Key:	CharacterCreation.Wizard.Step.Summary
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Titre d'étape"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,CharacterCreation.Wizard.Step.Summary"
+msgid "Résumé"
+msgstr "Summary"
+
