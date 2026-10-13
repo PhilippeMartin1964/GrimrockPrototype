@@ -46,7 +46,7 @@ namespace UILOCALIZATION033
 	{
 		for (const TCHAR* Path : Paths)
 		{
-			TestTrue(
+			Test.TestTrue(
 				*FString::Printf(TEXT("%s manifest identity remains intentionally present: %s"), GroupLabel, Path),
 				Manifest.Contains(Path));
 		}
@@ -258,7 +258,7 @@ bool FUILOCALIZATION033WbpOwnershipRegressionTest::RunTest(const FString&)
 	};
 	for (const TCHAR* Key : RequiredSharedKeys)
 	{
-		Test.TestTrue(
+		TestTrue(
 			*FString::Printf(TEXT("Materialized manifest keeps shared ST_UI key '%s'"), Key),
 			Manifest.Contains(Key));
 	}
