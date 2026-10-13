@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Game\n"
-"POT-Creation-Date: 2026-10-13 09:03\n"
-"PO-Revision-Date: 2026-10-13 09:03\n"
+"POT-Creation-Date: 2026-10-13 09:21\n"
+"PO-Revision-Date: 2026-10-13 09:21\n"
 "Language-Team: \n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
@@ -748,4 +748,132 @@ msgstr ""
 msgctxt "ST_UI,CharacterCreation.Wizard.Step.Summary"
 msgid "Résumé"
 msgstr "Summary"
+
+#. Key:	Status.Control.BlockSpellActions
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Contrôle générique de statut"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Control.BlockSpellActions"
+msgid "Les actions de type Sort sont bloquées."
+msgstr ""
+
+#. Key:	Status.Control.BlockTranslation
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Contrôle générique de statut"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Control.BlockTranslation"
+msgid "Les déplacements de case sont bloqués."
+msgstr "Grid movement is blocked."
+
+#. Key:	Status.Control.SkipActivation
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Contrôle générique de statut"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Control.SkipActivation"
+msgid "La prochaine activation correspondante est perdue."
+msgstr ""
+
+#. Key:	Status.Duration.Compact.Permanent
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Durée compacte permanente"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Duration.Compact.Permanent"
+msgid "PERM"
+msgstr ""
+
+#. Key:	Status.Duration.Compact.Rounds
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Durée compacte en manches"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Duration.Compact.Rounds"
+msgid "R{Count}"
+msgstr ""
+
+#. Key:	Status.Duration.Compact.Turns
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Durée compacte en tours"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Duration.Compact.Turns"
+msgid "T{Count}"
+msgstr ""
+
+#. Key:	Status.Duration.Permanent
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Durée permanente"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Duration.Permanent"
+msgid "Permanent"
+msgstr ""
+
+#. Key:	Status.Duration.Rounds
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Durée en manches"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Duration.Rounds"
+msgid "{Count} {Count}|plural(one=manche,other=manches)"
+msgstr "{Count} {Count}|plural(one=round,other=rounds)"
+
+#. Key:	Status.Duration.Turns
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Durée en tours"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Duration.Turns"
+msgid "{Count} {Count}|plural(one=tour,other=tours)"
+msgstr "{Count} {Count}|plural(one=turn,other=turns)"
+
+#. Key:	Status.Label.Stacked
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Libellé compact avec cumul"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Label.Stacked"
+msgid "{Name} x{Stacks}"
+msgstr ""
+
+#. Key:	Status.Label.StackedTimed
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Libellé compact avec cumul et durée"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Label.StackedTimed"
+msgid "{Name} x{Stacks} | {Duration}"
+msgstr ""
+
+#. Key:	Status.Label.Timed
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Libellé compact avec durée"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Label.Timed"
+msgid "{Name} | {Duration}"
+msgstr ""
+
+#. Key:	Status.Tooltip.Duration
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Ligne de tooltip de durée"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Tooltip.Duration"
+msgid "Durée : {Duration}"
+msgstr "Duration: {Duration}"
+
+#. Key:	Status.Tooltip.Initiative
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Ligne de tooltip d'initiative"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Tooltip.Initiative"
+msgid "Initiative : {Value}"
+msgstr ""
+
+#. Key:	Status.Tooltip.PeriodicDamage
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Ligne de tooltip de dégâts périodiques"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Tooltip.PeriodicDamage"
+msgid "Dégâts périodiques actifs."
+msgstr "Periodic damage active."
+
+#. Key:	Status.Tooltip.Stacks
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Ligne de tooltip de cumul"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Status.Tooltip.Stacks"
+msgid "Stacks : {Count}"
+msgstr ""
 
