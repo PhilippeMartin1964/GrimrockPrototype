@@ -120,6 +120,11 @@ bool FUILOCALIZATION016TargetContractTest::RunTest(const FString&)
 		TestTrue(TEXT("Smoke script hashes source-controlled configs"), RunScript.Contains(TEXT("Get-FileHash -LiteralPath $SourceConfigPath -Algorithm SHA256")));
 		TestTrue(TEXT("Smoke script rejects source config mutation"), RunScript.Contains(TEXT("Source-controlled localization config was modified during smoke execution")));
 		TestTrue(TEXT("Smoke script requires generated target metadata"), RunScript.Contains(TEXT("Game.locmeta")));
+		TestTrue(TEXT("Smoke script validates fresh Gather output"), RunScript.Contains(TEXT("Assert-GatherIntegrity")));
+		TestTrue(TEXT("Smoke script rejects UMG TextBlock placeholders"), RunScript.Contains(TEXT("TextBlockDefaultValue")));
+		TestTrue(TEXT("Smoke script rejects test fixtures in the player manifest"), RunScript.Contains(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Tests/")));
+		TestTrue(TEXT("Smoke script rejects reflected enum metadata"), RunScript.Contains(TEXT("EGridSpellSchool")) && RunScript.Contains(TEXT("ERPGSkillGoverningAttribute")));
+		TestTrue(TEXT("Smoke script requires an empty localization conflict report"), RunScript.Contains(TEXT("Game_Conflicts.txt")) && RunScript.Contains(TEXT("Localization conflict report is not empty")));
 		TestFalse(TEXT("Smoke script does not contain ambiguous LASTEXITCODE interpolation"), RunScript.Contains(TEXT("$LASTEXITCODE:")));
 	}
 
@@ -236,6 +241,28 @@ bool FUILOCALIZATION022FullGameGatherContractTest::RunTest(const FString&)
 		TestTrue(TEXT("Skill attribute presentation reads ST_UI vocabulary"), SkillEntrySource.Contains(TEXT("FUILocalizationText::Get")));
 		TestTrue(TEXT("Skill attribute presentation reuses the Dexterity key"), SkillEntrySource.Contains(TEXT("CharacterCreation.Attribute.Dexterity")));
 		TestFalse(TEXT("Skill attribute presentation no longer depends on enum metadata"), SkillEntrySource.Contains(TEXT("GetDisplayNameTextByValue")));
+	}
+
+	FString MaterializedManifest;
+	if (LoadProjectFile(TEXT("Content/Localization/Game/Game.manifest"), MaterializedManifest, *this))
+	{
+		TestFalse(TEXT("Materialized manifest excludes UMG TextBlock placeholder keys"), MaterializedManifest.Contains(TEXT("TextBlockDefaultValue")));
+		TestFalse(TEXT("Materialized manifest excludes UMG TextBlock placeholder source text"), MaterializedManifest.Contains(TEXT("\"Text\": \"Text Block\"")));
+		TestFalse(TEXT("Materialized manifest excludes the test fixture subtree"), MaterializedManifest.Contains(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Tests/")));
+		TestFalse(TEXT("Materialized manifest excludes the test-note fixture"), MaterializedManifest.Contains(TEXT("DA_Item_TestNote")));
+		TestFalse(TEXT("Materialized manifest excludes the test book-page fixture"), MaterializedManifest.Contains(TEXT("DA_BookPage_Test")));
+		TestFalse(TEXT("Materialized manifest excludes the test scroll fixture"), MaterializedManifest.Contains(TEXT("DA_Scroll_Test")));
+		TestFalse(TEXT("Materialized manifest excludes reflected spell-school metadata"), MaterializedManifest.Contains(TEXT("EGridSpellSchool")));
+		TestFalse(TEXT("Materialized manifest excludes reflected skill-attribute metadata"), MaterializedManifest.Contains(TEXT("ERPGSkillGoverningAttribute")));
+		TestTrue(TEXT("Materialized manifest contains the stable Dexterity UI key"), MaterializedManifest.Contains(TEXT("CharacterCreation.Attribute.Dexterity")));
+		TestTrue(TEXT("Materialized manifest contains the stable spell-school UI key"), MaterializedManifest.Contains(TEXT("Spellbook.School.Fire")));
+	}
+
+	FString ConflictReport;
+	if (LoadProjectFile(TEXT("Content/Localization/Game/Game_Conflicts.txt"), ConflictReport, *this))
+	{
+		ConflictReport.TrimStartAndEndInline();
+		TestTrue(TEXT("Materialized localization conflict report remains empty"), ConflictReport.IsEmpty());
 	}
 
 	return true;

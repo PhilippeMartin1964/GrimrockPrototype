@@ -56,6 +56,7 @@ $FrenchPo = Join-Path $LocalizationRoot "fr\Game.po"
 $EnglishLocRes = Join-Path $LocalizationRoot "en\Game.locres"
 $FrenchLocRes = Join-Path $LocalizationRoot "fr\Game.locres"
 $Manifest = Join-Path $LocalizationRoot "Game.manifest"
+$ConflictReport = Join-Path $LocalizationRoot "Game_Conflicts.txt"
 $LocMeta = Join-Path $LocalizationRoot "Game.locmeta"
 $StringTableAsset = Join-Path $ProjectRoot "Content\Localization\StringTables\ST_UI.uasset"
 
@@ -167,6 +168,54 @@ function Invoke-UnrealStep {
     Invoke-NativeStep -Label $Label -FilePath $EditorCmd -ArgumentList (@($ProjectFile.FullName) + $Arguments + $CommonArgs)
 }
 
+function Assert-GatherIntegrity {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ManifestPath,
+        [Parameter(Mandatory = $true)]
+        [string]$ConflictReportPath
+    )
+
+    Assert-FileExists -Path $ManifestPath -Label "generated localization manifest"
+    Assert-FileExists -Path $ConflictReportPath -Label "generated localization conflict report"
+
+    $ManifestContent = [System.IO.File]::ReadAllText($ManifestPath, [System.Text.Encoding]::UTF8)
+
+    $ForbiddenManifestPatterns = [ordered]@{
+        "UMG TextBlock placeholder key" = "TextBlockDefaultValue"
+        "UMG TextBlock placeholder source" = '"Text": "Text Block"'
+        "test fixture subtree" = "/Game/GrimrockPrototype/Core/DataAssets/Tests/"
+        "test note fixture" = "DA_Item_TestNote"
+        "test book page fixture" = "DA_BookPage_Test"
+        "test scroll fixture" = "DA_Scroll_Test"
+        "reflected spell school metadata" = "EGridSpellSchool"
+        "reflected skill attribute metadata" = "ERPGSkillGoverningAttribute"
+    }
+
+    foreach ($Pair in $ForbiddenManifestPatterns.GetEnumerator()) {
+        if ($ManifestContent.Contains([string]$Pair.Value)) {
+            throw ("Localization manifest contains forbidden {0}: {1}" -f $Pair.Key, $Pair.Value)
+        }
+    }
+
+    $RequiredStableKeys = @(
+        "CharacterCreation.Attribute.Dexterity",
+        "Spellbook.School.Fire"
+    )
+    foreach ($RequiredStableKey in $RequiredStableKeys) {
+        if (-not $ManifestContent.Contains($RequiredStableKey)) {
+            throw ("Localization manifest is missing required ST_UI key: {0}" -f $RequiredStableKey)
+        }
+    }
+
+    $ConflictContent = [System.IO.File]::ReadAllText($ConflictReportPath, [System.Text.Encoding]::UTF8)
+    if (-not [string]::IsNullOrWhiteSpace($ConflictContent)) {
+        throw ("Localization conflict report is not empty: {0}" -f $ConflictReportPath)
+    }
+
+    Write-Host "[OK] Gather integrity guards."
+}
+
 Invoke-NativeStep -Label "Validate_PowerShell" -FilePath $PowerShellExe -ArgumentList @(
     "-NoProfile",
     "-NonInteractive",
@@ -195,7 +244,7 @@ Invoke-UnrealStep -Label "Sync_ST_UI" -Arguments @("-run=UIStringTableAuthoring"
 Assert-FileExists -Path $StringTableAsset -Label "materialized ST_UI String Table asset"
 
 Invoke-UnrealStep -Label "Gather" -Arguments @("-run=GatherText", ("-config={0}" -f $GatherConfig))
-Assert-FileExists -Path $Manifest -Label "generated localization manifest"
+Assert-GatherIntegrity -ManifestPath $Manifest -ConflictReportPath $ConflictReport
 
 Invoke-UnrealStep -Label "Export_PO" -Arguments @("-run=GatherText", ("-config={0}" -f $ExportConfig))
 Assert-FileExists -Path $EnglishPo -Label "English PO"
