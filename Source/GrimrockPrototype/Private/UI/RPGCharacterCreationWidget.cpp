@@ -14,6 +14,7 @@
 #include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UI/UILocalizationText.h"
 
 namespace
 {
@@ -49,7 +50,8 @@ namespace
 
 	FText GetGenderDisplayName(ERPGCharacterPortraitGender Gender)
 	{
-		return Gender == ERPGCharacterPortraitGender::Female ? FText::FromString(TEXT("Féminin")) : FText::FromString(TEXT("Masculin"));
+		return FUILocalizationText::Get(
+			Gender == ERPGCharacterPortraitGender::Female ? TEXT("CharacterCreation.Gender.Female") : TEXT("CharacterCreation.Gender.Male"));
 	}
 
 	bool AreSamePortraitTexture(const TSoftObjectPtr<UTexture2D>& Left, const TSoftObjectPtr<UTexture2D>& Right)
@@ -329,17 +331,18 @@ void URPGCharacterCreationWidget::RefreshPreview()
 	const bool bHasRaceDefinition = RaceDefinition && RaceDefinition->IsValidDefinition();
 	const bool bHasClassDefinition = ClassDefinition && ClassDefinition->IsValidDefinition();
 	const FText UnavailableValue = FText::FromString(TEXT("-"));
-	const FText RaceDisplayValue =
-		bHasRaceDefinition ? GetDefinitionDisplayName(RaceDefinition->DisplayName, RaceDefinition->RaceId) : FText::FromString(TEXT("Race non configurée"));
+	const FText RaceDisplayValue = bHasRaceDefinition ? GetDefinitionDisplayName(RaceDefinition->DisplayName, RaceDefinition->RaceId)
+													   : FUILocalizationText::Get(TEXT("CharacterCreation.Configuration.RaceUnavailable"));
 	const FText ClassDisplayValue = bHasClassDefinition ? GetDefinitionDisplayName(ClassDefinition->DisplayName, ClassDefinition->ClassId)
-														: FText::FromString(TEXT("Classe non configurée"));
+														: FUILocalizationText::Get(TEXT("CharacterCreation.Configuration.ClassUnavailable"));
 	const FText GenderDisplayValue = GetGenderDisplayName(SelectedPortraitGender);
 
 	FText PortraitDescription = ResolveSelectedPortraitDescription();
 	if (PortraitDescription.IsEmpty())
 	{
-		PortraitDescription = DefaultPortrait.IsNull() ? FText::FromString(TEXT("Aucun portrait disponible pour cette race et ce sexe."))
-													   : FText::FromString(TEXT("Aucune description disponible pour ce portrait."));
+		PortraitDescription = DefaultPortrait.IsNull()
+			? FUILocalizationText::Get(TEXT("CharacterCreation.Portrait.NoneForRaceGender"))
+			: FUILocalizationText::Get(TEXT("CharacterCreation.Portrait.DescriptionUnavailable"));
 	}
 
 	SetOptionalText(Text_RaceValue, RaceDisplayValue);
@@ -348,17 +351,22 @@ void URPGCharacterCreationWidget::RefreshPreview()
 	SetOptionalText(Text_ClassDescription, bHasClassDefinition ? ClassDefinition->Description : FText::GetEmpty());
 	SetOptionalText(Text_PortraitDescription, PortraitDescription);
 
-	SetOptionalText(Text_IdentityTitle, FText::FromString(TEXT("Identité du personnage")));
+	SetOptionalText(Text_IdentityTitle, FUILocalizationText::Get(TEXT("CharacterCreation.Identity.Title")));
+	SetOptionalText(Text_IdentityHelp, FUILocalizationText::Get(TEXT("CharacterCreation.Identity.Help")));
+	SetOptionalText(Text_NameLabel, FUILocalizationText::Get(TEXT("CharacterCreation.Identity.NameLabel")));
+	SetOptionalText(Text_IdentitySummaryTitle, FUILocalizationText::Get(TEXT("CharacterCreation.Identity.CurrentChoicesTitle")));
 	SetOptionalText(
-		Text_IdentityHelp, FText::FromString(TEXT("Donnez un nom à votre personnage et choisissez le portrait qui sera utilisé dans l'interface de jeu.")));
-	SetOptionalText(Text_NameLabel, FText::FromString(TEXT("Nom du personnage")));
-	SetOptionalText(Text_IdentitySummaryTitle, FText::FromString(TEXT("Choix actuels")));
-	SetOptionalText(Text_IdentityRace, FText::Format(FText::FromString(TEXT("Race : {0}")), RaceDisplayValue));
-	SetOptionalText(Text_IdentityClass, FText::Format(FText::FromString(TEXT("Classe : {0}")), ClassDisplayValue));
-	SetOptionalText(Text_IdentityGender, FText::Format(FText::FromString(TEXT("Sexe : {0}")), GenderDisplayValue));
-	SetOptionalText(Text_PortraitVariantLabel, FText::FromString(TEXT("Variante de portrait")));
-	SetOptionalText(Text_PortraitDescriptionTitle, FText::FromString(TEXT("Description du portrait")));
-	SetOptionalText(Text_PortraitCaption, FText::FromString(TEXT("Portrait final")));
+		Text_IdentityRace,
+		FText::FormatNamed(FUILocalizationText::Get(TEXT("CharacterCreation.Identity.RaceFormat")), TEXT("Race"), RaceDisplayValue));
+	SetOptionalText(
+		Text_IdentityClass,
+		FText::FormatNamed(FUILocalizationText::Get(TEXT("CharacterCreation.Identity.ClassFormat")), TEXT("Class"), ClassDisplayValue));
+	SetOptionalText(
+		Text_IdentityGender,
+		FText::FormatNamed(FUILocalizationText::Get(TEXT("CharacterCreation.Identity.GenderFormat")), TEXT("Gender"), GenderDisplayValue));
+	SetOptionalText(Text_PortraitVariantLabel, FUILocalizationText::Get(TEXT("CharacterCreation.Portrait.VariantLabel")));
+	SetOptionalText(Text_PortraitDescriptionTitle, FUILocalizationText::Get(TEXT("CharacterCreation.Portrait.DescriptionTitle")));
+	SetOptionalText(Text_PortraitCaption, FUILocalizationText::Get(TEXT("CharacterCreation.Portrait.FinalCaption")));
 
 	FRPGAttributes Attributes;
 	const bool bHasAttributes = GetPreviewAttributes(Attributes);
@@ -395,24 +403,24 @@ void URPGCharacterCreationWidget::RefreshPreview()
 
 	if (!bHasRaceDefinition || !bHasClassDefinition)
 	{
-		SetValidationMessage(FText::FromString(TEXT("Ajoutez au moins une race et une classe valides dans Class Defaults du widget.")), true);
+		SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Validation.DefinitionsMissing")), true);
 	}
 	else if (!InventoryComponent)
 	{
-		SetValidationMessage(FText::FromString(TEXT("Composant d'inventaire indisponible.")), true);
+		SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Validation.InventoryUnavailable")), true);
 	}
 	else if (CreationContext == ERPGCharacterCreationContext::NewGameMainHero && InventoryComponent->HasCompletedInitialCharacterCreation())
 	{
-		SetValidationMessage(FText::FromString(TEXT("La création initiale du personnage est déjà terminée.")), true);
+		SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Validation.InitialAlreadyCompleted")), true);
 	}
 	else if (CreationContext == ERPGCharacterCreationContext::CustomRecruit && !InventoryComponent->HasCompletedInitialCharacterCreation())
 	{
-		SetValidationMessage(FText::FromString(TEXT("Créez d'abord le héros principal avant d'engager une recrue.")), true);
+		SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Validation.MainHeroRequiredForRecruit")), true);
 	}
 	else if (CreationContext == ERPGCharacterCreationContext::CustomRecruit &&
 		InventoryComponent->GetActiveCharacterCount() >= InventoryComponent->GetMaxActiveCharacters())
 	{
-		SetValidationMessage(FText::FromString(TEXT("Le groupe actif est complet.")), true);
+		SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Validation.PartyFull")), true);
 	}
 
 	const bool bCanSubmit = CanSubmitCharacterCreation();
@@ -479,7 +487,7 @@ bool URPGCharacterCreationWidget::SubmitCharacterCreation()
 {
 	if (!InventoryComponent)
 	{
-		SetValidationMessage(FText::FromString(TEXT("Composant d'inventaire indisponible.")), true);
+		SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Validation.InventoryUnavailable")), true);
 		return false;
 	}
 
@@ -489,8 +497,9 @@ bool URPGCharacterCreationWidget::SubmitCharacterCreation()
 		FRPGCustomRecruitResult Result;
 		if (!FRPGCustomRecruitService::TryCreateAndRecruit(InventoryComponent, Request, Result))
 		{
-			const FString ErrorMessage = Result.Error.IsEmpty() ? FString(TEXT("Recrutement impossible.")) : Result.Error;
-			SetValidationMessage(FText::FromString(ErrorMessage), true);
+			UE_LOG(LogTemp, Warning, TEXT("CharacterCreation CustomRecruit rejected Reason=%d Detail=%s"),
+				static_cast<int32>(Result.RejectReason), *Result.Error);
+			SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Validation.RecruitmentFailed")), true);
 			RefreshPreview();
 			return false;
 		}
@@ -503,7 +512,8 @@ bool URPGCharacterCreationWidget::SubmitCharacterCreation()
 	FText Error;
 	if (!InventoryComponent->CreateInitialCharacter(Request, Error))
 	{
-		SetValidationMessage(Error.IsEmpty() ? FText::FromString(TEXT("Création du personnage impossible.")) : Error, true);
+		UE_LOG(LogTemp, Warning, TEXT("CharacterCreation InitialCreate rejected Detail=%s"), *Error.ToString());
+		SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Validation.CreationFailed")), true);
 		RefreshPreview();
 		return false;
 	}

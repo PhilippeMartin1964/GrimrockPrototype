@@ -1,5 +1,7 @@
 #include "UI/RPGCharacterCreationWizardWidget.h"
 
+#include "UI/UILocalizationText.h"
+
 #include "Components/Button.h"
 #include "Components/EditableText.h"
 #include "Components/Image.h"
@@ -74,15 +76,15 @@ namespace
 		switch (Step)
 		{
 			case ERPGCharacterCreationWizardStep::Race:
-				return FText::FromString(TEXT("Race"));
+				return FUILocalizationText::Get(TEXT("CharacterCreation.Wizard.Step.Race"));
 			case ERPGCharacterCreationWizardStep::Class:
-				return FText::FromString(TEXT("Classe"));
+				return FUILocalizationText::Get(TEXT("CharacterCreation.Wizard.Step.Class"));
 			case ERPGCharacterCreationWizardStep::Attributes:
-				return FText::FromString(TEXT("Caractéristiques"));
+				return FUILocalizationText::Get(TEXT("CharacterCreation.Wizard.Step.Attributes"));
 			case ERPGCharacterCreationWizardStep::Identity:
-				return FText::FromString(TEXT("Identité"));
+				return FUILocalizationText::Get(TEXT("CharacterCreation.Wizard.Step.Identity"));
 			case ERPGCharacterCreationWizardStep::Summary:
-				return FText::FromString(TEXT("Résumé"));
+				return FUILocalizationText::Get(TEXT("CharacterCreation.Wizard.Step.Summary"));
 			default:
 				return FText::GetEmpty();
 		}
@@ -163,31 +165,45 @@ namespace
 		return Name;
 	}
 
-	FString GetDisplayNameString(const FText& DisplayName, FName FallbackId)
+	FText GetDisplayNameText(const FText& DisplayName, FName FallbackId)
 	{
-		return DisplayName.IsEmpty() ? (FallbackId.IsNone() ? FString(TEXT("-")) : FallbackId.ToString()) : DisplayName.ToString();
+		return DisplayName.IsEmpty() ? (FallbackId.IsNone() ? FText::FromString(TEXT("-")) : FText::FromName(FallbackId)) : DisplayName;
 	}
 
-	FString GetGenderDisplayNameString(ERPGCharacterPortraitGender Gender)
+	FText GetGenderDisplayNameText(ERPGCharacterPortraitGender Gender)
 	{
-		return Gender == ERPGCharacterPortraitGender::Female ? FString(TEXT("Féminin")) : FString(TEXT("Masculin"));
+		return FUILocalizationText::Get(
+			Gender == ERPGCharacterPortraitGender::Female ? TEXT("CharacterCreation.Gender.Female") : TEXT("CharacterCreation.Gender.Male"));
 	}
 
-	FString FormatAttributeSummaryLine(
-		const TCHAR* Label, FName AttributeId, const FRPGAttributes& ClassAttributes, const FRPGAttributes& RaceBonuses, const FRPGAttributes& FinalAttributes)
+	FText FormatAttributeSummaryLine(
+		const TCHAR* LabelKey, FName AttributeId, const FRPGAttributes& ClassAttributes, const FRPGAttributes& RaceBonuses, const FRPGAttributes& FinalAttributes)
 	{
 		const int32 ClassValue = GetAttributeValue(ClassAttributes, AttributeId);
 		const int32 RaceValue = GetAttributeValue(RaceBonuses, AttributeId);
 		const int32 FinalValue = GetAttributeValue(FinalAttributes, AttributeId);
 		const int32 Modifier = URPGCharacterRulesLibrary::GetAttributeModifier(FinalValue);
-		return FString::Printf(TEXT("%s : %d + %+d = %d  mod %+d"), Label, ClassValue, RaceValue, FinalValue, Modifier);
+		return FText::FormatNamed(
+			FUILocalizationText::Get(TEXT("CharacterCreation.Summary.Attribute.Format")),
+			TEXT("Label"), FUILocalizationText::Get(LabelKey),
+			TEXT("ClassValue"), FText::AsNumber(ClassValue),
+			TEXT("RaceBonus"), FText::FromString(FString::Printf(TEXT("%+d"), RaceValue)),
+			TEXT("TotalValue"), FText::AsNumber(FinalValue),
+			TEXT("Modifier"), FText::FromString(FString::Printf(TEXT("%+d"), Modifier)));
 	}
 
-	void SetWizardOptionalText(UTextBlock* TextBlock, const FString& Value)
+	FText FormatUnavailableAttributeSummaryLine(const TCHAR* LabelKey)
+	{
+		return FText::FormatNamed(
+			FUILocalizationText::Get(TEXT("CharacterCreation.Summary.Attribute.Unavailable")),
+			TEXT("Label"), FUILocalizationText::Get(LabelKey));
+	}
+
+	void SetWizardOptionalText(UTextBlock* TextBlock, const FText& Value)
 	{
 		if (TextBlock)
 		{
-			TextBlock->SetText(FText::FromString(Value));
+			TextBlock->SetText(Value);
 		}
 	}
 
@@ -219,19 +235,19 @@ namespace
 		}
 	}
 
-	FString BuildWizardValidationMessage(const URPGCharacterCreationWizardWidget* Widget, bool& bOutIsError)
+	FText BuildWizardValidationMessage(const URPGCharacterCreationWizardWidget* Widget, bool& bOutIsError)
 	{
 		bOutIsError = false;
 
 		if (!Widget)
 		{
-			return FString();
+			return FText::GetEmpty();
 		}
 
 		if (!Widget->InventoryComponent)
 		{
 			bOutIsError = true;
-			return FString(TEXT("Composant d'inventaire indisponible."));
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Validation.InventoryUnavailable"));
 		}
 
 		const FGridPartyInventoryState& PartyState = Widget->InventoryComponent->PartyInventoryState;
@@ -240,13 +256,13 @@ namespace
 		if (!bCustomRecruit && PartyState.bInitialCharacterCreationCompleted)
 		{
 			bOutIsError = true;
-			return FString(TEXT("La création initiale du personnage est déjà terminée."));
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Validation.InitialAlreadyCompleted"));
 		}
 
 		if (bCustomRecruit && !PartyState.bInitialCharacterCreationCompleted)
 		{
 			bOutIsError = true;
-			return FString(TEXT("Créez d'abord le héros principal avant d'engager une recrue."));
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Validation.MainHeroRequiredForRecruit"));
 		}
 
 		if (bCustomRecruit &&
@@ -255,25 +271,25 @@ namespace
 				PartyState.MaxActiveCharacters < PartyState.ActiveCharacters.Num()))
 		{
 			bOutIsError = true;
-			return FString(TEXT("L'état du groupe n'est pas valide pour un recrutement."));
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Validation.InvalidPartyState"));
 		}
 
 		if (bCustomRecruit && PartyState.ActiveCharacters.Num() >= PartyState.MaxActiveCharacters)
 		{
 			bOutIsError = true;
-			return FString(TEXT("Le groupe actif est complet."));
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Validation.PartyFull"));
 		}
 
 		if (!Widget->RaceDefinition || !Widget->RaceDefinition->IsValidDefinition())
 		{
 			bOutIsError = true;
-			return FString(TEXT("Race non configurée : renseignez une race valide dans le widget."));
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Validation.RaceNotConfigured"));
 		}
 
 		if (!Widget->ClassDefinition || !Widget->ClassDefinition->IsValidDefinition())
 		{
 			bOutIsError = true;
-			return FString(TEXT("Classe non configurée : renseignez une classe valide dans le widget."));
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Validation.ClassNotConfigured"));
 		}
 
 		const int32 RemainingAttributePoints = Widget->GetRemainingAttributePoints();
@@ -284,44 +300,47 @@ namespace
 				Widget->CurrentWizardStep == ERPGCharacterCreationWizardStep::Identity ||
 				Widget->CurrentWizardStep == ERPGCharacterCreationWizardStep::Summary))
 		{
-			return FString::Printf(TEXT("Il reste %d point(s) de caractéristiques à répartir."), RemainingAttributePoints);
+			return FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("CharacterCreation.Validation.RemainingAttributePoints")),
+				TEXT("Count"), FText::AsNumber(RemainingAttributePoints));
 		}
 
 		if (NormalizedName.Len() < 1 &&
 			(Widget->CurrentWizardStep == ERPGCharacterCreationWizardStep::Identity || Widget->CurrentWizardStep == ERPGCharacterCreationWizardStep::Summary))
 		{
-			return bCustomRecruit ? FString(TEXT("Saisissez un nom pour pouvoir engager la recrue."))
-								  : FString(TEXT("Saisissez un nom pour pouvoir créer le personnage."));
+			return FUILocalizationText::Get(
+				bCustomRecruit ? TEXT("CharacterCreation.Validation.NameRequired.Recruit") : TEXT("CharacterCreation.Validation.NameRequired.Create"));
 		}
 
 		if (NormalizedName.Len() > 24)
 		{
 			bOutIsError = true;
-			return FString(TEXT("Le nom du personnage dépasse 24 caractères."));
+			return FUILocalizationText::Get(TEXT("CharacterCreation.Validation.NameTooLong"));
 		}
 
 		switch (Widget->CurrentWizardStep)
 		{
 			case ERPGCharacterCreationWizardStep::Race:
-				return FString(TEXT("Choisissez la race du personnage, puis passez à la classe."));
+				return FUILocalizationText::Get(TEXT("CharacterCreation.Wizard.Guide.Race"));
 			case ERPGCharacterCreationWizardStep::Class:
-				return FString(TEXT("Choisissez la classe du personnage, puis passez aux caractéristiques."));
+				return FUILocalizationText::Get(TEXT("CharacterCreation.Wizard.Guide.Class"));
 			case ERPGCharacterCreationWizardStep::Attributes:
-				return FString(TEXT("Caractéristiques validées. Vous pouvez passer à l'identité."));
+				return FUILocalizationText::Get(TEXT("CharacterCreation.Wizard.Guide.AttributesReady"));
 			case ERPGCharacterCreationWizardStep::Identity:
-				return FString(TEXT("Identité validée. Vous pouvez consulter le résumé."));
+				return FUILocalizationText::Get(TEXT("CharacterCreation.Wizard.Guide.IdentityReady"));
 			case ERPGCharacterCreationWizardStep::Summary:
 				if (Widget->CanSubmitCharacterCreation())
 				{
-					return bCustomRecruit ? FString(TEXT("Tous les choix sont valides. Vous pouvez engager cette recrue."))
-										  : FString(TEXT("Tous les choix sont valides. Vous pouvez créer le personnage."));
+					return FUILocalizationText::Get(
+						bCustomRecruit ? TEXT("CharacterCreation.Validation.Ready.Recruit") : TEXT("CharacterCreation.Validation.Ready.Create"));
 				}
 
 				bOutIsError = true;
-				return bCustomRecruit ? FString(TEXT("Recrutement impossible : vérifiez les choix précédents."))
-									  : FString(TEXT("Création impossible : vérifiez les choix précédents."));
+				return FUILocalizationText::Get(
+					bCustomRecruit ? TEXT("CharacterCreation.Validation.PreviousChoices.Recruit")
+								   : TEXT("CharacterCreation.Validation.PreviousChoices.Create"));
 			default:
-				return FString();
+				return FText::GetEmpty();
 		}
 	}
 
@@ -333,12 +352,12 @@ namespace
 		}
 
 		bool bIsError = false;
-		const FString Message = BuildWizardValidationMessage(Widget, bIsError);
-		Widget->Text_ValidationMessage->SetText(FText::FromString(Message));
+		const FText Message = BuildWizardValidationMessage(Widget, bIsError);
+		Widget->Text_ValidationMessage->SetText(Message);
 		Widget->Text_ValidationMessage->SetColorAndOpacity(
 			bIsError ? FSlateColor(FLinearColor(0.85f, 0.12f, 0.08f)) : FSlateColor(FLinearColor(0.80f, 0.72f, 0.55f)));
 		Widget->Text_ValidationMessage->SetVisibility(Message.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
-	}
+	
 }
 
 void URPGCharacterCreationWizardWidget::NativeConstruct()
@@ -557,21 +576,26 @@ void URPGCharacterCreationWizardWidget::RefreshWizardShell()
 void URPGCharacterCreationWizardWidget::RefreshSummaryStep()
 {
 	const FString Name = NormalizeCharacterName(EditableText_Name);
-	const FString DisplayName = Name.IsEmpty() ? FString(TEXT("-")) : Name;
-	const FString RaceName =
-		RaceDefinition && RaceDefinition->IsValidDefinition() ? GetDisplayNameString(RaceDefinition->DisplayName, RaceDefinition->RaceId) : FString(TEXT("-"));
-	const FString ClassName = ClassDefinition && ClassDefinition->IsValidDefinition()
-		? GetDisplayNameString(ClassDefinition->DisplayName, ClassDefinition->ClassId)
-		: FString(TEXT("-"));
-	const FString GenderName = GetGenderDisplayNameString(SelectedPortraitGender);
+	const FText DisplayName = Name.IsEmpty() ? FText::FromString(TEXT("-")) : FText::FromString(Name);
+	const FText RaceName = RaceDefinition && RaceDefinition->IsValidDefinition()
+		? GetDisplayNameText(RaceDefinition->DisplayName, RaceDefinition->RaceId)
+		: FText::FromString(TEXT("-"));
+	const FText ClassName = ClassDefinition && ClassDefinition->IsValidDefinition()
+		? GetDisplayNameText(ClassDefinition->DisplayName, ClassDefinition->ClassId)
+		: FText::FromString(TEXT("-"));
+	const FText GenderName = GetGenderDisplayNameText(SelectedPortraitGender);
 	const bool bCustomRecruit = CreationContext == ERPGCharacterCreationContext::CustomRecruit;
 
 	FRPGCharacterPortraitVariant PortraitVariant;
-	FString PortraitName = TEXT("-");
+	FText PortraitName = FText::FromString(TEXT("-"));
 	if (TryResolveWizardSelectedPortraitVariant(PortraitVariant))
-		PortraitName = GetDisplayNameString(PortraitVariant.DisplayName, PortraitVariant.VariantId);
+	{
+		PortraitName = GetDisplayNameText(PortraitVariant.DisplayName, PortraitVariant.VariantId);
+	}
 	else if (!SelectedPortraitVariantId.IsNone())
-		PortraitName = SelectedPortraitVariantId.ToString();
+	{
+		PortraitName = FText::FromName(SelectedPortraitVariantId);
+	}
 
 	FRPGAttributes FinalAttributes;
 	const bool bHasAttributes = GetPreviewAttributes(FinalAttributes);
@@ -580,58 +604,104 @@ void URPGCharacterCreationWizardWidget::RefreshSummaryStep()
 	FRPGDerivedStats DerivedStats;
 	const bool bHasDerivedStats = GetPreviewDerivedStats(DerivedStats);
 
-	const FString StrengthLine = bHasAttributes ? FormatAttributeSummaryLine(TEXT("Force"), AttributeStrength, ClassAttributes, RaceBonuses, FinalAttributes)
-												: FString(TEXT("Force : -"));
-	const FString DexterityLine = bHasAttributes
-		? FormatAttributeSummaryLine(TEXT("Dextérité"), AttributeDexterity, ClassAttributes, RaceBonuses, FinalAttributes)
-		: FString(TEXT("Dextérité : -"));
-	const FString ConstitutionLine = bHasAttributes
-		? FormatAttributeSummaryLine(TEXT("Constitution"), AttributeConstitution, ClassAttributes, RaceBonuses, FinalAttributes)
-		: FString(TEXT("Constitution : -"));
-	const FString IntelligenceLine = bHasAttributes
-		? FormatAttributeSummaryLine(TEXT("Intelligence"), AttributeIntelligence, ClassAttributes, RaceBonuses, FinalAttributes)
-		: FString(TEXT("Intelligence : -"));
-	const FString WisdomLine = bHasAttributes ? FormatAttributeSummaryLine(TEXT("Sagesse"), AttributeWisdom, ClassAttributes, RaceBonuses, FinalAttributes)
-											  : FString(TEXT("Sagesse : -"));
-	const FString CharismaLine = bHasAttributes ? FormatAttributeSummaryLine(TEXT("Charisme"), AttributeCharisma, ClassAttributes, RaceBonuses, FinalAttributes)
-												: FString(TEXT("Charisme : -"));
-	const FString HealthLine = bHasDerivedStats ? FString::Printf(TEXT("PV : %d"), DerivedStats.MaxHealth) : FString(TEXT("PV : -"));
-	const FString ManaLine = bHasDerivedStats ? FString::Printf(TEXT("Mana : %d"), DerivedStats.MaxMana) : FString(TEXT("Mana : -"));
-	const FString CarryLine =
-		bHasAttributes ? FString::Printf(TEXT("Charge max. : %d"), FMath::RoundToInt(GetPreviewCarryWeight())) : FString(TEXT("Charge max. : -"));
+	const FText StrengthLine = bHasAttributes
+		? FormatAttributeSummaryLine(TEXT("CharacterCreation.Attribute.Strength"), AttributeStrength, ClassAttributes, RaceBonuses, FinalAttributes)
+		: FormatUnavailableAttributeSummaryLine(TEXT("CharacterCreation.Attribute.Strength"));
+	const FText DexterityLine = bHasAttributes
+		? FormatAttributeSummaryLine(TEXT("CharacterCreation.Attribute.Dexterity"), AttributeDexterity, ClassAttributes, RaceBonuses, FinalAttributes)
+		: FormatUnavailableAttributeSummaryLine(TEXT("CharacterCreation.Attribute.Dexterity"));
+	const FText ConstitutionLine = bHasAttributes
+		? FormatAttributeSummaryLine(TEXT("CharacterCreation.Attribute.Constitution"), AttributeConstitution, ClassAttributes, RaceBonuses, FinalAttributes)
+		: FormatUnavailableAttributeSummaryLine(TEXT("CharacterCreation.Attribute.Constitution"));
+	const FText IntelligenceLine = bHasAttributes
+		? FormatAttributeSummaryLine(TEXT("CharacterCreation.Attribute.Intelligence"), AttributeIntelligence, ClassAttributes, RaceBonuses, FinalAttributes)
+		: FormatUnavailableAttributeSummaryLine(TEXT("CharacterCreation.Attribute.Intelligence"));
+	const FText WisdomLine = bHasAttributes
+		? FormatAttributeSummaryLine(TEXT("CharacterCreation.Attribute.Wisdom"), AttributeWisdom, ClassAttributes, RaceBonuses, FinalAttributes)
+		: FormatUnavailableAttributeSummaryLine(TEXT("CharacterCreation.Attribute.Wisdom"));
+	const FText CharismaLine = bHasAttributes
+		? FormatAttributeSummaryLine(TEXT("CharacterCreation.Attribute.Charisma"), AttributeCharisma, ClassAttributes, RaceBonuses, FinalAttributes)
+		: FormatUnavailableAttributeSummaryLine(TEXT("CharacterCreation.Attribute.Charisma"));
+	const FText HealthLine = bHasDerivedStats
+		? FText::FormatNamed(FUILocalizationText::Get(TEXT("CharacterCreation.Summary.Health.Format")), TEXT("Value"), FText::AsNumber(DerivedStats.MaxHealth))
+		: FUILocalizationText::Get(TEXT("CharacterCreation.Summary.Health.Unavailable"));
+	const FText ManaLine = bHasDerivedStats
+		? FText::FormatNamed(FUILocalizationText::Get(TEXT("CharacterCreation.Summary.Mana.Format")), TEXT("Value"), FText::AsNumber(DerivedStats.MaxMana))
+		: FUILocalizationText::Get(TEXT("CharacterCreation.Summary.Mana.Unavailable"));
+	const FText CarryLine = bHasAttributes
+		? FText::FormatNamed(
+			FUILocalizationText::Get(TEXT("CharacterCreation.Summary.CarryWeight.Format")),
+			TEXT("Value"), FText::AsNumber(FMath::RoundToInt(GetPreviewCarryWeight())))
+		: FUILocalizationText::Get(TEXT("CharacterCreation.Summary.CarryWeight.Unavailable"));
 
-	FString State;
+	FText State;
 	if (CanSubmitCharacterCreation())
 	{
-		State = bCustomRecruit ? TEXT("Prêt à engager la recrue.") : TEXT("Prêt à créer le personnage.");
+		State = FUILocalizationText::Get(
+			bCustomRecruit ? TEXT("CharacterCreation.Summary.State.Ready.Recruit") : TEXT("CharacterCreation.Summary.State.Ready.Create"));
 	}
 	else if (!InventoryComponent)
-		State = TEXT("Création impossible : inventaire indisponible.");
+	{
+		State = FUILocalizationText::Get(TEXT("CharacterCreation.Summary.State.InventoryUnavailable"));
+	}
 	else if (bCustomRecruit && !InventoryComponent->HasCompletedInitialCharacterCreation())
-		State = TEXT("Recrutement impossible : héros principal absent.");
+	{
+		State = FUILocalizationText::Get(TEXT("CharacterCreation.Summary.State.MainHeroMissing"));
+	}
 	else if (bCustomRecruit && InventoryComponent->GetActiveCharacterCount() >= InventoryComponent->GetMaxActiveCharacters())
-		State = TEXT("Recrutement impossible : groupe actif complet.");
+	{
+		State = FUILocalizationText::Get(TEXT("CharacterCreation.Summary.State.PartyFull"));
+	}
 	else if (Name.Len() < 1)
-		State = bCustomRecruit ? TEXT("Recrutement impossible : saisissez un nom.") : TEXT("Création impossible : saisissez un nom.");
+	{
+		State = FUILocalizationText::Get(
+			bCustomRecruit ? TEXT("CharacterCreation.Summary.State.NameMissing.Recruit") : TEXT("CharacterCreation.Summary.State.NameMissing.Create"));
+	}
 	else if (Name.Len() > 24)
-		State = bCustomRecruit ? TEXT("Recrutement impossible : le nom dépasse 24 caractères.") : TEXT("Création impossible : le nom dépasse 24 caractères.");
+	{
+		State = FUILocalizationText::Get(
+			bCustomRecruit ? TEXT("CharacterCreation.Summary.State.NameTooLong.Recruit") : TEXT("CharacterCreation.Summary.State.NameTooLong.Create"));
+	}
 	else if (!RaceDefinition || !RaceDefinition->IsValidDefinition())
-		State = bCustomRecruit ? TEXT("Recrutement impossible : race invalide.") : TEXT("Création impossible : race invalide.");
+	{
+		State = FUILocalizationText::Get(
+			bCustomRecruit ? TEXT("CharacterCreation.Summary.State.RaceInvalid.Recruit") : TEXT("CharacterCreation.Summary.State.RaceInvalid.Create"));
+	}
 	else if (!ClassDefinition || !ClassDefinition->IsValidDefinition())
-		State = bCustomRecruit ? TEXT("Recrutement impossible : classe invalide.") : TEXT("Création impossible : classe invalide.");
+	{
+		State = FUILocalizationText::Get(
+			bCustomRecruit ? TEXT("CharacterCreation.Summary.State.ClassInvalid.Recruit") : TEXT("CharacterCreation.Summary.State.ClassInvalid.Create"));
+	}
 	else if (GetRemainingAttributePoints() > 0)
 	{
-		State = bCustomRecruit ? FString::Printf(TEXT("Recrutement impossible : %d point(s) à répartir."), GetRemainingAttributePoints())
-							   : FString::Printf(TEXT("Création impossible : %d point(s) à répartir."), GetRemainingAttributePoints());
+		State = FText::FormatNamed(
+			FUILocalizationText::Get(
+				bCustomRecruit ? TEXT("CharacterCreation.Summary.State.PointsRemaining.Recruit")
+							   : TEXT("CharacterCreation.Summary.State.PointsRemaining.Create")),
+			TEXT("Count"), FText::AsNumber(GetRemainingAttributePoints()));
 	}
 	else
-		State = bCustomRecruit ? TEXT("Recrutement impossible : vérifiez les choix précédents.") : TEXT("Création impossible : vérifiez les choix précédents.");
+	{
+		State = FUILocalizationText::Get(
+			bCustomRecruit ? TEXT("CharacterCreation.Summary.State.PreviousChoices.Recruit")
+						   : TEXT("CharacterCreation.Summary.State.PreviousChoices.Create"));
+	}
 
-	SetWizardOptionalText(Text_SummaryName, FString::Printf(TEXT("Nom : %s"), *DisplayName));
-	SetWizardOptionalText(Text_SummaryRace, FString::Printf(TEXT("Race : %s"), *RaceName));
-	SetWizardOptionalText(Text_SummaryClass, FString::Printf(TEXT("Classe : %s"), *ClassName));
-	SetWizardOptionalText(Text_SummaryGender, FString::Printf(TEXT("Genre : %s"), *GenderName));
-	SetWizardOptionalText(Text_SummaryPortrait, FString::Printf(TEXT("Portrait : %s"), *PortraitName));
+	SetWizardOptionalText(
+		Text_SummaryName,
+		FText::FormatNamed(FUILocalizationText::Get(TEXT("CharacterCreation.Summary.NameFormat")), TEXT("Name"), DisplayName));
+	SetWizardOptionalText(
+		Text_SummaryRace,
+		FText::FormatNamed(FUILocalizationText::Get(TEXT("CharacterCreation.Summary.RaceFormat")), TEXT("Race"), RaceName));
+	SetWizardOptionalText(
+		Text_SummaryClass,
+		FText::FormatNamed(FUILocalizationText::Get(TEXT("CharacterCreation.Summary.ClassFormat")), TEXT("Class"), ClassName));
+	SetWizardOptionalText(
+		Text_SummaryGender,
+		FText::FormatNamed(FUILocalizationText::Get(TEXT("CharacterCreation.Summary.GenderFormat")), TEXT("Gender"), GenderName));
+	SetWizardOptionalText(
+		Text_SummaryPortrait,
+		FText::FormatNamed(FUILocalizationText::Get(TEXT("CharacterCreation.Summary.PortraitFormat")), TEXT("Portrait"), PortraitName));
 	SetWizardOptionalText(Text_SummaryStrength, StrengthLine);
 	SetWizardOptionalText(Text_SummaryDexterity, DexterityLine);
 	SetWizardOptionalText(Text_SummaryConstitution, ConstitutionLine);
@@ -646,10 +716,23 @@ void URPGCharacterCreationWizardWidget::RefreshSummaryStep()
 	const bool bCanCreateCharacter = CanSubmitCharacterCreation();
 	RefreshSummaryVisuals(bCanCreateCharacter);
 
-	const FString FullSummary = FString::Printf(
-		TEXT("%s\n%s · %s · %s\nPortrait : %s\n\nCaractéristiques finales\n%s\n%s\n%s\n%s\n%s\n%s\n\nStatistiques dérivées\n%s | %s | %s\n\n%s"), *DisplayName,
-		*RaceName, *ClassName, *GenderName, *PortraitName, *StrengthLine, *DexterityLine, *ConstitutionLine, *IntelligenceLine, *WisdomLine, *CharismaLine,
-		*HealthLine, *ManaLine, *CarryLine, *State);
+	const FText FullSummary = FText::FormatNamed(
+		FUILocalizationText::Get(TEXT("CharacterCreation.Summary.Full")),
+		TEXT("Name"), DisplayName,
+		TEXT("Race"), RaceName,
+		TEXT("Class"), ClassName,
+		TEXT("Gender"), GenderName,
+		TEXT("Portrait"), PortraitName,
+		TEXT("Strength"), StrengthLine,
+		TEXT("Dexterity"), DexterityLine,
+		TEXT("Constitution"), ConstitutionLine,
+		TEXT("Intelligence"), IntelligenceLine,
+		TEXT("Wisdom"), WisdomLine,
+		TEXT("Charisma"), CharismaLine,
+		TEXT("Health"), HealthLine,
+		TEXT("Mana"), ManaLine,
+		TEXT("Carry"), CarryLine,
+		TEXT("State"), State);
 	SetWizardOptionalText(Text_SummaryHelp, FullSummary);
 }
 
@@ -827,30 +910,30 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation()
 {
 	if (!InventoryComponent)
 	{
-		SetValidationMessage(FText::FromString(TEXT("Composant d'inventaire indisponible.")), true);
+		SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Validation.InventoryUnavailable")), true);
 		return false;
 	}
 	if (GetRemainingAttributePoints() > 0)
 	{
-		SetValidationMessage(FText::FromString(TEXT("Répartissez tous les points de caractéristiques avant de créer le personnage.")), true);
+		SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Submit.DistributeAllPoints")), true);
 		return false;
 	}
 	const FString NormalizedName = NormalizeCharacterName(EditableText_Name);
 	if (NormalizedName.Len() < 1 || NormalizedName.Len() > 24)
 	{
-		SetValidationMessage(FText::FromString(TEXT("Le nom du personnage doit contenir entre 1 et 24 caractères.")), true);
+		SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Submit.NameLength")), true);
 		return false;
 	}
 	if (!RaceDefinition || !RaceDefinition->IsValidDefinition() || !ClassDefinition || !ClassDefinition->IsValidDefinition())
 	{
-		SetValidationMessage(FText::FromString(TEXT("Une race et une classe valides sont requises.")), true);
+		SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Submit.RaceClassRequired")), true);
 		return false;
 	}
 
 	URPGClassAsset* EffectiveClassDefinition = DuplicateObject<URPGClassAsset>(ClassDefinition, this);
 	if (!EffectiveClassDefinition)
 	{
-		SetValidationMessage(FText::FromString(TEXT("Impossible de préparer la classe du personnage.")), true);
+		SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Submit.ClassPrepareFailed")), true);
 		return false;
 	}
 	EffectiveClassDefinition->BaseAttributes = GetAllocatedClassAttributesForPreview();
@@ -872,8 +955,9 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation()
 		FRPGCustomRecruitResult RecruitResult;
 		if (!FRPGCustomRecruitService::TryCreateAndRecruit(InventoryComponent, Request, RecruitResult))
 		{
-			const FString ErrorMessage = RecruitResult.Error.IsEmpty() ? FString(TEXT("Recrutement impossible.")) : RecruitResult.Error;
-			SetValidationMessage(FText::FromString(ErrorMessage), true);
+			UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("CharacterCreationWizard CustomRecruit rejected Reason=%d Detail=%s"),
+				static_cast<int32>(RecruitResult.RejectReason), *RecruitResult.Error);
+			SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Validation.RecruitmentFailed")), true);
 			RefreshSummaryStep();
 			return false;
 		}
@@ -892,7 +976,8 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation()
 	FText Error;
 	if (!InventoryComponent->CreateInitialCharacter(Request, Error))
 	{
-		SetValidationMessage(Error.IsEmpty() ? FText::FromString(TEXT("Création du personnage impossible.")) : Error, true);
+		UE_LOG(LogGrimrockFrontendUI, Warning, TEXT("CharacterCreationWizard InitialCreate rejected Detail=%s"), *Error.ToString());
+		SetValidationMessage(FUILocalizationText::Get(TEXT("CharacterCreation.Validation.CreationFailed")), true);
 		RefreshSummaryStep();
 		return false;
 	}

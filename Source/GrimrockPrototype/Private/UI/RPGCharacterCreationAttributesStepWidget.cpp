@@ -1,5 +1,7 @@
 #include "UI/RPGCharacterCreationAttributesStepWidget.h"
 
+#include "UI/UILocalizationText.h"
+
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
@@ -194,10 +196,13 @@ void URPGCharacterCreationAttributesStepWidget::RefreshAttributeAllocationPrevie
 	const int32 Budget = Wizard->GetAttributePointBudget();
 	const int32 Remaining = Wizard->GetRemainingAttributePoints();
 
-	CCAttributeStepSetOptionalText(Text_AttributePointsRemaining,
-		FText::Format(FText::FromString(TEXT("Points restants : {0} / {1}")), FText::AsNumber(Remaining), FText::AsNumber(Budget)));
 	CCAttributeStepSetOptionalText(
-		Text_AttributeHelp, FText::FromString(TEXT("Les valeurs de classe peuvent être ajustées. Les bonus de race sont appliqués ensuite.")));
+		Text_AttributePointsRemaining,
+		FText::FormatNamed(
+			FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.PointsRemaining")),
+			TEXT("Current"), FText::AsNumber(Remaining),
+			TEXT("Total"), FText::AsNumber(Budget)));
+	CCAttributeStepSetOptionalText(Text_AttributeHelp, FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Help")));
 
 	FRPGAttributes FinalAttributes;
 	const bool bHasAttributes = Wizard->GetPreviewAttributes(FinalAttributes);
@@ -236,29 +241,45 @@ void URPGCharacterCreationAttributesStepWidget::RefreshAttributeAllocationPrevie
 		const int32 Modifier = URPGCharacterRulesLibrary::GetAttributeModifier(TotalValue);
 		if (AttributeId == CCAttributeStepStrength)
 		{
-			EffectsText->SetText(FText::FromString(FString::Printf(TEXT("Charge %d · CàC %+d"), FMath::RoundToInt(Wizard->GetPreviewCarryWeight()), Modifier)));
+			EffectsText->SetText(FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Effect.Strength")),
+				TEXT("Carry"), FText::AsNumber(FMath::RoundToInt(Wizard->GetPreviewCarryWeight())),
+				TEXT("Melee"), CCAttributeStepFormatSignedInteger(Modifier)));
 		}
 		else if (AttributeId == CCAttributeStepDexterity)
 		{
-			EffectsText->SetText(FText::FromString(FString::Printf(
-				TEXT("Précision %+d · Esquive %+d"), bHasDerivedStats ? DerivedStats.Accuracy : Modifier, bHasDerivedStats ? DerivedStats.Evasion : Modifier)));
+			EffectsText->SetText(FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Effect.Dexterity")),
+				TEXT("Accuracy"), CCAttributeStepFormatSignedInteger(bHasDerivedStats ? DerivedStats.Accuracy : Modifier),
+				TEXT("Evasion"), CCAttributeStepFormatSignedInteger(bHasDerivedStats ? DerivedStats.Evasion : Modifier)));
 		}
 		else if (AttributeId == CCAttributeStepConstitution)
 		{
-			EffectsText->SetText(
-				FText::FromString(FString::Printf(TEXT("Santé %d · Résistance %+d"), bHasDerivedStats ? DerivedStats.MaxHealth : 0, Modifier)));
+			EffectsText->SetText(FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Effect.Constitution")),
+				TEXT("Health"), FText::AsNumber(bHasDerivedStats ? DerivedStats.MaxHealth : 0),
+				TEXT("Resistance"), CCAttributeStepFormatSignedInteger(Modifier)));
 		}
 		else if (AttributeId == CCAttributeStepIntelligence)
 		{
-			EffectsText->SetText(FText::FromString(FString::Printf(TEXT("Savoirs %+d · Alchimie %+d"), Modifier, Modifier)));
+			EffectsText->SetText(FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Effect.Intelligence")),
+				TEXT("Knowledge"), CCAttributeStepFormatSignedInteger(Modifier),
+				TEXT("Alchemy"), CCAttributeStepFormatSignedInteger(Modifier)));
 		}
 		else if (AttributeId == CCAttributeStepWisdom)
 		{
-			EffectsText->SetText(FText::FromString(FString::Printf(TEXT("Perception %+d · Volonté %+d"), Modifier, Modifier)));
+			EffectsText->SetText(FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Effect.Wisdom")),
+				TEXT("Perception"), CCAttributeStepFormatSignedInteger(Modifier),
+				TEXT("Willpower"), CCAttributeStepFormatSignedInteger(Modifier)));
 		}
 		else if (AttributeId == CCAttributeStepCharisma)
 		{
-			EffectsText->SetText(FText::FromString(FString::Printf(TEXT("Influence %+d · Recrutement %+d"), Modifier, Modifier)));
+			EffectsText->SetText(FText::FormatNamed(
+				FUILocalizationText::Get(TEXT("CharacterCreation.Attribute.Effect.Charisma")),
+				TEXT("Influence"), CCAttributeStepFormatSignedInteger(Modifier),
+				TEXT("Recruitment"), CCAttributeStepFormatSignedInteger(Modifier)));
 		}
 	};
 
