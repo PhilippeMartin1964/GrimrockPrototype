@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Game\n"
-"POT-Creation-Date: 2026-10-13 09:54\n"
-"PO-Revision-Date: 2026-10-13 09:54\n"
+"POT-Creation-Date: 2026-10-13 10:13\n"
+"PO-Revision-Date: 2026-10-13 10:13\n"
 "Language-Team: \n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -1220,6 +1220,70 @@ msgstr "Lire"
 msgctxt "ST_UI,Interaction.Receptacle.PlaceItem"
 msgid "Placer l'objet"
 msgstr "Placer l'objet"
+
+#. Key:	Inventory.Bag.Weight
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Poids courant et capacité maximale du sac sélectionné"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Inventory.Bag.Weight"
+msgid "Poids : {Current} / {Maximum}"
+msgstr "Poids : {Current} / {Maximum}"
+
+#. Key:	Progression.Skill.AllocationFailed
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback d'échec d'attribution d'un rang de compétence"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Progression.Skill.AllocationFailed"
+msgid "Attribution de compétence impossible."
+msgstr "Attribution de compétence impossible."
+
+#. Key:	Progression.Skill.CancellationFailed
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback d'échec d'annulation d'un rang acheté pendant la session"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Progression.Skill.CancellationFailed"
+msgid "Annulation de compétence impossible."
+msgstr "Annulation de compétence impossible."
+
+#. Key:	SaveLoad.Slot.Available
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État d'un slot de sauvegarde existant"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,SaveLoad.Slot.Available"
+msgid "Disponible"
+msgstr "Disponible"
+
+#. Key:	SaveLoad.Slot.Numbered
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom générique d'un slot de sauvegarde numéroté"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,SaveLoad.Slot.Numbered"
+msgid "Sauvegarde {Index}"
+msgstr "Sauvegarde {Index}"
+
+#. Key:	SaveLoad.Slot.Primary
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Nom du slot de sauvegarde principal"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,SaveLoad.Slot.Primary"
+msgid "Sauvegarde principale"
+msgstr "Sauvegarde principale"
+
+#. Key:	SaveLoad.Slot.Unavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "État d'un slot de sauvegarde absent"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,SaveLoad.Slot.Unavailable"
+msgid "Indisponible"
+msgstr "Indisponible"
+
+#. Key:	Spellbook.Fallback.DefinitionUnavailable
+#. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
+#. InfoMetaData:	"Comment" : "Fallback de présentation lorsqu'une définition de sort connue est introuvable"
+#: /Game/Localization/StringTables/ST_UI.ST_UI
+msgctxt "ST_UI,Spellbook.Fallback.DefinitionUnavailable"
+msgid "Définition de sort indisponible."
+msgstr "Définition de sort indisponible."
 
 #. Key:	Status.Control.BlockSpellActions
 #. SourceLocation:	/Game/Localization/StringTables/ST_UI.ST_UI
