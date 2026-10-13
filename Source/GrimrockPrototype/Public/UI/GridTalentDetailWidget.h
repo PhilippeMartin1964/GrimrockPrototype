@@ -129,6 +129,7 @@ private:
 	void RefreshCanonicalSections();
 	void ApplyDetailPresentation();
 	void ApplyAcquisitionPresentation();
+	void ApplyLocalizedStaticLabels();
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UBorder> Border_DetailAccent;
@@ -156,6 +157,27 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_DetailPrinciple;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_LabelType;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_LabelStatus;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_LabelPrinciple;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_LabelEffects;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_LabelUsage;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_LabelAcquisition;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_LabelVariants;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_DetailEffects;
@@ -198,6 +220,15 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Button_CancelAcquire;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_AcquireTalent;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_ConfirmAcquire;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_CancelAcquire;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_AcquirePrompt;

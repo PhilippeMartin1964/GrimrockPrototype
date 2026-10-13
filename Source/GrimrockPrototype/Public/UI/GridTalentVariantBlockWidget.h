@@ -75,12 +75,19 @@ private:
 	void RebuildDetailLineRows();
 	void PopulateDetailLineRows(UVerticalBox* Container, const TArray<FGridTalentDetailLineView>& Lines);
 	void ApplyPresentation();
+	void ApplyLocalizedStaticLabels();
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_VariantName;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Text_VariantPrinciple;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_LabelVariantEffects;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_LabelVariantUsage;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> VB_VariantEffects;

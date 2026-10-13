@@ -23,6 +23,7 @@ void UGridTalentVariantBlockWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	BindChooseButton();
+	ApplyLocalizedStaticLabels();
 	RebuildDetailLineRows();
 	ApplyPresentation();
 }
@@ -31,6 +32,20 @@ void UGridTalentVariantBlockWidget::NativeDestruct()
 {
 	UnbindChooseButton();
 	Super::NativeDestruct();
+}
+
+void UGridTalentVariantBlockWidget::ApplyLocalizedStaticLabels()
+{
+	if (Text_LabelVariantEffects)
+	{
+		Text_LabelVariantEffects->SetText(
+			URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Section.Effects")));
+	}
+	if (Text_LabelVariantUsage)
+	{
+		Text_LabelVariantUsage->SetText(
+			URPGTalentDetailTextSet::ResolveProductionText(TEXT("Talent.Section.Usage")));
+	}
 }
 
 bool UGridTalentVariantBlockWidget::InitializeVariant(
