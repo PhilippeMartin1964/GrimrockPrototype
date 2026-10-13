@@ -50,7 +50,6 @@ namespace
 		TStrongObjectPtr<UGridDungeonAsset> OriginalPreviewDungeonAsset;
 		TStrongObjectPtr<UGridLevelAsset> FixtureLevelAsset;
 		TStrongObjectPtr<UGridDungeonAsset> FixtureDungeonAsset;
-		TStrongObjectPtr<UGridPartyInventoryComponent> SavePartyFixture;
 		FString PreparedRuntimeActorName;
 		FIntPoint StartCell = FIntPoint(0, 0);
 		bool bOriginalAutoPreparePIE = true;
@@ -406,7 +405,6 @@ namespace
 			{
 				return true;
 			}
-			State->SavePartyFixture.Reset(SavePartyFixture);
 
 			UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
 			Save->PartyInventoryState = SavePartyFixture->PartyInventoryState;
@@ -824,7 +822,6 @@ namespace
 				}
 			}
 
-			State->SavePartyFixture.Reset();
 			State->FixtureDungeonAsset.Reset();
 			State->FixtureLevelAsset.Reset();
 			if (State->PIEWorldInitializationHandle.IsValid())
